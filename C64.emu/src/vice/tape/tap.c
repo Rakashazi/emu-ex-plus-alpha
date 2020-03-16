@@ -78,7 +78,7 @@ static int tap_pulse_tt_long_max = 0x36;
 
 static int tap_header_read(tap_t *tap, FILE *fd)
 {
-    BYTE buf[TAP_HDR_SIZE];
+    uint8_t buf[TAP_HDR_SIZE];
 
     if (fread(buf, TAP_HDR_SIZE, 1, fd) != 1) {
         return -1;
@@ -156,7 +156,7 @@ tap_t *tap_open(const char *name, unsigned int *read_only)
         return NULL;
     }
 
-    new->file_name = lib_stralloc(name);
+    new->file_name = lib_strdup(name);
     new->tap_file_record = lib_calloc(1, sizeof(tape_file_record_t));
     new->current_file_number = -1;
     new->current_file_data = NULL;
@@ -171,7 +171,7 @@ int tap_close(tap_t *tap)
 
     if (tap->fd != NULL) {
         if (tap->has_changed) {
-            BYTE buf[4];
+            uint8_t buf[4];
             util_dword_to_le_buf(buf, tap->size);
             util_fpwrite(tap->fd, buf, 4, TAP_HDR_LEN);
         }
@@ -194,7 +194,7 @@ int tap_close(tap_t *tap)
 int tap_create(const char *name)
 {
     FILE *fd;
-    BYTE block[256];
+    uint8_t block[256];
 
     memset(block, 0, sizeof(block));
 
@@ -228,8 +228,8 @@ static int tap_find_pilot(tap_t *tap, int type);
 
 inline static int tap_get_pulse(tap_t *tap, int *pos_advance)
 {
-    BYTE data;
-    DWORD pulse_length = 0;
+    uint8_t data;
+    uint32_t pulse_length = 0;
     size_t res;
 
     *pos_advance = 0;
@@ -245,7 +245,7 @@ inline static int tap_get_pulse(tap_t *tap, int *pos_advance)
         if (tap->version == 0) {
             pulse_length = 256;
         } else if ((tap->version == 1) || (tap->version == 2)) {
-            BYTE size[3];
+            uint8_t size[3];
             res = fread(size, 3, 1, tap->fd);
             if (res == 0) {
                 return -1;
@@ -259,7 +259,7 @@ inline static int tap_get_pulse(tap_t *tap, int *pos_advance)
 
     /*  Handle Halfwave format for C16 tapes */
     if (tap->version == 2) {
-        DWORD pulse_length2;
+        uint32_t pulse_length2;
 
         res = fread(&data, 1, 1, tap->fd);
 
@@ -268,7 +268,7 @@ inline static int tap_get_pulse(tap_t *tap, int *pos_advance)
         }
         *pos_advance += (int)res;
         if (data == 0) {
-            BYTE size[3];
+            uint8_t size[3];
             res = fread(size, 3, 1, tap->fd);
             if (res == 0) {
                 return -1;
@@ -327,7 +327,7 @@ inline static int tap_cbm_read_bit(tap_t *tap)
 static int tap_cbm_read_byte(tap_t *tap)
 {
     int i, data, parity;
-    BYTE read;
+    uint8_t read;
     int pos_advance;
 
     /* check for L pulse (start-of-byte) */
@@ -420,7 +420,7 @@ static int tap_cbm_skip_pilot(tap_t *tap)
             if (!TAP_PULSE_SHORT(data)) {
                 return 0;
             }
-        } 
+        }
     }
 
     return 0;
@@ -462,7 +462,7 @@ void tap_cbm_print_error(int ret)
 }
 #endif
 
-static int tap_cbm_read_block_once(tap_t *tap, int *pass, BYTE *buffer, int *size, int *error_buf, int *error_count)
+static int tap_cbm_read_block_once(tap_t *tap, int *pass, uint8_t *buffer, int *size, int *error_buf, int *error_count)
 {
     int count, data, ecount, found_pass;
 
@@ -549,9 +549,9 @@ static int tap_cbm_read_block_once(tap_t *tap, int *pass, BYTE *buffer, int *siz
             /* byte ok */
             if (count < *size) {
 #if TAP_DEBUG > 1
-                log_debug(" %02x", (BYTE) data);
+                log_debug(" %02x", (uint8_t) data);
 #endif
-                buffer[count++] = (BYTE) data;
+                buffer[count++] = (uint8_t) data;
                 if ((machine_tape_behaviour() == TAPE_BEHAVIOUR_C16) && (count == *size)) {
                     /*  On the C16 a block is finished with 1 Medium pulse
                         followed by 450 Small pulse
@@ -569,7 +569,7 @@ static int tap_cbm_read_block_once(tap_t *tap, int *pass, BYTE *buffer, int *siz
 
 
 /* NOTE: parameter "size" must equal expected block size + 1 (for parity byte) */
-static int tap_cbm_read_block(tap_t *tap, BYTE *buffer, int size)
+static int tap_cbm_read_block(tap_t *tap, uint8_t *buffer, int size)
 {
     int i, ret, pass, error_count, error_buf[MAX_ERRORS];
 
@@ -643,7 +643,7 @@ static int tap_cbm_read_block(tap_t *tap, BYTE *buffer, int size)
 static int tap_cbm_read_header(tap_t *tap)
 {
     int ret;
-    BYTE buffer[255];
+    uint8_t buffer[255];
 
     /* read header data */
     ret = tap_cbm_read_block(tap, buffer, machine_tape_behaviour() == TAPE_BEHAVIOUR_C16 ? 193 : 255);
@@ -659,8 +659,8 @@ static int tap_cbm_read_header(tap_t *tap)
     /* extract info */
     tap->tap_file_record->type = buffer[0];
     tap->tap_file_record->encoding = TAPE_ENCODING_CBM;
-    tap->tap_file_record->start_addr = (WORD)(buffer[1] + buffer[2] * 256);
-    tap->tap_file_record->end_addr = (WORD)(buffer[3] + buffer[4] * 256);
+    tap->tap_file_record->start_addr = (uint16_t)(buffer[1] + buffer[2] * 256);
+    tap->tap_file_record->end_addr = (uint16_t)(buffer[3] + buffer[4] * 256);
     memcpy(tap->tap_file_record->name, buffer + 5, 16);
 
     return 0;
@@ -691,7 +691,7 @@ static int tap_cbm_read_file_prg(tap_t *tap)
 static int tap_cbm_read_file_seq(tap_t *tap)
 {
     int ret;
-    BYTE buffer[193];
+    uint8_t buffer[193];
 
     while (1) {
         /* find next pilot */
@@ -761,7 +761,7 @@ static int tap_cbm_skip_file(tap_t *tap)
 
     if (tap->tap_file_record->type == 4) {
         /* sequential file.  must read each block to find last one */
-        BYTE buffer[193];
+        uint8_t buffer[193];
         long fpos;
         int ret;
 
@@ -818,7 +818,7 @@ static int tap_cbm_skip_file(tap_t *tap)
 static int tap_tt_read_byte(tap_t *tap)
 {
     int pulse, i;
-    BYTE read;
+    uint8_t read;
     int pos_advance;
 
     read = 0;
@@ -901,7 +901,7 @@ static void tap_tt_print_error(int ret)
 }
 #endif
 
-static int tap_tt_read_block(tap_t *tap, int type, BYTE *buffer, unsigned int size)
+static int tap_tt_read_block(tap_t *tap, int type, uint8_t *buffer, unsigned int size)
 {
     int data;
     unsigned int count;
@@ -968,7 +968,7 @@ static int tap_tt_read_block(tap_t *tap, int type, BYTE *buffer, unsigned int si
 #endif
 
         if (buffer != NULL) {
-            buffer[count] = (BYTE) data;
+            buffer[count] = (uint8_t) data;
         }
     }
 
@@ -1002,7 +1002,7 @@ static int tap_tt_read_block(tap_t *tap, int type, BYTE *buffer, unsigned int si
 
 static int tap_tt_read_header(tap_t *tap)
 {
-    BYTE buffer[193];
+    uint8_t buffer[193];
     int res;
 
     /* read header block */
@@ -1017,8 +1017,8 @@ static int tap_tt_read_header(tap_t *tap)
     /* extract info */
     tap->tap_file_record->type = 1;
     tap->tap_file_record->encoding = TAPE_ENCODING_TURBOTAPE;
-    tap->tap_file_record->start_addr = (WORD)(buffer[0] + buffer[1] * 256);
-    tap->tap_file_record->end_addr = (WORD)(buffer[2] + buffer[3] * 256);
+    tap->tap_file_record->start_addr = (uint16_t)(buffer[0] + buffer[1] * 256);
+    tap->tap_file_record->end_addr = (uint16_t)(buffer[2] + buffer[3] * 256);
     memcpy(tap->tap_file_record->name, buffer + 5, 16);
 
     return 0;
@@ -1048,7 +1048,7 @@ static int tap_tt_read_file(tap_t *tap)
 static int tap_tt_skip_file(tap_t *tap)
 {
     int res;
-    BYTE buffer[193];
+    uint8_t buffer[193];
 
     /* read header */
     res = tap_tt_read_block(tap, TT_BLOCK_TYPE_HEADER, buffer, 193);
@@ -1091,7 +1091,7 @@ static int tap_find_pilot(tap_t *tap, int type)
     int count;
     int data[256];
     long pos[257];
-    BYTE buffer[256];
+    uint8_t buffer[256];
 
     /* when looking for any pilot type, require CBM pilot to be longer
        than when specifically looking for CBM pilot.  A TurboTape L pulse
@@ -1116,7 +1116,7 @@ static int tap_find_pilot(tap_t *tap, int type)
 /*        count = fread(&data, 1, 256, tap->fd); */
         int startpos = ftell(tap->fd);
         int readlen = (int)fread(buffer, 1, 256, tap->fd);
-        DWORD pulse_length = 0;
+        uint32_t pulse_length = 0;
         int j = 0;
         int needed;
         int res;
@@ -1151,7 +1151,7 @@ static int tap_find_pilot(tap_t *tap, int type)
             data[j] = pulse_length;
 
             if (tap->version == 2) {
-                DWORD pulse_length2;
+                uint32_t pulse_length2;
                 /*  Read one more byte if run out of buffer */
                 if (i == readlen) {
                     readlen = (int)fread(buffer, 1, 1, tap->fd);
@@ -1455,7 +1455,7 @@ int tap_seek_to_next_file(tap_t *tap, unsigned int allow_rewind)
     return 0;
 }
 
-int tap_read(tap_t *tap, BYTE *buf, size_t size)
+int tap_read(tap_t *tap, uint8_t *buf, size_t size)
 {
     if (tap->current_file_data == NULL) {
         /* no file data yet */
@@ -1492,7 +1492,7 @@ int tap_read(tap_t *tap, BYTE *buf, size_t size)
 }
 
 
-void tap_get_header(tap_t *tap, BYTE *name)
+void tap_get_header(tap_t *tap, uint8_t *name)
 {
     memcpy(name, tap->name, 12);
 }

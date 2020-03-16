@@ -41,7 +41,7 @@
 
 static log_t scpu64rom_log = LOG_ERR;
 
-BYTE scpu64rom_scpu64_rom[SCPU64_SCPU64_ROM_MAXSIZE];
+uint8_t scpu64rom_scpu64_rom[SCPU64_SCPU64_ROM_MAXSIZE];
 
 /* Flag: nonzero if the ROMs have been loaded.  */
 static int rom_loaded = 0;
@@ -78,7 +78,9 @@ int scpu64rom_load_scpu64(const char *rom_name)
     }
     for (i = 0 ;i < SCPU64_SCPU64_ROM_MAXSIZE - size; i += size) {
         memcpy(scpu64rom_scpu64_rom + i, scpu64rom_scpu64_rom + SCPU64_SCPU64_ROM_MAXSIZE - size, size);
-    } 
+    }
+    /* FIXME: copy kernal into the trap ram, else the checkbytes can not be found */
+    memcpy(mem_trap_ram, scpu64rom_scpu64_rom + 0x4100, 0x2000);
     return 0;
 }
 

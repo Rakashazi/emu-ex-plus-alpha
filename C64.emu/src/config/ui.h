@@ -1,3 +1,5 @@
 #pragma once
 
-// Nothing to define
+int ui_pause_active();
+void ui_pause_enable();
+void ui_pause_disable();

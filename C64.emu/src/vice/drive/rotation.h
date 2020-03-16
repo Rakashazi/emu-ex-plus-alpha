@@ -37,13 +37,13 @@ struct drive_s;
 extern void rotation_init(int freq, unsigned int dnr);
 extern void rotation_reset(struct drive_s *drive);
 extern void rotation_speed_zone_set(unsigned int zone, unsigned int dnr);
-extern void rotation_table_get(DWORD *rotation_table_ptr);
-extern void rotation_table_set(DWORD *rotation_table_ptr);
+extern void rotation_table_get(uint32_t *rotation_table_ptr);
+extern void rotation_table_set(uint32_t *rotation_table_ptr);
 extern void rotation_overflow_callback(CLOCK sub, unsigned int dnr);
 extern void rotation_change_mode(unsigned int dnr);
 extern void rotation_begins(struct drive_s *dptr);
 extern void rotation_rotate_disk(struct drive_s *dptr);
-extern BYTE rotation_sync_found(struct drive_s *dptr);
+extern uint8_t rotation_sync_found(struct drive_s *dptr);
 extern void rotation_byte_read(struct drive_s *dptr);
 
 #endif

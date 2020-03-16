@@ -40,8 +40,8 @@ extern void fdd_shutdown(fd_drive_t *drv);
 
 extern void fdd_image_attach(fd_drive_t *drv, struct disk_image_s *image);
 extern void fdd_image_detach(fd_drive_t *drv);
-extern WORD fdd_read(fd_drive_t *drv);
-extern int fdd_write(fd_drive_t *drv, WORD data);
+extern uint16_t fdd_read(fd_drive_t *drv);
+extern int fdd_write(fd_drive_t *drv, uint16_t data);
 extern void fdd_flush(fd_drive_t *drv);
 extern void fdd_seek_pulse(fd_drive_t *drv, int dir);
 extern void fdd_select_head(fd_drive_t *drv, int head);
@@ -50,12 +50,13 @@ extern void fdd_set_rate(fd_drive_t *drv, int rate);
 extern int fdd_rotate(fd_drive_t *drv, int bytes);
 extern int fdd_index(fd_drive_t *drv);
 extern void fdd_index_count_reset(fd_drive_t *drv);
-extern int fdd_index_count(fd_drive_t *drv);
+extern unsigned int fdd_index_count(fd_drive_t *drv);
 extern int fdd_track0(fd_drive_t *drv);
 extern int fdd_write_protect(fd_drive_t *drv);
 extern int fdd_disk_change(fd_drive_t *drv);
-extern WORD fdd_crc(WORD crc, BYTE b);
+extern uint16_t fdd_crc(uint16_t crc, uint8_t b);
 
 extern int fdd_snapshot_write_module(fd_drive_t *drv, struct snapshot_s *s);
 extern int fdd_snapshot_read_module(fd_drive_t *drv, struct snapshot_s *s);
+
 #endif

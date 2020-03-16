@@ -40,17 +40,17 @@
 #include "types.h"
 
 
-void tpi2_store(WORD addr, BYTE data)
+void tpi2_store(uint16_t addr, uint8_t data)
 {
     tpicore_store(machine_context.tpi2, addr, data);
 }
 
-BYTE tpi2_read(WORD addr)
+uint8_t tpi2_read(uint16_t addr)
 {
     return tpicore_read(machine_context.tpi2, addr);
 }
 
-BYTE tpi2_peek(WORD addr)
+uint8_t tpi2_peek(uint16_t addr)
 {
     return tpicore_peek(machine_context.tpi2, addr);
 }
@@ -63,9 +63,9 @@ static void restore_int(unsigned int int_num, int value)
 {
 }
 
-static BYTE cbm2_model_port_mask = 0xc0;
+static uint8_t cbm2_model_port_mask = 0xc0;
 
-void set_cbm2_model_port_mask(BYTE val)
+void set_cbm2_model_port_mask(uint8_t val)
 {
     cbm2_model_port_mask = val & 0xc0;
 }
@@ -82,52 +82,54 @@ static void reset(tpi_context_t *tpi_context)
 {
 }
 
-static void store_pa(tpi_context_t *tpi_context, BYTE byte)
+static void store_pa(tpi_context_t *tpi_context, uint8_t byte)
 {
 }
 
-static void store_pb(tpi_context_t *tpi_context, BYTE byte)
+static void store_pb(tpi_context_t *tpi_context, uint8_t byte)
 {
 }
 
-static void store_pc(tpi_context_t *tpi_context, BYTE byte)
+static void store_pc(tpi_context_t *tpi_context, uint8_t byte)
 {
     cbm2_set_tpi2pc(byte);
 }
 
-static void undump_pa(tpi_context_t *tpi_context, BYTE byte)
+static void undump_pa(tpi_context_t *tpi_context, uint8_t byte)
 {
 }
 
-static void undump_pb(tpi_context_t *tpi_context, BYTE byte)
+static void undump_pb(tpi_context_t *tpi_context, uint8_t byte)
 {
 }
 
-static void undump_pc(tpi_context_t *tpi_context, BYTE byte)
+static void undump_pc(tpi_context_t *tpi_context, uint8_t byte)
 {
     cbm2_set_tpi2pc(byte);
 }
 
-static BYTE read_pa(tpi_context_t *tpi_context)
+static uint8_t read_pa(tpi_context_t *tpi_context)
 {
-    BYTE byte;
+    uint8_t byte;
+
     byte = (0xff & ~(tpi_context->c_tpi)[TPI_DDPA])
            | (tpi_context->c_tpi[TPI_PA] & tpi_context->c_tpi[TPI_DDPA]);
     return byte;
 }
 
-static BYTE read_pb(tpi_context_t *tpi_context)
+static uint8_t read_pb(tpi_context_t *tpi_context)
 {
-    BYTE byte;
+    uint8_t byte;
+
     byte = (0xff & ~(tpi_context->c_tpi)[TPI_DDPB])
            | (tpi_context->c_tpi[TPI_PB] & tpi_context->c_tpi[TPI_DDPB]);
     return byte;
 }
 
-static BYTE read_pc(tpi_context_t *tpi_context)
+static uint8_t read_pc(tpi_context_t *tpi_context)
 {
-    BYTE byte;
-    BYTE val = ~(tpi_context->c_tpi)[TPI_DDPC] | 0xc0;
+    uint8_t byte;
+    uint8_t val = ~(tpi_context->c_tpi)[TPI_DDPC] | 0xc0;
     int msk = (tpi_context->oldpa & 0xff)
               | ((tpi_context->oldpb << 8) & 0xff00);
     int m;
@@ -148,16 +150,16 @@ void tpi2_init(tpi_context_t *tpi_context)
     tpi_context->log = log_open(tpi_context->myname);
 }
 
-void tpi2_setup_context(machine_context_t *machine_context)
+void tpi2_setup_context(machine_context_t *machine_ctx)
 {
     tpi_context_t *tpi_context;
 
-    machine_context->tpi2 = lib_malloc(sizeof(tpi_context_t));
-    tpi_context = machine_context->tpi2;
+    machine_ctx->tpi2 = lib_malloc(sizeof(tpi_context_t));
+    tpi_context = machine_ctx->tpi2;
 
     tpi_context->prv = NULL;
 
-    tpi_context->context = (void *)machine_context;
+    tpi_context->context = (void *)machine_ctx;
 
     tpi_context->rmw_flag = &maincpu_rmw_flag;
     tpi_context->clk_ptr = &maincpu_clk;

@@ -32,7 +32,7 @@ const bool true = 1;
 const bool false = 0;
 #endif
 
-namespace reSID {
+namespace reSID_dtv {
 
 // We could have used the smallest possible data type for each SID register,
 // however this would give a slower engine because of data type conversions.

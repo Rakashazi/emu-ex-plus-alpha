@@ -47,15 +47,15 @@
 
 /*-----------------------------------------------------------------------*/
 
-inline static BYTE fetch_phi1(int addr)
+inline static uint8_t fetch_phi1(int addr)
 {
-    BYTE *p;
+    uint8_t *p;
 
     addr = ((addr + vicii.vbank_phi1) & vicii.vaddr_mask_phi1) | vicii.vaddr_offset_phi1;
 
     if (export.ultimax_phi1) {
-        BYTE value;
-        if (ultimax_romh_phi1_read((WORD)(0x1000 + (addr & 0xfff)), &value)) {
+        uint8_t value;
+        if (ultimax_romh_phi1_read((uint16_t)(0x1000 + (addr & 0xfff)), &value)) {
             if ((addr & 0x3fff) >= 0x3000) {
                 return value;
             } else {
@@ -73,15 +73,15 @@ inline static BYTE fetch_phi1(int addr)
     return *p;
 }
 
-inline static BYTE fetch_phi2(int addr)
+inline static uint8_t fetch_phi2(int addr)
 {
-    BYTE *p;
+    uint8_t *p;
 
     addr = ((addr + vicii.vbank_phi2) & vicii.vaddr_mask_phi2) | vicii.vaddr_offset_phi2;
 
     if (export.ultimax_phi2) {
-        BYTE value;
-        if (ultimax_romh_phi2_read((WORD)(0x1000 + (addr & 0xfff)), &value)) {
+        uint8_t value;
+        if (ultimax_romh_phi2_read((uint16_t)(0x1000 + (addr & 0xfff)), &value)) {
             if ((addr & 0x3fff) >= 0x3000) {
                 return value;
             } else {
@@ -109,7 +109,7 @@ inline static int check_sprite_dma(int i)
 
 inline static void sprite_dma_cycle_0(int i)
 {
-    BYTE sprdata = vicii.last_bus_phi2;
+    uint8_t sprdata = vicii.last_bus_phi2;
 
     if (check_sprite_dma(i)) {
         if (!vicii.prefetch_cycles) {
@@ -121,7 +121,7 @@ inline static void sprite_dma_cycle_0(int i)
 
 #ifdef DEBUG
         if (debug.maincpu_traceflg && (vicii.sprite_dma & (1 << i))) {
-            log_debug("SDMA0 in cycle %i   %d", vicii.raster_cycle, maincpu_clk);
+            log_debug("SDMA0 in cycle %u   %u", vicii.raster_cycle, maincpu_clk);
         }
 #endif
     }
@@ -132,7 +132,7 @@ inline static void sprite_dma_cycle_0(int i)
 
 inline static void sprite_dma_cycle_2(int i)
 {
-    BYTE sprdata = vicii.last_bus_phi2;
+    uint8_t sprdata = vicii.last_bus_phi2;
 
     if (check_sprite_dma(i)) {
         if (!vicii.prefetch_cycles) {
@@ -144,7 +144,7 @@ inline static void sprite_dma_cycle_2(int i)
 
 #ifdef DEBUG
         if (debug.maincpu_traceflg && (vicii.sprite_dma & (1 << i))) {
-            log_debug("SDMA2 in cycle %i   %d", vicii.raster_cycle, maincpu_clk);
+            log_debug("SDMA2 in cycle %u   %u", vicii.raster_cycle, maincpu_clk);
         }
 #endif
     }
@@ -160,9 +160,9 @@ inline static int v_fetch_addr(int offset)
     return ((vicii.regs[0x18] & 0xf0) << 6) + offset;
 }
 
-inline static WORD g_fetch_addr(BYTE mode)
+inline static uint16_t g_fetch_addr(uint8_t mode)
 {
-    WORD a;
+    uint16_t a;
 
     /* BMM */
     if (mode & 0x20) {
@@ -181,7 +181,7 @@ inline static WORD g_fetch_addr(BYTE mode)
     return a;
 }
 
-inline static int is_char_rom(WORD addr)
+inline static int is_char_rom(uint16_t addr)
 {
     addr = ((addr + vicii.vbank_phi1) & vicii.vaddr_mask_phi1) | vicii.vaddr_offset_phi1;
     return (addr & vicii.vaddr_chargen_mask_phi1) == vicii.vaddr_chargen_value_phi1;
@@ -200,20 +200,20 @@ void vicii_fetch_matrix(void)
     }
 }
 
-BYTE vicii_fetch_refresh(void)
+uint8_t vicii_fetch_refresh(void)
 {
     return fetch_phi1(0x3f00 + vicii.refresh_counter--);
 }
 
-BYTE vicii_fetch_idle(void)
+uint8_t vicii_fetch_idle(void)
 {
     return fetch_phi1(0x3fff);
 }
 
-BYTE vicii_fetch_idle_gfx(void)
+uint8_t vicii_fetch_idle_gfx(void)
 {
-    BYTE data;
-    BYTE reg11;
+    uint8_t data;
+    uint8_t reg11;
 
     if (vicii.color_latency) {
         reg11 = vicii.regs[0x11];
@@ -231,13 +231,13 @@ BYTE vicii_fetch_idle_gfx(void)
     return data;
 }
 
-BYTE vicii_fetch_graphics(void)
+uint8_t vicii_fetch_graphics(void)
 {
-    BYTE data;
-    WORD addr;
+    uint8_t data;
+    uint16_t addr;
 
     if (vicii.color_latency) {
-        addr = g_fetch_addr((BYTE)(vicii.regs[0x11] | (vicii.reg11_delay & 0x20)));
+        addr = g_fetch_addr((uint8_t)(vicii.regs[0x11] | (vicii.reg11_delay & 0x20)));
 
         if ((vicii.regs[0x11] ^ vicii.reg11_delay) & 0x20) {
             /* 6569 fetch magic! (FIXME: proper explanation)
@@ -248,7 +248,7 @@ BYTE vicii_fetch_graphics(void)
 
                TODO: test with $d018 splits and fix above test if needed.
             */
-            WORD addr_from, addr_to;
+            uint16_t addr_from, addr_to;
 
             addr_from = g_fetch_addr(vicii.reg11_delay);
             addr_to = g_fetch_addr(vicii.regs[0x11]);
@@ -272,16 +272,16 @@ BYTE vicii_fetch_graphics(void)
     return data;
 }
 
-BYTE vicii_fetch_sprite_pointer(int i)
+uint8_t vicii_fetch_sprite_pointer(int i)
 {
     vicii.sprite[i].pointer = fetch_phi1(v_fetch_addr(0x3f8 + i));
 
     return vicii.sprite[i].pointer;
 }
 
-BYTE vicii_fetch_sprite_dma_1(int i)
+uint8_t vicii_fetch_sprite_dma_1(int i)
 {
-    BYTE sprdata;
+    uint8_t sprdata;
 
     if (check_sprite_dma(i)) {
         sprdata = fetch_phi1((vicii.sprite[i].pointer << 6) + vicii.sprite[i].mc);

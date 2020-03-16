@@ -51,7 +51,6 @@
 #include "ser-eeprom.h"
 #include "snapshot.h"
 #include "spi-sdcard.h"
-#include "translate.h"
 #include "types.h"
 #include "util.h"
 #include "vicii-phi1.h"
@@ -142,11 +141,11 @@ Reset button
 /* the 29F040 statemachine */
 static flash040_context_t *flashrom_state = NULL;
 
-static BYTE active_mode_phi1 = 0;
-static BYTE active_mode_phi2 = 0;
+static uint8_t active_mode_phi1 = 0;
+static uint8_t active_mode_phi2 = 0;
 
 /* RAM */
-static BYTE *mmcr_ram = NULL;
+static uint8_t *mmcr_ram = NULL;
 
 /* RAM banking.*/
 static unsigned int raml_bank = 0, ramh_bank = 0;
@@ -279,59 +278,62 @@ static char *clockport_device_names = NULL;
 /********************************************************************************************************************/
 
 /* some prototypes are needed */
-static BYTE mmcreplay_io1_read(WORD addr);
-static void mmcreplay_io1_store(WORD addr, BYTE value);
-static BYTE mmcreplay_io2_read(WORD addr);
-static void mmcreplay_io2_store(WORD addr, BYTE value);
+static uint8_t mmcreplay_io1_read(uint16_t addr);
+static void mmcreplay_io1_store(uint16_t addr, uint8_t value);
+static uint8_t mmcreplay_io2_read(uint16_t addr);
+static void mmcreplay_io2_store(uint16_t addr, uint8_t value);
 static int mmcreplay_dump(void);
 
-static BYTE mmcreplay_clockport_read(WORD io_address);
-static BYTE mmcreplay_clockport_peek(WORD io_address);
-static void mmcreplay_clockport_store(WORD io_address, BYTE byte);
+static uint8_t mmcreplay_clockport_read(uint16_t io_address);
+static uint8_t mmcreplay_clockport_peek(uint16_t io_address);
+static void mmcreplay_clockport_store(uint16_t io_address, uint8_t byte);
 
 static io_source_t mmcreplay_io1_device = {
-    CARTRIDGE_NAME_MMC_REPLAY,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    0,
-    mmcreplay_io1_store,
-    mmcreplay_io1_read,
-    NULL, /* TODO: peek */
-    mmcreplay_dump,
-    CARTRIDGE_MMC_REPLAY,
-    0,
-    0
+    CARTRIDGE_NAME_MMC_REPLAY, /* name of the device */
+    IO_DETACH_CART,            /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,     /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,      /* range for the device, regs:$de00-$de01, possible ram:$de02-$deff */
+    0,                         /* read validity is determined by the device upon a read */
+    mmcreplay_io1_store,       /* store function */
+    NULL,                      /* NO poke function */
+    mmcreplay_io1_read,        /* read function */
+    NULL,                      /* TODO: peek function */
+    mmcreplay_dump,            /* device state information dump function */
+    CARTRIDGE_MMC_REPLAY,      /* cartridge ID */
+    IO_PRIO_NORMAL,            /* normal priority, device read needs to be checked for collisions */
+    0                          /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t mmcreplay_io2_device = {
-    CARTRIDGE_NAME_MMC_REPLAY,
-    IO_DETACH_CART,
-    NULL,
-    0xdf00, 0xdfff, 0xff,
-    0,
-    mmcreplay_io2_store,
-    mmcreplay_io2_read,
-    NULL, /* TODO: peek */
-    mmcreplay_dump,
-    CARTRIDGE_MMC_REPLAY,
-    0,
-    0
+    CARTRIDGE_NAME_MMC_REPLAY, /* name of the device */
+    IO_DETACH_CART,            /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,     /* does not use a resource for detach */
+    0xdf00, 0xdfff, 0xff,      /* range for the device, regs:$df10-$df13, mirrors:$df00-$df0f & $df14-$dfff */
+    0,                         /* read validity is determined by the device upon a read */
+    mmcreplay_io2_store,       /* store function */
+    NULL,                      /* NO poke function */
+    mmcreplay_io2_read,        /* read function */
+    NULL,                      /* TODO: peek function */
+    mmcreplay_dump,            /* device state information dump function */
+    CARTRIDGE_MMC_REPLAY,      /* cartridge ID */
+    IO_PRIO_NORMAL,            /* normal priority, device read needs to be checked for collisions */
+    0                          /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t mmcreplay_clockport_device = {
-    CARTRIDGE_NAME_MMC_REPLAY " Clockport",
-    IO_DETACH_RESOURCE,
-    "MMCRClockPort",
-    0xde02, 0xde0f, 0x0f,
-    0,
-    mmcreplay_clockport_store,
-    mmcreplay_clockport_read,
-    mmcreplay_clockport_peek,
-    mmcreplay_dump,
-    CARTRIDGE_MMC_REPLAY,
-    0,
-    0
+    CARTRIDGE_NAME_MMC_REPLAY " Clockport", /* name of the device */
+    IO_DETACH_RESOURCE,                     /* use resource to detach the device when involved in a read-collision */
+    "MMCRClockPort",                        /* resource to set to '0' */
+    0xde02, 0xde0f, 0x0f,                   /* range for the device, regs:$de02-$de0f */
+    0,                                      /* read validity is determined by the device upon a read */
+    mmcreplay_clockport_store,              /* store function */
+    NULL,                                   /* NO poke function */
+    mmcreplay_clockport_read,               /* read function */
+    mmcreplay_clockport_peek,               /* peek function */
+    mmcreplay_dump,                         /* device state information dump function */
+    CARTRIDGE_MMC_REPLAY,                   /* cartridge ID */
+    IO_PRIO_NORMAL,                         /* normal priority, device read needs to be checked for collisions */
+    0                                       /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *mmcreplay_io1_list_item = NULL;
@@ -561,23 +563,23 @@ $c000 ----------------------------------
 Allowbank masks only banking bits A13-A15 in Super Mapper mode.
 */
 
-void mmcreplay_ramhbank_set(unsigned int bank)
+static void mmcreplay_ramhbank_set(unsigned int bank)
 {
     ramh_bank = (int)bank;
 }
 
-void mmcreplay_ramlbank_set(unsigned int bank)
+static void mmcreplay_ramlbank_set(unsigned int bank)
 {
     raml_bank = (int)bank;
 }
 
-void mmcreplay_io1bank_set(unsigned int bank, unsigned int rambank)
+static void mmcreplay_io1bank_set(unsigned int bank, unsigned int rambank)
 {
     io1_bank = (int)bank;
     io1_ram_bank = (int)rambank;
 }
 
-void mmcreplay_io2bank_set(unsigned int bank, unsigned int rambank)
+static void mmcreplay_io2bank_set(unsigned int bank, unsigned int rambank)
 {
     io2_bank = (int)bank;
     io2_ram_bank = (int)rambank;
@@ -1140,7 +1142,7 @@ static void mmcreplay_update_mapper_nolog(unsigned int wflag, int release_freeze
         /* FIXME: add 64kb-rombank offset also for ram ? */
         if (enable_extended_mode) {
             /* extended RR Mode */
-            BYTE value = (enable_game) |     /* bit 0 */
+            uint8_t value = (enable_game) |     /* bit 0 */
                          ((enable_exrom ^ 1) << 1) | /* bit 1 FIXME: is the bit inverted in the register ?! */
                          (rr_active_bit << 2) | /* bit 2 */
                          ((bank_address_13_15 & 3) << 3) | /* bit 3,4 */
@@ -1190,7 +1192,7 @@ static void mmcreplay_update_mapper_nolog(unsigned int wflag, int release_freeze
             LOG(("enable_ram_io:%d", enable_ram_io));
             /* action replay hack */
             if (enable_ram_io) {
-                BYTE value = (enable_game) |    /* bit 0 */
+                uint8_t value = (enable_game) |    /* bit 0 */
                              ((enable_exrom ^ 1) << 1) | /* bit 1 FIXME: is the bit inverted in the register ?! */
                              (((bank_address_13_15 & 3) << 3) | ((bank_address_13_15 & 4) << 5)) | /* bit 3,4,7 */
                              (enable_ram_io << 5) | /* bit 5 */
@@ -1269,9 +1271,9 @@ int iobank_write = 0;
   IO1 - $deXX
 ********************************************************************************************************************/
 
-BYTE mmcreplay_io1_read(WORD addr)
+uint8_t mmcreplay_io1_read(uint16_t addr)
 {
-    BYTE value;
+    uint8_t value;
 
     mmcreplay_io1_device.io_source_valid = 0;
 
@@ -1373,7 +1375,7 @@ BYTE mmcreplay_io1_read(WORD addr)
     return 0;
 }
 
-void mmcreplay_io1_store(WORD addr, BYTE value)
+void mmcreplay_io1_store(uint16_t addr, uint8_t value)
 {
     if (rr_active) {
         switch (addr & 0xff) {
@@ -1519,9 +1521,9 @@ void mmcreplay_io1_store(WORD addr, BYTE value)
   IO2 - $dfXX
 ********************************************************************************************************************/
 
-BYTE mmcreplay_io2_read(WORD addr)
+uint8_t mmcreplay_io2_read(uint16_t addr)
 {
-    BYTE value;
+    uint8_t value;
 
     mmcreplay_io2_device.io_source_valid = 0;
 
@@ -1679,7 +1681,7 @@ BYTE mmcreplay_io2_read(WORD addr)
     return 0;
 }
 
-void mmcreplay_io2_store(WORD addr, BYTE value)
+void mmcreplay_io2_store(uint16_t addr, uint8_t value)
 {
     switch (addr & 0xff) {
         case 0x10:
@@ -1722,10 +1724,10 @@ void mmcreplay_io2_store(WORD addr, BYTE value)
                 LOG(("MMCREPLAY: IO2 ST %04x %02x disable_mmc_bios %x disable_rr_rom %x", addr, value, disable_mmc_bios, disable_rr_rom));
 #endif
 
-                spi_mmc_card_selected_write((BYTE)(((value >> 1) ^ 1) & 1));   /* bit 1 */
-                spi_mmc_enable_8mhz_write((BYTE)(((value >> 2)) & 1)); /* bit 2 */
+                spi_mmc_card_selected_write((uint8_t)(((value >> 1) ^ 1) & 1));   /* bit 1 */
+                spi_mmc_enable_8mhz_write((uint8_t)(((value >> 2)) & 1)); /* bit 2 */
                 /* bit 3,4 always 0 */
-                spi_mmc_trigger_mode_write((BYTE)(((value >> 6)) & 1));        /* bit 6 */
+                spi_mmc_trigger_mode_write((uint8_t)(((value >> 6)) & 1));        /* bit 6 */
                 /* bit 7 always 0 */
                 if (disable_mmc_bios) {
                     /* if (enable_mmc_regs_pending) */
@@ -1783,7 +1785,7 @@ void mmcreplay_io2_store(WORD addr, BYTE value)
                      * bit 5: data/ddr
                      * bit 7: clk
                      */
-                    eeprom_port_write((BYTE)((value >> 7) & 1), (BYTE)((value >> 5) & 1),
+                    eeprom_port_write((uint8_t)((value >> 7) & 1), (uint8_t)((value >> 5) & 1),
                                       (value >> 1) & 1, (value >> 4) & 1);
                 }
 
@@ -1854,7 +1856,7 @@ void mmcreplay_io2_store(WORD addr, BYTE value)
   ClockPort
 ********************************************************************************************************************/
 
-static BYTE mmcreplay_clockport_read(WORD address)
+static uint8_t mmcreplay_clockport_read(uint16_t address)
 {
     if (clockport_device) {
         if (address < 0x02) {
@@ -1866,7 +1868,7 @@ static BYTE mmcreplay_clockport_read(WORD address)
     return 0;
 }
 
-static BYTE mmcreplay_clockport_peek(WORD address)
+static uint8_t mmcreplay_clockport_peek(uint16_t address)
 {
     if (clockport_device) {
         if (address < 0x02) {
@@ -1877,7 +1879,7 @@ static BYTE mmcreplay_clockport_peek(WORD address)
     return 0;
 }
 
-static void mmcreplay_clockport_store(WORD address, BYTE byte)
+static void mmcreplay_clockport_store(uint16_t address, uint8_t byte)
 {
     if (clockport_device) {
         if (address < 0x02) {
@@ -1913,7 +1915,7 @@ int logbank_write = 0;
 /*
     $1000-$7fff in ultimax mode - this is always regular ram
 */
-BYTE mmcreplay_1000_7fff_read(WORD addr)
+uint8_t mmcreplay_1000_7fff_read(uint16_t addr)
 {
 #ifdef DEBUG_LOGBANKS
     if (logbank_read != (addr & 0xe000)) {
@@ -1927,7 +1929,7 @@ BYTE mmcreplay_1000_7fff_read(WORD addr)
     return vicii_read_phi1();
 }
 
-void mmcreplay_1000_7fff_store(WORD addr, BYTE value)
+void mmcreplay_1000_7fff_store(uint16_t addr, uint8_t value)
 {
 #ifdef DEBUG_LOGBANKS
     if (logbank_write != (addr & 0xe000)) {
@@ -1946,7 +1948,7 @@ void mmcreplay_1000_7fff_store(WORD addr, BYTE value)
 
 /* FIXME: something with checking pport.data is wrong, the seperate check
           for the rescue mode should not be necessary */
-BYTE mmcreplay_roml_read(WORD addr)
+uint8_t mmcreplay_roml_read(uint16_t addr)
 {
 #ifdef DEBUG_LOGBANKS
     if (logbank_read != (addr & 0xe000)) {
@@ -1985,7 +1987,7 @@ BYTE mmcreplay_roml_read(WORD addr)
 
 /* FIXME: something with checking pport.data is wrong, the seperate check
           for the rescue mode should not be necessary */
-void mmcreplay_roml_store(WORD addr, BYTE value)
+void mmcreplay_roml_store(uint16_t addr, uint8_t value)
 {
 #ifdef DEBUG_LOGBANKS
     if (logbank_write != (addr & 0xe000)) {
@@ -2025,7 +2027,7 @@ void mmcreplay_roml_store(WORD addr, BYTE value)
 /*
     $a000 in ultimax mode
 */
-BYTE mmcreplay_a000_bfff_read(WORD addr)
+uint8_t mmcreplay_a000_bfff_read(uint16_t addr)
 {
 #ifdef DEBUG_LOGBANKS
     if (logbank_read != (addr & 0xe000)) {
@@ -2048,7 +2050,7 @@ BYTE mmcreplay_a000_bfff_read(WORD addr)
     return vicii_read_phi1();
 }
 
-void mmcreplay_a000_bfff_store(WORD addr, BYTE value)
+void mmcreplay_a000_bfff_store(uint16_t addr, uint8_t value)
 {
 #ifdef DEBUG_LOGBANKS
     if (logbank_write != (addr & 0xe000)) {
@@ -2088,7 +2090,7 @@ void mmcreplay_a000_bfff_store(WORD addr, BYTE value)
     $c000 in ultimax mode - this is always regular ram
 */
 
-BYTE mmcreplay_c000_cfff_read(WORD addr)
+uint8_t mmcreplay_c000_cfff_read(uint16_t addr)
 {
 #ifdef DEBUG_LOGBANKS
     if (logbank_read != (addr & 0xe000)) {
@@ -2102,7 +2104,7 @@ BYTE mmcreplay_c000_cfff_read(WORD addr)
     return vicii_read_phi1();
 }
 
-void mmcreplay_c000_cfff_store(WORD addr, BYTE value)
+void mmcreplay_c000_cfff_store(uint16_t addr, uint8_t value)
 {
 #ifdef DEBUG_LOGBANKS
     if (logbank_write != (addr & 0xe000)) {
@@ -2119,7 +2121,7 @@ void mmcreplay_c000_cfff_store(WORD addr, BYTE value)
     ROMH - $a000 ($e000 in ultimax mode)
 */
 
-BYTE mmcreplay_romh_read(WORD addr)
+uint8_t mmcreplay_romh_read(uint16_t addr)
 {
 #ifdef DEBUG_LOGBANKS
     if (logbank_read != (addr & 0xe000)) {
@@ -2158,7 +2160,7 @@ BYTE mmcreplay_romh_read(WORD addr)
     return flash040core_read(flashrom_state, (addr & 0x1fff) + (romh_bank << 13));
 }
 
-void mmcreplay_romh_store(WORD addr, BYTE value)
+void mmcreplay_romh_store(uint16_t addr, uint8_t value)
 {
 #ifdef DEBUG_LOGBANKS
     if (logbank_write != (addr & 0xe000)) {
@@ -2187,12 +2189,12 @@ void mmcreplay_romh_store(WORD addr, BYTE value)
     }
 }
 
-int mmcreplay_romh_phi1_read(WORD addr, BYTE *value)
+int mmcreplay_romh_phi1_read(uint16_t addr, uint8_t *value)
 {
     return CART_READ_C64MEM;
 }
 
-int mmcreplay_romh_phi2_read(WORD addr, BYTE *value)
+int mmcreplay_romh_phi2_read(uint16_t addr, uint8_t *value)
 {
     return mmcreplay_romh_phi1_read(addr, value);
 }
@@ -2208,7 +2210,7 @@ RETRO REPLAY: $de01 unset, $df10-$df13 registers disabled
 SUPER MAPPER: 16K mode, Standard cart mode, $df10-$df13 registers enabled
 */
 
-void mmcreplay_set_stdcfg(void)
+static void mmcreplay_set_stdcfg(void)
 {
     enable_ram_io = 0;
     enable_ram_io1 = 0;
@@ -2505,7 +2507,7 @@ void mmcreplay_config_init(void)
     flash040core_reset(flashrom_state);
 }
 
-void mmcreplay_config_setup(BYTE *rawcart)
+void mmcreplay_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, MMCREPLAY_FLASHROM_SIZE);
 
@@ -2539,7 +2541,7 @@ static int set_mmcr_clockport_device(int val, void *param)
     }
 
     if (val != CLOCKPORT_DEVICE_NONE) {
-        clockport_device = clockport_open_device(val, (char *)STRING_MMC_REPLAY);
+        clockport_device = clockport_open_device(val, STRING_MMC_REPLAY);
         if (!clockport_device) {
             return -1;
         }
@@ -2558,7 +2560,7 @@ static int clockport_activate(void)
         return 0;
     }
 
-    clockport_device = clockport_open_device(clockport_device_id, (char *)STRING_MMC_REPLAY);
+    clockport_device = clockport_open_device(clockport_device_id, STRING_MMC_REPLAY);
     if (!clockport_device) {
         return -1;
     }
@@ -2602,11 +2604,11 @@ static int mmcreplay_common_attach(const char *filename)
     mmc_open_card_image(mmcr_card_filename, mmcr_card_rw);
     eeprom_open_image(mmcr_eeprom_filename, mmcr_eeprom_rw);
 
-    mmcr_filename = lib_stralloc(filename);
+    mmcr_filename = lib_strdup(filename);
     return 0;
 }
 
-int mmcreplay_bin_attach(const char *filename, BYTE *rawcart)
+int mmcreplay_bin_attach(const char *filename, uint8_t *rawcart)
 {
     int len = 0;
     FILE *fd;
@@ -2634,7 +2636,7 @@ int mmcreplay_bin_attach(const char *filename, BYTE *rawcart)
     return mmcreplay_common_attach(filename);
 }
 
-int mmcreplay_crt_attach(FILE *fd, BYTE *rawcart, const char *filename)
+int mmcreplay_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename)
 {
     crt_chip_header_t chip;
     int i;
@@ -2723,7 +2725,7 @@ int mmcreplay_crt_save(const char *filename)
 {
     FILE *fd;
     crt_chip_header_t chip;
-    BYTE *data;
+    uint8_t *data;
     int i, n = 0;
 
     fd = crt_create(filename, CARTRIDGE_MMC_REPLAY, 1, 0, STRING_MMC_REPLAY);
@@ -2891,7 +2893,7 @@ static int set_mmcr_sd_type(int val, void* param)
             return -1;
     }
     mmcr_sd_type = val;
-    mmc_set_card_type((BYTE)val);
+    mmc_set_card_type((uint8_t)val);
     return 0;
 }
 
@@ -2942,72 +2944,49 @@ void mmcreplay_resources_shutdown(void)
     clockport_device_names = NULL;
 }
 
-static const cmdline_option_t cmdline_options[] = {
-    { "-mmcrrescue", SET_RESOURCE, 0,
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-mmcrrescue", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MMCRRescueMode", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_MMC_REPLAY_RESCUE_MODE_ENABLE,
-      NULL, NULL },
-    { "+mmcrrescue", SET_RESOURCE, 0,
+      NULL, "Enable MMC Replay rescue mode" },
+    { "+mmcrrescue", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MMCRRescueMode", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_MMC_REPLAY_RESCUE_MODE_DISABLE,
-      NULL, NULL },
-    { "-mmcrimagerw", SET_RESOURCE, 0,
+      NULL, "Disable MMC Replay rescue mode" },
+    { "-mmcrimagerw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MMCRImageWrite", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ALLOW_WRITING_TO_MMC_REPLAY_IMAGE,
-      NULL, NULL },
-    { "+mmcrimagerw", SET_RESOURCE, 0,
+      NULL, "Allow writing to MMC Replay image" },
+    { "+mmcrimagerw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MMCRImageWrite", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DO_NOT_WRITE_TO_MMC_REPLAY_IMAGE,
-      NULL, NULL },
-    { "-mmcrcardimage", SET_RESOURCE, 1,
+      NULL, "Do not write to MMC Replay image" },
+    { "-mmcrcardimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "MMCRCardImage", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_FILE, IDCLS_SELECT_MMC_REPLAY_CARD_IMAGE_FILENAME,
-      NULL, NULL },
-    { "-mmcrcardrw", SET_RESOURCE, 0,
+      "<filename>", "Specify MMC Replay card image filename" },
+    { "-mmcrcardrw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MMCRCardRW", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_MMC_REPLAY_CARD_WRITE_ENABLE,
-      NULL, NULL },
-    { "+mmcrcardrw", SET_RESOURCE, 0,
+      NULL, "Enable writes to MMC Replay card image" },
+    { "+mmcrcardrw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MMCRCardRW", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_MMC_REPLAY_CARD_WRITE_DISABLE,
-      NULL, NULL },
-    { "-mmcreepromimage", SET_RESOURCE, 1,
+      NULL, "Disable writes to MMC Replay card image" },
+    { "-mmcreepromimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "MMCREEPROMImage", NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_P_FILE, IDCLS_SELECT_MMC_REPLAY_EEPROM_IMAGE,
-      NULL, NULL },
-    { "-mmcreepromrw", SET_RESOURCE, 0,
+      "<filename>", "Specify MMC Replay EEPROM image filename" },
+    { "-mmcreepromrw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MMCREEPROMRW", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_MMC_REPLAY_EEPROM_WRITE_ENABLE,
-      NULL, NULL },
-    { "+mmcreepromrw", SET_RESOURCE, 0,
+      NULL, "Enable writes to MMC Replay EEPROM image" },
+    { "+mmcreepromrw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MMCREEPROMRW", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_MMC_REPLAY_EEPROM_WRITE_DISABLE,
-      NULL, NULL },
-    { "-mmcrsdtype", SET_RESOURCE, 1,
+      NULL, "Disable writes to MMC Replay EEPROM image" },
+    { "-mmcrsdtype", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "MMCRSDType", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_TYPE, IDCLS_SELECT_MMC_REPLAY_SD_TYPE,
-      NULL, NULL },
+      "<Type>", "Specify MMC Replay SD type (0: auto, 1: MMC, 2: SD, 3: SDHC)" },
     CMDLINE_LIST_END
 };
 
 static cmdline_option_t clockport_cmdline_options[] =
 {
-    { "-mmcrclockportdevice", SET_RESOURCE, 1,
+    { "-mmcrclockportdevice", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "MMCRClockPort", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_COMBO,
-      IDCLS_P_DEVICE, IDCLS_CLOCKPORT_DEVICE,
-      NULL, NULL },
+      "<device>", NULL },
     CMDLINE_LIST_END
 };
 
@@ -3023,7 +3002,7 @@ int mmcreplay_cmdline_options_init(void)
 
     sprintf(number, "%d", clockport_supported_devices[0].id);
 
-    clockport_device_names = util_concat(". (", number, ": ", clockport_supported_devices[0].name, NULL);
+    clockport_device_names = util_concat("Clockport device. (", number, ": ", clockport_supported_devices[0].name, NULL);
 
     for (i = 1; clockport_supported_devices[i].name; ++i) {
         tmp = clockport_device_names;
@@ -3049,8 +3028,6 @@ int mmcreplay_cmdline_options_init(void)
 /* FIXME: implement snapshot support */
 int mmcreplay_snapshot_write_module(snapshot_t *s)
 {
-    return -1;
-#if 0
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, SNAP_MODULE_NAME,
@@ -3059,6 +3036,9 @@ int mmcreplay_snapshot_write_module(snapshot_t *s)
         return -1;
     }
 
+    snapshot_set_error(SNAPSHOT_MODULE_NOT_IMPLEMENTED);
+    return -1;
+#if 0
     if (0) {
         snapshot_module_close(m);
         return -1;
@@ -3073,7 +3053,7 @@ int mmcreplay_snapshot_read_module(snapshot_t *s)
 {
     return -1;
 #if 0
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);

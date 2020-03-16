@@ -32,39 +32,44 @@
 #include "types.h"
 
 
-typedef BYTE read_func_t(WORD addr);
+typedef uint8_t read_func_t(uint16_t addr);
 typedef read_func_t *read_func_ptr_t;
-typedef void store_func_t(WORD addr, BYTE value);
+typedef void store_func_t(uint16_t addr, uint8_t value);
 typedef store_func_t *store_func_ptr_t;
 
 extern read_func_ptr_t *_mem_read_tab_ptr;
 extern store_func_ptr_t *_mem_write_tab_ptr;
 
-extern BYTE mem_ram[];
-extern BYTE *mem_page_zero;
-extern BYTE *mem_page_one;
-extern BYTE *mem_color_ram_cpu;
-extern BYTE *mem_color_ram_vicii;
+extern uint8_t mem_ram[];
+extern uint8_t *mem_page_zero;
+extern uint8_t *mem_page_one;
+extern uint8_t *mem_color_ram_cpu;
+extern uint8_t *mem_color_ram_vicii;
 
-extern BYTE *mem_chargen_rom_ptr;
+extern uint8_t *mem_chargen_rom_ptr;
 
 extern void mem_initialize_memory(void);
 extern void mem_powerup(void);
 extern int mem_load(void);
-extern void mem_get_basic_text(WORD *start, WORD *end);
-extern void mem_set_basic_text(WORD start, WORD end);
+extern void mem_get_basic_text(uint16_t *start, uint16_t *end);
+extern void mem_set_basic_text(uint16_t start, uint16_t end);
 extern void mem_toggle_watchpoints(int flag, void *context);
-extern int mem_rom_trap_allowed(WORD addr);
-extern void mem_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit);
-extern void mem_color_ram_to_snapshot(BYTE *color_ram);
-extern void mem_color_ram_from_snapshot(BYTE *color_ram);
+extern int mem_rom_trap_allowed(uint16_t addr);
+extern void mem_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
+extern void mem_color_ram_to_snapshot(uint8_t *color_ram);
+extern void mem_color_ram_from_snapshot(uint8_t *color_ram);
+
+extern uint8_t mem_read_screen(uint16_t addr);
 
 /*
  * DWORD addr allows injection on machines with more than 64Kb of RAM.
  * Injection should be made to follow (mostly) how load would write to
  * RAM on that machine.
  */
-extern void mem_inject(DWORD addr, BYTE value);
+extern void mem_inject(uint32_t addr, uint8_t value);
+/* in banked memory architectures this will always write to the bank that
+   contains the keyboard buffer and "number of keys in buffer" */
+extern void mem_inject_key(uint16_t addr, uint8_t value);
 
 extern read_func_t rom_read, rom_trap_read, zero_read;
 extern store_func_t rom_store, rom_trap_store, zero_store;
@@ -77,17 +82,19 @@ extern store_func_t mem_store;
 /* Memory access functions for the monitor.  */
 extern const char **mem_bank_list(void);
 extern int mem_bank_from_name(const char *name);
-extern BYTE mem_bank_read(int bank, WORD addr, void *context);
-extern BYTE mem_bank_peek(int bank, WORD addr, void *context);
-extern void mem_bank_write(int bank, WORD addr, BYTE byte, void *context);
-extern void mem_get_screen_parameter(WORD *base, BYTE *rows, BYTE *columns, int *bank);
+extern uint8_t mem_bank_read(int bank, uint16_t addr, void *context);
+extern uint8_t mem_bank_peek(int bank, uint16_t addr, void *context);
+extern void mem_bank_write(int bank, uint16_t addr, uint8_t byte, void *context);
+extern void mem_bank_poke(int bank, uint16_t addr, uint8_t byte, void *context);
+extern void mem_get_screen_parameter(uint16_t *base, uint8_t *rows, uint8_t *columns, int *bank);
+extern void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uint8_t *line_length, int *blinking);
 
 typedef struct mem_ioreg_list_s {
     const char *name;
-    WORD start;
-    WORD end;
+    uint16_t start;
+    uint16_t end;
     unsigned int next;
-    int (*dump)(void *context, WORD address);
+    int (*dump)(void *context, uint16_t address);
     void *context;
 } mem_ioreg_list_t;
 

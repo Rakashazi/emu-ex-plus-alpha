@@ -30,14 +30,14 @@
 
 #include "types.h"
 
-extern void vicii_store(WORD addr, BYTE value);
-extern BYTE vicii_read(WORD addr);
-extern BYTE vicii_peek(WORD addr);
-extern void vicii_mem_vbank_store(WORD addr, BYTE value);
-extern void vicii_mem_vbank_39xx_store(WORD addr, BYTE value);
-extern void vicii_mem_vbank_3fxx_store(WORD addr, BYTE value);
-extern void vicii_palette_store(WORD addr, BYTE value);
-extern BYTE vicii_palette_read(WORD addr);
+extern void vicii_store(uint16_t addr, uint8_t value);
+extern uint8_t vicii_read(uint16_t addr);
+extern uint8_t vicii_peek(uint16_t addr);
+extern void vicii_mem_vbank_store(uint16_t addr, uint8_t value);
+extern void vicii_mem_vbank_39xx_store(uint16_t addr, uint8_t value);
+extern void vicii_mem_vbank_3fxx_store(uint16_t addr, uint8_t value);
+extern void vicii_palette_store(uint16_t addr, uint8_t value);
+extern uint8_t vicii_palette_read(uint16_t addr);
 extern int vicii_extended_regs(void);
 extern void viciidtv_update_colorram(void);
 

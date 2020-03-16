@@ -42,7 +42,8 @@ extern int c128rom_load_chargen_de(const char *rom_name);
 extern int c128rom_load_chargen_fr(const char *rom_name);
 extern int c128rom_load_chargen_se(const char *rom_name);
 extern int c128rom_load_chargen_ch(const char *rom_name);
-extern int c128rom_load_kernal64(const char *rom_name, BYTE *cartkernal);
+extern int c128rom_load_chargen_no(const char *rom_name);
+extern int c128rom_load_kernal64(const char *rom_name, uint8_t *cartkernal);
 extern int c128rom_load_basic64(const char *rom_name);
 
 extern int c128rom_basic_checksum(void);

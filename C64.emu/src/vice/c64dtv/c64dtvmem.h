@@ -40,20 +40,20 @@ extern void c64dtvmem_reset(void);
 extern void c64dtvmem_shutdown(void);
 /* extern void c64dtv_dma_irq_init(void); */
 
-extern BYTE c64dtv_mapper_read(WORD addr);
-extern void c64dtv_mapper_store(WORD addr, BYTE value);
+extern uint8_t c64dtv_mapper_read(uint16_t addr);
+extern void c64dtv_mapper_store(uint16_t addr, uint8_t value);
 
-extern BYTE c64dtv_palette_read(WORD addr);
-extern void c64dtv_palette_store(WORD addr, BYTE value);
+extern uint8_t c64dtv_palette_read(uint16_t addr);
+extern void c64dtv_palette_store(uint16_t addr, uint8_t value);
 
-extern BYTE c64dtv_dmablit_read(WORD addr);
-extern void c64dtv_dmablit_store(WORD addr, BYTE value);
+extern uint8_t c64dtv_dmablit_read(uint16_t addr);
+extern void c64dtv_dmablit_store(uint16_t addr, uint8_t value);
 
-extern BYTE c64io1_read(WORD addr);
-extern void c64io1_store(WORD addr, BYTE value);
-extern BYTE c64io2_read(WORD addr);
-extern void c64io2_store(WORD addr, BYTE value);
+extern uint8_t c64io1_read(uint16_t addr);
+extern void c64io1_store(uint16_t addr, uint8_t value);
+extern uint8_t c64io2_read(uint16_t addr);
+extern void c64io2_store(uint16_t addr, uint8_t value);
 
-extern BYTE c64dtvmem_memmapper[0x2];
+extern uint8_t c64dtvmem_memmapper[0x2];
 
 #endif

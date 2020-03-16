@@ -27,6 +27,9 @@
 #ifndef VICE_VSIDUI_H
 #define VICE_VSIDUI_H
 
+#include <stdint.h>
+
+extern int vsid_ui_init_early(void);
 extern int vsid_ui_init(void);
 extern void vsid_ui_close(void);
 
@@ -42,5 +45,10 @@ extern void vsid_ui_display_time(unsigned int sec);
 extern void vsid_ui_display_irqtype(const char *irq);
 
 extern void vsid_ui_setdrv(char* driver_info_text);
+extern void vsid_ui_set_driver_addr(uint16_t addr);
+extern void vsid_ui_set_load_addr(uint16_t addr);
+extern void vsid_ui_set_init_addr(uint16_t addr);
+extern void vsid_ui_set_play_addr(uint16_t addr);
+extern void vsid_ui_set_data_size(uint16_t size);
 
 #endif

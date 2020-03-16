@@ -60,7 +60,7 @@ int scpu64_snapshot_write(const char *name, int save_roms, int save_disks, int e
 {
     snapshot_t *s;
 
-    s = snapshot_create(name, ((BYTE)(SNAP_MAJOR)), ((BYTE)(SNAP_MINOR)), machine_get_name());
+    s = snapshot_create(name, ((uint8_t)(SNAP_MAJOR)), ((uint8_t)(SNAP_MINOR)), machine_get_name());
     if (s == NULL) {
         return -1;
     }
@@ -95,14 +95,14 @@ int scpu64_snapshot_write(const char *name, int save_roms, int save_disks, int e
 int scpu64_snapshot_read(const char *name, int event_mode)
 {
     snapshot_t *s;
-    BYTE minor, major;
+    uint8_t minor, major;
 
     s = snapshot_open(name, &major, &minor, machine_get_name());
     if (s == NULL) {
         return -1;
     }
 
-    if (major != SNAP_MAJOR || minor != SNAP_MINOR) {
+    if (!snapshot_version_is_equal(major, minor, SNAP_MAJOR, SNAP_MINOR)) {
         log_error(LOG_DEFAULT, "Snapshot version (%d.%d) not valid: expecting %d.%d.", major, minor, SNAP_MAJOR, SNAP_MINOR);
         snapshot_set_error(SNAPSHOT_MODULE_INCOMPATIBLE);
         goto fail;

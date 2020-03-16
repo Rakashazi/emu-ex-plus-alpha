@@ -45,7 +45,7 @@
 #define IS_DTV     0
 #define IS_HUMMER  1
 
-extern VICE_API int dtvmodel_get(void);
-extern VICE_API void dtvmodel_set(int model);
+extern int dtvmodel_get(void);
+extern void dtvmodel_set(int model);
 
 #endif

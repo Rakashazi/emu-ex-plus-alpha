@@ -34,16 +34,16 @@
 
 extern int catweaselmkiii_open(void);
 extern int catweaselmkiii_close(void);
-extern int catweaselmkiii_read(WORD addr, int chipno);
-extern void catweaselmkiii_store(WORD addr, BYTE val, int chipno);
+extern int catweaselmkiii_read(uint16_t addr, int chipno);
+extern void catweaselmkiii_store(uint16_t addr, uint8_t val, int chipno);
 extern void catweaselmkiii_set_machine_parameter(long cycles_per_sec);
 
 extern int catweaselmkiii_available(void);
 
 extern int catweaselmkiii_drv_open(void);
 extern int catweaselmkiii_drv_close(void);
-extern int catweaselmkiii_drv_read(WORD addr, int chipno);
-extern void catweaselmkiii_drv_store(WORD addr, BYTE val, int chipno);
+extern int catweaselmkiii_drv_read(uint16_t addr, int chipno);
+extern void catweaselmkiii_drv_store(uint16_t addr, uint8_t val, int chipno);
 extern void catweaselmkiii_drv_set_machine_parameter(long cycles_per_sec);
 
 extern int catweaselmkiii_drv_available(void);

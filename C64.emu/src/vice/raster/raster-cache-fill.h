@@ -32,8 +32,8 @@
 
 #include "types.h"
 
-inline static int raster_cache_data_fill(BYTE *dest,
-                                         const BYTE *src,
+inline static int raster_cache_data_fill(uint8_t *dest,
+                                         const uint8_t *src,
                                          const unsigned int length,
                                          unsigned int *xs,
                                          unsigned int *xe,
@@ -48,13 +48,16 @@ inline static int raster_cache_data_fill(BYTE *dest,
         unsigned int x = 0, i;
 
 #if defined(ALLOW_UNALIGNED_ACCESS)
-        for (i = 0; i < (length & ~3) && *((DWORD *)(dest + i)) == *((DWORD *)(src + i)); i += 4) {
+        for (i = 0;
+                i < (length & ~3)
+                && *((uint32_t *)(dest + i)) == *((const uint32_t *)(src + i)); i += 4) {
             /* do nothing */
         }
         if (i == length) {
             return 0;
         }
-        if (i < (length & ~1) && *((WORD *)(dest + i)) == *((WORD *)(src + i))) {
+        if (i < (length & ~1)
+                && *((uint16_t *)(dest + i)) == *((const uint16_t *)(src + i))) {
             i += 2;
         }
         if (i < length && dest[i] == src[i]) {

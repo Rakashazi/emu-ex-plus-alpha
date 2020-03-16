@@ -50,8 +50,8 @@ struct raster_cache_s {
     /* This is needed in the VIC-II for the area between the end of the left
        border and the start of the graphics, when the X smooth scroll
        register is > 0.  */
-    BYTE xsmooth_color;
-    BYTE idle_background_color;
+    uint8_t xsmooth_color;
+    uint8_t idle_background_color;
 
     /* X smooth scroll offset.  */
     int xsmooth;
@@ -76,15 +76,15 @@ struct raster_cache_s {
 
     /* Sprite cache.  */
     raster_sprite_cache_t sprites[RASTER_CACHE_MAX_SPRITES];
-    BYTE *gfx_msk;
+    uint8_t *gfx_msk;
 
     /* Sprite-sprite and sprite-background collisions that were detected on
        this line.  */
-    BYTE sprite_sprite_collisions;
-    BYTE sprite_background_collisions;
+    uint8_t sprite_sprite_collisions;
+    uint8_t sprite_background_collisions;
 
     /* Character memory pointer.  */
-    BYTE *chargen_ptr;
+    uint8_t *chargen_ptr;
 
     /* Character row counter.  */
     unsigned int ycounter;
@@ -94,16 +94,16 @@ struct raster_cache_s {
 
     /* Color information.  */
     unsigned int border_color;
-    BYTE background_data[RASTER_CACHE_MAX_TEXTCOLS];
+    uint8_t background_data[RASTER_CACHE_MAX_TEXTCOLS];
 
     /* Bitmap representation of the graphics in foreground.  */
-    BYTE foreground_data[RASTER_CACHE_MAX_TEXTCOLS];
+    uint8_t foreground_data[RASTER_CACHE_MAX_TEXTCOLS];
 
     /* The following are generic and are used differently by the video
        emulators.  */
-    BYTE color_data_1[RASTER_CACHE_MAX_TEXTCOLS];
-    BYTE color_data_2[RASTER_CACHE_MAX_TEXTCOLS];
-    BYTE color_data_3[RASTER_CACHE_MAX_TEXTCOLS];
+    uint8_t color_data_1[RASTER_CACHE_MAX_TEXTCOLS];
+    uint8_t color_data_2[RASTER_CACHE_MAX_TEXTCOLS];
+    uint8_t color_data_3[RASTER_CACHE_MAX_TEXTCOLS];
 };
 typedef struct raster_cache_s raster_cache_t;
 

@@ -43,6 +43,9 @@
 #include "vic20.h"
 #include "viewport.h"
 
+#include "vic-cycle.h"
+
+
 /* ------------------------------------------------------------------------- */
 
 /* Close vertical flipflop */
@@ -219,9 +222,9 @@ extern int vic20_vflihack_userport;
 extern unsigned char vfli_ram[0x4000];
 
 /* Perform actual fetch */
-static inline BYTE vic_cycle_do_fetch(int addr, BYTE *color)
+static inline uint8_t vic_cycle_do_fetch(int addr, uint8_t *color)
 {
-    BYTE b, c;
+    uint8_t b, c;
     int color_addr = 0x9400 + (addr & 0x3ff);
     int color_addr2 = (addr & 0x03ff) | (vic20_vflihack_userport << 10);
 
@@ -270,7 +273,7 @@ static inline int vic_cycle_fix_addr(int addr)
 static inline void vic_cycle_fetch(void)
 {
     int addr;
-    BYTE b;
+    uint8_t b;
 
     switch (vic.fetch_state) {
         /* fetch has not started yet */

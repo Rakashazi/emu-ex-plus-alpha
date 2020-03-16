@@ -42,7 +42,7 @@
 
 #define VIC_NUM_COLORS 16
 
-/* This is the only machine that needs those defines.  (MSDOS?, OS2?) */
+/* This is the only machine that needs those defines.  (OS2?) */
 #define RASTER_PIXEL(c) (vic.pixel_table.sing[(c)])
 
 /* FIXME: MSDOS does not need double pixel.
@@ -57,12 +57,12 @@
 #endif
 
 #ifdef VIC_DUPLICATES_PIXELS
-typedef WORD VIC_PIXEL;
+typedef uint16_t VIC_PIXEL;
 #define VIC_PIXEL(n)    RASTER_PIXEL2(n)
 #define VIC_PIXEL_WIDTH 2
 #define VIC_PIXEL_WIDTH_SHIFT 1
 #else
-typedef BYTE VIC_PIXEL;
+typedef uint8_t VIC_PIXEL;
 #define VIC_PIXEL(n)    RASTER_PIXEL(n)
 #define VIC_PIXEL_WIDTH 1
 #define VIC_PIXEL_WIDTH_SHIFT 0
@@ -151,7 +151,7 @@ struct vic_s {
 
     struct palette_s *palette;
 
-    BYTE regs[0x10];
+    uint8_t regs[0x10];
 
     /* Cycle # within the current line.  */
     unsigned int raster_cycle;
@@ -189,16 +189,16 @@ struct vic_s {
     vic_fetch_state_t fetch_state;
 
     /* Screen memory buffer (1 char) */
-    BYTE vbuf;
+    uint8_t vbuf;
 
     /* Offset to the cbuf/gbuf buffers */
     unsigned int buf_offset;
 
     /* Color memory buffer */
-    BYTE cbuf[VIC_MAX_TEXT_COLS];
+    uint8_t cbuf[VIC_MAX_TEXT_COLS];
 
     /* Graphics buffer (chargen/bitmap) */
-    BYTE gbuf[VIC_MAX_TEXT_COLS];
+    uint8_t gbuf[VIC_MAX_TEXT_COLS];
 
     unsigned int cycles_per_line;
     unsigned int screen_height;
@@ -217,8 +217,8 @@ struct vic_s {
     struct video_chip_cap_s *video_chip_cap;
 
     struct {
-        BYTE sing[0x100];
-        WORD doub[0x100];
+        uint8_t sing[0x100];
+        uint16_t doub[0x100];
     } pixel_table;
 };
 typedef struct vic_s vic_t;

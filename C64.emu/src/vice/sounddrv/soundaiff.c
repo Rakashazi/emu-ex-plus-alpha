@@ -42,9 +42,9 @@ static int aiff_init(const char *param, int *speed, int *fragsize, int *fragnr, 
     unsigned int check_value;
 
     /* AIFF header. */
-    BYTE header[54] = "FORMssssAIFFCOMM\0\0\0\022\0cffff\0\020\100rrr\0\0\0\0\0\0SSNDssss\0\0\0\0\0\0\0\0";
+    unsigned char header[54] = "FORMssssAIFFCOMM\0\0\0\022\0cffff\0\020\100rrr\0\0\0\0\0\0SSNDssss\0\0\0\0\0\0\0\0";
 
-    DWORD sample_rate = (DWORD)*speed;
+    uint32_t sample_rate = (uint32_t)*speed;
 
     if (sample_rate < 8000 || sample_rate > 48000) {
         return 1;
@@ -58,13 +58,13 @@ static int aiff_init(const char *param, int *speed, int *fragsize, int *fragnr, 
     samples = 0;
 
     /* Initialize header. */
-    header[21] = (BYTE)(*channels & 0xff);
+    header[21] = (uint8_t)(*channels & 0xff);
     check_value = 2;
     for (i = 0; i < 15; i++) {
         if (sample_rate >= check_value && sample_rate < (check_value * 2)) {
-            header[29] = (BYTE)i;
-            header[30] = (BYTE)((((sample_rate) << (14 - i)) >> 8) & 0xff);
-            header[31] = (BYTE)(((sample_rate) << (14 - i)) & 0xff);
+            header[29] = (uint8_t)i;
+            header[30] = (uint8_t)((((sample_rate) << (14 - i)) >> 8) & 0xff);
+            header[31] = (uint8_t)(((sample_rate) << (14 - i)) & 0xff);
         }
         check_value = check_value * 2;
     }
@@ -72,25 +72,25 @@ static int aiff_init(const char *param, int *speed, int *fragsize, int *fragnr, 
     return (fwrite(header, 1, 54, aiff_fd) != 54);
 }
 
-static int aiff_write(SWORD *pbuf, size_t nr)
+static int aiff_write(int16_t *pbuf, size_t nr)
 {
 #ifndef WORDS_BIGENDIAN
     unsigned int i;
 
     /* Swap bytes on little endian machines. */
     for (i = 0; i < nr; i++) {
-        pbuf[i] = (SWORD)((((WORD)pbuf[i] & 0xff) << 8) | ((WORD)pbuf[i] >> 8));
+        pbuf[i] = (int16_t)((((uint16_t)pbuf[i] & 0xff) << 8) | ((uint16_t)pbuf[i] >> 8));
     }
 #endif
 
-    if (nr != fwrite(pbuf, sizeof(SWORD), nr, aiff_fd)) {
+    if (nr != fwrite(pbuf, sizeof(int16_t), nr, aiff_fd)) {
         return 1;
     }
 
     /* Swap the bytes back just in case. */
 #ifndef WORDS_BIGENDIAN
     for (i = 0; i < nr; i++) {
-        pbuf[i] = (SWORD)((((WORD)pbuf[i] & 0xff) << 8) | ((WORD)pbuf[i] >> 8));
+        pbuf[i] = (int16_t)((((uint16_t)pbuf[i] & 0xff) << 8) | ((uint16_t)pbuf[i] >> 8));
     }
 #endif
 
@@ -104,24 +104,24 @@ static int aiff_write(SWORD *pbuf, size_t nr)
 static void aiff_close(void)
 {
     int res = -1;
-    BYTE slen[4];
-    BYTE alen[4];
-    BYTE flen[4];
+    uint8_t slen[4];
+    uint8_t alen[4];
+    uint8_t flen[4];
 
-    alen[0] = (BYTE)((samples >> 24) & 0xff);
-    alen[1] = (BYTE)((samples >> 16) & 0xff);
-    alen[2] = (BYTE)((samples >> 8) & 0xff);
-    alen[3] = (BYTE)(samples & 0xff);
+    alen[0] = (uint8_t)((samples >> 24) & 0xff);
+    alen[1] = (uint8_t)((samples >> 16) & 0xff);
+    alen[2] = (uint8_t)((samples >> 8) & 0xff);
+    alen[3] = (uint8_t)(samples & 0xff);
 
-    slen[0] = (BYTE)((((samples * 2) + 8) >> 24) & 0xff);
-    slen[1] = (BYTE)((((samples * 2) + 8) >> 16) & 0xff);
-    slen[2] = (BYTE)((((samples * 2) + 8) >> 8) & 0xff);
-    slen[3] = (BYTE)(((samples * 2) + 8) & 0xff);
+    slen[0] = (uint8_t)((((samples * 2) + 8) >> 24) & 0xff);
+    slen[1] = (uint8_t)((((samples * 2) + 8) >> 16) & 0xff);
+    slen[2] = (uint8_t)((((samples * 2) + 8) >> 8) & 0xff);
+    slen[3] = (uint8_t)(((samples * 2) + 8) & 0xff);
 
-    flen[0] = (BYTE)((((samples * 2) + 46) >> 24) & 0xff);
-    flen[1] = (BYTE)((((samples * 2) + 46) >> 16) & 0xff);
-    flen[2] = (BYTE)((((samples * 2) + 46) >> 8) & 0xff);
-    flen[3] = (BYTE)(((samples * 2) + 46) & 0xff);
+    flen[0] = (uint8_t)((((samples * 2) + 46) >> 24) & 0xff);
+    flen[1] = (uint8_t)((((samples * 2) + 46) >> 16) & 0xff);
+    flen[2] = (uint8_t)((((samples * 2) + 46) >> 8) & 0xff);
+    flen[3] = (uint8_t)(((samples * 2) + 46) & 0xff);
 
     fseek(aiff_fd, 4, SEEK_SET);
     if (fwrite(flen, 1, 4, aiff_fd) != 4) {

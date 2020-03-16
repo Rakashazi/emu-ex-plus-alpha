@@ -104,7 +104,7 @@ static int freeze_pressed = 0;
 static int register_enabled = 0;
 static int romh_enabled = 0;
 
-static void capture_reg(WORD addr)
+static void capture_reg(uint16_t addr)
 {
     if (register_enabled) {
         if ((addr & 0xffff) == 0xfff7) {
@@ -123,7 +123,7 @@ static void capture_reg(WORD addr)
     }
 }
 
-static void capture_romhflip(WORD addr)
+static void capture_romhflip(uint16_t addr)
 {
     if (freeze_pressed) {
         if ((addr & 0xff00) == 0xfe00) {
@@ -134,7 +134,7 @@ static void capture_romhflip(WORD addr)
     }
 }
 
-BYTE capture_romh_read(WORD addr)
+uint8_t capture_romh_read(uint16_t addr)
 {
     capture_reg(addr);
     capture_romhflip(addr);
@@ -147,7 +147,7 @@ BYTE capture_romh_read(WORD addr)
     return mem_read_without_ultimax(addr);
 }
 
-void capture_romh_store(WORD addr, BYTE value)
+void capture_romh_store(uint16_t addr, uint8_t value)
 {
     capture_reg(addr);
     /* capture_romhflip(addr); */
@@ -159,7 +159,7 @@ void capture_romh_store(WORD addr, BYTE value)
 /*
     there is Cartridge RAM at 0x6000..0x7fff
 */
-BYTE capture_1000_7fff_read(WORD addr)
+uint8_t capture_1000_7fff_read(uint16_t addr)
 {
     if (cart_enabled) {
         if (addr >= 0x6000) {
@@ -170,7 +170,7 @@ BYTE capture_1000_7fff_read(WORD addr)
     return mem_read_without_ultimax(addr);
 }
 
-void capture_1000_7fff_store(WORD addr, BYTE value)
+void capture_1000_7fff_store(uint16_t addr, uint8_t value)
 {
     if (cart_enabled) {
         if (addr >= 0x6000) {
@@ -181,17 +181,17 @@ void capture_1000_7fff_store(WORD addr, BYTE value)
     }
 }
 
-int capture_romh_phi1_read(WORD addr, BYTE *value)
+int capture_romh_phi1_read(uint16_t addr, uint8_t *value)
 {
     return CART_READ_C64MEM;
 }
 
-int capture_romh_phi2_read(WORD addr, BYTE *value)
+int capture_romh_phi2_read(uint16_t addr, uint8_t *value)
 {
     return capture_romh_phi1_read(addr, value);
 }
 
-int capture_peek_mem(export_t *export, WORD addr, BYTE *value)
+int capture_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
 {
     if (cart_enabled == 1) {
         if (addr >= 0x6000 && addr <= 0x7fff) {
@@ -236,7 +236,7 @@ void capture_reset(void)
     cart_config_changed_slotmain(2, 2, CMODE_READ);
 }
 
-void capture_config_setup(BYTE *rawcart)
+void capture_config_setup(uint8_t *rawcart)
 {
     DBG(("CAPTURE: config setup\n"));
     memcpy(romh_banks, rawcart, 0x2000);
@@ -253,7 +253,7 @@ static int capture_common_attach(void)
     return 0;
 }
 
-int capture_bin_attach(const char *filename, BYTE *rawcart)
+int capture_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x2000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -261,7 +261,7 @@ int capture_bin_attach(const char *filename, BYTE *rawcart)
     return capture_common_attach();
 }
 
-int capture_crt_attach(FILE *fd, BYTE *rawcart)
+int capture_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
 
@@ -315,10 +315,10 @@ int capture_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || (SMW_B(m, (BYTE)cart_enabled) < 0)
-        || (SMW_B(m, (BYTE)freeze_pressed) < 0)
-        || (SMW_B(m, (BYTE)register_enabled) < 0)
-        || (SMW_B(m, (BYTE)romh_enabled) < 0)
+        || (SMW_B(m, (uint8_t)cart_enabled) < 0)
+        || (SMW_B(m, (uint8_t)freeze_pressed) < 0)
+        || (SMW_B(m, (uint8_t)register_enabled) < 0)
+        || (SMW_B(m, (uint8_t)romh_enabled) < 0)
         || (SMW_BA(m, romh_banks, 0x2000) < 0)
         || (SMW_BA(m, export_ram0, 0x2000) < 0)) {
         snapshot_module_close(m);
@@ -330,7 +330,7 @@ int capture_snapshot_write_module(snapshot_t *s)
 
 int capture_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -340,7 +340,7 @@ int capture_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

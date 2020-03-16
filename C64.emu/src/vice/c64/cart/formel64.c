@@ -104,23 +104,24 @@ bit0    ?
 /* ---------------------------------------------------------------------*/
 
 /* some prototypes are needed */
-static void formel64_io2_store(WORD addr, BYTE value);
-static BYTE formel64_io2_read(WORD addr);
-static BYTE formel64_io2_peek(WORD addr);
+static void formel64_io2_store(uint16_t addr, uint8_t value);
+static uint8_t formel64_io2_read(uint16_t addr);
+static uint8_t formel64_io2_peek(uint16_t addr);
 
 static io_source_t formel64_io2_device = {
-    CARTRIDGE_NAME_FORMEL64,
-    IO_DETACH_CART,
-    NULL,
-    0xdf00, 0xdfff, 0xff,
-    1, /* read is always valid */
-    formel64_io2_store,
-    formel64_io2_read,
-    formel64_io2_peek,
-    NULL, /* TODO: dump */
-    CARTRIDGE_FORMEL64,
-    0,
-    0
+    CARTRIDGE_NAME_FORMEL64, /* name of the device */
+    IO_DETACH_CART,          /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,   /* does not use a resource for detach */
+    0xdf00, 0xdfff, 0xff,    /* range for the device, regs:$dfc0-$dfc3, mirrors:$df00-$dfbf & $dfc4-$dfff */
+    1,                       /* read is always valid */
+    formel64_io2_store,      /* store function */
+    NULL,                    /* NO poke function */
+    formel64_io2_read,       /* read function */
+    formel64_io2_peek,       /* peek function */
+    NULL,                    /* TODO: device state information dump function */
+    CARTRIDGE_FORMEL64,      /* cartridge ID */
+    IO_PRIO_NORMAL,          /* normal priority, device read needs to be checked for collisions */
+    0                        /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *formel64_io2_list_item = NULL;
@@ -140,7 +141,7 @@ static int f64_enabled = 1;
 static mc6821_state my6821;
 
 #ifdef LOG_PORTA
-static void f64_print_pa(BYTE data)
+static void f64_print_pa(uint8_t data)
 {
     DBG(("6821 PA %02x ", data));
     DBG(("[??? %02x] ", data & 0xff));
@@ -148,9 +149,9 @@ static void f64_print_pa(BYTE data)
 #endif
 
 #ifdef LOG_PORTB
-static void f64_print_pb(BYTE data)
+static void f64_print_pb(uint8_t data)
 {
-    BYTE page;
+    uint8_t page;
 
     page = ((data >> 1) & 3);
 
@@ -168,12 +169,12 @@ static void f64_set_pa(mc6821_state *ctx)
     DBG(("\n"));
 #endif
     parallel_cable_cpu_pulse(DRIVE_PC_FORMEL64);
-    parallel_cable_cpu_write(DRIVE_PC_FORMEL64, (BYTE)ctx->dataA);
+    parallel_cable_cpu_write(DRIVE_PC_FORMEL64, (uint8_t)ctx->dataA);
 }
 
-static BYTE f64_get_pa(mc6821_state *ctx)
+static uint8_t f64_get_pa(mc6821_state *ctx)
 {
-    BYTE data = 0xff;
+    uint8_t data = 0xff;
 
     parallel_cable_cpu_write(DRIVE_PC_FORMEL64, 0xff);
     data = parallel_cable_cpu_read(DRIVE_PC_FORMEL64, data);
@@ -199,9 +200,9 @@ static void f64_set_pb(mc6821_state *ctx)
 #endif
 }
 
-static BYTE f64_get_pb(mc6821_state *ctx)
+static uint8_t f64_get_pb(mc6821_state *ctx)
 {
-    BYTE data = 0;
+    uint8_t data = 0;
     return data;
 }
 
@@ -209,7 +210,7 @@ static BYTE f64_get_pb(mc6821_state *ctx)
 *
 ****************************************************************************/
 
-static BYTE formel64_io2_read(WORD addr)
+static uint8_t formel64_io2_read(uint16_t addr)
 {
     int port, reg;
 
@@ -221,7 +222,7 @@ static BYTE formel64_io2_read(WORD addr)
     return mc6821core_read(&my6821, port /* rs1 */, reg /* rs0 */);
 }
 
-static BYTE formel64_io2_peek(WORD addr)
+static uint8_t formel64_io2_peek(uint16_t addr)
 {
     int port, reg;
 
@@ -231,7 +232,7 @@ static BYTE formel64_io2_peek(WORD addr)
     return mc6821core_peek(&my6821, port /* rs1 */, reg /* rs0 */);
 }
 
-static void formel64_io2_store(WORD addr, BYTE value)
+static void formel64_io2_store(uint16_t addr, uint8_t value)
 {
     int port, reg;
 
@@ -246,7 +247,7 @@ static void formel64_io2_store(WORD addr, BYTE value)
 ****************************************************************************/
 /* ---------------------------------------------------------------------*/
 
-BYTE formel64_romh_read(WORD addr)
+uint8_t formel64_romh_read(uint16_t addr)
 {
     if (f64_enabled) {
         return romh_banks[(addr & 0x1fff) + (romh_bank << 13)];
@@ -254,7 +255,7 @@ BYTE formel64_romh_read(WORD addr)
     return mem_read_without_ultimax(addr);
 }
 
-BYTE formel64_romh_read_hirom(WORD addr)
+uint8_t formel64_romh_read_hirom(uint16_t addr)
 {
     if (f64_enabled) {
         return romh_banks[(addr & 0x1fff) + (romh_bank << 13)];
@@ -262,17 +263,17 @@ BYTE formel64_romh_read_hirom(WORD addr)
     return mem_read_without_ultimax(addr);
 }
 
-int formel64_romh_phi1_read(WORD addr, BYTE *value)
+int formel64_romh_phi1_read(uint16_t addr, uint8_t *value)
 {
     return CART_READ_C64MEM;
 }
 
-int formel64_romh_phi2_read(WORD addr, BYTE *value)
+int formel64_romh_phi2_read(uint16_t addr, uint8_t *value)
 {
     return formel64_romh_phi1_read(addr, value);
 }
 
-int formel64_peek_mem(export_t *export, WORD addr, BYTE *value)
+int formel64_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
 {
     if (addr >= 0xe000) {
         *value = romh_banks[(addr & 0x1fff) + (romh_bank << 13)];
@@ -297,7 +298,7 @@ void formel64_config_init(void)
     my6821.get_pb = f64_get_pb;
 
     romh_bank = 2;
-    cart_config_changed_slotmain(CMODE_RAM, (BYTE)(CMODE_ULTIMAX | (romh_bank << CMODE_BANK_SHIFT)), CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, (uint8_t)(CMODE_ULTIMAX | (romh_bank << CMODE_BANK_SHIFT)), CMODE_READ);
 }
 
 void formel64_reset(void)
@@ -306,7 +307,7 @@ void formel64_reset(void)
     mc6821core_reset(&my6821);
 }
 
-void formel64_config_setup(BYTE *rawcart)
+void formel64_config_setup(uint8_t *rawcart)
 {
     memcpy(romh_banks, rawcart, 0x8000);
 }
@@ -321,7 +322,7 @@ static int formel64_common_attach(void)
     return 0;
 }
 
-int formel64_bin_attach(const char *filename, BYTE *rawcart)
+int formel64_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x8000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -333,7 +334,7 @@ int formel64_bin_attach(const char *filename, BYTE *rawcart)
     load CRT
 */
 
-int formel64_crt_attach(FILE *fd, BYTE *rawcart)
+int formel64_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
     int i;
@@ -397,7 +398,7 @@ int formel64_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || (SMW_B(m, (BYTE)f64_enabled) < 0)
+        || (SMW_B(m, (uint8_t)f64_enabled) < 0)
         || (SMW_BA(m, romh_banks, 0x8000) < 0)) {
         snapshot_module_close(m);
         return -1;
@@ -412,7 +413,7 @@ int formel64_snapshot_write_module(snapshot_t *s)
 
 int formel64_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -422,7 +423,7 @@ int formel64_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -439,7 +440,7 @@ int formel64_snapshot_read_module(snapshot_t *s)
 
     snapshot_module_close(m);
 
-    parallel_cable_cpu_undump(DRIVE_PC_FORMEL64, (BYTE)my6821.dataA);
+    parallel_cable_cpu_undump(DRIVE_PC_FORMEL64, (uint8_t)my6821.dataA);
 
     return formel64_common_attach();
 

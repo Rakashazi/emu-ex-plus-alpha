@@ -116,7 +116,7 @@ extern void vicii_chip_model_init(void);
 #define SPRITE_BA_MASK_M  0x000000ff
 #define SPRITE_BA_MASK_B  0
 
-static inline BYTE cycle_get_sprite_ba_mask(unsigned int flags)
+static inline uint8_t cycle_get_sprite_ba_mask(unsigned int flags)
 {
     return (flags & SPRITE_BA_MASK_M) >> SPRITE_BA_MASK_B;
 }

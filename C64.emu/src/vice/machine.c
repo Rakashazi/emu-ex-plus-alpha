@@ -44,6 +44,7 @@
 #include "fsdevice.h"
 #include "gfxoutput.h"
 #include "interrupt.h"
+#include "joy.h"
 #include "kbdbuf.h"
 #include "keyboard.h"
 #include "lib.h"
@@ -63,7 +64,6 @@
 #include "sysfile.h"
 #include "tape.h"
 #include "traps.h"
-#include "translate.h"
 #include "types.h"
 #include "uiapi.h"
 #include "util.h"
@@ -71,12 +71,16 @@
 #include "vsync.h"
 #include "zfile.h"
 
-#ifdef HAS_JOYSTICK
-#include "joy.h"
-#endif
+/* #define DEBUGMACHINE */
 
 #ifndef EXIT_SUCCESS
 #define EXIT_SUCCESS 0
+#endif
+
+#ifdef DEBUGMACHINE
+#define DBG(x) printf x
+#else
+#define DBG(x)
 #endif
 
 static int machine_init_was_called = 0;
@@ -85,12 +89,15 @@ static int ignore_jam = 0;
 static int jam_action = MACHINE_JAM_ACTION_DIALOG;
 int machine_keymap_index;
 static char *ExitScreenshotName = NULL;
+static char *ExitScreenshotName1 = NULL;
+
+
 
 unsigned int machine_jam(const char *format, ...)
 {
     char *str;
     va_list ap;
-    ui_jam_action_t ret;
+    ui_jam_action_t ret = JAM_NONE;
 
     if (ignore_jam > 0) {
         return JAM_NONE;
@@ -105,11 +112,11 @@ unsigned int machine_jam(const char *format, ...)
     if (jam_action == MACHINE_JAM_ACTION_DIALOG) {
         if (monitor_is_remote()) {
             ret = monitor_network_ui_jam_dialog(str);
-        } else {
+        } else if (!console_mode) {
             ret = ui_jam_dialog(str);
         }
     } else if (jam_action == MACHINE_JAM_ACTION_QUIT) {
-        exit(EXIT_SUCCESS);
+        archdep_vice_exit(EXIT_SUCCESS);
     } else {
         int actions[4] = {
             -1, UI_JAM_MONITOR, UI_JAM_RESET, UI_JAM_HARD_RESET
@@ -175,6 +182,8 @@ void machine_reset_event_playback(CLOCK offset, void *data)
 void machine_reset(void)
 {
     log_message(LOG_DEFAULT, "Main CPU: RESET.");
+
+    ignore_jam = 0;
 
     /* Do machine-specific initialization.  */
     if (!mem_initialized) {
@@ -246,13 +255,20 @@ static void screenshot_at_exit(void)
 {
     struct video_canvas_s *canvas;
 
-    if ((ExitScreenshotName == NULL) || (ExitScreenshotName[0] == 0)) {
-        return;
+    if ((ExitScreenshotName != NULL) && (ExitScreenshotName[0] != 0)) {
+        /* FIXME: this always uses the first canvas, for x128 this is the VDC */
+        canvas = machine_video_canvas_get(0);
+        /* FIXME: perhaps select driver based on the extension of the given name. for now PNG is good enough :) */
+        screenshot_save("PNG", ExitScreenshotName, canvas);
     }
-    /* FIXME: this always uses the first canvas, for x128/VDC we will need extra handling */
-    canvas = machine_video_canvas_get(0);
-    /* FIXME: perhaps select driver based on the extension of the given name. for now PNG is good enough :) */
-    screenshot_save("PNG", ExitScreenshotName, canvas);
+    if (machine_class == VICE_MACHINE_C128) {
+        if ((ExitScreenshotName1 != NULL) && (ExitScreenshotName1[0] != 0)) {
+            /* FIXME: this always uses the second canvas, for x128 this is the VICII */
+            canvas = machine_video_canvas_get(1);
+            /* FIXME: perhaps select driver based on the extension of the given name. for now PNG is good enough :) */
+            screenshot_save("PNG", ExitScreenshotName1, canvas);
+        }
+    }
 }
 
 void machine_shutdown(void)
@@ -271,9 +287,7 @@ void machine_shutdown(void)
 
     autostart_shutdown();
 
-#ifdef HAS_JOYSTICK
     joystick_close();
-#endif
 
     sound_close();
 
@@ -368,9 +382,24 @@ static int set_exit_screenshot_name(const char *val, void *param)
     return 0;
 }
 
+static int set_exit_screenshot_name1(const char *val, void *param)
+{
+    if (util_string_set(&ExitScreenshotName1, val)) {
+        return 0;
+    }
+
+    return 0;
+}
+
 static resource_string_t resources_string[] = {
     { "ExitScreenshotName", "", RES_EVENT_NO, NULL,
       &ExitScreenshotName, set_exit_screenshot_name, NULL },
+    RESOURCE_STRING_LIST_END
+};
+
+static resource_string_t resources_string_c128[] = {
+    { "ExitScreenshotName1", "", RES_EVENT_NO, NULL,
+      &ExitScreenshotName1, set_exit_screenshot_name1, NULL },
     RESOURCE_STRING_LIST_END
 };
 
@@ -386,6 +415,11 @@ int machine_common_resources_init(void)
         if (resources_register_string(resources_string) < 0) {
            return -1;
         }
+        if (machine_class == VICE_MACHINE_C128) {
+            if (resources_register_string(resources_string_c128) < 0) {
+            return -1;
+            }
+        }
     }
     return resources_register_int(resources_int);
 }
@@ -393,32 +427,49 @@ int machine_common_resources_init(void)
 void machine_common_resources_shutdown(void)
 {
     lib_free(ExitScreenshotName);
+    lib_free(ExitScreenshotName1);
 }
 
-static const cmdline_option_t cmdline_options[] = {
-    { "-jamaction", SET_RESOURCE, 1, NULL, NULL, "JAMAction", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID, IDCLS_P_TYPE, IDCLS_SET_MACHINE_JAM_ACTION,
-      NULL, NULL },
-    { "-exitscreenshot", SET_RESOURCE, 1, NULL, NULL, "ExitScreenshotName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID, IDCLS_P_NAME, IDCLS_SET_EXIT_SCREENSHOT,
-      NULL, NULL },
+static const cmdline_option_t cmdline_options_c128[] =
+{
+    { "-jamaction", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "JAMAction", NULL,
+      "<Type>", "Set action on CPU JAM: (0: Ask, 1: continue, 2: Monitor, 3: Reset, 4: Hard Reset, 5: Quit Emulator)" },
+    { "-exitscreenshot", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "ExitScreenshotName", NULL,
+      "<Name>", "Set name of screenshot to save when emulator exits." },
+    { "-exitscreenshotvicii", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "ExitScreenshotName1", NULL,
+      "<Name>", "Set name of screenshot to save when emulator exits." },
     CMDLINE_LIST_END
 };
 
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-jamaction", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "JAMAction", NULL,
+      "<Type>", "Set action on CPU JAM: (0: Ask, 1: continue, 2: Monitor, 3: Reset, 4: Hard Reset, 5: Quit Emulator)" },
+    { "-exitscreenshot", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "ExitScreenshotName", NULL,
+      "<Name>", "Set name of screenshot to save when emulator exits." },
+    CMDLINE_LIST_END
+};
 
-static const cmdline_option_t cmdline_options_vsid[] = {
-    { "-jamaction", SET_RESOURCE, 1, NULL, NULL, "JAMAction", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID, IDCLS_P_TYPE, IDCLS_SET_MACHINE_JAM_ACTION,
-      NULL, NULL },
+static const cmdline_option_t cmdline_options_vsid[] =
+{
+    { "-jamaction", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "JAMAction", NULL,
+      "<Type>", "Set action on CPU JAM: (0: Ask, 1: continue, 2: Monitor, 3: Reset, 4: Hard Reset, 5: Quit Emulator)" },
     CMDLINE_LIST_END
 };
 
 int machine_common_cmdline_options_init(void)
 {
-    if (machine_class != VICE_MACHINE_VSID) {
-        return cmdline_register_options(cmdline_options);
-    } else {
+    if (machine_class == VICE_MACHINE_C128) {
+        return cmdline_register_options(cmdline_options_c128);
+    } else if (machine_class == VICE_MACHINE_VSID) {
         return cmdline_register_options(cmdline_options_vsid);
+    } else {
+        return cmdline_register_options(cmdline_options);
     }
 }
-

@@ -1,9 +1,13 @@
+/* vim: set et ts=4 sw=4 sts=4 fdm=marker syntax=c.doxygen: */
+
+/** \file   fliplist.c
+ * \brief   Fliplist handling
+ *
+ * \author  pottendo <pottendo@gmx.net>
+ * \author  Bas Wassink <b.wassink@ziggo.nl>
+ */
+
 /*
- * fliplist.c
- *
- * Written by
- *  pottendo <pottendo@gmx.net>
- *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -30,19 +34,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "archdep.h"
 #include "attach.h"
 #include "cmdline.h"
+#include "drive.h"
 #include "fliplist.h"
 #include "ioutil.h"
 #include "lib.h"
 #include "log.h"
 #include "resources.h"
-#include "translate.h"
 #include "util.h"
 
-#define NUM_DRIVES 4
 
 struct fliplist_s {
     fliplist_t next, prev;
@@ -50,7 +54,7 @@ struct fliplist_s {
     unsigned int unit;
 };
 
-static fliplist_t fliplist[NUM_DRIVES] = {
+static fliplist_t fliplist[DRIVE_NUM] = {
     (fliplist_t)NULL,
     (fliplist_t)NULL
 };
@@ -66,6 +70,13 @@ static const char flip_file_header[] = "# Vice fliplist file";
 static void show_fliplist(unsigned int unit);
 
 static char *fliplist_file_name = NULL;
+
+
+/** \brief  Keep track of factory value
+ *
+ * Don't free() a const
+ */
+static char *fliplist_factory = NULL;
 
 
 static int set_fliplist_file_name(const char *val, void *param)
@@ -87,7 +98,8 @@ static resource_string_t resources_string[] = {
 
 int fliplist_resources_init(void)
 {
-    resources_string[0].factory_value = archdep_default_fliplist_file_name();
+    fliplist_factory = archdep_default_fliplist_file_name();
+    resources_string[0].factory_value = fliplist_factory;
 
     if (resources_register_string(resources_string) < 0) {
         return -1;
@@ -100,21 +112,19 @@ void fliplist_resources_shutdown(void)
 {
     int i;
 
-    for (i = 0; i < NUM_DRIVES; i++) {
+    for (i = 0; i < DRIVE_NUM; i++) {
         fliplist_clear_list(8 + i);
     }
 
     lib_free(fliplist_file_name);
-    lib_free((char *)(resources_string[0].factory_value));
+    lib_free(fliplist_factory);
 }
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-flipname", SET_RESOURCE, 1,
+    { "-flipname", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "FliplistName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_FLIP_LIST_NAME,
-      NULL, NULL },
+      "<Name>", "Specify name of the flip list file image" },
     CMDLINE_LIST_END
 };
 
@@ -135,26 +145,24 @@ void fliplist_shutdown(void)
 void fliplist_set_current(unsigned int unit, const char *filename)
 {
     lib_free(current_image);
-    current_image = lib_stralloc(filename);
+    current_image = lib_strdup(filename);
     current_drive = unit;
 }
 
-#if 0
 char *fliplist_get_head(unsigned int unit)
 {
     if (fliplist[unit - 8]) {
         return fliplist[unit - 8]->image;
     }
-    return (char *) NULL;
+    return NULL;
 }
-#endif
 
 const char *fliplist_get_next(unsigned int unit)
 {
     if (fliplist[unit - 8]) {
         return fliplist[unit - 8]->next->image;
     }
-    return (const char *) NULL;
+    return NULL;
 }
 
 const char *fliplist_get_prev(unsigned int unit)
@@ -162,7 +170,7 @@ const char *fliplist_get_prev(unsigned int unit)
     if (fliplist[unit - 8]) {
         return fliplist[unit - 8]->prev->image;
     }
-    return (const char *) NULL;
+    return NULL;
 }
 
 const char *fliplist_get_image(fliplist_t fl)
@@ -175,22 +183,22 @@ unsigned int fliplist_get_unit(fliplist_t fl)
     return fl->unit;
 }
 
-void fliplist_add_image(unsigned int unit)
+bool fliplist_add_image(unsigned int unit)
 {
     fliplist_t n;
 
     if (current_image == NULL) {
-        return;
+        return false;
     }
     if (strcmp(current_image, "") == 0) {
-        return;
+        return false;
     }
 
     n = lib_malloc(sizeof(struct fliplist_s));
-    n->image = lib_stralloc(current_image);
+    n->image = lib_strdup(current_image);
     unit = n->unit = current_drive;
 
-    log_message(LOG_DEFAULT, "Adding `%s' to fliplist[%d]", n->image, unit);
+    log_message(LOG_DEFAULT, "Adding `%s' to fliplist[%u]", n->image, unit);
     if (fliplist[unit - 8]) {
         n->next = fliplist[unit - 8];
         n->prev = fliplist[unit - 8]->prev;
@@ -203,7 +211,9 @@ void fliplist_add_image(unsigned int unit)
         n->prev = n;
     }
     show_fliplist(unit);
+    return true;
 }
+
 
 void fliplist_remove(unsigned int unit, const char *image)
 {
@@ -225,7 +235,7 @@ void fliplist_remove(unsigned int unit, const char *image)
             tmp = fliplist[unit - 8];
             fliplist[unit - 8] = fliplist[unit - 8]->next;
         }
-        log_message(LOG_DEFAULT, "Removing `%s' from fliplist[%d]",
+        log_message(LOG_DEFAULT, "Removing `%s' from fliplist[%u]",
                     tmp->image, unit);
         lib_free(tmp->image);
         lib_free(tmp);
@@ -248,7 +258,7 @@ void fliplist_remove(unsigned int unit, const char *image)
 
         if (it == fliplist[unit - 8]) {
             log_message(LOG_DEFAULT,
-                        "Cannot remove `%s'; not found in fliplist[%d]",
+                        "Cannot remove `%s'; not found in fliplist[%u]",
                         it->image, unit);
             return;
         }
@@ -261,10 +271,18 @@ void fliplist_remove(unsigned int unit, const char *image)
     }
 }
 
-void fliplist_attach_head (unsigned int unit, int direction)
+
+/** \brief  Attach new image from the fliplist
+ *
+ * \param[in]   unit        drive unit number (8-11)
+ * \param[in]   direction   attach either next (>=1) or previous image
+ *
+ * \return  boolean
+ */
+bool fliplist_attach_head(unsigned int unit, int direction)
 {
     if (fliplist[unit - 8] == NULL) {
-        return;
+        return false;
     }
 
     if (direction) {
@@ -273,9 +291,12 @@ void fliplist_attach_head (unsigned int unit, int direction)
         fliplist[unit - 8] = fliplist[unit - 8]->prev;
     }
 
-    if (file_system_attach_disk(fliplist[unit - 8]->unit, fliplist[unit - 8]->image) < 0) {
+    if (file_system_attach_disk(fliplist[unit - 8]->unit,
+                fliplist[unit - 8]->image) < 0) {
         /* shouldn't happen, so ignore it */
+        return false;   /* handle it anyway */
     }
+    return true;
 }
 
 fliplist_t fliplist_init_iterate(unsigned int unit)
@@ -330,7 +351,9 @@ int fliplist_save_list(unsigned int unit, const char *filename)
 
     /* create the directory where the fliplist should be written first */
     util_fname_split(filename, &savedir, NULL);
-    ioutil_mkdir(savedir, IOUTIL_MKDIR_RWXU);
+    if ((savedir != NULL) && (*savedir != 0) && (!strcmp(savedir, "."))) {
+        ioutil_mkdir(savedir, IOUTIL_MKDIR_RWXU);
+    }
     lib_free(savedir);
 
     if (unit == FLIPLIST_ALL_UNITS) {
@@ -349,7 +372,7 @@ int fliplist_save_list(unsigned int unit, const char *filename)
                 fprintf(fp, "%s\n", flip_file_header);
             }
 
-            fprintf(fp, "\nUNIT %d", unit);
+            fprintf(fp, "\nUNIT %u", unit);
             do {
                 fprintf(fp, "\n%s", flip->image);
                 flip = flip->next;
@@ -357,7 +380,7 @@ int fliplist_save_list(unsigned int unit, const char *filename)
             while (flip != fliplist[unit - 8]);
         }
         unit++;
-    } while (all_units && ((unit - 8) < NUM_DRIVES));
+    } while (all_units && ((unit - 8) < DRIVE_NUM));
 
     if (fp) {
         fclose(fp);
@@ -389,7 +412,7 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
     }
     if (unit == FLIPLIST_ALL_UNITS) {
         all_units = 1;
-        for (i = 0; i < NUM_DRIVES; i++) {
+        for (i = 0; i < DRIVE_NUM; i++) {
             fliplist_clear_list(i + 8);
         }
     } else {
@@ -406,9 +429,16 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
 
         if (strncmp("UNIT ", buffer, 5) == 0) {
             if (all_units != 0) {
-                long unit_long;
+                long unit_long = -1;
 
                 util_string_to_long(buffer + 5, NULL, 10, &unit_long);
+
+                if (unit_long < 8 || unit_long > 11) {
+                    log_message(LOG_DEFAULT,
+                            "Invalid unit number %ld for fliplist\n", unit_long);
+                    /* perhaps VICE should properly error out, ie quit? */
+                    return -1;
+                }
 
                 unit = (unsigned int)unit_long;
             }
@@ -432,7 +462,7 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
             }
 
             tmp = lib_malloc(sizeof(struct fliplist_s));
-            tmp->image = lib_stralloc(buffer);
+            tmp->image = lib_strdup(buffer);
             tmp->unit = unit;
 
             if (fliplist[unit - 8] == NULL) {
@@ -456,7 +486,7 @@ int fliplist_load_list(unsigned int unit, const char *filename, int autoattach)
         current_drive = unit;
 
         if (all_units) {
-            for (i = 0; i < NUM_DRIVES; i++) {
+            for (i = 0; i < DRIVE_NUM; i++) {
                 show_fliplist(i + 8);
             }
         } else {
@@ -479,12 +509,12 @@ static void show_fliplist(unsigned int unit)
 {
     fliplist_t it = fliplist[unit - 8];
 
-    log_message(LOG_DEFAULT, "Fliplist[%d] contains:", unit);
+    log_message(LOG_DEFAULT, "Fliplist[%u] contains:", unit);
 
     if (it) {
         do {
             log_message(LOG_DEFAULT,
-                        "\tUnit %d %s (n: %s, p:%s)", it->unit, it->image,
+                        "\tUnit %u %s (n: %s, p:%s)", it->unit, it->image,
                         it->next->image, it->prev->image);
             it = it->next;
         } while (it != fliplist[unit - 8]);

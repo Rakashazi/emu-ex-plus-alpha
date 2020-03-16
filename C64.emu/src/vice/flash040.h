@@ -63,17 +63,17 @@ typedef enum flash040_state_s flash040_state_t;
 #define FLASH040_ERASE_MASK_SIZE 8
 
 typedef struct flash040_context_s {
-    BYTE *flash_data;
+    uint8_t *flash_data;
     flash040_state_t flash_state;
     flash040_state_t flash_base_state;
 
-    BYTE program_byte;
-    BYTE erase_mask[FLASH040_ERASE_MASK_SIZE];
+    uint8_t program_byte;
+    uint8_t erase_mask[FLASH040_ERASE_MASK_SIZE];
     int flash_dirty;
 
     flash040_type_t flash_type;
 
-    BYTE last_read;
+    uint8_t last_read;
     struct alarm_s *erase_alarm;
 } flash040_context_t;
 
@@ -81,15 +81,15 @@ struct alarm_context_s;
 
 extern void flash040core_init(struct flash040_context_s *flash040_context,
                               struct alarm_context_s *alarm_context,
-                              flash040_type_t type, BYTE *data);
+                              flash040_type_t type, uint8_t *data);
 extern void flash040core_shutdown(struct flash040_context_s *flash040_context);
 extern void flash040core_reset(struct flash040_context_s *flash040_context);
 
 extern void flash040core_store(struct flash040_context_s *flash040_context,
-                               unsigned int addr, BYTE data);
-extern BYTE flash040core_read(struct flash040_context_s *flash040_context,
+                               unsigned int addr, uint8_t data);
+extern uint8_t flash040core_read(struct flash040_context_s *flash040_context,
                               unsigned int addr);
-extern BYTE flash040core_peek(struct flash040_context_s *flash040_context,
+extern uint8_t flash040core_peek(struct flash040_context_s *flash040_context,
                               unsigned int addr);
 
 struct snapshot_s;

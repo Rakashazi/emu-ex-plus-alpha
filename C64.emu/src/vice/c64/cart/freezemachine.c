@@ -96,28 +96,28 @@ static int allow_toggle;
 
 /* ---------------------------------------------------------------------*/
 
-static BYTE freezemachine_io1_read(WORD addr)
+static uint8_t freezemachine_io1_read(uint16_t addr)
 {
     DBG(("io1 r %04x\n", addr));
     /* if (addr == 0) */ {
         roml_toggle = 1;
-        cart_config_changed_slotmain(CMODE_RAM, (BYTE)(CMODE_16KGAME | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ);
+        cart_config_changed_slotmain(CMODE_RAM, (uint8_t)(CMODE_16KGAME | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ);
         DBG(("Freeze Machine: switching to 16k game mapping\n"));
     }
     return 0; /* invalid */
 }
 
-static BYTE freezemachine_io1_peek(WORD addr)
+static uint8_t freezemachine_io1_peek(uint16_t addr)
 {
     return 0; /* invalid */
 }
 
-static void freezemachine_io1_store(WORD addr, BYTE value)
+static void freezemachine_io1_store(uint16_t addr, uint8_t value)
 {
     DBG(("io1 %04x %02x\n", addr, value));
 }
 
-static BYTE freezemachine_io2_read(WORD addr)
+static uint8_t freezemachine_io2_read(uint16_t addr)
 {
     DBG(("io2 r %04x\n", addr));
     /* if (addr == 0) */ {
@@ -128,44 +128,46 @@ static BYTE freezemachine_io2_read(WORD addr)
     return 0; /* invalid */
 }
 
-static BYTE freezemachine_io2_peek(WORD addr)
+static uint8_t freezemachine_io2_peek(uint16_t addr)
 {
     return 0; /* invalid */
 }
 
-static void freezemachine_io2_store(WORD addr, BYTE value)
+static void freezemachine_io2_store(uint16_t addr, uint8_t value)
 {
     DBG(("io2 %04x %02x\n", addr, value));
 }
 
 static io_source_t freezemachine_io1_device = {
-    CARTRIDGE_NAME_FREEZE_MACHINE,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    0, /* read is never valid */
-    freezemachine_io1_store,
-    freezemachine_io1_read,
-    freezemachine_io1_peek,
-    NULL, /* TODO: dump */
-    CARTRIDGE_FREEZE_MACHINE,
-    0,
-    0
+    CARTRIDGE_NAME_FREEZE_MACHINE, /* name of the device */
+    IO_DETACH_CART,                /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,         /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,          /* range for the device, address is ignored, reg:$de00, mirrors:$de01-$deff */
+    0,                             /* read is never valid */
+    freezemachine_io1_store,       /* store function */
+    NULL,                          /* NO poke function */
+    freezemachine_io1_read,        /* read function */
+    freezemachine_io1_peek,        /* peek function */
+    NULL,                          /* TODO: device state information dump function */
+    CARTRIDGE_FREEZE_MACHINE,      /* cartridge ID */
+    IO_PRIO_NORMAL,                /* normal priority, device read needs to be checked for collisions */
+    0                              /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t freezemachine_io2_device = {
-    CARTRIDGE_NAME_FREEZE_MACHINE,
-    IO_DETACH_CART,
-    NULL,
-    0xdf00, 0xdfff, 0xff,
-    0, /* read is never valid */
-    freezemachine_io2_store,
-    freezemachine_io2_read,
-    freezemachine_io2_peek,
-    NULL, /* TODO: dump */
-    CARTRIDGE_FREEZE_MACHINE,
-    0,
-    0
+    CARTRIDGE_NAME_FREEZE_MACHINE, /* name of the device */
+    IO_DETACH_CART,                /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,         /* does not use a resource for detach */
+    0xdf00, 0xdfff, 0xff,          /* range for the device, address is ignored, reg:$df00, mirrors:$df01-$dfff */
+    0,                             /* read is never valid */
+    freezemachine_io2_store,       /* store function */
+    NULL,                          /* NO poke function */
+    freezemachine_io2_read,        /* read function */
+    freezemachine_io2_peek,        /* peek function */
+    NULL,                          /* TODO: device state information dump function */
+    CARTRIDGE_FREEZE_MACHINE,      /* cartridge ID */
+    IO_PRIO_NORMAL,                /* normal priority, device read needs to be checked for collisions */
+    0                              /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *freezemachine_io1_list_item = NULL;
@@ -177,7 +179,7 @@ static const export_resource_t export_res = {
 
 /* ---------------------------------------------------------------------*/
 
-BYTE freezemachine_roml_read(WORD addr)
+uint8_t freezemachine_roml_read(uint16_t addr)
 {
     if (roml_toggle) {
         return romh_banks[(addr & 0x1fff) | (rom_A14 << 13)];
@@ -193,7 +195,7 @@ void freezemachine_reset(void)
         rom_A14 ^= 1; /* select other 16k ROM bank on every other reset */
     }
     roml_toggle = 0;
-    cart_config_changed_slotmain(CMODE_RAM, (BYTE)(CMODE_8KGAME | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, (uint8_t)(CMODE_8KGAME | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ);
     DBG(("Freeze Machine: reset (%d)\n", rom_A14));
 }
 
@@ -201,15 +203,15 @@ void freezemachine_freeze(void)
 {
     DBG(("Freeze Machine: freeze\n"));
     roml_toggle = 1;
-    cart_config_changed_slotmain(CMODE_RAM, (BYTE)(CMODE_ULTIMAX | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ | CMODE_RELEASE_FREEZE);
+    cart_config_changed_slotmain(CMODE_RAM, (uint8_t)(CMODE_ULTIMAX | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ | CMODE_RELEASE_FREEZE);
 }
 
 void freezemachine_config_init(void)
 {
-    cart_config_changed_slotmain(CMODE_RAM, (BYTE)(CMODE_8KGAME | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, (uint8_t)(CMODE_8KGAME | (rom_A14 << CMODE_BANK_SHIFT)), CMODE_READ);
 }
 
-void freezemachine_config_setup(BYTE *rawcart)
+void freezemachine_config_setup(uint8_t *rawcart)
 {
     rom_A14 = allow_toggle; /* the following first reset will turn it to 0 again */
     roml_toggle = 0;
@@ -234,7 +236,7 @@ static int freezemachine_common_attach(void)
     return 0;
 }
 
-int freezemachine_bin_attach(const char *filename, BYTE *rawcart)
+int freezemachine_bin_attach(const char *filename, uint8_t *rawcart)
 {
     DBG(("Freeze Machine: bin attach '%s'\n", filename));
     allow_toggle = 1;
@@ -268,13 +270,13 @@ int freezemachine_bin_attach(const char *filename, BYTE *rawcart)
  * $006070 CHIP ROM   #001 $a000 $2000 $2010 (32k ROMs only)
  *
  * (new) correct format (since 12/2015):
- * 
+ *
  * offset  sig  type  bank start size  chunklen
  * $000040 CHIP ROM   #000 $8000 $4000 $4010
  * $004050 CHIP ROM   #001 $8000 $4000 $4010 (32k ROMs only)
  *
  */
-int freezemachine_crt_attach(FILE *fd, BYTE *rawcart)
+int freezemachine_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     int i, pos, banks, chips;
     crt_chip_header_t chip;
@@ -378,9 +380,9 @@ int freezemachine_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)rom_A14) < 0
-        || SMW_B(m, (BYTE)roml_toggle) < 0
-        || SMW_B(m, (BYTE)allow_toggle) < 0
+        || SMW_B(m, (uint8_t)rom_A14) < 0
+        || SMW_B(m, (uint8_t)roml_toggle) < 0
+        || SMW_B(m, (uint8_t)allow_toggle) < 0
         || SMW_BA(m, roml_banks, 0x4000) < 0
         || SMW_BA(m, romh_banks, 0x4000) < 0) {
         snapshot_module_close(m);
@@ -392,7 +394,7 @@ int freezemachine_snapshot_write_module(snapshot_t *s)
 
 int freezemachine_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -402,7 +404,7 @@ int freezemachine_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -414,7 +416,7 @@ int freezemachine_snapshot_read_module(snapshot_t *s)
     }
 
     /* new in 0.1 */
-    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 1)) {
         if (SMR_B_INT(m, &allow_toggle) < 0) {
             goto fail;
         }

@@ -117,9 +117,9 @@ enum pc8477_flags_e {
 };
 
 static const struct {
-    BYTE mask;
+    uint8_t mask;
     pc8477_cmd_t command;
-    BYTE len, rlen, flags;
+    uint8_t len, rlen, flags;
 } pc8477_commands[15] = {
     {0x1f, PC8477_CMD_READ_DATA,          9, 7,  PC8477_FLAGS_DS | PC8477_FLAGS_HDS | PC8477_FLAGS_MOT},
     {0xbf, PC8477_CMD_READ_ID,            2, 7,  PC8477_FLAGS_DS | PC8477_FLAGS_HDS | PC8477_FLAGS_MOT},
@@ -167,8 +167,8 @@ struct pc8477_s {
     CLOCK clk, motor_clk;
 
     /* Registers */
-    BYTE st[4];
-    BYTE dor, tdr;
+    uint8_t st[4];
+    uint8_t dor, tdr;
     int step_rate, motor_off_time, motor_on_time, nodma;
     int rate;
 
@@ -178,11 +178,11 @@ struct pc8477_s {
     alarm_t *seek_alarm;
     int byte_count;
     int fifop, fifop2, fifo_size, fifo_fill;
-    BYTE fifo[16];
+    uint8_t fifo[16];
     int cmdp, cmd_size;
-    BYTE cmd[9];
+    uint8_t cmd[9];
     int resp, res_size;
-    BYTE res[10];
+    uint8_t res[10];
 };
 
 static log_t pc8477_log = LOG_ERR;
@@ -351,7 +351,7 @@ static void pc8477_result(pc8477_t *drv)
 
 static int pc8477_micro_find_sync(pc8477_t *drv)
 {
-    WORD w;
+    uint16_t w;
 
     while (*drv->mycontext->clk_ptr >= drv->clk + BYTE_RATE) {
         if (fdd_index_count(drv->fdd) > 1) {
@@ -389,11 +389,11 @@ static int pc8477_micro_find_sync(pc8477_t *drv)
 
 static int pc8477_micro_readid(pc8477_t *drv)
 {
-    BYTE b;
+    uint8_t b;
 
     while (*drv->mycontext->clk_ptr >= drv->clk + BYTE_RATE) {
         drv->clk += BYTE_RATE;
-        b = (BYTE)fdd_read(drv->fdd);
+        b = (uint8_t)fdd_read(drv->fdd);
         switch (drv->sub_step) {
             case 0: /* track */
                 drv->res[3] = b;
@@ -467,6 +467,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                     drv->st[1] |= PC8477_ST1_MA;
                     drv->sub_step = 0;
                     drv->int_step++;
+                    /* fall through */
                 case 1:
                     while (*drv->mycontext->clk_ptr >= drv->clk + BYTE_RATE) {
                         res = pc8477_micro_find_sync(drv);
@@ -483,6 +484,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                     }
                     drv->sub_step = 0;
                     drv->int_step++;
+                    /* fall through */
                 case 2:
                     res = pc8477_micro_readid(drv);
                     if (res > 0) {
@@ -553,6 +555,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                         drv->st[1] |= PC8477_ST1_MA;
                         drv->sub_step = 0;
                         drv->int_step++;
+                        /* fall through */
                     case 1:
                         res = pc8477_micro_find_sync(drv);
                         if (res < 0) {
@@ -566,6 +569,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                         drv->st[1] |= PC8477_ST1_ND;
                         drv->sub_step = 0;
                         drv->int_step++;
+                        /* fall through */
                     case 2:
                         res = pc8477_micro_readid(drv);
                         if (res > 0) {
@@ -594,6 +598,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                         drv->byte_count = 128 << drv->res[6];
                         drv->sub_step = 0;
                         drv->int_step++;
+                        /* fall through */
                     case 3:
                         res = pc8477_micro_find_sync(drv);
                         if (res < 0) {
@@ -618,7 +623,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                         break;
                     case 4:
                         drv->clk += BYTE_RATE;
-                        drv->fifo[drv->fifop2] = (BYTE)fdd_read(drv->fdd);
+                        drv->fifo[drv->fifop2] = (uint8_t)fdd_read(drv->fdd);
                         drv->fifop2++;
                         if (drv->fifop2 >= drv->fifo_size) {
                             drv->fifop2 = 0;
@@ -636,6 +641,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                             break;
                         }
                         drv->int_step++;
+                        /* fall through */
                     case 5:
                         if (drv->fifo_fill) {
                             drv->clk += fdd_rotate(drv->fdd, (*drv->mycontext->clk_ptr - drv->clk) / BYTE_RATE) * BYTE_RATE;
@@ -663,6 +669,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                         drv->sector = drv->cmd[4];
                         drv->sub_step = 0;
                         drv->int_step++;
+                        /* fall through */
                     case 1:
                         res = pc8477_micro_find_sync(drv);
                         if (res < 0) {
@@ -676,6 +683,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                         drv->st[1] |= PC8477_ST1_ND;
                         drv->sub_step = 0;
                         drv->int_step++;
+                        /* fall through */
                     case 2:
                         res = pc8477_micro_readid(drv);
                         if (res > 0) {
@@ -709,6 +717,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                         drv->byte_count = 128 << drv->res[6];
                         drv->sub_step = 0;
                         drv->int_step++;
+                        /* fall through */
                     case 3:
                         res = pc8477_micro_find_sync(drv);
                         if (res < 0) {
@@ -745,6 +754,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                             break;
                         }
                         drv->int_step++;
+                        /* fall through */
                     case 5:
                         if (drv->cmd[6] != drv->sector) {
                             drv->sector++;
@@ -767,6 +777,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
                         drv->sector = 0;
                         drv->sub_step = 0;
                         drv->int_step++;
+                        /* fall through */
                     case 1:
                         drv->clk += BYTE_RATE;
                         fdd_read(drv->fdd);
@@ -965,7 +976,7 @@ static pc8477_state_t pc8477_execute(pc8477_t *drv)
     return PC8477_RESULT;
 }
 
-static void pc8477_store(pc8477_t *drv, WORD addr, BYTE byte)
+static void pc8477_store(pc8477_t *drv, uint16_t addr, uint8_t byte)
 {
     int i;
 
@@ -1010,7 +1021,7 @@ static void pc8477_store(pc8477_t *drv, WORD addr, BYTE byte)
                     drv->res_size = pc8477_commands[i].rlen;
                     drv->state = PC8477_COMMAND;
                     drv->cmd_flags = pc8477_commands[i].flags;
-                /* fall through */
+                    /* fall through */
                 case PC8477_COMMAND:
                     if (drv->cmdp < drv->cmd_size) {
                         drv->cmd[drv->cmdp++] = byte;
@@ -1071,9 +1082,9 @@ static void pc8477_store(pc8477_t *drv, WORD addr, BYTE byte)
     }
 }
 
-static BYTE pc8477_read(pc8477_t *drv, WORD addr)
+static uint8_t pc8477_read(pc8477_t *drv, uint16_t addr)
 {
-    BYTE result = 0;
+    uint8_t result = 0;
 
     if (drv->state == PC8477_EXEC || drv->state == PC8477_READ || drv->state == PC8477_WRITE) {
         drv->state = pc8477_execute(drv);
@@ -1155,9 +1166,9 @@ static BYTE pc8477_read(pc8477_t *drv, WORD addr)
 }
 
 /* read from I/O without side effects */
-static BYTE pc8477_peek(pc8477_t *drv, WORD addr)
+static uint8_t pc8477_peek(pc8477_t *drv, uint16_t addr)
 {
-    BYTE result = 0;
+    uint8_t result = 0;
 
     switch (addr) {
         case 2:
@@ -1248,19 +1259,19 @@ int pc8477_irq(pc8477_t *drv)
     return drv->irq;
 }
 
-void pc8477d_store(drive_context_t *drv, WORD addr, BYTE byte)
+void pc8477d_store(drive_context_t *drv, uint16_t addr, uint8_t byte)
 {
-    pc8477_store(drv->pc8477, (WORD)(addr & 7), byte);
+    pc8477_store(drv->pc8477, (uint16_t)(addr & 7), byte);
 }
 
-BYTE pc8477d_read(drive_context_t *drv, WORD addr)
+uint8_t pc8477d_read(drive_context_t *drv, uint16_t addr)
 {
-    return pc8477_read(drv->pc8477, (WORD)(addr & 7));
+    return pc8477_read(drv->pc8477, (uint16_t)(addr & 7));
 }
 
-BYTE pc8477d_peek(drive_context_t *drv, WORD addr)
+uint8_t pc8477d_peek(drive_context_t *drv, uint16_t addr)
 {
-    return pc8477_peek(drv->pc8477, (WORD)(addr & 7));
+    return pc8477_peek(drv->pc8477, (uint16_t)(addr & 7));
 }
 
 /*-----------------------------------------------------------------------*/

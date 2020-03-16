@@ -1,10 +1,12 @@
+/** \file   soundalsa.c
+ * \brief   Implementation of the ALSA sound device
+ *
+ * \author  Dag Lem <resid@nimrod.no>
+ *
+ * based on ALSA /test/pcm.c and various scarce documentation.
+ */
+
 /*
- * soundalsa.c - Implementation of the ALSA sound device
- *
- * Written by
- *  Dag Lem <resid@nimrod.no>
- *  - based on ALSA /test/pcm.c and various scarce documentation.
- *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -102,7 +104,8 @@ static int alsa_init(const char *param, int *speed, int *fragsize, int *fragnr, 
     period_size = (snd_pcm_uframes_t)*fragsize;
     dir = 0;
     if ((err = snd_pcm_hw_params_set_period_size_near(handle, hwparams, &period_size, &dir)) < 0) {
-        log_message(LOG_DEFAULT, "Unable to set period size %li for playback: %s", period_size, snd_strerror(err));
+        log_message(LOG_DEFAULT, "Unable to set period size %lu for playback: %s",
+                period_size, snd_strerror(err));
         goto fail;
     }
     *fragsize = (int)period_size;
@@ -113,7 +116,8 @@ static int alsa_init(const char *param, int *speed, int *fragsize, int *fragnr, 
     periods = (unsigned int)*fragnr;
     dir = 0;
     if ((err = snd_pcm_hw_params_set_periods_near(handle, hwparams, &periods, &dir)) < 0) {
-        log_message(LOG_DEFAULT, "Unable to set periods %i for playback: %s", periods, snd_strerror(err));
+        log_message(LOG_DEFAULT, "Unable to set periods %u for playback: %s",
+                periods, snd_strerror(err));
         goto fail;
     }
     *fragnr = (int)periods;
@@ -137,20 +141,20 @@ fail:
     return 1;
 }
 
-static int xrun_recovery(snd_pcm_t *handle, int err)
+static int xrun_recovery(snd_pcm_t *hnd, int err)
 {
     if (err == -EPIPE) {    /* under-run */
-        if ((err = snd_pcm_prepare(handle)) < 0) {
+        if ((err = snd_pcm_prepare(hnd)) < 0) {
             log_message(LOG_DEFAULT, "Can't recover from underrun, prepare failed: %s", snd_strerror(err));
         }
         return 0;
     } else if (err == -ESTRPIPE) {
-        while ((err = snd_pcm_resume(handle)) == -EAGAIN) {
+        while ((err = snd_pcm_resume(hnd)) == -EAGAIN) {
             log_message(LOG_DEFAULT, "xrun_recovery: %s", snd_strerror(err));
             sleep(1);       /* wait until the suspend flag is released */
         }
         if (err < 0) {
-            if ((err = snd_pcm_prepare(handle)) < 0) {
+            if ((err = snd_pcm_prepare(hnd)) < 0) {
                 log_message(LOG_DEFAULT, "Can't recover from suspend, prepare failed: %s", snd_strerror(err));
             }
         }
@@ -159,7 +163,7 @@ static int xrun_recovery(snd_pcm_t *handle, int err)
     return err;
 }
 
-static int alsa_write(SWORD *pbuf, size_t nr)
+static int alsa_write(int16_t *pbuf, size_t nr)
 {
     int err;
 

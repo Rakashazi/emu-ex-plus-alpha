@@ -30,7 +30,7 @@
 #include "vice.h"
 
 typedef struct soundmovie_buffer_s {
-    SWORD *buffer;
+    int16_t *buffer;
     int size;
     int used;
 } soundmovie_buffer_t;

@@ -27,7 +27,7 @@
 
 #include "vice.h"
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
 
 #include <assert.h>
 #include <stdio.h>
@@ -46,6 +46,7 @@
 #include "rawnetarch.h"
 #include "resources.h"
 #include "snapshot.h"
+#include "types.h"
 #include "util.h"
 
 /* FIXME:
@@ -73,13 +74,13 @@ static log_t cs8900_log = LOG_ERR;
 /* status which received packages to accept
    This is used in cs8900_should_accept().
 */
-static BYTE cs8900_ia_mac[6] = { 0, 0, 0, 0, 0, 0 };
+static uint8_t cs8900_ia_mac[6] = { 0, 0, 0, 0, 0, 0 };
 
 /* remember the value of the hash mask */
-static DWORD cs8900_hash_mask[2];
+static uint32_t cs8900_hash_mask[2];
 
 /* reveiver setup */
-static WORD cs8900_recv_control     = 0; /* copy of CC_RXCTL (contains all bits below) */
+static uint16_t cs8900_recv_control     = 0; /* copy of CC_RXCTL (contains all bits below) */
 static int  cs8900_recv_broadcast   = 0; /* broadcast */
 static int  cs8900_recv_mac         = 0; /* individual address (IA) */
 static int  cs8900_recv_multicast   = 0; /* multicast if address passes the hash filter */
@@ -96,7 +97,7 @@ static int  cs8900_recv_hashfilter  = 0; /* accept if IA passes the hash filter 
 */
 #define CS8900_COUNT_IO_REGISTER 0x10 /* we have 16 I/O register */
 
-static BYTE *cs8900 = NULL;
+static uint8_t *cs8900 = NULL;
 /*
     RW: RXTXDATA   = DE00/DE01
     RW: RXTXDATA2  = DE02/DE03 (for 32-bit-operation)
@@ -140,15 +141,15 @@ static BYTE *cs8900 = NULL;
 
 #define MAX_PACKETPAGE_ARRAY 0x1000 /* 4 KB */
 
-static BYTE *cs8900_packetpage = NULL;
+static uint8_t *cs8900_packetpage = NULL;
 
-static WORD cs8900_packetpage_ptr = 0;
+static uint16_t cs8900_packetpage_ptr = 0;
 
 /* Makros for reading and writing the PacketPage register: */
 
 #define GET_PP_8(_xxx_) (assert(_xxx_ < MAX_PACKETPAGE_ARRAY), cs8900_packetpage[_xxx_])
 
-#define GET_PP_16(_xxx_) (assert(_xxx_ < MAX_PACKETPAGE_ARRAY), assert((_xxx_ & 1) == 0), ((WORD)cs8900_packetpage[_xxx_]) | ((WORD)cs8900_packetpage[_xxx_ + 1] << 8))
+#define GET_PP_16(_xxx_) (assert(_xxx_ < MAX_PACKETPAGE_ARRAY), assert((_xxx_ & 1) == 0), ((uint16_t)cs8900_packetpage[_xxx_]) | ((uint16_t)cs8900_packetpage[_xxx_ + 1] << 8))
 
 #define GET_PP_32(_xxx_)                                             \
     (assert(_xxx_ < MAX_PACKETPAGE_ARRAY), assert((_xxx_ & 3) == 0), \
@@ -246,13 +247,13 @@ static WORD cs8900_packetpage_ptr = 0;
 /* ------------------------------------------------------------------------- */
 /*    more variables needed                                                  */
 
-static WORD tx_buffer = CS8900_PP_ADDR_TX_FRAMELOC;
-static WORD rx_buffer = CS8900_PP_ADDR_RXSTATUS;
+static uint16_t tx_buffer = CS8900_PP_ADDR_TX_FRAMELOC;
+static uint16_t rx_buffer = CS8900_PP_ADDR_RXSTATUS;
 
-static WORD tx_count = 0;
-static WORD rx_count = 0;
-static WORD tx_length = 0;
-static WORD rx_length = 0;
+static uint16_t tx_count = 0;
+static uint16_t rx_count = 0;
+static uint16_t tx_length = 0;
+static uint16_t rx_length = 0;
 
 #define CS8900_TX_IDLE       0
 #define CS8900_TX_GOT_CMD    1
@@ -315,10 +316,10 @@ static char *debug_outbuffer(const int length, const unsigned char * const buffe
 
 static void cs8900_set_tx_status(int ready, int error)
 {
-    WORD old_status = GET_PP_16(CS8900_PP_ADDR_SE_BUSST);
+    uint16_t old_status = GET_PP_16(CS8900_PP_ADDR_SE_BUSST);
 
     /* mask out TxBidErr and Rdy4TxNOW */
-    WORD new_status = old_status & ~0x180;
+    uint16_t new_status = old_status & ~0x180;
     if (ready) {
         new_status |= 0x100; /* set Rdy4TxNOW */
     }
@@ -630,11 +631,11 @@ int cs8900_should_accept(unsigned char *buffer, int length, int *phashed, int *p
 /* &broadcast   - set if dest. address is a broadcast address */
 /* &crc_error   - set if received frame had a CRC error */
 
-static WORD cs8900_receive(void)
+static uint16_t cs8900_receive(void)
 {
-    WORD ret_val = 0x0004;
+    uint16_t ret_val = 0x0004;
 
-    BYTE buffer[MAX_RXLENGTH];
+    uint8_t buffer[MAX_RXLENGTH];
 
     int len;
     int hashed;
@@ -642,7 +643,7 @@ static WORD cs8900_receive(void)
     int rx_ok;
     int correct_mac;
     int broadcast;
-    int multicast;
+    int multicast = 0; /* avoid warning */
     int crc_error;
 
     int newframe;
@@ -741,7 +742,7 @@ static WORD cs8900_receive(void)
 /* ------------------------------------------------------------------------- */
 /* TX/RX buffer handling */
 
-static void cs8900_write_tx_buffer(BYTE value, int odd_address)
+static void cs8900_write_tx_buffer(uint8_t value, int odd_address)
 {
     /* write tx data only if valid buffer is ready */
     if (tx_state != CS8900_TX_READ_BUSST) {
@@ -758,7 +759,7 @@ static void cs8900_write_tx_buffer(BYTE value, int odd_address)
 #endif
 
         /* always write LH, LH... to tx buffer */
-        WORD addr = tx_buffer;
+        uint16_t addr = tx_buffer;
         if (odd_address) {
             addr++;
             tx_buffer += 2;
@@ -782,7 +783,7 @@ static void cs8900_write_tx_buffer(BYTE value, int odd_address)
 #endif
             } else {
                 /* send frame */
-                WORD txcmd = GET_PP_16(CS8900_PP_ADDR_CC_TXCMD);
+                uint16_t txcmd = GET_PP_16(CS8900_PP_ADDR_CC_TXCMD);
                 rawnet_arch_transmit(
                     txcmd & 0x0100 ? 1 : 0,   /* FORCE: Delete waiting frames in transmit buffer */
                     txcmd & 0x0200 ? 1 : 0,   /* ONECOLL: Terminate after just one collision */
@@ -804,7 +805,7 @@ static void cs8900_write_tx_buffer(BYTE value, int odd_address)
     }
 }
 
-static BYTE cs8900_read_rx_buffer(int odd_address)
+static uint8_t cs8900_read_rx_buffer(int odd_address)
 {
     if (rx_state != CS8900_RX_GOT_FRAME) {
 #ifdef CS8900_DEBUG_WARN_RXTX
@@ -826,8 +827,8 @@ static BYTE cs8900_read_rx_buffer(int odd_address)
          CS8900_PP_ADDR_RX_FRAMELOC+4: proceed    -
 
          */
-        WORD addr = odd_address ? 1 : 0;
-        BYTE value;
+        uint16_t addr = odd_address ? 1 : 0;
+        uint8_t value;
 
         /* read RXSTATUS or RX_LENGTH */
         if (rx_count < 4) {
@@ -876,10 +877,10 @@ static BYTE cs8900_read_rx_buffer(int odd_address)
 /*
  This is called *after* the relevant octets are written
 */
-static void cs8900_sideeffects_write_pp(WORD ppaddress, int odd_address)
+static void cs8900_sideeffects_write_pp(uint16_t ppaddress, int odd_address)
 {
     const char *on_off[2] = { "on", "off" };
-    WORD content = GET_PP_16( ppaddress );
+    uint16_t content = GET_PP_16( ppaddress );
 
     assert((ppaddress & 1) == 0);
 
@@ -944,7 +945,7 @@ static void cs8900_sideeffects_write_pp(WORD ppaddress, int odd_address)
         case CS8900_PP_ADDR_TXCMD:
             {
                 if (odd_address) {
-                    WORD txcommand = GET_PP_16(CS8900_PP_ADDR_TXCMD);
+                    uint16_t txcommand = GET_PP_16(CS8900_PP_ADDR_TXCMD);
 
                     /* already transmitting? */
                     if (tx_state == CS8900_TX_READ_BUSST) {
@@ -969,8 +970,8 @@ static void cs8900_sideeffects_write_pp(WORD ppaddress, int odd_address)
         case CS8900_PP_ADDR_TXLENGTH:
             {
                 if (odd_address && (tx_state == CS8900_TX_GOT_CMD)) {
-                    WORD txlength = GET_PP_16(CS8900_PP_ADDR_TXLENGTH);
-                    WORD txcommand = GET_PP_16(CS8900_PP_ADDR_CC_TXCMD);
+                    uint16_t txlength = GET_PP_16(CS8900_PP_ADDR_TXLENGTH);
+                    uint16_t txcommand = GET_PP_16(CS8900_PP_ADDR_CC_TXCMD);
 
                     if (txlength < 4) {
                         /* frame to short */
@@ -1009,7 +1010,7 @@ static void cs8900_sideeffects_write_pp(WORD ppaddress, int odd_address)
         case CS8900_PP_ADDR_LOG_ADDR_FILTER + 6:
             {
                 unsigned int pos = 8 * (ppaddress - CS8900_PP_ADDR_LOG_ADDR_FILTER + odd_address);
-                DWORD *p = (pos < 32) ? &cs8900_hash_mask[0] : &cs8900_hash_mask[1];
+                uint32_t *p = (pos < 32) ? &cs8900_hash_mask[0] : &cs8900_hash_mask[1];
 
                 *p &= ~(0xFF << pos); /* clear out relevant bits */
                 *p |= GET_PP_8(ppaddress + odd_address) << pos;
@@ -1042,7 +1043,7 @@ static void cs8900_sideeffects_write_pp(WORD ppaddress, int odd_address)
 /*
  This is called *before* the relevant octets are read
 */
-static void cs8900_sideeffects_read_pp(WORD ppaddress, int odd_address)
+static void cs8900_sideeffects_read_pp(uint16_t ppaddress, int odd_address)
 {
     switch (ppaddress) {
         case CS8900_PP_ADDR_SE_RXEVENT:
@@ -1062,7 +1063,7 @@ static void cs8900_sideeffects_read_pp(WORD ppaddress, int odd_address)
 #endif
                     } else {
                         /* perform frame reception */
-                        WORD ret_val = cs8900_receive();
+                        uint16_t ret_val = cs8900_receive();
 
                         /* RXSTATUS and RXEVENT are the same, except that RXSTATUS buffers
                            the old value while RXEVENT sets a new value whenever it is called
@@ -1082,7 +1083,7 @@ static void cs8900_sideeffects_read_pp(WORD ppaddress, int odd_address)
             if (odd_address) {
                 /* read busst before transmit condition is fullfilled */
                 if (tx_state == CS8900_TX_GOT_LEN) {
-                    WORD bus_status = GET_PP_16(CS8900_PP_ADDR_SE_BUSST);
+                    uint16_t bus_status = GET_PP_16(CS8900_PP_ADDR_SE_BUSST);
 
                     /* check Rdy4TXNow flag */
                     if ((bus_status & 0x100) == 0x100) {
@@ -1105,9 +1106,9 @@ static void cs8900_sideeffects_read_pp(WORD ppaddress, int odd_address)
 /* read/write from packet page register */
 
 /* read a register from packet page */
-static WORD cs8900_read_register(WORD ppaddress)
+static uint16_t cs8900_read_register(uint16_t ppaddress)
 {
-    WORD value = GET_PP_16(ppaddress);
+    uint16_t value = GET_PP_16(ppaddress);
 
     /* --- check the register address --- */
     if (ppaddress < 0x100) {
@@ -1117,7 +1118,7 @@ static WORD cs8900_read_register(WORD ppaddress)
         }
     } else if (ppaddress < 0x120) {
         /* --- read control register range --- */
-        WORD regNum = ppaddress - 0x100;
+        uint16_t regNum = ppaddress - 0x100;
 
         regNum &= ~1;
         regNum++;
@@ -1138,7 +1139,7 @@ static WORD cs8900_read_register(WORD ppaddress)
         assert((value & 0x3f) == regNum);
     } else if (ppaddress < 0x140) {
         /* --- read status register range --- */
-        WORD regNum = ppaddress - 0x120;
+        uint16_t regNum = ppaddress - 0x120;
 
         regNum &= ~1;
 #ifdef CS8900_DEBUG_REGISTERS
@@ -1215,7 +1216,7 @@ static WORD cs8900_read_register(WORD ppaddress)
     return value;
 }
 
-static void cs8900_write_register(WORD ppaddress, WORD value)
+static void cs8900_write_register(uint16_t ppaddress, uint16_t value)
 {
     /* --- write bus interface register range --- */
     if (ppaddress < 0x100) {
@@ -1238,7 +1239,7 @@ static void cs8900_write_register(WORD ppaddress, WORD value)
         }
     } else if (ppaddress < 0x120) {
         /* --- write to control register range --- */
-        WORD regNum = ppaddress - 0x100;
+        uint16_t regNum = ppaddress - 0x100;
 
         regNum &= ~1;
         regNum += 1;
@@ -1334,8 +1335,8 @@ static void cs8900_auto_incr_pp_ptr(void)
     /* perform auto increment of packet page pointer */
     if ((cs8900_packetpage_ptr & PP_PTR_AUTO_INCR_FLAG) == PP_PTR_AUTO_INCR_FLAG) {
         /* pointer is always increment by one on real HW */
-        WORD ptr = cs8900_packetpage_ptr & PP_PTR_ADDR_MASK;
-        WORD flags = cs8900_packetpage_ptr & PP_PTR_FLAG_MASK;
+        uint16_t ptr = cs8900_packetpage_ptr & PP_PTR_ADDR_MASK;
+        uint16_t flags = cs8900_packetpage_ptr & PP_PTR_FLAG_MASK;
 
         ptr++;
         cs8900_packetpage_ptr = ptr | flags;
@@ -1345,16 +1346,16 @@ static void cs8900_auto_incr_pp_ptr(void)
 /* ------------------------------------------------------------------------- */
 /* read/write CS8900 registers from VICE */
 
-#define LO_BYTE(x)      (BYTE)((x) & 0xff)
-#define HI_BYTE(x)      (BYTE)(((x) >> 8) & 0xff)
-#define LOHI_WORD(x, y) ((WORD)(x) | (((WORD)(y)) << 8 ))
+#define LO_uint8_t(x)      (uint8_t)((x) & 0xff)
+#define HI_uint8_t(x)      (uint8_t)(((x) >> 8) & 0xff)
+#define LOHI_uint16_t(x, y) ((uint16_t)(x) | (((uint16_t)(y)) << 8 ))
 
 /* ----- read byte from I/O range in VICE ----- */
-BYTE cs8900_read(WORD io_address)
+uint8_t cs8900_read(uint16_t io_address)
 {
-    BYTE retval, lo, hi;
-    WORD word_value;
-    WORD reg_base;
+    uint8_t retval, lo, hi;
+    uint16_t word_value;
+    uint16_t reg_base;
 
     assert(cs8900);
     assert(cs8900_packetpage);
@@ -1373,7 +1374,7 @@ BYTE cs8900_read(WORD io_address)
         word_value = cs8900_packetpage_ptr;
     } else {
         /* read a register from packet page */
-        WORD ppaddress = 0;
+        uint16_t ppaddress = 0;
 
         /* determine read addr in packet page */
         switch (reg_base) {
@@ -1414,8 +1415,8 @@ BYTE cs8900_read(WORD io_address)
     }
 
     /* extract return value from word_value */
-    lo = LO_BYTE(word_value);
-    hi = HI_BYTE(word_value);
+    lo = LO_uint8_t(word_value);
+    hi = HI_uint8_t(word_value);
     if ((io_address & 1) == 0) {
         /* low byte on even address */
         retval = lo;
@@ -1436,11 +1437,11 @@ BYTE cs8900_read(WORD io_address)
 }
 
 /* ----- peek byte without side effects from I/O range in VICE ----- */
-BYTE cs8900_peek(WORD io_address)
+uint8_t cs8900_peek(uint16_t io_address)
 {
-    BYTE retval, lo, hi;
-    WORD word_value;
-    WORD reg_base;
+    uint8_t retval, lo, hi;
+    uint16_t word_value;
+    uint16_t reg_base;
 
     assert(cs8900);
     assert(cs8900_packetpage);
@@ -1459,7 +1460,7 @@ BYTE cs8900_peek(WORD io_address)
         word_value = cs8900_packetpage_ptr;
     } else {
         /* read a register from packet page */
-        WORD ppaddress = 0;
+        uint16_t ppaddress = 0;
 
         /* determine read addr in packet page */
         switch (reg_base) {
@@ -1493,8 +1494,8 @@ BYTE cs8900_peek(WORD io_address)
     }
 
     /* extract return value from word_value */
-    lo = LO_BYTE(word_value);
-    hi = HI_BYTE(word_value);
+    lo = LO_uint8_t(word_value);
+    hi = HI_uint8_t(word_value);
     if ((io_address & 1) == 0) {
         /* low byte on even address */
         retval = lo;
@@ -1506,10 +1507,10 @@ BYTE cs8900_peek(WORD io_address)
 }
 
 /* ----- write byte to I/O range of VICE ----- */
-void cs8900_store(WORD io_address, BYTE byte)
+void cs8900_store(uint16_t io_address, uint8_t byte)
 {
-    WORD reg_base;
-    WORD word_value;
+    uint16_t reg_base;
+    uint16_t word_value;
 
     assert(cs8900);
     assert(cs8900_packetpage);
@@ -1531,10 +1532,10 @@ void cs8900_store(WORD io_address, BYTE byte)
     /* combine stored value with new written byte */
     if ((io_address & 1) == 0) {
         /* overwrite low byte */
-        word_value = LOHI_WORD(byte, cs8900[reg_base + 1]);
+        word_value = LOHI_uint16_t(byte, cs8900[reg_base + 1]);
     } else {
         /* overwrite high byte */
-        word_value = LOHI_WORD(cs8900[reg_base], byte);
+        word_value = LOHI_uint16_t(cs8900[reg_base], byte);
     }
 
     if (reg_base == CS8900_ADDR_PP_PTR) {
@@ -1553,7 +1554,7 @@ void cs8900_store(WORD io_address, BYTE byte)
         /* write a register */
 
         /*! \TODO: Find a reasonable default */
-        WORD ppaddress = CS8900_PP_ADDR_PRODUCTID;
+        uint16_t ppaddress = CS8900_PP_ADDR_PRODUCTID;
 
         /* now determine address of write in packet page */
         switch (reg_base) {
@@ -1601,15 +1602,17 @@ void cs8900_store(WORD io_address, BYTE byte)
     }
 
     /* update cs8900 registers */
-    cs8900[reg_base] = LO_BYTE(word_value);
-    cs8900[reg_base + 1] = HI_BYTE(word_value);
+    cs8900[reg_base] = LO_uint8_t(word_value);
+    cs8900[reg_base + 1] = HI_uint8_t(word_value);
 }
 
 int cs8900_dump(void)
 {
     /* FIXME: this is incomplete */
     mon_out("Link status: %s\n", (GET_PP_16(CS8900_PP_ADDR_SE_LINEST) & 0x80) ? "up" : "no link");
-    mon_out("Package Page Ptr: $%04X (autoincrement %s)\n", cs8900_packetpage_ptr & PP_PTR_ADDR_MASK, (cs8900_packetpage_ptr & PP_PTR_AUTO_INCR_FLAG) != 0 ? "enabled" : "disabled");
+    mon_out("Package Page Ptr: $%04X (autoincrement %s)\n",
+            (unsigned int)(cs8900_packetpage_ptr & PP_PTR_ADDR_MASK),
+            (cs8900_packetpage_ptr & PP_PTR_AUTO_INCR_FLAG) != 0 ? "enabled" : "disabled");
     return 0;
 }
 
@@ -1623,8 +1626,6 @@ int cs8900_dump(void)
 /* FIXME: implement snapshot support */
 int cs8900_snapshot_write_module(snapshot_t *s)
 {
-    return -1;
-#if 0
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, SNAP_MODULE_NAME,
@@ -1632,7 +1633,9 @@ int cs8900_snapshot_write_module(snapshot_t *s)
     if (m == NULL) {
         return -1;
     }
-
+    snapshot_set_error(SNAPSHOT_MODULE_NOT_IMPLEMENTED);
+    return -1;
+#if 0
     if (0) {
         snapshot_module_close(m);
         return -1;
@@ -1647,7 +1650,7 @@ int cs8900_snapshot_read_module(snapshot_t *s)
 {
     return -1;
 #if 0
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
@@ -1670,4 +1673,4 @@ int cs8900_snapshot_read_module(snapshot_t *s)
 #endif
 }
 
-#endif /* #ifdef HAVE_PCAP */
+#endif /* #ifdef HAVE_RAWNET */

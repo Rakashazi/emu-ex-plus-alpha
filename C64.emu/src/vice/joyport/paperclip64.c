@@ -30,12 +30,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "cmdline.h"
 #include "joyport.h"
 #include "paperclip64.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 
 /* Control port <--> paperclip64 connections:
 
@@ -85,10 +83,10 @@ static int paperclip64_enabled = 0;
 
 static int counter = 0;
 
-static BYTE command = 0xff;
-static BYTE output_enable = 0;
+static uint8_t command = 0xff;
+static uint8_t output_enable = 0;
 
-static BYTE keys[64] = {
+static uint8_t keys[64] = {
     3, 2, 0, 0, 1, 3, 2, 1,
     3, 2, 1, 2, 1, 2, 1, 2,
     0, 1, 2, 0, 1, 3, 3, 2,
@@ -118,23 +116,23 @@ static int joyport_paperclip64_enable(int port, int value)
     return 0;
 }
 
-static BYTE paperclip64_read(int port)
+static uint8_t paperclip64_read(int port)
 {
-    BYTE retval = 0xff;
+    uint8_t retval = 0xff;
 
     if (output_enable) {
         retval &= (keys[counter] | 0xfc);
-        joyport_display_joyport(JOYPORT_ID_BBRTC, (BYTE)(~retval & 3));
+        joyport_display_joyport(JOYPORT_ID_BBRTC, (uint8_t)(~retval & 3));
     }
     return retval;
 }
 
-static void paperclip64_store(BYTE val)
+static void paperclip64_store(uint8_t val)
 {
-    BYTE new_command = val & 0x1c;
-    BYTE reset;
-    BYTE clk;
-    BYTE old_clk;
+    uint8_t new_command = val & 0x1c;
+    uint8_t reset;
+    uint8_t clk;
+    uint8_t old_clk;
 
     if (new_command == command) {
         return;
@@ -167,18 +165,17 @@ static int paperclip64_write_snapshot(struct snapshot_s *s, int port);
 static int paperclip64_read_snapshot(struct snapshot_s *s, int port);
 
 static joyport_t joyport_paperclip64_device = {
-    "Paperclip64 dongle",
-    IDGS_PAPERCLIP64_DONGLE,
-    JOYPORT_RES_ID_PAPERCLIP64,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_OPTIONAL,
-    joyport_paperclip64_enable,
-    paperclip64_read,
-    paperclip64_store,
-    NULL,               /* no pot-x read */
-    NULL,               /* no pot-y read */
-    paperclip64_write_snapshot,
-    paperclip64_read_snapshot
+    "Paperclip64 dongle",       /* name of the device */
+    JOYPORT_RES_ID_PAPERCLIP64, /* device is of the paperclip64 type, only 1 device of this kind can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,    /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,       /* device does NOT use the potentiometer lines */
+    joyport_paperclip64_enable, /* device enable function */
+    paperclip64_read,           /* digital line read function */
+    paperclip64_store,          /* digital line store function */
+    NULL,                       /* NO pot-x read function */
+    NULL,                       /* NO pot-y read function */
+    paperclip64_write_snapshot, /* device write snapshot function */
+    paperclip64_read_snapshot   /* device read snapshot function */
 };
 
 /* ------------------------------------------------------------------------- */
@@ -214,7 +211,7 @@ static int paperclip64_write_snapshot(struct snapshot_s *s, int port)
     }
 
     if (0
-        || SMW_DW(m, (DWORD)counter) < 0
+        || SMW_DW(m, (uint32_t)counter) < 0
         || SMW_B(m, command) < 0) {
         snapshot_module_close(m);
         return -1;
@@ -224,7 +221,7 @@ static int paperclip64_write_snapshot(struct snapshot_s *s, int port)
 
 static int paperclip64_read_snapshot(struct snapshot_s *s, int port)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &major_version, &minor_version);
@@ -234,7 +231,7 @@ static int paperclip64_read_snapshot(struct snapshot_s *s, int port)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

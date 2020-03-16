@@ -116,7 +116,7 @@ enum fdc_err_e {
 typedef enum fdc_err_e fdc_err_t;
 
 struct cbmdos_cmd_parse_s {
-    const BYTE *cmd; /* input: full dos-command string */
+    const uint8_t *cmd; /* input: full dos-command string */
     unsigned int cmdlength; /* input */
     char *parsecmd; /* output: parsed command */
     unsigned int secondary; /* input */
@@ -133,8 +133,8 @@ extern const char *cbmdos_errortext(unsigned int code);
 extern const char *cbmdos_filetype_get(unsigned int filetype);
 
 extern unsigned int cbmdos_parse_wildcard_check(const char *name, unsigned int len);
-extern unsigned int cbmdos_parse_wildcard_compare(const BYTE *name1, const BYTE *name2);
-extern BYTE *cbmdos_dir_slot_create(const char *name, unsigned int len);
+extern unsigned int cbmdos_parse_wildcard_compare(const uint8_t *name1, const uint8_t *name2);
+extern uint8_t *cbmdos_dir_slot_create(const char *name, unsigned int len);
 
 extern unsigned int cbmdos_command_parse(cbmdos_cmd_parse_t *cmd_parse);
 

@@ -53,17 +53,17 @@ static drive_store_func_t *store_tab_watch[0x101];
 /* ------------------------------------------------------------------------- */
 /* Common memory access.  */
 
-static BYTE drive_read_free(drive_context_t *drv, WORD address)
+static uint8_t drive_read_free(drive_context_t *drv, uint16_t address)
 {
     return address >> 8;
 }
 
-static void drive_store_free(drive_context_t *drv, WORD address, BYTE value)
+static void drive_store_free(drive_context_t *drv, uint16_t address, uint8_t value)
 {
     return;
 }
 
-static BYTE drive_peek_free(drive_context_t *drv, WORD address)
+static uint8_t drive_peek_free(drive_context_t *drv, uint16_t address)
 {
     return 0;
 }
@@ -71,27 +71,27 @@ static BYTE drive_peek_free(drive_context_t *drv, WORD address)
 /* ------------------------------------------------------------------------- */
 /* Watchpoint memory access.  */
 
-static BYTE drive_zero_read_watch(drive_context_t *drv, WORD addr)
+static uint8_t drive_zero_read_watch(drive_context_t *drv, uint16_t addr)
 {
     addr &= 0xff;
     monitor_watch_push_load_addr(addr, drv->cpu->monspace);
     return drv->cpud->read_tab[0][0](drv, addr);
 }
 
-static void drive_zero_store_watch(drive_context_t *drv, WORD addr, BYTE value)
+static void drive_zero_store_watch(drive_context_t *drv, uint16_t addr, uint8_t value)
 {
     addr &= 0xff;
     monitor_watch_push_store_addr(addr, drv->cpu->monspace);
     drv->cpud->store_tab[0][0](drv, addr, value);
 }
 
-static BYTE drive_read_watch(drive_context_t *drv, WORD address)
+static uint8_t drive_read_watch(drive_context_t *drv, uint16_t address)
 {
     monitor_watch_push_load_addr(address, drv->cpu->monspace);
     return drv->cpud->read_tab[0][address >> 8](drv, address);
 }
 
-static void drive_store_watch(drive_context_t *drv, WORD address, BYTE value)
+static void drive_store_watch(drive_context_t *drv, uint16_t address, uint8_t value)
 {
     monitor_watch_push_store_addr(address, drv->cpu->monspace);
     drv->cpud->store_tab[0][address >> 8](drv, address, value);
@@ -117,7 +117,7 @@ void drivemem_set_func(drivecpud_context_t *cpud,
                        drive_read_func_t *read_func,
                        drive_store_func_t *store_func,
                        drive_peek_func_t *peek_func,
-                       BYTE *base, DWORD limit)
+                       uint8_t *base, uint32_t limit)
 {
     unsigned int i;
 
@@ -149,25 +149,32 @@ void drivemem_set_func(drivecpud_context_t *cpud,
 /* ------------------------------------------------------------------------- */
 /* This is the external interface for banked memory access.  */
 
-BYTE drivemem_bank_read(int bank, WORD addr, void *context)
+uint8_t drivemem_bank_read(int bank, uint16_t addr, void *context)
 {
     drive_context_t *drv = (drive_context_t *)context;
 
     return drv->cpud->read_func_ptr[addr >> 8](drv, addr);
 }
 
-BYTE drivemem_bank_peek(int bank, WORD addr, void *context)
+/* used by monitor when sfx off */
+uint8_t drivemem_bank_peek(int bank, uint16_t addr, void *context)
 {
     drive_context_t *drv = (drive_context_t *)context;
 
     return drv->cpud->peek_func_ptr[addr >> 8](drv, addr);
 }
 
-void drivemem_bank_store(int bank, WORD addr, BYTE value, void *context)
+void drivemem_bank_store(int bank, uint16_t addr, uint8_t value, void *context)
 {
     drive_context_t *drv = (drive_context_t *)context;
 
     drv->cpud->store_func_ptr[addr >> 8](drv, addr, value);
+}
+
+/* used by monitor when sfx off */
+void drivemem_bank_poke(int bank, uint16_t addr, uint8_t value, void *context)
+{
+    drivemem_bank_store(bank, addr, value, context);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -250,7 +257,7 @@ mem_ioreg_list_t *drivemem_ioreg_list_get(void *context)
             mon_ioreg_add_list(&drivemem_ioreg_list, "RIOT2", 0x0280, 0x029f, riot2_dump, context);
             break;
         default:
-            log_error(LOG_ERR, "DRIVEMEM: Unknown drive type `%i'.", type);
+            log_error(LOG_ERR, "DRIVEMEM: Unknown drive type `%u'.", type);
             break;
     }
     return drivemem_ioreg_list;

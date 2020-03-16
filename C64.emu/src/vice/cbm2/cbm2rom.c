@@ -28,6 +28,7 @@
 #include "vice.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "autostart.h"
@@ -36,6 +37,7 @@
 #include "cbm2rom.h"
 #include "crtc.h"
 #include "kbdbuf.h"
+#include "lib.h"
 #include "log.h"
 #include "machine.h"
 #include "resources.h"
@@ -73,41 +75,57 @@ static tape_init_t tapeinit = {
 int cbm2rom_load_chargen(const char *rom_name)
 {
     int i;
+    unsigned char *temp = NULL;
 
     if (!rom_loaded) {
         return 0;  /* init not far enough */
     }
-    /* Load chargen ROM
-     * we load 4k of 16-byte-per-char Charrom.
-     * Then we generate the inverted chars */
 
+    /* Load chargen ROM */
+    /* the hardware has an interesting feature in that the inverted characters
+       are not contained in the ROM, but some extra logic on the board will
+       alter the data based on the address. we create the inverted characters
+       here at load time, so we dont have to bother with this in the rest of the
+       emulation */
     if (!util_check_null_string(rom_name)) {
-        memset(mem_chargen_rom, 0, CBM2_CHARGEN_ROM_SIZE);
-
-        if (sysfile_load(rom_name, mem_chargen_rom, 4096, 4096) < 0) {
-            log_error(cbm2rom_log, "Couldn't load character ROM '%s'.",
-                      rom_name);
+        if ((temp = lib_malloc(0x2000)) == NULL) {
             return -1;
         }
 
-        memmove(mem_chargen_rom + 4096, mem_chargen_rom + 2048, 2048);
-
-        /* Inverted chargen into second half. This is a hardware feature.*/
-        for (i = 0; i < 2048; i++) {
-            mem_chargen_rom[i + 2048] = mem_chargen_rom[i] ^ 0xff;
-            mem_chargen_rom[i + 6144] = mem_chargen_rom[i + 4096] ^ 0xff;
+        /* try loading 8k first, then 4k. normal "standard" ROMs only have one
+           charset in the first 4k, the rest is FF, "localized" ROMs have a 
+           second charset in the upper half. */
+        memset(temp, 0xff, 0x2000);
+        if (sysfile_load(rom_name, temp, 0x2000, 0x2000) < 0) {
+            if (sysfile_load(rom_name, temp, 0x1000, 0x1000) < 0) {
+                log_error(cbm2rom_log, "Couldn't load character ROM '%s'.", rom_name);
+                lib_free(temp);
+                return -1;
+            }
+        }
+        /* now create the data the CRTC sees */
+        memcpy(mem_chargen_rom, temp, 0x800); /* lowercase, not inverted */
+        memcpy(mem_chargen_rom + 0x1000, temp + 0x800, 0x800); /* uppercase, not inverted */
+        memcpy(mem_chargen_rom + 0x2000, temp + 0x1000, 0x800); /* lowercase, not inverted */
+        memcpy(mem_chargen_rom + 0x3000, temp + 0x1800, 0x800); /* uppercase, not inverted */
+        for (i = 0; i < 0x800; i++) {
+            mem_chargen_rom[i + 0x800] = temp[i] ^ 0xff; /* lowercase, inverted */
+            mem_chargen_rom[i + 0x1800] = temp[i + 0x800] ^ 0xff; /* uppercase, inverted */
+            mem_chargen_rom[i + 0x2800] = temp[i + 0x1000] ^ 0xff; /* lowercase, inverted */
+            mem_chargen_rom[i + 0x3800] = temp[i + 0x1800] ^ 0xff; /* uppercase, inverted */
         }
     }
 
     crtc_set_chargen_addr(mem_chargen_rom, CBM2_CHARGEN_ROM_SIZE >> 4);
 
+    lib_free(temp);
     return 0;
 }
 
 int cbm2rom_checksum(void)
 {
     int i, delay;
-    WORD sum;
+    uint16_t sum;
 
     /* Checksum over top 8 kByte kernal.  */
     for (i = 0xe000, sum = 0; i < 0x10000; i++) {
@@ -119,11 +137,7 @@ int cbm2rom_checksum(void)
     if (delay == 0) {
         delay = 10; /* default */
     }
-    autostart_init((CLOCK)(delay * C610_PAL_RFSH_PER_SEC * C610_PAL_CYCLES_PER_RFSH), 0,
-                    0, /* Pointer: Cursor Blink enable: 0 = Flash Cursor */
-                    0xc8, /* Pointer: Current Screen Line Address */
-                    0xcb, /* Pointer: Cursor Column on Current Line */
-                    -80); /* chars per line */
+    autostart_init((CLOCK)(delay * C610_PAL_RFSH_PER_SEC * C610_PAL_CYCLES_PER_RFSH), 0);
     return 0;
 }
 
@@ -135,7 +149,7 @@ int cbm2rom_load_kernal(const char *rom_name)
     /* De-initialize kbd-buf, autostart and tape stuff here before
        reloading the ROM the traps are installed in.  */
     kbdbuf_init(0, 0, 0, 0);
-    autostart_init(0, 0, 0, 0, 0, 0);
+    autostart_init(0, 0);
     tape_init(&tapeinit);
 
     /* Load Kernal ROM.  */

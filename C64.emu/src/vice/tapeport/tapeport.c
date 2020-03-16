@@ -37,6 +37,7 @@
 #include "resources.h"
 #include "sense-dongle.h"
 #include "snapshot.h"
+#include "tapecart.h"
 #include "tapelog.h"
 #include "tapeport.h"
 #include "uiapi.h"
@@ -516,6 +517,9 @@ int tapeport_resources_init(void)
     if (dtlbasic_dongle_resources_init() < 0) {
         return -1;
     }
+    if (tapecart_resources_init() < 0) {
+        return -1;
+    }
 
     return 0;
 }
@@ -526,6 +530,9 @@ void tapeport_resources_shutdown(void)
     tapeport_snapshot_list_t *c = tapeport_snapshot_head.next;
 
     while (current) {
+        if (current->device && current->device->shutdown) {
+            current->device->shutdown();
+        }
         tapeport_device_unregister(current);
         current = tapeport_head.next;
     }
@@ -555,6 +562,10 @@ int tapeport_cmdline_options_init(void)
         return -1;
     }
 
+    if (tapecart_cmdline_options_init() < 0) {
+        return -1;
+    }
+
     return 0;
 }
 
@@ -571,7 +582,7 @@ void tapeport_enable(int val)
    ----------------------------
    BYTE  | active | tape port active flag
    BYTE  | amount | amount of active devices
-   
+
    if 'amount' is non-zero the following is saved per active device:
 
    type  | name | description
@@ -615,15 +626,15 @@ int tapeport_snapshot_write_module(snapshot_t *s, int write_image)
     }
 
     if (0
-        || SMW_B(m, (BYTE)tapeport_active) < 0
-        || SMW_B(m, (BYTE)amount) < 0) {
+        || SMW_B(m, (uint8_t)tapeport_active) < 0
+        || SMW_B(m, (uint8_t)amount) < 0) {
         goto fail;
     }
 
     /* Save device id's */
     if (amount) {
         for (i = 0; i < amount; ++i) {
-            if (SMW_B(m, (BYTE)devices[i]) < 0) {
+            if (SMW_B(m, (uint8_t)devices[i]) < 0) {
                 goto fail;
             }
         }
@@ -660,7 +671,7 @@ fail:
 
 int tapeport_snapshot_read_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
     int amount = 0;
     char **detach_resource_list = NULL;
@@ -696,7 +707,7 @@ int tapeport_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

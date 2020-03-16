@@ -52,8 +52,8 @@ static unsigned int same_sample = 0;
 
 static int current_channels = 0;
 
-static WORD *stream_buffer = NULL;
-static BYTE old_sample = 0x80;
+static uint16_t *stream_buffer = NULL;
+static uint8_t old_sample = 0x80;
 
 static void portaudio_start_stream(void)
 {
@@ -125,7 +125,7 @@ static void portaudio_stop_sampling(void)
     Pa_Terminate();
 }
 
-static BYTE portaudio_get_sample(int channel)
+static uint8_t portaudio_get_sample(int channel)
 {
     unsigned int current_frame;
     unsigned int current_cycle;
@@ -162,14 +162,14 @@ static BYTE portaudio_get_sample(int channel)
 
     switch (channel) {
         case SAMPLER_CHANNEL_1:
-            old_sample = (BYTE)((stream_buffer[frame_sample * 2] >> 8) + 0x80);
+            old_sample = (uint8_t)((stream_buffer[frame_sample * 2] >> 8) + 0x80);
             break;
         case SAMPLER_CHANNEL_2:
-            old_sample = (BYTE)((stream_buffer[(frame_sample * 2) + 1] >> 8) + 0x80);
+            old_sample = (uint8_t)((stream_buffer[(frame_sample * 2) + 1] >> 8) + 0x80);
             break;
         case SAMPLER_CHANNEL_DEFAULT:
         default:
-            old_sample = (BYTE)((stream_buffer[frame_sample] >> 8) + 0x80);
+            old_sample = (uint8_t)((stream_buffer[frame_sample] >> 8) + 0x80);
             break;
     }
 

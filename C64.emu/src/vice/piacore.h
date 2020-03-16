@@ -47,14 +47,14 @@
 #define P_CTRL_B        3
 
 typedef struct {
-    BYTE port_a;        /* output register, i.e. what has been written by
+    uint8_t port_a;        /* output register, i.e. what has been written by
                            the CPU. input is assembled at read time */
-    BYTE ddr_a;         /* PIA Port A DDR */
-    BYTE ctrl_a;
+    uint8_t ddr_a;         /* PIA Port A DDR */
+    uint8_t ctrl_a;
 
-    BYTE port_b;
-    BYTE ddr_b;         /* PIA Port B DDR */
-    BYTE ctrl_b;
+    uint8_t port_b;
+    uint8_t ddr_b;         /* PIA Port B DDR */
+    uint8_t ctrl_b;
 
     int ca_state;
     int cb_state;

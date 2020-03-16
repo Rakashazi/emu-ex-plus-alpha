@@ -52,7 +52,7 @@
 /* Flag for recording port A DDR changes (for c64gluelogic) */
 static int pa_ddr_change = 0;
 
-void cia2_store(WORD addr, BYTE data)
+void cia2_store(uint16_t addr, uint8_t data)
 {
     if (((addr & 0xf) == CIA_DDRA) && (machine_context.cia2->c_cia[CIA_DDRA] != data)) {
         pa_ddr_change = 1;
@@ -63,12 +63,12 @@ void cia2_store(WORD addr, BYTE data)
     ciacore_store(machine_context.cia2, addr, data);
 }
 
-BYTE cia2_read(WORD addr)
+uint8_t cia2_read(uint16_t addr)
 {
     return ciacore_read(machine_context.cia2, addr);
 }
 
-BYTE cia2_peek(WORD addr)
+uint8_t cia2_peek(uint16_t addr)
 {
     return ciacore_peek(machine_context.cia2, addr);
 }
@@ -120,10 +120,10 @@ static void pre_peek(void)
     vicii_handle_pending_alarms_external(0);
 }
 
-static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
+static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
     if (cia_context->old_pa != byte) {
-        BYTE tmp;
+        uint8_t tmp;
         int new_vbank;
 
         tmp = ~byte;
@@ -135,14 +135,14 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
     }
 }
 
-static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
+static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
     vbank = (byte ^ 3) & 3;
     c64_glue_undump(vbank);
 }
 
 
-static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
+static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
 }
 
@@ -151,14 +151,14 @@ static void pulse_ciapc(cia_context_t *cia_context, CLOCK rclk)
 }
 
 /* FIXME! */
-static inline void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
+static inline void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
 }
 
 /* read_* functions must return 0xff if nothing to read!!! */
-static BYTE read_ciapa(cia_context_t *cia_context)
+static uint8_t read_ciapa(cia_context_t *cia_context)
 {
-    BYTE value = 0xff;
+    uint8_t value = 0xff;
 
     value = ((cia_context->c_cia[CIA_PRA] | ~(cia_context->c_cia[CIA_DDRA])) & 0x3f);
 
@@ -166,9 +166,9 @@ static BYTE read_ciapa(cia_context_t *cia_context)
 }
 
 /* read_* functions must return 0xff if nothing to read!!! */
-static BYTE read_ciapb(cia_context_t *cia_context)
+static uint8_t read_ciapb(cia_context_t *cia_context)
 {
-    BYTE byte = 0xff;
+    uint8_t byte = 0xff;
 
     byte = (byte & ~(cia_context->c_cia[CIA_DDRB])) | (cia_context->c_cia[CIA_PRB] & cia_context->c_cia[CIA_DDRB]);
 
@@ -183,7 +183,7 @@ static void read_sdr(cia_context_t *cia_context)
 {
 }
 
-static void store_sdr(cia_context_t *cia_context, BYTE byte)
+static void store_sdr(cia_context_t *cia_context, uint8_t byte)
 {
 }
 
@@ -193,7 +193,7 @@ void cia2_set_flagx(void)
     ciacore_set_flag(machine_context.cia2);
 }
 
-void cia2_set_sdrx(BYTE received_byte)
+void cia2_set_sdrx(uint8_t received_byte)
 {
     ciacore_set_sdr(machine_context.cia2, received_byte);
 }
@@ -203,12 +203,12 @@ void cia2_init(cia_context_t *cia_context)
     ciacore_init(machine_context.cia2, maincpu_alarm_context, maincpu_int_status, maincpu_clk_guard);
 }
 
-void cia2_setup_context(machine_context_t *machine_context)
+void cia2_setup_context(machine_context_t *machine_ctx)
 {
     cia_context_t *cia;
 
-    machine_context->cia2 = lib_calloc(1, sizeof(cia_context_t));
-    cia = machine_context->cia2;
+    machine_ctx->cia2 = lib_calloc(1, sizeof(cia_context_t));
+    cia = machine_ctx->cia2;
 
     cia->prv = NULL;
     cia->context = NULL;

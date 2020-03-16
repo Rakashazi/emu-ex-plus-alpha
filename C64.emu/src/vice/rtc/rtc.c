@@ -34,7 +34,7 @@
 
 #include <string.h>
 
-#include "archapi.h"
+#include "archdep.h"
 #include "ioutil.h"
 #include "lib.h"
 #include "machine.h"
@@ -54,53 +54,53 @@ inline static int bcd_to_int(int bcd)
 /* ---------------------------------------------------------------------- */
 
 /* get 1/100 seconds from clock */
-BYTE rtc_get_centisecond(int bcd)
+uint8_t rtc_get_centisecond(int bcd)
 {
 #ifdef HAVE_GETTIMEOFDAY
     struct timeval t;
 
     gettimeofday(&t, NULL);
-    return (BYTE)((bcd) ? int_to_bcd(t.tv_usec / 10000) : t.tv_usec / 10000);
+    return (uint8_t)((bcd) ? int_to_bcd(t.tv_usec / 10000) : t.tv_usec / 10000);
 #else
-    return (BYTE)((bcd) ? int_to_bcd(archdep_rtc_get_centisecond()) : archdep_rtc_get_centisecond());
+    return (uint8_t)((bcd) ? int_to_bcd(archdep_rtc_get_centisecond()) : archdep_rtc_get_centisecond());
 #endif
 }
 
 /* get seconds from time value
    0 - 61 (leap seconds would be 60 and 61) */
-BYTE rtc_get_second(time_t time_val, int bcd)
+uint8_t rtc_get_second(time_t time_val, int bcd)
 {
     time_t now = time_val;
     struct tm *local = localtime(&now);
 
-    return (BYTE)((bcd) ? int_to_bcd(local->tm_sec) : local->tm_sec);
+    return (uint8_t)((bcd) ? int_to_bcd(local->tm_sec) : local->tm_sec);
 }
 
 /* get minutes from time value
    0 - 59 */
-BYTE rtc_get_minute(time_t time_val, int bcd)
+uint8_t rtc_get_minute(time_t time_val, int bcd)
 {
     time_t now = time_val;
     struct tm *local = localtime(&now);
 
-    return (BYTE)((bcd) ? int_to_bcd(local->tm_min) : local->tm_min);
+    return (uint8_t)((bcd) ? int_to_bcd(local->tm_min) : local->tm_min);
 }
 
 /* get hours from time value
    0 - 23 */
-BYTE rtc_get_hour(time_t time_val, int bcd)
+uint8_t rtc_get_hour(time_t time_val, int bcd)
 {
     time_t now = time_val;
     struct tm *local = localtime(&now);
 
-    return (BYTE)((bcd) ? int_to_bcd(local->tm_hour) : local->tm_hour);
+    return (uint8_t)((bcd) ? int_to_bcd(local->tm_hour) : local->tm_hour);
 }
 
 /* get hours from time value
    1 - 12 + AM/PM flag in bit 5 (0 = PM, 1 = AM) */
-BYTE rtc_get_hour_am_pm(time_t time_val, int bcd)
+uint8_t rtc_get_hour_am_pm(time_t time_val, int bcd)
 {
-    BYTE hour;
+    uint8_t hour;
     int pm = 0;
     time_t now = time_val;
     struct tm *local = localtime(&now);
@@ -115,69 +115,69 @@ BYTE rtc_get_hour_am_pm(time_t time_val, int bcd)
         hour -= 12;
         pm = 1;
     }
-    hour = (BYTE)((bcd) ? int_to_bcd(hour) : hour);
+    hour = (uint8_t)((bcd) ? int_to_bcd(hour) : hour);
     hour |= (pm << 5);
     return hour;
 }
 
 /* get day of month from time value
    1 - 31 */
-BYTE rtc_get_day_of_month(time_t time_val, int bcd)
+uint8_t rtc_get_day_of_month(time_t time_val, int bcd)
 {
     time_t now = time_val;
     struct tm *local = localtime(&now);
 
-    return (BYTE)((bcd) ? int_to_bcd(local->tm_mday) : local->tm_mday);
+    return (uint8_t)((bcd) ? int_to_bcd(local->tm_mday) : local->tm_mday);
 }
 
 /* get month from time value
    1 - 12 */
-BYTE rtc_get_month(time_t time_val, int bcd)
+uint8_t rtc_get_month(time_t time_val, int bcd)
 {
     time_t now = time_val;
     struct tm *local = localtime(&now);
 
-    return (BYTE)((bcd) ? int_to_bcd(local->tm_mon + 1) : (local->tm_mon + 1));
+    return (uint8_t)((bcd) ? int_to_bcd(local->tm_mon + 1) : (local->tm_mon + 1));
 }
 
 /* get year of the century from time value
    0 - 99 */
-BYTE rtc_get_year(time_t time_val, int bcd)
+uint8_t rtc_get_year(time_t time_val, int bcd)
 {
     time_t now = time_val;
     struct tm *local = localtime(&now);
 
-    return (BYTE)((bcd) ? int_to_bcd(local->tm_year % 100) : local->tm_year % 100);
+    return (uint8_t)((bcd) ? int_to_bcd(local->tm_year % 100) : local->tm_year % 100);
 }
 
 /* get the century from time value
    19 - 20 */
-BYTE rtc_get_century(time_t time_val, int bcd)
+uint8_t rtc_get_century(time_t time_val, int bcd)
 {
     time_t now = time_val;
     struct tm *local = localtime(&now);
 
-    return (BYTE)((bcd) ? int_to_bcd((int)(local->tm_year / 100) + 19) : (int)(local->tm_year / 100) + 19);
+    return (uint8_t)((bcd) ? int_to_bcd((int)(local->tm_year / 100) + 19) : (int)(local->tm_year / 100) + 19);
 }
 
 /* get the day of the week from time value
    0 - 6 (sunday 0, monday 1 ...etc) */
-BYTE rtc_get_weekday(time_t time_val)
+uint8_t rtc_get_weekday(time_t time_val)
 {
     time_t now = time_val;
     struct tm *local = localtime(&now);
 
-    return (BYTE)local->tm_wday;
+    return (uint8_t)local->tm_wday;
 }
 
 /* get the day of the year from time value
    0 - 365 */
-WORD rtc_get_day_of_year(time_t time_val)
+uint16_t rtc_get_day_of_year(time_t time_val)
 {
     time_t now = time_val;
     struct tm *local = localtime(&now);
 
-    return (WORD)local->tm_yday;
+    return (uint16_t)local->tm_yday;
 }
 
 /* get the DST from time value
@@ -664,7 +664,7 @@ time_t rtc_set_latched_day_of_year(int day, time_t latch)
 
 /* ---------------------------------------------------------------------- */
 
-static char *rtc_ram_to_string(BYTE *ram, int size)
+static char *rtc_ram_to_string(uint8_t *ram, int size)
 {
     char *temp = lib_malloc((size * 2) + 1);
     int i;
@@ -677,9 +677,9 @@ static char *rtc_ram_to_string(BYTE *ram, int size)
     return temp;
 }
 
-static BYTE *rtc_string_to_ram(char *str, int size)
+static uint8_t *rtc_string_to_ram(char *str, int size)
 {
-    BYTE *ram = lib_malloc(size);
+    uint8_t *ram = lib_malloc(size);
     int i;
 
     for (i = 0; i < size; i++) {
@@ -688,7 +688,7 @@ static BYTE *rtc_string_to_ram(char *str, int size)
     return ram;
 }
 
-static int rtc_is_empty(BYTE *array, int size)
+static int rtc_is_empty(uint8_t *array, int size)
 {
     int i;
 
@@ -700,12 +700,14 @@ static int rtc_is_empty(BYTE *array, int size)
     return 1;
 }
 
-static void rtc_write_data(FILE *outfile, BYTE *ram, int ram_size, BYTE *regs, int reg_size, char *device, time_t offset)
+static const char *machine_id = machine_name;
+
+static void rtc_write_data(FILE *outfile, uint8_t *ram, int ram_size, uint8_t *regs, int reg_size, char *device, time_t offset)
 {
     char *ram_string = NULL;
     char *reg_string = NULL;
 
-    fprintf(outfile, "[%s]\n", machine_name);
+    fprintf(outfile, "[%s]\n", machine_id);
     fprintf(outfile, "(%s)\n", device);
     fprintf(outfile, "{%d}\n", (int)offset);
     if (ram_size) {
@@ -814,7 +816,7 @@ static int rtc_parse_buffer(char *buffer)
     return 0;
 }
 
-void rtc_save_context(BYTE *ram, int ram_size, BYTE *regs, int reg_size, char *device, time_t offset)
+void rtc_save_context(uint8_t *ram, int ram_size, uint8_t *regs, int reg_size, char *device, time_t offset)
 {
     FILE *outfile = NULL;
     FILE *infile = NULL;
@@ -829,7 +831,9 @@ void rtc_save_context(BYTE *ram, int ram_size, BYTE *regs, int reg_size, char *d
 
     /* create the directory where the context should be written first */
     util_fname_split(filename, &savedir, NULL);
-    ioutil_mkdir(savedir, IOUTIL_MKDIR_RWXU);
+    if ((savedir != NULL) && (*savedir != 0) && (!strcmp(savedir, "."))) {
+        ioutil_mkdir(savedir, IOUTIL_MKDIR_RWXU);
+    }
     lib_free(savedir);
 
     if (util_file_exists(filename)) {
@@ -848,7 +852,7 @@ void rtc_save_context(BYTE *ram, int ram_size, BYTE *regs, int reg_size, char *d
     if (outfile) {
         if (ok) {
             for (i = 0; rtc_items[i].emulator; i++) {
-                if (!strcmp(machine_name, rtc_items[i].emulator) && !strcmp(device, rtc_items[i].device)) {
+                if (!strcmp(machine_id, rtc_items[i].emulator) && !strcmp(device, rtc_items[i].device)) {
                     rtc_write_data(outfile, ram, ram_size, regs, reg_size, device, offset);
                     ok = 0;
                 } else {
@@ -869,8 +873,8 @@ void rtc_save_context(BYTE *ram, int ram_size, BYTE *regs, int reg_size, char *d
     lib_free(filename);
 }
 
-static BYTE *loaded_ram = NULL;
-static BYTE *loaded_regs = NULL;
+static uint8_t *loaded_ram = NULL;
+static uint8_t *loaded_regs = NULL;
 static time_t loaded_offset = 0;
 
 int rtc_load_context(char *device, int ram_size, int reg_size)
@@ -881,6 +885,8 @@ int rtc_load_context(char *device, int ram_size, int reg_size)
     size_t len = 0;
     int ok = 0;
     int i;
+
+    machine_id = machine_get_name();
 
     loaded_ram = NULL;
     loaded_regs = NULL;
@@ -901,7 +907,7 @@ int rtc_load_context(char *device, int ram_size, int reg_size)
                 return 0;
             }
             for (i = 0; rtc_items[i].emulator; i++) {
-                if (!strcmp(machine_name, rtc_items[i].emulator) && !strcmp(device, rtc_items[i].device)) {
+                if (!strcmp(machine_id, rtc_items[i].emulator) && !strcmp(device, rtc_items[i].device)) {
                     if (ram_size) {
                         if (rtc_items[i].ram_data[0] == 'x') {
                             loaded_ram = lib_malloc(ram_size);
@@ -933,12 +939,12 @@ int rtc_load_context(char *device, int ram_size, int reg_size)
     return 0;
 }
 
-BYTE *rtc_get_loaded_ram(void)
+uint8_t *rtc_get_loaded_ram(void)
 {
     return loaded_ram;
 }
 
-BYTE *rtc_get_loaded_clockregs(void)
+uint8_t *rtc_get_loaded_clockregs(void)
 {
     return loaded_regs;
 }

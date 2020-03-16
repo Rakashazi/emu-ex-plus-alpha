@@ -33,14 +33,14 @@ extern void hummeradc_init(void);
 extern void hummeradc_reset(void);
 extern void hummeradc_shutdown(void);
 
-extern BYTE hummeradc_read(void);
-extern void hummeradc_store(BYTE value);
+extern uint8_t hummeradc_read(void);
+extern void hummeradc_store(uint8_t value);
 
-extern BYTE hummeradc_value;
-extern BYTE hummeradc_channel;
-extern BYTE hummeradc_control;
-extern BYTE hummeradc_chanattr;
-extern BYTE hummeradc_chanwakeup;
-extern BYTE hummeradc_prev;
+extern uint8_t hummeradc_value;
+extern uint8_t hummeradc_channel;
+extern uint8_t hummeradc_control;
+extern uint8_t hummeradc_chanattr;
+extern uint8_t hummeradc_chanwakeup;
+extern uint8_t hummeradc_prev;
 
 #endif

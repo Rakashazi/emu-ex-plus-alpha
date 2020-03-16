@@ -20,10 +20,6 @@
 #ifndef RESID_CONFIG_H
 #define RESID_CONFIG_H
 
-#ifdef IDE_COMPILE
-#include "ide-siddefs.h"
-#else
 #include "siddefs.h"
-#endif
 
 #endif

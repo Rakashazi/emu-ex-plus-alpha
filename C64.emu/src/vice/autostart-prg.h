@@ -32,9 +32,9 @@
 #include "fileio.h"
 
 struct autostart_prg_s {
-    BYTE *data;
-    WORD start_addr;
-    DWORD size;
+    uint8_t *data;
+    uint16_t start_addr;
+    uint32_t size;
 };
 typedef struct autostart_prg_s autostart_prg_t;
 

@@ -50,7 +50,7 @@ void c128fastiec_init(void)
     }
 }
 
-void c128fastiec_fast_cpu_write(BYTE data)
+void c128fastiec_fast_cpu_write(uint8_t data)
 {
     drive_t *drive;
     unsigned int dnr;
@@ -79,7 +79,7 @@ void c128fastiec_fast_cpu_write(BYTE data)
     }
 }
 
-void iec_fast_drive_write(BYTE data, unsigned int dnr)
+void iec_fast_drive_write(uint8_t data, unsigned int dnr)
 {
     if (fast_drive_direction[dnr]) {
         ciacore_set_sdr(machine_context.cia1, data);
@@ -98,6 +98,6 @@ void iec_fast_drive_direction(int direction, unsigned int dnr)
     fast_drive_direction[dnr] = direction;
 }
 
-void c64fastiec_fast_cpu_write(BYTE data)
+void c64fastiec_fast_cpu_write(uint8_t data)
 {
 }

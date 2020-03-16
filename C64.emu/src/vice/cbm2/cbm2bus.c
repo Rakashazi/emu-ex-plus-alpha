@@ -33,19 +33,19 @@
 
 
 int machine_bus_lib_directory(unsigned int unit, const char *pattern,
-                              BYTE **buf)
+                              uint8_t **buf)
 {
     return -1;
 }
 
 int machine_bus_lib_read_sector(unsigned int unit, unsigned int track,
-                                unsigned int sector, BYTE *buf)
+                                unsigned int sector, uint8_t *buf)
 {
     return -1;
 }
 
 int machine_bus_lib_write_sector(unsigned int unit, unsigned int track,
-                                 unsigned int sector, BYTE *buf)
+                                 unsigned int sector, uint8_t *buf)
 {
     return -1;
 }

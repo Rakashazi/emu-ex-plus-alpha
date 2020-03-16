@@ -41,19 +41,20 @@ extern void ramcart_resources_shutdown(void);
 extern int ramcart_cmdline_options_init(void);
 
 extern void ramcart_init_config(void);
-extern void ramcart_config_setup(BYTE *rawcart);
+extern void ramcart_config_setup(uint8_t *rawcart);
 extern void ramcart_reset(void);
 extern void ramcart_detach(void);
 extern int ramcart_enable(void);
+int ramcart_disable(void);
 
-extern BYTE ramcart_roml_read(WORD addr);
-extern void ramcart_roml_store(WORD addr, BYTE byte);
-extern int ramcart_peek_mem(WORD addr, BYTE *value);
-extern void ramcart_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit);
+extern uint8_t ramcart_roml_read(uint16_t addr);
+extern void ramcart_roml_store(uint16_t addr, uint8_t byte);
+extern int ramcart_peek_mem(uint16_t addr, uint8_t *value);
+extern void ramcart_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
 extern int ramcart_cart_enabled(void);
 extern const char *ramcart_get_file_name(void);
-extern int ramcart_bin_attach(const char *filename, BYTE *rawcart);
+extern int ramcart_bin_attach(const char *filename, uint8_t *rawcart);
 extern int ramcart_bin_save(const char *filename);
 extern int ramcart_flush_image(void);
 

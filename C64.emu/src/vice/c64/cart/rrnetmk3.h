@@ -38,14 +38,14 @@
 
 extern int rrnetmk3_cart_enabled(void);
 extern void rrnetmk3_config_init(void);
-extern int rrnetmk3_roml_read(WORD addr);
-extern int rrnetmk3_roml_store(WORD addr, BYTE byte);
-extern int rrnetmk3_peek_mem(export_t *export, WORD addr, BYTE *value);
+extern int rrnetmk3_roml_read(uint16_t addr);
+extern int rrnetmk3_roml_store(uint16_t addr, uint8_t byte);
+extern int rrnetmk3_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
 
-extern void rrnetmk3_config_setup(BYTE *rawcart);
+extern void rrnetmk3_config_setup(uint8_t *rawcart);
 
-extern int rrnetmk3_crt_attach(FILE *fd, BYTE *rawcart, const char *filename);
-extern int rrnetmk3_bin_attach(const char *filename, BYTE *rawcart);
+extern int rrnetmk3_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
+extern int rrnetmk3_bin_attach(const char *filename, uint8_t *rawcart);
 extern int rrnetmk3_bin_save(const char *filename);
 extern int rrnetmk3_crt_save(const char *filename);
 extern int rrnetmk3_flush_image(void);
@@ -56,7 +56,7 @@ extern int rrnetmk3_cmdline_options_init(void);
 extern void rrnetmk3_init(void);
 extern void rrnetmk3_detach(void);
 extern void rrnetmk3_reset(void);
-extern int rrnetmk3_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit);
+extern int rrnetmk3_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
 struct snapshot_s;
 extern int rrnetmk3_snapshot_read_module(struct snapshot_s *s);

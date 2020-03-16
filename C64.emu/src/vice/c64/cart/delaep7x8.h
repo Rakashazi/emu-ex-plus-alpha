@@ -32,9 +32,9 @@
 #include "types.h"
 
 extern void delaep7x8_config_init(void);
-extern void delaep7x8_config_setup(BYTE *rawcart);
-extern int delaep7x8_bin_attach(const char *filename, BYTE *rawcart);
-extern int delaep7x8_crt_attach(FILE *fd, BYTE *rawcart);
+extern void delaep7x8_config_setup(uint8_t *rawcart);
+extern int delaep7x8_bin_attach(const char *filename, uint8_t *rawcart);
+extern int delaep7x8_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void delaep7x8_detach(void);
 
 struct snapshot_s;

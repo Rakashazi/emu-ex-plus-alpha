@@ -35,6 +35,7 @@
 #include "raster-resources.h"
 #include "resources.h"
 #include "vicii-chip-model.h"
+#include "vicii-cycle.h"
 #include "vicii-color.h"
 #include "vicii-resources.h"
 #include "vicii-timing.h"
@@ -73,6 +74,7 @@ static int set_sprite_background_collisions_enabled(int val, void *param)
 static int set_vsp_bug_enabled(int val, void *param)
 {
     vicii_resources.vsp_bug_enabled = val;
+    vicii_init_vsp_bug();
     return 0;
 }
 
@@ -166,7 +168,7 @@ int vicii_resources_init(void)
     video_chip_cap.dscan_allowed = ARCHDEP_VICII_DSCAN;
     video_chip_cap.hwscale_allowed = ARCHDEP_VICII_HWSCALE;
     video_chip_cap.scale2x_allowed = ARCHDEP_VICII_DSIZE;
-    video_chip_cap.external_palette_name = "vice";
+    video_chip_cap.external_palette_name = "pepto-pal";
     video_chip_cap.double_buffering_allowed = ARCHDEP_VICII_DBUF;
     video_chip_cap.single_mode.sizex = 1;
     video_chip_cap.single_mode.sizey = 1;

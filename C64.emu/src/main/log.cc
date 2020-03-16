@@ -20,7 +20,7 @@ extern "C"
 	#include "log.h"
 	#include "uiapi.h"
 	#include "uimon.h"
-	#include "archapi.h"
+	#include "archdep.h"
 }
 
 int log_message(log_t log, const char *format, ...)

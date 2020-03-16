@@ -59,21 +59,26 @@
     !ROML       11    8K decoded RAM/ROM block @ $8000 (active low) buffered ls ttl output
     !ROMH        B    8K decoded RAM/ROM block @ $E000 buffered
 
+    bidirectional:
+
     D7-D0    14-21    Data bus bit 7-0 - unbuffered, 1 ls ttl load max
     A15-A0    F- Y    Address bus bit 0-15 - unbuffered, 1 ls ttl load max
 */
 
+/* WARNING: due to the way VICE is being built/linked, this struct has to be
+            the same in C64/DTV/C128 and CBM2 (ie c64cart.h and cbm2cart.h) */
 typedef struct {
-    BYTE exrom; /* exrom signal, 0 - active */
-    BYTE game;  /* game signal, 0 - active */
-    BYTE ultimax_phi1; /* flag for vic-ii, ultimax mode in phi1 phase */
-    BYTE ultimax_phi2; /* flag for vic-ii, ultimax mode in phi2 phase */
+    uint8_t exrom;          /* exrom signal, 0 - active */
+    uint8_t game;           /* game signal, 0 - active */
+    uint8_t ultimax_phi1;   /* flag for vic-ii, ultimax mode in phi1 phase */
+    uint8_t ultimax_phi2;   /* flag for vic-ii, ultimax mode in phi2 phase */
 } export_t;
 
+/* this is referenced by the VICII emulation */
 extern export_t export;
 
 #define CARTRIDGE_INCLUDE_PUBLIC_API
-#include "cart/expert.h"
+#include "cart/expert.h"    /* provide defines for ExpertCartridgeMode resource */
 #undef CARTRIDGE_INCLUDE_PUBLIC_API
 
 #endif

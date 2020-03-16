@@ -49,7 +49,7 @@ static unsigned int drive_check_ieee(unsigned int type)
     return 0;
 }
 
-static unsigned int drive_check_iec(unsigned int type)
+int drive_check_iec(int type)
 {
     switch (type) {
         case DRIVE_TYPE_1540:
@@ -325,4 +325,22 @@ int drive_check_stardos(int drive_type)
         return 1;
     }
     return 0;
+}
+
+
+/** \brief  Check if \a drive_type supports a real-time clock
+ *
+ * \param[in]   drive_type  drive type
+ *
+ * \return  bool
+ */
+int drive_check_rtc(int drive_type)
+{
+    switch (drive_type) {
+        case DRIVE_TYPE_2000: /* fall through */
+        case DRIVE_TYPE_4000:
+            return 1;
+        default:
+            return 0;
+    }
 }

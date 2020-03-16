@@ -29,15 +29,15 @@
 
 #include "types.h"
 
-extern BYTE snapshot64_roml_read(WORD addr);
-extern BYTE snapshot64_romh_read(WORD addr);
+extern uint8_t snapshot64_roml_read(uint16_t addr);
+extern uint8_t snapshot64_romh_read(uint16_t addr);
 
 extern void snapshot64_freeze(void);
 
 extern void snapshot64_config_init(void);
-extern void snapshot64_config_setup(BYTE *rawcart);
-extern int snapshot64_bin_attach(const char *filename, BYTE *rawcart);
-extern int snapshot64_crt_attach(FILE *f, BYTE *rawcart);
+extern void snapshot64_config_setup(uint8_t *rawcart);
+extern int snapshot64_bin_attach(const char *filename, uint8_t *rawcart);
+extern int snapshot64_crt_attach(FILE *f, uint8_t *rawcart);
 
 extern void snapshot64_detach(void);
 

@@ -65,10 +65,10 @@
 
 #define MAXBANKS 8
 
-static BYTE regval = 0;
-static BYTE disabled = 0;
+static uint8_t regval = 0;
+static uint8_t disabled = 0;
 
-static void rgcd_io1_store(WORD addr, BYTE value)
+static void rgcd_io1_store(uint16_t addr, uint8_t value)
 {
     regval = value & 0x0f;
     cart_set_port_game_slotmain(0);
@@ -84,7 +84,7 @@ static void rgcd_io1_store(WORD addr, BYTE value)
     DBG(("RGCD: Reg: %02x (Bank: %d, %s)\n", regval, (regval & 0x07), disabled ? "disabled" : "enabled"));
 }
 
-static BYTE rgcd_io1_peek(WORD addr)
+static uint8_t rgcd_io1_peek(uint16_t addr)
 {
     return regval;
 }
@@ -98,18 +98,19 @@ static int rgcd_dump(void)
 /* ---------------------------------------------------------------------*/
 
 static io_source_t rgcd_device = {
-    CARTRIDGE_NAME_RGCD,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    0,
-    rgcd_io1_store,
-    NULL,
-    rgcd_io1_peek,
-    rgcd_dump,
-    CARTRIDGE_RGCD,
-    0,
-    0
+    CARTRIDGE_NAME_RGCD,   /* name of the device */
+    IO_DETACH_CART,        /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE, /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,  /* range for the device, address is ignored, reg:$de00, mirrors:$de01-$deff */
+    0,                     /* read is never valid, reg is write only */
+    rgcd_io1_store,        /* store function */
+    NULL,                  /* NO poke function */
+    NULL,                  /* NO read function */
+    rgcd_io1_peek,         /* peek function */
+    rgcd_dump,             /* device state information dump function */
+    CARTRIDGE_RGCD,        /* cartridge ID */
+    IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
+    0                      /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *rgcd_list_item = NULL;
@@ -130,10 +131,10 @@ void rgcd_config_init(void)
 {
     disabled = 0;
     cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
-    rgcd_io1_store((WORD)0xde00, 0);
+    rgcd_io1_store((uint16_t)0xde00, 0);
 }
 
-void rgcd_config_setup(BYTE *rawcart)
+void rgcd_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000 * MAXBANKS);
     cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
@@ -150,7 +151,7 @@ static int rgcd_common_attach(void)
     return 0;
 }
 
-int rgcd_bin_attach(const char *filename, BYTE *rawcart)
+int rgcd_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x10000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -158,7 +159,7 @@ int rgcd_bin_attach(const char *filename, BYTE *rawcart)
     return rgcd_common_attach();
 }
 
-int rgcd_crt_attach(FILE *fd, BYTE *rawcart)
+int rgcd_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
 
@@ -211,8 +212,8 @@ int rgcd_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)regval) < 0
-        || SMW_B(m, (BYTE)disabled) < 0
+        || SMW_B(m, (uint8_t)regval) < 0
+        || SMW_B(m, (uint8_t)disabled) < 0
         || SMW_BA(m, roml_banks, 0x2000 * MAXBANKS) < 0) {
         snapshot_module_close(m);
         return -1;
@@ -223,7 +224,7 @@ int rgcd_snapshot_write_module(snapshot_t *s)
 
 int rgcd_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -233,7 +234,7 @@ int rgcd_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -243,7 +244,7 @@ int rgcd_snapshot_read_module(snapshot_t *s)
     }
 
     /* new in 0.2 */
-    if (SNAPVAL(vmajor, vminor, 0, 2)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 2)) {
         if (SMR_B(m, &disabled) < 0) {
             goto fail;
         }

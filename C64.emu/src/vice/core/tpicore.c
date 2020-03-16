@@ -51,7 +51,7 @@
 #define IS_CB_TOGGLE_MODE()     ((tpi_context->c_tpi[TPI_CREG] & 0xc0) == 0x00)
 
 
-static const BYTE pow2[] = { 1, 2, 4, 8, 16 };
+static const uint8_t pow2[] = { 1, 2, 4, 8, 16 };
 
 static int mytpi_debug = 0;
 
@@ -62,7 +62,7 @@ static void set_latch_bit(tpi_context_t *tpi_context, int bit)
 {
     if (mytpi_debug && !(bit & irq_latches)) {
         log_message(tpi_context->log, "set_latch_bit(%02x, mask=%02x)",
-                    bit, irq_mask);
+                    (unsigned int)bit, irq_mask);
     }
 
     irq_latches |= bit;
@@ -111,7 +111,7 @@ static void pop_irq_state(tpi_context_t *tpi_context)
                            ? tpi_context->irq_line : 0);
 }
 
-static BYTE push_irq_state(tpi_context_t *tpi_context)
+static uint8_t push_irq_state(tpi_context_t *tpi_context)
 {
     int old_active;
 
@@ -166,7 +166,7 @@ void tpicore_reset(tpi_context_t *tpi_context)
     (tpi_context->reset)(tpi_context);
 }
 
-void tpicore_store(tpi_context_t *tpi_context, WORD addr, BYTE byte)
+void tpicore_store(tpi_context_t *tpi_context, uint16_t addr, uint8_t byte)
 {
     if (tpi_context->rmw_flag) {
         (*(tpi_context->clk_ptr))--;
@@ -252,9 +252,9 @@ void tpicore_store(tpi_context_t *tpi_context, WORD addr, BYTE byte)
     tpi_context->c_tpi[addr] = byte;
 }
 
-BYTE tpicore_read(tpi_context_t *tpi_context, WORD addr)
+uint8_t tpicore_read(tpi_context_t *tpi_context, uint16_t addr)
 {
-    BYTE byte = 0xff;
+    uint8_t byte = 0xff;
 
     addr &= 0x07;
 
@@ -293,9 +293,9 @@ BYTE tpicore_read(tpi_context_t *tpi_context, WORD addr)
 }
 
 /* FIXME: peek into register without any side effect */
-BYTE tpicore_peek(tpi_context_t *tpi_context, WORD addr)
+uint8_t tpicore_peek(tpi_context_t *tpi_context, uint16_t addr)
 {
-    BYTE byte = 0xff;
+    uint8_t byte = 0xff;
     addr &= 0x07;
 
     switch (addr) {
@@ -441,7 +441,7 @@ int tpicore_snapshot_write_module(tpi_context_t *tpi_context, snapshot_t *p)
         || SMW_B(m, tpi_context->c_tpi[TPI_CREG]) < 0
         || SMW_B(m, tpi_context->c_tpi[TPI_AIR]) < 0
         || SMW_B(m, tpi_context->irq_stack) < 0
-        || SMW_B(m, (BYTE)((tpi_context->ca_state ? 0x80 : 0) | (tpi_context->cb_state ? 0x40 : 0))) < 0) {
+        || SMW_B(m, (uint8_t)((tpi_context->ca_state ? 0x80 : 0) | (tpi_context->cb_state ? 0x40 : 0))) < 0) {
         snapshot_module_close(m);
         return -1;
     }
@@ -451,8 +451,8 @@ int tpicore_snapshot_write_module(tpi_context_t *tpi_context, snapshot_t *p)
 
 int tpicore_snapshot_read_module(tpi_context_t *tpi_context, snapshot_t *p)
 {
-    BYTE vmajor, vminor;
-    BYTE byte;
+    uint8_t vmajor, vminor;
+    uint8_t byte;
     snapshot_module_t *m;
 
     (tpi_context->restore_int)(tpi_context->tpi_int_num, 0); /* just in case */
@@ -463,7 +463,7 @@ int tpicore_snapshot_read_module(tpi_context_t *tpi_context, snapshot_t *p)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > TPI_DUMP_VER_MAJOR || vminor > TPI_DUMP_VER_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, TPI_DUMP_VER_MAJOR, TPI_DUMP_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         snapshot_module_close(m);
         return -1;
@@ -528,7 +528,7 @@ int tpicore_dump(tpi_context_t *tpi_context)
         mon_out("Port B:             %02x\n", tpi_context->c_tpi[TPI_PB]);
         mon_out("Port Direction A:   %02x\n", tpi_context->c_tpi[TPI_DDPA]);
         mon_out("Port Direction B:   %02x\n", tpi_context->c_tpi[TPI_DDPB]);
-        mon_out("Interrupt latch:    %02x\n", irq_latches & 0x1f);
+        mon_out("Interrupt latch:    %02x\n", irq_latches & 0x1fU);
         mon_out("Interrupt active:   %s\n", irq_active ? "yes" : "no");
         mon_out("Active Interrupt:   %02x\n", tpi_context->c_tpi[TPI_AIR]);
     } else {

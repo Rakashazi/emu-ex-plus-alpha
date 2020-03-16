@@ -53,7 +53,7 @@
 #define NO_USERPORT  0
 #define HAS_USERPORT 1
 
-extern VICE_API int plus4model_get(void);
-extern VICE_API void plus4model_set(int model);
+extern int plus4model_get(void);
+extern void plus4model_set(int model);
 
 #endif

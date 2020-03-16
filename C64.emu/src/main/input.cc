@@ -17,6 +17,46 @@
 #include <emuframework/EmuInput.hh>
 #include "internal.hh"
 
+extern "C"
+{
+	#include "kbd.h"
+}
+
+enum shift_type {
+    NO_SHIFT = 0,             /* Key is not shifted. Keys will be deshifted,
+                                 no other flags will be checked */
+
+    VIRTUAL_SHIFT     = (1 << 0), /* The key needs a shift on the real machine. */
+    LEFT_SHIFT        = (1 << 1), /* Key is left shift. */
+    RIGHT_SHIFT       = (1 << 2), /* Key is right shift. */
+    ALLOW_SHIFT       = (1 << 3), /* Allow key to be shifted. */
+    DESHIFT_SHIFT     = (1 << 4), /* Although SHIFT might be pressed, do not
+                                 press shift on the real machine. */
+    ALLOW_OTHER       = (1 << 5), /* Allow another key code to be assigned if
+                                 SHIFT is pressed. */
+    SHIFT_LOCK        = (1 << 6), /* Key is shift lock on the real machine */
+    MAP_MOD_SHIFT     = (1 << 7), /* Key requires SHIFT to be pressed on host */
+
+    ALT_MAP           = (1 << 8), /* Key is used for an alternative keyboard mapping (x128) */
+
+    MAP_MOD_RIGHT_ALT = (1 << 9), /* Key requires right ALT (Alt-gr) to be pressed on host */
+    MAP_MOD_CTRL     = (1 << 10), /* Key requires control to be pressed on host */
+
+    VIRTUAL_CBM      = (1 << 11), /* The key is combined with CBM on the emulated machine */
+    VIRTUAL_CTRL     = (1 << 12), /* The key is combined with CTRL on the emulated machine */
+
+    LEFT_CBM         = (1 << 13), /* Key is CBM on the real machine */
+    LEFT_CTRL        = (1 << 14)  /* Key is CTRL on the real machine */
+};
+
+struct keyboard_conv_t {
+    signed long sym;
+    int row;
+    int column;
+    enum shift_type shift;
+    char *comment;
+};
+
 enum
 {
 	c64KeyIdxUp = EmuControls::systemKeyMapStart,
@@ -45,7 +85,8 @@ enum
 
 	c64KeyToggleKB,
 
-	c64KeyF1,
+	c64KeyFirstKeyboardKey,
+	c64KeyF1 = c64KeyFirstKeyboardKey,
 	c64KeyF2,
 	c64KeyF3,
 	c64KeyF4,
@@ -122,6 +163,7 @@ enum
 	c64KeyKbLeft,
 
 	c64KeySpace,
+	c64KeyLastKeyboardKey = c64KeySpace,
 	c64KeyCtrlLock,
 };
 
@@ -136,137 +178,66 @@ const uint EmuSystem::maxPlayers = 2;
 
 static bool shiftLock = false, ctrlLock = false;
 
-static const uint JOYPAD_FIRE = 0x10,
-	JOYPAD_E = 0x08,
-	JOYPAD_W = 0x04,
-	JOYPAD_S = 0x02,
-	JOYPAD_N = 0x01,
-	JOYPAD_SW = (JOYPAD_S | JOYPAD_W),
-	JOYPAD_SE = (JOYPAD_S | JOYPAD_E),
-	JOYPAD_NW = (JOYPAD_N | JOYPAD_W),
-	JOYPAD_NE = (JOYPAD_N | JOYPAD_E);
+static constexpr uint8_t KEY_MODE_SHIFT = 28;
+static constexpr uint8_t KB_MODE = 0;
+static constexpr uint8_t JS_MODE = 1;
+static constexpr uint8_t EX_MODE = 2;
+static constexpr uint32_t CODE_MASK = 0xFFFFFF;
+static constexpr uint32_t KB_SHIFT_BIT = IG::bit(8);
+static constexpr uint32_t JS_P2_BIT = IG::bit(5);
+static constexpr uint8_t KB_KEYS = (c64KeyLastKeyboardKey - c64KeyFirstKeyboardKey) + 1;
 
-static const uint JS_SHIFT = 16;
-
-static const uint SHIFT_BIT = IG::bit(8);
-
-static constexpr uint mkKeyCode(int row, int col, int shift = 0)
+static constexpr uint32_t mkKBKeyCode(uint32_t row, uint32_t col, bool shift = false)
 {
 	return (shift << 8) | (row << 4) | col;
 }
 
-static const uint
-KB_NONE = 0x7F,
-KB_INST_DEL = mkKeyCode(0,0),
-KB_RETURN = mkKeyCode(0,1),
-KB_CRSR_LR = mkKeyCode(0,2),
-KB_F7 = mkKeyCode(0,3),
-KB_F1 = mkKeyCode(0,4),
-KB_F3 = mkKeyCode(0,5),
-KB_F5 = mkKeyCode(0,6),
-KB_CRSR_UD = mkKeyCode(0,7),
-KB_3 = mkKeyCode(1,0),
-KB_W = mkKeyCode(1,1),
-KB_A = mkKeyCode(1,2),
-KB_4 = mkKeyCode(1,3),
-KB_Z = mkKeyCode(1,4),
-KB_S = mkKeyCode(1,5),
-KB_E = mkKeyCode(1,6),
-KB_5 = mkKeyCode(2,0),
-KB_R = mkKeyCode(2,1),
-KB_D = mkKeyCode(2,2),
-KB_6 = mkKeyCode(2,3),
-KB_C = mkKeyCode(2,4),
-KB_F = mkKeyCode(2,5),
-KB_T = mkKeyCode(2,6),
-KB_X = mkKeyCode(2,7),
-KB_7 = mkKeyCode(3,0),
-KB_Y = mkKeyCode(3,1),
-KB_G = mkKeyCode(3,2),
-KB_8 = mkKeyCode(3,3),
-KB_B = mkKeyCode(3,4),
-KB_H = mkKeyCode(3,5),
-KB_U = mkKeyCode(3,6),
-KB_V = mkKeyCode(3,7),
-KB_9 = mkKeyCode(4,0),
-KB_I = mkKeyCode(4,1),
-KB_J = mkKeyCode(4,2),
-KB_0 = mkKeyCode(4,3),
-KB_M = mkKeyCode(4,4),
-KB_K = mkKeyCode(4,5),
-KB_O = mkKeyCode(4,6),
-KB_N = mkKeyCode(4,7),
-KB_PLUS = mkKeyCode(5,0),
-KB_P = mkKeyCode(5,1),
-KB_L = mkKeyCode(5,2),
-KB_MINUS = mkKeyCode(5,3),
-KB_AT_SIGN = mkKeyCode(5,6),
-KB_POUND = mkKeyCode(6,0),
-KB_ASTERISK = mkKeyCode(6,1),
-KB_CLR_HOME = mkKeyCode(6,3),
-KB_EQUALS = mkKeyCode(6,5),
-KB_UP_ARROW = mkKeyCode(6,6),
-KB_1 = mkKeyCode(7,0),
-KB_LEFT_ARROW = mkKeyCode(7,1),
-KB_2 = mkKeyCode(7,3),
-KB_SPACE = mkKeyCode(7,4),
-KB_Q = mkKeyCode(7,6),
-KB_RUN_STOP = mkKeyCode(7,7),
-KB_COLON = mkKeyCode(5,5),
-KB_SEMICOLON = mkKeyCode(6,2),
-KB_PERIOD = mkKeyCode(5,4),
-KB_COMMA = mkKeyCode(5,7),
-KB_SLASH = mkKeyCode(6,7),
-KB_CTRL = mkKeyCode(7,2),
-KB_COMMODORE = mkKeyCode(7,5),
-KB_LEFT_SHIFT = mkKeyCode(1,7),
-KB_RIGHT_SHIFT = mkKeyCode(6,4),
-KB_RESTORE = 0xFF,
+static constexpr uint32_t mkJSKeyCode(uint32_t jsBits)
+{
+	return (JS_MODE << KEY_MODE_SHIFT) | jsBits;
+}
 
-// shifted key codes
-KBS_F2 = KB_F1 | SHIFT_BIT,
-KBS_F4 = KB_F3 | SHIFT_BIT,
-KBS_F6 = KB_F5 | SHIFT_BIT,
-KBS_F8 = KB_F7 | SHIFT_BIT,
+static constexpr uint32_t mkEXKeyCode(uint32_t code)
+{
+	return (EX_MODE << KEY_MODE_SHIFT) | code;
+}
+
+// joystick codes
+static constexpr uint32_t JS_FIRE = mkJSKeyCode(0x10),
+	JS_E = mkJSKeyCode(0x08),
+	JS_W = mkJSKeyCode(0x04),
+	JS_S = mkJSKeyCode(0x02),
+	JS_N = mkJSKeyCode(0x01),
+	JS_SW = mkJSKeyCode(JS_S | JS_W),
+	JS_SE = mkJSKeyCode(JS_S | JS_E),
+	JS_NW = mkJSKeyCode(JS_N | JS_W),
+	JS_NE = mkJSKeyCode(JS_N | JS_E);
 
 // special function codes
-KBEX_SWAP_JS_PORTS = 0xFFFC,
-KBEX_CTRL_LOCK = 0xFFFD,
-KBEX_SHIFT_LOCK = 0xFFFE,
-KBEX_TOGGLE_VKEYBOARD = 0xFFFF
-;
+static constexpr uint32_t
+	KBEX_NONE = mkEXKeyCode(0),
+	KBEX_RESTORE = mkEXKeyCode(1),
+	KBEX_SWAP_JS_PORTS = mkEXKeyCode(2),
+	KBEX_CTRL_LOCK = mkEXKeyCode(3),
+	KBEX_SHIFT_LOCK = mkEXKeyCode(4),
+	KBEX_TOGGLE_VKEYBOARD = mkEXKeyCode(5);
 
-static const SysVController::KbMap kbToEventMap
-{
-	KB_Q, KB_W, KB_E, KB_R, KB_T, KB_Y, KB_U, KB_I, KB_O, KB_P,
-	KB_A, KB_S, KB_D, KB_F, KB_G, KB_H, KB_J, KB_K, KB_L, KB_NONE,
-	KBEX_SHIFT_LOCK, KB_Z, KB_X, KB_C, KB_V, KB_B, KB_N, KB_M, KB_INST_DEL, KB_NONE,
-	KB_NONE, KB_NONE, KB_NONE, KB_SPACE, KB_SPACE, KB_SPACE, KB_SPACE, KB_RUN_STOP, KB_RUN_STOP, KB_RETURN
-};
+static std::array<uint32_t, KB_KEYS> c64KeyMap{};
+static SysVController::KbMap kbToEventMap{};
+static SysVController::KbMap kbToEventMapShifted{};
+static SysVController::KbMap kbToEventMap2{};
+static SysVController::KbMap kbToEventMap2Shifted{};
 
-static const SysVController::KbMap kbToEventMapShifted
+static bool isEmuKeyInKeyboardRange(uint32_t emuKey)
 {
-	KB_Q | SHIFT_BIT, KB_W | SHIFT_BIT, KB_E | SHIFT_BIT, KB_R | SHIFT_BIT, KB_T | SHIFT_BIT, KB_Y | SHIFT_BIT, KB_U | SHIFT_BIT, KB_I | SHIFT_BIT, KB_O | SHIFT_BIT, KB_P | SHIFT_BIT,
-	KB_A | SHIFT_BIT, KB_S | SHIFT_BIT, KB_D | SHIFT_BIT, KB_F | SHIFT_BIT, KB_G | SHIFT_BIT, KB_H | SHIFT_BIT, KB_J | SHIFT_BIT, KB_K | SHIFT_BIT, KB_L | SHIFT_BIT, KB_NONE,
-	KBEX_SHIFT_LOCK, KB_Z | SHIFT_BIT, KB_X | SHIFT_BIT, KB_C | SHIFT_BIT, KB_V | SHIFT_BIT, KB_B | SHIFT_BIT, KB_N | SHIFT_BIT, KB_M | SHIFT_BIT, KB_INST_DEL | SHIFT_BIT, KB_NONE,
-	KB_NONE, KB_NONE, KB_NONE, KB_SPACE, KB_SPACE, KB_SPACE, KB_SPACE, KB_RUN_STOP | SHIFT_BIT, KB_RUN_STOP | SHIFT_BIT, KB_RETURN
-};
+	return emuKey >= c64KeyFirstKeyboardKey && emuKey <= c64KeyLastKeyboardKey;
+}
 
-static const SysVController::KbMap kbToEventMap2
+static uint32_t keyboardCodeFromEmuKey(uint32_t emuKey)
 {
-	KB_F1, KB_F3, KB_F5, KB_F7, KB_AT_SIGN, KB_COMMODORE, KB_CRSR_UD, KB_CRSR_LR, KB_PLUS, KB_MINUS,
-	KB_1, KB_2, KB_3, KB_4, KB_5, KB_6, KB_7, KB_8, KB_9, KB_0,
-	KB_RESTORE, KB_COLON, KB_SEMICOLON, KB_EQUALS, KB_COMMA, KB_PERIOD, KB_SLASH, KB_ASTERISK, KB_CLR_HOME, KB_NONE,
-	KB_NONE, KB_NONE, KB_NONE, KB_SPACE, KB_SPACE, KB_SPACE, KB_SPACE, KB_PERIOD, KBEX_CTRL_LOCK, KB_RETURN
-};
-
-static const SysVController::KbMap kbToEventMap2Shifted
-{
-	KBS_F2, KBS_F4, KBS_F6, KBS_F8, KB_AT_SIGN, KB_COMMODORE, KB_CRSR_UD | SHIFT_BIT, KB_CRSR_LR | SHIFT_BIT, KB_PLUS | SHIFT_BIT, KB_MINUS | SHIFT_BIT,
-	KB_1 | SHIFT_BIT, KB_2 | SHIFT_BIT, KB_3 | SHIFT_BIT, KB_4 | SHIFT_BIT, KB_5 | SHIFT_BIT, KB_6 | SHIFT_BIT, KB_7 | SHIFT_BIT, KB_8 | SHIFT_BIT, KB_9 | SHIFT_BIT, KB_0 | SHIFT_BIT,
-	KB_RESTORE, KB_COLON | SHIFT_BIT, KB_SEMICOLON | SHIFT_BIT, KB_EQUALS | SHIFT_BIT, KB_COMMA | SHIFT_BIT, KB_PERIOD | SHIFT_BIT, KB_SLASH | SHIFT_BIT, KB_ASTERISK | SHIFT_BIT, KB_CLR_HOME | SHIFT_BIT, KB_NONE,
-	KB_NONE, KB_NONE, KB_NONE, KB_SPACE, KB_SPACE, KB_SPACE, KB_SPACE, KB_PERIOD | SHIFT_BIT, KBEX_CTRL_LOCK, KB_RETURN
-};
+	assumeExpr(isEmuKeyInKeyboardRange(emuKey));
+	return c64KeyMap[emuKey - c64KeyFirstKeyboardKey];
+}
 
 SysVController::KbMap updateVControllerKeyboardMapping(uint mode)
 {
@@ -275,140 +246,68 @@ SysVController::KbMap updateVControllerKeyboardMapping(uint mode)
 
 void updateVControllerMapping(uint player, SysVController::Map &map)
 {
-	const uint p2Bit = player ? IG::bit(5) : 0;
-	map[SysVController::F_ELEM] = (JOYPAD_FIRE | p2Bit) << JS_SHIFT;
-	map[SysVController::F_ELEM+1] = ((JOYPAD_FIRE | p2Bit) << JS_SHIFT) | SysVController::TURBO_BIT;
+	const uint p2Bit = player ? JS_P2_BIT : 0;
+	map[SysVController::F_ELEM] = JS_FIRE | p2Bit;
+	map[SysVController::F_ELEM+1] = JS_FIRE | p2Bit | SysVController::TURBO_BIT;
 
-	map[SysVController::C_ELEM] = KB_F1;
+	map[SysVController::C_ELEM] = keyboardCodeFromEmuKey(c64KeyF1);
 	map[SysVController::C_ELEM+1] = KBEX_TOGGLE_VKEYBOARD;
 
-	map[SysVController::D_ELEM] = (JOYPAD_NW | p2Bit) << JS_SHIFT;
-	map[SysVController::D_ELEM+1] = (JOYPAD_N | p2Bit) << JS_SHIFT;
-	map[SysVController::D_ELEM+2] = (JOYPAD_NE | p2Bit) << JS_SHIFT;
-	map[SysVController::D_ELEM+3] = (JOYPAD_W | p2Bit) << JS_SHIFT;
-	map[SysVController::D_ELEM+5] = (JOYPAD_E | p2Bit) << JS_SHIFT;
-	map[SysVController::D_ELEM+6] = (JOYPAD_SW | p2Bit) << JS_SHIFT;
-	map[SysVController::D_ELEM+7] = (JOYPAD_S | p2Bit) << JS_SHIFT;
-	map[SysVController::D_ELEM+8] = (JOYPAD_SE | p2Bit) << JS_SHIFT;
+	map[SysVController::D_ELEM] = JS_NW | p2Bit;
+	map[SysVController::D_ELEM+1] = JS_N | p2Bit;
+	map[SysVController::D_ELEM+2] = JS_NE | p2Bit;
+	map[SysVController::D_ELEM+3] = JS_W | p2Bit;
+	map[SysVController::D_ELEM+5] = JS_E | p2Bit;
+	map[SysVController::D_ELEM+6] = JS_SW | p2Bit;
+	map[SysVController::D_ELEM+7] = JS_S | p2Bit;
+	map[SysVController::D_ELEM+8] = JS_SE | p2Bit;
 }
 
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
 {
 	turbo = 0;
-	const uint p2Bit = IG::bit(5);
-	const uint shiftBit = shiftLock ? SHIFT_BIT : 0;
 	switch(input)
 	{
-		case c64KeyIdxUp: return JOYPAD_N << JS_SHIFT;
-		case c64KeyIdxRight: return JOYPAD_E << JS_SHIFT;
-		case c64KeyIdxDown: return JOYPAD_S << JS_SHIFT;
-		case c64KeyIdxLeft: return JOYPAD_W << JS_SHIFT;
-		case c64KeyIdxLeftUp: return JOYPAD_NW << JS_SHIFT;
-		case c64KeyIdxRightUp: return JOYPAD_NE << JS_SHIFT;
-		case c64KeyIdxRightDown: return JOYPAD_SE << JS_SHIFT;
-		case c64KeyIdxLeftDown: return JOYPAD_SW << JS_SHIFT;
-		case c64KeyIdxBtn: return JOYPAD_FIRE << JS_SHIFT;
-		case c64KeyIdxBtnTurbo: turbo = 1; return JOYPAD_FIRE << JS_SHIFT;
+		case c64KeyIdxUp: return JS_N;
+		case c64KeyIdxRight: return JS_E;
+		case c64KeyIdxDown: return JS_S;
+		case c64KeyIdxLeft: return JS_W;
+		case c64KeyIdxLeftUp: return JS_NW;
+		case c64KeyIdxRightUp: return JS_NE;
+		case c64KeyIdxRightDown: return JS_SE;
+		case c64KeyIdxLeftDown: return JS_SW;
+		case c64KeyIdxBtn: return JS_FIRE;
+		case c64KeyIdxBtnTurbo: turbo = 1; return JS_FIRE;
 		case c64KeyIdxSwapPorts: return KBEX_SWAP_JS_PORTS;
 
-		case c64KeyIdxUp2: return (JOYPAD_N | p2Bit) << JS_SHIFT;
-		case c64KeyIdxRight2: return (JOYPAD_E | p2Bit) << JS_SHIFT;
-		case c64KeyIdxDown2: return (JOYPAD_S | p2Bit) << JS_SHIFT;
-		case c64KeyIdxLeft2: return (JOYPAD_W | p2Bit) << JS_SHIFT;
-		case c64KeyIdxLeftUp2: return (JOYPAD_NW | p2Bit) << JS_SHIFT;
-		case c64KeyIdxRightUp2: return (JOYPAD_NE | p2Bit) << JS_SHIFT;
-		case c64KeyIdxRightDown2: return (JOYPAD_SE | p2Bit) << JS_SHIFT;
-		case c64KeyIdxLeftDown2: return (JOYPAD_SW | p2Bit) << JS_SHIFT;
-		case c64KeyIdxBtn2: return (JOYPAD_FIRE | p2Bit) << JS_SHIFT;
-		case c64KeyIdxBtnTurbo2: turbo = 1; return (JOYPAD_FIRE | p2Bit) << JS_SHIFT;
+		case c64KeyIdxUp2: return JS_N | JS_P2_BIT;
+		case c64KeyIdxRight2: return JS_E | JS_P2_BIT;
+		case c64KeyIdxDown2: return JS_S | JS_P2_BIT;
+		case c64KeyIdxLeft2: return JS_W | JS_P2_BIT;
+		case c64KeyIdxLeftUp2: return JS_NW | JS_P2_BIT;
+		case c64KeyIdxRightUp2: return JS_NE | JS_P2_BIT;
+		case c64KeyIdxRightDown2: return JS_SE | JS_P2_BIT;
+		case c64KeyIdxLeftDown2: return JS_SW | JS_P2_BIT;
+		case c64KeyIdxBtn2: return JS_FIRE | JS_P2_BIT;
+		case c64KeyIdxBtnTurbo2: turbo = 1; return JS_FIRE | JS_P2_BIT;
 		case c64KeyIdxSwapPorts2: return KBEX_SWAP_JS_PORTS;
 
 		case c64KeyToggleKB : return KBEX_TOGGLE_VKEYBOARD;
-
-		case c64KeyF1 : return KB_F1;
-		case c64KeyF2 : return KBS_F2;
-		case c64KeyF3 : return KB_F3;
-		case c64KeyF4 : return KBS_F4;
-		case c64KeyF5 : return KB_F5;
-		case c64KeyF6 : return KBS_F6;
-		case c64KeyF7 : return KB_F7;
-		case c64KeyF8 : return KBS_F8;
-
-		case c64KeyLeftArrow : return KB_LEFT_ARROW;
-		case c64Key1 : return KB_1;
-		case c64Key2 : return KB_2;
-		case c64Key3 : return KB_3;
-		case c64Key4 : return KB_4;
-		case c64Key5 : return KB_5;
-		case c64Key6 : return KB_6;
-		case c64Key7 : return KB_7;
-		case c64Key8 : return KB_8;
-		case c64Key9 : return KB_9;
-		case c64Key0 : return KB_0;
-		case c64KeyPlus : return KB_PLUS;
-		case c64KeyMinus : return KB_MINUS;
-		case c64KeyPound : return KB_POUND;
-		case c64KeyClrHome : return KB_CLR_HOME;
-		case c64KeyInstDel : return KB_INST_DEL;
-
-		case c64KeyCtrl : return KB_CTRL;
-		case c64KeyQ : return KB_Q | shiftBit;
-		case c64KeyW : return KB_W | shiftBit;
-		case c64KeyE : return KB_E | shiftBit;
-		case c64KeyR : return KB_R | shiftBit;
-		case c64KeyT : return KB_T | shiftBit;
-		case c64KeyY : return KB_Y | shiftBit;
-		case c64KeyU : return KB_U | shiftBit;
-		case c64KeyI : return KB_I | shiftBit;
-		case c64KeyO : return KB_O | shiftBit;
-		case c64KeyP : return KB_P | shiftBit;
-		case c64KeyAt : return KB_AT_SIGN;
-		case c64KeyAsterisk : return KB_ASTERISK;
-		case c64KeyUpArrow : return KB_UP_ARROW;
-		case c64KeyRestore : return KB_RESTORE;
-
-		case c64KeyRunStop : return KB_RUN_STOP;
+		case c64KeyRestore : return KBEX_RESTORE;
 		case c64KeyShiftLock : return KBEX_SHIFT_LOCK;
-		case c64KeyA : return KB_A | shiftBit;
-		case c64KeyS : return KB_S | shiftBit;
-		case c64KeyD : return KB_D | shiftBit;
-		case c64KeyF : return KB_F | shiftBit;
-		case c64KeyG : return KB_G | shiftBit;
-		case c64KeyH : return KB_H | shiftBit;
-		case c64KeyJ : return KB_J | shiftBit;
-		case c64KeyK : return KB_K | shiftBit;
-		case c64KeyL : return KB_L | shiftBit;
-		case c64KeyColon : return KB_COLON;
-		case c64KeySemiColon : return KB_SEMICOLON;
-		case c64KeyEquals : return KB_EQUALS;
-		case c64KeyReturn : return KB_RETURN;
-
-		case c64KeyCommodore : return KB_COMMODORE;
-		case c64KeyLeftShift : return KB_LEFT_SHIFT;
-		case c64KeyZ : return KB_Z | shiftBit;
-		case c64KeyX : return KB_X | shiftBit;
-		case c64KeyC : return KB_C | shiftBit;
-		case c64KeyV : return KB_V | shiftBit;
-		case c64KeyB : return KB_B | shiftBit;
-		case c64KeyN : return KB_N | shiftBit;
-		case c64KeyM : return KB_M | shiftBit;
-		case c64KeyComma : return KB_COMMA;
-		case c64KeyPeriod : return KB_PERIOD;
-		case c64KeySlash : return KB_SLASH;
-		case c64KeyRightShift : return KB_RIGHT_SHIFT;
-		case c64KeyKbUp : return KB_CRSR_UD | SHIFT_BIT;
-		case c64KeyKbRight : return KB_CRSR_LR;
-		case c64KeyKbDown : return KB_CRSR_UD;
-		case c64KeyKbLeft : return KB_CRSR_LR | SHIFT_BIT;
-
-		case c64KeySpace : return KB_SPACE;
 		case c64KeyCtrlLock : return KBEX_CTRL_LOCK;
-		default: bug_unreachable("input == %d", input);
+		default:
+		{
+			if(!isEmuKeyInKeyboardRange(input))
+				return KBEX_NONE;
+			const uint32_t shift = shiftLock ? KB_SHIFT_BIT : 0;
+			return keyboardCodeFromEmuKey(input) | shift;
+		}
 	}
 	return 0;
 }
 
-static void setC64KBKey(int key, bool pushed)
+static void setC64KBKey(uint32_t key, bool pushed)
 {
 	int row = (key >> 4) & 0xF;
 	int col = key  & 0xF;
@@ -439,76 +338,72 @@ static void setC64KBKey(int key, bool pushed)
 
 void EmuSystem::handleInputAction(uint state, uint emuKey)
 {
-	auto &joystick_value = *plugin.joystick_value;
-	if(emuKey & 0xFF0000) // Joystick
+	switch(emuKey >> KEY_MODE_SHIFT)
 	{
-
-		uint key = emuKey >> 16;
-		uint player = (key & IG::bit(5)) ? 2 : 1;
-		if(optionSwapJoystickPorts)
+		bcase JS_MODE:
 		{
-			player = (player == 1) ? 2 : 1;
-		}
-		//logMsg("js %X p %d", key & 0x1F, player);
-		joystick_value[player] = IG::setOrClearBits(joystick_value[player], (BYTE)(key & 0x1F), state == Input::PUSHED);
-	}
-	else // Keyboard
-	{
-		// Special Keys
-		switch(emuKey)
-		{
-			case KBEX_SWAP_JS_PORTS:
+			auto &joystick_value = *plugin.joystick_value;
+			uint key = emuKey & 0x1F;
+			uint player = (emuKey & IG::bit(5)) ? 2 : 1;
+			if(optionSwapJoystickPorts)
 			{
-				if(state == Input::PUSHED)
+				player = (player == 1) ? 2 : 1;
+			}
+			//logMsg("js %X p %d", key, player);
+			joystick_value[player] = IG::setOrClearBits(joystick_value[player], (uint8_t)key, state == Input::PUSHED);
+		}
+		bcase KB_MODE:
+		{
+			uint key = emuKey & CODE_MASK;
+			setC64KBKey(key, state == Input::PUSHED);
+		}
+		bcase EX_MODE:
+		{
+			switch(emuKey)
+			{
+				bcase KBEX_SWAP_JS_PORTS:
 				{
-					EmuSystem::sessionOptionSet();
-					if(optionSwapJoystickPorts)
-						optionSwapJoystickPorts = 0;
-					else
-						optionSwapJoystickPorts = 1;
-					IG::fillData(*plugin.joystick_value);
-					EmuApp::postMessage(1, false, "Swapped Joystick Ports");
+					if(state == Input::PUSHED)
+					{
+						EmuSystem::sessionOptionSet();
+						if(optionSwapJoystickPorts)
+							optionSwapJoystickPorts = 0;
+						else
+							optionSwapJoystickPorts = 1;
+						IG::fillData(*plugin.joystick_value);
+						EmuApp::postMessage(1, false, "Swapped Joystick Ports");
+					}
 				}
-				return;
-			}
-			case KBEX_TOGGLE_VKEYBOARD:
-			{
-				if(state == Input::PUSHED)
-					EmuControls::toggleKeyboard();
-				return;
-			}
-			case KBEX_SHIFT_LOCK:
-			{
-				if(state == Input::PUSHED)
+				bcase KBEX_TOGGLE_VKEYBOARD:
 				{
-					shiftLock ^= true;
-					EmuControls::updateKeyboardMapping();
+					if(state == Input::PUSHED)
+						EmuControls::toggleKeyboard();
 				}
-				return;
-			}
-			case KBEX_CTRL_LOCK:
-			{
-				if(state == Input::PUSHED)
+				bcase KBEX_SHIFT_LOCK:
 				{
-					ctrlLock ^= true;
-					setC64KBKey(KB_CTRL, ctrlLock);
+					if(state == Input::PUSHED)
+					{
+						shiftLock ^= true;
+						setC64KBKey(keyboardCodeFromEmuKey(c64KeyLeftShift), shiftLock);
+						EmuControls::updateKeyboardMapping();
+					}
 				}
-				return;
+				bcase KBEX_CTRL_LOCK:
+				{
+					if(state == Input::PUSHED)
+					{
+						ctrlLock ^= true;
+						setC64KBKey(keyboardCodeFromEmuKey(c64KeyCtrl), ctrlLock);
+					}
+				}
+				bcase KBEX_RESTORE:
+				{
+					logMsg("pushed restore key");
+					EmuApp::syncEmulationThread();
+					plugin.machine_set_restore_key(state == Input::PUSHED);
+				}
 			}
 		}
-		if(unlikely((emuKey & 0xFF) == KB_NONE))
-		{
-			return;
-		}
-		if(unlikely((emuKey & 0xFF) == 0xFF))
-		{
-			logMsg("pushed restore key");
-			EmuApp::syncEmulationThread();
-			plugin.machine_set_restore_key(state == Input::PUSHED);
-			return;
-		}
-
-		setC64KBKey(emuKey, state == Input::PUSHED);
 	}
 }
 
@@ -517,9 +412,198 @@ void EmuSystem::clearInputBuffers(EmuInputView &)
 	auto &keyarr = *plugin.keyarr;
 	auto &rev_keyarr = *plugin.rev_keyarr;
 	auto &joystick_value = *plugin.joystick_value;
-	shiftLock = 0;
-	ctrlLock = 0;
+	shiftLock = false;
+	ctrlLock = false;
 	IG::fillData(keyarr);
 	IG::fillData(rev_keyarr);
 	IG::fillData(joystick_value);
+}
+
+void updateKeyMappingArray()
+{
+	auto keyconvmap = *plugin.keyconvmap;
+	iterateTimes(150, i)
+	{
+		auto e = keyconvmap[i];
+		if(!isEmuKeyInKeyboardRange(e.sym))
+			continue;
+		uint32_t key = mkKBKeyCode(e.row, e.column, e.shift & VIRTUAL_SHIFT);
+		c64KeyMap[e.sym - c64KeyFirstKeyboardKey] = key;
+		//logMsg("mapped input code 0x%X -> 0x%X", (unsigned)e.sym, key);
+	}
+
+	EmuControls::updateVControllerMapping();
+
+	const uint32_t KB_Q = keyboardCodeFromEmuKey(c64KeyQ),
+		KB_W = keyboardCodeFromEmuKey(c64KeyW),
+		KB_E = keyboardCodeFromEmuKey(c64KeyE),
+		KB_R = keyboardCodeFromEmuKey(c64KeyR),
+		KB_T = keyboardCodeFromEmuKey(c64KeyT),
+		KB_Y = keyboardCodeFromEmuKey(c64KeyY),
+		KB_U = keyboardCodeFromEmuKey(c64KeyU),
+		KB_I = keyboardCodeFromEmuKey(c64KeyI),
+		KB_O = keyboardCodeFromEmuKey(c64KeyO),
+		KB_P = keyboardCodeFromEmuKey(c64KeyP),
+		KB_A = keyboardCodeFromEmuKey(c64KeyA),
+		KB_S = keyboardCodeFromEmuKey(c64KeyS),
+		KB_D = keyboardCodeFromEmuKey(c64KeyD),
+		KB_F = keyboardCodeFromEmuKey(c64KeyF),
+		KB_G = keyboardCodeFromEmuKey(c64KeyG),
+		KB_H = keyboardCodeFromEmuKey(c64KeyH),
+		KB_J = keyboardCodeFromEmuKey(c64KeyJ),
+		KB_K = keyboardCodeFromEmuKey(c64KeyK),
+		KB_L = keyboardCodeFromEmuKey(c64KeyL),
+		KB_Z = keyboardCodeFromEmuKey(c64KeyZ),
+		KB_X = keyboardCodeFromEmuKey(c64KeyX),
+		KB_C = keyboardCodeFromEmuKey(c64KeyC),
+		KB_V = keyboardCodeFromEmuKey(c64KeyV),
+		KB_B = keyboardCodeFromEmuKey(c64KeyB),
+		KB_N = keyboardCodeFromEmuKey(c64KeyN),
+		KB_M = keyboardCodeFromEmuKey(c64KeyM),
+		KB_INST_DEL = keyboardCodeFromEmuKey(c64KeyInstDel),
+		KB_SPACE = keyboardCodeFromEmuKey(c64KeySpace),
+		KB_RUN_STOP = keyboardCodeFromEmuKey(c64KeyRunStop),
+		KB_RETURN = keyboardCodeFromEmuKey(c64KeyReturn),
+		KB_F1 = keyboardCodeFromEmuKey(c64KeyF1),
+		KB_F2 = keyboardCodeFromEmuKey(c64KeyF2),
+		KB_F3 = keyboardCodeFromEmuKey(c64KeyF3),
+		KB_F4 = keyboardCodeFromEmuKey(c64KeyF4),
+		KB_F5 = keyboardCodeFromEmuKey(c64KeyF5),
+		KB_F6 = keyboardCodeFromEmuKey(c64KeyF6),
+		KB_F7 = keyboardCodeFromEmuKey(c64KeyF7),
+		KB_F8 = keyboardCodeFromEmuKey(c64KeyF8),
+		KB_AT_SIGN = keyboardCodeFromEmuKey(c64KeyAt),
+		KB_COMMODORE = keyboardCodeFromEmuKey(c64KeyCommodore),
+		KB_CRSR_UD = keyboardCodeFromEmuKey(c64KeyUpArrow),
+		KB_CRSR_LR = keyboardCodeFromEmuKey(c64KeyLeftArrow),
+		KB_PLUS = keyboardCodeFromEmuKey(c64KeyPlus),
+		KB_MINUS = keyboardCodeFromEmuKey(c64KeyMinus),
+		KB_1 = keyboardCodeFromEmuKey(c64Key1),
+		KB_2 = keyboardCodeFromEmuKey(c64Key2),
+		KB_3 = keyboardCodeFromEmuKey(c64Key3),
+		KB_4 = keyboardCodeFromEmuKey(c64Key4),
+		KB_5 = keyboardCodeFromEmuKey(c64Key5),
+		KB_6 = keyboardCodeFromEmuKey(c64Key6),
+		KB_7 = keyboardCodeFromEmuKey(c64Key7),
+		KB_8 = keyboardCodeFromEmuKey(c64Key8),
+		KB_9 = keyboardCodeFromEmuKey(c64Key9),
+		KB_0 = keyboardCodeFromEmuKey(c64Key0),
+		KB_COLON = keyboardCodeFromEmuKey(c64KeyColon),
+		KB_SEMICOLON = keyboardCodeFromEmuKey(c64KeySemiColon),
+		KB_EQUALS = keyboardCodeFromEmuKey(c64KeyEquals),
+		KB_COMMA = keyboardCodeFromEmuKey(c64KeyComma),
+		KB_PERIOD = keyboardCodeFromEmuKey(c64KeyPeriod),
+		KB_SLASH = keyboardCodeFromEmuKey(c64KeySlash),
+		KB_ASTERISK = keyboardCodeFromEmuKey(c64KeyAsterisk),
+		KB_CLR_HOME = keyboardCodeFromEmuKey(c64KeyClrHome);
+
+	kbToEventMap =
+	{
+		KB_Q, KB_W, KB_E, KB_R, KB_T, KB_Y, KB_U, KB_I, KB_O, KB_P,
+		KB_A, KB_S, KB_D, KB_F, KB_G, KB_H, KB_J, KB_K, KB_L, KBEX_NONE,
+		KBEX_SHIFT_LOCK, KB_Z, KB_X, KB_C, KB_V, KB_B, KB_N, KB_M, KB_INST_DEL, KBEX_NONE,
+		KBEX_NONE, KBEX_NONE, KBEX_NONE, KB_SPACE, KB_SPACE, KB_SPACE, KB_SPACE, KB_RUN_STOP, KB_RUN_STOP, KB_RETURN
+	};
+
+	kbToEventMapShifted =
+	{
+		KB_Q | KB_SHIFT_BIT, KB_W | KB_SHIFT_BIT, KB_E | KB_SHIFT_BIT, KB_R | KB_SHIFT_BIT, KB_T | KB_SHIFT_BIT, KB_Y | KB_SHIFT_BIT, KB_U | KB_SHIFT_BIT, KB_I | KB_SHIFT_BIT, KB_O | KB_SHIFT_BIT, KB_P | KB_SHIFT_BIT,
+		KB_A | KB_SHIFT_BIT, KB_S | KB_SHIFT_BIT, KB_D | KB_SHIFT_BIT, KB_F | KB_SHIFT_BIT, KB_G | KB_SHIFT_BIT, KB_H | KB_SHIFT_BIT, KB_J | KB_SHIFT_BIT, KB_K | KB_SHIFT_BIT, KB_L | KB_SHIFT_BIT, KBEX_NONE,
+		KBEX_SHIFT_LOCK, KB_Z | KB_SHIFT_BIT, KB_X | KB_SHIFT_BIT, KB_C | KB_SHIFT_BIT, KB_V | KB_SHIFT_BIT, KB_B | KB_SHIFT_BIT, KB_N | KB_SHIFT_BIT, KB_M | KB_SHIFT_BIT, KB_INST_DEL | KB_SHIFT_BIT, KBEX_NONE,
+		KBEX_NONE, KBEX_NONE, KBEX_NONE, KB_SPACE, KB_SPACE, KB_SPACE, KB_SPACE, KB_RUN_STOP | KB_SHIFT_BIT, KB_RUN_STOP | KB_SHIFT_BIT, KB_RETURN
+	};
+
+	kbToEventMap2 =
+	{
+		KB_F1, KB_F3, KB_F5, KB_F7, KB_AT_SIGN, KB_COMMODORE, KB_CRSR_UD, KB_CRSR_LR, KB_PLUS, KB_MINUS,
+		KB_1, KB_2, KB_3, KB_4, KB_5, KB_6, KB_7, KB_8, KB_9, KB_0,
+		KBEX_RESTORE, KB_COLON, KB_SEMICOLON, KB_EQUALS, KB_COMMA, KB_PERIOD, KB_SLASH, KB_ASTERISK, KB_CLR_HOME, KBEX_NONE,
+		KBEX_NONE, KBEX_NONE, KBEX_NONE, KB_SPACE, KB_SPACE, KB_SPACE, KB_SPACE, KB_PERIOD, KBEX_CTRL_LOCK, KB_RETURN
+	};
+
+	kbToEventMap2Shifted =
+	{
+		KB_F2, KB_F4, KB_F6, KB_F8, KB_AT_SIGN, KB_COMMODORE, KB_CRSR_UD | KB_SHIFT_BIT, KB_CRSR_LR | KB_SHIFT_BIT, KB_PLUS | KB_SHIFT_BIT, KB_MINUS | KB_SHIFT_BIT,
+		KB_1 | KB_SHIFT_BIT, KB_2 | KB_SHIFT_BIT, KB_3 | KB_SHIFT_BIT, KB_4 | KB_SHIFT_BIT, KB_5 | KB_SHIFT_BIT, KB_6 | KB_SHIFT_BIT, KB_7 | KB_SHIFT_BIT, KB_8 | KB_SHIFT_BIT, KB_9 | KB_SHIFT_BIT, KB_0 | KB_SHIFT_BIT,
+		KBEX_RESTORE, KB_COLON | KB_SHIFT_BIT, KB_SEMICOLON | KB_SHIFT_BIT, KB_EQUALS | KB_SHIFT_BIT, KB_COMMA | KB_SHIFT_BIT, KB_PERIOD | KB_SHIFT_BIT, KB_SLASH | KB_SHIFT_BIT, KB_ASTERISK | KB_SHIFT_BIT, KB_CLR_HOME | KB_SHIFT_BIT, KBEX_NONE,
+		KBEX_NONE, KBEX_NONE, KBEX_NONE, KB_SPACE, KB_SPACE, KB_SPACE, KB_SPACE, KB_PERIOD | KB_SHIFT_BIT, KBEX_CTRL_LOCK, KB_RETURN
+	};
+
+	EmuControls::updateKeyboardMapping();
+}
+
+signed long kbd_arch_keyname_to_keynum(char *keyname)
+{
+	//logMsg("kbd_arch_keyname_to_keynum(%s)", keyname);
+	if(string_equal(keyname, "F1")) { return c64KeyF1; }
+	else if(string_equal(keyname, "F2")) { return c64KeyF2; }
+	else if(string_equal(keyname, "F3")) { return c64KeyF3; }
+	else if(string_equal(keyname, "F4")) { return c64KeyF4; }
+	else if(string_equal(keyname, "F5")) { return c64KeyF5; }
+	else if(string_equal(keyname, "F6")) { return c64KeyF6; }
+	else if(string_equal(keyname, "F7")) { return c64KeyF7; }
+	else if(string_equal(keyname, "F8")) { return c64KeyF8; }
+	else if(string_equal(keyname, "underscore")) { return c64KeyLeftArrow; }
+	else if(string_equal(keyname, "1")) { return c64Key1; }
+	else if(string_equal(keyname, "2")) { return c64Key2; }
+	else if(string_equal(keyname, "3")) { return c64Key3; }
+	else if(string_equal(keyname, "4")) { return c64Key4; }
+	else if(string_equal(keyname, "5")) { return c64Key5; }
+	else if(string_equal(keyname, "6")) { return c64Key6; }
+	else if(string_equal(keyname, "7")) { return c64Key7; }
+	else if(string_equal(keyname, "8")) { return c64Key8; }
+	else if(string_equal(keyname, "9")) { return c64Key9; }
+	else if(string_equal(keyname, "0")) { return c64Key0; }
+	else if(string_equal(keyname, "plus")) { return c64KeyPlus; }
+	else if(string_equal(keyname, "minus")) { return c64KeyMinus; }
+	else if(string_equal(keyname, "sterling")) { return c64KeyPound; }
+	else if(string_equal(keyname, "Home")) { return c64KeyClrHome; }
+	else if(string_equal(keyname, "BackSpace")) { return c64KeyInstDel; }
+	else if(string_equal(keyname, "Control_L")) { return c64KeyCtrl; }
+	else if(string_equal(keyname, "q")) { return c64KeyQ; }
+	else if(string_equal(keyname, "w")) { return c64KeyW; }
+	else if(string_equal(keyname, "e")) { return c64KeyE; }
+	else if(string_equal(keyname, "r")) { return c64KeyR; }
+	else if(string_equal(keyname, "t")) { return c64KeyT; }
+	else if(string_equal(keyname, "y")) { return c64KeyY; }
+	else if(string_equal(keyname, "u")) { return c64KeyU; }
+	else if(string_equal(keyname, "i")) { return c64KeyI; }
+	else if(string_equal(keyname, "o")) { return c64KeyO; }
+	else if(string_equal(keyname, "p")) { return c64KeyP; }
+	else if(string_equal(keyname, "at")) { return c64KeyAt; }
+	else if(string_equal(keyname, "asterisk")) { return c64KeyAsterisk; }
+	else if(string_equal(keyname, "Page_Down")) { return c64KeyUpArrow; }
+	else if(string_equal(keyname, "Escape")) { return c64KeyRunStop; }
+	else if(string_equal(keyname, "a")) { return c64KeyA; }
+	else if(string_equal(keyname, "s")) { return c64KeyS; }
+	else if(string_equal(keyname, "d")) { return c64KeyD; }
+	else if(string_equal(keyname, "f")) { return c64KeyF; }
+	else if(string_equal(keyname, "g")) { return c64KeyG; }
+	else if(string_equal(keyname, "h")) { return c64KeyH; }
+	else if(string_equal(keyname, "j")) { return c64KeyJ; }
+	else if(string_equal(keyname, "k")) { return c64KeyK; }
+	else if(string_equal(keyname, "l")) { return c64KeyL; }
+	else if(string_equal(keyname, "colon")) { return c64KeyColon; }
+	else if(string_equal(keyname, "semicolon")) { return c64KeySemiColon; }
+	else if(string_equal(keyname, "equal")) { return c64KeyEquals; }
+	else if(string_equal(keyname, "Return")) { return c64KeyReturn; }
+	else if(string_equal(keyname, "Tab")) { return c64KeyCommodore; }
+	else if(string_equal(keyname, "Shift_L")) { return c64KeyLeftShift; }
+	else if(string_equal(keyname, "z")) { return c64KeyZ; }
+	else if(string_equal(keyname, "x")) { return c64KeyX; }
+	else if(string_equal(keyname, "c")) { return c64KeyC; }
+	else if(string_equal(keyname, "v")) { return c64KeyV; }
+	else if(string_equal(keyname, "b")) { return c64KeyB; }
+	else if(string_equal(keyname, "n")) { return c64KeyN; }
+	else if(string_equal(keyname, "m")) { return c64KeyM; }
+	else if(string_equal(keyname, "comma")) { return c64KeyComma; }
+	else if(string_equal(keyname, "period")) { return c64KeyPeriod; }
+	else if(string_equal(keyname, "slash")) { return c64KeySlash; }
+	else if(string_equal(keyname, "Shift_R")) { return c64KeyRightShift; }
+	else if(string_equal(keyname, "Up")) { return c64KeyKbUp; }
+	else if(string_equal(keyname, "Right")) { return c64KeyKbRight; }
+	else if(string_equal(keyname, "Down")) { return c64KeyKbDown; }
+	else if(string_equal(keyname, "Left")) { return c64KeyKbLeft; }
+	else if(string_equal(keyname, "space")) { return c64KeySpace; }
+	return 0;
 }

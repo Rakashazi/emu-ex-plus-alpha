@@ -96,7 +96,7 @@ int cbm2_snapshot_write(const char *name, int save_roms, int save_disks,
 int cbm2_snapshot_read(const char *name, int event_mode)
 {
     snapshot_t *s;
-    BYTE minor, major;
+    uint8_t minor, major;
 
     s = snapshot_open(name, &major, &minor, machine_get_name());
 
@@ -104,7 +104,7 @@ int cbm2_snapshot_read(const char *name, int event_mode)
         return -1;
     }
 
-    if (major != SNAP_MAJOR || minor != SNAP_MINOR) {
+    if (!snapshot_version_is_equal(major, minor, SNAP_MAJOR, SNAP_MINOR)) {
         log_error(LOG_DEFAULT, "Snapshot version (%d.%d) not valid: expecting %d.%d.", major, minor, SNAP_MAJOR, SNAP_MINOR);
         snapshot_set_error(SNAPSHOT_MODULE_INCOMPATIBLE);
         goto fail;

@@ -108,9 +108,12 @@ void drivecpu_setup_context(struct drive_context_s *drv, int i)
     mi->mem_bank_list = NULL;
     mi->mem_bank_from_name = NULL;
     mi->get_line_cycle = NULL;
+
     mi->mem_bank_read = drivemem_bank_read;
     mi->mem_bank_peek = drivemem_bank_peek;
     mi->mem_bank_write = drivemem_bank_store;
+    mi->mem_bank_poke = drivemem_bank_poke;
+
     mi->mem_ioreg_list_get = drivemem_ioreg_list_get;
     mi->toggle_watchpoints_func = drivemem_toggle_watchpoints;
     mi->set_bank_base = drivecpu_set_bank_base;
@@ -125,22 +128,22 @@ void drivecpu_setup_context(struct drive_context_s *drv, int i)
 
 /* ------------------------------------------------------------------------- */
 
-#define LOAD(a)           (*drv->cpud->read_func_ptr[(a) >> 8])(drv, (WORD)(a))
-#define LOAD_ZERO(a)      (*drv->cpud->read_func_ptr[0])(drv, (WORD)(a))
+#define LOAD(a)           (*drv->cpud->read_func_ptr[(a) >> 8])(drv, (uint16_t)(a))
+#define LOAD_ZERO(a)      (*drv->cpud->read_func_ptr[0])(drv, (uint16_t)(a))
 #define LOAD_ADDR(a)      (LOAD((a)) | (LOAD((a) + 1) << 8))
 #define LOAD_ZERO_ADDR(a) (LOAD_ZERO((a)) | (LOAD_ZERO((a) + 1) << 8))
-#define STORE(a, b)       (*drv->cpud->store_func_ptr[(a) >> 8])(drv, (WORD)(a), (BYTE)(b))
-#define STORE_ZERO(a, b)  (*drv->cpud->store_func_ptr[0])(drv, (WORD)(a), (BYTE)(b))
+#define STORE(a, b)       (*drv->cpud->store_func_ptr[(a) >> 8])(drv, (uint16_t)(a), (uint8_t)(b))
+#define STORE_ZERO(a, b)  (*drv->cpud->store_func_ptr[0])(drv, (uint16_t)(a), (uint8_t)(b))
 
 #define JUMP(addr)                                                         \
     do {                                                                   \
         reg_pc = (unsigned int)(addr);                                     \
         if (reg_pc >= cpu->d_bank_limit || reg_pc < cpu->d_bank_start) {   \
-            BYTE *p = drv->cpud->read_base_tab_ptr[reg_pc >> 8];           \
+            uint8_t *p = drv->cpud->read_base_tab_ptr[reg_pc >> 8];           \
             cpu->d_bank_base = p;                                          \
                                                                            \
             if (p != NULL) {                                               \
-                DWORD limits = drv->cpud->read_limit_tab_ptr[reg_pc >> 8]; \
+                uint32_t limits = drv->cpud->read_limit_tab_ptr[reg_pc >> 8]; \
                 cpu->d_bank_limit = limits & 0xffff;                       \
                 cpu->d_bank_start = limits >> 16;                          \
             } else {                                                       \
@@ -279,9 +282,9 @@ CLOCK drivecpu_prevent_clk_overflow(drive_context_t *drv, CLOCK sub)
 }
 
 /* Handle a ROM trap. */
-inline static DWORD drive_trap_handler(drive_context_t *drv)
+inline static uint32_t drive_trap_handler(drive_context_t *drv)
 {
-    if (MOS6510_REGS_GET_PC(&(drv->cpu->cpu_regs)) == (WORD)drv->drive->trap) {
+    if (MOS6510_REGS_GET_PC(&(drv->cpu->cpu_regs)) == (uint16_t)drv->drive->trap) {
         MOS6510_REGS_SET_PC(&(drv->cpu->cpu_regs), drv->drive->trapcont);
         if (drv->drive->idling_method == DRIVE_IDLE_TRAP_IDLE) {
             CLOCK next_clk;
@@ -296,7 +299,7 @@ inline static DWORD drive_trap_handler(drive_context_t *drv)
         }
         return 0;
     }
-    return (DWORD)-1;
+    return (uint32_t)-1;
 }
 
 static void drive_generic_dma(void)
@@ -360,10 +363,6 @@ inline static int interrupt_check_irq_delay(interrupt_cpu_status_t *cs,
     return 0;
 }
 
-/* MPi: For some reason MSVC is generating a compiler fatal error when optimising this function? */
-#ifdef _MSC_VER
-#pragma optimize("",off)
-#endif
 /* -------------------------------------------------------------------------- */
 /* Execute up to the current main CPU clock value.  This automatically
    calculates the corresponding number of clock ticks in the drive.  */
@@ -456,9 +455,6 @@ void drivecpu_execute(drive_context_t *drv, CLOCK clk_value)
     drivecpu_sleep(drv);
 }
 
-#ifdef _MSC_VER
-#pragma optimize("",on)
-#endif
 
 /* ------------------------------------------------------------------------- */
 
@@ -563,24 +559,24 @@ int drivecpu_snapshot_write_module(drive_context_t *drv, snapshot_t *s)
     cpu = drv->cpu;
 
     m = snapshot_module_create(s, drv->cpu->snap_module_name,
-                               ((BYTE)(SNAP_MAJOR)), ((BYTE)(SNAP_MINOR)));
+                               ((uint8_t)(SNAP_MAJOR)), ((uint8_t)(SNAP_MINOR)));
     if (m == NULL) {
         return -1;
     }
 
     if (0
-        || SMW_DW(m, (DWORD) *(drv->clk_ptr)) < 0
-        || SMW_B(m, (BYTE)MOS6510_REGS_GET_A(&(cpu->cpu_regs))) < 0
-        || SMW_B(m, (BYTE)MOS6510_REGS_GET_X(&(cpu->cpu_regs))) < 0
-        || SMW_B(m, (BYTE)MOS6510_REGS_GET_Y(&(cpu->cpu_regs))) < 0
-        || SMW_B(m, (BYTE)MOS6510_REGS_GET_SP(&(cpu->cpu_regs))) < 0
-        || SMW_W(m, (WORD)MOS6510_REGS_GET_PC(&(cpu->cpu_regs))) < 0
-        || SMW_B(m, (BYTE)MOS6510_REGS_GET_STATUS(&(cpu->cpu_regs))) < 0
-        || SMW_DW(m, (DWORD)(cpu->last_opcode_info)) < 0
-        || SMW_DW(m, (DWORD)(cpu->last_clk)) < 0
-        || SMW_DW(m, (DWORD)(cpu->cycle_accum)) < 0
-        || SMW_DW(m, (DWORD)(cpu->last_exc_cycles)) < 0
-        || SMW_DW(m, (DWORD)(cpu->stop_clk)) < 0
+        || SMW_DW(m, (uint32_t) *(drv->clk_ptr)) < 0
+        || SMW_B(m, (uint8_t)MOS6510_REGS_GET_A(&(cpu->cpu_regs))) < 0
+        || SMW_B(m, (uint8_t)MOS6510_REGS_GET_X(&(cpu->cpu_regs))) < 0
+        || SMW_B(m, (uint8_t)MOS6510_REGS_GET_Y(&(cpu->cpu_regs))) < 0
+        || SMW_B(m, (uint8_t)MOS6510_REGS_GET_SP(&(cpu->cpu_regs))) < 0
+        || SMW_W(m, (uint16_t)MOS6510_REGS_GET_PC(&(cpu->cpu_regs))) < 0
+        || SMW_B(m, (uint16_t)MOS6510_REGS_GET_STATUS(&(cpu->cpu_regs))) < 0
+        || SMW_DW(m, (uint32_t)(cpu->last_opcode_info)) < 0
+        || SMW_DW(m, (uint32_t)(cpu->last_clk)) < 0
+        || SMW_DW(m, (uint32_t)(cpu->cycle_accum)) < 0
+        || SMW_DW(m, (uint32_t)(cpu->last_exc_cycles)) < 0
+        || SMW_DW(m, (uint32_t)(cpu->stop_clk)) < 0
         ) {
         goto fail;
     }
@@ -630,10 +626,10 @@ fail:
 
 int drivecpu_snapshot_read_module(drive_context_t *drv, snapshot_t *s)
 {
-    BYTE major, minor;
+    uint8_t major, minor;
     snapshot_module_t *m;
-    BYTE a, x, y, sp, status;
-    WORD pc;
+    uint8_t a, x, y, sp, status;
+    uint16_t pc;
     drivecpu_context_t *cpu;
 
     cpu = drv->cpu;

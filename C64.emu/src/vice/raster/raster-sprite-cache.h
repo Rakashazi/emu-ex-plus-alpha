@@ -36,7 +36,7 @@ struct raster_sprite_cache_s {
     unsigned int c1, c2, c3;
 
     /* Data used on the current line. */
-    DWORD data;
+    uint32_t data;
 
     /* X expansion flag. */
     int x_expanded;

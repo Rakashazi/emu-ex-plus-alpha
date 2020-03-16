@@ -58,7 +58,7 @@ void vicii_fetch_matrix(int offs, int num, int num_0xff, int cycle)
 {
     int start_char;
     int c;
-    BYTE *colorram = NULL;
+    uint8_t *colorram = NULL;
 
     /*log_debug("OFF %02i NUM %02i NFF %02i",offs,num,num_0xff);*/
 
@@ -238,7 +238,7 @@ inline static int handle_fetch_matrix(long offset, CLOCK sub,
 
 inline static void swap_sprite_data_buffers(void)
 {
-    DWORD *tmp;
+    uint32_t *tmp;
     raster_sprite_status_t *sprite_status;
 
     /* Swap sprite data buffers.  */
@@ -375,7 +375,7 @@ inline static int handle_fetch_sprite(long offset, CLOCK sub,
     unsigned int i;
     int next_cycle, num_cycles;
     raster_sprite_status_t *sprite_status;
-    BYTE *bank_phi1, *bank_phi2, *spr_base;
+    uint8_t *bank_phi1, *bank_phi2, *spr_base;
 
     sf = &vicii_sprites_fetch_table[vicii.sprite_fetch_msk][vicii.sprite_fetch_idx];
 
@@ -392,20 +392,20 @@ inline static int handle_fetch_sprite(long offset, CLOCK sub,
     /* Fetch sprite data.  */
     for (i = sf->first; i <= sf->last; i++, spr_base++) {
         if (vicii.sprite_fetch_msk & (1 << i)) {
-            BYTE *src_phi1, *src_phi2;
-            BYTE *dest;
+            uint8_t *src_phi1, *src_phi2;
+            uint8_t *dest;
             int my_memptr;
 
 #ifdef DEBUG
             if (debug.maincpu_traceflg) {
-                log_debug("SDMA %i", i);
+                log_debug("SDMA %u", i);
             }
 #endif
 
             src_phi1 = bank_phi1 + (*spr_base << 6);
             src_phi2 = bank_phi2 + (*spr_base << 6);
             my_memptr = sprite_status->sprites[i].memptr;
-            dest = (BYTE *)(sprite_status->new_sprite_data + i);
+            dest = (uint8_t *)(sprite_status->new_sprite_data + i);
 
             if (export.ultimax_phi1) {
                 /* phi1 fetch from expansion port in ultimax mode */
@@ -413,11 +413,11 @@ inline static int handle_fetch_sprite(long offset, CLOCK sub,
                 if (*spr_base >= 0xc0) {
                     /* src_phi1 = (romh_banks + 0x1000 + (romh_bank << 13)
                                + ((*spr_base - 0xc0) << 6)); */
-                    src_phi1 = ultimax_romh_phi1_ptr((WORD)(0x1000 + ((*spr_base - 0xc0) << 6)));
+                    src_phi1 = ultimax_romh_phi1_ptr((uint16_t)(0x1000 + ((*spr_base - 0xc0) << 6)));
                 }
 #endif
-                BYTE *ptr;
-                if ((ptr = ultimax_romh_phi1_ptr((WORD)(0x1000 + ((*spr_base - 0xc0) << 6))))) {
+                uint8_t *ptr;
+                if ((ptr = ultimax_romh_phi1_ptr((uint16_t)(0x1000 + ((*spr_base - 0xc0) << 6))))) {
                     if (*spr_base >= 0xc0) {
                         src_phi1 = ptr;
                     }
@@ -437,11 +437,11 @@ phi1noultimax:
                 if (*spr_base >= 0xc0) {
                     /* src_phi2 = (romh_banks + 0x1000 + (romh_bank << 13)
                                + ((*spr_base - 0xc0) << 6)); */
-                    src_phi2 = ultimax_romh_phi2_ptr((WORD)(0x1000 + ((*spr_base - 0xc0) << 6)));
+                    src_phi2 = ultimax_romh_phi2_ptr((uint16_t)(0x1000 + ((*spr_base - 0xc0) << 6)));
                 }
 #endif
-                BYTE *ptr;
-                if ((ptr = ultimax_romh_phi2_ptr((WORD)(0x1000 + ((*spr_base - 0xc0) << 6))))) {
+                uint8_t *ptr;
+                if ((ptr = ultimax_romh_phi2_ptr((uint16_t)(0x1000 + ((*spr_base - 0xc0) << 6))))) {
                     if (*spr_base >= 0xc0) {
                         src_phi2 = ptr;
                     }

@@ -39,7 +39,6 @@
 #include "monitor.h"
 #include "resources.h"
 #include "sysfile.h"
-#include "translate.h"
 
 /* #define DEBUGCART */
 
@@ -69,28 +68,20 @@ static int cart_attach_cmdline(const char *param, void *extra_param)
 static const cmdline_option_t cmdline_options[] =
 {
     /* hardreset on cartridge change */
-    { "-cartreset", SET_RESOURCE, 0,
+    { "-cartreset", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "CartridgeReset", (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_CART_ATTACH_DETACH_RESET,
-      NULL, NULL },
-    { "+cartreset", SET_RESOURCE, 0,
+      NULL, "Reset machine if a cartridge is attached or detached" },
+    { "+cartreset", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "CartridgeReset", (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_CART_ATTACH_DETACH_NO_RESET,
-      NULL, NULL },
+      NULL, "Do not reset machine if a cartridge is attached or detached" },
     /* smart attach */
-    { "-cart", CALL_FUNCTION, 1,
+    { "-cart", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void*)CARTRIDGE_PLUS4_DETECT, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SMART_ATTACH_CART,
-      NULL, NULL },
+      "<Name>", "Smart-attach cartridge image" },
     /* no cartridge */
-    { "+cart", CALL_FUNCTION, 0,
+    { "+cart", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       cart_attach_cmdline, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_CART,
-      NULL, NULL },
+      NULL, "Disable default cartridge" },
     CMDLINE_LIST_END
 };
 
@@ -139,9 +130,13 @@ void cartridge_resources_shutdown(void)
 {
 }
 
+void cartridge_unset_default(void)
+{
+}
+
 /* ---------------------------------------------------------------------*/
 
-void cart_power_off(void)
+static void cart_power_off(void)
 {
     if (plus4cartridge_reset) {
         /* "Turn off machine before removing cartridge" */
@@ -403,7 +398,9 @@ int cartridge_attach_image(int type, const char *filename)
             if ((type & 0xff00) == CARTRIDGE_PLUS4_DETECT) {
                 return cart_load_generic(type, filename);
             } else {
-                log_error(LOG_DEFAULT, "cartridge_attach_image: unsupported type (%04x)", type);
+                log_error(LOG_DEFAULT,
+                        "cartridge_attach_image: unsupported type (%04x)",
+                        (unsigned int)type);
             }
             break;
     }

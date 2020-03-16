@@ -33,9 +33,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
 #ifdef P64_USE_STDINT
 #include <stdint.h>
 #endif
+
 #include <string.h>
 
 #ifndef p64_malloc

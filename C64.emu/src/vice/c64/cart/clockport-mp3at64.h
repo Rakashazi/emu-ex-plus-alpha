@@ -31,7 +31,7 @@
 
 extern int clockport_mp3at64_init(void);
 extern void clockport_mp3at64_shutdown(void);
-extern clockport_device_t *clockport_mp3at64_open_device(char *owner);
+extern clockport_device_t *clockport_mp3at64_open_device(const char *owner);
 
 extern void clockport_mp3at64_sound_chip_init(void);
 

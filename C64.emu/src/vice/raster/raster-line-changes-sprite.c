@@ -74,7 +74,7 @@ inline static int fill_sprite_cache(raster_t *raster, raster_cache_t *cache, uns
         r = 0;
 
         if (sprite_status->dma_msk & msk) {
-            DWORD data;
+            uint32_t data;
 
             data = sprite_status->sprite_data[i];
 

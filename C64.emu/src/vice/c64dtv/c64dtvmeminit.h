@@ -31,6 +31,6 @@
 
 extern void c64dtvmeminit(unsigned int base);
 extern const unsigned int c64dtvmeminit_io_config[8];
-extern void c64dtvmem_limit_init(DWORD mem_read_limit_tab[8][0x101]);
+extern void c64dtvmem_limit_init(uint32_t mem_read_limit_tab[8][0x101]);
 
 #endif

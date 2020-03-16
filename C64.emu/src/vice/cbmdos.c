@@ -122,7 +122,7 @@ unsigned int cbmdos_parse_wildcard_check(const char *name, unsigned int len)
     return 0;
 }
 
-unsigned int cbmdos_parse_wildcard_compare(const BYTE *name1, const BYTE *name2)
+unsigned int cbmdos_parse_wildcard_compare(const uint8_t *name1, const uint8_t *name2)
 {
     unsigned int index;
 
@@ -147,9 +147,9 @@ unsigned int cbmdos_parse_wildcard_compare(const BYTE *name1, const BYTE *name2)
     return 1; /* matched completely */
 }
 
-BYTE *cbmdos_dir_slot_create(const char *name, unsigned int len)
+uint8_t *cbmdos_dir_slot_create(const char *name, unsigned int len)
 {
-    BYTE *slot;
+    uint8_t *slot;
 
     if (len > CBMDOS_SLOT_NAME_LENGTH) {
         len = CBMDOS_SLOT_NAME_LENGTH;
@@ -163,12 +163,12 @@ BYTE *cbmdos_dir_slot_create(const char *name, unsigned int len)
     return slot;
 }
 
-/* Parse command `parsecmd', type and read/write mode from the given string
-   `cmd' with `cmdlength. '@' on write must be checked elsewhere.  */
+/* Parse file-name `parsecmd', type, and read/write mode from the given string
+   `cmd' with `cmdlength'. '@' on write must be checked elsewhere. */
 
 unsigned int cbmdos_command_parse(cbmdos_cmd_parse_t *cmd_parse)
 {
-    const BYTE *p;
+    const uint8_t *p;
     char *parsecmd, *c;
     int cmdlen;
 
@@ -196,12 +196,17 @@ unsigned int cbmdos_command_parse(cbmdos_cmd_parse_t *cmd_parse)
             }
             /* skip colon */
             if (*p == ':') {
-                p++;
+                if (*++p == '\0') {
+                    /* "Nothing" after a colon is actually an empty pattern.
+                     * Make it match nothing -- count the NUL byte.
+                     */
+                    ++cmd_parse->cmdlength;
+                }
             }
             /* everything from here is the pattern */
         } else {
-            /* Just a single $, set pointer to null byte */
-            p = cmd_parse->cmd + cmd_parse->cmdlength;
+            /* Just a single $, set pointer to NUL byte */
+            ++p;
         }
     } else {
         p = memchr(cmd_parse->cmd, ':', cmd_parse->cmdlength);
@@ -310,7 +315,7 @@ unsigned int cbmdos_command_parse(cbmdos_cmd_parse_t *cmd_parse)
         c = (char *)memchr(p, ',', cmdlen);
         if (c) {
             cmdlen -= (int)(c - (const char *)p);
-            p = (BYTE *)c;
+            p = (uint8_t *)c;
         } else {
             cmdlen = 0;
         }

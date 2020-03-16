@@ -64,7 +64,7 @@ int maincpu_ba_low_flags = 0;
 
 #if !defined WORDS_BIGENDIAN && defined ALLOW_UNALIGNED_ACCESS
 
-#define opcode_t DWORD
+#define opcode_t uint32_t
 
 #define p0 (opcode & 0xff)
 #define p1 ((opcode >> 8) & 0xff)
@@ -76,10 +76,10 @@ int maincpu_ba_low_flags = 0;
 
 #define opcode_t         \
     struct {             \
-        BYTE ins;        \
+        uint8_t ins;        \
         union {          \
-            BYTE op8[2]; \
-            WORD op16;   \
+            uint8_t op8[2]; \
+            uint16_t op16;   \
         } op;            \
     }
 
@@ -125,7 +125,7 @@ int maincpu_ba_low_flags = 0;
     do {                                                       \
         if (((int)reg_pc) < bank_limit) {                      \
             check_ba();                                        \
-            o = (*((DWORD *)(bank_base + reg_pc)) & 0xffffff); \
+            o = (*((uint32_t *)(bank_base + reg_pc)) & 0xffffff); \
             MEMMAP_UPDATE(reg_pc);                             \
             SET_LAST_OPCODE(p0);                               \
             CLK_INC();                                         \

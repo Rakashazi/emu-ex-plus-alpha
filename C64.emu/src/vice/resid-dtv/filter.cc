@@ -20,7 +20,7 @@
 #define __FILTER_CC__
 #include "filter.h"
 
-namespace reSID
+namespace reSID_dtv
 {
 
 // ----------------------------------------------------------------------------
@@ -47,4 +47,4 @@ void Filter::writeMODE_VOL(reg8 mode_vol)
   vol = mode_vol & 0x0f;
 }
 
-} // namespace reSID
+} // namespace reSID_dtv

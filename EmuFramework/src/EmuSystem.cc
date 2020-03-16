@@ -362,6 +362,7 @@ void EmuSystem::configFrameTime(uint32_t rate)
 	audioFramesPerVideoFrameFloat = (double)rate * fTime.count();
 	currentAudioFramesPerVideoFrame = audioFramesPerVideoFrameFloat;
 	timePerVideoFrame = fTime;
+	logMsg("configured frame time:%.6f (%.2f fps)", fTime.count(), 1. / fTime.count());
 	resetFrameTime();
 }
 

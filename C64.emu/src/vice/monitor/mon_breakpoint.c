@@ -1,11 +1,12 @@
+/** \file   mon_breakpoint.c
+ * \brief   The VICE built-in monitor breakpoint functions.
+ *
+ * \author  Andreas Boose <viceteam@t-online.de>
+ * \author  Daniel Sladic <sladic@eecg.toronto.edu>
+ * \author  Ettore Perazzoli <ettore@comm2000.it>
+ */
+
 /*
- * mon_breakpoint.c - The VICE built-in monitor breakpoint functions.
- *
- * Written by
- *  Andreas Boose <viceteam@t-online.de>
- *  Daniel Sladic <sladic@eecg.toronto.edu>
- *  Ettore Perazzoli <ettore@comm2000.it>
- *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -106,6 +107,7 @@ static void remove_checkpoint_from_list(checkpoint_list_t **head, checkpoint_t *
     }
 }
 
+/* find the breakpoint with number 'brknum' in the linked list */
 static checkpoint_t *find_checkpoint(int brknum)
 {
     checkpoint_list_t *ptr;
@@ -192,7 +194,7 @@ void mon_breakpoint_switch_checkpoint(int op, int cp_num)
 {
     int i;
     checkpoint_t *cp = NULL;
-    
+
     cp = find_checkpoint(cp_num);
 
     if (cp_num == -1) {
@@ -201,15 +203,15 @@ void mon_breakpoint_switch_checkpoint(int op, int cp_num)
         for (i = 1; i < breakpoint_count; i++) {
             if ((cp = find_checkpoint(i))) {
                 cp = find_checkpoint(i);
-	        cp->enabled = op;
+                cp->enabled = op;
             }
         }
     } else if (!(cp = find_checkpoint(cp_num))) {
         mon_out("#%d not a valid checkpoint\n", cp_num);
         return;
     } else {
-                cp = find_checkpoint(cp_num);
-	        cp->enabled = op;
+        cp = find_checkpoint(cp_num);
+        cp->enabled = op;
     }
 }
 
@@ -303,11 +305,21 @@ void mon_breakpoint_delete_checkpoint(int cp_num)
                 remove_checkpoint(cp);
             }
         }
+        /* reset the index to 1 */
+        breakpoint_count = 1;
     } else if (!(cp = find_checkpoint(cp_num))) {
         mon_out("#%d not a valid checkpoint\n", cp_num);
         return;
     } else {
         remove_checkpoint(cp);
+        /* if there are still checkpoints in the list, return.
+           else reset the index to 1 */
+        for (i = 1; i < breakpoint_count; i++) {
+            if ((cp = find_checkpoint(i))) {
+                return;
+            }
+        }
+        breakpoint_count = 1;
     }
 }
 
@@ -463,9 +475,9 @@ bool mon_breakpoint_check_checkpoint(MEMSPACE mem, unsigned int addr, unsigned i
                 mon_interfaces[mem]->get_line_cycle(&line, &cycle, &half_cycle);
 
                 if (half_cycle == -1) {
-                    mon_out(" %03i %03i\n", line, cycle);
+                    mon_out(" %03u %03u\n", line, cycle);
                 } else {
-                    mon_out(" %03i %03i %i\n", line, cycle, half_cycle);
+                    mon_out(" %03u %03u %i\n", line, cycle, half_cycle);
                 }
             } else {
                 mon_out("\n");
@@ -582,7 +594,7 @@ int mon_breakpoint_add_checkpoint(MON_ADDR start_addr, MON_ADDR end_addr,
 mon_breakpoint_type_t mon_breakpoint_is(MON_ADDR address)
 {
     MEMSPACE mem = addr_memspace(address);
-    WORD addr = addr_location(address);
+    uint16_t addr = addr_location(address);
     checkpoint_list_t *ptr;
 
     ptr = search_checkpoint_list(breakpoints[mem], addr);
@@ -597,7 +609,7 @@ mon_breakpoint_type_t mon_breakpoint_is(MON_ADDR address)
 void mon_breakpoint_set(MON_ADDR address)
 {
     MEMSPACE mem = addr_memspace(address);
-    WORD addr = addr_location(address);
+    uint16_t addr = addr_location(address);
     checkpoint_list_t *ptr;
 
     ptr = search_checkpoint_list(breakpoints[mem], addr);
@@ -615,7 +627,7 @@ void mon_breakpoint_set(MON_ADDR address)
 void mon_breakpoint_unset(MON_ADDR address)
 {
     MEMSPACE mem = addr_memspace(address);
-    WORD addr = addr_location(address);
+    uint16_t addr = addr_location(address);
     checkpoint_list_t *ptr;
 
     ptr = search_checkpoint_list(breakpoints[mem], addr);
@@ -629,7 +641,7 @@ void mon_breakpoint_unset(MON_ADDR address)
 void mon_breakpoint_enable(MON_ADDR address)
 {
     MEMSPACE mem = addr_memspace(address);
-    WORD addr = addr_location(address);
+    uint16_t addr = addr_location(address);
     checkpoint_list_t *ptr;
 
     ptr = search_checkpoint_list(breakpoints[mem], addr);
@@ -643,7 +655,7 @@ void mon_breakpoint_enable(MON_ADDR address)
 void mon_breakpoint_disable(MON_ADDR address)
 {
     MEMSPACE mem = addr_memspace(address);
-    WORD addr = addr_location(address);
+    uint16_t addr = addr_location(address);
     checkpoint_list_t *ptr;
 
     ptr = search_checkpoint_list(breakpoints[mem], addr);

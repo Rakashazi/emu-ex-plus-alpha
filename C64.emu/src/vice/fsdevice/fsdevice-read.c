@@ -51,7 +51,7 @@
 #include "vdrive.h"
 
 
-static int command_read(bufinfo_t *bufinfo, BYTE *data)
+static int command_read(bufinfo_t *bufinfo, uint8_t *data)
 {
     if (bufinfo->tape->name) {
         if (bufinfo->buflen > 0) {
@@ -156,7 +156,7 @@ static int command_read(bufinfo_t *bufinfo, BYTE *data)
 }
 
 static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
-                                  BYTE *data, unsigned int secondary)
+                                  uint8_t *data, unsigned int secondary)
 {
     int i, l, f, statrc;
     unsigned int blocks;
@@ -186,7 +186,7 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
        replaced by some regex functions... */
     f = 1;
     do {
-        BYTE *p;
+        uint8_t *p;
         finfo = NULL;
 
         direntry = ioutil_readdir(bufinfo->ioutil_dir);
@@ -240,7 +240,7 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
     } while (f);
 
     if (direntry != NULL) {
-        BYTE *p = bufinfo->name;
+        uint8_t *p = bufinfo->name;
 
         strcpy(buf, bufinfo->dir);
         strcat(buf, FSDEV_DIR_SEP_STR);
@@ -346,14 +346,14 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
 
         bufinfo->buflen = (int)(p - bufinfo->name);
     } else {
-        BYTE *p = bufinfo->name;
+        uint8_t *p = bufinfo->name;
 
         /* EOF => End file */
 
         *p++ = 1;
         *p++ = 1;
-        *p++ = 0;
-        *p++ = 0;
+        *p++ = 255; /* 65535 blocks free */
+        *p++ = 255;
         memcpy(p, "BLOCKS FREE.", 12);
         p += 12;
         memset(p, ' ', 13);
@@ -373,7 +373,7 @@ static void command_directory_get(vdrive_t *vdrive, bufinfo_t *bufinfo,
 
 
 static int command_directory(vdrive_t *vdrive, bufinfo_t *bufinfo,
-                             BYTE *data, unsigned int secondary)
+                             uint8_t *data, unsigned int secondary)
 {
     if (bufinfo->ioutil_dir == NULL) {
         return FLOPPY_ERROR;
@@ -399,7 +399,7 @@ static int command_directory(vdrive_t *vdrive, bufinfo_t *bufinfo,
     return SERIAL_OK;
 }
 
-int fsdevice_read(vdrive_t *vdrive, BYTE *data, unsigned int secondary)
+int fsdevice_read(vdrive_t *vdrive, uint8_t *data, unsigned int secondary)
 {
     bufinfo_t *bufinfo = &(fsdevice_dev[vdrive->unit - 8].bufinfo[secondary]);
 

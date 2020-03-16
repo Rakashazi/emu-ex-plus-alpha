@@ -1,12 +1,11 @@
-/*! \file reu.c \n
- *  \author Andreas Boose, Spiro Trikaliotis, Jouko Valta, Richard Hable, Ettore Perazzoli\n
- *  \brief   REU emulation.
+/** \file   reu.c
+ * \brief   REU emulation
  *
- * reu.c - REU emulation.
- *
- * Written by
- *  Andreas Boose <viceteam@t-online.de>
- *  Spiro Trikaliotis <spiro.trikaliotis@gmx.de>
+ * \author  Andreas Boose
+ * \author  Spiro Trikaliotis
+ * \author  Jouko Valta
+ * \author  Richard Hable
+ * \author  Ettore Perazzoli
  *
  * Additions upon extensive REU hardware testing:
  *  Wolfgang Moser <http://d81.de>
@@ -15,7 +14,9 @@
  *  Jouko Valta <jopi@stekt.oulu.fi>
  *  Richard Hable <K3027E7@edvz.uni-linz.ac.at>
  *  Ettore Perazzoli <ettore@comm2000.it>
- *
+ */
+
+/*
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -56,7 +57,6 @@
 #include "mem.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "types.h"
 #include "util.h"
 
@@ -185,23 +185,23 @@ enum {
 
 /*! \brief define a complete set of REC registers */
 struct rec_s {
-    BYTE status;              /*!< status register at offset REU_REG_R_STATUS */
-    BYTE command;             /*!< command register at offset REU_REG_RW_COMMAND */
+    uint8_t status;              /*!< status register at offset REU_REG_R_STATUS */
+    uint8_t command;             /*!< command register at offset REU_REG_RW_COMMAND */
 
-    WORD base_computer;       /*!< C64 base address as defined at offsets REU_REG_RW_BASEADDR_LOW and REU_REG_RW_BASEADDR_HIGH */
-    WORD base_reu;            /*!< REU base address as defined at offsets REU_REG_RW_RAMADDR_LOW and REU_REG_RW_RAMADDR_HIGH */
-    BYTE bank_reu;            /*!< REU bank address as defined at offset REU_REG_RW_BANK */
-    WORD transfer_length;     /*!< transfer length as defined at offsets REU_REG_RW_BLOCKLEN_LOW and REU_REG_RW_BLOCKLEN_HIGH */
+    uint16_t base_computer;       /*!< C64 base address as defined at offsets REU_REG_RW_BASEADDR_LOW and REU_REG_RW_BASEADDR_HIGH */
+    uint16_t base_reu;            /*!< REU base address as defined at offsets REU_REG_RW_RAMADDR_LOW and REU_REG_RW_RAMADDR_HIGH */
+    uint8_t bank_reu;            /*!< REU bank address as defined at offset REU_REG_RW_BANK */
+    uint16_t transfer_length;     /*!< transfer length as defined at offsets REU_REG_RW_BLOCKLEN_LOW and REU_REG_RW_BLOCKLEN_HIGH */
 
-    BYTE int_mask_reg;        /*! interrupt mask register as defined at offset REU_REG_RW_INTERRUPT */
-    BYTE address_control_reg; /*! address control register as defined at offset REU_REG_RW_ADDR_CONTROL */
+    uint8_t int_mask_reg;        /*! interrupt mask register as defined at offset REU_REG_RW_INTERRUPT */
+    uint8_t address_control_reg; /*! address control register as defined at offset REU_REG_RW_ADDR_CONTROL */
 
     /* shadow registers for implementing the "Half-Autoload-Bug" */
 
-    WORD base_computer_shadow;   /*!< shadow register of base_computer */
-    WORD base_reu_shadow;        /*!< shadow register of base_reu */
-    BYTE bank_reu_shadow;        /*!< shadow register of bank_reu */
-    WORD transfer_length_shadow; /*!< shadow register of transfer_length */
+    uint16_t base_computer_shadow;   /*!< shadow register of base_computer */
+    uint16_t base_reu_shadow;        /*!< shadow register of base_reu */
+    uint8_t bank_reu_shadow;        /*!< shadow register of bank_reu */
+    uint16_t transfer_length_shadow; /*!< shadow register of transfer_length */
 };
 
 /*! \brief a complete REC description */
@@ -213,8 +213,8 @@ struct rec_options_s {
     unsigned int dram_wrap_around;              /*!< address where the dram address space has a wrap around */
     unsigned int not_backedup_addresses;        /*!< beginning from this address up to wrap_around, there is no DRAM at all */
     unsigned int wrap_around_mask_when_storing; /*!< mask for the wrap around of REU address when putting result back in base_reu and bank_reu */
-    BYTE reg_bank_unused;                       /*!< the unused bits (stuck at 1) of REU_REG_RW_BANK; for original REU, it is REU_REG_RW_BANK_UNUSED */
-    BYTE status_preset;                         /*!< preset value for the status (can be 0 or REU_REG_R_STATUS_256K_CHIPS) */
+    uint8_t reg_bank_unused;                       /*!< the unused bits (stuck at 1) of REU_REG_RW_BANK; for original REU, it is REU_REG_RW_BANK_UNUSED */
+    uint8_t status_preset;                         /*!< preset value for the status (can be 0 or REU_REG_R_STATUS_256K_CHIPS) */
 };
 
 #define REU_REG_FIRST_UNUSED REU_REG_RW_UNUSED  /*!< the highest address the used REU register occupy */
@@ -226,7 +226,7 @@ static struct rec_options_s rec_options;
 static int reu_dma_active = 0;
 
 /*! \brief pointer to a buffer which holds the REU image.  */
-static BYTE *reu_ram = NULL;
+static uint8_t *reu_ram = NULL;
 /*! \brief the old ram size of reu_ram. Used to determine if and how much of the
     buffer has to cleared when resizing the REU. */
 static unsigned int old_reu_ram_size = 0;
@@ -245,11 +245,12 @@ struct reu_ba_s {
     int *cpu_ba;
     int cpu_ba_mask;
     int enabled;
-    int delay, last_cycle;
+    int delay;
+    int last_cycle;
 };
 
 static struct reu_ba_s reu_ba = {
-    NULL, NULL, NULL, 0, 0
+    NULL, NULL, NULL, 0, 0, 0, 0
 };
 
 static int reu_write_image = 0;
@@ -257,23 +258,24 @@ static int reu_write_image = 0;
 /* ------------------------------------------------------------------------- */
 
 /* some prototypes are needed */
-static void reu_io2_store(WORD addr, BYTE byte);
-static BYTE reu_io2_read(WORD addr);
-static BYTE reu_io2_peek(WORD addr);
+static void reu_io2_store(uint16_t addr, uint8_t byte);
+static uint8_t reu_io2_read(uint16_t addr);
+static uint8_t reu_io2_peek(uint16_t addr);
 
 static io_source_t reu_io2_device = {
-    CARTRIDGE_NAME_REU,
-    IO_DETACH_RESOURCE,
-    "REU",
-    0xdf00, 0xdfff, REU_REG_LAST_REG,
-    0,
-    reu_io2_store,
-    reu_io2_read,
-    reu_io2_peek,
-    NULL, /* TODO: dump */
-    CARTRIDGE_REU,
-    IO_PRIO_HIGH, /* high priority so it will work together with cartridges like RR and SSV5 */
-    0
+    CARTRIDGE_NAME_REU,               /* name of the device */
+    IO_DETACH_RESOURCE,               /* use resource to detach the device when involved in a read-collision */
+    "REU",                            /* resource to set to '0' */
+    0xdf00, 0xdfff, REU_REG_LAST_REG, /* range for the device, regs:$df00-$df1f, mirrors:$df20-$dfff */
+    0,                                /* read validity is determined by the device upon a read */
+    reu_io2_store,                    /* store function */
+    NULL,                             /* NO poke function */
+    reu_io2_read,                     /* read function */
+    reu_io2_peek,                     /* peek function */
+    NULL,                             /* TODO: device state information dump function */
+    CARTRIDGE_REU,                    /* cartridge ID */
+    IO_PRIO_NORMAL,                   /* normal priority, device read needs to be checked for collisions */
+    0                                 /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *reu_list_item = NULL;
@@ -522,36 +524,24 @@ void reu_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-reu", SET_RESOURCE, 0,
+    { "-reu", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "REU", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_REU,
-      NULL, NULL },
-    { "+reu", SET_RESOURCE, 0,
+      NULL, "Enable the RAM Expansion Unit" },
+    { "+reu", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "REU", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_REU,
-      NULL, NULL },
-    { "-reusize", SET_RESOURCE, 1,
+      NULL, "Disable the RAM Expansion Unit" },
+    { "-reusize", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "REUsize", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_SIZE_IN_KB, IDCLS_REU_SIZE,
-      NULL, NULL },
-    { "-reuimage", SET_RESOURCE, 1,
+      "<size in KB>", "Size of the RAM expansion unit. (128/256/512/1024/2048/4096/8192/16384)" },
+    { "-reuimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "REUfilename", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_REU_NAME,
-      NULL, NULL },
-    { "-reuimagerw", SET_RESOURCE, 0,
+      "<Name>", "Specify name of REU image" },
+    { "-reuimagerw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "REUImageWrite", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ALLOW_WRITING_TO_REU_IMAGE,
-      NULL, NULL },
-    { "+reuimagerw", SET_RESOURCE, 0,
+      NULL, "Allow writing to REU image" },
+    { "+reuimagerw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "REUImageWrite", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DO_NOT_WRITE_TO_REU_IMAGE,
-      NULL, NULL },
+      NULL, "Do not write to REU image" },
     CMDLINE_LIST_END
 };
 
@@ -582,7 +572,7 @@ void reu_init(void)
     reu_int_num = interrupt_cpu_status_int_new(maincpu_int_status, "REU");
 }
 
-void reu_config_setup(BYTE *rawcart)
+void reu_config_setup(uint8_t *rawcart)
 {
     if (reu_size > 0) {
         memcpy(reu_ram, rawcart, reu_size); /* FIXME */
@@ -634,7 +624,7 @@ static int reu_activate(void)
 
     old_reu_ram_size = reu_size;
 
-    log_message(reu_log, "%dKB unit installed.", reu_size >> 10);
+    log_message(reu_log, "%uKB unit installed.", reu_size >> 10);
 
     if (!util_check_null_string(reu_filename)) {
         if (util_file_load(reu_filename, reu_ram, (size_t)reu_size, UTIL_FILE_LOAD_RAW) < 0) {
@@ -690,7 +680,16 @@ int reu_enable(void)
     return set_reu_enabled(1, NULL);
 }
 
-int reu_bin_attach(const char *filename, BYTE *rawcart)
+
+int reu_disable(void)
+{
+    set_reu_enabled(0, NULL);
+    reu_deactivate();
+    return 0;
+}
+
+
+int reu_bin_attach(const char *filename, uint8_t *rawcart)
 {
     FILE *fd;
     int size;
@@ -792,9 +791,9 @@ inline static void reu_clk_inc_post2(void)
   \remark
     address must be in the valid range 0..0x1f
 */
-static BYTE reu_read_without_sideeffects(WORD addr)
+static uint8_t reu_read_without_sideeffects(uint16_t addr)
 {
-    BYTE retval = 0xff;
+    uint8_t retval = 0xff;
 
     switch (addr) {
         case REU_REG_R_STATUS:
@@ -851,7 +850,7 @@ static BYTE reu_read_without_sideeffects(WORD addr)
   \remark
     address must be in the valid range 0..0x1f
 */
-static void reu_store_without_sideeffects(WORD addr, BYTE byte)
+static void reu_store_without_sideeffects(uint16_t addr, uint8_t byte)
 {
     switch (addr) {
         case REU_REG_R_STATUS:
@@ -904,9 +903,9 @@ static void reu_store_without_sideeffects(WORD addr, BYTE byte)
   \return
     The value the register has
 */
-static BYTE reu_io2_read(WORD addr)
+static uint8_t reu_io2_read(uint16_t addr)
 {
-    BYTE retval = 0xff;
+    uint8_t retval = 0xff;
 
     if (reu_dma_active) {
         reu_io2_device.io_source_valid = 0;
@@ -940,9 +939,9 @@ static BYTE reu_io2_read(WORD addr)
     return retval;
 }
 
-static BYTE reu_io2_peek(WORD addr)
+static uint8_t reu_io2_peek(uint16_t addr)
 {
-    BYTE retval = 0xff;
+    uint8_t retval = 0xff;
     if (addr < REU_REG_FIRST_UNUSED) {
         retval = reu_read_without_sideeffects(addr);
     }
@@ -958,7 +957,7 @@ static BYTE reu_io2_peek(WORD addr)
   \param byte
     The value to set the register to
 */
-static void reu_io2_store(WORD addr, BYTE byte)
+static void reu_io2_store(uint16_t addr, uint8_t byte)
 {
     if (!reu_dma_active && (addr < REU_REG_FIRST_UNUSED)) {
         reu_store_without_sideeffects(addr, byte);
@@ -1035,7 +1034,7 @@ inline static unsigned int increment_reu_with_wrap_around(unsigned int reu_addr,
      If the location reu_addr is not backed up by DRAM, the store is simply
      ignored.
 */
-inline static void store_to_reu(unsigned int reu_addr, BYTE value)
+inline static void store_to_reu(unsigned int reu_addr, uint8_t value)
 {
     reu_addr &= rec_options.dram_wrap_around - 1;
     if (reu_addr < rec_options.not_backedup_addresses) {
@@ -1063,9 +1062,9 @@ inline static void store_to_reu(unsigned int reu_addr, BYTE value)
   \todo
      Check the values a real 17xx returns.
 */
-inline static BYTE read_from_reu(unsigned int reu_addr)
+inline static uint8_t read_from_reu(unsigned int reu_addr)
 {
-    BYTE value = 0xff; /* dummy value to return if not DRAM is available */
+    uint8_t value = 0xff; /* dummy value to return if not DRAM is available */
 
     reu_addr &= rec_options.dram_wrap_around - 1;
     if (reu_addr < rec_options.not_backedup_addresses) {
@@ -1098,7 +1097,7 @@ inline static BYTE read_from_reu(unsigned int reu_addr)
     if autoload is enabled, the shadow registers are written back
     to the REU registers.
 */
-static void reu_dma_update_regs(WORD host_addr, unsigned int reu_addr, int len, BYTE new_status_or_mask)
+static void reu_dma_update_regs(uint16_t host_addr, unsigned int reu_addr, int len, uint8_t new_status_or_mask)
 {
     assert(len >= 1);
     assert(new_status_or_mask != 0);
@@ -1167,9 +1166,9 @@ static void reu_dma_update_regs(WORD host_addr, unsigned int reu_addr, int len, 
   \param len
     The transfer length of the operation
 */
-static void reu_dma_host_to_reu(WORD host_addr, unsigned int reu_addr, int host_step, int reu_step, int len)
+static void reu_dma_host_to_reu(uint16_t host_addr, unsigned int reu_addr, int host_step, int reu_step, int len)
 {
-    BYTE value;
+    uint8_t value;
     DEBUG_LOG(DEBUG_LEVEL_TRANSFER_HIGH_LEVEL, (reu_log, "copy ext $%05X %s<= main $%04X%s, $%04X (%d) bytes.",
                                                 reu_addr, reu_step ? "" : "(fixed) ", host_addr, host_step ? "" : " (fixed)", len, len));
 
@@ -1210,9 +1209,9 @@ static void reu_dma_host_to_reu(WORD host_addr, unsigned int reu_addr, int host_
   \param len
     The transfer length of the operation
 */
-static void reu_dma_reu_to_host(WORD host_addr, unsigned int reu_addr, int host_step, int reu_step, int len)
+static void reu_dma_reu_to_host(uint16_t host_addr, unsigned int reu_addr, int host_step, int reu_step, int len)
 {
-    BYTE value;
+    uint8_t value;
     DEBUG_LOG(DEBUG_LEVEL_TRANSFER_HIGH_LEVEL, (reu_log, "copy ext $%05X %s=> main $%04X%s, $%04X (%d) bytes.",
                                                 reu_addr, reu_step ? "" : "(fixed) ", host_addr, host_step ? "" : " (fixed)", len, len));
 
@@ -1256,10 +1255,10 @@ static void reu_dma_reu_to_host(WORD host_addr, unsigned int reu_addr, int host_
   \param len
     The transfer length of the operation
 */
-static void reu_dma_swap(WORD host_addr, unsigned int reu_addr, int host_step, int reu_step, int len)
+static void reu_dma_swap(uint16_t host_addr, unsigned int reu_addr, int host_step, int reu_step, int len)
 {
-    BYTE value_from_reu;
-    BYTE value_from_c64;
+    uint8_t value_from_reu;
+    uint8_t value_from_c64;
     DEBUG_LOG(DEBUG_LEVEL_TRANSFER_HIGH_LEVEL, (reu_log, "swap ext $%05X %s<=> main $%04X%s, $%04X (%d) bytes.",
                                                 reu_addr, reu_step ? "" : "(fixed) ", host_addr, host_step ? "" : " (fixed)", len, len));
 
@@ -1308,12 +1307,12 @@ static void reu_dma_swap(WORD host_addr, unsigned int reu_addr, int host_step, i
   \param len
     The transfer length of the operation
 */
-static void reu_dma_compare(WORD host_addr, unsigned int reu_addr, int host_step, int reu_step, int len)
+static void reu_dma_compare(uint16_t host_addr, unsigned int reu_addr, int host_step, int reu_step, int len)
 {
-    BYTE value_from_reu;
-    BYTE value_from_c64;
+    uint8_t value_from_reu;
+    uint8_t value_from_c64;
 
-    BYTE new_status_or_mask = 0;
+    uint8_t new_status_or_mask = 0;
 
     DEBUG_LOG(DEBUG_LEVEL_TRANSFER_HIGH_LEVEL, (reu_log, "compare ext $%05X %s<=> main $%04X%s, $%04X (%d) bytes.",
                                                 reu_addr, reu_step ? "" : "(fixed) ", host_addr, host_step ? "" : " (fixed)", len, len));
@@ -1439,7 +1438,7 @@ void reu_dma_start(void)
 {
     int len;
     int reu_step, host_step;
-    WORD host_addr;
+    uint16_t host_addr;
     unsigned int reu_addr;
 
     /* wrong address of bank register & calculations corrected  - RH */
@@ -1493,7 +1492,7 @@ static char snap_module_name[] = "REU1764"; /*!< the name of the module for the 
    compatible with the original implementation. Otherwise, we would have to
    change the version number. This way, it is much simpler.
  */
-typedef BYTE reu_as_stored_in_snapshot_t[16];
+typedef uint8_t reu_as_stored_in_snapshot_t[16];
 
 /*! \brief write the REU module data to the snapshot
  \param s
@@ -1507,7 +1506,7 @@ int reu_write_snapshot_module(snapshot_t *s)
     snapshot_module_t *m;
 
     reu_as_stored_in_snapshot_t reu;
-    WORD reu_address;
+    uint16_t reu_address;
 
     memset(reu, 0xff, sizeof reu);
 
@@ -1541,12 +1540,12 @@ int reu_write_snapshot_module(snapshot_t *s)
  */
 int reu_read_snapshot_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
-    DWORD size;
+    uint32_t size;
 
     reu_as_stored_in_snapshot_t reu;
-    WORD reu_address;
+    uint16_t reu_address;
 
     memset(reu, 0xff, sizeof reu);
 
@@ -1556,7 +1555,7 @@ int reu_read_snapshot_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

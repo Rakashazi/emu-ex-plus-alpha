@@ -39,7 +39,7 @@ int c64keyboard_active = 1;
 
 static unsigned int c64keyboard_int_num;
 
-static void c64keyboard_machine_func(int *keyarr)
+static void c64keyboard_machine_func(int *karr)
 {
     cia1_check_lightpen();
 }

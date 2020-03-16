@@ -40,39 +40,39 @@
 
 
 typedef struct tiatcbm_s {
-    BYTE ddra;
-    BYTE dataa;
-    BYTE ddrb;
-    BYTE datab;
-    BYTE ddrc;
-    BYTE datac;
+    uint8_t ddra;
+    uint8_t dataa;
+    uint8_t ddrb;
+    uint8_t datab;
+    uint8_t ddrc;
+    uint8_t datac;
 } tiatcbm_t;
 
 static tiatcbm_t tiatcbm[2];
 
-BYTE plus4tcbm_outputa[2], plus4tcbm_outputb[2], plus4tcbm_outputc[2];
-BYTE tpid_outputa[2], tpid_outputb[2], tpid_outputc[2];
+uint8_t plus4tcbm_outputa[2], plus4tcbm_outputb[2], plus4tcbm_outputc[2];
+uint8_t tpid_outputa[2], tpid_outputb[2], tpid_outputc[2];
 
 /*-----------------------------------------------------------------------*/
 
-void plus4tcbm_update_pa(BYTE byte, unsigned int dnr)
+void plus4tcbm_update_pa(uint8_t byte, unsigned int dnr)
 {
     tpid_outputa[dnr] = byte;
 }
 
-void plus4tcbm_update_pb(BYTE byte, unsigned int dnr)
+void plus4tcbm_update_pb(uint8_t byte, unsigned int dnr)
 {
     tpid_outputb[dnr] = byte;
 }
 
-void plus4tcbm_update_pc(BYTE byte, unsigned int dnr)
+void plus4tcbm_update_pc(uint8_t byte, unsigned int dnr)
 {
     tpid_outputc[dnr] = byte;
 }
 
 /*-----------------------------------------------------------------------*/
 
-inline static BYTE dataa_read(unsigned int dnr)
+inline static uint8_t dataa_read(unsigned int dnr)
 {
 #ifdef TCBM_DEBUG
     log_debug("TCBM PA READ DATA %02x DDR %02x TIPD %02x",
@@ -81,7 +81,7 @@ inline static BYTE dataa_read(unsigned int dnr)
     return (tiatcbm[dnr].dataa | ~tiatcbm[dnr].ddra) & tpid_outputa[dnr];
 }
 
-inline static BYTE datab_read(unsigned int dnr)
+inline static uint8_t datab_read(unsigned int dnr)
 {
 #ifdef TCBM_DEBUG
     log_debug("TCBM PB READ DATA %02x DDR %02x",
@@ -91,7 +91,7 @@ inline static BYTE datab_read(unsigned int dnr)
            & (tpid_outputc[dnr] | 0xfc);
 }
 
-inline static BYTE datac_read(unsigned int dnr)
+inline static uint8_t datac_read(unsigned int dnr)
 {
 #ifdef TCBM_DEBUG
     log_debug("TCBM PC READ DATA %02x DDR %02x",
@@ -155,7 +155,7 @@ void plus4tcbm2_reset(void)
     tiatcbm_reset(1);
 }
 
-static void tiatcbm_store(WORD addr, BYTE byte, unsigned int dnr)
+static void tiatcbm_store(uint16_t addr, uint8_t byte, unsigned int dnr)
 {
     switch (addr & 7) {
         case 0:
@@ -185,7 +185,7 @@ static void tiatcbm_store(WORD addr, BYTE byte, unsigned int dnr)
     }
 }
 
-static BYTE tiatcbm_read(WORD addr, unsigned int dnr)
+static uint8_t tiatcbm_read(uint16_t addr, unsigned int dnr)
 {
     switch (addr & 7) {
         case 0:
@@ -207,7 +207,7 @@ static BYTE tiatcbm_read(WORD addr, unsigned int dnr)
 
 /*-----------------------------------------------------------------------*/
 
-BYTE plus4tcbm1_read(WORD addr)
+uint8_t plus4tcbm1_read(uint16_t addr)
 {
     if (drive_context[0]->drive->enable
         && drive_context[0]->drive->type == DRIVE_TYPE_1551) {
@@ -217,7 +217,7 @@ BYTE plus4tcbm1_read(WORD addr)
     return 0;
 }
 
-void plus4tcbm1_store(WORD addr, BYTE value)
+void plus4tcbm1_store(uint16_t addr, uint8_t value)
 {
     if (drive_context[0]->drive->enable
         && drive_context[0]->drive->type == DRIVE_TYPE_1551) {
@@ -226,7 +226,7 @@ void plus4tcbm1_store(WORD addr, BYTE value)
     }
 }
 
-BYTE plus4tcbm2_read(WORD addr)
+uint8_t plus4tcbm2_read(uint16_t addr)
 {
     if (drive_context[1]->drive->enable
         && drive_context[1]->drive->type == DRIVE_TYPE_1551) {
@@ -236,7 +236,7 @@ BYTE plus4tcbm2_read(WORD addr)
     return 0;
 }
 
-void plus4tcbm2_store(WORD addr, BYTE value)
+void plus4tcbm2_store(uint16_t addr, uint8_t value)
 {
     if (drive_context[1]->drive->enable
         && drive_context[1]->drive->type == DRIVE_TYPE_1551) {

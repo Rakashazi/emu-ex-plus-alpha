@@ -51,7 +51,6 @@
 #include "network.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "types.h"
 #include "uiapi.h"
 #include "userport_joystick.h"
@@ -90,18 +89,18 @@ static int joyport_joystick[5] = { 0, 0, 0, 0, 0 };
 
 /* Global joystick value.  */
 /*! \todo SRT: document: what are these values joystick_value[0, 1, 2, ..., 5] used for? */
-VICE_API BYTE joystick_value[JOYSTICK_NUM + 1] = { 0 };
-static BYTE network_joystick_value[JOYSTICK_NUM + 1] = { 0 };
+VICE_API uint8_t joystick_value[JOYSTICK_NUM + 1] = { 0 };
+static uint8_t network_joystick_value[JOYSTICK_NUM + 1] = { 0 };
 
 /* Latched joystick status.  */
-static BYTE latch_joystick_value[JOYSTICK_NUM + 1] = { 0 };
+static uint8_t latch_joystick_value[JOYSTICK_NUM + 1] = { 0 };
 
 /* mapping of the joystick ports */
 int joystick_port_map[JOYSTICK_NUM] = { 0 };
 
 /* to prevent illegal direction combinations */
 static int joystick_opposite_enable = 0;
-static const BYTE joystick_opposite_direction[] = {
+static const uint8_t joystick_opposite_direction[] = {
                                                /* E W S N */
     0,                                         /*         */
     JOYPAD_S,                                  /*       + */
@@ -136,7 +135,7 @@ int joykeys[JOYSTICK_KEYSET_NUM][JOYSTICK_KEYSET_NUM_KEYS];
 
 static void joystick_latch_matrix(CLOCK offset)
 {
-    BYTE idx;
+    uint8_t idx;
 
     if (network_connected()) {
         idx = network_joystick_value[0];
@@ -226,7 +225,7 @@ static void joystick_process_latch(void)
     }
 }
 
-void joystick_set_value_absolute(unsigned int joyport, BYTE value)
+void joystick_set_value_absolute(unsigned int joyport, uint8_t value)
 {
     if (event_playback_active()) {
         return;
@@ -234,13 +233,13 @@ void joystick_set_value_absolute(unsigned int joyport, BYTE value)
 
     if (latch_joystick_value[joyport] != value) {
         latch_joystick_value[joyport] = value;
-        latch_joystick_value[0] = (BYTE)joyport;
+        latch_joystick_value[0] = (uint8_t)joyport;
         joystick_process_latch();
     }
 }
 
 /* set joystick bits */
-void joystick_set_value_or(unsigned int joyport, BYTE value)
+void joystick_set_value_or(unsigned int joyport, uint8_t value)
 {
     if (event_playback_active()) {
         return;
@@ -249,29 +248,29 @@ void joystick_set_value_or(unsigned int joyport, BYTE value)
     latch_joystick_value[joyport] |= value;
 
     if (!joystick_opposite_enable) {
-        latch_joystick_value[joyport] &= (BYTE)(~joystick_opposite_direction[value & 0xf]);
+        latch_joystick_value[joyport] &= (uint8_t)(~joystick_opposite_direction[value & 0xf]);
     }
 
-    latch_joystick_value[0] = (BYTE)joyport;
+    latch_joystick_value[0] = (uint8_t)joyport;
     joystick_process_latch();
 }
 
 /* release joystick bits */
-void joystick_set_value_and(unsigned int joyport, BYTE value)
+void joystick_set_value_and(unsigned int joyport, uint8_t value)
 {
     if (event_playback_active()) {
         return;
     }
 
     latch_joystick_value[joyport] &= value;
-    latch_joystick_value[0] = (BYTE)joyport;
+    latch_joystick_value[0] = (uint8_t)joyport;
     joystick_process_latch();
 }
 
 void joystick_clear(unsigned int joyport)
 {
     latch_joystick_value[joyport] = 0;
-    latch_joystick_value[0] = (BYTE)joyport;
+    latch_joystick_value[0] = (uint8_t)joyport;
     joystick_latch_matrix(0);
 }
 
@@ -281,7 +280,7 @@ void joystick_clear_all(void)
     joystick_latch_matrix(0);
 }
 
-BYTE get_joystick_value(int index)
+uint8_t get_joystick_value(int index)
 {
     return joystick_value[index];
 }
@@ -419,6 +418,7 @@ static void DBGSTATUS(int keysetnum, int value, int joyport, int key, int flg)
 #define DBGSTATUS(a, b, c, d, e)
 #endif
 
+
 /* called on key-down event */
 int joystick_check_set(signed long key, int keysetnum, unsigned int joyport)
 {
@@ -458,7 +458,7 @@ int joystick_check_set(signed long key, int keysetnum, unsigned int joyport)
                 }
             }
 
-            joystick_set_value_absolute(joyport, (BYTE)value);
+            joystick_set_value_absolute(joyport, (uint8_t)value);
 
             DBGSTATUS(keysetnum, value, joyport, key, 0);
             return 1;
@@ -493,7 +493,7 @@ int joystick_check_clr(signed long key, int keysetnum, unsigned int joyport)
                 }
             }
 
-            joystick_set_value_absolute(joyport, (BYTE)value);
+            joystick_set_value_absolute(joyport, (uint8_t)value);
 
             DBG(("joystick_check_clr:"));
             DBGSTATUS(keysetnum, value, joyport, key, 1);
@@ -517,9 +517,9 @@ static int joyport_enable_joystick(int port, int val)
     return 0;
 }
 
-static BYTE read_joystick(int port)
+static uint8_t read_joystick(int port)
 {
-    return (BYTE)(~joystick_value[port + 1]);
+    return (uint8_t)(~joystick_value[port + 1]);
 }
 
 /* Some prototypes are needed */
@@ -527,18 +527,17 @@ static int joystick_snapshot_write_module(snapshot_t *s, int port);
 static int joystick_snapshot_read_module(snapshot_t *s, int port);
 
 static joyport_t joystick_device = {
-    "Joystick",
-    IDGS_JOYSTICK,
-    JOYPORT_RES_ID_NONE,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_OPTIONAL,
-    joyport_enable_joystick,
-    read_joystick,
-    NULL,               /* no store digital */
-    NULL,               /* no read potx */
-    NULL,               /* no read poty */
-    joystick_snapshot_write_module,
-    joystick_snapshot_read_module
+    "Joystick",                     /* name of the device */
+    JOYPORT_RES_ID_NONE,            /* device doesn't have a class, multiple deviced of this kind can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,        /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,           /* device does NOT use the potentiometer lines */
+    joyport_enable_joystick,        /* device enable function */
+    read_joystick,                  /* digital line read function */
+    NULL,                           /* NO digital line store function */
+    NULL,                           /* NO pot-x read function */
+    NULL,                           /* NO pot-y read function */
+    joystick_snapshot_write_module, /* device write snapshot function */
+    joystick_snapshot_read_module   /* device read snapshot function */
 };
 
 static int joystick_joyport_register(void)
@@ -604,6 +603,11 @@ static resource_int_t joy5_resources_int[] = {
     RESOURCE_INT_LIST_END
 };
 
+
+/** \brief  Initialize joystick resources
+ *
+ * \return  0 on success, -1 on failure
+ */
 int joystick_resources_init(void)
 {
     if (joystick_joyport_register() < 0) {
@@ -676,35 +680,140 @@ int joystick_resources_init(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-joyopposite", SET_RESOURCE, 0,
+    { "-joyopposite", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "JoyOpposite", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_JOY_OPPOSITE,
-      NULL, NULL },
-    { "+joyopposite", SET_RESOURCE, 0,
+      NULL, "Enable opposite joystick directions" },
+    { "+joyopposite", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "JoyOpposite", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_JOY_OPPOSITE,
-      NULL, NULL },
+      NULL, "Disable opposite joystick directions" },
 #ifdef COMMON_JOYKEYS
-    { "-keyset", SET_RESOURCE, 0,
+    { "-keyset", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "KeySetEnable", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_KEYSET,
-      NULL, NULL },
-    { "+keyset", SET_RESOURCE, 0,
+      NULL, "Enable keyset" },
+    { "+keyset", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "KeySetEnable", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_KEYSET,
-      NULL, NULL },
+      NULL, "Disable keyset" },
 #endif
     CMDLINE_LIST_END
 };
 
+/* Per-joystick command-line options.  */
+
+static const cmdline_option_t joydev1cmdline_options[] =
+{
+    { "-joydev1", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "JoyDevice1", NULL,
+#ifdef HAS_USB_JOYSTICK
+    "<0-13>", "Set device for joystick port 1 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5, 10: Digital joystick 0, 11: Digital joystick 1, 12: USB joystick 0, 13: USB joystick 1)" },
+#else
+#  ifdef HAS_DIGITAL_JOYSTICK
+    "<0-11>", "Set device for joystick port 1 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5, 10: Digital joystick 0, 11: Digital joystick 1)" },
+#  else
+    "<0-9>", "Set device for joystick port 1 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5)" },
+#  endif
+#endif
+    CMDLINE_LIST_END
+};
+
+static const cmdline_option_t joydev2cmdline_options[] =
+{
+    { "-joydev2", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "JoyDevice2", NULL,
+#ifdef HAS_USB_JOYSTICK
+    "<0-13>", "Set device for joystick port 2 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5, 10: Digital joystick 0, 11: Digital joystick 1, 12: USB joystick 0, 13: USB joystick 1)" },
+#else
+#  ifdef HAS_DIGITAL_JOYSTICK
+    "<0-11>", "Set device for joystick port 2 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5, 10: Digital joystick 0, 11: Digital joystick 1)" },
+#  else
+    "<0-9>", "Set device for joystick port 2 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5)" },
+#  endif
+#endif
+    CMDLINE_LIST_END
+};
+
+static const cmdline_option_t joydev3cmdline_options[] =
+{
+    { "-extrajoydev1", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "JoyDevice3", NULL,
+
+#ifdef HAS_USB_JOYSTICK
+    "<0-13>", "Set device for extra joystick port 1 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5, 10: Digital joystick 0, 11: Digital joystick 1, 12: USB joystick 0, 13: USB joystick 1)" },
+#else
+#  ifdef HAS_DIGITAL_JOYSTICK
+    "<0-11>", "Set device for extra joystick port 1 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5, 10: Digital joystick 0, 11: Digital joystick 1)" },
+#  else
+    "<0-9>", "Set device for extra joystick port 1 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5)" },
+#  endif
+#endif
+    CMDLINE_LIST_END
+};
+
+static const cmdline_option_t joydev4cmdline_options[] =
+{
+    { "-extrajoydev2", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "JoyDevice4", NULL,
+#ifdef HAS_USB_JOYSTICK
+    "<0-13>", "Set device for extra joystick port 2 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5, 10: Digital joystick 0, 11: Digital joystick 1, 12: USB joystick 0, 13: USB joystick 1)" },
+#else
+#  ifdef HAS_DIGITAL_JOYSTICK
+    "<0-11>", "Set device for extra joystick port 2 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5, 10: Digital joystick 0, 11: Digital joystick 1)" },
+#  else
+    "<0-9>", "Set device for extra joystick port 2 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5)" },
+#  endif
+#endif
+    CMDLINE_LIST_END
+};
+
+static const cmdline_option_t joydev5cmdline_options[] =
+{
+    { "-extrajoydev3", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "JoyDevice5", NULL,
+#ifdef HAS_USB_JOYSTICK
+    "<0-13>", "Set device for extra joystick port 3 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5, 10: Digital joystick 0, 11: Digital joystick 1, 12: USB joystick 0, 13: USB joystick 1)" },
+#else
+#  ifdef HAS_DIGITAL_JOYSTICK
+    "<0-11>", "Set device for extra joystick port 3 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5, 10: Digital joystick 0, 11: Digital joystick 1)" },
+#  else
+    "<0-9>", "Set device for extra joystick port 3 (0: None, 1: Numpad, 2: Keyset 1, 3: Keyset 2, 4: Analog joystick 0, 5: Analog joystick 1, 6: Analog joystick 2, 7: Analog joystick 3, 8: Analog joystick 4, 9: Analog joystick 5)" },
+#  endif
+#endif
+    CMDLINE_LIST_END
+};
+
+
+/** \brief  Initialize joystick command line options
+ *
+ * \return  0 on success, -1 on failure
+ */
 int joystick_cmdline_options_init(void)
 {
     if (cmdline_register_options(cmdline_options) < 0) {
         return -1;
+    }
+    if (joyport_get_port_name(JOYPORT_1)) {
+        if (cmdline_register_options(joydev1cmdline_options) < 0) {
+            return -1;
+        }
+    }
+    if (joyport_get_port_name(JOYPORT_2)) {
+        if (cmdline_register_options(joydev2cmdline_options) < 0) {
+            return -1;
+        }
+    }
+    if (joyport_get_port_name(JOYPORT_3)) {
+        if (cmdline_register_options(joydev3cmdline_options) < 0) {
+            return -1;
+        }
+    }
+    if (joyport_get_port_name(JOYPORT_4)) {
+        if (cmdline_register_options(joydev4cmdline_options) < 0) {
+            return -1;
+        }
+    }
+    if (joyport_get_port_name(JOYPORT_5)) {
+        if (cmdline_register_options(joydev5cmdline_options) < 0) {
+            return -1;
+        }
     }
 
     return joy_arch_cmdline_options_init();
@@ -751,7 +860,7 @@ static int joystick_snapshot_write_module(snapshot_t *s, int port)
 
 static int joystick_snapshot_read_module(snapshot_t *s, int port)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
     char snapshot_name[16];
 
@@ -762,7 +871,7 @@ static int joystick_snapshot_read_module(snapshot_t *s, int port)
         return -1;
     }
 
-    if (major_version != DUMP_VER_MAJOR || minor_version != DUMP_VER_MINOR) {
+    if (!snapshot_version_is_equal(major_version, minor_version, DUMP_VER_MAJOR, DUMP_VER_MINOR)) {
         snapshot_module_close(m);
         return -1;
     }

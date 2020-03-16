@@ -34,13 +34,12 @@
 #include "machine.h"
 #include "raster-cmdline-options.h"
 #include "resources.h"
-#include "translate.h"
 #include "vic-cmdline-options.h"
 #include "vic-resources.h"
 #include "vic.h"
 #include "victypes.h"
 
-int border_set_func(const char *value, void *extra_param)
+static int border_set_func(const char *value, void *extra_param)
 {
     int video;
 
@@ -64,11 +63,9 @@ int border_set_func(const char *value, void *extra_param)
 /* VIC command-line options.  */
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-VICborders", CALL_FUNCTION, 1,
+    { "-VICborders", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       border_set_func, NULL, "VICBorderMode", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_MODE, IDCLS_SET_BORDER_MODE,
-      NULL, NULL },
+      "<Mode>", "Set border display mode (0: normal, 1: full, 2: debug, 3: none)" },
     CMDLINE_LIST_END
 };
 

@@ -34,18 +34,18 @@
 
 struct snapshot_s;
 
-extern BYTE magicformel_romh_read(WORD addr);
-extern BYTE magicformel_romh_read_hirom(WORD addr);
-extern int magicformel_romh_phi1_read(WORD addr, BYTE *value);
-extern int magicformel_romh_phi2_read(WORD addr, BYTE *value);
-extern int magicformel_peek_mem(export_t *export, WORD addr, BYTE *value);
+extern uint8_t magicformel_romh_read(uint16_t addr);
+extern uint8_t magicformel_romh_read_hirom(uint16_t addr);
+extern int magicformel_romh_phi1_read(uint16_t addr, uint8_t *value);
+extern int magicformel_romh_phi2_read(uint16_t addr, uint8_t *value);
+extern int magicformel_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
 
 extern void magicformel_freeze(void);
 extern void magicformel_config_init(void);
 extern void magicformel_reset(void);
-extern void magicformel_config_setup(BYTE *rawcart);
-extern int magicformel_bin_attach(const char *filename, BYTE *rawcart);
-extern int magicformel_crt_attach(FILE *fd, BYTE *rawcart);
+extern void magicformel_config_setup(uint8_t *rawcart);
+extern int magicformel_bin_attach(const char *filename, uint8_t *rawcart);
+extern int magicformel_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void magicformel_detach(void);
 
 extern int magicformel_snapshot_write_module(struct snapshot_s *s);

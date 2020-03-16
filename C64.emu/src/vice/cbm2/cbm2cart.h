@@ -31,13 +31,33 @@
 
 /* Expansion port signals.  */
 
+/*
+    CSBANK1      P
+    CSBANK2      R
+    CSBANK3      S
+
+    R/!W         M    Read/Write (write active low)
+    phi2         N    Phase 2 system clock
+
+    D7-D0     J- A    Data bus bit 7-0
+    A12-A0   13- 1    Address bus bit 0-12
+*/
+
+/* WARNING: due to the way VICE is being built/linked, this struct has to be
+            the same in C64/DTV/C128 and CBM2 (ie c64cart.h and cbm2cart.h) */
 typedef struct {
-    BYTE exrom; /* exrom signal, 0 - active */
-    BYTE game;  /* game signal, 0 - active */
-    BYTE ultimax_phi1; /* flag for vic-ii, ultimax mode in phi1 phase */
-    BYTE ultimax_phi2; /* flag for vic-ii, ultimax mode in phi2 phase */
+    uint8_t exrom;          /* (C64) exrom signal, 0 - active */
+    uint8_t game;           /* (C64) game signal, 0 - active */
+    uint8_t ultimax_phi1;   /* (C64) flag for vic-ii, ultimax mode in phi1 phase */
+    uint8_t ultimax_phi2;   /* (C64) flag for vic-ii, ultimax mode in phi2 phase */
 } export_t;
 
+/* this is referenced by the VICII emulation */
 extern export_t export;
+
+void cart_power_off(void);
+
+uint8_t *ultimax_romh_phi1_ptr(uint16_t addr);
+uint8_t *ultimax_romh_phi2_ptr(uint16_t addr);
 
 #endif

@@ -1,6 +1,8 @@
 #ifndef VICE_FMOPL_H
 #define VICE_FMOPL_H
 
+#include "alarm.h"
+
 /* select output bits size of output : 8 or 16 */
 #define OPL_SAMPLE_BITS 16
 
@@ -93,6 +95,8 @@ typedef struct fm_opl_f {
 
     UINT32 T[2];                                        /* timer counters               */
     UINT8 st[2];                                        /* timer enable                 */
+    alarm_t *fmopl_alarm[2];                            /* timer alarms                 */
+    UINT8 fmopl_alarm_pending[2];                       /* timer alarms pending         */
 
     UINT8 type;                                 /* chip type                    */
     UINT8 address;                              /* address register             */
@@ -149,6 +153,8 @@ extern int ym3526_timer_over(FM_OPL *chip, int c);
 struct snapshot_s;
 extern int ym3526_snapshot_read_module(struct snapshot_s *s);
 extern int ym3526_snapshot_write_module(struct snapshot_s *s);
+
+extern void fmopl_set_machine_parameter(long clock_rate);
 
 /*
  * Generate samples for one of the YM3526's

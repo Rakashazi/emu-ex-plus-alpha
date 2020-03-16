@@ -31,7 +31,7 @@
 
 struct vdrive_s;
 
-extern int fsdevice_read(struct vdrive_s *vdrive, BYTE *data,
+extern int fsdevice_read(struct vdrive_s *vdrive, uint8_t *data,
                          unsigned int secondary);
 
 #endif

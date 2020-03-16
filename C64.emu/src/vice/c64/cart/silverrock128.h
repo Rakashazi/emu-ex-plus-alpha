@@ -32,9 +32,9 @@
 #include "types.h"
 
 extern void silverrock128_config_init(void);
-extern void silverrock128_config_setup(BYTE *rawcart);
-extern int silverrock128_bin_attach(const char *filename, BYTE *rawcart);
-extern int silverrock128_crt_attach(FILE *fd, BYTE *rawcart);
+extern void silverrock128_config_setup(uint8_t *rawcart);
+extern int silverrock128_bin_attach(const char *filename, uint8_t *rawcart);
+extern int silverrock128_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void silverrock128_detach(void);
 
 struct snapshot_s;

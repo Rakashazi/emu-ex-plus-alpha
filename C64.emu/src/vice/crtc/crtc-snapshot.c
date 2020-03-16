@@ -72,29 +72,29 @@ int crtc_snapshot_write_module(snapshot_t * s)
     /* hardware-options */
     if (ef
         /* valid video address bits */
-        || SMW_W(m, (WORD)crtc.vaddr_mask) < 0
+        || SMW_W(m, (uint16_t)crtc.vaddr_mask) < 0
         /* which bit selects different charset .. */
-        || SMW_W(m, (WORD)crtc.vaddr_charswitch) < 0
+        || SMW_W(m, (uint16_t)crtc.vaddr_charswitch) < 0
         /* ...with offset in charset .. */
-        || SMW_W(m, (WORD)crtc.vaddr_charoffset) < 0
+        || SMW_W(m, (uint16_t)crtc.vaddr_charoffset) < 0
         /* which bit reverses the screen */
         /* XXX: this implementation "forgets" the sign of vaddr_revswitch,
            that indicate whether the bit has to be set (<0) or cleared (>0)
            for reverse mode. V1.0 modules are broken here. V1.1 adds the
            sign at the end of the module */
-        || SMW_W(m, (WORD)crtc.vaddr_revswitch) < 0
+        || SMW_W(m, (uint16_t)crtc.vaddr_revswitch) < 0
 
         /* size of character generator in byte - 1 */
-        || SMW_W(m, (WORD)crtc.chargen_mask) < 0
+        || SMW_W(m, (uint16_t)crtc.chargen_mask) < 0
         /* offset given by external circuitry */
-        || SMW_W(m, (WORD)crtc.chargen_offset) < 0
+        || SMW_W(m, (uint16_t)crtc.chargen_offset) < 0
 
         /* hardware cursor enabled? */
-        || SMW_B(m, (BYTE)(crtc.hw_cursor ? 1 : 0)) < 0
+        || SMW_B(m, (uint8_t)(crtc.hw_cursor ? 1 : 0)) < 0
         /* hardware column per character clock cycle */
-        || SMW_B(m, (BYTE)crtc.hw_cols) < 0
+        || SMW_B(m, (uint8_t)crtc.hw_cols) < 0
         /* (external) hardware blanked */
-        || SMW_B(m, (BYTE)crtc.hw_blank) < 0
+        || SMW_B(m, (uint8_t)crtc.hw_blank) < 0
         ) {
         ef = -1;
     }
@@ -107,27 +107,27 @@ int crtc_snapshot_write_module(snapshot_t * s)
     /* save the internal state of the CRTC counters */
     if (ef
         /* index in CRTC register file */
-        || SMW_B(m, (BYTE)crtc.regno) < 0
+        || SMW_B(m, (uint8_t)crtc.regno) < 0
         /* clock in the rasterline */
-        || SMW_B(m, (BYTE)current_char) < 0
+        || SMW_B(m, (uint8_t)current_char) < 0
         /* current character line */
-        || SMW_B(m, (BYTE)crtc.current_charline) < 0
+        || SMW_B(m, (uint8_t)crtc.current_charline) < 0
         /* rasterline in character */
-        || SMW_B(m, (BYTE)crtc.raster.ycounter) < 0
+        || SMW_B(m, (uint8_t)crtc.raster.ycounter) < 0
 
         /* cursor state & counter */
-        || SMW_B(m, (BYTE)crtc.crsrcnt) < 0
-        || SMW_B(m, (BYTE)crtc.crsrstate) < 0
-        || SMW_B(m, (BYTE)crtc.cursor_lines) < 0
+        || SMW_B(m, (uint8_t)crtc.crsrcnt) < 0
+        || SMW_B(m, (uint8_t)crtc.crsrstate) < 0
+        || SMW_B(m, (uint8_t)crtc.cursor_lines) < 0
 
         /* memory pointer */
-        || SMW_W(m, (WORD)crtc.chargen_rel) < 0
-        || SMW_W(m, (WORD)screen_rel) < 0
+        || SMW_W(m, (uint16_t)crtc.chargen_rel) < 0
+        || SMW_W(m, (uint16_t)screen_rel) < 0
 
         /* vsync */
-        || SMW_W(m, (WORD)crtc.vsync) < 0
+        || SMW_W(m, (uint16_t)crtc.vsync) < 0
         /* venable */
-        || SMW_B(m, (BYTE)crtc.venable) < 0
+        || SMW_B(m, (uint8_t)crtc.venable) < 0
         ) {
         ef = -1;
     }
@@ -135,21 +135,21 @@ int crtc_snapshot_write_module(snapshot_t * s)
     /* VICE-dependent runtime variables */
     if (ef
         /* screen size */
-        || SMW_W(m, (WORD)crtc.screen_width) < 0
-        || SMW_W(m, (WORD)crtc.screen_height) < 0
+        || SMW_W(m, (uint16_t)crtc.screen_width) < 0
+        || SMW_W(m, (uint16_t)crtc.screen_height) < 0
 
         /* horizontal centering */
-        || SMW_W(m, (WORD)crtc.screen_xoffset) < 0
+        || SMW_W(m, (uint16_t)crtc.screen_xoffset) < 0
         /* horizontal jitter */
-        || SMW_W(m, (WORD)crtc.hjitter) < 0
+        || SMW_W(m, (uint16_t)crtc.hjitter) < 0
 
         /* vertical centering */
-        || SMW_W(m, (WORD)crtc.screen_yoffset) < 0
+        || SMW_W(m, (uint16_t)crtc.screen_yoffset) < 0
 
         /* expected number of rasterlines for the frame */
-        || SMW_W(m, (WORD)crtc.framelines) < 0
+        || SMW_W(m, (uint16_t)crtc.framelines) < 0
         /* current frameline */
-        || SMW_W(m, (WORD)crtc.current_line) < 0
+        || SMW_W(m, (uint16_t)crtc.current_line) < 0
         ) {
         ef = -1;
     }
@@ -158,8 +158,8 @@ int crtc_snapshot_write_module(snapshot_t * s)
        additional value. This is only relevant for CBM-II as the PET only
        use positive values in rev_switch. Only bit 0 is defined as of today. */
     if (!ef) {
-        BYTE rev_fl = (crtc.vaddr_revswitch < 0) ? 1 : 0;
-        if (SMW_B(m, (BYTE)rev_fl) < 0) {
+        uint8_t rev_fl = (crtc.vaddr_revswitch < 0) ? 1 : 0;
+        if (SMW_B(m, (uint8_t)rev_fl) < 0) {
             ef = -1;
         }
     }
@@ -178,9 +178,9 @@ int crtc_snapshot_read_module(snapshot_t * s)
 {
     int i, ef = 0;
     snapshot_module_t *m;
-    WORD w;
-    BYTE b;
-    BYTE major, minor;
+    uint16_t w;
+    uint8_t b;
+    uint8_t major, minor;
 
     m = snapshot_module_open(s, snap_module_name, &major, &minor);
     if (m == NULL) {
@@ -231,7 +231,7 @@ int crtc_snapshot_read_module(snapshot_t * s)
     /* read the registers */
     for (i = 0; (!ef) && (i < 20); i++) {
         if (!(ef = SMR_B(m, &b))) {
-            crtc_store(0, (BYTE)i);
+            crtc_store(0, (uint8_t)i);
             crtc_store(1, b);
         }
     }

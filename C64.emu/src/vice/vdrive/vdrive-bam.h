@@ -59,17 +59,18 @@ extern int vdrive_bam_allocate_sector(struct vdrive_s *vdrive,
                                       unsigned int track, unsigned int sector);
 extern void vdrive_bam_clear_all(struct vdrive_s *vdrive);
 extern void vdrive_bam_create_empty_bam(struct vdrive_s *vdrive,
-                                        const char *name, BYTE *id);
+                                        const char *name, uint8_t *id);
 extern int unsigned vdrive_bam_free_block_count(struct vdrive_s *vdrive);
 extern int vdrive_bam_free_sector(struct vdrive_s *vdrive,
                                   unsigned int track, unsigned int sector);
-extern int vdrive_bam_get_disk_id(unsigned int unit, BYTE *id);
-extern int vdrive_bam_set_disk_id(unsigned int unit, BYTE *id);
+extern int vdrive_bam_get_disk_id(unsigned int unit, uint8_t *id);
+extern int vdrive_bam_set_disk_id(unsigned int unit, uint8_t *id);
 extern int vdrive_bam_read_bam(struct vdrive_s *vdrive);
 extern int vdrive_bam_reread_bam(unsigned int unit);
 extern int vdrive_bam_write_bam(struct vdrive_s *vdrive);
 extern int vdrive_bam_get_interleave(unsigned int type);
 
-extern int vdrive_bam_isset(BYTE* bamp, unsigned int sector);
-extern BYTE *vdrive_bam_get_track_entry(struct vdrive_s *vdrive, unsigned int track);
+extern int vdrive_bam_isset(uint8_t *bamp, unsigned int sector);
+extern uint8_t *vdrive_bam_get_track_entry(struct vdrive_s *vdrive, unsigned int track);
+
 #endif

@@ -1,10 +1,11 @@
+/** \file   c128mmu.c
+ * \brief   C128 memory management uint
+ *
+ * \author  Andreas Boose <viceteam@t-online.de>
+ * \author  Marco van den Heuvel <blackystardust68@yahoo.com>
+ */
+
 /*
- * c128mmu.c
- *
- * Written by
- *  Andreas Boose <viceteam@t-online.de>
- *  Marco van den Heuvel <blackystardust68@yahoo.com>
- *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -46,7 +47,6 @@
 #include "monitor.h"
 #include "resources.h"
 #include "reu.h"
-#include "translate.h"
 #include "types.h"
 #include "vdc.h"
 #include "vicii.h"
@@ -56,7 +56,10 @@
 /* #define MMU_DEBUG */
 
 /* MMU register.  */
-static BYTE mmu[12];
+static uint8_t mmu[12];
+
+/* latches for P0H and P1H */
+static uint8_t p0h_latch, p1h_latch;
 
 /* State of the 40/80 column key.  */
 static int mmu_column4080_key = 1;
@@ -90,7 +93,7 @@ static int set_force_c64_mode(int val, void *param)
 }
 
 static const resource_int_t resources_int[] = {
-    { "40/80ColumnKey", 1, RES_EVENT_SAME, NULL,
+    { "C128ColumnKey", 1, RES_EVENT_SAME, NULL,
       &mmu_column4080_key, set_column4080_key, NULL },
     { "Go64Mode", 0, RES_EVENT_SAME, NULL,
       &force_c64_mode_res, set_force_c64_mode, NULL },
@@ -102,27 +105,20 @@ int mmu_resources_init(void)
     return resources_register_int(resources_int);
 }
 
-static const cmdline_option_t cmdline_options[] = {
-    { "-40col", SET_RESOURCE, 0,
-      NULL, NULL, "40/80ColumnKey", (resource_value_t) 1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ACTIVATE_40_COL_MODE,
-      NULL, NULL },
-    { "-80col", SET_RESOURCE, 0,
-      NULL, NULL, "40/80ColumnKey", (resource_value_t) 0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ACTIVATE_80_COL_MODE,
-      NULL, NULL },
-    { "-go64", SET_RESOURCE, 0,
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-40col", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "C128ColumnKey", (resource_value_t) 1,
+      NULL, "Activate 40 column mode" },
+    { "-80col", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "C128ColumnKey", (resource_value_t) 0,
+      NULL, "Activate 80 column mode" },
+    { "-go64", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "Go64Mode", (resource_value_t) 1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_GO64_MODE,
-      NULL, NULL },
-    { "+go64", SET_RESOURCE, 0,
+      NULL, "Always switch to C64 mode on reset" },
+    { "+go64", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "Go64Mode", (resource_value_t) 0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_GO128_MODE,
-      NULL, NULL },
+      NULL, "Always switch to C128 mode on reset" },
     CMDLINE_LIST_END
 };
 
@@ -133,10 +129,30 @@ int mmu_cmdline_options_init(void)
 
 /* ------------------------------------------------------------------------- */
 
+static int mmu_is_in_shared_ram(uint16_t address)
+{
+    unsigned int shared_size;
+    if (mmu[6] & 3) {
+        shared_size = 2048U << (mmu[6] & 3);
+    } else {
+        shared_size = 1024;
+    }
+
+    if ((mmu[6] & 4) && address < shared_size) {
+        return 1;
+    }
+
+    if ((mmu[6] & 8) && address >= shared_size) {
+        return 1;
+    }
+
+    return 0;
+}
+
 static void mmu_toggle_column4080_key(void)
 {
     mmu_column4080_key = !mmu_column4080_key;
-    resources_set_int("40/80ColumnKey", mmu_column4080_key);
+    resources_set_int("C128ColumnKey", mmu_column4080_key);
     log_message(mmu_log, "40/80 column key %s.", (mmu_column4080_key) ? "released" : "pressed");
 }
 
@@ -155,7 +171,7 @@ static void mmu_switch_cpu(int value)
     }
 }
 
-static void mmu_set_ram_bank(BYTE value)
+static void mmu_set_ram_bank(uint8_t value)
 {
     if (c128_full_banks) {
         ram_bank = mem_ram + (((long)value & 0xc0) << 10);
@@ -171,6 +187,37 @@ static void mmu_set_ram_bank(BYTE value)
 #endif
 }
 
+static void mmu_update_page01_pointers(void)
+{
+    /* update pointers for page 0/1 in case they or the shared RAM settings changed */
+    /* (shared window has priority over P0H/P1H) */
+    unsigned int page_zero_bank, page_one_bank;
+
+    if (c128_full_banks) {
+        page_zero_bank = (mmu[0x8] & 0x3) * 0x10000U;
+        page_one_bank  = (mmu[0xa] & 0x3) * 0x10000U;
+    } else {
+        page_zero_bank = (mmu[0x8] & 0x1) * 0x10000U;
+        page_one_bank  = (mmu[0xa] & 0x1) * 0x10000U;
+    }
+
+    if (mmu_is_in_shared_ram(mmu[0x7] << 8)) {
+        page_zero_bank = 0;
+    }
+    if (mmu_is_in_shared_ram(mmu[0x9] << 8)) {
+        page_one_bank = 0;
+    }
+
+    mem_page_zero = mem_ram + page_zero_bank + (mmu[0x7] << 8);
+    mem_page_one  = mem_ram + page_one_bank  + (mmu[0x9] << 8);
+}
+
+/* returns 1 if MMU is in C64 mode */
+int mmu_is_c64config(void)
+{
+    return (mmu[5] & 0x40) ? 1 : 0; /* FIXME: is this correct? */
+}
+
 static void mmu_switch_to_c64mode(void)
 {
 #ifdef MMU_DEBUG
@@ -181,14 +228,20 @@ static void mmu_switch_to_c64mode(void)
         log_message(mmu_log, "mmu_switch_to_c64mode: force_c64_mode\n");
 #endif
         mmu_config64 = 0x07;
+        /* force c64-compatible register values */
+        /* Note: Don't use mmu_store here, it calls this function. */
         mmu[0] = 0x3e;
         mmu[5] = 0xf7;
+        /* force standard addresses for stack and zeropage */
+        mmu[7] = 0;
+        mmu[8] = 0;
+        mmu[9] = 1;
+        mmu[10] = 0;
+        mmu_update_page01_pointers();
     }
     machine_tape_init_c64();
     mem_update_config(0x80 + mmu_config64);
-#ifdef COMMON_KBD
     keyboard_alternative_set(1);
-#endif
     machine_kbdbuf_reset_c64();
     machine_autostart_reset_c64();
     force_c64_mode = 0;
@@ -206,9 +259,7 @@ static void mmu_switch_to_c128mode(void)
                       ((mmu[0] & 0x40) ? 32 : 0) |
                       ((mmu[0] & 0x1) ? 0 : 64));
     z80mem_update_config((((mmu[0] & 0x1)) ? 0 : 1) | ((mmu[0] & 0x40) ? 2 : 0) | ((mmu[0] & 0x80) ? 4 : 0));
-#ifdef COMMON_KBD
     keyboard_alternative_set(0);
-#endif
     machine_kbdbuf_reset_c128();
     machine_autostart_reset_c128();
 }
@@ -234,7 +285,7 @@ void mmu_set_config64(int config)
 
 /* ------------------------------------------------------------------------- */
 
-BYTE mmu_peek(WORD addr)
+uint8_t mmu_peek(uint16_t addr)
 {
     addr &= 0xff;
 
@@ -243,8 +294,9 @@ BYTE mmu_peek(WORD addr)
 #endif
 
     if (addr < 0xc) {
-        if (addr == 5) {
-            BYTE exrom = export.exrom;
+        switch (addr) {
+        case 5: {
+            uint8_t exrom = export.exrom;
 
             if (force_c64_mode) {
                 exrom = 1;
@@ -252,9 +304,20 @@ BYTE mmu_peek(WORD addr)
 
             /* 0x80 = 40/80 key released.  */
             return (mmu[5] & 0x0f) | (mmu_column4080_key ? 0x80 : 0) | ((export.game ^ 1) << 4) | ((exrom ^ 1) << 5);
-        } else if (addr == 11) {
-            return (c128_full_banks) ? 4 : 2;
-        } else {
+        }
+
+        case 8:
+        case 10:
+            /* P0H/P1H upper four bits are unused and always return 1 */
+            return mmu[addr] | 0xf0;
+
+        case 11:
+            /* always return 0x20 unless someone confirms it would ever return
+               0x40 in any of the bank2+3 expansions */
+            /* return ((c128_full_banks) ? 0x40 : 0x20); */
+            return 0x20;
+
+        default:
             return mmu[addr];
         }
     } else {
@@ -262,25 +325,25 @@ BYTE mmu_peek(WORD addr)
     }
 }
 
-BYTE mmu_read(WORD addr)
+uint8_t mmu_read(uint16_t addr)
 {
     vicii_handle_pending_alarms_external(0);
 
     return mmu_peek(addr);
 }
 
-void mmu_store(WORD address, BYTE value)
+void mmu_store(uint16_t address, uint8_t value)
 {
     vicii_handle_pending_alarms_external_write();
 
-    address &= 0xf;
+    address &= 0xff;
 
 #ifdef MMU_DEBUG
     log_message(mmu_log, "MMU STORE $%x <- #$%x.", address, value);
 #endif
 
     if (address < 0xb) {
-        BYTE oldvalue;
+        uint8_t oldvalue;
 
         oldvalue = mmu[address];
         mmu[address] = value;
@@ -308,16 +371,22 @@ void mmu_store(WORD address, BYTE value)
             case 6: /* RAM configuration register (RCR).  */
                 mem_set_ram_config(value);
                 break;
-            case 7:
             case 8:
-            case 9:
+                /* do not commit yet, update happens on write to p0l */
+                mmu[address] = oldvalue;
+                p0h_latch = value;
+                break;
             case 10:
-                if (c128_full_banks) {
-                    mem_page_zero = mem_ram + ((mmu[0x8] & 0x3) * 0x10000) + (mmu[0x7] << 8);
-                    mem_page_one = mem_ram + ((mmu[0xa] & 0x3) * 0x10000) + (mmu[0x9] << 8);
+                /* do not commit yet, update happens on write to p1l */
+                mmu[address] = oldvalue;
+                p1h_latch = value;
+                break;
+            case 7:
+            case 9:
+                if (address == 7) {
+                    mmu[8] = p0h_latch;
                 } else {
-                    mem_page_zero = mem_ram + ((mmu[0x8] & 0x1) * 0x10000) + (mmu[0x7] << 8);
-                    mem_page_one = mem_ram + ((mmu[0xa] & 0x1) * 0x10000) + (mmu[0x9] << 8);
+                    mmu[10] = p1h_latch;
                 }
 #ifdef MMU_DEBUG
                 log_message(mmu_log, "PAGE ZERO %05x PAGE ONE %05x",
@@ -327,13 +396,15 @@ void mmu_store(WORD address, BYTE value)
                 break;
         }
 
+        mmu_update_page01_pointers();
+
         mmu_update_config();
     }
 }
 
 /* $FF00 - $FFFF: RAM, Kernal or internal function ROM, with MMU at
    $FF00 - $FF04.  */
-BYTE mmu_ffxx_read(WORD addr)
+uint8_t mmu_ffxx_read(uint16_t addr)
 {
     if (addr >= 0xff00 && addr <= 0xff04) {
         return mmu[addr & 0xf];
@@ -352,7 +423,7 @@ BYTE mmu_ffxx_read(WORD addr)
     return top_shared_read(addr);
 }
 
-BYTE mmu_ffxx_read_z80(WORD addr)
+uint8_t mmu_ffxx_read_z80(uint16_t addr)
 {
     if (addr >= 0xff00 && addr <= 0xff04) {
         return mmu[addr & 0xf];
@@ -361,7 +432,7 @@ BYTE mmu_ffxx_read_z80(WORD addr)
     return top_shared_read(addr);
 }
 
-void mmu_ffxx_store(WORD addr, BYTE value)
+void mmu_ffxx_store(uint16_t addr, uint8_t value)
 {
     if (addr == 0xff00) {
         mmu_store(0, value);
@@ -377,7 +448,7 @@ void mmu_ffxx_store(WORD addr, BYTE value)
     }
 }
 
-int mmu_dump(void *context, WORD addr)
+int mmu_dump(void *context, uint16_t addr)
 {
     mon_out("CR: bank: %d, $4000-$7FFF: %s, $8000-$BFFF: %s, $C000-$CFFF: %s, $D000-$DFFF: %s, $E000-$FFFF: %s\n",
             (mmu[0] & 0xc0) >> 6,
@@ -432,8 +503,10 @@ int mmu_dump(void *context, WORD addr)
             (mmu[6] & 8) ? ((mmu[6] & 4) ? "bottom and top" : "top") : ((mmu[6] & 4) ? "bottom" : "none"),
             (mmu[6] & 2) ? ((mmu[6] & 1) ? "16Kb" : "8Kb") : ((mmu[6] & 1) ? "4Kb" : "1Kb"));
 
-    mon_out("Page 0 pointer: $%04X\n", (mmu[8] << 16) | (mmu[7] << 8));
-    mon_out("Page 1 pointer: $%04X\n", (mmu[10] << 16) | (mmu[9] << 8));
+    mon_out("Page 0 pointer: $%04X\n",
+            (unsigned int)((mmu[8] << 16) | (mmu[7] << 8)));
+    mon_out("Page 1 pointer: $%04X\n",
+            (unsigned int)((mmu[10] << 16) | (mmu[9] << 8)));
 
     mon_out("MMU version: %d\n", mmu[11] & 0xf);
     mon_out("Amount of 64Kb blocks present: %d\n", (c128_full_banks) ? 4 : 2);
@@ -453,11 +526,13 @@ void mmu_init(void)
 
 void mmu_reset(void)
 {
-    WORD i;
+    uint16_t i;
 
     for (i = 0; i < 0xb; i++) {
         mmu[i] = 0;
     }
+    mmu[9] = 1;
+    mmu_update_page01_pointers();
 
     keyboard_register_column4080_key(mmu_toggle_column4080_key);
 

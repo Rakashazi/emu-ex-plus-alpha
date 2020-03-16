@@ -23,10 +23,6 @@
 #ifndef VICE__RESIDDTV_CONFIG_H__
 #define VICE__RESIDDTV_CONFIG_H__
 
-#ifdef IDE_COMPILE
-#include "ide-siddtvdefs.h"
-#else
 #include "siddtvdefs.h"
-#endif
 
 #endif

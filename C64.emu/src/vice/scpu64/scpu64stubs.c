@@ -26,10 +26,13 @@
 
 #include "vice.h"
 
+#include "c64mem.h"
 #include "snapshot.h"
 #include "tap.h"
 #include "tape.h"
 #include "tapeport.h"
+#include "tape-snapshot.h"
+
 
 /*******************************************************************************
     tape
@@ -90,7 +93,7 @@ int tape_snapshot_read_module(snapshot_t *s)
     return 0;
 }
 
-int tape_read(tape_image_t *tape_image, BYTE *buf, size_t size)
+int tape_read(tape_image_t *tape_image, uint8_t *buf, size_t size)
 {
     return 0;
 }
@@ -125,7 +128,7 @@ int tape_seek_to_next_file(tape_image_t *tape_image, unsigned int allow_rewind)
     return 0;
 }
 
-void tape_get_header(tape_image_t *tape_image, BYTE *name)
+void tape_get_header(tape_image_t *tape_image, uint8_t *name)
 {
 }
 
@@ -134,12 +137,12 @@ const char *tape_get_file_name(void)
     return NULL;
 }
 
-BYTE colorram_read(WORD addr)
+uint8_t colorram_read(uint16_t addr)
 {
     return 0;
 }
 
-void colorram_store(WORD addr, BYTE value)
+void colorram_store(uint16_t addr, uint8_t value)
 {
 }
 

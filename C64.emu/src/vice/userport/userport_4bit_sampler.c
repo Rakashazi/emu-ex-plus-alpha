@@ -45,7 +45,6 @@ C64/C128 | CBM2 | ADC | NOTES
 #include "resources.h"
 #include "sampler.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "userport.h"
 #include "userport_4bit_sampler.h"
 
@@ -57,30 +56,29 @@ int userport_4bit_sampler_read = 1;
 
 /* Some prototypes are needed */
 static void userport_4bit_sampler_read_pbx(void);
-static void userport_4bit_sampler_store_pa2(BYTE value);
+static void userport_4bit_sampler_store_pa2(uint8_t value);
 static int userport_4bit_sampler_write_snapshot_module(snapshot_t *s);
 static int userport_4bit_sampler_read_snapshot_module(snapshot_t *s);
 
 static userport_device_t sampler_device = {
-    USERPORT_DEVICE_4BIT_SAMPLER,
-    "Userport 4bit sampler",
-    IDGS_USERPORT_4BIT_SAMPLER,
-    userport_4bit_sampler_read_pbx,
-    NULL, /* NO pbx store */
-    NULL, /* NO pa2 read */
-    userport_4bit_sampler_store_pa2,
-    NULL, /* NO pa3 read */
-    NULL, /* NO pa3 write */
-    0, /* NO pc pin needed */
-    NULL, /* NO sp1 write */
-    NULL, /* NO sp1 read */
-    NULL, /* NO sp1 write */
-    NULL, /* NO sp2 read */
-    "Userport4bitSampler",
-    0xff,
-    0xf0, /* valid mask doesn't change */
-    0,
-    0
+    USERPORT_DEVICE_4BIT_SAMPLER,    /* device id */
+    "Userport 4bit sampler",         /* device name */
+    userport_4bit_sampler_read_pbx,  /* read pb0-pb7 function */
+    NULL,                            /* NO store pb0-pb7 function */
+    NULL,                            /* NO read pa2 pin function */
+    userport_4bit_sampler_store_pa2, /* store pa2 pin function */
+    NULL,                            /* NO read pa3 pin function */
+    NULL,                            /* NO store pa3 pin function */
+    0,                               /* pc pin is NOT needed */
+    NULL,                            /* NO store sp1 pin function */
+    NULL,                            /* NO read sp1 pin function */
+    NULL,                            /* NO store sp2 pin function */
+    NULL,                            /* NO read sp2 pin function */
+    "Userport4bitSampler",           /* resource used by the device */
+    0xff,                            /* return value from a read, to be filled in by the device */
+    0xf0,                            /* validity mask of the device, doesn't change */
+    0,                               /* device involved in a read collision, to be filled in by the collision detection system */
+    0                                /* a tag to indicate the order of insertion */
 };
 
 static userport_snapshot_t sampler_snapshot = {
@@ -133,16 +131,12 @@ int userport_4bit_sampler_resources_init(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-userport4bitsampler", SET_RESOURCE, 0,
+    { "-userport4bitsampler", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "Userport4bitSampler", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_USERPORT_4BIT_SAMPLER,
-      NULL, NULL },
-    { "+userport4bitsampler", SET_RESOURCE, 0,
+      NULL, "Enable Userport 4bit sampler" },
+    { "+userport4bitsampler", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "Userport4bitSampler", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_USERPORT_4BIT_SAMPLER,
-      NULL, NULL },
+      NULL, "Disable Userport 4bit sampler" },
     CMDLINE_LIST_END
 };
 
@@ -153,14 +147,14 @@ int userport_4bit_sampler_cmdline_options_init(void)
 
 /* ---------------------------------------------------------------------*/
 
-static void userport_4bit_sampler_store_pa2(BYTE value)
+static void userport_4bit_sampler_store_pa2(uint8_t value)
 {
     userport_4bit_sampler_read = value & 1;
 }
 
 static void userport_4bit_sampler_read_pbx(void)
 {
-    BYTE retval = 0xf0;
+    uint8_t retval = 0xf0;
 
     if (!userport_4bit_sampler_read) {
         retval = sampler_get_sample(SAMPLER_CHANNEL_DEFAULT) & 0xf0;

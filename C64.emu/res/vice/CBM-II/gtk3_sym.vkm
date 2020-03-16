@@ -1,0 +1,236 @@
+# VICE keyboard mapping file
+#
+# A Keyboard map is read in as patch to the current map.
+#
+# File format:
+# - comment lines start with '#'
+# - keyword lines start with '!keyword'
+# - normal line has 'keysym/scancode row column shiftflag'
+#
+# Keywords and their lines are:
+# '!CLEAR'               clear whole table
+# '!INCLUDE filename'    read file as mapping file
+# '!LSHIFT row col'      left shift keyboard row/column
+# '!RSHIFT row col'      right shift keyboard row/column
+# '!VSHIFT shiftkey'     virtual shift key (RSHIFT or LSHIFT)
+# '!UNDEF keysym'        remove keysym from table
+#
+# Shiftflag can have the values:
+# 0      key is not shifted for this keysym/scancode
+# 1      key is shifted for this keysym/scancode
+# 2      left shift
+# 4      right shift
+# 8      key can be shifted or not with this keysym/scancode
+# 16     deshift key for this keysym/scancode
+# 32     another definition for this keysym/scancode follows
+#
+# Negative row values:
+# 'keysym -1 n' joystick #1, direction n
+# 'keysym -2 n' joystick #2, direction n
+# 'keysym -3 0' first RESTORE key
+# 'keysym -3 1' second RESTORE key
+# 'keysym -4 0' 40/80 column key
+# 'keysym -4 1' CAPS (ASCII/DIN) key
+#
+
+#############################################################################
+#
+# Commodore cbm2 keyboard matrix:
+#
+# references:
+#  http://www.zimmers.net/anonftp/pub/cbm/b/documents/de/keyboard-matrix.gif
+#  http://www.zimmers.net/anonftp/pub/cbm/b/documents/keymap-us.gif
+#  http://www.zimmers.net/anonftp/pub/cbm/schematics/computers/b/p500-keyboard.txt
+#  http://www.floodgap.com/retrobits/ckb/secret/cbm-610-keyboard.jpg
+#
+# Keys starting with 'KP' are on the number pad. Both shifts and shift lock
+# are in parallel at one point in matrix.
+#
+#       0        1        2        3        4        5
+#   +--------+--------+--------+--------+--------+--------+
+# 0 |   F9   |  9  (  |   O    |   L    |  ;  :  |  /  ?  |
+#   +--------+--------+--------+--------+--------+--------+
+# 1 |  F10   |  0  )  |   -    |   P    |   [    |  '  "  |
+#   +--------+--------+--------+--------+--------+--------+
+# 2 | c.down |  =  +  |<- pound|   ]    | return |  pi    |
+#   +--------+--------+--------+--------+--------+--------+
+# 3 | c.up   | c.left | c.right|del ins | CBM    |########|
+#   +--------+--------+--------+--------+--------+--------+
+# 4 |home/clr|KP ?    |KP 7    |KP 4    |KP 1    |KP 0    |
+#   +--------+--------+--------+--------+--------+--------+
+# 5 |rvs/off |KP CE   |KP 8    |KP 5    |KP 2    |KP .    |
+#   +--------+--------+--------+--------+--------+--------+
+# 6 | graph  |KP *    |KP 9    |KP 6    |KP 3    |KP 00   |
+#   +--------+--------+--------+--------+--------+--------+
+# 7 |run/stop|KP /    |KP -    |KP +    |KP enter|########|
+#   +--------+--------+--------+--------+--------+--------+
+# 8 |   F1   | escape |  TAB   |########| Shift  | CTRL   |
+#   +--------+--------+--------+--------+--------+--------+
+# 9 |   F2   |  1  !  |   Q    |   A    |   Z    |########|
+#   +--------+--------+--------+--------+--------+--------+
+#10 |   F3   |  2  @  |   W    |   S    |   X    |   C    |
+#   +--------+--------+--------+--------+--------+--------+
+#11 |   F4   |  3  #  |   E    |   D    |   F    |   V    |
+#   +--------+--------+--------+--------+--------+--------+
+#12 |   F5   |  4  $  |   R    |   T    |   G    |   B    |
+#   +--------+--------+--------+--------+--------+--------+
+#13 |   F6   |  5  %  |  6  ^  |   Y    |   H    |   N    |
+#   +--------+--------+--------+--------+--------+--------+
+#14 |   F7   |  7  &  |   U    |   J    |   M    | space  |
+#   +--------+--------+--------+--------+--------+--------+
+#15 |   F8   |  8  *  |   I    |   K    |  ,  <  |  .  >  |
+#   +--------+--------+--------+--------+--------+--------+
+
+!CLEAR
+!LSHIFT 8 4
+!RSHIFT 8 4
+!VSHIFT LSHIFT
+
+Return 2 4 0
+Down 2 0 8
+Right 3 2 8
+Home 4 0 8
+BackSpace 3 3 8
+Delete 3 3 0
+Tab 8 2 8
+KP_Tab 8 2 8
+ISO_Left_Tab 8 2 1
+Escape 8 1 8
+Control_L 7 0 0	# run/stop
+Control_R 8 5 8	# Ctrl key
+# Control_R 4 1 8 # question mark
+Shift_L 8 4 2
+Shift_R 8 4 2
+Prior 5 0 8
+Next 6 0 8
+End 5 1 8
+a 9 3 0
+b 12 5 0
+c 10 5 0
+d 11 3 0
+e 11 2 0
+f 11 4 0
+g 12 4 0
+h 13 4 0
+i 15 2 0
+j 14 3 0
+k 15 3 0
+l 0 3 0
+m 14 4 0
+n 13 5 0
+o 0 2 0
+p 1 3 0
+q 9 2 0
+r 12 2 0
+s 10 3 0
+t 12 3 0
+u 14 2 0
+v 11 5 0
+w 10 2 0
+x 10 4 0
+y 13 3 0
+z 9 4 0
+KP_0 4 5 8
+KP_1 4 4 8
+KP_2 5 4 8
+KP_3 6 4 8
+KP_4 4 3 8
+KP_5 5 3 8
+KP_6 6 3 8
+KP_7 4 2 8
+KP_8 5 2 8
+KP_9 6 2 8
+KP_Separator 5 5 8
+KP_Multiply 6 1 8
+KP_Divide 7 1 8
+KP_Add 7 3 8
+KP_Subtract 7 2 8
+KP_Enter 7 4 8
+KP_Decimal 5 5 8
+0 1 1 0
+1 9 1 0
+2 10 1 0
+3 11 1 0
+4 12 1 0
+5 13 1 0
+6 13 2 0
+7 14 1 0
+8 15 1 0
+9 0 1 0
+slash 0 5 0
+bracketright 2 3 0
+bracketleft 1 4 0
+parenright 1 1 1
+parenleft 0 1 1
+question 4 1 0
+dollar 12 1 1
+asterisk 15 1 1
+colon 0 4 1
+comma 15 4 0
+quotedbl 1 5 1
+backslash 2 2 1
+# bar 1 3 0
+numbersign 11 1 1
+exclam 9 1 1
+percent 13 1 1
+plus 2 1 1
+underscore 2 2 0
+ampersand 14 1 1
+semicolon 0 4 0
+minus 1 2 0
+equal 2 1 0
+space 14 5 8
+greater 15 5 1
+less 15 4 1
+period 15 5 0
+at 10 1 1
+asciicircum 2 5 8
+asciitilde 2 5 8
+Left 3 1 0
+Up 3 0 0
+Insert 3 3 1
+Clear 4 0 1
+grave 8 1 1
+W 10 2 1
+A 9 3 1
+Z 9 4 1
+S 10 3 1
+E 11 2 1
+R 12 2 1
+D 11 3 1
+C 10 5 1
+F 11 4 1
+T 12 3 1
+X 10 4 1
+Y 13 3 1
+G 12 4 1
+B 12 5 1
+H 13 4 1
+U 14 2 1
+V 11 5 1
+I 15 2 1
+J 14 3 1
+M 14 4 1
+K 15 3 1
+O 0 2 1
+N 9 5 1
+P 1 3 1
+L 0 3 1
+Q 9 2 1
+F1 8 0 8
+F2 9 0 8
+F3 10 0 8
+F4 11 0 8
+F5 12 0 8
+F6 13 0 8
+F7 14 0 8
+F8 15 0 8
+F9 0 0 8
+F10 1 0 8
+
+# Dead keys support for those using US-International keyboard layout.
+dead_grave      8 1 1  # escape
+dead_circumflex 2 5 8  # pi
+dead_tilde      2 5 8  # pi
+dead_acute      1 5 0  # '
+dead_diaeresis  1 5 1  # "

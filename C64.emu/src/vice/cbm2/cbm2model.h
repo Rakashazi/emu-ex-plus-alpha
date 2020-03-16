@@ -29,6 +29,7 @@
 
 #include "types.h"
 
+/* TODO: turn into enum so a compiler can check missing cases */
 #define CBM2MODEL_510_PAL           0
 #define CBM2MODEL_510_NTSC          1
 #define CBM2MODEL_610_PAL           2
@@ -52,7 +53,7 @@
 #define LINE_6x0_60HZ  1
 #define LINE_6x0_50HZ  2
 
-extern VICE_API int cbm2model_get(void);
-extern VICE_API void cbm2model_set(int model);
+int cbm2model_get(void);
+void cbm2model_set(int model);
 
 #endif

@@ -29,8 +29,8 @@
 
 #include "types.h"
 
-extern void vic_store(WORD addr, BYTE value);
-extern BYTE vic_read(WORD addr);
-extern BYTE vic_peek(WORD addr);
+extern void vic_store(uint16_t addr, uint8_t value);
+extern uint8_t vic_read(uint16_t addr);
+extern uint8_t vic_peek(uint16_t addr);
 
 #endif

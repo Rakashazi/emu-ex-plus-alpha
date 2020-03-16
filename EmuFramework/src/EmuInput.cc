@@ -797,6 +797,11 @@ void toggleKeyboard()
 	#endif
 }
 
+void updateVControllerMapping()
+{
+	vController.updateMapping(pointerInputPlayer);
+}
+
 }
 
 void TurboInput::addEvent(uint action)

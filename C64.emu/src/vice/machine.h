@@ -48,6 +48,8 @@ extern const char machine_name[];
 #define VICE_MACHINE_C64SC     9
 #define VICE_MACHINE_VSID      10
 #define VICE_MACHINE_SCPU64    11
+#define VICE_MACHINE_C1541     12
+#define VICE_MACHINE_PETCAT    13
 
 /* Sync factors (changed to positive 2016-11-07, BW)  */
 #define MACHINE_SYNC_PAL     1
@@ -103,7 +105,7 @@ extern void machine_maincpu_init(void);
 /* Reset the machine.  */
 #define MACHINE_RESET_MODE_SOFT 0
 #define MACHINE_RESET_MODE_HARD 1
-extern VICE_API void machine_trigger_reset(const unsigned int reset_mode);
+extern void machine_trigger_reset(const unsigned int reset_mode);
 extern void machine_reset(void);
 extern void machine_specific_reset(void);
 extern void machine_reset_event_playback(CLOCK offset, void *data);
@@ -116,7 +118,7 @@ extern void machine_shutdown(void);
 extern void machine_specific_shutdown(void);
 
 /* Set the state of the RESTORE key (!=0 means pressed) */
-extern VICE_API void machine_set_restore_key(int v);
+extern void machine_set_restore_key(int v);
 
 /* returns 1 if key is present */
 extern int machine_has_restore_key(void);
@@ -134,11 +136,11 @@ extern void machine_set_cycles_per_frame(long cpf);
 extern void machine_get_line_cycle(unsigned int *line, unsigned int *cycle, int *half_cycle);
 
 /* Write a snapshot.  */
-extern VICE_API int machine_write_snapshot(const char *name, int save_roms,
+extern int machine_write_snapshot(const char *name, int save_roms,
                                   int save_disks, int even_mode);
 
 /* Read a snapshot.  */
-extern VICE_API int machine_read_snapshot(const char *name, int even_mode);
+extern int machine_read_snapshot(const char *name, int even_mode);
 
 /* handle pending interrupts - needed by libsid.a.  */
 extern void machine_handle_pending_alarms(int num_write_cycles);
@@ -152,6 +154,9 @@ extern int machine_sid2_check_range(unsigned int sid2_adr);
 
 /* Check the base address for the third sid chip.  */
 extern int machine_sid3_check_range(unsigned int sid3_adr);
+
+/* Check the base address for the fourth sid chip.  */
+extern int machine_sid4_check_range(unsigned int sid4_adr);
 
 /* Change the timing parameters of the maching (for example PAL/NTSC).  */
 extern void machine_change_timing(int timeval, int border_mode);
@@ -188,8 +193,8 @@ extern int machine_romset_file_save(const char *filename);
 extern char *machine_romset_file_list(void);
 extern int machine_romset_archive_item_create(const char *romset_name);
 
-extern BYTE machine_tape_type_default(void);
-extern BYTE machine_tape_behaviour(void);
+extern uint8_t machine_tape_type_default(void);
+extern uint8_t machine_tape_behaviour(void);
 
 /* Check if address is in RAM (for autostart) */
 extern int machine_addr_in_ram(unsigned int addr);

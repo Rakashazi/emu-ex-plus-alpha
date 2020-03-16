@@ -32,7 +32,7 @@
 #include "filter.h"
 #include "extfilt.h"
 
-namespace reSID
+namespace reSID_dtv
 {
 
 class SID
@@ -142,6 +142,6 @@ protected:
   short* fir;
 };
 
-} // namespace reSID
+} // namespace reSID_dtv
 
 #endif // not __SID_H__

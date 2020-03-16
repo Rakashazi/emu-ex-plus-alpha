@@ -36,19 +36,19 @@ struct midi_interface_s {
     /* Name of the interface */
     char *name;
     /* Base address (C64 specific) */
-    WORD base_addr;
+    uint16_t base_addr;
     /* Control register address */
-    WORD ctrl_addr;
+    uint16_t ctrl_addr;
     /* Status register address */
-    WORD status_addr;
+    uint16_t status_addr;
     /* Transmit register address */
-    WORD tx_addr;
+    uint16_t tx_addr;
     /* Receive register address */
-    WORD rx_addr;
+    uint16_t rx_addr;
     /* Address mask (for mirroring) */
-    WORD mask;
+    uint16_t mask;
     /* Correct counter divide for 31250 bps */
-    BYTE midi_cd;
+    uint8_t midi_cd;
     /* Interrupt type: none (0), IRQ (1) or NMI (2) */
     int irq_type;
     /* cart-ID of associated cartridge/type of expansion, 0 means internal */
@@ -67,13 +67,13 @@ extern void midi_init(void);
 extern void midi_reset(void);
 extern int midi_set_mode(int new_mode, void *param);
 
-extern BYTE midi_read(WORD a);
-extern BYTE midi_peek(WORD a);
-extern void midi_store(WORD a, BYTE b);
+extern uint8_t midi_read(uint16_t a);
+extern uint8_t midi_peek(uint16_t a);
+extern void midi_store(uint16_t a, uint8_t b);
 /* returns 1 if address is a readable MIDI register */
-extern int midi_test_read(WORD a);
+extern int midi_test_read(uint16_t a);
 /* returns 1 if address is any MIDI register */
-extern int midi_test_peek(WORD a);
+extern int midi_test_peek(uint16_t a);
 
 extern int midi_resources_init(void);
 extern void midi_resources_shutdown(void);

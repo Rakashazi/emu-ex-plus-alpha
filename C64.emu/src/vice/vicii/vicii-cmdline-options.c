@@ -35,7 +35,6 @@
 #include "machine.h"
 #include "raster-cmdline-options.h"
 #include "resources.h"
-#include "translate.h"
 #include "vicii-cmdline-options.h"
 #include "vicii-resources.h"
 #include "vicii-timing.h"
@@ -43,7 +42,7 @@
 #include "viciitypes.h"
 
 
-int border_set_func(const char *value, void *extra_param)
+static int border_set_func(const char *value, void *extra_param)
 {
     int video;
     resources_get_int("MachineVideoStandard", &video);
@@ -66,46 +65,32 @@ int border_set_func(const char *value, void *extra_param)
 /* VIC-II command-line options.  */
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-VICIIborders", CALL_FUNCTION, 1,
+    { "-VICIIborders", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       border_set_func, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_MODE, IDCLS_SET_BORDER_MODE,
-      NULL, NULL },
-    { "-VICIIchecksb", SET_RESOURCE, 0,
+      "<Mode>", "Set border display mode (0: normal, 1: full, 2: debug, 3: none)" },
+    { "-VICIIchecksb", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "VICIICheckSbColl", (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_SPRITE_BACKGROUND,
-      NULL, NULL },
-    { "+VICIIchecksb", SET_RESOURCE, 0,
+      NULL, "Enable sprite-background collision registers" },
+    { "+VICIIchecksb", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "VICIICheckSbColl", (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_SPRITE_BACKGROUND,
-      NULL, NULL },
-    { "-VICIIcheckss", SET_RESOURCE, 0,
+      NULL, "Disable sprite-background collision registers" },
+    { "-VICIIcheckss", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "VICIICheckSsColl", (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_SPRITE_SPRITE,
-      NULL, NULL },
-    { "+VICIIcheckss", SET_RESOURCE, 0,
+      NULL, "Enable sprite-sprite collision registers" },
+    { "+VICIIcheckss", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "VICIICheckSsColl", (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_SPRITE_SPRITE,
-      NULL, NULL },
+      NULL, "Disable sprite-sprite collision registers" },
     CMDLINE_LIST_END
 };
 
 static const cmdline_option_t cmdline_options_dtv[] =
 {
-    { "-VICIInewluminance", SET_RESOURCE, 0,
+    { "-VICIInewluminance", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "VICIINewLuminances", (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_NEW_LUMINANCES,
-      NULL, NULL },
-    { "+VICIInewluminance", SET_RESOURCE, 0,
+      NULL, "Use new luminances" },
+    { "+VICIInewluminance", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "VICIINewLuminances", (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_OLD_LUMINANCES,
-      NULL, NULL },
+      NULL, "Use old luminances" },
     CMDLINE_LIST_END
 };
 

@@ -62,13 +62,13 @@
 #define MC6821_CTRL_C1_IRQLOHI  0x02
 
 typedef struct _mc6821_state {
-    BYTE ctrlA;
-    BYTE dataA;
-    BYTE ddrA;
+    uint8_t ctrlA;
+    uint8_t dataA;
+    uint8_t ddrA;
 
-    BYTE ctrlB;
-    BYTE dataB;
-    BYTE ddrB;
+    uint8_t ctrlB;
+    uint8_t dataB;
+    uint8_t ddrB;
 
     int CA2;
     int CA2state;
@@ -87,16 +87,16 @@ typedef struct _mc6821_state {
     void (*set_cb2)(struct _mc6821_state*);
 
     /* hooks that read the status of i/o lines */
-    BYTE (*get_pa)(struct _mc6821_state*);
-    BYTE (*get_pb)(struct _mc6821_state*);
+    uint8_t (*get_pa)(struct _mc6821_state*);
+    uint8_t (*get_pb)(struct _mc6821_state*);
 
     void *p;    /* parent context that may be used by the hooks */
 } mc6821_state;
 
 void mc6821core_reset(mc6821_state *ctx);
-BYTE mc6821core_read(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */);
-BYTE mc6821core_peek(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */);
-void mc6821core_store(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */, BYTE data);
+uint8_t mc6821core_read(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */);
+uint8_t mc6821core_peek(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */);
+void mc6821core_store(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */, uint8_t data);
 
 /* Signal values (for signaling edges on the control lines)  */
 #define MC6821_SIGNAL_CA1 0

@@ -89,7 +89,7 @@ unsigned int interrupt_cpu_status_int_new(interrupt_cpu_status_t *cs,
     cs->pending_int[cs->num_ints - 1] = 0;
 
     cs->int_name = lib_realloc(cs->int_name, cs->num_ints * sizeof(char *));
-    cs->int_name[cs->num_ints - 1] = lib_stralloc(name);
+    cs->int_name[cs->num_ints - 1] = lib_strdup(name);
 
     return cs->num_ints - 1;
 }
@@ -312,7 +312,7 @@ void interrupt_ack_reset(interrupt_cpu_status_t *cs)
 /* Trigger a TRAP.  This is a special condition that can be used for
    debugging.  `trap_func' will be called with PC as the argument when this
    condition is detected.  */
-void interrupt_maincpu_trigger_trap(void (*trap_func)(WORD, void *data),
+void interrupt_maincpu_trigger_trap(void (*trap_func)(uint16_t, void *data),
                                     void *data)
 {
     interrupt_cpu_status_t *cs = maincpu_int_status;
@@ -324,7 +324,7 @@ void interrupt_maincpu_trigger_trap(void (*trap_func)(WORD, void *data),
 
 
 /* Dispatch the TRAP condition.  */
-void interrupt_do_trap(interrupt_cpu_status_t *cs, WORD address)
+void interrupt_do_trap(interrupt_cpu_status_t *cs, uint16_t address)
 {
     cs->global_pending_int &= ~IK_TRAP;
     cs->trap_func(address, cs->trap_data);
@@ -348,7 +348,7 @@ int interrupt_write_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
     if (SMW_DW(m, cs->irq_clk) < 0
         || SMW_DW(m, cs->nmi_clk) < 0
         || SMW_DW(m, cs->irq_pending_clk) < 0
-        || SMW_DW(m, (DWORD)cs->num_last_stolen_cycles) < 0
+        || SMW_DW(m, (uint32_t)cs->num_last_stolen_cycles) < 0
         || SMW_DW(m, cs->last_stolen_cycles_clk) < 0) {
         return -1;
     }
@@ -382,7 +382,7 @@ int interrupt_write_sc_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m
 int interrupt_read_snapshot(interrupt_cpu_status_t *cs, snapshot_module_t *m)
 {
     unsigned int i;
-    DWORD dw;
+    uint32_t dw;
 
     for (i = 0; i < cs->num_ints; i++) {
         cs->pending_int[i] = IK_NONE;

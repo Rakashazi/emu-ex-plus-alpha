@@ -32,22 +32,22 @@
 
 #include "types.h"
 
-extern void spi_mmc_trigger_mode_write(BYTE value);
-extern BYTE spi_mmc_trigger_mode_read(void);
-extern BYTE spi_mmc_card_inserted(void);
-extern BYTE spi_mmc_busy(void);
-extern BYTE spi_mmc_card_write_enabled(void);
-extern BYTE spi_mmc_card_selected_read(void);
-extern void spi_mmc_card_selected_write(BYTE value);
-extern BYTE spi_mmc_enable_8mhz_read(void);
-extern void spi_mmc_enable_8mhz_write(BYTE value);
-extern BYTE spi_mmc_trigger_mode_read(void);
-extern void spi_mmc_trigger_mode_write(BYTE value);
-extern BYTE spi_mmc_data_read(void);
-extern void spi_mmc_data_write(BYTE value);
+extern void spi_mmc_trigger_mode_write(uint8_t value);
+extern uint8_t spi_mmc_trigger_mode_read(void);
+extern uint8_t spi_mmc_card_inserted(void);
+extern uint8_t spi_mmc_busy(void);
+extern uint8_t spi_mmc_card_write_enabled(void);
+extern uint8_t spi_mmc_card_selected_read(void);
+extern void spi_mmc_card_selected_write(uint8_t value);
+extern uint8_t spi_mmc_enable_8mhz_read(void);
+extern void spi_mmc_enable_8mhz_write(uint8_t value);
+extern uint8_t spi_mmc_trigger_mode_read(void);
+extern void spi_mmc_trigger_mode_write(uint8_t value);
+extern uint8_t spi_mmc_data_read(void);
+extern void spi_mmc_data_write(uint8_t value);
 extern int  mmc_open_card_image(char *name, int rw);
 extern void mmc_close_card_image(void);
-extern BYTE mmc_set_card_type(BYTE value);
+extern uint8_t mmc_set_card_type(uint8_t value);
 
 struct snapshot_s;
 extern int mmc_snapshot_read_module(struct snapshot_s *s);

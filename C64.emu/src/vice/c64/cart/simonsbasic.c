@@ -1,5 +1,5 @@
 /*
- * simonsbasic.c - Cartridge handling, Simons Basic cart.
+ * simonsbasic.c - Cartridge handling, Simons' Basic cart.
  *
  * Written by
  *  Groepaz <groepaz@gmx.net>
@@ -44,7 +44,7 @@
 #include "crt.h"
 
 /*
-    Simon's Basic Cartridge
+    Simons' Basic Cartridge
 
     - 16kb ROM
 
@@ -54,19 +54,19 @@
 
 static int simon_a000 = 0;
 
-static BYTE simon_io1_read(WORD addr)
+static uint8_t simon_io1_read(uint16_t addr)
 {
     cart_config_changed_slotmain(0, 0, CMODE_READ);
     simon_a000 = 0;
     return 0;
 }
 
-static BYTE simon_io1_peek(WORD addr)
+static uint8_t simon_io1_peek(uint16_t addr)
 {
     return 0;
 }
 
-static void simon_io1_store(WORD addr, BYTE value)
+static void simon_io1_store(uint16_t addr, uint8_t value)
 {
     cart_config_changed_slotmain(1, 1, CMODE_WRITE);
     simon_a000 = 1;
@@ -83,17 +83,19 @@ static int simon_dump(void)
 /* ---------------------------------------------------------------------*/
 
 static io_source_t simon_device = {
-    CARTRIDGE_NAME_SIMONS_BASIC,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    0, /* read is never valid */
-    simon_io1_store,
-    simon_io1_read,
-    simon_io1_peek,
-    simon_dump,
-    CARTRIDGE_SIMONS_BASIC,
-    0
+    CARTRIDGE_NAME_SIMONS_BASIC, /* name of the device */
+    IO_DETACH_CART,              /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,       /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,        /* range for the device, address is ignored, reg:$de00, mirrors:$de01-$deff */
+    0,                           /* read is never valid */
+    simon_io1_store,             /* store function */
+    NULL,                        /* NO poke function */
+    simon_io1_read,              /* read function */
+    simon_io1_peek,              /* peek function */
+    simon_dump,                  /* device state information dump function */
+    CARTRIDGE_SIMONS_BASIC,      /* cartridge ID */
+    IO_PRIO_NORMAL,              /* normal priority, device read needs to be checked for collisions */
+    0                            /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *simon_list_item = NULL;
@@ -110,7 +112,7 @@ void simon_config_init(void)
     simon_a000 = 1;
 }
 
-void simon_config_setup(BYTE *rawcart)
+void simon_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
     memcpy(romh_banks, &rawcart[0x2000], 0x2000);
@@ -127,7 +129,7 @@ static int simon_common_attach(void)
     return 0;
 }
 
-int simon_bin_attach(const char *filename, BYTE *rawcart)
+int simon_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x4000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -135,7 +137,7 @@ int simon_bin_attach(const char *filename, BYTE *rawcart)
     return simon_common_attach();
 }
 
-int simon_crt_attach(FILE *fd, BYTE *rawcart)
+int simon_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
     int i;
@@ -190,7 +192,7 @@ int simon_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)simon_a000) < 0
+        || SMW_B(m, (uint8_t)simon_a000) < 0
         || SMW_BA(m, roml_banks, 0x2000) < 0
         || SMW_BA(m, romh_banks, 0x2000) < 0) {
         snapshot_module_close(m);
@@ -202,7 +204,7 @@ int simon_snapshot_write_module(snapshot_t *s)
 
 int simon_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -212,13 +214,13 @@ int simon_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
     /* new in 0.1 */
-    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 1)) {
         if (SMR_B_INT(m, &simon_a000) < 0) {
             goto fail;
         }

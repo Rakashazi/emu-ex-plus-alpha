@@ -62,33 +62,33 @@ extern int c64_mem_init_cmdline_options(void);
 
 extern void mem_set_vbank(int new_vbank);
 
-extern BYTE ram_read(WORD addr);
-extern void ram_store(WORD addr, BYTE value);
-extern void ram_hi_store(WORD addr, BYTE value);
+extern uint8_t ram_read(uint16_t addr);
+extern void ram_store(uint16_t addr, uint8_t value);
+extern void ram_hi_store(uint16_t addr, uint8_t value);
 
-extern BYTE chargen_read(WORD addr);
-extern void chargen_store(WORD addr, BYTE value);
+extern uint8_t chargen_read(uint16_t addr);
+extern void chargen_store(uint16_t addr, uint8_t value);
 
-extern void colorram_store(WORD addr, BYTE value);
-extern BYTE colorram_read(WORD addr);
+extern void colorram_store(uint16_t addr, uint8_t value);
+extern uint8_t colorram_read(uint16_t addr);
 
 extern void mem_pla_config_changed(void);
 extern void mem_set_tape_sense(int sense);
 extern void mem_set_tape_write_in(int val);
 extern void mem_set_tape_motor_in(int val);
 
-extern BYTE mem_chargen_rom[C64_CHARGEN_ROM_SIZE];
+extern uint8_t mem_chargen_rom[C64_CHARGEN_ROM_SIZE];
 
 extern void mem_set_write_hook(int config, int page, store_func_t *f);
 extern void mem_read_tab_set(unsigned int base, unsigned int index, read_func_ptr_t read_func);
-extern void mem_read_base_set(unsigned int base, unsigned int index, BYTE *mem_ptr);
+extern void mem_read_base_set(unsigned int base, unsigned int index, uint8_t *mem_ptr);
 
-extern void mem_store_without_ultimax(WORD addr, BYTE value);
-extern BYTE mem_read_without_ultimax(WORD addr);
-extern void mem_store_without_romlh(WORD addr, BYTE value);
+extern void mem_store_without_ultimax(uint16_t addr, uint8_t value);
+extern uint8_t mem_read_without_ultimax(uint16_t addr);
+extern void mem_store_without_romlh(uint16_t addr, uint8_t value);
 
-extern void store_bank_io(WORD addr, BYTE byte);
-extern BYTE read_bank_io(WORD addr);
+extern void store_bank_io(uint16_t addr, uint8_t byte);
+extern uint8_t read_bank_io(uint16_t addr);
 
 extern void c64_mem_init(void);
 
@@ -96,7 +96,7 @@ extern int c64_mem_ui_init_early(void);
 extern int c64_mem_ui_init(void);
 extern void c64_mem_ui_shutdown(void);
 
-extern BYTE vsid_io_read(WORD addr);
-extern void vsid_io_store(WORD addr, BYTE val);
+extern uint8_t vsid_io_read(uint16_t addr);
+extern void vsid_io_store(uint16_t addr, uint8_t val);
 
 #endif

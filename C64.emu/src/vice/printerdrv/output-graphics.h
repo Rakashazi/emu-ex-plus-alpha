@@ -29,5 +29,6 @@
 
 extern int output_graphics_init_resources(void);
 extern void output_graphics_init(void);
+extern void output_graphics_shutdown(void);
 
 #endif

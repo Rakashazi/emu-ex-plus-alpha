@@ -94,7 +94,7 @@ static embedded_palette_t palette_files[] = {
     EMBEDDED_PALETTE_LIST_END
 };
 
-static size_t embedded_match_file(const char *name, BYTE *dest, int minsize, int maxsize, embedded_t *emb)
+static size_t embedded_match_file(const char *name, unsigned char *dest, int minsize, int maxsize, embedded_t *emb)
 {
     int i = 0;
 
@@ -114,7 +114,7 @@ static size_t embedded_match_file(const char *name, BYTE *dest, int minsize, int
     return 0;
 }
 
-size_t embedded_check_file(const char *name, BYTE *dest, int minsize, int maxsize)
+size_t embedded_check_file(const char *name, unsigned char *dest, int minsize, int maxsize)
 {
     size_t retval;
 

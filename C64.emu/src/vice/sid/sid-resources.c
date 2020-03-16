@@ -59,6 +59,9 @@ static int sid_resid_sampling;
 static int sid_resid_passband;
 static int sid_resid_gain;
 static int sid_resid_filter_bias;
+static int sid_resid_8580_passband;
+static int sid_resid_8580_gain;
+static int sid_resid_8580_filter_bias;
 #endif
 int sid_stereo = 0;
 int checking_sid_stereo;
@@ -66,6 +69,8 @@ unsigned int sid_stereo_address_start;
 unsigned int sid_stereo_address_end;
 unsigned int sid_triple_address_start;
 unsigned int sid_triple_address_end;
+unsigned int sid_quad_address_start;
+unsigned int sid_quad_address_end;
 static int sid_engine;
 #ifdef HAVE_HARDSID
 static int sid_hardsid_main;
@@ -181,6 +186,21 @@ int sid_set_sid_triple_address(int val, void *param)
     return 0;
 }
 
+int sid_set_sid_quad_address(int val, void *param)
+{
+    unsigned int sid4_adr;
+
+    sid4_adr = (unsigned int)val;
+
+    if (machine_sid4_check_range(sid4_adr) < 0) {
+        return -1;
+    }
+
+    sid_quad_address_start = sid4_adr;
+    sid_quad_address_end = sid_quad_address_start + 32;
+    return 0;
+}
+
 static int set_sid_model(int val, void *param)
 {
     sid_model = val;
@@ -204,7 +224,6 @@ static int set_sid_model(int val, void *param)
         case SID_MODEL_6581:
         case SID_MODEL_8580:
         case SID_MODEL_8580D:
-        case SID_MODEL_6581R4:
 #ifdef HAVE_RESID
         case SID_MODEL_DTVSID:
 #endif
@@ -277,6 +296,45 @@ static int set_sid_resid_filter_bias(int i, void *param)
     return 0;
 }
 
+static int set_sid_resid_8580_passband(int i, void *param)
+{
+    if (i < 0) {
+        i = 0;
+    } else if (i > 90) {
+        i = 90;
+    }
+
+    sid_resid_8580_passband = i;
+    sid_state_changed = 1;
+    return 0;
+}
+
+static int set_sid_resid_8580_gain(int i, void *param)
+{
+    if (i < 90) {
+        i = 90;
+    } else if (i > 100) {
+        i = 100;
+    }
+
+    sid_resid_8580_gain = i;
+    sid_state_changed = 1;
+    return 0;
+}
+
+static int set_sid_resid_8580_filter_bias(int i, void *param)
+{
+    if (i < -5000) {
+        i = -5000;
+    } else if (i > 5000) {
+        i = 5000;
+    }
+
+    sid_resid_8580_filter_bias = i;
+    sid_state_changed = 1;
+    return 0;
+}
+
 #endif
 
 #ifdef HAVE_HARDSID
@@ -328,6 +386,17 @@ static const resource_int_t resid_resources_int[] = {
       &sid_resid_gain, set_sid_resid_gain, NULL },
     { "SidResidFilterBias", 500, RES_EVENT_NO, NULL,
       &sid_resid_filter_bias, set_sid_resid_filter_bias, NULL },
+    { "SidResid8580Passband", 90, RES_EVENT_NO, NULL,
+      &sid_resid_8580_passband, set_sid_resid_8580_passband, NULL },
+    { "SidResid8580Gain", 97, RES_EVENT_NO, NULL,
+      &sid_resid_8580_gain, set_sid_resid_8580_gain, NULL },
+#ifdef HAVE_NEW_8580_FILTER
+    { "SidResid8580FilterBias", -3000, RES_EVENT_NO, NULL,
+      &sid_resid_8580_filter_bias, set_sid_resid_8580_filter_bias, NULL },
+#else
+    { "SidResid8580FilterBias", 0, RES_EVENT_NO, NULL,
+      &sid_resid_8580_filter_bias, set_sid_resid_8580_filter_bias, NULL },
+#endif
     RESOURCE_INT_LIST_END
 };
 #endif
@@ -340,14 +409,18 @@ static const resource_int_t common_resources_int[] = {
       &sid_filters_enabled, set_sid_filters_enabled, NULL },
     { "SidModel", SID_MODEL_DEFAULT, RES_EVENT_SAME, NULL,
       &sid_model, set_sid_model, NULL },
+    RESOURCE_INT_LIST_END
+};
+
 #ifdef HAVE_HARDSID
+static const resource_int_t hardsid_resources_int[] = {
     { "SidHardSIDMain", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &sid_hardsid_main, set_sid_hardsid_main, NULL },
     { "SidHardSIDRight", 1, RES_EVENT_NO, NULL,
       &sid_hardsid_right, set_sid_hardsid_right, NULL },
-#endif
     RESOURCE_INT_LIST_END
 };
+#endif
 
 static const resource_int_t stereo_resources_int[] = {
     { "SidStereo", 0, RES_EVENT_SAME, NULL,
@@ -357,6 +430,13 @@ static const resource_int_t stereo_resources_int[] = {
 
 int sid_common_resources_init(void)
 {
+#ifdef HAVE_HARDSID
+    if (hardsid_available()) {
+        if (resources_register_int(hardsid_resources_int) < 0) {
+            return -1;
+        }
+    }
+#endif
     return resources_register_int(common_resources_int);
 }
 

@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "archdep.h"
 #include "cbmdos.h"
@@ -51,6 +52,7 @@
 #include "lib.h"
 #include "log.h"
 #include "types.h"
+#include "util.h"
 #include "vdrive-command.h"
 #include "vdrive.h"
 
@@ -63,8 +65,13 @@ static int fsdevice_flush_cd(vdrive_t* vdrive, char *arg)
 {
     int er;
 
+    /* guard against NULL */
+    if (arg == NULL) {
+        return CBMDOS_IPE_SYNTAX;
+    }
+
     /* arrow left also works for dir up */
-    if (!strcmp("_", arg)) {
+    if (strcmp("_", arg) == 0) {
         arg = "..";
     }
 
@@ -88,12 +95,28 @@ static int fsdevice_flush_cdup(vdrive_t* vdrive)
     return fsdevice_flush_cd(vdrive, "..");
 }
 
-static int fsdevice_flush_mkdir(char *arg)
+
+/** \brief  Create directory \a arg
+ *
+ * \param[in]   vdrive  vdrive reference
+ * \param[in]   arg     directory name
+ *
+ * \return  CBMDOS error code
+ */
+static int fsdevice_flush_mkdir(vdrive_t *vdrive, char *arg)
 {
     int er;
+    char *prefix;
+    char *path;
+
+    /* get proper FS device path */
+    prefix = fsdevice_get_path(vdrive->unit);
+
+    /* construct absolute path */
+    path = util_concat(prefix, FSDEV_DIR_SEP_STR, arg, NULL);
 
     er = CBMDOS_IPE_OK;
-    if (ioutil_mkdir(arg, IOUTIL_MKDIR_RWXUG)) {
+    if (ioutil_mkdir(path, IOUTIL_MKDIR_RWXUG)) {
         er = CBMDOS_IPE_INVAL;
         if (ioutil_errno(IOUTIL_ERRNO_EEXIST)) {
             er = CBMDOS_IPE_FILE_EXISTS;
@@ -106,10 +129,12 @@ static int fsdevice_flush_mkdir(char *arg)
         }
     }
 
+    lib_free(path);
+
     return er;
 }
 
-static int fsdevice_flush_partition(vdrive_t* vdrive, char* arg)
+static int fsdevice_flush_partition(vdrive_t *vdrive, char* arg)
 {
     char* comma;
     int er;
@@ -124,7 +149,7 @@ static int fsdevice_flush_partition(vdrive_t* vdrive, char* arg)
         for (i = 0; i < 4 && *comma++; i++) {
         }
         if (i == 4 && *comma++ == ',' && *comma++ == 'c' && !*comma) {
-            er = fsdevice_flush_mkdir(arg);
+            er = fsdevice_flush_mkdir(vdrive, arg);
         } else {
             er = CBMDOS_IPE_SYNTAX;
         }
@@ -132,18 +157,41 @@ static int fsdevice_flush_partition(vdrive_t* vdrive, char* arg)
     return er;
 }
 
-static int fsdevice_flush_remove(char *arg)
-{
-    int er;
 
-    er = CBMDOS_IPE_OK;
-    if (ioutil_remove(arg)) {
+/** \brief  Remove directory \a arg
+ *
+ * \param[in]   vdrive  vdrive reference
+ * \param[in]   arg     directory to remove
+ *
+ * \return  CBMDOS error code
+ */
+static int fsdevice_flush_rmdir(vdrive_t *vdrive, char *arg)
+{
+    int er = CBMDOS_IPE_OK;
+
+    /* if no dir is set via 'FSDevice[8=11]Dir' this returns '.' */
+    char *prefix = fsdevice_get_path(vdrive->unit);
+
+    /* since the cwd can differ from the FSDeviceDir, we need to obtain the
+     * absolute path to the directory to remove.
+     */
+    char *path = util_concat(prefix, FSDEV_DIR_SEP_STR, arg, NULL);
+#if 0
+    fprintf(stderr, "%s(): removing dir '%s'\n", __func__, path);
+#endif
+    /* FIXME: rmdir() can set a lot of different errors codes, so this probably
+     *        is a little naive
+     */
+    if (ioutil_rmdir(path) != 0) {
         er = CBMDOS_IPE_NOT_EMPTY;
         if (ioutil_errno(IOUTIL_ERRNO_EPERM)) {
             er = CBMDOS_IPE_PERMISSION;
         }
     }
-
+#if 0
+    fprintf(stderr, "%s(): %d: %s\n", __func__, errno, strerror(errno));
+#endif
+    lib_free(path);
     return er;
 }
 
@@ -194,7 +242,7 @@ static int fsdevice_flush_scratch(vdrive_t *vdrive, char *realarg)
 {
     unsigned int format = 0, rc;
 
-    if (realarg[0] == '\0') {
+    if (realarg == NULL || *realarg == '\0') {
         return CBMDOS_IPE_SYNTAX;
     }
 
@@ -228,7 +276,7 @@ static int fsdevice_flush_mr(vdrive_t *vdrive, char *realarg)
 {
     unsigned int dnr = vdrive->unit - 8;
     unsigned int length;
-    WORD addr;
+    uint16_t addr;
 
     addr = fsdevice_dev[dnr].cmdbuf[3] | (fsdevice_dev[dnr].cmdbuf[4] << 8);
     length = 6 + ((realarg != NULL) ? strlen(realarg) : 0); /* FIXME */
@@ -240,7 +288,7 @@ static int fsdevice_flush_mw(vdrive_t *vdrive, char *realarg)
 {
     unsigned int dnr = vdrive->unit - 8;
     unsigned int length;
-    WORD addr;
+    uint16_t addr;
 
     addr = fsdevice_dev[dnr].cmdbuf[3] | (fsdevice_dev[dnr].cmdbuf[4] << 8);
     length = 6 + ((realarg != NULL) ? strlen(realarg) : 0); /* FIXME */
@@ -252,7 +300,7 @@ static int fsdevice_flush_me(vdrive_t *vdrive, char *realarg)
 {
     unsigned int dnr = vdrive->unit - 8;
     unsigned int length;
-    WORD addr;
+    uint16_t addr;
 
     addr = fsdevice_dev[dnr].cmdbuf[3] | (fsdevice_dev[dnr].cmdbuf[4] << 8);
     length = 5 + ((realarg != NULL) ? strlen(realarg) : 0); /* FIXME */
@@ -349,7 +397,9 @@ static int fsdevice_flush_ba(vdrive_t *vdrive, char *realarg)
     int err = CBMDOS_IPE_OK;
 
     get4args(realarg, &drv, &trk, &sec, NULL);
-    log_message(LOG_DEFAULT, "Fsdevice: Warning - B-A: %d %d %d (block access needs disk image)", drv, trk, sec);
+    log_message(LOG_DEFAULT,
+            "Fsdevice: Warning - B-A: %u %u %u (block access needs disk image)",
+            drv, trk, sec);
 
     bamptr = get_bamptr(trk, sec);
     bammask = get_bammask(trk, sec);
@@ -389,7 +439,9 @@ static int fsdevice_flush_bf(vdrive_t *vdrive, char *realarg)
     unsigned int bamptr, bammask;
 
     get4args(realarg, &drv, &trk, &sec, NULL);
-    log_message(LOG_DEFAULT, "Fsdevice: Warning - B-F: %d %d %d (block access needs disk image)", drv, trk, sec);
+    log_message(LOG_DEFAULT,
+            "Fsdevice: Warning - B-F: %u %u %u (block access needs disk image)",
+            drv, trk, sec);
 
     bamptr = get_bamptr(trk, sec);
     bammask = get_bammask(trk, sec);
@@ -403,7 +455,9 @@ static int fsdevice_flush_bp(vdrive_t *vdrive, char *realarg)
 {
     unsigned int chn, pos;
     get4args(realarg, &chn, &pos, NULL, NULL);
-    log_message(LOG_DEFAULT, "Fsdevice: Warning - B-P: %d %d (block access needs disk image)", chn, pos);
+    log_message(LOG_DEFAULT,
+            "Fsdevice: Warning - B-P: %u %u (block access needs disk image)",
+            chn, pos);
     return CBMDOS_IPE_OK;
 }
 
@@ -413,7 +467,9 @@ static int fsdevice_flush_be(vdrive_t *vdrive, char *realarg)
     unsigned int dnr = vdrive->unit - 8;
     unsigned int chn, drv, trk, sec;
     get4args(realarg, &chn, &drv, &trk, &sec);
-    log_message(LOG_DEFAULT, "Fsdevice: Warning - B-E: %d %d %d %d (needs TDE)", chn, drv, trk, sec);
+    log_message(LOG_DEFAULT,
+            "Fsdevice: Warning - B-E: %u %u %u %u (needs TDE)",
+            chn, drv, trk, sec);
     fsdevice_dev[dnr].track = trk;
     fsdevice_dev[dnr].sector = sec;
     return CBMDOS_IPE_OK;
@@ -425,7 +481,9 @@ static int fsdevice_flush_br(vdrive_t *vdrive, char *realarg)
     unsigned int dnr = vdrive->unit - 8;
     unsigned int chn, drv, trk, sec;
     get4args(realarg, &chn, &drv, &trk, &sec);
-    log_message(LOG_DEFAULT, "Fsdevice: Warning - B-R: %d %d %d %d (block access needs disk image)", chn, drv, trk, sec);
+    log_message(LOG_DEFAULT,
+            "Fsdevice: Warning - B-R: %u %u %u %u (block access needs disk image)",
+            chn, drv, trk, sec);
     fsdevice_dev[dnr].track = trk;
     fsdevice_dev[dnr].sector = sec;
     return CBMDOS_IPE_OK;
@@ -438,7 +496,9 @@ static int fsdevice_flush_u1(vdrive_t *vdrive, char *realarg)
     unsigned int chn, drv, trk, sec;
 
     get4args(realarg, &chn, &drv, &trk, &sec);
-    log_message(LOG_DEFAULT, "Fsdevice: Warning - U1: %d %d %d %d (block access needs disk image)", chn, drv, trk, sec);
+    log_message(LOG_DEFAULT,
+            "Fsdevice: Warning - U1: %u %u %u %u (block access needs disk image)",
+            chn, drv, trk, sec);
     fsdevice_dev[dnr].track = trk;
     fsdevice_dev[dnr].sector = sec;
 
@@ -452,7 +512,9 @@ static int fsdevice_flush_bw(vdrive_t *vdrive, char *realarg)
     unsigned int chn, drv, trk, sec;
 
     get4args(realarg, &chn, &drv, &trk, &sec);
-    log_message(LOG_DEFAULT, "Fsdevice: Warning - B-W: %d %d %d %d (block access needs disk image)", chn, drv, trk, sec);
+    log_message(LOG_DEFAULT,
+            "Fsdevice: Warning - B-W: %u %u %u %u (block access needs disk image)",
+            chn, drv, trk, sec);
     fsdevice_dev[dnr].track = trk;
     fsdevice_dev[dnr].sector = sec;
 
@@ -466,7 +528,9 @@ static int fsdevice_flush_u2(vdrive_t *vdrive, char *realarg)
     unsigned int chn, drv, trk, sec;
 
     get4args(realarg, &chn, &drv, &trk, &sec);
-    log_message(LOG_DEFAULT, "Fsdevice: Warning - U2: %d %d %d %d (block access needs disk image)", chn, drv, trk, sec);
+    log_message(LOG_DEFAULT,
+            "Fsdevice: Warning - U2: %u %u %u %u (block access needs disk image)",
+            chn, drv, trk, sec);
     fsdevice_dev[dnr].track = trk;
     fsdevice_dev[dnr].sector = sec;
 
@@ -531,7 +595,7 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
     fsdevice_dev[dnr].cmdbuf[fsdevice_dev[dnr].cptr] = 0;
 
     strcpy(cbmcmd, (char *)(fsdevice_dev[dnr].cmdbuf));
-    charset_petconvstring((BYTE *)cbmcmd, 1);   /* CBM name to FSname */
+    charset_petconvstring((uint8_t *)cbmcmd, 1);   /* CBM name to FSname */
     cmd = cbmcmd;
 
     while (*cmd == ' ') {
@@ -612,9 +676,9 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
     } else if (*cmd == '/') {
         er = fsdevice_flush_partition(vdrive, arg);
     } else if (!strcmp(cmd, "md")) {
-        er = fsdevice_flush_mkdir(arg);
+        er = fsdevice_flush_mkdir(vdrive, arg);
     } else if (!strcmp(cmd, "rd")) {
-        er = fsdevice_flush_remove(arg);
+        er = fsdevice_flush_rmdir(vdrive, arg);
     } else if ((!strcmp(cmd, "ui")) || (!strcmp(cmd, "u9"))) {
         er = fsdevice_flush_reset();
     } else if ((!strcmp(cmd, "uj")) || (!strcmp(cmd, "u:"))) {
@@ -638,7 +702,7 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
     lib_free(cbmcmd);
 }
 
-int fsdevice_flush_write_byte(vdrive_t *vdrive, BYTE data)
+int fsdevice_flush_write_byte(vdrive_t *vdrive, uint8_t data)
 {
     unsigned int dnr;
     int rc;

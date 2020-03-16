@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 
+#include "machine.h"
 #include "romset.h"
 
 const char *machine_romset_resources_list[] = {

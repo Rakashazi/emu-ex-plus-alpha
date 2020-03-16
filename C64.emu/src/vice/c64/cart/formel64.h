@@ -34,17 +34,17 @@
 
 struct snapshot_s;
 
-extern BYTE formel64_romh_read(WORD addr);
-extern BYTE formel64_romh_read_hirom(WORD addr);
-extern int formel64_romh_phi1_read(WORD addr, BYTE *value);
-extern int formel64_romh_phi2_read(WORD addr, BYTE *value);
-extern int formel64_peek_mem(export_t *export, WORD addr, BYTE *value);
+extern uint8_t formel64_romh_read(uint16_t addr);
+extern uint8_t formel64_romh_read_hirom(uint16_t addr);
+extern int formel64_romh_phi1_read(uint16_t addr, uint8_t *value);
+extern int formel64_romh_phi2_read(uint16_t addr, uint8_t *value);
+extern int formel64_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
 
 extern void formel64_config_init(void);
 extern void formel64_reset(void);
-extern void formel64_config_setup(BYTE *rawcart);
-extern int formel64_bin_attach(const char *filename, BYTE *rawcart);
-extern int formel64_crt_attach(FILE *fd, BYTE *rawcart);
+extern void formel64_config_setup(uint8_t *rawcart);
+extern int formel64_bin_attach(const char *filename, uint8_t *rawcart);
+extern int formel64_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void formel64_detach(void);
 
 extern int formel64_snapshot_write_module(struct snapshot_s *s);

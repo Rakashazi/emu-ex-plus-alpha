@@ -34,20 +34,20 @@
 #include "ted.h"
 #include "types.h"
 
-static BYTE parallel_cable_cpu_value = 0xff;
-static BYTE parallel_cable_drive_value[DRIVE_NUM] = { 0xff, 0xff, 0xff, 0xff };
+static uint8_t parallel_cable_cpu_value = 0xff;
+static uint8_t parallel_cable_drive_value[DRIVE_NUM] = { 0xff, 0xff, 0xff, 0xff };
 
-void parallel_cable_drive_write(int port, BYTE data, int handshake, unsigned int dnr)
+void parallel_cable_drive_write(int port, uint8_t data, int handshake, unsigned int dnr)
 {
     parallel_cable_drive_value[dnr] = data;
 }
 
-BYTE parallel_cable_drive_read(int type, int handshake)
+uint8_t parallel_cable_drive_read(int type, int handshake)
 {
     return parallel_cable_cpu_value & parallel_cable_drive_value[0] & parallel_cable_drive_value[1];
 }
 
-void parallel_cable_cpu_write(int type, BYTE data)
+void parallel_cable_cpu_write(int type, uint8_t data)
 {
     if (!(drive_context[0]->drive->enable)
         && !(drive_context[1]->drive->enable)) {
@@ -59,7 +59,7 @@ void parallel_cable_cpu_write(int type, BYTE data)
     parallel_cable_cpu_value = data;
 }
 
-BYTE parallel_cable_cpu_read(int type, BYTE data)
+uint8_t parallel_cable_cpu_read(int type, uint8_t data)
 {
     if (!(drive_context[0]->drive->enable)
         && !(drive_context[1]->drive->enable)) {
@@ -71,7 +71,7 @@ BYTE parallel_cable_cpu_read(int type, BYTE data)
     return data & (parallel_cable_cpu_value & parallel_cable_drive_value[0] & parallel_cable_drive_value[1]);
 }
 
-void parallel_cable_cpu_undump(int type, BYTE data)
+void parallel_cable_cpu_undump(int type, uint8_t data)
 {
     parallel_cable_cpu_value = data;
 }

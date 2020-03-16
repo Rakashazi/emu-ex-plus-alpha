@@ -57,8 +57,8 @@ int mon_log_file_open(const char *name)
     FILE *fp;
 
     if (name) {
-        /* try to open new file */
-        fp = fopen(name, MODE_WRITE_TEXT);
+        /* if file exists, append to existing file */
+        fp = fopen(name, MODE_APPEND);
         if (fp) {
             /* close old logfile */
             mon_log_file_close();
@@ -186,7 +186,7 @@ int mon_out(const char *format, ...)
     return rc;
 }
 
-char *mon_disassemble_with_label(MEMSPACE memspace, WORD loc, int hex,
+char *mon_disassemble_with_label(MEMSPACE memspace, uint16_t loc, int hex,
                                  unsigned *opc_size_p, unsigned *label_p)
 {
     const char *p;
@@ -207,21 +207,21 @@ char *mon_disassemble_with_label(MEMSPACE memspace, WORD loc, int hex,
     p = mon_disassemble_to_string_ex(memspace, loc,
                                      mon_get_mem_val(memspace, loc),
                                      mon_get_mem_val(memspace,
-                                                     (WORD)(loc + 1)),
+                                                     (uint16_t)(loc + 1)),
                                      mon_get_mem_val(memspace,
-                                                     (WORD)(loc + 2)),
+                                                     (uint16_t)(loc + 2)),
                                      mon_get_mem_val(memspace,
-                                                     (WORD)(loc + 3)),
+                                                     (uint16_t)(loc + 3)),
                                      hex,
                                      opc_size_p);
 
     return lib_msprintf((hex ? "%04X: %s%10s" : "%05u: %s%10s"), loc, p, "");
 }
 
-char *mon_dump_with_label(MEMSPACE memspace, WORD loc, int hex, unsigned *label_p)
+char *mon_dump_with_label(MEMSPACE memspace, uint16_t loc, int hex, unsigned *label_p)
 {
     const char *p;
-    BYTE val;
+    uint8_t val;
 
     if (*label_p == 0) {
         /* process a label, if available */
@@ -238,10 +238,10 @@ char *mon_dump_with_label(MEMSPACE memspace, WORD loc, int hex, unsigned *label_
     return lib_msprintf((hex ? "%04X: $%02X   %03u   '%c'" : "%05u: $%02X   %03u   '%c'"), loc, val, val, isprint(val) ? val : ' ');
 }
 
-#ifndef __OS2__
+#if !(defined(__OS2__) && !defined(USE_SDLUI))
 static char *pchCommandLine = NULL;
 
-void mon_set_command(console_t *console_log, char *command,
+void mon_set_command(console_t *cons_log, char *command,
                      void (*pAfter)(void))
 {
     pchCommandLine = command;
@@ -286,7 +286,7 @@ char *uimon_in(const char *prompt)
     if (pchCommandLine) {
         /* we have an "artificially" generated command line */
         lib_free(p);
-        p = lib_stralloc(pchCommandLine);
+        p = lib_strdup(pchCommandLine);
         pchCommandLine = NULL;
     }
 

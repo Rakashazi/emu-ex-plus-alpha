@@ -31,6 +31,7 @@
 
 struct disk_image_s;
 struct drive_context_s;
+struct drive_type_info_s;
 struct snapshot_s;
 
 extern int machine_drive_resources_init(void);
@@ -53,5 +54,7 @@ extern int machine_drive_image_detach(struct disk_image_s *image, unsigned int u
 extern void machine_drive_port_default(struct drive_context_s *drv);
 extern void machine_drive_flush(void);
 extern void machine_drive_stub(void);
+extern struct drive_type_info_s *machine_drive_get_type_info_list(void);
+
 
 #endif

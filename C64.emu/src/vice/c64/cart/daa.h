@@ -30,7 +30,7 @@
 
 #include "types.h"
 
-extern const BYTE daa_reg_a[];
-extern const BYTE daa_reg_f[];
+extern const uint8_t daa_reg_a[];
+extern const uint8_t daa_reg_f[];
 
 #endif

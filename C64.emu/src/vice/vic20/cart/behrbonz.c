@@ -34,7 +34,6 @@
 #include "behrbonz.h"
 #include "cartio.h"
 #include "cartridge.h"
-#include "cmdline.h"
 #include "export.h"
 #include "lib.h"
 #include "log.h"
@@ -43,7 +42,6 @@
 #include "monitor.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "types.h"
 #include "util.h"
 #include "vic20cart.h"
@@ -63,34 +61,35 @@
 
 #define BUTTON_RESET 0
 #define SOFTWARE_RESET 1
-static BYTE reset_mode = BUTTON_RESET;
+static uint8_t reset_mode = BUTTON_RESET;
 
 #define CART_ROM_SIZE 0x200000
-static BYTE *cart_rom = NULL;
+static uint8_t *cart_rom = NULL;
 
-static BYTE bank_reg = 0;
-static BYTE write_once = 1;
+static uint8_t bank_reg = 0;
+static uint8_t write_once = 1;
 
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
-static BYTE behrbonz_io3_peek(WORD addr);
-static void behrbonz_io3_store(WORD addr, BYTE value);
+static uint8_t behrbonz_io3_peek(uint16_t addr);
+static void behrbonz_io3_store(uint16_t addr, uint8_t value);
 static int behrbonz_mon_dump(void);
 
 static io_source_t behrbonz_io3_device = {
-    CARTRIDGE_VIC20_NAME_BEHRBONZ,
-    IO_DETACH_CART,
-    NULL,
-    0x9c00, 0x9fff, 0x3ff,
-    0,
-    behrbonz_io3_store,
-    NULL,
-    behrbonz_io3_peek,
-    behrbonz_mon_dump,
-    CARTRIDGE_VIC20_BEHRBONZ,
-    0,
-    0
+    CARTRIDGE_VIC20_NAME_BEHRBONZ, /* name of the device */
+    IO_DETACH_CART,                /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,         /* does not use a resource for detach */
+    0x9c00, 0x9fff, 0x3ff,         /* range for the device, address is ignored, reg:$9c00, mirrors:$9c01-$9fff */
+    0,                             /* read is never valid, reg is write only */
+    behrbonz_io3_store,            /* store function */
+    NULL,                          /* NO poke function */
+    NULL,                          /* NO read function */
+    behrbonz_io3_peek,             /* peek function */
+    behrbonz_mon_dump,             /* device state information dump function */
+    CARTRIDGE_VIC20_BEHRBONZ,      /* cartridge ID */
+    IO_PRIO_NORMAL,                /* normal priority, device read needs to be checked for collisions */
+    0                              /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *behrbonz_io3_list_item = NULL;
@@ -101,23 +100,23 @@ static const export_resource_t export_res = {
 
 /* ------------------------------------------------------------------------- */
 
-BYTE behrbonz_blk13_read(WORD addr)
+uint8_t behrbonz_blk13_read(uint16_t addr)
 {
     return cart_rom[(addr & 0x1fff) | ((bank_reg * 0x4000) + 0x2000)];
 }
 
-BYTE behrbonz_blk25_read(WORD addr)
+uint8_t behrbonz_blk25_read(uint16_t addr)
 {
     return cart_rom[(addr & 0x1fff) | (bank_reg * 0x4000)];
 }
 
-static BYTE behrbonz_io3_peek(WORD addr)
+static uint8_t behrbonz_io3_peek(uint16_t addr)
 {
     return bank_reg;
 }
 
 /* store 0x9c00-0x9fff */
-static void behrbonz_io3_store(WORD addr, BYTE value)
+static void behrbonz_io3_store(uint16_t addr, uint8_t value)
 {
     /* with the original cartridge a write to the register changes the bank and
        triggers a reset. also the bank can not be changed anymore until the next
@@ -153,7 +152,7 @@ void behrbonz_reset(void)
 
 /* ------------------------------------------------------------------------- */
 
-static int zfile_load(const char *filename, BYTE *dest, size_t size)
+static int zfile_load(const char *filename, uint8_t *dest, size_t size)
 {
     FILE *fd;
 
@@ -239,7 +238,7 @@ int behrbonz_snapshot_write_module(snapshot_t *s)
 
 int behrbonz_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);

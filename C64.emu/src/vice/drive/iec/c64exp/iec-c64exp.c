@@ -26,6 +26,7 @@
 
 #include "vice.h"
 
+#include "iec-c64exp.h"
 #include "c64exp-cmdline-options.h"
 #include "c64exp-resources.h"
 #include "drivetypes.h"

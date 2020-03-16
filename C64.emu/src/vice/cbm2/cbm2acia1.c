@@ -25,6 +25,7 @@
  */
 
 #include "vice.h"
+#include "cbm2acia.h"
 
 #define mycpu           maincpu
 #define myclk           maincpu_clk
@@ -39,6 +40,10 @@
 #define MyIrq    IK_IRQ
 
 #define myaciadev acia1dev
+
+int acia1_resources_init(void);
+int acia1_cmdline_options_init(void);
+
 
 #define myacia_init acia1_init
 #define myacia_init_cmdline_options acia1_cmdline_options_init

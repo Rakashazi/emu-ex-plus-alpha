@@ -88,6 +88,7 @@ static embedded_t c128files[] = {
     { "chargen", C128_CHARGEN_ROM_SIZE, C128_CHARGEN_ROM_SIZE, C128_CHARGEN_ROM_SIZE, NULL },
     { "chargde", C128_CHARGEN_ROM_SIZE, C128_CHARGEN_ROM_SIZE, C128_CHARGEN_ROM_SIZE, NULL },
     { "chargfr", C128_CHARGEN_ROM_SIZE, C128_CHARGEN_ROM_SIZE, C128_CHARGEN_ROM_SIZE, NULL },
+    { "chargno", C128_CHARGEN_ROM_SIZE, C128_CHARGEN_ROM_SIZE, C128_CHARGEN_ROM_SIZE, NULL },
     { "chargse", C128_CHARGEN_ROM_SIZE, C128_CHARGEN_ROM_SIZE, C128_CHARGEN_ROM_SIZE, NULL },
     { "chargch", C128_CHARGEN_ROM_SIZE, C128_CHARGEN_ROM_SIZE, C128_CHARGEN_ROM_SIZE, NULL },
     { "basiclo", C128_BASIC_ROM_IMAGELO_SIZE, C128_BASIC_ROM_IMAGELO_SIZE, C128_BASIC_ROM_IMAGELO_SIZE, c128basiclo_embedded },
@@ -118,7 +119,7 @@ static embedded_palette_t palette_files[] = {
     EMBEDDED_PALETTE_LIST_END
 };
 
-static size_t embedded_match_file(const char *name, BYTE *dest, int minsize, int maxsize, embedded_t *emb)
+static size_t embedded_match_file(const char *name, unsigned char *dest, int minsize, int maxsize, embedded_t *emb)
 {
     int i = 0;
 
@@ -138,7 +139,7 @@ static size_t embedded_match_file(const char *name, BYTE *dest, int minsize, int
     return 0;
 }
 
-size_t embedded_check_file(const char *name, BYTE *dest, int minsize, int maxsize)
+size_t embedded_check_file(const char *name, unsigned char *dest, int minsize, int maxsize)
 {
     size_t retval;
 

@@ -33,11 +33,18 @@
 #define OLDCODE 0    /* set to 1 to use the old ca2/cb2 handling code */
 
 /* #define DEBUG_VIA2 */
+/* #define DEBUG_STEP */
 
 #ifdef DEBUG_VIA2
 #define DBG(_x_) log_debug _x_
 #else
 #define DBG(_x_)
+#endif
+
+#ifdef DEBUG_STEP
+#define DBGSTEP(_x_) log_debug _x_
+#else
+#define DBGSTEP(_x_)
 #endif
 
 #include "vice.h"
@@ -76,8 +83,8 @@ static void set_ca2(via_context_t *via_context, int state)
         drv->byte_ready_active &= ~(1 << 1);
         drv->byte_ready_active |= state << 1;
         if (drv->byte_ready_edge) {
-           drive_context_t *drive_context = (drive_context_t *)(via_context->context);
-           drive_cpu_set_overflow(drive_context);
+           drive_context_t *dc = (drive_context_t *)(via_context->context);
+           drive_cpu_set_overflow(dc);
            drv->byte_ready_edge = 0;
         }
     }
@@ -105,38 +112,38 @@ static void set_cb2(via_context_t *via_context, int state)
 static void set_int(via_context_t *via_context, unsigned int int_num,
                     int value, CLOCK rclk)
 {
-    drive_context_t *drive_context;
+    drive_context_t *dc;
 
-    drive_context = (drive_context_t *)(via_context->context);
+    dc = (drive_context_t *)(via_context->context);
 
-    interrupt_set_irq(drive_context->cpu->int_status, int_num, value, rclk);
+    interrupt_set_irq(dc->cpu->int_status, int_num, value, rclk);
 }
 
 static void restore_int(via_context_t *via_context, unsigned int int_num, int value)
 {
-    drive_context_t *drive_context;
+    drive_context_t *dc;
 
-    drive_context = (drive_context_t *)(via_context->context);
+    dc = (drive_context_t *)(via_context->context);
 
-    interrupt_restore_irq(drive_context->cpu->int_status, int_num, value);
+    interrupt_restore_irq(dc->cpu->int_status, int_num, value);
 }
 
-void via2d_store(drive_context_t *ctxptr, WORD addr, BYTE data)
+void via2d_store(drive_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
     viacore_store(ctxptr->via2, addr, data);
 }
 
-BYTE via2d_read(drive_context_t *ctxptr, WORD addr)
+uint8_t via2d_read(drive_context_t *ctxptr, uint16_t addr)
 {
     return viacore_read(ctxptr->via2, addr);
 }
 
-BYTE via2d_peek(drive_context_t *ctxptr, WORD addr)
+uint8_t via2d_peek(drive_context_t *ctxptr, uint16_t addr)
 {
     return viacore_peek(ctxptr->via2, addr);
 }
 
-int via2d_dump(drive_context_t *ctxptr, WORD addr)
+int via2d_dump(drive_context_t *ctxptr, uint16_t addr)
 {
     viacore_dump(ctxptr->via2);
     return 0;
@@ -155,8 +162,8 @@ void via2d_update_pcr(int pcrval, drive_t *dptr)
     dptr->byte_ready_active = (bra & ~0x02) | (pcrval & 0x02);
 }
 
-static void store_pra(via_context_t *via_context, BYTE byte, BYTE oldpa_value,
-                      WORD addr)
+static void store_pra(via_context_t *via_context, uint8_t byte, uint8_t oldpa_value,
+                      uint16_t addr)
 {
     drivevia2_context_t *via2p;
 
@@ -168,17 +175,18 @@ static void store_pra(via_context_t *via_context, BYTE byte, BYTE oldpa_value,
     via2p->drive->byte_ready_level = 0;
 }
 
-static void undump_pra(via_context_t *via_context, BYTE byte)
+static void undump_pra(via_context_t *via_context, uint8_t byte)
 {
 
 }
 
-static void store_prb(via_context_t *via_context, BYTE byte, BYTE poldpb,
-                      WORD addr)
+static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t poldpb,
+                      uint16_t addr)
 {
     drivevia2_context_t *via2p = (drivevia2_context_t *)(via_context->prv);
     drive_t *drv = via2p->drive;
     int bra;
+    int track_number, new_stepper_position, old_stepper_position, step_count;
 
 
     DBG(("VIA2: store_prb (%02x to %02x) clock:%d", poldpb, byte, *(via_context->clk_ptr)));
@@ -200,43 +208,53 @@ static void store_prb(via_context_t *via_context, BYTE byte, BYTE poldpb,
        suggests a binary counter circuitry, but that is not the case, the similarity is just a side effect.
        Note, how switching the drive motor on/off may move the stepper motor as well.
     */
+    
+    /* vice track numbering starts with 2... we need the real, physical track number */
+    track_number = drv->current_half_track - 2;
+
+    /* the new coil line activated */
+    new_stepper_position = byte & 3;
+
+    /*
+        track halftrack stepper
+        log.  log.phys. position
+        1     2   0     0
+        1.5   3   1     1
+        2     4   2     2
+        2.5   5   3     3
+        3     6   4     0
+        3.5   7   5     1
+        ... */
+
+    old_stepper_position = track_number & 3;
+
+    /* the steps travelled and the direction */
+    /* int step_count = (drv->stepper_new_position - old_stepper_position) & 3; */
+    step_count = (new_stepper_position - old_stepper_position) & 3;    
+    if (step_count == 3) {
+        step_count = -1;
+    }
+    
     /* Process stepper motor if the drive motor is on */
     if (byte & 0x4) {
-
-        /* vice track numbering starts with 2... we need the real, physical track number */
-        int track_number = drv->current_half_track - 2;
-
-        /* the new coil line activated */
-        int new_stepper_position = byte & 3;
-
-        /*
-          track halftrack stepper
-          log.  log.phys. position
-          1     2   0     0
-          1.5   3   1     1
-          2     4   2     2
-          2.5   5   3     3
-          3     6   4     0
-          3.5   7   5     1
-          ... */
-
-        int old_stepper_position = track_number & 3;
-
-        /* FIXME: emulating the mechanical delay with such naive approach does
-                  not work, as the actual step is delayed to the next write to pb.
-                  regardless how long that will take. for one example that does
-                  not work like this, see bug #508
-
-           FIXME: we should implement the intended behaviour using an alarm
-                  instead.
-         */
-
-        /* the steps travelled and the direction */
-        /* int step_count = (drv->stepper_new_position - old_stepper_position) & 3; */
-        int step_count = (new_stepper_position - old_stepper_position) & 3;
-        if (step_count == 3) {
-            step_count = -1;
+#ifdef DEBUG_STEP
+        if (new_stepper_position != old_stepper_position) {
+            DBGSTEP(("trk: %d.%d, old: %d new: %d steps: %d", 
+                   (track_number+1) / 2, (track_number+1) & 1, 
+                   old_stepper_position, new_stepper_position,
+                   step_count
+                  ));
         }
+#endif
+        /* FIXME: emulating the mechanical delay with such naive approach does
+                not work, as the actual step is delayed to the next write to pb.
+                regardless how long that will take. for one example that does
+                not work like this, see bug #508
+
+         FIXME: we should implement the intended behaviour using an alarm
+                instead.
+        */
+
         /*
             minimal simulation of mechanical delay.
 
@@ -295,17 +313,31 @@ static void store_prb(via_context_t *via_context, BYTE byte, BYTE poldpb,
             rotation_begins(drv);
         } else {
             if (drv->byte_ready_edge) {
-               drive_context_t *drive_context = (drive_context_t *)(via_context->context);
-               drive_cpu_set_overflow(drive_context);
+               drive_context_t *dc = (drive_context_t *)(via_context->context);
+               drive_cpu_set_overflow(dc);
                drv->byte_ready_edge = 0;
             }
         }
+/* enable this for experimental fix related to extra stepping when the motor
+   is turned on. (bug #1083 "Primitive 7 Sins") */
+#if 1
+        if (new_stepper_position != old_stepper_position) {
+            if ((byte & 0x04) != 0) {
+#ifdef DEBUG_STEP
+                DBGSTEP(("motor: %d trk: %d.%d, old: %d new: %d steps: %d",
+                    byte & 0x04, (track_number+1) / 2, (track_number+1) & 1, 
+                    old_stepper_position, new_stepper_position, step_count));
+#endif
+                drive_move_head(step_count, drv);
+            }
+        }
+#endif
     }
 
     drv->byte_ready_level = 0;
 }
 
-static void undump_prb(via_context_t *via_context, BYTE byte)
+static void undump_prb(via_context_t *via_context, uint8_t byte)
 {
     drivevia2_context_t *via2p;
 
@@ -317,7 +349,7 @@ static void undump_prb(via_context_t *via_context, BYTE byte)
         = (via2p->drive->byte_ready_active & ~0x04) | (byte & 0x04);
 }
 
-static BYTE store_pcr(via_context_t *via_context, BYTE byte, WORD addr)
+static uint8_t store_pcr(via_context_t *via_context, uint8_t byte, uint16_t addr)
 {
     drivevia2_context_t *via2p;
 
@@ -327,7 +359,7 @@ static BYTE store_pcr(via_context_t *via_context, BYTE byte, WORD addr)
 #if OLDCODE
     /* FIXME: this should use via_set_ca2() and via_set_cb2() */
     if (byte != via_context->via[VIA_PCR]) {
-        BYTE tmp = byte;
+        uint8_t tmp = byte;
         /* first set bit 1 and 5 to the real output values */
         if ((byte & 0x0c) != 0x0c) { /* CA2 not lo or hi output */
             tmp |= 0x02; /* byte ready */
@@ -346,7 +378,7 @@ static BYTE store_pcr(via_context_t *via_context, BYTE byte, WORD addr)
     return byte;
 }
 
-static void undump_pcr(via_context_t *via_context, BYTE byte)
+static void undump_pcr(via_context_t *via_context, uint8_t byte)
 {
     drivevia2_context_t *via2p;
 
@@ -355,19 +387,19 @@ static void undump_pcr(via_context_t *via_context, BYTE byte)
     via2d_update_pcr(byte, via2p->drive);
 }
 
-static void undump_acr(via_context_t *via_context, BYTE byte)
+static void undump_acr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_acr(via_context_t *via_context, BYTE byte)
+static void store_acr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_sr(via_context_t *via_context, BYTE byte)
+static void store_sr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_t2l(via_context_t *via_context, BYTE byte)
+static void store_t2l(via_context_t *via_context, uint8_t byte)
 {
 }
 
@@ -381,9 +413,9 @@ static void reset(via_context_t *via_context)
     drive_update_ui_status();
 }
 
-static BYTE read_pra(via_context_t *via_context, WORD addr)
+static uint8_t read_pra(via_context_t *via_context, uint16_t addr)
 {
-    BYTE byte;
+    uint8_t byte;
     drivevia2_context_t *via2p;
 
     via2p = (drivevia2_context_t *)(via_context->prv);
@@ -401,9 +433,9 @@ static BYTE read_pra(via_context_t *via_context, WORD addr)
     return byte;
 }
 
-static BYTE read_prb(via_context_t *via_context)
+static uint8_t read_prb(via_context_t *via_context)
 {
-    BYTE byte;
+    uint8_t byte;
     drivevia2_context_t *via2p;
 
     via2p = (drivevia2_context_t *)(via_context->prv);

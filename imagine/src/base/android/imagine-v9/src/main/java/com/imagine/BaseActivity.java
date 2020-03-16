@@ -529,16 +529,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	String libDir()
 	{
-		ActivityInfo ai;
-		try
-		{
-			ai = getPackageManager().getActivityInfo(getIntent().getComponent(), PackageManager.GET_META_DATA);
-		}
-		catch(PackageManager.NameNotFoundException e)
-		{
-			throw new RuntimeException("Error getting activity info", e);
-		}
-		return ai.applicationInfo.nativeLibraryDir;
+		return getApplicationInfo().nativeLibraryDir;
 	}
 	
 	String mainSOPath()

@@ -50,8 +50,8 @@ static void raster_sprite_status_init(raster_sprite_status_t *status,
 
     if (num_sprites > 0) {
         status->sprites = lib_malloc(sizeof(*status->sprites) * num_sprites);
-        status->sprite_data_1 = lib_malloc(sizeof(DWORD) * num_sprites);
-        status->sprite_data_2 = lib_malloc(sizeof(DWORD) * num_sprites);
+        status->sprite_data_1 = lib_malloc(sizeof(uint32_t) * num_sprites);
+        status->sprite_data_2 = lib_malloc(sizeof(uint32_t) * num_sprites);
     } else {
         status->sprites = NULL;
         status->sprite_data_1 = NULL;
@@ -97,8 +97,8 @@ void raster_sprite_status_reset(raster_sprite_status_t *status, int sprite_offse
     status->mc_sprite_color_1 = 0;
     status->mc_sprite_color_2 = 0;
 
-    memset(status->sprite_data_1, 0, sizeof(DWORD) * status->num_sprites);
-    memset(status->sprite_data_2, 0, sizeof(DWORD) * status->num_sprites);
+    memset(status->sprite_data_1, 0, sizeof(uint32_t) * status->num_sprites);
+    memset(status->sprite_data_2, 0, sizeof(uint32_t) * status->num_sprites);
 
     status->sprite_data = status->sprite_data_1;
     status->new_sprite_data = status->sprite_data_2;

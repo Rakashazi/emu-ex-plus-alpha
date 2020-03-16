@@ -54,7 +54,6 @@
 #include "monitor.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "types.h"
 #include "util.h"
 
@@ -104,6 +103,7 @@
 #include "magicdesk.h"
 #include "magicformel.h"
 #include "magicvoice.h"
+#include "maxbasic.h"
 #include "mikroass.h"
 #include "mmc64.h"
 #include "mmcreplay.h"
@@ -130,7 +130,7 @@
 #include "superexplode5.h"
 #include "supersnapshot.h"
 #include "supersnapshot4.h"
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
 #include "ethernetcart.h"
 #endif
 #include "warpspeed.h"
@@ -187,350 +187,218 @@ extern export_t export_passthrough; /* slot1 and main combined, goes into slot0 
 static const cmdline_option_t cmdline_options[] =
 {
     /* generic cartridges */
-    { "-cart8", CALL_FUNCTION, 1,
+    { "-cart8", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_GENERIC_8KB, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_GENERIC_8KB_CART,
-      NULL, NULL },
-    { "-cart16", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 8KB cartridge image" },
+    { "-cart16", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_GENERIC_16KB, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_GENERIC_16KB_CART,
-      NULL, NULL },
-    { "-cartultimax", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 16KB cartridge image" },
+    { "-cartultimax", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_ULTIMAX, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_GENERIC_16KB_ULTIMAX_CART,
-      NULL, NULL },
+      "<Name>", "Attach generic 16kB Ultimax cartridge image" },
     /* smart-insert CRT */
-    { "-cartcrt", CALL_FUNCTION, 1,
+    { "-cartcrt", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_CRT, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_CRT_CART,
-      NULL, NULL },
+      "<Name>", "Attach CRT cartridge image" },
     /* binary images: */
-    { "-cartap", CALL_FUNCTION, 1,
+    { "-cartap", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_ATOMIC_POWER, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_ATOMIC_POWER_CART,
-      NULL, NULL },
-    { "-cartar2", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 32KB Atomic Power cartridge image" },
+    { "-cartar2", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_ACTION_REPLAY2, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_ACTION_REPLAY2_CART,
-      NULL, NULL },
-    { "-cartar3", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 16kB Action Replay MK2 cartridge image" },
+    { "-cartar3", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_ACTION_REPLAY3, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_ACTION_REPLAY3_CART,
-      NULL, NULL },
-    { "-cartar4", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 16KB Action Replay MK3 cartridge image" },
+    { "-cartar4", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_ACTION_REPLAY4, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_ACTION_REPLAY4_CART,
-      NULL, NULL },
-    { "-cartar5", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 32KB Action Replay MK4 cartridge image" },
+    { "-cartar5", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_ACTION_REPLAY, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_ACTION_REPLAY_CART },
-    { "-cartcap", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 32KB Action Replay cartridge image" },
+    { "-cartcap", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_CAPTURE, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_CAPTURE_CART,
-      NULL, NULL },
-    { "-cartcomal", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 8kB Capture cartridge image" },
+    { "-cartcomal", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_COMAL80, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_COMAL80_CART,
-      NULL, NULL },
-    { "-cartdep256", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 64kB Comal 80 cartridge image" },
+    { "-cartdep256", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_DELA_EP256, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_DELA_EP256_CART,
-      NULL, NULL },
-    { "-cartdep64", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw Dela EP256 cartridge image" },
+    { "-cartdep64", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_DELA_EP64, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_DELA_EP64_CART,
-      NULL, NULL },
-    { "-cartdep7x8", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw Dela EP64 cartridge image" },
+    { "-cartdep7x8", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_DELA_EP7x8, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_DELA_EP7X8_CART,
-      NULL, NULL },
-    { "-cartdin", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw Dela EP7x8 cartridge image" },
+    { "-cartdin", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_DINAMIC, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_DINAMIC_CART,
-      NULL, NULL },
-    { "-cartdsm", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 128kB Dinamic cartridge image" },
+    { "-cartdsm", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_DIASHOW_MAKER, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_DIASHOW_MAKER_CART,
-      NULL, NULL },
-    { "-cartdqbb", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 8kB Diashow-Maker cartridge image" },
+    { "-cartdqbb", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_DQBB, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_DQBB_CART,
-      NULL, NULL },
-    { "-carteasy", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 16kB Double Quick Brown Box cartridge image" },
+    { "-carteasy", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_EASYFLASH, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_EASY_FLASH_CART,
-      NULL, NULL },
-    { "-carteasycalc", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw EasyFlash cartridge image" },
+    { "-carteasycalc", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_EASYCALC, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_EASYCALC_CART,
-      NULL, NULL },
+      "<Name>", "Attach raw 24kB Easy Calc Result cartridge image" },
     /* omitted: CARTRIDGE_EASYFLASH_XBANK (NO CART EXISTS!) */
-    { "-cartepyx", CALL_FUNCTION, 1,
+    { "-cartepyx", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_EPYX_FASTLOAD, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_EPYX_FASTLOAD_CART,
-      NULL, NULL },
-    { "-cartexos", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 8KB Epyx FastLoad cartridge image" },
+    { "-cartexos", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_EXOS, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_EXOS_CART,
-      NULL, NULL },
-    { "-cartexpert", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 8kB EXOS cartridge image" },
+    { "-cartexpert", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_EXPERT, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_EXPERT_CART,
-      NULL, NULL },
-    { "-cartf64", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 8kB Expert Cartridge image" },
+    { "-cartf64", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_FORMEL64, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_F64_CART,
-      NULL, NULL },
-    { "-cartfc1", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 32kB Formel 64 image" },
+    { "-cartfc1", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_FINAL_I, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_FC1_CART,
-      NULL, NULL },
-    { "-cartfc3", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 16kB Final Cartridge image" },
+    { "-cartfc3", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_FINAL_III, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_FC3_CART,
-      NULL, NULL },
-    { "-cartfcplus", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 64kB Final Cartridge III image" },
+    { "-cartfcplus", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_FINAL_PLUS, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_FCPLUS_CART,
-      NULL, NULL },
-    { "-cartff", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 32kB Final Cartridge Plus image" },
+    { "-cartff", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_FREEZE_FRAME, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_FREEZE_FRAME_CART,
-      NULL, NULL },
-    { "-cartfm", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 8kB Freeze Frame image" },
+    { "-cartfm", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_FREEZE_MACHINE, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_FREEZE_MACHINE_CART,
-      NULL, NULL },
-    { "-cartfp", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 32kB Freeze Machine image" },
+    { "-cartfp", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_FUNPLAY, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_FP_PP_CART,
-      NULL, NULL },
-    { "-cartgmod2", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 128kB Fun Play/Power Play cartridge image" },
+    { "-cartgmod2", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_GMOD2, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_GAME_KILLER_CART,                      /* FIXME */
-      NULL, NULL },
-    { "-cartgk", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw GMod2 cartridge image" },
+    { "-cartgk", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_GAME_KILLER, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_GAME_KILLER_CART,
-      NULL, NULL },
-    { "-cartgeoram", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 8KB Game Killer cartridge image" },
+    { "-cartgeoram", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_GEORAM, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_GEORAM_CART,
-      NULL, NULL },
-    { "-cartgs", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw GEO-RAM cartridge image" },
+    { "-cartgs", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_GS, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_GAME_SYSTEM_CART,
-      NULL, NULL },
-    { "-cartide64", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 512kB Game System cartridge image" },
+    { "-cartide64", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_IDE64, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_IDE64_CART,
-      NULL, NULL },
-    { "-cartieee", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 64KB IDE64 cartridge image" },
+    { "-cartieee", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_IEEE488, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_CBM_IEEE488_CART,
-      NULL, NULL },
-    { "-cartisepic", CALL_FUNCTION, 1,
+      "<Name>", "Attach IEEE-488 Interface cartridge image" },
+    { "-cartisepic", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_ISEPIC, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_ISEPIC_CART,
-      NULL, NULL },
-    { "-cartkcs", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 2kB ISEPIC cartridge image" },
+    { "-cartkcs", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_KCS_POWER, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_KCS_CART,
-      NULL, NULL },
-    { "-cartks", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 16kB KCS Power cartridge image" },
+    { "-cartks", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_KINGSOFT, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_KINGSOFT_CART,
-      NULL, NULL },
-    { "-cartmach5", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 24kB Kingsoft cartridge image" },
+    { "-cartmach5", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_MACH5, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_MACH5_CART,
-      NULL, NULL },
-    { "-cartmd", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 8kB MACH 5 cartridge image" },
+    { "-cartmd", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_MAGIC_DESK, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_MAGIC_DESK_CART,
-      NULL, NULL },
-    { "-cartmf", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 32/64/128kB Magic Desk cartridge image" },
+    { "-cartmf", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_MAGIC_FORMEL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_MAGIC_FORMEL_CART,
-      NULL, NULL },
-    { "-cartmikro", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw Magic Formel cartridge image" },
+    { "-cartmax", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
+      cart_attach_cmdline, (void *)CARTRIDGE_MAX_BASIC, NULL, NULL,
+      "<Name>", "Attach raw MAX Basic cartridge image" },
+    { "-cartmikro", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_MIKRO_ASSEMBLER, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_MIKRO_ASSEMBLER_CART,
-      NULL, NULL },
-    { "-cartmmc64", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 8kB Mikro Assembler cartridge image" },
+    { "-cartmmc64", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_MMC64, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_MMC64_CART,
-      NULL, NULL },
-    { "-cartmmcr", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 8kB MMC64 cartridge image" },
+    { "-cartmmcr", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_MMC_REPLAY, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_MMC_REPLAY_CART,
-      NULL, NULL },
-    { "-cartmv", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 512kB MMC Replay cartridge image" },
+    { "-cartmv", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_MAGIC_VOICE, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_MAGIC_VOICE_CART,
-      NULL, NULL },
-    { "-cartocean", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 16kB Magic Voice cartridge image" },
+    { "-cartocean", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_OCEAN, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_OCEAN_CART,
-      NULL, NULL },
-    { "-cartpf", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw Ocean cartridge image" },
+    { "-cartpf", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_PAGEFOX, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_PAGEFOX_CART,
-      NULL, NULL },
-    { "-cartp64", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 64KB Pagefox cartridge image" },
+    { "-cartp64", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_P64, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_P64_CART,
-      NULL, NULL },
-    { "-cartramcart", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 256KB Prophet 64 cartridge image" },
+    { "-cartramcart", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_RAMCART, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_RAMCART_CART,
-      NULL, NULL },
-    { "-cartreu", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw RamCart cartridge image" },
+    { "-cartreu", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_REU, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_REU_CART,
-      NULL, NULL },
-    { "-cartrep256", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw REU cartridge image" },
+    { "-cartrep256", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_REX_EP256, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_REX_EP256_CART,
-      NULL, NULL },
-    { "-cartrgcd", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw REX EP256 cartridge image" },
+    { "-cartrgcd", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_RGCD, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_RGCD_CART,
-      NULL, NULL },
-#ifdef HAVE_PCAP
-    { "-cartrrnet", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 64kB RGCD cartridge image" },
+#ifdef HAVE_RAWNET
+    { "-cartrrnet", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_RRNETMK3, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_RRNETMK3_CART,
-      NULL, NULL },
+      "<Name>", "Attach raw 8kB RR-Net MK3 cartridge image" },
 #endif
-    { "-cartross", CALL_FUNCTION, 1,
+    { "-cartross", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_ROSS, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_ROSS_CART,
-      NULL, NULL },
-    { "-cartrr", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 16/32kB ROSS cartridge image" },
+    { "-cartrr", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_RETRO_REPLAY, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_RETRO_REPLAY_CART,
-      NULL, NULL },
-    { "-cartru", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 64KB Retro Replay cartridge image" },
+    { "-cartru", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_REX, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_REX_UTILITY_CART,
-      NULL, NULL },
-    { "-carts64", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 8kB REX Utility cartridge image" },
+    { "-carts64", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_SNAPSHOT64, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_SS64_CART,
-      NULL, NULL },
-    { "-cartsb", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 4kB Snapshot 64 cartridge image" },
+    { "-cartsb", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_STRUCTURED_BASIC, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_STB_CART,
-      NULL, NULL },
-    { "-cartse5", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw Structured Basic cartridge image" },
+    { "-cartse5", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_SUPER_EXPLODE_V5, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_SE5_CART,
-      NULL, NULL },
-    { "-cartsg", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 16kB Super Explode V5 cartridge image" },
+    { "-cartsg", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_SUPER_GAMES, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_SUPER_GAMES_CART,
-      NULL, NULL },
-    { "-cartsilver", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 64kB Super Games cartridge image" },
+    { "-cartsilver", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_SILVERROCK_128, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_SILVERROCK_128_CART,
-      NULL, NULL },
-    { "-cartsimon", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw Silverrock 128 cartridge image" },
+    { "-cartsimon", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_SIMONS_BASIC, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_SIMONS_BASIC_CART,
-      NULL, NULL },
-    { "-cartss4", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 16kB Simons Basic cartridge image" },
+    { "-cartss4", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_SUPER_SNAPSHOT, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_SS4_CART,
-      NULL, NULL },
-    { "-cartss5", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 32KB Super Snapshot V4 cartridge image" },
+    { "-cartss5", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_SUPER_SNAPSHOT_V5, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_SS5_CART,
-      NULL, NULL },
-    { "-cartstar", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 64KB Super Snapshot V5 cartridge image" },
+    { "-cartstar", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_STARDOS, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_STARDOS_CART,
-      NULL, NULL },
-    { "-cartwl", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 16KB Stardos cartridge image" },
+    { "-cartwl", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_WESTERMANN, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_WESTERMANN_CART,
-      NULL, NULL },
-    { "-cartws", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 16KB Westermann Learning cartridge image" },
+    { "-cartws", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_WARPSPEED, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_WARPSPEED_CART,
-      NULL, NULL },
-    { "-cartzaxxon", CALL_FUNCTION, 1,
+      "<Name>", "Attach raw 8kB Warp Speed cartridge image" },
+    { "-cartzaxxon", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cart_attach_cmdline, (void *)CARTRIDGE_ZAXXON, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ATTACH_RAW_ZAXXON_CART,
-      NULL, NULL },
+      "<Name>", "Attach raw 16kB Zaxxon cartridge image" },
     CMDLINE_LIST_END
 };
 
@@ -558,7 +426,7 @@ int cart_cmdline_options_init(void)
         || reu_cmdline_options_init() < 0
         || sfx_soundexpander_cmdline_options_init() < 0
         || sfx_soundsampler_cmdline_options_init() < 0
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         || ethernetcart_cmdline_options_init() < 0
 #endif
         /* "Main Slot" */
@@ -567,7 +435,7 @@ int cart_cmdline_options_init(void)
         || ide64_cmdline_options_init() < 0
         || mmcreplay_cmdline_options_init() < 0
         || retroreplay_cmdline_options_init() < 0
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         || rrnetmk3_cmdline_options_init() < 0
 #endif
         || supersnapshot_v5_cmdline_options_init() < 0
@@ -614,7 +482,7 @@ int cart_resources_init(void)
         || reu_resources_init() < 0
         || sfx_soundexpander_resources_init() < 0
         || sfx_soundsampler_resources_init() < 0
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         || ethernetcart_resources_init() < 0
 #endif
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
@@ -626,7 +494,7 @@ int cart_resources_init(void)
         || ide64_resources_init() < 0
         || mmcreplay_resources_init() < 0
         || retroreplay_resources_init() < 0
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         || rrnetmk3_resources_init() < 0
 #endif
         || supersnapshot_v5_resources_init() < 0
@@ -659,7 +527,7 @@ void cart_resources_shutdown(void)
     reu_resources_shutdown();
     sfx_soundexpander_resources_shutdown();
     sfx_soundsampler_resources_shutdown();
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     ethernetcart_resources_shutdown();
 #endif
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
@@ -672,7 +540,7 @@ void cart_resources_shutdown(void)
     ide64_resources_shutdown();
     mmcreplay_resources_shutdown();
     retroreplay_resources_shutdown();
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     rrnetmk3_resources_shutdown();
 #endif
     supersnapshot_v5_resources_shutdown();
@@ -808,7 +676,7 @@ int cart_type_enabled(int type)
             return sfx_soundexpander_cart_enabled();
         case CARTRIDGE_SFX_SOUND_SAMPLER:
             return sfx_soundsampler_cart_enabled();
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_TFE:
             return ethernetcart_cart_enabled();
 #endif
@@ -860,7 +728,7 @@ const char *cart_get_file_name(int type)
 #endif
         case CARTRIDGE_SFX_SOUND_EXPANDER:
         case CARTRIDGE_SFX_SOUND_SAMPLER:
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_TFE:
 #endif
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
@@ -878,11 +746,11 @@ const char *cart_get_file_name(int type)
 /* FIXME: shutdown missing */
 
 /* called once by machine_setup_context */
-void cartridge_setup_context(machine_context_t *machine_context)
+void cartridge_setup_context(machine_context_t *context)
 {
     /* "Slot 0" */
-    tpi_setup_context(machine_context);
-    magicvoice_setup_context(machine_context);
+    tpi_setup_context(context);
+    magicvoice_setup_context(context);
     /* mmc64 */
 
     /* "Slot 1" */
@@ -892,7 +760,7 @@ void cartridge_setup_context(machine_context_t *machine_context)
 
 /* ------------------------------------------------------------------------- */
 
-int cart_bin_attach(int type, const char *filename, BYTE *rawcart)
+int cart_bin_attach(int type, const char *filename, uint8_t *rawcart)
 {
     switch (type) {
         /* "Slot 0" */
@@ -987,6 +855,8 @@ int cart_bin_attach(int type, const char *filename, BYTE *rawcart)
             return magicdesk_bin_attach(filename, rawcart);
         case CARTRIDGE_MAGIC_FORMEL:
             return magicformel_bin_attach(filename, rawcart);
+        case CARTRIDGE_MAX_BASIC:
+            return maxbasic_bin_attach(filename, rawcart);
         case CARTRIDGE_MIKRO_ASSEMBLER:
             return mikroass_bin_attach(filename, rawcart);
         case CARTRIDGE_MMC_REPLAY:
@@ -1005,7 +875,7 @@ int cart_bin_attach(int type, const char *filename, BYTE *rawcart)
             return rexep256_bin_attach(filename, rawcart);
         case CARTRIDGE_RGCD:
             return rgcd_bin_attach(filename, rawcart);
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_RRNETMK3:
             return rrnetmk3_bin_attach(filename, rawcart);
 #endif
@@ -1046,7 +916,7 @@ int cart_bin_attach(int type, const char *filename, BYTE *rawcart)
     XYZ_config_setup should copy the raw cart image into the
     individual implementations array.
 */
-void cart_attach(int type, BYTE *rawcart)
+void cart_attach(int type, uint8_t *rawcart)
 {
     cart_detach_conflicting(type);
     switch (type) {
@@ -1183,6 +1053,9 @@ void cart_attach(int type, BYTE *rawcart)
         case CARTRIDGE_MAGIC_FORMEL:
             magicformel_config_setup(rawcart);
             break;
+        case CARTRIDGE_MAX_BASIC:
+            maxbasic_config_setup(rawcart);
+            break;
         case CARTRIDGE_MIKRO_ASSEMBLER:
             mikroass_config_setup(rawcart);
             break;
@@ -1213,7 +1086,7 @@ void cart_attach(int type, BYTE *rawcart)
         case CARTRIDGE_ROSS:
             ross_config_setup(rawcart);
             break;
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_RRNETMK3:
             rrnetmk3_config_setup(rawcart);
             break;
@@ -1282,7 +1155,7 @@ static int slot1conflicts[] =
     0
 };
 
-void cart_detach_conflicts0(int *list, int type)
+static void cart_detach_conflicts0(int *list, int type)
 {
     int *l = list;
     /* find in list */
@@ -1369,7 +1242,7 @@ int cartridge_enable(int type)
         case CARTRIDGE_SFX_SOUND_SAMPLER:
             sfx_soundsampler_enable();
             break;
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_TFE:
             ethernetcart_enable();
             break;
@@ -1391,6 +1264,100 @@ int cartridge_enable(int type)
     }
     return -1;
 }
+
+
+/** \brief  Disable cartridge by \a type
+ *
+ * \return  0 on success, -1 on failure
+ *
+ * \todo    More or less copy cartridge_enable() while replacing
+ *          ${cart}_enable() with ${cart_disable(). The various disable
+ *          functions still need to be written at the moment.
+ */
+int cartridge_disable(int type)
+{
+    /*
+    fprintf(stderr, "%s:%d: %s() isn't implemented yet, continuing\n",
+            __FILE__, __LINE__, __func__);
+    */
+    DBG(("CART: enable type: %d\n", type));
+    switch (type) {
+        /* "Slot 0" */
+        case CARTRIDGE_IEEE488:
+            tpi_disable();
+            break;
+        case CARTRIDGE_MAGIC_VOICE:
+            magicvoice_disable();
+            break;
+        case CARTRIDGE_MMC64:
+            mmc64_disable();
+            break;
+        /* "Slot 1" */
+        case CARTRIDGE_DQBB:
+            dqbb_disable();
+            break;
+        case CARTRIDGE_EXPERT:
+            expert_disable();
+            break;
+        case CARTRIDGE_ISEPIC:
+            isepic_disable();
+            break;
+        case CARTRIDGE_RAMCART:
+            ramcart_disable();
+            break;
+        /* "I/O Slot" */
+        case CARTRIDGE_DIGIMAX:
+            digimax_disable();
+            break;
+        case CARTRIDGE_DS12C887RTC:
+            ds12c887rtc_disable();
+            break;
+        case CARTRIDGE_GEORAM:
+            georam_disable();
+            break;
+#ifdef HAVE_MIDI
+        case CARTRIDGE_MIDI_PASSPORT:
+        case CARTRIDGE_MIDI_DATEL:
+        case CARTRIDGE_MIDI_SEQUENTIAL:
+        case CARTRIDGE_MIDI_NAMESOFT:
+        case CARTRIDGE_MIDI_MAPLIN:
+            c64_midi_disable();
+            break;
+#endif
+        case CARTRIDGE_REU:
+            reu_disable();
+            break;
+        case CARTRIDGE_SFX_SOUND_EXPANDER:
+            sfx_soundexpander_disable();
+            break;
+        case CARTRIDGE_SFX_SOUND_SAMPLER:
+            sfx_soundsampler_disable();
+            break;
+#ifdef HAVE_RAWNET
+        case CARTRIDGE_TFE:
+            ethernetcart_disable();
+            break;
+#endif
+#if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
+        case CARTRIDGE_TURBO232:
+            aciacart_disable();
+            break;
+#endif
+        /* "Main Slot" */
+        default:
+            DBG(("CART: no disable hook %d\n", type));
+            break;
+    }
+#if 0
+    cart_detach_conflicting(type);
+#endif
+    /* make sure the cart has been disabled */
+    if (!cart_type_enabled(type)) {
+        return 0;
+    }
+    return -1;
+}
+
 
 /*
     detach all cartridges
@@ -1420,7 +1387,7 @@ void cart_detach_all(void)
     reu_detach();
     sfx_soundexpander_detach();
     sfx_soundsampler_detach();
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     ethernetcart_detach();
 #endif
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
@@ -1494,7 +1461,7 @@ void cart_detach(int type)
         case CARTRIDGE_SFX_SOUND_SAMPLER:
             sfx_soundsampler_detach();
             break;
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_TFE:
             ethernetcart_detach();
             break;
@@ -1607,6 +1574,9 @@ void cart_detach(int type)
         case CARTRIDGE_MAGIC_FORMEL:
             magicformel_detach();
             break;
+        case CARTRIDGE_MAX_BASIC:
+            maxbasic_detach();
+            break;
         case CARTRIDGE_MIKRO_ASSEMBLER:
             mikroass_detach();
             break;
@@ -1634,7 +1604,7 @@ void cart_detach(int type)
         case CARTRIDGE_RGCD:
             rgcd_detach();
             break;
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_RRNETMK3:
             rrnetmk3_detach();
             break;
@@ -1715,7 +1685,7 @@ void cart_init(void)
     reu_init();
     /* sfx sound expander */
     /* sfx sound sampler */
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     ethernetcart_init();
 #endif
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
@@ -1854,6 +1824,9 @@ void cartridge_init_config(void)
         case CARTRIDGE_MAGIC_FORMEL:
             magicformel_config_init();
             break;
+        case CARTRIDGE_MAX_BASIC:
+            maxbasic_config_init();
+            break;
         case CARTRIDGE_MIKRO_ASSEMBLER:
             mikroass_config_init();
             break;
@@ -1881,7 +1854,7 @@ void cartridge_init_config(void)
         case CARTRIDGE_RGCD:
             rgcd_config_init();
             break;
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_RRNETMK3:
             rrnetmk3_config_init();
             break;
@@ -1997,7 +1970,7 @@ void cartridge_reset(void)
     if (sfx_soundsampler_cart_enabled()) {
         sfx_soundsampler_reset();
     }
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     if (ethernetcart_cart_enabled()) {
         ethernetcart_reset();
     }
@@ -2048,7 +2021,7 @@ void cartridge_reset(void)
         case CARTRIDGE_MMC_REPLAY:
             mmcreplay_reset();
             break;
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_RRNETMK3:
             rrnetmk3_reset();
             break;
@@ -2091,7 +2064,7 @@ void cartridge_reset(void)
 /* ------------------------------------------------------------------------- */
 
 /* called by cart_nmi_alarm_triggered, after an alarm occured */
-void cart_freeze(int type)
+static void cart_freeze(int type)
 {
     DBG(("CART: freeze\n"));
     switch (type) {
@@ -2265,7 +2238,7 @@ int cartridge_flush_image(int type)
             return mmcreplay_flush_image();
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_flush_image();
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_RRNETMK3:
             return rrnetmk3_flush_image();
 #endif
@@ -2309,7 +2282,7 @@ int cartridge_bin_save(int type, const char *filename)
             return mmcreplay_bin_save(filename);
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_bin_save(filename);
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_RRNETMK3:
             return rrnetmk3_bin_save(filename);
 #endif
@@ -2350,7 +2323,7 @@ int cartridge_crt_save(int type, const char *filename)
             return mmcreplay_crt_save(filename);
         case CARTRIDGE_RETRO_REPLAY:
             return retroreplay_crt_save(filename);
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_RRNETMK3:
             return rrnetmk3_crt_save(filename);
 #endif
@@ -2404,7 +2377,7 @@ void cartridge_sound_chip_init(void)
 
    TODO: add more cartridges
 */
-void cartridge_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit)
+void cartridge_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit)
 {
     int res = CART_READ_THROUGH;
 #if 0
@@ -2483,7 +2456,7 @@ void cartridge_mmu_translate(unsigned int addr, BYTE **base, int *start, int *li
         case CARTRIDGE_RETRO_REPLAY:
             retroreplay_mmu_translate(addr, base, start, limit);
             return;
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_RRNETMK3:
             rrnetmk3_mmu_translate(addr, base, start, limit);
             return;
@@ -2516,8 +2489,8 @@ int cartridge_snapshot_write_modules(struct snapshot_s *s)
 {
     snapshot_module_t *m;
 
-    BYTE i;
-    BYTE number_of_carts = 0;
+    uint8_t i;
+    uint8_t number_of_carts = 0;
     int cart_ids[C64CART_DUMP_MAX_CARTS];
     int last_cart = 0;
 
@@ -2557,16 +2530,16 @@ int cartridge_snapshot_write_modules(struct snapshot_s *s)
 
     /* Save "global" cartridge things */
     if (0
-        || SMW_DW(m, (DWORD)mem_cartridge_type) < 0
+        || SMW_DW(m, (uint32_t)mem_cartridge_type) < 0
         || SMW_B(m, export.game) < 0
         || SMW_B(m, export.exrom) < 0
-        || SMW_DW(m, (DWORD)romh_bank) < 0
-        || SMW_DW(m, (DWORD)roml_bank) < 0
-        || SMW_B(m, (BYTE)export_ram) < 0
+        || SMW_DW(m, (uint32_t)romh_bank) < 0
+        || SMW_DW(m, (uint32_t)roml_bank) < 0
+        || SMW_B(m, (uint8_t)export_ram) < 0
         || SMW_B(m, export.ultimax_phi1) < 0
         || SMW_B(m, export.ultimax_phi2) < 0
-        || SMW_DW(m, (DWORD)cart_freeze_alarm_time) < 0
-        || SMW_DW(m, (DWORD)cart_nmi_alarm_time) < 0
+        || SMW_DW(m, (uint32_t)cart_freeze_alarm_time) < 0
+        || SMW_DW(m, (uint32_t)cart_nmi_alarm_time) < 0
         || SMW_B(m, export_slot1.game) < 0
         || SMW_B(m, export_slot1.exrom) < 0
         || SMW_B(m, export_slot1.ultimax_phi1) < 0
@@ -2589,7 +2562,7 @@ int cartridge_snapshot_write_modules(struct snapshot_s *s)
 
     /* Save cart IDs */
     for (i = 0; i < number_of_carts; i++) {
-        if (SMW_DW(m, (DWORD)cart_ids[i]) < 0) {
+        if (SMW_DW(m, (uint32_t)cart_ids[i]) < 0) {
             goto fail;
         }
     }
@@ -2813,6 +2786,11 @@ int cartridge_snapshot_write_modules(struct snapshot_s *s)
                     return -1;
                 }
                 break;
+            case CARTRIDGE_MAX_BASIC:
+                if (maxbasic_snapshot_write_module(s) < 0) {
+                    return -1;
+                }
+                break;
             case CARTRIDGE_MIKRO_ASSEMBLER:
                 if (mikroass_snapshot_write_module(s) < 0) {
                     return -1;
@@ -2858,7 +2836,7 @@ int cartridge_snapshot_write_modules(struct snapshot_s *s)
                     return -1;
                 }
                 break;
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
             case CARTRIDGE_RRNETMK3:
                 if (rrnetmk3_snapshot_write_module(s) < 0) {
                     return -1;
@@ -2973,7 +2951,7 @@ int cartridge_snapshot_write_modules(struct snapshot_s *s)
                     return -1;
                 }
                 break;
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
             case CARTRIDGE_TFE:
                 if (ethernetcart_snapshot_write_module(s) < 0) {
                     return -1;
@@ -3008,13 +2986,13 @@ fail:
 int cartridge_snapshot_read_modules(struct snapshot_s *s)
 {
     snapshot_module_t *m;
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
 
-    BYTE i;
-    BYTE number_of_carts;
+    uint8_t i;
+    uint8_t number_of_carts;
     int cart_ids[C64CART_DUMP_MAX_CARTS];
     int local_cartridge_reset;
-    DWORD dummy;
+    uint32_t dummy;
 
     m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
 
@@ -3304,6 +3282,11 @@ int cartridge_snapshot_read_modules(struct snapshot_s *s)
                     goto fail2;
                 }
                 break;
+            case CARTRIDGE_MAX_BASIC:
+                if (maxbasic_snapshot_read_module(s) < 0) {
+                    goto fail2;
+                }
+                break;
             case CARTRIDGE_MIKRO_ASSEMBLER:
                 if (mikroass_snapshot_read_module(s) < 0) {
                     goto fail2;
@@ -3349,7 +3332,7 @@ int cartridge_snapshot_read_modules(struct snapshot_s *s)
                     goto fail2;
                 }
                 break;
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
             case CARTRIDGE_RRNETMK3:
                 if (rrnetmk3_snapshot_read_module(s) < 0) {
                     goto fail2;
@@ -3464,7 +3447,7 @@ int cartridge_snapshot_read_modules(struct snapshot_s *s)
                     goto fail2;
                 }
                 break;
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
             case CARTRIDGE_TFE:
                 if (ethernetcart_snapshot_read_module(s) < 0) {
                     goto fail2;

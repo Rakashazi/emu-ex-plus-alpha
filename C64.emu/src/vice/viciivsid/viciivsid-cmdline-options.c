@@ -31,11 +31,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "cmdline.h"
 #include "machine.h"
 #include "raster-cmdline-options.h"
 #include "resources.h"
-#include "translate.h"
 #include "vicii-cmdline-options.h"
 #include "vicii-resources.h"
 #include "vicii-timing.h"

@@ -48,7 +48,7 @@ typedef struct sampler_device_s {
     const char *name;
     void (*open)(int channels);
     void (*close)(void);
-    BYTE (*get_sample)(int channel);
+    uint8_t (*get_sample)(int channel);
     void (*shutdown)(void);
     int (*resources_init)(void);
     int (*cmdline_options_init)(void);
@@ -57,7 +57,7 @@ typedef struct sampler_device_s {
 
 extern void sampler_start(int channels, char *devname);
 extern void sampler_stop(void);
-extern BYTE sampler_get_sample(int channel);
+extern uint8_t sampler_get_sample(int channel);
 extern void sampler_reset(void);
 
 extern void sampler_device_register(sampler_device_t *device, int id);

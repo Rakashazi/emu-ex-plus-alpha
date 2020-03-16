@@ -30,9 +30,9 @@
 #include "types.h"
 
 extern void parallel_cable_cpu_execute(int type);
-extern void parallel_cable_cpu_write(int type, BYTE data);
+extern void parallel_cable_cpu_write(int type, uint8_t data);
 extern void parallel_cable_cpu_pulse(int type);
-extern BYTE parallel_cable_cpu_read(int type, BYTE data);
-extern void parallel_cable_cpu_undump(int type, BYTE data);
+extern uint8_t parallel_cable_cpu_read(int type, uint8_t data);
+extern void parallel_cable_cpu_undump(int type, uint8_t data);
 
 #endif

@@ -60,7 +60,7 @@
 
 #define STARDOS_ROM_SIZE 0x2000
 
-static BYTE stardos_rom[STARDOS_ROM_SIZE];
+static uint8_t stardos_rom[STARDOS_ROM_SIZE];
 
 int stardos_exp_load(const char *name)
 {
@@ -77,7 +77,7 @@ int stardos_exp_load(const char *name)
     return 0;
 }
 
-static BYTE stardos_exp_read(drive_context_t *drv, WORD addr)
+static uint8_t stardos_exp_read(drive_context_t *drv, uint16_t addr)
 {
     DBG(("stardos_exp_read <%04x> <%02x>\n", addr, stardos_rom[addr & 0x1fff]));
     return stardos_rom[addr & 0x1fff];

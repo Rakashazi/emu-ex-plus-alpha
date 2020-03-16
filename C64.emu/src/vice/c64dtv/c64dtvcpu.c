@@ -69,8 +69,8 @@
 #undef C64_RAM_SIZE
 #define C64_RAM_SIZE 0x200000
 
-BYTE dtv_registers[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-BYTE dtvrewind;
+uint8_t dtv_registers[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+uint8_t dtvrewind;
 
 int dtvclockneg = 0;
 
@@ -85,9 +85,9 @@ alarm_context_t *maincpu_alarm_context = NULL;
 
 /* Burst mode implementation */
 
-BYTE burst_status, burst_diff, burst_idx, burst_fetch, burst_broken;
-BYTE burst_cache[] = {0, 0, 0, 0};
-WORD burst_addr, burst_last_addr;
+uint8_t burst_status, burst_diff, burst_idx, burst_fetch, burst_broken;
+uint8_t burst_cache[] = {0, 0, 0, 0};
+uint16_t burst_addr, burst_last_addr;
 
 
 inline static void c64dtvcpu_clock_add(CLOCK *clock, int amount)
@@ -129,7 +129,7 @@ inline static void c64dtvcpu_clock_add(CLOCK *clock, int amount)
 #define CLK_ADD(clock, amount) c64dtvcpu_clock_add(&clock, amount)
 
 /* This is an optimization making x64dtv consume less host cycles in burst mode. */
-inline static void mem_burst_read(const WORD addr, BYTE *burst_cache)
+inline static void mem_burst_read(const uint16_t addr, uint8_t *burst_c)
 {
     read_func_ptr_t mrtf;
     int paddr = ((((int) dtv_registers[12 + (addr >> 14)]) << 14) + (addr & 0x3fff)) & (C64_RAM_SIZE - 1);
@@ -137,15 +137,15 @@ inline static void mem_burst_read(const WORD addr, BYTE *burst_cache)
     if (paddr <= 0xffff) {
         mrtf = _mem_read_tab_ptr[paddr >> 8];
         if (mrtf != ram_read) {
-            burst_cache[0] = mrtf((WORD)(paddr + 0));
-            burst_cache[1] = mrtf((WORD)(paddr + 1));
-            burst_cache[2] = mrtf((WORD)(paddr + 2));
-            burst_cache[3] = mrtf((WORD)(paddr + 3));
+            burst_c[0] = mrtf((uint16_t)(paddr + 0));
+            burst_c[1] = mrtf((uint16_t)(paddr + 1));
+            burst_c[2] = mrtf((uint16_t)(paddr + 2));
+            burst_c[3] = mrtf((uint16_t)(paddr + 3));
             return;
         }
     }
     /* this memcpy is optimized to a simple dword copy */
-    memcpy(burst_cache, &mem_ram[paddr], 4);
+    memcpy(burst_c, &mem_ram[paddr], 4);
 }
 
 /* Burst mode & skip cycle helper table */
@@ -155,7 +155,7 @@ inline static void mem_burst_read(const WORD addr, BYTE *burst_cache)
 /*    B = "break", breaks burst execution (memory access, jump, ...) */
 /*    S = "skip", skip loading operand (for implied<>immediate in skip cycle) */
 
-static const BYTE burst_status_tab[] = {
+static const uint8_t burst_status_tab[] = {
             /* 0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F */
     /* $00 */  0110, 0121, 0100, 0121, 0121, 0121, 0121, 0121, 0110, 0021, 0210, 0021, 0132, 0132, 0132, 0132, /* $00 */
     /* $10 */  0021, 0121, 0021, 0121, 0121, 0121, 0121, 0121, 0210, 0132, 0210, 0132, 0132, 0132, 0132, 0132, /* $10 */
@@ -258,31 +258,31 @@ static const BYTE burst_status_tab[] = {
 /* let the DTV segment mapper (register 12-15) do its work */
 
 #define STORE(addr, value) \
-    mem_store((WORD)(addr), (BYTE)(value))
+    mem_store((uint16_t)(addr), (uint8_t)(value))
 
 #define LOAD(addr) \
-    mem_read((WORD)(addr))
+    mem_read((uint16_t)(addr))
 
 /* Route zero page operations through register 10 (zeropage mapper) */
 
 #define STORE_ZERO(addr, value) \
-    mem_store((WORD)((((WORD) dtv_registers[10]) << 8) + ((WORD)(addr) & 0xff)), (BYTE)(value))
+    mem_store((uint16_t)((((uint16_t) dtv_registers[10]) << 8) + ((uint16_t)(addr) & 0xff)), (uint8_t)(value))
 
 #define LOAD_ZERO(addr) \
-    mem_read((WORD)((((WORD) dtv_registers[10]) << 8) + ((WORD)((addr) & 0xff))))
+    mem_read((uint16_t)((((uint16_t) dtv_registers[10]) << 8) + ((uint16_t)((addr) & 0xff))))
 
 /* Route stack operations through register 11 (stack mapper) */
 
-#define PUSH(val) (STORE((((WORD) dtv_registers[11]) << 8) + ((reg_sp--) & 0xff), val))
+#define PUSH(val) (STORE((((uint16_t) dtv_registers[11]) << 8) + ((reg_sp--) & 0xff), val))
 
-#define PULL()    (LOAD((((WORD) dtv_registers[11]) << 8) + ((++reg_sp) & 0xff)))
+#define PULL()    (LOAD((((uint16_t) dtv_registers[11]) << 8) + ((++reg_sp) & 0xff)))
 
 
 /* opcode_t etc */
 
 #if defined ALLOW_UNALIGNED_ACCESS
 
-#define opcode_t DWORD
+#define opcode_t uint32_t
 
 #define p0 (opcode & 0xff)
 #define p1 ((opcode >> 8) & 0xff)
@@ -292,10 +292,10 @@ static const BYTE burst_status_tab[] = {
 
 #define opcode_t         \
     struct {             \
-        BYTE ins;        \
+        uint8_t ins;        \
         union {          \
-            BYTE op8[2]; \
-            WORD op16;   \
+            uint8_t op8[2]; \
+            uint16_t op16;   \
         } op;            \
     }
 
@@ -400,7 +400,7 @@ static const BYTE burst_status_tab[] = {
             burst_broken = 1;                                                                          \
             burst_diff = 0;                                                                            \
             if (((int)reg_pc) < bank_limit) {                                                          \
-                o = (*((DWORD *)(bank_base + reg_pc)) & 0xffffff);                                     \
+                o = (*((uint32_t *)(bank_base + reg_pc)) & 0xffffff);                                     \
                 CLK_ADD(CLK, 1);                                                                       \
                 dtvrewind++;                                                                           \
                 if (!(((burst_status_tab[o & 0xff] & 0x80)) && (dtv_registers[9] & 1))) {              \
@@ -539,7 +539,7 @@ static const BYTE burst_status_tab[] = {
 void memmap_mem_store(unsigned int addr, unsigned int value)
 {
     monitor_memmap_store(addr, MEMMAP_RAM_W);
-    (*_mem_write_tab_ptr[(addr) >> 8])((WORD)(addr), (BYTE)(value));
+    (*_mem_write_tab_ptr[(addr) >> 8])((uint16_t)(addr), (uint8_t)(value));
 }
 
 void memmap_mark_read(unsigned int addr)
@@ -548,10 +548,10 @@ void memmap_mark_read(unsigned int addr)
     memmap_state &= ~(MEMMAP_STATE_OPCODE);
 }
 
-BYTE memmap_mem_read(unsigned int addr)
+uint8_t memmap_mem_read(unsigned int addr)
 {
     memmap_mark_read(addr);
-    return (*_mem_read_tab_ptr[(addr) >> 8])((WORD)(addr));
+    return (*_mem_read_tab_ptr[(addr) >> 8])((uint16_t)(addr));
 }
 #endif
 #endif

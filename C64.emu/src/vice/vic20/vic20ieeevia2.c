@@ -44,17 +44,17 @@ int ieeevia2_dump(void)
     return viacore_dump(machine_context.ieeevia2);
 }
 
-void ieeevia2_store(WORD addr, BYTE data)
+void ieeevia2_store(uint16_t addr, uint8_t data)
 {
     viacore_store(machine_context.ieeevia2, addr, data);
 }
 
-BYTE ieeevia2_read(WORD addr)
+uint8_t ieeevia2_read(uint16_t addr)
 {
     return viacore_read(machine_context.ieeevia2, addr);
 }
 
-BYTE ieeevia2_peek(WORD addr)
+uint8_t ieeevia2_peek(uint16_t addr)
 {
     return viacore_peek(machine_context.ieeevia2, addr);
 }
@@ -66,7 +66,7 @@ static void set_ca2(via_context_t *via_context, int state)
 
 static void set_cb2(via_context_t *via_context, int state)
 {
-    parallel_cpu_set_eoi((BYTE)(state ? 0 : 1));
+    parallel_cpu_set_eoi((uint8_t)(state ? 0 : 1));
 }
 
 static void set_int(via_context_t *via_context, unsigned int int_num, int value, CLOCK rclk)
@@ -79,43 +79,43 @@ static void restore_int(via_context_t *via_context, unsigned int int_num, int va
     interrupt_restore_irq(maincpu_int_status, int_num, value);
 }
 
-static void undump_acr(via_context_t *via_context, BYTE byte)
+static void undump_acr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_acr(via_context_t *via_context, BYTE byte)
+static void store_acr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_sr(via_context_t *via_context, BYTE byte)
+static void store_sr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_t2l(via_context_t *via_context, BYTE byte)
+static void store_t2l(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void undump_pra(via_context_t *via_context, BYTE byte)
-{
-    parallel_cpu_set_bus(byte);
-}
-
-static void store_pra(via_context_t *via_context, BYTE byte, BYTE myoldpa,
-                      WORD addr)
+static void undump_pra(via_context_t *via_context, uint8_t byte)
 {
     parallel_cpu_set_bus(byte);
 }
 
-static void undump_prb(via_context_t *via_context, BYTE byte)
+static void store_pra(via_context_t *via_context, uint8_t byte, uint8_t myoldpa,
+                      uint16_t addr)
+{
+    parallel_cpu_set_bus(byte);
+}
+
+static void undump_prb(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_prb(via_context_t *via_context, BYTE byte, BYTE myoldpb,
-                      WORD addr)
+static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t myoldpb,
+                      uint16_t addr)
 {
 }
 
-static void undump_pcr(via_context_t *via_context, BYTE byte)
+static void undump_pcr(via_context_t *via_context, uint8_t byte)
 {
 }
 
@@ -124,11 +124,11 @@ static void reset(via_context_t *via_context)
     parallel_cpu_set_bus(0xff); /* all data lines high, because of input mode */
 }
 
-static BYTE store_pcr(via_context_t *via_context, BYTE byte, WORD addr)
+static uint8_t store_pcr(via_context_t *via_context, uint8_t byte, uint16_t addr)
 {
 #if 0
     if (byte != via_context->via[VIA_PCR]) {
-        register BYTE tmp = byte;
+        register uint8_t tmp = byte;
         /* first set bit 1 and 5 to the real output values */
         if ((tmp & 0x0c) != 0x0c) {
             tmp |= 0x02;
@@ -143,9 +143,9 @@ static BYTE store_pcr(via_context_t *via_context, BYTE byte, WORD addr)
     return byte;
 }
 
-static BYTE read_prb(via_context_t *via_context)
+static uint8_t read_prb(via_context_t *via_context)
 {
-    BYTE byte;
+    uint8_t byte;
 
     drive_cpu_execute_all(maincpu_clk);
 
@@ -154,7 +154,7 @@ static BYTE read_prb(via_context_t *via_context)
     return byte;
 }
 
-static BYTE read_pra(via_context_t *via_context, WORD addr)
+static uint8_t read_pra(via_context_t *via_context, uint16_t addr)
 {
     return 0xff;
 }
@@ -165,12 +165,12 @@ void ieeevia2_init(via_context_t *via_context)
                  maincpu_int_status, maincpu_clk_guard);
 }
 
-void vic20ieeevia2_setup_context(machine_context_t *machine_context)
+void vic20ieeevia2_setup_context(machine_context_t *machinecontext)
 {
     via_context_t *via;
 
-    machine_context->ieeevia2 = lib_malloc(sizeof(via_context_t));
-    via = machine_context->ieeevia2;
+    machinecontext->ieeevia2 = lib_malloc(sizeof(via_context_t));
+    via = machinecontext->ieeevia2;
 
     via->prv = NULL;
     via->context = NULL;

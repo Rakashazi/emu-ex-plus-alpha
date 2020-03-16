@@ -83,12 +83,12 @@ extern int debug_cmdline_options_init(void);
 
 extern void debug_set_machine_parameter(unsigned int cycles,
                                         unsigned int lines);
-extern void debug_maincpu(DWORD reg_pc, CLOCK mclk, const char *dis,
-                          BYTE reg_a, BYTE reg_x, BYTE reg_y, BYTE reg_sp);
-extern void debug_main65816cpu(DWORD reg_pc, CLOCK mclk, const char *dis, WORD reg_c,
-                               WORD reg_x, WORD reg_y, WORD reg_sp, BYTE reg_pbr);
-extern void debug_drive(DWORD reg_pc, CLOCK mclk, const char *dis,
-                        BYTE reg_a, BYTE reg_x, BYTE reg_y, BYTE reg_sp,
+extern void debug_maincpu(uint32_t reg_pc, CLOCK mclk, const char *dis,
+                          uint8_t reg_a, uint8_t reg_x, uint8_t reg_y, uint8_t reg_sp);
+extern void debug_main65816cpu(uint32_t reg_pc, CLOCK mclk, const char *dis, uint16_t reg_c,
+                               uint16_t reg_x, uint16_t reg_y, uint16_t reg_sp, uint8_t reg_pbr);
+extern void debug_drive(uint32_t reg_pc, CLOCK mclk, const char *dis,
+                        uint8_t reg_a, uint8_t reg_x, uint8_t reg_y, uint8_t reg_sp,
                         unsigned int driveno);
 extern void debug_irq(struct interrupt_cpu_status_s *cs, CLOCK iclk);
 extern void debug_nmi(struct interrupt_cpu_status_s *cs, CLOCK iclk);
@@ -136,7 +136,7 @@ extern void debug_iec_bus_read(unsigned int data);
 
 # define STATIC_ASSERT(_x) \
     { \
-        BYTE dummy[1 - 2 * ((_x) == 0)]; \
+        uint8_t dummy[1 - 2 * ((_x) == 0)]; \
         dummy[0] = dummy[0] - dummy[0]; /* prevent "unused variable" warning */ \
     }
 

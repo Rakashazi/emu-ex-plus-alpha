@@ -32,9 +32,9 @@
 
 #include "types.h"
 
-inline static int raster_cache_data_fill_1fff(BYTE *dest,
-                                              const BYTE *src_base_low,
-                                              const BYTE *src_base_high,
+inline static int raster_cache_data_fill_1fff(uint8_t *dest,
+                                              const uint8_t *src_base_low,
+                                              const uint8_t *src_base_high,
                                               int src_cnt,
                                               const unsigned int length,
                                               unsigned int *xs,
@@ -42,7 +42,7 @@ inline static int raster_cache_data_fill_1fff(BYTE *dest,
                                               int no_check)
 {
     unsigned int i = 0;
-    const BYTE *src;
+    const uint8_t *src;
 
     if (no_check) {
         *xs = 0;
@@ -62,7 +62,8 @@ inline static int raster_cache_data_fill_1fff(BYTE *dest,
         }
         return 1;
     } else {
-        unsigned int x = 0, i = 0;
+        unsigned int x = 0;
+        i = 0;
 
         src = (src_cnt & 0x1000) ? src_base_high : src_base_low;
         src_cnt &= 0xfff;

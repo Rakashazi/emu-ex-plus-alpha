@@ -38,7 +38,7 @@
 
 static log_t fsdrive_log = LOG_ERR;
 
-static BYTE SerialBuffer[SERIAL_NAMELENGTH + 1];
+static uint8_t SerialBuffer[SERIAL_NAMELENGTH + 1];
 static int SerialPtr;
 
 /*
@@ -53,13 +53,13 @@ static int SerialPtr;
 #define DELAYEDCLOSE
 
 /* Handle Serial Bus Commands under Attention.  */
-static BYTE serialcommand(unsigned int device, BYTE secondary)
+static uint8_t serialcommand(unsigned int device, uint8_t secondary)
 {
     serial_t *p;
     void *vdrive;
     int channel;
     int i;
-    BYTE st = 0;
+    uint8_t st = 0;
 
     /*
      * which device ?
@@ -84,9 +84,9 @@ static BYTE serialcommand(unsigned int device, BYTE secondary)
         case 0x60:
             if (p->isopen[channel] == 1) {
                 p->isopen[channel] = 2;
-                st = (BYTE)((*(p->openf))(vdrive, NULL, 0, channel, NULL));
+                st = (uint8_t)((*(p->openf))(vdrive, NULL, 0, channel, NULL));
                 for (i = 0; i < SerialPtr; i++) {
-                    (*(p->putf))(vdrive, ((BYTE)(SerialBuffer[i])), channel);
+                    (*(p->putf))(vdrive, ((uint8_t)(SerialBuffer[i])), channel);
                 }
                 SerialPtr = 0;
             }
@@ -100,7 +100,7 @@ static BYTE serialcommand(unsigned int device, BYTE secondary)
          */
         case 0xE0:
             p->isopen[channel] = 0;
-            st = (BYTE)((*(p->closef))(vdrive, channel));
+            st = (uint8_t)((*(p->closef))(vdrive, channel));
             break;
 
         /*
@@ -115,7 +115,7 @@ static BYTE serialcommand(unsigned int device, BYTE secondary)
                 }
                 p->isopen[channel] = 2;
                 SerialBuffer[SerialPtr] = 0;
-                st = (BYTE)((*(p->openf))(vdrive, SerialBuffer, SerialPtr,
+                st = (uint8_t)((*(p->openf))(vdrive, SerialBuffer, SerialPtr,
                                           channel, NULL));
                 SerialPtr = 0;
 
@@ -130,7 +130,7 @@ static BYTE serialcommand(unsigned int device, BYTE secondary)
                     (*(p->closef))(vdrive, channel);
                     p->isopen[channel] = 2;
                     SerialBuffer[SerialPtr] = 0;
-                    st = (BYTE)((*(p->openf))(vdrive, SerialBuffer, SerialPtr,
+                    st = (uint8_t)((*(p->openf))(vdrive, SerialBuffer, SerialPtr,
                                               channel, NULL));
                     SerialPtr = 0;
                     if (st) {
@@ -156,7 +156,7 @@ static BYTE serialcommand(unsigned int device, BYTE secondary)
 
 /* ------------------------------------------------------------------------- */
 
-void fsdrive_open(unsigned int device, BYTE secondary, void (*st_func)(BYTE))
+void fsdrive_open(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t))
 {
     serial_t *p;
 #ifndef DELAYEDCLOSE
@@ -177,17 +177,17 @@ void fsdrive_open(unsigned int device, BYTE secondary, void (*st_func)(BYTE))
     p->isopen[secondary & 0x0f] = 1;
 }
 
-void fsdrive_close(unsigned int device, BYTE secondary, void (*st_func)(BYTE))
+void fsdrive_close(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t))
 {
-    BYTE st;
+    uint8_t st;
 
     st = serialcommand(device, secondary);
     st_func(st);
 }
 
-void fsdrive_listentalk(unsigned int device, BYTE secondary, void (*st_func)(BYTE))
+void fsdrive_listentalk(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t))
 {
-    BYTE st;
+    uint8_t st;
     serial_t *p;
     void *vdrive;
 
@@ -205,9 +205,9 @@ void fsdrive_listentalk(unsigned int device, BYTE secondary, void (*st_func)(BYT
     }
 }
 
-void fsdrive_unlisten(unsigned int device, BYTE secondary, void (*st_func)(BYTE))
+void fsdrive_unlisten(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t))
 {
-    BYTE st;
+    uint8_t st;
     serial_t *p;
     void *vdrive;
 
@@ -228,13 +228,13 @@ void fsdrive_unlisten(unsigned int device, BYTE secondary, void (*st_func)(BYTE)
     }
 }
 
-void fsdrive_untalk(unsigned int device, BYTE secondary, void (*st_func)(BYTE))
+void fsdrive_untalk(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t))
 {
 }
 
-void fsdrive_write(unsigned int device, BYTE secondary, BYTE data, void (*st_func)(BYTE))
+void fsdrive_write(unsigned int device, uint8_t secondary, uint8_t data, void (*st_func)(uint8_t))
 {
-    BYTE st;
+    uint8_t st;
     serial_t *p;
     void *vdrive;
 
@@ -262,10 +262,10 @@ void fsdrive_write(unsigned int device, BYTE secondary, BYTE data, void (*st_fun
     }
 }
 
-BYTE fsdrive_read(unsigned int device, BYTE secondary, void (*st_func)(BYTE))
+uint8_t fsdrive_read(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t))
 {
     int st = 0, secadr = secondary & 0x0f;
-    BYTE data;
+    uint8_t data;
     serial_t *p;
     void *vdrive;
 
@@ -295,7 +295,7 @@ BYTE fsdrive_read(unsigned int device, BYTE secondary, void (*st_func)(BYTE))
         }
     }
 #endif
-    st_func((BYTE)st);
+    st_func((uint8_t)st);
 
     return data;
 }

@@ -47,6 +47,7 @@
 #include "crtc-cmdline-options.h"
 #include "crtc-color.h"
 #include "crtc-draw.h"
+#include "crtc-mem.h"
 #include "crtc-resources.h"
 #include "crtc.h"
 #include "crtctypes.h"
@@ -90,7 +91,106 @@ crtc_t crtc = {
     0x3ff,          /* vaddr_mask */
     0x2000,         /* vaddr_charswitch */
     512,            /* vaddr_charoffset */
-    0x1000          /* vaddr_revswitch */
+    0x1000,         /* vaddr_revswitch */
+
+    /* These were missing, I'm assuming they get initialized somewhere else, but
+     * let's intialize them anyway to avoid warnings. Some descriptions of the
+     * fields are in crtctypes.h -- compyx */
+    NULL,           /* screen_base */
+    NULL,           /* chargen_base */
+    0,              /* chargen_mask */
+    0,              /* chargen_offset */
+
+    0,              /* chargen_rel */
+    0,              /* screen_rel */
+
+    0,              /* regno */
+
+    0,              /* rl_start */
+    0,              /* rl_visible */
+    0,              /* rl_sync */
+    0,              /* rl_len */
+    0,              /* sync_diff */
+
+    0,              /* prev_rl_visible */
+    0,              /* prev_rl_sync */
+    0,              /* prev_rl_len */
+    0,              /* prev_screen_rel */
+
+    0,              /* hjitter */
+    0,              /* xoffset */
+    0,              /* screen_xoffset */
+    0,              /* screen_yoffset */
+
+    0,              /* henable */
+
+    0,              /* current line */
+    0,              /* framelines */
+    0,              /* venable */
+    0,              /* vsync */
+
+    0,              /* current_charline */
+
+    0,              /* blank */
+
+    0,              /* frame_start */
+    0,              /* cycles_per_frame */
+
+    0,              /* crsrmode */
+    0,              /* crsrcnt */
+    0,              /* crsrstate */
+    0,              /* cursor_lines */
+
+    NULL,           /* retrace_callback */
+    NULL,           /* hires_draw_callback */
+    0,              /* retrace_type */
+
+    0,              /* log */
+
+    /* raster: an instance of raster_t (see src/raster/raster.h) */
+    { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+        0, 0, 0,
+        0,
+        0, 0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0, 0,
+        0, 0,
+        0,
+        0,
+        0, 0,
+        0, 0,
+        0,
+        0,
+        0,
+        0,
+        NULL,
+        0,
+        0,
+        0,
+        0,
+        NULL,
+        { 0 },
+        { 0 },
+        NULL,
+        NULL,
+        NULL,
+        0
+    },
+
+    /* regs */
+    { 0 },
+
+    NULL,
+    NULL
+
+
 };
 
 /* crtc-struct access functions */
@@ -304,21 +404,22 @@ void crtc_update_window(void)
 
 /*--------------------------------------------------------------------*/
 
-void crtc_set_screen_addr(BYTE *screen)
+void crtc_set_screen_addr(uint8_t *screen)
 {
     crtc.screen_base = screen;
 }
 
 void crtc_set_chargen_offset(int offset)
 {
-/* printf("crtc_set_chargen_offset(%d)\n",offset); */
+    /* printf("crtc_set_chargen_offset(offset:%d)\n",offset); */
     crtc.chargen_offset = offset << 4; /* times the number of bytes/char */
 
     crtc_update_chargen_rel();
 }
 
-void crtc_set_chargen_addr(BYTE *chargen, int cmask)
+void crtc_set_chargen_addr(uint8_t *chargen, int cmask)
 {
+    /* printf("crtc_set_chargen_addr(mask:0x%02x)\n",cmask); */
     crtc.chargen_base = chargen;
     crtc.chargen_mask = (cmask << 4) - 1;
 
@@ -344,6 +445,8 @@ void crtc_set_screen_options(int num_cols, int rasterlines)
 void crtc_set_hw_options(int hwflag, int vmask, int vchar, int vcoffset,
                          int vrevmask)
 {
+    /* printf("crtc_set_hw_options(hwflag:%02x vmask:%02x vchar:%02x vcoffset:%02x vrevmask:%02x)\n",
+           hwflag, vmask, vchar, vcoffset, vrevmask); */
     crtc.hw_cursor = hwflag & 1;
     crtc.hw_cols = (hwflag & 2) ? 2 : 1;
     crtc.vaddr_mask = vmask;
@@ -799,12 +902,12 @@ void crtc_enable_hw_screen_blank(int enable)
 }
 
 /* cols60 is 80 cols with 40 cols timing */
-static BYTE cols40[1] = { 40 };
-static BYTE cols60[1] = { 60 };
-static BYTE cols80[1] = { 80 };
+static uint8_t cols40[1] = { 40 };
+static uint8_t cols60[1] = { 60 };
+static uint8_t cols80[1] = { 80 };
 
-static BYTE charh8[1] = { 8 };
-static BYTE charh14[1] = { 14 };
+static uint8_t charh8[1] = { 8 };
+static uint8_t charh14[1] = { 14 };
 
 void crtc_screenshot(screenshot_t *screenshot)
 {
@@ -845,7 +948,7 @@ void crtc_async_refresh(struct canvas_refresh_s *refresh)
 
 int crtc_dump(void)
 {
-    BYTE *regs = crtc.regs;
+    uint8_t *regs = crtc.regs;
     int vsyncw,scanlines;
     int htotal, vtotal;
     htotal = regs[CRTC_REG_HTOTAL] + 1;
@@ -901,12 +1004,15 @@ int crtc_dump(void)
            );
     if ((regs[CRTC_REG_MODECTRL] & 4) == 0) {
         /* binary mode */
-        mon_out("\nDisplay start:     $%04x\n", 
-                ((int)regs[CRTC_REG_DISPSTARTH] * 256) + regs[CRTC_REG_DISPSTARTL]);
-        mon_out("Cursor position:   $%04x\n", 
-                ((int)regs[CRTC_REG_CURSORPOSH] * 256) + regs[CRTC_REG_CURSORPOSL]);
-        mon_out("Lightpen position: $%04x\n", 
-                ((int)regs[CRTC_REG_LPENH] * 256) + regs[CRTC_REG_LPENL]);
+        mon_out("\nDisplay start:     $%04x\n",
+                (unsigned int)((regs[CRTC_REG_DISPSTARTH] * 256)
+                    + regs[CRTC_REG_DISPSTARTL]));
+        mon_out("Cursor position:   $%04x\n",
+                (unsigned int)((regs[CRTC_REG_CURSORPOSH] * 256)
+                    + regs[CRTC_REG_CURSORPOSL]));
+        mon_out("Lightpen position: $%04x\n",
+                (unsigned int)((regs[CRTC_REG_LPENH] * 256)
+                    + regs[CRTC_REG_LPENL]));
     } else {
         /* row/column mode */
         mon_out("\nDisplay start:     %3d x %3d\n", 

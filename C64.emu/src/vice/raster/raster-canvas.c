@@ -29,12 +29,13 @@
 
 #include <stdio.h>
 
+#include "videoarch.h"
+
 #include "lib.h"
 #include "machine.h"
 #include "raster-canvas.h"
 #include "raster.h"
 #include "video.h"
-#include "videoarch.h"
 #include "viewport.h"
 
 

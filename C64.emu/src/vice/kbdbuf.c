@@ -44,7 +44,6 @@
 #include "maincpu.h"
 #include "mem.h"
 #include "resources.h"
-#include "translate.h"
 #include "types.h"
 
 
@@ -65,7 +64,7 @@ static int buffer_size;
 static CLOCK kernal_init_cycles;
 
 /* Characters in the queue.  */
-static BYTE queue[QUEUE_SIZE];
+static uint8_t queue[QUEUE_SIZE];
 
 /* Next element in `queue' we must push into the kernal's queue.  */
 static int head_idx = 0;
@@ -161,7 +160,7 @@ static void kbd_buf_parse_string(const char *string)
             }
         } else {
             /* printf("chr:%s\n", &string[i]); */
-            /* regular character, translate to petscii */
+            /* regular character, convert to petscii */
             kbd_buf_string[j] = charset_p_topetcii(string[i]);
             j++;
         }
@@ -184,16 +183,12 @@ static int kdb_buf_feed_cmdline(const char *param, void *extra_param)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-keybuf", CALL_FUNCTION, 1,
+    { "-keybuf", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       kdb_buf_feed_cmdline, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_STRING, IDCLS_PUT_STRING_INTO_KEYBUF,
-      NULL, NULL },
-    { "-keybuf-delay", SET_RESOURCE, 1,
+      "<string>", "Put the specified string into the keyboard buffer." },
+    { "-keybuf-delay", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "KbdbufDelay", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_VALUE, IDCLS_SET_KEYBUF_DELAY,
-      NULL, NULL },
+      "<value>", "Set additional keyboard buffer delay (0: use default)" },
     CMDLINE_LIST_END
 };
 
@@ -207,16 +202,16 @@ int kbdbuf_cmdline_options_init(void)
 /* put character into the keyboard queue inside the emulation */
 static void tokbdbuffer(int c)
 {
-    int num = mem_read((WORD)(num_pending_location));
+    int num = mem_read((uint16_t)(num_pending_location));
     /* printf("tokbdbuffer c:%d num:%d\n", c, num); */
-    mem_inject((WORD)(buffer_location + num), (BYTE)c);
-    mem_inject((WORD)(num_pending_location), (BYTE)(num + 1));
+    mem_inject_key((uint16_t)(buffer_location + num), (uint8_t)c);
+    mem_inject_key((uint16_t)(num_pending_location), (uint8_t)(num + 1));
 }
 
 /* Return nonzero if the keyboard buffer is empty.  */
 int kbdbuf_is_empty(void)
 {
-    return (int)(mem_read((WORD)(num_pending_location)) == 0);
+    return (int)(mem_read((uint16_t)(num_pending_location)) == 0);
 }
 
 /* Feed `string' into the incoming queue.  */

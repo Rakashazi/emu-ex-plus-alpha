@@ -232,6 +232,8 @@ static const resource_int_t resources_int[] = {
       (int *)&sid_stereo_address_start, sid_set_sid_stereo_address, NULL },
     { "SidTripleAddressStart", 0xdf00, RES_EVENT_SAME, NULL,
       (int *)&sid_triple_address_start, sid_set_sid_triple_address, NULL },
+    { "SidQuadAddressStart", 0xdf80, RES_EVENT_SAME, NULL,
+      (int *)&sid_quad_address_start, sid_set_sid_quad_address, NULL },
     { "BurstMod", BURST_MOD_NONE, RES_EVENT_NO, NULL,
       &burst_mod, set_burst_mod, NULL },
     { "SIMMSize", 16, RES_EVENT_NO, NULL,

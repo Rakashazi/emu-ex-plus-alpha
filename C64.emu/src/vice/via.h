@@ -82,12 +82,12 @@ struct snapshot_s;
 struct via_context_s;
 
 typedef struct via_context_s {
-    BYTE via[16];
+    uint8_t via[16];
     int ifr;
     int ier;
     unsigned int tal;
-    BYTE t2cl; /* T2 counter low */
-    BYTE t2ch; /* T2 counter high */
+    uint8_t t2cl; /* T2 counter low */
+    uint8_t t2ch; /* T2 counter high */
     CLOCK tau;
     CLOCK tbu;
     CLOCK tai;
@@ -97,13 +97,13 @@ typedef struct via_context_s {
     int pb7o;
     int pb7xx;
     int pb7sx;
-    BYTE oldpa;
-    BYTE oldpb;
-    BYTE ila;
-    BYTE ilb;
+    uint8_t oldpa;
+    uint8_t oldpb;
+    uint8_t ila;
+    uint8_t ilb;
     int ca2_state;
     int cb2_state;
-    BYTE shift_state;          /* state helper for shift register */
+    uint8_t shift_state;          /* state helper for shift register */
     struct alarm_s *t1_alarm;
     struct alarm_s *t2_alarm;
     struct alarm_s *sr_alarm;
@@ -111,7 +111,7 @@ typedef struct via_context_s {
 
     CLOCK read_clk;            /* init to 0 */
     int read_offset;           /* init to 0 */
-    BYTE last_read;            /* init to 0 */
+    uint8_t last_read;            /* init to 0 */
 
     int irq_line;              /* IK_... */
     unsigned int int_num;
@@ -130,18 +130,18 @@ typedef struct via_context_s {
     void *prv;
     void *context;
 
-    void (*undump_pra)(struct via_context_s *, BYTE);
-    void (*undump_prb)(struct via_context_s *, BYTE);
-    void (*undump_pcr)(struct via_context_s *, BYTE);
-    void (*undump_acr)(struct via_context_s *, BYTE);
-    void (*store_pra)(struct via_context_s *, BYTE, BYTE, WORD);
-    void (*store_prb)(struct via_context_s *, BYTE, BYTE, WORD);
-    BYTE (*store_pcr)(struct via_context_s *, BYTE, WORD);
-    void (*store_acr)(struct via_context_s *, BYTE);
-    void (*store_sr)(struct via_context_s *, BYTE);
-    void (*store_t2l)(struct via_context_s *, BYTE);
-    BYTE (*read_pra)(struct via_context_s *, WORD);
-    BYTE (*read_prb)(struct via_context_s *);
+    void (*undump_pra)(struct via_context_s *, uint8_t);
+    void (*undump_prb)(struct via_context_s *, uint8_t);
+    void (*undump_pcr)(struct via_context_s *, uint8_t);
+    void (*undump_acr)(struct via_context_s *, uint8_t);
+    void (*store_pra)(struct via_context_s *, uint8_t, uint8_t, uint16_t);
+    void (*store_prb)(struct via_context_s *, uint8_t, uint8_t, uint16_t);
+    uint8_t (*store_pcr)(struct via_context_s *, uint8_t, uint16_t);
+    void (*store_acr)(struct via_context_s *, uint8_t);
+    void (*store_sr)(struct via_context_s *, uint8_t);
+    void (*store_t2l)(struct via_context_s *, uint8_t);
+    uint8_t (*read_pra)(struct via_context_s *, uint16_t);
+    uint8_t (*read_prb)(struct via_context_s *);
     void (*set_int)(struct via_context_s *, unsigned int, int, CLOCK);
     void (*restore_int)(struct via_context_s *, unsigned int, int);
     void (*set_ca2)(struct via_context_s *, int state);
@@ -162,19 +162,19 @@ extern void viacore_signal(struct via_context_s *via_context, int line,
                            int edge);
 
 extern void viacore_store(struct via_context_s *via_context,
-                          WORD addr, BYTE data);
-extern BYTE viacore_read(struct via_context_s *via_context,
-                         WORD addr);
-extern BYTE viacore_peek(struct via_context_s *via_context,
-                         WORD addr);
+                          uint16_t addr, uint8_t data);
+extern uint8_t viacore_read(struct via_context_s *via_context,
+                         uint16_t addr);
+extern uint8_t viacore_peek(struct via_context_s *via_context,
+                         uint16_t addr);
 
 /* WARNING: this is a hack */
-extern void viacore_set_sr(via_context_t *via_context, BYTE data);
+extern void viacore_set_sr(via_context_t *via_context, uint8_t data);
 
 extern int viacore_snapshot_write_module(struct via_context_s *via_context,
                                          struct snapshot_s *s);
 extern int viacore_snapshot_read_module(struct via_context_s *via_context,
                                         struct snapshot_s *s);
 extern int viacore_dump(via_context_t *via_context);
-#endif
 
+#endif

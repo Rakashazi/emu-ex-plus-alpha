@@ -29,6 +29,6 @@
 
 #include "types.h"
 
-extern void serial_trap_init(WORD tmpin);
+extern void serial_trap_init(uint16_t tmpin);
 
 #endif

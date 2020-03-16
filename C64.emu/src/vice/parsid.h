@@ -40,16 +40,16 @@
 extern void parsid_reset(void);
 extern int parsid_open(void);
 extern int parsid_close(void);
-extern int parsid_read(WORD addr, int chipno);
-extern void parsid_store(WORD addr, BYTE outval, int chipno);
+extern int parsid_read(uint16_t addr, int chipno);
+extern void parsid_store(uint16_t addr, uint8_t outval, int chipno);
 extern int parsid_available(void);
 
 extern int parsid_drv_open(void);
-extern void parsid_drv_out_ctr(BYTE parsid_ctrport, int chipno);
-extern BYTE parsid_drv_in_ctr(int chipno);
+extern void parsid_drv_out_ctr(uint8_t parsid_ctrport, int chipno);
+extern uint8_t parsid_drv_in_ctr(int chipno);
 extern int parsid_drv_close(void);
-extern BYTE parsid_drv_in_data(int chipno);
-extern void parsid_drv_out_data(BYTE addr, int chipno);
+extern uint8_t parsid_drv_in_data(int chipno);
+extern void parsid_drv_out_data(uint8_t addr, int chipno);
 extern void parsid_drv_sleep(int amount);
 extern int parsid_drv_available(void);
 

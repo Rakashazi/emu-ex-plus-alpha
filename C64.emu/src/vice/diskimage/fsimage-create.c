@@ -74,7 +74,7 @@ static log_t createdisk_log = LOG_DEFAULT;
 static int fsimage_create_dxx(disk_image_t *image)
 {
     unsigned int size, i, size2;
-    BYTE block[256];
+    uint8_t block[256];
     fsimage_t *fsimage = image->media.fsimage;
     int rc = 0;
 
@@ -125,7 +125,7 @@ static int fsimage_create_dxx(disk_image_t *image)
     }
 
     if (image->type == DISK_IMAGE_TYPE_X64) {
-        BYTE header[X64_HEADER_LENGTH];
+        uint8_t header[X64_HEADER_LENGTH];
 
         memset(header, 0, X64_HEADER_LENGTH);
 
@@ -206,13 +206,13 @@ static int fsimage_create_dxx(disk_image_t *image)
  */
 static int fsimage_create_gcr(disk_image_t *image)
 {
-    BYTE gcr_header[12], gcr_track[NUM_MAX_BYTES_TRACK + 2], *gcrptr;
-    BYTE gcr_track_p[84 * 2 * 4];
-    BYTE gcr_speed_p[84 * 2 * 4];
+    uint8_t gcr_header[12], gcr_track[NUM_MAX_BYTES_TRACK + 2], *gcrptr;
+    uint8_t gcr_track_p[84 * 2 * 4];
+    uint8_t gcr_speed_p[84 * 2 * 4];
     unsigned int track, sector, num_tracks, max_tracks;
     fsimage_t *fsimage;
     gcr_header_t header;
-    BYTE rawdata[256];
+    uint8_t rawdata[256];
     int gap;
 
     fsimage = image->media.fsimage;
@@ -261,7 +261,7 @@ static int fsimage_create_gcr(disk_image_t *image)
     for (track = 1; track <= num_tracks; track++) {
         gap = disk_image_gap_size(image->type, track);
         gcrptr = gcr_track;
-        util_word_to_le_buf(gcrptr, (WORD)disk_image_raw_track_size(image->type, track));
+        util_word_to_le_buf(gcrptr, (uint16_t)disk_image_raw_track_size(image->type, track));
         gcrptr += 2;
         memset(gcrptr, 0x55, NUM_MAX_BYTES_TRACK);
         if (image->type == DISK_IMAGE_TYPE_G71) {
@@ -312,12 +312,12 @@ static int fsimage_create_p64(disk_image_t *image)
 {
     TP64MemoryStream P64MemoryStreamInstance;
     TP64Image P64Image;
-    BYTE gcr_track[NUM_MAX_BYTES_TRACK], *gcrptr;
+    uint8_t gcr_track[NUM_MAX_BYTES_TRACK], *gcrptr;
     unsigned int track, sector;
     fsimage_t *fsimage;
     int rc = -1;
     gcr_header_t header;
-    BYTE rawdata[256];
+    uint8_t rawdata[256];
     int gap;
 
     fsimage = image->media.fsimage;
@@ -329,7 +329,7 @@ static int fsimage_create_p64(disk_image_t *image)
     for (track = 1; track <= NUM_TRACKS_1541; track++) {
         gap = disk_image_gap_size(image->type, track);
         gcrptr = gcr_track;
-        util_word_to_le_buf(gcrptr, (WORD)disk_image_raw_track_size(image->type, track));
+        util_word_to_le_buf(gcrptr, (uint16_t)disk_image_raw_track_size(image->type, track));
         gcrptr += 2;
         memset(gcrptr, 0x55, NUM_MAX_BYTES_TRACK - 2);
 
@@ -385,7 +385,7 @@ int fsimage_create(const char *name, unsigned int type)
     image->device = DISK_IMAGE_DEVICE_FS;
     image->type = type;
 
-    fsimage->name = lib_stralloc(name);
+    fsimage->name = lib_strdup(name);
     fsimage->fd = fopen(name, MODE_WRITE);
 
     if (fsimage->fd == NULL) {

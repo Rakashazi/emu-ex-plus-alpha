@@ -52,19 +52,19 @@
  * character set) and, assuming it is the usual monochrome, replace them
  * by coloured pixels.
  */
-static void DRAW_rgbi(BYTE *p, int xstart, int xend, int scr_rel, int ymod8)
+static void DRAW_rgbi(uint8_t *p, int xstart, int xend, int scr_rel, int ymod8)
 {
     if (ymod8 < 8 && xstart < xend) {
-        BYTE *colour_ptr = crtc.screen_base + COLOUR_MEMORY_START;
+        uint8_t *colour_ptr = crtc.screen_base + COLOUR_MEMORY_START;
         int i;
 
 #if DEBUG_GFX
         printf("DRAW_rgbi: xstart=%d, xend=%d, ymod8=%d, scr_rel=%04x\n", xstart, xend, ymod8, scr_rel);
 #endif
         for (i = xstart; i < xend; i++) {
-            BYTE colour = colour_ptr[scr_rel & crtc.vaddr_mask];
-            BYTE bg = (colour >> 4) & 0x0F;
-            BYTE fg =  colour       & 0x0F;
+            uint8_t colour = colour_ptr[scr_rel & crtc.vaddr_mask];
+            uint8_t bg = (colour >> 4) & 0x0F;
+            uint8_t fg =  colour       & 0x0F;
 
             int pixel;
             for (pixel = 0; pixel < 8; pixel++) {
@@ -81,17 +81,17 @@ static void DRAW_rgbi(BYTE *p, int xstart, int xend, int scr_rel, int ymod8)
     }
 }
 
-static void DRAW_analog(BYTE *p, int xstart, int xend, int scr_rel, int ymod8)
+static void DRAW_analog(uint8_t *p, int xstart, int xend, int scr_rel, int ymod8)
 {
     if (ymod8 < 8 && xstart < xend) {
-        BYTE *colour_ptr = crtc.screen_base + COLOUR_MEMORY_START;
+        uint8_t *colour_ptr = crtc.screen_base + COLOUR_MEMORY_START;
         int i;
 
 #if DEBUG_GFX
         printf("DRAW_analog: xstart=%d, xend=%d, ymod8=%d, scr_rel=%04x\n", xstart, xend, ymod8, scr_rel);
 #endif
         for (i = xstart; i < xend; i++) {
-            BYTE colour = colour_ptr[scr_rel & crtc.vaddr_mask];
+            uint8_t colour = colour_ptr[scr_rel & crtc.vaddr_mask];
 
             int pixel;
             for (pixel = 0; pixel < 8; pixel++) {

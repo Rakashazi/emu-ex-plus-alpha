@@ -128,7 +128,7 @@ static unsigned int mon_register_get_val(int mem, int reg_id)
     return 0;
 }
 
-static void mon_register_set_val(int mem, int reg_id, WORD val)
+static void mon_register_set_val(int mem, int reg_id, uint16_t val)
 {
     h6809_regs_t *reg_ptr;
 
@@ -157,16 +157,16 @@ static void mon_register_set_val(int mem, int reg_id, WORD val)
             H6809_REGS_SET_PC(reg_ptr, val);
             break;
         case e_DP:
-            H6809_REGS_SET_DP(reg_ptr, (BYTE)val);
+            H6809_REGS_SET_DP(reg_ptr, (uint8_t)val);
             break;
         case e_FLAGS:
-            H6809_REGS_SET_CC(reg_ptr, (BYTE)val);
+            H6809_REGS_SET_CC(reg_ptr, (uint8_t)val);
             break;
         case e_A:
-            H6809_REGS_SET_A(reg_ptr, (BYTE)val);
+            H6809_REGS_SET_A(reg_ptr, (uint8_t)val);
             break;
         case e_B:
-            H6809_REGS_SET_B(reg_ptr, (BYTE)val);
+            H6809_REGS_SET_B(reg_ptr, (uint8_t)val);
             break;
         case e_D:
             H6809_REGS_SET_D(reg_ptr, val);
@@ -174,22 +174,22 @@ static void mon_register_set_val(int mem, int reg_id, WORD val)
 #if 0
         /* 6309 specific registers, for future support */
         case e_E:
-            H6809_REGS_SET_E(reg_ptr, (BYTE)val);
+            H6809_REGS_SET_E(reg_ptr, (uint8_t)val);
             break;
         case e_F:
-            H6809_REGS_SET_F(reg_ptr, (BYTE)val);
+            H6809_REGS_SET_F(reg_ptr, (uint8_t)val);
             break;
         case e_W:
-            H6809_REGS_SET_W(reg_ptr, (WORD)val);
+            H6809_REGS_SET_W(reg_ptr, (uint16_t)val);
             break;
         case e_Q:
-            H6809_REGS_SET_Q(reg_ptr, (DWORD)val);
+            H6809_REGS_SET_Q(reg_ptr, (uint32_t)val);
             break;
         case e_V:
-            H6809_REGS_SET_V(reg_ptr, (WORD)val);
+            H6809_REGS_SET_V(reg_ptr, (uint16_t)val);
             break;
         case e_MD:
-            H6809_REGS_SET_MD(reg_ptr, (BYTE)val);
+            H6809_REGS_SET_MD(reg_ptr, (uint8_t)val);
             break;
 #endif
         default:

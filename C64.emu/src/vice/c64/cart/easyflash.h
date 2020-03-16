@@ -34,16 +34,16 @@ extern int easyflash_resources_init(void);
 extern void easyflash_resources_shutdown(void);
 extern int easyflash_cmdline_options_init(void);
 
-extern BYTE easyflash_roml_read(WORD addr);
-extern void easyflash_roml_store(WORD addr, BYTE value);
-extern BYTE easyflash_romh_read(WORD addr);
-extern void easyflash_romh_store(WORD addr, BYTE value);
-extern void easyflash_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit);
+extern uint8_t easyflash_roml_read(uint16_t addr);
+extern void easyflash_roml_store(uint16_t addr, uint8_t value);
+extern uint8_t easyflash_romh_read(uint16_t addr);
+extern void easyflash_romh_store(uint16_t addr, uint8_t value);
+extern void easyflash_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
 extern void easyflash_config_init(void);
-extern void easyflash_config_setup(BYTE *rawcart);
-extern int easyflash_bin_attach(const char *filename, BYTE *rawcart);
-extern int easyflash_crt_attach(FILE *fd, BYTE *rawcart, const char *filename);
+extern void easyflash_config_setup(uint8_t *rawcart);
+extern int easyflash_bin_attach(const char *filename, uint8_t *rawcart);
+extern int easyflash_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
 extern void easyflash_detach(void);
 extern int easyflash_bin_save(const char *filename);
 extern int easyflash_crt_save(const char *filename);

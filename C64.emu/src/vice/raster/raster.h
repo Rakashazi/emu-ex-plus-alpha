@@ -78,11 +78,11 @@ struct raster_s {
     struct raster_resource_chip_s *raster_resource_chip;
 
     /* Pointer to the draw buffer.  */
-    BYTE *draw_buffer_ptr;
+    uint8_t *draw_buffer_ptr;
 
     /* This is a temporary draw buffer line used for sprite collision
        checking without drawing to the real frame buffer.  */
-    BYTE *fake_draw_buffer_line;
+    uint8_t *fake_draw_buffer_line;
 
     /* Smooth scroll values for the graphics (not the whole screen).  */
     int xsmooth, ysmooth, sprite_xsmooth;
@@ -170,12 +170,12 @@ struct raster_s {
        collision checking and background sprite drawing.  When cache is
        turned on, a cached mask for each line is used instead (see
        `raster_cache_t.gfx_msk').  */
-    BYTE gfx_msk[RASTER_GFX_MSK_SIZE];
+    uint8_t gfx_msk[RASTER_GFX_MSK_SIZE];
 
     /* This is a temporary graphics mask used for sprite collision checking
        without drawing to the real frame buffer, and is set up to be always
        filled with zeroes.  */
-    BYTE zero_gfx_msk[RASTER_GFX_MSK_SIZE];
+    uint8_t zero_gfx_msk[RASTER_GFX_MSK_SIZE];
 
     int (*line_changes)(struct raster_s *, unsigned int *, unsigned int *);
     void (*draw_sprites_when_cache_enabled)(struct raster_s *,

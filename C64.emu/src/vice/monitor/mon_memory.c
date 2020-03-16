@@ -42,15 +42,15 @@
 #include "types.h"
 
 
-#define ADDR_LIMIT(x) ((WORD)(addr_mask(x)))
+#define ADDR_LIMIT(x) ((uint16_t)(addr_mask(x)))
 
 void mon_memory_move(MON_ADDR start_addr, MON_ADDR end_addr, MON_ADDR dest)
 {
     unsigned int i, dst;
     int len;
-    WORD start;
+    uint16_t start;
     MEMSPACE src_mem, dest_mem;
-    BYTE *buf;
+    uint8_t *buf;
 
     len = mon_evaluate_address_range(&start_addr, &end_addr, TRUE, -1);
     if (len <= 0) {
@@ -64,14 +64,14 @@ void mon_memory_move(MON_ADDR start_addr, MON_ADDR end_addr, MON_ADDR dest)
     dst = addr_location(dest);
     dest_mem = addr_memspace(dest);
 
-    buf = lib_malloc(sizeof(BYTE) * len);
+    buf = lib_malloc(sizeof(uint8_t) *len);
 
     for (i = 0; (int)i < len; i++) {
-        buf[i] = mon_get_mem_val(src_mem, (WORD)ADDR_LIMIT(start + i));
+        buf[i] = mon_get_mem_val(src_mem, (uint16_t)ADDR_LIMIT(start + i));
     }
 
     for (i = 0; (int)i < len; i++) {
-        mon_set_mem_val(dest_mem, (WORD)ADDR_LIMIT(dst + i), buf[i]);
+        mon_set_mem_val(dest_mem, (uint16_t)ADDR_LIMIT(dst + i), buf[i]);
     }
 
     lib_free(buf);
@@ -79,9 +79,9 @@ void mon_memory_move(MON_ADDR start_addr, MON_ADDR end_addr, MON_ADDR dest)
 
 void mon_memory_compare(MON_ADDR start_addr, MON_ADDR end_addr, MON_ADDR dest)
 {
-    WORD start;
+    uint16_t start;
     MEMSPACE src_mem, dest_mem;
-    BYTE byte1, byte2;
+    uint8_t byte1, byte2;
     unsigned int i, dst;
     int len;
 
@@ -98,8 +98,8 @@ void mon_memory_compare(MON_ADDR start_addr, MON_ADDR end_addr, MON_ADDR dest)
     dest_mem = addr_memspace(dest);
 
     for (i = 0; (int)i < len; i++) {
-        byte1 = mon_get_mem_val(src_mem, (WORD)ADDR_LIMIT(start + i));
-        byte2 = mon_get_mem_val(dest_mem, (WORD)ADDR_LIMIT(dst + i));
+        byte1 = mon_get_mem_val(src_mem, (uint16_t)ADDR_LIMIT(start + i));
+        byte2 = mon_get_mem_val(dest_mem, (uint16_t)ADDR_LIMIT(dst + i));
 
         if (byte1 != byte2) {
             mon_out("$%04x $%04x: %02x %02x\n",
@@ -111,13 +111,13 @@ void mon_memory_compare(MON_ADDR start_addr, MON_ADDR end_addr, MON_ADDR dest)
 void mon_memory_fill(MON_ADDR start_addr, MON_ADDR end_addr,
                      unsigned char *data)
 {
-    WORD start;
+    uint16_t start;
     MEMSPACE dest_mem;
     unsigned int i, mon_index;
     int len;
 
     len = mon_evaluate_address_range(&start_addr, &end_addr, FALSE,
-                                     (WORD)data_buf_len);
+                                     (uint16_t)data_buf_len);
     if (len < 0) {
         mon_out("Invalid range.\n");
         return;
@@ -134,7 +134,7 @@ void mon_memory_fill(MON_ADDR start_addr, MON_ADDR end_addr,
     i = 0;
     mon_index = 0;
     while ((int)i < len) {
-        mon_set_mem_val(dest_mem, (WORD)ADDR_LIMIT(start + i),
+        mon_set_mem_val(dest_mem, (uint16_t)ADDR_LIMIT(start + i),
                         data_buf[mon_index++]);
         if (mon_index >= data_buf_len) {
             mon_index = 0;
@@ -148,8 +148,8 @@ void mon_memory_fill(MON_ADDR start_addr, MON_ADDR end_addr,
 void mon_memory_hunt(MON_ADDR start_addr, MON_ADDR end_addr,
                      unsigned char *data)
 {
-    BYTE *buf;
-    WORD start, next_read;
+    uint8_t *buf;
+    uint16_t start, next_read;
     MEMSPACE mem;
     unsigned int i;
     int len;
@@ -162,15 +162,15 @@ void mon_memory_hunt(MON_ADDR start_addr, MON_ADDR end_addr,
     mem = addr_memspace(start_addr);
     start = addr_location(start_addr);
 
-    buf = lib_malloc(sizeof(BYTE) * data_buf_len);
+    buf = lib_malloc(sizeof(uint8_t) * data_buf_len);
 
     /* Fill buffer */
     for (i = 0; i < data_buf_len; i++) {
-        buf[i] = mon_get_mem_val(mem, (WORD)ADDR_LIMIT(start + i));
+        buf[i] = mon_get_mem_val(mem, (uint16_t)ADDR_LIMIT(start + i));
     }
 
     /* Do compares */
-    next_read = start + (WORD)data_buf_len;
+    next_read = start + (uint16_t)data_buf_len;
 
     for (i = 0; i <= (len - data_buf_len); i++, next_read++) {
         int not_found = 0;
@@ -204,20 +204,40 @@ static const int radix_chars_per_byte[] = {
 };
 
 
-static void memory_to_string(char *buf, MEMSPACE mem, WORD addr,
+static void memory_to_string(char *buf, MEMSPACE mem, uint16_t addr,
                              unsigned int len, bool petscii)
 {
     unsigned int i;
-    BYTE val;
+    uint8_t val;
 
+#if 0
+    printf("memory_to_string(): len = %u\n", len);
+#endif
     for (i = 0; i < len; i++) {
         val = mon_get_mem_val(mem, addr);
 
+#ifndef SDL_UI_SUPPORT
         if (petscii) {
-            buf[i] = charset_p_toascii(val, 0);
+            val = charset_p_toascii(val, 0);
         }
 
         buf[i] = isprint(val) ? val : '.';
+#else
+        /* Handle control chars. that wouldn't be printed verbatim */
+        switch (val) {
+            case '\0':
+                buf[i] = '@';
+                break;
+            case '\t':
+                buf[i] = 'i';
+                break;
+            case '\n':
+                buf[i] = 'j';
+                break;
+            default:
+                buf[i] = val;
+        }
+#endif
 
         addr++;
     }
@@ -230,32 +250,52 @@ static void set_addr_location(MON_ADDR *a, unsigned l)
 
 void mon_memory_display(int radix_type, MON_ADDR start_addr, MON_ADDR end_addr, mon_display_format_t format)
 {
-    unsigned int i, cnt = 0, len, max_width, real_width;
-    WORD addr = 0;
-    char printables[50];
+    unsigned int i, m, cnt = 0, len, max_width, real_width;
+    uint16_t addr = 0;
+    char *printables;
     char prefix;
     MEMSPACE mem;
-    WORD display_number;
-    BYTE v;
+    uint16_t display_number;
+    uint8_t v;
+    size_t plen;
+    static int last_known_xres = 80, last_known_yres = 25;
 
     prefix = (format == DF_PETSCII) ? '>' : '*';
 
     if (radix_type) {
+        if (console_log) {
+            last_known_xres = console_log->console_xres;
+            last_known_yres = console_log->console_yres;
+        }
         if (radix_type != e_hexadecimal && radix_type != e_decimal && radix_type != e_octal) {
-            max_width = (console_log->console_xres - 12)
+            max_width = (last_known_xres - 12)
                         / (radix_chars_per_byte[radix_type] + 2);
         } else {
-            max_width = (4 * (console_log->console_xres - 12))
+            max_width = (4 * (last_known_xres - 12))
                         / (4 * (radix_chars_per_byte[radix_type] + 2) + 1);
         }
 
-        max_width &= ~3;
+        /* to make the output easier to read, make sure the number of items
+           each line equals a power of two */
+        m = 1;
+        while ((m * 2) <= max_width)  {
+            m *= 2;
+        }
+        max_width = m;
 
-        display_number = max_width * ((console_log->console_yres - 6) / 2);
+        display_number = max_width * ((last_known_yres - 6) / 2);
     } else {
         max_width = 40;
         display_number = 128;
     }
+
+    /* allocate proper buffer for 'printables' */
+    plen = max_width + 1;
+#if 0
+    printf("allocating %lu bytes for 'printables' array\n",
+            (unsigned long)plen);
+#endif
+    printables = lib_malloc(plen);
 
     len = mon_evaluate_address_range(&start_addr, &end_addr, FALSE,
                                      display_number);
@@ -263,9 +303,10 @@ void mon_memory_display(int radix_type, MON_ADDR start_addr, MON_ADDR end_addr, 
     addr = addr_location(start_addr);
 
     while (cnt < len) {
+        memset(printables, 0, plen);
         mon_out("%c%s:%04x ", prefix, mon_memspace_string[mem], addr);
         for (i = 0, real_width = 0; i < max_width; i++) {
-            v = mon_get_mem_val(mem, (WORD)ADDR_LIMIT(addr + i));
+            v = mon_get_mem_val(mem, (uint16_t)ADDR_LIMIT(addr + i));
 
             switch (radix_type) {
                 case 0: /* special case == petscii text */
@@ -279,7 +320,6 @@ void mon_memory_display(int radix_type, MON_ADDR start_addr, MON_ADDR end_addr, 
                     cnt++;
                     break;
                 case e_decimal:
-                    memset(printables, 0, 50);
                     if (!(cnt % 4)) {
                         mon_out(" ");
                     }
@@ -292,7 +332,6 @@ void mon_memory_display(int radix_type, MON_ADDR start_addr, MON_ADDR end_addr, 
                     }
                     break;
                 case e_hexadecimal:
-                    memset(printables, 0, 50);
                     if (!(cnt % 4)) {
                         mon_out(" ");
                     }
@@ -305,7 +344,6 @@ void mon_memory_display(int radix_type, MON_ADDR start_addr, MON_ADDR end_addr, 
                     cnt++;
                     break;
                 case e_octal:
-                    memset(printables, 0, 50);
                     if (!(cnt % 4)) {
                         mon_out(" ");
                     }
@@ -318,7 +356,6 @@ void mon_memory_display(int radix_type, MON_ADDR start_addr, MON_ADDR end_addr, 
                     }
                     break;
                 case e_binary:
-                    memset(printables, 0, 50);
                     if (cnt < len) {
                         mon_print_bin(v, '1', '0');
                         mon_out(" ");
@@ -329,6 +366,7 @@ void mon_memory_display(int radix_type, MON_ADDR start_addr, MON_ADDR end_addr, 
                     }
                     break;
                 default:
+                    lib_free(printables);
                     return;
             }
         }
@@ -344,6 +382,7 @@ void mon_memory_display(int radix_type, MON_ADDR start_addr, MON_ADDR end_addr, 
         }
     }
 
+    lib_free(printables);
     set_addr_location(&(dot_addr[mem]), addr);
 }
 
@@ -352,11 +391,11 @@ void mon_memory_display_data(MON_ADDR start_addr, MON_ADDR end_addr,
                              unsigned int x, unsigned int y)
 {
     unsigned i, j, len, cnt = 0;
-    WORD addr = 0;
+    uint16_t addr = 0;
     MEMSPACE mem;
 
     len = mon_evaluate_address_range(&start_addr, &end_addr, FALSE,
-                                     (WORD)((x * y) / 8));
+                                     (uint16_t)((x * y) / 8));
     mem = addr_memspace(start_addr);
     addr = addr_location(start_addr);
 
@@ -365,7 +404,7 @@ void mon_memory_display_data(MON_ADDR start_addr, MON_ADDR end_addr,
             mon_out(">%s:%04x ", mon_memspace_string[mem], addr);
             for (j = 0; j < (x / 8); j++) {
                 mon_print_bin(mon_get_mem_val(mem,
-                                              (WORD)(ADDR_LIMIT(addr + j))), '.', '*');
+                                              (uint16_t)(ADDR_LIMIT(addr + j))), '*', '.');
                 cnt++;
             }
             mon_out("\n");

@@ -59,16 +59,17 @@
 #include "psid.h"
 #include "resources.h"
 #include "screenshot.h"
-#include "serial.h"
 #include "sid-cmdline-options.h"
 #include "sid-resources.h"
 #include "sid.h"
 #include "viciivsid.h"
 #include "vicii-mem.h"
 #include "video.h"
+#include "vsid-cmdline-options.h"
 #include "vsidui.h"
 #include "vsid-debugcart.h"
 #include "vsync.h"
+
 
 machine_context_t machine_context;
 
@@ -84,9 +85,9 @@ static machine_timing_t machine_timing;
 /* ------------------------------------------------------------------------ */
 
 static int vsid_autostart_delay = 0;
-static WORD vsid_autostart_load_addr = 0;
-static BYTE *vsid_autostart_data = NULL;
-static WORD vsid_autostart_length = 0;
+static uint16_t vsid_autostart_load_addr = 0;
+static uint8_t *vsid_autostart_data = NULL;
+static uint16_t vsid_autostart_length = 0;
 
 /* ------------------------------------------------------------------------ */
 
@@ -132,13 +133,17 @@ void machine_resources_shutdown(void)
 /* C64-specific command-line option initialization.  */
 int machine_cmdline_options_init(void)
 {
+    if (vsid_cmdline_options_init() < 0) {
+        init_cmdline_options_fail("c64");
+        return -1;
+    }
 #if defined(USE_SDLUI) || defined(USE_SDLUI2)
     if (vicii_cmdline_options_init() < 0) {
         init_cmdline_options_fail("vicii");
         return -1;
     }
 #endif
-    if (sid_cmdline_options_init() < 0) {
+    if (sid_cmdline_options_init(SIDTYPE_SID) < 0) {
         init_cmdline_options_fail("sid");
         return -1;
     }
@@ -291,22 +296,32 @@ static void machine_vsync_hook(void)
     static unsigned int time = 0;
 
     if (vsid_autostart_delay > 0) {
-        if (-- vsid_autostart_delay == 0) {
+        if (--vsid_autostart_delay == 0) {
             log_message(c64_log, "Triggering VSID autoload");
             psid_init_tune(0);
             for (i = 0; i < vsid_autostart_length; i += 1) {
-                mem_inject((WORD)(vsid_autostart_load_addr + i), vsid_autostart_data[i]);
+                mem_inject((uint16_t)(vsid_autostart_load_addr + i),
+                        vsid_autostart_data[i]);
             }
-            mem_set_basic_text(vsid_autostart_load_addr, (WORD)(vsid_autostart_load_addr + vsid_autostart_length));
+            mem_set_basic_text(vsid_autostart_load_addr,
+                    (uint16_t)(vsid_autostart_load_addr + vsid_autostart_length));
             kbdbuf_feed_runcmd("RUN\r");
         }
     }
 
-    playtime = (psid_increment_frames() * machine_timing.cycles_per_rfsh) / machine_timing.cycles_per_sec;
+#if 0
+    playtime = (psid_increment_frames() * machine_timing.cycles_per_rfsh)
+        / machine_timing.cycles_per_sec;
+#else
+    /* Count deciseconds */
+    playtime = (double)psid_increment_frames()
+        / machine_timing.rfsh_per_sec * 10.0;
+#endif
     if (playtime != time) {
-        vsid_ui_display_time(playtime);
         time = playtime;
+        vsid_ui_display_time(playtime);
     }
+
     clk_guard_prevent_overflow(maincpu_clk_guard);
 }
 
@@ -447,12 +462,12 @@ struct image_contents_s *machine_diskcontents_bus_read(unsigned int unit)
     return NULL;
 }
 
-BYTE machine_tape_type_default(void)
+uint8_t machine_tape_type_default(void)
 {
     return 0;
 }
 
-BYTE machine_tape_behaviour(void)
+uint8_t machine_tape_behaviour(void)
 {
     return 0;
 }

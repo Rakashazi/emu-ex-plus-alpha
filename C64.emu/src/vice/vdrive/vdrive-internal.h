@@ -33,6 +33,6 @@ extern void vdrive_internal_init(void);
 
 extern struct vdrive_s *vdrive_internal_open_fsimage(const char *name, unsigned int read_only);
 extern int vdrive_internal_close_disk_image(struct vdrive_s *vdrive);
-extern VICE_API int vdrive_internal_create_format_disk_image(const char *filename, const char *diskname, unsigned int type);
+extern int vdrive_internal_create_format_disk_image(const char *filename, const char *diskname, unsigned int type);
 
 #endif

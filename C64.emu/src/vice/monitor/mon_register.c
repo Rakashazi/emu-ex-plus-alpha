@@ -56,6 +56,10 @@ int mon_register_valid(int mem, int reg_id)
             return 0;
         }
     }
+    
+    if ((reg_id == e_Rasterline) || (reg_id == e_Cycle)) {
+        return 1;
+    }
 
     mon_reg_list = regs = mon_register_list_get(mem);
 

@@ -45,7 +45,7 @@
 #include "vdrive.h"
 
 
-int fsdevice_write(struct vdrive_s *vdrive, BYTE data, unsigned int secondary)
+int fsdevice_write(struct vdrive_s *vdrive, uint8_t data, unsigned int secondary)
 {
     bufinfo_t *bufinfo;
 

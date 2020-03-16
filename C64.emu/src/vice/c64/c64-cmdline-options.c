@@ -41,10 +41,9 @@
 #include "machine.h"
 #include "patchrom.h"
 #include "resources.h"
-#include "translate.h"
 #include "vicii.h"
 
-int set_cia_model(const char *value, void *extra_param)
+static int set_cia_model(const char *value, void *extra_param)
 {
     int model;
 
@@ -171,7 +170,7 @@ static struct kernal_s kernal_match[] = {
 
 static int set_kernal_revision(const char *param, void *extra_param)
 {
-    WORD sum;                   /* ROM checksum */
+    uint16_t sum;                   /* ROM checksum */
     int id;                     /* ROM identification number */
     int rev = C64_KERNAL_UNKNOWN;
     int i = 0;
@@ -205,89 +204,58 @@ static int set_kernal_revision(const char *param, void *extra_param)
     return 0;
 }
 
-static const cmdline_option_t cmdline_options[] = {
-    { "-pal", CALL_FUNCTION, 0,
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-pal", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       set_video_standard, (void *)MACHINE_SYNC_PAL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_PAL_SYNC_FACTOR,
-      NULL, NULL },
-    { "-ntsc", CALL_FUNCTION, 0,
+      NULL, "Use PAL sync factor" },
+    { "-ntsc", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       set_video_standard, (void *)MACHINE_SYNC_NTSC, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_NTSC_SYNC_FACTOR,
-      NULL, NULL },
-    { "-ntscold", CALL_FUNCTION, 0,
+      NULL, "Use NTSC sync factor" },
+    { "-ntscold", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       set_video_standard, (void *)MACHINE_SYNC_NTSCOLD, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_OLD_NTSC_SYNC_FACTOR,
-      NULL, NULL },
-    { "-paln", CALL_FUNCTION, 0,
+      NULL, "Use old NTSC sync factor" },
+    { "-paln", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       set_video_standard, (void *)MACHINE_SYNC_PALN, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_PALN_SYNC_FACTOR,
-      NULL, NULL },
-    { "-kernal", SET_RESOURCE, 1,
+      NULL, "Use PAL-N sync factor" },
+    { "-kernal", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "KernalName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_KERNAL_ROM_NAME,
-      NULL, NULL },
-    { "-basic", SET_RESOURCE, 1,
+      "<Name>", "Specify name of Kernal ROM image" },
+    { "-basic", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "BasicName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_BASIC_ROM_NAME,
-      NULL, NULL },
-    { "-chargen", SET_RESOURCE, 1,
+      "<Name>", "Specify name of BASIC ROM image" },
+    { "-chargen", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "ChargenName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_CHARGEN_ROM_NAME,
-      NULL, NULL },
-    { "-kernalrev", CALL_FUNCTION, 1,
+      "<Name>", "Specify name of character generator ROM image" },
+    { "-kernalrev", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       set_kernal_revision, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_REVISION, IDCLS_PATCH_KERNAL_TO_REVISION,
-      NULL, NULL },
+      "<Revision>", "Patch the Kernal ROM to the specified <revision> (1: rev. 1, 2: rev. 2, 3: rev. 3, 67/sx: sx64, 100/4064: 4064)" },
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    { "-acia1", SET_RESOURCE, 0,
+    { "-acia1", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "Acia1Enable", (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_DEXX_ACIA_RS232_EMU,
-      NULL, NULL },
-    { "+acia1", SET_RESOURCE, 0,
+      NULL, "Enable the ACIA RS232 interface emulation" },
+    { "+acia1", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "Acia1Enable", (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_DEXX_ACIA_RS232_EMU,
-      NULL, NULL },
+      NULL, "Disable the ACIA RS232 interface emulation" },
 #endif
-    { "-ciamodel", CALL_FUNCTION, 1,
+    { "-ciamodel", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       set_cia_model, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_MODEL, IDCLS_SET_BOTH_CIA_MODELS,
-      NULL, NULL },
-    { "-cia1model", SET_RESOURCE, 1,
+      "<Model>", "Set both CIA models (0 = old 6526, 1 = new 8521)" },
+    { "-cia1model", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "CIA1Model", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_MODEL, IDCLS_SET_CIA1_MODEL,
-      NULL, NULL },
-    { "-cia2model", SET_RESOURCE, 1,
+      "<Model>", "Set CIA 1 model (0 = old 6526, 1 = new 8521)" },
+    { "-cia2model", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "CIA2Model", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_MODEL, IDCLS_SET_CIA2_MODEL,
-      NULL, NULL },
-    { "-model", CALL_FUNCTION, 1,
+      "<Model>", "Set CIA 2 model (0 = old 6526, 1 = new 8521)" },
+    { "-model", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       set_c64_model, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_MODEL, IDCLS_SET_C64_MODEL,
-      NULL, NULL },
-    { "-burstmod", SET_RESOURCE, 1,
+      "<Model>", "Set C64 model (c64/c64c/c64old, ntsc/newntsc/oldntsc, drean, jap, c64gs, pet64, ultimax)" },
+    { "-burstmod", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "BurstMod", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_VALUE, IDCLS_SET_BURST_MOD,
-      NULL, NULL },
-    { "-iecreset", SET_RESOURCE, 1,
+      "<value>", "Burst modification (0 = None, 1 = CIA1, 2 = CIA2)" },
+    { "-iecreset", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "IECReset", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_VALUE, IDCLS_SET_IEC_RESET,
-      NULL, NULL },
+      "<value>", "Computer reset goes to IEC bus (0 = No, 1 = Yes)" },
     CMDLINE_LIST_END
 };
 

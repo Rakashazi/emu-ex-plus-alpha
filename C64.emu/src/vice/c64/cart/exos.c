@@ -61,22 +61,22 @@ static const export_resource_t export_res = {
 
 /* ---------------------------------------------------------------------*/
 
-BYTE exos_romh_read_hirom(WORD addr)
+uint8_t exos_romh_read_hirom(uint16_t addr)
 {
     return romh_banks[(addr & 0x1fff)];
 }
 
-int exos_romh_phi1_read(WORD addr, BYTE *value)
+int exos_romh_phi1_read(uint16_t addr, uint8_t *value)
 {
     return CART_READ_C64MEM;
 }
 
-int exos_romh_phi2_read(WORD addr, BYTE *value)
+int exos_romh_phi2_read(uint16_t addr, uint8_t *value)
 {
     return exos_romh_phi1_read(addr, value);
 }
 
-int exos_peek_mem(export_t *export, WORD addr, BYTE *value)
+int exos_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
 {
     if (addr >= 0xe000) {
         *value = romh_banks[addr & 0x1fff];
@@ -92,7 +92,7 @@ void exos_config_init(void)
 
 /* ---------------------------------------------------------------------*/
 
-void exos_config_setup(BYTE *rawcart)
+void exos_config_setup(uint8_t *rawcart)
 {
     memcpy(romh_banks, &rawcart[0], 0x2000);
     cart_config_changed_slotmain(2, 3, CMODE_READ);
@@ -108,7 +108,7 @@ static int exos_common_attach(void)
     return 0;
 }
 
-int exos_bin_attach(const char *filename, BYTE *rawcart)
+int exos_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x2000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -117,7 +117,7 @@ int exos_bin_attach(const char *filename, BYTE *rawcart)
     return exos_common_attach();
 }
 
-int exos_crt_attach(FILE *fd, BYTE *rawcart)
+int exos_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
 
@@ -174,7 +174,7 @@ int exos_snapshot_write_module(snapshot_t *s)
 
 int exos_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -184,7 +184,7 @@ int exos_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

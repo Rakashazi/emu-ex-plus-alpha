@@ -44,17 +44,18 @@ extern void dqbb_reset(void);
 extern void dqbb_detach(void);
 extern void dqbb_init_config(void);
 extern int dqbb_enable(void);
-extern void dqbb_config_setup(BYTE *rawcart);
+int dqbb_disable(void);
+extern void dqbb_config_setup(uint8_t *rawcart);
 
-extern BYTE dqbb_roml_read(WORD addr);
-extern void dqbb_roml_store(WORD addr, BYTE byte);
-extern BYTE dqbb_romh_read(WORD addr);
-extern void dqbb_romh_store(WORD addr, BYTE byte);
-extern int dqbb_peek_mem(WORD addr, BYTE *value);
-extern void dqbb_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit);
+extern uint8_t dqbb_roml_read(uint16_t addr);
+extern void dqbb_roml_store(uint16_t addr, uint8_t byte);
+extern uint8_t dqbb_romh_read(uint16_t addr);
+extern void dqbb_romh_store(uint16_t addr, uint8_t byte);
+extern int dqbb_peek_mem(uint16_t addr, uint8_t *value);
+extern void dqbb_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
 extern const char *dqbb_get_file_name(void);
-extern int dqbb_bin_attach(const char *filename, BYTE *rawcart);
+extern int dqbb_bin_attach(const char *filename, uint8_t *rawcart);
 extern int dqbb_bin_save(const char *filename);
 extern int dqbb_flush_image(void);
 

@@ -32,7 +32,8 @@
 
 #include "joyport.h"
 #include "keyboard.h"
-#include "translate.h"
+
+#include "rushware_keypad.h"
 
 /* Control port <--> coplin keypad connections:
 
@@ -104,13 +105,14 @@ ENTER            0     0    0    0    0
 #define KEYPAD_KEY_ENT  ROW_COL(3,2)
 #define KEYPAD_KEY_PLUS ROW_COL(3,3)
 
+#define KEYPAD_KEYS_NUM  16
+
 static int rushware_keypad_enabled = 0;
 
-static int keys[16];
+static int keys[KEYPAD_KEYS_NUM];
 
 /* ------------------------------------------------------------------------- */
 
-#ifdef COMMON_KBD
 static void handle_keys(int row, int col, int pressed)
 {
     if (row < 0 || row > 3 || col < 1 || col > 4) {
@@ -119,7 +121,6 @@ static void handle_keys(int row, int col, int pressed)
 
     keys[(row * 4) + col - 1] = pressed;
 }
-#endif
 
 /* ------------------------------------------------------------------------- */
 
@@ -132,14 +133,10 @@ static int joyport_rushware_keypad_enable(int port, int value)
     }
 
     if (val) {
-        memset(keys, 0, 16);
-#ifdef COMMON_KBD
+        memset(keys, 0, KEYPAD_KEYS_NUM * sizeof(unsigned int));
         keyboard_register_joy_keypad(handle_keys);
-#endif
     } else {
-#ifdef COMMON_KBD
         keyboard_register_joy_keypad(NULL);
-#endif
     }
 
     rushware_keypad_enabled = val;
@@ -147,9 +144,9 @@ static int joyport_rushware_keypad_enable(int port, int value)
     return 0;
 }
 
-static BYTE rushware_keypad_read(int port)
+static uint8_t rushware_keypad_read(int port)
 {
-    BYTE retval = 0xff;
+    uint8_t retval = 0xff;
 
     if (keys[KEYPAD_KEY_ENT]) {
         retval = 0xe0;
@@ -200,7 +197,7 @@ static BYTE rushware_keypad_read(int port)
         retval = 0xef;
     }
 
-    joyport_display_joyport(JOYPORT_ID_RUSHWARE_KEYPAD, (BYTE)~retval);
+    joyport_display_joyport(JOYPORT_ID_RUSHWARE_KEYPAD, (uint8_t)~retval);
 
     return retval;
 }
@@ -208,18 +205,17 @@ static BYTE rushware_keypad_read(int port)
 /* ------------------------------------------------------------------------- */
 
 static joyport_t joyport_rushware_keypad_device = {
-    "RushWare Keypad",
-    IDGS_RUSHWARE_KEYPAD,
-    JOYPORT_RES_ID_KEYPAD,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_OPTIONAL,
-    joyport_rushware_keypad_enable,
-    rushware_keypad_read,
-    NULL,               /* no digital store */
-    NULL,               /* no pot-x read */
-    NULL,               /* no pot-y read */
-    NULL,               /* no write snapshot */
-    NULL                /* no read snapshot */
+    "RushWare Keypad",              /* name of the device */
+    JOYPORT_RES_ID_KEYPAD,          /* device is a keypad, only 1 keypad can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,        /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,           /* device does NOT use the potentiometer lines */
+    joyport_rushware_keypad_enable, /* device enable function */
+    rushware_keypad_read,           /* digital line read function */
+    NULL,                           /* NO digital line store function */
+    NULL,                           /* NO pot-x read function */
+    NULL,                           /* NO pot-x read function */
+    NULL,                           /* NO device write snapshot function */
+    NULL                            /* NO device read snapshot function */
 };
 
 /* ------------------------------------------------------------------------- */

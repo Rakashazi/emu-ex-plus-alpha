@@ -58,7 +58,6 @@
 #include "mousedrv.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "vsyncapi.h"
 #include "clkguard.h"
 #include "ds1202_1302.h"
@@ -181,7 +180,7 @@ static int last_mouse_x = 0;
 static int last_mouse_y = 0;
 static rtc_ds1202_1302_t *ds1202; /* smartmouse */
 static int ds1202_rtc_save; /* smartmouse rtc data save */
-static BYTE mouse_digital_val = 0;
+static uint8_t mouse_digital_val = 0;
 
 /*
     note: for the expected behaviour look at testprogs/SID/paddles/readme.txt
@@ -197,20 +196,20 @@ static BYTE mouse_digital_val = 0;
           this case is ok.
 */
 
-static BYTE mouse_get_1351_x(void)
+static uint8_t mouse_get_1351_x(void)
 {
     if (_mouse_enabled) {
         mouse_poll();
-        return (BYTE)((last_mouse_x & 0x7f) + 0x40);
+        return (uint8_t)((last_mouse_x & 0x7f) + 0x40);
     }
     return 0xff;
 }
 
-static BYTE mouse_get_1351_y(void)
+static uint8_t mouse_get_1351_y(void)
 {
     if (_mouse_enabled) {
         mouse_poll();
-        return (BYTE)((last_mouse_y & 0x7f) + 0x40);
+        return (uint8_t)((last_mouse_y & 0x7f) + 0x40);
     }
     return 0xff;
 }
@@ -224,10 +223,10 @@ static CLOCK neos_time_out_cycles = 232;
 static int neos_and_amiga_buttons;
 static int neos_prev;
 
-static BYTE neos_x;
-static BYTE neos_y;
-static BYTE neos_lastx;
-static BYTE neos_lasty;
+static uint8_t neos_x;
+static uint8_t neos_y;
+static uint8_t neos_lastx;
+static uint8_t neos_lasty;
 
 enum {
     NEOS_XH = 0,
@@ -244,55 +243,56 @@ void neos_mouse_set_machine_parameter(long clock_rate)
 
 static void neos_get_new_movement(void)
 {
-    BYTE new_x, new_y;
+    uint8_t new_x, new_y;
 
-    new_x = (BYTE)(mousedrv_get_x() >> 1);
-    new_y = (BYTE)(mousedrv_get_y() >> 1);
-    neos_x = (BYTE)(neos_lastx - new_x);
+    new_x = (uint8_t)(mousedrv_get_x() >> 1);
+    new_y = (uint8_t)(mousedrv_get_y() >> 1);
+    neos_x = (uint8_t)(neos_lastx - new_x);
     neos_lastx = new_x;
 
-    neos_y = (BYTE)(new_y - neos_lasty);
+    neos_y = (uint8_t)(new_y - neos_lasty);
     neos_lasty = new_y;
 }
 
-void neos_mouse_store(BYTE val)
+void neos_mouse_store(uint8_t val)
 {
     if ((neos_prev & 16) != (val & 16)) {
+        /* each change on the strobe line advances to the next state */
         switch (neos_state) {
+            case NEOS_XH:
+                if (val & 16) {
+                    neos_state = NEOS_XL;
+                }
+                break;
+            case NEOS_XL:
+                if (neos_prev & 16) {
+                    neos_state = NEOS_YH;
+                }
+                break;
+            case NEOS_YH:
+                if (val & 16) {
+                    neos_state = NEOS_YL;
+                }
+                break;
             case NEOS_YL:
-                if ((val ^ neos_prev) & neos_prev & 16) {
+                if (neos_prev & 16) {
                     neos_state = NEOS_XH;
                     neos_get_new_movement();
                 }
                 break;
-            case NEOS_XH:
-                if ((val ^ neos_prev) & val & 16) {
-                    ++neos_state;
-                    neos_last_trigger = maincpu_clk;
-                }
-                break;
-            case NEOS_XL:
-                if ((val ^ neos_prev) & neos_prev & 16) {
-                    ++neos_state;
-                }
-                break;
-            case NEOS_YH:
-                if ((val ^ neos_prev) & val & 16) {
-                    ++neos_state;
-                }
-                break;
             default:
-                /* NOP */
+                /* never reaches here */
                 break;
         }
+        /* every change on the strobe line resets the timeout */
         neos_last_trigger = maincpu_clk;
         neos_prev = val;
     }
 }
 
-BYTE neos_mouse_read(void)
+uint8_t neos_mouse_read(void)
 {
-    if (neos_state != NEOS_XH && maincpu_clk > neos_last_trigger + neos_time_out_cycles) {
+    if ((neos_state != NEOS_XH) && (maincpu_clk > (neos_last_trigger + neos_time_out_cycles))) {
         neos_state = NEOS_XH;
         neos_get_new_movement();
     }
@@ -311,6 +311,7 @@ BYTE neos_mouse_read(void)
             return (neos_y & 0xf) | 0xf0;
             break;
         default:
+            /* never reaches here */
             return 0xff;
             break;
     }
@@ -327,8 +328,8 @@ BYTE neos_mouse_read(void)
 static unsigned long latest_os_ts = 0; /* in vsynchapi units */
 /* The mouse coordinates returned from the latest unique mousedrv
  * reading */
-static SWORD latest_x = 0;
-static SWORD latest_y = 0;
+static int16_t latest_x = 0;
+static int16_t latest_y = 0;
 
 static CLOCK update_x_emu_iv = 0;      /* in cpu cycle units */
 static CLOCK update_y_emu_iv = 0;      /* in cpu cycle units */
@@ -342,13 +343,13 @@ static float emu_units_per_os_units;
 
 /* The current emulated quadrature state of the polled mouse, range is
  * [0,3] */
-static BYTE quadrature_x = 0;
-static BYTE quadrature_y = 0;
+static uint8_t quadrature_x = 0;
+static uint8_t quadrature_y = 0;
 
-static BYTE polled_joyval = 0xff;
+static uint8_t polled_joyval = 0xff;
 
-static const BYTE amiga_mouse_table[4] = { 0x0, 0x1, 0x5, 0x4 };
-static const BYTE st_mouse_table[4] = { 0x0, 0x2, 0x3, 0x1 };
+static const uint8_t amiga_mouse_table[4] = { 0x0, 0x1, 0x5, 0x4 };
+static const uint8_t st_mouse_table[4] = { 0x0, 0x2, 0x3, 0x1 };
 
 /* Clock overflow handling.  */
 static void clk_overflow_callback(CLOCK sub, void *data)
@@ -364,16 +365,16 @@ static void clk_overflow_callback(CLOCK sub, void *data)
     }
 }
 
-BYTE mouse_poll(void)
+uint8_t mouse_poll(void)
 {
-    SWORD new_x, new_y;
+    int16_t new_x, new_y;
     unsigned long os_now, os_iv, os_iv2;
     CLOCK emu_now, emu_iv, emu_iv2;
     int diff_x, diff_y;
 
     /* get new mouse values */
-    new_x = (SWORD)mousedrv_get_x();
-    new_y = (SWORD)mousedrv_get_y();
+    new_x = (int16_t)mousedrv_get_x();
+    new_y = (int16_t)mousedrv_get_y();
     /* range of new_x and new_y are [0,63] */
     /* fetch now for both emu and os */
     os_now = mousedrv_get_timestamp();
@@ -403,10 +404,12 @@ BYTE mouse_poll(void)
         /* calculate the interval between the latest two mousedrv
          * updates in emulated cycles */
         os_iv = os_now - latest_os_ts;
-        if (os_iv > (unsigned long)vsyncarch_frequency()) {
-            os_iv = (unsigned long)vsyncarch_frequency(); /* more than a second response time?! */
+        /* FIXME: call function only once */
+        if (os_iv > vsyncarch_frequency()) {
+            os_iv = vsyncarch_frequency(); /* more than a second response time?! */
         }
         emu_iv = (CLOCK)((float)os_iv * emu_units_per_os_units);
+        /* FIXME: call function only once, remove cast */
         if (emu_iv > (unsigned long)machine_get_cycles_per_frame() * 2) {
             emu_iv = (CLOCK)machine_get_cycles_per_frame() * 2;   /* move in not more than 2 frames */
         }
@@ -417,8 +420,8 @@ BYTE mouse_poll(void)
 #endif
 
         /* Let's set up quadrature emulation */
-        diff_x = (SWORD)(new_x - last_mouse_x);
-        diff_y = (SWORD)(new_y - last_mouse_y);
+        diff_x = (int16_t)(new_x - last_mouse_x);
+        diff_y = (int16_t)(new_y - last_mouse_y);
 
         if (diff_x != 0) {
             sx = diff_x >= 0 ? 1 : -1;
@@ -461,10 +464,12 @@ BYTE mouse_poll(void)
 
         /* The mouse read is probably old. Do the movement since then */
         os_iv2 = vsyncarch_gettime() - os_now;
-        if (os_iv2 > (unsigned long)vsyncarch_frequency()) {
-            os_iv2 = (unsigned long)vsyncarch_frequency(); /* more than a second response time?! */
+        /* FIXME: call function only once */
+        if (os_iv2 > vsyncarch_frequency()) {
+            os_iv2 = vsyncarch_frequency(); /* more than a second response time?! */
         }
         emu_iv2 = (CLOCK)((float)os_iv2 * emu_units_per_os_units);
+        /* FIXME: call function only once, remove cast */
         if (emu_iv2 > (unsigned long)machine_get_cycles_per_second()) {
             emu_iv2 = (CLOCK)machine_get_cycles_per_second();   /* more than a second? */
         }
@@ -494,13 +499,13 @@ BYTE mouse_poll(void)
 
         switch (mouse_type) {
             case MOUSE_TYPE_AMIGA:
-                polled_joyval = (BYTE)((amiga_mouse_table[quadrature_x] << 1) | amiga_mouse_table[quadrature_y] | 0xf0);
+                polled_joyval = (uint8_t)((amiga_mouse_table[quadrature_x] << 1) | amiga_mouse_table[quadrature_y] | 0xf0);
                 break;
             case MOUSE_TYPE_CX22:
-                polled_joyval = (BYTE)(((quadrature_y & 1) << 3) | ((sy > 0) << 2) | ((quadrature_x & 1) << 1) | (sx > 0) | 0xf0);
+                polled_joyval = (uint8_t)(((quadrature_y & 1) << 3) | ((sy > 0) << 2) | ((quadrature_x & 1) << 1) | (sx > 0) | 0xf0);
                 break;
             case MOUSE_TYPE_ST:
-                polled_joyval =(BYTE)(st_mouse_table[quadrature_x] | (st_mouse_table[quadrature_y] << 2) | 0xf0);
+                polled_joyval =(uint8_t)(st_mouse_table[quadrature_x] | (st_mouse_table[quadrature_y] << 2) | 0xf0);
                 break;
             default:
                 polled_joyval = 0xff;
@@ -511,7 +516,7 @@ BYTE mouse_poll(void)
 
 static int up_down_counter = 0;
 
-BYTE micromys_mouse_read(void)
+uint8_t micromys_mouse_read(void)
 {
     /* update wheel until we're ahead */
     while (up_down_counter && up_down_pulse_end <= maincpu_clk) {
@@ -519,7 +524,7 @@ BYTE micromys_mouse_read(void)
         up_down_pulse_end += 512 * 98; /* 50 ms counted from POT input (98 A/D cycles) */
     }
     if (up_down_counter & 1) {
-        return (BYTE)(~(4 << (up_down_counter < 0)));
+        return (uint8_t)(~(4 << (up_down_counter < 0)));
     }
     return 0xff;
 }
@@ -527,7 +532,7 @@ BYTE micromys_mouse_read(void)
 /* --------------------------------------------------------- */
 /* Paddle support */
 
-static BYTE paddle_val[] = {
+static uint8_t paddle_val[] = {
 /*  x     y  */
     0x00, 0xff, /* no port */
     0x00, 0xff, /* port 1 */
@@ -535,16 +540,16 @@ static BYTE paddle_val[] = {
     0x00, 0xff  /* both ports */
 };
 
-static SWORD paddle_old[] = {
+static int16_t paddle_old[] = {
     -1, -1,
     -1, -1,
     -1, -1,
     -1, -1
 };
 
-static inline BYTE mouse_paddle_update(BYTE paddle_v, SWORD *old_v, SWORD new_v)
+static inline uint8_t mouse_paddle_update(uint8_t paddle_v, int16_t *old_v, int16_t new_v)
 {
-    SWORD new_paddle = (SWORD)(paddle_v + new_v - *old_v);
+    int16_t new_paddle = (int16_t)(paddle_v + new_v - *old_v);
     *old_v = new_v;
 
     if (new_paddle > 255) {
@@ -554,7 +559,7 @@ static inline BYTE mouse_paddle_update(BYTE paddle_v, SWORD *old_v, SWORD new_v)
         return 0;
     }
 
-    return (BYTE)new_paddle;
+    return (uint8_t)new_paddle;
 }
 
 /*
@@ -566,20 +571,20 @@ static inline BYTE mouse_paddle_update(BYTE paddle_v, SWORD *old_v, SWORD new_v)
           this case is ok.
 */
 
-static BYTE mouse_get_paddle_x(void)
+static uint8_t mouse_get_paddle_x(void)
 {
     if (_mouse_enabled) {
-        paddle_val[2] = mouse_paddle_update(paddle_val[2], &(paddle_old[2]), (SWORD)mousedrv_get_x());
-        return (BYTE)(0xff - paddle_val[2]);
+        paddle_val[2] = mouse_paddle_update(paddle_val[2], &(paddle_old[2]), (int16_t)mousedrv_get_x());
+        return (uint8_t)(0xff - paddle_val[2]);
     }
     return 0xff;
 }
 
-static BYTE mouse_get_paddle_y(void)
+static uint8_t mouse_get_paddle_y(void)
 {
     if (_mouse_enabled) {
-        paddle_val[3] = mouse_paddle_update(paddle_val[3], &(paddle_old[3]), (SWORD)mousedrv_get_y());
-        return (BYTE)(0xff - paddle_val[3]);
+        paddle_val[3] = mouse_paddle_update(paddle_val[3], &(paddle_old[3]), (int16_t)mousedrv_get_y());
+        return (uint8_t)(0xff - paddle_val[3]);
     }
     return 0xff;
 }
@@ -633,12 +638,12 @@ static int joyport_mouse_enable(int port, int val)
     int mt;
 
     mousedrv_mouse_changed();
-    latest_x = (SWORD)mousedrv_get_x();
+    latest_x = (int16_t)mousedrv_get_x();
     last_mouse_x = latest_x;
-    latest_y = (SWORD)mousedrv_get_y();
+    latest_y = (int16_t)mousedrv_get_y();
     last_mouse_y = latest_y;
-    neos_lastx = (BYTE)(mousedrv_get_x() >> 1);
-    neos_lasty = (BYTE)(mousedrv_get_y() >> 1);
+    neos_lastx = (uint8_t)(mousedrv_get_x() >> 1);
+    neos_lasty = (uint8_t)(mousedrv_get_y() >> 1);
     latest_os_ts = 0;
 
     if (!val) {
@@ -669,9 +674,9 @@ static int joyport_mouse_enable(int port, int val)
     return 0;
 }
 
-static BYTE joyport_mouse_value(int port)
+static uint8_t joyport_mouse_value(int port)
 {
-    return _mouse_enabled ? (BYTE)~mouse_digital_val : 0xff;
+    return _mouse_enabled ? (uint8_t)~mouse_digital_val : 0xff;
 }
 
 /* Some prototypes are needed */
@@ -679,18 +684,17 @@ static int paddles_write_snapshot(struct snapshot_s *s, int port);
 static int paddles_read_snapshot(struct snapshot_s *s, int port);
 
 static joyport_t paddles_joyport_device = {
-    "Paddles",
-    IDGS_PADDLES,
-    JOYPORT_RES_ID_MOUSE,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_REQUIRED,
-    joyport_mouse_enable,
-    joyport_mouse_value,
-    NULL,				/* no store digital */
-    mouse_get_paddle_x,
-    mouse_get_paddle_y,
-    paddles_write_snapshot,
-    paddles_read_snapshot
+    "Paddles",               /* name of the device */
+    JOYPORT_RES_ID_MOUSE,    /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN, /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,    /* device uses the potentiometer lines */
+    joyport_mouse_enable,    /* device enable function */
+    joyport_mouse_value,     /* digital line read function */
+    NULL,                    /* NO digital line store function */
+    mouse_get_paddle_x,      /* pot-x read function */
+    mouse_get_paddle_y,      /* pot-y read function */
+    paddles_write_snapshot,  /* device write snapshot function */
+    paddles_read_snapshot    /* device read snapshot function */
 };
 
 /* Some prototypes are needed */
@@ -698,34 +702,40 @@ static int mouse_1351_write_snapshot(struct snapshot_s *s, int port);
 static int mouse_1351_read_snapshot(struct snapshot_s *s, int port);
 
 static joyport_t mouse_1351_joyport_device = {
-    "Mouse (1351)",
-    IDGS_MOUSE_1351,
-    JOYPORT_RES_ID_MOUSE,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_REQUIRED,
-    joyport_mouse_enable,
-    joyport_mouse_value,
-    NULL,				/* no store digital */
-    mouse_get_1351_x,
-    mouse_get_1351_y,
-    mouse_1351_write_snapshot,
-    mouse_1351_read_snapshot
+    "Mouse (1351)",            /* name of the device */
+    JOYPORT_RES_ID_MOUSE,      /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,   /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,      /* device uses the potentiometer lines */
+    joyport_mouse_enable,      /* device enable function */
+    joyport_mouse_value,       /* digital line read function */
+    NULL,                      /* NO digital line store function */
+    mouse_get_1351_x,          /* pot-x read function */
+    mouse_get_1351_y,          /* pot-y read function */
+    mouse_1351_write_snapshot, /* device write snapshot function */
+    mouse_1351_read_snapshot   /* device read snapshot function */
 };
 
-static BYTE joyport_mouse_neos_value(int port)
+static uint8_t joyport_mouse_neos_value(int port)
 {
-    BYTE retval = 0xff;
+    uint8_t retval = 0xff;
 
     if (_mouse_enabled) {
-        retval = (BYTE)((~mouse_digital_val) & neos_mouse_read());
-        if (retval != (BYTE)~mouse_digital_val) {
-            joyport_display_joyport(mt_to_id(mouse_type), (BYTE)(~retval));
+        retval = (uint8_t)((~mouse_digital_val) & neos_mouse_read());
+        /* on a real NEOS mouse the left mouse button is connected to FIRE and 
+           will interfere with the STROBE line which is connected to the same 
+           I/O bit. in this case all direction bits will go inactive/high and 
+           the mouse can not be moved */
+        if (mouse_digital_val & 0x10) {
+            retval &= ~0x0f;
+        }
+        if (retval != (uint8_t)~mouse_digital_val) {
+            joyport_display_joyport(mt_to_id(mouse_type), (uint8_t)(~retval));
         }
     }
     return retval;
 }
 
-static BYTE joyport_mouse_neos_amiga_st_read_potx(void)
+static uint8_t joyport_mouse_neos_amiga_st_read_potx(void)
 {
     return _mouse_enabled ? ((neos_and_amiga_buttons & 1) ? 0xff : 0) : 0xff;
 }
@@ -735,34 +745,33 @@ static int mouse_neos_write_snapshot(struct snapshot_s *s, int port);
 static int mouse_neos_read_snapshot(struct snapshot_s *s, int port);
 
 static joyport_t mouse_neos_joyport_device = {
-    "Mouse (NEOS)",
-    IDGS_MOUSE_NEOS,
-    JOYPORT_RES_ID_MOUSE,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_OPTIONAL,
-    joyport_mouse_enable,
-    joyport_mouse_neos_value,
-    neos_mouse_store,
-    joyport_mouse_neos_amiga_st_read_potx,
-    NULL,               /* no read pot y */
-    mouse_neos_write_snapshot,
-    mouse_neos_read_snapshot
+    "Mouse (NEOS)",                        /* name of the device */
+    JOYPORT_RES_ID_MOUSE,                  /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,               /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,                  /* device uses the potentiometer line for the right button, but could work without it */
+    joyport_mouse_enable,                  /* device enable function */
+    joyport_mouse_neos_value,              /* digital line read function */
+    neos_mouse_store,                      /* digital line store function */
+    joyport_mouse_neos_amiga_st_read_potx, /* pot-x read function */
+    NULL,                                  /* NO pot-y read function */
+    mouse_neos_write_snapshot,             /* device write snapshot function */
+    mouse_neos_read_snapshot               /* device read snapshot function */
 };
 
-static BYTE joyport_mouse_poll_value(int port)
+static uint8_t joyport_mouse_poll_value(int port)
 {
-    BYTE retval = 0xff;
+    uint8_t retval = 0xff;
 
     if (_mouse_enabled) {
-        retval = (BYTE)((~mouse_digital_val) & mouse_poll());
-        if (retval != (BYTE)~mouse_digital_val) {
-            joyport_display_joyport(mt_to_id(mouse_type), (BYTE)(~retval));
+        retval = (uint8_t)((~mouse_digital_val) & mouse_poll());
+        if (retval != (uint8_t)~mouse_digital_val) {
+            joyport_display_joyport(mt_to_id(mouse_type), (uint8_t)(~retval));
         }
     }
     return retval;
 }
 
-static BYTE joyport_mouse_amiga_st_read_poty(void)
+static uint8_t joyport_mouse_amiga_st_read_poty(void)
 {
     return _mouse_enabled ? ((neos_and_amiga_buttons & 2) ? 0xff : 0) : 0xff;
 }
@@ -772,18 +781,17 @@ static int mouse_amiga_write_snapshot(struct snapshot_s *s, int port);
 static int mouse_amiga_read_snapshot(struct snapshot_s *s, int port);
 
 static joyport_t mouse_amiga_joyport_device = {
-    "Mouse (Amiga)",
-    IDGS_MOUSE_AMIGA,
-    JOYPORT_RES_ID_MOUSE,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_OPTIONAL,
-    joyport_mouse_enable,
-    joyport_mouse_poll_value,
-    NULL,               /* no store digital */
-    joyport_mouse_neos_amiga_st_read_potx,
-    joyport_mouse_amiga_st_read_poty,
-    mouse_amiga_write_snapshot,
-    mouse_amiga_read_snapshot
+    "Mouse (Amiga)",                       /* name of the device */
+    JOYPORT_RES_ID_MOUSE,                  /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,               /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,                  /* device uses the potentiometer lines for the right and middle buttons, but could work without it */
+    joyport_mouse_enable,                  /* device enable function */
+    joyport_mouse_poll_value,              /* digital line read function */
+    NULL,                                  /* NO digital line store function */
+    joyport_mouse_neos_amiga_st_read_potx, /* pot-x read function */
+    joyport_mouse_amiga_st_read_poty,      /* pot-y read function */
+    mouse_amiga_write_snapshot,            /* device write snapshot function */
+    mouse_amiga_read_snapshot              /* device read snapshot function */
 };
 
 /* Some prototypes are needed */
@@ -791,47 +799,46 @@ static int mouse_cx22_write_snapshot(struct snapshot_s *s, int port);
 static int mouse_cx22_read_snapshot(struct snapshot_s *s, int port);
 
 static joyport_t mouse_cx22_joyport_device = {
-    "Mouse (CX-22)",
-    IDGS_MOUSE_CX22,
-    JOYPORT_RES_ID_MOUSE,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_OPTIONAL,
-    joyport_mouse_enable,
-    joyport_mouse_poll_value,
-    NULL,               /* no store digital */
-    NULL,               /* no read pot x */
-    NULL,               /* no read pot y */
-    mouse_cx22_write_snapshot,
-    mouse_cx22_read_snapshot
+    "Trackball (Atari CX-22)", /* name of the device */
+    JOYPORT_RES_ID_MOUSE,      /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,   /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,      /* device does NOT use the potentiometer lines */
+    joyport_mouse_enable,      /* device enable function */
+    joyport_mouse_poll_value,  /* digital line read function */
+    NULL,                      /* NO digital line store function */
+    NULL,                      /* NO pot-x read function */
+    NULL,                      /* NO pot-y read function */
+    mouse_cx22_write_snapshot, /* device write snapshot function */
+    mouse_cx22_read_snapshot   /* device read snapshot function */
 };
+
 
 /* Some prototypes are needed */
 static int mouse_st_write_snapshot(struct snapshot_s *s, int port);
 static int mouse_st_read_snapshot(struct snapshot_s *s, int port);
 
 static joyport_t mouse_st_joyport_device = {
-    "Mouse (Atari ST)",
-    IDGS_MOUSE_ATARI_ST,
-    JOYPORT_RES_ID_MOUSE,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_OPTIONAL,
-    joyport_mouse_enable,
-    joyport_mouse_poll_value,
-    NULL,               /* no store digital */
-    joyport_mouse_neos_amiga_st_read_potx,
-    joyport_mouse_amiga_st_read_poty,
-    mouse_st_write_snapshot,
-    mouse_st_read_snapshot
+    "Mouse (Atari ST)",                    /* name of the device */
+    JOYPORT_RES_ID_MOUSE,                  /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,               /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,                  /* device uses the potentiometer lines for the right button, but could work without it */
+    joyport_mouse_enable,                  /* device enable function */
+    joyport_mouse_poll_value,              /* digital line read function */
+    NULL,                                  /* NO digital line store function */
+    joyport_mouse_neos_amiga_st_read_potx, /* pot-x read function */
+    joyport_mouse_amiga_st_read_poty,      /* pot-y read function */
+    mouse_st_write_snapshot,               /* device write snapshot function */
+    mouse_st_read_snapshot                 /* device read snapshot function */
 };
 
-static BYTE joyport_mouse_smart_value(int port)
+static uint8_t joyport_mouse_smart_value(int port)
 {
-    BYTE retval = 0xff;
+    uint8_t retval = 0xff;
 
     if (_mouse_enabled) {
-        retval = (BYTE)((~mouse_digital_val) & smart_mouse_read());
-        if (retval != (BYTE)~mouse_digital_val) {
-            joyport_display_joyport(mt_to_id(mouse_type), (BYTE)(~retval));
+        retval = (uint8_t)((~mouse_digital_val) & smart_mouse_read());
+        if (retval != (uint8_t)~mouse_digital_val) {
+            joyport_display_joyport(mt_to_id(mouse_type), (uint8_t)(~retval));
         }
     }
     return retval;
@@ -842,28 +849,27 @@ static int mouse_smart_write_snapshot(struct snapshot_s *s, int port);
 static int mouse_smart_read_snapshot(struct snapshot_s *s, int port);
 
 static joyport_t mouse_smart_joyport_device = {
-    "Mouse (SmartMouse)",
-    IDGS_MOUSE_SMART,
-    JOYPORT_RES_ID_MOUSE,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_REQUIRED,
-    joyport_mouse_enable,
-    joyport_mouse_smart_value,
-    smart_mouse_store,
-    mouse_get_1351_x,
-    mouse_get_1351_y,
-    mouse_smart_write_snapshot,
-    mouse_smart_read_snapshot
+    "Mouse (SmartMouse)",       /* name of the device */
+    JOYPORT_RES_ID_MOUSE,       /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,    /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,       /* device uses the potentiometer lines */
+    joyport_mouse_enable,       /* device enable function */
+    joyport_mouse_smart_value,  /* digital line read function */
+    smart_mouse_store,          /* digital line store function */
+    mouse_get_1351_x,           /* pot-x read function */
+    mouse_get_1351_y,           /* pot-y read function */
+    mouse_smart_write_snapshot, /* device write snapshot function */
+    mouse_smart_read_snapshot   /* device read snapshot function */
 };
 
-static BYTE joyport_mouse_micromys_value(int port)
+static uint8_t joyport_mouse_micromys_value(int port)
 {
-    BYTE retval = 0xff;
+    uint8_t retval = 0xff;
 
     if (_mouse_enabled) {
-        retval = (BYTE)((~mouse_digital_val) & micromys_mouse_read());
-        if (retval != (BYTE)~mouse_digital_val) {
-            joyport_display_joyport(mt_to_id(mouse_type), (BYTE)(~retval));
+        retval = (uint8_t)((~mouse_digital_val) & micromys_mouse_read());
+        if (retval != (uint8_t)~mouse_digital_val) {
+            joyport_display_joyport(mt_to_id(mouse_type), (uint8_t)(~retval));
         }
     }
     return retval;
@@ -874,23 +880,22 @@ static int mouse_micromys_write_snapshot(struct snapshot_s *s, int port);
 static int mouse_micromys_read_snapshot(struct snapshot_s *s, int port);
 
 static joyport_t mouse_micromys_joyport_device = {
-    "Mouse (Micromys)",
-    IDGS_MOUSE_MICROMYS,
-    JOYPORT_RES_ID_MOUSE,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_REQUIRED,
-    joyport_mouse_enable,
-    joyport_mouse_micromys_value,
-    NULL,               /* no store digital */
-    mouse_get_1351_x,
-    mouse_get_1351_y,
-    mouse_micromys_write_snapshot,
-    mouse_micromys_read_snapshot
+    "Mouse (Micromys)",            /* name of the device */
+    JOYPORT_RES_ID_MOUSE,          /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,       /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,          /* device uses the potentiometer lines */
+    joyport_mouse_enable,          /* device enable function */
+    joyport_mouse_micromys_value,  /* digital line read function */
+    NULL,                          /* NO digital line store function */
+    mouse_get_1351_x,              /* pot-x read function */
+    mouse_get_1351_y,              /* pot-y read function */
+    mouse_micromys_write_snapshot, /* device write snapshot function */
+    mouse_micromys_read_snapshot   /* device read snapshot function */
 };
 
-static BYTE joyport_koalapad_pot_x(void)
+static uint8_t joyport_koalapad_pot_x(void)
 {
-    return _mouse_enabled ? (BYTE)(255 - mouse_get_paddle_x()) : 0xff;
+    return _mouse_enabled ? (uint8_t)(255 - mouse_get_paddle_x()) : 0xff;
 }
 
 /* Some prototypes are needed */
@@ -898,18 +903,17 @@ static int koalapad_write_snapshot(struct snapshot_s *s, int port);
 static int koalapad_read_snapshot(struct snapshot_s *s, int port);
 
 static joyport_t koalapad_joyport_device = {
-    "KoalaPad",
-    IDGS_KOALAPAD,
-    JOYPORT_RES_ID_MOUSE,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_REQUIRED,
-    joyport_mouse_enable,
-    joyport_mouse_value,
-    NULL,               /* no store digital */
-    joyport_koalapad_pot_x,
-    mouse_get_paddle_y,
-    koalapad_write_snapshot,
-    koalapad_read_snapshot
+    "KoalaPad",              /* name of the device */
+    JOYPORT_RES_ID_MOUSE,    /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN, /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,    /* device uses the potentiometer lines */
+    joyport_mouse_enable,    /* device enable function */
+    joyport_mouse_value,     /* digital line read function */
+    NULL,                    /* NO digital line store function */
+    joyport_koalapad_pot_x,  /* pot-x read function */
+    mouse_get_paddle_y,      /* pot-y read function */
+    koalapad_write_snapshot, /* device write snapshot function */
+    koalapad_read_snapshot   /* device read snapshot function */
 };
 
 static int mouse_joyport_register(void)
@@ -952,12 +956,12 @@ static int set_mouse_enabled(int val, void *param)
 
     _mouse_enabled = val ? 1 : 0;
     mousedrv_mouse_changed();
-    latest_x = (SWORD)mousedrv_get_x();
+    latest_x = (int16_t)mousedrv_get_x();
     last_mouse_x = latest_x;
-    latest_y = (SWORD)mousedrv_get_y();
+    latest_y = (int16_t)mousedrv_get_y();
     last_mouse_y = latest_y;
-    neos_lastx = (BYTE)(mousedrv_get_x() >> 1);
-    neos_lasty = (BYTE)(mousedrv_get_y() >> 1);
+    neos_lastx = (uint8_t)(mousedrv_get_x() >> 1);
+    neos_lasty = (uint8_t)(mousedrv_get_y() >> 1);
     latest_os_ts = 0;
     if (mouse_type != -1) {
         joyport_display_joyport(mt_to_id(mouse_type), 0);
@@ -972,14 +976,15 @@ static int set_smart_mouse_rtc_save(int val, void *param)
     return 0;
 }
 
+/* FIXME: this should get moved into archdep */
 #ifdef ANDROID_COMPILE
-#define MOUSE_ENABLE_DEFAULT  1
+#define ARCHDEP_MOUSE_ENABLE_DEFAULT  1
 #else
-#define MOUSE_ENABLE_DEFAULT  0
+#define ARCHDEP_MOUSE_ENABLE_DEFAULT  0
 #endif
 
 static const resource_int_t resources_int[] = {
-    { "Mouse", MOUSE_ENABLE_DEFAULT, RES_EVENT_SAME, NULL,
+    { "Mouse", ARCHDEP_MOUSE_ENABLE_DEFAULT, RES_EVENT_SAME, NULL,
       &_mouse_enabled, set_mouse_enabled, NULL },
     RESOURCE_INT_LIST_END
 };
@@ -1015,31 +1020,25 @@ int mouse_resources_init(void)
     return mousedrv_resources_init(&mouse_funcs);
 }
 
-static const cmdline_option_t cmdline_options[] = {
-    { "-mouse", SET_RESOURCE, 0,
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-mouse", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "Mouse", (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_MOUSE_GRAB,
-      NULL, NULL },
-    { "+mouse", SET_RESOURCE, 0,
+      NULL, "Enable mouse grab" },
+    { "+mouse", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "Mouse", (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_MOUSE_GRAB,
-      NULL, NULL },
+      NULL, "Disable mouse grab" },
     CMDLINE_LIST_END
 };
 
-static const cmdline_option_t cmdline_extra_option[] = {
-    { "-smartmousertcsave", SET_RESOURCE, 0,
+static const cmdline_option_t cmdline_extra_option[] =
+{
+    { "-smartmousertcsave", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SmartMouseRTCSave", (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_SMART_MOUSE_RTC_SAVE,
-      NULL, NULL },
-    { "+smartmousertcsave", SET_RESOURCE, 0,
+      NULL, "Enable saving of smart mouse RTC data when changed." },
+    { "+smartmousertcsave", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SmartMouseRTCSave", (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_SMART_MOUSE_RTC_SAVE,
-      NULL, NULL },
+      NULL, "Disable saving of smart mouse RTC data when changed." },
     CMDLINE_LIST_END
 };
 
@@ -1085,14 +1084,15 @@ void mouse_shutdown(void)
 
 static void mouse_button_left(int pressed)
 {
-    BYTE old_val = mouse_digital_val;
-    BYTE joypin = (((mouse_type == MOUSE_TYPE_PADDLE) || (mouse_type == MOUSE_TYPE_KOALAPAD)) ? 4 : 16);
+    uint8_t old_val = mouse_digital_val;
+    uint8_t joypin = (((mouse_type == MOUSE_TYPE_PADDLE) || (mouse_type == MOUSE_TYPE_KOALAPAD)) ? 4 : 16);
 
     if (pressed) {
         mouse_digital_val |= joypin;
     } else {
-        mouse_digital_val &= (BYTE)~joypin;
+        mouse_digital_val &= (uint8_t)~joypin;
     }
+
     if (old_val == mouse_digital_val || mouse_type == -1) {
         return;
     }
@@ -1101,7 +1101,7 @@ static void mouse_button_left(int pressed)
 
 static void mouse_button_right(int pressed)
 {
-    BYTE old_val = mouse_digital_val;
+    uint8_t old_val = mouse_digital_val;
 
     switch (mouse_type) {
         case MOUSE_TYPE_1351:
@@ -1111,7 +1111,7 @@ static void mouse_button_right(int pressed)
             if (pressed) {
                 mouse_digital_val |= 1;
             } else {
-                mouse_digital_val &= (BYTE)~1;
+                mouse_digital_val &= (uint8_t)~1;
             }
             break;
         case MOUSE_TYPE_KOALAPAD:
@@ -1120,7 +1120,7 @@ static void mouse_button_right(int pressed)
             if (pressed) {
                 mouse_digital_val |= 8;
             } else {
-                mouse_digital_val &= (BYTE)~8;
+                mouse_digital_val &= (uint8_t)~8;
             }
             break;
         case MOUSE_TYPE_NEOS:
@@ -1143,14 +1143,14 @@ static void mouse_button_right(int pressed)
 
 static void mouse_button_middle(int pressed)
 {
-    BYTE old_val = mouse_digital_val;
+    uint8_t old_val = mouse_digital_val;
 
     switch (mouse_type) {
         case MOUSE_TYPE_MICROMYS:
             if (pressed) {
                 mouse_digital_val |= 2;
             } else {
-                mouse_digital_val &= (BYTE)~2;
+                mouse_digital_val &= (uint8_t)~2;
             }
             break;
         case MOUSE_TYPE_AMIGA:
@@ -1202,12 +1202,12 @@ static void mouse_button_down(int pressed)
     }
 }
 
-void smart_mouse_store(BYTE val)
+void smart_mouse_store(uint8_t val)
 {
     ds1202_1302_set_lines(ds1202, !(val & 8), !!(val & 2), !!(val & 4));
 }
 
-BYTE smart_mouse_read(void)
+uint8_t smart_mouse_read(void)
 {
     return ds1202_1302_read_data_line(ds1202) ? 0xff : 0xfb;
 }
@@ -1229,8 +1229,8 @@ static int write_paddle_val_snapshot(snapshot_module_t *m)
     if (0
         || SMW_B(m, paddle_val[2]) < 0
         || SMW_B(m, paddle_val[3]) < 0
-        || SMW_W(m, (WORD)paddle_old[2]) < 0
-        || SMW_W(m, (WORD)paddle_old[3]) < 0) {
+        || SMW_W(m, (uint16_t)paddle_old[2]) < 0
+        || SMW_W(m, (uint16_t)paddle_old[3]) < 0) {
         return -1;
     }
     return 0;
@@ -1238,8 +1238,8 @@ static int write_paddle_val_snapshot(snapshot_module_t *m)
 
 static int read_paddle_val_snapshot(snapshot_module_t *m)
 {
-    WORD paddle_old2;
-    WORD paddle_old3;
+    uint16_t paddle_old2;
+    uint16_t paddle_old3;
 
     if (0
         || SMR_B(m, &paddle_val[2]) < 0
@@ -1248,8 +1248,8 @@ static int read_paddle_val_snapshot(snapshot_module_t *m)
         || SMR_W(m, &paddle_old3) < 0) {
         return -1;
     }
-    paddle_old[2] = (SWORD)paddle_old2;
-    paddle_old[3] = (SWORD)paddle_old3;
+    paddle_old[2] = (int16_t)paddle_old2;
+    paddle_old[3] = (int16_t)paddle_old3;
 
     return 0;
 }
@@ -1260,19 +1260,19 @@ static int write_poll_val_snapshot(snapshot_module_t *m)
         || SMW_B(m, quadrature_x) < 0
         || SMW_B(m, quadrature_y) < 0
         || SMW_B(m, polled_joyval) < 0
-        || SMW_W(m, (WORD)latest_x) < 0
-        || SMW_W(m, (WORD)latest_y) < 0
-        || SMW_DW(m, (DWORD)last_mouse_x) < 0
-        || SMW_DW(m, (DWORD)last_mouse_y) < 0
-        || SMW_DW(m, (DWORD)sx) < 0
-        || SMW_DW(m, (DWORD)sy) < 0
-        || SMW_DW(m, (DWORD)update_limit) < 0
-        || SMW_DW(m, (DWORD)latest_os_ts) < 0
+        || SMW_W(m, (uint16_t)latest_x) < 0
+        || SMW_W(m, (uint16_t)latest_y) < 0
+        || SMW_DW(m, (uint32_t)last_mouse_x) < 0
+        || SMW_DW(m, (uint32_t)last_mouse_y) < 0
+        || SMW_DW(m, (uint32_t)sx) < 0
+        || SMW_DW(m, (uint32_t)sy) < 0
+        || SMW_DW(m, (uint32_t)update_limit) < 0
+        || SMW_DW(m, (uint32_t)latest_os_ts) < 0
         || SMW_DB(m, (double)emu_units_per_os_units) < 0
-        || SMW_DW(m, (DWORD)next_update_x_emu_ts) < 0
-        || SMW_DW(m, (DWORD)next_update_y_emu_ts) < 0
-        || SMW_DW(m, (DWORD)update_x_emu_iv) < 0
-        || SMW_DW(m, (DWORD)update_y_emu_iv) < 0) {
+        || SMW_DW(m, (uint32_t)next_update_x_emu_ts) < 0
+        || SMW_DW(m, (uint32_t)next_update_y_emu_ts) < 0
+        || SMW_DW(m, (uint32_t)update_x_emu_iv) < 0
+        || SMW_DW(m, (uint32_t)update_y_emu_iv) < 0) {
         return -1;
     }
     return 0;
@@ -1280,13 +1280,13 @@ static int write_poll_val_snapshot(snapshot_module_t *m)
 
 static int read_poll_val_snapshot(snapshot_module_t *m)
 {
-    WORD tmp_latest_x;
-    WORD tmp_latest_y;
+    uint16_t tmp_latest_x;
+    uint16_t tmp_latest_y;
     double tmp_db;
-    DWORD tmpc1;
-    DWORD tmpc2;
-    DWORD tmpc3;
-    DWORD tmpc4;
+    uint32_t tmpc1;
+    uint32_t tmpc2;
+    uint32_t tmpc3;
+    uint32_t tmpc4;
 
     if (0
         || SMR_B(m, &quadrature_x) < 0
@@ -1308,8 +1308,8 @@ static int read_poll_val_snapshot(snapshot_module_t *m)
         return -1;
     }
 
-    latest_x = (SWORD)tmp_latest_x;
-    latest_y = (SWORD)tmp_latest_y;
+    latest_x = (int16_t)tmp_latest_x;
+    latest_y = (int16_t)tmp_latest_y;
     emu_units_per_os_units = (float)tmp_db;
     next_update_x_emu_ts = (CLOCK)tmpc1;
     next_update_y_emu_ts = (CLOCK)tmpc2;
@@ -1321,7 +1321,7 @@ static int read_poll_val_snapshot(snapshot_module_t *m)
 
 static int write_neos_and_amiga_val_snapshot(snapshot_module_t *m)
 {
-    return SMW_DW(m, (DWORD)neos_and_amiga_buttons);
+    return SMW_DW(m, (uint32_t)neos_and_amiga_buttons);
 }
 
 static int read_neos_and_amiga_val_snapshot(snapshot_module_t *m)
@@ -1373,7 +1373,7 @@ fail:
 
 static int paddles_read_snapshot(struct snapshot_s *s, int port)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, paddles_snap_module_name, &major_version, &minor_version);
@@ -1383,7 +1383,7 @@ static int paddles_read_snapshot(struct snapshot_s *s, int port)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > PADDLES_VER_MAJOR || minor_version > PADDLES_VER_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, PADDLES_VER_MAJOR, PADDLES_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -1437,7 +1437,7 @@ static int mouse_1351_write_snapshot(struct snapshot_s *s, int port)
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, mouse_1351_snap_module_name, MOUSE_1351_VER_MAJOR, MOUSE_1351_VER_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }
@@ -1459,7 +1459,7 @@ fail:
 
 static int mouse_1351_read_snapshot(struct snapshot_s *s, int port)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, mouse_1351_snap_module_name, &major_version, &minor_version);
@@ -1469,7 +1469,7 @@ static int mouse_1351_read_snapshot(struct snapshot_s *s, int port)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > MOUSE_1351_VER_MAJOR || minor_version > MOUSE_1351_VER_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, MOUSE_1351_VER_MAJOR, MOUSE_1351_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -1534,10 +1534,10 @@ static int mouse_neos_write_snapshot(struct snapshot_s *s, int port)
         || SMW_B(m, neos_y) < 0
         || SMW_B(m, neos_lastx) < 0
         || SMW_B(m, neos_lasty) < 0
-        || SMW_DW(m, (DWORD)neos_state) < 0
-        || SMW_DW(m, (DWORD)neos_prev) < 0
-        || SMW_DW(m, (DWORD)neos_last_trigger) < 0
-        || SMW_DW(m, (DWORD)neos_time_out_cycles) < 0) {
+        || SMW_DW(m, (uint32_t)neos_state) < 0
+        || SMW_DW(m, (uint32_t)neos_prev) < 0
+        || SMW_DW(m, (uint32_t)neos_last_trigger) < 0
+        || SMW_DW(m, (uint32_t)neos_time_out_cycles) < 0) {
         goto fail;
     }
 
@@ -1550,10 +1550,10 @@ fail:
 
 static int mouse_neos_read_snapshot(struct snapshot_s *s, int port)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
-    DWORD tmpc1;
-    DWORD tmpc2;
+    uint32_t tmpc1;
+    uint32_t tmpc2;
     int tmp_neos_state;
 
     m = snapshot_module_open(s, mouse_neos_snap_module_name, &major_version, &minor_version);
@@ -1563,7 +1563,7 @@ static int mouse_neos_read_snapshot(struct snapshot_s *s, int port)
     }
 
     /* Do not accept higher versions than current */
-    if (major_version > MOUSE_NEOS_VER_MAJOR || minor_version > MOUSE_NEOS_VER_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, MOUSE_NEOS_VER_MAJOR, MOUSE_NEOS_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -1659,7 +1659,7 @@ fail:
 
 static int mouse_amiga_read_snapshot(struct snapshot_s *s, int port)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, mouse_amiga_snap_module_name, &major_version, &minor_version);
@@ -1669,7 +1669,7 @@ static int mouse_amiga_read_snapshot(struct snapshot_s *s, int port)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > MOUSE_AMIGA_VER_MAJOR || minor_version > MOUSE_AMIGA_VER_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, MOUSE_AMIGA_VER_MAJOR, MOUSE_AMIGA_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -1748,7 +1748,7 @@ fail:
 
 static int mouse_cx22_read_snapshot(struct snapshot_s *s, int port)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, mouse_cx22_snap_module_name, &major_version, &minor_version);
@@ -1758,7 +1758,7 @@ static int mouse_cx22_read_snapshot(struct snapshot_s *s, int port)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > MOUSE_CX22_VER_MAJOR || minor_version > MOUSE_CX22_VER_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, MOUSE_CX22_VER_MAJOR, MOUSE_CX22_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -1838,7 +1838,7 @@ fail:
 
 static int mouse_st_read_snapshot(struct snapshot_s *s, int port)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, mouse_st_snap_module_name, &major_version, &minor_version);
@@ -1848,7 +1848,7 @@ static int mouse_st_read_snapshot(struct snapshot_s *s, int port)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > MOUSE_ST_VER_MAJOR || minor_version > MOUSE_ST_VER_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, MOUSE_ST_VER_MAJOR, MOUSE_ST_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -1929,7 +1929,7 @@ fail:
 
 static int mouse_smart_read_snapshot(struct snapshot_s *s, int port)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, mouse_smart_snap_module_name, &major_version, &minor_version);
@@ -1939,7 +1939,7 @@ static int mouse_smart_read_snapshot(struct snapshot_s *s, int port)
     }
 
     /* Do not accept higher versions than current */
-    if (major_version > MOUSE_SMART_VER_MAJOR || minor_version > MOUSE_SMART_VER_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, MOUSE_SMART_VER_MAJOR, MOUSE_SMART_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -2010,8 +2010,8 @@ static int mouse_micromys_write_snapshot(struct snapshot_s *s, int port)
     }
 
     if (0
-        || SMW_DW(m, (DWORD)up_down_counter) < 0
-        || SMW_DW(m, (DWORD)up_down_pulse_end) < 0) {
+        || SMW_DW(m, (uint32_t)up_down_counter) < 0
+        || SMW_DW(m, (uint32_t)up_down_pulse_end) < 0) {
         goto fail;
     }
 
@@ -2024,9 +2024,9 @@ fail:
 
 static int mouse_micromys_read_snapshot(struct snapshot_s *s, int port)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
-    DWORD tmpc1;
+    uint32_t tmpc1;
 
     m = snapshot_module_open(s, mouse_micromys_snap_module_name, &major_version, &minor_version);
 
@@ -2035,7 +2035,7 @@ static int mouse_micromys_read_snapshot(struct snapshot_s *s, int port)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > MOUSE_MICROMYS_VER_MAJOR || minor_version > MOUSE_MICROMYS_VER_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, MOUSE_MICROMYS_VER_MAJOR, MOUSE_MICROMYS_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -2107,7 +2107,7 @@ fail:
 
 static int koalapad_read_snapshot(struct snapshot_s *s, int port)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, koalapad_snap_module_name, &major_version, &minor_version);
@@ -2117,7 +2117,7 @@ static int koalapad_read_snapshot(struct snapshot_s *s, int port)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > KOALAPAD_VER_MAJOR || minor_version > KOALAPAD_VER_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, KOALAPAD_VER_MAJOR, KOALAPAD_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

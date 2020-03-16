@@ -25,7 +25,7 @@ extern "C"
 {
 	#include "sysfile.h"
 	#include "lib.h"
-	#include "archapi.h"
+	#include "archdep.h"
 }
 
 static std::array<const char*, 3> sysFileDirs =
@@ -45,7 +45,7 @@ static bool containsSysFileDirName(FS::FileString path)
 	return false;
 }
 
-static int loadSysFile(IO &file, const char *name, BYTE *dest, int minsize, int maxsize)
+static int loadSysFile(IO &file, const char *name, uint8_t *dest, int minsize, int maxsize)
 {
 	//logMsg("loading system file: %s", complete_path);
 	ssize_t rsize = file.size();
@@ -105,8 +105,7 @@ static ArchiveIO archiveIOForSysFile(const char *archivePath, const char *sysFil
 		logMsg("archive file entry:%s", name);
 		if(complete_path_return)
 		{
-			auto fullPath = FS::makePathStringPrintf("%s/%s", archivePath, name);
-			*complete_path_return = strdup(fullPath.data());
+			*complete_path_return = strdup(name);
 			assert(*complete_path_return);
 		}
 		return entry.moveIO();
@@ -118,6 +117,24 @@ static ArchiveIO archiveIOForSysFile(const char *archivePath, const char *sysFil
 	else
 	{
 		logErr("not found in archive:%s", archivePath);
+	}
+	return {};
+}
+
+static AssetIO assetIOForSysFile(const char *sysFileName, char **complete_path_return)
+{
+	for(const auto &subDir : sysFileDirs)
+	{
+		auto fullPath = FS::makePathStringPrintf("%s/%s", subDir, sysFileName);
+		auto file = EmuApp::openAppAssetIO(fullPath, IO::AccessHint::ALL);
+		if(!file)
+			continue;
+		if(complete_path_return)
+		{
+			*complete_path_return = strdup(fullPath.data());
+			assert(*complete_path_return);
+		}
+		return file;
 	}
 	return {};
 }
@@ -160,6 +177,14 @@ CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const ch
 			}
 		}
 	}
+	// fallback to asset path
+	{
+		auto io = assetIOForSysFile(name, complete_path_return);
+		if(io)
+		{
+			return io.makeGeneric().moveToFileStream(open_mode);
+		}
+	}
 	logErr("can't open %s in system paths", name);
 	return nullptr;
 }
@@ -173,8 +198,10 @@ CLINK int sysfile_locate(const char *name, char **complete_path_return)
 			continue;
 		if(EmuApp::hasArchiveExtension(basePath.data()))
 		{
-			// TODO
-			continue;
+			auto io = archiveIOForSysFile(basePath.data(), name, complete_path_return);
+			if(!io)
+				continue;
+			return 0;
 		}
 		else
 		{
@@ -186,22 +213,29 @@ CLINK int sysfile_locate(const char *name, char **complete_path_return)
 					if(complete_path_return)
 					{
 						*complete_path_return = strdup(fullPath.data());
-						if(!*complete_path_return)
-						{
-							logErr("out of memory trying to allocate string in sysfile_locate");
-							return -1;
-						}
 					}
 					return 0;
 				}
 			}
 		}
 	}
+	// fallback to asset path
+	{
+		auto io = assetIOForSysFile(name, complete_path_return);
+		if(io)
+		{
+			return 0;
+		}
+	}
 	logErr("%s not found in system paths", name);
+	if(complete_path_return)
+	{
+		*complete_path_return = nullptr;
+	}
 	return -1;
 }
 
-CLINK int sysfile_load(const char *name, BYTE *dest, int minsize, int maxsize)
+CLINK int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize)
 {
 	logMsg("sysfile load:%s", name);
 	for(const auto &basePath : sysFilePath)

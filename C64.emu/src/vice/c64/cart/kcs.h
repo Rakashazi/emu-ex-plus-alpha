@@ -34,9 +34,9 @@
 extern void kcs_freeze(void);
 
 extern void kcs_config_init(void);
-extern void kcs_config_setup(BYTE *rawcart);
-extern int kcs_bin_attach(const char *filename, BYTE *rawcart);
-extern int kcs_crt_attach(FILE *fd, BYTE *rawcart);
+extern void kcs_config_setup(uint8_t *rawcart);
+extern int kcs_bin_attach(const char *filename, uint8_t *rawcart);
+extern int kcs_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void kcs_detach(void);
 
 struct snapshot_s;

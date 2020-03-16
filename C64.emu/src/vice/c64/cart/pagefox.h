@@ -32,15 +32,15 @@
 #include "types.h"
 
 extern void pagefox_config_init(void);
-extern void pagefox_config_setup(BYTE *rawcart);
-extern int pagefox_bin_attach(const char *filename, BYTE *rawcart);
-extern int pagefox_crt_attach(FILE *fd, BYTE *rawcart);
+extern void pagefox_config_setup(uint8_t *rawcart);
+extern int pagefox_bin_attach(const char *filename, uint8_t *rawcart);
+extern int pagefox_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void pagefox_detach(void);
 
-extern BYTE pagefox_roml_read(WORD addr);
-extern void pagefox_roml_store(WORD addr, BYTE value);
-extern BYTE pagefox_romh_read(WORD addr);
-extern void pagefox_romh_store(WORD addr, BYTE value);
+extern uint8_t pagefox_roml_read(uint16_t addr);
+extern void pagefox_roml_store(uint16_t addr, uint8_t value);
+extern uint8_t pagefox_romh_read(uint16_t addr);
+extern void pagefox_romh_store(uint16_t addr, uint8_t value);
 
 struct snapshot_s;
 

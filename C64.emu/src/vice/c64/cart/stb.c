@@ -52,24 +52,25 @@
 
 /* ---------------------------------------------------------------------*/
 
-static BYTE stb_io1_read(WORD addr);
-static BYTE stb_io1_peek(WORD addr);
-static void stb_io1_store(WORD addr, BYTE value);
+static uint8_t stb_io1_read(uint16_t addr);
+static uint8_t stb_io1_peek(uint16_t addr);
+static void stb_io1_store(uint16_t addr, uint8_t value);
 static int stb_dump(void);
 
 static io_source_t stb_device = {
-    CARTRIDGE_NAME_STRUCTURED_BASIC,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    0, /* read is never valid */
-    stb_io1_store,
-    stb_io1_read,
-    stb_io1_peek,
-    stb_dump,
-    CARTRIDGE_STRUCTURED_BASIC,
-    0,
-    0
+    CARTRIDGE_NAME_STRUCTURED_BASIC, /* name of the device */
+    IO_DETACH_CART,                  /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,           /* does not use a resource for detach */
+    0xde00, 0xdeff, 0x03,            /* range for the device, regs:$de00-$de03, mirrors:$de04-$deff */
+    0,                               /* read is never valid, regs are write only */
+    stb_io1_store,                   /* store function */
+    NULL,                            /* NO poke function */
+    stb_io1_read,                    /* read function */
+    stb_io1_peek,                    /* peek function */
+    stb_dump,                        /* device state information dump function */
+    CARTRIDGE_STRUCTURED_BASIC,      /* cartridge ID */
+    IO_PRIO_NORMAL,                  /* normal priority, device read needs to be checked for collisions */
+    0                                /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *stb_list_item = NULL;
@@ -83,7 +84,7 @@ static const export_resource_t export_res = {
 static int stb_bank = 0;
 static int stb_active = 0;
 
-static void stb_io(WORD addr)
+static void stb_io(uint16_t addr)
 {
     switch (addr & 3) {
         /* normal config: bank 0 visible */
@@ -110,18 +111,18 @@ static void stb_io(WORD addr)
     }
 }
 
-static BYTE stb_io1_read(WORD addr)
+static uint8_t stb_io1_read(uint16_t addr)
 {
     stb_io(addr);
     return 0;
 }
 
-static BYTE stb_io1_peek(WORD addr)
+static uint8_t stb_io1_peek(uint16_t addr)
 {
     return 0;
 }
 
-static void stb_io1_store(WORD addr, BYTE value)
+static void stb_io1_store(uint16_t addr, uint8_t value)
 {
     stb_io(addr);
 }
@@ -145,7 +146,7 @@ void stb_config_init(void)
     stb_active = 1;
 }
 
-void stb_config_setup(BYTE *rawcart)
+void stb_config_setup(uint8_t *rawcart)
 {
     /* copy banks 0 and 1 */
     memcpy(roml_banks, rawcart, 0x4000);
@@ -170,7 +171,7 @@ static int stb_common_attach(void)
     return 0;
 }
 
-int stb_bin_attach(const char *filename, BYTE *rawcart)
+int stb_bin_attach(const char *filename, uint8_t *rawcart)
 {
     /* load file into cartridge address space */
     if (util_file_load(filename, rawcart, 0x4000, UTIL_FILE_LOAD_RAW) < 0) {
@@ -180,7 +181,7 @@ int stb_bin_attach(const char *filename, BYTE *rawcart)
     return stb_common_attach();
 }
 
-int stb_crt_attach(FILE *fd, BYTE *rawcart)
+int stb_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
 
@@ -234,8 +235,8 @@ int stb_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)stb_bank) < 0
-        || SMW_B(m, (BYTE)stb_active) < 0
+        || SMW_B(m, (uint8_t)stb_bank) < 0
+        || SMW_B(m, (uint8_t)stb_active) < 0
         || SMW_BA(m, roml_banks, 0x4000) < 0) {
         snapshot_module_close(m);
         return -1;
@@ -246,7 +247,7 @@ int stb_snapshot_write_module(snapshot_t *s)
 
 int stb_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -256,13 +257,13 @@ int stb_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
     /* new in 0.1 */
-    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 1)) {
         if (0
             || SMR_B_INT(m, &stb_bank) < 0
             || SMR_B_INT(m, &stb_active) < 0) {

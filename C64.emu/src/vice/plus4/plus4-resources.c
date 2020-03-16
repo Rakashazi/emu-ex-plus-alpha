@@ -147,6 +147,7 @@ static int set_ram_size_plus4(int rs, void *param)
 {
     int hack;
 
+    /* FIXME: this doesn't do anything -- compyx, 2017-10-05 */
     switch (rs) {
         case 16:
         case 32:

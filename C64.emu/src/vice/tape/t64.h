@@ -86,12 +86,12 @@
 /** \brief  T64 header structure
  */
 typedef struct t64_header_s {
-    BYTE magic[T64_HDR_MAGIC_LEN];  /**< 'magic' bytes of the container */
-    WORD version;                   /**< version number, usually either 0x100
+    uint8_t magic[T64_HDR_MAGIC_LEN];  /**< 'magic' bytes of the container */
+    uint16_t version;                   /**< version number, usually either 0x100
                                          or 0x101 */
-    WORD num_entries;               /**< total available file records */
-    WORD num_used;                  /**< file records in use */
-    BYTE description[T64_HDR_DESCRIPTION_LEN];  /**< tape description string */
+    uint16_t num_entries;               /**< total available file records */
+    uint16_t num_used;                  /**< file records in use */
+    uint8_t description[T64_HDR_DESCRIPTION_LEN];  /**< tape description string */
 } t64_header_t;
 
 
@@ -153,11 +153,11 @@ typedef enum t64_file_record_type_s t64_file_record_type_t;
  */
 struct t64_file_record_s {
     t64_file_record_type_t entry_type;  /**< T64 entry type */
-    BYTE cbm_name[T64_REC_CBMNAME_LEN]; /**< PETSCII filename */
-    BYTE cbm_type;                      /**< C1541 file type */
-    WORD start_addr;                    /**< start address on machine */
-    WORD end_addr;                      /**< end address on machine */
-    DWORD contents;                     /**< offset in T64 to file contents */
+    uint8_t cbm_name[T64_REC_CBMNAME_LEN]; /**< PETSCII filename */
+    uint8_t cbm_type;                      /**< C1541 file type */
+    uint16_t start_addr;                    /**< start address on machine */
+    uint16_t end_addr;                      /**< end address on machine */
+    uint32_t contents;                     /**< offset in T64 to file contents */
     int index;  /**< index of the record in the container, required to restore
                      the orginal record order after fixing end addresses */
 };
@@ -220,7 +220,7 @@ extern int t64_seek_start(t64_t *t64);
 extern int t64_seek_to_file(t64_t *t64, int file_number);
 extern int t64_seek_to_next_file(t64_t *t64, unsigned int allow_rewind);
 extern t64_file_record_t *t64_get_current_file_record(t64_t *t64);
-extern int t64_read(t64_t *t64, BYTE *buf, size_t size);
-extern void t64_get_header(t64_t *t64, BYTE *name);
+extern int t64_read(t64_t *t64, uint8_t *buf, size_t size);
+extern void t64_get_header(t64_t *t64, uint8_t *name);
 
 #endif

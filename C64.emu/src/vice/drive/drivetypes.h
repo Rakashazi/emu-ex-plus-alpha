@@ -45,11 +45,11 @@ struct drive_context_s;         /* forward declaration */
 struct monitor_interface_s;
 
 /* This defines the memory access for the drive CPU.  */
-typedef BYTE drive_read_func_t (struct drive_context_s *, WORD);
+typedef uint8_t drive_read_func_t (struct drive_context_s *, uint16_t);
 typedef drive_read_func_t *drive_read_func_ptr_t;
-typedef void drive_store_func_t (struct drive_context_s *, WORD, BYTE);
+typedef void drive_store_func_t (struct drive_context_s *, uint16_t, uint8_t);
 typedef drive_store_func_t *drive_store_func_ptr_t;
-typedef BYTE drive_peek_func_t (struct drive_context_s *, WORD);
+typedef uint8_t drive_peek_func_t (struct drive_context_s *, uint16_t);
 typedef drive_peek_func_t *drive_peek_func_ptr_t;
 
 /*
@@ -82,7 +82,7 @@ typedef struct drivecpu_context_s {
     CLOCK stop_clk;
 
     CLOCK cycle_accum;
-    BYTE *d_bank_base;
+    uint8_t *d_bank_base;
     unsigned int d_bank_start;
     unsigned int d_bank_limit;
 
@@ -96,7 +96,7 @@ typedef struct drivecpu_context_s {
     mos6510_regs_t cpu_regs;
     R65C02_regs_t cpu_R65C02_regs;
 
-    BYTE *pageone;        /* init to NULL */
+    uint8_t *pageone;        /* init to NULL */
 
     int monspace;         /* init to e_disk[89]_space */
 
@@ -117,15 +117,15 @@ typedef struct drivecpud_context_s {
     drive_read_func_ptr_t *read_func_ptr;
     drive_store_func_ptr_t *store_func_ptr;
     drive_peek_func_ptr_t *peek_func_ptr;
-    BYTE **read_base_tab_ptr;
-    DWORD *read_limit_tab_ptr;
+    uint8_t **read_base_tab_ptr;
+    uint32_t *read_limit_tab_ptr;
 
     /* Memory read and write tables.  */
     drive_read_func_t *read_tab[1][0x101];
     drive_store_func_t *store_tab[1][0x101];
     drive_peek_func_t *peek_tab[1][0x101];
-    BYTE *read_base_tab[1][0x101];
-    DWORD read_limit_tab[1][0x101];
+    uint8_t *read_base_tab[1][0x101];
+    uint32_t read_limit_tab[1][0x101];
 
     int sync_factor;
 } drivecpud_context_t;
@@ -136,11 +136,11 @@ typedef struct drivecpud_context_s {
  */
 
 typedef struct drivefunc_context_s {
-    void (*parallel_set_bus)(BYTE);
-    void (*parallel_set_eoi)(BYTE); /* we may be able to eleminate these... */
-    void (*parallel_set_dav)(BYTE);
-    void (*parallel_set_ndac)(BYTE);
-    void (*parallel_set_nrfd)(BYTE);
+    void (*parallel_set_bus)(uint8_t);
+    void (*parallel_set_eoi)(uint8_t); /* we may be able to eleminate these... */
+    void (*parallel_set_dav)(uint8_t);
+    void (*parallel_set_ndac)(uint8_t);
+    void (*parallel_set_nrfd)(uint8_t);
 } drivefunc_context_t;
 
 extern drivefunc_context_t drive_funcs[DRIVE_NUM];

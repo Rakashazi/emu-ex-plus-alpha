@@ -24,7 +24,11 @@
 
 #include "resid-config.h"
 #include "voice.h"
+#if NEW_8580_FILTER
+#include "filter8580new.h"
+#else
 #include "filter.h"
+#endif
 #include "extfilt.h"
 #include "pot.h"
 

@@ -41,28 +41,29 @@ extern int isepic_freeze_allowed(void);
 extern void isepic_freeze(void);
 extern void isepic_reset(void);
 extern void isepic_config_init(void);
-extern void isepic_config_setup(BYTE *rawcart);
+extern void isepic_config_setup(uint8_t *rawcart);
 
 extern int isepic_resources_init(void);
 extern void isepic_resources_shutdown(void);
 extern int isepic_cmdline_options_init(void);
 
-extern BYTE isepic_romh_read(WORD addr);
-extern void isepic_romh_store(WORD addr, BYTE byte);
-extern BYTE isepic_page_read(WORD addr);
-extern void isepic_page_store(WORD addr, BYTE byte);
-extern int isepic_romh_phi1_read(WORD addr, BYTE *value);
-extern int isepic_romh_phi2_read(WORD addr, BYTE *value);
-extern int isepic_peek_mem(WORD addr, BYTE *value);
-extern void isepic_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit);
+extern uint8_t isepic_romh_read(uint16_t addr);
+extern void isepic_romh_store(uint16_t addr, uint8_t byte);
+extern uint8_t isepic_page_read(uint16_t addr);
+extern void isepic_page_store(uint16_t addr, uint8_t byte);
+extern int isepic_romh_phi1_read(uint16_t addr, uint8_t *value);
+extern int isepic_romh_phi2_read(uint16_t addr, uint8_t *value);
+extern int isepic_peek_mem(uint16_t addr, uint8_t *value);
+extern void isepic_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
-extern int isepic_bin_attach(const char *filename, BYTE *rawcart);
+extern int isepic_bin_attach(const char *filename, uint8_t *rawcart);
 extern int isepic_bin_save(const char *filename);
-extern int isepic_crt_attach(FILE *fd, BYTE *rawcart, const char *filename);
+extern int isepic_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
 extern int isepic_crt_save(const char *filename);
 extern int isepic_flush_image(void);
 extern void isepic_detach(void);
 extern int isepic_enable(void);
+int isepic_disable(void);
 
 extern const char *isepic_get_file_name(void);
 

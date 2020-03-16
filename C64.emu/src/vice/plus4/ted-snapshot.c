@@ -121,21 +121,21 @@ int ted_snapshot_write_module(snapshot_t *s)
     if (0
         || SMW_DW(m, ted.last_emulate_line_clk) < 0
         /* AllowBadLines */
-        || SMW_B(m, (BYTE)ted.allow_bad_lines) < 0
+        || SMW_B(m, (uint8_t)ted.allow_bad_lines) < 0
         /* BadLine */
-        || SMW_B(m, (BYTE)ted.bad_line) < 0
+        || SMW_B(m, (uint8_t)ted.bad_line) < 0
         /* Blank */
-        || SMW_B(m, (BYTE)ted.raster.blank_enabled) < 0
+        || SMW_B(m, (uint8_t)ted.raster.blank_enabled) < 0
         /* ColorBuf */
         || SMW_BA(m, ted.cbuf, 40) < 0
         /* IdleState */
-        || SMW_B(m, (BYTE)ted.idle_state) < 0
+        || SMW_B(m, (uint8_t)ted.idle_state) < 0
         /* MatrixBuf */
         || SMW_BA(m, ted.vbuf, 40) < 0
         /* RasterCycle */
-        || SMW_B(m, (BYTE)TED_RASTER_CYCLE(maincpu_clk)) < 0
+        || SMW_B(m, (uint8_t)TED_RASTER_CYCLE(maincpu_clk)) < 0
         /* RasterLine */
-        || SMW_W(m, (WORD)(TED_RASTER_Y(maincpu_clk))) < 0
+        || SMW_W(m, (uint16_t)(TED_RASTER_Y(maincpu_clk))) < 0
         ) {
         goto fail;
     }
@@ -148,15 +148,15 @@ int ted_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_DW(m, (DWORD)ted.ted_raster_counter) < 0
+        || SMW_DW(m, (uint32_t)ted.ted_raster_counter) < 0
         /* Vc */
-        || SMW_W(m, (WORD)ted.mem_counter) < 0
+        || SMW_W(m, (uint16_t)ted.mem_counter) < 0
         /* VcInc */
-        || SMW_B(m, (BYTE)ted.mem_counter_inc) < 0
+        || SMW_B(m, (uint8_t)ted.mem_counter_inc) < 0
         /* VcBase */
-        || SMW_W(m, (WORD)ted.memptr) < 0
+        || SMW_W(m, (uint16_t)ted.memptr) < 0
         /* VideoInt */
-        || SMW_B(m, (BYTE)ted.irq_status) < 0
+        || SMW_B(m, (uint8_t)ted.irq_status) < 0
         ) {
         goto fail;
     }
@@ -181,7 +181,7 @@ fail:
 
 int ted_snapshot_read_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     int i;
     snapshot_module_t *m;
 
@@ -191,7 +191,7 @@ int ted_snapshot_read_module(snapshot_t *s)
         return -1;
     }
 
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         log_error(ted.log,
                   "Snapshot module version (%d.%d) newer than %d.%d.",
                   major_version, minor_version,
@@ -222,8 +222,8 @@ int ted_snapshot_read_module(snapshot_t *s)
     /* Read the current raster line and the current raster cycle.  As they
        are a function of `clk', this is just a sanity check.  */
     {
-        WORD RasterLine;
-        BYTE RasterCycle;
+        uint16_t RasterLine;
+        uint8_t RasterCycle;
 
         if (SMR_B(m, &RasterCycle) < 0 || SMR_W(m, &RasterLine) < 0) {
             goto fail;
@@ -233,16 +233,16 @@ int ted_snapshot_read_module(snapshot_t *s)
              maincpu_clk, TED_RASTER_CYCLE(maincpu_clk), RasterCycle, TED_RASTER_Y(maincpu_clk),
              RasterLine, ted.raster.current_line));
 
-        if (RasterCycle != (BYTE)TED_RASTER_CYCLE(maincpu_clk)) {
+        if (RasterCycle != (uint8_t)TED_RASTER_CYCLE(maincpu_clk)) {
             log_error(ted.log,
-                      "Not matching raster cycle (%d) in snapshot; should be %d.",
+                      "Not matching raster cycle (%d) in snapshot; should be %u.",
                       RasterCycle, TED_RASTER_CYCLE(maincpu_clk));
             goto fail;
         }
 
-        if (RasterLine != (WORD)TED_RASTER_Y(maincpu_clk)) {
+        if (RasterLine != (uint16_t)TED_RASTER_Y(maincpu_clk)) {
             log_error(ted.log,
-                      "Not matching raster line (%d) in snapshot; should be %d.",
+                      "Not matching raster line (%d) in snapshot; should be %u.",
                       RasterLine, TED_RASTER_Y(maincpu_clk));
             goto fail;
         }
@@ -327,7 +327,7 @@ int ted_snapshot_read_module(snapshot_t *s)
     alarm_set(ted.raster_draw_alarm, ted.draw_clk);
 
     {
-        DWORD dw;
+        uint32_t dw;
 
         if (SMR_DW(m, &dw) < 0) {  /* FetchEventTick */
             goto fail;

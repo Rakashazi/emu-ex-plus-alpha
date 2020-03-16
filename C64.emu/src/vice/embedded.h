@@ -38,8 +38,8 @@
 #include "palette.h"
 
 #ifdef USE_EMBEDDED
-extern size_t embedded_check_file(const char *name, BYTE *dest, int minsize, int maxsize);
-extern size_t embedded_check_extra(const char *name, BYTE *dest, int minsize, int maxsize);
+extern size_t embedded_check_file(const char *name, uint8_t *dest, int minsize, int maxsize);
+extern size_t embedded_check_extra(const char *name, uint8_t *dest, int minsize, int maxsize);
 extern int embedded_palette_load(const char *file_name, palette_t *palette_return);
 #else
 #define embedded_check_file(w, x, y, z) (0)
@@ -51,7 +51,7 @@ typedef struct embedded_s {
     int minsize;
     int maxsize;
     size_t size;
-    BYTE *esrc;
+    uint8_t *esrc;
 } embedded_t;
 
 typedef struct embedded_palette_s {

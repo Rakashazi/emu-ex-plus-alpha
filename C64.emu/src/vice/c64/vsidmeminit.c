@@ -72,7 +72,7 @@ const unsigned int c64meminit_io_config[32] = {
     0, 0, 0, 0, 0, 0, 0, 0
 };
 
-BYTE vsid_io_read(WORD addr)
+uint8_t vsid_io_read(uint16_t addr)
 {
     if (sid_stereo >= 1
         && addr >= sid_stereo_address_start
@@ -89,7 +89,7 @@ BYTE vsid_io_read(WORD addr)
     return vicii_read_phi1();
 }
 
-void vsid_io_store(WORD addr, BYTE val)
+void vsid_io_store(uint16_t addr, uint8_t val)
 {
     if (sid_stereo >= 1
         && addr >= sid_stereo_address_start
@@ -104,7 +104,7 @@ void vsid_io_store(WORD addr, BYTE val)
     }
 }
 
-static void sid_store_d700(WORD addr, BYTE val)
+static void sid_store_d700(uint16_t addr, uint8_t val)
 {
     sid_store(addr, val);
     debugcart_store(addr, val);

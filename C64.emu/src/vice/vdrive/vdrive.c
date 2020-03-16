@@ -131,6 +131,7 @@ int vdrive_device_setup(vdrive_t *vdrive, unsigned int unit)
     /* init buffers */
     for (i = 0; i < 15; i++) {
         vdrive->buffers[i].mode = BUFFER_NOT_IN_USE;
+        lib_free(vdrive->buffers[i].buffer);
         vdrive->buffers[i].buffer = NULL;
     }
 
@@ -205,7 +206,7 @@ int vdrive_get_max_sectors(vdrive_t *vdrive, unsigned int track)
             return 256;
         default:
             log_message(vdrive_log,
-                        "Unknown disk type %i.  Cannot calculate max sectors",
+                        "Unknown disk type %u.  Cannot calculate max sectors",
                         vdrive->image_format);
     }
     return -1;
@@ -404,7 +405,7 @@ void vdrive_set_disk_geometry(vdrive_t *vdrive)
             break;
         default:
             log_error(vdrive_log,
-                      "Unknown disk type %i.  Cannot set disk geometry.",
+                      "Unknown disk type %u.  Cannot set disk geometry.",
                       vdrive->image_format);
     }
 
@@ -416,16 +417,16 @@ void vdrive_set_disk_geometry(vdrive_t *vdrive)
 /* ------------------------------------------------------------------------- */
 
 static unsigned int last_read_track, last_read_sector;
-static BYTE last_read_buffer[256];
+static uint8_t last_read_buffer[256];
 
-void vdrive_get_last_read(unsigned int *track, unsigned int *sector, BYTE **buffer)
+void vdrive_get_last_read(unsigned int *track, unsigned int *sector, uint8_t **buffer)
 {
     *track = last_read_track;
     *sector = last_read_sector;
     *buffer = last_read_buffer;
 }
 
-void vdrive_set_last_read(unsigned int track, unsigned int sector, BYTE *buffer)
+void vdrive_set_last_read(unsigned int track, unsigned int sector, uint8_t *buffer)
 {
     last_read_track = track;
     last_read_sector = sector;
@@ -434,7 +435,7 @@ void vdrive_set_last_read(unsigned int track, unsigned int sector, BYTE *buffer)
 
 /* ------------------------------------------------------------------------- */
 /* This is where logical sectors are turned to physical. Not yet, but soon. */
-int vdrive_read_sector(vdrive_t *vdrive, BYTE *buf, unsigned int track, unsigned int sector)
+int vdrive_read_sector(vdrive_t *vdrive, uint8_t *buf, unsigned int track, unsigned int sector)
 {
     disk_addr_t dadr;
     dadr.track = track;
@@ -442,7 +443,7 @@ int vdrive_read_sector(vdrive_t *vdrive, BYTE *buf, unsigned int track, unsigned
     return disk_image_read_sector(vdrive->image, buf, &dadr);
 }
 
-int vdrive_write_sector(vdrive_t *vdrive, const BYTE *buf, unsigned int track, unsigned int sector)
+int vdrive_write_sector(vdrive_t *vdrive, const uint8_t *buf, unsigned int track, unsigned int sector)
 {
     disk_addr_t dadr;
     dadr.track = track;

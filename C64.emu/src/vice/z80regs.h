@@ -30,20 +30,20 @@
 #include "types.h"
 
 typedef struct z80_regs_s {
-    WORD reg_af;
-    WORD reg_bc;
-    WORD reg_de;
-    WORD reg_hl;
-    WORD reg_ix;
-    WORD reg_iy;
-    WORD reg_sp;
-    WORD reg_pc;
-    BYTE reg_i;
-    BYTE reg_r;
-    WORD reg_af2;
-    WORD reg_bc2;
-    WORD reg_de2;
-    WORD reg_hl2;
+    uint16_t reg_af;
+    uint16_t reg_bc;
+    uint16_t reg_de;
+    uint16_t reg_hl;
+    uint16_t reg_ix;
+    uint16_t reg_iy;
+    uint16_t reg_sp;
+    uint16_t reg_pc;
+    uint8_t reg_i;
+    uint8_t reg_r;
+    uint16_t reg_af2;
+    uint16_t reg_bc2;
+    uint16_t reg_de2;
+    uint16_t reg_hl2;
 } z80_regs_t;
 
 #define Z80_REGS_GET_A(reg_ptr)     ((reg_ptr)->reg_af >> 8)

@@ -43,11 +43,20 @@ static FLAC__StreamEncoder *encoder = NULL;
 static FLAC__StreamMetadata *metadata[2];
 static unsigned int samples = 0;
 
-static void progress_callback(const FLAC__StreamEncoder *encoder, FLAC__uint64 bytes_written, FLAC__uint64 samples_written, unsigned frames_written, unsigned total_frames_estimate, void *client_data)
+static void progress_callback(const FLAC__StreamEncoder *enc,
+                              FLAC__uint64 bytes_written,
+                              FLAC__uint64 samples_written,
+                              unsigned frames_written,
+                              unsigned total_frames_estimate, void *client_data)
 {
+    /* NOP */
 }
 
-static int flac_init(const char *param, int *speed, int *fragsize, int *fragnr, int *channels)
+static int flac_init(const char *param,
+                     int *speed,
+                     int *fragsize,
+                     int *fragnr,
+                     int *channels)
 {
     const char *flacname;
     FLAC__bool ok = true;
@@ -75,7 +84,7 @@ static int flac_init(const char *param, int *speed, int *fragsize, int *fragnr, 
             (metadata[1] = FLAC__metadata_object_new(FLAC__METADATA_TYPE_PADDING)) == NULL ||
             !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "CREATOR", "VICE") ||
             !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, false) ||
-            !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "YEAR", "2017") ||
+            !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "YEAR", "2019") ||
             !FLAC__metadata_object_vorbiscomment_append_comment(metadata[0], entry, /*copy=*/false)
         ) {
             ok = false;
@@ -108,7 +117,7 @@ static int flac_init(const char *param, int *speed, int *fragsize, int *fragnr, 
     return 0;
 }
 
-static int flac_write(SWORD *pbuf, size_t nr)
+static int flac_write(int16_t *pbuf, size_t nr)
 {
     FLAC__bool ok;
     unsigned int i;

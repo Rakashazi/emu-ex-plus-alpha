@@ -82,7 +82,7 @@ inline void raster_line_draw_blank(raster_t *raster, unsigned int start,
    collisions only, but we are lazy.  */
 inline static void update_sprite_collisions(raster_t *raster)
 {
-    BYTE *fake_draw_buffer_ptr;
+    uint8_t *fake_draw_buffer_ptr;
 
     if (raster->sprite_status == NULL || raster->sprite_status->draw_function == NULL) {
         return;

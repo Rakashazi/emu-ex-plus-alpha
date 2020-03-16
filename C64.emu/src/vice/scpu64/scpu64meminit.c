@@ -83,7 +83,7 @@ static const unsigned int areas[AREAS][2] = {
     { 0xe0, 0xff }
 };
 
-static const BYTE config[AREAS][256] = 
+static const uint8_t config[AREAS][256] =
 {
     { /* 0000-0fff */
         R0, R0, R0, R0, R0, R0, R0, R0,  R0, R0, R0, R0, R0, R0, R0, R0,

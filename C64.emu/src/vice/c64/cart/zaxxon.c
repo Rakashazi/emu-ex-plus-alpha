@@ -55,13 +55,13 @@ static const export_resource_t export_res = {
     CARTRIDGE_NAME_ZAXXON, 1, 1, NULL, NULL, CARTRIDGE_ZAXXON
 };
 
-BYTE zaxxon_roml_read(WORD addr)
+uint8_t zaxxon_roml_read(uint16_t addr)
 {
     cart_romhbank_set_slotmain((addr & 0x1000) ? 1 : 0);
     return roml_banks[(addr & 0x1fff) + (roml_bank << 13)];
 }
 
-int zaxxon_peek_mem(export_t *export, WORD addr, BYTE *value)
+int zaxxon_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
 {
     if (addr >= 0x8000 && addr <= 0x9fff) {
         *value = roml_banks[(addr & 0x1fff) + (roml_bank << 13)];
@@ -79,7 +79,7 @@ void zaxxon_config_init(void)
     cart_config_changed_slotmain(1, 1, CMODE_READ);
 }
 
-void zaxxon_config_setup(BYTE *rawcart)
+void zaxxon_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
     memcpy(romh_banks, &rawcart[0x2000], 0x4000);
@@ -96,7 +96,7 @@ static int zaxxon_common_attach(void)
 }
 
 /* accept 20k (4k+16k) and 24k (8k+16k) binaries */
-int zaxxon_bin_attach(const char *filename, BYTE *rawcart)
+int zaxxon_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x6000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         if (util_file_load(filename, rawcart, 0x5000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
@@ -107,7 +107,7 @@ int zaxxon_bin_attach(const char *filename, BYTE *rawcart)
     return zaxxon_common_attach();
 }
 
-int zaxxon_crt_attach(FILE *fd, BYTE *rawcart)
+int zaxxon_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
     int i;
@@ -189,7 +189,7 @@ int zaxxon_snapshot_write_module(snapshot_t *s)
 
 int zaxxon_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -199,7 +199,7 @@ int zaxxon_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

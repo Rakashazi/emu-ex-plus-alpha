@@ -25,6 +25,7 @@
  */
 
 #include "vice.h"
+#include "petacia.h"
 
 #define mycpu           maincpu
 #define myclk           maincpu_clk

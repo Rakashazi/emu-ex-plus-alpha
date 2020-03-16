@@ -39,9 +39,9 @@
 static unsigned int sync_factor;
 
 static void drive_sync_cpu_set_factor(drive_context_t *drv,
-                                      unsigned int sync_factor)
+                                      unsigned int sf)
 {
-    drv->cpud->sync_factor = sync_factor;
+    drv->cpud->sync_factor = sf;
 }
 
 void drivesync_factor(struct drive_context_s *drv)

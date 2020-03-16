@@ -37,16 +37,16 @@ extern void cia1571_setup_context(struct drive_context_s *ctxptr);
 extern void cia1581_setup_context(struct drive_context_s *ctxptr);
 
 extern void cia1571_init(struct drive_context_s *ctxptr);
-extern void cia1571_store(struct drive_context_s *ctxptr, WORD addr, BYTE value);
-extern BYTE cia1571_read(struct drive_context_s *ctxptr, WORD addr);
-extern BYTE cia1571_peek(struct drive_context_s *ctxptr, WORD addr);
-extern int cia1571_dump(struct drive_context_s *ctxptr, WORD addr);
+extern void cia1571_store(struct drive_context_s *ctxptr, uint16_t addr, uint8_t value);
+extern uint8_t cia1571_read(struct drive_context_s *ctxptr, uint16_t addr);
+extern uint8_t cia1571_peek(struct drive_context_s *ctxptr, uint16_t addr);
+extern int cia1571_dump(struct drive_context_s *ctxptr, uint16_t addr);
 
 extern void cia1581_init(struct drive_context_s *ctxptr);
-extern void cia1581_store(struct drive_context_s *ctxptr, WORD addr, BYTE value);
-extern BYTE cia1581_read(struct drive_context_s *ctxptr, WORD addr);
-extern BYTE cia1581_peek(struct drive_context_s *ctxptr, WORD addr);
-extern int cia1581_dump(struct drive_context_s *ctxptr, WORD addr);
+extern void cia1581_store(struct drive_context_s *ctxptr, uint16_t addr, uint8_t value);
+extern uint8_t cia1581_read(struct drive_context_s *ctxptr, uint16_t addr);
+extern uint8_t cia1581_peek(struct drive_context_s *ctxptr, uint16_t addr);
+extern int cia1581_dump(struct drive_context_s *ctxptr, uint16_t addr);
 
 extern void cia1571_set_timing(struct cia_context_s *cia_context, int tickspersec, int powerfreq);
 extern void cia1581_set_timing(struct cia_context_s *cia_context, int tickspersec, int powerfreq);

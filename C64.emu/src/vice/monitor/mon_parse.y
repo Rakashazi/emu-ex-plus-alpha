@@ -30,7 +30,7 @@
 
 #include "vice.h"
 
-#if !defined(__minix_vmd) && !defined(MACOS_COMPILE)
+#if !defined(MACOS_COMPILE) && !(defined(__OS2__) && defined(IDE_COMPILE))
 #ifdef __GNUC__
 #undef alloca
 #ifndef ANDROID_COMPILE
@@ -49,7 +49,7 @@ extern char *alloca();
 #endif /* Not AIX and not WINCE.  */
 #endif /* HAVE_ALLOCA_H.  */
 #endif /* GCC.  */
-#endif /* MINIXVMD */
+#endif /* MACOS OS2 */
 
 /* SunOS 4.x specific stuff */
 #if defined(sun) || defined(__sun)
@@ -83,6 +83,9 @@ extern char *alloca();
 #include "types.h"
 #include "uimon.h"
 
+#ifdef AMIGA_MORPHOS
+#undef REG_PC
+#endif
 
 #define join_ints(x,y) (LO16_TO_HI16(x)|y)
 #define separate_int1(x) (HI16_TO_LO16(x))
@@ -112,7 +115,7 @@ extern int cur_len, last_len;
 #define ERR_EXPECT_CHECKNUM 5
 #define ERR_EXPECT_END_CMD 6
 #define ERR_MISSING_CLOSE_PAREN 7
-#define ERR_INCOMPLETE_COMPARE_OP 8
+#define ERR_INCOMPLETE_COND_OP 8
 #define ERR_EXPECT_FILENAME 9
 #define ERR_ADDR_TOO_BIG 10
 #define ERR_IMM_TOO_BIG 11
@@ -146,7 +149,7 @@ extern int cur_len, last_len;
 %token<str> H_RANGE_GUESS D_NUMBER_GUESS O_NUMBER_GUESS B_NUMBER_GUESS
 %token<i> BAD_CMD MEM_OP IF MEM_COMP MEM_DISK8 MEM_DISK9 MEM_DISK10 MEM_DISK11 EQUALS
 %token TRAIL CMD_SEP LABEL_ASGN_COMMENT
-%token CMD_SIDEFX CMD_RETURN CMD_BLOCK_READ CMD_BLOCK_WRITE CMD_UP CMD_DOWN
+%token CMD_LOG CMD_LOGNAME CMD_SIDEFX CMD_RETURN CMD_BLOCK_READ CMD_BLOCK_WRITE CMD_UP CMD_DOWN
 %token CMD_LOAD CMD_SAVE CMD_VERIFY CMD_IGNORE CMD_HUNT CMD_FILL CMD_MOVE
 %token CMD_GOTO CMD_REGISTERS CMD_READSPACE CMD_WRITESPACE CMD_RADIX
 %token CMD_MEM_DISPLAY CMD_BREAK CMD_TRACE CMD_IO CMD_BRMON CMD_COMPARE
@@ -162,7 +165,7 @@ extern int cur_len, last_len;
 %token CMD_ATTACH CMD_DETACH CMD_MON_RESET CMD_TAPECTRL CMD_CARTFREEZE
 %token CMD_CPUHISTORY CMD_MEMMAPZAP CMD_MEMMAPSHOW CMD_MEMMAPSAVE
 %token CMD_COMMENT CMD_LIST CMD_STOPWATCH RESET
-%token CMD_EXPORT CMD_AUTOSTART CMD_AUTOLOAD
+%token CMD_EXPORT CMD_AUTOSTART CMD_AUTOLOAD CMD_MAINCPU_TRACE
 %token<str> CMD_LABEL_ASGN
 %token<i> L_PAREN R_PAREN ARG_IMMEDIATE REG_A REG_X REG_Y COMMA INST_SEP
 %token<i> L_BRACKET R_BRACKET LESS_THAN REG_U REG_S REG_PC REG_PCR
@@ -172,12 +175,12 @@ extern int cur_len, last_len;
 %token<i> PLUS MINUS
 %token<str> STRING FILENAME R_O_L OPCODE LABEL BANKNAME CPUTYPE
 %token<reg> MON_REGISTER
-%left<cond_op> COMPARE_OP
+%left<cond_op> COND_OP
 %token<rt> RADIX_TYPE INPUT_SPEC
 %token<action> CMD_CHECKPT_ON CMD_CHECKPT_OFF TOGGLE
 %type<range> address_range address_opt_range
 %type<a>  address opt_address
-%type<cond_node> opt_if_cond_expr cond_expr compare_operand
+%type<cond_node> opt_if_cond_expr cond_expr cond_operand
 %type<i> number expression d_number guess_default device_num
 %type<i> memspace memloc memaddr checkpt_num mem_op opt_mem_op
 %type<i> top_level value
@@ -447,6 +450,29 @@ monitor_state_rules: CMD_SIDEFX TOGGLE end_cmd
                          mon_out("I/O side effects are %s\n",
                                    sidefx ? "enabled" : "disabled");
                      }
+                   | CMD_LOG TOGGLE end_cmd
+                     { 
+                        int logenabled;
+                        resources_get_int("MonitorLogEnabled", &logenabled);
+                        logenabled = (($2 == e_TOGGLE) ? (logenabled ^ 1) : $2);
+                        resources_set_int("MonitorLogEnabled", logenabled);
+                     }
+                   | CMD_LOG end_cmd
+                     {
+                         int logenabled;
+                         const char *logfilename;
+                         resources_get_int("MonitorLogEnabled", &logenabled);
+                         resources_get_string("MonitorLogFileName", &logfilename);
+                         if (logenabled) {
+                            mon_out("Logging to '%s' is enabled.\n", logfilename);
+                         } else {
+                            mon_out("Logging is disabled.\n");
+                         }
+                     }                     
+                   | CMD_LOGNAME filename end_cmd
+                     { 
+                        resources_set_string("MonitorLogFileName", $2);
+                     }
                    | CMD_RADIX RADIX_TYPE end_cmd
                      { default_radix = $2; }
                    | CMD_RADIX end_cmd
@@ -475,6 +501,8 @@ monitor_state_rules: CMD_SIDEFX TOGGLE end_cmd
                      { mon_quit(); YYACCEPT; }
                    | CMD_EXIT end_cmd
                      { mon_exit(); YYACCEPT; }
+                   | CMD_MAINCPU_TRACE TOGGLE end_cmd
+                     { mon_maincpu_toggle_trace($2); }
                    ;
 
 monitor_misc_rules: CMD_DISK rest_of_line end_cmd
@@ -625,7 +653,7 @@ reg_list: reg_list COMMA reg_asgn
         ;
 
 reg_asgn: register EQUALS number
-          { (monitor_cpu_for_memspace[reg_memspace($1)]->mon_register_set_val)(reg_memspace($1), reg_regid($1), (WORD) $3); }
+          { (monitor_cpu_for_memspace[reg_memspace($1)]->mon_register_set_val)(reg_memspace($1), reg_regid($1), (uint16_t) $3); }
         ;
 
 checkpt_num: d_number { $$ = $1; }
@@ -694,33 +722,39 @@ expression: expression '+' expression { $$ = $1 + $3; }
 opt_if_cond_expr: IF cond_expr { $$ = $2; }
                 | { $$ = 0; }
 
-cond_expr: cond_expr COMPARE_OP cond_expr
+cond_expr: cond_expr COND_OP cond_expr
            {
                $$ = new_cond; $$->is_parenthized = FALSE;
                $$->child1 = $1; $$->child2 = $3; $$->operation = $2;
            }
-         | cond_expr COMPARE_OP error
-           { return ERR_INCOMPLETE_COMPARE_OP; }
+      	 | cond_expr COND_OP error
+           { return ERR_INCOMPLETE_COND_OP; }
          | L_PAREN cond_expr R_PAREN
            { $$ = $2; $$->is_parenthized = TRUE; }
          | L_PAREN cond_expr error
            { return ERR_MISSING_CLOSE_PAREN; }
-         | compare_operand
+         | cond_operand
            { $$ = $1; }
          ;
 
-compare_operand: register { $$ = new_cond;
+cond_operand: register    { $$ = new_cond;
                             $$->operation = e_INV;
                             $$->is_parenthized = FALSE;
-                            $$->reg_num = $1; $$->is_reg = TRUE;
+                            $$->reg_num = $1; $$->is_reg = TRUE; $$->banknum=-1;
                             $$->child1 = NULL; $$->child2 = NULL;
                           }
                | number   { $$ = new_cond;
                             $$->operation = e_INV;
                             $$->is_parenthized = FALSE;
-                            $$->value = $1; $$->is_reg = FALSE;
+                            $$->value = $1; $$->is_reg = FALSE; $$->banknum=-1;
                             $$->child1 = NULL; $$->child2 = NULL;
                           }
+               |  '@' BANKNAME ':' address {$$=new_cond;
+                            $$->operation=e_INV;
+                            $$->is_parenthized = FALSE;
+                            $$->banknum=mon_banknum_from_bank(e_default_space,$2); $$->value = $4; $$->is_reg = FALSE;
+                            $$->child1 = NULL; $$->child2 = NULL;  
+                        }                        
                ;
 
 data_list: data_list opt_sep data_element
@@ -1077,8 +1111,8 @@ void parse_and_execute_line(char *input)
          case ERR_MISSING_CLOSE_PAREN:
            mon_out("')' expected:\n");
            break;
-         case ERR_INCOMPLETE_COMPARE_OP:
-           mon_out("Compare operation missing an operand:\n");
+         case ERR_INCOMPLETE_COND_OP:
+           mon_out("Conditional operation missing an operand:\n");
            break;
          case ERR_EXPECT_FILENAME:
            mon_out("Expecting a filename:\n");
@@ -1121,7 +1155,9 @@ void parse_and_execute_line(char *input)
 
 static int yyerror(char *s)
 {
+#if 0
    fprintf(stderr, "ERR:%s\n", s);
+#endif
    return 0;
 }
 
@@ -1192,5 +1228,3 @@ static int resolve_range(enum t_memspace memspace, MON_ADDR range[2],
     range[0] = new_addr(memspace, sa);
     return 0;
 }
-
-

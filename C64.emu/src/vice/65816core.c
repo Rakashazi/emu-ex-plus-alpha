@@ -146,7 +146,7 @@
             flag_n = (val >> 8);           \
             flag_z = (val) | flag_n;       \
         } else {                           \
-            flag_z = flag_n = ((BYTE)val); \
+            flag_z = flag_n = ((uint8_t)val); \
         }                                  \
     } while (0)
 
@@ -351,7 +351,7 @@
         if (ik & (IK_TRAP | IK_MONITOR | IK_DMA)) {                            \
             if (ik & IK_TRAP) {                                                \
                 EXPORT_REGISTERS();                                            \
-                interrupt_do_trap(CPU_INT_STATUS, (WORD)reg_pc);               \
+                interrupt_do_trap(CPU_INT_STATUS, (uint16_t)reg_pc);               \
                 IMPORT_REGISTERS();                                            \
                 interrupt65816 &= ~IK_TRAP;                                    \
             }                                                                  \
@@ -363,17 +363,17 @@
                     EXPORT_REGISTERS();                                        \
                 }                                                              \
                 if (monitor_mask[CALLER] & (MI_STEP)) {                        \
-                    monitor_check_icount((WORD)reg_pc);                        \
+                    monitor_check_icount((uint16_t)reg_pc);                        \
                     IMPORT_REGISTERS();                                        \
                 }                                                              \
                 if (monitor_mask[CALLER] & (MI_BREAK)) {                       \
-                    if (monitor_check_breakpoints(CALLER, (WORD)reg_pc)) {     \
+                    if (monitor_check_breakpoints(CALLER, (uint16_t)reg_pc)) {     \
                         monitor_startup(CALLER);                               \
                         IMPORT_REGISTERS();                                    \
                     }                                                          \
                 }                                                              \
                 if (monitor_mask[CALLER] & (MI_WATCH)) {                       \
-                    monitor_check_watchpoints(LAST_OPCODE_ADDR, (WORD)reg_pc); \
+                    monitor_check_watchpoints(LAST_OPCODE_ADDR, (uint16_t)reg_pc); \
                     IMPORT_REGISTERS();                                        \
                 }                                                              \
                 interrupt65816 &= ~IK_MONITOR;                                 \
@@ -1431,11 +1431,11 @@
                                   \
       if (LOCAL_65816_M()) {      \
           load_func(tmp, 1);      \
-          reg_a logic (BYTE)tmp;  \
+          reg_a logic (uint8_t)tmp;  \
           LOCAL_SET_NZ(reg_a, 1); \
       } else {                    \
           load_func(tmp, 0);      \
-          reg_c logic (WORD)tmp;  \
+          reg_c logic (uint16_t)tmp;  \
           LOCAL_SET_NZ(reg_c, 0); \
       }                           \
   } while (0)
@@ -1708,10 +1708,10 @@
 
 #define COP_02()                                                \
   do {                                                          \
-      DWORD trap_result;                                        \
+      uint32_t trap_result;                                        \
       EXPORT_REGISTERS();                                       \
       if (!ROM_TRAP_ALLOWED()                                   \
-          || (trap_result = ROM_TRAP_HANDLER()) == (DWORD)-1) { \
+          || (trap_result = ROM_TRAP_HANDLER()) == (uint32_t)-1) { \
           COP_65816(p1);                                        \
       } else {                                                  \
           if (trap_result) {                                    \
@@ -2449,7 +2449,7 @@
       INC_PC(SIZE_1);             \
       FETCH_PARAM_DUMMY(reg_pc);  \
       if (LOCAL_65816_M()) {      \
-          reg_a = (BYTE)reg_r;    \
+          reg_a = (uint8_t)reg_r;    \
           LOCAL_SET_NZ(reg_a, 1); \
       } else {                    \
           reg_c = reg_r;          \
@@ -2463,7 +2463,7 @@
   do {                            \
       INC_PC(SIZE_1);             \
       FETCH_PARAM_DUMMY(reg_pc);  \
-      if (LOCAL_65816_X()) {      \
+      if (reg_emul) {      \
           reg_sp = 0x100 | reg_x; \
       } else {                    \
           reg_sp = reg_x;         \
@@ -2512,7 +2512,7 @@
 
 #define XBA()                    \
   do {                           \
-      BYTE tmp;                  \
+      uint8_t tmp;                  \
                                  \
       INC_PC(SIZE_1);            \
       FETCH_PARAM_DUMMY(reg_pc); \
@@ -2551,15 +2551,18 @@
 {
 
     {
-        unsigned int p0, p1, p2, p3;
+        unsigned int p0 = 0;
+        unsigned int p1 = 0;
+        unsigned int p2 = 0;
+        unsigned int p3 = 0;
 #ifdef DEBUG
         CLOCK debug_clk = 0;
         unsigned int debug_pc = 0;
-        WORD debug_c = 0;
-        WORD debug_x = 0;
-        WORD debug_y = 0;
-        WORD debug_sp = 0;
-        BYTE debug_pbr = 0;
+        uint16_t debug_c = 0;
+        uint16_t debug_x = 0;
+        uint16_t debug_y = 0;
+        uint16_t debug_sp = 0;
+        uint8_t debug_pbr = 0;
 
         if (TRACEFLG) {
             debug_clk = maincpu_clk;
@@ -2653,7 +2656,7 @@ trap_skipped:
             break;
 
           case 0x0c:            /* TSB $nnnn */
-            TSB(LOAD_ABS2_FUNC_RRW, STORE_ABS2_RRW);
+            TSB(LOAD_ABS_FUNC_RRW, STORE_ABS_RRW);
             break;
 
           case 0x0d:            /* ORA $nnnn */
@@ -2717,7 +2720,7 @@ trap_skipped:
             break;
 
           case 0x1c:            /* TRB $nnnn */
-            TRB(LOAD_ABS2_FUNC_RRW, STORE_ABS2_RRW);
+            TRB(LOAD_ABS_FUNC_RRW, STORE_ABS_RRW);
             break;
 
           case 0x1d:            /* ORA $nnnn,X */
@@ -3165,7 +3168,7 @@ trap_skipped:
             break;
 
           case 0x8c:            /* STY $nnnn */
-            STY(STORE_ABS2);
+            STY(STORE_ABS);
             break;
 
           case 0x8d:            /* STA $nnnn */
@@ -3173,7 +3176,7 @@ trap_skipped:
             break;
 
           case 0x8e:            /* STX $nnnn */
-            STX(STORE_ABS2);
+            STX(STORE_ABS);
             break;
 
           case 0x8f:            /* STA $nnnnnn */
@@ -3293,7 +3296,7 @@ trap_skipped:
             break;
 
           case 0xac:            /* LDY $nnnn */
-            LDY(LOAD_ABS2_FUNC);
+            LDY(LOAD_ABS_FUNC);
             break;
 
           case 0xad:            /* LDA $nnnn */
@@ -3301,7 +3304,7 @@ trap_skipped:
             break;
 
           case 0xae:            /* LDX $nnnn */
-            LDX(LOAD_ABS2_FUNC);
+            LDX(LOAD_ABS_FUNC);
             break;
 
           case 0xaf:            /* LDA $nnnnnn */
@@ -3357,7 +3360,7 @@ trap_skipped:
             break;
 
           case 0xbc:            /* LDY $nnnn,X */
-            LDY(LOAD_ABS2_X_FUNC);
+            LDY(LOAD_ABS_X_FUNC);
             break;
 
           case 0xbd:            /* LDA $nnnn,X */
@@ -3365,7 +3368,7 @@ trap_skipped:
             break;
 
           case 0xbe:            /* LDX $nnnn,Y */
-            LDX(LOAD_ABS2_Y_FUNC);
+            LDX(LOAD_ABS_Y_FUNC);
             break;
 
           case 0xbf:            /* LDA $nnnnnn,X */
@@ -3642,12 +3645,12 @@ trap_skipped:
         }
 #ifdef DEBUG
         if (TRACEFLG && p0 < 0x100) {
-            BYTE op = (BYTE)(p0);
-            BYTE lo = (BYTE)(p1);
-            BYTE hi = (BYTE)(p2 >> 8);
-            BYTE bk = (BYTE)(p3 >> 16);
+            uint8_t op = (uint8_t)(p0);
+            uint8_t lo = (uint8_t)(p1);
+            uint8_t hi = (uint8_t)(p2 >> 8);
+            uint8_t bk = (uint8_t)(p3 >> 16);
 
-            debug_main65816cpu((DWORD)(debug_pc), debug_clk,
+            debug_main65816cpu((uint32_t)(debug_pc), debug_clk,
                           mon_disassemble_to_string(e_comp_space,
                                                     debug_pc, op,
                                                     lo, hi, bk, 1, "65816"),

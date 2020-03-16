@@ -42,7 +42,7 @@
    care of the 10-bit counter wraparound.  */
 void ted_fetch_matrix(int offs, int num)
 {
-    BYTE *p;
+    uint8_t *p;
     int start_char;
     int c;
     int dma_offset = (ted.ted_raster_counter & 7)

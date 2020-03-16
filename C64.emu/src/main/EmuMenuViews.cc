@@ -420,7 +420,7 @@ class CustomSystemOptionView : public SystemOptionView
 		systemFilePathStr,
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
-			pushAndShowFirmwarePathMenu("System File Path", e);
+			pushAndShowFirmwareFilePathMenu("VICE System File Path", e);
 			postDraw();
 		}
 	};
@@ -442,7 +442,7 @@ class CustomSystemOptionView : public SystemOptionView
 	template <size_t S>
 	static void printSysPathMenuEntryStr(char (&str)[S])
 	{
-		string_printf(str, "System File Path: %s", strlen(firmwareBasePath.data()) ? FS::basename(firmwareBasePath).data() : "Default");
+		string_printf(str, "VICE System File Path: %s", strlen(firmwareBasePath.data()) ? FS::basename(firmwareBasePath).data() : "Default");
 	}
 
 public:
@@ -1132,22 +1132,9 @@ class CustomMainMenuView : public EmuMainMenuView
 		systemStr.data(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			bool systemPresent[VicePlugin::SYSTEMS]{};
-			uint systems = 0;
-			iterateTimes(std::size(systemPresent), i)
+			auto multiChoiceView = makeViewWithName<TextTableView>(item.name(), VicePlugin::SYSTEMS);
+			iterateTimes(VicePlugin::SYSTEMS, i)
 			{
-				bool hasSystem = VicePlugin::hasSystemLib((ViceSystem)i);
-				systemPresent[i] = hasSystem;
-				if(hasSystem)
-					systems++;
-			}
-			auto multiChoiceView = makeViewWithName<TextTableView>(item.name(), systems);
-			iterateTimes(std::size(systemPresent), i)
-			{
-				if(!systemPresent[i])
-				{
-					continue;
-				}
 				multiChoiceView->appendItem(VicePlugin::systemName((ViceSystem)i),
 					[this, i](TextMenuItem &, View &, Input::Event e)
 					{
@@ -1167,6 +1154,7 @@ class CustomMainMenuView : public EmuMainMenuView
 	};
 
 	FS::FileString newDiskName;
+	FS::PathString newDiskPath;
 
 	TextMenuItem startWithBlankDisk
 	{
@@ -1188,7 +1176,7 @@ class CustomMainMenuView : public EmuMainMenuView
 						fPicker->setOnClose(
 							[this](FSPicker &picker, Input::Event e)
 							{
-								auto path = FS::makePathStringPrintf("%s/%s.d64", picker.path().data(), newDiskName.data());
+								newDiskPath = FS::makePathStringPrintf("%s/%s.d64", picker.path().data(), newDiskName.data());
 								picker.dismiss();
 								if(e.isDefaultCancelButton())
 								{
@@ -1196,24 +1184,19 @@ class CustomMainMenuView : public EmuMainMenuView
 									EmuApp::unpostMessage();
 									return;
 								}
-								if(FS::exists(path))
+								if(FS::exists(newDiskPath))
 								{
-									EmuApp::postMessage(true, "File already exists");
+									//EmuApp::printfMessage(3, true, "%s already exists");
+									auto ynAlertView = makeView<YesNoAlertView>("Disk image already exists, overwrite?");
+									ynAlertView->setOnYes(
+										[this](TextMenuItem &, View &, Input::Event e)
+										{
+											createDiskAndLaunch(newDiskPath.data(), newDiskName.data(), e);
+										});
+									EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
 									return;
 								}
-								if(plugin.vdrive_internal_create_format_disk_image(path.data(),
-									FS::makeFileStringPrintf("%s,dsk", newDiskName.data()).data(),
-									DISK_IMAGE_TYPE_D64) == -1)
-								{
-									EmuApp::postMessage(true, "Error creating disk image");
-									return;
-								}
-								autostartOnLoad = false;
-								EmuApp::createSystemWithMedia({}, path.data(), "", e,
-									[this](Input::Event e)
-									{
-										EmuApp::launchSystemWithResumePrompt(e, true);
-									});
+								createDiskAndLaunch(newDiskPath.data(), newDiskName.data(), e);
 							});
 						view.dismiss();
 						EmuApp::pushAndShowModalView(std::move(fPicker), Input::defaultEvent());
@@ -1226,6 +1209,23 @@ class CustomMainMenuView : public EmuMainMenuView
 					return 0;
 				});
 		}
+	};
+
+	static void createDiskAndLaunch(const char *diskPath, const char *diskName, Input::Event e)
+	{
+		if(plugin.vdrive_internal_create_format_disk_image(diskPath,
+			FS::makeFileStringPrintf("%s,dsk", diskName).data(),
+			DISK_IMAGE_TYPE_D64) == -1)
+		{
+			EmuApp::postMessage(true, "Error creating disk image");
+			return;
+		}
+		autostartOnLoad = false;
+		EmuApp::createSystemWithMedia({}, diskPath, "", e,
+			[](Input::Event e)
+			{
+				EmuApp::launchSystem(e, false, true);
+			});
 	};
 
 	void reloadItems()

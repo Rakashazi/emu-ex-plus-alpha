@@ -29,14 +29,14 @@
 #include "plus4pio2.h"
 #include "types.h"
 
-BYTE pio2_kbd;
+uint8_t pio2_kbd;
 
-BYTE pio2_read(WORD addr)
+uint8_t pio2_read(uint16_t addr)
 {
     return pio2_kbd;
 }
 
-void pio2_store(WORD addr, BYTE value)
+void pio2_store(uint16_t addr, uint8_t value)
 {
     pio2_kbd = value;
 }

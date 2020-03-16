@@ -34,7 +34,9 @@
 #include "resources.h"
 #include "snapshot.h"
 #include "tapeport.h"
-#include "translate.h"
+
+#include "dtl-basic-dongle.h"
+
 
 /* DTL Basic Dongle description:
 
@@ -73,7 +75,7 @@ static int dtlbasic_dongle_enabled = 0;
 
 static int dtlbasic_counter = -1;
 
-static BYTE dtlbasic_key[20] = { 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 };
+static uint8_t dtlbasic_key[20] = { 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 };
 
 static int write_status = -1;
 static int sense_status = -1;
@@ -90,20 +92,20 @@ static int dtlbasic_write_snapshot(struct snapshot_s *s, int write_image);
 static int dtlbasic_read_snapshot(struct snapshot_s *s);
 
 static tapeport_device_t dtlbasic_dongle_device = {
-    TAPEPORT_DEVICE_DTL_BASIC_DONGLE,
-    "Sense dongle",
-    IDGS_SENSE_DONGLE,
-    0,
-    "DTLBasicDongle",
-    dtlbasic_dongle_reset,
-    NULL, /* no set motor */
-    dtlbasic_write,
-    dtlbasic_sense_out,
-    NULL, /* no read out */
-    NULL, /* no passthrough */
-    NULL, /* no passthrough */
-    NULL, /* no passthrough */
-    NULL  /* no passthrough */
+    TAPEPORT_DEVICE_DTL_BASIC_DONGLE, /* device id */
+    "DTL BASIC dongle",               /* device name */
+    0,                                /* order of the device, filled in by the tapeport system when the device is attached */
+    "DTLBasicDongle",                 /* resource used by the device */
+    NULL,                             /* NO device shutdown function */
+    dtlbasic_dongle_reset,            /* device specific reset function */
+    NULL,                             /* NO set motor line function */
+    dtlbasic_write,                   /* set write line function */
+    dtlbasic_sense_out,               /* set sense line function */
+    NULL,                             /* NO set read line function */
+    NULL,                             /* NO passthrough flux change function */
+    NULL,                             /* NO passthrough sense read function */
+    NULL,                             /* NO passthrough write line function */
+    NULL                              /* NO passthrough motor line function */
 };
 
 static tapeport_snapshot_t dtlbasic_snapshot = {
@@ -155,16 +157,12 @@ int dtlbasic_dongle_resources_init(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-dtlbasicdongle", SET_RESOURCE, 0,
+    { "-dtlbasicdongle", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DTLBasicDongle", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_DTL_BASIC_DONGLE,
-      NULL, NULL },
-    { "+dtlbasicdongle", SET_RESOURCE, 0,
+      NULL, "Enable DTL Basic dongle" },
+    { "+dtlbasicdongle", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DTLBasicDongle", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_DTL_BASIC_DONGLE,
-      NULL, NULL },
+      NULL, "Enable DTL Basic dongle" },
     CMDLINE_LIST_END
 };
 
@@ -255,16 +253,16 @@ static int dtlbasic_write_snapshot(struct snapshot_s *s, int write_image)
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
- 
+
     if (m == NULL) {
         return -1;
     }
 
     if (0
-        || SMW_DW(m, (DWORD)dtlbasic_counter) < 0
-        || SMW_DW(m, (DWORD)write_status) < 0
-        || SMW_DW(m, (DWORD)sense_status) < 0
-        || SMW_DW(m, (DWORD)dtlbasic_state) < 0) {
+        || SMW_DW(m, (uint32_t)dtlbasic_counter) < 0
+        || SMW_DW(m, (uint32_t)write_status) < 0
+        || SMW_DW(m, (uint32_t)sense_status) < 0
+        || SMW_DW(m, (uint32_t)dtlbasic_state) < 0) {
         snapshot_module_close(m);
         return -1;
     }
@@ -273,7 +271,7 @@ static int dtlbasic_write_snapshot(struct snapshot_s *s, int write_image)
 
 static int dtlbasic_read_snapshot(struct snapshot_s *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
     /* enable device */
@@ -286,7 +284,7 @@ static int dtlbasic_read_snapshot(struct snapshot_s *s)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

@@ -49,13 +49,13 @@ struct bufinfo_s {
     struct tape_image_s *tape;
     enum fsmode mode;
     char *dir;
-    BYTE *name;
+    uint8_t *name;
     int buflen;
-    BYTE *bufp;
+    uint8_t *bufp;
     int eof;
     int reclen;
     int type;
-    BYTE buffered;  /* Buffered Byte: Added to buffer reads to remove buffering from iec code */
+    uint8_t buffered;  /* Buffered Byte: Added to buffer reads to remove buffering from iec code */
     int isbuffered; /* TRUE is a byte exists in the buffer above */
     int iseof;      /* TRUE if an EOF is detected on a buffered read */
     char *dirmask;
@@ -67,10 +67,10 @@ struct fsdevice_dev_s {
     unsigned int elen;
     char *errorl;
     unsigned int cptr;
-    BYTE *cmdbuf;
+    uint8_t *cmdbuf;
     bufinfo_t bufinfo[FSDEVICE_BUFFER_MAX];
     int track, sector; /* fake track/sector pointer */
-    BYTE bam[(FSDEVICE_TRACK_MAX * FSDEVICE_SECTOR_MAX) >> 3]; /* fake bam */
+    uint8_t bam[(FSDEVICE_TRACK_MAX * FSDEVICE_SECTOR_MAX) >> 3]; /* fake bam */
 };
 typedef struct fsdevice_dev_s fsdevice_dev_t;
 
@@ -80,7 +80,7 @@ struct vdrive_s;
 
 extern void fsdevice_error(struct vdrive_s *vdrive, int code);
 extern char *fsdevice_get_path(unsigned int unit);
-extern int fsdevice_error_get_byte(struct vdrive_s *vdrive, BYTE *data);
-extern int fsdevice_flush_write_byte(struct vdrive_s *vdrive, BYTE data);
+extern int fsdevice_error_get_byte(struct vdrive_s *vdrive, uint8_t *data);
+extern int fsdevice_flush_write_byte(struct vdrive_s *vdrive, uint8_t data);
 
 #endif

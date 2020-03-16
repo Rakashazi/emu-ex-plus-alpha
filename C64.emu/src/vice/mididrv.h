@@ -44,8 +44,8 @@ extern void mididrv_out_close(void);
 
 /* MIDI device I/O */
 /* return: -1 if error, 1 if a byte was read to *b, 0 if no new bytes */
-extern int mididrv_in(BYTE *b);
-extern void mididrv_out(BYTE b);
+extern int mididrv_in(uint8_t *b);
+extern void mididrv_out(uint8_t b);
 
 extern int mididrv_resources_init(void);
 extern void mididrv_resources_shutdown(void);

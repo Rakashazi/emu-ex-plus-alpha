@@ -71,7 +71,7 @@ static int tape_snapshot_write_tapimage_module(snapshot_t *s)
     snapshot_module_t *m;
     FILE *ftap;
     long pos, tap_size;
-    BYTE buffer[256];
+    uint8_t buffer[256];
     int i;
 
     m = snapshot_module_create(s, "TAPIMAGE", TAPIMAGE_SNAP_MAJOR,
@@ -132,12 +132,12 @@ static int tape_snapshot_write_tapimage_module(snapshot_t *s)
 
 static int tape_snapshot_read_tapimage_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
     char *filename = NULL;
     FILE *ftap;
-    BYTE *buffer;
-    long tap_size;
+    uint8_t *buffer;
+    long tap_size = -1;
 
     m = snapshot_module_open(s, "TAPIMAGE",
                              &major_version, &minor_version);
@@ -145,8 +145,7 @@ static int tape_snapshot_read_tapimage_module(snapshot_t *s)
         return 0;
     }
 
-    if (major_version > TAPIMAGE_SNAP_MAJOR
-        || minor_version > TAPIMAGE_SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, TAPIMAGE_SNAP_MAJOR, TAPIMAGE_SNAP_MINOR)) {
         log_error(tape_snapshot_log,
                   "Snapshot module version (%d.%d) newer than %d.%d.",
                   major_version, minor_version,
@@ -226,8 +225,8 @@ int tape_snapshot_write_module(snapshot_t *s, int save_image)
     }
 
     if (0
-        || SMW_B(m, (BYTE)tape_image_dev1->read_only) < 0
-        || SMW_B(m, (BYTE)tape_image_dev1->type) < 0) {
+        || SMW_B(m, (uint8_t)tape_image_dev1->read_only) < 0
+        || SMW_B(m, (uint8_t)tape_image_dev1->type) < 0) {
         snapshot_module_close(m);
         return -1;
     }
@@ -264,7 +263,7 @@ int tape_snapshot_write_module(snapshot_t *s, int save_image)
 
 int tape_snapshot_read_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
     unsigned int snap_type;
     char snap_module_name[] = "TAPE";
@@ -306,17 +305,17 @@ int tape_snapshot_read_module(snapshot_t *s)
         case TAPE_TYPE_TAP:
             tap = (tap_t*)tape_image_dev1->data;
             if (tap == NULL
-                || SMR_DW(m, (DWORD*)&tap->size) < 0
+                || SMR_DW(m, (uint32_t *)&tap->size) < 0
                 || SMR_B(m, &tap->version) < 0
                 || SMR_B(m, &tap->system) < 0
-                || SMR_DW(m, (DWORD*)&tap->current_file_seek_position) < 0
-                || SMR_DW(m, (DWORD*)&tap->offset) < 0
-                || SMR_DW(m, (DWORD*)&tap->cycle_counter) < 0
-                || SMR_DW(m, (DWORD*)&tap->cycle_counter_total) < 0
-                || SMR_DW(m, (DWORD*)&tap->counter) < 0
-                || SMR_DW(m, (DWORD*)&tap->mode) < 0
-                || SMR_DW(m, (DWORD*)&tap->read_only) < 0
-                || SMR_DW(m, (DWORD*)&tap->has_changed) < 0) {
+                || SMR_DW(m, (uint32_t *)&tap->current_file_seek_position) < 0
+                || SMR_DW(m, (uint32_t *)&tap->offset) < 0
+                || SMR_DW(m, (uint32_t *)&tap->cycle_counter) < 0
+                || SMR_DW(m, (uint32_t *)&tap->cycle_counter_total) < 0
+                || SMR_DW(m, (uint32_t *)&tap->counter) < 0
+                || SMR_DW(m, (uint32_t *)&tap->mode) < 0
+                || SMR_DW(m, (uint32_t *)&tap->read_only) < 0
+                || SMR_DW(m, (uint32_t *)&tap->has_changed) < 0) {
                 snapshot_module_close(m);
                 return -1;
             }

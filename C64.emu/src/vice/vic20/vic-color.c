@@ -52,59 +52,88 @@
 /* chroma angles in UV space */
 
 #define ANGLE_RED        112.5f
-#define ANGLE_GRN       -135.0f
+/* #define ANGLE_GRN       -135.0f */ /* old pepto */
+#define ANGLE_GRN       -112.5f /* new pepto ("colodore") */
 #define ANGLE_BLU          0.0f
 #define ANGLE_ORN        -45.0f /* negative orange (orange is at +135.0 degree) */
 
 /*
-    In theory it would make sense that there are only 5 brightness
-    levels like on VICII, however for some reason in practice it
-    looks differently. Measuring the actual luma signal level
-    would clear things up.
-
-    http://sourceforge.net/tracker/?func=detail&atid=1057619&aid=3542105&group_id=223021
+#define LUMA0      0.0f
+#define LUMA1    256.0f
+#define LUMA2     51.0f
+#define LUMA3    157.0f
+#define LUMA4     75.0f
+#define LUMA5    132.0f
+#define LUMA6     47.0f
+#define LUMA7    183.0f
+#define LUMA8     85.0f
+#define LUMA9    161.0f
+#define LUMA10   144.0f
+#define LUMA11   208.0f
+#define LUMA12   158.0f
+#define LUMA13   191.0f
+#define LUMA14   129.0f
+#define LUMA15   234.0f
 */
+
+/* new pepto ("colodore") */
+#define LUMA0      0.0f
+#define LUMA1    256.0f
+#define LUMA2     64.0f
+#define LUMA3    192.0f
+#define LUMA4     96.0f
+#define LUMA5    160.0f
+#define LUMA6     56.0f
+#define LUMA7    208.0f
+#define LUMA8    112.0f
+#define LUMA9    184.0f
+#define LUMA10   168.0f
+#define LUMA11   224.0f
+#define LUMA12   184.0f
+#define LUMA13   216.0f
+#define LUMA14   152.0f
+#define LUMA15   240.0f
 
 static video_cbm_color_t vic_colors_pal[VIC_NUM_COLORS] =
 {
-    {   0.0f, ANGLE_ORN, -0, "Black"       },
-    { 256.0f, ANGLE_ORN, -0, "White"       },
-    {  51.0f, ANGLE_RED,  1, "Red"         },
-    { 157.0f, ANGLE_RED, -1, "Cyan"        },
-    {  75.0f, ANGLE_GRN, -1, "Purple"      },
-    { 132.0f, ANGLE_GRN,  1, "Green"       },
-    {  47.0f, ANGLE_BLU,  1, "Blue"        },
-    { 183.0f, ANGLE_BLU, -1, "Yellow"      },
-    {  85.0f, ANGLE_ORN, -1, "Orange"      },
-    { 161.0f, ANGLE_ORN, -1, "Light Orange"},
-    { 144.0f, ANGLE_RED,  1, "Pink"        },
-    { 208.0f, ANGLE_RED, -1, "Light Cyan"  },
-    { 158.0f, ANGLE_GRN, -1, "Light Purple"},
-    { 191.0f, ANGLE_GRN,  1, "Light Green" },
-    { 129.0f, ANGLE_BLU,  1, "Light Blue"  },
-    { 234.0f, ANGLE_BLU, -1, "Light Yellow"}
+    { LUMA0 , ANGLE_ORN, -0, "Black"       },
+    { LUMA1 , ANGLE_ORN, -0, "White"       },
+    { LUMA2 , ANGLE_RED,  1, "Red"         },
+    { LUMA3 , ANGLE_RED, -1, "Cyan"        },
+    { LUMA4 , ANGLE_GRN, -1, "Purple"      },
+    { LUMA5 , ANGLE_GRN,  1, "Green"       },
+    { LUMA6 , ANGLE_BLU,  1, "Blue"        },
+    { LUMA7 , ANGLE_BLU, -1, "Yellow"      },
+    { LUMA8 , ANGLE_ORN, -1, "Orange"      },
+    { LUMA9 , ANGLE_ORN, -1, "Light Orange"},
+    { LUMA10, ANGLE_RED,  1, "Pink"        },
+    { LUMA11, ANGLE_RED, -1, "Light Cyan"  },
+    { LUMA12, ANGLE_GRN, -1, "Light Purple"},
+    { LUMA13, ANGLE_GRN,  1, "Light Green" },
+    { LUMA14, ANGLE_BLU,  1, "Light Blue"  },
+    { LUMA15, ANGLE_BLU, -1, "Light Yellow"}
 };
 
 /* FIXME: the following is hand-tuned to somehow match mikes/tokras palette. it
           is not necessarily correct and should get backed up by measurements. */
 static video_cbm_color_t vic_colors_ntsc[VIC_NUM_COLORS] =
 {
-    {   0.0f, ANGLE_ORN, -0, "Black"       },
-    { 256.0f, ANGLE_ORN, -0, "White"       },
-    {  51.0f, ANGLE_RED,  1, "Red"         },
-    { 157.0f, ANGLE_RED, -1, "Cyan"        },
-    {  75.0f, ANGLE_GRN + 35.0f, -1, "Purple"      },
-    { 132.0f, ANGLE_GRN + 45.0f,  1, "Green"       },
-    {  47.0f, ANGLE_BLU,  1, "Blue"        },
-    { 183.0f, ANGLE_BLU, -1, "Yellow"      },
-    {  85.0f, ANGLE_ORN, -1, "Orange"      },
-    { 161.0f, ANGLE_ORN - 30.0f, -1, "Light Orange"},
-    { 144.0f, ANGLE_RED - 30.0f,  1, "Pink"        },
-    { 208.0f, ANGLE_RED, -1, "Light Cyan"  },
-    { 158.0f, ANGLE_GRN, -1, "Light Purple"},
-    { 191.0f, ANGLE_GRN + 30.0f,  1, "Light Green" },
-    { 129.0f, ANGLE_BLU,  1, "Light Blue"  },
-    { 234.0f, ANGLE_BLU, -1, "Light Yellow"}
+    { LUMA0 , ANGLE_ORN, -0, "Black"       },
+    { LUMA1 , ANGLE_ORN, -0, "White"       },
+    { LUMA2 , ANGLE_RED,  1, "Red"         },
+    { LUMA3 , ANGLE_RED, -1, "Cyan"        },
+    { LUMA4 , ANGLE_GRN + 35.0f, -1, "Purple"      },
+    { LUMA5 , ANGLE_GRN + 45.0f,  1, "Green"       },
+    { LUMA6 , ANGLE_BLU,  1, "Blue"        },
+    { LUMA7 , ANGLE_BLU, -1, "Yellow"      },
+    { LUMA8 , ANGLE_ORN, -1, "Orange"      },
+    { LUMA9 , ANGLE_ORN - 30.0f, -1, "Light Orange"},
+    { LUMA10, ANGLE_RED - 30.0f,  1, "Pink"        },
+    { LUMA11, ANGLE_RED, -1, "Light Cyan"  },
+    { LUMA12, ANGLE_GRN, -1, "Light Purple"},
+    { LUMA13, ANGLE_GRN + 30.0f,  1, "Light Green" },
+    { LUMA14, ANGLE_BLU,  1, "Light Blue"  },
+    { LUMA15, ANGLE_BLU, -1, "Light Yellow"}
 };
 
 static video_cbm_palette_t vic_palette =

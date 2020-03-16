@@ -54,23 +54,24 @@
 */
 
 /* some prototypes are needed */
-static BYTE westermann_io2_read(WORD addr);
-static BYTE westermann_io2_peek(WORD addr);
+static uint8_t westermann_io2_read(uint16_t addr);
+static uint8_t westermann_io2_peek(uint16_t addr);
 static int westermann_dump(void);
 
 static io_source_t westermann_device = {
-    CARTRIDGE_NAME_WESTERMANN,
-    IO_DETACH_CART,
-    NULL,
-    0xdf00, 0xdfff, 0xff,
-    0, /* read is never valid */
-    NULL,
-    westermann_io2_read,
-    westermann_io2_peek,
-    westermann_dump,
-    CARTRIDGE_WESTERMANN,
-    0,
-    0
+    CARTRIDGE_NAME_WESTERMANN, /* name of the device */
+    IO_DETACH_CART,            /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,     /* does not use a resource for detach */
+    0xdf00, 0xdfff, 0xff,      /* range for the device, address is ignored, reg:$df00, mirrors:$df01-$dfff */
+    0,                         /* read is never valid */
+    NULL,                      /* NO store function */
+    NULL,                      /* NO poke function */
+    westermann_io2_read,       /* read function */
+    westermann_io2_peek,       /* peek function */
+    westermann_dump,           /* device state information dump function */
+    CARTRIDGE_WESTERMANN,      /* cartridge ID */
+    IO_PRIO_NORMAL,            /* normal priority, device read needs to be checked for collisions */
+    0                          /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *westermann_list_item = NULL;
@@ -83,14 +84,14 @@ static const export_resource_t export_res_westermann = {
 
 static int westermann_a000 = 0;
 
-static BYTE westermann_io2_read(WORD addr)
+static uint8_t westermann_io2_read(uint16_t addr)
 {
     cart_config_changed_slotmain(0, 0, CMODE_READ);
     westermann_a000 = 0;
     return 0;
 }
 
-static BYTE westermann_io2_peek(WORD addr)
+static uint8_t westermann_io2_peek(uint16_t addr)
 {
     return 0;
 }
@@ -110,7 +111,7 @@ void westermann_config_init(void)
     westermann_a000 = 1;
 }
 
-void westermann_config_setup(BYTE *rawcart)
+void westermann_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
     memcpy(romh_banks, &rawcart[0x2000], 0x2000);
@@ -128,7 +129,7 @@ static int westermann_common_attach(void)
     return 0;
 }
 
-int westermann_bin_attach(const char *filename, BYTE *rawcart)
+int westermann_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x4000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -136,7 +137,7 @@ int westermann_bin_attach(const char *filename, BYTE *rawcart)
     return westermann_common_attach();
 }
 
-int westermann_crt_attach(FILE *fd, BYTE *rawcart)
+int westermann_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
 
@@ -188,7 +189,7 @@ int westermann_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)westermann_a000) < 0
+        || SMW_B(m, (uint8_t)westermann_a000) < 0
         || SMW_BA(m, roml_banks, 0x2000) < 0
         || SMW_BA(m, romh_banks, 0x2000) < 0) {
         snapshot_module_close(m);
@@ -200,7 +201,7 @@ int westermann_snapshot_write_module(snapshot_t *s)
 
 int westermann_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -216,7 +217,7 @@ int westermann_snapshot_read_module(snapshot_t *s)
     }
 
     /* new in 0.1 */
-    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 1)) {
         if (SMR_B_INT(m, &westermann_a000) < 0) {
             goto fail;
         }

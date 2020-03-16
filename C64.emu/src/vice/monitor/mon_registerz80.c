@@ -152,7 +152,7 @@ static unsigned int mon_register_get_val(int mem, int reg_id)
     return 0;
 }
 
-static void mon_register_set_val(int mem, int reg_id, WORD val)
+static void mon_register_set_val(int mem, int reg_id, uint16_t val)
 {
     z80_regs_t *reg_ptr;
 
@@ -226,10 +226,10 @@ static void mon_register_set_val(int mem, int reg_id, WORD val)
             Z80_REGS_SET_PC(reg_ptr, val);
             break;
         case e_I:
-            Z80_REGS_SET_I(reg_ptr, (BYTE)val);
+            Z80_REGS_SET_I(reg_ptr, (uint8_t)val);
             break;
         case e_R:
-            Z80_REGS_SET_R(reg_ptr, (BYTE)val);
+            Z80_REGS_SET_R(reg_ptr, (uint8_t)val);
             break;
         case e_AF2:
             Z80_REGS_SET_AF2(reg_ptr, val);

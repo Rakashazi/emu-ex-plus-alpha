@@ -41,42 +41,42 @@
 #include "via4000.h"
 #include "pc8477.h"
 
-static BYTE drive_read_rom(drive_context_t *drv, WORD address)
+static uint8_t drive_read_rom(drive_context_t *drv, uint16_t address)
 {
     return drv->drive->rom[address & 0x7fff];
 }
 
-static BYTE drive_read_rom_ds1216(drive_context_t *drv, WORD address)
+static uint8_t drive_read_rom_ds1216(drive_context_t *drv, uint16_t address)
 {
     return ds1216e_read(drv->drive->ds1216, address, drv->drive->rom[address & 0x7fff]);
 }
 
-static BYTE drive_read_ram(drive_context_t *drv, WORD address)
+static uint8_t drive_read_ram(drive_context_t *drv, uint16_t address)
 {
     return drv->drive->drive_ram[address];
 }
 
-static void drive_store_ram(drive_context_t *drv, WORD address, BYTE value)
+static void drive_store_ram(drive_context_t *drv, uint16_t address, uint8_t value)
 {
     drv->drive->drive_ram[address] = value;
 }
 
-static BYTE drive_read_1541ram(drive_context_t *drv, WORD address)
+static uint8_t drive_read_1541ram(drive_context_t *drv, uint16_t address)
 {
     return drv->drive->drive_ram[address & 0x7ff];
 }
 
-static void drive_store_1541ram(drive_context_t *drv, WORD address, BYTE value)
+static void drive_store_1541ram(drive_context_t *drv, uint16_t address, uint8_t value)
 {
     drv->drive->drive_ram[address & 0x7ff] = value;
 }
 
-static BYTE drive_read_zero(drive_context_t *drv, WORD address)
+static uint8_t drive_read_zero(drive_context_t *drv, uint16_t address)
 {
     return drv->drive->drive_ram[address & 0xff];
 }
 
-static void drive_store_zero(drive_context_t *drv, WORD address, BYTE value)
+static void drive_store_zero(drive_context_t *drv, uint16_t address, uint8_t value)
 {
     drv->drive->drive_ram[address & 0xff] = value;
 }

@@ -25,7 +25,7 @@
 #define __WAVE_CC__
 #include "wave.h"
 
-namespace reSID
+namespace reSID_dtv
 {
 
 // ----------------------------------------------------------------------------
@@ -120,4 +120,4 @@ void WaveformGenerator::reset()
   msb_rising = false;
 }
 
-} // namespace reSID
+} // namespace reSID_dtv

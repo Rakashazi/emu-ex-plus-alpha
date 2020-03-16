@@ -30,7 +30,7 @@
 
 #include "vice.h"
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,20 +39,23 @@
 #include "clockport.h"
 #include "cs8900io.h"
 #include "lib.h"
-#include "translate.h"
 #include "uiapi.h"
+
+#include "clockport-rrnet.h"
 
 /* ------------------------------------------------------------------------- */
 /*    variables needed                                                       */
 
 /* Flag: Do we have the RRNET enabled?  */
 static int clockport_rrnet_enabled = 0;
+/* Flag: Type of device ?  */
+static int clockport_rrnet_deviceid = 0;
 
 static char *clockport_rrnet_owner = NULL;
 
 /* ------------------------------------------------------------------------- */
 
-static void clockport_rrnet_store(WORD address, BYTE val, void *context)
+static void clockport_rrnet_store(uint16_t address, uint8_t val, void *context)
 {
     if (address < 0x02) {
         return;
@@ -62,18 +65,33 @@ static void clockport_rrnet_store(WORD address, BYTE val, void *context)
     cs8900io_store(address, val);
 }
 
-static BYTE clockport_rrnet_read(WORD address, int *valid, void *context)
+static uint8_t clockport_rrnet_read(uint16_t address, int *valid, void *context)
 {
     if (address < 0x02) {
         return 0;
     }
-    address ^= 0x08;
 
+    /* on the MK3, the MAC and a checksum can be read from the last 4 bytes, see
+       http://wiki.icomp.de/wiki/RR-Net#Detecting_MK3 */
+    if (clockport_rrnet_deviceid == CLOCKPORT_DEVICE_RRNETMK3) {
+        if ((address >= 0x0c) && (address <= 0x0f)) {
+            unsigned char mk3mac[4];
+            /* use the recommended default for the time being */
+            mk3mac[0] = 0xfb;   /* MAC hi */
+            mk3mac[1] = 0xff;   /* MAC lo */
+            mk3mac[2] = mk3mac[0] ^ mk3mac[1] ^ 0x55; /* checksum 0 */
+            mk3mac[3] = (mk3mac[0] + mk3mac[1] + mk3mac[2]) ^ 0xaa; /* checksum 1 */
+            *valid = 1;
+            return (mk3mac[address - 0x0c]);
+        }
+    }
+
+    address ^= 0x08;
     *valid = 1;
     return cs8900io_read(address);
 }
 
-static BYTE clockport_rrnet_peek(WORD address, void *context)
+static uint8_t clockport_rrnet_peek(uint16_t address, void *context)
 {
     if (address < 0x02) {
         return 0;
@@ -116,14 +134,15 @@ void clockport_rrnet_shutdown(void)
 {
     if (clockport_rrnet_enabled) {
         cs8900io_disable();
+        clockport_rrnet_deviceid = 0;
     }
 }
 
-clockport_device_t *clockport_rrnet_open_device(char *owner)
+clockport_device_t *clockport_rrnet_open_device(const char *owner, int deviceid)
 {
     clockport_device_t *retval = NULL;
     if (clockport_rrnet_enabled) {
-        ui_error(translate_text(IDGS_CLOCKPORT_RRNET_IN_USE_BY_S), clockport_rrnet_owner);
+        ui_error("ClockPort RRNET already in use by %s.", clockport_rrnet_owner);
         return NULL;
     }
     if (cs8900io_enable(owner) < 0) {
@@ -141,8 +160,9 @@ clockport_device_t *clockport_rrnet_open_device(char *owner)
     retval->device_context = NULL;
 
     clockport_rrnet_enabled = 1;
+    clockport_rrnet_deviceid = deviceid;
 
     return retval;
 }
 
-#endif /* #ifdef HAVE_PCAP */
+#endif /* #ifdef HAVE_RAWNET */

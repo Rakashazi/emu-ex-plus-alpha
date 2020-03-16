@@ -32,15 +32,15 @@
 
 struct pport_s {
     /* Value written to processor port.  */
-    BYTE dir;
-    BYTE data;
+    uint8_t dir;
+    uint8_t data;
 
     /* Value read from processor port.  */
-    BYTE dir_read;
-    BYTE data_read;
+    uint8_t dir_read;
+    uint8_t data_read;
 
     /* State of processor port pins.  */
-    BYTE data_out;
+    uint8_t data_out;
 
     /* cycle that should invalidate the unused bits of the data port. */
     CLOCK data_set_clk_bit6;
@@ -49,18 +49,18 @@ struct pport_s {
     /* indicates if the unused bits of the data port are still
        valid or should be read as 0, 1 = unused bits valid,
        0 = unused bits should be 0 */
-    BYTE data_set_bit6;
-    BYTE data_set_bit7;
+    uint8_t data_set_bit6;
+    uint8_t data_set_bit7;
 
     /* indicated if the unused bits are in the process of falling off. */
-    BYTE data_falloff_bit6;
-    BYTE data_falloff_bit7;
+    uint8_t data_falloff_bit6;
+    uint8_t data_falloff_bit7;
 };
 typedef struct pport_s pport_t;
 
 extern pport_t pport;
 
-extern void c64pla_config_changed(int tape_sense, int write_in, int motor_in, int caps_sense, BYTE pullup);
+extern void c64pla_config_changed(int tape_sense, int write_in, int motor_in, int caps_sense, uint8_t pullup);
 extern void c64pla_pport_reset(void);
 
 #endif

@@ -27,6 +27,6 @@
 #ifndef VICE_C64DTVCPU_H
 #define VICE_C64DTVCPU_H
 
-extern BYTE dtv_registers[];
+extern uint8_t dtv_registers[];
 
 #endif

@@ -32,9 +32,9 @@
 extern void plus4tcbm1_reset(void);
 extern void plus4tcbm2_reset(void);
 
-extern BYTE plus4tcbm1_read(WORD addr);
-extern void plus4tcbm1_store(WORD addr, BYTE value);
-extern BYTE plus4tcbm2_read(WORD addr);
-extern void plus4tcbm2_store(WORD addr, BYTE value);
+extern uint8_t plus4tcbm1_read(uint16_t addr);
+extern void plus4tcbm1_store(uint16_t addr, uint8_t value);
+extern uint8_t plus4tcbm2_read(uint16_t addr);
+extern void plus4tcbm2_store(uint16_t addr, uint8_t value);
 
 #endif

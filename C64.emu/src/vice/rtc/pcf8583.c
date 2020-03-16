@@ -40,7 +40,7 @@
  * - 56 x 8 Battery-Backed General-Purpose RAM
  * - 24/12h mode with AM/PM indicator in 12h mode
  * - Clock Halt flag
- * - 240 × 8-bit RAM
+ * - 240 x 8-bit RAM
  * - Clock function with four year calendar
  * - Universal timer with alarm and overflow indication
  * - Programmable alarm, timer, and interrupt function
@@ -147,7 +147,7 @@ rtc_pcf8583_t *pcf8583_init(char *device, int read_bit_shift)
     retval->old_offset = retval->offset;
     memcpy(retval->old_clock_regs, retval->clock_regs, PCF8583_REG_SIZE);
 
-    retval->device = lib_stralloc(device);
+    retval->device = lib_strdup(device);
     retval->state = PCF8583_IDLE;
     retval->sclk_line = 1;
     retval->data_line = 1;
@@ -174,7 +174,7 @@ void pcf8583_destroy(rtc_pcf8583_t *context, int save)
 
 /* ---------------------------------------------------------------------------------------------------- */
 
-static BYTE register_train[9 * 20];
+static uint8_t register_train[9 * 20];
 
 static void make_read_register_train(rtc_pcf8583_t *context)
 {
@@ -208,7 +208,7 @@ static void pcf8584_next_train_bit(rtc_pcf8583_t *context)
 
 static void pcf8583_i2c_start(rtc_pcf8583_t *context)
 {
-    BYTE tmp;
+    uint8_t tmp;
     time_t latch = (context->clock_halt) ? context->clock_halt_latch : rtc_get_latch(context->offset);
     int i;
 
@@ -246,7 +246,7 @@ static void pcf8583_i2c_start(rtc_pcf8583_t *context)
     }
 }
 
-static BYTE pcf8583_read_register(rtc_pcf8583_t *context, BYTE addr)
+static uint8_t pcf8583_read_register(rtc_pcf8583_t *context, uint8_t addr)
 {
     if (addr < PCF8583_REG_SIZE) {
         return context->clock_regs_for_read[addr];
@@ -254,7 +254,7 @@ static BYTE pcf8583_read_register(rtc_pcf8583_t *context, BYTE addr)
     return context->ram[addr - PCF8583_REG_SIZE];
 }
 
-static void pcf8583_write_register(rtc_pcf8583_t *context, BYTE addr, BYTE val)
+static void pcf8583_write_register(rtc_pcf8583_t *context, uint8_t addr, uint8_t val)
 {
     switch (addr) {
         case PCF8583_REG_MINUTES:
@@ -401,9 +401,9 @@ static void pcf8583_validate_read_ack(rtc_pcf8583_t *context)
 
 /* ---------------------------------------------------------------------------------------------------- */
 
-void pcf8583_set_clk_line(rtc_pcf8583_t *context, BYTE data)
+void pcf8583_set_clk_line(rtc_pcf8583_t *context, uint8_t data)
 {
-    BYTE val = data ? 1 : 0;
+    uint8_t val = data ? 1 : 0;
 
     if (context->sclk_line == val) {
         return;
@@ -450,9 +450,9 @@ void pcf8583_set_clk_line(rtc_pcf8583_t *context, BYTE data)
     context->sclk_line = val;
 }
 
-void pcf8583_set_data_line(rtc_pcf8583_t *context, BYTE data)
+void pcf8583_set_data_line(rtc_pcf8583_t *context, uint8_t data)
 {
-    BYTE val = data ? 1 : 0;
+    uint8_t val = data ? 1 : 0;
 
     if (context->data_line == val) {
         return;
@@ -471,9 +471,10 @@ void pcf8583_set_data_line(rtc_pcf8583_t *context, BYTE data)
     context->data_line = val;
 }
 
-BYTE pcf8583_read_data_line(rtc_pcf8583_t *context)
+uint8_t pcf8583_read_data_line(rtc_pcf8583_t *context)
 {
-	switch (context->state) {
+
+switch (context->state) {
         case PCF8583_READ_REGS:
             return (context->reg & (1 << (7 - context->bit))) >> (7 - context->bit);
         case PCF8583_READ_REGS_TRAIN:
@@ -527,31 +528,31 @@ static char snap_module_name[] = "RTC_PCF8583";
 
 int pcf8583_write_snapshot(rtc_pcf8583_t *context, snapshot_t *s)
 {
-    DWORD clock_halt_latch_lo = 0;
-    DWORD clock_halt_latch_hi = 0;
-    DWORD latch_lo = 0;
-    DWORD latch_hi = 0;
-    DWORD offset_lo = 0;
-    DWORD offset_hi = 0;
-    DWORD old_offset_lo = 0;
-    DWORD old_offset_hi = 0;
+    uint32_t clock_halt_latch_lo = 0;
+    uint32_t clock_halt_latch_hi = 0;
+    uint32_t latch_lo = 0;
+    uint32_t latch_hi = 0;
+    uint32_t offset_lo = 0;
+    uint32_t offset_hi = 0;
+    uint32_t old_offset_lo = 0;
+    uint32_t old_offset_hi = 0;
     snapshot_module_t *m;
 
     /* time_t can be either 32bit or 64bit, so we save as 64bit */
 #if (SIZE_OF_TIME_T == 8)
-    clock_halt_latch_hi = (DWORD)(context->clock_halt_latch >> 32);
-    clock_halt_latch_lo = (DWORD)(context->clock_halt_latch & 0xffffffff);
-    latch_hi = (DWORD)(context->latch >> 32);
-    latch_lo = (DWORD)(context->latch & 0xffffffff);
-    offset_hi = (DWORD)(context->offset >> 32);
-    offset_lo = (DWORD)(context->offset & 0xffffffff);
-    old_offset_hi = (DWORD)(context->old_offset >> 32);
-    old_offset_lo = (DWORD)(context->old_offset & 0xffffffff);
+    clock_halt_latch_hi = (uint32_t)(context->clock_halt_latch >> 32);
+    clock_halt_latch_lo = (uint32_t)(context->clock_halt_latch & 0xffffffff);
+    latch_hi = (uint32_t)(context->latch >> 32);
+    latch_lo = (uint32_t)(context->latch & 0xffffffff);
+    offset_hi = (uint32_t)(context->offset >> 32);
+    offset_lo = (uint32_t)(context->offset & 0xffffffff);
+    old_offset_hi = (uint32_t)(context->old_offset >> 32);
+    old_offset_lo = (uint32_t)(context->old_offset & 0xffffffff);
 #else
-    clock_halt_latch_lo = (DWORD)context->clock_halt_latch;
-    latch_lo = (DWORD)context->latch;
-    offset_lo = (DWORD)context->offset;
-    old_offset_lo = (DWORD)context->old_offset;
+    clock_halt_latch_lo = (uint32_t)context->clock_halt_latch;
+    latch_lo = (uint32_t)context->latch;
+    offset_lo = (uint32_t)context->offset;
+    old_offset_lo = (uint32_t)context->old_offset;
 #endif
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
@@ -561,11 +562,11 @@ int pcf8583_write_snapshot(rtc_pcf8583_t *context, snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)context->clock_halt) < 0
+        || SMW_B(m, (uint8_t)context->clock_halt) < 0
         || SMW_DW(m, clock_halt_latch_hi) < 0
         || SMW_DW(m, clock_halt_latch_lo) < 0
-        || SMW_B(m, (BYTE)context->am_pm) < 0
-        || SMW_DW(m, (DWORD)context->read_bit_shift) < 0
+        || SMW_B(m, (uint8_t)context->am_pm) < 0
+        || SMW_DW(m, (uint32_t)context->read_bit_shift) < 0
         || SMW_DW(m, latch_hi) < 0
         || SMW_DW(m, latch_lo) < 0
         || SMW_DW(m, offset_hi) < 0
@@ -594,15 +595,15 @@ int pcf8583_write_snapshot(rtc_pcf8583_t *context, snapshot_t *s)
 
 int pcf8583_read_snapshot(rtc_pcf8583_t *context, snapshot_t *s)
 {
-    DWORD clock_halt_latch_lo = 0;
-    DWORD clock_halt_latch_hi = 0;
-    DWORD latch_lo = 0;
-    DWORD latch_hi = 0;
-    DWORD offset_lo = 0;
-    DWORD offset_hi = 0;
-    DWORD old_offset_lo = 0;
-    DWORD old_offset_hi = 0;
-    BYTE vmajor, vminor;
+    uint32_t clock_halt_latch_lo = 0;
+    uint32_t clock_halt_latch_hi = 0;
+    uint32_t latch_lo = 0;
+    uint32_t latch_hi = 0;
+    uint32_t offset_lo = 0;
+    uint32_t offset_hi = 0;
+    uint32_t old_offset_lo = 0;
+    uint32_t old_offset_hi = 0;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -612,7 +613,7 @@ int pcf8583_read_snapshot(rtc_pcf8583_t *context, snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

@@ -95,22 +95,22 @@
 #include "wave6581.h"
 #include "wave8580.h"
 
-static WORD wavetable00[2];
-static WORD wavetable10[4096];
-static WORD wavetable20[4096];
-static WORD wavetable30[4096];
-static WORD wavetable40[8192];
-static WORD wavetable50[8192];
-static WORD wavetable60[8192];
-static WORD wavetable70[8192];
+static uint16_t wavetable00[2];
+static uint16_t wavetable10[4096];
+static uint16_t wavetable20[4096];
+static uint16_t wavetable30[4096];
+static uint16_t wavetable40[8192];
+static uint16_t wavetable50[8192];
+static uint16_t wavetable60[8192];
+static uint16_t wavetable70[8192];
 
 #endif
 
 /* Noise tables */
 #define NOISETABLESIZE 256
-static BYTE noiseMSB[NOISETABLESIZE];
-static BYTE noiseMID[NOISETABLESIZE];
-static BYTE noiseLSB[NOISETABLESIZE];
+static uint8_t noiseMSB[NOISETABLESIZE];
+static uint8_t noiseMID[NOISETABLESIZE];
+static uint8_t noiseLSB[NOISETABLESIZE];
 
 /* needed data for one voice */
 typedef struct voice_s {
@@ -120,66 +120,66 @@ typedef struct voice_s {
     int nr;
 
     /* counter value */
-    DWORD f;
+    uint32_t f;
     /* counter step / sample */
-    DWORD fs;
+    uint32_t fs;
 #ifdef WAVETABLES
     /* do we have noise enabled? */
-    BYTE noise;
+    uint8_t noise;
 #else
     /* waveform that we use */
-    BYTE fm;
+    uint8_t fm;
     /* pulse threshold compared to the 32-bit counter */
-    DWORD pw;
+    uint32_t pw;
 #endif
 
     /* 31-bit adsr counter */
-    DWORD adsr;
+    uint32_t adsr;
     /* adsr counter step / sample */
-    SDWORD adsrs;
+    int32_t adsrs;
     /* adsr sustain level compared to the 31-bit counter */
-    DWORD adsrz;
+    uint32_t adsrz;
 
     /* does this voice use hard sync? */
-    BYTE sync;
+    uint8_t sync;
     /* does this voice use filter? */
-    BYTE filter;
+    uint8_t filter;
     /* does this structure need updating before next sample? */
-    BYTE update;
+    uint8_t update;
     /* did we do multiple gate flips after last calculated sample? */
-    BYTE gateflip;
+    uint8_t gateflip;
 
     /* ADSR mode */
-    BYTE adsrm;
+    uint8_t adsrm;
     /* 4-bit attack value */
-    BYTE attack;
+    uint8_t attack;
     /* 4-bit decay value */
-    BYTE decay;
+    uint8_t decay;
     /* 4-bit sustain value */
-    BYTE sustain;
+    uint8_t sustain;
     /* 4-bit release value */
-    BYTE release;
+    uint8_t release;
 
     /* pointer to registers of this voice */
-    BYTE *d;
+    uint8_t *d;
 
     /* noise shift register. Note! rv may be 0 to 15 shifts 'behind' the
        real noise shift register value. Remaining shifts are done when
        it is referenced */
-    DWORD rv;
+    uint32_t rv;
 #ifdef WAVETABLES
     /* pointer to wavetable data */
-    WORD *wt;
+    uint16_t *wt;
     /* 32-bit offset to add to the counter before referencing the wavetable.
        This is used on combined waveforms, when other waveforms are combined
        with pulse */
-    DWORD wtpf;
+    uint32_t wtpf;
     /* length of wavetable (actually number of shifts needed for 32-bit
        counter) */
-    DWORD wtl;
+    uint32_t wtl;
     /* kludge for ring modulation. Set wtr[1] = 0x7fff if ring modulation is
        used */
-    WORD wtr[2];
+    uint16_t wtr[2];
 #endif
 
     signed char filtIO;
@@ -194,29 +194,29 @@ struct sound_s {
     /* number of voices */
     voice_t v[3];
     /* SID registers */
-    BYTE d[32];
+    uint8_t d[32];
     /* is voice 3 enabled? */
-    BYTE has3;
+    uint8_t has3;
     /* 4-bit volume value */
-    BYTE vol;
+    uint8_t vol;
 
     /* ADSR counter step values for each adsr values */
-    SDWORD adrs[16];
+    int32_t adrs[16];
     /* sustain values compared to 31-bit ADSR counter */
-    DWORD sz[16];
+    uint32_t sz[16];
 
     /* internal constant used for sample rate dependent calculations */
-    DWORD speed1;
+    uint32_t speed1;
 
     /* does this structure need updating before next sample? */
-    BYTE update;
+    uint8_t update;
 #ifdef WAVETABLES
     /* do we have a new sid or an old one? */
-    BYTE newsid;
+    uint8_t newsid;
 #endif
     /* constants needed to implement write-only register reads */
-    BYTE laststore;
-    BYTE laststorebit;
+    uint8_t laststore;
+    uint8_t laststorebit;
     CLOCK laststoreclk;
     /* do we want to use filters? */
     int emulatefilter;
@@ -224,27 +224,27 @@ struct sound_s {
     /* filter variables */
     vreal_t filterDy;
     vreal_t filterResDy;
-    BYTE filterType;
-    BYTE filterCurType;
-    WORD filterValue;
+    uint8_t filterType;
+    uint8_t filterCurType;
+    uint16_t filterValue;
 };
 
 /* XXX: check these */
 /* table for internal ADSR counter step calculations */
-static WORD adrtable[16] =
+static uint16_t adrtable[16] =
 {
     1, 4, 8, 12, 19, 28, 34, 40, 50, 125, 250, 400, 500, 1500, 2500, 4000
 };
 
 /* XXX: check these */
 /* table for pseudo-exponential ADSR calculations */
-static DWORD exptable[6] =
+static uint32_t exptable[6] =
 {
     0x30000000, 0x1c000000, 0x0e000000, 0x08000000, 0x04000000, 0x00000000
 };
 
 /* clockcycles for each dropping bit when write-only register read is done */
-static DWORD sidreadclocks[9];
+static uint32_t sidreadclocks[9];
 
 static vreal_t lowPassParam[0x800];
 static vreal_t bandPassParam[0x800];
@@ -254,10 +254,10 @@ static signed char ampMod1x8[256];
 
 /* manage temporary buffers. if the requested size is smaller or equal to the
  * size of the already allocated buffer, reuse it.  */
-static SWORD *buf = NULL;
+static int16_t *buf = NULL;
 static int blen = 0;
 
-static SWORD *getbuf(int len)
+static int16_t *getbuf(int len)
 {
     if ((buf == NULL) || (blen < len)) {
         if (buf) {
@@ -331,17 +331,17 @@ inline static void dofilter(voice_t *pVoice)
 
 /* 15-bit oscillator value */
 #ifdef WAVETABLES
-inline static DWORD doosc(voice_t *pv)
+inline static uint32_t doosc(voice_t *pv)
 {
     if (pv->noise) {
-        return ((DWORD)NVALUE(NSHIFT(pv->rv, pv->f >> 28))) << 7;
+        return ((uint32_t)NVALUE(NSHIFT(pv->rv, pv->f >> 28))) << 7;
     }
     return pv->wt[(pv->f + pv->wtpf) >> pv->wtl] ^ pv->wtr[pv->vprev->f >> 31];
 }
 #else
-static DWORD doosc(voice_t *pv)
+static uint32_t doosc(voice_t *pv)
 {
-    DWORD f = pv->f;
+    uint32_t f = pv->f;
 
     switch (pv->fm) {
         case PULSESAWTOOTHWAVE:
@@ -366,7 +366,7 @@ static DWORD doosc(voice_t *pv)
             }
             return 0xffff - (f >> 16);
         case NOISEWAVE:
-            return ((DWORD)NVALUE(NSHIFT(pv->rv, pv->f >> 28))) << 7;
+            return ((uint32_t)NVALUE(NSHIFT(pv->rv, pv->f >> 28))) << 7;
         case PULSEWAVE:
             if (f >= pv->pw) {
                 return 0x7fff;
@@ -377,7 +377,7 @@ static DWORD doosc(voice_t *pv)
 #endif
 
 /* change ADSR state and all related variables */
-static void set_adsr(voice_t *pv, BYTE fm)
+static void set_adsr(voice_t *pv, uint8_t fm)
 {
     int i;
 
@@ -442,7 +442,7 @@ static void trigger_adsr(voice_t *pv)
     }
 }
 
-static void print_voice(char *buf, voice_t *pv)
+static void print_voice(char *b, voice_t *pv)
 {
     const char *m = "ADSRI";
 #ifdef WAVETABLES
@@ -450,21 +450,21 @@ static void print_voice(char *buf, voice_t *pv)
 #else
     const char *w = "TPSTN-R5";
 #endif
-    sprintf(buf,
+    sprintf(b,
             "#SID: V%d: e=%5.1f%%(%c) w=%6.1fHz(%c) f=%5.1f%% p=%5.1f%%\n",
             pv->nr,
-            (double)pv->adsr * 100.0 / (((DWORD)1 << 31) - 1), m[pv->adsrm],
+            (double)pv->adsr * 100.0 / (((uint32_t)1 << 31) - 1), m[pv->adsrm],
             (double)pv->fs / (pv->s->speed1 * 16),
 #ifdef WAVETABLES
             w[pv->d[4] >> 4],
 #else
             w[pv->fm],
 #endif
-            (double)pv->f * 100.0 / ((DWORD) -1),
+            (double)pv->f * 100.0 / ((uint32_t) -1),
 #ifdef WAVETABLES
             (double)(pv->d[2] + (pv->d[3] & 0x0f) * 0x100) / 40.95
 #else
-            (double)pv->pw * 100.0 / ((DWORD) -1)
+            (double)pv->pw * 100.0 / ((uint32_t) -1)
 #endif
             );
 }
@@ -472,16 +472,16 @@ static void print_voice(char *buf, voice_t *pv)
 static char *fastsid_dump_state(sound_t *psid)
 {
     int i;
-    char buf[1024];
+    char b[1024];
 
-    sprintf(buf, "#SID: clk=%ld v=%d s3=%d\n",
+    sprintf(b, "#SID: clk=%ld v=%d s3=%d\n",
             (long)maincpu_clk, psid->vol, psid->has3);
 
     for (i = 0; i < 3; i++) {
-        print_voice(buf + strlen(buf), &psid->v[i]);
+        print_voice(b + strlen(b), &psid->v[i]);
     }
 
-    return lib_stralloc(buf);
+    return lib_strdup(b);
 }
 
 /* update SID structure */
@@ -508,7 +508,7 @@ inline static void setup_sid(sound_t *psid)
             psid->v[2].filtLow = 0;
             psid->v[2].filtRef = 0;
         }
-        psid->filterValue = 0x7ff & ((psid->d[0x15] & 7) | ((WORD)psid->d[0x16]) << 3);
+        psid->filterValue = 0x7ff & ((psid->d[0x15] & 7) | ((uint16_t)psid->d[0x16]) << 3);
         if (psid->filterType == 0x20) {
             psid->filterDy = bandPassParam[psid->filterValue];
         } else {
@@ -655,7 +655,7 @@ inline static void setup_voice(voice_t *pv)
         case DECAY:
         case SUSTAIN:
             if (pv->d[4] & 0x01) {
-                set_adsr(pv, (BYTE)(pv->gateflip ? ATTACK : pv->adsrm));
+                set_adsr(pv, (uint8_t)(pv->gateflip ? ATTACK : pv->adsrm));
             } else {
                 set_adsr(pv, RELEASE);
             }
@@ -673,9 +673,9 @@ inline static void setup_voice(voice_t *pv)
     pv->gateflip = 0;
 }
 
-static SWORD fastsid_calculate_single_sample(sound_t *psid, int i)
+static int16_t fastsid_calculate_single_sample(sound_t *psid, int i)
 {
-    DWORD o0, o1, o2;
+    uint32_t o0, o1, o2;
     int dosync1, dosync2;
     voice_t *v0, *v1, *v2;
 
@@ -751,23 +751,23 @@ static SWORD fastsid_calculate_single_sample(sound_t *psid, int i)
     if (psid->emulatefilter) {
         v0->filtIO = ampMod1x8[(o0 >> 22)];
         dofilter(v0);
-        o0 = ((DWORD)(v0->filtIO) + 0x80) << (7 + 15);
+        o0 = ((uint32_t)(v0->filtIO) + 0x80) << (7 + 15);
         v1->filtIO = ampMod1x8[(o1 >> 22)];
         dofilter(v1);
-        o1 = ((DWORD)(v1->filtIO) + 0x80) << (7 + 15);
+        o1 = ((uint32_t)(v1->filtIO) + 0x80) << (7 + 15);
         v2->filtIO = ampMod1x8[(o2 >> 22)];
         dofilter(v2);
-        o2 = ((DWORD)(v2->filtIO) + 0x80) << (7 + 15);
+        o2 = ((uint32_t)(v2->filtIO) + 0x80) << (7 + 15);
     }
 
-    return (SWORD)(((SDWORD)((o0 + o1 + o2) >> 20) - 0x600) * psid->vol);
+    return (int16_t)(((int32_t)((o0 + o1 + o2) >> 20) - 0x600) * psid->vol);
 }
 
-static int fastsid_calculate_samples(sound_t *psid, SWORD *pbuf, int nr,
+static int fastsid_calculate_samples(sound_t *psid, int16_t *pbuf, int nr,
                                      int interleave, int *delta_t)
 {
     int i;
-    SWORD *tmp_buf;
+    int16_t *tmp_buf;
 
     if (psid->factor == 1000) {
         for (i = 0; i < nr; i++) {
@@ -785,7 +785,7 @@ static int fastsid_calculate_samples(sound_t *psid, SWORD *pbuf, int nr,
 
 static void init_filter(sound_t *psid, int freq)
 {
-    WORD uk;
+    uint16_t uk;
     vreal_t rk;
     long int si;
 
@@ -853,7 +853,7 @@ static void init_filter(sound_t *psid, int freq)
 }
 
 /* SID initialization routine */
-static sound_t *fastsid_open(BYTE *sidstate)
+static sound_t *fastsid_open(uint8_t *sidstate)
 {
     sound_t *psid;
 
@@ -866,7 +866,7 @@ static sound_t *fastsid_open(BYTE *sidstate)
 
 static int fastsid_init(sound_t *psid, int speed, int cycles_per_sec, int factor)
 {
-    DWORD i;
+    uint32_t i;
     int sid_model;
 
     psid->factor = factor;
@@ -917,8 +917,8 @@ static int fastsid_init(sound_t *psid, int speed, int cycles_per_sec, int factor
     }
 
     for (i = 0; i < 4096; i++) {
-        wavetable10[i] = (WORD)(i < 2048 ? i << 4 : 0xffff - (i << 4));
-        wavetable20[i] = (WORD)(i << 3);
+        wavetable10[i] = (uint16_t)(i < 2048 ? i << 4 : 0xffff - (i << 4));
+        wavetable20[i] = (uint16_t)(i << 3);
         wavetable30[i] = waveform30_8580[i] << 7;
         wavetable40[i + 4096] = 0x7fff;
         if (psid->newsid) {
@@ -933,11 +933,11 @@ static int fastsid_init(sound_t *psid, int speed, int cycles_per_sec, int factor
     }
 #endif
     for (i = 0; i < NOISETABLESIZE; i++) {
-        noiseLSB[i] = (BYTE)((((i >> (7 - 2)) & 0x04) | ((i >> (4 - 1)) & 0x02)
+        noiseLSB[i] = (uint8_t)((((i >> (7 - 2)) & 0x04) | ((i >> (4 - 1)) & 0x02)
                               | ((i >> (2 - 0)) & 0x01)));
-        noiseMID[i] = (BYTE)((((i >> (13 - 8 - 4)) & 0x10)
+        noiseMID[i] = (uint8_t)((((i >> (13 - 8 - 4)) & 0x10)
                               | ((i << (3 - (11 - 8))) & 0x08)));
-        noiseMSB[i] = (BYTE)((((i << (7 - (22 - 16))) & 0x80)
+        noiseMSB[i] = (uint8_t)((((i << (7 - (22 - 16))) & 0x80)
                               | ((i << (6 - (20 - 16))) & 0x40)
                               | ((i << (5 - (16 - 16))) & 0x20)));
     }
@@ -959,11 +959,11 @@ static void fastsid_close(sound_t *psid)
 }
 
 
-static BYTE fastsid_read(sound_t *psid, WORD addr)
+static uint8_t fastsid_read(sound_t *psid, uint16_t addr)
 {
-    BYTE ret;
-    WORD ffix;
-    register DWORD rvstore;
+    uint8_t ret;
+    uint16_t ffix;
+    register uint32_t rvstore;
     register CLOCK tmp;
 
     switch (addr) {
@@ -977,7 +977,7 @@ static BYTE fastsid_read(sound_t *psid, WORD addr)
             break;
         case 0x1b:
             /* osc3 / random */
-            ffix = (WORD)(sound_sample_position() * psid->v[2].fs);
+            ffix = (uint16_t)(sound_sample_position() * psid->v[2].fs);
             rvstore = psid->v[2].rv;
             if (
 #ifdef WAVETABLES
@@ -989,12 +989,12 @@ static BYTE fastsid_read(sound_t *psid, WORD addr)
                 psid->v[2].rv = NSHIFT(psid->v[2].rv, 16);
             }
             psid->v[2].f += ffix;
-            ret = (BYTE)(doosc(&psid->v[2]) >> 7);
+            ret = (uint8_t)(doosc(&psid->v[2]) >> 7);
             psid->v[2].f -= ffix;
             psid->v[2].rv = rvstore;
             break;
         case 0x1c:
-            ret = (BYTE)(psid->v[2].adsr >> 23);
+            ret = (uint8_t)(psid->v[2].adsr >> 23);
             break;
         default:
             while ((tmp = psid->laststorebit) &&
@@ -1008,13 +1008,14 @@ static BYTE fastsid_read(sound_t *psid, WORD addr)
     return ret;
 }
 
-static void fastsid_store(sound_t *psid, WORD addr, BYTE byte)
+static void fastsid_store(sound_t *psid, uint16_t addr, uint8_t byte)
 {
     switch (addr) {
         case 4:
             if ((psid->d[addr] ^ byte) & 1) {
                 psid->v[0].gateflip = 1;
             }
+            /* FALL THROUGH */
         case 0:
         case 1:
         case 2:
@@ -1027,6 +1028,7 @@ static void fastsid_store(sound_t *psid, WORD addr, BYTE byte)
             if ((psid->d[addr] ^ byte) & 1) {
                 psid->v[1].gateflip = 1;
             }
+            /* FALL THROUGH */
         case 7:
         case 8:
         case 9:
@@ -1039,6 +1041,7 @@ static void fastsid_store(sound_t *psid, WORD addr, BYTE byte)
             if ((psid->d[addr] ^ byte) & 1) {
                 psid->v[2].gateflip = 1;
             }
+            /* FALL THROUGH */
         case 14:
         case 15:
         case 16:
@@ -1059,7 +1062,7 @@ static void fastsid_store(sound_t *psid, WORD addr, BYTE byte)
 
 static void fastsid_reset(sound_t *psid, CLOCK cpu_clk)
 {
-    WORD addr;
+    uint16_t addr;
 
     for (addr = 0; addr < 32; addr++) {
         fastsid_store(psid, addr, 0);
@@ -1102,7 +1105,7 @@ void fastsid_state_read(struct sound_s *psid, struct sid_fastsid_snapshot_state_
 {
     int i;
 
-    sid_state->factor = (DWORD)psid->factor;
+    sid_state->factor = (uint32_t)psid->factor;
 
     for (i = 0; i < 32; ++i) {
         sid_state->d[i] = psid->d[i];
@@ -1121,8 +1124,8 @@ void fastsid_state_read(struct sound_s *psid, struct sid_fastsid_snapshot_state_
     sid_state->newsid = psid->newsid;
     sid_state->laststore = psid->laststore;
     sid_state->laststorebit = psid->laststorebit;
-    sid_state->laststoreclk = (DWORD)psid->laststoreclk;
-    sid_state->emulatefilter = (DWORD)psid->emulatefilter;
+    sid_state->laststoreclk = (uint32_t)psid->laststoreclk;
+    sid_state->emulatefilter = (uint32_t)psid->emulatefilter;
     sid_state->filterDy = (float)psid->filterDy;
     sid_state->filterResDy = (float)psid->filterResDy;
     sid_state->filterType = psid->filterType;
@@ -1130,7 +1133,7 @@ void fastsid_state_read(struct sound_s *psid, struct sid_fastsid_snapshot_state_
     sid_state->filterValue = psid->filterValue;
 
     for (i = 0; i < 3; ++i) {
-        sid_state->v_nr[i] = (DWORD)psid->v[i].nr;
+        sid_state->v_nr[i] = (uint32_t)psid->v[i].nr;
         sid_state->v_f[i] = psid->v[i].f;
         sid_state->v_fs[i] = psid->v[i].fs;
         sid_state->v_noise[i] = psid->v[i].noise;
@@ -1181,7 +1184,7 @@ void fastsid_state_read(struct sound_s *psid, struct sid_fastsid_snapshot_state_
         sid_state->v_wtl[i] = psid->v[i].wtl;
         sid_state->v_wtr[0][i] = psid->v[i].wtr[0];
         sid_state->v_wtr[1][i] = psid->v[i].wtr[1];
-        sid_state->v_filtIO[i] = (BYTE)psid->v[i].filtIO;
+        sid_state->v_filtIO[i] = (uint8_t)psid->v[i].filtIO;
         sid_state->v_filtLow[i] = (float)psid->v[i].filtLow;
         sid_state->v_filtRef[i] = (float)psid->v[i].filtRef;
     }

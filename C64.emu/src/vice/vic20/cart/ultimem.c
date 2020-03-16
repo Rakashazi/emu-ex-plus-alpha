@@ -48,7 +48,6 @@
 #include "monitor.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "types.h"
 #include "util.h"
 #include "ultimem.h"
@@ -62,7 +61,7 @@
  * Cartridge RAM (512KiB or 1 MiB)
  */
 static size_t cart_ram_size;
-static BYTE *cart_ram = NULL;
+static uint8_t *cart_ram = NULL;
 #define CART_RAM_SIZE_1M (1 << 20)
 #define CART_RAM_SIZE_512K (512 << 10)
 #define CART_RAM_SIZE_MAX CART_RAM_SIZE_1M
@@ -71,7 +70,7 @@ static BYTE *cart_ram = NULL;
  * Flash ROM
  */
 static size_t cart_rom_size;
-static BYTE *cart_rom = NULL;
+static uint8_t *cart_rom = NULL;
 #define CART_ROM_SIZE_8M (8 << 20)
 #define CART_ROM_SIZE_512K (512 << 10)
 #define CART_ROM_SIZE_MAX CART_ROM_SIZE_8M
@@ -84,9 +83,10 @@ static BYTE *cart_rom = NULL;
 #define CART_CFG_DISABLE (ultimem[0] & ultimem_reg0_regs_disable)
 
 /** Configuration registers, plus state for re-enabling the registers */
-static BYTE ultimem[17];
+static uint8_t ultimem[17];
+
 /** Used bits in ultimem[] */
-static const BYTE ultimem_mask[16] = {
+static const uint8_t ultimem_mask[16] = {
     ultimem_reg0_regs_disable | ultimem_reg0_led,
     0x3f, /* 00:IO3 config:IO2 config:RAM123 config */
     0xff, /* BLK5:BLK3:BLK2:BLK1 */
@@ -100,7 +100,7 @@ static const BYTE ultimem_mask[16] = {
 };
 
 /** Initial values for the registers at RESET */
-static const BYTE ultimem_reset[17] = {
+static const uint8_t ultimem_reset[17] = {
     6 /* two switches, never asserted in VICE */,
     0, 64,
     ultimem_reg3_8m,
@@ -144,42 +144,44 @@ static log_t um_log = LOG_ERR;
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
-static BYTE vic_um_io2_read(WORD addr);
-static BYTE vic_um_io2_peek(WORD addr);
-static void vic_um_io2_store(WORD addr, BYTE value);
-static BYTE vic_um_io3_read(WORD addr);
-static BYTE vic_um_io3_peek(WORD addr);
-static void vic_um_io3_store(WORD addr, BYTE value);
+static uint8_t vic_um_io2_read(uint16_t addr);
+static uint8_t vic_um_io2_peek(uint16_t addr);
+static void vic_um_io2_store(uint16_t addr, uint8_t value);
+static uint8_t vic_um_io3_read(uint16_t addr);
+static uint8_t vic_um_io3_peek(uint16_t addr);
+static void vic_um_io3_store(uint16_t addr, uint8_t value);
 static int vic_um_mon_dump(void);
 
 static io_source_t ultimem_io2 = {
-    CARTRIDGE_VIC20_NAME_UM,
-    IO_DETACH_CART,
-    "I/O2",
-    0x9800, 0x9bff, 0x3ff,
-    0,
-    vic_um_io2_store,
-    vic_um_io2_read,
-    vic_um_io2_peek,
-    NULL,
-    CARTRIDGE_VIC20_UM,
-    0,
-    0
+    CARTRIDGE_VIC20_NAME_UM, /* name of the device */
+    IO_DETACH_CART,          /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,   /* does not use a resource for detach */
+    0x9800, 0x9bff, 0x3ff,   /* range for the device, regs:$9800-$9bff */
+    0,                       /* read validity is determined by the device upon a read */
+    vic_um_io2_store,        /* store function */
+    NULL,                    /* NO poke function */
+    vic_um_io2_read,         /* read function */
+    vic_um_io2_peek,         /* peek function */
+    NULL,                    /* TODO: device state information dump function */
+    CARTRIDGE_VIC20_UM,      /* cartridge ID */
+    IO_PRIO_NORMAL,          /* normal priority, device read needs to be checked for collisions */
+    0                        /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t ultimem_io3 = {
-    CARTRIDGE_VIC20_NAME_UM,
-    IO_DETACH_CART,
-    "I/O3",
-    0x9c00, 0x9fff, 0x3ff,
-    0,
-    vic_um_io3_store,
-    vic_um_io3_read,
-    vic_um_io3_peek,
-    vic_um_mon_dump,
-    CARTRIDGE_VIC20_UM,
-    0,
-    0
+    CARTRIDGE_VIC20_NAME_UM, /* name of the device */
+    IO_DETACH_CART,          /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,   /* does not use a resource for detach */
+    0x9c00, 0x9fff, 0x3ff,   /* range for the device, regs:$9c00-$9fff */
+    0,                       /* read validity is determined by the device upon a read */
+    vic_um_io3_store,        /* store function */
+    NULL,                    /* NO poke function */
+    vic_um_io3_read,         /* read function */
+    vic_um_io3_peek,         /* peek function */
+    vic_um_mon_dump,         /* device state information dump function */
+    CARTRIDGE_VIC20_UM,      /* cartridge ID */
+    IO_PRIO_NORMAL,          /* normal priority, device read needs to be checked for collisions */
+    0                        /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *io2_list_item = NULL;
@@ -189,357 +191,372 @@ static const export_resource_t export_res = {
     CARTRIDGE_VIC20_NAME_UM, 0, 0, &ultimem_io2, &ultimem_io2, CARTRIDGE_VIC20_UM
 };
 
+/* ------------------------------------------------------------------------- */
+
+static int vic_um_mon_dump(void)
+{
+    mon_out("registers %sabled\n", CART_CFG_DISABLE ? "dis" : "en");
+    return 0;
+}
 
 /* ------------------------------------------------------------------------- */
 
 /* read 0x0400-0x0fff */
-BYTE vic_um_ram123_read(WORD addr)
+uint8_t vic_um_ram123_read(uint16_t addr)
 {
     switch (CART_CFG_RAM123) {
-    case BLK_STATE_DISABLED:
-        return vic20_v_bus_last_data;
-    case BLK_STATE_ROM:
-        return flash040core_read(&flash_state,
-                                 ((addr & 0x1fff) + CART_RAM123_ADDR) &
-                                 (cart_rom_size - 1));
-    case BLK_STATE_RAM_RO:
-    case BLK_STATE_RAM_RW:
-        return cart_ram[((addr & 0x1fff) + CART_RAM123_ADDR) &
-                        (cart_ram_size - 1)];
+        case BLK_STATE_DISABLED:
+            return vic20_v_bus_last_data;
+        case BLK_STATE_ROM:
+            return flash040core_read(&flash_state,
+                                    ((addr & 0x1fff) + CART_RAM123_ADDR) &
+                                    (cart_rom_size - 1));
+        case BLK_STATE_RAM_RO:
+        case BLK_STATE_RAM_RW:
+            return cart_ram[((addr & 0x1fff) + CART_RAM123_ADDR) &
+                            (cart_ram_size - 1)];
     }
     return 0;
 }
 
 /* store 0x0400-0x0fff */
-void vic_um_ram123_store(WORD addr, BYTE value)
+void vic_um_ram123_store(uint16_t addr, uint8_t value)
 {
     switch (CART_CFG_RAM123) {
-    case BLK_STATE_DISABLED:
-    case BLK_STATE_RAM_RO:
-        break;
-    case BLK_STATE_ROM:
-        flash040core_store(&flash_state,
-                           ((addr & 0x1fff) + CART_RAM123_ADDR) &
-                           (cart_rom_size - 1),
-                           value);
-        break;
-    case BLK_STATE_RAM_RW:
-        cart_ram[((addr & 0x1fff) + CART_RAM123_ADDR) & (cart_ram_size - 1)] =
-            value;
+        case BLK_STATE_DISABLED:
+        case BLK_STATE_RAM_RO:
+            break;
+        case BLK_STATE_ROM:
+            flash040core_store(&flash_state,
+                            ((addr & 0x1fff) + CART_RAM123_ADDR) &
+                            (cart_rom_size - 1),
+                            value);
+            break;
+        case BLK_STATE_RAM_RW:
+            cart_ram[((addr & 0x1fff) + CART_RAM123_ADDR) & (cart_ram_size - 1)] =
+                value;
     }
 }
 
 /* read 0x2000-0x3fff */
-BYTE vic_um_blk1_read(WORD addr)
+uint8_t vic_um_blk1_read(uint16_t addr)
 {
     switch (CART_CFG_BLK(1)) {
-    case BLK_STATE_DISABLED:
-        return vic20_v_bus_last_data;
-    case BLK_STATE_ROM:
-        return flash040core_read(&flash_state,
-                                 ((addr & 0x1fff) + CART_BLK_ADDR(1)) &
-                                 (cart_rom_size - 1));
-    case BLK_STATE_RAM_RO:
-    case BLK_STATE_RAM_RW:
-        return cart_ram[((addr & 0x1fff) + CART_BLK_ADDR(1)) &
-                        (cart_ram_size - 1)];
+        case BLK_STATE_DISABLED:
+            return vic20_v_bus_last_data;
+        case BLK_STATE_ROM:
+            return flash040core_read(&flash_state,
+                                    ((addr & 0x1fff) + CART_BLK_ADDR(1)) &
+                                    (cart_rom_size - 1));
+        case BLK_STATE_RAM_RO:
+        case BLK_STATE_RAM_RW:
+            return cart_ram[((addr & 0x1fff) + CART_BLK_ADDR(1)) &
+                            (cart_ram_size - 1)];
     }
     return 0;
 }
 
 /* store 0x2000-0x3fff */
-void vic_um_blk1_store(WORD addr, BYTE value)
+void vic_um_blk1_store(uint16_t addr, uint8_t value)
 {
     switch (CART_CFG_BLK(1)) {
-    case BLK_STATE_DISABLED:
-    case BLK_STATE_RAM_RO:
-        break;
-    case BLK_STATE_ROM:
-        flash040core_store(&flash_state,
-                           ((addr & 0x1fff) + CART_BLK_ADDR(1)) &
-                           (cart_rom_size - 1),
-                           value);
-        break;
-    case BLK_STATE_RAM_RW:
-        cart_ram[((addr & 0x1fff) + CART_BLK_ADDR(1)) & (cart_ram_size - 1)] =
-            value;
+        case BLK_STATE_DISABLED:
+        case BLK_STATE_RAM_RO:
+            break;
+        case BLK_STATE_ROM:
+            flash040core_store(&flash_state,
+                            ((addr & 0x1fff) + CART_BLK_ADDR(1)) &
+                            (cart_rom_size - 1),
+                            value);
+            break;
+        case BLK_STATE_RAM_RW:
+            cart_ram[((addr & 0x1fff) + CART_BLK_ADDR(1)) & (cart_ram_size - 1)] =
+                value;
     }
 }
 
 /* read 0x4000-0x7fff */
-BYTE vic_um_blk23_read(WORD addr)
+uint8_t vic_um_blk23_read(uint16_t addr)
 {
     unsigned b = addr & 0x2000 ? 3 : 2;
     switch (CART_CFG_BLK(b)) {
-    case BLK_STATE_DISABLED:
-        return vic20_v_bus_last_data;
-    case BLK_STATE_ROM:
-        return flash040core_read(&flash_state,
-                                 ((addr & 0x1fff) + CART_BLK_ADDR(b)) &
-                                 (cart_rom_size - 1));
-    case BLK_STATE_RAM_RO:
-    case BLK_STATE_RAM_RW:
-        return cart_ram[((addr & 0x1fff) + CART_BLK_ADDR(b)) &
-                        (cart_ram_size - 1)];
+        case BLK_STATE_DISABLED:
+            return vic20_v_bus_last_data;
+        case BLK_STATE_ROM:
+            return flash040core_read(&flash_state,
+                                    ((addr & 0x1fff) + CART_BLK_ADDR(b)) &
+                                    (cart_rom_size - 1));
+        case BLK_STATE_RAM_RO:
+        case BLK_STATE_RAM_RW:
+            return cart_ram[((addr & 0x1fff) + CART_BLK_ADDR(b)) &
+                            (cart_ram_size - 1)];
     }
     return 0;
 }
 
 /* store 0x4000-0x7fff */
-void vic_um_blk23_store(WORD addr, BYTE value)
+void vic_um_blk23_store(uint16_t addr, uint8_t value)
 {
     unsigned b = addr & 0x2000 ? 3 : 2;
     switch (CART_CFG_BLK(b)) {
-    case BLK_STATE_DISABLED:
-    case BLK_STATE_RAM_RO:
-        break;
-    case BLK_STATE_ROM:
-        flash040core_store(&flash_state,
-                           ((addr & 0x1fff) + CART_BLK_ADDR(b)) &
-                           (cart_rom_size - 1),
-                           value);
-        break;
-    case BLK_STATE_RAM_RW:
-        cart_ram[((addr & 0x1fff) + CART_BLK_ADDR(b)) & (cart_ram_size - 1)] =
-            value;
+        case BLK_STATE_DISABLED:
+        case BLK_STATE_RAM_RO:
+            break;
+        case BLK_STATE_ROM:
+            flash040core_store(&flash_state,
+                            ((addr & 0x1fff) + CART_BLK_ADDR(b)) &
+                            (cart_rom_size - 1),
+                            value);
+            break;
+        case BLK_STATE_RAM_RW:
+            cart_ram[((addr & 0x1fff) + CART_BLK_ADDR(b)) & (cart_ram_size - 1)] =
+                value;
     }
 }
 
 /* read 0xa000-0xbfff */
-BYTE vic_um_blk5_read(WORD addr)
+uint8_t vic_um_blk5_read(uint16_t addr)
 {
     switch (CART_CFG_BLK(4)) {
-    case BLK_STATE_DISABLED:
-        return vic20_v_bus_last_data;
-    case BLK_STATE_ROM:
-        return flash040core_read(&flash_state,
-                                 ((addr & 0x1fff) + CART_BLK_ADDR(4)) &
-                                 (cart_rom_size - 1));
-    case BLK_STATE_RAM_RO:
-    case BLK_STATE_RAM_RW:
-        return cart_ram[((addr & 0x1fff) + CART_BLK_ADDR(4)) &
-                        (cart_ram_size - 1)];
+        case BLK_STATE_DISABLED:
+            return vic20_v_bus_last_data;
+        case BLK_STATE_ROM:
+            return flash040core_read(&flash_state,
+                                    ((addr & 0x1fff) + CART_BLK_ADDR(4)) &
+                                    (cart_rom_size - 1));
+        case BLK_STATE_RAM_RO:
+        case BLK_STATE_RAM_RW:
+            return cart_ram[((addr & 0x1fff) + CART_BLK_ADDR(4)) &
+                            (cart_ram_size - 1)];
     }
     return 0;
 }
 
 /* store 0xa000-0xbfff */
-void vic_um_blk5_store(WORD addr, BYTE value)
+void vic_um_blk5_store(uint16_t addr, uint8_t value)
 {
     switch (CART_CFG_BLK(4)) {
-    case BLK_STATE_DISABLED:
-    case BLK_STATE_RAM_RO:
-        break;
-    case BLK_STATE_ROM:
-        flash040core_store(&flash_state,
-                           ((addr & 0x1fff) + CART_BLK_ADDR(4)) &
-                           (cart_rom_size - 1),
-                           value);
-        break;
-    case BLK_STATE_RAM_RW:
-        cart_ram[((addr & 0x1fff) + CART_BLK_ADDR(4)) & (cart_ram_size - 1)] =
-            value;
+        case BLK_STATE_DISABLED:
+        case BLK_STATE_RAM_RO:
+            break;
+        case BLK_STATE_ROM:
+            flash040core_store(&flash_state,
+                            ((addr & 0x1fff) + CART_BLK_ADDR(4)) &
+                            (cart_rom_size - 1),
+                            value);
+            break;
+        case BLK_STATE_RAM_RW:
+            cart_ram[((addr & 0x1fff) + CART_BLK_ADDR(4)) & (cart_ram_size - 1)] =
+                value;
     }
 }
 
 /* read 0x9800-0x9bff */
-static BYTE vic_um_io2_read(WORD addr)
+static uint8_t vic_um_io2_read(uint16_t addr)
 {
     ultimem_io2.io_source_valid = 0;
 
     switch (CART_CFG_IO(2)) {
-    case BLK_STATE_DISABLED:
-        break;
-    case BLK_STATE_ROM:
-        ultimem_io2.io_source_valid = 1;
-        return flash040core_read(&flash_state,
-                                 ((addr | 0x1800) + CART_IO_ADDR) &
-                                 (cart_rom_size - 1));
-    case BLK_STATE_RAM_RO:
-    case BLK_STATE_RAM_RW:
-        ultimem_io2.io_source_valid = 1;
-        return cart_ram[((addr | 0x1800) + CART_IO_ADDR) &
-                        (cart_ram_size - 1)];
+        case BLK_STATE_DISABLED:
+            break;
+        case BLK_STATE_ROM:
+            ultimem_io2.io_source_valid = 1;
+            return flash040core_read(&flash_state,
+                                    ((addr | 0x1800) + CART_IO_ADDR) &
+                                    (cart_rom_size - 1));
+        case BLK_STATE_RAM_RO:
+        case BLK_STATE_RAM_RW:
+            ultimem_io2.io_source_valid = 1;
+            return cart_ram[((addr | 0x1800) + CART_IO_ADDR) &
+                            (cart_ram_size - 1)];
     }
 
     return vic20_v_bus_last_data;
 }
 
 /* peek 0x9800-0x9bff */
-static BYTE vic_um_io2_peek(WORD addr)
+static uint8_t vic_um_io2_peek(uint16_t addr)
 {
     switch (CART_CFG_IO(2)) {
-    case BLK_STATE_DISABLED:
-        break;
-    case BLK_STATE_ROM:
-        return cart_rom[((addr | 0x1800) + CART_IO_ADDR) &
-                        (cart_rom_size - 1)];
-    case BLK_STATE_RAM_RO:
-    case BLK_STATE_RAM_RW:
-        return cart_ram[((addr | 0x1800) + CART_IO_ADDR) &
-                        (cart_ram_size - 1)];
+        case BLK_STATE_DISABLED:
+            break;
+        case BLK_STATE_ROM:
+            return cart_rom[((addr | 0x1800) + CART_IO_ADDR) &
+                            (cart_rom_size - 1)];
+        case BLK_STATE_RAM_RO:
+        case BLK_STATE_RAM_RW:
+            return cart_ram[((addr | 0x1800) + CART_IO_ADDR) &
+                            (cart_ram_size - 1)];
     }
 
     return vic20_v_bus_last_data;
 }
 
 /* store 0x9800-0x9bff */
-static void vic_um_io2_store(WORD addr, BYTE value)
+static void vic_um_io2_store(uint16_t addr, uint8_t value)
 {
     switch (CART_CFG_IO(2)) {
-    case BLK_STATE_DISABLED:
-    case BLK_STATE_RAM_RO:
-        break;
-    case BLK_STATE_ROM:
-        flash040core_store(&flash_state,
-                           ((addr | 0x1800) + CART_IO_ADDR) &
-                           (cart_rom_size - 1),
-                           value);
-        break;
-    case BLK_STATE_RAM_RW:
-        cart_ram[((addr | 0x1800) + CART_IO_ADDR) & (cart_ram_size - 1)] =
-            value;
+        case BLK_STATE_DISABLED:
+        case BLK_STATE_RAM_RO:
+            break;
+        case BLK_STATE_ROM:
+            flash040core_store(&flash_state,
+                            ((addr | 0x1800) + CART_IO_ADDR) &
+                            (cart_rom_size - 1),
+                            value);
+            break;
+        case BLK_STATE_RAM_RW:
+            cart_ram[((addr | 0x1800) + CART_IO_ADDR) & (cart_ram_size - 1)] =
+                value;
     }
 }
 
 /* read 0x9c00-0x9fff */
-static BYTE vic_um_io3_read(WORD addr)
+static uint8_t vic_um_io3_read(uint16_t addr)
 {
     ultimem_io3.io_source_valid = 0;
 
     if (CART_CFG_DISABLE) {
         /* Implement the state machine for re-enabling the register. */
         switch (addr) {
-        case 0x355: /* Access 0x9f55 */
-            /* Advance the state if this is the 1st access, else reset. */
-            ultimem[16] = ultimem[16] == 0 ? 1 : 0;
-            break;
-        case 0x3aa: /* Access 0x9faa */
-            /* Advance the state if this is the 2nd access, else reset. */
-            ultimem[16] = ultimem[16] == 1 ? 2 : 0;
-            break;
-        case 0x301: /* Access 0x9f01 */
-            /* Advance the state if this is the 3rd access, else reset. */
-            if (ultimem[16] == 2)
-                ultimem[0] &= ~ultimem_reg0_regs_disable;
-            ultimem[16] = 0;
-            break;
-        default:
-            if (addr < 0x300)
+            case 0x355: /* Access 0x9f55 */
+                /* Advance the state if this is the 1st access, else reset. */
+                ultimem[16] = ((ultimem[16] == 0) ? 1 : 0);
                 break;
-            /* Accessing 0x9f00..0x9fff resets the state machine. */
-            ultimem[16] = 0;
+            case 0x3aa: /* Access 0x9faa */
+                /* Advance the state if this is the 2nd access, else reset. */
+                ultimem[16] = ((ultimem[16] == 1) ? 2 : 0);
+                break;
+            case 0x301: /* Access 0x9f01 */
+                /* Advance the state if this is the 3rd access, else reset. */
+                if (ultimem[16] == 2) {
+                    ultimem[0] &= ~ultimem_reg0_regs_disable;
+                }
+                ultimem[16] = 0;
+                break;
+            default:
+                if (addr < 0x300) {
+                    break;
+                }
+                /* Accessing 0x9f00..0x9fff resets the state machine. */
+                ultimem[16] = 0;
         }
 
-        if (addr >= 0x3f0)
+        if (addr >= 0x3f0) {
             return vic20_v_bus_last_data;
+        }
     } else if (addr >= 0x3f0) {
         ultimem_io3.io_source_valid = 1;
         return ultimem[addr & 0xf];
     }
 
     switch (CART_CFG_IO(3)) {
-    case BLK_STATE_DISABLED:
-        break;
-    case BLK_STATE_ROM:
-        ultimem_io3.io_source_valid = 1;
-        return flash040core_read(&flash_state,
-                                 ((addr | 0x1c00) + CART_IO_ADDR) &
-                                 (cart_rom_size - 1));
-    case BLK_STATE_RAM_RO:
-    case BLK_STATE_RAM_RW:
-        ultimem_io3.io_source_valid = 1;
-        return cart_ram[((addr | 0x1c00) + CART_IO_ADDR) &
-                        (cart_ram_size - 1)];
+        case BLK_STATE_DISABLED:
+            break;
+        case BLK_STATE_ROM:
+            ultimem_io3.io_source_valid = 1;
+            return flash040core_read(&flash_state,
+                                    ((addr | 0x1c00) + CART_IO_ADDR) &
+                                    (cart_rom_size - 1));
+        case BLK_STATE_RAM_RO:
+        case BLK_STATE_RAM_RW:
+            ultimem_io3.io_source_valid = 1;
+            return cart_ram[((addr | 0x1c00) + CART_IO_ADDR) &
+                            (cart_ram_size - 1)];
     }
 
     return vic20_v_bus_last_data;
 }
 
 /* peek 0x9c00-0x9fff */
-static BYTE vic_um_io3_peek(WORD addr)
+static uint8_t vic_um_io3_peek(uint16_t addr)
 {
     if (addr >= 0x3f0) {
         return CART_CFG_DISABLE ? vic20_v_bus_last_data : ultimem[addr & 0xf];
     }
 
     switch (CART_CFG_IO(3)) {
-    case BLK_STATE_DISABLED:
-        break;
-    case BLK_STATE_ROM:
-        return cart_rom[((addr | 0x1c00) + CART_IO_ADDR) &
-                        (cart_rom_size - 1)];
-    case BLK_STATE_RAM_RO:
-    case BLK_STATE_RAM_RW:
-        return cart_ram[((addr | 0x1c00) + CART_IO_ADDR) &
-                        (cart_ram_size - 1)];
+        case BLK_STATE_DISABLED:
+            break;
+        case BLK_STATE_ROM:
+            return cart_rom[((addr | 0x1c00) + CART_IO_ADDR) &
+                            (cart_rom_size - 1)];
+        case BLK_STATE_RAM_RO:
+        case BLK_STATE_RAM_RW:
+            return cart_ram[((addr | 0x1c00) + CART_IO_ADDR) &
+                            (cart_ram_size - 1)];
     }
 
     return vic20_v_bus_last_data;
 }
 
 /* store 0x9c00-0x9fff */
-static void vic_um_io3_store(WORD addr, BYTE value)
+static void vic_um_io3_store(uint16_t addr, uint8_t value)
 {
     if (CART_CFG_DISABLE) {
         /* Implement the state machine for re-enabling the register. */
         switch (addr) {
-        case 0x355: /* Access 0x9f55 */
-            /* Advance the state if this is the 1st access, else reset. */
-            ultimem[16] = ultimem[16] == 0 ? 1 : 0;
-            break;
-        case 0x3aa: /* Access 0x9faa */
-            /* Advance the state if this is the 2nd access, else reset. */
-            ultimem[16] = ultimem[16] == 1 ? 2 : 0;
-            break;
-        case 0x301: /* Access 0x9f01 */
-            /* Advance the state if this is the 3rd access, else reset. */
-            if (ultimem[16] == 2)
-                ultimem[0] &= ~ultimem_reg0_regs_disable;
-            ultimem[16] = 0;
-            break;
-        default:
-            /* Accessing 0x9f00..0x9fff resets the state machine. */
-            if (addr >= 0x300)
+            case 0x355: /* Access 0x9f55 */
+                /* Advance the state if this is the 1st access, else reset. */
+                ultimem[16] = ((ultimem[16] == 0) ? 1 : 0);
+                break;
+            case 0x3aa: /* Access 0x9faa */
+                /* Advance the state if this is the 2nd access, else reset. */
+                ultimem[16] = ((ultimem[16] == 1) ? 2 : 0);
+                break;
+            case 0x301: /* Access 0x9f01 */
+                /* Advance the state if this is the 3rd access, else reset. */
+                if (ultimem[16] == 2) {
+                    ultimem[0] &= ~ultimem_reg0_regs_disable;
+                }
                 ultimem[16] = 0;
+                break;
+            default:
+                /* Accessing 0x9f00..0x9fff resets the state machine. */
+                if (addr >= 0x300) {
+                    ultimem[16] = 0;
+                }
         }
 
-        if (addr >= 0x3f0)
+        if (addr >= 0x3f0) {
             return;
+        }
     } else if (addr >= 0x3f0) {
         addr &= 0xf;
         value &= ultimem_mask[addr];
         switch (addr) {
-        case 0:
-            value |= ultimem_reset[0];
-            break;
-        case 3:
-            return; /* not writable */
-        case 7: case 9: case 11: case 13: case 15:
-            if (ultimem[3] == ultimem_reg3_512k)
-                value = 0;
-            break;
-        case 6: case 8: case 10: case 12: case 14:
-            if (ultimem[3] == ultimem_reg3_512k)
-                value &= (CART_ROM_SIZE_512K >> 13) - 1;
+            case 0:
+                value |= ultimem_reset[0];
+                break;
+            case 3:
+                return; /* not writable */
+            case 7: case 9: case 11: case 13: case 15:
+                if (ultimem[3] == ultimem_reg3_512k) {
+                    value = 0;
+                }
+                break;
+            case 6: case 8: case 10: case 12: case 14:
+                if (ultimem[3] == ultimem_reg3_512k) {
+                    value &= (CART_ROM_SIZE_512K >> 13) - 1;
+                }
         }
         ultimem[addr] = value;
         return;
     }
 
     switch (CART_CFG_IO(3)) {
-    case BLK_STATE_DISABLED:
-    case BLK_STATE_RAM_RO:
-        break;
-    case BLK_STATE_ROM:
-        flash040core_store(&flash_state,
-                           ((addr | 0x1c00) + CART_IO_ADDR) &
-                           (cart_rom_size - 1),
-                           value);
-        break;
-    case BLK_STATE_RAM_RW:
-        cart_ram[((addr | 0x1c00) + CART_IO_ADDR) & (cart_ram_size - 1)] =
-            value;
+        case BLK_STATE_DISABLED:
+        case BLK_STATE_RAM_RO:
+            break;
+        case BLK_STATE_ROM:
+            flash040core_store(&flash_state,
+                            ((addr | 0x1c00) + CART_IO_ADDR) &
+                            (cart_rom_size - 1),
+                            value);
+            break;
+        case BLK_STATE_RAM_RW:
+            cart_ram[((addr | 0x1c00) + CART_IO_ADDR) & (cart_ram_size - 1)] =
+                value;
     }
 }
 
@@ -557,16 +574,16 @@ void vic_um_reset(void)
     flash040core_reset(&flash_state);
     memcpy(ultimem, ultimem_reset, sizeof ultimem);
     switch (cart_rom_size) {
-    case CART_ROM_SIZE_8M:
-        ultimem[3] = ultimem_reg3_8m;
-        break;
-    case CART_ROM_SIZE_512K:
-        ultimem[3] = ultimem_reg3_512k;
-        break;
+        case CART_ROM_SIZE_8M:
+            ultimem[3] = ultimem_reg3_8m;
+            break;
+        case CART_ROM_SIZE_512K:
+            ultimem[3] = ultimem_reg3_512k;
+            break;
     }
 }
 
-void vic_um_config_setup(BYTE *rawcart)
+void vic_um_config_setup(uint8_t *rawcart)
 {
 }
 
@@ -583,16 +600,16 @@ int vic_um_bin_attach(const char *filename)
     cart_rom_size = util_file_length(fd);
 
     switch (cart_rom_size) {
-    case CART_ROM_SIZE_8M:
-        cart_ram_size = CART_RAM_SIZE_1M;
-        break;
-    case CART_ROM_SIZE_512K:
-        cart_ram_size = CART_RAM_SIZE_512K;
-        break;
-    default:
-        zfile_fclose(fd);
-        vic_um_detach();
-        return -1;
+        case CART_ROM_SIZE_8M:
+            cart_ram_size = CART_RAM_SIZE_1M;
+            break;
+        case CART_ROM_SIZE_512K:
+            cart_ram_size = CART_RAM_SIZE_512K;
+            break;
+        default:
+            zfile_fclose(fd);
+            vic_um_detach();
+            return -1;
     }
 
     if (!cart_ram) {
@@ -616,9 +633,7 @@ int vic_um_bin_attach(const char *filename)
     zfile_fclose(fd);
 
     flash040core_init(&flash_state, maincpu_alarm_context,
-                      cart_rom_size == CART_ROM_SIZE_512K
-                      ? FLASH040_TYPE_B
-                      : FLASH040_TYPE_064,
+                      (cart_rom_size == CART_ROM_SIZE_512K) ? FLASH040_TYPE_B : FLASH040_TYPE_064,
                       cart_rom);
 
     mem_cart_blocks = VIC_CART_RAM123 |
@@ -634,14 +649,13 @@ int vic_um_bin_attach(const char *filename)
 
 void vic_um_detach(void)
 {
+    int n = 0;
+    FILE *fd;
+
     /* try to write back cartridge contents if write back is enabled
        and cartridge wasn't from a snapshot */
     if (vic_um_writeback && !cartridge_is_from_snapshot) {
         if (flash_state.flash_dirty) {
-            int n;
-            FILE *fd;
-
-            n = 0;
             log_message(um_log, "Flash dirty, trying to write back...");
             fd = fopen(cartfile, "wb");
             if (fd) {
@@ -707,16 +721,12 @@ void vic_um_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-umwriteback", SET_RESOURCE, 0,
+    { "-umwriteback", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "UltiMemWriteBack", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_VIC_UM_ROM_WRITE,
-      NULL, NULL },
-    { "+umwriteback", SET_RESOURCE, 0,
+      NULL, "Enable UltiMem write back to ROM file" },
+    { "+umwriteback", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "UltiMemWriteBack", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_VIC_UM_ROM_WRITE,
-      NULL, NULL },
+      NULL, "Disable UltiMem write back to ROM file" },
     CMDLINE_LIST_END
 };
 
@@ -762,7 +772,7 @@ int vic_um_snapshot_write_module(snapshot_t *s)
 
 int vic_um_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
@@ -793,27 +803,26 @@ int vic_um_snapshot_read_module(snapshot_t *s)
     }
 
     switch (ultimem[3]) {
-    case ultimem_reg3_8m:
-        cart_rom_size = CART_ROM_SIZE_8M;
-        cart_ram_size = CART_RAM_SIZE_1M;
-        break;
-    case ultimem_reg3_512k:
-        cart_rom_size = CART_ROM_SIZE_512K;
-        cart_ram_size = CART_RAM_SIZE_512K;
-        break;
-    default:
-        goto snapshot_error;
+        case ultimem_reg3_8m:
+            cart_rom_size = CART_ROM_SIZE_8M;
+            cart_ram_size = CART_RAM_SIZE_1M;
+            break;
+        case ultimem_reg3_512k:
+            cart_rom_size = CART_ROM_SIZE_512K;
+            cart_ram_size = CART_RAM_SIZE_512K;
+            break;
+        default:
+            goto snapshot_error;
     }
 
     if (0
         || (SMR_BA(m, cart_ram, cart_ram_size) < 0)
-        || (SMR_BA(m, cart_rom, cart_rom_size) < 0))
+        || (SMR_BA(m, cart_rom, cart_rom_size) < 0)) {
         goto snapshot_error;
+    }
 
     flash040core_init(&flash_state, maincpu_alarm_context,
-                      cart_rom_size == CART_ROM_SIZE_512K
-                      ? FLASH040_TYPE_B
-                      : FLASH040_TYPE_064,
+                      (cart_rom_size == CART_ROM_SIZE_512K) ? FLASH040_TYPE_B : FLASH040_TYPE_064,
                       cart_rom);
 
     snapshot_module_close(m);
@@ -835,10 +844,3 @@ int vic_um_snapshot_read_module(snapshot_t *s)
     return 0;
 }
 
-/* ------------------------------------------------------------------------- */
-
-static int vic_um_mon_dump(void)
-{
-    mon_out("registers %sabled\n", CART_CFG_DISABLE ? "dis" : "en");
-    return 0;
-}

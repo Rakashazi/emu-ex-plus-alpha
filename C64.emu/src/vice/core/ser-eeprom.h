@@ -30,15 +30,15 @@
 #include "types.h"
 
 extern void eeprom_data_readadvance(void);
-extern BYTE eeprom_data_readbyte(void);
-extern BYTE eeprom_data_readbit(void);
-extern BYTE eeprom_data_read(void);
+extern uint8_t eeprom_data_readbyte(void);
+extern uint8_t eeprom_data_readbit(void);
+extern uint8_t eeprom_data_read(void);
 extern void eeprom_cmd_reset(void);
-extern void eeprom_cmd_write(BYTE value);
+extern void eeprom_cmd_write(uint8_t value);
 extern void eeprom_seq_reset(void);
-extern void eeprom_seq_write(BYTE value);
+extern void eeprom_seq_write(uint8_t value);
 extern int  eeprom_execute_command(int eeprom_mode);
-extern void eeprom_port_write(BYTE clk, BYTE data, int ddr, int status);
+extern void eeprom_port_write(uint8_t clk, uint8_t data, int ddr, int status);
 extern int  eeprom_open_image(char *name, int rw);
 extern void eeprom_close_image(int rw);
 

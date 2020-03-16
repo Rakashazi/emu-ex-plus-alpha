@@ -106,7 +106,7 @@ rtc_bq4830y_t *bq4830y_init(char *device)
     retval->old_offset = retval->offset;
     memcpy(retval->old_clock_regs, retval->clock_regs, BQ4830Y_REG_SIZE);
 
-    retval->device = lib_stralloc(device);
+    retval->device = lib_strdup(device);
 
     return retval;
 }
@@ -217,7 +217,7 @@ static void bq4830y_write_clock_data(rtc_bq4830y_t *context)
 
 /* ---------------------------------------------------------------------------------------------------- */
 
-void bq4830y_store(rtc_bq4830y_t *context, WORD address, BYTE val)
+void bq4830y_store(rtc_bq4830y_t *context, uint16_t address, uint8_t val)
 {
     int latch_state = context->read_latch | (context->write_latch << 1);
 
@@ -373,9 +373,9 @@ void bq4830y_store(rtc_bq4830y_t *context, WORD address, BYTE val)
     }
 }
 
-BYTE bq4830y_read(rtc_bq4830y_t *context, WORD address)
+uint8_t bq4830y_read(rtc_bq4830y_t *context, uint16_t address)
 {
-    BYTE retval;
+    uint8_t retval;
     int latch_state = context->read_latch | (context->write_latch << 1) | (context->clock_halt << 2);
     time_t latch;
 
@@ -459,31 +459,31 @@ static char snap_module_name[] = "RTC_BQ4830Y";
 
 int bq4830y_write_snapshot(rtc_bq4830y_t *context, snapshot_t *s)
 {
-    DWORD clock_halt_latch_hi = 0;
-    DWORD clock_halt_latch_lo = 0;
-    DWORD latch_lo = 0;
-    DWORD latch_hi = 0;
-    DWORD offset_lo = 0;
-    DWORD offset_hi = 0;
-    DWORD old_offset_lo = 0;
-    DWORD old_offset_hi = 0;
+    uint32_t clock_halt_latch_hi = 0;
+    uint32_t clock_halt_latch_lo = 0;
+    uint32_t latch_lo = 0;
+    uint32_t latch_hi = 0;
+    uint32_t offset_lo = 0;
+    uint32_t offset_hi = 0;
+    uint32_t old_offset_lo = 0;
+    uint32_t old_offset_hi = 0;
     snapshot_module_t *m;
 
     /* time_t can be either 32bit or 64bit, so we save as 64bit */
 #if (SIZE_OF_TIME_T == 8)
-    clock_halt_latch_hi = (DWORD)(context->clock_halt_latch >> 32);
-    clock_halt_latch_lo = (DWORD)(context->clock_halt_latch & 0xffffffff);
-    latch_hi = (DWORD)(context->latch >> 32);
-    latch_lo = (DWORD)(context->latch & 0xffffffff);
-    offset_hi = (DWORD)(context->offset >> 32);
-    offset_lo = (DWORD)(context->offset & 0xffffffff);
-    old_offset_hi = (DWORD)(context->old_offset >> 32);
-    old_offset_lo = (DWORD)(context->old_offset & 0xffffffff);
+    clock_halt_latch_hi = (uint32_t)(context->clock_halt_latch >> 32);
+    clock_halt_latch_lo = (uint32_t)(context->clock_halt_latch & 0xffffffff);
+    latch_hi = (uint32_t)(context->latch >> 32);
+    latch_lo = (uint32_t)(context->latch & 0xffffffff);
+    offset_hi = (uint32_t)(context->offset >> 32);
+    offset_lo = (uint32_t)(context->offset & 0xffffffff);
+    old_offset_hi = (uint32_t)(context->old_offset >> 32);
+    old_offset_lo = (uint32_t)(context->old_offset & 0xffffffff);
 #else
-    clock_halt_latch_lo = (DWORD)context->clock_halt_latch;
-    latch_lo = (DWORD)context->latch;
-    offset_lo = (DWORD)context->offset;
-    old_offset_lo = (DWORD)context->old_offset;
+    clock_halt_latch_lo = (uint32_t)context->clock_halt_latch;
+    latch_lo = (uint32_t)context->latch;
+    offset_lo = (uint32_t)context->offset;
+    old_offset_lo = (uint32_t)context->old_offset;
 #endif
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
@@ -493,11 +493,11 @@ int bq4830y_write_snapshot(rtc_bq4830y_t *context, snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)context->clock_halt) < 0
+        || SMW_B(m, (uint8_t)context->clock_halt) < 0
         || SMW_DW(m, clock_halt_latch_hi) < 0
         || SMW_DW(m, clock_halt_latch_lo) < 0
-        || SMW_B(m, (BYTE)context->read_latch) < 0
-        || SMW_B(m, (BYTE)context->write_latch) < 0
+        || SMW_B(m, (uint8_t)context->read_latch) < 0
+        || SMW_B(m, (uint8_t)context->write_latch) < 0
         || SMW_DW(m, latch_hi) < 0
         || SMW_DW(m, latch_lo) < 0
         || SMW_DW(m, offset_hi) < 0
@@ -518,15 +518,15 @@ int bq4830y_write_snapshot(rtc_bq4830y_t *context, snapshot_t *s)
 
 int bq4830y_read_snapshot(rtc_bq4830y_t *context, snapshot_t *s)
 {
-    DWORD clock_halt_latch_hi = 0;
-    DWORD clock_halt_latch_lo = 0;
-    DWORD latch_lo = 0;
-    DWORD latch_hi = 0;
-    DWORD offset_lo = 0;
-    DWORD offset_hi = 0;
-    DWORD old_offset_lo = 0;
-    DWORD old_offset_hi = 0;
-    BYTE vmajor, vminor;
+    uint32_t clock_halt_latch_hi = 0;
+    uint32_t clock_halt_latch_lo = 0;
+    uint32_t latch_lo = 0;
+    uint32_t latch_hi = 0;
+    uint32_t offset_lo = 0;
+    uint32_t offset_hi = 0;
+    uint32_t old_offset_lo = 0;
+    uint32_t old_offset_hi = 0;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -536,7 +536,7 @@ int bq4830y_read_snapshot(rtc_bq4830y_t *context, snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

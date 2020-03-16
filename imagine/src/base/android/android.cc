@@ -181,9 +181,13 @@ std::vector<FS::PathLocation> rootFileLocations()
 
 FS::PathString libPath(const char *)
 {
-	auto env = jEnvForThread();
-	JavaInstMethod<jobject()> libDir{env, jBaseActivityCls, "libDir", "()Ljava/lang/String;"};
-	return javaStringCopy<FS::PathString>(env, (jstring)libDir(env, jBaseActivity));
+	if(Base::androidSDK() < 24)
+	{
+		auto env = jEnvForThread();
+		JavaInstMethod<jobject()> libDir{env, jBaseActivityCls, "libDir", "()Ljava/lang/String;"};
+		return javaStringCopy<FS::PathString>(env, (jstring)libDir(env, jBaseActivity));
+	}
+	return {};
 }
 
 FS::PathString mainSOPath()

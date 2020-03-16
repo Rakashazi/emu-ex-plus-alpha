@@ -56,9 +56,9 @@ struct vdrive_s;
 struct bufferinfo_s;
 
 typedef struct vdrive_dir_context_s {
-    BYTE buffer[256];      /* Current directory sector. */
+    uint8_t buffer[256];      /* Current directory sector. */
     int find_length;       /* -1 allowed.  */
-    BYTE find_nslot[CBMDOS_SLOT_NAME_LENGTH];
+    uint8_t find_nslot[CBMDOS_SLOT_NAME_LENGTH];
     unsigned int find_type;
     unsigned int slot;
     unsigned int track;
@@ -70,8 +70,8 @@ extern void vdrive_dir_init(void);
 extern int vdrive_dir_first_directory(struct vdrive_s *vdrive, const char *name, int length, int filetype, struct bufferinfo_s *p);
 extern int vdrive_dir_next_directory(struct vdrive_s *vdrive, struct bufferinfo_s *b);
 extern void vdrive_dir_find_first_slot(struct vdrive_s *vdrive, const char *name, int length, unsigned int type, vdrive_dir_context_t *dir);
-extern BYTE *vdrive_dir_find_next_slot(vdrive_dir_context_t *dir);
-extern void vdrive_dir_no_a0_pads(BYTE *ptr, int l);
+extern uint8_t *vdrive_dir_find_next_slot(vdrive_dir_context_t *dir);
+extern void vdrive_dir_no_a0_pads(uint8_t *ptr, int l);
 extern int vdrive_dir_filetype(const char *name, int length);
 extern void vdrive_dir_remove_slot(vdrive_dir_context_t *dir);
 extern void vdrive_dir_create_slot(struct bufferinfo_s *p, char *realname, int reallength, int filetype);

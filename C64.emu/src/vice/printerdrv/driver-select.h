@@ -30,11 +30,11 @@
 #include "types.h"
 
 struct driver_select_s {
-    const char *drv_name;
+    char *drv_name;
     int (*drv_open)(unsigned int prnr, unsigned int secondary);
     void (*drv_close)(unsigned int prnr, unsigned int secondary);
-    int (*drv_putc)(unsigned int prnr, unsigned int secondary, BYTE b);
-    int (*drv_getc)(unsigned int prnr, unsigned int secondary, BYTE *b);
+    int (*drv_putc)(unsigned int prnr, unsigned int secondary, uint8_t b);
+    int (*drv_getc)(unsigned int prnr, unsigned int secondary, uint8_t *b);
     int (*drv_flush)(unsigned int prnr, unsigned int secondary);
     int (*drv_formfeed)(unsigned int prnr);
 };
@@ -56,9 +56,9 @@ extern void driver_select_register(driver_select_t *driver_select);
 extern int driver_select_open(unsigned int prnr, unsigned int secondary);
 extern void driver_select_close(unsigned int prnr, unsigned int secondary);
 extern int driver_select_putc(unsigned int prnr, unsigned int secondary,
-                              BYTE b);
+                              uint8_t b);
 extern int driver_select_getc(unsigned int prnr, unsigned int secondary,
-                              BYTE *b);
+                              uint8_t *b);
 extern int driver_select_flush(unsigned int prnr, unsigned int secondary);
 extern int driver_select_formfeed(unsigned int prnr);
 

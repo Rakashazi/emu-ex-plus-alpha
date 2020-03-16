@@ -42,10 +42,11 @@ extern void realimage_init(void);
 
 extern int realimage_open(struct disk_image_s *image);
 extern int realimage_close(struct disk_image_s *image);
-extern int realimage_read_sector(const struct disk_image_s *image, BYTE *buf,
+extern int realimage_read_sector(const struct disk_image_s *image, uint8_t *buf,
                                  const struct disk_addr_s *dadr);
-extern int realimage_write_sector(struct disk_image_s *image, const BYTE *buf,
+extern int realimage_write_sector(struct disk_image_s *image, const uint8_t *buf,
                                   const struct disk_addr_s *dadr);
 extern void realimage_media_create(struct disk_image_s *image);
 extern void realimage_media_destroy(struct disk_image_s *image);
+
 #endif

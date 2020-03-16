@@ -41,10 +41,27 @@
 #include "sid.h"
 #include "sid-cmdline-options.h"
 #include "sid-resources.h"
-#include "translate.h"
 #include "util.h"
 
-static char *sid_address_range = NULL;
+#ifdef HAVE_CATWEASELMKIII
+#include "catweaselmkiii.h"
+#endif
+
+#ifdef HAVE_HARDSID
+#include "hardsid.h"
+#endif
+
+#ifdef HAVE_PARSID
+#include "parsid.h"
+#endif
+
+#ifdef HAVE_SSI2001
+#include "ssi2001.h"
+#endif
+
+static char *sid2_address_range = NULL;
+static char *sid3_address_range = NULL;
+static char *sid4_address_range = NULL;
 
 struct engine_s {
     const char *name;
@@ -134,104 +151,106 @@ int sid_common_set_engine_model(const char *param, void *extra_param)
     return sid_set_engine_model(engine, model);
 }
 
-static const cmdline_option_t sidengine_cmdline_options[] = {
-    { "-sidenginemodel", CALL_FUNCTION, 1,
+static cmdline_option_t sidengine_cmdline_options[] =
+{
+    { "-sidenginemodel", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       sid_common_set_engine_model, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_ENGINE_MODEL, IDCLS_SPECIFY_SID_ENGINE_MODEL,
-      NULL, NULL },
+      "<engine and model>", NULL },
     CMDLINE_LIST_END
 };
 
 #ifdef HAVE_RESID
-static const cmdline_option_t siddtvengine_cmdline_options[] = {
-    { "-sidenginemodel", CALL_FUNCTION, 1,
+static cmdline_option_t siddtvengine_cmdline_options[] =
+{
+    { "-sidenginemodel", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       sid_common_set_engine_model, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_ENGINE_MODEL, IDCLS_SPECIFY_SIDDTV_ENGINE_MODEL,
-      NULL, NULL },
+      "<engine and model>", NULL },
     CMDLINE_LIST_END
 };
 
-static const cmdline_option_t resid_cmdline_options[] = {
-    { "-residsamp", SET_RESOURCE, 1,
+static const cmdline_option_t resid_cmdline_options[] =
+{
+    { "-residsamp", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SidResidSampling", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_METHOD, IDCLS_RESID_SAMPLING_METHOD,
-      NULL, NULL },
-    { "-residpass", SET_RESOURCE, 1,
+      "<method>", "reSID sampling method (0: fast, 1: interpolating, 2: resampling, 3: fast resampling)" },
+    { "-residpass", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SidResidPassband", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_PERCENT, IDCLS_PASSBAND_PERCENTAGE,
-      NULL, NULL },
-    { "-residgain", SET_RESOURCE, 1,
+      "<percent>", "reSID resampling passband in percentage of total bandwidth (0 - 90)" },
+    { "-residgain", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SidResidGain", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_PERCENT, IDCLS_RESID_GAIN_PERCENTAGE,
-      NULL, NULL },
-    { "-residfilterbias", SET_RESOURCE, 1,
+      "<percent>", "reSID gain in percent (90 - 100)" },
+    { "-residfilterbias", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SidResidFilterBias", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NUMBER, IDCLS_RESID_FILTER_BIAS,
-      NULL, NULL, },
+      "<number>", "reSID filter bias setting, which can be used to adjust DAC bias in millivolts.", },
+    { "-resid8580pass", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "SidResid8580Passband", NULL,
+      "<percent>", "reSID 8580 resampling passband in percentage of total bandwidth (0 - 90)" },
+    { "-resid8580gain", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "SidResid8580Gain", NULL,
+      "<percent>", "reSID 8580 gain in percent (90 - 100)" },
+    { "-resid8580filterbias", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "SidResid8580FilterBias", NULL,
+      "<number>", "reSID 8580 filter bias setting, which can be used to adjust DAC bias in millivolts.", },
     CMDLINE_LIST_END
 };
 #endif
 
 #ifdef HAVE_HARDSID
-static const cmdline_option_t hardsid_cmdline_options[] = {
-    { "-hardsidmain", SET_RESOURCE, 1,
+static const cmdline_option_t hardsid_cmdline_options[] =
+{
+    { "-hardsidmain", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SidHardSIDMain", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_DEVICE, IDCLS_HARDSID_MAIN,
-      NULL, NULL },
-    { "-hardsidright", SET_RESOURCE, 1,
+      "<device>", "Set the HardSID device for the main SID output" },
+    { "-hardsidright", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SidHardSIDRight", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_DEVICE, IDCLS_HARDSID_RIGHT,
-      NULL, NULL },
+      "<device>", "Set the HardSID device for the right SID output" },
     CMDLINE_LIST_END
 };
 #endif
 
-static cmdline_option_t stereo_cmdline_options[] = {
-    { "-sidstereo", SET_RESOURCE, 1,
+static cmdline_option_t stereo_cmdline_options[] =
+{
+    { "-sidstereo", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SidStereo", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_AMOUNT, IDCLS_AMOUNT_EXTRA_SIDS,
-      NULL, NULL },
-    { "-sidstereoaddress", SET_RESOURCE, 1,
+      "<amount>", "amount of extra SID chips. (0..3)" },
+    { "-sidstereoaddress", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SidStereoAddressStart", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_COMBO,
-      IDCLS_P_BASE_ADDRESS, IDCLS_SPECIFY_SID_2_ADDRESS,
-      NULL, NULL },
-    { "-sidtripleaddress", SET_RESOURCE, 1,
+      "<Base address>", NULL },
+    { "-sidtripleaddress", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SidTripleAddressStart", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_COMBO,
-      IDCLS_P_BASE_ADDRESS, IDCLS_SPECIFY_SID_3_ADDRESS,
-      NULL, NULL },
+      "<Base address>", NULL },
+    { "-sidquadaddress", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "SidQuadAddressStart", NULL,
+      "<Base address>", NULL },
     CMDLINE_LIST_END
 };
 
-static const cmdline_option_t common_cmdline_options[] = {
-    { "-sidfilters", SET_RESOURCE, 0,
+static const cmdline_option_t common_cmdline_options[] =
+{
+    { "-sidfilters", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SidFilters", (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_SID_FILTERS,
-      NULL, NULL },
-    { "+sidfilters", SET_RESOURCE, 0,
+      NULL, "Emulate SID filters" },
+    { "+sidfilters", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SidFilters", (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_SID_FILTERS,
-      NULL, NULL },
+      NULL, "Do not emulate SID filters" },
     CMDLINE_LIST_END
 };
 
-static char *generate_sid_address_range(void)
+static char *generate_sid_address_range(int nr)
 {
     char *temp1, *temp2, *temp3;
 
-    temp3 = lib_stralloc(". (");
+    switch (nr) {
+        case 2:
+            temp3 = lib_strdup("Specify base address for 2nd SID. (");
+            break;
+        case 3:
+            temp3 = lib_strdup("Specify base address for 3rd SID. (");
+            break;
+        default:
+            temp3 = lib_strdup("Specify base address for 4th SID. (");
+            break;
+    }
 
     temp1 = util_gen_hex_address_list(0xd420, 0xd500, 0x20);
     temp2 = util_concat(temp3, temp1, "/", NULL);
@@ -258,19 +277,102 @@ static char *generate_sid_address_range(void)
     return temp2;
 }
 
-int sid_cmdline_options_init(void)
+static char *sid_return = NULL;
+
+static char *build_sid_cmdline_option(int sid_type)
+{
+    char *old, *new;
+
+    if (sid_return) {
+        return sid_return;
+    }
+
+    /* start building up the command-line */
+    old = lib_strdup("Specify SID engine and model (");
+
+    /* add fast sid options */
+    new = util_concat(old, "0: FastSID 6581, 1: FastSID 8580", NULL);
+    lib_free(old);
+    old = new;
+
+
+#ifdef HAVE_RESID
+    /* add resid options if available */
+    if (sid_type != SIDTYPE_SIDCART) {
+        new = util_concat(old, ", 256: ReSID 6581, 257: ReSID 8580, 258: ReSID 8580 + digiboost", NULL);
+        lib_free(old);
+        old = new;
+    }
+
+    /* add residdtv options if available */
+    if (sid_type == SIDTYPE_SIDDTV) {
+        new = util_concat(old, ", 260: DTVSID", NULL);
+        lib_free(old);
+        old = new;
+    }
+#endif
+
+#ifdef HAVE_CATWEASELMKIII
+    /* add catweasel options if available */
+    if (catweaselmkiii_available()) {
+        new = util_concat(old, ", 512: Catweasel", NULL);
+        lib_free(old);
+        old = new;
+    }
+#endif
+
+#ifdef HAVE_HARDSID
+    /* add hardsid options if available */
+    if (hardsid_available()) {
+        new = util_concat(old, ", 768: HardSID", NULL);
+        lib_free(old);
+        old = new;
+    }
+#endif
+
+#ifdef HAVE_PARSID
+    /* add parsid options if available */
+    if (parsid_available()) {
+        new = util_concat(old, ", 1024: ParSID in par port 1, 1280: ParSID in par port 2, 1536: ParSID in par port 3", NULL);
+        lib_free(old);
+        old = new;
+    }
+#endif
+
+#ifdef HAVE_SSI2001
+    /* add ssi2001 options if available */
+    if (ssi2001_available()) {
+        new = util_concat(old, ", 1792: SSI2001", NULL);
+        lib_free(old);
+        old = new;
+    }
+#endif
+
+    /* add ending bracket */
+    new = util_concat(old, ")", NULL);
+    lib_free(old);
+
+    sid_return = new;
+
+    return sid_return;
+}
+
+int sid_cmdline_options_init(int sid_type)
 {
 #ifdef HAVE_RESID
-    if (machine_class == VICE_MACHINE_C64DTV) {
+    if (sid_type == SIDTYPE_SIDDTV) {
+        siddtvengine_cmdline_options[0].description = build_sid_cmdline_option(SIDTYPE_SIDDTV);
         if (cmdline_register_options(siddtvengine_cmdline_options) < 0) {
             return -1;
         }
     } else {
+        sidengine_cmdline_options[0].description = build_sid_cmdline_option(sid_type);
         if (cmdline_register_options(sidengine_cmdline_options) < 0) {
             return -1;
         }
     }
 #else
+    sidengine_cmdline_options[0].description = build_sid_cmdline_option(sid_type);
     if (cmdline_register_options(sidengine_cmdline_options) < 0) {
         return -1;
     }
@@ -297,9 +399,12 @@ int sid_cmdline_options_init(void)
         (machine_class != VICE_MACHINE_CBM5x0) &&
         (machine_class != VICE_MACHINE_CBM6x0)) {
 
-        sid_address_range = generate_sid_address_range();
-        stereo_cmdline_options[1].description = sid_address_range;
-        stereo_cmdline_options[2].description = sid_address_range;
+        sid2_address_range = generate_sid_address_range(2);
+        sid3_address_range = generate_sid_address_range(3);
+        sid4_address_range = generate_sid_address_range(4);
+        stereo_cmdline_options[1].description = sid2_address_range;
+        stereo_cmdline_options[2].description = sid3_address_range;
+        stereo_cmdline_options[3].description = sid4_address_range;
 
         if (cmdline_register_options(stereo_cmdline_options) < 0) {
             return -1;
@@ -310,7 +415,20 @@ int sid_cmdline_options_init(void)
 
 void sid_cmdline_options_shutdown(void)
 {
-    if (sid_address_range) {
-        lib_free(sid_address_range);
+    if (sid_return) {
+        lib_free(sid_return);
+        sid_return = NULL;
+    }
+    if (sid2_address_range) {
+        lib_free(sid2_address_range);
+        sid2_address_range = NULL;
+    }
+    if (sid3_address_range) {
+        lib_free(sid3_address_range);
+        sid3_address_range = NULL;
+    }
+    if (sid4_address_range) {
+        lib_free(sid4_address_range);
+        sid4_address_range = NULL;
     }
 }

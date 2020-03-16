@@ -35,10 +35,10 @@ typedef struct rtc_ds1307_s rtc_ds1307_t;
 extern rtc_ds1307_t *ds1307_init(char *device);
 extern void ds1307_destroy(rtc_ds1307_t *context, int save);
 
-extern void ds1307_set_clk_line(rtc_ds1307_t *context, BYTE data);
-extern void ds1307_set_data_line(rtc_ds1307_t *context, BYTE data);
+extern void ds1307_set_clk_line(rtc_ds1307_t *context, uint8_t data);
+extern void ds1307_set_data_line(rtc_ds1307_t *context, uint8_t data);
 
-extern BYTE ds1307_read_data_line(rtc_ds1307_t *context);
+extern uint8_t ds1307_read_data_line(rtc_ds1307_t *context);
 
 extern int ds1307_write_snapshot(rtc_ds1307_t *context, snapshot_t *s);
 extern int ds1307_read_snapshot(rtc_ds1307_t *context, snapshot_t *s);

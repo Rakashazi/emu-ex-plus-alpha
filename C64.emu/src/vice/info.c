@@ -1031,7 +1031,8 @@ const char *info_license_text40[] = {
     "for this.  Our decision will be guided\n",
     "by the two goals of preserving the free\n",
     "status of all derivatives of our free\n",
-    "software and of promoting\n",
+    "software and of promoting the sharing\n",
+    "and reuse of software generally.\n",
     NULL
 };
 #else
@@ -1461,7 +1462,8 @@ const char info_license_text40[] =
     "for this.  Our decision will be guided\n"
     "by the two goals of preserving the free\n"
     "status of all derivatives of our free\n"
-    "software and of promoting\n";
+    "software and of promoting the sharing\n"
+    "and reuse of software generally.\n";
 #endif
 #endif
 

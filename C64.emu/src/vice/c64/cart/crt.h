@@ -31,26 +31,30 @@
 #include "types.h"
 
 typedef struct crt_header_s {
-    WORD version;             /* version */
-    WORD type;                /* type of cartridge */
+    uint16_t version;         /* version */
+    uint16_t type;            /* type of cartridge */
+    uint8_t subtype;          /* subtype/hardware revision of cartridge */
     int exrom;                /* exrom line status */
     int game;                 /* game line status */
     char name[32 + 1];        /* name of cartridge */
 } crt_header_t;
 
 typedef struct crt_chip_header_s {
-    DWORD skip;               /* bytes to skip after ROM */
-    WORD type;                /* chip type */
-    WORD bank;                /* bank number */
-    WORD start;               /* start address of ROM */
-    WORD size;                /* size of ROM in bytes */
+    uint32_t skip;               /* bytes to skip after ROM */
+    uint16_t type;                /* chip type */
+    uint16_t bank;                /* bank number */
+    uint16_t start;               /* start address of ROM */
+    uint16_t size;                /* size of ROM in bytes */
 } crt_chip_header_t;
 
-extern int crt_attach(const char *filename, BYTE *rawcart);
+FILE *crt_open(const char *filename, crt_header_t *header);
+extern int crt_attach(const char *filename, uint8_t *rawcart);
 extern int crt_getid(const char *filename);
 extern int crt_read_chip_header(crt_chip_header_t *header, FILE *fd);
-extern int crt_read_chip(BYTE *rawcart, int offset, crt_chip_header_t *chip, FILE *fd);
+extern int crt_read_chip(uint8_t *rawcart, int offset, crt_chip_header_t *chip, FILE *fd);
 extern FILE *crt_create(const char *filename, int type, int exrom, int game, const char *name);
-extern int crt_write_chip(BYTE *data, crt_chip_header_t *header, FILE *fd);
+extern int crt_write_chip(uint8_t *data, crt_chip_header_t *header, FILE *fd);
+/* create v1.1 header with sub type */
+extern FILE *crt_create_v11(const char *filename, int type, int subtype, int exrom, int game, const char *name);
 
 #endif

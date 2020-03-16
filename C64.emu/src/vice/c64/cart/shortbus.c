@@ -34,9 +34,12 @@
 
 #include "shortbus_digimax.h"
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
 #include "shortbus_etfe.h"
 #endif
+
+#include "shortbus.h"
+
 
 /* TODO */
 #if 0
@@ -50,7 +53,7 @@ int shortbus_resources_init(void)
         return -1;
     }
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     if (shortbus_etfe_resources_init() < 0) {
         return -1;
     }
@@ -74,7 +77,7 @@ void shortbus_resources_shutdown(void)
 {
     shortbus_digimax_resources_shutdown();
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     shortbus_etfe_resources_shutdown();
 #endif
 
@@ -92,7 +95,7 @@ int shortbus_cmdline_options_init(void)
         return -1;
     }
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     if (shortbus_etfe_cmdline_options_init() < 0) {
         return -1;
     }
@@ -116,7 +119,7 @@ extern void shortbus_unregister(void)
 {
     shortbus_digimax_unregister();
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     shortbus_etfe_unregister();
 #endif
 
@@ -132,7 +135,7 @@ extern void shortbus_register(void)
 {
     shortbus_digimax_register();
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     shortbus_etfe_register();
 #endif
 
@@ -147,7 +150,7 @@ void shortbus_reset(void)
 {
     shortbus_digimax_reset();
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     shortbus_etfe_reset();
 #endif
 
@@ -186,7 +189,7 @@ int shortbus_write_snapshot_module(snapshot_t *s)
         devices[0] = 1;
     }
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     if (shortbus_etfe_enabled()) {
         ++active_devices;
         devices[2] = 1;
@@ -212,11 +215,11 @@ int shortbus_write_snapshot_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)active_devices) < 0
-        || SMW_B(m, (BYTE)devices[0]) < 0
-        || SMW_B(m, (BYTE)devices[1]) < 0
-        || SMW_B(m, (BYTE)devices[2]) < 0
-        || SMW_B(m, (BYTE)devices[3]) < 0) {
+        || SMW_B(m, (uint8_t)active_devices) < 0
+        || SMW_B(m, (uint8_t)devices[0]) < 0
+        || SMW_B(m, (uint8_t)devices[1]) < 0
+        || SMW_B(m, (uint8_t)devices[2]) < 0
+        || SMW_B(m, (uint8_t)devices[3]) < 0) {
         snapshot_module_close(m);
         return -1;
     }
@@ -229,7 +232,7 @@ int shortbus_write_snapshot_module(snapshot_t *s)
             }
         }
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         if (devices[2]) {
             if (shortbus_etfe_write_snapshot_module(s) < 0) {
                 return -1;
@@ -257,7 +260,7 @@ int shortbus_write_snapshot_module(snapshot_t *s)
 
 int shortbus_read_snapshot_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
     int active_devices;
     int devices[4];
@@ -269,7 +272,7 @@ int shortbus_read_snapshot_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -292,7 +295,7 @@ int shortbus_read_snapshot_module(snapshot_t *s)
             }        
         }
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         if (devices[2]) {
             if (shortbus_etfe_read_snapshot_module(s) < 0) {
                 return -1;

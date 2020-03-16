@@ -35,7 +35,6 @@
 #include "alarm.h"
 #include "maincpu.h"
 #include "mousedrv.h"
-#include "translate.h"
 
 static void mouse_button_left(int pressed);
 static void mouse_button_right(int pressed);
@@ -76,14 +75,14 @@ static log_t ps2mouse_log = LOG_ERR;
 #define PS2_MDATA_LB 0x01
 
 /* PS/2 mouse variables */
-static BYTE ps2mouse_value;
-static BYTE ps2mouse_in;
-static BYTE ps2mouse_out;
-static BYTE ps2mouse_prev;
-static BYTE ps2mouse_parity;
-static SWORD ps2mouse_lastx;
-static SWORD ps2mouse_lasty;
-static BYTE ps2mouse_buttons;
+static uint8_t ps2mouse_value;
+static uint8_t ps2mouse_in;
+static uint8_t ps2mouse_out;
+static uint8_t ps2mouse_prev;
+static uint8_t ps2mouse_parity;
+static int16_t ps2mouse_lastx;
+static int16_t ps2mouse_lasty;
+static uint8_t ps2mouse_buttons;
 
 /* PS/2 transmission state */
 enum {
@@ -115,13 +114,13 @@ enum {
 
 /* Output buffer */
 #define PS2_QUEUE_SIZE 8
-BYTE ps2mouse_queue[PS2_QUEUE_SIZE];
-BYTE ps2mouse_queue_head;
-BYTE ps2mouse_queue_tail;
+uint8_t ps2mouse_queue[PS2_QUEUE_SIZE];
+uint8_t ps2mouse_queue_head;
+uint8_t ps2mouse_queue_tail;
 
-int ps2mouse_queue_put(BYTE value)
+static int ps2mouse_queue_put(uint8_t value)
 {
-    BYTE new_head = (ps2mouse_queue_head + 1) & (PS2_QUEUE_SIZE - 1);
+    uint8_t new_head = (ps2mouse_queue_head + 1) & (PS2_QUEUE_SIZE - 1);
     if (new_head == ps2mouse_queue_tail) {
 #ifdef PS2MOUSE_DEBUG_ENABLED
         PS2MOUSE_DEBUG("queue full!");
@@ -133,14 +132,14 @@ int ps2mouse_queue_put(BYTE value)
     return 1;
 }
 
-int ps2mouse_queue_empty(void)
+static int ps2mouse_queue_empty(void)
 {
     return (ps2mouse_queue_head == ps2mouse_queue_tail);
 }
 
-BYTE ps2mouse_queue_get(void)
+static uint8_t ps2mouse_queue_get(void)
 {
-    BYTE retval = ps2mouse_queue[ps2mouse_queue_tail];
+    uint8_t retval = ps2mouse_queue[ps2mouse_queue_tail];
     ++ps2mouse_queue_tail;
     ps2mouse_queue_tail &= (PS2_QUEUE_SIZE - 1);
     return retval;
@@ -149,10 +148,10 @@ BYTE ps2mouse_queue_get(void)
 /* ------------------------------------------------------------------------- */
 
 
-int ps2mouse_handle_command(BYTE value)
+static int ps2mouse_handle_command(uint8_t value)
 {
-    SWORD diff_x, diff_y, new_x, new_y;
-    BYTE new_buttons;
+    int16_t diff_x, diff_y, new_x, new_y;
+    uint8_t new_buttons;
 #ifdef PS2MOUSE_DEBUG_ENABLED
     PS2MOUSE_DEBUG("cmd: got %02x", value);
 #endif
@@ -182,8 +181,8 @@ int ps2mouse_handle_command(BYTE value)
         case PS2_CMD_READ_DATA:
             new_buttons = ps2mouse_buttons;
 #ifdef HAVE_MOUSE
-            new_x = (SWORD)mousedrv_get_x();
-            new_y = (SWORD)mousedrv_get_y();
+            new_x = (int16_t)mousedrv_get_x();
+            new_y = (int16_t)mousedrv_get_y();
             diff_x = (new_x - ps2mouse_lastx);
             if (diff_x < 0) {
                 new_buttons |= PS2_MDATA_XS;
@@ -193,7 +192,7 @@ int ps2mouse_handle_command(BYTE value)
             }
             ps2mouse_lastx = new_x;
 
-            diff_y = (SWORD)(new_y - ps2mouse_lasty);
+            diff_y = (int16_t)(new_y - ps2mouse_lasty);
             if (diff_y < 0) {
                 new_buttons |= PS2_MDATA_YS;
             }
@@ -210,8 +209,8 @@ int ps2mouse_handle_command(BYTE value)
 #endif
             return (ps2mouse_queue_put(PS2_REPLY_OK)
                     && ps2mouse_queue_put(new_buttons)
-                    && ps2mouse_queue_put((BYTE)diff_x)
-                    && ps2mouse_queue_put((BYTE)diff_y));
+                    && ps2mouse_queue_put((uint8_t)diff_x)
+                    && ps2mouse_queue_put((uint8_t)diff_y));
             break;
 
         default:
@@ -227,7 +226,7 @@ int ps2mouse_handle_command(BYTE value)
 
 struct alarm_s *c64dtv_ps2mouse_alarm;
 
-void c64dtv_ps2mouse_alarm_handler(CLOCK offset, void *data)
+static void c64dtv_ps2mouse_alarm_handler(CLOCK offset, void *data)
 {
     int another_alarm = 1;
 
@@ -406,7 +405,7 @@ void c64dtv_ps2mouse_alarm_handler(CLOCK offset, void *data)
 }
 
 
-void ps2mouse_store(BYTE value)
+void ps2mouse_store(uint8_t value)
 {
     ps2mouse_in = value;
     if (((ps2mouse_prev & PS2_CLK_BIT) == 0) && (value & PS2_CLK_BIT)
@@ -419,7 +418,7 @@ void ps2mouse_store(BYTE value)
     return;
 }
 
-BYTE ps2mouse_read()
+uint8_t ps2mouse_read()
 {
     return ps2mouse_out;
 }
@@ -427,7 +426,7 @@ BYTE ps2mouse_read()
 /* ------------------------------------------------------------------------- */
 
 
-void c64dtv_ps2mouse_alarm_init(void)
+static void c64dtv_ps2mouse_alarm_init(void)
 {
     c64dtv_ps2mouse_alarm = alarm_new(maincpu_alarm_context, "PS2MOUSEAlarm",
                                       c64dtv_ps2mouse_alarm_handler, NULL);
@@ -477,16 +476,12 @@ static const resource_int_t resources_int[] = {
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-ps2mouse", SET_RESOURCE, 0,
+    { "-ps2mouse", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "PS2Mouse", (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_PS2MOUSE,
-      NULL, NULL },
-    { "+ps2mouse", SET_RESOURCE, 0,
+      NULL, "Enable PS/2 mouse on userport" },
+    { "+ps2mouse", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "PS2Mouse", (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_PS2MOUSE,
-      NULL, NULL },
+      NULL, "Disable PS/2 mouse on userport" },
     CMDLINE_LIST_END
 };
 

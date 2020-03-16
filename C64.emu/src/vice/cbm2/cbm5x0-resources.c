@@ -62,7 +62,7 @@ int cia1_model = CIA_MODEL_6526;
 
 static int set_cbm2_model_line(int val, void *param)
 {
-    static const BYTE model_port_mask[] = { 0xc0, 0x40, 0x00 };
+    static const uint8_t model_port_mask[] = { 0xc0, 0x40, 0x00 };
 
     switch (val) {
         case LINE_6x0_60HZ:

@@ -41,20 +41,11 @@
 */
 
 static inline
-void yuv_to_rgb(SDWORD y, SDWORD u, SDWORD v, SWORD *red, SWORD *grn, SWORD *blu)
+void yuv_to_rgb(int32_t y, int32_t u, int32_t v, int16_t *red, int16_t *grn, int16_t *blu)
 {
-#ifdef _MSC_VER
-# pragma warning( push )
-# pragma warning( disable: 4244 )
-#endif
-
     *red = (y + v) >> 16;
     *blu = (y + u) >> 16;
     *grn = (y - ((50 * u + 130 * v) >> 8)) >> 16;
-
-#ifdef _MSC_VER
-# pragma warning( pop )
-#endif
 }
 
 /* Often required function that stores gamma-corrected pixel to current line,
@@ -64,22 +55,22 @@ void yuv_to_rgb(SDWORD y, SDWORD u, SDWORD v, SWORD *red, SWORD *grn, SWORD *blu
 
 static inline
 void store_line_and_scanline_2(
-    BYTE *const line, BYTE *const scanline,
-    SWORD *const prevline, const int shade, /* ignored by RGB modes */
-    const SDWORD y, const SDWORD u, const SDWORD v, const SDWORD y2, const SDWORD u2, const SDWORD v2)
+    uint8_t *const line, uint8_t *const scanline,
+    int16_t *const prevline, const int shade, /* ignored by RGB modes */
+    const int32_t y, const int32_t u, const int32_t v, const int32_t y2, const int32_t u2, const int32_t v2)
 {
-    SWORD red, grn, blu;
-    WORD *tmp1, *tmp2;
+    int16_t red, grn, blu;
+    uint16_t *tmp1, *tmp2;
     yuv_to_rgb(y, u, v, &red, &grn, &blu);
 
-    tmp1 = (WORD *) scanline;
-    tmp2 = (WORD *) line;
+    tmp1 = (uint16_t *) scanline;
+    tmp2 = (uint16_t *) line;
 
-    *tmp1++ = (WORD) (gamma_red_fac[512 + red + prevline[0]]
+    *tmp1++ = (uint16_t) (gamma_red_fac[512 + red + prevline[0]]
                       | gamma_grn_fac[512 + grn + prevline[1]]
                       | gamma_blu_fac[512 + blu + prevline[2]]);
 
-    *tmp2++ = (WORD) (gamma_red[256 + red] | gamma_grn[256 + grn] | gamma_blu[256 + blu]);
+    *tmp2++ = (uint16_t) (gamma_red[256 + red] | gamma_grn[256 + grn] | gamma_blu[256 + blu]);
 
     prevline[0] = red;
     prevline[1] = grn;
@@ -87,11 +78,11 @@ void store_line_and_scanline_2(
 
     yuv_to_rgb(y2, u2, v2, &red, &grn, &blu);
 
-    *tmp1 = (WORD) (gamma_red_fac[512 + red + prevline[3]]
+    *tmp1 = (uint16_t) (gamma_red_fac[512 + red + prevline[3]]
                     | gamma_grn_fac[512 + grn + prevline[4]]
                     | gamma_blu_fac[512 + blu + prevline[5]]);
 
-    *tmp2 = (WORD) (gamma_red[256 + red] | gamma_grn[256 + grn] | gamma_blu[256 + blu]);
+    *tmp2 = (uint16_t) (gamma_red[256 + red] | gamma_grn[256 + grn] | gamma_blu[256 + blu]);
 
     prevline[3] = red;
     prevline[4] = grn;
@@ -100,29 +91,29 @@ void store_line_and_scanline_2(
 
 static inline
 void store_line_and_scanline_3(
-    BYTE *const line, BYTE *const scanline,
-    SWORD *const prevline, const int shade, /* ignored by RGB modes */
-    const SDWORD y, const SDWORD u, const SDWORD v, const SDWORD y2, const SDWORD u2, const SDWORD v2)
+    uint8_t *const line, uint8_t *const scanline,
+    int16_t *const prevline, const int shade, /* ignored by RGB modes */
+    const int32_t y, const int32_t u, const int32_t v, const int32_t y2, const int32_t u2, const int32_t v2)
 {
-    DWORD tmp1, tmp2;
-    SWORD red, grn, blu;
+    uint32_t tmp1, tmp2;
+    int16_t red, grn, blu;
     yuv_to_rgb(y, u, v, &red, &grn, &blu);
 
     tmp1 = gamma_red_fac[512 + red + prevline[0]]
            | gamma_grn_fac[512 + grn + prevline[1]]
            | gamma_blu_fac[512 + blu + prevline[2]];
     tmp2 = gamma_red[256 + red] | gamma_grn[256 + grn] | gamma_blu[256 + blu];
-    scanline[0] = (BYTE) tmp1;
+    scanline[0] = (uint8_t) tmp1;
     tmp1 >>= 8;
-    scanline[1] = (BYTE) tmp1;
+    scanline[1] = (uint8_t) tmp1;
     tmp1 >>= 8;
-    scanline[2] = (BYTE) tmp1;
+    scanline[2] = (uint8_t) tmp1;
 
-    line[0] = (BYTE) tmp2;
+    line[0] = (uint8_t) tmp2;
     tmp2 >>= 8;
-    line[1] = (BYTE) tmp2;
+    line[1] = (uint8_t) tmp2;
     tmp2 >>= 8;
-    line[2] = (BYTE) tmp2;
+    line[2] = (uint8_t) tmp2;
 
     prevline[0] = red;
     prevline[1] = grn;
@@ -134,17 +125,17 @@ void store_line_and_scanline_3(
            | gamma_grn_fac[512 + grn + prevline[1]]
            | gamma_blu_fac[512 + blu + prevline[2]];
     tmp2 = gamma_red[256 + red] | gamma_grn[256 + grn] | gamma_blu[256 + blu];
-    scanline[3] = (BYTE) tmp1;
+    scanline[3] = (uint8_t) tmp1;
     tmp1 >>= 8;
-    scanline[4] = (BYTE) tmp1;
+    scanline[4] = (uint8_t) tmp1;
     tmp1 >>= 8;
-    scanline[5] = (BYTE) tmp1;
+    scanline[5] = (uint8_t) tmp1;
 
-    line[3] = (BYTE) tmp2;
+    line[3] = (uint8_t) tmp2;
     tmp2 >>= 8;
-    line[4] = (BYTE) tmp2;
+    line[4] = (uint8_t) tmp2;
     tmp2 >>= 8;
-    line[5] = (BYTE) tmp2;
+    line[5] = (uint8_t) tmp2;
 
     prevline[3] = red;
     prevline[4] = grn;
@@ -153,16 +144,16 @@ void store_line_and_scanline_3(
 
 static inline
 void store_line_and_scanline_4(
-    BYTE *const line, BYTE *const scanline,
-    SWORD *const prevline, const int shade, /* ignored by RGB modes */
-    const SDWORD y, const SDWORD u, const SDWORD v, const SDWORD y2, const SDWORD u2, const SDWORD v2)
+    uint8_t *const line, uint8_t *const scanline,
+    int16_t *const prevline, const int shade, /* ignored by RGB modes */
+    const int32_t y, const int32_t u, const int32_t v, const int32_t y2, const int32_t u2, const int32_t v2)
 {
-    SWORD red, grn, blu;
-    DWORD *tmp1, *tmp2;
+    int16_t red, grn, blu;
+    uint32_t *tmp1, *tmp2;
     yuv_to_rgb(y, u, v, &red, &grn, &blu);
 
-    tmp1 = (DWORD *) scanline;
-    tmp2 = (DWORD *) line;
+    tmp1 = (uint32_t *) scanline;
+    tmp2 = (uint32_t *) line;
     *tmp1++ = gamma_red_fac[512 + red + prevline[0]]
               | gamma_grn_fac[512 + grn + prevline[1]]
               | gamma_blu_fac[512 + blu + prevline[2]]
@@ -190,23 +181,19 @@ void store_line_and_scanline_4(
 
 static inline
 void store_line_and_scanline_UYVY(
-    BYTE *const line, BYTE *const scanline,
-    SWORD *const prevline, const int shade,
-    SDWORD y1_, SDWORD u1, SDWORD v1, SDWORD y2_, SDWORD u2, SDWORD v2)
+    uint8_t *const line, uint8_t *const scanline,
+    int16_t *const prevline, const int shade,
+    int32_t y1_, int32_t u1, int32_t v1, int32_t y2_, int32_t u2, int32_t v2)
 {
-#ifdef _MSC_VER
-# pragma warning( push )
-# pragma warning( disable: 4244 )
-#endif
-    BYTE y1 = (BYTE)((y1_ >> 16) & 0xFFu);
-    BYTE y2 = (BYTE)((y2_ >> 16) & 0xFFu);
+    uint8_t y1 = (uint8_t)((y1_ >> 16) & 0xFFu);
+    uint8_t y2 = (uint8_t)((y2_ >> 16) & 0xFFu);
 
     u1 = (u1 + u2) >> 17;
     v1 = (v1 + v2) >> 17;
 
-    line[0] = (BYTE)(u1 + 128);
+    line[0] = (uint8_t)(u1 + 128);
     line[1] = y1;
-    line[2] = (BYTE)(v1 + 128);
+    line[2] = (uint8_t)(v1 + 128);
     line[3] = y2;
 
     y1 = (y1 * shade) >> 8;
@@ -227,24 +214,16 @@ void store_line_and_scanline_UYVY(
     prevline[4] = u1;
     prevline[5] = v1;
 */
-#ifdef _MSC_VER
-# pragma warning( pop )
-#endif
 }
 
 static inline
 void store_line_and_scanline_YUY2(
-    BYTE *const line, BYTE *const scanline,
-    SWORD *const prevline, const int shade,
-    SDWORD y1_, SDWORD u1, SDWORD v1, SDWORD y2_, SDWORD u2, SDWORD v2)
+    uint8_t *const line, uint8_t *const scanline,
+    int16_t *const prevline, const int shade,
+    int32_t y1_, int32_t u1, int32_t v1, int32_t y2_, int32_t u2, int32_t v2)
 {
-#ifdef _MSC_VER
-# pragma warning( push )
-# pragma warning( disable: 4244 )
-#endif
-
-    BYTE y1 = (BYTE)((y1_ >> 16) & 0xFFu);
-    BYTE y2 = (BYTE)((y2_ >> 16) & 0xFFu);
+    uint8_t y1 = (uint8_t)((y1_ >> 16) & 0xFFu);
+    uint8_t y2 = (uint8_t)((y2_ >> 16) & 0xFFu);
 
     u1 = (u1 + u2) >> 17;
     v1 = (v1 + v2) >> 17;
@@ -273,24 +252,16 @@ void store_line_and_scanline_YUY2(
     prevline[5] = v1;
 */
 
-#ifdef _MSC_VER
-# pragma warning( pop )
-#endif
 }
 
 static inline
 void store_line_and_scanline_YVYU(
-    BYTE *const line, BYTE *const scanline,
-    SWORD *const prevline, const int shade,
-    SDWORD y1_, SDWORD u1, SDWORD v1, SDWORD y2_, SDWORD u2, SDWORD v2)
+    uint8_t *const line, uint8_t *const scanline,
+    int16_t *const prevline, const int shade,
+    int32_t y1_, int32_t u1, int32_t v1, int32_t y2_, int32_t u2, int32_t v2)
 {
-#ifdef _MSC_VER
-# pragma warning( push )
-# pragma warning( disable: 4244 )
-#endif
-
-    BYTE y1 = (BYTE)((y1_ >> 16) & 0xFFu);
-    BYTE y2 = (BYTE)((y2_ >> 16) & 0xFFu);
+    uint8_t y1 = (uint8_t)((y1_ >> 16) & 0xFFu);
+    uint8_t y2 = (uint8_t)((y2_ >> 16) & 0xFFu);
 
     u1 = (u1 + u2) >> 17;
     v1 = (v1 + v2) >> 17;
@@ -319,17 +290,14 @@ void store_line_and_scanline_YVYU(
     prevline[5] = v1;
 */
 
-#ifdef _MSC_VER
-# pragma warning( pop )
-#endif
 }
 
 
 static inline
 void get_yuv_from_video(
-    const SDWORD unew, const SDWORD vnew,
+    const int32_t unew, const int32_t vnew,
     const int off_flip,
-    SDWORD *const u, SDWORD *const v)
+    int32_t *const u, int32_t *const v)
 {
     *u = (unew) * off_flip;
     *v = (vnew) * off_flip;
@@ -337,29 +305,29 @@ void get_yuv_from_video(
 
 static inline
 void render_generic_1x2_crt(video_render_color_tables_t *color_tab,
-                            const BYTE *src, BYTE *trg,
+                            const uint8_t *src, uint8_t *trg,
                             unsigned int width, const unsigned int height,
                             unsigned int xs, const unsigned int ys,
                             unsigned int xt, const unsigned int yt,
                             const unsigned int pitchs, const unsigned int pitcht,
                             viewport_t *viewport, unsigned int pixelstride,
                             void (*store_func)(
-                                BYTE *const line, BYTE *const scanline,
-                                SWORD *const prevline, const int shade,
-                                SDWORD l1, SDWORD u1, SDWORD v1, SDWORD l2, SDWORD u2, SDWORD v2),
+                                uint8_t *const line, uint8_t *const scanline,
+                                int16_t *const prevline, const int shade,
+                                int32_t l1, int32_t u1, int32_t v1, int32_t l2, int32_t u2, int32_t v2),
                             const int write_interpolated_pixels, video_render_config_t *config)
 {
-    SWORD *prevrgblineptr;
-    const SDWORD *ytablel = color_tab->ytablel;
-    const SDWORD *ytableh = color_tab->ytableh;
-    const BYTE *tmpsrc;
-    BYTE *tmptrg, *tmptrgscanline;
-    SDWORD *cbtable, *crtable;
-    DWORD x, y, wfirst, wlast, yys;
-    SDWORD l, u, unew, v, vnew, off_flip, shade;
-    SDWORD l2 = 0;
-    SDWORD u2 = 0;
-    SDWORD v2 = 0;
+    int16_t *prevrgblineptr;
+    const int32_t *ytablel = color_tab->ytablel;
+    const int32_t *ytableh = color_tab->ytableh;
+    const uint8_t *tmpsrc;
+    uint8_t *tmptrg, *tmptrgscanline;
+    int32_t *cbtable, *crtable;
+    uint32_t x, y, wfirst, wlast, yys;
+    int32_t l, u, unew, v, vnew, off_flip, shade;
+    int32_t l2 = 0;
+    int32_t u2 = 0;
+    int32_t v2 = 0;
     int first_line = viewport->first_line * 2;
     int last_line = (viewport->last_line * 2) + 1;
 
@@ -501,7 +469,7 @@ void render_generic_1x2_crt(video_render_color_tables_t *color_tab,
 }
 
 void render_UYVY_1x2_crt(video_render_color_tables_t *color_tab,
-                         const BYTE *src, BYTE *trg,
+                         const uint8_t *src, uint8_t *trg,
                          unsigned int width, const unsigned int height,
                          const unsigned int xs, const unsigned int ys,
                          const unsigned int xt, const unsigned int yt,
@@ -514,7 +482,7 @@ void render_UYVY_1x2_crt(video_render_color_tables_t *color_tab,
 }
 
 void render_YUY2_1x2_crt(video_render_color_tables_t *color_tab,
-                         const BYTE *src, BYTE *trg,
+                         const uint8_t *src, uint8_t *trg,
                          unsigned int width, const unsigned int height,
                          const unsigned int xs, const unsigned int ys,
                          const unsigned int xt, const unsigned int yt,
@@ -527,7 +495,7 @@ void render_YUY2_1x2_crt(video_render_color_tables_t *color_tab,
 }
 
 void render_YVYU_1x2_crt(video_render_color_tables_t *color_tab,
-                         const BYTE *src, BYTE *trg,
+                         const uint8_t *src, uint8_t *trg,
                          unsigned int width, const unsigned int height,
                          const unsigned int xs, const unsigned int ys,
                          const unsigned int xt, const unsigned int yt,
@@ -540,7 +508,7 @@ void render_YVYU_1x2_crt(video_render_color_tables_t *color_tab,
 }
 
 void render_16_1x2_crt(video_render_color_tables_t *color_tab,
-                       const BYTE *src, BYTE *trg,
+                       const uint8_t *src, uint8_t *trg,
                        unsigned int width, const unsigned int height,
                        const unsigned int xs, const unsigned int ys,
                        const unsigned int xt, const unsigned int yt,
@@ -553,7 +521,7 @@ void render_16_1x2_crt(video_render_color_tables_t *color_tab,
 }
 
 void render_24_1x2_crt(video_render_color_tables_t *color_tab,
-                       const BYTE *src, BYTE *trg,
+                       const uint8_t *src, uint8_t *trg,
                        unsigned int width, const unsigned int height,
                        const unsigned int xs, const unsigned int ys,
                        const unsigned int xt, const unsigned int yt,
@@ -566,7 +534,7 @@ void render_24_1x2_crt(video_render_color_tables_t *color_tab,
 }
 
 void render_32_1x2_crt(video_render_color_tables_t *color_tab,
-                       const BYTE *src, BYTE *trg,
+                       const uint8_t *src, uint8_t *trg,
                        unsigned int width, const unsigned int height,
                        const unsigned int xs, const unsigned int ys,
                        const unsigned int xt, const unsigned int yt,

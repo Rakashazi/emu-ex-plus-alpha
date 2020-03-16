@@ -42,9 +42,9 @@ static int fs_init(const char *param, int *speed, int *fragsize, int *fragnr, in
     return !fs_fd;
 }
 
-static int fs_write(SWORD *pbuf, size_t nr)
+static int fs_write(int16_t *pbuf, size_t nr)
 {
-    return fwrite(pbuf, sizeof(SWORD), nr, fs_fd) != nr;
+    return fwrite(pbuf, sizeof(int16_t), nr, fs_fd) != nr;
 }
 
 static void fs_close(void)

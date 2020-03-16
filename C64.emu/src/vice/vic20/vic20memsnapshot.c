@@ -86,7 +86,7 @@ static log_t vic20_snapshot_log = LOG_ERR;
 static int mem_write_ram_snapshot_module(snapshot_t *p)
 {
     snapshot_module_t *m;
-    BYTE config;
+    uint8_t config;
 
     config = (ram_block_0_enabled ? 1 : 0)
              | (ram_block_1_enabled ? 2 : 0)
@@ -133,9 +133,9 @@ static int mem_write_ram_snapshot_module(snapshot_t *p)
 
 static int mem_read_ram_snapshot_module(snapshot_t *p)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
-    BYTE config;
+    uint8_t config;
 
     m = snapshot_module_open(p, SNAP_MEM_MODULE_NAME, &vmajor, &vminor);
     if (m == NULL) {
@@ -246,9 +246,9 @@ static int mem_write_rom_snapshot_module(snapshot_t *p, int save_roms)
 
 static int mem_read_rom_snapshot_module(snapshot_t *p)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
-    BYTE config;
+    uint8_t config;
     int trapfl;
 
     m = snapshot_module_open(p, SNAP_ROM_MODULE_NAME, &vmajor, &vminor);

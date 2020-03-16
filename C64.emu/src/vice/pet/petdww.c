@@ -47,7 +47,6 @@
 #include "ram.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "types.h"
 #include "util.h"
 
@@ -66,19 +65,30 @@
 #define DWW_DEBUG_GFX       0
 
 /* hi-res graphics memory image.  */
-static BYTE *petdww_ram = NULL;
+static uint8_t *petdww_ram = NULL;
 
 static log_t petdww_log = LOG_ERR;
 
 static int petdww_activate(void);
 static int petdww_deactivate(void);
 
+#if 0
+static void petdwwpia_init(void);
+#endif
 static void petdwwpia_reset(void);
 static void pia_reset(void);
 static void init_drawing_tables(void);
-static void petdww_DRAW_40(BYTE *p, int xstart, int xend, int scr_rel, int ymod8);
-static void petdww_DRAW_80(BYTE *p, int xstart, int xend, int scr_rel, int ymod8);
-static void petdww_DRAW_blank(BYTE *p, int xstart, int xend, int scr_rel, int ymod8);
+static void petdww_DRAW_40(uint8_t *p, int xstart, int xend, int scr_rel, int ymod8);
+static void petdww_DRAW_80(uint8_t *p, int xstart, int xend, int scr_rel, int ymod8);
+static void petdww_DRAW_blank(uint8_t *p, int xstart, int xend, int scr_rel, int ymod8);
+
+#if 0
+static void petdwwpia_signal(int line, int edge);
+static uint8_t petdwwpia_peek(uint16_t addr);
+#endif
+static int petdwwpia_snapshot_write_module(snapshot_t *);
+static int petdwwpia_snapshot_read_module(snapshot_t *);
+
 
 /* ------------------------------------------------------------------------- */
 
@@ -96,85 +106,90 @@ static int mem_at_9000;
 static char *petdww_filename = NULL;
 
 /* Some prototypes are needed */
-static BYTE read_petdww_reg(WORD addr);
-static BYTE read_petdww_ec00_ram(WORD addr);
-static void store_petdww_reg(WORD addr, BYTE value);
-static void store_petdww_ec00_ram(WORD addr, BYTE value);
+static uint8_t read_petdww_reg(uint16_t addr);
+static uint8_t read_petdww_ec00_ram(uint16_t addr);
+static void store_petdww_reg(uint16_t addr, uint8_t value);
+static void store_petdww_ec00_ram(uint16_t addr, uint8_t value);
 static int petdww_dump(void);
 
 static io_source_t petdww_reg_device = {
-    "PETDWW REG",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xeb00, 0xebff, 3,
-    1, /* read is always valid */
-    store_petdww_reg,
-    read_petdww_reg,
-    NULL, /* no peek */
-    petdww_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_NORMAL,
-    0
+    "PETDWW REG",         /* name of the device */
+    IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
+    "PETDWW",             /* resource to set to '0' */
+    0xeb00, 0xebff, 0x03, /* range for the device, regs:$eb00-$eb03, mirrors:$eb04-$ebff */
+    1,                    /* read is always valid */
+    store_petdww_reg,     /* store function */
+    NULL,                 /* NO poke function */
+    read_petdww_reg,      /* read function */
+    NULL,                 /* NO peek function */
+    petdww_dump,          /* device state information dump function */
+    IO_CART_ID_NONE,      /* not a cartridge */
+    IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
+    0                     /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t petdww_ram_ec00_device = {
-    "PETDWW RAM",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xec00, 0xecff, 0x3ff,
-    1, /* read is always valid */
-    store_petdww_ec00_ram,
-    read_petdww_ec00_ram,
-    NULL, /* no peek */
-    petdww_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_NORMAL,
-    0
+    "PETDWW RAM",          /* name of the device */
+    IO_DETACH_RESOURCE,    /* use resource to detach the device when involved in a read-collision */
+    "PETDWW",              /* resource to set to '0' */
+    0xec00, 0xecff, 0x3ff, /* range for the device, regs:$ec00-$ecff, 0x3ff is used as the mask so we can use 12 bits of address offset */
+    1,                     /* read is always valid */
+    store_petdww_ec00_ram, /* store function */
+    NULL,                  /* NO poke function */
+    read_petdww_ec00_ram,  /* read function */
+    NULL,                  /* NO peek function */
+    petdww_dump,           /* device state information dump function */
+    IO_CART_ID_NONE,       /* not a cartridge */
+    IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
+    0                      /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t petdww_ram_ed00_device = {
-    "PETDWW RAM",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xed00, 0xedff, 0x3ff,
-    1, /* read is always valid */
-    store_petdww_ec00_ram,
-    read_petdww_ec00_ram,
-    NULL, /* no peek */
-    petdww_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_NORMAL,
-    0
+    "PETDWW RAM",          /* name of the device */
+    IO_DETACH_RESOURCE,    /* use resource to detach the device when involved in a read-collision */
+    "PETDWW",              /* resource to set to '0' */
+    0xed00, 0xedff, 0x3ff, /* range for the device, regs:$ed00-$edff, 0x3ff is used as the mask so we can use 12 bits of address offset */
+    1,                     /* read is always valid */
+    store_petdww_ec00_ram, /* store function */
+    NULL,                  /* NO poke function */
+    read_petdww_ec00_ram,  /* read function */
+    NULL,                  /* NO peek function */
+    petdww_dump,           /* device state information dump function */
+    IO_CART_ID_NONE,       /* not a cartridge */
+    IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
+    0                      /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t petdww_ram_ee00_device = {
-    "PETDWW RAM",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xee00, 0xeeff, 0x3ff,
-    1, /* read is always valid */
-    store_petdww_ec00_ram,
-    read_petdww_ec00_ram,
-    NULL, /* no peek */
-    petdww_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_NORMAL,
-    0
+    "PETDWW RAM",          /* name of the device */
+    IO_DETACH_RESOURCE,    /* use resource to detach the device when involved in a read-collision */
+    "PETDWW",              /* resource to set to '0' */
+    0xee00, 0xeeff, 0x3ff, /* range for the device, regs:$ee00-$eeff, 0x3ff is used as the mask so we can use 12 bits of address offset */
+    1,                     /* read is always valid */
+    store_petdww_ec00_ram, /* store function */
+    NULL,                  /* NO poke function */
+    read_petdww_ec00_ram,  /* read function */
+    NULL,                  /* NO peek function */
+    petdww_dump,           /* device state information dump function */
+    IO_CART_ID_NONE,       /* not a cartridge */
+    IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
+    0                      /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t petdww_ram_ef00_device = {
-    "PETDWW RAM",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xef00, 0xefff, 0x3ff,
-    1, /* read is always valid */
-    store_petdww_ec00_ram,
-    read_petdww_ec00_ram,
-    NULL, /* no peek */
-    petdww_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_NORMAL,
-    0
+    "PETDWW RAM",          /* name of the device */
+    IO_DETACH_RESOURCE,    /* use resource to detach the device when involved in a read-collision */
+    "PETDWW",              /* resource to set to '0' */
+    0xef00, 0xefff, 0x3ff, /* range for the device, regs:$ef00-$efff, 0x3ff is used as the mask so we can use 12 bits of address offset */
+    1,                     /* read is always valid */
+    store_petdww_ec00_ram, /* store function */
+    NULL,                  /* NO poke function */
+    read_petdww_ec00_ram,  /* read function */
+    NULL,                  /* NO peek function */
+    petdww_dump,           /* device state information dump function */
+    IO_CART_ID_NONE,       /* not a cartridge */
+    IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
+    0                      /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *petdww_reg_list_item = NULL;
@@ -283,21 +298,15 @@ void petdww_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-petdww", SET_RESOURCE, 0,
+    { "-petdww", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "PETDWW", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_PETDWW,
-      NULL, NULL },
-    { "+petdww", SET_RESOURCE, 0,
+      NULL, "Enable the PET DWW hi-res board" },
+    { "+petdww", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "PETDWW", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_PETDWW,
-      NULL, NULL },
-    { "-petdwwimage", SET_RESOURCE, 1,
+      NULL, "Disable the PET DWW hi-res board" },
+    { "-petdwwimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "PETDWWfilename", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_PETDWW_NAME,
-      NULL, NULL },
+      "<Name>", "Specify name of PET DWW image" },
     CMDLINE_LIST_END
 };
 
@@ -402,12 +411,12 @@ void petdww_shutdown(void)
 
 static read_func_ptr_t save_mem_read_tab[PET_DWW_RAM_SIZE >> 8];
 static store_func_ptr_t save_mem_write_tab[PET_DWW_RAM_SIZE >> 8];
-static BYTE *save_mem_base_tab[PET_DWW_RAM_SIZE >> 8];
+static uint8_t *save_mem_base_tab[PET_DWW_RAM_SIZE >> 8];
 static int save_mem_limit_tab[PET_DWW_RAM_SIZE >> 8];
 
-static BYTE dww_ram9000_read(WORD addr)
+static uint8_t dww_ram9000_read(uint16_t addr)
 {
-    WORD min9000 = (addr - 0x9000) & RAM_SIZE_MASK;
+    uint16_t min9000 = (addr - 0x9000) & RAM_SIZE_MASK;
 
 #if DWW_DEBUG_RAM
     log_message(petdww_log, "dww_ram9000_read: $%04x == $%02x", addr, petdww_ram[min9000]);
@@ -415,9 +424,9 @@ static BYTE dww_ram9000_read(WORD addr)
     return petdww_ram[min9000];
 }
 
-static void dww_ram9000_store(WORD addr, BYTE value)
+static void dww_ram9000_store(uint16_t addr, uint8_t value)
 {
-    WORD min9000 = (addr - 0x9000) & RAM_SIZE_MASK;
+    uint16_t min9000 = (addr - 0x9000) & RAM_SIZE_MASK;
 
 #if DWW_DEBUG_RAM
     log_message(petdww_log, "dww_ram9000_store: $%04x := $%02x", addr, value);
@@ -425,7 +434,7 @@ static void dww_ram9000_store(WORD addr, BYTE value)
     petdww_ram[min9000] = value;
 }
 
-void petdww_override_std_9toa(read_func_ptr_t *mem_read_tab, store_func_ptr_t *mem_write_tab, BYTE **mem_base_tab, int *mem_limit_tab)
+void petdww_override_std_9toa(read_func_ptr_t *mem_read_tab, store_func_ptr_t *mem_write_tab, uint8_t **mem_base_tab, int *mem_limit_tab)
 {
     int i;
 
@@ -468,7 +477,7 @@ void petdww_override_std_9toa(read_func_ptr_t *mem_read_tab, store_func_ptr_t *m
     maincpu_resync_limits();
 }
 
-void petdww_restore_std_9toa(read_func_ptr_t *mem_read_tab, store_func_ptr_t *mem_write_tab, BYTE **mem_base_tab, int *mem_limit_tab)
+void petdww_restore_std_9toa(read_func_ptr_t *mem_read_tab, store_func_ptr_t *mem_write_tab, uint8_t **mem_base_tab, int *mem_limit_tab)
 {
     int i;
 
@@ -591,8 +600,8 @@ to 16 K, so even in a 80 columns PET the resolution will be the same.
 [1] Dubbel-W bord, designed by Ben de Winter and Pieter Wolvekamp
 */
 
-static BYTE output_porta;
-static BYTE output_portb;
+static uint8_t output_porta;
+static uint8_t output_portb;
 
 static int mem_bank;
 static int hires_off;
@@ -604,15 +613,15 @@ static int charrom_on;
 #define extra_charrom_off         (output_porta & 0x20)
 /* #define mem_at_ec00          (!(output_portb & 0x01)) */
 
-BYTE petdwwpia_read(WORD addr);
-void petdwwpia_store(WORD addr, BYTE byte);
+uint8_t petdwwpia_read(uint16_t addr);
+void petdwwpia_store(uint16_t addr, uint8_t byte);
 
 int petdww_mem_at_9000()
 {
     return mem_at_9000;
 }
 
-static BYTE read_petdww_reg(WORD addr)
+static uint8_t read_petdww_reg(uint16_t addr)
 {
     /* forward to PIA */
 #if DWW_DEBUG_REG
@@ -621,7 +630,7 @@ static BYTE read_petdww_reg(WORD addr)
     return petdwwpia_read(addr);
 }
 
-static BYTE read_petdww_ec00_ram(WORD addr)
+static uint8_t read_petdww_ec00_ram(uint16_t addr)
 {
     addr &= RAM_1K_SIZE_MASK;
     addr |= mem_bank;
@@ -629,8 +638,7 @@ static BYTE read_petdww_ec00_ram(WORD addr)
     return petdww_ram[addr];
 }
 
-
-static void store_petdww_reg(WORD addr, BYTE byte)
+static void store_petdww_reg(uint16_t addr, uint8_t byte)
 {
     /* forward to PIA */
 #if DWW_DEBUG_REG
@@ -639,7 +647,7 @@ static void store_petdww_reg(WORD addr, BYTE byte)
     petdwwpia_store(addr, byte);
 }
 
-static void store_petdww_ec00_ram(WORD addr, BYTE byte)
+static void store_petdww_ec00_ram(uint16_t addr, uint8_t byte)
 {
 #if DWW_DEBUG_REG
     log_message(petdww_log, "store_petdww_ec00_ram: $%04x := $%02x", addr, byte);
@@ -659,7 +667,7 @@ static int petdww_dump(void)
 }
 
 /* Callbacks from piacore to store effective output, taking DDR into account */
-static void store_pa(BYTE byte)
+static void store_pa(uint8_t byte)
 {
     output_porta = byte;
 
@@ -690,7 +698,7 @@ static void store_pa(BYTE byte)
     }
 }
 
-static void store_pb(BYTE byte)
+static void store_pb(uint8_t byte)
 {
     int old_at_9000 = mem_at_9000;
 
@@ -724,7 +732,7 @@ static void store_pb(BYTE byte)
     if (petdww_enabled) {
         read_func_ptr_t *read;
         store_func_ptr_t *write;
-        BYTE **base;
+        uint8_t **base;
         int *limit;
 
         get_mem_access_tables(&read, &write, &base, &limit);
@@ -737,19 +745,19 @@ static void store_pb(BYTE byte)
     }
 }
 
-static void undump_pa(BYTE byte)
+static void undump_pa(uint8_t byte)
 {
     store_pa(byte);
 }
 
-static void undump_pb(BYTE byte)
+static void undump_pb(uint8_t byte)
 {
     store_pb(byte);
 }
 
-static BYTE read_pa(void)
+static uint8_t read_pa(void)
 {
-    BYTE byte;
+    uint8_t byte;
 
     byte = ((~mypia.ddr_a) | (mypia.port_a & mypia.ddr_a));
 
@@ -757,7 +765,7 @@ static BYTE read_pa(void)
 }
 
 
-static BYTE read_pb(void)
+static uint8_t read_pb(void)
 {
     return mypia.port_b;
 }
@@ -810,17 +818,17 @@ static void pia_reset(void)
  * The "w" tables expand each input bit into double-wide bytes:
  * every 4 bits expand to 8 bytes (hence 2 tables are needed).
  */
-static DWORD dww_dwg_table[16];
-static DWORD dww_dwg_table_w0[16], dww_dwg_table_w1[16];
+static uint32_t dww_dwg_table[16];
+static uint32_t dww_dwg_table_w0[16], dww_dwg_table_w1[16];
 
 static void init_drawing_tables(void)
 {
     int byte, p;
-    BYTE msk;
+    uint8_t msk;
 
     for (byte = 0; byte < 0x10; byte++) {
         for (msk = 0x01, p = 0; p < 4; msk <<= 1, p++) {
-            *((BYTE *)(dww_dwg_table + byte) + p)
+            *((uint8_t *)(dww_dwg_table + byte) + p)
                 = (byte & msk ? 1 : 0);
         }
 #if DWW_DEBUG_GFX
@@ -831,15 +839,15 @@ static void init_drawing_tables(void)
     for (byte = 0; byte < 0x10; byte++) {
         for (msk = 0x01, p = 0; p < 4; msk <<= 1, p++) {
             int bit = (byte & msk) ? 1 : 0;
-            *((BYTE *)(dww_dwg_table_w0 + byte) + p) = bit;
+            *((uint8_t *)(dww_dwg_table_w0 + byte) + p) = bit;
             p++;
-            *((BYTE *)(dww_dwg_table_w0 + byte) + p) = bit;
+            *((uint8_t *)(dww_dwg_table_w0 + byte) + p) = bit;
         }
         for (p = 0; p < 4; msk <<= 1, p++) {
             int bit = (byte & msk) ? 1 : 0;
-            *((BYTE *)(dww_dwg_table_w1 + byte) + p) = bit;
+            *((uint8_t *)(dww_dwg_table_w1 + byte) + p) = bit;
             p++;
-            *((BYTE *)(dww_dwg_table_w1 + byte) + p) = bit;
+            *((uint8_t *)(dww_dwg_table_w1 + byte) + p) = bit;
         }
 #if DWW_DEBUG_GFX
         log_message(petdww_log, "init_drawing_tables: %02x -> %08x %08x", byte, dww_dwg_table_w1[byte], dww_dwg_table_w0[byte]);
@@ -848,13 +856,13 @@ static void init_drawing_tables(void)
     }
 }
 
-static void petdww_DRAW_40(BYTE *p, int xstart, int xend, int scr_rel, int ymod8)
+static void petdww_DRAW_40(uint8_t *p, int xstart, int xend, int scr_rel, int ymod8)
 {
     if (ymod8 < 8 && xstart < xend) {
         int k = ymod8 * 1024;
-        BYTE *screen_rel = petdww_ram + k + (scr_rel & 0x03FF);
-        BYTE *screen_end = petdww_ram + k + 1024;
-        DWORD *pw = (DWORD *)p;
+        uint8_t *screen_rel = petdww_ram + k + (scr_rel & 0x03FF);
+        uint8_t *screen_end = petdww_ram + k + 1024;
+        uint32_t *pw = (uint32_t *)p;
         int i;
         int d;
 
@@ -902,13 +910,13 @@ static void petdww_DRAW_40(BYTE *p, int xstart, int xend, int scr_rel, int ymod8
     }
 }
 
-static void petdww_DRAW_80(BYTE *p, int xstart, int xend, int scr_rel, int ymod8)
+static void petdww_DRAW_80(uint8_t *p, int xstart, int xend, int scr_rel, int ymod8)
 {
     if (ymod8 < 8 && xstart < xend) {
         int k = ymod8 * 1024;
-        BYTE *screen_rel = petdww_ram + k + ((scr_rel / 2) & 0x03FF);
-        BYTE *screen_end = petdww_ram + k + 1024;
-        DWORD *pw = (DWORD *)p;
+        uint8_t *screen_rel = petdww_ram + k + ((scr_rel / 2) & 0x03FF);
+        uint8_t *screen_end = petdww_ram + k + 1024;
+        uint32_t *pw = (uint32_t *)p;
         int i;
         int d;
 
@@ -963,9 +971,9 @@ static void petdww_DRAW_80(BYTE *p, int xstart, int xend, int scr_rel, int ymod8
     }
 }
 
-static void petdww_DRAW_blank(BYTE *p, int xstart, int xend, int scr_rel, int ymod8)
+static void petdww_DRAW_blank(uint8_t *p, int xstart, int xend, int scr_rel, int ymod8)
 {
-    DWORD *pw = (DWORD *)p;
+    uint32_t *pw = (uint32_t *)p;
     int i;
 
 #if DWW_DEBUG_GFX
@@ -987,7 +995,7 @@ static void petdww_DRAW_blank(BYTE *p, int xstart, int xend, int scr_rel, int ym
 /* ------------------------------------------------------------------------- */
 /* native screenshot support */
 
-BYTE *petdww_crtc_get_active_bitmap(void)
+uint8_t *petdww_crtc_get_active_bitmap(void)
 {
     if (petdww_enabled && !hires_off) {
         return petdww_ram;
@@ -1009,7 +1017,7 @@ static const char module_ram_name[] = "DWWMEM";
  *
  */
 
-int petdww_ram_write_snapshot_module(snapshot_t *s)
+static int petdww_ram_write_snapshot_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
@@ -1031,11 +1039,11 @@ int petdww_ram_write_snapshot_module(snapshot_t *s)
     return 0;
 }
 
-int petdww_ram_read_snapshot_module(snapshot_t *s)
+static int petdww_ram_read_snapshot_module(snapshot_t *s)
 {
     snapshot_module_t *m;
-    BYTE vmajor, vminor;
-    WORD ramsize;
+    uint8_t vmajor, vminor;
+    uint16_t ramsize;
 
     m = snapshot_module_open(s, module_ram_name, &vmajor, &vminor);
     if (m == NULL) {

@@ -31,7 +31,6 @@
 #include <string.h>
 
 #include "cartio.h"
-#include "cmdline.h"
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
@@ -42,7 +41,6 @@
 #include "plus4memhannes256k.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "types.h"
 #include "uiapi.h"
 
@@ -57,26 +55,27 @@ int cs256k_enabled = 0;
 static int cs256k_block = 0xf;
 static int cs256k_segment = 3;
 
-BYTE *cs256k_ram = NULL;
+uint8_t *cs256k_ram = NULL;
 
 /* Some prototypes */
-static BYTE cs256k_reg_read(WORD addr);
-static void cs256k_reg_store(WORD addr, BYTE value);
+static uint8_t cs256k_reg_read(uint16_t addr);
+static void cs256k_reg_store(uint16_t addr, uint8_t value);
 static int cs256k_dump(void);
 
 static io_source_t cs256k_device = {
-    "CSORY",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xfd15, 0xfd15, 1,
-    1, /* read is always valid */
-    cs256k_reg_store,
-    cs256k_reg_read,
-    NULL, /* no peek */
-    cs256k_dump, /* TODO: dump */
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_NORMAL,
-    0
+    "CSORY",              /* name of the device */
+    IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
+    "MemoryHack",         /* resource to set to '0' */
+    0xfd15, 0xfd15, 0x00, /* range for the device, reg:$fd15 */
+    1,                    /* read is always valid */
+    cs256k_reg_store,     /* store function */
+    NULL,                 /* NO poke function */
+    cs256k_reg_read,      /* read function */
+    NULL,                 /* TODO: peek function */
+    cs256k_dump,          /* chip state information dump function */
+    IO_CART_ID_NONE,      /* not a cartridge */
+    IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
+    0                     /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *cs256k_list_item = NULL;
@@ -151,18 +150,18 @@ void cs256k_shutdown(void)
 
 /* ------------------------------------------------------------------------- */
 
-static BYTE cs256k_reg_read(WORD addr)
+static uint8_t cs256k_reg_read(uint16_t addr)
 {
     return 0xff;
 }
 
-static void cs256k_reg_store(WORD addr, BYTE value)
+static void cs256k_reg_store(uint16_t addr, uint8_t value)
 {
     cs256k_block = (value & 0xf);
     cs256k_segment = (value & 0xc0) >> 6;
 }
 
-void cs256k_store(WORD addr, BYTE value)
+void cs256k_store(uint16_t addr, uint8_t value)
 {
     if (addr >= (cs256k_segment * 0x4000) && addr < ((cs256k_segment + 1) * 0x4000)) {
         cs256k_ram[(cs256k_block * 0x4000) + (addr & 0x3fff)] = value;
@@ -171,7 +170,7 @@ void cs256k_store(WORD addr, BYTE value)
     }
 }
 
-BYTE cs256k_read(WORD addr)
+uint8_t cs256k_read(uint16_t addr)
 {
     if (addr >= (cs256k_segment * 0x4000) && addr < ((cs256k_segment + 1) * 0x4000)) {
         return cs256k_ram[(cs256k_block * 0x4000) + (addr & 0x3fff)];
@@ -181,9 +180,16 @@ BYTE cs256k_read(WORD addr)
 }
 
 
+void cs256k_ram_inject(uint16_t addr, uint8_t value)
+{
+    cs256k_store(addr, value);
+}
+
 static int cs256k_dump(void)
 {
-    mon_out("Segment: %d ($%04X-$%04X), block: %d\n", cs256k_segment, cs256k_segment * 0x4000, (cs256k_segment * 0x4000) + 0x3fff, cs256k_block);
+    mon_out("Segment: %d ($%04X-$%04X), block: %d\n",
+            cs256k_segment, cs256k_segment * 0x4000U,
+            (cs256k_segment * 0x4000U) + 0x3fffU, cs256k_block);
 
     return 0;
 }

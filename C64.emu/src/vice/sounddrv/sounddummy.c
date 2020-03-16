@@ -30,7 +30,7 @@
 
 #include "sound.h"
 
-static int dummy_write(SWORD *pbuf, size_t nr)
+static int dummy_write(int16_t *pbuf, size_t nr)
 {
     return 0;
 }

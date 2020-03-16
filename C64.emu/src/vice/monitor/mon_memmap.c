@@ -47,7 +47,7 @@
 
 /* Globals */
 
-BYTE memmap_state = 0;
+uint8_t memmap_state = 0;
 
 #ifdef FEATURE_CPUMEMHISTORY
 
@@ -67,18 +67,18 @@ BYTE memmap_state = 0;
 
 /* Types */
 
-#define MEMMAP_ELEM WORD
+#define MEMMAP_ELEM uint16_t
 
 struct cpuhistory_s {
-   WORD addr;
-   BYTE op;
-   BYTE p1;
-   BYTE p2;
-   BYTE reg_a;
-   BYTE reg_x;
-   BYTE reg_y;
-   BYTE reg_sp;
-   WORD reg_st;
+   uint16_t addr;
+   uint8_t op;
+   uint8_t p1;
+   uint8_t p2;
+   uint8_t reg_a;
+   uint8_t reg_x;
+   uint8_t reg_y;
+   uint8_t reg_sp;
+   uint16_t reg_st;
 };
 typedef struct cpuhistory_s cpuhistory_t;
 
@@ -88,10 +88,10 @@ static int cpuhistory_i = 0;
 
 void monitor_cpuhistory_store(unsigned int addr, unsigned int op,
                               unsigned int p1, unsigned int p2,
-                              BYTE reg_a,
-                              BYTE reg_x,
-                              BYTE reg_y,
-                              BYTE reg_sp,
+                              uint8_t reg_a,
+                              uint8_t reg_x,
+                              uint8_t reg_y,
+                              uint8_t reg_sp,
                               unsigned int reg_st)
 {
     ++cpuhistory_i;
@@ -114,9 +114,9 @@ void monitor_cpuhistory_fix_p2(unsigned int p2)
 
 void mon_cpuhistory(int count)
 {
-    BYTE op, p1, p2, p3 = 0;
+    uint8_t op, p1, p2, p3 = 0;
     MEMSPACE mem;
-    WORD loc, addr;
+    uint16_t loc, addr;
     int hex_mode = 1;
     const char *dis_inst;
     unsigned opc_size;
@@ -219,7 +219,7 @@ void mon_memmap_show(int mask, MON_ADDR start_addr, MON_ADDR end_addr)
 
 void monitor_memmap_store(unsigned int addr, unsigned int type)
 {
-    BYTE op = cpuhistory[cpuhistory_i].op;
+    uint8_t op = cpuhistory[cpuhistory_i].op;
 
     if (memmap_state & MEMMAP_STATE_IN_MONITOR) {
         return;
@@ -241,8 +241,8 @@ void mon_memmap_save(const char *filename, int format)
 {
     const char *drvname;
     int i;
-    BYTE mon_memmap_palette[256 * 3];
-    BYTE *memmap_bitmap = NULL;
+    uint8_t mon_memmap_palette[256 * 3];
+    uint8_t *memmap_bitmap = NULL;
 
     switch (format) {
         case 1:
@@ -313,7 +313,7 @@ void mon_memmap_shutdown(void)
 /* stubs */
 static void mon_memmap_stub(void)
 {
-    mon_out("Disabled. configure with --enable-memmap and recompile.\n");
+    mon_out("Disabled. configure with --enable-cpuhistory and recompile.\n");
 }
 
 void mon_cpuhistory(int count)

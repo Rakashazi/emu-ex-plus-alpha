@@ -30,7 +30,7 @@
 #include "video.h"
 #include "viewport.h"
 
-void video_sound_update(video_render_config_t *config, const BYTE *src,
+void video_sound_update(video_render_config_t *config, const uint8_t *src,
                         unsigned int width, unsigned int height,
                         unsigned int xs, unsigned int ys,
                         unsigned int pitchs, viewport_t *viewport);

@@ -51,7 +51,7 @@ tape_image_t *tape_internal_open_tape_image(const char *name,
     tape_image_t *image;
 
     image = lib_malloc(sizeof(tape_image_t));
-    image->name = lib_stralloc(name);
+    image->name = lib_strdup(name);
     image->read_only = read_only;
 
     if (tape_image_open(image) < 0) {

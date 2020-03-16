@@ -38,7 +38,7 @@ typedef struct fsimage_s {
     FILE *fd;
     char *name;
     struct {
-        BYTE *map;
+        uint8_t *map;
         int dirty;
         int len;
     } error_info;
@@ -55,9 +55,9 @@ extern void fsimage_media_destroy(struct disk_image_s *image);
 
 extern int fsimage_open(struct disk_image_s *image);
 extern int fsimage_close(struct disk_image_s *image);
-extern int fsimage_read_sector(const struct disk_image_s *image, BYTE *buf,
+extern int fsimage_read_sector(const struct disk_image_s *image, uint8_t *buf,
                                const struct disk_addr_s *dadr);
-extern int fsimage_write_sector(struct disk_image_s *image, const BYTE *buf,
+extern int fsimage_write_sector(struct disk_image_s *image, const uint8_t *buf,
                                 const struct disk_addr_s *dadr);
 
 #endif

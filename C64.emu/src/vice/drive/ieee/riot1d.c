@@ -38,22 +38,22 @@
 #include "types.h"
 
 
-void riot1_store(drive_context_t *ctxptr, WORD addr, BYTE data)
+void riot1_store(drive_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
     riotcore_store(ctxptr->riot1, addr, data);
 }
 
-BYTE riot1_read(drive_context_t *ctxptr, WORD addr)
+uint8_t riot1_read(drive_context_t *ctxptr, uint16_t addr)
 {
     return riotcore_read(ctxptr->riot1, addr);
 }
 
-BYTE riot1_peek(drive_context_t *ctxptr, WORD addr)
+uint8_t riot1_peek(drive_context_t *ctxptr, uint16_t addr)
 {
     return riotcore_peek(ctxptr->riot1, addr);
 }
 
-int riot1_dump(drive_context_t *ctxptr, WORD addr)
+int riot1_dump(drive_context_t *ctxptr, uint16_t addr)
 {
     /* TODO: implement dump feature */
     /* riotcore_dump(ctxptr->riot1, addr); */
@@ -68,30 +68,30 @@ static void restore_irq(riot_context_t *riot_context, int fl)
 {
 }
 
-static void undump_pra(riot_context_t *riot_context, BYTE byte)
+static void undump_pra(riot_context_t *riot_context, uint8_t byte)
 {
 }
 
-static void store_pra(riot_context_t *riot_context, BYTE byte)
+static void store_pra(riot_context_t *riot_context, uint8_t byte)
 {
 }
 
-static void undump_prb(riot_context_t *riot_context, BYTE byte)
+static void undump_prb(riot_context_t *riot_context, uint8_t byte)
 {
-    drive_context_t *drive_context;
+    drive_context_t *dc;
 
-    drive_context = (drive_context_t *)(riot_context->context);
+    dc = (drive_context_t *)(riot_context->context);
 
-    drive_context->func->parallel_set_bus(byte);
+    dc->func->parallel_set_bus(byte);
 }
 
-static void store_prb(riot_context_t *riot_context, BYTE byte)
+static void store_prb(riot_context_t *riot_context, uint8_t byte)
 {
-    drive_context_t *drive_context;
+    drive_context_t *dc;
 
-    drive_context = (drive_context_t *)(riot_context->context);
+    dc = (drive_context_t *)(riot_context->context);
 
-    drive_context->func->parallel_set_bus((BYTE)(parallel_atn ? 0xff : byte));
+    dc->func->parallel_set_bus((uint8_t)(parallel_atn ? 0xff : byte));
 }
 
 void riot1_set_pardata(riot_context_t *riot_context)
@@ -104,13 +104,13 @@ static void reset(riot_context_t *riot_context)
     store_prb(riot_context, 0xff);
 }
 
-static BYTE read_pra(riot_context_t *riot_context)
+static uint8_t read_pra(riot_context_t *riot_context)
 {
     return (parallel_bus & ~(riot_context->riot_io)[1])
            | (riot_context->riot_io[0] & riot_context->riot_io[1]);
 }
 
-static BYTE read_prb(riot_context_t *riot_context)
+static uint8_t read_prb(riot_context_t *riot_context)
 {
     return (0xff & ~(riot_context->riot_io)[3])
            | (riot_context->riot_io[2] & riot_context->riot_io[3]);

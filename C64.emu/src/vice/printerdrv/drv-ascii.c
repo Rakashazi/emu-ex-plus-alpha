@@ -68,9 +68,9 @@ static int print_lineend(ascii_t *ascii, unsigned int prnr)
     return 0;
 }
 
-static int print_char(ascii_t *ascii, unsigned int prnr, BYTE c)
+static int print_char(ascii_t *ascii, unsigned int prnr, uint8_t c)
 {
-    BYTE asc;
+    uint8_t asc;
 
     switch (c) {
         case 8: /* bitmap mode */
@@ -161,7 +161,7 @@ static void drv_ascii_close(unsigned int prnr, unsigned int secondary)
     }
 }
 
-static int drv_ascii_putc(unsigned int prnr, unsigned int secondary, BYTE b)
+static int drv_ascii_putc(unsigned int prnr, unsigned int secondary, uint8_t b)
 {
 #ifdef DEBUG_PRINTER
     log_message(drv_ascii_log, "Print device #%i secondary %i data %02x.",
@@ -175,7 +175,7 @@ static int drv_ascii_putc(unsigned int prnr, unsigned int secondary, BYTE b)
     return 0;
 }
 
-static int drv_ascii_getc(unsigned int prnr, unsigned int secondary, BYTE *b)
+static int drv_ascii_getc(unsigned int prnr, unsigned int secondary, uint8_t *b)
 {
     return output_select_getc(prnr, b);
 }

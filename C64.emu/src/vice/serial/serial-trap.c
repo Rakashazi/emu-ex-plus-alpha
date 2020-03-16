@@ -53,11 +53,11 @@
 #define OPEN            0xF0
 
 /* Address of serial TMP register.  */
-static WORD tmp_in;
+static uint16_t tmp_in;
 
 /* On which channel did listen happen to?  */
-static BYTE TrapDevice;
-static BYTE TrapSecondary;
+static uint8_t TrapDevice;
+static uint8_t TrapSecondary;
 
 /* Function to call when EOF happens in `serialreceivebyte()'.  */
 static void (*eof_callback_func)(void);
@@ -69,20 +69,20 @@ static unsigned int serial_truedrive;
 
 #define IS_PRINTER(d)   (((d) & DEVNR_MASK) >= 4 && ((d) & DEVNR_MASK) <= 7)
 
-static void serial_set_st(BYTE st)
+static void serial_set_st(uint8_t st)
 {
-    mem_store((WORD)0x90, (BYTE)(mem_read((WORD)0x90) | st));
+    mem_store((uint16_t)0x90, (uint8_t)(mem_read((uint16_t)0x90) | st));
 }
 
-static BYTE serial_get_st(void)
+static uint8_t serial_get_st(void)
 {
-    return mem_read((WORD)0x90);
+    return mem_read((uint16_t)0x90);
 }
 
 /*
  * Send LISTEN/TALK and the secondary address.
  */
-static void send_listen_talk_secondary(BYTE b)
+static void send_listen_talk_secondary(uint8_t b)
 {
     TrapSecondary = b;
     switch (TrapDevice & 0xf0) {
@@ -99,13 +99,13 @@ static void send_listen_talk_secondary(BYTE b)
    Secondary Address to Serial Bus under Attention.  */
 int serial_trap_attention(void)
 {
-    BYTE b;
+    uint8_t b;
     serial_t *p;
 
     /*
      * Which Secondary Address ?
      */
-    b = mem_read(((BYTE)(BSOUR))); /* BSOUR - character for serial bus */
+    b = mem_read(((uint8_t)(BSOUR))); /* BSOUR - character for serial bus */
 
     if (serial_truedrive && !IS_PRINTER(b)) {
         if (((b & 0xf0) == LISTEN) || ((b & 0xf0) == TALK)) {
@@ -160,7 +160,7 @@ int serial_trap_attention(void)
 /* Send one byte on the serial bus.  */
 int serial_trap_send(void)
 {
-    BYTE data;
+    uint8_t data;
 
     if (serial_truedrive && !IS_PRINTER(TrapDevice)) {
         return 0;
@@ -187,7 +187,7 @@ int serial_trap_send(void)
 /* Receive one byte from the serial bus.  */
 int serial_trap_receive(void)
 {
-    BYTE data;
+    uint8_t data;
 
     if (serial_truedrive && !IS_PRINTER(TrapDevice)) {
         return 0;
@@ -248,7 +248,7 @@ int serial_cmdline_options_init(void)
     return serial_iec_device_cmdline_options_init();
 }
 
-void serial_trap_init(WORD tmpin)
+void serial_trap_init(uint16_t tmpin)
 {
     serial_iec_device_init();
 

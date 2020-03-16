@@ -33,38 +33,27 @@
 #include "cmdline.h"
 #include "raster-cmdline-options.h"
 #include "resources.h"
-#include "translate.h"
 #include "vdc-cmdline-options.h"
 #include "vdctypes.h"
 
 /* VDC command-line options.  */
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-VDCstretchvertical", SET_RESOURCE, 0,
+    { "-VDCstretchvertical", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "VDCStretchVertical", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_STRETCH_VERTICAL,
-      NULL, NULL },
-    { "+VDCstretchvertical", SET_RESOURCE, 0,
+      NULL, "Enable additional vertical stretching." },
+    { "+VDCstretchvertical", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "VDCStretchVertical", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_STRETCH_VERTICAL,
-      NULL, NULL },
-    { "-VDC16KB", SET_RESOURCE, 0,
+      NULL, "Disable additional vertical stretching." },
+    { "-VDC16KB", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "VDC64KB", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_VDC_MEMORY_16KB,
-      NULL, NULL },
-    { "-VDC64KB", SET_RESOURCE, 0,
+      NULL, "Set the VDC memory size to 16KB" },
+    { "-VDC64KB", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "VDC64KB", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_VDC_MEMORY_64KB,
-      NULL, NULL },
-    { "-VDCRevision", SET_RESOURCE, 1,
+      NULL, "Set the VDC memory size to 64KB" },
+    { "-VDCRevision", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "VDCRevision", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NUMBER, IDCLS_SET_VDC_REVISION,
-      NULL, NULL },
+      "<number>", "Set VDC revision (0..2)" },
     CMDLINE_LIST_END
 };
 

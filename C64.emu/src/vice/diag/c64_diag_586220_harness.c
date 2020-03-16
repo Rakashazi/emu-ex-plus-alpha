@@ -33,17 +33,17 @@
 #include "datasette.h"
 #include "types.h"
 
-static BYTE c64_diag_userport_pax = 0;
-static BYTE c64_diag_userport_pbx = 0;
-static BYTE c64_diag_userport_sp1 = 0;
-static BYTE c64_diag_userport_sp2 = 0;
-static BYTE c64_diag_tapeport = 0;
-static BYTE c64_diag_joyport0 = 0;
-static BYTE c64_diag_joyport1 = 0;
-static BYTE c64_diag_keyboard_pax = 0;
-static BYTE c64_diag_keyboard_pbx = 0;
-static BYTE c64_diag_serial = 0;
-static BYTE c64_diag_switches = 0;
+static uint8_t c64_diag_userport_pax = 0;
+static uint8_t c64_diag_userport_pbx = 0;
+static uint8_t c64_diag_userport_sp1 = 0;
+static uint8_t c64_diag_userport_sp2 = 0;
+static uint8_t c64_diag_tapeport = 0;
+static uint8_t c64_diag_joyport0 = 0;
+static uint8_t c64_diag_joyport1 = 0;
+static uint8_t c64_diag_keyboard_pax = 0;
+static uint8_t c64_diag_keyboard_pbx = 0;
+static uint8_t c64_diag_serial = 0;
+static uint8_t c64_diag_switches = 0;
 
 void c64_diag_586220_init(void)
 {
@@ -60,17 +60,17 @@ void c64_diag_586220_init(void)
     c64_diag_switches = 0;
 }
 
-void c64_diag_586220_store_userport_pax(BYTE val)
+void c64_diag_586220_store_userport_pax(uint8_t val)
 {
     c64_diag_userport_pax = val;
 }
 
-void c64_diag_586220_store_userport_pbx(BYTE val)
+void c64_diag_586220_store_userport_pbx(uint8_t val)
 {
     c64_diag_userport_pbx = val;
 }
 
-void c64_diag_586220_store_userport_sp(BYTE port, BYTE val)
+void c64_diag_586220_store_userport_sp(uint8_t port, uint8_t val)
 {
     if (!port) {
         c64_diag_userport_sp1 = val;
@@ -79,7 +79,7 @@ void c64_diag_586220_store_userport_sp(BYTE port, BYTE val)
     }
 }
 
-void c64_diag_586220_store_tapeport(BYTE pin, BYTE val)
+void c64_diag_586220_store_tapeport(uint8_t pin, uint8_t val)
 {
     c64_diag_tapeport &= ~(1 << pin);
     c64_diag_tapeport |= (val << pin);
@@ -106,7 +106,7 @@ void c64_diag_586220_store_tapeport(BYTE pin, BYTE val)
     }
 }
 
-void c64_diag_586220_store_joyport_dig(BYTE port, BYTE val)
+void c64_diag_586220_store_joyport_dig(uint8_t port, uint8_t val)
 {
     if (!port) {
         c64_diag_joyport0 = val;
@@ -115,7 +115,7 @@ void c64_diag_586220_store_joyport_dig(BYTE port, BYTE val)
     }
 }
 
-void c64_diag_586220_store_keyboard(BYTE port, BYTE val)
+void c64_diag_586220_store_keyboard(uint8_t port, uint8_t val)
 {
     if (!port) {
         c64_diag_keyboard_pax = val;
@@ -124,14 +124,14 @@ void c64_diag_586220_store_keyboard(BYTE port, BYTE val)
     }
 }
 
-void c64_diag_586220_store_serial(BYTE val)
+void c64_diag_586220_store_serial(uint8_t val)
 {
     c64_diag_serial = val;
 }
 
-BYTE c64_diag_586220_read_userport_pax(void)
+uint8_t c64_diag_586220_read_userport_pax(void)
 {
-    BYTE retval;
+    uint8_t retval;
 
     retval = (c64_diag_userport_pax & 4) << 1;
     retval |= (c64_diag_userport_pax & 2) >> 1;
@@ -139,9 +139,9 @@ BYTE c64_diag_586220_read_userport_pax(void)
     return retval;
 }
 
-BYTE c64_diag_586220_read_userport_pbx(void)
+uint8_t c64_diag_586220_read_userport_pbx(void)
 {
-    BYTE retval;
+    uint8_t retval;
 
     retval = c64_diag_userport_pbx >> 4;
     retval |= (c64_diag_userport_pbx & 0xf) << 4;
@@ -149,7 +149,7 @@ BYTE c64_diag_586220_read_userport_pbx(void)
     return retval;
 }
 
-BYTE c64_diag_586220_read_userport_sp(BYTE port)
+uint8_t c64_diag_586220_read_userport_sp(uint8_t port)
 {
     if (!port) {
         return c64_diag_userport_sp2;
@@ -157,9 +157,9 @@ BYTE c64_diag_586220_read_userport_sp(BYTE port)
     return c64_diag_userport_sp1;
 }
 
-BYTE c64_diag_586220_read_tapeport(BYTE pin)
+uint8_t c64_diag_586220_read_tapeport(uint8_t pin)
 {
-    BYTE retval;
+    uint8_t retval;
 
     retval = c64_diag_tapeport & 0xf5;
     retval |= (c64_diag_tapeport & 8) >> 2;
@@ -169,7 +169,7 @@ BYTE c64_diag_586220_read_tapeport(BYTE pin)
     return retval;
 }
 
-BYTE c64_diag_586220_read_joyport_dig(BYTE port)
+uint8_t c64_diag_586220_read_joyport_dig(uint8_t port)
 {
     if (c64_diag_switches) {
         if (!port) {
@@ -180,12 +180,12 @@ BYTE c64_diag_586220_read_joyport_dig(BYTE port)
     return 0;
 }
 
-BYTE c64_diag_586220_read_joyport_pot(void)
+uint8_t c64_diag_586220_read_joyport_pot(void)
 {
     return 0xff;
 }
 
-BYTE c64_diag_586220_read_keyboard(BYTE port)
+uint8_t c64_diag_586220_read_keyboard(uint8_t port)
 {
     if (!port) {
         return c64_diag_keyboard_pbx;
@@ -193,9 +193,9 @@ BYTE c64_diag_586220_read_keyboard(BYTE port)
     return c64_diag_keyboard_pax;
 }
 
-BYTE c64_diag_586220_read_serial(void)
+uint8_t c64_diag_586220_read_serial(void)
 {
-    BYTE retval;
+    uint8_t retval;
 
     retval = (c64_diag_serial & 8) >> 3;
     retval |= (c64_diag_serial & 4) >> 1;

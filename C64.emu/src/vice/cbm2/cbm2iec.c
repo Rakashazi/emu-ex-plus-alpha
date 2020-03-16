@@ -33,6 +33,7 @@
 #include "iecbus.h"
 #include "iecdrive.h"
 #include "types.h"
+#include "debug.h"
 
 
 void cbm2iec_init(void)
@@ -54,24 +55,24 @@ iecbus_t *iecbus_drive_port(void)
     return NULL;
 }
 
-BYTE iec_drive_read(unsigned int dnr)
+uint8_t iec_drive_read(unsigned int dnr)
 {
     /* FIXME: unused */
     return 0;
 }
 
-void iec_drive_write(BYTE data, unsigned int dnr)
+void iec_drive_write(uint8_t data, unsigned int dnr)
 {
     /* FIXME: unused */
     iec_update_ports();
 }
 
-BYTE parallel_cable_drive_read(int type, int handshake)
+uint8_t parallel_cable_drive_read(int type, int handshake)
 {
     return 0;
 }
 
-void parallel_cable_drive_write(int type, BYTE data, int handshake, unsigned int dnr)
+void parallel_cable_drive_write(int type, uint8_t data, int handshake, unsigned int dnr)
 {
 }
 
@@ -84,10 +85,12 @@ void iec_fast_drive_direction(int direction, unsigned int dnr)
 {
 }
 
-void iec_fast_drive_write(BYTE data, unsigned int dnr)
+void iec_fast_drive_write(uint8_t data, unsigned int dnr)
 {
 }
 
+
+#if (defined(DEBUG) || defined(WIN32_COMPILE) || defined(OS2_COMPILE))
 void debug_iec_drv_read(unsigned int data)
 {
     /* FIXME: unused */
@@ -107,16 +110,21 @@ void debug_iec_bus_write(unsigned int data)
 {
     /* FIXME: unused */
 }
+#endif
+
 
 /* KLUDGES: dummy to satisfy linker, unused */
-BYTE plus4tcbm_outputa[2], plus4tcbm_outputb[2], plus4tcbm_outputc[2];
-void plus4tcbm_update_pa(BYTE byte, unsigned int dnr)
+uint8_t plus4tcbm_outputa[2], plus4tcbm_outputb[2], plus4tcbm_outputc[2];
+
+void plus4tcbm_update_pa(uint8_t byte, unsigned int dnr)
 {
 }
-void plus4tcbm_update_pb(BYTE byte, unsigned int dnr)
+
+void plus4tcbm_update_pb(uint8_t byte, unsigned int dnr)
 {
 }
-void plus4tcbm_update_pc(BYTE byte, unsigned int dnr)
+
+void plus4tcbm_update_pc(uint8_t byte, unsigned int dnr)
 {
 }
 

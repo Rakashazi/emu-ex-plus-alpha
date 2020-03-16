@@ -32,9 +32,9 @@
 #include "types.h"
 
 extern void rex_config_init(void);
-extern void rex_config_setup(BYTE *rawcart);
-extern int rex_crt_attach(FILE *fd, BYTE *rawbyte);
-extern int rex_bin_attach(const char *filename, BYTE *rawcart);
+extern void rex_config_setup(uint8_t *rawcart);
+extern int rex_crt_attach(FILE *fd, uint8_t *rawbyte);
+extern int rex_bin_attach(const char *filename, uint8_t *rawcart);
 extern void rex_detach(void);
 extern void rex_config_init(void);
 

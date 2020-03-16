@@ -50,12 +50,12 @@ extern int _mouse_enabled;
 extern int mouse_type;
 
 extern void neos_mouse_set_machine_parameter(long clock_rate);
-extern void neos_mouse_store(BYTE val);
-extern BYTE neos_mouse_read(void);
-extern BYTE mouse_poll(void);
-extern void smart_mouse_store(BYTE val);
-extern BYTE smart_mouse_read(void);
-extern BYTE micromys_mouse_read(void);
+extern void neos_mouse_store(uint8_t val);
+extern uint8_t neos_mouse_read(void);
+extern uint8_t mouse_poll(void);
+extern void smart_mouse_store(uint8_t val);
+extern uint8_t smart_mouse_read(void);
+extern uint8_t micromys_mouse_read(void);
 
 #define MOUSE_TYPE_1351     0
 #define MOUSE_TYPE_NEOS     1

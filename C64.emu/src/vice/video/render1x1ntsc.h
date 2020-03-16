@@ -34,7 +34,7 @@
 #include "video.h"
 
 extern void render_UYVY_1x1_ntsc(video_render_color_tables_t *color_tab,
-                                 const BYTE *src, BYTE *trg,
+                                 const uint8_t *src, uint8_t *trg,
                                  const unsigned int width, const unsigned int height,
                                  const unsigned int xs, const unsigned int ys,
                                  const unsigned int xt, const unsigned int yt,
@@ -42,7 +42,7 @@ extern void render_UYVY_1x1_ntsc(video_render_color_tables_t *color_tab,
                                  const unsigned int pitcht);
 
 extern void render_YUY2_1x1_ntsc(video_render_color_tables_t *color_tab,
-                                 const BYTE *src, BYTE *trg,
+                                 const uint8_t *src, uint8_t *trg,
                                  const unsigned int width, const unsigned int height,
                                  const unsigned int xs, const unsigned int ys,
                                  const unsigned int xt, const unsigned int yt,
@@ -50,7 +50,7 @@ extern void render_YUY2_1x1_ntsc(video_render_color_tables_t *color_tab,
                                  const unsigned int pitcht);
 
 extern void render_YVYU_1x1_ntsc(video_render_color_tables_t *color_tab,
-                                 const BYTE *src, BYTE *trg,
+                                 const uint8_t *src, uint8_t *trg,
                                  const unsigned int width, const unsigned int height,
                                  const unsigned int xs, const unsigned int ys,
                                  const unsigned int xt, const unsigned int yt,
@@ -58,7 +58,7 @@ extern void render_YVYU_1x1_ntsc(video_render_color_tables_t *color_tab,
                                  const unsigned int pitcht);
 
 extern void render_16_1x1_ntsc(video_render_color_tables_t *color_tab,
-                               const BYTE *src, BYTE *trg,
+                               const uint8_t *src, uint8_t *trg,
                                const unsigned int width, const unsigned int height,
                                const unsigned int xs, const unsigned int ys,
                                const unsigned int xt, const unsigned int yt,
@@ -66,7 +66,7 @@ extern void render_16_1x1_ntsc(video_render_color_tables_t *color_tab,
                                const unsigned int pitcht);
 
 extern void render_24_1x1_ntsc(video_render_color_tables_t *color_tab,
-                               const BYTE *src, BYTE *trg,
+                               const uint8_t *src, uint8_t *trg,
                                const unsigned int width, const unsigned int height,
                                const unsigned int xs, const unsigned int ys,
                                const unsigned int xt, const unsigned int yt,
@@ -74,7 +74,7 @@ extern void render_24_1x1_ntsc(video_render_color_tables_t *color_tab,
                                const unsigned int pitcht);
 
 extern void render_32_1x1_ntsc(video_render_color_tables_t *color_tab,
-                               const BYTE *src, BYTE *trg,
+                               const uint8_t *src, uint8_t *trg,
                                const unsigned int width, const unsigned int height,
                                const unsigned int xs, const unsigned int ys,
                                const unsigned int xt, const unsigned int yt,

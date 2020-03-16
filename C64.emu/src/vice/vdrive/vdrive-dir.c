@@ -76,12 +76,12 @@ static int vdrive_dir_get_interleave(unsigned int type)
         case VDRIVE_IMAGE_FORMAT_4000:
             return 1;
         default:
-            log_error(LOG_ERR, "Unknown disk type %i.  Using interleave 3.", type);
+            log_error(LOG_ERR, "Unknown disk type %u.  Using interleave 3.", type);
             return 3;
     }
 }
 
-static unsigned int vdrive_dir_name_match(BYTE *slot, BYTE *nslot, int length, int type)
+static unsigned int vdrive_dir_name_match(uint8_t *slot, uint8_t *nslot, int length, int type)
 {
     if (length < 0) {
         if (slot[SLOT_TYPE_OFFSET]) {
@@ -104,7 +104,7 @@ static unsigned int vdrive_dir_name_match(BYTE *slot, BYTE *nslot, int length, i
 
 void vdrive_dir_free_chain(vdrive_t *vdrive, int t, int s)
 {
-    BYTE buf[256];
+    uint8_t buf[256];
 
     while (t) {
         /* Check for illegal track or sector.  */
@@ -128,7 +128,7 @@ void vdrive_dir_free_chain(vdrive_t *vdrive, int t, int s)
 /* Tries to allocate the given track/sector and link it */
 /* to the current directory sector of vdrive.           */
 /* Returns NULL if the allocation failed.               */
-static BYTE *find_next_directory_sector(vdrive_dir_context_t *dir, unsigned int track,
+static uint8_t *find_next_directory_sector(vdrive_dir_context_t *dir, unsigned int track,
                                         unsigned int sector)
 {
     vdrive_t *vdrive = dir->vdrive;
@@ -205,7 +205,7 @@ void vdrive_dir_find_first_slot(vdrive_t *vdrive, const char *name,
                                 vdrive_dir_context_t *dir)
 {
     if (length > 0) {
-        BYTE *nslot;
+        uint8_t *nslot;
 
         nslot = cbmdos_dir_slot_create(name, length);
         memcpy(dir->find_nslot, nslot, CBMDOS_SLOT_NAME_LENGTH);
@@ -231,9 +231,9 @@ void vdrive_dir_find_first_slot(vdrive_t *vdrive, const char *name,
 #endif
 }
 
-BYTE *vdrive_dir_find_next_slot(vdrive_dir_context_t *dir)
+uint8_t *vdrive_dir_find_next_slot(vdrive_dir_context_t *dir)
 {
-    static BYTE return_slot[32];
+    static uint8_t return_slot[32];
     vdrive_t *vdrive = dir->vdrive;
 
 #ifdef DEBUG_DRIVE
@@ -284,7 +284,7 @@ BYTE *vdrive_dir_find_next_slot(vdrive_dir_context_t *dir)
      */
     if (dir->find_length < 0) {
         int i, sector;
-        BYTE *dirbuf;
+        uint8_t *dirbuf;
 
         sector = dir->sector + vdrive_dir_get_interleave(vdrive->image_format);
 
@@ -303,7 +303,7 @@ BYTE *vdrive_dir_find_next_slot(vdrive_dir_context_t *dir)
     return NULL;
 }
 
-void vdrive_dir_no_a0_pads(BYTE *ptr, int l)
+void vdrive_dir_no_a0_pads(uint8_t *ptr, int l)
 {
     while (l--) {
         if (*ptr == 0xa0) {
@@ -344,20 +344,15 @@ int vdrive_dir_next_directory(vdrive_t *vdrive, bufferinfo_t *b);
 int vdrive_dir_first_directory(vdrive_t *vdrive, const char *name,
                                int length, int filetype, bufferinfo_t *p)
 {
-    BYTE *l;
+    uint8_t *l;
 
-    if (length) {
-        if (*name == '$') {
-            ++name;
-            --length;
-        }
-        if (*name == ':') {
-            ++name;
-            --length;
-        }
-    }
-    if (!*name || length < 1) {
-        name = "*\0";
+#ifdef DEBUG_VDRIVE
+    log_debug("DIR: %s name: '%s', length: %d, filetype: %d",
+            __func__, name, length, filetype);
+#endif
+
+    if (length < 1) {
+        name = "*";
         length = 1;
     }
 
@@ -381,7 +376,7 @@ int vdrive_dir_first_directory(vdrive_t *vdrive, const char *name,
 
     l[25] = 0;
 
-    *l++ = (BYTE)0x12;          /* Reverse on */
+    *l++ = (uint8_t)0x12;          /* Reverse on */
     *l++ = '"';
 
     memcpy(l, &p->dir.buffer[vdrive->bam_name], 16);
@@ -399,7 +394,7 @@ int vdrive_dir_first_directory(vdrive_t *vdrive, const char *name,
 
 int vdrive_dir_next_directory(vdrive_t *vdrive, bufferinfo_t *b)
 {
-    BYTE *l, *p;
+    uint8_t *l, *p;
     int blocks, i;
 
     while ((p = vdrive_dir_find_next_slot(&b->dir))) {

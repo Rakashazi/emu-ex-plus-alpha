@@ -128,5 +128,6 @@ static constexpr KeyConfig KEY_CONFIG_ANDROID_NAV_KEYS =
 void setActiveFaceButtons(uint btns);
 void updateKeyboardMapping();
 void toggleKeyboard();
+void updateVControllerMapping();
 
 }

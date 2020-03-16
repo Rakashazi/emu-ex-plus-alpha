@@ -206,7 +206,7 @@ char *findpath(const char *cmd, const char *syspath, int mode)
         *pd = '\0';
 #endif
 
-        tmpbuf = lib_stralloc(buf + 1);
+        tmpbuf = lib_strdup(buf + 1);
         lib_free(buf);
         return tmpbuf;
     }

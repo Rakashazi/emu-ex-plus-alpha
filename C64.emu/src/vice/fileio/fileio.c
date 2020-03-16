@@ -46,9 +46,9 @@ fileio_info_t *fileio_open(const char *file_name, const char *path,
     if ((command & FILEIO_COMMAND_FSNAME) && path == NULL) {
         util_fname_split(file_name, &new_path, &new_file);
     } else {
-        new_file = lib_stralloc(file_name);
+        new_file = lib_strdup(file_name);
         if (path != NULL) {
-            new_path = lib_stralloc(path);
+            new_path = lib_strdup(path);
         } else {
             new_path = NULL;
         }
@@ -94,7 +94,7 @@ void fileio_close(fileio_info_t *info)
     }
 }
 
-unsigned int fileio_read(fileio_info_t *info, BYTE *buf, unsigned int len)
+unsigned int fileio_read(fileio_info_t *info, uint8_t *buf, unsigned int len)
 {
     switch (info->format) {
         case FILEIO_FORMAT_RAW:
@@ -106,7 +106,7 @@ unsigned int fileio_read(fileio_info_t *info, BYTE *buf, unsigned int len)
     return 0;
 }
 
-unsigned int fileio_write(fileio_info_t *info, BYTE *buf, unsigned int len)
+unsigned int fileio_write(fileio_info_t *info, uint8_t *buf, unsigned int len)
 {
     switch (info->format) {
         case FILEIO_FORMAT_RAW:

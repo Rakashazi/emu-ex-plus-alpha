@@ -33,8 +33,8 @@
 
 extern void ps2mouse_reset(void);
 
-extern BYTE ps2mouse_read(void);
-extern void ps2mouse_store(BYTE value);
+extern uint8_t ps2mouse_read(void);
+extern void ps2mouse_store(uint8_t value);
 
 extern int ps2mouse_resources_init(void);
 extern int ps2mouse_cmdline_options_init(void);

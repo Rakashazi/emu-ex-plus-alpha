@@ -102,14 +102,14 @@
 
 static int se5_bank = 0;
 
-static void se5_io2_store(WORD addr, BYTE value)
+static void se5_io2_store(uint16_t addr, uint8_t value)
 {
     DBG(("io2 wr %04x %02x\n", addr, value));
     se5_bank = (value & 0x80) ? 1 : 0;
     cart_romlbank_set_slotmain(se5_bank);
 }
 
-static BYTE se5_io2_read(WORD addr)
+static uint8_t se5_io2_read(uint16_t addr)
 {
     addr |= 0xdf00;
     return roml_banks[(addr & 0x1fff) + (roml_bank << 13)];
@@ -125,18 +125,19 @@ static int se5_dump(void)
 /* ---------------------------------------------------------------------*/
 
 static io_source_t se5_io2_device = {
-    CARTRIDGE_NAME_SUPER_EXPLODE_V5,
-    IO_DETACH_CART,
-    NULL,
-    0xdf00, 0xdfff, 0xff,
-    1, /* read is alway valid */
-    se5_io2_store,
-    se5_io2_read,
-    NULL,
-    se5_dump,
-    CARTRIDGE_SUPER_EXPLODE_V5,
-    0,
-    0
+    CARTRIDGE_NAME_SUPER_EXPLODE_V5, /* name of the device */
+    IO_DETACH_CART,                  /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,           /* does not use a resource for detach */
+    0xdf00, 0xdfff, 0xff,            /* range for the device, regs:$df00-$dfff */
+    1,                               /* read is always valid */
+    se5_io2_store,                   /* store function */
+    NULL,                            /* NO poke function */
+    se5_io2_read,                    /* read function */
+    NULL,                            /* NO peek function */
+    se5_dump,                        /* device state information dump function */
+    CARTRIDGE_SUPER_EXPLODE_V5,      /* cartridge ID */
+    IO_PRIO_NORMAL,                  /* normal priority, device read needs to be checked for collisions */
+    0                                /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *se5_io2_list_item = NULL;
@@ -147,7 +148,7 @@ static const export_resource_t export_res = {
 
 /* ---------------------------------------------------------------------*/
 
-BYTE se5_roml_read(WORD addr)
+uint8_t se5_roml_read(uint16_t addr)
 {
     if (addr < 0x9f00) {
         return roml_banks[(addr & 0x1fff) + (roml_bank << 13)];
@@ -166,7 +167,7 @@ void se5_config_init(void)
     se5_bank = 0;
 }
 
-void se5_config_setup(BYTE *rawcart)
+void se5_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, SE5_CART_SIZE);
     cart_config_changed_slotmain(0, 0, CMODE_READ);
@@ -187,7 +188,7 @@ static int se5_common_attach(void)
     return 0;
 }
 
-int se5_bin_attach(const char *filename, BYTE *rawcart)
+int se5_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, SE5_CART_SIZE, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -196,7 +197,7 @@ int se5_bin_attach(const char *filename, BYTE *rawcart)
     return se5_common_attach();
 }
 
-int se5_crt_attach(FILE *fd, BYTE *rawcart)
+int se5_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
     int i, cnt = 0;
@@ -251,7 +252,7 @@ int se5_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)se5_bank) < 0
+        || SMW_B(m, (uint8_t)se5_bank) < 0
         || SMW_BA(m, roml_banks, SE5_CART_SIZE) < 0) {
         snapshot_module_close(m);
         return -1;
@@ -262,7 +263,7 @@ int se5_snapshot_write_module(snapshot_t *s)
 
 int se5_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -272,13 +273,13 @@ int se5_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
     /* new in 0.1 */
-    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 1)) {
         if (SMR_B_INT(m, &se5_bank) < 0) {
             goto fail;
         }

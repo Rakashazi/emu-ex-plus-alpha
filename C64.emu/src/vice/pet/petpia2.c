@@ -75,12 +75,12 @@ static void my_restore_int(unsigned int pia_int_num, int a)
 
 static void pia_set_ca2(int a)
 {
-    parallel_cpu_set_ndac((BYTE)((a) ? 0 : 1));
+    parallel_cpu_set_ndac((uint8_t)((a) ? 0 : 1));
 }
 
 static void pia_set_cb2(int a)
 {
-    parallel_cpu_set_dav((BYTE)((a) ? 0 : 1));
+    parallel_cpu_set_dav((uint8_t)((a) ? 0 : 1));
 }
 
 static void pia_reset(void)
@@ -98,28 +98,27 @@ E823    CB2         IEEE DAV out
         CB1         IEEE SRQ in
 */
 
-static void store_pa(BYTE byte)
+static void store_pa(uint8_t byte)
 {
 }
 
-static void undump_pa(BYTE byte)
+static void undump_pa(uint8_t byte)
 {
 }
 
-
-static void store_pb(BYTE byte)
+static void store_pb(uint8_t byte)
 {
     parallel_cpu_set_bus(byte);
 }
 
-static void undump_pb(BYTE byte)
+static void undump_pb(uint8_t byte)
 {
     parallel_cpu_set_bus(byte);
 }
 
-static BYTE read_pa(void)
+static uint8_t read_pa(void)
 {
-    BYTE byte;
+    uint8_t byte;
 
     drive_cpu_execute_all(maincpu_clk);
 
@@ -127,7 +126,7 @@ static BYTE read_pa(void)
         log_message(mypia_log,
                     "read pia2 port A %x, parallel_bus=%x, gives %x.",
                     mypia.port_a, parallel_bus,
-                    ((parallel_bus & ~mypia.ddr_a)
+                    (unsigned int)((parallel_bus & ~mypia.ddr_a)
                      | (mypia.port_a & mypia.ddr_a)));
     }
 
@@ -135,7 +134,7 @@ static BYTE read_pa(void)
     return byte;
 }
 
-static BYTE read_pb(void)
+static uint8_t read_pb(void)
 {
     return 0xff;
 }

@@ -125,7 +125,8 @@ static video_cbm_palette_t dtv_palette =
     VICIIDTV_NUM_COLORS,
     dtv_colors_with_lum,
     VICII_SATURATION,
-    VICII_PHASE
+    VICII_PHASE,
+    CBM_PALETTE_YUV
 };
 
 #define DTV_STARTING_PHASE  180.0f

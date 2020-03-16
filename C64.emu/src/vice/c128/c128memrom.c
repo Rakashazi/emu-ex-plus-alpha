@@ -31,31 +31,31 @@
 #include "types.h"
 #include "z80mem.h"
 
-BYTE c128memrom_basic_rom[C128_BASIC_ROM_SIZE + C128_EDITOR_ROM_SIZE];
-BYTE c128memrom_kernal_rom[C128_KERNAL_ROM_SIZE];
-BYTE c128memrom_kernal_trap_rom[C128_KERNAL_ROM_SIZE];
+uint8_t c128memrom_basic_rom[C128_BASIC_ROM_SIZE + C128_EDITOR_ROM_SIZE];
+uint8_t c128memrom_kernal_rom[C128_KERNAL_ROM_SIZE];
+uint8_t c128memrom_kernal_trap_rom[C128_KERNAL_ROM_SIZE];
 
-BYTE c128memrom_basic_read(WORD addr)
+uint8_t c128memrom_basic_read(uint16_t addr)
 {
     return c128memrom_basic_rom[addr - 0x4000];
 }
 
-void c128memrom_basic_store(WORD addr, BYTE value)
+void c128memrom_basic_store(uint16_t addr, uint8_t value)
 {
     c128memrom_basic_rom[addr - 0x4000] = value;
 }
 
-BYTE c128memrom_kernal_read(WORD addr)
+uint8_t c128memrom_kernal_read(uint16_t addr)
 {
     return c128memrom_kernal_rom[addr & 0x1fff];
 }
 
-void c128memrom_kernal_store(WORD addr, BYTE value)
+void c128memrom_kernal_store(uint16_t addr, uint8_t value)
 {
     c128memrom_kernal_rom[addr & 0x1fff] = value;
 }
 
-BYTE c128memrom_trap_read(WORD addr)
+uint8_t c128memrom_trap_read(uint16_t addr)
 {
     switch (addr & 0xf000) {
         case 0xe000:
@@ -66,7 +66,7 @@ BYTE c128memrom_trap_read(WORD addr)
     return 0;
 }
 
-void c128memrom_trap_store(WORD addr, BYTE value)
+void c128memrom_trap_store(uint16_t addr, uint8_t value)
 {
     switch (addr & 0xf000) {
         case 0xe000:
@@ -76,7 +76,7 @@ void c128memrom_trap_store(WORD addr, BYTE value)
     }
 }
 
-BYTE c128memrom_rom_read(WORD addr)
+uint8_t c128memrom_rom_read(uint16_t addr)
 {
     switch (addr & 0xf000) {
         case 0x0000:
@@ -98,7 +98,7 @@ BYTE c128memrom_rom_read(WORD addr)
     return 0;
 }
 
-void c128memrom_rom_store(WORD addr, BYTE value)
+void c128memrom_rom_store(uint16_t addr, uint8_t value)
 {
     switch (addr & 0xf000) {
         case 0x0000:

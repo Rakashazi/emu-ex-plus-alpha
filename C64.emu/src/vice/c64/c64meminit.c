@@ -309,6 +309,13 @@ void c64meminit(unsigned int base)
 
     /* Setup Ultimax configuration.  */
     for (j = 16; j < 24; j++) {
+        if (board == 1) {
+            for (i = 0x08; i <= 0x0f; i++) {
+                mem_read_tab_set(base + j, i, ultimax_0800_0fff_read);
+                mem_set_write_hook(base + j, i, ultimax_0800_0fff_store);
+                mem_read_base_set(base + j, i, NULL);
+            }
+        }
         for (i = 0x10; i <= 0x7f; i++) {
             mem_read_tab_set(base + j, i, ultimax_1000_7fff_read);
             mem_set_write_hook(base + j, i, ultimax_1000_7fff_store);

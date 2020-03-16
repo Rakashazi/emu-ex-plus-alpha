@@ -89,7 +89,7 @@ int tape_image_create(const char *name, unsigned int type)
 
 /* ------------------------------------------------------------------------- */
 
-void tape_get_header(tape_image_t *tape_image, BYTE *name)
+void tape_get_header(tape_image_t *tape_image, uint8_t *name)
 {
     switch (tape_image->type) {
         case TAPE_TYPE_T64:
@@ -169,7 +169,7 @@ int tape_seek_to_next_file(tape_image_t *tape_image, unsigned int allow_rewind)
     return -1;
 }
 
-int tape_read(tape_image_t *tape_image, BYTE *buf, size_t size)
+int tape_read(tape_image_t *tape_image, uint8_t *buf, size_t size)
 {
     switch (tape_image->type) {
         case TAPE_TYPE_T64:

@@ -81,7 +81,12 @@
 
 static int dsm_active = 0;
 
-static BYTE dsm_io1_read(WORD addr)
+/* We use the entire $de00-$deff range, even though the software only uses $de00,
+ * and we only react to address $de00, this is to fine tune the emulation when/if
+ * a working piece of software for the diashow maker shows up that uses an address
+ * other than $de00
+ */
+static uint8_t dsm_io1_read(uint16_t addr)
 {
     DBG(("io1 r %04x\n", addr));
     if (addr == 0) {
@@ -92,12 +97,17 @@ static BYTE dsm_io1_read(WORD addr)
     return 0; /* invalid */
 }
 
-static BYTE dsm_io1_peek(WORD addr)
+static uint8_t dsm_io1_peek(uint16_t addr)
 {
     return 0;
 }
 
-static void dsm_io1_store(WORD addr, BYTE value)
+/* We use the entire $de00-$deff range, even though the software only uses $de00,
+ * and we only react to address $de00, this is to fine tune the emulation when/if
+ * a working piece of software for the diashow maker shows up that uses an address
+ * other than $de00
+ */
+static void dsm_io1_store(uint16_t addr, uint8_t value)
 {
     DBG(("io1 w %04x %02x\n", addr, value));
     if (addr == 0) {
@@ -115,18 +125,19 @@ static int dsm_dump(void)
 }
 
 static io_source_t dsm_io1_device = {
-    CARTRIDGE_NAME_DIASHOW_MAKER,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    0, /* read is never valid */
-    dsm_io1_store,
-    dsm_io1_read,
-    dsm_io1_peek,
-    dsm_dump,
-    CARTRIDGE_DIASHOW_MAKER,
-    0,
-    0
+    CARTRIDGE_NAME_DIASHOW_MAKER, /* name of the device */
+    IO_DETACH_CART,               /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,        /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,         /* range for the device, reg: $de00, unknown mirrors:$de01-$deff */
+    0,                            /* read is never valid */
+    dsm_io1_store,                /* store function */
+    NULL,                         /* NO poke function */
+    dsm_io1_read,                 /* read function */
+    dsm_io1_peek,                 /* peek function */
+    dsm_dump,                     /* device state information dump function */
+    CARTRIDGE_DIASHOW_MAKER,      /* cartridge ID */
+    IO_PRIO_NORMAL,               /* normal priority, device read needs to be checked for collisions */
+    0                             /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *dsm_io1_list_item = NULL;
@@ -151,7 +162,7 @@ void dsm_config_init(void)
     dsm_active = 1;
 }
 
-void dsm_config_setup(BYTE *rawcart)
+void dsm_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, DSM_CART_SIZE);
     cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
@@ -170,7 +181,7 @@ static int dsm_common_attach(void)
     return 0;
 }
 
-int dsm_bin_attach(const char *filename, BYTE *rawcart)
+int dsm_bin_attach(const char *filename, uint8_t *rawcart)
 {
     DBG(("Diashow Maker: bin attach '%s'\n", filename));
     if (util_file_load(filename, rawcart, DSM_CART_SIZE, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
@@ -180,7 +191,7 @@ int dsm_bin_attach(const char *filename, BYTE *rawcart)
     return dsm_common_attach();
 }
 
-int dsm_crt_attach(FILE *fd, BYTE *rawcart)
+int dsm_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
 
@@ -231,7 +242,7 @@ int dsm_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || (SMW_B(m, (BYTE)dsm_active) < 0)
+        || (SMW_B(m, (uint8_t)dsm_active) < 0)
         || (SMW_BA(m, roml_banks, DSM_CART_SIZE) < 0)) {
         snapshot_module_close(m);
         return -1;
@@ -242,7 +253,7 @@ int dsm_snapshot_write_module(snapshot_t *s)
 
 int dsm_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -252,13 +263,13 @@ int dsm_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
     /* new in 0.1 */
-    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 1)) {
         if (SMR_B_INT(m, &dsm_active) < 0) {
             goto fail;
         }

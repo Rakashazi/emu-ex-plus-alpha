@@ -5,6 +5,7 @@
  *  Markus Brenner   <markus@brenner.de>
  *  Ettore Perazzoli <ettore@comm2000.it>
  *  Andreas Boose <viceteam@t-online.de>
+ *  Errol Smith <strobey@users.sourceforge.net>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -32,26 +33,30 @@
 #include <string.h>
 
 #include <stdio.h>
-
+#include "lib.h"
+#include "log.h"
 #include "machine.h"
 #include "maincpu.h"
 #include "monitor.h"
 #include "types.h"
 #include "vdc-mem.h"
+#include "vdc-resources.h"
 #include "vdc.h"
 #include "vdctypes.h"
 
 
 #include "vdc-draw.h"
 
+static CLOCK vdc_status_clear_clock = 0;
+
 /*#define REG_DEBUG*/
 
 /* bitmask to set the unused bits in returned register values */
-static const BYTE regmask[38] = {
+static const uint8_t regmask[38] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0xE0, 0x00, 0x00,
     0xFC, 0xE0, 0x80, 0xE0, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xE0,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0xE0, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x0f, 0xE0, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F
 };
 
@@ -63,7 +68,7 @@ static void vdc_write_data(void)
     ptr = (vdc.regs[18] << 8) + vdc.regs[19];
 
     /* Write data byte to update address. */
-    vdc.ram[ptr & vdc.vdc_address_mask] = vdc.regs[31];
+    vdc_ram_store(ptr & vdc.vdc_address_mask, vdc.regs[31]);
 #ifdef REG_DEBUG
     log_message(vdc.log, "STORE %04x %02x", ptr & vdc.vdc_address_mask,
                 vdc.regs[31]);
@@ -113,17 +118,28 @@ static void vdc_perform_fillcopy(void)
 }
 
 
+/* (re)calculate the width of each vdc character in pixels */
+static void vdc_calculate_charwidth(void)
+{
+    if(vdc.regs[25] & 0x10) { /* double pixel a.k.a 40column mode */
+        vdc.charwidth = 2 * (vdc.regs[22] >> 4);
+    } else { /* 80 column mode */
+        vdc.charwidth = 1 + (vdc.regs[22] >> 4);
+    }
+}
+
+
 /* VDC interface functions. */
 
 /* Store a value in a VDC register. */
-void vdc_store(WORD addr, BYTE value)
+void vdc_store(uint16_t addr, uint8_t value)
 {
-    BYTE oldval;
+    uint8_t oldval;
 
     /* WARNING: assumes `maincpu_rmw_flag' is 0 or 1.  */
     machine_handle_pending_alarms(maincpu_rmw_flag + 1);
 
-    /* $d600 sets the internal vdc address pointer */
+    /* $d600 sets the internal VDC register pointer */
     if ((addr & 1) == 0) {  /* writing to $d600   */
 #ifdef REG_DEBUG
         /*log_message(vdc.log, "STORE $D600 %02x", value);*/
@@ -248,10 +264,15 @@ void vdc_store(WORD addr, BYTE value)
 #endif
             break;
 
-        case 8:                 /* R08  unused: Interlace and Skew */
-            vdc.update_geometry = 1;
+        case 8:                 /* R08  Interlace and Skew */
+			if ((vdc.regs[8] & 0x03) == 3)  {   /* interlace */
+				vdc.interlaced = 1;
+			} else {
+				vdc.interlaced = 0;
+			}
+			//vdc.update_geometry = 1;
 #ifdef REG_DEBUG
-            log_message(vdc.log, "REG 8 Interlace:%02x");
+            log_message(vdc.log, "REG 8 Interlace:%02x", vdc.regs[8]);
 #endif
             break;
 
@@ -304,6 +325,8 @@ void vdc_store(WORD addr, BYTE value)
         case 18:                /* R18/19 Update Address hi/lo */
         case 19:
             vdc.update_adr = ((vdc.regs[18] << 8) | vdc.regs[19]) & vdc.vdc_address_mask;
+            /* writing to 18/19 forces the vdc to go read its memory, which takes a while */
+            vdc_status_clear_clock = maincpu_clk + 37;
             break;
 
         case 20:                /* R20/21 Attribute Start Address hi/lo */
@@ -316,6 +339,7 @@ void vdc_store(WORD addr, BYTE value)
 
         case 22:                /* R22 Character Horizontal Size Control */
             /* TODO - changes to this register are real time, so need raster_changes() type call, but why bother... */
+            vdc_calculate_charwidth();
 #ifdef REG_DEBUG
             log_message(vdc.log, "REG 22 only partially supported!");
 #endif
@@ -368,6 +392,7 @@ void vdc_store(WORD addr, BYTE value)
                 /* Double-Pixel Mode */
                 vdc.update_geometry = 1;
             }
+            vdc_calculate_charwidth();
 #ifdef REG_DEBUG
             log_message(vdc.log, "Video mode: %s.",
                         (vdc.regs[25] & 0x80) ? "bitmap" : "text");
@@ -430,12 +455,16 @@ void vdc_store(WORD addr, BYTE value)
 #endif
             break;
 
-        case 30:                /* Word Count */
+        case 30:                /* Word Count + initiate fill or copy */
             vdc_perform_fillcopy();
+            /* Set the clock for when the vdc status will be clear after this operation */
+            vdc_status_clear_clock = maincpu_clk + (vdc.regs[30]*45/100);
             break;
 
-        case 31:                /* Data */
+        case 31:                /* Data for memory write */
             vdc_write_data();
+            /* Set the clock for when the vdc status will be clear after this operation */
+            vdc_status_clear_clock = maincpu_clk + 15;
             break;
 
         case 32:                /* R32/33 Block Start Address hi/lo */
@@ -469,9 +498,9 @@ void vdc_store(WORD addr, BYTE value)
 }
 
 
-BYTE vdc_read(WORD addr)
+uint8_t vdc_read(uint16_t addr)
 {
-    BYTE retval;
+    uint8_t retval;
     int ptr;
 
     machine_handle_pending_alarms(0);
@@ -480,11 +509,13 @@ BYTE vdc_read(WORD addr)
         /*log_message(vdc.log, "read: addr = %x", addr);*/
 
         if (vdc.update_reg == 31) {
-            retval = vdc.ram[((vdc.regs[18] << 8) + vdc.regs[19]) & vdc.vdc_address_mask];
+            retval = vdc_ram_read((vdc.regs[18] << 8) + vdc.regs[19]);
             ptr = (1 + vdc.regs[19] + (vdc.regs[18] << 8))
                   & vdc.vdc_address_mask;
             vdc.regs[18] = (ptr >> 8) & 0xff;
             vdc.regs[19] = ptr & 0xff;
+             /* Set the clock for when the vdc status will be clear after this operation */
+            vdc_status_clear_clock = maincpu_clk + 37;
             return retval;
         }
 
@@ -508,16 +539,25 @@ BYTE vdc_read(WORD addr)
 
         return 0xff; /* return 0xFF for invalid register numbers */
     } else { /* read $d600 (and mirrors $d602/4/6....$d6fe) */
-        /* NOTE - Status ($80) is currently unsupported and always returns 1 (ready) */
-        retval = 0x80 | vdc.revision;
+        retval = vdc.revision;
+
+        /* Status ($80) is set when the VDC is ready for the next register access.
+           we use an (approximate) timer hack to see if it is ready yet. */
+        if (maincpu_clk > vdc_status_clear_clock) {
+            retval |= 0x80;
+        } else if (maincpu_clk + 10000 < vdc_status_clear_clock) {
+            /* safety check in case maincpu_clk overflows */
+            vdc_status_clear_clock = maincpu_clk;
+        }
 
         /* Emulate lightpen flag. */
         if (vdc.light_pen.triggered) {
             retval |= 0x40;
         }
 
-        /* Emulate vblank bit.  */
-        if ((vdc.raster.current_line <= vdc.border_height) || (vdc.raster.current_line > (vdc.border_height + vdc.screen_ypix))) {
+        /* Emulate VBLANK bit. If the bit is set, we are in the top or bottom border. If zero we are in the active area.
+           Confusingly this has nothing to do with vertical retrace or vertical sync pulse, despite the name & what documentation says. */
+        if (!vdc.display_enable) {
             retval |= 0x20;
         }
 
@@ -526,7 +566,7 @@ BYTE vdc_read(WORD addr)
 }
 
 
-BYTE vdc_peek(WORD addr)    /* No sidefx read of external VDC registers */
+uint8_t vdc_peek(uint16_t addr)    /* No sidefx read of external VDC registers */
 {
     if (addr & 1) { /* read $d601 (and mirrors $d603/5/7....$d6ff)  */
 
@@ -547,52 +587,110 @@ BYTE vdc_peek(WORD addr)    /* No sidefx read of external VDC registers */
     }
 }
 
-
-BYTE vdc_ram_read(WORD addr)
+#if 0
+/* address translation function for a 64KB VDC in 16KB mode */
+static uint16_t vdc_64k_to_16k_map(uint16_t address)
 {
+    uint16_t new_address = address & 0x80ff;
+    uint16_t tmp = address & 0x3f00;
+    uint16_t low_bit = address & 0x0100;
+
+    tmp <<= 1;
+    tmp |= low_bit;
+    new_address |= tmp;
+    return new_address;
+}
+#endif
+
+uint8_t vdc_ram_read(uint16_t addr)
+{
+#if 0
+    /* check for 16KB memory map and 64KB VDC */
+    if (!(vdc.regs[28] & 0x10) && (vdc_resources.vdc_64kb_expansion)) {
+        return vdc.ram[vdc_64k_to_16k_map(addr & vdc.vdc_address_mask)];
+    }
+#endif
+    /* for now the default till all possible combinations have been fixed */
     return vdc.ram[addr & vdc.vdc_address_mask];
 }
 
-void vdc_ram_store(WORD addr, BYTE value)
+void vdc_ram_store(uint16_t addr, uint8_t value)
 {
+#if 0
+    if (!(vdc.regs[28] & 0x10) && (vdc_resources.vdc_64kb_expansion)) {
+        vdc.ram[vdc_64k_to_16k_map(addr & vdc.vdc_address_mask)] = value;
+    } else
+#endif
     vdc.ram[addr & vdc.vdc_address_mask] = value;
 }
 
 
-int vdc_dump(void *context, WORD addr)
+int vdc_dump(void *context, uint16_t addr)
 {
-    unsigned int r, c, regnum=0;
+    unsigned int r, c, regnum=0, location, size;
 
-    mon_out("VDC Revision: %d\n", vdc.revision);
-    mon_out("Vertical Blanking Period: ");
-    mon_out(((vdc.raster.current_line <= vdc.border_height) || (vdc.raster.current_line > (vdc.border_height + vdc.screen_ypix))) ? "Yes" : "No");
-    mon_out("\nLight Pen Triggered: ");
-    mon_out(vdc.light_pen.triggered ? "Yes" : "No");
-    mon_out("\nActive Register: %d\n", vdc.update_reg);
-  
     /* Dump the internal VDC registers */
-    mon_out("\nVDC Internal Registers:\n");
-    for (r = 0; r < 5; r++) {
+    mon_out("VDC Internal Registers:\n");
+    for (r = 0; r < 3; r++) {
         mon_out("%02x: ", regnum);
-        for (c = 0; c < 8; c++) {
-            if (regnum <= 37)
-            {
+        for (c = 0; c < 16; c++) {
+            if (regnum <= 37) {
                 mon_out("%02x ", vdc.regs[regnum] | regmask[regnum]);
             }
             regnum++;
-            if (c == 3)
-            {
+            if ((c & 3) == 3) {
                 mon_out(" ");
             }
         }
         mon_out("\n");
     }
+    mon_out("\nVDC Revision   : %u", vdc.revision);
+    mon_out("\nVertical Blanking Period: ");
+    mon_out(((vdc.raster.current_line <= vdc.border_height) || (vdc.raster.current_line > (vdc.border_height + vdc.screen_ypix))) ? "Yes" : "No");
+    mon_out("\nLight Pen Triggered: ");
+    mon_out(vdc.light_pen.triggered ? "Yes" : "No");
+    mon_out("\nStatus         : ");
+    mon_out(maincpu_clk > vdc_status_clear_clock ? "Ready" : "Busy");
+    mon_out("\nActive Register: %d", vdc.update_reg);
+    mon_out("\nMemory Address : $%04x",
+            (unsigned int)(((vdc.regs[18] << 8) + vdc.regs[19]) & vdc.vdc_address_mask));
+    mon_out("\nBlockCopySource: $%04x",
+            (unsigned int)(((vdc.regs[32] << 8) + vdc.regs[33]) & vdc.vdc_address_mask));
+    mon_out("\nDisplay Mode   : ");
+    mon_out(vdc.regs[25] & 0x80 ? "Bitmap" : "Text");
+    mon_out(vdc.regs[25] & 0x40 ? " & Attributes" : ", no Attributes");
+    mon_out(vdc.regs[25] & 0x20 ? ", Semigraphic" : "");
+    mon_out(vdc.regs[24] & 0x40 ? ", Reverse" : "");
+    mon_out(vdc.regs[8] & 0x03 ? ", Interlaced" : ", Non-Interlaced");
+    if (vdc.regs[25] & 0x10) { /* double pixel mode aka 40column mode */
+        mon_out(", Double Pixel Mode");
+        mon_out("\nScreen Size    : %d x %d", vdc.regs[1], vdc.regs[6]);
+        mon_out("\nCharacter Size : %d x %d pixels (%d x %d visible)", vdc.regs[22] >> 4, vdc.regs[9] + 1, (vdc.regs[22] & 0x0f) + 1, (vdc.regs[23] & 0x1f) + 1);
+        mon_out("\nActive Pixels  : %d x %d", vdc.regs[1] * (vdc.regs[22] >> 4), vdc.regs[6] * (vdc.regs[9] + 1));
+    } else {
+        mon_out("\nScreen Size    : %d x %d", vdc.regs[1], vdc.regs[6]);
+        mon_out("\nCharacter Size : %d x %d pixels (%d x %d visible)", (vdc.regs[22] >> 4) + 1, vdc.regs[9] + 1, (vdc.regs[22] & 0x0f) + 1, (vdc.regs[23] & 0x1f) + 1);
+        mon_out("\nActive Pixels  : %d x %d", vdc.regs[1] * ((vdc.regs[22] >> 4) + 1), vdc.regs[6] * (vdc.regs[9] + 1));
+    }
 
-    /*
-      TODO:
-      Add STATUS when it's actually supported
-      Expand on VDC internal register settings
-      Current memory address etc.
-    */
+    location = ((vdc.regs[12] << 8) + vdc.regs[13]) & vdc.vdc_address_mask;
+    if (vdc.regs[25] & 0x80 ) {
+        size = vdc.regs[1] * vdc.regs[6] * (vdc.regs[9] + 1);   /* bitmap size */
+    } else {
+        size = vdc.regs[1] * vdc.regs[6];   /* text mode size */
+    }
+    mon_out("\nScreen Memory  : $%04x-$%04x (Size $%04x)", location, (location + size - 1) & vdc.vdc_address_mask, size);
+
+    location = ((vdc.regs[20] << 8) + vdc.regs[21]) & vdc.vdc_address_mask;
+    size = vdc.regs[1] * vdc.regs[6];
+    mon_out("\nAttrib Memory  : $%04x-$%04x (Size $%04x)", location, (location + size - 1) & vdc.vdc_address_mask, size);
+
+    location = ((vdc.regs[28] & 0xE0) << 8) & vdc.vdc_address_mask;
+    size = 0x200 * vdc.bytes_per_char; /* 0x2000 or 0x4000, depending on character height */
+    mon_out("\nCharset Memory : $%04x-$%04x (Size $%04x)", location, (location + size - 1) & vdc.vdc_address_mask, size);
+
+    mon_out("\nCursor Address : $%04x",
+            (unsigned int)(((vdc.regs[14] << 8) + vdc.regs[15]) & vdc.vdc_address_mask));
+    mon_out("\n");
     return 0;
 }

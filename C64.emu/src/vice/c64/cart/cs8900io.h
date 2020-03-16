@@ -30,7 +30,9 @@
 #ifndef VICE_TFE_H
 #define VICE_TFE_H
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
+
+#include <stdint.h>
 
 #include "types.h"
 
@@ -43,12 +45,12 @@ extern int cs8900io_cmdline_options_init(void);
 
 extern void cs8900io_reset(void);
 extern void cs8900io_detach(void);
-extern int cs8900io_enable(char *owner);
+extern int cs8900io_enable(const char *owner);
 extern int cs8900io_disable(void);
 
-extern void cs8900io_store(WORD io_address, BYTE byte);
-extern BYTE cs8900io_read(WORD io_address);
-extern BYTE cs8900io_peek(WORD io_address);
+extern void cs8900io_store(uint16_t io_address, uint8_t byte);
+extern uint8_t cs8900io_read(uint16_t io_address);
+extern uint8_t cs8900io_peek(uint16_t io_address);
 extern int cs8900io_dump(void);
 
 #endif

@@ -131,41 +131,43 @@ CB2            - enable Cartridge (?)
 /* ---------------------------------------------------------------------*/
 
 /* some prototypes are needed */
-static void magicformel_io1_store(WORD addr, BYTE value);
-static BYTE magicformel_io1_read(WORD addr);
-static BYTE magicformel_io1_peek(WORD addr);
-static void magicformel_io2_store(WORD addr, BYTE value);
-static BYTE magicformel_io2_read(WORD addr);
-static BYTE magicformel_io2_peek(WORD addr);
+static void magicformel_io1_store(uint16_t addr, uint8_t value);
+static uint8_t magicformel_io1_read(uint16_t addr);
+static uint8_t magicformel_io1_peek(uint16_t addr);
+static void magicformel_io2_store(uint16_t addr, uint8_t value);
+static uint8_t magicformel_io2_read(uint16_t addr);
+static uint8_t magicformel_io2_peek(uint16_t addr);
 
 static io_source_t magicformel_io1_device = {
-    CARTRIDGE_NAME_MAGIC_FORMEL,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    0,
-    magicformel_io1_store,
-    magicformel_io1_read,
-    magicformel_io1_peek,
-    NULL, /* TODO: dump */
-    CARTRIDGE_MAGIC_FORMEL,
-    0,
-    0
+    CARTRIDGE_NAME_MAGIC_FORMEL, /* name of the device */
+    IO_DETACH_CART,              /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,       /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,        /* range for the device, regs:$de00-$deff */
+    0,                           /* read validity is determined by the device upon a read */
+    magicformel_io1_store,       /* store function */
+    NULL,                        /* NO poke function */
+    magicformel_io1_read,        /* read function */
+    magicformel_io1_peek,        /* peek function */
+    NULL,                        /* TODO: device state information dump function */
+    CARTRIDGE_MAGIC_FORMEL,      /* cartridge ID */
+    IO_PRIO_NORMAL,              /* normal priority, device read needs to be checked for collisions */
+    0                            /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t magicformel_io2_device = {
-    CARTRIDGE_NAME_MAGIC_FORMEL,
-    IO_DETACH_CART,
-    NULL,
-    0xdf00, 0xdfff, 0xff,
-    1, /* read is always valid */
-    magicformel_io2_store,
-    magicformel_io2_read,
-    magicformel_io2_peek,
-    NULL, /* TODO: dump */
-    CARTRIDGE_MAGIC_FORMEL,
-    0,
-    0
+    CARTRIDGE_NAME_MAGIC_FORMEL, /* name of the device */
+    IO_DETACH_CART,              /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,       /* does not use a resource for detach */
+    0xdf00, 0xdfff, 0xff,        /* range for the device, regs:$df00-$dfff */
+    1,                           /* read is always valid */
+    magicformel_io2_store,       /* store function */
+    NULL,                        /* NO poke function */
+    magicformel_io2_read,        /* read function */
+    magicformel_io2_peek,        /* peek function */
+    NULL,                        /* TODO: device state information dump function */
+    CARTRIDGE_MAGIC_FORMEL,      /* cartridge ID */
+    IO_PRIO_NORMAL,              /* normal priority, device read needs to be checked for collisions */
+    0                            /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *magicformel_io1_list_item = NULL;
@@ -221,9 +223,9 @@ static void log_bank(int bank)
 static void change_config(void)
 {
     if (kernal_enabled || freeze_enabled) {
-        cart_config_changed_slotmain(2, (BYTE)(3 | (romh_bank << CMODE_BANK_SHIFT)), CMODE_READ | CMODE_PHI2_RAM);
+        cart_config_changed_slotmain(2, (uint8_t)(3 | (romh_bank << CMODE_BANK_SHIFT)), CMODE_READ | CMODE_PHI2_RAM);
     } else {
-        cart_config_changed_slotmain(2, (BYTE)(2 | (romh_bank << CMODE_BANK_SHIFT)), CMODE_READ | CMODE_PHI2_RAM);
+        cart_config_changed_slotmain(2, (uint8_t)(2 | (romh_bank << CMODE_BANK_SHIFT)), CMODE_READ | CMODE_PHI2_RAM);
     }
 }
 
@@ -246,7 +248,7 @@ static void freeze_flipflop(int reset, int freeze, int clear)
  ***************************************************************************/
 
 #ifdef LOG_PORTS
-static void mf_print_pa(BYTE data)
+static void mf_print_pa(uint8_t data)
 {
     /*
         PA (Output Data)
@@ -263,9 +265,9 @@ static void mf_print_pa(BYTE data)
     DBG(("[UNUSED %02x] ", (data) & 0xe0));
 }
 
-static void mf_print_pb(BYTE data)
+static void mf_print_pb(uint8_t data)
 {
-    BYTE page;
+    uint8_t page;
 
     /*
         PB (Output Data)
@@ -290,7 +292,7 @@ static void mf_print_pb(BYTE data)
 
 static void mf_set_pa(mc6821_state *ctx)
 {
-    BYTE data = ctx->dataA;
+    uint8_t data = ctx->dataA;
 #ifdef LOG_PORTS
     mf_print_pa(ctx->dataA);
     mf_print_pb(ctx->dataB);
@@ -328,7 +330,7 @@ static void mf_set_pa(mc6821_state *ctx)
 
 static void mf_set_pb(mc6821_state *ctx)
 {
-    BYTE data = ctx->dataB;
+    uint8_t data = ctx->dataB;
 #ifdef LOG_PORTS
     mf_print_pa(ctx->dataA);
     mf_print_pb(ctx->dataB);
@@ -387,7 +389,7 @@ static void mf_set_cb2(mc6821_state *ctx)
 *
 ****************************************************************************/
 
-static BYTE magicformel_io1_read(WORD addr)
+static uint8_t magicformel_io1_read(uint16_t addr)
 {
 #ifdef DEBUG_IO1_NO_DISABLE
     if (1) {
@@ -403,12 +405,12 @@ static BYTE magicformel_io1_read(WORD addr)
     return 0;
 }
 
-static BYTE magicformel_io1_peek(WORD addr)
+static uint8_t magicformel_io1_peek(uint16_t addr)
 {
     return export_ram0[(ram_page << 8) + (addr & 0xff)];
 }
 
-static void magicformel_io1_store(WORD addr, BYTE value)
+static void magicformel_io1_store(uint16_t addr, uint8_t value)
 {
 #ifdef DEBUG_IO1_NO_DISABLE
     if (1) {
@@ -427,7 +429,7 @@ static void magicformel_io1_store(WORD addr, BYTE value)
     d1 goes to d7
 */
 
-static BYTE magicformel_io2_read(WORD addr)
+static uint8_t magicformel_io2_read(uint16_t addr)
 {
     int port, reg;
 
@@ -439,7 +441,7 @@ static BYTE magicformel_io2_read(WORD addr)
     return mc6821core_read(&my6821, port /* rs1 */, reg /* rs0 */);
 }
 
-static BYTE magicformel_io2_peek(WORD addr)
+static uint8_t magicformel_io2_peek(uint16_t addr)
 {
     int port, reg;
 
@@ -449,11 +451,11 @@ static BYTE magicformel_io2_peek(WORD addr)
     return mc6821core_peek(&my6821, port /* rs1 */, reg /* rs0 */);
 }
 
-static void magicformel_io2_store(WORD addr, BYTE value)
+static void magicformel_io2_store(uint16_t addr, uint8_t value)
 {
     int port;
-    WORD reg;
-    BYTE data;
+    uint16_t reg;
+    uint8_t data;
 
     data = (addr & 0x3f) | ((value & 2) << 6); /* d0..d5 d7 */
     port = (addr >> 7) & 1; /* rs1 */
@@ -472,7 +474,7 @@ static void magicformel_io2_store(WORD addr, BYTE value)
     the "mf-windows" stuff only works if it reads RAM here, the freezer must
     however always read ROM
 */
-BYTE magicformel_romh_read(WORD addr)
+uint8_t magicformel_romh_read(uint16_t addr)
 {
     if (freeze_enabled && addr >= 0xe000) {
         return romh_banks[(addr & 0x1fff) + (romh_bank << 13)];
@@ -480,7 +482,7 @@ BYTE magicformel_romh_read(WORD addr)
     return mem_read_without_ultimax(addr);
 }
 
-BYTE magicformel_romh_read_hirom(WORD addr)
+uint8_t magicformel_romh_read_hirom(uint16_t addr)
 {
     if (addr >= 0xe000) {
         return romh_banks[(addr & 0x1fff) + (romh_bank << 13)];
@@ -488,17 +490,17 @@ BYTE magicformel_romh_read_hirom(WORD addr)
     return mem_read_without_ultimax(addr);
 }
 
-int magicformel_romh_phi1_read(WORD addr, BYTE *value)
+int magicformel_romh_phi1_read(uint16_t addr, uint8_t *value)
 {
     return CART_READ_C64MEM;
 }
 
-int magicformel_romh_phi2_read(WORD addr, BYTE *value)
+int magicformel_romh_phi2_read(uint16_t addr, uint8_t *value)
 {
     return magicformel_romh_phi1_read(addr, value);
 }
 
-int magicformel_peek_mem(export_t *export, WORD addr, BYTE *value)
+int magicformel_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
 {
     if (addr >= 0xe000) {
         *value = romh_banks[(addr & 0x1fff) + (romh_bank << 13)];
@@ -521,7 +523,7 @@ void magicformel_freeze(void)
 
     freeze_flipflop(0 /* reset */, 1 /* freeze */, my6821.CB2);
 
-    cart_config_changed_slotmain(2, (BYTE)(3 | ((romh_bank & 0x0f) << CMODE_BANK_SHIFT)), CMODE_READ | CMODE_RELEASE_FREEZE);
+    cart_config_changed_slotmain(2, (uint8_t)(3 | ((romh_bank & 0x0f) << CMODE_BANK_SHIFT)), CMODE_READ | CMODE_RELEASE_FREEZE);
 }
 
 void magicformel_config_init(void)
@@ -537,7 +539,7 @@ void magicformel_config_init(void)
 
     freeze_flipflop(1 /* reset */, 0 /* freeze */, my6821.CB2);
 
-    cart_config_changed_slotmain(2, (BYTE)(3 | (romh_bank << CMODE_BANK_SHIFT)), CMODE_READ);
+    cart_config_changed_slotmain(2, (uint8_t)(3 | (romh_bank << CMODE_BANK_SHIFT)), CMODE_READ);
 }
 
 void magicformel_reset(void)
@@ -553,7 +555,7 @@ void magicformel_reset(void)
     mc6821core_reset(&my6821);
 }
 
-void magicformel_config_setup(BYTE *rawcart)
+void magicformel_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x20000);
     memcpy(romh_banks, rawcart, 0x20000);
@@ -570,7 +572,7 @@ static int magicformel_common_attach(void)
     return 0;
 }
 
-int magicformel_bin_attach(const char *filename, BYTE *rawcart)
+int magicformel_bin_attach(const char *filename, uint8_t *rawcart)
 {
     hwversion = 2;
     if (util_file_load(filename, rawcart, 0x20000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
@@ -590,7 +592,7 @@ int magicformel_bin_attach(const char *filename, BYTE *rawcart)
     load CRT, handles 64k (v1.2), 64k+32k (v2.0), 64k+64k (v2.0)
 */
 
-int magicformel_crt_attach(FILE *fd, BYTE *rawcart)
+int magicformel_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
     int i, cnt = 0;
@@ -676,12 +678,12 @@ int magicformel_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || (SMW_B(m, (BYTE)ram_page) < 0)
-        || (SMW_B(m, (BYTE)io1_enabled) < 0)
-        || (SMW_B(m, (BYTE)kernal_enabled) < 0)
-        || (SMW_B(m, (BYTE)freeze_enabled) < 0)
-        || (SMW_B(m, (BYTE)export_game) < 0)
-        || (SMW_B(m, (BYTE)hwversion) < 0)
+        || (SMW_B(m, (uint8_t)ram_page) < 0)
+        || (SMW_B(m, (uint8_t)io1_enabled) < 0)
+        || (SMW_B(m, (uint8_t)kernal_enabled) < 0)
+        || (SMW_B(m, (uint8_t)freeze_enabled) < 0)
+        || (SMW_B(m, (uint8_t)export_game) < 0)
+        || (SMW_B(m, (uint8_t)hwversion) < 0)
         || (SMW_BA(m, roml_banks, 0x20000) < 0)
         || (SMW_BA(m, export_ram0, 0x2000) < 0)) {
         goto fail;
@@ -700,7 +702,7 @@ fail:
 
 int magicformel_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -710,7 +712,7 @@ int magicformel_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

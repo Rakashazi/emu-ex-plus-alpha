@@ -33,16 +33,16 @@
 
 extern int ssi2001_open(void);
 extern int ssi2001_close(void);
-extern int ssi2001_read(WORD addr, int chipno);
-extern void ssi2001_store(WORD addr, BYTE val, int chipno);
+extern int ssi2001_read(uint16_t addr, int chipno);
+extern void ssi2001_store(uint16_t addr, uint8_t val, int chipno);
 extern void ssi2001_set_machine_parameter(long cycles_per_sec);
 
 extern int ssi2001_available(void);
 
 extern int ssi2001_drv_open(void);
 extern int ssi2001_drv_close(void);
-extern int ssi2001_drv_read(WORD addr, int chipno);
-extern void ssi2001_drv_store(WORD addr, BYTE val, int chipno);
+extern int ssi2001_drv_read(uint16_t addr, int chipno);
+extern void ssi2001_drv_store(uint16_t addr, uint8_t val, int chipno);
 extern int ssi2001_drv_available(void);
 
 extern void ssi2001_state_read(int chipno, struct sid_ssi2001_snapshot_state_s *sid_state);

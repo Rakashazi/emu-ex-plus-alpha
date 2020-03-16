@@ -55,7 +55,7 @@ extern void cart_power_off(void);
 extern void cart_attach_from_snapshot(int type);
 
 extern void cart_detach_slotmain(void);
-extern VICE_API int cart_getid_slotmain(void); /* returns ID of cart in "Main Slot" */
+extern int cart_getid_slotmain(void); /* returns ID of cart in "Main Slot" */
 extern int cart_getid_slot0(void);
 extern int cart_getid_slot1(void);
 
@@ -76,8 +76,8 @@ extern const char *cart_get_file_name(int type);
 extern int cart_is_slotmain(int type); /* returns 1 if cart of given type is in "Main Slot" */
 extern int cart_type_enabled(int type);
 
-extern void cart_attach(int type, BYTE *rawcart);
-extern int cart_bin_attach(int type, const char *filename, BYTE *rawcart);
+extern void cart_attach(int type, uint8_t *rawcart);
+extern int cart_bin_attach(int type, const char *filename, uint8_t *rawcart);
 extern void cart_detach(int type);
 extern void cart_detach_all(void);
 
@@ -94,7 +94,7 @@ extern void cart_reset_memptr(void);
 #define CMODE_RAM 2
 #define CMODE_ULTIMAX 3
 
-extern const char *cart_config_string(BYTE mode); /* convert above mode into human readable string */
+extern const char *cart_config_string(uint8_t mode); /* convert above mode into human readable string */
 
 /* mode_phiN other bits select bank (main slot only!) */
 #define CMODE_BANK_SHIFT 2
@@ -116,7 +116,7 @@ extern const char *cart_config_string(BYTE mode); /* convert above mode into hum
 
 #ifdef CARTRIDGE_INCLUDE_SLOT0_API
 
-extern void cart_config_changed_slot0(BYTE mode_phi1, BYTE mode_phi2, unsigned int wflag);
+extern void cart_config_changed_slot0(uint8_t mode_phi1, uint8_t mode_phi2, unsigned int wflag);
 extern void cart_set_port_exrom_slot0(int n);
 extern void cart_set_port_game_slot0(int n);
 extern void cart_port_config_changed_slot0(void);
@@ -125,7 +125,7 @@ extern void cart_port_config_changed_slot0(void);
 
 #ifdef CARTRIDGE_INCLUDE_SLOT1_API
 
-extern void cart_config_changed_slot1(BYTE mode_phi1, BYTE mode_phi2, unsigned int wflag);
+extern void cart_config_changed_slot1(uint8_t mode_phi1, uint8_t mode_phi2, unsigned int wflag);
 extern void cart_set_port_exrom_slot1(int n);
 extern void cart_set_port_game_slot1(int n);
 extern void cart_port_config_changed_slot1(void);
@@ -140,13 +140,13 @@ extern void cart_romlbank_set_slotmain(unsigned int bank);
 
 /* FIXME: these are shared between all "main slot" carts,
           individual cart implementations should get reworked to use local buffers */
-extern BYTE *roml_banks, *romh_banks, *export_ram0;
+extern uint8_t *roml_banks, *romh_banks, *export_ram0;
 extern int rombanks_resources_init(void);
 extern void rombanks_resources_shutdown(void);
 
 extern int roml_bank, romh_bank, export_ram; /* "Main Slot" ROML/ROMH/RAM banking.  */
 
-extern void cart_config_changed_slotmain(BYTE mode_phi1, BYTE mode_phi2, unsigned int wflag);
+extern void cart_config_changed_slotmain(uint8_t mode_phi1, uint8_t mode_phi2, unsigned int wflag);
 extern void cart_set_port_exrom_slotmain(int n);
 extern void cart_set_port_game_slotmain(int n);
 extern void cart_set_port_phi1_slotmain(int n);

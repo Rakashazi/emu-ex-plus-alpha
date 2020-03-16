@@ -42,24 +42,24 @@
 extern int iec_available_busses(void);
 
 extern void iec_update_ports_embedded(void);
-extern void iec_drive_write(BYTE data, unsigned int dnr);
-extern BYTE iec_drive_read(unsigned int dnr);
+extern void iec_drive_write(uint8_t data, unsigned int dnr);
+extern uint8_t iec_drive_read(unsigned int dnr);
 
 #define PARALLEL_WRITE    0 /* write data */
 #define PARALLEL_WRITE_HS 1 /* write data, set flag (cia2) */
 #define PARALLEL_HS       2 /* set flag (cia2) */
-extern void parallel_cable_drive_write(int port, BYTE data, int handshake, unsigned int dnr);
-extern BYTE parallel_cable_drive_read(int port, int handshake);
+extern void parallel_cable_drive_write(int port, uint8_t data, int handshake, unsigned int dnr);
+extern uint8_t parallel_cable_drive_read(int port, int handshake);
 
-extern void iec_fast_drive_write(BYTE data, unsigned int dnr);
+extern void iec_fast_drive_write(uint8_t data, unsigned int dnr);
 extern void iec_fast_drive_direction(int direction, unsigned int dnr);
 
-extern void iec_update_cpu_bus(BYTE data);
+extern void iec_update_cpu_bus(uint8_t data);
 extern void iec_update_ports(void);
 
-extern void plus4tcbm_update_pa(BYTE byte, unsigned int dnr);
-extern void plus4tcbm_update_pb(BYTE byte, unsigned int dnr);
-extern void plus4tcbm_update_pc(BYTE byte, unsigned int dnr);
-extern BYTE plus4tcbm_outputa[2], plus4tcbm_outputb[2], plus4tcbm_outputc[2];
+extern void plus4tcbm_update_pa(uint8_t byte, unsigned int dnr);
+extern void plus4tcbm_update_pb(uint8_t byte, unsigned int dnr);
+extern void plus4tcbm_update_pc(uint8_t byte, unsigned int dnr);
+extern uint8_t plus4tcbm_outputa[2], plus4tcbm_outputb[2], plus4tcbm_outputc[2];
 
 #endif

@@ -31,11 +31,11 @@
 #include "renderscale2x.h"
 #include "types.h"
 
-static DWORD scale2x(const DWORD *colortab, const BYTE **srcx1,
-                     const BYTE **srcx2, const BYTE **srcy1,
-                     const BYTE **srcy2, const BYTE **srce)
+static uint32_t scale2x(const uint32_t *colortab, const uint8_t **srcx1,
+                     const uint8_t **srcx2, const uint8_t **srcy1,
+                     const uint8_t **srcy2, const uint8_t **srce)
 {
-    DWORD colx1, coly1, cole;
+    uint32_t colx1, coly1, cole;
 
     colx1 = **srcx1;
     coly1 = **srcy1;
@@ -57,17 +57,17 @@ static DWORD scale2x(const DWORD *colortab, const BYTE **srcx1,
 
 
 void render_08_scale2x(const video_render_color_tables_t *color_tab,
-                       const BYTE *src, BYTE *trg,
+                       const uint8_t *src, uint8_t *trg,
                        unsigned int width, const unsigned int height,
                        const unsigned int xs, const unsigned int ys,
                        const unsigned int xt, const unsigned int yt,
                        const unsigned int pitchs, const unsigned int pitcht)
 {
-    const DWORD *colortab = color_tab->physical_colors;
-    const BYTE *tmpsrc;
-    BYTE *tmptrg;
+    const uint32_t *colortab = color_tab->physical_colors;
+    const uint8_t *tmpsrc;
+    uint8_t *tmptrg;
     unsigned int x, y, yys;
-    const BYTE *srcx1, *srcx2, *srcy1, *srcy2;
+    const uint8_t *srcx1, *srcx2, *srcy1, *srcy2;
 
     src = src + pitchs * ys + xs;
     trg = trg + pitcht * yt + xt;
@@ -75,14 +75,14 @@ void render_08_scale2x(const video_render_color_tables_t *color_tab,
 
     for (y = yys; y < (yys + height); y++) {
         tmpsrc = src;
-        tmptrg = (BYTE *)trg;
+        tmptrg = (uint8_t *)trg;
         srcx1 = (xt & 1 ? tmpsrc + 1 : tmpsrc - 1);
         srcx2 = (xt & 1 ? tmpsrc - 1 : tmpsrc + 1);
         srcy1 = (y & 1 ? tmpsrc + pitchs : tmpsrc - pitchs);
         srcy2 = (y & 1 ? tmpsrc - pitchs : tmpsrc + pitchs);
 
         for (x = 0; x < width; x++) {
-            *tmptrg++ = (BYTE)scale2x(colortab, &srcx1, &srcx2, &srcy1, &srcy2, &tmpsrc);
+            *tmptrg++ = (uint8_t)scale2x(colortab, &srcx1, &srcx2, &srcy1, &srcy2, &tmpsrc);
         }
 
         if (y & 1) {
@@ -95,17 +95,17 @@ void render_08_scale2x(const video_render_color_tables_t *color_tab,
 
 
 void render_16_scale2x(const video_render_color_tables_t *color_tab,
-                       const BYTE *src, BYTE *trg,
+                       const uint8_t *src, uint8_t *trg,
                        unsigned int width, const unsigned int height,
                        const unsigned int xs, const unsigned int ys,
                        const unsigned int xt, const unsigned int yt,
                        const unsigned int pitchs, const unsigned int pitcht)
 {
-    const DWORD *colortab = color_tab->physical_colors;
-    const BYTE *tmpsrc;
-    WORD *tmptrg;
+    const uint32_t *colortab = color_tab->physical_colors;
+    const uint8_t *tmpsrc;
+    uint16_t *tmptrg;
     unsigned int x, y, yys;
-    const BYTE *srcx1, *srcx2, *srcy1, *srcy2;
+    const uint8_t *srcx1, *srcx2, *srcy1, *srcy2;
 
     src = src + pitchs * ys + xs;
     trg = trg + pitcht * yt + (xt << 1);
@@ -113,14 +113,14 @@ void render_16_scale2x(const video_render_color_tables_t *color_tab,
 
     for (y = yys; y < (yys + height); y++) {
         tmpsrc = src;
-        tmptrg = (WORD *)trg;
+        tmptrg = (uint16_t *)trg;
         srcx1 = (xt & 1 ? tmpsrc + 1 : tmpsrc - 1);
         srcx2 = (xt & 1 ? tmpsrc - 1 : tmpsrc + 1);
         srcy1 = (y & 1 ? tmpsrc + pitchs : tmpsrc - pitchs);
         srcy2 = (y & 1 ? tmpsrc - pitchs : tmpsrc + pitchs);
 
         for (x = 0; x < width; x++) {
-            *tmptrg++ = (WORD)scale2x(colortab, &srcx1, &srcx2, &srcy1, &srcy2, &tmpsrc);
+            *tmptrg++ = (uint16_t)scale2x(colortab, &srcx1, &srcx2, &srcy1, &srcy2, &tmpsrc);
         }
 
         if (y & 1) {
@@ -133,18 +133,18 @@ void render_16_scale2x(const video_render_color_tables_t *color_tab,
 
 
 void render_24_scale2x(const video_render_color_tables_t *color_tab,
-                       const BYTE *src, BYTE *trg,
+                       const uint8_t *src, uint8_t *trg,
                        unsigned int width, const unsigned int height,
                        const unsigned int xs, const unsigned int ys,
                        const unsigned int xt, const unsigned int yt,
                        const unsigned int pitchs, const unsigned int pitcht)
 {
-    const DWORD *colortab = color_tab->physical_colors;
-    const BYTE *tmpsrc;
-    BYTE *tmptrg;
+    const uint32_t *colortab = color_tab->physical_colors;
+    const uint8_t *tmpsrc;
+    uint8_t *tmptrg;
     unsigned int x, y, yys;
-    const BYTE *srcx1, *srcx2, *srcy1, *srcy2;
-    register DWORD color;
+    const uint8_t *srcx1, *srcx2, *srcy1, *srcy2;
+    register uint32_t color;
 
     src = src + pitchs * ys + xs;
     trg = trg + pitcht * yt + (xt * 3);
@@ -160,11 +160,11 @@ void render_24_scale2x(const video_render_color_tables_t *color_tab,
 
         for (x = 0; x < width; x++) {
             color = scale2x(colortab, &srcx1, &srcx2, &srcy1, &srcy2, &tmpsrc);
-            *tmptrg++ = (BYTE)color;
+            *tmptrg++ = (uint8_t)color;
             color >>= 8;
-            *tmptrg++ = (BYTE)color;
+            *tmptrg++ = (uint8_t)color;
             color >>= 8;
-            *tmptrg++ = (BYTE)color;
+            *tmptrg++ = (uint8_t)color;
         }
 
         if (y & 1) {
@@ -177,16 +177,16 @@ void render_24_scale2x(const video_render_color_tables_t *color_tab,
 
 
 void render_32_scale2x(const video_render_color_tables_t *color_tab,
-                       const BYTE *src, BYTE *trg,
+                       const uint8_t *src, uint8_t *trg,
                        unsigned int width, const unsigned int height,
                        const unsigned int xs, const unsigned int ys,
                        const unsigned int xt, const unsigned int yt,
                        const unsigned int pitchs, const unsigned int pitcht)
 {
-    const DWORD *colortab = color_tab->physical_colors;
-    const BYTE *tmpsrc;
-    DWORD *tmptrg;
-    const BYTE *srcx1, *srcx2, *srcy1, *srcy2;
+    const uint32_t *colortab = color_tab->physical_colors;
+    const uint8_t *tmpsrc;
+    uint32_t *tmptrg;
+    const uint8_t *srcx1, *srcx2, *srcy1, *srcy2;
     unsigned int x, y, yys;
 
     src = src + pitchs * ys + xs;
@@ -195,7 +195,7 @@ void render_32_scale2x(const video_render_color_tables_t *color_tab,
 
     for (y = yys; y < (yys + height); y++) {
         tmpsrc = src;
-        tmptrg = (DWORD *)trg;
+        tmptrg = (uint32_t *)trg;
         srcx1 = (xt & 1 ? tmpsrc + 1 : tmpsrc - 1);
         srcx2 = (xt & 1 ? tmpsrc - 1 : tmpsrc + 1);
         srcy1 = (y & 1 ? tmpsrc + pitchs : tmpsrc - pitchs);

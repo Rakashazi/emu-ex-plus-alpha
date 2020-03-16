@@ -41,7 +41,7 @@ static const int mend[NUM_SEGMENTS] = {
     0xbf, 0xcf, 0xdf, 0xff
 };
 
-static const DWORD limit_tab[NUM_SEGMENTS][NUM_CONFIGS] = {
+static const uint32_t limit_tab[NUM_SEGMENTS][NUM_CONFIGS] = {
     /* 0000-0fff */
     { 0x0002fffd, 0x0002cffd, 0x0002cffd, 0x00029ffd, 0x0002fffd, 0x0002cffd, 0x0002cffd, 0x00029ffd,
       0x0002fffd, 0x0002cffd, 0x00029ffd, 0x00027ffd, 0x0002fffd, 0x0002cffd, 0x00029ffd, 0x00027ffd,
@@ -84,7 +84,7 @@ static const DWORD limit_tab[NUM_SEGMENTS][NUM_CONFIGS] = {
                0,          0,          0,          0,          0,          0,          0,          0,
       0x0002fffd, 0xe000fffd, 0xe000fffd, 0xe000fffd, 0x0002fffd, 0xe000fffd, 0xe000fffd, 0xe000fffd } };
 
-void mem_limit_init(DWORD mem_read_limit_tab[NUM_CONFIGS][0x101])
+void mem_limit_init(uint32_t mem_read_limit_tab[NUM_CONFIGS][0x101])
 {
     int i, j, k;
 
@@ -98,7 +98,7 @@ void mem_limit_init(DWORD mem_read_limit_tab[NUM_CONFIGS][0x101])
     }
 }
 
-void mem_limit_plus60k_init(DWORD mem_read_limit_tab[NUM_CONFIGS][0x101])
+void mem_limit_plus60k_init(uint32_t mem_read_limit_tab[NUM_CONFIGS][0x101])
 {
     int i, j, k;
 
@@ -116,7 +116,7 @@ void mem_limit_plus60k_init(DWORD mem_read_limit_tab[NUM_CONFIGS][0x101])
     }
 }
 
-void mem_limit_256k_init(DWORD mem_read_limit_tab[NUM_CONFIGS][0x101])
+void mem_limit_256k_init(uint32_t mem_read_limit_tab[NUM_CONFIGS][0x101])
 {
     int i, j, k;
 
@@ -130,7 +130,7 @@ void mem_limit_256k_init(DWORD mem_read_limit_tab[NUM_CONFIGS][0x101])
     }
 }
 
-void mem_limit_max_init(DWORD mem_read_limit_tab[NUM_CONFIGS][0x101])
+void mem_limit_max_init(uint32_t mem_read_limit_tab[NUM_CONFIGS][0x101])
 {
     int i, j, k;
 

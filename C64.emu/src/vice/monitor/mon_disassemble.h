@@ -40,6 +40,6 @@ extern void mon_disassemble_with_regdump(MEMSPACE mem, unsigned int addr);
 
 extern void mon_disassemble_lines(MON_ADDR start_addr, MON_ADDR end_addr);
 
-extern unsigned mon_disassemble_instr(MON_ADDR addr);
+extern unsigned mon_disassemble_instr(MON_ADDR addr, int *line_count);
 
 #endif

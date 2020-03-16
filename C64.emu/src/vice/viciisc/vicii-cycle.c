@@ -31,6 +31,8 @@
 
 #include "vice.h"
 
+#include <string.h>
+
 #include "debug.h"
 #include "lib.h"
 #include "log.h"
@@ -125,9 +127,9 @@ static inline void check_sprite_dma(void)
     }
 }
 
-static inline BYTE cycle_phi1_fetch(unsigned int cycle_flags)
+static inline uint8_t cycle_phi1_fetch(unsigned int cycle_flags)
 {
-    BYTE data;
+    uint8_t data;
     int s;
 
     if (cycle_is_fetch_g(cycle_flags)) {
@@ -250,11 +252,130 @@ static inline void next_vicii_cycle(void)
     }
 }
 
+/* on "powercycle" re-init masks and counters */
+#define VSP_PROB_MAX 4
+#define VSP_PROB_MIN 0
+#define VSP_PROB_THRESH 3
+
+static unsigned int vsp_ysmoothold = 0;
+static unsigned int vsp_buglines[8];
+static unsigned int vsp_bugchannels[8];
+static unsigned int vsp_bugwarn = 0;
+static unsigned int vsp_buginitialized = 0;
+
+/* FIXME: reset on "powercycle */
+void vicii_init_vsp_bug(void)
+{
+    unsigned int val, i;
+
+    vsp_ysmoothold = vicii.ysmooth;
+    vsp_bugwarn = 100;  /* max 100 lines of warnings before we give up */
+    
+    for (i = 0; i < 8; i++) {
+        vsp_buglines[i] =  VSP_PROB_MAX / 2;
+        vsp_bugchannels[i] =  VSP_PROB_MAX / 2;
+    }
+    /* FIXME: we might want to make this a user setting */
+    /* get a random mask for channels that we want to make immune */
+    val = lib_unsigned_rand(0, 0xff);
+    log_message(vicii.log,
+            "VSP Bug: safe channels are: %s%s%s%s%s%s%s%s. Emulation of memory corruption is %s.",
+            (val & 1) ? "0" : "",
+            (val & 2) ? "1" : "",
+            (val & 4) ? "2" : "",
+            (val & 8) ? "3" : "",
+            (val & 0x10) ? "4" : "",
+            (val & 0x20) ? "5" : "",
+            (val & 0x40) ? "6" : "",
+            (val & 0x80) ? "7" : "",
+            vicii_resources.vsp_bug_enabled ? "enabled" : "disabled"
+               );  
+    for (i = 0; i < 8; i++) {
+        if (val & 1) {
+            vsp_bugchannels[i] = VSP_PROB_MIN;
+        }
+        val >>= 1;
+    }
+    /* get a random mask for lines that we want to make weaker */
+    val = lib_unsigned_rand(0, 0xff);
+    for (i = 0; i < 8; i++) {
+        if (val & 1) {
+            vsp_buglines[i] >>= 1;
+        }
+        val >>= 1;
+    }
+
+    vsp_buginitialized = 1;
+}
+
+/* see VSP Lab (http://csdb.dk/release/?id=120810) */
+static inline void vicii_handle_vsp_bug(void)
+{
+    unsigned int page, row, channel = 0, line = 0;
+
+    /* FIXME: we should instead init at "powercycle" */
+    if (!vsp_buginitialized) {
+        vicii_init_vsp_bug();
+    }
+
+    if (vsp_bugwarn || vicii_resources.vsp_bug_enabled) {
+        channel = (vicii.ysmooth ^ vsp_ysmoothold) & 7;
+        line = vicii.raster_line & 7;
+    }
+    
+    /* if emulation is disabled, warn only */
+    if (vsp_bugwarn) {
+        log_message(vicii.log,
+                "VSP Bug: Line: %u/%2u  Cycle: %2u  Channel: %u %s", 
+                line, vicii.raster_line, vicii.raster_cycle, channel,
+                ((vsp_buglines[line] + vsp_bugchannels[channel] + 1) > VSP_PROB_THRESH) ? "*" :""
+                   );  
+        vsp_bugwarn--;
+        if (vsp_bugwarn == 0) {
+            log_message(vicii.log, "VSP Bug: further warnings supressed");
+        }
+    }
+        
+    /* simulate the "VSP bug" problem */
+    if(vicii_resources.vsp_bug_enabled) {
+        if((vsp_buglines[line] + vsp_bugchannels[channel] + lib_unsigned_rand(0, 1)) > VSP_PROB_THRESH) {
+            for(page = 0x00; page < 0xff; page++) {
+                /* keep 98,5% of all pages untouched. this is hand tweaked to result in
+                 * somewhat convincing long term plots in vsp-lab */
+                if (lib_unsigned_rand(0, 1000) > 985) {
+                    int seen0 = 0, seen1 = 0, fragile, result;
+                    int firstrow = 7;
+                    /* in each page, all addresses ending with 7 or F are affected */
+                    for(row = firstrow; row <= 0xff; row += 0x08) {
+                        seen0 |= vicii.ram_base_phi1[((page << 8) | row) & 0xffff] ^ 255;
+                        seen1 |= vicii.ram_base_phi1[((page << 8) | row) & 0xffff];
+                    }
+                    fragile = (seen0 & seen1);
+                    result = fragile & lib_unsigned_rand(0, 0xff);
+
+                    for(row = firstrow; row <= 0xff; row += 0x08) {
+                        vicii.ram_base_phi1[((page << 8) | row) & 0xffff] &= ~fragile;
+                        vicii.ram_base_phi1[((page << 8) | row) & 0xffff] |= result;
+#if 0
+                        if (vsp_bugwarn) {
+                            log_message(vicii.log,
+                                "VSP Bug: Corrupting %04x, fragile %02x, new bits %02x", 
+                                (unsigned int)(page << 8) | row,
+                                (unsigned int)fragile, (unsigned int)result);
+                        }
+#endif
+                    }
+                }
+            }
+        }
+    }
+}
+
 int vicii_cycle(void)
 {
     int ba_low = 0;
     int can_sprite_sprite, can_sprite_background;
-    int may_crash;
+    int vsp_may_crash;
 
     /*VICII_DEBUG_CYCLE(("cycle: line %i, clk %i", vicii.raster_line, vicii.raster_cycle));*/
 
@@ -397,7 +518,7 @@ int vicii_cycle(void)
      *
      */
 
-    may_crash = !vicii.bad_line && vicii.idle_state; /* flag for "VSP bug" simulation */
+    vsp_may_crash = !vicii.bad_line && vicii.idle_state; /* flag for "VSP bug" simulation */
 
     /* Check DEN bit on first DMA line */
     if ((vicii.raster_line == VICII_FIRST_DMA_LINE) && !vicii.allow_bad_lines) {
@@ -408,32 +529,14 @@ int vicii_cycle(void)
     if (vicii.allow_bad_lines) {
         check_badline();
     }
-
-    /* simulate the "VSP bug" problem */
-    if(vicii_resources.vsp_bug_enabled) {
-        /* FIXME: no support for "vsp channels", see VSP Lab (http://csdb.dk/release/?id=120810) */
-        if(vicii.bad_line && may_crash && (vicii.raster_cycle >= VICII_PAL_CYCLE(16)) &&
-           (vicii.raster_cycle < VICII_PAL_CYCLE(55))) {
-            int page, row;
-            for(page = 0; page < 256; page++) {
-                int seen0 = 0, seen1 = 0, fragile, result;
-                int firstrow = 7;
-                for(row = firstrow; row <= 0xff; row += 8) {
-                    seen0 |= vicii.ram_base_phi1[(page << 8) | row] ^ 255;
-                    seen1 |= vicii.ram_base_phi1[(page << 8) | row];
-                }
-                fragile = seen0 & seen1;
-                if(fragile && (lib_unsigned_rand(0, 0xff) < 10)) {
-                    result = fragile & lib_unsigned_rand(0, 0xff);
-                    for(row = firstrow; row <= 0xff; row += 8) {
-                        log_message(vicii.log, "VSP Bug: Corrupting %04x, fragile %02x, new bits %02x", (page << 8) | row, fragile, result);
-                        vicii.ram_base_phi1[(page << 8) | row] &= ~fragile;
-                        vicii.ram_base_phi1[(page << 8) | row] |= result;
-                    }
-                }
-            }
-        }
+    
+    /* VSP-bug condition */
+    if(vicii.bad_line && vsp_may_crash && 
+        (vicii.raster_cycle >= VICII_PAL_CYCLE(16)) &&
+        (vicii.raster_cycle < VICII_PAL_CYCLE(55))) {
+            vicii_handle_vsp_bug();
     }
+    vsp_ysmoothold = vicii.ysmooth;
 
     /* Update VC (Cycle 14 on PAL) */
     /*  if (vicii.raster_cycle == VICII_PAL_CYCLE(14)) { */
@@ -492,7 +595,7 @@ int vicii_cycle(void)
     if (vicii.bad_line && cycle_may_fetch_c(vicii.cycle_flags)) {
 #ifdef DEBUG
         if (debug.maincpu_traceflg) {
-            log_debug("DMA at cycle %d   %d", vicii.raster_cycle, maincpu_clk);
+            log_debug("DMA at cycle %u   %u", vicii.raster_cycle, maincpu_clk);
         }
 #endif
         vicii_fetch_matrix();

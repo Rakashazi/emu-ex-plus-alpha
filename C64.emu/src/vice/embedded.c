@@ -64,7 +64,7 @@ static embedded_t commonfiles[] = {
     { NULL }
 };
 
-static size_t embedded_match_file(const char *name, BYTE *dest, int minsize, int maxsize, embedded_t *emb)
+static size_t embedded_match_file(const char *name, unsigned char *dest, int minsize, int maxsize, embedded_t *emb)
 {
     int i = 0;
     int load_at_start;
@@ -92,7 +92,7 @@ static size_t embedded_match_file(const char *name, BYTE *dest, int minsize, int
     return 0;
 }
 
-size_t embedded_check_extra(const char *name, BYTE *dest, int minsize, int maxsize)
+size_t embedded_check_extra(const char *name, unsigned char *dest, int minsize, int maxsize)
 {
     size_t retval;
 

@@ -61,10 +61,10 @@
 #include "via.h"
 #include "vsync.h"
 
-static BYTE mem_read_patchbuf(WORD addr);
+static uint8_t mem_read_patchbuf(uint16_t addr);
 static void mem_initialize_memory_6809_flat(void);
 
-BYTE petmem_2001_buf_ef[256];
+uint8_t petmem_2001_buf_ef[256];
 
 /* ------------------------------------------------------------------------- */
 
@@ -73,7 +73,17 @@ BYTE petmem_2001_buf_ef[256];
  * It is initialized to defaults from the default resource values.
  */
 
-petres_t petres = { 0 };
+petres_t petres;
+
+/* if the above is true, there's no need for this: */
+#if 0
+= {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+    { NULL, NULL, NULL, NULL, NULL, NULL }, /* h6809romName[] */
+    0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+#endif
 
 /* ------------------------------------------------------------------------- */
 
@@ -81,10 +91,10 @@ petres_t petres = { 0 };
 
 #define RAM_ARRAY 0x20000 /* this includes 8x96 expansion RAM */
 
-BYTE mem_ram[RAM_ARRAY]; /* 128K to make things easier. Real size is 4-128K. */
-BYTE mem_rom[PET_ROM_SIZE];
-BYTE mem_chargen_rom[PET_CHARGEN_ROM_SIZE];
-BYTE mem_6809rom[PET_6809_ROMSIZE];
+uint8_t mem_ram[RAM_ARRAY]; /* 128K to make things easier. Real size is 4-128K. */
+uint8_t mem_rom[PET_ROM_SIZE];
+uint8_t mem_chargen_rom[PET_CHARGEN_ROM_SIZE];
+uint8_t mem_6809rom[PET_6809_ROMSIZE];
 
 #define EXT_RAM         (64 * 1024)
 
@@ -95,21 +105,21 @@ static read_func_ptr_t _mem_read_tab[0x101];
 static store_func_ptr_t _mem_write_tab[0x101];
 static read_func_ptr_t _mem_read_tab_watch[0x101];
 static store_func_ptr_t _mem_write_tab_watch[0x101];
-static BYTE *_mem_read_base_tab[0x101];
+static uint8_t *_mem_read_base_tab[0x101];
 static int mem_read_limit_tab[0x101];
 
 read_func_ptr_t *_mem_read_tab_ptr;
 store_func_ptr_t *_mem_write_tab_ptr;
-static BYTE **_mem_read_base_tab_ptr;
+static uint8_t **_mem_read_base_tab_ptr;
 static int *mem_read_limit_tab_ptr;
 
 /* 8x96 mapping register */
-BYTE petmem_map_reg = 0;
+uint8_t petmem_map_reg = 0;
 #define FFF0_ENABLED                0x80
 #define FFF0_IO_PEEK_THROUGH        0x40
 #define FFF0_SCREEN_PEEK_THROUGH    0x20
 /* Internal jumper, used by HRE board */
-BYTE petmem_ramON = 0;
+uint8_t petmem_ramON = 0;
 
 static int bank8offset = 0;
 static int bankCoffset = 0;
@@ -119,7 +129,7 @@ static read_func_ptr_t _mem6809_read_tab[0x101];
 static store_func_ptr_t _mem6809_write_tab[0x101];
 static read_func_ptr_t _mem6809_read_tab_watch[0x101];
 static store_func_ptr_t _mem6809_write_tab_watch[0x101];
-static BYTE *_mem6809_read_base_tab[0x101];
+static uint8_t *_mem6809_read_base_tab[0x101];
 static int mem6809_read_limit_tab[0x101];
 
 read_func_ptr_t *_mem6809_read_tab_ptr;
@@ -127,53 +137,53 @@ store_func_ptr_t *_mem6809_write_tab_ptr;
 
 static log_t pet_mem_log = LOG_ERR;
 
-static BYTE last_access = 0;
+static uint8_t last_access = 0;
 
 /* ------------------------------------------------------------------------- */
 
-BYTE zero_read(WORD addr)
+uint8_t zero_read(uint16_t addr)
 {
     last_access = mem_ram[addr & 0xff];
     return last_access;
 }
 
-void zero_store(WORD addr, BYTE value)
+void zero_store(uint16_t addr, uint8_t value)
 {
     mem_ram[addr & 0xff] = value;
     last_access = value;
 }
 
-static BYTE ram_read(WORD addr)
+static uint8_t ram_read(uint16_t addr)
 {
     last_access = mem_ram[addr];
     return last_access;
 }
 
-static void ram_store(WORD addr, BYTE value)
+static void ram_store(uint16_t addr, uint8_t value)
 {
     mem_ram[addr] = value;
     last_access = value;
 }
 
-static BYTE read_ext8(WORD addr)
+static uint8_t read_ext8(uint16_t addr)
 {
     last_access = mem_ram[addr + bank8offset];
     return last_access;
 }
 
-static void store_ext8(WORD addr, BYTE value)
+static void store_ext8(uint16_t addr, uint8_t value)
 {
     mem_ram[addr + bank8offset] = value;
     last_access = value;
 }
 
-static BYTE read_extC(WORD addr)
+static uint8_t read_extC(uint16_t addr)
 {
     last_access = mem_ram[addr + bankCoffset];
     return last_access;
 }
 
-static void store_extC(WORD addr, BYTE value)
+static void store_extC(uint16_t addr, uint8_t value)
 {
     mem_ram[addr + bankCoffset] = value;
     last_access = value;
@@ -187,25 +197,25 @@ static void store_extC(WORD addr, BYTE value)
  * places its colour memory there, which in turn may have a mirror
  * if it is the 40 column model.
  */
-static BYTE read_vmirror(WORD addr)
+static uint8_t read_vmirror(uint16_t addr)
 {
     last_access = mem_ram[0x8000 + (addr & 0x0bff)];   /* 0x3FF + 0x800 */
     return last_access;
 }
 
-static void store_vmirror(WORD addr, BYTE value)
+static void store_vmirror(uint16_t addr, uint8_t value)
 {
     mem_ram[0x8000 + (addr & 0xbff)] = value;
     last_access = value;
 }
 
-BYTE rom_read(WORD addr)
+uint8_t rom_read(uint16_t addr)
 {
     last_access = mem_rom[addr & 0x7fff];
     return last_access;
 }
 
-void rom_store(WORD addr, BYTE value)
+void rom_store(uint16_t addr, uint8_t value)
 {
     mem_rom[addr & 0x7fff] = value;
     last_access = value;
@@ -213,24 +223,26 @@ void rom_store(WORD addr, BYTE value)
 
 #define ROM6809_BASE    0xA000
 
-BYTE rom6809_read(WORD addr)
+static uint8_t rom6809_read(uint16_t addr)
 {
     last_access = mem_6809rom[addr - ROM6809_BASE];
     return last_access;
 }
 
-void rom6809_store(WORD addr, BYTE value)
+#if 0
+static void rom6809_store(uint16_t addr, uint8_t value)
 {
     mem_6809rom[addr - ROM6809_BASE] = value;
     last_access = value;
 }
+#endif
 
-BYTE read_unused(WORD addr)
+uint8_t read_unused(uint16_t addr)
 {
     return last_access;
 }
 
-BYTE read_io_88_8f(WORD addr)
+static uint8_t read_io_88_8f(uint16_t addr)
 {
     switch (addr & 0xff00) {
         case 0x8800:
@@ -254,7 +266,7 @@ BYTE read_io_88_8f(WORD addr)
     return last_access;
 }
 
-BYTE read_io_e9_ef(WORD addr)
+static uint8_t read_io_e9_ef(uint16_t addr)
 {
     switch (addr & 0xff00) {
         case 0xe900:
@@ -276,7 +288,7 @@ BYTE read_io_e9_ef(WORD addr)
     return last_access;
 }
 
-static BYTE mem_read_patchbuf(WORD addr)
+static uint8_t mem_read_patchbuf(uint16_t addr)
 {
     last_access = petmem_2001_buf_ef[addr & 0xff];
     return last_access;
@@ -286,39 +298,39 @@ static BYTE mem_read_patchbuf(WORD addr)
 
 /* Functions for watchpoint memory access.  */
 
-static BYTE zero_read_watch(WORD addr)
+static uint8_t zero_read_watch(uint16_t addr)
 {
     addr &= 0xff;
     monitor_watch_push_load_addr(addr, e_comp_space);
     return _mem_read_tab[0](addr);
 }
 
-static void zero_store_watch(WORD addr, BYTE value)
+static void zero_store_watch(uint16_t addr, uint8_t value)
 {
     addr &= 0xff;
     monitor_watch_push_store_addr(addr, e_comp_space);
     _mem_write_tab[0](addr, value);
 }
 
-static BYTE read_watch(WORD addr)
+static uint8_t read_watch(uint16_t addr)
 {
     monitor_watch_push_load_addr(addr, e_comp_space);
     return _mem_read_tab[addr >> 8](addr);
 }
 
-static void store_watch(WORD addr, BYTE value)
+static void store_watch(uint16_t addr, uint8_t value)
 {
     monitor_watch_push_store_addr(addr, e_comp_space);
     _mem_write_tab[addr >> 8](addr, value);
 }
 
-static BYTE read6809_watch(WORD addr)
+static uint8_t read6809_watch(uint16_t addr)
 {
     monitor_watch_push_load_addr(addr, e_comp_space);
     return _mem6809_read_tab[addr >> 8](addr);
 }
 
-static void store6809_watch(WORD addr, BYTE value)
+static void store6809_watch(uint16_t addr, uint8_t value)
 {
     monitor_watch_push_store_addr(addr, e_comp_space);
     _mem6809_write_tab[addr >> 8](addr, value);
@@ -336,7 +348,7 @@ static void store6809_watch(WORD addr, BYTE value)
 
 int spet_ramen = 1;
 int spet_bank = 0;
-static BYTE *spet_bank_ptr;
+static uint8_t *spet_bank_ptr;
 int spet_ctrlwp = 1;
 int spet_diag = 0;
 int spet_ramwp = 0;
@@ -374,7 +386,7 @@ static void reset6702(void)
     dongle6702.wantodd = 0;
 }
 
-static inline BYTE read6702(void)
+static inline uint8_t read6702(void)
 {
     last_access = dongle6702.val;
     return last_access;
@@ -389,7 +401,7 @@ static inline BYTE read6702(void)
  * from cbm-hackers, for their contributions.
  * -Olaf Seibert.
  */
-static inline void write6702(BYTE input)
+static inline void write6702(uint8_t input)
 {
     last_access = input;
 
@@ -433,14 +445,17 @@ static int efe0_dump(void)
     int i;
     int mask = 1;
 
-    mon_out("efe0 = $%02x; previous in = $%02x; odd/even = %d\n", dongle6702.val, dongle6702.prevodd, dongle6702.wantodd);
+    mon_out("efe0 = $%02x; previous in = $%02x; odd/even = %d\n",
+            (unsigned int)dongle6702.val,
+            (unsigned int)dongle6702.prevodd,
+            dongle6702.wantodd);
     for (i = 0; i < 8; i++, mask <<= 1) {
         int j;
         int maskj;
         int sh = dongle6702.shift[i];
         int lm = leftmost[i];
 
-        mon_out("%d %3d: $%02x  %%", i, mask, sh);
+        mon_out("%d %3d: $%02x  %%", i, mask, (unsigned int)sh);
 
         for (j = 7, maskj = 1 << j; j >= 0; j--, maskj >>= 1) {
             if (maskj > lm) {
@@ -490,12 +505,12 @@ int petmem_superpet_diag(void)
     return petres.superpet && spet_diag;
 }
 
-static BYTE read_super_io(WORD addr)
+static uint8_t read_super_io(uint16_t addr)
 {
     if (addr >= 0xeff4) {       /* unused / readonly */
         return last_access;
     } else if (addr >= 0xeff0) {       /* ACIA */
-        last_access = acia1_read((WORD)(addr & 0x03));
+        last_access = acia1_read((uint16_t)(addr & 0x03));
     } else if ((addr & 0x0010) == 0) {
         /* Dongle E F xxx0 xxxx, see zimmers.net,
          * schematics/computers/pet/SuperPET/324055.gif.
@@ -513,7 +528,7 @@ static BYTE read_super_io(WORD addr)
     return last_access;   /* fallback */
 }
 
-static void store_super_io(WORD addr, BYTE value)
+static void store_super_io(uint16_t addr, uint8_t value)
 {
     last_access = value;
 
@@ -565,7 +580,7 @@ static void store_super_io(WORD addr, BYTE value)
         if (addr >= 0xeff4) {   /* unused */
         } else
         if (addr >= 0xeff0) {   /* ACIA */
-            acia1_store((WORD)(addr & 0x03), value);
+            acia1_store((uint16_t)(addr & 0x03), value);
         } else if (addr >= 0xefe0 && addr < 0xefe4) { /* dongle */
 #if DEBUG_DONGLE
             log_message(pet_mem_log, "*** DONGLE %04x := %02X %3d", addr, value, value);
@@ -575,7 +590,7 @@ static void store_super_io(WORD addr, BYTE value)
     }
 }
 
-static BYTE read_super_9(WORD addr)
+static uint8_t read_super_9(uint16_t addr)
 {
     if (spet_ramen) {
         last_access = spet_bank_ptr[addr & 0x0fff];
@@ -585,7 +600,7 @@ static BYTE read_super_9(WORD addr)
     return last_access;
 }
 
-static void store_super_9(WORD addr, BYTE value)
+static void store_super_9(uint16_t addr, uint8_t value)
 {
     last_access = value;
 
@@ -594,13 +609,13 @@ static void store_super_9(WORD addr, BYTE value)
     }
 }
 
-static BYTE read_super_flat(WORD addr)
+static uint8_t read_super_flat(uint16_t addr)
 {
     last_access = (mem_ram + EXT_RAM)[addr];
     return last_access;
 }
 
-static void store_super_flat(WORD addr, BYTE value)
+static void store_super_flat(uint16_t addr, uint8_t value)
 {
     last_access = value;
     (mem_ram + EXT_RAM)[addr] = value;
@@ -611,12 +626,12 @@ static void store_super_flat(WORD addr, BYTE value)
 
 /* Generic memory access.  */
 
-void mem_store(WORD addr, BYTE value)
+void mem_store(uint16_t addr, uint8_t value)
 {
     _mem_write_tab_ptr[addr >> 8](addr, value);
 }
 
-BYTE mem_read(WORD addr)
+uint8_t mem_read(uint16_t addr)
 {
     return _mem_read_tab_ptr[addr >> 8](addr);
 }
@@ -624,7 +639,7 @@ BYTE mem_read(WORD addr)
 #define PRINT_6809_STORE        0
 #define PRINT_6809_READ         0
 
-void mem6809_store(WORD addr, BYTE value)
+void mem6809_store(uint16_t addr, uint8_t value)
 {
 #if PRINT_6809_STORE
     if (addr >= 0x8000 && addr < 0x9000) {
@@ -634,10 +649,10 @@ void mem6809_store(WORD addr, BYTE value)
     _mem6809_write_tab_ptr[addr >> 8](addr, value);
 }
 
-BYTE mem6809_read(WORD addr)
+uint8_t mem6809_read(uint16_t addr)
 {
 #if PRINT_6809_READ
-    BYTE v;
+    uint8_t v;
     v = _mem6809_read_tab_ptr[addr >> 8](addr);
     printf("mem6809_read   %04x -> %02x\n", addr, v);
     return v;
@@ -646,20 +661,20 @@ BYTE mem6809_read(WORD addr)
 #endif
 }
 
-void mem6809_store16(WORD addr, WORD value)
+void mem6809_store16(uint16_t addr, uint16_t value)
 {
 #if PRINT_6809_STORE0
     printf("mem6809_store16 %04x <- %04x\n", addr, value);
 #endif
     addr++;
-    _mem6809_write_tab_ptr[addr >> 8](addr, (BYTE)(value & 0xFF));
+    _mem6809_write_tab_ptr[addr >> 8](addr, (uint8_t)(value & 0xFF));
     addr--;
-    _mem6809_write_tab_ptr[addr >> 8](addr, (BYTE)(value >> 8));
+    _mem6809_write_tab_ptr[addr >> 8](addr, (uint8_t)(value >> 8));
 }
 
-WORD mem6809_read16(WORD addr)
+uint16_t mem6809_read16(uint16_t addr)
 {
-    WORD val;
+    uint16_t val;
     val = _mem6809_read_tab_ptr[addr >> 8](addr) << 8;
     addr++;
     val |= _mem6809_read_tab_ptr[addr >> 8](addr);
@@ -670,24 +685,24 @@ WORD mem6809_read16(WORD addr)
 }
 
 #ifdef H6309
-void mem6809_store32(WORD addr, DWORD value)
+void mem6809_store32(uint16_t addr, uint32_t value)
 {
 #if PRINT_6809_STORE0
     printf("mem6809_store32 %04x <- %04x\n", addr, value);
 #endif
     addr += 3;
-    _mem6809_write_tab_ptr[addr >> 8](addr, (BYTE)(value & 0xFF));
+    _mem6809_write_tab_ptr[addr >> 8](addr, (uint8_t)(value & 0xFF));
     addr--;
-    _mem6809_write_tab_ptr[addr >> 8](addr, (BYTE)((value >> 8) & 0xFF));
+    _mem6809_write_tab_ptr[addr >> 8](addr, (uint8_t)((value >> 8) & 0xFF));
     addr--;
-    _mem6809_write_tab_ptr[addr >> 8](addr, (BYTE)((value >> 16) & 0xFF));
+    _mem6809_write_tab_ptr[addr >> 8](addr, (uint8_t)((value >> 16) & 0xFF));
     addr--;
-    _mem6809_write_tab_ptr[addr >> 8](addr, (BYTE)(value >> 24));
+    _mem6809_write_tab_ptr[addr >> 8](addr, (uint8_t)(value >> 24));
 }
 
-DWORD mem6809_read32(WORD addr)
+uint32_t mem6809_read32(uint16_t addr)
 {
-    DWORD val;
+    uint32_t val;
     val = _mem6809_read_tab_ptr[addr >> 8](addr) << 24;
     addr++;
     val |= _mem6809_read_tab_ptr[addr >> 8](addr) << 16;
@@ -712,7 +727,7 @@ DWORD mem6809_read32(WORD addr)
 
 /* When we write, we write all involved chips.  */
 
-static void store_io_e8(WORD addr, BYTE value)
+static void store_io_e8(uint16_t addr, uint8_t value)
 {
     last_access = value;
 
@@ -740,9 +755,9 @@ static void store_io_e8(WORD addr, BYTE value)
  * the bus drivers of all involved chips interact and you get strange
  * results...
  */
-static BYTE read_io_e8(WORD addr)
+static uint8_t read_io_e8(uint16_t addr)
 {
-    BYTE v1, v2, v3, v4;
+    uint8_t v1, v2, v3, v4;
 
     switch (addr & 0xf0) {
         case 0x10:              /* PIA1 */
@@ -757,7 +772,7 @@ static BYTE read_io_e8(WORD addr)
         case 0x80:              /* CRTC */
             if (petres.crtc) {
                 last_access = crtc_read(addr);
-            }
+            } /* fall through */
         case 0x00:
             return last_access;
         default:                /* 0x30, 0x50, 0x60, 0x70, 0x90-0xf0 */
@@ -785,7 +800,7 @@ static BYTE read_io_e8(WORD addr)
     return last_access;
 }
 
-static void store_void(WORD addr, BYTE value)
+static void store_void(uint16_t addr, uint8_t value)
 {
     last_access = value;
 }
@@ -795,12 +810,12 @@ static void store_void(WORD addr, BYTE value)
  * except that some hardware expansions may be there.
  * For adresses < 0x8000 it is faster to use store_void().
  */
-static void store_dummy(WORD addr, BYTE value)
+static void store_dummy(uint16_t addr, uint8_t value)
 {
     last_access = value;
 }
 
-static void store_io_88_8f(WORD addr, BYTE value)
+static void store_io_88_8f(uint16_t addr, uint8_t value)
 {
     last_access = value;
 
@@ -832,7 +847,7 @@ static void store_io_88_8f(WORD addr, BYTE value)
     }
 }
 
-static void store_io_e9_ef(WORD addr, BYTE value)
+static void store_io_e9_ef(uint16_t addr, uint8_t value)
 {
     last_access = value;
 
@@ -902,8 +917,8 @@ SCREEN: 2000 bytes for screen memory, and 2096 bytes of available RAM.
 static void set_std_9tof(void)
 {
     int i, l;
-    void (*store)(WORD, BYTE);
-    BYTE (*fetch)(WORD);
+    void (*store)(uint16_t, uint8_t);
+    uint8_t (*fetch)(uint16_t);
     int ram9, ramA, ramBCD, ramE, ramE8, ramF;
 
     /* printf("set_std_9tof: petres.ramSize=%d, petres.map=%d\n", petres.ramSize, petres.map); */
@@ -1052,7 +1067,7 @@ void ramsel_changed()
     maincpu_resync_limits();
 }
 
-void get_mem_access_tables(read_func_ptr_t **read, store_func_ptr_t **write, BYTE ***base, int **limit)
+void get_mem_access_tables(read_func_ptr_t **read, store_func_ptr_t **write, uint8_t ***base, int **limit)
 {
     *read = _mem_read_tab;
     *write = _mem_write_tab;
@@ -1119,12 +1134,12 @@ void mem_toggle_watchpoints(int flag, void *context)
 #define FFF0_BANK_8_WP   0x01
 
 /* Save old store function for last byte.  */
-static void (*store_ff)(WORD addr, BYTE value) = NULL;
+static void (*store_ff)(uint16_t addr, uint8_t value) = NULL;
 
 /* Write to last page of memory in 8x96.  */
-static void store_8x96(WORD addr, BYTE value)
+static void store_8x96(uint16_t addr, uint8_t value)
 {
-    BYTE changed;
+    uint8_t changed;
     int l, protected;
 
     last_access = value;
@@ -1279,7 +1294,7 @@ void petmem_set_vidmem(void)
         int c = 0x8000 + COLOUR_MEMORY_START;
         i = (c >> 8) & 0xff;
         l = ((c + petres.videoSize) >> 8) & 0xff;
-        if (l > 0x90) {	/* compatibility with 8296 */
+        if (l > 0x90) { /* compatibility with 8296 */
             l = 0x90;
         }
 
@@ -1451,7 +1466,7 @@ void mem_initialize_memory(void)
     }
 
     if (petres.map && petmem_map_reg) {
-        BYTE old_map_reg;
+        uint8_t old_map_reg;
 
         old_map_reg = petmem_map_reg;
         petmem_map_reg = 0;
@@ -1482,9 +1497,9 @@ void mem_initialize_memory(void)
     maincpu_resync_limits();
 }
 
-void mem_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit)
+void mem_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit)
 {
-    BYTE *p = _mem_read_base_tab_ptr[addr >> 8];
+    uint8_t *p = _mem_read_base_tab_ptr[addr >> 8];
 
     *base = (p == NULL) ? NULL : (p - (addr & 0xff00));
     *start = addr; /* TODO */
@@ -1506,7 +1521,7 @@ void mem_powerup(void)
      *
      */
     for (i = 0; i < 0x1000; i++) {
-        mem_ram[0x8000 + i] = (BYTE)lib_unsigned_rand(0, 255);
+        mem_ram[0x8000 + i] = (uint8_t)lib_unsigned_rand(0, 255);
     }
 
     superpet_mem_powerup();
@@ -1514,7 +1529,7 @@ void mem_powerup(void)
 
 /* ------------------------------------------------------------------------- */
 
-void mem_get_basic_text(WORD *start, WORD *end)
+void mem_get_basic_text(uint16_t *start, uint16_t *end)
 {
     int basicstart;
 
@@ -1533,7 +1548,7 @@ void mem_get_basic_text(WORD *start, WORD *end)
     }
 }
 
-void mem_set_basic_text(WORD start, WORD end)
+void mem_set_basic_text(uint16_t start, uint16_t end)
 {
     int basicstart, loadadr;
 
@@ -1556,17 +1571,38 @@ void mem_set_basic_text(WORD start, WORD end)
             mem_ram[basicstart + 7] = mem_ram[loadadr + 3] = end >> 8;
 }
 
-void mem_inject(DWORD addr, BYTE value)
+/* this function should always read from the screen currently used by the kernal
+   for output, normally this does just return system ram - except when the 
+   videoram is not memory mapped.
+   used by autostart to "read" the kernal messages
+*/
+uint8_t mem_read_screen(uint16_t addr)
+{
+    return ram_read(addr);
+}
+
+void mem_inject(uint32_t addr, uint8_t value)
 {
     /* just call mem_store() to be safe.
        This could possibly be changed to write straight into the
        memory array.  mem_ram[addr & mask] = value; */
-    mem_store((WORD)(addr & 0xffff), value);
+    mem_store((uint16_t)(addr & 0xffff), value);
+}
+
+/* In banked memory architectures this will always write to the bank that
+   contains the keyboard buffer and "number of keys in buffer", regardless of
+   what the CPU "sees" currently.
+   In all other cases this just writes to the first 64kb block, usually by
+   wrapping to mem_inject().
+*/
+void mem_inject_key(uint16_t addr, uint8_t value)
+{
+    mem_inject(addr, value);
 }
 
 /* ------------------------------------------------------------------------- */
 
-int mem_rom_trap_allowed(WORD addr)
+int mem_rom_trap_allowed(uint16_t addr)
 {
     return (addr >= 0xf000) && !(petmem_map_reg & 0x80);
 }
@@ -1575,9 +1611,9 @@ int mem_rom_trap_allowed(WORD addr)
 
 /* Banked memory access functions for the monitor.  */
 
-static BYTE peek_bank_io(WORD addr)
+static uint8_t peek_bank_io(uint16_t addr)
 {
-    BYTE v1, v2, v3, v4;
+    uint8_t v1, v2, v3, v4;
 
     switch (addr & 0xf0) {
         case 0x10:              /* PIA1 */
@@ -1590,6 +1626,7 @@ static BYTE peek_bank_io(WORD addr)
             if (petres.crtc) {
                 return crtc_read(addr);
             }
+            /* FALL THROUGH */
         case 0x00:
             return addr >> 8;
         default:                /* 0x30, 0x50, 0x60, 0x70, 0x90-0xf0 */
@@ -1652,7 +1689,7 @@ int mem_bank_from_name(const char *name)
     return -1;
 }
 
-BYTE mem_bank_read(int bank, WORD addr, void *context)
+uint8_t mem_bank_read(int bank, uint16_t addr, void *context)
 {
     switch (bank) {
         case bank_default:      /* current */
@@ -1671,7 +1708,7 @@ BYTE mem_bank_read(int bank, WORD addr, void *context)
             if (addr >= 0xe900 && addr < 0xe800 + petres.IOSize) {
                 return read_io_e9_ef(addr);
             }
-        /* fallthrough to rom */
+            /* FALL THROUGH */
         case bank_rom:         /* rom */
             if (addr >= 0x9000) {
                 return mem_rom[addr & 0x7fff];
@@ -1685,7 +1722,8 @@ BYTE mem_bank_read(int bank, WORD addr, void *context)
     return mem_ram[addr];
 }
 
-BYTE mem_bank_peek(int bank, WORD addr, void *context)
+/* used by monitor if sfx off */
+uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
 {
     switch (bank) {
         case bank_default:      /* current */
@@ -1699,7 +1737,7 @@ BYTE mem_bank_peek(int bank, WORD addr, void *context)
                 return read_super_io(addr);
             }
             if (addr >= 0xe900 && addr < 0xe800 + petres.IOSize) {
-                BYTE result;
+                uint8_t result;
                 /* is_peek_access = 1; FIXME */
                 result = read_unused(addr);
                 /* is_peek_access = 0; FIXME */
@@ -1709,7 +1747,7 @@ BYTE mem_bank_peek(int bank, WORD addr, void *context)
     return mem_bank_read(bank, addr, context);
 }
 
-void mem_bank_write(int bank, WORD addr, BYTE byte, void *context)
+void mem_bank_write(int bank, uint16_t addr, uint8_t byte, void *context)
 {
     switch (bank) {
         case bank_default:      /* current */
@@ -1731,6 +1769,7 @@ void mem_bank_write(int bank, WORD addr, BYTE byte, void *context)
                 store_io_e9_ef(addr, byte);
                 return;
             }
+            /* FALL THROUGH */
         case bank_rom:          /* rom */
             if (addr >= 0x9000) {
                 return;
@@ -1745,7 +1784,14 @@ void mem_bank_write(int bank, WORD addr, BYTE byte, void *context)
     mem_ram[addr] = byte;
 }
 
-static int mem_dump_io(void *context, WORD addr)
+/* used by monitor if sfx off */
+void mem_bank_poke(int bank, uint16_t addr, uint8_t byte, void *context)
+{
+    mem_bank_write(bank, addr, byte, context);
+}
+
+
+static int mem_dump_io(void *context, uint16_t addr)
 {
     if ((addr >= 0xe810) && (addr <= 0xe81f)) {
         return pia1_dump();
@@ -1758,7 +1804,7 @@ static int mem_dump_io(void *context, WORD addr)
             return crtc_dump();
         }
     } else if (addr == 0xe888) {
-	return e888_dump();
+        return e888_dump();
     } else if ((addr >= 0xeb00) && (addr <= 0xeb0f)) {
         if (petdww_enabled) {
             return petdwwpia_dump();
@@ -1780,12 +1826,12 @@ static int mem_dump_io(void *context, WORD addr)
                     petres.superpet_cpu_switch == SUPERPET_CPU_6502 ? "6502" :
                     petres.superpet_cpu_switch == SUPERPET_CPU_6809 ? "6809" :
                     "PROG (unimpl)");
-            mon_out("RAM write protect: $%x\n", spet_ramwp);
-            mon_out("diagnostic sense: $%x\n", spet_diag);
+            mon_out("RAM write protect: $%x\n", (unsigned int)spet_ramwp);
+            mon_out("diagnostic sense: $%x\n", (unsigned int)spet_diag);
             return 0;
         } else if (addr == 0xeffc) {
             /* Bank select */
-            mon_out("bank: $%x\n", spet_bank);
+            mon_out("bank: $%x\n", (unsigned int)spet_bank);
             mon_out("control write protect: %d\n", spet_ctrlwp);
             mon_out("flat (super-os9) mode: %d\n", !!spet_flat_mode);
             mon_out("firq disabled: %d\n", !!spet_firq_disabled);
@@ -1847,12 +1893,30 @@ int petmem_get_rom_columns(void)
     return petres.rom_video;
 }
 
-void mem_get_screen_parameter(WORD *base, BYTE *rows, BYTE *columns, int *bank)
+/* FIXME: this is incomplete */
+void mem_get_screen_parameter(uint16_t *base, uint8_t *rows, uint8_t *columns, int *bank)
 {
     *base = 0x8000;
     *rows = 25;
-    *columns = (BYTE)petmem_get_screen_columns();
+    *columns = (uint8_t)petmem_get_screen_columns();
     *bank = 0;
+}
+
+/* used by autostart to locate and "read" kernal output on the current screen
+ * this function should return whatever the kernal currently uses, regardless
+ * what is currently visible/active in the UI. 
+ */
+void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uint8_t *line_length, int *blinking)
+{
+    /* Cursor Blink enable: 1 = Flash Cursor, 0 = Cursor disabled, -1 = n/a */
+    if (petres.kernal_checksum == PET_KERNAL1_CHECKSUM) {
+        *blinking = mem_ram[0x224] ? 0 : 1;
+    } else {
+        *blinking = mem_ram[0xa7] ? 0 : 1;
+    }
+    *screen_addr = mem_ram[0xc4] + mem_ram[0xc5] * 256; /* Current Screen Line Address */
+    *cursor_column = mem_ram[0xc6];    /* Cursor Column on Current Line */
+    *line_length = petres.rom_video;   /* Physical Screen Line Length */
 }
 
 /************************** PET resource handling ************************/
@@ -1880,3 +1944,12 @@ int cartridge_attach_image(int type, const char *name)
 {
     return -1;
 }
+
+void cartridge_detach_image(int type)
+{
+}
+
+void cartridge_unset_default(void)
+{
+}
+

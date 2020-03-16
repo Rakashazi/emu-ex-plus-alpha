@@ -71,7 +71,7 @@
 #define PARCOR_OUTPUT_HZ       (8000)
 
 #define PARCOR_BUFFER_LEN (0x400)
-SWORD ringbuffer[PARCOR_BUFFER_LEN]; /* FIXME */
+int16_t ringbuffer[PARCOR_BUFFER_LEN]; /* FIXME */
 int ringbuffer_rptr = 0;
 int ringbuffer_wptr = 0;
 int phrase_sample_len = 0;
@@ -85,18 +85,18 @@ float upsmpcnt = 0;
 float upsmp = 0;
 
 struct param_s {
-    BYTE energy;
-    BYTE pitch;
-    SWORD k[10];
+    uint8_t energy;
+    uint8_t pitch;
+    int16_t k[10];
 };
 typedef struct param_s param_t;
 
-static param_t p_from = { 0, 0x21 };
-static param_t p_to = { 0, 0x21 };
+static param_t p_from = { 0, 0x21, { 0 } };
+static param_t p_to = { 0, 0x21, { 0 } };
 static double p_z[11] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
 /* FIXME: MOVE  parcor parameters: energy + pitch + k1..10 */
-static WORD parcor_param[1 + 1 + 10];
+static uint16_t parcor_param[1 + 1 + 10];
 
 /*
     words that use 48bits/frame:
@@ -144,7 +144,7 @@ static const int parcor_param_len[2][1 + 1 + 10] = {
      */
     { 7, 7,  10, 10, 10, 8,   8, 8, 7, 7, 7, 7 }
 };
-static WORD chip_buf = 0;
+static uint16_t chip_buf = 0;
 static int chip_bit_i = 0;
 static int param_i = 0;
 
@@ -165,7 +165,7 @@ static void set_playing(t6721_state *t6721, int playing);
 static FILE *wav_fp = NULL;
 static size_t wavsize = 0;
 
-static const BYTE wav_header[] = {
+static const uint8_t wav_header[] = {
     'R', 'I', 'F', 'F',
     0, 0, 0, 0, /* filesize - 8 */
     'W', 'A', 'V', 'E',
@@ -194,7 +194,7 @@ static int write_header(void)
 static int fix_header(void)
 {
     size_t temp;
-    BYTE b[4] = { 0, 0, 0, 0 };
+    uint8_t b[4] = { 0, 0, 0, 0 };
 
     fseek(wav_fp, 4, SEEK_SET);
 
@@ -245,20 +245,19 @@ static int wav_create_file(const char *filename)
         return 1;
     }
 
-    atexit(wav_close_file);
-
+    archdep_vice_atexit(wav_close_file);
     return write_header();
 }
 
-static int wav_write_sample(SWORD data)
+static int wav_write_sample(int16_t data)
 {
-    BYTE d;
+    uint8_t d;
 
     if (wav_fp == NULL) {
         wav_create_file("test.wav");
     }
 
-    d = (BYTE)(data & 0xff);
+    d = (uint8_t)(data & 0xff);
 
     if (fwrite(&d, 1, 1, wav_fp) < 1) {
         return 1;
@@ -266,7 +265,7 @@ static int wav_write_sample(SWORD data)
 
     wavsize++;
 
-    d = (BYTE)((data >> 8) & 0xff);
+    d = (uint8_t)((data >> 8) & 0xff);
 
     if (fwrite(&d, 1, 1, wav_fp) < 1) {
         return 1;
@@ -294,7 +293,7 @@ static void ringbuffer_reset(void)
     write one 8000khz sample to the output ringbuffer
     returns 1 on error, 0 on success
 */
-static int parcor_output_sample(t6721_state *t6721, SWORD value)
+static int parcor_output_sample(t6721_state *t6721, int16_t value)
 {
     int next_wptr;
 
@@ -318,13 +317,13 @@ static int parcor_output_sample(t6721_state *t6721, SWORD value)
 /*
     render one output sample
 */
-SWORD output_update_sample(t6721_state *t6721)
+static int16_t output_update_sample(t6721_state *t6721)
 {
     static float from, to;
     int next_rptr;
-    SWORD this;
+    int16_t this;
 
-    this = (SWORD) ((from * (1.0f - upsmpcnt)) + (to * upsmpcnt));
+    this = (int16_t)((from * (1.0f - upsmpcnt)) + (to * upsmpcnt));
 
     upsmpcnt += (1.0f / upsmp);
     if (upsmpcnt >= 1.0f) {
@@ -405,14 +404,14 @@ static int render_subframe(t6721_state *t6721, int sub_i, int voiced)
     static double phase = 0.0;
 
     double energy = ((p_from.energy * (8 - sub_i)) + (p_to.energy * sub_i)) / (8.0 * 127.0);
-    BYTE pitch;
+    uint8_t pitch;
     double phase_inc;
 
     double k[10];
 
     double sample, data;
 
-    SWORD output;
+    int16_t output;
 
     if (voiced) {
         pitch = ((p_from.pitch * (8 - sub_i)) + (p_to.pitch * sub_i)) / 8;
@@ -452,7 +451,7 @@ static int render_subframe(t6721_state *t6721, int sub_i, int voiced)
         }
 
         /* scale to 16bit */
-        output = (SWORD)(data * (8192.0f + 2048.0f));
+        output = (int16_t)(data * (8192.0f + 2048.0f));
 
         if (parcor_output_sample(t6721, output)) {
             return 1;
@@ -479,17 +478,17 @@ static int render_silence(t6721_state *t6721)
     render one PARCOR frame
     returns 1 on error, 0 on success
    ------------------------------------------------------------------------- */
-static int parcor_render_frame(t6721_state *t6721, WORD *new_param)
+static int parcor_render_frame(t6721_state *t6721, uint16_t *new_param)
 {
     int i, voiced, silent;
-    BYTE new_pitch;
+    uint8_t new_pitch;
 
-    new_pitch = (BYTE)PARMVALUE(t6721, 1);
+    new_pitch = (uint8_t)PARMVALUE(t6721, 1);
     voiced = (new_pitch > 0);
 
     memcpy(&p_from, &p_to, sizeof(p_from));
 
-    p_to.energy = (BYTE)PARMVALUE(t6721, 0);
+    p_to.energy = (uint8_t)PARMVALUE(t6721, 0);
     silent = ((new_pitch == 0x7e) && (p_to.energy == 1));
 
     if (!voiced && !silent) {
@@ -500,7 +499,7 @@ static int parcor_render_frame(t6721_state *t6721, WORD *new_param)
 
     if (!silent) {
         for (i = 0; i < (voiced ? (12 - 2) : (6 - 2)); ++i) {
-            p_to.k[i] = (SWORD)(new_param[i + 2]);
+            p_to.k[i] = (int16_t)(new_param[i + 2]);
         }
 
         for (i = 0; i < 8; ++i) {
@@ -776,7 +775,7 @@ void t6721_update_ticks(t6721_state *t6721, int ticks)
 float up2smp = 0;
 
 /* render num samples into output buffer, run remaining cycles (if any) */
-void t6721_update_output(t6721_state *t6721, SWORD *buf, int num)
+void t6721_update_output(t6721_state *t6721, int16_t *buf, int num)
 {
     int i;
     int cycles;
@@ -804,7 +803,7 @@ void t6721_update_output(t6721_state *t6721, SWORD *buf, int num)
 /*
     when the WR pin goes high, d0..d3 from data are read by ("written to") the chip
 */
-void t6721_store(t6721_state *t6721, BYTE data)
+void t6721_store(t6721_state *t6721, uint8_t data)
 {
 /* DBG(("write %2x\n", data)); */
     /* an actual store is performed on Lo->HI transition of WR */
@@ -941,7 +940,7 @@ void t6721_store(t6721_state *t6721, BYTE data)
     t6721->wr_last = t6721->wr;
 }
 
-BYTE t6721_read(t6721_state *t6721)
+uint8_t t6721_read(t6721_state *t6721)
 {
     int data;
 
@@ -1017,16 +1016,16 @@ int t6721_dump(t6721_state *t6721)
 /* FIXME: implement snapshot support */
 int t6721_snapshot_write_module(snapshot_t *s, t6721_state *t6721)
 {
-    return -1;
-#if 0
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, SNAP_MODULE_NAME,
-                               CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
+    m = snapshot_module_create(s, SNAP_MODULE_NAME, CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR);
     if (m == NULL) {
         return -1;
     }
 
+    snapshot_set_error(SNAPSHOT_MODULE_NOT_IMPLEMENTED);
+    return -1;
+#if 0
     if (0) {
         snapshot_module_close(m);
         return -1;
@@ -1041,7 +1040,7 @@ int t6721_snapshot_read_module(snapshot_t *s, t6721_state *t6721)
 {
     return -1;
 #if 0
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);

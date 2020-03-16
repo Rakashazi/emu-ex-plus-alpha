@@ -55,7 +55,7 @@
 static int rendermode_error = -1;
 
 static void video_render_crt_main(video_render_config_t *config,
-                                  BYTE *src, BYTE *trg,
+                                  uint8_t *src, uint8_t *trg,
                                   int width, int height, int xs, int ys, int xt,
                                   int yt, int pitchs, int pitcht, int depth,
                                   viewport_t *viewport)

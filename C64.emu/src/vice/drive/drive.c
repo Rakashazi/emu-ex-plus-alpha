@@ -89,7 +89,7 @@ static int drive_led_color[DRIVE_NUM];
 
 /* ------------------------------------------------------------------------- */
 
-void drive_set_disk_memory(BYTE *id, unsigned int track, unsigned int sector,
+void drive_set_disk_memory(uint8_t *id, unsigned int track, unsigned int sector,
                            struct drive_context_s *drv)
 {
     drive_t *drive;
@@ -112,7 +112,7 @@ void drive_set_disk_memory(BYTE *id, unsigned int track, unsigned int sector,
     }
 }
 
-void drive_set_last_read(unsigned int track, unsigned int sector, BYTE *buffer,
+void drive_set_last_read(unsigned int track, unsigned int sector, uint8_t *buffer,
                          struct drive_context_s *drv)
 {
     drive_t *drive;
@@ -381,7 +381,7 @@ int drive_set_disk_drive_type(unsigned int type, struct drive_context_s *drv)
 int drive_get_disk_drive_type(int dnr)
 {
     if (dnr >= 0 && dnr < DRIVE_NUM) {
-	return drive_context[dnr]->drive->type;
+        return drive_context[dnr]->drive->type;
     }
 
     return DRIVE_TYPE_NONE;
@@ -547,7 +547,7 @@ void drive_reset(void)
 /* Move the head to half track `num'.  */
 void drive_set_half_track(int num, int side, drive_t *dptr)
 {
-	int tmp;
+    int tmp;
     if ((dptr->type == DRIVE_TYPE_1540
          || dptr->type == DRIVE_TYPE_1541
          || dptr->type == DRIVE_TYPE_1541II
@@ -595,6 +595,9 @@ void drive_set_half_track(int num, int side, drive_t *dptr)
    for `step' are `+1', '+2' and `-1'.  */
 void drive_move_head(int step, drive_t *drive)
 {
+    if ((step < -1) || (step > 1)) {
+        log_warning(drive_log, "ambiguous step count (%d)", step);
+    }
     drive_gcr_data_writeback(drive);
     drive_sound_head(drive->current_half_track, step, drive->mynumber);
     drive_set_half_track(drive->current_half_track + step, drive->side, drive);

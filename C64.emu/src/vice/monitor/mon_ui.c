@@ -81,17 +81,17 @@ MEMSPACE mon_navigate_get_memspace(mon_navigate_private_t *mnp)
     return mnp->memspace;
 }
 
-WORD mon_navigate_get_startaddress(mon_navigate_private_t * mnp)
+uint16_t mon_navigate_get_startaddress(mon_navigate_private_t * mnp)
 {
     return mnp->StartAddress;
 }
 
-void mon_navigate_set_startaddress(mon_navigate_private_t * mnp, WORD StartAddress)
+void mon_navigate_set_startaddress(mon_navigate_private_t * mnp, uint16_t StartAddress)
 {
     mnp->StartAddress = StartAddress;
 }
 
-static WORD mon_navigate_get_currentaddress(mon_navigate_private_t * mnp)
+static uint16_t mon_navigate_get_currentaddress(mon_navigate_private_t * mnp)
 {
     return mnp->CurrentAddress;
 }
@@ -106,14 +106,14 @@ static void mon_navigate_set_lines(mon_navigate_private_t * mnp, int Lines)
     mnp->Lines = Lines;
 }
 
-static void mon_navigate_set_endaddress(mon_navigate_private_t * mnp, WORD loc)
+static void mon_navigate_set_endaddress(mon_navigate_private_t * mnp, uint16_t loc)
 {
     mnp->EndAddress = loc;
 }
 
 mon_disassembly_t * mon_disassembly_get_lines(mon_disassembly_private_t *pmdp, int lines_visible, int lines_full_visible)
 {
-    WORD loc;
+    uint16_t loc;
     unsigned int size;
     int i;
     unsigned int have_label = mon_navigate_get_have_label(&pmdp->navigate);
@@ -163,7 +163,7 @@ mon_disassembly_t * mon_disassembly_get_lines(mon_disassembly_private_t *pmdp, i
 
 mon_disassembly_t *mon_dump_get_lines(mon_memory_private_t *pmdp, int lines_visible, int lines_full_visible)
 {
-    WORD loc;
+    uint16_t loc;
     int i;
     unsigned int have_label = mon_navigate_get_have_label(&pmdp->navigate);
     mon_disassembly_t *contents = NULL;
@@ -212,7 +212,7 @@ mon_disassembly_t *mon_dump_get_lines(mon_memory_private_t *pmdp, int lines_visi
 }
 
 
-static WORD determine_address_of_line(mon_navigate_private_t *mnp, WORD loc, int line )
+static uint16_t determine_address_of_line(mon_navigate_private_t *mnp, uint16_t loc, int line )
 {
     unsigned int size;
     int i;
@@ -234,25 +234,25 @@ static WORD determine_address_of_line(mon_navigate_private_t *mnp, WORD loc, int
     return loc;
 }
 
-static WORD scroll_down(mon_navigate_private_t *mnp, WORD loc)
+static uint16_t scroll_down(mon_navigate_private_t *mnp, uint16_t loc)
 {
     return determine_address_of_line(mnp, loc, 1);
 }
 
-static WORD scroll_down_page(mon_navigate_private_t *mnp, WORD loc)
+static uint16_t scroll_down_page(mon_navigate_private_t *mnp, uint16_t loc)
 {
     /* the count is one less than visible,
        so there will be one visible line left on the screen! */
     return determine_address_of_line( mnp, loc, mnp->Lines - 1 );
 }
 
-static WORD scroll_up_count(mon_navigate_private_t *mnp, WORD loc, unsigned int count)
+static uint16_t scroll_up_count(mon_navigate_private_t *mnp, uint16_t loc, unsigned int count)
 {
     unsigned int size;
     /* this has to be initialized with zero for correct processing */
     unsigned int have_label = 0;
 
-    WORD testloc = loc - 3 * count - 3;
+    uint16_t testloc = loc - 3 * count - 3;
 
     unsigned int *disp = lib_malloc(sizeof(unsigned int) * count);
     unsigned int storepos = 0;
@@ -278,19 +278,19 @@ static WORD scroll_up_count(mon_navigate_private_t *mnp, WORD loc, unsigned int 
     return loc;
 }
 
-static WORD scroll_up(mon_navigate_private_t *mnp, WORD loc)
+static uint16_t scroll_up(mon_navigate_private_t *mnp, uint16_t loc)
 {
     return scroll_up_count( mnp, loc, 1 );
 }
 
-static WORD scroll_up_page(mon_navigate_private_t *mnp, WORD loc)
+static uint16_t scroll_up_page(mon_navigate_private_t *mnp, uint16_t loc)
 {
     /* the count is one less than visible,
        so there will be one visible line left on the screen! */
     return scroll_up_count(mnp, loc, mnp->Lines - 1);
 }
 
-WORD mon_navigate_scroll(mon_navigate_private_t *mnp, MON_SCROLL_TYPE ScrollType)
+uint16_t mon_navigate_scroll(mon_navigate_private_t *mnp, MON_SCROLL_TYPE ScrollType)
 {
     switch (ScrollType) {
         case MON_SCROLL_NOTHING:
@@ -315,7 +315,7 @@ WORD mon_navigate_scroll(mon_navigate_private_t *mnp, MON_SCROLL_TYPE ScrollType
     return mnp->StartAddress;
 }
 
-WORD mon_navigate_scroll_to(mon_navigate_private_t *mnp, WORD addr)
+uint16_t mon_navigate_scroll_to(mon_navigate_private_t *mnp, uint16_t addr)
 {
     mnp->StartAddress = addr;
     return mnp->StartAddress;
@@ -341,7 +341,7 @@ void mon_disassembly_disable_breakpoint(mon_disassembly_private_t *pmdp)
     mon_breakpoint_disable(pmdp->AddrClicked);
 }
 
-void mon_navigate_goto_address(mon_navigate_private_t *mnp, WORD addr)
+void mon_navigate_goto_address(mon_navigate_private_t *mnp, uint16_t addr)
 {
     mnp->CurrentAddress = addr;
     mon_navigate_check_if_in_range(mnp);
@@ -349,12 +349,12 @@ void mon_navigate_goto_address(mon_navigate_private_t *mnp, WORD addr)
 
 void mon_navigate_goto_pc(mon_navigate_private_t *mnp)
 {
-    mon_navigate_goto_address(mnp, (WORD)(monitor_cpu_for_memspace[mnp->memspace]->mon_register_get_val(mnp->memspace, e_PC)));
+    mon_navigate_goto_address(mnp, (uint16_t)(monitor_cpu_for_memspace[mnp->memspace]->mon_register_get_val(mnp->memspace, e_PC)));
 }
 
 void mon_disassembly_set_next_instruction(mon_disassembly_private_t *pmdp)
 {
-    monitor_cpu_for_memspace[mon_navigate_get_memspace(&pmdp->navigate)]->mon_register_set_val(mon_navigate_get_memspace(&pmdp->navigate), e_PC, (WORD) addr_location(pmdp->AddrClicked));
+    monitor_cpu_for_memspace[mon_navigate_get_memspace(&pmdp->navigate)]->mon_register_set_val(mon_navigate_get_memspace(&pmdp->navigate), e_PC, (uint16_t) addr_location(pmdp->AddrClicked));
 }
 
 void mon_navigate_goto_string(mon_navigate_private_t * mnp, char *addr)
@@ -365,12 +365,12 @@ void mon_navigate_goto_string(mon_navigate_private_t * mnp, char *addr)
     address = strtoul(addr, &remain, 16);
 
     if (*remain == 0) {
-        mon_navigate_goto_address(mnp, (WORD) address);
+        mon_navigate_goto_address(mnp, (uint16_t) address);
     }
 }
 
 
-void mon_disassembly_determine_popup_commands(mon_disassembly_private_t *pmdp, int xPos, int yPos, WORD *ulMask, WORD *ulDefault)
+void mon_disassembly_determine_popup_commands(mon_disassembly_private_t *pmdp, int xPos, int yPos, uint16_t *ulMask, uint16_t *ulDefault)
 {
     MON_ADDR CurrentAddress;
     mon_breakpoint_type_t mbt;
@@ -440,17 +440,13 @@ void mon_memory_init(mon_memory_private_t * pmmp)
     mon_navigate_init(&pmmp->navigate);
 }
 
-void mon_memory_deinit(mon_memory_private_t * pmmp)
-{
-}
-
 void mon_memory_update(mon_memory_private_t * pmmp)
 {
 }
 
 mon_memory_t *mon_memory_get_lines(mon_memory_private_t * pmmp, int lines_visible, int lines_full_visible)
 {
-    WORD loc;
+    uint16_t loc;
     unsigned int size = 0;
     int i;
     mon_memory_t *contents = NULL;
@@ -477,7 +473,7 @@ mon_memory_t *mon_memory_get_lines(mon_memory_private_t * pmmp, int lines_visibl
         contents->flags.is_breakpoint = 0;
         contents->flags.breakpoint_active = 0;
 
-        contents->content = lib_stralloc(">C:a0e0  54 4f d0 4f  ce 57 41 49   TO.O.WAI");
+        contents->content = lib_strdup(">C:a0e0  54 4f d0 4f  ce 57 41 49   TO.O.WAI");
         size += 8;
 
         contents->length = strlen(contents->content);

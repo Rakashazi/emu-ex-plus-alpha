@@ -44,20 +44,20 @@
 struct snapshot_s;
 
 typedef struct tpi_context_s {
-    BYTE c_tpi[8];
+    uint8_t c_tpi[8];
 
-    BYTE irq_previous;
-    BYTE irq_stack;
+    uint8_t irq_previous;
+    uint8_t irq_stack;
 
-    BYTE tpi_last_read;
+    uint8_t tpi_last_read;
     unsigned int tpi_int_num;
 
-    BYTE oldpa;
-    BYTE oldpb;
-    BYTE oldpc;
+    uint8_t oldpa;
+    uint8_t oldpb;
+    uint8_t oldpc;
 
-    BYTE ca_state;
-    BYTE cb_state;
+    uint8_t ca_state;
+    uint8_t cb_state;
 
     signed int log;
 
@@ -72,15 +72,15 @@ typedef struct tpi_context_s {
     void *prv;
     void *context;
 
-    void (*store_pa)(struct tpi_context_s *, BYTE);
-    void (*store_pb)(struct tpi_context_s *, BYTE);
-    void (*store_pc)(struct tpi_context_s *, BYTE);
-    BYTE (*read_pa)(struct tpi_context_s *);
-    BYTE (*read_pb)(struct tpi_context_s *);
-    BYTE (*read_pc)(struct tpi_context_s *);
-    void (*undump_pa)(struct tpi_context_s *, BYTE);
-    void (*undump_pb)(struct tpi_context_s *, BYTE);
-    void (*undump_pc)(struct tpi_context_s *, BYTE);
+    void (*store_pa)(struct tpi_context_s *, uint8_t);
+    void (*store_pb)(struct tpi_context_s *, uint8_t);
+    void (*store_pc)(struct tpi_context_s *, uint8_t);
+    uint8_t (*read_pa)(struct tpi_context_s *);
+    uint8_t (*read_pb)(struct tpi_context_s *);
+    uint8_t (*read_pc)(struct tpi_context_s *);
+    void (*undump_pa)(struct tpi_context_s *, uint8_t);
+    void (*undump_pb)(struct tpi_context_s *, uint8_t);
+    void (*undump_pc)(struct tpi_context_s *, uint8_t);
     void (*reset)(struct tpi_context_s *);
     void (*set_ca)(struct tpi_context_s *, int);
     void (*set_cb)(struct tpi_context_s *, int);
@@ -91,13 +91,14 @@ typedef struct tpi_context_s {
 extern void tpicore_setup_context(struct tpi_context_s *tpi_context);
 extern void tpicore_shutdown(struct tpi_context_s *tpi_context);
 extern void tpicore_reset(tpi_context_t *tpi_context);
-extern void tpicore_store(struct tpi_context_s *tpi_context, WORD addr, BYTE byte);
-extern BYTE tpicore_read(struct tpi_context_s *tpi_context, WORD addr);
-extern BYTE tpicore_peek(struct tpi_context_s *tpi_context, WORD addr);
+extern void tpicore_store(struct tpi_context_s *tpi_context, uint16_t addr, uint8_t byte);
+extern uint8_t tpicore_read(struct tpi_context_s *tpi_context, uint16_t addr);
+extern uint8_t tpicore_peek(struct tpi_context_s *tpi_context, uint16_t addr);
 extern void tpicore_set_int(tpi_context_t *tpi_context, int bit, int state);
 extern void tpicore_restore_int(tpi_context_t *tpi_context, int bit, int state);
 
 extern int tpicore_snapshot_write_module(tpi_context_t *tpi_context, struct snapshot_s *p);
 extern int tpicore_snapshot_read_module(tpi_context_t *tpi_context, struct snapshot_s *p);
 extern int tpicore_dump(struct tpi_context_s *tpi_context);
+
 #endif

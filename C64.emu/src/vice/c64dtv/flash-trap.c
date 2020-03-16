@@ -1,14 +1,14 @@
-/*
- * flash-trap.c
+/** \file   flash-trap.c
  *
- * Written by
- *  Daniel Kahlin <daniel@kahlin.net>
+ * @author  Daniel Kahlin <daniel@kahlin.net>
  *
  * Based on code from serial by
  *  Teemu Rantanen <tvr@cs.hut.fi>
  *  Andreas Boose <viceteam@t-online.de>
  *  Ettore Perazzoli <ettore@comm2000.it>
- *
+ */
+
+/*
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -50,7 +50,6 @@
 #include "types.h"
 #include "util.h"
 #include "resources.h"
-#include "translate.h"
 
 /* Flag: Have traps been installed?  */
 static int traps_installed = 0;
@@ -122,16 +121,16 @@ void flash_trap_shutdown(void)
 static enum { ST_ENTRY=0, ST_END, ST_EMPTY } seek_state = ST_EMPTY;
 static char name[256];
 static int name_len = 0;
-static DWORD load_addr = 0;
+static uint32_t load_addr = 0;
 
 static void read_name_from_mem(void)
 {
     int i;
-    WORD fname;
+    uint16_t fname;
     name_len = mem_read(0xB7);
     fname = mem_read(0xBB) | (mem_read(0xBC) << 8);
     for (i = 0; i < name_len; i++) {
-        name[i] = mem_read((WORD)(fname + i));
+        name[i] = mem_read((uint16_t)(fname + i));
     }
     name[i] = 0x00;
 }
@@ -143,8 +142,8 @@ static void read_name_from_mem(void)
 int flash_trap_seek_next(void)
 {
     unsigned int i;
-    BYTE direntry[0x20];
-    DWORD entry;
+    uint8_t direntry[0x20];
+    uint32_t entry;
 
     /* bail out if true fs, not emulated */
     if (flash_trap_trueflashfs) {
@@ -175,7 +174,7 @@ int flash_trap_seek_next(void)
             }
             fi = fileio_open(name, path, FILEIO_FORMAT_RAW, FILEIO_COMMAND_READ, FILEIO_TYPE_ANY);
             if (fi) {
-                BYTE addr[2];
+                uint8_t addr[2];
                 fileio_read(fi, addr, 2);
                 load_addr = addr[0] | (addr[1] << 8);
                 seek_state = ST_ENTRY;
@@ -197,9 +196,9 @@ int flash_trap_seek_next(void)
             direntry[0x1A] = 0x02;
 
             /* load_address */
-            direntry[0x1B] = (BYTE)(load_addr & 0xff);
-            direntry[0x1C] = (BYTE)((load_addr >> 8) & 0xff);
-            direntry[0x1D] = (BYTE)((load_addr >> 16) & 0xff);
+            direntry[0x1B] = (uint8_t)(load_addr & 0xff);
+            direntry[0x1C] = (uint8_t)((load_addr >> 8) & 0xff);
+            direntry[0x1D] = (uint8_t)((load_addr >> 16) & 0xff);
 
             /* sys_address (non-standard) */
             direntry[0x1E] = 0x00;
@@ -222,7 +221,7 @@ int flash_trap_seek_next(void)
 
     /* write out directory entry to the buffer at $0100-$011F */
     for (i = 0; i < sizeof(direntry); i++) {
-        mem_store((WORD)(0x0100 + i), direntry[i]);
+        mem_store((uint16_t)(0x0100 + i), direntry[i]);
     }
 
     return 1;
@@ -231,8 +230,8 @@ int flash_trap_seek_next(void)
 /* Flash load body routine replacement.  */
 int flash_trap_load_body(void)
 {
-    DWORD addr;
-    BYTE laddr, maddr, haddr;
+    uint32_t addr;
+    uint8_t laddr, maddr, haddr;
 
     /* bail out if true fs, not emulated */
     if (flash_trap_trueflashfs) {
@@ -244,7 +243,7 @@ int flash_trap_load_body(void)
 
     /* load */
     if (fi) {
-        BYTE b;
+        uint8_t b;
         while (fileio_read(fi, &b, 1)) {
             mem_ram[addr & 0x1FFFFF] = b;
             addr++;
@@ -254,16 +253,16 @@ int flash_trap_load_body(void)
     }
 
     /* set exit values for success and return */
-    laddr = (BYTE)(addr & 0xff);
-    maddr = (BYTE)((addr >> 8) & 0xff);
-    haddr = (BYTE)((addr >> 16) & 0xff);
-    mem_store((WORD)0xFB, laddr);
-    mem_store((WORD)0xFC, maddr);
-    mem_store((WORD)0xFD, haddr);
+    laddr = (uint8_t)(addr & 0xff);
+    maddr = (uint8_t)((addr >> 8) & 0xff);
+    haddr = (uint8_t)((addr >> 16) & 0xff);
+    mem_store((uint16_t)0xFB, laddr);
+    mem_store((uint16_t)0xFC, maddr);
+    mem_store((uint16_t)0xFD, haddr);
     maincpu_set_x(laddr);
     maincpu_set_y(maddr);
-    mem_store((WORD)0xAE, laddr);
-    mem_store((WORD)0xAF, maddr);
+    mem_store((uint16_t)0xAE, laddr);
+    mem_store((uint16_t)0xAF, maddr);
 
     return 1;
 }
@@ -278,9 +277,9 @@ void flash_traps_reset(void)
 
 /* ------------------------------------------------------------------------- */
 
-static int set_flash_trap_fsflashdir(const char *name, void *param)
+static int set_flash_trap_fsflashdir(const char *dirname, void *param)
 {
-    util_string_set(&flash_trap_fsflashdir, name);
+    util_string_set(&flash_trap_fsflashdir, dirname);
 
     return 0;
 }
@@ -321,21 +320,15 @@ void flash_trap_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-fsflash", SET_RESOURCE, 1,
+    { "-fsflash", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "FSFlashDir", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_USE_AS_DIRECTORY_FLASH_FS,
-      NULL, NULL },
-    { "-trueflashfs", SET_RESOURCE, 0,
+      "<Name>", "Use <name> as directory for flash file system device" },
+    { "-trueflashfs", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "FlashTrueFS", (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_TRUE_FLASH_FS,
-      NULL, NULL },
-    { "+trueflashfs", SET_RESOURCE, 0,
+      NULL, "Enable true hardware flash file system" },
+    { "+trueflashfs", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "FlashTrueFS", (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_TRUE_FLASH_FS,
-      NULL, NULL },
+      NULL, "Disable true hardware flash file system" },
     CMDLINE_LIST_END
 };
 

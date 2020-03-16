@@ -72,8 +72,8 @@ struct crtc_s {
 
     /* screen and charset memory options (almost) as given to
        crtc_set_chargen_addr() and crtc_set_screen_addr() */
-    BYTE *screen_base;
-    BYTE *chargen_base;
+    uint8_t *screen_base;
+    uint8_t *chargen_base;
     int chargen_mask;
     int chargen_offset;
 
@@ -154,7 +154,7 @@ struct crtc_s {
     raster_t raster;
 
     /* CRTC registers.  */
-    BYTE regs[64];
+    uint8_t regs[64];
 
     /* Alarm to update a raster line.  */
     struct alarm_s *raster_draw_alarm;

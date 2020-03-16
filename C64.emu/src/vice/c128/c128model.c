@@ -44,7 +44,6 @@ static int is_new_sid(int model)
 {
     switch (model) {
         case SID_MODEL_6581:
-        case SID_MODEL_6581R4:
         default:
             return 0;
 
@@ -67,10 +66,12 @@ static int is_new_cia(int model)
 
 /*
 C128:             SID 6581, VDC 8563, 16 KB VDC RAM.
-C128D (plastic):  SID 6581, VDC 8563, 16 KB VDC RAM (like C128+1571)
+C128D (plastic):  SID 6581, VDC 8563, 16 KB VDC RAM, new BASIC ROM?, new floppy ROM? (like C128+1571)
 C128D (metal):    SID 8580, VDC 8568, 64 KB VDC RAM, new BASIC ROM?, new floppy ROM?
 C128DCR (like above)
- */
+
+FIXME: ROM differences not handled. New Floppy ROM handles 5710 in drive.
+*/
 
 struct model_s {
     int video;   /* machine video timing */
@@ -78,35 +79,39 @@ struct model_s {
     int sid;     /* old or new */
     int vdc;     /* old or new */
     int vdc64k;
+    int board;   /* 0: C128 FLAT, 1: C128 D */
 };
 
 static struct model_s c128models[] = {
-    { MACHINE_SYNC_PAL,  OLD_CIA, OLD_SID, VDC_REVISION_1, VDC16K },
-    { MACHINE_SYNC_PAL,  NEW_CIA, NEW_SID, VDC_REVISION_2, VDC64K },
-    { MACHINE_SYNC_NTSC, OLD_CIA, OLD_SID, VDC_REVISION_1, VDC16K },
-    { MACHINE_SYNC_NTSC, NEW_CIA, NEW_SID, VDC_REVISION_2, VDC64K },
+    { MACHINE_SYNC_PAL,  OLD_CIA, OLD_SID, VDC_REVISION_1, VDC16K, BOARD_C128 }, /* PAL C128 flat */
+    { MACHINE_SYNC_PAL,  OLD_CIA, OLD_SID, VDC_REVISION_1, VDC16K, BOARD_C128D }, /* PAL C128D */
+    { MACHINE_SYNC_PAL,  NEW_CIA, NEW_SID, VDC_REVISION_2, VDC64K, BOARD_C128D }, /* PAL C128DCR */
+    { MACHINE_SYNC_NTSC, OLD_CIA, OLD_SID, VDC_REVISION_1, VDC16K, BOARD_C128 }, /* NTSC C128 flat */
+    { MACHINE_SYNC_NTSC, OLD_CIA, OLD_SID, VDC_REVISION_1, VDC16K, BOARD_C128D }, /* NTSC C128D */
+    { MACHINE_SYNC_NTSC, NEW_CIA, NEW_SID, VDC_REVISION_2, VDC64K, BOARD_C128D }, /* NTSC C128DCR */
 };
 
 /* ------------------------------------------------------------------------- */
 
 static int c128model_get_temp(int video, int sid_model, int vdc_revision, int vdc_64k,
-                       int cia1_model, int cia2_model)
+                       int cia1model, int cia2model, int board)
 {
     int new_sid;
     int new_cia;
     int i;
 
-    if (cia1_model != cia2_model) {
+    if (cia1model != cia2model) {
         return C128MODEL_UNKNOWN;
     }
 
     new_sid = is_new_sid(sid_model);
-    new_cia = is_new_cia(cia1_model);
+    new_cia = is_new_cia(cia1model);
 
     for (i = 0; i < C128MODEL_NUM; ++i) {
         if ((c128models[i].video == video)
             && (c128models[i].vdc == vdc_revision)
             && (c128models[i].vdc64k == vdc_64k)
+            && (c128models[i].board == board)
             && (c128models[i].cia == new_cia)
             && (c128models[i].sid == new_sid)) {
             return i;
@@ -118,25 +123,26 @@ static int c128model_get_temp(int video, int sid_model, int vdc_revision, int vd
 
 int c128model_get(void)
 {
-    int video, sid_model, cia1_model, cia2_model, vdc_revision, vdc_64k;
+    int video, sid_model, cia1model, cia2model, vdc_revision, vdc_64k, board;
 
     if ((resources_get_int("MachineVideoStandard", &video) < 0)
         || (resources_get_int("SidModel", &sid_model) < 0)
-        || (resources_get_int("CIA1Model", &cia1_model) < 0)
-        || (resources_get_int("CIA2Model", &cia2_model) < 0)
+        || (resources_get_int("CIA1Model", &cia1model) < 0)
+        || (resources_get_int("CIA2Model", &cia2model) < 0)
         || (resources_get_int("VDCRevision", &vdc_revision) < 0)
-        || (resources_get_int("VDC64KB", &vdc_64k) < 0)) {
+        || (resources_get_int("VDC64KB", &vdc_64k) < 0)
+        || (resources_get_int("BoardType", &board) < 0)) {
         return -1;
     }
 
     return c128model_get_temp(video, sid_model, vdc_revision, vdc_64k,
-                              cia1_model, cia2_model);
+                              cia1model, cia2model, board);
 }
 
 #if 0
 static void c128model_set_temp(int model, int *vicii_model, int *sid_model,
-                        int *vdc_revision, int *vdc_64k, int *cia1_model,
-                        int *cia2_model)
+                        int *vdc_revision, int *vdc_64k, int *cia1model,
+                        int *cia2model, int *board)
 {
     int old_model;
     int old_engine;
@@ -144,19 +150,21 @@ static void c128model_set_temp(int model, int *vicii_model, int *sid_model,
     int new_sid_model;
     int old_type;
     int new_type;
+    int board;
 
     old_model = c128model_get_temp(*vicii_model, *sid_model, *vdc_revision,
-                                   *vdc_64k, *cia1_model, *cia2_model);
+                                   *vdc_64k, *cia1model, *cia2model, *board);
 
     if ((model == old_model) || (model == C128MODEL_UNKNOWN)) {
         return;
     }
 
     *vicii_model = c128models[model].video;
-    *cia1_model = c128models[model].cia;
-    *cia2_model = c128models[model].cia;
+    *cia1model = c128models[model].cia;
+    *cia2model = c128models[model].cia;
     *vdc_revision = c128models[model].vdc;
     *vdc_64k = c128models[model].vdc64k;
+    *board = c128models[model].board;
 
     /* Only change the SID model if the model changes from 6581 to 8580.
        This allows to switch between "pal"/"oldpal" without changing
@@ -195,6 +203,7 @@ void c128model_set(int model)
     resources_set_int("CIA2Model", c128models[model].cia);
     resources_set_int("VDCRevision", c128models[model].vdc);
     resources_set_int("VDC64KB", c128models[model].vdc64k);
+    resources_set_int("BoardType", c128models[model].board);
 
     /* Only change the SID model if the model changes from 6581 to 8580
        This allows to switch between "pal"/"oldpal" without changing

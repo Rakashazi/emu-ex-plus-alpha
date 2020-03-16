@@ -31,8 +31,8 @@
 
 #include "types.h"
 
-inline static int raster_cache_data_fill_const(BYTE *dest,
-                                               const BYTE data,
+inline static int raster_cache_data_fill_const(uint8_t *dest,
+                                               const uint8_t data,
                                                const unsigned int length,
                                                unsigned int *xs,
                                                unsigned int *xe,

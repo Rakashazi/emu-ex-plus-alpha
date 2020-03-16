@@ -31,7 +31,7 @@
 #include "types.h"
 
 
-BYTE drive_writeprotect_sense(drive_t *dptr)
+uint8_t drive_writeprotect_sense(drive_t *dptr)
 {
     /* Clear the write protection bit for the time the disk is pulled out on
        detach.  */

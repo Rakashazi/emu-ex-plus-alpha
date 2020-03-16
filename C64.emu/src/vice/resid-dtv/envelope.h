@@ -31,7 +31,7 @@
 
 #include "bittrain.h"
 
-namespace reSID
+namespace reSID_dtv
 {
 
 // ----------------------------------------------------------------------------
@@ -170,6 +170,6 @@ unsigned int EnvelopeGenerator::output()
 
 #endif // RESID_INLINING || defined(__ENVELOPE_CC__)
 
-} // namespace reSID
+} // namespace reSID_dtv
 
 #endif // not __ENVELOPE_H__

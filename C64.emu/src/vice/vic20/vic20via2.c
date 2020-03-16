@@ -53,17 +53,17 @@
 
 int vic20_vflihack_userport = 0xff;
 
-void via2_store(WORD addr, BYTE data)
+void via2_store(uint16_t addr, uint8_t data)
 {
     viacore_store(machine_context.via2, addr, data);
 }
 
-BYTE via2_read(WORD addr)
+uint8_t via2_read(uint16_t addr)
 {
     return viacore_read(machine_context.via2, addr);
 }
 
-BYTE via2_peek(WORD addr)
+uint8_t via2_peek(uint16_t addr)
 {
     return viacore_peek(machine_context.via2, addr);
 }
@@ -106,9 +106,9 @@ void via2_set_tape_motor_in(int v)
     tape_motor_in = v;
 }
 
-static void via2_internal_lightpen_check(BYTE pa)
+static void via2_internal_lightpen_check(uint8_t pa)
 {
-    BYTE b = read_joyport_dig(JOYPORT_1);
+    uint8_t b = read_joyport_dig(JOYPORT_1);
 
     b &= pa;
 
@@ -117,20 +117,20 @@ static void via2_internal_lightpen_check(BYTE pa)
 
 void via2_check_lightpen(void)
 {
-    BYTE pa = machine_context.via2->via[VIA_PRA] | ~(machine_context.via2->via[VIA_DDRA]);
+    uint8_t pa = machine_context.via2->via[VIA_PRA] | ~(machine_context.via2->via[VIA_DDRA]);
 
     via2_internal_lightpen_check(pa);
 }
 
-static void undump_pra(via_context_t *via_context, BYTE byte)
+static void undump_pra(via_context_t *via_context, uint8_t byte)
 {
     iec_pa_write(byte);
 }
 
-static void store_pra(via_context_t *via_context, BYTE byte, BYTE myoldpa,
-                      WORD addr)
+static void store_pra(via_context_t *via_context, uint8_t byte, uint8_t myoldpa,
+                      uint16_t addr)
 {
-    BYTE joy_bits = 0;
+    uint8_t joy_bits = 0;
 
     via2_internal_lightpen_check(byte);
     iec_pa_write(byte);
@@ -141,13 +141,13 @@ static void store_pra(via_context_t *via_context, BYTE byte, BYTE myoldpa,
     tapeport_set_sense_out(byte & 0x40 ? 1 : 0);
 }
 
-static void undump_prb(via_context_t *via_context, BYTE byte)
+static void undump_prb(via_context_t *via_context, uint8_t byte)
 {
     store_userport_pbx(byte);
 }
 
-static void store_prb(via_context_t *via_context, BYTE byte, BYTE myoldpb,
-                      WORD addr)
+static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t myoldpb,
+                      uint16_t addr)
 {
     /* for mike's VFLI hack, PB0-PB3 are used as A10-A13 of the color ram */
     vic20_vflihack_userport = byte & 0x0f;
@@ -159,7 +159,7 @@ static void store_prb(via_context_t *via_context, BYTE byte, BYTE myoldpb,
 #endif
 }
 
-static void undump_pcr(via_context_t *via_context, BYTE byte)
+static void undump_pcr(via_context_t *via_context, uint8_t byte)
 {
 }
 
@@ -174,11 +174,11 @@ static void reset(via_context_t *via_context)
 #endif
 }
 
-static BYTE store_pcr(via_context_t *via_context, BYTE byte, WORD addr)
+static uint8_t store_pcr(via_context_t *via_context, uint8_t byte, uint16_t addr)
 {
     /* FIXME: should use via_set_ca2() and via_set_cb2() */
     if (byte != via_context->via[VIA_PCR]) {
-        register BYTE tmp = byte;
+        register uint8_t tmp = byte;
         /* first set bit 1 and 5 to the real output values */
         if ((tmp & 0x0c) != 0x0c) {
             tmp |= 0x02;
@@ -195,31 +195,31 @@ static BYTE store_pcr(via_context_t *via_context, BYTE byte, WORD addr)
             rsuser_set_tx_bit(byte & 0x20);
         }
 #endif
-        store_userport_pa2((BYTE)((byte & 0x20) >> 5));
+        store_userport_pa2((uint8_t)((byte & 0x20) >> 5));
     }
     return byte;
 }
 
-static void undump_acr(via_context_t *via_context, BYTE byte)
+static void undump_acr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-inline static void store_acr(via_context_t *via_context, BYTE byte)
+inline static void store_acr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-inline static void store_sr(via_context_t *via_context, BYTE byte)
+inline static void store_sr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-inline static void store_t2l(via_context_t *via_context, BYTE byte)
+inline static void store_t2l(via_context_t *via_context, uint8_t byte)
 {
 }
 
-inline static BYTE read_pra(via_context_t *via_context, WORD addr)
+inline static uint8_t read_pra(via_context_t *via_context, uint16_t addr)
 {
-    BYTE byte;
-    BYTE joy_bits;
+    uint8_t byte;
+    uint8_t joy_bits;
 
     /*
         Port A is connected this way:
@@ -250,12 +250,12 @@ inline static BYTE read_pra(via_context_t *via_context, WORD addr)
     return byte;
 }
 
-inline static BYTE read_prb(via_context_t *via_context)
+inline static uint8_t read_prb(via_context_t *via_context)
 {
-    BYTE byte = 0xff;
+    uint8_t byte = 0xff;
     byte = via_context->via[VIA_PRB] | ~(via_context->via[VIA_DDRB]);
 
-    byte = read_userport_pbx((BYTE)~via_context->via[VIA_DDRB], byte);
+    byte = read_userport_pbx((uint8_t)~via_context->via[VIA_DDRB], byte);
 
     /* The functions below will gradually be removed as the functionality is added to the new userport system. */
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
@@ -273,12 +273,12 @@ void via2_init(via_context_t *via_context)
                  maincpu_int_status, maincpu_clk_guard);
 }
 
-void vic20via2_setup_context(machine_context_t *machine_context)
+void vic20via2_setup_context(machine_context_t *machinecontext)
 {
     via_context_t *via;
 
-    machine_context->via2 = lib_malloc(sizeof(via_context_t));
-    via = machine_context->via2;
+    machinecontext->via2 = lib_malloc(sizeof(via_context_t));
+    via = machinecontext->via2;
 
     via->prv = NULL;
     via->context = NULL;

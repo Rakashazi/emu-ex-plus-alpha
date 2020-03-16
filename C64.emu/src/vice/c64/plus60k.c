@@ -91,7 +91,6 @@
 #include "resources.h"
 #include "plus60k.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "types.h"
 #include "uiapi.h"
 #include "util.h"
@@ -99,7 +98,7 @@
 #include "vicii-mem.h"
 
 /* PLUS60K registers */
-static BYTE plus60k_reg = 0;
+static uint8_t plus60k_reg = 0;
 
 static log_t plus60k_log = LOG_ERR;
 
@@ -113,7 +112,7 @@ int plus60k_base = 0xd100;
 /* Filename of the +60K image.  */
 static char *plus60k_filename = NULL;
 
-static BYTE *plus60k_ram;
+static uint8_t *plus60k_ram;
 
 static int plus60k_dump(void)
 {
@@ -121,79 +120,85 @@ static int plus60k_dump(void)
     return 0;
 }
 
-static BYTE plus60k_ff_read(WORD addr)
+static uint8_t plus60k_ff_read(uint16_t addr)
 {
     return 0xff;
 }
 
-static BYTE plus60k_peek(WORD addr)
+static uint8_t plus60k_peek(uint16_t addr)
 {
     return plus60k_reg << 7;
 }
 
-static void plus60k_vicii_store(WORD addr, BYTE value)
+static void plus60k_vicii_store(uint16_t addr, uint8_t value)
 {
     plus60k_reg = (value & 0x80) >> 7;
 }
 
+/* When the +60K device is active and the device base is at $d040, this device is used instead of the default VICII device */
 static io_source_t vicii_d000_device = {
-    "VIC-II",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xd000, 0xd03f, 0x3f,
-    1, /* read is always valid */
-    vicii_store,
-    vicii_read,
-    vicii_peek,
-    vicii_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
-    0
+    "VIC-II",              /* name of the device */
+    IO_DETACH_NEVER,       /* chip is never involved in collisions, so no detach */
+    IO_DETACH_NO_RESOURCE, /* does not use a resource for detach */
+    0xd000, 0xd03f, 0x3f,  /* range for the device, regs:$d000-$d03f */
+    1,                     /* read is always valid */
+    vicii_store,           /* store function */
+    NULL,                  /* NO poke function */
+    vicii_read,            /* read function */
+    vicii_peek,            /* peek function */
+    vicii_dump,            /* device state information dump function */
+    0,                     /* dummy (not a cartridge) */
+    IO_PRIO_HIGH,          /* high priority, device is never involved in collisions */
+    0                      /* insertion order, gets filled in by the registration function */
 };
 
+/* When the +60K device is active and the device base is at $d100, this device is used instead of the default VICII device */
 static io_source_t vicii_d000_full_device = {
-    "VIC-II",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xd000, 0xd0ff, 0x3f,
-    1, /* read is always valid */
-    vicii_store,
-    vicii_read,
-    vicii_peek,
-    vicii_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_HIGH, /* priority, device and mirrors never involved in collisions */
-    0
+    "VIC-II",              /* name of the device */
+    IO_DETACH_NEVER,       /* chip is never involved in collisions, so no detach */
+    IO_DETACH_NO_RESOURCE, /* does not use a resource for detach */
+    0xd000, 0xd0ff, 0x3f,  /* range for the device, regs:$d000-$d03f, mirrors:$d040-$d0ff */
+    1,                     /* read is always valid */
+    vicii_store,           /* store function */
+    NULL,                  /* NO poke function */
+    vicii_read,            /* read function */
+    vicii_peek,            /* peek function */
+    vicii_dump,            /* device state information dump function */
+    0,                     /* dummy (not a cartridge) */
+    IO_PRIO_HIGH,          /* high priority, device and mirrors are never involved in collisions */
+    0                      /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t vicii_d040_device = {
-    "+60K",
-    IO_DETACH_RESOURCE,
-    "PLUS60K",
-    0xd040, 0xd0ff, 1,
-    1, /* read is always valid */
-    plus60k_vicii_store,
-    plus60k_ff_read,
-    plus60k_peek,
-    plus60k_dump,
-    CARTRIDGE_PLUS60K,
-    IO_PRIO_NORMAL,
-    0
+    "+60K",               /* name of the device */
+    IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
+    "PLUS60K",            /* resource to set to '0' */
+    0xd040, 0xd0ff, 0x00, /* range for the device, address is ignored, reg:$d040, mirrors:$d041-$d0ff */
+    1,                    /* read is always valid */
+    plus60k_vicii_store,  /* store function */
+    NULL,                 /* NO poke function */
+    plus60k_ff_read,      /* read function */
+    plus60k_peek,         /* peek function */
+    plus60k_dump,         /* device state information dump function */
+    CARTRIDGE_PLUS60K,    /* cartridge ID */
+    IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
+    0                     /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t vicii_d100_device = {
-    "+60K",
-    IO_DETACH_RESOURCE,
-    "PLUS60K",
-    0xd100, 0xd1ff, 1,
-    1, /* read is always valid */
-    plus60k_vicii_store,
-    plus60k_ff_read,
-    plus60k_peek,
-    plus60k_dump,
-    CARTRIDGE_PLUS60K,
-    IO_PRIO_NORMAL,
-    0
+    "+60K",               /* name of the device */
+    IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
+    "PLUS60K",            /* resource to set to '0' */
+    0xd100, 0xd1ff, 0x00, /* range for the device, address is ignored, reg:$d100, mirrors:$d101-$d1ff */
+    1,                    /* read is always valid */
+    plus60k_vicii_store,  /* store function */
+    NULL,                 /* NO poke function */
+    plus60k_ff_read,      /* read function */
+    plus60k_peek,         /* peek function */
+    plus60k_dump,         /* device state information dump function */
+    CARTRIDGE_PLUS60K,    /* cartridge ID */
+    IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
+    0                     /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *vicii_d000_list_item = NULL;
@@ -265,7 +270,8 @@ static int set_plus60k_base(int val, void *param)
         case 0xd100:
             break;
         default:
-            log_message(plus60k_log, "Unknown PLUS60K base address $%X.", val);
+            log_message(plus60k_log, "Unknown PLUS60K base address $%X.",
+                    (unsigned int)val);
             return -1;
     }
 
@@ -310,16 +316,12 @@ void plus60k_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-plus60kimage", SET_RESOURCE, 1,
+    { "-plus60kimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "PLUS60Kfilename", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_PLUS60K_NAME,
-      NULL, NULL },
-    { "-plus60kbase", SET_RESOURCE, 1,
+      "<Name>", "Specify name of PLUS60K image" },
+    { "-plus60kbase", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "PLUS60Kbase", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_BASE_ADDRESS, IDCLS_PLUS60K_BASE,
-      NULL, NULL },
+      "<Base address>", "Base address of the PLUS60K expansion. (0xD040/0xD100)" },
     CMDLINE_LIST_END
 };
 
@@ -403,7 +405,7 @@ static int plus60k_deactivate(void)
         io_source_unregister(vicii_d100_list_item);
         vicii_d100_list_item = NULL;
     }
-    c64io_vicii_init();
+    c64io_vicii_reinit();
 
     return 0;
 }
@@ -417,27 +419,27 @@ void plus60k_shutdown(void)
 
 /* ------------------------------------------------------------------------- */
 
-static void plus60k_memory_store(WORD addr, BYTE value)
+static void plus60k_memory_store(uint16_t addr, uint8_t value)
 {
     plus60k_ram[addr - 0x1000] = value;
 }
 
-static void vicii_mem_vbank_store_wrapper(WORD addr, BYTE value)
+static void vicii_mem_vbank_store_wrapper(uint16_t addr, uint8_t value)
 {
     vicii_mem_vbank_store(addr, value);
 }
 
-static void vicii_mem_vbank_39xx_store_wrapper(WORD addr, BYTE value)
+static void vicii_mem_vbank_39xx_store_wrapper(uint16_t addr, uint8_t value)
 {
     vicii_mem_vbank_39xx_store(addr, value);
 }
 
-static void vicii_mem_vbank_3fxx_store_wrapper(WORD addr, BYTE value)
+static void vicii_mem_vbank_3fxx_store_wrapper(uint16_t addr, uint8_t value)
 {
     vicii_mem_vbank_3fxx_store(addr, value);
 }
 
-static void ram_hi_store_wrapper(WORD addr, BYTE value)
+static void ram_hi_store_wrapper(uint16_t addr, uint8_t value)
 {
     ram_hi_store(addr, value);
 }
@@ -453,27 +455,27 @@ static store_func_ptr_t plus60k_mem_write_tab[] = {
     plus60k_memory_store
 };
 
-void plus60k_vicii_mem_vbank_store(WORD addr, BYTE value)
+void plus60k_vicii_mem_vbank_store(uint16_t addr, uint8_t value)
 {
     plus60k_mem_write_tab[plus60k_reg](addr, value);
 }
 
-void plus60k_vicii_mem_vbank_39xx_store(WORD addr, BYTE value)
+void plus60k_vicii_mem_vbank_39xx_store(uint16_t addr, uint8_t value)
 {
     plus60k_mem_write_tab[plus60k_reg + 2](addr, value);
 }
 
-void plus60k_vicii_mem_vbank_3fxx_store(WORD addr, BYTE value)
+void plus60k_vicii_mem_vbank_3fxx_store(uint16_t addr, uint8_t value)
 {
     plus60k_mem_write_tab[plus60k_reg + 4](addr, value);
 }
 
-void plus60k_ram_hi_store(WORD addr, BYTE value)
+void plus60k_ram_hi_store(uint16_t addr, uint8_t value)
 {
     plus60k_mem_write_tab[plus60k_reg + 6](addr, value);
 }
 
-BYTE plus60k_ram_read(WORD addr)
+uint8_t plus60k_ram_read(uint16_t addr)
 {
     if (plus60k_enabled && addr >= 0x1000 && plus60k_reg == 1) {
         return plus60k_ram[addr - 0x1000];
@@ -482,13 +484,18 @@ BYTE plus60k_ram_read(WORD addr)
     }
 }
 
-void plus60k_ram_store(WORD addr, BYTE value)
+void plus60k_ram_store(uint16_t addr, uint8_t value)
 {
     if (plus60k_enabled && addr >= 0x1000 && plus60k_reg == 1) {
         plus60k_ram[addr - 0x1000] = value;
     } else {
         mem_ram[addr] = value;
     }
+}
+
+void plus60k_ram_inject(uint16_t addr, uint8_t value)
+{
+    plus60k_ram_store(addr, value);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -519,7 +526,7 @@ int plus60k_snapshot_write(struct snapshot_s *s)
     }
 
     if (0
-        || SMW_W (m, (WORD)plus60k_base) < 0
+        || SMW_W (m, (uint16_t)plus60k_base) < 0
         || SMW_B (m, plus60k_reg) < 0
         || SMW_BA(m, plus60k_ram, 0xf000) < 0) {
         snapshot_module_close(m);
@@ -532,7 +539,7 @@ int plus60k_snapshot_write(struct snapshot_s *s)
 int plus60k_snapshot_read(struct snapshot_s *s)
 {
     snapshot_module_t *m;
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
 
@@ -541,7 +548,7 @@ int plus60k_snapshot_read(struct snapshot_s *s)
     }
 
     /* Do not accept versions higher than current */
-    if ((vmajor != SNAP_MAJOR) || (vminor != SNAP_MINOR)) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

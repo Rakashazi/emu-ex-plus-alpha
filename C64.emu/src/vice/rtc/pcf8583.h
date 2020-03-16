@@ -55,29 +55,29 @@ typedef struct rtc_pcf8583_s {
     time_t latch;
     time_t offset;
     time_t old_offset;
-    BYTE *clock_regs;
-    BYTE old_clock_regs[PCF8583_REG_SIZE];
-    BYTE clock_regs_for_read[PCF8583_REG_SIZE];
-    BYTE *ram;
-    BYTE old_ram[PCF8583_RAM_SIZE];
-    BYTE state;
-    BYTE reg;
-    BYTE reg_ptr;
-    BYTE bit;
-    BYTE io_byte;
-    BYTE sclk_line;
-    BYTE data_line;
-    BYTE clock_register;
+    uint8_t *clock_regs;
+    uint8_t old_clock_regs[PCF8583_REG_SIZE];
+    uint8_t clock_regs_for_read[PCF8583_REG_SIZE];
+    uint8_t *ram;
+    uint8_t old_ram[PCF8583_RAM_SIZE];
+    uint8_t state;
+    uint8_t reg;
+    uint8_t reg_ptr;
+    uint8_t bit;
+    uint8_t io_byte;
+    uint8_t sclk_line;
+    uint8_t data_line;
+    uint8_t clock_register;
     char *device;
 } rtc_pcf8583_t;
 
 extern rtc_pcf8583_t *pcf8583_init(char *device, int read_bit_shift);
 extern void pcf8583_destroy(rtc_pcf8583_t *context, int save);
 
-extern void pcf8583_set_clk_line(rtc_pcf8583_t *context, BYTE data);
-extern void pcf8583_set_data_line(rtc_pcf8583_t *context, BYTE data);
+extern void pcf8583_set_clk_line(rtc_pcf8583_t *context, uint8_t data);
+extern void pcf8583_set_data_line(rtc_pcf8583_t *context, uint8_t data);
 
-extern BYTE pcf8583_read_data_line(rtc_pcf8583_t *context);
+extern uint8_t pcf8583_read_data_line(rtc_pcf8583_t *context);
 
 extern int pcf8583_write_snapshot(rtc_pcf8583_t *context, snapshot_t *s);
 extern int pcf8583_read_snapshot(rtc_pcf8583_t *context, snapshot_t *s);

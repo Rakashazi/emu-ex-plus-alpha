@@ -60,15 +60,15 @@
 #define CAS_NAME_OFFSET 5       /* filename */
 
 /* CPU addresses for tape routine variables.  */
-static WORD buffer_pointer_addr;
-static WORD st_addr;
-static WORD verify_flag_addr;
-static WORD stal_addr;
-static WORD eal_addr;
-static WORD kbd_buf_addr;
-static WORD kbd_buf_pending_addr;
+static uint16_t buffer_pointer_addr;
+static uint16_t st_addr;
+static uint16_t verify_flag_addr;
+static uint16_t stal_addr;
+static uint16_t eal_addr;
+static uint16_t kbd_buf_addr;
+static uint16_t kbd_buf_pending_addr;
 static int irqval;
-static WORD irqtmp;
+static uint16_t irqtmp;
 
 /* Flag: has tape been initialized?  */
 static int tape_is_initialized = 0;
@@ -84,9 +84,9 @@ tape_image_t *tape_image_dev1 = NULL;
 
 /* ------------------------------------------------------------------------- */
 
-static inline void set_st(BYTE b)
+static inline void set_st(uint8_t b)
 {
-    mem_store(st_addr, (BYTE)(mem_read(st_addr) | b));
+    mem_store(st_addr, (uint8_t)(mem_read(st_addr) | b));
 }
 
 /* ------------------------------------------------------------------------- */
@@ -205,9 +205,9 @@ int tape_deinstall(void)
 int tape_find_header_trap(void)
 {
     int err;
-    BYTE *cassette_buffer;
+    uint8_t *cassette_buffer;
 
-    cassette_buffer = mem_ram + (mem_read(buffer_pointer_addr) | (mem_read((WORD)(buffer_pointer_addr + 1)) << 8));
+    cassette_buffer = mem_ram + (mem_read(buffer_pointer_addr) | (mem_read((uint16_t)(buffer_pointer_addr + 1)) << 8));
 
     if (tape_image_dev1->name == NULL
         || tape_image_dev1->type != TAPE_TYPE_T64) {
@@ -248,8 +248,8 @@ int tape_find_header_trap(void)
     mem_store(verify_flag_addr, 0);
 
     if (irqtmp) {
-        mem_store(irqtmp, (BYTE)(irqval & 0xff));
-        mem_store((WORD)(irqtmp + 1), (BYTE)((irqval >> 8) & 0xff));
+        mem_store(irqtmp, (uint8_t)(irqval & 0xff));
+        mem_store((uint16_t)(irqtmp + 1), (uint8_t)((irqval >> 8) & 0xff));
     }
 
     /* Check if STOP has been pressed.  */
@@ -258,7 +258,7 @@ int tape_find_header_trap(void)
 
         maincpu_set_carry(0);
         for (i = 0; i < n; i++) {
-            if (mem_read((WORD)(kbd_buf_addr + i)) == 0x3) {
+            if (mem_read((uint16_t)(kbd_buf_addr + i)) == 0x3) {
                 maincpu_set_carry(1);
                 break;
             }
@@ -272,7 +272,7 @@ int tape_find_header_trap(void)
 int tape_find_header_trap_plus4(void)
 {
     int err;
-    BYTE *cassette_buffer;
+    uint8_t *cassette_buffer;
 
     cassette_buffer = mem_ram + buffer_pointer_addr;
 
@@ -323,7 +323,7 @@ int tape_find_header_trap_plus4(void)
 
         maincpu_set_carry(0);
         for (i = 0; i < n; i++) {
-            if (mem_read((WORD)(kbd_buf_addr + i)) == 0x3) {
+            if (mem_read((uint16_t)(kbd_buf_addr + i)) == 0x3) {
                 maincpu_set_carry(1);
                 break;
             }
@@ -347,11 +347,11 @@ int tape_find_header_trap_plus4(void)
 int tape_receive_trap(void)
 {
     int len;
-    WORD start, end;
-    BYTE st;
+    uint16_t start, end;
+    uint8_t st;
 
-    start = (mem_read(stal_addr) | (mem_read((WORD)(stal_addr + 1)) << 8));
-    end = (mem_read(eal_addr) | (mem_read((WORD)(eal_addr + 1)) << 8));
+    start = (mem_read(stal_addr) | (mem_read((uint16_t)(stal_addr + 1)) << 8));
+    end = (mem_read(eal_addr) | (mem_read((uint16_t)(eal_addr + 1)) << 8));
 
     switch (maincpu_get_x()) {
         case 0x0e:
@@ -380,8 +380,8 @@ int tape_receive_trap(void)
     /* Set registers and flags like the Kernal routine does.  */
 
     if (irqtmp) {
-        mem_store(irqtmp, (BYTE)(irqval & 0xff));
-        mem_store((WORD)(irqtmp + 1), (BYTE)((irqval >> 8) & 0xff));
+        mem_store(irqtmp, (uint8_t)(irqval & 0xff));
+        mem_store((uint16_t)(irqtmp + 1), (uint8_t)((irqval >> 8) & 0xff));
     }
 
     set_st(st);                 /* EOF and possible errors */
@@ -393,11 +393,11 @@ int tape_receive_trap(void)
 
 int tape_receive_trap_plus4(void)
 {
-    WORD start, end, len;
-    BYTE st;
+    uint16_t start, end, len;
+    uint8_t st;
 
-    start = (mem_read(stal_addr) | (mem_read((WORD)(stal_addr + 1)) << 8));
-    end = (mem_read(eal_addr) | (mem_read((WORD)(eal_addr + 1)) << 8));
+    start = (mem_read(stal_addr) | (mem_read((uint16_t)(stal_addr + 1)) << 8));
+    end = (mem_read(eal_addr) | (mem_read((uint16_t)(eal_addr + 1)) << 8));
 
     /* Read block.  */
     len = end - start;
@@ -469,7 +469,7 @@ int tape_image_detach_internal(unsigned int unit)
             tape_traps_install();
             break;
         default:
-            log_error(tape_log, "Unknown tape type %i.",
+            log_error(tape_log, "Unknown tape type %u.",
                       tape_image_dev1->type);
     }
 
@@ -521,7 +521,7 @@ static int tape_image_attach_internal(unsigned int unit, const char *name)
         return -1;
     }
 
-    tape_image.name = lib_stralloc(name);
+    tape_image.name = lib_strdup(name);
     tape_image.read_only = 0;
 
     if (tape_image_open(&tape_image) < 0) {
@@ -551,7 +551,7 @@ static int tape_image_attach_internal(unsigned int unit, const char *name)
             tape_traps_deinstall();
             break;
         default:
-            log_error(tape_log, "Unknown tape type %i.",
+            log_error(tape_log, "Unknown tape type %u.",
                       tape_image_dev1->type);
             return -1;
     }

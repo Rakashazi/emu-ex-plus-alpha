@@ -32,20 +32,20 @@
 extern int mem_cartridge_type;
 extern int mem_cart_blocks;
 
-BYTE cartridge_read_ram123(WORD addr);
-BYTE cartridge_peek_ram123(WORD addr);
-void cartridge_store_ram123(WORD addr, BYTE value);
-BYTE cartridge_read_blk1(WORD addr);
-BYTE cartridge_peek_blk1(WORD addr);
-void cartridge_store_blk1(WORD addr, BYTE value);
-BYTE cartridge_read_blk2(WORD addr);
-BYTE cartridge_peek_blk2(WORD addr);
-void cartridge_store_blk2(WORD addr, BYTE value);
-BYTE cartridge_read_blk3(WORD addr);
-BYTE cartridge_peek_blk3(WORD addr);
-void cartridge_store_blk3(WORD addr, BYTE value);
-BYTE cartridge_read_blk5(WORD addr);
-BYTE cartridge_peek_blk5(WORD addr);
-void cartridge_store_blk5(WORD addr, BYTE value);
+uint8_t cartridge_read_ram123(uint16_t addr);
+uint8_t cartridge_peek_ram123(uint16_t addr);
+void cartridge_store_ram123(uint16_t addr, uint8_t value);
+uint8_t cartridge_read_blk1(uint16_t addr);
+uint8_t cartridge_peek_blk1(uint16_t addr);
+void cartridge_store_blk1(uint16_t addr, uint8_t value);
+uint8_t cartridge_read_blk2(uint16_t addr);
+uint8_t cartridge_peek_blk2(uint16_t addr);
+void cartridge_store_blk2(uint16_t addr, uint8_t value);
+uint8_t cartridge_read_blk3(uint16_t addr);
+uint8_t cartridge_peek_blk3(uint16_t addr);
+void cartridge_store_blk3(uint16_t addr, uint8_t value);
+uint8_t cartridge_read_blk5(uint16_t addr);
+uint8_t cartridge_peek_blk5(uint16_t addr);
+void cartridge_store_blk5(uint16_t addr, uint8_t value);
 
 #endif

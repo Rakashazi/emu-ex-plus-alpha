@@ -62,7 +62,7 @@ static int uss_channels;
 /* For conversion from mono to stereo. */
 #define BUFSIZE 32768
 static int uss_duplicate = 0;
-static SWORD buffer[2 * BUFSIZE];
+static int16_t buffer[2 * BUFSIZE];
 
 static int uss_bufferspace(void);
 
@@ -179,7 +179,7 @@ fail:
     return 1;
 }
 
-static int uss_write(SWORD *pbuf, size_t nr)
+static int uss_write(int16_t *pbuf, size_t nr)
 {
     size_t i;
     ssize_t now;
@@ -201,7 +201,7 @@ static int uss_write(SWORD *pbuf, size_t nr)
         pbuf = buffer;
         total = nr;
     } else {
-        total = nr * sizeof(SWORD);
+        total = nr * sizeof(int16_t);
     }
 
     for (i = 0; i < total; i += (size_t)now) {

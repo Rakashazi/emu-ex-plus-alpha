@@ -66,6 +66,7 @@ public:
 	static void showLastViewFromSystem(ViewAttachParams attach, Input::Event e);
 	static void showExitAlert(ViewAttachParams attach, Input::Event e);
 	static void launchSystemWithResumePrompt(Input::Event e, bool addToRecent);
+	static void launchSystem(Input::Event e, bool tryAutoState, bool addToRecent);
 	static bool hasArchiveExtension(const char *name);
 	static void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
 	static void refreshCheatViews();

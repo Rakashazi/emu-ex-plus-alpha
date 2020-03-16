@@ -35,33 +35,32 @@
 #include "ioramcart.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "types.h"
 
-static BYTE ram_io2[0x400];
-static BYTE ram_io3[0x400];
+static uint8_t ram_io2[0x400];
+static uint8_t ram_io3[0x400];
 
 static int ram_io2_enabled = 0;
 static int ram_io3_enabled = 0;
 
 /* ---------------------------------------------------------------------*/
 
-static BYTE ram_io2_read(WORD addr)
+static uint8_t ram_io2_read(uint16_t addr)
 {
     return ram_io2[addr & 0x3ff];
 }
 
-static BYTE ram_io3_read(WORD addr)
+static uint8_t ram_io3_read(uint16_t addr)
 {
     return ram_io3[addr & 0x3ff];
 }
 
-static void ram_io2_store(WORD addr, BYTE val)
+static void ram_io2_store(uint16_t addr, uint8_t val)
 {
     ram_io2[addr & 0x3ff] = val;
 }
 
-static void ram_io3_store(WORD addr, BYTE val)
+static void ram_io3_store(uint16_t addr, uint8_t val)
 {
     ram_io3[addr & 0x3ff] = val;
 }
@@ -69,33 +68,35 @@ static void ram_io3_store(WORD addr, BYTE val)
 /* ---------------------------------------------------------------------*/
 
 static io_source_t ram_io2_device = {
-    CARTRIDGE_VIC20_NAME_IO2_RAM,
-    IO_DETACH_RESOURCE,
-    "IO2RAM",
-    0x9800, 0x9bff, 0x3ff,
-    1, /* read is always valid */
-    ram_io2_store,
-    ram_io2_read,
-    ram_io2_read,
-    NULL, /* nothing to dump */
-    CARTRIDGE_VIC20_IO2_RAM,
-    0,
-    0
+    CARTRIDGE_VIC20_NAME_IO2_RAM, /* name of the device */
+    IO_DETACH_RESOURCE,           /* use resource to detach the device when involved in a read-collision */
+    "IO2RAM",                     /* resource to set to '0' */
+    0x9800, 0x9bff, 0x3ff,        /* range for the device, regs:$9800-$9bff */
+    1,                            /* read is always valid */
+    ram_io2_store,                /* store function */
+    NULL,                         /* NO poke function */
+    ram_io2_read,                 /* read function */
+    ram_io2_read,                 /* peek function */
+    NULL,                         /* nothing to dump */
+    CARTRIDGE_VIC20_IO2_RAM,      /* cartridge ID */
+    IO_PRIO_NORMAL,               /* normal priority, device read needs to be checked for collisions */
+    0                             /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t ram_io3_device = {
-    CARTRIDGE_VIC20_NAME_IO3_RAM,
-    IO_DETACH_RESOURCE,
-    "IO3RAM",
-    0x9c00, 0x9fff, 0x3ff,
-    1, /* read is always valid */
-    ram_io3_store,
-    ram_io3_read,
-    ram_io3_read,
-    NULL, /* nothing to dump */
-    CARTRIDGE_VIC20_IO3_RAM,
-    0,
-    0
+    CARTRIDGE_VIC20_NAME_IO3_RAM, /* name of the device */
+    IO_DETACH_RESOURCE,           /* use resource to detach the device when involved in a read-collision */
+    "IO3RAM",                     /* resource to set to '0' */
+    0x9c00, 0x9fff, 0x3ff,        /* range for the device, regs:$9c00-$9fff */
+    1,                            /* read is always valid */
+    ram_io3_store,                /* store function */
+    NULL,                         /* NO poke function */
+    ram_io3_read,                 /* read function */
+    ram_io3_read,                 /* peek function */
+    NULL,                         /* nothing to dump */
+    CARTRIDGE_VIC20_IO3_RAM,      /* cartridge ID */
+    IO_PRIO_NORMAL,               /* normal priority, device read needs to be checked for collisions */
+    0                             /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *ram_io2_list_item = NULL;
@@ -162,26 +163,18 @@ int ioramcart_resources_init(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-io2ram", SET_RESOURCE, 0,
+    { "-io2ram", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "IO2RAM", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_IO2_RAM,
-      NULL, NULL },
-    { "+io2ram", SET_RESOURCE, 0,
+      NULL, "Enable I/O-2 RAM" },
+    { "+io2ram", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "IO2RAM", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_IO2_RAM,
-      NULL, NULL },
-    { "-io3ram", SET_RESOURCE, 0,
+      NULL, "Disable I/O-2 RAM" },
+    { "-io3ram", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "IO3RAM", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_IO3_RAM,
-      NULL, NULL },
-    { "+io3ram", SET_RESOURCE, 0,
+      NULL, "Enable I/O-3 RAM" },
+    { "+io3ram", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "IO3RAM", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_IO3_RAM,
-      NULL, NULL },
+      NULL, "Disable I/O-3 RAM" },
     CMDLINE_LIST_END
 };
 
@@ -243,7 +236,7 @@ int ioramcart_io2_snapshot_write_module(snapshot_t *s)
 
 int ioramcart_io2_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_io2_module_name, &vmajor, &vminor);
@@ -253,7 +246,7 @@ int ioramcart_io2_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > IORAMCART_DUMP_VER_MAJOR || vminor > IORAMCART_DUMP_VER_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, IORAMCART_DUMP_VER_MAJOR, IORAMCART_DUMP_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -291,7 +284,7 @@ int ioramcart_io3_snapshot_write_module(snapshot_t *s)
 
 int ioramcart_io3_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_io3_module_name, &vmajor, &vminor);
@@ -301,7 +294,7 @@ int ioramcart_io3_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > IORAMCART_DUMP_VER_MAJOR || vminor > IORAMCART_DUMP_VER_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, IORAMCART_DUMP_VER_MAJOR, IORAMCART_DUMP_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

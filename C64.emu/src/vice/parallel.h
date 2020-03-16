@@ -49,13 +49,13 @@ extern void parallel_trap_eof_callback_set(void (*func)(void));
 extern void parallel_trap_attention_callback_set(void (*func)(void));
 
 /* state of the bus lines -> "if (parallel_eoi) { eoi is active }" */
-extern BYTE parallel_eoi;
-extern BYTE parallel_ndac;
-extern BYTE parallel_nrfd;
-extern BYTE parallel_dav;
-extern BYTE parallel_atn;
+extern uint8_t parallel_eoi;
+extern uint8_t parallel_ndac;
+extern uint8_t parallel_nrfd;
+extern uint8_t parallel_dav;
+extern uint8_t parallel_atn;
 
-extern BYTE parallel_bus;       /* data lines */
+extern uint8_t parallel_bus;       /* data lines */
 
 /* Each device has a mask bit in the parallel_* handshake lines */
 #define PARALLEL_EMU    0x01
@@ -66,25 +66,25 @@ extern BYTE parallel_bus;       /* data lines */
 #define PARALLEL_DRV3   0x20
 
 /* methods to set handshake lines active for the devices */
-extern void parallel_set_eoi(BYTE mask);
-extern void parallel_set_ndac(BYTE mask);
-extern void parallel_set_nrfd(BYTE mask);
-extern void parallel_set_dav(BYTE mask);
-extern void parallel_set_atn(BYTE mask);
-extern void parallel_restore_set_atn(BYTE mask);
+extern void parallel_set_eoi(uint8_t mask);
+extern void parallel_set_ndac(uint8_t mask);
+extern void parallel_set_nrfd(uint8_t mask);
+extern void parallel_set_dav(uint8_t mask);
+extern void parallel_set_atn(uint8_t mask);
+extern void parallel_restore_set_atn(uint8_t mask);
 
 /* methods to set handshake lines inactive for the devices */
-extern void parallel_clr_eoi(BYTE mask);
-extern void parallel_clr_ndac(BYTE mask);
-extern void parallel_clr_nrfd(BYTE mask);
-extern void parallel_clr_dav(BYTE mask);
-extern void parallel_clr_atn(BYTE mask);
-extern void parallel_restore_clr_atn(BYTE mask);
+extern void parallel_clr_eoi(uint8_t mask);
+extern void parallel_clr_ndac(uint8_t mask);
+extern void parallel_clr_nrfd(uint8_t mask);
+extern void parallel_clr_dav(uint8_t mask);
+extern void parallel_clr_atn(uint8_t mask);
+extern void parallel_restore_clr_atn(uint8_t mask);
 
 
 /* methods to set output lines for the computer */
 #define PARALLEL_SET_LINE(line, dev, mask)                   \
-    static inline void parallel_##dev##_set_##line(BYTE val) \
+    static inline void parallel_##dev##_set_##line(uint8_t val) \
     {                                                        \
         if (val) {                                           \
             parallel_set_##line(PARALLEL_##mask);            \
@@ -94,7 +94,7 @@ extern void parallel_restore_clr_atn(BYTE mask);
     }
 
 #define PARALLEL_RESTORE_LINE(line, dev, mask)                    \
-    static inline void parallel_##dev##_restore_##line(BYTE val)  \
+    static inline void parallel_##dev##_restore_##line(uint8_t val)  \
     {                                                             \
         if (val) {                                                \
             parallel_restore_set_##line(PARALLEL_##mask);         \
@@ -109,7 +109,7 @@ PARALLEL_SET_LINE(dav, emu, EMU)
 PARALLEL_SET_LINE(nrfd, emu, EMU)
 PARALLEL_SET_LINE(ndac, emu, EMU)
 
-extern void parallel_emu_set_bus(BYTE b);
+extern void parallel_emu_set_bus(uint8_t b);
 
 /* CPU functions */
 /* The *CPU* macros advance the drive CPU to the current clock. This
@@ -125,7 +125,7 @@ extern void parallel_cpu_set_atn(char val);
 
 PARALLEL_RESTORE_LINE(atn, cpu, CPU)
 
-extern void parallel_cpu_set_bus(BYTE b);
+extern void parallel_cpu_set_bus(uint8_t b);
 
 /* Drive 0 functions */
 PARALLEL_SET_LINE(eoi, drv0, DRV0)
@@ -133,7 +133,7 @@ PARALLEL_SET_LINE(dav, drv0, DRV0)
 PARALLEL_SET_LINE(nrfd, drv0, DRV0)
 PARALLEL_SET_LINE(ndac, drv0, DRV0)
 
-extern void parallel_drv0_set_bus(BYTE b);
+extern void parallel_drv0_set_bus(uint8_t b);
 
 /* Drive 1 functions */
 PARALLEL_SET_LINE(eoi, drv1, DRV1)
@@ -141,7 +141,7 @@ PARALLEL_SET_LINE(dav, drv1, DRV1)
 PARALLEL_SET_LINE(nrfd, drv1, DRV1)
 PARALLEL_SET_LINE(ndac, drv1, DRV1)
 
-extern void parallel_drv1_set_bus(BYTE b);
+extern void parallel_drv1_set_bus(uint8_t b);
 
 /* Drive 2 functions */
 PARALLEL_SET_LINE(eoi, drv2, DRV2)
@@ -149,7 +149,7 @@ PARALLEL_SET_LINE(dav, drv2, DRV2)
 PARALLEL_SET_LINE(nrfd, drv2, DRV2)
 PARALLEL_SET_LINE(ndac, drv2, DRV2)
 
-extern void parallel_drv2_set_bus(BYTE b);
+extern void parallel_drv2_set_bus(uint8_t b);
 
 /* Drive 3 functions */
 PARALLEL_SET_LINE(eoi, drv3, DRV3)
@@ -157,6 +157,6 @@ PARALLEL_SET_LINE(dav, drv3, DRV3)
 PARALLEL_SET_LINE(nrfd, drv3, DRV3)
 PARALLEL_SET_LINE(ndac, drv3, DRV3)
 
-extern void parallel_drv3_set_bus(BYTE b);
+extern void parallel_drv3_set_bus(uint8_t b);
 
 #endif

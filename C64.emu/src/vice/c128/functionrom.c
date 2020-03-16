@@ -37,7 +37,6 @@
 #include "functionrom.h"
 #include "lib.h"
 #include "resources.h"
-#include "translate.h"
 #include "types.h"
 #include "util.h"
 
@@ -52,7 +51,7 @@ static int internal_function_rom_enabled;
 static char *internal_function_rom_name = NULL;
 
 /* Image of the internal function ROM.  */
-BYTE int_function_rom[INTERNAL_FUNCTION_ROM_SIZE];
+uint8_t int_function_rom[INTERNAL_FUNCTION_ROM_SIZE];
 
 /* Flag: Do we enable the external function ROM?  */
 /* New meaning: 0=no, 1=yes (rom), 2=yes (ram), 3=yes (rtc) */
@@ -62,7 +61,7 @@ static int external_function_rom_enabled;
 static char *external_function_rom_name = NULL;
 
 /* Image of the external function ROM.  */
-BYTE ext_function_rom[EXTERNAL_FUNCTION_ROM_SIZE];
+uint8_t ext_function_rom[EXTERNAL_FUNCTION_ROM_SIZE];
 
 /* Flag: Do we save RTC info when changed? */
 static int internal_function_rtc_save;
@@ -102,6 +101,7 @@ static int set_internal_function_rom_enabled(int val, void *param)
     switch (val) {
         case INT_FUNCTION_RTC:
             rtc1_context = bq4830y_init("IFR");
+            /* fall through */
         case INT_FUNCTION_RAM:
             memset(int_function_rom, 0, sizeof(int_function_rom));
             break;
@@ -153,6 +153,7 @@ static int set_external_function_rom_enabled(int val, void *param)
     switch (val) {
         case EXT_FUNCTION_RTC:
             rtc2_context = bq4830y_init("EFR");
+            /* fall through */
         case EXT_FUNCTION_RAM:
             memset(ext_function_rom, 0, sizeof(ext_function_rom));
             break;
@@ -228,47 +229,32 @@ void functionrom_resources_shutdown(void)
     lib_free(external_function_rom_name);
 }
 
-static const cmdline_option_t cmdline_options[] = {
-    { "-intfrom", SET_RESOURCE, 1,
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-intfrom", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "InternalFunctionName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_INT_FUNC_ROM_NAME,
-      NULL, NULL },
-    { "-extfrom", SET_RESOURCE, 1,
+      "<Name>", "Specify name of internal Function ROM image" },
+    { "-extfrom", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "ExternalFunctionName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_EXT_FUNC_ROM_NAME,
-      NULL, NULL },
-    { "-intfunc", SET_RESOURCE, 1,
+      "<Name>", "Specify name of external Function ROM image" },
+    { "-intfunc", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "InternalFunctionROM", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_TYPE, IDCLS_ENABLE_INT_FUNC_ROM,
-      NULL, NULL },
-    { "-extfunc", SET_RESOURCE, 1,
+      "<Type>", "Type of internal Function ROM: (0: None, 1: ROM, 2: RAM, 3: RTC)" },
+    { "-extfunc", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "ExternalFunctionROM", NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_P_TYPE, IDCLS_ENABLE_EXT_FUNC_ROM,
-      NULL, NULL },
-    { "-intfuncrtcsave", SET_RESOURCE, 0,
+      "<Type>", "Type of external Function ROM: (0: None, 1: ROM, 2: RAM, 3: RTC)" },
+    { "-intfuncrtcsave", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "InternalFunctionROMRTCSave", (resource_value_t)1,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_INT_FUNC_RTC_SAVE,
-      NULL, NULL },
-    { "+intfuncrtcsave", SET_RESOURCE, 0,
+      NULL, "Enable saving of the internal function RTC data when changed." },
+    { "+intfuncrtcsave", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "InternalFunctionROMRTCSave", (resource_value_t)0,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_INT_FUNC_RTC_SAVE,
-      NULL, NULL },
-    { "-extfuncrtcsave", SET_RESOURCE, 0,
+      NULL, "Disable saving of the internal function RTC data when changed." },
+    { "-extfuncrtcsave", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "ExternalFunctionROMRTCSave", (resource_value_t)1,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_EXT_FUNC_RTC_SAVE,
-      NULL, NULL },
-    { "+extfuncrtcsave", SET_RESOURCE, 0,
+      NULL, "Enable saving of the external function RTC data when changed." },
+    { "+extfuncrtcsave", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "ExternalFunctionROMRTCSave", (resource_value_t)0,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_EXT_FUNC_RTC_SAVE,
-      NULL, NULL },
+      NULL, "Disable saving of the external function RTC data when changed." },
     CMDLINE_LIST_END
 };
 
@@ -315,18 +301,18 @@ static int functionrom_load_external(void)
     return 0;
 }
 
-BYTE internal_function_rom_read(WORD addr)
+uint8_t internal_function_rom_read(uint16_t addr)
 {
     if (internal_function_rom_enabled == INT_FUNCTION_RTC) {
-        return bq4830y_read(rtc1_context, (WORD)(addr & 0x7fff));
+        return bq4830y_read(rtc1_context, (uint16_t)(addr & 0x7fff));
     }
     return int_function_rom[addr & (INTERNAL_FUNCTION_ROM_SIZE - 1)];
 }
 
-void internal_function_rom_store(WORD addr, BYTE value)
+void internal_function_rom_store(uint16_t addr, uint8_t value)
 {
     if (internal_function_rom_enabled == INT_FUNCTION_RTC) {
-        bq4830y_store(rtc1_context, (WORD)(addr & 0x7fff), value);
+        bq4830y_store(rtc1_context, (uint16_t)(addr & 0x7fff), value);
         ram_store(addr, value);
     } else if (internal_function_rom_enabled == INT_FUNCTION_RAM) {
         int_function_rom[addr & (INTERNAL_FUNCTION_ROM_SIZE - 1)] = value;
@@ -336,10 +322,10 @@ void internal_function_rom_store(WORD addr, BYTE value)
     }
 }
 
-void internal_function_top_shared_store(WORD addr, BYTE value)
+void internal_function_top_shared_store(uint16_t addr, uint8_t value)
 {
     if (internal_function_rom_enabled == INT_FUNCTION_RTC) {
-        bq4830y_store(rtc1_context, (WORD)(addr & 0x7fff), value);
+        bq4830y_store(rtc1_context, (uint16_t)(addr & 0x7fff), value);
         top_shared_store(addr, value);
     } else if (internal_function_rom_enabled == INT_FUNCTION_RAM) {
         int_function_rom[addr & (INTERNAL_FUNCTION_ROM_SIZE - 1)] = value;
@@ -349,18 +335,18 @@ void internal_function_top_shared_store(WORD addr, BYTE value)
     }
 }
 
-BYTE external_function_rom_read(WORD addr)
+uint8_t external_function_rom_read(uint16_t addr)
 {
     if (external_function_rom_enabled == EXT_FUNCTION_RTC) {
-        return bq4830y_read(rtc2_context, (WORD)(addr & 0x7fff));
+        return bq4830y_read(rtc2_context, (uint16_t)(addr & 0x7fff));
     }
     return ext_function_rom[addr & (EXTERNAL_FUNCTION_ROM_SIZE - 1)];
 }
 
-void external_function_rom_store(WORD addr, BYTE value)
+void external_function_rom_store(uint16_t addr, uint8_t value)
 {
     if (external_function_rom_enabled == EXT_FUNCTION_RTC) {
-        bq4830y_store(rtc2_context, (WORD)(addr & 0x7fff), value);
+        bq4830y_store(rtc2_context, (uint16_t)(addr & 0x7fff), value);
         ram_store(addr, value);
     } else if (external_function_rom_enabled == EXT_FUNCTION_RAM) {
         ext_function_rom[addr & (EXTERNAL_FUNCTION_ROM_SIZE - 1)] = value;
@@ -370,10 +356,10 @@ void external_function_rom_store(WORD addr, BYTE value)
     }
 }
 
-void external_function_top_shared_store(WORD addr, BYTE value)
+void external_function_top_shared_store(uint16_t addr, uint8_t value)
 {
     if (external_function_rom_enabled == INT_FUNCTION_RTC) {
-        bq4830y_store(rtc2_context, (WORD)(addr & 0x7fff), value);
+        bq4830y_store(rtc2_context, (uint16_t)(addr & 0x7fff), value);
         top_shared_store(addr, value);
     } else if (external_function_rom_enabled == INT_FUNCTION_RAM) {
         ext_function_rom[addr & (INTERNAL_FUNCTION_ROM_SIZE - 1)] = value;

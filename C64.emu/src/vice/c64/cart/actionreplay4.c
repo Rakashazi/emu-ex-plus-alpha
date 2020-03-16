@@ -65,38 +65,40 @@ static int ar_active;
 /* ---------------------------------------------------------------------*/
 
 /* some prototypes are needed */
-static void actionreplay4_io1_store(WORD addr, BYTE value);
-static BYTE actionreplay4_io2_read(WORD addr);
+static void actionreplay4_io1_store(uint16_t addr, uint8_t value);
+static uint8_t actionreplay4_io2_read(uint16_t addr);
 static int actionreplay4_dump(void);
 
 static io_source_t actionreplay4_io1_device = {
-    CARTRIDGE_NAME_ACTION_REPLAY4,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    0,
-    actionreplay4_io1_store,
-    NULL,
-    NULL, /* TODO: peek */
-    actionreplay4_dump,
-    CARTRIDGE_ACTION_REPLAY4,
-    0,
-    0
+    CARTRIDGE_NAME_ACTION_REPLAY4, /* name of the device */
+    IO_DETACH_CART,                /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,         /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,          /* range for the device, address is ignored, reg:$de00, mirrors:$de01-$deff */
+    0,                             /* read is never valid, there is no read or peek function */
+    actionreplay4_io1_store,       /* store function */
+    NULL,                          /* NO poke function */
+    NULL,                          /* NO read function */
+    NULL,                          /* TODO: peek function */
+    actionreplay4_dump,            /* device state information dump function */
+    CARTRIDGE_ACTION_REPLAY4,      /* cartridge ID */
+    IO_PRIO_NORMAL,                /* normal priority, device read needs to be checked for collisions */
+    0                              /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t actionreplay4_io2_device = {
-    CARTRIDGE_NAME_ACTION_REPLAY4,
-    IO_DETACH_CART,
-    NULL,
-    0xdf00, 0xdfff, 0xff,
-    0,
-    NULL,
-    actionreplay4_io2_read,
-    NULL, /* TODO: peek */
-    actionreplay4_dump,
-    CARTRIDGE_ACTION_REPLAY4,
-    0,
-    0
+    CARTRIDGE_NAME_ACTION_REPLAY4, /* name of the device */
+    IO_DETACH_CART,                /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,         /* does not use a resource for detach */
+    0xdf00, 0xdfff, 0xff,          /* range for the device */
+    0,                             /* read validity is determined by the device upon a read */
+    NULL,                          /* NO store function */
+    NULL,                          /* NO poke function */
+    actionreplay4_io2_read,        /* read function */
+    NULL,                          /* TODO: peek function */
+    actionreplay4_dump,            /* device state information dump function */
+    CARTRIDGE_ACTION_REPLAY4,      /* cartridge ID */
+    IO_PRIO_NORMAL,                /* normal priority, device read needs to be checked for collisions */
+    0                              /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *actionreplay4_io1_list_item = NULL;
@@ -108,11 +110,11 @@ static const export_resource_t export_res = {
 
 /* ---------------------------------------------------------------------*/
 
-static BYTE control_reg = 0;
+static uint8_t control_reg = 0;
 
-static void actionreplay4_io1_store(WORD addr, BYTE value)
+static void actionreplay4_io1_store(uint16_t addr, uint8_t value)
 {
-    BYTE exrom, bank, conf, game, disable;
+    uint8_t exrom, bank, conf, game, disable;
 
     control_reg = value;
 
@@ -124,14 +126,14 @@ static void actionreplay4_io1_store(WORD addr, BYTE value)
     conf = (bank << CMODE_BANK_SHIFT) | ((exrom ^ 1) << 1) | ((game ^ 1) << 0);
 
     if (ar_active) {
-        cart_config_changed_slotmain((BYTE)(conf & 3), conf, CMODE_WRITE);
+        cart_config_changed_slotmain((uint8_t)(conf & 3), conf, CMODE_WRITE);
         if (disable) {
             ar_active = 0;
         }
     }
 }
 
-static BYTE actionreplay4_io2_read(WORD addr)
+static uint8_t actionreplay4_io2_read(uint16_t addr)
 {
     actionreplay4_io2_device.io_source_valid = 0;
 
@@ -190,7 +192,7 @@ void actionreplay4_reset(void)
     ar_active = 1;
 }
 
-void actionreplay4_config_setup(BYTE *rawcart)
+void actionreplay4_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x8000);
     memcpy(romh_banks, rawcart, 0x8000);
@@ -212,7 +214,7 @@ static int actionreplay4_common_attach(void)
     return 0;
 }
 
-int actionreplay4_bin_attach(const char *filename, BYTE *rawcart)
+int actionreplay4_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x8000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -221,7 +223,7 @@ int actionreplay4_bin_attach(const char *filename, BYTE *rawcart)
     return actionreplay4_common_attach();
 }
 
-int actionreplay4_crt_attach(FILE *fd, BYTE *rawcart)
+int actionreplay4_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
     int i;
@@ -277,7 +279,7 @@ int actionreplay4_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || (SMW_B(m, (BYTE)ar_active) < 0)
+        || (SMW_B(m, (uint8_t)ar_active) < 0)
         || (SMW_BA(m, roml_banks, 0x8000) < 0)) {
         snapshot_module_close(m);
         return -1;
@@ -288,7 +290,7 @@ int actionreplay4_snapshot_write_module(snapshot_t *s)
 
 int actionreplay4_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -297,7 +299,7 @@ int actionreplay4_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

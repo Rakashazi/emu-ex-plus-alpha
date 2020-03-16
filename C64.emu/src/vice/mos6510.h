@@ -35,14 +35,16 @@
    are handled within the CPU emulation.  The struct should be accessed using
    the `MOS6510_REGS_*()' macros.  */
 typedef struct mos6510_regs_s {
-    unsigned int pc;        /* `unsigned int' required by the drive code. */
-    BYTE a;
-    BYTE x;
-    BYTE y;
-    BYTE sp;
-    BYTE p;
-    BYTE n;
-    BYTE z;
+    /* FIXME: we want this to be uint16, however the drive code relies on it
+              being unsigned int and produces subtle bugs with uint16 */
+    unsigned int pc;
+    uint8_t a;
+    uint8_t x;
+    uint8_t y;
+    uint8_t sp;
+    uint8_t p;
+    uint8_t n;
+    uint8_t z;
 } mos6510_regs_t;
 
 /* These define the position of the status flags in the P (`status')

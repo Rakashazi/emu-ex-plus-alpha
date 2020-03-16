@@ -50,7 +50,7 @@ extern int e888_dump(void);
 extern int pethre_snapshot_read_module(struct snapshot_s *);
 extern int pethre_snapshot_write_module(struct snapshot_s *);
 
-extern void crtc_store_hre(WORD addr, BYTE value);
+extern void crtc_store_hre(uint16_t addr, uint8_t value);
 
 extern void pethre_powerup(void);
 

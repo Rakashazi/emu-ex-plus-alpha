@@ -100,7 +100,7 @@ fail2:
 
 static int plus4_snapshot_read_rom_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
     int trapfl;
 
@@ -113,7 +113,7 @@ static int plus4_snapshot_read_rom_module(snapshot_t *s)
         return 0;
     }
 
-    if (major_version > SNAP_ROM_MAJOR || minor_version > SNAP_ROM_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_ROM_MAJOR, SNAP_ROM_MINOR)) {
         log_error(plus4_snapshot_log, "Snapshot module version (%d.%d) newer than %d.%d.", major_version, minor_version, SNAP_ROM_MAJOR, SNAP_ROM_MINOR);
         snapshot_module_close(m);
         return -1;
@@ -172,7 +172,7 @@ int plus4_snapshot_write_module(snapshot_t *s, int save_roms)
         || SMW_B(m, export.exrom) < 0
         || SMW_B(m, export.game) < 0
 #endif
-        || SMW_B(m, (BYTE)mem_config) < 0
+        || SMW_B(m, (uint8_t)mem_config) < 0
         || SMW_BA(m, mem_ram, PLUS4_RAM_SIZE) < 0
         ) {
         goto fail;
@@ -202,9 +202,9 @@ fail:
 
 int plus4_snapshot_read_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
-    BYTE config;
+    uint8_t config;
 
     /* Main memory module.  */
 
@@ -213,7 +213,7 @@ int plus4_snapshot_read_module(snapshot_t *s)
         return -1;
     }
 
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         log_error(plus4_snapshot_log, "Snapshot module version (%d.%d) newer than %d.%d.", major_version, minor_version, SNAP_MAJOR, SNAP_MINOR);
         goto fail;
     }

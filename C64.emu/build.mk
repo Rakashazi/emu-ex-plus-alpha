@@ -67,6 +67,7 @@ CPPFLAGS += \
 -I$(viceSrcPath)/drive/ieee \
 -I$(viceSrcPath)/drive/tcbm \
 -I$(viceSrcPath)/diag \
+-I$(viceSrcPath)/rs232drv \
 -DSTDC_HEADERS=1 \
 -DHAVE_SYS_TYPES_H=1 \
 -DHAVE_SYS_STAT_H=1 \
@@ -117,7 +118,6 @@ romset.c \
 snapshot.c \
 socket.c \
 sound.c \
-translate.c \
 traps.c \
 util.c \
 vsync.c \
@@ -174,6 +174,7 @@ mach5.c \
 magicdesk.c \
 magicformel.c \
 magicvoice.c \
+maxbasic.c \
 mikroass.c \
 mmcreplay.c \
 mmc64.c \
@@ -563,14 +564,9 @@ sid-snapshot.c \
 sid.c
 libsid_a_SOURCES := $(addprefix sid/,$(libsid_a_SOURCES))
 
-EXTRA_libsid_a_SOURCES += resid.cc
-EXTRA_libsid_a_SOURCES := $(addprefix sid/,$(EXTRA_libsid_a_SOURCES))
+libresid_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.cc, $(wildcard $(viceSrcPath)/resid/*))) sid/resid.cc
 
-libsid_a_SOURCES += $(EXTRA_libsid_a_SOURCES)
-
-libresid_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.cc, $(wildcard $(viceSrcPath)/resid/*)))
-
-libresiddtv_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.cc, $(wildcard $(viceSrcPath)/resid-dtv/*)))
+libresiddtv_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.cc, $(wildcard $(viceSrcPath)/resid-dtv/*))) sid/resid-dtv.cc
 
 librtc_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/rtc/*)))
 
@@ -886,6 +882,9 @@ pluginLDFlags = $(CFLAGS_TARGET) $(LDFLAGS_SYSTEM) $(LDLIBS_SYSTEM) -lz
 ifeq ($(ENV),android)
  # must link to the app's main shared object so Android resolves runtime symbols correctly
  pluginLDFlags += -llog $(targetDir)/$(targetFile)
+
+ # TODO: compiling with -O2 causes an error on arm64 ABI, reported as NDK bug: https://github.com/android/ndk/issues/1207
+ $(objDir)/vicii/vicii-draw.o : CFLAGS_CODEGEN += -O3
 endif
 
 c64_obj := $(addprefix $(objDir)/,$(c64_src:.c=.o))
@@ -895,7 +894,7 @@ c64_module := $(targetDir)/libc64$(loadableModuleExt)
 $(c64_module) : $(c64_obj) $(linkerLibsDep)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-	$(PRINT_CMD) $(LD) -o $@ $(linkLoadableModuleAction) $(c64_obj) $(pluginLDFlags)
+	$(PRINT_CMD) $(CC) -o $@ $(linkLoadableModuleAction) $(c64_obj) $(pluginLDFlags)
 
 c64sc_obj := $(addprefix $(objDir)/,$(c64sc_src:.c=.o))
 c64sc_obj := $(c64sc_obj:.cc=.o)
@@ -904,7 +903,7 @@ c64sc_module := $(targetDir)/libc64sc$(loadableModuleExt)
 $(c64sc_module) : $(c64sc_obj) $(linkerLibsDep)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-	$(PRINT_CMD) $(LD) -o $@ $(linkLoadableModuleAction) $(c64sc_obj) $(pluginLDFlags)
+	$(PRINT_CMD) $(CC) -o $@ $(linkLoadableModuleAction) $(c64sc_obj) $(pluginLDFlags)
 
 scpu64_obj := $(addprefix $(objDir)/,$(scpu64_src:.c=.o))
 scpu64_obj := $(scpu64_obj:.cc=.o)
@@ -913,7 +912,7 @@ scpu64_module := $(targetDir)/libscpu64$(loadableModuleExt)
 $(scpu64_module) : $(scpu64_obj) $(linkerLibsDep)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-	$(PRINT_CMD) $(LD) -o $@ $(linkLoadableModuleAction) $(scpu64_obj) $(pluginLDFlags)
+	$(PRINT_CMD) $(CC) -o $@ $(linkLoadableModuleAction) $(scpu64_obj) $(pluginLDFlags)
 
 c64dtv_obj := $(addprefix $(objDir)/,$(c64dtv_src:.c=.o))
 c64dtv_obj := $(c64dtv_obj:.cc=.o)
@@ -922,7 +921,7 @@ c64dtv_module := $(targetDir)/libc64dtv$(loadableModuleExt)
 $(c64dtv_module) : $(c64dtv_obj) $(linkerLibsDep)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-	$(PRINT_CMD) $(LD) -o $@ $(linkLoadableModuleAction) $(c64dtv_obj) $(pluginLDFlags)
+	$(PRINT_CMD) $(CC) -o $@ $(linkLoadableModuleAction) $(c64dtv_obj) $(pluginLDFlags)
 
 c128_obj := $(addprefix $(objDir)/,$(c128_src:.c=.o))
 c128_obj := $(c128_obj:.cc=.o)
@@ -931,7 +930,7 @@ c128_module := $(targetDir)/libc128$(loadableModuleExt)
 $(c128_module) : $(c128_obj) $(linkerLibsDep)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-	$(PRINT_CMD) $(LD) -o $@ $(linkLoadableModuleAction) $(c128_obj) $(pluginLDFlags)
+	$(PRINT_CMD) $(CC) -o $@ $(linkLoadableModuleAction) $(c128_obj) $(pluginLDFlags)
 
 vic_obj := $(addprefix $(objDir)/,$(vic_src:.c=.o))
 vic_obj := $(vic_obj:.cc=.o)
@@ -940,7 +939,7 @@ vic_module := $(targetDir)/libvic$(loadableModuleExt)
 $(vic_module) : $(vic_obj) $(linkerLibsDep)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-	$(PRINT_CMD) $(LD) -o $@ $(linkLoadableModuleAction) $(vic_obj) $(pluginLDFlags)
+	$(PRINT_CMD) $(CC) -o $@ $(linkLoadableModuleAction) $(vic_obj) $(pluginLDFlags)
 
 pet_obj := $(addprefix $(objDir)/,$(pet_src:.c=.o))
 pet_obj := $(pet_obj:.cc=.o)
@@ -949,7 +948,7 @@ pet_module := $(targetDir)/libpet$(loadableModuleExt)
 $(pet_module) : $(pet_obj) $(linkerLibsDep)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-	$(PRINT_CMD) $(LD) -o $@ $(linkLoadableModuleAction) $(pet_obj) $(pluginLDFlags)
+	$(PRINT_CMD) $(CC) -o $@ $(linkLoadableModuleAction) $(pet_obj) $(pluginLDFlags)
 
 plus4_obj := $(addprefix $(objDir)/,$(plus4_src:.c=.o))
 plus4_obj := $(plus4_obj:.cc=.o)
@@ -958,7 +957,7 @@ plus4_module := $(targetDir)/libplus4$(loadableModuleExt)
 $(plus4_module) : $(plus4_obj) $(linkerLibsDep)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-	$(PRINT_CMD) $(LD) -o $@ $(linkLoadableModuleAction) $(plus4_obj) $(pluginLDFlags)
+	$(PRINT_CMD) $(CC) -o $@ $(linkLoadableModuleAction) $(plus4_obj) $(pluginLDFlags)
 
 cbm2_obj := $(addprefix $(objDir)/,$(cbm2_src:.c=.o))
 cbm2_obj := $(cbm2_obj:.cc=.o)
@@ -967,7 +966,7 @@ cbm2_module := $(targetDir)/libcbm2$(loadableModuleExt)
 $(cbm2_module) : $(cbm2_obj) $(linkerLibsDep)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-	$(PRINT_CMD) $(LD) -o $@ $(linkLoadableModuleAction) $(cbm2_obj) $(pluginLDFlags) -s
+	$(PRINT_CMD) $(CC) -o $@ $(linkLoadableModuleAction) $(cbm2_obj) $(pluginLDFlags) -s
 
 cbm5x0_obj := $(addprefix $(objDir)/,$(cbm5x0_src:.c=.o))
 cbm5x0_obj := $(cbm5x0_obj:.cc=.o)
@@ -976,7 +975,7 @@ cbm5x0_module := $(targetDir)/libcbm5x0$(loadableModuleExt)
 $(cbm5x0_module) : $(cbm5x0_obj) $(linkerLibsDep)
 	@echo "Linking $@"
 	@mkdir -p `dirname $@`
-	$(PRINT_CMD) $(LD) -o $@ $(linkLoadableModuleAction) $(cbm5x0_obj) $(pluginLDFlags)
+	$(PRINT_CMD) $(CC) -o $@ $(linkLoadableModuleAction) $(cbm5x0_obj) $(pluginLDFlags)
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk

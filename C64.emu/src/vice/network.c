@@ -48,7 +48,6 @@
 #include "mos6510.h"
 #include "network.h"
 #include "resources.h"
-#include "translate.h"
 #include "types.h"
 #include "uiapi.h"
 #include "util.h"
@@ -199,27 +198,20 @@ static int network_control_cmd(const char *param, void *extra_param)
     return 0;
 }
 
-static const cmdline_option_t cmdline_options[] = {
-    { "-netplayserver", SET_RESOURCE, 1,
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-netplayserver", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "NetworkServerName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_HOSTNAME, IDCLS_SET_NETPLAY_SERVER,
-      NULL, NULL },
-    { "-netplaybind", SET_RESOURCE, 1,
+      "<hostname>", "Set the netplay server hostname" },
+    { "-netplaybind", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "NetworkServerBindAddress", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_HOSTNAME, IDCLS_SET_NETPLAY_BIND_ADDRESS,
-      NULL, NULL },
-    { "-netplayport", SET_RESOURCE, 1,
+      "<hostname>", "Set the netplay binding address" },
+    { "-netplayport", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "NetworkServerPort", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_PORT, IDCLS_SET_NETPLAY_PORT,
-      NULL, NULL },
-    { "-netplayctrl", CALL_FUNCTION, 1,
+      "<port>", "Set the netplay port (0..65535)" },
+    { "-netplayctrl", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       network_control_cmd, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_NETPLAY_CONTROL,
-      "<key,joy1,joy2,dev,rsrc>", NULL },
+      "<key,joy1,joy2,dev,rsrc>", "Set the netplay control elements (keyboard, joystick1, joystick2, devices and resources), each item takes a value (0: None, 1: Server, 2: Client, 3: Both)" },
     CMDLINE_LIST_END
 };
 
@@ -245,15 +237,15 @@ static void network_free_frame_event_list(void)
     event_destroy_image_list();
 }
 
-static void network_event_record_sync_test(WORD addr, void *data)
+static void network_event_record_sync_test(uint16_t addr, void *data)
 {
-    BYTE regbuf[5 * 4];
+    uint8_t regbuf[5 * 4];
 
-    util_dword_to_le_buf(&regbuf[0 * 4], (DWORD)(maincpu_get_pc()));
-    util_dword_to_le_buf(&regbuf[1 * 4], (DWORD)(maincpu_get_a()));
-    util_dword_to_le_buf(&regbuf[2 * 4], (DWORD)(maincpu_get_x()));
-    util_dword_to_le_buf(&regbuf[3 * 4], (DWORD)(maincpu_get_y()));
-    util_dword_to_le_buf(&regbuf[4 * 4], (DWORD)(maincpu_get_sp()));
+    util_dword_to_le_buf(&regbuf[0 * 4], (uint32_t)(maincpu_get_pc()));
+    util_dword_to_le_buf(&regbuf[1 * 4], (uint32_t)(maincpu_get_a()));
+    util_dword_to_le_buf(&regbuf[2 * 4], (uint32_t)(maincpu_get_x()));
+    util_dword_to_le_buf(&regbuf[3 * 4], (uint32_t)(maincpu_get_y()));
+    util_dword_to_le_buf(&regbuf[4 * 4], (uint32_t)(maincpu_get_sp()));
 
     network_event_record(EVENT_SYNC_TEST, (void *)regbuf, sizeof(regbuf));
 }
@@ -278,11 +270,11 @@ static void network_prepare_next_frame(void)
     interrupt_maincpu_trigger_trap(network_event_record_sync_test, (void *)0);
 }
 
-static unsigned int network_create_event_buffer(BYTE **buf,
+static unsigned int network_create_event_buffer(uint8_t **buf,
                                                 event_list_state_t *list)
 {
     int size;
-    BYTE *bufptr;
+    uint8_t *bufptr;
     event_list_t *current_event, *last_event;
     int data_len = 0;
     int num_of_events;
@@ -301,7 +293,7 @@ static unsigned int network_create_event_buffer(BYTE **buf,
         current_event = current_event->next;
     } while (last_event->type != EVENT_LIST_END);
 
-    size = num_of_events * 3 * sizeof(DWORD) + data_len;
+    size = num_of_events * 3 * sizeof(uint32_t) + data_len;
 
     *buf = lib_malloc(size);
 
@@ -309,9 +301,9 @@ static unsigned int network_create_event_buffer(BYTE **buf,
     current_event = list->base;
     bufptr = *buf;
     do {
-        util_dword_to_le_buf(&bufptr[0], (DWORD)(current_event->type));
-        util_dword_to_le_buf(&bufptr[4], (DWORD)(current_event->clk));
-        util_dword_to_le_buf(&bufptr[8], (DWORD)(current_event->size));
+        util_dword_to_le_buf(&bufptr[0], (uint32_t)(current_event->type));
+        util_dword_to_le_buf(&bufptr[4], (uint32_t)(current_event->clk));
+        util_dword_to_le_buf(&bufptr[8], (uint32_t)(current_event->size));
         memcpy(&bufptr[12], current_event->data, current_event->size);
         bufptr += 12 + current_event->size;
         last_event = current_event;
@@ -321,12 +313,12 @@ static unsigned int network_create_event_buffer(BYTE **buf,
     return size;
 }
 
-static event_list_state_t *network_create_event_list(BYTE *remote_event_buffer)
+static event_list_state_t *network_create_event_list(uint8_t *remote_event_buffer)
 {
     event_list_state_t *list;
     unsigned int type, size;
-    BYTE *data;
-    BYTE *bufptr = remote_event_buffer;
+    uint8_t *data;
+    uint8_t *bufptr = remote_event_buffer;
 
     list = lib_malloc(sizeof(event_list_state_t));
     event_register_event_list(list);
@@ -343,7 +335,7 @@ static event_list_state_t *network_create_event_list(BYTE *remote_event_buffer)
     return list;
 }
 
-static int network_recv_buffer(vice_network_socket_t * s, BYTE *buf, int len)
+static int network_recv_buffer(vice_network_socket_t * s, uint8_t *buf, int len)
 {
     int t;
     int received_total = 0;
@@ -367,7 +359,7 @@ static int network_recv_buffer(vice_network_socket_t * s, BYTE *buf, int len)
 #define SEND_FLAGS 0
 #endif
 
-static int network_send_buffer(vice_network_socket_t * s, const BYTE *buf, int len)
+static int network_send_buffer(vice_network_socket_t * s, const uint8_t *buf, int len)
 {
     int t;
     int sent_total = 0;
@@ -395,7 +387,7 @@ typedef struct {
 static void network_test_delay(void)
 {
     int i, j;
-    BYTE new_frame_delta;
+    uint8_t new_frame_delta;
     unsigned char *buf;
     testpacket pkt;
 
@@ -404,7 +396,7 @@ static void network_test_delay(void)
 
     vsyncarch_init();
 
-    ui_display_statustext(translate_text(IDGS_TESTING_BEST_FRAME_DELAY), 0);
+    ui_display_statustext("Testing best frame delay...", 0);
 
     buf = (unsigned char*)&pkt;
 
@@ -435,7 +427,7 @@ static void network_test_delay(void)
 #endif
         /* calculate delay with 90% of packets beeing fast enough */
         /* FIXME: This needs some further investigation */
-        new_frame_delta = 5 + (BYTE)(vsync_get_refresh_frequency()
+        new_frame_delta = 5 + (uint8_t)(vsync_get_refresh_frequency()
                                      * packet_delay[(int)(0.1 * NUM_OF_TESTPACKETS)]
                                      / (float)vsyncarch_frequency());
         network_send_buffer(network_socket, &new_frame_delta,
@@ -454,17 +446,17 @@ static void network_test_delay(void)
     network_free_frame_event_list();
     frame_delta = new_frame_delta;
     network_init_frame_event_list();
-    sprintf(st, translate_text(IDGS_USING_D_FRAMES_DELAY), frame_delta);
+    sprintf(st, "Using %d frames delay.", frame_delta);
     log_debug("netplay connected with %d frames delta.", frame_delta);
     ui_display_statustext(st, 1);
 }
 
-static void network_server_connect_trap(WORD addr, void *data)
+static void network_server_connect_trap(uint16_t addr, void *data)
 {
     FILE *f;
-    BYTE *buf;
+    uint8_t *buf;
     size_t buf_size;
-    BYTE send_size4[4];
+    uint8_t send_size4[4];
     long i;
     event_list_state_t settings_list;
 
@@ -475,7 +467,7 @@ static void network_server_connect_trap(WORD addr, void *data)
     if (machine_write_snapshot(snapshotfilename, 1, 1, 0) == 0) {
         f = fopen(snapshotfilename, MODE_READ);
         if (f == NULL) {
-            ui_error(translate_text(IDGS_CANNOT_LOAD_SNAPSHOT_TRANSFER));
+            ui_error("Cannot load snapshot file for transfer");
             lib_free(snapshotfilename);
             return;
         }
@@ -486,13 +478,13 @@ static void network_server_connect_trap(WORD addr, void *data)
         }
         fclose(f);
 
-        ui_display_statustext(translate_text(IDGS_SENDING_SNAPSHOT_TO_CLIENT), 0);
+        ui_display_statustext("Sending snapshot to client...", 0);
         util_int_to_le_buf4(send_size4, (int)buf_size);
         network_send_buffer(network_socket, send_size4, 4);
         i = network_send_buffer(network_socket, buf, (int)buf_size);
         lib_free(buf);
         if (i < 0) {
-            ui_error(translate_text(IDGS_CANNOT_SEND_SNAPSHOT_TO_CLIENT));
+            ui_error("Cannot send snapshot to client");
             ui_display_statustext("", 0);
             lib_free(snapshotfilename);
             return;
@@ -518,16 +510,16 @@ static void network_server_connect_trap(WORD addr, void *data)
 
         network_test_delay();
     } else {
-        ui_error(translate_text(IDGS_CANNOT_CREATE_SNAPSHOT_FILE_S), snapshotfilename);
+        ui_error("Cannot create snapshot file %s", snapshotfilename);
     }
     lib_free(snapshotfilename);
 }
 
-static void network_client_connect_trap(WORD addr, void *data)
+static void network_client_connect_trap(uint16_t addr, void *data)
 {
-    BYTE *buf;
+    uint8_t *buf;
     size_t buf_size;
-    BYTE recv_buf4[4];
+    uint8_t recv_buf4[4];
     event_list_state_t *settings_list;
 
     /* Set proper settings */
@@ -557,7 +549,7 @@ static void network_client_connect_trap(WORD addr, void *data)
 
     /* read the snapshot */
     if (machine_read_snapshot(snapshotfilename, 0) != 0) {
-        ui_error(translate_text(IDGS_CANNOT_OPEN_SNAPSHOT_FILE_S), snapshotfilename);
+        ui_error("Cannot open snapshot file %s", snapshotfilename);
         lib_free(snapshotfilename);
         return;
     }
@@ -576,7 +568,7 @@ static void network_client_connect_trap(WORD addr, void *data)
 void network_event_record(unsigned int type, void *data, unsigned int size)
 {
     unsigned int control = 0;
-    BYTE joyport;
+    uint8_t joyport;
 
     switch (type) {
         case EVENT_KEYBOARD_MATRIX:
@@ -595,7 +587,7 @@ void network_event_record(unsigned int type, void *data, unsigned int size)
             control = NETWORK_CONTROL_RSRC;
             break;
         case EVENT_JOYSTICK_VALUE:
-            joyport = ((BYTE*)data)[0];
+            joyport = ((uint8_t *)data)[0];
             if (joyport == 1) {
                 control = NETWORK_CONTROL_JOY1;
             }
@@ -676,7 +668,7 @@ int network_start_server(void)
         network_mode = NETWORK_SERVER;
 
         vsync_suspend_speed_eval();
-        ui_display_statustext(translate_text(IDGS_SERVER_IS_WAITING_FOR_CLIENT), 1);
+        ui_display_statustext("Server is waiting for a client...", 1);
 
         ret = 0;
     } while (0);
@@ -693,8 +685,8 @@ int network_connect_client(void)
 {
     vice_network_socket_address_t * server_addr;
     FILE *f;
-    BYTE *buf;
-    BYTE recv_buf4[4];
+    uint8_t *buf;
+    uint8_t recv_buf4[4];
     size_t buf_size;
 
     if (network_mode != NETWORK_IDLE) {
@@ -707,13 +699,13 @@ int network_connect_client(void)
 
     f = archdep_mkstemp_fd(&snapshotfilename, MODE_WRITE);
     if (f == NULL) {
-        ui_error(translate_text(IDGS_CANNOT_CREATE_SNAPSHOT_S_SELECT));
+        ui_error("Cannot create snapshot file. Select different history directory!");
         return -1;
     }
 
     server_addr = vice_network_address_generate(server_name, server_port);
     if (server_addr == NULL) {
-        ui_error(translate_text(IDGS_CANNOT_RESOLVE_S), server_name);
+        ui_error("Cannot resolve %s", server_name);
         return -1;
     }
     network_socket = vice_network_client(server_addr);
@@ -722,12 +714,12 @@ int network_connect_client(void)
     server_addr = NULL;
 
     if (!network_socket) {
-        ui_error(translate_text(IDGS_CANNOT_CONNECT_TO_S), server_name, server_port);
+        ui_error("Cannot connect to %s (no server running on port %d).", server_name, server_port);
         lib_free(snapshotfilename);
         return -1;
     }
 
-    ui_display_statustext(translate_text(IDGS_RECEIVING_SNAPSHOT_SERVER), 0);
+    ui_display_statustext("Receiving snapshot from server...", 0);
     if (network_recv_buffer(network_socket, recv_buf4, 4) < 0) {
         lib_free(snapshotfilename);
         vice_network_socket_close(network_socket);
@@ -774,7 +766,7 @@ void network_suspend(void)
         return;
     }
 
-    network_send_buffer(network_socket, (BYTE*)&dummy_buf_len, sizeof(unsigned int));
+    network_send_buffer(network_socket, (uint8_t *)&dummy_buf_len, sizeof(unsigned int));
 
     suspended = 1;
 }
@@ -785,9 +777,9 @@ long t1, t2, t3, t4;
 
 static void network_hook_connected_send(void)
 {
-    BYTE *local_event_buf = NULL;
+    uint8_t *local_event_buf = NULL;
     unsigned int send_len;
-    BYTE send_len4[4];
+    uint8_t send_len4[4];
 
     /* create and send current event buffer */
     network_event_record(EVENT_LIST_END, NULL, 0);
@@ -800,7 +792,7 @@ static void network_hook_connected_send(void)
     util_int_to_le_buf4(send_len4, (int)send_len);
     if (network_send_buffer(network_socket, send_len4, 4) < 0
         || network_send_buffer(network_socket, local_event_buf, send_len) < 0) {
-        ui_display_statustext(translate_text(IDGS_REMOTE_HOST_DISCONNECTED), 1);
+        ui_display_statustext("Remote host disconnected.", 1);
         network_disconnect();
     }
 #ifdef NETWORK_DEBUG
@@ -812,9 +804,9 @@ static void network_hook_connected_send(void)
 
 static void network_hook_connected_receive(void)
 {
-    BYTE *remote_event_buf = NULL;
+    uint8_t *remote_event_buf = NULL;
     unsigned int recv_len;
-    BYTE recv_len4[4];
+    uint8_t recv_len4[4];
     event_list_state_t *remote_event_list;
     event_list_state_t *client_event_list, *server_event_list;
 
@@ -827,7 +819,7 @@ static void network_hook_connected_receive(void)
     if (frame_buffer_full) {
         do {
             if (network_recv_buffer(network_socket, recv_len4, 4) < 0) {
-                ui_display_statustext(translate_text(IDGS_REMOTE_HOST_DISCONNECTED), 1);
+                ui_display_statustext("Remote host disconnected.", 1);
                 network_disconnect();
                 return;
             }
@@ -835,7 +827,7 @@ static void network_hook_connected_receive(void)
             recv_len = util_le_buf4_to_int(recv_len4);
             if (recv_len == 0 && suspended == 0) {
                 /* remote host suspended emulation */
-                ui_display_statustext(translate_text(IDGS_REMOTE_HOST_SUSPENDING), 0);
+                ui_display_statustext("Remote host suspending...", 0);
                 suspended = 1;
                 vsync_suspend_speed_eval();
             }
@@ -874,9 +866,9 @@ static void network_hook_connected_receive(void)
             int i;
 
             for (i = 0; i < 5; i++) {
-                if (((DWORD *)client_event_list->base->data)[i]
-                    != ((DWORD *)server_event_list->base->data)[i]) {
-                    ui_error(translate_text(IDGS_NETWORK_OUT_OF_SYNC));
+                if (((uint32_t *)client_event_list->base->data)[i]
+                    != ((uint32_t *)server_event_list->base->data)[i]) {
+                    ui_error("Network out of sync - disconnecting.");
                     network_disconnect();
                     /* shouldn't happen but resyncing would be nicer */
                     break;

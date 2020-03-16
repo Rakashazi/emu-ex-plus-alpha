@@ -37,7 +37,7 @@
 #include "types.h"
 
 typedef void (*machine_crtc_retrace_signal_t)(unsigned int);
-typedef void (*crtc_hires_draw_t)(BYTE *p, int xstart, int xend, int scr_rel, int ymod8);
+typedef void (*crtc_hires_draw_t)(uint8_t *p, int xstart, int xend, int scr_rel, int ymod8);
 
 struct snapshot_s;
 struct screenshot_s;
@@ -53,9 +53,9 @@ extern int crtc_cmdline_options_init(void);
 extern int crtc_snapshot_write_module(struct snapshot_s *s);
 extern int crtc_snapshot_read_module(struct snapshot_s *s);
 
-extern void crtc_set_screen_addr(BYTE *screen);
+extern void crtc_set_screen_addr(uint8_t *screen);
 extern void crtc_set_chargen_offset(int offset);
-extern void crtc_set_chargen_addr(BYTE *chargen, int cmask);
+extern void crtc_set_chargen_addr(uint8_t *chargen, int cmask);
 extern void crtc_set_screen_options(int num_cols, int rasterlines);
 extern void crtc_set_hw_options(int hwflag, int vmask, int vchar, int vcoffset,
                                 int vrevmask);
@@ -74,6 +74,6 @@ extern int crtc_offscreen(void);
 extern void crtc_update_window(void);
 extern void crtc_update_renderer(void);
 
-extern BYTE *crtc_get_active_bitmap(void);
+extern uint8_t *crtc_get_active_bitmap(void);
 
 #endif

@@ -29,6 +29,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "mascuerade-stubs.h"
+
 int mmc64_cart_enabled(void)
 {
     return 0;
@@ -45,21 +47,6 @@ int retroreplay_cart_enabled(void)
 }
 
 int rrnetmk3_cart_enabled(void)
-{
-    return 0;
-}
-
-int cartridge_type_enabled(int type)
-{
-    return 0;
-}
-
-int cartridge_flush_image(int type)
-{
-    return 0;
-}
-
-int cartridge_save_image(int type, const char *filename)
 {
     return 0;
 }

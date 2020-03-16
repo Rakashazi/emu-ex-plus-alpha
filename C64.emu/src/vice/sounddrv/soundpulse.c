@@ -80,7 +80,7 @@ static int pulsedrv_init(const char *param, int *speed, int *fragsize, int *frag
     return 0;
 }
 
-static int pulsedrv_write(SWORD *pbuf, size_t nr)
+static int pulsedrv_write(int16_t *pbuf, size_t nr)
 {
     int error = 0;
     if (pa_simple_write(s, pbuf, nr * 2, &error)) {

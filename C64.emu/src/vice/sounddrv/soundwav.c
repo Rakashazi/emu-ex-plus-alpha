@@ -38,11 +38,11 @@ static FILE *wav_fd = NULL;
 static int samples = 0;
 
 /* Store number as little endian. */
-static void le_store(BYTE* buf, DWORD val, int len)
+static void le_store(uint8_t *buf, uint32_t val, int len)
 {
     int i;
     for (i = 0; i < len; i++) {
-        buf[i] = (BYTE)(val & 0xff);
+        buf[i] = (uint8_t)(val & 0xff);
         val >>= 8;
     }
 }
@@ -50,9 +50,9 @@ static void le_store(BYTE* buf, DWORD val, int len)
 static int wav_init(const char *param, int *speed, int *fragsize, int *fragnr, int *channels)
 {
     /* RIFF/WAV header. */
-    BYTE header[45] = "RIFFllllWAVEfmt \020\0\0\0\001\0ccrrrrbbbb88\020\0datallll";
-    DWORD sample_rate = (DWORD)*speed;
-    DWORD bytes_per_sec = (DWORD)(*speed * *channels * 2);
+    unsigned char header[45] = "RIFFllllWAVEfmt \020\0\0\0\001\0ccrrrrbbbb88\020\0datallll";
+    uint32_t sample_rate = (uint32_t)*speed;
+    uint32_t bytes_per_sec = (uint32_t)(*speed * *channels * 2);
 
     wav_fd = fopen(param ? param : "vicesnd.wav", MODE_WRITE);
     if (!wav_fd) {
@@ -63,33 +63,33 @@ static int wav_init(const char *param, int *speed, int *fragsize, int *fragnr, i
     samples = 0;
 
     /* Initialize header. */
-    le_store(header + 22, (DWORD)*channels, 2);
+    le_store(header + 22, (uint32_t)*channels, 2);
     le_store(header + 24, sample_rate, 4);
     le_store(header + 28, bytes_per_sec, 4);
-    le_store(header + 32, (DWORD)*channels * 2, 2);
+    le_store(header + 32, (uint32_t)*channels * 2, 2);
 
     return (fwrite(header, 1, 44, wav_fd) != 44);
 }
 
-static int wav_write(SWORD *pbuf, size_t nr)
+static int wav_write(int16_t *pbuf, size_t nr)
 {
 #ifdef WORDS_BIGENDIAN
     unsigned int i;
 
     /* Swap bytes on big endian machines. */
     for (i = 0; i < nr; i++) {
-        pbuf[i] = (SWORD)((((WORD)pbuf[i] & 0xff) << 8) | ((WORD)pbuf[i] >> 8));
+        pbuf[i] = (int16_t)((((uint16_t)pbuf[i] & 0xff) << 8) | ((uint16_t)pbuf[i] >> 8));
     }
 #endif
 
-    if (nr != fwrite(pbuf, sizeof(SWORD), nr, wav_fd)) {
+    if (nr != fwrite(pbuf, sizeof(int16_t), nr, wav_fd)) {
         return 1;
     }
 
     /* Swap the bytes back just in case. */
 #ifdef WORDS_BIGENDIAN
     for (i = 0; i < nr; i++) {
-        pbuf[i] = (SWORD)((((WORD)pbuf[i] & 0xff) << 8) | ((WORD)pbuf[i] >> 8));
+        pbuf[i] = (int16_t)((((uint16_t)pbuf[i] & 0xff) << 8) | ((uint16_t)pbuf[i] >> 8));
     }
 #endif
 
@@ -102,10 +102,10 @@ static int wav_write(SWORD *pbuf, size_t nr)
 static void wav_close(void)
 {
     int res = -1;
-    BYTE rlen[4];
-    BYTE dlen[4];
-    DWORD rifflen = (DWORD)(samples * 2 + 36);
-    DWORD datalen = (DWORD)(samples * 2);
+    uint8_t rlen[4];
+    uint8_t dlen[4];
+    uint32_t rifflen = (uint32_t)(samples * 2 + 36);
+    uint32_t datalen = (uint32_t)(samples * 2);
 
     le_store(rlen, rifflen, 4);
     le_store(dlen, datalen, 4);

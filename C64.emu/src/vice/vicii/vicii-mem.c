@@ -103,7 +103,7 @@ static int unused_bits_in_registers_dtv[0x50] =
 
 
 /* Store a value in the video bank (it is assumed to be in RAM).  */
-inline static void vicii_local_store_vbank(WORD addr, BYTE value)
+inline static void vicii_local_store_vbank(uint16_t addr, uint8_t value)
 {
     unsigned int f;
 
@@ -154,13 +154,13 @@ inline static void vicii_local_store_vbank(WORD addr, BYTE value)
 }
 
 /* Encapsulate inlined function for other modules */
-void vicii_mem_vbank_store(WORD addr, BYTE value)
+void vicii_mem_vbank_store(uint16_t addr, uint8_t value)
 {
     vicii_local_store_vbank(addr, value);
 }
 
 /* As `store_vbank()', but for the $3900...$39FF address range.  */
-void vicii_mem_vbank_39xx_store(WORD addr, BYTE value)
+void vicii_mem_vbank_39xx_store(uint16_t addr, uint8_t value)
 {
     vicii_local_store_vbank(addr, value);
 
@@ -174,7 +174,7 @@ void vicii_mem_vbank_39xx_store(WORD addr, BYTE value)
 }
 
 /* As `store_vbank()', but for the $3F00...$3FFF address range.  */
-void vicii_mem_vbank_3fxx_store(WORD addr, BYTE value)
+void vicii_mem_vbank_3fxx_store(uint16_t addr, uint8_t value)
 {
     vicii_local_store_vbank(addr, value);
 
@@ -197,7 +197,7 @@ void vicii_mem_vbank_3fxx_store(WORD addr, BYTE value)
 }
 
 
-inline static void store_sprite_x_position_lsb(const WORD addr, BYTE value)
+inline static void store_sprite_x_position_lsb(const uint16_t addr, uint8_t value)
 {
     int n;
     int new_x;
@@ -216,7 +216,7 @@ inline static void store_sprite_x_position_lsb(const WORD addr, BYTE value)
     vicii_sprites_set_x_position(n, new_x, VICII_RASTER_X(VICII_RASTER_CYCLE(maincpu_clk)));
 }
 
-inline static void store_sprite_y_position(const WORD addr, BYTE value)
+inline static void store_sprite_y_position(const uint16_t addr, uint8_t value)
 {
     int cycle;
 
@@ -239,10 +239,10 @@ inline static void store_sprite_y_position(const WORD addr, BYTE value)
     vicii.regs[addr] = value;
 }
 
-static inline void store_sprite_x_position_msb(const WORD addr, BYTE value)
+static inline void store_sprite_x_position_msb(const uint16_t addr, uint8_t value)
 {
     int i;
-    BYTE b;
+    uint8_t b;
     int raster_x;
 
     VICII_DEBUG_REGISTER(("Sprite X position MSBs: $%02X", value));
@@ -264,7 +264,7 @@ static inline void store_sprite_x_position_msb(const WORD addr, BYTE value)
     }
 }
 
-inline static void check_lower_upper_border(const BYTE value,
+inline static void check_lower_upper_border(const uint8_t value,
                                             unsigned int line, int cycle)
 {
     if ((value ^ vicii.regs[0x11]) & 8) {
@@ -326,7 +326,7 @@ inline static void check_lower_upper_border(const BYTE value,
     }
 }
 
-inline static void d011_store(BYTE value)
+inline static void d011_store(uint8_t value)
 {
     int cycle, old_allow_bad_lines;
     unsigned int line;
@@ -371,7 +371,7 @@ inline static void d011_store(BYTE value)
     vicii_update_video_mode(cycle);
 }
 
-inline static void d012_store(BYTE value)
+inline static void d012_store(uint8_t value)
 {
     VICII_DEBUG_REGISTER(("Raster compare register: $%02X", value));
 
@@ -386,7 +386,7 @@ inline static void d012_store(BYTE value)
     VICII_DEBUG_REGISTER(("Raster interrupt line set to $%04X", vicii.raster_irq_line));
 }
 
-inline static void d015_store(const BYTE value)
+inline static void d015_store(const uint8_t value)
 {
     int cycle;
 
@@ -433,7 +433,7 @@ inline static void d015_store(const BYTE value)
     vicii.regs[0x15] = vicii.raster.sprite_status->visible_msk = value;
 }
 
-inline static void check_lateral_border(const BYTE value, int cycle,
+inline static void check_lateral_border(const uint8_t value, int cycle,
                                         raster_t *raster)
 {
     if ((value & 0x8) != (vicii.regs[0x16] & 0x8)) {
@@ -507,11 +507,11 @@ inline static void check_lateral_border(const BYTE value, int cycle,
     }
 }
 
-inline static void d016_store(const BYTE value)
+inline static void d016_store(const uint8_t value)
 {
     raster_t *raster;
     int cycle;
-    BYTE xsmooth;
+    uint8_t xsmooth;
 
     VICII_DEBUG_REGISTER(("Control register: $%02X", value));
 
@@ -560,12 +560,12 @@ inline static void d016_store(const BYTE value)
     vicii_update_video_mode(cycle);
 }
 
-inline static void d017_store(const BYTE value)
+inline static void d017_store(const uint8_t value)
 {
     raster_sprite_status_t *sprite_status;
     int cycle;
     int i;
-    BYTE b;
+    uint8_t b;
 
     VICII_DEBUG_REGISTER(("Sprite Y Expand register: $%02X", value));
 
@@ -600,7 +600,7 @@ inline static void d017_store(const BYTE value)
     vicii.regs[0x17] = value;
 }
 
-inline static void d018_store(const BYTE value)
+inline static void d018_store(const uint8_t value)
 {
     VICII_DEBUG_REGISTER(("Memory register: $%02X", value));
 
@@ -612,7 +612,7 @@ inline static void d018_store(const BYTE value)
     vicii_update_memory_ptrs(VICII_RASTER_CYCLE(maincpu_clk));
 }
 
-inline static void d019_store(const BYTE value)
+inline static void d019_store(const uint8_t value)
 {
     /* Emulates Read-Modify-Write behaviour. */
     if (maincpu_rmw_flag) {
@@ -642,7 +642,7 @@ inline static void d019_store(const BYTE value)
     VICII_DEBUG_REGISTER(("IRQ flag register: $%02X", vicii.irq_status));
 }
 
-inline static void d01a_store(const BYTE value)
+inline static void d01a_store(const uint8_t value)
 {
     vicii.regs[0x1a] = value & 0xf;
 
@@ -651,10 +651,10 @@ inline static void d01a_store(const BYTE value)
 /*    VICII_DEBUG_REGISTER(("IRQ mask register: $%02X", vicii.regs[addr])); */
 }
 
-inline static void d01b_store(const BYTE value)
+inline static void d01b_store(const uint8_t value)
 {
     int i;
-    BYTE b;
+    uint8_t b;
     int raster_x;
 
     VICII_DEBUG_REGISTER(("Sprite priority register: $%02X", value));
@@ -682,10 +682,10 @@ inline static void d01b_store(const BYTE value)
     vicii.regs[0x1b] = value;
 }
 
-inline static void d01c_store(const BYTE value)
+inline static void d01c_store(const uint8_t value)
 {
     int i;
-    BYTE b;
+    uint8_t b;
     int raster_x;
     int sprite_x;
     int delayed_load, delayed_shift, delayed_pixel;
@@ -745,11 +745,11 @@ inline static void d01c_store(const BYTE value)
     vicii.regs[0x1c] = value;
 }
 
-inline static void d01d_store(const BYTE value)
+inline static void d01d_store(const uint8_t value)
 {
     int raster_x;
     int i;
-    BYTE b;
+    uint8_t b;
 
     VICII_DEBUG_REGISTER(("Sprite X Expand register: $%02X", value));
 
@@ -793,12 +793,12 @@ inline static void d01d_store(const BYTE value)
     vicii.regs[0x1d] = value;
 }
 
-inline static void collision_store(const WORD addr, const BYTE value)
+inline static void collision_store(const uint16_t addr, const uint8_t value)
 {
     VICII_DEBUG_REGISTER(("(collision register, Read Only)"));
 }
 
-inline static void d020_store(BYTE value)
+inline static void d020_store(uint8_t value)
 {
     VICII_DEBUG_REGISTER(("Border color register: $%02X", value));
 
@@ -818,10 +818,10 @@ inline static void d020_store(BYTE value)
                                   vicii.viciidtv ? vicii.dtvpalette[value] : value);
 }
 
-inline static void d021_store(BYTE value)
+inline static void d021_store(uint8_t value)
 {
     int x_pos;
-    BYTE cmask;
+    uint8_t cmask;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     if (!vicii.extended_enable) {
@@ -851,11 +851,11 @@ inline static void d021_store(BYTE value)
     vicii.regs[0x21] = value;
 }
 
-inline static void ext_background_store(WORD addr, BYTE value)
+inline static void ext_background_store(uint16_t addr, uint8_t value)
 {
     int char_num;
 
-    BYTE cmask;
+    uint8_t cmask;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     if (!vicii.extended_enable) {
@@ -886,7 +886,7 @@ inline static void ext_background_store(WORD addr, BYTE value)
                                       vicii.viciidtv ? vicii.dtvpalette[value & cmask] : value);
 }
 
-inline static void d025_store(BYTE value)
+inline static void d025_store(uint8_t value)
 {
     raster_sprite_status_t *sprite_status;
 
@@ -908,7 +908,7 @@ inline static void d025_store(BYTE value)
     vicii.regs[0x25] = value;
 }
 
-inline static void d026_store(BYTE value)
+inline static void d026_store(uint8_t value)
 {
     raster_sprite_status_t *sprite_status;
 
@@ -930,7 +930,7 @@ inline static void d026_store(BYTE value)
     vicii.regs[0x26] = value;
 }
 
-inline static void sprite_color_store(WORD addr, BYTE value)
+inline static void sprite_color_store(uint16_t addr, uint8_t value)
 {
     raster_sprite_t *sprite;
     int n;
@@ -956,7 +956,7 @@ inline static void sprite_color_store(WORD addr, BYTE value)
     vicii.regs[addr] = value;
 }
 
-inline static void d02f_store(BYTE value)
+inline static void d02f_store(uint8_t value)
 {
     if (vicii.viciie) {
         VICII_DEBUG_REGISTER(("Extended keyboard row enable: $%02X", value));
@@ -967,7 +967,7 @@ inline static void d02f_store(BYTE value)
     }
 }
 
-inline static void d030_store(BYTE value)
+inline static void d030_store(uint8_t value)
 {
     if (vicii.viciie) {
         VICII_DEBUG_REGISTER(("Store $D030: $%02X", value));
@@ -986,7 +986,7 @@ void viciidtv_update_colorram()
                           + ((vicii.regs[0x37] & 0x07) << 18); /* TODO test */
 }
 
-inline static void d036_store(const BYTE value)
+inline static void d036_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x36] = value;
@@ -996,7 +996,7 @@ inline static void d036_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Color bank low: $%02x", value));
 }
 
-inline static void d037_store(const BYTE value)
+inline static void d037_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x37] = value;
@@ -1005,7 +1005,7 @@ inline static void d037_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Color bank high: $%02x", value));
 }
 
-inline static void d038_store(const BYTE value)
+inline static void d038_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x38] = value;
@@ -1016,7 +1016,7 @@ inline static void d038_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Linear Count A modulo low: $%02x", value));
 }
 
-inline static void d039_store(const BYTE value)
+inline static void d039_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x39] = value & 0xf;
@@ -1027,7 +1027,7 @@ inline static void d039_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Linear Count A modulo high: $%02x", value));
 }
 
-inline static void d03a_store(const BYTE value)
+inline static void d03a_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x3a] = value;
@@ -1037,7 +1037,7 @@ inline static void d03a_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Linear Count A Start low: $%02x", value));
 }
 
-inline static void d03b_store(const BYTE value)
+inline static void d03b_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x3b] = value;
@@ -1047,7 +1047,7 @@ inline static void d03b_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Linear Count A Start middle: $%02x", value));
 }
 
-static void d03c_store(const BYTE value)
+static void d03c_store(const uint8_t value)
 {
     int cycle, old_overscan;
 
@@ -1085,11 +1085,11 @@ static void d03c_store(const BYTE value)
         vicii.raster.geometry->gfx_position.x = vicii.screen_leftborderwidth;
     }
 
-    d020_store((BYTE)vicii.regs[0x20]);
-    d021_store((BYTE)vicii.regs[0x21]);
-    ext_background_store(0x22, (BYTE)vicii.regs[0x22]);
-    ext_background_store(0x23, (BYTE)vicii.regs[0x23]);
-    ext_background_store(0x24, (BYTE)vicii.regs[0x24]);
+    d020_store((uint8_t)vicii.regs[0x20]);
+    d021_store((uint8_t)vicii.regs[0x21]);
+    ext_background_store(0x22, (uint8_t)vicii.regs[0x22]);
+    ext_background_store(0x23, (uint8_t)vicii.regs[0x23]);
+    ext_background_store(0x24, (uint8_t)vicii.regs[0x24]);
 
     vicii_update_video_mode(cycle);
     vicii_update_memory_ptrs(cycle);
@@ -1097,7 +1097,7 @@ static void d03c_store(const BYTE value)
     VICII_DEBUG_REGISTER(("VICIIDTV register 1: $%02x", value));
 }
 
-inline static void d03d_store(const BYTE value)
+inline static void d03d_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x3d] = value & 0x1f;
@@ -1107,7 +1107,7 @@ inline static void d03d_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Graphics fetch bank: $%02x", value));
 }
 
-inline static void d03f_store(const BYTE value)
+inline static void d03f_store(const uint8_t value)
 {
     if (vicii.extended_lockout) {
         return;
@@ -1127,7 +1127,7 @@ int vicii_extended_regs(void)
 }
 
 
-inline static void d040_store(const BYTE value)
+inline static void d040_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x40] = value;
@@ -1136,7 +1136,7 @@ inline static void d040_store(const BYTE value)
     VICII_DEBUG_REGISTER(("VICIIDTV register 2: $%02x", value));
 }
 
-inline static void d044_store(const BYTE value)
+inline static void d044_store(const uint8_t value)
 {
     int offs;
 
@@ -1161,7 +1161,7 @@ inline static void d044_store(const BYTE value)
     VICII_DEBUG_REGISTER(("CPU cycle/IRQ trigger cycle: $%02x", value));
 }
 
-inline static void d045_store(const BYTE value)
+inline static void d045_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x45] = value & 0x1f;
@@ -1172,7 +1172,7 @@ inline static void d045_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Linear Count A Start high: $%02x", value));
 }
 
-inline static void d046_store(const BYTE value)
+inline static void d046_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x46] = value;
@@ -1182,7 +1182,7 @@ inline static void d046_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Linear Count A Step: $%02x", value));
 }
 
-inline static void d047_store(const BYTE value)
+inline static void d047_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x47] = value;
@@ -1193,7 +1193,7 @@ inline static void d047_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Linear Count B modulo low: $%02x", value));
 }
 
-inline static void d048_store(const BYTE value)
+inline static void d048_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x48] = value & 0xf;
@@ -1204,7 +1204,7 @@ inline static void d048_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Linear Count B modulo high: $%02x", value));
 }
 
-inline static void d049_store(const BYTE value)
+inline static void d049_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x49] = value;
@@ -1213,7 +1213,7 @@ inline static void d049_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Linear Count B Start low: $%02x", value));
 }
 
-inline static void d04a_store(const BYTE value)
+inline static void d04a_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x4a] = value;
@@ -1222,7 +1222,7 @@ inline static void d04a_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Linear Count B Start middle: $%02x", value));
 }
 
-inline static void d04b_store(const BYTE value)
+inline static void d04b_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x4b] = value & 0x1f;
@@ -1231,7 +1231,7 @@ inline static void d04b_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Linear Count B Start high: $%02x", value));
 }
 
-inline static void d04c_store(const BYTE value)
+inline static void d04c_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x4c] = value;
@@ -1241,7 +1241,7 @@ inline static void d04c_store(const BYTE value)
     VICII_DEBUG_REGISTER(("Linear Count B Step: $%02x", value));
 }
 
-inline static void d04d_store(const BYTE value)
+inline static void d04d_store(const uint8_t value)
 {
     if (vicii.extended_enable) {
         vicii.regs[0x4d] = value & 0x1f;
@@ -1251,7 +1251,7 @@ inline static void d04d_store(const BYTE value)
 }
 
 /* DTV Palette registers at $d2xx */
-void vicii_palette_store(WORD addr, BYTE value)
+void vicii_palette_store(uint16_t addr, uint8_t value)
 {
     if (!vicii.extended_enable) {
         return;
@@ -1262,31 +1262,31 @@ void vicii_palette_store(WORD addr, BYTE value)
     }
 
     vicii.dtvpalette[addr & 0xf] = value;
-    d020_store((BYTE)vicii.regs[0x20]);
-    d021_store((BYTE)vicii.regs[0x21]);
-    ext_background_store(0x22, (BYTE)vicii.regs[0x22]);
-    ext_background_store(0x23, (BYTE)vicii.regs[0x23]);
-    ext_background_store(0x24, (BYTE)vicii.regs[0x24]);
-    d025_store((BYTE)vicii.regs[0x25]);
-    d026_store((BYTE)vicii.regs[0x26]);
-    sprite_color_store(0x27, (BYTE)vicii.regs[0x27]);
-    sprite_color_store(0x28, (BYTE)vicii.regs[0x28]);
-    sprite_color_store(0x29, (BYTE)vicii.regs[0x29]);
-    sprite_color_store(0x2a, (BYTE)vicii.regs[0x2a]);
-    sprite_color_store(0x2b, (BYTE)vicii.regs[0x2b]);
-    sprite_color_store(0x2c, (BYTE)vicii.regs[0x2c]);
-    sprite_color_store(0x2d, (BYTE)vicii.regs[0x2d]);
-    sprite_color_store(0x2e, (BYTE)vicii.regs[0x2e]);
+    d020_store((uint8_t)vicii.regs[0x20]);
+    d021_store((uint8_t)vicii.regs[0x21]);
+    ext_background_store(0x22, (uint8_t)vicii.regs[0x22]);
+    ext_background_store(0x23, (uint8_t)vicii.regs[0x23]);
+    ext_background_store(0x24, (uint8_t)vicii.regs[0x24]);
+    d025_store((uint8_t)vicii.regs[0x25]);
+    d026_store((uint8_t)vicii.regs[0x26]);
+    sprite_color_store(0x27, (uint8_t)vicii.regs[0x27]);
+    sprite_color_store(0x28, (uint8_t)vicii.regs[0x28]);
+    sprite_color_store(0x29, (uint8_t)vicii.regs[0x29]);
+    sprite_color_store(0x2a, (uint8_t)vicii.regs[0x2a]);
+    sprite_color_store(0x2b, (uint8_t)vicii.regs[0x2b]);
+    sprite_color_store(0x2c, (uint8_t)vicii.regs[0x2c]);
+    sprite_color_store(0x2d, (uint8_t)vicii.regs[0x2d]);
+    sprite_color_store(0x2e, (uint8_t)vicii.regs[0x2e]);
     vicii.raster.dont_cache = 1;
 }
 
-BYTE vicii_palette_read(WORD addr)
+uint8_t vicii_palette_read(uint16_t addr)
 {
     return 0;
 }
 
 /* Store a value in a VIC-II register.  */
-void vicii_store(WORD addr, BYTE value)
+void vicii_store(uint16_t addr, uint8_t value)
 {
     if (vicii.extended_enable) {
         addr &= 0x7f;
@@ -1579,7 +1579,7 @@ inline static unsigned int read_raster_y(void)
     return raster_y;
 }
 
-inline static BYTE d01112_read(WORD addr)
+inline static uint8_t d01112_read(uint16_t addr)
 {
     unsigned int tmp = read_raster_y();
 
@@ -1595,7 +1595,7 @@ inline static BYTE d01112_read(WORD addr)
 }
 
 
-inline static BYTE d019_read(void)
+inline static uint8_t d019_read(void)
 {
     /* Manually set raster IRQ flag if the opcode reading $d019 has crossed
        the line end and the raster IRQ alarm has not been executed yet. */
@@ -1614,7 +1614,7 @@ inline static BYTE d019_read(void)
     return vicii.viciidtv ? vicii.last_read | ((vicii.last_read & 0xf) ? 0x80 : 0x00) : vicii.last_read;
 }
 
-inline static BYTE d01e_read(void)
+inline static uint8_t d01e_read(void)
 {
     /* Remove the pending sprite-sprite interrupt, as the collision
        register is reset upon read accesses.  */
@@ -1637,7 +1637,7 @@ inline static BYTE d01e_read(void)
     return vicii.regs[0x1e];
 }
 
-inline static BYTE d01f_read(void)
+inline static uint8_t d01f_read(void)
 {
     /* Remove the pending sprite-background interrupt, as the collision
        register is reset upon read accesses.  */
@@ -1667,13 +1667,13 @@ inline static BYTE d01f_read(void)
     return vicii.regs[0x1f];
 }
 
-inline static BYTE d044_read(void)
+inline static uint8_t d044_read(void)
 {
     return VICIIDTV_RASTER_CYCLE(maincpu_clk) | 0x80;
 }
 
 /* Read a value from a VIC-II register.  */
-BYTE vicii_read(WORD addr)
+uint8_t vicii_read(uint16_t addr)
 {
     if (vicii.extended_enable) {
         addr &= 0x7f;
@@ -1755,7 +1755,7 @@ BYTE vicii_read(WORD addr)
 
         case 0x19:                /* $D019: IRQ flag register */
             {
-                BYTE tmp;
+                uint8_t tmp;
 
                 tmp = d019_read();
                 VICII_DEBUG_REGISTER(("Interrupt register: $%02X", tmp));
@@ -2001,7 +2001,7 @@ BYTE vicii_read(WORD addr)
     return 0xff;  /* make compiler happy */
 }
 
-inline static BYTE d019_peek(void)
+inline static uint8_t d019_peek(void)
 {
     /* Manually set raster IRQ flag if the opcode reading $d019 has crossed
        the line end and the raster IRQ alarm has not been executed yet. */
@@ -2017,10 +2017,12 @@ inline static BYTE d019_peek(void)
         return vicii.viciidtv ? vicii.irq_status | ((vicii.irq_status & 0xf) ? 0xf0 : 0x70) : vicii.irq_status | 0x70;
     }
 
+#if 0 /* all code paths above return, the following line can never be executed ... */
     return vicii.viciidtv ? vicii.irq_status | ((vicii.irq_status & 0xf) ? 0x80 : 0x00) : vicii.irq_status;
+#endif
 }
 
-BYTE vicii_peek(WORD addr)
+uint8_t vicii_peek(uint16_t addr)
 {
     if (!vicii.viciidtv) {
         addr &= 0x3f;

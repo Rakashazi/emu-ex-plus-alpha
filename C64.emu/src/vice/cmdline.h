@@ -35,17 +35,29 @@
 typedef enum cmdline_option_type { SET_RESOURCE, CALL_FUNCTION }
     cmdline_option_type_t;
 
+#define CMDLINE_ATTRIB_NONE                  0
+#define CMDLINE_ATTRIB_NEED_ARGS             (1 << 0)
+#define CMDLINE_ATTRIB_NEED_BRACKETS         (1 << 1)
+#define CMDLINE_ATTRIB_DYNAMIC_DESCRIPTION   (1 << 2)
+
 typedef struct cmdline_option_s {
-    /* Name of command-line option.  */
+    /* Name of command-line option
+     *
+     * This cannot be `const`, since some code (see drive-cmdline-options.c
+     * for example) uses this field to store and later free dynamically
+     * allocated strings.
+     */
     char *name;
 
     /* Behavior of this command-line option.  */
     cmdline_option_type_t type;
 
-    /* Flag: Does this option need an argument?
-       This option also indicates if the brackets need to be added
-       to the text. */
-    int need_arg;
+    /* Command line option flags:
+       CMDLINE_ATTRIB_NEED_ARGS:           This option needs an argument.
+       CMDLINE_ATTRIB_NEED_BRACKETS:       The brackets need to be added to the text.
+       CMDLINE_ATTRIB_DYNAMIC_DESCRIPTION: The description text is a pointer to a function that returns the text.
+     */
+    int attributes;
 
     /* Function to call if type is `CALL_FUNCTION'.  */
     int (*set_func)(const char *value, void *extra_param);
@@ -53,24 +65,15 @@ typedef struct cmdline_option_s {
     /* Extra parameter to pass to `set_func' if type is `CALL_FUNCTION'.  */
     void *extra_param;
 
-    /* Resource to change if `type' is `SET_RESOURCE'.  */
+    /* Resource to change if `type' is `SET_RESOURCE'
+     *
+     * Also cannot be `const`, see comment of `name` field
+     */
     char *resource_name;
 
     /* Value to assign to `resource_name' if `type' is `SET_RESOURCE' and
        `need_arg' is zero.  */
     void *resource_value;
-
-    /* flag to indicate to use the ID instead of the char */
-    int use_param_name_id;
-
-    /* flag to indicate to use the ID instead of the char */
-    int use_description_id;
-
-    /* ID of the string to display after the option name in the help screen. */
-    int param_name_trans;
-
-    /* ID of the description string. */
-    int description_trans;
 
     /* String to display after the option name in the help screen. */
     const char *param_name;
@@ -86,8 +89,12 @@ typedef struct cmdline_option_ram_s {
     /* Behavior of this command-line option.  */
     cmdline_option_type_t type;
 
-    /* Flag: Does this option need an argument?  */
-    int need_arg;
+    /* Command line option flags:
+       CMDLINE_ATTRIB_NEED_ARGS:           This option needs an argument.
+       CMDLINE_ATTRIB_NEED_BRACKETS:       The brackets need to be added to the text.
+       CMDLINE_ATTRIB_DYNAMIC_DESCRIPTION: The description text is a pointer to a function that returns the text.
+     */
+    int attributes;
 
     /* Function to call if type is `CALL_FUNCTION'.  */
     int (*set_func)(const char *value, void *extra_param);
@@ -102,26 +109,11 @@ typedef struct cmdline_option_ram_s {
        `need_arg' is zero.  */
     void *resource_value;
 
-    /* flag to indicate to use the ID instead of the char */
-    int use_param_name_id;
-
-    /* flag to indicate to use the ID instead of the char */
-    int use_description_id;
-
-    /* ID of the string to display after the option name in the help screen. */
-    int param_name_trans;
-
-    /* ID of the description string. */
-    int description_trans;
-
     /* String to display after the option name in the help screen. */
     const char *param_name;
 
     /* Description string. */
     const char *description;
-
-    /* Place holder for translated combined string */
-    char *combined_string;
 } cmdline_option_ram_t;
 
 extern int cmdline_init(void);
@@ -132,10 +124,16 @@ extern int cmdline_parse(int *argc, char **argv);
 extern void cmdline_show_help(void *userparam);
 extern char *cmdline_options_string(void);
 extern char *cmdline_options_get_name(int counter);
-extern char *cmdline_options_get_param(int counter);
+extern const char *cmdline_options_get_param(int counter);
 extern char *cmdline_options_get_description(int counter);
 extern int cmdline_get_num_options(void);
 
-#define CMDLINE_LIST_END { NULL, (cmdline_option_type_t)0, 0, NULL, NULL, NULL, NULL, 0, 0, 0, 0, NULL, NULL }
+#define CMDLINE_LIST_END { NULL, (cmdline_option_type_t)0, 0, NULL, NULL, NULL, NULL, NULL, NULL }
+
+/* union to change pointer types for dynamic translations */
+union char_func{
+    const char *c;
+    char *(*f)(int id);
+};
 
 #endif

@@ -84,7 +84,7 @@ static const char module_name[] = "CBM2MEM";
 static int mem_write_ram_snapshot_module(snapshot_t *p)
 {
     snapshot_module_t *m;
-    BYTE config, memsize;
+    uint8_t config, memsize;
     int effective_ramsize, effective_start;
 
     m = snapshot_module_create(p, module_name,
@@ -115,10 +115,10 @@ static int mem_write_ram_snapshot_module(snapshot_t *p)
 
     SMW_B(m, memsize);
     SMW_B(m, config);
-    SMW_B(m, (BYTE)(cbm2_model_line & 3));
+    SMW_B(m, (uint8_t)(cbm2_model_line & 3));
 
-    SMW_B(m, (BYTE)(cbm2mem_bank_exec));
-    SMW_B(m, (BYTE)(cbm2mem_bank_ind));
+    SMW_B(m, (uint8_t)(cbm2mem_bank_exec));
+    SMW_B(m, (uint8_t)(cbm2mem_bank_ind));
 
     SMW_BA(m, mem_ram + 0xf0000, 0x0800);
     SMW_BA(m, mem_rom + 0xd000, 0x0800);
@@ -154,9 +154,9 @@ static int mem_write_ram_snapshot_module(snapshot_t *p)
 
 static int mem_read_ram_snapshot_module(snapshot_t *p)
 {
-    BYTE byte, vmajor, vminor;
+    uint8_t byte, vmajor, vminor;
     snapshot_module_t *m;
-    BYTE config, hwconfig;
+    uint8_t config, hwconfig;
     int memsize;
     int effective_ramsize, effective_start;
     int bank0;
@@ -269,7 +269,7 @@ static const char module_rom_name[] = "CBM2ROM";
 static int mem_write_rom_snapshot_module(snapshot_t *p, int save_roms)
 {
     snapshot_module_t *m;
-    BYTE config;
+    uint8_t config;
     int trapfl;
     const char *cart_1_name, *cart_2_name, *cart_4_name, *cart_6_name;
 
@@ -338,9 +338,9 @@ static int mem_write_rom_snapshot_module(snapshot_t *p, int save_roms)
 
 static int mem_read_rom_snapshot_module(snapshot_t *p)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
-    BYTE config;
+    uint8_t config;
     int i, trapfl;
 
     m = snapshot_module_open(p, module_rom_name, &vmajor, &vminor);

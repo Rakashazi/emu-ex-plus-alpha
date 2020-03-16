@@ -44,7 +44,7 @@ typedef struct raw_s raw_t;
 static raw_t drv_raw[NUM_OUTPUT_SELECT];
 static log_t drv_raw_log = LOG_ERR;
 
-static int print_char(raw_t *raw, unsigned int prnr, const BYTE c)
+static int print_char(raw_t *raw, unsigned int prnr, const uint8_t c)
 {
     switch (c) {
         case 17: /* lowercase */
@@ -93,7 +93,7 @@ static void drv_raw_close(unsigned int prnr, unsigned int secondary)
     }
 }
 
-static int drv_raw_putc(unsigned int prnr, unsigned int secondary, BYTE b)
+static int drv_raw_putc(unsigned int prnr, unsigned int secondary, uint8_t b)
 {
 #ifdef DEBUG_PRINTER
     log_message(drv_raw_log, "Print device #%i secondary %i data %02x.",
@@ -107,7 +107,7 @@ static int drv_raw_putc(unsigned int prnr, unsigned int secondary, BYTE b)
     return 0;
 }
 
-static int drv_raw_getc(unsigned int prnr, unsigned int secondary, BYTE *b)
+static int drv_raw_getc(unsigned int prnr, unsigned int secondary, uint8_t *b)
 {
     return output_select_getc(prnr, b);
 }

@@ -193,7 +193,7 @@ void rs232_close(int fd)
 }
 
 /* sends a byte to the RS232 line */
-int rs232_putc(int fd, BYTE b)
+int rs232_putc(int fd, uint8_t b)
 {
     if (fd & RS232_IS_PHYSICAL_DEVICE) {
 #ifdef HAVE_RS232DEV
@@ -209,7 +209,7 @@ int rs232_putc(int fd, BYTE b)
 }
 
 /* gets a byte to the RS232 line, returns !=0 if byte received, byte in *b. */
-int rs232_getc(int fd, BYTE * b)
+int rs232_getc(int fd, uint8_t * b)
 {
     if (fd & RS232_IS_PHYSICAL_DEVICE) {
 #ifdef HAVE_RS232DEV

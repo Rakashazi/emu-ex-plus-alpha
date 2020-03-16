@@ -146,7 +146,8 @@ protected:
 
 	void onSavePathChange(const char *path);
 	virtual void onFirmwarePathChange(const char *path, Input::Event e);
-	void pushAndShowFirmwarePathMenu(const char *name, Input::Event e);
+	void pushAndShowFirmwarePathMenu(const char *name, Input::Event e, bool allowFiles = false);
+	void pushAndShowFirmwareFilePathMenu(const char *name, Input::Event e);
 };
 
 class GUIOptionView : public TableView

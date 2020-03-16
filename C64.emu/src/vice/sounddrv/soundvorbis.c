@@ -101,7 +101,7 @@ static int vorbis_init(const char *param, int *speed, int *fragsize, int *fragnr
     return 0;
 }
 
-static int vorbis_write(SWORD *pbuf, size_t nr)
+static int vorbis_write(int16_t *pbuf, size_t nr)
 {
     float **buffer;
     size_t i;

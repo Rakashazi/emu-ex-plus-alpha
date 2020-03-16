@@ -52,7 +52,7 @@
 #include "tpi.h"
 #include "types.h"
 
-void cia1_store(WORD addr, BYTE data)
+void cia1_store(uint16_t addr, uint8_t data)
 {
 #ifdef DEBUG_CIA1
     if (!((addr >= 0x08) && (addr <= 0x0b))) {
@@ -62,11 +62,11 @@ void cia1_store(WORD addr, BYTE data)
     ciacore_store(machine_context.cia1, addr, data);
 }
 
-BYTE cia1_read(WORD addr)
+uint8_t cia1_read(uint16_t addr)
 {
 #ifdef DEBUG_CIA1
     static int olddata, oldaddr;
-    BYTE data;
+    uint8_t data;
     data = ciacore_read(machine_context.cia1, addr);
 /*    if (!((addr >= 0x08) && (addr <= 0x0b))) { */
     if ((oldaddr != addr) || (olddata != data)) {
@@ -79,7 +79,7 @@ BYTE cia1_read(WORD addr)
 #endif
 }
 
-BYTE cia1_peek(WORD addr)
+uint8_t cia1_peek(uint16_t addr)
 {
     return ciacore_peek(machine_context.cia1, addr);
 }
@@ -127,35 +127,35 @@ static void pulse_ciapc(cia_context_t *cia_context, CLOCK rclk)
 {
 }
 
-static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
+static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
     set_joyport_pot_mask((byte >> 6) & 3);
 
     store_joyport_dig(JOYPORT_2, byte, 0xff);
 
-    parallel_cpu_set_bus((BYTE)(cia1_ieee_is_output ? byte : 0xff));
+    parallel_cpu_set_bus((uint8_t)(cia1_ieee_is_output ? byte : 0xff));
 }
 
-static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
+static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
-    parallel_cpu_set_bus((BYTE)(cia1_ieee_is_output ? byte : 0xff));
+    parallel_cpu_set_bus((uint8_t)(cia1_ieee_is_output ? byte : 0xff));
 }
 
-static void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE b)
+static void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t b)
 {
 }
 
-static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
+static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
     store_joyport_dig(JOYPORT_1, byte, 0xff);
 }
 
 /* read_* functions must return 0xff if nothing to read!!! */
-static BYTE read_ciapa(cia_context_t *cia_context)
+static uint8_t read_ciapa(cia_context_t *cia_context)
 {
-    BYTE byte;
-    BYTE joy1 = ~read_joyport_dig(JOYPORT_1);
-    BYTE joy2 = ~read_joyport_dig(JOYPORT_2);
+    uint8_t byte;
+    uint8_t joy1 = ~read_joyport_dig(JOYPORT_1);
+    uint8_t joy2 = ~read_joyport_dig(JOYPORT_2);
 
     drive_cpu_execute_all(maincpu_clk);
 
@@ -176,11 +176,11 @@ static BYTE read_ciapa(cia_context_t *cia_context)
 }
 
 /* read_* functions must return 0xff if nothing to read!!! */
-static BYTE read_ciapb(cia_context_t *cia_context)
+static uint8_t read_ciapb(cia_context_t *cia_context)
 {
-    BYTE byte = 0xff;
-    BYTE joy1 = ~read_joyport_dig(JOYPORT_1);
-    BYTE joy2 = ~read_joyport_dig(JOYPORT_2);
+    uint8_t byte = 0xff;
+    uint8_t joy1 = ~read_joyport_dig(JOYPORT_1);
+    uint8_t joy2 = ~read_joyport_dig(JOYPORT_2);
 
     byte = ((0xff & ~(cia_context->c_cia[CIA_DDRB]))
             | (cia_context->c_cia[CIA_PRB] & cia_context->c_cia[CIA_DDRB]))
@@ -197,7 +197,7 @@ static void read_sdr(cia_context_t *cia_context)
 {
 }
 
-static void store_sdr(cia_context_t *cia_context, BYTE byte)
+static void store_sdr(cia_context_t *cia_context, uint8_t byte)
 {
 }
 
@@ -217,12 +217,12 @@ void cia1_set_timing(cia_context_t *cia_context, int tickspersec, int powerfreq)
     cia_context->power_ticks = 0;
 }
 
-void cia1_setup_context(machine_context_t *machine_context)
+void cia1_setup_context(machine_context_t *machinecontext)
 {
     cia_context_t *cia;
 
-    machine_context->cia1 = lib_calloc(1, sizeof(cia_context_t));
-    cia = machine_context->cia1;
+    machinecontext->cia1 = lib_calloc(1, sizeof(cia_context_t));
+    cia = machinecontext->cia1;
 
     cia->prv = NULL;
     cia->context = NULL;

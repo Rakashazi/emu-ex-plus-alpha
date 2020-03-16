@@ -38,13 +38,14 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "videoarch.h"
+
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
 #include "resources.h"
 #include "video-color.h"
 #include "video.h"
-#include "videoarch.h"
 #include "viewport.h"
 #include "util.h"
 
@@ -661,13 +662,13 @@ int video_resources_chip_init(const char *chipname,
                               video_chip_cap_t *video_chip_cap)
 {
     unsigned int i;
-    
+
     DBG(("video_resources_chip_init (%s) (canvas:%p) (cap:%p)", chipname, *canvas, video_chip_cap));
 
     video_render_initconfig((*canvas)->videoconfig);
     (*canvas)->videoconfig->cap = video_chip_cap;
 
-    (*canvas)->videoconfig->chip_name = lib_stralloc(chipname);
+    (*canvas)->videoconfig->chip_name = lib_strdup(chipname);
 
     /* Set single size render as default.  */
     (*canvas)->videoconfig->rendermode = video_chip_cap->single_mode.rmode;

@@ -39,6 +39,8 @@
 #include <stdlib.h>
 #include <math.h>       /* needed for pow function */
 
+#include "videoarch.h"
+
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
@@ -48,21 +50,20 @@
 #include "video-canvas.h"
 #include "video-color.h"
 #include "video.h"
-#include "videoarch.h"
 
-DWORD gamma_red[256 * 3];
-DWORD gamma_grn[256 * 3];
-DWORD gamma_blu[256 * 3];
+uint32_t gamma_red[256 * 3];
+uint32_t gamma_grn[256 * 3];
+uint32_t gamma_blu[256 * 3];
 
-DWORD gamma_red_fac[256 * 3 * 2];
-DWORD gamma_grn_fac[256 * 3 * 2];
-DWORD gamma_blu_fac[256 * 3 * 2];
+uint32_t gamma_red_fac[256 * 3 * 2];
+uint32_t gamma_grn_fac[256 * 3 * 2];
+uint32_t gamma_blu_fac[256 * 3 * 2];
 
-DWORD alpha = 0;
+uint32_t alpha = 0;
 
-static DWORD color_red[256];
-static DWORD color_grn[256];
-static DWORD color_blu[256];
+static uint32_t color_red[256];
+static uint32_t color_grn[256];
+static uint32_t color_blu[256];
 
 #define RMIN(x,min) (((x) < (min)) ? (min) : (x))
 #define RMAX(x,max) (((x) > (max)) ? (max) : (x))
@@ -81,14 +82,14 @@ typedef struct video_ycbcr_palette_s {
     video_ycbcr_color_t *entries;
 } video_ycbcr_palette_t;
 
-void video_render_setrawrgb(unsigned int index, DWORD r, DWORD g, DWORD b)
+void video_render_setrawrgb(unsigned int index, uint32_t r, uint32_t g, uint32_t b)
 {
     color_red[index] = r;
     color_grn[index] = g;
     color_blu[index] = b;
 }
 
-void video_render_setrawalpha(DWORD a)
+void video_render_setrawalpha(uint32_t a)
 {
     alpha = a;
 }
@@ -397,9 +398,9 @@ static void video_convert_renderer_to_rgb(video_ycbcr_color_t *src,
     }
 
     dst->dither = 0;
-    dst->red = (BYTE)r;
-    dst->green = (BYTE)g;
-    dst->blue = (BYTE)b;
+    dst->red = (uint8_t)r;
+    dst->green = (uint8_t)g;
+    dst->blue = (uint8_t)b;
     dst->name = NULL;
 }
 #endif
@@ -452,9 +453,9 @@ static void video_convert_renderer_to_rgb_gamma(video_ycbcr_color_t *src, float 
     b = (int)bf;
 
     dst->dither = 0;
-    dst->red = (BYTE)RMAX(r,255);
-    dst->green = (BYTE)RMAX(g,255);
-    dst->blue = (BYTE)RMAX(b,255);
+    dst->red = (uint8_t)RMAX(r,255);
+    dst->green = (uint8_t)RMAX(g,255);
+    dst->blue = (uint8_t)RMAX(b,255);
     dst->name = NULL;
 }
 
@@ -497,7 +498,7 @@ static void video_calc_gammatable(video_resources_t *video_resources, int video)
     int i;
     float bri, con, gam, scn, v;
     double factor;
-    DWORD vi;
+    uint32_t vi;
 
     bri = ((float)(video_resources->color_brightness - 1000))
           * (128.0f / 1000.0f);
@@ -509,7 +510,7 @@ static void video_calc_gammatable(video_resources_t *video_resources, int video)
     for (i = 0; i < (256 * 3); i++) {
         v = video_gamma((float)(i - 256), factor, gam, bri, con);
 
-        vi = (DWORD)v;
+        vi = (uint32_t)v;
         if (vi > 255) {
             vi = 255;
         }
@@ -517,7 +518,7 @@ static void video_calc_gammatable(video_resources_t *video_resources, int video)
         gamma_grn[i] = color_grn[vi];
         gamma_blu[i] = color_blu[vi];
 
-        vi = (DWORD)(v * scn);
+        vi = (uint32_t)(v * scn);
         if (vi > 255) {
             vi = 255;
         }
@@ -525,7 +526,7 @@ static void video_calc_gammatable(video_resources_t *video_resources, int video)
         gamma_grn_fac[i * 2] = color_grn[vi];
         gamma_blu_fac[i * 2] = color_blu[vi];
         v = video_gamma((float)(i - 256) + 0.5f, factor, gam, bri, con);
-        vi = (DWORD)(v * scn);
+        vi = (uint32_t)(v * scn);
         if (vi > 255) {
             vi = 255;
         }
@@ -565,33 +566,33 @@ static void video_calc_ycbcrtable(video_resources_t *video_resources,
     DBG((" sat:%d bri:%d con:%d gam:%d tin:%d", (int)sat, (int)bri, (int)con, (int)gam, (int)tin));
 
     for (i = 0; i < p->num_entries; i++) {
-        SDWORD val;
+        int32_t val;
 
         /* create primary table */
         primary = &p->entries[i];
         if (video) {
-            val = (SDWORD)(primary->y * 256.0f);
+            val = (int32_t)(primary->y * 256.0f);
             color_tab->ytablel[i] = val * lf;
             color_tab->ytableh[i] = val * hf;
             /* tint, add to cr in odd lines */
-            val = (SDWORD)(tin);
-            color_tab->cbtable[i] = (SDWORD)((primary->cb) * sat);
-            color_tab->crtable[i] = (SDWORD)((primary->cr + val) * sat);
-            color_tab->cutable[i] = (SDWORD)(0.493111f * primary->cb * 256.0); /* convert Cb to U */
-            color_tab->cvtable[i] = (SDWORD)(0.877283f * (primary->cr + val) * 256.0); /* convert Cr to V */
+            val = (int32_t)(tin);
+            color_tab->cbtable[i] = (int32_t)((primary->cb) * sat);
+            color_tab->crtable[i] = (int32_t)((primary->cr + val) * sat);
+            color_tab->cutable[i] = (int32_t)(0.493111f * primary->cb * 256.0); /* convert Cb to U */
+            color_tab->cvtable[i] = (int32_t)(0.877283f * (primary->cr + val) * 256.0); /* convert Cr to V */
         } else {
             /* for NTSC use one bit less for the fraction in the tables to avoid
                integer overflows in the CRT renderer */
-            val = (SDWORD)(primary->y * 128.0f);
+            val = (int32_t)(primary->y * 128.0f);
             color_tab->ytablel[i] = (val * lf);
             color_tab->ytableh[i] = (val * hf);
             /* FIXME: tint for NTSC */
-            val = (SDWORD)(tin);
-            color_tab->cbtable[i] = (SDWORD)((primary->cb) * sat) >> 1;
-            color_tab->crtable[i] = (SDWORD)((primary->cr + val) * sat) >> 1;
+            val = (int32_t)(tin);
+            color_tab->cbtable[i] = (int32_t)((primary->cb) * sat) >> 1;
+            color_tab->crtable[i] = (int32_t)((primary->cr + val) * sat) >> 1;
             /* FIXME: convert IQ to UV (used by YUV renderers) */
-            color_tab->cutable[i] = (SDWORD)(primary->cb * 256.0);
-            color_tab->cvtable[i] = (SDWORD)((primary->cr + val) * 256.0);
+            color_tab->cutable[i] = (int32_t)(primary->cb * 256.0);
+            color_tab->cvtable[i] = (int32_t)((primary->cr + val) * 256.0);
         }
 
 #ifdef DEBUG_VIDEO
@@ -622,7 +623,7 @@ static void video_calc_ycbcrtable(video_resources_t *video_resources,
                    ((double)color_tab->crtable[i] * (double)color_tab->crtable[i]));
         if (len >= (double)0x10000) {
             log_error(LOG_DEFAULT, 
-                "video_calc_ycbcrtable: color %d cbcr vector too long, use lower base saturation.", i);
+                "video_calc_ycbcrtable: color %u cbcr vector too long, use lower base saturation.", i);
         }
 
         y = (int)RMINMAX(yf, 16, 240);
@@ -652,17 +653,17 @@ static void video_calc_ycbcrtable_oddlines(video_resources_t *video_resources,
     tin = (((float)(video_resources->color_tint)) * (50.0f / 2000.0f)) - 25.0f;
 
     for (i = 0; i < p->num_entries; i++) {
-        SDWORD val;
+       int32_t val;
 
         /* create primary table */
         primary = &p->entries[i];
         /* tint, substract from cr in odd lines */
-        val = (SDWORD)(tin);
+        val = (int32_t)(tin);
 
-        color_tab->cbtable_odd[i] = -(SDWORD)((primary->cb) * sat);
-        color_tab->crtable_odd[i] = -(SDWORD)((primary->cr - val) * sat);
-        color_tab->cutable_odd[i] = -(SDWORD)(0.493111f * primary->cb * 256); /* PAL: convert Cb to U */
-        color_tab->cvtable_odd[i] = -(SDWORD)(0.877283f * (primary->cr - val) * 256); /* PAL: convert Cr to V */
+        color_tab->cbtable_odd[i] = -(int32_t)((primary->cb) * sat);
+        color_tab->crtable_odd[i] = -(int32_t)((primary->cr - val) * sat);
+        color_tab->cutable_odd[i] = -(int32_t)(0.493111f * primary->cb * 256); /* PAL: convert Cb to U */
+        color_tab->cvtable_odd[i] = -(int32_t)(0.877283f * (primary->cr - val) * 256); /* PAL: convert Cr to V */
     }
 }
 
@@ -729,8 +730,8 @@ static void video_cbm_palette_to_ycbcr(const video_cbm_palette_t *p, video_ycbcr
            admittedly slightly ugly but simple and effective :) */
         palette_entry_t src;
         for (i = 0; i < p->num_entries; i++) {
-            src.red = (BYTE)p->entries[i].luminance;
-            src.green = (BYTE)p->entries[i].angle;
+            src.red = (uint8_t)p->entries[i].luminance;
+            src.green = (uint8_t)p->entries[i].angle;
             src.blue = p->entries[i].direction;
             video_convert_rgb_to_renderer(&src, &ycbcr->entries[i], video);
         }

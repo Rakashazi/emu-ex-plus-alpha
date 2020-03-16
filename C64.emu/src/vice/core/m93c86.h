@@ -29,10 +29,10 @@
 
 #include "types.h"
 
-extern BYTE m93c86_read_data(void);
-extern void m93c86_write_data(BYTE value);
-extern void m93c86_write_select(BYTE value);
-extern void m93c86_write_clock(BYTE value);
+extern uint8_t m93c86_read_data(void);
+extern void m93c86_write_data(uint8_t value);
+extern void m93c86_write_select(uint8_t value);
+extern void m93c86_write_clock(uint8_t value);
 
 extern int  m93c86_open_image(char *name, int rw);
 extern void m93c86_close_image(int rw);

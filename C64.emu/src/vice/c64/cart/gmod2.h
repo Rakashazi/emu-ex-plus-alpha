@@ -39,17 +39,17 @@
 
 struct snapshot_s;
 
-extern BYTE gmod2_roml_read(WORD addr);
-extern void gmod2_romh_store(WORD addr, BYTE value);
+extern uint8_t gmod2_roml_read(uint16_t addr);
+extern void gmod2_romh_store(uint16_t addr, uint8_t value);
 
-extern int gmod2_peek_mem(export_t *export, WORD addr, BYTE *value);
-extern void gmod2_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit);
+extern int gmod2_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
+extern void gmod2_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
 extern void gmod2_config_init(void);
 extern void gmod2_reset(void);
-extern void gmod2_config_setup(BYTE *rawcart);
-extern int gmod2_bin_attach(const char *filename, BYTE *rawcart);
-extern int gmod2_crt_attach(FILE *fd, BYTE *rawcart, const char *filename);
+extern void gmod2_config_setup(uint8_t *rawcart);
+extern int gmod2_bin_attach(const char *filename, uint8_t *rawcart);
+extern int gmod2_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
 extern int gmod2_bin_save(const char *filename);
 extern int gmod2_crt_save(const char *filename);
 extern int gmod2_flush_image(void);

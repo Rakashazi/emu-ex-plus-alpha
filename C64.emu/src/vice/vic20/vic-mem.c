@@ -51,7 +51,7 @@
 
 /* VIC access functions. */
 
-void vic_store(WORD addr, BYTE value)
+void vic_store(uint16_t addr, uint8_t value)
 {
     addr &= 0xf;
     vic.regs[addr] = value;
@@ -239,7 +239,7 @@ static inline unsigned vic_read_rasterline(void)
     return ypos;
 }
 
-BYTE vic_read(WORD addr)
+uint8_t vic_read(uint16_t addr)
 {
     addr &= 0xf;
 
@@ -261,7 +261,7 @@ BYTE vic_read(WORD addr)
     }
 }
 
-BYTE vic_peek(WORD addr)
+uint8_t vic_peek(uint16_t addr)
 {
     /* No side effects (unless mouse_get_* counts) */
     return vic_read(addr);

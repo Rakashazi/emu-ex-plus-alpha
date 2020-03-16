@@ -31,10 +31,6 @@
 
 #include "types.h"
 
-#ifndef COMMON_KBD
-#include "kbd.h"
-#endif
-
 /* Maximum of keyboard array (CBM-II values
  * (8 for C64/VIC20, 10 for PET, 11 for C128; we need max).  */
 #define KBD_ROWS    16
@@ -57,15 +53,18 @@
 
 /* the mapping of the host ("KeyboardMapping")
    (keep in sync with table in keyboard.c) */
-#define KBD_MAPPING_US    0     /* "" (us mapping) */
+#define KBD_MAPPING_US    0     /* "" (us mapping) this must be first (=0) always */
 #define KBD_MAPPING_UK    1     /* "uk" */
-#define KBD_MAPPING_DE    2     /* "de" */
-#define KBD_MAPPING_DA    3     /* "da" */
-#define KBD_MAPPING_NO    4     /* "no" */
-#define KBD_MAPPING_FI    5     /* "fi" */
+#define KBD_MAPPING_DA    2     /* "da" */
+#define KBD_MAPPING_NL    3     /* "nl" */
+#define KBD_MAPPING_FI    4     /* "fi" */
+#define KBD_MAPPING_DE    5     /* "de" */
 #define KBD_MAPPING_IT    6     /* "it" */
-#define KBD_MAPPING_LAST  6
-#define KBD_MAPPING_NUM   7
+#define KBD_MAPPING_NO    7     /* "no" */
+#define KBD_MAPPING_SE    8     /* "se" */
+#define KBD_MAPPING_CH    9     /* "ch" */
+#define KBD_MAPPING_LAST  9
+#define KBD_MAPPING_NUM   10
 extern int keyboard_get_num_mappings(void);
 
 /* mapping info for GUIs */
@@ -76,6 +75,15 @@ typedef struct {
 } mapping_info_t;
 
 extern mapping_info_t *keyboard_get_info_list(void);
+extern int keyboard_is_keymap_valid(int sympos, int hosttype, int kbdtype);
+extern int keyboard_is_hosttype_valid(int hosttype);
+
+#define KBD_MOD_LSHIFT   (1 << 0)
+#define KBD_MOD_RSHIFT   (1 << 1)
+#define KBD_MOD_LCTRL    (1 << 2)
+#define KBD_MOD_RCTRL    (1 << 3)
+#define KBD_MOD_LALT     (1 << 4)
+#define KBD_MOD_RALT     (1 << 5)
 
 struct snapshot_s;
 
@@ -98,8 +106,8 @@ extern int keyboard_set_keymap_index(int vak, void *param);
 extern int keyboard_set_keymap_file(const char *val, void *param);
 extern int keyboard_keymap_dump(const char *filename);
 
-extern void keyboard_key_pressed(signed long key);
-extern void keyboard_key_released(signed long key);
+extern void keyboard_key_pressed(signed long key, int mod);
+extern void keyboard_key_released(signed long key, int mod);
 extern void keyboard_key_clear(void);
 
 typedef void (*key_ctrl_column4080_func_t)(void);
@@ -114,7 +122,7 @@ extern void keyboard_register_joy_keypad(key_joy_keypad_func_t func);
 typedef void (*keyboard_machine_func_t)(int *);
 extern void keyboard_register_machine(keyboard_machine_func_t func);
 
-extern void keyboard_register_machine(keyboard_machine_func_t func);
+/* switch to alternative set (x128) */
 extern void keyboard_alternative_set(int alternative);
 
 /* These ugly externs will go away sooner or later.  */
@@ -122,9 +130,7 @@ extern int keyarr[KBD_ROWS];
 extern int rev_keyarr[KBD_COLS];
 extern int keyboard_shiftlock;
 
-#ifdef COMMON_KBD
 extern int keyboard_resources_init(void);
 extern int keyboard_cmdline_options_init(void);
-#endif
 
 #endif

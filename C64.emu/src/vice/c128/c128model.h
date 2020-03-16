@@ -30,14 +30,19 @@
 #include "types.h"
 
 #define C128MODEL_C128_PAL      0
-#define C128MODEL_C128DCR_PAL   1
+#define C128MODEL_C128D_PAL     1
+#define C128MODEL_C128DCR_PAL   2
 
-#define C128MODEL_C128_NTSC     2
-#define C128MODEL_C128DCR_NTSC  3
+#define C128MODEL_C128_NTSC     3
+#define C128MODEL_C128D_NTSC    4
+#define C128MODEL_C128DCR_NTSC  5
 
-#define C128MODEL_NUM 4
+#define C128MODEL_NUM 6
 
 #define C128MODEL_UNKNOWN 99
+
+#define BOARD_C128  0
+#define BOARD_C128D 1
 
 #define OLD_CIA   0
 #define NEW_CIA   1
@@ -48,7 +53,7 @@
 #define VDC16K   0
 #define VDC64K   1
 
-extern VICE_API int c128model_get(void);
-extern VICE_API void c128model_set(int model);
+extern int c128model_get(void);
+extern void c128model_set(int model);
 
 #endif

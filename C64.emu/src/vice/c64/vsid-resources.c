@@ -53,6 +53,8 @@
 #include "vicii-resources.h"
 #include "vicii.h"
 #include "c64fastiec.h"
+#include "hvsc.h"
+#include "archdep.h"
 
 /* force  commit */
 
@@ -74,6 +76,11 @@ static char *basic_rom_name = NULL;
 
 /* Name of the Kernal ROM.  */
 static char *kernal_rom_name = NULL;
+
+/** \brief  Root directory of the High Voltage collection
+ */
+static char *hvsc_root = NULL;
+
 
 /* Kernal revision for ROM patcher.  */
 int kernal_revision = C64_KERNAL_REV3;
@@ -163,6 +170,24 @@ static int set_sync_factor(int val, void *param)
     return 0;
 }
 
+
+static int set_hvsc_root(const char *path, void *param)
+{
+    char *result;
+
+    /* expand ~, no effect on Windows */
+    archdep_expand_path(&result, path);
+
+    util_string_set(&hvsc_root, result);
+
+    /* "reboot" hvsclib */
+    hvsc_exit();
+    hvsc_init(result);
+    lib_free(result);
+    return 0;
+}
+
+
 static const resource_string_t resources_string[] = {
     { "ChargenName", "chargen", RES_EVENT_NO, NULL,
       /* FIXME: should be same but names may differ */
@@ -173,6 +198,8 @@ static const resource_string_t resources_string[] = {
     { "BasicName", "basic", RES_EVENT_NO, NULL,
       /* FIXME: should be same but names may differ */
       &basic_rom_name, set_basic_rom_name, NULL },
+    { "HVSCRoot", "", RES_EVENT_NO, NULL,
+      &hvsc_root, set_hvsc_root, NULL },
     RESOURCE_STRING_LIST_END
 };
 
@@ -193,16 +220,6 @@ int c64_resources_init(void)
     if (resources_register_string(resources_string) < 0) {
         return -1;
     }
-#if 0 /* FIXME: remove? */
-#ifdef COMMON_KBD
-    /* Set defaults of keymaps */
-    keyboard_set_keymap_file(KBD_C64_SYM_US, (void *)KBD_INDEX_SYM);
-    keyboard_set_keymap_file(KBD_C64_POS, (void *)KBD_INDEX_POS);
-    keyboard_set_keymap_file(KBD_C64_SYM_DE, (void *)KBD_INDEX_USERSYM);
-    keyboard_set_keymap_file(KBD_C64_SYM_DE, (void *)KBD_INDEX_USERPOS);
-    keyboard_set_keymap_index(KBD_INDEX_C64_DEFAULT, NULL);
-#endif
-#endif
     return resources_register_int(resources_int);
 }
 
@@ -211,4 +228,7 @@ void c64_resources_shutdown(void)
     lib_free(chargen_rom_name);
     lib_free(basic_rom_name);
     lib_free(kernal_rom_name);
+    if (hvsc_root != NULL) {
+        lib_free(hvsc_root);
+    }
 }

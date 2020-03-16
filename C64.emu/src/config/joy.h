@@ -3,6 +3,7 @@
 int joy_arch_init(void);
 static int joystick_init_cmdline_options(void) { return 0; }
 static int joystick_arch_init_resources(void) { return 0; }
+void joystick_close();
 
 #define JOYDEV_NONE      0
 #define JOYDEV_NUMPAD    1

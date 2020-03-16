@@ -37,11 +37,11 @@ typedef struct rtc_ds1602_s rtc_ds1602_t;
 extern rtc_ds1602_t *ds1602_init(char *device, time_t offset0);
 extern void ds1602_destroy(rtc_ds1602_t *context, int save);
 
-extern void ds1602_set_reset_line(rtc_ds1602_t *context, BYTE data);
-extern void ds1602_set_clk_line(rtc_ds1602_t *context, BYTE data);
-extern void ds1602_set_data_line(rtc_ds1602_t *context, BYTE data);
+extern void ds1602_set_reset_line(rtc_ds1602_t *context, uint8_t data);
+extern void ds1602_set_clk_line(rtc_ds1602_t *context, uint8_t data);
+extern void ds1602_set_data_line(rtc_ds1602_t *context, uint8_t data);
 
-extern BYTE ds1602_read_data_line(rtc_ds1602_t *context);
+extern uint8_t ds1602_read_data_line(rtc_ds1602_t *context);
 
 extern int ds1602_write_snapshot(rtc_ds1602_t *context, snapshot_t *s);
 extern int ds1602_read_snapshot(rtc_ds1602_t *context, snapshot_t *s);

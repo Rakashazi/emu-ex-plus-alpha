@@ -32,7 +32,7 @@
 
 int serial_realdevice_enable(void)
 {
-#ifdef HAVE_OPENCBM
+#ifdef HAVE_REALDEVICE
     return realdevice_enable();
 #else
     return -1;
@@ -41,7 +41,7 @@ int serial_realdevice_enable(void)
 
 void serial_realdevice_disable(void)
 {
-#ifdef HAVE_OPENCBM
+#ifdef HAVE_REALDEVICE
     realdevice_disable();
 #endif
 }

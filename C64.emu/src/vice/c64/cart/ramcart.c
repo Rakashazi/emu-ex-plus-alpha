@@ -45,7 +45,6 @@
 #include "monitor.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "types.h"
 #include "util.h"
 #include "vicii-phi1.h"
@@ -104,10 +103,10 @@
 */
 
 /* RAMCART registers */
-static BYTE ramcart[2];
+static uint8_t ramcart[2];
 
 /* RAMCART image.  */
-static BYTE *ramcart_ram = NULL;
+static uint8_t *ramcart_ram = NULL;
 static int old_ramcart_ram_size = 0;
 
 static log_t ramcart_log = LOG_ERR;
@@ -137,41 +136,43 @@ static int ramcart_exrom_active = 0;
 
 /* ------------------------------------------------------------------------- */
 
-static BYTE ramcart_io1_peek(WORD addr);
-static BYTE ramcart_io1_read(WORD addr);
-static void ramcart_io1_store(WORD addr, BYTE byte);
-static BYTE ramcart_io2_read(WORD addr);
-static void ramcart_io2_store(WORD addr, BYTE byte);
+static uint8_t ramcart_io1_peek(uint16_t addr);
+static uint8_t ramcart_io1_read(uint16_t addr);
+static void ramcart_io1_store(uint16_t addr, uint8_t byte);
+static uint8_t ramcart_io2_read(uint16_t addr);
+static void ramcart_io2_store(uint16_t addr, uint8_t byte);
 static int ramcart_dump(void);
 
 static io_source_t ramcart_io1_device = {
-    CARTRIDGE_NAME_RAMCART,
-    IO_DETACH_RESOURCE,
-    "RAMCART",
-    0xde00, 0xdeff, 0x01,
-    1, /* read is always valid */
-    ramcart_io1_store,
-    ramcart_io1_read,
-    ramcart_io1_peek,
-    ramcart_dump,
-    CARTRIDGE_RAMCART,
-    0,
-    0
+    CARTRIDGE_NAME_RAMCART, /* name of the device */
+    IO_DETACH_RESOURCE,     /* use resource to detach the device when involved in a read-collision */
+    "RAMCART",              /* resource to set to '0' */
+    0xde00, 0xdeff, 0x01,   /* range for the device, regs:$de00-$de01, mirrors:$de02-$deff */
+    1,                      /* read is always valid */
+    ramcart_io1_store,      /* store function */
+    NULL,                   /* NO poke function */
+    ramcart_io1_read,       /* read function */
+    ramcart_io1_peek,       /* peek function */
+    ramcart_dump,           /* device state information dump function */
+    CARTRIDGE_RAMCART,      /* cartridge ID */
+    IO_PRIO_NORMAL,         /* normal priority, device read needs to be checked for collisions */
+    0                       /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t ramcart_io2_device = {
-    CARTRIDGE_NAME_RAMCART,
-    IO_DETACH_RESOURCE,
-    "RAMCART",
-    0xdf00, 0xdfff, 0xff,
-    1, /* read is always valid */
-    ramcart_io2_store,
-    ramcart_io2_read,
-    ramcart_io2_read,
-    ramcart_dump,
-    CARTRIDGE_RAMCART,
-    0,
-    0
+    CARTRIDGE_NAME_RAMCART, /* name of the device */
+    IO_DETACH_RESOURCE,     /* use resource to detach the device when involved in a read-collision */
+    "RAMCART",              /* resource to set to '0' */
+    0xdf00, 0xdfff, 0xff,   /* range for the device, regs:$df00-$dfff */
+    1,                      /* read is always valid */
+    ramcart_io2_store,      /* store function */
+    NULL,                   /* NO poke function */
+    ramcart_io2_read,       /* read function */
+    ramcart_io2_read,       /* peek function */
+    ramcart_dump,           /* device state information dump function */
+    CARTRIDGE_RAMCART,      /* cartridge ID */
+    IO_PRIO_NORMAL,         /* normal priority, device read needs to be checked for collisions */
+    0                       /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *ramcart_io1_list_item = NULL;
@@ -206,14 +207,14 @@ int ramcart_cart_enabled(void)
     return ramcart_enabled;
 }
 
-static BYTE ramcart_io1_peek(WORD addr)
+static uint8_t ramcart_io1_peek(uint16_t addr)
 {
     return ramcart[addr];
 }
 
-static BYTE ramcart_io1_read(WORD addr)
+static uint8_t ramcart_io1_read(uint16_t addr)
 {
-    BYTE retval;
+    uint8_t retval;
 
     if (addr == 1 && ramcart_size_kb == 128) {
         retval = vicii_read_phi1() & 0x7e;
@@ -225,7 +226,7 @@ static BYTE ramcart_io1_read(WORD addr)
     return retval;
 }
 
-static void ramcart_io1_store(WORD addr, BYTE byte)
+static void ramcart_io1_store(uint16_t addr, uint8_t byte)
 {
     if (addr == 1 && ramcart_size_kb == 128) {
         ramcart[1] = byte & 0x81;
@@ -238,16 +239,16 @@ static void ramcart_io1_store(WORD addr, BYTE byte)
     }
 }
 
-static BYTE ramcart_io2_read(WORD addr)
+static uint8_t ramcart_io2_read(uint16_t addr)
 {
-    BYTE retval;
+    uint8_t retval;
 
     retval = ramcart_ram[((ramcart[1] & 1) << 16) + (ramcart[0] * 256) + (addr & 0xff)];
 
     return retval;
 }
 
-static void ramcart_io2_store(WORD addr, BYTE byte)
+static void ramcart_io2_store(uint16_t addr, uint8_t byte)
 {
     ramcart_ram[((ramcart[1] & 1) * 65536) + (ramcart[0] * 256) + (addr & 0xff)] = byte;
 }
@@ -486,46 +487,30 @@ void ramcart_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-ramcart", SET_RESOURCE, 0,
+    { "-ramcart", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "RAMCART", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_RAMCART,
-      NULL, NULL },
-    { "+ramcart", SET_RESOURCE, 0,
+      NULL, "Enable the RamCart expansion" },
+    { "+ramcart", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "RAMCART", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_RAMCART,
-      NULL, NULL },
-    { "-ramcartsize", SET_RESOURCE, 1,
+      NULL, "Disable the RamCart expansion" },
+    { "-ramcartsize", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "RAMCARTsize", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_SIZE_IN_KB, IDCLS_RAMCART_SIZE,
-      NULL, NULL },
-    { "-ramcartimage", SET_RESOURCE, 1,
+      "<size in KB>", "Size of the RAMCART expansion. (64/128)" },
+    { "-ramcartimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "RAMCARTfilename", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_RAMCART_NAME,
-      NULL, NULL },
-    { "-ramcartimagerw", SET_RESOURCE, 0,
+      "<Name>", "Specify name of RAMCART image" },
+    { "-ramcartimagerw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "RAMCARTImageWrite", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ALLOW_WRITING_TO_RAMCART_IMAGE,
-      NULL, NULL },
-    { "+ramcartimagerw", SET_RESOURCE, 0,
+      NULL, "Allow writing to RAMCart image" },
+    { "+ramcartimagerw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "RAMCARTImageWrite", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DO_NOT_WRITE_TO_RAMCART_IMAGE,
-      NULL, NULL },
-    { "-ramcartro", SET_RESOURCE, 0,
+      NULL, "Do not write to RAMCart image" },
+    { "-ramcartro", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "RAMCART_RO", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_RAMCART_READ_ONLY,
-      NULL, NULL },
-    { "-ramcartrw", SET_RESOURCE, 0,
+      NULL, "Set the RAMCart switch to read-only" },
+    { "-ramcartrw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "RAMCART_RO", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_RAMCART_READ_WRITE,
-      NULL, NULL },
+      NULL, "Set the RAMCart switch to read/write" },
     CMDLINE_LIST_END
 };
 
@@ -541,7 +526,7 @@ const char *ramcart_get_file_name(void)
     return ramcart_filename;
 }
 
-void ramcart_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit)
+void ramcart_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit)
 {
     if (ramcart_readonly == 1 && ramcart_size_kb == 128 && addr >= 0x8000 && addr <= 0x80ff) {
         *base = &ramcart_ram[((ramcart[1] & 1) * 65536) + (ramcart[0] * 256)] - 0x8000;
@@ -575,7 +560,7 @@ void ramcart_reset(void)
     ramcart[1] = 0;
 }
 
-void ramcart_config_setup(BYTE *rawcart)
+void ramcart_config_setup(uint8_t *rawcart)
 {
     memcpy(ramcart_ram, rawcart, ramcart_size);
 }
@@ -593,7 +578,17 @@ int ramcart_enable(void)
     return 0;
 }
 
-int ramcart_bin_attach(const char *filename, BYTE *rawcart)
+
+int ramcart_disable(void)
+{
+    if (resources_set_int("RAMCART", 0) < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+
+int ramcart_bin_attach(const char *filename, uint8_t *rawcart)
 {
     int size = 128;
 
@@ -634,7 +629,7 @@ int ramcart_flush_image(void)
 
 /* ------------------------------------------------------------------------- */
 
-BYTE ramcart_roml_read(WORD addr)
+uint8_t ramcart_roml_read(uint16_t addr)
 {
     if (ramcart_readonly == 1 && ramcart_size_kb == 128 && addr >= 0x8000 && addr <= 0x80ff) {
         return ramcart_ram[((ramcart[1] & 1) * 65536) + (ramcart[0] * 256) + (addr & 0xff)];
@@ -642,13 +637,13 @@ BYTE ramcart_roml_read(WORD addr)
     return mem_ram[addr];
 }
 
-void ramcart_roml_store(WORD addr, BYTE byte)
+void ramcart_roml_store(uint16_t addr, uint8_t byte)
 {
     /* FIXME: this can't be right */
     mem_ram[addr] = byte;
 }
 
-int ramcart_peek_mem(WORD addr, BYTE *value)
+int ramcart_peek_mem(uint16_t addr, uint8_t *value)
 {
     if ((addr >= 0x8000) && (addr <= 0x9fff)) {
         if (ramcart_readonly == 1 && ramcart_size_kb == 128 && addr >= 0x8000 && addr <= 0x80ff) {
@@ -688,10 +683,10 @@ int ramcart_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || (SMW_B(m, (BYTE)ramcart_enabled) < 0)
-        || (SMW_B(m, (BYTE)ramcart_readonly) < 0)
-        || (SMW_DW(m, (DWORD)ramcart_size) < 0)
-        || (SMW_B(m, (BYTE)ramcart_size_kb) < 0)
+        || (SMW_B(m, (uint8_t)ramcart_enabled) < 0)
+        || (SMW_B(m, (uint8_t)ramcart_readonly) < 0)
+        || (SMW_DW(m, (uint32_t)ramcart_size) < 0)
+        || (SMW_B(m, (uint8_t)ramcart_size_kb) < 0)
         || (SMW_BA(m, ramcart, 2) < 0)
         || (SMW_BA(m, ramcart_ram, ramcart_size) < 0)) {
         snapshot_module_close(m);
@@ -703,7 +698,7 @@ int ramcart_snapshot_write_module(snapshot_t *s)
 
 int ramcart_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -713,7 +708,7 @@ int ramcart_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

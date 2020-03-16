@@ -82,20 +82,19 @@
           value, or if perhaps game/exrom can be controlled separately.
 
           Since both available ROM files work correctly with a standard 8k game
-          config, it is assumed that this config is actually used by the 
+          config, it is assumed that this config is actually used by the
           hardware.
 
     FIXME: much of the above described behaviour is guesswork, it should get
-           confirmed (and fixed) by someone who owns the cart (and then this 
+           confirmed (and fixed) by someone who owns the cart (and then this
            message can be removed)
 */
 
 static int currbank = 0;
-static BYTE regval = 0;
+static uint8_t regval = 0;
 
-static void funplay_io1_store(WORD addr, BYTE value)
+static void funplay_io1_store(uint16_t addr, uint8_t value)
 {
-    addr &= 0xff;
     regval = value;
     currbank = ((value >> 3) & 7) | ((value & 1) << 3);
     cart_romlbank_set_slotmain(currbank);
@@ -116,7 +115,7 @@ static void funplay_io1_store(WORD addr, BYTE value)
     /* printf("FUNPLAY: addr: $de%02x value: $%02x bank: $%02x\n", addr, value, currbank); */
 }
 
-static BYTE funplay_io1_peek(WORD addr)
+static uint8_t funplay_io1_peek(uint16_t addr)
 {
     return regval;
 }
@@ -130,18 +129,19 @@ static int funplay_dump(void)
 /* ---------------------------------------------------------------------*/
 
 static io_source_t funplay_device = {
-    CARTRIDGE_NAME_FUNPLAY,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    0,
-    funplay_io1_store,
-    NULL,
-    funplay_io1_peek,
-    funplay_dump,
-    CARTRIDGE_FUNPLAY,
-    0,
-    0
+    CARTRIDGE_NAME_FUNPLAY, /* name of the device */
+    IO_DETACH_CART,         /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,  /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,   /* range for the device, address is ignored, reg:$de00, mirrors:$de01-$deff */
+    0,                      /* read is never valid, reg is write only */
+    funplay_io1_store,      /* store function */
+    NULL,                   /* NO poke function */
+    NULL,                   /* NO read function */
+    funplay_io1_peek,       /* peek function */
+    funplay_dump,           /* device state information dump function */
+    CARTRIDGE_FUNPLAY,      /* cartridge ID */
+    IO_PRIO_NORMAL,         /* normal priority, device read needs to be checked for collisions */
+    0                       /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *funplay_list_item = NULL;
@@ -156,10 +156,10 @@ void funplay_config_init(void)
 {
     /* 8k configuration */
     cart_config_changed_slotmain(0, 0, CMODE_READ);
-    funplay_io1_store((WORD)0xde00, 0);
+    funplay_io1_store((uint16_t)0xde00, 0);
 }
 
-void funplay_config_setup(BYTE *rawcart)
+void funplay_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000 * 16);
     /* 8k configuration */
@@ -176,7 +176,7 @@ static int funplay_common_attach(void)
     return 0;
 }
 
-int funplay_bin_attach(const char *filename, BYTE *rawcart)
+int funplay_bin_attach(const char *filename, uint8_t *rawcart)
 {
     /* in a binary the banks are linear as usual */
     if (util_file_load(filename, rawcart, 0x20000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
@@ -185,7 +185,7 @@ int funplay_bin_attach(const char *filename, BYTE *rawcart)
     return funplay_common_attach();
 }
 
-int funplay_crt_attach(FILE *fd, BYTE *rawcart)
+int funplay_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
     unsigned int bank;
@@ -245,7 +245,7 @@ int funplay_snapshot_write_module(snapshot_t *s)
 
     if (0
         || SMW_B(m, regval) < 0
-        || SMW_B(m, (BYTE)currbank) < 0
+        || SMW_B(m, (uint8_t)currbank) < 0
         || SMW_BA(m, roml_banks, 0x2000 * 16) < 0) {
         snapshot_module_close(m);
         return -1;
@@ -256,7 +256,7 @@ int funplay_snapshot_write_module(snapshot_t *s)
 
 int funplay_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -266,19 +266,19 @@ int funplay_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
     /* Only accept compatible snapshots */
-    if (!SNAPVAL(vmajor, vminor, 1, 0)) {
+    if (snapshot_version_is_smaller(vmajor, vminor, 1, 0)) {
         snapshot_set_error(SNAPSHOT_MODULE_INCOMPATIBLE);
         goto fail;
     }
 
     /* new in 1.1 */
-    if (SNAPVAL(vmajor, vminor, 1, 1)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 1, 1)) {
         if (SMR_B(m, &regval) < 0) {
             goto fail;
         }

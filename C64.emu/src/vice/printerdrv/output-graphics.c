@@ -46,7 +46,7 @@
 struct output_gfx_s {
     gfxoutputdrv_t *gfxoutputdrv;
     screenshot_t screenshot;
-    BYTE *line;
+    uint8_t *line;
     char *filename;
     unsigned int isopen;
     unsigned int line_pos;
@@ -64,7 +64,7 @@ static unsigned int current_prnr;
  * The palette colour order is black, white, blue, green, red.
  * The black and white printers only have the former two.
  */
-static BYTE output_pixel_to_palette_index(BYTE pix)
+static uint8_t output_pixel_to_palette_index(uint8_t pix)
 {
     switch (pix) {
         case OUTPUT_PIXEL_BLACK:
@@ -81,11 +81,11 @@ static BYTE output_pixel_to_palette_index(BYTE pix)
     }
 }
 
-static void output_graphics_line_data(screenshot_t *screenshot, BYTE *data,
+static void output_graphics_line_data(screenshot_t *screenshot, uint8_t *data,
                                       unsigned int line, unsigned int mode)
 {
     unsigned int i;
-    BYTE *line_base;
+    uint8_t *line_base;
     unsigned int color;
 
     line_base = output_gfx[current_prnr].line;
@@ -106,7 +106,7 @@ static void output_graphics_line_data(screenshot_t *screenshot, BYTE *data,
             }
             break;
         default:
-            log_error(LOG_ERR, "Invalid mode %i.", mode);
+            log_error(LOG_ERR, "Invalid mode %u.", mode);
     }
 }
 
@@ -187,13 +187,9 @@ static void output_graphics_close(unsigned int prnr)
         o->gfxoutputdrv->close(&o->screenshot);
         o->isopen = 0;
     }
-
-    /* free filename */
-    lib_free(o->filename);
-    o->filename = NULL;
 }
 
-static int output_graphics_putc(unsigned int prnr, BYTE b)
+static int output_graphics_putc(unsigned int prnr, uint8_t b)
 {
     output_gfx_t *o = &(output_gfx[prnr]);
 
@@ -242,7 +238,7 @@ static int output_graphics_putc(unsigned int prnr, BYTE b)
     return 0;
 }
 
-static int output_graphics_getc(unsigned int prnr, BYTE *b)
+static int output_graphics_getc(unsigned int prnr, uint8_t *b)
 {
     return 0;
 }
@@ -262,6 +258,16 @@ void output_graphics_init(void)
         output_gfx[i].filename = NULL;
         output_gfx[i].line = NULL;
         output_gfx[i].line_pos = 0;
+    }
+}
+
+void output_graphics_shutdown(void)
+{
+    unsigned int i;
+
+    for (i = 0; i < 3; i++) {
+        lib_free(output_gfx[i].filename);
+        lib_free(output_gfx[i].line);
     }
 }
 

@@ -38,11 +38,16 @@ void setCanvasSkipFrame(bool on)
 	activeCanvas->skipFrame = on;
 }
 
+void setCanvasRunningFrame(bool on)
+{
+	activeCanvas->runningFrame = on;
+}
+
 CLINK LVISIBLE int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped);
 int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped)
 {
 	//assert(EmuSystem::gameIsRunning());
-	if(likely(runningFrame))
+	if(likely(c->runningFrame))
 	{
 		//logMsg("vsync_do_vsync signaling main thread");
 		execDoneSem.notify();
@@ -101,7 +106,7 @@ void video_canvas_refresh(struct video_canvas_s *c, unsigned int xs, unsigned in
 	w = std::min(w, c->pixmap->w());
 	h = std::min(h, c->pixmap->h());
 
-	plugin.video_canvas_render(c, (BYTE*)c->pixmap->pixel({}), w, h, xs, ys, xi, yi, c->pixmap->pitchBytes(), pixFmt.bitsPerPixel());
+	plugin.video_canvas_render(c, (uint8_t*)c->pixmap->pixel({}), w, h, xs, ys, xi, yi, c->pixmap->pitchBytes(), pixFmt.bitsPerPixel());
 }
 
 void resetCanvasSourcePixmap(struct video_canvas_s *c)

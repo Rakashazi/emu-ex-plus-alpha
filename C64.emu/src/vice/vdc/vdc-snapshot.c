@@ -62,7 +62,7 @@ int vdc_snapshot_write_module(snapshot_t *s)
     if (m == NULL) {
         return -1;
     }
-
+    log_error(LOG_DEFAULT, "FIXME: VDC snapshots are not implemented\n");
     return snapshot_module_close(m);
 
 /*
@@ -77,7 +77,7 @@ fail:
 
 int vdc_snapshot_read_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name,
@@ -86,7 +86,7 @@ int vdc_snapshot_read_module(snapshot_t *s)
         return -1;
     }
 
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         log_error(vdc.log,
                   "Snapshot module version (%d.%d) newer than %d.%d.",
                   major_version, minor_version,

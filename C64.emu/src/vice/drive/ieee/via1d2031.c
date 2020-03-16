@@ -48,23 +48,23 @@
 
 typedef struct drivevia1_context_s {
     unsigned int number;
-    BYTE drivenumberjumper;
+    uint8_t drivenumberjumper;
     struct drive_s *drive;
     int v_parieee_is_out;         /* init to 1 */
 } drivevia1_context_t;
 
 
-void via1d2031_store(drive_context_t *ctxptr, WORD addr, BYTE data)
+void via1d2031_store(drive_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
     viacore_store(ctxptr->via1d2031, addr, data);
 }
 
-BYTE via1d2031_read(drive_context_t *ctxptr, WORD addr)
+uint8_t via1d2031_read(drive_context_t *ctxptr, uint16_t addr)
 {
     return viacore_read(ctxptr->via1d2031, addr);
 }
 
-BYTE via1d2031_peek(drive_context_t *ctxptr, WORD addr)
+uint8_t via1d2031_peek(drive_context_t *ctxptr, uint16_t addr)
 {
     return viacore_peek(ctxptr->via1d2031, addr);
 }
@@ -80,20 +80,20 @@ static void set_cb2(via_context_t *via_context, int state)
 static void set_int(via_context_t *via_context, unsigned int int_num,
                     int value, CLOCK rclk)
 {
-    drive_context_t *drive_context;
+    drive_context_t *dc;
 
-    drive_context = (drive_context_t *)(via_context->context);
+    dc = (drive_context_t *)(via_context->context);
 
-    interrupt_set_irq(drive_context->cpu->int_status, int_num, value, rclk);
+    interrupt_set_irq(dc->cpu->int_status, int_num, value, rclk);
 }
 
 static void restore_int(via_context_t *via_context, unsigned int int_num, int value)
 {
-    drive_context_t *drive_context;
+    drive_context_t *dc;
 
-    drive_context = (drive_context_t *)(via_context->context);
+    dc = (drive_context_t *)(via_context->context);
 
-    interrupt_restore_irq(drive_context->cpu->int_status, int_num, value);
+    interrupt_restore_irq(dc->cpu->int_status, int_num, value);
 }
 
 
@@ -112,13 +112,13 @@ void via1d2031_set_atn(via_context_t *via_context, int state)
 
     if (via1p->drive->type == DRIVE_TYPE_2031) {
         viacore_signal(via_context, VIA_SIG_CA1, state ? VIA_SIG_RISE : 0);
-        parallel_drivex_set_nrfd((BYTE)(((!parieee_is_out)
+        parallel_drivex_set_nrfd((uint8_t)(((!parieee_is_out)
                                          && (!(via_context->oldpb & 0x02)))
                                         || (parallel_atn
                                             && (!(via_context->oldpb & 0x01)))
                                         || ((!parallel_atn)
                                             && (via_context->oldpb & 0x01))));
-        parallel_drivex_set_ndac((BYTE)(((!parieee_is_out)
+        parallel_drivex_set_ndac((uint8_t)(((!parieee_is_out)
                                          && (!(via_context->oldpb & 0x04)))
                                         || (parallel_atn
                                             && (!(via_context->oldpb & 0x01)))
@@ -127,78 +127,78 @@ void via1d2031_set_atn(via_context_t *via_context, int state)
     }
 }
 
-static void undump_pra(via_context_t *via_context, BYTE byte)
+static void undump_pra(via_context_t *via_context, uint8_t byte)
 {
     drivevia1_context_t *via1p;
 
     via1p = (drivevia1_context_t *)(via_context->prv);
 
-    parallel_drivex_set_bus((BYTE)(parieee_is_out ? byte : 0xff));
+    parallel_drivex_set_bus((uint8_t)(parieee_is_out ? byte : 0xff));
 }
 
-static void store_pra(via_context_t *via_context, BYTE byte, BYTE oldpa_value,
-                      WORD addr)
+static void store_pra(via_context_t *via_context, uint8_t byte, uint8_t oldpa_value,
+                      uint16_t addr)
 {
     drivevia1_context_t *via1p;
 
     via1p = (drivevia1_context_t *)(via_context->prv);
 
-    parallel_drivex_set_bus((BYTE)(parieee_is_out ? byte : 0xff));
+    parallel_drivex_set_bus((uint8_t)(parieee_is_out ? byte : 0xff));
 }
 
-static void undump_prb(via_context_t *via_context, BYTE byte)
+static void undump_prb(via_context_t *via_context, uint8_t byte)
 {
     drivevia1_context_t *via1p;
 
     via1p = (drivevia1_context_t *)(via_context->prv);
 
     parieee_is_out = byte & 0x10;
-    parallel_drivex_set_bus((BYTE)(parieee_is_out
+    parallel_drivex_set_bus((uint8_t)(parieee_is_out
                                    ? via_context->oldpa : 0xff));
 
-    parallel_drivex_set_eoi((BYTE)(parieee_is_out && !(byte & 0x08)));
-    parallel_drivex_set_dav((BYTE)(parieee_is_out && !(byte & 0x40)));
-    parallel_drivex_set_ndac((BYTE)(((!parieee_is_out)
+    parallel_drivex_set_eoi((uint8_t)(parieee_is_out && !(byte & 0x08)));
+    parallel_drivex_set_dav((uint8_t)(parieee_is_out && !(byte & 0x40)));
+    parallel_drivex_set_ndac((uint8_t)(((!parieee_is_out)
                                      && (!(byte & 0x04)))
                                     || (parallel_atn && (!(byte & 0x01)))
                                     || ((!parallel_atn) && (byte & 0x01))));
-    parallel_drivex_set_nrfd((BYTE)(((!parieee_is_out)
+    parallel_drivex_set_nrfd((uint8_t)(((!parieee_is_out)
                                      && (!(byte & 0x02)))
                                     || (parallel_atn && (!(byte & 0x01)))
                                     || ((!parallel_atn) && (byte & 0x01))));
 }
 
-static void store_prb(via_context_t *via_context, BYTE byte, BYTE p_oldpb,
-                      WORD addr)
+static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t p_oldpb,
+                      uint16_t addr)
 {
     drivevia1_context_t *via1p;
 
     via1p = (drivevia1_context_t *)(via_context->prv);
 
     if (byte != p_oldpb) {
-        BYTE tmp = ~byte;
+        uint8_t tmp = ~byte;
 
         parieee_is_out = byte & 0x10;
-        parallel_drivex_set_bus((BYTE)(parieee_is_out
+        parallel_drivex_set_bus((uint8_t)(parieee_is_out
                                        ? via_context->oldpa : 0xff));
 
         if (parieee_is_out) {
-            parallel_drivex_set_eoi((BYTE)(tmp & 0x08));
-            parallel_drivex_set_dav((BYTE)(tmp & 0x40));
+            parallel_drivex_set_eoi((uint8_t)(tmp & 0x08));
+            parallel_drivex_set_dav((uint8_t)(tmp & 0x40));
         } else {
             parallel_drivex_set_eoi(0);
             parallel_drivex_set_dav(0);
         }
-        parallel_drivex_set_nrfd((BYTE)(((!parieee_is_out) && (tmp & 0x02))
+        parallel_drivex_set_nrfd((uint8_t)(((!parieee_is_out) && (tmp & 0x02))
                                         || (parallel_atn && (tmp & 0x01))
                                         || ((!parallel_atn) && (byte & 0x01))));
-        parallel_drivex_set_ndac((BYTE)(((!parieee_is_out) && (tmp & 0x04))
+        parallel_drivex_set_ndac((uint8_t)(((!parieee_is_out) && (tmp & 0x04))
                                         || (parallel_atn && (tmp & 0x01))
                                         || ((!parallel_atn) && (byte & 0x01))));
     }
 }
 
-static void undump_pcr(via_context_t *via_context, BYTE byte)
+static void undump_pcr(via_context_t *via_context, uint8_t byte)
 {
 #if 0
     drivevia1_context_t *via1p;
@@ -212,24 +212,24 @@ static void undump_pcr(via_context_t *via_context, BYTE byte)
 #endif
 }
 
-static BYTE store_pcr(via_context_t *via_context, BYTE byte, WORD addr)
+static uint8_t store_pcr(via_context_t *via_context, uint8_t byte, uint16_t addr)
 {
     return byte;
 }
 
-static void undump_acr(via_context_t *via_context, BYTE byte)
+static void undump_acr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_acr(via_context_t *via_context, BYTE byte)
+static void store_acr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_sr(via_context_t *via_context, BYTE byte)
+static void store_sr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_t2l(via_context_t *via_context, BYTE byte)
+static void store_t2l(via_context_t *via_context, uint8_t byte)
 {
 }
 
@@ -248,9 +248,9 @@ static void reset(via_context_t *via_context)
     parieee_is_out = 1;
 }
 
-static BYTE read_pra(via_context_t *via_context, WORD addr)
+static uint8_t read_pra(via_context_t *via_context, uint16_t addr)
 {
-    BYTE byte;
+    uint8_t byte;
     drivevia1_context_t *via1p;
 
     via1p = (drivevia1_context_t *)(via_context->prv);
@@ -261,9 +261,9 @@ static BYTE read_pra(via_context_t *via_context, WORD addr)
            | (via_context->via[VIA_PRA] & via_context->via[VIA_DDRA]);
 }
 
-static BYTE read_prb(via_context_t *via_context)
+static uint8_t read_prb(via_context_t *via_context)
 {
-    BYTE byte;
+    uint8_t byte;
     drivevia1_context_t *via1p;
 
     via1p = (drivevia1_context_t *)(via_context->prv);

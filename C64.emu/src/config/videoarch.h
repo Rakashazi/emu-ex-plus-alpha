@@ -21,5 +21,6 @@ struct video_canvas_s
 	unsigned int initialized;
 	unsigned int created;
 	char skipFrame;
+	char runningFrame;
 };
 typedef struct video_canvas_s video_canvas_t;

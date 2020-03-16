@@ -47,6 +47,6 @@ extern void tcbm_drive_rom_do_checksum(unsigned int dnr);
 extern int tcbm_drive_snapshot_read(struct drive_context_s *ctxptr, struct snapshot_s *s);
 extern int tcbm_drive_snapshot_write(struct drive_context_s *ctxptr, struct snapshot_s *s);
 
-extern BYTE tpid_outputa[], tpid_outputb[], tpid_outputc[];
+extern uint8_t tpid_outputa[], tpid_outputb[], tpid_outputc[];
 
 #endif

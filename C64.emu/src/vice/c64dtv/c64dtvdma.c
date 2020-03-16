@@ -43,7 +43,6 @@
 #include "maincpu.h"
 #include "interrupt.h"
 #include "snapshot.h"
-#include "translate.h"
 
 #ifdef DEBUG
 static log_t c64dtvdma_log = LOG_ERR;
@@ -52,7 +51,7 @@ static log_t c64dtvdma_log = LOG_ERR;
 static unsigned int c64dtv_dma_int_num;
 
 /* I/O of the DMA engine ($D3XX) */
-BYTE c64dtvmem_dma[0x20];
+uint8_t c64dtvmem_dma[0x20];
 
 int dma_active;
 int dma_on_irq;
@@ -67,14 +66,14 @@ static int dma_irq;
 static int dma_log_enabled = 0;
 #endif
 
-static BYTE dma_data;
-static BYTE dma_data_swap;
+static uint8_t dma_data;
+static uint8_t dma_data_swap;
 static int dma_count;
 static enum { DMA_IDLE, DMA_READ, DMA_READ_SWAP, DMA_WRITE_SWAP, DMA_WRITE } dma_state; 
 static int source_line_off = 0;
 static int dest_line_off = 0;
-static BYTE source_memtype = 0x00;
-static BYTE dest_memtype = 0x00;
+static uint8_t source_memtype = 0x00;
+static uint8_t dest_memtype = 0x00;
 
 #define GET_REG24(a) ((c64dtvmem_dma[a + 2] << 16) | (c64dtvmem_dma[a + 1] << 8) | c64dtvmem_dma[a])
 #define GET_REG16(a) ((c64dtvmem_dma[a + 1] << 8) | c64dtvmem_dma[a])
@@ -134,7 +133,7 @@ void c64dtvdma_reset(void)
 
 static inline void do_dma_read(int swap)
 {
-    BYTE data;
+    uint8_t data;
     int offs;
     int memtype;
 
@@ -156,7 +155,7 @@ static inline void do_dma_read(int swap)
             break;
         case 0x80: /* RAM+registers */
             if ((offs >= 0xd000) && (offs < 0xe000)) {
-                data = _mem_read_tab_ptr[offs >> 8]((WORD)offs);
+                data = _mem_read_tab_ptr[offs >> 8]((uint16_t)offs);
             } else {
                 data = mem_ram[offs];
             }
@@ -181,7 +180,7 @@ static inline void do_dma_read(int swap)
 
 static inline void do_dma_write(int swap)
 {
-    BYTE data;
+    uint8_t data;
     int offs;
     int memtype;
 
@@ -205,7 +204,7 @@ static inline void do_dma_write(int swap)
             break;
         case 0x80: /* RAM+registers */
             if ((offs >= 0xd000) && (offs < 0xe000)) {
-                _mem_write_tab_ptr[offs >> 8]((WORD)offs, data);
+                _mem_write_tab_ptr[offs >> 8]((uint16_t)offs, data);
             } else {
                 mem_ram[offs] = data;
             }
@@ -357,7 +356,7 @@ static inline void c64dtv_dma_done(void)
     dma_active = 0;
 }
 
-BYTE c64dtv_dma_read(WORD addr)
+uint8_t c64dtv_dma_read(uint16_t addr)
 {
     if (addr == 0x1f) {
         return dma_busy;
@@ -367,7 +366,7 @@ BYTE c64dtv_dma_read(WORD addr)
     return 0x00;
 }
 
-void c64dtv_dma_store(WORD addr, BYTE value)
+void c64dtv_dma_store(uint16_t addr, uint8_t value)
 {
     /* Store first, then check whether DMA access has been
        requested, perform if necessary. */
@@ -394,7 +393,8 @@ void c64dtv_dma_store(WORD addr, BYTE value)
         dma_busy = 1;
 #ifdef DEBUG
         if (dma_log_enabled) {
-            log_message(c64dtvdma_log, "Scheduled DMA (%02x).", dma_on_irq);
+            log_message(c64dtvdma_log, "Scheduled DMA (%02x).",
+                    (unsigned int)dma_on_irq);
         }
 #endif
         return;
@@ -419,7 +419,14 @@ void c64dtvdma_perform_dma(void)
 
 #ifdef DEBUG
     if (dma_log_enabled && (dma_state == DMA_WRITE)) {
-        log_message(c64dtvdma_log, "%s from %x (%s) to %x (%s), %d to go", GET_REG8(0x1f) & 0x02 ? "Swapped" : "Copied", dma_source_off, source_memtype == 0 ? "Flash" : "RAM", dma_dest_off, dest_memtype == 0 ? "Flash" : "RAM", dma_count - 1);
+        log_message(c64dtvdma_log,
+                "%s from %x (%s) to %x (%s), %d to go",
+                GET_REG8(0x1f) & 0x02 ? "Swapped" : "Copied",
+                (unsigned int)dma_source_off,
+                source_memtype == 0 ? "Flash" : "RAM",
+                (unsigned int)dma_dest_off,
+                dest_memtype == 0 ? "Flash" : "RAM",
+                dma_count - 1);
     }
 #endif
 
@@ -460,16 +467,12 @@ void c64dtvdma_resources_shutdown(void)
 static const cmdline_option_t cmdline_options[] =
 {
 #ifdef DEBUG
-    { "-dtvdmalog", SET_RESOURCE, 0,
+    { "-dtvdmalog", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DtvDMALog", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_DTV_DMA_LOG,
-      NULL, NULL },
-    { "+dtvdmalog", SET_RESOURCE, 0,
+      NULL, "Enable DTV DMA logs." },
+    { "+dtvdmalog", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DtvDMALog", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_DTV_DMA_LOG,
-      NULL, NULL },
+      NULL, "Disable DTV DMA logs." },
 #endif
     CMDLINE_LIST_END
 };
@@ -544,7 +547,7 @@ int c64dtvdma_snapshot_write_module(snapshot_t *s)
 
 int c64dtvdma_snapshot_read_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
     int temp_dma_state;
 
@@ -556,7 +559,7 @@ int c64dtvdma_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

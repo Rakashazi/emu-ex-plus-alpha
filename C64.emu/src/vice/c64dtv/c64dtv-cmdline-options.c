@@ -34,7 +34,6 @@
 #include "c64dtvmodel.h"
 #include "cmdline.h"
 #include "machine.h"
-#include "translate.h"
 
 struct model_s {
     const char *name;
@@ -79,46 +78,30 @@ static int set_dtv_model(const char *param, void *extra_param)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-pal", SET_RESOURCE, 0,
+    { "-pal", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MachineVideoStandard", (void *)MACHINE_SYNC_PAL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_PAL_SYNC_FACTOR,
-      NULL, NULL },
-    { "-ntsc", SET_RESOURCE, 0,
+      NULL, "Use PAL sync factor" },
+    { "-ntsc", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MachineVideoStandard", (void *)MACHINE_SYNC_NTSC,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_NTSC_SYNC_FACTOR,
-      NULL, NULL },
-    { "-kernal", SET_RESOURCE, 1,
+      NULL, "Use NTSC sync factor" },
+    { "-kernal", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "KernalName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_KERNAL_ROM_NAME,
-      NULL, NULL },
-    { "-basic", SET_RESOURCE, 1,
+      "<Name>", "Specify name of Kernal ROM image" },
+    { "-basic", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "BasicName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_BASIC_ROM_NAME,
-      NULL, NULL },
-    { "-chargen", SET_RESOURCE, 1,
+      "<Name>", "Specify name of BASIC ROM image" },
+    { "-chargen", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "ChargenName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_CHARGEN_ROM_NAME,
-      NULL, NULL },
-    { "-model", CALL_FUNCTION, 1,
+      "<Name>", "Specify name of character generator ROM image" },
+    { "-model", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       set_dtv_model, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_MODEL, IDCLS_SET_DTV_MODEL,
-      NULL, NULL },
-    { "-hummeradc", SET_RESOURCE, 0,
+      "<Model>", "Set DTV model (v2/v2pal/v2ntsc, v3/v3pal/v3ntsc, hummer)" },
+    { "-hummeradc", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "HummerADC", (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_HUMMER_ADC,
-      NULL, NULL },
-    { "+hummeradc", SET_RESOURCE, 0,
+      NULL, "Enable Hummer ADC" },
+    { "+hummeradc", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "HummerADC", (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_HUMMER_ADC,
-      NULL, NULL },
+      NULL, "Disable Hummer ADC" },
     CMDLINE_LIST_END
 };
 

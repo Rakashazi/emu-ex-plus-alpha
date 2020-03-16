@@ -102,7 +102,7 @@ static void ted_t3(CLOCK offset, void *data)
 
 /*-----------------------------------------------------------------------*/
 
-static void ted_timer_t1_store_low(BYTE value)
+static void ted_timer_t1_store_low(uint8_t value)
 {
     alarm_unset(ted_t1_alarm);
     if (t1_running) {
@@ -113,7 +113,7 @@ static void ted_timer_t1_store_low(BYTE value)
     t1_running = 0;
 }
 
-static void ted_timer_t1_store_high(BYTE value)
+static void ted_timer_t1_store_high(uint8_t value)
 {
     alarm_unset(ted_t1_alarm);
     t1_value = (t1_start = (t1_start & 0x00ff) | (value << 8)) << 1;
@@ -123,14 +123,14 @@ static void ted_timer_t1_store_high(BYTE value)
     t1_running = 1;
 }
 
-static void ted_timer_t2_store_low(BYTE value)
+static void ted_timer_t2_store_low(uint8_t value)
 {
     alarm_unset(ted_t2_alarm);
     t2_value = (t2_start = (t2_start & 0xff00) | value) << 1;
     t2_running = 0;
 }
 
-static void ted_timer_t2_store_high(BYTE value)
+static void ted_timer_t2_store_high(uint8_t value)
 {
     alarm_unset(ted_t2_alarm);
     t2_value = (t2_start = (t2_start & 0x00ff) | (value << 8)) << 1;
@@ -140,14 +140,14 @@ static void ted_timer_t2_store_high(BYTE value)
     t2_running = 1;
 }
 
-static void ted_timer_t3_store_low(BYTE value)
+static void ted_timer_t3_store_low(uint8_t value)
 {
     alarm_unset(ted_t3_alarm);
     t3_value = (t3_start = (t3_start & 0xff00) | value) << 1;
     t3_running = 0;
 }
 
-static void ted_timer_t3_store_high(BYTE value)
+static void ted_timer_t3_store_high(uint8_t value)
 {
     alarm_unset(ted_t3_alarm);
     t3_value = (t3_start = (t3_start & 0x00ff) | (value << 8)) << 1;
@@ -157,7 +157,7 @@ static void ted_timer_t3_store_high(BYTE value)
     t3_running = 1;
 }
 
-static BYTE ted_timer_t1_read_low(void)
+static uint8_t ted_timer_t1_read_low(void)
 {
 #ifdef DEBUG_TIMER
     log_debug("TI1 READL %02x", t1_value & 0xff);
@@ -166,10 +166,10 @@ static BYTE ted_timer_t1_read_low(void)
         t1_value -= maincpu_clk - t1_last_restart;
         t1_last_restart = maincpu_clk;
     }
-    return (BYTE)(t1_value >> 1);
+    return (uint8_t)(t1_value >> 1);
 }
 
-static BYTE ted_timer_t1_read_high(void)
+static uint8_t ted_timer_t1_read_high(void)
 {
 #ifdef DEBUG_TIMER
     log_debug("TI1 READH %02x", t1_value >> 8);
@@ -178,10 +178,10 @@ static BYTE ted_timer_t1_read_high(void)
         t1_value -= maincpu_clk - t1_last_restart;
         t1_last_restart = maincpu_clk;
     }
-    return (BYTE)(t1_value >> 9);
+    return (uint8_t)(t1_value >> 9);
 }
 
-static BYTE ted_timer_t2_read_low(void)
+static uint8_t ted_timer_t2_read_low(void)
 {
 #ifdef DEBUG_TIMER
     log_debug("TI2 READL %02x", t2_value & 0xff);
@@ -190,10 +190,10 @@ static BYTE ted_timer_t2_read_low(void)
         t2_value -= maincpu_clk - t2_last_restart;
         t2_last_restart = maincpu_clk;
     }
-    return (BYTE)(t2_value >> 1);
+    return (uint8_t)(t2_value >> 1);
 }
 
-static BYTE ted_timer_t2_read_high(void)
+static uint8_t ted_timer_t2_read_high(void)
 {
 #ifdef DEBUG_TIMER
     log_debug("TI2 READH %02x", t2_value >> 8);
@@ -202,10 +202,10 @@ static BYTE ted_timer_t2_read_high(void)
         t2_value -= maincpu_clk - t2_last_restart;
         t2_last_restart = maincpu_clk;
     }
-    return (BYTE)(t2_value >> 9);
+    return (uint8_t)(t2_value >> 9);
 }
 
-static BYTE ted_timer_t3_read_low(void)
+static uint8_t ted_timer_t3_read_low(void)
 {
 #ifdef DEBUG_TIMER
     log_debug("TI3 READL %02x", t3_value & 0xff);
@@ -214,10 +214,10 @@ static BYTE ted_timer_t3_read_low(void)
         t3_value -= maincpu_clk - t3_last_restart;
         t3_last_restart = maincpu_clk;
     }
-    return (BYTE)(t3_value >> 1);
+    return (uint8_t)(t3_value >> 1);
 }
 
-static BYTE ted_timer_t3_read_high(void)
+static uint8_t ted_timer_t3_read_high(void)
 {
 #ifdef DEBUG_TIMER
     log_debug("TI3 READH %02x", t3_value >> 8);
@@ -226,12 +226,12 @@ static BYTE ted_timer_t3_read_high(void)
         t3_value -= maincpu_clk - t3_last_restart;
         t3_last_restart = maincpu_clk;
     }
-    return (BYTE)(t3_value >> 9);
+    return (uint8_t)(t3_value >> 9);
 }
 
 /*-----------------------------------------------------------------------*/
 
-void ted_timer_store(WORD addr, BYTE value)
+void ted_timer_store(uint16_t addr, uint8_t value)
 {
 #ifdef DEBUG_TIMER
     log_debug("TI STORE %02x %02x CLK %x", addr, value, maincpu_clk);
@@ -258,7 +258,7 @@ void ted_timer_store(WORD addr, BYTE value)
     }
 }
 
-BYTE ted_timer_read(WORD addr)
+uint8_t ted_timer_read(uint16_t addr)
 {
     switch (addr) {
         case 0:

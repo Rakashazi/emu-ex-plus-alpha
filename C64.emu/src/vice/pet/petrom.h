@@ -41,7 +41,7 @@ extern int petrom_load_romB(void);
 extern int petrom_load_6809rom(int num);
 
 extern void petrom_convert_chargen_2k(void);
-extern void petrom_convert_chargen(BYTE *charrom);
+extern void petrom_convert_chargen(uint8_t *charrom);
 extern void petrom_get_kernal_checksum(void);
 extern void petrom_get_editor_checksum(void);
 extern void petrom_checksum(void);

@@ -31,9 +31,9 @@
 
 #include "types.h"
 
-extern void simon_config_setup(BYTE *rawcart);
-extern int simon_bin_attach(const char *filename, BYTE *rawcart);
-extern int simon_crt_attach(FILE *fd, BYTE *rawcart);
+extern void simon_config_setup(uint8_t *rawcart);
+extern int simon_bin_attach(const char *filename, uint8_t *rawcart);
+extern int simon_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void simon_detach(void);
 extern void simon_config_init(void);
 

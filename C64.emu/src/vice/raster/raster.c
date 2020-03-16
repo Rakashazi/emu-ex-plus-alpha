@@ -34,6 +34,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "videoarch.h"
+
+#include "archdep.h"
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
@@ -49,7 +52,6 @@
 #include "types.h"
 #include "util.h"
 #include "video.h"
-#include "videoarch.h"
 #include "viewport.h"
 
 
@@ -87,7 +89,7 @@ static void raster_draw_buffer_free(video_canvas_t *canvas)
     canvas->draw_buffer->draw_buffer = NULL;
 }
 
-static void raster_draw_buffer_clear(video_canvas_t *canvas, BYTE value,
+static void raster_draw_buffer_clear(video_canvas_t *canvas, uint8_t value,
                                      unsigned int fb_width,
                                      unsigned int fb_height,
                                      unsigned int fb_pitch)
@@ -161,6 +163,9 @@ static int realize_canvas(raster_t *raster)
         if (new_canvas == NULL) {
             return -1;
         }
+        
+        /* Ensure that this canvas is ready to screenshot immediately */
+        video_color_update_palette(new_canvas);
 
         raster->canvas = new_canvas;
 
@@ -478,8 +483,13 @@ void raster_force_repaint(raster_t *raster)
 void raster_set_title(raster_t *raster, const char *name)
 {
     char *title;
+    char *extra_title_text = archdep_extra_title_text();
 
-    title = util_concat("VICE: ", name, " emulator", NULL);
+    if (extra_title_text) {
+        title = util_concat("VICE: ", name, extra_title_text, NULL);
+    } else {
+        title = util_concat("VICE: ", name, NULL);
+    }
     video_viewport_title_set(raster->canvas, title);
 
     lib_free(title);

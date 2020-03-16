@@ -114,7 +114,7 @@ static unsigned int mon_register_get_val(int mem, int reg_id)
     return 0;
 }
 
-static void mon_register_set_val(int mem, int reg_id, WORD val)
+static void mon_register_set_val(int mem, int reg_id, uint16_t val)
 {
     WDC65816_regs_t *reg_ptr;
 
@@ -128,20 +128,20 @@ static void mon_register_set_val(int mem, int reg_id, WORD val)
 
     switch(reg_id) {
       case e_A:
-        WDC65816_REGS_SET_A(reg_ptr, (BYTE)val);
+        WDC65816_REGS_SET_A(reg_ptr, (uint8_t)val);
         break;
       case e_B:
-        WDC65816_REGS_SET_B(reg_ptr, (BYTE)val);
+        WDC65816_REGS_SET_B(reg_ptr, (uint8_t)val);
         break;
       case e_C:
-        WDC65816_REGS_SET_A(reg_ptr, (BYTE)val);
-        WDC65816_REGS_SET_B(reg_ptr, (BYTE)(val >> 8));
+        WDC65816_REGS_SET_A(reg_ptr, (uint8_t)val);
+        WDC65816_REGS_SET_B(reg_ptr, (uint8_t)(val >> 8));
         break;
       case e_X:
-        WDC65816_REGS_SET_X(reg_ptr, (WORD)val);
+        WDC65816_REGS_SET_X(reg_ptr, (uint16_t)val);
         break;
       case e_Y:
-        WDC65816_REGS_SET_Y(reg_ptr, (WORD)val);
+        WDC65816_REGS_SET_Y(reg_ptr, (uint16_t)val);
         break;
       case e_PC:
         WDC65816_REGS_SET_PC(reg_ptr, val);
@@ -150,22 +150,22 @@ static void mon_register_set_val(int mem, int reg_id, WORD val)
         }
         break;
       case e_SP:
-        WDC65816_REGS_SET_SP(reg_ptr, (WORD)val);
+        WDC65816_REGS_SET_SP(reg_ptr, (uint16_t)val);
         break;
       case e_DPR:
-        WDC65816_REGS_SET_DPR(reg_ptr, (BYTE)val);
+        WDC65816_REGS_SET_DPR(reg_ptr, (uint8_t)val);
         break;
       case e_PBR:
-        WDC65816_REGS_SET_PBR(reg_ptr, (BYTE)val);
+        WDC65816_REGS_SET_PBR(reg_ptr, (uint8_t)val);
         break;
       case e_DBR:
-        WDC65816_REGS_SET_DBR(reg_ptr, (BYTE)val);
+        WDC65816_REGS_SET_DBR(reg_ptr, (uint8_t)val);
         break;
       case e_FLAGS:
-        WDC65816_REGS_SET_STATUS(reg_ptr, (BYTE)val);
+        WDC65816_REGS_SET_STATUS(reg_ptr, (uint8_t)val);
         break;
       case e_E:
-        WDC65816_REGS_SET_EMUL(reg_ptr, (BYTE)val);
+        WDC65816_REGS_SET_EMUL(reg_ptr, (uint8_t)val);
         break;
       default:
         log_error(LOG_ERR, "Unknown register!");
@@ -273,7 +273,7 @@ static void mon_register_print(int mem)
     }
 
     if (mem == e_comp_space && mon_interfaces[mem]->get_line_cycle != NULL) {
-        mon_out(" %03i %03i", line, cycle);
+        mon_out(" %03u %03u", line, cycle);
         if (half_cycle != -1) {
             mon_out(".%02i", half_cycle);
         }

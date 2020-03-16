@@ -56,10 +56,10 @@ extern int rs232_open(int device);
 extern void rs232_close(int fd);
 
 /* Sends a byte to the RS232 line */
-extern int rs232_putc(int fd, BYTE b);
+extern int rs232_putc(int fd, uint8_t b);
 
 /* Gets a byte to the RS232 line, returns !=1 if byte received, byte in *b. */
-extern int rs232_getc(int fd, BYTE *b);
+extern int rs232_getc(int fd, uint8_t *b);
 
 /* write the output handshake lines */
 extern int rs232_set_status(int fd, enum rs232handshake_out status);
@@ -78,5 +78,36 @@ extern int rs232_cmdline_options_init(void);
 #define RS232_NUM_DEVICES 4
 
 extern char *rs232_devfile[RS232_NUM_DEVICES];
+int rs232_useip232[RS232_NUM_DEVICES];
+
+/* the "ip232" protocol used by tcpser 
+ 
+tcpser->vice
+
+0xff nn ->
+ nn = 0      DCD = false
+ nn = 1      DCD = true
+ nn = 255    literal 0xff
+other   ->   unchanged
+
+vice->tcpser
+
+0xff nn ->
+ nn = 0      DTR = false
+ nn = 1      DTR = true
+ nn = 255    literal 0xff
+other   ->   unchanged 
+
+there appears to be a bug in tcpser that makes the DTR codes appear in the output.
+
+*/
+
+#define IP232MAGIC  0xff
+/* sending */
+#define IP232DTRLO  0   /* original patch only sends this once on rs232 reset */
+#define IP232DTRHI  1   /* original patch only sends this once on 0->1 transition */
+/* reading */
+#define IP232DCDLO  0   
+#define IP232DCDHI  1   
 
 #endif

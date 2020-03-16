@@ -29,7 +29,7 @@
 #include "snapshot.h"
 
 
-static BYTE pia_last_read = 0;
+static uint8_t pia_last_read = 0;
 
 static unsigned int pia_int_num;
 
@@ -95,6 +95,7 @@ void mypia_signal(int line, int edge)
                     mypia.ca_state = 1;
                 }
             }
+            break;
         case PIA_SIG_CB1:
             if (((mypia.ctrl_b & 0x02) ? PIA_SIG_RISE : PIA_SIG_FALL) == edge) {
                 mypia.ctrl_b |= 0x80;
@@ -105,6 +106,9 @@ void mypia_signal(int line, int edge)
                 }
             }
             break;
+        case PIA_SIG_CA2:
+        case PIA_SIG_CB2:
+            break;
     }
 }
 
@@ -112,7 +116,7 @@ void mypia_signal(int line, int edge)
 /* ------------------------------------------------------------------------- */
 /* PIA */
 
-void mypia_store(WORD addr, BYTE byte)
+void mypia_store(uint16_t addr, uint8_t byte)
 {
     if (mycpu_rmw_flag) {
         myclk--;
@@ -207,9 +211,9 @@ void mypia_store(WORD addr, BYTE byte)
 
 /* ------------------------------------------------------------------------- */
 
-BYTE mypia_read(WORD addr)
+uint8_t mypia_read(uint16_t addr)
 {
-    static BYTE byte = 0xff;
+    static uint8_t byte = 0xff;
 
     addr &= 3;
 
@@ -269,9 +273,9 @@ BYTE mypia_read(WORD addr)
 }
 
 
-BYTE mypia_peek(WORD addr)
+uint8_t mypia_peek(uint16_t addr)
 {
-    BYTE t;
+    uint8_t t;
 
     is_peek_access = 1;
     t = mypia_read(addr);
@@ -285,7 +289,8 @@ int mypia_dump(void)
     mon_out("port_a: %02x  port_b: %02x   (written bits only)\n", mypia.port_a, mypia.port_b);
     mon_out(" ddr_a: %02x   ddr_b: %02x   (1 bits are outputs)\n", mypia.ddr_a, mypia.ddr_b);
     mon_out("ctrl_a: %02x  ctrl_b: %02x\n", mypia.ctrl_a, mypia.ctrl_b);
-    mon_out("   ca2: %2x     cb2: %2x\n", mypia.ca_state, mypia.cb_state);
+    mon_out("   ca2: %2x     cb2: %2x\n",
+            (unsigned int)mypia.ca_state, (unsigned int)mypia.cb_state);
     mon_out("CA1 active transition: %d\n", (mypia.ctrl_a & 0x80) >> 7);
     mon_out("CA2 active transition: %d\n", (mypia.ctrl_a & 0x40) >> 6);
 
@@ -432,7 +437,7 @@ int mypia_snapshot_write_module(snapshot_t * p)
     SMW_B(m, mypia.ddr_b);
     SMW_B(m, mypia.ctrl_b);
 
-    SMW_B(m, (BYTE)((mypia.ca_state ? 0x80 : 0) | (mypia.cb_state ? 0x40 : 0)));
+    SMW_B(m, (uint8_t)((mypia.ca_state ? 0x80 : 0) | (mypia.cb_state ? 0x40 : 0)));
 
     snapshot_module_close(m);
 
@@ -441,8 +446,8 @@ int mypia_snapshot_write_module(snapshot_t * p)
 
 int mypia_snapshot_read_module(snapshot_t * p)
 {
-    BYTE vmajor, vminor;
-    BYTE byte;
+    uint8_t vmajor, vminor;
+    uint8_t byte;
     snapshot_module_t *m;
 
     my_restore_int(pia_int_num, 0);          /* just in case */

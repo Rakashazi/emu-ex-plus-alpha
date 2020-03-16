@@ -31,7 +31,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
 
 #include "log.h"
 #include "snapshot.h"
@@ -74,16 +73,15 @@
 
 typedef uint64_t LWORD;
 typedef int64_t SLWORD;
-#define HAVE_64BIT_TYPES
 
 #ifdef HAVE_64BIT_TYPES
 typedef LWORD sd_addr_t;
 #else
-typedef DWORD sd_addr_t;
+typedef uint32_t sd_addr_t;
 #endif
 
-void spi_mmc_trigger_mode_write(BYTE value);
-BYTE spi_mmc_trigger_mode_read(void);
+void spi_mmc_trigger_mode_write(uint8_t value);
+uint8_t spi_mmc_trigger_mode_read(void);
 
 static int mmc_card_type = CARD_TYPE_MMC;
 static int mmc_card_rw = 0;
@@ -97,11 +95,11 @@ static sd_addr_t mmc_image_pointer;
 /* write sequence counter */
 static unsigned int mmc_write_sequence;
 
-static BYTE mmc_card_inserted;
-static BYTE mmc_card_state;
-static BYTE mmc_card_reset_count;
+static uint8_t mmc_card_inserted;
+static uint8_t mmc_card_state;
+static uint8_t mmc_card_reset_count;
 
-static DWORD mmc_block_size;
+static uint32_t mmc_block_size;
 
 /* Gets set when dummy byte is read */
 static unsigned int mmc_read_firstbyte;
@@ -125,13 +123,13 @@ static void mmc_clear_cmd_buffer(void)
 
 /* MMC SPI data read port buffering */
 static int mmc_read_buffer_readptr = 0, mmc_read_buffer_writeptr = 0;
-BYTE mmc_read_buffer[0x1000];        /* FIXME */
+uint8_t mmc_read_buffer[0x1000];        /* FIXME */
 
-static void mmc_read_buffer_set(BYTE * data, int size)
+static void mmc_read_buffer_set(uint8_t * data, int size)
 {
 /*LOG(("MMC mmc_read_buffer_set %04x:%02x",mmc_read_buffer_writeptr,size));*/
     while (size) {
-        BYTE value;
+        uint8_t value;
 
         value = *data++;
         mmc_read_buffer[mmc_read_buffer_writeptr] = value;
@@ -142,9 +140,9 @@ static void mmc_read_buffer_set(BYTE * data, int size)
     }
 }
 
-static BYTE mmc_read_buffer_getbyte(void)
+static uint8_t mmc_read_buffer_getbyte(void)
 {
-    BYTE value = 0;          /* FIXME */
+    uint8_t value = 0;          /* FIXME */
 
     if (mmc_read_buffer_readptr != mmc_read_buffer_writeptr) {
         value = mmc_read_buffer[mmc_read_buffer_readptr];
@@ -180,42 +178,42 @@ static void mmc_reset_card(void)
 
 /* TODO */
 /* 0 = card inserted, 1 = no card inserted (R) */
-BYTE spi_mmc_card_inserted(void)
+uint8_t spi_mmc_card_inserted(void)
 {
-    BYTE value = mmc_card_inserted;
+    uint8_t value = mmc_card_inserted;
 #ifdef TEST_MMC_ALWAYS_NOCARD
     value = MMC_CARD_NOTINSERTED;
 #endif
     return value;
 }
 
-BYTE spi_mmc_set_card_inserted(BYTE value)
+static uint8_t spi_mmc_set_card_inserted(uint8_t value)
 {
-    BYTE oldvalue = spi_mmc_card_inserted();
+    uint8_t oldvalue = spi_mmc_card_inserted();
     mmc_card_inserted = value;
     return oldvalue;
 }
 
-BYTE mmc_set_card_type(BYTE value)
+uint8_t mmc_set_card_type(uint8_t value)
 {
-    BYTE oldvalue = mmc_card_type;
+    uint8_t oldvalue = mmc_card_type;
     mmc_card_type = value;
     return oldvalue;
 }
 
 /* TODO */
 /* 0 = SPI ready, 1 = SPI busy */
-BYTE spi_mmc_busy(void)
+uint8_t spi_mmc_busy(void)
 {
-    BYTE value = 0;
+    uint8_t value = 0;
     return value;
 }
 
 /* TODO */
 /* 0 = card write enabled, 1 = card write disabled (R) */
-BYTE spi_mmc_card_write_enabled(void)
+uint8_t spi_mmc_card_write_enabled(void)
 {
-    BYTE value = mmc_card_rw;
+    uint8_t value = mmc_card_rw;
 #ifdef TEST_MMC_ALWAYS_READONLY
     value = 1;
 #endif
@@ -225,41 +223,42 @@ BYTE spi_mmc_card_write_enabled(void)
 /* TODO */
 static int spi_mmc_card_selected = 0;
 
-BYTE spi_mmc_card_selected_read(void)
+uint8_t spi_mmc_card_selected_read(void)
 {
 /*LOG(("MMC spi_mmc_card_selected_read %02x",spi_mmc_card_selected));*/
     return spi_mmc_card_selected;
 }
 
 /* TODO */
-void spi_mmc_card_selected_write(BYTE value)
+void spi_mmc_card_selected_write(uint8_t value)
 {
     spi_mmc_card_selected = value;
 /*LOG(("MMC spi_mmc_card_selected_write %02x",spi_mmc_card_selected));*/
 }
 
 /* TODO */
-BYTE spi_mmc_enable_8mhz_read(void)
+uint8_t spi_mmc_enable_8mhz_read(void)
 {
-    BYTE value = 0;
+    uint8_t value = 0;
+
     return value;
 }
 
 /* TODO */
-void spi_mmc_enable_8mhz_write(BYTE value)
+void spi_mmc_enable_8mhz_write(uint8_t value)
 {
 }
 
 /* 0 = SPI write trigger mode, 1 = SPI read trigger mode */
-static BYTE spi_mmc_trigger_mode = 0;
+static uint8_t spi_mmc_trigger_mode = 0;
 /* TODO */
-BYTE spi_mmc_trigger_mode_read(void)
+uint8_t spi_mmc_trigger_mode_read(void)
 {
     return spi_mmc_trigger_mode;
 }
 
 /* TODO */
-void spi_mmc_trigger_mode_write(BYTE value)
+void spi_mmc_trigger_mode_write(uint8_t value)
 {
     spi_mmc_trigger_mode = value;
 }
@@ -267,7 +266,7 @@ void spi_mmc_trigger_mode_write(BYTE value)
 
 /* TODO */
 /* FIXME: wrap strcpy/strcat into macros so they are removed when not debugging */
-BYTE spi_mmc_data_read(void)
+uint8_t spi_mmc_data_read(void)
 {
 #ifdef DEBUG_SPI
     char logstr[0x100];
@@ -431,7 +430,7 @@ BYTE spi_mmc_data_read(void)
 
             if (!spi_mmc_card_inserted()
                 && mmc_card_state != MMC_CARD_DUMMY_READ) {
-                BYTE val;
+                uint8_t val;
                 val = mmc_read_buffer_getbyte();
 #ifdef DEBUG_SPI
                 LOG(("%s %08x of %04x:", logstr,
@@ -551,13 +550,13 @@ static void mmc_execute_cmd(void)
 #endif
             if (mmc_card_type == CARD_TYPE_MMC) {
                 /* MMC */
-                BYTE cmdresp[0x10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                uint8_t cmdresp[0x10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
                 mmc_card_state = MMC_CARD_READ;
                 mmc_read_firstbyte = 0;
                 mmc_read_buffer_set(cmdresp, 0x200);
             } else {
                 /* SD v2 */
-                BYTE cmdresp[0x10] = { 1, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                uint8_t cmdresp[0x10] = { 1, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
                 mmc_card_state = MMC_CARD_READ;
                 mmc_read_firstbyte = 1;
                 mmc_read_buffer_set(cmdresp, 0x200);
@@ -568,7 +567,7 @@ static void mmc_execute_cmd(void)
             log_debug("CMD9 send CSD received");
 #endif
             if (!spi_mmc_card_inserted()) {
-                BYTE csdresp[0x10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                uint8_t csdresp[0x10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
                 mmc_card_state = MMC_CARD_READ;
                 mmc_read_firstbyte = 0;
                 mmc_read_buffer_set(csdresp, 0x200);
@@ -582,7 +581,7 @@ static void mmc_execute_cmd(void)
             log_debug("CMD10 send CID received");
 #endif
             if (!spi_mmc_card_inserted()) {
-                BYTE cidresp[0x10] =
+                uint8_t cidresp[0x10] =
                     { 0, 0, 0, 0,
                     1+'v'-'a', 1+'i'-'a', 1+'c'-'a', 1+'e'-'a', '2', '3', /* "viceemu" */
                     0, 0, 0, 0, 0 };
@@ -635,7 +634,7 @@ static void mmc_execute_cmd(void)
                     if (fseek(mmc_image_file, mmc_current_address_pointer, SEEK_SET) != 0) {
                         mmc_card_state = MMC_CARD_DUMMY_READ;
                     } else {
-                        BYTE readbuf[0x1000];    /* FIXME */
+                        uint8_t readbuf[0x1000];    /* FIXME */
 #ifdef DEBUG_MMC
                         log_debug("Buffering: %08x", mmc_current_address_pointer);
 #endif
@@ -684,7 +683,7 @@ static void mmc_execute_cmd(void)
             break;
         case 0x69:             /* ACMD41 ? */
             {
-                BYTE cmdresp[0x10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                uint8_t cmdresp[0x10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 #ifdef DEBUG_MMC
                 log_debug("ACMD41 ? received");
 #endif
@@ -699,7 +698,7 @@ static void mmc_execute_cmd(void)
 #endif
             if (mmc_card_type != CARD_TYPE_MMC) {
                 /* SD v2 only */
-                BYTE cmdresp[0x10] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                uint8_t cmdresp[0x10] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
                 mmc_card_state = MMC_CARD_READ;
                 mmc_read_firstbyte = 0;
                 mmc_read_buffer_set(cmdresp, 0x200);
@@ -711,13 +710,13 @@ static void mmc_execute_cmd(void)
 #endif
             if (mmc_card_type == CARD_TYPE_SDHC) {
                 /* SDHC */
-                BYTE cmdresp[0x10] = { 0, 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                uint8_t cmdresp[0x10] = { 0, 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
                 mmc_card_state = MMC_CARD_READ;
                 mmc_read_firstbyte = 0;
                 mmc_read_buffer_set(cmdresp, 0x200);
             } else {
                 /* SD */
-                BYTE cmdresp[0x10] = { 0, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                uint8_t cmdresp[0x10] = { 0, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
                 mmc_card_state = MMC_CARD_READ;
                 mmc_read_firstbyte = 0;
                 mmc_read_buffer_set(cmdresp, 0x200);
@@ -785,7 +784,7 @@ static void mmc_write_to_cmd_buffer(unsigned char mmcreplay_cmd_char)
     }
 }
 
-static void mmc_write_to_mmc(BYTE value)
+static void mmc_write_to_mmc(uint8_t value)
 {
     switch (mmc_write_sequence) {
         case 0:
@@ -816,7 +815,7 @@ static void mmc_write_to_mmc(BYTE value)
 }
 
 /* TODO */
-void spi_mmc_data_write(BYTE value)
+void spi_mmc_data_write(uint8_t value)
 {
     if (mmc_card_state == MMC_CARD_WRITE
         || mmc_card_state == MMC_CARD_DUMMY_WRITE) {
@@ -890,8 +889,6 @@ void mmc_close_card_image(void)
 /* FIXME: implement snapshot support */
 int mmc_snapshot_write_module(snapshot_t *s)
 {
-    return -1;
-#if 0
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, SNAP_MODULE_NAME,
@@ -899,6 +896,9 @@ int mmc_snapshot_write_module(snapshot_t *s)
     if (m == NULL) {
         return -1;
     }
+    snapshot_set_error(SNAPSHOT_MODULE_NOT_IMPLEMENTED);
+    return -1;
+#if 0
 
     if (0) {
         snapshot_module_close(m);
@@ -914,7 +914,7 @@ int mmc_snapshot_read_module(snapshot_t *s)
 {
     return -1;
 #if 0
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);

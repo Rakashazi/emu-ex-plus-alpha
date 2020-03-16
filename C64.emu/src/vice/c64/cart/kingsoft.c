@@ -45,6 +45,9 @@
 #include "util.h"
 #include "crt.h"
 
+#include "kingsoft.h"
+
+
 /*
     Kingsoft Cartridge ("business basic" aka "s'more")
 
@@ -85,18 +88,18 @@ static void setmode(int m)
     }
 }
 
-static BYTE kingsoft_io1_read(WORD addr)
+static uint8_t kingsoft_io1_read(uint16_t addr)
 {
     setmode(0);
     return 0;
 }
 
-static void kingsoft_io1_store(WORD addr, BYTE value)
+static void kingsoft_io1_store(uint16_t addr, uint8_t value)
 {
     setmode(1);
 }
 
-static BYTE kingsoft_io1_peek(WORD addr)
+static uint8_t kingsoft_io1_peek(uint16_t addr)
 {
     return mode;
 }
@@ -110,18 +113,19 @@ static int kingsoft_dump(void)
 /* ---------------------------------------------------------------------*/
 
 static io_source_t kingsoft_device = {
-    CARTRIDGE_NAME_KINGSOFT,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    0, /* read is never valid */
-    kingsoft_io1_store,
-    kingsoft_io1_read,
-    kingsoft_io1_peek,
-    kingsoft_dump,
-    CARTRIDGE_KINGSOFT,
-    0,
-    0
+    CARTRIDGE_NAME_KINGSOFT, /* name of the device */
+    IO_DETACH_CART,          /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,   /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,    /* range for the device, address is ignored, reg:$de00, mirrors:$de01-$deff */
+    0,                       /* read is never valid */
+    kingsoft_io1_store,      /* store function */
+    NULL,                    /* NO poke function */
+    kingsoft_io1_read,       /* read function */
+    kingsoft_io1_peek,       /* peek function */
+    kingsoft_dump,           /* device state information dump function */
+    CARTRIDGE_KINGSOFT,      /* cartridge ID */
+    IO_PRIO_NORMAL,          /* normal priority, device read needs to be checked for collisions */
+    0                        /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *kingsoft_list_item = NULL;
@@ -133,13 +137,13 @@ static const export_resource_t export_res = {
 /* ---------------------------------------------------------------------*/
 
 /* ROML read - mapped to 8000 in 8k,16k,ultimax */
-BYTE kingsoft_roml_read(WORD addr)
+uint8_t kingsoft_roml_read(uint16_t addr)
 {
     return roml_banks[(addr & 0x1fff)];
 }
 
 /* ROMH read - mapped to A000 in 16k, to E000 in ultimax */
-BYTE kingsoft_romh_read(WORD addr)
+uint8_t kingsoft_romh_read(uint16_t addr)
 {
     return romh_banks[(addr & 0x1fff) + (mode << 13)];
 }
@@ -151,7 +155,7 @@ void kingsoft_config_init(void)
     setmode(0);
 }
 
-void kingsoft_config_setup(BYTE *rawcart)
+void kingsoft_config_setup(uint8_t *rawcart)
 {
     memcpy(&roml_banks[0x0000], &rawcart[0x0000], 0x2000);
     memcpy(&romh_banks[0x0000], &rawcart[0x2000], 0x2000);
@@ -169,7 +173,7 @@ static int kingsoft_common_attach(void)
     return 0;
 }
 
-int kingsoft_bin_attach(const char *filename, BYTE *rawcart)
+int kingsoft_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x6000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -177,7 +181,7 @@ int kingsoft_bin_attach(const char *filename, BYTE *rawcart)
     return kingsoft_common_attach();
 }
 
-int kingsoft_crt_attach(FILE *fd, BYTE *rawcart)
+int kingsoft_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
 
@@ -230,7 +234,7 @@ int kingsoft_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || (SMW_B(m, (BYTE)mode) < 0)
+        || (SMW_B(m, (uint8_t)mode) < 0)
         || (SMW_BA(m, roml_banks, 0x2000) < 0)
         || (SMW_BA(m, romh_banks, 0x4000) < 0)) {
         snapshot_module_close(m);
@@ -242,7 +246,7 @@ int kingsoft_snapshot_write_module(snapshot_t *s)
 
 int kingsoft_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -252,7 +256,7 @@ int kingsoft_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

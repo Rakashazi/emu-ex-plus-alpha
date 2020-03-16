@@ -42,7 +42,7 @@
 
 #define PROFDOS_ROM_SIZE 0x2000
 
-static BYTE profdos_1571_rom[PROFDOS_ROM_SIZE];
+static uint8_t profdos_1571_rom[PROFDOS_ROM_SIZE];
 
 static unsigned int profdos_al[DRIVE_NUM];
 
@@ -61,18 +61,18 @@ int profdos_load_1571(const char *name)
     return 0;
 }
 
-static BYTE profdos_read(drive_context_t *drv, WORD addr)
+static uint8_t profdos_read(drive_context_t *drv, uint16_t addr)
 {
     return profdos_1571_rom[addr & 0x1fff];
 }
 
-static BYTE profdos_read2(drive_context_t *drv, WORD addr)
+static uint8_t profdos_read2(drive_context_t *drv, uint16_t addr)
 {
     if (addr >= 0x7000) {
         if (!(addr & 0x0800)) {
-            addr = (WORD)((addr & 0xff0f) | (profdos_al[drv->mynumber] << 4));
+            addr = (uint16_t)((addr & 0xff0f) | (profdos_al[drv->mynumber] << 4));
         } else {
-            addr = (WORD)((addr & 0xff00)
+            addr = (uint16_t)((addr & 0xff00)
                           | (profdos_al[drv->mynumber] << 4) | ((addr >> 4) & 15));
         }
 

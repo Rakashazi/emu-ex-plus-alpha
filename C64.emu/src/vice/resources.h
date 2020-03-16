@@ -53,7 +53,12 @@ struct resource_callback_desc_s;
 struct event_list_state_s;
 
 struct resource_int_s {
-    /* Resource name.  */
+    /* Resource name
+     *
+     * This cannot be `const`, since some code uses this field to store, and
+     * later free, dynamically allocated strings. See for example
+     * video-resources.c
+     */
     char *name;
 
     /* Factory default value.  */
@@ -80,7 +85,12 @@ typedef struct resource_int_s resource_int_t;
 #define RESOURCE_INT_LIST_END { NULL, 0, (resource_event_relevant_t)0, NULL, NULL, NULL, NULL }
 
 struct resource_string_s {
-    /* Resource name.  */
+    /* Resource name
+     *
+     * This cannot be `const`, since some code uses this field to store, and
+     * later free, dynamically allocated strings. See for example
+     * video-resources.c
+     */
     char *name;
 
     /* Factory default value.  */
@@ -126,8 +136,8 @@ extern int resources_register_int(const resource_int_t *r);
 extern int resources_register_string(const resource_string_t *r);
 extern void resources_shutdown(void);
 extern int resources_set_value(const char *name, resource_value_t value);
-extern VICE_API int resources_set_int(const char *name, int value);
-extern VICE_API int resources_set_string(const char *name, const char *value);
+extern int resources_set_int(const char *name, int value);
+extern int resources_set_string(const char *name, const char *value);
 extern void resources_set_value_event(void *data, int size);
 extern int resources_set_int_sprintf(const char *name, int value, ...);
 extern int resources_set_string_sprintf(const char *name, const char *value, ...);
@@ -135,11 +145,11 @@ extern int resources_set_value_string(const char *name, const char *value);
 extern int resources_toggle(const char *name, int *new_value_return);
 extern int resources_touch(const char *name);
 extern int resources_get_value(const char *name, void *value_return);
-extern VICE_API int resources_get_int(const char *name, int *value_return);
-extern VICE_API int resources_get_string(const char *name, const char **value_return);
+extern int resources_get_int(const char *name, int *value_return);
+extern int resources_get_string(const char *name, const char **value_return);
 extern int resources_get_int_sprintf(const char *name, int *value_return, ...);
 extern int resources_get_string_sprintf(const char *name, const char **value_return, ...);
-extern VICE_API int resources_get_default_value(const char *name, void *value_return);
+extern int resources_get_default_value(const char *name, void *value_return);
 extern resource_type_t resources_query_type(const char *name);
 extern int resources_save(const char *fname);
 extern int resources_load(const char *fname);

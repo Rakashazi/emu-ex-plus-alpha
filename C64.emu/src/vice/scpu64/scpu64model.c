@@ -45,10 +45,10 @@
 #define CIA_MODEL_DEFAULT_NEW CIA_MODEL_6526A
 
 static int scpu64model_get_temp(int vicii_model, int sid_model, int glue_logic,
-                                int cia1_model, int cia2_model, int iecreset,
+                                int cia1model, int cia2model, int iecreset,
                                 const char *chargen);
 static void scpu64model_set_temp(int model, int *vicii_model, int *sid_model,
-                                 int *glue_logic, int *cia1_model, int *cia2_model,
+                                 int *glue_logic, int *cia1model, int *cia2model,
                                  int *iecreset,
                                  const char *chargen);
 
@@ -58,7 +58,6 @@ static int is_new_sid(int model)
 {
     switch (model) {
         case SID_MODEL_6581:
-        case SID_MODEL_6581R4:
         default:
             return 0;
 
@@ -157,19 +156,19 @@ static struct model_s scpu64models[] = {
 /* ------------------------------------------------------------------------- */
 
 static int scpu64model_get_temp(int vicii_model, int sid_model, int glue_logic,
-                                int cia1_model, int cia2_model,
+                                int cia1model, int cia2model,
                                 int iecreset, const char *chargen)
 {
     int new_sid;
     int new_cia;
     int i;
 
-    if (cia1_model != cia2_model) {
+    if (cia1model != cia2model) {
         return C64MODEL_UNKNOWN;
     }
 
     new_sid = is_new_sid(sid_model);
-    new_cia = is_new_cia(cia1_model);
+    new_cia = is_new_cia(cia1model);
 
     for (i = 0; scpu64models[i].chargenname != NULL; ++i) {
         if ((scpu64models[i].vicii == vicii_model)
@@ -195,27 +194,27 @@ int c64model_get_model(c64model_details_t *details)
 
 int c64model_get(void)
 {
-    int vicii_model, sid_model, glue_logic, cia1_model, cia2_model, iecreset;
+    int vicii_model, sid_model, glue_logic, cia1model, cia2model, iecreset;
     char c[0x10];
     const char *chargen = c;
 
     if ((resources_get_int("VICIIModel", &vicii_model) < 0)
         || (resources_get_int("SidModel", &sid_model) < 0)
         || (resources_get_int("GlueLogic", &glue_logic) < 0)
-        || (resources_get_int("CIA1Model", &cia1_model) < 0)
-        || (resources_get_int("CIA2Model", &cia2_model) < 0)
+        || (resources_get_int("CIA1Model", &cia1model) < 0)
+        || (resources_get_int("CIA2Model", &cia2model) < 0)
         || (resources_get_int("IECReset", &iecreset) < 0)
         || (resources_get_string("ChargenName", &chargen) < 0)) {
         return -1;
     }
 
     return scpu64model_get_temp(vicii_model, sid_model, glue_logic,
-                                cia1_model, cia2_model, iecreset,
+                                cia1model, cia2model, iecreset,
                                 chargen);
 }
 
 static void scpu64model_set_temp(int model, int *vicii_model, int *sid_model,
-                                 int *glue_logic, int *cia1_model, int *cia2_model,
+                                 int *glue_logic, int *cia1model, int *cia2model,
                                  int *iecreset,
                                  const char *chargen)
 {
@@ -227,7 +226,7 @@ static void scpu64model_set_temp(int model, int *vicii_model, int *sid_model,
     int new_type;
 
     old_model = scpu64model_get_temp(*vicii_model, *sid_model, *glue_logic,
-                                     *cia1_model, *cia2_model,
+                                     *cia1model, *cia2model,
                                      *iecreset, chargen);
 
     if ((model == old_model) || (model == C64MODEL_UNKNOWN)) {
@@ -235,8 +234,8 @@ static void scpu64model_set_temp(int model, int *vicii_model, int *sid_model,
     }
 
     *vicii_model = scpu64models[model].vicii;
-    *cia1_model = scpu64models[model].cia;
-    *cia2_model = scpu64models[model].cia;
+    *cia1model = scpu64models[model].cia;
+    *cia2model = scpu64models[model].cia;
     *glue_logic = scpu64models[model].glue;
     *iecreset = scpu64models[model].iecreset;
 

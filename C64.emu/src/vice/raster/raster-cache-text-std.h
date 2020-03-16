@@ -30,9 +30,9 @@
 
 #include "types.h"
 
-inline static int raster_cache_data_fill_text(BYTE *dest,
-                                              const BYTE *src,
-                                              const BYTE *char_mem,
+inline static int raster_cache_data_fill_text(uint8_t *dest,
+                                              const uint8_t *src,
+                                              const uint8_t *char_mem,
                                               const unsigned int length,
                                               unsigned int *xs,
                                               unsigned int *xe,
@@ -48,7 +48,7 @@ inline static int raster_cache_data_fill_text(BYTE *dest,
         }
         return 1;
     } else {
-        BYTE b;
+        uint8_t b;
         unsigned int i;
 
         for (i = 0; i < length && dest[i] == char_mem[src[i] * 8]; i++) {

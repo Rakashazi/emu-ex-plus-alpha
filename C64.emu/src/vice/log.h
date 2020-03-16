@@ -52,15 +52,15 @@ extern int log_set_verbose(int n);
 extern int log_verbose_init(int argc, char **argv);
 
 #ifdef __GNUC__
-extern VICE_API int log_message(log_t log, const char *format, ...)
+extern int log_message(log_t log, const char *format, ...)
     __attribute__((format(printf, 2, 3)));
-extern VICE_API int log_warning(log_t log, const char *format, ...)
+extern int log_warning(log_t log, const char *format, ...)
     __attribute__((format(printf, 2, 3)));
-extern VICE_API int log_error(log_t log, const char *format, ...)
+extern int log_error(log_t log, const char *format, ...)
     __attribute__((format(printf, 2, 3)));
-extern VICE_API int log_debug(const char *format, ...)
+extern int log_debug(const char *format, ...)
     __attribute__((format(printf, 1, 2)));
-extern VICE_API int log_verbose(const char *format, ...)
+extern int log_verbose(const char *format, ...)
     __attribute__((format(printf, 1, 2)));
 #else
 extern int log_message(log_t log, const char *format, ...);

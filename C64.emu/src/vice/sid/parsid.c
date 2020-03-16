@@ -35,9 +35,9 @@
 
 #define MAX_PAR_SID 3
 
-static BYTE sidbuf[0x20 * MAX_PAR_SID];
+static uint8_t sidbuf[0x20 * MAX_PAR_SID];
 
-static BYTE parsid_ctrport[MAX_PAR_SID];
+static uint8_t parsid_ctrport[MAX_PAR_SID];
 static int parsid_open_status = -1;
 
 /* chip control pin assignments */
@@ -147,16 +147,16 @@ int parsid_close(void)
     return 0;
 }
 
-int parsid_read(WORD addr, int chipno)
+int parsid_read(uint16_t addr, int chipno)
 {
-    BYTE value = 0;
+    uint8_t value = 0;
 
     if (!parsid_open_status && chipno < MAX_PAR_SID) {
         /* use sidbuf[] for write-only registers */
         if (addr <= 0x18) {
             return sidbuf[addr + (chipno * 0x20)];
         }
-        parsid_drv_out_data((BYTE)(addr & 0x1f), chipno);
+        parsid_drv_out_data((uint8_t)(addr & 0x1f), chipno);
         parsid_latch_open(chipno);
         parsid_latch_lock(chipno);
         parsid_port_read(chipno);
@@ -170,14 +170,14 @@ int parsid_read(WORD addr, int chipno)
     return (int)value;
 }
 
-void parsid_store(WORD addr, BYTE outval, int chipno)
+void parsid_store(uint16_t addr, uint8_t outval, int chipno)
 {
     if (!parsid_open_status && chipno < MAX_PAR_SID) {
         /* write to sidbuf[] for write-only registers */
         if (addr <= 0x18) {
             sidbuf[addr + (chipno * 0x20)] = outval;
         }
-        parsid_drv_out_data((BYTE)(addr & 0x1f), chipno);
+        parsid_drv_out_data((uint8_t)(addr & 0x1f), chipno);
         parsid_latch_open(chipno);
         parsid_latch_lock(chipno);
         parsid_drv_out_data(outval, chipno);
@@ -217,7 +217,7 @@ void parsid_state_write(int chipno, struct sid_parsid_snapshot_state_s *sid_stat
     if (chipno < MAX_PAR_SID) {
         for (i = 0; i < 32; ++i) {
             sidbuf[i + (chipno * 0x20)] = sid_state->regs[i];
-            parsid_store((WORD)i, sid_state->regs[i], chipno);
+            parsid_store((uint16_t)i, sid_state->regs[i], chipno);
         }
         parsid_ctrport[chipno] = sid_state->parsid_ctrport;
     }

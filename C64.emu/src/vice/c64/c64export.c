@@ -36,7 +36,6 @@
 #include "export.h"
 #include "lib.h"
 #include "monitor.h"
-#include "translate.h"
 #include "uiapi.h"
 
 /* #define DEBUGEXPORT */
@@ -76,7 +75,7 @@ void export_dump(void)
             } else {
                 mon_out("  ");
             }
-            mon_out("%5d ", current->device->cartid);
+            mon_out("%5u ", current->device->cartid);
             mon_out("%4s ", current->device->game ? "*" : "-");
             mon_out("%5s ", current->device->exrom ? "*" : "-");
             io = current->device->io1;

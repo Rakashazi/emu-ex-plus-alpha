@@ -31,13 +31,13 @@
 
 #include "types.h"
 
-extern void ocean_config_setup(BYTE *rawcart);
+extern void ocean_config_setup(uint8_t *rawcart);
 extern void ocean_config_init(void);
-extern int ocean_bin_attach(const char *filename, BYTE *rawcart);
-extern int ocean_crt_attach(FILE *fd, BYTE *rawcart);
+extern int ocean_bin_attach(const char *filename, uint8_t *rawcart);
+extern int ocean_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void ocean_detach(void);
 
-extern BYTE ocean_romh_read(WORD addr);
+extern uint8_t ocean_romh_read(uint16_t addr);
 
 struct snapshot_s;
 

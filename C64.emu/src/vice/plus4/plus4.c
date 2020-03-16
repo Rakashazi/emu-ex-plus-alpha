@@ -100,7 +100,6 @@
 #include "ted-resources.h"
 #include "ted-sound.h"
 #include "ted.h"
-#include "translate.h"
 #include "traps.h"
 #include "types.h"
 #include "userport.h"
@@ -114,6 +113,12 @@
 #ifdef HAVE_MOUSE
 #include "mouse.h"
 #endif
+
+
+/** \brief  Delay in seconds before pasting -keybuf argument into the buffer
+ */
+#define KBDBUF_ALARM_DELAY   1
+
 
 machine_context_t machine_context;
 
@@ -288,49 +293,44 @@ static long cycles_per_rfsh = PLUS4_PAL_CYCLES_PER_RFSH;
 static double rfsh_per_sec = PLUS4_PAL_RFSH_PER_SEC;
 */
 
-static joyport_port_props_t control_port_1 = 
+static joyport_port_props_t control_port_1 =
 {
     "Control port 1",
-    IDGS_CONTROL_PORT_1,
-    0,				/* has NO potentiometer connected to this port */
-    0,				/* has NO lightpen support on this port */
-    1					/* port is always active */
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    1                   /* port is always active */
 };
 
-static joyport_port_props_t control_port_2 = 
+static joyport_port_props_t control_port_2 =
 {
     "Control port 2",
-    IDGS_CONTROL_PORT_2,
-    0,				/* has NO potentiometer connected to this port */
-    0,				/* has NO lightpen support on this port */
-    1					/* port is always active */
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    1                   /* port is always active */
 };
 
-static joyport_port_props_t userport_joy_control_port_1 = 
+static joyport_port_props_t userport_joy_control_port_1 =
 {
     "Userport joystick adapter port 1",
-    IDGS_USERPORT_JOY_ADAPTER_PORT_1,
-    0,				/* has NO potentiometer connected to this port */
-    0,				/* has NO lightpen support on this port */
-    0					/* port can be switched on/off */
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0                   /* port can be switched on/off */
 };
 
-static joyport_port_props_t userport_joy_control_port_2 = 
+static joyport_port_props_t userport_joy_control_port_2 =
 {
     "Userport joystick adapter port 2",
-    IDGS_USERPORT_JOY_ADAPTER_PORT_2,
-    0,				/* has NO potentiometer connected to this port */
-    0,				/* has NO lightpen support on this port */
-    0					/* port can be switched on/off */
+    0,                  /* has NO potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0                   /* port can be switched on/off */
 };
 
-static joyport_port_props_t sidcard_port = 
+static joyport_port_props_t sidcard_port =
 {
     "SIDCard control port",
-    IDGS_SIDCARD_CONTROL_PORT,
-    1,				/* has a potentiometer connected to this port */
-    0,				/* has NO lightpen support on this port */
-    0					/* port can be switched on/off */
+    1,                  /* has a potentiometer connected to this port */
+    0,                  /* has NO lightpen support on this port */
+    0                   /* port can be switched on/off */
 };
 
 static int init_joyport_ports(void)
@@ -524,22 +524,21 @@ int machine_resources_init(void)
         return -1;
     }
 #endif
-#ifndef COMMON_KBD
-    if (kbd_resources_init() < 0) {
-        init_resource_fail("kbd");
-        return -1;
-    }
-#endif
     if (drive_resources_init() < 0) {
         init_resource_fail("drive");
         return -1;
     }
-    if (tapeport_resources_init() < 0) {
-        init_resource_fail("tapeport");
-        return -1;
-    }
+    /*
+     * This needs to be called before tapeport_resources_init(), otherwise
+     * the tapecart will fail to initialize due to the Datasette resource
+     * appearing after the Tapecart resources
+     */
     if (datasette_resources_init() < 0) {
         init_resource_fail("datasette");
+        return -1;
+    }
+    if (tapeport_resources_init() < 0) {
+        init_resource_fail("tapeport");
         return -1;
     }
     if (debugcart_resources_init() < 0) {
@@ -704,12 +703,6 @@ int machine_cmdline_options_init(void)
         return -1;
     }
 #endif
-#ifndef COMMON_KBD
-    if (kbd_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("kbd");
-        return -1;
-    }
-#endif
     if (drive_cmdline_options_init() < 0) {
         init_cmdline_options_fail("drive");
         return -1;
@@ -810,7 +803,7 @@ int machine_specific_init(void)
     if (delay == 0) {
         delay = 2; /* default */
     }
-    autostart_init((CLOCK)(delay * PLUS4_PAL_RFSH_PER_SEC * PLUS4_PAL_CYCLES_PER_RFSH), 1, 0, 0xc8, 0xca, -40);
+    autostart_init((CLOCK)(delay * PLUS4_PAL_RFSH_PER_SEC * PLUS4_PAL_CYCLES_PER_RFSH), 1);
 
     /* Initialize the sidcart first */
     sidcart_sound_chip_init();
@@ -832,24 +825,17 @@ int machine_specific_init(void)
        device yet.  */
     sound_init(machine_timing.cycles_per_sec, machine_timing.cycles_per_rfsh);
 
-#ifdef USE_BEOS_UI
     /* Pre-init Plus4-specific parts of the menus before ted_init()
-       creates a canvas window with a menubar at the top. This could
-       also be used by other ports, e.g. GTK+...  */
-    plus4ui_init_early();
-#endif
+       creates a canvas window with a menubar at the top. */
+    if (!console_mode) {
+        plus4ui_init_early();
+    }
 
     if (ted_init() == NULL) {
         return -1;
     }
 
     acia_init();
-
-#ifndef COMMON_KBD
-    if (plus4_kbd_init() < 0) {
-        return -1;
-    }
-#endif
 
     plus4_monitor_init();
 
@@ -859,7 +845,8 @@ int machine_specific_init(void)
                                 machine_timing.cycles_per_sec);
 
     /* Initialize keyboard buffer.  */
-    kbdbuf_init(1319, 239, 8, (CLOCK)(machine_timing.rfsh_per_sec * machine_timing.cycles_per_rfsh));
+    kbdbuf_init(1319, 239, 8, (CLOCK)(machine_timing.rfsh_per_sec *
+                machine_timing.cycles_per_rfsh * KBDBUF_ALARM_DELAY));
 
     if (!console_mode) {
         plus4ui_init();
@@ -880,16 +867,6 @@ int machine_specific_init(void)
     /* Initialize the machine specific I/O */
     plus4io_init();
 
-#if defined (USE_XF86_EXTENSIONS) && (defined(USE_XF86_VIDMODE_EXT) || defined (HAVE_XRANDR))
-    {
-        /* set fullscreen if user used `-fullscreen' on cmdline */
-        int fs;
-        resources_get_int("UseFullscreen", &fs);
-        if (fs) {
-            resources_set_int("TEDFullscreen", 1);
-        }
-    }
-#endif
     return 0;
 }
 
@@ -1044,12 +1021,20 @@ void machine_change_timing(int timeval, int border_mode)
 int machine_write_snapshot(const char *name, int save_roms, int save_disks,
                            int event_mode)
 {
-    return plus4_snapshot_write(name, save_roms, save_disks, event_mode);
+    int err = plus4_snapshot_write(name, save_roms, save_disks, event_mode);
+    if ((err < 0) && (snapshot_get_error() == SNAPSHOT_NO_ERROR)) {
+        snapshot_set_error(SNAPSHOT_CANNOT_WRITE_SNAPSHOT);
+    }
+    return err;
 }
 
 int machine_read_snapshot(const char *name, int event_mode)
 {
-    return plus4_snapshot_read(name, event_mode);
+    int err = plus4_snapshot_read(name, event_mode);
+    if ((err < 0) && (snapshot_get_error() == SNAPSHOT_NO_ERROR)) {
+        snapshot_set_error(SNAPSHOT_CANNOT_READ_SNAPSHOT);
+    }
+    return err;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1087,12 +1072,12 @@ struct image_contents_s *machine_diskcontents_bus_read(unsigned int unit)
     return diskcontents_iec_read(unit);
 }
 
-BYTE machine_tape_type_default(void)
+uint8_t machine_tape_type_default(void)
 {
     return TAPE_CAS_TYPE_PRG;
 }
 
-BYTE machine_tape_behaviour(void)
+uint8_t machine_tape_behaviour(void)
 {
     return TAPE_BEHAVIOUR_C16;
 }
@@ -1115,11 +1100,11 @@ const char *machine_get_name(void)
 /* ------------------------------------------------------------------------- */
 
 static userport_port_props_t userport_props = {
-    0, /* NO pa2 pin */
-    0, /* NO pa3 pin */
+    0,    /* port does NOT have the pa2 pin */
+    0,    /* port does NOT have the pa3 pin */
     NULL, /* NO flag pin */
-    0, /* NO pc pin */
-    0  /* NO cnt1, cnt2 or sp pins */
+    0,    /* port does NOT have the pc pin */
+    0     /* port does NOT have the cnt1, cnt2 or sp pins */
 };
 
 int machine_register_userport(void)

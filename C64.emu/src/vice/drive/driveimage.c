@@ -42,7 +42,7 @@
 /* Logging goes here.  */
 static log_t driveimage_log = LOG_DEFAULT;
 
-static int drive_check_image_format(unsigned int format, unsigned int dnr)
+int drive_check_image_format(unsigned int format, unsigned int dnr)
 {
     drive_t *drive;
 

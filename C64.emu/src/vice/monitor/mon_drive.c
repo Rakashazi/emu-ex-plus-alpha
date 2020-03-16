@@ -45,7 +45,7 @@
 #include "vdrive-command.h"
 
 
-#define ADDR_LIMIT(x) ((WORD)(addr_mask(x)))
+#define ADDR_LIMIT(x) ((uint16_t)(addr_mask(x)))
 
 
 void mon_drive_block_cmd(int op, int track, int sector, MON_ADDR addr)
@@ -62,7 +62,7 @@ void mon_drive_block_cmd(int op, int track, int sector, MON_ADDR addr)
     }
 
     if (!op) {
-        BYTE readdata[256];
+        uint8_t readdata[256];
         int i, j, dst;
         MEMSPACE dest_mem;
 
@@ -81,10 +81,11 @@ void mon_drive_block_cmd(int op, int track, int sector, MON_ADDR addr)
                 mon_set_mem_val(dest_mem, ADDR_LIMIT(dst + i), readdata[i]);
             }
 
-            mon_out("Read track %d sector %d into address $%04x\n", track, sector, dst);
+            mon_out("Read track %d sector %d into address $%04x\n",
+                    track, sector, (unsigned int)dst);
         } else {
             for (i = 0; i < 16; i++) {
-                mon_out(">%04x", i * 16);
+                mon_out(">%04x", (unsigned int)(i * 16));
                 for (j = 0; j < 16; j++) {
                     if ((j & 3) == 0) {
                         mon_out(" ");
@@ -95,7 +96,7 @@ void mon_drive_block_cmd(int op, int track, int sector, MON_ADDR addr)
             }
         }
     } else {
-        BYTE writedata[256];
+        uint8_t writedata[256];
         int i, src;
         MEMSPACE src_mem;
 
@@ -112,7 +113,7 @@ void mon_drive_block_cmd(int op, int track, int sector, MON_ADDR addr)
         }
 
         mon_out("Write data from address $%04x to track %d sector %d\n",
-                src, track, sector);
+                (unsigned int)src, track, sector);
     }
 }
 
@@ -127,7 +128,7 @@ void mon_drive_execute_disk_cmd(char *cmd)
 
     len = (unsigned int)strlen(cmd);
 
-    vdrive_command_execute(vdrive, (BYTE *)cmd, len);
+    vdrive_command_execute(vdrive, (uint8_t *)cmd, len);
 }
 
 void mon_drive_list(int drive_number)

@@ -45,15 +45,15 @@
 #define IECBUS_DEVICE_IECDEVICE 2
 
 
-BYTE (*iecbus_callback_read)(CLOCK) = NULL;
-void (*iecbus_callback_write)(BYTE, CLOCK) = NULL;
+uint8_t (*iecbus_callback_read)(CLOCK) = NULL;
+void (*iecbus_callback_write)(uint8_t, CLOCK) = NULL;
 void (*iecbus_update_ports)(void) = NULL;
 
 iecbus_t iecbus;
 
 static unsigned int iecbus_device[IECBUS_NUM];
 
-static BYTE iec_old_atn = 0x10;
+static uint8_t iec_old_atn = 0x10;
 
 
 #include "debug.h"
@@ -65,7 +65,7 @@ static BYTE iec_old_atn = 0x10;
 static void debug_iec_cpu_write(unsigned int data)
 {
     if (debug.iec) {
-        BYTE value = ~data;
+        uint8_t value = ~data;
 
         log_debug("$DD00 store: %s %s %s",
                   value & 0x20 ? "DATA OUT" : "        ",
@@ -79,7 +79,7 @@ static void debug_iec_cpu_write(unsigned int data)
 static void debug_iec_cpu_read(unsigned int data)
 {
     if (debug.iec) {
-        BYTE value = data;
+        uint8_t value = data;
 
         log_debug("$DD00 read:  %s %s %s %s %s",
                   value & 0x20 ? "DATA OUT" : "        ",
@@ -95,8 +95,8 @@ static void debug_iec_cpu_read(unsigned int data)
 void debug_iec_drv_write(unsigned int data)
 {
     if (debug.iec) {
-        BYTE value = data;
-        static BYTE oldvalue = 0;
+        uint8_t value = data;
+        static uint8_t oldvalue = 0;
 
         if (value != oldvalue) {
             oldvalue = value;
@@ -113,19 +113,19 @@ void debug_iec_drv_write(unsigned int data)
 void debug_iec_drv_read(unsigned int data)
 {
     if (debug.iec) {
-        BYTE value = data;
-        static BYTE oldvalue = { 0 };
+        uint8_t value = data;
+        static uint8_t oldvalue = { 0 };
         const char * data_correct = "";
 
         if (value != oldvalue) {
             unsigned int atn = value & 0x80 ? 1 : 0;
             unsigned int atna = value & 0x10 ? 1 : 0;
-            unsigned int data = value & 0x01 ? 1 : 0;
+            unsigned int ddata = value & 0x01 ? 1 : 0;
 
             oldvalue = value;
 
             if (atn ^ atna) {
-                if (!data) {
+                if (!ddata) {
                     data_correct = " ***** ERROR: ATN, ATNA & DATA! *****";
                 }
             }
@@ -148,7 +148,7 @@ void debug_iec_bus_write(unsigned int data)
 {
 #if 0
     if (debug.iec) {
-        BYTE value = data;
+        uint8_t value = data;
 
         log_debug("  BUS store: %s %s %s",
                   value & 0x02 ? "DATA OUT" : "        ",
@@ -163,7 +163,7 @@ void debug_iec_bus_read(unsigned int data)
 {
 #if 0
     if (debug.iec) {
-        BYTE value = data;
+        uint8_t value = data;
 
         log_debug("  BUS read:  %s %s %s %s %s %s",
                   value & 0x02 ? "DATA OUT" : "        ",
@@ -193,21 +193,21 @@ void iecbus_init(void)
                       | IECBUS_DEVICE_READ_ATN;
 }
 
-void iecbus_cpu_undump(BYTE data)
+void iecbus_cpu_undump(uint8_t data)
 {
     iec_update_cpu_bus(data);
     iec_old_atn = iecbus.cpu_bus & 0x10;
 }
 
 /* No drive is enabled.  */
-static BYTE iecbus_cpu_read_conf0(CLOCK clock)
+static uint8_t iecbus_cpu_read_conf0(CLOCK clock)
 {
     DEBUG_IEC_CPU_READ((iecbus.iec_fast_1541 & 0x30u) << 2);
 
     return (iecbus.iec_fast_1541 & 0x30u) << 2;
 }
 
-static void iecbus_cpu_write_conf0(BYTE data, CLOCK clock)
+static void iecbus_cpu_write_conf0(uint8_t data, CLOCK clock)
 {
     DEBUG_IEC_CPU_WRITE(data);
 
@@ -215,7 +215,7 @@ static void iecbus_cpu_write_conf0(BYTE data, CLOCK clock)
 }
 
 /* Only the first drive is enabled.  */
-static BYTE iecbus_cpu_read_conf1(CLOCK clock)
+static uint8_t iecbus_cpu_read_conf1(CLOCK clock)
 {
     drive_cpu_execute_all(clock);
 
@@ -224,7 +224,7 @@ static BYTE iecbus_cpu_read_conf1(CLOCK clock)
     return iecbus.cpu_port;
 }
 
-static void iecbus_cpu_write_conf1(BYTE data, CLOCK clock)
+static void iecbus_cpu_write_conf1(uint8_t data, CLOCK clock)
 {
     drive_t *drive;
 
@@ -273,7 +273,7 @@ static void iecbus_cpu_write_conf1(BYTE data, CLOCK clock)
 }
 
 /* Only the second drive is enabled.  */
-static BYTE iecbus_cpu_read_conf2(CLOCK clock)
+static uint8_t iecbus_cpu_read_conf2(CLOCK clock)
 {
     drive_cpu_execute_all(clock);
 
@@ -282,7 +282,7 @@ static BYTE iecbus_cpu_read_conf2(CLOCK clock)
     return iecbus.cpu_port;
 }
 
-static void iecbus_cpu_write_conf2(BYTE data, CLOCK clock)
+static void iecbus_cpu_write_conf2(uint8_t data, CLOCK clock)
 {
     drive_t *drive;
 
@@ -331,7 +331,7 @@ static void iecbus_cpu_write_conf2(BYTE data, CLOCK clock)
     iec_update_ports();
 }
 
-static BYTE iecbus_cpu_read_conf3(CLOCK clock)
+static uint8_t iecbus_cpu_read_conf3(CLOCK clock)
 {
     drive_cpu_execute_all(clock);
     serial_iec_device_exec(clock);
@@ -341,7 +341,7 @@ static BYTE iecbus_cpu_read_conf3(CLOCK clock)
     return iecbus.cpu_port;
 }
 
-static void iecbus_cpu_write_conf3(BYTE data, CLOCK clock)
+static void iecbus_cpu_write_conf3(uint8_t data, CLOCK clock)
 {
     unsigned int dnr;
 
@@ -516,13 +516,13 @@ void iecbus_status_set(unsigned int type, unsigned int unit,
 }
 
 
-BYTE iecbus_device_read(void)
+uint8_t iecbus_device_read(void)
 {
     return iecbus.drv_port;
 }
 
 
-int iecbus_device_write(unsigned int unit, BYTE data)
+int iecbus_device_write(unsigned int unit, uint8_t data)
 {
     if (unit < IECBUS_NUM) {
         iecbus.drv_bus[unit] = data;

@@ -45,11 +45,11 @@
 
 
 struct rotation_s {
-    DWORD accum;
+    uint32_t accum;
     CLOCK rotation_last_clk;
 
     unsigned int last_read_data;
-    BYTE last_write_data;
+    uint8_t last_write_data;
     int bit_counter;
     int zero_count;
 
@@ -59,7 +59,7 @@ struct rotation_s {
     int ue7_dcba; /* UE7 input BA, counter b1/b0, connected to UCD4 PB6/PB5, DC=0 */
     int ue7_counter; /* UE7 4 bit counter state */
     int uf4_counter; /* UF4 4 bit counter state */
-    DWORD fr_randcount; /* counter distance of the last real flux reversal detected from the disk */
+    uint32_t fr_randcount; /* counter distance of the last real flux reversal detected from the disk */
 
     int filter_counter; /* flux filter ignore cycle count */
     int filter_state; /* flux filter current state */
@@ -69,15 +69,15 @@ struct rotation_s {
 
     int so_delay; /* so signal delay */
 
-    DWORD cycle_index; /* cycle_index */
+    uint32_t cycle_index; /* cycle_index */
 
     int ref_advance; /* reference cycles already simulated, e.g. when emulating bus delay */
 
-    DWORD PulseHeadPosition;
+    uint32_t PulseHeadPosition;
 
-    DWORD seed;
+    uint32_t seed;
 
-    DWORD xorShift32;
+    uint32_t xorShift32;
 };
 typedef struct rotation_s rotation_t;
 
@@ -141,7 +141,7 @@ void rotation_speed_zone_set(unsigned int zone, unsigned int dnr)
     rotation[dnr].ue7_dcba = zone & 3;
 }
 
-void rotation_table_get(DWORD *rotation_table_ptr)
+void rotation_table_get(uint32_t *rotation_table_ptr)
 {
     unsigned int dnr;
     drive_t *drive;
@@ -176,7 +176,7 @@ void rotation_table_get(DWORD *rotation_table_ptr)
     }
 }
 
-void rotation_table_set(DWORD *rotation_table_ptr)
+void rotation_table_set(uint32_t *rotation_table_ptr)
 {
     unsigned int dnr;
     drive_t *drive;
@@ -269,15 +269,15 @@ inline static int read_next_bit(drive_t *dptr)
     return (dptr->GCR_track_start_ptr[byte_offset] >> bit) & 1;
 }
 
-inline static SDWORD RANDOM_nextInt(rotation_t *rptr)
+inline static int32_t RANDOM_nextInt(rotation_t *rptr)
 {
-    DWORD bits = rptr->seed >> 15;
+    uint32_t bits = rptr->seed >> 15;
     rptr->seed ^= rptr->accum;
     rptr->seed = rptr->seed << 17 | bits;
-    return (SDWORD) rptr->seed;
+    return (int32_t) rptr->seed;
 }
 
-inline static DWORD RANDOM_nextUInt(rotation_t *rptr)
+inline static uint32_t RANDOM_nextUInt(rotation_t *rptr)
 {
     rptr->xorShift32 ^= (rptr->xorShift32 << 13);
     rptr->xorShift32 ^= (rptr->xorShift32 >> 17);
@@ -300,15 +300,11 @@ static void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
     rotation_t *rptr;
     int clk_ref_per_rev, cyc_act_frv;
     unsigned int todo;
-    SDWORD delta;
-    DWORD count_new_bitcell, cyc_sum_frv /*, sum_new_bitcell*/;
+    int32_t delta;
+    uint32_t count_new_bitcell, cyc_sum_frv /*, sum_new_bitcell*/;
     unsigned int dnr = dptr->mynumber;
     int wobble;
-#ifdef _MSC_VER
-    __int64 tmp = 30000UL;
-#else
-    unsigned long long tmp = 30000UL;
-#endif
+    uint64_t tmp = 30000UL;
 
     rptr = &rotation[dptr->mynumber];
 
@@ -346,7 +342,7 @@ static void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
             /* calculate how much cycles can we do in one single pass */
             todo = 1;
             delta = count_new_bitcell - rptr->accum;
-            if ((delta > 0) && ((cyc_sum_frv << 1) <= (DWORD)delta)) {
+            if ((delta > 0) && ((cyc_sum_frv << 1) <= (uint32_t)delta)) {
                 todo = delta / cyc_sum_frv;
                 if (ref_cycles < (int)todo) {
                     todo = ref_cycles;
@@ -423,7 +419,7 @@ static void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
                     } else {
                         if (++rptr->bit_counter == 8) {
                             rptr->bit_counter = 0;
-                            dptr->GCR_read = (BYTE) rptr->last_read_data;
+                            dptr->GCR_read = (uint8_t) rptr->last_read_data;
                             rptr->last_write_data = dptr->GCR_read;
 
                             /* BYTE READY signal if enabled */
@@ -462,7 +458,7 @@ static void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
             /* calculate how much cycles can we do in one single pass */
             todo = 1;
             delta = count_new_bitcell - rptr->accum;
-            if ((delta > 0) && ((cyc_sum_frv << 1) <= (DWORD)delta)) {
+            if ((delta > 0) && ((cyc_sum_frv << 1) <= (uint32_t)delta)) {
                 todo = delta / cyc_sum_frv;
                 if (ref_cycles < (int)todo) {
                     todo = ref_cycles;
@@ -583,7 +579,7 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
 {
     rotation_t *rptr;
     PP64PulseStream P64PulseStream;
-    DWORD DeltaPositionToNextPulse, ToDo;
+    uint32_t DeltaPositionToNextPulse, ToDo;
 
     rptr = &rotation[dptr->mynumber];
 
@@ -699,7 +695,7 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
                                 if (++rptr->bit_counter == 8) {
                                     rptr->bit_counter = 0;
 
-                                    dptr->GCR_read = (BYTE) rptr->last_read_data;
+                                    dptr->GCR_read = (uint8_t) rptr->last_read_data;
 
                                     /* tlr claims that the write register is loaded at every
                                      * byte boundary, and since the bus is shared, it's reasonable
@@ -747,11 +743,11 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
                 if (!DeltaPositionToNextPulse) {
                     if ((P64PulseStream->CurrentIndex >= 0) &&
                         (P64PulseStream->Pulses[P64PulseStream->CurrentIndex].Position == rptr->PulseHeadPosition)) {
-                        DWORD Strength = P64PulseStream->Pulses[P64PulseStream->CurrentIndex].Strength;
+                        uint32_t Strength = P64PulseStream->Pulses[P64PulseStream->CurrentIndex].Strength;
 
                         /* Forward pulse high hit to the decoder logic */
                         if ((Strength == 0xffffffffUL) ||                                   /* Strong pulse */
-                            (((DWORD)(RANDOM_nextInt(rptr) ^ 0x80000000UL)) < Strength)) {  /* Weak pulse */
+                            (((uint32_t)(RANDOM_nextInt(rptr) ^ 0x80000000UL)) < Strength)) {  /* Weak pulse */
                             rptr->filter_state ^= 1;
                             rptr->filter_counter = 0;
                         }
@@ -952,11 +948,7 @@ static void rotation_1541_simple(drive_t *dptr)
     CLOCK delta;
     int tdelta;
     int bits_moved = 0;
-#ifdef _MSC_VER
-    __int64 tmp = 1000000UL;
-#else
-    unsigned long long tmp = 1000000UL;
-#endif
+    uint64_t tmp = 1000000UL;
     unsigned long rpmscale;
     int wobble;
 
@@ -1016,7 +1008,7 @@ static void rotation_1541_simple(drive_t *dptr)
             if (~last_read_data & 0x1ff80) {
                 if (++bit_counter == 8) {
                     bit_counter = 0;
-                    dptr->GCR_read = (BYTE) (last_read_data >> 7);
+                    dptr->GCR_read = (uint8_t) (last_read_data >> 7);
                     /* tlr claims that the write register is loaded at every
                      * byte boundary, and since the bus is shared, it's reasonable
                      * to guess that it would be loaded with whatever was last read. */
@@ -1093,7 +1085,7 @@ void rotation_rotate_disk(drive_t *dptr)
    The return value corresponds to bit#7 of VIA2 PRB. This means 0x0
    is returned when sync is found and 0x80 is returned when no sync
    is found.  */
-BYTE rotation_sync_found(drive_t *dptr)
+uint8_t rotation_sync_found(drive_t *dptr)
 {
     unsigned int dnr = dptr->mynumber;
 

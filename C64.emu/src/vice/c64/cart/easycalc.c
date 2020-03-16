@@ -56,22 +56,23 @@
  */
 
 /* some prototypes are needed */
-static void easycalc_io1_store(WORD addr, BYTE val);
+static void easycalc_io1_store(uint16_t addr, uint8_t val);
 static int easycalc_dump(void);
 
 static io_source_t easycalc_device = {
-    CARTRIDGE_NAME_EASYCALC,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    0, /* read is never valid */
-    easycalc_io1_store,
-    NULL, /* no read */
-    NULL, /* no peek */
-    easycalc_dump,
-    CARTRIDGE_EASYCALC,
-    0,
-    0
+    CARTRIDGE_NAME_EASYCALC, /* name of the device */
+    IO_DETACH_CART,          /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,   /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,    /* range for the device, regs:$de00-$de01, mirrors:$de02-$deff */
+    0,                       /* read is never valid, device is write only */
+    easycalc_io1_store,      /* store function */
+    NULL,                    /* NO poke function */
+    NULL,                    /* NO read function */
+    NULL,                    /* NO peek function */
+    easycalc_dump,           /* device state information dump function */
+    CARTRIDGE_EASYCALC,      /* cartridge ID */
+    IO_PRIO_NORMAL,          /* normal priority, device read needs to be checked for collisions */
+    0                        /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *easycalc_list_item = NULL;
@@ -87,7 +88,7 @@ void easycalc_config_init(void)
     cart_config_changed_slotmain(1, 1, CMODE_READ);
 }
 
-void easycalc_config_setup(BYTE *rawcart)
+void easycalc_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
     memcpy(romh_banks, &rawcart[0x2000], 0x4000);
@@ -104,7 +105,7 @@ static int easycalc_common_attach(void)
     return 0;
 }
 
-int easycalc_bin_attach(const char *filename, BYTE *rawcart)
+int easycalc_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x6000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -112,7 +113,7 @@ int easycalc_bin_attach(const char *filename, BYTE *rawcart)
     return easycalc_common_attach();
 }
 
-int easycalc_crt_attach(FILE *fd, BYTE *rawcart)
+int easycalc_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
     int i;
@@ -159,7 +160,7 @@ void easycalc_detach(void)
 
 static int curbank = 0;
 
-static void easycalc_io1_store(WORD addr, BYTE val)
+static void easycalc_io1_store(uint16_t addr, uint8_t val)
 {
     curbank = (addr & 1) ? 1 : 0;
 
@@ -208,7 +209,7 @@ int easycalc_snapshot_write_module(snapshot_t *s)
 
 int easycalc_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -218,7 +219,7 @@ int easycalc_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

@@ -39,9 +39,9 @@
 
 typedef struct trap_s {
     const char *name;
-    WORD address;
-    WORD resume_address;
-    BYTE check[3];
+    uint16_t address;
+    uint16_t resume_address;
+    uint8_t check[3];
 #if defined(__STDC__) || defined(__IBMC__)
     int (*func)(void);
 #else
@@ -58,7 +58,7 @@ extern int traps_cmdline_options_init(void);
 extern int traps_add(const trap_t *trap);
 extern int traps_remove(const trap_t *trap);
 extern void traps_refresh(void);
-extern DWORD traps_handler(void);
+extern uint32_t traps_handler(void);
 extern int traps_checkaddr(unsigned int addr);
 
 #endif

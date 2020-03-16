@@ -36,7 +36,7 @@
 
 #include <stdio.h>
 
-#if __GNUC__>2 || (__GNUC__==2 && __GNUC_MINOR__>=91) || defined _MSC_VER || defined __WATCOMC__
+#if __GNUC__>2 || (__GNUC__==2 && __GNUC_MINOR__>=91)
 #include <windows.h>
 #include <mmsystem.h>
 #include <string.h>
@@ -47,7 +47,8 @@
 #include "types.h"
 #include "uiapi.h"
 
-#if !defined(_WIN64) && defined _MSC_VER && _MSC_VER < 1500 && defined WINVER && WINVER < 0x0500 && !defined(WATCOM_COMPILE)
+/* What the hell is this? */
+#if !defined(_WIN64)
 #define DWORD_PTR DWORD
 #endif
 
@@ -130,14 +131,14 @@ static unsigned wmm_timer_id = 0;
 /* Inactivity timer (for clearing the buffer) */
 static int inactivity_timer;
 
-static SWORD last_buffered_sample[2];
+static int16_t last_buffered_sample[2];
 
 
 /* Prototypes */
 static int wmm_init(const char *param, int *speed, int *fragsize, int *fragnr, int *channels);
 static void wmm_close(void);
 static int wmm_bufferspace(void);
-static int wmm_write(SWORD *pbuf, size_t nr);
+static int wmm_write(int16_t *pbuf, size_t nr);
 int sound_init_wmm_device(void);
 
 
@@ -224,7 +225,7 @@ WAVEOUT_OK:
 
     /* Calculate buffer size */
     fragment_size = *fragsize;
-    fragment_bytesize = fragment_size * (is16bit ? sizeof(SWORD) : 1)
+    fragment_bytesize = fragment_size * (is16bit ? sizeof(uint16_t) : 1)
                         * num_of_channels;
     num_fragments = *fragnr;
     buffer_size = fragment_bytesize * num_fragments;
@@ -378,7 +379,7 @@ static int wmm_bufferspace(void)
     return value / num_of_channels;
 }
 
-static int wmm_write(SWORD *pbuf, size_t nr)
+static int wmm_write(int16_t *pbuf, size_t nr)
 {
     DWORD play_cursor;
     DWORD worktodo;
@@ -427,7 +428,7 @@ static int wmm_write(SWORD *pbuf, size_t nr)
     } else {
         inactivity_timer = 0; /* Else, just reset inactivity timer */
     }
-    worktodo = (DWORD)nr * (is16bit ? sizeof(SWORD) : 1);
+    worktodo = (DWORD)nr * (is16bit ? sizeof(int16_t) : 1);
 
     if (worktodo > buffer_size) {
         return 0; /* Sanity check */
@@ -502,9 +503,9 @@ static int wmm_write(SWORD *pbuf, size_t nr)
 static int wmm_suspend(void)
 {
     int c, i;
-    SWORD *p;
+    int16_t *p;
 
-    p = lib_malloc(fragment_size * num_of_channels * sizeof(SWORD));
+    p = lib_malloc(fragment_size * num_of_channels * sizeof(int16_t));
 
     if (!p) {
         return 0;

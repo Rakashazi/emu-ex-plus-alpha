@@ -29,7 +29,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #include "alarm.h"
 #include "lib.h"
@@ -49,7 +48,7 @@ alarm_context_t *alarm_context_new(const char *name)
 
 void alarm_context_init(alarm_context_t *context, const char *name)
 {
-    context->name = lib_stralloc(name);
+    context->name = lib_strdup(name);
 
     context->alarms = NULL;
 
@@ -106,7 +105,7 @@ void alarm_context_time_warp(alarm_context_t *context, CLOCK warp_amount,
 static void alarm_init(alarm_t *alarm, alarm_context_t *context,
                        const char *name, alarm_callback_t callback, void *data)
 {
-    alarm->name = lib_stralloc(name);
+    alarm->name = lib_strdup(name);
     alarm->context = context;
     alarm->callback = callback;
     alarm->data = data;
@@ -210,5 +209,4 @@ void alarm_unset(alarm_t *alarm)
 void alarm_log_too_many_alarms(void)
 {
     log_error(LOG_DEFAULT, "alarm_set(): Too many alarms set!");
-    assert(!"Too many alarms set!");
 }

@@ -142,7 +142,7 @@ void vicii_irq_set_raster_line(unsigned int line)
     vicii.raster_irq_line = line;
 }
 
-void vicii_irq_check_state(BYTE value, unsigned int high)
+void vicii_irq_check_state(uint8_t value, unsigned int high)
 {
     unsigned int irq_line, line;
     unsigned int old_raster_irq_line;

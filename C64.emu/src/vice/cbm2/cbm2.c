@@ -44,12 +44,12 @@
 #include "cbm2acia.h"
 #include "cbm2cia.h"
 #include "cbm2iec.h"
+#include "cbm2model.h"
 #include "cbm2mem.h"
 #include "cbm2tpi.h"
 #include "cbm2ui.h"
 #include "cia.h"
 #include "clkguard.h"
-#include "cmdline.h"
 #include "crtc.h"
 #include "datasette.h"
 #include "debug.h"
@@ -95,7 +95,6 @@
 #include "tape.h"
 #include "tapeport.h"
 #include "tpi.h"
-#include "translate.h"
 #include "traps.h"
 #include "types.h"
 #include "userport.h"
@@ -114,6 +113,11 @@
 #ifdef HAVE_MOUSE
 #include "mouse.h"
 #endif
+
+/** \brief  Delay in seconds before pasting -keybuf argument into the buffer
+ */
+#define KBDBUF_ALARM_DELAY   5
+
 
 machine_context_t machine_context;
 
@@ -163,22 +167,20 @@ kbdtype_info_t *machine_get_keyboard_info_list(void)
 
 /* ------------------------------------------------------------------------- */
 
-static joyport_port_props_t userport_joy_control_port_1 = 
+static joyport_port_props_t userport_joy_control_port_1 =
 {
     "Userport joystick adapter port 1",
-    IDGS_USERPORT_JOY_ADAPTER_PORT_1,
-    0,				/* has NO potentiometer connected to this port */
-    0,				/* has NO lightpen support on this port */
-    0					/* port can be switched on/off */
+    0,                      /* has NO potentiometer connected to this port */
+    0,                      /* has NO lightpen support on this port */
+    0                       /* port can be switched on/off */
 };
 
-static joyport_port_props_t userport_joy_control_port_2 = 
+static joyport_port_props_t userport_joy_control_port_2 =
 {
     "Userport joystick adapter port 2",
-    IDGS_USERPORT_JOY_ADAPTER_PORT_2,
-    0,				/* has NO potentiometer connected to this port */
-    0,				/* has NO lightpen support on this port */
-    0					/* port can be switched on/off */
+    0,                      /* has NO potentiometer connected to this port */
+    0,                      /* has NO lightpen support on this port */
+    0                       /* port can be switched on/off */
 };
 
 static int init_joyport_ports(void)
@@ -221,12 +223,17 @@ int machine_resources_init(void)
         init_resource_fail("drive");
         return -1;
     }
-    if (tapeport_resources_init() < 0) {
-        init_resource_fail("tapeport");
-        return -1;
-    }
+    /*
+     * This needs to be called before tapeport_resources_init(), otherwise
+     * the tapecart will fail to initialize due to the Datasette resource
+     * appearing after the Tapecart resources
+     */
     if (datasette_resources_init() < 0) {
         init_resource_fail("datasette");
+        return -1;
+    }
+    if (tapeport_resources_init() < 0) {
+        init_resource_fail("tapeport");
         return -1;
     }
     if (acia1_resources_init() < 0) {
@@ -332,12 +339,6 @@ int machine_resources_init(void)
         return -1;
     }
 #endif
-#ifndef COMMON_KBD
-    if (pet_kbd_resources_init() < 0) {
-        init_resource_fail("pet kbd");
-        return -1;
-    }
-#endif
     if (userport_joystick_resources_init() < 0) {
         init_resource_fail("userport joystick");
         return -1;
@@ -375,6 +376,7 @@ int machine_resources_init(void)
 
 void machine_resources_shutdown(void)
 {
+    serial_shutdown();
     cbm2_resources_shutdown();
     rs232drv_resources_shutdown();
     printer_resources_shutdown();
@@ -415,7 +417,7 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("crtc");
         return -1;
     }
-    if (sid_cmdline_options_init() < 0) {
+    if (sid_cmdline_options_init(SIDTYPE_SID) < 0) {
         init_cmdline_options_fail("sid");
         return -1;
     }
@@ -514,12 +516,6 @@ int machine_cmdline_options_init(void)
 #ifdef HAVE_MOUSE
     if (mouse_cmdline_options_init() < 0) {
         init_cmdline_options_fail("mouse");
-        return -1;
-    }
-#endif
-#ifndef COMMON_KBD
-    if (pet_kbd_cmdline_options_init() < 0) {
-        init_cmdline_options_fail("pet kbd");
         return -1;
     }
 #endif
@@ -631,12 +627,11 @@ int machine_specific_init(void)
     /* initialize print devices */
     printer_init();
 
-#ifdef USE_BEOS_UI
     /* Pre-init CBM-II-specific parts of the menus before crtc_init()
-       creates a canvas window with a menubar at the top. This could
-       also be used by other ports, e.g. GTK+...  */
-    cbm2ui_init_early();
-#endif
+       creates a canvas window with a menubar at the top. */
+    if (!console_mode) {
+        cbm2ui_init_early();
+    }
 
     if (crtc_init() == NULL) {
         return -1;
@@ -649,13 +644,6 @@ int machine_specific_init(void)
     acia1_init();
     tpi1_init(machine_context.tpi1);
     tpi2_init(machine_context.tpi2);
-
-#ifndef COMMON_KBD
-    /* Initialize the keyboard.  */
-    if (cbm2_kbd_init() < 0) {
-        return -1;
-    }
-#endif
 
     /* Initialize the datasette emulation.  */
     datasette_init();
@@ -686,10 +674,6 @@ int machine_specific_init(void)
        device yet.  */
     sound_init(machine_timing.cycles_per_sec, machine_timing.cycles_per_rfsh);
 
-    /* Initialize keyboard buffer.
-       This appears to work but doesn't account for banking. */
-    kbdbuf_init(939, 209, 10, (CLOCK)(machine_timing.rfsh_per_sec * machine_timing.cycles_per_rfsh));
-
     /* Initialize the CBM-II-specific part of the UI.  */
     if (!console_mode) {
         cbm2ui_init();
@@ -711,22 +695,15 @@ int machine_specific_init(void)
     /* Initialize the CBM2-specific I/O */
     cbm2io_init();
 
-#if defined (USE_XF86_EXTENSIONS) && (defined(USE_XF86_VIDMODE_EXT) || defined (HAVE_XRANDR))
-    {
-        /* set fullscreen if user used `-fullscreen' on cmdline */
-        int fs;
-        resources_get_int("UseFullscreen", &fs);
-        if (fs) {
-            resources_set_int("CRTCFullscreen", 1);
-        }
-    }
-#endif
     return 0;
 }
 
 /* CBM-II-specific initialization.  */
 void machine_specific_reset(void)
 {
+    int delay = KBDBUF_ALARM_DELAY;
+    int model = cbm2model_get();
+
     ciacore_reset(machine_context.cia1);
     tpicore_reset(machine_context.tpi1);
     tpicore_reset(machine_context.tpi2);
@@ -744,6 +721,74 @@ void machine_specific_reset(void)
     datasette_reset();
 
     mem_reset();
+
+    /* delays figured out by running each model */
+    /* printf("cbm2model: %d\n", model); */
+    switch (model) {
+        /* Most likely unneeded, since cbm5x0 should handle these. But should
+         * someone be clever enough to turn the #define's in cmb2model.h into
+         * an enum, a compiler could catch missing cases.
+         */
+        case CBM2MODEL_510_PAL:     /* fallthrough */
+        case CBM2MODEL_510_NTSC:
+            delay = 7;  /* only valid for the default 64KB RAM */
+            break;
+
+        /* 610: default RAM: 128KB */
+        case CBM2MODEL_610_PAL:     /* fallthrough */
+        case CBM2MODEL_610_NTSC:
+            delay = 4;
+            break;
+
+        /* 620: default RAM: 256KB */
+        case CBM2MODEL_620_PAL:     /* fallthrough */
+        case CBM2MODEL_620_NTSC:
+            delay = 8;
+            break;
+
+        case CBM2MODEL_620PLUS_PAL: /* fallthrough */
+        case CBM2MODEL_620PLUS_NTSC:
+            delay = 25;
+            break;
+        case CBM2MODEL_710_NTSC:
+            delay = 4;
+            break;
+        case CBM2MODEL_720_NTSC:
+            delay = 25;
+            break;
+        case CBM2MODEL_720PLUS_NTSC:
+            delay = 25;
+            break;
+
+        /* When the RAM set via -ramsize doesn't match the RAM size for the
+         * selected model in the table in cbm2model.h, the model is set
+         * to CBM2MODEL_UNKNOWN (99) */
+        default:
+           switch (ramsize) {
+                case 128:
+                    delay = 4;
+                    break;
+                case 256:
+                    delay = 8;
+                    break;
+                case 512:
+                    delay = 13;
+                    break;
+                case 1024:
+                    delay = 30;
+                    break;
+                default:
+                    delay = 30;     /* shouldn't get here */
+            }
+            break;
+    }
+
+    /* Initialize keyboard buffer.
+       This appears to work but doesn't account for banking. */
+    /* printf("init kbdbuf with %d seconds delay\n", delay); */
+    kbdbuf_init(0x03ab, 0x00d1, 10,
+            (CLOCK)(machine_timing.rfsh_per_sec *
+                machine_timing.cycles_per_rfsh * delay));
 
     sampler_reset();
 }
@@ -883,12 +928,20 @@ void machine_set_cycles_per_frame(long cpf)
 int machine_write_snapshot(const char *name, int save_roms, int save_disks,
                            int event_mode)
 {
-    return cbm2_snapshot_write(name, save_roms, save_disks, event_mode);
+    int err = cbm2_snapshot_write(name, save_roms, save_disks, event_mode);
+    if ((err < 0) && (snapshot_get_error() == SNAPSHOT_NO_ERROR)) {
+        snapshot_set_error(SNAPSHOT_CANNOT_WRITE_SNAPSHOT);
+    }
+    return err;
 }
 
 int machine_read_snapshot(const char *name, int event_mode)
 {
-    return cbm2_snapshot_read(name, event_mode);
+    int err = cbm2_snapshot_read(name, event_mode);
+    if ((err < 0) && (snapshot_get_error() == SNAPSHOT_NO_ERROR)) {
+        snapshot_set_error(SNAPSHOT_CANNOT_READ_SNAPSHOT);
+    }
+    return err;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -925,20 +978,20 @@ struct image_contents_s *machine_diskcontents_bus_read(unsigned int unit)
     return NULL;
 }
 
-BYTE machine_tape_type_default(void)
+uint8_t machine_tape_type_default(void)
 {
     return TAPE_CAS_TYPE_BAS;
 }
 
-BYTE machine_tape_behaviour(void)
+uint8_t machine_tape_behaviour(void)
 {
     return TAPE_BEHAVIOUR_NORMAL;
 }
 
 int machine_addr_in_ram(unsigned int addr)
 {
-    /* FIXME are these correct? */
-    return (addr < 0xe000 && !(addr >= 0xa000 && addr < 0xc000)) ? 1 : 0;
+    /* FIXME: handle the banking */
+    return (addr < 0xe000 && !(addr >= 0x8000 && addr < 0xc000)) ? 1 : 0;
 }
 
 const char *machine_get_name(void)
@@ -950,14 +1003,14 @@ const char *machine_get_name(void)
 
 /* native screenshot support */
 
-BYTE *crtc_get_active_bitmap(void)
+uint8_t *crtc_get_active_bitmap(void)
 {
     return NULL;
 }
 
 /* ------------------------------------------------------------------------- */
 
-static void cbm2_userport_set_flag(BYTE b)
+static void cbm2_userport_set_flag(uint8_t b)
 {
     if (b != 0) {
         ciacore_set_flag(machine_context.cia1);
@@ -965,11 +1018,11 @@ static void cbm2_userport_set_flag(BYTE b)
 }
 
 static userport_port_props_t userport_props = {
-    1, /* has pa2 pin */
-    1, /* has pa3 pin */
-    cbm2_userport_set_flag, /* has flag pin */
-    1, /* has pc pin */
-    0  /* NO cnt1, cnt2 or sp pins */
+    1,                      /* port has the pa2 pin */
+    1,                      /* port has the pa3 pin */
+    cbm2_userport_set_flag, /* port has the flag pin, set flag function */
+    1,                      /* port has the pc pin */
+    0                       /* port does NOT have the cnt1, cnt2 or sp pins */
 };
 
 int machine_register_userport(void)

@@ -60,9 +60,9 @@
 /* ---------------------------------------------------------------------*/
 
 static int currbank = 0;
-static BYTE regval = 0;
+static uint8_t regval = 0;
 
-static void p64_io2_store(WORD addr, BYTE value)
+static void p64_io2_store(uint16_t addr, uint8_t value)
 {
     regval = value;
 
@@ -78,7 +78,7 @@ static void p64_io2_store(WORD addr, BYTE value)
     cart_romlbank_set_slotmain(value & 0x1f);
 }
 
-static BYTE p64_io2_peek(WORD addr)
+static uint8_t p64_io2_peek(uint16_t addr)
 {
     return regval;
 }
@@ -92,18 +92,19 @@ static int p64_dump(void)
 /* ---------------------------------------------------------------------*/
 
 static io_source_t p64_device = {
-    CARTRIDGE_NAME_P64,
-    IO_DETACH_CART,
-    NULL,
-    0xdf00, 0xdfff, 0xff,
-    0, /* read is never valid */
-    p64_io2_store,
-    NULL,
-    p64_io2_peek,
-    p64_dump,
-    CARTRIDGE_P64,
-    0,
-    0
+    CARTRIDGE_NAME_P64,    /* name of the device */
+    IO_DETACH_CART,        /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE, /* does not use a resource for detach */
+    0xdf00, 0xdfff, 0xff,  /* range for the device, address is ignored, reg:$df00, mirrors:$df01-$dfff */
+    0,                     /* read is never valid, reg is write only */
+    p64_io2_store,         /* store function */
+    NULL,                  /* NO poke function */
+    NULL,                  /* NO read function */
+    p64_io2_peek,          /* peek function */
+    p64_dump,              /* device state information dump function */
+    CARTRIDGE_P64,         /* cartridge ID */
+    IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
+    0                      /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *p64_list_item = NULL;
@@ -120,7 +121,7 @@ void p64_config_init(void)
     cart_romlbank_set_slotmain(0);
 }
 
-void p64_config_setup(BYTE *rawcart)
+void p64_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, PROPHET64_CART_SIZE);
     cart_config_changed_slotmain(0, 0, CMODE_READ);
@@ -140,7 +141,7 @@ static int p64_common_attach(void)
     return 0;
 }
 
-int p64_bin_attach(const char *filename, BYTE *rawcart)
+int p64_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, PROPHET64_CART_SIZE, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -149,7 +150,7 @@ int p64_bin_attach(const char *filename, BYTE *rawcart)
     return p64_common_attach();
 }
 
-int p64_crt_attach(FILE *fd, BYTE *rawcart)
+int p64_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
     int i, cnt = 0;
@@ -205,7 +206,7 @@ int p64_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)currbank) < 0
+        || SMW_B(m, (uint8_t)currbank) < 0
         || SMW_B(m, regval) < 0
         || SMW_BA(m, roml_banks, PROPHET64_CART_SIZE) < 0) {
         snapshot_module_close(m);
@@ -217,7 +218,7 @@ int p64_snapshot_write_module(snapshot_t *s)
 
 int p64_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -227,13 +228,13 @@ int p64_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
     /* new in 0.1 */
-    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 1)) {
         if (0
             || SMR_B_INT(m, &currbank) < 0
             || SMR_B(m, &regval) < 0) {

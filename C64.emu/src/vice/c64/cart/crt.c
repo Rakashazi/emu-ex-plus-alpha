@@ -77,6 +77,7 @@
 #include "magicdesk.h"
 #include "magicformel.h"
 #include "magicvoice.h"
+#include "maxbasic.h"
 #include "mikroass.h"
 #include "mmc64.h"
 #include "mmcreplay.h"
@@ -121,10 +122,10 @@ static const char CHIP_HEADER[] = "CHIP";
 /*
     Open a crt file and read header, return NULL on fault, fd otherwise
 */
-static FILE *crt_open(const char *filename, crt_header_t *header)
+FILE *crt_open(const char *filename, crt_header_t *header)
 {
-    BYTE crt_header[0x40];
-    DWORD skip;
+    uint8_t crt_header[0x40];
+    uint32_t skip;
     FILE *fd;
 
     fd = zfile_fopen(filename, MODE_READ);
@@ -155,10 +156,12 @@ static FILE *crt_open(const char *filename, crt_header_t *header)
 
         header->version = util_be_buf_to_word(&crt_header[0x14]);
         header->type = util_be_buf_to_word(&crt_header[0x16]);
+        header->subtype = crt_header[0x1a];
         header->exrom = crt_header[0x18];
         header->game = crt_header[0x19];
         memset(header->name, 0, sizeof(header->name));
-        strncpy(header->name, (char*)&crt_header[0x20], sizeof(header->name) - 1);
+        strncpy(header->name, (char *)(crt_header + 0x20),
+                sizeof(header->name) - 1);
 
         fseek(fd, skip, SEEK_CUR); /* skip the rest */
 
@@ -188,11 +191,16 @@ int crt_getid(const char *filename)
 }
 
 /*
-    Read and pharse chip header, return -1 on fault
+    Read and parse chip header, return -1 on fault
+
+XXX:    The skip member of a crt_chip_header_t will always be 0, instead of
+        what the CHIP header indicates.
+        So the chip member is complete bollocks,
+        -- compyx
 */
 int crt_read_chip_header(crt_chip_header_t *header, FILE *fd)
 {
-    BYTE chipheader[0x10];
+    uint8_t chipheader[0x10];
 
     if (fread(chipheader, sizeof(chipheader), 1, fd) < 1) {
         return -1; /* couldn't read header */
@@ -201,18 +209,22 @@ int crt_read_chip_header(crt_chip_header_t *header, FILE *fd)
         return -1; /* invalid header signature */
     }
 
+    /* 1: grab size of chip packet + chip header */
     header->skip = util_be_buf_to_dword(&chipheader[4]);
 
     if (header->skip < sizeof(chipheader)) {
         return -1; /* invalid packet size */
     }
+    /* 2: subtract header size, we now have the rom size */
     header->skip -= sizeof(chipheader); /* without header */
 
     header->size = util_be_buf_to_word(&chipheader[14]);
     if (header->size > header->skip) {
         return -1; /* rom bigger then total size?! */
     }
+    /* 3: subtract ROM size -> 0, WTF? */
     header->skip -= header->size; /* skip size after image */
+
     header->type = util_be_buf_to_word(&chipheader[8]);
     header->bank = util_be_buf_to_word(&chipheader[10]);
     header->start = util_be_buf_to_word(&chipheader[12]);
@@ -226,7 +238,7 @@ int crt_read_chip_header(crt_chip_header_t *header, FILE *fd)
 /*
     Read chip data, return -1 on error
 */
-int crt_read_chip(BYTE *rawcart, int offset, crt_chip_header_t *chip, FILE *fd)
+int crt_read_chip(uint8_t *rawcart, int offset, crt_chip_header_t *chip, FILE *fd)
 {
     if (offset + chip->size > C64CART_IMAGE_LIMIT) {
         return -1; /* overflow */
@@ -241,9 +253,9 @@ int crt_read_chip(BYTE *rawcart, int offset, crt_chip_header_t *chip, FILE *fd)
 /*
     Write chip header and data, return -1 on fault
 */
-int crt_write_chip(BYTE *data, crt_chip_header_t *header, FILE *fd)
+int crt_write_chip(uint8_t *data, crt_chip_header_t *header, FILE *fd)
 {
-    BYTE chipheader[0x10];
+    uint8_t chipheader[0x10];
 
     memcpy(chipheader, CHIP_HEADER, 4);
     util_dword_to_be_buf(&chipheader[4], header->size + sizeof(chipheader));
@@ -267,7 +279,7 @@ int crt_write_chip(BYTE *data, crt_chip_header_t *header, FILE *fd)
 */
 FILE *crt_create(const char *filename, int type, int exrom, int game, const char *name)
 {
-    BYTE crt_header[0x40];
+    uint8_t crt_header[0x40];
     FILE *fd;
 
     if (filename == NULL) {
@@ -284,10 +296,44 @@ FILE *crt_create(const char *filename, int type, int exrom, int game, const char
     memcpy(crt_header, CRT_HEADER, 16);
     util_dword_to_be_buf(&crt_header[0x10], sizeof(crt_header));
     util_word_to_be_buf(&crt_header[0x14], 0x100); /* version */
-    util_word_to_be_buf(&crt_header[0x16], (WORD)type);
+    util_word_to_be_buf(&crt_header[0x16], (uint16_t)type);
     crt_header[0x18] = exrom ? 1 : 0;
     crt_header[0x19] = game ? 1 : 0;
-    strncpy((char*)&crt_header[0x20], name, sizeof(crt_header) - 0x20);
+    strncpy((char*)(crt_header + 0x20), name, sizeof(crt_header) - 0x20 - 1);
+
+    if (fwrite(crt_header, sizeof(crt_header), 1, fd) < 1) {
+        fclose(fd);
+        return NULL;
+    }
+
+    return fd;
+}
+
+/* create v1.1 header with sub type */
+FILE *crt_create_v11(const char *filename, int type, int subtype, int exrom, int game, const char *name)
+{
+    uint8_t crt_header[0x40];
+    FILE *fd;
+
+    if (filename == NULL) {
+        return NULL;
+    }
+
+    fd = fopen(filename, MODE_WRITE);
+
+    if (fd == NULL) {
+        return NULL;
+    }
+
+    memset(&crt_header, 0, sizeof(crt_header));
+    memcpy(crt_header, CRT_HEADER, 16);
+    util_dword_to_be_buf(&crt_header[0x10], sizeof(crt_header));
+    util_word_to_be_buf(&crt_header[0x14], 0x0101); /* version */
+    util_word_to_be_buf(&crt_header[0x16], (uint16_t)type);
+    crt_header[0x18] = exrom ? 1 : 0;
+    crt_header[0x19] = game ? 1 : 0;
+    crt_header[0x1a] = subtype;
+    strncpy((char*)(crt_header + 0x20), name, sizeof(crt_header) - 0x20 - 1);
 
     if (fwrite(crt_header, sizeof(crt_header), 1, fd) < 1) {
         fclose(fd);
@@ -303,7 +349,7 @@ FILE *crt_create(const char *filename, int type, int exrom, int game, const char
     FIXME: to simplify this function a little bit, all subfunctions should
            also return the respective CRT ID on success
 */
-int crt_attach(const char *filename, BYTE *rawcart)
+int crt_attach(const char *filename, uint8_t *rawcart)
 {
     crt_header_t header;
     int rc, new_crttype;
@@ -448,6 +494,9 @@ int crt_attach(const char *filename, BYTE *rawcart)
         case CARTRIDGE_MAGIC_VOICE:
             rc = magicvoice_crt_attach(fd, rawcart);
             break;
+        case CARTRIDGE_MAX_BASIC:
+            rc = maxbasic_crt_attach(fd, rawcart);
+            break;
         case CARTRIDGE_MIKRO_ASSEMBLER:
             rc = mikroass_crt_attach(fd, rawcart);
             break;
@@ -467,7 +516,7 @@ int crt_attach(const char *filename, BYTE *rawcart)
             rc = pagefox_crt_attach(fd, rawcart);
             break;
         case CARTRIDGE_RETRO_REPLAY:
-            rc = retroreplay_crt_attach(fd, rawcart, filename);
+            rc = retroreplay_crt_attach(fd, rawcart, filename, header.subtype);
             break;
         case CARTRIDGE_REX_EP256:
             rc = rexep256_crt_attach(fd, rawcart);
@@ -478,7 +527,7 @@ int crt_attach(const char *filename, BYTE *rawcart)
         case CARTRIDGE_RGCD:
             rc = rgcd_crt_attach(fd, rawcart);
             break;
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CARTRIDGE_RRNETMK3:
             rc = rrnetmk3_crt_attach(fd, rawcart, filename);
             break;

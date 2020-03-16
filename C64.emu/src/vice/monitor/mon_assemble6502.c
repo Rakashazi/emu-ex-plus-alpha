@@ -44,13 +44,13 @@
 
 static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t operand)
 {
-    WORD operand_value = operand.param;
-    WORD operand_mode = operand.addr_mode;
-    BYTE i = 0, opcode = 0;
+    uint16_t operand_value = operand.param;
+    uint16_t operand_mode = operand.addr_mode;
+    uint8_t i = 0, opcode = 0;
     int len, branch_offset;
     bool found = FALSE;
     MEMSPACE mem;
-    WORD loc;
+    uint16_t loc;
 
     mem = addr_memspace(asm_mode_addr);
     loc = addr_location(asm_mode_addr);
@@ -140,11 +140,11 @@ static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t oper
 
     mon_set_mem_val(mem, loc, opcode);
     if (len >= 2) {
-        mon_set_mem_val(mem, (WORD)(loc + 1), (BYTE)(operand_value & 0xff));
+        mon_set_mem_val(mem, (uint16_t)(loc + 1), (uint8_t)(operand_value & 0xff));
     }
     if (len >= 3) {
-        mon_set_mem_val(mem, (WORD)(loc + 2),
-                        (BYTE)((operand_value >> 8) & 0xff));
+        mon_set_mem_val(mem, (uint16_t)(loc + 2),
+                        (uint8_t)((operand_value >> 8) & 0xff));
     }
 
     if (len >= 0) {

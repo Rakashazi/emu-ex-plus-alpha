@@ -52,7 +52,8 @@
 #include "sound.h"
 
 /* Requested audio device name */
-static const char* requested_device_name;
+CFStringRef requested_device_name_ref = NULL;
+char * requested_device_name = NULL;
 
 /* resolved device id */
 static AudioDeviceID device = kAudioDeviceUnknown;
@@ -61,10 +62,10 @@ static AudioDeviceID device = kAudioDeviceUnknown;
 typedef volatile int atomic_int_t;
 
 /* the cyclic buffer containing m fragments */
-static SWORD *soundbuffer;
+static int16_t *soundbuffer;
 
 /* silence fragment */
-static SWORD *silence;
+static int16_t *silence;
 
 /* current read position: no. of fragment in soundbuffer */
 static unsigned int read_position;
@@ -155,7 +156,7 @@ static OSStatus converter_input(AudioConverterRef inAudioConverter,
 {
     UInt32 num_frames = *ioNumberDataPackets;
 
-    SWORD *buffer;
+    int16_t *buffer;
     if (fragments_in_queue) {
         /* too many -> crop to available in current fragment */
         if (num_frames > frames_left_in_fragment) {
@@ -237,17 +238,32 @@ static void converter_close(void)
     }
 }
 
+static int string_buf_size_for_utf8_char_length(int utf8Chars)
+{
+    return utf8Chars * 4 + 1;
+}
+
 #if defined(MAC_OS_X_VERSION_10_6) && (MAC_OS_X_VERSION_MIN_REQUIRED>=MAC_OS_X_VERSION_10_6)
 static int determine_output_device_id()
 {
     OSStatus err;
     UInt32 size;
     AudioDeviceID default_device;
+    AudioObjectPropertyAddress property_address = {
+        0,
+        kAudioObjectPropertyScopeGlobal,
+        kAudioObjectPropertyElementMaster
+    };
 
     /* get default audio device id */
+    property_address.mSelector = kAudioHardwarePropertyDefaultOutputDevice;
     size = sizeof(default_device);
-    err = AudioHardwareGetProperty(kAudioHardwarePropertyDefaultOutputDevice,
-                                   &size, (void*)&default_device);
+    err = AudioObjectGetPropertyData(kAudioObjectSystemObject,
+                                     &property_address,
+                                     0,
+                                     NULL,
+                                     &size,
+                                     &default_device);
     if (err != kAudioHardwareNoError) {
         log_error(LOG_DEFAULT, "sound (coreaudio_init): Failed to get default output device");
         return -1;
@@ -261,11 +277,7 @@ static int determine_output_device_id()
     }
 
     /* list audio devices */
-    AudioObjectPropertyAddress property_address = { 
-        kAudioHardwarePropertyDevices, 
-        kAudioObjectPropertyScopeGlobal, 
-        kAudioObjectPropertyElementMaster 
-    };
+    property_address.mSelector = kAudioHardwarePropertyDevices;
     size = 0;
     err = AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &property_address, 0, NULL, &size);
     if (err != kAudioHardwareNoError) {
@@ -275,7 +287,7 @@ static int determine_output_device_id()
 
     UInt32 device_count = size / sizeof(AudioDeviceID);
 
-    AudioDeviceID *audio_devices = (AudioDeviceID *)(malloc(size));
+    AudioDeviceID *audio_devices = (AudioDeviceID *)(lib_calloc(device_count, sizeof(AudioDeviceID)));
     if (audio_devices == NULL) {
         log_error(LOG_DEFAULT, "sound (coreaudio_init): Unable to allocate memory");
         return -1;
@@ -284,13 +296,14 @@ static int determine_output_device_id()
     err = AudioObjectGetPropertyData(kAudioObjectSystemObject, &property_address, 0, NULL, &size, audio_devices);
     if (err != kAudioHardwareNoError) {
         log_error(LOG_DEFAULT, "sound (coreaudio_init): AudioObjectGetPropertyData (kAudioHardwarePropertyDevices) failed: %d", (int)err);
-        free(audio_devices);
+        lib_free(audio_devices);
         audio_devices = NULL;
         return -1;
     }
 
     CFStringRef device_name_ref = NULL;
-    const char * device_name = NULL;
+    char * device_name = NULL;
+    CFIndex buffer_size = 0;
 
     /* search list of output devices for matching name */
     for(UInt32 i = 0; i < device_count; ++i) {
@@ -301,15 +314,12 @@ static int determine_output_device_id()
         err = AudioObjectGetPropertyDataSize(audio_devices[i], &property_address, 0, NULL, &size);
         if (err != kAudioHardwareNoError) {
             log_error(LOG_DEFAULT, "sound (coreaudio_init): AudioObjectGetPropertyDataSize (kAudioDevicePropertyStreamConfiguration) failed: %d", (int)err);
-            free(audio_devices);
+            lib_free(audio_devices);
             audio_devices = NULL;
             return -1;
         }
 
-        if (size <= 0) {
-            /* this device has no outputs */
-            continue;
-        }
+        bool outputs_found = size > 0;
 
         /* get device name */
         size = sizeof(device_name_ref);
@@ -317,13 +327,21 @@ static int determine_output_device_id()
         err = AudioObjectGetPropertyData(audio_devices[i], &property_address, 0, NULL, &size, &device_name_ref);
         if (err != kAudioHardwareNoError) {
             log_error(LOG_DEFAULT, "sound (coreaudio_init): AudioObjectGetPropertyData (kAudioDevicePropertyDeviceNameCFString) failed: %d", (int)err);
-            free(audio_devices);
+            lib_free(audio_devices);
             audio_devices = NULL;
             return -1;
         }
 
-        device_name = CFStringGetCStringPtr(device_name_ref, kCFStringEncodingMacRoman);
-        if (device_name == NULL) {
+        buffer_size = string_buf_size_for_utf8_char_length(CFStringGetLength(device_name_ref));
+        device_name = lib_calloc(1, buffer_size);
+
+        if(!CFStringGetCString(device_name_ref, device_name, buffer_size, kCFStringEncodingUTF8)) {
+            strcpy(device_name, "");
+        }
+
+        if (!outputs_found) {
+            log_message(LOG_DEFAULT, "sound (coreaudio_init): Found audio device with no outputs: %s", device_name);
+            lib_free(device_name);
             continue;
         }
 
@@ -334,16 +352,19 @@ static int determine_output_device_id()
         }
 
         if (requested_device_name == NULL) {
+            lib_free(device_name);
             continue;
         }
 
-        if (0 == strcmp(requested_device_name, device_name)) {
+        if (kCFCompareEqualTo == CFStringCompare(requested_device_name_ref, device_name_ref, 0)) {
             /* matches the requested audio device */
             device = audio_devices[i];
         }
+
+        lib_free(device_name);
     }
 
-    free(audio_devices);
+    lib_free(audio_devices);
     audio_devices = NULL;
 
     /* get final device name */
@@ -356,10 +377,16 @@ static int determine_output_device_id()
         return -1;
     }
 
-    device_name = CFStringGetCStringPtr(device_name_ref, kCFStringEncodingMacRoman);
-    if (device_name != NULL) {
-        log_message(LOG_DEFAULT, "sound (coreaudio_init): Using output audio device: %s", device_name);
+    buffer_size = string_buf_size_for_utf8_char_length(CFStringGetLength(device_name_ref));
+    device_name = lib_calloc(1, buffer_size);
+
+    if(!CFStringGetCString(device_name_ref, device_name, buffer_size, kCFStringEncodingUTF8)) {
+        strcpy(device_name, "");
     }
+
+    log_message(LOG_DEFAULT, "sound (coreaudio_init): Using output audio device: %s", device_name);
+
+    lib_free(device_name);
 
     return 0;
 }
@@ -367,10 +394,10 @@ static int determine_output_device_id()
 
 /* ----- Audio API before AudioUnits ------------------------------------- */
 
+#ifndef HAVE_AUDIO_UNIT
+
 /* bytes per output frame */
 static unsigned int out_frame_byte_size;
-
-#ifndef HAVE_AUDIO_UNIT
 
 /* proc id */
 #if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED>=MAC_OS_X_VERSION_10_5)
@@ -469,6 +496,13 @@ static int audio_stop(void)
 
 #else /* HAVE_AUDIO_UNIT */
 /* ------ Audio Unit API ------------------------------------------------- */
+
+#ifdef DEBUG
+/* FIXME: this hack fixes the processing of <CoreServices/CoreServices.h>
+   during a debug build. */
+#undef DEBUG
+#define DEBUG 1
+#endif
 
 #include <AudioUnit/AudioUnit.h>
 #include <CoreServices/CoreServices.h>
@@ -684,17 +718,26 @@ static int coreaudio_init(const char *param, int *speed,
     int result;
 
     /* store fragment parameters */
-    requested_device_name = param;
+    if (param) {
+        requested_device_name_ref = CFStringCreateWithCString(NULL, param, kCFStringEncodingUTF8);
+
+        CFIndex buffer_size = string_buf_size_for_utf8_char_length(CFStringGetLength(requested_device_name_ref));
+        requested_device_name = lib_calloc(1, buffer_size);
+
+        if(!CFStringGetCString(requested_device_name_ref, requested_device_name, buffer_size, kCFStringEncodingUTF8)) {
+            strcpy(requested_device_name, "");
+        }
+    }
     fragment_count = *fragnr;
     frames_in_fragment = *fragsize;
     in_channels = *channels;
 
     /* the size of a fragment in bytes and SWORDs */
     swords_in_fragment = frames_in_fragment * in_channels;
-    bytes_in_fragment = swords_in_fragment * sizeof(SWORD);
+    bytes_in_fragment = swords_in_fragment * sizeof(int16_t);
 
     /* the size of a sample */
-    in_frame_byte_size = sizeof(SWORD) * in_channels;
+    in_frame_byte_size = sizeof(int16_t) * in_channels;
 
     /* allocate sound buffers */
     soundbuffer = lib_calloc(fragment_count, bytes_in_fragment);
@@ -709,10 +752,10 @@ static int coreaudio_init(const char *param, int *speed,
 #else
     in.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsBigEndian;
 #endif
-    in.mBytesPerFrame = sizeof(SWORD) * *channels;
+    in.mBytesPerFrame = sizeof(int16_t) * *channels;
     in.mBytesPerPacket = in.mBytesPerFrame;
     in.mFramesPerPacket = 1;
-    in.mBitsPerChannel = 8 * sizeof(SWORD);
+    in.mBitsPerChannel = 8 * sizeof(int16_t);
     in.mReserved = 0;
 
     /* setup audio device */
@@ -726,7 +769,7 @@ static int coreaudio_init(const char *param, int *speed,
     return 0;
 }
 
-static int coreaudio_write(SWORD *pbuf, size_t nr)
+static int coreaudio_write(int16_t *pbuf, size_t nr)
 {
     int i, count;
 
@@ -763,6 +806,16 @@ static void coreaudio_close(void)
 
     lib_free(soundbuffer);
     lib_free(silence);
+
+    if (requested_device_name_ref) {
+        CFRelease(requested_device_name_ref);
+        requested_device_name_ref = NULL;
+    }
+
+    if(requested_device_name) {
+        lib_free(requested_device_name);
+        requested_device_name = NULL;
+    }
 }
 
 static int coreaudio_suspend(void)

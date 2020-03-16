@@ -41,8 +41,7 @@
 
 /* Here comes the part that actually repaints each raster line.  This table is
    used to speed up the drawing. */
-static WORD drawing_table[256][256][8]; /* [byte][color][position] */
-
+static uint16_t drawing_table[256][256][8]; /* [byte][color][position] */
 
 static void init_drawing_tables(void)
 {
@@ -109,13 +108,13 @@ static int fill_cache(raster_cache_t *cache, unsigned int *xs,
         *((VIC_PIXEL *)(p) + (x)) = (c)[drawing_table[(d)][(b)][(x)]]; \
     }
 
-inline static void draw(BYTE *p, unsigned int xs, unsigned int xe,
-                        int transparent, BYTE *cbuf, BYTE *gbuf)
+inline static void draw(uint8_t *p, unsigned int xs, unsigned int xe,
+                        int transparent, uint8_t *cbuf, uint8_t *gbuf)
 /* transparent>0: don't overwrite background */
 {
     VIC_PIXEL c[4];
     unsigned int i, x;
-    BYTE b, d, dr;
+    uint8_t b, d, dr;
 
     /* Last character may exceed border, so we have some extra work */
     /* bordercheck asumes p pointing to display_xstart */
@@ -194,7 +193,7 @@ inline static void draw(BYTE *p, unsigned int xs, unsigned int xe,
 
 static void draw_line(void)
 {
-    BYTE *p;
+    uint8_t *p;
 
     p = (vic.raster.draw_buffer_ptr + vic.raster.display_xstart);
 
@@ -203,7 +202,7 @@ static void draw_line(void)
 
 static void draw_line_cached(raster_cache_t *cache, unsigned int xs, unsigned int xe)
 {
-    BYTE *p;
+    uint8_t *p;
 
     p = (vic.raster.draw_buffer_ptr + vic.raster.display_xstart);
 
@@ -222,7 +221,7 @@ static void draw_std_background(unsigned int start_pixel, unsigned int end_pixel
 
 static void draw_std_foreground(unsigned int start_char, unsigned int end_char)
 {
-    BYTE *p;
+    uint8_t *p;
 
     p = (vic.raster.draw_buffer_ptr + vic.raster.display_xstart);
 

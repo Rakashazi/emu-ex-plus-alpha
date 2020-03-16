@@ -1,10 +1,10 @@
+/** \file	soundbsp.cc
+ * \brief	Implementation of the BeOS Media Kit (BSoundPlayer) device.
+ *
+ * \author	Marcus Sutton <loggedoubt@gmail.com>
+ */
+ 
 /*
- * soundbsp.cc - Implementation of the BeOS Media Kit (BSoundPlayer)
- *               sound device.
- *
- * Written by
- *  Marcus Sutton <loggedoubt@gmail.com>
- *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -45,7 +45,7 @@ extern "C" {
 static BSoundPlayer *sound_player;
 
 /* the buffer */
-static SWORD *sound_buf;
+static int16_t *sound_buf;
 
 /* the buffer's length */
 static size_t buf_len = 0;
@@ -71,24 +71,24 @@ static void bsp_callback(void *param, void *cb_buf, size_t len,
     int amount, total;
 
     total = 0;
-    while (total < len / sizeof(SWORD)) {
+    while (total < (int)(len / sizeof(int16_t))) {
         amount = buf_inptr - buf_outptr;
         if (amount <= 0) {
             amount = buf_len - buf_outptr;
         }
 
-        if (amount + total > len / sizeof(SWORD)) {
-            amount = len / sizeof(SWORD) - total;
+        if (amount + total > (int)(len / sizeof(int16_t))) {
+            amount = len / sizeof(int16_t) - (size_t)total;
         }
 
         buf_full = 0;
 
         if (!amount) {
-            memset((SWORD *)cb_buf + total, 0, len - total * sizeof(SWORD));
+            memset((int16_t *)cb_buf + total, 0, len - total * sizeof(int16_t));
             return;
         }
 
-        memcpy((SWORD *)cb_buf + total, sound_buf + buf_outptr, amount * sizeof(SWORD));
+        memcpy((int16_t *)cb_buf + total, sound_buf + buf_outptr, amount * sizeof(int16_t));
         total += amount;
         buf_outptr += amount;
 
@@ -111,7 +111,7 @@ static int bsp_init(const char *param, int *speed,
     audio_format.format = media_raw_audio_format::B_AUDIO_SHORT;
     audio_format.byte_order = B_MEDIA_LITTLE_ENDIAN;
     audio_format.buffer_size = (size_t) *fragsize * *fragnr * *channels;
-        
+
     sound_player = new BSoundPlayer(&audio_format, "VICE bsp", &bsp_callback);
     if (sound_player->InitCheck() != B_OK) {
         log_error(LOG_DEFAULT, "sound (bsp_init): Failed to initialize BSoundPlayer");
@@ -120,8 +120,8 @@ static int bsp_init(const char *param, int *speed,
 
     buf_len = audio_format.buffer_size;
     buf_inptr = buf_outptr = buf_full = 0;
-    sound_buf = (SWORD *)lib_malloc(sizeof(SWORD) * buf_len);
-    memset(sound_buf, 0, sizeof(SWORD) * buf_len);
+    sound_buf = (int16_t *)lib_malloc(sizeof(int16_t) * buf_len);
+    memset(sound_buf, 0, sizeof(int16_t) * buf_len);
 
     if (sound_player->Start()) {
         log_error(LOG_DEFAULT, "sound (bsp_init): Failed to start playing");
@@ -132,11 +132,10 @@ static int bsp_init(const char *param, int *speed,
     return 0;
 }
 
-static int bsp_write(SWORD *pbuf, size_t nr)
+static int bsp_write(int16_t *pbuf, size_t nr)
 {
-    int total, amount;
-    total = 0;
-
+    size_t total = 0;
+    size_t amount;
 
     while (total < nr) {
         amount = buf_outptr - buf_inptr;
@@ -154,7 +153,7 @@ static int bsp_write(SWORD *pbuf, size_t nr)
             continue;
         }
 
-        memcpy(sound_buf + buf_inptr, pbuf + total, amount * sizeof(SWORD));
+        memcpy(sound_buf + buf_inptr, pbuf + total, amount * sizeof(int16_t));
         buf_inptr += amount;
         total += amount;
 
@@ -190,6 +189,9 @@ static int bsp_bufferspace(void)
 static void bsp_close(void)
 {
     delete sound_player;
+    lib_free(sound_buf);
+    sound_buf = NULL;
+    buf_inptr = buf_outptr = buf_len = buf_full = 0;
 }
 
 static int bsp_suspend(void)

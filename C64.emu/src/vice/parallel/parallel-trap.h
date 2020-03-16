@@ -30,7 +30,7 @@
 #include "types.h"
 
 extern int parallel_trap_attention(int b);
-extern int parallel_trap_sendbyte(BYTE data);
-extern int parallel_trap_receivebyte(BYTE *data, int fake);
+extern int parallel_trap_sendbyte(uint8_t data);
+extern int parallel_trap_receivebyte(uint8_t *data, int fake);
 
 #endif

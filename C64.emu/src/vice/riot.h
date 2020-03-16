@@ -40,9 +40,9 @@
 #define RIOT_SIG_RISE   1
 
 typedef struct riot_context_s {
-    BYTE riot_io[4];
-    BYTE old_pa;
-    BYTE old_pb;
+    uint8_t riot_io[4];
+    uint8_t old_pa;
+    uint8_t old_pb;
 
     signed int log;       /* init to LOG_ERR */
 
@@ -50,10 +50,10 @@ typedef struct riot_context_s {
 
     CLOCK read_clk;       /* init to 0 */
     int read_offset;      /* init to 0 */
-    BYTE last_read;       /* init to 0 */
-    BYTE r_edgectrl;      /* init to 0 */
-    BYTE r_irqfl;         /* init to 0 */
-    BYTE r_irqline;       /* init to 0 */
+    uint8_t last_read;       /* init to 0 */
+    uint8_t r_edgectrl;      /* init to 0 */
+    uint8_t r_irqfl;         /* init to 0 */
+    uint8_t r_irqline;       /* init to 0 */
 
     CLOCK r_write_clk;
     int r_N;
@@ -70,12 +70,12 @@ typedef struct riot_context_s {
     void *prv;
     void *context;
 
-    void (*undump_pra)(struct riot_context_s *, BYTE);
-    void (*undump_prb)(struct riot_context_s *, BYTE);
-    void (*store_pra)(struct riot_context_s *, BYTE);
-    void (*store_prb)(struct riot_context_s *, BYTE);
-    BYTE (*read_pra)(struct riot_context_s *);
-    BYTE (*read_prb)(struct riot_context_s *);
+    void (*undump_pra)(struct riot_context_s *, uint8_t);
+    void (*undump_prb)(struct riot_context_s *, uint8_t);
+    void (*store_pra)(struct riot_context_s *, uint8_t);
+    void (*store_prb)(struct riot_context_s *, uint8_t);
+    uint8_t (*read_pra)(struct riot_context_s *);
+    uint8_t (*read_prb)(struct riot_context_s *);
     void (*reset)(struct riot_context_s *riot_context);
     void (*set_irq)(struct riot_context_s *, int, CLOCK);
     void (*restore_irq)(struct riot_context_s *, int);
@@ -93,11 +93,12 @@ extern void riotcore_shutdown(struct riot_context_s *riot_context);
 extern void riotcore_reset(riot_context_t *riot_context);
 extern void riotcore_disable(riot_context_t *riot_context);
 extern void riotcore_signal(riot_context_t *riot_context, int sig, int type);
-extern void riotcore_store(riot_context_t *riot_context, WORD addr, BYTE data);
-extern BYTE riotcore_read(riot_context_t *riot_context, WORD addr);
-extern BYTE riotcore_peek(riot_context_t *riot_context, WORD addr);
+extern void riotcore_store(riot_context_t *riot_context, uint16_t addr, uint8_t data);
+extern uint8_t riotcore_read(riot_context_t *riot_context, uint16_t addr);
+extern uint8_t riotcore_peek(riot_context_t *riot_context, uint16_t addr);
 extern void riotcore_dump(riot_context_t *riot_context);
 
 extern int riotcore_snapshot_write_module(struct riot_context_s *riot_context, struct snapshot_s *p);
 extern int riotcore_snapshot_read_module(struct riot_context_s *riot_context, struct snapshot_s *p);
+
 #endif

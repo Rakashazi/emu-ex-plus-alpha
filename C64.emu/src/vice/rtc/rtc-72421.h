@@ -61,8 +61,8 @@ typedef struct rtc_72421_s {
 extern rtc_72421_t *rtc72421_init(char *device);
 extern void rtc72421_destroy(rtc_72421_t *context, int save);
 
-extern BYTE rtc72421_read(rtc_72421_t *context, BYTE address);
-extern void rtc72421_write(rtc_72421_t *context, BYTE address, BYTE data);
+extern uint8_t rtc72421_read(rtc_72421_t *context, uint8_t address);
+extern void rtc72421_write(rtc_72421_t *context, uint8_t address, uint8_t data);
 
 extern int rtc72421_write_snapshot(rtc_72421_t *context, snapshot_t *s);
 extern int rtc72421_read_snapshot(rtc_72421_t *context, snapshot_t *s);

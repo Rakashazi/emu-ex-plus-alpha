@@ -58,22 +58,22 @@ typedef struct drivevia1_context_s {
 } drivevia1_context_t;
 
 
-void via1d1541_store(drive_context_t *ctxptr, WORD addr, BYTE data)
+void via1d1541_store(drive_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
     viacore_store(ctxptr->via1d1541, addr, data);
 }
 
-BYTE via1d1541_read(drive_context_t *ctxptr, WORD addr)
+uint8_t via1d1541_read(drive_context_t *ctxptr, uint16_t addr)
 {
     return viacore_read(ctxptr->via1d1541, addr);
 }
 
-BYTE via1d1541_peek(drive_context_t *ctxptr, WORD addr)
+uint8_t via1d1541_peek(drive_context_t *ctxptr, uint16_t addr)
 {
     return viacore_peek(ctxptr->via1d1541, addr);
 }
 
-int via1d1541_dump(drive_context_t *ctxptr, WORD addr)
+int via1d1541_dump(drive_context_t *ctxptr, uint16_t addr)
 {
     viacore_dump(((drive_context_t*)ctxptr)->via1d1541);
     return 0;
@@ -90,35 +90,35 @@ static void set_cb2(via_context_t *via_context, int state)
 static void set_int(via_context_t *via_context, unsigned int int_num,
                     int value, CLOCK rclk)
 {
-    drive_context_t *drive_context;
+    drive_context_t *dc;
 
-    drive_context = (drive_context_t *)(via_context->context);
+    dc = (drive_context_t *)(via_context->context);
 
-    interrupt_set_irq(drive_context->cpu->int_status, int_num, value, rclk);
+    interrupt_set_irq(dc->cpu->int_status, int_num, value, rclk);
 }
 
 static void restore_int(via_context_t *via_context, unsigned int int_num,
                         int value)
 {
-    drive_context_t *drive_context;
+    drive_context_t *dc;
 
-    drive_context = (drive_context_t *)(via_context->context);
+    dc = (drive_context_t *)(via_context->context);
 
-    interrupt_restore_irq(drive_context->cpu->int_status, int_num, value);
+    interrupt_restore_irq(dc->cpu->int_status, int_num, value);
 }
 
-static void undump_pra(via_context_t *via_context, BYTE byte)
+static void undump_pra(via_context_t *via_context, uint8_t byte)
 {
     drivevia1_context_t *via1p;
-    drive_context_t *drive_context;
+    drive_context_t *dc;
 
     via1p = (drivevia1_context_t *)(via_context->prv);
-    drive_context = (drive_context_t *)(via_context->context);
+    dc = (drive_context_t *)(via_context->context);
 
     if (via1p->drive->type == DRIVE_TYPE_1570
         || via1p->drive->type == DRIVE_TYPE_1571
         || via1p->drive->type == DRIVE_TYPE_1571CR) {
-        drivesync_set_1571(byte & 0x20, drive_context);
+        drivesync_set_1571(byte & 0x20, dc);
         glue1571_side_set((byte >> 2) & 1, via1p->drive);
     } else {
         switch (via1p->drive->parallel_cable) {
@@ -135,20 +135,20 @@ static void undump_pra(via_context_t *via_context, BYTE byte)
     }
 }
 
-static void store_pra(via_context_t *via_context, BYTE byte, BYTE oldpa_value,
-                      WORD addr)
+static void store_pra(via_context_t *via_context, uint8_t byte, uint8_t oldpa_value,
+                      uint16_t addr)
 {
     drivevia1_context_t *via1p;
-    drive_context_t *drive_context;
+    drive_context_t *dc;
 
     via1p = (drivevia1_context_t *)(via_context->prv);
-    drive_context = (drive_context_t *)(via_context->context);
+    dc = (drive_context_t *)(via_context->context);
 
     if (via1p->drive->type == DRIVE_TYPE_1570
         || via1p->drive->type == DRIVE_TYPE_1571
         || via1p->drive->type == DRIVE_TYPE_1571CR) {
         if ((oldpa_value ^ byte) & 0x20) {
-            drivesync_set_1571(byte & 0x20, drive_context);
+            drivesync_set_1571(byte & 0x20, dc);
         }
         if ((oldpa_value ^ byte) & 0x04) {
             glue1571_side_set((byte >> 2) & 1, via1p->drive);
@@ -173,14 +173,14 @@ static void store_pra(via_context_t *via_context, BYTE byte, BYTE oldpa_value,
     }
 }
 
-static void undump_prb(via_context_t *via_context, BYTE byte)
+static void undump_prb(via_context_t *via_context, uint8_t byte)
 {
     drivevia1_context_t *via1p;
 
     via1p = (drivevia1_context_t *)(via_context->prv);
 
     if (iecbus != NULL) {
-        BYTE *drive_bus, *drive_data;
+        uint8_t *drive_bus, *drive_data;
         unsigned int unit;
 
         drive_bus = &(iecbus->drv_bus[via1p->number + 8]);
@@ -200,12 +200,12 @@ static void undump_prb(via_context_t *via_context, BYTE byte)
                             | (iecbus->cpu_port >> 7)
                             | ((iecbus->cpu_bus << 3) & 0x80));
     } else {
-        iec_drive_write((BYTE)(~byte), via1p->number);
+        iec_drive_write((uint8_t)(~byte), via1p->number);
     }
 }
 
-static void store_prb(via_context_t *via_context, BYTE byte, BYTE p_oldpb,
-                      WORD addr)
+static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t p_oldpb,
+                      uint16_t addr)
 {
     drivevia1_context_t *via1p;
 
@@ -215,7 +215,7 @@ static void store_prb(via_context_t *via_context, BYTE byte, BYTE p_oldpb,
         DEBUG_IEC_DRV_WRITE(byte);
 
         if (iecbus != NULL) {
-            BYTE *drive_data, *drive_bus;
+            uint8_t *drive_data, *drive_bus;
             unsigned int unit;
 
             drive_bus = &(iecbus->drv_bus[via1p->number + 8]);
@@ -237,13 +237,13 @@ static void store_prb(via_context_t *via_context, BYTE byte, BYTE p_oldpb,
 
             DEBUG_IEC_BUS_WRITE(iecbus->drv_port);
         } else {
-            iec_drive_write((BYTE)(~byte), via1p->number);
+            iec_drive_write((uint8_t)(~byte), via1p->number);
             DEBUG_IEC_BUS_WRITE(~byte);
         }
     }
 }
 
-static void undump_pcr(via_context_t *via_context, BYTE byte)
+static void undump_pcr(via_context_t *via_context, uint8_t byte)
 {
 #if 0
     drivevia1_context_t *via1p;
@@ -257,24 +257,24 @@ static void undump_pcr(via_context_t *via_context, BYTE byte)
 #endif
 }
 
-static BYTE store_pcr(via_context_t *via_context, BYTE byte, WORD addr)
+static uint8_t store_pcr(via_context_t *via_context, uint8_t byte, uint16_t addr)
 {
     return byte;
 }
 
-static void undump_acr(via_context_t *via_context, BYTE byte)
+static void undump_acr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_acr(via_context_t *via_context, BYTE byte)
+static void store_acr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_sr(via_context_t *via_context, BYTE byte)
+static void store_sr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_t2l(via_context_t *via_context, BYTE byte)
+static void store_t2l(via_context_t *via_context, uint8_t byte)
 {
 }
 
@@ -282,9 +282,9 @@ static void reset(via_context_t *via_context)
 {
 }
 
-static BYTE read_pra(via_context_t *via_context, WORD addr)
+static uint8_t read_pra(via_context_t *via_context, uint16_t addr)
 {
-    BYTE byte;
+    uint8_t byte;
     drivevia1_context_t *via1p;
 
     via1p = (drivevia1_context_t *)(via_context->prv);
@@ -292,7 +292,7 @@ static BYTE read_pra(via_context_t *via_context, WORD addr)
     if (via1p->drive->type == DRIVE_TYPE_1570
         || via1p->drive->type == DRIVE_TYPE_1571
         || via1p->drive->type == DRIVE_TYPE_1571CR) {
-        BYTE tmp;
+        uint8_t tmp;
         rotation_rotate_disk(via1p->drive);
         tmp = (via1p->drive->byte_ready_level ? 0 : 0x80)
               | (via1p->drive->current_half_track == 2 ? 0 : 1);
@@ -315,10 +315,10 @@ static BYTE read_pra(via_context_t *via_context, WORD addr)
     return byte;
 }
 
-static BYTE read_prb(via_context_t *via_context)
+static uint8_t read_prb(via_context_t *via_context)
 {
-    BYTE byte;
-    BYTE orval;
+    uint8_t byte;
+    uint8_t orval;
     drivevia1_context_t *via1p;
 
     via1p = (drivevia1_context_t *)(via_context->prv);

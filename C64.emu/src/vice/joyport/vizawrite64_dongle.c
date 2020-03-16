@@ -32,7 +32,9 @@
 
 #include "joyport.h"
 #include "keyboard.h"
-#include "translate.h"
+
+#include "vizawrite64_dongle.h"
+
 
 /* ------------------------------------------------------------------------- */
 
@@ -40,7 +42,7 @@ static int joyport_vizawrite64_dongle_enabled = 0;
 
 static int counter = 0;
 
-static BYTE values[6] = {
+static uint8_t values[6] = {
     0x55, 0x55, 0xaa, 0xaa, 0xff, 0xff
 };
 
@@ -53,9 +55,9 @@ static int joyport_vizawrite64_dongle_enable(int port, int value)
     return 0;
 }
 
-static BYTE vizawrite64_dongle_read_potx(void)
+static uint8_t vizawrite64_dongle_read_potx(void)
 {
-    BYTE retval = values[counter++];
+    uint8_t retval = values[counter++];
 
     if (counter == 6) {
         counter = 0;
@@ -64,9 +66,9 @@ static BYTE vizawrite64_dongle_read_potx(void)
     return retval;
 }
 
-static BYTE vizawrite64_dongle_read_poty(void)
+static uint8_t vizawrite64_dongle_read_poty(void)
 {
-    BYTE retval = values[counter++];
+    uint8_t retval = values[counter++];
 
     if (counter == 6) {
         counter = 0;
@@ -78,18 +80,17 @@ static BYTE vizawrite64_dongle_read_poty(void)
 /* ------------------------------------------------------------------------- */
 
 static joyport_t joyport_vizawrite64_dongle_device = {
-    "VizaWrite 64 dongle",
-    IDGS_VIZAWRITE64_DONGLE,
-    JOYPORT_RES_ID_VIZAWRITE64,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_REQUIRED,
-    joyport_vizawrite64_dongle_enable,
-    NULL,               /* no dig read */
-    NULL,               /* no dig write */
-    vizawrite64_dongle_read_potx,
-    vizawrite64_dongle_read_poty,
-    NULL,               /* no write snapshot */
-    NULL                /* no read snapshot */
+    "VizaWrite 64 dongle",             /* name of the device */
+    JOYPORT_RES_ID_VIZAWRITE64,        /* device is of the vizawrite64 type, only 1 of this type can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,           /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,              /* device uses the potentiometer lines */
+    joyport_vizawrite64_dongle_enable, /* device enable function */
+    NULL,                              /* NO digital line read function */
+    NULL,                              /* NO digital line store function */
+    vizawrite64_dongle_read_potx,      /* pot-x read function */
+    vizawrite64_dongle_read_poty,      /* pot-y read function */
+    NULL,                              /* NO device write snapshot function */
+    NULL                               /* NO device read snapshot function */
 };
 
 /* ------------------------------------------------------------------------- */

@@ -31,17 +31,17 @@
 #include "types.h"
 
 /* shared gamma table for renderers */
-extern DWORD gamma_red[256 * 3];
-extern DWORD gamma_grn[256 * 3];
-extern DWORD gamma_blu[256 * 3];
+extern uint32_t gamma_red[256 * 3];
+extern uint32_t gamma_grn[256 * 3];
+extern uint32_t gamma_blu[256 * 3];
 
 /* shared gamma table for renderers */
-extern DWORD gamma_red_fac[256 * 3 * 2];
-extern DWORD gamma_grn_fac[256 * 3 * 2];
-extern DWORD gamma_blu_fac[256 * 3 * 2];
+extern uint32_t gamma_red_fac[256 * 3 * 2];
+extern uint32_t gamma_grn_fac[256 * 3 * 2];
+extern uint32_t gamma_blu_fac[256 * 3 * 2];
 
 /* optional alpha value for 32bit rendering */
-extern DWORD alpha;
+extern uint32_t alpha;
 
 extern void video_color_palette_free(struct palette_s *palette);
 

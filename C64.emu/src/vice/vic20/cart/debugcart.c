@@ -26,36 +26,40 @@
 
 #include "vice.h"
 
+#include "archdep.h"
 #include "cartio.h"
 #include "cartridge.h"
 #include "cmdline.h"
 #include "export.h"
 #include "lib.h"
 #include "resources.h"
-#include "translate.h"
 #include "machine.h"
 #include "maincpu.h"
+
+#include "debugcart.h"
 
 static int debugcart_enabled = 0;
 
 /* ------------------------------------------------------------------------- */
 
 /* a prototype is needed */
-static void debugcart_store(WORD addr, BYTE value);
+static void debugcart_store(uint16_t addr, uint8_t value);
 
+/* This is not a real cartridge, it is only used for debugging purposes */
 static io_source_t debugcart_device = {
-    CARTRIDGE_NAME_DEBUGCART,
-    IO_DETACH_RESOURCE,
-    "DebugCartEnable",
-    0x910f, 0x910f, 0xff,
-    0,
-    debugcart_store,
-    NULL, /* read */
-    NULL, /* peek */
-    NULL, /* nothing to dump */
-    CARTRIDGE_DEBUGCART,
-    0,
-    0
+    CARTRIDGE_NAME_DEBUGCART, /* name of the device */
+    IO_DETACH_RESOURCE,       /* use resource to detach the device when involved in a read-collision */
+    "DebugCartEnable",        /* resource to set to '0' */
+    0x910f, 0x910f, 0xff,     /* range for the device, reg:$910f */
+    0,                        /* read is never valid, device is write only */
+    debugcart_store,          /* store function */
+    NULL,                     /* NO poke function */
+    NULL,                     /* NO read function */
+    NULL,                     /* NO peek function */
+    NULL,                     /* nothing to dump */
+    CARTRIDGE_DEBUGCART,      /* cartridge ID */
+    IO_PRIO_NORMAL,           /* normal priority, device read needs to be checked for collisions */
+    0                         /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *debugcart_list_item = NULL;
@@ -66,12 +70,12 @@ static const export_resource_t export_res = {
 
 /* ------------------------------------------------------------------------- */
 
-static void debugcart_store(WORD addr, BYTE value)
+static void debugcart_store(uint16_t addr, uint8_t value)
 {
-    int n = (int)value;
-    /* FIXME: perhaps print a timestamp too */
-    fprintf(stdout, "DBGCART: exit(%d)\n", n);
-    exit(n);
+    fprintf(stdout, "DBGCART: exit(%d) cycles elapsed: %u\n",
+            (int)value, maincpu_clk);
+
+    archdep_vice_exit(value);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -129,16 +133,12 @@ void debugcart_resources_shutdown(void)
 
 static const cmdline_option_t cart_cmdline_options[] =
 {
-    { "-debugcart", SET_RESOURCE, 0,
+    { "-debugcart", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DebugCartEnable", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_DEBUGCART,
-      NULL, NULL },
-    { "+debugcart", SET_RESOURCE, 0,
+      NULL, "Enable Debug cartridge" },
+    { "+debugcart", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DebugCartEnable", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_DEBUGCART,
-      NULL, NULL },
+      NULL, "Disable Debug cartridge" },
     CMDLINE_LIST_END
 };
 

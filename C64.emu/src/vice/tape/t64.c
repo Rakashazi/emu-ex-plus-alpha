@@ -61,14 +61,14 @@ static const char *magic_headers[] = {
  *
  * \return  unsigned integer
  */
-static DWORD get_number(const BYTE *p, unsigned int n)
+static uint32_t get_number(const uint8_t *p, unsigned int n)
 {
-    DWORD retval = 0;
+    uint32_t retval = 0;
     unsigned int weight = 1;
     unsigned int i;
 
     for (i = 0; i < n; i++, p++) {
-        retval |= (DWORD)(*p * weight);
+        retval |= (uint32_t)(*p * weight);
         weight <<= 8;
     }
 
@@ -157,7 +157,7 @@ static int comp_index(const void *p1, const void *p2)
  */
 static int t64_file_record_read(t64_file_record_t *rec, FILE *fd)
 {
-    BYTE buf[T64_REC_SIZE];
+    uint8_t buf[T64_REC_SIZE];
 
     if (fread(buf, T64_REC_SIZE, 1, fd) != 1) {
         return -1;
@@ -166,9 +166,9 @@ static int t64_file_record_read(t64_file_record_t *rec, FILE *fd)
     rec->entry_type = buf[T64_REC_ENTRYTYPE_OFFSET];
     memcpy(rec->cbm_name, buf + T64_REC_CBMNAME_OFFSET, T64_REC_CBMNAME_LEN);
     rec->cbm_type = buf[T64_REC_CBMTYPE_OFFSET];
-    rec->start_addr = (WORD)get_number(buf + T64_REC_STARTADDR_OFFSET,
+    rec->start_addr = (uint16_t)get_number(buf + T64_REC_STARTADDR_OFFSET,
             (unsigned int)T64_REC_STARTADDR_LEN);
-    rec->end_addr = (WORD)get_number(buf + T64_REC_ENDADDR_OFFSET,
+    rec->end_addr = (uint16_t)get_number(buf + T64_REC_ENDADDR_OFFSET,
             (unsigned int)T64_REC_ENDADDR_LEN);
     rec->contents = get_number(buf +
             T64_REC_CONTENTS_OFFSET, T64_REC_CONTENTS_LEN);
@@ -213,7 +213,7 @@ static t64_file_record_t *t64_get_file_record(t64_t *t64, unsigned int num)
  */
 static int t64_header_read(t64_header_t *hdr, FILE *fd)
 {
-    BYTE buf[T64_HDR_SIZE];
+    uint8_t buf[T64_HDR_SIZE];
 
     if (fread(buf, T64_HDR_SIZE, 1, fd) != 1) {
         return -1;
@@ -224,7 +224,7 @@ static int t64_header_read(t64_header_t *hdr, FILE *fd)
         return -1;
     }
 
-    hdr->version = (WORD)get_number(buf + T64_HDR_VERSION_OFFSET,
+    hdr->version = (uint16_t)get_number(buf + T64_HDR_VERSION_OFFSET,
                                     (unsigned int)T64_HDR_VERSION_LEN);
 
     /* We could make a version check, but there are way too many images with
@@ -235,7 +235,7 @@ static int t64_header_read(t64_header_t *hdr, FILE *fd)
     }
 #endif
 
-    hdr->num_entries = (WORD)get_number(buf + T64_HDR_NUMENTRIES_OFFSET,
+    hdr->num_entries = (uint16_t)get_number(buf + T64_HDR_NUMENTRIES_OFFSET,
                                         (unsigned int)T64_HDR_NUMENTRIES_LEN);
     if (hdr->num_entries == 0) {
         /* XXX: The correct behavior here would be to reject it, but there
@@ -246,7 +246,7 @@ static int t64_header_read(t64_header_t *hdr, FILE *fd)
         hdr->num_entries = 1;
     }
 
-    hdr->num_used = (WORD)get_number(buf + T64_HDR_NUMUSED_OFFSET,
+    hdr->num_used = (uint16_t)get_number(buf + T64_HDR_NUMUSED_OFFSET,
                                      (unsigned int)T64_HDR_NUMUSED_LEN);
     if (hdr->num_used == 0) {
         /* corrupt tape image, too many of those out there, so just adust to
@@ -414,7 +414,7 @@ t64_file_record_t *t64_get_current_file_record(t64_t *t64)
  *
  * \todo        should return `long`, fread(3) returns `long`, not `int`
  */
-int t64_read(t64_t *t64, BYTE *buf, size_t size)
+int t64_read(t64_t *t64, uint8_t *buf, size_t size)
 {
     t64_file_record_t *rec;
     int recsize;
@@ -462,7 +462,7 @@ int t64_read(t64_t *t64, BYTE *buf, size_t size)
  * \param[out]  name    destination for description, should be at least 24
  *                      bytes
  */
-void t64_get_header(t64_t *t64, BYTE *name)
+void t64_get_header(t64_t *t64, uint8_t *name)
 {
     memcpy(name, t64->header.description, T64_HDR_DESCRIPTION_LEN);
 }
@@ -485,8 +485,8 @@ t64_t *t64_open(const char *name, unsigned int *read_only)
     int i;
     long tapesize;   /* file size in bytes */
 
-    WORD actual_size;
-    WORD reported_size;
+    uint16_t actual_size;
+    uint16_t reported_size;
 
     fd = zfile_fopen(name, MODE_READ);
     if (fd == NULL) {
@@ -538,7 +538,7 @@ t64_t *t64_open(const char *name, unsigned int *read_only)
 
     /* set end addresses based on the content member of the next entry */
     for (i = 0; i < new->header.num_used - 1; i++) {
-        actual_size = (WORD)(new->file_records[i + 1].contents
+        actual_size = (uint16_t)(new->file_records[i + 1].contents
                 - new->file_records[i].contents);
         reported_size = new->file_records[i].end_addr
             - new->file_records[i].start_addr;
@@ -557,7 +557,7 @@ t64_t *t64_open(const char *name, unsigned int *read_only)
      * the last file record */
     reported_size = new->file_records[i].end_addr -
         new->file_records[i].start_addr;
-    actual_size = (WORD)(tapesize - new->file_records[i].contents);
+    actual_size = (uint16_t)(tapesize - new->file_records[i].contents);
     /* warn and fix if sizes mismatch (only adjust size if it would 'overrun'
      * the T64's data, seems some T64's have extra unused data after the last
      * file) */
@@ -576,7 +576,7 @@ t64_t *t64_open(const char *name, unsigned int *read_only)
             sizeof *(new->file_records), comp_index);
 
 
-    new->file_name = lib_stralloc(name);
+    new->file_name = lib_strdup(name);
 
     return new;
 }

@@ -24,6 +24,8 @@ extern "C"
 	#include "video.h"
 }
 
+struct keyboard_conv_t;
+
 enum ViceSystem
 {
 	VICE_SYSTEM_C64 = 0,
@@ -44,7 +46,8 @@ struct VicePlugin
 	void *libHandle{};
 	int (*keyarr)[KBD_ROWS]{};
 	int (*rev_keyarr)[KBD_COLS]{};
-	BYTE (*joystick_value)[JOYSTICK_NUM + 1]{};
+	uint8_t (*joystick_value)[JOYSTICK_NUM + 1]{};
+	keyboard_conv_t **keyconvmap{};
 	int *warp_mode_enabled{};
 	int models = 0;
 	const char **modelStr{};
@@ -60,7 +63,7 @@ struct VicePlugin
 	int (*machine_read_snapshot_)(const char *name, int event_mode){};
 	void (*machine_set_restore_key_)(int v){};
 	void (*machine_trigger_reset_)(const unsigned int mode){};
-	void (*interrupt_maincpu_trigger_trap_)(void (*trap_func_)(WORD, void *data), void *data){};
+	void (*interrupt_maincpu_trigger_trap_)(void (*trap_func_)(uint16_t, void *data), void *data){};
 	int (*init_main_)(){};
 	void (*maincpu_mainloop_)(){};
 	int (*autostart_autodetect_)(const char *file_name, const char *program_name,
@@ -77,17 +80,17 @@ struct VicePlugin
 	const char *(*file_system_get_disk_name_)(unsigned int unit){};
 	int (*drive_check_type_)(unsigned int drive_type, unsigned int dnr){};
 	int (*sound_register_device_)(sound_device_t *pdevice){};
-	void (*video_canvas_render_)(struct video_canvas_s *canvas, BYTE *trg,
+	void (*video_canvas_render_)(struct video_canvas_s *canvas, uint8_t *trg,
 		int width, int height, int xs, int ys,
 		int xt, int yt, int pitcht, int depth){};
 	void (*video_render_setphysicalcolor_)(video_render_config_t *config,
-		int index, DWORD color, int depth){};
-	void (*video_render_setrawrgb_)(unsigned int index, DWORD r, DWORD g, DWORD b){};
+		int index, uint32_t color, int depth){};
+	void (*video_render_setrawrgb_)(unsigned int index, uint32_t r, uint32_t g, uint32_t b){};
 	void (*video_render_initraw_)(struct video_render_config_s *videoconfig){};
 	int (*vdrive_internal_create_format_disk_image_)(const char *filename, const char *diskname, unsigned int type);
 
 	void deinit();
-	static bool hasSystemLib(ViceSystem system);
+	static bool hasSystemLib(ViceSystem system, const char *libBasePath);
 	static const char *systemName(ViceSystem system);
 	int model_get();
 	void model_set(int model);
@@ -100,7 +103,7 @@ struct VicePlugin
 	int machine_read_snapshot(const char *name, int event_mode);
 	void machine_set_restore_key(int v);
 	void machine_trigger_reset(const unsigned int mode);
-	void interrupt_maincpu_trigger_trap(void trap_func(WORD, void *data), void *data);
+	void interrupt_maincpu_trigger_trap(void trap_func(uint16_t, void *data), void *data);
 	int init_main();
 	void maincpu_mainloop();
 	int autostart_autodetect(const char *file_name, const char *program_name,
@@ -117,12 +120,12 @@ struct VicePlugin
 	const char *file_system_get_disk_name(unsigned int unit);
 	int drive_check_type(unsigned int drive_type, unsigned int dnr);
 	int sound_register_device(sound_device_t *pdevice);
-	void video_canvas_render(struct video_canvas_s *canvas, BYTE *trg,
+	void video_canvas_render(struct video_canvas_s *canvas, uint8_t *trg,
 		int width, int height, int xs, int ys,
 		int xt, int yt, int pitcht, int depth);
 	void video_render_setphysicalcolor(video_render_config_t *config,
-		int index, DWORD color, int depth);
-	void video_render_setrawrgb(unsigned int index, DWORD r, DWORD g, DWORD b);
+		int index, uint32_t color, int depth);
+	void video_render_setrawrgb(unsigned int index, uint32_t r, uint32_t g, uint32_t b);
 	void video_render_initraw(struct video_render_config_s *videoconfig);
 	int vdrive_internal_create_format_disk_image(const char *filename, const char *diskname, unsigned int type);
 
@@ -234,4 +237,4 @@ static const char *vic20ModelStr[]
 	"VIC21",
 };
 
-VicePlugin loadVicePlugin(ViceSystem system);
+VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath);

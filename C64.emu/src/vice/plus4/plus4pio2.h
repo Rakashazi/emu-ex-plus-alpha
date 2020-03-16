@@ -29,9 +29,9 @@
 
 #include "types.h"
 
-extern BYTE pio2_read(WORD addr);
-extern void pio2_store(WORD addr, BYTE value);
+extern uint8_t pio2_read(uint16_t addr);
+extern void pio2_store(uint16_t addr, uint8_t value);
 
-extern BYTE pio2_kbd;
+extern uint8_t pio2_kbd;
 
 #endif

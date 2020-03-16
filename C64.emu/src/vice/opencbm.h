@@ -4,7 +4,10 @@
  *  as published by the Free Software Foundation; either version
  *  2 of the License, or (at your option) any later version.
  *
- *  Copyright 1999-2005           Michael Klein <michael(dot)klein(at)puffin(dot)lb(dot)shuttle(dot)de>
+ *  Copyright 1999-2005           Michael Klein <michael(dot)klein(at)
+ *                                puffin(dot)lb(dot)shuttle(dot)de>
+ *                                (Highly unlikely this 'protection' works these
+ *                                days)
  *  Copyright 2001-2005,2008-2009 Spiro Trikaliotis
  *  Copyright 2006,2011           Wolfgang Moser (http://d81.de)
  *  Copyright 2009,2012           Arnd Menge
@@ -54,39 +57,6 @@ extern "C" {
 # define CBM_FILE HANDLE /*!< The "file descriptor" for an opened driver */
 # define CBM_FILE_INVALID INVALID_HANDLE_VALUE /*!< An invalid "file descriptor" (CBM_FILE) */
 
-#elif defined(__MSDOS__)
-
-  /* we have MS-DOS */
-
-#include <stdlib.h>
-
-# define EXTERN extern /*!< EXTERN is not defined on MS-DOS */
-# define CBMAPIDECL /*!< CBMAPIDECL is a dummy on MS-DOS */
-# define WINAPI /*!< WINAPI is a dummy on MS-DOS */
-# define CBM_FILE int /*!< The "file descriptor" for an opened driver */
-# define CBM_FILE_INVALID ((CBM_FILE)-1)
-# define __u_char unsigned char /*!< __u_char as unsigned char */
-
-extern int vdd_init(void);
-extern void vdd_uninit(void);
-extern int vdd_install_iohook(CBM_FILE f, int IoBaseAddress, int CableType);
-extern int vdd_uninstall_iohook(CBM_FILE f);
-extern void vdd_usleep(CBM_FILE f, unsigned int howlong);
-#elif defined(WATCOM_COMPILE)
-
-#include <stdlib.h>
-
-# define EXTERN extern /*!< EXTERN is not defined on MS-DOS */
-# define CBMAPIDECL /*!< CBMAPIDECL is a dummy on MS-DOS */
-# define CBM_FILE int /*!< The "file descriptor" for an opened driver */
-# define CBM_FILE_INVALID ((CBM_FILE)-1)
-# define __u_char unsigned char /*!< __u_char as unsigned char */
-
-extern int vdd_init(void);
-extern void vdd_uninit(void);
-extern int vdd_install_iohook(CBM_FILE f, int IoBaseAddress, int CableType);
-extern int vdd_uninstall_iohook(CBM_FILE f);
-extern void vdd_usleep(CBM_FILE f, unsigned int howlong);
 #else
 
   /* we have linux or Mac */
@@ -99,7 +69,9 @@ extern void vdd_usleep(CBM_FILE f, unsigned int howlong);
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
 #else
+#ifndef _INTTYPES_H
 typedef int intptr_t;
+#endif
 #endif
 
 # define EXTERN extern /*!< EXTERN is not defined on Linux */
@@ -117,15 +89,16 @@ typedef int intptr_t;
 typedef unsigned char __u_char;
 #endif
 
-#if defined(__CYGWIN32__) || defined(__CYGWIN__) || defined(__INTERIX) || defined(SKYOS) || defined(__svr4__) || defined(__sortix__)
+#if defined(__CYGWIN32__) || defined(__CYGWIN__) || defined(__INTERIX) || defined(__svr4__) || defined(__sortix__)
 typedef unsigned char __u_char;
 #endif
 
-#if defined(__minix) || defined(OPENSERVER5_COMPILE) || defined(__QNXNTO__)
-typedef unsigned char __u_char;
-#endif
 
 #if (defined(sun) || defined(__sun)) && !(defined(__SVR4) || defined(__svr4__))
+typedef unsigned char __u_char;
+#endif
+
+#ifdef __osf__
 typedef unsigned char __u_char;
 #endif
 

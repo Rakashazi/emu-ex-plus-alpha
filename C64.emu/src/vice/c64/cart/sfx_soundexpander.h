@@ -33,6 +33,7 @@
 extern int sfx_soundexpander_cart_enabled(void);
 extern void sfx_soundexpander_reset(void);
 extern int sfx_soundexpander_enable(void);
+int sfx_soundexpander_disable(void);
 extern void sfx_soundexpander_detach(void);
 
 extern int sfx_soundexpander_resources_init(void);

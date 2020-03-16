@@ -44,7 +44,6 @@
 #include "sid.h"
 #include "snapshot.h"
 #include "uiapi.h"
-#include "translate.h"
 
 #define RTC_RUNMODE_HALTED    0
 #define RTC_RUNMODE_RUNNING   1
@@ -78,23 +77,24 @@ static int ds12c887rtc_accessed = 0;
 /* ---------------------------------------------------------------------*/
 
 /* Some prototypes are needed */
-static BYTE ds12c887rtc_read(WORD addr);
-static void ds12c887rtc_store(WORD addr, BYTE byte);
+static uint8_t ds12c887rtc_read(uint16_t addr);
+static void ds12c887rtc_store(uint16_t addr, uint8_t byte);
 static int ds12c887rtc_dump(void);
 
 static io_source_t ds12c887rtc_device = {
-    CARTRIDGE_NAME_DS12C887RTC,
-    IO_DETACH_RESOURCE,
-    "DS12C887RTC",
-    0xde00, 0xde01, 0xff,
-    0,
-    ds12c887rtc_store,
-    ds12c887rtc_read,
-    ds12c887rtc_read,
-    ds12c887rtc_dump,
-    CARTRIDGE_DS12C887RTC,
-    0,
-    0
+    CARTRIDGE_NAME_DS12C887RTC, /* name of the device */
+    IO_DETACH_RESOURCE,         /* use resource to detach the device when involved in a read-collision */
+    "DS12C887RTC",              /* resource to set to '0' */
+    0xde00, 0xde01, 0xff,       /* range for the device, regs: $de00-$de01, range is different for vic20 */
+    0,                          /* read validity is determined by the device upon a read */
+    ds12c887rtc_store,          /* store function */
+    NULL,                       /* NO poke function */
+    ds12c887rtc_read,           /* read function */
+    ds12c887rtc_read,           /* peek function */
+    ds12c887rtc_dump,           /* device state information dump function */
+    CARTRIDGE_DS12C887RTC,      /* cartridge ID */
+    IO_PRIO_NORMAL,             /* normal priority, device read needs to be checked for collisions */
+    0                           /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *ds12c887rtc_list_item = NULL;
@@ -170,14 +170,6 @@ static int set_ds12c887rtc_base(int val, void *param)
         return 0;
     }
 
-    if (addr == 0xffff) {
-        if (machine_class == VICE_MACHINE_VIC20) {
-            addr = 0x9800;
-        } else {
-            addr = 0xde00;
-        }
-    }
-
     if (old) {
         set_ds12c887rtc_enabled(0, NULL);
     }
@@ -185,8 +177,8 @@ static int set_ds12c887rtc_base(int val, void *param)
     switch (addr) {
         case 0xde00:
             if (machine_class != VICE_MACHINE_VIC20) {
-                ds12c887rtc_device.start_address = (WORD)addr;
-                ds12c887rtc_device.end_address = (WORD)(addr + 1);
+                ds12c887rtc_device.start_address = (uint16_t)addr;
+                ds12c887rtc_device.end_address = (uint16_t)(addr + 1);
                 export_res.io1 = &ds12c887rtc_device;
                 export_res.io2 = NULL;
             } else {
@@ -195,8 +187,8 @@ static int set_ds12c887rtc_base(int val, void *param)
             break;
         case 0xdf00:
             if (machine_class != VICE_MACHINE_VIC20) {
-                ds12c887rtc_device.start_address = (WORD)addr;
-                ds12c887rtc_device.end_address = (WORD)(addr + 1);
+                ds12c887rtc_device.start_address = (uint16_t)addr;
+                ds12c887rtc_device.end_address = (uint16_t)(addr + 1);
                 export_res.io1 = NULL;
                 export_res.io2 = &ds12c887rtc_device;
             } else {
@@ -211,8 +203,8 @@ static int set_ds12c887rtc_base(int val, void *param)
 #endif
         case 0xd700:
             if (machine_class != VICE_MACHINE_VIC20) {
-                ds12c887rtc_device.start_address = (WORD)addr;
-                ds12c887rtc_device.end_address = (WORD)(addr + 1);
+                ds12c887rtc_device.start_address = (uint16_t)addr;
+                ds12c887rtc_device.end_address = (uint16_t)(addr + 1);
                 export_res.io1 = NULL;
                 export_res.io2 = NULL;
             } else {
@@ -222,8 +214,8 @@ static int set_ds12c887rtc_base(int val, void *param)
         case 0xd500:
         case 0xd600:
             if (machine_class != VICE_MACHINE_VIC20 && machine_class != VICE_MACHINE_C128) {
-                ds12c887rtc_device.start_address = (WORD)addr;
-                ds12c887rtc_device.end_address = (WORD)(addr + 1);
+                ds12c887rtc_device.start_address = (uint16_t)addr;
+                ds12c887rtc_device.end_address = (uint16_t)(addr + 1);
                 export_res.io1 = NULL;
                 export_res.io2 = NULL;
             } else {
@@ -233,8 +225,8 @@ static int set_ds12c887rtc_base(int val, void *param)
         case 0x9800:
         case 0x9c00:
             if (machine_class == VICE_MACHINE_VIC20) {
-                ds12c887rtc_device.start_address = (WORD)addr;
-                ds12c887rtc_device.end_address = (WORD)(addr + 1);
+                ds12c887rtc_device.start_address = (uint16_t)addr;
+                ds12c887rtc_device.end_address = (uint16_t)(addr + 1);
             } else {
                 return -1;
             }
@@ -274,6 +266,11 @@ int ds12c887rtc_enable(void)
     return resources_set_int("DS12C887RTC", 1);
 }
 
+int ds12c887rtc_disable(void)
+{
+    return resources_set_int("DS12C887RTC", 0);
+}
+
 void ds12c887rtc_detach(void)
 {
     resources_set_int("DS12C887RTC", 0);
@@ -286,7 +283,7 @@ static int ds12c887rtc_dump(void)
     return ds12c887_dump(ds12c887rtc_context);
 }
 
-static BYTE ds12c887rtc_read(WORD addr)
+static uint8_t ds12c887rtc_read(uint16_t addr)
 {
     if (addr & 1) {
         ds12c887rtc_accessed = 1;
@@ -299,7 +296,7 @@ static BYTE ds12c887rtc_read(WORD addr)
     return 0;
 }
 
-static void ds12c887rtc_store(WORD addr, BYTE byte)
+static void ds12c887rtc_store(uint16_t addr, uint8_t byte)
 {
     if (addr & 1) {
         ds12c887_store_data(ds12c887rtc_context, byte);
@@ -311,9 +308,10 @@ static void ds12c887rtc_store(WORD addr, BYTE byte)
 
 /* ---------------------------------------------------------------------*/
 
-static const resource_int_t resources_int[] = {
+static resource_int_t resources_int[] = {
     { "DS12C887RTC", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &ds12c887rtc_enabled, set_ds12c887rtc_enabled, NULL },
+    /* 0xfff gets updated based on emu in resources_init() */
     { "DS12C887RTCbase", 0xffff, RES_EVENT_NO, NULL,
       &ds12c887rtc_base_address, set_ds12c887rtc_base, NULL },
     { "DS12C887RTCRunMode", RTC_RUNMODE_RUNNING, RES_EVENT_NO, NULL,
@@ -325,6 +323,12 @@ static const resource_int_t resources_int[] = {
 
 int ds12c887rtc_resources_init(void)
 {
+    /* set proper default I/O-base */
+    if (machine_class == VICE_MACHINE_VIC20) {
+        resources_int[1].factory_value = 0x9800;
+    } else {
+        resources_int[1].factory_value = 0xde00;
+    }
     return resources_register_int(resources_int);
 }
 
@@ -340,46 +344,32 @@ void ds12c887rtc_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-ds12c887rtc", SET_RESOURCE, 0,
+    { "-ds12c887rtc", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DS12C887RTC", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_DS12C887RTC,
-      NULL, NULL },
-    { "+ds12c887rtc", SET_RESOURCE, 0,
+      NULL, "Enable the DS12C887 RTC cartridge" },
+    { "+ds12c887rtc", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DS12C887RTC", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_DS12C887RTC,
-      NULL, NULL },
-    { "-ds12c887rtchalted", SET_RESOURCE, 0,
+      NULL, "Disable the DS12C887 RTC cartridge" },
+    { "-ds12c887rtchalted", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DS12C887RTCRunMode", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DS12C887RTC_RUNMODE_HALTED,
-      NULL, NULL },
-    { "-ds12c887rtcrunning", SET_RESOURCE, 0,
+      NULL, "Set the RTC oscillator to 'halted'" },
+    { "-ds12c887rtcrunning", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DS12C887RTCRunMode", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DS12C887RTC_RUNMODE_RUNNING,
-      NULL, NULL },
-    { "-ds12c887rtcsave", SET_RESOURCE, 0,
+      NULL, "Set the RTC oscillator to 'running'" },
+    { "-ds12c887rtcsave", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DS12C887RTCSave", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_DS12C887RTC_SAVE,
-      NULL, NULL },
-    { "+ds12c887rtcsave", SET_RESOURCE, 0,
+      NULL, "Enable saving of the DS12C887 RTC data when changed." },
+    { "+ds12c887rtcsave", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DS12C887RTCSave", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_DS12C887RTC_SAVE,
-      NULL, NULL },
+      NULL, "Disable saving of the DS12C887 RTC data when changed." },
     CMDLINE_LIST_END
 };
 
 static cmdline_option_t base_cmdline_options[] =
 {
-    { "-ds12c887rtcbase", SET_RESOURCE, 1,
+    { "-ds12c887rtcbase", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "DS12C887RTCbase", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_COMBO,
-      IDCLS_P_BASE_ADDRESS, IDCLS_DS12C887RTC_BASE,
-      NULL, NULL },
+      "<Base address>", NULL },
     CMDLINE_LIST_END
 };
 
@@ -390,11 +380,11 @@ int ds12c887rtc_cmdline_options_init(void)
     }
 
     if (machine_class == VICE_MACHINE_VIC20) {
-        base_cmdline_options[0].description = ". (0x9800/0x9C00)";
+        base_cmdline_options[0].description = "Base address of the DS12C887 RTC cartridge. (0x9800/0x9C00)";
     } else if (machine_class == VICE_MACHINE_C128) {
-        base_cmdline_options[0].description = ". (0xD700/0xDE00/0xDF00)";
+        base_cmdline_options[0].description = "Base address of the DS12C887 RTC cartridge. (0xD700/0xDE00/0xDF00)";
     } else {
-        base_cmdline_options[0].description = ". (0xD500/0xD600/0xD700/0xDE00/0xDF00)";
+        base_cmdline_options[0].description = "Base address of the DS12C887 RTC cartridge. (0xD500/0xD600/0xD700/0xDE00/0xDF00)";
     }
 
     return cmdline_register_options(base_cmdline_options);
@@ -423,7 +413,7 @@ int ds12c887rtc_snapshot_write_module(snapshot_t *s)
         return -1;
     }
 
-    if (SMW_DW(m, (DWORD)ds12c887rtc_base_address) < 0) {
+    if (SMW_DW(m, (uint32_t)ds12c887rtc_base_address) < 0) {
         snapshot_module_close(m);
         return -1;
     }
@@ -435,7 +425,7 @@ int ds12c887rtc_snapshot_write_module(snapshot_t *s)
 
 int ds12c887rtc_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
     int temp_ds12c887rtc_address;
 
@@ -446,7 +436,7 @@ int ds12c887rtc_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

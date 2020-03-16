@@ -32,6 +32,7 @@
 
 #include "6510core.h"
 #include "alarm.h"
+#include "archdep.h"
 
 #ifdef FEATURE_CPUMEMHISTORY
 #include "c64pla.h"
@@ -102,7 +103,7 @@ inline static void interrupt_delay(void)
 static void maincpu_steal_cycles(void)
 {
     interrupt_cpu_status_t *cs = maincpu_int_status;
-    BYTE opcode;
+    uint8_t opcode;
 
     if (maincpu_ba_low_flags & MAINCPU_BA_LOW_VICII) {
         vicii_steal_cycles();
@@ -149,6 +150,12 @@ static void maincpu_steal_cycles(void)
         /* ANE */
         case 0x8b:
         /* this is a hacky way of signaling ANE() that
+           cycles were stolen after the first fetch */
+        /* (fall through) */
+
+        /* LXA */
+        case 0xab:
+        /* this is a hacky way of signaling LXA() that
            cycles were stolen after the first fetch */
         /* (fall through) */
 
@@ -235,18 +242,18 @@ inline static void memmap_mem_update(unsigned int addr, int write)
     monitor_memmap_store(addr, type);
 }
 
-void memmap_mem_store(unsigned int addr, unsigned int value)
+static void memmap_mem_store(unsigned int addr, unsigned int value)
 {
     memmap_mem_update(addr, 1);
-    (*_mem_write_tab_ptr[(addr) >> 8])((WORD)(addr), (BYTE)(value));
+    (*_mem_write_tab_ptr[(addr) >> 8])((uint16_t)(addr), (uint8_t)(value));
 }
 
 /* read byte, check BA and mark as read */
-BYTE memmap_mem_read(unsigned int addr)
+static uint8_t memmap_mem_read(unsigned int addr)
 {
     check_ba();
     memmap_mem_update(addr, 0);
-    return (*_mem_read_tab_ptr[(addr) >> 8])((WORD)(addr));
+    return (*_mem_read_tab_ptr[(addr) >> 8])((uint16_t)(addr));
 }
 
 #ifndef STORE
@@ -278,21 +285,21 @@ BYTE memmap_mem_read(unsigned int addr)
 
 /* Route stack operations through memmap */
 
-#define PUSH(val) memmap_mem_store((0x100 + (reg_sp--)), (BYTE)(val))
+#define PUSH(val) memmap_mem_store((0x100 + (reg_sp--)), (uint8_t)(val))
 #define PULL()    memmap_mem_read(0x100 + (++reg_sp))
 #define STACK_PEEK()  memmap_mem_read(0x100 + reg_sp)
 
 #endif /* FEATURE_CPUMEMHISTORY */
 
-inline static BYTE mem_read_check_ba(unsigned int addr)
+inline static uint8_t mem_read_check_ba(unsigned int addr)
 {
     check_ba();
-    return (*_mem_read_tab_ptr[(addr) >> 8])((WORD)(addr));
+    return (*_mem_read_tab_ptr[(addr) >> 8])((uint16_t)(addr));
 }
 
 #ifndef STORE
 #define STORE(addr, value) \
-    (*_mem_write_tab_ptr[(addr) >> 8])((WORD)(addr), (BYTE)(value))
+    (*_mem_write_tab_ptr[(addr) >> 8])((uint16_t)(addr), (uint8_t)(value))
 #endif
 
 #ifndef LOAD
@@ -309,7 +316,7 @@ inline static BYTE mem_read_check_ba(unsigned int addr)
 
 #ifndef STORE_ZERO
 #define STORE_ZERO(addr, value) \
-    (*_mem_write_tab_ptr[0])((WORD)(addr), (BYTE)(value))
+    (*_mem_write_tab_ptr[0])((uint16_t)(addr), (uint8_t)(value))
 #endif
 
 #ifndef LOAD_ZERO
@@ -320,7 +327,7 @@ inline static BYTE mem_read_check_ba(unsigned int addr)
 /* Route stack operations through read/write handlers */
 
 #ifndef PUSH
-#define PUSH(val) (*_mem_write_tab_ptr[0x01])((WORD)(0x100 + (reg_sp--)), (BYTE)(val))
+#define PUSH(val) (*_mem_write_tab_ptr[0x01])((uint16_t)(0x100 + (reg_sp--)), (uint8_t)(val))
 #endif
 
 #ifndef PULL
@@ -419,6 +426,7 @@ monitor_interface_t *maincpu_monitor_interface_get(void)
     maincpu_monitor_interface->mem_bank_read = mem_bank_read;
     maincpu_monitor_interface->mem_bank_peek = mem_bank_peek;
     maincpu_monitor_interface->mem_bank_write = mem_bank_write;
+    maincpu_monitor_interface->mem_bank_poke = mem_bank_poke;
 
     maincpu_monitor_interface->mem_ioreg_list_get = mem_ioreg_list_get;
 
@@ -534,10 +542,11 @@ inline static int interrupt_check_irq_delay(interrupt_cpu_status_t *cs,
 /* ------------------------------------------------------------------------- */
 
 #ifdef NEED_REG_PC
+/* FIXME: this should really be uint16_t, but it breaks things (eg trap17.prg) */
 unsigned int reg_pc;
 #endif
 
-static BYTE **o_bank_base;
+static uint8_t **o_bank_base;
 static int *o_bank_start;
 static int *o_bank_limit;
 
@@ -552,17 +561,18 @@ void maincpu_mainloop(void)
 {
     /* Notice that using a struct for these would make it a lot slower (at
        least, on gcc 2.7.2.x).  */
-    BYTE reg_a = 0;
-    BYTE reg_x = 0;
-    BYTE reg_y = 0;
-    BYTE reg_p = 0;
-    BYTE reg_sp = 0;
-    BYTE flag_n = 0;
-    BYTE flag_z = 0;
+    uint8_t reg_a = 0;
+    uint8_t reg_x = 0;
+    uint8_t reg_y = 0;
+    uint8_t reg_p = 0;
+    uint8_t reg_sp = 0;
+    uint8_t flag_n = 0;
+    uint8_t flag_z = 0;
 #ifndef NEED_REG_PC
+    /* FIXME: this should really be uint16_t, but it breaks things (eg trap17.prg) */
     unsigned int reg_pc;
 #endif
-    BYTE *bank_base;
+    uint8_t *bank_base;
     int bank_start = 0;
     int bank_limit = 0;
 
@@ -616,7 +626,7 @@ void maincpu_mainloop(void)
 
 #define CALLER e_comp_space
 
-#define ROM_TRAP_ALLOWED() mem_rom_trap_allowed((WORD)reg_pc)
+#define ROM_TRAP_ALLOWED() mem_rom_trap_allowed((uint16_t)reg_pc)
 
 #define GLOBAL_REGS maincpu_regs
 
@@ -626,7 +636,7 @@ void maincpu_mainloop(void)
 
         if (maincpu_clk_limit && (maincpu_clk > maincpu_clk_limit)) {
             log_error(LOG_DEFAULT, "cycle limit reached.");
-            exit(EXIT_FAILURE);
+            archdep_vice_exit(EXIT_FAILURE);
         }
 #if 0
         if (CLK > 246171754) {
@@ -700,8 +710,8 @@ int maincpu_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, snap_module_name, ((BYTE)SNAP_MAJOR),
-                               ((BYTE)SNAP_MINOR));
+    m = snapshot_module_create(s, snap_module_name, ((uint8_t)SNAP_MAJOR),
+                               ((uint8_t)SNAP_MINOR));
     if (m == NULL) {
         return -1;
     }
@@ -712,10 +722,10 @@ int maincpu_snapshot_write_module(snapshot_t *s)
         || SMW_B(m, MOS6510_REGS_GET_X(&maincpu_regs)) < 0
         || SMW_B(m, MOS6510_REGS_GET_Y(&maincpu_regs)) < 0
         || SMW_B(m, MOS6510_REGS_GET_SP(&maincpu_regs)) < 0
-        || SMW_W(m, (WORD)MOS6510_REGS_GET_PC(&maincpu_regs)) < 0
-        || SMW_B(m, (BYTE)MOS6510_REGS_GET_STATUS(&maincpu_regs)) < 0
-        || SMW_DW(m, (DWORD)last_opcode_info) < 0
-        || SMW_DW(m, (DWORD)maincpu_ba_low_flags) < 0) {
+        || SMW_W(m, (uint16_t)MOS6510_REGS_GET_PC(&maincpu_regs)) < 0
+        || SMW_B(m, (uint8_t)MOS6510_REGS_GET_STATUS(&maincpu_regs)) < 0
+        || SMW_DW(m, (uint32_t)last_opcode_info) < 0
+        || SMW_DW(m, (uint32_t)maincpu_ba_low_flags) < 0) {
         goto fail;
     }
 
@@ -742,9 +752,9 @@ fail:
 
 int maincpu_snapshot_read_module(snapshot_t *s)
 {
-    BYTE a, x, y, sp, status;
-    WORD pc;
-    BYTE major, minor;
+    uint8_t a, x, y, sp, status;
+    uint16_t pc;
+    uint8_t major, minor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &major, &minor);

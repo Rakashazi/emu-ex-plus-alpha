@@ -1,8 +1,7 @@
-/*
- * z80mem.c
+/**\file    z80mem.c
+ * \brief   Z80 memory handling
  *
- * Written by
- *  Andreas Boose <viceteam@t-online.de>
+ * \author  Andreas Boose <viceteam@t-online.de>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -48,7 +47,7 @@
 #include "z80.h"
 
 /* Z80 boot BIOS.  */
-BYTE z80bios_rom[0x1000];
+uint8_t z80bios_rom[0x1000];
 
 /* Logging.  */
 static log_t z80mem_log = LOG_ERR;
@@ -56,7 +55,7 @@ static log_t z80mem_log = LOG_ERR;
 /* Pointers to the currently used memory read and write tables.  */
 read_func_ptr_t *_z80mem_read_tab_ptr;
 store_func_ptr_t *_z80mem_write_tab_ptr;
-BYTE **_z80mem_read_base_tab_ptr;
+uint8_t **_z80mem_read_base_tab_ptr;
 int *z80mem_read_limit_tab_ptr;
 
 #define NUM_CONFIGS 8
@@ -64,7 +63,7 @@ int *z80mem_read_limit_tab_ptr;
 /* Memory read and write tables.  */
 static store_func_ptr_t mem_write_tab[NUM_CONFIGS][0x101];
 static read_func_ptr_t mem_read_tab[NUM_CONFIGS][0x101];
-static BYTE *mem_read_base_tab[NUM_CONFIGS][0x101];
+static uint8_t *mem_read_base_tab[NUM_CONFIGS][0x101];
 static int mem_read_limit_tab[NUM_CONFIGS][0x101];
 
 store_func_ptr_t io_write_tab[0x101];
@@ -74,38 +73,38 @@ read_func_ptr_t io_read_tab[0x101];
 
 /* Generic memory access.  */
 #if 0
-static void z80mem_store(WORD addr, BYTE value)
+static void z80mem_store(uint16_t addr, uint8_t value)
 {
     _z80mem_write_tab_ptr[addr >> 8](addr, value);
 }
 
-static BYTE z80mem_read(WORD addr)
+static uint8_t z80mem_read(uint16_t addr)
 {
     return _z80mem_read_tab_ptr[addr >> 8](addr);
 }
 #endif
 
-BYTE bios_read(WORD addr)
+uint8_t bios_read(uint16_t addr)
 {
     return z80bios_rom[addr & 0x0fff];
 }
 
-void bios_store(WORD addr, BYTE value)
+void bios_store(uint16_t addr, uint8_t value)
 {
     z80bios_rom[addr] = value;
 }
 
-static BYTE z80_read_zero(WORD addr)
+static uint8_t z80_read_zero(uint16_t addr)
 {
     return mem_page_zero[addr];
 }
 
-static void z80_store_zero(WORD addr, BYTE value)
+static void z80_store_zero(uint16_t addr, uint8_t value)
 {
     mem_page_zero[addr] = value;
 }
 
-static BYTE read_unconnected_io(WORD addr)
+static uint8_t read_unconnected_io(uint16_t addr)
 {
     log_message(z80mem_log, "Read from unconnected IO %04x", addr);
 #ifdef Z80_4MHZ
@@ -114,7 +113,7 @@ static BYTE read_unconnected_io(WORD addr)
     return 0;
 }
 
-static void store_unconnected_io(WORD addr, BYTE value)
+static void store_unconnected_io(uint16_t addr, uint8_t value)
 {
     log_message(z80mem_log, "Store to unconnected IO %04x %02x", addr, value);
 #ifdef Z80_4MHZ
@@ -123,157 +122,157 @@ static void store_unconnected_io(WORD addr, BYTE value)
 }
 
 #ifdef Z80_4MHZ
-static BYTE z80_c64io_d000_read(WORD adr)
+static uint8_t z80_c64io_d000_read(uint16_t adr)
 {
     z80_clock_stretch();
     return c64io_d000_read(adr);
 }
 
-static void z80_c64io_d000_store(WORD adr, BYTE val)
+static void z80_c64io_d000_store(uint16_t adr, uint8_t val)
 {
     z80_clock_stretch();
     c64io_d000_store(adr, val);
 }
 
-static BYTE z80_c64io_d100_read(WORD adr)
+static uint8_t z80_c64io_d100_read(uint16_t adr)
 {
     z80_clock_stretch();
     return c64io_d100_read(adr);
 }
 
-static void z80_c64io_d100_store(WORD adr, BYTE val)
+static void z80_c64io_d100_store(uint16_t adr, uint8_t val)
 {
     z80_clock_stretch();
     c64io_d100_store(adr, val);
 }
 
-static BYTE z80_c64io_d200_read(WORD adr)
+static uint8_t z80_c64io_d200_read(uint16_t adr)
 {
     z80_clock_stretch();
     return c64io_d200_read(adr);
 }
 
-static void z80_c64io_d200_store(WORD adr, BYTE val)
+static void z80_c64io_d200_store(uint16_t adr, uint8_t val)
 {
     z80_clock_stretch();
     c64io_d200_store(adr, val);
 }
 
-static BYTE z80_c64io_d300_read(WORD adr)
+static uint8_t z80_c64io_d300_read(uint16_t adr)
 {
     z80_clock_stretch();
     return c64io_d300_read(adr);
 }
 
-static void z80_c64io_d300_store(WORD adr, BYTE val)
+static void z80_c64io_d300_store(uint16_t adr, uint8_t val)
 {
     z80_clock_stretch();
     c64io_d300_store(adr, val);
 }
 
-static BYTE z80_c64io_d400_read(WORD adr)
+static uint8_t z80_c64io_d400_read(uint16_t adr)
 {
     z80_clock_stretch();
     return c64io_d400_read(adr);
 }
 
-static void z80_c64io_d400_store(WORD adr, BYTE val)
+static void z80_c64io_d400_store(uint16_t adr, uint8_t val)
 {
     z80_clock_stretch();
     c64io_d400_store(adr, val);
 }
 
-static BYTE z80_mmu_read(WORD adr)
+static uint8_t z80_mmu_read(uint16_t adr)
 {
     z80_clock_stretch();
     return mmu_read(adr);
 }
 
-static void z80_mmu_store(WORD adr, BYTE val)
+static void z80_mmu_store(uint16_t adr, uint8_t val)
 {
     z80_clock_stretch();
     mmu_store(adr, val);
 }
 
-static BYTE z80_vdc_read(WORD adr)
+static uint8_t z80_vdc_read(uint16_t adr)
 {
     z80_clock_stretch();
     return vdc_read(adr);
 }
 
-static void z80_vdc_store(WORD adr, BYTE val)
+static void z80_vdc_store(uint16_t adr, uint8_t val)
 {
     z80_clock_stretch();
     vdc_store(adr, val);
 }
 
-static BYTE z80_c64io_d700_read(WORD adr)
+static uint8_t z80_c64io_d700_read(uint16_t adr)
 {
     z80_clock_stretch();
     return c64io_d700_read(adr);
 }
 
-static void z80_c64io_d700_store(WORD adr, BYTE val)
+static void z80_c64io_d700_store(uint16_t adr, uint8_t val)
 {
     z80_clock_stretch();
     c64io_d700_store(adr, val);
 }
 
-static BYTE z80_colorram_read(WORD adr)
+static uint8_t z80_colorram_read(uint16_t adr)
 {
     z80_clock_stretch();
     return colorram_read(adr);
 }
 
-static void z80_colorram_store(WORD adr, BYTE val)
+static void z80_colorram_store(uint16_t adr, uint8_t val)
 {
     z80_clock_stretch();
     colorram_store(adr, val);
 }
 
-static BYTE z80_cia1_read(WORD adr)
+static uint8_t z80_cia1_read(uint16_t adr)
 {
     z80_clock_stretch();
     return cia1_read(adr);
 }
 
-static void z80_cia1_store(WORD adr, BYTE val)
+static void z80_cia1_store(uint16_t adr, uint8_t val)
 {
     z80_clock_stretch();
     cia1_store(adr, val);
 }
 
-static BYTE z80_cia2_read(WORD adr)
+static uint8_t z80_cia2_read(uint16_t adr)
 {
     z80_clock_stretch();
     return cia2_read(adr);
 }
 
-static void z80_cia2_store(WORD adr, BYTE val)
+static void z80_cia2_store(uint16_t adr, uint8_t val)
 {
     z80_clock_stretch();
     cia2_store(adr, val);
 }
 
-static BYTE z80_c64io_de00_read(WORD adr)
+static uint8_t z80_c64io_de00_read(uint16_t adr)
 {
     z80_clock_stretch();
     return c64io_de00_read(adr);
 }
 
-static void z80_c64io_de00_store(WORD adr, BYTE val)
+static void z80_c64io_de00_store(uint16_t adr, uint8_t val)
 {
     z80_clock_stretch();
     c64io_de00_store(adr, val);
 }
 
-static BYTE z80_c64io_df00_read(WORD adr)
+static uint8_t z80_c64io_df00_read(uint16_t adr)
 {
     z80_clock_stretch();
     return c64io_df00_read(adr);
 }
 
-static void z80_c64io_df00_store(WORD adr, BYTE val)
+static void z80_c64io_df00_store(uint16_t adr, uint8_t val)
 {
     z80_clock_stretch();
     c64io_df00_store(adr, val);
@@ -307,9 +306,6 @@ static void z80_c64io_df00_store(WORD adr, BYTE val)
 #define z80_c64io_df00_store  c64io_df00_store
 #endif
 
-#ifdef _MSC_VER
-#pragma optimize("",off)
-#endif
 
 void z80mem_initialize(void)
 {
@@ -537,9 +533,6 @@ void z80mem_initialize(void)
     io_write_tab[0xdf] = z80_c64io_df00_store;
 }
 
-#ifdef _MSC_VER
-#pragma optimize("",on)
-#endif
 
 void z80mem_update_config(int config)
 {

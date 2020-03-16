@@ -65,7 +65,7 @@ static int fsdevice_open_directory(vdrive_t *vdrive, unsigned int secondary,
 {
     struct ioutil_dir_s *ioutil_dir;
     char *mask;
-    BYTE *p;
+    uint8_t *p;
     int i;
 
     if ((secondary != 0) || (bufinfo[secondary].mode != Read)) {
@@ -85,25 +85,25 @@ static int fsdevice_open_directory(vdrive_t *vdrive, unsigned int secondary,
         } else {
             strcpy(bufinfo[secondary].dirmask, mask);
             lib_free(cmd_parse->parsecmd);
-            cmd_parse->parsecmd = lib_stralloc(fsdevice_get_path(vdrive->unit));
+            cmd_parse->parsecmd = lib_strdup(fsdevice_get_path(vdrive->unit));
         }
     } else {
         bufinfo[secondary].dirmask[0] = '\0';
         if (!*(cmd_parse->parsecmd)) {
             lib_free(cmd_parse->parsecmd);
-            cmd_parse->parsecmd = lib_stralloc(fsdevice_get_path(vdrive->unit));
+            cmd_parse->parsecmd = lib_strdup(fsdevice_get_path(vdrive->unit));
         }
     }
 
     /* trying to open */
-    ioutil_dir = ioutil_opendir((char *)(cmd_parse->parsecmd));
+    ioutil_dir = ioutil_opendir((char *)(cmd_parse->parsecmd), IOUTIL_OPENDIR_ALL_FILES);
     if (ioutil_dir == NULL) {
-        for (p = (BYTE *)(cmd_parse->parsecmd); *p; p++) {
+        for (p = (uint8_t *)(cmd_parse->parsecmd); *p; p++) {
             if (isupper((int)*p)) {
                 *p = tolower((int)*p);
             }
         }
-        ioutil_dir = ioutil_opendir((char *)(cmd_parse->parsecmd));
+        ioutil_dir = ioutil_opendir((char *)(cmd_parse->parsecmd), IOUTIL_OPENDIR_ALL_FILES);
         if (ioutil_dir == NULL) {
             fsdevice_error(vdrive, CBMDOS_IPE_NOT_FOUND);
             return FLOPPY_ERROR;
@@ -125,11 +125,11 @@ static int fsdevice_open_directory(vdrive_t *vdrive, unsigned int secondary,
     *p++ = 0;
     *p++ = 0;
 
-    *p++ = (BYTE)0x12;     /* Reverse on */
+    *p++ = (uint8_t)0x12;     /* Reverse on */
 
     *p++ = '"';
     strcpy((char *)p, bufinfo[secondary].dir); /* Dir name */
-    charset_petconvstring((BYTE *)p, 0);   /* ASCII name to PETSCII */
+    charset_petconvstring((uint8_t *)p, 0);   /* ASCII name to PETSCII */
     i = 0;
     while (*p) {
         ++p;
@@ -234,7 +234,7 @@ static int fsdevice_open_file(vdrive_t *vdrive, unsigned int secondary,
     tape = bufinfo[secondary].tape;
     tape->name = util_concat(fsdevice_get_path(vdrive->unit),
                              FSDEV_DIR_SEP_STR, rname, NULL);
-    charset_petconvstring((BYTE *)(tape->name) +
+    charset_petconvstring((uint8_t *)(tape->name) +
                           strlen(fsdevice_get_path(vdrive->unit)) +
                           strlen(FSDEV_DIR_SEP_STR), 1);
     tape->read_only = 1;
@@ -246,7 +246,7 @@ static int fsdevice_open_file(vdrive_t *vdrive, unsigned int secondary,
         tape->name = NULL;
     } else {
         tape_file_record_t *r;
-        static BYTE startaddr[2];
+        static uint8_t startaddr[2];
         tape_seek_start(tape);
         tape_seek_to_file(tape, 0);
         r = tape_get_current_file_record(tape);
@@ -284,7 +284,7 @@ static int fsdevice_open_buffer(vdrive_t *vdrive, unsigned int secondary,
     return FLOPPY_COMMAND_OK;
 }
 
-int fsdevice_open(vdrive_t *vdrive, const BYTE *name, unsigned int length,
+int fsdevice_open(vdrive_t *vdrive, const uint8_t *name, unsigned int length,
                   unsigned int secondary, cbmdos_cmd_parse_t *cmd_parse_ext)
 {
     char *rname;
@@ -328,7 +328,7 @@ int fsdevice_open(vdrive_t *vdrive, const BYTE *name, unsigned int length,
     strncpy(rname, cmd_parse.parsecmd, cmd_parse.parselength + 1);
 
     /* CBM name to FSname */
-    charset_petconvstring((BYTE *)(cmd_parse.parsecmd), 1);
+    charset_petconvstring((uint8_t *)(cmd_parse.parsecmd), 1);
 
     switch (cmd_parse.readmode) {
         case CBMDOS_FAM_WRITE:
@@ -350,7 +350,9 @@ int fsdevice_open(vdrive_t *vdrive, const BYTE *name, unsigned int length,
         not found" - so it is the best we can do in that case, too.
     */
     if (strlen((const char*)name) != length) {
-        log_message(LOG_DEFAULT, "Fsdevice: Warning - filename '%s' with bogus length '%d'.", cmd_parse.parsecmd, length);
+        log_message(LOG_DEFAULT,
+                "Fsdevice: Warning - filename '%s' with bogus length '%u'.",
+                cmd_parse.parsecmd, length);
         status = CBMDOS_IPE_NOT_FOUND;
         goto out;
     }

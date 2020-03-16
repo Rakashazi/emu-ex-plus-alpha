@@ -47,7 +47,7 @@
 #include "vdrive.h"
 
 
-#define ADDR_LIMIT(x) ((WORD)(addr_mask(x)))
+#define ADDR_LIMIT(x) ((uint16_t)(addr_mask(x)))
 
 #define curbank (mon_interfaces[mem]->current_bank)
 
@@ -90,7 +90,7 @@ static int mon_file_open(const char *filename, unsigned int secondary,
             }
             pname[i] = 0;
 
-            if (vdrive_iec_open(vdrive, (const BYTE *)pname,
+            if (vdrive_iec_open(vdrive, (const uint8_t *)pname,
                                 (int)strlen(pname), secondary, NULL) != SERIAL_OK) {
                 return -1;
             }
@@ -104,7 +104,7 @@ static int mon_file_open(const char *filename, unsigned int secondary,
     return 0;
 }
 
-static int mon_file_read(BYTE *data, unsigned int secondary, int device)
+static int mon_file_read(uint8_t *data, unsigned int secondary, int device)
 {
     switch (device) {
         case 0:
@@ -129,7 +129,7 @@ static int mon_file_read(BYTE *data, unsigned int secondary, int device)
     return 0;
 }
 
-static int mon_file_write(BYTE data, unsigned int secondary, int device)
+static int mon_file_write(uint8_t data, unsigned int secondary, int device)
 {
     switch (device) {
         case 0:
@@ -173,8 +173,8 @@ static int mon_file_close(unsigned int secondary, int device)
 void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
                    bool is_bload)
 {
-    WORD adr, load_addr = 0, basic_addr;
-    BYTE b1 = 0, b2 = 0;
+    uint16_t adr, load_addr = 0, basic_addr;
+    uint8_t b1 = 0, b2 = 0;
     int ch = 0;
     MEMSPACE mem;
     int origbank = 0;
@@ -188,7 +188,7 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
     if (is_bload == FALSE) {
         mon_file_read(&b1, 0, device);
         mon_file_read(&b2, 0, device);
-        load_addr = (BYTE)b1 | ((BYTE)b2 << 8);
+        load_addr = (uint8_t)b1 | ((uint8_t)b2 << 8);
     }
 
     mem_get_basic_text(&basic_addr, NULL); /* get BASIC start */
@@ -224,7 +224,7 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
     }
 
     do {
-        BYTE load_byte;
+        uint8_t load_byte;
 
         if (mon_file_read(&load_byte, 0, device) < 0) {
             break;
@@ -249,7 +249,7 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
         curbank = origbank;
     }
 
-    mon_out("to %04X (%x bytes)\n", ADDR_LIMIT(adr + ch), ch);
+    mon_out("to %04X (%x bytes)\n", ADDR_LIMIT(adr + ch), (unsigned int)ch);
 
     /* set end of load addresses like kernal load if
      * 1. loading .prg file
@@ -257,7 +257,7 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
      * 3. loading to computer bank/memory
      */
     if ((is_bload == FALSE) && (load_addr == basic_addr) && (mem == e_comp_space)) {
-        mem_set_basic_text(adr, (WORD)(adr + ch));
+        mem_set_basic_text(adr, (uint16_t)(adr + ch));
     }
 
     mon_file_close(0, device);
@@ -266,7 +266,7 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
 void mon_file_save(const char *filename, int device, MON_ADDR start_addr,
                    MON_ADDR end_addr, bool is_bsave)
 {
-    WORD adr, end;
+    uint16_t adr, end;
     long len;
     int ch = 0;
     MEMSPACE mem;
@@ -295,8 +295,8 @@ void mon_file_save(const char *filename, int device, MON_ADDR start_addr,
     printf("Saving file `%s'...\n", filename);
 
     if (is_bsave == FALSE) {
-        if (mon_file_write((BYTE)(adr & 0xff), 1, device) < 0
-            || mon_file_write((BYTE)((adr >> 8) & 0xff), 1, device) < 0) {
+        if (mon_file_write((uint8_t)(adr & 0xff), 1, device) < 0
+            || mon_file_write((uint8_t)((adr >> 8) & 0xff), 1, device) < 0) {
             mon_out("Saving for `%s' failed.\n", filename);
             mon_file_close(1, device);
             return;
@@ -306,7 +306,7 @@ void mon_file_save(const char *filename, int device, MON_ADDR start_addr,
     do {
         unsigned char save_byte;
 
-        save_byte = mon_get_mem_val(mem, (WORD)(adr + ch));
+        save_byte = mon_get_mem_val(mem, (uint16_t)(adr + ch));
         if (mon_file_write(save_byte, 1, device) < 0) {
             mon_out("Saving for `%s' failed.\n", filename);
             break;

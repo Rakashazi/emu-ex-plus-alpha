@@ -34,7 +34,7 @@
 
 
 static void video_render_1x2_main(video_render_config_t *config,
-                                  const BYTE *src, BYTE *trg,
+                                  const uint8_t *src, uint8_t *trg,
                                   unsigned int width, const unsigned int height,
                                   const unsigned int xs, const unsigned int ys,
                                   const unsigned int xt, const unsigned int yt,

@@ -216,12 +216,12 @@ void ciat_save_snapshot(ciat_t *cia_state, CLOCK cclk, snapshot_module_t *m,
     if (ver >= 0x100) {
         /* major 1, minor >= 1 */
         /* cnt & latch are saved from cia module already */
-        SMW_W(m, ((WORD)(cia_state->state)));
+        SMW_W(m, ((uint16_t)(cia_state->state)));
     }
 }
 
-void ciat_load_snapshot(ciat_t *state, CLOCK cclk, WORD cnt, WORD latch,
-                        BYTE cr, snapshot_module_t *m, int ver)
+void ciat_load_snapshot(ciat_t *state, CLOCK cclk, uint16_t cnt, uint16_t latch,
+                        uint8_t cr, snapshot_module_t *m, int ver)
 {
     /* cnt & latch are read from cia module already */
     state->clk = cclk;

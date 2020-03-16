@@ -38,7 +38,6 @@
 #include "monitor.h"
 #include "petmem.h"
 #include "resources.h"
-#include "translate.h"
 #include "types.h"
 #include "uiapi.h"
 #include "util.h"
@@ -95,7 +94,7 @@ static void io_source_detach(io_source_detach_t *source)
 /*
     amount is 2 or more
 */
-static void io_source_msg_detach_all(WORD addr, int amount, io_source_list_t *start)
+static void io_source_msg_detach_all(uint16_t addr, int amount, io_source_list_t *start)
 {
     io_source_detach_t *detach_list = lib_malloc(sizeof(io_source_detach_t) * amount);
     io_source_list_t *current = start;
@@ -122,7 +121,7 @@ static void io_source_msg_detach_all(WORD addr, int amount, io_source_list_t *st
 
             /* first part of the message "read collision at x from" */
             if (found == 0) {
-                old_msg = lib_stralloc(translate_text(IDGS_IO_READ_COLL_AT_X_FROM));
+                old_msg = lib_strdup("I/O read collision at %X from ");
                 new_msg = util_concat(old_msg, current->device->name, NULL);
                 lib_free(old_msg);
             }
@@ -133,7 +132,7 @@ static void io_source_msg_detach_all(WORD addr, int amount, io_source_list_t *st
             }
             if (found == amount - 1) {
                 old_msg = new_msg;
-                new_msg = util_concat(old_msg, translate_text(IDGS_AND), current->device->name, translate_text(IDGS_ALL_DEVICES_DETACHED), NULL);
+                new_msg = util_concat(old_msg, " and ", current->device->name, ".\nAll the named devices will be detached.", NULL);
                 lib_free(old_msg);
             }
             found++;
@@ -161,7 +160,7 @@ static void io_source_msg_detach_all(WORD addr, int amount, io_source_list_t *st
 /*
     amount is 2 or more
 */
-static void io_source_msg_detach_last(WORD addr, int amount, io_source_list_t *start, unsigned int lowest)
+static void io_source_msg_detach_last(uint16_t addr, int amount, io_source_list_t *start, unsigned int lowest)
 {
     io_source_detach_t *detach_list = lib_malloc(sizeof(io_source_detach_t) * amount);
     io_source_list_t *current = start;
@@ -194,7 +193,7 @@ static void io_source_msg_detach_last(WORD addr, int amount, io_source_list_t *s
 
             /* first part of the message "read collision at x from" */
             if (found == 0) {
-                old_msg = lib_stralloc(translate_text(IDGS_IO_READ_COLL_AT_X_FROM));
+                old_msg = lib_strdup("I/O read collision at %X from ");
                 new_msg = util_concat(old_msg, current->device->name, NULL);
                 lib_free(old_msg);
             }
@@ -205,7 +204,7 @@ static void io_source_msg_detach_last(WORD addr, int amount, io_source_list_t *s
             }
             if (found == amount - 1) {
                 old_msg = new_msg;
-                new_msg = util_concat(old_msg, translate_text(IDGS_AND), current->device->name, translate_text(IDGS_ALL_DEVICES_EXCEPT), first_cart, translate_text(IDGS_WILL_BE_DETACHED), NULL);
+                new_msg = util_concat(old_msg, " and ", current->device->name, ".\nAll devices except ", first_cart, " will be detached.", NULL);
                 lib_free(old_msg);
             }
             found++;
@@ -235,7 +234,7 @@ static void io_source_msg_detach_last(WORD addr, int amount, io_source_list_t *s
 /*
     amount is 2 or more
 */
-static void io_source_log_collisions(WORD addr, int amount, io_source_list_t *start)
+static void io_source_log_collisions(uint16_t addr, int amount, io_source_list_t *start)
 {
     io_source_list_t *current = start;
     char *old_msg = NULL;
@@ -256,7 +255,7 @@ static void io_source_log_collisions(WORD addr, int amount, io_source_list_t *st
 
             /* first part of the message "read collision at x from" */
             if (found == 0) {
-                old_msg = lib_stralloc(translate_text(IDGS_IO_READ_COLL_AT_X_FROM));
+                old_msg = lib_strdup("I/O read collision at %X from ");
                 new_msg = util_concat(old_msg, current->device->name, NULL);
                 lib_free(old_msg);
             }
@@ -267,7 +266,7 @@ static void io_source_log_collisions(WORD addr, int amount, io_source_list_t *st
             }
             if (found == amount - 1) {
                 old_msg = new_msg;
-                new_msg = util_concat(old_msg, translate_text(IDGS_AND), current->device->name, NULL);
+                new_msg = util_concat(old_msg, " and ", current->device->name, NULL);
                 lib_free(old_msg);
             }
             found++;
@@ -284,20 +283,20 @@ static void io_source_log_collisions(WORD addr, int amount, io_source_list_t *st
     }
 }
 
-static inline BYTE io_read(io_source_list_t *list, WORD addr)
+static inline uint8_t io_read(io_source_list_t *list, uint16_t addr)
 {
     io_source_list_t *current = list->next;
     int io_source_counter = 0;
     int io_source_valid = 0;
-    BYTE realval = 0;
-    BYTE retval = 0;
-    BYTE firstval = 0;
+    uint8_t realval = 0;
+    uint8_t retval = 0;
+    uint8_t firstval = 0;
     unsigned int lowest_order = 0xffffffff;
 
     while (current) {
         if (current->device->read != NULL) {
             if ((addr >= current->device->start_address) && (addr <= current->device->end_address)) {
-                retval = current->device->read((WORD)(addr & current->device->address_mask));
+                retval = current->device->read((uint16_t)(addr & current->device->address_mask));
                 if (current->device->io_source_valid) {
                     /* high prio always overrides others, return immediatly */
                     if (current->device->io_source_prio == IO_PRIO_HIGH) {
@@ -362,16 +361,16 @@ static inline BYTE io_read(io_source_list_t *list, WORD addr)
 }
 
 /* peek from I/O area with no side-effects */
-static inline BYTE io_peek(io_source_list_t *list, WORD addr)
+static inline uint8_t io_peek(io_source_list_t *list, uint16_t addr)
 {
     io_source_list_t *current = list->next;
 
     while (current) {
         if (addr >= current->device->start_address && addr <= current->device->end_address) {
             if (current->device->peek) {
-                return current->device->peek((WORD)(addr & current->device->address_mask));
+                return current->device->peek((uint16_t)(addr & current->device->address_mask));
             } else if (current->device->read) {
-                return current->device->read((WORD)(addr & current->device->address_mask));
+                return current->device->read((uint16_t)(addr & current->device->address_mask));
             }
         }
         current = current->next;
@@ -380,22 +379,22 @@ static inline BYTE io_peek(io_source_list_t *list, WORD addr)
     return read_unused(addr);
 }
 
-static inline void io_store(io_source_list_t *list, WORD addr, BYTE value)
+static inline void io_store(io_source_list_t *list, uint16_t addr, uint8_t value)
 {
     int writes = 0;
-    WORD addy = 0xffff;
+    uint16_t addy = 0xffff;
     io_source_list_t *current = list->next;
-    void (*store)(WORD address, BYTE data) = NULL;
+    void (*store)(uint16_t address, uint8_t data) = NULL;
 
     while (current) {
         if (current->device->store != NULL) {
             if (addr >= current->device->start_address && addr <= current->device->end_address) {
                 /* delay mirror writes, ensuring real device writes in mirror area */
                 if (current->device->io_source_prio != IO_PRIO_LOW) {
-                    current->device->store((WORD)(addr & current->device->address_mask), value);
+                    current->device->store((uint16_t)(addr & current->device->address_mask), value);
                     writes++;
                 } else {
-                    addy = (WORD)(addr & current->device->address_mask);
+                    addy = (uint16_t)(addr & current->device->address_mask);
                     store = current->device->store;
                 }
             }
@@ -603,271 +602,271 @@ void cartio_set_highest_order(unsigned int nr)
 
 /* ---------------------------------------------------------------------------------------------------------- */
 
-BYTE petio_8800_read(WORD addr)
+uint8_t petio_8800_read(uint16_t addr)
 {
     DBGRW(("IO: io-8800 r %04x\n", addr));
     return io_read(&petio_8800_head, addr);
 }
 
-BYTE petio_8800_peek(WORD addr)
+uint8_t petio_8800_peek(uint16_t addr)
 {
     DBGRW(("IO: io-8800 p %04x\n", addr));
     return io_peek(&petio_8800_head, addr);
 }
 
-void petio_8800_store(WORD addr, BYTE value)
+void petio_8800_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-8800 w %04x %02x\n", addr, value));
     io_store(&petio_8800_head, addr, value);
 }
 
-BYTE petio_8900_read(WORD addr)
+uint8_t petio_8900_read(uint16_t addr)
 {
     DBGRW(("IO: io-8900 r %04x\n", addr));
     return io_read(&petio_8900_head, addr);
 }
 
-BYTE petio_8900_peek(WORD addr)
+uint8_t petio_8900_peek(uint16_t addr)
 {
     DBGRW(("IO: io-8900 p %04x\n", addr));
     return io_peek(&petio_8900_head, addr);
 }
 
-void petio_8900_store(WORD addr, BYTE value)
+void petio_8900_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-8900 w %04x %02x\n", addr, value));
     io_store(&petio_8900_head, addr, value);
 }
 
-BYTE petio_8a00_read(WORD addr)
+uint8_t petio_8a00_read(uint16_t addr)
 {
     DBGRW(("IO: io-8a00 r %04x\n", addr));
     return io_read(&petio_8a00_head, addr);
 }
 
-BYTE petio_8a00_peek(WORD addr)
+uint8_t petio_8a00_peek(uint16_t addr)
 {
     DBGRW(("IO: io-8a00 p %04x\n", addr));
     return io_peek(&petio_8a00_head, addr);
 }
 
-void petio_8a00_store(WORD addr, BYTE value)
+void petio_8a00_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-8a00 w %04x %02x\n", addr, value));
     io_store(&petio_8a00_head, addr, value);
 }
 
-BYTE petio_8b00_read(WORD addr)
+uint8_t petio_8b00_read(uint16_t addr)
 {
     DBGRW(("IO: io-8b00 r %04x\n", addr));
     return io_read(&petio_8b00_head, addr);
 }
 
-BYTE petio_8b00_peek(WORD addr)
+uint8_t petio_8b00_peek(uint16_t addr)
 {
     DBGRW(("IO: io-8b00 p %04x\n", addr));
     return io_peek(&petio_8b00_head, addr);
 }
 
-void petio_8b00_store(WORD addr, BYTE value)
+void petio_8b00_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-8b00 w %04x %02x\n", addr, value));
     io_store(&petio_8b00_head, addr, value);
 }
 
-BYTE petio_8c00_read(WORD addr)
+uint8_t petio_8c00_read(uint16_t addr)
 {
     DBGRW(("IO: io-8c00 r %04x\n", addr));
     return io_read(&petio_8c00_head, addr);
 }
 
-BYTE petio_8c00_peek(WORD addr)
+uint8_t petio_8c00_peek(uint16_t addr)
 {
     DBGRW(("IO: io-8c00 p %04x\n", addr));
     return io_peek(&petio_8c00_head, addr);
 }
 
-void petio_8c00_store(WORD addr, BYTE value)
+void petio_8c00_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-8c00 w %04x %02x\n", addr, value));
     io_store(&petio_8c00_head, addr, value);
 }
 
-BYTE petio_8d00_read(WORD addr)
+uint8_t petio_8d00_read(uint16_t addr)
 {
     DBGRW(("IO: io-8d00 r %04x\n", addr));
     return io_read(&petio_8d00_head, addr);
 }
 
-BYTE petio_8d00_peek(WORD addr)
+uint8_t petio_8d00_peek(uint16_t addr)
 {
     DBGRW(("IO: io-8d00 p %04x\n", addr));
     return io_peek(&petio_8d00_head, addr);
 }
 
-void petio_8d00_store(WORD addr, BYTE value)
+void petio_8d00_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-8d00 w %04x %02x\n", addr, value));
     io_store(&petio_8d00_head, addr, value);
 }
 
-BYTE petio_8e00_read(WORD addr)
+uint8_t petio_8e00_read(uint16_t addr)
 {
     DBGRW(("IO: io-8e00 r %04x\n", addr));
     return io_read(&petio_8e00_head, addr);
 }
 
-BYTE petio_8e00_peek(WORD addr)
+uint8_t petio_8e00_peek(uint16_t addr)
 {
     DBGRW(("IO: io-8e00 p %04x\n", addr));
     return io_peek(&petio_8e00_head, addr);
 }
 
-void petio_8e00_store(WORD addr, BYTE value)
+void petio_8e00_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-8e00 w %04x %02x\n", addr, value));
     io_store(&petio_8e00_head, addr, value);
 }
 
-BYTE petio_8f00_read(WORD addr)
+uint8_t petio_8f00_read(uint16_t addr)
 {
     DBGRW(("IO: io-8f00 r %04x\n", addr));
     return io_read(&petio_8f00_head, addr);
 }
 
-BYTE petio_8f00_peek(WORD addr)
+uint8_t petio_8f00_peek(uint16_t addr)
 {
     DBGRW(("IO: io-8f00 p %04x\n", addr));
     return io_peek(&petio_8f00_head, addr);
 }
 
-void petio_8f00_store(WORD addr, BYTE value)
+void petio_8f00_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-8f00 w %04x %02x\n", addr, value));
     io_store(&petio_8f00_head, addr, value);
 }
 
-BYTE petio_e900_read(WORD addr)
+uint8_t petio_e900_read(uint16_t addr)
 {
     DBGRW(("IO: io-e900 r %04x\n", addr));
     return io_read(&petio_e900_head, addr);
 }
 
-BYTE petio_e900_peek(WORD addr)
+uint8_t petio_e900_peek(uint16_t addr)
 {
     DBGRW(("IO: io-e900 p %04x\n", addr));
     return io_peek(&petio_e900_head, addr);
 }
 
-void petio_e900_store(WORD addr, BYTE value)
+void petio_e900_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-e900 w %04x %02x\n", addr, value));
     io_store(&petio_e900_head, addr, value);
 }
 
-BYTE petio_ea00_read(WORD addr)
+uint8_t petio_ea00_read(uint16_t addr)
 {
     DBGRW(("IO: io-ea00 r %04x\n", addr));
     return io_read(&petio_ea00_head, addr);
 }
 
-BYTE petio_ea00_peek(WORD addr)
+uint8_t petio_ea00_peek(uint16_t addr)
 {
     DBGRW(("IO: io-ea00 p %04x\n", addr));
     return io_peek(&petio_ea00_head, addr);
 }
 
-void petio_ea00_store(WORD addr, BYTE value)
+void petio_ea00_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-ea00 w %04x %02x\n", addr, value));
     io_store(&petio_ea00_head, addr, value);
 }
 
-BYTE petio_eb00_read(WORD addr)
+uint8_t petio_eb00_read(uint16_t addr)
 {
     DBGRW(("IO: io-eb00 r %04x\n", addr));
     return io_read(&petio_eb00_head, addr);
 }
 
-BYTE petio_eb00_peek(WORD addr)
+uint8_t petio_eb00_peek(uint16_t addr)
 {
     DBGRW(("IO: io-eb00 p %04x\n", addr));
     return io_peek(&petio_eb00_head, addr);
 }
 
-void petio_eb00_store(WORD addr, BYTE value)
+void petio_eb00_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-eb00 w %04x %02x\n", addr, value));
     io_store(&petio_eb00_head, addr, value);
 }
 
-BYTE petio_ec00_read(WORD addr)
+uint8_t petio_ec00_read(uint16_t addr)
 {
     DBGRW(("IO: io-ec00 r %04x\n", addr));
     return io_read(&petio_ec00_head, addr);
 }
 
-BYTE petio_ec00_peek(WORD addr)
+uint8_t petio_ec00_peek(uint16_t addr)
 {
     DBGRW(("IO: io-ec00 p %04x\n", addr));
     return io_peek(&petio_ec00_head, addr);
 }
 
-void petio_ec00_store(WORD addr, BYTE value)
+void petio_ec00_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-ec00 w %04x %02x\n", addr, value));
     io_store(&petio_ec00_head, addr, value);
 }
 
-BYTE petio_ed00_read(WORD addr)
+uint8_t petio_ed00_read(uint16_t addr)
 {
     DBGRW(("IO: io-ed00 r %04x\n", addr));
     return io_read(&petio_ed00_head, addr);
 }
 
-BYTE petio_ed00_peek(WORD addr)
+uint8_t petio_ed00_peek(uint16_t addr)
 {
     DBGRW(("IO: io-ed00 p %04x\n", addr));
     return io_peek(&petio_ed00_head, addr);
 }
 
-void petio_ed00_store(WORD addr, BYTE value)
+void petio_ed00_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-ed00 w %04x %02x\n", addr, value));
     io_store(&petio_ed00_head, addr, value);
 }
 
-BYTE petio_ee00_read(WORD addr)
+uint8_t petio_ee00_read(uint16_t addr)
 {
     DBGRW(("IO: io-ee00 r %04x\n", addr));
     return io_read(&petio_ee00_head, addr);
 }
 
-BYTE petio_ee00_peek(WORD addr)
+uint8_t petio_ee00_peek(uint16_t addr)
 {
     DBGRW(("IO: io-ee00 p %04x\n", addr));
     return io_peek(&petio_ee00_head, addr);
 }
 
-void petio_ee00_store(WORD addr, BYTE value)
+void petio_ee00_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-ee00 w %04x %02x\n", addr, value));
     io_store(&petio_ee00_head, addr, value);
 }
 
-BYTE petio_ef00_read(WORD addr)
+uint8_t petio_ef00_read(uint16_t addr)
 {
     DBGRW(("IO: io-ef00 r %04x\n", addr));
     return io_read(&petio_ef00_head, addr);
 }
 
-BYTE petio_ef00_peek(WORD addr)
+uint8_t petio_ef00_peek(uint16_t addr)
 {
     DBGRW(("IO: io-ef00 p %04x\n", addr));
     return io_peek(&petio_ef00_head, addr);
 }
 
-void petio_ef00_store(WORD addr, BYTE value)
+void petio_ef00_store(uint16_t addr, uint8_t value)
 {
     DBGRW(("IO: io-ef00 w %04x %02x\n", addr, value));
     io_store(&petio_ef00_head, addr, value);
@@ -877,7 +876,7 @@ void petio_ef00_store(WORD addr, BYTE value)
 
 static void io_source_ioreg_add_onelist(struct mem_ioreg_list_s **mem_ioreg_list, io_source_list_t *current)
 {
-    WORD end;
+    uint16_t end;
 
     while (current) {
         end = current->device->end_address;
@@ -939,12 +938,11 @@ int cartio_resources_init(void)
     return resources_register_int(resources_int);
 }
 
-static const cmdline_option_t cmdline_options[] = {
-    { "-iocollision", SET_RESOURCE, 1,
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-iocollision", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "IOCollisionHandling", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_METHOD, IDCLS_SELECT_CONFLICT_HANDLING,
-      NULL, NULL },
+      "<method>", "Select the way the I/O collisions should be handled, (0: error message and detach all involved carts, 1: error message and detach last attached involved carts, 2: warning in log and 'AND' the valid return values" },
     CMDLINE_LIST_END
 };
 

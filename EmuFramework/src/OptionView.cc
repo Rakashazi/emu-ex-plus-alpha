@@ -1494,9 +1494,9 @@ void SystemOptionView::onSavePathChange(const char *path)
 
 void SystemOptionView::onFirmwarePathChange(const char *path, Input::Event e) {}
 
-void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Event e)
+void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Event e, bool allowFiles)
 {
-	auto multiChoiceView = std::make_unique<TextTableView>(name, attachParams(), 2);
+	auto multiChoiceView = std::make_unique<TextTableView>(name, attachParams(), allowFiles ? 3 : 2);
 	multiChoiceView->appendItem("Set Custom Path",
 		[this](Input::Event e)
 		{
@@ -1508,13 +1508,34 @@ void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Even
 				{
 					auto path = picker.path();
 					EmuApp::setFirmwareSearchPath(path.data());
-					logMsg("set firmware path %s", path.data());
+					logMsg("set firmware path:%s", path.data());
 					onFirmwarePathChange(path.data(), e);
 					picker.dismiss();
 				});
 			popAndShow();
 			EmuApp::pushAndShowModalView(std::move(fPicker), e);
 		});
+	if(allowFiles)
+	{
+		multiChoiceView->appendItem("Set Custom Archive File",
+			[this](Input::Event e)
+			{
+				auto startPath =  EmuApp::firmwareSearchPath();
+				auto fPicker = makeView<EmuFilePicker>(startPath.data(), false,
+					EmuSystem::NameFilterFunc{}, FS::RootPathInfo{}, e);
+				fPicker->setOnSelectFile(
+					[this](FSPicker &picker, const char *name, Input::Event e)
+					{
+						auto path = picker.makePathString(name);
+						EmuApp::setFirmwareSearchPath(path.data());
+						logMsg("set firmware archive file:%s", path.data());
+						onFirmwarePathChange(path.data(), e);
+						picker.dismiss();
+					});
+				popAndShow();
+				EmuApp::pushAndShowModalView(std::move(fPicker), e);
+			});
+	}
 	multiChoiceView->appendItem("Default",
 		[this](Input::Event e)
 		{
@@ -1523,6 +1544,11 @@ void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Even
 			onFirmwarePathChange("", e);
 		});
 	pushAndShow(std::move(multiChoiceView), e);
+}
+
+void SystemOptionView::pushAndShowFirmwareFilePathMenu(const char *name, Input::Event e)
+{
+	pushAndShowFirmwarePathMenu(name, e, true);
 }
 
 GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):

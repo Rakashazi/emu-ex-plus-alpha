@@ -36,6 +36,7 @@
 #include "diskimage.h"
 #include "tape.h"
 
+#include "cbmimage.h"
 
 /** \brief  Create a disk or tape image file
  *

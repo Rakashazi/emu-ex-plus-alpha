@@ -44,7 +44,7 @@ extern int vic20cart_snapshot_write_module(struct snapshot_s *s);
 extern int vic20cart_snapshot_read_module(struct snapshot_s *s);
 
 /* used internally, don't call from UI or other non cart related code */
-extern void cartridge_attach(int type, BYTE *rawcart);
+extern void cartridge_attach(int type, uint8_t *rawcart);
 extern void cartridge_detach(int type);
 
 #endif

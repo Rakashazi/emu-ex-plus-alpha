@@ -94,19 +94,19 @@ static void epyxfastload_alarm_handler(CLOCK offset, void *data)
 
 /* ---------------------------------------------------------------------*/
 
-static BYTE epyxfastload_io1_read(WORD addr)
+static uint8_t epyxfastload_io1_read(uint16_t addr)
 {
     /* IO1 discharges the capacitor, but does nothing else */
     epyxfastload_trigger_access();
     return 0;
 }
 
-static BYTE epyxfastload_io1_peek(WORD addr)
+static uint8_t epyxfastload_io1_peek(uint16_t addr)
 {
     return 0;
 }
 
-static BYTE epyxfastload_io2_read(WORD addr)
+static uint8_t epyxfastload_io2_read(uint16_t addr)
 {
     /* IO2 allows access to the last 256 bytes of the rom */
     return roml_banks[0x1f00 + (addr & 0xff)];
@@ -122,33 +122,35 @@ static int epyxfastload_dump(void)
 /* ---------------------------------------------------------------------*/
 
 static io_source_t epyxfastload_io1_device = {
-    CARTRIDGE_NAME_EPYX_FASTLOAD,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    0, /* read is never valid */
-    NULL,
-    epyxfastload_io1_read,
-    epyxfastload_io1_peek,
-    epyxfastload_dump,
-    CARTRIDGE_EPYX_FASTLOAD,
-    0,
-    0
+    CARTRIDGE_NAME_EPYX_FASTLOAD, /* name of the device */
+    IO_DETACH_CART,               /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,        /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,         /* range for the device, address is ignored, reg:$de00, mirrors:$de01-$deff */
+    0,                            /* read is never valid */
+    NULL,                         /* NO store function */
+    NULL,                         /* NO poke funtion */
+    epyxfastload_io1_read,        /* read function */
+    epyxfastload_io1_peek,        /* peek function */
+    epyxfastload_dump,            /* device state information dump function */
+    CARTRIDGE_EPYX_FASTLOAD,      /* cartridge ID */
+    IO_PRIO_NORMAL,               /* normal priority, device read needs to be checked for collisions */
+    0                             /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t epyxfastload_io2_device = {
-    CARTRIDGE_NAME_EPYX_FASTLOAD,
-    IO_DETACH_CART,
-    NULL,
-    0xdf00, 0xdfff, 0xff,
-    1, /* read is always valid */
-    NULL,
-    epyxfastload_io2_read,
-    epyxfastload_io2_read,
-    epyxfastload_dump,
-    CARTRIDGE_EPYX_FASTLOAD,
-    0,
-    0
+    CARTRIDGE_NAME_EPYX_FASTLOAD, /* name of the device */
+    IO_DETACH_CART,               /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,        /* does not use a resource for detach */
+    0xdf00, 0xdfff, 0xff,         /* range for the device, regs:$df00-$dfff */
+    1,                            /* read is always valid */
+    NULL,                         /* NO store function */
+    NULL,                         /* NO poke function */
+    epyxfastload_io2_read,        /* read function */
+    epyxfastload_io2_read,        /* peek function */
+    epyxfastload_dump,            /* device state information dump function */
+    CARTRIDGE_EPYX_FASTLOAD,      /* cartridge ID */
+    IO_PRIO_NORMAL,               /* normal priority, device read needs to be checked for collisions */
+    0                             /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *epyxfastload_io1_list_item = NULL;
@@ -160,7 +162,7 @@ static const export_resource_t export_res_epyx = {
 
 /* ---------------------------------------------------------------------*/
 
-BYTE epyxfastload_roml_read(WORD addr)
+uint8_t epyxfastload_roml_read(uint16_t addr)
 {
     /* ROML accesses also discharge the capacitor */
     epyxfastload_trigger_access();
@@ -182,7 +184,7 @@ void epyxfastload_config_init(void)
     epyxrom_active = 1;
 }
 
-void epyxfastload_config_setup(BYTE *rawcart)
+void epyxfastload_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
     cart_config_changed_slotmain(CMODE_8KGAME, CMODE_8KGAME, CMODE_READ);
@@ -206,7 +208,7 @@ static int epyxfastload_common_attach(void)
     return 0;
 }
 
-int epyxfastload_bin_attach(const char *filename, BYTE *rawcart)
+int epyxfastload_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x2000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -214,7 +216,7 @@ int epyxfastload_bin_attach(const char *filename, BYTE *rawcart)
     return epyxfastload_common_attach();
 }
 
-int epyxfastload_crt_attach(FILE *fd, BYTE *rawcart)
+int epyxfastload_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
 
@@ -269,7 +271,7 @@ int epyxfastload_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || (SMW_B(m, (BYTE)epyxrom_active) < 0)
+        || (SMW_B(m, (uint8_t)epyxrom_active) < 0)
         || (SMW_DW(m, epyxrom_alarm_time) < 0)
         || (SMW_BA(m, roml_banks, 0x2000) < 0)) {
         snapshot_module_close(m);
@@ -281,7 +283,7 @@ int epyxfastload_snapshot_write_module(snapshot_t *s)
 
 int epyxfastload_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     CLOCK temp_clk;
@@ -293,13 +295,13 @@ int epyxfastload_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
     /* new in 0.1 */
-    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 1)) {
         if (SMR_B_INT(m, &epyxrom_active) < 0) {
             goto fail;
         }

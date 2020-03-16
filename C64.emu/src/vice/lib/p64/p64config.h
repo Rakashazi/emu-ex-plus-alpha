@@ -32,22 +32,12 @@
 #include "lib.h"
 #include "types.h"
 
-#ifdef P64_USE_STDINT
-#undef P64_USE_STDINT
+#ifndef P64_USE_STDINT
+#define P64_USE_STDINT
 #endif
-
-#define P64_USE_OWN_TYPES
 
 #define p64_malloc lib_malloc
 #define p64_realloc lib_realloc
 #define p64_free lib_free
-
-typedef SIGNED_CHAR p64_int8_t;
-typedef SWORD p64_int16_t;
-typedef SDWORD p64_int32_t;
-
-typedef BYTE p64_uint8_t;
-typedef WORD p64_uint16_t;
-typedef DWORD p64_uint32_t;
 
 #endif

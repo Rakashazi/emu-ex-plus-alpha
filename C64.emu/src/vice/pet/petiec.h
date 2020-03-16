@@ -29,4 +29,11 @@
 
 extern void petiec_init(void);
 
+# if (defined(DEBUG) || defined(WIN32_COMPILE) || defined(OS2_COMPILE))
+void debug_iec_drv_read(unsigned int data);
+void debug_iec_drv_write(unsigned int data);
+void debug_iec_bus_read(unsigned int data);
+void debug_iec_bus_write(unsigned int data);
+# endif
+
 #endif

@@ -1,12 +1,10 @@
-/*! \file monitor_network.c \n
- *  \author Spiro Trikaliotis
- *  \brief   Monitor implementation - network access
+/** \file   monitor_network.c
+ *  \brief  Monitor implementation - network access
  *
- * monitor_network.c - Monitor implementation - network access.
- *
- * Written by
- *  Spiro Trikaliotis <spiro.trikaliotis@gmx.de>
- *
+ *  \author Spiro Trikaliotis <spiro.trikaliotis@gmx.de>
+ */
+
+/*
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -33,6 +31,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ui.h"
+
 #include "cmdline.h"
 #include "lib.h"
 #include "log.h"
@@ -40,15 +40,13 @@
 #include "monitor_network.h"
 #include "montypes.h"
 #include "resources.h"
-#include "translate.h"
-#include "ui.h"
 #include "uiapi.h"
 #include "util.h"
 #include "vicesocket.h"
 
 #ifdef HAVE_NETWORK
 
-#define ADDR_LIMIT(x) ((WORD)(addr_mask(x)))
+#define ADDR_LIMIT(x) ((uint16_t)(addr_mask(x)))
 
 static vice_network_socket_t * listen_socket = NULL;
 static vice_network_socket_t * connected_socket = NULL;
@@ -64,12 +62,12 @@ int monitor_network_transmit(const char * buffer, size_t buffer_length)
     int error = 0;
 
     if (connected_socket) {
-        size_t len = vice_network_send(connected_socket, buffer, buffer_length, 0);
+        size_t len = (size_t)vice_network_send(connected_socket, buffer, buffer_length, 0);
 
         if (len != buffer_length) {
             error = -1;
         } else {
-            error = len;
+            error = (int)len;
         }
     }
 
@@ -156,18 +154,18 @@ static char * monitor_network_extract_text_command_line(char * pbuffer, int buff
             assert(cr_end != NULL);
 
             *cr_start = 0;
-            p = lib_stralloc(pbuffer);
+            p = lib_strdup(pbuffer);
 
             memmove(pbuffer, cr_end + 1, strlen(cr_end + 1));
 
-            *pbuffer_pos -= (int)(strlen(p) + (cr_end - cr_start) + 1);
+            *pbuffer_pos -= (int)(((long)strlen(p) + (cr_end - cr_start) + 1));
             pbuffer[*pbuffer_pos] = 0;
             break;
         } else if (*pbuffer_pos >= buffer_size) {
             /* we have a command that is too large:
              * process it anyway, so the sender knows something is wrong
              */
-            p = lib_stralloc(pbuffer);
+            p = lib_strdup(pbuffer);
             *pbuffer_pos = 0;
             pbuffer[0] = 0;
             break;
@@ -234,7 +232,7 @@ static char * monitor_network_extract_text_command_line(char * pbuffer, int buff
 #define MON_ERR_CMD_TOO_SHORT 0x80  /* command length is not enough for this command */
 #define MON_ERR_INVALID_PARAMETER 0x81  /* command has invalid parameters */
 
-static void monitor_network_binary_answer(unsigned int length, unsigned char errorcode, unsigned char * answer)
+static void monitor_network_binary_answer(uint32_t length, unsigned char errorcode, unsigned char * answer)
 {
     unsigned char binlength[6];
 
@@ -242,7 +240,7 @@ static void monitor_network_binary_answer(unsigned int length, unsigned char err
     binlength[1] = length & 0xFFu;
     binlength[2] = (length >> 8) & 0xFFu;
     binlength[3] = (length >> 16) & 0xFFu;
-    binlength[4] = (length >> 24) & 0xFFu;
+    binlength[4] = (uint8_t)(length >> 24) & 0xFFu;
     binlength[5] = errorcode;
 
     monitor_network_transmit((char*)binlength, sizeof binlength);
@@ -267,8 +265,10 @@ static void monitor_network_process_binary_command(unsigned char * pbuffer, int 
             if (command_length < 5) {
                 monitor_network_binary_error(MON_ERR_CMD_TOO_SHORT);
             } else {
-                unsigned int startaddress = pbuffer[3] | (pbuffer[4] << 8);
-                unsigned int endaddress = pbuffer[5] | (pbuffer[6] << 8);
+                unsigned int startaddress =
+                        (unsigned int)(pbuffer[3] | (pbuffer[4] << 8));
+                unsigned int endaddress =
+                        (unsigned int)(pbuffer[5] | (pbuffer[6] << 8));
 
                 MEMSPACE memspace = e_default_space;
 
@@ -299,7 +299,7 @@ static void monitor_network_process_binary_command(unsigned char * pbuffer, int 
                     unsigned char * p = lib_malloc(length);
 
                     for (i = 0; i < length; i++) {
-                        p[i] = mon_get_mem_val(memspace, (WORD)ADDR_LIMIT(startaddress + i));
+                        p[i] = mon_get_mem_val(memspace, (uint16_t)ADDR_LIMIT(startaddress + i));
                     }
 
                     monitor_network_binary_answer(length, MON_ERR_OK, p);
@@ -309,7 +309,10 @@ static void monitor_network_process_binary_command(unsigned char * pbuffer, int 
             break;
 
         default:
-            log_message(LOG_DEFAULT, "monitor_network binary command: unknown command %u, skipping command length of %u", command, command_length);
+            log_message(LOG_DEFAULT,
+                    "monitor_network binary command: unknown command %d, "
+                    "skipping command length of %u",
+                    command, command_length);
             break;
     }
 
@@ -328,7 +331,8 @@ char * monitor_network_get_command_line(void)
     do {
         /* Do not read more from network until all commands in current buffer is fully processed */
         if (bufferpos == 0) {
-            int n = monitor_network_receive(buffer + bufferpos, sizeof buffer - bufferpos - 1);
+            int n = monitor_network_receive(buffer + bufferpos,
+                            sizeof buffer - (size_t)(bufferpos - 1));
 
             if (n > 0) {
                 bufferpos += n;
@@ -348,7 +352,7 @@ char * monitor_network_get_command_line(void)
         if (monitor_binary_input) {
             if (bufferpos > 2) {
                 /* we already got the length, get it */
-                unsigned int command_length = buffer[1];
+                unsigned int command_length = (unsigned int)buffer[1];
 
                 if (3 + command_length <= (unsigned int)bufferpos) {
                     monitor_network_process_binary_command((unsigned char*)buffer, sizeof buffer, &bufferpos, command_length);
@@ -524,21 +528,15 @@ void monitor_network_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-remotemonitor", SET_RESOURCE, 0,
+    { "-remotemonitor", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MonitorServer", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_REMOTE_MONITOR,
-      NULL, NULL },
-    { "+remotemonitor", SET_RESOURCE, 0,
+      NULL, "Enable remote monitor" },
+    { "+remotemonitor", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MonitorServer", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_REMOTE_MONITOR,
-      NULL, NULL },
-    { "-remotemonitoraddress", SET_RESOURCE, 1,
+      NULL, "Disable remote monitor" },
+    { "-remotemonitoraddress", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "MonitorServerAddress", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_REMOTE_MONITOR_ADDRESS,
-      NULL, NULL },
+      "<Name>", "The local address the remote monitor should bind to" },
     CMDLINE_LIST_END
 };
 

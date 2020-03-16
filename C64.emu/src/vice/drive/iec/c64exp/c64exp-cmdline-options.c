@@ -32,63 +32,44 @@
 #include "cmdline.h"
 #include "drive.h"
 #include "lib.h"
-#include "translate.h"
 
-static const cmdline_option_t cmdline_options[] = {
-    { "-profdos1571", SET_RESOURCE, 1,
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-profdos1571", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "DriveProfDOS1571Name", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_PROFDOS_1571_ROM_NAME,
-      NULL, NULL },
-    { "-supercard", SET_RESOURCE, 1,
+      "<Name>", "Specify name of Professional DOS 1571 ROM image" },
+    { "-supercard", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "DriveSuperCardName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_SUPERCARD_ROM_NAME,
-      NULL, NULL },
-    { "-stardos", SET_RESOURCE, 1,
+      "<Name>", "Specify name of Supercard+ ROM image" },
+    { "-stardos", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "DriveStarDosName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_STARDOS_ROM_NAME,
-      NULL, NULL },
+      "<Name>", "Specify name of StarDOS ROM image" },
     CMDLINE_LIST_END
 };
 
-static cmdline_option_t cmd_drive[] = {
-    { NULL, SET_RESOURCE, 1,
+static cmdline_option_t cmd_drive[] =
+{
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_TYPE, IDCLS_PAR_CABLE_C64EXP_TYPE,
-      NULL, NULL },
-    { NULL, SET_RESOURCE, 0,
+      "<Type>", "Set parallel cable type (0: none, 1: standard, 2: Dolphin DOS 3, 3: Formel 64)" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_PROFDOS,
-      NULL, NULL },
-    { NULL, SET_RESOURCE, 0,
+      NULL, "Enable Professional DOS" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_PROFDOS,
-      NULL, NULL },
-    { NULL, SET_RESOURCE, 0,
+      NULL, "Disable Professional DOS" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_SUPERCARD,
-      NULL, NULL },
-    { NULL, SET_RESOURCE, 0,
+      NULL, "Enable Supercard+" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_SUPERCARD,
-      NULL, NULL },
-    { NULL, SET_RESOURCE, 0,
+      NULL, "Disable Supercard+" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_STARDOS,
-      NULL, NULL },
-    { NULL, SET_RESOURCE, 0,
+      NULL, "Enable StarDOS" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_STARDOS,
-      NULL, NULL },
+      NULL, "Disable StarDOS" },
     CMDLINE_LIST_END
 };
 

@@ -61,28 +61,28 @@ typedef struct iecbus_s {
      * the drive output ports as described by the
      * IECBUS_DEVICE_WRITE_... macros
      */
-    BYTE drv_bus[IECBUS_NUM];
+    uint8_t drv_bus[IECBUS_NUM];
 
     /*! the drive output ports as seen by the drive */
-    BYTE drv_data[IECBUS_NUM];
+    uint8_t drv_data[IECBUS_NUM];
 
     /*!
      * the drive input ports, as seen by the drive
      * and also by the IECBUS_DEVICE_READ_... macros
      */
-    BYTE drv_port;
+    uint8_t drv_port;
 
     /*!
      * the computer output ports as described by the
      * IECBUS_DEVICE_WRITE_... macros
     */
-    BYTE cpu_bus;
+    uint8_t cpu_bus;
 
     /*! the computer output ports as seen by the computer */
-    BYTE cpu_port;
+    uint8_t cpu_port;
 
     /*! \todo document */
-    BYTE iec_fast_1541;
+    uint8_t iec_fast_1541;
 } iecbus_t;
 
 extern iecbus_t iecbus;
@@ -90,15 +90,15 @@ extern iecbus_t iecbus;
 extern iecbus_t *iecbus_drive_port(void);
 
 extern void iecbus_init(void);
-extern void iecbus_cpu_undump(BYTE data);
+extern void iecbus_cpu_undump(uint8_t data);
 extern void iecbus_status_set(unsigned int type, unsigned int unit,
                               unsigned int enable);
 
-extern BYTE (*iecbus_callback_read)(CLOCK);
-extern void (*iecbus_callback_write)(BYTE, CLOCK);
+extern uint8_t (*iecbus_callback_read)(CLOCK);
+extern void (*iecbus_callback_write)(uint8_t, CLOCK);
 
-extern BYTE iecbus_device_read(void);
-extern int  iecbus_device_write(unsigned int unit, BYTE data);
+extern uint8_t iecbus_device_read(void);
+extern int  iecbus_device_write(unsigned int unit, uint8_t data);
 extern void (*iecbus_update_ports)(void);
 
 #endif

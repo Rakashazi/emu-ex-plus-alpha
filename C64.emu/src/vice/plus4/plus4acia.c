@@ -29,6 +29,8 @@
 
 #include "vice.h"
 
+#include "plus4acia.h"
+
 #define mycpu           maincpu
 #define myclk           maincpu_clk
 #define mycpu_rmw_flag  maincpu_rmw_flag
@@ -42,6 +44,12 @@
 #define MyIrq    IK_IRQ
 
 #define myaciadev acia1dev
+
+/* prototypes to make modern compilers happy */
+int _acia_resources_init(void);
+int _acia_cmdline_options_init(void);
+int _acia_snapshot_read_module(struct snapshot_s *);
+int _acia_snapshot_write_module(struct snapshot_s *);
 
 #define myacia_init acia_init
 #define myacia_init_cmdline_options _acia_cmdline_options_init
@@ -76,18 +84,19 @@ static int _acia_enabled = 0;
 /* ------------------------------------------------------------------------- */
 
 static io_source_t acia_device = {
-    "ACIA",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xfd00, 0xfd0f, 3,
-    1, /* read is always valid */
-    acia_store,
-    acia_read,
-    acia_peek,
-    NULL, /* TODO: dump */
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_NORMAL,
-    0
+    "ACIA",               /* name of the device */
+    IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
+    "Acia1Enable",        /* resource to set to '0' */
+    0xfd00, 0xfd0f, 0x03, /* range for the device, regs:$fd00-$fd03, mirrors:$df04-$fd0f */
+    1,                    /* read is always valid */
+    acia_store,           /* store function */
+    NULL,                 /* NO poke function */
+    acia_read,            /* read function */
+    acia_peek,            /* peek function */
+    NULL,                 /* TODO: device state information dump function */
+    IO_CART_ID_NONE,      /* not a cartridge */
+    IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
+    0                     /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *acia_list_item = NULL;
@@ -122,6 +131,7 @@ static int set_acia_enabled(int value, void *param)
             return -1;
         }
         _acia_enabled = 1;
+        acia_reset();
     } else if ((!val) && (_acia_enabled)) {
         acia_disable();
         _acia_enabled = 0;
@@ -151,14 +161,10 @@ static const cmdline_option_t acia_cmdline_options[] =
 {
     { "-acia", SET_RESOURCE, 0,
       NULL, NULL, "Acia1Enable", (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_ACIA_EMU,
-      NULL, NULL },
+      NULL, "Enable the ACIA emulation" },
     { "+acia", SET_RESOURCE, 0,
       NULL, NULL, "Acia1Enable", (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_ACIA_EMU,
-      NULL, NULL },
+      NULL, "Disable the ACIA emulation" },
     CMDLINE_LIST_END
 };
 

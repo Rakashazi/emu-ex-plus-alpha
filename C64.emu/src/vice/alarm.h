@@ -160,7 +160,7 @@ inline static void alarm_set(alarm_t *alarm, CLOCK cpu_clk)
         /* Not pending yet: add.  */
 
         new_idx = (int)(context->num_pending_alarms);
-        if (unlikely(new_idx >= ALARM_CONTEXT_MAX_PENDING_ALARMS)) {
+        if (unlikely(new_idx >= (int)ALARM_CONTEXT_MAX_PENDING_ALARMS)) {
             alarm_log_too_many_alarms();
             return;
         }

@@ -35,7 +35,7 @@
  * is read and written data is discarded.
  */
 
-#undef        DEBUG
+#undef DEBUG
 /* #define DEBUG */
 
 #include "vice.h"
@@ -53,9 +53,15 @@
 #include "lib.h"
 #include "log.h"
 #include "rs232.h"
+#include "rs232net.h"
 #include "vicesocket.h"
 #include "types.h"
 #include "util.h"
+#ifdef DEBUG
+#include "ctype.h"
+#endif
+
+/* #define LOG_MODEM_STATUS */
 
 #ifdef DEBUG
 # define DEBUG_LOG_MESSAGE(_xxx) log_message _xxx
@@ -88,15 +94,21 @@ typedef struct rs232net {
                     although inuse == 1, then the socket has been closed
                     because of a previous error. This prevents the error
                     log from being flooded with error messages. */
+    int useip232; /*!< 1 to use the ip232 protocol for tcpser */
+    int dcd_in;   /*!< ip232 status of DCD line */
+    int dtr_out;  /*!< ip232 status of DTR line */
 } rs232net_t;
 
-static rs232net_t fds[RS232_NUM_DEVICES] = {{0}};
+/* C99 standard guarantees all members of an object of static storage are
+ * initialized to their '0' value, see 6.7.8.10 */
+static rs232net_t fds[RS232_NUM_DEVICES];
 
 static log_t rs232net_log = LOG_ERR;
 
 /* ------------------------------------------------------------------------- */
 
 void rs232net_close(int fd);
+static int _rs232net_putc(int fd, uint8_t b);
 
 /* initializes all RS232 stuff */
 void rs232net_init(void)
@@ -119,7 +131,7 @@ void rs232net_reset(void)
 /* opens a rs232 window, returns handle to give to functions below. */
 int rs232net_open(int device)
 {
-    vice_network_socket_address_t * ad = NULL;
+    vice_network_socket_address_t *ad = NULL;
     int index = -1;
 
     do {
@@ -153,6 +165,7 @@ int rs232net_open(int device)
         }
 
         fds[i].inuse = 1;
+        fds[i].useip232 = rs232_useip232[device];
 
         index = i;
 
@@ -187,6 +200,11 @@ void rs232net_close(int fd)
             break;
         }
 
+        if (fds[fd].useip232) {
+            _rs232net_putc(fd, IP232MAGIC);
+            _rs232net_putc(fd, IP232DTRLO);
+        }
+        
         rs232net_closesocket(fd);
         fds[fd].inuse = 0;
 
@@ -194,7 +212,7 @@ void rs232net_close(int fd)
 }
 
 /* sends a byte to the RS232 line */
-int rs232net_putc(int fd, BYTE b)
+static int _rs232net_putc(int fd, uint8_t b)
 {
     int n;
 
@@ -213,11 +231,11 @@ int rs232net_putc(int fd, BYTE b)
     }
 
     /* for the beginning... */
-    DEBUG_LOG_MESSAGE((rs232net_log, "Output `%c'.", b));
+    DEBUG_LOG_MESSAGE((rs232net_log, "Output 0x%02x '%c'.", b, isgraph(b) ? b : '.'));
 
     n = vice_network_send(fds[fd].fd, &b, 1, 0);
     if (n < 0) {
-        log_error(rs232net_log, "Error writing: %u.", vice_network_get_errorcode());
+        log_error(rs232net_log, "Error writing: %d.", vice_network_get_errorcode());
         rs232net_closesocket(fd);
         return -1;
     }
@@ -226,7 +244,7 @@ int rs232net_putc(int fd, BYTE b)
 }
 
 /* gets a byte to the RS232 line, returns !=0 if byte received, byte in *b. */
-int rs232net_getc(int fd, BYTE * b)
+static int _rs232net_getc(int fd, uint8_t * b)
 {
     int ret;
     int no_of_read_byte = -1;
@@ -256,10 +274,12 @@ int rs232net_getc(int fd, BYTE * b)
         if (ret > 0) {
 
             no_of_read_byte = vice_network_receive(fds[fd].fd, b, 1, 0);
+            DEBUG_LOG_MESSAGE((rs232net_log, "Input 0x%02x '%c'.", *b, isgraph(*b) ? *b : '.'));
 
             if ( no_of_read_byte != 1 ) {
                 if ( no_of_read_byte < 0 ) {
-                    log_error(rs232net_log, "Error reading: %u.", vice_network_get_errorcode());
+                    log_error(rs232net_log, "Error reading: %d.",
+                            vice_network_get_errorcode());
                 } else {
                     log_error(rs232net_log, "EOF");
                 }
@@ -269,21 +289,123 @@ int rs232net_getc(int fd, BYTE * b)
         }
     } while (0);
 
-    return (int)no_of_read_byte;
+    return no_of_read_byte;
+}
+
+/* sends a byte to the RS232 line */
+int rs232net_putc(int fd, uint8_t b)
+{
+    if (fds[fd].useip232) {
+        if (b == IP232MAGIC) {
+            if (_rs232net_putc(fd, IP232MAGIC) == -1) {
+                return -1;
+            }
+        }
+    }
+
+    return _rs232net_putc(fd, b);
+}
+
+/* gets a byte to the RS232 line, returns !=0 if byte received, byte in *b. */
+int rs232net_getc(int fd, uint8_t * b)
+{
+    int ret = -1;
+    
+tryagain:
+
+    ret = _rs232net_getc(fd, b);
+
+    if (fds[fd].useip232) {
+        if (*b == IP232MAGIC) {
+            if ((ret = _rs232net_getc(fd, b)) < 1) {
+                return ret;
+            }
+            switch (*b) {
+                case IP232DCDLO: /* dcd false */
+                    fds[fd].dcd_in = 0;
+                    goto tryagain;
+                case IP232DCDHI: /* dcd true */
+                    fds[fd].dcd_in = 1;
+                    goto tryagain;
+                case 0xff:
+                    break;
+                default:
+                    log_error(rs232net_log, "rs232net_getc recieved invalid code after IP232 magic: %02x", *b);
+                    break;
+            }
+        }
+    }
+    
+    return ret;
 }
 
 /* set the status lines of the RS232 device */
 int rs232net_set_status(int fd, enum rs232handshake_out status)
 {
-    /* unused */
-
+    int dtr = (status & RS232_HSO_DTR) ? 1 : 0; /* is this correct? */
+#ifdef LOG_MODEM_STATUS
+    if (dtr != fds[fd].dtr_out) {
+        DEBUG_LOG_MESSAGE((rs232net_log, "rs232net_set_status(fd:%d) status:%02x dtr:%d rts:%d", 
+            fd, status, dtr, status & RS232_HSO_RTS ? 1 : 0
+        ));
+    }
+#endif
+    if (fds[fd].useip232) {
+        if (dtr != fds[fd].dtr_out) {
+            /* original patch never sends a 0 */
+            if (dtr) {
+                _rs232net_putc(fd, IP232MAGIC);
+                _rs232net_putc(fd, IP232DTRHI);
+            }
+            if (!dtr) {
+                _rs232net_putc(fd, IP232MAGIC);
+                _rs232net_putc(fd, IP232DTRLO);
+            }
+        }
+    }
+    fds[fd].dtr_out = dtr;
     return 0;
 }
 
 /* get the status lines of the RS232 device */
 enum rs232handshake_in rs232net_get_status(int fd)
 {
-    /*! \todo dummy */
-    return RS232_HSI_CTS | RS232_HSI_DSR;
+    enum rs232handshake_in status = 0;
+#ifdef LOG_MODEM_STATUS
+    static enum rs232handshake_in oldstatus = 0;
+#endif    
+    
+    if (fds[fd].useip232) {
+#if 0   /* this doesnt work right, eg local echo wont work anymore */
+        /* if DTR is low, read from the socket to update it's status */
+        uint8_t dummy;
+        if (fds[fd].dcd_in == 0) {
+            if (rs232net_getc(fd, &dummy) > 0) {
+                if (fds[fd].dcd_in == 0) {
+                    log_error(rs232net_log, "Incoming byte with DTR inactive: 0x%02x '%c'.", dummy, dummy);
+                }
+            }
+        }
+#endif
+        if (fds[fd].dcd_in) {
+            status |= RS232_HSI_DCD;
+        }
+    }
+    status |= RS232_HSI_CTS;
+
+#ifdef LOG_MODEM_STATUS
+    if (status != oldstatus) {
+        printf("rs232net_get_status(fd:%d): DCD:%d modem_status:%02x cts:%d dsr:%d dcd:%d ri:%d\n", 
+               fd, fds[fd].dcd_in, status, 
+               status & RS232_HSI_CTS ? 1 : 0,
+               status & RS232_HSI_DSR ? 1 : 0,
+               status & RS232_HSI_DCD ? 1 : 0,
+               status & RS232_HSI_RI ? 1 : 0
+              );    
+        oldstatus = status;
+    }
+#endif     
+    return status;
+/*    return RS232_HSI_CTS | RS232_HSI_DSR; */
 }
 #endif

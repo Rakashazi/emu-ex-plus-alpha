@@ -103,7 +103,7 @@ rtc_72421_t *rtc72421_init(char *device)
     retval->old_offset = retval->offset;
 
     retval->hour24 = 0;
-    retval->device = lib_stralloc(device);
+    retval->device = lib_strdup(device);
 
     return retval;
 }
@@ -121,9 +121,9 @@ void rtc72421_destroy(rtc_72421_t *context, int save)
 
 /* ---------------------------------------------------------------------------------------------------- */
 
-BYTE rtc72421_read(rtc_72421_t *context, BYTE address)
+uint8_t rtc72421_read(rtc_72421_t *context, uint8_t address)
 {
-    BYTE retval = 0;
+    uint8_t retval = 0;
     time_t latch = (context->stop) ? context->latch : rtc_get_latch(context->offset);
 
     switch (address & 0xf) {
@@ -208,11 +208,11 @@ BYTE rtc72421_read(rtc_72421_t *context, BYTE address)
 
 #define LIMIT_9(x) (x > 9) ? 9 : x
 
-void rtc72421_write(rtc_72421_t *context, BYTE address, BYTE data)
+void rtc72421_write(rtc_72421_t *context, uint8_t address, uint8_t data)
 {
     time_t latch = (context->stop) ? context->latch : rtc_get_latch(context->offset);
-    BYTE real_data = data & 0xf;
-    BYTE new_data;
+    uint8_t real_data = data & 0xf;
+    uint8_t new_data;
 
     switch (address & 0xf) {
         case RTC72421_REGISTER_SECONDS:
@@ -423,26 +423,26 @@ static char snap_module_name[] = "RTC_72421";
 
 int rtc72421_write_snapshot(rtc_72421_t *context, snapshot_t *s)
 {
-    DWORD latch_lo = 0;
-    DWORD latch_hi = 0;
-    DWORD offset_lo = 0;
-    DWORD offset_hi = 0;
-    DWORD old_offset_lo = 0;
-    DWORD old_offset_hi = 0;
+    uint32_t latch_lo = 0;
+    uint32_t latch_hi = 0;
+    uint32_t offset_lo = 0;
+    uint32_t offset_hi = 0;
+    uint32_t old_offset_lo = 0;
+    uint32_t old_offset_hi = 0;
     snapshot_module_t *m;
 
     /* time_t can be either 32bit or 64bit, so we save as 64bit */
 #if (SIZE_OF_TIME_T == 8)
-    latch_hi = (DWORD)(context->latch >> 32);
-    latch_lo = (DWORD)(context->latch & 0xffffffff);
-    offset_hi = (DWORD)(context->offset >> 32);
-    offset_lo = (DWORD)(context->offset & 0xffffffff);
-    old_offset_hi = (DWORD)(context->old_offset >> 32);
-    old_offset_lo = (DWORD)(context->old_offset & 0xffffffff);
+    latch_hi = (uint32_t)(context->latch >> 32);
+    latch_lo = (uint32_t)(context->latch & 0xffffffff);
+    offset_hi = (uint32_t)(context->offset >> 32);
+    offset_lo = (uint32_t)(context->offset & 0xffffffff);
+    old_offset_hi = (uint32_t)(context->old_offset >> 32);
+    old_offset_lo = (uint32_t)(context->old_offset & 0xffffffff);
 #else
-    latch_lo = (DWORD)context->latch;
-    offset_lo = (DWORD)context->offset;
-    old_offset_lo = (DWORD)context->old_offset;
+    latch_lo = (uint32_t)context->latch;
+    offset_lo = (uint32_t)context->offset;
+    old_offset_lo = (uint32_t)context->old_offset;
 #endif
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
@@ -452,8 +452,8 @@ int rtc72421_write_snapshot(rtc_72421_t *context, snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)context->stop) < 0
-        || SMW_B(m, (BYTE)context->hour24) < 0
+        || SMW_B(m, (uint8_t)context->stop) < 0
+        || SMW_B(m, (uint8_t)context->hour24) < 0
         || SMW_DW(m, latch_hi) < 0
         || SMW_DW(m, latch_lo) < 0
         || SMW_DW(m, offset_hi) < 0
@@ -469,13 +469,13 @@ int rtc72421_write_snapshot(rtc_72421_t *context, snapshot_t *s)
 
 int rtc72421_read_snapshot(rtc_72421_t *context, snapshot_t *s)
 {
-    DWORD latch_lo = 0;
-    DWORD latch_hi = 0;
-    DWORD offset_lo = 0;
-    DWORD offset_hi = 0;
-    DWORD old_offset_lo = 0;
-    DWORD old_offset_hi = 0;
-    BYTE vmajor, vminor;
+    uint32_t latch_lo = 0;
+    uint32_t latch_hi = 0;
+    uint32_t offset_lo = 0;
+    uint32_t offset_hi = 0;
+    uint32_t old_offset_lo = 0;
+    uint32_t old_offset_hi = 0;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -485,7 +485,7 @@ int rtc72421_read_snapshot(rtc_72421_t *context, snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

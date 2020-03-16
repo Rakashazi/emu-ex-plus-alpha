@@ -60,7 +60,7 @@ static int currbank = 0;
 
 static int ross_is_32k = 0;
 
-static BYTE ross_io1_read(WORD addr)
+static uint8_t ross_io1_read(uint16_t addr)
 {
     if (ross_is_32k) {
         cart_romhbank_set_slotmain(1);
@@ -70,12 +70,12 @@ static BYTE ross_io1_read(WORD addr)
     return 0;
 }
 
-static BYTE ross_io_peek(WORD addr)
+static uint8_t ross_io_peek(uint16_t addr)
 {
     return 0;
 }
 
-static BYTE ross_io2_read(WORD addr)
+static uint8_t ross_io2_read(uint16_t addr)
 {
     cart_set_port_exrom_slotmain(0);
     cart_set_port_game_slotmain(0);
@@ -94,33 +94,35 @@ static int ross_dump(void)
 /* ---------------------------------------------------------------------*/
 
 static io_source_t ross_io1_device = {
-    CARTRIDGE_NAME_ROSS,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    0, /* read is never valid */
-    NULL,
-    ross_io1_read,
-    ross_io_peek,
-    ross_dump,
-    CARTRIDGE_ROSS,
-    0,
-    0
+    CARTRIDGE_NAME_ROSS,   /* name of the device */
+    IO_DETACH_CART,        /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE, /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,  /* range for the device, address is ignored, reg:$de00, mirrors:$de01-$deff */
+    0,                     /* read is never valid */
+    NULL,                  /* NO store function */
+    NULL,                  /* NO poke function */
+    ross_io1_read,         /* read function */
+    ross_io_peek,          /* peek function */
+    ross_dump,             /* device state information dump function */
+    CARTRIDGE_ROSS,        /* cartridge ID */
+    IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
+    0                      /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t ross_io2_device = {
-    CARTRIDGE_NAME_ROSS,
-    IO_DETACH_CART,
-    NULL,
-    0xdf00, 0xdfff, 0xff,
-    0, /* read is never valid */
-    NULL,
-    ross_io2_read,
-    ross_io_peek,
-    ross_dump,
-    CARTRIDGE_ROSS,
-    0,
-    0
+    CARTRIDGE_NAME_ROSS,   /* name of the device */
+    IO_DETACH_CART,        /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE, /* does not use a resource for detach */
+    0xdf00, 0xdfff, 0xff,  /* range for the device, address is ignore, reg:$df00, mirrors:$df01-$dfff */
+    0,                     /* read is never valid */
+    NULL,                  /* NO store function */
+    NULL,                  /* NO poke function */
+    ross_io2_read,         /* read function */
+    ross_io_peek,          /* peek function */
+    ross_dump,             /* device state information dump function */
+    CARTRIDGE_ROSS,        /* cartridge ID */
+    IO_PRIO_NORMAL,        /* normal priority, device read needs to be checked for collisions */
+    0                      /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *ross_io1_list_item = NULL;
@@ -137,7 +139,7 @@ void ross_config_init(void)
     cart_config_changed_slotmain(1, 1, CMODE_READ);
 }
 
-void ross_config_setup(BYTE *rawcart)
+void ross_config_setup(uint8_t *rawcart)
 {
     memcpy(&roml_banks[0x0000], &rawcart[0x0000], 0x2000);
     memcpy(&romh_banks[0x0000], &rawcart[0x2000], 0x2000);
@@ -159,7 +161,7 @@ static int ross_common_attach(void)
     return 0;
 }
 
-int ross_bin_attach(const char *filename, BYTE *rawcart)
+int ross_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x8000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         if (util_file_load(filename, rawcart, 0x4000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
@@ -172,7 +174,7 @@ int ross_bin_attach(const char *filename, BYTE *rawcart)
     return ross_common_attach();
 }
 
-int ross_crt_attach(FILE *fd, BYTE *rawcart)
+int ross_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
     int amount = 0;
@@ -237,8 +239,8 @@ int ross_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)ross_is_32k) < 0
-        || SMW_B(m, (BYTE)currbank) < 0
+        || SMW_B(m, (uint8_t)ross_is_32k) < 0
+        || SMW_B(m, (uint8_t)currbank) < 0
         || SMW_BA(m, roml_banks, 0x4000) < 0
         || SMW_BA(m, romh_banks, 0x4000) < 0) {
         snapshot_module_close(m);
@@ -250,7 +252,7 @@ int ross_snapshot_write_module(snapshot_t *s)
 
 int ross_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -260,13 +262,13 @@ int ross_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
     /* new in 0.1 */
-    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 1)) {
         if (SMR_B_INT(m, &ross_is_32k) < 0) {
             goto fail;
         }

@@ -75,7 +75,7 @@ struct monitor_cpu_type_s {
                                                            unsigned int p2);
     int (*mon_assemble_instr)(const char *opcode_name, asm_mode_addr_info_t operand);
     unsigned int (*mon_register_get_val)(int mem, int reg_id);
-    void (*mon_register_set_val)(int mem, int reg_id, WORD val);
+    void (*mon_register_set_val)(int mem, int reg_id, uint16_t val);
     void (*mon_register_print)(int mem);
     const char* (*mon_register_print_ex)(int mem);
     struct mon_reg_list_s *(*mon_register_list_get)(int mem);
@@ -112,9 +112,10 @@ struct monitor_interface_s {
     int current_bank;
     const char **(*mem_bank_list)(void);
     int (*mem_bank_from_name)(const char *name);
-    BYTE (*mem_bank_read)(int bank, WORD addr, void *context);
-    BYTE (*mem_bank_peek)(int bank, WORD addr, void *context);
-    void (*mem_bank_write)(int bank, WORD addr, BYTE byte, void *context);
+    uint8_t (*mem_bank_read)(int bank, uint16_t addr, void *context);
+    uint8_t (*mem_bank_peek)(int bank, uint16_t addr, void *context);
+    void (*mem_bank_write)(int bank, uint16_t addr, uint8_t byte, void *context);
+    void (*mem_bank_poke)(int bank, uint16_t addr, uint8_t byte, void *context);
 
     struct mem_ioreg_list_s *(*mem_ioreg_list_get)(void *context);
 
@@ -150,14 +151,14 @@ extern void monitor_startup_trap(void);
 extern void monitor_abort(void);
 
 extern int monitor_force_import(MEMSPACE mem);
-extern void monitor_check_icount(WORD a);
+extern void monitor_check_icount(uint16_t a);
 extern void monitor_check_icount_interrupt(void);
 extern void monitor_check_watchpoints(unsigned int lastpc, unsigned int pc);
 
 extern void monitor_cpu_type_set(const char *cpu_type);
 
-extern void monitor_watch_push_load_addr(WORD addr, MEMSPACE mem);
-extern void monitor_watch_push_store_addr(WORD addr, MEMSPACE mem);
+extern void monitor_watch_push_load_addr(uint16_t addr, MEMSPACE mem);
+extern void monitor_watch_push_store_addr(uint16_t addr, MEMSPACE mem);
 
 extern monitor_interface_t *monitor_interface_new(void);
 extern void monitor_interface_destroy(monitor_interface_t *monitor_interface);
@@ -175,7 +176,7 @@ extern int mon_out(const char *format, ...);
 /** Breakpoint interface.  */
 
 /* Prototypes */
-extern int monitor_check_breakpoints(MEMSPACE mem, WORD addr);
+extern int monitor_check_breakpoints(MEMSPACE mem, uint16_t addr);
 
 /** Disassemble interace */
 /* Prototypes */
@@ -210,8 +211,8 @@ extern monitor_cartridge_commands_t mon_cart_cmd;
 
 /* CPU history/memmap prototypes */
 extern void monitor_cpuhistory_store(unsigned int addr, unsigned int op, unsigned int p1, unsigned int p2,
-                                     BYTE reg_a, BYTE reg_x, BYTE reg_y,
-                                     BYTE reg_sp, unsigned int reg_st);
+                                     uint8_t reg_a, uint8_t reg_x, uint8_t reg_y,
+                                     uint8_t reg_sp, unsigned int reg_st);
 extern void monitor_cpuhistory_fix_p2(unsigned int p2);
 extern void monitor_memmap_store(unsigned int addr, unsigned int type);
 
@@ -227,7 +228,7 @@ extern void monitor_memmap_store(unsigned int addr, unsigned int type);
 #define MEMMAP_RAM_X    (1 << 0)
 
 /* HACK to enable fetch/load separation */
-extern BYTE memmap_state;
+extern uint8_t memmap_state;
 #define MEMMAP_STATE_OPCODE     0x01
 #define MEMMAP_STATE_INSTR      0x02
 #define MEMMAP_STATE_IGNORE     0x04
@@ -238,6 +239,10 @@ extern BYTE memmap_state;
 #  if !defined(__SVR4) && !defined(__svr4__)
 #    define strtoul(a, b, c) (unsigned long)strtol(a, b, c)
 #  endif
+#endif
+
+#ifndef HAVE_STPCPY
+char *stpcpy(char *dest, const char *src);
 #endif
 
 #endif

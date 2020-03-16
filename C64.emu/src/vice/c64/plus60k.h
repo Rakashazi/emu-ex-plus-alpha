@@ -38,12 +38,13 @@ extern void plus60k_init(void);
 extern void plus60k_reset(void);
 extern void plus60k_shutdown(void);
 
-extern void plus60k_vicii_mem_vbank_store(WORD addr, BYTE value);
-extern void plus60k_vicii_mem_vbank_39xx_store(WORD addr, BYTE value);
-extern void plus60k_vicii_mem_vbank_3fxx_store(WORD addr, BYTE value);
-extern void plus60k_ram_hi_store(WORD addr, BYTE value);
-extern BYTE plus60k_ram_read(WORD addr);
-extern void plus60k_ram_store(WORD addr, BYTE value);
+extern void plus60k_ram_inject(uint16_t addr, uint8_t value);
+extern void plus60k_vicii_mem_vbank_store(uint16_t addr, uint8_t value);
+extern void plus60k_vicii_mem_vbank_39xx_store(uint16_t addr, uint8_t value);
+extern void plus60k_vicii_mem_vbank_3fxx_store(uint16_t addr, uint8_t value);
+extern void plus60k_ram_hi_store(uint16_t addr, uint8_t value);
+extern uint8_t plus60k_ram_read(uint16_t addr);
+extern void plus60k_ram_store(uint16_t addr, uint8_t value);
 
 extern int set_plus60k_enabled(int value, int disable_reset);
 

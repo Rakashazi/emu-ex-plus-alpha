@@ -43,8 +43,10 @@
 #include "cbm2cart.h"
 #include "cbm2mem.h"
 #include "cbm2model.h"
+#include "cia.h"
 #include "machine.h"
 #include "resources.h"
+#include "sid.h"
 #include "types.h"
 
 struct model_s {
@@ -72,15 +74,18 @@ static struct model_s cbm2models[] = {
 };
 
 /* ------------------------------------------------------------------------- */
-static int cbm2model_get_temp(int video, int ramsize, int hasvicii, int line)
+static int cbm2model_get_temp(int video, int ramsz, int hasvicii, int line,
+                              int sid, int cia)
 {
     int i;
 
     for (i = 0; i < CBM2MODEL_NUM; ++i) {
         if ((cbm2models[i].video == video)
-            && (cbm2models[i].ramsize == ramsize)
+            && (cbm2models[i].ramsize == ramsz)
             && (cbm2models[i].hasvicii == hasvicii)
-            && (cbm2models[i].line == line)) {
+            && (cbm2models[i].line == line)
+            && (sid == SID_MODEL_6581)
+            && (cia == CIA_MODEL_6526)) {
             return i;
         }
     }
@@ -90,17 +95,19 @@ static int cbm2model_get_temp(int video, int ramsize, int hasvicii, int line)
 
 int cbm2model_get(void)
 {
-    int video, ramsize, hasvicii, line;
+    int video, ramsz, hasvicii, line, sid, cia;
 
     hasvicii = (machine_class == VICE_MACHINE_CBM5x0);
 
     if ((resources_get_int("MachineVideoStandard", &video) < 0)
-        || (resources_get_int("RamSize", &ramsize) < 0)
-        || (resources_get_int("ModelLine", &line) < 0)) {
+        || (resources_get_int("RamSize", &ramsz) < 0)
+        || (resources_get_int("ModelLine", &line) < 0)
+        || (resources_get_int("CIA1Model", &cia) < 0)
+        || (resources_get_int("SidModel", &sid) < 0)) {
         return -1;
     }
 
-    return cbm2model_get_temp(video, ramsize, hasvicii, line);
+    return cbm2model_get_temp(video, ramsz, hasvicii, line, sid, cia);
 }
 
 #if 0

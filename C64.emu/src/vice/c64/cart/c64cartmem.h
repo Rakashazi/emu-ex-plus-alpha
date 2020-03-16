@@ -34,29 +34,31 @@
 */
 
 /* expansion port memory read/write hooks */
-extern BYTE roml_read(WORD addr);
-extern void roml_store(WORD addr, BYTE value);
-extern BYTE romh_read(WORD addr);
-extern BYTE ultimax_romh_read_hirom(WORD addr);
-extern void romh_store(WORD addr, BYTE value);
-extern void roml_no_ultimax_store(WORD addr, BYTE value);
-extern void raml_no_ultimax_store(WORD addr, BYTE value);
-extern void romh_no_ultimax_store(WORD addr, BYTE value);
-extern void ramh_no_ultimax_store(WORD addr, BYTE value);
+extern uint8_t roml_read(uint16_t addr);
+extern void roml_store(uint16_t addr, uint8_t value);
+extern uint8_t romh_read(uint16_t addr);
+extern uint8_t ultimax_romh_read_hirom(uint16_t addr);
+extern void romh_store(uint16_t addr, uint8_t value);
+extern void roml_no_ultimax_store(uint16_t addr, uint8_t value);
+extern void raml_no_ultimax_store(uint16_t addr, uint8_t value);
+extern void romh_no_ultimax_store(uint16_t addr, uint8_t value);
+extern void ramh_no_ultimax_store(uint16_t addr, uint8_t value);
 
-extern BYTE ultimax_1000_7fff_read(WORD addr);
-extern void ultimax_1000_7fff_store(WORD addr, BYTE value);
-extern BYTE ultimax_a000_bfff_read(WORD addr);
-extern void ultimax_a000_bfff_store(WORD addr, BYTE value);
-extern BYTE ultimax_c000_cfff_read(WORD addr);
-extern void ultimax_c000_cfff_store(WORD addr, BYTE value);
-extern BYTE ultimax_d000_dfff_read(WORD addr);
-extern void ultimax_d000_dfff_store(WORD addr, BYTE value);
+extern uint8_t ultimax_0800_0fff_read(uint16_t addr);
+extern void ultimax_0800_0fff_store(uint16_t addr, uint8_t value);
+extern uint8_t ultimax_1000_7fff_read(uint16_t addr);
+extern void ultimax_1000_7fff_store(uint16_t addr, uint8_t value);
+extern uint8_t ultimax_a000_bfff_read(uint16_t addr);
+extern void ultimax_a000_bfff_store(uint16_t addr, uint8_t value);
+extern uint8_t ultimax_c000_cfff_read(uint16_t addr);
+extern void ultimax_c000_cfff_store(uint16_t addr, uint8_t value);
+extern uint8_t ultimax_d000_dfff_read(uint16_t addr);
+extern void ultimax_d000_dfff_store(uint16_t addr, uint8_t value);
 
 /* VIC-II reads. the _ptr functions are for the old vic implementation (x64) */
-extern BYTE *ultimax_romh_phi1_ptr(WORD addr);
-extern BYTE *ultimax_romh_phi2_ptr(WORD addr);
-extern int ultimax_romh_phi1_read(WORD addr, BYTE *value);
-extern int ultimax_romh_phi2_read(WORD addr, BYTE *value);
+extern uint8_t *ultimax_romh_phi1_ptr(uint16_t addr);
+extern uint8_t *ultimax_romh_phi2_ptr(uint16_t addr);
+extern int ultimax_romh_phi1_read(uint16_t addr, uint8_t *value);
+extern int ultimax_romh_phi2_read(uint16_t addr, uint8_t *value);
 
 #endif

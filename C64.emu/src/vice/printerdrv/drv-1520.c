@@ -80,7 +80,7 @@ enum command_stage {
 
 struct plot_s {
     int prnr;
-    BYTE (*sheet)[Y_PIXELS][X_PIXELS];
+    uint8_t (*sheet)[Y_PIXELS][X_PIXELS];
     int colour;         /* sa = 2 */
     int colour_accu;
     int charsize;       /* sa = 3; segment multiplication */
@@ -114,12 +114,12 @@ static log_t drv1520_log = LOG_ERR;
 #define PIXEL_INDEX_WHITE       0
 #define PIXEL_INDEX_BLACK       1
 
-static BYTE tochar[] = {
+static uint8_t tochar[] = {
     OUTPUT_PIXEL_WHITE,         /* paper */
     OUTPUT_PIXEL_BLACK,         /* 1520 colour numbers: 0 - 3 */
-    OUTPUT_PIXEL_BLUE, 
-    OUTPUT_PIXEL_GREEN, 
-    OUTPUT_PIXEL_RED, 
+    OUTPUT_PIXEL_BLUE,
+    OUTPUT_PIXEL_GREEN,
+    OUTPUT_PIXEL_RED,
 };
 
 /* ------------------------------------------------------------------------- */
@@ -140,7 +140,7 @@ static void write_lines(plot_t *mps, int lines)
         for (x = 0; x < X_PIXELS; x++) {
             output_select_putc(prnr, tochar[(*mps->sheet)[y][x]]);
         }
-        output_select_putc(prnr, (BYTE)OUTPUT_NEWLINE);
+        output_select_putc(prnr, (uint8_t)OUTPUT_NEWLINE);
     }
 }
 
@@ -221,7 +221,7 @@ static inline int vice_max(int a, int b)
 }
 #endif
 
-static void mix(BYTE *old, int new)
+static void mix(uint8_t *old, int new)
 {
     if (*old == PIXEL_INDEX_WHITE) {
         *old = new;
@@ -527,7 +527,7 @@ int dir[20] = { /* delta-x, delta-y */
 #define SW              6       /* letter pitch */
 #define LH              6       /* letter height */
 
-void draw_char(plot_t *mps, char *commands)
+static void draw_char(plot_t *mps, char *commands)
 {
     int x = mps->cur_x;
     int y = mps->cur_y;
@@ -574,7 +574,7 @@ void draw_char(plot_t *mps, char *commands)
     }
 }
 
-static void print_char_text(plot_t *mps, BYTE c)
+static void print_char_text(plot_t *mps, uint8_t c)
 {
     int underline = 0;
     char **tab;
@@ -646,7 +646,7 @@ static void print_char_text(plot_t *mps, BYTE c)
  * White space is ignored.
  * Other characters reset the accumulator to 0.
  */
-static int numparser(int *accu, BYTE c)
+static int numparser(int *accu, uint8_t c)
 {
     /*
      * TODO: what does it do with other characters?
@@ -691,7 +691,7 @@ static int numparser(int *accu, BYTE c)
  * therefore the number overflows rather a lot.
  * (the 1520 indeed interprets 240E0 and 24E1 etc as 0!)
  */
-static int fnumsparser(int *accu, int *state, BYTE c)
+static int fnumsparser(int *accu, int *state, uint8_t c)
 {
     /*
      * TODO: what does it do with other characters?
@@ -751,7 +751,7 @@ done:
     return INCOMPLETE;
 }
 
-static void print_char_plot(plot_t *mps, const BYTE c)
+static void print_char_plot(plot_t *mps, const uint8_t c)
 {
     int value;
 
@@ -851,7 +851,7 @@ static void print_char_plot(plot_t *mps, const BYTE c)
     }
 }
 
-static void print_char_select_colour(plot_t *mps, const BYTE c)
+static void print_char_select_colour(plot_t *mps, const uint8_t c)
 {
     int value;
 
@@ -862,7 +862,7 @@ static void print_char_select_colour(plot_t *mps, const BYTE c)
     }
 }
 
-static void print_char_select_character_size(plot_t *mps, const BYTE c)
+static void print_char_select_character_size(plot_t *mps, const uint8_t c)
 {
     int value;
 
@@ -873,7 +873,7 @@ static void print_char_select_character_size(plot_t *mps, const BYTE c)
     }
 }
 
-static void print_char_select_character_rotation(plot_t *mps, const BYTE c)
+static void print_char_select_character_rotation(plot_t *mps, const uint8_t c)
 {
     int value;
 
@@ -884,7 +884,7 @@ static void print_char_select_character_rotation(plot_t *mps, const BYTE c)
     }
 }
 
-static void print_char_select_scribe(plot_t *mps, const BYTE c)
+static void print_char_select_scribe(plot_t *mps, const uint8_t c)
 {
     int value;
 
@@ -902,7 +902,7 @@ static void print_char_select_scribe(plot_t *mps, const BYTE c)
     }
 }
 
-static void print_char_select_lowercase(plot_t *mps, const BYTE c)
+static void print_char_select_lowercase(plot_t *mps, const uint8_t c)
 {
     int value;
 
@@ -953,14 +953,14 @@ static void power_on_reset(plot_t *mps)
 
     mps->prnr = prnr;
     mps->charsize = 1 << 1;
-    mps->sheet = lib_calloc(Y_PIXELS, X_PIXELS * sizeof(BYTE));
+    mps->sheet = lib_calloc(Y_PIXELS, X_PIXELS * sizeof(uint8_t));
     mps->abs_origin_x = 0;
     mps->abs_origin_y = -VERTICAL_CLEARANCE;
 
     draw_four_squares(mps);
 }
 
-static void print_char_reset(plot_t *mps, const BYTE c)
+static void print_char_reset(plot_t *mps, const uint8_t c)
 {
     if (c == CR) {
         power_on_reset(mps);
@@ -1021,7 +1021,7 @@ static void drv_1520_close(unsigned int prnr, unsigned int secondary)
     }
 }
 
-static int drv_1520_putc(unsigned int prnr, unsigned int secondary, BYTE b)
+static int drv_1520_putc(unsigned int prnr, unsigned int secondary, uint8_t b)
 {
     plot_t *mps = &drv_1520[prnr];
 
@@ -1061,7 +1061,7 @@ static int drv_1520_putc(unsigned int prnr, unsigned int secondary, BYTE b)
     return 0;
 }
 
-static int drv_1520_getc(unsigned int prnr, unsigned int secondary, BYTE *b)
+static int drv_1520_getc(unsigned int prnr, unsigned int secondary, uint8_t *b)
 {
     return output_select_getc(prnr, b);
 }

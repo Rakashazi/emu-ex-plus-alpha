@@ -38,6 +38,7 @@
 
 #include "log.h"
 #include "m93c86.h"
+#include "resources.h"
 #include "snapshot.h"
 #include "types.h"
 #include "util.h"
@@ -54,7 +55,7 @@
 /* Image file */
 static FILE *m93c86_image_file = NULL;
 
-static BYTE m93c86_data[M93C86_SIZE];
+static uint8_t m93c86_data[M93C86_SIZE];
 
 static int eeprom_cs = 0;
 static int eeprom_clock = 0;
@@ -97,7 +98,7 @@ static void reset_input_shiftreg(void)
     input_count = 0;
 }
 
-BYTE m93c86_read_data(void)
+uint8_t m93c86_read_data(void)
 {
     if (eeprom_cs == 1) {
         switch (command) {
@@ -123,14 +124,14 @@ BYTE m93c86_read_data(void)
     }
 }
 
-void m93c86_write_data(BYTE value)
+void m93c86_write_data(uint8_t value)
 {
     if (eeprom_cs == 1) {
         eeprom_data_in = value;
     }
 }
 
-void m93c86_write_select(BYTE value)
+void m93c86_write_select(uint8_t value)
 {
     /* Each instruction is preceded by a rising edge on Chip Select Input with Serial Clock being held low. */
     if ((eeprom_cs == 0) && (value == 1) && (eeprom_clock == 0)) {
@@ -154,7 +155,7 @@ void m93c86_write_select(BYTE value)
     }
 }
 
-void m93c86_write_clock(BYTE value)
+void m93c86_write_clock(uint8_t value)
 {
     /* rising edge of clock will read one bit from data input */
     if ((eeprom_cs == 1) && (value == 1) && (eeprom_clock == 0)) {
@@ -256,6 +257,20 @@ void m93c86_write_clock(BYTE value)
                             reset_input_shiftreg();
                             command = 0;
                             LOG(("CMD: write enable"));
+                            break;
+                        case CMDERASE:
+                            if (write_enable_status == 0) {
+                                log_error(LOG_DEFAULT, "EEPROM: write not permitted for CMD 'erase'");
+                                reset_input_shiftreg();
+                                command = 0;
+                            } else {
+                                addr = ((input_shiftreg >> 0) & 0x3ff);
+                                ready_busy_status = STATUSBUSY;
+                                reset_input_shiftreg();
+                                m93c86_data[(addr << 1)] = 0xff;
+                                m93c86_data[(addr << 1) + 1] = 0xff;
+                                LOG(("CMD: erase addr %04x", addr));
+                            }
                             break;
                         case CMDERAL:
                             if (write_enable_status == 0) {
@@ -376,14 +391,11 @@ void m93c86_close_image(int rw)
 /*    snapshot support functions                                             */
 
 #define CART_DUMP_VER_MAJOR   0
-#define CART_DUMP_VER_MINOR   0
+#define CART_DUMP_VER_MINOR   1
 #define SNAP_MODULE_NAME  "M93C86"
 
-/* FIXME: implement snapshot support */
 int m93c86_snapshot_write_module(snapshot_t *s)
 {
-    return -1;
-#if 0
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, SNAP_MODULE_NAME,
@@ -392,39 +404,75 @@ int m93c86_snapshot_write_module(snapshot_t *s)
         return -1;
     }
 
-    if (0) {
+    if (0
+        || SMW_B(m, eeprom_cs) < 0
+        || SMW_B(m, eeprom_clock) < 0
+        || SMW_B(m, eeprom_data_in) < 0
+        || SMW_B(m, eeprom_data_out) < 0
+        || SMW_B(m, input_shiftreg) < 0
+        || SMW_B(m, input_count) < 0
+        || SMW_B(m, output_shiftreg) < 0
+        || SMW_B(m, output_count) < 0
+        || SMW_B(m, command) < 0
+        || SMW_B(m, addr) < 0
+        || SMW_B(m, data0) < 0
+        || SMW_B(m, data1) < 0
+        || SMW_B(m, write_enable_status) < 0
+        || SMW_B(m, ready_busy_status) < 0
+        || SMW_BA(m, m93c86_data, M93C86_SIZE) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
     snapshot_module_close(m);
     return 0;
-#endif
 }
 
 int m93c86_snapshot_read_module(snapshot_t *s)
 {
-    return -1;
-#if 0
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
+    int rw;
+
+    /* FIXME: currently m93c86 is used exclusively in gmod2, so this is not a
+     *        problem - however, the whole global context should go into a
+     *        struct at some point, and this rw flag too :) */
+    resources_get_int("GMod2EEPROMRW", &rw);
 
     m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
     if (m == NULL) {
         return -1;
     }
 
-    if ((vmajor != CART_DUMP_VER_MAJOR) || (vminor != CART_DUMP_VER_MINOR)) {
+    /* Do not accept versions higher than current */
+    if (snapshot_version_is_bigger(vmajor, vminor, CART_DUMP_VER_MAJOR, CART_DUMP_VER_MINOR)) {
         snapshot_module_close(m);
         return -1;
     }
 
-    if (0) {
+    m93c86_close_image(rw);
+
+    if (0
+        || SMR_B_INT(m, &eeprom_cs) < 0
+        || SMR_B_INT(m, &eeprom_clock) < 0
+        || SMR_B_INT(m, &eeprom_data_in) < 0
+        || SMR_B_INT(m, &eeprom_data_out) < 0
+        || SMR_B_INT(m, (int*)&input_shiftreg) < 0
+        || SMR_B_INT(m, (int*)&input_count) < 0
+        || SMR_B_INT(m, (int*)&output_shiftreg) < 0
+        || SMR_B_INT(m, (int*)&output_count) < 0
+        || SMR_B_INT(m, &command) < 0
+        || SMR_B_INT(m, &addr) < 0
+        || SMR_B_INT(m, &data0) < 0
+        || SMR_B_INT(m, &data1) < 0
+        || SMR_B_INT(m, &write_enable_status) < 0
+        || SMR_B_INT(m, &ready_busy_status) < 0
+        || SMR_BA(m, m93c86_data, M93C86_SIZE) < 0) {
         snapshot_module_close(m);
         return -1;
     }
 
     snapshot_module_close(m);
+
     return 0;
-#endif
 }

@@ -32,10 +32,10 @@
 
 typedef struct palette_entry_s {
     char *name;
-    BYTE red;
-    BYTE green;
-    BYTE blue;
-    BYTE dither;
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+    uint8_t dither;
 } palette_entry_t;
 
 typedef struct palette_s {

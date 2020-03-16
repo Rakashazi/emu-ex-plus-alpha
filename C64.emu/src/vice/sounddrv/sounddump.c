@@ -42,12 +42,12 @@ static int dump_init(const char *param, int *speed, int *fragsize, int *fragnr, 
     return !dump_fd;
 }
 
-static int dump_write(SWORD *pbuf, size_t nr)
+static int dump_write(int16_t *pbuf, size_t nr)
 {
     return 0;
 }
 
-static int dump_dump(WORD addr, BYTE byte, CLOCK clks)
+static int dump_dump(uint16_t addr, uint8_t byte, CLOCK clks)
 {
     return (fprintf(dump_fd, "%d %d %d\n", (int)clks, addr, byte) < 0);
 }

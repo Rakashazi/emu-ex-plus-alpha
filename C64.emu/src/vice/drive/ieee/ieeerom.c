@@ -48,11 +48,11 @@ static log_t ieeerom_log;
 #include "drivedos3040.h"
 #include "drivedos4040.h"
 #else
-static BYTE drive_rom2031[DRIVE_ROM2031_SIZE];
-static BYTE drive_rom1001[DRIVE_ROM1001_SIZE];
-static BYTE drive_rom2040[DRIVE_ROM2040_SIZE];
-static BYTE drive_rom3040[DRIVE_ROM3040_SIZE];
-static BYTE drive_rom4040[DRIVE_ROM4040_SIZE];
+static uint8_t drive_rom2031[DRIVE_ROM2031_SIZE];
+static uint8_t drive_rom1001[DRIVE_ROM1001_SIZE];
+static uint8_t drive_rom2040[DRIVE_ROM2040_SIZE];
+static uint8_t drive_rom3040[DRIVE_ROM3040_SIZE];
+static uint8_t drive_rom4040[DRIVE_ROM4040_SIZE];
 #endif
 
 /* If nonzero, the ROM image has been loaded.  */

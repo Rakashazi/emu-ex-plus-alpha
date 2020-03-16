@@ -69,7 +69,7 @@ static int sun_bufsize = 0;
 static int sun_written = 0;
 #endif
 
-static int toulaw8(SWORD data)
+static int toulaw8(int16_t data)
 {
     int v, s, a;
 
@@ -158,7 +158,7 @@ fail:
     return 1;
 }
 
-static int sun_write(SWORD *pbuf, size_t nr)
+static int sun_write(int16_t *pbuf, size_t nr)
 {
     unsigned int total, i, now;
     if (sun_8bit) {
@@ -168,7 +168,7 @@ static int sun_write(SWORD *pbuf, size_t nr)
         }
         total = nr;
     } else {
-        total = nr * sizeof(SWORD) * sun_channels;
+        total = nr * sizeof(int16_t) * sun_channels;
     }
     for (i = 0; i < total; i += now)
     {

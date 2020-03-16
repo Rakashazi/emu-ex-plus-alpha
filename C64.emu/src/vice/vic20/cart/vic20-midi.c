@@ -46,12 +46,12 @@ midi_interface_t midi_interface[] = {
 
 /* ---------------------------------------------------------------------*/
 
-static BYTE vic20midi_read(WORD address)
+static uint8_t vic20midi_read(uint16_t address)
 {
     return midi_read(address);
 }
 
-static BYTE vic20midi_peek(WORD address)
+static uint8_t vic20midi_peek(uint16_t address)
 {
     return midi_peek(address);
 }
@@ -59,18 +59,19 @@ static BYTE vic20midi_peek(WORD address)
 /* ---------------------------------------------------------------------*/
 
 static io_source_t midi_device = {
-    CARTRIDGE_VIC20_NAME_MIDI,
-    IO_DETACH_RESOURCE,
-    "MIDIEnable",
-    0x9c00, 0x9fff, 0x3ff,
-    1, /* read is always valid */
-    midi_store,
-    vic20midi_read,
-    vic20midi_peek,
-    NULL, /* TODO: dump */
-    CARTRIDGE_MIDI_MAPLIN,
-    0,
-    0
+    CARTRIDGE_VIC20_NAME_MIDI, /* name of the device */
+    IO_DETACH_RESOURCE,        /* use resource to detach the device when involved in a read-collision */
+    "MIDIEnable",              /* resource to set to '0' */
+    0x9c00, 0x9fff, 0x3ff,     /* range for the device, regs:$9c00-$9c01, mirrors:$9c02-$9fff */
+    1,                         /* read is always valid */
+    midi_store,                /* store function */
+    NULL,                      /* NO poke function */
+    vic20midi_read,            /* read function */
+    vic20midi_peek,            /* peek function */
+    NULL,                      /* TODO: device state information dump function */
+    CARTRIDGE_MIDI_MAPLIN,     /* cartridge ID */
+    IO_PRIO_NORMAL,            /* normal priority, device read needs to be checked for collisions */
+    0                          /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *midi_list_item = NULL;
@@ -155,7 +156,7 @@ int vic20_midi_snapshot_write_module(snapshot_t *s)
         return -1;
     }
 
-    if (SMW_B(m, (BYTE)midi_mode) < 0) {
+    if (SMW_B(m, (uint8_t)midi_mode) < 0) {
         snapshot_module_close(m);
         return -1;
     }
@@ -167,7 +168,7 @@ int vic20_midi_snapshot_write_module(snapshot_t *s)
 
 int vic20_midi_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
     int tmp_midi_mode;
 
@@ -178,7 +179,7 @@ int vic20_midi_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not allow versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

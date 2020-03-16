@@ -39,14 +39,11 @@ extern int autostart_resources_init(void);
 extern void autostart_resources_shutdown(void);
 extern int autostart_cmdline_options_init(void);
 
-extern int autostart_init(CLOCK min_cycles, int handle_drive_true_emulation,
-                          int blnsw, int pnt, int pntr, int lnmx);
+extern int autostart_init(CLOCK min_cycles, int handle_drive_true_emulation);
 extern void autostart_shutdown(void);
-extern void autostart_reinit(CLOCK _min_cycles,
-                             int _handle_drive_true_emulation, int _blnsw,
-                             int _pnt, int _pntr, int _lnmx);
+extern void autostart_reinit(CLOCK _min_cycles, int _handle_drive_true_emulation);
 
-extern VICE_API int autostart_autodetect(const char *file_name,
+extern int autostart_autodetect(const char *file_name,
                                 const char *program_name,
                                 unsigned int program_number,
                                 unsigned int runmode);
@@ -61,6 +58,7 @@ extern int autostart_tape(const char *file_name, const char *program_name,
                           unsigned int program_number, unsigned int runmode);
 extern int autostart_prg(const char *file_name, unsigned int runmode);
 extern int autostart_snapshot(const char *file_name, const char *program_name);
+extern int autostart_tapecart(const char *file_name, void *unused);
 
 extern void autostart_disable(void);
 extern void autostart_advance(void);

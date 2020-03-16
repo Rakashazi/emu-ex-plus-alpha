@@ -52,27 +52,44 @@
 /* chroma angles in UV space */
 
 #define ANGLE_RED        112.5f
-#define ANGLE_GRN       -135.0f
+/* #define ANGLE_GRN       -135.0f */ /* old pepto */
+#define ANGLE_GRN       -112.5f /* new pepto ("colodore") */
 #define ANGLE_BLU          0.0f
 #define ANGLE_ORN        -45.0f /* negative orange (orange is at +135.0 degree) */
 #define ANGLE_BRN        157.5f
 
-#define ANGLE_YLG       -168.75f
-#define ANGLE_PNK         78.75f
-#define ANGLE_BLG       -101.25f
+/* #define ANGLE_YLG       -168.75f */ /* old pepto */
+#define ANGLE_YLG       -157.5f /* new pepto ("colodore") */
+/* #define ANGLE_PNK         78.75f */ /* old pepto */
+#define ANGLE_PNK         90.0f /* new pepto ("colodore") */
+/* #define ANGLE_BLG       -101.25f */ /* old pepto */
+#define ANGLE_BLG        -90.0f /* new pepto ("colodore") */
 #define ANGLE_LBL        -22.5f
-#define ANGLE_DBL         11.25f
-#define ANGLE_LGN       -157.5f
+/* #define ANGLE_DBL         11.25f */ /* old pepto */
+#define ANGLE_DBL         22.5f /* new pepto ("colodore") */
+/* #define ANGLE_LGN       -157.5f */ /* old pepto */
+#define ANGLE_LGN       -135.0f /* new pepto ("colodore") */
 
 /* luminances */
 static float ted_luminances[8] =
 {
+/*
     40.0f,
     56.0f,
     64.0f,
     80.0f,
     128.0f,
     160.0f,
+    192.0f,
+    256.0f
+*/
+    /* new pepto ("colodore") */
+    32.0f,
+    48.0f,
+    64.0f,
+    80.0f,
+    120.0f,
+    144.0f,
     192.0f,
     256.0f
 };

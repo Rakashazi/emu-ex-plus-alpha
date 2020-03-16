@@ -102,7 +102,7 @@ static int circular_check(unsigned int track, unsigned int sector)
 image_contents_t *diskcontents_block_read(vdrive_t *vdrive)
 {
     image_contents_t *contents;
-    BYTE buffer[256];
+    uint8_t buffer[256];
     int retval;
     image_contents_file_list_t *lp;
     unsigned int curr_track, curr_sector;
@@ -140,7 +140,7 @@ image_contents_t *diskcontents_block_read(vdrive_t *vdrive)
     circular_check_init();
 
     while (1) {
-        BYTE *p;
+        uint8_t *p;
         int j;
 
         retval = vdrive_read_sector(vdrive, buffer, curr_track, curr_sector);

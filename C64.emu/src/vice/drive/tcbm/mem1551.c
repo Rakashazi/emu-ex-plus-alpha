@@ -34,22 +34,22 @@
 #include "types.h"
 
 
-static BYTE drive_read_rom(drive_context_t *drv, WORD address)
+static uint8_t drive_read_rom(drive_context_t *drv, uint16_t address)
 {
     return drv->drive->rom[address & 0x7fff];
 }
 
-static BYTE drive_read_1551ram(drive_context_t *drv, WORD address)
+static uint8_t drive_read_1551ram(drive_context_t *drv, uint16_t address)
 {
     return drv->drive->drive_ram[address & 0x7ff];
 }
 
-static void drive_store_1551ram(drive_context_t *drv, WORD address, BYTE value)
+static void drive_store_1551ram(drive_context_t *drv, uint16_t address, uint8_t value)
 {
     drv->drive->drive_ram[address & 0x7ff] = value;
 }
 
-static BYTE drive_read_zero(drive_context_t *drv, WORD address)
+static uint8_t drive_read_zero(drive_context_t *drv, uint16_t address)
 {
     switch (address & 0xff) {
         case 0:
@@ -61,7 +61,7 @@ static BYTE drive_read_zero(drive_context_t *drv, WORD address)
     return drv->drive->drive_ram[address & 0xff];
 }
 
-static void drive_store_zero(drive_context_t *drv, WORD address, BYTE value)
+static void drive_store_zero(drive_context_t *drv, uint16_t address, uint8_t value)
 {
     switch (address & 0xff) {
         case 0:

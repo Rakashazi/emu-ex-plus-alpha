@@ -43,7 +43,6 @@
 #include "network.h"
 #include "resources.h"
 #include "serial.h"
-#include "translate.h"
 #include "types.h"
 #include "uiapi.h"
 #include "vdrive-bam.h"
@@ -122,67 +121,44 @@ int file_system_resources_init(void)
 
 /* ------------------------------------------------------------------------- */
 
-static const cmdline_option_t cmdline_options[] = {
-    { "-device8", SET_RESOURCE, 1,
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-device8", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "FileSystemDevice8", (void *)ATTACH_DEVICE_FS,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_TYPE, IDCLS_SET_DEVICE_TYPE_8,
-      NULL, NULL },
-    { "-device9", SET_RESOURCE, 1,
+      "<Type>", "Set device type for device #8 (0: None, 1: Filesystem, 2: OpenCBM, 3: Block device)" },
+    { "-device9", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "FileSystemDevice9", (void *)ATTACH_DEVICE_FS,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_TYPE, IDCLS_SET_DEVICE_TYPE_9,
-      NULL, NULL },
-    { "-device10", SET_RESOURCE, 1,
+      "<Type>", "Set device type for device #9 (0: None, 1: Filesystem, 2: OpenCBM, 3: Block device)" },
+    { "-device10", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "FileSystemDevice10", (void *)ATTACH_DEVICE_FS,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_TYPE, IDCLS_SET_DEVICE_TYPE_10,
-      NULL, NULL },
-    { "-device11", SET_RESOURCE, 1,
+      "<Type>", "Set device type for device #10 (0: None, 1: Filesystem, 2: OpenCBM, 3: Block device)" },
+    { "-device11", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "FileSystemDevice11", (void *)ATTACH_DEVICE_FS,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_TYPE, IDCLS_SET_DEVICE_TYPE_11,
-      NULL, NULL },
-    { "-attach8ro", SET_RESOURCE, 0,
+      "<Type>", "Set device type for device #11 (0: None, 1: Filesystem, 2: OpenCBM, 3: Block device)" },
+    { "-attach8ro", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "AttachDevice8Readonly", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ATTACH_READ_ONLY_8,
-      NULL, NULL },
-    { "-attach8rw", SET_RESOURCE, 0,
+      NULL, "Attach disk image for drive #8 read only" },
+    { "-attach8rw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "AttachDevice8Readonly", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ATTACH_READ_WRITE_8,
-      NULL, NULL },
-    { "-attach9ro", SET_RESOURCE, 0,
+      NULL, "Attach disk image for drive #8 read write (if possible)" },
+    { "-attach9ro", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "AttachDevice9Readonly", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ATTACH_READ_ONLY_9,
-      NULL, NULL },
-    { "-attach9rw", SET_RESOURCE, 0,
+      NULL, "Attach disk image for drive #9 read only" },
+    { "-attach9rw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "AttachDevice9Readonly", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ATTACH_READ_WRITE_9,
-      NULL, NULL },
-    { "-attach10ro", SET_RESOURCE, 0,
+      NULL, "Attach disk image for drive #9 read write (if possible)" },
+    { "-attach10ro", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "AttachDevice10Readonly", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ATTACH_READ_ONLY_10,
-      NULL, NULL },
-    { "-attach10rw", SET_RESOURCE, 0,
+      NULL, "Attach disk image for drive #10 read only" },
+    { "-attach10rw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "AttachDevice10Readonly", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ATTACH_READ_WRITE_10,
-      NULL, NULL },
-    { "-attach11ro", SET_RESOURCE, 0,
+      NULL, "Attach disk image for drive #10 read write (if possible)" },
+    { "-attach11ro", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "AttachDevice11Readonly", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ATTACH_READ_ONLY_11,
-      NULL, NULL },
-    { "-attach11rw", SET_RESOURCE, 0,
+      NULL, "Attach disk image for drive #11 read only" },
+    { "-attach11rw", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "AttachDevice11Readonly", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ATTACH_READ_WRITE_11,
-      NULL, NULL },
+      NULL, "Attach disk image for drive #11 read write (if possible)" },
     CMDLINE_LIST_END
 };
 
@@ -200,14 +176,14 @@ static int file_system_set_serial_hooks(unsigned int unit, int fs)
     if (!fs) {
         if (vdrive_iec_attach(unit, "CBM Disk Drive")) {
             log_error(attach_log,
-                      "Could not initialize vdrive emulation for device #%i.",
+                      "Could not initialize vdrive emulation for device #%u.",
                       unit);
             return -1;
         }
     } else {
         if (fsdevice_attach(unit, "FS Drive")) {
             log_error(attach_log,
-                      "Could not initialize FS drive for device #%i.",
+                      "Could not initialize FS drive for device #%u.",
                       unit);
             return -1;
         }
@@ -240,10 +216,6 @@ void file_system_init(void)
             case ATTACH_DEVICE_REAL:
                 vdrive_device_setup(file_system[i].vdrive, i + 8);
                 serial_device_type_set(SERIAL_DEVICE_REAL, i + 8);
-                break;
-            case ATTACH_DEVICE_RAW:
-                vdrive_device_setup(file_system[i].vdrive, i + 8);
-                serial_device_type_set(SERIAL_DEVICE_RAW, i + 8);
                 break;
         }
         file_system_set_serial_hooks(i + 8, file_system_device_enabled[i]);
@@ -290,12 +262,12 @@ const char *file_system_get_disk_name(unsigned int unit)
     return disk_image_fsimage_name_get(vdrive->image);
 }
 
-int file_system_bam_get_disk_id(unsigned int unit, BYTE *id)
+int file_system_bam_get_disk_id(unsigned int unit, uint8_t *id)
 {
     return vdrive_bam_get_disk_id(unit, id);
 }
 
-int file_system_bam_set_disk_id(unsigned int unit, BYTE *id)
+int file_system_bam_set_disk_id(unsigned int unit, uint8_t *id)
 {
     return vdrive_bam_set_disk_id(unit, id);
 }
@@ -324,7 +296,7 @@ static int set_attach_device_readonly(int value, void *param)
     }
 
     /* Old filename will go away after the image is detached.  */
-    new_filename = lib_stralloc(old_filename);
+    new_filename = lib_strdup(old_filename);
 
     file_system_detach_disk(unit);
     attach_device_readonly_enabled[unit - 8] = val;
@@ -361,9 +333,6 @@ static int set_file_system_device(int val, void *param)
             if (old_device_enabled == ATTACH_DEVICE_REAL) {
                 serial_realdevice_disable();
             }
-            if (old_device_enabled == ATTACH_DEVICE_RAW) {
-                detach_disk_image(vdrive->image, vdrive, unit);
-            }
 
             if (vdrive != NULL && vdrive->image == NULL) {
                 vdrive_device_setup(vdrive, unit);
@@ -374,9 +343,6 @@ static int set_file_system_device(int val, void *param)
         case ATTACH_DEVICE_VIRT:
             if (old_device_enabled == ATTACH_DEVICE_REAL) {
                 serial_realdevice_disable();
-            }
-            if (old_device_enabled == ATTACH_DEVICE_RAW) {
-                detach_disk_image(vdrive->image, vdrive, unit);
             }
 
             if (vdrive != NULL && vdrive->image == NULL) {
@@ -389,9 +355,6 @@ static int set_file_system_device(int val, void *param)
             if (old_device_enabled == ATTACH_DEVICE_REAL) {
                 serial_realdevice_disable();
             }
-            if (old_device_enabled == ATTACH_DEVICE_RAW) {
-                detach_disk_image(vdrive->image, vdrive, unit);
-            }
 
             if (vdrive != NULL && vdrive->image != NULL) {
                 detach_disk_image_and_free(vdrive->image, vdrive, unit);
@@ -403,11 +366,8 @@ static int set_file_system_device(int val, void *param)
                 file_system_set_serial_hooks(unit, 1);
             }
             break;
-#ifdef HAVE_OPENCBM
+#ifdef HAVE_REALDEVICE
         case ATTACH_DEVICE_REAL:
-            if (old_device_enabled == ATTACH_DEVICE_RAW) {
-                detach_disk_image(vdrive->image, vdrive, unit);
-            }
             if (serial_realdevice_enable() < 0) {
                 log_warning(attach_log, "Falling back to fs device.");
                 return set_file_system_device(ATTACH_DEVICE_FS, param);
@@ -418,22 +378,6 @@ static int set_file_system_device(int val, void *param)
                 vdrive_device_setup(vdrive, unit);
             }
             serial_device_type_set(SERIAL_DEVICE_REAL, unit);
-            break;
-#endif
-#ifdef HAVE_RAWDRIVE
-        case ATTACH_DEVICE_RAW:
-            if (old_device_enabled == ATTACH_DEVICE_REAL) {
-                serial_realdevice_disable();
-            }
-            if (vdrive != NULL && vdrive->image != NULL) {
-                detach_disk_image_and_free(vdrive->image, vdrive, unit);
-                ui_display_drive_current_image(idx, "");
-                vdrive_device_setup(vdrive, unit);
-            }
-            attach_disk_image(&(vdrive->image), vdrive, "DUMMY", unit,
-                              ATTACH_DEVICE_RAW);
-            file_system_set_serial_hooks(unit, 0);
-            serial_device_type_set(SERIAL_DEVICE_RAW, unit);
             break;
 #endif
         default:
@@ -524,9 +468,6 @@ static int attach_disk_image(disk_image_t **imgptr, vdrive_t *floppy,
         case ATTACH_DEVICE_FS:
             new_image.device = DISK_IMAGE_DEVICE_FS;
             break;
-        case ATTACH_DEVICE_RAW:
-            new_image.device = DISK_IMAGE_DEVICE_RAW;
-            break;
     }
 
     disk_image_media_create(&new_image);
@@ -536,9 +477,6 @@ static int attach_disk_image(disk_image_t **imgptr, vdrive_t *floppy,
         case ATTACH_DEVICE_VIRT:
         case ATTACH_DEVICE_FS:
             disk_image_fsimage_name_set(&new_image, filename);
-            break;
-        case ATTACH_DEVICE_RAW:
-            disk_image_rawimage_driver_name_set(&new_image);
             break;
     }
 
@@ -555,6 +493,9 @@ static int attach_disk_image(disk_image_t **imgptr, vdrive_t *floppy,
     image = *imgptr;
 
     memcpy(image, &new_image, sizeof(disk_image_t));
+    /* free the P64 stuff, fixes the leak in src/attach.c, reported when
+     * using --enable-debug */
+    lib_free(new_image.p64);
 
     switch (unit) {
         case 8:

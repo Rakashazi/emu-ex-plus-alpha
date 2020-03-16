@@ -33,7 +33,7 @@
 #define ATTACH_DEVICE_NONE 0
 #define ATTACH_DEVICE_FS   1 /* filesystem */
 #define ATTACH_DEVICE_REAL 2 /* real IEC device (opencbm) */
-#define ATTACH_DEVICE_RAW  3 /* raw device */
+/* 3 was raw device */
 #define ATTACH_DEVICE_VIRT 4 /* non-tde drive/image */
 
 struct vdrive_s;
@@ -43,13 +43,13 @@ extern void file_system_shutdown(void);
 extern int file_system_resources_init(void);
 extern int file_system_cmdline_options_init(void);
 
-extern VICE_API const char *file_system_get_disk_name(unsigned int unit);
-extern VICE_API int file_system_attach_disk(unsigned int unit, const char *filename);
-extern VICE_API void file_system_detach_disk(int unit);
+extern const char *file_system_get_disk_name(unsigned int unit);
+extern int file_system_attach_disk(unsigned int unit, const char *filename);
+extern void file_system_detach_disk(int unit);
 extern void file_system_detach_disk_shutdown(void);
 extern struct vdrive_s *file_system_get_vdrive(unsigned int unit);
-extern int file_system_bam_get_disk_id(unsigned int unit, BYTE *id);
-extern int file_system_bam_set_disk_id(unsigned int unit, BYTE *id);
+extern int file_system_bam_get_disk_id(unsigned int unit, uint8_t *id);
+extern int file_system_bam_set_disk_id(unsigned int unit, uint8_t *id);
 extern void file_system_event_playback(unsigned int unit, const char *filename);
 
 #endif

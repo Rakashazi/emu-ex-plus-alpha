@@ -32,6 +32,7 @@
 
 #include "c128-resources.h"
 #include "c128.h"
+#include "c128model.h"
 #include "c64cia.h"
 #include "c128mem.h"
 #include "c128rom.h"
@@ -70,6 +71,9 @@ static char *chargen_se_rom_name = NULL;
 
 /* Name of the Swiss character ROM.  */
 static char *chargen_ch_rom_name = NULL;
+
+/* Name of the Norwegian character ROM.  */
+static char *chargen_no_rom_name = NULL;
 
 /* Name of the BASIC LO ROM.  */
 static char *basiclo_rom_name = NULL;
@@ -114,6 +118,8 @@ int c128_full_banks;
 int cia1_model = CIA_MODEL_6526A;
 int cia2_model = CIA_MODEL_6526A;
 
+static int board_type = BOARD_C128D;
+
 static int set_c128_full_banks(int val, void *param)
 {
     c128_full_banks = val ? 1 : 0;
@@ -151,6 +157,19 @@ static int set_machine_type(int val, void *param)
         return -1;
     }
 
+    return 0;
+}
+
+static int set_board_type(int val, void *param)
+{
+    int old_board_type = board_type;
+    if ((val < 0) || (val > 1)) {
+        return -1;
+    }
+    board_type = val;
+    if (old_board_type != board_type) {
+        machine_trigger_reset(MACHINE_RESET_MODE_HARD);
+    }
     return 0;
 }
 
@@ -229,6 +248,23 @@ static int set_chargen_ch_rom_name(const char *val, void *param)
     }
 
     if (c128rom_load_chargen_ch(chargen_ch_rom_name) < 0) {
+        return -1;
+    }
+
+    if (c128rom_chargen_setup() < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static int set_chargen_no_rom_name(const char *val, void *param)
+{
+    if (util_string_set(&chargen_no_rom_name, val)) {
+        return 0;
+    }
+
+    if (c128rom_load_chargen_no(chargen_no_rom_name) < 0) {
         return -1;
     }
 
@@ -490,6 +526,8 @@ static const resource_string_t resources_string[] = {
       &chargen_se_rom_name, set_chargen_se_rom_name, NULL },
     { "ChargenCHName", "chargch", RES_EVENT_NO, NULL,
       &chargen_ch_rom_name, set_chargen_ch_rom_name, NULL },
+    { "ChargenNOName", "chargno", RES_EVENT_NO, NULL,
+      &chargen_no_rom_name, set_chargen_no_rom_name, NULL },
     { "KernalIntName", "kernal", RES_EVENT_NO, NULL,
       &kernal_int_rom_name, set_kernal_int_rom_name, NULL },
     { "KernalDEName", "kernalde", RES_EVENT_NO, NULL,
@@ -520,6 +558,8 @@ static const resource_string_t resources_string[] = {
 static const resource_int_t resources_int[] = {
     { "MachineVideoStandard", MACHINE_SYNC_PAL, RES_EVENT_SAME, NULL,
       &sync_factor, set_sync_factor, NULL },
+    { "BoardType", BOARD_C128D, RES_EVENT_SAME, NULL,
+      &board_type, set_board_type, NULL },
     { "MachineType", C128_MACHINE_INT, RES_EVENT_SAME, NULL,
       &machine_type, set_machine_type, NULL },
     { "CIA1Model", CIA_MODEL_6526A, RES_EVENT_SAME, NULL,
@@ -530,6 +570,8 @@ static const resource_int_t resources_int[] = {
       (int *)&sid_stereo_address_start, sid_set_sid_stereo_address, NULL },
     { "SidTripleAddressStart", 0xdf00, RES_EVENT_SAME, NULL,
       (int *)&sid_triple_address_start, sid_set_sid_triple_address, NULL },
+    { "SidQuadAddressStart", 0xdf80, RES_EVENT_SAME, NULL,
+      (int *)&sid_quad_address_start, sid_set_sid_quad_address, NULL },
     { "C128FullBanks", 0, RES_EVENT_NO, NULL,
       (int *)&c128_full_banks, set_c128_full_banks, NULL },
     RESOURCE_INT_LIST_END
@@ -557,6 +599,7 @@ void c128_resources_shutdown(void)
     lib_free(chargen_fr_rom_name);
     lib_free(chargen_se_rom_name);
     lib_free(chargen_ch_rom_name);
+    lib_free(chargen_no_rom_name);
     lib_free(basiclo_rom_name);
     lib_free(basichi_rom_name);
     lib_free(kernal_int_rom_name);

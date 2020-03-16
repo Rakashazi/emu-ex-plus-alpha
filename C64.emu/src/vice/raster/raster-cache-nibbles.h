@@ -32,9 +32,9 @@
 
 #include "types.h"
 
-inline static int raster_cache_data_fill_nibbles(BYTE *dest_hi,
-                                                 BYTE *dest_lo,
-                                                 const BYTE *src,
+inline static int raster_cache_data_fill_nibbles(uint8_t *dest_hi,
+                                                 uint8_t *dest_lo,
+                                                 const uint8_t *src,
                                                  const unsigned int length,
                                                  const int src_step,
                                                  unsigned int *xs,
@@ -55,7 +55,7 @@ inline static int raster_cache_data_fill_nibbles(BYTE *dest_hi,
         return 1;
     } else {
         unsigned int i, x = 0;
-        BYTE b;
+        uint8_t b;
 
         for (i = 0;
              dest_hi[i] == (src[0] >> 4)

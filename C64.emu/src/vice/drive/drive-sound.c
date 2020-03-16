@@ -1420,9 +1420,9 @@ static const signed char bump[] = {
 
 static const signed char nosound[1] = { 0 };
 
-STATIC_PROTOTYPE sound_chip_t drive_sound;
+static sound_chip_t drive_sound;
 
-static WORD drive_sound_offset;
+static uint16_t drive_sound_offset;
 static const signed char *step[DRIVE_NUM];
 static const signed char *motor[DRIVE_NUM];
 static int stepvol[DRIVE_NUM];
@@ -1435,7 +1435,7 @@ static int sample_rate = 22050;
 extern int drive_sound_emulation;
 extern int drive_sound_emulation_volume;
 
-static int drive_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int soc, int scc, int *delta_t)
+static int drive_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, int *delta_t)
 {
     int i, j, nos = 0;
     static int div = 0;
@@ -1510,10 +1510,6 @@ static int drive_sound_machine_init(sound_t *psid, int speed, int cycles)
     return 1;
 }
 
-static void drive_sound_reset(sound_t *psid, CLOCK cpu_clk)
-{
-}
-
 static int drive_sound_machine_cycle_based(void)
 {
     return 0;
@@ -1524,26 +1520,18 @@ static int drive_sound_machine_channels(void)
     return 1;
 }
 
-static void drive_sound_machine_store(sound_t *psid, WORD addr, BYTE val)
-{
-}
-
-static BYTE drive_sound_machine_read(sound_t *psid, WORD addr)
-{
-    return 0;
-}
-
+/* Drive sound 'chip', emulates the sound of a 1541 disk drive */
 static sound_chip_t drive_sound = {
-    NULL, /* no open */
-    drive_sound_machine_init,
-    NULL, /* no close */
-    drive_sound_machine_calculate_samples,
-    drive_sound_machine_store,
-    drive_sound_machine_read,
-    drive_sound_reset,
-    drive_sound_machine_cycle_based,
-    drive_sound_machine_channels,
-    0 /* chip enabled */
+    NULL,                                  /* NO sound chip open function */ 
+    drive_sound_machine_init,              /* sound chip init function */
+    NULL,                                  /* NO sound chip close function */
+    drive_sound_machine_calculate_samples, /* sound chip calculate samples function */
+    NULL,                                  /* NO sound chip store function */
+    NULL,                                  /* NO sound chip read function */
+    NULL,                                  /* NO sound chip reset function */
+    drive_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, chip is NOT cycle based */
+    drive_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+    0                                      /* sound chip enabled flag, toggled upon device (de-)activation */
 };
 
 void drive_sound_update(int i, int unit)
@@ -1552,7 +1540,7 @@ void drive_sound_update(int i, int unit)
         drive_sound.chip_enabled = 0;
         return;
     }
-    sound_store((WORD)drive_sound_offset, 0, 0);
+    sound_store((uint16_t)drive_sound_offset, 0, 0);
     switch (i) {
         case DRIVE_SOUND_MOTOR_ON:
             motor[unit] = spinup;
@@ -1571,7 +1559,7 @@ void drive_sound_head(int track, int dir, int unit)
         drive_sound.chip_enabled = 0;
         return;
     }
-    sound_store((WORD)drive_sound_offset, 0, 0);
+    sound_store((uint16_t)drive_sound_offset, 0, 0);
     stepvol[unit] = 100 - track;
     if (track == 2 && dir == -1) {
         if (step[unit] == nosound) {

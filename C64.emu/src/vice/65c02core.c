@@ -258,7 +258,7 @@
 /* Stack operations. */
 
 #ifndef PUSH
-#define PUSH(val) ((PAGE_ONE)[(reg_sp--)] = ((BYTE)(val)))
+#define PUSH(val) ((PAGE_ONE)[(reg_sp--)] = ((uint8_t)(val)))
 #endif
 #ifndef PULL
 #define PULL()    ((PAGE_ONE)[(++reg_sp)])
@@ -296,7 +296,7 @@
 /* FIXME: LOCAL_STATUS() should check byte ready first.  */
 #define DO_INTERRUPT(int_kind)                                                                                \
     do {                                                                                                      \
-        BYTE ik = (int_kind);                                                                                 \
+        uint8_t ik = (int_kind);                                                                                 \
                                                                                                               \
         if (ik & (IK_IRQ | IK_IRQPEND | IK_NMI)) {                                                            \
             if ((ik & IK_NMI)                                                                                 \
@@ -353,7 +353,7 @@
         if (ik & (IK_TRAP | IK_RESET)) {                                                                      \
             if (ik & IK_TRAP) {                                                                               \
                 EXPORT_REGISTERS();                                                                           \
-                interrupt_do_trap(CPU_INT_STATUS, (WORD)reg_pc);                                              \
+                interrupt_do_trap(CPU_INT_STATUS, (uint16_t)reg_pc);                                              \
                 IMPORT_REGISTERS();                                                                           \
                 if (CPU_INT_STATUS->global_pending_int & IK_RESET) {                                          \
                     ik |= IK_RESET;                                                                           \
@@ -363,6 +363,7 @@
                 interrupt_ack_reset(CPU_INT_STATUS);                                                          \
                 cpu_reset();                                                                                  \
                 bank_start = bank_limit = 0; /* prevent caching */                                            \
+                LOCAL_SET_INTERRUPT(1);                                                                       \
                 JUMP(LOAD_ADDR(0xfffc));                                                                      \
                 DMA_ON_RESET;                                                                                 \
             }                                                                                                 \
@@ -376,17 +377,17 @@
                     EXPORT_REGISTERS();                                                                       \
                 }                                                                                             \
                 if (monitor_mask[CALLER] & (MI_STEP)) {                                                       \
-                    monitor_check_icount((WORD)reg_pc);                                                       \
+                    monitor_check_icount((uint16_t)reg_pc);                                                       \
                     IMPORT_REGISTERS();                                                                       \
                 }                                                                                             \
                 if (monitor_mask[CALLER] & (MI_BREAK)) {                                                      \
-                    if (monitor_check_breakpoints(CALLER, (WORD)reg_pc)) {                                    \
+                    if (monitor_check_breakpoints(CALLER, (uint16_t)reg_pc)) {                                    \
                         monitor_startup(CALLER);                                                              \
                         IMPORT_REGISTERS();                                                                   \
                     }                                                                                         \
                 }                                                                                             \
                 if (monitor_mask[CALLER] & (MI_WATCH)) {                                                      \
-                    monitor_check_watchpoints(LAST_OPCODE_ADDR, (WORD)reg_pc);                                \
+                    monitor_check_watchpoints(LAST_OPCODE_ADDR, (uint16_t)reg_pc);                                \
                     IMPORT_REGISTERS();                                                                       \
                 }                                                                                             \
             }                                                                                                 \
@@ -475,6 +476,14 @@
         CLK_ADD(CLK, CYCLES_1);     \
         STORE_ZERO(addr, value);    \
         CLK_ADD(CLK, CYCLES_1);     \
+    } while (0)
+
+#define STORE_ZERO_RRW_X(addr, value)      \
+    do {                                   \
+        LOAD_ZERO((addr) + reg_x);         \
+        CLK_ADD(CLK, CYCLES_1);            \
+        STORE_ZERO((addr) + reg_x, value); \
+        CLK_ADD(CLK, CYCLES_1);            \
     } while (0)
 
 #define STORE_ABS(addr, value)  \
@@ -567,7 +576,7 @@
 
 #define AND(value, clk_inc, pc_inc)      \
     do {                                 \
-        reg_a = (BYTE)(reg_a & (value)); \
+        reg_a = (uint8_t)(reg_a & (value)); \
         LOCAL_SET_NZ(reg_a);             \
         CLK_ADD(CLK, (clk_inc));         \
         INC_PC(pc_inc);                  \
@@ -599,7 +608,7 @@
     do {                                                   \
         unsigned int tmp, tmp_addr;                        \
         unsigned int dest_addr;                            \
-        BYTE value;                                        \
+        uint8_t value;                                        \
                                                            \
         if (cpu_type == CPU_65SC02) {                      \
             NOOP_IMM(SIZE_1);                              \
@@ -633,7 +642,7 @@
     do {                                                   \
         unsigned int tmp, tmp_addr;                        \
         unsigned int dest_addr;                            \
-        BYTE value;                                        \
+        uint8_t value;                                        \
                                                            \
         if (cpu_type == CPU_65SC02) {                      \
             NOOP_IMM(SIZE_1);                              \
@@ -818,7 +827,7 @@
 
 #define EOR(value, clk_inc, pc_inc)      \
     do {                                 \
-        reg_a = (BYTE)(reg_a ^ (value)); \
+        reg_a = (uint8_t)(reg_a ^ (value)); \
         LOCAL_SET_NZ(reg_a);             \
         CLK_ADD(CLK, (clk_inc));         \
         INC_PC(pc_inc);                  \
@@ -862,10 +871,10 @@
 
 #define NOP_02()                                                  \
     do {                                                          \
-        DWORD trap_result;                                        \
+        uint32_t trap_result;                                        \
         EXPORT_REGISTERS();                                       \
         if (!ROM_TRAP_ALLOWED()                                   \
-            || (trap_result = ROM_TRAP_HANDLER()) == (DWORD)-1) { \
+            || (trap_result = ROM_TRAP_HANDLER()) == (uint32_t)-1) { \
             NOOP_IMM(SIZE_2);                                     \
         } else {                                                  \
             if (trap_result) {                                    \
@@ -886,7 +895,7 @@
 
 #define JMP_IND()                                    \
     do {                                             \
-        WORD dest_addr;                              \
+        uint16_t dest_addr;                              \
         dest_addr = LOAD(p2);                        \
         CLK_ADD(CLK, CYCLES_1);                      \
         LOAD(reg_pc + 2);                            \
@@ -898,7 +907,7 @@
 
 #define JMP_IND_X()                                          \
     do {                                                     \
-        WORD dest_addr;                                      \
+        uint16_t dest_addr;                                      \
         dest_addr = LOAD((p2 + reg_x) & 0xffff);             \
         CLK_ADD(CLK, CYCLES_1);                              \
         LOAD(reg_pc + 2);                                    \
@@ -925,7 +934,7 @@
 
 #define LDA(value, clk_inc, pc_inc) \
     do {                            \
-        reg_a = (BYTE)(value);      \
+        reg_a = (uint8_t)(value);      \
         CLK_ADD(CLK, (clk_inc));    \
         LOCAL_SET_NZ(reg_a);        \
         INC_PC(pc_inc);             \
@@ -933,7 +942,7 @@
 
 #define LDX(value, clk_inc, pc_inc) \
     do {                            \
-        reg_x = (BYTE)(value);      \
+        reg_x = (uint8_t)(value);      \
         LOCAL_SET_NZ(reg_x);        \
         CLK_ADD(CLK, (clk_inc));    \
         INC_PC(pc_inc);             \
@@ -941,7 +950,7 @@
 
 #define LDY(value, clk_inc, pc_inc) \
     do {                            \
-        reg_y = (BYTE)(value);      \
+        reg_y = (uint8_t)(value);      \
         LOCAL_SET_NZ(reg_y);        \
         CLK_ADD(CLK, (clk_inc));    \
         INC_PC(pc_inc);             \
@@ -971,7 +980,7 @@
 
 #define ORA(value, clk_inc, pc_inc)      \
     do {                                 \
-        reg_a = (BYTE)(reg_a | (value)); \
+        reg_a = (uint8_t)(reg_a | (value)); \
         LOCAL_SET_NZ(reg_a);             \
         CLK_ADD(CLK, (clk_inc));         \
         INC_PC(pc_inc);                  \
@@ -1061,7 +1070,7 @@
 
 #define PLP()                                                 \
     do {                                                      \
-        BYTE s;                                               \
+        uint8_t s;                                               \
                                                               \
         LOAD(reg_sp | 0x100);                                 \
         s = PULL();                                           \
@@ -1155,7 +1164,7 @@
 
 #define ROR_A()                              \
     do {                                     \
-        BYTE tmp = reg_a;                    \
+        uint8_t tmp = reg_a;                    \
                                              \
         reg_a = (reg_a >> 1) | (reg_p << 7); \
         LOCAL_SET_CARRY(tmp & 0x01);         \
@@ -1169,20 +1178,20 @@
    soon as the opcode ends, if necessary.  */
 #define RTI()                        \
     do {                             \
-        WORD tmp;                    \
+        uint16_t tmp;                    \
                                      \
         LOAD(reg_sp | 0x100);        \
         CLK_ADD(CLK, CYCLES_4);      \
-        tmp = (WORD)PULL();          \
-        LOCAL_SET_STATUS((BYTE)tmp); \
-        tmp = (WORD)PULL();          \
-        tmp |= (WORD)PULL() << 8;    \
+        tmp = (uint16_t)PULL();          \
+        LOCAL_SET_STATUS((uint8_t)tmp); \
+        tmp = (uint16_t)PULL();          \
+        tmp |= (uint16_t)PULL() << 8;    \
         JUMP(tmp);                   \
     } while (0)
 
 #define RTS()                      \
     do {                           \
-        WORD tmp;                  \
+        uint16_t tmp;                  \
                                    \
         LOAD(reg_sp | 0x100);      \
         CLK_ADD(CLK, CYCLES_3);    \
@@ -1196,9 +1205,9 @@
 
 #define SBC(value, clk_inc, pc_inc)                                               \
     do {                                                                          \
-        WORD src, tmp, tmp2;                                                      \
+        uint16_t src, tmp, tmp2;                                                      \
                                                                                   \
-        src = (WORD)(value);                                                      \
+        src = (uint16_t)(value);                                                      \
         CLK_ADD(CLK, (clk_inc));                                                  \
         tmp = reg_a - src + LOCAL_CARRY() - 1;                                    \
         LOCAL_SET_OVERFLOW(((reg_a ^ tmp) & 0x80) && ((reg_a ^ src) & 0x80));     \
@@ -1215,7 +1224,7 @@
         }                                                                         \
         LOCAL_SET_CARRY(reg_a + LOCAL_CARRY() - 1 >= src);                        \
         LOCAL_SET_NZ(tmp & 0xff);                                                 \
-        reg_a = (BYTE)tmp;                                                        \
+        reg_a = (uint8_t)tmp;                                                        \
         INC_PC(pc_inc);                                                           \
     } while (0)
 
@@ -1471,7 +1480,7 @@
 /* These tables have a different meaning than for the 6502, it represents
    the amount of extra fetches to the opcode fetch.
  */
- static const BYTE fetch_tab[] = {
+ static const uint8_t fetch_tab[] = {
             /* 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
     /* $00 */  1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 2, 2, 2, 0, /* $00 */
     /* $10 */  1, 1, 1, 0, 1, 1, 1, 0, 1, 2, 1, 0, 2, 2, 2, 0, /* $10 */
@@ -1494,12 +1503,12 @@
 #ifndef FETCH_OPCODE
 #if !defined WORDS_BIGENDIAN && defined ALLOW_UNALIGNED_ACCESS
 
-#define opcode_t DWORD
+#define opcode_t uint32_t
 
 #define FETCH_OPCODE(o)                                        \
     do {                                                       \
         if (((int)reg_pc) < bank_limit) {                      \
-            o = (*((DWORD *)(bank_base + reg_pc)) & 0xffffff); \
+            o = (*((uint32_t *)(bank_base + reg_pc)) & 0xffffff); \
             CLK_ADD(CLK, CYCLES_1);                            \
             if (fetch_tab[o & 0xff]) {                         \
                 CLK_ADD(CLK, fetch_tab[o & 0xff]);             \
@@ -1526,10 +1535,10 @@
 
 #define opcode_t         \
     struct {             \
-        BYTE ins;        \
+        uint8_t ins;        \
         union {          \
-            BYTE op8[2]; \
-            WORD op16;   \
+            uint8_t op8[2]; \
+            uint16_t op16;   \
         } op;            \
     }
 
@@ -1657,11 +1666,11 @@
 #ifdef DEBUG
 #ifdef DRIVE_CPU
         if (TRACEFLG) {
-            BYTE op = (BYTE)(p0);
-            BYTE lo = (BYTE)(p1);
-            BYTE hi = (BYTE)(p2 >> 8);
+            uint8_t op = (uint8_t)(p0);
+            uint8_t lo = (uint8_t)(p1);
+            uint8_t hi = (uint8_t)(p2 >> 8);
 
-            debug_drive((DWORD)(reg_pc), debug_clk,
+            debug_drive((uint32_t)(reg_pc), debug_clk,
                         mon_disassemble_to_string(e_disk8_space,
                                                   reg_pc, op,
                                                   lo, hi, 0, 1, "R65(SC)02"),
@@ -1669,15 +1678,15 @@
         }
 #else
         if (TRACEFLG) {
-            BYTE op = (BYTE)(p0);
-            BYTE lo = (BYTE)(p1);
-            BYTE hi = (BYTE)(p2 >> 8);
+            uint8_t op = (uint8_t)(p0);
+            uint8_t lo = (uint8_t)(p1);
+            uint8_t hi = (uint8_t)(p2 >> 8);
 
             if (op == 0x20) {
                 hi = LOAD(reg_pc + 2);
             }
 
-            debug_maincpu((DWORD)(reg_pc), debug_clk,
+            debug_maincpu((uint32_t)(reg_pc), debug_clk,
                           mon_disassemble_to_string(e_comp_space,
                                                     reg_pc, op,
                                                     lo, hi, 0, 1, "65(SC)02"),
@@ -1804,7 +1813,7 @@ trap_skipped:
                 break;
 
             case 0x16:          /* ASL $nn,X */
-                ASL(p1, CYCLES_2, SIZE_2, LOAD_ZERO_X, STORE_ZERO_RRW);
+                ASL(p1, CYCLES_2, SIZE_2, LOAD_ZERO_X, STORE_ZERO_RRW_X);
                 break;
 
             case 0x17:          /* RMB1 $nn (65C02) / single byte, single cycle NOP (65SC02) */
@@ -1912,7 +1921,7 @@ trap_skipped:
                 break;
 
             case 0x36:          /* ROL $nn,X */
-                ROL(p1, CYCLES_2, SIZE_2, LOAD_ZERO_X, STORE_ZERO_RRW);
+                ROL(p1, CYCLES_2, SIZE_2, LOAD_ZERO_X, STORE_ZERO_RRW_X);
                 break;
 
             case 0x37:          /* RMB3 $nn (65C02) / single byte, single cycle NOP (65SC02) */
@@ -2012,7 +2021,7 @@ trap_skipped:
                 break;
 
             case 0x56:          /* LSR $nn,X */
-                LSR(p1, CYCLES_2, SIZE_2, LOAD_ZERO_X, STORE_ZERO_RRW);
+                LSR(p1, CYCLES_2, SIZE_2, LOAD_ZERO_X, STORE_ZERO_RRW_X);
                 break;
 
             case 0x57:          /* RMB5 $nn (65C02) / single byte, single cycle NOP (65SC02) */
@@ -2116,7 +2125,7 @@ trap_skipped:
                 break;
 
             case 0x76:          /* ROR $nn,X */
-                ROR(p1, CYCLES_2, SIZE_2, LOAD_ZERO_X, STORE_ZERO_RRW);
+                ROR(p1, CYCLES_2, SIZE_2, LOAD_ZERO_X, STORE_ZERO_RRW_X);
                 break;
 
             case 0x77:          /* RMB7 $nn (65C02) / single byte, single cycle NOP (65SC02) */
@@ -2444,7 +2453,7 @@ trap_skipped:
                 break;
 
             case 0xd6:          /* DEC $nn,X */
-                DEC(p1, CYCLES_2, SIZE_2, LOAD_ZERO_X, STORE_ZERO_RRW);
+                DEC(p1, CYCLES_2, SIZE_2, LOAD_ZERO_X, STORE_ZERO_RRW_X);
                 break;
 
             case 0xd7:          /* SMB5 $nn (65C02) / single byte, single cycle NOP (65SC02) */
@@ -2548,7 +2557,7 @@ trap_skipped:
                 break;
 
             case 0xf6:          /* INC $nn,X */
-                INC(p1, CYCLES_2, SIZE_2, LOAD_ZERO_X, STORE_ZERO_RRW);
+                INC(p1, CYCLES_2, SIZE_2, LOAD_ZERO_X, STORE_ZERO_RRW_X);
                 break;
 
             case 0xf7:          /* SMB7 $nn (65C02) / single byte, single cycle NOP (65SC02) */

@@ -20,7 +20,7 @@
 #define __VOICE_CC__
 #include "voice.h"
 
-namespace reSID
+namespace reSID_dtv
 {
 
 // ----------------------------------------------------------------------------
@@ -56,4 +56,4 @@ void Voice::reset()
   envelope.reset();
 }
 
-} // namespace reSID
+} // namespace reSID_dtv

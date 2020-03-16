@@ -52,7 +52,6 @@ F-6 |   4   | loops to 6 (SENSE <-> READ)
 #include "snapshot.h"
 #include "tape_diag_586220_harness.h"
 #include "tapeport.h"
-#include "translate.h"
 #include "util.h"
 
 /* Device enabled */
@@ -67,20 +66,20 @@ static void tape_diag_586220_harness_set_sense_out(int sense);
 static void tape_diag_586220_harness_set_read_out(int val);
 
 static tapeport_device_t tape_diag_586220_harness_device = {
-    TAPEPORT_DEVICE_TAPE_DIAG_586220_HARNESS,
-    "Tape 586220 diagnostics harness module",
-    IDGS_TAPE_DIAG_586220_HARNESS,
-    0,
-    "TapeDiag586220Harness",
-    NULL,
-    tape_diag_586220_harness_set_motor,
-    tape_diag_586220_harness_toggle_write_bit,
-    tape_diag_586220_harness_set_sense_out,
-    tape_diag_586220_harness_set_read_out,
-    NULL, /* no passthrough */
-    NULL, /* no passthrough */
-    NULL, /* no passthrough */
-    NULL  /* no passthrough */
+    TAPEPORT_DEVICE_TAPE_DIAG_586220_HARNESS,  /* device id */
+    "Tape 586220 diagnostics harness module",  /* device name */
+    0,                                         /* order of the device, filled in by the tapeport system when the device is attached */
+    "TapeDiag586220Harness",                   /* resource used by the device */
+    NULL,                                      /* NO device shutdown function */
+    NULL,                                      /* NO device specific reset function */
+    tape_diag_586220_harness_set_motor,        /* set motor line function */
+    tape_diag_586220_harness_toggle_write_bit, /* set write line function */
+    tape_diag_586220_harness_set_sense_out,    /* set sense line function */
+    tape_diag_586220_harness_set_read_out,     /* set read line function */
+    NULL,                                      /* NO passthrough flux change function */
+    NULL,                                      /* NO passthrough sense read function */
+    NULL,                                      /* NO passthrough write line function */
+    NULL                                       /* NO passthrough motor line function */
 };
 
 static tapeport_device_list_t *tape_diag_586220_harness_list_item = NULL;
@@ -89,22 +88,22 @@ static tapeport_device_list_t *tape_diag_586220_harness_list_item = NULL;
 
 static void tape_diag_586220_harness_set_motor(int flag)
 {
-    c64_diag_586220_store_tapeport(C64_DIAG_TAPEPORT_MOTOR, (BYTE)flag);
+    c64_diag_586220_store_tapeport(C64_DIAG_TAPEPORT_MOTOR, (uint8_t)flag);
 }
 
 static void tape_diag_586220_harness_toggle_write_bit(int write_bit)
 {
-    c64_diag_586220_store_tapeport(C64_DIAG_TAPEPORT_WRITE, (BYTE)write_bit);
+    c64_diag_586220_store_tapeport(C64_DIAG_TAPEPORT_WRITE, (uint8_t)write_bit);
 }
 
 static void tape_diag_586220_harness_set_sense_out(int sense)
 {
-    c64_diag_586220_store_tapeport(C64_DIAG_TAPEPORT_SENSE, (BYTE)sense);
+    c64_diag_586220_store_tapeport(C64_DIAG_TAPEPORT_SENSE, (uint8_t)sense);
 }
 
 static void tape_diag_586220_harness_set_read_out(int read)
 {
-    c64_diag_586220_store_tapeport(C64_DIAG_TAPEPORT_READ, (BYTE)read);
+    c64_diag_586220_store_tapeport(C64_DIAG_TAPEPORT_READ, (uint8_t)read);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -148,16 +147,12 @@ int tape_diag_586220_harness_resources_init(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-tapediag586220harness", SET_RESOURCE, 0,
+    { "-tapediag586220harness", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "TapeDiag586220Harness", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_TAPE_DIAG_586220_HARNESS,
-      NULL, NULL },
-    { "+tapediag586220harness", SET_RESOURCE, 0,
+      NULL, "Enable the tape part of the 586220 diagnostics harness" },
+    { "+tapediag586220harness", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "TapeDiag586220Harness", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_TAPE_DIAG_586220_HARNESS,
-      NULL, NULL },
+      NULL, "Disable the tape part of the 586220 diagnostics harness" },
     CMDLINE_LIST_END
 };
 

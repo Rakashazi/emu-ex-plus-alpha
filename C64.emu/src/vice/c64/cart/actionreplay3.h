@@ -35,13 +35,13 @@ extern void actionreplay3_freeze(void);
 
 extern void actionreplay3_config_init(void);
 extern void actionreplay3_reset(void);
-extern void actionreplay3_config_setup(BYTE *rawcart);
-extern int actionreplay3_bin_attach(const char *filename, BYTE *rawcart);
-extern int actionreplay3_crt_attach(FILE *fd, BYTE *rawcart);
+extern void actionreplay3_config_setup(uint8_t *rawcart);
+extern int actionreplay3_bin_attach(const char *filename, uint8_t *rawcart);
+extern int actionreplay3_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void actionreplay3_detach(void);
 
-extern BYTE actionreplay3_roml_read(WORD addr);
-extern BYTE actionreplay3_romh_read(WORD addr);
+extern uint8_t actionreplay3_roml_read(uint16_t addr);
+extern uint8_t actionreplay3_romh_read(uint16_t addr);
 
 struct snapshot_s;
 

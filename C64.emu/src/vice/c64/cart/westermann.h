@@ -31,9 +31,9 @@
 
 #include "types.h"
 
-extern void westermann_config_setup(BYTE *rawcart);
-extern int westermann_bin_attach(const char *filename, BYTE *rawcart);
-extern int westermann_crt_attach(FILE *fd, BYTE *rawcart);
+extern void westermann_config_setup(uint8_t *rawcart);
+extern int westermann_bin_attach(const char *filename, uint8_t *rawcart);
+extern int westermann_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void westermann_detach(void);
 extern void westermann_config_init(void);
 

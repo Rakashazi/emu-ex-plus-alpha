@@ -25,7 +25,7 @@
 #define __ENVELOPE_CC__
 #include "envelope.h"
 
-namespace reSID
+namespace reSID_dtv
 {
 
 // ----------------------------------------------------------------------------
@@ -173,4 +173,4 @@ void EnvelopeGenerator::writeENV(reg8 value)
   envelope_counter = value;
 }
 
-} // namespace reSID
+} // namespace reSID_dtv

@@ -31,7 +31,7 @@
 #include "vicii-phi1.h"
 #include "viciitypes.h"
 
-BYTE vicii_read_phi1(void)
+uint8_t vicii_read_phi1(void)
 {
     return vicii.last_read_phi1;
 }

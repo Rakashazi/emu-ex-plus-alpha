@@ -53,6 +53,7 @@ extern int c64_midi_nsoft_cart_enabled(void);
 extern int c64_midi_maplin_cart_enabled(void);
 
 extern int c64_midi_enable(void);
+int c64_midi_disable(void);
 extern void c64_midi_detach(void);
 
 struct snapshot_s;

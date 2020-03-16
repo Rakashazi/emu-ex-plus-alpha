@@ -60,9 +60,9 @@
 /* Flag for recording port A DDR changes (for c64gluelogic) */
 static int pa_ddr_change = 0;
 
-static BYTE cia2_cra = 0;
+static uint8_t cia2_cra = 0;
 
-void cia2_store(WORD addr, BYTE data)
+void cia2_store(uint16_t addr, uint8_t data)
 {
     if ((addr & 0xf) == CIA_CRA) {
         cia2_cra = data;
@@ -77,12 +77,12 @@ void cia2_store(WORD addr, BYTE data)
     ciacore_store(machine_context.cia2, addr, data);
 }
 
-BYTE cia2_read(WORD addr)
+uint8_t cia2_read(uint16_t addr)
 {
     return ciacore_read(machine_context.cia2, addr);
 }
 
-BYTE cia2_peek(WORD addr)
+uint8_t cia2_peek(uint16_t addr)
 {
     return ciacore_peek(machine_context.cia2, addr);
 }
@@ -120,7 +120,7 @@ static void do_reset_cia(cia_context_t *cia_context)
 
     /* The functions below will gradually be removed as the functionality is added to the new userport system. */
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    rsuser_write_ctrl((BYTE)0xff);
+    rsuser_write_ctrl((uint8_t)0xff);
     rsuser_set_tx_bit(1);
 #endif
 
@@ -143,18 +143,18 @@ static void pre_peek(void)
     vicii_handle_pending_alarms_external(0);
 }
 
-static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
+static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
     if (cia_context->old_pa != byte) {
-        BYTE tmp;
+        uint8_t tmp;
         int new_vbank;
 
         if ((cia_context->old_pa ^ byte) & 4) {
-            store_userport_pa2((BYTE)((byte & 4) >> 2));
+            store_userport_pa2((uint8_t)((byte & 4) >> 2));
         }
 
         if ((cia_context->old_pa ^ byte) & 8) {
-            store_userport_pa3((BYTE)((byte & 8) >> 3));
+            store_userport_pa3((uint8_t)((byte & 8) >> 3));
         }
 
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
@@ -169,15 +169,15 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
             c64_glue_set_vbank(new_vbank, pa_ddr_change);
         }
         if (c64iec_active) {
-            (*iecbus_callback_write)((BYTE)tmp, maincpu_clk + !(cia_context->write_offset));
+            (*iecbus_callback_write)((uint8_t)tmp, maincpu_clk + !(cia_context->write_offset));
         }
     }
 }
 
-static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
+static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
-    store_userport_pa2((BYTE)((byte & 4) >> 2));
-    store_userport_pa3((BYTE)((byte & 8) >> 3));
+    store_userport_pa2((uint8_t)((byte & 4) >> 2));
+    store_userport_pa3((uint8_t)((byte & 8) >> 3));
 
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     if (rsuser_enabled) {
@@ -188,11 +188,11 @@ static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
     c64_glue_undump(vbank);
 
     if (c64iec_active) {
-        iecbus_cpu_undump((BYTE)(byte ^ 0xff));
+        iecbus_cpu_undump((uint8_t)(byte ^ 0xff));
     }
 }
 
-static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
+static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
     store_userport_pbx(byte);
 
@@ -206,26 +206,26 @@ static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
 static void pulse_ciapc(cia_context_t *cia_context, CLOCK rclk)
 {
     parallel_cable_cpu_pulse(DRIVE_PC_STANDARD);
-    store_userport_pbx((BYTE)(cia_context->old_pb));
+    store_userport_pbx((uint8_t)(cia_context->old_pb));
 }
 
 /* FIXME! */
-static inline void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
+static inline void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
     store_userport_pbx(byte);
 
     /* The functions below will gradually be removed as the functionality is added to the new userport system. */
-    parallel_cable_cpu_undump(DRIVE_PC_STANDARD, (BYTE)byte);
+    parallel_cable_cpu_undump(DRIVE_PC_STANDARD, (uint8_t)byte);
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
-    rsuser_write_ctrl((BYTE)byte);
+    rsuser_write_ctrl((uint8_t)byte);
 #endif
 }
 
 /* read_* functions must return 0xff if nothing to read!!! */
-static BYTE read_ciapa(cia_context_t *cia_context)
+static uint8_t read_ciapa(cia_context_t *cia_context)
 {
-    BYTE value;
-    BYTE userval;
+    uint8_t value;
+    uint8_t userval;
 
     value = ((cia_context->c_cia[CIA_PRA] | ~(cia_context->c_cia[CIA_DDRA])) & 0x3f);
 
@@ -251,11 +251,11 @@ static BYTE read_ciapa(cia_context_t *cia_context)
 }
 
 /* read_* functions must return 0xff if nothing to read!!! */
-static BYTE read_ciapb(cia_context_t *cia_context)
+static uint8_t read_ciapb(cia_context_t *cia_context)
 {
-    BYTE byte = 0xff;
+    uint8_t byte = 0xff;
 
-    byte = read_userport_pbx((BYTE)~cia_context->c_cia[CIA_DDRB], byte);
+    byte = read_userport_pbx((uint8_t)~cia_context->c_cia[CIA_DDRB], byte);
 
     /* The functions below will gradually be removed as the functionality is added to the new userport system. */
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
@@ -286,7 +286,7 @@ static void read_sdr(cia_context_t *cia_context)
     cia_context->c_cia[CIA_SDR] = read_userport_sp2(cia_context->c_cia[CIA_SDR]);
 }
 
-static void store_sdr(cia_context_t *cia_context, BYTE byte)
+static void store_sdr(cia_context_t *cia_context, uint8_t byte)
 {
     if ((cia2_cra & 0x59) == 0x51) {
         store_userport_sp2(byte);
@@ -294,7 +294,7 @@ static void store_sdr(cia_context_t *cia_context, BYTE byte)
 
     if (c64iec_active) {
         if (burst_mod == BURST_MOD_CIA2) {
-            c64fastiec_fast_cpu_write((BYTE)byte);
+            c64fastiec_fast_cpu_write((uint8_t)byte);
         }
     }
 }
@@ -305,7 +305,7 @@ void cia2_set_flagx(void)
     ciacore_set_flag(machine_context.cia2);
 }
 
-void cia2_set_sdrx(BYTE received_byte)
+void cia2_set_sdrx(uint8_t received_byte)
 {
     ciacore_set_sdr(machine_context.cia2, received_byte);
 }
@@ -315,12 +315,12 @@ void cia2_init(cia_context_t *cia_context)
     ciacore_init(machine_context.cia2, maincpu_alarm_context, maincpu_int_status, maincpu_clk_guard);
 }
 
-void cia2_setup_context(machine_context_t *machine_context)
+void cia2_setup_context(machine_context_t *machinecontext)
 {
     cia_context_t *cia;
 
-    machine_context->cia2 = lib_calloc(1, sizeof(cia_context_t));
-    cia = machine_context->cia2;
+    machinecontext->cia2 = lib_calloc(1, sizeof(cia_context_t));
+    cia = machinecontext->cia2;
 
     cia->prv = NULL;
     cia->context = NULL;

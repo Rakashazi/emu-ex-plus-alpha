@@ -39,14 +39,14 @@
 /* FIXME: C16 doesn't have 6529, writes can't mask off the tape_sense line */
 /* FIXME: line 2 is used in RS232 IRQ as well at $EA62 in ROM */
 
-static BYTE pio1_data = 0xff;
+static uint8_t pio1_data = 0xff;
 
 /* Tape sense line: 1 = some button pressed, 0 = no buttons pressed, or datasette not connected.  */
 static int tape_sense = 0;
 
-BYTE pio1_read(WORD addr)
+uint8_t pio1_read(uint16_t addr)
 {
-    BYTE pio1_value = 0xff;
+    uint8_t pio1_value = 0xff;
 
     /*  Correct clock */
     ted_handle_pending_alarms(0);
@@ -68,9 +68,9 @@ BYTE pio1_read(WORD addr)
     return pio1_value;
 }
 
-void pio1_store(WORD addr, BYTE value)
+void pio1_store(uint16_t addr, uint8_t value)
 {
-    BYTE pio1_outline;
+    uint8_t pio1_outline;
 
     /*  Correct clock */
     ted_handle_pending_alarms(maincpu_rmw_flag + 1);
@@ -94,7 +94,7 @@ void pio1_store(WORD addr, BYTE value)
 
 void pio1_set_tape_sense(int sense)
 {
-    BYTE pio1_outline;
+    uint8_t pio1_outline;
 
     tape_sense = sense;
 

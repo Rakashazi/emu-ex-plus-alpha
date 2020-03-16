@@ -44,7 +44,6 @@ C64/C128 | CBM2 | PET | VIC20 | NAME
 #include "maincpu.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "uiapi.h"
 #include "userport.h"
 #include "userport_rtc_ds1307.h"
@@ -58,37 +57,36 @@ static rtc_ds1307_t *ds1307_context = NULL;
 /* rtc save */
 static int ds1307_rtc_save;
 
-static BYTE ds1307_pb0_sda = 1;
-static BYTE ds1307_pb1_scl = 1;
+static uint8_t ds1307_pb0_sda = 1;
+static uint8_t ds1307_pb1_scl = 1;
 
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
 static void userport_rtc_read_pbx(void);
-static void userport_rtc_store_pbx(BYTE value);
+static void userport_rtc_store_pbx(uint8_t value);
 static int userport_rtc_write_snapshot_module(snapshot_t *s);
 static int userport_rtc_read_snapshot_module(snapshot_t *s);
 
 static userport_device_t rtc_device = {
-    USERPORT_DEVICE_RTC_DS1307,
-    "Userport RTC (DS1307)",
-    IDGS_USERPORT_DS1307,
-    userport_rtc_read_pbx,
-    userport_rtc_store_pbx,
-    NULL, /* NO pa2 read */
-    NULL, /* NO pa2 write */
-    NULL, /* NO pa3 read */
-    NULL, /* NO pa3 write */
-    0, /* NO pc pin needed */
-    NULL, /* NO sp1 write */
-    NULL, /* NO sp1 read */
-    NULL, /* NO sp2 write */
-    NULL, /* NO sp2 read */
-    "UserportRTC",
-    0xff,
-    0x3, /* validity mask doesn't change */
-    0,
-    0
+    USERPORT_DEVICE_RTC_DS1307, /* device id */
+    "Userport RTC (DS1307)",    /* device name */
+    userport_rtc_read_pbx,      /* read pb0-pb7 function */
+    userport_rtc_store_pbx,     /* store pb0-pb7 function */
+    NULL,                       /* NO read pa2 pin function */
+    NULL,                       /* NO store pa2 pin function */
+    NULL,                       /* NO read pa3 pin function */
+    NULL,                       /* NO store pa3 pin function */
+    0,                          /* pc pin is NOT needed */
+    NULL,                       /* NO store sp1 pin function */
+    NULL,                       /* NO read sp1 pin function */
+    NULL,                       /* NO store sp2 pin function */
+    NULL,                       /* NO read sp2 pin function */
+    "UserportRTC",              /* resource used by the device */
+    0xff,                       /* return value from a read, to be filled in by the device */
+    0x03,                       /* validity mask of the device, doesn't change */
+    0,                          /* device involved in a read collision, to be filled in by the collision detection system */
+    0                           /* a tag to indicate the order of insertion */
 };
 
 static userport_snapshot_t rtc_snapshot = {
@@ -155,26 +153,18 @@ int userport_rtc_ds1307_resources_init(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-userportrtcds1307", SET_RESOURCE, 0,
+    { "-userportrtcds1307", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "UserportRTCDS1307", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_USERPORT_RTC_DS1307,
-      NULL, NULL },
-    { "+userportrtcds1307", SET_RESOURCE, 0,
+      NULL, "Enable Userport RTC (DS1307)" },
+    { "+userportrtcds1307", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "UserportRTCDS1307", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_USERPORT_RTC_DS1307,
-      NULL, NULL },
-    { "-userportrtcds1307save", SET_RESOURCE, 0,
+      NULL, "Disable Userport RTC (DS1307)" },
+    { "-userportrtcds1307save", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "UserportRTCDS1307Save", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_USERPORT_RTC_DS1307_SAVE,
-      NULL, NULL },
-    { "+userportrtcds1307save", SET_RESOURCE, 0,
+      NULL, "Enable saving of the Userport RTC (DS1307) data when changed." },
+    { "+userportrtcds1307save", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "UserportRTCDS1307Save", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_USERPORT_RTC_DS1307_SAVE,
-      NULL, NULL },
+      NULL, "Disable saving of the Userport RTC (DS1307) data when changed." },
     CMDLINE_LIST_END
 };
 
@@ -193,10 +183,10 @@ void userport_rtc_ds1307_resources_shutdown(void)
 
 /* ---------------------------------------------------------------------*/
 
-static void userport_rtc_store_pbx(BYTE value)
+static void userport_rtc_store_pbx(uint8_t value)
 {
-    BYTE rtcdata = (value & 1) ? 1 : 0;
-    BYTE rtcclk = (value & 2) ? 1 : 0;
+    uint8_t rtcdata = (value & 1) ? 1 : 0;
+    uint8_t rtcclk = (value & 2) ? 1 : 0;
 
     if (rtcdata != ds1307_pb0_sda) {
         ds1307_set_data_line(ds1307_context, rtcdata);
@@ -210,7 +200,7 @@ static void userport_rtc_store_pbx(BYTE value)
 
 static void userport_rtc_read_pbx(void)
 {
-    BYTE retval = ds1307_pb1_scl << 1;
+    uint8_t retval = ds1307_pb1_scl << 1;
 
     retval |= (ds1307_read_data_line(ds1307_context) & 1);
 
@@ -254,7 +244,7 @@ static int userport_rtc_write_snapshot_module(snapshot_t *s)
 
 static int userport_rtc_read_snapshot_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
     /* enable device */
@@ -267,7 +257,7 @@ static int userport_rtc_read_snapshot_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

@@ -334,7 +334,7 @@
 /* Stack operations. */
 
 #ifndef PUSH
-#define PUSH(val) ((PAGE_ONE)[(reg_sp--)] = ((BYTE)(val)))
+#define PUSH(val) ((PAGE_ONE)[(reg_sp--)] = ((uint8_t)(val)))
 #endif
 #ifndef PULL
 #define PULL()    ((PAGE_ONE)[(++reg_sp)])
@@ -372,7 +372,7 @@
 /* FIXME: LOCAL_STATUS() should check byte ready first.  */
 #define DO_INTERRUPT(int_kind)                                                                 \
     do {                                                                                       \
-        BYTE ik = (int_kind);                                                                  \
+        uint8_t ik = (int_kind);                                                                  \
                                                                                                \
         if (ik & (IK_IRQ | IK_IRQPEND | IK_NMI)) {                                             \
             if (((ik & IK_NMI)                                                                 \
@@ -415,7 +415,7 @@
         if (ik & (IK_TRAP | IK_RESET)) {                                                       \
             if (ik & IK_TRAP) {                                                                \
                 EXPORT_REGISTERS();                                                            \
-                interrupt_do_trap(CPU_INT_STATUS, (WORD)reg_pc);                               \
+                interrupt_do_trap(CPU_INT_STATUS, (uint16_t)reg_pc);                               \
                 IMPORT_REGISTERS();                                                            \
                 if (CPU_INT_STATUS->global_pending_int & IK_RESET) {                           \
                     ik |= IK_RESET;                                                            \
@@ -425,6 +425,7 @@
                 interrupt_ack_reset(CPU_INT_STATUS);                                           \
                 cpu_reset();                                                                   \
                 bank_start = bank_limit = 0; /* prevent caching */                             \
+                LOCAL_SET_INTERRUPT(1);                                                        \
                 JUMP(LOAD_ADDR(0xfffc));                                                       \
                 DMA_ON_RESET;                                                                  \
             }                                                                                  \
@@ -438,17 +439,17 @@
                     EXPORT_REGISTERS();                                                        \
                 }                                                                              \
                 if (monitor_mask[CALLER] & (MI_STEP)) {                                        \
-                    monitor_check_icount((WORD)reg_pc);                                        \
+                    monitor_check_icount((uint16_t)reg_pc);                                        \
                     IMPORT_REGISTERS();                                                        \
                 }                                                                              \
                 if (monitor_mask[CALLER] & (MI_BREAK)) {                                       \
-                    if (monitor_check_breakpoints(CALLER, (WORD)reg_pc)) {                     \
+                    if (monitor_check_breakpoints(CALLER, (uint16_t)reg_pc)) {                     \
                         monitor_startup(CALLER);                                               \
                         IMPORT_REGISTERS();                                                    \
                     }                                                                          \
                 }                                                                              \
                 if (monitor_mask[CALLER] & (MI_WATCH)) {                                       \
-                    monitor_check_watchpoints(LAST_OPCODE_ADDR, (WORD)reg_pc);                 \
+                    monitor_check_watchpoints(LAST_OPCODE_ADDR, (uint16_t)reg_pc);                 \
                     IMPORT_REGISTERS();                                                        \
                 }                                                                              \
             }                                                                                  \
@@ -632,7 +633,7 @@
 
 #define ANC(value, pc_inc)                       \
     do {                                         \
-        BYTE tmp = (BYTE)(reg_a_read & (value)); \
+        uint8_t tmp = (uint8_t)(reg_a_read & (value)); \
         reg_a_write(tmp);                        \
         LOCAL_SET_NZ(tmp);                       \
         LOCAL_SET_CARRY(LOCAL_SIGN());           \
@@ -641,7 +642,7 @@
 
 #define AND(value, clk_inc, pc_inc)              \
     do {                                         \
-        BYTE tmp = (BYTE)(reg_a_read & (value)); \
+        uint8_t tmp = (uint8_t)(reg_a_read & (value)); \
         reg_a_write(tmp);                        \
         LOCAL_SET_NZ(tmp);                       \
         CLK_ADD(CLK, (clk_inc));                 \
@@ -669,7 +670,7 @@ be found that works for both.
 #ifndef ANE
 #define ANE(value, pc_inc)                                               \
     do {                                                                 \
-        BYTE tmp = ((reg_a_read | 0xff) & reg_x_read & ((BYTE)(value))); \
+        uint8_t tmp = ((reg_a_read | 0xff) & reg_x_read & ((uint8_t)(value))); \
         reg_a_write(tmp);                                                \
         LOCAL_SET_NZ(tmp);                                               \
         INC_PC(pc_inc);                                                  \
@@ -727,7 +728,7 @@ be found that works for both.
 
 #define ASL_A()                      \
     do {                             \
-        BYTE tmp = reg_a_read;       \
+        uint8_t tmp = reg_a_read;       \
         LOCAL_SET_CARRY(tmp & 0x80); \
         tmp <<= 1;                   \
         reg_a_write(tmp);            \
@@ -941,7 +942,7 @@ be found that works for both.
 
 #define EOR(value, clk_inc, pc_inc)              \
     do {                                         \
-        BYTE tmp = (BYTE)(reg_a_read ^ (value)); \
+        uint8_t tmp = (uint8_t)(reg_a_read ^ (value)); \
         reg_a_write(tmp);                        \
         LOCAL_SET_NZ(tmp);                       \
         CLK_ADD(CLK, (clk_inc));                 \
@@ -977,7 +978,7 @@ be found that works for both.
 
 #define ISB(addr, clk_inc1, clk_inc2, pc_inc, load_func, store_func) \
     do {                                                             \
-        BYTE my_src;                                                 \
+        uint8_t my_src;                                                 \
         int my_addr = (addr);                                        \
                                                                      \
         CLK_ADD(CLK, (clk_inc1));                                    \
@@ -992,7 +993,7 @@ be found that works for both.
 
 #define ISB_IND_Y(addr)                                             \
     do {                                                            \
-        BYTE my_src;                                                \
+        uint8_t my_src;                                                \
         int my_addr = LOAD_ZERO_ADDR(addr);                         \
                                                                     \
         CLK_ADD(CLK, 2);                                            \
@@ -1013,9 +1014,9 @@ be found that works for both.
 
 #define JAM_02()                                                                      \
     do {                                                                              \
-        DWORD trap_result;                                                            \
+        uint32_t trap_result;                                                            \
         EXPORT_REGISTERS();                                                           \
-        if (!ROM_TRAP_ALLOWED() || (trap_result = ROM_TRAP_HANDLER()) == (DWORD)-1) { \
+        if (!ROM_TRAP_ALLOWED() || (trap_result = ROM_TRAP_HANDLER()) == (uint32_t)-1) { \
             REWIND_FETCH_OPCODE(CLK);                                                 \
             JAM();                                                                    \
         } else {                                                                      \
@@ -1037,7 +1038,7 @@ be found that works for both.
 
 #define JMP_IND()                                                    \
     do {                                                             \
-        WORD dest_addr;                                              \
+        uint16_t dest_addr;                                              \
         dest_addr = LOAD(p2);                                        \
         CLK_ADD(CLK, 1);                                             \
         dest_addr |= (LOAD((p2 & 0xff00) | ((p2 + 1) & 0xff)) << 8); \
@@ -1071,7 +1072,7 @@ be found that works for both.
 
 #define LAX(value, clk_inc, pc_inc) \
     do {                            \
-        BYTE tmp = (value);         \
+        uint8_t tmp = (value);         \
         reg_x_write(tmp);           \
         reg_a_write(tmp);           \
         LOCAL_SET_NZ(tmp);          \
@@ -1081,7 +1082,7 @@ be found that works for both.
 
 #define LDA(value, clk_inc, pc_inc) \
     do {                            \
-        BYTE tmp = (BYTE)(value);   \
+        uint8_t tmp = (uint8_t)(value);   \
         reg_a_write(tmp);           \
         CLK_ADD(CLK, (clk_inc));    \
         LOCAL_SET_NZ(tmp);          \
@@ -1090,7 +1091,7 @@ be found that works for both.
 
 #define LDX(value, clk_inc, pc_inc) \
     do {                            \
-        reg_x_write((BYTE)(value)); \
+        reg_x_write((uint8_t)(value)); \
         LOCAL_SET_NZ(reg_x_read);   \
         CLK_ADD(CLK, (clk_inc));    \
         INC_PC(pc_inc);             \
@@ -1098,7 +1099,7 @@ be found that works for both.
 
 #define LDY(value, clk_inc, pc_inc) \
     do {                            \
-        reg_y_write((BYTE)(value)); \
+        reg_y_write((uint8_t)(value)); \
         LOCAL_SET_NZ(reg_y_read);   \
         CLK_ADD(CLK, (clk_inc));    \
         INC_PC(pc_inc);             \
@@ -1134,7 +1135,7 @@ be found that works for both.
 #ifndef LXA
 #define LXA(value, pc_inc)                                  \
     do {                                                    \
-        BYTE tmp = ((reg_a_read | 0xee) & ((BYTE)(value))); \
+        uint8_t tmp = ((reg_a_read | 0xee) & ((uint8_t)(value))); \
         reg_x_write(tmp);                                   \
         reg_a_write(tmp);                                   \
         LOCAL_SET_NZ(tmp);                                  \
@@ -1144,7 +1145,7 @@ be found that works for both.
 
 #define ORA(value, clk_inc, pc_inc)              \
     do {                                         \
-        BYTE tmp = (BYTE)(reg_a_read | (value)); \
+        uint8_t tmp = (uint8_t)(reg_a_read | (value)); \
         reg_a_write(tmp);                        \
         LOCAL_SET_NZ(tmp);                       \
         CLK_ADD(CLK, (clk_inc));                 \
@@ -1187,7 +1188,7 @@ be found that works for both.
 
 #define PLA()                         \
     do {                              \
-        BYTE tmp;                     \
+        uint8_t tmp;                     \
         CLK_ADD(CLK, CLK_STACK_PULL); \
         tmp = PULL();                 \
         reg_a_write(tmp);             \
@@ -1198,7 +1199,7 @@ be found that works for both.
 /* FIXME: Rotate disk before executing LOCAL_SET_STATUS().  */
 #define PLP()                                                 \
     do {                                                      \
-        BYTE s = PULL();                                      \
+        uint8_t s = PULL();                                      \
                                                               \
         if (!(s & P_INTERRUPT) && LOCAL_INTERRUPT()) {        \
             OPCODE_ENABLES_IRQ();                             \
@@ -1303,7 +1304,7 @@ be found that works for both.
 
 #define RRA(addr, clk_inc1, clk_inc2, pc_inc, load_func, store_func) \
     do {                                                             \
-        BYTE src;                                                    \
+        uint8_t src;                                                    \
         unsigned int my_temp, tmp_addr;                              \
                                                                      \
         CLK_ADD(CLK, (clk_inc1));                                    \
@@ -1323,7 +1324,7 @@ be found that works for both.
 
 #define RRA_IND_Y(addr)                                                     \
     do {                                                                    \
-        BYTE src;                                                           \
+        uint8_t src;                                                           \
         unsigned int my_tmp_addr;                                           \
         unsigned int my_temp;                                               \
                                                                             \
@@ -1352,19 +1353,19 @@ be found that works for both.
 /* FIXME: Rotate disk before executing LOCAL_SET_STATUS().  */
 #define RTI()                        \
     do {                             \
-        WORD tmp;                    \
+        uint16_t tmp;                    \
                                      \
         CLK_ADD(CLK, CLK_RTI);       \
-        tmp = (WORD)PULL();          \
-        LOCAL_SET_STATUS((BYTE)tmp); \
-        tmp = (WORD)PULL();          \
-        tmp |= (WORD)PULL() << 8;    \
+        tmp = (uint16_t)PULL();          \
+        LOCAL_SET_STATUS((uint8_t)tmp); \
+        tmp = (uint16_t)PULL();          \
+        tmp |= (uint16_t)PULL() << 8;    \
         JUMP(tmp);                   \
     } while (0)
 
 #define RTS()                        \
     do {                             \
-        WORD tmp;                    \
+        uint16_t tmp;                    \
                                      \
         CLK_ADD(CLK, CLK_RTS);       \
         tmp = PULL();                \
@@ -1395,9 +1396,9 @@ be found that works for both.
 
 #define SBC(value, clk_inc, pc_inc)                                                         \
     do {                                                                                    \
-        WORD src, tmp;                                                                      \
+        uint16_t src, tmp;                                                                      \
                                                                                             \
-        src = (WORD)(value);                                                                \
+        src = (uint16_t)(value);                                                                \
         CLK_ADD(CLK, (clk_inc));                                                            \
         tmp = reg_a_read - src - ((reg_p & P_CARRY) ? 0 : 1);                               \
         if (reg_p & P_DECIMAL) {                                                            \
@@ -1414,12 +1415,12 @@ be found that works for both.
             LOCAL_SET_CARRY(tmp < 0x100);                                                   \
             LOCAL_SET_NZ(tmp & 0xff);                                                       \
             LOCAL_SET_OVERFLOW(((reg_a_read ^ tmp) & 0x80) && ((reg_a_read ^ src) & 0x80)); \
-            reg_a_write((BYTE) tmp_a);                                                      \
+            reg_a_write((uint8_t) tmp_a);                                                      \
         } else {                                                                            \
             LOCAL_SET_NZ(tmp & 0xff);                                                       \
             LOCAL_SET_CARRY(tmp < 0x100);                                                   \
             LOCAL_SET_OVERFLOW(((reg_a_read ^ tmp) & 0x80) && ((reg_a_read ^ src) & 0x80)); \
-            reg_a_write((BYTE) tmp);                                                        \
+            reg_a_write((uint8_t) tmp);                                                        \
         }                                                                                   \
         INC_PC(pc_inc);                                                                     \
     } while (0)
@@ -1470,7 +1471,7 @@ be found that works for both.
 #define SHA_IND_Y(addr)                                     \
     do {                                                    \
         unsigned int tmp;                                   \
-        BYTE val;                                           \
+        uint8_t val;                                           \
                                                             \
         CLK_ADD(CLK, 2);                                    \
         tmp = LOAD_ZERO_ADDR(addr);                         \
@@ -1515,7 +1516,7 @@ be found that works for both.
 
 #define SLO(addr, clk_inc1, clk_inc2, pc_inc, load_func, store_func) \
     do {                                                             \
-        BYTE tmp, tmp2;                                              \
+        uint8_t tmp, tmp2;                                              \
         int tmp_addr;                                                \
                                                                      \
         CLK_ADD(CLK, (clk_inc1));                                    \
@@ -1534,7 +1535,7 @@ be found that works for both.
 
 #define SLO_IND_Y(addr)                                               \
     do {                                                              \
-        BYTE tmp, tmp2;                                               \
+        uint8_t tmp, tmp2;                                               \
         unsigned int tmp_addr;                                        \
                                                                       \
         CLK_ADD(CLK, 2);                                              \
@@ -1701,7 +1702,7 @@ be found that works for both.
 
 /* ------------------------------------------------------------------------- */
 
-static const BYTE fetch_tab[] = {
+static const uint8_t fetch_tab[] = {
             /* 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
     /* $00 */  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, /* $00 */
     /* $10 */  0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, /* $10 */
@@ -1725,7 +1726,7 @@ static const BYTE fetch_tab[] = {
 
 #ifdef CPU_8502  /* 8502 specific opcode fetch */
 
-static const BYTE rewind_fetch_tab[] = {
+static const uint8_t rewind_fetch_tab[] = {
             /* 0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
     /* $00 */  1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* $00 */
     /* $10 */  0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* $10 */
@@ -1747,12 +1748,12 @@ static const BYTE rewind_fetch_tab[] = {
 
 #if !defined WORDS_BIGENDIAN && defined ALLOW_UNALIGNED_ACCESS
 
-#define opcode_t DWORD
+#define opcode_t uint32_t
 
 #define FETCH_OPCODE(o)                                                \
     do {                                                               \
         if (((int)reg_pc) < bank_limit) {                              \
-            o = (*((DWORD *)(bank_base + reg_pc)) & 0xffffff);         \
+            o = (*((uint32_t *)(bank_base + reg_pc)) & 0xffffff);         \
             if (rewind_fetch_tab[o & 0xff]) {                          \
                 opcode_cycle[0] = vicii_check_memory_refresh(CLK);     \
                 CLK_ADD(CLK, 1);                                       \
@@ -1802,10 +1803,10 @@ static const BYTE rewind_fetch_tab[] = {
 
 #define opcode_t         \
     struct {             \
-        BYTE ins;        \
+        uint8_t ins;        \
         union {          \
-            BYTE op8[2]; \
-            WORD op16;   \
+            uint8_t op8[2]; \
+            uint16_t op16;   \
         } op;            \
     }
 
@@ -1870,12 +1871,12 @@ static const BYTE rewind_fetch_tab[] = {
 
 #if !defined WORDS_BIGENDIAN && defined ALLOW_UNALIGNED_ACCESS
 
-#define opcode_t DWORD
+#define opcode_t uint32_t
 
 #define FETCH_OPCODE(o)                                        \
     do {                                                       \
         if (((int)reg_pc) < bank_limit) {                      \
-            o = (*((DWORD *)(bank_base + reg_pc)) & 0xffffff); \
+            o = (*((uint32_t *)(bank_base + reg_pc)) & 0xffffff); \
             CLK_ADD(CLK, 2);                                   \
             if (fetch_tab[o & 0xff]) {                         \
                 CLK_ADD(CLK, 1);                               \
@@ -1900,10 +1901,10 @@ static const BYTE rewind_fetch_tab[] = {
 
 #define opcode_t         \
     struct {             \
-        BYTE ins;        \
+        uint8_t ins;        \
         union {          \
-            BYTE op8[2]; \
-            WORD op16;   \
+            uint8_t op8[2]; \
+            uint16_t op16;   \
         } op;            \
     }
 
@@ -2042,11 +2043,11 @@ static const BYTE rewind_fetch_tab[] = {
 #ifdef DEBUG
 #ifdef DRIVE_CPU
         if (TRACEFLG) {
-            BYTE op = (BYTE)(p0);
-            BYTE lo = (BYTE)(p1);
-            BYTE hi = (BYTE)(p2 >> 8);
+            uint8_t op = (uint8_t)(p0);
+            uint8_t lo = (uint8_t)(p1);
+            uint8_t hi = (uint8_t)(p2 >> 8);
 
-            debug_drive((DWORD)(reg_pc), debug_clk,
+            debug_drive((uint32_t)(reg_pc), debug_clk,
                         mon_disassemble_to_string(e_disk8_space,
                                                   reg_pc, op,
                                                   lo, hi, 0, 1, "6502"),
@@ -2054,15 +2055,15 @@ static const BYTE rewind_fetch_tab[] = {
         }
 #else
         if (TRACEFLG) {
-            BYTE op = (BYTE)(p0);
-            BYTE lo = (BYTE)(p1);
-            BYTE hi = (BYTE)(p2 >> 8);
+            uint8_t op = (uint8_t)(p0);
+            uint8_t lo = (uint8_t)(p1);
+            uint8_t hi = (uint8_t)(p2 >> 8);
 
             if (op == 0x20) {
                 hi = LOAD(reg_pc + 2);
             }
 
-            debug_maincpu((DWORD)(reg_pc), debug_clk,
+            debug_maincpu((uint32_t)(reg_pc), debug_clk,
                           mon_disassemble_to_string(e_comp_space,
                                                     reg_pc, op,
                                                     lo, hi, 0, 1, "6502"),
@@ -2166,6 +2167,7 @@ trap_skipped:
                 break;
 
             case 0x0b:          /* ANC #$nn */
+            case 0x2b:          /* ANC #$nn */
                 ANC(p1, 2);
                 break;
 
@@ -2298,10 +2300,6 @@ trap_skipped:
 
             case 0x2a:          /* ROL A */
                 ROL_A();
-                break;
-
-            case 0x2b:          /* ANC #$nn */
-                ANC(p1, 2);
                 break;
 
             case 0x2c:          /* BIT $nnnn */

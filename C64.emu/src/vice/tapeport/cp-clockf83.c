@@ -44,7 +44,8 @@ TAPE PORT | PCF8583 | I/O
 #include "resources.h"
 #include "snapshot.h"
 #include "tapeport.h"
-#include "translate.h"
+
+#include "cp-clockf83.h"
 
 static int tapertc_enabled = 0;
 
@@ -63,20 +64,20 @@ static int tapertc_write_snapshot(struct snapshot_s *s, int write_image);
 static int tapertc_read_snapshot(struct snapshot_s *s);
 
 static tapeport_device_t tapertc_device = {
-    TAPEPORT_DEVICE_CP_CLOCK_F83,
-    "Tape RTC (PCF8583)",
-    IDGS_TAPE_RTC,
-    0,
-    "CPClockF83",
-    NULL,
-    tapertc_store_sda,
-    tapertc_store_scl,
-    NULL, /* no sense out */
-    NULL, /* no read out */
-    NULL, /* no passthrough */
-    NULL, /* no passthrough */
-    NULL, /* no passthrough */
-    NULL  /* no passthrough */
+    TAPEPORT_DEVICE_CP_CLOCK_F83, /* device id */
+    "Tape RTC (PCF8583)",         /* device name */
+    0,                            /* order of the device, filled in by the tapeport system when the device is attached */
+    "CPClockF83",                 /* resource used by the device */
+    tapertc_resources_shutdown,   /* device shutdown function */
+    NULL,                         /* NO device specific reset function */
+    tapertc_store_sda,            /* set motor line function */
+    tapertc_store_scl,            /* set write line function */
+    NULL,                         /* NO set sense line function */
+    NULL,                         /* NO set read line function */
+    NULL,                         /* NO passthrough flux change function */
+    NULL,                         /* NO passthrough sense read function */
+    NULL,                         /* NO passthrough write line function */
+    NULL                          /* NO passthrough motor line function */
 };
 
 static tapeport_snapshot_t tapertc_snapshot = {
@@ -142,26 +143,18 @@ int tapertc_resources_init(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-cpclockf83", SET_RESOURCE, 0,
+    { "-cpclockf83", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "CPClockF83", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_TAPERTC,
-      NULL, NULL },
-    { "+cpclockf83", SET_RESOURCE, 0,
+      NULL, "Enable CP Clock F83 (PCF8583 RTC)" },
+    { "+cpclockf83", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "CPClockF83", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_TAPERTC,
-      NULL, NULL },
-    { "-cpclockf83save", SET_RESOURCE, 0,
+      NULL, "Disable CP Clock F83 (PCF8583 RTC)" },
+    { "-cpclockf83save", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "CPClockF83Save", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_TAPERTC_SAVE,
-      NULL, NULL },
-    { "+cpclockf83save", SET_RESOURCE, 0,
+      NULL, "Enable saving of the CP Clock F83 (PCF8583 RTC) data when changed." },
+    { "+cpclockf83save", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "CPClockF83Save", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_TAPERTC_SAVE,
-      NULL, NULL },
+      NULL, "Disable saving of the CP Clock F83 (PCF8583 RTC) data when changed." },
     CMDLINE_LIST_END
 };
 
@@ -180,7 +173,7 @@ void tapertc_resources_shutdown(void)
 
 /* ---------------------------------------------------------------------*/
 
-static BYTE motor_state;
+static uint8_t motor_state;
 
 static void check_sense(void)
 {
@@ -202,13 +195,13 @@ static void tapertc_store_sda(int flag)
 {
     motor_state = flag;
 
-    pcf8583_set_data_line(tapertc_context, (BYTE)!motor_state);
+    pcf8583_set_data_line(tapertc_context, (uint8_t)!motor_state);
     check_sense();
 }
 
 static void tapertc_store_scl(int write_bit)
 {
-    BYTE val = write_bit ? 1 : 0;
+    uint8_t val = write_bit ? 1 : 0;
 
     pcf8583_set_clk_line(tapertc_context, val);
     check_sense();
@@ -248,7 +241,7 @@ static int tapertc_write_snapshot(struct snapshot_s *s, int write_image)
 
 static int tapertc_read_snapshot(struct snapshot_s *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
     /* enable device */
@@ -261,7 +254,7 @@ static int tapertc_read_snapshot(struct snapshot_s *s)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

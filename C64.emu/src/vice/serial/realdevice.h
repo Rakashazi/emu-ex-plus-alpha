@@ -31,14 +31,14 @@
 
 extern void realdevice_init(void);
 extern void realdevice_reset(void);
-extern void realdevice_open(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void realdevice_close(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void realdevice_listen(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void realdevice_talk(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void realdevice_unlisten(void (*st_func)(BYTE));
-extern void realdevice_untalk(void (*st_func)(BYTE));
-extern void realdevice_write(BYTE data, void (*st_func)(BYTE));
-extern BYTE realdevice_read(void (*st_func)(BYTE));
+extern void realdevice_open(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void realdevice_close(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void realdevice_listen(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void realdevice_talk(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void realdevice_unlisten(void (*st_func)(uint8_t));
+extern void realdevice_untalk(void (*st_func)(uint8_t));
+extern void realdevice_write(uint8_t data, void (*st_func)(uint8_t));
+extern uint8_t realdevice_read(void (*st_func)(uint8_t));
 
 extern int realdevice_enable(void);
 extern void realdevice_disable(void);

@@ -43,8 +43,8 @@
    anyway.  */
 
 #ifndef ALLOW_UNALIGNED_ACCESS
-static DWORD _aligned_line_buffer[VICII_SCREEN_XPIX / 2 + 1];
-static BYTE *const aligned_line_buffer = (BYTE *)_aligned_line_buffer;
+static uint32_t _aligned_line_buffer[VICII_SCREEN_XPIX / 2 + 1];
+static uint8_t *const aligned_line_buffer = (uint8_t *)_aligned_line_buffer;
 #endif
 
 
@@ -82,11 +82,11 @@ static int get_dummy(raster_cache_t *cache, unsigned int *xs, unsigned int *xe,
     }
 }
 
-inline static void _draw_dummy(BYTE *p, unsigned int xs, unsigned int xe,
-                               BYTE *gfx_msk_ptr)
+inline static void _draw_dummy(uint8_t *p, unsigned int xs, unsigned int xe,
+                               uint8_t *gfx_msk_ptr)
 {
-    BYTE *src;
-    BYTE *dest;
+    uint8_t *src;
+    uint8_t *dest;
 
     src = &(vicii.dbuf[DBUF_OFFSET + xs * 8]);
     dest = (p + xs * 8);
@@ -111,8 +111,8 @@ static void draw_dummy_foreground(unsigned int start_char,
 {
 #if 1
     /* This is used on raster_changes, should not be needed anymore. */
-    BYTE *src;
-    BYTE *dest;
+    uint8_t *src;
+    uint8_t *dest;
 
     src = &(vicii.dbuf[DBUF_OFFSET + start_char * 8]);
     dest = (GFX_PTR() + start_char * 8);

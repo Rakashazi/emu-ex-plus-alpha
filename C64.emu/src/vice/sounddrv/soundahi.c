@@ -59,7 +59,7 @@ static int _ahi_init(const char *param, int *speed, int *fragsize, int *fragnr, 
     return 0;
 }
 
-static int _ahi_write(SWORD *pbuf, size_t nr)
+static int _ahi_write(int16_t *pbuf, size_t nr)
 {
     nr /= num_channels; /* we want "samples per channel" */
     ahi_play_samples(pbuf, nr, NOTIME, NOWAIT);

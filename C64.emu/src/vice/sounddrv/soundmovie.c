@@ -64,7 +64,7 @@ static int soundmovie_init(const char *param, int *speed, int *fragsize, int *fr
     return -1;
 }
 
-static int soundmovie_write(SWORD *pbuf, size_t nr)
+static int soundmovie_write(int16_t *pbuf, size_t nr)
 {
     size_t copied = 0;
     int samples_to_copy;
@@ -84,7 +84,7 @@ static int soundmovie_write(SWORD *pbuf, size_t nr)
             samples_to_copy = (int)(nr - copied);
         }
         memcpy(buffer->buffer + buffer->used, pbuf + copied,
-                (size_t)samples_to_copy * sizeof(SWORD));
+                (size_t)samples_to_copy * sizeof(int16_t));
         buffer->used += samples_to_copy;
         copied += (size_t)samples_to_copy;
         if (buffer->used == buffer_size) {

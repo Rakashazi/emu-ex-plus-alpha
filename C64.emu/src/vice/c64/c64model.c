@@ -62,7 +62,6 @@ static int is_new_sid(int model)
 {
     switch (model) {
         case SID_MODEL_6581:
-        case SID_MODEL_6581R4:
         default:
             return 0;
 
@@ -174,19 +173,19 @@ static struct model_s c64models[] = {
 
 /* ------------------------------------------------------------------------- */
 static int c64model_get_temp(int video, int sid_model, int glue_logic,
-                      int cia1_model, int cia2_model, int board, int iecreset,
+                      int cia1model, int cia2model, int board, int iecreset,
                       const char *kernal, const char *chargen, int kernalrev)
 {
     int new_sid;
     int new_cia;
     int i;
 
-    if (cia1_model != cia2_model) {
+    if (cia1model != cia2model) {
         return C64MODEL_UNKNOWN;
     }
 
     new_sid = is_new_sid(sid_model);
-    new_cia = is_new_cia(cia1_model);
+    new_cia = is_new_cia(cia1model);
 
     for (i = 0; i < C64MODEL_NUM; ++i) {
         if ((c64models[i].video == video)
@@ -214,14 +213,14 @@ int c64model_get_model(c64model_details_t *details)
 
 int c64model_get(void)
 {
-    int video, sid_model, cia1_model, cia2_model, board, iecreset, kernalrev;
+    int video, sid_model, cia1model, cia2model, board, iecreset, kernalrev;
     char c[0x10], k[0x10];
     const char *chargen = c, *kernal = k;
 
     if ((resources_get_int("MachineVideoStandard", &video) < 0)
         || (resources_get_int("SidModel", &sid_model) < 0)
-        || (resources_get_int("CIA1Model", &cia1_model) < 0)
-        || (resources_get_int("CIA2Model", &cia2_model) < 0)
+        || (resources_get_int("CIA1Model", &cia1model) < 0)
+        || (resources_get_int("CIA2Model", &cia2model) < 0)
         || (resources_get_int("BoardType", &board) < 0)
         || (resources_get_int("IECReset", &iecreset) < 0)
         || (resources_get_int("KernalRev", &kernalrev) < 0)
@@ -231,12 +230,12 @@ int c64model_get(void)
     }
 
     return c64model_get_temp(video, sid_model, 0,
-                             cia1_model, cia2_model, board, iecreset,
+                             cia1model, cia2model, board, iecreset,
                              kernal, chargen, kernalrev);
 }
 
 static void c64model_set_temp(int model, int *vicii_model, int *sid_model,
-                       int *glue_logic, int *cia1_model, int *cia2_model,
+                       int *glue_logic, int *cia1model, int *cia2model,
                        int *board, int *iecreset,
                        const char *kernal, const char *chargen, int *kernalrev)
 {
@@ -248,15 +247,15 @@ static void c64model_set_temp(int model, int *vicii_model, int *sid_model,
     int new_type;
 
     old_model = c64model_get_temp(*vicii_model, *sid_model, *glue_logic,
-                                  *cia1_model, *cia2_model, *board, *iecreset, kernal, chargen, *kernalrev);
+                                  *cia1model, *cia2model, *board, *iecreset, kernal, chargen, *kernalrev);
 
     if ((model == old_model) || (model == C64MODEL_UNKNOWN)) {
         return;
     }
 
     *vicii_model = c64models[model].video;
-    *cia1_model = c64models[model].cia;
-    *cia2_model = c64models[model].cia;
+    *cia1model = c64models[model].cia;
+    *cia2model = c64models[model].cia;
     *glue_logic = 0; /* unused in x64 */
     *board = c64models[model].board;
     *iecreset = c64models[model].iecreset;

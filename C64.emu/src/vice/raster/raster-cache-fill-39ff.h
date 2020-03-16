@@ -31,9 +31,9 @@
 
 #include "types.h"
 
-inline static int raster_cache_data_fill_39ff(BYTE *dest,
-                                              const BYTE *src_base_low,
-                                              const BYTE *src_base_high,
+inline static int raster_cache_data_fill_39ff(uint8_t *dest,
+                                              const uint8_t *src_base_low,
+                                              const uint8_t *src_base_high,
                                               int src_cnt,
                                               const unsigned int length,
                                               const int src_step,
@@ -70,7 +70,7 @@ inline static int raster_cache_data_fill_39ff(BYTE *dest,
             }
 
             for (; i < length; i++, src_cnt += src_step) {
-                BYTE bmval;
+                uint8_t bmval;
                 if (src_cnt & 0x1000) {
                     bmval = src_base_high[src_cnt & 0x9ff];
                 } else {

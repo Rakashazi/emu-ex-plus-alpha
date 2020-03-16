@@ -34,13 +34,13 @@
 
 struct snapshot_s;
 
-extern BYTE zaxxon_roml_read(WORD addr);
-extern int zaxxon_peek_mem(export_t *export, WORD addr, BYTE *value);
+extern uint8_t zaxxon_roml_read(uint16_t addr);
+extern int zaxxon_peek_mem(export_t *export, uint16_t addr, uint8_t *value);
 
 extern void zaxxon_config_init(void);
-extern void zaxxon_config_setup(BYTE *rawcart);
-extern int zaxxon_bin_attach(const char *filename, BYTE *rawcart);
-extern int zaxxon_crt_attach(FILE *fd, BYTE *rawcart);
+extern void zaxxon_config_setup(uint8_t *rawcart);
+extern int zaxxon_bin_attach(const char *filename, uint8_t *rawcart);
+extern int zaxxon_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void zaxxon_detach(void);
 
 extern int zaxxon_snapshot_write_module(struct snapshot_s *s);

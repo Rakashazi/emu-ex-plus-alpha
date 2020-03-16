@@ -59,7 +59,7 @@ struct geometry_s;
 struct palette_s;
 
 struct canvas_refresh_s {
-    BYTE *draw_buffer;
+    uint8_t *draw_buffer;
     int draw_buffer_line_size;
 #ifdef __OS2__
     int bufh;
@@ -71,7 +71,7 @@ typedef struct canvas_refresh_s canvas_refresh_t;
 
 struct draw_buffer_s {
     /* The memory buffer where the screen of the emulated machine is drawn. Palettized, 1 byte per pixel */
-    BYTE *draw_buffer;
+    uint8_t *draw_buffer;
     /* Width of draw_buffer in pixels */
     unsigned int draw_buffer_width;
     /* Height of draw_buffer in pixels. Typically same as geometry->screen_size.height */
@@ -103,17 +103,20 @@ struct cap_render_s {
 };
 typedef struct cap_render_s cap_render_t;
 
+
 #define FULLSCREEN_MAXDEV 4
 
 struct cap_fullscreen_s {
+    /* FIXME: get rid of as much as possible of this. */
     unsigned int device_num;
     const char *device_name[FULLSCREEN_MAXDEV];
     int (*enable)(struct video_canvas_s *canvas, int enable);
     int (*statusbar)(struct video_canvas_s *canvas, int enable);
-    int (*double_size)(struct video_canvas_s *canvas, int double_size);
-    int (*double_scan)(struct video_canvas_s *canvas, int double_scan);
     int (*device)(struct video_canvas_s *canvas, const char *device);
     int (*mode[FULLSCREEN_MAXDEV])(struct video_canvas_s *canvas, int mode);
+    /* needed in SDL */
+    int (*double_size)(struct video_canvas_s *canvas, int double_size);
+    int (*double_scan)(struct video_canvas_s *canvas, int double_scan);
 };
 typedef struct cap_fullscreen_s cap_fullscreen_t;
 
@@ -137,24 +140,24 @@ typedef struct video_chip_cap_s video_chip_cap_t;
 
 struct video_render_color_tables_s {
     int updated;                /* tables here are up to date */
-    DWORD physical_colors[256];
-    SDWORD ytableh[256];        /* y for current pixel */
-    SDWORD ytablel[256];        /* y for neighbouring pixels */
-    SDWORD cbtable[256];        /* b component */
-    SDWORD cbtable_odd[256];    /* b component + phase shift */
-    SDWORD crtable[256];        /* r component */
-    SDWORD crtable_odd[256];    /* r component + phase shift */
-    SDWORD cutable[256];        /* u component */
-    SDWORD cutable_odd[256];    /* u component + phase shift */
-    SDWORD cvtable[256];        /* v component */
-    SDWORD cvtable_odd[256];    /* v component + phase shift */
+    uint32_t physical_colors[256];
+    int32_t ytableh[256];        /* y for current pixel */
+    int32_t ytablel[256];        /* y for neighbouring pixels */
+    int32_t cbtable[256];        /* b component */
+    int32_t cbtable_odd[256];    /* b component + phase shift */
+    int32_t crtable[256];        /* r component */
+    int32_t crtable_odd[256];    /* r component + phase shift */
+    int32_t cutable[256];        /* u component */
+    int32_t cutable_odd[256];    /* u component + phase shift */
+    int32_t cvtable[256];        /* v component */
+    int32_t cvtable_odd[256];    /* v component + phase shift */
 
     /* YUV table for hardware rendering: (Y << 16) | (U << 8) | V */
     int yuv_updated;            /* yuv table updated for packed mode */
-    DWORD yuv_table[512];
-    SDWORD line_yuv_0[VIDEO_MAX_OUTPUT_WIDTH * 3];
-    SWORD prevrgbline[VIDEO_MAX_OUTPUT_WIDTH * 3];
-    BYTE rgbscratchbuffer[VIDEO_MAX_OUTPUT_WIDTH * 4];
+    uint32_t yuv_table[512];
+    int32_t line_yuv_0[VIDEO_MAX_OUTPUT_WIDTH * 3];
+    int16_t prevrgbline[VIDEO_MAX_OUTPUT_WIDTH * 3];
+    uint8_t rgbscratchbuffer[VIDEO_MAX_OUTPUT_WIDTH * 4];
 };
 typedef struct video_render_color_tables_s video_render_color_tables_t;
 
@@ -205,11 +208,12 @@ struct video_render_config_s {
 typedef struct video_render_config_s video_render_config_t;
 
 extern void video_render_initconfig(video_render_config_t *config);
-extern VICE_API void video_render_setphysicalcolor(video_render_config_t *config,
-                                          int index, DWORD color, int depth);
-extern VICE_API void video_render_setrawrgb(unsigned int index, DWORD r, DWORD g,
-                                   DWORD b);
-extern VICE_API void video_render_initraw(struct video_render_config_s *videoconfig);
+extern void video_render_setphysicalcolor(video_render_config_t *config,
+                                          int index, uint32_t color, int depth);
+extern void video_render_setrawrgb(unsigned int index, uint32_t r, uint32_t g,
+                                   uint32_t b);
+extern void video_render_setrawalpha(uint32_t a);
+extern void video_render_initraw(struct video_render_config_s *videoconfig);
 
 /**************************************************************/
 
@@ -218,27 +222,27 @@ extern int video_cmdline_options_init(void);
 extern int video_init(void);
 extern void video_shutdown(void);
 
-extern VICE_API struct video_canvas_s *video_canvas_create(struct video_canvas_s *canvas,
+extern struct video_canvas_s *video_canvas_create(struct video_canvas_s *canvas,
                                                   unsigned int *width, unsigned int *height,
                                                   int mapped);
-extern VICE_API void video_arch_canvas_init(struct video_canvas_s *canvas);
+extern void video_arch_canvas_init(struct video_canvas_s *canvas);
 extern void video_canvas_shutdown(struct video_canvas_s *canvas);
 extern struct video_canvas_s *video_canvas_init(void);
-extern VICE_API void video_canvas_refresh(struct video_canvas_s *canvas,
+extern void video_canvas_refresh(struct video_canvas_s *canvas,
                                  unsigned int xs, unsigned int ys,
                                  unsigned int xi, unsigned int yi,
                                  unsigned int w, unsigned int h);
-extern VICE_API int video_canvas_set_palette(struct video_canvas_s *canvas,
+extern int video_canvas_set_palette(struct video_canvas_s *canvas,
                                     struct palette_s *palette);
 /* This will go away.  */
 extern int video_canvas_palette_set(struct video_canvas_s *canvas,
                                     struct palette_s *palette);
 extern void video_canvas_create_set(struct video_canvas_s *canvas);
-extern VICE_API void video_canvas_destroy(struct video_canvas_s *canvas);
+extern void video_canvas_destroy(struct video_canvas_s *canvas);
 extern void video_canvas_map(struct video_canvas_s *canvas);
 extern void video_canvas_unmap(struct video_canvas_s *canvas);
-extern VICE_API void video_canvas_resize(struct video_canvas_s *canvas, char resize_canvas);
-extern VICE_API void video_canvas_render(struct video_canvas_s *canvas, BYTE *trg,
+extern void video_canvas_resize(struct video_canvas_s *canvas, char resize_canvas);
+extern void video_canvas_render(struct video_canvas_s *canvas, uint8_t *trg,
                                 int width, int height, int xs, int ys,
                                 int xt, int yt, int pitcht, int depth);
 extern void video_canvas_refresh_all(struct video_canvas_s *canvas);
@@ -252,12 +256,12 @@ extern void video_viewport_title_set(struct video_canvas_s *canvas,
 extern void video_viewport_title_free(struct viewport_s *viewport);
 
 typedef struct video_draw_buffer_callback_s {
-    int (*draw_buffer_alloc)(struct video_canvas_s *canvas, BYTE **draw_buffer,
+    int (*draw_buffer_alloc)(struct video_canvas_s *canvas, uint8_t **draw_buffer,
                              unsigned int fb_width, unsigned int fb_height,
                              unsigned int *fb_pitch);
-    void (*draw_buffer_free)(struct video_canvas_s *canvas, BYTE *draw_buffer);
-    void (*draw_buffer_clear)(struct video_canvas_s *canvas, BYTE *draw_buffer,
-                              BYTE value, unsigned int fb_width,
+    void (*draw_buffer_free)(struct video_canvas_s *canvas, uint8_t *draw_buffer);
+    void (*draw_buffer_clear)(struct video_canvas_s *canvas, uint8_t *draw_buffer,
+                              uint8_t value, unsigned int fb_width,
                               unsigned int fb_height, unsigned int fb_pitch);
 } video_draw_buffer_callback_t;
 
@@ -308,5 +312,7 @@ extern void video_render_1x2_init(void);
 extern void video_render_2x2_init(void);
 extern void video_render_pal_init(void);
 extern void video_render_crt_init(void);
+
+#include <viceVideoAPI.h>
 
 #endif

@@ -39,7 +39,7 @@ extern void ted_irq_timer3_set(void);
 extern void ted_irq_timer3_clear(void);
 
 extern void ted_irq_set_raster_line(unsigned int line);
-extern void ted_irq_check_state(BYTE value, unsigned int high);
+extern void ted_irq_check_state(uint8_t value, unsigned int high);
 extern void ted_irq_set_line(void);
 extern void ted_irq_next_frame(void);
 

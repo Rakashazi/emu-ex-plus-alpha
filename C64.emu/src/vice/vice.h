@@ -1,4 +1,3 @@
-
 /*! \file vice.h
  *
  *  \brief Main header file for VICE.
@@ -44,16 +43,24 @@
 
 /* Portability... */
 
-#if defined(__hpux) || defined(__IBMC__)
+/*
+ * I really wonder if we need this anymore, when was the last time VICE was
+ * compiled with anything not GCC or Clang?
+ */
+#if defined(__IBMC__)
 #ifndef _POSIX_SOURCE
 #define _POSIX_SOURCE
 #endif
 #ifndef _INCLUDE_POSIX_SOURCE
 #define _INCLUDE_POSIX_SOURCE
 #endif
-#endif  /* __hpux */
+#endif  /* __hpux, nope __IMBC__ at best */
 
 /* currently tested/testing for the following cpu types:
+ *
+ * (please let's get rid of this, I personally enjoy making stuff work on OS's
+ * I don't expect to support it, but VICE should just support OS's people
+ * actually use. (Windows, Linux, MacOS, BSD)
  *
  * cpu        4*u_char fetch   1*u_int32 fetch   define(s)
  * -----      --------------   ---------------   ---------
@@ -116,66 +123,20 @@ typedef int ssize_t;
 #endif
 
 /* ------------------------------------------------------------------------- */
-/* Which OS is using the common keyboard routines?  */
-#if !defined(EMUFRAMEWORK_BUILD) && (!defined(__OS2__) || defined(USE_SDLUI) || defined(USE_SDLUI2))
-#define COMMON_KBD
-#endif
-
-/* Which OS is using those ugly scale source coordinates.  */
-#if defined(__MSDOS__)
-#define VIDEO_SCALE_SOURCE
+/* A common define for the SDL UIs. */
+#if defined(USE_SDLUI) || defined(USE_SDLUI2)
+#define SDL_UI_SUPPORT
 #endif
 
 /* ------------------------------------------------------------------------- */
-
-/* Internationalization stuff */
-#if defined(ENABLE_NLS) && defined(HAVE_LIBINTL_H)
-#    include <libintl.h>
-#    define _(String) gettext (String)
-#    ifdef gettext_noop
-#        define N_(String) gettext_noop (String)
-#    else
-#        define N_(String) (String)
-#    endif
-#else
-/* Stubs that do something close enough.  */
-#    define _(String) (String)
-#    define N_(String) (String)
-#endif /* ENABLE_NLS */
-
-/* T_() is just an indicator for new common text which needs
-   to be added to the translate.* translation tables. */
-#define T_(String) (String)
-
-#if defined(WIN32_COMPILE) && (defined(UNICODE) || defined(_UNICODE))
-/* enable WinNT Unicode support in VICE. */
-#ifndef WIN32_UNICODE_SUPPORT
-#define WIN32_UNICODE_SUPPORT
-#endif
-#endif
-
-#ifdef WIN32_UNICODE_SUPPORT
-/* enable WinNT Unicode API calls. */
-#ifndef UNICODE
-#define UNICODE
-#endif
-
-/* enable Unicode support in tchar.h. */
-#ifndef _UNICODE
-#define _UNICODE
-#endif
-#endif
 
 #ifdef __OS2__
 int yyparse (void);
 #undef __GNUC__
 #endif
 
-#ifdef MINIXVMD
-#undef vfork
-#endif
 
-#if (defined(__BEOS__) && defined(WORDS_BIGENDIAN)) || defined(__OS2__) || defined(__WATCOMC__)
+#if (defined(__BEOS__) && defined(WORDS_BIGENDIAN)) || defined(__OS2__)
 #ifndef __cplusplus
 #undef inline
 #define inline
@@ -195,6 +156,18 @@ static int noop;
 /* sortix does not have rs232 support */
 #ifdef __sortix__
 #undef HAVE_RS232DEV
+#endif
+
+
+#if defined(USE_NATIVE_GTK3) && defined(WIN32_COMPILE) && !defined(__cplusplus)
+extern int vice_atexit(void (*function)(void));
+extern void vice_exit(int excode);
+#endif
+
+/* Avoid windows.h including too much garbage
+ */
+#ifdef WIN32_COMPILE
+# define WIN32_LEAN_AND_MEAN
 #endif
 
 #endif

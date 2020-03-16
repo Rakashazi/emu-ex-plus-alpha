@@ -44,7 +44,6 @@
 #include "piacore.h"
 #include "resources.h"
 #include "tapeport.h"
-#include "translate.h"
 #include "types.h"
 
 /* ------------------------------------------------------------------------- */
@@ -107,17 +106,14 @@ int pia1_resources_init(void)
 }
 
 
-static const cmdline_option_t cmdline_options[] = {
-    { "-diagpin", SET_RESOURCE, 0,
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-diagpin", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DiagPin", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_USERPORT_DIAG_PIN,
-      NULL, NULL },
-    { "+diagpin", SET_RESOURCE, 0,
+      NULL, "Enable userport diagnostic pin" },
+    { "+diagpin", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DiagPin", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_USERPORT_DIAG_PIN,
-      NULL, NULL },
+      NULL, "Disable userport diagnostic pin" },
     CMDLINE_LIST_END
 };
 
@@ -154,7 +150,7 @@ void pia1_set_tape_motor_in(int v)
 
 static void pia_set_ca2(int a)
 {
-    parallel_cpu_set_eoi((BYTE)((a) ? 0 : 1));
+    parallel_cpu_set_eoi((uint8_t)((a) ? 0 : 1));
     if (petres.pet2k) {
         crtc_screen_enable((a) ? 1 : 0);
     }
@@ -203,27 +199,26 @@ E813    CB2         output to cassette #1 motor: 0=on, 1=off
  0    CA1 control: IRQ on=1, off = 0
 */
 
-static void store_pa(BYTE byte)
+static void store_pa(uint8_t byte)
 {
     tapeport_set_sense_out(byte & 16 ? 1 : 0);
 }
 
-static void store_pb(BYTE byte)
+static void store_pb(uint8_t byte)
 {
 }
 
-static void undump_pa(BYTE byte)
+static void undump_pa(uint8_t byte)
 {
 }
 
-static void undump_pb(BYTE byte)
+static void undump_pb(uint8_t byte)
 {
 }
 
-
-static BYTE read_pa(void)
+static uint8_t read_pa(void)
 {
-    BYTE byte;
+    uint8_t byte;
 
     drive_cpu_execute_all(maincpu_clk);
 
@@ -237,10 +232,10 @@ static BYTE read_pa(void)
 }
 
 
-static BYTE read_pb(void)
+static uint8_t read_pb(void)
 {
     int row;
-    BYTE j = 0xFF;
+    uint8_t j = 0xFF;
 
     row = mypia.port_a & 15;
 

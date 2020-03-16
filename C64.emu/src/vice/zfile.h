@@ -38,7 +38,7 @@ typedef enum {
     ZFILE_DEL           /* Remove original file.  */
 } zfile_action_t;
 
-extern VICE_API FILE *zfile_fopen(const char *name, const char *mode);
+extern FILE *zfile_fopen(const char *name, const char *mode);
 extern int zfile_fclose(FILE *stream);
 
 extern void zfile_shutdown(void);
@@ -77,5 +77,6 @@ extern int gerror(FILE *f);
 
 #endif
 
+#include <viceZFileAPI.h>
 
 #endif

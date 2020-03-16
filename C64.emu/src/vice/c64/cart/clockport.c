@@ -33,7 +33,7 @@
 #include "clockport.h"
 #include "lib.h"
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
 #include "clockport-rrnet.h"
 #endif
 
@@ -50,8 +50,9 @@
 
 clockport_supported_devices_t clockport_supported_devices[] = {
     { CLOCKPORT_DEVICE_NONE,          "None" },
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     { CLOCKPORT_DEVICE_RRNET,         "RRNet" },
+    { CLOCKPORT_DEVICE_RRNETMK3,      "RRNet MK3" },
 #endif
 #ifdef USE_MPG123
     { CLOCKPORT_DEVICE_MP3_64,        "MP3@64" },
@@ -81,7 +82,7 @@ static clockport_device_list_t clockport_device_head = { NULL, NULL };
 int clockport_resources_init(void)
 {
     /* Init clockport devices */
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     clockport_rrnet_init();
 #endif
 
@@ -110,7 +111,7 @@ void clockport_resources_shutdown(void)
     }
 
     /* Shutdown clockport devices */
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     clockport_rrnet_shutdown();
 #endif
 
@@ -126,16 +127,17 @@ void clockport_resources_shutdown(void)
 #endif
 }
 
-clockport_device_t *clockport_open_device(int deviceid, char *owner)
+clockport_device_t *clockport_open_device(int deviceid, const char *owner)
 {
     clockport_device_list_t *current = &clockport_device_head;
     clockport_device_t *retval = NULL;
     clockport_device_list_t *entry = NULL;
 
     switch (deviceid) {
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
         case CLOCKPORT_DEVICE_RRNET:
-            retval = clockport_rrnet_open_device(owner);
+        case CLOCKPORT_DEVICE_RRNETMK3:
+            retval = clockport_rrnet_open_device(owner, deviceid);
             break;
 #endif
 

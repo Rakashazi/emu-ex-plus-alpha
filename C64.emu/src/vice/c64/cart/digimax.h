@@ -32,6 +32,7 @@
 
 extern int digimax_cart_enabled(void);
 extern int digimax_enable(void);
+int digimax_disable(void);
 extern void digimax_detach(void);
 extern void digimax_reset(void);
 

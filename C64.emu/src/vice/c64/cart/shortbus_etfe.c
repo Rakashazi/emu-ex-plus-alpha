@@ -26,7 +26,7 @@
 
 #include "vice.h"
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
 
 #include <assert.h>
 #include <stdio.h>
@@ -41,8 +41,9 @@
 #include "monitor.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "util.h"
+
+#include "shortbus_etfe.h"
 
 /*
     "The Shortbus ETFE "Final Ethernet" device
@@ -55,24 +56,25 @@
 /*    resources support functions                                            */
 
 /* Some prototypes are needed */
-static BYTE shortbus_etfe_read(WORD io_address);
-static BYTE shortbus_etfe_peek(WORD io_address);
-static void shortbus_etfe_store(WORD io_address, BYTE byte);
+static uint8_t shortbus_etfe_read(uint16_t io_address);
+static uint8_t shortbus_etfe_peek(uint16_t io_address);
+static void shortbus_etfe_store(uint16_t io_address, uint8_t byte);
 static int shortbus_etfe_dump(void);
 
 static io_source_t shortbus_etfe_device = {
-    "Shortbus ETFE",
-    IO_DETACH_RESOURCE,
-    "SBETFE",
-    0xde00, 0xde0f, 0x0f,
-    0,
-    shortbus_etfe_store,
-    shortbus_etfe_read,
-    shortbus_etfe_peek,
-    shortbus_etfe_dump,
-    CARTRIDGE_IDE64,
-    0,
-    0
+    "Shortbus ETFE",      /* name of the device */
+    IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
+    "SBETFE",             /* resource to set to '0' */
+    0xde00, 0xde0f, 0x0f, /* range for the device, regs:$de00-$de0f */
+    0,                    /* read validity determined by the device upon a read */
+    shortbus_etfe_store,  /* store function */
+    NULL,                 /* NO poke function */
+    shortbus_etfe_read,   /* read function */
+    shortbus_etfe_peek,   /* peek function */
+    shortbus_etfe_dump,   /* device state information dump function */
+    CARTRIDGE_IDE64,      /* cartridge ID */
+    IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
+    0                     /* insertion order, gets filled in by the registration function */
 };
 
 /* current configurations */
@@ -84,14 +86,12 @@ static io_source_list_t *shortbus_etfe_list_item = NULL;
 /* This flag indicates if the IDE64 cart is active */
 static int shortbus_etfe_host_active = 0;
 
-/* This flag indicated if the expansion is active,
+/* This flag indicates if the expansion is active,
    real activity depends on the 'host' active flag */
 static int shortbus_etfe_expansion_active = 0;
 
 /* ETFE address */
 static int shortbus_etfe_address;
-
-static char *shortbus_etfe_address_list = NULL;
 
 /* ---------------------------------------------------------------------*/
 
@@ -174,8 +174,8 @@ static int set_shortbus_etfe_base(int val, void *param)
         case 0xde00:
         case 0xde10:
         case 0xdf00:
-            shortbus_etfe_device.start_address = (WORD)addr;
-            shortbus_etfe_device.end_address = (WORD)(addr + 0xf);
+            shortbus_etfe_device.start_address = (uint16_t)addr;
+            shortbus_etfe_device.end_address = (uint16_t)(addr + 0xf);
             break;
         default:
             return -1;
@@ -218,36 +218,26 @@ int shortbus_etfe_resources_init(void)
 void shortbus_etfe_resources_shutdown(void)
 {
     cs8900io_resources_shutdown();
-
-    if (shortbus_etfe_address_list) {
-        lib_free(shortbus_etfe_address_list);
-    }
 }
 
 /* ---------------------------------------------------------------------*/
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-sbetfe", SET_RESOURCE, 0,
+    { "-sbetfe", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SBETFE", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_SHORTBUS_ETFE,
-      NULL, NULL },
-    { "+sbtfe", SET_RESOURCE, 0,
-      NULL, NULL, "SBTFE", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_SHORTBUS_ETFE,
-      NULL, NULL },
+      NULL, "Enable the Short Bus ETFE expansion" },
+    { "+sbetfe", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "SBETFE", (resource_value_t)0,
+      NULL, "Disable the Short Bus ETFE expansion" },
     CMDLINE_LIST_END
 };
 
 static cmdline_option_t base_cmdline_options[] =
 {
-    { "-sbtfebase", SET_RESOURCE, 1,
-      NULL, NULL, "SBTFEbase", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_COMBO,
-      IDCLS_P_BASE_ADDRESS, IDCLS_SHORTBUS_ETFE_BASE,
-      NULL, NULL },
+    { "-sbetfebase", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "SBETFEbase", NULL,
+      "<Base address>", "Base address of the Short Bus ETFE expansion. (56832: $de00, 56848: $de10, 57088: $df00)" },
     CMDLINE_LIST_END
 };
 
@@ -256,10 +246,6 @@ int shortbus_etfe_cmdline_options_init(void)
     if (cmdline_register_options(cmdline_options) < 0) {
         return -1;
     }
-
-    shortbus_etfe_address_list = lib_stralloc(". (56832: $de00, 56848: $de10, 57088: $df00)");
-
-    base_cmdline_options[0].description = shortbus_etfe_address_list;
 
     if (cs8900io_cmdline_options_init() < 0) {
         return -1;
@@ -276,7 +262,7 @@ int shortbus_etfe_enabled(void)
 /* ------------------------------------------------------------------------- */
 
 /* ----- read byte from I/O range in VICE ----- */
-static BYTE shortbus_etfe_read(WORD io_address)
+static uint8_t shortbus_etfe_read(uint16_t io_address)
 {
     shortbus_etfe_device.io_source_valid = 1;
 
@@ -284,13 +270,13 @@ static BYTE shortbus_etfe_read(WORD io_address)
 }
 
 /* ----- peek byte with no sideeffects from I/O range in VICE ----- */
-static BYTE shortbus_etfe_peek(WORD io_address)
+static uint8_t shortbus_etfe_peek(uint16_t io_address)
 {
     return cs8900io_peek(io_address);
 }
 
 /* ----- write byte to I/O range of VICE ----- */
-static void shortbus_etfe_store(WORD io_address, BYTE byte)
+static void shortbus_etfe_store(uint16_t io_address, uint8_t byte)
 {
     cs8900io_store(io_address, byte);
 }
@@ -298,7 +284,7 @@ static void shortbus_etfe_store(WORD io_address, BYTE byte)
 static int shortbus_etfe_dump(void)
 {
     mon_out("CS8900 mapped to $%04x ($%04x-$%04x).\n",
-            shortbus_etfe_device.start_address & ~shortbus_etfe_device.address_mask,
+            (unsigned int)(shortbus_etfe_device.start_address & ~shortbus_etfe_device.address_mask),
             shortbus_etfe_device.start_address,
             shortbus_etfe_device.end_address);
 
@@ -339,7 +325,7 @@ int shortbus_etfe_read_snapshot_module(snapshot_t *s)
 {
     return -1;
 #if 0
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);
@@ -362,4 +348,4 @@ int shortbus_etfe_read_snapshot_module(snapshot_t *s)
 #endif
 }
 
-#endif /* #ifdef HAVE_PCAP */
+#endif /* #ifdef HAVE_RAWNET */

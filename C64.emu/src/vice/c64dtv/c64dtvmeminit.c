@@ -52,7 +52,7 @@ static const int mend[NUM_SEGMENTS] = {
     0xbf, 0xcf, 0xdf, 0xff
 };
 
-static const DWORD limit_tab[NUM_SEGMENTS][NUM_CONFIGS] = {
+static const uint32_t limit_tab[NUM_SEGMENTS][NUM_CONFIGS] = {
     /* 0000-3fff */
     { 0x00023ffd, 0x00023ffd, 0x00023ffd, 0x00023ffd, 0x00023ffd, 0x00023ffd, 0x00023ffd, 0x00023ffd },
 
@@ -78,7 +78,7 @@ static const DWORD limit_tab[NUM_SEGMENTS][NUM_CONFIGS] = {
 /* IO is enabled at memory configs 5, 6, 7 */
 const unsigned int c64dtvmeminit_io_config[8] = { 0, 0, 0, 0, 0, 1, 1, 1 };
 
-static void sid_store_d700(WORD addr, BYTE val)
+static void sid_store_d700(uint16_t addr, uint8_t val)
 {
     sid_store(addr, val);
     debugcart_store(addr, val);
@@ -142,7 +142,7 @@ void c64dtvmeminit(unsigned int base)
     }
 }
 
-void c64dtvmem_limit_init(DWORD mem_read_limit_tab[NUM_CONFIGS][0x101])
+void c64dtvmem_limit_init(uint32_t mem_read_limit_tab[NUM_CONFIGS][0x101])
 {
     int i, j, k;
 

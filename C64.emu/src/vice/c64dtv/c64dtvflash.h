@@ -36,16 +36,16 @@ extern void c64dtvflash_init(void);
 extern void c64dtvflash_reset(void);
 extern void c64dtvflash_shutdown(void);
 
-extern BYTE c64dtvflash_read(int addr);
-extern void c64dtvflash_store(int addr, BYTE value);
-extern BYTE c64dtvflash_read_direct(int addr);
-extern void c64dtvflash_store_direct(int addr, BYTE value);
+extern uint8_t c64dtvflash_read(int addr);
+extern void c64dtvflash_store(int addr, uint8_t value);
+extern uint8_t c64dtvflash_read_direct(int addr);
+extern void c64dtvflash_store_direct(int addr, uint8_t value);
 
 extern void c64dtvflash_create_blank_image(char *filename, int copyroms);
 
-extern BYTE c64dtvflash_mem[];
-extern BYTE c64dtvflash_mem_lock[];
-extern BYTE c64dtvflash_state;
+extern uint8_t c64dtvflash_mem[];
+extern uint8_t c64dtvflash_mem_lock[];
+extern uint8_t c64dtvflash_state;
 
 extern int c64dtvflash_rom_loaded;
 

@@ -30,20 +30,21 @@
 
 #include "types.h"
 
-extern BYTE mmu_read(WORD addr);
-extern BYTE mmu_peek(WORD addr);
-extern void mmu_store(WORD address, BYTE value);
-extern BYTE mmu_ffxx_read(WORD addr);
-extern void mmu_ffxx_store(WORD addr, BYTE value);
-extern BYTE mmu_ffxx_read_z80(WORD addr);
+extern uint8_t mmu_read(uint16_t addr);
+extern uint8_t mmu_peek(uint16_t addr);
+extern void mmu_store(uint16_t address, uint8_t value);
+extern uint8_t mmu_ffxx_read(uint16_t addr);
+extern void mmu_ffxx_store(uint16_t addr, uint8_t value);
+extern uint8_t mmu_ffxx_read_z80(uint16_t addr);
 
 extern void mmu_reset(void);
 extern void mmu_set_config64(int config);
+extern int mmu_is_c64config(void);
 
 extern void mmu_init(void);
 extern int mmu_resources_init(void);
 extern int mmu_cmdline_options_init(void);
 
-extern int mmu_dump(void *context, WORD addr);
+extern int mmu_dump(void *context, uint16_t addr);
 
 #endif

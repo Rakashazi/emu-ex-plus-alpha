@@ -25,9 +25,12 @@
 #define RESID_INLINE inline
 #define RESID_BRANCH_HINTS 1
 
+#define NEW_8580_FILTER 0
+
 // Compiler specifics.
 #define HAVE_BOOL 1
 #define HAVE_BUILTIN_EXPECT 1
+#define HAVE_LOG1P 1
 
 // Define bool, true, and false for C++ compilers that lack these keywords.
 #if !HAVE_BOOL

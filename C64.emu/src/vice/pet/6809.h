@@ -49,13 +49,13 @@
 #error cannot use FULL6809 and H6309 at the same time.
 #endif
 
-typedef unsigned char UINT8;
-typedef signed char INT8;
+typedef uint8_t UINT8;
+typedef int8_t INT8;
 
-typedef WORD UINT16;
-typedef SWORD INT16;
+typedef uint16_t UINT16;
+typedef int16_t INT16;
 
-typedef WORD target_addr_t;
+typedef uint16_t target_addr_t;
 
 typedef unsigned int absolute_address_t;
 

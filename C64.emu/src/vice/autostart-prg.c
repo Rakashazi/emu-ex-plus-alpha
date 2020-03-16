@@ -1,9 +1,11 @@
+/** \file   autostart-prg.c
+ * \brief   Handle autostart of program files
+ *
+ * \author  Christian Vogelgsang <chris@vogelgsang.org>
+ * \author  groepaz <groepaz@gmx.net>
+ */
+
 /*
- * autostart-prg.c - Handle autostart of program files
- *
- * Written by
- *  Christian Vogelgsang <chris@vogelgsang.org>
- *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -24,7 +26,10 @@
  *
  */
 
+/* #define DEBUG_AUTOSTART */
+
 #include <string.h>
+#include <inttypes.h>
 
 #include "archdep.h"
 #include "attach.h"
@@ -42,8 +47,15 @@
 #include "vdrive-internal.h"
 #include "drive.h"
 
+#ifdef DEBUG_AUTOSTART
+#define DBG(_x_)        log_debug _x_
+#else
+#define DBG(_x_)
+#endif
+
 /* ----- Globals ----- */
 extern int autostart_basic_load;
+extern log_t autostart_log;
 
 /* program from last injection */
 static autostart_prg_t *inject_prg;
@@ -51,9 +63,9 @@ static autostart_prg_t *inject_prg;
 
 static autostart_prg_t * load_prg(const char *file_name, fileio_info_t *finfo, log_t log)
 {
-    DWORD ptr;
-    DWORD end;
-    BYTE lo, hi;
+    uint32_t ptr;
+    uint32_t end;
+    uint8_t lo, hi;
     int i;
     autostart_prg_t *prg;
 
@@ -76,14 +88,14 @@ static autostart_prg_t * load_prg(const char *file_name, fileio_info_t *finfo, l
     if (autostart_basic_load) {
         mem_get_basic_text(&prg->start_addr, NULL);
     } else {
-        prg->start_addr = (WORD)hi << 8 | (WORD)lo;
+        prg->start_addr = (uint16_t)hi << 8 | (uint16_t)lo;
     }
     prg->size -= 2; /* skip load addr */
 
     /* check range */
     end = prg->start_addr + prg->size - 1;
     if (end > 0xffff) {
-        log_error(log, "Invalid size of '%s': %d", file_name, (unsigned int)prg->size);
+        log_error(log, "Invalid size of '%s': %" PRIu32, file_name, prg->size);
         return NULL;
     }
 
@@ -136,7 +148,8 @@ int autostart_prg_with_virtual_fs(const char *file_name,
 {
     char *directory;
     char *file;
-    int val;
+
+    DBG(("autostart_prg_with_virtual_fs"));    
 
     /* Extract the directory path to allow FS-based drive emulation to
        work.  */
@@ -154,14 +167,9 @@ int autostart_prg_with_virtual_fs(const char *file_name,
 
     /* Setup FS-based drive emulation.  */
     fsdevice_set_directory(directory ? directory : ".", 8);
-    resources_get_int("AutostartHandleTrueDriveEmulation", &val);
-    if (val == 0) {
-        resources_set_int("DriveTrueEmulation", 0);
-    }
-    resources_set_int("VirtualDevices", 1);
-    resources_set_int("FSDevice8ConvertP00", 1);
-    file_system_detach_disk(8);
-    resources_set_int("FileSystemDevice8", ATTACH_DEVICE_FS);
+    log_message(autostart_log, "using virtual filesystem on: %s.", directory);
+
+    /* other setup was done by autostart_prg() */
 
     lib_free(directory);
     lib_free(file);
@@ -193,11 +201,11 @@ int autostart_prg_with_disk_image(const char *file_name,
     autostart_prg_t *prg;
     vdrive_t *vdrive;
     int i;
-    int old_tde_state;
     int file_name_size;
-    BYTE data;
+    uint8_t data;
     unsigned int disk_image_type;
     int result, result2;
+    char tempname[32];
 
     /* identify disk image type */
     switch (drive_get_disk_drive_type(drive - 8)) {
@@ -241,13 +249,6 @@ int autostart_prg_with_disk_image(const char *file_name,
         return -1;
     }
 
-    /* disable TDE */
-    resources_get_int("DriveTrueEmulation", &old_tde_state);
-    if (old_tde_state != 0) {
-        log_message(log, "Turning true drive emulation off.");
-        resources_set_int("DriveTrueEmulation", 0);
-    }
-
     do {
         result = -1;
 
@@ -269,14 +270,28 @@ int autostart_prg_with_disk_image(const char *file_name,
             break;
         }
 
-        /* get file name size */
-        file_name_size = strlen((const char *)fh->name);
+        /* create name for saving the file to the temporary disk. truncate to
+           16 characters max., remove ".prg" extension when found */
+        i = 0;while (fh->name[i]) {
+            if (i == 16) {
+                break;
+            }
+            if ((i < 16) && (!strcasecmp((const char*)&fh->name[i], ".prg"))) {
+                break;
+            }
+            tempname[i] = fh->name[i];
+            i++;
+        }
+        tempname[i] = 0;
+        file_name_size = i;
+
+        /* this should not happen */
         if (file_name_size > 16) {
             file_name_size = 16;
         }
-
+            
         /* open file on disk */
-        if (vdrive_iec_open(vdrive, (const BYTE *)fh->name, file_name_size, secondary, NULL) != SERIAL_OK) {
+        if (vdrive_iec_open(vdrive, (const uint8_t *)tempname, file_name_size, secondary, NULL) != SERIAL_OK) {
             log_error(log, "Could not open file");
             break;
         }
@@ -285,14 +300,14 @@ int autostart_prg_with_disk_image(const char *file_name,
         /* write PRG data to file */
         for (i = -2; i < (int)prg->size; i++) {
             switch (i) {
-            case -2: 
-                data = (BYTE)prg->start_addr; 
+            case -2:
+                data = (uint8_t)prg->start_addr;
                 break;
-            case -1: 
-                data = (BYTE)(prg->start_addr >> 8); 
+            case -1:
+                data = (uint8_t)(prg->start_addr >> 8);
                 break;
-            default: 
-                data = prg->data[i]; 
+            default:
+                data = prg->data[i];
                 break;
             }
             if (vdrive_iec_write(vdrive, data, secondary) != SERIAL_OK) {
@@ -313,12 +328,6 @@ int autostart_prg_with_disk_image(const char *file_name,
     /* free prg file */
     free_prg(prg);
 
-    /* re-enable TDE */
-    if (old_tde_state != 0) {
-        log_message(log, "Turning true drive emulation on.");
-        resources_set_int("DriveTrueEmulation", old_tde_state);
-    }
-
     /* ready */
     return result;
 }
@@ -326,7 +335,7 @@ int autostart_prg_with_disk_image(const char *file_name,
 int autostart_prg_perform_injection(log_t log)
 {
     unsigned int i;
-    WORD start, end;
+    uint16_t start, end;
 
     autostart_prg_t *prg = inject_prg;
 
@@ -335,18 +344,17 @@ int autostart_prg_perform_injection(log_t log)
         return -1;
     }
 
-    log_message(log, "Injecting program data at $%04x (size $%04x)",
-                prg->start_addr,
-                (unsigned int)prg->size);
+    log_message(autostart_log, "Injecting program data at $%04x (size $%04x)",
+                prg->start_addr, (unsigned int)prg->size);
 
     /* store data in emu memory */
     for (i = 0; i < prg->size; i++) {
-        mem_inject((WORD)(prg->start_addr + i), prg->data[i]);
+        mem_inject((uint16_t)(prg->start_addr + i), prg->data[i]);
     }
 
     /* now simulate a basic load */
     mem_get_basic_text(&start, &end);
-    end = (WORD)(prg->start_addr + prg->size);
+    end = (uint16_t)(prg->start_addr + prg->size);
     mem_set_basic_text(start, end);
 
     /* clean up injected prog */

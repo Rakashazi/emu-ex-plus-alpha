@@ -38,10 +38,10 @@
 
 
 /* buffer containing current register state of SIDs */
-static BYTE sidbuf[CW_MAXCARDS * 0x20];
+static uint8_t sidbuf[CW_MAXCARDS * 0x20];
 
 /* 0 = pal, !0 = ntsc */
-static BYTE sid_ntsc = 0;
+static uint8_t sid_ntsc = 0;
 
 static long sid_cycles;
 
@@ -68,7 +68,7 @@ int catweaselmkiii_close(void)
     return retval;
 }
 
-int catweaselmkiii_read(WORD addr, int chipno)
+int catweaselmkiii_read(uint16_t addr, int chipno)
 {
     if (cw3_open != -1 && chipno < CW_MAXCARDS) {
         /* use sidbuf[] for write-only registers */
@@ -80,7 +80,7 @@ int catweaselmkiii_read(WORD addr, int chipno)
     return 0;
 }
 
-void catweaselmkiii_store(WORD addr, BYTE val, int chipno)
+void catweaselmkiii_store(uint16_t addr, uint8_t val, int chipno)
 {
     if (cw3_open != -1 && chipno < CW_MAXCARDS) {
         /* write to sidbuf[] for write-only registers */
@@ -96,7 +96,7 @@ void catweaselmkiii_store(WORD addr, BYTE val, int chipno)
 void catweaselmkiii_set_machine_parameter(long cycles_per_sec)
 {
     sid_cycles = cycles_per_sec;
-    sid_ntsc = (BYTE)((cycles_per_sec <= 1000000) ? 0 : 1);
+    sid_ntsc = (uint8_t)((cycles_per_sec <= 1000000) ? 0 : 1);
     catweaselmkiii_drv_set_machine_parameter(cycles_per_sec);
 }
 
@@ -125,7 +125,7 @@ void catweaselmkiii_state_read(int chipno, struct sid_cw3_snapshot_state_s *sid_
     if (chipno < CW_MAXCARDS) {
         sid_state->ntsc = sid_ntsc;
 
-        sid_state->cycles_per_second = (DWORD)sid_cycles;
+        sid_state->cycles_per_second = (uint32_t)sid_cycles;
 
         for (i = 0; i < 32; ++i) {
             sid_state->regs[i] = sidbuf[i + (chipno * 0x20)];
@@ -142,7 +142,7 @@ void catweaselmkiii_state_write(int chipno, struct sid_cw3_snapshot_state_s *sid
 
         for (i = 0; i < 32; ++i) {
             sidbuf[i + (chipno * 0x20)] = sid_state->regs[i];
-            catweaselmkiii_drv_store((WORD)i, sid_state->regs[i], chipno);
+            catweaselmkiii_drv_store((uint16_t)i, sid_state->regs[i], chipno);
         }
     }
 }

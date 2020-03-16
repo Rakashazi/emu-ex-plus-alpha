@@ -30,32 +30,46 @@
 #include "c64.h"
 #include "c64-midi.h"
 #include "c64cart.h"
+#include "c64cartmem.h"
 #include "c64fastiec.h"
 #include "c64iec.h"
 #include "c64mem.h"
 #include "c64-cmdline-options.h"
+#include "c64_256k.h"
 #include "cartridge.h"
 #include "cbmdos.h"
 #include "cia.h"
+#include "imagecontents/diskcontents.h"
 #include "diskimage.h"
 #include "drive.h"
+#include "driveimage.h"
 #include "drivetypes.h"
 #include "fileio.h"
+#include "fsdevice.h"
 #include "gfxoutput.h"
 #include "iecbus.h"
+#include "iecdrive.h"
 #include "imagecontents.h"
 #include "midi.h"
+#include "machine.h"
+#include "machine-bus.h"
+#include "machine-drive.h"
 #include "machine-printer.h"
+#include "printer.h"
 #include "snapshot.h"
 #include "tap.h"
 #include "tape.h"
+#include "tapecart.h"
 #include "tapeport.h"
+#include "imagecontents/tapecontents.h"
+#include "tape-snapshot.h"
+#include "vdrive/vdrive.h"
+#include "vdrive/vdrive-bam.h"
+#include "vdrive/vdrive-command.h"
+#include "vdrive/vdrive-iec.h"
+#include "vdrive/vdrive-internal.h"
 #include "vicii-phi1.h"
 #include "ds1202_1302.h"
-
-#ifdef __MSDOS__
-#include "sampler.h"
-#endif
 
 /*******************************************************************************
     Memory related
@@ -86,6 +100,77 @@ void machine_drive_stub(void)
 {
 }
 
+
+static drive_type_info_t drive_dummy_list[] = {
+    { NULL, -1 }
+};
+
+
+/** \brief  Dummy function
+ *
+ * Added here to make gtk3/widgets/drivetypewidget.c compile, due to using
+ * static libraries. This function will not be used in the VSID Gtk3 UI
+ */
+drive_type_info_t *machine_drive_get_type_info_list(void)
+{
+    return drive_dummy_list;
+}
+
+int drive_check_expansion2000(int type)
+{
+    return 0;
+}
+
+int drive_check_expansion4000(int type)
+{
+    return 0;
+}
+
+int drive_check_expansion6000(int type)
+{
+    return 0;
+}
+
+int drive_check_expansion8000(int type)
+{
+    return 0;
+}
+
+int drive_check_expansionA000(int type)
+{
+    return 0;
+}
+
+int drive_check_profdos(int type)
+{
+    return 0;
+}
+
+int drive_check_stardos(int type)
+{
+    return 0;
+}
+
+int drive_check_supercard(int type)
+{
+    return 0;
+}
+
+int drive_check_rtc(int type)
+{
+    return 0;
+}
+
+int drive_check_iec(int type)
+{
+    return 0;
+}
+
+int drive_check_image_format(unsigned int format, unsigned int dnr)
+{
+    return -1;
+}
+
 /*******************************************************************************
     Cartridge system
 *******************************************************************************/
@@ -94,21 +179,29 @@ void machine_drive_stub(void)
 export_t export = { 0, 0, 0, 0 }; /* c64 export */
 
 /* the following two are used by the old non cycle exact vic-ii emulation */
-static BYTE mem_phi[0x1000];
+static uint8_t mem_phi[0x1000];
 
 int cartridge_attach_image(int type, const char *filename)
 {
     return -1;
-} 
+}
 
-BYTE *ultimax_romh_phi1_ptr(WORD addr)
+void cartridge_detach_image(int type)
+{
+}
+
+uint8_t *ultimax_romh_phi1_ptr(uint16_t addr)
 {
     return mem_phi;
 }
 
-BYTE *ultimax_romh_phi2_ptr(WORD addr)
+uint8_t *ultimax_romh_phi2_ptr(uint16_t addr)
 {
     return mem_phi;
+}
+
+void cartridge_unset_default(void)
+{
 }
 
 midi_interface_t midi_interface[] = {
@@ -196,7 +289,7 @@ void ds1216e_destroy(rtc_ds1216e_t *context, int save)
 {
 }
 
-BYTE ds1216e_read(rtc_ds1216e_t *context, WORD address, BYTE origbyte)
+uint8_t ds1216e_read(rtc_ds1216e_t *context, uint16_t address, uint8_t origbyte)
 {
     return 0;
 }
@@ -210,7 +303,7 @@ void ds1202_1302_set_lines(rtc_ds1202_1302_t *context, unsigned int ce_line, uns
 {
 }
 
-BYTE ds1202_1302_read_data_line(rtc_ds1202_1302_t *context)
+uint8_t ds1202_1302_read_data_line(rtc_ds1202_1302_t *context)
 {
     return 1;
 }
@@ -288,7 +381,7 @@ int tape_snapshot_read_module(snapshot_t *s)
     return 0;
 }
 
-int tape_read(tape_image_t *tape_image, BYTE *buf, size_t size)
+int tape_read(tape_image_t *tape_image, uint8_t *buf, size_t size)
 {
     return 0;
 }
@@ -323,13 +416,28 @@ int tape_seek_to_next_file(tape_image_t *tape_image, unsigned int allow_rewind)
     return 0;
 }
 
-void tape_get_header(tape_image_t *tape_image, BYTE *name)
+void tape_get_header(tape_image_t *tape_image, uint8_t *name)
 {
 }
 
 const char *tape_get_file_name(void)
 {
     return NULL;
+}
+
+
+/*****************************************************************************
+ *  tapecart                                                                 *
+ ****************************************************************************/
+
+int tapecart_is_valid(const char *filename)
+{
+    return 0;   /* FALSE */
+}
+
+int tapecart_attach_tcrt(const char *filename, void *unused)
+{
+    return -1;
 }
 
 /*******************************************************************************
@@ -408,7 +516,7 @@ fileio_info_t *fileio_open(const char *file_name, const char *path, unsigned int
     return NULL;
 }
 
-unsigned int fileio_read(fileio_info_t *info, BYTE *buf, unsigned int len)
+unsigned int fileio_read(fileio_info_t *info, uint8_t *buf, unsigned int len)
 {
     return 0;
 }
@@ -423,7 +531,7 @@ unsigned int fileio_ferror(fileio_info_t *info)
     return 0;
 }
 
-unsigned int fileio_write(fileio_info_t *info, BYTE *buf, unsigned int len)
+unsigned int fileio_write(fileio_info_t *info, uint8_t *buf, unsigned int len)
 {
     return 0;
 }
@@ -514,12 +622,12 @@ int disk_image_fsimage_create(const char *name, unsigned int type)
     return 0;
 }
 
-int disk_image_write_sector(disk_image_t *image, const BYTE *buf, const disk_addr_t *dadr)
+int disk_image_write_sector(disk_image_t *image, const uint8_t *buf, const disk_addr_t *dadr)
 {
     return 0;
 }
 
-int disk_image_read_sector(const disk_image_t *image, BYTE *buf, const disk_addr_t *dadr)
+int disk_image_read_sector(const disk_image_t *image, uint8_t *buf, const disk_addr_t *dadr)
 {
     return 0;
 }
@@ -569,17 +677,17 @@ void P64ImageDestroy(PP64Image Instance)
     c64bus
 *******************************************************************************/
 
-int machine_bus_lib_directory(unsigned int unit, const char *pattern, BYTE **buf)
+int machine_bus_lib_directory(unsigned int unit, const char *pattern, uint8_t **buf)
 {
     return 0;
 }
 
-int machine_bus_lib_read_sector(unsigned int unit, unsigned int track, unsigned int sector, BYTE *buf)
+int machine_bus_lib_read_sector(unsigned int unit, unsigned int track, unsigned int sector, uint8_t *buf)
 {
     return 0;
 }
 
-int machine_bus_lib_write_sector(unsigned int unit, unsigned int track, unsigned int sector, BYTE *buf)
+int machine_bus_lib_write_sector(unsigned int unit, unsigned int track, unsigned int sector, uint8_t *buf)
 {
     return 0;
 }
@@ -624,12 +732,12 @@ void iecbus_status_set(unsigned int type, unsigned int unit, unsigned int enable
 {
 }
 
-int iecbus_device_write(unsigned int unit, BYTE data)
+int iecbus_device_write(unsigned int unit, uint8_t data)
 {
     return 0;
 }
 
-BYTE iecbus_device_read(void)
+uint8_t iecbus_device_read(void)
 {
     return 0;
 }
@@ -666,11 +774,11 @@ int drive_image_attach(disk_image_t *image, unsigned int unit)
     return 0;
 }
 
-void drive_set_last_read(unsigned int track, unsigned int sector, BYTE *buffer, struct drive_context_s *drv)
+void drive_set_last_read(unsigned int track, unsigned int sector, uint8_t *buffer, struct drive_context_s *drv)
 {
 }
 
-void drive_set_disk_memory(BYTE *id, unsigned int track, unsigned int sector, struct drive_context_s *drv)
+void drive_set_disk_memory(uint8_t *id, unsigned int track, unsigned int sector, struct drive_context_s *drv)
 {
 }
 
@@ -716,9 +824,6 @@ int drive_get_disk_drive_type(int dnr)
     vdrive
 *******************************************************************************/
 
-struct vdrive_s;
-typedef struct vdrive_s vdrive_t;
-
 void vdrive_init(void)
 {
 }
@@ -737,12 +842,12 @@ int vdrive_iec_attach(unsigned int unit, const char *name)
     return 0;
 }
 
-int vdrive_bam_get_disk_id(unsigned int unit, BYTE *id)
+int vdrive_bam_get_disk_id(unsigned int unit, uint8_t *id)
 {
     return 0;
 }
 
-int vdrive_bam_set_disk_id(unsigned int unit, BYTE *id)
+int vdrive_bam_set_disk_id(unsigned int unit, uint8_t *id)
 {
     return 0;
 }
@@ -756,7 +861,7 @@ int vdrive_attach_image(disk_image_t *image, unsigned int unit, vdrive_t *vdrive
     return 0;
 }
 
-void vdrive_get_last_read(unsigned int *track, unsigned int *sector, BYTE **buffer)
+void vdrive_get_last_read(unsigned int *track, unsigned int *sector, uint8_t **buffer)
 {
 }
 
@@ -770,32 +875,32 @@ int vdrive_iec_close(vdrive_t *vdrive, unsigned int secondary)
     return 0;
 }
 
-int vdrive_iec_write(vdrive_t *vdrive, BYTE data, unsigned int secondary)
+int vdrive_iec_write(vdrive_t *vdrive, uint8_t data, unsigned int secondary)
 {
     return 0;
 }
 
-int vdrive_iec_open(vdrive_t *vdrive, const BYTE *name, unsigned int length, unsigned int secondary, cbmdos_cmd_parse_t *cmd_parse_ext)
+int vdrive_iec_open(vdrive_t *vdrive, const uint8_t *name, unsigned int length, unsigned int secondary, cbmdos_cmd_parse_t *cmd_parse_ext)
 {
     return 0;
 }
 
-int vdrive_iec_read(vdrive_t *vdrive, BYTE *data, unsigned int secondary)
+int vdrive_iec_read(vdrive_t *vdrive, uint8_t *data, unsigned int secondary)
 {
     return 0;
 }
 
-int vdrive_command_execute(vdrive_t *vdrive, const BYTE *buf, unsigned int length)
+int vdrive_command_execute(vdrive_t *vdrive, const uint8_t *buf, unsigned int length)
 {
     return 0;
 }
 
-int vdrive_write_sector(vdrive_t *vdrive, const BYTE *buf, unsigned int track, unsigned int sector)
+int vdrive_write_sector(vdrive_t *vdrive, const uint8_t *buf, unsigned int track, unsigned int sector)
 {
     return 0;
 }
 
-int vdrive_read_sector(const vdrive_t *vdrive, BYTE *buf, unsigned int track, unsigned int sector)
+int vdrive_read_sector(vdrive_t *vdrive, uint8_t *buf, unsigned int track, unsigned int sector)
 {
     return 0;
 }
@@ -844,9 +949,12 @@ int loader_get_drive_true_emulation()
 }
 #endif
 
-#ifdef __MSDOS__
-sampler_device_t *sampler_get_devices(void)
+int machine_get_num_keyboard_types(void)
+{
+    return 0;
+}
+
+kbdtype_info_t *machine_get_keyboard_info_list(void)
 {
     return NULL;
 }
-#endif

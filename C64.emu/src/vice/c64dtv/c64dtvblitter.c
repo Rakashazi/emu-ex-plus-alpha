@@ -47,7 +47,6 @@
 #include "maincpu.h"
 #include "interrupt.h"
 #include "snapshot.h"
-#include "translate.h"
 
 #ifdef DEBUG
 static log_t c64dtvblitter_log = LOG_ERR;
@@ -56,7 +55,7 @@ static log_t c64dtvblitter_log = LOG_ERR;
 static unsigned int c64dtv_blitter_int_num;
 
 /* I/O of the blitter engine ($D3XX) */
-BYTE c64dtvmem_blitter[0x20];
+uint8_t c64dtvmem_blitter[0x20];
 
 int blitter_active;
 int blitter_on_irq;
@@ -71,18 +70,18 @@ static int blitter_irq;
 static int blitter_log_enabled = 0;
 #endif
 
-static BYTE srca_data[4];
+static uint8_t srca_data[4];
 static int srca_data_offs;
 static int srca_fetched;
-static BYTE srcb_data[4];
+static uint8_t srcb_data[4];
 static int srcb_data_offs;
-static BYTE sourceA, sourceB;
+static uint8_t sourceA, sourceB;
 static int blitter_count;
 static enum { BLITTER_IDLE, BLITTER_READ_A, BLITTER_READ_B, BLITTER_WRITE } blitter_state;
 static int sourceA_line_off;
 static int sourceB_line_off;
 static int dest_line_off;
-static BYTE lastA;
+static uint8_t lastA;
 
 
 /* resource stuff */
@@ -223,8 +222,8 @@ static inline int do_blitter_write(void)
     if ((reg1b_write_if_sourceA_zero && sourceA == 0) ||
         (reg1b_write_if_sourceA_nonzero && sourceA != 0) ||
         (have_blitter_bug && srca_fetched)) {
-        BYTE dest;
-        BYTE lastA_tmp = sourceA;
+        uint8_t dest;
+        uint8_t lastA_tmp = sourceA;
         sourceA >>= reg1e_sourceA_right_shift;
         sourceA |= lastA << (8 - reg1e_sourceA_right_shift);
         lastA = lastA_tmp;
@@ -247,7 +246,17 @@ static inline int do_blitter_write(void)
     }
 #ifdef DEBUG
     if (blitter_log_enabled) {
-        log_message(c64dtvblitter_log, "Blitter: %s %x.%x/%x.%x to %x.%x, %d to go, minterm %d", was_write ? "transferred" : "skipped", blit_sourceA_off >> 4, blit_sourceA_off & 15, blit_sourceB_off >> 4, blit_sourceB_off & 15, blit_dest_off >> 4, blit_dest_off & 15, blitter_count - 1, reg1e_mintermALU);
+        log_message(c64dtvblitter_log,
+                "Blitter: %s %x.%x/%x.%x to %x.%x, %d to go, minterm %d",
+                was_write ? "transferred" : "skipped",
+                (unsigned int)(blit_sourceA_off >> 4),
+                (unsigned int)(blit_sourceA_off & 15),
+                (unsigned int)(blit_sourceB_off >> 4),
+                (unsigned int)(blit_sourceB_off & 15),
+                (unsigned int)(blit_dest_off >> 4),
+                (unsigned int)(blit_dest_off & 15),
+                blitter_count - 1,
+                reg1e_mintermALU);
     }
 #endif
     return was_write;
@@ -409,7 +418,7 @@ static inline void c64dtv_blitter_done(void)
 }
 
 
-BYTE c64dtv_blitter_read(WORD addr)
+uint8_t c64dtv_blitter_read(uint16_t addr)
 {
     if (addr == 0x1f) {
         return blitter_busy;
@@ -419,7 +428,7 @@ BYTE c64dtv_blitter_read(WORD addr)
     return 0x00;
 }
 
-void c64dtv_blitter_store(WORD addr, BYTE value)
+void c64dtv_blitter_store(uint16_t addr, uint8_t value)
 {
     /* Store first, then check whether DMA access has been requested,
        perform if necessary. */
@@ -503,7 +512,8 @@ void c64dtv_blitter_store(WORD addr, BYTE value)
         blitter_busy = 1;
 #ifdef DEBUG
         if (blitter_log_enabled) {
-            log_message(c64dtvblitter_log, "Scheduled Blitter (%02x)", blitter_on_irq);
+            log_message(c64dtvblitter_log, "Scheduled Blitter (%02x)",
+                    (unsigned int)blitter_on_irq);
         }
 #endif
         return;
@@ -572,22 +582,16 @@ void c64dtvblitter_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-dtvrev", SET_RESOURCE, 1,
+    { "-dtvrev", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "DtvRevision", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_REVISION, IDCLS_SPECIFY_DTV_REVISION,
-      NULL, NULL },
+      "<Revision>", "Specify DTV Revision (2: DTV2, 3: DTV3)" },
 #ifdef DEBUG
-    { "-dtvblitterlog", SET_RESOURCE, 0,
+    { "-dtvblitterlog", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DtvBlitterLog", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_DTV_BLITTER_LOG,
-      NULL, NULL },
-    { "+dtvblitterlog", SET_RESOURCE, 0,
+      NULL, "Enable DTV blitter logs." },
+    { "+dtvblitterlog", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "DtvBlitterLog", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_DTV_BLITTER_LOG,
-      NULL, NULL },
+      NULL, "Disable DTV blitter logs." },
 #endif
     CMDLINE_LIST_END
 };
@@ -674,7 +678,7 @@ int c64dtvblitter_snapshot_write_module(snapshot_t *s)
 
 int c64dtvblitter_snapshot_read_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
     int temp_blitter_state, i;
 
@@ -686,7 +690,7 @@ int c64dtvblitter_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
@@ -719,7 +723,7 @@ int c64dtvblitter_snapshot_read_module(snapshot_t *s)
     blitter_state = temp_blitter_state;
 
     for (i = 0; i < 0x20; ++i) {
-        c64dtv_blitter_store((WORD)i, c64dtvmem_blitter[i]);
+        c64dtv_blitter_store((uint16_t)i, c64dtvmem_blitter[i]);
     }
 
     return snapshot_module_close(m);

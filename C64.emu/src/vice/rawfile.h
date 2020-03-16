@@ -33,8 +33,8 @@ struct rawfile_info_s;
 
 extern struct rawfile_info_s *rawfile_open(const char *file_name, const char *path, unsigned int command);
 extern void rawfile_destroy(struct rawfile_info_s *info);
-extern unsigned int rawfile_write(struct rawfile_info_s *info, BYTE *buf, unsigned int len);
-extern unsigned int rawfile_read(struct rawfile_info_s *info, BYTE *buf, unsigned int len);
+extern unsigned int rawfile_write(struct rawfile_info_s *info, uint8_t *buf, unsigned int len);
+extern unsigned int rawfile_read(struct rawfile_info_s *info, uint8_t *buf, unsigned int len);
 extern int rawfile_seek_set(struct rawfile_info_s *info, int offset);
 extern unsigned int rawfile_ferror(struct rawfile_info_s *info);
 extern unsigned int rawfile_rename(const char *src_name, const char *dst_name, const char *path);

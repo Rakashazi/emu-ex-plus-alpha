@@ -33,6 +33,7 @@
 extern int sfx_soundsampler_cart_enabled(void);
 extern void sfx_soundsampler_reset(void);
 extern int sfx_soundsampler_enable(void);
+int sfx_soundsampler_disable(void);
 extern void sfx_soundsampler_detach(void);
 
 extern int sfx_soundsampler_resources_init(void);

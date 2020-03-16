@@ -59,16 +59,16 @@ static int make_offset_mode(int offset)
 
 static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t operand)
 {
-    WORD operand_value = operand.param;
-    WORD operand_mode = operand.addr_mode;
-    WORD operand_submode = operand.addr_submode;
-    BYTE i = 0, j = 0, opcode = 0;
+    uint16_t operand_value = operand.param;
+    uint16_t operand_mode = operand.addr_mode;
+    uint16_t operand_submode = operand.addr_submode;
+    uint8_t i = 0, j = 0, opcode = 0;
     int len, branch_offset;
     bool found = FALSE;
     MEMSPACE mem;
-    WORD loc;
+    uint16_t loc;
     int const prefix[3] = { -1, 0x10, 0x11 };
-    BYTE opc[5];
+    uint8_t opc[5];
     int opc_offset;
     int prefixlen;
 
@@ -230,7 +230,7 @@ static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t oper
     }
     opc[opc_offset++] = opcode;
     if (operand_mode == ASM_ADDR_MODE_INDEXED) {
-        opc[opc_offset++] = (BYTE)operand_submode;
+        opc[opc_offset++] = (uint8_t)operand_submode;
     }
 
     len = (monitor_cpu_for_memspace[mem]->asm_addr_mode_get_size)
@@ -245,7 +245,7 @@ static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t oper
     }
 
     for (i = 0; i < len; i++) {
-        mon_set_mem_val(mem, (BYTE)(loc + i), opc[i]);
+        mon_set_mem_val(mem, (uint8_t)(loc + i), opc[i]);
     }
 
     if (len >= 0) {

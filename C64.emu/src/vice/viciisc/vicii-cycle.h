@@ -31,4 +31,6 @@ extern int vicii_cycle(void);
 extern int vicii_cycle_reu(void);
 extern void vicii_steal_cycles(void);
 
+extern void vicii_init_vsp_bug(void);
+
 #endif

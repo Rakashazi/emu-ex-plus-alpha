@@ -52,7 +52,7 @@ static int vicrom_loaded = 0;
 int vic20rom_kernal_checksum(void)
 {
     int i;
-    WORD sum;
+    uint16_t sum;
 
     /* Check Kernal ROM.  */
     for (i = 0, sum = 0; i < VIC20_KERNAL_ROM_SIZE; i++) {
@@ -101,7 +101,7 @@ int vic20rom_load_kernal(const char *rom_name)
 int vic20rom_basic_checksum(void)
 {
     int i;
-    WORD sum;
+    uint16_t sum;
 
     /* Check Basic ROM. */
     for (i = 0, sum = 0; i < VIC20_BASIC_ROM_SIZE; i++) {
@@ -226,7 +226,7 @@ int mem_patch_kernal(void)
 
     int rev, video_mode;
     short bytes, n, i = 0;
-    WORD a;
+    uint16_t a;
 
     if (!vicrom_loaded) {
         return 0;
@@ -252,12 +252,12 @@ int mem_patch_kernal(void)
     }
 
     while ((bytes = patch_bytes[i++]) > 0) {
-        a = (WORD)patch_bytes[i++];
+        a = (uint16_t)patch_bytes[i++];
 
         i += (bytes * rev); /* select patch */
         for (n = bytes; n--; ) {
-            vic20memrom_trap_store(a, (BYTE)patch_bytes[i]);
-            rom_store(a++, (BYTE)patch_bytes[i++]);
+            vic20memrom_trap_store(a, (uint8_t)patch_bytes[i]);
+            rom_store(a++, (uint8_t)patch_bytes[i++]);
         }
 
         i += (bytes * (PATCH_VERSIONS - rev));  /* skip patch */

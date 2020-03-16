@@ -42,8 +42,8 @@ extern void c64dtvblitter_init(void);
 extern void c64dtvblitter_reset(void);
 extern void c64dtvblitter_shutdown(void);
 
-extern BYTE c64dtv_blitter_read(WORD addr);
-extern void c64dtv_blitter_store(WORD addr, BYTE value);
+extern uint8_t c64dtv_blitter_read(uint16_t addr);
+extern void c64dtv_blitter_store(uint16_t addr, uint8_t value);
 
 extern void c64dtvblitter_perform_blitter(void);
 extern void c64dtvblitter_trigger_blitter(void);

@@ -76,11 +76,11 @@
 /* FIXME: these are shared between all "main slot" carts,
           individual cart implementations should get reworked to use local buffers */
 /* Expansion port ROML/ROMH images.  */
-BYTE *roml_banks = NULL;
-BYTE *romh_banks = NULL;
+uint8_t *roml_banks = NULL;
+uint8_t *romh_banks = NULL;
 
 /* Expansion port RAM images.  */
-BYTE *export_ram0 = NULL;
+uint8_t *export_ram0 = NULL;
 
 int rombanks_resources_init(void)
 {
@@ -119,7 +119,7 @@ static export_resource_t export_res_ultimax = {
 
 /* ---------------------------------------------------------------------*/
 
-void generic_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit)
+void generic_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit)
 {
     switch (addr & 0xf000) {
         case 0xf000:
@@ -169,27 +169,27 @@ void generic_ultimax_config_init(void)
     cart_config_changed_slotmain(3, 3, CMODE_READ);
 }
 
-void generic_8kb_config_setup(BYTE *rawcart)
+void generic_8kb_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
     cart_config_changed_slotmain(0, 0, CMODE_READ);
 }
 
-void generic_16kb_config_setup(BYTE *rawcart)
+void generic_16kb_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
     memcpy(romh_banks, &rawcart[0x2000], 0x2000);
     cart_config_changed_slotmain(1, 1, CMODE_READ);
 }
 
-void generic_ultimax_config_setup(BYTE *rawcart)
+void generic_ultimax_config_setup(uint8_t *rawcart)
 {
     memcpy(&roml_banks[0x0000], &rawcart[0x0000], 0x2000);
     memcpy(&romh_banks[0x0000], &rawcart[0x2000], 0x2000);
     cart_config_changed_slotmain(3, 3, CMODE_READ);
 }
 
-int generic_common_attach(int mode)
+static int generic_common_attach(int mode)
 {
     switch (mode) {
         case CARTRIDGE_GENERIC_8KB:
@@ -214,7 +214,7 @@ int generic_common_attach(int mode)
     return 0;
 }
 
-int generic_8kb_bin_attach(const char *filename, BYTE *rawcart)
+int generic_8kb_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x2000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         /* also accept 4k binaries */
@@ -226,7 +226,7 @@ int generic_8kb_bin_attach(const char *filename, BYTE *rawcart)
     return generic_common_attach(CARTRIDGE_GENERIC_8KB);
 }
 
-int generic_16kb_bin_attach(const char *filename, BYTE *rawcart)
+int generic_16kb_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x4000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         /* also accept 12k binaries */
@@ -238,7 +238,7 @@ int generic_16kb_bin_attach(const char *filename, BYTE *rawcart)
     return generic_common_attach(CARTRIDGE_GENERIC_16KB);
 }
 
-int generic_ultimax_bin_attach(const char *filename, BYTE *rawcart)
+int generic_ultimax_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x4000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         /* also accept 12k binaries */
@@ -256,7 +256,7 @@ int generic_ultimax_bin_attach(const char *filename, BYTE *rawcart)
 /*
     returns -1 on error, else a positive CRT ID
 */
-int generic_crt_attach(FILE *fd, BYTE *rawcart)
+int generic_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
     int crttype;
@@ -320,7 +320,7 @@ void generic_ultimax_detach(void)
 /* ---------------------------------------------------------------------*/
 
 /* ROML read - mapped to 8000 in 8k,16k,ultimax */
-BYTE generic_roml_read(WORD addr)
+uint8_t generic_roml_read(uint16_t addr)
 {
     if (export_ram) {
         return export_ram0[addr & 0x1fff];
@@ -330,7 +330,7 @@ BYTE generic_roml_read(WORD addr)
 }
 
 /* ROML store - mapped to 8000 in ultimax mode */
-void generic_roml_store(WORD addr, BYTE value)
+void generic_roml_store(uint16_t addr, uint8_t value)
 {
     if (export_ram) {
         export_ram0[addr & 0x1fff] = value;
@@ -338,23 +338,23 @@ void generic_roml_store(WORD addr, BYTE value)
 }
 
 /* ROMH read - mapped to A000 in 16k, to E000 in ultimax */
-BYTE generic_romh_read(WORD addr)
+uint8_t generic_romh_read(uint16_t addr)
 {
     return romh_banks[(addr & 0x1fff) + (romh_bank << 13)];
 }
 
-int generic_romh_phi1_read(WORD addr, BYTE *value)
+int generic_romh_phi1_read(uint16_t addr, uint8_t *value)
 {
     *value = romh_banks[(romh_bank << 13) + (addr & 0x1fff)];
     return CART_READ_VALID;
 }
 
-int generic_romh_phi2_read(WORD addr, BYTE *value)
+int generic_romh_phi2_read(uint16_t addr, uint8_t *value)
 {
     return generic_romh_phi1_read(addr, value);
 }
 
-int generic_peek_mem(export_t *export, WORD addr, BYTE *value)
+int generic_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
 {
     if (addr >= 0x8000 && addr <= 0x9fff) {
         if (export_ram) {
@@ -365,7 +365,7 @@ int generic_peek_mem(export_t *export, WORD addr, BYTE *value)
         return CART_READ_VALID;
     }
 
-    if (!(((export_t*)export)->exrom) && (((export_t*)export)->game)) {
+    if (!(((export_t*)ex)->exrom) && (((export_t*)ex)->game)) {
         if (addr >= 0xe000) {
             *value = romh_banks[(addr & 0x1fff) + (romh_bank << 13)];
             return CART_READ_VALID;
@@ -420,7 +420,7 @@ int generic_snapshot_write_module(snapshot_t *s, int type)
 
 int generic_snapshot_read_module(snapshot_t *s, int type)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -430,7 +430,7 @@ int generic_snapshot_read_module(snapshot_t *s, int type)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

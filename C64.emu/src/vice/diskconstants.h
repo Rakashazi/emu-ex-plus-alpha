@@ -90,6 +90,7 @@
 /* CBM 1571 constants, these constants are for a double-sided 1571
  *
  * FIXME: constants for the second BAM at (53,0) are missing
+ * FIXME: extra constants for 80-track images are missing
  */
 
 #define NUM_TRACKS_1571        70   /**< number of tracks on a 1571 floppy */

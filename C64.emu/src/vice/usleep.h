@@ -28,4 +28,6 @@
  *      internet:  mike@sherlock.med.ge.com     GEMS WIZARD e-mail: DYER
  */
 
+#ifndef HAVE_USLEEP
 int usleep(unsigned long int microSeconds);
+#endif

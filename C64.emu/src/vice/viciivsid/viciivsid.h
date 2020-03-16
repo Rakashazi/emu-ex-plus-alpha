@@ -68,7 +68,7 @@ extern void vicii_set_light_pen(CLOCK mclk, int state);
 extern void vicii_trigger_light_pen(CLOCK mclk);
 extern CLOCK vicii_lightpen_timing(int x, int y);
 extern void vicii_set_vbank(int new_vbank);
-extern void vicii_set_ram_base(BYTE *base);
+extern void vicii_set_ram_base(uint8_t *base);
 extern void vicii_powerup(void);
 extern void vicii_set_canvas_refresh(int enable);
 extern void vicii_reset_registers(void);
@@ -90,12 +90,12 @@ extern void vicii_async_refresh(struct canvas_refresh_s *r);
 
 extern void vicii_set_phi1_vbank(int num_vbank);
 extern void vicii_set_phi2_vbank(int num_vbank);
-extern void vicii_set_phi1_ram_base(BYTE *base);
-extern void vicii_set_phi2_ram_base(BYTE *base);
-extern void vicii_set_phi1_addr_options(WORD mask, WORD offset);
-extern void vicii_set_phi2_addr_options(WORD mask, WORD offset);
-extern void vicii_set_chargen_addr_options(WORD mask, WORD value);
-extern void vicii_set_phi1_chargen_addr_options(WORD mask, WORD value);
-extern void vicii_set_phi2_chargen_addr_options(WORD mask, WORD value);
+extern void vicii_set_phi1_ram_base(uint8_t *base);
+extern void vicii_set_phi2_ram_base(uint8_t *base);
+extern void vicii_set_phi1_addr_options(uint16_t mask, uint16_t offset);
+extern void vicii_set_phi2_addr_options(uint16_t mask, uint16_t offset);
+extern void vicii_set_chargen_addr_options(uint16_t mask, uint16_t value);
+extern void vicii_set_phi1_chargen_addr_options(uint16_t mask, uint16_t value);
+extern void vicii_set_phi2_chargen_addr_options(uint16_t mask, uint16_t value);
 
 #endif

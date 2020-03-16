@@ -32,8 +32,8 @@
 #include "types.h"
 
 extern void vic20iec_init(void);
-extern BYTE iec_pa_read(void);
-extern void iec_pa_write(BYTE data);
-extern void iec_pcr_write(BYTE data);
+extern uint8_t iec_pa_read(void);
+extern void iec_pa_write(uint8_t data);
+extern void iec_pcr_write(uint8_t data);
 
 #endif

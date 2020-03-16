@@ -94,7 +94,7 @@ void Voice::set_chip_model(chip_model model)
   }
   else {
     // No DC offsets in the MOS8580.
-    wave_zero = 0x800;
+    wave_zero = 0x9e0;
   }
 }
 

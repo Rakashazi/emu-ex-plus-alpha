@@ -34,7 +34,9 @@
 #include "resources.h"
 #include "snapshot.h"
 #include "tapeport.h"
-#include "translate.h"
+
+#include "sense-dongle.h"
+
 
 static int sense_dongle_enabled = 0;
 
@@ -46,20 +48,20 @@ static int sense_dongle_write_snapshot(struct snapshot_s *s, int write_image);
 static int sense_dongle_read_snapshot(struct snapshot_s *s);
 
 static tapeport_device_t sense_dongle_device = {
-    TAPEPORT_DEVICE_SENSE_DONGLE,
-    "Sense dongle",
-    IDGS_SENSE_DONGLE,
-    0,
-    "TapeSenseDongle",
-    sense_dongle_reset,
-    NULL, /* no set motor */
-    NULL, /* no set write */
-    NULL, /* no sense out */
-    NULL, /* no read out */
-    NULL, /* no passthrough */
-    NULL, /* no passthrough */
-    NULL, /* no passthrough */
-    NULL  /* no passthrough */
+    TAPEPORT_DEVICE_SENSE_DONGLE, /* device id */
+    "Sense dongle",               /* device name */
+    0,                            /* order of the device, filled in by the tapeport system when the device is attached */
+    "TapeSenseDongle",            /* resource used by the device */
+    NULL,                         /* NO device shutdown function */
+    sense_dongle_reset,           /* device specific reset function */
+    NULL,                         /* NO set motor line function */
+    NULL,                         /* NO set write line function */
+    NULL,                         /* NO set sense line function */
+    NULL,                         /* NO set read line function */
+    NULL,                         /* NO passthrough flux change function */
+    NULL,                         /* NO passthrough sense read function */
+    NULL,                         /* NO passthrough write line function */
+    NULL                          /* NO passthrough motor line function */
 };
 
 static tapeport_snapshot_t sense_dongle_snapshot = {
@@ -110,16 +112,12 @@ int sense_dongle_resources_init(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-tapesensedongle", SET_RESOURCE, 0,
+    { "-tapesensedongle", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "TapeSenseDongle", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_TAPE_SENSE_DONGLE,
-      NULL, NULL },
-    { "+tapesensedongle", SET_RESOURCE, 0,
+      NULL, "Enable tape sense dongle" },
+    { "+tapesensedongle", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "TapeSenseDongle", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_TAPE_SENSE_DONGLE,
-      NULL, NULL },
+      NULL, "Disable tape sense dongle" },
     CMDLINE_LIST_END
 };
 

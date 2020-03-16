@@ -47,6 +47,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "archdep.h"
 #include "cbmdos.h"
 #include "diskimage.h"
 #include "lib.h"
@@ -99,7 +100,7 @@ static int iec_open_read(vdrive_t *vdrive, unsigned int secondary)
     int type;
     unsigned int track, sector;
     bufferinfo_t *p = &(vdrive->buffers[secondary]);
-    BYTE *slot = p->slot;
+    uint8_t *slot = p->slot;
 
     if (!slot) {
         vdrive_iec_close(vdrive, secondary);
@@ -140,11 +141,11 @@ static int iec_open_read_directory(vdrive_t *vdrive, unsigned int secondary,
 }
 
 static int iec_open_write(vdrive_t *vdrive, unsigned int secondary,
-                          cbmdos_cmd_parse_t *cmd_parse, const BYTE *name)
+                          cbmdos_cmd_parse_t *cmd_parse, const uint8_t *name)
 {
     bufferinfo_t *p = &(vdrive->buffers[secondary]);
     unsigned int track, sector;
-    BYTE *slot = p->slot, *e;
+    uint8_t *slot = p->slot, *e;
 
     if (vdrive->image->read_only || VDRIVE_IMAGE_FORMAT_4000_TEST) {
         vdrive_command_set_error(vdrive, CBMDOS_IPE_WRITE_PROTECT_ON, 0, 0);
@@ -279,16 +280,16 @@ static int iec_open_write(vdrive_t *vdrive, unsigned int secondary,
  * directory slot.
  */
 
-int vdrive_iec_open(vdrive_t *vdrive, const BYTE *name, unsigned int length,
+int vdrive_iec_open(vdrive_t *vdrive, const uint8_t *name, unsigned int length,
                     unsigned int secondary, cbmdos_cmd_parse_t *cmd_parse_ext)
 {
     bufferinfo_t *p = &(vdrive->buffers[secondary]);
-    BYTE *slot; /* Current directory entry */
+    uint8_t *slot; /* Current directory entry */
     int rc, status = SERIAL_OK;
     /* FIXME: This should probably be set to zero */
     cbmdos_cmd_parse_t cmd_parse_stat;
     cbmdos_cmd_parse_t *cmd_parse;
-    BYTE name_stat[17];
+    uint8_t name_stat[17];
     unsigned int opentype;
 
     if (cmd_parse_ext != NULL) {
@@ -296,7 +297,7 @@ int vdrive_iec_open(vdrive_t *vdrive, const BYTE *name, unsigned int length,
         memset(name_stat, 0, sizeof(name_stat));
         strncpy((char *)name_stat, cmd_parse->parsecmd, sizeof(name_stat) - 1);
         name = name_stat;
-        length = (unsigned int)strlen((char *)name);
+        length = (unsigned int)strlen((const char *)name);
         secondary = cmd_parse->secondary;
     } else {
         cmd_parse = &cmd_parse_stat;
@@ -507,8 +508,8 @@ static int iec_write_sequential(vdrive_t *vdrive, bufferinfo_t *bi, int length)
 {
     unsigned int t_new, s_new;
     int retval;
-    BYTE *buf = bi->buffer;
-    BYTE *slot = bi->slot;
+    uint8_t *buf = bi->buffer;
+    uint8_t *slot = bi->slot;
 
     /*
      * First block of a file ?
@@ -662,7 +663,8 @@ int vdrive_iec_close(vdrive_t *vdrive, unsigned int secondary)
 /*        vdrive_close_all_channels(vdrive); */
             break;
         default:
-            log_error(vdrive_iec_log, "Fatal: unknown floppy-close-mode: %i.", p->mode);
+            log_error(vdrive_iec_log, "Fatal: unknown floppy-close-mode: %u.",
+                    p->mode);
     }
 
     return status;
@@ -670,7 +672,7 @@ int vdrive_iec_close(vdrive_t *vdrive, unsigned int secondary)
 
 /* ------------------------------------------------------------------------- */
 
-static int iec_read_sequential(vdrive_t *vdrive, BYTE *data,
+static int iec_read_sequential(vdrive_t *vdrive, uint8_t *data,
                                unsigned int secondary)
 {
     bufferinfo_t *p = &(vdrive->buffers[secondary]);
@@ -721,7 +723,7 @@ static int iec_read_sequential(vdrive_t *vdrive, BYTE *data,
     return SERIAL_OK;
 }
 
-int vdrive_iec_read(vdrive_t *vdrive, BYTE *data, unsigned int secondary)
+int vdrive_iec_read(vdrive_t *vdrive, uint8_t *data, unsigned int secondary)
 {
     bufferinfo_t *p = &(vdrive->buffers[secondary]);
     int status = SERIAL_OK;
@@ -789,7 +791,7 @@ int vdrive_iec_read(vdrive_t *vdrive, BYTE *data, unsigned int secondary)
 
 /* ------------------------------------------------------------------------- */
 
-int vdrive_iec_write(vdrive_t *vdrive, BYTE data, unsigned int secondary)
+int vdrive_iec_write(vdrive_t *vdrive, uint8_t data, unsigned int secondary)
 {
     bufferinfo_t *p = &(vdrive->buffers[secondary]);
 
@@ -850,7 +852,7 @@ int vdrive_iec_write(vdrive_t *vdrive, BYTE data, unsigned int secondary)
             break;
         default:
             log_error(vdrive_iec_log, "Fatal: Unknown write mode.");
-            exit(-1);
+            archdep_vice_exit(-1);
     }
     return SERIAL_OK;
 }

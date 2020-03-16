@@ -159,7 +159,7 @@ void ted_irq_set_raster_line(unsigned int line)
     ted.raster_irq_line = line;
 }
 
-void ted_irq_check_state(BYTE value, unsigned int high)
+void ted_irq_check_state(uint8_t value, unsigned int high)
 {
     unsigned int irq_line, line, user_irq_line;
     unsigned int old_raster_irq_line;

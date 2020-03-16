@@ -58,14 +58,14 @@ static void dd3_set_pa(mc6821_state *ctx)
     /* DBG(("DD3 (%d) 6821 PA WR %02x\n", dnr, ctx->dataA)); */
 }
 
-static BYTE dd3_get_pa(mc6821_state *ctx)
+static uint8_t dd3_get_pa(mc6821_state *ctx)
 {
     unsigned int dnr = (unsigned int)(((drive_context_t *)(ctx->p))->mynumber);
-    BYTE data;
+    uint8_t data;
     int hs = 0;
 
     /* output all pins that are in input mode as 1 first */
-    parallel_cable_drive_write(DRIVE_PC_DD3, (BYTE)((~ctx->ddrA) | ctx->dataA), PARALLEL_WRITE, dnr);
+    parallel_cable_drive_write(DRIVE_PC_DD3, (uint8_t)((~ctx->ddrA) | ctx->dataA), PARALLEL_WRITE, dnr);
 
     /* FIXME: this is an ugly hack */
     hs = 0;
@@ -91,9 +91,9 @@ static void dd3_set_pb(mc6821_state *ctx)
     DBG(("DD3 6821 PB WR %02x\n", ctx->dataB));
 }
 
-static BYTE dd3_get_pb(mc6821_state *ctx)
+static uint8_t dd3_get_pb(mc6821_state *ctx)
 {
-    BYTE data = 0xff; /* unconnected pins return 1 */
+    uint8_t data = 0xff; /* unconnected pins return 1 */
     DBG(("DD3 6821 PB RD %02x\n", data));
     return data;
 }
@@ -106,7 +106,7 @@ static void dd3_set_cb2(mc6821_state *ctx)
 
 /*-----------------------------------------------------------------------*/
 
-static void mc6821_store(drive_context_t *drv, WORD addr, BYTE byte)
+static void mc6821_store(drive_context_t *drv, uint16_t addr, uint8_t byte)
 {
     int port, reg;
 
@@ -115,7 +115,7 @@ static void mc6821_store(drive_context_t *drv, WORD addr, BYTE byte)
     mc6821core_store(&my6821[drv->mynumber], port /* rs1 */, reg /* rs0 */, byte);
 }
 
-static BYTE mc6821_read(drive_context_t *drv, WORD addr)
+static uint8_t mc6821_read(drive_context_t *drv, uint16_t addr)
 {
     int port, reg;
 
@@ -124,7 +124,7 @@ static BYTE mc6821_read(drive_context_t *drv, WORD addr)
     return mc6821core_read(&my6821[drv->mynumber], port /* rs1 */, reg /* rs0 */);
 }
 
-static BYTE mc6821_peek(drive_context_t *drv, WORD addr)
+static uint8_t mc6821_peek(drive_context_t *drv, uint16_t addr)
 {
     int port, reg;
 

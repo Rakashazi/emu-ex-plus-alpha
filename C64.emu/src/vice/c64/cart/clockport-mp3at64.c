@@ -39,10 +39,12 @@
 #ifdef MP3AT64_DEBUG
 #include "log.h"
 #endif
+#include "monitor.h"
 #include "sound.h"
-#include "translate.h"
 #include "types.h"
 #include "uiapi.h"
+
+#include "clockport-mp3at64.h"
 
 /* ------------------------------------------------------------------------- */
 /*    variables needed                                                       */
@@ -53,9 +55,9 @@
 
 static char *clockport_mp3at64_owner = NULL;
 
-static BYTE mp3_frame_buffer[MP3_INPUT_MAX_FRAME];
+static uint8_t mp3_frame_buffer[MP3_INPUT_MAX_FRAME];
 
-static SWORD *mp3_output_buffers[MP3_BUFFERS];
+static int16_t *mp3_output_buffers[MP3_BUFFERS];
 static int mp3_output_buffers_size[MP3_BUFFERS];
 static int mp3_output_sample_pos = 0;
 
@@ -83,7 +85,7 @@ static int mp3_input_padding = 0;
 #define MP3_INPUT_STATE_ID3          6
 
 static int mp3_input_data_state = MP3_INPUT_STATE_IDLE;
-static BYTE mp3_id3_length[4];
+static uint8_t mp3_id3_length[4];
 static int mp3_id3_len = 0;
 
 /* ------------------------------------------------------------------------- */
@@ -102,7 +104,7 @@ static int mp3_get_free_buffer(void)
 
 static void mp3_mono_to_stereo(int block)
 {
-    SWORD *buffer = lib_malloc(mp3_output_buffers_size[block] * 2);
+    int16_t *buffer = lib_malloc(mp3_output_buffers_size[block] * 2);
     int i;
 
     for (i = 0; i < mp3_output_buffers_size[block]; ++i) {
@@ -118,7 +120,7 @@ static void mp3_resample(int block, int current_rate)
 {
     int i;
     int new_size = mp3_output_buffers_size[block] * mp3_output_rate / current_rate;
-    SWORD *buffer = lib_malloc(new_size);
+    int16_t *buffer = lib_malloc(new_size);
 
     for (i = 0; i < new_size; ++i) {
         buffer[i] = mp3_output_buffers[block][i * current_rate / mp3_output_rate];
@@ -128,7 +130,7 @@ static void mp3_resample(int block, int current_rate)
     mp3_output_buffers_size[block] = new_size;
 }
 
-void mp3at64_reset(void)
+static void mp3at64_reset(void)
 {
     int i;
 
@@ -143,9 +145,9 @@ void mp3at64_reset(void)
     mp3_input_data_state = MP3_INPUT_STATE_IDLE;
 }
 
-static SWORD mp3_get_current_sample(void)
+static int16_t mp3_get_current_sample(void)
 {
-    SWORD retval = 0;
+    int16_t retval = 0;
     int i;
 
     if (mp3_output_buffers_size[0]) {
@@ -167,7 +169,7 @@ static SWORD mp3_get_current_sample(void)
 
 /* Some prototypes are needed */
 static int clockport_mp3at64_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
-static int clockport_mp3at64_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int sound_output_channels, int sound_chip_channels, int *delta_t);
+static int clockport_mp3at64_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, int *delta_t);
 static void clockport_mp3at64_sound_reset(sound_t *psid, CLOCK cpu_clk);
 static void clockport_mp3at64_sound_machine_close(sound_t *psid);
 
@@ -181,20 +183,21 @@ static int clockport_mp3at64_sound_machine_channels(void)
     return 1;
 }
 
+/* ClockPort MP3@64 sound chip */
 static sound_chip_t clockport_mp3at64_sound_chip = {
-    NULL, /* no open */
-    clockport_mp3at64_sound_machine_init,
-    clockport_mp3at64_sound_machine_close,
-    clockport_mp3at64_sound_machine_calculate_samples,
-    NULL, /* no store */
-    NULL, /* no read */
-    clockport_mp3at64_sound_reset,
-    clockport_mp3at64_sound_machine_cycle_based,
-    clockport_mp3at64_sound_machine_channels,
-    0 /* chip enabled */
+    NULL,                                              /* NO sound chip open function */ 
+    clockport_mp3at64_sound_machine_init,              /* sound chip init function */
+    clockport_mp3at64_sound_machine_close,             /* sound chip close function */
+    clockport_mp3at64_sound_machine_calculate_samples, /* sound chip calculate samples function */
+    NULL,                                              /* NO sound chip store function */
+    NULL,                                              /* NO sound chip read function */
+    clockport_mp3at64_sound_reset,                     /* sound chip reset function */
+    clockport_mp3at64_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, sound chip is NOT cycle based */
+    clockport_mp3at64_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+    0                                                  /* chip enabled, toggled when sound chip is (de-)activated */
 };
 
-static WORD clockport_mp3at64_sound_chip_offset = 0;
+static uint16_t clockport_mp3at64_sound_chip_offset = 0;
 
 void clockport_mp3at64_sound_chip_init(void)
 {
@@ -235,10 +238,10 @@ static void clockport_mp3at64_sound_machine_close(sound_t *psid)
     }
 }
 
-static int clockport_mp3at64_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int soc, int scc, int *delta_t)
+static int clockport_mp3at64_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, int *delta_t)
 {
     int i;
-    SWORD sample;
+    int16_t sample;
 
     for (i = 0; i < nr; ++i) {
         switch (soc) {
@@ -263,23 +266,23 @@ static void clockport_mp3at64_sound_reset(sound_t *psid, CLOCK cpu_clk)
 
 /* ------------------------------------------------------------------------- */
 
-static void mp3at64_set_i2c_data(BYTE val)
+static void mp3at64_set_i2c_data(uint8_t val)
 {
     /* TODO */
 }
 
-static void mp3at64_set_i2c_clock(BYTE val)
+static void mp3at64_set_i2c_clock(uint8_t val)
 {
     /* TODO */
 }
 
-static BYTE mp3at64_read_i2c_data(void)
+static uint8_t mp3at64_read_i2c_data(void)
 {
     /* TODO */
     return 0;
 }
 
-static BYTE mp3at64_read_i2c_clock(void)
+static uint8_t mp3at64_read_i2c_clock(void)
 {
     /* TODO */
     return 0;
@@ -420,9 +423,9 @@ static int mp3_frame_is_empty(void)
 
 /* ------------------------------------------------------------------------- */
 
-static void mp3at64_store_mp3_data(BYTE val)
+static void mp3at64_store_mp3_data(uint8_t val)
 {
-    SWORD *buffer = NULL;
+    int16_t *buffer = NULL;
     int block;
     int ret;
     size_t size;
@@ -602,7 +605,7 @@ static void mp3at64_store_mp3_data(BYTE val)
                         } else {
                             block = mp3_get_free_buffer();
                             if (block != -1) {
-                                buffer = lib_malloc(MP3_MAX_SAMPLES_PER_FRAME * sizeof(SWORD) * 2);
+                                buffer = lib_malloc(MP3_MAX_SAMPLES_PER_FRAME * sizeof(int16_t) * 2);
                                 ret = mpg123_decode(mh, mp3_frame_buffer, mp3_input_frame_size, (unsigned char *)buffer, MP3_MAX_SAMPLES_PER_FRAME * 2, &size);
                                 if (ret != MPG123_ERR && ret != MPG123_NEED_MORE) {
                                     mp3_output_buffers[block] = buffer;
@@ -624,7 +627,7 @@ static void mp3at64_store_mp3_data(BYTE val)
     }
 }
 
-static BYTE mp3at64_read_mp3_status(void)
+static uint8_t mp3at64_read_mp3_status(void)
 {
     if (mp3_get_free_buffer() != -1) {
         return 0x80;
@@ -634,7 +637,7 @@ static BYTE mp3at64_read_mp3_status(void)
 
 /* ------------------------------------------------------------------------- */
 
-static void clockport_mp3at64_store(WORD address, BYTE val, void *context)
+static void clockport_mp3at64_store(uint16_t address, uint8_t val, void *context)
 {
     switch (address) {
         case 4:
@@ -655,7 +658,7 @@ static void clockport_mp3at64_store(WORD address, BYTE val, void *context)
     }
 }
 
-static BYTE clockport_mp3at64_read(WORD address, int *valid, void *context)
+static uint8_t clockport_mp3at64_read(uint16_t address, int *valid, void *context)
 {
     switch (address) {
         case 4:
@@ -673,7 +676,7 @@ static BYTE clockport_mp3at64_read(WORD address, int *valid, void *context)
     return 0;
 }
 
-static BYTE clockport_mp3at64_peek(WORD address, void *context)
+static uint8_t clockport_mp3at64_peek(uint16_t address, void *context)
 {
     switch (address) {
         case 4:
@@ -694,6 +697,8 @@ static void clockport_mp3at64_reset(void *context)
 static int clockport_mp3at64_dump(void *context)
 {
     /* TODO */
+    /* FIXME: this is incomplete */
+    mon_out("mp3 status: $%02x\n", mp3at64_read_mp3_status());
     return 0;
 }
 
@@ -720,11 +725,11 @@ void clockport_mp3at64_shutdown(void)
     mp3at64_reset();
 }
 
-clockport_device_t *clockport_mp3at64_open_device(char *owner)
+clockport_device_t *clockport_mp3at64_open_device(const char *owner)
 {
     clockport_device_t *retval = NULL;
     if (clockport_mp3at64_sound_chip.chip_enabled) {
-        ui_error(translate_text(IDGS_CLOCKPORT_MP3AT64_IN_USE_BY_S), clockport_mp3at64_owner);
+        ui_error("ClockPort MP3@64 already in use by %s.", clockport_mp3at64_owner);
         return NULL;
     }
     retval = lib_malloc(sizeof(clockport_device_t));

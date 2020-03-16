@@ -55,11 +55,11 @@
    multi-dimensional arrays as we can optimize better this way...  */
 
 /* foreground(4) | background(4) | nibble(4) -> 4 pixels.  */
-static DWORD hr_table[16 * 16 * 16];
+static uint32_t hr_table[16 * 16 * 16];
 
 /* mc flag(1) | idx(2) | byte(8) -> index into double-pixel table.  */
-static BYTE mc_table[2 * 4 * 256];
-static BYTE mcmsktable[512];
+static uint8_t mc_table[2 * 4 * 256];
+static uint8_t mcmsktable[512];
 
 
 /* These functions draw the background from `start_pixel' to `end_pixel'.  */
@@ -67,10 +67,10 @@ static BYTE mcmsktable[512];
 static void draw_std_background(unsigned int start_pixel,
                                 unsigned int end_pixel)
 {
-    BYTE background_color;
+    uint8_t background_color;
     unsigned int gfxstart, gfxend;
 
-    background_color = (BYTE)vicii.raster.background_color;
+    background_color = (uint8_t)vicii.raster.background_color;
 
     if (VICII_IS_ILLEGAL_MODE(vicii.raster.video_mode)) {
         background_color = 0;
@@ -167,8 +167,8 @@ static void draw_idle_std_background(unsigned int start_pixel,
    anyway.  */
 
 #ifndef ALLOW_UNALIGNED_ACCESS
-static DWORD _aligned_line_buffer[VICII_SCREEN_XPIX / 2 + 1];
-static BYTE *const aligned_line_buffer = (BYTE *)_aligned_line_buffer;
+static uint32_t _aligned_line_buffer[VICII_SCREEN_XPIX / 2 + 1];
+static uint8_t *const aligned_line_buffer = (uint8_t *)_aligned_line_buffer;
 #endif
 
 
@@ -217,14 +217,14 @@ static int get_std_text(raster_cache_t *cache, unsigned int *xs,
     return r;
 }
 
-inline static void _draw_std_text(BYTE *p, unsigned int xs, unsigned int xe,
-                                  BYTE *gfx_msk_ptr)
+inline static void _draw_std_text(uint8_t *p, unsigned int xs, unsigned int xe,
+                                  uint8_t *gfx_msk_ptr)
 {
-    BYTE *char_ptr, *msk_ptr;
+    uint8_t *char_ptr, *msk_ptr;
     unsigned int i;
-    BYTE cmask;
-    BYTE fcolor;
-    BYTE bcolor;
+    uint8_t cmask;
+    uint8_t fcolor;
+    uint8_t bcolor;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     char_ptr = vicii.chargen_ptr + vicii.raster.ycounter;
@@ -245,15 +245,15 @@ inline static void _draw_std_text(BYTE *p, unsigned int xs, unsigned int xe,
     }
 }
 
-inline static void _draw_std_text_cached(BYTE *p, unsigned int xs,
+inline static void _draw_std_text_cached(uint8_t *p, unsigned int xs,
                                          unsigned int xe,
                                          raster_cache_t *cache)
 {
-    BYTE *msk_ptr, *foreground_data, *color_data;
+    uint8_t *msk_ptr, *foreground_data, *color_data;
     unsigned int i;
-    BYTE cmask;
-    BYTE fcolor;
-    BYTE bcolor;
+    uint8_t cmask;
+    uint8_t fcolor;
+    uint8_t bcolor;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     msk_ptr = cache->gfx_msk + GFX_MSK_LEFTBORDER_SIZE;
@@ -318,8 +318,8 @@ static void draw_std_text(void)
 static void draw_std_text_foreground(unsigned int start_char, unsigned int end_char)
 {
     unsigned int i;
-    BYTE *char_ptr, *msk_ptr, *p;
-    BYTE cmask;
+    uint8_t *char_ptr, *msk_ptr, *p;
+    uint8_t cmask;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     char_ptr = vicii.chargen_ptr + vicii.raster.ycounter;
@@ -327,7 +327,7 @@ static void draw_std_text_foreground(unsigned int start_char, unsigned int end_c
     p = GFX_PTR() + 8 * start_char;
 
     for (i = start_char; i <= end_char; i++, p += 8) {
-        BYTE b, f;
+        uint8_t b, f;
 
         b = char_ptr[vicii.vbuf[i - vicii.buf_offset] * 8];
 
@@ -378,11 +378,11 @@ static int get_hires_bitmap(raster_cache_t *cache, unsigned int *xs,
     return r;
 }
 
-inline static void _draw_hires_bitmap(BYTE *p, unsigned int xs,
-                                      unsigned int xe, BYTE *gfx_msk_ptr)
+inline static void _draw_hires_bitmap(uint8_t *p, unsigned int xs,
+                                      unsigned int xe, uint8_t *gfx_msk_ptr)
 {
-    BYTE *bmptr_low, *bmptr_high, *msk_ptr;
-    BYTE bmval;
+    uint8_t *bmptr_low, *bmptr_high, *msk_ptr;
+    uint8_t bmval;
     unsigned int i, j;
 
     bmptr_low = vicii.bitmap_low_ptr;
@@ -391,8 +391,8 @@ inline static void _draw_hires_bitmap(BYTE *p, unsigned int xs,
 
     for (j = ((vicii.memptr << 3) + vicii.raster.ycounter + xs * 8) & 0x1fff, i = xs;
          i <= xe; i++, j = (j + 8) & 0x1fff) {
-        BYTE fcolor;
-        BYTE bcolor;
+        uint8_t fcolor;
+        uint8_t bcolor;
 
         if (j & 0x1000) {
             bmval = bmptr_high[j & 0xfff];
@@ -414,16 +414,16 @@ inline static void _draw_hires_bitmap(BYTE *p, unsigned int xs,
     }
 }
 
-inline static void _draw_hires_bitmap_cached(BYTE *p, unsigned int xs,
+inline static void _draw_hires_bitmap_cached(uint8_t *p, unsigned int xs,
                                              unsigned int xe,
                                              raster_cache_t *cache)
 {
-    BYTE *foreground_data, *background_data, *msk_ptr;
+    uint8_t *foreground_data, *background_data, *msk_ptr;
     unsigned int i;
 
-    BYTE bmval;
-    BYTE fcolor;
-    BYTE bcolor;
+    uint8_t bmval;
+    uint8_t fcolor;
+    uint8_t bcolor;
 
     foreground_data = cache->foreground_data;
     background_data = cache->background_data;
@@ -457,12 +457,12 @@ static void draw_hires_bitmap_cached(raster_cache_t *cache, unsigned int xs,
     ALIGN_DRAW_FUNC(_draw_hires_bitmap_cached, xs, xe, cache);
 }
 
-inline static void _draw_hires_bitmap_foreground(BYTE *p, unsigned int xs,
+inline static void _draw_hires_bitmap_foreground(uint8_t *p, unsigned int xs,
                                                  unsigned int xe,
-                                                 BYTE *gfx_msk_ptr)
+                                                 uint8_t *gfx_msk_ptr)
 {
-    BYTE *bmptr_low, *bmptr_high, *msk_ptr;
-    BYTE bmval;
+    uint8_t *bmptr_low, *bmptr_high, *msk_ptr;
+    uint8_t bmval;
     unsigned int i, j;
 
     bmptr_low = vicii.bitmap_low_ptr;
@@ -471,8 +471,8 @@ inline static void _draw_hires_bitmap_foreground(BYTE *p, unsigned int xs,
 
     for (j = ((vicii.memptr << 3) + vicii.raster.ycounter + xs * 8) & 0x1fff, i = xs;
          i <= xe; i++, j = (j + 8) & 0x1fff) {
-        BYTE fcolor;
-        BYTE bcolor;
+        uint8_t fcolor;
+        uint8_t bcolor;
 
         if (vicii.raster.last_video_mode == VICII_ILLEGAL_BITMAP_MODE_1) {
             j &= 0x19ff;
@@ -485,7 +485,7 @@ inline static void _draw_hires_bitmap_foreground(BYTE *p, unsigned int xs,
         }
 
         if (vicii.raster.last_video_mode == VICII_NORMAL_TEXT_MODE) {
-            BYTE *char_ptr = vicii.chargen_ptr + vicii.raster.ycounter;
+            uint8_t *char_ptr = vicii.chargen_ptr + vicii.raster.ycounter;
             bmval = char_ptr[vicii.vbuf[i - vicii.buf_offset] * 8];
         }
 
@@ -543,14 +543,14 @@ static int get_mc_text(raster_cache_t *cache, unsigned int *xs,
     return r;
 }
 
-inline static void _draw_mc_text(BYTE *p, unsigned int xs, unsigned int xe,
-                                 BYTE *gfx_msk_ptr)
+inline static void _draw_mc_text(uint8_t *p, unsigned int xs, unsigned int xe,
+                                 uint8_t *gfx_msk_ptr)
 {
-    BYTE c[12];
-    BYTE *char_ptr, *msk_ptr;
-    WORD *ptmp;
+    uint8_t c[12];
+    uint8_t *char_ptr, *msk_ptr;
+    uint16_t *ptmp;
     unsigned int i;
-    BYTE cmask;
+    uint8_t cmask;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     char_ptr = vicii.chargen_ptr + vicii.raster.ycounter;
@@ -561,7 +561,7 @@ inline static void _draw_mc_text(BYTE *p, unsigned int xs, unsigned int xe,
     c[5] = c[4] = vicii.ext_background_color[1];
     c[11] = c[8] = vicii.raster.background_color;
 
-    ptmp = (WORD *)(p + xs * 8);
+    ptmp = (uint16_t *)(p + xs * 8);
 
     for (i = xs; i <= xe; i++) {
         unsigned int d;
@@ -571,22 +571,22 @@ inline static void _draw_mc_text(BYTE *p, unsigned int xs, unsigned int xe,
 
         *(msk_ptr + i) = mcmsktable[d];
         c[10] = c[9] = c[7] = c[6] = vicii.dtvpalette[vicii.cbuf[i] & cmask & 0xf7];
-        ptmp[0] = ((WORD *)c)[mc_table[d]];
-        ptmp[1] = ((WORD *)c)[mc_table[0x200 + d]];
-        ptmp[2] = ((WORD *)c)[mc_table[0x400 + d]];
-        ptmp[3] = ((WORD *)c)[mc_table[0x600 + d]];
+        ptmp[0] = ((uint16_t *)c)[mc_table[d]];
+        ptmp[1] = ((uint16_t *)c)[mc_table[0x200 + d]];
+        ptmp[2] = ((uint16_t *)c)[mc_table[0x400 + d]];
+        ptmp[3] = ((uint16_t *)c)[mc_table[0x600 + d]];
         ptmp += 4;
     }
 }
 
-inline static void _draw_mc_text_cached(BYTE *p, unsigned int xs,
+inline static void _draw_mc_text_cached(uint8_t *p, unsigned int xs,
                                         unsigned int xe, raster_cache_t *cache)
 {
-    BYTE c[12];
-    BYTE *foreground_data, *color_data_3, *msk_ptr;
-    WORD *ptmp;
+    uint8_t c[12];
+    uint8_t *foreground_data, *color_data_3, *msk_ptr;
+    uint16_t *ptmp;
     unsigned int i;
-    BYTE cmask;
+    uint8_t cmask;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     foreground_data = cache->foreground_data;
@@ -598,7 +598,7 @@ inline static void _draw_mc_text_cached(BYTE *p, unsigned int xs,
     c[5] = c[4] = cache->color_data_1[1];
     c[11] = c[8] = cache->background_data[0];
 
-    ptmp = (WORD *)(p + xs * 8);
+    ptmp = (uint16_t *)(p + xs * 8);
 
     for (i = xs; i <= xe; i++) {
         unsigned int d;
@@ -607,10 +607,10 @@ inline static void _draw_mc_text_cached(BYTE *p, unsigned int xs,
 
         *(msk_ptr + i) = mcmsktable[d];
         c[10] = c[9] = c[7] = c[6] = vicii.dtvpalette[color_data_3[i] & cmask & 0xf7];
-        ptmp[0] = ((WORD *)c)[mc_table[d]];
-        ptmp[1] = ((WORD *)c)[mc_table[0x200 + d]];
-        ptmp[2] = ((WORD *)c)[mc_table[0x400 + d]];
-        ptmp[3] = ((WORD *)c)[mc_table[0x600 + d]];
+        ptmp[0] = ((uint16_t *)c)[mc_table[d]];
+        ptmp[1] = ((uint16_t *)c)[mc_table[0x200 + d]];
+        ptmp[2] = ((uint16_t *)c)[mc_table[0x400 + d]];
+        ptmp[3] = ((uint16_t *)c)[mc_table[0x600 + d]];
         ptmp += 4;
     }
 }
@@ -673,11 +673,11 @@ static void draw_mc_text_cached(raster_cache_t *cache, unsigned int xs,
 
 static void draw_mc_text_foreground(unsigned int start_char, unsigned int end_char)
 {
-    BYTE *char_ptr, *msk_ptr;
-    BYTE c1, c2;
-    BYTE *p;
+    uint8_t *char_ptr, *msk_ptr;
+    uint8_t c1, c2;
+    uint8_t *p;
     unsigned int i;
-    BYTE cmask;
+    uint8_t cmask;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     char_ptr = vicii.chargen_ptr + vicii.raster.ycounter;
@@ -687,7 +687,7 @@ static void draw_mc_text_foreground(unsigned int start_char, unsigned int end_ch
     p = GFX_PTR() + 8 * start_char;
 
     for (i = start_char; i <= end_char; i++, p += 8) {
-        BYTE b, c;
+        uint8_t b, c;
 
         c = vicii.cbuf[i - vicii.buf_offset];
         if (vicii.raster.last_video_mode == VICII_MULTICOLOR_BITMAP_MODE) {
@@ -703,8 +703,8 @@ static void draw_mc_text_foreground(unsigned int start_char, unsigned int end_ch
         }
 
         if (c & 0x8) {
-            BYTE c3;
-            BYTE orig_background = *p;
+            uint8_t c3;
+            uint8_t orig_background = *p;
 
             c3 = vicii.dtvpalette[c & cmask & 0xf7];
             DRAW_MC_BYTE(p, b, c1, c2, c3);
@@ -717,12 +717,12 @@ static void draw_mc_text_foreground(unsigned int start_char, unsigned int end_ch
                     *(p + 7 - j) = orig_background;
                 }
 
-                *(msk_ptr + i) = (BYTE)((mcmsktable[0x100 + b]
+                *(msk_ptr + i) = (uint8_t)((mcmsktable[0x100 + b]
                                          >> vicii.raster.xsmooth_shift_left)
                                         << vicii.raster.xsmooth_shift_left);
             }
         } else {
-            BYTE c3;
+            uint8_t c3;
 
             if (vicii.raster.xsmooth_shift_left > 0) {
                 b = (b >> vicii.raster.xsmooth_shift_left)
@@ -769,13 +769,13 @@ static int get_mc_bitmap(raster_cache_t *cache, unsigned int *xs,
     return r;
 }
 
-inline static void _draw_mc_bitmap(BYTE *p, unsigned int xs, unsigned int xe,
-                                   BYTE *gfx_msk_ptr)
+inline static void _draw_mc_bitmap(uint8_t *p, unsigned int xs, unsigned int xe,
+                                   uint8_t *gfx_msk_ptr)
 {
-    BYTE *colptr, *bmptr_low, *bmptr_high, *msk_ptr, *ptmp;
-    BYTE c[4];
+    uint8_t *colptr, *bmptr_low, *bmptr_high, *msk_ptr, *ptmp;
+    uint8_t c[4];
     unsigned int i, j;
-    BYTE cmask;
+    uint8_t cmask;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     colptr = vicii.cbuf;
@@ -814,15 +814,15 @@ inline static void _draw_mc_bitmap(BYTE *p, unsigned int xs, unsigned int xe,
     }
 }
 
-inline static void _draw_mc_bitmap_cached(BYTE *p, unsigned int xs,
+inline static void _draw_mc_bitmap_cached(uint8_t *p, unsigned int xs,
                                           unsigned int xe,
                                           raster_cache_t *cache)
 {
-    BYTE *foreground_data, *color_data_1, *color_data_3;
-    BYTE *msk_ptr, *ptmp;
-    BYTE c[4];
+    uint8_t *foreground_data, *color_data_1, *color_data_3;
+    uint8_t *msk_ptr, *ptmp;
+    uint8_t c[4];
     unsigned int i;
-    BYTE cmask;
+    uint8_t cmask;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     foreground_data = cache->foreground_data;
@@ -872,9 +872,9 @@ static void draw_mc_bitmap_cached(raster_cache_t *cache, unsigned int xs,
 static void draw_mc_bitmap_foreground(unsigned int start_char,
                                       unsigned int end_char)
 {
-    BYTE *p, *bmptr_low, *bmptr_high, *msk_ptr;
+    uint8_t *p, *bmptr_low, *bmptr_high, *msk_ptr;
     unsigned int i, j;
-    BYTE cmask;
+    uint8_t cmask;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     p = GFX_PTR() + 8 * start_char;
@@ -885,9 +885,9 @@ static void draw_mc_bitmap_foreground(unsigned int start_char,
     for (j = ((vicii.memptr << 3)
               + vicii.raster.ycounter + 8 * start_char) & 0x1fff,
          i = start_char; i <= end_char; j = (j + 8) & 0x1fff, i++, p += 8) {
-        BYTE c1, c2, c3;
-        BYTE b;
-        BYTE orig_background = *p;
+        uint8_t c1, c2, c3;
+        uint8_t b;
+        uint8_t orig_background = *p;
 
         c1 = vicii.vbuf[i - vicii.buf_offset] >> 4;
         c2 = vicii.vbuf[i - vicii.buf_offset] & 0xf;
@@ -908,7 +908,7 @@ static void draw_mc_bitmap_foreground(unsigned int start_char,
         }
 
         if (vicii.raster.last_video_mode == VICII_MULTICOLOR_TEXT_MODE) {
-            BYTE *char_ptr = vicii.chargen_ptr + vicii.raster.ycounter;
+            uint8_t *char_ptr = vicii.chargen_ptr + vicii.raster.ycounter;
             b = char_ptr[vicii.vbuf[i - vicii.buf_offset] * 8];
         }
 
@@ -916,13 +916,12 @@ static void draw_mc_bitmap_foreground(unsigned int start_char,
         DRAW_MC_BYTE(p, b, c1, c2, c3);
 
         if (vicii.raster.xsmooth_shift_left > 0) {
-            int j;
 
             for (j = 0; j < vicii.raster.xsmooth_shift_left; j++) {
                 *(p + 7 - j) = orig_background;
             }
 
-            *(msk_ptr + i) = (BYTE)((mcmsktable[0x100 + b]
+            *(msk_ptr + i) = (uint8_t)((mcmsktable[0x100 + b]
                                      >> vicii.raster.xsmooth_shift_left)
                                     << vicii.raster.xsmooth_shift_left);
         }
@@ -967,12 +966,12 @@ static int get_ext_text(raster_cache_t *cache, unsigned int *xs,
     return r;
 }
 
-inline static void _draw_ext_text(BYTE *p, unsigned int xs, unsigned int xe,
-                                  BYTE *gfx_msk_ptr)
+inline static void _draw_ext_text(uint8_t *p, unsigned int xs, unsigned int xe,
+                                  uint8_t *gfx_msk_ptr)
 {
-    BYTE *char_ptr, *msk_ptr;
+    uint8_t *char_ptr, *msk_ptr;
     unsigned int i;
-    BYTE cmask;
+    uint8_t cmask;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     char_ptr = vicii.chargen_ptr + vicii.raster.ycounter;
@@ -982,14 +981,14 @@ inline static void _draw_ext_text(BYTE *p, unsigned int xs, unsigned int xe,
         int bg_idx;
         int d;
 
-        BYTE fcolor;
-        BYTE bcolor;
+        uint8_t fcolor;
+        uint8_t bcolor;
 
         bg_idx = vicii.vbuf[i] >> 6;
         d = *(char_ptr + (vicii.vbuf[i] & 0x3f) * 8);
 
         fcolor = vicii.dtvpalette[vicii.cbuf[i] & cmask];
-        bcolor = (bg_idx == 0) ? (BYTE)vicii.raster.background_color : vicii.ext_background_color[bg_idx - 1];
+        bcolor = (bg_idx == 0) ? (uint8_t)vicii.raster.background_color : vicii.ext_background_color[bg_idx - 1];
         *(msk_ptr + i) = d;
         *(p + i * 8 + 0) = (d & 0x80) ? fcolor : bcolor;
         *(p + i * 8 + 1) = (d & 0x40) ? fcolor : bcolor;
@@ -1002,14 +1001,14 @@ inline static void _draw_ext_text(BYTE *p, unsigned int xs, unsigned int xe,
     }
 }
 
-inline static void _draw_ext_text_cached(BYTE *p, unsigned int xs,
+inline static void _draw_ext_text_cached(uint8_t *p, unsigned int xs,
                                          unsigned int xe,
                                          raster_cache_t *cache)
 {
-    BYTE *foreground_data, *color_data_1, *color_data_2, *color_data_3;
-    BYTE *msk_ptr;
+    uint8_t *foreground_data, *color_data_1, *color_data_2, *color_data_3;
+    uint8_t *msk_ptr;
     unsigned int i;
-    BYTE cmask;
+    uint8_t cmask;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     foreground_data = cache->foreground_data;
@@ -1019,11 +1018,11 @@ inline static void _draw_ext_text_cached(BYTE *p, unsigned int xs,
     msk_ptr = cache->gfx_msk + GFX_MSK_LEFTBORDER_SIZE;
 
     for (i = xs; i <= xe; i++) {
-        DWORD *ptr;
+        uint32_t *ptr;
         int d;
 
-        BYTE fcolor;
-        BYTE bcolor;
+        uint8_t fcolor;
+        uint8_t bcolor;
 
         ptr = hr_table + (color_data_1[i] << 8);
         d = foreground_data[i];
@@ -1060,8 +1059,8 @@ static void draw_ext_text_foreground(unsigned int start_char,
                                      unsigned int end_char)
 {
     unsigned int i;
-    BYTE *char_ptr, *msk_ptr, *p;
-    BYTE cmask;
+    uint8_t *char_ptr, *msk_ptr, *p;
+    uint8_t cmask;
     cmask = (vicii.high_color) ? 0xff : 0x0f;
 
     char_ptr = vicii.chargen_ptr + vicii.raster.ycounter;
@@ -1069,7 +1068,7 @@ static void draw_ext_text_foreground(unsigned int start_char,
     p = GFX_PTR() + 8 * start_char;
 
     for (i = start_char; i <= end_char; i++, p += 8) {
-        BYTE b, f;
+        uint8_t b, f;
         int bg_idx;
 
         b = char_ptr[(vicii.vbuf[i - vicii.buf_offset] & 0x3f) * 8];
@@ -1130,10 +1129,10 @@ static int get_illegal_text(raster_cache_t *cache, unsigned int *xs,
     return r;
 }
 
-inline static void _draw_illegal_text(BYTE *p, unsigned int xs,
-                                      unsigned int xe, BYTE *gfx_msk_ptr)
+inline static void _draw_illegal_text(uint8_t *p, unsigned int xs,
+                                      unsigned int xe, uint8_t *gfx_msk_ptr)
 {
-    BYTE *char_ptr, *msk_ptr;
+    uint8_t *char_ptr, *msk_ptr;
     unsigned int i;
 
     char_ptr = vicii.chargen_ptr + vicii.raster.ycounter;
@@ -1151,11 +1150,11 @@ inline static void _draw_illegal_text(BYTE *p, unsigned int xs,
     }
 }
 
-inline static void _draw_illegal_text_cached(BYTE *p, unsigned int xs,
+inline static void _draw_illegal_text_cached(uint8_t *p, unsigned int xs,
                                              unsigned int xe,
                                              raster_cache_t *cache)
 {
-    BYTE *foreground_data, *color_data_1, *msk_ptr;
+    uint8_t *foreground_data, *color_data_1, *msk_ptr;
     unsigned int i;
 
     foreground_data = cache->foreground_data;
@@ -1188,7 +1187,7 @@ static void draw_illegal_text_cached(raster_cache_t *cache, unsigned int xs,
 static void draw_illegal_text_foreground(unsigned int start_char,
                                          unsigned int end_char)
 {
-    BYTE *char_ptr, *msk_ptr, *p;
+    uint8_t *char_ptr, *msk_ptr, *p;
     unsigned int i;
 
     char_ptr = vicii.chargen_ptr + vicii.raster.ycounter;
@@ -1231,12 +1230,12 @@ static int get_illegal_bitmap_mode1(raster_cache_t *cache, unsigned int *xs,
     return r;
 }
 
-inline static void _draw_illegal_bitmap_mode1(BYTE *p, unsigned int xs,
+inline static void _draw_illegal_bitmap_mode1(uint8_t *p, unsigned int xs,
                                               unsigned int xe,
-                                              BYTE *gfx_msk_ptr)
+                                              uint8_t *gfx_msk_ptr)
 {
-    BYTE *bmptr_low, *bmptr_high, *msk_ptr;
-    BYTE bmval;
+    uint8_t *bmptr_low, *bmptr_high, *msk_ptr;
+    uint8_t bmval;
     unsigned int i, j;
 
     bmptr_low = vicii.bitmap_low_ptr;
@@ -1257,11 +1256,11 @@ inline static void _draw_illegal_bitmap_mode1(BYTE *p, unsigned int xs,
     }
 }
 
-inline static void _draw_illegal_bitmap_mode1_cached(BYTE *p, unsigned int xs,
+inline static void _draw_illegal_bitmap_mode1_cached(uint8_t *p, unsigned int xs,
                                                      unsigned int xe,
                                                      raster_cache_t *cache)
 {
-    BYTE *foreground_data, *msk_ptr;
+    uint8_t *foreground_data, *msk_ptr;
     unsigned int i;
 
     foreground_data = cache->foreground_data;
@@ -1322,12 +1321,12 @@ static int get_illegal_bitmap_mode2(raster_cache_t *cache, unsigned int *xs,
     return r;
 }
 
-inline static void _draw_illegal_bitmap_mode2(BYTE *p, unsigned int xs,
+inline static void _draw_illegal_bitmap_mode2(uint8_t *p, unsigned int xs,
                                               unsigned int xe,
-                                              BYTE *gfx_msk_ptr)
+                                              uint8_t *gfx_msk_ptr)
 {
-    BYTE *bmptr_low, *bmptr_high, *msk_ptr;
-    BYTE bmval;
+    uint8_t *bmptr_low, *bmptr_high, *msk_ptr;
+    uint8_t bmval;
     unsigned int i, j;
 
     bmptr_low = vicii.bitmap_low_ptr;
@@ -1348,11 +1347,11 @@ inline static void _draw_illegal_bitmap_mode2(BYTE *p, unsigned int xs,
     }
 }
 
-inline static void _draw_illegal_bitmap_mode2_cached(BYTE *p, unsigned int xs,
+inline static void _draw_illegal_bitmap_mode2_cached(uint8_t *p, unsigned int xs,
                                                      unsigned int xe,
                                                      raster_cache_t *cache)
 {
-    BYTE *foreground_data, *msk_ptr;
+    uint8_t *foreground_data, *msk_ptr;
     unsigned int i;
 
     foreground_data = cache->foreground_data;
@@ -1394,7 +1393,7 @@ static int get_idle(raster_cache_t *cache, unsigned int *xs, unsigned int *xe,
         || cache->color_data_1[0] != vicii.raster.background_color
         || cache->color_data_1[1] != vicii.raster.idle_background_color
         || cache->color_data_1[2] != vicii.raster.video_mode) {
-        cache->foreground_data[0] = (BYTE)vicii.idle_data;
+        cache->foreground_data[0] = (uint8_t)vicii.idle_data;
         cache->color_data_1[0] = vicii.raster.background_color;
         cache->color_data_1[1] = vicii.raster.idle_background_color;
         cache->color_data_1[2] = vicii.raster.video_mode;
@@ -1410,16 +1409,16 @@ static int get_idle(raster_cache_t *cache, unsigned int *xs, unsigned int *xe,
     }
 }
 
-inline static void _draw_idle(BYTE *p, unsigned int xs, unsigned int xe,
-                              BYTE *gfx_msk_ptr)
+inline static void _draw_idle(uint8_t *p, unsigned int xs, unsigned int xe,
+                              uint8_t *gfx_msk_ptr)
 {
-    BYTE *msk_ptr;
+    uint8_t *msk_ptr;
     unsigned int i;
 
     msk_ptr = gfx_msk_ptr + GFX_MSK_LEFTBORDER_SIZE;
 
     if (vicii.raster.video_mode == VICII_8BPP_CHUNKY_MODE) {
-        BYTE *dest_ptr;
+        uint8_t *dest_ptr;
 
         for (i = 0; i < 4; i++) {
             vicii.idle_data_m[i] = *(((vicii.regs[0x45] & 0x1f) << 16) + vicii.screen_ptr + 0x03fc + i);
@@ -1495,10 +1494,10 @@ static int get_8bpp_chunky_bitmap(raster_cache_t *cache, unsigned int *xs,
     return 0;
 }
 
-inline static void _draw_8bpp_chunky_bitmap(BYTE *p, unsigned int xs,
-                                            unsigned int xe, BYTE *gfx_msk_ptr)
+inline static void _draw_8bpp_chunky_bitmap(uint8_t *p, unsigned int xs,
+                                            unsigned int xe, uint8_t *gfx_msk_ptr)
 {
-    BYTE *countb_ptr, *dest_ptr;
+    uint8_t *countb_ptr, *dest_ptr;
     unsigned int i;
 
     countb_ptr = mem_ram + vicii.countb + xs * vicii.countb_step;
@@ -1559,7 +1558,7 @@ inline static void _draw_8bpp_chunky_bitmap(BYTE *p, unsigned int xs,
 
 /* FIXME: dead code */
 #if 0
-inline static void _draw_8bpp_chunky_bitmap_cached(BYTE *p, unsigned int xs,
+inline static void _draw_8bpp_chunky_bitmap_cached(uint8_t *p, unsigned int xs,
                                                    unsigned int xe,
                                                    raster_cache_t *cache)
 {
@@ -1635,13 +1634,13 @@ static int get_8bpp_two_plane_bitmap_mode(raster_cache_t *cache, unsigned int *x
     return 0;
 }
 
-inline static void _draw_8bpp_two_plane_bitmap_mode(BYTE *p, unsigned int xs,
+inline static void _draw_8bpp_two_plane_bitmap_mode(uint8_t *p, unsigned int xs,
                                                     unsigned int xe,
-                                                    BYTE *gfx_msk_ptr)
+                                                    uint8_t *gfx_msk_ptr)
 {
-    BYTE *countb_ptr, *counta_ptr, *dest_ptr, c, pa, pb;
+    uint8_t *countb_ptr, *counta_ptr, *dest_ptr, c, pa, pb;
     unsigned int i;
-    BYTE ctab[4];
+    uint8_t ctab[4];
 
     countb_ptr = mem_ram + vicii.countb + xs * vicii.countb_step;
 
@@ -1681,7 +1680,7 @@ inline static void _draw_8bpp_two_plane_bitmap_mode(BYTE *p, unsigned int xs,
 
 /* FIXME: dead code */
 #if 0
-inline static void _draw_8bpp_two_plane_bitmap_mode_cached(BYTE *p, unsigned int xs,
+inline static void _draw_8bpp_two_plane_bitmap_mode_cached(uint8_t *p, unsigned int xs,
                                                            unsigned int xe,
                                                            raster_cache_t *cache)
 {
@@ -1755,11 +1754,11 @@ static int get_8bpp_fred_bitmap_mode(raster_cache_t *cache, unsigned int *xs,
     return 0;
 }
 
-inline static void _draw_8bpp_fred_bitmap_mode(BYTE *p, unsigned int xs,
+inline static void _draw_8bpp_fred_bitmap_mode(uint8_t *p, unsigned int xs,
                                                unsigned int xe,
-                                               BYTE *gfx_msk_ptr)
+                                               uint8_t *gfx_msk_ptr)
 {
-    BYTE *countb_ptr, *counta_ptr, *dest_ptr, c, cr, pa, pb;
+    uint8_t *countb_ptr, *counta_ptr, *dest_ptr, c, cr, pa, pb;
     unsigned int i;
 
     countb_ptr = mem_ram + vicii.countb + xs * vicii.countb_step;
@@ -1797,7 +1796,7 @@ inline static void _draw_8bpp_fred_bitmap_mode(BYTE *p, unsigned int xs,
 
 /* FIXME: dead code */
 #if 0
-inline static void _draw_8bpp_fred_bitmap_mode_cached(BYTE *p, unsigned int xs,
+inline static void _draw_8bpp_fred_bitmap_mode_cached(uint8_t *p, unsigned int xs,
                                                       unsigned int xe,
                                                       raster_cache_t *cache)
 {
@@ -1873,12 +1872,12 @@ static int get_8bpp_fred2_bitmap_mode(raster_cache_t *cache, unsigned int *xs,
     return 0;
 }
 
-inline static void _draw_8bpp_fred2_bitmap_mode(BYTE *p, unsigned int xs,
+inline static void _draw_8bpp_fred2_bitmap_mode(uint8_t *p, unsigned int xs,
                                                 unsigned int xe,
-                                                BYTE *gfx_msk_ptr)
+                                                uint8_t *gfx_msk_ptr)
 {
 /* TODO this function is a HACK */
-    BYTE *countb_ptr, *counta_ptr, *dest_ptr, c, cr, pa, pb;
+    uint8_t *countb_ptr, *counta_ptr, *dest_ptr, c, cr, pa, pb;
     unsigned int i;
 
     countb_ptr = mem_ram
@@ -1920,7 +1919,7 @@ inline static void _draw_8bpp_fred2_bitmap_mode(BYTE *p, unsigned int xs,
 
 /* FIXME: dead code */
 #if 0
-inline static void _draw_8bpp_fred2_bitmap_mode_cached(BYTE *p, unsigned int xs,
+inline static void _draw_8bpp_fred2_bitmap_mode_cached(uint8_t *p, unsigned int xs,
                                                        unsigned int xe,
                                                        raster_cache_t *cache)
 {
@@ -1996,14 +1995,14 @@ static int get_8bpp_pixel_cell_bitmap_mode(raster_cache_t *cache, unsigned int *
     return 0;
 }
 
-inline static void _draw_8bpp_pixel_cell_bitmap_mode(BYTE *p, unsigned int xs,
+inline static void _draw_8bpp_pixel_cell_bitmap_mode(uint8_t *p, unsigned int xs,
                                                      unsigned int xe,
-                                                     BYTE *gfx_msk_ptr)
+                                                     uint8_t *gfx_msk_ptr)
 {
-    BYTE *c_ptr, *countb_ptr, *dest_ptr;
+    uint8_t *c_ptr, *countb_ptr, *dest_ptr;
     unsigned int i;
 #if 0
-    BYTE *counta_ptr;
+    uint8_t *counta_ptr;
     counta_ptr = mem_ram
                  + (vicii.counta & 0x1fc000)
                  + vicii.mem_counter; /* TODO broken in last ~3 lines */
@@ -2028,7 +2027,7 @@ inline static void _draw_8bpp_pixel_cell_bitmap_mode(BYTE *p, unsigned int xs,
 
 /* FIXME: dead code */
 #if 0
-inline static void _draw_8bpp_pixel_cell_bitmap_mode_cached(BYTE *p, unsigned int xs,
+inline static void _draw_8bpp_pixel_cell_bitmap_mode_cached(uint8_t *p, unsigned int xs,
                                                             unsigned int xe,
                                                             raster_cache_t *cache)
 {
@@ -2217,21 +2216,21 @@ static void setup_modes(void)
 /* Initialize the drawing tables.  */
 static void init_drawing_tables(void)
 {
-    DWORD i;
+    uint32_t i;
     unsigned int f, b;
-    const BYTE tmptable[4] = { 0, 4, 5, 3 };
+    const uint8_t tmptable[4] = { 0, 4, 5, 3 };
 
     for (i = 0; i <= 0xf; i++) {
         for (f = 0; f <= 0xf; f++) {
             for (b = 0; b <= 0xf; b++) {
-                BYTE fp, bp;
-                BYTE *p;
+                uint8_t fp, bp;
+                uint8_t *p;
                 int offset;
 
                 fp = f;
                 bp = b;
                 offset = (f << 8) | (b << 4);
-                p = (BYTE *)(hr_table + offset + i);
+                p = (uint8_t *)(hr_table + offset + i);
 
                 *p = i & 0x8 ? fp : bp;
                 *(p + 1) = i & 0x4 ? fp : bp;
@@ -2242,20 +2241,20 @@ static void init_drawing_tables(void)
     }
 
     for (i = 0; i <= 0xff; i++) {
-        mc_table[i + 0x100] = (BYTE)(i >> 6);
-        mc_table[i + 0x300] = (BYTE)((i >> 4) & 0x3);
-        mc_table[i + 0x500] = (BYTE)((i >> 2) & 0x3);
-        mc_table[i + 0x700] = (BYTE)(i & 0x3);
+        mc_table[i + 0x100] = (uint8_t)(i >> 6);
+        mc_table[i + 0x300] = (uint8_t)((i >> 4) & 0x3);
+        mc_table[i + 0x500] = (uint8_t)((i >> 2) & 0x3);
+        mc_table[i + 0x700] = (uint8_t)(i & 0x3);
         mc_table[i] = tmptable[i >> 6];
         mc_table[i + 0x200] = tmptable[(i >> 4) & 0x3];
         mc_table[i + 0x400] = tmptable[(i >> 2) & 0x3];
         mc_table[i + 0x600] = tmptable[i & 0x3];
-        mcmsktable[i + 0x100] = (BYTE)0;
-        mcmsktable[i + 0x100] |= (BYTE)(((i >> 6) & 0x2) ? 0xc0 : 0);
-        mcmsktable[i + 0x100] |= (BYTE)(((i >> 4) & 0x2) ? 0x30 : 0);
-        mcmsktable[i + 0x100] |= (BYTE)(((i >> 2) & 0x2) ? 0x0c : 0);
-        mcmsktable[i + 0x100] |= (BYTE)((i & 0x2) ? 0x03 : 0);
-        mcmsktable[i] = (BYTE)i;
+        mcmsktable[i + 0x100] = (uint8_t)0;
+        mcmsktable[i + 0x100] |= (uint8_t)(((i >> 6) & 0x2) ? 0xc0 : 0);
+        mcmsktable[i + 0x100] |= (uint8_t)(((i >> 4) & 0x2) ? 0x30 : 0);
+        mcmsktable[i + 0x100] |= (uint8_t)(((i >> 2) & 0x2) ? 0x0c : 0);
+        mcmsktable[i + 0x100] |= (uint8_t)((i & 0x2) ? 0x03 : 0);
+        mcmsktable[i] = (uint8_t)i;
     }
 }
 

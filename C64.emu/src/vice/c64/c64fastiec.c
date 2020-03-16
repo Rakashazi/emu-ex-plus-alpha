@@ -66,7 +66,7 @@ void c64fastiec_init(void)
     }
 }
 
-void c64fastiec_fast_cpu_write(BYTE data)
+void c64fastiec_fast_cpu_write(uint8_t data)
 {
     drive_t *drive;
     unsigned int dnr;
@@ -93,7 +93,7 @@ void c64fastiec_fast_cpu_write(BYTE data)
     }
 }
 
-void iec_fast_drive_write(BYTE data, unsigned int dnr)
+void iec_fast_drive_write(uint8_t data, unsigned int dnr)
 {
     if (fast_drive_direction[dnr]) {
         switch (burst_mod) {

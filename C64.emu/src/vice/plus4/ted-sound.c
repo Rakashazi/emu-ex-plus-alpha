@@ -35,6 +35,7 @@
 #include "digiblaster.h"
 #include "lib.h"
 #include "maincpu.h"
+#include "machine.h"
 #include "plus4.h"
 #include "plus4speech.h"
 #include "sid.h"
@@ -47,9 +48,9 @@
 
 /* Some prototypes are needed */
 static int ted_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
-static int ted_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int sound_output_channels, int sound_chip_channels, int *delta_t);
-static void ted_sound_machine_store(sound_t *psid, WORD addr, BYTE val);
-static BYTE ted_sound_machine_read(sound_t *psid, WORD addr);
+static int ted_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, int *delta_t);
+static void ted_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t val);
+static uint8_t ted_sound_machine_read(sound_t *psid, uint16_t addr);
 
 static int ted_sound_machine_cycle_based(void)
 {
@@ -61,20 +62,21 @@ static int ted_sound_machine_channels(void)
     return 1;
 }
 
+/* TED sound device */
 static sound_chip_t ted_sound_chip = {
-    NULL, /* no open */
-    ted_sound_machine_init,
-    NULL, /* no close */
-    ted_sound_machine_calculate_samples,
-    ted_sound_machine_store,
-    ted_sound_machine_read,
-    ted_sound_reset,
-    ted_sound_machine_cycle_based,
-    ted_sound_machine_channels,
-    1 /* chip enabled */
+    NULL,                                /* NO sound chip open function */ 
+    ted_sound_machine_init,              /* sound chip init function */
+    NULL,                                /* NO sound chip close function */
+    ted_sound_machine_calculate_samples, /* sound chip calculate samples function */
+    ted_sound_machine_store,             /* sound chip store function */
+    ted_sound_machine_read,              /* sound chip read function */
+    ted_sound_reset,                     /* sound chip reset function */
+    ted_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, chip is NOT cycle based */
+    ted_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+    1                                    /* sound chip enabled flag, chip is always enabled */
 };
 
-static WORD ted_sound_chip_offset = 0;
+static uint16_t ted_sound_chip_offset = 0;
 
 void ted_sound_chip_init(void)
 {
@@ -83,7 +85,7 @@ void ted_sound_chip_init(void)
 
 /* ------------------------------------------------------------------------- */
 
-static BYTE plus4_sound_data[5];
+static uint8_t plus4_sound_data[5];
 
 /* dummy function for now */
 int machine_sid2_check_range(unsigned int sid2_adr)
@@ -97,55 +99,61 @@ int machine_sid3_check_range(unsigned int sid3_adr)
     return 0;
 }
 
+/* dummy function for now */
+int machine_sid4_check_range(unsigned int sid4_adr)
+{
+    return 0;
+}
+
 void machine_sid2_enable(int val)
 {
 }
 
 struct plus4_sound_s {
     /* Voice 0 collect number of cycles elapsed */
-    DWORD voice0_accu;
+    uint32_t voice0_accu;
     /* Voice 0 toggle sign and reload accu if accu reached 0 */
-    DWORD voice0_reload;
+    uint32_t voice0_reload;
     /* Voice 0 sign of the square wave */
-    SWORD voice0_sign;
-    BYTE voice0_output_enabled;
+    int16_t voice0_sign;
+    uint8_t voice0_output_enabled;
 
     /* Voice 1 collect number of cycles elapsed */
-    DWORD voice1_accu;
+    uint32_t voice1_accu;
     /* Voice 1 toggle sign and reload accu if accu reached 0 */
-    DWORD voice1_reload;
+    uint32_t voice1_reload;
     /* Voice 1 sign of the square wave */
-    SWORD voice1_sign;
-    BYTE voice1_output_enabled;
+    int16_t voice1_sign;
+    uint8_t voice1_output_enabled;
 
     /* Volume multiplier  */
-    SWORD volume;
+    int16_t volume;
     /* 8 cycles units per sample  */
-    DWORD speed;
-    DWORD sample_position_integer;
-    DWORD sample_position_remainder;
-    DWORD sample_length_integer;
-    DWORD sample_length_remainder;
+    uint32_t speed;
+    uint32_t sample_position_integer;
+    uint32_t sample_position_remainder;
+    uint32_t sample_length_integer;
+    uint32_t sample_length_remainder;
     /* Digital output?  */
-    BYTE digital;
+    uint8_t digital;
     /* Noise generator active?  */
-    BYTE noise;
-    BYTE noise_shift_register;
+    uint8_t noise;
+    uint8_t noise_shift_register;
 };
 
 static struct plus4_sound_s snd;
 
 /* FIXME: Find proper volume multiplier.  */
-static const SWORD volume_tab[16] = {
+static const int16_t volume_tab[16] = {
     0x0000, 0x0800, 0x1000, 0x1800, 0x2000, 0x2800, 0x3000, 0x3800,
     0x3fff, 0x3fff, 0x3fff, 0x3fff, 0x3fff, 0x3fff, 0x3fff, 0x3fff
 };
 
-static int ted_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int soc, int scc, int *delta_t)
+static int ted_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, int *delta_t)
 {
     int i;
     int j;
-    SWORD volume;
+    int16_t volume;
 
     if (snd.digital) {
         for (i = 0; i < nr; i++) {
@@ -164,9 +172,9 @@ static int ted_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int 
             snd.sample_position_integer += snd.sample_length_integer;
             if (snd.sample_position_integer >= 8) {
                 /* Advance state engine */
-                DWORD ticks = snd.sample_position_integer >> 3;
+                uint32_t ticks = snd.sample_position_integer >> 3;
                 if (snd.voice0_accu <= ticks) {
-                    DWORD delay = ticks - snd.voice0_accu;
+                    uint32_t delay = ticks - snd.voice0_accu;
                     snd.voice0_sign ^= 1;
                     snd.voice0_accu = 1023 - snd.voice0_reload;
                     if (snd.voice0_accu == 0) {
@@ -185,7 +193,7 @@ static int ted_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int 
                 }
 
                 if (snd.voice1_accu <= ticks) {
-                    DWORD delay = ticks - snd.voice1_accu;
+                    uint32_t delay = ticks - snd.voice1_accu;
                     snd.voice1_sign ^= 1;
                     snd.noise_shift_register
                         = (snd.noise_shift_register << 1) +
@@ -243,7 +251,7 @@ static int ted_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int 
 
 static int ted_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec)
 {
-    BYTE val;
+    uint8_t val;
 
     snd.speed = speed;
     snd.sample_length_integer = cycles_per_sec / speed;
@@ -270,7 +278,7 @@ static int ted_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec)
     return 1;
 }
 
-static void ted_sound_machine_store(sound_t *psid, WORD addr, BYTE val)
+static void ted_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t val)
 {
     switch (addr) {
         case 0x0e:
@@ -307,7 +315,7 @@ static void ted_sound_machine_store(sound_t *psid, WORD addr, BYTE val)
     }
 }
 
-static BYTE ted_sound_machine_read(sound_t *psid, WORD addr)
+static uint8_t ted_sound_machine_read(sound_t *psid, uint16_t addr)
 {
     switch (addr) {
         case 0x0e:
@@ -327,7 +335,7 @@ static BYTE ted_sound_machine_read(sound_t *psid, WORD addr)
 
 void ted_sound_reset(sound_t *psid, CLOCK cpu_clk)
 {
-    WORD i;
+    uint16_t i;
 
     snd.noise_shift_register = 0;
     for (i = 0x0e; i <= 0x12; i++) {
@@ -337,16 +345,16 @@ void ted_sound_reset(sound_t *psid, CLOCK cpu_clk)
 
 /* ---------------------------------------------------------------------*/
 
-void ted_sound_store(WORD addr, BYTE value)
+void ted_sound_store(uint16_t addr, uint8_t value)
 {
-    sound_store((WORD)(ted_sound_chip_offset | addr), value, 0);
+    sound_store((uint16_t)(ted_sound_chip_offset | addr), value, 0);
 }
 
-BYTE ted_sound_read(WORD addr)
+uint8_t ted_sound_read(uint16_t addr)
 {
-    BYTE value;
+    uint8_t value;
 
-    value = sound_read((WORD)(ted_sound_chip_offset | addr), 0);
+    value = sound_read((uint16_t)(ted_sound_chip_offset | addr), 0);
 
     if (addr == 0x12) {
         value &= 3;

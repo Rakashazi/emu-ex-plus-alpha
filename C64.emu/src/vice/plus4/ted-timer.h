@@ -32,7 +32,7 @@
 extern void ted_timer_init(void);
 extern void ted_timer_reset(void);
 
-extern void ted_timer_store(WORD addr, BYTE value);
-extern BYTE ted_timer_read(WORD addr);
+extern void ted_timer_store(uint16_t addr, uint8_t value);
+extern uint8_t ted_timer_read(uint16_t addr);
 
 #endif

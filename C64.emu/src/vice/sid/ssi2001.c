@@ -36,7 +36,7 @@
 
 #define MAX_SSI2001_SID 1
 
-static BYTE sidbuf[0x20];
+static uint8_t sidbuf[0x20];
 
 static int ssi2001_open_status = -1;
 
@@ -60,7 +60,7 @@ int ssi2001_close(void)
     return 0;
 }
 
-int ssi2001_read(WORD addr, int chipno)
+int ssi2001_read(uint16_t addr, int chipno)
 {
     if (!ssi2001_open_status && chipno < MAX_SSI2001_SID) {
         /* use sidbuf[] for write-only registers */
@@ -72,7 +72,7 @@ int ssi2001_read(WORD addr, int chipno)
     return 0;
 }
 
-void ssi2001_store(WORD addr, BYTE val, int chipno)
+void ssi2001_store(uint16_t addr, uint8_t val, int chipno)
 {
     if (!ssi2001_open_status && chipno < MAX_SSI2001_SID) {
         /* write to sidbuf[] for write-only registers */
@@ -117,7 +117,7 @@ void ssi2001_state_write(int chipno, struct sid_ssi2001_snapshot_state_s *sid_st
     if (chipno < MAX_SSI2001_SID) {
         for (i = 0; i < 32; ++i) {
             sidbuf[i] = sid_state->regs[i];
-            ssi2001_drv_store((WORD)i, sid_state->regs[i], chipno);
+            ssi2001_drv_store((uint16_t)i, sid_state->regs[i], chipno);
         }
     }
 }

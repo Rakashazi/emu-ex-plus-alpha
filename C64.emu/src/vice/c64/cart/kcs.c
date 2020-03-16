@@ -98,27 +98,27 @@
 
 static int config;
 
-static BYTE kcs_io1_read(WORD addr)
+static uint8_t kcs_io1_read(uint16_t addr)
 {
     config = (addr & 2) ? CMODE_RAM : CMODE_8KGAME;
 
-    cart_config_changed_slotmain((BYTE)config, (BYTE)config, CMODE_READ);
+    cart_config_changed_slotmain((uint8_t)config, (uint8_t)config, CMODE_READ);
     return roml_banks[0x1e00 + (addr & 0xff)];
 }
 
-static BYTE kcs_io1_peek(WORD addr)
+static uint8_t kcs_io1_peek(uint16_t addr)
 {
     return roml_banks[0x1e00 + (addr & 0xff)];
 }
 
-static void kcs_io1_store(WORD addr, BYTE value)
+static void kcs_io1_store(uint16_t addr, uint8_t value)
 {
     config = (addr & 2) ? CMODE_ULTIMAX : CMODE_16KGAME;
 
-    cart_config_changed_slotmain((BYTE)config, (BYTE)config, CMODE_WRITE);
+    cart_config_changed_slotmain((uint8_t)config, (uint8_t)config, CMODE_WRITE);
 }
 
-static BYTE kcs_io2_read(WORD addr)
+static uint8_t kcs_io2_read(uint16_t addr)
 {
     /* the software reads from df80 at beginning of nmi handler */
     /* to determine the status of GAME and EXROM lines */
@@ -128,7 +128,7 @@ static BYTE kcs_io2_read(WORD addr)
     return export_ram0[addr & 0x7f];
 }
 
-static BYTE kcs_io2_peek(WORD addr)
+static uint8_t kcs_io2_peek(uint16_t addr)
 {
     if (addr & 0x80) {
         return ((config & 2) ? 0x80 : 0) | ((config & 1) ? 0 : 0x40); /* DF80-DFFF actual config */
@@ -136,7 +136,7 @@ static BYTE kcs_io2_peek(WORD addr)
     return export_ram0[addr & 0x7f];
 }
 
-static void kcs_io2_store(WORD addr, BYTE value)
+static void kcs_io2_store(uint16_t addr, uint8_t value)
 {
     if (addr & 0x80) {
         return; /* open area for GAME/EXROM status */
@@ -146,40 +146,42 @@ static void kcs_io2_store(WORD addr, BYTE value)
 
 static int kcs_io1_dump(void)
 {
-    mon_out("EXROM: %d GAME: %d (%s)\n", ((config >> 1) & 1), (config & 1) ^ 1, cart_config_string((BYTE)(config & 3)));
+    mon_out("EXROM: %d GAME: %d (%s)\n", ((config >> 1) & 1), (config & 1) ^ 1, cart_config_string((uint8_t)(config & 3)));
     return 0;
 }
 
 /* ---------------------------------------------------------------------*/
 
 static io_source_t kcs_io1_device = {
-    CARTRIDGE_NAME_KCS_POWER,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    1, /* read is always valid */
-    kcs_io1_store,
-    kcs_io1_read,
-    kcs_io1_peek,
-    kcs_io1_dump,
-    CARTRIDGE_KCS_POWER,
-    0,
-    0
+    CARTRIDGE_NAME_KCS_POWER, /* name of the device */
+    IO_DETACH_CART,           /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,    /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,     /* range for the device, regs:$de00-$deff */
+    1,                        /* read is always valid */
+    kcs_io1_store,            /* store function */
+    NULL,                     /* NO poke function */
+    kcs_io1_read,             /* read function */
+    kcs_io1_peek,             /* peek function */
+    kcs_io1_dump,             /* device state information dump function */
+    CARTRIDGE_KCS_POWER,      /* cartridge ID */
+    IO_PRIO_NORMAL,           /* normal priority, device read needs to be checked for collisions */
+    0                         /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t kcs_io2_device = {
-    CARTRIDGE_NAME_KCS_POWER,
-    IO_DETACH_CART,
-    NULL,
-    0xdf00, 0xdfff, 0xff,
-    1, /* read is always valid */
-    kcs_io2_store,
-    kcs_io2_read,
-    kcs_io2_peek,
-    NULL, /* TODO: dump */
-    CARTRIDGE_KCS_POWER,
-    0,
-    0
+    CARTRIDGE_NAME_KCS_POWER, /* name of the device */
+    IO_DETACH_CART,           /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,    /* does not use a resource for detach */
+    0xdf00, 0xdfff, 0xff,     /* range for the device, regs:$df00-$dfff */
+    1,                        /* read is always valid */
+    kcs_io2_store,            /* store function */
+    NULL,                     /* NO poke function */
+    kcs_io2_read,             /* read function */
+    kcs_io2_peek,             /* peek function */
+    NULL,                     /* TODO: device state information dump function */
+    CARTRIDGE_KCS_POWER,      /* cartridge ID */
+    IO_PRIO_NORMAL,           /* normal priority, device read needs to be checked for collisions */
+    0                         /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *kcs_io1_list_item = NULL;
@@ -194,21 +196,21 @@ static const export_resource_t export_res_kcs = {
 void kcs_freeze(void)
 {
     config = CMODE_ULTIMAX;
-    cart_config_changed_slotmain((BYTE)config, (BYTE)config, CMODE_READ | CMODE_RELEASE_FREEZE);
+    cart_config_changed_slotmain((uint8_t)config, (uint8_t)config, CMODE_READ | CMODE_RELEASE_FREEZE);
 }
 
 void kcs_config_init(void)
 {
     config = CMODE_16KGAME;
-    cart_config_changed_slotmain((BYTE)config, (BYTE)config, CMODE_READ);
+    cart_config_changed_slotmain((uint8_t)config, (uint8_t)config, CMODE_READ);
 }
 
-void kcs_config_setup(BYTE *rawcart)
+void kcs_config_setup(uint8_t *rawcart)
 {
     memcpy(roml_banks, rawcart, 0x2000);
     memcpy(romh_banks, &rawcart[0x2000], 0x2000);
     config = CMODE_16KGAME;
-    cart_config_changed_slotmain((BYTE)config, (BYTE)config, CMODE_READ);
+    cart_config_changed_slotmain((uint8_t)config, (uint8_t)config, CMODE_READ);
 }
 
 /* ---------------------------------------------------------------------*/
@@ -224,7 +226,7 @@ static int kcs_common_attach(void)
     return 0;
 }
 
-int kcs_bin_attach(const char *filename, BYTE *rawcart)
+int kcs_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x4000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -232,7 +234,7 @@ int kcs_bin_attach(const char *filename, BYTE *rawcart)
     return kcs_common_attach();
 }
 
-int kcs_crt_attach(FILE *fd, BYTE *rawcart)
+int kcs_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
     int i;
@@ -292,7 +294,7 @@ int kcs_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)config) < 0
+        || SMW_B(m, (uint8_t)config) < 0
         || SMW_BA(m, roml_banks, 0x2000) < 0
         || SMW_BA(m, romh_banks, 0x2000) < 0
         || SMW_BA(m, export_ram0, 128) < 0) {
@@ -305,9 +307,9 @@ int kcs_snapshot_write_module(snapshot_t *s)
 
 int kcs_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
-    BYTE dummy;
+    uint8_t dummy;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
 
@@ -316,20 +318,20 @@ int kcs_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
     /* added in 0.1, removed in 0.3 */
-    if (SNAPVAL(vmajor, vminor, 0, 1) && !SNAPVAL(vmajor, vminor, 0, 3)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 1) && snapshot_version_is_smaller(vmajor, vminor, 0, 3)) {
         if (SMR_B(m, &dummy) < 0) {
             goto fail;
         }
     }
 
     /* new in 0.2 */
-    if (SNAPVAL(vmajor, vminor, 0, 2)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 2)) {
         if (SMR_B_INT(m, &config) < 0) {
             goto fail;
         }
@@ -344,7 +346,7 @@ int kcs_snapshot_read_module(snapshot_t *s)
     }
 
     /* 0x80 in 0.3, 0x2000 before that */
-    if (SNAPVAL(vmajor, vminor, 0, 3)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 3)) {
         if (SMR_BA(m, export_ram0, 128) < 0) {
             goto fail;
         }

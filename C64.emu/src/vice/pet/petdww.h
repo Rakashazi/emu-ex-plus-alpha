@@ -59,8 +59,8 @@ extern void petdww_init(void);
 extern void petdww_powerup(void);
 extern void petdww_reset(void);
 extern void petdww_shutdown(void);
-extern void petdww_override_std_9toa(read_func_ptr_t *mem_read_tab, store_func_ptr_t *mem_write_tab, BYTE **mem_base_tab, int *mem_limit_tab);
-extern void petdww_restore_std_9toa(read_func_ptr_t *mem_read_tab, store_func_ptr_t *mem_write_tab, BYTE **mem_base_tab, int *mem_limit_tab);
+extern void petdww_override_std_9toa(read_func_ptr_t *mem_read_tab, store_func_ptr_t *mem_write_tab, uint8_t **mem_base_tab, int *mem_limit_tab);
+extern void petdww_restore_std_9toa(read_func_ptr_t *mem_read_tab, store_func_ptr_t *mem_write_tab, uint8_t **mem_base_tab, int *mem_limit_tab);
 extern void petdww_signal(int line, int edge);
 
 extern int petdww_snapshot_read_module(struct snapshot_s *);
@@ -69,6 +69,14 @@ extern int petdww_snapshot_write_module(struct snapshot_s *);
 extern int petdww_mem_at_9000(void);
 extern int petdwwpia_dump(void);
 
-extern BYTE *petdww_crtc_get_active_bitmap(void);
+extern uint8_t *petdww_crtc_get_active_bitmap(void);
+
+/* XXX: these unused functions caused warnings due to macro magic, I've made
+ *      them public for now to get rid of the warnings. If someone has a better
+ *      approach, I'd be glad to hear/see it    -- compyx, 2017-08-17
+ */
+extern uint8_t petdwwpia_peek(uint16_t addr);
+extern void petdwwpia_signal(int line, int edge);
+extern void petdwwpia_init(void);
 
 #endif

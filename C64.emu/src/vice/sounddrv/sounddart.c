@@ -332,7 +332,7 @@ static int dart_init(const char *param, int *speed,
 
     BufferParms.pBufList = buffers;
     BufferParms.ulNumBuffers = *fragnr;
-    BufferParms.ulBufferSize = *fragsize * sizeof(SWORD);
+    BufferParms.ulBufferSize = *fragsize * sizeof(int16_t);
 
     rc = mciSendCommand(usDeviceID, MCI_BUFFER, MCI_WAIT | MCI_ALLOCATE_MEMORY,
                         (PVOID) &BufferParms, 0);
@@ -353,8 +353,8 @@ static int dart_init(const char *param, int *speed,
         *fragnr = BufferParms.ulNumBuffers;
         log_message(dlog, "got %3i buffers %6i bytes.", BufferParms.ulNumBuffers, BufferParms.ulBufferSize);
     }
-    if (*fragsize != BufferParms.ulBufferSize / sizeof(SWORD)) {
-        *fragsize = BufferParms.ulBufferSize / sizeof(SWORD);
+    if (*fragsize != BufferParms.ulBufferSize / sizeof(int16_t)) {
+        *fragsize = BufferParms.ulBufferSize / sizeof(int16_t);
         log_message(dlog, "got %3i buffers %6i bytes.", BufferParms.ulNumBuffers, BufferParms.ulBufferSize);
     }
 
@@ -428,7 +428,7 @@ static void dart_close()
 }
 
 #if 0
-static int dart_write(SWORD *pbuf, size_t nr)
+static int dart_write(int16_t *pbuf, size_t nr)
 {
     /* The MCI_MIX_BUFFER structure is used for reading and writing data to
        and from the mixer.
@@ -471,7 +471,7 @@ static int dart_write(SWORD *pbuf, size_t nr)
         pos %= BufferParms.ulNumBuffers;
     }
 
-    memcpy(buffers[pos++].pBuffer, pbuf, nr*sizeof(SWORD));
+    memcpy(buffers[pos++].pBuffer, pbuf, nr*sizeof(int16_t));
     pos %= BufferParms.ulNumBuffers;
 
     DosReleaseMutexSem(hmtxSnd);
@@ -480,13 +480,13 @@ static int dart_write(SWORD *pbuf, size_t nr)
 }
 #endif
 
-static int dart_write2(SWORD *pbuf, size_t nr)
+static int dart_write2(int16_t *pbuf, size_t nr)
 {
     APIRET rc;
     int nrtowrite;
 
     written += nr;
-    nr *= sizeof(SWORD);
+    nr *= sizeof(int16_t);
 
     while (nr)
     {
@@ -507,7 +507,7 @@ static int dart_write2(SWORD *pbuf, size_t nr)
 
         if (play == (pos + 1) % BufferParms.ulNumBuffers) {
             pos = (++pos) % BufferParms.ulNumBuffers;
-            written += BufferParms.ulBufferSize / sizeof(SWORD);
+            written += BufferParms.ulBufferSize / sizeof(int16_t);
         }
 
         /*
@@ -555,12 +555,12 @@ static int dart_bufferspace(void)
         rc += BufferParms.ulNumBuffers;
     }
 
-    return rc * BufferParms.ulBufferSize / (MixSetupParms.ulChannels * sizeof(SWORD));
+    return rc * BufferParms.ulBufferSize / (MixSetupParms.ulChannels * sizeof(int16_t));
 #if 0
     LONG rc;
     MCI_STATUS_PARMS mciStatus;
 
-    const int bufsz = BufferParms.ulBufferSize/sizeof(SWORD)*BufferParms.ulNumBuffers;
+    const int bufsz = BufferParms.ulBufferSize/sizeof(int16_t)*BufferParms.ulNumBuffers;
 
     mciStatus.ulItem = MCI_STATUS_POSITION;
 

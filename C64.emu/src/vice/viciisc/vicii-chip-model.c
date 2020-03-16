@@ -716,7 +716,8 @@ static void vicii_chip_model_set(struct ViciiChipModel *cm)
 
             /* dump to log */
             log_verbose("VIC-II: %s $%03x %s %s %s %s %s %s", 
-                        cycle_str, xpos, visible_str, ba_str, fetch_str, border_str, gfx_str, sprite_str);
+                        cycle_str, (unsigned int)xpos, visible_str, ba_str,
+                        fetch_str, border_str, gfx_str, sprite_str);
         }
 
         xpos_phi[phi] = xpos;
@@ -726,7 +727,7 @@ static void vicii_chip_model_set(struct ViciiChipModel *cm)
 
         /* Both Phi1 and Phi2 collected, generate table */
         if (phi == 1) {
-            unsigned int flags = flags_phi[0] | flags_phi[1];
+            unsigned int f = flags_phi[0] | flags_phi[1];
 
             unsigned int entry = 0;
 
@@ -765,41 +766,41 @@ static void vicii_chip_model_set(struct ViciiChipModel *cm)
             entry |= ((xpos_phi[0] >> 3) << XPOS_B) & XPOS_M;
 
             /* Update VC/RC (Phi2) */
-            if (flags & UpdateVc) {
+            if (f & UpdateVc) {
                 entry |= UPDATE_VC_M;
             }
-            if (flags & UpdateRc) {
+            if (f & UpdateRc) {
                 entry |= UPDATE_RC_M;
             }
 
             /* Sprites */
-            if (flags & ChkSprExp) {
+            if (f & ChkSprExp) {
                 entry |= CHECK_SPR_EXP_M;
             }
-            if (flags & ChkSprDisp) {
+            if (f & ChkSprDisp) {
                 entry |= CHECK_SPR_DISP;
             }
-            if (flags & ChkSprDma) {
+            if (f & ChkSprDma) {
                 entry |= CHECK_SPR_DMA;
             }
-            if (flags & UpdateMcBase) {
+            if (f & UpdateMcBase) {
                 entry |= UPDATE_MCBASE;
             }
-            if (flags & ChkSprCrunch) {
+            if (f & ChkSprCrunch) {
                 entry |= CHECK_SPR_CRUNCH;
             }
 
             /* Border */
-            if (flags & ChkBrdL0) {
+            if (f & ChkBrdL0) {
                 entry |= CHECK_BRD_L;
             }
-            if (flags & ChkBrdL1) {
+            if (f & ChkBrdL1) {
                 entry |= CHECK_BRD_L | CHECK_BRD_CSEL;
             }
-            if (flags & ChkBrdR0) {
+            if (f & ChkBrdR0) {
                 entry |= CHECK_BRD_R;
             }
-            if (flags & ChkBrdR1) {
+            if (f & ChkBrdR1) {
                 entry |= CHECK_BRD_R | CHECK_BRD_CSEL;
             }
 

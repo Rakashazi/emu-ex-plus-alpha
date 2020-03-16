@@ -31,11 +31,11 @@
 
 struct pport_s {
     /* Value written to processor port.  */
-    BYTE dir;
-    BYTE data;
+    uint8_t dir;
+    uint8_t data;
 
     /* State of processor port pins.  */
-    BYTE data_out;
+    uint8_t data_out;
 };
 typedef struct pport_s pport_t;
 
@@ -49,19 +49,19 @@ extern pport_t pport;
 
 extern unsigned int mem_config;
 
-extern BYTE extromlo1[PLUS4_BASIC_ROM_SIZE];
-extern BYTE extromlo2[PLUS4_BASIC_ROM_SIZE];
-extern BYTE extromlo3[PLUS4_BASIC_ROM_SIZE];
-extern BYTE extromhi1[PLUS4_KERNAL_ROM_SIZE];
-extern BYTE extromhi2[PLUS4_KERNAL_ROM_SIZE];
-extern BYTE extromhi3[PLUS4_KERNAL_ROM_SIZE];
+extern uint8_t extromlo1[PLUS4_BASIC_ROM_SIZE];
+extern uint8_t extromlo2[PLUS4_BASIC_ROM_SIZE];
+extern uint8_t extromlo3[PLUS4_BASIC_ROM_SIZE];
+extern uint8_t extromhi1[PLUS4_KERNAL_ROM_SIZE];
+extern uint8_t extromhi2[PLUS4_KERNAL_ROM_SIZE];
+extern uint8_t extromhi3[PLUS4_KERNAL_ROM_SIZE];
 
 extern int plus4_mem_init_resources(void);
 extern int plus4_mem_init_cmdline_options(void);
 
 extern void mem_config_ram_set(unsigned int config);
 extern void mem_config_rom_set(unsigned int config);
-extern BYTE *mem_get_tedmem_base(unsigned int segment);
+extern uint8_t *mem_get_tedmem_base(unsigned int segment);
 
 extern void mem_proc_port_trigger_flux_change(unsigned int on);
 extern void pio1_set_tape_sense(int sense);
@@ -71,6 +71,8 @@ extern void mem_proc_port_set_motor_in(int val);
 extern void plus4io_init(void);
 extern void plus4_pio1_init(int block);
 
-extern BYTE read_unused(WORD addr);
+extern uint8_t read_unused(uint16_t addr);
+
+extern void store_bank_io(uint16_t addr, uint8_t byte);
 
 #endif

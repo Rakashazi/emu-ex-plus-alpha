@@ -52,15 +52,15 @@ extern int mmc64_hw_clockport;
 extern int mmc64_cart_enabled(void);
 extern int mmc64_cart_active(void);
 extern void mmc64_config_init(export_t *export);
-extern int mmc64_roml_read(WORD addr, BYTE *byte);
-extern void mmc64_roml_store(WORD addr, BYTE byte);
-extern int mmc64_peek_mem(WORD addr, BYTE *value);
+extern int mmc64_roml_read(uint16_t addr, uint8_t *byte);
+extern void mmc64_roml_store(uint16_t addr, uint8_t byte);
+extern int mmc64_peek_mem(uint16_t addr, uint8_t *value);
 extern void mmc64_passthrough_changed(export_t *export);
 
-extern void mmc64_config_setup(BYTE *rawcart);
+extern void mmc64_config_setup(uint8_t *rawcart);
 
-extern int mmc64_crt_attach(FILE *fd, BYTE *rawcart);
-extern int mmc64_bin_attach(const char *filename, BYTE *rawcart);
+extern int mmc64_crt_attach(FILE *fd, uint8_t *rawcart);
+extern int mmc64_bin_attach(const char *filename, uint8_t *rawcart);
 extern int mmc64_bin_save(const char *filename);
 extern int mmc64_crt_save(const char *filename);
 extern int mmc64_flush_image(void);
@@ -72,8 +72,9 @@ extern void mmc64_init(void);
 extern void mmc64_detach(void);
 extern void mmc64_reset(void);
 extern int mmc64_enable(void);
+int mmc64_disable(void);
 extern const char *mmc64_get_file_name(void);
-extern int mmc64_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit);
+extern int mmc64_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
 struct snapshot_s;
 extern int mmc64_snapshot_read_module(struct snapshot_s *s);

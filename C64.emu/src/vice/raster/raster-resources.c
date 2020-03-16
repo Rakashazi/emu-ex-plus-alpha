@@ -37,12 +37,7 @@
 #include "util.h"
 #include "video.h"
 
-
-#ifdef __MSDOS__
-#define DEFAULT_VideoCache_VALUE 0
-#else
 #define DEFAULT_VideoCache_VALUE 99
-#endif
 
 struct raster_resource_chip_s {
     raster_t *raster;

@@ -53,12 +53,12 @@
 #include "c64dtv-resources.h"
 #include "hummeradc.h"
 
-void cia1_store(WORD addr, BYTE data)
+void cia1_store(uint16_t addr, uint8_t data)
 {
     ciacore_store(machine_context.cia1, addr, data);
 }
 
-BYTE cia1_read(WORD addr)
+uint8_t cia1_read(uint16_t addr)
 {
     /* disable TOD & serial */
     if (((addr & 0xf) >= 8) && ((addr & 0xf) <= 0xc)) {
@@ -68,7 +68,7 @@ BYTE cia1_read(WORD addr)
     return ciacore_read(machine_context.cia1, addr);
 }
 
-BYTE cia1_peek(WORD addr)
+uint8_t cia1_peek(uint16_t addr)
 {
     return ciacore_peek(machine_context.cia1, addr);
 }
@@ -87,7 +87,7 @@ static void cia_restore_int(cia_context_t *cia_context, int value)
  * I/O
  */
 
-void cia1_set_extended_keyboard_rows_mask(BYTE value)
+void cia1_set_extended_keyboard_rows_mask(uint8_t value)
 {
 }
 
@@ -114,7 +114,7 @@ static void do_reset_cia(cia_context_t *cia_context)
 {
 }
 
-static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE b)
+static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t b)
 {
     unsigned int i, m;
 
@@ -125,11 +125,11 @@ static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE b)
     }
 }
 
-static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, BYTE b)
+static void undump_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t b)
 {
 }
 
-static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
+static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
     /* Falling edge triggers light pen.  */
     if ((byte ^ 0x10) & cia_context->old_pb & 0x10) {
@@ -137,16 +137,16 @@ static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
     }
 }
 
-static void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, BYTE byte)
+static void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
 }
 
-static BYTE read_ciapa(cia_context_t *cia_context)
+static uint8_t read_ciapa(cia_context_t *cia_context)
 {
-    BYTE byte;
-    BYTE val = 0xff;
-    BYTE msk;
-    BYTE m;
+    uint8_t byte;
+    uint8_t val = 0xff;
+    uint8_t msk;
+    uint8_t m;
     int i;
 
     msk = cia_context->old_pb & read_joyport_dig(JOYPORT_1);
@@ -163,12 +163,12 @@ static BYTE read_ciapa(cia_context_t *cia_context)
     return byte;
 }
 
-static BYTE read_ciapb(cia_context_t *cia_context)
+static uint8_t read_ciapb(cia_context_t *cia_context)
 {
-    BYTE byte;
-    BYTE val = 0xff;
-    BYTE msk;
-    BYTE m;
+    uint8_t byte;
+    uint8_t val = 0xff;
+    uint8_t msk;
+    uint8_t m;
     int i;
 
     msk = cia_context->old_pa & read_joyport_dig(JOYPORT_2);
@@ -197,7 +197,7 @@ static void read_sdr(cia_context_t *cia_context)
 {
 }
 
-static void store_sdr(cia_context_t *cia_context, BYTE byte)
+static void store_sdr(cia_context_t *cia_context, uint8_t byte)
 {
 #if defined(HAVE_RS232DEV) || defined(HAVE_RS232NET)
     if (rsuser_enabled) {
@@ -226,12 +226,12 @@ void cia1_set_timing(cia_context_t *cia_context, int tickspersec, int powerfreq)
     cia_context->power_ticks = 0;
 }
 
-void cia1_setup_context(machine_context_t *machine_context)
+void cia1_setup_context(machine_context_t *machine_ctx)
 {
     cia_context_t *cia;
 
-    machine_context->cia1 = lib_calloc(1, sizeof(cia_context_t));
-    cia = machine_context->cia1;
+    machine_ctx->cia1 = lib_calloc(1, sizeof(cia_context_t));
+    cia = machine_ctx->cia1;
 
     cia->prv = NULL;
     cia->context = NULL;

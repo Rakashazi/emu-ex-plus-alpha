@@ -58,7 +58,7 @@ typedef struct gfxoutputdrv_s {
     int (*resources_init)(void);
     int (*cmdline_options_init)(void);
 #ifdef FEATURE_CPUMEMHISTORY
-    int (*savememmap)(const char *, int, int, BYTE *, BYTE *);
+    int (*savememmap)(const char *, int, int, uint8_t *, uint8_t *);
 #endif
 } gfxoutputdrv_t;
 

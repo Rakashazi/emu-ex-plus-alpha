@@ -31,12 +31,12 @@
 
 extern void fsdrive_init(void);
 extern void fsdrive_reset(void);
-extern void fsdrive_open(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void fsdrive_close(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void fsdrive_listentalk(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void fsdrive_unlisten(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void fsdrive_untalk(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void fsdrive_write(unsigned int device, BYTE secondary, BYTE data, void (*st_func)(BYTE));
-extern BYTE fsdrive_read(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
+extern void fsdrive_open(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void fsdrive_close(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void fsdrive_listentalk(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void fsdrive_unlisten(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void fsdrive_untalk(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void fsdrive_write(unsigned int device, uint8_t secondary, uint8_t data, void (*st_func)(uint8_t));
+extern uint8_t fsdrive_read(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
 
 #endif

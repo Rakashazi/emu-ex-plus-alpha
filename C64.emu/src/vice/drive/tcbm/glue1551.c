@@ -55,8 +55,8 @@ static glue1551_t glue1551[DRIVE_NUM];
 
 static void glue_pport_update(drive_context_t *drv)
 {
-    static BYTE old_output = 0;
-    BYTE output, input;
+    static uint8_t old_output = 0;
+    uint8_t output, input;
 
     output = (drv->drive->drive_ram[1] & drv->drive->drive_ram[0])
              | ~(drv->drive->drive_ram[0]);
@@ -98,25 +98,25 @@ static void glue_pport_update(drive_context_t *drv)
     old_output = output;
 }
 
-BYTE glue1551_port0_read(drive_context_t *drv)
+uint8_t glue1551_port0_read(drive_context_t *drv)
 {
     glue_pport_update(drv);
     return drv->drive->drive_ram[0];
 }
 
-BYTE glue1551_port1_read(drive_context_t *drv)
+uint8_t glue1551_port1_read(drive_context_t *drv)
 {
     glue_pport_update(drv);
     return drv->drive->drive_ram[1];
 }
 
-void glue1551_port0_store(drive_context_t *drv, BYTE value)
+void glue1551_port0_store(drive_context_t *drv, uint8_t value)
 {
     drv->drive->drive_ram[0] = value;
     glue_pport_update(drv);
 }
 
-void glue1551_port1_store(drive_context_t *drv, BYTE value)
+void glue1551_port1_store(drive_context_t *drv, uint8_t value)
 {
     drv->drive->drive_ram[1] = value;
     glue_pport_update(drv);

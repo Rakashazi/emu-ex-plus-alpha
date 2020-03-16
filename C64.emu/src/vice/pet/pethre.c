@@ -41,7 +41,6 @@
 #include "pets.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "types.h"
 
 /*
@@ -81,7 +80,7 @@ static log_t pethre_log = LOG_ERR;
 static int pethre_activate(void);
 static int pethre_deactivate(void);
 
-static void pethre_DRAW(BYTE *p, int xstart, int xend, int scr_rel, int ymod8);
+static void pethre_DRAW(uint8_t *p, int xstart, int xend, int scr_rel, int ymod8);
 
 /* ------------------------------------------------------------------------- */
 
@@ -89,7 +88,7 @@ static void pethre_DRAW(BYTE *p, int xstart, int xend, int scr_rel, int ymod8);
 int pethre_enabled = 0;
 
 /* The value last written to the register. It is not reset on reset. */
-static BYTE reg_E888;
+static uint8_t reg_E888;
 
 static int set_pethre_enabled(int value, void *param)
 {
@@ -133,16 +132,12 @@ void pethre_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-pethre", SET_RESOURCE, 0,
+    { "-pethre", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "PETHRE", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_HIRES_EMULATION_BOARD,
-      NULL, NULL },
-    { "+pethre", SET_RESOURCE, 0,
+      NULL, "Enable HiRes Emulation Board" },
+    { "+pethre", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "PETHRE", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_HIRES_EMULATION_BOARD,
-      NULL, NULL },
+      NULL, "Disable HiRes Emulation Board" },
     CMDLINE_LIST_END
 };
 
@@ -214,7 +209,7 @@ int e888_dump(void)
 #define E888_NOT_RAMSEL_9       0x01
 #define E888_CR6                0x01
 
-void crtc_store_hre(WORD addr, BYTE value)
+void crtc_store_hre(uint16_t addr, uint8_t value)
 {
     if (pethre_enabled) {
         /* printf("HRE:     enabled... %4x %2x\n", addr, value); */
@@ -263,14 +258,14 @@ void crtc_store_hre(WORD addr, BYTE value)
 /* ------------------------------------------------------------------------- */
 /* Raster drawing */
 
-extern DWORD dwg_table[16];
+extern uint32_t dwg_table[16];
 
 #define MA_WIDTH        64
 #define MA_LO           (MA_WIDTH - 1)          /* 6 bits */
 #define MA_HI           (~MA_LO)
 #define RA_SKIP         (7 * MA_WIDTH)          /* 448 */
 
-static void pethre_DRAW(BYTE *p, int xstart, int xend, int scr_rel, int ymod8)
+static void pethre_DRAW(uint8_t *p, int xstart, int xend, int scr_rel, int ymod8)
 {
     /*
      * MA = scr_rel starting at $0200, effectively multiplied by
@@ -282,12 +277,15 @@ static void pethre_DRAW(BYTE *p, int xstart, int xend, int scr_rel, int ymod8)
         int ma_hi = scr_rel & MA_HI;    /* MA<9...6> MA is already multi- */
         int ma_lo = scr_rel & MA_LO;    /* MA<5...0> ...plied by two.     */
         /* Form <MA 9-6><RA 2-0><MA 5-0> */
-        BYTE *screen_rel = mem_ram + 0x8000 +   /* == crtc.screen_base */
+        uint8_t *screen_rel = mem_ram + 0x8000 +   /* == crtc.screen_base */
                            (ma_hi << 3) + (ymod8 << 6) + ma_lo;
         int width = xend - xstart;
 
         if (screen_rel >= mem_ram + 0xE000) {
-            printf("screen_rel too large: scr_rel=%d, ymod8=%d, screen_rel=%04x, xstart=%d xend=%d\n", scr_rel, ymod8, (int)(screen_rel - mem_ram), xstart, xend);
+            printf("screen_rel too large: scr_rel=%d, ymod8=%d, "
+                    "screen_rel=%04x, xstart=%d xend=%d\n",
+                    scr_rel, ymod8, (unsigned int)(screen_rel - mem_ram),
+                    xstart, xend);
         }
 
         if (ma_lo == 0 && width <= MA_WIDTH) {
@@ -297,7 +295,7 @@ static void pethre_DRAW(BYTE *p, int xstart, int xend, int scr_rel, int ymod8)
              * normal text line area when the normal ROM support code
              * is used.
              */
-            DWORD *pw = (DWORD *)p;
+            uint32_t *pw = (uint32_t *)p;
             int i;
 
 #if HRE_DEBUG_GFX
@@ -317,7 +315,7 @@ static void pethre_DRAW(BYTE *p, int xstart, int xend, int scr_rel, int ymod8)
              */
             int width0 = MA_WIDTH - ma_lo;
             int i;
-            DWORD *pw = (DWORD *)p;
+            uint32_t *pw = (uint32_t *)p;
 
             /* printf("scr_rel=%d: ma_lo=%d; jump at %d chars\n", scr_rel, ma_lo, width0); */
             if (width < width0) {
@@ -354,7 +352,7 @@ static const char module_ram_name[] = "HREMEM";
  *
  */
 
-int pethre_ram_write_snapshot_module(snapshot_t *s)
+static int pethre_ram_write_snapshot_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
@@ -368,11 +366,11 @@ int pethre_ram_write_snapshot_module(snapshot_t *s)
     return 0;
 }
 
-int pethre_ram_read_snapshot_module(snapshot_t *s)
+static int pethre_ram_read_snapshot_module(snapshot_t *s)
 {
     snapshot_module_t *m;
-    BYTE vmajor, vminor;
-    WORD w;
+    uint8_t vmajor, vminor;
+    uint16_t w;
 
     m = snapshot_module_open(s, module_ram_name, &vmajor, &vminor);
     if (m == NULL) {
@@ -389,7 +387,7 @@ int pethre_ram_read_snapshot_module(snapshot_t *s)
 
     w = 0x0F;
     SMR_W(m, &w);
-    reg_E888 = (BYTE)w;
+    reg_E888 = (uint8_t)w;
 
     snapshot_module_close(m);
 

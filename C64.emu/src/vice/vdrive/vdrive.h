@@ -75,8 +75,8 @@
 typedef struct bufferinfo_s {
     unsigned int mode;     /* Mode on this buffer */
     unsigned int readmode; /* Is this channel for reading or writing */
-    BYTE *buffer;          /* Use this to save data */
-    BYTE *slot;            /* Save data for directory-slot */
+    uint8_t *buffer;          /* Use this to save data */
+    uint8_t *slot;            /* Save data for directory-slot */
     unsigned int bufptr;   /* Use this to save/read data to disk */
     unsigned int track;    /* which track is allocated for this sector */
     unsigned int sector;   /*   (for write files only) */
@@ -85,26 +85,26 @@ typedef struct bufferinfo_s {
 
     /* REL file information stored in buffers since we can have more than
         one open */
-    BYTE *side_sector;
+    uint8_t *side_sector;
     /* location of the side sectors */
-    BYTE *side_sector_track;
-    BYTE *side_sector_sector;
+    uint8_t *side_sector_track;
+    uint8_t *side_sector_sector;
 
-    BYTE *super_side_sector;
+    uint8_t *super_side_sector;
     /* location of the super side sector */
-    BYTE super_side_sector_track;
-    BYTE super_side_sector_sector;
+    uint8_t super_side_sector_track;
+    uint8_t super_side_sector_sector;
 
-    BYTE *buffer_next;          /* next buffer for rel file */
+    uint8_t *buffer_next;          /* next buffer for rel file */
     unsigned int track_next;    /* track for the next sector */
     unsigned int sector_next;   /* sector for the next sector */
 
     unsigned int record_max;  /* Max rel file record, inclusive */
     unsigned int record_next; /* Buffer pointer to beginning of next record */
-    BYTE needsupdate;         /* true if the current sector needs to be
+    uint8_t needsupdate;         /* true if the current sector needs to be
                                   written (from REL write) */
-    BYTE super_side_sector_needsupdate; /* similar to above */
-    BYTE *side_sector_needsupdate;
+    uint8_t super_side_sector_needsupdate; /* similar to above */
+    uint8_t *side_sector_needsupdate;
 
     vdrive_dir_context_t dir; /* directory listing context or directory entry */
 } bufferinfo_t;
@@ -135,17 +135,17 @@ typedef struct vdrive_s {
     unsigned int Part_Start, Part_End;
 
     unsigned int bam_size;
-    BYTE *bam;
+    uint8_t *bam;
     bufferinfo_t buffers[16];
 
     /* Memory read command buffer.  */
-    BYTE mem_buf[256];
+    uint8_t mem_buf[256];
     unsigned int mem_length;
 
     /* removed side sector data and placed it in buffer structure */
     /* BYTE *side_sector; */
 
-    BYTE ram[0x800];
+    uint8_t ram[0x800];
 } vdrive_t;
 
 /* Actually, serial-code errors ... */
@@ -187,13 +187,13 @@ extern int vdrive_attach_image(struct disk_image_s *image, unsigned int unit, vd
 extern void vdrive_detach_image(struct disk_image_s *image, unsigned int unit, vdrive_t *vdrive);
 extern void vdrive_close_all_channels(vdrive_t *vdrive);
 extern int vdrive_get_max_sectors(vdrive_t *vdrive, unsigned int track);
-extern void vdrive_get_last_read(unsigned int *track, unsigned int *sector, BYTE **buffer);
-extern void vdrive_set_last_read(unsigned int track, unsigned int sector, BYTE *buffer);
+extern void vdrive_get_last_read(unsigned int *track, unsigned int *sector, uint8_t **buffer);
+extern void vdrive_set_last_read(unsigned int track, unsigned int sector, uint8_t *buffer);
 
 extern void vdrive_alloc_buffer(struct bufferinfo_s *p, int mode);
 extern void vdrive_free_buffer(struct bufferinfo_s *p);
 extern void vdrive_set_disk_geometry(vdrive_t *vdrive);
-extern int vdrive_read_sector(vdrive_t *vdrive, BYTE *buf, unsigned int track, unsigned int sector);
-extern int vdrive_write_sector(vdrive_t *vdrive, const BYTE *buf, unsigned int track, unsigned int sector);
+extern int vdrive_read_sector(vdrive_t *vdrive, uint8_t *buf, unsigned int track, unsigned int sector);
+extern int vdrive_write_sector(vdrive_t *vdrive, const uint8_t *buf, unsigned int track, unsigned int sector);
 
 #endif

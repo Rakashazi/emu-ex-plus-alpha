@@ -35,6 +35,8 @@
 #define MEMORY_HACK_H1024K   3
 #define MEMORY_HACK_H4096K   4
 
+extern int plus4_memory_hacks_ram_inject(uint16_t addr, uint8_t value);
+
 extern int plus4_memory_hacks_resources_init(void);
 extern int plus4_memory_hacks_cmdline_options_init(void);
 

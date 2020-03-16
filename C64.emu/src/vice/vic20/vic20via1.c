@@ -44,17 +44,17 @@
 #include "vic20via.h"
 
 
-void via1_store(WORD addr, BYTE data)
+void via1_store(uint16_t addr, uint8_t data)
 {
     viacore_store(machine_context.via1, addr, data);
 }
 
-BYTE via1_read(WORD addr)
+uint8_t via1_read(uint16_t addr)
 {
     return viacore_read(machine_context.via1, addr);
 }
 
-BYTE via1_peek(WORD addr)
+uint8_t via1_peek(uint16_t addr)
 {
     return viacore_peek(machine_context.via1, addr);
 }
@@ -78,39 +78,39 @@ static void restore_int(via_context_t *via_context, unsigned int int_num, int va
     interrupt_restore_irq(maincpu_int_status, int_num, value);
 }
 
-static void undump_acr(via_context_t *via_context, BYTE byte)
+static void undump_acr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_acr(via_context_t *via_context, BYTE byte)
+static void store_acr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_sr(via_context_t *via_context, BYTE byte)
+static void store_sr(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_t2l(via_context_t *via_context, BYTE byte)
+static void store_t2l(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void undump_pra(via_context_t *via_context, BYTE byte)
+static void undump_pra(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_pra(via_context_t *via_context, BYTE byte, BYTE myoldpa,
-                      WORD addr)
+static void store_pra(via_context_t *via_context, uint8_t byte, uint8_t myoldpa,
+                      uint16_t addr)
 {
 }
 
-static void undump_prb(via_context_t *via_context, BYTE byte)
+static void undump_prb(via_context_t *via_context, uint8_t byte)
 {
 }
 
-static void store_prb(via_context_t *via_context, BYTE byte, BYTE myoldpb,
-                      WORD addr)
+static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t myoldpb,
+                      uint16_t addr)
 {
-    BYTE joy_bit = (byte & 0x80) >> 4;
+    uint8_t joy_bit = (byte & 0x80) >> 4;
 
     if ((byte ^ myoldpb) & 8) {
         tapeport_toggle_write_bit((~(via_context->via[VIA_DDRB]) | byte) & 0x8);
@@ -118,7 +118,7 @@ static void store_prb(via_context_t *via_context, BYTE byte, BYTE myoldpb,
     store_joyport_dig(JOYPORT_1, joy_bit, 8);
 }
 
-static void undump_pcr(via_context_t *via_context, BYTE byte)
+static void undump_pcr(via_context_t *via_context, uint8_t byte)
 {
 }
 
@@ -127,11 +127,11 @@ static void reset(via_context_t *via_context)
 /*iec_pcr_write(0x22);*/
 }
 
-static BYTE store_pcr(via_context_t *via_context, BYTE byte, WORD addr)
+static uint8_t store_pcr(via_context_t *via_context, uint8_t byte, uint16_t addr)
 {
     /* FIXME: this should use via_set_ca2() and via_set_cb2() */
     if (byte != via_context->via[VIA_PCR]) {
-        register BYTE tmp = byte;
+        register uint8_t tmp = byte;
         /* first set bit 1 and 5 to the real output values */
         if ((tmp & 0x0c) != 0x0c) {
             tmp |= 0x02;
@@ -144,13 +144,13 @@ static BYTE store_pcr(via_context_t *via_context, BYTE byte, WORD addr)
     return byte;
 }
 
-static BYTE read_pra(via_context_t *via_context, WORD addr)
+static uint8_t read_pra(via_context_t *via_context, uint16_t addr)
 {
-    BYTE byte;
+    uint8_t byte;
     /* FIXME: not 100% sure about this... */
-    BYTE val = ~(via_context->via[VIA_DDRA]);
-    BYTE msk = via_context->oldpb;
-    BYTE m;
+    uint8_t val = ~(via_context->via[VIA_DDRA]);
+    uint8_t msk = via_context->oldpb;
+    uint8_t m;
     int i;
 
     for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
@@ -163,13 +163,13 @@ static BYTE read_pra(via_context_t *via_context, WORD addr)
     return byte;
 }
 
-static BYTE read_prb(via_context_t *via_context)
+static uint8_t read_prb(via_context_t *via_context)
 {
-    BYTE byte;
+    uint8_t byte;
     /* FIXME: not 100% sure about this... */
-    BYTE val = ~(via_context->via[VIA_DDRB]);
-    BYTE msk = via_context->oldpa;
-    BYTE joy = ~read_joyport_dig(JOYPORT_1);
+    uint8_t val = ~(via_context->via[VIA_DDRB]);
+    uint8_t msk = via_context->oldpa;
+    uint8_t joy = ~read_joyport_dig(JOYPORT_1);
     int m, i;
 
     for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
@@ -194,12 +194,12 @@ void via1_init(via_context_t *via_context)
                  maincpu_int_status, maincpu_clk_guard);
 }
 
-void vic20via1_setup_context(machine_context_t *machine_context)
+void vic20via1_setup_context(machine_context_t *machinecontext)
 {
     via_context_t *via;
 
-    machine_context->via1 = lib_malloc(sizeof(via_context_t));
-    via = machine_context->via1;
+    machinecontext->via1 = lib_malloc(sizeof(via_context_t));
+    via = machinecontext->via1;
 
     via->prv = NULL;
     via->context = NULL;

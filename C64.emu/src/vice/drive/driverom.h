@@ -53,7 +53,7 @@ struct snapshot_s;
 
 extern void driverom_init(void);
 extern void driverom_initialize_traps(struct drive_s *drive);
-extern int driverom_load(const char *resource_name, BYTE *drive_rom, unsigned
+extern int driverom_load(const char *resource_name, uint8_t *drive_rom, unsigned
                          int *loaded, int min, int max, const char *name,
                          unsigned int type, unsigned int *size);
 extern int driverom_load_images(void);

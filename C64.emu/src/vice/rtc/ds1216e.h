@@ -45,9 +45,9 @@ typedef struct rtc_ds1216e_s {
     time_t latch;
     time_t offset;
     time_t old_offset;
-    BYTE *clock_regs;
-    BYTE old_clock_regs[DS1216E_REG_SIZE];
-    BYTE clock_regs_changed[DS1216E_REG_SIZE];
+    uint8_t *clock_regs;
+    uint8_t old_clock_regs[DS1216E_REG_SIZE];
+    uint8_t clock_regs_changed[DS1216E_REG_SIZE];
     char *device;
 } rtc_ds1216e_t;
 
@@ -63,7 +63,7 @@ typedef struct rtc_ds1216e_s {
 extern rtc_ds1216e_t *ds1216e_init(char *device);
 extern void ds1216e_destroy(rtc_ds1216e_t *context, int save);
 
-extern BYTE ds1216e_read(rtc_ds1216e_t *context, WORD address, BYTE original_read);
+extern uint8_t ds1216e_read(rtc_ds1216e_t *context, uint16_t address, uint8_t original_read);
 
 extern int ds1216e_write_snapshot(rtc_ds1216e_t *context, snapshot_t *s);
 extern int ds1216e_read_snapshot(rtc_ds1216e_t *context, snapshot_t *s);

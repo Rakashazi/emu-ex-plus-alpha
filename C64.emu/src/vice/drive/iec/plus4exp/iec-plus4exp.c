@@ -26,6 +26,7 @@
 
 #include "vice.h"
 
+#include "iec-plus4exp.h"
 #include "drivetypes.h"
 #include "lib.h"
 #include "plus4exp-cmdline-options.h"

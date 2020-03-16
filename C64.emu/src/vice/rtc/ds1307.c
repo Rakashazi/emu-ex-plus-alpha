@@ -100,19 +100,19 @@ struct rtc_ds1307_s {
     time_t latch;
     time_t offset;
     time_t old_offset;
-    BYTE *clock_regs;
-    BYTE old_clock_regs[DS1307_REG_SIZE];
-    BYTE clock_regs_for_read[DS1307_REG_SIZE];
-    BYTE *ram;
-    BYTE old_ram[DS1307_RAM_SIZE];
-    BYTE state;
-    BYTE reg;
-    BYTE reg_ptr;
-    BYTE bit;
-    BYTE io_byte;
-    BYTE sclk_line;
-    BYTE data_line;
-    BYTE clock_register;
+    uint8_t *clock_regs;
+    uint8_t old_clock_regs[DS1307_REG_SIZE];
+    uint8_t clock_regs_for_read[DS1307_REG_SIZE];
+    uint8_t *ram;
+    uint8_t old_ram[DS1307_RAM_SIZE];
+    uint8_t state;
+    uint8_t reg;
+    uint8_t reg_ptr;
+    uint8_t bit;
+    uint8_t io_byte;
+    uint8_t sclk_line;
+    uint8_t data_line;
+    uint8_t clock_register;
     char *device;
 };
 
@@ -157,7 +157,7 @@ rtc_ds1307_t *ds1307_init(char *device)
     retval->old_offset = retval->offset;
     memcpy(retval->old_clock_regs, retval->clock_regs, DS1307_REG_SIZE);
 
-    retval->device = lib_stralloc(device);
+    retval->device = lib_strdup(device);
     retval->state = DS1307_IDLE;
     retval->sclk_line = 1;
     retval->data_line = 1;
@@ -185,7 +185,7 @@ void ds1307_destroy(rtc_ds1307_t *context, int save)
 
 static void ds1307_i2c_start(rtc_ds1307_t *context)
 {
-    BYTE tmp;
+    uint8_t tmp;
     time_t latch = (context->clock_halt) ? context->clock_halt_latch : rtc_get_latch(context->offset);
 
     tmp = context->clock_halt << 7;
@@ -206,7 +206,7 @@ static void ds1307_i2c_start(rtc_ds1307_t *context)
     context->clock_regs_for_read[DS1307_REG_CONTROL] = context->clock_regs[DS1307_REG_CONTROL];
 }
 
-static BYTE ds1307_read_register(rtc_ds1307_t *context, BYTE addr)
+static uint8_t ds1307_read_register(rtc_ds1307_t *context, uint8_t addr)
 {
     if (addr < DS1307_REG_SIZE) {
         return context->clock_regs_for_read[addr];
@@ -214,7 +214,7 @@ static BYTE ds1307_read_register(rtc_ds1307_t *context, BYTE addr)
     return context->ram[addr - DS1307_REG_SIZE];
 }
 
-static void ds1307_write_register(rtc_ds1307_t *context, BYTE addr, BYTE val)
+static void ds1307_write_register(rtc_ds1307_t *context, uint8_t addr, uint8_t val)
 {
     switch (addr) {
         case DS1307_REG_MINUTES:
@@ -352,9 +352,9 @@ static void ds1307_validate_read_ack(rtc_ds1307_t *context)
 
 /* ---------------------------------------------------------------------------------------------------- */
 
-void ds1307_set_clk_line(rtc_ds1307_t *context, BYTE data)
+void ds1307_set_clk_line(rtc_ds1307_t *context, uint8_t data)
 {
-    BYTE val = data ? 1 : 0;
+    uint8_t val = data ? 1 : 0;
 
     if (context->sclk_line == val) {
         return;
@@ -401,9 +401,9 @@ void ds1307_set_clk_line(rtc_ds1307_t *context, BYTE data)
     context->sclk_line = val;
 }
 
-void ds1307_set_data_line(rtc_ds1307_t *context, BYTE data)
+void ds1307_set_data_line(rtc_ds1307_t *context, uint8_t data)
 {
-    BYTE val = data ? 1 : 0;
+    uint8_t val = data ? 1 : 0;
 
     if (context->data_line == val) {
         return;
@@ -422,7 +422,7 @@ void ds1307_set_data_line(rtc_ds1307_t *context, BYTE data)
     context->data_line = val;
 }
 
-BYTE ds1307_read_data_line(rtc_ds1307_t *context)
+uint8_t ds1307_read_data_line(rtc_ds1307_t *context)
 {
 	switch (context->state) {
         case DS1307_READ_REGS:
@@ -475,31 +475,31 @@ static char snap_module_name[] = "RTC_DS1307";
 
 int ds1307_write_snapshot(rtc_ds1307_t *context, snapshot_t *s)
 {
-    DWORD clock_halt_latch_lo = 0;
-    DWORD clock_halt_latch_hi = 0;
-    DWORD latch_lo = 0;
-    DWORD latch_hi = 0;
-    DWORD offset_lo = 0;
-    DWORD offset_hi = 0;
-    DWORD old_offset_lo = 0;
-    DWORD old_offset_hi = 0;
+    uint32_t clock_halt_latch_lo = 0;
+    uint32_t clock_halt_latch_hi = 0;
+    uint32_t latch_lo = 0;
+    uint32_t latch_hi = 0;
+    uint32_t offset_lo = 0;
+    uint32_t offset_hi = 0;
+    uint32_t old_offset_lo = 0;
+    uint32_t old_offset_hi = 0;
     snapshot_module_t *m;
 
     /* time_t can be either 32bit or 64bit, so we save as 64bit */
 #if (SIZE_OF_TIME_T == 8)
-    clock_halt_latch_hi = (DWORD)(context->clock_halt_latch >> 32);
-    clock_halt_latch_lo = (DWORD)(context->clock_halt_latch & 0xffffffff);
-    latch_hi = (DWORD)(context->latch >> 32);
-    latch_lo = (DWORD)(context->latch & 0xffffffff);
-    offset_hi = (DWORD)(context->offset >> 32);
-    offset_lo = (DWORD)(context->offset & 0xffffffff);
-    old_offset_hi = (DWORD)(context->old_offset >> 32);
-    old_offset_lo = (DWORD)(context->old_offset & 0xffffffff);
+    clock_halt_latch_hi = (uint32_t)(context->clock_halt_latch >> 32);
+    clock_halt_latch_lo = (uint32_t)(context->clock_halt_latch & 0xffffffff);
+    latch_hi = (uint32_t)(context->latch >> 32);
+    latch_lo = (uint32_t)(context->latch & 0xffffffff);
+    offset_hi = (uint32_t)(context->offset >> 32);
+    offset_lo = (uint32_t)(context->offset & 0xffffffff);
+    old_offset_hi = (uint32_t)(context->old_offset >> 32);
+    old_offset_lo = (uint32_t)(context->old_offset & 0xffffffff);
 #else
-    clock_halt_latch_lo = (DWORD)context->clock_halt_latch;
-    latch_lo = (DWORD)context->latch;
-    offset_lo = (DWORD)context->offset;
-    old_offset_lo = (DWORD)context->old_offset;
+    clock_halt_latch_lo = (uint32_t)context->clock_halt_latch;
+    latch_lo = (uint32_t)context->latch;
+    offset_lo = (uint32_t)context->offset;
+    old_offset_lo = (uint32_t)context->old_offset;
 #endif
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
@@ -509,10 +509,10 @@ int ds1307_write_snapshot(rtc_ds1307_t *context, snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)context->clock_halt) < 0
+        || SMW_B(m, (uint8_t)context->clock_halt) < 0
         || SMW_DW(m, clock_halt_latch_hi) < 0
         || SMW_DW(m, clock_halt_latch_lo) < 0
-        || SMW_B(m, (BYTE)context->am_pm) < 0
+        || SMW_B(m, (uint8_t)context->am_pm) < 0
         || SMW_DW(m, latch_hi) < 0
         || SMW_DW(m, latch_lo) < 0
         || SMW_DW(m, offset_hi) < 0
@@ -541,15 +541,15 @@ int ds1307_write_snapshot(rtc_ds1307_t *context, snapshot_t *s)
 
 int ds1307_read_snapshot(rtc_ds1307_t *context, snapshot_t *s)
 {
-    DWORD clock_halt_latch_lo = 0;
-    DWORD clock_halt_latch_hi = 0;
-    DWORD latch_lo = 0;
-    DWORD latch_hi = 0;
-    DWORD offset_lo = 0;
-    DWORD offset_hi = 0;
-    DWORD old_offset_lo = 0;
-    DWORD old_offset_hi = 0;
-    BYTE vmajor, vminor;
+    uint32_t clock_halt_latch_lo = 0;
+    uint32_t clock_halt_latch_hi = 0;
+    uint32_t latch_lo = 0;
+    uint32_t latch_hi = 0;
+    uint32_t offset_lo = 0;
+    uint32_t offset_hi = 0;
+    uint32_t old_offset_lo = 0;
+    uint32_t old_offset_hi = 0;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -559,7 +559,7 @@ int ds1307_read_snapshot(rtc_ds1307_t *context, snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

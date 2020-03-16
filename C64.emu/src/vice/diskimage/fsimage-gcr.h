@@ -37,9 +37,9 @@ extern void fsimage_gcr_init(void);
 
 extern int fsimage_read_gcr_image(const disk_image_t *image);
 
-extern int fsimage_gcr_read_sector(const struct disk_image_s *image, BYTE *buf,
+extern int fsimage_gcr_read_sector(const struct disk_image_s *image, uint8_t *buf,
                                    const struct disk_addr_s *dadr);
-extern int fsimage_gcr_write_sector(struct disk_image_s *image, const BYTE *buf,
+extern int fsimage_gcr_write_sector(struct disk_image_s *image, const uint8_t *buf,
                                     const struct disk_addr_s *dadr);
 extern int fsimage_gcr_read_half_track(const struct disk_image_s *image,
                                        unsigned int half_track,

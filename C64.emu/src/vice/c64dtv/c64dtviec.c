@@ -39,7 +39,7 @@
 #include "types.h"
 
 
-void iec_update_cpu_bus(BYTE data)
+void iec_update_cpu_bus(uint8_t data)
 {
     iecbus.cpu_bus = (((data << 2) & 0x80)
                       | ((data << 2) & 0x40)
@@ -65,7 +65,7 @@ void iec_update_ports_embedded(void)
     iec_update_ports();
 }
 
-void iec_drive_write(BYTE data, unsigned int dnr)
+void iec_drive_write(uint8_t data, unsigned int dnr)
 {
     iecbus.drv_bus[dnr + 8] = (((data << 3) & 0x40)
                                | ((data << 6) & ((~data ^ iecbus.cpu_bus) << 3)
@@ -74,7 +74,7 @@ void iec_drive_write(BYTE data, unsigned int dnr)
     iec_update_ports();
 }
 
-BYTE iec_drive_read(unsigned int dnr)
+uint8_t iec_drive_read(unsigned int dnr)
 {
     return iecbus.drv_port;
 }
@@ -96,14 +96,16 @@ void c64iec_init(void)
 }
 
 /* KLUDGES: dummy to satisfy linker, unused */
-BYTE plus4tcbm_outputa[2], plus4tcbm_outputb[2], plus4tcbm_outputc[2];
-void plus4tcbm_update_pa(BYTE byte, unsigned int dnr)
-{
-}
-void plus4tcbm_update_pb(BYTE byte, unsigned int dnr)
-{
-}
-void plus4tcbm_update_pc(BYTE byte, unsigned int dnr)
+uint8_t plus4tcbm_outputa[2], plus4tcbm_outputb[2], plus4tcbm_outputc[2];
+
+void plus4tcbm_update_pa(uint8_t byte, unsigned int dnr)
 {
 }
 
+void plus4tcbm_update_pb(uint8_t byte, unsigned int dnr)
+{
+}
+
+void plus4tcbm_update_pc(uint8_t byte, unsigned int dnr)
+{
+}

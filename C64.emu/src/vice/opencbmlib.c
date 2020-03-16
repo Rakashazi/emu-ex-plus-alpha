@@ -27,13 +27,14 @@
 
 #include "vice.h"
 
-#ifdef HAVE_OPENCBM
+#ifdef HAVE_REALDEVICE
 
 #include <stdio.h>
 
+#include "opencbmlib.h"
+
 #include "archdep.h"
 #include "log.h"
-#include "opencbmlib.h"
 #include "dynlib.h"
 
 static void *opencbm_so = NULL;

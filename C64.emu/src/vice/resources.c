@@ -268,7 +268,7 @@ int resources_register_int(const resource_int_t *r)
             dp = resources + num_resources;
         }
 
-        dp->name = lib_stralloc(sp->name);
+        dp->name = lib_strdup(sp->name);
         dp->type = RES_INTEGER;
         dp->factory_value = uint_to_void_ptr(sp->factory_value);
         dp->value_ptr = (void *)(sp->value_ptr);
@@ -320,7 +320,7 @@ int resources_register_string(const resource_string_t *r)
             dp = resources + num_resources;
         }
 
-        dp->name = lib_stralloc(sp->name);
+        dp->name = lib_strdup(sp->name);
         dp->type = RES_STRING;
         dp->factory_value = (resource_value_t)(sp->factory_value);
         dp->value_ptr = (void *)(sp->value_ptr);
@@ -410,7 +410,7 @@ static void resource_create_event_data(char **event_data, int *data_size,
     name_size = (int)strlen(name) + 1;
 
     if (r->type == RES_INTEGER) {
-        *data_size = name_size + sizeof(DWORD);
+        *data_size = name_size + sizeof(uint32_t);
     } else {
         *data_size = name_size + (int)strlen((char *)value) + 1;
     }
@@ -419,7 +419,7 @@ static void resource_create_event_data(char **event_data, int *data_size,
     strcpy(*event_data, name);
 
     if (r->type == RES_INTEGER) {
-        *(DWORD *)(*event_data + name_size) = vice_ptr_to_uint(value);
+        *(uint32_t *)(*event_data + name_size) = vice_ptr_to_uint(value);
     } else {
         strcpy(*event_data + name_size, (char *)value);
     }
@@ -444,7 +444,7 @@ int resources_init(const char *machine)
 {
     unsigned int i;
 
-    machine_id = lib_stralloc(machine);
+    machine_id = lib_strdup(machine);
     num_allocated_resources = 100;
     num_resources = 0;
     resources = lib_malloc(num_allocated_resources * sizeof(resource_ram_t));
@@ -600,7 +600,7 @@ void resources_set_value_event(void *data, int size)
     valueptr = name + strlen(name) + 1;
     r = lookup(name);
     if (r->type == RES_INTEGER) {
-        resources_set_value_internal(r, (resource_value_t) uint_to_void_ptr(*(DWORD*)valueptr));
+        resources_set_value_internal(r, (resource_value_t) uint_to_void_ptr(*(uint32_t *)valueptr));
     } else {
         resources_set_value_internal(r, (resource_value_t)valueptr);
     }
@@ -1105,7 +1105,7 @@ int resources_load(const char *fname)
         if (vice_config_file == NULL) {
             default_name = archdep_default_resource_file_name();
         } else {
-            default_name = lib_stralloc(vice_config_file);
+            default_name = lib_strdup(vice_config_file);
         }
         fname = default_name;
     }
@@ -1252,9 +1252,9 @@ int resources_save(const char *fname)
     if (fname == NULL) {
         if (vice_config_file == NULL) {
             /* get default filename. this also creates the .vice directory if not present */
-            default_name = archdep_default_save_resource_file_name();
+            default_name = archdep_default_resource_file_name();
         } else {
-            default_name = lib_stralloc(vice_config_file);
+            default_name = lib_strdup(vice_config_file);
         }
         fname = default_name;
     }
@@ -1376,7 +1376,8 @@ int resources_dump(const char *fname)
     FILE *out_file;
     unsigned int i;
 
-    log_message(LOG_DEFAULT, "Dumping %d resources to file `%s'.", num_resources, fname);
+    log_message(LOG_DEFAULT, "Dumping %u resources to file `%s'.",
+            num_resources, fname);
 
     out_file = fopen(fname, MODE_WRITE_TEXT);
     if (!out_file) {

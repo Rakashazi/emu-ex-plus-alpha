@@ -41,7 +41,6 @@
 #include "palette.h"
 #include "resources.h"
 #include "screenshot.h"
-#include "translate.h"
 #include "uiapi.h"
 #include "video.h"
 
@@ -89,15 +88,15 @@ void screenshot_shutdown(void)
 
 /*-----------------------------------------------------------------------*/
 
-static void screenshot_line_data(screenshot_t *screenshot, BYTE *data,
+static void screenshot_line_data(screenshot_t *screenshot, uint8_t *data,
                                  unsigned int line, unsigned int mode)
 {
     unsigned int i;
-    BYTE *line_base;
-    BYTE color;
+    uint8_t *line_base;
+    uint8_t color;
 
     if (line > screenshot->height) {
-        log_error(screenshot_log, "Invalild line `%i' request.", line);
+        log_error(screenshot_log, "Invalild line `%u' request.", line);
         return;
     }
 
@@ -131,7 +130,7 @@ static void screenshot_line_data(screenshot_t *screenshot, BYTE *data,
             }
             break;
         default:
-            log_error(screenshot_log, "Invalid mode %i.", mode);
+            log_error(screenshot_log, "Invalid mode %u.", mode);
     }
 }
 
@@ -196,7 +195,7 @@ int screenshot_save(const char *drvname, const char *filename,
     }
 
     if (recording_driver == drv) {
-        ui_error(translate_text(IDGS_SORRY_NO_MULTI_RECORDING));
+        ui_error("Sorry. Multiple recording is not supported.");
         return -1;
     }
 
@@ -209,9 +208,9 @@ int screenshot_save(const char *drvname, const char *filename,
         recording_driver = drv;
         recording_canvas = canvas;
 
-        reopen_recording_drivername = lib_stralloc(drvname);
+        reopen_recording_drivername = lib_strdup(drvname);
         reopen_recording_canvas = canvas;
-        reopen_filename = lib_stralloc(filename);
+        reopen_filename = lib_strdup(filename);
     }
 
     result = screenshot_save_core(&screenshot, drv, filename);
@@ -225,7 +224,7 @@ int screenshot_save(const char *drvname, const char *filename,
 }
 
 #ifdef FEATURE_CPUMEMHISTORY
-int memmap_screenshot_save(const char *drvname, const char *filename, int x_size, int y_size, BYTE *gfx, BYTE *palette)
+int memmap_screenshot_save(const char *drvname, const char *filename, int x_size, int y_size, uint8_t *gfx, uint8_t *palette)
 {
     gfxoutputdrv_t *drv;
 

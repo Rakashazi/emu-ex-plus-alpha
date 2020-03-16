@@ -41,7 +41,6 @@
 #include "monitor.h"
 #include "petreu.h"
 #include "resources.h"
-#include "translate.h"
 #include "types.h"
 #include "util.h"
 
@@ -55,13 +54,13 @@
 #define PETREU_CONTROL          0x0c
 
 /* PET REU registers */
-static BYTE petreu[16];
-static BYTE petreu2[16];
+static uint8_t petreu[16];
+static uint8_t petreu2[16];
 
-static BYTE petreu_bank;
+static uint8_t petreu_bank;
 
 /* PET REU image.  */
-static BYTE *petreu_ram = NULL;
+static uint8_t *petreu_ram = NULL;
 
 /* old PET REU size, unused for now but reserved for
    the future 512kb/1mb/2mb versions */
@@ -88,57 +87,61 @@ static int petreu_size_kb = 0;
 static char *petreu_filename = NULL;
 
 /* Some prototypes are needed */
-static BYTE read_petreu_reg(WORD addr);
-static BYTE read_petreu2_reg(WORD addr);
-static void store_petreu_reg(WORD addr, BYTE byte);
-static void store_petreu2_reg(WORD addr, BYTE byte);
-static BYTE read_petreu_ram(WORD addr);
-static void store_petreu_ram(WORD addr, BYTE byte);
+static uint8_t read_petreu_reg(uint16_t addr);
+static uint8_t read_petreu2_reg(uint16_t addr);
+static void store_petreu_reg(uint16_t addr, uint8_t byte);
+static void store_petreu2_reg(uint16_t addr, uint8_t byte);
+static uint8_t read_petreu_ram(uint16_t addr);
+static void store_petreu_ram(uint16_t addr, uint8_t byte);
 static int petreu_dump(void);
 
+
 static io_source_t petreureg1_device = {
-    "PETREU REG 1",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0x8800, 0x88ff, 0x1f,
-    1, /* read is always valid */
-    store_petreu_reg,
-    read_petreu_reg,
-    NULL, /* no peek */
-    petreu_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_NORMAL,
-    0
+    "PETREU REG 1",       /* name of the device */
+    IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
+    "PETREU",             /* resource to set to '0' */
+    0x8800, 0x88ff, 0x1f, /* range for the device, regs:$8800-$881f, mirrors:$8820-$88ff */
+    1,                    /* read is always valid */
+    store_petreu_reg,     /* store function */
+    NULL,                 /* NO poke function */
+    read_petreu_reg,      /* read function */
+    NULL,                 /* TODO: peek function */
+    petreu_dump,          /* device state information dump function */
+    IO_CART_ID_NONE,      /* not a cartridge */
+    IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
+    0                     /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t petreureg2_device = {
-    "PETREU REG 2",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0x8a00, 0x8aff, 0x1f,
-    1, /* read is always valid */
-    store_petreu2_reg,
-    read_petreu2_reg,
-    NULL, /* no peek */
-    petreu_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_NORMAL,
-    0
+    "PETREU REG 2",       /* name of the device */
+    IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
+    "PETREU",             /* resource to set to '0' */
+    0x8a00, 0x8aff, 0x1f, /* range for the device, regs:$8a00-$8a1f, mirrors:$8a20-$8aff */
+    1,                    /* read is always valid */
+    store_petreu2_reg,    /* store function */
+    NULL,                 /* NO poke function */
+    read_petreu2_reg,     /* read function */
+    NULL,                 /* TODO: peek function */
+    petreu_dump,          /* device state information dump function */
+    IO_CART_ID_NONE,      /* not a cartridge */
+    IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
+    0                     /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t petreuram_device = {
-    "PETREU RAM",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0x8900, 0x89ff, 0xff,
-    1, /* read is always valid */
-    store_petreu_ram,
-    read_petreu_ram,
-    NULL, /* no peek */
-    petreu_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_NORMAL,
-    0
+    "PETREU RAM",         /* name of the device */
+    IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
+    "PETREU",             /* resource to set to '0' */
+    0x8900, 0x89ff, 0xff, /* range for the device, regs:$8900-$89ff */
+    1,                    /* read is always valid */
+    store_petreu_ram,     /* store function */
+    NULL,                 /* NO poke function */
+    read_petreu_ram,      /* read function */
+    NULL,                 /* TODO: peek function */
+    petreu_dump,          /* device state information dump function */
+    IO_CART_ID_NONE,      /* not a cartridge */
+    IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
+    0                     /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *petreu_reg_1_list_item = NULL;
@@ -266,26 +269,18 @@ void petreu_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-petreu", SET_RESOURCE, 0,
+    { "-petreu", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "PETREU", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_PETREU,
-      NULL, NULL },
-    { "+petreu", SET_RESOURCE, 0,
+      NULL, "Enable the PET Ram and Expansion Unit" },
+    { "+petreu", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "PETREU", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_PETREU,
-      NULL, NULL },
-    { "-petreuimage", SET_RESOURCE, 1,
+      NULL, "Disable the PET Ram and Expansion Unit" },
+    { "-petreuimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "PETREUfilename", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_PETREU_NAME,
-      NULL, NULL },
-    { "-petreuramsize", SET_RESOURCE, 1,
+      "<Name>", "Specify name of PET Ram and Expansion Unit image" },
+    { "-petreuramsize", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "PETREUsize", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_SIZE_IN_KB, IDCLS_PETREU_SIZE,
-      NULL, NULL },
+      "<size in KB>", "Size of the PET Ram and Expansion Unit. (128/512/1024/2048)" },
     CMDLINE_LIST_END
 };
 
@@ -379,18 +374,18 @@ void petreu_shutdown(void)
 /* This might be over-simplifying things, returning the
    value without taking timers and interrupts into
    acount, if needed I'll fix this in the future. */
-static BYTE read_petreu_reg(WORD addr)
+static uint8_t read_petreu_reg(uint16_t addr)
 {
-    BYTE retval;
+    uint8_t retval;
 
     retval = petreu[addr & 0xf];
 
     return retval;
 }
 
-static BYTE read_petreu2_reg(WORD addr)
+static uint8_t read_petreu2_reg(uint16_t addr)
 {
-    BYTE retval;
+    uint8_t retval;
 
     if (petreu_size_kb != 128) {
         retval = petreu2[addr & 0xf];
@@ -403,9 +398,9 @@ static BYTE read_petreu2_reg(WORD addr)
 
 /* When direction bits are set to input, the corrosponding
    bits of the latches go high */
-static BYTE getrealvalue(BYTE reg, BYTE dir)
+static uint8_t getrealvalue(uint8_t reg, uint8_t dir)
 {
-    BYTE retval;
+    uint8_t retval;
 
     retval = reg & dir;
     retval = retval | (~dir);
@@ -413,11 +408,11 @@ static BYTE getrealvalue(BYTE reg, BYTE dir)
     return retval;
 }
 
-static BYTE get_petreu_ram(WORD addr)
+static uint8_t get_petreu_ram(uint16_t addr)
 {
-    BYTE retval;
-    BYTE real_register_b_value;
-    BYTE real_register_a_value;
+    uint8_t retval;
+    uint8_t real_register_b_value;
+    uint8_t real_register_a_value;
 
     if (petreu[PETREU_DIRECTION_B] != 0xff
         && petreu[PETREU_DIRECTION_B] != 0x7f) {
@@ -439,12 +434,12 @@ static BYTE get_petreu_ram(WORD addr)
     return retval;
 }
 
-static BYTE get_petreu2_ram(WORD addr)
+static uint8_t get_petreu2_ram(uint16_t addr)
 {
-    BYTE retval;
-    BYTE real_register_b_value;
-    BYTE real_register_a_value;
-    BYTE real_bank_value;
+    uint8_t retval;
+    uint8_t real_register_b_value;
+    uint8_t real_register_a_value;
+    uint8_t real_bank_value;
 
     if (petreu[PETREU_DIRECTION_B] != 0xff) {
         real_register_b_value = getrealvalue(petreu[PETREU_REGISTER_B],
@@ -474,7 +469,7 @@ static BYTE get_petreu2_ram(WORD addr)
     return retval;
 }
 
-static BYTE read_petreu_ram(WORD addr)
+static uint8_t read_petreu_ram(uint16_t addr)
 {
     if (petreu_size_kb == 128) {
         return get_petreu_ram(addr);
@@ -483,7 +478,7 @@ static BYTE read_petreu_ram(WORD addr)
     }
 }
 
-static void store_petreu_reg(WORD addr, BYTE byte)
+static void store_petreu_reg(uint16_t addr, uint8_t byte)
 {
     petreu[addr & 0xf] = byte;
     if ((petreu[PETREU_CONTROL] & 0xe) != 0xc) {
@@ -496,15 +491,15 @@ static void store_petreu_reg(WORD addr, BYTE byte)
     }
 }
 
-static void store_petreu2_reg(WORD addr, BYTE byte)
+static void store_petreu2_reg(uint16_t addr, uint8_t byte)
 {
     petreu2[addr & 0xf] = byte;
 }
 
-static void put_petreu_ram(WORD addr, BYTE byte)
+static void put_petreu_ram(uint16_t addr, uint8_t byte)
 {
-    BYTE real_register_b_value;
-    BYTE real_register_a_value;
+    uint8_t real_register_b_value;
+    uint8_t real_register_a_value;
 
     if (petreu[PETREU_DIRECTION_B] != 0xff
         && petreu[PETREU_DIRECTION_B] != 0x7f) {
@@ -525,11 +520,11 @@ static void put_petreu_ram(WORD addr, BYTE byte)
                + real_register_a_value] = byte;
 }
 
-static void put_petreu2_ram(WORD addr, BYTE byte)
+static void put_petreu2_ram(uint16_t addr, uint8_t byte)
 {
-    BYTE real_register_b_value;
-    BYTE real_register_a_value;
-    BYTE real_bank_value;
+    uint8_t real_register_b_value;
+    uint8_t real_register_a_value;
+    uint8_t real_bank_value;
 
     if (petreu[PETREU_DIRECTION_B] != 0xff) {
         real_register_b_value = getrealvalue(petreu[PETREU_REGISTER_B],
@@ -557,7 +552,7 @@ static void put_petreu2_ram(WORD addr, BYTE byte)
     petreu_ram[(real_bank_value << 16) + (real_register_b_value << 8) + real_register_a_value] = byte;
 }
 
-static void store_petreu_ram(WORD addr, BYTE byte)
+static void store_petreu_ram(uint16_t addr, uint8_t byte)
 {
     if (petreu_size_kb == 128) {
         put_petreu_ram(addr, byte);

@@ -14,6 +14,7 @@
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
 #include "internal.hh"
 
 extern "C"
@@ -90,7 +91,7 @@ PathOption optionFirmwarePath(CFGKEY_SYSTEM_FILE_PATH, firmwareBasePath, "");
 EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
 	currSystem = (ViceSystem)optionViceSystem.val;
-	plugin = loadVicePlugin(currSystem);
+	plugin = loadVicePlugin(currSystem, EmuApp::libPath().data());
 	if(!plugin)
 	{
 		return makeError("Error loading plugin for system %s", VicePlugin::systemName(currSystem));

@@ -56,7 +56,7 @@ extern void ui_shutdown(void);
 extern void ui_message(const char *format, ...);
 
 /* Print an error message.  */
-extern VICE_API void ui_error(const char *format, ...);
+extern void ui_error(const char *format, ...);
 
 /* Display a mesage without interrupting emulation */
 extern void ui_display_statustext(const char *text, int fade_out);
@@ -94,7 +94,7 @@ extern void ui_display_recording(int recording_status);
 extern void ui_display_event_time(unsigned int current, unsigned int total);
 
 /* Joystick UI */
-extern void ui_display_joyport(BYTE *joyport);
+extern void ui_display_joyport(uint8_t *joyport);
 
 /* Volume UI */
 void ui_display_volume(int vol);

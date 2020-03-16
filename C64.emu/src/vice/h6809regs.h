@@ -31,21 +31,21 @@
 #include "types.h"
 
 typedef struct h6809_regs_s {
-    WORD reg_x;
-    WORD reg_y;
-    WORD reg_u;
-    WORD reg_s;
-    WORD reg_pc;
-    BYTE reg_dp;
-    BYTE reg_cc;
-    BYTE reg_a;
-    BYTE reg_b;
+    uint16_t reg_x;
+    uint16_t reg_y;
+    uint16_t reg_u;
+    uint16_t reg_s;
+    uint16_t reg_pc;
+    uint8_t reg_dp;
+    uint8_t reg_cc;
+    uint8_t reg_a;
+    uint8_t reg_b;
 #if 0
     /* 6309 specific registers for future support */
-    BYTE reg_e;
-    BYTE reg_f;
-    WORD reg_v;
-    BYTE reg_md;
+    uint8_t reg_e;
+    uint8_t reg_f;
+    uint16_t reg_v;
+    uint8_t reg_md;
 #endif
 } h6809_regs_t;
 

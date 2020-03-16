@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "videoarch.h"
+
 #include "alarm.h"
 #include "clkguard.h"
 #include "dma.h"
@@ -63,7 +65,6 @@
 #include "tedtypes.h"
 #include "types.h"
 #include "vsync.h"
-#include "videoarch.h"
 #include "video.h"
 
 
@@ -309,9 +310,6 @@ static void ted_set_geometry(void)
                         -TED_RASTER_X(0),  /* extra offscreen border left */
                         0 + TED_SCREEN_XPIX -
                         ted.screen_leftborderwidth - ted.screen_rightborderwidth + TED_RASTER_X(0)) /* extra offscreen border right */;
-#ifdef __MSDOS__
-    video_ack_vga_mode();
-#endif
     ted.raster.geometry->pixel_aspect_ratio = ted_get_pixel_aspect();
     ted.raster.viewport->crt_type = ted_get_crt_type();
 }
@@ -441,7 +439,7 @@ void ted_reset(void)
 
 void ted_reset_registers(void)
 {
-    WORD i;
+    uint16_t i;
 
     if (!ted.initialized) {
         return;
@@ -493,13 +491,13 @@ void ted_powerup(void)
 void ted_update_memory_ptrs(unsigned int cycle)
 {
     /* FIXME: This is *horrible*!  */
-    static BYTE *old_screen_ptr, *old_bitmap_ptr, *old_chargen_ptr;
-    static BYTE *old_color_ptr;
-    WORD screen_addr, char_addr, bitmap_addr, color_addr;
-    BYTE *screen_base;            /* Pointer to screen memory.  */
-    BYTE *char_base;              /* Pointer to character memory.  */
-    BYTE *bitmap_base;            /* Pointer to bitmap memory.  */
-    BYTE *color_base;             /* Pointer to color memory.  */
+    static uint8_t *old_screen_ptr, *old_bitmap_ptr, *old_chargen_ptr;
+    static uint8_t *old_color_ptr;
+    uint16_t screen_addr, char_addr, bitmap_addr, color_addr;
+    uint8_t *screen_base;            /* Pointer to screen memory.  */
+    uint8_t *char_base;              /* Pointer to character memory.  */
+    uint8_t *bitmap_base;            /* Pointer to bitmap memory.  */
+    uint8_t *color_base;             /* Pointer to color memory.  */
     int tmp;
     unsigned int video_romsel;
     unsigned int cpu_romsel;
@@ -723,7 +721,7 @@ void ted_raster_draw_alarm_handler(CLOCK offset, void *data)
     if (ted.tv_current_line < ted.screen_height) {
         raster_line_emulate(&ted.raster);
     } else {
-        log_debug("Skip line %d %d", ted.tv_current_line, ted.screen_height);
+        log_debug("Skip line %u %u", ted.tv_current_line, ted.screen_height);
     }
 
     if (ted.ted_raster_counter == ted.last_dma_line) {
@@ -788,15 +786,6 @@ void ted_raster_draw_alarm_handler(CLOCK offset, void *data)
         ted.cursor_phase = (ted.cursor_phase + 1) & 0x1f;
         ted.cursor_visible = ted.cursor_phase & 0x10;
 
-#ifdef __MSDOS__
-        if (ted.raster.canvas->draw_buffer->canvas_width
-            <= TED_SCREEN_XPIX
-            && ted.raster.canvas->draw_buffer->canvas_height
-            <= TED_SCREEN_YPIX) {
-            canvas_set_border_color(ted.raster.canvas,
-                                    ted.raster.border_color);
-        }
-#endif
     }
 
     if (in_visible_area) {

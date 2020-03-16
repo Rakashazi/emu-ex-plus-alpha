@@ -67,13 +67,11 @@ extern "C"
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2020\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
 IG::Semaphore execSem{0}, execDoneSem{0};
-bool runningFrame = false;
 EmuAudio *audioPtr{};
 static bool c64IsInit = false, c64FailedInit = false;
 bool autostartOnLoad = true;
 FS::PathString firmwareBasePath{};
 FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3]{};
-bool isPal = false;
 VicePlugin plugin{};
 ViceSystem currSystem = VICE_SYSTEM_C64;
 
@@ -95,7 +93,10 @@ int intResource(const char *name)
 {
 	int val = 0;
 	auto failed = plugin.resources_get_int(name, &val);
-	assert(!failed);
+	if(failed)
+	{
+		logErr("error getting int resource:%s", name);
+	}
 	return val;
 }
 
@@ -144,11 +145,6 @@ int sysModel()
 void setSysModel(int model)
 {
 	setModel(model);
-	isPal = sysIsPal();
-	if(isPal)
-	{
-		logMsg("C64 model has PAL timings");
-	}
 }
 
 void setBorderMode(int mode)
@@ -353,7 +349,7 @@ struct SnapshotTrapData
 	const char *pathStr{};
 };
 
-static void loadSnapshotTrap(WORD, void *data)
+static void loadSnapshotTrap(uint16_t, void *data)
 {
 	auto snapData = (SnapshotTrapData*)data;
 	logMsg("loading state: %s", snapData->pathStr);
@@ -363,7 +359,7 @@ static void loadSnapshotTrap(WORD, void *data)
 		snapData->hasError = false;
 }
 
-static void saveSnapshotTrap(WORD, void *data)
+static void saveSnapshotTrap(uint16_t, void *data)
 {
 	auto snapData = (SnapshotTrapData*)data;
 	logMsg("saving state: %s", snapData->pathStr);
@@ -396,7 +392,6 @@ EmuSystem::Error EmuSystem::loadState(const char *path)
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
 	skipFrames(nullptr, 1, nullptr); // execute cpu trap
 	bool hasError = data.hasError;
-	isPal = sysIsPal();
 	return hasError ? makeFileReadError() : Error{};
 }
 
@@ -408,7 +403,7 @@ void EmuSystem::saveBackupMem()
 	}
 }
 
-bool EmuSystem::vidSysIsPAL() { return isPal; }
+bool EmuSystem::vidSysIsPAL() { return sysIsPal(); }
 
 void EmuSystem::closeSystem()
 {
@@ -426,7 +421,16 @@ void EmuSystem::closeSystem()
 	plugin.file_system_detach_disk(11);
 	plugin.cartridge_detach_image(-1);
 	plugin.machine_trigger_reset(MACHINE_RESET_MODE_HARD);
-	autostartOnLoad = true;
+}
+
+static const char *mainROMFilename(ViceSystem system)
+{
+	switch(system)
+	{
+		case VICE_SYSTEM_PET: return "kernal1";
+		case VICE_SYSTEM_SUPER_CPU: return "scpu64";
+		default: return "kernal";
+	}
 }
 
 static EmuSystem::Error c64FirmwareError()
@@ -444,6 +448,10 @@ static bool initC64()
 {
 	if(c64IsInit)
 		return true;
+	if(sysfile_locate(mainROMFilename(currSystem), nullptr) == -1)
+	{
+		return false;
+	}
 	logMsg("initializing C64");
   if(plugin.init_main() < 0)
   {
@@ -452,6 +460,7 @@ static bool initC64()
   	return false;
 	}
 	c64IsInit = true;
+	updateKeyMappingArray();
 	return true;
 }
 
@@ -467,30 +476,24 @@ bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event e)
 
 EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 {
+	bool shouldAutostart = autostartOnLoad;
+	autostartOnLoad = true;
 	if(!initC64())
 	{
 		return c64FirmwareError();
 	}
 	applyInitialOptionResources();
 	logMsg("loading %s", fullGamePath());
-	if(autostartOnLoad)
+	if(shouldAutostart && plugin.autostart_autodetect_)
 	{
-		if(plugin.autostart_autodetect_)
+		if(string_hasDotExtension(fullGamePath(), "prg"))
 		{
-			if(string_hasDotExtension(fullGamePath(), "prg"))
-			{
-				// needed to store AutostartPrgDisk.d64
-				makeDefaultBaseSavePath();
-			}
-			if(plugin.autostart_autodetect(fullGamePath(), nullptr, 0, AUTOSTART_MODE_RUN) != 0)
-			{
-				return EmuSystem::makeFileReadError();
-			}
+			// needed to store AutostartPrgDisk.d64
+			makeDefaultBaseSavePath();
 		}
-		else
+		if(plugin.autostart_autodetect(fullGamePath(), nullptr, 0, AUTOSTART_MODE_RUN) != 0)
 		{
-			// TODO
-			return EmuSystem::makeError("Autostart not implemented");
+			return EmuSystem::makeFileReadError();
 		}
 	}
 	else
@@ -502,20 +505,26 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 				return EmuSystem::makeFileReadError();
 			}
 		}
+		else
+		{
+			// TODO
+			return EmuSystem::makeError("Non-disk media needs autostart enabled");
+		}
 	}
 	return {};
 }
 
 static void execC64Frame()
 {
+	setCanvasRunningFrame(true);
 	// signal C64 thread to execute one frame and wait for it to finish
 	execSem.notify();
 	execDoneSem.wait();
+	setCanvasRunningFrame(false);
 }
 
 void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
-	runningFrame = 1;
 	audioPtr = audio;
 	setCanvasSkipFrame(!video);
 	execC64Frame();
@@ -524,7 +533,6 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 		video->startFrameWithFormat(task, canvasSrcPix);
 	}
 	audioPtr = {};
-	runningFrame = 0;
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)

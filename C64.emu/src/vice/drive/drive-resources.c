@@ -151,7 +151,7 @@ static int drive_resources_type(int val, void *param)
 
             /* dual disk drives disable second emulated unit */
             log_warning(drive->log,
-                        "Dual disk drive %d disables emulated drive %d", dnr, drive1);
+                        "Dual disk drive %u disables emulated drive %d", dnr, drive1);
 
             drive_resources_type(DRIVE_TYPE_NONE, int_to_void_ptr(drive1));
         }
@@ -160,7 +160,7 @@ static int drive_resources_type(int val, void *param)
         if (drive0->enable && drive_check_dual(drive0->type)) {
             /* dual disk drives disable second emulated unit */
             log_warning(drive->log,
-                        "Dual disk drive %d disables emulated drive %d", mk_drive0(dnr), dnr);
+                        "Dual disk drive %u disables emulated drive %u", mk_drive0(dnr), dnr);
 
             type = DRIVE_TYPE_NONE;
         }

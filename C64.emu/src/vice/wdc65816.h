@@ -35,18 +35,18 @@
    the `WDC65816_REGS_*()' macros.  */
 typedef struct WDC65816_regs_s {
     unsigned int pc;
-    BYTE a;
-    BYTE b;
-    WORD x;
-    WORD y;
-    BYTE pbr;
-    BYTE dbr;
-    WORD dpr;
-    WORD sp;
-    BYTE emul;
-    BYTE p;
-    BYTE n;
-    BYTE z;
+    uint8_t a;
+    uint8_t b;
+    uint16_t x;
+    uint16_t y;
+    uint8_t pbr;
+    uint8_t dbr;
+    uint16_t dpr;
+    uint16_t sp;
+    uint8_t emul;
+    uint8_t p;
+    uint8_t n;
+    uint8_t z;
 } WDC65816_regs_t;
 
 /* These define the position of the status flags in the P (`status')

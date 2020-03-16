@@ -44,7 +44,6 @@
 #include "snapshot.h"
 #include "sound.h"
 #include "uiapi.h"
-#include "translate.h"
 
 /*
     Note: this cartridge has a passthrough port, which for some odd reason does
@@ -65,26 +64,31 @@ static FM_OPL *YM3812_chip = NULL;
 /* ------------------------------------------------------------------------- */
 
 /* some prototypes are needed */
-static void sfx_soundexpander_sound_store(WORD addr, BYTE value);
-static BYTE sfx_soundexpander_sound_read(WORD addr);
-static BYTE sfx_soundexpander_sound_peek(WORD addr);
-static BYTE sfx_soundexpander_piano_read(WORD addr);
+static void sfx_soundexpander_sound_store(uint16_t addr, uint8_t value);
+static uint8_t sfx_soundexpander_sound_read(uint16_t addr);
+static uint8_t sfx_soundexpander_sound_peek(uint16_t addr);
+
+#if 0
+static uint8_t sfx_soundexpander_piano_read(uint16_t addr);
+#endif
 
 static io_source_t sfx_soundexpander_sound_device = {
-    CARTRIDGE_NAME_SFX_SOUND_EXPANDER,
-    IO_DETACH_RESOURCE,
-    "SFXSoundExpander",
-    0xdf00, 0xdfff, 0x7f,
-    0,
-    sfx_soundexpander_sound_store,
-    sfx_soundexpander_sound_read,
-    sfx_soundexpander_sound_peek,
-    NULL, /* TODO: dump */
-    CARTRIDGE_SFX_SOUND_EXPANDER,
-    0,
-    0
+    CARTRIDGE_NAME_SFX_SOUND_EXPANDER, /* name of the device */
+    IO_DETACH_RESOURCE,                /* use resource to detach the device when involved in a read-collision */
+    "SFXSoundExpander",                /* resource to set to '0' */
+    0xdf00, 0xdfff, 0x7f,              /* range for the device, regs:$df40/$df50/$df60, mirrors:$dfc0/$dfd0/$dfe0, range is different for vic20 */
+    0,                                 /* read validity is determined by the device upon a read */
+    sfx_soundexpander_sound_store,     /* store function */
+    NULL,                              /* NO poke function */
+    sfx_soundexpander_sound_read,      /* read function */
+    sfx_soundexpander_sound_peek,      /* peek function */
+    NULL,                              /* TODO: device state information dump function */
+    CARTRIDGE_SFX_SOUND_EXPANDER,      /* cartridge ID */
+    IO_PRIO_NORMAL,                    /* normal priority, device read needs to be checked for collisions */
+    0                                  /* insertion order, gets filled in by the registration function */
 };
 
+#if 0
 static io_source_t sfx_soundexpander_piano_device = {
     CARTRIDGE_NAME_SFX_SOUND_EXPANDER,
     IO_DETACH_RESOURCE,
@@ -99,26 +103,33 @@ static io_source_t sfx_soundexpander_piano_device = {
     0,
     0
 };
+#endif
 
 static io_source_list_t *sfx_soundexpander_sound_list_item = NULL;
+
+/* unused right now */
+#if 0
 static io_source_list_t *sfx_soundexpander_piano_list_item = NULL;
+#endif
 
 static const export_resource_t export_res_sound = {
     CARTRIDGE_NAME_SFX_SOUND_EXPANDER, 0, 0, NULL, &sfx_soundexpander_sound_device, CARTRIDGE_SFX_SOUND_EXPANDER
 };
 
+#if 0
 static const export_resource_t export_res_piano = {
     CARTRIDGE_NAME_SFX_SOUND_EXPANDER, 0, 0, NULL, &sfx_soundexpander_piano_device, CARTRIDGE_SFX_SOUND_EXPANDER
 };
+#endif
 
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
 static int sfx_soundexpander_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
 static void sfx_soundexpander_sound_machine_close(sound_t *psid);
-static int sfx_soundexpander_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int sound_output_channels, int sound_chip_channels, int *delta_t);
-static void sfx_soundexpander_sound_machine_store(sound_t *psid, WORD addr, BYTE val);
-static BYTE sfx_soundexpander_sound_machine_read(sound_t *psid, WORD addr);
+static int sfx_soundexpander_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, int *delta_t);
+static void sfx_soundexpander_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t val);
+static uint8_t sfx_soundexpander_sound_machine_read(sound_t *psid, uint16_t addr);
 static void sfx_soundexpander_sound_reset(sound_t *psid, CLOCK cpu_clk);
 
 static int sfx_soundexpander_sound_machine_cycle_based(void)
@@ -131,20 +142,21 @@ static int sfx_soundexpander_sound_machine_channels(void)
     return 1;     /* FIXME: needs to become stereo for stereo capable ports */
 }
 
+/* SFX Sound Expander cartridge sound chip */
 static sound_chip_t sfx_soundexpander_sound_chip = {
-    NULL, /* no open */
-    sfx_soundexpander_sound_machine_init,
-    sfx_soundexpander_sound_machine_close,
-    sfx_soundexpander_sound_machine_calculate_samples,
-    sfx_soundexpander_sound_machine_store,
-    sfx_soundexpander_sound_machine_read,
-    sfx_soundexpander_sound_reset,
-    sfx_soundexpander_sound_machine_cycle_based,
-    sfx_soundexpander_sound_machine_channels,
-    0 /* chip enabled */
+    NULL,                                              /* NO sound chip open function */ 
+    sfx_soundexpander_sound_machine_init,              /* sound chip init function */
+    sfx_soundexpander_sound_machine_close,             /* sound chip close function */
+    sfx_soundexpander_sound_machine_calculate_samples, /* sound chip calculate samples function */
+    sfx_soundexpander_sound_machine_store,             /* sound chip store function */
+    sfx_soundexpander_sound_machine_read,              /* sound chip read function */
+    sfx_soundexpander_sound_reset,                     /* sound chip reset function */
+    sfx_soundexpander_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, sound chip is NOT cycle based */
+    sfx_soundexpander_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+    0                                                  /* chip enabled, toggled when sound chip is (de-)activated */
 };
 
-static WORD sfx_soundexpander_sound_chip_offset = 0;
+static uint16_t sfx_soundexpander_sound_chip_offset = 0;
 
 void sfx_soundexpander_sound_chip_init(void)
 {
@@ -169,32 +181,46 @@ static int set_sfx_soundexpander_enabled(int value, void *param)
             if (export_add(&export_res_sound) < 0) {
                 return -1;
             }
+#if 0
             if (export_add(&export_res_piano) < 0) {
                 return -1;
             }
+#endif
             if (machine_class == VICE_MACHINE_VIC20) {
                 if (sfx_soundexpander_io_swap) {
                     sfx_soundexpander_sound_device.start_address = 0x9800;
                     sfx_soundexpander_sound_device.end_address = 0x9bff;
+#if 0
                     sfx_soundexpander_piano_device.start_address = 0x9800;
                     sfx_soundexpander_piano_device.end_address = 0x9bff;
+#endif
                 } else {
                     sfx_soundexpander_sound_device.start_address = 0x9c00;
                     sfx_soundexpander_sound_device.end_address = 0x9fff;
+#if 0
                     sfx_soundexpander_piano_device.start_address = 0x9c00;
                     sfx_soundexpander_piano_device.end_address = 0x9fff;
+#endif
                 }
             }
             sfx_soundexpander_sound_list_item = io_source_register(&sfx_soundexpander_sound_device);
+#if 0
             sfx_soundexpander_piano_list_item = io_source_register(&sfx_soundexpander_piano_device);
+#endif
             sfx_soundexpander_sound_chip.chip_enabled = 1;
         } else {
             export_remove(&export_res_sound);
+#if 0
             export_remove(&export_res_piano);
+#endif
             io_source_unregister(sfx_soundexpander_sound_list_item);
+#if 0
             io_source_unregister(sfx_soundexpander_piano_list_item);
+#endif
             sfx_soundexpander_sound_list_item = NULL;
+#if 0
             sfx_soundexpander_piano_list_item = NULL;
+#endif
             sfx_soundexpander_sound_chip.chip_enabled = 0;
         }
     }
@@ -246,6 +272,13 @@ int sfx_soundexpander_enable(void)
     return resources_set_int("SFXSoundExpander", 1);
 }
 
+
+int sfx_soundexpander_disable(void)
+{
+    return resources_set_int("SFXSoundExpander", 0);
+}
+
+
 void sfx_soundexpander_detach(void)
 {
     resources_set_int("SFXSoundExpander", 0);
@@ -285,36 +318,26 @@ void sfx_soundexpander_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-sfxse", SET_RESOURCE, 0,
+    { "-sfxse", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SFXSoundExpander", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_SFX_SE,
-      NULL, NULL },
-    { "+sfxse", SET_RESOURCE, 0,
+      NULL, "Enable the SFX Sound Expander cartridge" },
+    { "+sfxse", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SFXSoundExpander", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_SFX_SE,
-      NULL, NULL },
-    { "-sfxsetype", SET_RESOURCE, 1,
+      NULL, "Disable the SFX Sound Expander cartridge" },
+    { "-sfxsetype", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SFXSoundExpanderChip", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_TYPE, IDCLS_SET_YM_CHIP_TYPE,
-      NULL, NULL },
+      "<Type>", "Set YM chip type (3526 / 3812)" },
     CMDLINE_LIST_END
 };
 
 static const cmdline_option_t cmdline_mascuerade_options[] =
 {
-    { "-sfxseioswap", SET_RESOURCE, 0,
+    { "-sfxseioswap", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SFXSoundExpanderIOSwap", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_MAP_CART_IO_2,
-      NULL, NULL },
-    { "+sfxseioswap", SET_RESOURCE, 0,
+      NULL, "Swap io mapping (map cart I/O to VIC20 I/O-2)" },
+    { "+sfxseioswap", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SFXSoundExpanderIOSwap", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_MAP_CART_IO_3,
-      NULL, NULL },
+      NULL, "Don't swap io mapping (map cart I/O to VIC20 I/O-3)" },
     CMDLINE_LIST_END
 };
 
@@ -331,15 +354,15 @@ int sfx_soundexpander_cmdline_options_init(void)
 /* ---------------------------------------------------------------------*/
 
 struct sfx_soundexpander_sound_s {
-    BYTE command;
+    uint8_t command;
 };
 
 static struct sfx_soundexpander_sound_s snd;
 
-static int sfx_soundexpander_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int soc, int scc, int *delta_t)
+static int sfx_soundexpander_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, int *delta_t)
 {
     int i;
-    SWORD *buffer;
+    int16_t *buffer;
 
     buffer = lib_malloc(nr * 2);
 
@@ -390,7 +413,7 @@ static void sfx_soundexpander_sound_machine_close(sound_t *psid)
     }
 }
 
-static void sfx_soundexpander_sound_machine_store(sound_t *psid, WORD addr, BYTE val)
+static void sfx_soundexpander_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t val)
 {
     snd.command = val;
 
@@ -401,13 +424,13 @@ static void sfx_soundexpander_sound_machine_store(sound_t *psid, WORD addr, BYTE
     }
 }
 
-static BYTE sfx_soundexpander_sound_machine_read(sound_t *psid, WORD addr)
+static uint8_t sfx_soundexpander_sound_machine_read(sound_t *psid, uint16_t addr)
 {
     if (sfx_soundexpander_chip == 3812 && YM3812_chip) {
-        return ym3812_read(YM3812_chip, 1);
+        return ym3812_read(YM3812_chip, 0);
     }
     if (sfx_soundexpander_chip == 3526 && YM3526_chip) {
-        return ym3526_read(YM3526_chip, 1);
+        return ym3526_read(YM3526_chip, 0);
     }
     return 0;
 }
@@ -423,7 +446,7 @@ static void sfx_soundexpander_sound_reset(sound_t *psid, CLOCK cpu_clk)
 
 /* ---------------------------------------------------------------------*/
 
-static void sfx_soundexpander_sound_store(WORD addr, BYTE value)
+static void sfx_soundexpander_sound_store(uint16_t addr, uint8_t value)
 {
     if (addr == 0x40) {
         if (sfx_soundexpander_chip == 3812 && YM3812_chip) {
@@ -437,9 +460,9 @@ static void sfx_soundexpander_sound_store(WORD addr, BYTE value)
     }
 }
 
-static BYTE sfx_soundexpander_sound_read(WORD addr)
+static uint8_t sfx_soundexpander_sound_read(uint16_t addr)
 {
-    BYTE value = 0;
+    uint8_t value = 0;
 
     sfx_soundexpander_sound_device.io_source_valid = 0;
 
@@ -453,9 +476,9 @@ static BYTE sfx_soundexpander_sound_read(WORD addr)
     return value;
 }
 
-static BYTE sfx_soundexpander_sound_peek(WORD addr)
+static uint8_t sfx_soundexpander_sound_peek(uint16_t addr)
 {
-    BYTE value = 0;
+    uint8_t value = 0;
 
     if (addr == 0x40) {
         if (sfx_soundexpander_chip == 3812 && YM3812_chip) {
@@ -467,15 +490,17 @@ static BYTE sfx_soundexpander_sound_peek(WORD addr)
     return value;
 }
 
+#if 0
 /* No piano keyboard is emulated currently, so we return 0xff */
-static BYTE sfx_soundexpander_piano_read(WORD addr)
+static uint8_t sfx_soundexpander_piano_read(uint16_t addr)
 {
     sfx_soundexpander_piano_device.io_source_valid = 0;
     if ((addr & 16) == 0 && (addr & 8) == 8) {
         sfx_soundexpander_piano_device.io_source_valid = 1;
     }
-    return (BYTE)0xff;
+    return (uint8_t)0xff;
 }
+#endif
 
 /* ---------------------------------------------------------------------*/
 /*    snapshot support functions                                             */
@@ -1114,94 +1139,94 @@ int sfx_soundexpander_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)sfx_soundexpander_io_swap) < 0
-        || SMW_DW(m, (DWORD)sfx_soundexpander_chip) < 0
-        || SMW_B(m, (BYTE)snd.command) < 0) {
+        || SMW_B(m, (uint8_t)sfx_soundexpander_io_swap) < 0
+        || SMW_DW(m, (uint32_t)sfx_soundexpander_chip) < 0
+        || SMW_B(m, (uint8_t)snd.command) < 0) {
         goto fail;
     }
 
     for (x = 0; x < 9; x++) {
         for (y = 0; y < 2; y++) {
             if (0
-                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].ar) < 0
-                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].dr) < 0
-                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].rr) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].KSR) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].ksl) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].ksr) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].mul) < 0
-                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].Cnt) < 0
-                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].Incr) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].FB) < 0
-                || SMW_DW(m, (DWORD)connect1_is_output0(chip->P_CH[x].SLOT[y].connect1)) < 0
-                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].op1_out[0]) < 0
-                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].op1_out[1]) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].CON) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_type) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].state) < 0
-                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].TL) < 0
-                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].TLL) < 0
-                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].volume) < 0
-                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].sl) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sh_ar) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sel_ar) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sh_dr) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sel_dr) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sh_rr) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].eg_sel_rr) < 0
-                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].key) < 0
-                || SMW_DW(m, (DWORD)chip->P_CH[x].SLOT[y].AMmask) < 0
-                || SMW_B(m, (BYTE)chip->P_CH[x].SLOT[y].vib) < 0
-                || SMW_W(m, (WORD)chip->P_CH[x].SLOT[y].wavetable) < 0) {
+                || SMW_DW(m, (uint32_t)chip->P_CH[x].SLOT[y].ar) < 0
+                || SMW_DW(m, (uint32_t)chip->P_CH[x].SLOT[y].dr) < 0
+                || SMW_DW(m, (uint32_t)chip->P_CH[x].SLOT[y].rr) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].KSR) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].ksl) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].ksr) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].mul) < 0
+                || SMW_DW(m, (uint32_t)chip->P_CH[x].SLOT[y].Cnt) < 0
+                || SMW_DW(m, (uint32_t)chip->P_CH[x].SLOT[y].Incr) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].FB) < 0
+                || SMW_DW(m, (uint32_t)connect1_is_output0(chip->P_CH[x].SLOT[y].connect1)) < 0
+                || SMW_DW(m, (uint32_t)chip->P_CH[x].SLOT[y].op1_out[0]) < 0
+                || SMW_DW(m, (uint32_t)chip->P_CH[x].SLOT[y].op1_out[1]) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].CON) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].eg_type) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].state) < 0
+                || SMW_DW(m, (uint32_t)chip->P_CH[x].SLOT[y].TL) < 0
+                || SMW_DW(m, (uint32_t)chip->P_CH[x].SLOT[y].TLL) < 0
+                || SMW_DW(m, (uint32_t)chip->P_CH[x].SLOT[y].volume) < 0
+                || SMW_DW(m, (uint32_t)chip->P_CH[x].SLOT[y].sl) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].eg_sh_ar) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].eg_sel_ar) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].eg_sh_dr) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].eg_sel_dr) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].eg_sh_rr) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].eg_sel_rr) < 0
+                || SMW_DW(m, (uint32_t)chip->P_CH[x].SLOT[y].key) < 0
+                || SMW_DW(m, (uint32_t)chip->P_CH[x].SLOT[y].AMmask) < 0
+                || SMW_B(m, (uint8_t)chip->P_CH[x].SLOT[y].vib) < 0
+                || SMW_W(m, (uint16_t)chip->P_CH[x].SLOT[y].wavetable) < 0) {
                 goto fail;
             }
         }
         if (0
-            || SMW_DW(m, (DWORD)chip->P_CH[x].block_fnum) < 0
-            || SMW_DW(m, (DWORD)chip->P_CH[x].fc) < 0
-            || SMW_DW(m, (DWORD)chip->P_CH[x].ksl_base) < 0
-            || SMW_B(m, (BYTE)chip->P_CH[x].kcode) < 0) {
+            || SMW_DW(m, (uint32_t)chip->P_CH[x].block_fnum) < 0
+            || SMW_DW(m, (uint32_t)chip->P_CH[x].fc) < 0
+            || SMW_DW(m, (uint32_t)chip->P_CH[x].ksl_base) < 0
+            || SMW_B(m, (uint8_t)chip->P_CH[x].kcode) < 0) {
             goto fail;
         }
     }
 
     if (0
-        || SMW_DW(m, (DWORD)chip->eg_cnt) < 0
-        || SMW_DW(m, (DWORD)chip->eg_timer) < 0
-        || SMW_DW(m, (DWORD)chip->eg_timer_add) < 0
-        || SMW_DW(m, (DWORD)chip->eg_timer_overflow) < 0
-        || SMW_B(m, (BYTE)chip->rhythm) < 0) {
+        || SMW_DW(m, (uint32_t)chip->eg_cnt) < 0
+        || SMW_DW(m, (uint32_t)chip->eg_timer) < 0
+        || SMW_DW(m, (uint32_t)chip->eg_timer_add) < 0
+        || SMW_DW(m, (uint32_t)chip->eg_timer_overflow) < 0
+        || SMW_B(m, (uint8_t)chip->rhythm) < 0) {
         goto fail;
     }
 
     for (x = 0; x < 1024; x++) {
-        if (SMW_DW(m, (DWORD)chip->fn_tab[x]) < 0) {
+        if (SMW_DW(m, (uint32_t)chip->fn_tab[x]) < 0) {
             goto fail;
         }
     }
 
     if (0
-        || SMW_B(m, (BYTE)chip->lfo_am_depth) < 0
-        || SMW_B(m, (BYTE)chip->lfo_pm_depth_range) < 0
-        || SMW_DW(m, (DWORD)chip->lfo_am_cnt) < 0
-        || SMW_DW(m, (DWORD)chip->lfo_am_inc) < 0
-        || SMW_DW(m, (DWORD)chip->lfo_pm_cnt) < 0
-        || SMW_DW(m, (DWORD)chip->lfo_pm_inc) < 0
-        || SMW_DW(m, (DWORD)chip->noise_rng) < 0
-        || SMW_DW(m, (DWORD)chip->noise_p) < 0
-        || SMW_DW(m, (DWORD)chip->noise_f) < 0
-        || SMW_B(m, (BYTE)chip->wavesel) < 0
-        || SMW_DW(m, (DWORD)chip->T[0]) < 0
-        || SMW_DW(m, (DWORD)chip->T[1]) < 0
-        || SMW_B(m, (BYTE)chip->st[0]) < 0
-        || SMW_B(m, (BYTE)chip->st[1]) < 0
-        || SMW_B(m, (BYTE)chip->type) < 0
-        || SMW_B(m, (BYTE)chip->address) < 0
-        || SMW_B(m, (BYTE)chip->status) < 0
-        || SMW_B(m, (BYTE)chip->statusmask) < 0
-        || SMW_B(m, (BYTE)chip->mode) < 0
-        || SMW_DW(m, (DWORD)chip->clock) < 0
-        || SMW_DW(m, (DWORD)chip->rate) < 0
+        || SMW_B(m, (uint8_t)chip->lfo_am_depth) < 0
+        || SMW_B(m, (uint8_t)chip->lfo_pm_depth_range) < 0
+        || SMW_DW(m, (uint32_t)chip->lfo_am_cnt) < 0
+        || SMW_DW(m, (uint32_t)chip->lfo_am_inc) < 0
+        || SMW_DW(m, (uint32_t)chip->lfo_pm_cnt) < 0
+        || SMW_DW(m, (uint32_t)chip->lfo_pm_inc) < 0
+        || SMW_DW(m, (uint32_t)chip->noise_rng) < 0
+        || SMW_DW(m, (uint32_t)chip->noise_p) < 0
+        || SMW_DW(m, (uint32_t)chip->noise_f) < 0
+        || SMW_B(m, (uint8_t)chip->wavesel) < 0
+        || SMW_DW(m, (uint32_t)chip->T[0]) < 0
+        || SMW_DW(m, (uint32_t)chip->T[1]) < 0
+        || SMW_B(m, (uint8_t)chip->st[0]) < 0
+        || SMW_B(m, (uint8_t)chip->st[1]) < 0
+        || SMW_B(m, (uint8_t)chip->type) < 0
+        || SMW_B(m, (uint8_t)chip->address) < 0
+        || SMW_B(m, (uint8_t)chip->status) < 0
+        || SMW_B(m, (uint8_t)chip->statusmask) < 0
+        || SMW_B(m, (uint8_t)chip->mode) < 0
+        || SMW_DW(m, (uint32_t)chip->clock) < 0
+        || SMW_DW(m, (uint32_t)chip->rate) < 0
         || SMW_DB(m, (double)chip->freqbase) < 0) {
         goto fail;
     }
@@ -1215,7 +1240,7 @@ fail:
 
 int sfx_soundexpander_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
     int temp_chip;
     FM_OPL *chip = NULL;
@@ -1229,13 +1254,13 @@ int sfx_soundexpander_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
     /* new in 0.1 */
-    if (SNAPVAL(vmajor, vminor, 0, 1)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 1)) {
         if (SMR_B_INT(m, &sfx_soundexpander_io_swap) < 0) {
             goto fail;
         }

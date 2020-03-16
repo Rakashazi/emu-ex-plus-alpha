@@ -52,7 +52,6 @@ C64/C128 | CBM2 | PET | PLUS4 | VIC20 | NAME
 #include "resources.h"
 #include "snapshot.h"
 #include "sound.h"
-#include "translate.h"
 #include "uiapi.h"
 #include "userport.h"
 #include "userport_dac.h"
@@ -63,9 +62,9 @@ static sound_dac_t userport_dac_dac;
 
 /* Some prototypes are needed */
 static int userport_dac_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
-static int userport_dac_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int sound_output_channels, int sound_chip_channels, int *delta_t);
-static void userport_dac_sound_machine_store(sound_t *psid, WORD addr, BYTE val);
-static BYTE userport_dac_sound_machine_read(sound_t *psid, WORD addr);
+static int userport_dac_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int sound_output_channels, int sound_chip_channels, int *delta_t);
+static void userport_dac_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t val);
+static uint8_t userport_dac_sound_machine_read(sound_t *psid, uint16_t addr);
 static void userport_dac_sound_reset(sound_t *psid, CLOCK cpu_clk);
 
 static int userport_dac_sound_machine_cycle_based(void)
@@ -78,20 +77,21 @@ static int userport_dac_sound_machine_channels(void)
     return 1;
 }
 
+/* Userport DAC device sound chip */
 static sound_chip_t userport_dac_sound_chip = {
-    NULL, /* no open */
-    userport_dac_sound_machine_init,
-    NULL, /* no close */
-    userport_dac_sound_machine_calculate_samples,
-    userport_dac_sound_machine_store,
-    userport_dac_sound_machine_read,
-    userport_dac_sound_reset,
-    userport_dac_sound_machine_cycle_based,
-    userport_dac_sound_machine_channels,
-    0 /* chip enabled */
+    NULL,                                         /* NO sound chip open function */ 
+    userport_dac_sound_machine_init,              /* sound chip init function */
+    NULL,                                         /* NO sound chip close function */
+    userport_dac_sound_machine_calculate_samples, /* sound chip calculate samples function */
+    userport_dac_sound_machine_store,             /* sound chip store function */
+    userport_dac_sound_machine_read,              /* sound chip read function */
+    userport_dac_sound_reset,                     /* sound chip reset function */
+    userport_dac_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, chip is NOT cycle based */
+    userport_dac_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+    0                                             /* sound chip enabled flag, toggled upon device (de-)activation */
 };
 
-static WORD userport_dac_sound_chip_offset = 0;
+static uint16_t userport_dac_sound_chip_offset = 0;
 
 void userport_dac_sound_chip_init(void)
 {
@@ -101,30 +101,29 @@ void userport_dac_sound_chip_init(void)
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
-static void userport_dac_store_pbx(BYTE value);
+static void userport_dac_store_pbx(uint8_t value);
 static int userport_dac_write_snapshot_module(snapshot_t *s);
 static int userport_dac_read_snapshot_module(snapshot_t *s);
 
 static userport_device_t dac_device = {
-    USERPORT_DEVICE_DAC,
-    "Userport DAC",
-    IDGS_USERPORT_DAC,
-    NULL, /* NO pbx read */
-    userport_dac_store_pbx,
-    NULL, /* NO pa2 read */
-    NULL, /* NO pa2 write */
-    NULL, /* NO pa3 read */
-    NULL, /* NO pa3 write */
-    0, /* NO pc pin needed */
-    NULL, /* NO sp1 write */
-    NULL, /* NO sp1 read */
-    NULL, /* NO sp2 write */
-    NULL, /* NO sp2 read */
-    "UserportDAC",
-    0xff,
-    0,
-    0,
-    0
+    USERPORT_DEVICE_DAC,    /* device id */
+    "Userport DAC",         /* device name */
+    NULL,                   /* NO read pb0-pb7 function */
+    userport_dac_store_pbx, /* store pb0-pb7 function */
+    NULL,                   /* NO read pa2 pin function */
+    NULL,                   /* NO store pa2 pin function */
+    NULL,                   /* NO read pa3 pin function */
+    NULL,                   /* NO store pa3 pin function */
+    0,                      /* pc pin is NOT needed */
+    NULL,                   /* NO store sp1 pin function */
+    NULL,                   /* NO read sp1 pin function */
+    NULL,                   /* NO store sp2 pin function */
+    NULL,                   /* NO read sp2 pin function */
+    "UserportDAC",          /* resource used by the device */
+    0xff,                   /* return value from a read, not used since the device is write only */
+    0,                      /* validity mask of the device, not used since the device is write only */
+    0,                      /* device involved in a read collision, to be filled in by the collision detection system */
+    0                       /* a tag to indicate the order of insertion */
 };
 
 static userport_snapshot_t dac_snapshot = {
@@ -175,16 +174,12 @@ int userport_dac_resources_init(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-userportdac", SET_RESOURCE, 0,
+    { "-userportdac", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "UserportDAC", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_USERPORT_DAC,
-      NULL, NULL },
-    { "+userportdac", SET_RESOURCE, 0,
+      NULL, "Enable Userport DAC for sound output" },
+    { "+userportdac", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "UserportDAC", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_USERPORT_DAC,
-      NULL, NULL },
+      NULL, "Disable Userport DAC for sound output" },
     CMDLINE_LIST_END
 };
 
@@ -195,21 +190,21 @@ int userport_dac_cmdline_options_init(void)
 
 /* ---------------------------------------------------------------------*/
 
-static BYTE userport_dac_sound_data;
+static uint8_t userport_dac_sound_data;
 
-static void userport_dac_store_pbx(BYTE value)
+static void userport_dac_store_pbx(uint8_t value)
 {
     userport_dac_sound_data = value;
     sound_store(userport_dac_sound_chip_offset, value, 0);
 }
 
 struct userport_dac_sound_s {
-    BYTE voice0;
+    uint8_t voice0;
 };
 
 static struct userport_dac_sound_s snd;
 
-static int userport_dac_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int soc, int scc, int *delta_t)
+static int userport_dac_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, int *delta_t)
 {
     return sound_dac_calculate_samples(&userport_dac_dac, pbuf, (int)snd.voice0 * 128, nr, soc, (soc > 1) ? 3 : 1);
 }
@@ -222,14 +217,13 @@ static int userport_dac_sound_machine_init(sound_t *psid, int speed, int cycles_
     return 1;
 }
 
-static void userport_dac_sound_machine_store(sound_t *psid, WORD addr, BYTE val)
+static void userport_dac_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t val)
 {
     snd.voice0 = val;
 }
 
-static BYTE userport_dac_sound_machine_read(sound_t *psid, WORD addr)
+static uint8_t userport_dac_sound_machine_read(sound_t *psid, uint16_t addr)
 {
-    /* FIXME: most likely needs to return 0, but not sure */
     return userport_dac_sound_data;
 }
 
@@ -274,7 +268,7 @@ static int userport_dac_write_snapshot_module(snapshot_t *s)
 
 static int userport_dac_read_snapshot_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     snapshot_module_t *m;
 
     /* enable device */
@@ -287,7 +281,7 @@ static int userport_dac_read_snapshot_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

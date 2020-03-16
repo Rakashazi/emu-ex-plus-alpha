@@ -32,9 +32,9 @@
 struct snapshot_s;
 
 extern void acia1_init(void);
-extern BYTE acia1_read(WORD a);
-extern BYTE acia1_peek(WORD a);
-extern void acia1_store(WORD a, BYTE b);
+extern uint8_t acia1_read(uint16_t a);
+extern uint8_t acia1_peek(uint16_t a);
+extern void acia1_store(uint16_t a, uint8_t b);
 extern void acia1_reset(void);
 
 extern int acia1_cmdline_options_init(void);

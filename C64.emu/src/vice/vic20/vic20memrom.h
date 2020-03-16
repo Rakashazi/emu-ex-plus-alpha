@@ -29,16 +29,16 @@
 
 #include "types.h"
 
-extern BYTE vic20memrom_kernal_rom[];
-extern BYTE vic20memrom_kernal_trap_rom[];
-extern BYTE vic20memrom_basic_rom[];
-extern BYTE vic20memrom_chargen_rom[];
+extern uint8_t vic20memrom_kernal_rom[];
+extern uint8_t vic20memrom_kernal_trap_rom[];
+extern uint8_t vic20memrom_basic_rom[];
+extern uint8_t vic20memrom_chargen_rom[];
 
-extern BYTE vic20memrom_kernal_read(WORD addr);
-extern BYTE vic20memrom_basic_read(WORD addr);
-extern BYTE vic20memrom_chargen_read(WORD addr);
+extern uint8_t vic20memrom_kernal_read(uint16_t addr);
+extern uint8_t vic20memrom_basic_read(uint16_t addr);
+extern uint8_t vic20memrom_chargen_read(uint16_t addr);
 
-extern BYTE vic20memrom_trap_read(WORD addr);
-extern void vic20memrom_trap_store(WORD addr, BYTE value);
+extern uint8_t vic20memrom_trap_read(uint16_t addr);
+extern void vic20memrom_trap_store(uint16_t addr, uint8_t value);
 
 #endif

@@ -32,6 +32,7 @@
 
 #include "6510core.h"
 #include "alarm.h"
+#include "archdep.h"
 #include "clkguard.h"
 #include "debug.h"
 #include "interrupt.h"
@@ -75,12 +76,12 @@
 
 #ifndef STORE
 #define STORE(addr, value) \
-    (*_mem_write_tab_ptr[(addr) >> 8])((WORD)(addr), (BYTE)(value))
+    (*_mem_write_tab_ptr[(addr) >> 8])((uint16_t)(addr), (uint8_t)(value))
 #endif
 
 #ifndef LOAD
 #define LOAD(addr) \
-    (*_mem_read_tab_ptr[(addr) >> 8])((WORD)(addr))
+    (*_mem_read_tab_ptr[(addr) >> 8])((uint16_t)(addr))
 #endif
 
 /* Those may be overridden by the machine stuff.  Probably we want them in
@@ -161,6 +162,7 @@ monitor_interface_t *maincpu_monitor_interface_get(void)
     maincpu_monitor_interface->mem_bank_read = mem_bank_read;
     maincpu_monitor_interface->mem_bank_peek = mem_bank_peek;
     maincpu_monitor_interface->mem_bank_write = mem_bank_write;
+    maincpu_monitor_interface->mem_bank_poke = mem_bank_poke;
 
     maincpu_monitor_interface->mem_ioreg_list_get = mem_ioreg_list_get;
 
@@ -225,10 +227,10 @@ void maincpu_reset(void)
 unsigned int reg_pc;
 #endif
 
-static BYTE **o_bank_base;
+static uint8_t **o_bank_base;
 static int *o_bank_start;
 static int *o_bank_limit;
-static BYTE *o_bank_bank;
+static uint8_t *o_bank_bank;
 
 void maincpu_resync_limits(void) {
     if (o_bank_base) {
@@ -241,8 +243,8 @@ void maincpu_mainloop(void)
     /* Notice that using a struct for these would make it a lot slower (at
        least, on gcc 2.7.2.x).  */
  union regs {
-     WORD reg_s;
-     BYTE reg_q[2];
+     uint16_t reg_s;
+     uint8_t reg_q[2];
  } regs65802;
 
 #define reg_c regs65802.reg_s
@@ -254,24 +256,24 @@ void maincpu_mainloop(void)
 #define reg_b regs65802.reg_q[0]
 #endif
 
-    WORD reg_x = 0;
-    WORD reg_y = 0;
-    BYTE reg_pbr = 0;
-    BYTE reg_dbr = 0;
-    WORD reg_dpr = 0;
-    BYTE reg_p = 0;
-    WORD reg_sp = 0x100;
-    BYTE flag_n = 0;
-    BYTE flag_z = 0;
-    BYTE reg_emul = 1;
+    uint16_t reg_x = 0;
+    uint16_t reg_y = 0;
+    uint8_t reg_pbr = 0;
+    uint8_t reg_dbr = 0;
+    uint16_t reg_dpr = 0;
+    uint8_t reg_p = 0;
+    uint16_t reg_sp = 0x100;
+    uint8_t flag_n = 0;
+    uint8_t flag_z = 0;
+    uint8_t reg_emul = 1;
     int interrupt65816 = IK_RESET;
 #ifndef NEED_REG_PC
     unsigned int reg_pc;
 #endif
-    BYTE *bank_base;
+    uint8_t *bank_base;
     int bank_start = 0;
     int bank_limit = 0;
-    BYTE bank_bank = 0;
+    uint8_t bank_bank = 0;
 
     o_bank_base = &bank_base;
     o_bank_start = &bank_start;
@@ -334,7 +336,7 @@ void maincpu_mainloop(void)
 
 #define CALLER e_comp_space
 
-#define ROM_TRAP_ALLOWED() mem_rom_trap_allowed((WORD)reg_pc)
+#define ROM_TRAP_ALLOWED() mem_rom_trap_allowed((uint16_t)reg_pc)
 
 #define GLOBAL_REGS maincpu_regs
 
@@ -344,7 +346,7 @@ void maincpu_mainloop(void)
 
         if (maincpu_clk_limit && (maincpu_clk > maincpu_clk_limit)) {
             log_error(LOG_DEFAULT, "cycle limit reached.");
-            exit(EXIT_FAILURE);
+            archdep_vice_exit(EXIT_FAILURE);
         }
 #if 0
         if (CLK > 246171754)
@@ -417,25 +419,25 @@ int maincpu_snapshot_write_module(snapshot_t *s)
 {
     snapshot_module_t *m;
 
-    m = snapshot_module_create(s, snap_module_name, ((BYTE)SNAP_MAJOR),
-                               ((BYTE)SNAP_MINOR));
+    m = snapshot_module_create(s, snap_module_name, ((uint8_t)SNAP_MAJOR),
+                               ((uint8_t)SNAP_MINOR));
     if (m == NULL)
         return -1;
 
     if (0
         || SMW_DW(m, maincpu_clk) < 0
-        || SMW_B(m, (BYTE)WDC65816_REGS_GET_A(&maincpu_regs)) < 0
-        || SMW_B(m, (BYTE)WDC65816_REGS_GET_B(&maincpu_regs)) < 0
-        || SMW_W(m, (WORD)WDC65816_REGS_GET_X(&maincpu_regs)) < 0
-        || SMW_W(m, (WORD)WDC65816_REGS_GET_Y(&maincpu_regs)) < 0
-        || SMW_W(m, (WORD)WDC65816_REGS_GET_SP(&maincpu_regs)) < 0
-        || SMW_W(m, (WORD)WDC65816_REGS_GET_DPR(&maincpu_regs)) < 0
-        || SMW_B(m, (BYTE)WDC65816_REGS_GET_PBR(&maincpu_regs)) < 0
-        || SMW_B(m, (BYTE)WDC65816_REGS_GET_DBR(&maincpu_regs)) < 0
-        || SMW_B(m, (BYTE)WDC65816_REGS_GET_EMUL(&maincpu_regs)) < 0
-        || SMW_W(m, (WORD)WDC65816_REGS_GET_PC(&maincpu_regs)) < 0
-        || SMW_B(m, (BYTE)WDC65816_REGS_GET_STATUS(&maincpu_regs)) < 0
-        || SMW_DW(m, (DWORD)last_opcode_info) < 0)
+        || SMW_B(m, (uint8_t)WDC65816_REGS_GET_A(&maincpu_regs)) < 0
+        || SMW_B(m, (uint8_t)WDC65816_REGS_GET_B(&maincpu_regs)) < 0
+        || SMW_W(m, (uint16_t)WDC65816_REGS_GET_X(&maincpu_regs)) < 0
+        || SMW_W(m, (uint16_t)WDC65816_REGS_GET_Y(&maincpu_regs)) < 0
+        || SMW_W(m, (uint16_t)WDC65816_REGS_GET_SP(&maincpu_regs)) < 0
+        || SMW_W(m, (uint16_t)WDC65816_REGS_GET_DPR(&maincpu_regs)) < 0
+        || SMW_B(m, (uint8_t)WDC65816_REGS_GET_PBR(&maincpu_regs)) < 0
+        || SMW_B(m, (uint8_t)WDC65816_REGS_GET_DBR(&maincpu_regs)) < 0
+        || SMW_B(m, (uint8_t)WDC65816_REGS_GET_EMUL(&maincpu_regs)) < 0
+        || SMW_W(m, (uint16_t)WDC65816_REGS_GET_PC(&maincpu_regs)) < 0
+        || SMW_B(m, (uint8_t)WDC65816_REGS_GET_STATUS(&maincpu_regs)) < 0
+        || SMW_DW(m, (uint8_t)last_opcode_info) < 0)
         goto fail;
 
     if (interrupt_write_snapshot(maincpu_int_status, m) < 0) {
@@ -457,9 +459,9 @@ fail:
 
 int maincpu_snapshot_read_module(snapshot_t *s)
 {
-    BYTE a, b, pbr, dbr, emul, status;
-    WORD x, y, sp, pc, dpr;
-    BYTE major, minor;
+    uint8_t a, b, pbr, dbr, emul, status;
+    uint16_t x, y, sp, pc, dpr;
+    uint8_t major, minor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &major, &minor);

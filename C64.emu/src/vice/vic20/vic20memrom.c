@@ -34,31 +34,31 @@
 #include "vic20basic.h"
 #include "vic20kernal.h"
 #else
-BYTE vic20memrom_basic_rom[VIC20_BASIC_ROM_SIZE];
-BYTE vic20memrom_kernal_rom[VIC20_KERNAL_ROM_SIZE];
+uint8_t vic20memrom_basic_rom[VIC20_BASIC_ROM_SIZE];
+uint8_t vic20memrom_kernal_rom[VIC20_KERNAL_ROM_SIZE];
 #endif
 
-BYTE vic20memrom_kernal_trap_rom[VIC20_KERNAL_ROM_SIZE];
+uint8_t vic20memrom_kernal_trap_rom[VIC20_KERNAL_ROM_SIZE];
 
-BYTE vic20memrom_chargen_rom[VIC20_CHARGEN_ROM_SIZE];
+uint8_t vic20memrom_chargen_rom[VIC20_CHARGEN_ROM_SIZE];
 
 
-BYTE vic20memrom_kernal_read(WORD addr)
+uint8_t vic20memrom_kernal_read(uint16_t addr)
 {
     return vic20memrom_kernal_rom[addr & 0x1fff];
 }
 
-BYTE vic20memrom_basic_read(WORD addr)
+uint8_t vic20memrom_basic_read(uint16_t addr)
 {
     return vic20memrom_basic_rom[addr & 0x1fff];
 }
 
-BYTE vic20memrom_chargen_read(WORD addr)
+uint8_t vic20memrom_chargen_read(uint16_t addr)
 {
     return vic20memrom_chargen_rom[addr & 0xfff];
 }
 
-BYTE vic20memrom_trap_read(WORD addr)
+uint8_t vic20memrom_trap_read(uint16_t addr)
 {
     switch (addr & 0xf000) {
         case 0xe000:
@@ -69,7 +69,7 @@ BYTE vic20memrom_trap_read(WORD addr)
     return 0;
 }
 
-void vic20memrom_trap_store(WORD addr, BYTE value)
+void vic20memrom_trap_store(uint16_t addr, uint8_t value)
 {
     switch (addr & 0xf000) {
         case 0xe000:
@@ -79,7 +79,7 @@ void vic20memrom_trap_store(WORD addr, BYTE value)
     }
 }
 
-BYTE rom_read(WORD addr)
+uint8_t rom_read(uint16_t addr)
 {
     switch (addr & 0xf000) {
         case 0x8000:
@@ -95,7 +95,7 @@ BYTE rom_read(WORD addr)
     return 0;
 }
 
-void rom_store(WORD addr, BYTE value)
+void rom_store(uint16_t addr, uint8_t value)
 {
     switch (addr & 0xf000) {
         case 0x8000:

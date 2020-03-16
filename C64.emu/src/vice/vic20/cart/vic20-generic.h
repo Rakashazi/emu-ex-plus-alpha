@@ -31,28 +31,28 @@
 
 #include "types.h"
 
-extern BYTE generic_ram123_read(WORD addr);
-extern void generic_ram123_store(WORD addr, BYTE value);
-extern BYTE generic_blk1_read(WORD addr);
-extern void generic_blk1_store(WORD addr, BYTE value);
-extern BYTE generic_blk2_read(WORD addr);
-extern void generic_blk2_store(WORD addr, BYTE value);
-extern BYTE generic_blk3_read(WORD addr);
-extern void generic_blk3_store(WORD addr, BYTE value);
-extern BYTE generic_blk5_read(WORD addr);
-extern void generic_blk5_store(WORD addr, BYTE value);
-/* extern BYTE generic_io2_read(WORD addr); */
-/* extern void generic_io2_store(WORD addr, BYTE value); */
-/* extern BYTE generic_io3_read(WORD addr); */
-/* extern void generic_io3_store(WORD addr, BYTE value); */
+extern uint8_t generic_ram123_read(uint16_t addr);
+extern void generic_ram123_store(uint16_t addr, uint8_t value);
+extern uint8_t generic_blk1_read(uint16_t addr);
+extern void generic_blk1_store(uint16_t addr, uint8_t value);
+extern uint8_t generic_blk2_read(uint16_t addr);
+extern void generic_blk2_store(uint16_t addr, uint8_t value);
+extern uint8_t generic_blk3_read(uint16_t addr);
+extern void generic_blk3_store(uint16_t addr, uint8_t value);
+extern uint8_t generic_blk5_read(uint16_t addr);
+extern void generic_blk5_store(uint16_t addr, uint8_t value);
+/* extern uint8_t generic_io2_read(uint16_t addr); */
+/* extern void generic_io2_store(uint16_t addr, uint8_t value); */
+/* extern uint8_t generic_io3_read(uint16_t addr); */
+/* extern void generic_io3_store(uint16_t addr, uint8_t value); */
 
 extern void generic_init(void);
 extern void generic_reset(void);
 
-extern void generic_config_setup(BYTE *rawcart);
+extern void generic_config_setup(uint8_t *rawcart);
 extern int generic_bin_attach(int type, const char *filename);
-/* extern int generic_bin_attach(const char *filename, BYTE *rawcart); */
-/* extern int generic_crt_attach(FILE *fd, BYTE *rawcart); */
+/* extern int generic_bin_attach(const char *filename, uint8_t *rawcart); */
+/* extern int generic_crt_attach(FILE *fd, uint8_t *rawcart); */
 extern void generic_detach(void);
 
 extern int generic_resources_init(void);
@@ -66,7 +66,7 @@ extern int generic_snapshot_read_module(struct snapshot_s *s);
 /* special case handling need for multiple file generic carts */
 extern int generic_attach_from_resource(int type, const char *filename);
 extern void generic_set_default(void);
-extern const char *generic_get_file_name(WORD addr);
-
+extern void generic_unset_default(void);
+extern const char *generic_get_file_name(uint16_t addr);
 
 #endif

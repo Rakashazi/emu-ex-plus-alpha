@@ -50,6 +50,7 @@
 #define USERPORT_DEVICE_RTC_DS1307          13
 #define USERPORT_DEVICE_DIAG_586220_HARNESS 14
 
+/* this structure is used by userport devices */
 typedef struct userport_device_s {
     /* ID of the device */
     int id;
@@ -57,38 +58,35 @@ typedef struct userport_device_s {
     /* Name of the device */
     char *name;
 
-    /* Translated name of the device */
-    int trans_name;
-
     /* Read pb0-7 pins */
     void (*read_pbx)(void);
 
     /* Store pb0-7 pins */
-    void (*store_pbx)(BYTE val);
+    void (*store_pbx)(uint8_t val);
 
     /* Read pa2 pin */
     void (*read_pa2)(void);
 
     /* Store pa2 pin */
-    void (*store_pa2)(BYTE val);
+    void (*store_pa2)(uint8_t val);
 
     /* Read pa3 pin */
     void (*read_pa3)(void);
 
     /* Store pa3 pin */
-    void (*store_pa3)(BYTE val);
+    void (*store_pa3)(uint8_t val);
 
     /* Device needs pc pin */
     int needs_pc;
 
     /* Store sp1 pin */
-    void (*store_sp1)(BYTE val);
+    void (*store_sp1)(uint8_t val);
 
     /* Read sp1 pin */
     void (*read_sp1)(void);
 
     /* Store sp2 pin */
-    void (*store_sp2)(BYTE val);
+    void (*store_sp2)(uint8_t val);
 
     /* Read sp2 pin */
     void (*read_sp2)(void);
@@ -97,24 +95,25 @@ typedef struct userport_device_s {
     char *resource;
 
     /* return value of a read */
-    BYTE retval;
+    uint8_t retval;
 
     /* validity mask of a read */
-    BYTE mask;
+    uint8_t mask;
 
-    /* involved on collision */
+    /* involved in collision */
     int collision;
 
     /* a tag to indicate the order of insertion */
     unsigned int order;
 } userport_device_t;
 
+/* this structure is used by userport ports */
 typedef struct userport_port_props_s {
-    int has_pa2;
-    int has_pa3;
-    void (*set_flag)(BYTE val);
-    int has_pc;
-    int has_sp12;
+    int has_pa2;                   /* port has the pa2 line */
+    int has_pa3;                   /* port has the pa3 line */
+    void (*set_flag)(uint8_t val); /* pointer to set flag function */
+    int has_pc;                    /* port has the pc line */
+    int has_sp12;                  /* port has the sp1 and sp2 lines */
 } userport_port_props_t;
 
 typedef struct userport_device_list_s {
@@ -128,18 +127,18 @@ extern void userport_device_unregister(userport_device_list_t *device);
 
 extern void userport_port_register(userport_port_props_t *props);
 
-extern BYTE read_userport_pbx(BYTE mask, BYTE orig);
-extern void store_userport_pbx(BYTE val);
-extern BYTE read_userport_pa2(BYTE orig);
-extern void store_userport_pa2(BYTE val);
-extern BYTE read_userport_pa3(BYTE orig);
-extern void store_userport_pa3(BYTE val);
-extern void set_userport_flag(BYTE val);
-extern BYTE read_userport_pc(BYTE orig);
-extern BYTE read_userport_sp1(BYTE orig);
-extern void store_userport_sp1(BYTE val);
-extern BYTE read_userport_sp2(BYTE orig);
-extern void store_userport_sp2(BYTE val);
+extern uint8_t read_userport_pbx(uint8_t mask, uint8_t orig);
+extern void store_userport_pbx(uint8_t val);
+extern uint8_t read_userport_pa2(uint8_t orig);
+extern void store_userport_pa2(uint8_t val);
+extern uint8_t read_userport_pa3(uint8_t orig);
+extern void store_userport_pa3(uint8_t val);
+extern void set_userport_flag(uint8_t val);
+extern uint8_t read_userport_pc(uint8_t orig);
+extern uint8_t read_userport_sp1(uint8_t orig);
+extern void store_userport_sp1(uint8_t val);
+extern uint8_t read_userport_sp2(uint8_t orig);
+extern void store_userport_sp2(uint8_t val);
 
 extern int userport_resources_init(void);
 extern void userport_resources_shutdown(void);

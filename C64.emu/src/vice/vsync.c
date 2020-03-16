@@ -43,7 +43,6 @@ int vsync_frame_counter;
 #include "vice.h"
 
 /* Port me... */
-#if !defined(__MSDOS__) || defined(USE_SDLUI) || defined(USE_SDLUI2)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,11 +63,7 @@ int vsync_frame_counter;
 #include "network.h"
 #include "resources.h"
 #include "sound.h"
-#include "translate.h"
 #include "types.h"
-#if (defined(WIN32) || defined (HAVE_OPENGL_SYNC)) && !defined(USE_SDLUI) && !defined(USE_SDLUI2)
-#include "videoarch.h"
-#endif
 #include "vsync.h"
 #include "vsyncapi.h"
 
@@ -152,47 +147,35 @@ int vsync_resources_init(void)
 /* ------------------------------------------------------------------------- */
 
 /* Vsync-related command-line options. */
-static const cmdline_option_t cmdline_options[] = {
-    { "-speed", SET_RESOURCE, 1,
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-speed", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "Speed", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_PERCENT, IDCLS_LIMIT_SPEED_TO_VALUE,
-      NULL, NULL },
-    { "-refresh", SET_RESOURCE, 1,
+      "<percent>", "Limit emulation speed to specified value" },
+    { "-refresh", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "RefreshRate", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_VALUE, IDCLS_UPDATE_EVERY_VALUE_FRAMES,
-      NULL, NULL },
-    { "-warp", SET_RESOURCE, 0,
+      "<value>", "Update every <value> frames (`0' for automatic)" },
+    { "-warp", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "WarpMode", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_WARP_MODE,
-      NULL, NULL },
-    { "+warp", SET_RESOURCE, 0,
+      NULL, "Enable warp mode" },
+    { "+warp", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "WarpMode", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_WARP_MODE,
-      NULL, NULL },
+      NULL, "Disable warp mode" },
     CMDLINE_LIST_END
 };
 
 
-static const cmdline_option_t cmdline_options_vsid[] = {
-    { "-speed", SET_RESOURCE, 1,
+static const cmdline_option_t cmdline_options_vsid[] =
+{
+    { "-speed", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "Speed", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_PERCENT, IDCLS_LIMIT_SPEED_TO_VALUE,
-      NULL, NULL },
-    { "-warp", SET_RESOURCE, 0,
+      "<percent>", "Limit emulation speed to specified value" },
+    { "-warp", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "WarpMode", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_WARP_MODE,
-      NULL, NULL },
-    { "+warp", SET_RESOURCE, 0,
+      NULL, "Enable warp mode" },
+    { "+warp", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "WarpMode", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_WARP_MODE,
-      NULL, NULL },
+      NULL, "Disable warp mode" },
     CMDLINE_LIST_END
 };
 
@@ -284,9 +267,9 @@ static void clk_overflow_callback(CLOCK amount, void *data)
 
 /* ------------------------------------------------------------------------- */
 
-void vsync_set_machine_parameter(double refresh_rate, long cycles)
+void vsync_set_machine_parameter(double refresh, long cycles)
 {
-    refresh_frequency = refresh_rate;
+    refresh_frequency = refresh;
     cycles_per_sec = cycles;
     set_timer_speed(relative_speed);
     vsyncarch_refresh_frequency_changed(refresh_frequency);
@@ -334,7 +317,7 @@ void vsync_sync_reset(void)
     sync_reset = 1;
 }
 
-#ifndef EMUFRAMEWORK_BUILD
+#ifndef EMU_EX_PLATFORM
 /* This is called at the end of each screen frame. It flushes the
    audio buffer and keeps control of the emulation speed. */
 int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
@@ -366,11 +349,6 @@ int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
 
     long frame_ticks_remainder, frame_ticks_integer;
     long compval;
-
-#if (defined(HAVE_OPENGL_SYNC)) && !defined(USE_SDLUI) && !defined(USE_SDLUI2)
-    float refresh_cmp;
-    int refresh_div;
-#endif
 
 #ifdef HAVE_NETWORK
     /* check if someone wants to connect remotely to the monitor */
@@ -466,20 +444,6 @@ int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
 
     /* This is the time between the start of the next frame and now. */
     delay = (signed long)(now - next_frame_start);
-#if (defined(HAVE_OPENGL_SYNC)) && !defined(USE_SDLUI) && !defined(USE_SDLUI2)
-    refresh_cmp = (float)(c->refreshrate / refresh_frequency);
-    refresh_div = (int)(refresh_cmp + 0.5f);
-    refresh_cmp /= (float)refresh_div;
-
-    if ((timer_speed == 100) && (!warp_mode_enabled) &&
-        vsyncarch_vbl_sync_enabled() &&
-        (refresh_cmp <= 1.02f) && (refresh_cmp > 0.98f) &&
-        (refresh_div == 1)) {
-        vsyncarch_verticalblank(c, c->refreshrate, refresh_div);
-        skip_next_frame = 0;
-        skipped_redraw = 0;
-    } else {
-#endif
     /*
      * We sleep until the start of the next frame, if:
      *  - warp_mode is disabled
@@ -497,9 +461,6 @@ int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
            timing reference */
         vsyncarch_sleep(-delay);
     }
-#if (defined(HAVE_OPENGL_SYNC)) && !defined(USE_SDLUI) && !defined(USE_SDLUI2)
-    vsyncarch_prepare_vbl();
-#endif
     /*
      * Check whether we should skip the next frame or not.
      * Allow delay of up to one frame before skipping frames.
@@ -535,9 +496,6 @@ int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
         skip_next_frame = 0;
         skipped_redraw = 0;
     }
-#if (defined(HAVE_OPENGL_SYNC)) && !defined(USE_SDLUI) && !defined(USE_SDLUI2)
-}
-#endif
 
     /*
      * Check whether the hardware can keep up.
@@ -578,12 +536,11 @@ int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
         avg_sdelay += sdelay;
     }
 
-    /* FIXME: This ifdef is a hack, chosen because it matches the others in
-    this file, and because the if inside it causes problems on some platforms.
-    At least win32, sdl-win32, and beos seem to be better without it.
-    More testing is needed. */
-#if (defined(HAVE_OPENGL_SYNC)) && !defined(USE_SDLUI) && !defined(USE_SDLUI2)
-    /* if the frame was skipped, dont advance the time for the next frame, this
+    /* FIXME: The #if 0ed code below improves the FPS rate when
+       "SoundDeviceName" == "pulse" && "RefreshRate" == 0 ("auto") but 
+       seems to cause problems with every other sound driver I have tested. */
+#if 0
+    /* if the frame was skipped, don't advance the time for the next frame, this
        helps with catching up when rendering falls behind */
     if ((frame_ticks > 0) && (skipped_redraw < 1)) {
         next_frame_start += frame_ticks;
@@ -600,52 +557,4 @@ int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
 #endif
     return skip_next_frame;
 }
-#endif
-
-#if defined (HAVE_OPENGL_SYNC) && !defined(USE_SDLUI) && !defined(USE_SDLUI2)
-
-/* sync code for OPENGL_SYNC */
-static unsigned long last = 0;
-static unsigned long nosynccount = 0;
-
-void vsyncarch_verticalblank(video_canvas_t *c, float rate, int frames)
-{
-    unsigned long nowi, lastx, max, frm, vbl;
-
-    if (c->refreshrate <= 0.0f) {
-        return;
-    }
-
-    nowi = vsyncarch_frequency(); /* number of units per second */
-
-    /* calculate counter cycles per frame */
-    frm = (unsigned long)((float)(nowi * frames) / rate);
-
-    nowi = vsyncarch_gettime();
-
-    lastx = last - (frm * nosynccount);
-    max = (frm * 7) >> 3;
-    vbl = 0;
-    while (max >= (nowi - lastx)) {
-        vsyncarch_sync_with_raster(c);
-        nowi = vsyncarch_gettime();
-        vbl = 1;
-    }
-    if ((!vbl) && (nosynccount < 16)) {
-        nosynccount++;
-    } else {
-        last = nowi;
-        nosynccount = 0;
-    }
-}
-
-void vsyncarch_prepare_vbl(void)
-{
-    /* keep vertical blank data prepared */
-    last = vsyncarch_gettime();
-    nosynccount = 0;
-}
-
-#endif /* defined (HAVE_OPENGL_SYNC) && !defined(USE_SDLUI) && !defined(USE_SDLUI2) */
-
 #endif

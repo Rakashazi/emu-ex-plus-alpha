@@ -42,7 +42,6 @@
 #include "patchrom.h"
 #include "psid.h"
 #include "resources.h"
-#include "translate.h"
 #include "types.h"
 #include "uiapi.h"
 #include "vsidui.h"
@@ -55,35 +54,34 @@ static log_t vlog = LOG_ERR;
 
 typedef struct psid_s {
     /* PSID data */
-    BYTE is_rsid;
-    WORD version;
-    WORD data_offset;
-    WORD load_addr;
-    WORD init_addr;
-    WORD play_addr;
-    WORD songs;
-    WORD start_song;
-    DWORD speed;
+    uint8_t is_rsid;
+    uint16_t version;
+    uint16_t data_offset;
+    uint16_t load_addr;
+    uint16_t init_addr;
+    uint16_t play_addr;
+    uint16_t songs;
+    uint16_t start_song;
+    uint32_t speed;
     /* psid v3 allows all 32 bytes to be used with no zero termination */
-    BYTE name[32 + 1];
-    BYTE author[32 + 1];
-    BYTE copyright[32 + 1];
-    WORD flags;
-    BYTE start_page;
-    BYTE max_pages;
-    WORD reserved;
-    WORD data_size;
-    BYTE data[65536];
+    uint8_t name[32 + 1];
+    uint8_t author[32 + 1];
+    uint8_t copyright[32 + 1];
+    uint16_t flags;
+    uint8_t start_page;
+    uint8_t max_pages;
+    uint16_t reserved;
+    uint16_t data_size;
+    uint8_t data[65536];
 
     /* Non-PSID data */
-    DWORD frames_played;
-    WORD load_last_addr;
+    uint32_t frames_played;
+    uint16_t load_last_addr;
 } psid_t;
 
 #define PSID_V1_DATA_OFFSET 0x76
 #define PSID_V2_DATA_OFFSET 0x7c
 
-int psid_ui_set_tune(int tune, void *param);
 
 static psid_t* psid = NULL;
 static int psid_tune = 0;       /* currently selected tune, 0: default 1: first, 2: second, etc */
@@ -91,7 +89,6 @@ static int keepenv = 0;
 
 static int firstfile = 0;
 static int psid_tune_cmdline = 0;
-
 
 struct kernal_s {
     const char *name;
@@ -111,7 +108,7 @@ static struct kernal_s kernal_match[] = {
 
 static int set_kernal_revision(const char *param, void *extra_param)
 {
-    WORD sum;                   /* ROM checksum */
+    uint16_t sum;                   /* ROM checksum */
     int id;                     /* ROM identification number */
     int rev = C64_KERNAL_UNKNOWN;
     int i = 0;
@@ -183,56 +180,36 @@ static int cmdline_psid_tune(const char *param, void *extra_param)
 static const cmdline_option_t cmdline_options[] =
 {
     /* The Video Standard options are copied from the machine files. */
-    { "-pal", SET_RESOURCE, 0,
+    { "-pal", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MachineVideoStandard", (resource_value_t)MACHINE_SYNC_PAL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_PAL_SYNC_FACTOR,
-      NULL, NULL },
-    { "-ntsc", SET_RESOURCE, 0,
+      NULL, "Use PAL sync factor" },
+    { "-ntsc", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MachineVideoStandard", (resource_value_t)MACHINE_SYNC_NTSC,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_NTSC_SYNC_FACTOR,
-      NULL, NULL },
-    { "-ntscold", SET_RESOURCE, 0,
+      NULL, "Use NTSC sync factor" },
+    { "-ntscold", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MachineVideoStandard", (resource_value_t)MACHINE_SYNC_NTSCOLD,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_OLD_NTSC_SYNC_FACTOR,
-      NULL, NULL },
-    { "-paln", SET_RESOURCE, 0,
+      NULL, "Use old NTSC sync factor" },
+    { "-paln", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "MachineVideoStandard", (resource_value_t)MACHINE_SYNC_PALN,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_PALN_SYNC_FACTOR,
-      NULL, NULL },
-    { "-keepenv", CALL_FUNCTION, 0,
+      NULL, "Use PAL-N sync factor" },
+    { "-keepenv", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       cmdline_keepenv, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_OVERWRITE_PSID_SETTINGS,
-      NULL, NULL },
-    { "-tune", CALL_FUNCTION, 1,
+      NULL, "Override PSID settings for Video standard and SID model" },
+    { "-tune", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       cmdline_psid_tune, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NUMBER, IDCLS_SPECIFY_PSID_TUNE_NUMBER,
-      NULL, NULL },
-    { "-kernal", SET_RESOURCE, 1,
+      "<number>", "Specify PSID tune <number>" },
+    { "-kernal", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "KernalName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_KERNAL_ROM_NAME,
-      NULL, NULL },
-    { "-basic", SET_RESOURCE, 1,
+      "<Name>", "Specify name of Kernal ROM image" },
+    { "-basic", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "BasicName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_BASIC_ROM_NAME,
-      NULL, NULL },
-    { "-chargen", SET_RESOURCE, 1,
+      "<Name>", "Specify name of BASIC ROM image" },
+    { "-chargen", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "ChargenName", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_CHARGEN_ROM_NAME,
-      NULL, NULL },
-    { "-kernalrev", CALL_FUNCTION, 1,
+      "<Name>", "Specify name of character generator ROM image" },
+    { "-kernalrev", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       set_kernal_revision, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_REVISION, IDCLS_PATCH_KERNAL_TO_REVISION,
-      NULL, NULL },
+      "<Revision>", "Patch the Kernal ROM to the specified <revision> (1: rev. 1, 2: rev. 2, 3: rev. 3, 67/sx: sx64, 100/4064: 4064)" },
     CMDLINE_LIST_END
 };
 
@@ -241,9 +218,9 @@ int psid_cmdline_options_init(void)
     return cmdline_register_options(cmdline_options);
 }
 
-static WORD psid_extract_word(BYTE** buf)
+static uint16_t psid_extract_word(uint8_t **buf)
 {
-    WORD word = (*buf)[0] << 8 | (*buf)[1];
+    uint16_t word = (*buf)[0] << 8 | (*buf)[1];
     *buf += 2;
     return word;
 }
@@ -251,8 +228,8 @@ static WORD psid_extract_word(BYTE** buf)
 int psid_load_file(const char* filename)
 {
     FILE* f;
-    BYTE buf[PSID_V2_DATA_OFFSET + 2];
-    BYTE* ptr = buf;
+    uint8_t buf[PSID_V2_DATA_OFFSET + 2];
+    uint8_t *ptr = buf;
     unsigned int length;
 
     /* HACK: the selected tune number is handled by the "PSIDtune" resource, which
@@ -337,6 +314,9 @@ int psid_load_file(const char* filename)
         psid->start_song = 1;
     }
 
+    vsid_ui_display_nr_of_tunes(psid->songs);
+    vsid_ui_set_default_tune(psid->start_song);
+
     /* Check for SIDPLAYER MUS files. */
     if (psid->flags & 0x01) {
         zfile_fclose(f);
@@ -359,7 +339,7 @@ int psid_load_file(const char* filename)
     }
 
     /* Read binary C64 data. */
-    psid->data_size = (WORD)fread(psid->data, 1, sizeof(psid->data), f);
+    psid->data_size = (uint16_t)fread(psid->data, 1, sizeof(psid->data), f);
     psid->load_last_addr = (psid->load_addr + psid->data_size - 1);
 
     if (ferror(f)) {
@@ -457,19 +437,19 @@ void psid_shutdown(void)
 /* Use CBM80 vector to start PSID driver. This is a simple method to
    transfer control to the PSID driver while running in a pure C64
    environment. */
-static int psid_set_cbm80(WORD vec, WORD addr)
+static int psid_set_cbm80(uint16_t vec, uint16_t addr)
 {
     unsigned int i;
-    BYTE cbm80[] = { 0x00, 0x00, 0x00, 0x00, 0xc3, 0xc2, 0xcd, 0x38, 0x30 };
+    uint8_t cbm80[] = { 0x00, 0x00, 0x00, 0x00, 0xc3, 0xc2, 0xcd, 0x38, 0x30 };
 
     cbm80[0] = vec & 0xff;
     cbm80[1] = vec >> 8;
 
     for (i = 0; i < sizeof(cbm80); i++) {
         /* make backup of original content at 0x8000 */
-        ram_store((WORD)(addr + i), ram_read((WORD)(0x8000 + i)));
+        ram_store((uint16_t)(addr + i), ram_read((uint16_t)(0x8000 + i)));
         /* copy header */
-        ram_store((WORD)(0x8000 + i), cbm80[i]);
+        ram_store((uint16_t)(0x8000 + i), cbm80[i]);
     }
 
     return i;
@@ -480,8 +460,8 @@ void psid_init_tune(int install_driver_hook)
     int start_song = psid_tune;
     int sync, sid_model;
     int i;
-    WORD reloc_addr;
-    WORD addr;
+    uint16_t reloc_addr;
+    uint16_t addr;
     int speedbit;
     char* irq;
     char irq_str[20];
@@ -495,7 +475,10 @@ void psid_init_tune(int install_driver_hook)
 
     reloc_addr = psid->start_page << 8;
 
-    log_message(vlog, "Driver=$%04X, Image=$%04X-$%04X, Init=$%04X, Play=$%04X", reloc_addr, psid->load_addr, psid->load_addr + psid->data_size - 1, psid->init_addr, psid->play_addr);
+    log_message(vlog, "Driver=$%04X, Image=$%04X-$%04X, Init=$%04X, Play=$%04X",
+            reloc_addr, psid->load_addr,
+            (unsigned int)(psid->load_addr + psid->data_size - 1),
+            psid->init_addr, psid->play_addr);
 
     /* PAL/NTSC. */
     resources_get_int("MachineVideoStandard", &sync);
@@ -546,6 +529,11 @@ void psid_init_tune(int install_driver_hook)
             driver_info_text = lib_msprintf("Driver=$%04X, Image=$%04X-$%04X, Init=$%04X, Play=$%04X", reloc_addr, psid->load_addr,
                                             psid->load_addr + psid->data_size - 1, psid->init_addr, psid->play_addr);
             vsid_ui_setdrv(driver_info_text);
+            vsid_ui_set_driver_addr(reloc_addr);
+            vsid_ui_set_load_addr(psid->load_addr);
+            vsid_ui_set_init_addr(psid->init_addr);
+            vsid_ui_set_play_addr(psid->play_addr);
+            vsid_ui_set_data_size(psid->data_size);
             lib_free(driver_info_text);
         }
         vsid_ui_display_name((char *)(psid->name));
@@ -556,8 +544,6 @@ void psid_init_tune(int install_driver_hook)
         vsid_ui_display_sid_model(sid_model);
         vsid_ui_display_irqtype(irq_str);
         vsid_ui_display_tune_nr(start_song);
-        vsid_ui_set_default_tune(psid->start_song);
-        vsid_ui_display_nr_of_tunes(psid->songs);
         vsid_ui_display_time(0);
     }
 
@@ -567,20 +553,21 @@ void psid_init_tune(int install_driver_hook)
         addr = reloc_addr + 3 + 9;
 
         /* CBM80 reset vector. */
-        addr += psid_set_cbm80((WORD)(reloc_addr + 9), addr);
+        addr += psid_set_cbm80((uint16_t)(reloc_addr + 9), addr);
 
-        ram_store(addr, (BYTE)(start_song));
+        ram_store(addr, (uint8_t)(start_song));
     }
 
     /* put song number into address 780/1/2 (A/X/Y) for use by BASIC tunes */
-    ram_store(780, (BYTE)(start_song - 1));
-    ram_store(781, (BYTE)(start_song - 1));
-    ram_store(782, (BYTE)(start_song - 1));
+    ram_store(780, (uint8_t)(start_song - 1));
+    ram_store(781, (uint8_t)(start_song - 1));
+    ram_store(782, (uint8_t)(start_song - 1));
     /* force flag in c64 memory, many sids reads it and must be set AFTER the sid flag is read */
-    ram_store((WORD)(0x02a6), (BYTE)(sync == MACHINE_SYNC_NTSC ? 0 : 1));
+    ram_store((uint16_t)(0x02a6), (uint8_t)(sync == MACHINE_SYNC_NTSC ? 0 : 1));
 }
 
-int psid_basic_rsid_to_autostart(WORD *address, BYTE **data, WORD *length) {
+int psid_basic_rsid_to_autostart(uint16_t *address, uint8_t **data, uint16_t *length)
+{
     if (psid && psid->is_rsid && psid->flags & 0x02) {
         *address = psid->load_addr;
         *data = psid->data;
@@ -605,7 +592,7 @@ void psid_set_tune(int tune)
 /* used for setting the PSIDtune resource */
 int psid_ui_set_tune(int tune, void *param)
 {
-    psid_tune = (int)(tune == -1) ? 0 : (int)tune;
+    psid_tune = (tune == -1) ? 0 : tune;
 
     psid_set_tune(psid_tune);
     vsync_suspend_speed_eval();
@@ -623,14 +610,14 @@ int psid_tunes(int* default_tune)
 
 void psid_init_driver(void)
 {
-    BYTE psid_driver[] = {
+    uint8_t psid_driver[] = {
 #include "psiddrv.h"
     };
     char *psid_reloc = (char *)psid_driver;
     int psid_size;
 
-    WORD reloc_addr;
-    WORD addr;
+    uint16_t reloc_addr;
+    uint16_t addr;
     int i;
     int sync;
     int sid2loc, sid3loc;
@@ -663,7 +650,7 @@ void psid_init_driver(void)
     resources_set_int("SidStereo", 0);
     if (psid->version >= 3) {
         sid2loc = 0xd000 | ((psid->reserved >> 4) & 0x0ff0);
-        log_message(vlog, "2nd SID at $%04x", sid2loc);
+        log_message(vlog, "2nd SID at $%04x", (unsigned int)sid2loc);
         if (((sid2loc >= 0xd420 && sid2loc < 0xd800) || sid2loc >= 0xde00)
             && (sid2loc & 0x10) == 0) {
             resources_set_int("SidStereo", 1);
@@ -671,7 +658,7 @@ void psid_init_driver(void)
         }
         sid3loc = 0xd000 | ((psid->reserved << 4) & 0x0ff0);
         if (sid3loc != 0xd000) {
-            log_message(vlog, "3rd SID at $%04x", sid3loc);
+            log_message(vlog, "3rd SID at $%04x", (unsigned int)sid3loc);
             if (((sid3loc >= 0xd420 && sid3loc < 0xd800) || sid3loc >= 0xde00)
                 && (sid3loc & 0x10) == 0) {
                 resources_set_int("SidStereo", 2);
@@ -699,13 +686,14 @@ void psid_init_driver(void)
 
     /* Clear low memory to minimize the damage of PSIDs doing bad reads. */
     for (addr = 0; addr < 0x0800; addr++) {
-        ram_store(addr, (BYTE)0x00);
+        ram_store(addr, (uint8_t)0x00);
     }
 
     /* Relocation of C64 PSID driver code. */
     reloc_addr = psid->start_page << 8;
     psid_size = sizeof(psid_driver);
-    log_message(vlog, "PSID free pages: $%04x-$%04x", reloc_addr, (reloc_addr + (psid->max_pages << 8)) -1);
+    log_message(vlog, "PSID free pages: $%04x-$%04x",
+            reloc_addr, (reloc_addr + (psid->max_pages << 8)) - 1U);
 
     if (!reloc65((char **)&psid_reloc, &psid_size, reloc_addr)) {
         log_error(vlog, "Relocation.");
@@ -714,33 +702,33 @@ void psid_init_driver(void)
     }
 
     for (i = 0; i < psid_size; i++) {
-        ram_store((WORD)(reloc_addr + i), psid_reloc[i]);
+        ram_store((uint16_t)(reloc_addr + i), psid_reloc[i]);
     }
 
     /* Store binary C64 data. */
     for (i = 0; i < psid->data_size; i++) {
-        ram_store((WORD)(psid->load_addr + i), psid->data[i]);
+        ram_store((uint16_t)(psid->load_addr + i), psid->data[i]);
     }
 
     /* Skip JMP and CBM80 reset vector. */
     addr = reloc_addr + 3 + 9 + 9;
 
     /* Store parameters for PSID player. */
-    ram_store(addr++, (BYTE)(0));
-    ram_store(addr++, (BYTE)(psid->songs));
-    ram_store(addr++, (BYTE)(psid->load_addr & 0xff));
-    ram_store(addr++, (BYTE)(psid->load_addr >> 8));
-    ram_store(addr++, (BYTE)(psid->init_addr & 0xff));
-    ram_store(addr++, (BYTE)(psid->init_addr >> 8));
-    ram_store(addr++, (BYTE)(psid->play_addr & 0xff));
-    ram_store(addr++, (BYTE)(psid->play_addr >> 8));
-    ram_store(addr++, (BYTE)(psid->speed & 0xff));
-    ram_store(addr++, (BYTE)((psid->speed >> 8) & 0xff));
-    ram_store(addr++, (BYTE)((psid->speed >> 16) & 0xff));
-    ram_store(addr++, (BYTE)(psid->speed >> 24));
-    ram_store(addr++, (BYTE)((int)sync == MACHINE_SYNC_PAL ? 1 : 0));
-    ram_store(addr++, (BYTE)(psid->load_last_addr & 0xff));
-    ram_store(addr++, (BYTE)(psid->load_last_addr >> 8));
+    ram_store(addr++, (uint8_t)(0));
+    ram_store(addr++, (uint8_t)(psid->songs));
+    ram_store(addr++, (uint8_t)(psid->load_addr & 0xff));
+    ram_store(addr++, (uint8_t)(psid->load_addr >> 8));
+    ram_store(addr++, (uint8_t)(psid->init_addr & 0xff));
+    ram_store(addr++, (uint8_t)(psid->init_addr >> 8));
+    ram_store(addr++, (uint8_t)(psid->play_addr & 0xff));
+    ram_store(addr++, (uint8_t)(psid->play_addr >> 8));
+    ram_store(addr++, (uint8_t)(psid->speed & 0xff));
+    ram_store(addr++, (uint8_t)((psid->speed >> 8) & 0xff));
+    ram_store(addr++, (uint8_t)((psid->speed >> 16) & 0xff));
+    ram_store(addr++, (uint8_t)(psid->speed >> 24));
+    ram_store(addr++, (uint8_t)((int)sync == MACHINE_SYNC_PAL ? 1 : 0));
+    ram_store(addr++, (uint8_t)(psid->load_last_addr & 0xff));
+    ram_store(addr++, (uint8_t)(psid->load_last_addr >> 8));
 }
 
 unsigned int psid_increment_frames(void)
@@ -779,7 +767,7 @@ unsigned int psid_increment_frames(void)
 
 static void mus_install(void)
 {
-    WORD dest;
+    uint16_t dest;
     /* Install MUS player #1. */
     dest = ((mus_driver[1] << 8) | mus_driver[0]) - MUS_IMAGE_START;
     memcpy(psid->data + dest, mus_driver + 2, sizeof(mus_driver) - 2);
@@ -908,7 +896,7 @@ static int mus_load_file(const char* filename, int ispsid)
     /* FIXME: the psid file format specification does not tell how to handle
               stereo sidplayer tunes when they are in psid format */
     if (!ispsid) {
-        strname = lib_stralloc(filename);
+        strname = lib_strdup(filename);
         n = strlen(strname) - 4;
         strcpy(strname + n, ".str");
 

@@ -165,7 +165,7 @@ inline static void line_becomes_bad(const int cycle)
     vicii.ycounter_reset_checked = 1;
 }
 
-void vicii_badline_check_state(BYTE value, const int cycle,
+void vicii_badline_check_state(uint8_t value, const int cycle,
                                const unsigned int line,
                                const int old_allow_bad_lines)
 {

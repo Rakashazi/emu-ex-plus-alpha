@@ -46,16 +46,16 @@
  * would take 2 tables, each 16 times as big, and that would
  * not be so nice on the cpu cache.
  */
-DWORD dwg_table[16];
+uint32_t dwg_table[16];
 
 static void init_drawing_tables(void)
 {
     int byte, p;
-    BYTE msk;
+    uint8_t msk;
 
     for (byte = 0; byte < 0x10; byte++) {
         for (msk = 0x08, p = 0; p < 4; msk >>= 1, p++) {
-            *((BYTE *)(dwg_table + byte) + p)
+            *((uint8_t *)(dwg_table + byte) + p)
                 = (byte & msk ? 1 : 0);
         }
     }
@@ -80,9 +80,9 @@ static inline void DRAW(int reverse_flag, int offset, int scr_rel,
 {
     /* FIXME: `p' has to be aligned on a 4 byte boundary!
               Is there a better way than masking `offset'?  */
-    BYTE *p = crtc.raster.draw_buffer_ptr + (offset & ~3);
-    DWORD *pw = (DWORD *)p;
-    BYTE *chargen_ptr, *screen_ptr;
+    uint8_t *p = crtc.raster.draw_buffer_ptr + (offset & ~3);
+    uint32_t *pw = (uint32_t *)p;
+    uint8_t *chargen_ptr, *screen_ptr;
     int screen_rel;
     int i, d;
     /* pointer to current chargen line */

@@ -36,6 +36,8 @@
 #include "types.h"
 #include "uicolor.h"
 
+#include "color.h"
+
 
 struct color_rgb_s {
     unsigned int red;
@@ -53,7 +55,7 @@ typedef struct owner_list_s owner_list_t;
 struct color_list_s {
     color_rgb_t color_rgb_req;
     unsigned long color_pixel;
-    BYTE pixel_data;
+    uint8_t pixel_data;
     owner_list_t *owner;
     struct color_list_s *next;
 };
@@ -370,7 +372,7 @@ static void color_print_list(const char *name, color_list_t *list)
 static int color_alloc_new_colors(color_list_t *list)
 {
     color_list_t *list_start;
-    BYTE data;
+    uint8_t data;
     unsigned long color_pixel;
 
     list_start = list;

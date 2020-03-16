@@ -65,15 +65,23 @@ struct PluginConfig
 	const char *borderModeStr;
 };
 
-static FS::PathString libPath{};
-
-static FS::PathString makePluginLibPath(const char *libName)
+static FS::PathString makePluginLibPath(const char *libName, const char *libBasePath)
 {
-	if(unlikely(!std::strlen(libPath.data())))
+	if(libBasePath && strlen(libBasePath))
+		return FS::makePathStringPrintf("%s/%s", libBasePath, libName);
+	else
+		return FS::makePathString(libName);
+}
+
+static void *dlsymCheck(void *lib, const char *name)
+{
+	auto sym = dlsym(lib, name);
+	if(!sym)
 	{
-		libPath = EmuApp::libPath();
+		logErr("symbol:%s missing from plugin", name);
 	}
-	return FS::makePathStringPrintf("%s/%s", libPath.data(), libName);
+	assumeExpr(sym);
+	return sym;
 }
 
 void VicePlugin::deinit()
@@ -81,19 +89,20 @@ void VicePlugin::deinit()
 	if(libHandle)
 	{
 		// TODO: doesn't fully clean up all VICE heap allocations, don't use for now
+		logMsg("doing machine_shutdown()");
 		using ShutdownFunc = void (*)();
-		ShutdownFunc machine_shutdown = (ShutdownFunc)dlsym(libHandle, "machine_shutdown");
+		ShutdownFunc machine_shutdown = (ShutdownFunc)dlsymCheck(libHandle, "machine_shutdown");
 		machine_shutdown();
 		dlclose(libHandle);
 		libHandle = {};
 	}
 }
 
-bool VicePlugin::hasSystemLib(ViceSystem system)
+bool VicePlugin::hasSystemLib(ViceSystem system, const char *libBasePath)
 {
 	if(system < VICE_SYSTEM_C64 || system > VICE_SYSTEM_VIC20)
 		return false;
-	return FS::exists(makePluginLibPath(libName[system]));
+	return FS::exists(makePluginLibPath(libName[system], libBasePath));
 }
 
 const char *VicePlugin::systemName(ViceSystem system)
@@ -177,7 +186,7 @@ void VicePlugin::machine_trigger_reset(const unsigned int mode)
 		machine_trigger_reset_(mode);
 }
 
-void VicePlugin::interrupt_maincpu_trigger_trap(void trap_func(WORD, void *data), void *data)
+void VicePlugin::interrupt_maincpu_trigger_trap(void trap_func(uint16_t, void *data), void *data)
 {
 	if(interrupt_maincpu_trigger_trap_)
 		interrupt_maincpu_trigger_trap_(trap_func, data);
@@ -302,7 +311,7 @@ int VicePlugin::sound_register_device(sound_device_t *pdevice)
 	return -1;
 }
 
-void VicePlugin::video_canvas_render(struct video_canvas_s *canvas, BYTE *trg,
+void VicePlugin::video_canvas_render(struct video_canvas_s *canvas, uint8_t *trg,
 	int width, int height, int xs, int ys,
 	int xt, int yt, int pitcht, int depth)
 {
@@ -314,7 +323,7 @@ void VicePlugin::video_canvas_render(struct video_canvas_s *canvas, BYTE *trg,
 }
 
 void VicePlugin::video_render_setphysicalcolor(video_render_config_t *config,
-	int index, DWORD color, int depth)
+	int index, uint32_t color, int depth)
 {
 	if(video_render_setphysicalcolor_)
 	{
@@ -322,7 +331,7 @@ void VicePlugin::video_render_setphysicalcolor(video_render_config_t *config,
 	}
 }
 
-void VicePlugin::video_render_setrawrgb(unsigned int index, DWORD r, DWORD g, DWORD b)
+void VicePlugin::video_render_setrawrgb(unsigned int index, uint32_t r, uint32_t g, uint32_t b)
 {
 	if(video_render_setrawrgb_)
 	{
@@ -350,31 +359,32 @@ int VicePlugin::vdrive_internal_create_format_disk_image(const char *filename, c
 VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 {
 	VicePlugin plugin{};
-	plugin.keyarr = (typeof plugin.keyarr)dlsym(lib, "keyarr");
-	plugin.rev_keyarr = (typeof plugin.rev_keyarr)dlsym(lib, "rev_keyarr");
-	plugin.joystick_value = (typeof plugin.joystick_value)dlsym(lib, "joystick_value");
-	plugin.warp_mode_enabled = (typeof plugin.warp_mode_enabled)dlsym(lib, "warp_mode_enabled");
-	plugin.resources_get_string_ = (typeof plugin.resources_get_string_)dlsym(lib, "resources_get_string");
-	plugin.resources_set_string_ = (typeof plugin.resources_set_string_)dlsym(lib, "resources_set_string");
-	plugin.resources_get_int_ = (typeof plugin.resources_get_int_)dlsym(lib, "resources_get_int");
-	plugin.resources_set_int_ = (typeof plugin.resources_set_int_)dlsym(lib, "resources_set_int");
-	plugin.resources_get_default_value_ = (typeof plugin.resources_get_default_value_)dlsym(lib, "resources_get_default_value");
-	plugin.machine_write_snapshot_ = (typeof plugin.machine_write_snapshot_)dlsym(lib, "machine_write_snapshot");
-	plugin.machine_read_snapshot_ = (typeof plugin.machine_read_snapshot_)dlsym(lib, "machine_read_snapshot");
-	plugin.machine_set_restore_key_ = (typeof plugin.machine_set_restore_key_)dlsym(lib, "machine_set_restore_key");
-	plugin.machine_trigger_reset_ = (typeof plugin.machine_trigger_reset_)dlsym(lib, "machine_trigger_reset");
-	plugin.interrupt_maincpu_trigger_trap_ = (typeof plugin.interrupt_maincpu_trigger_trap_)dlsym(lib, "interrupt_maincpu_trigger_trap");
-	plugin.init_main_ = (typeof plugin.init_main_)dlsym(lib, "init_main");
+	plugin.keyarr = (typeof plugin.keyarr)dlsymCheck(lib, "keyarr");
+	plugin.rev_keyarr = (typeof plugin.rev_keyarr)dlsymCheck(lib, "rev_keyarr");
+	plugin.joystick_value = (typeof plugin.joystick_value)dlsymCheck(lib, "joystick_value");
+	plugin.keyconvmap = (typeof plugin.keyconvmap)dlsymCheck(lib, "keyconvmap");
+	plugin.warp_mode_enabled = (typeof plugin.warp_mode_enabled)dlsymCheck(lib, "warp_mode_enabled");
+	plugin.resources_get_string_ = (typeof plugin.resources_get_string_)dlsymCheck(lib, "resources_get_string");
+	plugin.resources_set_string_ = (typeof plugin.resources_set_string_)dlsymCheck(lib, "resources_set_string");
+	plugin.resources_get_int_ = (typeof plugin.resources_get_int_)dlsymCheck(lib, "resources_get_int");
+	plugin.resources_set_int_ = (typeof plugin.resources_set_int_)dlsymCheck(lib, "resources_set_int");
+	plugin.resources_get_default_value_ = (typeof plugin.resources_get_default_value_)dlsymCheck(lib, "resources_get_default_value");
+	plugin.machine_write_snapshot_ = (typeof plugin.machine_write_snapshot_)dlsymCheck(lib, "machine_write_snapshot");
+	plugin.machine_read_snapshot_ = (typeof plugin.machine_read_snapshot_)dlsymCheck(lib, "machine_read_snapshot");
+	plugin.machine_set_restore_key_ = (typeof plugin.machine_set_restore_key_)dlsymCheck(lib, "machine_set_restore_key");
+	plugin.machine_trigger_reset_ = (typeof plugin.machine_trigger_reset_)dlsymCheck(lib, "machine_trigger_reset");
+	plugin.interrupt_maincpu_trigger_trap_ = (typeof plugin.interrupt_maincpu_trigger_trap_)dlsymCheck(lib, "interrupt_maincpu_trigger_trap");
+	plugin.init_main_ = (typeof plugin.init_main_)dlsymCheck(lib, "init_main");
 	assert(plugin.init_main_);
-	plugin.maincpu_mainloop_ = (typeof plugin.maincpu_mainloop_)dlsym(lib, "maincpu_mainloop");
+	plugin.maincpu_mainloop_ = (typeof plugin.maincpu_mainloop_)dlsymCheck(lib, "maincpu_mainloop");
 	if(system == VICE_SYSTEM_PET)
 	{
-		plugin.autostart_autodetect_ = (typeof plugin.autostart_autodetect_)dlsym(lib, "autostart_autodetect");
+		plugin.autostart_autodetect_ = (typeof plugin.autostart_autodetect_)dlsymCheck(lib, "autostart_autodetect");
 		// no cart system
 	}
 	else if(system == VICE_SYSTEM_PLUS4)
 	{
-		plugin.autostart_autodetect_ = (typeof plugin.autostart_autodetect_)dlsym(lib, "autostart_autodetect");
+		plugin.autostart_autodetect_ = (typeof plugin.autostart_autodetect_)dlsymCheck(lib, "autostart_autodetect");
 		plugin.cart_getid_slotmain_ =
 			[]()
 			{
@@ -385,8 +395,8 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 			{
 				return "";
 			};
-		plugin.cartridge_attach_image_ = (typeof plugin.cartridge_attach_image_)dlsym(lib, "cartridge_attach_image");
-		plugin.cartridge_detach_image_ = (typeof plugin.cartridge_detach_image_)dlsym(lib, "cartridge_detach_image");
+		plugin.cartridge_attach_image_ = (typeof plugin.cartridge_attach_image_)dlsymCheck(lib, "cartridge_attach_image");
+		plugin.cartridge_detach_image_ = (typeof plugin.cartridge_detach_image_)dlsymCheck(lib, "cartridge_detach_image");
 	}
 	else if(system == VICE_SYSTEM_CBM2 || system == VICE_SYSTEM_CBM5X0)
 	{
@@ -395,46 +405,47 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 			{
 				return CARTRIDGE_CBM2_8KB_1000;
 			};
-		plugin.cartridge_attach_image_ = (typeof plugin.cartridge_attach_image_)dlsym(lib, "cartridge_attach_image");
-		plugin.cartridge_detach_image_ = (typeof plugin.cartridge_detach_image_)dlsym(lib, "cartridge_detach_image");
+		plugin.cartridge_attach_image_ = (typeof plugin.cartridge_attach_image_)dlsymCheck(lib, "cartridge_attach_image");
+		plugin.cartridge_detach_image_ = (typeof plugin.cartridge_detach_image_)dlsymCheck(lib, "cartridge_detach_image");
 	}
 	else if(system == VICE_SYSTEM_VIC20)
 	{
-		plugin.autostart_autodetect_ = (typeof plugin.autostart_autodetect_)dlsym(lib, "autostart_autodetect");
+		plugin.autostart_autodetect_ = (typeof plugin.autostart_autodetect_)dlsymCheck(lib, "autostart_autodetect");
 		plugin.cart_getid_slotmain_ =
 			[]()
 			{
 				return CARTRIDGE_VIC20_DETECT;
 			};
-		plugin.cartridge_get_file_name_ = (typeof plugin.cartridge_get_file_name_)dlsym(lib, "cartridge_get_file_name");
-		plugin.cartridge_attach_image_ = (typeof plugin.cartridge_attach_image_)dlsym(lib, "cartridge_attach_image");
-		plugin.cartridge_detach_image_ = (typeof plugin.cartridge_detach_image_)dlsym(lib, "cartridge_detach_image");
+		plugin.cartridge_get_file_name_ = (typeof plugin.cartridge_get_file_name_)dlsymCheck(lib, "cartridge_get_file_name");
+		plugin.cartridge_attach_image_ = (typeof plugin.cartridge_attach_image_)dlsymCheck(lib, "cartridge_attach_image");
+		plugin.cartridge_detach_image_ = (typeof plugin.cartridge_detach_image_)dlsymCheck(lib, "cartridge_detach_image");
 	}
 	else
 	{
-		plugin.autostart_autodetect_ = (typeof plugin.autostart_autodetect_)dlsym(lib, "autostart_autodetect");
-		plugin.cart_getid_slotmain_ = (typeof plugin.cart_getid_slotmain_)dlsym(lib, "cart_getid_slotmain");
-		plugin.cartridge_get_file_name_ = (typeof plugin.cartridge_get_file_name_)dlsym(lib, "cartridge_get_file_name");
-		plugin.cartridge_attach_image_ = (typeof plugin.cartridge_attach_image_)dlsym(lib, "cartridge_attach_image");
-		plugin.cartridge_detach_image_ = (typeof plugin.cartridge_detach_image_)dlsym(lib, "cartridge_detach_image");
+		plugin.autostart_autodetect_ = (typeof plugin.autostart_autodetect_)dlsymCheck(lib, "autostart_autodetect");
+		if(system != VICE_SYSTEM_C64DTV)
+			plugin.cart_getid_slotmain_ = (typeof plugin.cart_getid_slotmain_)dlsymCheck(lib, "cart_getid_slotmain");
+		plugin.cartridge_get_file_name_ = (typeof plugin.cartridge_get_file_name_)dlsymCheck(lib, "cartridge_get_file_name");
+		plugin.cartridge_attach_image_ = (typeof plugin.cartridge_attach_image_)dlsymCheck(lib, "cartridge_attach_image");
+		plugin.cartridge_detach_image_ = (typeof plugin.cartridge_detach_image_)dlsymCheck(lib, "cartridge_detach_image");
 	}
-	plugin.tape_image_attach_ = (typeof plugin.tape_image_attach_)dlsym(lib, "tape_image_attach");
-	plugin.tape_image_detach_ = (typeof plugin.tape_image_detach_)dlsym(lib, "tape_image_detach");
-	plugin.tape_get_file_name_ = (typeof plugin.tape_get_file_name_)dlsym(lib, "tape_get_file_name");
-	plugin.file_system_attach_disk_ = (typeof plugin.file_system_attach_disk_)dlsym(lib, "file_system_attach_disk");
-	plugin.file_system_detach_disk_ = (typeof plugin.file_system_detach_disk_)dlsym(lib, "file_system_detach_disk");
-	plugin.file_system_get_disk_name_ = (typeof plugin.file_system_get_disk_name_)dlsym(lib, "file_system_get_disk_name");
-	plugin.drive_check_type_ = (typeof plugin.drive_check_type_)dlsym(lib, "drive_check_type");
-	plugin.sound_register_device_ = (typeof plugin.sound_register_device_)dlsym(lib, "sound_register_device");
-	plugin.video_canvas_render_ = (typeof plugin.video_canvas_render_)dlsym(lib, "video_canvas_render");
-	plugin.video_render_setphysicalcolor_ = (typeof plugin.video_render_setphysicalcolor_)dlsym(lib, "video_render_setphysicalcolor");
-	plugin.video_render_setrawrgb_ = (typeof plugin.video_render_setrawrgb_)dlsym(lib, "video_render_setrawrgb");
-	plugin.video_render_initraw_ = (typeof plugin.video_render_initraw_)dlsym(lib, "video_render_initraw");
-	plugin.vdrive_internal_create_format_disk_image_ = (typeof plugin.vdrive_internal_create_format_disk_image_)dlsym(lib, "vdrive_internal_create_format_disk_image");
+	plugin.tape_image_attach_ = (typeof plugin.tape_image_attach_)dlsymCheck(lib, "tape_image_attach");
+	plugin.tape_image_detach_ = (typeof plugin.tape_image_detach_)dlsymCheck(lib, "tape_image_detach");
+	plugin.tape_get_file_name_ = (typeof plugin.tape_get_file_name_)dlsymCheck(lib, "tape_get_file_name");
+	plugin.file_system_attach_disk_ = (typeof plugin.file_system_attach_disk_)dlsymCheck(lib, "file_system_attach_disk");
+	plugin.file_system_detach_disk_ = (typeof plugin.file_system_detach_disk_)dlsymCheck(lib, "file_system_detach_disk");
+	plugin.file_system_get_disk_name_ = (typeof plugin.file_system_get_disk_name_)dlsymCheck(lib, "file_system_get_disk_name");
+	plugin.drive_check_type_ = (typeof plugin.drive_check_type_)dlsymCheck(lib, "drive_check_type");
+	plugin.sound_register_device_ = (typeof plugin.sound_register_device_)dlsymCheck(lib, "sound_register_device");
+	plugin.video_canvas_render_ = (typeof plugin.video_canvas_render_)dlsymCheck(lib, "video_canvas_render");
+	plugin.video_render_setphysicalcolor_ = (typeof plugin.video_render_setphysicalcolor_)dlsymCheck(lib, "video_render_setphysicalcolor");
+	plugin.video_render_setrawrgb_ = (typeof plugin.video_render_setrawrgb_)dlsymCheck(lib, "video_render_setrawrgb");
+	plugin.video_render_initraw_ = (typeof plugin.video_render_initraw_)dlsymCheck(lib, "video_render_initraw");
+	plugin.vdrive_internal_create_format_disk_image_ = (typeof plugin.vdrive_internal_create_format_disk_image_)dlsymCheck(lib, "vdrive_internal_create_format_disk_image");
 	return plugin;
 }
 
-VicePlugin loadVicePlugin(ViceSystem system)
+VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath)
 {
 	constexpr PluginConfig pluginConf[]
 	{
@@ -517,7 +528,7 @@ VicePlugin loadVicePlugin(ViceSystem system)
 			"VICBorderMode"
 		},
 	};
-	FS::PathString libPath = makePluginLibPath(libName[system]);
+	FS::PathString libPath = makePluginLibPath(libName[system], libBasePath);
 	logMsg("loading VICE plugin:%s", libPath.data());
 	auto lib = dlopen(libPath.data(), RTLD_NOW);
 	if(!lib)
@@ -529,13 +540,13 @@ VicePlugin loadVicePlugin(ViceSystem system)
 	auto &conf = pluginConf[system];
 	plugin.models = conf.models;
 	plugin.modelStr = conf.modelStr;
-	plugin.model_get_ = (typeof plugin.model_get_)dlsym(lib, conf.getModelFuncName);
-	plugin.model_set_ = (typeof plugin.model_set_)dlsym(lib, conf.setModelFuncName);
+	plugin.model_get_ = (typeof plugin.model_get_)dlsymCheck(lib, conf.getModelFuncName);
+	plugin.model_set_ = (typeof plugin.model_set_)dlsymCheck(lib, conf.setModelFuncName);
 	plugin.borderModeStr = conf.borderModeStr;
 	//logMsg("getModel() address:%p", plugin.model_get_);
 	//logMsg("setModel() address:%p", plugin.model_set_);
 	using ViceInitFunc = int (*)();
-	ViceInitFunc vice_init = (ViceInitFunc)dlsym(lib, "vice_init");
+	ViceInitFunc vice_init = (ViceInitFunc)dlsymCheck(lib, "vice_init");
 	vice_init();
 	plugin.libHandle = lib;
 	return plugin;

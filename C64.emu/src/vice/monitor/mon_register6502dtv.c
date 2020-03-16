@@ -147,7 +147,7 @@ static unsigned int mon_register_get_val(int mem, int reg_id)
     return 0;
 }
 
-static void mon_register_set_val(int mem, int reg_id, WORD val)
+static void mon_register_set_val(int mem, int reg_id, uint16_t val)
 {
     mos6510dtv_regs_t *reg_ptr;
 
@@ -161,13 +161,13 @@ static void mon_register_set_val(int mem, int reg_id, WORD val)
 
     switch (reg_id) {
         case e_A:
-            MOS6510DTV_REGS_SET_A(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_A(reg_ptr, (uint8_t)val);
             break;
         case e_X:
-            MOS6510DTV_REGS_SET_X(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_X(reg_ptr, (uint8_t)val);
             break;
         case e_Y:
-            MOS6510DTV_REGS_SET_Y(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_Y(reg_ptr, (uint8_t)val);
             break;
         case e_PC:
             MOS6510DTV_REGS_SET_PC(reg_ptr, val);
@@ -176,55 +176,55 @@ static void mon_register_set_val(int mem, int reg_id, WORD val)
             }
             break;
         case e_SP:
-            MOS6510DTV_REGS_SET_SP(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_SP(reg_ptr, (uint8_t)val);
             break;
         case e_FLAGS:
-            MOS6510DTV_REGS_SET_STATUS(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_STATUS(reg_ptr, (uint8_t)val);
             break;
         case e_R3:
-            MOS6510DTV_REGS_SET_R3(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_R3(reg_ptr, (uint8_t)val);
             break;
         case e_R4:
-            MOS6510DTV_REGS_SET_R4(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_R4(reg_ptr, (uint8_t)val);
             break;
         case e_R5:
-            MOS6510DTV_REGS_SET_R5(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_R5(reg_ptr, (uint8_t)val);
             break;
         case e_R6:
-            MOS6510DTV_REGS_SET_R6(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_R6(reg_ptr, (uint8_t)val);
             break;
         case e_R7:
-            MOS6510DTV_REGS_SET_R7(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_R7(reg_ptr, (uint8_t)val);
             break;
         case e_R8:
-            MOS6510DTV_REGS_SET_R8(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_R8(reg_ptr, (uint8_t)val);
             break;
         case e_R9:
-            MOS6510DTV_REGS_SET_R9(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_R9(reg_ptr, (uint8_t)val);
             break;
         case e_R10:
-            MOS6510DTV_REGS_SET_R10(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_R10(reg_ptr, (uint8_t)val);
             break;
         case e_R11:
-            MOS6510DTV_REGS_SET_R11(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_R11(reg_ptr, (uint8_t)val);
             break;
         case e_R12:
-            MOS6510DTV_REGS_SET_R12(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_R12(reg_ptr, (uint8_t)val);
             break;
         case e_R13:
-            MOS6510DTV_REGS_SET_R13(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_R13(reg_ptr, (uint8_t)val);
             break;
         case e_R14:
-            MOS6510DTV_REGS_SET_R14(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_R14(reg_ptr, (uint8_t)val);
             break;
         case e_R15:
-            MOS6510DTV_REGS_SET_R15(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_R15(reg_ptr, (uint8_t)val);
             break;
         case e_ACM:
-            MOS6510DTV_REGS_SET_ACM(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_ACM(reg_ptr, (uint8_t)val);
             break;
         case e_YXM:
-            MOS6510DTV_REGS_SET_YXM(reg_ptr, (BYTE)val);
+            MOS6510DTV_REGS_SET_YXM(reg_ptr, (uint8_t)val);
             break;
         default:
             log_error(LOG_ERR, "Unknown register!");
@@ -291,9 +291,9 @@ static void mon_register_print(int mem)
         mon_interfaces[mem]->get_line_cycle(&line, &cycle, &half_cycle);
 
         if (half_cycle == -1) {
-            mon_out(" %03i %03i", line, cycle);
+            mon_out(" %03u %03u", line, cycle);
         } else {
-            mon_out(" %03i %03i %i", line, cycle, half_cycle);
+            mon_out(" %03u %03u %i", line, cycle, half_cycle);
         }
     }
     mon_stopwatch_show(" ", "\n");
@@ -332,7 +332,7 @@ static mon_reg_list_t *mon_register_list_get6502dtv(int mem)
         if (regs->flags & MON_REGISTER_IS_MEMORY) {
             int current_bank = mon_interfaces[mem]->current_bank;
             mon_interfaces[mem]->current_bank = mon_interfaces[mem]->mem_bank_from_name("cpu");
-            regs->val = (unsigned int)mon_get_mem_val(mem, (WORD)regs->extra);
+            regs->val = (unsigned int)mon_get_mem_val(mem, (uint16_t)regs->extra);
             mon_interfaces[mem]->current_bank = current_bank;
         } else if (regs->flags & MON_REGISTER_IS_FLAGS) {
             regs->val = (unsigned int)mon_register_get_val(mem, regs->id) | 0x20;

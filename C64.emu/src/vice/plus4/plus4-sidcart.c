@@ -42,7 +42,6 @@
 #include "sid-resources.h"
 #include "sidcart.h"
 #include "sound.h"
-#include "translate.h"
 #include "types.h"
 #include "uiapi.h"
 
@@ -66,20 +65,21 @@ static int sidcart_sound_machine_init(sound_t *psid, int speed, int cycles_per_s
     }
 }
 
+/* PLUS4 SID cartridge sound chip */
 static sound_chip_t sidcart_sound_chip = {
-    sid_sound_machine_open,
-    sidcart_sound_machine_init,
-    sid_sound_machine_close,
-    sid_sound_machine_calculate_samples,
-    sid_sound_machine_store,
-    sid_sound_machine_read,
-    sid_sound_machine_reset,
-    sid_sound_machine_cycle_based,
-    sid_sound_machine_channels,
-    0 /* chip enabled */
+    sid_sound_machine_open,              /* sound chip open function */ 
+    sidcart_sound_machine_init,          /* sound chip init function */
+    sid_sound_machine_close,             /* sound chip close function */
+    sid_sound_machine_calculate_samples, /* sound chip calculate samples function */
+    sid_sound_machine_store,             /* sound chip store function */
+    sid_sound_machine_read,              /* sound chip read function */
+    sid_sound_machine_reset,             /* sound chip reset function */
+    sid_sound_machine_cycle_based,       /* sound chip 'is_cycle_based()' function, RESID engine is cycle based, all other engines are NOT */
+    sid_sound_machine_channels,          /* sound chip 'get_amount_of_channels()' function, sound chip has 1 channel */
+    0                                    /* sound chip enabled flag, toggled upon device (de-)activation */
 };
 
-static WORD sidcart_sound_chip_offset = 0;
+static uint16_t sidcart_sound_chip_offset = 0;
 
 void sidcart_sound_chip_init(void)
 {
@@ -89,52 +89,55 @@ void sidcart_sound_chip_init(void)
 /* ------------------------------------------------------------------------- */
 
 /* Some prototypes are needed */
-static void sidcartjoy_store(WORD addr, BYTE value);
-static BYTE sidcartjoy_read(WORD addr);
+static void sidcartjoy_store(uint16_t addr, uint8_t value);
+static uint8_t sidcartjoy_read(uint16_t addr);
 
 static io_source_t sidcart_fd40_device = {
-    "SIDCart",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xfd40, 0xfd5d, 0x1f,
-    1, /* read is always valid */
-    sid_store,
-    sid_read,
-    NULL, /* no peek */
-    sid_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_NORMAL,
-    0
+    "SIDCart",            /* name of the device */
+    IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
+    "SidCart",            /* resource to set to '0' */
+    0xfd40, 0xfd5d, 0x1f, /* range for the device, regs:$fd40-$fd5d */
+    1,                    /* read is always valid */
+    sid_store,            /* store function */
+    NULL,                 /* NO poke function */
+    sid_read,             /* read function */
+    sid_peek,             /* peek function */
+    sid_dump,             /* device state information dump function */
+    IO_CART_ID_NONE,      /* not a cartridge */
+    IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
+    0                     /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t sidcart_fe80_device = {
-    "SIDCart",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xfe80, 0xfe9d, 0x1f,
-    1, /* read is always valid */
-    sid_store,
-    sid_read,
-    NULL, /* no peek */
-    sid_dump,
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_NORMAL,
-    0
+    "SIDCart",            /* name of the device */
+    IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
+    "SidCart",            /* resource to set to '0' */
+    0xfe80, 0xfe9d, 0x1f, /* range for the device, regs:$fe80-$fe9d */
+    1,                    /* read is always valid */
+    sid_store,            /* store function */
+    NULL,                 /* NO poke function */
+    sid_read,             /* read function */
+    sid_peek,             /* peek function */
+    sid_dump,             /* device state information dump function */
+    IO_CART_ID_NONE,      /* not a cartridge */
+    IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
+    0                     /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t sidcart_joy_device = {
-    "SIDCartJoy",
-    IO_DETACH_CART, /* dummy */
-    NULL,           /* dummy */
-    0xfd80, 0xfd8f, 1,
-    1, /* read is always valid */
-    sidcartjoy_store,
-    sidcartjoy_read,
-    NULL, /* no peek */
-    NULL, /* TODO: dump */
-    0, /* dummy (not a cartridge) */
-    IO_PRIO_NORMAL, /* priority, device and mirrors never involved in collisions */
-    0
+    "SIDCartJoy",         /* name of the device */
+    IO_DETACH_RESOURCE,   /* use resource to detach the device when involved in a read-collision */
+    "SIDCartJoy",         /* resource to set to '0' */
+    0xfd80, 0xfd8f, 0xff, /* range for the device, address is ignored, reg:$fd80, mirrors:$fd81-$fd8f */
+    1,                    /* read is always valid */
+    sidcartjoy_store,     /* store function */
+    NULL,                 /* NO poke function */
+    sidcartjoy_read,      /* read function */
+    NULL,                 /* TODO: peek function */
+    NULL,                 /* TODO: device state information dump function */
+    IO_CART_ID_NONE,      /* not a cartridge */
+    IO_PRIO_NORMAL,       /* normal priority, device read needs to be checked for collisions */
+    0                     /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *sidcartjoy_list_item = NULL;
@@ -194,7 +197,7 @@ static int set_sid_address(int val, void *param)
         }
     }
 
-    digiblaster_set_address((WORD)val);
+    digiblaster_set_address((uint16_t)val);
     sidcart_address = val;
 
     return 0;
@@ -264,43 +267,32 @@ int sidcart_resources_init(void)
 
 /* ------------------------------------------------------------------------- */
 
-static const cmdline_option_t sidcart_cmdline_options[] = {
-    { "-sidcart", SET_RESOURCE, 0,
+static const cmdline_option_t sidcart_cmdline_options[] =
+{
+    { "-sidcart", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SidCart", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_SIDCART,
-      NULL, NULL },
-    { "+sidcart", SET_RESOURCE, 0,
+      NULL, "Enable the SID cartridge" },
+    { "+sidcart", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SidCart", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_SIDCART,
-      NULL, NULL },
-    { "-sidcartjoy", SET_RESOURCE, 0,
+      NULL, "Disable the SID cartridge" },
+    { "-sidcartjoy", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SIDCartJoy", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_SIDCARTJOY,
-      NULL, NULL },
-    { "+sidcartjoy", SET_RESOURCE, 0,
+      NULL, "Enable SID cartridge joystick" },
+    { "+sidcartjoy", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SIDCartJoy", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_SIDCARTJOY,
-      NULL, NULL },
-    { "-sidcartaddress", SET_RESOURCE, 1,
+      NULL, "Disable SID cartridge joystick" },
+    { "-sidcartaddress", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SidAddress", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_ADDRESS, IDCLS_PLUS4_SIDCART_ADDRESS,
-      NULL, NULL },
-    { "-sidcartclock", SET_RESOURCE, 1,
+      "<address>", "SID cartridge address (0xFD40/0xFE80)" },
+    { "-sidcartclock", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SidClock", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_CLOCK, IDCLS_PLUS4_SIDCART_CLOCK,
-      NULL, NULL },
+      "<clock>", "SID cartridge clock (0: C64 clock, 1: PLUS4 clock)" },
     CMDLINE_LIST_END
 };
 
 int sidcart_cmdline_options_init(void)
 {
-    if (sid_cmdline_options_init() < 0) {
+    if (sid_cmdline_options_init(SIDTYPE_SIDCART) < 0) {
         return -1;
     }
     return cmdline_register_options(sidcart_cmdline_options);
@@ -308,12 +300,12 @@ int sidcart_cmdline_options_init(void)
 
 /* ------------------------------------------------------------------------- */
 
-static void sidcartjoy_store(WORD addr, BYTE value)
+static void sidcartjoy_store(uint16_t addr, uint8_t value)
 {
     store_joyport_dig(JOYPORT_5, value, 0xff);
 }
 
-static BYTE sidcartjoy_read(WORD addr)
+static uint8_t sidcartjoy_read(uint16_t addr)
 {
     return read_joyport_dig(JOYPORT_5);
 }

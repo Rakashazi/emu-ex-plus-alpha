@@ -35,9 +35,9 @@
 struct snapshot_s;
 
 extern void easycalc_config_init(void);
-extern void easycalc_config_setup(BYTE *rawcart);
-extern int easycalc_bin_attach(const char *filename, BYTE *rawcart);
-extern int easycalc_crt_attach(FILE *fd, BYTE *rawcart);
+extern void easycalc_config_setup(uint8_t *rawcart);
+extern int easycalc_bin_attach(const char *filename, uint8_t *rawcart);
+extern int easycalc_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void easycalc_detach(void);
 
 extern int easycalc_snapshot_write_module(struct snapshot_s *s);

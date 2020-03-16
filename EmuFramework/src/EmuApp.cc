@@ -489,8 +489,13 @@ void EmuApp::launchSystemWithResumePrompt(Input::Event e, bool addToRecent)
 {
 	if(!emuViewController.showAutoStateConfirm(e, addToRecent))
 	{
-		launchSystem(true, addToRecent);
+		::launchSystem(true, addToRecent);
 	}
+}
+
+void EmuApp::launchSystem(Input::Event e, bool tryAutoState, bool addToRecent)
+{
+	::launchSystem(tryAutoState, addToRecent);
 }
 
 bool EmuApp::hasArchiveExtension(const char *name)
@@ -752,7 +757,9 @@ FS::PathString EmuApp::mediaSearchPath()
 
 FS::PathString EmuApp::firmwareSearchPath()
 {
-	return strlen(optionFirmwarePath) ? FS::makePathString(optionFirmwarePath) : lastLoadPath;
+	if(!strlen(optionFirmwarePath))
+		return lastLoadPath;
+	return hasArchiveExtension(optionFirmwarePath) ? FS::dirname(optionFirmwarePath) : FS::makePathString(optionFirmwarePath);
 }
 
 void EmuApp::setFirmwareSearchPath(const char *path)

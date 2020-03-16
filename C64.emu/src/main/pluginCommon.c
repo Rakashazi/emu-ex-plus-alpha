@@ -19,6 +19,7 @@
 #include <imagine/util/builtins.h>
 #include <assert.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <ctype.h>
 #include "machine.h"
 #include "maincpu.h"
@@ -53,43 +54,44 @@
 #include "zfile.h"
 #include "mousedrv.h"
 
+VICE_API int vice_init();
+
 int console_mode = 0;
 int video_disabled_mode = 0;
 extern void (*vsync_hook)(void);
 
 int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped);
 
-int c64ui_init(void) { return 0; }
-int c64scui_init(void) { return 0; }
-int scpu64ui_init(void) { return 0; }
-int c64dtvui_init(void) { return 0; }
-int c128ui_init(void) { return 0; }
-int plus4ui_init(void) { return 0; }
-int vic20ui_init(void) { return 0; }
-int petui_init(void) { return 0; }
-int cbm2ui_init(void) { return 0; }
-int cbm5x0ui_init(void) { return 0; }
-int video_init_cmdline_options(void) { return 0; }
-void c64ui_shutdown(void) {}
-void c64dtvui_shutdown(void) {}
-void c128ui_shutdown(void) {}
+int c64ui_init_early() { return 0; }
+int c64ui_init() { return 0; }
+int c64scui_init_early() { return 0; }
+int c64scui_init() { return 0; }
+int scpu64ui_init_early() { return 0; }
+int scpu64ui_init() { return 0; }
+int c64dtvui_init_early() { return 0; }
+int c64dtvui_init() { return 0; }
+int c128ui_init_early() { return 0; }
+int c128ui_init() { return 0; }
+int plus4ui_init_early() { return 0; }
+int plus4ui_init() { return 0; }
+int vic20ui_init_early() { return 0; }
+int vic20ui_init() { return 0; }
+int petui_init_early() { return 0; }
+int petui_init() { return 0; }
+int cbm2ui_init_early() { return 0; }
+int cbm2ui_init() { return 0; }
+int cbm5x0ui_init_early() { return 0; }
+int cbm5x0ui_init() { return 0; }
+int video_init_cmdline_options() { return 0; }
+void c64ui_shutdown() {}
+void c64dtvui_shutdown() {}
+void c128ui_shutdown() {}
 void cbm2ui_shutdown() {}
 void cbm5x0ui_shutdown() {}
 void petui_shutdown() {}
 void plus4ui_shutdown() {}
 void scpu64ui_shutdown() {}
 void vic20ui_shutdown() {}
-
-#ifndef COMMON_KBD
-int c128_kbd_init(void) { return 0; }
-int vic20_kbd_init(void) { return 0; }
-int cbm2_kbd_init(void) { return 0; }
-int pet_kbd_init(void) { return 0; }
-int plus4_kbd_init(void) { return 0; }
-int pet_kbd_resources_init(void) { return 0; }
-void keyboard_register_caps_key(key_ctrl_caps_func_t func) {}
-void keyboard_register_column4080_key(key_ctrl_column4080_func_t func) {}
-#endif
 
 log_t log_open(const char *id)
 {
@@ -118,12 +120,6 @@ void log_resources_shutdown(void) {}
 int archdep_spawn(const char *name, char **argv, char **pstdout_redir, const char *stderr_redir)
 {
   return -1;
-}
-
-char *archdep_quote_parameter(const char *name)
-{
-	/*not needed(?) */
-	return lib_stralloc(name);
 }
 
 char *archdep_tmpnam(void)
@@ -169,14 +165,14 @@ int ui_extend_image_dialog(void)
 
 void ui_display_drive_led(int drive_number, unsigned int pwm1, unsigned int led_pwm2) {}
 void ui_display_drive_track(unsigned int drive_number, unsigned int drive_base, unsigned int half_track_number) {}
-void ui_display_joyport(BYTE *joyport) {}
+void ui_display_joyport(uint8_t *joyport) {}
 void ui_enable_drive_status(ui_drive_enable_t state, int *drive_led_color) {}
 int uicolor_alloc_color(unsigned int red, unsigned int green,
                                unsigned int blue, unsigned long *color_pixel,
-                               BYTE *pixel_return) { return 0; }
+                               uint8_t *pixel_return) { return 0; }
 void uicolor_free_color(unsigned int red, unsigned int green,
                                unsigned int blue, unsigned long color_pixel) {}
-void uicolor_convert_color_table(unsigned int colnr, BYTE *data,
+void uicolor_convert_color_table(unsigned int colnr, uint8_t *data,
                                         long color_pixel, void *c) {}
 
 char *uimon_get_in(char **ppchCommandLine, const char *prompt)
@@ -264,35 +260,26 @@ void vsid_ui_display_time(unsigned int sec) {}
 
 void vsid_ui_setdrv(char* driver_info_text) {}
 
-char *archdep_filename_parameter(const char *name)
-{
-    /* nothing special(?) */
-    return lib_stralloc(name);
-}
-
 int archdep_path_is_relative(const char *path)
 {
-    if (path == NULL) {
-        return 0;
-    }
-
-    return *path != '/';
+	return path && *path != '/';
 }
 
 /* return malloc'd version of full pathname of orig_name */
 int archdep_expand_path(char **return_path, const char *orig_name)
 {
-    /* Unix version.  */
-    if (*orig_name == '/') {
-        *return_path = lib_stralloc(orig_name);
-    } else {
-        static char *cwd;
-
-        cwd = ioutil_current_dir();
-        *return_path = util_concat(cwd, "/", orig_name, NULL);
-        lib_free(cwd);
-    }
-    return 0;
+	/* Unix version.  */
+	if(*orig_name == '/')
+	{
+		*return_path = lib_strdup(orig_name);
+	}
+	else
+	{
+		char *cwd = ioutil_current_dir();
+		*return_path = util_concat(cwd, "/", orig_name, NULL);
+		lib_free(cwd);
+	}
+	return 0;
 }
 
 FILE *archdep_mkstemp_fd(char **filename, const char *mode)
@@ -302,22 +289,27 @@ FILE *archdep_mkstemp_fd(char **filename, const char *mode)
 
 char *archdep_default_fliplist_file_name(void)
 {
-	return lib_stralloc("");
+	return lib_strdup("");
 }
 
 char *archdep_default_autostart_disk_image_file_name(void)
 {
-	return lib_stralloc("");
+	return lib_strdup("");
 }
 
 char *archdep_default_resource_file_name(void)
 {
-	return lib_stralloc("");
+	return lib_strdup("");
 }
 
 int archdep_mkdir(const char *pathname, int mode)
 {
 	return mkdir(pathname, mode);
+}
+
+int archdep_rmdir(const char *pathname)
+{
+	return rmdir(pathname);
 }
 
 int archdep_stat(const char *file_name, unsigned int *len, unsigned int *isdir)
@@ -341,16 +333,17 @@ int archdep_rename(const char *oldpath, const char *newpath)
 	return -1;
 }
 
-signed long kbd_arch_keyname_to_keynum(char *keyname)
-{
-	return (signed long)atoi(keyname);
-}
-
-int kbd_arch_get_host_mapping(void)
+int archdep_kbd_get_host_mapping(void)
 {
 	return KBD_MAPPING_US;
 }
 
+void archdep_vice_exit(int excode)
+{
+	assert(!"Should never call archdep_vice_exit()");
+}
+
+char *archdep_extra_title_text() { return NULL; }
 void archdep_shutdown(void) {}
 void uimon_set_interface(monitor_interface_t **monitor_interface_init, int count) {}
 void uimon_window_suspend(void) {}
@@ -370,15 +363,17 @@ void ui_set_tape_status(int tape_status) {}
 char* ui_get_file(const char *format,...) { return NULL; }
 void ui_shutdown(void) {}
 void ui_resources_shutdown(void) {}
+int ui_pause_active() { return 0; }
+void ui_pause_enable() {}
+void ui_pause_disable() {}
 ui_jam_action_t ui_jam_dialog(const char *format, ...) { return UI_JAM_NONE; }
 int c64_kbd_init(void) { return 0; }
 void kbd_arch_init(void) {}
 void kbd_initialize_numpad_joykeys(int* joykeys) {}
-int kbd_cmdline_options_init(void) { return 0; }
-int kbd_resources_init(void) { return 0; }
 int joystick_arch_init_resources(void) { return 0; }
 void joy_arch_init_default_mapping(int joynum) {}
 int joystick_init_resources(void) { return 0; }
+void joystick_close() {}
 int console_close_all(void) { return 0; }
 void video_shutdown(void) {}
 gfxoutputdrv_t *gfxoutput_get_driver(const char *drvname) { return NULL; }
@@ -399,6 +394,7 @@ int screenshot_record() { return 0; }
 int screenshot_save(const char *drvname, const char *filename, struct video_canvas_s *canvas) { return 0; }
 void screenshot_prepare_reopen() {}
 void screenshot_try_reopen() {}
+void screenshot_shutdown() {}
 void sysfile_shutdown() {}
 int sysfile_resources_init() { return 0; }
 void sysfile_resources_shutdown() {}
@@ -412,7 +408,7 @@ void video_render_2x2_init() {}
 int cmdline_get_autostart_mode(void) { return AUTOSTART_MODE_NONE; }
 
 #define DUMMY_VIDEO_RENDER(func) void func(const video_render_color_tables_t *color_tab, \
-const BYTE *src, BYTE *trg, \
+const uint8_t *src, uint8_t *trg, \
 unsigned int width, const unsigned int height, \
 const unsigned int xs, const unsigned int ys, \
 const unsigned int xt, const unsigned int yt, \
@@ -422,7 +418,7 @@ const unsigned int doublescan, \
 video_render_config_t *config) {}
 
 #define DUMMY_VIDEO_RENDER_SCALE2X(func) void func(const video_render_color_tables_t *color_tab, \
-const BYTE *src, BYTE *trg, \
+const uint8_t *src, uint8_t *trg, \
 unsigned int width, const unsigned int height, \
 const unsigned int xs, const unsigned int ys, \
 const unsigned int xt, const unsigned int yt, \
@@ -430,7 +426,7 @@ const unsigned int pitchs, \
 const unsigned int pitcht) {}
 
 #define DUMMY_VIDEO_RENDER_CRT(func) void func(video_render_color_tables_t *colortab, \
-const BYTE *src, BYTE *trg, \
+const uint8_t *src, uint8_t *trg, \
 unsigned int width, const unsigned int height, \
 const unsigned int xs, const unsigned int ys, \
 const unsigned int xt, const unsigned int yt, \
@@ -522,7 +518,7 @@ int zfile_close_action(const char *filename, zfile_action_t action,
 	return 0;
 }
 
-VICE_API int vice_init()
+int vice_init()
 {
 	maincpu_early_init();
 	machine_setup_context();

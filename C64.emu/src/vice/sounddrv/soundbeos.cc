@@ -48,7 +48,7 @@ extern "C" {
 static BPushGameSound *game_sound;
 
 /* the cyclic buffer */
-static SWORD *soundbuffer;
+static int16_t *soundbuffer;
 
 /* the buffer's length */
 static size_t bufferlength;
@@ -71,13 +71,13 @@ static int beos_init(const char *param, int *speed,
 
         fragment_size = *fragsize;
         num_of_channels = *channels;
-        
+
         audio_format.frame_rate = (float)*speed;
         audio_format.channel_count = *channels;
         audio_format.format = gs_audio_format::B_GS_S16;
         audio_format.byte_order = B_MEDIA_LITTLE_ENDIAN;
         audio_format.buffer_size = (size_t) *fragsize * *fragnr * *channels;
-        
+
         game_sound = new BPushGameSound(*fragsize,
                                         &audio_format, *fragnr);
         if (game_sound->InitCheck() != B_OK) {
@@ -92,7 +92,7 @@ static int beos_init(const char *param, int *speed,
         }
         memset(soundbuffer, 0, bufferlength);
         game_sound->StartPlaying();
-        
+
         write_position = game_sound->CurrentPosition();
 
     return 0;
@@ -100,24 +100,24 @@ static int beos_init(const char *param, int *speed,
 
 extern CLOCK clk;
 
-static int beos_write(SWORD *pbuf, size_t nr)
+static int beos_write(int16_t *pbuf, size_t nr)
 {
         int i,count;
-        SWORD *p;
-        
+        int16_t *p;
+
         count = nr / fragment_size;
 #if 0
         while (game_sound->CurrentPosition()*num_of_channels == write_position);
 #endif
         for (i=0; i<count; i++) {
-                p = (SWORD*) (soundbuffer+write_position);
+                p = (int16_t *) (soundbuffer+write_position);
                 memcpy(p,pbuf,fragment_size*2);
                 write_position += fragment_size;
                 if (write_position*2 >= bufferlength)
                         write_position = 0;
                 pbuf+=fragment_size;
         }
-        
+
         return 0;
 }
 

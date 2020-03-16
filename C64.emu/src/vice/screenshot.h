@@ -40,8 +40,8 @@ typedef struct screenshot_s {
     struct video_canvas_s *canvas;
 
     struct palette_s *palette;
-    BYTE *color_map;
-    BYTE *draw_buffer;
+    uint8_t *color_map;
+    uint8_t *draw_buffer;
     unsigned int draw_buffer_line_size;
 
     /* Screen size we actually want to save.  */
@@ -72,7 +72,7 @@ typedef struct screenshot_s {
     unsigned int first_displayed_col;
 
     /* Line data convert function.  */
-    void (*convert_line)(struct screenshot_s *screenshot, BYTE *data,
+    void (*convert_line)(struct screenshot_s *screenshot, uint8_t *data,
                          unsigned int line, unsigned int mode);
 
     /* Pointer for graphics outout driver internal data.  */
@@ -82,25 +82,25 @@ typedef struct screenshot_s {
     char *chipid;
 
     /* native screenshot video regs */
-    BYTE *video_regs;
+    uint8_t *video_regs;
 
     /* native screenshot screen */
-    BYTE *screen_ptr;
+    uint8_t *screen_ptr;
 
     /* native screenshot chargen */
-    BYTE *chargen_ptr;
+    uint8_t *chargen_ptr;
 
     /* native screenshot bitmap */
-    BYTE *bitmap_ptr;
+    uint8_t *bitmap_ptr;
 
     /* native screenshot low part bitmap */
-    BYTE *bitmap_low_ptr;
+    uint8_t *bitmap_low_ptr;
 
     /* native screenshot high part bitmap */
-    BYTE *bitmap_high_ptr;
+    uint8_t *bitmap_high_ptr;
 
     /* native screenshot color ram */
-    BYTE *color_ram_ptr;
+    uint8_t *color_ram_ptr;
 } screenshot_t;
 
 #define SCREENSHOT_MODE_PALETTE 0
@@ -119,7 +119,7 @@ extern void screenshot_prepare_reopen(void);
 extern void screenshot_try_reopen(void);
 
 #ifdef FEATURE_CPUMEMHISTORY
-extern int memmap_screenshot_save(const char *drvname, const char *filename, int x_size, int y_size, BYTE *gfx, BYTE *palette);
+extern int memmap_screenshot_save(const char *drvname, const char *filename, int x_size, int y_size, uint8_t *gfx, uint8_t *palette);
 #endif
 
 #endif

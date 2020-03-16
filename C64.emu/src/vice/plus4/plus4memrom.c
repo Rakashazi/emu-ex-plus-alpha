@@ -34,34 +34,38 @@
 #include "plus4basic.h"
 #include "plus4kernal.h"
 #else
-BYTE plus4memrom_basic_rom[PLUS4_BASIC_ROM_SIZE];
-BYTE plus4memrom_kernal_rom[PLUS4_KERNAL_ROM_SIZE];
+uint8_t plus4memrom_basic_rom[PLUS4_BASIC_ROM_SIZE];
+uint8_t plus4memrom_kernal_rom[PLUS4_KERNAL_ROM_SIZE];
 #endif
 
-BYTE plus4memrom_kernal_trap_rom[PLUS4_KERNAL_ROM_SIZE];
+uint8_t plus4memrom_kernal_trap_rom[PLUS4_KERNAL_ROM_SIZE];
 
-
-BYTE plus4memrom_kernal_read(WORD addr)
+uint8_t plus4memrom_kernal_read(uint16_t addr)
 {
     return plus4memrom_kernal_rom[addr & 0x3fff];
 }
 
-void plus4memrom_kernal_store(WORD addr, BYTE value)
+#if 0
+static void plus4memrom_kernal_store(uint16_t addr, uint8_t value)
 {
     plus4memrom_kernal_rom[addr & 0x3fff] = value;
 }
+#endif
 
-BYTE plus4memrom_basic_read(WORD addr)
+uint8_t plus4memrom_basic_read(uint16_t addr)
 {
     return plus4memrom_basic_rom[addr & 0x3fff];
 }
 
-void plus4memrom_basic_store(WORD addr, BYTE value)
+#if 0
+static void plus4memrom_basic_store(uint16_t addr, uint8_t value)
 {
     plus4memrom_basic_rom[addr & 0x3fff] = value;
 }
+#endif
 
-BYTE plus4memrom_trap_read(WORD addr)
+
+uint8_t plus4memrom_trap_read(uint16_t addr)
 {
     switch (addr & 0xc000) {
         case 0xc000:
@@ -71,7 +75,7 @@ BYTE plus4memrom_trap_read(WORD addr)
     return 0;
 }
 
-void plus4memrom_trap_store(WORD addr, BYTE value)
+void plus4memrom_trap_store(uint16_t addr, uint8_t value)
 {
     switch (addr & 0xc000) {
         case 0xc000:
@@ -80,37 +84,37 @@ void plus4memrom_trap_store(WORD addr, BYTE value)
     }
 }
 
-BYTE plus4memrom_extromlo1_read(WORD addr)
+uint8_t plus4memrom_extromlo1_read(uint16_t addr)
 {
     return extromlo1[addr & 0x3fff];
 }
 
-BYTE plus4memrom_extromlo2_read(WORD addr)
+uint8_t plus4memrom_extromlo2_read(uint16_t addr)
 {
     return extromlo2[addr & 0x3fff];
 }
 
-BYTE plus4memrom_extromlo3_read(WORD addr)
+uint8_t plus4memrom_extromlo3_read(uint16_t addr)
 {
     return extromlo3[addr & 0x3fff];
 }
 
-BYTE plus4memrom_extromhi1_read(WORD addr)
+uint8_t plus4memrom_extromhi1_read(uint16_t addr)
 {
     return extromhi1[addr & 0x3fff];
 }
 
-BYTE plus4memrom_extromhi2_read(WORD addr)
+uint8_t plus4memrom_extromhi2_read(uint16_t addr)
 {
     return extromhi2[addr & 0x3fff];
 }
 
-BYTE plus4memrom_extromhi3_read(WORD addr)
+uint8_t plus4memrom_extromhi3_read(uint16_t addr)
 {
     return extromhi3[addr & 0x3fff];
 }
 
-BYTE plus4memrom_rom_read(WORD addr)
+uint8_t plus4memrom_rom_read(uint16_t addr)
 {
     switch (addr & 0xc000) {
         case 0x8000:
@@ -124,6 +128,8 @@ BYTE plus4memrom_rom_read(WORD addr)
                 case 3:
                     return plus4memrom_extromlo3_read(addr);
             }
+            /* Unreachable */
+            break;
         case 0xc000:
             if ((addr & 0xff00) == 0xfc00) {
                 return plus4memrom_kernal_read(addr);
@@ -139,12 +145,14 @@ BYTE plus4memrom_rom_read(WORD addr)
                         return plus4memrom_extromhi3_read(addr);
                 }
             }
+            /* Unreachable */
+            break;
     }
 
     return 0;
 }
 
-void plus4memrom_rom_store(WORD addr, BYTE value)
+void plus4memrom_rom_store(uint16_t addr, uint8_t value)
 {
     switch (addr & 0xc000) {
         case 0x8000:

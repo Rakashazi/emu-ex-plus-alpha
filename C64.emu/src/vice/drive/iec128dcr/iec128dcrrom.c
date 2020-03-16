@@ -44,7 +44,7 @@ static log_t iec128dcrrom_log;
 #ifdef USE_EMBEDDED
 #include "drived1571cr.h"
 #else
-static BYTE drive_rom1571cr[DRIVE_ROM1571CR_SIZE];
+static uint8_t drive_rom1571cr[DRIVE_ROM1571CR_SIZE];
 #endif
 
 /* If nonzero, the ROM image has been loaded.  */

@@ -32,7 +32,8 @@
 
 #include "joyport.h"
 #include "keyboard.h"
-#include "translate.h"
+
+#include "coplin_keypad.h"
 
 /* Control port <--> coplin keypad connections:
 
@@ -104,13 +105,14 @@ RETURN        011111111111     0    1    1    1    1
 #define KEYPAD_KEY_P ROW_COL(3,1)
 #define KEYPAD_KEY_R ROW_COL(3,2)
 
+#define KEYPAD_KEYS_NUM  12
+
 static int coplin_keypad_enabled = 0;
 
-static unsigned int keys[12];
+static unsigned int keys[KEYPAD_KEYS_NUM];
 
 /* ------------------------------------------------------------------------- */
 
-#ifdef COMMON_KBD
 static void handle_keys(int row, int col, int pressed)
 {
     if (row < 0 || row > 3 || col < 1 || col > 3) {
@@ -119,7 +121,6 @@ static void handle_keys(int row, int col, int pressed)
 
     keys[(row * 3) + col - 1] = (unsigned int)pressed;
 }
-#endif
 
 /* ------------------------------------------------------------------------- */
 
@@ -132,14 +133,10 @@ static int joyport_coplin_keypad_enable(int port, int value)
     }
 
     if (val) {
-        memset(keys, 0, 12);
-#ifdef COMMON_KBD
+        memset(keys, 0, KEYPAD_KEYS_NUM * sizeof(unsigned int));
         keyboard_register_joy_keypad(handle_keys);
-#endif
     } else {
-#ifdef COMMON_KBD
         keyboard_register_joy_keypad(NULL);
-#endif
     }
 
     coplin_keypad_enabled = val;
@@ -147,7 +144,7 @@ static int joyport_coplin_keypad_enable(int port, int value)
     return 0;
 }
 
-static BYTE coplin_keypad_read(int port)
+static uint8_t coplin_keypad_read(int port)
 {
     unsigned int retval = 0;
     unsigned int tmp;
@@ -177,26 +174,25 @@ static BYTE coplin_keypad_read(int port)
 
     retval |= 0xe0;
 
-    joyport_display_joyport(JOYPORT_ID_COPLIN_KEYPAD, (BYTE)~retval);
+    joyport_display_joyport(JOYPORT_ID_COPLIN_KEYPAD, (uint8_t)~retval);
 
-    return (BYTE)retval;
+    return (uint8_t)retval;
 }
 
 /* ------------------------------------------------------------------------- */
 
 static joyport_t joyport_coplin_keypad_device = {
-    "Coplin Keypad",
-    IDGS_COPLIN_KEYPAD,
-    JOYPORT_RES_ID_KEYPAD,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_OPTIONAL,
-    joyport_coplin_keypad_enable,
-    coplin_keypad_read,
-    NULL,               /* no digital store */
-    NULL,               /* no pot-x read */
-    NULL,               /* no pot-y read */
-    NULL,               /* no write snapshot */
-    NULL                /* no read snapshot */
+    "Coplin Keypad",              /* name of the device */
+    JOYPORT_RES_ID_KEYPAD,        /* device is a keypad, only 1 keypad can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,      /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,         /* device does NOT use the potentiometer lines */
+    joyport_coplin_keypad_enable, /* device enable function */
+    coplin_keypad_read,           /* digital line read function */
+    NULL,                         /* NO digital line store function */
+    NULL,                         /* NO pot-x read function */
+    NULL,                         /* NO pot-y read function */
+    NULL,                         /* NO device write snapshot function */
+    NULL                          /* NO device read snapshot function */
 };
 
 /* ------------------------------------------------------------------------- */

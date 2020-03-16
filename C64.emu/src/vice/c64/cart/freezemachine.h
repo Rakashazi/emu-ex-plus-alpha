@@ -32,14 +32,14 @@
 #include "types.h"
 
 extern void freezemachine_config_init(void);
-extern void freezemachine_config_setup(BYTE *rawcart);
-extern int freezemachine_bin_attach(const char *filename, BYTE *rawcart);
-extern int freezemachine_crt_attach(FILE *fd, BYTE *rawcart);
+extern void freezemachine_config_setup(uint8_t *rawcart);
+extern int freezemachine_bin_attach(const char *filename, uint8_t *rawcart);
+extern int freezemachine_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void freezemachine_detach(void);
 extern void freezemachine_freeze(void);
 extern void freezemachine_reset(void);
 
-extern BYTE freezemachine_roml_read(WORD addr);
+extern uint8_t freezemachine_roml_read(uint16_t addr);
 
 struct snapshot_s;
 

@@ -35,6 +35,7 @@ extern int ds12c887rtc_cart_enabled(void);
 extern void ds12c887rtc_reset(void);
 
 extern int ds12c887rtc_enable(void);
+int ds12c887rtc_disable(void);
 extern void ds12c887rtc_detach(void);
 
 extern int ds12c887rtc_resources_init(void);

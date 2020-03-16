@@ -49,16 +49,22 @@ extern void cartridge_init_config(void);
 /* detect cartridge type (takes crt and bin files) */
 extern int cartridge_detect(const char *filename);
 /* attach (and enable) a cartridge by type and filename (takes crt and bin files) */
-extern VICE_API int cartridge_attach_image(int type, const char *filename);
+extern int cartridge_attach_image(int type, const char *filename);
 /* enable cartridge by type. loads default image if any.
    should be used by the UI instead of using the resources directly */
 extern int cartridge_enable(int type);
+
+/* disable cartridge by type */
+extern int cartridge_disable(int type);
+
 /* detaches/disables the cartridge with the associated id. pass -1 to detach all */
-extern VICE_API void cartridge_detach_image(int type);
+extern void cartridge_detach_image(int type);
 
 /* FIXME: this should also be made a generic function that takes the type */
 /* set current "Main Slot" cart as default */
 extern void cartridge_set_default(void);
+
+void cartridge_unset_default(void);
 
 /* reset button pressed in UI */
 extern void cartridge_reset(void);
@@ -74,7 +80,7 @@ extern void cartridge_trigger_freeze_nmi_only(void);
 /* FIXME: this should also be made a generic function that takes the type */
 extern void cartridge_release_freeze(void);
 
-extern VICE_API const char *cartridge_get_file_name(int type);
+extern const char *cartridge_get_file_name(int type);
 extern int cartridge_type_enabled(int type);
 
 /* save the (rom/ram)image of the give cart type to a file */
@@ -82,6 +88,11 @@ extern int cartridge_save_image(int type, const char *filename);
 extern int cartridge_bin_save(int type, const char *filename);
 extern int cartridge_crt_save(int type, const char *filename);
 extern int cartridge_flush_image(int type);
+
+/* returns 1 when cartridge (ROM) image can be flushed */
+extern int cartridge_can_flush_image(int crtid);
+/* returns 1 when cartridge (ROM) image can be saved */
+extern int cartridge_can_save_image(int crtid);
 
 /* load/write snapshot modules for attached cartridges */
 struct snapshot_s;
@@ -93,10 +104,10 @@ struct machine_context_s;
 extern void cartridge_setup_context(struct machine_context_s *machine_context);
 
 /* generic cartridge memory peek for the monitor */
-extern BYTE cartridge_peek_mem(WORD addr);
+extern uint8_t cartridge_peek_mem(uint16_t addr);
 
 /* mmu translation */
-extern void cartridge_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit);
+extern void cartridge_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
 /* Initialize RAM for power-up.  */
 extern void cartridge_ram_init(void);
@@ -207,8 +218,9 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_RRNETMK3             58 /* rrnetmk3.c */
 #define CARTRIDGE_EASYCALC             59 /* easycalc.c */
 #define CARTRIDGE_GMOD2                60 /* gmod2.c */
+#define CARTRIDGE_MAX_BASIC            61 /* maxbasic.c */
 
-#define CARTRIDGE_LAST                 60 /* cartconv: last cartridge in list */
+#define CARTRIDGE_LAST                 61 /* cartconv: last cartridge in list */
 
 /* list of canonical names for the c64 cartridges:
    note: often it is hard to determine "the" official name, let alone the way it
@@ -271,6 +283,7 @@ extern void cartridge_sound_chip_init(void);
 #define CARTRIDGE_NAME_MAGIC_DESK         "Magic Desk" /* also: "Domark, Hes Australia" */
 #define CARTRIDGE_NAME_MAGIC_FORMEL       "Magic Formel" /* http://rr.pokefinder.org/wiki/Magic_Formel */
 #define CARTRIDGE_NAME_MAGIC_VOICE        "Magic Voice" /* all lowercase on cart ? */
+#define CARTRIDGE_NAME_MAX_BASIC          "MAX Basic"
 #define CARTRIDGE_NAME_MIDI_MAPLIN        "Maplin MIDI"
 #define CARTRIDGE_NAME_MIKRO_ASSEMBLER    "Mikro Assembler"
 #define CARTRIDGE_NAME_MMC64              "MMC64" /* see manual */
@@ -315,6 +328,26 @@ extern void cartridge_sound_chip_init(void);
 /*
  * VIC20 cartridge system
  */
+
+/* I/O only C64 cartridges can be used with the "Masquerade" adapter */
+/* FIXME: currently we need to make sure to use the same IDs here as for C64 */
+#define CARTRIDGE_VIC20_DIGIMAX            -100 /* digimax.c */
+#define CARTRIDGE_VIC20_GEORAM             -102 /* georam.c */
+#define CARTRIDGE_VIC20_SFX_SOUND_EXPANDER -106 /* sfx_soundexpander.c, fmopl.c */
+#define CARTRIDGE_VIC20_SFX_SOUND_SAMPLER  -107 /* sfx_soundsampler.c */
+#define CARTRIDGE_VIC20_MIDI_PASSPORT      -108 /* c64-midi.c */
+#define CARTRIDGE_VIC20_MIDI_DATEL         -109 /* c64-midi.c */
+#define CARTRIDGE_VIC20_MIDI_SEQUENTIAL    -110 /* c64-midi.c */
+#define CARTRIDGE_VIC20_MIDI_NAMESOFT      -111 /* c64-midi.c */
+#define CARTRIDGE_VIC20_MIDI_MAPLIN        -112 /* c64-midi.c */
+#define CARTRIDGE_VIC20_DS12C887RTC        -113 /* ds12c887rtc.c */
+#define CARTRIDGE_VIC20_TFE                -116 /* ethernetcart.c */
+#define CARTRIDGE_VIC20_TURBO232           -117 /* c64acia1.c */
+#define CARTRIDGE_VIC20_SWIFTLINK          -118 /* c64acia1.c */
+#define CARTRIDGE_VIC20_ACIA               -119 /* c64acia1.c */
+
+#define CARTRIDGE_VIC20_DEBUGCART          -124 /* debugcart.c */
+
 /* #define CARTRIDGE_NONE               -1 */
 #define CARTRIDGE_VIC20_GENERIC         1   /* generic.c */
 #define CARTRIDGE_VIC20_MEGACART        2   /* megacart.c */

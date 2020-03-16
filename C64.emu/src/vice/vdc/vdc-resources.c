@@ -73,7 +73,7 @@ static int set_vdc_revision(int val, void *param)
     return 0;
 }
 
-void vdc_update_renderer(void)
+static void vdc_update_renderer(void)
 {
     DBG(("vdc_update_renderer"));
     if (vdc_resources.stretchy) {

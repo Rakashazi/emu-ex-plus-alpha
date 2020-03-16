@@ -72,9 +72,9 @@ void mc6821core_reset(mc6821_state *ctx)
     }
 }
 
-BYTE mc6821core_read(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */)
+uint8_t mc6821core_read(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */)
 {
-    BYTE data = 0;
+    uint8_t data = 0;
 
     if (port == 0) {
         /* MC6821 Port A */
@@ -141,9 +141,9 @@ BYTE mc6821core_read(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */)
     return data;
 }
 
-BYTE mc6821core_peek(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */)
+uint8_t mc6821core_peek(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */)
 {
-    BYTE data = 0;
+    uint8_t data = 0;
 
     if (port == 0) {
         /* MC6821 Port A */
@@ -183,7 +183,7 @@ BYTE mc6821core_peek(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */)
     return data;
 }
 
-void mc6821core_store(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */, BYTE data)
+void mc6821core_store(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */, uint8_t data)
 {
     if (port == 0) {
         /* MC6821 Port A */
@@ -343,16 +343,16 @@ int mc6821core_snapshot_write_data(mc6821_state *ctx, snapshot_module_t *m)
     }
 
     if (0
-        || SMW_B(m, (BYTE)ctx->ctrlA) < 0
-        || SMW_B(m, (BYTE)ctx->ctrlB) < 0
-        || SMW_B(m, (BYTE)ctx->dataA) < 0
-        || SMW_B(m, (BYTE)ctx->dataB) < 0
-        || SMW_B(m, (BYTE)ctx->ddrA) < 0
-        || SMW_B(m, (BYTE)ctx->ddrB) < 0
-        || SMW_B(m, (BYTE)ctx->CA2) < 0
-        || SMW_B(m, (BYTE)ctx->CA2state) < 0
-        || SMW_B(m, (BYTE)ctx->CB2) < 0
-        || SMW_B(m, (BYTE)ctx->CB2state) < 0) {
+        || SMW_B(m, (uint8_t)ctx->ctrlA) < 0
+        || SMW_B(m, (uint8_t)ctx->ctrlB) < 0
+        || SMW_B(m, (uint8_t)ctx->dataA) < 0
+        || SMW_B(m, (uint8_t)ctx->dataB) < 0
+        || SMW_B(m, (uint8_t)ctx->ddrA) < 0
+        || SMW_B(m, (uint8_t)ctx->ddrB) < 0
+        || SMW_B(m, (uint8_t)ctx->CA2) < 0
+        || SMW_B(m, (uint8_t)ctx->CA2state) < 0
+        || SMW_B(m, (uint8_t)ctx->CB2) < 0
+        || SMW_B(m, (uint8_t)ctx->CB2state) < 0) {
         return -1;
     }
 

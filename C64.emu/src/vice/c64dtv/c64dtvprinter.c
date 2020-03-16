@@ -32,7 +32,7 @@
 #include "printer.h"
 
 
-void machine_printer_setup_context(struct machine_context_s *machine_context)
+void machine_printer_setup_context(struct machine_context_s *machinecontext)
 {
 }
 

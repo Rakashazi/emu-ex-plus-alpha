@@ -43,8 +43,8 @@
 
 
 /* On which channel did listen happen to?  */
-static BYTE TrapDevice;
-static BYTE TrapSecondary;
+static uint8_t TrapDevice;
+static uint8_t TrapSecondary;
 
 /* Function to call when EOF happens in `serialreceivebyte()'.  */
 static void (*eof_callback_func)(void);
@@ -55,7 +55,7 @@ static void (*attention_callback_func)(void);
 /* Logging goes here.  */
 static log_t parallel_log = LOG_DEFAULT;
 
-static BYTE SerialBuffer[SERIAL_NAMELENGTH + 1];
+static uint8_t SerialBuffer[SERIAL_NAMELENGTH + 1];
 static int SerialPtr;
 
 /*
@@ -72,7 +72,7 @@ static int SerialPtr;
 static int parallelcommand(void)
 {
     serial_t *p;
-    BYTE b;
+    uint8_t b;
     int channel;
     int i, st = 0;
     void *vdrive;
@@ -150,7 +150,9 @@ static int parallelcommand(void)
                     if (st) {
                         p->isopen[channel] = 0;
                         (*(p->closef))(vdrive, channel);
-                        log_error(parallel_log, "Cannot open file. Status $%02x.", st);
+                        log_error(parallel_log,
+                                "Cannot open file. Status $%02x.",
+                                (unsigned int)st);
                     }
                 }
 #endif
@@ -172,7 +174,7 @@ int parallel_trap_attention(int b)
     void *vdrive;
 
     if (parallel_debug) {
-        log_message(parallel_log, "ParallelAttention(%02x).", b);
+        log_message(parallel_log, "ParallelAttention(%02x).", (unsigned int)b);
     }
 
     if (b == 0x3f
@@ -237,7 +239,7 @@ int parallel_trap_attention(int b)
     return st;
 }
 
-int parallel_trap_sendbyte(BYTE data)
+int parallel_trap_sendbyte(uint8_t data)
 {
     int st = 0;
     serial_t *p;
@@ -275,9 +277,10 @@ int parallel_trap_sendbyte(BYTE data)
     return st + (TrapDevice << 8);
 }
 
-int parallel_trap_receivebyte(BYTE * data, int fake)
+int parallel_trap_receivebyte(uint8_t *data, int fake)
 {
-    int st = 0, secadr = TrapSecondary & 0x0f;
+    int st = 0;
+    int secadr = TrapSecondary & 0x0f;
     serial_t *p;
     void *vdrive;
     unsigned int dnr;
@@ -328,12 +331,15 @@ if ((!p->nextok[secadr]) && (!p->lastst[secadr])) {
         log_message(parallel_log,
                     "receive: sa=%02x lastb = %02x (data=%02x), "
                     "ok=%s, st=%04x, nextb = %02x, "
-                    "ok=%s, st=%04x.", secadr,
-                    p->lastbyte[secadr], (int)*data,
+                    "ok=%s, st=%04x.",
+                    (unsigned int)secadr,
+                    p->lastbyte[secadr],
+                    (int)*data,
                     p->lastok[secadr] ? "ok" : "no",
-                    p->lastst[secadr],
-                    p->nextbyte[secadr], p->nextok[secadr] ? "ok" : "no",
-                    p->nextst[secadr]);
+                    (unsigned int)(p->lastst[secadr]),
+                    p->nextbyte[secadr],
+                    p->nextok[secadr] ? "ok" : "no",
+                    (unsigned int)(p->nextst[secadr]));
     }
 #if 0
     if ((!fake) && p->nextok[secadr] && p->nextst[secadr]) {

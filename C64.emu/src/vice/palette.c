@@ -58,7 +58,7 @@ palette_t *palette_create(unsigned int num_entries, const char *entry_names[])
 
     if (entry_names != NULL) {
         for (i = 0; i < num_entries; i++) {
-            p->entries[i].name = lib_stralloc(entry_names[i]);
+            p->entries[i].name = lib_strdup(entry_names[i]);
         }
     }
 
@@ -81,7 +81,7 @@ void palette_free(palette_t *p)
 }
 
 static int palette_set_entry(palette_t *p, unsigned int number,
-                             BYTE red, BYTE green, BYTE blue, BYTE dither)
+                             uint8_t red, uint8_t green, uint8_t blue, uint8_t dither)
 {
     if (p == NULL || number >= p->num_entries) {
         return -1;
@@ -133,7 +133,7 @@ static int palette_load_core(FILE *f, const char *file_name,
 
     while (1) {
         int i;
-        BYTE values[4];
+        uint8_t values[4];
         const char *p1;
 
         int line_len = util_get_line(buf, 1024, f);
@@ -159,7 +159,7 @@ static int palette_load_core(FILE *f, const char *file_name,
             const char *p2;
 
             if (util_string_to_long(p1, &p2, 16, &result) < 0) {
-                log_error(palette_log, "%s, %d: number expected.",
+                log_error(palette_log, "%s, %u: number expected.",
                           file_name, line_num);
                 return -1;
             }
@@ -167,24 +167,24 @@ static int palette_load_core(FILE *f, const char *file_name,
                 || (i == 3 && result > 0xf)
                 || result > 0xff
                 || result < 0) {
-                log_error(palette_log, "%s, %d: invalid value %lx.",
-                          file_name, line_num, result);
+                log_error(palette_log, "%s, %u: invalid value %lx.",
+                          file_name, line_num, (unsigned long)result);
                 return -1;
             }
-            values[i] = (BYTE)result;
+            values[i] = (uint8_t)result;
             p1 = p2;
         }
 
         p1 = next_nonspace(p1);
         if (*p1 != '\0') {
             log_error(palette_log,
-                      "%s, %d: garbage at end of line.",
+                      "%s, %u: garbage at end of line.",
                       file_name, line_num);
             return -1;
         }
         if (entry_num >= palette_return->num_entries) {
             log_error(palette_log,
-                      "%s: too many entries, %d expected.", file_name,
+                      "%s: too many entries, %u expected.", file_name,
                       palette_return->num_entries);
             return -1;
         }
@@ -202,7 +202,7 @@ static int palette_load_core(FILE *f, const char *file_name,
     }
 
     if (entry_num < palette_return->num_entries) {
-        log_error(palette_log, "%s: too few entries, %d found, %d expected.",
+        log_error(palette_log, "%s: too few entries, %u found, %u expected.",
                   file_name, entry_num, palette_return->num_entries);
         return -1;
     }
@@ -230,7 +230,7 @@ int palette_load(const char *file_name, palette_t *palette_return)
 
     if (f == NULL) {
         /* Try to add the extension.  */
-        char *tmp = lib_stralloc(file_name);
+        char *tmp = lib_strdup(file_name);
 
         util_add_extension(&tmp, "vpl");
         f = sysfile_open(tmp, &complete_path, MODE_READ_TEXT);
@@ -300,6 +300,7 @@ static palette_info_t palettelist[] = {
     { "VICII", "Pepto (NTSC, Sony)", "pepto-ntsc-sony"},
     { "VICII", "Pepto (NTSC)",       "pepto-ntsc"},
     { "VICII", "Colodore (PAL)",     "colodore"},
+    { "VICII", "ChristopherJam",     "cjam"},
     { "VICII", "VICE",               "vice"},
     { "VICII", "C64HQ",              "c64hq"},
     { "VICII", "C64S",               "c64s"},

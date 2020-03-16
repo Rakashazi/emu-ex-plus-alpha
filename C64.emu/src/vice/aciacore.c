@@ -42,14 +42,16 @@
 #include "resources.h"
 #include "rs232drv.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "types.h"
 
+uint8_t myacia_read(uint16_t addr);
 
 #undef  DEBUG   /*!< define if you want "normal" debugging output */
 #undef  DEBUG_VERBOSE /*!< define if you want very verbose debugging output. */
 /* #define DEBUG */
 /* #define DEBUG_VERBOSE */
+
+/* #define LOG_MODEM_STATUS */
 
 /*! \brief Helper macro for outputting debugging messages */
 #ifdef DEBUG
@@ -88,18 +90,18 @@ typedef struct acia_struct {
     int fd;             /*!< file descriptor used to access the RS232 physical device on the host machine */
     enum acia_tx_state in_tx;   /*!< indicates that a transmit is currently ongoing */
     int irq;
-    BYTE cmd;        /*!< value of the 6551 command register */
-    BYTE ctrl;       /*!< value of the 6551 control register */
-    BYTE rxdata;     /*!< data that has been received last */
-    BYTE txdata;     /*!< data prepared to be send */
-    BYTE status;     /*!< value of the 6551 status register */
-    BYTE ectrl;      /*!< value of the extended control register of the turbo232 card */
+    uint8_t cmd;        /*!< value of the 6551 command register */
+    uint8_t ctrl;       /*!< value of the 6551 control register */
+    uint8_t rxdata;     /*!< data that has been received last */
+    uint8_t txdata;     /*!< data prepared to be send */
+    uint8_t status;     /*!< value of the 6551 status register */
+    uint8_t ectrl;      /*!< value of the extended control register of the turbo232 card */
     int alarm_active_tx;    /*!< 1 if TX alarm is set; else 0 */
     int alarm_active_rx;    /*!< 1 if RX alarm is set; else 0 */
 
     log_t log; /*!< the log where to write debugging messages */
 
-    BYTE last_read;  /*!< the byte read the last time (for RMW) */
+    uint8_t last_read;  /*!< the byte read the last time (for RMW) */
 
     /******************************************************************/
 
@@ -164,7 +166,7 @@ static acia_type acia = { NULL, NULL, 0, 0, 0, 0, (enum acia_tx_state)0,
                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                           (enum cpu_int)0, 0, 0, (enum rs232handshake_out)0 };
 
-void acia_preinit(void)
+static void acia_preinit(void)
 {
     memset(&acia, 0, sizeof acia);
 
@@ -275,6 +277,8 @@ static int acia_set_device(int val, void *param)
 */
 static void acia_set_int(int aciairq, unsigned int int_num, int value)
 {
+    DEBUG_LOG_MESSAGE((acia.log, "acia_set_int(aciairq=%d, int_num=%u, value=%u",
+        aciairq, int_num, value));
     assert((value == aciairq) || (value == IK_NONE));
 
     if (aciairq == IK_IRQ) {
@@ -290,8 +294,8 @@ static void acia_set_int(int aciairq, unsigned int int_num, int value)
  \param new_irq_res
    The interrupt type to use:
       0 = none,
-      1 = IRQ,
-      2 = NMI.
+      1 = NMI,
+      2 = IRQ.
 
  \param param
    Unused
@@ -307,19 +311,14 @@ static void acia_set_int(int aciairq, unsigned int int_num, int value)
 static int acia_set_irq(int new_irq_res, void *param)
 {
     enum cpu_int new_irq;
-    static const enum cpu_int irq_tab[] = { IK_NONE, IK_IRQ, IK_NMI };
+    static const enum cpu_int irq_tab[] = { IK_NONE, IK_NMI, IK_IRQ };
 
     /*
      * if an invalid interrupt type has been given, return
      * with an error.
      */
-    switch (new_irq_res) {
-        case IK_NONE:
-        case IK_NMI:
-        case IK_IRQ:
-            break;
-        default:
-            return -1;
+    if ((new_irq_res < 0) || (new_irq_res > 2)) {
+        return -1;
     }
 
     new_irq = irq_tab[new_irq_res];
@@ -359,7 +358,7 @@ static double get_acia_bps(void)
             }
 
         default:
-            log_message(acia.log, "Invalid acia.mode = %u in get_acia_bps()", acia.mode);
+            log_message(acia.log, "Invalid acia.mode = %d in get_acia_bps()", acia.mode);
             return acia_bps_table[0]; /* return dummy value */
     }
 }
@@ -489,18 +488,18 @@ int myacia_init_resources(void)
     acia_preinit();
 
     acia.irq_res = MyIrq;
+    acia.irq_type = MyIrq;
     acia.mode = ACIA_MODE_NORMAL;
 
     return resources_register_int(resources_int);
 }
 
 /*! \brief the command-line options available for the ACIA */
-static const cmdline_option_t cmdline_options[] = {
-    { "-myaciadev", SET_RESOURCE, 1,
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-myaciadev", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, MYACIA "Dev", NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SPECIFY_ACIA_RS232_DEVICE,
-      "<0-3>", NULL },
+      "<0-3>", "Specify RS232 device this ACIA should work on" },
     CMDLINE_LIST_END
 };
 
@@ -555,9 +554,10 @@ static void clk_overflow_callback(CLOCK sub, void *var)
 static int acia_get_status(void)
 {
     enum rs232handshake_in modem_status = rs232drv_get_status(acia.fd);
-
+#ifdef LOG_MODEM_STATUS
+    static int oldstatus = -1;
+#endif
     acia.status &= ~(ACIA_SR_BITS_DCD | ACIA_SR_BITS_DSR);
-
 #if 0
     /*
      * CTS is very different from DCD.
@@ -568,11 +568,27 @@ static int acia_get_status(void)
         acia.status |= ACIA_SR_BITS_DCD; /* we treat CTS like DCD */
     }
 #endif
+    if (modem_status & RS232_HSI_DCD) {
+        acia.status |= ACIA_SR_BITS_DCD;
+    }
 
-    if (modem_status & RS232_HSI_DSR) {
+    if ((modem_status & RS232_HSI_DSR)) {
         acia.status |= ACIA_SR_BITS_DSR;
     }
 
+#ifdef LOG_MODEM_STATUS
+    if (acia.status != oldstatus) {
+        printf("acia_get_status(fd:%d): modem_status:%02x dcd:%d dsr:%d status:%02x dcd:%d dsr:%d\n", 
+               acia.fd, modem_status, 
+               modem_status & RS232_HSI_DCD ? 1 : 0,
+               modem_status & RS232_HSI_DSR ? 1 : 0,
+               acia.status,
+               acia.status & ACIA_SR_BITS_DCD ? 1 : 0,
+               acia.status & ACIA_SR_BITS_DSR ? 1 : 0
+        );
+        oldstatus = acia.status;
+    }
+#endif 
     return acia.status;
 }
 
@@ -583,6 +599,9 @@ static int acia_get_status(void)
 */
 static void acia_set_handshake_lines(void)
 {
+#ifdef LOG_MODEM_STATUS
+    static int oldstatus = -1;
+#endif
     switch (acia.cmd & ACIA_CMD_BITS_TRANSMITTER_MASK) {
         case ACIA_CMD_BITS_TRANSMITTER_NO_RTS:
             /* unset RTS, we are NOT ready to receive */
@@ -617,6 +636,18 @@ static void acia_set_handshake_lines(void)
         /* unset DTR, we are NOT ready to receive or to transmit */
         acia.rs232_status_lines &= ~RS232_HSO_DTR;
     }
+    
+#ifdef LOG_MODEM_STATUS
+    if (acia.rs232_status_lines != oldstatus) {
+        printf("acia_set_handshake_lines(fd:%d): rs232 status:%02x dtr:%d rts:%d\n", 
+               acia.fd,
+               acia.rs232_status_lines,
+               acia.rs232_status_lines & RS232_HSO_DTR ? 1 : 0,
+               acia.rs232_status_lines & RS232_HSO_RTS ? 1 : 0
+        );
+        oldstatus = acia.rs232_status_lines;
+    }
+#endif     
     /* set the RTS and the DTR status */
     rs232drv_set_status(acia.fd, acia.rs232_status_lines);
 }
@@ -726,8 +757,8 @@ static const char module_name[] = MYACIA;
 int myacia_snapshot_write_module(snapshot_t *p)
 {
     snapshot_module_t *m;
-    DWORD act;
-    DWORD aar;
+    uint32_t act;
+    uint32_t aar;
 
     m = snapshot_module_create(p, module_name, ACIA_DUMP_VER_MAJOR, ACIA_DUMP_VER_MINOR);
 
@@ -747,16 +778,15 @@ int myacia_snapshot_write_module(snapshot_t *p)
         aar = 0;
     }
 
-    if (0
-        || SMW_B(m, acia.txdata) < 0
-        || SMW_B(m, acia.rxdata) < 0
-        || SMW_B(m, (BYTE)(acia_get_status() | (acia.irq ? ACIA_SR_BITS_IRQ : 0))) < 0
-        || SMW_B(m, acia.cmd) < 0
-        || SMW_B(m, acia.ctrl) < 0
-        || SMW_B(m, (BYTE)(acia.in_tx)) < 0
-        || SMW_DW(m, act) < 0
-     /* new with VICE 2.0.9 */
-        || SMW_DW(m, aar) < 0) {
+    if (SMW_B(m, acia.txdata) < 0
+            || SMW_B(m, acia.rxdata) < 0
+            || SMW_B(m, (uint8_t)(acia_get_status()
+                    | (acia.irq ? ACIA_SR_BITS_IRQ : 0))) < 0
+            || SMW_B(m, acia.cmd) < 0
+            || SMW_B(m, acia.ctrl) < 0
+            || SMW_B(m, (uint8_t)(acia.in_tx)) < 0
+            || SMW_DW(m, act) < 0
+            || SMW_DW(m, aar) < 0) {
         snapshot_module_close(m);
         return -1;
     }
@@ -787,10 +817,10 @@ int myacia_snapshot_write_module(snapshot_t *p)
 */
 int myacia_snapshot_read_module(snapshot_t *p)
 {
-    BYTE vmajor, vminor;
-    BYTE byte;
-    DWORD dword1;
-    DWORD dword2;
+    uint8_t vmajor, vminor;
+    uint8_t byte;
+    uint32_t dword1;
+    uint32_t dword2;
     snapshot_module_t *m;
 
     alarm_unset(acia.alarm_tx);   /* just in case we don't find module */
@@ -807,20 +837,19 @@ int myacia_snapshot_read_module(snapshot_t *p)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > ACIA_DUMP_VER_MAJOR || vminor > ACIA_DUMP_VER_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, ACIA_DUMP_VER_MAJOR, ACIA_DUMP_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         snapshot_module_close(m);
         return -1;
     }
 
-    if (0
-        || SMR_B(m, &acia.txdata) < 0
-        || SMR_B(m, &acia.rxdata) < 0
-        || SMR_B(m, &acia.status) < 0
-        || SMR_B(m, &acia.cmd) < 0
-        || SMR_B(m, &acia.ctrl) < 0
-        || SMR_B(m, &byte) < 0
-        || SMR_DW(m, &dword1) < 0) {
+    if (SMR_B(m, &acia.txdata) < 0
+            || SMR_B(m, &acia.rxdata) < 0
+            || SMR_B(m, &acia.status) < 0
+            || SMR_B(m, &acia.cmd) < 0
+            || SMR_B(m, &acia.ctrl) < 0
+            || SMR_B(m, &byte) < 0
+            || SMR_DW(m, &dword1) < 0) {
         snapshot_module_close(m);
         return -1;
     }
@@ -892,7 +921,7 @@ int myacia_snapshot_read_module(snapshot_t *p)
   \param byte
     The value to set the register to
 */
-void myacia_store(WORD addr, BYTE byte)
+void myacia_store(uint16_t addr, uint8_t byte)
 {
     int acia_register_size;
 
@@ -986,13 +1015,13 @@ void myacia_store(WORD addr, BYTE byte)
   \return
     The value the register has
 */
-BYTE myacia_read(WORD addr)
+uint8_t myacia_read(uint16_t addr)
 {
 #if 0 /* def DEBUG */
-    static BYTE myacia_read_(WORD);
-    BYTE byte = myacia_read_(addr);
-    static WORD last_addr = 0;
-    static BYTE last_byte = 0;
+    static uint8_t myacia_read_(uint16_t);
+    uint8_t byte = myacia_read_(addr);
+    static uint16_t last_addr = 0;
+    static uint8_t last_byte = 0;
 
     if ((addr != last_addr) || (byte != last_byte)) {
         DEBUG_LOG_MESSAGE((acia.log, "read_myacia(%04x) -> %02x", addr, byte));
@@ -1000,7 +1029,7 @@ BYTE myacia_read(WORD addr)
     last_addr = addr; last_byte = byte;
     return byte;
 }
-static BYTE myacia_read_(WORD addr)
+static uint8_t myacia_read_(uint16_t addr)
 {
 #endif
     int acia_register_size;
@@ -1013,12 +1042,14 @@ static BYTE myacia_read_(WORD addr)
 
     switch (addr & acia_register_size) {
         case ACIA_DR:
-            acia.status &= ~ACIA_SR_BITS_RECEIVE_DR_FULL;
+            DEBUG_LOG_MESSAGE((acia.log, "DR read at %d: 0x%02x", myclk, acia.rxdata));
+            acia.status &= ~(ACIA_SR_BITS_OVERRUN_ERROR | ACIA_SR_BITS_PARITY_ERROR | ACIA_SR_BITS_FRAMING_ERROR | ACIA_SR_BITS_RECEIVE_DR_FULL);
             acia.last_read = acia.rxdata;
             return acia.rxdata;
         case ACIA_SR:
             {
-                BYTE c = acia_get_status() | (acia.irq ? ACIA_SR_BITS_IRQ : 0);
+                uint8_t c = acia_get_status() | (acia.irq ? ACIA_SR_BITS_IRQ : 0);
+                DEBUG_LOG_MESSAGE((acia.log, "SR read at %d: 0x%02x", myclk,c));
                 acia_set_int(acia.irq_type, acia.int_num, IK_NONE);
                 acia.irq = 0;
                 acia.last_read = c;
@@ -1058,14 +1089,14 @@ static BYTE myacia_read_(WORD addr)
   \todo
     Currently unused
 */
-BYTE myacia_peek(WORD addr)
+uint8_t myacia_peek(uint16_t addr)
 {
     switch (addr & 3) {
         case ACIA_DR:
             return acia.rxdata;
         case ACIA_SR:
             {
-                BYTE c = acia.status | (acia.irq ? ACIA_SR_BITS_IRQ : 0);
+                uint8_t c = acia.status | (acia.irq ? ACIA_SR_BITS_IRQ : 0);
                 return c;
             }
         case ACIA_CTRL:
@@ -1178,7 +1209,7 @@ static void int_acia_rx(CLOCK offset, void *data)
     assert(data == NULL);
 
     do {
-        BYTE received_byte;
+        uint8_t received_byte;
 
         if (acia.fd < 0) {
             break;
@@ -1191,10 +1222,15 @@ static void int_acia_rx(CLOCK offset, void *data)
         DEBUG_LOG_MESSAGE((acia.log, "received byte: %u = '%c'.",
                            (unsigned) received_byte, received_byte));
 
-        /*! \todo: What happens on the real 6551? Is the old value overwritten in
-         * case of an overrun, or is it not?
-         */
-        acia.rxdata = received_byte;
+        /* Datasheet (https://downloads.reactivemicro.com/Electronics/Interface%20Adapters/R65C51.pdf)
+         * says that new data is discarded on overrun */
+        if (!(acia.status & ACIA_SR_BITS_RECEIVE_DR_FULL)) {
+            acia.rxdata = received_byte;
+        } else {
+            acia.status |= ACIA_SR_BITS_OVERRUN_ERROR;
+            DEBUG_LOG_MESSAGE((acia.log, "Overrun! Discarding received byte",
+                           (unsigned) acia.rxdata, acia.rxdata));
+        }
 
         /* generate an interrupt if the ACIA was configured to generate one */
         if (!(acia.cmd & ACIA_CMD_BITS_IRQ_DISABLED)) {
@@ -1202,10 +1238,6 @@ static void int_acia_rx(CLOCK offset, void *data)
             acia.irq = 1;
         }
 
-        if (acia.status & ACIA_SR_BITS_RECEIVE_DR_FULL) {
-            acia.status |= ACIA_SR_BITS_OVERRUN_ERROR;
-            break;
-        }
 
         acia.status |= ACIA_SR_BITS_RECEIVE_DR_FULL;
     } while (0);

@@ -45,11 +45,11 @@
 #define NOT(x) ((x) ^ 1)
 
 
-static BYTE cpu_data, cpu_clock, cpu_atn;
-static BYTE drive_data[DRIVE_NUM], drive_clock[DRIVE_NUM];
-static BYTE drive_atna[DRIVE_NUM], drive_data_modifier[DRIVE_NUM];
-static BYTE bus_data, bus_clock, bus_atn;
-static BYTE cpu_bus_val;
+static uint8_t cpu_data, cpu_clock, cpu_atn;
+static uint8_t drive_data[DRIVE_NUM], drive_clock[DRIVE_NUM];
+static uint8_t drive_atna[DRIVE_NUM], drive_data_modifier[DRIVE_NUM];
+static uint8_t bus_data, bus_clock, bus_atn;
+static uint8_t cpu_bus_val;
 
 static inline void resolve_bus_signals(void)
 {
@@ -80,7 +80,7 @@ void vic20iec_init(void)
     cpu_clock = 1;
 }
 
-void iec_update_cpu_bus(BYTE data)
+void iec_update_cpu_bus(uint8_t data)
 {
 }
 
@@ -102,7 +102,7 @@ static void iec_calculate_data_modifier(unsigned int dnr)
     }
 }
 
-void iec_drive_write(BYTE data, unsigned int dnr)
+void iec_drive_write(uint8_t data, unsigned int dnr)
 {
     data = ~data;
     drive_data[dnr] = ((data & 2) >> 1);
@@ -112,9 +112,9 @@ void iec_drive_write(BYTE data, unsigned int dnr)
     resolve_bus_signals();
 }
 
-BYTE iec_drive_read(unsigned int dnr)
+uint8_t iec_drive_read(unsigned int dnr)
 {
-    BYTE drive_bus_val;
+    uint8_t drive_bus_val;
 
     drive_bus_val = bus_data | (bus_clock << 2) | (bus_atn << 7);
 
@@ -135,7 +135,7 @@ BYTE iec_drive_read(unsigned int dnr)
 
 /* These two routines are called for VIA2 Port A. */
 
-BYTE iec_pa_read(void)
+uint8_t iec_pa_read(void)
 {
     drive_cpu_execute_all(maincpu_clk);
 
@@ -144,7 +144,7 @@ BYTE iec_pa_read(void)
     return cpu_bus_val;
 }
 
-void iec_pa_write(BYTE data)
+void iec_pa_write(uint8_t data)
 {
     drive_t *drive;
     unsigned int i;
@@ -207,7 +207,7 @@ void iec_pa_write(BYTE data)
    set bit 5 and bit 1 to the real output value for CB2 (DATA out) and CA2
    (CLK out) resp. (25apr1997 AF) */
 
-void iec_pcr_write(BYTE data)
+void iec_pcr_write(uint8_t data)
 {
     unsigned int i;
 
@@ -223,7 +223,7 @@ void iec_pcr_write(BYTE data)
     resolve_bus_signals();
 }
 
-void iec_fast_drive_write(BYTE data, unsigned int dnr)
+void iec_fast_drive_write(uint8_t data, unsigned int dnr)
 {
 /* The VIC20 does not use fast IEC.  */
 }
@@ -237,11 +237,11 @@ iecbus_t *iecbus_drive_port(void)
     return NULL;
 }
 
-void parallel_cable_drive_write(int port, BYTE data, int handshake, unsigned int dnr)
+void parallel_cable_drive_write(int port, uint8_t data, int handshake, unsigned int dnr)
 {
 }
 
-BYTE parallel_cable_drive_read(int port, int handshake)
+uint8_t parallel_cable_drive_read(int port, int handshake)
 {
     return 0;
 }
@@ -256,14 +256,16 @@ int iec_available_busses(void)
 }
 
 /* KLUDGES: dummy to satisfy linker, unused */
-BYTE plus4tcbm_outputa[2], plus4tcbm_outputb[2], plus4tcbm_outputc[2];
-void plus4tcbm_update_pa(BYTE byte, unsigned int dnr)
-{
-}
-void plus4tcbm_update_pb(BYTE byte, unsigned int dnr)
-{
-}
-void plus4tcbm_update_pc(BYTE byte, unsigned int dnr)
+uint8_t plus4tcbm_outputa[2], plus4tcbm_outputb[2], plus4tcbm_outputc[2];
+
+void plus4tcbm_update_pa(uint8_t byte, unsigned int dnr)
 {
 }
 
+void plus4tcbm_update_pb(uint8_t byte, unsigned int dnr)
+{
+}
+
+void plus4tcbm_update_pc(uint8_t byte, unsigned int dnr)
+{
+}

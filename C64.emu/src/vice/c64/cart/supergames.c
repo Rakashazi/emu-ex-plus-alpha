@@ -66,9 +66,9 @@
 static int currbank = 0;
 static int currmode = 0;
 static int reglatched = 0;
-static BYTE regval = 0;
+static uint8_t regval = 0;
 
-static void supergames_io2_store(WORD addr, BYTE value)
+static void supergames_io2_store(uint16_t addr, uint8_t value)
 {
     if (reglatched == 0) {
         regval = value;
@@ -87,7 +87,7 @@ static void supergames_io2_store(WORD addr, BYTE value)
     }
 }
 
-static BYTE supergames_io2_peek(WORD addr)
+static uint8_t supergames_io2_peek(uint16_t addr)
 {
     return regval;
 }
@@ -102,18 +102,19 @@ static int supergames_dump(void)
 /* ---------------------------------------------------------------------*/
 
 static io_source_t supergames_device = {
-    CARTRIDGE_NAME_SUPER_GAMES,
-    IO_DETACH_CART,
-    NULL,
-    0xdf00, 0xdfff, 0xff,
-    0,
-    supergames_io2_store,
-    NULL,
-    supergames_io2_peek,
-    supergames_dump,
-    CARTRIDGE_SUPER_GAMES,
-    0,
-    0
+    CARTRIDGE_NAME_SUPER_GAMES, /* name of the device */
+    IO_DETACH_CART,             /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,      /* does not use a resource for detach */
+    0xdf00, 0xdfff, 0xff,       /* range for the device, address is ignored, reg:$df00, mirrors:$df01-$dfff */
+    0,                          /* read is never valid, reg is write only */
+    supergames_io2_store,       /* store function */
+    NULL,                       /* NO poke function */
+    NULL,                       /* NO read function */
+    supergames_io2_peek,        /* peek function */
+    supergames_dump,            /* device state information dump function */
+    CARTRIDGE_SUPER_GAMES,      /* cartridge ID */
+    IO_PRIO_NORMAL,             /* normal priority, device read needs to be checked for collisions */
+    0                           /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *supergames_list_item = NULL;
@@ -131,7 +132,7 @@ void supergames_config_init(void)
     supergames_io2_store(0xdf00, 0);
 }
 
-void supergames_config_setup(BYTE *rawcart)
+void supergames_config_setup(uint8_t *rawcart)
 {
     memcpy(&roml_banks[0x0000], &rawcart[0x0000], 0x2000);
     memcpy(&romh_banks[0x0000], &rawcart[0x2000], 0x2000);
@@ -156,7 +157,7 @@ static int supergames_common_attach(void)
     return 0;
 }
 
-int supergames_bin_attach(const char *filename, BYTE *rawcart)
+int supergames_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x10000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -164,7 +165,7 @@ int supergames_bin_attach(const char *filename, BYTE *rawcart)
     return supergames_common_attach();
 }
 
-int supergames_crt_attach(FILE *fd, BYTE *rawcart)
+int supergames_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     crt_chip_header_t chip;
 
@@ -199,7 +200,7 @@ void supergames_detach(void)
    -------------------------------------------
    BYTE  | mode        |   0.2   | current mode
    BYTE  | regval      |   0.2   | register
-   BYTE  | bank        |   0.0+  | current bank   
+   BYTE  | bank        |   0.0+  | current bank
    BYTE  | reg latched |   0.1   | register latched flag
    ARRAY | ROML        |   0.0+  | 32768 BYTES of ROML data
    ARRAY | ROMH        |   0.0+  | 32768 BYTES of ROMH data
@@ -220,10 +221,10 @@ int supergames_snapshot_write_module(snapshot_t *s)
     }
 
     if (0
-        || SMW_B(m, (BYTE)currmode) < 0
+        || SMW_B(m, (uint8_t)currmode) < 0
         || SMW_B(m, regval) < 0
-        || SMW_B(m, (BYTE)currbank) < 0
-        || SMW_B(m, (BYTE)reglatched) < 0
+        || SMW_B(m, (uint8_t)currbank) < 0
+        || SMW_B(m, (uint8_t)reglatched) < 0
         || SMW_BA(m, roml_banks, 0x8000) < 0
         || SMW_BA(m, romh_banks, 0x8000) < 0) {
         snapshot_module_close(m);
@@ -235,7 +236,7 @@ int supergames_snapshot_write_module(snapshot_t *s)
 
 int supergames_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -245,13 +246,13 @@ int supergames_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }
 
     /* new in 0.2 */
-    if (SNAPVAL(vmajor, vminor, 0, 2)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 2)) {
         if (0
             || SMR_B_INT(m, &currmode) < 0
             || SMR_B(m, &regval) < 0) {
@@ -267,7 +268,7 @@ int supergames_snapshot_read_module(snapshot_t *s)
     }
 
     /* new in 0.1 */
-    if (SNAPVAL(vmajor, vminor, 0, 2)) {
+    if (!snapshot_version_is_smaller(vmajor, vminor, 0, 2)) {
         if (SMR_B_INT(m, &reglatched) < 0) {
             goto fail;
         }

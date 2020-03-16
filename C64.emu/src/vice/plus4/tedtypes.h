@@ -187,7 +187,7 @@ struct ted_s {
     raster_t raster;
 
     /* TED registers.  */
-    BYTE regs[64];
+    uint8_t regs[64];
 
     /* Interrupt register.  */
     int irq_status;             /* = 0; */
@@ -196,15 +196,15 @@ struct ted_s {
     unsigned int raster_irq_line;
 
     /* Video memory pointers.  */
-    BYTE *screen_ptr;
-    BYTE *chargen_ptr;
-    BYTE *bitmap_ptr;
-    BYTE *color_ptr;
+    uint8_t *screen_ptr;
+    uint8_t *chargen_ptr;
+    uint8_t *bitmap_ptr;
+    uint8_t *color_ptr;
 
     /* Screen memory buffers (chars and color).  */
-    BYTE vbuf[TED_SCREEN_TEXTCOLS];
-    BYTE cbuf[TED_SCREEN_TEXTCOLS];
-    BYTE cbuf_tmp[TED_SCREEN_TEXTCOLS];
+    uint8_t vbuf[TED_SCREEN_TEXTCOLS];
+    uint8_t cbuf[TED_SCREEN_TEXTCOLS];
+    uint8_t cbuf_tmp[TED_SCREEN_TEXTCOLS];
 
     /* If this flag is set, bad lines (DMA's) can happen.  */
     int allow_bad_lines;
@@ -273,7 +273,7 @@ struct ted_s {
     ted_idle_data_location_t idle_data_location;
 
     /* TED keybaord read value.  */
-    BYTE kbdval;
+    uint8_t kbdval;
 
     /* All the TED logging goes here.  */
     signed int log;
@@ -328,7 +328,7 @@ struct ted_s {
     int character_fetch_on;
 
     /* Last value read from TED (used for RMW access).  */
-    BYTE last_read;
+    uint8_t last_read;
 
     /* Video chip capabilities.  */
     struct video_chip_cap_s *video_chip_cap;

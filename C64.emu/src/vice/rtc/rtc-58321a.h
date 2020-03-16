@@ -35,7 +35,7 @@
 typedef struct rtc_58321a_s {
     int stop;
     int hour24;
-    BYTE address;
+    uint8_t address;
     time_t latch;
     time_t offset;
     time_t old_offset;
@@ -62,9 +62,9 @@ typedef struct rtc_58321a_s {
 extern rtc_58321a_t *rtc58321a_init(char *device);
 extern void rtc58321a_destroy(rtc_58321a_t *context, int save);
 
-extern BYTE rtc58321a_read(rtc_58321a_t *context);
-extern void rtc58321a_write_address(rtc_58321a_t *context, BYTE address);
-extern void rtc58321a_write_data(rtc_58321a_t *context, BYTE data);
+extern uint8_t rtc58321a_read(rtc_58321a_t *context);
+extern void rtc58321a_write_address(rtc_58321a_t *context, uint8_t address);
+extern void rtc58321a_write_data(rtc_58321a_t *context, uint8_t data);
 
 extern void rtc58321a_stop_clock(rtc_58321a_t *context);
 extern void rtc58321a_start_clock(rtc_58321a_t *context);

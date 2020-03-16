@@ -39,7 +39,7 @@
 
 static FILE *mp3_fd = NULL;
 static int stereo = 0;
-static SWORD pcm_buffer[PCM_BUFFER_SIZE];
+static int16_t pcm_buffer[PCM_BUFFER_SIZE];
 static unsigned char mp3_buffer[MP3_BUFFER_SIZE];
 static lame_global_flags *gfp;
 
@@ -69,7 +69,7 @@ static int mp3_init(const char *param, int *speed, int *fragsize, int *fragnr, i
     return 0;
 }
 
-static int mp3_write(SWORD *pbuf, size_t nr)
+static int mp3_write(int16_t *pbuf, size_t nr)
 {
     int mp3_size;
     unsigned int i;

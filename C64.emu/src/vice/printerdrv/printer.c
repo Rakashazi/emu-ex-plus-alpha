@@ -110,6 +110,7 @@ void printer_reset(void)
 
 void printer_shutdown(void)
 {
+    output_graphics_shutdown();
     output_select_shutdown();
     drv_mps803_shutdown();
     drv_nl10_shutdown();

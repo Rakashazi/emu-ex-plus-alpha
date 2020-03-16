@@ -34,12 +34,18 @@
 #include "machine.h"
 #include "ram.h"
 #include "resources.h"
-#include "translate.h"
 #include "types.h"
 
-static int start_value = 0;
-static int value_invert = 64;
+static int start_value = 255;
+static int value_invert = 128;
+static int value_offset = 0;
+
 static int pattern_invert = 0;
+static int pattern_invert_value = 0;
+
+static int random_start = 0;
+static int random_repeat = 0;
+static int random_chance = 0;
 
 static int set_start_value(int val, void *param)
 {
@@ -59,21 +65,80 @@ static int set_value_invert(int val, void *param)
     return 0;
 }
 
+static int set_value_offset(int val, void *param)
+{
+    value_offset = val;
+    return 0;
+}
+
 static int set_pattern_invert(int val, void *param)
 {
     pattern_invert = val;
     return 0;
 }
 
+static int set_pattern_invert_value(int val, void *param)
+{
+    pattern_invert_value = val;
+    if (pattern_invert_value < 0) {
+        pattern_invert_value = 0;
+    }
+    if (pattern_invert_value > 0xff) {
+        pattern_invert_value = 0xff;
+    }
+    return 0;
+}
 
+
+static int set_random_start(int val, void *param)
+{
+    random_start = val;
+    if (random_start < 0) {
+        random_start = 0;
+    }
+    if (random_start > 0xff) {
+        random_start = 0xff;
+    }
+    return 0;
+}
+
+static int set_random_repeat(int val, void *param)
+{
+    random_repeat = val;
+    return 0;
+}
+
+static int set_random_chance(int val, void *param)
+{
+    random_chance = val;
+    return 0;
+}
+
+/* FIXME: the defaults have been choosen so the result matches a real reported
+          pattern in x64sc, AND from those one was picked so all raminitvalue 
+          tests pass.
+          
+          however, the respective defaults should probably be different per
+          emulator/machine.
+*/
 /* RAM-related resources. */
 static const resource_int_t resources_int[] = {
+    { "RAMInitValueOffset", 2, RES_EVENT_SAME, NULL,
+      &value_offset, set_value_offset, NULL },
     { "RAMInitStartValue", 0, RES_EVENT_SAME, NULL,
       &start_value, set_start_value, NULL },
-    { "RAMInitValueInvert", 64, RES_EVENT_SAME, NULL,
+    { "RAMInitValueInvert", 4, RES_EVENT_SAME, NULL,
       &value_invert, set_value_invert, NULL },
-    { "RAMInitPatternInvert", 0, RES_EVENT_SAME, NULL,
+    { "RAMInitPatternInvert", 16384, RES_EVENT_SAME, NULL,
       &pattern_invert, set_pattern_invert, NULL },
+    { "RAMInitPatternInvertValue", 255, RES_EVENT_SAME, NULL,
+      &pattern_invert_value, set_pattern_invert_value, NULL },
+    { "RAMInitStartRandom", 0, RES_EVENT_SAME, NULL,
+      &random_start, set_random_start, NULL },
+    { "RAMInitRepeatRandom", 0, RES_EVENT_SAME, NULL,
+      &random_repeat, set_random_repeat, NULL },
+    { "RAMInitRandomChance", 1, RES_EVENT_SAME, NULL,
+      &random_chance, set_random_chance, NULL },
     RESOURCE_INT_LIST_END
 };
 
@@ -85,22 +150,32 @@ int ram_resources_init(void)
     return 0;
 }
 
-static const cmdline_option_t cmdline_options[] = {
-    { "-raminitstartvalue", SET_RESOURCE, 1,
+static const cmdline_option_t cmdline_options[] =
+{
+    { "-raminitvalueoffset", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "RAMInitValueOffset", NULL,
+      "<offset>", "The first pattern is shifted by this many bytes" },
+    { "-raminitstartvalue", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "RAMInitStartValue", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_VALUE, IDCLS_SET_FIRST_RAM_ADDRESS_VALUE,
-      NULL, NULL },
-    { "-raminitvalueinvert", SET_RESOURCE, 1,
+      "<value>", "Set the value for the very first RAM address after powerup" },
+    { "-raminitvalueinvert", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "RAMInitValueInvert", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NUM_OF_BYTES, IDCLS_LENGTH_BLOCK_SAME_VALUE,
-      NULL, NULL },
-    { "-raminitpatterninvert", SET_RESOURCE, 1,
+      "<num of bytes>", "Length of memory block initialized with the same value" },
+    { "-raminitpatterninvert", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "RAMInitPatternInvert", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NUM_OF_BYTES, IDCLS_LENGTH_BLOCK_SAME_PATTERN,
-      NULL, NULL },
+      "<num of bytes>", "Length of memory block initialized with the same pattern" },
+    { "-raminitpatterninvertvalue", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "RAMInitPatternInvertValue", NULL,
+      "<value>", "Value to invert with in second pattern" },
+    { "-raminitstartrandom", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "RAMInitStartRandom", NULL,
+      "<num of bytes>", "Number of random bytes in random pattern" },
+    { "-raminitrepeatrandom", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "RAMInitRepeatRandom", NULL,
+      "<num of bytes>", "Repeat random pattern after this many bytes" },
+    { "-raminitrandomchance", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "RAMInitRandomChance", NULL,
+      "<value>", "Random chance for any bit to flip (0-0xfff)" },
     CMDLINE_LIST_END
 };
 
@@ -113,31 +188,42 @@ int ram_cmdline_options_init(void)
 }
 
 
-void ram_init(BYTE *memram, unsigned int ramsize)
+void ram_init(uint8_t *memram, unsigned int ramsize)
 {
-    unsigned int i, j, k, l;
-    BYTE v = start_value;
-
-    j = value_invert - 1;
-    k = pattern_invert - 1;
-    for (i = 0; i < ramsize; i++)
-    {
-        l = (j < k) ? j : k;
-        if (l >= ramsize) {
-            l = ramsize - 1;
-        }
-        memset(memram + i, v, l - i + 1);
-        i = l;
-
-        if (i == j) {
-            j += value_invert;
-            v ^= 0xff;
+    unsigned int offset, j, k;
+    uint8_t value;
+    
+    for (offset = 0; offset < ramsize; offset++) {
+        
+        j = k = 0;
+        if (value_invert) {
+            j = (((offset + value_offset) / value_invert) & 1) ? 0xff : 0x00;
         }
 
-        if (i == k) {
-            k += pattern_invert;
-            v ^= 0xff;
+        if (pattern_invert) {
+            k = ((offset / pattern_invert) & 1) ? pattern_invert_value : 0x00;
         }
+
+        value = start_value ^ j ^ k;
+        
+        j = k = 0;
+        if (random_start && random_repeat) {
+            k = ((offset % random_repeat) < random_start) ? lib_unsigned_rand(0, 0xff) : 0;
+        }
+        if (random_chance) {
+            j |= lib_unsigned_rand(0, 0x1000) < random_chance ? 0x80 : 0;
+            j |= lib_unsigned_rand(0, 0x1000) < random_chance ? 0x40 : 0;
+            j |= lib_unsigned_rand(0, 0x1000) < random_chance ? 0x20 : 0;
+            j |= lib_unsigned_rand(0, 0x1000) < random_chance ? 0x10 : 0;
+            j |= lib_unsigned_rand(0, 0x1000) < random_chance ? 0x08 : 0;
+            j |= lib_unsigned_rand(0, 0x1000) < random_chance ? 0x04 : 0;
+            j |= lib_unsigned_rand(0, 0x1000) < random_chance ? 0x02 : 0;
+            j |= lib_unsigned_rand(0, 0x1000) < random_chance ? 0x01 : 0;
+        }
+        
+        value ^= k ^ j;
+        
+        memram[offset] = value;
     }
 }
 

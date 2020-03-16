@@ -24,10 +24,10 @@
  *
  */
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
 #else
-  #error ETHERNETCART.H should not be included if HAVE_PCAP is not defined!
-#endif /* #ifdef HAVE_PCAP */
+  #error ETHERNETCART.H should not be included if HAVE_RAWNET is not defined!
+#endif /* #ifdef HAVE_RAWNET */
 
 #ifndef CARTRIDGE_INCLUDE_PRIVATE_API
 #ifndef CARTRIDGE_INCLUDE_PUBLIC_API
@@ -55,5 +55,6 @@ extern int ethernetcart_cmdline_options_init(void);
 extern void ethernetcart_reset(void);
 extern void ethernetcart_detach(void);
 extern int ethernetcart_enable(void);
+int ethernetcart_disable(void);
 
 #endif

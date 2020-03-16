@@ -40,9 +40,9 @@ typedef struct ata_drive_geometry_s {
 
 extern ata_drive_t *ata_init(int drive);
 extern void ata_shutdown(ata_drive_t *drv);
-extern void ata_register_store(ata_drive_t *cdrive, WORD addr, WORD value);
-extern WORD ata_register_read(ata_drive_t *cdrive, WORD addr, WORD bus);
-extern WORD ata_register_peek(ata_drive_t *cdrive, WORD addr);
+extern void ata_register_store(ata_drive_t *cdrive, uint16_t addr, uint16_t value);
+extern uint16_t ata_register_read(ata_drive_t *cdrive, uint16_t addr, uint16_t bus);
+extern uint16_t ata_register_peek(ata_drive_t *cdrive, uint16_t addr);
 extern int ata_register_dump(ata_drive_t *cdrive);
 extern void ata_image_attach(ata_drive_t *cdrive, char *filename, ata_drive_type_t type, ata_drive_geometry_t geometry);
 extern void ata_image_detach(ata_drive_t *cdrive);

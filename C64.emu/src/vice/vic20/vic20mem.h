@@ -66,21 +66,21 @@ extern int vic20_mem_disable_ram_block(int num);
 extern int vic20_mem_enable_ram_block(int num);
 
 /* this should go away */
-extern void mem_attach_cartridge(int type, BYTE *rawcart);
+extern void mem_attach_cartridge(int type, uint8_t *rawcart);
 extern void mem_detach_cartridge(int type);
 
 extern int mem_patch_kernal(void);
 
 /* Last data read/write by the cpu, this value lingers on the C(PU)-bus and
    gets used when the CPU reads from unconnected space on the C(PU)-bus */
-extern BYTE vic20_cpu_last_data;
+extern uint8_t vic20_cpu_last_data;
 /* Last read data on V-bus (VD0-VD7) */
-extern BYTE vic20_v_bus_last_data;
+extern uint8_t vic20_v_bus_last_data;
 /* Last read data on V-bus (VD8-VD11) */
-extern BYTE vic20_v_bus_last_high;
+extern uint8_t vic20_v_bus_last_high;
 
 /* Update V-bus values after V-bus read ($0000-$1FFF, $8000-$9FFF) */
-inline static void vic20_mem_v_bus_read(WORD addr)
+inline static void vic20_mem_v_bus_read(uint16_t addr)
 {
     vic20_v_bus_last_data = vic20_cpu_last_data;
     vic20_v_bus_last_high = mem_ram[0x9400 + (addr & 0x3ff)];
@@ -88,7 +88,7 @@ inline static void vic20_mem_v_bus_read(WORD addr)
 
 /* Update V-bus values after V-bus write ($0000-$1FFF, $8000-$9FFF) */
 /* TODO: same as vic20_mem_v_bus_read? */
-inline static void vic20_mem_v_bus_store(WORD addr)
+inline static void vic20_mem_v_bus_store(uint16_t addr)
 {
     vic20_v_bus_last_data = vic20_cpu_last_data;
 }

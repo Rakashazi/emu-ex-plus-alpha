@@ -31,16 +31,16 @@
 
 #include "types.h"
 
-extern BYTE actionreplay_roml_read(WORD addr);
-extern void actionreplay_roml_store(WORD addr, BYTE value);
+extern uint8_t actionreplay_roml_read(uint16_t addr);
+extern void actionreplay_roml_store(uint16_t addr, uint8_t value);
 
 extern void actionreplay_freeze(void);
 
 extern void actionreplay_config_init(void);
 extern void actionreplay_reset(void);
-extern void actionreplay_config_setup(BYTE *rawcart);
-extern int actionreplay_bin_attach(const char *filename, BYTE *rawcart);
-extern int actionreplay_crt_attach(FILE *fd, BYTE *rawcart);
+extern void actionreplay_config_setup(uint8_t *rawcart);
+extern int actionreplay_bin_attach(const char *filename, uint8_t *rawcart);
+extern int actionreplay_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void actionreplay_detach(void);
 
 struct snapshot_s;

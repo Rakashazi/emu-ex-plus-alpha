@@ -54,7 +54,6 @@
 #include "mem.h"
 #include "monitor.h"
 #include "resources.h"
-#include "translate.h"
 #include "util.h"
 
 /* #define DEBUGCART */
@@ -189,6 +188,7 @@ static cartridge_info_t cartlist[] = {
     { CARTRIDGE_NAME_MAGIC_DESK,          CARTRIDGE_MAGIC_DESK,          CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_MAGIC_FORMEL,        CARTRIDGE_MAGIC_FORMEL,        CARTRIDGE_GROUP_FREEZER },
     { CARTRIDGE_NAME_MAGIC_VOICE,         CARTRIDGE_MAGIC_VOICE,         CARTRIDGE_GROUP_UTIL },
+    { CARTRIDGE_NAME_MAX_BASIC,           CARTRIDGE_MAX_BASIC,           CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_MIKRO_ASSEMBLER,     CARTRIDGE_MIKRO_ASSEMBLER,     CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_MMC64,               CARTRIDGE_MMC64,               CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_MMC_REPLAY,          CARTRIDGE_MMC_REPLAY,          CARTRIDGE_GROUP_FREEZER },
@@ -199,7 +199,7 @@ static cartridge_info_t cartlist[] = {
     { CARTRIDGE_NAME_REX,                 CARTRIDGE_REX,                 CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_REX_EP256,           CARTRIDGE_REX_EP256,           CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_RGCD,                CARTRIDGE_RGCD,                CARTRIDGE_GROUP_GAME },
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
     { CARTRIDGE_NAME_RRNETMK3,            CARTRIDGE_RRNETMK3,            CARTRIDGE_GROUP_UTIL },
 #endif
     { CARTRIDGE_NAME_ROSS,                CARTRIDGE_ROSS,                CARTRIDGE_GROUP_UTIL },
@@ -309,6 +309,7 @@ static int set_cartridge_type(int val, void *param)
         case CARTRIDGE_MAGIC_DESK:
         case CARTRIDGE_MAGIC_FORMEL:
         case CARTRIDGE_MAGIC_VOICE:
+        case CARTRIDGE_MAX_BASIC:
         case CARTRIDGE_MIKRO_ASSEMBLER:
         case CARTRIDGE_MMC64:
         case CARTRIDGE_MMC_REPLAY:
@@ -450,22 +451,16 @@ int cart_attach_cmdline(const char *param, void *extra_param)
 static const cmdline_option_t cmdline_options[] =
 {
     /* hardreset on cartridge change */
-    { "-cartreset", SET_RESOURCE, 0,
+    { "-cartreset", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "CartridgeReset", (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_CART_ATTACH_DETACH_RESET,
-      NULL, NULL },
-    { "+cartreset", SET_RESOURCE, 0,
+      NULL, "Reset machine if a cartridge is attached or detached" },
+    { "+cartreset", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "CartridgeReset", (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_CART_ATTACH_DETACH_NO_RESET,
-      NULL, NULL },
+      NULL, "Do not reset machine if a cartridge is attached or detached" },
     /* no cartridge */
-    { "+cart", CALL_FUNCTION, 0,
+    { "+cart", CALL_FUNCTION, CMDLINE_ATTRIB_NONE,
       cart_attach_cmdline, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_CART,
-      NULL, NULL },
+      NULL, "Disable default cartridge" },
     CMDLINE_LIST_END
 };
 
@@ -539,7 +534,7 @@ int cartridge_type_enabled(int type)
 */
 int cartridge_attach_image(int type, const char *filename)
 {
-    BYTE *rawcart;
+    uint8_t *rawcart;
     char *abs_filename;
     int carttype = CARTRIDGE_NONE;
     int cartid = CARTRIDGE_NONE;
@@ -558,7 +553,7 @@ int cartridge_attach_image(int type, const char *filename)
     if (archdep_path_is_relative(filename)) {
         archdep_expand_path(&abs_filename, filename);
     } else {
-        abs_filename = lib_stralloc(filename);
+        abs_filename = lib_strdup(filename);
     }
 
     if (type == CARTRIDGE_CRT) {
@@ -764,9 +759,19 @@ void cartridge_set_default(void)
     cartridge_type = type; /* resource value modified */
 }
 
+
+/** \brief  Wipe "default cartidge"
+ */
+void cartridge_unset_default(void)
+{
+    util_string_set(&cartridge_file, "");
+    cartridge_type = CARTRIDGE_NONE;
+}
+
+
 int cartridge_save_image(int type, const char *filename)
 {
-    char *ext = util_get_extension((char *)filename);
+    char *ext = util_get_extension(filename);
     if (ext != NULL && !strcmp(ext, "crt")) {
         return cartridge_crt_save(type, filename);
     }
@@ -866,3 +871,25 @@ void cartridge_init(void)
     cartridge_int_num = interrupt_cpu_status_int_new(maincpu_int_status, "Cartridge");
 }
 
+/* returns 1 when cartridge (ROM) image can be flushed */
+int cartridge_can_flush_image(int crtid)
+{
+    const char *p;
+    if (!cartridge_type_enabled(crtid)) {
+        return 0;
+    }
+    p = cartridge_get_file_name(crtid);
+    if ((p == NULL) || (*p == '\x0')) {
+        return 0;
+    }
+    return 1;
+}
+
+/* returns 1 when cartridge (ROM) image can be saved */
+int cartridge_can_save_image(int crtid)
+{
+    if (!cartridge_type_enabled(crtid)) {
+        return 0;
+    }
+    return 1;
+}

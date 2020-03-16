@@ -41,13 +41,13 @@ struct machine_context_s;
 extern void magicvoice_reset(void);
 extern int magicvoice_cart_enabled(void);
 
-extern int magicvoice_a000_bfff_read(WORD addr, BYTE *value);
-extern int magicvoice_roml_read(WORD addr, BYTE *value);
-extern int magicvoice_romh_read(WORD addr, BYTE *value);
-extern int magicvoice_ultimax_read(WORD addr, BYTE *value);
-extern int magicvoice_romh_phi1_read(WORD addr, BYTE *value);
-extern int magicvoice_romh_phi2_read(WORD addr, BYTE *value);
-extern int magicvoice_peek_mem(WORD addr, BYTE *value);
+extern int magicvoice_a000_bfff_read(uint16_t addr, uint8_t *value);
+extern int magicvoice_roml_read(uint16_t addr, uint8_t *value);
+extern int magicvoice_romh_read(uint16_t addr, uint8_t *value);
+extern int magicvoice_ultimax_read(uint16_t addr, uint8_t *value);
+extern int magicvoice_romh_phi1_read(uint16_t addr, uint8_t *value);
+extern int magicvoice_romh_phi2_read(uint16_t addr, uint8_t *value);
+extern int magicvoice_peek_mem(uint16_t addr, uint8_t *value);
 
 extern void magicvoice_passthrough_changed(export_t *export);
 
@@ -55,7 +55,7 @@ extern void magicvoice_init(void);
 extern void magicvoice_shutdown(void);
 
 extern void magicvoice_config_init(export_t *export);
-extern void magicvoice_config_setup(BYTE *rawcart);
+extern void magicvoice_config_setup(uint8_t *rawcart);
 extern void magicvoice_setup_context(struct machine_context_s *machine_context);
 
 extern int magicvoice_resources_init(void);
@@ -63,12 +63,13 @@ extern void magicvoice_resources_shutdown(void);
 
 extern int magicvoice_cmdline_options_init(void);
 
-extern int magicvoice_bin_attach(const char *filename, BYTE *rawcart);
-extern int magicvoice_crt_attach(FILE *fd, BYTE *rawcart);
+extern int magicvoice_bin_attach(const char *filename, uint8_t *rawcart);
+extern int magicvoice_crt_attach(FILE *fd, uint8_t *rawcart);
 extern int magicvoice_enable(void);
+int magicvoice_disable(void);
 extern void magicvoice_detach(void);
 extern const char *magicvoice_get_file_name(void);
-extern int magicvoice_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit);
+extern int magicvoice_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit);
 
 extern void magicvoice_sound_chip_init(void);
 

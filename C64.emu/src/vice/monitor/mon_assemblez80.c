@@ -43,15 +43,15 @@
 
 static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t operand)
 {
-    WORD operand_value = operand.param;
-    WORD operand_mode = operand.addr_mode;
-    BYTE opcode = 0;
+    uint16_t operand_value = operand.param;
+    uint16_t operand_mode = operand.addr_mode;
+    uint8_t opcode = 0;
     int len, branch_offset;
-    BYTE i, j;
+    uint8_t i, j;
     bool found = FALSE;
     MEMSPACE mem;
-    WORD loc;
-    BYTE const prefix[5] = { 0x00, 0xcb, 0xdd, 0xed, 0xfd };
+    uint16_t loc;
+    uint8_t const prefix[5] = { 0x00, 0xcb, 0xdd, 0xed, 0xfd };
 
     mem = addr_memspace(asm_mode_addr);
     loc = addr_location(asm_mode_addr);
@@ -154,23 +154,23 @@ static int mon_assemble_instr(const char *opcode_name, asm_mode_addr_info_t oper
     if (prefix[j] == 0x00) {
         mon_set_mem_val(mem, loc, opcode);
         if (len >= 2) {
-            mon_set_mem_val(mem, (WORD)(loc + 1),
-                            (BYTE)(operand_value & 0xff));
+            mon_set_mem_val(mem, (uint16_t)(loc + 1),
+                            (uint8_t)(operand_value & 0xff));
         }
         if (len >= 3) {
-            mon_set_mem_val(mem, (WORD)(loc + 2),
-                            (BYTE)((operand_value >> 8) & 0xff));
+            mon_set_mem_val(mem, (uint16_t)(loc + 2),
+                            (uint8_t)((operand_value >> 8) & 0xff));
         }
     } else {
         mon_set_mem_val(mem, loc, prefix[j]);
-        mon_set_mem_val(mem, (WORD)(loc + 1), opcode);
+        mon_set_mem_val(mem, (uint16_t)(loc + 1), opcode);
         if (len >= 3) {
-            mon_set_mem_val(mem, (WORD)(loc + 2),
-                            (BYTE)(operand_value & 0xff));
+            mon_set_mem_val(mem, (uint16_t)(loc + 2),
+                            (uint8_t)(operand_value & 0xff));
         }
         if (len >= 4) {
-            mon_set_mem_val(mem, (WORD)(loc + 3),
-                            (BYTE)((operand_value >> 8) & 0xff));
+            mon_set_mem_val(mem, (uint16_t)(loc + 3),
+                            (uint8_t)((operand_value >> 8) & 0xff));
         }
     }
 

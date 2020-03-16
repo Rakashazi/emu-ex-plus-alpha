@@ -76,7 +76,7 @@ static int unused_bits_in_registers[64] =
 };
 
 
-inline static void ted_local_store_vbank(WORD addr, BYTE value)
+inline static void ted_local_store_vbank(uint16_t addr, uint8_t value)
 {
     unsigned int f;
 
@@ -112,7 +112,7 @@ inline static void ted_local_store_vbank(WORD addr, BYTE value)
     mem_ram[addr] = value;
 }
 
-inline static void ted_local_store_vbank_32k(WORD addr, BYTE value)
+inline static void ted_local_store_vbank_32k(uint16_t addr, uint8_t value)
 {
     unsigned int f;
 
@@ -148,7 +148,7 @@ inline static void ted_local_store_vbank_32k(WORD addr, BYTE value)
     mem_ram[addr & 0x7fff] = value;
 }
 
-inline static void ted_local_store_vbank_16k(WORD addr, BYTE value)
+inline static void ted_local_store_vbank_16k(uint16_t addr, uint8_t value)
 {
     unsigned int f;
 
@@ -185,24 +185,24 @@ inline static void ted_local_store_vbank_16k(WORD addr, BYTE value)
 }
 
 /* Encapsulate inlined function for other modules */
-void ted_mem_vbank_store(WORD addr, BYTE value)
+void ted_mem_vbank_store(uint16_t addr, uint8_t value)
 {
     ted_local_store_vbank(addr, value);
 }
 
-void ted_mem_vbank_store_32k(WORD addr, BYTE value)
+void ted_mem_vbank_store_32k(uint16_t addr, uint8_t value)
 {
     ted_local_store_vbank_32k(addr, value);
 }
 
-void ted_mem_vbank_store_16k(WORD addr, BYTE value)
+void ted_mem_vbank_store_16k(uint16_t addr, uint8_t value)
 {
     ted_local_store_vbank_16k(addr, value);
 }
 
 #if 0
 /* As `store_vbank()', but for the $3900...$39FF address range.  */
-void ted_mem_vbank_39xx_store(WORD addr, BYTE value)
+void ted_mem_vbank_39xx_store(uint16_t addr, uint8_t value)
 {
     ted_local_store_vbank(addr, value);
 
@@ -216,7 +216,7 @@ void ted_mem_vbank_39xx_store(WORD addr, BYTE value)
 }
 
 /* As `store_vbank()', but for the $3F00...$3FFF address range.  */
-void ted_mem_vbank_3fxx_store(WORD addr, BYTE value)
+void ted_mem_vbank_3fxx_store(uint16_t addr, uint8_t value)
 {
     ted_local_store_vbank (addr, value);
 
@@ -230,7 +230,7 @@ void ted_mem_vbank_3fxx_store(WORD addr, BYTE value)
 }
 #endif
 
-inline static void check_lower_upper_border(const BYTE value,
+inline static void check_lower_upper_border(const uint8_t value,
                                             unsigned int line, int cycle)
 {
     if ((value ^ ted.regs[0x06]) & 8) {
@@ -272,7 +272,7 @@ inline static void check_lower_upper_border(const BYTE value,
     }
 }
 
-inline static void ted06_store(const BYTE value)
+inline static void ted06_store(const uint8_t value)
 {
     int cycle;
     unsigned int line;
@@ -318,7 +318,7 @@ inline static void ted06_store(const BYTE value)
     ted_update_video_mode(cycle);
 }
 
-inline static void check_lateral_border(const BYTE value, int cycle,
+inline static void check_lateral_border(const uint8_t value, int cycle,
                                         raster_t *raster)
 {
     if ((value & 0x8) != (ted.regs[0x07] & 0x8)) {
@@ -373,7 +373,7 @@ inline static void check_lateral_border(const BYTE value, int cycle,
     }
 }
 
-inline static void ted07_store(BYTE value)
+inline static void ted07_store(uint8_t value)
 {
     raster_t *raster;
     int cycle;
@@ -418,13 +418,13 @@ inline static void ted07_store(BYTE value)
     ted_update_video_mode(cycle);
 }
 
-inline static void ted08_store(const BYTE value)
+inline static void ted08_store(const uint8_t value)
 {
-    BYTE val = 0xff;
-    BYTE msk = pio2_kbd;
-    BYTE m;
-    BYTE joy1 = ~read_joyport_dig(JOYPORT_1);
-    BYTE joy2 = ~read_joyport_dig(JOYPORT_2);
+    uint8_t val = 0xff;
+    uint8_t msk = pio2_kbd;
+    uint8_t m;
+    uint8_t joy1 = ~read_joyport_dig(JOYPORT_1);
+    uint8_t joy2 = ~read_joyport_dig(JOYPORT_2);
     int i;
 
     for (m = 0x1, i = 0; i < 8; m <<= 1, i++) {
@@ -450,7 +450,7 @@ inline static void ted08_store(const BYTE value)
     ted.kbdval = val;
 }
 
-inline static void ted09_store(const BYTE value)
+inline static void ted09_store(const uint8_t value)
 {
     /* Emulates Read-Modify-Write behaviour. */
     if (maincpu_rmw_flag) {
@@ -472,7 +472,7 @@ inline static void ted09_store(const BYTE value)
     TED_DEBUG_REGISTER(("IRQ flag register: $%02X", ted.irq_status));
 }
 
-inline static void ted0a_store(BYTE value)
+inline static void ted0a_store(uint8_t value)
 {
     ted.regs[0x0a] = value & 0x5f;
 
@@ -483,7 +483,7 @@ inline static void ted0a_store(BYTE value)
     TED_DEBUG_REGISTER(("IRQ mask register: $%02X", ted.regs[0x0a]));
 }
 
-inline static void ted0b_store(BYTE value)
+inline static void ted0b_store(uint8_t value)
 {
     TED_DEBUG_REGISTER(("Raster compare register: $%02X", value));
 
@@ -499,7 +499,7 @@ inline static void ted0b_store(BYTE value)
                         ted.raster_irq_line));
 }
 
-inline static void ted0c0d_store(const WORD addr, const BYTE value)
+inline static void ted0c0d_store(const uint16_t addr, const uint8_t value)
 {
     int pos;
 
@@ -524,7 +524,7 @@ inline static void ted0c0d_store(const WORD addr, const BYTE value)
     ted.regs[addr] = value;
 }
 
-inline static void ted12_store(BYTE value)
+inline static void ted12_store(uint8_t value)
 {
     value &= 0x3c;
 
@@ -536,7 +536,7 @@ inline static void ted12_store(BYTE value)
     ted_update_memory_ptrs(TED_RASTER_CYCLE(maincpu_clk));
 }
 
-inline static void ted13_store(const BYTE value)
+inline static void ted13_store(const uint8_t value)
 {
     if ((ted.regs[0x13] & 0xfe) == (value & 0xfe)) {
         return;
@@ -556,7 +556,7 @@ inline static void ted13_store(const BYTE value)
     ted_update_memory_ptrs(TED_RASTER_CYCLE(maincpu_clk));
 }
 
-inline static void ted14_store(const BYTE value)
+inline static void ted14_store(const uint8_t value)
 {
     if (ted.regs[0x14] == value) {
         return;
@@ -566,7 +566,7 @@ inline static void ted14_store(const BYTE value)
     ted_update_memory_ptrs(TED_RASTER_CYCLE(maincpu_clk));
 }
 
-inline static void ted15_store(BYTE value)
+inline static void ted15_store(uint8_t value)
 {
     int x_pos;
 
@@ -605,7 +605,7 @@ inline static void ted15_store(BYTE value)
     ted.regs[0x15] = value;
 }
 
-inline static void ted161718_store(WORD addr, BYTE value)
+inline static void ted161718_store(uint16_t addr, uint8_t value)
 {
     int char_num;
 
@@ -625,7 +625,7 @@ inline static void ted161718_store(WORD addr, BYTE value)
                                       value);
 }
 
-inline static void ted19_store(BYTE value)
+inline static void ted19_store(uint8_t value)
 {
     int x_pos;
 
@@ -659,7 +659,7 @@ inline static void ted19_store(BYTE value)
                                   value);
 }
 
-inline static void ted1a1b_store(WORD addr, BYTE value)
+inline static void ted1a1b_store(uint16_t addr, uint8_t value)
 {
     unsigned int new_counter;
 
@@ -672,7 +672,7 @@ inline static void ted1a1b_store(WORD addr, BYTE value)
     ted.mem_counter = new_counter;
 }
 
-inline static void ted1c1d_store(WORD addr, BYTE value)
+inline static void ted1c1d_store(uint16_t addr, uint8_t value)
 {
     unsigned int new_raster;
     int diff;
@@ -738,13 +738,13 @@ inline static void ted1c1d_store(WORD addr, BYTE value)
     ted.ted_raster_counter = new_raster;
 }
 
-inline static void ted1e_store(BYTE value)
+inline static void ted1e_store(uint8_t value)
 {
     /* FIXME */
     /* int new_hcount = (~value & 0xfc) >> 1; */
 }
 
-inline static void ted1f_store(BYTE value)
+inline static void ted1f_store(uint8_t value)
 {
     int current_cursor_phase;
     int new_cursor_count;
@@ -775,7 +775,7 @@ inline static void ted3f_store(void)
 }
 
 /* Store a value in a TED register.  */
-void ted_store(WORD addr, BYTE value)
+void ted_store(uint16_t addr, uint8_t value)
 {
     addr &= 0x3f;
 
@@ -890,12 +890,12 @@ inline static unsigned int read_raster_y(void)
 }
 #endif
 
-inline static BYTE ted08_read(void)
+inline static uint8_t ted08_read(void)
 {
     return ted.kbdval;
 }
 
-inline static BYTE ted09_read(void)
+inline static uint8_t ted09_read(void)
 {
     /* Manually set raster IRQ flag if the opcode reading $09 has crossed
        the line end and the raster IRQ alarm has not been executed yet. */
@@ -914,17 +914,17 @@ inline static BYTE ted09_read(void)
     return ted.last_read;
 }
 
-inline static BYTE ted0a_read(void)
+inline static uint8_t ted0a_read(void)
 {
     return (ted.regs[0x0a] & 0x5f) | 0xa0;
 }
 
-inline static BYTE ted12_read(void)
+inline static uint8_t ted12_read(void)
 {
     return ted.regs[0x12] | 0xc0;
 }
 
-inline static BYTE ted1a1b_read(WORD addr)
+inline static uint8_t ted1a1b_read(uint16_t addr)
 {
     if (addr == 0x1a) {
         return ((ted.mem_counter & 0x100) >> 8) | 0xfc;
@@ -933,7 +933,7 @@ inline static BYTE ted1a1b_read(WORD addr)
     }
 }
 
-inline static BYTE ted1c1d_read(WORD addr)
+inline static uint8_t ted1c1d_read(uint16_t addr)
 {
     unsigned int tmp = TED_RASTER_Y(maincpu_clk);
 
@@ -944,7 +944,7 @@ inline static BYTE ted1c1d_read(WORD addr)
     }
 }
 
-inline static BYTE ted1e_read(void)
+inline static uint8_t ted1e_read(void)
 {
     int xpos;
 
@@ -956,16 +956,16 @@ inline static BYTE ted1e_read(void)
     xpos = (xpos / 2) & 0xfe;
 
 
-    return (BYTE)xpos;
+    return (uint8_t)xpos;
 }
 
-inline static BYTE ted1f_read(void)
+inline static uint8_t ted1f_read(void)
 {
     return 0x80 | ((ted.cursor_phase & 0x0f) << 3) | ted.raster.ycounter;
 }
 
 /* Read a value from a TED register.  */
-BYTE ted_read(WORD addr)
+uint8_t ted_read(uint16_t addr)
 {
     addr &= 0x3f;
 
@@ -1008,7 +1008,7 @@ BYTE ted_read(WORD addr)
     return ted.regs[addr] | unused_bits_in_registers[addr];
 }
 
-inline static BYTE ted09_peek(void)
+inline static uint8_t ted09_peek(void)
 {
     /* Manually set raster IRQ flag if the opcode reading $19 has crossed
        the line end and the raster IRQ alarm has not been executed yet. */
@@ -1027,7 +1027,7 @@ inline static BYTE ted09_peek(void)
     return ted.irq_status;
 }
 
-BYTE ted_peek(WORD addr)
+uint8_t ted_peek(uint16_t addr)
 {
     addr &= 0x3f;
 

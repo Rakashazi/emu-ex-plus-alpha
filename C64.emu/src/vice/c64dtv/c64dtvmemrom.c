@@ -39,13 +39,13 @@
 #include "c64basic.h"
 #include "c64kernal.h"
 #else
-BYTE c64memrom_basic64_rom[C64_BASIC_ROM_SIZE];
-BYTE c64memrom_kernal64_rom[C64_KERNAL_ROM_SIZE];
+uint8_t c64memrom_basic64_rom[C64_BASIC_ROM_SIZE];
+uint8_t c64memrom_kernal64_rom[C64_KERNAL_ROM_SIZE];
 #endif
 
-BYTE c64memrom_kernal64_trap_rom[C64_KERNAL_ROM_SIZE];
+uint8_t c64memrom_kernal64_trap_rom[C64_KERNAL_ROM_SIZE];
 
-BYTE c64memrom_kernal64_read(WORD addr)
+uint8_t c64memrom_kernal64_read(uint16_t addr)
 {
     int mapping = c64dtvmem_memmapper[0];
     int paddr = ((mapping & 0x1f) << 16) + addr;
@@ -56,7 +56,7 @@ BYTE c64memrom_kernal64_read(WORD addr)
     }
 }
 
-static void c64memrom_kernal64_store(WORD addr, BYTE value)
+static void c64memrom_kernal64_store(uint16_t addr, uint8_t value)
 {
     int mapping = c64dtvmem_memmapper[0];
     int paddr = ((mapping & 0x1f) << 16) + addr;
@@ -67,7 +67,7 @@ static void c64memrom_kernal64_store(WORD addr, BYTE value)
     }
 }
 
-BYTE c64memrom_basic64_read(WORD addr)
+uint8_t c64memrom_basic64_read(uint16_t addr)
 {
     int mapping = c64dtvmem_memmapper[1];
     int paddr = ((mapping & 0x1f) << 16) + addr;
@@ -78,7 +78,7 @@ BYTE c64memrom_basic64_read(WORD addr)
     }
 }
 
-/* static void c64memrom_basic64_store(WORD addr, BYTE value)
+/* static void c64memrom_basic64_store(uint16_t addr, uint8_t value)
 {
 }
 */
@@ -86,7 +86,7 @@ BYTE c64memrom_basic64_read(WORD addr)
 /* We don't use trap_rom in the DTV emulation. Traps are installed in */
 /* flash/RAM directly and temporarily removed when accessing $d10x. */
 
-BYTE c64memrom_trap_read(WORD addr)
+uint8_t c64memrom_trap_read(uint16_t addr)
 {
     switch (addr & 0xf000) {
         case 0xe000:
@@ -97,7 +97,7 @@ BYTE c64memrom_trap_read(WORD addr)
     return 0;
 }
 
-void c64memrom_trap_store(WORD addr, BYTE value)
+void c64memrom_trap_store(uint16_t addr, uint8_t value)
 {
     switch (addr & 0xf000) {
         case 0xe000:
@@ -107,7 +107,7 @@ void c64memrom_trap_store(WORD addr, BYTE value)
     }
 }
 
-BYTE c64memrom_rom64_read(WORD addr)
+uint8_t c64memrom_rom64_read(uint16_t addr)
 {
     switch (addr & 0xf000) {
         case 0xa000:
@@ -121,7 +121,7 @@ BYTE c64memrom_rom64_read(WORD addr)
     return 0;
 }
 
-void c64memrom_rom64_store(WORD addr, BYTE value)
+void c64memrom_rom64_store(uint16_t addr, uint8_t value)
 {
     return;
 }

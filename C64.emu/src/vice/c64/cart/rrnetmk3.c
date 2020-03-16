@@ -26,7 +26,7 @@
 
 #include "vice.h"
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,7 +51,6 @@
 #include "monitor.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "types.h"
 #include "util.h"
 
@@ -92,11 +91,11 @@ static int rrnetmk3_bios_changed = 0;
 
 static int rrnetmk3_hw_flashjumper = 0; /* status of the flash jumper */
 
-static BYTE rrnetmk3_biossel = 0; /* 0 = ROM is mapped */
+static uint8_t rrnetmk3_biossel = 0; /* 0 = ROM is mapped */
 
 static log_t rrnetmk3_log = LOG_ERR;
 
-static BYTE rrnetmk3_bios[0x2002];
+static uint8_t rrnetmk3_bios[0x2002];
 static int rrnetmk3_bios_offset = 0;
 static int rrnetmk3_bios_type = 0;
 
@@ -105,42 +104,45 @@ static const char STRING_RRNETMK3[] = CARTRIDGE_NAME_RRNETMK3;
 /* ---------------------------------------------------------------------*/
 
 /* some prototypes are needed */
-static void rrnetmk3_io1_store(WORD addr, BYTE value);
-static BYTE rrnetmk3_io1_peek(WORD addr);
+static void rrnetmk3_io1_store(uint16_t addr, uint8_t value);
+static uint8_t rrnetmk3_io1_peek(uint16_t addr);
 static int rrnetmk3_dump(void);
 
-static BYTE rrnetmk3_cs8900_read(WORD io_address);
-static BYTE rrnetmk3_cs8900_peek(WORD io_address);
-static void rrnetmk3_cs8900_store(WORD io_address, BYTE byte);
+static uint8_t rrnetmk3_cs8900_read(uint16_t io_address);
+static uint8_t rrnetmk3_cs8900_peek(uint16_t io_address);
+static void rrnetmk3_cs8900_store(uint16_t io_address, uint8_t byte);
+static int rrnetmk3_cs8900_dump(void);
 
 static io_source_t rrnetmk3_io1_device = {
-    CARTRIDGE_NAME_RRNETMK3,
-    IO_DETACH_RESOURCE,
-    "RRNETMK3",
-    0xde80, 0xde88, 0x88, /* FIXME */
-    0,
-    rrnetmk3_io1_store,
-    NULL, /* read */
-    rrnetmk3_io1_peek,
-    rrnetmk3_dump,
-    CARTRIDGE_RRNETMK3,
-    0,
-    0
+    CARTRIDGE_NAME_RRNETMK3, /* name of the device */
+    IO_DETACH_RESOURCE,      /* use resource to detach the device when involved in a read-collision */
+    "RRNETMK3",              /* resource to set to '0' */
+    0xde80, 0xde88, 0xff,    /* range for the device, regs:$de80/$de88 */
+    0,                       /* read is never valid, regs are write only */
+    rrnetmk3_io1_store,      /* store function */
+    NULL,                    /* NO poke function */
+    NULL,                    /* NO read function */
+    rrnetmk3_io1_peek,       /* peek function */
+    rrnetmk3_dump,           /* device state information dump function */
+    CARTRIDGE_RRNETMK3,      /* cartridge ID */
+    IO_PRIO_NORMAL,          /* normal priority, device read needs to be checked for collisions */
+    0                        /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t rrnetmk3_cs8900_io1_device = {
-    CARTRIDGE_NAME_RRNETMK3,
-    IO_DETACH_RESOURCE,
-    "RRNETMK3",
-    0xde02, 0xde0f, 0x0f,
-    0,
-    rrnetmk3_cs8900_store,
-    rrnetmk3_cs8900_read,
-    rrnetmk3_cs8900_peek,
-    rrnetmk3_dump,
-    CARTRIDGE_RRNETMK3,
-    0,
-    0
+    CARTRIDGE_NAME_RRNETMK3, /* name of the device */
+    IO_DETACH_RESOURCE,      /* use resource to detach the device when involved in a read-collision */
+    "RRNETMK3",              /* resource to set to '0' */
+    0xde02, 0xde0f, 0x0f,    /* range for the device, regs:$de02-$de0f */
+    0,                       /* read validity is determined by the device upon a read */
+    rrnetmk3_cs8900_store,   /* store function */
+    NULL,                    /* NO poke function */
+    rrnetmk3_cs8900_read,    /* read function */
+    rrnetmk3_cs8900_peek,    /* peek function */
+    rrnetmk3_cs8900_dump,    /* device state information dump function */
+    CARTRIDGE_RRNETMK3,      /* cartridge ID */
+    IO_PRIO_NORMAL,          /* normal priority, device read needs to be checked for collisions */
+    0                        /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *rrnetmk3_io1_list_item = NULL;
@@ -159,7 +161,7 @@ void rrnetmk3_reset(void)
     if (rrnetmk3_enabled) {
         cs8900io_reset();
     }
-    cart_config_changed_slotmain(CMODE_RAM, (BYTE)(rrnetmk3_biossel ? CMODE_RAM : CMODE_8KGAME), CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, (uint8_t)(rrnetmk3_biossel ? CMODE_RAM : CMODE_8KGAME), CMODE_READ);
 }
 
 static int set_rrnetmk3_flashjumper(int val, void *param)
@@ -177,7 +179,7 @@ static int set_rrnetmk3_bios_write(int val, void *param)
 
 /* ---------------------------------------------------------------------*/
 
-int rrnetmk3_mmu_translate(unsigned int addr, BYTE **base, int *start, int *limit)
+int rrnetmk3_mmu_translate(unsigned int addr, uint8_t **base, int *start, int *limit)
 {
     if (!rrnetmk3_biossel) {
         switch (addr & 0xf000) {
@@ -198,10 +200,10 @@ void rrnetmk3_config_init(void)
 {
     LOG(("RRNETMK3 rrnetmk3_config_init"));
     rrnetmk3_biossel = rrnetmk3_hw_flashjumper; /* disable bios at reset when flash jumper is set */
-    cart_config_changed_slotmain(CMODE_RAM, (BYTE)(rrnetmk3_biossel ? CMODE_RAM : CMODE_8KGAME), CMODE_READ);
+    cart_config_changed_slotmain(CMODE_RAM, (uint8_t)(rrnetmk3_biossel ? CMODE_RAM : CMODE_8KGAME), CMODE_READ);
 }
 
-static void rrnetmk3_io1_store(WORD addr, BYTE value)
+static void rrnetmk3_io1_store(uint16_t addr, uint8_t value)
 {
     LOG(("RRNETMK3: IO1 ST %04x %02x", addr, value));
     switch (addr) {
@@ -218,7 +220,7 @@ static void rrnetmk3_io1_store(WORD addr, BYTE value)
     }
 }
 
-static BYTE rrnetmk3_io1_peek(WORD addr)
+static uint8_t rrnetmk3_io1_peek(uint16_t addr)
 {
     switch (addr) {
         case 0x80:      /* ROM_ENABLE */
@@ -231,7 +233,7 @@ static BYTE rrnetmk3_io1_peek(WORD addr)
 
 /* ---------------------------------------------------------------------*/
 
-static BYTE rrnetmk3_cs8900_read(WORD address)
+static uint8_t rrnetmk3_cs8900_read(uint16_t address)
 {
     if (address < 0x02) {
         rrnetmk3_cs8900_io1_device.io_source_valid = 0;
@@ -245,7 +247,7 @@ static BYTE rrnetmk3_cs8900_read(WORD address)
     return cs8900io_read(address);
 }
 
-static BYTE rrnetmk3_cs8900_peek(WORD address)
+static uint8_t rrnetmk3_cs8900_peek(uint16_t address)
 {
     if (address < 0x02) {
         return 0;
@@ -258,7 +260,7 @@ static BYTE rrnetmk3_cs8900_peek(WORD address)
     return cs8900io_read(address);
 }
 
-static void rrnetmk3_cs8900_store(WORD address, BYTE byte)
+static void rrnetmk3_cs8900_store(uint16_t address, uint8_t byte)
 {
     if (address < 0x02) {
         return;
@@ -266,6 +268,12 @@ static void rrnetmk3_cs8900_store(WORD address, BYTE byte)
     address ^= 0x08;
 
     cs8900io_store(address, byte);
+}
+
+static int rrnetmk3_cs8900_dump(void)
+{
+    cs8900io_dump();
+    return 0;
 }
 
 /* ---------------------------------------------------------------------*/
@@ -280,7 +288,7 @@ static int rrnetmk3_dump(void)
 
 /* ---------------------------------------------------------------------*/
 
-int rrnetmk3_roml_read(WORD addr)
+int rrnetmk3_roml_read(uint16_t addr)
 {
     if (!rrnetmk3_biossel) {
         return rrnetmk3_bios[(addr & 0x1fff) + rrnetmk3_bios_offset];
@@ -288,7 +296,7 @@ int rrnetmk3_roml_read(WORD addr)
     return mem_ram[addr];
 }
 
-int rrnetmk3_peek_mem(export_t *export, WORD addr, BYTE *value)
+int rrnetmk3_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
 {
     if ((addr >= 0x8000) && (addr <= 0x9fff)) {
         if (!rrnetmk3_biossel) {
@@ -299,7 +307,7 @@ int rrnetmk3_peek_mem(export_t *export, WORD addr, BYTE *value)
     return CART_READ_THROUGH;
 }
 
-int rrnetmk3_roml_store(WORD addr, BYTE byte)
+int rrnetmk3_roml_store(uint16_t addr, uint8_t byte)
 {
     if (!rrnetmk3_biossel) {
         if (rrnetmk3_hw_flashjumper) {
@@ -337,26 +345,18 @@ void rrnetmk3_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-rrnetmk3bioswrite", SET_RESOURCE, 0,
+    { "-rrnetmk3bioswrite", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "RRNETMK3_bios_write", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_RRNETMK3_BIOS_WRITE,
-      NULL, NULL },
-    { "+rrnetmk3bioswrite", SET_RESOURCE, 0,
+      NULL, "Save the RRNETMK3 bios when changed" },
+    { "+rrnetmk3bioswrite", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "RRNETMK3_bios_write", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_RRNETMK3_BIOS_READ_ONLY,
-      NULL, NULL },
-    { "-rrnetmk3flash", SET_RESOURCE, 0,
+      NULL, "Do not save the RRNETMK3 bios when changed" },
+    { "-rrnetmk3flash", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "RRNETMK3_flashjumper", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_RRNETMK3_SET_FLASH_JUMPER,
-      NULL, NULL },
-    { "+rrnetmk3flash", SET_RESOURCE, 0,
+      NULL, "Set the RRNETMK3 Flash Jumper" },
+    { "+rrnetmk3flash", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "RRNETMK3_flashjumper", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_RRNETMK3_UNSET_FLASH_JUMPER,
-      NULL, NULL },
+      NULL, "Remove the RRNETMK3 Flash Jumper" },
     CMDLINE_LIST_END
 };
 
@@ -373,7 +373,7 @@ void rrnetmk3_init(void)
     cs8900io_init();
 }
 
-void rrnetmk3_config_setup(BYTE *rawcart)
+void rrnetmk3_config_setup(uint8_t *rawcart)
 {
     memcpy(rrnetmk3_bios, rawcart, 0x2000 + rrnetmk3_bios_offset);
 }
@@ -450,7 +450,7 @@ int rrnetmk3_crt_save(const char *filename)
     return 0;
 }
 
-int rrnetmk3_bin_attach(const char *filename, BYTE *rawcart)
+int rrnetmk3_bin_attach(const char *filename, uint8_t *rawcart)
 {
     int amount_read = 0;
     FILE *fd;
@@ -469,11 +469,11 @@ int rrnetmk3_bin_attach(const char *filename, BYTE *rawcart)
 
     rrnetmk3_bios_offset = amount_read & 3;
     rrnetmk3_bios_type = CARTRIDGE_FILETYPE_BIN;
-    rrnetmk3_bios_filename = lib_stralloc(filename);
+    rrnetmk3_bios_filename = lib_strdup(filename);
     return rrnetmk3_common_attach();
 }
 
-int rrnetmk3_crt_attach(FILE *fd, BYTE *rawcart, const char *filename)
+int rrnetmk3_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename)
 {
     crt_chip_header_t chip;
 
@@ -491,7 +491,7 @@ int rrnetmk3_crt_attach(FILE *fd, BYTE *rawcart, const char *filename)
 
     rrnetmk3_bios_offset = 0;
     rrnetmk3_bios_type = CARTRIDGE_FILETYPE_CRT;
-    rrnetmk3_bios_filename = lib_stralloc(filename);
+    rrnetmk3_bios_filename = lib_strdup(filename);
     return rrnetmk3_common_attach();
 }
 
@@ -537,8 +537,6 @@ void rrnetmk3_detach(void)
 /* FIXME: implement snapshot support */
 int rrnetmk3_snapshot_write_module(snapshot_t *s)
 {
-    return -1;
-#if 0
     snapshot_module_t *m;
 
     m = snapshot_module_create(s, SNAP_MODULE_NAME,
@@ -547,6 +545,9 @@ int rrnetmk3_snapshot_write_module(snapshot_t *s)
         return -1;
     }
 
+    snapshot_set_error(SNAPSHOT_MODULE_NOT_IMPLEMENTED);
+    return -1;
+#if 0
     if (0) {
         snapshot_module_close(m);
         return -1;
@@ -561,7 +562,7 @@ int rrnetmk3_snapshot_read_module(snapshot_t *s)
 {
     return -1;
 #if 0
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, SNAP_MODULE_NAME, &vmajor, &vminor);

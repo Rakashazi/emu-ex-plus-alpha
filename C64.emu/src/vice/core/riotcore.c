@@ -42,7 +42,7 @@ static const int divider[] = {
     1, 8, 64, 1024
 };
 
-static void update_irq(riot_context_t *riot_context, BYTE new_irqfl)
+static void update_irq(riot_context_t *riot_context, uint8_t new_irqfl)
 {
     int new_irqline;
 
@@ -62,7 +62,7 @@ static void update_irq(riot_context_t *riot_context, BYTE new_irqfl)
 
 void riotcore_signal(riot_context_t *riot_context, int sig, int type)
 {
-    BYTE newirq = riot_context->r_irqfl & 0xbf;
+    uint8_t newirq = riot_context->r_irqfl & 0xbf;
 
     /* You better not call that twice with the same flag - the IRQ
      * will be set twice... */
@@ -148,7 +148,7 @@ void riotcore_reset(riot_context_t *riot_context)
     riot_context->enabled = 1;
 }
 
-void riotcore_store(riot_context_t *riot_context, WORD addr, BYTE byte)
+void riotcore_store(riot_context_t *riot_context, uint16_t addr, uint8_t byte)
 {
     CLOCK rclk;
 
@@ -211,7 +211,7 @@ void riotcore_store(riot_context_t *riot_context, WORD addr, BYTE byte)
             }
         }
 
-        update_irq(riot_context, (BYTE)(newirq));
+        update_irq(riot_context, (uint8_t)(newirq));
 
         if (!(riot_context->r_irqen)) {
             alarm_unset(riot_context->alarm);
@@ -227,11 +227,11 @@ void riotcore_store(riot_context_t *riot_context, WORD addr, BYTE byte)
     }
 }
 
-BYTE riotcore_read(riot_context_t *riot_context, WORD addr)
+uint8_t riotcore_read(riot_context_t *riot_context, uint16_t addr)
 {
 #ifdef MYRIOT_TIMER_DEBUG
-    BYTE myriot_read_(riot_context_t *, WORD);
-    BYTE retv = myriot_read_(riot_context, addr);
+    uint8_t myriot_read_(riot_context_t *, uint16_t);
+    uint8_t retv = myriot_read_(riot_context, addr);
     addr &= 0x1f;
     if ((addr > 3 && addr < 10) || app_resources.debugFlag) {
         log_message(riot_context->log,
@@ -241,7 +241,8 @@ BYTE riotcore_read(riot_context_t *riot_context, WORD addr)
     }
     return retv;
 }
-BYTE myriot_read_(riot_context_t *riot_context, WORD addr)
+
+uint8_t myriot_read_(riot_context_t *riot_context, uint16_t addr)
 {
 #endif
     CLOCK rclk;
@@ -284,7 +285,7 @@ BYTE myriot_read_(riot_context_t *riot_context, WORD addr)
         log_warning(riot_context->log, "read timer @%d not yet implemented\n",
                 addr);
 */
-        update_irq(riot_context, (BYTE)(riot_context->r_irqfl & 0x7f));
+        update_irq(riot_context, (uint8_t)(riot_context->r_irqfl & 0x7f));
 
         update_timer(riot_context);
 
@@ -297,7 +298,7 @@ BYTE myriot_read_(riot_context_t *riot_context, WORD addr)
             alarm_unset(riot_context->alarm);
         }
 
-        riot_context->last_read = (BYTE)(riot_context->r_N
+        riot_context->last_read = (uint8_t)(riot_context->r_N
                                          - (rclk - riot_context->r_write_clk)
                                          / riot_context->r_divider);
         return riot_context->last_read;
@@ -314,17 +315,17 @@ BYTE myriot_read_(riot_context_t *riot_context, WORD addr)
                       + riot_context->r_N * riot_context->r_divider);
         }
 
-        update_irq(riot_context, (BYTE)(riot_context->r_irqfl & 0xbf));
+        update_irq(riot_context, (uint8_t)(riot_context->r_irqfl & 0xbf));
     }
     return 0xff;
 }
 
 /* read from I/O without side effects */
 /* FIXME: check if this is working correctly */
-BYTE riotcore_peek(riot_context_t *riot_context, WORD addr)
+uint8_t riotcore_peek(riot_context_t *riot_context, uint16_t addr)
 {
     CLOCK rclk = *(riot_context->clk_ptr); /* FIXME */
-    BYTE ret = 0xff;
+    uint8_t ret = 0xff;
 
     addr &= 0x1f;
 
@@ -345,7 +346,7 @@ BYTE riotcore_peek(riot_context_t *riot_context, WORD addr)
                 break;
         }
     } else if ((addr & 0x05) == 0x04) {        /* read timer */
-        ret = (BYTE)(riot_context->r_N - (rclk - riot_context->r_write_clk) / riot_context->r_divider);
+        ret = (uint8_t)(riot_context->r_N - (rclk - riot_context->r_write_clk) / riot_context->r_divider);
     } else if ((addr & 0x05) == 0x05) {        /* read irq flag */
         ret = riot_context->r_irqfl;
     }
@@ -365,7 +366,7 @@ static void riotcore_int_riot(CLOCK offset, void *data)
 
     alarm_unset(riot_context->alarm);
 
-    update_irq(riot_context, (BYTE)(riot_context->r_irqfl | 0x80));
+    update_irq(riot_context, (uint8_t)(riot_context->r_irqfl | 0x80));
 }
 
 void riotcore_setup_context(riot_context_t *riot_context)
@@ -452,11 +453,11 @@ int riotcore_snapshot_write_module(riot_context_t *riot_context, snapshot_t *p)
         || SMW_B(m, riot_context->riot_io[2]) < 0
         || SMW_B(m, riot_context->riot_io[3]) < 0
         || SMW_B(m, riot_context->r_edgectrl) < 0
-        || SMW_B(m, (BYTE)(riot_context->r_irqfl | (riot_context->r_irqline ? 1 : 0))) < 0
-        || SMW_B(m, (BYTE)(riot_context->r_N - (*(riot_context->clk_ptr) - riot_context->r_write_clk) / riot_context->r_divider)) < 0
-        || SMW_W(m, (WORD)(riot_context->r_divider)) < 0
-        || SMW_W(m, (BYTE)((*(riot_context->clk_ptr) - riot_context->r_write_clk) % riot_context->r_divider)) < 0
-        || SMW_B(m, (BYTE)(riot_context->r_irqen ? 1 : 0)) < 0) {
+        || SMW_B(m, (uint8_t)(riot_context->r_irqfl | (riot_context->r_irqline ? 1 : 0))) < 0
+        || SMW_B(m, (uint8_t)(riot_context->r_N - (*(riot_context->clk_ptr) - riot_context->r_write_clk) / riot_context->r_divider)) < 0
+        || SMW_W(m, (uint16_t)(riot_context->r_divider)) < 0
+        || SMW_W(m, (uint8_t)((*(riot_context->clk_ptr) - riot_context->r_write_clk) % riot_context->r_divider)) < 0
+        || SMW_B(m, (uint8_t)(riot_context->r_irqen ? 1 : 0)) < 0) {
             snapshot_module_close(m);
             return -1;
     }
@@ -466,11 +467,11 @@ int riotcore_snapshot_write_module(riot_context_t *riot_context, snapshot_t *p)
 
 int riotcore_snapshot_read_module(riot_context_t *riot_context, snapshot_t *p)
 {
-    BYTE vmajor, vminor;
-    BYTE byte_r_N;
-    BYTE byte;
-    WORD word_r_divider;
-    WORD word_r_write_clk;
+    uint8_t vmajor, vminor;
+    uint8_t byte_r_N;
+    uint8_t byte;
+    uint16_t word_r_divider;
+    uint16_t word_r_write_clk;
     snapshot_module_t *m;
 
     m = snapshot_module_open(p, riot_context->myname, &vmajor, &vminor);
@@ -482,7 +483,7 @@ int riotcore_snapshot_read_module(riot_context_t *riot_context, snapshot_t *p)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > RIOT_DUMP_VER_MAJOR || vminor > RIOT_DUMP_VER_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, RIOT_DUMP_VER_MAJOR, RIOT_DUMP_VER_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         snapshot_module_close(m);
         return -1;

@@ -58,7 +58,7 @@ void dma_maincpu_steal_cycles(CLOCK start_clk, int num, CLOCK sub)
 
 #ifdef DEBUG
     if (debug.maincpu_traceflg) {
-        log_debug("START %i NUM %i SUB %i MAIN %i DMAST %i",
+        log_debug("START %u NUM %i SUB %u MAIN %u DMAST %u",
                   start_clk, num, sub, maincpu_clk, dma_start);
     }
 #endif

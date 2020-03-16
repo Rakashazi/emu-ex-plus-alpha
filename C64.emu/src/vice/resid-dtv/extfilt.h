@@ -22,7 +22,7 @@
 
 #include "residdtv-config.h"
 
-namespace reSID
+namespace reSID_dtv
 {
 
 // ----------------------------------------------------------------------------
@@ -111,6 +111,6 @@ sound_sample ExternalFilter::output()
 
 #endif // RESID_INLINING || defined(__EXTFILT_CC__)
 
-} // namespace reSID
+} // namespace reSID_dtv
 
 #endif // not __EXTFILT_H__

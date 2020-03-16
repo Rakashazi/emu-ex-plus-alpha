@@ -32,7 +32,8 @@
 
 #include "joyport.h"
 #include "sampler.h"
-#include "translate.h"
+
+#include "sampler2bit.h"
 
 /* Control port <--> 2bit sampler connections:
 
@@ -64,31 +65,30 @@ static int joyport_sampler_enable(int port, int value)
     return 0;
 }
 
-static BYTE joyport_sampler_read(int port)
+static uint8_t joyport_sampler_read(int port)
 {
-    BYTE retval = 0;
+    uint8_t retval = 0;
 
     if (sampler_enabled) {
         retval = sampler_get_sample(SAMPLER_CHANNEL_DEFAULT) >> 6;
         joyport_display_joyport(JOYPORT_ID_SAMPLER_2BIT, retval);
-        return (BYTE)(~retval);
+        return (uint8_t)(~retval);
     }
     return 0xff;
 }
 
 static joyport_t joyport_sampler_device = {
-    "Sampler (2bit)",
-    IDGS_SAMPLER_2BIT,
-    JOYPORT_RES_ID_SAMPLER,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_OPTIONAL,
-    joyport_sampler_enable,
-    joyport_sampler_read,
-    NULL,               /* no store digital */
-    NULL,               /* no pot-x read */
-    NULL,               /* no pot-y read */
-    NULL,               /* no data for a snapshot */
-    NULL                /* no data for a snapshot */
+    "Sampler (2bit)",        /* name of the device */
+    JOYPORT_RES_ID_SAMPLER,  /* device is a sampler, only 1 sampler can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN, /* device is NOT a lightpen */
+    JOYPORT_POT_OPTIONAL,    /* device does NOT use the potentiometer lines */
+    joyport_sampler_enable,  /* device enable function */
+    joyport_sampler_read,    /* digital line read function */
+    NULL,                    /* NO digital line store function */
+    NULL,                    /* NO pot-x read function */
+    NULL,                    /* NO pot-x read function */
+    NULL,                    /* NO device write snapshot function */
+    NULL                     /* NO device read snapshot function */
 };
 
 /* currently only used to register the joyport device */

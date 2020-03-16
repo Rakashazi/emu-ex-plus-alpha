@@ -30,6 +30,8 @@
 
 #include "vice.h"
 
+#ifndef HAVE_USLEEP
+
 #if defined(HAVE_UNISTD_H) && !defined(AMIGA_MORPHOS)
 #include <unistd.h>
 #endif
@@ -51,6 +53,12 @@
 #include <sys/select.h>
 #endif
 
+/* FIXME: this is a replacement function for a standardfunction that should come
+          with your c-library in the first place. it is only used in a few
+          sound-drivers and some hw-sid drivers - and it probably shouldnt be
+          used even there, instead a target specific vice_usleep should be
+          implemented, which really waits the requested delay (and no more, and
+          no less) */
 int usleep(unsigned long int microSeconds)
 {
     unsigned int Seconds, uSec;
@@ -86,3 +94,4 @@ int usleep(unsigned long int microSeconds)
 
     return 0;
 }
+#endif

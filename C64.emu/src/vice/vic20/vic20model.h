@@ -39,7 +39,7 @@
 
 #define NO_EXTRA_RAM   0
 
-extern VICE_API int vic20model_get(void);
-extern VICE_API void vic20model_set(int model);
+extern int vic20model_get(void);
+extern void vic20model_set(int model);
 
 #endif

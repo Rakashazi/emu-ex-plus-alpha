@@ -39,7 +39,6 @@
 #ifdef USE_SVN_REVISION
 #include "svnversion.h"
 #endif
-#include "translate.h"
 #include "types.h"
 #include "uiapi.h"
 #include "version.h"
@@ -66,7 +65,7 @@ struct snapshot_module_s {
     int write_mode;
 
     /* Size of the module.  */
-    DWORD size;
+    uint32_t size;
 
     /* Offset of the module in the file.  */
     long offset;
@@ -88,7 +87,7 @@ struct snapshot_s {
 
 /* ------------------------------------------------------------------------- */
 
-static int snapshot_write_byte(FILE *f, BYTE data)
+static int snapshot_write_byte(FILE *f, uint8_t data)
 {
     if (fputc(data, f) == EOF) {
         snapshot_error = SNAPSHOT_WRITE_EOF_ERROR;
@@ -98,20 +97,20 @@ static int snapshot_write_byte(FILE *f, BYTE data)
     return 0;
 }
 
-static int snapshot_write_word(FILE *f, WORD data)
+static int snapshot_write_word(FILE *f, uint16_t data)
 {
-    if (snapshot_write_byte(f, (BYTE)(data & 0xff)) < 0
-        || snapshot_write_byte(f, (BYTE)(data >> 8)) < 0) {
+    if (snapshot_write_byte(f, (uint8_t)(data & 0xff)) < 0
+        || snapshot_write_byte(f, (uint8_t)(data >> 8)) < 0) {
         return -1;
     }
 
     return 0;
 }
 
-static int snapshot_write_dword(FILE *f, DWORD data)
+static int snapshot_write_dword(FILE *f, uint32_t data)
 {
-    if (snapshot_write_word(f, (WORD)(data & 0xffff)) < 0
-        || snapshot_write_word(f, (WORD)(data >> 16)) < 0) {
+    if (snapshot_write_word(f, (uint16_t)(data & 0xffff)) < 0
+        || snapshot_write_word(f, (uint16_t)(data >> 16)) < 0) {
         return -1;
     }
 
@@ -120,7 +119,7 @@ static int snapshot_write_dword(FILE *f, DWORD data)
 
 static int snapshot_write_double(FILE *f, double data)
 {
-    BYTE *byte_data = (BYTE *)&data;
+    uint8_t *byte_data = (uint8_t *)&data;
     int i;
 
     for (i = 0; i < sizeof(double); i++) {
@@ -131,17 +130,17 @@ static int snapshot_write_double(FILE *f, double data)
     return 0;
 }
 
-static int snapshot_write_padded_string(FILE *f, const char *s, BYTE pad_char,
+static int snapshot_write_padded_string(FILE *f, const char *s, uint8_t pad_char,
                                         int len)
 {
     int i, found_zero;
-    BYTE c;
+    uint8_t c;
 
     for (i = found_zero = 0; i < len; i++) {
         if (!found_zero && s[i] == 0) {
             found_zero = 1;
         }
-        c = found_zero ? (BYTE)pad_char : (BYTE) s[i];
+        c = found_zero ? (uint8_t)pad_char : (uint8_t) s[i];
         if (snapshot_write_byte(f, c) < 0) {
             return -1;
         }
@@ -150,7 +149,7 @@ static int snapshot_write_padded_string(FILE *f, const char *s, BYTE pad_char,
     return 0;
 }
 
-static int snapshot_write_byte_array(FILE *f, const BYTE *data, unsigned int num)
+static int snapshot_write_byte_array(FILE *f, const uint8_t *data, unsigned int num)
 {
     if (num > 0 && fwrite(data, (size_t)num, 1, f) < 1) {
         snapshot_error = SNAPSHOT_WRITE_BYTE_ARRAY_ERROR;
@@ -160,7 +159,7 @@ static int snapshot_write_byte_array(FILE *f, const BYTE *data, unsigned int num
     return 0;
 }
 
-static int snapshot_write_word_array(FILE *f, const WORD *data, unsigned int num)
+static int snapshot_write_word_array(FILE *f, const uint16_t *data, unsigned int num)
 {
     unsigned int i;
 
@@ -173,7 +172,7 @@ static int snapshot_write_word_array(FILE *f, const WORD *data, unsigned int num
     return 0;
 }
 
-static int snapshot_write_dword_array(FILE *f, const DWORD *data, unsigned int num)
+static int snapshot_write_dword_array(FILE *f, const uint32_t *data, unsigned int num)
 {
     unsigned int i;
 
@@ -193,7 +192,7 @@ static int snapshot_write_string(FILE *f, const char *s)
 
     len = s ? (strlen(s) + 1) : 0;      /* length includes nullbyte */
 
-    if (snapshot_write_word(f, (WORD)len) < 0) {
+    if (snapshot_write_word(f, (uint16_t)len) < 0) {
         return -1;
     }
 
@@ -203,10 +202,10 @@ static int snapshot_write_string(FILE *f, const char *s)
         }
     }
 
-    return (int)(len + sizeof(WORD));
+    return (int)(len + sizeof(uint16_t));
 }
 
-static int snapshot_read_byte(FILE *f, BYTE *b_return)
+static int snapshot_read_byte(FILE *f, uint8_t *b_return)
 {
     int c;
 
@@ -215,13 +214,13 @@ static int snapshot_read_byte(FILE *f, BYTE *b_return)
         snapshot_error = SNAPSHOT_READ_EOF_ERROR;
         return -1;
     }
-    *b_return = (BYTE)c;
+    *b_return = (uint8_t)c;
     return 0;
 }
 
-static int snapshot_read_word(FILE *f, WORD *w_return)
+static int snapshot_read_word(FILE *f, uint16_t *w_return)
 {
-    BYTE lo, hi;
+    uint8_t lo, hi;
 
     if (snapshot_read_byte(f, &lo) < 0 || snapshot_read_byte(f, &hi) < 0) {
         return -1;
@@ -231,9 +230,9 @@ static int snapshot_read_word(FILE *f, WORD *w_return)
     return 0;
 }
 
-static int snapshot_read_dword(FILE *f, DWORD *dw_return)
+static int snapshot_read_dword(FILE *f, uint32_t *dw_return)
 {
-    WORD lo, hi;
+    uint16_t lo, hi;
 
     if (snapshot_read_word(f, &lo) < 0 || snapshot_read_word(f, &hi) < 0) {
         return -1;
@@ -248,7 +247,7 @@ static int snapshot_read_double(FILE *f, double *d_return)
     int i;
     int c;
     double val;
-    BYTE *byte_val = (BYTE *)&val;
+    uint8_t *byte_val = (uint8_t *)&val;
 
     for (i = 0; i < sizeof(double); i++) {
         c = fgetc(f);
@@ -256,13 +255,13 @@ static int snapshot_read_double(FILE *f, double *d_return)
             snapshot_error = SNAPSHOT_READ_EOF_ERROR;
             return -1;
         }
-        byte_val[i] = (BYTE)c;
+        byte_val[i] = (uint8_t)c;
     }
     *d_return = val;
     return 0;
 }
 
-static int snapshot_read_byte_array(FILE *f, BYTE *b_return, unsigned int num)
+static int snapshot_read_byte_array(FILE *f, uint8_t *b_return, unsigned int num)
 {
     if (num > 0 && fread(b_return, (size_t)num, 1, f) < 1) {
         snapshot_error = SNAPSHOT_READ_BYTE_ARRAY_ERROR;
@@ -272,7 +271,7 @@ static int snapshot_read_byte_array(FILE *f, BYTE *b_return, unsigned int num)
     return 0;
 }
 
-static int snapshot_read_word_array(FILE *f, WORD *w_return, unsigned int num)
+static int snapshot_read_word_array(FILE *f, uint16_t *w_return, unsigned int num)
 {
     unsigned int i;
 
@@ -285,7 +284,7 @@ static int snapshot_read_word_array(FILE *f, WORD *w_return, unsigned int num)
     return 0;
 }
 
-static int snapshot_read_dword_array(FILE *f, DWORD *dw_return, unsigned int num)
+static int snapshot_read_dword_array(FILE *f, uint32_t *dw_return, unsigned int num)
 {
     unsigned int i;
 
@@ -301,7 +300,7 @@ static int snapshot_read_dword_array(FILE *f, DWORD *dw_return, unsigned int num
 static int snapshot_read_string(FILE *f, char **s)
 {
     int i, len;
-    WORD w;
+    uint16_t w;
     char *p = NULL;
 
     /* first free the previous string */
@@ -319,7 +318,7 @@ static int snapshot_read_string(FILE *f, char **s)
         *s = p;
 
         for (i = 0; i < len; i++) {
-            if (snapshot_read_byte(f, (BYTE *)(p + i)) < 0) {
+            if (snapshot_read_byte(f, (uint8_t *)(p + i)) < 0) {
                 p[0] = 0;
                 return -1;
             }
@@ -331,7 +330,7 @@ static int snapshot_read_string(FILE *f, char **s)
 
 /* ------------------------------------------------------------------------- */
 
-int snapshot_module_write_byte(snapshot_module_t *m, BYTE b)
+int snapshot_module_write_byte(snapshot_module_t *m, uint8_t b)
 {
     if (snapshot_write_byte(m->file, b) < 0) {
         return -1;
@@ -341,7 +340,7 @@ int snapshot_module_write_byte(snapshot_module_t *m, BYTE b)
     return 0;
 }
 
-int snapshot_module_write_word(snapshot_module_t *m, WORD w)
+int snapshot_module_write_word(snapshot_module_t *m, uint16_t w)
 {
     if (snapshot_write_word(m->file, w) < 0) {
         return -1;
@@ -351,7 +350,7 @@ int snapshot_module_write_word(snapshot_module_t *m, WORD w)
     return 0;
 }
 
-int snapshot_module_write_dword(snapshot_module_t *m, DWORD dw)
+int snapshot_module_write_dword(snapshot_module_t *m, uint32_t dw)
 {
     if (snapshot_write_dword(m->file, dw) < 0) {
         return -1;
@@ -371,9 +370,9 @@ int snapshot_module_write_double(snapshot_module_t *m, double db)
     return 0;
 }
 
-int snapshot_module_write_padded_string(snapshot_module_t *m, const char *s, BYTE pad_char, int len)
+int snapshot_module_write_padded_string(snapshot_module_t *m, const char *s, uint8_t pad_char, int len)
 {
-    if (snapshot_write_padded_string(m->file, s, (BYTE)pad_char, len) < 0) {
+    if (snapshot_write_padded_string(m->file, s, (uint8_t)pad_char, len) < 0) {
         return -1;
     }
 
@@ -381,7 +380,7 @@ int snapshot_module_write_padded_string(snapshot_module_t *m, const char *s, BYT
     return 0;
 }
 
-int snapshot_module_write_byte_array(snapshot_module_t *m, const BYTE *b, unsigned int num)
+int snapshot_module_write_byte_array(snapshot_module_t *m, const uint8_t *b, unsigned int num)
 {
     if (snapshot_write_byte_array(m->file, b, num) < 0) {
         return -1;
@@ -391,23 +390,23 @@ int snapshot_module_write_byte_array(snapshot_module_t *m, const BYTE *b, unsign
     return 0;
 }
 
-int snapshot_module_write_word_array(snapshot_module_t *m, const WORD *w, unsigned int num)
+int snapshot_module_write_word_array(snapshot_module_t *m, const uint16_t *w, unsigned int num)
 {
     if (snapshot_write_word_array(m->file, w, num) < 0) {
         return -1;
     }
 
-    m->size += num * sizeof(WORD);
+    m->size += num * sizeof(uint16_t);
     return 0;
 }
 
-int snapshot_module_write_dword_array(snapshot_module_t *m, const DWORD *dw, unsigned int num)
+int snapshot_module_write_dword_array(snapshot_module_t *m, const uint32_t *dw, unsigned int num)
 {
     if (snapshot_write_dword_array(m->file, dw, num) < 0) {
         return -1;
     }
 
-    m->size += num * sizeof(DWORD);
+    m->size += num * sizeof(uint32_t);
     return 0;
 }
 
@@ -426,9 +425,9 @@ int snapshot_module_write_string(snapshot_module_t *m, const char *s)
 
 /* ------------------------------------------------------------------------- */
 
-int snapshot_module_read_byte(snapshot_module_t *m, BYTE *b_return)
+int snapshot_module_read_byte(snapshot_module_t *m, uint8_t *b_return)
 {
-    if (ftell(m->file) + sizeof(BYTE) > m->offset + m->size) {
+    if (ftell(m->file) + sizeof(uint8_t) > m->offset + m->size) {
         snapshot_error = SNAPSHOT_READ_OUT_OF_BOUNDS_ERROR;
         return -1;
     }
@@ -436,9 +435,9 @@ int snapshot_module_read_byte(snapshot_module_t *m, BYTE *b_return)
     return snapshot_read_byte(m->file, b_return);
 }
 
-int snapshot_module_read_word(snapshot_module_t *m, WORD *w_return)
+int snapshot_module_read_word(snapshot_module_t *m, uint16_t *w_return)
 {
-    if (ftell(m->file) + sizeof(WORD) > m->offset + m->size) {
+    if (ftell(m->file) + sizeof(uint16_t) > m->offset + m->size) {
         snapshot_error = SNAPSHOT_READ_OUT_OF_BOUNDS_ERROR;
         return -1;
     }
@@ -446,9 +445,9 @@ int snapshot_module_read_word(snapshot_module_t *m, WORD *w_return)
     return snapshot_read_word(m->file, w_return);
 }
 
-int snapshot_module_read_dword(snapshot_module_t *m, DWORD *dw_return)
+int snapshot_module_read_dword(snapshot_module_t *m, uint32_t *dw_return)
 {
-    if (ftell(m->file) + sizeof(DWORD) > m->offset + m->size) {
+    if (ftell(m->file) + sizeof(uint32_t) > m->offset + m->size) {
         snapshot_error = SNAPSHOT_READ_OUT_OF_BOUNDS_ERROR;
         return -1;
     }
@@ -466,7 +465,7 @@ int snapshot_module_read_double(snapshot_module_t *m, double *db_return)
     return snapshot_read_double(m->file, db_return);
 }
 
-int snapshot_module_read_byte_array(snapshot_module_t *m, BYTE *b_return, unsigned int num)
+int snapshot_module_read_byte_array(snapshot_module_t *m, uint8_t *b_return, unsigned int num)
 {
     if ((long)(ftell(m->file) + num) > (long)(m->offset + m->size)) {
         snapshot_error = SNAPSHOT_READ_OUT_OF_BOUNDS_ERROR;
@@ -476,9 +475,9 @@ int snapshot_module_read_byte_array(snapshot_module_t *m, BYTE *b_return, unsign
     return snapshot_read_byte_array(m->file, b_return, num);
 }
 
-int snapshot_module_read_word_array(snapshot_module_t *m, WORD *w_return, unsigned int num)
+int snapshot_module_read_word_array(snapshot_module_t *m, uint16_t *w_return, unsigned int num)
 {
-    if ((long)(ftell(m->file) + num * sizeof(WORD)) > (long)(m->offset + m->size)) {
+    if ((long)(ftell(m->file) + num * sizeof(uint16_t)) > (long)(m->offset + m->size)) {
         snapshot_error = SNAPSHOT_READ_OUT_OF_BOUNDS_ERROR;
         return -1;
     }
@@ -486,9 +485,9 @@ int snapshot_module_read_word_array(snapshot_module_t *m, WORD *w_return, unsign
     return snapshot_read_word_array(m->file, w_return, num);
 }
 
-int snapshot_module_read_dword_array(snapshot_module_t *m, DWORD *dw_return, unsigned int num)
+int snapshot_module_read_dword_array(snapshot_module_t *m, uint32_t *dw_return, unsigned int num)
 {
-    if ((long)(ftell(m->file) + num * sizeof(DWORD)) > (long)(m->offset + m->size)) {
+    if ((long)(ftell(m->file) + num * sizeof(uint32_t)) > (long)(m->offset + m->size)) {
         snapshot_error = SNAPSHOT_READ_OUT_OF_BOUNDS_ERROR;
         return -1;
     }
@@ -498,7 +497,7 @@ int snapshot_module_read_dword_array(snapshot_module_t *m, DWORD *dw_return, uns
 
 int snapshot_module_read_string(snapshot_module_t *m, char **charp_return)
 {
-    if (ftell(m->file) + sizeof(WORD) > m->offset + m->size) {
+    if (ftell(m->file) + sizeof(uint16_t) > m->offset + m->size) {
         snapshot_error = SNAPSHOT_READ_OUT_OF_BOUNDS_ERROR;
         return -1;
     }
@@ -508,7 +507,7 @@ int snapshot_module_read_string(snapshot_module_t *m, char **charp_return)
 
 int snapshot_module_read_byte_into_int(snapshot_module_t *m, int *value_return)
 {
-    BYTE b;
+    uint8_t b;
 
     if (snapshot_module_read_byte(m, &b) < 0) {
         return -1;
@@ -519,7 +518,7 @@ int snapshot_module_read_byte_into_int(snapshot_module_t *m, int *value_return)
 
 int snapshot_module_read_word_into_int(snapshot_module_t *m, int *value_return)
 {
-    WORD b;
+    uint16_t b;
 
     if (snapshot_module_read_word(m, &b) < 0) {
         return -1;
@@ -530,7 +529,7 @@ int snapshot_module_read_word_into_int(snapshot_module_t *m, int *value_return)
 
 int snapshot_module_read_dword_into_ulong(snapshot_module_t *m, unsigned long *value_return)
 {
-    DWORD b;
+    uint32_t b;
 
     if (snapshot_module_read_dword(m, &b) < 0) {
         return -1;
@@ -541,7 +540,7 @@ int snapshot_module_read_dword_into_ulong(snapshot_module_t *m, unsigned long *v
 
 int snapshot_module_read_dword_into_int(snapshot_module_t *m, int *value_return)
 {
-    DWORD b;
+    uint32_t b;
 
     if (snapshot_module_read_dword(m, &b) < 0) {
         return -1;
@@ -552,7 +551,7 @@ int snapshot_module_read_dword_into_int(snapshot_module_t *m, int *value_return)
 
 int snapshot_module_read_dword_into_uint(snapshot_module_t *m, unsigned int *value_return)
 {
-    DWORD b;
+    uint32_t b;
 
     if (snapshot_module_read_dword(m, &b) < 0) {
         return -1;
@@ -563,7 +562,7 @@ int snapshot_module_read_dword_into_uint(snapshot_module_t *m, unsigned int *val
 
 /* ------------------------------------------------------------------------- */
 
-snapshot_module_t *snapshot_module_create(snapshot_t *s, const char *name, BYTE major_version, BYTE minor_version)
+snapshot_module_t *snapshot_module_create(snapshot_t *s, const char *name, uint8_t major_version, uint8_t minor_version)
 {
     snapshot_module_t *m;
 
@@ -579,7 +578,7 @@ snapshot_module_t *snapshot_module_create(snapshot_t *s, const char *name, BYTE 
     }
     m->write_mode = 1;
 
-    if (snapshot_write_padded_string(s->file, name, (BYTE)0, SNAPSHOT_MODULE_NAME_LEN) < 0
+    if (snapshot_write_padded_string(s->file, name, (uint8_t)0, SNAPSHOT_MODULE_NAME_LEN) < 0
         || snapshot_write_byte(s->file, major_version) < 0
         || snapshot_write_byte(s->file, minor_version) < 0
         || snapshot_write_dword(s->file, 0) < 0) {
@@ -587,12 +586,12 @@ snapshot_module_t *snapshot_module_create(snapshot_t *s, const char *name, BYTE 
     }
 
     m->size = ftell(s->file) - m->offset;
-    m->size_offset = ftell(s->file) - sizeof(DWORD);
+    m->size_offset = ftell(s->file) - sizeof(uint32_t);
 
     return m;
 }
 
-snapshot_module_t *snapshot_module_open(snapshot_t *s, const char *name, BYTE *major_version_return, BYTE *minor_version_return)
+snapshot_module_t *snapshot_module_open(snapshot_t *s, const char *name, uint8_t *major_version_return, uint8_t *minor_version_return)
 {
     snapshot_module_t *m;
     char n[SNAPSHOT_MODULE_NAME_LEN];
@@ -614,7 +613,7 @@ snapshot_module_t *snapshot_module_open(snapshot_t *s, const char *name, BYTE *m
     /* Search for the module name.  This is quite inefficient, but I don't
        think we care.  */
     while (1) {
-        if (snapshot_read_byte_array(s->file, (BYTE *)n,
+        if (snapshot_read_byte_array(s->file, (uint8_t *)n,
                                      SNAPSHOT_MODULE_NAME_LEN) < 0
             || snapshot_read_byte(s->file, major_version_return) < 0
             || snapshot_read_byte(s->file, minor_version_return) < 0
@@ -636,7 +635,7 @@ snapshot_module_t *snapshot_module_open(snapshot_t *s, const char *name, BYTE *m
         }
     }
 
-    m->size_offset = ftell(s->file) - sizeof(DWORD);
+    m->size_offset = ftell(s->file) - sizeof(uint32_t);
 
     return m;
 
@@ -648,6 +647,7 @@ fail:
 
 int snapshot_module_close(snapshot_module_t *m)
 {
+
     /* Backpatch module size if writing.  */
     if (m->write_mode
         && (fseek(m->file, m->size_offset, SEEK_SET) < 0
@@ -668,7 +668,7 @@ int snapshot_module_close(snapshot_module_t *m)
 
 /* ------------------------------------------------------------------------- */
 
-snapshot_t *snapshot_create(const char *filename, BYTE major_version, BYTE minor_version, const char *snapshot_machine_name)
+snapshot_t *snapshot_create(const char *filename, uint8_t major_version, uint8_t minor_version, const char *snapshot_machine_name)
 {
     FILE *f;
     snapshot_t *s;
@@ -683,7 +683,7 @@ snapshot_t *snapshot_create(const char *filename, BYTE major_version, BYTE minor
     }
 
     /* Magic string.  */
-    if (snapshot_write_padded_string(f, snapshot_magic_string, (BYTE)0, SNAPSHOT_MAGIC_LEN) < 0) {
+    if (snapshot_write_padded_string(f, snapshot_magic_string, (uint8_t)0, SNAPSHOT_MAGIC_LEN) < 0) {
         snapshot_error = SNAPSHOT_CANNOT_WRITE_MAGIC_STRING_ERROR;
         goto fail;
     }
@@ -696,13 +696,13 @@ snapshot_t *snapshot_create(const char *filename, BYTE major_version, BYTE minor
     }
 
     /* Machine.  */
-    if (snapshot_write_padded_string(f, snapshot_machine_name, (BYTE)0, SNAPSHOT_MACHINE_NAME_LEN) < 0) {
+    if (snapshot_write_padded_string(f, snapshot_machine_name, (uint8_t)0, SNAPSHOT_MACHINE_NAME_LEN) < 0) {
         snapshot_error = SNAPSHOT_CANNOT_WRITE_MACHINE_NAME_ERROR;
         goto fail;
     }
 
     /* VICE version and revision */
-    if (snapshot_write_padded_string(f, snapshot_version_magic_string, (BYTE)0, SNAPSHOT_VERSION_MAGIC_LEN) < 0) {
+    if (snapshot_write_padded_string(f, snapshot_version_magic_string, (uint8_t)0, SNAPSHOT_VERSION_MAGIC_LEN) < 0) {
         snapshot_error = SNAPSHOT_CANNOT_WRITE_MAGIC_STRING_ERROR;
         goto fail;
     }
@@ -735,9 +735,9 @@ fail:
 
 /* informal only, used by the error message created below */
 static unsigned char snapshot_viceversion[4];
-static DWORD snapshot_vicerevision;
+static uint32_t snapshot_vicerevision;
 
-snapshot_t *snapshot_open(const char *filename, BYTE *major_version_return, BYTE *minor_version_return, const char *snapshot_machine_name)
+snapshot_t *snapshot_open(const char *filename, uint8_t *major_version_return, uint8_t *minor_version_return, const char *snapshot_machine_name)
 {
     FILE *f;
     char magic[SNAPSHOT_MAGIC_LEN];
@@ -756,7 +756,7 @@ snapshot_t *snapshot_open(const char *filename, BYTE *major_version_return, BYTE
     }
 
     /* Magic string.  */
-    if (snapshot_read_byte_array(f, (BYTE *)magic, SNAPSHOT_MAGIC_LEN) < 0
+    if (snapshot_read_byte_array(f, (uint8_t *)magic, SNAPSHOT_MAGIC_LEN) < 0
         || memcmp(magic, snapshot_magic_string, SNAPSHOT_MAGIC_LEN) != 0) {
         snapshot_error = SNAPSHOT_MAGIC_STRING_MISMATCH_ERROR;
         goto fail;
@@ -770,7 +770,7 @@ snapshot_t *snapshot_open(const char *filename, BYTE *major_version_return, BYTE
     }
 
     /* Machine.  */
-    if (snapshot_read_byte_array(f, (BYTE *)read_name, SNAPSHOT_MACHINE_NAME_LEN) < 0) {
+    if (snapshot_read_byte_array(f, (uint8_t *)read_name, SNAPSHOT_MACHINE_NAME_LEN) < 0) {
         snapshot_error = SNAPSHOT_CANNOT_READ_MACHINE_NAME_ERROR;
         goto fail;
     }
@@ -789,7 +789,7 @@ snapshot_t *snapshot_open(const char *filename, BYTE *major_version_return, BYTE
     snapshot_vicerevision = 0;
     offs = ftell(f);
 
-    if (snapshot_read_byte_array(f, (BYTE *)magic, SNAPSHOT_VERSION_MAGIC_LEN) < 0
+    if (snapshot_read_byte_array(f, (uint8_t *)magic, SNAPSHOT_VERSION_MAGIC_LEN) < 0
         || memcmp(magic, snapshot_version_magic_string, SNAPSHOT_VERSION_MAGIC_LEN) != 0) {
         /* old snapshots do not contain VICE version */
         fseek(f, offs, SEEK_SET);
@@ -849,10 +849,9 @@ static void display_error_with_vice_version(char *text, char *filename)
     char *message = lib_malloc(0x100 + strlen(text));
     if ((snapshot_viceversion[0] == 0) && (snapshot_viceversion[1] == 0)) {
         /* generic message for the case when no version is present in the snapshot */
-        strcpy(vmessage, translate_text(IDGS_SNAPSHOT_OLD_VICE_VERSION));
+        strcpy(vmessage, "Snapshot was created by VICE Version 2.4.30 or older");
     } else {
-        sprintf(vmessage, translate_text(IDGS_SNAPSHOT_VICE_VERSION),
-                snapshot_viceversion[0], snapshot_viceversion[1], snapshot_viceversion[2]);
+        sprintf(vmessage, "Snapshot was created by VICE Version %d.%d.%d", snapshot_viceversion[0], snapshot_viceversion[1], snapshot_viceversion[2]);
         if (snapshot_vicerevision != 0) {
             sprintf(message, " (r%d)", (int)snapshot_vicerevision);
             strcat(vmessage, message);
@@ -872,100 +871,109 @@ void snapshot_display_error(void)
             break;
         case SNAPSHOT_WRITE_EOF_ERROR:
             if (current_module) {
-                ui_error(translate_text(IDGS_EOF_WRITING_MODULE_S_SNAPSHOT_S), current_module, current_filename);
+                ui_error("EOF while writing to module %s in snapshot %s", current_module, current_filename);
             } else {
-                ui_error(translate_text(IDGS_EOF_WRITING_SNAPSHOT_S), current_filename);
+                ui_error("EOF while writing to snapshot %s", current_filename);
             }
             break;
         case SNAPSHOT_WRITE_BYTE_ARRAY_ERROR:
             if (current_module) {
-                ui_error(translate_text(IDGS_ERROR_WRITING_ARRAY_MODULE_S_SNAPSHOT_S), current_module, current_filename);
+                ui_error("Error writing array to module %s in snapshot %s", current_module, current_filename);
             } else {
-                ui_error(translate_text(IDGS_ERROR_WRITING_ARRAY_SNAPSHOT_S), current_filename);
+                ui_error("Error writing array to snapshot %s", current_filename);
             }
             break;
         case SNAPSHOT_READ_EOF_ERROR:
             if (current_module) {
-                ui_error(translate_text(IDGS_EOF_READING_MODULE_S_SNAPSHOT_S), current_module, current_filename);
+                ui_error("EOF while reading from module %s in snapshot %s", current_module, current_filename);
             } else {
-                ui_error(translate_text(IDGS_EOF_READING_SNAPSHOT_S), current_filename);
+                ui_error("EOF while reading from snapshot %s", current_filename);
             }
             break;
         case SNAPSHOT_READ_BYTE_ARRAY_ERROR:
             if (current_module) {
-                ui_error(translate_text(IDGS_ERROR_READING_ARRAY_MODULE_S_SNAPSHOT_S), current_module, current_filename);
+                ui_error("Error reading array from module %s in snapshot %s", current_module, current_filename);
             } else {
-                ui_error(translate_text(IDGS_ERROR_READING_ARRAY_SNAPSHOT_S), current_filename);
+                ui_error("Error reading array from snapshot %s", current_filename);
             }
             break;
         case SNAPSHOT_ILLEGAL_STRING_LENGTH_ERROR:
             if (current_module) {
-                ui_error(translate_text(IDGS_ERROR_WRITING_STRING_MODULE_S_SNAPSHOT_S), current_module, current_filename);
+                ui_error("Error writing string to module %s in snapshot %s", current_module, current_filename);
             } else {
-                ui_error(translate_text(IDGS_ERROR_WRITING_STRING_SNAPSHOT_S), current_filename);
+                ui_error("Error writing string to snapshot %s", current_filename);
             }
             break;
         case SNAPSHOT_READ_OUT_OF_BOUNDS_ERROR:
             if (current_module) {
-                ui_error(translate_text(IDGS_OUT_OF_BOUNDS_READING_MODULE_S_SNAPSHOT_S), current_module, current_filename);
+                ui_error("Out of bounds reading error in module %s in snapshot %s", current_module, current_filename);
             } else {
-                ui_error(translate_text(IDGS_OUT_OF_BOUNDS_READING_SNAPSHOT_S), current_filename);
+                ui_error("Out of bounds reading error in snapshot %s", current_filename);
             }
             break;
         case SNAPSHOT_ILLEGAL_OFFSET_ERROR:
-            ui_error(translate_text(IDGS_ILLEGAL_OFFSET_CREATE_MODULE_S_SNAPSHOT_S), current_module, current_filename);
+            ui_error("Illegal offset while attempting to create module %s in snapshot %s", current_module, current_filename);
             break;
         case SNAPSHOT_FIRST_MODULE_NOT_FOUND_ERROR:
-            ui_error(translate_text(IDGS_CANNOT_FIND_1ST_MODULE_SNAPSHOT_S), current_filename);
+            ui_error("Cannot find first module in snapshot %s", current_filename);
             break;
         case SNAPSHOT_MODULE_HEADER_READ_ERROR:
-            ui_error(translate_text(IDGS_ERROR_MODULE_HEADER_SNAPSHOT_S), current_filename);
+            ui_error("Error while reading module header in snapshot %s", current_filename);
             break;
         case SNAPSHOT_MODULE_NOT_FOUND_ERROR:
-            ui_error(translate_text(IDGS_CANNOT_FIND_MODULE_S_SNAPSHOT_S), current_module, current_filename);
+            ui_error("Cannot find module %s in snapshot %s", current_module, current_filename);
             break;
         case SNAPSHOT_MODULE_CLOSE_ERROR:
-            ui_error(translate_text(IDGS_ERROR_CLOSING_MODULE_S_SNAPSHOT_S), current_module, current_filename);
+            ui_error("Error closing module %s in snapshot %s", current_module, current_filename);
             break;
         case SNAPSHOT_MODULE_SKIP_ERROR:
-            ui_error(translate_text(IDGS_ERROR_SKIPPING_MODULE_SNAPSHOT_S), current_filename);
+            ui_error("Error skipping module in snapshot %s", current_filename);
             break;
         case SNAPSHOT_CANNOT_CREATE_SNAPSHOT_ERROR:
-            ui_error(translate_text(IDGS_CANNOT_CREATE_SNAPSHOT_S), current_filename);
+            ui_error("Cannot create snapshot %s", current_filename);
             break;
         case SNAPSHOT_CANNOT_WRITE_MAGIC_STRING_ERROR:
-            ui_error(translate_text(IDGS_CANNOT_WRITE_MAGIC_STRING_SNAPSHOT_S), current_filename);
+            ui_error("Cannot write magic string to snapshot %s", current_filename);
             break;
         case SNAPSHOT_CANNOT_WRITE_VERSION_ERROR:
-            ui_error(translate_text(IDGS_CANNOT_WRITE_VERSION_SNAPSHOT_S), current_filename);
+            ui_error("Cannot write version to snapshot %s", current_filename);
             break;
         case SNAPSHOT_CANNOT_WRITE_MACHINE_NAME_ERROR:
-            ui_error(translate_text(IDGS_CANNOT_WRITE_MACHINE_NAME_SNAPSHOT_S), current_filename);
+            ui_error("Cannot write machine name to snapshot %s", current_filename);
             break;
         case SNAPSHOT_CANNOT_OPEN_FOR_READ_ERROR:
-            ui_error(translate_text(IDGS_CANNOT_OPEN_SNAPSHOT_S_READING), current_filename);
+            ui_error("Cannot open snapshot %s for reading", current_filename);
             break;
         case SNAPSHOT_MAGIC_STRING_MISMATCH_ERROR:
-            ui_error(translate_text(IDGS_MAGIC_STRING_MISMATCH_SNAPSHOT_S), current_filename);
+            ui_error("Magic string mismatch in snapshot %s", current_filename);
             break;
         case SNAPSHOT_CANNOT_READ_VERSION_ERROR:
-            ui_error(translate_text(IDGS_CANNOT_READ_VERSION_SNAPSHOT_S), current_filename);
+            ui_error("Cannot read version from snapshot %s", current_filename);
             break;
         case SNAPSHOT_CANNOT_READ_MACHINE_NAME_ERROR:
-            ui_error(translate_text(IDGS_CANNOT_READ_MACHINE_NAME_SNAPSHOT_S), current_filename);
+            ui_error("Cannot read machine name from snapshot %s", current_filename);
             break;
         case SNAPSHOT_MACHINE_MISMATCH_ERROR:
-            ui_error(translate_text(IDGS_WRONG_MACHINE_TYPE_SNAPSHOT_S), current_filename, read_name, current_machine_name);
+            ui_error("Wrong machine type in snapshot %s, snapshot type: %s, current machine: %s", current_filename, read_name, current_machine_name);
             break;
         case SNAPSHOT_READ_CLOSE_EOF_ERROR:
         case SNAPSHOT_WRITE_CLOSE_EOF_ERROR:
-            ui_error(translate_text(IDGS_EOF_CLOSING_SNAPSHOT_S), current_filename);
+            ui_error("EOF while closing snapshot %s", current_filename);
             break;
         case SNAPSHOT_MODULE_HIGHER_VERSION:
-            display_error_with_vice_version(translate_text(IDGS_SNAPSHOT_HIGHER_VERSION), current_filename);
+            display_error_with_vice_version("Snapshot %s has a higher version than what your current emulator supports, please upgrade VICE", current_filename);
             break;
         case SNAPSHOT_MODULE_INCOMPATIBLE:
-            display_error_with_vice_version(translate_text(IDGS_INCOMPATIBLE_SNAPSHOT), current_filename);
+            display_error_with_vice_version("Snapshot %s is incompatible (too old)", current_filename);
+            break;
+        case SNAPSHOT_MODULE_NOT_IMPLEMENTED:
+            ui_error("Snapshots are not implemented for module %s", current_module);
+            break;
+        case SNAPSHOT_CANNOT_WRITE_SNAPSHOT:
+            ui_error("Cannot write snapshot %s", current_filename);
+            break;
+        case SNAPSHOT_CANNOT_READ_SNAPSHOT:
+            ui_error("Cannot read snapshot %s", current_filename);
             break;
     }
 }
@@ -975,13 +983,53 @@ void snapshot_set_error(int error)
     snapshot_error = error;
 }
 
-int snapshot_version_at_least(BYTE major_version, BYTE minor_version, BYTE major_version_required, BYTE minor_version_required)
+int snapshot_get_error(void)
 {
-    if (major_version != major_version_required) {
+    return snapshot_error;
+}
+
+/* check if version == required version */
+int snapshot_version_is_equal(uint8_t major_version, uint8_t minor_version,
+                              uint8_t major_version_required, uint8_t minor_version_required)
+{
+    if ((major_version == major_version_required) && (minor_version == minor_version_required)) {
+        return 1;
+    }
+    return 0;
+}
+
+/* check if version > required version */
+int snapshot_version_is_bigger(uint8_t major_version, uint8_t minor_version,
+                               uint8_t major_version_required, uint8_t minor_version_required)
+{
+    if (major_version > major_version_required) {
+        return 1;
+    }
+
+    if (major_version < major_version_required) {
         return 0;
     }
 
-    if (minor_version >= minor_version_required) {
+    if (minor_version > minor_version_required) {
+        return 1;
+    }
+
+    return 0;
+}
+
+/* check if version < required version */
+int snapshot_version_is_smaller(uint8_t major_version, uint8_t minor_version,
+                                uint8_t major_version_required, uint8_t minor_version_required)
+{
+    if (major_version < major_version_required) {
+        return 1;
+    }
+
+    if (major_version > major_version_required) {
+        return 0;
+    }
+
+    if (minor_version < minor_version_required) {
         return 1;
     }
 

@@ -37,29 +37,29 @@
    are handled within the CPU emulation.  The struct should be accessed using
    the `MOS6510DTV_REGS_*()' macros.  */
 typedef struct mos6510dtv_regs_s {
-    unsigned int pc;        /* `unsigned int' required by the drive code. */
-    BYTE a;
-    BYTE x;
-    BYTE y;
-    BYTE sp;
-    BYTE p;
-    BYTE n;
-    BYTE z;
-    BYTE r3;
-    BYTE r4;
-    BYTE r5;
-    BYTE r6;
-    BYTE r7;
-    BYTE r8;
-    BYTE r9;
-    BYTE r10;
-    BYTE r11;
-    BYTE r12;
-    BYTE r13;
-    BYTE r14;
-    BYTE r15;
-    BYTE acm;
-    BYTE yxm;
+    unsigned int pc;        /* FIXME: this should probably be WORD */
+    uint8_t a;
+    uint8_t x;
+    uint8_t y;
+    uint8_t sp;
+    uint8_t p;
+    uint8_t n;
+    uint8_t z;
+    uint8_t r3;
+    uint8_t r4;
+    uint8_t r5;
+    uint8_t r6;
+    uint8_t r7;
+    uint8_t r8;
+    uint8_t r9;
+    uint8_t r10;
+    uint8_t r11;
+    uint8_t r12;
+    uint8_t r13;
+    uint8_t r14;
+    uint8_t r15;
+    uint8_t acm;
+    uint8_t yxm;
 } mos6510dtv_regs_t;
 
 /* These define the position of the status flags in the P (`status')

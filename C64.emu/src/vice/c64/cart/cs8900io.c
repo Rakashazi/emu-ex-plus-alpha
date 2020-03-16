@@ -30,7 +30,7 @@
 
 #include "vice.h"
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
 
 #include <assert.h>
 #include <stdio.h>
@@ -51,9 +51,10 @@
 #include "rawnet.h"
 #include "resources.h"
 #include "snapshot.h"
-#include "translate.h"
 #include "uiapi.h"
 #include "util.h"
+
+#include "cs8900io.h"
 
 /* #define CS8900IO_DEBUG */
 
@@ -79,13 +80,20 @@ static int cs8900io_cannot_use = 0;
 
 /* Flag: Do we have the CS8900 I/O enabled?  */
 static int cs8900io_enabled = 0;
-static char *cs8900io_owner = NULL;
+static const char *cs8900io_owner = NULL;
 
 static char *cs8900io_interface = NULL;
 
 static int cs8900io_init_done = 0;
 static int cs8900io_resources_init_done = 0;
 static int cs8900io_cmdline_init_done = 0;
+
+
+/** \brief  Keep track of default IF used as a factory value
+ *
+ */
+static char *default_if;
+
 
 /* ------------------------------------------------------------------------- */
 /*    initialization and deinitialization functions                          */
@@ -111,7 +119,11 @@ static int cs8900io_activate(void)
             case -2:
                 cs8900io_enabled = 0;
                 cs8900io_cannot_use = 1;
-                ui_error("No PCAP library is installed, cannot use ethernet based devices.");
+                ui_error("Failed to initialize PCAP library, cannot use"
+                       " ethernet based devices.\n\n"
+                       "On Windows make sure the pcap DLL is installed,"
+                       " on Unix make sure to run VICE as root, on MacOS"
+                       " you're on your own.");
                 return -1;
         }
     } else {
@@ -185,7 +197,7 @@ void cs8900io_detach(void)
 /* ------------------------------------------------------------------------- */
 
 /* ----- read byte from I/O range in VICE ----- */
-BYTE cs8900io_read(WORD io_address)
+uint8_t cs8900io_read(uint16_t io_address)
 {
     if (!cs8900io_cannot_use) {
         return cs8900_read(io_address);
@@ -194,13 +206,13 @@ BYTE cs8900io_read(WORD io_address)
 }
 
 /* ----- peek byte with no sideeffects from I/O range in VICE ----- */
-BYTE cs8900io_peek(WORD io_address)
+uint8_t cs8900io_peek(uint16_t io_address)
 {
     return cs8900io_read(io_address);
 }
 
 /* ----- write byte to I/O range of VICE ----- */
-void cs8900io_store(WORD io_address, BYTE byte)
+void cs8900io_store(uint16_t io_address, uint8_t byte)
 {
     if (!cs8900io_cannot_use) {
         cs8900_store(io_address, byte);
@@ -223,7 +235,7 @@ int cs8900io_cart_enabled(void)
     return cs8900io_enabled;
 }
 
-int cs8900io_enable(char *owner)
+int cs8900io_enable(const char *owner)
 {
     if (!cs8900io_cannot_use) {
         if (!cs8900io_enabled) {
@@ -232,7 +244,7 @@ int cs8900io_enable(char *owner)
             }
             cs8900io_enabled = 1;
         } else {
-            ui_error(translate_text(IDGS_CS8900_IN_USE_BY_S), cs8900io_owner);
+            ui_error("CS8900 already in use by %s.", cs8900io_owner);
             return -1;
         }
         cs8900io_reset();
@@ -287,8 +299,7 @@ static int set_cs8900io_interface(const char *name, void *param)
 }
 
 static resource_string_t resources_string[] = {
-    { "ETHERNET_INTERFACE",
-      ARCHDEP_ETHERNET_DEFAULT_DEVICE, RES_EVENT_NO, NULL,
+    { "ETHERNET_INTERFACE", NULL, RES_EVENT_NO, NULL,
       &cs8900io_interface, set_cs8900io_interface, NULL },
     RESOURCE_STRING_LIST_END
 };
@@ -301,15 +312,16 @@ static const resource_int_t resources_int[] = {
 
 int cs8900io_resources_init(void)
 {
-    char *default_if = NULL;
-
     if (!cs8900io_resources_init_done) {
 
+        /* allocated in src/arch/shared/rawnetarch_unix/win32/c */
         default_if = rawnet_get_standard_interface();
 
-        if (default_if) {
-            resources_string[0].factory_value = default_if;
+        if (default_if == NULL) {
+            default_if = lib_strdup(ARCHDEP_ETHERNET_DEFAULT_DEVICE);
         }
+
+        resources_string[0].factory_value = default_if;
 
         if (resources_register_string(resources_string) < 0 ||
             resources_register_int(resources_int) < 0) {
@@ -327,6 +339,10 @@ void cs8900io_resources_shutdown(void)
         lib_free(cs8900io_interface);
         cs8900io_interface = NULL;
     }
+    if (default_if != NULL) {
+        lib_free(default_if);
+        default_if = NULL;
+    }
 }
 
 /* ------------------------------------------------------------------------- */
@@ -334,11 +350,9 @@ void cs8900io_resources_shutdown(void)
 
 static const cmdline_option_t cmdline_options[] =
 {
-    { "-cs8900ioif", SET_RESOURCE, 1,
+    { "-cs8900ioif", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "ETHERNET_INTERFACE", NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_ETHERNET_INTERFACE,
-      NULL, NULL },
+      "<Name>", "Set the system ethernet interface" },
     CMDLINE_LIST_END
 };
 
@@ -353,4 +367,4 @@ int cs8900io_cmdline_options_init(void)
     return 0;
 }
 
-#endif /* #ifdef HAVE_PCAP */
+#endif /* #ifdef HAVE_RAWNET */

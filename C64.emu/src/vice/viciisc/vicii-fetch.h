@@ -31,12 +31,12 @@
 #include "types.h"
 
 extern void vicii_fetch_matrix(void);
-extern BYTE vicii_fetch_graphics(void);
-extern BYTE vicii_fetch_idle(void);
-extern BYTE vicii_fetch_idle_gfx(void);
-extern BYTE vicii_fetch_refresh(void);
-extern BYTE vicii_fetch_sprite_pointer(int sprite);
-extern BYTE vicii_fetch_sprite_dma_1(int sprite);
+extern uint8_t vicii_fetch_graphics(void);
+extern uint8_t vicii_fetch_idle(void);
+extern uint8_t vicii_fetch_idle_gfx(void);
+extern uint8_t vicii_fetch_refresh(void);
+extern uint8_t vicii_fetch_sprite_pointer(int sprite);
+extern uint8_t vicii_fetch_sprite_dma_1(int sprite);
 extern int vicii_check_sprite_ba(unsigned int cycle_flags);
 extern void vicii_fetch_sprites(unsigned int cycle_flags);
 

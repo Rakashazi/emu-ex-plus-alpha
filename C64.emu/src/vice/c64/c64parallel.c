@@ -53,8 +53,8 @@
 
 #define PC_PORT_NUM             2
 
-static BYTE parallel_cable_drive_value[DRIVE_NUM] = { 0xff, 0xff, 0xff, 0xff };
-static BYTE parallel_cable_cpu_value[PC_PORT_NUM] = { 0xff, 0xff };
+static uint8_t parallel_cable_drive_value[DRIVE_NUM] = { 0xff, 0xff, 0xff, 0xff };
+static uint8_t parallel_cable_cpu_value[PC_PORT_NUM] = { 0xff, 0xff };
 
 static int portmap[DRIVE_PC_NUM] = {
     PC_PORT_STANDARD, /* DRIVE_PC_NONE */
@@ -63,10 +63,10 @@ static int portmap[DRIVE_PC_NUM] = {
     PC_PORT_FORMEL64, /* DRIVE_PC_FORMEL64 */
 };
 
-static BYTE parallel_cable_value(int type)
+static uint8_t parallel_cable_value(int type)
 {
     unsigned int dnr, port;
-    BYTE val;
+    uint8_t val;
 
     port = portmap[type];
     val = parallel_cable_cpu_value[port];
@@ -86,7 +86,7 @@ static BYTE parallel_cable_value(int type)
 /*
     interface for the drive (read/write)
 */
-void parallel_cable_drive_write(int type, BYTE data, int handshake, unsigned int dnr)
+void parallel_cable_drive_write(int type, uint8_t data, int handshake, unsigned int dnr)
 {
     int port;
 
@@ -105,10 +105,10 @@ void parallel_cable_drive_write(int type, BYTE data, int handshake, unsigned int
     }
 }
 
-BYTE parallel_cable_drive_read(int type, int handshake)
+uint8_t parallel_cable_drive_read(int type, int handshake)
 {
     int port;
-    BYTE rc;
+    uint8_t rc;
 
     port = portmap[type];
 
@@ -146,7 +146,7 @@ void parallel_cable_cpu_execute(int type)
     }
 }
 
-void parallel_cable_cpu_write(int type, BYTE data)
+void parallel_cable_cpu_write(int type, uint8_t data)
 {
     int port;
 
@@ -158,9 +158,9 @@ void parallel_cable_cpu_write(int type, BYTE data)
     DBG(("PARCABLE (%d:%d) CPU W DATA %02x", type, port, data));
 }
 
-BYTE parallel_cable_cpu_read(int type, BYTE data)
+uint8_t parallel_cable_cpu_read(int type, uint8_t data)
 {
-    BYTE rc;
+    uint8_t rc;
 
     parallel_cable_cpu_execute(type);
 
@@ -206,7 +206,7 @@ void parallel_cable_cpu_pulse(int type)
     }
 }
 
-void parallel_cable_cpu_undump(int type, BYTE data)
+void parallel_cable_cpu_undump(int type, uint8_t data)
 {
     parallel_cable_cpu_value[portmap[type]] = data;
 }

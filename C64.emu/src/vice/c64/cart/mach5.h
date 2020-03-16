@@ -32,9 +32,9 @@
 #include "types.h"
 
 extern void mach5_config_init(void);
-extern void mach5_config_setup(BYTE *rawcart);
-extern int mach5_crt_attach(FILE *fd, BYTE *rawcart);
-extern int mach5_bin_attach(const char *filename, BYTE *rawcart);
+extern void mach5_config_setup(uint8_t *rawcart);
+extern int mach5_crt_attach(FILE *fd, uint8_t *rawcart);
+extern int mach5_bin_attach(const char *filename, uint8_t *rawcart);
 extern void mach5_detach(void);
 
 struct snapshot_s;

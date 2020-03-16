@@ -27,10 +27,10 @@
  *
  */
 
-#ifdef HAVE_PCAP
+#ifdef HAVE_RAWNET
 #else
-  #error TFE.H should not be included if HAVE_PCAP is not defined!
-#endif /* #ifdef HAVE_PCAP */
+  #error TFE.H should not be included if HAVE_RAWNET is not defined!
+#endif /* #ifdef HAVE_RAWNET */
 
 #ifndef VICE_SHORTBUS_ETFE_H
 #define VICE_SHORTBUS_ETFE_H

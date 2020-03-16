@@ -51,7 +51,7 @@ static image_contents_file_list_t currfl, *last_list;
 static unsigned int image_contents_find_name;
 
 
-static int getbuf(BYTE *buf, int length, int *index, BYTE *data)
+static int getbuf(uint8_t *buf, int length, int *index, uint8_t *data)
 {
     if (length == *index) {
         return -1;
@@ -64,9 +64,9 @@ static int getbuf(BYTE *buf, int length, int *index, BYTE *data)
     return 0;
 }
 
-static int state_load_address(BYTE *buf, int length, int *index)
+static int state_load_address(uint8_t *buf, int length, int *index)
 {
-    BYTE data;
+    uint8_t data;
 
     if (getbuf(buf, length, index, &data) < 0) {
         return STATE_ERROR;
@@ -78,9 +78,9 @@ static int state_load_address(BYTE *buf, int length, int *index)
     return STATE_LINK_ADDRESS;
 }
 
-static int state_link_address(BYTE *buf, int length, int *index)
+static int state_link_address(uint8_t *buf, int length, int *index)
 {
-    BYTE data1, data2;
+    uint8_t data1, data2;
 
     if (getbuf(buf, length, index, &data1) < 0) {
         return STATE_ERROR;
@@ -96,9 +96,9 @@ static int state_link_address(BYTE *buf, int length, int *index)
     return STATE_FILE_SIZE;
 }
 
-static int state_file_size(BYTE *buf, int length, int *index)
+static int state_file_size(uint8_t *buf, int length, int *index)
 {
-    BYTE data1, data2;
+    uint8_t data1, data2;
 
     if (getbuf(buf, length, index, &data1) < 0) {
         return STATE_ERROR;
@@ -112,9 +112,9 @@ static int state_file_size(BYTE *buf, int length, int *index)
     return STATE_FIND_MARK1;
 }
 
-static int state_find_mark1(BYTE *buf, int length, int *index)
+static int state_find_mark1(uint8_t *buf, int length, int *index)
 {
-    BYTE data;
+    uint8_t data;
 
     while (1) {
         if (getbuf(buf, length, index, &data) < 0) {
@@ -132,9 +132,9 @@ static int state_find_mark1(BYTE *buf, int length, int *index)
     return STATE_FIND_MARK2;
 }
 
-static int state_find_mark2(BYTE *buf, int length, int *index)
+static int state_find_mark2(uint8_t *buf, int length, int *index)
 {
-    BYTE data, name[16];
+    uint8_t data, name[16];
     unsigned int count = 0;
 
     memset(&(currfl.name), 0, IMAGE_CONTENTS_FILE_NAME_LEN + 1);
@@ -158,9 +158,9 @@ static int state_find_mark2(BYTE *buf, int length, int *index)
     return STATE_FIND_TYPE;
 }
 
-static int state_find_type(BYTE *buf, int length, int *index)
+static int state_find_type(uint8_t *buf, int length, int *index)
 {
-    BYTE data, scratch[40];
+    uint8_t data, scratch[40];
     unsigned int count = 0;
     /*unsigned int copynum = 0;*/
 
@@ -191,7 +191,7 @@ static int state_find_type(BYTE *buf, int length, int *index)
     return STATE_LINE_END;
 }
 
-static int state_line_end(BYTE *buf, int length, int *index)
+static int state_line_end(uint8_t *buf, int length, int *index)
 {
     image_contents_file_list_t *new_list;
 
@@ -214,7 +214,7 @@ static int state_line_end(BYTE *buf, int length, int *index)
     return STATE_LINK_ADDRESS;
 }
 
-static image_contents_t *parse_directory(BYTE *buf, int length)
+static image_contents_t *parse_directory(uint8_t *buf, int length)
 {
     int index = 0, state, loop = 1;
 
@@ -265,7 +265,7 @@ static image_contents_t *parse_directory(BYTE *buf, int length)
 image_contents_t *diskcontents_iec_read(unsigned int unit)
 {
     int length;
-    BYTE *buf = NULL;
+    uint8_t *buf = NULL;
 
     length = serial_iec_lib_directory(unit, "$", &buf);
 

@@ -95,44 +95,46 @@
 #endif
 
 /* Super Snapshot configuration flags.  */
-static BYTE ramconfig = 0xff, romconfig = 9;
+static uint8_t ramconfig = 0xff, romconfig = 9;
 
 /* ---------------------------------------------------------------------*/
 
 /* some prototypes are needed */
-static BYTE supersnapshot_v4_io1_read(WORD addr);
-static void supersnapshot_v4_io1_store(WORD addr, BYTE value);
-static BYTE supersnapshot_v4_io2_read(WORD addr);
-static void supersnapshot_v4_io2_store(WORD addr, BYTE value);
+static uint8_t supersnapshot_v4_io1_read(uint16_t addr);
+static void supersnapshot_v4_io1_store(uint16_t addr, uint8_t value);
+static uint8_t supersnapshot_v4_io2_read(uint16_t addr);
+static void supersnapshot_v4_io2_store(uint16_t addr, uint8_t value);
 
 static io_source_t ss4_io1_device = {
-    CARTRIDGE_NAME_SUPER_SNAPSHOT,
-    IO_DETACH_CART,
-    NULL,
-    0xde00, 0xdeff, 0xff,
-    1, /* read is always valid */
-    supersnapshot_v4_io1_store,
-    supersnapshot_v4_io1_read,
-    NULL,
-    NULL, /* TODO: dump */
-    CARTRIDGE_SUPER_SNAPSHOT,
-    0,
-    0
+    CARTRIDGE_NAME_SUPER_SNAPSHOT, /* name of the device */
+    IO_DETACH_CART,                /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,         /* does not use a resource for detach */
+    0xde00, 0xdeff, 0xff,          /* range for the device, regs:$de00-$deff */
+    1,                             /* read is always valid */
+    supersnapshot_v4_io1_store,    /* store function */
+    NULL,                          /* NO poke function */
+    supersnapshot_v4_io1_read,     /* read function */
+    NULL,                          /* TODO: peek function */
+    NULL,                          /* TODO: device state information dump function */
+    CARTRIDGE_SUPER_SNAPSHOT,      /* cartridge ID */
+    IO_PRIO_NORMAL,                /* normal priority, device read needs to be checked for collisions */
+    0                              /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_t ss4_io2_device = {
-    CARTRIDGE_NAME_SUPER_SNAPSHOT,
-    IO_DETACH_CART,
-    NULL,
-    0xdf00, 0xdfff, 0xff,
-    0,
-    supersnapshot_v4_io2_store,
-    supersnapshot_v4_io2_read,
-    NULL,
-    NULL, /* TODO: dump */
-    CARTRIDGE_SUPER_SNAPSHOT,
-    0,
-    0
+    CARTRIDGE_NAME_SUPER_SNAPSHOT, /* name of the device */
+    IO_DETACH_CART,                /* use cartridge ID to detach the device when involved in a read-collision */
+    IO_DETACH_NO_RESOURCE,         /* does not use a resource for detach */
+    0xdf00, 0xdfff, 0xff,          /* range for the device, regs:$df00-$dfff */
+    1,                             /* read is always valid */
+    supersnapshot_v4_io2_store,    /* store function */
+    NULL,                          /* NO poke function */
+    supersnapshot_v4_io2_read,     /* read function */
+    NULL,                          /* TODO: peek function */
+    NULL,                          /* TODO: device state information dump function */
+    CARTRIDGE_SUPER_SNAPSHOT,      /* cartridge ID */
+    IO_PRIO_NORMAL,                /* normal priority, device read needs to be checked for collisions */
+    0                              /* insertion order, gets filled in by the registration function */
 };
 
 static io_source_list_t *ss4_io1_list_item = NULL;
@@ -145,20 +147,18 @@ static const export_resource_t export_res_v4 = {
 
 /* ---------------------------------------------------------------------*/
 
-BYTE supersnapshot_v4_io1_read(WORD addr)
+uint8_t supersnapshot_v4_io1_read(uint16_t addr)
 {
     return export_ram0[0x1e00 + (addr & 0xff)];
 }
 
-void supersnapshot_v4_io1_store(WORD addr, BYTE value)
+void supersnapshot_v4_io1_store(uint16_t addr, uint8_t value)
 {
     export_ram0[0x1e00 + (addr & 0xff)] = value;
 }
 
-BYTE supersnapshot_v4_io2_read(WORD addr)
+uint8_t supersnapshot_v4_io2_read(uint16_t addr)
 {
-    ss4_io2_device.io_source_valid = 1;
-
     if ((addr & 0xff) == 1) {
         return ramconfig;
     }
@@ -167,7 +167,7 @@ BYTE supersnapshot_v4_io2_read(WORD addr)
     return roml_banks[(addr & 0x1fff) + (0x2000 * roml_bank)];
 }
 
-void supersnapshot_v4_io2_store(WORD addr, BYTE value)
+void supersnapshot_v4_io2_store(uint16_t addr, uint8_t value)
 {
     DBG(("SS4: io2 w %04x %02x\n", addr, value));
 
@@ -177,7 +177,7 @@ void supersnapshot_v4_io2_store(WORD addr, BYTE value)
 #ifdef DBGSS4
         if (value & ~(0x80 | 0x08 | 0x04 | 0x02 | 0x01)) {
             DBG(("poof!\n"));
-            exit(-1);
+            archdep_vice_exit(-1);
         }
 #endif
         mode |= ((ramconfig == 0) ? CMODE_EXPORT_RAM : 0);
@@ -205,7 +205,7 @@ void supersnapshot_v4_io2_store(WORD addr, BYTE value)
 
 /* old code, remove this if the above seems to work ok */
 #if 0
-        romconfig = (BYTE)((value == 2) ? 1 : (1 | (1 << CMODE_BANK_SHIFT)));
+        romconfig = (uint8_t)((value == 2) ? 1 : (1 | (1 << CMODE_BANK_SHIFT)));
         mode = mode | ((ramconfig == 0) ? CMODE_EXPORT_RAM : 0);
         if ((value & 0x7f) == 0) {
             romconfig = 3;
@@ -223,7 +223,7 @@ void supersnapshot_v4_io2_store(WORD addr, BYTE value)
             /* mode |= CMODE_PHI2_RAM; */
         }
 #endif
-        cart_config_changed_slotmain((BYTE)(romconfig & 3), romconfig, mode);
+        cart_config_changed_slotmain((uint8_t)(romconfig & 3), romconfig, mode);
     }
     if ((addr & 0xff) == 1) {
         int mode = CMODE_WRITE;
@@ -240,13 +240,13 @@ void supersnapshot_v4_io2_store(WORD addr, BYTE value)
             romconfig &= ~(1 << 1); /* exrom */
             mode &= ~(CMODE_EXPORT_RAM);
         }
-        cart_config_changed_slotmain((BYTE)(romconfig & 3), romconfig, mode);
+        cart_config_changed_slotmain((uint8_t)(romconfig & 3), romconfig, mode);
     }
 }
 
 /* ---------------------------------------------------------------------*/
 
-BYTE supersnapshot_v4_roml_read(WORD addr)
+uint8_t supersnapshot_v4_roml_read(uint16_t addr)
 {
     if (export_ram) {
         return export_ram0[addr & 0x1fff];
@@ -255,7 +255,7 @@ BYTE supersnapshot_v4_roml_read(WORD addr)
     return roml_banks[(addr & 0x1fff) + (roml_bank << 13)];
 }
 
-void supersnapshot_v4_roml_store(WORD addr, BYTE value)
+void supersnapshot_v4_roml_store(uint16_t addr, uint8_t value)
 {
     if (export_ram) {
         export_ram0[addr & 0x1fff] = value;
@@ -274,7 +274,7 @@ void supersnapshot_v4_config_init(void)
     cart_config_changed_slotmain(1 | (1 << CMODE_BANK_SHIFT), 1 | (1 << CMODE_BANK_SHIFT), CMODE_READ);
 }
 
-void supersnapshot_v4_config_setup(BYTE *rawcart)
+void supersnapshot_v4_config_setup(uint8_t *rawcart)
 {
     memcpy(&roml_banks[0x0000], &rawcart[0x0000], 0x2000);
     memcpy(&romh_banks[0x0000], &rawcart[0x2000], 0x2000);
@@ -295,7 +295,7 @@ static int supersnapshot_v4_common_attach(void)
     return 0;
 }
 
-int supersnapshot_v4_bin_attach(const char *filename, BYTE *rawcart)
+int supersnapshot_v4_bin_attach(const char *filename, uint8_t *rawcart)
 {
     if (util_file_load(filename, rawcart, 0x8000, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
         return -1;
@@ -329,7 +329,7 @@ int supersnapshot_v4_bin_attach(const char *filename, BYTE *rawcart)
  * $004050 CHIP ROM   #001 $8000 $4000 $4010
  *
  */
-int supersnapshot_v4_crt_attach(FILE *fd, BYTE *rawcart)
+int supersnapshot_v4_crt_attach(FILE *fd, uint8_t *rawcart)
 {
     int i, pos, banks, chips;
     crt_chip_header_t chip;
@@ -438,7 +438,7 @@ int supersnapshot_v4_snapshot_write_module(snapshot_t *s)
 
 int supersnapshot_v4_snapshot_read_module(snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -448,7 +448,7 @@ int supersnapshot_v4_snapshot_read_module(snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

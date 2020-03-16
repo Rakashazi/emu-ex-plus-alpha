@@ -49,17 +49,17 @@
 #include "via.h"
 
 
-void via_store(WORD addr, BYTE data)
+void via_store(uint16_t addr, uint8_t data)
 {
     viacore_store(machine_context.via, addr, data);
 }
 
-BYTE via_read(WORD addr)
+uint8_t via_read(uint16_t addr)
 {
     return viacore_read(machine_context.via, addr);
 }
 
-BYTE via_peek(WORD addr)
+uint8_t via_peek(uint16_t addr)
 {
     return viacore_peek(machine_context.via, addr);
 }
@@ -73,7 +73,7 @@ static void set_ca2(via_context_t *via_context, int state)
 /* switching userport strobe with CB2 */
 static void set_cb2(via_context_t *via_context, int state)
 {
-    store_userport_pa2((BYTE)state);
+    store_userport_pa2((uint8_t)state);
 }
 
 static void set_int(via_context_t *via_context, unsigned int int_num,
@@ -87,41 +87,41 @@ static void restore_int(via_context_t *via_context, unsigned int int_num, int va
     interrupt_restore_irq(maincpu_int_status, int_num, value);
 }
 
-static void undump_pra(via_context_t *via_context, BYTE byte)
+static void undump_pra(via_context_t *via_context, uint8_t byte)
 {
     store_userport_pbx(byte);
 }
 
-static void store_pra(via_context_t *via_context, BYTE byte, BYTE myoldpa,
-                      WORD addr)
+static void store_pra(via_context_t *via_context, uint8_t byte, uint8_t myoldpa,
+                      uint16_t addr)
 {
     store_userport_pbx(byte);
 }
 
-static void undump_prb(via_context_t *via_context, BYTE byte)
+static void undump_prb(via_context_t *via_context, uint8_t byte)
 {
-    parallel_cpu_set_nrfd((BYTE)(!(byte & 0x02)));
-    parallel_cpu_restore_atn((BYTE)(!(byte & 0x04)));
+    parallel_cpu_set_nrfd((uint8_t)(!(byte & 0x02)));
+    parallel_cpu_restore_atn((uint8_t)(!(byte & 0x04)));
 }
 
-static void store_prb(via_context_t *via_context, BYTE byte, BYTE myoldpb,
-                      WORD addr)
+static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t myoldpb,
+                      uint16_t addr)
 {
     if ((addr == VIA_DDRB) && (via_context->via[addr] & 0x20)) {
         log_warning(via_context->log,
                     "PET: Killer POKE! might kill a real PET!\n");
     }
-    parallel_cpu_set_nrfd((BYTE)(!(byte & 0x02)));
-    parallel_cpu_set_atn((BYTE)(!(byte & 0x04)));
+    parallel_cpu_set_nrfd((uint8_t)(!(byte & 0x02)));
+    parallel_cpu_set_atn((uint8_t)(!(byte & 0x04)));
     if ((byte ^ myoldpb) & 0x8) {
         tapeport_toggle_write_bit((~(via_context->via[VIA_DDRB]) | byte) & 0x8);
     }
 }
 
-static void undump_pcr(via_context_t *via_context, BYTE byte)
+static void undump_pcr(via_context_t *via_context, uint8_t byte)
 {
 #if 0
-    register BYTE tmp = byte;
+    register uint8_t tmp = byte;
     /* first set bit 1 and 5 to the real output values */
     if ((tmp & 0x0c) != 0x0c) {
         tmp |= 0x02;
@@ -135,11 +135,11 @@ static void undump_pcr(via_context_t *via_context, BYTE byte)
     petsound_store_manual((byte & 0xe0) == 0xe0);   /* Manual control of CB2 sound */
 }
 
-static BYTE store_pcr(via_context_t *via_context, BYTE byte, WORD addr)
+static uint8_t store_pcr(via_context_t *via_context, uint8_t byte, uint16_t addr)
 {
 #if 0
     if (byte != via_context->via[VIA_PCR]) {
-        register BYTE tmp = byte;
+        register uint8_t tmp = byte;
         /* first set bit 1 and 5 to the real output values */
         if ((tmp & 0x0c) != 0x0c) {
             tmp |= 0x02;
@@ -156,24 +156,24 @@ static BYTE store_pcr(via_context_t *via_context, BYTE byte, WORD addr)
     return byte;
 }
 
-static void undump_acr(via_context_t *via_context, BYTE byte)
+static void undump_acr(via_context_t *via_context, uint8_t byte)
 {
     petsound_store_onoff(via_context->via[VIA_T2LL]
                          ? (((byte & 0x1c) == 0x10) ? 1 : 0) : 0);
 }
 
-static void store_acr(via_context_t *via_context, BYTE byte)
+static void store_acr(via_context_t *via_context, uint8_t byte)
 {
     petsound_store_onoff(via_context->via[VIA_T2LL]
                          ? (((byte & 0x1c) == 0x10) ? 1 : 0) : 0);
 }
 
-static void store_sr(via_context_t *via_context, BYTE byte)
+static void store_sr(via_context_t *via_context, uint8_t byte)
 {
     petsound_store_sample(byte);
 }
 
-static void store_t2l(via_context_t *via_context, BYTE byte)
+static void store_t2l(via_context_t *via_context, uint8_t byte)
 {
     petsound_store_rate(2 * byte + 4);
     if (!byte) {
@@ -194,11 +194,11 @@ static void reset(via_context_t *via_context)
     store_userport_pa2(1);
 }
 
-inline static BYTE read_pra(via_context_t *via_context, WORD addr)
+inline static uint8_t read_pra(via_context_t *via_context, uint16_t addr)
 {
-    BYTE byte = 0xff;
+    uint8_t byte = 0xff;
 
-    byte = read_userport_pbx((BYTE)~via_context->via[VIA_DDRA], byte);
+    byte = read_userport_pbx((uint8_t)~via_context->via[VIA_DDRA], byte);
 
     /* The functions below will gradually be removed as the functionality is added to the new userport system. */
 
@@ -209,9 +209,9 @@ inline static BYTE read_pra(via_context_t *via_context, WORD addr)
     return byte;
 }
 
-static BYTE read_prb(via_context_t *via_context)
+static uint8_t read_prb(via_context_t *via_context)
 {
-    BYTE byte;
+    uint8_t byte;
 
     drive_cpu_execute_all(maincpu_clk);
 
@@ -235,12 +235,12 @@ void via_init(via_context_t *via_context)
                  maincpu_int_status, maincpu_clk_guard);
 }
 
-void petvia_setup_context(machine_context_t *machine_context)
+void petvia_setup_context(machine_context_t *machinecontext)
 {
     via_context_t *via;
 
-    machine_context->via = lib_malloc(sizeof(via_context_t));
-    via = machine_context->via;
+    machinecontext->via = lib_malloc(sizeof(via_context_t));
+    via = machinecontext->via;
 
     via->prv = NULL;
     via->context = NULL;

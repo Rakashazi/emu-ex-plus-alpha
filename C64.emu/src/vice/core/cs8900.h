@@ -24,9 +24,11 @@
  *
  */
 
-#ifndef HAVE_PCAP
-  #error CS8900.H should not be included if HAVE_PCAP is not defined!
-#endif /* #ifdef HAVE_PCAP */
+#include <stdint.h>
+
+#ifndef HAVE_RAWNET
+  #error CS8900.H should not be included if HAVE_RAWNET is not defined!
+#endif /* #ifdef HAVE_RAWNET */
 
 #ifndef VICE_CS8900_H
 #define VICE_CS8900_H
@@ -44,9 +46,9 @@ extern int cs8900_activate(const char *net_interface);
 extern int cs8900_deactivate(void);
 extern void cs8900_shutdown(void);
 
-extern BYTE cs8900_read(WORD io_address);
-extern BYTE cs8900_peek(WORD io_address);
-extern void cs8900_store(WORD io_address, BYTE byte);
+extern uint8_t cs8900_read(uint16_t io_address);
+extern uint8_t cs8900_peek(uint16_t io_address);
+extern void cs8900_store(uint16_t io_address, uint8_t byte);
 extern int cs8900_dump(void);
 
 /*

@@ -75,19 +75,19 @@
 #define setb(a, b, c) {result[(a) * 2 + (b) / 8] |= (c) ? (1 << ((b) & 7)) : 0; }
 
 struct ata_drive_s {
-    BYTE error;
-    BYTE features;
-    BYTE sector_count, sector_count_internal;
-    BYTE sector;
-    WORD cylinder;
-    BYTE head;
+    uint8_t error;
+    uint8_t features;
+    uint8_t sector_count, sector_count_internal;
+    uint8_t sector;
+    uint16_t cylinder;
+    uint8_t head;
     int lba, dev, legacy;
-    BYTE control;
-    BYTE cmd;
-    BYTE power;
-    BYTE packet[12];
+    uint8_t control;
+    uint8_t cmd;
+    uint8_t power;
+    uint8_t packet[12];
     int bufp;
-    BYTE *buffer;
+    uint8_t *buffer;
     FILE *file;
     char *filename;
     char *myname;
@@ -114,7 +114,7 @@ struct ata_drive_s {
     CLOCK cycles_1s;
 };
 
-static const BYTE identify[128] = {
+static const uint8_t identify[128] = {
     0x40, 0x00, 0x00, 0x01, 0x00, 0x00, 0x04, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x30, 0x32, 0x31, 0x31,
@@ -136,7 +136,7 @@ static const BYTE identify[128] = {
     0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-static void ident_update_string(BYTE *b, char *s, int n)
+static void ident_update_string(uint8_t *b, char *s, int n)
 {
     int i;
 
@@ -146,7 +146,7 @@ static void ident_update_string(BYTE *b, char *s, int n)
     }
 }
 
-static void ata_change_power_mode(ata_drive_t *drv, BYTE value)
+static void ata_change_power_mode(ata_drive_t *drv, uint8_t value)
 {
     if (drv->power == 0x00 && value != 0x00) {
         drv->busy |= 1;
@@ -349,7 +349,7 @@ static int write_sector(ata_drive_t *drv)
 
 void ata_reset(ata_drive_t *drv)
 {
-    BYTE oldcmd = drv->cmd;
+    uint8_t oldcmd = drv->cmd;
 
     drive_diag(drv);
 
@@ -574,9 +574,9 @@ void ata_shutdown(ata_drive_t *drv)
     lib_free(drv);
 }
 
-static void ata_execute_command(ata_drive_t *drv, BYTE value)
+static void ata_execute_command(ata_drive_t *drv, uint8_t value)
 {
-    BYTE result[512];
+    uint8_t result[512];
     int i;
 
     if (drv->cmd == 0xe6) {
@@ -857,9 +857,9 @@ static void ata_execute_command(ata_drive_t *drv, BYTE value)
     return;
 }
 
-static void atapi_execute_command(ata_drive_t *drv, BYTE value)
+static void atapi_execute_command(ata_drive_t *drv, uint8_t value)
 {
-    BYTE result[512];
+    uint8_t result[512];
     int i;
 
     if (drv->cmd == 0xe6 && value != 0x08) {
@@ -947,7 +947,7 @@ static void atapi_execute_command(ata_drive_t *drv, BYTE value)
 
 static void atapi_packet_execute_command(ata_drive_t *drv)
 {
-    BYTE result[12];
+    uint8_t result[12];
     int len;
 
     drv->bufp = drv->sector_size;
@@ -1051,9 +1051,9 @@ static void atapi_packet_execute_command(ata_drive_t *drv)
     return;
 }
 
-WORD ata_register_read(ata_drive_t *drv, WORD addr, WORD bus)
+uint16_t ata_register_read(ata_drive_t *drv, uint16_t addr, uint16_t bus)
 {
-    WORD res;
+    uint16_t res;
 
     if (drv->type == ATA_DRIVE_NONE) {
         return bus;
@@ -1149,7 +1149,7 @@ WORD ata_register_read(ata_drive_t *drv, WORD addr, WORD bus)
     }
 }
 
-WORD ata_register_peek(ata_drive_t *drv, WORD addr)
+uint16_t ata_register_peek(ata_drive_t *drv, uint16_t addr)
 {
     if (addr == 0) {
         return 0;
@@ -1161,17 +1161,17 @@ WORD ata_register_peek(ata_drive_t *drv, WORD addr)
 }
 
 
-void ata_register_store(ata_drive_t *drv, WORD addr, WORD value)
+void ata_register_store(ata_drive_t *drv, uint16_t addr, uint16_t value)
 {
     if (drv->type == ATA_DRIVE_NONE) {
         return;
     }
-    if (addr != 0 && addr != 14 && !(addr == 7 && drv->atapi && (BYTE)value == 0x08)) {
+    if (addr != 0 && addr != 14 && !(addr == 7 && drv->atapi && (uint8_t)value == 0x08)) {
         if (drv->busy || drv->bufp < drv->sector_size) {
             return;
         }
     }
-    if (drv->cmd == 0xe6 && addr != 14 && !(addr == 6 && drv->atapi) && !(addr == 7 && drv->atapi && (BYTE)value == 0x08)) {
+    if (drv->cmd == 0xe6 && addr != 14 && !(addr == 6 && drv->atapi) && !(addr == 7 && drv->atapi && (uint8_t)value == 0x08)) {
         return;
     }
     switch (addr) {
@@ -1217,13 +1217,13 @@ void ata_register_store(ata_drive_t *drv, WORD addr, WORD value)
             }
             return;
         case 1:
-            drv->features = (BYTE)value;
+            drv->features = (uint8_t)value;
             return;
         case 2:
-            drv->sector_count = (BYTE)value;
+            drv->sector_count = (uint8_t)value;
             return;
         case 3:
-            drv->sector = (BYTE)value;
+            drv->sector = (uint8_t)value;
             return;
         case 4:
             drv->cylinder = (drv->cylinder & 0xff00) | (value & 0xff);
@@ -1240,11 +1240,11 @@ void ata_register_store(ata_drive_t *drv, WORD addr, WORD value)
             }
             return;
         case 7:
-            if (drv->dev == drv->slave || (BYTE)value == 0x90) {
+            if (drv->dev == drv->slave || (uint8_t)value == 0x90) {
                 if (drv->atapi) {
-                    atapi_execute_command(drv, (BYTE)value);
+                    atapi_execute_command(drv, (uint8_t)value);
                 } else {
-                    ata_execute_command(drv, (BYTE)value);
+                    ata_execute_command(drv, (uint8_t)value);
                 }
             }
             return;
@@ -1254,7 +1254,7 @@ void ata_register_store(ata_drive_t *drv, WORD addr, WORD value)
                 ata_reset(drv);
                 debug((drv->log, "SOFTWARE RESET"));
             }
-            drv->control = (BYTE)value;
+            drv->control = (uint8_t)value;
             return;
     }
     return;
@@ -1308,9 +1308,13 @@ void ata_image_attach(ata_drive_t *drv, char *filename, ata_drive_type_t type, a
 
     if (drv->file) {
         if (drv->atapi) {
-            log_message(drv->log, "Attached `%s' %u sectors total.", drv->filename, drv->geometry.size);
+            log_message(drv->log, "Attached `%s' %u sectors total.",
+                    drv->filename, (unsigned int)drv->geometry.size);
         } else {
-            log_message(drv->log, "Attached `%s' %i/%i/%i CHS geometry, %u sectors total.", drv->filename, drv->geometry.cylinders, drv->geometry.heads, drv->geometry.sectors, drv->geometry.size);
+            log_message(drv->log,
+                    "Attached `%s' %i/%i/%i CHS geometry, %u sectors total.",
+                    drv->filename, drv->geometry.cylinders, drv->geometry.heads,
+                    drv->geometry.sectors, (unsigned int)drv->geometry.size);
         }
     } else {
         if (drv->filename && drv->filename[0] && drv->type != ATA_DRIVE_NONE) {
@@ -1371,9 +1375,9 @@ int ata_register_dump(ata_drive_t *drv)
 int ata_snapshot_write_module(ata_drive_t *drv, snapshot_t *s)
 {
     snapshot_module_t *m;
-    DWORD spindle_clk = CLOCK_MAX;
-    DWORD head_clk = CLOCK_MAX;
-    DWORD standby_clk = CLOCK_MAX;
+    uint32_t spindle_clk = CLOCK_MAX;
+    uint32_t head_clk = CLOCK_MAX;
+    uint32_t standby_clk = CLOCK_MAX;
     off_t pos = 0;
 
     m = snapshot_module_create(s, drv->myname,
@@ -1400,9 +1404,9 @@ int ata_snapshot_write_module(ata_drive_t *drv, snapshot_t *s)
 
     SMW_STR(m, drv->filename);
     SMW_DW(m, drv->type);
-    SMW_W(m, (WORD)drv->geometry.cylinders);
-    SMW_B(m, (BYTE)drv->geometry.heads);
-    SMW_B(m, (BYTE)drv->geometry.sectors);
+    SMW_W(m, (uint16_t)drv->geometry.cylinders);
+    SMW_B(m, (uint8_t)drv->geometry.heads);
+    SMW_B(m, (uint8_t)drv->geometry.sectors);
     SMW_DW(m, drv->geometry.size);
     SMW_B(m, drv->error);
     SMW_B(m, drv->features);
@@ -1410,21 +1414,21 @@ int ata_snapshot_write_module(ata_drive_t *drv, snapshot_t *s)
     SMW_B(m, drv->sector_count_internal);
     SMW_B(m, drv->sector);
     SMW_W(m, drv->cylinder);
-    SMW_B(m, (BYTE)(drv->head | (drv->dev << 4) | (drv->lba << 6) | drv->legacy));
+    SMW_B(m, (uint8_t)(drv->head | (drv->dev << 4) | (drv->lba << 6) | drv->legacy));
     SMW_B(m, drv->control);
     SMW_B(m, drv->cmd);
     SMW_B(m, drv->power);
     SMW_BA(m, drv->packet, sizeof(drv->packet));
-    SMW_W(m, (WORD)drv->bufp);
+    SMW_W(m, (uint16_t)drv->bufp);
     SMW_BA(m, drv->buffer, drv->sector_size);
-    SMW_W(m, (WORD)drv->cylinders);
-    SMW_B(m, (BYTE)drv->heads);
-    SMW_B(m, (BYTE)drv->sectors);
+    SMW_W(m, (uint16_t)drv->cylinders);
+    SMW_B(m, (uint8_t)drv->heads);
+    SMW_B(m, (uint8_t)drv->sectors);
     SMW_DW(m, drv->pos);
     SMW_DW(m, pos / drv->sector_size);
-    SMW_B(m, (BYTE)drv->wcache);
-    SMW_B(m, (BYTE)drv->lookahead);
-    SMW_B(m, (BYTE)drv->busy);
+    SMW_B(m, (uint8_t)drv->wcache);
+    SMW_B(m, (uint8_t)drv->lookahead);
+    SMW_B(m, (uint8_t)drv->busy);
     SMW_DW(m, spindle_clk);
     SMW_DW(m, head_clk);
     SMW_DW(m, standby_clk);
@@ -1436,12 +1440,12 @@ int ata_snapshot_write_module(ata_drive_t *drv, snapshot_t *s)
 
 int ata_snapshot_read_module(ata_drive_t *drv, snapshot_t *s)
 {
-    BYTE vmajor, vminor;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
     char *filename = NULL;
-    DWORD spindle_clk;
-    DWORD head_clk;
-    DWORD standby_clk;
+    uint32_t spindle_clk;
+    uint32_t head_clk;
+    uint32_t standby_clk;
     int pos, type;
 
     m = snapshot_module_open(s, drv->myname, &vmajor, &vminor);

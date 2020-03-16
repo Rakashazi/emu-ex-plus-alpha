@@ -33,22 +33,18 @@
 #include "lib.h"
 #include "machine.h"
 #include "resources.h"
-#include "translate.h"
 #include "util.h"
 #include "video.h"
 
 #ifdef HAVE_HWSCALE
-static cmdline_option_t cmdline_options[] = {
-    { "-hwscalepossible", SET_RESOURCE, 0,
+static cmdline_option_t cmdline_options[] =
+{
+    { "-hwscalepossible", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "HwScalePossible", (resource_value_t)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_HWSCALE_POSSIBLE,
-      NULL, NULL },
-    { "+hwscalepossible", SET_RESOURCE, 0,
+      NULL, "Enable the possibility of hardware scaling" },
+    { "+hwscalepossible", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "HwScalePossible", (resource_value_t)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_HWSCALE_POSSIBLE,
-      NULL, NULL },
+      NULL, "Disable the possibility of hardware scaling" },
     CMDLINE_LIST_END
 };
 #endif
@@ -74,16 +70,12 @@ static const char *cname_chip_size[] =
 
 static cmdline_option_t cmdline_options_chip_size[] =
 {
-    { NULL, SET_RESOURCE, 0,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_DOUBLE_SIZE,
-      NULL, NULL },
-    { NULL, SET_RESOURCE, 0,
+      NULL, "Enable double size" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_DOUBLE_SIZE,
-      NULL, NULL },
+      NULL, "Disable double size" },
     CMDLINE_LIST_END
 };
 
@@ -96,16 +88,12 @@ static const char *cname_chip_scan[] =
 
 static cmdline_option_t cmdline_options_chip_scan[] =
 {
-    { NULL, SET_RESOURCE, 0,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_DOUBLE_SCAN,
-      NULL, NULL },
-    { NULL, SET_RESOURCE, 0,
+      NULL, "Enable double scan" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_DOUBLE_SCAN,
-      NULL, NULL },
+      NULL, "Disable double scan" },
     CMDLINE_LIST_END
 };
 
@@ -118,16 +106,12 @@ static const char *cname_chip_audioleak[] =
 
 static cmdline_option_t cmdline_options_chip_audioleak[] =
 {
-    { NULL, SET_RESOURCE, 0,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_AUDIO_LEAK,
-      NULL, NULL },
-    { NULL, SET_RESOURCE, 0,
+      NULL, "Enable audio leak emulation" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_AUDIO_LEAK,
-      NULL, NULL },
+      NULL, "Disable audio leak emulation" },
     CMDLINE_LIST_END
 };
 
@@ -140,16 +124,12 @@ static const char *cname_chip_hwscale[] =
 
 static cmdline_option_t cmdline_options_chip_hwscale[] =
 {
-    { NULL, SET_RESOURCE, 0,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_ENABLE_HARDWARE_SCALING,
-      NULL, NULL },
-    { NULL, SET_RESOURCE, 0,
+      NULL, "Enable hardware scaling" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_DISABLE_HARDWARE_SCALING,
-      NULL, NULL },
+      NULL, "Disable hardware scaling" },
     CMDLINE_LIST_END
 };
 
@@ -161,11 +141,9 @@ static const char *cname_chip_render_filter[] =
 
 static cmdline_option_t cmdline_options_chip_render_filter[] =
 {
-    { NULL, SET_RESOURCE, 1,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_MODE, IDCLS_SET_VIDEO_FILTER,
-      NULL, NULL },
+      "<Mode>", "Select rendering filter: (0: none, 1: CRT emulation, 2: scale2x)" },
     CMDLINE_LIST_END
 };
 
@@ -178,16 +156,12 @@ static const char *cname_chip_internal_palette[] =
 
 static cmdline_option_t cmdline_options_chip_internal_palette[] =
 {
-    { NULL, SET_RESOURCE, 0,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_INTERNAL_CALC_PALETTE,
-      NULL, NULL },
-    { NULL, SET_RESOURCE, 0,
+      NULL, "Use an internal calculated palette" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_USE_EXTERNAL_FILE_PALETTE,
-      NULL, NULL },
+      NULL, "Use an external palette (file)" },
     CMDLINE_LIST_END
 };
 
@@ -199,11 +173,9 @@ static const char *cname_chip_palette[] =
 
 static cmdline_option_t cmdline_options_chip_palette[] =
 {
-    { NULL, SET_RESOURCE, 1,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_NAME, IDCLS_SPECIFY_EXTERNAL_PALETTE_NAME,
-      NULL, NULL },
+      "<Name>", "Specify name of file of external palette" },
     CMDLINE_LIST_END
 };
 
@@ -220,22 +192,16 @@ static const char *cname_chip_fullscreen[] =
 static cmdline_option_t cmdline_options_chip_fullscreen[] =
 {
 #if defined(USE_SDLUI) || defined(USE_SDLUI2)
-    { NULL, SET_RESOURCE, 0,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)1,
-      USE_PARAM_STRING, USE_DESCRIPTION_STRING,
-      IDCLS_UNUSED, IDCLS_UNUSED,
       NULL, "Enable fullscreen" },
-    { NULL, SET_RESOURCE, 0,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, NULL, (void *)0,
-      USE_PARAM_STRING, USE_DESCRIPTION_STRING,
-      IDCLS_UNUSED, IDCLS_UNUSED,
       NULL, "Disable fullscreen" },
 #endif
-    { NULL, SET_RESOURCE, 1,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_DEVICE, IDCLS_SELECT_FULLSCREEN_DEVICE,
-      NULL, NULL },
+      "<device>", "Select fullscreen device" },
     CMDLINE_LIST_END
 };
 
@@ -247,11 +213,9 @@ static const char *cname_chip_fullscreen_mode[] =
 
 static cmdline_option_t cmdline_options_chip_fullscreen_mode[] =
 {
-    { NULL, SET_RESOURCE, 1,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_ID, USE_DESCRIPTION_ID,
-      IDCLS_P_MODE, IDCLS_SELECT_FULLSCREEN_MODE,
-      NULL, NULL },
+      "<Mode>", "Select fullscreen mode" },
     CMDLINE_LIST_END
 };
 
@@ -267,31 +231,21 @@ static const char *cname_chip_colors[] =
 
 static cmdline_option_t cmdline_options_chip_colors[] =
 {
-    { NULL, SET_RESOURCE, 1,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_SATURATION,
-      "<0-2000>", NULL },
-    { NULL, SET_RESOURCE, 1,
+      "<0-2000>", "Set saturation of internal calculated palette" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_CONTRAST,
-      "<0-2000>", NULL },
-    { NULL, SET_RESOURCE, 1,
+      "<0-2000>", "Set contrast of internal calculated palette" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_BRIGHTNESS,
-      "<0-2000>", NULL },
-    { NULL, SET_RESOURCE, 1,
+      "<0-2000>", "Set brightness of internal calculated palette" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_GAMMA,
-      "<0-4000>", NULL },
-    { NULL, SET_RESOURCE, 1,
+      "<0-4000>", "Set gamma of internal calculated palette" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_TINT,
-      "<0-2000>", NULL },
+      "<0-2000>", "Set tint of internal calculated palette" },
     CMDLINE_LIST_END
 };
 
@@ -311,31 +265,23 @@ static const char *cname_chip_crtemu[] =
 
 static cmdline_option_t cmdline_options_chip_crtemu_palntsc[] =
 {
-    { NULL, SET_RESOURCE, 1,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_ODDLINES_PHASE,
-      "<0-2000>", NULL },
-    { NULL, SET_RESOURCE, 1,
+      "<0-2000>", "Set phase for color carrier in odd lines" },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_ODDLINES_OFFSET,
-      "<0-2000>", NULL },
+      "<0-2000>", "Set phase offset for color carrier in odd lines" },
     CMDLINE_LIST_END
 };
 
 static cmdline_option_t cmdline_options_chip_crtemu[] =
 {
-    { NULL, SET_RESOURCE, 1,
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_BLUR,
-      "<0-1000>", NULL },
-    { NULL, SET_RESOURCE, 1,
+      "<0-1000>", "Amount of horizontal blur for the CRT emulation." },
+    { NULL, SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, NULL, NULL,
-      USE_PARAM_STRING, USE_DESCRIPTION_ID,
-      IDCLS_UNUSED, IDCLS_SET_SCANLINE_SHADE,
-      "<0-1000>", NULL },
+      "<0-1000>", "Amount of scan line shading for the CRT emulation" },
     CMDLINE_LIST_END
 };
 

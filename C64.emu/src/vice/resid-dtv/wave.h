@@ -31,7 +31,7 @@
 
 #include "bittrain.h"
 
-namespace reSID
+namespace reSID_dtv
 {
 
 // ----------------------------------------------------------------------------
@@ -260,6 +260,6 @@ unsigned int WaveformGenerator::output()
 
 #endif // RESID_INLINING || defined(__WAVE_CC__)
 
-} // namespace reSID
+} // namespace reSID_dtv
 
 #endif // not __WAVE_H__

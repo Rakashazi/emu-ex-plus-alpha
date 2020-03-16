@@ -43,29 +43,29 @@
 /* FIXME get rid of this */
 #define MMCREPLAY_EEPROM_SIZE (1024)
 
-extern BYTE mmcreplay_roml_read(WORD addr);
-extern void mmcreplay_roml_store(WORD addr, BYTE value);
-extern BYTE mmcreplay_romh_read(WORD addr);
-extern void mmcreplay_romh_store(WORD addr, BYTE value);
+extern uint8_t mmcreplay_roml_read(uint16_t addr);
+extern void mmcreplay_roml_store(uint16_t addr, uint8_t value);
+extern uint8_t mmcreplay_romh_read(uint16_t addr);
+extern void mmcreplay_romh_store(uint16_t addr, uint8_t value);
 
-extern BYTE mmcreplay_1000_7fff_read(WORD addr);
-extern void mmcreplay_1000_7fff_store(WORD addr, BYTE value);
-extern BYTE mmcreplay_a000_bfff_read(WORD addr);
-extern void mmcreplay_a000_bfff_store(WORD addr, BYTE value);
-extern BYTE mmcreplay_c000_cfff_read(WORD addr);
-extern void mmcreplay_c000_cfff_store(WORD addr, BYTE value);
+extern uint8_t mmcreplay_1000_7fff_read(uint16_t addr);
+extern void mmcreplay_1000_7fff_store(uint16_t addr, uint8_t value);
+extern uint8_t mmcreplay_a000_bfff_read(uint16_t addr);
+extern void mmcreplay_a000_bfff_store(uint16_t addr, uint8_t value);
+extern uint8_t mmcreplay_c000_cfff_read(uint16_t addr);
+extern void mmcreplay_c000_cfff_store(uint16_t addr, uint8_t value);
 
-extern int mmcreplay_romh_phi1_read(WORD addr, BYTE *value);
-extern int mmcreplay_romh_phi2_read(WORD addr, BYTE *value);
+extern int mmcreplay_romh_phi1_read(uint16_t addr, uint8_t *value);
+extern int mmcreplay_romh_phi2_read(uint16_t addr, uint8_t *value);
 
 extern void mmcreplay_freeze(void);
 extern int mmcreplay_freeze_allowed(void);
 
 extern void mmcreplay_config_init(void);
 extern void mmcreplay_reset(void);
-extern void mmcreplay_config_setup(BYTE *rawcart);
-extern int mmcreplay_bin_attach(const char *filename, BYTE *rawcart);
-extern int mmcreplay_crt_attach(FILE *fd, BYTE *rawcart, const char *filename);
+extern void mmcreplay_config_setup(uint8_t *rawcart);
+extern int mmcreplay_bin_attach(const char *filename, uint8_t *rawcart);
+extern int mmcreplay_crt_attach(FILE *fd, uint8_t *rawcart, const char *filename);
 extern void mmcreplay_detach(void);
 extern int mmcreplay_flush_image(void);
 extern int mmcreplay_bin_save(const char *filename);

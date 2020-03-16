@@ -32,7 +32,8 @@
 
 #include "joyport.h"
 #include "keyboard.h"
-#include "translate.h"
+
+#include "cx21.h"
 
 /* Control port <--> CX21 keypad connections:
 
@@ -95,14 +96,15 @@ key pin pin comments
 #define KEYPAD_KEY_0      10
 #define KEYPAD_KEY_MULT   11
 
+#define KEYPAD_NUM_KEYS   12
+
 static int cx21_enabled = 0;
 
-static unsigned int keys[12];
-static BYTE port = 0;
+static unsigned int keys[KEYPAD_NUM_KEYS];
+static uint8_t port = 0;
 
 /* ------------------------------------------------------------------------- */
 
-#ifdef COMMON_KBD
 static void handle_keys(int row, int col, int pressed)
 {
     if (row < 0 || row > 3 || col < 1 || col > 3) {
@@ -111,11 +113,10 @@ static void handle_keys(int row, int col, int pressed)
 
     keys[(row * 3) + col - 1] = (unsigned int)pressed;
 }
-#endif
 
 /* ------------------------------------------------------------------------- */
 
-static int joyport_cx21_enable(int port, int value)
+static int joyport_cx21_enable(int prt, int value)
 {
     int val = value ? 1 : 0;
 
@@ -124,14 +125,10 @@ static int joyport_cx21_enable(int port, int value)
     }
 
     if (val) {
-        memset(keys, 0, 12);
-#ifdef COMMON_KBD
+        memset(keys, 0, KEYPAD_NUM_KEYS * sizeof(unsigned int));
         keyboard_register_joy_keypad(handle_keys);
-#endif
     } else {
-#ifdef COMMON_KBD
         keyboard_register_joy_keypad(NULL);
-#endif
     }
 
     cx21_enabled = val;
@@ -139,9 +136,9 @@ static int joyport_cx21_enable(int port, int value)
     return 0;
 }
 
-static BYTE cx21_read_dig(int p)
+static uint8_t cx21_read_dig(int p)
 {
-    BYTE retval = 0;
+    uint8_t retval = 0;
 
     if (keys[KEYPAD_KEY_3]) {
         if (port & 1) {
@@ -167,17 +164,17 @@ static BYTE cx21_read_dig(int p)
         }
     }
 
-    joyport_display_joyport(JOYPORT_ID_CX21_KEYPAD, (BYTE)retval);
+    joyport_display_joyport(JOYPORT_ID_CX21_KEYPAD, (uint8_t)retval);
 
-    return (BYTE)~retval;
+    return (uint8_t)~retval;
 }
 
-static void cx21_store_dig(BYTE val)
+static void cx21_store_dig(uint8_t val)
 {
-    port = (BYTE)~val;
+    port = (uint8_t)~val;
 }
 
-static BYTE cx21_read_potx(void)
+static uint8_t cx21_read_potx(void)
 {
     if (keys[KEYPAD_KEY_2]) {
         if (port & 1) {
@@ -206,7 +203,7 @@ static BYTE cx21_read_potx(void)
     return 0xff;
 }
 
-static BYTE cx21_read_poty(void)
+static uint8_t cx21_read_poty(void)
 {
     if (keys[KEYPAD_KEY_1]) {
         if (port & 1) {
@@ -238,18 +235,17 @@ static BYTE cx21_read_poty(void)
 /* ------------------------------------------------------------------------- */
 
 static joyport_t joyport_cx21_device = {
-    "Atari CX21 keypad",
-    IDGS_CX21,
-    JOYPORT_RES_ID_KEYPAD,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_REQUIRED,
-    joyport_cx21_enable,
-    cx21_read_dig,
-    cx21_store_dig,
-    cx21_read_potx,
-    cx21_read_poty,
-    NULL,               /* no write snapshot */
-    NULL                /* no read snapshot */
+    "Atari CX21 keypad",     /* name of the device */
+    JOYPORT_RES_ID_KEYPAD,   /* device is a keypad, only 1 keypad can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN, /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,    /* device uses the potentiometer lines */
+    joyport_cx21_enable,     /* device enable function */
+    cx21_read_dig,           /* digital line read function */
+    cx21_store_dig,          /* digital line store function */
+    cx21_read_potx,          /* pot-x read function */
+    cx21_read_poty,          /* pot-y read function */
+    NULL,                    /* NO device write snapshot function */
+    NULL                     /* NO device read snapshot function */
 };
 
 /* ------------------------------------------------------------------------- */

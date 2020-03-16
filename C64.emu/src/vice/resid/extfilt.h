@@ -95,7 +95,7 @@ void ExternalFilter::clock(short Vi)
   // Vhp = Vhp + w0hp*(Vlp - Vhp)*delta_t;
   // Vo  = Vlp - Vhp;
 
-  int dVlp = w0lp_1_s7*((Vi << 11) - Vlp) >> 7;
+  int dVlp = w0lp_1_s7*int((unsigned(Vi) << 11) - unsigned(Vlp)) >> 7;
   int dVhp = w0hp_1_s17*(Vlp - Vhp) >> 17;
   Vlp += dVlp;
   Vhp += dVhp;

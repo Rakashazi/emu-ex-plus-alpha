@@ -51,7 +51,8 @@
 /* chroma angles in UV space */
 
 #define ANGLE_RED        112.5f
-#define ANGLE_GRN       -135.0f
+/* #define ANGLE_GRN       -135.0f */ /* old pepto */
+#define ANGLE_GRN       -112.5f /* new pepto ("colodore") */
 #define ANGLE_BLU          0.0f
 #define ANGLE_ORN        -45.0f /* negative orange (orange is at +135.0 degree)
 */
@@ -201,6 +202,7 @@ static video_cbm_color_t vicii_colors_6569r3[VICII_NUM_COLORS] =
 /******************************************************************************/
 
 /* new luminances */
+/*
 #define LUMN0     0.0f
 #define LUMN1    56.0f
 #define LUMN2    74.0f
@@ -210,12 +212,33 @@ static video_cbm_color_t vicii_colors_6569r3[VICII_NUM_COLORS] =
 #define LUMN6   163.0f
 #define LUMN7   199.0f
 #define LUMN8   256.0f
+*/
+
+/* new pepto ("colodore") */
+#define LUMN0     0.0f
+#define LUMN1    64.0f
+#define LUMN2    80.0f
+#define LUMN3    96.0f
+#define LUMN4   120.0f
+#define LUMN5   128.0f
+#define LUMN6   160.0f
+#define LUMN7   192.0f
+#define LUMN8   256.0f
 
 /* old luminances */
+/*
 #define LUMO0     0.0f
 #define LUMO1    56.0f
 #define LUMO2   128.0f
 #define LUMO3   191.0f
+#define LUMO4   256.0f
+*/
+
+/* new pepto ("colodore") */
+#define LUMO0     0.0f
+#define LUMO1    64.0f
+#define LUMO2   128.0f
+#define LUMO3   192.0f
 #define LUMO4   256.0f
 
 /* very old vic-ii palette with less luminances */

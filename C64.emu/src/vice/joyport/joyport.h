@@ -64,8 +64,10 @@
 #define JOYPORT_ID_CX21_KEYPAD        25
 #define JOYPORT_ID_SCRIPT64_DONGLE    26
 #define JOYPORT_ID_VIZAWRITE64_DONGLE 27
+#define JOYPORT_ID_WAASOFT_DONGLE     28
+#define JOYPORT_ID_SNESPAD            29
 
-#define JOYPORT_MAX_DEVICES           28
+#define JOYPORT_MAX_DEVICES           30
 
 #define JOYPORT_RES_ID_NONE        0
 #define JOYPORT_RES_ID_MOUSE       1
@@ -75,12 +77,16 @@
 #define JOYPORT_RES_ID_PAPERCLIP64 5
 #define JOYPORT_RES_ID_SCRIPT64    6
 #define JOYPORT_RES_ID_VIZAWRITE64 7
+#define JOYPORT_RES_ID_WAASOFT     8
 
-#define JOYPORT_1    0	/* c64/c128/c64dtv/cbm5x0/plus4 control port 1, vic20 control port */
-#define JOYPORT_2    1	/* c64/c128/c64dtv/cbm5x0/plus4 control port 2 */
-#define JOYPORT_3    2	/* c64/c128/c64dtv/cbm2/pet/plus4/vic20 userport joy adapter port 1 */
-#define JOYPORT_4    3	/* c64/c128/cbm2/pet/plus4/vic20 userport joy adapter port 2 */
-#define JOYPORT_5    4	/* plus4 sidcart control port */
+#define JOYPORT_1   0   /**< c64/c128/c64dtv/scpu64/cbm5x0/plus4 control port 1,
+                             vic20 control port */
+#define JOYPORT_2   1   /**< c64/c128/c64dtv/scpu64/cbm5x0/plus4 control port 2 */
+#define JOYPORT_3   2   /**< c64/c128/c64dtv/scpu64/cbm2/pet/plus4/vic20 userport
+                             joystick adapter port 1 */
+#define JOYPORT_4   3   /**< c64/c128/scpu64/cbm2/pet/plus4/vic20 userport
+                             joystick adapter port 2 */
+#define JOYPORT_5   4   /**< plus4 sidcart control port */
 
 #define JOYPORT_MAX_PORTS     5
 
@@ -90,41 +96,40 @@
 #define JOYPORT_POT_REQUIRED   0
 #define JOYPORT_POT_OPTIONAL   1
 
+/* this structure is used for control port devices */
 typedef struct joyport_s {
-    char *name;
-    int trans_name;
-    int resource_id;
-    int is_lp;
-    int pot_optional;
-    int (*enable)(int port, int val);
-    BYTE (*read_digital)(int port);
-    void (*store_digital)(BYTE val);
-    BYTE (*read_potx)(void);
-    BYTE (*read_poty)(void);
-    int (*write_snapshot)(struct snapshot_s *s, int port);
-    int (*read_snapshot)(struct snapshot_s *s, int port);
+    char *name;                                            /* name of the device */
+    int resource_id;                                       /* type of device, to determine if there can be multiple instances of the type of device */
+    int is_lp;                                             /* flag to indicate the device is a lightpen */
+    int pot_optional;                                      /* flag to indicate that the device can work without a potentiometer */
+    int (*enable)(int port, int val);                      /* pointer to the device enable function */
+    uint8_t (*read_digital)(int port);                     /* pointer to the device digital lines read function */
+    void (*store_digital)(uint8_t val);                    /* pointer to the device digital lines store function */
+    uint8_t (*read_potx)(void);                            /* pointer to the device X potentiometer read function */
+    uint8_t (*read_poty)(void);                            /* pointer to the device Y potentiometer read function */
+    int (*write_snapshot)(struct snapshot_s *s, int port); /* pointer to the device snapshot write function */
+    int (*read_snapshot)(struct snapshot_s *s, int port);  /* pointer to the device snapshot read function */
 } joyport_t;
 
 typedef struct joyport_desc_s {
     char *name;
-    int trans_name;
     int id;
 } joyport_desc_t;
 
+/* this structure is used for control ports */
 typedef struct joyport_port_props_s {
-    char *name;
-    int trans_name;
-    int has_pot;
-    int has_lp_support;
-    int active;
+    char *name;         /* name of the port */
+    int has_pot;        /* flag to indicate that the port has potentiometer support */
+    int has_lp_support; /* flag to indicate that the port has lightpen support */
+    int active;         /* flag to indicate if the port is currently active */
 } joyport_port_props_t;
 
 extern int joyport_device_register(int id, joyport_t *device);
 
-extern BYTE read_joyport_dig(int port);
-extern void store_joyport_dig(int port, BYTE val, BYTE mask);
-extern BYTE read_joyport_potx(void);
-extern BYTE read_joyport_poty(void);
+extern uint8_t read_joyport_dig(int port);
+extern void store_joyport_dig(int port, uint8_t val, uint8_t mask);
+extern uint8_t read_joyport_potx(void);
+extern uint8_t read_joyport_poty(void);
 
 extern void set_joyport_pot_mask(int mask);
 
@@ -135,9 +140,8 @@ extern int joyport_port_register(int port, joyport_port_props_t *props);
 
 extern joyport_desc_t *joyport_get_valid_devices(int port);
 
-extern void joyport_display_joyport(int id, BYTE status);
+extern void joyport_display_joyport(int id, uint8_t status);
 
-extern int joyport_get_port_trans_name(int port);
 extern char *joyport_get_port_name(int port);
 
 extern void joyport_clear_devices(void);

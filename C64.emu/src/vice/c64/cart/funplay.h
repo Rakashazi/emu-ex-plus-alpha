@@ -32,9 +32,9 @@
 #include "types.h"
 
 extern void funplay_config_init(void);
-extern void funplay_config_setup(BYTE *rawcart);
-extern int funplay_bin_attach(const char *filename, BYTE *rawcart);
-extern int funplay_crt_attach(FILE *fd, BYTE *rawcart);
+extern void funplay_config_setup(uint8_t *rawcart);
+extern int funplay_bin_attach(const char *filename, uint8_t *rawcart);
+extern int funplay_crt_attach(FILE *fd, uint8_t *rawcart);
 extern void funplay_detach(void);
 
 struct snapshot_s;

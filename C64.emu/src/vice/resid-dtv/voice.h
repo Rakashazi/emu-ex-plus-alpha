@@ -25,7 +25,7 @@
 #include "wave.h"
 #include "envelope.h"
 
-namespace reSID
+namespace reSID_dtv
 {
 
 class Voice
@@ -76,6 +76,6 @@ sound_sample Voice::output(unsigned int volume)
 
 #endif // RESID_INLINING || defined(__VOICE_CC__)
 
-} // namespace reSID
+} // namespace reSID_dtv
 
 #endif // not __VOICE_H__

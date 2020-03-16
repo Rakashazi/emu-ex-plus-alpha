@@ -45,22 +45,22 @@ typedef struct drivetpi_context_s {
 } drivetpi_context_t;
 
 
-void tpid_store(drive_context_t *ctxptr, WORD addr, BYTE data)
+void tpid_store(drive_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
     tpicore_store(ctxptr->tpid, addr, data);
 }
 
-BYTE tpid_read(drive_context_t *ctxptr, WORD addr)
+uint8_t tpid_read(drive_context_t *ctxptr, uint16_t addr)
 {
     return tpicore_read(ctxptr->tpid, addr);
 }
 
-BYTE tpid_peek(drive_context_t *ctxptr, WORD addr)
+uint8_t tpid_peek(drive_context_t *ctxptr, uint16_t addr)
 {
     return tpicore_peek(ctxptr->tpid, addr);
 }
 
-int tpid_dump(drive_context_t *ctxptr, WORD addr)
+int tpid_dump(drive_context_t *ctxptr, uint16_t addr)
 {
     tpicore_dump(ctxptr->tpid);
     return 0;
@@ -93,7 +93,7 @@ static void reset(tpi_context_t *tpi_context)
     plus4tcbm_update_pc(0xff, tpip->number);
 }
 
-static void store_pa(tpi_context_t *tpi_context, BYTE byte)
+static void store_pa(tpi_context_t *tpi_context, uint8_t byte)
 {
     drivetpi_context_t *tpip;
 
@@ -102,7 +102,7 @@ static void store_pa(tpi_context_t *tpi_context, BYTE byte)
     plus4tcbm_update_pa(byte, tpip->number);
 }
 
-static void store_pb(tpi_context_t *tpi_context, BYTE byte)
+static void store_pb(tpi_context_t *tpi_context, uint8_t byte)
 {
     drivetpi_context_t *tpip;
 
@@ -113,15 +113,15 @@ static void store_pb(tpi_context_t *tpi_context, BYTE byte)
     tpip->drive->GCR_write_value = byte;
 }
 
-static void undump_pa(tpi_context_t *tpi_context, BYTE byte)
+static void undump_pa(tpi_context_t *tpi_context, uint8_t byte)
 {
 }
 
-static void undump_pb(tpi_context_t *tpi_context, BYTE byte)
+static void undump_pb(tpi_context_t *tpi_context, uint8_t byte)
 {
 }
 
-static void store_pc(tpi_context_t *tpi_context, BYTE byte)
+static void store_pc(tpi_context_t *tpi_context, uint8_t byte)
 {
     drivetpi_context_t *tpip;
 
@@ -136,14 +136,14 @@ static void store_pc(tpi_context_t *tpi_context, BYTE byte)
     }
 }
 
-static void undump_pc(tpi_context_t *tpi_context, BYTE byte)
+static void undump_pc(tpi_context_t *tpi_context, uint8_t byte)
 {
 }
 
-static BYTE read_pa(tpi_context_t *tpi_context)
+static uint8_t read_pa(tpi_context_t *tpi_context)
 {
     /* TCBM data port */
-    BYTE byte;
+    uint8_t byte;
     drivetpi_context_t *tpip;
 
     tpip = (drivetpi_context_t *)(tpi_context->prv);
@@ -156,10 +156,10 @@ static BYTE read_pa(tpi_context_t *tpi_context)
     return byte;
 }
 
-static BYTE read_pb(tpi_context_t *tpi_context)
+static uint8_t read_pb(tpi_context_t *tpi_context)
 {
     /* GCR data port */
-    BYTE byte;
+    uint8_t byte;
     drivetpi_context_t *tpip;
 
     tpip = (drivetpi_context_t *)(tpi_context->prv);
@@ -174,10 +174,10 @@ static BYTE read_pb(tpi_context_t *tpi_context)
     return byte;
 }
 
-static BYTE read_pc(tpi_context_t *tpi_context)
+static uint8_t read_pc(tpi_context_t *tpi_context)
 {
     /* TCBM control / GCR data control */
-    BYTE byte;
+    uint8_t byte;
     drivetpi_context_t *tpip;
 
     tpip = (drivetpi_context_t *)(tpi_context->prv);

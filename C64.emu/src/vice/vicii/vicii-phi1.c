@@ -33,7 +33,7 @@
 #include "viciitypes.h"
 
 
-inline static BYTE gfx_data_illegal_bitmap(unsigned int num)
+inline static uint8_t gfx_data_illegal_bitmap(unsigned int num)
 {
     if (vicii.idle_state) {
         return vicii.ram_base_phi1[vicii.vbank_phi1 + 0x39ff];
@@ -50,7 +50,7 @@ inline static BYTE gfx_data_illegal_bitmap(unsigned int num)
     }
 }
 
-inline static BYTE gfx_data_hires_bitmap(unsigned int num)
+inline static uint8_t gfx_data_hires_bitmap(unsigned int num)
 {
     if (vicii.idle_state) {
         return vicii.ram_base_phi1[vicii.vbank_phi1 + 0x3fff];
@@ -67,7 +67,7 @@ inline static BYTE gfx_data_hires_bitmap(unsigned int num)
     }
 }
 
-inline static BYTE gfx_data_extended_text(unsigned int num)
+inline static uint8_t gfx_data_extended_text(unsigned int num)
 {
     if (vicii.idle_state) {
         return vicii.ram_base_phi1[vicii.vbank_phi1 + 0x39ff];
@@ -77,7 +77,7 @@ inline static BYTE gfx_data_extended_text(unsigned int num)
     }
 }
 
-inline static BYTE gfx_data_normal_text(unsigned int num)
+inline static uint8_t gfx_data_normal_text(unsigned int num)
 {
     if (vicii.idle_state) {
         return vicii.ram_base_phi1[vicii.vbank_phi1 + 0x3fff];
@@ -87,9 +87,9 @@ inline static BYTE gfx_data_normal_text(unsigned int num)
     }
 }
 
-static BYTE gfx_data(unsigned int num)
+static uint8_t gfx_data(unsigned int num)
 {
-    BYTE value = 0;
+    uint8_t value = 0;
 
     switch (vicii.raster.video_mode) {
         case VICII_NORMAL_TEXT_MODE:
@@ -115,35 +115,35 @@ static BYTE gfx_data(unsigned int num)
     return value;
 }
 
-static BYTE idle_gap(void)
+static uint8_t idle_gap(void)
 {
     return vicii.ram_base_phi1[vicii.vbank_phi1 + 0x3fff];
 }
 
-static BYTE sprite_data(unsigned int num)
+static uint8_t sprite_data(unsigned int num)
 {
     return vicii.ram_base_phi1[vicii.vbank_phi1 + 0x3fff];
 }
 
-static BYTE sprite_pointer(unsigned int num)
+static uint8_t sprite_pointer(unsigned int num)
 {
-    WORD offset;
+    uint16_t offset;
 
     offset = ((vicii.regs[0x18] & 0xf0) << 6) + 0x3f8 + num;
 
     return vicii.ram_base_phi1[vicii.vbank_phi1 + offset];
 }
 
-static BYTE refresh_counter(unsigned int num)
+static uint8_t refresh_counter(unsigned int num)
 {
-    BYTE offset;
+    uint8_t offset;
 
     offset = 0xff - (VICII_RASTER_Y(maincpu_clk) * 5 + num);
 
     return vicii.ram_base_phi1[vicii.vbank_phi1 + 0x3f00 + offset];
 }
 
-inline static BYTE phi1_pal(unsigned int cycle)
+inline static uint8_t phi1_pal(unsigned int cycle)
 {
     switch (cycle) {
         case 0:
@@ -196,7 +196,7 @@ inline static BYTE phi1_pal(unsigned int cycle)
     }
 }
 
-inline static BYTE phi1_ntsc_old(unsigned int cycle)
+inline static uint8_t phi1_ntsc_old(unsigned int cycle)
 {
     switch (cycle) {
         case 0:
@@ -250,7 +250,7 @@ inline static BYTE phi1_ntsc_old(unsigned int cycle)
     }
 }
 
-inline static BYTE phi1_ntsc(unsigned int cycle)
+inline static uint8_t phi1_ntsc(unsigned int cycle)
 {
     switch (cycle) {
         case 0:
@@ -307,7 +307,7 @@ inline static BYTE phi1_ntsc(unsigned int cycle)
     }
 }
 
-BYTE vicii_read_phi1_lowlevel(void)
+uint8_t vicii_read_phi1_lowlevel(void)
 {
     unsigned int cycle = VICII_RASTER_CYCLE(maincpu_clk);
 
@@ -322,7 +322,7 @@ BYTE vicii_read_phi1_lowlevel(void)
     }
 }
 
-BYTE vicii_read_phi1(void)
+uint8_t vicii_read_phi1(void)
 {
     vicii_handle_pending_alarms(0);
 

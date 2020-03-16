@@ -62,38 +62,38 @@
 static sid_engine_t sid_engine;
 
 /* read register value from sid */
-static BYTE lastsidread;
+static uint8_t lastsidread;
 
 /* register data */
-static BYTE siddata[SOUND_SIDS_MAX][32];
+static uint8_t siddata[SOUND_SIDS_MAX][32];
 
-static int (*sid_read_func)(WORD addr, int chipno);
-static void (*sid_store_func)(WORD addr, BYTE val, int chipno);
+static int (*sid_read_func)(uint16_t addr, int chipno);
+static void (*sid_store_func)(uint16_t addr, uint8_t val, int chipno);
 static int (*sid_dump_func)(int chipno);
 
 static int sid_enable, sid_engine_type = -1;
 
 #ifdef HAVE_MOUSE
 static CLOCK pot_cycle = 0;  /* pot sampling cycle */
-static BYTE val_pot_x = 0xff, val_pot_y = 0xff; /* last sampling value */
+static uint8_t val_pot_x = 0xff, val_pot_y = 0xff; /* last sampling value */
 #endif
 
-BYTE *sid_get_siddata(unsigned int channel)
+uint8_t *sid_get_siddata(unsigned int channel)
 {
     return siddata[channel];
 }
 
 /* ------------------------------------------------------------------------- */
 
-static int sid_read_off(WORD addr, int chipno)
+static int sid_read_off(uint16_t addr, int chipno)
 {
-    BYTE val;
+    uint8_t val;
 
     if (addr == 0x19 || addr == 0x1a) {
         val = 0xff;
     } else {
         if (addr == 0x1b || addr == 0x1c) {
-            val = (BYTE)(maincpu_clk % 256);
+            val = (uint8_t)(maincpu_clk % 256);
         } else {
             val = 0;
         }
@@ -103,13 +103,13 @@ static int sid_read_off(WORD addr, int chipno)
     return (int)val;
 }
 
-static void sid_write_off(WORD addr, BYTE val, int chipno)
+static void sid_write_off(uint16_t addr, uint8_t val, int chipno)
 {
 }
 
 /* ------------------------------------------------------------------------- */
 
-static BYTE sid_read_chip(WORD addr, int chipno)
+static uint8_t sid_read_chip(uint16_t addr, int chipno)
 {
     int val = -1;
 
@@ -161,7 +161,7 @@ static BYTE sid_read_chip(WORD addr, int chipno)
     return val;
 }
 
-static BYTE sid_peek_chip(WORD addr, int chipno)
+static uint8_t sid_peek_chip(uint16_t addr, int chipno)
 {
     addr &= 0x1f;
 
@@ -170,7 +170,7 @@ static BYTE sid_peek_chip(WORD addr, int chipno)
 }
 
 /* write register value to sid */
-static void sid_store_chip(WORD addr, BYTE byte, int chipno)
+static void sid_store_chip(uint16_t addr, uint8_t byte, int chipno)
 {
     addr &= 0x1f;
 
@@ -199,7 +199,7 @@ static int sid_dump_chip(int chipno)
 
 /* ------------------------------------------------------------------------- */
 
-BYTE sid_read(WORD addr)
+uint8_t sid_read(uint16_t addr)
 {
     if (sid_stereo >= 1
         && addr >= sid_stereo_address_start
@@ -213,10 +213,31 @@ BYTE sid_read(WORD addr)
         return sid_read_chip(addr, 2);
     }
 
+    if (sid_stereo >= 3
+        && addr >= sid_quad_address_start
+        && addr < sid_quad_address_end) {
+        return sid_read_chip(addr, 3);
+    }
+
     return sid_read_chip(addr, 0);
 }
 
-BYTE sid_peek(WORD addr)
+uint8_t sid2_read(uint16_t addr)
+{
+    return sid_read_chip(addr, 1);
+}
+
+uint8_t sid3_read(uint16_t addr)
+{
+    return sid_read_chip(addr, 2);
+}
+
+uint8_t sid4_read(uint16_t addr)
+{
+    return sid_read_chip(addr, 3);
+}
+
+uint8_t sid_peek(uint16_t addr)
 {
     if (sid_stereo >= 1
         && addr >= sid_stereo_address_start
@@ -230,20 +251,31 @@ BYTE sid_peek(WORD addr)
         return sid_peek_chip(addr, 2);
     }
 
+    if (sid_stereo >= 3
+        && addr >= sid_quad_address_start
+        && addr < sid_quad_address_end) {
+        return sid_peek_chip(addr, 3);
+    }
+
     return sid_peek_chip(addr, 0);
 }
 
-BYTE sid2_read(WORD addr)
+uint8_t sid2_peek(uint16_t addr)
 {
-    return sid_read_chip(addr, 1);
+    return sid_peek_chip(addr, 1);
 }
 
-BYTE sid3_read(WORD addr)
+uint8_t sid3_peek(uint16_t addr)
 {
-    return sid_read_chip(addr, 2);
+    return sid_peek_chip(addr, 2);
 }
 
-void sid_store(WORD addr, BYTE byte)
+uint8_t sid4_peek(uint16_t addr)
+{
+    return sid_peek_chip(addr, 3);
+}
+
+void sid_store(uint16_t addr, uint8_t byte)
 {
     if (sid_stereo >= 1
         && addr >= sid_stereo_address_start
@@ -257,17 +289,27 @@ void sid_store(WORD addr, BYTE byte)
         sid_store_chip(addr, byte, 2);
         return;
     }
+    if (sid_stereo >= 3
+        && addr >= sid_quad_address_start
+        && addr < sid_quad_address_end) {
+        sid_store_chip(addr, byte, 3);
+    }
     sid_store_chip(addr, byte, 0);
 }
 
-void sid2_store(WORD addr, BYTE byte)
+void sid2_store(uint16_t addr, uint8_t byte)
 {
     sid_store_chip(addr, byte, 1);
 }
 
-void sid3_store(WORD addr, BYTE byte)
+void sid3_store(uint16_t addr, uint8_t byte)
 {
     sid_store_chip(addr, byte, 2);
+}
+
+void sid4_store(uint16_t addr, uint8_t byte)
+{
+    sid_store_chip(addr, byte, 3);
 }
 
 int sid_dump(void)
@@ -283,6 +325,11 @@ int sid2_dump(void)
 int sid3_dump(void)
 {
     return sid_dump_chip(2);
+}
+
+int sid4_dump(void)
+{
+    return sid_dump_chip(3);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -317,34 +364,59 @@ sound_t *sid_sound_machine_open(int chipno)
 
 /* manage temporary buffers. if the requested size is smaller or equal to the
  * size of the already allocated buffer, reuse it.  */
-static SWORD *buf1 = NULL;
-static SWORD *buf2 = NULL;
+static int16_t *buf1 = NULL;
+static int16_t *buf2 = NULL;
+static int16_t *buf3 = NULL;
+
 static int blen1 = 0;
 static int blen2 = 0;
+static int blen3 = 0;
 
-static SWORD *getbuf1(int len)
+
+static int16_t *getbuf1(int len)
 {
-    if ((buf1 == NULL) || (blen1 < len)) {
-        if (buf1) {
-            lib_free(buf1);
+    if (buf1 != NULL) {
+        if (blen1 >= len) {
+            /* large enough */
+            return buf1;
         }
-        blen1 = len;
-        buf1 = lib_calloc(len, 1);
+        lib_free(buf1);
     }
+    buf1 = lib_calloc(len, sizeof(int16_t));
+    blen1 = len;
     return buf1;
 }
 
-static SWORD *getbuf2(int len)
+
+static int16_t *getbuf2(int len)
 {
-    if ((buf2 == NULL) || (blen2 < len)) {
-        if (buf2) {
-            lib_free(buf2);
+    if (buf2 != NULL) {
+        if (blen2 >= len) {
+            /* large enough */
+            return buf2;
         }
-        blen2 = len;
-        buf2 = lib_calloc(len, 1);
+        lib_free(buf2);
     }
+    buf2 = lib_calloc(len, sizeof(int16_t));
+    blen2 = len;
     return buf2;
 }
+
+
+static int16_t *getbuf3(int len)
+{
+    if (buf3 != NULL) {
+        if (blen3 >= len) {
+            /* large enough */
+            return buf3;
+        }
+        lib_free(buf3);
+    }
+    buf3 = lib_calloc(len, sizeof(int16_t));
+    blen3 = len;
+    return buf3;
+}
+
 
 int sid_sound_machine_init_vbr(sound_t *psid, int speed, int cycles_per_sec, int factor)
 {
@@ -362,20 +434,27 @@ void sid_sound_machine_close(sound_t *psid)
     /* free the temp. buffers */
     if (buf1) {
         lib_free(buf1);
+        blen1 = 0;
         buf1 = NULL;
     }
     if (buf2) {
         lib_free(buf2);
+        blen2 = 0;
         buf2 = NULL;
+    }
+    if (buf3) {
+        lib_free(buf3);
+        blen3 = 0;
+        buf3 = NULL;
     }
 }
 
-BYTE sid_sound_machine_read(sound_t *psid, WORD addr)
+uint8_t sid_sound_machine_read(sound_t *psid, uint16_t addr)
 {
     return sid_engine.read(psid, addr);
 }
 
-void sid_sound_machine_store(sound_t *psid, WORD addr, BYTE byte)
+void sid_sound_machine_store(sound_t *psid, uint16_t addr, uint8_t byte)
 {
     sid_engine.store(psid, addr, byte);
 }
@@ -385,11 +464,12 @@ void sid_sound_machine_reset(sound_t *psid, CLOCK cpu_clk)
     sid_engine.reset(psid, cpu_clk);
 }
 
-int sid_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int soc, int scc, int *delta_t)
+int sid_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, int nr, int soc, int scc, int *delta_t)
 {
     int i;
-    SWORD *tmp_buf1;
-    SWORD *tmp_buf2;
+    int16_t *tmp_buf1;
+    int16_t *tmp_buf2;
+    int16_t *tmp_buf3;
     int tmp_nr = 0;
     int tmp_delta_t = *delta_t;
 
@@ -418,6 +498,23 @@ int sid_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int
         }
         return tmp_nr;
     }
+    if (soc == 1 && scc == 4) {
+        tmp_buf1 = getbuf1(2 * nr);
+        tmp_buf2 = getbuf2(2 * nr);
+        tmp_buf3 = getbuf3(2 * nr);
+        tmp_nr = sid_engine.calculate_samples(psid[0], tmp_buf1, nr, 1, &tmp_delta_t);
+        tmp_delta_t = *delta_t;
+        tmp_nr = sid_engine.calculate_samples(psid[2], tmp_buf2, nr, 1, &tmp_delta_t);
+        tmp_delta_t = *delta_t;
+        tmp_nr = sid_engine.calculate_samples(psid[3], tmp_buf3, nr, 1, &tmp_delta_t);
+        tmp_nr = sid_engine.calculate_samples(psid[1], pbuf, nr, 1, delta_t);
+        for (i = 0; i < tmp_nr; i++) {
+            pbuf[i] = sound_audio_mix(pbuf[i], tmp_buf1[i]);
+            pbuf[i] = sound_audio_mix(pbuf[i], tmp_buf2[i]);
+            pbuf[i] = sound_audio_mix(pbuf[i], tmp_buf3[i]);
+        }
+        return tmp_nr;
+    }
     if (soc == 2 && scc == 1) {
         tmp_nr = sid_engine.calculate_samples(psid[0], pbuf, nr, 2, delta_t);
         for (i = 0; i < tmp_nr; i++) {
@@ -439,6 +536,19 @@ int sid_sound_machine_calculate_samples(sound_t **psid, SWORD *pbuf, int nr, int
         for (i = 0; i < tmp_nr; i++) {
             pbuf[i * 2] = sound_audio_mix(pbuf[i * 2], tmp_buf1[i]);
             pbuf[(i * 2) + 1] = sound_audio_mix(pbuf[(i * 2) + 1], tmp_buf1[i]);
+        }
+    }
+    if (soc == 2 && scc == 4) {
+        tmp_buf1 = getbuf1(2 * nr);
+        tmp_nr = sid_engine.calculate_samples(psid[2], tmp_buf1, nr, 2, &tmp_delta_t);
+        tmp_delta_t = *delta_t;
+        tmp_nr = sid_engine.calculate_samples(psid[3], tmp_buf1 + 1, nr, 2, &tmp_delta_t);
+        tmp_delta_t = *delta_t;
+        tmp_nr = sid_engine.calculate_samples(psid[0], pbuf, nr, 2, &tmp_delta_t);
+        tmp_nr = sid_engine.calculate_samples(psid[1], pbuf + 1, nr, 2, delta_t);
+        for (i = 0; i < tmp_nr; i++) {
+            pbuf[i * 2] = sound_audio_mix(pbuf[i * 2], tmp_buf1[i * 2]);
+            pbuf[(i * 2) + 1] = sound_audio_mix(pbuf[(i * 2) + 1], tmp_buf1[(i * 2) + 1]);
         }
     }
     return tmp_nr;
@@ -626,4 +736,35 @@ void sid_set_machine_parameter(long clock_rate)
 #ifdef HAVE_HARDSID
     hardsid_set_machine_parameter(clock_rate);
 #endif
+}
+
+
+/** \brief  Get maximum number of support SIDs for \a engine
+ *
+ * Helper function for UIs: determine number of supported SIDs to allow UIs
+ * to not display impossibre settings.
+ *
+ * \param[in]   engine  engine ID
+ *
+ * \see sid.h for engine IDs
+ */
+int sid_engine_get_max_sids(int engine)
+{
+    switch (engine) {
+        case SID_ENGINE_FASTSID:
+            return SID_ENGINE_FASTSID_NUM_SIDS;
+        case SID_ENGINE_RESID:
+            return SID_ENGINE_RESID_NUM_SIDS;
+       case SID_ENGINE_CATWEASELMKIII:
+            return SID_ENGINE_CATWEASELMKIII_NUM_SIDS;
+        case SID_ENGINE_HARDSID:
+            return SID_ENGINE_HARDSID_NUM_SIDS;
+        case SID_ENGINE_PARSID:
+            return SID_ENGINE_PARSID_NUM_SIDS;
+        case SID_ENGINE_SSI2001:
+            return SID_ENGINE_SSI2001_NUM_SIDS;
+        default:
+            /* unknow engine */
+            return -1;
+    }
 }

@@ -31,13 +31,13 @@
 
 extern void serial_iec_bus_init(void);
 extern void serial_iec_bus_reset(void);
-extern void serial_iec_bus_open(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void serial_iec_bus_close(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void serial_iec_bus_listen(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void serial_iec_bus_talk(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void serial_iec_bus_unlisten(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void serial_iec_bus_untalk(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
-extern void serial_iec_bus_write(unsigned int device, BYTE secondary, BYTE data, void (*st_func)(BYTE));
-extern BYTE serial_iec_bus_read(unsigned int device, BYTE secondary, void (*st_func)(BYTE));
+extern void serial_iec_bus_open(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void serial_iec_bus_close(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void serial_iec_bus_listen(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void serial_iec_bus_talk(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void serial_iec_bus_unlisten(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void serial_iec_bus_untalk(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
+extern void serial_iec_bus_write(unsigned int device, uint8_t secondary, uint8_t data, void (*st_func)(uint8_t));
+extern uint8_t serial_iec_bus_read(unsigned int device, uint8_t secondary, void (*st_func)(uint8_t));
 
 #endif

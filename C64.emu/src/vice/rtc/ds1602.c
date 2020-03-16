@@ -53,14 +53,14 @@ struct rtc_ds1602_s {
     time_t offset0;
     time_t offset;
     time_t old_offset;
-    DWORD reg;
-    BYTE state;
-    BYTE bit;
-    BYTE io_byte;
-    BYTE rst_line;
-    BYTE clk_line;
-    BYTE data_line_in;
-    BYTE data_line_out;
+    uint32_t reg;
+    uint8_t state;
+    uint8_t bit;
+    uint8_t io_byte;
+    uint8_t rst_line;
+    uint8_t clk_line;
+    uint8_t data_line_in;
+    uint8_t data_line_out;
     char *device;
 };
 
@@ -86,7 +86,7 @@ rtc_ds1602_t *ds1602_init(char *device, time_t offset0)
     retval->old_offset = retval->offset;
     retval->offset0 = offset0;
 
-    retval->device = lib_stralloc(device);
+    retval->device = lib_strdup(device);
     retval->state = DS1602_IDLE;
     retval->rst_line = 1;
     retval->clk_line = 1;
@@ -123,14 +123,14 @@ static void ds1602_read_bit(rtc_ds1602_t *context)
 
 static void ds1602_write_protocol_bit(rtc_ds1602_t *context)
 {
-    DWORD val = context->data_line_in << context->bit;
+    uint32_t val = context->data_line_in << context->bit;
 
     context->reg |= val;
     ++context->bit;
     if (context->bit == 8) {
         if ((context->reg & 0xc1) == 0x81) {
             context->state = DS1602_GET_SECONDS;
-            context->reg = (DWORD)(rtc_get_latch(context->offset) - context->offset0);
+            context->reg = (uint32_t)(rtc_get_latch(context->offset) - context->offset0);
             context->bit = 0;
         } else if ((context->reg & 0xc1) == 0x80) {
             context->state = DS1602_SET_CONT_SECONDS;
@@ -159,7 +159,7 @@ static void ds1602_write_protocol_bit(rtc_ds1602_t *context)
 
 static void ds1602_write_seconds_bit(rtc_ds1602_t *context)
 {
-    DWORD val = context->data_line_in << context->bit;
+    uint32_t val = context->data_line_in << context->bit;
     time_t now;
 
     context->reg |= val;
@@ -190,9 +190,9 @@ static void ds1602_write_bit(rtc_ds1602_t *context)
 
 /* ---------------------------------------------------------------------------------------------------- */
 
-void ds1602_set_reset_line(rtc_ds1602_t *context, BYTE data)
+void ds1602_set_reset_line(rtc_ds1602_t *context, uint8_t data)
 {
-    BYTE val = data ? 1 : 0;
+    uint8_t val = data ? 1 : 0;
 
     if (context->rst_line == val) {
         return;
@@ -210,9 +210,9 @@ void ds1602_set_reset_line(rtc_ds1602_t *context, BYTE data)
     context->rst_line = val;
 }
 
-void ds1602_set_clk_line(rtc_ds1602_t *context, BYTE data)
+void ds1602_set_clk_line(rtc_ds1602_t *context, uint8_t data)
 {
-    BYTE val = data ? 1 : 0;
+    uint8_t val = data ? 1 : 0;
 
     if (context->clk_line == val) {
         return;
@@ -226,9 +226,9 @@ void ds1602_set_clk_line(rtc_ds1602_t *context, BYTE data)
     context->clk_line = val;
 }
 
-void ds1602_set_data_line(rtc_ds1602_t *context, BYTE data)
+void ds1602_set_data_line(rtc_ds1602_t *context, uint8_t data)
 {
-    BYTE val = data ? 1 : 0;
+    uint8_t val = data ? 1 : 0;
 
     if (context->data_line_in == val) {
         return;
@@ -237,7 +237,7 @@ void ds1602_set_data_line(rtc_ds1602_t *context, BYTE data)
     context->data_line_in = val;
 }
 
-BYTE ds1602_read_data_line(rtc_ds1602_t *context)
+uint8_t ds1602_read_data_line(rtc_ds1602_t *context)
 {
     return context->data_line_out;
 }
@@ -273,31 +273,31 @@ static char snap_module_name[] = "RTC_DS1602";
 
 int ds1602_write_snapshot(rtc_ds1602_t *context, snapshot_t *s)
 {
-    DWORD latch_lo = 0;
-    DWORD latch_hi = 0;
-    DWORD offset0_lo = 0;
-    DWORD offset0_hi = 0;
-    DWORD offset_lo = 0;
-    DWORD offset_hi = 0;
-    DWORD old_offset_lo = 0;
-    DWORD old_offset_hi = 0;
+    uint32_t latch_lo = 0;
+    uint32_t latch_hi = 0;
+    uint32_t offset0_lo = 0;
+    uint32_t offset0_hi = 0;
+    uint32_t offset_lo = 0;
+    uint32_t offset_hi = 0;
+    uint32_t old_offset_lo = 0;
+    uint32_t old_offset_hi = 0;
     snapshot_module_t *m;
 
     /* time_t can be either 32bit or 64bit, so we save as 64bit */
 #if (SIZE_OF_TIME_T == 8)
-    latch_hi = (DWORD)(context->latch >> 32);
-    latch_lo = (DWORD)(context->latch & 0xffffffff);
-    offset0_hi = (DWORD)(context->offset0 >> 32);
-    offset0_lo = (DWORD)(context->offset0 & 0xffffffff);
-    offset_hi = (DWORD)(context->offset >> 32);
-    offset_lo = (DWORD)(context->offset & 0xffffffff);
-    old_offset_hi = (DWORD)(context->old_offset >> 32);
-    old_offset_lo = (DWORD)(context->old_offset & 0xffffffff);
+    latch_hi = (uint32_t)(context->latch >> 32);
+    latch_lo = (uint32_t)(context->latch & 0xffffffff);
+    offset0_hi = (uint32_t)(context->offset0 >> 32);
+    offset0_lo = (uint32_t)(context->offset0 & 0xffffffff);
+    offset_hi = (uint32_t)(context->offset >> 32);
+    offset_lo = (uint32_t)(context->offset & 0xffffffff);
+    old_offset_hi = (uint32_t)(context->old_offset >> 32);
+    old_offset_lo = (uint32_t)(context->old_offset & 0xffffffff);
 #else
-    latch_lo = (DWORD)context->latch;
-    offset0_lo = (DWORD)context->offset0;
-    offset_lo = (DWORD)context->offset;
-    old_offset_lo = (DWORD)context->old_offset;
+    latch_lo = (uint32_t)context->latch;
+    offset0_lo = (uint32_t)context->offset0;
+    offset_lo = (uint32_t)context->offset;
+    old_offset_lo = (uint32_t)context->old_offset;
 #endif
 
     m = snapshot_module_create(s, snap_module_name, SNAP_MAJOR, SNAP_MINOR);
@@ -332,15 +332,15 @@ int ds1602_write_snapshot(rtc_ds1602_t *context, snapshot_t *s)
 
 int ds1602_read_snapshot(rtc_ds1602_t *context, snapshot_t *s)
 {
-    DWORD latch_lo = 0;
-    DWORD latch_hi = 0;
-    DWORD offset0_lo = 0;
-    DWORD offset0_hi = 0;
-    DWORD offset_lo = 0;
-    DWORD offset_hi = 0;
-    DWORD old_offset_lo = 0;
-    DWORD old_offset_hi = 0;
-    BYTE vmajor, vminor;
+    uint32_t latch_lo = 0;
+    uint32_t latch_hi = 0;
+    uint32_t offset0_lo = 0;
+    uint32_t offset0_hi = 0;
+    uint32_t offset_lo = 0;
+    uint32_t offset_hi = 0;
+    uint32_t old_offset_lo = 0;
+    uint32_t old_offset_hi = 0;
+    uint8_t vmajor, vminor;
     snapshot_module_t *m;
 
     m = snapshot_module_open(s, snap_module_name, &vmajor, &vminor);
@@ -350,7 +350,7 @@ int ds1602_read_snapshot(rtc_ds1602_t *context, snapshot_t *s)
     }
 
     /* Do not accept versions higher than current */
-    if (vmajor > SNAP_MAJOR || vminor > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(vmajor, vminor, SNAP_MAJOR, SNAP_MINOR)) {
         snapshot_set_error(SNAPSHOT_MODULE_HIGHER_VERSION);
         goto fail;
     }

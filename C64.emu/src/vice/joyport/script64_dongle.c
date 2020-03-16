@@ -32,7 +32,9 @@
 
 #include "joyport.h"
 #include "keyboard.h"
-#include "translate.h"
+
+#include "script64_dongle.h"
+
 
 /* Control port <--> Script 64 dongle connections:
 
@@ -58,12 +60,12 @@ static int joyport_script64_dongle_enable(int port, int value)
     return 0;
 }
 
-static BYTE script64_dongle_read_potx(void)
+static uint8_t script64_dongle_read_potx(void)
 {
     return POTX_RETURN;
 }
 
-static BYTE script64_dongle_read_poty(void)
+static uint8_t script64_dongle_read_poty(void)
 {
     return POTY_RETURN;
 }
@@ -71,18 +73,17 @@ static BYTE script64_dongle_read_poty(void)
 /* ------------------------------------------------------------------------- */
 
 static joyport_t joyport_script64_dongle_device = {
-    "Script 64 dongle",
-    IDGS_SCRIPT64_DONGLE,
-    JOYPORT_RES_ID_SCRIPT64,
-    JOYPORT_IS_NOT_LIGHTPEN,
-    JOYPORT_POT_REQUIRED,
-    joyport_script64_dongle_enable,
-    NULL,               /* no dig read */
-    NULL,               /* no dig write */
-    script64_dongle_read_potx,
-    script64_dongle_read_poty,
-    NULL,               /* no write snapshot */
-    NULL                /* no read snapshot */
+    "Script 64 dongle",             /* name of the device */
+    JOYPORT_RES_ID_SCRIPT64,        /* device is of the script64 type, only 1 of this kind can be active at the same time */
+    JOYPORT_IS_NOT_LIGHTPEN,        /* device is NOT a lightpen */
+    JOYPORT_POT_REQUIRED,           /* device uses the potentiometer lines */
+    joyport_script64_dongle_enable, /* device enable function */
+    NULL,                           /* NO digital line read function */
+    NULL,                           /* NO digital line store function */
+    script64_dongle_read_potx,      /* pot-x read function */
+    script64_dongle_read_poty,      /* pot-y read function */
+    NULL,                           /* NO device write snapshot function */
+    NULL                            /* NO device read snapshot function */
 };
 
 /* ------------------------------------------------------------------------- */

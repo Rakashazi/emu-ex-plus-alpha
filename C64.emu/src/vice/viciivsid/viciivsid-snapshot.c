@@ -112,7 +112,7 @@ int vicii_snapshot_write_module(snapshot_t *s)
 {
     int i;
     snapshot_module_t *m;
-    BYTE color_ram[0x400];
+    uint8_t color_ram[0x400];
 
     /* FIXME: Dispatch all events?  */
 
@@ -123,35 +123,33 @@ int vicii_snapshot_write_module(snapshot_t *s)
 
     mem_color_ram_to_snapshot(color_ram);
 
-    if (0
-        /* AllowBadLines */
-        || SMW_B(m, (BYTE)vicii.allow_bad_lines) < 0
-        /* BadLine */
-        || SMW_B(m, (BYTE)vicii.bad_line) < 0
-        /* Blank */
-        || SMW_B(m, (BYTE)vicii.raster.blank_enabled) < 0
-        /* ColorBuf */
-        || SMW_BA(m, vicii.cbuf, 40) < 0
-        /* ColorRam */
-        || SMW_BA(m, color_ram, 1024) < 0
-        /* IdleState */
-        || SMW_B(m, (BYTE)vicii.idle_state) < 0
-        /* LPTrigger */
-        || SMW_B(m, (BYTE)vicii.light_pen.triggered) < 0
-        /* LPX */
-        || SMW_B(m, (BYTE)vicii.light_pen.x) < 0
-        /* LPY */
-        || SMW_B(m, (BYTE)vicii.light_pen.y) < 0
-        /* MatrixBuf */
-        || SMW_BA(m, vicii.vbuf, 40) < 0
-        /* NewSpriteDmaMask */
-        || SMW_B(m, vicii.raster.sprite_status->new_dma_msk) < 0
-        /* RamBase */
-        || SMW_DW(m, (DWORD)(vicii.ram_base_phi1 - mem_ram)) < 0
-        /* RasterCycle */
-        || SMW_B(m, (BYTE)(VICII_RASTER_CYCLE(maincpu_clk))) < 0
-        /* RasterLine */
-        || SMW_W(m, (WORD)(VICII_RASTER_Y(maincpu_clk))) < 0) {
+    if (/* AllowBadLines */ SMW_B(m, (uint8_t)vicii.allow_bad_lines) < 0
+            /* BadLine */
+            || SMW_B(m, (uint8_t)vicii.bad_line) < 0
+            /* Blank */
+            || SMW_B(m, (uint8_t)vicii.raster.blank_enabled) < 0
+            /* ColorBuf */
+            || SMW_BA(m, vicii.cbuf, 40) < 0
+            /* ColorRam */
+            || SMW_BA(m, color_ram, 1024) < 0
+            /* IdleState */
+            || SMW_B(m, (uint8_t)vicii.idle_state) < 0
+            /* LPTrigger */
+            || SMW_B(m, (uint8_t)vicii.light_pen.triggered) < 0
+            /* LPX */
+            || SMW_B(m, (uint8_t)vicii.light_pen.x) < 0
+            /* LPY */
+            || SMW_B(m, (uint8_t)vicii.light_pen.y) < 0
+            /* MatrixBuf */
+            || SMW_BA(m, vicii.vbuf, 40) < 0
+            /* NewSpriteDmaMask */
+            || SMW_B(m, vicii.raster.sprite_status->new_dma_msk) < 0
+            /* RamBase */
+            || SMW_DW(m, (uint32_t)(vicii.ram_base_phi1 - mem_ram)) < 0
+            /* RasterCycle */
+            || SMW_B(m, (uint8_t)(VICII_RASTER_CYCLE(maincpu_clk))) < 0
+            /* RasterLine */
+            || SMW_W(m, (uint16_t)(VICII_RASTER_Y(maincpu_clk))) < 0) {
         goto fail;
     }
 
@@ -162,43 +160,37 @@ int vicii_snapshot_write_module(snapshot_t *s)
         }
     }
 
-    if (0
-        /* SbCollMask */
-        || SMW_B(m, (BYTE)vicii.sprite_background_collisions) < 0
-        /* SpriteDmaMask */
-        || SMW_B(m, (BYTE)vicii.raster.sprite_status->dma_msk) < 0
-        /* SsCollMask */
-        || SMW_B(m, (BYTE)vicii.sprite_sprite_collisions) < 0
-        /* VBank */
-        || SMW_W(m, (WORD)vicii.vbank_phi1) < 0
-        /* Vc */
-        || SMW_W(m, (WORD)vicii.mem_counter) < 0
-        /* VcInc */
-        || SMW_B(m, (BYTE)vicii.mem_counter_inc) < 0
-        /* VcBase */
-        || SMW_W(m, (WORD)vicii.memptr) < 0
-        /* VideoInt */
-        || SMW_B(m, (BYTE)vicii.irq_status) < 0) {
+    if (/* SbCollMask */ SMW_B(m, (uint8_t)vicii.sprite_background_collisions) < 0
+            /* SpriteDmaMask */
+            || SMW_B(m, (uint8_t)vicii.raster.sprite_status->dma_msk) < 0
+            /* SsCollMask */
+            || SMW_B(m, (uint8_t)vicii.sprite_sprite_collisions) < 0
+            /* VBank */
+            || SMW_W(m, (uint16_t)vicii.vbank_phi1) < 0
+            /* Vc */
+            || SMW_W(m, (uint16_t)vicii.mem_counter) < 0
+            /* VcInc */
+            || SMW_B(m, (uint8_t)vicii.mem_counter_inc) < 0
+            /* VcBase */
+            || SMW_W(m, (uint16_t)vicii.memptr) < 0
+            /* VideoInt */
+            || SMW_B(m, (uint8_t)vicii.irq_status) < 0) {
         goto fail;
     }
 
     for (i = 0; i < 8; i++) {
-        if (0
-            /* SpriteXMemPtr */
-            || SMW_B(m, (BYTE)vicii.raster.sprite_status->sprites[i].memptr) < 0
-            /* SpriteXMemPtrInc */
-            || SMW_B(m, (BYTE)vicii.raster.sprite_status->sprites[i].memptr_inc) < 0
-            /* SpriteXExpFlipFlop */
-            || SMW_B(m, (BYTE)vicii.raster.sprite_status->sprites[i].exp_flag) < 0) {
+        if (/* SpriteXMemPtr */ SMW_B(m, (uint8_t)vicii.raster.sprite_status->sprites[i].memptr) < 0
+                /* SpriteXMemPtrInc */
+                || SMW_B(m, (uint8_t)vicii.raster.sprite_status->sprites[i].memptr_inc) < 0
+                /* SpriteXExpFlipFlop */
+                || SMW_B(m, (uint8_t)vicii.raster.sprite_status->sprites[i].exp_flag) < 0) {
             goto fail;
         }
     }
 
-    if (0
-        /* FetchEventTick */
-        || SMW_DW(m, vicii.fetch_clk - maincpu_clk) < 0
-        /* FetchEventType */
-        || SMW_B(m, (BYTE)vicii.fetch_idx) < 0) {
+    if (/* FetchEventTick */ SMW_DW(m, vicii.fetch_clk - maincpu_clk) < 0
+            /* FetchEventType */
+            || SMW_B(m, (uint8_t)vicii.fetch_idx) < 0) {
         goto fail;
     }
 
@@ -207,11 +199,9 @@ int vicii_snapshot_write_module(snapshot_t *s)
        is not mapped anywhere in ram[]? We should rather use some more generic
        configuration info. But as we use it above in V1.0... :-(
        AF 16jan2001 */
-    if (0
-        /* RamBase */
-        || SMW_DW(m, (DWORD)(vicii.ram_base_phi2 - mem_ram)) < 0
-        /* VBank */
-        || SMW_W(m, (WORD)vicii.vbank_phi2) < 0) {
+    if (/* RamBase */ SMW_DW(m, (uint32_t)(vicii.ram_base_phi2 - mem_ram)) < 0
+            /* VBank */
+            || SMW_W(m, (uint16_t)vicii.vbank_phi2) < 0) {
         goto fail;
     }
 
@@ -227,10 +217,10 @@ fail:
 
 int vicii_snapshot_read_module(snapshot_t *s)
 {
-    BYTE major_version, minor_version;
+    uint8_t major_version, minor_version;
     int i;
     snapshot_module_t *m;
-    BYTE color_ram[0x400];
+    uint8_t color_ram[0x400];
 
     m = snapshot_module_open(s, snap_module_name,
                              &major_version, &minor_version);
@@ -238,7 +228,7 @@ int vicii_snapshot_read_module(snapshot_t *s)
         return -1;
     }
 
-    if (major_version > SNAP_MAJOR || minor_version > SNAP_MINOR) {
+    if (snapshot_version_is_bigger(major_version, minor_version, SNAP_MAJOR, SNAP_MINOR)) {
         log_error(vicii.log,
                   "Snapshot module version (%d.%d) newer than %d.%d.",
                   major_version, minor_version,
@@ -248,36 +238,34 @@ int vicii_snapshot_read_module(snapshot_t *s)
 
     /* FIXME: initialize changes?  */
 
-    if (0
-        /* AllowBadLines */
-        || SMR_B_INT(m, &vicii.allow_bad_lines) < 0
-        /* BadLine */
-        || SMR_B_INT(m, &vicii.bad_line) < 0
-        /* Blank */
-        || SMR_B_INT(m, &vicii.raster.blank_enabled) < 0
-        /* ColorBuf */
-        || SMR_BA(m, vicii.cbuf, 40) < 0
-        /* ColorRam */
-        || SMR_BA(m, color_ram, 1024) < 0
-        /* IdleState */
-        || SMR_B_INT(m, &vicii.idle_state) < 0
-        /* LPTrigger */
-        || SMR_B_INT(m, &vicii.light_pen.triggered) < 0
-        /* LPX */
-        || SMR_B_INT(m, &vicii.light_pen.x) < 0
-        /* LPY */
-        || SMR_B_INT(m, &vicii.light_pen.y) < 0
-        /* MatrixBuf */
-        || SMR_BA(m, vicii.vbuf, 40) < 0
-        /* NewSpriteDmaMask */
-        || SMR_B(m, &vicii.raster.sprite_status->new_dma_msk) < 0) {
+    if (/* AllowBadLines */ SMR_B_INT(m, &vicii.allow_bad_lines) < 0
+            /* BadLine */
+            || SMR_B_INT(m, &vicii.bad_line) < 0
+            /* Blank */
+            || SMR_B_INT(m, &vicii.raster.blank_enabled) < 0
+            /* ColorBuf */
+            || SMR_BA(m, vicii.cbuf, 40) < 0
+            /* ColorRam */
+            || SMR_BA(m, color_ram, 1024) < 0
+            /* IdleState */
+            || SMR_B_INT(m, &vicii.idle_state) < 0
+            /* LPTrigger */
+            || SMR_B_INT(m, &vicii.light_pen.triggered) < 0
+            /* LPX */
+            || SMR_B_INT(m, &vicii.light_pen.x) < 0
+            /* LPY */
+            || SMR_B_INT(m, &vicii.light_pen.y) < 0
+            /* MatrixBuf */
+            || SMR_BA(m, vicii.vbuf, 40) < 0
+            /* NewSpriteDmaMask */
+            || SMR_B(m, &vicii.raster.sprite_status->new_dma_msk) < 0) {
         goto fail;
     }
 
     mem_color_ram_from_snapshot(color_ram);
 
     {
-        DWORD RamBase;
+        uint32_t RamBase;
 
         if (SMR_DW(m, &RamBase) < 0) {
             goto fail;
@@ -288,24 +276,24 @@ int vicii_snapshot_read_module(snapshot_t *s)
     /* Read the current raster line and the current raster cycle.  As they
        are a function of `clk', this is just a sanity check.  */
     {
-        WORD RasterLine;
-        BYTE RasterCycle;
+        uint16_t RasterLine;
+        uint8_t RasterCycle;
 
         if (SMR_B(m, &RasterCycle) < 0
             || SMR_W(m, &RasterLine) < 0) {
             goto fail;
         }
 
-        if (RasterCycle != (BYTE)VICII_RASTER_CYCLE(maincpu_clk)) {
+        if (RasterCycle != (uint8_t)VICII_RASTER_CYCLE(maincpu_clk)) {
             log_error(vicii.log,
-                      "Not matching raster cycle (%d) in snapshot; should be %d.",
+                      "Not matching raster cycle (%d) in snapshot; should be %u.",
                       RasterCycle, VICII_RASTER_CYCLE(maincpu_clk));
             goto fail;
         }
 
-        if (RasterLine != (WORD)VICII_RASTER_Y(maincpu_clk)) {
+        if (RasterLine != (uint16_t)VICII_RASTER_Y(maincpu_clk)) {
             log_error(vicii.log,
-                      "VIC-II: Not matching raster line (%d) in snapshot; should be %d.",
+                      "VIC-II: Not matching raster line (%d) in snapshot; should be %u.",
                       RasterLine, VICII_RASTER_Y(maincpu_clk));
             goto fail;
         }
@@ -317,35 +305,31 @@ int vicii_snapshot_read_module(snapshot_t *s)
         }
     }
 
-    if (0
-        /* SbCollMask */
-        || SMR_B(m, &vicii.sprite_background_collisions) < 0
-        /* SpriteDmaMask */
-        || SMR_B(m, &vicii.raster.sprite_status->dma_msk) < 0
-        /* SsCollMask */
-        || SMR_B(m, &vicii.sprite_sprite_collisions) < 0
-        /* VBank */
-        || SMR_W_INT(m, &vicii.vbank_phi1) < 0
-        /* Vc */
-        || SMR_W_INT(m, &vicii.mem_counter) < 0
-        /* VcInc */
-        || SMR_B_INT(m, &vicii.mem_counter_inc) < 0
-        /* VcBase */
-        || SMR_W_INT(m, &vicii.memptr) < 0
-        /* VideoInt */
-        || SMR_B_INT(m, &vicii.irq_status) < 0) {
+    if (/* SbCollMask */ SMR_B(m, &vicii.sprite_background_collisions) < 0
+            /* SpriteDmaMask */
+            || SMR_B(m, &vicii.raster.sprite_status->dma_msk) < 0
+            /* SsCollMask */
+            || SMR_B(m, &vicii.sprite_sprite_collisions) < 0
+            /* VBank */
+            || SMR_W_INT(m, &vicii.vbank_phi1) < 0
+            /* Vc */
+            || SMR_W_INT(m, &vicii.mem_counter) < 0
+            /* VcInc */
+            || SMR_B_INT(m, &vicii.mem_counter_inc) < 0
+            /* VcBase */
+            || SMR_W_INT(m, &vicii.memptr) < 0
+            /* VideoInt */
+            || SMR_B_INT(m, &vicii.irq_status) < 0) {
         goto fail;
     }
 
     for (i = 0; i < 8; i++) {
-        if (0
-            /* SpriteXMemPtr */
-            || SMR_B_INT(m, &vicii.raster.sprite_status->sprites[i].memptr) < 0
-            /* SpriteXMemPtrInc */
-            || SMR_B_INT(m, &vicii.raster.sprite_status->sprites[i].memptr_inc) < 0
-            /* SpriteXExpFlipFlop */
-            || SMR_B_INT(m, &vicii.raster.sprite_status->sprites[i].exp_flag) < 0
-            ) {
+        if (/* SpriteXMemPtr */
+                SMR_B_INT(m, &vicii.raster.sprite_status->sprites[i].memptr) < 0
+                /* SpriteXMemPtrInc */
+                || SMR_B_INT(m, &vicii.raster.sprite_status->sprites[i].memptr_inc) < 0
+                /* SpriteXExpFlipFlop */
+                || SMR_B_INT(m, &vicii.raster.sprite_status->sprites[i].exp_flag) < 0) {
             goto fail;
         }
     }
@@ -391,7 +375,7 @@ int vicii_snapshot_read_module(snapshot_t *s)
     /* Update sprite parameters.  We had better do this manually, or the
        VIC-II emulation could be quite upset.  */
     {
-        BYTE msk;
+        uint8_t msk;
 
         for (i = 0, msk = 0x1; i < 8; i++, msk <<= 1) {
             raster_sprite_t *sprite;
@@ -492,13 +476,11 @@ int vicii_snapshot_read_module(snapshot_t *s)
     alarm_set(vicii.raster_draw_alarm, vicii.draw_clk);
 
     {
-        DWORD dw;
-        BYTE b;
+        uint32_t dw;
+        uint8_t b;
 
-        if (0
-            || SMR_DW(m, &dw) < 0  /* FetchEventTick */
-            || SMR_B(m, &b) < 0    /* FetchEventType */
-            ) {
+        if (SMR_DW(m, &dw) < 0  /* FetchEventTick */
+                || SMR_B(m, &b) < 0    /* FetchEventType */) {
             goto fail;
         }
 
@@ -514,12 +496,10 @@ int vicii_snapshot_read_module(snapshot_t *s)
 
     /* added in version 1.1 of snapshot format */
     if (minor_version > 0) {
-        DWORD RamBase;
+        uint32_t RamBase;
 
-        if (0
-            || SMR_DW(m, &RamBase) < 0
-            || SMR_W_INT(m, &vicii.vbank_phi2) < 0 /* VBank */
-            ) {
+        if (SMR_DW(m, &RamBase) < 0
+                || SMR_W_INT(m, &vicii.vbank_phi2) < 0 /* VBank */) {
             goto fail;
         }
         vicii.ram_base_phi2 = mem_ram + RamBase;
