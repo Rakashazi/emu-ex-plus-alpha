@@ -56,7 +56,7 @@ private:
 	TextMenuItem deleteDeviceConfig{};
 	std::vector<const char*> profileStr{};
 	TextMenuItem deleteProfile{};
-	#ifdef CONFIG_BASE_ANDROID
+	#ifdef __ANDROID__
 	TextMenuItem rescanOSDevices{};
 	#endif
 	TextMenuItem identDevice{};

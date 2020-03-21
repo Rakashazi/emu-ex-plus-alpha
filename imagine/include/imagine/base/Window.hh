@@ -90,19 +90,12 @@ public:
 	bool isLandscape() const;
 	float widthMM() const;
 	float heightMM() const;
-	#ifdef __ANDROID__
 	float widthSMM() const;
 	float heightSMM() const;
-	#endif
 	int widthMMInPixels(float mm) const;
 	int heightMMInPixels(float mm) const;
-	#ifdef __ANDROID__
 	int widthSMMInPixels(float mm) const;
 	int heightSMMInPixels(float mm) const;
-	#else
-	int widthSMMInPixels(float mm) const;
-	int heightSMMInPixels(float mm) const;
-	#endif
 	IG::WindowRect bounds() const;
 
 	// content in these bounds isn't blocked by system overlays and receives pointer input

@@ -62,7 +62,7 @@ const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 uint SH2Cores = std::size(SH2CoreList) - 1;
 bool EmuApp::hasIcon = false;
 bool EmuApp::autoSaveStateDefault = false;
-bool EmuSystem::hasSound = !(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS);
+bool EmuSystem::hasSound = !(Config::envIsAndroid || Config::envIsIOS);
 int EmuSystem::forcedSoundRate = 44100;
 bool EmuSystem::constFrameRate = true;
 

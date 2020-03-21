@@ -74,7 +74,7 @@ bool packageIsInstalled(const char *name)
 
 static void initVibration(JNIEnv* env)
 {
-	if(likely(vibrationSystemIsInit) || Config::MACHINE_IS_OUYA)
+	if(likely(vibrationSystemIsInit))
 		return;
 	{
 		JavaInstMethod<jobject()> jSysVibrator{env, jBaseActivityCls, "systemVibrator", "()Landroid/os/Vibrator;"};
@@ -91,16 +91,12 @@ static void initVibration(JNIEnv* env)
 
 bool hasVibrator()
 {
-	if(Config::MACHINE_IS_OUYA)
-		return false;
 	initVibration(jEnvForThread());
 	return vibrator;
 }
 
 void vibrate(uint32_t ms)
 {
-	if(Config::MACHINE_IS_OUYA)
-		return;
 	auto env = jEnvForThread();
 	initVibration(env);
 	if(unlikely(!vibrator))

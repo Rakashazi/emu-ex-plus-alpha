@@ -199,10 +199,7 @@ void EmuMainMenuView::loadFileBrowserItems()
 void EmuMainMenuView::loadStandardItems()
 {
 	item.emplace_back(&systemActions);
-	if(!Config::MACHINE_IS_OUYA)
-	{
-		item.emplace_back(&onScreenInputManager);
-	}
+	item.emplace_back(&onScreenInputManager);
 	item.emplace_back(&inputManager);
 	item.emplace_back(&options);
 	#ifdef CONFIG_BLUETOOTH

@@ -5,7 +5,7 @@
 // Automatic CONFIG_GFX_* settings
 
 #ifndef CONFIG_GFX_OPENGL_ES
-	#if defined CONFIG_BASE_IOS || defined __ANDROID__ || defined CONFIG_ENV_WEBOS || defined CONFIG_MACHINE_PANDORA
+	#if defined CONFIG_BASE_IOS || defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
 	#define CONFIG_GFX_OPENGL_ES 1
 	#endif
 #endif
@@ -30,11 +30,6 @@
 #elif defined CONFIG_BASE_MACOSX
 #import <OpenGL/gl3.h>
 #import <OpenGL/gl3ext.h>
-#elif defined CONFIG_ENV_WEBOS // standard GL headers seem to be missing some extensions
-#define GL_GLEXT_PROTOTYPES
-#include <GLES/gl.h>
-#include <SDL/SDL_opengles_ext.h>
-#undef GL_GLEXT_PROTOTYPES
 #elif defined CONFIG_BASE_WIN32
 #include <util/windows/windows.h>
 #define GLEW_STATIC

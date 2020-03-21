@@ -226,12 +226,8 @@ void RendererTask::start()
 		IG::makeDetachedThreadSync(
 			[this](auto &sem)
 			{
-				std::error_code ec{};
-				auto glDpy = Base::GLDisplay::makeDefault(glAPI, ec);
-				if(ec)
-				{
-					logErr("error getting GL display");
-				}
+				auto glDpy = Base::GLDisplay::getDefault(glAPI);
+				assumeExpr(glDpy);
 				auto eventLoop = Base::EventLoop::makeForThread();
 				commandPort.addToEventLoop(eventLoop,
 					[this, glDpy](auto msgs)
@@ -242,7 +238,6 @@ void RendererTask::start()
 				logMsg("starting render task event loop");
 				eventLoop.run();
 				commandPort.removeFromEventLoop();
-				glDpy.deinit();
 				logMsg("render task thread finished");
 			});
 	}

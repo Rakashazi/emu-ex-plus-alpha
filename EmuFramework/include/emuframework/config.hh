@@ -26,7 +26,7 @@
 #endif
 #define CREDITS_INFO_STRING "Built : " __DATE__ "\n" PLATFORM_INFO_STR "\n\n"
 
-#if (defined __ANDROID__ && !defined CONFIG_MACHINE_OUYA) || \
+#if defined __ANDROID__ || \
 	defined CONFIG_BASE_IOS || \
 	(defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA)
 #define CONFIG_VCONTROLS_GAMEPAD
@@ -40,6 +40,10 @@
 #define CONFIG_INPUT_ICADE
 #endif
 
-#if defined CONFIG_BASE_X11 || (defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA) || defined CONFIG_BASE_IOS
+#if defined CONFIG_BASE_X11 || defined __ANDROID__ || defined CONFIG_BASE_IOS
 #define EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+#endif
+
+#ifdef __ANDROID__
+#define CONFIG_EMUFRAMEWORK_USE_SCALED_COORDINATES
 #endif

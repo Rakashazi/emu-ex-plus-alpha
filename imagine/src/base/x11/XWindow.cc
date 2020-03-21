@@ -180,33 +180,31 @@ std::error_code Window::init(const WindowConfig &config)
 	this->screen_ = &mainScreen();
 	#endif
 	auto rootWindow = RootWindowOfScreen((::Screen*)screen()->nativeObject());
-	#ifdef CONFIG_MACHINE_PANDORA
-	IG::WindowRect winRect{0, 0, 800, 480};
-	#else
-	auto winRect = makeWindowRectWithConfig(config, rootWindow);
-	#endif
+	auto winRect = Config::MACHINE_IS_PANDORA ? IG::WindowRect{0, 0, 800, 480} :
+		makeWindowRectWithConfig(config, rootWindow);
 	updateSize({winRect.xSize(), winRect.ySize()});
-	XSetWindowAttributes attr{};
-	attr.event_mask = ExposureMask | PropertyChangeMask | StructureNotifyMask;
-	#if defined CONFIG_MACHINE_PANDORA
-	xWin = XCreateWindow(dpy, rootWindow, 0, 0, w, h, 0,
-		CopyFromParent, InputOutput, CopyFromParent,
-		CWEventMask, &attr);
-	#else
-	pos = {winRect.x, winRect.y};
 	{
-		colormap = XCreateColormap(dpy, rootWindow, (Visual*)config.format().visual, AllocNone);
-		attr.colormap = colormap;
+		XSetWindowAttributes attr{};
+		attr.event_mask = ExposureMask | PropertyChangeMask | StructureNotifyMask;
+		unsigned long valueMask = CWEventMask;
+		if(config.format())
+		{
+			attr.colormap = XCreateColormap(dpy, rootWindow, (Visual*)config.format(), AllocNone);
+			valueMask |= CWColormap;
+		}
 		xWin = XCreateWindow(dpy, rootWindow, 0, 0, w, h, 0,
-			config.format().depth, InputOutput, (Visual*)config.format().visual,
-			CWColormap | CWEventMask, &attr);
-	}
-	#endif
-	if(!xWin)
-	{
-		logErr("error initializing window");
-		deinit();
-		return {EINVAL, std::system_category()};
+			CopyFromParent, InputOutput, (Visual*)config.format(),
+			valueMask, &attr);
+		if(!xWin)
+		{
+			logErr("error initializing window");
+			deinit();
+			return {EINVAL, std::system_category()};
+		}
+		#ifndef CONFIG_MACHINE_PANDORA
+		pos = {winRect.x, winRect.y};
+		colormap = attr.colormap;
+		#endif
 	}
 	logMsg("made window with XID %d, drawable depth %d", (int)xWin, xDrawableDepth(dpy, xWin));
 	Input::initPerWindowData(xWin);

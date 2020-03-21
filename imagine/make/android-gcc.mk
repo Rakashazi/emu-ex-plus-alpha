@@ -37,7 +37,6 @@ config_compiler ?= clang
 ifeq ($(origin CC), default)
  CC := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang
  CXX := $(CC)++
- LD := $(CC)
  AR := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-ar
  RANLIB := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-ar s
  STRIP := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-strip

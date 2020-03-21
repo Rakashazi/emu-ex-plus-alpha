@@ -143,13 +143,14 @@ public:
 	using GLDisplayImpl::GLDisplayImpl;
 
 	constexpr GLDisplay() {}
+	static std::pair<std::error_code, GLDisplay> makeDefault();
+	static std::pair<std::error_code, GLDisplay> makeDefault(API api);
 	static GLDisplay getDefault();
-	static GLDisplay makeDefault(std::error_code &ec);
-	static GLDisplay makeDefault(API api, std::error_code &ec);
+	static GLDisplay getDefault(API api);
 	explicit operator bool() const;
 	bool operator ==(GLDisplay const &rhs) const;
 	bool deinit();
-	GLDrawable makeDrawable(Window &win, GLBufferConfig config, std::error_code &ec);
+	std::pair<std::error_code, GLDrawable> makeDrawable(Window &win, GLBufferConfig config);
 	bool deleteDrawable(GLDrawable &drawable);
 	void logInfo();
 	static bool bindAPI(API api);
@@ -175,6 +176,7 @@ public:
 	static void setDrawable(GLDisplay display, GLDrawable drawable, GLContext cachedCurrentContext);
 	static void present(GLDisplay display, GLDrawable drawable);
 	static void present(GLDisplay display, GLDrawable drawable, GLContext cachedCurrentContext);
+	static bool supportsNoConfig();
 	NativeGLContext nativeObject();
 };
 

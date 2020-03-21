@@ -51,7 +51,7 @@ do
 			xperiaPlayOpt=1
 		;;
 		--tv)
-			isTV=1
+			hasTVIntent=1
 		;;
 		--game)
 			isGame=1
@@ -59,8 +59,8 @@ do
 		--no-icon)
 			noIcon=1
 		;;
-		--ouya-build)
-			ouyaBuild=1
+		--ouya)
+			hasOuyaIntent=1
 		;;
 		# special actions
 		-v | --verbose)
@@ -120,7 +120,7 @@ then
 	applicationOutput="$applicationOutput android:icon=\"@mipmap/icon\""
 fi
 
-if [ $isTV ]
+if [ $hasTVIntent ]
 then
 	applicationOutput="$applicationOutput android:banner=\"@drawable/banner\""
 fi
@@ -197,7 +197,7 @@ intentFilters="<action android:name=\"android.intent.action.MAIN\" />
 				<category android:name=\"android.intent.category.LAUNCHER\" />
 				<category android:name=\"android.intent.category.LEANBACK_LAUNCHER\" />"
 
-if [ $ouyaBuild ]
+if [ $hasOuyaIntent ]
 then
 	intentFilters="$intentFilters
 				<category android:name=\"tv.ouya.intent.category.GAME\" />"

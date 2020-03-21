@@ -201,15 +201,6 @@ void* operator new[] (std::size_t size)
 #endif
 { return std::malloc(size); }
 
-#ifdef CONFIG_BASE_PS3
-void *operator new(_CSTD size_t size, _CSTD size_t align)
-	_THROW1(_XSTD bad_alloc)
-{
-	//logMsg("called aligned new, size %d @ %d byte boundary", (int)size, (int)align);
-	return memalign(size, align);
-}
-#endif
-
 void operator delete (void *o) noexcept { std::free(o); }
 void operator delete[] (void *o) noexcept { std::free(o); }
 

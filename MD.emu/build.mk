@@ -114,7 +114,6 @@ ifdef hasSCD
  cxxExceptions := 1
  include $(IMAGINE_PATH)/make/package/libvorbis.mk
  include $(IMAGINE_PATH)/make/package/libsndfile.mk
- include $(IMAGINE_PATH)/make/package/stdc++.mk
 else
  CPPFLAGS += -DNO_SCD
 endif

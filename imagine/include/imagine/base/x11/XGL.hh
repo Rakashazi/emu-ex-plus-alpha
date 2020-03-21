@@ -37,32 +37,9 @@ protected:
 	static bool swapBuffersIsAsync();
 };
 
-struct GLBufferConfig : public EGLBufferConfig
-{
-	#ifndef CONFIG_MACHINE_PANDORA
-	NativeWindowFormat fmt;
-	#endif
-
-	constexpr GLBufferConfig() {}
-	constexpr GLBufferConfig(EGLBufferConfig config):
-		EGLBufferConfig{config}
-		{}
-
-	explicit operator bool() const
-	{
-		#ifndef CONFIG_MACHINE_PANDORA
-		return fmt.visual;
-		#else
-		return isInit;
-		#endif
-	}
-
-	Base::NativeWindowFormat windowFormat(GLDisplay display);
-};
-
 using GLDisplayImpl = EGLDisplayConnection;
 using GLDrawableImpl = EGLDrawable;
-
 using GLContextImpl = XGLContext;
+using GLBufferConfig = EGLBufferConfig;
 
 }

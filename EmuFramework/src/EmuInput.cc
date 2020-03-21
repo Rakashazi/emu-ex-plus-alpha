@@ -78,12 +78,12 @@ void resetVControllerPositions()
 {
 	logMsg("resetting on-screen controls to default positions & states");
 	auto &win = vController.windowData().win;
-	uint initFastForwardState = (Config::envIsIOS || (Config::envIsAndroid  && !Base::hasHardwareNavButtons()) || Config::envIsWebOS3)
+	uint initFastForwardState = (Config::envIsIOS || (Config::envIsAndroid  && !Base::hasHardwareNavButtons()))
 		? VControllerLayoutPosition::SHOWN : VControllerLayoutPosition::OFF;
-	uint initMenuState = ((Config::envIsWebOS && !Config::envIsWebOS3) || (Config::envIsAndroid && Base::hasHardwareNavButtons()))
+	uint initMenuState = (Config::envIsAndroid && Base::hasHardwareNavButtons())
 		? VControllerLayoutPosition::HIDDEN : VControllerLayoutPosition::SHOWN;
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	uint initGamepadState = (Config::envIsWebOS || Config::envIsAndroid || Config::envIsIOS || (int)optionTouchCtrl == 1) ? VControllerLayoutPosition::SHOWN : VControllerLayoutPosition::OFF;
+	uint initGamepadState = (Config::envIsAndroid || Config::envIsIOS || (int)optionTouchCtrl == 1) ? VControllerLayoutPosition::SHOWN : VControllerLayoutPosition::OFF;
 	#else
 	uint initGamepadState = VControllerLayoutPosition::OFF;
 	#endif
@@ -281,8 +281,6 @@ bool isMenuDismissKey(Input::Event e)
 	using namespace Input;
 	Key dismissKey = Keycode::MENU;
 	Key dismissKey2 = Keycode::GAME_Y;
-	if(Config::envIsWebOS1)
-		dismissKey = Keycode::RCTRL;
 	if(Config::MACHINE_IS_PANDORA && e.device()->subtype() == Device::SUBTYPE_PANDORA_HANDHELD)
 	{
 		if(emuViewController.hasModalView()) // make sure not performing text input
@@ -362,7 +360,7 @@ const KeyConfig *KeyConfig::defaultConfigsForInputMap(uint map, uint &size)
 			size = EmuControls::defaultZeemoteProfiles;
 			return EmuControls::defaultZeemoteProfile;
 		#endif
-		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH_SERVER
+		#ifdef CONFIG_BLUETOOTH_SERVER
 		case Input::Event::MAP_PS3PAD:
 			size = EmuControls::defaultPS3Profiles;
 			return EmuControls::defaultPS3Profile;

@@ -22,7 +22,7 @@ projectPath ?= $(firstMakefileDir)
 
 LN ?= ln
 
-toolchainEnvParams = CC="$(CC)" CXX="$(CXX)" LD="$(LD)" AR="$(AR)"
+toolchainEnvParams = CC="$(CC)" CXX="$(CXX)" AR="$(AR)"
 
 ifndef V
  PRINT_CMD := @

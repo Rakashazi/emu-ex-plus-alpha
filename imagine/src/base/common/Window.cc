@@ -302,10 +302,6 @@ bool Window::updateSize(IG::Point2D<int> surfaceSize)
 		logMsg("same window size %d,%d", realWidth(), realHeight());
 		return false;
 	}
-	if(softOrientation_ == VIEW_ROTATE_0)
-		logMsg("updated window size %d,%d", w, h);
-	else
-		logMsg("updated window size %d,%d with rotation, real size %d,%d", w, h, realWidth(), realHeight());
 	#ifdef __ANDROID__
 	updatePhysicalSize(pixelSizeAsMM({realWidth(), realHeight()}), pixelSizeAsSMM({realWidth(), realHeight()}));
 	#else
@@ -338,10 +334,17 @@ bool Window::updatePhysicalSize(IG::Point2D<float> surfaceSizeMM, IG::Point2D<fl
 	smmToPixelYScaler = h / hSMM;
 	if(oldSW != wSMM || oldSH != hSMM)
 		changed = true;
-	logMsg("size in MM %fx%f, scaled %fx%f", (double)wMM, (double)hMM, (double)wSMM, (double)hSMM);
-	#else
-	logMsg("size in MM %fx%f", (double)wMM, (double)hMM);
 	#endif
+	if(softOrientation_ == VIEW_ROTATE_0)
+	{
+		logMsg("updated window size:%dx%d (%.2fx%.2fmm, scaled %.2fx%.2fmm)",
+			width(), height(), widthMM(), heightMM(), widthSMM(), heightSMM());
+	}
+	else
+	{
+		logMsg("updated window size:%dx%d (%.2fx%.2fmm, scaled %.2fx%.2fmm) with rotation, real size:%dx%d",
+			width(), height(), widthMM(), heightMM(), widthSMM(), heightSMM(), realWidth(), realHeight());
+	}
 	return changed;
 }
 
@@ -502,6 +505,9 @@ float Window::heightSMM() const
 	assert(hSMM);
 	return hSMM;
 }
+#else
+float Window::widthSMM() const { return widthMM(); }
+float Window::heightSMM() const { return heightMM(); }
 #endif
 
 int Window::widthMMInPixels(float mm) const

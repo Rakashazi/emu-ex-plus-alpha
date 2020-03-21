@@ -1,8 +1,5 @@
-ifeq ($(origin LD), default)
- LD = $(CXX)
-endif
+LD := $(CXX)
 
-#LINK_MAP=1
 ifdef LINK_MAP
  MAPFILE := link.map
  LDFLAGS += -Wl,-Map=$(MAPFILE)

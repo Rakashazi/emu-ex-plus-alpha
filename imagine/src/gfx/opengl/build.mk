@@ -7,7 +7,7 @@ include $(imagineSrcDir)/pixmap/build.mk
 configDefs += CONFIG_GFX CONFIG_GFX_OPENGL
 
 ifndef openGLAPI
- ifneq ($(filter ios android webos,$(ENV)),)
+ ifneq ($(filter ios android,$(ENV)),)
   openGLAPI := gles
  else ifeq ($(SUBENV), pandora)
   openGLAPI := gles
@@ -18,7 +18,7 @@ endif
 
 ifeq ($(openGLAPI), gles)
  ifndef openGLESVersion
-  ifneq ($(filter ios android webos,$(ENV)),)
+  ifneq ($(filter ios android,$(ENV)),)
    ifeq ($(SUBARCH), armv6)
     openGLESVersion := 1
    else

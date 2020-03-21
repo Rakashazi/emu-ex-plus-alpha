@@ -335,8 +335,7 @@ void GLDrawableHolder::makeDrawable(Renderer &r, Base::Window &win)
 	destroyDrawable(r);
 	Base::removeOnExit(onResume);
 	Base::removeOnExit(onExit);
-	std::error_code ec{};
-	auto drawable = r.glDpy.makeDrawable(win, r.gfxBufferConfig, ec);
+	auto [ec, drawable] = r.glDpy.makeDrawable(win, r.gfxBufferConfig);
 	if(ec)
 	{
 		logErr("Error creating GL drawable");
@@ -344,14 +343,14 @@ void GLDrawableHolder::makeDrawable(Renderer &r, Base::Window &win)
 	}
 	drawable_ = drawable;
 	onResume =
-		[=](bool focused) mutable
+		[drawable = drawable](bool focused) mutable
 		{
 			drawable.restoreCaches();
 			return true;
 		};
 	Base::addOnResume(onResume, DRAWABLE_ON_RESUME_PRIORITY);
 	onExit =
-		[=](bool backgrounded) mutable
+		[drawable = drawable](bool backgrounded) mutable
 		{
 			drawable.freeCaches();
 			return true;

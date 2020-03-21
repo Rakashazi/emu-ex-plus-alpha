@@ -474,7 +474,7 @@ void EmuViewController::placeElements()
 		popup.place();
 	}
 	auto &winData = mainWindowData();
-	TableView::setDefaultXIndent(winData.projectionPlane);
+	TableView::setDefaultXIndent(inputView().window(), winData.projectionPlane);
 	placeEmuViews();
 	viewStack.place(winData.viewport().bounds(), winData.projectionPlane);
 	modalViewController.place(winData.viewport().bounds(), winData.projectionPlane);

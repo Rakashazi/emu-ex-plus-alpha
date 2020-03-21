@@ -263,7 +263,7 @@ const char *Event::mapName(uint32_t map)
 		case MAP_ICONTROLPAD: return "iControlPad";
 		case MAP_ZEEMOTE: return "Zeemote JS1";
 		#endif
-		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
+		#ifdef CONFIG_BLUETOOTH_SERVER
 		case MAP_PS3PAD: return "PS3 Gamepad";
 		#endif
 		case MAP_ICADE: return "iCade";
@@ -286,7 +286,7 @@ uint32_t Event::mapNumKeys(uint32_t map)
 		case MAP_ICONTROLPAD: return Input::iControlPad::COUNT;
 		case MAP_ZEEMOTE: return Input::Zeemote::COUNT;
 		#endif
-		#if defined CONFIG_BASE_PS3 || defined CONFIG_BLUETOOTH
+		#ifdef CONFIG_BLUETOOTH_SERVER
 		case MAP_PS3PAD: return Input::PS3::COUNT;
 		#endif
 		case MAP_ICADE: return Input::ICade::COUNT;

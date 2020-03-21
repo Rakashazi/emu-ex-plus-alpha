@@ -6,7 +6,7 @@ include $(buildSysPath)/setAndroidNDKPath.mk
 .PHONY: all
 all : android-bundle
 
-BUNDLETOOL_PATH ?= $(IMAGINE_PATH)/tools/bundletool-all-0.13.0.jar
+BUNDLETOOL_PATH ?= $(IMAGINE_PATH)/tools/bundletool-all-0.13.3.jar
 BUNDLETOOL := java -jar $(BUNDLETOOL_PATH)
 
 # Code signing parameters used when generating APKs from the app bundle
@@ -30,23 +30,13 @@ android_makefileOpts += android_metadata_soName=$(android_metadata_soName)
 # Architecture setup
 
 ifndef android_arch
- ifdef android_ouyaBuild
-  android_arch := armv7
- else
-  android_arch := armv7 arm64 x86 x86_64
- endif
+ android_arch := armv7 arm64 x86 x86_64
 endif
 
 android_arch := $(filter-out $(android_noArch),$(android_arch))
 
-ifdef android_ouyaBuild
- android_minSDK := 16
- android_buildPrefix := android-ouya
- android_releaseReadySubdir := ouya
-else
- android_buildPrefix := android
- android_releaseReadySubdir := android
-endif
+android_buildPrefix := android
+android_releaseReadySubdir := android
 
 android_buildName ?= $(firstMakefileName:.mk=)
 
@@ -91,12 +81,6 @@ ifneq ($(wildcard $(android_resSrcPath)/assets-$(android_minSDK)),)
  android_assetsSrcPath := $(android_resSrcPath)/assets-$(android_minSDK)
 else ifneq ($(wildcard $(android_resSrcPath)/assets),)
  android_assetsSrcPath := $(android_resSrcPath)/assets
-endif
-
-ifdef android_ouyaBuild
- ifneq ($(wildcard $(android_resSrcPath)/assets-ouya),)
-  android_assetsSrcPath := $(android_resSrcPath)/assets-ouya
- endif
 endif
 
 ifdef android_assetsSrcPath
@@ -179,18 +163,24 @@ android_drawableIconPaths := $(android_drawableMdpiIconPath) $(android_drawableH
  $(android_drawableIconV26Path) $(android_drawableIconBgPath) $(android_mipmapXhdpiIconFgPath) \
  $(android_mipmapXxhdpiIconFgPath) $(android_mipmapXxxhdpiIconFgPath) $(android_drawableMdpiBigIconPath)
 
-ifdef android_ouyaBuild
+ifneq ($(wildcard $(resPath)/icons/ouya_icon.png),)
  android_drawableXhdpiOuyaIconPath := $(android_targetPath)/res/drawable-xhdpi/ouya_icon.png
- $(android_drawableXhdpiOuyaIconPath) :
+ android_drawableIconPaths += $(android_drawableXhdpiOuyaIconPath)
+ android_gen_metadata_args += --ouya
+endif
+
+ifdef android_drawableXhdpiOuyaIconPath
+# Ouya icon needs an explicit xml reference to prevent build system from stripping it since it's not used in AndroidManifest.xml
+$(android_drawableXhdpiOuyaIconPath) :
 	@mkdir -p $(@D)
 	ln -rs $(resPath)/icons/ouya_icon.png $@
- android_drawableIconPaths := $(android_drawableXhdpiIconPath) $(android_drawableXhdpiOuyaIconPath)
-else
- ifneq ($(wildcard $(resPath)/icons/tv-banner.png),)
-  android_drawableTVBannerPath := $(android_targetPath)/res/drawable-v21/banner.png
-  android_drawableIconPaths += $(android_drawableTVBannerPath)
-  android_gen_metadata_args += --tv
- endif
+	printf '<?xml version="1.0" encoding="utf-8"?>\n<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@drawable/ouya_icon"/>\n' > $(@D)/ouya.xml
+endif
+
+ifneq ($(wildcard $(resPath)/icons/tv-banner.png),)
+ android_drawableTVBannerPath := $(android_targetPath)/res/drawable-v21/banner.png
+ android_drawableIconPaths += $(android_drawableTVBannerPath)
+ android_gen_metadata_args += --tv
 endif
 
 ifdef android_drawableTVBannerPath

@@ -1,18 +1,10 @@
 include $(IMAGINE_PATH)/make/config.mk
 
 ifndef android_arch
- ifdef android_ouyaBuild
-  android_arch := armv7
- else
-  android_arch := arm64 armv7 x86 x86_64
- endif
+ android_arch := arm64 armv7 x86 x86_64
 endif
 
 android_buildPrefix := android
-
-ifdef android_ouyaBuild
- android_buildPrefix := android-ouya
-endif
 
 ifneq ($(filter armv7, $(android_arch)),)
  armv7Target := $(android_buildPrefix)-armv7$(targetExt)

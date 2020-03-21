@@ -22,6 +22,11 @@
 #include <imagine/gui/ScrollView.hh>
 #include <iterator>
 
+namespace Base
+{
+class Window;
+}
+
 class MenuItem;
 
 class TableView : public ScrollView
@@ -61,7 +66,9 @@ public:
 	IG::WP cellSize() const;
 	void highlightCell(int idx);
 	void setAlign(_2DOrigin align);
-	static void setDefaultXIndent(const Gfx::ProjectionPlane &projP);
+	static float defaultXIndentMM(Base::Window &win);
+	static void setDefaultXIndent(Base::Window &win, Gfx::ProjectionPlane projP);
+	static void setXIndentMM(float indent, Gfx::ProjectionPlane projP);
 	static MenuItem& derefMenuItem(MenuItem *item)
 	{
 		return *item;

@@ -60,24 +60,22 @@ OptionAudioSoloMix optionAudioSoloMix(CFGKEY_AUDIO_SOLO_MIX, 1);
 #endif
 
 Byte4Option optionSoundRate(CFGKEY_SOUND_RATE,
-	(Config::envIsPS3 || (Config::envIsLinux && !Config::MACHINE_IS_PANDORA)) ? 48000 : 44100, Config::envIsPS3, optionIsValidWithMax<48000>);
+	(Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? 48000 : 44100, false, optionIsValidWithMax<48000>);
 
 // Store in micro-meters
 Byte2Option optionFontSize(CFGKEY_FONT_Y_SIZE,
 	Config::MACHINE_IS_PANDORA ? 6500 :
-	Config::MACHINE_IS_OUYA ? 3000 :
-	Config::envIsWebOS3 ? 5000 :
-	(Config::envIsIOS || Config::envIsAndroid || Config::envIsWebOS) ? 3000 :
+	(Config::envIsIOS || Config::envIsAndroid) ? 3000 :
 	8000,
 	0, optionIsValidWithMinMax<2000, 10000, uint16_t>);
 
 Byte1Option optionVibrateOnPush(CFGKEY_TOUCH_CONTROL_VIRBRATE, 0, !Config::BASE_SUPPORTS_VIBRATOR);
 
 Byte1Option optionPauseUnfocused(CFGKEY_PAUSE_UNFOCUSED, 1,
-	!(Config::envIsPS3 || Config::envIsLinux || (Config::envIsAndroid && !Config::MACHINE_IS_OUYA)));
+	!(Config::envIsLinux || Config::envIsAndroid));
 
-Byte1Option optionNotificationIcon(CFGKEY_NOTIFICATION_ICON, 1, !Config::envIsAndroid || Config::MACHINE_IS_OUYA);
-Byte1Option optionTitleBar(CFGKEY_TITLE_BAR, 1, Config::envIsIOS || Config::envIsWebOS3);
+Byte1Option optionNotificationIcon(CFGKEY_NOTIFICATION_ICON, 1, !Config::envIsAndroid);
+Byte1Option optionTitleBar(CFGKEY_TITLE_BAR, 1, Config::envIsIOS);
 
 OptionBackNavigation
 	optionBackNavigation(CFGKEY_BACK_NAVIGATION, View::needsBackControlDefault, View::needsBackControlIsConst);
@@ -86,7 +84,7 @@ Byte1Option optionSystemActionsIsDefaultMenu(CFGKEY_SYSTEM_ACTIONS_IS_DEFAULT_ME
 Byte1Option optionLowProfileOSNav(CFGKEY_LOW_PROFILE_OS_NAV, 1, !Config::envIsAndroid);
 Byte1Option optionHideOSNav(CFGKEY_HIDE_OS_NAV, 0, !Config::envIsAndroid);
 Byte1Option optionIdleDisplayPowerSave(CFGKEY_IDLE_DISPLAY_POWER_SAVE, 1, !Config::envIsAndroid && !Config::envIsIOS);
-Byte1Option optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 1, (!Config::envIsAndroid || Config::MACHINE_IS_OUYA) && !Config::envIsIOS);
+Byte1Option optionHideStatusBar(CFGKEY_HIDE_STATUS_BAR, 1, !Config::envIsAndroid && !Config::envIsIOS);
 OptionSwappedGamepadConfirm optionSwappedGamepadConfirm(CFGKEY_SWAPPED_GAMEPAD_CONFIM, Input::SWAPPED_GAMEPAD_CONFIRM_DEFAULT);
 Byte1Option optionConfirmOverwriteState(CFGKEY_CONFIRM_OVERWRITE_STATE, 1, 0);
 Byte1Option optionFastForwardSpeed(CFGKEY_FAST_FORWARD_SPEED, 4, 0, optionIsValidWithMinMax<2, 7>);
@@ -139,53 +137,53 @@ Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDece
 #endif
 
 Byte4s1Option optionGameOrientation(CFGKEY_GAME_ORIENTATION,
-		(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS3) ? Base::VIEW_ROTATE_AUTO : Config::envIsWebOS ? Base::VIEW_ROTATE_90 : Base::VIEW_ROTATE_0,
-		Config::envIsPS3 || Config::MACHINE_IS_OUYA, optionOrientationIsValid);
+		(Config::envIsAndroid || Config::envIsIOS) ? Base::VIEW_ROTATE_AUTO : Base::VIEW_ROTATE_0,
+		false, optionOrientationIsValid);
 
 Byte4s1Option optionMenuOrientation(CFGKEY_MENU_ORIENTATION,
-		(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS3) ? Base::VIEW_ROTATE_AUTO : Base::VIEW_ROTATE_0,
-		Config::envIsPS3, optionOrientationIsValid);
+		(Config::envIsAndroid || Config::envIsIOS) ? Base::VIEW_ROTATE_AUTO : Base::VIEW_ROTATE_0,
+		false, optionOrientationIsValid);
 
 Byte1Option optionTouchCtrl(CFGKEY_TOUCH_CONTROL_DISPLAY,
-		(Config::envIsLinux || Config::envIsPS3 || Config::MACHINE_IS_OUYA) ? 0 : 2,
-		Config::envIsPS3 || Config::MACHINE_IS_OUYA, optionIsValidWithMax<2>);
+		Config::envIsLinux ? 0 : 2,
+		false, optionIsValidWithMax<2>);
 
 Byte1Option optionTouchCtrlAlpha(CFGKEY_TOUCH_CONTROL_ALPHA,
 		255 * .5,
-		Config::envIsPS3/*, optionIsValidWithMax<255>*/);
+		false);
 
 Byte4s2Option optionTouchCtrlSize
 		(CFGKEY_TOUCH_CONTROL_SIZE,
-		(Config::envIsWebOS && !Config::envIsWebOS3) ? 800 : Config::envIsWebOS3 ? 1400 : 850,
-		Config::envIsPS3, optionIsValidWithMinMax<300, 1500>);
+		850,
+		false, optionIsValidWithMinMax<300, 1500>);
 Byte4s2Option optionTouchDpadDeadzone
 		(CFGKEY_TOUCH_CONTROL_DPAD_DEADZONE,
 		135,
-		Config::envIsPS3, optionIsValidWithMax<160>);
+		false, optionIsValidWithMax<160>);
 Byte4s2Option optionTouchDpadDiagonalSensitivity
 		(CFGKEY_TOUCH_CONTROL_DIAGONAL_SENSITIVITY,
 		1750,
-		Config::envIsPS3, optionIsValidWithMinMax<1000,2500>);
+		false, optionIsValidWithMinMax<1000,2500>);
 Byte4s2Option optionTouchCtrlBtnSpace
 		(CFGKEY_TOUCH_CONTROL_FACE_BTN_SPACE,
 		200,
-		Config::envIsPS3, optionIsValidWithMax<400>);
+		false, optionIsValidWithMax<400>);
 Byte4s2Option optionTouchCtrlBtnStagger
 		(CFGKEY_TOUCH_CONTROL_FACE_BTN_STAGGER,
 		1,
-		Config::envIsPS3, optionIsValidWithMax<5>);
+		false, optionIsValidWithMax<5>);
 Byte1Option optionTouchCtrlTriggerBtnPos
 		(CFGKEY_TOUCH_CONTROL_TRIGGER_BTN_POS,
-		0, Config::envIsPS3);
+		0, false);
 Byte4s2Option optionTouchCtrlExtraXBtnSize
 		(CFGKEY_TOUCH_CONTROL_EXTRA_X_BTN_SIZE,
-		200, Config::envIsPS3, optionIsValidWithMax<1000>);
+		200, false, optionIsValidWithMax<1000>);
 Byte4s2Option optionTouchCtrlExtraYBtnSize
 		(CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE,
-		1000, Config::envIsPS3, optionIsValidWithMax<1000>);
+		1000, false, optionIsValidWithMax<1000>);
 Byte4s2Option optionTouchCtrlExtraYBtnSizeMultiRow
 		(CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE_MULTI_ROW,
-		200, Config::envIsPS3, optionIsValidWithMax<1000>);
+		200, false, optionIsValidWithMax<1000>);
 
 bool isValidOption2DO(_2DOrigin val)
 {
@@ -309,6 +307,12 @@ void initOptions()
 	{
 		optionShowOnSecondScreen.isConst = true;
 	}
+	else if(FS::exists(FS::makePathStringPrintf("%s/emuex_disable_presentation_displays", Base::sharedStoragePath().data())))
+	{
+		logMsg("force-disabling presentation display support");
+		optionShowOnSecondScreen.initDefault(false);
+		optionShowOnSecondScreen.isConst = true;
+	}
 	else
 	{
 		#ifdef CONFIG_BLUETOOTH
@@ -366,8 +370,6 @@ void initOptions()
 	if(Base::deviceIsIPad())
 		defaultToLargeControls = true;
 	#endif
-	if(Config::envIsWebOS3)
-		defaultToLargeControls = true;
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	if(defaultToLargeControls)
 		optionTouchCtrlSize.initDefault(1400);

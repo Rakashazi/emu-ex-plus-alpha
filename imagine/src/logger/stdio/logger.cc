@@ -42,8 +42,6 @@ static FS::PathString externalLogDir()
 		prefix = FS::makePathString("/var/mobile");
 	else if(Config::envIsAndroid)
 		prefix = Base::sharedStoragePath();
-	else if(Config::envIsWebOS)
-		prefix = FS::makePathString("/media/internal");
 	return prefix;
 }
 

@@ -47,9 +47,9 @@ static TestParams testParam[]
 static std::unique_ptr<Base::RootCpufreqParamSetter> cpuFreq{};
 #endif
 
-static void placeElements(Gfx::Renderer &r)
+static void placeElements(Base::Window &win, Gfx::Renderer &r)
 {
-	TableView::setDefaultXIndent(projP);
+	TableView::setDefaultXIndent(win, projP);
 	if(!activeTest)
 	{
 		picker->setViewRect(projP.viewport().bounds(), projP);
@@ -87,7 +87,7 @@ static void finishTest(Base::Window &win, Gfx::Renderer &r, IG::FrameTime frameT
 		activeTest->finish(frameTime);
 	}
 	cleanupTest(activeTest);
-	placeElements(r);
+	placeElements(win, r);
 	win.postDraw();
 }
 
@@ -113,7 +113,7 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 	Input::setKeyRepeat(false);
 	initCPUFreqStatus();
 	initCPULoadStatus();
-	placeElements(r);
+	placeElements(win, r);
 
 	win.screen()->addOnFrame(
 		[&win](Base::Screen::FrameParams params)
@@ -198,7 +198,7 @@ void onInit(int argc, char** argv)
 				projP = Gfx::ProjectionPlane::makeWithMatrix(viewport, projMat);
 				testRectWin = viewport.rectWithRatioBestFitFromViewport(0, 0, 4./3., C2DO, C2DO);
 				testRect = projP.unProjectRect(testRectWin);
-				placeElements(renderer);
+				placeElements(win, renderer);
 			}
 		});
 

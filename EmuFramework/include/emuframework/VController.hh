@@ -243,7 +243,7 @@ private:
 	#endif
 	VControllerKeyboard kb{};
 
-	#ifdef CONFIG_BASE_ANDROID
+	#ifdef CONFIG_EMUFRAMEWORK_USE_SCALED_COORDINATES
 	bool useScaledCoordinates = true;
 	#else
 	static constexpr bool useScaledCoordinates = false;

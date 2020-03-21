@@ -70,27 +70,7 @@ GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttribute
 	{
 		return GLBufferConfig{};
 	}
-	GLBufferConfig conf{eglConfig};
-	#if !defined CONFIG_MACHINE_PANDORA
-	{
-		// get matching x visual
-		EGLint nativeID;
-		eglGetConfigAttrib(display.eglDisplay(), conf.glConfig, EGL_NATIVE_VISUAL_ID, &nativeID);
-		XVisualInfo viTemplate{};
-		viTemplate.visualid = nativeID;
-		int visuals;
-		auto viPtr = XGetVisualInfo(dpy, VisualIDMask, &viTemplate, &visuals);
-		if(!viPtr)
-		{
-			logErr("unable to find matching X Visual");
-			return GLBufferConfig{};
-		}
-		conf.fmt.visual = viPtr->visual;
-		conf.fmt.depth = viPtr->depth;
-		XFree(viPtr);
-	}
-	#endif
-	return conf;
+	return {eglConfig};
 }
 
 void GLContext::present(GLDisplay display, GLDrawable win)
@@ -114,11 +94,23 @@ bool XGLContext::swapBuffersIsAsync()
 
 Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay display)
 {
-	#ifndef CONFIG_MACHINE_PANDORA
-	return fmt;
-	#else
-	return {};
-	#endif
+	if(Config::MACHINE_IS_PANDORA)
+		return nullptr;
+	// get matching x visual
+	EGLint nativeID;
+	eglGetConfigAttrib(display.eglDisplay(), glConfig, EGL_NATIVE_VISUAL_ID, &nativeID);
+	XVisualInfo viTemplate{};
+	viTemplate.visualid = nativeID;
+	int visuals;
+	auto viPtr = XGetVisualInfo(dpy, VisualIDMask, &viTemplate, &visuals);
+	if(!viPtr)
+	{
+		logErr("unable to find matching X Visual");
+		return nullptr;
+	}
+	auto visual = viPtr->visual;
+	XFree(viPtr);
+	return visual;
 }
 
 }

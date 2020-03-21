@@ -61,7 +61,6 @@ SRC +=  $(addprefix $(gambatteCommonPath)/,$(gambatteCommonSrc))
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk
-include $(IMAGINE_PATH)/make/package/stdc++.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
 

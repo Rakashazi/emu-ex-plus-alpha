@@ -381,6 +381,14 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	else if(Config::DEBUG_BUILD && string_equal(extStr, "GL_KHR_debug"))
 	{
 		support.hasDebugOutput = true;
+		#ifdef __ANDROID__
+		// older GPU drivers like Tegra 3 can crash when using debug output,
+		// only enable on recent Android version to be safe
+		if(Base::androidSDK() < 23)
+		{
+			support.hasDebugOutput = false;
+		}
+		#endif
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_ES
@@ -586,19 +594,15 @@ Renderer::Renderer() {}
 
 Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 {
-	Base::GLDisplay dpy{};
+	auto [ec, dpy] = Base::GLDisplay::makeDefault(glAPI);
+	if(ec)
 	{
-		std::error_code ec{};
-		dpy = Base::GLDisplay::makeDefault(glAPI, ec);
-		if(ec)
-		{
-			logErr("error getting GL display");
-			err = std::runtime_error("error creating GL display");
-			return;
-		}
-		glDpy = dpy;
-		dpy.logInfo();
+		logErr("error getting GL display");
+		err = std::runtime_error("error creating GL display");
+		return;
 	}
+	glDpy = dpy;
+	dpy.logInfo();
 	if(!pixelFormat)
 		pixelFormat = Base::Window::defaultPixelFormat();
 	Base::GLBufferConfigAttributes glBuffAttr;

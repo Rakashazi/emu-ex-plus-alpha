@@ -27,24 +27,33 @@ namespace Base
 
 // GLDisplay
 
-GLDisplay GLDisplay::makeDefault(std::error_code &ec)
+std::pair<std::error_code, GLDisplay> GLDisplay::makeDefault()
 {
-	ec = {};
 	return {};
 }
 
-GLDisplay GLDisplay::makeDefault(GLDisplay::API api, std::error_code &ec)
+std::pair<std::error_code, GLDisplay> GLDisplay::makeDefault(GLDisplay::API api)
 {
 	if(!bindAPI(api))
 	{
 		logErr("error binding requested API");
-		ec = {EINVAL, std::system_category()};
+		return {{EINVAL, std::system_category()}, {}};
 	}
 	return {};
 }
 
 GLDisplay GLDisplay::getDefault()
 {
+	return {};
+}
+
+GLDisplay GLDisplay::getDefault(API api)
+{
+	if(!bindAPI(api))
+	{
+		logErr("error binding requested API");
+		return {};
+	}
 	return {};
 }
 
@@ -70,7 +79,7 @@ bool GLDisplay::deinit()
 	return true;
 }
 
-GLDrawable GLDisplay::makeDrawable(Window &win, GLBufferConfig config, std::error_code &ec)
+std::pair<std::error_code, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBufferConfig config)
 {
 	CGRect rect = win.screen()->uiScreen().bounds;
 	// Create the OpenGL ES view and add it to the Window
@@ -90,8 +99,7 @@ GLDrawable GLDisplay::makeDrawable(Window &win, GLBufferConfig config, std::erro
 	#endif
 	rootViewCtrl.view = glView;
 	win.uiWin().rootViewController = rootViewCtrl;
-	ec = {};
-	return{(void*)CFBridgingRetain(glView)};
+	return {{}, {(void*)CFBridgingRetain(glView)}};
 }
 
 bool GLDisplay::deleteDrawable(GLDrawable &drawable)
@@ -263,6 +271,11 @@ void GLContext::deinit(GLDisplay)
 void *GLContext::procAddress(const char *funcName)
 {
 	return dlsym(RTLD_DEFAULT, funcName);
+}
+
+bool GLContext::supportsNoConfig()
+{
+	return true;
 }
 
 NativeGLContext GLContext::nativeObject()

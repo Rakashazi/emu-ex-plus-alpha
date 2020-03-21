@@ -334,20 +334,17 @@ static void activityInit(JNIEnv* env, jobject activity)
 			logMsg("app handles rotation animations");
 		}
 
-		if(!Config::MACHINE_IS_OUYA)
+		if(Base::androidSDK() >= 14)
 		{
-			if(Base::androidSDK() >= 14)
+			JavaInstMethod<jboolean()> jHasPermanentMenuKey{env, jBaseActivityCls, "hasPermanentMenuKey", "()Z"};
+			Base::hasPermanentMenuKey = jHasPermanentMenuKey(env, activity);
+			if(Base::hasPermanentMenuKey)
 			{
-				JavaInstMethod<jboolean()> jHasPermanentMenuKey{env, jBaseActivityCls, "hasPermanentMenuKey", "()Z"};
-				Base::hasPermanentMenuKey = jHasPermanentMenuKey(env, activity);
-				if(Base::hasPermanentMenuKey)
-				{
-					logMsg("device has hardware nav/menu keys");
-				}
+				logMsg("device has hardware nav/menu keys");
 			}
-			else
-				Base::hasPermanentMenuKey = 1;
 		}
+		else
+			Base::hasPermanentMenuKey = 1;
 
 		if(unloadNativeLibOnDestroy)
 		{
@@ -452,10 +449,6 @@ void setSysUIStyle(uint32_t flags)
 	// SYS_UI_STYLE_HIDE_STATUS -> SYSTEM_UI_FLAG_FULLSCREEN (2)
 	// SYS_UI_STYLE_NO_FLAGS -> SYSTEM_UI_FLAG_VISIBLE (no bits set)
 
-	if(Config::MACHINE_IS_OUYA)
-	{
-		return;
-	}
 	auto env = jEnvForThread();
 	// always handle status bar hiding via full-screen window flag
 	// even on SDK level >= 11 so our custom view has the correct insets

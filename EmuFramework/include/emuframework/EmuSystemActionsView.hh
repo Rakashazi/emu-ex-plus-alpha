@@ -19,6 +19,10 @@
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/container/ArrayList.hh>
 
+#if defined __ANDROID__
+#define CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
+#endif
+
 class EmuSystemActionsView : public TableView
 {
 public:
@@ -36,7 +40,7 @@ protected:
 	TextMenuItem saveState;
 	TextMenuItem stateSlot;
 	char stateSlotText[sizeof("State Slot (0)")]{};
-	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
+	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 	TextMenuItem addLauncherIcon;
 	#endif
 	TextMenuItem screenshot;

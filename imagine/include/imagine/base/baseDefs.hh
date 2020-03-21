@@ -21,14 +21,14 @@
 
 namespace Config
 {
-#if defined __ANDROID__ && !defined CONFIG_MACHINE_OUYA
+#if defined __ANDROID__
 #define CONFIG_BASE_SUPPORTS_VIBRATOR
 static constexpr bool BASE_SUPPORTS_VIBRATOR = true;
 #else
 static constexpr bool BASE_SUPPORTS_VIBRATOR = false;
 #endif
 
-#if defined __ANDROID__ || (defined __APPLE__ && TARGET_OS_IPHONE) || defined CONFIG_ENV_WEBOS
+#if defined __ANDROID__ || (defined __APPLE__ && TARGET_OS_IPHONE)
 #define CONFIG_BASE_CAN_BACKGROUND_APP
 static constexpr bool BASE_CAN_BACKGROUND_APP = true;
 #else

@@ -41,7 +41,7 @@ public:
 	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, const char *name, Input::Event e)>;
 	using OnCloseDelegate = DelegateFunc<void (FSPicker &picker, Input::Event e)>;
 	using OnPathReadError = DelegateFunc<void (FSPicker &picker, std::error_code ec)>;
-	static constexpr bool needsUpDirControl = !Config::envIsPS3;
+	static constexpr bool needsUpDirControl = true;
 
 	FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
 			FilterFunc filter = {}, bool singleDir = false, Gfx::GlyphTextureSet *face = &View::defaultFace);

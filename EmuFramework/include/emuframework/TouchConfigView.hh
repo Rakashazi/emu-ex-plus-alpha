@@ -69,7 +69,7 @@ protected:
 		#endif
 	BoolMenuItem boundingBoxes;
 	BoolMenuItem vibrate;
-		#ifdef CONFIG_BASE_ANDROID
+		#ifdef CONFIG_EMUFRAMEWORK_USE_SCALED_COORDINATES
 		BoolMenuItem useScaledCoordinates;
 		#endif
 	BoolMenuItem showOnTouch;

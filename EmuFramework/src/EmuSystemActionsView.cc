@@ -94,7 +94,7 @@ void EmuSystemActionsView::onShow()
 	stateSlotText[12] = EmuSystem::saveSlotChar(EmuSystem::saveStateSlot);
 	stateSlot.compile(renderer(), projP);
 	screenshot.setActive(EmuSystem::gameIsRunning());
-	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
+	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 	addLauncherIcon.setActive(EmuSystem::gameIsRunning());
 	#endif
 	resetSessionOptions.setActive(EmuApp::hasSavedSessionOptions());
@@ -112,7 +112,7 @@ void EmuSystemActionsView::loadStandardItems()
 	item.emplace_back(&saveState);
 	stateSlotText[12] = EmuSystem::saveSlotChar(EmuSystem::saveStateSlot);
 	item.emplace_back(&stateSlot);
-	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
+	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 	item.emplace_back(&addLauncherIcon);
 	#endif
 	item.emplace_back(&screenshot);
@@ -230,7 +230,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	},
 	stateSlotText // Can't init with string literal due to GCC bug #43453
 		{'S', 't', 'a', 't', 'e', ' ', 'S', 'l', 'o', 't', ' ', '(', '0', ')' },
-	#if defined CONFIG_BASE_ANDROID && !defined CONFIG_MACHINE_OUYA
+	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 	addLauncherIcon
 	{
 		"Add Game Shortcut to Launcher",

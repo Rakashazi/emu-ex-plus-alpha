@@ -28,7 +28,7 @@ namespace Config
 {
 
 // TODO: have to use ANDROID_ for now since ANDROID is needed as a macro in some system headers not yet using __ANDROID__
-enum { UNKNOWN, ANDROID_, IOS, MACOSX, WEBOS, LINUX, WIN32_, PS3 };
+enum { UNKNOWN, ANDROID_, IOS, MACOSX, LINUX, WIN32_ };
 static constexpr uint32_t ENV =
 	#if defined __ANDROID__
 	ANDROID_;
@@ -36,14 +36,10 @@ static constexpr uint32_t ENV =
 	IOS;
 	#elif defined __APPLE__ && TARGET_OS_MAC
 	MACOSX;
-	#elif defined CONFIG_ENV_WEBOS
-	WEBOS;
 	#elif defined __linux__
 	LINUX;
 	#elif defined _WIN32
 	WIN32_;
-	#elif defined CONFIG_BASE_PS3
-	PS3;
 	#else
 	#warning "Unknown ENV type"
 	UNKNOWN;
@@ -52,17 +48,7 @@ static constexpr uint32_t ENV =
 static constexpr bool envIsAndroid = ENV == ANDROID_;
 static constexpr bool envIsIOS = ENV == IOS;
 static constexpr bool envIsMacOSX = ENV == MACOSX;
-static constexpr bool envIsWebOS = ENV == WEBOS;
 static constexpr bool envIsLinux = ENV == LINUX;
-static constexpr bool envIsPS3 = ENV == PS3;
-
-static constexpr bool envIsWebOS3 =
-	#if CONFIG_ENV_WEBOS_OS >= 3
-	1;
-	#else
-	0;
-	#endif
-static constexpr bool envIsWebOS1 = envIsWebOS && !envIsWebOS3;
 
 static constexpr uint32_t ENV_ANDROID_MINSDK =
 	#ifdef __ANDROID_API__
@@ -79,18 +65,8 @@ static constexpr bool DEBUG_BUILD = true;
 static constexpr bool DEBUG_BUILD = false;
 #endif
 
-#ifdef CONFIG_MACHINE_OUYA
-#define ENV_NOTE "OUYA"
-#elif defined __ANDROID__
+#ifdef __ANDROID__
 #define ENV_NOTE "Android"
-#endif
-
-#ifdef CONFIG_ENV_WEBOS
-	#if CONFIG_ENV_WEBOS_OS >= 3
-	#define ENV_NOTE "WebOS 3.0+"
-	#elif CONFIG_ENV_WEBOS_OS < 3
-	#define ENV_NOTE "WebOS 1.x-2.x"
-	#endif
 #endif
 
 // Platform architecture & machine
@@ -109,7 +85,6 @@ enum Machine
 	GENERIC_PPC,
 	GENERIC_MIPS,
 	PANDORA,
-	OUYA
 };
 
 #if defined __x86_64__
@@ -137,9 +112,7 @@ static constexpr Machine MACHINE = GENERIC_AARCH64;
 	#define CONFIG_ARCH_STR "armv5te"
 	#elif __ARM_ARCH == 7
 	// default Android & iOS ARMv7 profile -> __ARM_ARCH_7A__
-		#if defined CONFIG_MACHINE_OUYA
-		static constexpr Machine MACHINE = OUYA;
-		#elif defined CONFIG_MACHINE_PANDORA
+		#if defined CONFIG_MACHINE_PANDORA
 		static constexpr Machine MACHINE = PANDORA;
 		#else
 		static constexpr Machine MACHINE = GENERIC_ARMV7;
@@ -147,7 +120,6 @@ static constexpr Machine MACHINE = GENERIC_AARCH64;
 	#define CONFIG_ARCH_STR "armv7"
 	#elif __ARM_ARCH == 6
 	// default iOS ARMv6 profile -> __ARM_ARCH_6K__
-	// default WebOS ARMv6 profile -> __ARM_ARCH_6J__
 	static constexpr Machine MACHINE = GENERIC_ARMV6;
 	#define CONFIG_ARCH_STR "armv6"
 	#else
@@ -169,7 +141,6 @@ static constexpr bool MACHINE_IS_GENERIC_X86 = MACHINE == GENERIC_X86;
 static constexpr bool MACHINE_IS_GENERIC_ARMV6 = MACHINE == GENERIC_ARMV6;
 static constexpr bool MACHINE_IS_GENERIC_ARMV7 = MACHINE == GENERIC_ARMV7;
 static constexpr bool MACHINE_IS_GENERIC_AARCH64 = MACHINE == GENERIC_AARCH64;
-static constexpr bool MACHINE_IS_OUYA = MACHINE == OUYA;
 static constexpr bool MACHINE_IS_PANDORA = MACHINE == PANDORA;
 
 }

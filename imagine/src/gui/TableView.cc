@@ -23,6 +23,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
+#include <imagine/util/math/space.hh>
 
 Gfx::GC TableView::globalXIndent{};
 
@@ -499,12 +500,26 @@ bool TableView::elementIsSelectable(MenuItem &item)
 	return item.isSelectable;
 }
 
-void TableView::setDefaultXIndent(const Gfx::ProjectionPlane &projP)
+float TableView::defaultXIndentMM(Base::Window &win)
 {
-	TableView::globalXIndent =
-		(Config::MACHINE_IS_OUYA) ? projP.xSMMSize(4) :
-		(Config::MACHINE_IS_PANDORA) ? projP.xSMMSize(2) :
-		(Config::envIsAndroid || Config::envIsIOS || Config::envIsWebOS) ? /*floor*/(projP.xSMMSize(1)) :
-		(Config::envIsPS3) ? /*floor*/(projP.xSMMSize(16)) :
-		/*floor*/(projP.xSMMSize(4));
+	auto wMM = win.widthMM();
+	return
+		wMM < 150. ? 1. :
+		wMM < 250. ? 2. :
+		4.;
+}
+
+void TableView::setDefaultXIndent(Base::Window &win, Gfx::ProjectionPlane projP)
+{
+	setXIndentMM(defaultXIndentMM(win), projP);
+}
+
+void TableView::setXIndentMM(float indentMM, Gfx::ProjectionPlane projP)
+{
+	auto indentGC = projP.xSMMSize(indentMM);
+	if(!IG::valIsWithinStretch(indentGC, globalXIndent, 0.00001f))
+	{
+		logDMsg("setting X indent:%.2fmm (%f as coordinate)", indentMM, indentGC);
+	}
+	globalXIndent = projP.xSMMSize(indentMM);
 }

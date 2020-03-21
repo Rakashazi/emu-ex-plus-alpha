@@ -23,12 +23,7 @@
 namespace Base
 {
 
-struct NativeWindowFormat
-{
-	void *visual{};
-	int depth{};
-};
-
+using NativeWindowFormat = void*;
 using NativeWindow = unsigned long;
 
 class XWindow : public BaseWindow, public NotEquals<XWindow>

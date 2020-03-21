@@ -489,10 +489,7 @@ void VideoOptionView::loadStockItems()
 	item.emplace_back(&aspectRatio);
 	item.emplace_back(&advancedHeading);
 	#ifdef CONFIG_BASE_ANDROID
-	if(!Config::MACHINE_IS_OUYA)
-	{
-		item.emplace_back(&androidTextureStorage);
-	}
+	item.emplace_back(&androidTextureStorage);
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	item.emplace_back(&imgEffectPixelFormat);
@@ -1555,7 +1552,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"GUI Options", attach, item},
 	pauseUnfocused
 	{
-		Config::envIsPS3 ? "Pause in XMB" : "Pause if unfocused",
+		"Pause if unfocused",
 		(bool)optionPauseUnfocused,
 		[this](BoolMenuItem &item, Input::Event e)
 		{

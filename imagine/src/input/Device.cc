@@ -78,11 +78,11 @@ static const char *keyButtonName(Key b)
 		case Keycode::ESCAPE: return "Escape";
 		case Keycode::ENTER: return "Enter";
 		case Keycode::LALT: return "Left Alt";
-		case Keycode::RALT: return Config::envIsWebOS1 ? "Mod" : "Right Alt";
+		case Keycode::RALT: return "Right Alt";
 		case Keycode::LSHIFT: return "Left Shift";
 		case Keycode::RSHIFT: return "Right Shift";
 		case Keycode::LCTRL: return "Left Ctrl";
-		case Keycode::RCTRL: return Config::envIsWebOS1 ? "Sym" : "Right Ctrl";
+		case Keycode::RCTRL: return "Right Ctrl";
 		case Keycode::UP: return "Up";
 		case Keycode::RIGHT: return "Right";
 		case Keycode::DOWN: return "Down";

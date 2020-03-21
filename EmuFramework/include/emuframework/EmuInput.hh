@@ -108,7 +108,7 @@ void transposeKeysForPlayer(KeyConfig::KeyArray &key, uint player);
 void generic2PlayerTranspose(KeyConfig::KeyArray &key, uint player, uint startCategory);
 void genericMultiplayerTranspose(KeyConfig::KeyArray &key, uint player, uint startCategory);
 
-#ifdef CONFIG_BASE_ANDROID
+#ifdef __ANDROID__
 static constexpr KeyConfig KEY_CONFIG_ANDROID_NAV_KEYS =
 {
 	Input::Event::MAP_SYSTEM,

@@ -1,1 +1,0 @@
-make/shortcut/common-builds/ouya-release.mk

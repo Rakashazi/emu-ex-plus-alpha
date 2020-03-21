@@ -57,8 +57,8 @@ public:
 	static Gfx::GlyphTextureSet defaultBoldFace;
 	// Does the platform need an on-screen/pointer-based control to move to a previous view?
 	static bool needsBackControl;
-	static const bool needsBackControlDefault = !(Config::envIsPS3 || Config::envIsAndroid || (Config::envIsWebOS && !Config::envIsWebOS3));
-	static const bool needsBackControlIsConst = Config::envIsPS3 || Config::envIsIOS || Config::envIsWebOS3;
+	static const bool needsBackControlDefault = !Config::envIsAndroid;
+	static const bool needsBackControlIsConst = Config::envIsIOS;
 
 	constexpr View() {}
 	virtual ~View();

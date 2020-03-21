@@ -32,9 +32,7 @@ util/jni.cc
 
 LDLIBS += -landroid
 
-ifeq (,$(findstring $(configDefs),CONFIG_MACHINE_OUYA))
- configDefs += CONFIG_INPUT_ANDROID_MOGA
- SRC += base/android/moga.cc
-endif
+configDefs += CONFIG_INPUT_ANDROID_MOGA
+SRC += base/android/moga.cc
 
 endif

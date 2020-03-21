@@ -35,12 +35,8 @@ void GLMainTask::start(Base::GLContext context)
 	IG::makeDetachedThreadSync(
 		[this, context](auto &sem)
 		{
-			std::error_code ec{};
-			auto glDpy = Base::GLDisplay::makeDefault(glAPI, ec);
-			if(ec)
-			{
-				logErr("error getting GL display");
-			}
+			auto glDpy = Base::GLDisplay::getDefault(glAPI);
+			assumeExpr(glDpy);
 			context.setCurrent(glDpy, context, {});
 			auto eventLoop = Base::EventLoop::makeForThread();
 			commandPort.addToEventLoop(eventLoop,
@@ -80,7 +76,6 @@ void GLMainTask::start(Base::GLContext context)
 			logMsg("starting main GL thread event loop");
 			eventLoop.run();
 			commandPort.removeFromEventLoop();
-			glDpy.deinit();
 			logMsg("main GL thread exit");
 		});
 	started = true;

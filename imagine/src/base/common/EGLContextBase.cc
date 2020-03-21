@@ -30,6 +30,10 @@
 #define EGL_OPENGL_ES3_BIT 0x0040
 #endif
 
+#ifndef EGL_NO_CONFIG_KHR
+#define EGL_NO_CONFIG_KHR ((EGLConfig)0)
+#endif
+
 namespace Base
 {
 
@@ -39,6 +43,9 @@ static constexpr bool HAS_DISPLAY_REF_COUNT = Config::envIsAndroid;
 static uint32_t refCount = 0;
 
 static constexpr bool CAN_USE_DEBUG_CONTEXT = !Config::MACHINE_IS_PANDORA;
+static uint8_t eglVersion = 0;
+static bool supportsSurfaceless = false;
+static bool supportsNoConfig = false;
 static bool hasDummyPbuffConfig = false;
 static EGLConfig dummyPbuffConfig{};
 using EGLAttrList = StaticArrayList<int, 24>;
@@ -168,7 +175,7 @@ std::pair<bool, EGLConfig> EGLContextBase::chooseConfig(EGLDisplay display, GLCo
 	if(!configs)
 	{
 		logErr("no usable EGL configs found with major version:%u", ctxAttr.majorVersion());
-		return std::make_pair(false, EGLConfig{});
+		return {false, EGLConfig{}};
 	}
 	if(Config::DEBUG_BUILD)
 		printEGLConf(display, config);
@@ -183,15 +190,17 @@ void *GLContext::procAddress(const char *funcName)
 
 EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGLBufferConfig config, EGLContext shareContext, std::error_code &ec)
 {
-	logMsg("making context with version: %d.%d share context:%p", attr.majorVersion(), attr.minorVersion(), shareContext);
-	context = eglCreateContext(display, config.glConfig, shareContext, &glContextAttrsToEGLAttrs(attr)[0]);
+	EGLConfig glConfig = supportsNoConfig ? EGL_NO_CONFIG_KHR : config.glConfig;
+	logMsg("making context with version: %d.%d config:0x%llX share context:%p",
+		attr.majorVersion(), attr.minorVersion(), (long long)glConfig, shareContext);
+	context = eglCreateContext(display, glConfig, shareContext, &glContextAttrsToEGLAttrs(attr)[0]);
 	if(context == EGL_NO_CONTEXT)
 	{
 		if(attr.debug())
 		{
 			logMsg("retrying without debug bit");
 			attr.setDebug(false);
-			context = eglCreateContext(display, config.glConfig, shareContext, &glContextAttrsToEGLAttrs(attr)[0]);
+			context = eglCreateContext(display, glConfig, shareContext, &glContextAttrsToEGLAttrs(attr)[0]);
 		}
 		if(context == EGL_NO_CONTEXT)
 		{
@@ -201,13 +210,14 @@ EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGL
 			return;
 		}
 	}
-	// TODO: EGL 1.5 or higher supports surfaceless without any extension
-	bool supportsSurfaceless = strstr(eglQueryString(display, EGL_EXTENSIONS), "EGL_KHR_surfaceless_context");
-	if(!supportsSurfaceless)
+	// Ignore surfaceless context support when using GL versions below 3.0 due to possible driver issues,
+	// such as on Tegra 3 GPUs
+	if(attr.majorVersion() <= 2 || !supportsSurfaceless)
 	{
 		if(!hasDummyPbuffConfig)
 		{
-			logMsg("surfaceless context not supported");
+			logMsg("surfaceless context not supported:%s, saving config for dummy pbuffer",
+				supportsSurfaceless ? "context version below 3.0" : "missing extension");
 			dummyPbuffConfig = config.glConfig;
 			hasDummyPbuffConfig = true;
 		}
@@ -346,6 +356,11 @@ void EGLContextBase::deinit(EGLDisplay display)
 	}
 }
 
+bool GLContext::supportsNoConfig()
+{
+	return Base::supportsNoConfig;
+}
+
 NativeGLContext GLContext::nativeObject()
 {
 	return context;
@@ -353,31 +368,50 @@ NativeGLContext GLContext::nativeObject()
 
 // GLDisplay
 
-GLDisplay GLDisplay::makeDefault(std::error_code &ec)
+std::pair<std::error_code, GLDisplay> GLDisplay::makeDefault()
 {
 	auto display = getDefault();
-	ec = initDisplay(display.display);
-	return display;
+	auto ec = initDisplay(display.display);
+	return {ec, display};
 }
 
-GLDisplay GLDisplay::makeDefault(GLDisplay::API api, std::error_code &ec)
+std::pair<std::error_code, GLDisplay> GLDisplay::makeDefault(GLDisplay::API api)
 {
-	auto display = makeDefault(ec);
 	if(!bindAPI(api))
 	{
 		logErr("error binding requested API");
-		ec = {EINVAL, std::system_category()};
+		return {{EINVAL, std::system_category()}, {}};
 	}
-	return display;
+	return makeDefault();
+}
+
+GLDisplay GLDisplay::getDefault(API api)
+{
+	if(!bindAPI(api))
+	{
+		logErr("error binding requested API");
+		return {};
+	}
+	return getDefault();
 }
 
 std::error_code EGLDisplayConnection::initDisplay(EGLDisplay display)
 {
 	logMsg("initializing EGL with display:%p", display);
-	if(!eglInitialize(display, nullptr, nullptr))
+	EGLint major, minor;
+	if(!eglInitialize(display, &major, &minor))
 	{
 		logErr("error initializing EGL for display:%p", display);
 		return {EINVAL, std::system_category()};
+	}
+	if(!eglVersion)
+	{
+		eglVersion = 10 * major + minor;
+		auto extStr = eglQueryString(display, EGL_EXTENSIONS);
+		supportsSurfaceless = eglVersion >= 15 || strstr(extStr, "EGL_KHR_surfaceless_context");
+		supportsNoConfig = strstr(extStr, "EGL_KHR_no_config_context");
+		if(supportsSurfaceless || supportsNoConfig)
+			logMsg("context features: surfaceless:%u no-config:%u", supportsSurfaceless, supportsNoConfig);
 	}
 	if(!HAS_DISPLAY_REF_COUNT)
 	{
@@ -426,18 +460,16 @@ bool GLDisplay::deinit()
 	return eglTerminate(dpy);
 }
 
-GLDrawable GLDisplay::makeDrawable(Window &win, GLBufferConfig config, std::error_code &ec)
+std::pair<std::error_code, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBufferConfig config)
 {
 	auto surface = eglCreateWindowSurface(display, config.glConfig,
 		Config::MACHINE_IS_PANDORA ? (EGLNativeWindowType)0 : (EGLNativeWindowType)win.nativeObject(),
 		nullptr);
 	if(surface == EGL_NO_SURFACE)
 	{
-		ec = {EINVAL, std::system_category()};
-		return {};
+		return {{EINVAL, std::system_category()}, {}};
 	}
-	ec = {};
-	return {surface};
+	return {{}, surface};
 }
 
 bool GLDisplay::deleteDrawable(GLDrawable &drawable)

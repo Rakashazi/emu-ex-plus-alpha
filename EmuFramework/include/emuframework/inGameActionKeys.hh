@@ -87,27 +87,6 @@ Input::WiiCC::ZR, \
 0, \
 0
 
-#define EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT \
-Input::Keycode::LSHIFT, \
-Input::Keycode::RCTRL, \
-Input::Keycode::Q, \
-Input::Keycode::A, \
-0, \
-0, \
-Input::Keycode::AT, \
-0, \
-0
-
-#define EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT \
-Input::Keycode::R, \
-Input::Keycode::G, \
-Input::Keycode::C, \
-Input::Keycode::D, \
-Input::Keycode::E, \
-Input::Keycode::T, \
-Input::Keycode::V, \
-Input::Keycode::X
-
 #define EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT \
 0, \
 Input::Keycode::MENU, \
@@ -218,7 +197,7 @@ Input::Keycode::GRAVE, \
 0, \
 Input::Keycode::ESCAPE
 
-#ifdef CONFIG_BASE_ANDROID
+#ifdef __ANDROID__
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_MINIMAL_PROFILE_INIT \
 0, \
 Input::Keycode::MENU, \
@@ -242,11 +221,7 @@ Input::Keycode::F11, \
 0
 #endif
 
-#ifdef CONFIG_BASE_PS3
-#define PS3PAD_OPEN_MENU_KEY Input::PS3::L2
-#else
 #define PS3PAD_OPEN_MENU_KEY Input::PS3::PS
-#endif
 
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_PS3PAD_PROFILE_INIT \
 	0, \

@@ -6,16 +6,12 @@
 #include <imagine/base/x11/inputDefs.hh>
 #elif defined __ANDROID__
 #include <imagine/base/android/inputDefs.hh>
-#elif defined CONFIG_BASE_SDL
-#include <imagine/base/sdl/inputDefs.hh>
 #elif defined CONFIG_BASE_IOS
 #include <imagine/base/iphone/inputDefs.hh>
 #elif defined CONFIG_BASE_MACOSX
 #include <imagine/base/osx/inputDefs.hh>
 #elif defined CONFIG_BASE_WIN32
 #include <imagine/base/win32/inputDefs.hh>
-#elif defined CONFIG_BASE_PS3
-#include <imagine/input/ps3/inputDefs.hh>
 #endif
 
 #ifdef CONFIG_INPUT_EVDEV
@@ -77,8 +73,6 @@ namespace Config
 	#elif defined CONFIG_BASE_IOS || defined __ANDROID__
 	// arbitrary max
 	7;
-	#elif defined CONFIG_ENV_WEBOS
-	4; // max 5
 	#else
 	1;
 	#endif
