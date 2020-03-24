@@ -150,9 +150,9 @@ public:
 	explicit operator bool() const;
 	bool operator ==(GLDisplay const &rhs) const;
 	bool deinit();
-	std::pair<std::error_code, GLDrawable> makeDrawable(Window &win, GLBufferConfig config);
-	bool deleteDrawable(GLDrawable &drawable);
-	void logInfo();
+	std::pair<std::error_code, GLDrawable> makeDrawable(Window &win, GLBufferConfig config) const;
+	bool deleteDrawable(GLDrawable &drawable) const;
+	void logInfo() const;
 	static bool bindAPI(API api);
 };
 

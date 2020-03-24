@@ -324,16 +324,7 @@ void EmuAudio::setDefaultMonoFormat()
 
 void EmuAudio::setSpeedMultiplier(uint8_t speed)
 {
-	if(!speed)
-	{
-		// prepare for skip-forward without audio
-		audioWriteState = AudioWriteState::BUFFER;
-		speedMultiplier = 1;
-	}
-	else
-	{
-		speedMultiplier = speed;
-	}
+	speedMultiplier = speed ? speed : 1;
 }
 
 void EmuAudio::setAddSoundBuffersOnUnderrun(bool on)

@@ -67,7 +67,7 @@ bool GLDisplay::operator ==(GLDisplay const &rhs) const
 	return true;
 }
 
-void GLDisplay::logInfo() {}
+void GLDisplay::logInfo() const {}
 
 bool GLDisplay::bindAPI(API api)
 {
@@ -79,7 +79,7 @@ bool GLDisplay::deinit()
 	return true;
 }
 
-std::pair<std::error_code, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBufferConfig config)
+std::pair<std::error_code, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBufferConfig config) const
 {
 	CGRect rect = win.screen()->uiScreen().bounds;
 	// Create the OpenGL ES view and add it to the Window
@@ -102,7 +102,7 @@ std::pair<std::error_code, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBu
 	return {{}, {(void*)CFBridgingRetain(glView)}};
 }
 
-bool GLDisplay::deleteDrawable(GLDrawable &drawable)
+bool GLDisplay::deleteDrawable(GLDrawable &drawable) const
 {
 	if(drawable.glViewPtr())
 	{

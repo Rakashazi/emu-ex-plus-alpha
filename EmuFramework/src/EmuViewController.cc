@@ -25,6 +25,7 @@
 #include "private.hh"
 #include "privateInput.hh"
 #include "configFile.hh"
+#include "EmuSystemTask.hh"
 
 class AutoStateConfirmAlertView : public YesNoAlertView
 {
@@ -58,11 +59,12 @@ public:
 static std::unique_ptr<AppWindowData> extraWin{};
 
 EmuViewController::EmuViewController(AppWindowData &winData, Gfx::Renderer &renderer, Gfx::RendererTask &rTask,
-	VController &vCtrl, EmuVideoLayer &videoLayer):
+	VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystemTask &systemTask):
 	emuView{{winData.win, rTask}, &videoLayer},
 	emuInputView{{winData.win, rTask}, vController},
 	popup{{winData.win, rTask}},
-	rendererTask_{rTask}
+	rendererTask_{&rTask},
+	systemTask{&systemTask}
 {}
 
 static bool shouldExitFromViewRootWithoutPrompt(Input::Event e)
@@ -154,35 +156,35 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 				// frame not ready yet, retry on next vblank
 				return true;
 			}
-			uint32_t framesAdvanced = EmuSystem::advanceFramesWithTime(params.timestamp());
-			if(!framesAdvanced)
-				return true;
-			if(!optionSkipLateFrames)
-			{
-				framesAdvanced = currentFrameInterval();
-			}
-			uint32_t framesToEmulate;
 			bool skipForward = false;
+			bool fastForwarding = false;
 			if(unlikely(EmuSystem::shouldFastForward()))
 			{
 				// for skipping loading on disk-based computers
-				framesToEmulate = 8;
+				fastForwarding = true;
 				skipForward = true;
-				emuAudio.setSpeedMultiplier(0);
+				EmuSystem::setSpeedMultiplier(8);
 			}
 			else if(unlikely(targetFastForwardSpeed > 1))
 			{
-				framesToEmulate = targetFastForwardSpeed;
-				emuAudio.setSpeedMultiplier(framesToEmulate);
+				fastForwarding = true;
+				EmuSystem::setSpeedMultiplier(targetFastForwardSpeed);
 			}
 			else
 			{
-				constexpr uint maxLateFrameSkip = 6;
-				framesToEmulate = std::min(framesAdvanced, maxLateFrameSkip);
-				emuAudio.setSpeedMultiplier(1);
+				EmuSystem::setSpeedMultiplier(1);
 			}
+			uint32_t framesAdvanced = EmuSystem::advanceFramesWithTime(params.timestamp());
+			if(!framesAdvanced)
+				return true;
+			if(!optionSkipLateFrames && !fastForwarding)
+			{
+				framesAdvanced = currentFrameInterval();
+			}
+			constexpr uint maxFrameSkip = 8;
+			uint32_t framesToEmulate = std::min(framesAdvanced, maxFrameSkip);
 			emuVideoInProgress = true;
-			emuSystemTask.runFrame(&emuVideo, &emuAudio, framesToEmulate, skipForward);
+			systemTask->runFrame(&emuVideo, &emuAudio, framesToEmulate, skipForward);
 			return true;
 		};
 
@@ -292,7 +294,7 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 	winConf.setOnSurfaceChange(
 		[this, &winData](Base::Window &win, Base::Window::SurfaceChange change)
 		{
-			rendererTask_.updateDrawableForSurfaceChange(winData.drawableHolder, change);
+			rendererTask().updateDrawableForSurfaceChange(winData.drawableHolder, change);
 			if(change.resized())
 			{
 				updateWindowViewport(winData, change);
@@ -316,7 +318,7 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 			{
 				prepareDraw();
 			}
-			rendererTask_.draw(winData.drawableHolder, win, params, {},
+			rendererTask().draw(winData.drawableHolder, win, params, {},
 				[this, &winData](Gfx::Drawable &drawable, Base::Window &win, Gfx::SyncFence fence, Gfx::RendererDrawTask task)
 				{
 					auto cmds = task.makeRendererCommands(drawable, winData.viewport(), winData.projectionMat);
@@ -492,7 +494,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 		winConf.setOnSurfaceChange(
 			[this, &winData = *extraWin](Base::Window &win, Base::Window::SurfaceChange change)
 			{
-				rendererTask_.updateDrawableForSurfaceChange(winData.drawableHolder, change);
+				rendererTask().updateDrawableForSurfaceChange(winData.drawableHolder, change);
 				if(change.resized())
 				{
 					logMsg("view resize for extra window");
@@ -515,7 +517,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 					popup.prepareDraw();
 				}
 				emuView.prepareDraw();
-				rendererTask_.draw(winData.drawableHolder, win, params, {},
+				rendererTask().draw(winData.drawableHolder, win, params, {},
 					[this, &winData](Gfx::Drawable &drawable, Base::Window &win, Gfx::SyncFence fence, Gfx::RendererDrawTask task)
 					{
 						auto cmds = task.makeRendererCommands(drawable, winData.viewport(), winData.projectionMat);
@@ -687,18 +689,17 @@ void EmuViewController::addInitialOnFrame(Base::Screen &screen, uint delay)
 void EmuViewController::startEmulation()
 {
 	setCPUNeedsLowLatency(true);
-	emuSystemTask.start();
+	systemTask->start();
 	EmuSystem::start();
 	videoLayer().setBrightness(1.f);
 	auto &screen = *emuView.window().screen();
-	initialTotalFrameTime = {};
 	addInitialOnFrame(screen, initialDelayFrames(screen));
 }
 
 void EmuViewController::pauseEmulation()
 {
 	setCPUNeedsLowLatency(false);
-	emuSystemTask.pause();
+	systemTask->pause();
 	EmuSystem::pause();
 	videoLayer().setBrightness(showingEmulation ? .75f : .25f);
 	setFastForwardActive(false);
@@ -709,7 +710,7 @@ void EmuViewController::pauseEmulation()
 void EmuViewController::closeSystem(bool allowAutosaveState)
 {
 	showUI();
-	emuSystemTask.stop();
+	systemTask->stop();
 	emuVideo.clear();
 	EmuSystem::closeRuntimeSystem(allowAutosaveState);
 	viewStack.navView()->showRightBtn(false);
@@ -737,7 +738,7 @@ Base::Window &EmuViewController::emuWindow() const
 
 Gfx::RendererTask &EmuViewController::rendererTask() const
 {
-	return rendererTask_;
+	return *rendererTask_;
 }
 
 void EmuViewController::pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView)

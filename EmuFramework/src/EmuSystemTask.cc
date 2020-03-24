@@ -77,6 +77,11 @@ void EmuSystemTask::start()
 										// don't write any audio while skip is in progress
 										audio = nullptr;
 									}
+									else
+									{
+										// restore normal speed when skip ends
+										EmuSystem::setSpeedMultiplier(1);
+									}
 								}
 								else
 								{

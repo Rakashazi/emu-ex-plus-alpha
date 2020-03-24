@@ -95,9 +95,6 @@ public:
 	static FS::PathString savePath_;
 	static Base::Timer autoSaveStateTimer;
 	static int saveStateSlot;
-	static IG::FrameTime startFrameTime;
-	static IG::FloatSeconds timePerVideoFrame;
-	static uint32_t emuFrameNow;
 	static uint aspectRatioX, aspectRatioY;
 	static const uint maxPlayers;
 	static const AspectRatioInfo aspectRatioInfo[];
@@ -213,6 +210,7 @@ public:
 	static bool touchControlsApplicable();
 	static bool handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect);
 	static uint32_t advanceFramesWithTime(IG::FrameTime time);
+	static void setSpeedMultiplier(uint8_t speed);
 	static void setupGamePaths(const char *filePath);
 	static void setGameSavePath(const char *path);
 	static void setupGameSavePath();

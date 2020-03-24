@@ -29,12 +29,13 @@
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
-#include "EmuSystemTask.hh"
 #include <emuframework/Recent.hh>
 #include <memory>
 #include <atomic>
 
 enum AssetID { ASSET_ARROW, ASSET_CLOSE, ASSET_ACCEPT, ASSET_GAME_ICON, ASSET_MENU, ASSET_FAST_FORWARD };
+
+class EmuSystemTask;
 
 struct AppWindowData
 {
@@ -66,7 +67,8 @@ public:
 class EmuViewController : public ViewController
 {
 public:
-	EmuViewController(AppWindowData &winData, Gfx::Renderer &renderer, Gfx::RendererTask &rTask, VController &vCtrl, EmuVideoLayer &videoLayer);
+	EmuViewController(AppWindowData &winData, Gfx::Renderer &renderer, Gfx::RendererTask &rTask,
+		VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystemTask &systemTask);
 	void initViews(ViewAttachParams attach);
 	Base::WindowConfig addWindowConfig(Base::WindowConfig conf, AppWindowData &winData);
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView) final;
@@ -116,8 +118,8 @@ protected:
 	EmuMenuViewStack viewStack{};
 	EmuModalViewStack modalViewController{};
 	Base::Screen::OnFrameDelegate onFrameUpdate{};
-	Gfx::RendererTask &rendererTask_;
-	Base::FrameTime initialTotalFrameTime{};
+	Gfx::RendererTask *rendererTask_{};
+	EmuSystemTask *systemTask{};
 	bool showingEmulation = false;
 	bool physicalControlsPresent = false;
 	uint8_t targetFastForwardSpeed = 0;
@@ -141,7 +143,6 @@ protected:
 
 extern EmuVideoLayer emuVideoLayer;
 extern EmuViewController emuViewController;
-extern EmuSystemTask emuSystemTask;
 extern DelegateFunc<void ()> onUpdateInputDevices;
 extern FS::PathString lastLoadPath;
 extern EmuVideo emuVideo;

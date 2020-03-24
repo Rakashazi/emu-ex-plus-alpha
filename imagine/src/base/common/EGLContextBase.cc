@@ -460,7 +460,7 @@ bool GLDisplay::deinit()
 	return eglTerminate(dpy);
 }
 
-std::pair<std::error_code, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBufferConfig config)
+std::pair<std::error_code, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBufferConfig config) const
 {
 	auto surface = eglCreateWindowSurface(display, config.glConfig,
 		Config::MACHINE_IS_PANDORA ? (EGLNativeWindowType)0 : (EGLNativeWindowType)win.nativeObject(),
@@ -472,7 +472,7 @@ std::pair<std::error_code, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBu
 	return {{}, surface};
 }
 
-bool GLDisplay::deleteDrawable(GLDrawable &drawable)
+bool GLDisplay::deleteDrawable(GLDrawable &drawable) const
 {
 	auto &surface = drawable.eglSurface();
 	if(surface == EGL_NO_SURFACE)
@@ -482,7 +482,7 @@ bool GLDisplay::deleteDrawable(GLDrawable &drawable)
 	return success;
 }
 
-void GLDisplay::logInfo()
+void GLDisplay::logInfo() const
 {
 	if(!Config::DEBUG_BUILD)
 		return;

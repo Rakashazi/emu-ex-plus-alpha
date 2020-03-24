@@ -31,6 +31,7 @@
 #include "private.hh"
 #include "privateInput.hh"
 #include "configFile.hh"
+#include "EmuSystemTask.hh"
 
 class ExitConfirmAlertView : public AlertView
 {
@@ -73,11 +74,11 @@ public:
 Gfx::Renderer renderer;
 static Gfx::RendererTask rendererTask{renderer};
 static AppWindowData mainWin{};
-EmuViewController emuViewController{mainWin, renderer, rendererTask, vController, emuVideoLayer};
+static EmuSystemTask emuSystemTask{};
+EmuViewController emuViewController{mainWin, renderer, rendererTask, vController, emuVideoLayer, emuSystemTask};
 EmuVideo emuVideo{rendererTask};
 EmuVideoLayer emuVideoLayer{emuVideo};
 EmuAudio emuAudio{};
-EmuSystemTask emuSystemTask{};
 DelegateFunc<void ()> onUpdateInputDevices{};
 #ifdef CONFIG_BLUETOOTH
 BluetoothAdapter *bta{};
@@ -86,7 +87,6 @@ static EmuApp::OnMainMenuOptionChanged onMainMenuOptionChanged_{};
 FS::PathString lastLoadPath{};
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 SysVController vController{renderer, mainWin, EmuSystem::inputFaceBtns};
-uint pointerInputPlayer = 0;
 #endif
 [[gnu::weak]] bool EmuApp::hasIcon = true;
 [[gnu::weak]] bool EmuApp::autoSaveStateDefault = true;
@@ -381,13 +381,7 @@ void mainInitCommon(int argc, char** argv)
 	win.setTitle(appName());
 	win.setAcceptDnd(true);
 	renderer.setWindowValidOrientations(win, optionMenuOrientation);
-
-	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	initVControls(renderer);
-	EmuControls::updateVControlImg();
-	vController.setMenuImage(getAsset(renderer, ASSET_MENU));
-	vController.setFastForwardImage(getAsset(renderer, ASSET_FAST_FORWARD));
-	#endif
 
 	#if defined CONFIG_BASE_ANDROID
 	if(!Base::apkSignatureIsConsistent())

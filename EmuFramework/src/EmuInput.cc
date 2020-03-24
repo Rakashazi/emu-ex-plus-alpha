@@ -37,6 +37,9 @@ std::vector<InputDeviceConfig> inputDevConf{};
 std::list<InputDeviceSavedConfig> savedInputDevList{};
 std::list<KeyConfig> customKeyConfig{};
 KeyMapping keyMapping{};
+uint pointerInputPlayer = 0;
+
+#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 
 #ifdef CONFIG_VCONTROLS_GAMEPAD
 static Gfx::GC vControllerGCSize()
@@ -72,6 +75,9 @@ void initVControls(Gfx::Renderer &r)
 		emuViewController.setOnScreenControls(optionTouchCtrl);
 	#endif
 	vController.updateMapping(0);
+	EmuControls::updateVControlImg();
+	vController.setMenuImage(getAsset(r, ASSET_MENU));
+	vController.setFastForwardImage(getAsset(r, ASSET_FAST_FORWARD));
 }
 
 void resetVControllerPositions()
@@ -184,6 +190,12 @@ IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos, Gfx
 	int y = lPos.origin.adjustY(lPos.pos.y, (int)viewport.height(), LT2DO);
 	return {x, y};
 }
+
+#else
+
+void initVControls(Gfx::Renderer &r) {}
+
+#endif // CONFIG_EMUFRAMEWORK_VCONTROLS
 
 void processRelPtr(Input::Event e)
 {

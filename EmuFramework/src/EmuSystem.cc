@@ -28,6 +28,7 @@
 #include <string>
 #include "private.hh"
 #include "privateInput.hh"
+#include "EmuTiming.hh"
 
 EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;
 FS::PathString EmuSystem::gamePath_{};
@@ -38,9 +39,6 @@ FS::PathString EmuSystem::gameSavePath_{};
 FS::FileString EmuSystem::gameName_{};
 FS::FileString EmuSystem::fullGameName_{};
 FS::FileString EmuSystem::originalGameName_{};
-Base::FrameTime EmuSystem::startFrameTime{};
-IG::FloatSeconds EmuSystem::timePerVideoFrame{};
-uint32_t EmuSystem::emuFrameNow = 0;
 int EmuSystem::saveStateSlot = 0;
 Base::Timer EmuSystem::autoSaveStateTimer{"EmuSystem::autoSaveStateTimer"};
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
@@ -60,6 +58,7 @@ bool EmuSystem::sessionOptionsSet = false;
 double EmuSystem::audioFramesPerVideoFrameFloat = 0;
 double EmuSystem::currentAudioFramesPerVideoFrame = 0;
 uint32_t EmuSystem::audioFramesPerVideoFrame = 0;
+static EmuTiming emuTiming{};
 
 void EmuSystem::cancelAutoSaveStateTimer()
 {
@@ -94,21 +93,13 @@ bool EmuSystem::shouldOverwriteExistingState()
 
 uint32_t EmuSystem::advanceFramesWithTime(Base::FrameTime time)
 {
-	if(unlikely(!startFrameTime.count()))
-	{
-		// first frame
-		startFrameTime = time;
-		emuFrameNow = 0;
-		return 1;
-	}
-	assumeExpr(timePerVideoFrame.count() > 0);
-	assumeExpr(startFrameTime.count() > 0);
-	assumeExpr(time > startFrameTime);
-	auto timeTotal = time - startFrameTime;
-	uint32_t frameNow = std::round(IG::FloatSeconds(timeTotal) / timePerVideoFrame);
-	auto elapsedEmuFrames = frameNow - emuFrameNow;
-	emuFrameNow = frameNow;
-	return elapsedEmuFrames;
+	return emuTiming.advanceFramesWithTime(time);
+}
+
+void EmuSystem::setSpeedMultiplier(uint8_t speed)
+{
+	emuTiming.setSpeedMultiplier(speed);
+	emuAudio.setSpeedMultiplier(speed);
 }
 
 void EmuSystem::setupGamePaths(const char *filePath)
@@ -299,7 +290,7 @@ void EmuSystem::closeRuntimeSystem(bool allowAutosaveState)
 
 void EmuSystem::resetFrameTime()
 {
-	startFrameTime = {};
+	emuTiming.reset();
 }
 
 void EmuSystem::pause()
@@ -361,9 +352,7 @@ void EmuSystem::configFrameTime(uint32_t rate)
 	audioFramesPerVideoFrame = std::ceil(rate * fTime.count());
 	audioFramesPerVideoFrameFloat = (double)rate * fTime.count();
 	currentAudioFramesPerVideoFrame = audioFramesPerVideoFrameFloat;
-	timePerVideoFrame = fTime;
-	logMsg("configured frame time:%.6f (%.2f fps)", fTime.count(), 1. / fTime.count());
-	resetFrameTime();
+	emuTiming.setFrameTime(fTime);
 }
 
 void EmuSystem::configFrameTime()

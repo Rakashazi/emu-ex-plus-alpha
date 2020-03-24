@@ -19,6 +19,7 @@
 #include <emuframework/Screenshot.hh>
 #include <imagine/logger/logger.h>
 #include "private.hh"
+#include "EmuSystemTask.hh"
 
 void EmuVideo::resetImage()
 {

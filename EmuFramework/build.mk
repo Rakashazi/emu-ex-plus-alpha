@@ -1,38 +1,39 @@
 include $(IMAGINE_PATH)/make/imagineStaticLibBase.mk
 
-ifneq ($(filter linux ios android webos,$(ENV)),)
+ifneq ($(filter linux ios android,$(ENV)),)
  emuFramework_onScreenControls := 1
 endif
 
-SRC += CreditsView.cc \
-FilePicker.cc \
+SRC += BundledGamesView.cc \
+ButtonConfigView.cc \
+Cheats.cc \
+ConfigFile.cc \
+CreditsView.cc \
+EmuApp.cc \
+EmuAudio.cc \
+EmuInput.cc \
+EmuInputView.cc \
+EmuLoadProgressView.cc \
+EmuMainMenuView.cc \
+EmuOptions.cc \
+EmuSystemActionsView.cc \
 EmuSystem.cc \
 EmuSystemTask.cc \
-Screenshot.cc \
-ButtonConfigView.cc \
-VideoImageOverlay.cc \
-StateSlotView.cc \
-EmuMainMenuView.cc \
-EmuSystemActionsView.cc \
-EmuInput.cc \
-EmuOptions.cc \
-OptionView.cc \
+EmuTiming.cc \
+EmuVideo.cc \
+EmuVideoLayer.cc \
 EmuView.cc \
 EmuViewController.cc \
-ConfigFile.cc \
-InputManagerView.cc \
+FilePicker.cc \
 FileUtils.cc \
-EmuApp.cc \
-BundledGamesView.cc \
-VideoImageEffect.cc \
-EmuAudio.cc \
-EmuVideo.cc \
-EmuInputView.cc \
-EmuVideoLayer.cc \
-Cheats.cc \
+InputManagerView.cc \
+OptionView.cc \
 Recent.cc \
-EmuLoadProgressView.cc \
-RecentGameView.cc
+RecentGameView.cc \
+Screenshot.cc \
+StateSlotView.cc \
+VideoImageEffect.cc \
+VideoImageOverlay.cc
 
 ifeq ($(emuFramework_onScreenControls), 1)
  SRC += TouchConfigView.cc \
