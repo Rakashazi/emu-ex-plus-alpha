@@ -178,6 +178,31 @@ IG::PixelFormat GLBufferConfigAttributes::pixelFormat() const
 	return pixelFormat_;
 }
 
+FS::RootPathInfo nearestRootPath(const char *path)
+{
+	if(!path)
+		return {};
+	auto location = rootFileLocations();
+	const FS::PathLocation *nearestPtr{};
+	size_t lastMatchOffset = 0;
+	for(const auto &l : location)
+	{
+		auto subStr = strstr(path, l.path.data());
+		if(subStr != path)
+			continue;
+		auto matchOffset = (size_t)(&path[l.root.length] - path);
+		if(matchOffset > lastMatchOffset)
+		{
+			nearestPtr = &l;
+			lastMatchOffset = matchOffset;
+		}
+	}
+	if(!lastMatchOffset)
+		return {};
+	logMsg("found root location:%s with length:%d", nearestPtr->root.name.data(), (int)nearestPtr->root.length);
+	return {nearestPtr->root.name, nearestPtr->root.length};
+}
+
 }
 
 #if defined(__has_feature)

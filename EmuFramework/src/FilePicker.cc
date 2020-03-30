@@ -78,34 +78,9 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, 
 	}
 }
 
-static FS::RootPathInfo nearestRootLocation(const char *path)
-{
-	if(!path)
-		return {};
-	auto location = Base::rootFileLocations();
-	const FS::PathLocation *nearestPtr{};
-	size_t lastMatchOffset = 0;
-	for(const auto &l : location)
-	{
-		auto subStr = strstr(path, l.path.data());
-		if(subStr != path)
-			continue;
-		auto matchOffset = (size_t)(&path[l.root.length] - path);
-		if(matchOffset > lastMatchOffset)
-		{
-			nearestPtr = &l;
-			lastMatchOffset = matchOffset;
-		}
-	}
-	if(!lastMatchOffset)
-		return {};
-	logMsg("found root location:%s with length:%d", nearestPtr->root.name.data(), (int)nearestPtr->root.length);
-	return {nearestPtr->root.name, nearestPtr->root.length};
-}
-
 std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, Input::Event e, bool singleDir)
 {
-	auto rootInfo = nearestRootLocation(lastLoadPath.data());
+	auto rootInfo = Base::nearestRootPath(lastLoadPath.data());
 	auto picker = std::make_unique<EmuFilePicker>(attach, lastLoadPath.data(), false, EmuSystem::defaultBenchmarkFsFilter, rootInfo, e, singleDir);
 	picker->setOnChangePath(
 		[](FSPicker &picker, FS::PathString, Input::Event)
@@ -127,7 +102,7 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachPara
 
 std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForLoading(ViewAttachParams attach, Input::Event e, bool singleDir)
 {
-	auto rootInfo = nearestRootLocation(lastLoadPath.data());
+	auto rootInfo = Base::nearestRootPath(lastLoadPath.data());
 	auto picker = std::make_unique<EmuFilePicker>(attach, lastLoadPath.data(), false, EmuSystem::defaultFsFilter, rootInfo, e, singleDir);
 	picker->setOnChangePath(
 		[](FSPicker &picker, FS::PathString, Input::Event)
@@ -153,7 +128,7 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaChange(ViewAttachParam
 
 std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaCreation(ViewAttachParams attach, Input::Event e, bool singleDir)
 {
-	auto rootInfo = nearestRootLocation(EmuSystem::baseSavePath().data());
+	auto rootInfo = Base::nearestRootPath(EmuSystem::baseSavePath().data());
 	auto picker = std::make_unique<EmuFilePicker>(attach, EmuSystem::baseSavePath().data(), true, EmuSystem::NameFilterFunc{}, rootInfo, e, singleDir);
 	return picker;
 }

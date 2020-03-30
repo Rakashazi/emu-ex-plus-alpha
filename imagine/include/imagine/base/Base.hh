@@ -60,6 +60,7 @@ FS::PathString cachePath(const char *appName);
 FS::PathString sharedStoragePath();
 FS::PathLocation sharedStoragePathLocation();
 std::vector<FS::PathLocation> rootFileLocations();
+FS::RootPathInfo nearestRootPath(const char *path);
 
 // OS UI management (status & navigation bar)
 

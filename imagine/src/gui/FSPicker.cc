@@ -17,6 +17,7 @@
 
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/gui/TextTableView.hh>
+#include <imagine/gui/TextEntry.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
@@ -324,7 +325,7 @@ bool FSPicker::isAtRoot() const
 void FSPicker::pushFileLocationsView(Input::Event e)
 {
 	rootLocation = Base::rootFileLocations();
-	auto view = makeViewWithName<TextTableView>("File Locations", rootLocation.size() + 1);
+	auto view = makeViewWithName<TextTableView>("File Locations", rootLocation.size() + 2);
 	for(auto &loc : rootLocation)
 	{
 		view->appendItem(loc.description.data(), [this, &loc](TextMenuItem &, View &, Input::Event e)
@@ -338,6 +339,24 @@ void FSPicker::pushFileLocationsView(Input::Event e)
 		{
 			changeDirByInput("/", {}, true, e);
 			popAndShow();
+		});
+	view->appendItem("Custom Path", [this](TextMenuItem &, View &, Input::Event e)
+		{
+			auto textInputView = makeView<CollectTextInputView>(
+				"Input a directory path", currPath.data(), nullptr,
+				[this](CollectTextInputView &view, const char *str)
+				{
+					if(!str || !strlen(str))
+					{
+						view.dismiss();
+						return false;
+					}
+					changeDirByInput(str, Base::nearestRootPath(str), false, Input::defaultEvent());
+					view.dismiss();
+					popAndShow();
+					return false;
+				});
+			pushAndShow(std::move(textInputView), e);
 		});
 	pushAndShow(std::move(view), e);
 }
