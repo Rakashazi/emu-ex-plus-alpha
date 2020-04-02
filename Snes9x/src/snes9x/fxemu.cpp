@@ -25,12 +25,19 @@ void S9xInitSuperFX (void)
 	memset((uint8 *) &GSU, 0, sizeof(struct FxRegs_s));
 }
 
+void S9xSetSuperFXTiming(uint16 speedMultiplier)
+{
+	const double speedPerLineFloat = 5823405. * ((1. / Memory.ROMFramesPerSecond) / (double)Timings.V_Max);
+	const double speedPerLinePreMultFloat = speedPerLineFloat * (speedMultiplier / 100.);
+	SuperFX.speedPerLine = speedPerLinePreMultFloat;
+	SuperFX.speedPerLine2x = speedPerLinePreMultFloat * 8. / 3.;
+}
+
 void S9xResetSuperFX (void)
 {
 	// FIXME: Snes9x only runs the SuperFX at the end of every line.
 	// 5823405 is a magic number that seems to work for most games.
-	SuperFX.speedPerLine = (uint32) (5823405 * ((1.0 / (float) Memory.ROMFramesPerSecond) / ((float) (Timings.V_Max))));
-	SuperFX.speedPerLine2x = SuperFX.speedPerLine * 8 / 3;
+	S9xSetSuperFXTiming(Settings.SuperFXClockMultiplier);
 	SuperFX.oneLineDone = FALSE;
 	SuperFX.vFlags = 0;
 	CPU.IRQExternal = FALSE;
@@ -145,7 +152,7 @@ void S9xSuperFXExec (void)
 {
 	if ((Memory.FillRAM[0x3000 + GSU_SFR] & FLG_G) && (Memory.FillRAM[0x3000 + GSU_SCMR] & 0x18) == 0x18)
 	{
-		FxEmulate(((Memory.FillRAM[0x3000 + GSU_CLSR] & 1) ? (SuperFX.speedPerLine2x) : SuperFX.speedPerLine) * Settings.SuperFXClockMultiplier / 100);
+		FxEmulate((Memory.FillRAM[0x3000 + GSU_CLSR] & 1) ? SuperFX.speedPerLine2x : SuperFX.speedPerLine);
 
 		uint16 GSUStatus = Memory.FillRAM[0x3000 + GSU_SFR] | (Memory.FillRAM[0x3000 + GSU_SFR + 1] << 8);
 		if ((GSUStatus & (FLG_G | FLG_IRQ)) == FLG_IRQ)

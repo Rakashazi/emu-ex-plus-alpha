@@ -2,6 +2,7 @@
 #include <apu/apu.h>
 #include <apu/bapu/snes/snes.hpp>
 #include <ppu.h>
+#include <fxemu.h>
 #endif
 #include <emuframework/EmuApp.hh>
 #include "internal.hh"
@@ -11,7 +12,8 @@ enum
 {
 	CFGKEY_MULTITAP = 276, CFGKEY_BLOCK_INVALID_VRAM_ACCESS = 277,
 	CFGKEY_VIDEO_SYSTEM = 278, CFGKEY_INPUT_PORT = 279,
-	CFGKEY_AUDIO_DSP_INTERPOLATON = 280, CFGKEY_SEPARATE_ECHO_BUFFER = 281
+	CFGKEY_AUDIO_DSP_INTERPOLATON = 280, CFGKEY_SEPARATE_ECHO_BUFFER = 281,
+	CFGKEY_SUPERFX_CLOCK_MULTIPLIER = 282
 };
 
 #ifdef SNES9X_VERSION_1_4
@@ -28,6 +30,7 @@ Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMa
 #ifndef SNES9X_VERSION_1_4
 Byte1Option optionBlockInvalidVRAMAccess{CFGKEY_BLOCK_INVALID_VRAM_ACCESS, 1};
 Byte1Option optionSeparateEchoBuffer{CFGKEY_SEPARATE_ECHO_BUFFER, 0};
+Byte1Option optionSuperFXClockMultiplier{CFGKEY_SUPERFX_CLOCK_MULTIPLIER, 100, false, optionIsValidWithMinMax<5, 250>};
 Byte1Option optionAudioDSPInterpolation{CFGKEY_AUDIO_DSP_INTERPOLATON, DSP_INTERPOLATION_GAUSSIAN, false, optionIsValidWithMax<4>};
 #endif
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
@@ -37,6 +40,23 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
 const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+
+#ifndef SNES9X_VERSION_1_4
+void setSuperFXSpeedMultiplier(unsigned val)
+{
+	Settings.SuperFXClockMultiplier = val;
+	S9xSetSuperFXTiming(val);
+}
+#endif
+
+static void applyInputPortOption(int portVal)
+{
+	snesInputPort = portVal;
+	if(EmuSystem::gameIsRunning())
+	{
+		setupSNESInput();
+	}
+}
 
 void EmuSystem::initOptions()
 {
@@ -73,30 +93,25 @@ void EmuSystem::writeConfig(IO &io)
 
 void EmuSystem::onSessionOptionsLoaded()
 {
+	applyInputPortOption(optionInputPort);
 	#ifndef SNES9X_VERSION_1_4
 	PPU.BlockInvalidVRAMAccess = optionBlockInvalidVRAMAccess;
 	SNES::dsp.spc_dsp.separateEchoBuffer = optionSeparateEchoBuffer;
+	setSuperFXSpeedMultiplier(optionSuperFXClockMultiplier);
 	#endif
-	snesInputPort = optionInputPort;
-	if(gameIsRunning())
-	{
-		setupSNESInput();
-	}
 }
 
 bool EmuSystem::resetSessionOptions()
 {
-	optionInputPort.reset();
+	applyInputPortOption(optionInputPort.reset());
 	optionMultitap.reset();
 	optionVideoSystem.reset();
 	#ifndef SNES9X_VERSION_1_4
-	optionBlockInvalidVRAMAccess.reset();
-	optionSeparateEchoBuffer.reset();
 	// reset emulations hacks
-	PPU.BlockInvalidVRAMAccess = true;
-	SNES::dsp.spc_dsp.separateEchoBuffer = false;
+	PPU.BlockInvalidVRAMAccess = optionBlockInvalidVRAMAccess.reset();
+	SNES::dsp.spc_dsp.separateEchoBuffer = optionSeparateEchoBuffer.reset();
+	setSuperFXSpeedMultiplier(optionSuperFXClockMultiplier.reset());
 	#endif
-	onSessionOptionsLoaded();
 	return true;
 }
 
@@ -111,6 +126,7 @@ bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
 		#ifndef SNES9X_VERSION_1_4
 		bcase CFGKEY_BLOCK_INVALID_VRAM_ACCESS: optionBlockInvalidVRAMAccess.readFromIO(io, readSize);
 		bcase CFGKEY_SEPARATE_ECHO_BUFFER: optionSeparateEchoBuffer.readFromIO(io, readSize);
+		bcase CFGKEY_SUPERFX_CLOCK_MULTIPLIER: optionSuperFXClockMultiplier.readFromIO(io, readSize);
 		#endif
 	}
 	return 1;
@@ -124,5 +140,6 @@ void EmuSystem::writeSessionConfig(IO &io)
 	#ifndef SNES9X_VERSION_1_4
 	optionBlockInvalidVRAMAccess.writeWithKeyIfNotDefault(io);
 	optionSeparateEchoBuffer.writeWithKeyIfNotDefault(io);
+	optionSuperFXClockMultiplier.writeWithKeyIfNotDefault(io);
 	#endif
 }

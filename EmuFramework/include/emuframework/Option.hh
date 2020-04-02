@@ -102,7 +102,11 @@ public:
 
 	bool isDefault() const override { return V::get() == defaultVal; }
 	void initDefault(T val) { defaultVal = val; V::set(val); }
-	void reset() { V::set(defaultVal); }
+	T reset()
+	{
+		V::set(defaultVal);
+		return defaultVal;
+	}
 
 	operator T() const
 	{

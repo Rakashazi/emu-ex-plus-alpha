@@ -309,7 +309,7 @@ struct SSettings
 	static const bool8	OpenGLEnable = 1;
 
   static const bool8  SeparateEchoBuffer = 0;
-	static const uint32	SuperFXClockMultiplier = 100;
+	uint32	SuperFXClockMultiplier = 100;
   static const int OverclockMode = 0;
 	static const int	OneClockCycle = 6;
 	static const int	OneSlowClockCycle = 8;

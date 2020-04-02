@@ -914,17 +914,6 @@ class MachineOptionView : public TableView
 		modelItem
 	};
 
-	BoolMenuItem swapJoystickPorts
-	{
-		"Swap Joystick Ports",
-		(bool)optionSwapJoystickPorts,
-		[this](BoolMenuItem &item, View &, Input::Event e)
-		{
-			EmuSystem::sessionOptionSet();
-			optionSwapJoystickPorts = item.flipBoolValue(*this);
-		}
-	};
-
 	BoolMenuItem autostartWarp
 	{
 		"Autostart Fast-forward",
@@ -973,6 +962,65 @@ class MachineOptionView : public TableView
 			EmuSystem::sessionOptionSet();
 			optionVirtualDeviceTraps = item.flipBoolValue(*this);
 			setVirtualDeviceTraps(optionVirtualDeviceTraps);
+		}
+	};
+
+	std::array<MenuItem*, 5> menuItem
+	{
+		&model,
+		&trueDriveEmu,
+		&autostartTDE,
+		&autostartWarp,
+		&virtualDeviceTraps
+	};
+
+public:
+	MachineOptionView(ViewAttachParams attach):
+		TableView
+		{
+			"Machine Options",
+			attach,
+			menuItem
+		}
+	{
+		modelItem.reserve(plugin.models);
+		auto baseVal = currSystem == VICE_SYSTEM_CBM2 ? 2 : 0;
+		iterateTimes(plugin.models, i)
+		{
+			int val = baseVal + i;
+			modelItem.emplace_back(plugin.modelStr[i],
+				[val]()
+				{
+					EmuSystem::sessionOptionSet();
+					optionModel = val;
+					setSysModel(val);
+				});
+		}
+	}
+};
+
+class CustomSystemActionsView : public EmuSystemActionsView
+{
+	TextMenuItem c64IOControl
+	{
+		"Media Control",
+		[this](TextMenuItem &item, View &, Input::Event e)
+		{
+			if(!item.active())
+				return;
+			pushAndShow(makeView<C64IOControlView>(), e);
+		}
+	};
+
+	TextMenuItem options
+	{
+		"Machine Options",
+		[this](TextMenuItem &, View &, Input::Event e)
+		{
+			if(EmuSystem::gameIsRunning())
+			{
+				pushAndShow(makeView<MachineOptionView>(), e);
+			}
 		}
 	};
 
@@ -1028,44 +1076,17 @@ class MachineOptionView : public TableView
 		}
 	};
 
-	std::array<MenuItem*, 7> menuItem
+	BoolMenuItem swapJoystickPorts
 	{
-		&quickSettings,
-		&model,
-		&swapJoystickPorts,
-		&trueDriveEmu,
-		&autostartTDE,
-		&autostartWarp,
-		&virtualDeviceTraps
+		"Swap Joystick Ports",
+		(bool)optionSwapJoystickPorts,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			EmuSystem::sessionOptionSet();
+			optionSwapJoystickPorts = item.flipBoolValue(*this);
+		}
 	};
 
-public:
-	MachineOptionView(ViewAttachParams attach):
-		TableView
-		{
-			"Machine Options",
-			attach,
-			menuItem
-		}
-	{
-		modelItem.reserve(plugin.models);
-		auto baseVal = currSystem == VICE_SYSTEM_CBM2 ? 2 : 0;
-		iterateTimes(plugin.models, i)
-		{
-			int val = baseVal + i;
-			modelItem.emplace_back(plugin.modelStr[i],
-				[val]()
-				{
-					EmuSystem::sessionOptionSet();
-					optionModel = val;
-					setSysModel(val);
-				});
-		}
-	}
-};
-
-class CustomSystemActionsView : public EmuSystemActionsView
-{
 	BoolMenuItem warpMode
 	{
 		"Warp Mode",
@@ -1076,34 +1097,13 @@ class CustomSystemActionsView : public EmuSystemActionsView
 		}
 	};
 
-	TextMenuItem c64IOControl
-	{
-		"Media Control",
-		[this](TextMenuItem &item, View &, Input::Event e)
-		{
-			if(!item.active())
-				return;
-			pushAndShow(makeView<C64IOControlView>(), e);
-		}
-	};
-
-	TextMenuItem options
-	{
-		"Machine Options",
-		[this](TextMenuItem &, View &, Input::Event e)
-		{
-			if(EmuSystem::gameIsRunning())
-			{
-				pushAndShow(makeView<MachineOptionView>(), e);
-			}
-		}
-	};
-
 	void reloadItems()
 	{
 		item.clear();
 		item.emplace_back(&c64IOControl);
 		item.emplace_back(&options);
+		item.emplace_back(&quickSettings);
+		item.emplace_back(&swapJoystickPorts);
 		item.emplace_back(&warpMode);
 		loadStandardItems();
 	}

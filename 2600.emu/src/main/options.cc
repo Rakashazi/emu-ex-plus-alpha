@@ -57,6 +57,11 @@ static bool optionIsValidControllerType(uint8_t val)
 	}
 }
 
+void EmuSystem::initOptions()
+{
+	EmuApp::setDefaultVControlsButtonStagger(5);
+}
+
 bool EmuSystem::resetSessionOptions()
 {
 	optionTVPhosphor.reset();

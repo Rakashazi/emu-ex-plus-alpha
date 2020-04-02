@@ -146,9 +146,63 @@ class ConsoleOptionView : public TableView
 			SNES::dsp.spc_dsp.separateEchoBuffer = optionSeparateEchoBuffer;
 		}
 	};
+
+	void setSuperFXClock(unsigned val)
+	{
+		EmuSystem::sessionOptionSet();
+		optionSuperFXClockMultiplier = val;
+		string_printf(superFXClockStr, "%u%%", optionSuperFXClockMultiplier.val);
+		setSuperFXSpeedMultiplier(optionSuperFXClockMultiplier);
+	}
+
+	char superFXClockStr[5]{};
+
+	TextMenuItem superFXClockItem[2]
+	{
+		{"100%", [this]() { setSuperFXClock(100); }},
+		{"Custom Value",
+			[this](Input::Event e)
+			{
+				EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 5 to 250", "",
+					[this](auto val)
+					{
+						if(optionSuperFXClockMultiplier.isValidVal(val))
+						{
+							setSuperFXClock(val);
+							superFXClock.setSelected(std::size(superFXClockItem) - 1, *this);
+							popAndShow();
+							return true;
+						}
+						else
+						{
+							EmuApp::postErrorMessage("Value not in range");
+							return false;
+						}
+					});
+				return false;
+			}
+		},
+	};
+
+	MultiChoiceMenuItem superFXClock
+	{
+		"SuperFX Clock Multiplier",
+		[this](uint32_t idx)
+		{
+			return superFXClockStr;
+		},
+		[]()
+		{
+			if(optionSuperFXClockMultiplier.val == 100)
+				return 0;
+			else
+				return 1;
+		}(),
+		superFXClockItem
+	};
 	#endif
 
-	std::array<MenuItem*, IS_SNES9X_VERSION_1_4 ? 3 : 6> menuItem
+	std::array<MenuItem*, IS_SNES9X_VERSION_1_4 ? 3 : 7> menuItem
 	{
 		&inputPorts,
 		&multitap,
@@ -156,7 +210,8 @@ class ConsoleOptionView : public TableView
 		#ifndef SNES9X_VERSION_1_4
 		&emulationHacks,
 		&blockInvalidVRAMAccess,
-		&separateEchoBuffer
+		&separateEchoBuffer,
+		&superFXClock,
 		#endif
 	};
 
@@ -168,7 +223,11 @@ public:
 			attach,
 			menuItem
 		}
-	{}
+	{
+		#ifndef SNES9X_VERSION_1_4
+		string_printf(superFXClockStr, "%u%%", optionSuperFXClockMultiplier.val);
+		#endif
+	}
 };
 
 class CustomSystemActionsView : public EmuSystemActionsView

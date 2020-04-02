@@ -23,6 +23,7 @@ extern Byte1Option optionVideoSystem;
 #ifndef SNES9X_VERSION_1_4
 extern Byte1Option optionBlockInvalidVRAMAccess;
 extern Byte1Option optionSeparateEchoBuffer;
+extern Byte1Option optionSuperFXClockMultiplier;
 extern Byte1Option optionAudioDSPInterpolation;
 #endif
 extern int snesInputPort;
@@ -39,6 +40,7 @@ static const int &snesActiveInputPort = snesInputPort;
 #endif
 
 void setupSNESInput();
+void setSuperFXSpeedMultiplier(unsigned val);
 
 #ifndef SNES9X_VERSION_1_4
 uint16 *S9xGetJoypadBits(uint idx);

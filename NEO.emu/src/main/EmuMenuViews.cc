@@ -97,13 +97,14 @@ private:
 		regionItem
 	};
 
-	TextMenuItem biosItem[6]
+	TextMenuItem biosItem[7]
 	{
 		{"Unibios 2.3", [](){ conf.system = SYS_UNIBIOS; optionBIOSType = conf.system; }},
 		{"Unibios 3.0", [](){ conf.system = SYS_UNIBIOS_3_0; optionBIOSType = conf.system; }},
 		{"Unibios 3.1", [](){ conf.system = SYS_UNIBIOS_3_1; optionBIOSType = conf.system; }},
 		{"Unibios 3.2", [](){ conf.system = SYS_UNIBIOS_3_2; optionBIOSType = conf.system; }},
 		{"Unibios 3.3", [](){ conf.system = SYS_UNIBIOS_3_3; optionBIOSType = conf.system; }},
+		{"Unibios 4.0", [](){ conf.system = SYS_UNIBIOS_4_0; optionBIOSType = conf.system; }},
 		{"MVS", [](){ conf.system = SYS_ARCADE; optionBIOSType = conf.system; }},
 	};
 
@@ -119,7 +120,8 @@ private:
 				case SYS_UNIBIOS_3_1: return 2;
 				case SYS_UNIBIOS_3_2: return 3;
 				case SYS_UNIBIOS_3_3: return 4;
-				case SYS_ARCADE: return 5;
+				case SYS_UNIBIOS_4_0: return 5;
+				case SYS_ARCADE: return 6;
 			}
 		}(),
 		biosItem
@@ -648,7 +650,7 @@ public:
 	void onShow()
 	{
 		EmuSystemActionsView::onShow();
-		bool isUnibios = conf.system >= SYS_UNIBIOS && conf.system <= SYS_UNIBIOS_3_3;
+		bool isUnibios = conf.system >= SYS_UNIBIOS && conf.system <= SYS_UNIBIOS_LAST;
 		unibiosSwitches.setActive(EmuSystem::gameIsRunning() && isUnibios);
 	}
 };

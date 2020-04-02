@@ -27,6 +27,7 @@ struct FxInfo_s
 extern struct FxInfo_s	SuperFX;
 
 void S9xInitSuperFX (void);
+void S9xSetSuperFXTiming(uint16);
 void S9xResetSuperFX (void);
 void S9xSuperFXExec (void);
 void S9xSetSuperFX (uint8, uint16);
