@@ -53,7 +53,7 @@ void setAutostartWarp(bool on);
 void setAutostartTDE(bool on);
 void setSysModel(int model);
 void setCanvasSkipFrame(bool on);
-void setCanvasRunningFrame(bool on);
+void startCanvasRunningFrame();
 int sysModel();
 void setDefaultC64Model(int model);
 void setDefaultDTVModel(int model);

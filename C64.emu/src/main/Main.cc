@@ -516,11 +516,10 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 
 static void execC64Frame()
 {
-	setCanvasRunningFrame(true);
+	startCanvasRunningFrame();
 	// signal C64 thread to execute one frame and wait for it to finish
 	execSem.notify();
 	execDoneSem.wait();
-	setCanvasRunningFrame(false);
 }
 
 void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
@@ -585,7 +584,7 @@ EmuSystem::Error EmuSystem::onInit()
 		[]()
 		{
 			execSem.wait();
-			logMsg("running C64");
+			logMsg("starting maincpu_mainloop()");
 			plugin.maincpu_mainloop();
 		});
 

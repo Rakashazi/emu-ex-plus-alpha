@@ -32,24 +32,25 @@ extern "C"
 struct video_canvas_s *activeCanvas{};
 IG::Pixmap canvasSrcPix{};
 double systemFrameRate = 60.0;
+static std::atomic_bool runningFrame{};
 
 void setCanvasSkipFrame(bool on)
 {
 	activeCanvas->skipFrame = on;
 }
 
-void setCanvasRunningFrame(bool on)
+void startCanvasRunningFrame()
 {
-	activeCanvas->runningFrame = on;
+	runningFrame = true;
 }
 
 CLINK LVISIBLE int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped);
 int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped)
 {
-	//assert(EmuSystem::gameIsRunning());
-	if(likely(c->runningFrame))
+	if(likely(runningFrame))
 	{
 		//logMsg("vsync_do_vsync signaling main thread");
+		runningFrame = false;
 		execDoneSem.notify();
 		execSem.wait();
 	}
