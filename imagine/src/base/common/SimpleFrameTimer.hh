@@ -43,11 +43,10 @@ public:
 	}
 
 protected:
-	Timer timer{"SimpleFrameTimer"};
+	Timer timer;
 	EventLoop eventLoop{};
 	IG::Nanoseconds interval{};
 	bool requested = false;
-	bool cancelled = false;
 };
 
 }

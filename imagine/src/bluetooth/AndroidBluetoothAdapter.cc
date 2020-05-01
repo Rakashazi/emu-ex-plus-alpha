@@ -618,7 +618,7 @@ void AndroidBluetoothSocket::close()
 		logMsg("closing socket");
 		if(nativeFd != -1)
 		{
-			fdSrc.removeFromEventLoop();
+			fdSrc.detach();
 			nativeFd = -1; // BluetoothSocket closes the FD
 		}
 		isClosing = 1;

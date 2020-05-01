@@ -17,7 +17,9 @@
 
 #include <imagine/base/timerDefs.hh>
 #include <imagine/base/EventLoop.hh>
+#include <imagine/time/Time.hh>
 #include <time.h>
+#include <memory>
 
 namespace Base
 {
@@ -25,38 +27,28 @@ namespace Base
 class TimerFD
 {
 public:
+	using Time = IG::Nanoseconds;
+
 	#ifdef NDEBUG
-	TimerFD();
-	TimerFD(const char *debugLabel): TimerFD() {}
+	TimerFD(CallbackDelegate c);
+	TimerFD(const char *debugLabel, CallbackDelegate c): TimerFD(c) {}
 	#else
-	TimerFD() : TimerFD{nullptr} {}
-	TimerFD(const char *debugLabel);
+	TimerFD(CallbackDelegate c) : TimerFD{nullptr, c} {}
+	TimerFD(const char *debugLabel, CallbackDelegate c);
 	#endif
-	void deinit();
-	void timerFired();
-
-	bool operator ==(TimerFD const& rhs) const
-	{
-		return fdSrc.fd() == rhs.fdSrc.fd();
-	}
-
-	explicit operator bool() const
-	{
-		return armed;
-	}
+	TimerFD(TimerFD &&o);
+	TimerFD &operator=(TimerFD &&o);
+	~TimerFD();
 
 protected:
-	FDEventSource fdSrc{};
-	CallbackDelegate callback{};
-	bool reuseResources = false; // whether to keep the timerfd open after firing
-	bool repeating = false;
-	bool armed = false;
 	#ifndef NDEBUG
 	const char *debugLabel{};
 	#endif
+	FDEventSource fdSrc{};
+	std::unique_ptr<CallbackDelegate> callback_{};
 
-	int fd() const;
-	bool arm(timespec ms, timespec repeatInterval, EventLoop loop, bool shouldReuseResources);
+	void deinit();
+	bool arm(timespec ms, timespec repeatInterval, EventLoop loop);
 	const char *label();
 };
 

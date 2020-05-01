@@ -39,7 +39,7 @@ void GLMainTask::start(Base::GLContext context)
 			assumeExpr(glDpy);
 			context.setCurrent(glDpy, context, {});
 			auto eventLoop = Base::EventLoop::makeForThread();
-			commandPort.addToEventLoop(eventLoop,
+			commandPort.attach(eventLoop,
 				[this, glDpy](auto msgs)
 				{
 					for(auto msg = msgs.get(); msg; msg = msgs.get())
@@ -75,7 +75,7 @@ void GLMainTask::start(Base::GLContext context)
 			sem.notify();
 			logMsg("starting main GL thread event loop");
 			eventLoop.run();
-			commandPort.removeFromEventLoop();
+			commandPort.detach();
 			logMsg("main GL thread exit");
 		});
 	started = true;

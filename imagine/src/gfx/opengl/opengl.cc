@@ -114,19 +114,16 @@ void Renderer::releaseShaderCompiler()
 void Renderer::autoReleaseShaderCompiler()
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(!releaseShaderCompilerTimer)
-	{
-		releaseShaderCompilerTimer.callbackAfterMSec(
-			[this]()
-			{
-				logMsg("automatically releasing shader compiler");
-				runGLTask(
-					[]()
-					{
-						glReleaseShaderCompiler();
-					});
-			}, 1, {});
-	}
+	releaseShaderCompilerTimer.runOnce(IG::Milliseconds{20}, {},
+		[this]()
+		{
+			logMsg("automatically releasing shader compiler");
+			runGLTask(
+				[]()
+				{
+					glReleaseShaderCompiler();
+				});
+		});
 	#endif
 }
 

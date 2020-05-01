@@ -118,11 +118,6 @@ static void removeFromSystem(int fd);
 
 struct EvdevInputDevice : public Device
 {
-	EvdevInputDevice() {}
-	EvdevInputDevice(int id, int fd, uint32_t type, const char *name):
-		Device{0, Event::MAP_SYSTEM, type, name},
-		id{id}, fd{fd}
-	{}
 	int id = 0;
 	int fd = -1;
 	struct Axis
@@ -130,7 +125,13 @@ struct EvdevInputDevice : public Device
 		AxisKeyEmu<int> keyEmu;
 		bool active = 0;
 	} axis[ABS_HAT3Y];
-	Base::FDEventSource fdSrc;
+	Base::FDEventSource fdSrc{-1};
+
+	EvdevInputDevice() {}
+	EvdevInputDevice(int id, int fd, uint32_t type, const char *name):
+		Device{0, Event::MAP_SYSTEM, type, name},
+		id{id}, fd{fd}
+	{}
 
 	void setEnumId(int id) { devId = id; }
 
@@ -269,7 +270,7 @@ struct EvdevInputDevice : public Device
 
 	void close()
 	{
-		fdSrc.removeFromEventLoop();
+		fdSrc.detach();
 		::close(fd);
 		removeDevice(*this);
 		onDeviceChange.callCopySafe(*this, { Device::Change::REMOVED });

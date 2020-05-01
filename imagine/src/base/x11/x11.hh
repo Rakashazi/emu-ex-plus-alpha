@@ -19,7 +19,7 @@
 
 namespace Base
 {
-	CallResult initWindowSystem(EventLoop loop, FDEventSource &eventSrc);
+	std::pair<std::error_code, int> initWindowSystem(EventLoop loop);
 	void deinitWindowSystem();
 	void x11FDHandler();
 	bool x11FDPending();

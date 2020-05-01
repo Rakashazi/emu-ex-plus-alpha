@@ -72,7 +72,7 @@ bool BluezBluetoothAdapter::openDefault()
 	}
 
 	{
-		statusPipe.addToEventLoop({},
+		statusPipe.attach(
 			[this](Base::Pipe &pipe)
 			{
 				while(statusPipe.hasData())
@@ -112,7 +112,7 @@ void BluezBluetoothAdapter::close()
 		::close(socket);
 		socket = -1;
 	}
-	statusPipe.removeFromEventLoop();
+	statusPipe.detach();
 }
 
 BluezBluetoothAdapter *BluezBluetoothAdapter::defaultAdapter()
@@ -416,9 +416,9 @@ int BluezBluetoothSocket::readPendingData(int events)
 	{
 		logMsg("finished opening socket %d", fd);
 		if(onStatusD(*this, STATUS_OPENED) == OPEN_USAGE_READ_EVENTS)
-			fdSrc.modifyEvents(Base::POLLEV_IN);
+			fdSrc.setEvents(Base::POLLEV_IN);
 		else
-			fdSrc.removeFromEventLoop();
+			fdSrc.detach();
 	}
 
 	return true;
@@ -500,7 +500,7 @@ void BluezBluetoothSocket::close()
 	{
 		/*if(shutdown(fd, SHUT_RDWR) != 0)
 			logWarn("error shutting down socket");*/
-		fdSrc.removeFromEventLoop();
+		fdSrc.detach();
 		if(::close(fd) != 0)
 			logWarn("error closing socket");
 		fd = -1;

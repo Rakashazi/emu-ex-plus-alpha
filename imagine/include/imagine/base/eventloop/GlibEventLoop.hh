@@ -42,19 +42,19 @@ public:
 	GlibFDEventSource(GlibFDEventSource &&o);
 	GlibFDEventSource &operator=(GlibFDEventSource &&o);
 	~GlibFDEventSource();
-	bool makeAndAttachSource(GSourceFuncs *fdSourceFuncs,
-		PollEventDelegate callback_, GIOCondition events, GMainContext *ctx);
 
 protected:
-	GSource2 *source{};
-	gpointer tag{};
-	int fd_ = -1;
 	#ifndef NDEBUG
 	const char *debugLabel{};
 	#endif
+	GSource2 *source{};
+	gpointer tag{};
+	int fd_ = -1;
 
-	const char *label();
+	bool makeAndAttachSource(GSourceFuncs *fdSourceFuncs,
+		PollEventDelegate callback_, GIOCondition events, GMainContext *ctx);
 	void deinit();
+	const char *label();
 };
 
 using FDEventSourceImpl = GlibFDEventSource;

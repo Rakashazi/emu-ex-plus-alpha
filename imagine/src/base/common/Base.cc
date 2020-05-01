@@ -25,6 +25,7 @@
 #include <imagine/base/EventLoop.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/GLContext.hh>
+#include <imagine/base/Timer.hh>
 #include <imagine/util/system/pagesize.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/DelegateFuncSet.hh>
@@ -168,7 +169,19 @@ FDEventSource::FDEventSource(const char *debugLabel, int fd, EventLoop loop, Pol
 	FDEventSource{debugLabel, fd}
 #endif
 {
-	addToEventLoop(loop, callback, events);
+	attach(loop, callback, events);
+}
+
+bool FDEventSource::attach(PollEventDelegate callback, uint32_t events)
+{
+	return attach({}, callback, events);
+}
+
+void Timer::runOnce(Time time, Time repeatTime, EventLoop loop, CallbackDelegate callback)
+{
+	if(isArmed())
+		return;
+	run(time, repeatTime, loop, callback);
 }
 
 IG::PixelFormat GLBufferConfigAttributes::pixelFormat() const

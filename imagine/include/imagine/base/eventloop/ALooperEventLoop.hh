@@ -25,6 +25,12 @@ namespace Base
 static const int POLLEV_IN = ALOOPER_EVENT_INPUT, POLLEV_OUT = ALOOPER_EVENT_OUTPUT,
 	POLLEV_ERR = ALOOPER_EVENT_ERROR, POLLEV_HUP = ALOOPER_EVENT_HANGUP;
 
+struct ALooperFDEventSourceInfo
+{
+	PollEventDelegate callback{};
+	ALooper *looper{};
+};
+
 class ALooperFDEventSource
 {
 public:
@@ -41,12 +47,11 @@ public:
 	~ALooperFDEventSource();
 
 protected:
-	std::unique_ptr<PollEventDelegate> callback_{};
-	ALooper *looper{};
-	int fd_ = -1;
 	#ifndef NDEBUG
 	const char *debugLabel{};
 	#endif
+	std::unique_ptr<ALooperFDEventSourceInfo> info{};
+	int fd_ = -1;
 
 	const char *label();
 	void deinit();

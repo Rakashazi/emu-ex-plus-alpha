@@ -18,11 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/EventLoop.hh>
 
-#if defined __linux
 #include <imagine/base/eventloop/FDCustomEvent.hh>
-#elif defined __APPLE__
-#include <imagine/base/eventloop/CFCustomEvent.hh>
-#endif
 
 namespace Base
 {
@@ -32,11 +28,12 @@ class CustomEvent : public CustomEventImpl
 public:
 	using CustomEventImpl::CustomEventImpl;
 
-	void setEventLoop(EventLoop loop);
+	void attach(EventLoop loop = {});
+	void detach();
 	void setCallback(CustomEventDelegate callback);
 	void notify();
 	void cancel();
-	void deinit();
+	explicit operator bool() const;
 };
 
 }

@@ -20,6 +20,7 @@
 #include <imagine/base/EventLoop.hh>
 #include <array>
 #include <optional>
+#include <memory>
 
 namespace Base
 {
@@ -39,8 +40,9 @@ public:
 	Pipe(Pipe &&o);
 	Pipe &operator=(Pipe &&o);
 	~Pipe();
-	void addToEventLoop(EventLoop loop, Delegate del);
-	void removeFromEventLoop();
+	void attach(Delegate del);
+	void attach(EventLoop loop, Delegate del);
+	void detach();
 	bool read(void *data, size_t size);
 	bool write(const void *data, size_t size);
 	bool hasData();
@@ -75,12 +77,12 @@ public:
 	}
 
 protected:
-	std::array<int, 2> msgPipe{-1, -1};
-	FDEventSource fdSrc{};
-	Delegate del{};
 	#ifndef NDEBUG
 	const char *debugLabel{};
 	#endif
+	std::array<int, 2> msgPipe{-1, -1};
+	FDEventSource fdSrc{};
+	Delegate readCallback{};
 
 	void deinit();
 	const char *label() const;

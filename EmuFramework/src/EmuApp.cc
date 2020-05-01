@@ -224,7 +224,6 @@ void mainInitCommon(int argc, char** argv)
 	if((int)optionSoundRate > AudioManager::nativeFormat().rate)
 		optionSoundRate = AudioManager::nativeFormat().rate;
 	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
-	Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 	applyOSNavStyle(false);
 
 	{

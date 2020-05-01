@@ -16,6 +16,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <chrono>
+#if defined __APPLE__
+#include <TargetConditionals.h>
+#endif
 
 namespace IG
 {
@@ -25,6 +28,7 @@ using Microseconds = std::chrono::microseconds;
 using Milliseconds = std::chrono::milliseconds;
 using Seconds = std::chrono::seconds;
 using FloatSeconds = std::chrono::duration<double>;
+using Minutes = std::chrono::minutes;
 
 #if defined __APPLE__ && TARGET_OS_IPHONE
 using FrameTime = FloatSeconds;

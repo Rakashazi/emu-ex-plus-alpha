@@ -1729,7 +1729,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	idleDisplayPowerSave
 	{
-		"Dim Screen If Idle",
+		"Allow Screen Timeout In Emulation",
 		(bool)optionIdleDisplayPowerSave,
 		[this](BoolMenuItem &item, Input::Event e)
 		{

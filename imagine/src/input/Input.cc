@@ -19,11 +19,12 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/container/containerUtils.hh>
 #include "private.hh"
+#include <optional>
 
 namespace Input
 {
 
-static Base::Timer keyRepeatTimer{"keyRepeatTimer"};
+static std::optional<Base::Timer> keyRepeatTimer{};
 static Event keyRepeatEvent{};
 static bool allowKeyRepeats_ = true;
 DeviceChangeDelegate onDeviceChange{};
@@ -76,27 +77,32 @@ void startKeyRepeatTimer(Event event)
 	//logMsg("starting key repeat");
 	keyRepeatEvent = event;
 	keyRepeatEvent.setRepeatCount(1);
-	keyRepeatTimer.callbackAfterMSec(
-		[]()
-		{
-			logMsg("repeating key event");
-			if(likely(keyRepeatEvent.pushed()))
-				dispatchInputEvent(keyRepeatEvent);
-		}, 400, 50, {}, Base::Timer::HINT_REUSE);
+	if(unlikely(!keyRepeatTimer))
+	{
+		keyRepeatTimer.emplace("keyRepeatTimer",
+			[]()
+			{
+				//logMsg("repeating key event");
+				if(likely(keyRepeatEvent.pushed()))
+					dispatchInputEvent(keyRepeatEvent);
+				return true;
+			});
+	}
+	keyRepeatTimer->run(IG::Milliseconds(400), IG::Milliseconds(50));
 }
 
 void cancelKeyRepeatTimer()
 {
 	//logMsg("cancelled key repeat");
-	keyRepeatTimer.cancel();
+	if(!keyRepeatTimer)
+		return;
+	keyRepeatTimer->cancel();
 	keyRepeatEvent = {};
 }
 
 void deinitKeyRepeatTimer()
 {
-	//logMsg("deinit key repeat");
-	keyRepeatTimer.deinit();
-	keyRepeatEvent = {};
+	keyRepeatTimer.reset();
 }
 
 void addDevice(Device &d)

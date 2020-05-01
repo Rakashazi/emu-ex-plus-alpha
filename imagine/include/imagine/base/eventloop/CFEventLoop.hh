@@ -29,6 +29,10 @@ struct CFFDEventSourceInfo
 {
 	PollEventDelegate callback{};
 	CFFileDescriptorRef fdRef{};
+	CFRunLoopSourceRef src{};
+	CFRunLoopRef loop{};
+
+	void detachSource();
 };
 
 class CFFDEventSource
@@ -47,12 +51,10 @@ public:
 	~CFFDEventSource();
 
 protected:
-	std::unique_ptr<CFFDEventSourceInfo> info{};
-  CFRunLoopSourceRef src{};
-  CFRunLoopRef loop{};
-  #ifndef NDEBUG
+	#ifndef NDEBUG
 	const char *debugLabel{};
 	#endif
+	std::unique_ptr<CFFDEventSourceInfo> info{};
 
 	const char *label();
 	void deinit();

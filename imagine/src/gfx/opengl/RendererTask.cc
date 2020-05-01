@@ -229,7 +229,7 @@ void RendererTask::start()
 				auto glDpy = Base::GLDisplay::getDefault(glAPI);
 				assumeExpr(glDpy);
 				auto eventLoop = Base::EventLoop::makeForThread();
-				commandPort.addToEventLoop(eventLoop,
+				commandPort.attach(eventLoop,
 					[this, glDpy](auto msgs)
 					{
 						return commandHandler(msgs, glDpy, true);
@@ -237,7 +237,7 @@ void RendererTask::start()
 				sem.notify();
 				logMsg("starting render task event loop");
 				eventLoop.run();
-				commandPort.removeFromEventLoop();
+				commandPort.detach();
 				logMsg("render task thread finished");
 			});
 	}
@@ -250,14 +250,14 @@ void RendererTask::start()
 			{
 				logMsg("starting render task in main GL thread");
 				auto glDpy = Base::GLDisplay::getDefault();
-				commandPort.addToEventLoop({},
+				commandPort.attach(
 					[this, glDpy](auto msgs)
 					{
 						return commandHandler(msgs, glDpy, false);
 					});
 			});
 	}
-	replyPort.addToEventLoop({},
+	replyPort.attach(
 		[this](auto msgs)
 		{
 			auto msg = msgs.get();
@@ -429,11 +429,11 @@ void RendererTask::stop()
 		r.runGLTaskSync(
 			[this]()
 			{
-				commandPort.removeFromEventLoop();
+				commandPort.detach();
 			});
 	}
 	replyPort.clear();
-	replyPort.removeFromEventLoop();
+	replyPort.detach();
 	destroyContext(r.useSeparateDrawContext, r.glDpy);
 }
 

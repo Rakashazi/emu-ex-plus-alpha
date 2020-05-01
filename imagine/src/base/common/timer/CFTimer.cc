@@ -21,125 +21,116 @@ namespace Base
 {
 
 #ifdef NDEBUG
-CFTimer::CFTimer() {}
+CFTimer::CFTimer(CallbackDelegate c):
 #else
-CFTimer::CFTimer(const char *debugLabel): debugLabel{debugLabel ? debugLabel : "unnamed"} {}
+CFTimer::CFTimer(const char *debugLabel, CallbackDelegate c):
+	debugLabel{debugLabel ? debugLabel : "unnamed"},
 #endif
+	info{std::make_unique<CFTimerInfo>(CFTimerInfo{c, {}})}
+{}
 
-void CFTimer::callbackInCFAbsoluteTime(CallbackDelegate callback, CFAbsoluteTime relTime,
-	CFTimeInterval repeatInterval, CFRunLoopRef loop, bool shouldReuseResources)
+CFTimer::CFTimer(CFTimer &&o)
 {
-	this->callback = callback;
-	if(repeat != repeatInterval || (shouldReuseResources && !reuseResources))
+	*this = std::move(o);
+}
+
+CFTimer &CFTimer::operator=(CFTimer &&o)
+{
+	deinit();
+	timer = std::exchange(o.timer, {});
+	info = std::move(o.info);
+	#ifndef NDEBUG
+	debugLabel = o.debugLabel;
+	#endif
+	return *this;
+}
+
+CFTimer::~CFTimer()
+{
+	deinit();
+}
+
+void CFTimer::callbackInCFAbsoluteTime(CFAbsoluteTime relTime, CFTimeInterval repeatInterval, CFRunLoopRef loop)
+{
+	auto realRepeatInterval = repeatInterval ? repeatInterval
+		: std::numeric_limits<CFTimeInterval>::max(); // set a massive repeat interval to reuse a one-shot timer
+	if(timer && CFRunLoopTimerGetInterval(timer) != realRepeatInterval)
 	{
-		// re-create timer if:
-		// 1. repeat interval changed
-		// 2. was previously allocated non-reusable, but now should be re-usable
+		// re-create timer if repeat interval changed
 		deinit();
 	}
-	reuseResources = shouldReuseResources;
 	CFAbsoluteTime time = CFAbsoluteTimeGetCurrent() + relTime;
-	if(!timer)
+	if(unlikely(!timer))
 	{
-		repeat = repeatInterval;
-		CFRunLoopTimerContext context{0};
-		context.info = this;
-		if(shouldReuseResources && !repeat)
-		{
-			// set a massive repeat interval to reuse a one-shot timer
-			repeatInterval = std::numeric_limits<CFTimeInterval>::max();
-		}
-		timer = CFRunLoopTimerCreate(nullptr, time, repeatInterval, 0, 0,
-			[](CFRunLoopTimerRef timer, void *info)
+		CFRunLoopTimerContext context{};
+		context.info = info.get();
+		timer = CFRunLoopTimerCreate(nullptr, time, realRepeatInterval, 0, 0,
+			[](CFRunLoopTimerRef timer, void *infoPtr)
 			{
 				using namespace Base;
 				logMsg("running callback for timer: %p", timer);
-				auto &timerData = *((Timer*)info);
-				timerData.armed = timerData.repeat; // disarm timer if non-repeating, can be re-armed in callback()
-				timerData.callback();
-				if(!timerData.armed && !timerData.reuseResources)
-					timerData.deinit();
+				auto &info = *((CFTimerInfo*)infoPtr);
+				bool keep = info.callback();
+				if(!keep)
+				{
+					CFRunLoopRemoveTimer(info.loop, timer, kCFRunLoopDefaultMode);
+					info.loop = {};
+				}
 			}, &context);
-		logMsg("creating %stimer %p to run in %f second(s)", reuseResources ? "reusable " : "", timer, (double)relTime);
-		if(repeat)
-			logMsg("repeats every %f second(s)", repeat);
-		if(!loop)
-			loop = CFRunLoopGetCurrent();
-		CFRunLoopAddTimer(loop, timer, kCFRunLoopDefaultMode);
+		logMsg("creating timer:%p (%s) to run in %f sec(s), repeats %f sec(s)",
+			timer, label(), (double)relTime, (double)repeatInterval);
 	}
 	else
 	{
-		logMsg("re-arming %stimer %p to run in %f second(s)", reuseResources ? "reusable " : "", timer, (double)relTime);
-		if(repeat)
-			logMsg("repeats every %f second(s)", repeat);
+		logMsg("re-arming timer:%p (%s) to run in %f sec(s), repeats %f sec(s)",
+			timer, label(), (double)relTime, (double)repeatInterval);
 		CFRunLoopTimerSetNextFireDate(timer, time);
 	}
-	armed = true;
+	if(loop != info->loop)
+	{
+		if(info->loop)
+			CFRunLoopRemoveTimer(info->loop, timer, kCFRunLoopDefaultMode);
+		CFRunLoopAddTimer(loop, timer, kCFRunLoopDefaultMode);
+		info->loop = loop;
+	}
 }
 
-void Timer::callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, EventLoop loop, Flags flags)
+void Timer::run(Time time, Time repeatTime, EventLoop loop, CallbackDelegate callback)
 {
-	callbackInCFAbsoluteTime(callback, ns / 1000000000., repeatNs / 1000000000., loop.nativeObject(), flags & HINT_REUSE);
-}
-
-void Timer::callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, EventLoop loop, Flags flags)
-{
-	callbackInCFAbsoluteTime(callback, ms / 1000., repeatMs / 1000., loop.nativeObject(), flags & HINT_REUSE);
-}
-
-void Timer::callbackAfterSec(CallbackDelegate callback, int s, int repeatS, EventLoop loop, Flags flags)
-{
-	callbackInCFAbsoluteTime(callback, s, repeatS, loop.nativeObject(), flags & HINT_REUSE);
-}
-
-void Timer::callbackAfterNSec(CallbackDelegate callback, int ns, EventLoop loop)
-{
-	callbackAfterNSec(callback, ns, 0, loop, HINT_NONE);
-}
-
-void Timer::callbackAfterMSec(CallbackDelegate callback, int ms, EventLoop loop)
-{
-	callbackAfterMSec(callback, ms, 0, loop, HINT_NONE);
-}
-
-void Timer::callbackAfterSec(CallbackDelegate callback, int s, EventLoop loop)
-{
-	callbackAfterSec(callback, s, 0, loop, HINT_NONE);
+	if(callback)
+		setCallback(callback);
+	if(!loop)
+		loop = EventLoop::forThread();
+	callbackInCFAbsoluteTime(time.count(), repeatTime.count(), loop.nativeObject());
 }
 
 void Timer::cancel()
 {
-	if(reuseResources)
-	{
-		if(armed)
-		{
-			// disarm timer
-			assert(timer);
-			logMsg("disarming timer: %p", timer);
-			// set a massive fire time to "disarm" the timer
-			CFRunLoopTimerSetNextFireDate(timer, std::numeric_limits<CFAbsoluteTime>::max());
-			armed = false;
-		}
-	}
-	else
-		deinit();
+	if(!info->loop)
+		return;
+	CFRunLoopRemoveTimer(info->loop, timer, kCFRunLoopDefaultMode);
+	info->loop = {};
+}
+
+void Timer::setCallback(CallbackDelegate callback)
+{
+	info->callback = callback;
+}
+
+bool Timer::isArmed()
+{
+	return info->loop;
 }
 
 void CFTimer::deinit()
 {
-	if(timer)
-	{
-		logMsg("closing timer: %p", timer);
-		CFRunLoopTimerInvalidate(timer);
-		CFRelease(timer);
-		timer = nullptr;
-		armed = false;
-	}
-}
-
-void Timer::deinit()
-{
-	CFTimer::deinit();
+	if(!timer)
+		return;
+	logMsg("closing timer: %p", timer);
+	CFRunLoopTimerInvalidate(timer);
+	CFRelease(timer);
+	timer = {};
+	info->loop = {};
 }
 
 const char *CFTimer::label()

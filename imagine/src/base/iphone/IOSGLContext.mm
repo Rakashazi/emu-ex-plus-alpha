@@ -92,13 +92,7 @@ std::pair<std::error_code, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBu
 	{
 		glView.multipleTouchEnabled = YES;
 	}
-	//logMsg("setting root view controller");
-	auto rootViewCtrl = [[ImagineUIViewController alloc] init];
-	#if __IPHONE_OS_VERSION_MIN_REQUIRED < 70000
-	rootViewCtrl.wantsFullScreenLayout = YES;
-	#endif
-	rootViewCtrl.view = glView;
-	win.uiWin().rootViewController = rootViewCtrl;
+	win.uiWin().rootViewController.view = glView;
 	return {{}, {(void*)CFBridgingRetain(glView)}};
 }
 

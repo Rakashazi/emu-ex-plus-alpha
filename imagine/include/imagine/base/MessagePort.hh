@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/Pipe.hh>
 #include <type_traits>
+#include <utility>
 
 namespace Base
 {
@@ -65,9 +66,15 @@ public:
 	}
 
 	template<class Func>
-	void addToEventLoop(EventLoop loop, Func &&func)
+	void attach(Func &&func)
 	{
-		pipe.addToEventLoop(loop,
+		attach(EventLoop::forThread(), std::forward<Func>(func));
+	}
+
+	template<class Func>
+	void attach(EventLoop loop, Func &&func)
+	{
+		pipe.attach(loop,
 			[=](Base::Pipe &pipe) -> int
 			{
 				Messages msg{pipe};
@@ -84,9 +91,9 @@ public:
 			});
 	}
 
-	void removeFromEventLoop()
+	void detach()
 	{
-		pipe.removeFromEventLoop();
+		pipe.detach();
 	}
 
 	bool send(MsgType msg)

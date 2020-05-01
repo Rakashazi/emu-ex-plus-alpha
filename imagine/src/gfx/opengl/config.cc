@@ -923,7 +923,6 @@ void GLRenderer::addOnExitHandler()
 	onExit =
 		[this](bool backgrounded)
 		{
-			bool releaseShaderCompiler = (bool)releaseShaderCompilerTimer;
 			releaseShaderCompilerTimer.cancel();
 			if(backgrounded)
 			{
@@ -931,10 +930,7 @@ void GLRenderer::addOnExitHandler()
 					[=]()
 					{
 						#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-						if(releaseShaderCompiler)
-						{
-							glReleaseShaderCompiler();
-						}
+						glReleaseShaderCompiler();
 						#endif
 						glFinish();
 					});

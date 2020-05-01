@@ -19,6 +19,7 @@
 #include <imagine/base/timerDefs.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/util/bits.h>
+#include <imagine/util/FunctionTraits.hh>
 
 #if defined __linux
 #include <imagine/base/timer/TimerFD.hh>
@@ -33,36 +34,85 @@ struct Timer : public TimerImpl
 {
 public:
 	using TimerImpl::TimerImpl;
-	enum Flags
-	{
-		HINT_NONE = 0,
-		HINT_REUSE = IG::bit(0) // timer resources should't be de-allocated automatically after firing or from cancel()
-	};
 
-	void callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, EventLoop loop, Flags flags);
-	void callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, EventLoop loop, Flags flags);
-	void callbackAfterSec(CallbackDelegate callback, int s, int repeatS, EventLoop loop, Flags flags);
+	Timer() : Timer{CallbackDelegate{}} {}
+	Timer(const char *debugLabel): Timer{debugLabel, CallbackDelegate{}} {}
+	void run(Time time, Time repeatTime, EventLoop loop = {}, CallbackDelegate c = {});
+	void runOnce(Time time, Time repeatTime, EventLoop loop = {}, CallbackDelegate c = {});
 	void cancel();
-	void deinit();
+	void setCallback(CallbackDelegate c);
+	bool isArmed();
+	explicit operator bool() const;
 
-	// shortcuts with no Flags
-	void callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, EventLoop loop)
+	template<class Func>
+	Timer(Func &&c):
+		Timer{wrapCallbackDelegate(std::forward<Func>(c))}
+	{}
+
+	template<class Func>
+	Timer(const char *debugLabel, Func &&c):
+		Timer{debugLabel, wrapCallbackDelegate(std::forward<Func>(c))}
+	{}
+
+	template<class Func>
+	void setCallback(Func &&c)
 	{
-		callbackAfterNSec(callback, ns, repeatNs, loop, HINT_NONE);
-	}
-	void callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, EventLoop loop)
-	{
-		callbackAfterMSec(callback, ms, repeatMs, loop, HINT_NONE);
-	}
-	void callbackAfterSec(CallbackDelegate callback, int s, int repeatS, EventLoop loop)
-	{
-		callbackAfterSec(callback, s, repeatS, loop, HINT_NONE);
+		setCallback(wrapCallbackDelegate(c));
 	}
 
-	// shortcuts for one-shot non-repeating timers
-	void callbackAfterNSec(CallbackDelegate callback, int ns, EventLoop loop);
-	void callbackAfterMSec(CallbackDelegate callback, int ms, EventLoop loop);
-	void callbackAfterSec(CallbackDelegate callback, int s, EventLoop loop);
+	template<class Time1, class Time2, class Func = CallbackDelegate>
+	void run(Time1 time, Time2 repeatTime, EventLoop loop = {}, Func &&c = nullptr)
+	{
+		run(std::chrono::duration_cast<Time>(time),
+			std::chrono::duration_cast<Time>(repeatTime),
+			loop, wrapCallbackDelegate(c));
+	}
+
+	template<class Time1, class Time2, class Func = CallbackDelegate>
+	void runOnce(Time1 time, Time2 repeatTime, EventLoop loop = {}, Func &&c = nullptr)
+	{
+		runOnce(std::chrono::duration_cast<Time>(time),
+			std::chrono::duration_cast<Time>(repeatTime),
+			loop, wrapCallbackDelegate(c));
+	}
+
+	// non-repeating timer
+	template<class Time1, class Func = CallbackDelegate>
+	void run(Time1 time, EventLoop loop = {}, Func &&c = nullptr)
+	{
+		run(std::chrono::duration_cast<Time>(time), Time{},
+			loop, wrapCallbackDelegate(c));
+	}
+
+	template<class Time1, class Func = CallbackDelegate>
+	void runOnce(Time1 time, EventLoop loop = {}, Func &&c = nullptr)
+	{
+		runOnce(std::chrono::duration_cast<Time>(time), Time{},
+			loop, wrapCallbackDelegate(c));
+	}
+
+	template<class Func>
+	static CallbackDelegate wrapCallbackDelegate(Func &&func)
+	{
+		if constexpr(std::is_null_pointer_v<Func>)
+		{
+			return {};
+		}
+		constexpr auto returnsBool = std::is_same_v<bool, IG::FunctionTraitsR<Func>>;
+		if constexpr(returnsBool)
+		{
+			return func;
+		}
+		else
+		{
+			return
+				[=]()
+				{
+					func();
+					return false;
+				};
+		}
+	}
 };
 
 }

@@ -25,58 +25,49 @@ namespace Base
 
 FrameTimer::~FrameTimer() {}
 
-SimpleFrameTimer::SimpleFrameTimer(EventLoop loop)
-{
-	eventLoop = loop;
-	assumeExpr(Screen::screen(0)->frameTime().count());
-	interval = std::chrono::duration_cast<IG::Nanoseconds>(Screen::screen(0)->frameTime());
-}
-
-SimpleFrameTimer::~SimpleFrameTimer()
-{
-	timer.deinit();
-}
-
-void SimpleFrameTimer::scheduleVSync()
-{
-	cancelled = false;
-	if(requested)
+SimpleFrameTimer::SimpleFrameTimer(EventLoop loop):
+	timer
 	{
-		return;
-	}
-	requested = true;
-	if(timer)
-	{
-		return; // timer already armed
-	}
-	timer.callbackAfterNSec(
+		"SimpleFrameTimer",
 		[this]()
 		{
-			auto timestamp = IG::steadyClockTimestamp();
-			requested = false;
-			if(cancelled)
+			if(!requested)
 			{
-				cancelled = false;
-				timer.cancel();
-				return; // frame request was cancelled
+				return false;
 			}
+			requested = false;
 			Input::flushEvents();
+			auto timestamp = IG::steadyClockTimestamp();
 			auto s = Screen::screen(0);
 			if(s->isPosted())
 			{
 				s->frameUpdate(timestamp);
 				s->prevFrameTimestamp = timestamp;
 			}
-			if(!requested)
-			{
-				cancel();
-			}
-		}, 1, interval.count(), eventLoop, Timer::HINT_REUSE);
+			return true;
+		}
+	},
+	eventLoop{loop}
+{
+	assumeExpr(Screen::screen(0)->frameTime().count());
+	interval = std::chrono::duration_cast<IG::Nanoseconds>(Screen::screen(0)->frameTime());
+}
+
+SimpleFrameTimer::~SimpleFrameTimer() {}
+
+void SimpleFrameTimer::scheduleVSync()
+{
+	if(requested)
+	{
+		return;
+	}
+	requested = true;
+	timer.runOnce(IG::Nanoseconds(1), interval);
 }
 
 void SimpleFrameTimer::cancel()
 {
-	cancelled = true;
+	requested = false;
 }
 
 }

@@ -24,7 +24,7 @@ void EmuSystemTask::start()
 {
 	if(started)
 		return;
-	replyPort.addToEventLoop({},
+	replyPort.attach(
 		[this](auto msgs)
 		{
 			for(auto msg = msgs.get(); msg; msg = msgs.get())
@@ -56,7 +56,7 @@ void EmuSystemTask::start()
 		[this](auto &sem)
 		{
 			auto eventLoop = Base::EventLoop::makeForThread();
-			commandPort.addToEventLoop(eventLoop,
+			commandPort.attach(eventLoop,
 				[this](auto messages)
 				{
 					for(auto msg = messages.get(); msg; msg = messages.get())
@@ -116,7 +116,7 @@ void EmuSystemTask::start()
 			logMsg("starting emu system thread event loop");
 			eventLoop.run();
 			logMsg("emu system thread exit");
-			commandPort.removeFromEventLoop();
+			commandPort.detach();
 		});
 	started = true;
 }
@@ -138,7 +138,7 @@ void EmuSystemTask::stop()
 	commandPort.send({Command::EXIT, &sem});
 	sem.wait();
 	replyPort.clear();
-	replyPort.removeFromEventLoop();
+	replyPort.detach();
 	started = false;
 }
 

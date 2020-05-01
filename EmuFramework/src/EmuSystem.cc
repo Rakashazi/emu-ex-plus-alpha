@@ -40,7 +40,17 @@ FS::FileString EmuSystem::gameName_{};
 FS::FileString EmuSystem::fullGameName_{};
 FS::FileString EmuSystem::originalGameName_{};
 int EmuSystem::saveStateSlot = 0;
-Base::Timer EmuSystem::autoSaveStateTimer{"EmuSystem::autoSaveStateTimer"};
+Base::Timer EmuSystem::autoSaveStateTimer
+{
+	"EmuSystem::autoSaveStateTimer",
+	[]()
+	{
+		logMsg("running auto-save state timer");
+		EmuApp::syncEmulationThread();
+		EmuApp::saveAutoState();
+		return true;
+	}
+};
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
 [[gnu::weak]] bool EmuSystem::inputHasShortBtnTexture = false;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
@@ -62,21 +72,15 @@ static EmuTiming emuTiming{};
 
 void EmuSystem::cancelAutoSaveStateTimer()
 {
-	autoSaveStateTimer.deinit();
+	autoSaveStateTimer.cancel();
 }
 
 void EmuSystem::startAutoSaveStateTimer()
 {
 	if(optionAutoSaveState > 1)
 	{
-		auto secs = 60*optionAutoSaveState; // minutes to seconds
-		autoSaveStateTimer.callbackAfterSec(
-			[]()
-			{
-				logMsg("auto-save state timer fired");
-				EmuApp::syncEmulationThread();
-				EmuApp::saveAutoState();
-			}, secs, secs, {});
+		IG::Minutes mins{optionAutoSaveState.val};
+		autoSaveStateTimer.run(mins, mins);
 	}
 }
 

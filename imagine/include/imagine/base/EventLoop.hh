@@ -48,22 +48,22 @@ public:
 	using FDEventSourceImpl::FDEventSourceImpl;
 	#ifdef NDEBUG
 	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
-	FDEventSource(const char *debugLabel, int fd): FDEventSource(fd) {}
 	FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN):
 		FDEventSource(fd, loop, callback, events) {}
 	#else
-	FDEventSource(int fd): FDEventSource(nullptr, fd) {}
 	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN):
 		FDEventSource(nullptr, fd, loop, callback, events) {}
 	FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
 	#endif
-	static FDEventSource makeXServerAddedToEventLoop(int fd, EventLoop loop);
-	bool addToEventLoop(EventLoop loop, PollEventDelegate callback, uint32_t events);
-	void addXServerToEventLoop(EventLoop loop);
-	void modifyEvents(uint32_t events);
-	void removeFromEventLoop();
+	bool attach(PollEventDelegate callback, uint32_t events = POLLEV_IN);
+	bool attach(EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
+	#if defined CONFIG_BASE_GLIB
+	bool attach(EventLoop loop, PollEventDelegate callback, GSourceFuncs *funcs, uint32_t events = POLLEV_IN);
+	#endif
+	void detach();
+	void setEvents(uint32_t events);
 	void setCallback(PollEventDelegate callback);
-	bool hasEventLoop();
+	bool hasEventLoop() const;
 	int fd() const;
 	void closeFD();
 };

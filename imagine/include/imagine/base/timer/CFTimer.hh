@@ -16,40 +16,44 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/timerDefs.hh>
+#include <imagine/time/Time.hh>
 #include <CoreFoundation/CoreFoundation.h>
+#include <memory>
 
 namespace Base
 {
 
+struct CFTimerInfo
+{
+	CallbackDelegate callback{};
+	CFRunLoopRef loop{};
+};
+
 class CFTimer
 {
 public:
-	#ifdef NDEBUG
-	CFTimer();
-	CFTimer(const char *debugLabel): CFTimer() {}
-	#else
-	CFTimer() : CFTimer{nullptr} {}
-	CFTimer(const char *debugLabel);
-	#endif
-	void callbackInCFAbsoluteTime(CallbackDelegate callback, CFAbsoluteTime relTime,
-		CFTimeInterval repeatInterval, CFRunLoopRef loop, bool shouldReuseResources);
-	void deinit();
+	using Time = IG::FloatSeconds;
 
-	explicit operator bool() const
-	{
-		return armed;
-	}
+	#ifdef NDEBUG
+	CFTimer(CallbackDelegate c);
+	CFTimer(const char *debugLabel, CallbackDelegate c): CFTimer(c) {}
+	#else
+	CFTimer(CallbackDelegate c) : CFTimer{nullptr, c} {}
+	CFTimer(const char *debugLabel, CallbackDelegate c);
+	#endif
+	CFTimer(CFTimer &&o);
+	CFTimer &operator=(CFTimer &&o);
+	~CFTimer();
 
 protected:
-	CFRunLoopTimerRef timer{};
-	CallbackDelegate callback{};
-	CFTimeInterval repeat = 0;
-	bool reuseResources = false; // whether to keep the CFRunLoopTimer in run-loop after firing
-	bool armed = false;
 	#ifndef NDEBUG
 	const char *debugLabel{};
 	#endif
+	CFRunLoopTimerRef timer{};
+	std::unique_ptr<CFTimerInfo> info{};
 
+	void callbackInCFAbsoluteTime(CFAbsoluteTime relTime, CFTimeInterval repeatInterval, CFRunLoopRef loop);
+	void deinit();
 	const char *label();
 };
 

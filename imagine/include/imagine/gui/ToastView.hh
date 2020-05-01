@@ -44,7 +44,7 @@ public:
 
 private:
 	Gfx::Text text{};
-	Base::Timer unpostTimer{"ToastView::unpostTimer"};
+	Base::Timer unpostTimer;
 	Gfx::GCRect msgFrame{};
 	std::array<char, 1024> str{};
 	bool error = false;

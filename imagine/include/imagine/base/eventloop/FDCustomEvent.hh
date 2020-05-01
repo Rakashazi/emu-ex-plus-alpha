@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/EventLoop.hh>
-#include <atomic>
+#include <memory>
 
 namespace Base
 {
@@ -31,26 +31,19 @@ public:
 	FDCustomEvent() : FDCustomEvent{nullptr} {}
 	FDCustomEvent(const char *debugLabel);
 	#endif
-
-	bool operator ==(FDCustomEvent const& rhs) const
-	{
-		return fdSrc.fd() == rhs.fdSrc.fd();
-	}
-
-	explicit operator bool() const
-	{
-		return fdSrc.fd() != -1;
-	}
+	FDCustomEvent(FDCustomEvent &&o);
+	FDCustomEvent &operator=(FDCustomEvent &&o);
+	~FDCustomEvent();
 
 protected:
-	FDEventSource fdSrc{};
-	CustomEventDelegate callback{};
-	std::atomic_bool cancelled = false;
 	#ifndef NDEBUG
 	const char *debugLabel{};
 	#endif
+	FDEventSource fdSrc{};
+	std::unique_ptr<CustomEventDelegate> callback_{};
 
 	const char *label();
+	void deinit();
 };
 
 using CustomEventImpl = FDCustomEvent;

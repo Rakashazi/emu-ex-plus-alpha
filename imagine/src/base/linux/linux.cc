@@ -34,6 +34,26 @@ static FS::PathString appPath{};
 
 constexpr mode_t defaultDirMode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
 
+static GSourceFuncs x11SourceFuncs
+{
+	[](GSource *, gint *timeout)
+	{
+		*timeout = -1;
+		return (gboolean)x11FDPending();
+	},
+	[](GSource *)
+	{
+		return (gboolean)x11FDPending();
+	},
+	[](GSource *, GSourceFunc, gpointer)
+	{
+		//logMsg("events for X fd");
+		x11FDHandler();
+		return (gboolean)TRUE;
+	},
+	nullptr
+};
+
 uint32_t appActivityState() { return APP_RUNNING; }
 
 static void cleanup()
@@ -214,9 +234,13 @@ int main(int argc, char** argv)
 	appPath = FS::makeAppPathFromLaunchCommand(argv[0]);
 	auto eventLoop = EventLoop::makeForThread();
 	#ifdef CONFIG_BASE_X11
-	FDEventSource x11Src;
-	if(initWindowSystem(eventLoop, x11Src) != OK)
-		return -1;
+	auto [ec, fd] = initWindowSystem(eventLoop);
+	if(fd == -1)
+	{
+		return ec.value();
+	}
+	FDEventSource x11Src{"XServer", fd};
+	x11Src.attach(eventLoop, nullptr, &Base::x11SourceFuncs);
 	#endif
 	#ifdef CONFIG_INPUT_EVDEV
 	Input::initEvdev(eventLoop);

@@ -14,8 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "InputConfig"
-#include <sys/inotify.h>
-#include <dlfcn.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/logger/logger.h>
@@ -25,6 +23,9 @@
 #include "android.hh"
 #include "../../input/private.hh"
 #include "AndroidInputDevice.hh"
+#include <sys/inotify.h>
+#include <dlfcn.h>
+#include <optional>
 
 #ifdef ANDROID_COMPAT_API
 static float (*AMotionEvent_getAxisValueFunc)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index){};
@@ -64,7 +65,7 @@ static constexpr int DEVICE_CHANGED = 1;
 static constexpr int DEVICE_REMOVED = 2;
 
 // inotify-based device changes
-static Base::Timer inputRescanCallback{"inputRescanCallback"};
+static std::optional<Base::Timer> inputRescanCallback{};
 int inputDevNotifyFd = -1;
 int watch = -1;
 
@@ -644,30 +645,31 @@ void init(JNIEnv *env)
 			else
 			{
 				int ret = ALooper_addFd(Base::EventLoop::forThread().nativeObject(), inputDevNotifyFd, ALOOPER_POLL_CALLBACK, ALOOPER_EVENT_INPUT,
-				[](int fd, int events, void* data)
-				{
-					logMsg("got inotify event");
-					if(events == Base::POLLEV_IN)
+					[](int fd, int events, void* data)
 					{
-						char buffer[2048];
-						auto size = read(fd, buffer, sizeof(buffer));
-						if(Base::appIsRunning())
+						logMsg("got inotify event");
+						if(events == Base::POLLEV_IN)
 						{
-							inputRescanCallback.callbackAfterMSec(
-								[]()
-								{
-									enumDevices(Base::jEnvForThread(), true);
-								}, 250, {});
+							char buffer[2048];
+							auto size = read(fd, buffer, sizeof(buffer));
+							if(Base::appIsRunning())
+							{
+								inputRescanCallback->run(IG::Milliseconds(250));
+							}
 						}
-					}
-					return 1;
-				}, nullptr);
+						return 1;
+					}, nullptr);
 				if(ret != 1)
 				{
 					logErr("couldn't add inotify fd to looper");
 				}
 				Base::addOnResume([env](bool)
 					{
+						inputRescanCallback.emplace("inputRescanCallback",
+							[]()
+							{
+								enumDevices(Base::jEnvForThread(), true);
+							});
 						enumDevices(env, true);
 						if(inputDevNotifyFd != -1 && watch == -1)
 						{
@@ -687,7 +689,7 @@ void init(JNIEnv *env)
 							logMsg("unregistering inotify input device listener");
 							inotify_rm_watch(inputDevNotifyFd, watch);
 							watch = -1;
-							inputRescanCallback.cancel();
+							inputRescanCallback.reset();
 						}
 						return true;
 					}, ON_EXIT_PRIORITY);

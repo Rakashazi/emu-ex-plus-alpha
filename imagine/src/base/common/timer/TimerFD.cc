@@ -14,13 +14,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "TimerFD"
-#include <unistd.h>
-#include <errno.h>
-#include <cstring>
 #include <imagine/base/Timer.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/utility.h>
+#include <unistd.h>
+#include <errno.h>
+#include <cstring>
 
 #if __has_include(<sys/timerfd.h>) && (!defined ANDROID || __ANDROID_API__ >= 19)
 #include <sys/timerfd.h>
@@ -48,165 +48,129 @@ static int timerfd_settime(int ufd, int flags,
 {
 	return syscall(__NR_timerfd_settime, ufd, flags, utmr, otmr);
 }
+
+static int timerfd_gettime(int ufd,
+					struct itimerspec *otmr)
+{
+	return syscall(__NR_timerfd_gettime, ufd, otmr);
+}
 #endif
 
 namespace Base
 {
 
 #ifdef NDEBUG
-TimerFD::TimerFD() {}
+TimerFD::TimerFD(CallbackDelegate c):
 #else
-TimerFD::TimerFD(const char *debugLabel): debugLabel{debugLabel ? debugLabel : "unnamed"} {}
+TimerFD::TimerFD(const char *debugLabel, CallbackDelegate c):
+	debugLabel{debugLabel ? debugLabel : "unnamed"},
 #endif
-
-int TimerFD::fd() const
+	fdSrc{label(), timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC)},
+	callback_{std::make_unique<CallbackDelegate>(c)}
 {
-	return fdSrc.fd();
+	if(fdSrc.fd() == -1)
+	{
+		logErr("error creating timerfd");
+	}
 }
 
-bool TimerFD::arm(timespec time, timespec repeatInterval, EventLoop loop, bool shouldReuseResources)
+TimerFD::TimerFD(TimerFD &&o)
 {
-	reuseResources = shouldReuseResources;
-	bool rearm = false;
-	if(fd() == -1)
+	*this = std::move(o);
+}
+
+TimerFD &TimerFD::operator=(TimerFD &&o)
+{
+	deinit();
+	fdSrc = std::move(o.fdSrc);
+	callback_ = std::move(o.callback_);
+	#ifndef NDEBUG
+	debugLabel = o.debugLabel;
+	#endif
+	return *this;
+}
+
+TimerFD::~TimerFD()
+{
+	deinit();
+}
+
+bool TimerFD::arm(timespec time, timespec repeatInterval, EventLoop loop)
+{
+	if(!fdSrc.hasEventLoop())
 	{
-		int fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
-		if(fd == -1)
-		{
-			logErr("error creating timerfd");
-			return false;
-		}
 		if(!loop)
 			loop = EventLoop::forThread();
-		//logMsg("made timerfd: %d", fd);
-		fdSrc = {label(), fd, loop,
-			[this](int fd, int events)
+		fdSrc.attach(loop,
+			[callback = callback_.get()](int fd, int)
 			{
-				timerFired();
-				return true;
-			}};
+				//logMsg("callback ready for fd:%d", fd);
+				uint64_t timesFired;
+				int ret = ::read(fd, &timesFired, 8);
+				if(ret == -1)
+				{
+					if(Config::DEBUG_BUILD && errno != EAGAIN)
+						logErr("error reading timerfd in callback");
+					return false;
+				}
+				bool keepTimer = (*callback)();
+				return keepTimer;
+			});
 	}
-	else
-	{
-		rearm = true;
-	}
-
-	logMsg("%s %sfd:%d to run in %lds & %ldns, repeat every %lds & %ldns (%s)",
-		rearm ? "re-arming" : "creating", reuseResources ? "reusable " : "",
-		fd(), (long)time.tv_sec, (long)time.tv_nsec,
+	logMsg("arming fd:%d (%s) to run in %lds & %ldns, repeat every %lds & %ldns (%s)",
+		fdSrc.fd(), label(), (long)time.tv_sec, (long)time.tv_nsec,
 		(long)repeatInterval.tv_sec, (long)repeatInterval.tv_nsec, label());
-	if(repeatInterval.tv_sec || repeatInterval.tv_nsec)
-	{
-		repeating = true;
-	}
 	struct itimerspec newTime{repeatInterval, time};
-	if(timerfd_settime(fd(), 0, &newTime, nullptr) != 0)
+	if(timerfd_settime(fdSrc.fd(), 0, &newTime, nullptr) != 0)
 	{
 		logErr("error in timerfd_settime: %s (%s)", strerror(errno), label());
 		return false;
 	}
-	armed = true;
 	return true;
 }
 
 void TimerFD::deinit()
 {
-	if(fd() == -1)
+	if(fdSrc.fd() == -1)
 		return;
-	logMsg("closing fd:%d (%s)", fd(), label());
+	logMsg("closing fd:%d (%s)", fdSrc.fd(), label());
 	fdSrc.closeFD();
-	armed = false;
 }
 
-void Timer::deinit()
+void Timer::run(Time time, Time repeatTime, EventLoop loop, CallbackDelegate callback)
 {
-	TimerFD::deinit();
-}
-
-void TimerFD::timerFired()
-{
-	//logMsg("callback ready for fd:%d", fd);
-	if(unlikely(!armed))
-	{
-		logMsg("disarmed after fd became ready (%s)", label());
-		return;
-	}
-	uint64_t timesFired;
-	int bytes = ::read(fd(), &timesFired, 8);
-	armed = repeating; // disarm timer if non-repeating, can be re-armed in callback()
-	callback();
-	if(!armed && !reuseResources)
-		deinit();
-}
-
-void Timer::callbackAfterNSec(CallbackDelegate callback, int ns, int repeatNs, EventLoop loop, Flags flags)
-{
-	this->callback = callback;
-	int seconds = ns / 1000000000;
-	long leftoverNs = ns % 1000000000;
-	int repeatSeconds = repeatNs / 1000000000;
-	long repeatLeftoverNs = repeatNs % 1000000000;
-	if(!arm({seconds, leftoverNs}, {repeatSeconds, repeatLeftoverNs}, loop, flags & HINT_REUSE))
+	if(callback)
+		setCallback(callback);
+	int seconds = time.count() / 1000000000;
+	long leftoverNs = time.count() % 1000000000;
+	int repeatSeconds = repeatTime.count() / 1000000000;
+	long repeatLeftoverNs = repeatTime.count() % 1000000000;
+	if(!arm({seconds, leftoverNs}, {repeatSeconds, repeatLeftoverNs}, loop))
 	{
 		logErr("failed to setup timer, OS resources may be low or bad parameters present");
 	}
-}
-
-void Timer::callbackAfterMSec(CallbackDelegate callback, int ms, int repeatMs, EventLoop loop, Flags flags)
-{
-	this->callback = callback;
-	int seconds = ms / 1000;
-	int leftoverMs = ms % 1000;
-	long leftoverNs = leftoverMs * 1000000;
-	int repeatSeconds = repeatMs / 1000;
-	int repeatLeftoverMs = repeatMs % 1000;
-	long repeatLeftoverNs = repeatLeftoverMs * 1000000;
-	if(!arm({seconds, leftoverNs}, {repeatSeconds, repeatLeftoverNs}, loop, flags & HINT_REUSE))
-	{
-		logErr("failed to setup timer, OS resources may be low or bad parameters present");
-	}
-}
-
-void Timer::callbackAfterSec(CallbackDelegate callback, int s, int repeatS, EventLoop loop, Flags flags)
-{
-	this->callback = callback;
-	if(!arm({s, 0}, {repeatS, 0}, loop, flags & HINT_REUSE))
-	{
-		logErr("failed to setup timer, OS resources may be low or bad parameters present");
-	}
-}
-
-void Timer::callbackAfterNSec(CallbackDelegate callback, int ns, EventLoop loop)
-{
-	callbackAfterNSec(callback, ns, 0, loop, HINT_NONE);
-}
-
-void Timer::callbackAfterMSec(CallbackDelegate callback, int ms, EventLoop loop)
-{
-	callbackAfterMSec(callback, ms, 0, loop, HINT_NONE);
-}
-
-void Timer::callbackAfterSec(CallbackDelegate callback, int s, EventLoop loop)
-{
-	callbackAfterSec(callback, s, 0, loop, HINT_NONE);
 }
 
 void Timer::cancel()
 {
-	if(reuseResources)
-	{
-		if(armed)
-		{
-			// disarm timer
-			assert(fd());
-			logMsg("disarming fd:%d (%s)", fd(), label());
-			struct itimerspec newTime{{0}};
-			timerfd_settime(fd(), 0, &newTime, nullptr);
-			armed = false;
-		}
-	}
-	else
-		deinit();
+	fdSrc.detach();
+	struct itimerspec newTime{};
+	timerfd_settime(fdSrc.fd(), 0, &newTime, nullptr);
+}
+
+void Timer::setCallback(CallbackDelegate callback)
+{
+	*callback_ = callback;
+}
+
+bool Timer::isArmed()
+{
+	return fdSrc.hasEventLoop();
+}
+
+Timer::operator bool() const
+{
+	return fdSrc.fd() != -1;
 }
 
 const char *TimerFD::label()

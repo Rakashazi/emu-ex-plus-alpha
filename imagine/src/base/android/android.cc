@@ -402,7 +402,7 @@ void setIdleDisplayPowerSave(bool on)
 {
 	auto env = jEnvForThread();
 	jint keepOn = !on;
-	auto keepsScreenOn = userActivityCallback ? false : (bool)(jWinFlags(env, jBaseActivity) & AWINDOW_FLAG_KEEP_SCREEN_ON);
+	auto keepsScreenOn = userActivityCallback.isArmed() ? false : (bool)(jWinFlags(env, jBaseActivity) & AWINDOW_FLAG_KEEP_SCREEN_ON);
 	if(keepOn != keepsScreenOn)
 	{
 		logMsg("keep screen on: %d", keepOn);
@@ -420,14 +420,14 @@ void endIdleByUserActivity()
 		// quickly toggle KEEP_SCREEN_ON flag to brighten screen,
 		// waiting about 20ms before toggling it back off triggers the screen to brighten if it was already dim
 		jSetWinFlags(env, jBaseActivity, AWINDOW_FLAG_KEEP_SCREEN_ON, AWINDOW_FLAG_KEEP_SCREEN_ON);
-		userActivityCallback.callbackAfterMSec(
+		userActivityCallback.run(IG::Milliseconds(20), {},
 			[env]()
 			{
 				if(!keepScreenOn)
 				{
 					jSetWinFlags(env, jBaseActivity, 0, AWINDOW_FLAG_KEEP_SCREEN_ON);
 				}
-			}, 20, 0, {}, Timer::HINT_REUSE);
+			});
 	}
 }
 

@@ -160,19 +160,18 @@ void OnScreenInputPlaceView::init()
 			//logMsg("updating fade");
 			return textFade.update(1);
 		};
-	animationStartTimer.callbackAfterSec(
+	animationStartTimer.run(IG::Seconds{2}, {},
 		[this]()
 		{
 			logMsg("starting fade");
 			textFade.set(1., 0., INTERPOLATOR_TYPE_LINEAR, 25);
 			screen()->addOnFrame(animate);
-		}, 2, {});
+		});
 }
 
 OnScreenInputPlaceView::~OnScreenInputPlaceView()
 {
 	applyOSNavStyle(false);
-	animationStartTimer.deinit();
 	screen()->removeOnFrame(animate);
 }
 
@@ -202,7 +201,7 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 	}
 	if(e.pushed() && !textFade.duration())
 	{
-		animationStartTimer.deinit();
+		animationStartTimer.cancel();
 		logMsg("starting fade");
 		textFade.set(1., 0., INTERPOLATOR_TYPE_LINEAR, 20);
 		screen()->addOnFrame(animate);

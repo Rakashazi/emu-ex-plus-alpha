@@ -142,15 +142,14 @@ bool listenForDevices(BluetoothAdapter &bta, const BluetoothAdapter::OnStatusDel
 					logMsg("CTL PSM registered");
 					onServerStatus(bta, BluetoothAdapter::SCAN_COMPLETE, 0);
 					// both PSMs are registered
-					unregisterHIDServiceCallback.callbackAfterSec(
+					unregisterHIDServiceCallback.run(IG::Seconds{8}, {},
 						[&bta]()
 						{
 							logMsg("unregistering HID PSMs from timeout");
 							bta.setL2capService(0x11, false, {});
 							bta.setL2capService(0x13, false, {});
 							hidServiceActive = false;
-						},
-						8, {});
+						});
 				}
 			);
 		}

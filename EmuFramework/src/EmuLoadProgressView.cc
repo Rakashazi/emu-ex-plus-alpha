@@ -22,7 +22,7 @@
 EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, Input::Event e, EmuApp::CreateSystemCompleteDelegate onComplete):
 	View{attach}, onComplete{onComplete}, originalEvent{e}
 {
-	msgPort.addToEventLoop({},
+	msgPort.attach(
 		[this](auto msgs)
 		{
 			for(auto msg = msgs.get(); msg; msg = msgs.get())
@@ -36,14 +36,14 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, Input::Event e
 						char errorStr[len + 1];
 						msgs.getExtraData(errorStr, len);
 						errorStr[len] = 0;
-						msgPort.removeFromEventLoop();
+						msgPort.detach();
 						EmuApp::popModalViews();
 						EmuApp::postErrorMessage(4, errorStr);
 						return;
 					}
 					bcase EmuSystem::LoadProgress::OK:
 					{
-						msgPort.removeFromEventLoop();
+						msgPort.detach();
 						auto onComplete = this->onComplete;
 						auto originalEvent = this->originalEvent;
 						EmuApp::popModalViews();

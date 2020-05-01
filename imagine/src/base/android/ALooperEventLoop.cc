@@ -23,15 +23,24 @@ namespace Base
 
 static int pollEventCallback(int fd, int events, void *data)
 {
-	auto &callback = *((PollEventDelegate*)data);
-	return callback(fd, events);
+	auto &info = *((ALooperFDEventSourceInfo*)data);
+	bool keep = info.callback(fd, events);
+	if(!keep)
+	{
+		info.looper = {};
+	}
+	return keep;
 }
 
 #ifdef NDEBUG
-ALooperFDEventSource::ALooperFDEventSource(int fd): fd_{fd} {}
+ALooperFDEventSource::ALooperFDEventSource(int fd):
 #else
-ALooperFDEventSource::ALooperFDEventSource(const char *debugLabel, int fd): fd_{fd}, debugLabel{debugLabel ? debugLabel : "unnamed"} {}
+ALooperFDEventSource::ALooperFDEventSource(const char *debugLabel, int fd):
+	debugLabel{debugLabel ? debugLabel : "unnamed"},
 #endif
+	info{std::make_unique<ALooperFDEventSourceInfo>()},
+	fd_{fd}
+{}
 
 ALooperFDEventSource::ALooperFDEventSource(ALooperFDEventSource &&o)
 {
@@ -41,8 +50,7 @@ ALooperFDEventSource::ALooperFDEventSource(ALooperFDEventSource &&o)
 ALooperFDEventSource &ALooperFDEventSource::operator=(ALooperFDEventSource &&o)
 {
 	deinit();
-	callback_ = std::move(o.callback_);
-	looper = std::exchange(o.looper, {});
+	info = std::move(o.info);
 	fd_ = std::exchange(o.fd_, -1);
 	#ifndef NDEBUG
 	debugLabel = o.debugLabel;
@@ -55,52 +63,56 @@ ALooperFDEventSource::~ALooperFDEventSource()
 	deinit();
 }
 
-void ALooperFDEventSource::deinit()
-{
-	static_cast<FDEventSource*>(this)->removeFromEventLoop();
-}
-
-bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint32_t events)
+bool FDEventSource::attach(EventLoop loop, PollEventDelegate callback, uint32_t events)
 {
 	logMsg("adding fd:%d to looper:%p (%s)", fd_, loop.nativeObject(), label());
+	assumeExpr(info);
+	detach();
 	if(!loop)
 		loop = EventLoop::forThread();
-	callback_ = std::make_unique<PollEventDelegate>(callback);
-	auto res = ALooper_addFd(loop.nativeObject(), fd_, ALOOPER_POLL_CALLBACK, events, pollEventCallback, callback_.get());
-	if(res != 1)
+	if(auto res = ALooper_addFd(loop.nativeObject(), fd_, ALOOPER_POLL_CALLBACK, events, pollEventCallback, info.get());
+		res != 1)
 	{
-		callback_ = {};
 		return false;
 	}
-	looper = loop.nativeObject();
+	info->callback = callback;
+	info->looper = loop.nativeObject();
 	return true;
 }
 
-void FDEventSource::modifyEvents(uint32_t events)
+void FDEventSource::detach()
 {
-	assert(looper);
-	ALooper_addFd(looper, fd_, ALOOPER_POLL_CALLBACK, events, pollEventCallback, callback_.get());
+	if(!info || !info->looper)
+		return;
+	logMsg("removing fd %d from looper (%s)", fd_, label());
+	ALooper_removeFd(info->looper, fd_);
+	info->looper = {};
 }
 
-void FDEventSource::removeFromEventLoop()
+void FDEventSource::setEvents(uint32_t events)
 {
-	if(looper)
+	if(!hasEventLoop())
 	{
-		logMsg("removing fd %d from looper (%s)", fd_, label());
-		ALooper_removeFd(looper, fd_);
-		looper = {};
-		callback_ = {};
+		logErr("trying to set events while not attached to event loop");
+		return;
 	}
+	ALooper_addFd(info->looper, fd_, ALOOPER_POLL_CALLBACK, events, pollEventCallback, info.get());
 }
 
 void FDEventSource::setCallback(PollEventDelegate callback)
 {
-	callback_ = std::make_unique<PollEventDelegate>(callback);
+	if(!hasEventLoop())
+	{
+		logErr("trying to set callback while not attached to event loop");
+		return;
+	}
+	info->callback = callback;
 }
 
-bool FDEventSource::hasEventLoop()
+bool FDEventSource::hasEventLoop() const
 {
-	return looper;
+	assumeExpr(info);
+	return info->looper;
 }
 
 int FDEventSource::fd() const
@@ -112,9 +124,14 @@ void FDEventSource::closeFD()
 {
 	if(fd_ == -1)
 		return;
-	removeFromEventLoop();
+	detach();
 	close(fd_);
 	fd_ = -1;
+}
+
+void ALooperFDEventSource::deinit()
+{
+	static_cast<FDEventSource*>(this)->detach();
 }
 
 const char *ALooperFDEventSource::label()
@@ -140,7 +157,6 @@ void EventLoop::run()
 {
 	logMsg("running ALooper:%p", looper);
 	ALooper_pollAll(-1, nullptr, nullptr, nullptr);
-	logMsg("event loop:%p finished", looper);
 }
 
 void EventLoop::stop()

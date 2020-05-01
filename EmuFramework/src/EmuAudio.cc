@@ -40,19 +40,19 @@ static AudioStats audioStats{};
 static Base::Timer audioStatsTimer{"audioStatsTimer"};
 #endif
 
-static void startAudioStats()
+static void startAudioStats(IG::Audio::PcmFormat format)
 {
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	audioStats.reset();
-	audioStatsTimer.callbackAfterSec(
-		[]()
+	audioStatsTimer.run(IG::Seconds(1), IG::Seconds(1), {},
+		[format]()
 		{
 			auto frames = format.bytesToFrames(audioStats.callbackBytes);
-			updateEmuAudioStats(audioStats.underruns, audioStats.overruns,
+			emuViewController.updateEmuAudioStats(audioStats.underruns, audioStats.overruns,
 				audioStats.callbacks, frames / (double)audioStats.callbacks, frames);
 			audioStats.callbacks = 0;
 			audioStats.callbackBytes = 0;
-		}, 1, 1, {});
+		});
 	#endif
 }
 
@@ -180,12 +180,12 @@ void EmuAudio::start()
 			}
 		};
 		outputConf.setWantedLatencyHint({});
-		startAudioStats();
+		startAudioStats(format);
 		audioStream->open(outputConf);
 	}
 	else
 	{
-		startAudioStats();
+		startAudioStats(format);
 		if(shouldStartAudioWrites())
 		{
 			if(Config::DEBUG_BUILD)

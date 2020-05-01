@@ -206,6 +206,12 @@ std::error_code Window::init(const WindowConfig &config)
 	{
 		uiWin().screen = screen()->uiScreen();
 	}
+	//logMsg("setting root view controller");
+	auto rootViewCtrl = [[ImagineUIViewController alloc] init];
+	#if __IPHONE_OS_VERSION_MIN_REQUIRED < 70000
+	rootViewCtrl.wantsFullScreenLayout = YES;
+	#endif
+	uiWin().rootViewController = rootViewCtrl;
 	return {};
 }
 

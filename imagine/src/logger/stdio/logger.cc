@@ -111,7 +111,7 @@ static int severityToLogLevel(LoggerSeverity severity)
 	{
 		case LOGGER_DEBUG_MESSAGE: return ASL_LEVEL_DEBUG;
 		default: [[fallthrough]];
-		case LOGGER_MESSAGE: return ASL_LEVEL_INFO;
+		case LOGGER_MESSAGE: return ASL_LEVEL_NOTICE;
 		case LOGGER_WARNING: return ASL_LEVEL_WARNING;
 		case LOGGER_ERROR: return ASL_LEVEL_ERR;
 	}

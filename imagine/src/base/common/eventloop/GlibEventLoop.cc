@@ -31,10 +31,13 @@ namespace Base
 static __thread bool loopRunning;
 
 #ifdef NDEBUG
-GlibFDEventSource::GlibFDEventSource(int fd): fd_{fd} {}
+GlibFDEventSource::GlibFDEventSource(int fd):
 #else
-GlibFDEventSource::GlibFDEventSource(const char *debugLabel, int fd): fd_{fd}, debugLabel{debugLabel ? debugLabel : "unnamed"} {}
+GlibFDEventSource::GlibFDEventSource(const char *debugLabel, int fd):
+	debugLabel{debugLabel ? debugLabel : "unnamed"},
 #endif
+	fd_{fd}
+{}
 
 GlibFDEventSource::GlibFDEventSource(GlibFDEventSource &&o)
 {
@@ -58,19 +61,15 @@ GlibFDEventSource::~GlibFDEventSource()
 	deinit();
 }
 
-void GlibFDEventSource::deinit()
+bool FDEventSource::attach(EventLoop loop, PollEventDelegate callback, GSourceFuncs *funcs, uint32_t events)
 {
-	static_cast<FDEventSource*>(this)->removeFromEventLoop();
+	detach();
+	if(!loop)
+		loop = EventLoop::forThread();
+	return makeAndAttachSource(funcs, callback, (GIOCondition)events, loop.nativeObject());
 }
 
-FDEventSource FDEventSource::makeXServerAddedToEventLoop(int fd, EventLoop loop)
-{
-	FDEventSource src{"XServer", fd};
-	src.addXServerToEventLoop(loop);
-	return src;
-}
-
-bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, uint32_t events)
+bool FDEventSource::attach(EventLoop loop, PollEventDelegate callback, uint32_t events)
 {
 	static GSourceFuncs fdSourceFuncs
 	{
@@ -85,61 +84,48 @@ bool FDEventSource::addToEventLoop(EventLoop loop, PollEventDelegate callback, u
 		},
 		nullptr
 	};
-	if(!loop)
-		loop = EventLoop::forThread();
-	return makeAndAttachSource(&fdSourceFuncs, callback, (GIOCondition)events, loop.nativeObject());
+	return attach(loop, callback, &fdSourceFuncs, events);
 }
 
-void FDEventSource::addXServerToEventLoop(EventLoop loop)
+void FDEventSource::detach()
 {
-	static GSourceFuncs fdSourceFuncs
+	if(!source)
+		return;
+	g_source_destroy(source);
+	g_source_unref(source);
+	source = {};
+}
+
+void FDEventSource::setEvents(uint32_t events)
+{
+	if(!hasEventLoop())
 	{
-		[](GSource *, gint *timeout)
-		{
-			*timeout = -1;
-			return (gboolean)x11FDPending();
-		},
-		[](GSource *)
-		{
-			return (gboolean)x11FDPending();
-		},
-		[](GSource *, GSourceFunc, gpointer)
-		{
-			//logMsg("events for X fd");
-			x11FDHandler();
-			return (gboolean)TRUE;
-		},
-		nullptr
-	};
-	if(!loop)
-		loop = EventLoop::forThread();
-	makeAndAttachSource(&fdSourceFuncs, {}, G_IO_IN, loop.nativeObject());
-}
-
-void FDEventSource::modifyEvents(uint32_t events)
-{
-	assert(source);
-	g_source_modify_unix_fd(source, tag, (GIOCondition)events);
-}
-
-void FDEventSource::removeFromEventLoop()
-{
-	if(source)
-	{
-		g_source_destroy(source);
-		g_source_unref(source);
-		source = {};
+		logErr("trying to set events while not attached to event loop");
+		return;
 	}
+	g_source_modify_unix_fd(source, tag, (GIOCondition)events);
 }
 
 void FDEventSource::setCallback(PollEventDelegate callback)
 {
+	if(!hasEventLoop())
+	{
+		logErr("trying to set callback while not attached to event loop");
+		return;
+	}
 	source->callback = callback;
 }
 
-bool FDEventSource::hasEventLoop()
+bool FDEventSource::hasEventLoop() const
 {
-	return source;
+	if(source)
+	{
+		return !g_source_is_destroyed(source);
+	}
+	else
+	{
+		return false;
+	}
 }
 
 int FDEventSource::fd() const
@@ -151,7 +137,7 @@ void FDEventSource::closeFD()
 {
 	if(fd_ == -1)
 		return;
-	removeFromEventLoop();
+	detach();
 	close(fd_);
 	fd_ = -1;
 }
@@ -159,7 +145,7 @@ void FDEventSource::closeFD()
 bool GlibFDEventSource::makeAndAttachSource(GSourceFuncs *fdSourceFuncs,
 	PollEventDelegate callback_, GIOCondition events, GMainContext *ctx)
 {
-	assert(!source);
+	assumeExpr(!source);
 	auto source = (GSource2*)g_source_new(fdSourceFuncs, sizeof(GSource2));
 	auto unrefSource = IG::scopeGuard([&](){ g_source_unref(source); });
 	source->callback = callback_;
@@ -174,6 +160,11 @@ bool GlibFDEventSource::makeAndAttachSource(GSourceFuncs *fdSourceFuncs,
 	this->source = source;
 	logMsg("added fd:%d to GMainContext:%p (%s)", fd_, ctx, label());
 	return true;
+}
+
+void GlibFDEventSource::deinit()
+{
+	static_cast<FDEventSource*>(this)->detach();
 }
 
 const char *GlibFDEventSource::label()
@@ -216,7 +207,6 @@ void EventLoop::run()
 			//logDMsg("handled events for event loop:%p", mainContext);
 		}
 	}
-	logMsg("GMainContext:%p finished", mainContext);
 }
 
 void EventLoop::stop()

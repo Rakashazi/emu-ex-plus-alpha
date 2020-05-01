@@ -24,14 +24,30 @@
 namespace Base
 {
 
-#ifdef NDEBUG
-Pipe::Pipe(uint32_t preferredSize)
-#else
-Pipe::Pipe(const char *debugLabel, uint32_t preferredSize): debugLabel{debugLabel ? debugLabel : "unnamed"}
-#endif
+static std::array<int, 2> makePipe()
 {
-	int res = pipe(msgPipe.data());
-	assert(res == 0);
+	std::array<int, 2> fd{-1, -1};
+	#ifdef __linux__
+	int res = pipe2(fd.data(), O_CLOEXEC);
+	#else
+	int res = pipe(fd.data());
+	#endif
+	if(res == -1)
+	{
+		logErr("error creating pipe");
+	}
+	return fd;
+}
+
+#ifdef NDEBUG
+Pipe::Pipe(uint32_t preferredSize):
+#else
+Pipe::Pipe(const char *debugLabel, uint32_t preferredSize):
+	debugLabel{debugLabel ? debugLabel : "unnamed"},
+#endif
+	msgPipe{makePipe()},
+	fdSrc{label(), msgPipe[0]}
+{
 	logMsg("opened fds:%d,%d (%s)", msgPipe[0], msgPipe[1], label());
 	if(preferredSize)
 	{
@@ -44,20 +60,6 @@ Pipe::~Pipe()
 	deinit();
 }
 
-void Pipe::deinit()
-{
-	if(msgPipe[0] != -1)
-	{
-		if(fdSrc.hasEventLoop())
-		{
-			removeFromEventLoop();
-		}
-		close(msgPipe[0]);
-		close(msgPipe[1]);
-		logMsg("closed fds:%d,%d (%s)", msgPipe[0], msgPipe[1], label());
-	}
-}
-
 Pipe::Pipe(Pipe &&o)
 {
 	*this = std::move(o);
@@ -66,39 +68,39 @@ Pipe::Pipe(Pipe &&o)
 Pipe &Pipe::operator=(Pipe &&o)
 {
 	deinit();
+	assert(!o.readCallback); // moving pipe while attached is undefined
 	msgPipe = std::exchange(o.msgPipe, {-1, -1});
-	del = o.del;
 	fdSrc = std::move(o.fdSrc);
-	fdSrc.setCallback([this](int fd, int events){ return this->del(*this); });
 	#ifndef NDEBUG
 	debugLabel = o.debugLabel;
 	#endif
 	return *this;
 }
 
-void Pipe::addToEventLoop(EventLoop loop, Delegate del)
+void Pipe::attach(Delegate del)
+{
+	attach(EventLoop::forThread(), del);
+}
+
+void Pipe::attach(EventLoop loop, Delegate callback)
 {
 	if(msgPipe[0] == -1)
 	{
 		logMsg("can't add null pipe to event loop");
 		return;
 	}
-	this->del = del;
-	if(!loop)
-		loop = EventLoop::forThread();
-	fdSrc = {label(), msgPipe[0], loop,
-		[this](int fd, int events)
+	readCallback = callback;
+	fdSrc.attach(loop,
+		[this](int, int)
 		{
-			return this->del(*this);
-		}};
+			return readCallback.callCopy(*this);
+		});
 }
 
-void Pipe::removeFromEventLoop()
+void Pipe::detach()
 {
-	if(msgPipe[0] != -1)
-	{
-		fdSrc.removeFromEventLoop();
-	}
+	fdSrc.detach();
+	readCallback = {};
 }
 
 bool Pipe::write(const void *data, size_t size)
@@ -147,6 +149,21 @@ bool Pipe::isReadNonBlocking() const
 	return fd_getNonblock(msgPipe[0]);
 }
 
+Pipe::operator bool() const
+{
+	return msgPipe[0] != -1;
+}
+
+void Pipe::deinit()
+{
+	if(msgPipe[0] == -1)
+		return;
+	fdSrc.detach();
+	close(msgPipe[0]);
+	close(msgPipe[1]);
+	logMsg("closed fds:%d,%d (%s)", msgPipe[0], msgPipe[1], label());
+}
+
 const char *Pipe::label() const
 {
 	#ifdef NDEBUG
@@ -154,11 +171,6 @@ const char *Pipe::label() const
 	#else
 	return debugLabel;
 	#endif
-}
-
-Pipe::operator bool() const
-{
-	return msgPipe[0] != -1;
 }
 
 }

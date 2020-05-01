@@ -21,6 +21,6 @@
 namespace Base
 {
 
-using CallbackDelegate = DelegateFunc<void ()>;
+using CallbackDelegate = DelegateFunc<bool ()>;
 
 }

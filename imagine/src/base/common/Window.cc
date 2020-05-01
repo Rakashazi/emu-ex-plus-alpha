@@ -97,7 +97,7 @@ void BaseWindow::initDelegates(const WindowConfig &config)
 			return true;
 		};
 	Base::addOnResume(onResume, ON_RESUME_PRIORITY);
-	drawEvent.setEventLoop({});
+	drawEvent.attach();
 	drawEvent.setCallback(
 		[this]()
 		{
@@ -443,7 +443,7 @@ void Window::dismiss()
 	onDismiss(*this);
 	Base::removeOnExit(onExit);
 	Base::removeOnResume(onResume);
-	drawEvent.deinit();
+	drawEvent.detach();
 	auto onFree = this->onFree;
 	deinit();
 	#ifdef CONFIG_BASE_MULTI_WINDOW

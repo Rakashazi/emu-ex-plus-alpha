@@ -22,7 +22,15 @@
 #include <imagine/util/math/int.hh>
 #include <string>
 
-ToastView::ToastView(ViewAttachParams attach): View{attach}
+ToastView::ToastView(ViewAttachParams attach): View{attach},
+	unpostTimer
+	{
+		"ToastView::unpostTimer",
+		[this]()
+		{
+			unpost();
+		}
+	}
 {
 	text.maxLines = 6;
 }
@@ -38,7 +46,7 @@ void ToastView::clear()
 {
 	if(strlen(str.data()))
 	{
-		unpostTimer.deinit();
+		unpostTimer.cancel();
 		waitForDrawFinished();
 		str = {};
 	}
@@ -79,7 +87,7 @@ void ToastView::contentUpdated(bool error)
 void ToastView::postContent(int secs)
 {
 	postDraw();
-	unpostTimer.callbackAfterSec([this](){unpost();}, secs, {});
+	unpostTimer.run(IG::Seconds{secs});
 }
 
 void ToastView::post(const char *msg, int secs, bool error)

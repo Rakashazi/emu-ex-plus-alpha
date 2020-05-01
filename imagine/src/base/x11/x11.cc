@@ -231,20 +231,19 @@ void initXScreens(Display *dpy)
 	#endif
 }
 
-CallResult initWindowSystem(EventLoop loop, FDEventSource &eventSrc)
+std::pair<std::error_code, int> initWindowSystem(EventLoop loop)
 {
 	XInitThreads();
 	dpy = XOpenDisplay(0);
 	if(!dpy)
 	{
 		logErr("couldn't open display");
-		return IO_ERROR;
+		return {{EIO, std::system_category()}, -1};
 	}
 	initXScreens(dpy);
 	initFrameTimer(loop);
 	Input::init(dpy);
-	eventSrc = FDEventSource::makeXServerAddedToEventLoop(ConnectionNumber(dpy), loop);
-	return OK;
+	return {{}, ConnectionNumber(dpy)};
 }
 
 void setSysUIStyle(uint32_t flags) {}
