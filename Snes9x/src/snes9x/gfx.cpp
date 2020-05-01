@@ -51,11 +51,11 @@ bool8 S9xGraphicsInit (void)
 	S9xFixColourBrightness();
 	S9xBuildDirectColourMaps();
 
-	GFX.ZERO = (uint16 *) malloc(sizeof(uint16) * 0x10000);
+	GFX.ZERO = (uint16 *) calloc(sizeof(uint16), 0x10000);
 
-	GFX.SubScreen  = (uint16 *) malloc(GFX.ScreenSize * sizeof(uint16));
-	GFX.ZBuffer    = (uint8 *)  malloc(GFX.ScreenSize);
-	GFX.SubZBuffer = (uint8 *)  malloc(GFX.ScreenSize);
+	GFX.SubScreen  = (uint16 *) calloc(GFX.ScreenSize, sizeof(uint16));
+	GFX.ZBuffer    = (uint8 *)  calloc(GFX.ScreenSize, 1);
+	GFX.SubZBuffer = (uint8 *)  calloc(GFX.ScreenSize, 1);
 
 	if (!GFX.ZERO || !GFX.SubScreen || !GFX.ZBuffer || !GFX.SubZBuffer)
 	{
@@ -64,7 +64,6 @@ bool8 S9xGraphicsInit (void)
 	}
 
 	// Lookup table for 1/2 color subtraction
-	memset(GFX.ZERO, 0, 0x10000 * sizeof(uint16));
 	for (uint32 r = 0; r <= MAX_RED; r++)
 	{
 		uint32	r2 = r;
@@ -181,9 +180,6 @@ void S9xStartScreenRefresh (void)
 		PPU.MosaicStart = 0;
 		PPU.RecomputeClipWindows = TRUE;
 		IPPU.PreviousLine = IPPU.CurrentLine = 0;
-
-		memset(GFX.ZBuffer, 0, GFX.ScreenSize);
-		memset(GFX.SubZBuffer, 0, GFX.ScreenSize);
 	}
 
 	if (++IPPU.FrameCount % Memory.ROMFramesPerSecond == 0)
