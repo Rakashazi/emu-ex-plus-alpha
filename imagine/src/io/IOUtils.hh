@@ -16,94 +16,96 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/io/IO.hh>
+#include <array>
 
 template <class IO>
-ssize_t IOUtils<IO>::read(void *buff, size_t bytes) { return ((IO*)this)->read(buff, bytes, nullptr); }
+ssize_t IOUtils<IO>::read(void *buff, size_t bytes)
+{
+	return static_cast<IO*>(this)->read(buff, bytes, nullptr);
+}
 
 template <class IO>
-ssize_t IOUtils<IO>::readAtPos(void *buff, size_t bytes, off_t offset) { return ((IO*)this)->readAtPos(buff, bytes, offset, nullptr); }
+ssize_t IOUtils<IO>::readAtPos(void *buff, size_t bytes, off_t offset)
+{
+	return static_cast<IO*>(this)->readAtPos(buff, bytes, offset, nullptr);
+}
 
 template <class IO>
-ssize_t IOUtils<IO>::write(const void *buff, size_t bytes) { return ((IO*)this)->write(buff, bytes, nullptr); }
+ssize_t IOUtils<IO>::write(const void *buff, size_t bytes)
+{
+	return static_cast<IO*>(this)->write(buff, bytes, nullptr);
+}
 
 template <class IO>
-off_t IOUtils<IO>::seek(off_t offset, IODefs::SeekMode mode) { return ((IO*)this)->seek(offset, mode, nullptr); }
+off_t IOUtils<IO>::seek(off_t offset, IODefs::SeekMode mode)
+{
+	return static_cast<IO*>(this)->seek(offset, mode, nullptr);
+}
 
 template <class IO>
-off_t IOUtils<IO>::seekS(off_t offset, std::error_code *ecOut) { return ((IO*)this)->seek(offset, SEEK_SET, ecOut); }
+off_t IOUtils<IO>::seekS(off_t offset, std::error_code *ecOut)
+{
+	return static_cast<IO*>(this)->seek(offset, SEEK_SET, ecOut);
+}
 
 template <class IO>
-off_t IOUtils<IO>::seekE(off_t offset, std::error_code *ecOut) { return ((IO*)this)->seek(offset, SEEK_END, ecOut); }
+off_t IOUtils<IO>::seekE(off_t offset, std::error_code *ecOut)
+{
+	return static_cast<IO*>(this)->seek(offset, SEEK_END, ecOut);
+}
 
 template <class IO>
-off_t IOUtils<IO>::seekC(off_t offset, std::error_code *ecOut) { return ((IO*)this)->seek(offset, SEEK_CUR, ecOut); }
-
-template <class IO>
-off_t IOUtils<IO>::seekS(off_t offset) { return ((IO*)this)->seek(offset, SEEK_SET); }
-
-template <class IO>
-off_t IOUtils<IO>::seekE(off_t offset) { return ((IO*)this)->seek(offset, SEEK_END); }
-
-template <class IO>
-off_t IOUtils<IO>::seekC(off_t offset) { return ((IO*)this)->seek(offset, SEEK_CUR); }
+off_t IOUtils<IO>::seekC(off_t offset, std::error_code *ecOut)
+{
+	return static_cast<IO*>(this)->seek(offset, SEEK_CUR, ecOut);
+}
 
 template <class IO>
 off_t IOUtils<IO>::tell(std::error_code *ecOut)
 {
-	return ((IO*)this)->seekC(0, ecOut);
+	return static_cast<IO*>(this)->seekC(0, ecOut);
 }
 
 template <class IO>
-off_t IOUtils<IO>::tell() { return ((IO*)this)->tell(nullptr); }
-
-template <class IO>
-std::error_code IOUtils<IO>::readAll(void *buff, size_t bytes)
+ssize_t IOUtils<IO>::send(IO &output, off_t *srcOffset, size_t bytes, std::error_code *ecOut)
 {
-	std::error_code ec{};
-	auto bytesRead = ((IO*)this)->read(buff, bytes, &ec);
-	if(bytesRead != (ssize_t)bytes)
-		return !ec ? std::error_code{EINVAL, std::system_category()} : ec;
-	return {};
-}
-
-template <class IO>
-std::error_code IOUtils<IO>::writeAll(void *buff, size_t bytes)
-{
-	std::error_code ec{};
-	auto bytesWritten = ((IO*)this)->write(buff, bytes, &ec);
-	if(bytesWritten != (ssize_t)bytes)
-		return !ec ? std::error_code{EINVAL, std::system_category()} : ec;
-	return {};
-}
-
-template <class IO>
-std::error_code IOUtils<IO>::writeToIO(IO &io)
-{
-	seekS(0);
-	ssize_t bytesToWrite = ((IO*)this)->size();
+	if(srcOffset)
+	{
+		seekS(*srcOffset);
+	}
+	ssize_t bytesToWrite = bytes;
+	ssize_t totalBytesWritten = 0;
 	while(bytesToWrite)
 	{
-		char buff[4096];
+		std::array<char, 4096> buff;
 		ssize_t bytes = std::min((ssize_t)sizeof(buff), bytesToWrite);
-		auto ec = readAll(buff, bytes);
-		if(ec)
+		ssize_t bytesRead = static_cast<IO*>(this)->read(buff.data(), bytes);
+		if(bytesRead == 0)
+			break;
+		if(bytesRead == -1)
 		{
-			return ec;
+			if(ecOut)
+				*ecOut = {EIO, std::system_category()};
+			return -1;
 		}
-		if(io.write(buff, bytes) != bytes)
+		ssize_t bytesWritten = output.write(buff.data(), bytes);
+		if(bytesWritten == -1)
 		{
-			return {EINVAL, std::system_category()};
+			if(ecOut)
+				*ecOut = {EIO, std::system_category()};
+			return -1;
 		}
+		totalBytesWritten += bytesWritten;
 		bytesToWrite -= bytes;
 	}
-	return {};
+	return totalBytesWritten;
 }
 
 template <class IO>
 IG::ConstBufferView IOUtils<IO>::constBufferView()
 {
-	auto size = ((IO*)this)->size();
-	auto mmapData = ((IO*)this)->mmapConst();
+	auto size = static_cast<IO*>(this)->size();
+	auto mmapData = static_cast<IO*>(this)->mmapConst();
 	if(mmapData)
 	{
 		return IG::ConstBufferView(mmapData, size, [](const char*){});
@@ -112,8 +114,9 @@ IG::ConstBufferView IOUtils<IO>::constBufferView()
 	{
 		seekS(0);
 		auto buff = new char[size];
-		if(((IO*)this)->read(buff, size) != (ssize_t)size)
+		if(static_cast<IO*>(this)->read(buff, size) != (ssize_t)size)
 		{
+			delete[] buff;
 			return {};
 		}
 		return IG::ConstBufferView(buff, size, [](const char *ptr){ delete[] ptr; });

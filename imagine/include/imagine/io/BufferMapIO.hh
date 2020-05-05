@@ -19,7 +19,7 @@
 #include <imagine/io/MapIO.hh>
 #include <imagine/util/DelegateFunc.hh>
 
-class BufferMapIO : public MapIO
+class BufferMapIO final : public MapIO
 {
 public:
 	// optional function to call on close

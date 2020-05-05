@@ -65,8 +65,7 @@ CLINK void PNGAPI png_chunk_warning(png_const_structrp png_ptr, png_const_charp 
 static void png_ioReader(png_structp pngPtr, png_bytep data, png_size_t length)
 {
 	auto &io = *(IO*)png_get_io_ptr(pngPtr);
-	auto ec = io.readAll(data, length);
-	if(ec)
+	if(io.read(data, length) != (ssize_t)length)
 	{
 		logErr("error reading png file");
 		png_error(pngPtr, "Read Error");
@@ -117,10 +116,9 @@ std::error_code Png::readHeader(GenericIO io)
 	
 	//log_mPrintf(LOG_MSG, "%d items %d size, %d", 10, 500, PNG_UINT_32_MAX/500);
 	uint8_t header[INITIAL_HEADER_READ_BYTES];
-	auto ec = io.readAll(&header, INITIAL_HEADER_READ_BYTES);
-	if(ec)
-		return ec;
-	
+	if(io.read(&header, INITIAL_HEADER_READ_BYTES) != INITIAL_HEADER_READ_BYTES)
+		return {EIO, std::system_category()};
+
 	int isPng = !png_sig_cmp(header, 0, INITIAL_HEADER_READ_BYTES);
 	if (!isPng)
 	{
@@ -408,7 +406,7 @@ std::error_code PngFile::load(const char *name)
 
 std::error_code PngFile::loadAsset(const char *name, const char *appName)
 {
-	return load(openAppAssetIO(name, IO::AccessHint::ALL, appName).makeGeneric());
+	return load(FileUtils::openAppAsset(name, IO::AccessHint::ALL, appName).makeGeneric());
 }
 
 void PngFile::deinit()

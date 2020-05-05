@@ -41,7 +41,7 @@ static BluezBluetoothAdapter defaultBluezAdapter;
 void BluezBluetoothAdapter::sendBTScanStatusDelegate(uint8_t type, uint8_t arg = 0)
 {
 	ScanStatusMessage msg {type, arg};
-	statusPipe.write(&msg, sizeof(msg));
+	statusPipe.sink().write(&msg, sizeof(msg));
 //	if(write(statusPipe[1], &msg, sizeof(msg)) == -1)
 //	{
 //		logErr("error writing BT scan status to pipe");
@@ -73,12 +73,12 @@ bool BluezBluetoothAdapter::openDefault()
 
 	{
 		statusPipe.attach(
-			[this](Base::Pipe &pipe)
+			[this](auto &io)
 			{
 				while(statusPipe.hasData())
 				{
-					ScanStatusMessage msg;
-					if(!statusPipe.read(&msg, sizeof(ScanStatusMessage)))
+					auto [msg, size] = io.template read<ScanStatusMessage>();
+					if(size == -1)
 					{
 						logErr("error reading BT socket status message in pipe");
 						return 1;

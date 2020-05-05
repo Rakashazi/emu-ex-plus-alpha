@@ -796,7 +796,7 @@ FS::PathString EmuApp::supportPath()
 
 AssetIO EmuApp::openAppAssetIO(const char *name, IO::AccessHint access)
 {
-	return ::openAppAssetIO(name, access, appName());
+	return FileUtils::openAppAsset(name, access, appName());
 }
 
 static FS::PathString sessionConfigPath()

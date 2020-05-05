@@ -18,6 +18,8 @@
 #include <imagine/util/bits.h>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/Gfx.hh>
+#include <imagine/io/FileIO.hh>
+#include <imagine/data-type/image/GfxImageSource.hh>
 #include <imagine/logger/logger.h>
 #include <cstdlib>
 
@@ -171,7 +173,7 @@ GlyphTextureSet GlyphTextureSet::makeBoldSystem(Renderer &r, IG::FontSettings se
 
 GlyphTextureSet GlyphTextureSet::makeFromAsset(Renderer &r, const char *name, const char *appName, IG::FontSettings set)
 {
-	return {r, openAppAssetIO(name, IO::AccessHint::ALL, appName).makeGeneric(), set};
+	return {r, FileUtils::openAppAsset(name, IO::AccessHint::ALL, appName).makeGeneric(), set};
 }
 
 GlyphTextureSet::GlyphTextureSet(GlyphTextureSet &&o)

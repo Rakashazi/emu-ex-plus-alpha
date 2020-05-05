@@ -32,31 +32,27 @@ public:
 	class Messages
 	{
 	public:
-		Messages(Pipe &pipe): pipe{pipe} {}
+		constexpr Messages(IO &io): io{io} {}
 
 		MsgType get()
 		{
-			auto msg = pipe.read<MsgType>();
-			if(msg)
-				return msg.value();
-			else
-				return {};
+			return io.get<MsgType>();
 		}
 
 		template <class T>
 		T getExtraData()
 		{
-			return pipe.readNoErr<T>();
+			return io.get<T>();
 		}
 
 		template <class T>
 		bool getExtraData(T *obj, size_t size)
 		{
-			return pipe.read(obj, size);
+			return io.read(obj, size) != -1;
 		}
 
 	protected:
-		Pipe &pipe;
+		IO &io;
 	};
 
 	PipeMessagePort(const char *debugLabel = nullptr, uint32_t capacity = 8):
@@ -75,14 +71,14 @@ public:
 	void attach(EventLoop loop, Func &&func)
 	{
 		pipe.attach(loop,
-			[=](Base::Pipe &pipe) -> int
+			[=](auto &io) -> bool
 			{
-				Messages msg{pipe};
+				Messages msg{io};
 				constexpr auto returnsVoid = std::is_same_v<void, decltype(func(msg))>;
 				if constexpr(returnsVoid)
 				{
 					func(msg);
-					return 1;
+					return true;
 				}
 				else
 				{
@@ -98,7 +94,7 @@ public:
 
 	bool send(MsgType msg)
 	{
-		return pipe.write(msg);
+		return pipe.sink().write(msg);
 	}
 
 	template <class T>
@@ -109,7 +105,7 @@ public:
 		char buffer[bufferSize];
 		memcpy(buffer, &msg, sizeof(MsgType));
 		memcpy(buffer + sizeof(MsgType), &obj, sizeof(T));
-		return pipe.write(buffer, bufferSize);
+		return pipe.sink().write(buffer, bufferSize);
 	}
 
 	template <class T>
@@ -120,13 +116,13 @@ public:
 		char buffer[bufferSize];
 		memcpy(buffer, &msg, sizeof(MsgType));
 		memcpy(buffer + sizeof(MsgType), obj, size);
-		return pipe.write(buffer, bufferSize);
+		return pipe.sink().write(buffer, bufferSize);
 	}
 
 	void clear()
 	{
-		Messages msg{pipe};
-		while(msg.get()) {}
+		auto &io = pipe.source();
+		while(io.template get<MsgType>()) {}
 	}
 
 	explicit operator bool() const { return (bool)pipe; }

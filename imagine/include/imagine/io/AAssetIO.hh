@@ -17,14 +17,23 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/io/BufferMapIO.hh>
-#include <android/asset_manager.h>
 
-class AAssetIO : public IO
+struct AAsset;
+
+class AAssetIO final : public IO
 {
 public:
-	using IOUtils::read;
-	using IOUtils::write;
-	using IOUtils::seek;
+	using IO::read;
+	using IO::readAtPos;
+	using IO::write;
+	using IO::seek;
+	using IO::seekS;
+	using IO::seekE;
+	using IO::seekC;
+	using IO::tell;
+	using IO::send;
+	using IO::constBufferView;
+	using IO::get;
 
 	constexpr AAssetIO() {}
 	AAssetIO(AAssetIO &&o);

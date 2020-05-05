@@ -85,8 +85,7 @@ FDCustomEvent::FDCustomEvent():
 FDCustomEvent::FDCustomEvent(const char *debugLabel):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
 #endif
-	fdSrc{label(), makeEventFD()},
-	callback_{std::make_unique<CustomEventDelegate>()}
+	fdSrc{label(), makeEventFD()}
 {
 	if(fdSrc.fd() == -1)
 	{
@@ -103,7 +102,6 @@ FDCustomEvent &FDCustomEvent::operator=(FDCustomEvent &&o)
 {
 	deinit();
 	fdSrc = std::move(o.fdSrc);
-	callback_ = std::move(o.callback_);
 	#ifndef NDEBUG
 	debugLabel = o.debugLabel;
 	#endif
@@ -115,44 +113,14 @@ FDCustomEvent::~FDCustomEvent()
 	deinit();
 }
 
-void CustomEvent::attach(EventLoop loop)
+void FDCustomEvent::attach(EventLoop loop, PollEventDelegate del)
 {
-	fdSrc.attach(loop,
-		[callback = callback_.get()](int fd, int)
-		{
-			#ifdef USE_EVENTFD
-			eventfd_t counter;
-			auto ret = read(fd, &counter, sizeof(counter));
-			if(ret == -1)
-			{
-				if(Config::DEBUG_BUILD && errno != EAGAIN)
-					logErr("error reading eventfd in callback");
-				return true;
-			}
-			#else
-			struct timespec timeout{};
-			struct kevent kev;
-			int ret = kevent(fd, nullptr, 0, &kev, 1, &timeout);
-			if(ret < 1)
-			{
-				if(ret == -1)
-					logErr("error in kevent() in callback");
-				return true;
-			}
-			#endif
-			callback->callSafe();
-			return true;
-		});
+	fdSrc.attach(loop, del);
 }
 
 void CustomEvent::detach()
 {
 	fdSrc.detach();
-}
-
-void CustomEvent::setCallback(CustomEventDelegate callback)
-{
-	*callback_ = callback;
 }
 
 void CustomEvent::notify()
@@ -182,6 +150,31 @@ const char *FDCustomEvent::label()
 void FDCustomEvent::deinit()
 {
 	fdSrc.closeFD();
+}
+
+bool FDCustomEvent::shouldPerformCallback(int fd)
+{
+	#ifdef USE_EVENTFD
+	eventfd_t counter;
+	auto ret = read(fd, &counter, sizeof(counter));
+	if(ret == -1)
+	{
+		if(Config::DEBUG_BUILD && errno != EAGAIN)
+			logErr("error reading eventfd in callback");
+		return false;
+	}
+	#else
+	struct timespec timeout{};
+	struct kevent kev;
+	int ret = kevent(fd, nullptr, 0, &kev, 1, &timeout);
+	if(ret < 1)
+	{
+		if(ret == -1)
+			logErr("error in kevent() in callback");
+		return false;
+	}
+	#endif
+	return true;
 }
 
 }

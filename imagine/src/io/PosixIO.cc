@@ -15,7 +15,6 @@
 
 #define LOGTAG "PosixIO"
 #include <sys/stat.h>
-#include <sys/mman.h>
 #include <fcntl.h>
 #include <imagine/io/PosixIO.hh>
 #include <imagine/util/fd-utils.h>
@@ -105,7 +104,8 @@ ssize_t PosixIO::read(void *buff, size_t bytes, std::error_code *ecOut)
 	auto bytesRead = ::read(fd_, buff, bytes);
 	if(bytesRead == -1)
 	{
-		logErr("error reading %zu bytes", bytes);
+		if(Config::DEBUG_BUILD && errno != EAGAIN)
+			logErr("error reading %zu bytes", bytes);
 		if(ecOut)
 			*ecOut = {errno, std::system_category()};
 	}
@@ -169,8 +169,8 @@ void PosixIO::close()
 {
 	if(fd_ >= 0)
 	{
+		logMsg("closing fd:%d", fd_);
 		::close(fd_);
-		logMsg("closed fd: %d", fd_);
 		fd_ = -1;
 	}
 }
@@ -224,28 +224,12 @@ PosixIO::operator bool() const
 	return fd_ != -1;
 }
 
+int PosixIO::releaseFD()
+{
+	return std::exchange(fd_, -1);
+}
+
 int PosixIO::fd() const
 {
 	return fd_;
-}
-
-std::error_code openPosixMapIO(BufferMapIO &io, IO::AccessHint access, int fd)
-{
-	io.close();
-	off_t size = fd_size(fd);
-	int flags = MAP_SHARED;
-	#if defined __linux__
-	if(access == IO::AccessHint::ALL)
-		flags |= MAP_POPULATE;
-	#endif
-	void *data = mmap(nullptr, size, PROT_READ, flags, fd, 0);
-	if(data == MAP_FAILED)
-		return {errno, std::system_category()};
-	io.open((const char*)data, size,
-		[data](BufferMapIO &io)
-		{
-			logMsg("unmapping %p", data);
-			munmap(data, io.size());
-		});
-	return {};
 }

@@ -20,6 +20,8 @@
 #include <imagine/gfx/TextureConfig.hh>
 #include <imagine/gfx/TextureSamplerConfig.hh>
 
+class GfxImageSource;
+
 namespace Gfx
 {
 

@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/bits.h>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/DelegateFunc.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/fs/FSDefs.hh>
 #if defined __ANDROID__

@@ -16,11 +16,11 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/DelegateFunc.hh>
 #include <imagine/base/EventLoop.hh>
+#include <imagine/io/PosixIO.hh>
 #include <array>
 #include <optional>
-#include <memory>
+#include <utility>
 
 namespace Base
 {
@@ -28,8 +28,6 @@ namespace Base
 class Pipe
 {
 public:
-	using Delegate = DelegateFunc<int (Pipe &pipe)>;
-
 	#ifdef NDEBUG
 	Pipe(uint32_t preferredSize = 0);
 	Pipe(const char *debugLabel, uint32_t preferredSize = 0): Pipe(preferredSize) {}
@@ -40,49 +38,44 @@ public:
 	Pipe(Pipe &&o);
 	Pipe &operator=(Pipe &&o);
 	~Pipe();
-	void attach(Delegate del);
-	void attach(EventLoop loop, Delegate del);
+	PosixIO &source();
+	PosixIO &sink();
+	void attach(EventLoop loop, PollEventDelegate del);
 	void detach();
-	bool read(void *data, size_t size);
-	bool write(const void *data, size_t size);
 	bool hasData();
 	void setPreferredSize(int size);
 	void setReadNonBlocking(bool on);
 	bool isReadNonBlocking() const;
 	explicit operator bool() const;
 
-	template <class T>
-	std::optional<T> read()
+	template<class Func>
+	void attach(Func func)
 	{
-		T obj;
-		bool success = read(&obj, sizeof(T));
-		if(success)
-			return {obj};
-		else
-			return {};
+		attach({}, std::forward<Func>(func));
 	}
 
-	template <class T>
-	T readNoErr()
+	template<class Func>
+	void attach(EventLoop loop, Func func)
 	{
-		T obj{};
-		read(&obj, sizeof(T));
-		return obj;
-	}
-
-	template <class T>
-	bool write(T &&obj)
-	{
-		return write(&obj, sizeof(obj));
+		attach(loop,
+			PollEventDelegate
+			{
+				[=](int fd, int)
+				{
+					PosixIO io{fd};
+					auto keep = func(io);
+					io.releaseFD();
+					return keep;
+				}
+			});
 	}
 
 protected:
 	#ifndef NDEBUG
 	const char *debugLabel{};
 	#endif
-	std::array<int, 2> msgPipe{-1, -1};
+	std::array<PosixIO, 2> io{-1, -1};
 	FDEventSource fdSrc{};
-	Delegate readCallback{};
 
 	void deinit();
 	const char *label() const;

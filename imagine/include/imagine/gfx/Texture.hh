@@ -21,11 +21,12 @@
 #include <imagine/gfx/TextureConfig.hh>
 #include <imagine/gfx/TextureSamplerConfig.hh>
 #include <imagine/pixmap/Pixmap.hh>
-#include <imagine/data-type/image/GfxImageSource.hh>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/Texture.hh>
 #endif
+
+class GfxImageSource;
 
 namespace Gfx
 {

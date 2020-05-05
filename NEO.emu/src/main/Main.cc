@@ -248,18 +248,18 @@ CLINK ROM_DEF *res_load_drv(const char *name)
 	io.read(drv->name, 32);
 	io.read(drv->parent, 32);
 	io.read(drv->longname, 128);
-	drv->year = io.readVal<uint32_t>(); // TODO: LE byte-swap on uint32_t reads
+	drv->year = io.get<uint32_t>(); // TODO: LE byte-swap on uint32_t reads
 	iterateTimes(10, i)
-		drv->romsize[i] = io.readVal<uint32_t>();
-	drv->nb_romfile = io.readVal<uint32_t>();
+		drv->romsize[i] = io.get<uint32_t>();
+	drv->nb_romfile = io.get<uint32_t>();
 	iterateTimes(drv->nb_romfile, i)
 	{
 		io.read(drv->rom[i].filename, 32);
-		drv->rom[i].region = io.readVal<uint8_t>();
-		drv->rom[i].src = io.readVal<uint32_t>();
-		drv->rom[i].dest = io.readVal<uint32_t>();
-		drv->rom[i].size = io.readVal<uint32_t>();
-		drv->rom[i].crc = io.readVal<uint32_t>();
+		drv->rom[i].region = io.get<uint8_t>();
+		drv->rom[i].src = io.get<uint32_t>();
+		drv->rom[i].dest = io.get<uint32_t>();
+		drv->rom[i].size = io.get<uint32_t>();
+		drv->rom[i].crc = io.get<uint32_t>();
 	}
 	return drv;
 }

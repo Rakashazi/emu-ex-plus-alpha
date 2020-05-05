@@ -16,9 +16,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <imagine/pixmap/Pixmap.hh>
-#include <imagine/data-type/image/GfxImageSource.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/font/Font.hh>
 #include <system_error>

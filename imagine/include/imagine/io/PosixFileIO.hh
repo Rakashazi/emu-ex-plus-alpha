@@ -16,16 +16,24 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/io/PosixIO.hh>
+#include <imagine/io/BufferMapIO.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <variant>
 
 class PosixFileIO : public IOUtils<PosixFileIO>
 {
 public:
-	using IOUtils::read;
-	using IOUtils::readAtPos;
-	using IOUtils::write;
-	using IOUtils::seek;
+	using IOUtils<PosixFileIO>::read;
+	using IOUtils<PosixFileIO>::readAtPos;
+	using IOUtils<PosixFileIO>::write;
+	using IOUtils<PosixFileIO>::seek;
+	using IOUtils<PosixFileIO>::seekS;
+	using IOUtils<PosixFileIO>::seekE;
+	using IOUtils<PosixFileIO>::seekC;
+	using IOUtils<PosixFileIO>::tell;
+	using IOUtils<PosixFileIO>::send;
+	using IOUtils<PosixFileIO>::constBufferView;
+	using IOUtils<PosixFileIO>::get;
 
 	constexpr PosixFileIO() {}
 	PosixFileIO(PosixFileIO &&o);
@@ -52,6 +60,7 @@ public:
 		return create(path.data(), mode);
 	}
 
+	static BufferMapIO makePosixMapIO(IO::AccessHint access, int fd);
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut);
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut);
 	const char *mmapConst();

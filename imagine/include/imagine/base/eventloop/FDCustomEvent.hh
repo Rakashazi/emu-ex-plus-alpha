@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/EventLoop.hh>
-#include <memory>
+#include <utility>
 
 namespace Base
 {
@@ -34,16 +34,38 @@ public:
 	FDCustomEvent(FDCustomEvent &&o);
 	FDCustomEvent &operator=(FDCustomEvent &&o);
 	~FDCustomEvent();
+	void attach(EventLoop loop, PollEventDelegate del);
+
+	template<class Func>
+	void attach(Func func)
+	{
+		attach({}, std::forward<Func>(func));
+	}
+
+	template<class Func>
+	void attach(EventLoop loop, Func func)
+	{
+		attach(loop,
+			PollEventDelegate
+			{
+				[=](int fd, int)
+				{
+					if(shouldPerformCallback(fd))
+						func();
+					return true;
+				}
+			});
+	}
 
 protected:
 	#ifndef NDEBUG
 	const char *debugLabel{};
 	#endif
 	FDEventSource fdSrc{};
-	std::unique_ptr<CustomEventDelegate> callback_{};
 
 	const char *label();
 	void deinit();
+	static bool shouldPerformCallback(int fd);
 };
 
 using CustomEventImpl = FDCustomEvent;

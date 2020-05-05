@@ -15,7 +15,9 @@
 
 #include <imagine/io/FileIO.hh>
 #include <imagine/logger/logger.h>
+#include <imagine/util/fd-utils.h>
 #include "IOUtils.hh"
+#include <sys/mman.h>
 
 template class IOUtils<PosixFileIO>;
 
@@ -64,9 +66,8 @@ std::error_code PosixFileIO::open(const char *path, IO::AccessHint access, uint3
 	// try to open as memory map if read-only
 	if(!(mode & IO::OPEN_WRITE))
 	{
-		BufferMapIO mappedFile;
-		auto ec = openPosixMapIO(mappedFile, access, std::get<PosixIO>(ioImpl).fd());
-		if(!ec)
+		BufferMapIO mappedFile = makePosixMapIO(access, std::get<PosixIO>(ioImpl).fd());
+		if(mappedFile)
 		{
 			//logMsg("switched to mmap mode");
 			ioImpl = std::move(mappedFile);
@@ -86,6 +87,27 @@ std::error_code PosixFileIO::open(const char *path, IO::AccessHint access, uint3
 	}
 
 	return {};
+}
+
+BufferMapIO PosixFileIO::makePosixMapIO(IO::AccessHint access, int fd)
+{
+	off_t size = fd_size(fd);
+	int flags = MAP_SHARED;
+	#if defined __linux__
+	if(access == IO::AccessHint::ALL)
+		flags |= MAP_POPULATE;
+	#endif
+	void *data = mmap(nullptr, size, PROT_READ, flags, fd, 0);
+	if(data == MAP_FAILED)
+		return {};
+	BufferMapIO io;
+	io.open((const char*)data, size,
+		[data](BufferMapIO &io)
+		{
+			logMsg("unmapping %p", data);
+			munmap(data, io.size());
+		});
+	return io;
 }
 
 ssize_t PosixFileIO::read(void *buff, size_t bytes, std::error_code *ecOut)

@@ -19,7 +19,7 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/NavView.hh>
-#include <imagine/io/IO.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <emuframework/EmuSystem.hh>
 #include <imagine/util/typeTraits.hh>

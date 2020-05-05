@@ -27,10 +27,9 @@ class CustomEvent : public CustomEventImpl
 {
 public:
 	using CustomEventImpl::CustomEventImpl;
+	using CustomEventImpl::attach;
 
-	void attach(EventLoop loop = {});
 	void detach();
-	void setCallback(CustomEventDelegate callback);
 	void notify();
 	void cancel();
 	explicit operator bool() const;

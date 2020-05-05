@@ -20,6 +20,7 @@
 #include "utils.hh"
 #include "../base/android/android.hh"
 #include <imagine/logger/logger.h>
+#include <android/asset_manager.h>
 
 AAssetIO::~AAssetIO()
 {

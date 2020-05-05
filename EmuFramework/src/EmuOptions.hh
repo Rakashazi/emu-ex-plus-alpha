@@ -88,11 +88,10 @@ struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
 
 	bool writeToIO(IO &io) override
 	{
-		std::error_code ec{};
-		io.writeVal((uint16_t)CFGKEY_GAME_ASPECT_RATIO, &ec);
+		io.write((uint16_t)CFGKEY_GAME_ASPECT_RATIO);
 		logMsg("writing aspect ratio config %u:%u", val.x, val.y);
-		io.writeVal((uint8_t)val.x, &ec);
-		io.writeVal((uint8_t)val.y, &ec);
+		io.write((uint8_t)val.x);
+		io.write((uint8_t)val.y);
 		return true;
 	}
 
@@ -104,8 +103,8 @@ struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
 			return false;
 		}
 
-		auto x = io.readVal<uint8_t>();
-		auto y = io.readVal<uint8_t>();
+		auto x = io.get<uint8_t>();
+		auto y = io.get<uint8_t>();
 		logMsg("read aspect ratio config %u,%u", x, y);
 		if(y == 0)
 			y = 1;

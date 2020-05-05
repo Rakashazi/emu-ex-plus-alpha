@@ -384,16 +384,15 @@ bool OptionVControllerLayoutPosition::isDefault() const
 bool OptionVControllerLayoutPosition::writeToIO(IO &io)
 {
 	logMsg("writing vcontroller positions");
-	std::error_code ec{};
-	io.writeVal(key, &ec);
+	io.write(key);
 	for(auto &posArr : vController.layoutPosition())
 	{
 		for(auto &e : posArr)
 		{
-			io.writeVal((uint8_t)e.origin, &ec);
-			io.writeVal((uint8_t)e.state, &ec);
-			io.writeVal((int32_t)e.pos.x, &ec);
-			io.writeVal((int32_t)e.pos.y, &ec);
+			io.write((uint8_t)e.origin);
+			io.write((uint8_t)e.state);
+			io.write((int32_t)e.pos.x);
+			io.write((int32_t)e.pos.y);
 		}
 	}
 	return 1;
@@ -418,22 +417,22 @@ bool OptionVControllerLayoutPosition::readFromIO(IO &io, uint readSize_)
 				break;
 			}
 
-			_2DOrigin origin = _2DOrigin{(uint8_t)io.readVal<int8_t>()};
+			_2DOrigin origin = _2DOrigin{(uint8_t)io.get<int8_t>()};
 			if(!origin.isValid())
 			{
 				logWarn("invalid v-controller origin from config file");
 			}
 			else
 				e.origin = origin;
-			uint state = io.readVal<int8_t>();
+			uint state = io.get<int8_t>();
 			if(state > 2)
 			{
 				logWarn("invalid v-controller state from config file");
 			}
 			else
 				e.state = state;
-			e.pos.x = io.readVal<int32_t>();
-			e.pos.y = io.readVal<int32_t>();
+			e.pos.x = io.get<int32_t>();
+			e.pos.y = io.get<int32_t>();
 			vController.setLayoutPositionChanged();
 			readSize -= sizeofVControllerLayoutPositionEntry();
 		}
@@ -499,13 +498,12 @@ bool OptionRecentGames::isDefault() const
 bool OptionRecentGames::writeToIO(IO &io)
 {
 	logMsg("writing recent list");
-	std::error_code ec{};
-	io.writeVal(key, &ec);
+	io.write(key);
 	for(auto &e : recentGameList)
 	{
 		uint len = strlen(e.path.data());
-		io.writeVal((uint16_t)len, &ec);
-		io.write(e.path.data(), len, &ec);
+		io.write((uint16_t)len);
+		io.write(e.path.data(), len);
 	}
 	return true;
 }
@@ -521,7 +519,7 @@ bool OptionRecentGames::readFromIO(IO &io, uint readSize_)
 			break;
 		}
 
-		auto len = io.readVal<uint16_t>();
+		auto len = io.get<uint16_t>();
 		readSize -= 2;
 
 		if(len > readSize)
@@ -578,10 +576,9 @@ bool PathOption::writeToIO(IO &io)
 		logMsg("skipping 0 length option string");
 		return 0;
 	}
-	std::error_code ec{};
-	io.writeVal((uint16_t)(2 + len), &ec);
-	io.writeVal((uint16_t)KEY, &ec);
-	io.write(val, len, &ec);
+	io.write((uint16_t)(2 + len));
+	io.write((uint16_t)KEY);
+	io.write(val, len);
 	return true;
 }
 

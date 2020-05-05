@@ -31,6 +31,8 @@
 #include <imagine/gfx/opengl/GLRenderer.hh>
 #endif
 
+class GfxImageSource;
+
 namespace Gfx
 {
 

@@ -24,7 +24,7 @@
 namespace Base
 {
 
-static std::array<int, 2> makePipe()
+static std::array<PosixIO, 2> makePipe()
 {
 	std::array<int, 2> fd{-1, -1};
 	#ifdef __linux__
@@ -36,7 +36,7 @@ static std::array<int, 2> makePipe()
 	{
 		logErr("error creating pipe");
 	}
-	return fd;
+	return {fd[0], fd[1]};
 }
 
 #ifdef NDEBUG
@@ -45,10 +45,10 @@ Pipe::Pipe(uint32_t preferredSize):
 Pipe::Pipe(const char *debugLabel, uint32_t preferredSize):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
 #endif
-	msgPipe{makePipe()},
-	fdSrc{label(), msgPipe[0]}
+	io{makePipe()},
+	fdSrc{label(), io[0].fd()}
 {
-	logMsg("opened fds:%d,%d (%s)", msgPipe[0], msgPipe[1], label());
+	logMsg("opened fds:%d,%d (%s)", io[0].fd(), io[1].fd(), label());
 	if(preferredSize)
 	{
 		setPreferredSize(preferredSize);
@@ -68,8 +68,7 @@ Pipe::Pipe(Pipe &&o)
 Pipe &Pipe::operator=(Pipe &&o)
 {
 	deinit();
-	assert(!o.readCallback); // moving pipe while attached is undefined
-	msgPipe = std::exchange(o.msgPipe, {-1, -1});
+	io = std::exchange(o.io, {-1, -1});
 	fdSrc = std::move(o.fdSrc);
 	#ifndef NDEBUG
 	debugLabel = o.debugLabel;
@@ -77,91 +76,63 @@ Pipe &Pipe::operator=(Pipe &&o)
 	return *this;
 }
 
-void Pipe::attach(Delegate del)
+PosixIO &Pipe::source()
 {
-	attach(EventLoop::forThread(), del);
+	return io[0];
 }
 
-void Pipe::attach(EventLoop loop, Delegate callback)
+PosixIO &Pipe::sink()
 {
-	if(msgPipe[0] == -1)
+	return io[1];
+}
+
+void Pipe::attach(EventLoop loop, PollEventDelegate callback)
+{
+	if(io[0].fd() == -1)
 	{
 		logMsg("can't add null pipe to event loop");
 		return;
 	}
-	readCallback = callback;
-	fdSrc.attach(loop,
-		[this](int, int)
-		{
-			return readCallback.callCopy(*this);
-		});
+	fdSrc.attach(loop, callback);
 }
 
 void Pipe::detach()
 {
 	fdSrc.detach();
-	readCallback = {};
-}
-
-bool Pipe::write(const void *data, size_t size)
-{
-	if(::write(msgPipe[1], data, size) != (int)size)
-	{
-		logErr("unable to write message to pipe: %s (%s)", strerror(errno), label());
-		return false;
-	}
-	return true;
-}
-
-bool Pipe::read(void *data, size_t size)
-{
-	if(::read(msgPipe[0], data, size) == -1)
-	{
-		if(Config::DEBUG_BUILD && errno != EAGAIN)
-		{
-			logErr("error reading from pipe (%s)", label());
-		}
-		return false;
-	}
-	return true;
 }
 
 bool Pipe::hasData()
 {
-	return fd_bytesReadable(msgPipe[0]);
+	return fd_bytesReadable(io[0].fd());
 }
 
 void Pipe::setPreferredSize(int size)
 {
 	#ifdef __linux__
-	fcntl(msgPipe[1], F_SETPIPE_SZ, size);
-	logDMsg("set fds:%d,%d size to:%d", msgPipe[0], msgPipe[1], size);
+	fcntl(io[1].fd(), F_SETPIPE_SZ, size);
+	logDMsg("set size:%d (%s)", size, label());
 	#endif
 }
 
 void Pipe::setReadNonBlocking(bool on)
 {
-	fd_setNonblock(msgPipe[0], on);
+	fd_setNonblock(io[0].fd(), on);
 }
 
 bool Pipe::isReadNonBlocking() const
 {
-	return fd_getNonblock(msgPipe[0]);
+	return fd_getNonblock(io[0].fd());
 }
 
 Pipe::operator bool() const
 {
-	return msgPipe[0] != -1;
+	return io[0].fd() != -1;
 }
 
 void Pipe::deinit()
 {
-	if(msgPipe[0] == -1)
-		return;
+	logMsg("closing %s", label());
 	fdSrc.detach();
-	close(msgPipe[0]);
-	close(msgPipe[1]);
-	logMsg("closed fds:%d,%d (%s)", msgPipe[0], msgPipe[1], label());
 }
 
 const char *Pipe::label() const

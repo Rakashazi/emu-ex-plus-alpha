@@ -18,11 +18,11 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/bits.h>
 #include <imagine/util/BufferView.hh>
+#include <imagine/util/typeTraits.hh>
 #include <memory>
-#include <algorithm>
+#include <utility>
 #include <system_error>
-#include <cstddef>
-#include <cstdio> // for SEEK_*
+#include <unistd.h> // for SEEK_*
 
 class IODefs
 {
@@ -48,56 +48,55 @@ public:
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset);
 	ssize_t write(const void *buff, size_t bytes);
 	off_t seek(off_t offset, IODefs::SeekMode mode);
-	off_t seekS(off_t offset, std::error_code *ecOut);
-	off_t seekE(off_t offset, std::error_code *ecOut);
-	off_t seekC(off_t offset, std::error_code *ecOut);
-	off_t seekS(off_t offset);
-	off_t seekE(off_t offset);
-	off_t seekC(off_t offset);
-	off_t tell(std::error_code *ecOut);
-	off_t tell();
-	std::error_code readAll(void *buff, size_t bytes);
-	std::error_code writeAll(void *buff, size_t bytes);
-	std::error_code writeToIO(IO &io);
+	off_t seekS(off_t offset, std::error_code *ecOut = nullptr);
+	off_t seekE(off_t offset, std::error_code *ecOut = nullptr);
+	off_t seekC(off_t offset, std::error_code *ecOut = nullptr);
+	off_t tell(std::error_code *ecOut = nullptr);
+	ssize_t send(IO &output, off_t *srcOffset, size_t bytes, std::error_code *ecOut = nullptr);
 	IG::ConstBufferView constBufferView();
 
 	template <class T>
-	T readVal(std::error_code *ecOut)
+	std::pair<T, ssize_t> read(std::error_code *ecOut = nullptr)
 	{
-		T val;
-		if(((IO*)this)->read(&val, sizeof(T), ecOut) != sizeof(T))
-		{
-			if(ecOut)
-				*ecOut = {EINVAL, std::system_category()};
-			val = {};
-		}
-		return val;
+		T obj;
+		auto size = static_cast<IO*>(this)->read(&obj, sizeof(T), ecOut);
+		if(size == -1)
+			return {{}, size};
+		return {obj, size};
 	}
 
 	template <class T>
-	T readVal()
+	T get()
 	{
-		return readVal<T>(nullptr);
+		return read<T>(nullptr).first;
 	}
 
 	template <class T>
-	void writeVal(T val, std::error_code *ecOut)
+	ssize_t write(T &&obj, std::error_code *ecOut = nullptr)
 	{
-		if(((IO*)this)->write(&val, sizeof(T), ecOut) != sizeof(T))
+		using DecayT = typename std::decay<T>::type;
+		if constexpr(std::is_pointer_v<DecayT>)
 		{
-			if(ecOut)
-				*ecOut = {EINVAL, std::system_category()};
+			static_assert(IG::dependentFalseValue<DecayT>, "attempting to write a pointer with no size parameter");
 		}
+		return static_cast<IO*>(this)->write(&obj, sizeof(T), ecOut);
 	}
 };
 
 class IO : public IOUtils<IO>, public IODefs
 {
 public:
-	using IOUtils::read;
-	using IOUtils::readAtPos;
-	using IOUtils::write;
-	using IOUtils::seek;
+	using IOUtils<IO>::read;
+	using IOUtils<IO>::readAtPos;
+	using IOUtils<IO>::write;
+	using IOUtils<IO>::seek;
+	using IOUtils<IO>::seekS;
+	using IOUtils<IO>::seekE;
+	using IOUtils<IO>::seekC;
+	using IOUtils<IO>::tell;
+	using IOUtils<IO>::send;
+	using IOUtils<IO>::constBufferView;
+	using IOUtils<IO>::get;
 
 	// allow reading file, default if OPEN_WRITE isn't present
 	static constexpr uint32_t OPEN_READ = IG::bit(0);
@@ -138,10 +137,17 @@ public:
 class GenericIO : public IOUtils<GenericIO>
 {
 public:
-	using IOUtils::read;
-	using IOUtils::readAtPos;
-	using IOUtils::write;
-	using IOUtils::seek;
+	using IOUtils<GenericIO>::read;
+	using IOUtils<GenericIO>::readAtPos;
+	using IOUtils<GenericIO>::write;
+	using IOUtils<GenericIO>::seek;
+	using IOUtils<GenericIO>::seekS;
+	using IOUtils<GenericIO>::seekE;
+	using IOUtils<GenericIO>::seekC;
+	using IOUtils<GenericIO>::tell;
+	using IOUtils<GenericIO>::send;
+	using IOUtils<GenericIO>::constBufferView;
+	using IOUtils<GenericIO>::get;
 
 	GenericIO() {}
 	template<class T>

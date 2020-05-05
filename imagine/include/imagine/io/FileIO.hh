@@ -18,13 +18,8 @@
 #include <type_traits>
 #include <imagine/io/IO.hh>
 
-#if defined CONFIG_IO_WIN32
-#include <imagine/io/Win32IO.hh>
-using FileIO = Win32IO;
-#else
 #include <imagine/io/PosixFileIO.hh>
 using FileIO = PosixFileIO;
-#endif
 
 #ifdef __ANDROID__
 #include <imagine/io/AAssetIO.hh>
@@ -33,14 +28,12 @@ using AssetIO = AAssetIO;
 using AssetIO = FileIO;
 #endif
 
-AssetIO openAppAssetIO(const char *name, IO::AccessHint access, const char *appName);
-
-template <size_t S>
-static AssetIO openAppAssetIO(std::array<char, S> name, IO::AccessHint access, const char *appName)
+namespace FileUtils
 {
-	return openAppAssetIO(name.data(), access, appName);
-}
 
-std::error_code writeToNewFile(const char *path, void *data, size_t size);
-ssize_t readFromFile(const char *path, void *data, size_t size);
-std::error_code writeIOToNewFile(IO &io, const char *path);
+AssetIO openAppAsset(const char *name, IO::AccessHint access, const char *appName);
+ssize_t writeToPath(const char *path, void *data, size_t size, std::error_code *ecOut = nullptr);
+ssize_t writeToPath(const char *path, IO &io, std::error_code *ecOut = nullptr);
+ssize_t readFromPath(const char *path, void *data, size_t size);
+
+}

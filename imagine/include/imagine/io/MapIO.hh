@@ -21,10 +21,17 @@
 class MapIO : public IO
 {
 public:
-	using IOUtils::read;
-	using IOUtils::readAtPos;
-	using IOUtils::write;
-	using IOUtils::seek;
+	using IO::read;
+	using IO::readAtPos;
+	using IO::write;
+	using IO::seek;
+	using IO::seekS;
+	using IO::seekE;
+	using IO::seekC;
+	using IO::tell;
+	using IO::send;
+	using IO::constBufferView;
+	using IO::get;
 
 	constexpr MapIO() {}
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) override;

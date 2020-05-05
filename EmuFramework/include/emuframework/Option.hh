@@ -116,9 +116,8 @@ public:
 	bool writeToIO(IO &io) override
 	{
 		logMsg("writing option key %u after size %u", KEY, ioSize());
-		std::error_code ec{};
-		io.writeVal(KEY, &ec);
-		io.writeVal((SERIALIZED_T)V::get(), &ec);
+		io.write(KEY);
+		io.write((SERIALIZED_T)V::get());
 		return true;
 	}
 
@@ -126,8 +125,7 @@ public:
 	{
 		if(!isDefault())
 		{
-			std::error_code ec{};
-			io.writeVal((uint16_t)ioSize(), &ec);
+			io.write((uint16_t)ioSize());
 			writeToIO(io);
 		}
 		return true;
@@ -144,9 +142,8 @@ public:
 			return false;
 		}
 
-		std::error_code ec{};
-		auto x = io.readVal<SERIALIZED_T>(&ec);
-		if(ec)
+		auto [x, size] = io.read<SERIALIZED_T>();
+		if(size == -1)
 		{
 			logErr("error reading option from io");
 			return false;

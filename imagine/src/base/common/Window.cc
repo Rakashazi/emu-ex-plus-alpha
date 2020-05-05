@@ -97,8 +97,7 @@ void BaseWindow::initDelegates(const WindowConfig &config)
 			return true;
 		};
 	Base::addOnResume(onResume, ON_RESUME_PRIORITY);
-	drawEvent.attach();
-	drawEvent.setCallback(
+	drawEvent.attach(
 		[this]()
 		{
 			//logDMsg("running window draw event");

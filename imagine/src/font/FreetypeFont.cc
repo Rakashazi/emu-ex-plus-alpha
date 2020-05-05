@@ -301,7 +301,7 @@ Font Font::makeBoldSystem()
 
 Font Font::makeFromAsset(const char *name, const char *appName)
 {
-	return {openAppAssetIO(name, IO::AccessHint::ALL, appName).makeGeneric()};
+	return {FileUtils::openAppAsset(name, IO::AccessHint::ALL, appName).makeGeneric()};
 }
 
 FreetypeFont::FreetypeFont(FreetypeFont &&o)

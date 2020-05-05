@@ -131,8 +131,8 @@ static EmuSystem::Error saveMDState(const char *path)
 	logMsg("saving state data");
 	int size = state_save(stateData.get());
 	logMsg("writing to file");
-	if(auto ec = writeToNewFile(path, stateData.get(), size);
-		ec)
+	std::error_code ec;
+	if(FileUtils::writeToPath(path, stateData.get(), size, &ec) == -1)
 	{
 		return EmuSystem::makeError(std::error_code{ec});
 	}
@@ -216,8 +216,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 			}
 			sramPtr = sramTemp;
 		}
-		auto ec = writeToNewFile(saveStr.data(), sramPtr, 0x10000);
-		if(ec)
+		if(FileUtils::writeToPath(saveStr.data(), sramPtr, 0x10000, nullptr) == -1)
 			logMsg("error creating sram file");
 	}
 	writeCheatFile();
@@ -475,7 +474,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	{
 		auto saveStr = sprintSaveFilename();
 
-		if(readFromFile(saveStr.data(), sram.sram, 0x10000) <= 0)
+		if(FileUtils::readFromPath(saveStr.data(), sram.sram, 0x10000) <= 0)
 			logMsg("no SRAM on disk");
 		else
 			logMsg("loaded SRAM from disk%s", optionBigEndianSram ? ", will byte-swap" : "");

@@ -20,7 +20,7 @@ int FileStreamIOWrapper::get_line(std::string &str)
 
  str.clear();	// or str.resize(0)??
 
- while(!readAll(&c, sizeof(c)))
+ while(read(&c, sizeof(c)) > 0)
  {
   if(c == '\r' || c == '\n' || c == 0)
    return(c);

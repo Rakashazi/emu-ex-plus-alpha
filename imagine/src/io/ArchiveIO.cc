@@ -15,7 +15,6 @@
 
 #define LOGTAG "ArchIO"
 #include <imagine/io/ArchiveIO.hh>
-#include <imagine/io/FileIO.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
 #include <archive.h>

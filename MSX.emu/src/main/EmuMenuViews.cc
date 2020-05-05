@@ -88,8 +88,7 @@ void installFirmwareFiles()
 		auto e_i = &e - srcPath;
 		auto pathTemp = FS::makePathStringPrintf("%s/Machines/%s/%s",
 				machineBasePath.data(), destDir[e_i], strstr(e, "config") ? "config.ini" : e);
-		auto ec = writeIOToNewFile(src, pathTemp.data());
-		if(ec)
+		if(FileUtils::writeToPath(pathTemp.data(), src) == -1)
 		{
 			EmuApp::printfMessage(4, 1, "Can't write file:\n%s", e);
 			return;

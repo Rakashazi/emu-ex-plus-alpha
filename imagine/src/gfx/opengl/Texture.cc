@@ -19,6 +19,7 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
+#include <imagine/data-type/image/GfxImageSource.hh>
 #include "private.hh"
 #ifdef __ANDROID__
 #include "../../base/android/android.hh"

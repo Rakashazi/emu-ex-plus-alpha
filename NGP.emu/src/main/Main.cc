@@ -82,7 +82,7 @@ EmuSystem::Error EmuSystem::loadState(const char *path)
 
 bool system_io_state_read(const char* filename, uint8_t* buffer, uint32 bufferLength)
 {
-	return readFromFile(filename, buffer, bufferLength) > 0;
+	return FileUtils::readFromPath(filename, buffer, bufferLength) > 0;
 }
 
 static FS::PathString sprintSaveFilename()
@@ -93,7 +93,7 @@ static FS::PathString sprintSaveFilename()
 bool system_io_flash_read(uint8_t* buffer, uint32_t len)
 {
 	auto saveStr = sprintSaveFilename();
-	return readFromFile(saveStr.data(), buffer, len) > 0;
+	return FileUtils::readFromPath(saveStr.data(), buffer, len) > 0;
 }
 
 bool system_io_flash_write(uint8_t* buffer, uint32 len)
@@ -102,8 +102,7 @@ bool system_io_flash_write(uint8_t* buffer, uint32 len)
 		return 0;
 	auto saveStr = sprintSaveFilename();
 	logMsg("writing flash %s", saveStr.data());
-	auto ec = writeToNewFile(saveStr.data(), buffer, len);
-	return !ec;
+	return FileUtils::writeToPath(saveStr.data(), buffer, len) != -1;
 }
 
 void EmuSystem::saveBackupMem()

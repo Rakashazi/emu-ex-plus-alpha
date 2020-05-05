@@ -17,17 +17,24 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/io/IO.hh>
-#include <imagine/io/BufferMapIO.hh>
 
-class PosixIO : public IO
+class PosixIO final : public IO
 {
 public:
-	using IOUtils::read;
-	using IOUtils::readAtPos;
-	using IOUtils::write;
-	using IOUtils::seek;
+	using IO::read;
+	using IO::readAtPos;
+	using IO::write;
+	using IO::seek;
+	using IO::seekS;
+	using IO::seekE;
+	using IO::seekC;
+	using IO::tell;
+	using IO::send;
+	using IO::constBufferView;
+	using IO::get;
 
 	constexpr PosixIO() {}
+	constexpr PosixIO(int fd):fd_{fd} {}
 	PosixIO(PosixIO &&o);
 	PosixIO &operator=(PosixIO &&o);
 	~PosixIO() final;
@@ -38,6 +45,7 @@ public:
 		mode |= OPEN_WRITE | OPEN_CREATE;
 		return open(path, mode);
 	}
+	int releaseFD();
 	int fd() const;
 
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
@@ -55,5 +63,3 @@ public:
 protected:
 	int fd_ = -1;
 };
-
-std::error_code openPosixMapIO(BufferMapIO &io, IO::AccessHint access, int fd);

@@ -57,7 +57,7 @@ public:
 	template<class Func>
 	void setCallback(Func &&c)
 	{
-		setCallback(wrapCallbackDelegate(c));
+		setCallback(wrapCallbackDelegate(std::forward<Func>(c)));
 	}
 
 	template<class Time1, class Time2, class Func = CallbackDelegate>
@@ -65,7 +65,7 @@ public:
 	{
 		run(std::chrono::duration_cast<Time>(time),
 			std::chrono::duration_cast<Time>(repeatTime),
-			loop, wrapCallbackDelegate(c));
+			loop, wrapCallbackDelegate(std::forward<Func>(c)));
 	}
 
 	template<class Time1, class Time2, class Func = CallbackDelegate>
@@ -73,7 +73,7 @@ public:
 	{
 		runOnce(std::chrono::duration_cast<Time>(time),
 			std::chrono::duration_cast<Time>(repeatTime),
-			loop, wrapCallbackDelegate(c));
+			loop, wrapCallbackDelegate(std::forward<Func>(c)));
 	}
 
 	// non-repeating timer
@@ -81,14 +81,14 @@ public:
 	void run(Time1 time, EventLoop loop = {}, Func &&c = nullptr)
 	{
 		run(std::chrono::duration_cast<Time>(time), Time{},
-			loop, wrapCallbackDelegate(c));
+			loop, wrapCallbackDelegate(std::forward<Func>(c)));
 	}
 
 	template<class Time1, class Func = CallbackDelegate>
 	void runOnce(Time1 time, EventLoop loop = {}, Func &&c = nullptr)
 	{
 		runOnce(std::chrono::duration_cast<Time>(time), Time{},
-			loop, wrapCallbackDelegate(c));
+			loop, wrapCallbackDelegate(std::forward<Func>(c)));
 	}
 
 	template<class Func>

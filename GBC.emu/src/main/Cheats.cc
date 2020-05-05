@@ -87,17 +87,16 @@ void writeCheatFile()
 	}
 	logMsg("writing cheats file %s", filename.data());
 
-	std::error_code ec{};
 	int version = 0;
-	file.writeVal((uint8_t)version, &ec);
-	file.writeVal((uint16_t)cheatList.size(), &ec);
+	file.write((uint8_t)version);
+	file.write((uint16_t)cheatList.size());
 	for(auto &e : cheatList)
 	{
-		file.writeVal((uint8_t)e.flags, &ec);
-		file.writeVal((uint16_t)strlen(e.name), &ec);
-		file.write(e.name, strlen(e.name), &ec);
-		file.writeVal((uint8_t)strlen(e.code), &ec);
-		file.write(e.code, strlen(e.code), &ec);
+		file.write((uint8_t)e.flags);
+		file.write((uint16_t)strlen(e.name));
+		file.write(e.name, strlen(e.name));
+		file.write((uint8_t)strlen(e.code));
+		file.write(e.code, strlen(e.code));
 	}
 	cheatsModified = 0;
 }
@@ -113,13 +112,13 @@ void readCheatFile()
 	}
 	logMsg("reading cheats file %s", filename.data());
 
-	auto version = file.readVal<uint8_t>();
+	auto version = file.get<uint8_t>();
 	if(version != 0)
 	{
 		logMsg("skipping due to version code %d", version);
 		return;
 	}
-	auto size = file.readVal<uint16_t>();
+	auto size = file.get<uint16_t>();
 	iterateTimes(size, i)
 	{
 		if(cheatList.isFull())
@@ -128,11 +127,11 @@ void readCheatFile()
 			break;
 		}
 		GbcCheat cheat;
-		auto flags = file.readVal<uint8_t>();
+		auto flags = file.get<uint8_t>();
 		cheat.flags = flags;
-		auto nameLen = file.readVal<uint16_t>();
+		auto nameLen = file.get<uint16_t>();
 		file.read(cheat.name, std::min(uint16_t(sizeof(cheat.name)-1), nameLen));
-		auto codeLen = file.readVal<uint8_t>();
+		auto codeLen = file.get<uint8_t>();
 		file.read(cheat.code, std::min(uint8_t(sizeof(cheat.code)-1), codeLen));
 		cheatList.push_back(cheat);
 	}

@@ -208,7 +208,10 @@ GenericIO::operator bool() const
 	return io && *io;
 }
 
-AssetIO openAppAssetIO(const char *name, IO::AccessHint access, const char *appName)
+namespace FileUtils
+{
+
+AssetIO openAppAsset(const char *name, IO::AccessHint access, const char *appName)
 {
 	AssetIO io;
 	#ifdef __ANDROID__
@@ -219,35 +222,41 @@ AssetIO openAppAssetIO(const char *name, IO::AccessHint access, const char *appN
 	return io;
 }
 
-std::error_code writeToNewFile(const char *path, void *data, size_t size)
+ssize_t writeToPath(const char *path, void *data, size_t bytes, std::error_code *ecOut)
 {
 	FileIO f;
-	auto ec = f.create(path);
-	if(!f)
-		return ec;
-	ec = f.writeAll(data, size);
-	if(ec)
-		return ec;
-	return {};
+	if(auto ec = f.create(path);
+		ec)
+	{
+		if(ecOut)
+			*ecOut = ec;
+		return -1;
+	}
+	return f.write(data, bytes, ecOut);
 }
 
-ssize_t readFromFile(const char *path, void *data, size_t size)
+ssize_t writeToPath(const char *path, IO &io, std::error_code *ecOut)
+{
+	FileIO f;
+	if(auto ec = f.create(path);
+		ec)
+	{
+		if(ecOut)
+			*ecOut = ec;
+		return -1;
+	}
+	return io.send(f, nullptr, io.size(), ecOut);
+}
+
+ssize_t readFromPath(const char *path, void *data, size_t size)
 {
 	FileIO f;
 	f.open(path, IO::AccessHint::SEQUENTIAL);
 	if(!f)
 		return -1;
-	auto readSize = f.read(data, size);
-	return readSize;
+	return f.read(data, size);
 }
 
-std::error_code writeIOToNewFile(IO &io, const char *path)
-{
-	FileIO file;
-	auto ec = file.create(path);
-	if(ec)
-		return ec;
-	return io.writeToIO(file);
 }
 
 int fgetc(IO &io)
