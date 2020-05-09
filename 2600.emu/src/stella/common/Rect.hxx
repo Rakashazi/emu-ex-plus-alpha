@@ -108,11 +108,11 @@ struct Rect
     uInt32 bottom{0}, right{0};
 
   public:
-    constexpr Rect() {}
-    constexpr explicit Rect(const Size& s) : bottom(s.h), right(s.w) { assert(valid()); }
-    constexpr Rect(uInt32 w, uInt32 h) : bottom(h), right(w) { assert(valid()); }
-    constexpr Rect(const Point& p, uInt32 w, uInt32 h) : top(p.y), left(p.x), bottom(h), right(w) { assert(valid()); }
-    constexpr Rect(uInt32 x1, uInt32 y1, uInt32 x2, uInt32 y2) : top(y1), left(x1), bottom(y2), right(x2) { assert(valid()); }
+    Rect() {}
+    explicit Rect(const Size& s) : bottom(s.h), right(s.w) { assert(valid()); }
+    Rect(uInt32 w, uInt32 h) : bottom(h), right(w) { assert(valid()); }
+    Rect(const Point& p, uInt32 w, uInt32 h) : top(p.y), left(p.x), bottom(h), right(w) { assert(valid()); }
+    Rect(uInt32 x1, uInt32 y1, uInt32 x2, uInt32 y2) : top(y1), left(x1), bottom(y2), right(x2) { assert(valid()); }
 
     uInt32 x() const { return left; }
     uInt32 y() const { return top;  }
@@ -134,7 +134,7 @@ struct Rect
       assert(valid());
     }
 
-    constexpr bool valid() const {
+    bool valid() const {
       return (left <= right && top <= bottom);
     }
 

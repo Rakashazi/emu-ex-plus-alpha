@@ -763,6 +763,8 @@ void EventHandler::handleEvent(Event::Type event, Int32 value, bool repeated)
 #endif
                 exitEmulation(true);
             }
+            else
+              exitEmulation(true);
           }
           return;
 
@@ -1141,7 +1143,7 @@ void EventHandler::setComboMap()
     {
       string key;
       buf >> key;
-      if(stoi(key) == COMBO_SIZE)
+      if(BSPF::stringToInt(key) == COMBO_SIZE)
       {
         // Fill the combomap table with events for as long as they exist
         int combocount = 0;
@@ -1154,7 +1156,7 @@ void EventHandler::setComboMap()
           int eventcount = 0;
           while(buf2 >> key && eventcount < EVENTS_PER_COMBO)
           {
-            myComboTable[combocount][eventcount] = Event::Type(stoi(key));
+            myComboTable[combocount][eventcount] = Event::Type(BSPF::stringToInt(key));
             ++eventcount;
           }
           ++combocount;
@@ -1443,7 +1445,7 @@ void EventHandler::setComboListForEvent(Event::Type event, const StringList& eve
     int combo = event - Event::Combo1;
     for(uInt32 i = 0; i < 8; ++i)
     {
-      uInt32 idx = stoi(events[i]);
+      uInt32 idx = BSPF::stringToInt(events[i]);
       if(idx < ourEmulActionList.size())
         myComboTable[combo][i] = EventHandler::ourEmulActionList[idx].event;
       else

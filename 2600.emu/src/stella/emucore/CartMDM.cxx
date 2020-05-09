@@ -153,6 +153,7 @@ bool CartridgeMDM::save(Serializer& out) const
   try
   {
     out.putInt(myBankOffset);
+    out.putBool(myBankingDisabled);
   }
   catch(...)
   {
@@ -169,6 +170,7 @@ bool CartridgeMDM::load(Serializer& in)
   try
   {
     myBankOffset = in.getInt();
+    myBankingDisabled = in.getBool();
   }
   catch(...)
   {

@@ -103,7 +103,7 @@ Bankswitch::BSList = {{
   { "32IN1"   , "32IN1 Multicart (64/128K)"   },
   { "64IN1"   , "64IN1 Multicart (128/256K)"  },
   { "128IN1"  , "128IN1 Multicart (256/512K)" },
-  { "2K"      , "2K (64-2048 bytes Atari)"    },
+  { "2K"      , "2K (32-2048 bytes Atari)"    },
   { "3E"      , "3E (32K Tigervision)"        },
   { "3E+"     , "3E+ (TJ modified DASH)"      },
   { "3F"      , "3F (512K Tigervision)"       },

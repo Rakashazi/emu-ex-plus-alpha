@@ -145,6 +145,13 @@ namespace BSPF
     return s;
   }
 
+  // Convert string to integer, using default value on any error
+  inline int stringToInt(const string& s, const int defaultValue = 0)
+  {
+    try        { return std::stoi(s); }
+    catch(...) { return defaultValue; }
+  }
+
   // Compare two strings, ignoring case
   inline int compareIgnoreCase(const string& s1, const string& s2)
   {

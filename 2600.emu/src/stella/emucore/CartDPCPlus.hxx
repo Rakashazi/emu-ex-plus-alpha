@@ -272,6 +272,10 @@ class CartridgeDPCPlus : public Cartridge
     // Indicates the offset into the ROM image (aligns to current bank)
     uInt16 myBankOffset{0};
 
+    // MD5 value of the 3K DPC+ driver. Used to determine which mask to use,
+    // and shown in the Cartridge tab of the debugger
+    string myDriverMD5;
+
     // Older DPC+ driver code had different behaviour wrt the mask used
     // to retrieve 'DFxFRACLOW' (fractional data pointer low byte)
     // ROMs built with an old DPC+ driver and using the newer mask can

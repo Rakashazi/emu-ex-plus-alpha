@@ -110,7 +110,7 @@ Console::Console(OSystem& osystem, unique_ptr<Cartridge>& cart,
   myCart->setStartBankFromPropsFunc([this]() {
     const string& startbank = myProperties.get(PropType::Cart_StartBank);
     return (startbank == EmptyString || BSPF::equalsIgnoreCase(startbank, "AUTO"))
-        ? -1 : stoi(startbank);
+        ? -1 : BSPF::stringToInt(startbank);
   });
 
   // We can only initialize after all the devices/components have been created
@@ -276,9 +276,9 @@ void Console::redetectFrameLayout()
 string Console::formatFromFilename() const
 {
   static const BSPF::array2D<string, 6, 2> Pattern = {{
-    { R"([ _\-(\[<]+NTSC[ -]?50)",      "NTSC50"  },
-    { R"([ _\-(\[<]+PAL[ -]?60)",       "PAL60"   },
-    { R"([ _\-(\[<]+SECAM[ -]?60)",     "SECAM60" },
+    { R"([ _\-(\[<]+NTSC[ _-]?50)",     "NTSC50"  },
+    { R"([ _\-(\[<]+PAL[ _-]?60)",      "PAL60"   },
+    { R"([ _\-(\[<]+SECAM[ _-]?60)",    "SECAM60" },
     { R"([ _\-(\[<]+NTSC[ _\-)\]>]?)",  "NTSC"    },
     { R"([ _\-(\[<]+PAL[ _\-)\]>]?)",   "PAL"     },
     { R"([ _\-(\[<]+SECAM[ _\-)\]>]?)", "SECAM"   }
@@ -290,7 +290,7 @@ string Console::formatFromFilename() const
   {
     try
     {
-      std::regex rgx(Pattern[i][0]);
+      std::regex rgx(Pattern[i][0], std::regex_constants::icase);
       if(std::regex_search(filename, rgx))
         return Pattern[i][1];
     }
@@ -583,7 +583,7 @@ void Console::togglePhosphor()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Console::changePhosphor(int direction)
 {
-  int blend = stoi(myProperties.get(PropType::Display_PPBlend));
+  int blend = BSPF::stringToInt(myProperties.get(PropType::Display_PPBlend));
 
   if(direction == +1)       // increase blend
   {
@@ -745,7 +745,7 @@ void Console::updateVcenter(Int32 vcenter)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Console::changeScanlineAdjust(int direction)
 {
-  Int32 newAdjustVSize = myTIA->adjustVSize();;
+  Int32 newAdjustVSize = myTIA->adjustVSize();
 
   if (direction != -1 && direction != +1) return;
 
@@ -789,7 +789,7 @@ void Console::changeScanlineAdjust(int direction)
 void Console::setTIAProperties()
 {
   Int32 vcenter = BSPF::clamp(
-    static_cast<Int32>(stoi(myProperties.get(PropType::Display_VCenter))), TIAConstants::minVcenter, TIAConstants::maxVcenter
+    static_cast<Int32>(BSPF::stringToInt(myProperties.get(PropType::Display_VCenter))), TIAConstants::minVcenter, TIAConstants::maxVcenter
   );
 
   if(myDisplayFormat == "NTSC" || myDisplayFormat == "PAL60" ||
@@ -990,22 +990,11 @@ unique_ptr<Controller> Console::getControllerPort(const Controller::Type type,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Console::loadUserPalette()
 {
-  const string& palette = myOSystem.paletteFile();
-  ifstream in(palette, std::ios::binary);
-  if(!in)
+  if (!myOSystem.checkUserPalette(true))
     return;
 
-  // Make sure the contains enough data for the NTSC, PAL and SECAM palettes
-  // This means 128 colours each for NTSC and PAL, at 3 bytes per pixel
-  // and 8 colours for SECAM at 3 bytes per pixel
-  in.seekg(0, std::ios::end);
-  std::streampos length = in.tellg();
-  in.seekg(0, std::ios::beg);
-  if(length < 128 * 3 * 2 + 8 * 3)
-  {
-    cerr << "ERROR: invalid palette file " << palette << endl;
-    return;
-  }
+  const string& palette = myOSystem.paletteFile();
+  ifstream in(palette, std::ios::binary);
 
   // Now that we have valid data, create the user-defined palettes
   std::array<uInt8, 3> pixbuf;  // Temporary buffer for one 24-bit pixel

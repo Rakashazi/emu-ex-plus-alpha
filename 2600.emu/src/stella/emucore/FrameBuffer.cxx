@@ -36,9 +36,14 @@
 #ifdef GUI_SUPPORT
   #include "Font.hxx"
   #include "StellaFont.hxx"
+  #include "ConsoleMediumBFont.hxx"
   #include "StellaMediumFont.hxx"
   #include "StellaLargeFont.hxx"
+  #include "Stella12x24tFont.hxx"
+  #include "Stella14x28tFont.hxx"
+  #include "Stella16x32tFont.hxx"
   #include "ConsoleFont.hxx"
+  #include "ConsoleBFont.hxx"
   #include "Launcher.hxx"
   #include "Menu.hxx"
   #include "CommandMenu.hxx"
@@ -106,27 +111,42 @@ bool FrameBuffer::initialize()
   // This font is used in a variety of situations when a really small
   // font is needed; we let the specific widget/dialog decide when to
   // use it
-  mySmallFont = make_unique<GUI::Font>(GUI::stellaDesc);
+  mySmallFont = make_unique<GUI::Font>(GUI::stellaDesc); // 6x10
 
   // The general font used in all UI elements
   // This is determined by the size of the framebuffer
   if(myOSystem.settings().getBool("minimal_ui"))
-    myFont = make_unique<GUI::Font>(GUI::stellaLargeDesc);
+  {
+    myFont = make_unique<GUI::Font>(GUI::stella12x24tDesc);           // 12x24
+    // The info font used in all UI elements
+    // This is determined by the size of the framebuffer
+    myInfoFont = make_unique<GUI::Font>(GUI::stellaLargeDesc);        // 10x20
+  }
   else
-    myFont = make_unique<GUI::Font>(GUI::stellaMediumDesc);
+  {
+    myFont = make_unique<GUI::Font>(GUI::stellaMediumDesc);           //  9x18
+    // The info font used in all UI elements
+    // This is determined by the size of the framebuffer
+    myInfoFont = make_unique<GUI::Font>(GUI::consoleDesc);            //  8x13
+  }
 
-  // The info font used in all UI elements
-  // This is determined by the size of the framebuffer
-  myInfoFont = make_unique<GUI::Font>(GUI::consoleDesc);
 
   // The font used by the ROM launcher
   const string& lf = myOSystem.settings().getString("launcherfont");
   if(lf == "small")
-    myLauncherFont = make_unique<GUI::Font>(GUI::consoleDesc);
+    myLauncherFont = make_unique<GUI::Font>(GUI::consoleBDesc);       //  8x13
+  else if(lf == "low_medium")
+    myLauncherFont = make_unique<GUI::Font>(GUI::consoleMediumBDesc); //  9x15
   else if(lf == "medium")
-    myLauncherFont = make_unique<GUI::Font>(GUI::stellaMediumDesc);
-  else
-    myLauncherFont = make_unique<GUI::Font>(GUI::stellaLargeDesc);
+    myLauncherFont = make_unique<GUI::Font>(GUI::stellaMediumDesc);   //  9x18
+  else if(lf == "large" || lf == "large10")
+    myLauncherFont = make_unique<GUI::Font>(GUI::stellaLargeDesc);    // 10x20
+  else if(lf == "large12")
+    myLauncherFont = make_unique<GUI::Font>(GUI::stella12x24tDesc);   // 12x24
+  else if(lf == "large14")
+    myLauncherFont = make_unique<GUI::Font>(GUI::stella14x28tDesc);   // 14x28
+  else // "large16"
+    myLauncherFont = make_unique<GUI::Font>(GUI::stella16x32tDesc);   // 16x32
 #endif
 
   // Determine possible TIA windowed zoom levels
@@ -862,23 +882,23 @@ void FrameBuffer::setCursorState()
   // Show/hide cursor in UI/emulation mode based on 'cursor' setting
   int cursor = myOSystem.settings().getInt("cursor");
   // always enable cursor in lightgun games
-  if (usesLightgun)
-    cursor |= 1;
+  if (usesLightgun && !myGrabMouse)
+    cursor |= 1;  // +Emulation
 
   switch(cursor)
   {
-    case 0:
+    case 0:                   // -UI, -Emulation
       showCursor(false);
       break;
     case 1:
-      showCursor(emulation);
+      showCursor(emulation);  //-UI, +Emulation
       myGrabMouse = false; // disable grab while cursor is shown in emulation
       break;
-    case 2:
+    case 2:                   // +UI, -Emulation
       showCursor(!emulation);
       break;
     case 3:
-      showCursor(true);
+      showCursor(true);       // +UI, +Emulation
       myGrabMouse = false; // disable grab while cursor is shown in emulation
       break;
   }

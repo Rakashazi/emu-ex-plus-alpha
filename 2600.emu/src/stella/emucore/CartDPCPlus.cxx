@@ -57,9 +57,20 @@ CartridgeDPCPlus::CartridgeDPCPlus(const ByteBuffer& image, size_t size,
        Thumbulator::ConfigureFor::DPCplus,
        this);
 
-  // Currently only one known DPC+ ARM driver exhibits a problem
-  // with the default mask to use for DFxFRACLOW
-  if(MD5::hash(image, 3_KB) == "8dd73b44fd11c488326ce507cbeb19d1")
+  // Currently 4 DPC+ driver versions have been identified:
+  //   17884ec14f9b1d06fe8d617a1fbdcf47  Jitter  Encore Compatible
+  //   5f80b5a5adbe483addc3f6e6f1b472f8  Stable  Encore Compatible
+  //   8dd73b44fd11c488326ce507cbeb19d1  Stable  NOT Encore Compatible
+  //   b328dbdf787400c0f0e2b88b425872a5  Jitter  Encore Compatible
+  //
+  // Jitter/Stable refers to the appearance of the playfield in bB games if
+  // the DFxFRACINC registers are not updated before every drawscreen.
+  //
+  // The default mask for DFxFRACLOW implements the Jitter behavior. This
+  // changes the mask to implement the Stable behavior.
+  myDriverMD5 = MD5::hash(image, 3_KB);
+  if(myDriverMD5 == "5f80b5a5adbe483addc3f6e6f1b472f8" ||
+     myDriverMD5 == "8dd73b44fd11c488326ce507cbeb19d1" )
     myFractionalLowMask = 0x0F0000;
 
   setInitialState();

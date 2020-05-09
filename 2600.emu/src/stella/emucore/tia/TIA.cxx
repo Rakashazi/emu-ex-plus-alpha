@@ -568,7 +568,8 @@ bool TIA::poke(uInt16 address, uInt8 value)
       break;
 
     case COLUBK:
-      myBackground.setColor(value & 0xFE);
+      value &= 0xFE;
+      myBackground.setColor(value);
       myShadowRegisters[address] = value;
       break;
 

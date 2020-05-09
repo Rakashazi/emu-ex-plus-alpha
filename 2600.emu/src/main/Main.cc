@@ -136,6 +136,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	auto &console = os->console();
 	autoDetectedInput1 = limitToSupportedControllerTypes(console.leftController().type());
 	setControllerType(console, (Controller::Type)optionInputPort1.val);
+	Paddles::setDigitalSensitivity(optionPaddleDigitalSensitivity);
 	console.initializeVideo();
 	console.initializeAudio();
 	logMsg("is PAL: %s", EmuSystem::vidSysIsPAL() ? "yes" : "no");

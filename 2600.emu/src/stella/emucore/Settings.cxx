@@ -342,7 +342,8 @@ void Settings::validate()
     setValue("palette", "standard");
 
   s = getString("launcherfont");
-  if(s != "small" && s != "medium" && s != "large")
+  if(s != "small" && s != "low_medium" && s != "medium" && s != "large"
+     && s != "large12" && s != "large14" && s != "large16")
     setValue("launcherfont", "medium");
 
   s = getString("dbg.fontsize");
@@ -350,8 +351,7 @@ void Settings::validate()
     setValue("dbg.fontsize", "medium");
 
   i = getInt("romviewer");
-  if(i < 0)       setValue("romviewer", "0");
-  else if(i > 2)  setValue("romviewer", "2");
+  if(i < 0) setValue("romviewer", "0");
 
   i = getInt("loglevel");
   if(i < int(Logger::Level::MIN) || i > int(Logger::Level::MAX))
@@ -410,7 +410,7 @@ void Settings::usage() const
     << "  -tia.inter       <1|0>        Enable interpolated (smooth) scaling for TIA\n"
     << "                                 image\n"
     << "  -tia.fs_stretch  <1|0>        Stretch TIA image to fill fullscreen mode\n"
-    << "  -tia.fs_overscan <0-10>       Add overscan to TIA image in fill fullscreen mode\n"
+    << "  -tia.fs_overscan <0-10>       Add overscan to TIA image in fullscreen mode\n"
     << "  -tia.dbgcolors   <string>     Debug colors to use for each object (see manual\n"
     << "                                 for description)\n"
     << endl
@@ -467,23 +467,27 @@ void Settings::usage() const
     << "  -ssinterval   <number>       Number of seconds between snapshots in\n"
     << "                                continuous snapshot mode\n"
     << endl
-    << "  -saveonexit   <none|current  Automatically save state(s) when exiting emulation\n"
-    << "                 all>\n"
+    << "  -saveonexit   <none|current| Automatically save state(s) when exiting\n"
+    << "                 all>           emulation\n"
     << "  -autoslot     <1|0>          Automatically change to next save slot when\n"
     << "                                state saving\n"
     << endl
     << "  -rominfo      <rom>          Display detailed information for the given ROM\n"
     << "  -listrominfo                 Display contents of stella.pro, one line per ROM\n"
     << "                                entry\n"
-    << "                               \n"
+      << endl
     << "  -exitlauncher <1|0>          On exiting a ROM, go back to the ROM launcher\n"
     << "  -launcherres  <WxH>          The resolution to use in ROM launcher mode\n"
-    << "  -launcherfont <small|medium| Use the specified font in the ROM launcher\n"
-    << "                 large>\n"
+    << "  -launcherfont <small|        Use the specified font in the ROM launcher\n"
+    << "                 low_medium|\n"
+    << "                 medium|large|\n"
+    << "                 large12|large14|\n"
+    << "                 large16>\n"
     << "  -launcherroms <1|0>          Show only ROMs in the launcher (vs. all files)\n"
-    << "  -romviewer    <0|1|2>        Show ROM info viewer at given zoom level in ROM\n"
-    << "                                launcher (0 for off)\n"
-    << "  -lastrom       <name>        Last played ROM, automatically selected in launcher\n"
+    << "  -romviewer    <float>        Show ROM info viewer at given zoom level in ROM\n"
+    << "                                launcher (use 0 for off)\n"
+    << "  -lastrom       <name>        Last played ROM, automatically selected in\n"
+    << "                                launcher\n"
     << "  -romloadcount <number>       Number of ROM to load next from multicard\n"
     << "  -uipalette    <standard|     Selects GUI theme\n"
     << "                 classic|light>\n"
@@ -496,9 +500,11 @@ void Settings::usage() const
     << "                                UI\n"
     << "  -mdouble      <speed>        Mouse double click speed in UI\n"
     << "  -ctrldelay    <delay>        Delay before controller input is repeated in UI\n"
-    << "  -ctrlrate     <rate>         Rate per second of repeated controller input in UI\n"
+    << "  -ctrlrate     <rate>         Rate per second of repeated controller input in\n"
+    << "                                UI\n"
     << "  -basic_settings <0|1>        Display only a basic settings dialog\n"
-    << "  -romdir       <dir>          Set the directory where the ROM launcher will start\n"
+    << "  -romdir       <dir>          Set the directory where the ROM launcher will\n"
+    << "                                start\n"
     << "  -avoxport     <name>         The name of the serial port where an AtariVox is\n"
     << "                                connected\n"
     << "  -holdreset                   Start the emulator with the Game Reset switch\n"

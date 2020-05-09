@@ -73,6 +73,9 @@ Controller::Type ControllerDetector::autodetectPort(const uInt8* image, size_t s
       type = Controller::Type::Genesis;
     else if(isProbablyLightGun(image, size, port))
       type = Controller::Type::Lightgun;
+    // add check for games which support joystick and paddles, prefer paddles here
+    else if(usesPaddle(image, size, port, settings))
+      type = Controller::Type::Paddles;
   }
   else
   {

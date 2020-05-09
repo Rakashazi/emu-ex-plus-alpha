@@ -13,6 +13,7 @@ extern Byte1Option optionTVPhosphorBlend;
 extern Byte1Option optionVideoSystem;
 extern Byte1Option optionAudioResampleQuality;
 extern Byte1Option optionInputPort1;
+extern Byte1Option optionPaddleDigitalSensitivity;
 extern Properties defaultGameProps;
 extern bool p1DiffB, p2DiffB, vcsColor;
 extern std::unique_ptr<OSystem> osystem;

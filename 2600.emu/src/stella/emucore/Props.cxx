@@ -63,7 +63,7 @@ void Properties::set(PropType key, const string& value)
 
       case PropType::Display_PPBlend:
       {
-        int blend = stoi(myProperties[pos]);
+        int blend = BSPF::stringToInt(myProperties[pos]);
         if(blend < 0 || blend > 100)
           myProperties[pos] = ourDefaultProperties[pos];
         break;

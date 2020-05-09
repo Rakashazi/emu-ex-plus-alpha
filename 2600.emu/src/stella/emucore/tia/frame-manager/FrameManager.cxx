@@ -236,7 +236,7 @@ void FrameManager::recalculateMetrics() {
       throw runtime_error("frame manager: invalid TV mode");
   }
 
-  myHeight = BSPF::clamp<uInt32>(roundf(static_cast<float>(baseHeight) * (1.f - myVSizeAdjust / 100.f)), 0, myFrameLines);
+  myHeight = BSPF::clamp<uInt32>(roundf(static_cast<float>(baseHeight) * (1.F - myVSizeAdjust / 100.F)), 0, myFrameLines);
   myYStart = BSPF::clamp<uInt32>(ystartBase + (baseHeight - static_cast<Int32>(myHeight)) / 2 - myVcenter, 0, myFrameLines);
   // TODO: why "- 1" here: ???
   myMaxVcenter = BSPF::clamp<Int32>(ystartBase + (baseHeight - static_cast<Int32>(myHeight)) / 2 - 1, 0, TIAConstants::maxVcenter);

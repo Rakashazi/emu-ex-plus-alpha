@@ -14,6 +14,7 @@
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <OSystem.hxx>
+#include <stella/emucore/Paddles.hxx>
 // TODO: Some Stella types collide with MacTypes.h
 #define Debugger DebuggerMac
 #include <emuframework/OptionView.hh>
@@ -172,11 +173,12 @@ class ConsoleOptionView : public TableView
 		EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
-	TextMenuItem inputPortsItem[3]
+	TextMenuItem inputPortsItem[4]
 	{
 		{"Auto", [](){ setInputPorts(Controller::Type::Unknown); }},
 		{"Joystick", [](){ setInputPorts(Controller::Type::Joystick); }},
 		{"Genesis Gamepad", [](){ setInputPorts(Controller::Type::Genesis); }},
+		{"Paddles", [](){ setInputPorts(Controller::Type::Paddles); }},
 	};
 
 	MultiChoiceMenuItem inputPorts
@@ -197,6 +199,8 @@ class ConsoleOptionView : public TableView
 				return 1;
 			else if((Controller::Type)optionInputPort1.val == Controller::Type::Genesis)
 				return 2;
+			else if((Controller::Type)optionInputPort1.val == Controller::Type::Paddles)
+				return 3;
 			else
 				return 0;
 		}(),
@@ -213,11 +217,67 @@ class ConsoleOptionView : public TableView
 		}
 	}
 
-	std::array<MenuItem*, 3> menuItem
+	char dPaddleSensitivityStr[4]{};
+
+	TextMenuItem dPaddleSensitivityItem[2]
+	{
+		{"Default", [this]() { setDPaddleSensitivity(1); }},
+		{"Custom Value",
+			[this](Input::Event e)
+			{
+				EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 1 to 20", "",
+					[this](auto val)
+					{
+						if(optionPaddleDigitalSensitivity.isValidVal(val))
+						{
+							setDPaddleSensitivity(val);
+							dPaddleSensitivity.setSelected(std::size(dPaddleSensitivityItem) - 1, *this);
+							popAndShow();
+							return true;
+						}
+						else
+						{
+							EmuApp::postErrorMessage("Value not in range");
+							return false;
+						}
+					});
+				return false;
+			}
+		}
+	};
+
+	MultiChoiceMenuItem dPaddleSensitivity
+	{
+		"Digital Paddle Sensitivity",
+		[this](uint32_t idx)
+		{
+			return dPaddleSensitivityStr;
+		},
+		[]()
+		{
+			switch(optionPaddleDigitalSensitivity)
+			{
+				case 1: return 0;
+				default: return 1;
+			}
+		}(),
+		dPaddleSensitivityItem
+	};
+
+	void setDPaddleSensitivity(uint8_t val)
+	{
+		EmuSystem::sessionOptionSet();
+		string_printf(dPaddleSensitivityStr, "%u", val);
+		optionPaddleDigitalSensitivity = val;
+		Paddles::setDigitalSensitivity(optionPaddleDigitalSensitivity);
+	}
+
+	std::array<MenuItem*, 4> menuItem
 	{
 		&tvPhosphor,
 		&videoSystem,
 		&inputPorts,
+		&dPaddleSensitivity,
 	};
 
 public:
@@ -231,12 +291,14 @@ public:
 	{
 		if(osystem->hasConsole())
 			string_copy(autoVideoSystemStr, osystem->console().about().DisplayFormat.c_str());
+		string_printf(dPaddleSensitivityStr, "%u", optionPaddleDigitalSensitivity.val);
 	}
 
 	void onShow() final
 	{
 		if(osystem->hasConsole())
 			string_copy(autoVideoSystemStr, osystem->console().about().DisplayFormat.c_str());
+		string_printf(dPaddleSensitivityStr, "%u", optionPaddleDigitalSensitivity.val);
 	}
 };
 

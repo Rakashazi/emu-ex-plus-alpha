@@ -68,6 +68,14 @@ string Base::toString(int value, Common::Base::Fmt outputBase)
       std::snprintf(vToS_buf, 6, "%5d", value);
       break;
 
+    case Base::Fmt::_10_6:  // base 10: 6 digits
+      std::snprintf(vToS_buf, 7, "%6d", value);
+      break;
+
+    case Base::Fmt::_10_8:  // base 10: 8 digits
+      std::snprintf(vToS_buf, 9, "%8d", value);
+      break;
+
     case Base::Fmt::_16_1:  // base 16: 1 byte wide
       std::snprintf(vToS_buf, 2, hexUppercase() ? "%1X" : "%1x", value);
       break;

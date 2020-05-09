@@ -44,7 +44,7 @@
     int stellaMain(int argc, char* argv[]);
   }
 #elif defined(EMU_EX_PLATFORM)
-  #include "OSystem.hxx"
+  #include "OSystemEmuEx.hxx"
 #elif defined(__LIB_RETRO__)
   #include "OSystemLIBRETRO.hxx"
 #else
@@ -58,8 +58,8 @@
   #include "EventHandlerSDL2.hxx"
   #include "FrameBufferSDL2.hxx"
 #elif defined(EMU_EX_PLATFORM)
-  #include "EventHandler.hxx"
-  #include "FrameBuffer.hxx"
+  #include "EventHandlerEmuEx.hxx"
+  #include "FrameBufferEmuEx.hxx"
 #else
   #error Unsupported backend!
 #endif

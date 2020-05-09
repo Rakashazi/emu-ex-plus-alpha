@@ -73,25 +73,19 @@ uInt8 Cartridge3E::peek(uInt16 address)
   uInt16 peekAddress = address;
   address &= 0x0FFF;
 
-  if(address < 0x0800)
+  // Due to the way paging is set up, the only way to get here is a TIA read or
+  // attempting to read from the RAM write port
+
+  if(address < 0x0040)  // TIA access
+    return mySystem->tia().peek(address);
+  else if(myCurrentBank >= 256)
   {
-    if(myCurrentBank < 256)
-      return myImage[(address & 0x07FF) + (myCurrentBank << 11)];
-    else
-    {
-      if(address < 0x0400)
-        return myRAM[(address & 0x03FF) + ((myCurrentBank - 256) << 10)];
-      else
-      {
-        // Reading from the write port triggers an unwanted write
-        return peekRAM(myRAM[(address & 0x03FF) + ((myCurrentBank - 256) << 10)], peekAddress);
-      }
-    }
+    // Reading from the write port triggers an unwanted write
+    return peekRAM(myRAM[(address & 0x03FF) + ((myCurrentBank - 256) << 10)], peekAddress);
   }
-  else
-  {
-    return myImage[(address & 0x07FF) + mySize - 2048];
-  }
+
+  // Make compiler happy; should never get here
+  return myImage[(address & 0x07FF) + mySize - 2048];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -111,11 +105,12 @@ bool Cartridge3E::poke(uInt16 address, uInt8 value)
 
     return mySystem->tia().poke(address, value);
   }
-  else
+  else if(myCurrentBank >= 256)
   {
     if(address & 0x0400)
     {
-      pokeRAM(myRAM[(address & 0x03FF) + ((myCurrentBank - 256) << 10)], pokeAddress, value);
+      pokeRAM(myRAM[(address & 0x03FF) + ((myCurrentBank - 256) << 10)],
+              pokeAddress, value);
       return true;
     }
     else
@@ -128,6 +123,7 @@ bool Cartridge3E::poke(uInt16 address, uInt8 value)
       return false;
     }
   }
+  return false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -174,6 +170,7 @@ bool Cartridge3E::bank(uInt16 bank)
     System::PageAccess access(this, System::PageAccessType::READ);
 
     // Map read-port RAM image into the system
+    // Writes are mapped to poke(), to check for write to the read port
     for(uInt16 addr = 0x1000; addr < 0x1400; addr += System::PAGE_SIZE)
     {
       access.directPeekBase = &myRAM[offset + (addr & 0x03FF)];
@@ -185,8 +182,7 @@ bool Cartridge3E::bank(uInt16 bank)
     access.type = System::PageAccessType::WRITE;
 
     // Map write-port RAM image into the system
-    // Map access to this class, since we need to inspect all accesses to
-    // check if RWP happens
+    // Reads are mapped to peek(), to check for read from write port
     for(uInt16 addr = 0x1400; addr < 0x1800; addr += System::PAGE_SIZE)
     {
       access.codeAccessBase = &myCodeAccessBase[mySize + offset + (addr & 0x03FF)];

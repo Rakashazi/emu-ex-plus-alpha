@@ -302,6 +302,29 @@ void OSystem::setConfigPaths()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool OSystem::checkUserPalette(bool outputError) const
+{
+  const string& palette = paletteFile();
+  ifstream in(palette, std::ios::binary);
+  if (!in)
+    return false;
+
+  // Make sure the contains enough data for the NTSC, PAL and SECAM palettes
+  // This means 128 colours each for NTSC and PAL, at 3 bytes per pixel
+  // and 8 colours for SECAM at 3 bytes per pixel
+  in.seekg(0, std::ios::end);
+  std::streampos length = in.tellg();
+  in.seekg(0, std::ios::beg);
+  if (length < 128 * 3 * 2 + 8 * 3)
+  {
+    if (outputError)
+      cerr << "ERROR: invalid palette file " << palette << endl;
+    return false;
+  }
+  return true;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FBInitStatus OSystem::createFrameBuffer()
 {
   // Re-initialize the framebuffer to current settings

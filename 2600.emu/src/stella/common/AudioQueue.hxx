@@ -21,7 +21,7 @@
 #include <mutex>
 
 #include "bspf.hxx"
-#include <StaggeredLogger.hxx>
+#include "StaggeredLogger.hxx"
 
 /**
   This class implements a an audio queue that acts both like a ring buffer

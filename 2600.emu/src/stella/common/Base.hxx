@@ -51,6 +51,8 @@ class Base
       _10_3,    // base 10: 3 digits
       _10_4,    // base 10: 4 digits
       _10_5,    // base 10: 5 digits
+      _10_6,    // base 10: 6 digits
+      _10_8,    // base 10: 8 digits
       _2,       // base 2:  8 or 16 bits (depending on value)
       _2_8,     // base 2:  1 byte (8 bits) wide
       _2_16,    // base 2:  2 bytes (16 bits) wide

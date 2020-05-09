@@ -27,6 +27,7 @@ enum
 	CFGKEY_2600_TV_PHOSPHOR = 270, CFGKEY_VIDEO_SYSTEM = 271,
 	CFGKEY_2600_TV_PHOSPHOR_BLEND = 272, CFGKEY_AUDIO_RESAMPLE_QUALITY = 273,
 	CFGKEY_INPUT_PORT_1 = 274, CFGKEY_INPUT_PORT_2 = 275,
+	CFGKEY_PADDLE_DIGITAL_SENSITIVITY = 276
 };
 
 const char *EmuSystem::configFilename = "2600emu.config";
@@ -43,6 +44,8 @@ Byte1Option optionAudioResampleQuality{CFGKEY_AUDIO_RESAMPLE_QUALITY,
 	(uint8_t)AudioSettings::DEFAULT_RESAMPLING_QUALITY, false,
 	optionIsValidWithMinMax<(uint8_t)AudioSettings::ResamplingQuality::nearestNeightbour, (uint8_t)AudioSettings::ResamplingQuality::lanczos_3>};
 Byte1Option optionInputPort1{CFGKEY_INPUT_PORT_1, 0, false, optionIsValidControllerType};
+Byte1Option optionPaddleDigitalSensitivity{CFGKEY_PADDLE_DIGITAL_SENSITIVITY, 1, false,
+	optionIsValidWithMinMax<1, 20>};
 
 static bool optionIsValidControllerType(uint8_t val)
 {
@@ -68,6 +71,7 @@ bool EmuSystem::resetSessionOptions()
 	setRuntimeTVPhosphor(optionTVPhosphor, optionTVPhosphorBlend);
 	optionVideoSystem.reset();
 	optionInputPort1.reset();
+	optionPaddleDigitalSensitivity.reset();
 	if(osystem->hasConsole())
 	{
 		setControllerType(osystem->console(), (Controller::Type)optionInputPort1.val);
@@ -83,6 +87,7 @@ bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
 		bcase CFGKEY_2600_TV_PHOSPHOR: optionTVPhosphor.readFromIO(io, readSize);
 		bcase CFGKEY_VIDEO_SYSTEM: optionVideoSystem.readFromIO(io, readSize);
 		bcase CFGKEY_INPUT_PORT_1: optionInputPort1.readFromIO(io, readSize);
+		bcase CFGKEY_PADDLE_DIGITAL_SENSITIVITY: optionPaddleDigitalSensitivity.readFromIO(io, readSize);
 	}
 	return 1;
 }
@@ -93,6 +98,7 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionTVPhosphorBlend.writeWithKeyIfNotDefault(io);
 	optionVideoSystem.writeWithKeyIfNotDefault(io);
 	optionInputPort1.writeWithKeyIfNotDefault(io);
+	optionPaddleDigitalSensitivity.writeWithKeyIfNotDefault(io);
 }
 
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
