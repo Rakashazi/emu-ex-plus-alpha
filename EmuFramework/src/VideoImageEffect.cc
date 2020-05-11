@@ -80,11 +80,12 @@ static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, const char *src, b
 	}
 }
 
-void VideoImageEffect::setEffect(Gfx::Renderer &r, uint effect, bool isExternalTex)
+void VideoImageEffect::setEffect(Gfx::Renderer &r, uint effect, uint bitDepth, bool isExternalTex)
 {
 	if(effect == effect_)
 		return;
 	deinit(r);
+	useRGB565RenderTarget = bitDepth <= 16;
 	effect_ = effect;
 	compile(r, isExternalTex);
 }

@@ -18,7 +18,9 @@
 #include <emuframework/EmuAppInlines.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
+#include <imagine/util/ScopeGuard.hh>
 #include <gambatte.h>
+#include <libgambatte/src/video/lcddef.h>
 #include <resample/resampler.h>
 #include <resample/resamplerinfo.h>
 #include <main/Cheats.hh>
@@ -29,15 +31,11 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobe
 gambatte::GB gbEmu;
 static Resampler *resampler{};
 static uint8_t activeResampler = 1;
+static uint32_t totalFrames = 0;
+static uint64_t totalSamples = 0;
+alignas(8) static uint_least32_t frameBuffer[gambatte::lcd_hres * gambatte::lcd_vres];
+static const IG::Pixmap frameBufferPix{{{gambatte::lcd_hres, gambatte::lcd_vres}, IG::PIXEL_RGBA8888}, frameBuffer};
 static const GBPalette *gameBuiltinPalette{};
-static const int gbResX = 160, gbResY = 144;
-
-#ifdef GAMBATTE_COLOR_RGB565
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
-#else
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGBA8888;
-#endif
-
 bool EmuSystem::hasCheats = true;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](const char *name)
@@ -67,6 +65,35 @@ const char *EmuSystem::systemName()
 	return "Game Boy";
 }
 
+static uint_least32_t makeOutputColor(uint_least32_t rgb888)
+{
+	unsigned b = rgb888       & 0xFF;
+	unsigned g = rgb888 >>  8 & 0xFF;
+	unsigned r = rgb888 >> 16 & 0xFF;
+	return b << 16 | g << 8 | r;
+}
+
+uint_least32_t gbcToRgb32(unsigned const bgr15)
+{
+	unsigned r = bgr15       & 0x1F;
+	unsigned g = bgr15 >>  5 & 0x1F;
+	unsigned b = bgr15 >> 10 & 0x1F;
+	uint_least32_t color;
+	if(optionFullGbcSaturation)
+	{
+		color = ((r * 255 + 15) / 31) << 16 |
+			((g * 255 + 15) / 31) << 8 |
+			((b * 255 + 15) / 31);
+	}
+	else
+	{
+		color = ((r * 13 + g * 2 + b) >> 1) << 16
+		| (g * 3 + b) << 9
+		| (r * 3 + g * 2 + b * 11) >> 1;
+	}
+	return makeOutputColor(color);
+}
+
 void applyGBPalette()
 {
 	uint idx = optionGBPal;
@@ -78,11 +105,11 @@ void applyGBPalette()
 		logMsg("using palette index %d", idx);
 	const GBPalette &pal = useBuiltin ? *gameBuiltinPalette : gbPal[idx];
 	iterateTimes(4, i)
-		gbEmu.setDmgPaletteColor(0, i, pal.bg[i]);
+		gbEmu.setDmgPaletteColor(0, i, makeOutputColor(pal.bg[i]));
 	iterateTimes(4, i)
-		gbEmu.setDmgPaletteColor(1, i, pal.sp1[i]);
+		gbEmu.setDmgPaletteColor(1, i, makeOutputColor(pal.sp1[i]));
 	iterateTimes(4, i)
-		gbEmu.setDmgPaletteColor(2, i, pal.sp2[i]);
+		gbEmu.setDmgPaletteColor(2, i, makeOutputColor(pal.sp2[i]));
 }
 
 EmuSystem::Error EmuSystem::onOptionsLoaded()
@@ -104,7 +131,7 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 
 EmuSystem::Error EmuSystem::saveState(const char *path)
 {
-	if(!gbEmu.saveState(/*screenBuff*/0, 160, path))
+	if(!gbEmu.saveState(frameBuffer, gambatte::lcd_hres, path))
 		return makeFileWriteError();
 	else
 		return {};
@@ -136,8 +163,10 @@ void EmuSystem::closeSystem()
 {
 	saveBackupMem();
 	cheatList.clear();
-	cheatsModified = 0;
+	cheatsModified = false;
 	gameBuiltinPalette = nullptr;
+	totalFrames = 0;
+	totalSamples = 0;
 }
 
 EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
@@ -167,7 +196,12 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	video.setFormat({{gbResX, gbResY}, pixFmt});
+	auto fmt = (IG::PixelFormatID)optionRenderPixelFormat.val;
+	if(fmt == IG::PIXEL_NONE)
+	{
+		fmt = EmuApp::defaultRenderPixelFormat();
+	}
+	video.setFormat({{gambatte::lcd_hres, gambatte::lcd_vres}, fmt});
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
@@ -185,50 +219,71 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	}
 }
 
+static size_t runUntilVideoFrame(gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
+	EmuAudio *audio, DelegateFunc<void()> videoFrameCallback)
+{
+	size_t samplesEmulated = 0;
+	constexpr unsigned samplesPerRun = 2064;
+	bool didOutputFrame;
+	do
+	{
+		std::array<uint_least32_t, samplesPerRun+2064> snd;
+		size_t samples = samplesPerRun;
+		didOutputFrame = gbEmu.runFor(videoBuf, pitch, snd.data(), samples, videoFrameCallback) != -1;
+		samplesEmulated += samples;
+		if(audio)
+		{
+			constexpr size_t buffSize = (snd.size() / (2097152./48000.) + 1); // TODO: std::ceil() is constexpr with GCC but not Clang yet
+			std::array<uint32_t, buffSize> destBuff;
+			uint destFrames = resampler->resample((short*)destBuff.data(), (const short*)snd.data(), samples);
+			assumeExpr(destFrames <= destBuff.size());
+			audio->writeFrames(destBuff.data(), destFrames);
+		}
+	} while(!didOutputFrame);
+	return samplesEmulated;
+}
+
 void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
-	alignas(std::max_align_t) uint8_t snd[(35112+2064)*4];
-	size_t samples = 35112;
-	int frameSample;
-	DelegateFunc<void()> frameCallback{};
+	auto incFrameCountOnReturn = IG::scopeGuard([](){ totalFrames++; });
+	auto currentFrame = totalSamples / 35112;
+	if(totalFrames < currentFrame)
+	{
+		logMsg("unchanged video frame");
+		if(video)
+			video->startUnchangedFrame(task);
+		return;
+	}
 	if(video)
 	{
-		auto img = video->startFrame(task);
-		frameCallback =
-			[&img]()
+		totalSamples += runUntilVideoFrame(frameBuffer, gambatte::lcd_hres, audio,
+			[task, video]()
 			{
-				img.endFrame();
-			};
-		frameSample = gbEmu.runFor((gambatte::PixelType*)img.pixmap().pixel({}), img.pixmap().pitchPixels(),
-			(uint_least32_t*)snd, samples, frameCallback);
+				if(video->image().pixmapDesc().format() == IG::PIXEL_RGBA8888)
+				{
+					video->startFrame(task, frameBufferPix);
+				}
+				else
+				{
+					// convert RGBA8888 to RGB565, for older GPUs with slow texture uploads
+					auto img = video->startFrame(task);
+					img.pixmap().writeTransformed(
+						[](uint32_t p)
+						{
+							unsigned r = p       & 0xFF;
+							unsigned g = p >>  8 & 0xFF;
+							unsigned b = p >> 16 & 0xFF;
+							return ((r * (31 * 2) + 255) / (255 * 2)) << 11 |
+									((g * 63 + 127) / 255) << 5 |
+									((b * 31 + 127) / 255);
+						}, frameBufferPix);
+					img.endFrame();
+				}
+			});
 	}
 	else
 	{
-		frameSample = gbEmu.runFor(nullptr, 160, (uint_least32_t*)snd, samples, frameCallback);
-	}
-	if(audio)
-	{
-		if(frameSample == -1)
-		{
-			logMsg("no emulated frame with %d samples", (int)samples);
-		}
-		//else logMsg("emulated frame at %d with %d samples", frameSample, samples);
-		if(unlikely(samples < 34000))
-		{
-			uint repeatPos = std::max((int)samples-1, 0);
-			uint32_t *sndFrame = (uint32_t*)snd;
-			logMsg("only %d, repeat %d", (int)samples, (int)sndFrame[repeatPos]);
-			for(uint i = samples; i < 35112; i++)
-			{
-				sndFrame[i] = sndFrame[repeatPos];
-			}
-			samples = 35112;
-		}
-		// video rendered in runFor()
-		short destBuff[(48000/54)*2];
-		uint destFrames = resampler->resample(destBuff, (const short*)snd, samples);
-		assert(destFrames * 4 <= sizeof(destBuff));
-		audio->writeFrames(destBuff, destFrames);
+		totalSamples += runUntilVideoFrame(nullptr, gambatte::lcd_hres, audio, {});
 	}
 }
 

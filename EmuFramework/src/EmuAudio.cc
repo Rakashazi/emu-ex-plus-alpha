@@ -213,10 +213,13 @@ void EmuAudio::close()
 {
 	stop();
 	rBuff = {};
+	audioStream.reset();
 }
 
 void EmuAudio::flush()
 {
+	if(unlikely(!audioStream))
+		return;
 	stopAudioStats();
 	audioWriteState = AudioWriteState::BUFFER;
 	if(audioStream)
@@ -226,7 +229,7 @@ void EmuAudio::flush()
 
 void EmuAudio::writeFrames(const void *samples, uint32_t framesToWrite)
 {
-	assert(optionSound.val);
+	assumeExpr(rBuff);
 	switch(audioWriteState)
 	{
 		case AudioWriteState::MULTI_UNDERRUN:
@@ -335,4 +338,9 @@ void EmuAudio::setAddSoundBuffersOnUnderrun(bool on)
 IG::Audio::PcmFormat EmuAudio::pcmFormat() const
 {
 	return format;
+}
+
+EmuAudio::operator bool() const
+{
+	return (bool)rBuff;
 }

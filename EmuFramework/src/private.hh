@@ -171,6 +171,7 @@ Gfx::Viewport makeViewport(const Base::Window &win);
 void updateProjection(AppWindowData &appWin, const Gfx::Viewport &viewport);
 AppWindowData &appWindowData(const Base::Window &win);
 uint8_t currentFrameInterval();
+IG::PixelFormatID optionImageEffectPixelFormatValue();
 
 static void addRecentGame()
 {

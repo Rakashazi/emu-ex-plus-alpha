@@ -13,7 +13,7 @@
 //   You should have received a copy of the GNU General Public License
 //   version 2 along with this program; if not, write to the
 //   Free Software Foundation, Inc.,
-//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
 #ifndef INTERRUPTER_H
@@ -34,13 +34,16 @@ class Memory;
 
 class Interrupter {
 public:
-	Interrupter(unsigned short &sp, unsigned short &pc);
-	unsigned long interrupt(unsigned address, unsigned long cycleCounter, Memory &memory);
+	Interrupter(unsigned short &sp, unsigned short &pc, unsigned char &opcode, bool &prefetched);
+	void prefetch(unsigned long cc, Memory &mem);
+	unsigned long interrupt(unsigned long cycleCounter, Memory &memory);
 	void setGameShark(std::string const &codes);
 
 private:
 	unsigned short &sp_;
 	unsigned short &pc_;
+	unsigned char &opcode_;
+	bool &prefetched_;
 	std::vector<GsCode> gsCodes_;
 
 	void applyVblankCheats(unsigned long cc, Memory &mem);

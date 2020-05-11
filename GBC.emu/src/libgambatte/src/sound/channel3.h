@@ -13,7 +13,7 @@
 //   You should have received a copy of the GNU General Public License
 //   version 2 along with this program; if not, write to the
 //   Free Software Foundation, Inc.,
-//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
 #ifndef SOUND_CHANNEL3_H
@@ -31,36 +31,38 @@ class Channel3 {
 public:
 	Channel3();
 	bool isActive() const { return master_; }
+	bool isCgb() const { return cgb_; }
 	void reset();
+	void resetCc(unsigned long cc, unsigned long newCc);
 	void init(bool cgb);
 	void setStatePtrs(SaveState &state);
 	void saveState(SaveState &state) const;
-	void loadState(const SaveState &state);
+	void loadState(SaveState const &state);
 	void setNr0(unsigned data);
-	void setNr1(unsigned data) { lengthCounter_.nr1Change(data, nr4_, cycleCounter_); }
+	void setNr1(unsigned data, unsigned long cc) { lengthCounter_.nr1Change(data, nr4_, cc); }
 	void setNr2(unsigned data);
 	void setNr3(unsigned data) { nr3_ = data; }
-	void setNr4(unsigned data);
+	void setNr4(unsigned data, unsigned long cc);
 	void setSo(unsigned long soMask);
-	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
+	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cc, unsigned long end);
 
-	unsigned waveRamRead(unsigned index) const {
+	unsigned waveRamRead(unsigned index, unsigned long cc) const {
 		if (master_) {
-			if (!cgb_ && cycleCounter_ != lastReadTime_)
+			if (!cgb_ && cc != lastReadTime_)
 				return 0xFF;
 
-			index = wavePos_ >> 1;
+			index = wavePos_ / 2;
 		}
 
 		return waveRam_[index];
 	}
 
-	void waveRamWrite(unsigned index, unsigned data) {
+	void waveRamWrite(unsigned index, unsigned data, unsigned long cc) {
 		if (master_) {
-			if (!cgb_ && cycleCounter_ != lastReadTime_)
+			if (!cgb_ && cc != lastReadTime_)
 				return;
 
-			index = wavePos_ >> 1;
+			index = wavePos_ / 2;
 		}
 
 		waveRam_[index] = data;
@@ -83,7 +85,6 @@ private:
 	unsigned char waveRam_[0x10];
 	Ch3MasterDisabler disableMaster_;
 	LengthCounter lengthCounter_;
-	unsigned long cycleCounter_;
 	unsigned long soMask_;
 	unsigned long prevOut_;
 	unsigned long waveCounter_;

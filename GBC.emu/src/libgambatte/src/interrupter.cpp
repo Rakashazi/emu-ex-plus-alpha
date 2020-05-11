@@ -13,7 +13,7 @@
 //   You should have received a copy of the GNU General Public License
 //   version 2 along with this program; if not, write to the
 //   Free Software Foundation, Inc.,
-//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
 #include "interrupter.h"
@@ -21,21 +21,47 @@
 
 namespace gambatte {
 
-Interrupter::Interrupter(unsigned short &sp, unsigned short &pc)
+Interrupter::Interrupter(unsigned short &sp, unsigned short &pc, unsigned char &opcode, bool &prefetched)
 : sp_(sp)
 , pc_(pc)
+, opcode_(opcode)
+, prefetched_(prefetched)
 {
 }
 
-unsigned long Interrupter::interrupt(unsigned const address, unsigned long cc, Memory &memory) {
-	cc += 8;
+void Interrupter::prefetch(unsigned long cc, Memory &mem) {
+	if (!prefetched_) {
+		opcode_ = mem.read(pc_, cc);
+		pc_ = (pc_ + 1) & 0xFFFF;
+		prefetched_ = true;
+	}
+}
+
+unsigned long Interrupter::interrupt(unsigned long cc, Memory &memory) {
+	// undo prefetch (presumably unconditional on hw).
+	if (prefetched_) {
+		pc_ = (pc_ - 1) & 0xFFFF;
+		prefetched_ = false;
+	}
+	cc += 12;
 	sp_ = (sp_ - 1) & 0xFFFF;
 	memory.write(sp_, pc_ >> 8, cc);
 	cc += 4;
+
+	unsigned const pendingIrqs = memory.pendingIrqs(cc);
+	unsigned const n = pendingIrqs & -pendingIrqs;
+	unsigned address;
+	if (n <= 4) {
+		static unsigned char const lut[] = { 0x00, 0x40, 0x48, 0x48, 0x50 };
+		address = lut[n];
+	} else
+		address = 0x50 + n;
+
 	sp_ = (sp_ - 1) & 0xFFFF;
 	memory.write(sp_, pc_ & 0xFF, cc);
+	memory.ackIrq(n, cc);
 	pc_ = address;
-	cc += 8;
+	cc += 4;
 
 	if (address == 0x40 && !gsCodes_.empty())
 		applyVblankCheats(cc, memory);

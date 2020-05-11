@@ -13,14 +13,16 @@
 //   You should have received a copy of the GNU General Public License
 //   version 2 along with this program; if not, write to the
 //   Free Software Foundation, Inc.,
-//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
 #include "length_counter.h"
 #include "master_disabler.h"
+#include "psgdef.h"
+
 #include <algorithm>
 
-namespace gambatte {
+using namespace gambatte;
 
 LengthCounter::LengthCounter(MasterDisabler &disabler, unsigned const mask)
 : disableMaster_(disabler)
@@ -38,35 +40,30 @@ void LengthCounter::event() {
 
 void LengthCounter::nr1Change(unsigned const newNr1, unsigned const nr4, unsigned long const cc) {
 	lengthCounter_ = (~newNr1 & lengthMask_) + 1;
-	counter_ = nr4 & 0x40
-	         ? ((cc >> 13) + lengthCounter_) << 13
-	         : static_cast<unsigned long>(counter_disabled);
+	counter_ = nr4 & psg_nr4_lcen
+		? ((cc >> 13) + lengthCounter_) << 13
+		: 1 * counter_disabled;
 }
 
 void LengthCounter::nr4Change(unsigned const oldNr4, unsigned const newNr4, unsigned long const cc) {
 	if (counter_ != counter_disabled)
 		lengthCounter_ = (counter_ >> 13) - (cc >> 13);
 
-	{
-		unsigned dec = 0;
-
-		if (newNr4 & 0x40) {
-			dec = ~cc >> 12 & 1;
-
-			if (!(oldNr4 & 0x40) && lengthCounter_) {
-				if (!(lengthCounter_ -= dec))
-					disableMaster_();
-			}
+	unsigned dec = 0;
+	if (newNr4 & psg_nr4_lcen) {
+		dec = ~cc >> 12 & 1;
+		if (!(oldNr4 & psg_nr4_lcen) && lengthCounter_) {
+			if (!(lengthCounter_ -= dec))
+				disableMaster_();
 		}
-
-		if ((newNr4 & 0x80) && !lengthCounter_)
-			lengthCounter_ = lengthMask_ + 1 - dec;
 	}
 
-	if ((newNr4 & 0x40) && lengthCounter_)
-		counter_ = ((cc >> 13) + lengthCounter_) << 13;
-	else
-		counter_ = counter_disabled;
+	if (newNr4 & psg_nr4_init && !lengthCounter_)
+		lengthCounter_ = lengthMask_ + 1 - dec;
+
+	counter_ = newNr4 & psg_nr4_lcen && lengthCounter_
+		? ((cc >> 13) + lengthCounter_) << 13
+		: 1 * counter_disabled;
 }
 
 void LengthCounter::saveState(SaveState::SPU::LCounter &lstate) const {
@@ -77,6 +74,4 @@ void LengthCounter::saveState(SaveState::SPU::LCounter &lstate) const {
 void LengthCounter::loadState(SaveState::SPU::LCounter const &lstate, unsigned long const cc) {
 	counter_ = std::max(lstate.counter, cc);
 	lengthCounter_ = lstate.lengthCounter;
-}
-
 }

@@ -190,13 +190,23 @@ static const char *parseCmdLineArgs(int argc, char** argv)
 	return launchGame;
 }
 
-static IG::PixelFormat windowPixelFormat()
+IG::PixelFormat windowPixelFormat()
 {
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	return (IG::PixelFormatID)optionWindowPixelFormat.val;
 	#else
 	return Base::Window::defaultPixelFormat();
 	#endif
+}
+
+IG::PixelFormat EmuApp::defaultRenderPixelFormat()
+{
+	auto fmt = windowPixelFormat();
+	if(fmt == IG::PIXEL_NONE)
+	{
+		fmt = Base::Window::defaultPixelFormat();
+	}
+	return fmt;
 }
 
 void mainInitCommon(int argc, char** argv)
@@ -272,11 +282,7 @@ void mainInitCommon(int argc, char** argv)
 	updateInputDevices();
 
 	emuVideoLayer.setLinearFilter(optionImgFilter);
-	emuVideoLayer.setOverlay(optionOverlayEffect);
 	emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	emuVideoLayer.setEffectBitDepth((IG::PixelFormatID)optionImageEffectPixelFormat.val == IG::PIXEL_RGBA8888 ? 32 : 16);
-	#endif
 
 	Base::addOnResume(
 		[](bool focused)

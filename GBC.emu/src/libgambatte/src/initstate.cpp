@@ -13,13 +13,14 @@
 //   You should have received a copy of the GNU General Public License
 //   version 2 along with this program; if not, write to the
 //   Free Software Foundation, Inc.,
-//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
 #include "initstate.h"
 #include "counterdef.h"
 #include "savestate.h"
 #include "sound/sound_unit.h"
+
 #include <algorithm>
 #include <cstring>
 #include <ctime>
@@ -1178,6 +1179,8 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 	state.cpu.f = 0xB0;
 	state.cpu.h = 0x01;
 	state.cpu.l = 0x4D;
+	state.cpu.opcode = 0x00;
+	state.cpu.prefetched = false;
 	state.cpu.skip = false;
 
 	std::memset(state.mem.sram.ptr, 0xFF, state.mem.sram.size());
@@ -1192,11 +1195,14 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 		setInitialDmgIoamhram(state.mem.ioamhram.ptr);
 	}
 
-	state.mem.ioamhram.ptr[0x104] = 0x1C;
+	state.mem.ioamhram.ptr[0x104] = 0x00;
 	state.mem.ioamhram.ptr[0x140] = 0x91;
 	state.mem.ioamhram.ptr[0x144] = 0x00;
 
-	state.mem.divLastUpdate = 0;
+	// DIV, TIMA, and the PSG frame sequencer are clocked by bits of the
+	// cycle counter less divLastUpdate (equivalent to a counter that is
+	// reset on DIV write).
+	state.mem.divLastUpdate = -0x1C00;
 	state.mem.timaLastUpdate = 0;
 	state.mem.tmatime = disabled_time;
 	state.mem.nextSerialtime = disabled_time;
@@ -1208,12 +1214,12 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 	state.mem.dmaDestination = 0;
 	state.mem.rambank = 0;
 	state.mem.oamDmaPos = 0xFE;
+	state.mem.haltHdmaState = 0;
 	state.mem.IME = false;
 	state.mem.halted = false;
 	state.mem.enableRam = false;
 	state.mem.rambankMode = false;
 	state.mem.hdmaTransfer = false;
-
 
 	for (int i = 0x00; i < 0x40; i += 0x02) {
 		state.ppu.bgpData.ptr[i    ] = 0xFF;
@@ -1261,11 +1267,12 @@ void gambatte::setInitState(SaveState &state, bool const cgb, bool const gbaCgbM
 
 	// spu.cycleCounter >> 12 & 7 represents the frame sequencer position.
 	state.spu.cycleCounter = (cgb ? 0x1E00 : 0x2400) | (state.cpu.cycleCounter >> 1 & 0x1FF);
+	state.spu.lastUpdate = 0;
 
 	state.spu.ch1.sweep.counter = SoundUnit::counter_disabled;
 	state.spu.ch1.sweep.shadow = 0;
 	state.spu.ch1.sweep.nr0 = 0;
-	state.spu.ch1.sweep.negging = false;
+	state.spu.ch1.sweep.neg = false;
 	if (cgb) {
 		state.spu.ch1.duty.nextPosUpdate = (state.spu.cycleCounter & ~1ul) + 37 * 2;
 		state.spu.ch1.duty.pos = 6;

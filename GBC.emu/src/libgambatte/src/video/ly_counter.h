@@ -13,11 +13,13 @@
 //   You should have received a copy of the GNU General Public License
 //   version 2 along with this program; if not, write to the
 //   Free Software Foundation, Inc.,
-//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
 #ifndef LY_COUNTER_H
 #define LY_COUNTER_H
+
+#include "lcddef.h"
 
 namespace gambatte {
 
@@ -30,11 +32,11 @@ public:
 	bool isDoubleSpeed() const { return ds_; }
 
 	unsigned long frameCycles(unsigned long cc) const {
-		return ly_ * 456ul + lineCycles(cc);
+		return 1l * ly_ * lcd_cycles_per_line + lineCycles(cc);
 	}
 
 	unsigned lineCycles(unsigned long cc) const {
-		return 456u - ((time_ - cc) >> isDoubleSpeed());
+		return lcd_cycles_per_line - ((time_ - cc) >> isDoubleSpeed());
 	}
 
 	unsigned lineTime() const { return lineTime_; }

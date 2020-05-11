@@ -13,7 +13,7 @@
 //   You should have received a copy of the GNU General Public License
 //   version 2 along with this program; if not, write to the
 //   Free Software Foundation, Inc.,
-//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
 #ifndef SPRITE_MAPPER_H
@@ -33,14 +33,12 @@ public:
 	             unsigned char const *oamram);
 	void reset(unsigned char const *oamram, bool cgb);
 	unsigned long doEvent(unsigned long time);
-	bool largeSprites(unsigned spNo) const { return oamReader_.largeSprites(spNo); }
-	unsigned numSprites(unsigned ly) const { return num_[ly] & ~need_sorting_mask; }
+	bool largeSprites(int spno) const { return oamReader_.largeSprites(spno); }
+	int numSprites(unsigned ly) const { return num_[ly] & ~(1u * need_sorting_flag); }
 	void oamChange(unsigned long cc) { oamReader_.change(cc); }
 	void oamChange(unsigned char const *oamram, unsigned long cc) { oamReader_.change(oamram, cc); }
 	unsigned char const * oamram() const { return oamReader_.oam(); }
 	unsigned char const * posbuf() const { return oamReader_.spritePosBuf(); }
-	void  preSpeedChange(unsigned long cc) { oamReader_.update(cc); }
-	void postSpeedChange(unsigned long cc) { oamReader_.change(cc); }
 
 	void resetCycleCounter(unsigned long oldCc, unsigned long newCc) {
 		oamReader_.update(oldCc);
@@ -50,10 +48,10 @@ public:
 	void setLargeSpritesSource(bool src) { oamReader_.setLargeSpritesSrc(src); }
 
 	unsigned char const * sprites(unsigned ly) const {
-		if (num_[ly] & need_sorting_mask)
+		if (num_[ly] & need_sorting_flag)
 			sortLine(ly);
 
-		return spritemap_ + ly * 10;
+		return spritemap_[ly];
 	}
 
 	void setStatePtrs(SaveState &state) { oamReader_.setStatePtrs(state); }
@@ -70,7 +68,7 @@ public:
 	}
 
 	static unsigned long schedule(LyCounter const &lyCounter, unsigned long cc) {
-		return lyCounter.nextLineCycle(80, cc);
+		return lyCounter.nextLineCycle(2 * lcd_num_oam_entries, cc);
 	}
 
 private:
@@ -81,7 +79,7 @@ private:
 		void change(unsigned long cc);
 		void change(unsigned char const *oamram, unsigned long cc) { change(cc); oamram_ = oamram; }
 		bool changed() const { return lastChange_ != 0xFF; }
-		bool largeSprites(unsigned spNo) const { return szbuf_[spNo]; }
+		bool largeSprites(int spno) const { return lsbuf_[spno]; }
 		unsigned char const * oam() const { return oamram_; }
 		void resetCycleCounter(unsigned long oldCc, unsigned long newCc) { lu_ -= oldCc - newCc; }
 		void setLargeSpritesSrc(bool src) { largeSpritesSrc_ = src; }
@@ -95,8 +93,8 @@ private:
 		unsigned lineTime() const { return lyCounter_.lineTime(); }
 
 	private:
-		unsigned char buf_[80];
-		bool szbuf_[40];
+		unsigned char buf_[2 * lcd_num_oam_entries];
+		bool lsbuf_[lcd_num_oam_entries];
 		LyCounter const &lyCounter_;
 		unsigned char const *oamram_;
 		unsigned long lu_;
@@ -105,10 +103,10 @@ private:
 		bool cgb_;
 	};
 
-	enum { need_sorting_mask = 0x80 };
+	enum { need_sorting_flag = 0x80 };
 
-	mutable unsigned char spritemap_[144 * 10];
-	mutable unsigned char num_[144];
+	mutable unsigned char spritemap_[lcd_vres][lcd_max_num_sprites_per_line];
+	mutable unsigned char num_[lcd_vres];
 	NextM0Time &nextM0Time_;
 	OamReader oamReader_;
 

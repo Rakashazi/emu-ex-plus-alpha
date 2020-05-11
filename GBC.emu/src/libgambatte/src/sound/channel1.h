@@ -13,7 +13,7 @@
 //   You should have received a copy of the GNU General Public License
 //   version 2 along with this program; if not, write to the
 //   Free Software Foundation, Inc.,
-//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
 #ifndef SOUND_CHANNEL1_H
@@ -34,16 +34,17 @@ class Channel1 {
 public:
 	Channel1();
 	void setNr0(unsigned data);
-	void setNr1(unsigned data);
-	void setNr2(unsigned data);
-	void setNr3(unsigned data);
-	void setNr4(unsigned data);
-	void setSo(unsigned long soMask);
+	void setNr1(unsigned data, unsigned long cc);
+	void setNr2(unsigned data, unsigned long cc);
+	void setNr3(unsigned data, unsigned long cc);
+	void setNr4(unsigned data, unsigned long cc, unsigned long ref);
+	void setSo(unsigned long soMask, unsigned long cc);
 	bool isActive() const { return master_; }
-	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
+	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cc, unsigned long end);
 	void reset();
+	void resetCc(unsigned long cc, unsigned long ncc) { dutyUnit_.resetCc(cc, ncc); }
 	void init(bool cgb);
-	void saveState(SaveState &state);
+	void saveState(SaveState &state, unsigned long cc);
 	void loadState(SaveState const &state);
 
 private:
@@ -63,7 +64,7 @@ private:
 		DutyUnit &dutyUnit_;
 		unsigned short shadow_;
 		unsigned char nr0_;
-		bool negging_;
+		bool neg_;
 		bool cgb_;
 
 		unsigned calcFreq();
@@ -78,7 +79,6 @@ private:
 	EnvelopeUnit envelopeUnit_;
 	SweepUnit sweepUnit_;
 	SoundUnit *nextEventUnit_;
-	unsigned long cycleCounter_;
 	unsigned long soMask_;
 	unsigned long prevOut_;
 	unsigned char nr4_;

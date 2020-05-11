@@ -2,7 +2,7 @@
 Copyright (C) 2007 by Nach
 http://nsrt.edgeemu.com
 
-Copyright (C) 2007-2011 by Sindre Aamås
+Copyright (C) 2007-2011 by sinamas <sinamas at users.sourceforge.net>
 sinamas@users.sourceforge.net
 
 This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@ GNU General Public License version 2 for more details.
 You should have received a copy of the GNU General Public License
 version 2 along with this program; if not, write to the
 Free Software Foundation, Inc.,
-59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 ***************************************************************************/
 #include "stdfile.h"
 #include <cctype>

@@ -223,6 +223,7 @@ public:
 	}
 	static void resetFrameTime();
 	static void prepareAudioVideo();
+	static void prepareVideo();
 	static void pause();
 	static void start();
 	static void closeSystem();

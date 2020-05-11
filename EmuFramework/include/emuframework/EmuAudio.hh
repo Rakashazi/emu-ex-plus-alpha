@@ -45,6 +45,7 @@ public:
 	void setSpeedMultiplier(uint8_t speed);
 	void setAddSoundBuffersOnUnderrun(bool on);
 	IG::Audio::PcmFormat pcmFormat() const;
+	explicit operator bool() const;
 
 protected:
 	std::unique_ptr<IG::Audio::SysOutputStream> audioStream{};

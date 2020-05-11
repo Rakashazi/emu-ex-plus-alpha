@@ -13,13 +13,15 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "VideoLayer"
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuInputView.hh>
-#include "EmuOptions.hh"
+#include <emuframework/EmuVideo.hh>
 #include <imagine/util/math/Point2D.hh>
-#include <algorithm>
-#include "private.hh"
+#include <imagine/logger/logger.h>
 #include "privateInput.hh"
+#include "EmuOptions.hh"
+#include <algorithm>
 
 EmuVideoLayer::EmuVideoLayer(EmuVideo &video):
 	video{video}
@@ -277,9 +279,18 @@ void EmuVideoLayer::placeOverlay()
 	vidImgOverlay.place(disp, video.size().y);
 }
 
-void EmuVideoLayer::setEffectBitDepth(uint bits)
+static unsigned effectFormatToBits(IG::PixelFormatID format, EmuVideo &video)
 {
-	vidImgEffect.setBitDepth(video.renderer(), bits);
+	if(format == IG::PIXEL_NONE)
+	{
+		format = video.image().pixmapDesc().format().id();
+	}
+	return format == IG::PIXEL_RGBA8888 ? 32 : 16;
+}
+
+void EmuVideoLayer::setEffectFormat(IG::PixelFormatID fmt)
+{
+	vidImgEffect.setBitDepth(video.renderer(), effectFormatToBits(fmt, video));
 }
 
 void EmuVideoLayer::placeEffect()
@@ -295,11 +306,11 @@ void EmuVideoLayer::compileDefaultPrograms()
 	disp.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
 }
 
-void EmuVideoLayer::setEffect(uint effect)
+void EmuVideoLayer::setEffect(uint effect, IG::PixelFormatID fmt)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	assert(video.image());
-	vidImgEffect.setEffect(video.renderer(), effect, video.isExternalTexture());
+	vidImgEffect.setEffect(video.renderer(), effect, effectFormatToBits(fmt, video), video.isExternalTexture());
 	placeEffect();
 	resetImage();
 	#endif
@@ -319,11 +330,11 @@ void EmuVideoLayer::setBrightness(float b)
 	brightness = b;
 }
 
-void EmuVideoLayer::reset()
+void EmuVideoLayer::reset(uint effect, IG::PixelFormatID fmt)
 {
-	setEffect(0);
+	setEffect(0, IG::PIXEL_NONE);
 	video.resetImage();
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	setEffect(optionImgEffect);
+	setEffect(effect, fmt);
 	#endif
 }

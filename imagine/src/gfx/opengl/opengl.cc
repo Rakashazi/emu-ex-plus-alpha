@@ -347,9 +347,12 @@ void GLDrawableHolder::makeDrawable(Renderer &r, Base::Window &win)
 		};
 	Base::addOnResume(onResume, DRAWABLE_ON_RESUME_PRIORITY);
 	onExit =
-		[drawable = drawable](bool backgrounded) mutable
+		[glDpy = r.glDpy, drawable = drawable](bool backgrounded) mutable
 		{
-			drawable.freeCaches();
+			if(backgrounded)
+				drawable.freeCaches();
+			else
+				glDpy.deleteDrawable(drawable);
 			return true;
 		};
 	Base::addOnExit(onExit, DRAWABLE_ON_EXIT_PRIORITY);

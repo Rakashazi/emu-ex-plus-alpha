@@ -614,3 +614,12 @@ uint8_t currentFrameInterval()
 	return 1;
 	#endif
 }
+
+IG::PixelFormatID optionImageEffectPixelFormatValue()
+{
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	return (IG::PixelFormatID)optionImageEffectPixelFormat.val;
+	#else
+	return IG::PIXEL_NONE;
+	#endif
+}

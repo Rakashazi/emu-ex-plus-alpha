@@ -444,9 +444,15 @@ bool EmuSystem::setFrameTime(VideoSystem system, IG::FloatSeconds time)
 
 void EmuSystem::prepareAudioVideo()
 {
-	EmuSystem::onPrepareAudio(emuAudio);
-	EmuSystem::configAudioPlayback(optionSoundRate);
-	EmuSystem::onPrepareVideo(emuVideo);
+	onPrepareAudio(emuAudio);
+	configAudioPlayback(optionSoundRate);
+	prepareVideo();
+}
+
+void EmuSystem::prepareVideo()
+{
+	onPrepareVideo(emuVideo);
+	emuVideo.clear();
 }
 
 static void closeAndSetupNew(const char *path)

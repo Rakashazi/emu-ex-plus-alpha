@@ -13,7 +13,7 @@
 //   You should have received a copy of the GNU General Public License
 //   version 2 along with this program; if not, write to the
 //   Free Software Foundation, Inc.,
-//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
 #ifndef DUTY_UNIT_H
@@ -33,8 +33,9 @@ public:
 	bool isHighState() const { return high_; }
 	void nr1Change(unsigned newNr1, unsigned long cc);
 	void nr3Change(unsigned newNr3, unsigned long cc);
-	void nr4Change(unsigned newNr4, unsigned long cc);
+	void nr4Change(unsigned newNr4, unsigned long cc, unsigned long ref);
 	void reset();
+	void resetCc(unsigned long cc, unsigned long newCc);
 	void saveState(SaveState::SPU::Duty &dstate, unsigned long cc);
 	void loadState(SaveState::SPU::Duty const &dstate, unsigned nr1, unsigned nr4, unsigned long cc);
 	void killCounter();

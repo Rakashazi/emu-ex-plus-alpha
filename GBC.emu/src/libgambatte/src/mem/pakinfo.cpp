@@ -1,4 +1,5 @@
 #include "pakinfo_internal.h"
+
 #include <cstring>
 
 namespace gambatte {
@@ -20,9 +21,10 @@ unsigned numRambanksFromH14x(unsigned char h147, unsigned char h149) {
 	case 0x00: return isMbc2(h147) ? 1 : 0;
 	case 0x01:
 	case 0x02: return 1;
+	default: case 0x03: return 4;
+	case 0x04: return 16;
+	case 0x05: return 8;
 	}
-
-	return 4;
 }
 
 PakInfo::PakInfo()

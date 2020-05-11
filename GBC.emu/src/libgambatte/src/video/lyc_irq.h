@@ -13,7 +13,7 @@
 //   You should have received a copy of the GNU General Public License
 //   version 2 along with this program; if not, write to the
 //   Free Software Foundation, Inc.,
-//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
 #ifndef VIDEO_LYC_IRQ_H
@@ -27,7 +27,7 @@ class LyCounter;
 class LycIrq {
 public:
 	LycIrq();
-	void doEvent(unsigned char *ifreg, LyCounter const &lyCounter);
+	bool doEvent(LyCounter const &lyCounter);
 	unsigned lycReg() const { return lycRegSrc_; }
 	void loadState(SaveState const &state);
 	void saveState(SaveState &state) const;

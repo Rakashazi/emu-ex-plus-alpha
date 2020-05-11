@@ -13,9 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "VideoImageOverlay"
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/EmuSystem.hh>
 #include <imagine/gfx/Gfx.hh>
+#include <imagine/logger/logger.h>
 
 #define CONV_COL(x) 0, x
 alignas(2) static uint8_t scanlinePixmapBuff[] = { CONV_COL(0x00), CONV_COL(0xff) };
@@ -57,11 +59,13 @@ alignas(8) static uint32_t crtRgbPixmapBuff[] =
 };
 #undef CONV_COL
 
-void VideoImageOverlay::setEffect(Gfx::Renderer &r, uint effect)
+void VideoImageOverlay::setEffect(Gfx::Renderer &r, unsigned effect_)
 {
-	this->effect = effect;
+	if(effect == effect_)
+		return;
+	effect = effect_;
 	IG::Pixmap pix;
-	switch(effect)
+	switch(effect_)
 	{
 		bcase SCANLINES ... SCANLINES_2:
 			pix = {{{1, 2}, IG::PIXEL_IA88}, scanlinePixmapBuff};
@@ -91,37 +95,35 @@ void VideoImageOverlay::setIntensity(Gfx::GC i)
 
 void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
 {
-	if(spr.image())
+	if(!spr.image())
+		return;
+	using namespace Gfx;
+	//logMsg("placing overlay with %u lines in image", lines);
+	spr.setPos(disp);
+	GTexC width = lines*(EmuSystem::aspectRatioInfo[0].aspect.x/(float)EmuSystem::aspectRatioInfo[0].aspect.y);
+	switch(effect)
 	{
-		using namespace Gfx;
-		spr.setPos(disp);
-		Gfx::GTexC width = lines*(EmuSystem::aspectRatioInfo[0].aspect.x/(float)EmuSystem::aspectRatioInfo[0].aspect.y);
-		//logMsg("width %f", (double)width);
-		switch(effect)
-		{
-			bcase SCANLINES:
-				spr.setImg(&img, {0., 0., 1.0, (Gfx::GTexC)lines});
-			bcase SCANLINES_2:
-				spr.setImg(&img, {0., 0., 1.0, lines*2._gtexc});
-			bcase CRT:
-				spr.setImg(&img, {0., 0., width/2._gtexc, lines/2._gtexc});
-			bcase CRT_RGB:
-				spr.setImg(&img, {0., 0., width/2._gtexc, (Gfx::GTexC)lines});
-			bcase CRT_RGB_2:
-				spr.setImg(&img, {0., 0., width/2._gtexc, lines*2._gtexc});
-		}
+		bcase SCANLINES:
+			spr.setImg(&img, {0., 0., 1.0, (Gfx::GTexC)lines});
+		bcase SCANLINES_2:
+			spr.setImg(&img, {0., 0., 1.0, lines*2._gtexc});
+		bcase CRT:
+			spr.setImg(&img, {0., 0., width/2._gtexc, lines/2._gtexc});
+		bcase CRT_RGB:
+			spr.setImg(&img, {0., 0., width/2._gtexc, (Gfx::GTexC)lines});
+		bcase CRT_RGB_2:
+			spr.setImg(&img, {0., 0., width/2._gtexc, lines*2._gtexc});
 	}
 }
 
 void VideoImageOverlay::draw(Gfx::RendererCommands &cmds)
 {
+	if(!spr.image())
+		return;
 	using namespace Gfx;
-	if(spr.image())
-	{
-		cmds.setCommonTextureSampler(CommonTextureSampler::NEAREST_MIP_REPEAT);
-		cmds.setColor(1., 1., 1., intensity);
-		cmds.setBlendMode(BLEND_MODE_ALPHA);
-		spr.setCommonProgram(cmds, IMG_MODE_MODULATE);
-		spr.draw(cmds);
-	}
+	cmds.setCommonTextureSampler(CommonTextureSampler::NEAREST_MIP_REPEAT);
+	cmds.setColor(1., 1., 1., intensity);
+	cmds.setBlendMode(BLEND_MODE_ALPHA);
+	spr.setCommonProgram(cmds, IMG_MODE_MODULATE);
+	spr.draw(cmds);
 }

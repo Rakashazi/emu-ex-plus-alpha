@@ -1,32 +1,30 @@
-/***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   sinamas@users.sourceforge.net                                         *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License version 2 as     *
- *   published by the Free Software Foundation.                            *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License version 2 for more details.                *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   version 2 along with this program; if not, write to the               *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+//
+//   Copyright (C) 2007 by sinamas <sinamas at users.sourceforge.net>
+//
+//   This program is free software; you can redistribute it and/or modify
+//   it under the terms of the GNU General Public License version 2 as
+//   published by the Free Software Foundation.
+//
+//   This program is distributed in the hope that it will be useful,
+//   but WITHOUT ANY WARRANTY; without even the implied warranty of
+//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//   GNU General Public License version 2 for more details.
+//
+//   You should have received a copy of the GNU General Public License
+//   version 2 along with this program; if not, write to the
+//   Free Software Foundation, Inc.,
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
+//
+
 #ifndef VIDEO_H
 #define VIDEO_H
 
 #include "interruptrequester.h"
 #include "minkeeper.h"
-#ifndef GAMBATTE_NO_OSD
 #include "osd_element.h"
-#endif
 #include "scoped_ptr.h"
 #include "video/lyc_irq.h"
-#include "video/m0_irq.h"
+#include "video/mstat_irq.h"
 #include "video/next_m0_time.h"
 #include "video/ppu.h"
 
@@ -34,13 +32,14 @@ namespace gambatte {
 
 class VideoInterruptRequester {
 public:
-	constexpr explicit VideoInterruptRequester(InterruptRequester &intreq)
+	explicit VideoInterruptRequester(InterruptRequester &intreq)
 	: intreq_(intreq)
 	{
 	}
 
-	void flagHdmaReq() const { gambatte::flagHdmaReq(intreq_); }
+	void flagHdmaReq() const { if (!intreq_.halted()) gambatte::flagHdmaReq(intreq_); }
 	void flagIrq(unsigned bit) const { intreq_.flagIrq(bit); }
+	void flagIrq(unsigned bit, unsigned long cc) const { intreq_.flagIrq(bit, cc); }
 	void setNextEventTime(unsigned long time) const { intreq_.setEventTime<intevent_video>(time); }
 
 private:
@@ -56,29 +55,28 @@ public:
 	void saveState(SaveState &state) const;
 	void loadState(SaveState const &state, unsigned char const *oamram);
 	void setDmgPaletteColor(unsigned palNum, unsigned colorNum, unsigned long rgb32);
-	void setDmgPaletteColor(unsigned index, unsigned long rgb32);
 	void refreshPalettes();
-	void setVideoBuffer(PixelType *videoBuf, std::ptrdiff_t pitch);
-#ifndef GAMBATTE_NO_OSD
+	void setVideoBuffer(uint_least32_t *videoBuf, std::ptrdiff_t pitch);
+	#ifndef GAMBATTE_NO_OSD
 	void setOsdElement(transfer_ptr<OsdElement> osdElement) { osdElement_ = osdElement; }
-#endif
+	#endif
 
 	void dmgBgPaletteChange(unsigned data, unsigned long cycleCounter) {
 		update(cycleCounter);
 		bgpData_[0] = data;
-		setDmgPalette(ppu_.bgPalette(), dmgColorsRgb_, data);
+		setDmgPalette(ppu_.bgPalette(), dmgColorsRgb32_[0], data);
 	}
 
 	void dmgSpPalette1Change(unsigned data, unsigned long cycleCounter) {
 		update(cycleCounter);
 		objpData_[0] = data;
-		setDmgPalette(ppu_.spPalette(), dmgColorsRgb_ + 4, data);
+		setDmgPalette(ppu_.spPalette(), dmgColorsRgb32_[1], data);
 	}
 
 	void dmgSpPalette2Change(unsigned data, unsigned long cycleCounter) {
 		update(cycleCounter);
 		objpData_[1] = data;
-		setDmgPalette(ppu_.spPalette() + 4, dmgColorsRgb_ + 8, data);
+		setDmgPalette(ppu_.spPalette() + num_palette_entries, dmgColorsRgb32_[2], data);
 	}
 
 	void cgbBgColorChange(unsigned index, unsigned data, unsigned long cycleCounter) {
@@ -92,17 +90,18 @@ public:
 	}
 
 	unsigned cgbBgColorRead(unsigned index, unsigned long cycleCounter) {
-		return ppu_.cgb() & cgbpAccessible(cycleCounter) ? bgpData_[index] : 0xFF;
+		return ppu_.cgb() && cgbpAccessible(cycleCounter) ? bgpData_[index] : 0xFF;
 	}
 
 	unsigned cgbSpColorRead(unsigned index, unsigned long cycleCounter) {
-		return ppu_.cgb() & cgbpAccessible(cycleCounter) ? objpData_[index] : 0xFF;
+		return ppu_.cgb() && cgbpAccessible(cycleCounter) ? objpData_[index] : 0xFF;
 	}
 
 	void updateScreen(bool blanklcd, unsigned long cc);
 	void resetCc(unsigned long oldCC, unsigned long newCc);
 	void speedChange(unsigned long cycleCounter);
-	bool vramAccessible(unsigned long cycleCounter);
+	bool vramReadable(unsigned long cycleCounter);
+	bool vramWritable(unsigned long cycleCounter);
 	bool oamReadable(unsigned long cycleCounter);
 	bool oamWritable(unsigned long cycleCounter);
 	void wxChange(unsigned newValue, unsigned long cycleCounter);
@@ -122,15 +121,15 @@ public:
 				update(cc);
 
 			lyReg = ppu_.lyCounter().ly();
-
-			if (lyReg == 153) {
-				if (isDoubleSpeed()) {
-					if (ppu_.lyCounter().time() - cc <= 456 * 2 - 8)
-						lyReg = 0;
-				} else
+			if (lyReg == lcd_lines_per_frame - 1) {
+				if (ppu_.lyCounter().time() - cc <= 2 * lcd_cycles_per_line - 2)
 					lyReg = 0;
-			} else if (ppu_.lyCounter().time() - cc <= 4)
-				++lyReg;
+			} else if (ppu_.lyCounter().time() - cc <= 10
+					&& ppu_.lyCounter().time() - cc <= 6u + 4 * isDoubleSpeed()) {
+				lyReg = ppu_.lyCounter().time() - cc == 6u + 4 * isDoubleSpeed()
+					? lyReg & (lyReg + 1)
+					: lyReg + 1;
+			}
 		}
 
 		return lyReg;
@@ -142,6 +141,7 @@ public:
 	void lycRegChange(unsigned data, unsigned long cycleCounter);
 	void enableHdma(unsigned long cycleCounter);
 	void disableHdma(unsigned long cycleCounter);
+	bool isHdmaPeriod(unsigned long cycleCounter);
 	bool hdmaIsEnabled() const { return eventTimes_(memevent_hdma) != disabled_time; }
 	void update(unsigned long cycleCounter);
 	bool isCgb() const { return ppu_.cgb(); }
@@ -187,6 +187,7 @@ private:
 		void set(MemEvent e, unsigned long time) { memEventMin_.setValue(e, time); setMemEvent(); }
 
 		void flagIrq(unsigned bit) { memEventRequester_.flagIrq(bit); }
+		void flagIrq(unsigned bit, unsigned long cc) { memEventRequester_.flagIrq(bit, cc); }
 		void flagHdmaReq() { memEventRequester_.flagHdmaReq(); }
 
 	private:
@@ -202,31 +203,29 @@ private:
 	};
 
 	PPU ppu_;
-	PixelType dmgColorsRgb_[3 * 4];
-	unsigned char  bgpData_[8 * 8];
-	unsigned char objpData_[8 * 8];
+	unsigned long dmgColorsRgb32_[3][num_palette_entries];
+	unsigned char  bgpData_[2 * max_num_palettes * num_palette_entries];
+	unsigned char objpData_[2 * max_num_palettes * num_palette_entries];
 	EventTimes eventTimes_;
-	M0Irq m0Irq_;
+	MStatIrqEvent mstatIrq_;
 	LycIrq lycIrq_;
 	NextM0Time nextM0Time_;
-#ifndef GAMBATTE_NO_OSD
+	#ifndef GAMBATTE_NO_OSD
 	scoped_ptr<OsdElement> osdElement_;
-#endif
+	#endif
 	unsigned char statReg_;
-	unsigned char m2IrqStatReg_;
-	unsigned char m1IrqStatReg_;
 
-	static void setDmgPalette(PixelType palette[],
-														PixelType const dmgColors[],
+	static void setDmgPalette(unsigned long palette[],
+	                          unsigned long const dmgColors[],
 	                          unsigned data);
 	void setDBuffer();
 	void doMode2IrqEvent();
 	void event();
 	unsigned long m0TimeOfCurrentLine(unsigned long cc);
 	bool cgbpAccessible(unsigned long cycleCounter);
-	bool lycRegChangeStatTriggerBlockedByM0OrM1Irq(unsigned long cc);
+	bool lycRegChangeStatTriggerBlockedByM0OrM1Irq(unsigned data, unsigned long cc);
 	bool lycRegChangeTriggersStatIrq(unsigned old, unsigned data, unsigned long cc);
-	bool statChangeTriggersM0LycOrM1StatIrqCgb(unsigned old, unsigned data, unsigned long cc);
+	bool statChangeTriggersM0LycOrM1StatIrqCgb(unsigned old, unsigned data, bool lycperiod, unsigned long cc);
 	bool statChangeTriggersStatIrqCgb(unsigned old, unsigned data, unsigned long cc);
 	bool statChangeTriggersStatIrqDmg(unsigned old, unsigned long cc);
 	bool statChangeTriggersStatIrq(unsigned old, unsigned data, unsigned long cc);

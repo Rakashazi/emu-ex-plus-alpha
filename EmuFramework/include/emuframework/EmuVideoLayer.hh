@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/GfxSprite.hh>
+#include <imagine/pixmap/PixelFormat.hh>
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VideoImageEffect.hh>
 
@@ -31,12 +32,12 @@ public:
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP);
 	void setOverlay(uint effect);
 	void setOverlayIntensity(Gfx::GC intensity);
-	void setEffect(uint effect);
-	void setEffectBitDepth(uint bits);
+	void setEffect(uint effect, IG::PixelFormatID fmt);
+	void setEffectFormat(IG::PixelFormatID fmt);
 	void setLinearFilter(bool on);
 	void resetImage();
 	void setBrightness(float b);
-	void reset();
+	void reset(uint effect, IG::PixelFormatID fmt);
 	EmuVideo &emuVideo() const { return video; }
 
 	const IG::WindowRect &gameRect() const

@@ -20,8 +20,10 @@ enum
 {
 	CFGKEY_GB_PAL_IDX = 270, CFGKEY_REPORT_AS_GBA = 271,
 	CFGKEY_FULL_GBC_SATURATION = 272, CFGKEY_AUDIO_RESAMPLER = 273,
-	CFGKEY_USE_BUILTIN_GB_PAL = 274
+	CFGKEY_USE_BUILTIN_GB_PAL = 274, CFGKEY_RENDER_PIXEL_FORMAT = 275
 };
+
+bool renderPixelFormatIsValid(uint8_t val);
 
 const char *EmuSystem::configFilename = "GbcEmu.config";
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
@@ -34,8 +36,20 @@ Byte1Option optionGBPal{CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<std::size(
 Byte1Option optionUseBuiltinGBPalette{CFGKEY_USE_BUILTIN_GB_PAL, 1};
 Byte1Option optionReportAsGba{CFGKEY_REPORT_AS_GBA, 0};
 Byte1Option optionAudioResampler{CFGKEY_AUDIO_RESAMPLER, 1};
-Option<OptionMethodRef<bool, gambatte::useFullColorSaturation>, uint8_t>
-optionFullGbcSaturation{CFGKEY_FULL_GBC_SATURATION, 0};
+Byte1Option optionFullGbcSaturation{CFGKEY_FULL_GBC_SATURATION, 0};
+Byte1Option optionRenderPixelFormat(CFGKEY_RENDER_PIXEL_FORMAT, IG::PIXEL_NONE, 0, renderPixelFormatIsValid);
+
+bool renderPixelFormatIsValid(uint8_t val)
+{
+	switch(val)
+	{
+		case IG::PIXEL_NONE:
+		case IG::PIXEL_RGB565:
+		case IG::PIXEL_RGBA8888:
+			return true;
+	}
+	return false;
+}
 
 bool EmuSystem::resetSessionOptions()
 {
@@ -70,6 +84,7 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 		bcase CFGKEY_GB_PAL_IDX: optionGBPal.readFromIO(io, readSize);
 		bcase CFGKEY_FULL_GBC_SATURATION: optionFullGbcSaturation.readFromIO(io, readSize);
 		bcase CFGKEY_AUDIO_RESAMPLER: optionAudioResampler.readFromIO(io, readSize);
+		bcase CFGKEY_RENDER_PIXEL_FORMAT: optionRenderPixelFormat.readFromIO(io, readSize);
 	}
 	return 1;
 }
@@ -79,4 +94,5 @@ void EmuSystem::writeConfig(IO &io)
 	optionGBPal.writeWithKeyIfNotDefault(io);
 	optionFullGbcSaturation.writeWithKeyIfNotDefault(io);
 	optionAudioResampler.writeWithKeyIfNotDefault(io);
+	optionRenderPixelFormat.writeWithKeyIfNotDefault(io);
 }

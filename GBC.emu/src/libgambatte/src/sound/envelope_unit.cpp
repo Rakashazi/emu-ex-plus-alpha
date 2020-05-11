@@ -13,13 +13,15 @@
 //   You should have received a copy of the GNU General Public License
 //   version 2 along with this program; if not, write to the
 //   Free Software Foundation, Inc.,
-//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
 #include "envelope_unit.h"
+#include "psgdef.h"
+
 #include <algorithm>
 
-namespace gambatte {
+using namespace gambatte;
 
 EnvelopeUnit::VolOnOffEvent EnvelopeUnit::nullEvent_;
 
@@ -46,16 +48,16 @@ void EnvelopeUnit::loadState(SaveState::SPU::Env const &estate, unsigned nr2, un
 }
 
 void EnvelopeUnit::event() {
-	unsigned long const period = nr2_ & 7;
+	unsigned long const period = nr2_ & psg_nr2_step;
 
 	if (period) {
 		unsigned newVol = volume_;
-		if (nr2_ & 8)
+		if (nr2_ & psg_nr2_inc)
 			++newVol;
 		else
 			--newVol;
 
-		if (newVol < 0x10U) {
+		if (newVol < 0x10) {
 			volume_ = newVol;
 			if (volume_ < 2)
 				volOnOffEvent_(counter_);
@@ -68,29 +70,27 @@ void EnvelopeUnit::event() {
 }
 
 bool EnvelopeUnit::nr2Change(unsigned const newNr2) {
-	if (!(nr2_ & 7) && counter_ != counter_disabled)
+	if (!(nr2_ & psg_nr2_step) && counter_ != counter_disabled)
 		++volume_;
-	else if (!(nr2_ & 8))
+	else if (!(nr2_ & psg_nr2_inc))
 		volume_ += 2;
 
-	if ((nr2_ ^ newNr2) & 8)
+	if ((nr2_ ^ newNr2) & psg_nr2_inc)
 		volume_ = 0x10 - volume_;
 
 	volume_ &= 0xF;
 	nr2_ = newNr2;
-	return !(newNr2 & 0xF8);
+	return !(newNr2 & (psg_nr2_initvol | psg_nr2_inc));
 }
 
 bool EnvelopeUnit::nr4Init(unsigned long const cc) {
-	unsigned long period = nr2_ & 7 ? nr2_ & 7 : 8;
+	unsigned long period = nr2_ & psg_nr2_step ? nr2_ & psg_nr2_step : 8;
 
 	if (((cc + 2) & 0x7000) == 0x0000)
 		++period;
 
 	counter_ = cc - ((cc - 0x1000) & 0x7FFF) + period * 0x8000;
 
-	volume_ = nr2_ >> 4;
-	return !(nr2_ & 0xF8);
-}
-
+	volume_ = nr2_ / (1u * psg_nr2_initvol & -psg_nr2_initvol);
+	return !(nr2_ & (psg_nr2_initvol | psg_nr2_inc));
 }

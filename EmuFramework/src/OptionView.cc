@@ -124,7 +124,7 @@ static bool setAndroidTextureStorage(uint8_t mode)
 			{
 				// texture may switch to external format so
 				// force effect shaders to re-compile
-				emuVideoLayer.reset();
+				emuVideoLayer.reset(optionImgEffect, optionImageEffectPixelFormatValue());
 			}
 		};
 	if(!Gfx::Texture::setAndroidStorageImpl(emuVideo.renderer(), makeAndroidStorageImpl(mode)))
@@ -195,7 +195,7 @@ static void setImgEffect(uint val)
 	optionImgEffect = val;
 	if(emuVideo.image())
 	{
-		emuVideoLayer.setEffect(val);
+		emuVideoLayer.setEffect(val, optionImageEffectPixelFormatValue());
 		emuViewController.postDrawToEmuWindows();
 	}
 }
@@ -217,15 +217,10 @@ void VideoOptionView::setOverlayEffectLevel(uint8_t val)
 }
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-static const char *autoImgEffectPixelFormatStr()
-{
-	return "RGB565";
-}
-
 static void setImgEffectPixelFormat(PixelFormatID format)
 {
 	optionImageEffectPixelFormat = format;
-	emuVideoLayer.setEffectBitDepth(format == PIXEL_RGBA8888 ? 32 : 16);
+	emuVideoLayer.setEffectFormat(format);
 	emuViewController.postDrawToEmuWindows();
 }
 #endif
@@ -989,7 +984,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	imgEffectPixelFormatItem
 	{
-		{"Auto", [this]() { setImgEffectPixelFormat(PIXEL_NONE); }},
+		{"Auto (Match render format as needed)", [this]() { setImgEffectPixelFormat(PIXEL_NONE); }},
 		{"RGB565", [this]() { setImgEffectPixelFormat(PIXEL_RGB565); }},
 		{"RGBA8888", [this]() { setImgEffectPixelFormat(PIXEL_RGBA8888);}},
 	},
@@ -999,9 +994,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		[](int idx) -> const char*
 		{
 			if(idx == 0)
-			{
-				return autoImgEffectPixelFormatStr();
-			}
+				return "Auto";
 			else
 				return nullptr;
 		},

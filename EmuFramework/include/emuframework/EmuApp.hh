@@ -102,6 +102,7 @@ public:
 	static bool hasSavedSessionOptions();
 	static void deleteSessionOptions();
 	static void syncEmulationThread();
+	static IG::PixelFormat defaultRenderPixelFormat();
 
 	template<class T, class Func>
 	static void pushAndShowNewCollectValueInputView(ViewAttachParams attach, Input::Event e,

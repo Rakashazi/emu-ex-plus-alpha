@@ -13,7 +13,7 @@
 //   You should have received a copy of the GNU General Public License
 //   version 2 along with this program; if not, write to the
 //   Free Software Foundation, Inc.,
-//   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 
 #ifndef SOUND_CHANNEL4_H
@@ -32,15 +32,16 @@ struct SaveState;
 class Channel4 {
 public:
 	Channel4();
-	void setNr1(unsigned data);
-	void setNr2(unsigned data);
-	void setNr3(unsigned data) { lfsr_.nr3Change(data, cycleCounter_); }
-	void setNr4(unsigned data);
-	void setSo(unsigned long soMask);
+	void setNr1(unsigned data, unsigned long cc);
+	void setNr2(unsigned data, unsigned long cc);
+	void setNr3(unsigned data, unsigned long cc) { lfsr_.nr3Change(data, cc); }
+	void setNr4(unsigned data, unsigned long cc);
+	void setSo(unsigned long soMask, unsigned long cc);
 	bool isActive() const { return master_; }
-	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cycles);
-	void reset();
-	void saveState(SaveState &state);
+	void update(uint_least32_t *buf, unsigned long soBaseVol, unsigned long cc, unsigned long end);
+	void reset(unsigned long cc);
+	void resetCc(unsigned long cc, unsigned long newCc) { lfsr_.resetCc(cc, newCc); }
+	void saveState(SaveState &state, unsigned long cc);
 	void loadState(SaveState const &state);
 
 private:
@@ -53,6 +54,7 @@ private:
 		void nr3Change(unsigned newNr3, unsigned long cc);
 		void nr4Init(unsigned long cc);
 		void reset(unsigned long cc);
+		void resetCc(unsigned long cc, unsigned long newCc);
 		void saveState(SaveState &state, unsigned long cc);
 		void loadState(SaveState const &state);
 		void disableMaster() { killCounter(); master_ = false; reg_ = 0x7FFF; }
@@ -85,7 +87,6 @@ private:
 	EnvelopeUnit envelopeUnit_;
 	Lfsr lfsr_;
 	SoundUnit *nextEventUnit_;
-	unsigned long cycleCounter_;
 	unsigned long soMask_;
 	unsigned long prevOut_;
 	unsigned char nr4_;

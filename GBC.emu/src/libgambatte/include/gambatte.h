@@ -1,28 +1,27 @@
-/***************************************************************************
- *   Copyright (C) 2007 by Sindre Aamås                                    *
- *   sinamas@users.sourceforge.net                                         *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License version 2 as     *
- *   published by the Free Software Foundation.                            *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License version 2 for more details.                *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   version 2 along with this program; if not, write to the               *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+//
+//   Copyright (C) 2007 by sinamas <sinamas at users.sourceforge.net>
+//
+//   This program is free software; you can redistribute it and/or modify
+//   it under the terms of the GNU General Public License version 2 as
+//   published by the Free Software Foundation.
+//
+//   This program is distributed in the hope that it will be useful,
+//   but WITHOUT ANY WARRANTY; without even the implied warranty of
+//   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//   GNU General Public License version 2 for more details.
+//
+//   You should have received a copy of the GNU General Public License
+//   version 2 along with this program; if not, write to the
+//   Free Software Foundation, Inc.,
+//   51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.
+//
+
 #ifndef GAMBATTE_H
 #define GAMBATTE_H
 
 #include "gbint.h"
 #include "inputgetter.h"
 #include "loadres.h"
-#include "file/file.h"
 #include <cstddef>
 #include <string>
 #include <imagine/util/DelegateFunc.hh>
@@ -45,7 +44,7 @@ public:
 	};
 
 	 /*
-	  * Load ROM image
+	  * Load ROM image.
 	  *
 	  * @param romdata  Buffer to read rom image from
 	  * @param size  Size of the buffer
@@ -83,7 +82,7 @@ public:
 	  * @return sample offset in audioBuf at which the video frame was completed, or -1
 	  *         if no new video frame was completed.
 	  */
-	std::ptrdiff_t runFor(gambatte::PixelType *videoBuf, std::ptrdiff_t pitch,
+	std::ptrdiff_t runFor(gambatte::uint_least32_t *videoBuf, std::ptrdiff_t pitch,
 	                      gambatte::uint_least32_t *audioBuf, std::size_t &samples,
 	                      DelegateFunc<void()> videoFrameCallback);
 
@@ -129,7 +128,7 @@ public:
 	  *               to the next in videoBuf.
 	  * @return success
 	  */
-	bool saveState(gambatte::PixelType const *videoBuf, std::ptrdiff_t pitch);
+	bool saveState(gambatte::uint_least32_t const *videoBuf, std::ptrdiff_t pitch);
 
 	/**
 	  * Loads emulator state from the state slot selected with selectState().
@@ -146,7 +145,7 @@ public:
 	  *               to the next in videoBuf.
 	  * @return success
 	  */
-	bool saveState(gambatte::PixelType const *videoBuf, std::ptrdiff_t pitch,
+	bool saveState(gambatte::uint_least32_t const *videoBuf, std::ptrdiff_t pitch,
 	               std::string const &filepath);
 
 	/**

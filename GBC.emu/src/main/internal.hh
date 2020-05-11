@@ -12,11 +12,6 @@ public:
 	unsigned operator()() override { return bits; }
 };
 
-namespace gambatte
-{
-extern bool useFullColorSaturation;
-}
-
 static GBPalette gbPal[]
 {
 	{ { 0xd7e894, 0xaec440, 0x527f39, 0x204631 }, { 0xd7e894, 0xaec440, 0x527f39, 0x204631 }, { 0xd7e894, 0xaec440, 0x527f39, 0x204631 } }, // Original Green-scale
@@ -34,11 +29,12 @@ static GBPalette gbPal[]
 	{ { 0x040204, 0x04a2a4, 0xf4fe04, 0xfcfafc }, { 0x040204, 0x04a2a4, 0xf4fe04, 0xfcfafc }, { 0x040204, 0x04a2a4, 0xf4fe04, 0xfcfafc } }, // Reverse
 };
 
-extern Option<OptionMethodRef<bool, gambatte::useFullColorSaturation>, uint8_t> optionFullGbcSaturation;
+extern Byte1Option optionFullGbcSaturation;
 extern Byte1Option optionGBPal;
 extern Byte1Option optionUseBuiltinGBPalette;
 extern Byte1Option optionReportAsGba;
 extern Byte1Option optionAudioResampler;
+extern Byte1Option optionRenderPixelFormat;
 extern gambatte::GB gbEmu;
 extern GbcInput gbcInput;
 

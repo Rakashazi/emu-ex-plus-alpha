@@ -184,7 +184,8 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			constexpr uint maxFrameSkip = 8;
 			uint32_t framesToEmulate = std::min(framesAdvanced, maxFrameSkip);
 			emuVideoInProgress = true;
-			systemTask->runFrame(&emuVideo, &emuAudio, framesToEmulate, skipForward);
+			EmuAudio *audioPtr = emuAudio ? &emuAudio : nullptr;
+			systemTask->runFrame(&emuVideo, audioPtr, framesToEmulate, skipForward);
 			return true;
 		};
 
@@ -258,10 +259,11 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 		[this, &videoLayer = videoLayer()](EmuVideo &)
 		{
 			#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-			videoLayer.setEffect(optionImgEffect);
+			videoLayer.setEffect(optionImgEffect, optionImageEffectPixelFormatValue());
 			#else
 			videoLayer.resetImage();
 			#endif
+			videoLayer.setOverlay(optionOverlayEffect);
 			if((uint)optionImageZoom > 100)
 			{
 				placeEmuViews();
@@ -711,7 +713,6 @@ void EmuViewController::closeSystem(bool allowAutosaveState)
 {
 	showUI();
 	systemTask->stop();
-	emuVideo.clear();
 	EmuSystem::closeRuntimeSystem(allowAutosaveState);
 	viewStack.navView()->showRightBtn(false);
 	if(int idx = viewStack.viewIdx("System Actions");

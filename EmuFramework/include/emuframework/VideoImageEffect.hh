@@ -41,7 +41,7 @@ public:
 	};
 
 	constexpr	VideoImageEffect() {}
-	void setEffect(Gfx::Renderer &r, uint effect, bool isExternalTex);
+	void setEffect(Gfx::Renderer &r, uint effect, uint bitDepth, bool isExternalTex);
 	uint effect();
 	void setImageSize(Gfx::Renderer &r, IG::WP size);
 	void setBitDepth(Gfx::Renderer &r, uint bitDepth);
