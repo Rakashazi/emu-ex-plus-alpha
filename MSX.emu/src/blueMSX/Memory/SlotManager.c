@@ -102,10 +102,9 @@ int slotGetRamSlot(int page)
 void slotMapPage(int slot, int sslot, int page, UInt8* pageData, 
                  int readEnable, int writeEnable) 
 {
-	assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return;
-    }*/
+    }
 
     slotTable[slot][sslot][page].readEnable  = readEnable;
     slotTable[slot][sslot][page].writeEnable = writeEnable;
@@ -124,10 +123,9 @@ void slotMapPage(int slot, int sslot, int page, UInt8* pageData,
 void slotUpdatePage(int slot, int sslot, int page, UInt8* pageData, 
                     int readEnable, int writeEnable) 
 {
-	assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return;
-    }*/
+    }
 
     slotMapPage(slot, sslot, page, pageData, readEnable, writeEnable);
     return;
@@ -141,10 +139,9 @@ void slotUpdatePage(int slot, int sslot, int page, UInt8* pageData,
 
 void slotUnmapPage(int slot, int sslot, int page)
 {
-	assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return;
-    }*/
+    }
 
     slotTable[slot][sslot][page].readEnable  = 0;
     slotTable[slot][sslot][page].writeEnable = 1;
@@ -164,22 +161,20 @@ static UInt8 dummySlotRead(void* a, UInt16 b)
 
 void slotRegisterWrite0(SlotWrite writeCb, void* ref) 
 {
-	assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return;
-    }*/
+    }
 
-    //slotAddr0.read  = dummySlotRead;
+    slotAddr0.read  = dummySlotRead;
     slotAddr0.write = writeCb;
     slotAddr0.eject = NULL;
     slotAddr0.ref   = ref;
 }
 
 void slotUnregisterWrite0() {
-	assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return;
-    }*/
+    }
 
     memset(&slotAddr0, 0, sizeof(Slot));
     slotAddr0.read  = dummySlotRead;
@@ -190,10 +185,9 @@ void slotRegister(int slot, int sslot, int startpage, int pages,
 {
     Slot* slotInfo;
     
-    assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return;
-    }*/
+    }
 
     slotInfo = &slotTable[slot][sslot][startpage];
 
@@ -235,10 +229,9 @@ void slotRemove(int slot, int sslot)
 {
     int page;
 
-    assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return;
-    }*/
+    }
 
     for (page = 0; page < 8; page++) {
         Slot* slotInfo = &slotTable[slot][sslot][page];
@@ -250,10 +243,9 @@ void slotRemove(int slot, int sslot)
 
 void slotSetSubslotted(int slot, int subslotted)
 {
-	assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return;
-    }*/
+    }
 
     pslot[slot].subslotted = subslotted;
 }
@@ -262,10 +254,9 @@ void slotManagerReset()
 {
     int page;
 
-    assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return;
-    }*/
+    }
 
     for (page = 0; page < 4; page++) {
         pslot[page].state = 0;
@@ -292,7 +283,7 @@ void slotManagerCreate()
     for (slot = 0; slot < 4; slot++) {
         for (sslot = 0; sslot < 4; sslot++) {
             for (page = 0; page < 8; page++) {
-                //slotUnmapPage(slot, sslot, page);
+                slotUnmapPage(slot, sslot, page);
                 slotTable[slot][sslot][page].read = dummySlotRead;
             }
         }
@@ -312,10 +303,9 @@ UInt8 slotPeek(void* ref, UInt16 address)
     int psl;
     int ssl;
 
-    assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return 0xff;
-    }*/
+    }
 
     if (address == 0xffff) {
         UInt8 sslReg = pslot[3].state;
@@ -341,40 +331,15 @@ UInt8 slotPeek(void* ref, UInt16 address)
     return 0xff;
 }
 
-UInt8 slotRead2(void* ref, UInt16 address)
-{
-    Slot* slotInfo;
-    int psl;
-    int ssl;
-
-    assert(initialized);
-
-    assert(address != 0xffff);
-
-    if (ramslot[address >> 13].readEnable) {
-        return ramslot[address >> 13].pageData[address & 0x1fff];
-    }
-
-    psl = pslot[address >> 14].state;
-    ssl = pslot[psl].subslotted ? pslot[address >> 14].substate : 0;
-
-    slotInfo = &slotTable[psl][ssl][address >> 13];
-
-    assert(slotInfo->read != NULL);
-    address -= slotInfo->startpage << 13;
-    return slotInfo->read(slotInfo->ref, address);
-}
-
 UInt8 slotRead(void* ref, UInt16 address)
 {
     Slot* slotInfo;
     int psl;
     int ssl;
 
-    assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return 0xff;
-    }*/
+    }
 
     if (address == 0xffff) {
         UInt8 sslReg = pslot[3].state;
@@ -392,7 +357,7 @@ UInt8 slotRead(void* ref, UInt16 address)
 
     slotInfo = &slotTable[psl][ssl][address >> 13];
 
-    assert(slotInfo->read != NULL);
+    assert(slotInfo->read);
     address -= slotInfo->startpage << 13;
     return slotInfo->read(slotInfo->ref, address);
 }
@@ -404,10 +369,9 @@ void slotWrite(void* ref, UInt16 address, UInt8 value)
     int ssl;
     int page;
 
-    assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return;
-    }*/
+    }
 
     if (address == 0xffff) {
         UInt8 pslReg = pslot[3].state;
@@ -458,10 +422,9 @@ void slotSaveState()
     char tag[32];
     int i;
 
-    assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return;
-    }*/
+    }
 
     state = saveStateOpenForWrite("slotManager");
 
@@ -489,10 +452,9 @@ void slotLoadState()
     int page;
     int i;
 
-    assert(initialized);
-    /*if (!initialized) {
+    if (!initialized) {
         return;
-    }*/
+    }
 
     state = saveStateOpenForRead("slotManager");
 

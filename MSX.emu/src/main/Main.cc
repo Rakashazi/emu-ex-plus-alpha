@@ -21,6 +21,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/gui/AlertView.hh>
+#include <imagine/util/ScopeGuard.hh>
 #include "internal.hh"
 
 // TODO: remove when namespace code is complete
@@ -51,6 +52,7 @@ extern "C"
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor BlueMSX file loading code
+bool EmuSystem::hasResetModes = true;
 BoardInfo boardInfo{};
 Machine *machine{};
 Mixer *mixer{};
@@ -62,16 +64,10 @@ extern RomType currentRomType[2];
 FS::FileString diskName[2]{};
 static FS::FileString tapeName{};
 FS::FileString hdName[4]{};
-static const uint msxMaxResX = (256) * 2, msxResY = 224,
-	msxMaxFrameBuffResX = (272) * 2, msxMaxFrameBuffResY = 240;
-static int msxResX = msxMaxResX/2;
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
-static uint16_t screenBuff[msxMaxFrameBuffResX*msxMaxFrameBuffResY] __attribute__ ((aligned (8))) {0};
-static char *srcPixData = (char*)&screenBuff[8 * msxResX];
-static IG::Pixmap srcPix{{{msxResX, msxResY}, pixFmt}, srcPixData};
-static bool doubleWidthFrame = false;
 static EmuSystemTask *emuSysTask{};
 static EmuVideo *emuVideo{};
+static const char saveStateVersion[] = "blueMSX - state  v 8";
+extern int pendingInt;
 
 #if defined CONFIG_BASE_ANDROID || defined CONFIG_ENV_WEBOS || defined CONFIG_BASE_IOS || defined CONFIG_MACHINE_IS_PANDORA
 static const bool checkForMachineFolderOnStart = true;
@@ -139,32 +135,7 @@ const char *EmuSystem::systemName()
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMSXExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMSXExtension;
 
-// frameBuffer implementation
-Pixel* frameBufferGetLine(FrameBuffer* frameBuffer, int y)
-{
-	//logMsg("getting line %d", y);
-	/*if(y < 8 || y >= (224+8)) return dummyLine;
-    return (Pixel*)&screenBuff[(y - 8) * msxResX];*/
-	return (Pixel*)&screenBuff[y * msxResX];
-}
-
-int frameBufferGetDoubleWidth(FrameBuffer* frameBuffer, int y)
-{
-	return doubleWidthFrame;
-}
-
-void frameBufferSetDoubleWidth(FrameBuffer* frameBuffer, int y, int val)
-{
-	if(doubleWidthFrame != val)
-	{
-		logMsg("setting double width line %d, %d", y, val);
-		doubleWidthFrame = val;
-		msxResX = doubleWidthFrame ? msxMaxResX : msxMaxResX/2;
-		srcPix = {{{msxResX, msxResY}, pixFmt}, srcPixData};
-	}
-}
-
-static bool insertMedia()
+static EmuSystem::Error insertMedia()
 {
 	iterateTimes(2, i)
 	{
@@ -176,17 +147,16 @@ static bool insertMedia()
 				logMsg("loading Sunrise IDE");
 				if(!boardChangeCartridge(i, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 				{
-					EmuApp::postMessage(true, "Error loading Sunrise IDE device");
+					return EmuSystem::makeError("Error loading Sunrise IDE device");
 				}
 			bdefault:
 			{
-				bool exists = strlen(cartName[i].data());
-				if(exists)
-					logMsg("loading ROM %s", cartName[i].data());
-				if(exists && !insertROM(cartName[i].data(), i))
+				if(!strlen(cartName[i].data()))
+					continue;
+				logMsg("loading ROM %s", cartName[i].data());
+				if(!insertROM(cartName[i].data(), i))
 				{
-					EmuApp::printfMessage(3, 1, "Error loading ROM%d:\n%s", i, cartName[i].data());
-					return 0;
+					return EmuSystem::makeError("Error loading ROM%d:\n%s", i, cartName[i].data());
 				}
 			}
 		}
@@ -194,28 +164,26 @@ static bool insertMedia()
 
 	iterateTimes(2, i)
 	{
-		bool exists = strlen(diskName[i].data());
-		if(exists)
-			logMsg("loading Disk %s", diskName[i].data());
-		if(exists && !insertDisk(diskName[i].data(), i))
+		if(!strlen(diskName[i].data()))
+			continue;
+		logMsg("loading Disk %s", diskName[i].data());
+		if(!insertDisk(diskName[i].data(), i))
 		{
-			EmuApp::printfMessage(3, 1, "Error loading Disk%d:\n%s", i, diskName[i].data());
-			return 0;
+			return EmuSystem::makeError("Error loading Disk%d:\n%s", i, diskName[i].data());
 		}
 	}
 
 	iterateTimes(4, i)
 	{
-		bool exists = strlen(hdName[i].data());
-		if(exists)
-			logMsg("loading HD %s", hdName[i].data());
-		if(exists && !insertDisk(hdName[i].data(), diskGetHdDriveId(i / 2, i % 2)))
+		if(!strlen(hdName[i].data()))
+			continue;
+		logMsg("loading HD %s", hdName[i].data());
+		if(!insertDisk(hdName[i].data(), diskGetHdDriveId(i / 2, i % 2)))
 		{
-			EmuApp::printfMessage(3, 1, "Error loading Disk%d:\n%s", i, hdName[i].data());
-			return 0;
+			return EmuSystem::makeError("Error loading Disk%d:\n%s", i, hdName[i].data());
 		}
 	}
-	return 1;
+	return {};
 }
 
 static bool msxIsInit()
@@ -248,10 +216,11 @@ static void ejectMedia()
 	diskChange(diskGetHdDriveId(1, 1), 0, 0);
 }
 
-static void destroyMSX()
+static void destroyBoard(bool clearMediaNames = true)
 {
-	assert(machine);
-	logMsg("destroying MSX");
+	if(!machine)
+		return;
+	logMsg("destroying board");
 	fdcActive = 0;
 	if(msxIsInit())
 	{
@@ -259,7 +228,8 @@ static void destroyMSX()
 		boardInfo.destroy();
 	}
 	boardInfo = {};
-	clearAllMediaNames();
+	if(clearMediaNames)
+		clearAllMediaNames();
 }
 
 static const char *boardTypeToStr(BoardType type)
@@ -313,8 +283,7 @@ static bool createBoard()
 
 static bool createBoardFromLoadGame()
 {
-	if(msxIsInit())
-		destroyMSX();
+	destroyBoard(false);
 	if(!createBoard())
 	{
 		boardInfo = {};
@@ -341,6 +310,7 @@ static bool initMachine(const char *machineName)
 		machineDestroy(machine);
 	FS::current_path(machineBasePathStr());
 	machine = machineCreate(machineName);
+	FS::current_path(EmuSystem::savePath());
 	if(!machine)
 	{
 		return false;
@@ -349,11 +319,46 @@ static bool initMachine(const char *machineName)
 	return true;
 }
 
-template<class MATCH_FUNC>
-static bool getFirstFilenameInZip(const char *zipPath, char *nameOut, uint outBytes, MATCH_FUNC nameMatch)
+static void destroyMachine(bool clearMediaNames = true)
 {
-	assert(nameOut);
-	ArchiveIO io{};
+	if(!machine)
+		return;
+	destroyBoard(clearMediaNames);
+	machineDestroy(machine);
+	machine = nullptr;
+}
+
+const char *currentMachineName()
+{
+	if(!machine)
+		return "";
+	return machine->name;
+}
+
+EmuSystem::Error setCurrentMachineName(const char *machineName, bool insertMediaFiles)
+{
+	if(machine && string_equal(machine->name, machineName))
+	{
+		logMsg("keeping current machine:%s", machine->name);
+		return {};
+	}
+	if(!initMachine(machineName))
+	{
+		return makeMachineInitError(machineName);
+	}
+	if(!createBoardFromLoadGame())
+	{
+		return EmuSystem::makeError("Error initializing %s", machine->name);
+	}
+	if(insertMediaFiles)
+		return insertMedia();
+	else
+		return {};
+}
+
+template<class MATCH_FUNC>
+static FS::FileString getFirstFilenameInArchive(const char *zipPath, MATCH_FUNC nameMatch)
+{
 	std::error_code ec{};
 	for(auto &entry : FS::ArchiveIterator{zipPath, ec})
 	{
@@ -365,46 +370,54 @@ static bool getFirstFilenameInZip(const char *zipPath, char *nameOut, uint outBy
 		logMsg("archive file entry:%s", entry.name());
 		if(nameMatch(name))
 		{
-			string_copy(nameOut, name, outBytes);
-			return true;
+			return FS::makeFileString(name);
 		}
 	}
 	if(ec)
 	{
 		logErr("error opening archive:%s", zipPath);
 	}
-	return false;
+	return {};
 }
 
-static bool getFirstROMFilenameInZip(const char *zipPath, char *nameOut, uint outBytes)
+static FS::FileString getFirstROMFilenameInArchive(const char *zipPath)
 {
-	return getFirstFilenameInZip(zipPath, nameOut, outBytes, hasMSXROMExtension);
+	return getFirstFilenameInArchive(zipPath, hasMSXROMExtension);
 }
 
-static bool getFirstDiskFilenameInZip(const char *zipPath, char *nameOut, uint outBytes)
+static FS::FileString getFirstDiskFilenameInArchive(const char *zipPath)
 {
-	return getFirstFilenameInZip(zipPath, nameOut, outBytes, hasMSXDiskExtension);
+	return getFirstFilenameInArchive(zipPath, hasMSXDiskExtension);
 }
 
-static bool getFirstTapeFilenameInZip(const char *zipPath, char *nameOut, uint outBytes)
+static FS::FileString getFirstTapeFilenameInArchive(const char *zipPath)
 {
-	return getFirstFilenameInZip(zipPath, nameOut, outBytes, hasMSXTapeExtension);
+	return getFirstFilenameInArchive(zipPath, hasMSXTapeExtension);
+}
+
+static FS::FileString getFirstMediaFilenameInArchive(const char *zipPath)
+{
+	return getFirstFilenameInArchive(zipPath, hasMSXExtension);
 }
 
 bool insertROM(const char *name, uint slot)
 {
+	assert(strlen(EmuSystem::gamePath()));
 	auto path = FS::makePathString(EmuSystem::gamePath(), name);
-	char fileInZipName[256] = "";
-	if(string_hasDotExtension(path.data(), "zip"))
+	FS::FileString fileInZipName{};
+	const char* fileInZipNamePtr{};
+	if(EmuApp::hasArchiveExtension(path.data()))
 	{
-		if(!getFirstROMFilenameInZip(path.data(), fileInZipName, sizeof(fileInZipName)))
+		fileInZipName = getFirstROMFilenameInArchive(path.data());
+		if(!strlen(fileInZipName.data()))
 		{
-			EmuApp::postMessage(true, "No ROM found in zip");
+			EmuApp::postMessage(true, "No ROM found in archive:%s", path.data());
 			return false;
 		}
-		logMsg("found %s in zip", fileInZipName);
+		fileInZipNamePtr = fileInZipName.data();
+		logMsg("found:%s in archive:%s", fileInZipName.data(), path.data());
 	}
-	if(!boardChangeCartridge(slot, ROM_UNKNOWN, path.data(), strlen(fileInZipName) ? fileInZipName : 0))
+	if(!boardChangeCartridge(slot, ROM_UNKNOWN, path.data(), fileInZipNamePtr))
 	{
 		EmuApp::postMessage(true, "Error loading ROM");
 		return false;
@@ -414,18 +427,21 @@ bool insertROM(const char *name, uint slot)
 
 bool insertDisk(const char *name, uint slot)
 {
+	assert(strlen(EmuSystem::gamePath()));
 	auto path = FS::makePathString(EmuSystem::gamePath(), name);
-	char fileInZipName[256] = "";
-	if(string_hasDotExtension(path.data(), "zip"))
+	FS::FileString fileInZipName{};
+	const char* fileInZipNamePtr{};
+	if(EmuApp::hasArchiveExtension(path.data()))
 	{
-		if(!getFirstDiskFilenameInZip(path.data(), fileInZipName, sizeof(fileInZipName)))
+		fileInZipName = getFirstDiskFilenameInArchive(path.data());
+		if(!strlen(fileInZipName.data()))
 		{
-			EmuApp::postMessage(true, "No Disk found in zip");
+			EmuApp::postMessage(true, "No disk found in archive:%s", path.data());
 			return false;
 		}
-		logMsg("found %s in zip", fileInZipName);
+		logMsg("found:%s in archive:%s", fileInZipName.data(), path.data());
 	}
-	if(!diskChange(slot, path.data(), strlen(fileInZipName) ? fileInZipName : 0))
+	if(!diskChange(slot, path.data(), fileInZipNamePtr))
 	{
 		EmuApp::postMessage(true, "Error loading Disk");
 		return false;
@@ -437,24 +453,30 @@ void EmuSystem::reset(ResetMode mode)
 {
 	assert(gameIsRunning());
 	fdcActive = 0;
-	//boardInfo.softReset();
-	boardInfo.destroy();
-	if(!createBoard())
+	if(mode == RESET_HARD)
 	{
-		boardInfo = {};
-		EmuApp::postMessage(true, "Error during MSX reset");
-		destroyMSX();
+		boardInfo.destroy();
+		if(!createBoard())
+		{
+			EmuApp::postMessage(true, "Error during MSX reset");
+			EmuApp::exitGame(false);
+		}
+		if(auto err = insertMedia();
+			err)
+		{
+			EmuApp::printfMessage(3, true, "%s", err->what());
+		}
 	}
-	insertMedia();
+	else
+	{
+		boardInfo.softReset();
+	}
 }
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
 	return FS::makePathStringPrintf("%s/%s.0%c.sta", statePath, gameName, saveSlotCharUpper(slot));
 }
-
-static const char saveStateVersion[] = "blueMSX - state  v 8";
-extern int pendingInt;
 
 static EmuSystem::Error saveBlueMSXState(const char *filename)
 {
@@ -509,15 +531,16 @@ EmuSystem::Error EmuSystem::saveState(const char *path)
 	return saveBlueMSXState(path);
 }
 
-template <typename T>
-static void saveStateGetFileString(SaveState* state, const char* tagName, T &dest)
+static FS::FileString saveStateGetFileString(SaveState* state, const char* tagName)
 {
-	saveStateGetBuffer(state, tagName,  dest.data(), dest.size());
-	if(strlen(dest.data()))
+	FS::FileString name{};
+	saveStateGetBuffer(state, tagName,  name.data(), name.size());
+	if(strlen(name.data()))
 	{
 		// strip any file path
-		dest = FS::basename(dest);
+		return FS::basename(name);
 	}
+	return name;
 }
 
 static EmuSystem::Error loadBlueMSXState(const char *filename)
@@ -544,43 +567,40 @@ static EmuSystem::Error loadBlueMSXState(const char *filename)
 	free(version);
 
 	machineLoadState(machine);
-	logMsg("machine name %s", machine->name);
-	char optionMachineNameStrOld[128];
-	string_copy(optionMachineNameStrOld, optionMachineNameStr);
-	string_copy(optionMachineNameStr, machine->name);
 
 	// from this point on, errors are fatal and require the existing game to close
 	if(!createBoardFromLoadGame())
 	{
 		saveStateDestroy();
-		string_copy(optionMachineNameStr, optionMachineNameStrOld); // restore old machine name
+		auto err = EmuSystem::makeError("Can't initialize machine:%s from save-state", machine->name);
 		EmuApp::exitGame(false);
-		return EmuSystem::makeError("Invalid data in file");
+		return err;
 	}
 
 	clearAllMediaNames();
 	SaveState* state = saveStateOpenForRead("board");
 	currentRomType[0] = saveStateGet(state, "cartType00", 0);
-	saveStateGetFileString(state, "cartName00",  cartName[0]);
+	cartName[0] = saveStateGetFileString(state, "cartName00");
 	currentRomType[1] = saveStateGet(state, "cartType01", 0);
-	saveStateGetFileString(state, "cartName01",  cartName[1]);
-	saveStateGetFileString(state, "diskName00",  diskName[0]);
-	saveStateGetFileString(state, "diskName01",  diskName[1]);
-	saveStateGetFileString(state, "diskName02",  hdName[0]);
-	saveStateGetFileString(state, "diskName03",  hdName[1]);
-	saveStateGetFileString(state, "diskName10",  hdName[2]);
-	saveStateGetFileString(state, "diskName11",  hdName[3]);
+	cartName[1] = saveStateGetFileString(state, "cartName01");
+	diskName[0] = saveStateGetFileString(state, "diskName00");
+	diskName[1] = saveStateGetFileString(state, "diskName01");
+	hdName[0] = saveStateGetFileString(state, "diskName02");
+	hdName[1] = saveStateGetFileString(state, "diskName03");
+	hdName[2] = saveStateGetFileString(state, "diskName10");
+	hdName[3] = saveStateGetFileString(state, "diskName11");
 	saveStateClose(state);
 
-	if(!insertMedia())
+	if(auto err = insertMedia();
+		err)
 	{
 		EmuApp::exitGame(false);
-		return EmuSystem::makeError("Error loading media");
+		return err;
 	}
 
 	boardInfo.loadState();
 	saveStateDestroy();
-	srcPix = {{{msxResX, msxResY}, pixFmt}, srcPixData};
+	logMsg("state loaded with machine:%s", machine->name);
 	return {};
 }
 
@@ -599,110 +619,90 @@ void EmuSystem::saveBackupMem()
 
 void EmuSystem::closeSystem()
 {
-	destroyMSX();
+	destroyMachine();
 }
 
 EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 {
-	srcPix = {{{msxResX, msxResY}, pixFmt}, srcPixData};
-
-	if(!initMachine(optionMachineName)) // make sure machine is set to user's selection
+	// configure media loading
+	auto mediaPath = fullGamePath();
+	auto mediaFilename = gameFileName();
+	FS::FileString fileInZipName{};
+	const char *fileInZipNamePtr{};
+	const char *mediaNamePtr = mediaFilename.data();
+	bool loadDiskAsHD = false;
+	if(EmuApp::hasArchiveExtension(mediaFilename.data()))
 	{
-		return makeMachineInitError(optionMachineName);
-	}
-
-	if(!createBoardFromLoadGame())
-	{
-		return EmuSystem::makeError("Error initializing %s", machine->name);
-	}
-
-	char fileInZipName[256] = "";
-	if(string_hasDotExtension(gameFileName().data(), "zip"))
-	{
-		if(getFirstROMFilenameInZip(fullGamePath(), fileInZipName, sizeof(fileInZipName)))
+		fileInZipName = getFirstMediaFilenameInArchive(mediaPath);
+		if(!strlen(fileInZipName.data()))
 		{
-			logMsg("found %s in zip", fileInZipName);
-			cartName[0] = gameFileName();
-			if(!boardChangeCartridge(0, ROM_UNKNOWN, fullGamePath(), fileInZipName))
-			{
-				destroyMSX();
-				return EmuSystem::makeError("Error loading ROM");
-			}
+			return EmuSystem::makeError("No media in archive");
 		}
-		else if(getFirstDiskFilenameInZip(fullGamePath(), fileInZipName, sizeof(fileInZipName)))
+		logMsg("found:%s in archive:%s", fileInZipName.data(), mediaPath);
+		fileInZipNamePtr = fileInZipName.data();
+		mediaNamePtr = fileInZipNamePtr;
+		if(hasMSXDiskExtension(fileInZipNamePtr))
 		{
-			logMsg("found %s in zip", fileInZipName);
-			auto fileInZip = FS::fileFromArchive(fullGamePath(), fileInZipName);
-			bool loadAsHD = fileInZip.size() >= 1024 * 1024;
-			fileInZip.close();
-			if(loadAsHD)
-			{
-				logMsg("load disk as HD");
-				int hdId = diskGetHdDriveId(0, 0);
-				string_copy(cartName[0], "Sunrise IDE");
-				if(!boardChangeCartridge(0, ROM_SUNRISEIDE, "Sunrise IDE", 0))
-				{
-					destroyMSX();
-					return EmuSystem::makeError("Error loading Sunrise IDE device");
-				}
-				hdName[0] = gameFileName();
-				if(!diskChange(hdId, fullGamePath(), fileInZipName))
-				{
-					destroyMSX();
-					return EmuSystem::makeError("Error loading HD");
-				}
-			}
-			else
-			{
-				diskName[0] = gameFileName();
-				if(!diskChange(0, fullGamePath(), fileInZipName))
-				{
-					destroyMSX();
-					return EmuSystem::makeError("Error loading Disk");
-				}
-			}
-		}
-		else
-		{
-			destroyMSX();
-			return EmuSystem::makeError("No Media in ZIP");
+			auto fileInZip = FS::fileFromArchive(mediaPath, fileInZipName.data());
+			loadDiskAsHD = fileInZip.size() >= 1024 * 1024;
 		}
 	}
-	else if(hasMSXROMExtension(gameFileName().data()))
+	else if(hasMSXDiskExtension(mediaFilename.data()))
 	{
-		cartName[0] = gameFileName();
-		if(!boardChangeCartridge(0, ROM_UNKNOWN, fullGamePath(), 0))
+		loadDiskAsHD = FS::file_size(mediaPath) >= 1024 * 1024;
+		if(loadDiskAsHD)
+			logMsg("loading disk image as HD");
+	}
+
+	// create machine
+	if(strlen(optionMachineName.val)) // try machine from session config first
+	{
+		if(auto err = setCurrentMachineName(optionMachineName.val, false);
+		err)
 		{
-			destroyMSX();
+			destroyMachine();
+		}
+	}
+	auto destroyMachineOnReturn = IG::scopeGuard([](){ destroyMachine(); });
+	if(!strlen(currentMachineName()))
+	{
+		if(auto err = setCurrentMachineName(optionDefaultMachineName.val, false);
+			err)
+		{
+			return err;
+		}
+	}
+
+	// load media
+	if(hasMSXROMExtension(mediaNamePtr))
+	{
+		cartName[0] = mediaFilename;
+		if(!boardChangeCartridge(0, ROM_UNKNOWN, mediaPath, fileInZipNamePtr))
+		{
 			return EmuSystem::makeError("Error loading ROM");
 		}
 	}
-	else if(hasMSXDiskExtension(gameFileName().data()))
+	else if(hasMSXDiskExtension(mediaNamePtr))
 	{
-		bool loadAsHD = FS::file_size(fullGamePath()) >= 1024 * 1024;
-		if(loadAsHD)
+		if(loadDiskAsHD)
 		{
-			logMsg("load disk as HD");
 			int hdId = diskGetHdDriveId(0, 0);
 			string_copy(cartName[0], "Sunrise IDE");
 			if(!boardChangeCartridge(0, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 			{
-				destroyMSX();
 				return EmuSystem::makeError("Error loading Sunrise IDE device");
 			}
-			hdName[0] = gameFileName();
-			if(!diskChange(hdId, fullGamePath(), 0))
+			hdName[0] = mediaFilename;
+			if(!diskChange(hdId, mediaPath, fileInZipNamePtr))
 			{
-				destroyMSX();
 				return EmuSystem::makeError("Error loading HD");
 			}
 		}
 		else
 		{
-			diskName[0] = gameFileName();
-			if(!diskChange(0, fullGamePath(), 0))
+			diskName[0] = mediaFilename;
+			if(!diskChange(0, mediaPath, fileInZipNamePtr))
 			{
-				destroyMSX();
 				return EmuSystem::makeError("Error loading Disk");
 			}
 		}
@@ -711,6 +711,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 	{
 		return EmuSystem::makeError("Unknown file type");
 	}
+	destroyMachineOnReturn.cancel();
 	return {};
 }
 
@@ -729,16 +730,6 @@ static Int32 soundWrite(void* dummy, Int16 *buffer, UInt32 count)
 	return 0;
 }
 
-static void commitVideoFrame()
-{
-	if(likely(emuVideo))
-	{
-		emuVideo->startFrameWithFormat(emuSysTask, srcPix);
-		emuVideo = {};
-		emuSysTask = {};
-	}
-}
-
 static void commitUnchangedVideoFrame()
 {
 	if(emuVideo)
@@ -752,7 +743,12 @@ static void commitUnchangedVideoFrame()
 void RefreshScreen(int screenMode)
 {
 	//logMsg("called RefreshScreen");
-	commitVideoFrame();
+	if(likely(emuVideo))
+	{
+		emuVideo->startFrameWithFormat(emuSysTask, frameBufferPixmap());
+		emuVideo = {};
+		emuSysTask = {};
+	}
 	boardInfo.stop(boardInfo.cpuRef);
 }
 

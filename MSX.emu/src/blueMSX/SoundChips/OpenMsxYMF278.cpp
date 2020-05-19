@@ -6,8 +6,8 @@
 #include "OpenMsxYMF278.h"
 
 #include <stdio.h>
-#include <math.h>
-#include <string.h>
+#include <cmath>
+#include <cstring>
 #include <stdlib.h>
 
 extern "C" {

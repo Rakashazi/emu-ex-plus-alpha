@@ -59,7 +59,7 @@ static UInt8 read(MsxGunstick* joystick) {
     frameBuffer = frameBufferGetDrawFrame(my);
 
     if (frameBuffer != NULL) {
-        int scanline = frameBufferGetScanline();
+        int scanline = frameBufferGetScanline(frameBuffer);
         int myLow  = MAX(scanline - DELAY, my - SENSITIVIY);
         int myHigh = MIN(scanline, my);
         int y;

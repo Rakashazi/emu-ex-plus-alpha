@@ -15,10 +15,10 @@ extern "C" {
 #define assert(x)
 
 #include <stdio.h>
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 
-//using std::string;
+using std::string;
 
 static const int CLOCK_FREQ = 3579545;
 static const DoubleT PI = 3.14159265358979323846;
@@ -52,6 +52,10 @@ int OpenYM2413_2::Slot::EG2DB(int d)
 int OpenYM2413_2::TL2EG(int d)
 { 
 	return d * (int)(TL_STEP / EG_STEP);
+}
+int OpenYM2413_2::Slot::SL2EG(int d)
+{
+	return d * (int)(SL_STEP / EG_STEP);
 }
 
 unsigned int OpenYM2413_2::DB_POS(DoubleT x)
@@ -110,7 +114,7 @@ void OpenYM2413_2::makeDB2LinTable()
 	for (int i = 0; i < 2 * DB_MUTE; ++i) {
 		dB2LinTab[i] = (i < DB_MUTE)
 		             ?  (short)((DoubleT)((1 << DB2LIN_AMP_BITS) - 1) *
-		                    ::pow(10.0, -(DoubleT)i * DB_STEP / 20))
+		                    std::pow(10.0, -(DoubleT)i * DB_STEP / 20))
 		             : 0;
 		dB2LinTab[i + 2 * DB_MUTE] = -dB2LinTab[i];
 	}
@@ -156,7 +160,7 @@ void OpenYM2413_2::makePmTable()
 {
 	for (int i = 0; i < PM_PG_WIDTH; ++i) {
 		 pmtable[i] = (int)((DoubleT)PM_AMP *
-		     ::pow(2.0, (DoubleT)PM_DEPTH *
+		     std::pow(2.0, (DoubleT)PM_DEPTH *
 		            saw(2.0 * PI * i / PM_PG_WIDTH) / 1200));
 	}
 }
@@ -568,7 +572,7 @@ static byte inst_data[16 + 3][8] = {
 	{ 0x25,0x11,0x00,0x00,0xf8,0xfa,0xf8,0x55 }
 };
 
-OpenYM2413_2::OpenYM2413_2(const char * name_, short volume, const EmuTime& time)
+OpenYM2413_2::OpenYM2413_2(const string& name_, short volume, const EmuTime& time)
 	: name(name_)
 {
 	for (int i = 0; i < 16 + 3; ++i) {
@@ -602,15 +606,14 @@ OpenYM2413_2::~OpenYM2413_2()
 {
 }
 
-const char * OpenYM2413_2::getName() const
+const string& OpenYM2413_2::getName() const
 {
 	return name;
 }
 
-const char * OpenYM2413_2::getDescription() const
+string OpenYM2413_2::getDescription() const
 {
-	static const char * desc = "MSX-MUSIC";
-	return desc;
+	return "MSX-MUSIC";
 }
 
 // Reset whole of OPLL except patch datas
@@ -776,7 +779,7 @@ inline void OpenYM2413_2::update_noise()
 void OpenYM2413_2::Slot::calc_envelope(int lfo_am)
 {
 	#define S2E(x) (unsigned int)(SL2EG((int)(x / SL_STEP)) << (EG_DP_BITS - EG_BITS))
-	/*constexpr	static*/ unsigned int SL[16] = {
+	static const unsigned int SL[16] = {
 		S2E( 0.0), S2E( 3.0), S2E( 6.0), S2E( 9.0),
 		S2E(12.0), S2E(15.0), S2E(18.0), S2E(21.0),
 		S2E(24.0), S2E(27.0), S2E(30.0), S2E(33.0),

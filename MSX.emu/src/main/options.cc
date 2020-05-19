@@ -18,8 +18,8 @@
 
 enum
 {
-	CFGKEY_MACHINE_NAME = 256, CFGKEY_SKIP_FDC_ACCESS = 257,
-	CFGKEY_MACHINE_FILE_PATH = 258
+	CFGKEY_DEFAULT_MACHINE_NAME = 256, CFGKEY_SKIP_FDC_ACCESS = 257,
+	CFGKEY_MACHINE_FILE_PATH = 258, CFGKEY_SESSION_MACHINE_NAME = 259
 };
 
 const char *EmuSystem::configFilename = "MsxEmu.config";
@@ -31,18 +31,41 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 int EmuSystem::forcedSoundRate = 44100;
 #define optionMachineNameDefault "MSX2"
-char optionMachineNameStr[128] = optionMachineNameDefault;
-PathOption optionMachineName{CFGKEY_MACHINE_NAME, optionMachineNameStr, optionMachineNameDefault};
+static char optionDefaultMachineNameStr[128] = optionMachineNameDefault;
+static char optionSessionMachineNameStr[128]{};
+PathOption optionDefaultMachineName{CFGKEY_DEFAULT_MACHINE_NAME, optionDefaultMachineNameStr, optionMachineNameDefault};
+PathOption optionMachineName{CFGKEY_SESSION_MACHINE_NAME, optionSessionMachineNameStr, ""};
 Byte1Option optionSkipFdcAccess{CFGKEY_SKIP_FDC_ACCESS, 1};
 PathOption optionFirmwarePath{CFGKEY_MACHINE_FILE_PATH, machineCustomPath, ""};
 uint activeBoardType = BOARD_MSX;
+
+bool EmuSystem::resetSessionOptions()
+{
+	string_copy(optionSessionMachineNameStr, "");
+	return true;
+}
+
+bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+{
+	switch(key)
+	{
+		default: return 0;
+		bcase CFGKEY_SESSION_MACHINE_NAME: optionMachineName.readFromIO(io, readSize);
+	}
+	return 1;
+}
+
+void EmuSystem::writeSessionConfig(IO &io)
+{
+	optionMachineName.writeToIO(io);
+}
 
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 {
 	switch(key)
 	{
 		default: return 0;
-		bcase CFGKEY_MACHINE_NAME: optionMachineName.readFromIO(io, readSize);
+		bcase CFGKEY_DEFAULT_MACHINE_NAME: optionDefaultMachineName.readFromIO(io, readSize);
 		bcase CFGKEY_SKIP_FDC_ACCESS: optionSkipFdcAccess.readFromIO(io, readSize);
 		bcase CFGKEY_MACHINE_FILE_PATH: optionFirmwarePath.readFromIO(io, readSize);
 	}
@@ -51,9 +74,9 @@ bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
 
 void EmuSystem::writeConfig(IO &io)
 {
-	if(!optionMachineName.isDefault())
+	if(!optionDefaultMachineName.isDefault())
 	{
-		optionMachineName.writeToIO(io);
+		optionDefaultMachineName.writeToIO(io);
 	}
 	optionSkipFdcAccess.writeWithKeyIfNotDefault(io);
 	optionFirmwarePath.writeToIO(io);
@@ -63,4 +86,12 @@ EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
 	machineBasePath = makeMachineBasePath(machineCustomPath);
 	return {};
+}
+
+bool setDefaultMachineName(const char *name)
+{
+	if(string_equal(name, optionDefaultMachineNameStr))
+		return false;
+	string_copy(optionDefaultMachineNameStr, name);
+	return true;
 }

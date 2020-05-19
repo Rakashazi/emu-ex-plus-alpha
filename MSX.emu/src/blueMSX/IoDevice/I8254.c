@@ -689,6 +689,9 @@ void i8254Reset(I8254* i8254)
 
 void i8254Destroy(I8254* i8254) 
 {
+    counterDestroy(i8254->counter1);
+    counterDestroy(i8254->counter2);
+    counterDestroy(i8254->counter3);
     free(i8254);
 }
 

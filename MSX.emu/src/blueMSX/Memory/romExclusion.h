@@ -136,7 +136,7 @@
 #define romMapperS1990Create() 0
 #endif
 #ifdef EXCLUDE_ROM_TURBOR
-#define romMapperTurboRTimerCreate() 0
+#define romMapperTurboRTimerCreate(a) 0
 #define romMapperTurboRIOCreate() 0
 #define romMapperTurboRPcmCreate() 0
 #define romMapperDramCreate(a, b, c, d, e, f) 0

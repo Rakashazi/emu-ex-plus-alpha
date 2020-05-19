@@ -50,7 +50,6 @@
 #include "DeviceManager.h"
 #include "ramMapperIo.h"
 #include "CoinDevice.h"
-#include <imagine/logger/logger.h>
 
 void PatchZ80(void* ref, CpuRegs* cpuRegs);
 
@@ -191,8 +190,7 @@ int msxCreate(Machine* machine,
         cpuFlags |= CPU_VDP_IO_DELAY;
     }
 
-    r800 = r800Create(cpuFlags, 0, 0, ioPortRead, ioPortWrite, PatchZ80, boardTimerCheckTimeout, NULL, NULL, NULL, NULL);
-    //r800 = r800Create(cpuFlags, slotRead, slotWrite, ioPortRead, ioPortWrite, PatchZ80, boardTimerCheckTimeout, NULL, NULL, NULL, NULL);
+    r800 = r800Create(cpuFlags, slotRead, slotWrite, ioPortRead, ioPortWrite, PatchZ80, boardTimerCheckTimeout, NULL, NULL, NULL, NULL);
 
     boardInfo->cartridgeCount   = machine->board.type == BOARD_MSX_FORTE_II ? 0 : 2;
     boardInfo->diskdriveCount   = machine->board.type == BOARD_MSX_FORTE_II ? 0 : 2;
@@ -247,10 +245,6 @@ int msxCreate(Machine* machine,
     }
 
     success = machineInitialize(machine, &msxRam, &msxRamSize, &msxRamStart);
-	#ifndef NDEBUG
-    if(!success)
-    	logErr("machineInitialize failed");
-	#endif
 
     msxPsg = msxPsgCreate(machine->board.type == BOARD_MSX || 
                           machine->board.type == BOARD_MSX_FORTE_II 
@@ -260,7 +254,7 @@ int msxCreate(Machine* machine,
                           machine->board.type == BOARD_MSX_FORTE_II ? 1 : 2);
 
     if (machine->board.type == BOARD_MSX_FORTE_II) {
-        CoinDevice* coinDevice = coinDeviceCreate();
+        CoinDevice* coinDevice = coinDeviceCreate(msxPsg);
         msxPsgRegisterCassetteRead(msxPsg, coinDeviceRead, coinDevice);
     }
 

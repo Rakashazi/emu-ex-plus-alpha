@@ -39,8 +39,8 @@ typedef struct {
     VideoCallbacks callbacks;
     FrameBufferData* frameBufer;
     void* ref;
-    FrameBufferMixMode videoMode;
-    FrameBufferMixMode videoMask;
+    VideoMode videoMode;
+    VideoMode videoMask;
     char  name[32];
 } VideoInfo;
 
@@ -83,7 +83,7 @@ int videoManagerGetActive()
     return -1;
 }
 
-void videoManagerSetMode(int index, FrameBufferMixMode videoMode, FrameBufferMixMode modeMask)
+void videoManagerSetMode(int index, VideoMode videoMode, VideoMode modeMask)
 {
     videoManager.di[index].videoMode = videoMode;
     videoManager.di[index].videoMask = modeMask;

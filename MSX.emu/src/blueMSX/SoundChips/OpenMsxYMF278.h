@@ -4,7 +4,8 @@
 #ifndef __YMF278_HH__
 #define __YMF278_HH__
 
-//using namespace std;
+#include <string>
+
 
 
 typedef unsigned long  EmuTime;

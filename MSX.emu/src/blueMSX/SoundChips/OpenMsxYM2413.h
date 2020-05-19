@@ -4,7 +4,8 @@
 #ifndef __YM2413_HH__
 #define __YM2413_HH__
 
-//using namespace std;
+#include <string>
+
 
 
 typedef unsigned long  EmuTime;
@@ -133,7 +134,7 @@ class Channel
 class OpenYM2413 : public OpenYM2413Base
 {
 	public:
-		OpenYM2413(const char *name, short volume, const EmuTime &time);
+		OpenYM2413(const std::string &name, short volume, const EmuTime &time);
 		virtual ~OpenYM2413();
 		
 		virtual void reset(const EmuTime &time);

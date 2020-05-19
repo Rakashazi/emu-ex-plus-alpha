@@ -59,7 +59,7 @@ typedef struct {
     UInt8 (*daRead)(void*, int, int, int, Pixel*, int);
 } VdpDaCallbacks;
 
-int vdpRegisterDaConverter(VdpDaCallbacks* callbacks, void* ref, FrameBufferMixMode videoModeMask);
+int vdpRegisterDaConverter(VdpDaCallbacks* callbacks, void* ref, VideoMode videoModeMask);
 void vdpUnregisterDaConverter(int vdpDaHandle);
 
 /* The following methods needs target dependent implementation */

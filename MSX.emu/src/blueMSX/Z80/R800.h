@@ -255,8 +255,8 @@ typedef struct
     int           terminate;        /* Termination flag                */
     SystemTime    timeout;          /* User scheduled timeout          */
 
-    //R800ReadCb    readMemory;       /* Callback functions for reading  */
-    //R800WriteCb   writeMemory;      /* and writing memory and IO ports */
+    R800ReadCb    readMemory;       /* Callback functions for reading  */
+    R800WriteCb   writeMemory;      /* and writing memory and IO ports */
     R800ReadCb    readIoPort;
     R800WriteCb   writeIoPort;
     R800PatchCb   patch;

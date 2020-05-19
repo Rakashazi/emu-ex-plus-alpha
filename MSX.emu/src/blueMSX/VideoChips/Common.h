@@ -114,7 +114,6 @@ Pixel *RefreshBorder(VDP* vdp, int Y, Pixel bgColor, int line512, int borderExtr
     frameBufferSetScanline(Y);
 
     linePtr = frameBufferGetLine(frameBuffer, Y);
-    //if(!linePtr) return 0;
 
     if (frameBufferGetDoubleWidth(frameBuffer, Y) && !line512) {
         for(offset = 256 + 16; offset < 512 + 16; offset++) {
@@ -147,7 +146,6 @@ Pixel *RefreshBorder6(VDP* vdp, int Y, Pixel bgColor1, Pixel bgColor2, int line5
     frameBufferSetScanline(Y);
 
     linePtr = frameBufferGetLine(frameBuffer, Y);
-    //if(!linePtr) return 0;
 
     if (frameBufferGetDoubleWidth(frameBuffer, Y) && !line512) {
         for(offset = 256 + 16; offset < 512 + 16; offset++) {
@@ -265,7 +263,6 @@ static void RefreshLine0(VDP* vdp, int Y, int X, int X2)
 
         X++;
         linePtr0 = RefreshBorder(vdp, Y, vdp->palette[vdp->BGColor], 0, vdp->hAdjustSc0);
-        //if(!linePtr0) return;
 
         hScroll    = vdpHScroll(vdp) % 6;
 
@@ -364,7 +361,6 @@ static void RefreshLine0Plus(VDP* vdp, int Y, int X, int X2)
 
         X++;
         linePtr0p = RefreshBorder(vdp, Y, vdp->palette[vdp->BGColor], 0, vdp->hAdjustSc0);
-        //if(!linePtr0p) return;
 
         hScroll    = vdpHScroll(vdp) % 6;
 
@@ -462,7 +458,6 @@ static void RefreshLine0Mix(VDP* vdp, int Y, int X, int X2)
 
         X++;
         linePtr0m = RefreshBorder(vdp, Y, vdp->palette[vdp->BGColor], 0, vdp->hAdjustSc0);
-        //if(!linePtr0m) return;
 
         hScroll    = vdpHScroll(vdp) % 6;
 
@@ -558,7 +553,6 @@ static void RefreshLineTx80(VDP* vdp, int Y, int X, int X2)
     if (X == -1) {
         X++;
         linePtr0w = RefreshBorder(vdp, Y, vdp->palette[vdp->BGColor], 0, 0);
-        //if(!linePtr0w) return;
         y = Y - vdp->firstLine + vdpVScroll(vdp) - vdp->scr0splitLine;
         x = 0;
         patternBase = vdp->chrGenBase & ((-1 << 11) | (y & 7));
@@ -668,7 +662,6 @@ static void RefreshLineTx80(VDP* vdp, int Y, int X, int X2)
 
         X++;
         linePtr0w = RefreshBorder(vdp, Y, vdp->palette[vdp->BGColor], 1, vdp->hAdjustSc0);
-        //if(!linePtr0w) return;
         y = Y - vdp->firstLine + vdpVScroll(vdp) - vdp->scr0splitLine;
         x = 0;
         patternBase = vdp->chrGenBase & ((-1 << 11) | (y & 7));
@@ -790,7 +783,6 @@ static void RefreshLine1(VDP* vdp, int Y, int X, int X2)
     if (X == -1) {
         X++;
         linePtr1 = RefreshBorder(vdp, Y, vdp->palette[vdp->BGColor], 0, 0);
-        //if(!linePtr1) return;
         sprLine = getSpritesLine(vdp, Y);
 
         hScroll    = vdpHScroll(vdp) & 7;
@@ -943,7 +935,6 @@ static void RefreshLine2(VDP* vdp, int Y, int X, int X2)
 
         X++;
         linePtr2 = RefreshBorder(vdp, Y, vdp->palette[vdp->BGColor], 0, 0);
-        //if(!linePtr2) return;
         sprLine = getSpritesLine(vdp, Y);
 
         if (linePtr2 == NULL) {
@@ -1091,7 +1082,6 @@ static void RefreshLine3(VDP* vdp, int Y, int X, int X2)
     if (X == -1) {
         X++;
         linePtr3 = RefreshBorder(vdp, Y, vdp->palette[vdp->BGColor], 0, 0);
-        //if(!linePtr3) return;
         sprLine = getSpritesLine(vdp, Y);
     }
 
@@ -1175,7 +1165,6 @@ static void RefreshLine4(VDP* vdp, int Y, int X, int X2)
 
         X++;
         linePtr4 = RefreshBorder(vdp, Y, vdp->palette[vdp->BGColor], 0, 0);
-        //if(!linePtr4) return;
         sprLine = getSpritesLine(vdp, Y);
 
         if (linePtr4 == NULL) {
@@ -1325,7 +1314,6 @@ static void RefreshLine4(VDP* vdp, int Y, int X, int X2)
 
         X++;
         linePtr4 = RefreshBorder(vdp, Y, vdp->palette[vdp->BGColor], 0, 0);
-        //if(!linePtr4) return;
         sprLine = getSpritesLine(vdp, Y);
 
         if (linePtr4 == NULL) {
@@ -1487,7 +1475,6 @@ static void RefreshLine5(VDP* vdp, int Y, int X, int X2)
     if (X == -1) {
         X++;
         linePtr5 = RefreshBorder(vdp, Y,  vdp->palette[vdp->BGColor], 0, 0);
-        //if(!linePtr5) return;
         sprLine   = getSpritesLine(vdp, Y);
 
         if (linePtr5 == NULL) {
@@ -1652,7 +1639,6 @@ static void RefreshLine6(VDP* vdp, int Y, int X, int X2)
         Pixel bgColor = MIX_COLOR(vdp->palette[(vdp->BGColor >> 2) & 0x03], vdp->palette[vdp->BGColor & 0x03]);
         X++;
         linePtr6 = RefreshBorder(vdp, Y, bgColor, 0, 0);
-        //if(!linePtr6) return;
         sprLine   = getSpritesLine(vdp, Y);
 
         if (linePtr6 == NULL) {
@@ -1799,7 +1785,6 @@ static void RefreshLine7(VDP* vdp, int Y, int X, int X2)
     if (X == -1) {
         X++;
         linePtr7 = RefreshBorder(vdp, Y, vdp->palette[vdp->BGColor], 0, 0);
-        //if(!linePtr7) return;
         sprLine = getSpritesLine(vdp, Y);
     
         if (linePtr7 == NULL) {
@@ -1979,7 +1964,6 @@ static void RefreshLine6(VDP* vdp, int Y, int X, int X2)
     if (X == -1) {
         X++;
         linePtr6 = RefreshBorder6(vdp, Y, vdp->palette[(vdp->BGColor >> 2) & 0x03], vdp->palette[vdp->BGColor & 0x03], 1, 0);
-        //if(!linePtr6) return;
         sprLine   = getSpritesLine(vdp, Y);
 
         if (linePtr6 == NULL) {
@@ -2122,7 +2106,6 @@ static void RefreshLine7(VDP* vdp, int Y, int X, int X2)
     if (X == -1) {
         X++;
         linePtr7 = RefreshBorder(vdp, Y, vdp->palette[vdp->BGColor], 1, 0);
-        //if(!linePtr7) return;
         sprLine = getSpritesLine(vdp, Y);
     
         if (linePtr7 == NULL) {
@@ -2369,7 +2352,6 @@ static void RefreshLine8(VDP* vdp, int Y, int X, int X2)
     if (X == -1) {
         X++;
         linePtr8 = RefreshBorder(vdp, Y, vdp->paletteFixed[vdp->vdpRegs[7]], 0, 0);
-        //if(!linePtr8) return;
         sprLine = getSpritesLine(vdp, Y);
 
         if (linePtr8 == NULL) {
@@ -2521,7 +2503,6 @@ static void RefreshLine10(VDP* vdp, int Y, int X, int X2)
     if (X == -1) {
         X++;
         linePtr10 = RefreshBorder(vdp, Y, vdp->paletteFixed[vdp->vdpRegs[7]], 0, 0);
-        //if(!linePtr10) return;
         sprLine = getSpritesLine(vdp, Y);
 
         if (linePtr10 == NULL) {
@@ -2702,7 +2683,6 @@ static void RefreshLine12(VDP* vdp, int Y, int X, int X2)
     if (X == -1) {
         X++;
         linePtr12 = RefreshBorder(vdp, Y, vdp->paletteFixed[vdp->vdpRegs[7]], 0, 0);
-        //if(!linePtr12) return;
         sprLine = getSpritesLine(vdp, Y);
 
         if (linePtr12 == NULL) {

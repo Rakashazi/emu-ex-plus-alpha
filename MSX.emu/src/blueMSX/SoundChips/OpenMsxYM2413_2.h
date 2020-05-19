@@ -4,9 +4,8 @@
 #ifndef __YM2413_2_HH__
 #define __YM2413_2_HH__
 
-#include <imagine/util/builtins.h>
+#include <string>
 
-//using namespace std;
 
 
 typedef unsigned long  EmuTime;
@@ -176,10 +175,7 @@ class OpenYM2413_2 : public OpenYM2413Base
 		inline static int wave2_4pi(int e);
 		inline static int wave2_8pi(int e);
 		inline static int EG2DB(int d);
-		/*constexpr*/	static int SL2EG(int d)
-		{
-			return d * (int)(SL_STEP / EG_STEP);
-		}
+		inline static int SL2EG(int d);
 	
 		Patch* patches;
         int patchIdx;
@@ -229,7 +225,7 @@ class OpenYM2413_2 : public OpenYM2413Base
 	};
 
 public:
-	OpenYM2413_2(const char *name, short volume, const EmuTime& time);
+	OpenYM2413_2(const std::string& name, short volume, const EmuTime& time);
 	virtual ~OpenYM2413_2();
 
 	virtual void reset(const EmuTime& time);
@@ -237,8 +233,8 @@ public:
     virtual byte peekReg(byte r) { return reg[r]; }
 
 	// SoundDevice
-	virtual const char * getName() const;
-	virtual const char * getDescription() const;
+	virtual const std::string& getName() const;
+	virtual std::string getDescription() const;
 	virtual void setInternalVolume(short newVolume);
 	virtual int* updateBuffer(int length);
 	virtual void setSampleRate(int newSampleRate, int Oversampling);
@@ -354,7 +350,7 @@ private:
     // Phase incr table for PG 
     static unsigned int dphaseTable[512][8][16];
 
-	const char * name;
+    const std::string name;
 
     int buffer[AUDIO_MONO_BUFFER_SIZE];
 };

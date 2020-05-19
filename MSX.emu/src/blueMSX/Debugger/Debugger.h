@@ -29,7 +29,6 @@
 #define DEBUGGER_H
 
 #include "MsxTypes.h"
-#include <Config/VideoChips.h>
 
 typedef struct BlueDebugger    BlueDebugger;
 typedef struct DbgSnapshot DbgSnapshot;
@@ -130,11 +129,7 @@ void dbgStep();
 void dbgSetBreakpoint(UInt16 address);
 void dbgClearBreakpoint(UInt16 address);
 
-#ifdef VDP_NO_DEBUG
-static int debuggerCheckVramAccess(void) { return 0; }
-#else
 int debuggerCheckVramAccess(void);
-#endif
 
 void dbgEnableVramAccessCheck(int enable);
 

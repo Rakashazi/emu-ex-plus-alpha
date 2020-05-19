@@ -4,11 +4,11 @@
 #ifndef __YMF262_HH__
 #define __YMF262_HH__
 
+#include <string>
 extern "C" {
 #include "Board.h"
 }
 
-//using namespace std;
 
 
 typedef unsigned long  EmuTime;

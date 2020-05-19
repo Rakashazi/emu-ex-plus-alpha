@@ -43,7 +43,8 @@ extern "C" {
 #define DIR_SEPARATOR "/"
 #endif
 
-/* Define double type for different targets */
+/* Define double type for different targets
+ */
 #if defined(__x86_64__) || defined(__i386__)
 typedef double DoubleT;
 #else
@@ -147,6 +148,5 @@ void dbgPrint();
 #define EXCLUDE_ROM_YAMAHANET
 #define EXCLUDE_SEGA_DEVICES
 #define EXCLUDE_IDE_DEVICES
-#define VMX80
 
 #endif

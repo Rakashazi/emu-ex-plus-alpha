@@ -1,6 +1,8 @@
 #pragma once
 
 #include <emuframework/Option.hh>
+#include <emuframework/EmuSystem.hh>
+#include <imagine/pixmap/Pixmap.hh>
 
 extern "C"
 {
@@ -8,11 +10,11 @@ extern "C"
 }
 
 extern bool canInstallCBIOS;
-extern char optionMachineNameStr[128];
 extern Byte1Option optionSkipFdcAccess;
 extern PathOption optionFirmwarePath;
 extern FS::PathString machineCustomPath;
 extern FS::PathString machineBasePath;
+extern PathOption optionDefaultMachineName;
 extern PathOption optionMachineName;
 extern FS::FileString hdName[4];
 extern FS::FileString cartName[2];
@@ -44,3 +46,7 @@ CallResult zipStartWrite(const char *fileName);
 CallResult zipEndWrite();
 const char *machineBasePathStr();
 void setupVKeyboardMap(uint boardType);
+IG::Pixmap frameBufferPixmap();
+bool setDefaultMachineName(const char *name);
+const char *currentMachineName();
+EmuSystem::Error setCurrentMachineName(const char *machineName, bool insertMediaFiles = true);

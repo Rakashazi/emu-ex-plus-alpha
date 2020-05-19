@@ -36,26 +36,18 @@ typedef struct {
     void (*disable)(void*);
 } VideoCallbacks;
 
-/*typedef enum {
+typedef enum {
     VIDEO_INTERNAL = 1,
     VIDEO_MIX      = 2,
     VIDEO_EXTERNAL = 4,
     VIDEO_NONE     = 8,
     VIDEO_MASK_ALL = VIDEO_INTERNAL | VIDEO_MIX | VIDEO_EXTERNAL | VIDEO_NONE
-} VideoMode;*/
-
-enum {
-    VIDEO_INTERNAL = 1,
-    VIDEO_MIX      = 2,
-    VIDEO_EXTERNAL = 4,
-    VIDEO_NONE     = 8,
-    VIDEO_MASK_ALL = VIDEO_INTERNAL | VIDEO_MIX | VIDEO_EXTERNAL | VIDEO_NONE
-};
+} VideoMode;
 
 int videoManagerGetCount();
 int videoManagerGetActive();
 void videoManagerSetActive(int index);
-void videoManagerSetMode(int index, FrameBufferMixMode videoMode, FrameBufferMixMode modeMask);
+void videoManagerSetMode(int index, VideoMode videoMode, VideoMode modeMask);
 int videoManagerIsActive(int index);
 char* videoManagerGetName(int index);
 

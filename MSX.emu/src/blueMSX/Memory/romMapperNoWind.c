@@ -219,7 +219,7 @@ static void write(RomMapperNoWind* rm, UInt16 address, UInt8 value)
     }
 }
 
-int romMapperNoWindCreate(int driveId, char* filename, UInt8* romData, 
+int romMapperNoWindCreate(int driveId, const char* filename, UInt8* romData,
                          int size, int slot, int sslot, int startPage) 
 {
     DeviceCallbacks callbacks = { destroy, reset, saveState, loadState };

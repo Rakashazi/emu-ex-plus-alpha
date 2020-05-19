@@ -400,9 +400,14 @@ int boardChangeCartridge(int cartNo, RomType romType, const char* cart, const ch
 
     bool success;
     if(cartNo < boardInfo.cartridgeCount)
+    {
     	success = cartridgeInsert(cartNo, romType, cart, cartZip);
+    }
     else
+    {
+    	logErr("cart #%d exceeds max:%d", cartNo, boardInfo.cartridgeCount);
     	success = 0;
+    }
 
     return success;
 }

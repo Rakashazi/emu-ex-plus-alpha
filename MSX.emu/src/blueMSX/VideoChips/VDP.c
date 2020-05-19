@@ -78,7 +78,7 @@ int vdpGetRefreshRate()
 
 typedef struct {
     int handle;
-    FrameBufferMixMode videoModeMask;
+    VideoMode videoModeMask;
     VdpDaCallbacks callbacks;
     void* ref;
 } VdpDaDevice;
@@ -94,7 +94,7 @@ static VdpDaDevice vdpDaDevice = {
     NULL
 };
 
-int vdpRegisterDaConverter(VdpDaCallbacks* callbacks, void* ref, FrameBufferMixMode videoModeMask)
+int vdpRegisterDaConverter(VdpDaCallbacks* callbacks, void* ref, VideoMode videoModeMask)
 {
     vdpDaDevice.videoModeMask     = videoModeMask;
     vdpDaDevice.callbacks.daStart = callbacks->daStart ? callbacks->daStart : daStart;
@@ -1359,8 +1359,6 @@ void vdpForceSync()
     }
 }
 
-//uint skipFrame;
-
 static void sync(VDP* vdp, UInt32 systemTime) 
 {
     int frameTime = systemTime - vdp->frameStartTime;
@@ -1379,14 +1377,14 @@ static void sync(VDP* vdp, UInt32 systemTime)
     if (vdp->curLine < scanLine) {
         if (vdp->lineOffset <= 32) {
             if (vdp->curLine >= vdp->displayOffest && vdp->curLine < vdp->displayOffest + SCREEN_HEIGHT) {
-                /*if(!skipFrame)*/ vdp->RefreshLine(vdp, vdp->curLine, vdp->lineOffset, 33);
+                vdp->RefreshLine(vdp, vdp->curLine, vdp->lineOffset, 33);
             }
         }
         vdp->lineOffset = -1;
         vdp->curLine++;
         while (vdp->curLine < scanLine) {
             if (vdp->curLine >= vdp->displayOffest && vdp->curLine < vdp->displayOffest + SCREEN_HEIGHT) {
-            	/*if(!skipFrame)*/ vdp->RefreshLine(vdp, vdp->curLine, -1, 33);
+            	vdp->RefreshLine(vdp, vdp->curLine, -1, 33);
             }
             vdp->curLine++;
         }
@@ -1403,7 +1401,7 @@ static void sync(VDP* vdp, UInt32 systemTime)
 
     if (vdp->lineOffset < curLineOffset) {
         if (vdp->curLine >= vdp->displayOffest && vdp->curLine < vdp->displayOffest + SCREEN_HEIGHT) {
-        	/*if(!skipFrame)*/ vdp->RefreshLine(vdp, vdp->curLine, vdp->lineOffset, curLineOffset);
+        	vdp->RefreshLine(vdp, vdp->curLine, vdp->lineOffset, curLineOffset);
         }
         vdp->lineOffset = curLineOffset;
     }

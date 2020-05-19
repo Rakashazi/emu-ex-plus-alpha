@@ -77,7 +77,7 @@ FrameBuffer* frameBufferFlipViewFrame(int mixFrames);
 FrameBuffer* frameBufferFlipDrawFrame();
 
 void frameBufferSetScanline(int scanline);
-int frameBufferGetScanline();
+int frameBufferGetScanline(FrameBuffer* frameBuffer);
 
 FrameBuffer* frameBufferGetWhiteNoiseFrame();
 FrameBuffer* frameBufferDeinterlace(FrameBuffer* frameBuffer);

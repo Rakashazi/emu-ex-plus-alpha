@@ -13,13 +13,18 @@
 	You should have received a copy of the GNU General Public License
 	along with MSX.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "RomLoader.h"
+
 #include "ziphelper.h"
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
 #include <string.h>
 #include "internal.hh"
+
+extern "C"
+{
+	#include <blueMSX/Memory/RomLoader.h>
+}
 
 UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 {

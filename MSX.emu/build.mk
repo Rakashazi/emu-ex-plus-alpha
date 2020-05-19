@@ -3,6 +3,9 @@ inc_main := 1
 
 include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
+# TODO: fix pointer type casts
+CFLAGS_LANG += -Wno-incompatible-pointer-types -Wno-sign-compare -Wno-switch
+
 SRC += main/Main.cc \
 main/options.cc \
 main/input.cc \
@@ -11,15 +14,14 @@ main/EmuMenuViews.cc \
 main/BlueMSXApi.cc \
 main/Board.cc \
 main/ziphelper.cc \
-main/RomLoader.cc
+main/RomLoader.cc \
+main/FrameBuffer.cc
 
 BMSX := blueMSX
 
 CPPFLAGS += -DNO_FRAMEBUFFER \
 -DLSB_FIRST \
 -DNO_ASM \
--DSINGLE_THREADED \
--DNO_FILE_HISTORY \
 -DNO_EMBEDDED_SAMPLES \
 -I$(projectPath)/src/$(BMSX)
 
@@ -94,7 +96,8 @@ $(BMSX)/IoDevice/MSXMidi.c \
 $(BMSX)/IoDevice/I8251.c \
 $(BMSX)/IoDevice/I8254.c \
 $(BMSX)/IoDevice/Z8530.c \
-$(BMSX)/IoDevice/HarddiskIDE.c
+$(BMSX)/IoDevice/HarddiskIDE.c \
+$(BMSX)/IoDevice/DirAsDisk.c \
 
 # TODO: this file causes LTO linker error with multiple read() symbols
 # in Android NDK r10, possibly due to linker bug
@@ -131,6 +134,7 @@ SRC += $(BMSX)/Memory/ram1kBMirrored.c \
 $(BMSX)/Memory/ramNormal.c \
 $(BMSX)/Debugger/DebugDeviceManager.c \
 $(BMSX)/Memory/DeviceManager.c \
+$(BMSX)/Memory/SlotManager.c \
 $(BMSX)/Memory/ramMapper.c \
 $(BMSX)/Memory/ramMapperIo.c \
 $(BMSX)/Memory/IoPort.c \

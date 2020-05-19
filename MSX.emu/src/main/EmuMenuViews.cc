@@ -27,6 +27,40 @@ extern "C"
 	#include <blueMSX/IoDevice/Disk.h>
 }
 
+static std::vector<FS::FileString> machinesNames(const char *basePath)
+{
+	std::vector<FS::FileString> machineName{};
+	auto machinePath = FS::makePathStringPrintf("%s/Machines", basePath);
+	for(auto &entry : FS::directory_iterator{machinePath})
+	{
+		auto configPath = FS::makePathStringPrintf("%s/%s/config.ini", machinePath.data(), entry.name());
+		if(!FS::exists(configPath))
+		{
+			//logMsg("%s doesn't exist", configPath.data());
+			continue;
+		}
+		machineName.emplace_back(FS::makeFileString(entry.name()));
+		logMsg("found machine:%s", entry.name());
+	}
+	std::sort(machineName.begin(), machineName.end(), FS::fileStringNoCaseLexCompare());
+	return machineName;
+}
+
+static int machineIndex(std::vector<FS::FileString> &name, FS::FileString searchName)
+{
+	int currentMachineIdx =
+		std::find(name.begin(), name.end(), searchName) - name.begin();
+	if(currentMachineIdx != (int)name.size())
+	{
+		//logMsg("current machine is idx %d", currentMachineIdx);
+		return(currentMachineIdx);
+	}
+	else
+	{
+		return -1;
+	}
+}
+
 template <size_t S>
 static void printInstallFirmwareFilesStr(char (&str)[S])
 {
@@ -95,20 +129,19 @@ void installFirmwareFiles()
 		}
 	}
 
-	string_copy(optionMachineNameStr, "MSX2 - C-BIOS");
+	setDefaultMachineName("MSX2 - C-BIOS");
 	EmuApp::postMessage("Installation OK");
 }
 
 class CustomSystemOptionView : public SystemOptionView
 {
 private:
-
 	std::vector<FS::FileString> msxMachineName{};
 	std::vector<TextMenuItem> msxMachineItem{};
 
 	MultiChoiceMenuItem msxMachine
 	{
-		"Machine Type",
+		"Default Machine Type",
 		[](int idx) -> const char*
 		{
 			if(idx == -1)
@@ -131,43 +164,18 @@ private:
 
 	void reloadMachineItem()
 	{
-		msxMachineName.clear();
 		msxMachineItem.clear();
-		{
-			auto machinePath = FS::makePathStringPrintf("%s/Machines", machineBasePath.data());
-			for(auto &entry : FS::directory_iterator{machinePath})
-			{
-				auto configPath = FS::makePathStringPrintf("%s/%s/config.ini", machinePath.data(), entry.name());
-				if(!FS::exists(configPath))
-				{
-					logMsg("%s doesn't exist", configPath.data());
-					continue;
-				}
-				msxMachineName.emplace_back(FS::makeFileString(entry.name()));
-				logMsg("added machine %s", entry.name());
-			}
-		}
-		std::sort(msxMachineName.begin(), msxMachineName.end(), FS::fileStringNoCaseLexCompare());
+		msxMachineName = std::move(machinesNames(machineBasePath.data()));
 		for(const auto &name : msxMachineName)
 		{
 			msxMachineItem.emplace_back(name.data(),
 			[](TextMenuItem &item, View &, Input::Event)
 			{
-				string_copy(optionMachineNameStr, item.name());
-				logMsg("set machine type: %s", (char*)optionMachineName);
+				setDefaultMachineName(item.name());
+				logMsg("set machine type: %s", item.name());
 			});
 		}
-		int currentMachineIdx =
-			std::find(msxMachineName.begin(), msxMachineName.end(), FS::makeFileString(optionMachineName)) - msxMachineName.begin();
-		if(currentMachineIdx != (int)msxMachineName.size())
-		{
-			logMsg("current machine is idx %d", currentMachineIdx);
-			msxMachine.setSelected(currentMachineIdx);
-		}
-		else
-		{
-			msxMachine.setSelected(-1);
-		}
+		msxMachine.setSelected(machineIndex(msxMachineName, FS::makeFileString(optionDefaultMachineName)));
 	}
 
 	char installFirmwareFilesStr[512]{};
@@ -556,10 +564,71 @@ private:
 		}
 	};
 
+	std::vector<FS::FileString> msxMachineName{};
+	std::vector<TextMenuItem> msxMachineItem{};
+
+	MultiChoiceMenuItem msxMachine
+	{
+		"Machine Type",
+		[this](int idx) -> const char*
+		{
+			if(idx == -1)
+				return "None";
+			else
+				return nullptr;
+		},
+		0,
+		msxMachineItem,
+		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+		{
+			if(!msxMachineItem.size())
+			{
+				return;
+			}
+			item.defaultOnSelect(view, e);
+		}
+	};
+
+	void reloadMachineItem()
+	{
+		msxMachineItem.clear();
+		msxMachineName = std::move(machinesNames(machineBasePath.data()));
+		for(const auto &name : msxMachineName)
+		{
+			msxMachineItem.emplace_back(name.data(),
+			[this](TextMenuItem &item, View &, Input::Event e)
+			{
+				auto ynAlertView = makeView<YesNoAlertView>("Change machine type and reset emulation?");
+				ynAlertView->setOnYes(
+					[this, name = item.name()](TextMenuItem &, View &view, Input::Event)
+					{
+						if(auto err = setCurrentMachineName(name);
+							err)
+						{
+							EmuApp::printfMessage(3, true, "%s", err->what());
+							view.dismiss();
+							return;
+						}
+						auto machineName = currentMachineName();
+						strcpy(optionMachineName.val, machineName);
+						msxMachine.setSelected(machineIndex(msxMachineName, FS::makeFileString(machineName)));
+						EmuSystem::sessionOptionSet();
+						view.dismiss();
+						popAndShow();
+					});
+				EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
+				return false;
+			});
+		}
+		msxMachine.setSelected(machineIndex(msxMachineName, FS::makeFileString(currentMachineName())));
+	}
+
 	void reloadItems()
 	{
 		item.clear();
 		item.emplace_back(&msxIOControl);
+		reloadMachineItem();
+		item.emplace_back(&msxMachine);
 		loadStandardItems();
 	}
 
@@ -573,6 +642,7 @@ public:
 	{
 		EmuSystemActionsView::onShow();
 		msxIOControl.setActive(EmuSystem::gameIsRunning() && activeBoardType == BOARD_MSX);
+		msxMachine.setSelected(machineIndex(msxMachineName, FS::makeFileString(currentMachineName())));
 	}
 };
 

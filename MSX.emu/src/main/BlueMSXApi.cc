@@ -39,7 +39,6 @@ extern "C"
 	#include <blueMSX/Arch/ArchPrinter.h>
 	#include <blueMSX/Arch/ArchCdrom.h>
 	#include <blueMSX/Arch/ArchUart.h>
-	#include <blueMSX/Arch/ArchVideoIn.h>
 	#include <blueMSX/IoDevice/ScsiDefs.h>
 	#include <blueMSX/Debugger/Debugger.h>
 	#include <blueMSX/Emulator/FileHistory.h>
@@ -125,10 +124,10 @@ UInt16* archVideoInBufferGet(int width, int height) { return NULL; }
 
 void updateExtendedDiskName(int drive, char* filename, char* zipFile) { }
 
-/*int debuggerCheckVramAccess(void)
+int debuggerCheckVramAccess(void)
 {
 	return 0;
-}*/
+}
 
 const char* stripPath(const char* filename)
 {
@@ -144,35 +143,6 @@ const char* stripPath(const char* filename)
 
 	return filename;
 }
-
-// misc framebuffer funcs
-
-FrameBufferData* frameBufferDataCreate(int maxWidth, int maxHeight, int defaultHorizZoom)
-{
-	logMsg("frameBufferDataCreate %dx%d zoom %d", maxWidth, maxHeight, defaultHorizZoom);
-	return (FrameBufferData*)1;
-}
-
-void frameBufferDataDestroy(FrameBufferData* frameData) {}
-FrameBuffer* frameBufferGetDrawFrame() {return (FrameBuffer*)1; }
-FrameBuffer* frameBufferFlipDrawFrame() { return (FrameBuffer*)1; }
-FrameBufferData* frameBufferGetActive() { return (FrameBufferData*)1; }
-void frameBufferSetActive(FrameBufferData* frameData) {}
-void frameBufferSetMixMode(FrameBufferMixMode mode, FrameBufferMixMode mask) {}
-void frameBufferClearDeinterlace() {}
-void frameBufferSetInterlace(FrameBuffer* frameBuffer, int val)
-{
-	//logMsg("setting interlace %d", val);
-}
-void frameBufferSetLineCount(FrameBuffer* frameBuffer, int val)
-{
-	//logMsg("setting line count %d", val);
-}
-
-// Used by gunstick and asciilaser
-static int fbScanLine = 0;
-void frameBufferSetScanline(int scanline) { fbScanLine = scanline; }
-int frameBufferGetScanline() { return fbScanLine; }
 
 // dummy R800 debug funcs
 void r800DebugCreate(R800* r800) { }

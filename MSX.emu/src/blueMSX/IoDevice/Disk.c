@@ -608,7 +608,7 @@ static char *makeErrorsFileName(const char *fileName)
 UInt8 diskChange(int driveId, const char* fileName, const char* fileInZipFile)
 {
     struct stat s;
-    //int rv;
+    int rv;
     char *fname;
 
     if (driveId >= MAXDRIVES)
@@ -642,8 +642,7 @@ UInt8 diskChange(int driveId, const char* fileName, const char* fileInZipFile)
         return 1;
     }
 
-    // TODO: DirAsDisk.c isn't currently built due to LTO linker issue
-    /*rv = stat(fileName, &s);
+    rv = stat(fileName, &s);
     if (rv == 0) {
         if (s.st_mode & S_IFDIR) {
             ramImageBuffer[driveId] = dirLoadFile(DDT_MSX, fileName, &ramImageSize[driveId]);
@@ -651,7 +650,7 @@ UInt8 diskChange(int driveId, const char* fileName, const char* fileInZipFile)
             diskUpdateInfo(driveId);
             return ramImageBuffer[driveId] != NULL;
         }
-    }*/
+    }
 
     if (fileInZipFile != NULL) {
         ramImageBuffer[driveId] = zipLoadFile(fileName, fileInZipFile, &ramImageSize[driveId]);

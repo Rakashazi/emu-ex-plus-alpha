@@ -4,8 +4,8 @@
 #define __Y8950ADPCM_HH__
 
 #include "MsxTypes.h"
+#include <string>
 
-using namespace std;
 
 
 typedef unsigned long  EmuTime;

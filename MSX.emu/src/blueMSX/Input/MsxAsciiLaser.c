@@ -81,7 +81,7 @@ static UInt8 read(MsxAsciiLaser* joystick) {
     
     frameBuffer = frameBufferGetDrawFrame(my);
     if (frameBuffer != NULL) {
-        int scanline = frameBufferGetScanline();
+        int scanline = frameBufferGetScanline(frameBuffer);
         int myLow  = MAX(scanline - DELAY - HOLD - RADIUS, my + AIMADJUST - RADIUS);
         int myHigh = MIN(scanline - DELAY, my + AIMADJUST + RADIUS + HOLD);
         int y;

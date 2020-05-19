@@ -81,8 +81,8 @@ static void signalSem() {
 
 
 static FrameBufferData* currentBuffer = NULL;
-static VideoMode mixMode = VIDEO_INTERNAL;
-static VideoMode mixMask = VIDEO_INTERNAL;
+static FrameBufferMixMode mixMode = MIXMODE_INTERNAL;
+static FrameBufferMixMode mixMask = MIXMODE_INTERNAL;
 static int frameBufferCount = MAX_FRAMES_PER_FRAMEBUFFER;
 
 
@@ -431,7 +431,7 @@ void frameBufferSetActive(FrameBufferData* frameData)
     }
 }
 
-void frameBufferSetMixMode(VideoMode mode,  VideoMode mask)
+void frameBufferSetMixMode(FrameBufferMixMode mode,  FrameBufferMixMode mask)
 {
     mixMode = mode;
     mixMask = mask;

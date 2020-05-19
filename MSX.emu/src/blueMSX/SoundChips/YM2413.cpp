@@ -28,7 +28,7 @@
 #include "YM2413.h"
 #include "OpenMsxYM2413.h"
 #include "OpenMsxYM2413_2.h"
-#include <string.h>
+#include <cstring>
 extern "C" {
 #include "Board.h"
 #include "SaveState.h"

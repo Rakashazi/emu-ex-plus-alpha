@@ -401,10 +401,6 @@ int colecoCreate(Machine* machine,
     }
 
     success = machineInitialize(machine, NULL, NULL, NULL);
-#ifndef NDEBUG
-  if(!success)
-  	fprintf(stderr, "machineInitialize failed\n");
-#endif
 
     for (i = 0; i < 8; i++) {
         slotMapRamPage(0, 0, i);

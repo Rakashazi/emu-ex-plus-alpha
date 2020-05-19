@@ -30,14 +30,6 @@
  
 #include "MsxTypes.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 UInt8* romLoad(const char *fileName, const char *fileInZipFile, int* size);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
