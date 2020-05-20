@@ -9,6 +9,8 @@
 #include <cstring>
 #include <iosfwd>
 
+class EmuSystemTask;
+class EmuVideo;
 class EmuAudio;
 
 FILE *FCEUD_UTF8fopen(const char *fn, const char *mode);
@@ -111,7 +113,7 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode, bool silen
 bool FCEUI_Initialize();
 
 //Emulates a frame.
-void FCEUI_Emulate(EmuVideoDelegate onFrameReady, int skip, EmuAudio *audio);
+void FCEUI_Emulate(EmuSystemTask *task, EmuVideo *video, int skip, EmuAudio *audio);
 
 //Closes currently loaded game
 void FCEUI_CloseGame(void);
@@ -222,8 +224,7 @@ void FCEUI_CheatSearchSetCurrentAsOriginal(void);
 #define FCEUIOD_INPUT   10	//input presets
 #define FCEUIOD_LUA     11	//lua scripts
 #define FCEUIOD_AVI		12	//default file for avi output
-#define FCEUIOD_PALETTE 13
-#define FCEUIOD__COUNT  14	//base directory override?
+#define FCEUIOD__COUNT  13	//base directory override?
 
 void FCEUI_SetDirOverride(int which, const char *n);
 

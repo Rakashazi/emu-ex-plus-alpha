@@ -1,7 +1,13 @@
+#pragma once
+
+class EmuSystemTask;
+class EmuVideo;
+
 void FCEUPPU_Init(void);
 void FCEUPPU_Reset(void);
 void FCEUPPU_Power(void);
-int FCEUPPU_Loop(EmuVideoDelegate onFrameReady, int skip);
+int FCEUPPU_Loop(EmuSystemTask *task, EmuVideo *video, int skip);
+void FCEUPPU_FrameReady(EmuSystemTask *task, EmuVideo *video, uint8 *data);
 
 void FCEUPPU_LineUpdate();
 void FCEUPPU_SetVideoSystem(int w);

@@ -18,6 +18,7 @@ extern Byte1Option optionVideoSystem;
 extern Byte1Option optionDefaultVideoSystem;
 extern Byte1Option optionSpriteLimit;
 extern Byte1Option optionSoundQuality;
+extern Byte1Option optionCompatibleFrameskip;
 extern FS::PathString defaultPalettePath;
 extern ESI nesInputPortDev[2];
 extern uint autoDetectedRegion;

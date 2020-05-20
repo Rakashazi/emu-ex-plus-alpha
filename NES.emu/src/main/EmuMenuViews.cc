@@ -17,6 +17,7 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
+#include <imagine/gui/AlertView.hh>
 #include "EmuCheatViews.hh"
 #include "internal.hh"
 #include <fceu/fds.h>
@@ -106,11 +107,40 @@ class ConsoleOptionView : public TableView
 		EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
-	std::array<MenuItem*, 3> menuItem
+	BoolMenuItem compatibleFrameskip
+	{
+		"Frameskip Mode",
+		(bool)optionCompatibleFrameskip,
+		"Fast", "Compatible",
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			if(!item.boolValue())
+			{
+				auto ynAlertView = makeView<YesNoAlertView>(
+					"Use compatible mode if the current game has glitches when "
+					"fast-forwarding/frame-skipping, at the cost of increased CPU usage.");
+				ynAlertView->setOnYes(
+					[this, &item](TextMenuItem &, View &view, Input::Event e)
+					{
+						view.dismiss();
+						EmuSystem::sessionOptionSet();
+						optionCompatibleFrameskip = item.flipBoolValue(*this);
+					});
+				EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
+			}
+			else
+			{
+				optionCompatibleFrameskip = item.flipBoolValue(*this);
+			}
+		}
+	};
+
+	std::array<MenuItem*, 4> menuItem
 	{
 		&inputPorts,
 		&fourScore,
-		&videoSystem
+		&videoSystem,
+		&compatibleFrameskip,
 	};
 
 public:

@@ -22,7 +22,7 @@ enum
 	CFGKEY_VIDEO_SYSTEM = 272, CFGKEY_SPRITE_LIMIT = 273,
 	CFGKEY_SOUND_QUALITY = 274, CFGKEY_INPUT_PORT_1 = 275,
 	CFGKEY_INPUT_PORT_2 = 276, CFGKEY_DEFAULT_PALETTE_PATH = 277,
-	CFGKEY_DEFAULT_VIDEO_SYSTEM = 278
+	CFGKEY_DEFAULT_VIDEO_SYSTEM = 278, CFGKEY_COMPATIBLE_FRAMESKIP = 279
 };
 
 const char *EmuSystem::configFilename = "NesEmu.config";
@@ -44,6 +44,7 @@ Byte1Option optionSpriteLimit{CFGKEY_SPRITE_LIMIT, 1};
 Byte1Option optionSoundQuality{CFGKEY_SOUND_QUALITY, 0, false, optionIsValidWithMax<2>};
 FS::PathString defaultPalettePath{};
 PathOption optionDefaultPalettePath{CFGKEY_DEFAULT_PALETTE_PATH, defaultPalettePath, ""};
+Byte1Option optionCompatibleFrameskip{CFGKEY_COMPATIBLE_FRAMESKIP, 0};
 
 EmuSystem::Error EmuSystem::onOptionsLoaded()
 {
@@ -69,6 +70,7 @@ bool EmuSystem::resetSessionOptions()
 	nesInputPortDev[0] = (ESI)(int)optionInputPort1;
 	nesInputPortDev[1] = (ESI)(int)optionInputPort2;
 	setupNESInputPorts();
+	optionCompatibleFrameskip.reset();
 	return true;
 }
 
@@ -81,6 +83,7 @@ bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
 		bcase CFGKEY_VIDEO_SYSTEM: optionVideoSystem.readFromIO(io, readSize);
 		bcase CFGKEY_INPUT_PORT_1: optionInputPort1.readFromIO(io, readSize);
 		bcase CFGKEY_INPUT_PORT_2: optionInputPort2.readFromIO(io, readSize);
+		bcase CFGKEY_COMPATIBLE_FRAMESKIP: optionCompatibleFrameskip.readFromIO(io, readSize);
 	}
 	return 1;
 }
@@ -91,6 +94,7 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionVideoSystem.writeWithKeyIfNotDefault(io);
 	optionInputPort1.writeWithKeyIfNotDefault(io);
 	optionInputPort2.writeWithKeyIfNotDefault(io);
+	optionCompatibleFrameskip.writeWithKeyIfNotDefault(io);
 }
 
 bool EmuSystem::readConfig(IO &io, uint key, uint readSize)

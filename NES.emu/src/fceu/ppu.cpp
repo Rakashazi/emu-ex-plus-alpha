@@ -1671,7 +1671,12 @@ static void CopySprites(uint8 *target) {
 	if (!rendersprites) return;	//User asked to not display sprites.
 
 	if(!SpriteON) return;
-	for(int i=0;i<256;i++)
+
+	int start=8;
+	if(PPU[1] & 0x04)
+		start = 0;
+
+	for(int i=start;i<256;i++)
 	{
 		uint8 t = sprlinebuf[i];
 		if(!(t&0x80))
@@ -1746,7 +1751,7 @@ void FCEUPPU_Power(void) {
 	BWrite[0x4014] = B4014;
 }
 
-int FCEUPPU_Loop(EmuVideoDelegate onFrameReady, int skip) {
+int FCEUPPU_Loop(EmuSystemTask *task, EmuVideo *video, int skip) {
 	if ((newppu) && (GameInfo->type != GIT_NSF)) {
 		int FCEUX_PPU_Loop(int skip);
 		return FCEUX_PPU_Loop(skip);
@@ -1758,7 +1763,7 @@ int FCEUPPU_Loop(EmuVideoDelegate onFrameReady, int skip) {
 		X6502_Run(scanlines_per_frame * (256 + 85));
 		ppudead--;
 		if(!skip)
-			onFrameReady(nullptr);
+			FCEUPPU_FrameReady(task, video, nullptr);
 	} else {
 		X6502_Run(256 + 85);
 		PPU_status |= 0x80;
@@ -1864,7 +1869,7 @@ int FCEUPPU_Loop(EmuVideoDelegate onFrameReady, int skip) {
 					overclocking = 1;
 				}
 			}
-			onFrameReady(XBuf);
+			FCEUPPU_FrameReady(task, video, XBuf);
 			DMC_7bit = 0;
 
 			if (MMC5Hack) MMC5_hb(scanline);
@@ -1893,7 +1898,7 @@ int FCEUPPU_Loop(EmuVideoDelegate onFrameReady, int skip) {
 	}
 }
 
-int (*PPU_MASTER)(EmuVideoDelegate onFrameReady, int skip) = FCEUPPU_Loop;
+int (*PPU_MASTER)(EmuSystemTask *task, EmuVideo *video, int skip) = FCEUPPU_Loop;
 
 static uint16 TempAddrT, RefreshAddrT;
 

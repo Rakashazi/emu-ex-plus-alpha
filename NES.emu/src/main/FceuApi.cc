@@ -17,7 +17,6 @@
 
 #include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
-#include <imagine/io/api/stdio.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
@@ -37,7 +36,7 @@ int closeFinishedMovie = 0;
 int StackAddrBackup = -1;
 int KillFCEUXonFrame = 0;
 
-void FCEUI_Emulate(EmuVideoDelegate onFrameReady, int skip, EmuAudio *audio)
+void FCEUI_Emulate(EmuSystemTask *task, EmuVideo *video, int skip, EmuAudio *audio)
 {
 	#ifdef _S9XLUA_H
 	FCEU_LuaFrameBoundary();
@@ -51,7 +50,7 @@ void FCEUI_Emulate(EmuVideoDelegate onFrameReady, int skip, EmuAudio *audio)
 	#endif
 
 	if (geniestage != 1) FCEU_ApplyPeriodicCheats();
-	FCEUPPU_Loop(onFrameReady, skip);
+	FCEUPPU_Loop(task, video, skip);
 
 	emulateSound(audio);
 
@@ -304,57 +303,4 @@ void EncodeGG(char *str, int a, int v, int c)
 		str[8] = 0;
 	}
 	return;
-}
-
-EMUFILE_IO::EMUFILE_IO(IO &srcIO)
-{
-	auto size = srcIO.size();
-	auto mmapData = srcIO.mmapConst();
-	if(mmapData)
-	{
-		io.open(mmapData, size);
-	}
-	else
-	{
-		auto romData = new char[size]();
-		if(srcIO.read(romData, size) != (ssize_t)size)
-		{
-			failbit = true;
-			return;
-		}
-		io.open(romData, size, [romData](BufferMapIO &){ delete[] romData; });
-	}
-}
-
-void EMUFILE_IO::truncate(s32 length)
-{
-	io.truncate(length);
-}
-
-int EMUFILE_IO::fgetc()
-{
-	return ::fgetc(io);
-}
-
-size_t EMUFILE_IO::_fread(const void *ptr, size_t bytes)
-{
-	ssize_t ret = io.read((void*)ptr, bytes);
-	if(ret < (ssize_t)bytes)
-		failbit = true;
-	return ret;
-}
-
-int EMUFILE_IO::fseek(int offset, int origin)
-{
-	return ::fseek(io, offset, origin);
-}
-
-int EMUFILE_IO::ftell()
-{
-	return (int)::ftell(io);
-}
-
-int EMUFILE_IO::size()
-{
-	return io.size();
 }

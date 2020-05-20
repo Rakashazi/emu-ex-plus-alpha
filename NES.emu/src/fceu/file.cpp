@@ -460,7 +460,7 @@ void FCEUI_SetBaseDirectory(std::string const & dir)
 	BaseDirectory = dir;
 }
 
-static const char *odirs[FCEUIOD__COUNT]={0,0,0,0,0,0,0,0,0,0,0,0,0};     // odirs, odors. ^_^
+static const char *odirs[FCEUIOD__COUNT]{};     // odirs, odors. ^_^
 
 void FCEUI_SetDirOverride(int which, const char *n)
 {
@@ -745,12 +745,7 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 			else
 				sprintf(ret,"%s" PSS "disksys.rom",BaseDirectory.c_str());
 			break;
-		case FCEUMKF_PALETTE:
-			if(odirs[FCEUIOD_PALETTE])
-				sprintf(ret,"%s" PSS "%s.pal",odirs[FCEUIOD_PALETTE],FileBase);
-			else
-				sprintf(ret,"%s" PSS "%s.pal",BaseDirectory.c_str(),FileBase);
-			break;
+		case FCEUMKF_PALETTE:sprintf(ret,"%s" PSS "%s.pal",BaseDirectory.c_str(),FileBase);break;
 		case FCEUMKF_MOVIEGLOB:
 			//these globs use ??? because we can load multiple formats
 			if(odirs[FCEUIOD_MOVIES])

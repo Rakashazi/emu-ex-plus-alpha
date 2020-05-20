@@ -39,8 +39,6 @@ THE SOFTWARE.
 #include <algorithm>
 #include <string>
 
-#include <imagine/io/BufferMapIO.hh>
-
 class EMUFILE {
 protected:
 	bool failbit;
@@ -345,57 +343,6 @@ public:
 
 	virtual void fflush() {
 		::fflush(fp);
-	}
-
-};
-
-class EMUFILE_IO : public EMUFILE {
-protected:
-	BufferMapIO io{};
-
-public:
-
-	EMUFILE_IO(IO &io);
-
-	~EMUFILE_IO() {
-	}
-
-	FILE *get_fp() {
-		return nullptr;
-	}
-
-	EMUFILE* memwrap() { return nullptr; }
-
-	//bool is_open() { return io; }
-
-	void truncate(s32 length);
-
-	int fprintf(const char *format, ...) {
-		return 0;
-	};
-
-	int fgetc();
-
-	int fputc(int c) {
-		return 0;
-	}
-
-	size_t _fread(const void *ptr, size_t bytes);
-
-	//removing these return values for now so we can find any code that might be using them and make sure
-	//they handle the return values correctly
-
-	void fwrite(const void *ptr, size_t bytes){
-		failbit = true;
-	}
-
-	int fseek(int offset, int origin);
-
-	int ftell();
-
-	int size();
-
-	void fflush() {
 	}
 
 };

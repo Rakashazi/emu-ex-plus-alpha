@@ -19,6 +19,7 @@
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
 #include "internal.hh"
+#include "EmuFileIO.hh"
 #include <fceu/driver.h>
 #include <fceu/state.h>
 #include <fceu/fceu.h>
@@ -98,9 +99,9 @@ const char *EmuSystem::systemName()
 
 static void setDirOverrides()
 {
+	FCEUI_SetBaseDirectory(EmuSystem::savePath());
 	FCEUI_SetDirOverride(FCEUIOD_NV, EmuSystem::savePath());
 	FCEUI_SetDirOverride(FCEUIOD_CHEATS, EmuSystem::savePath());
-	FCEUI_SetDirOverride(FCEUIOD_PALETTE, EmuSystem::savePath());
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasNESExtension;
@@ -337,7 +338,7 @@ void setRegion(int region, int defaultRegion, int detectedRegion)
 EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 {
 	setDirOverrides();
-	auto ioStream = new EMUFILE_IO(io);
+	auto ioStream = new EmuFileIO(io);
 	auto file = new FCEUFILE();
 	file->filename = fullGamePath();
 	file->logicalPath = fullGamePath();
@@ -345,9 +346,13 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 	file->archiveIndex = -1;
 	file->stream = ioStream;
 	file->size = ioStream->size();
+	fceuReturnedError = {};
 	if(!FCEUI_LoadGameWithFile(file, originalGameFileName().data(), 0))
 	{
-		return EmuSystem::makeError("Error loading game");
+		if(fceuReturnedError)
+			return EmuSystem::makeError("%s", fceuReturnedError);
+		else
+			return EmuSystem::makeError("Error loading game");
 	}
 	autoDetectedRegion = regionFromName(gameFileName().data());
 	setRegion(optionVideoSystem.val, optionDefaultVideoSystem.val, autoDetectedRegion);
@@ -398,25 +403,29 @@ void emulateSound(EmuAudio *audio)
 	}
 }
 
+void FCEUPPU_FrameReady(EmuSystemTask *task, EmuVideo *video, uint8 *buf)
+{
+	if(!video)
+	{
+		return;
+	}
+	if(unlikely(!buf))
+	{
+		video->startUnchangedFrame(task);
+		return;
+	}
+	auto img = video->startFrame(task);
+	auto pix = img.pixmap();
+	IG::Pixmap ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};
+	auto ppuPixRegion = ppuPix.subPixmap({0, 8}, {256, 224});
+	pix.writeTransformed([](uint8 p){ return nativeCol[p]; }, ppuPixRegion);
+	img.endFrame();
+}
+
 void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
-	FCEUI_Emulate(
-		[task, video](uint8 *buf)
-		{
-			assumeExpr(video);
-			if(unlikely(!buf))
-			{
-				video->startUnchangedFrame(task);
-				return;
-			}
-			auto img = video->startFrame(task);
-			auto pix = img.pixmap();
-			IG::Pixmap ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};
-			auto ppuPixRegion = ppuPix.subPixmap({0, 8}, {256, 224});
-			pix.writeTransformed([](uint8 p){ return nativeCol[p]; }, ppuPixRegion);
-			img.endFrame();
-		}, video ? 0 : 1, audio);
-	// FCEUI_Emulate calls FCEUD_emulateSound depending on parameters
+	bool skip = !video && !optionCompatibleFrameskip;
+	FCEUI_Emulate(task, video, skip, audio);
 }
 
 void EmuSystem::savePathChanged()

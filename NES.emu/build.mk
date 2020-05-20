@@ -9,7 +9,8 @@ main/options.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc \
 main/FceuApi.cc \
-main/Cheats.cc
+main/Cheats.cc \
+main/EmuFileIO.cc
 
 CPPFLAGS += -I$(projectPath)/src \
 -DHAVE_ASPRINTF \
@@ -18,7 +19,7 @@ CPPFLAGS += -I$(projectPath)/src \
 -DFRAMESKIP \
 -I$(projectPath)/src/fceu
 
-CXXFLAGS_WARN += -Wno-register
+CXXFLAGS_WARN += -Wno-register -Wno-volatile
 
 # fceux sources
 FCEUX_SRC := fceu/cart.cpp \
@@ -62,7 +63,8 @@ fceu/input/hypershot.cpp \
 fceu/input/cursor.cpp \
 fceu/input/snesmouse.cpp \
 fceu/input/fns.cpp \
-fceu/input/pec586kb.cpp
+fceu/input/pec586kb.cpp \
+fceu/input/virtualboy.cpp
 
 BOARDS_SRC := $(subst $(projectPath)/src/,,$(filter %.cpp %.c, $(wildcard $(projectPath)/src/fceu/boards/*)))
 FCEUX_SRC += $(BOARDS_SRC)
