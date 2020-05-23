@@ -420,7 +420,7 @@ int init_rotd(GAME_ROMS *r) {
 		neogeo_cmc50_m1_decrypt(r);
 		kof2000_neogeo_gfx_decrypt(r, 0x3f);
 	}
-	neogeo_fix_bank_type = 1;
+	neogeo_fix_bank_type = 0;
 	return 0;
 }
 
@@ -590,6 +590,29 @@ int init_ms5plus(GAME_ROMS *r) {
 	//install_ms5plus_protection(r);
 	return 0;
 }
+
+int init_samsho5(GAME_ROMS *r) {
+	if (need_decrypt) {
+		samsho5_decrypt_68k(r);
+		neo_pcm2_swap(r, 4);
+		neogeo_cmc50_m1_decrypt(r);
+		kof2000_neogeo_gfx_decrypt(r, 0x0f);
+	}
+	neogeo_fix_bank_type = 0;
+	return 0;
+}
+
+int init_samsh5sp(GAME_ROMS *r) {
+	if (need_decrypt) {
+		samsh5sp_decrypt_68k(r);
+		neo_pcm2_swap(r, 6);
+		neogeo_cmc50_m1_decrypt(r);
+		kof2000_neogeo_gfx_decrypt(r, 0x0d);
+	}
+	neogeo_fix_bank_type = 0;
+	return 0;
+}
+
 #if 0
 // TODO:
 
@@ -861,6 +884,8 @@ struct roms_init_func {
 	{ "mslug5", init_mslug5},
 	{ "ms5pcb", init_ms5pcb},
 	{ "ms5plus", init_ms5plus},
+	{ "samsho5", init_samsho5},
+	{ "samsh5sp", init_samsh5sp},
 	{ NULL, NULL}
 };
 
