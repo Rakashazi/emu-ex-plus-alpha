@@ -122,11 +122,11 @@ public:
 	struct ReplyMessage
 	{
 		Reply reply{Reply::UNSET};
-		DrawFinishedParams params{};
+		FrameTime timestamp{};
 
 		constexpr ReplyMessage() {}
-		constexpr ReplyMessage(Reply reply, DrawFinishedParams params):
-			reply{reply}, params{params} {}
+		constexpr ReplyMessage(Reply reply, FrameTime timestamp):
+			reply{reply}, timestamp{timestamp} {}
 		explicit operator bool() const { return reply != Reply::UNSET; }
 	};
 
@@ -145,7 +145,7 @@ protected:
 	Base::MessagePort<CommandMessage> commandPort{"RenderTask Command"};
 	Base::MessagePort<ReplyMessage> replyPort{"RenderTask Reply"};
 	Base::GLContext glCtx{};
-	DelegateFuncSet<DrawFinishedDelegate> onDrawFinished{};
+	DelegateFuncSet<Base::OnFrameDelegate> onFrame{};
 	Base::ResumeDelegate onResume{};
 	Base::ExitDelegate onExit{};
 	IG::FrameTime drawTimestamp{};

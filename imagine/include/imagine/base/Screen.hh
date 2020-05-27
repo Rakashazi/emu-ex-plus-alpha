@@ -49,30 +49,8 @@ public:
 		bool added() const { return state == ADDED; }
 		bool removed() const { return state == REMOVED; }
 	};
-	struct FrameParams;
 
 	using ChangeDelegate = DelegateFunc<void (Screen &screen, Change change)>;
-	using OnFrameDelegate = DelegateFunc<bool (FrameParams params)>;
-
-	struct FrameParams
-	{
-		Screen &screen_;
-		FrameTime timestamp_;
-
-		Screen &screen() const { return screen_; }
-		FrameTime timestamp() const { return timestamp_; }
-		FrameTime timestampDiff() const
-		{
-			auto lastTimestamp = screen_.lastFrameTimestamp();
-			assumeExpr(timestamp_ >= lastTimestamp);
-			return lastTimestamp.count() ? timestamp_ - lastTimestamp : FrameTime{};
-		}
-		uint32_t elapsedFrames() const { return screen_.elapsedFrames(timestamp_); }
-		uint32_t elapsedFrames(uint32_t frameCap) const
-		{
-			return std::min(screen_.elapsedFrames(timestamp_), frameCap);
-		}
-	};
 
   static constexpr double DISPLAY_RATE_DEFAULT = 0;
 
@@ -91,7 +69,7 @@ public:
 	uint32_t onFrameDelegates();
 	bool runningOnFrameDelegates();
 	FrameTime lastFrameTimestamp() const { return prevFrameTimestamp; }
-	uint32_t elapsedFrames(FrameTime frameTime);
+	FrameParams makeFrameParams(FrameTime timestamp) const;
 	bool frameRateIsReliable() const;
 	double frameRate() const;
 	FloatSeconds frameTime() const;
@@ -114,7 +92,6 @@ public:
 	void deinit();
 
 private:
-  FloatSeconds timePerFrame{};
 	bool framePosted = false;
 	bool inFrameHandler = false;
 	bool isActive = true;

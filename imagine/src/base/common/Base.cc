@@ -218,6 +218,33 @@ FS::RootPathInfo nearestRootPath(const char *path)
 
 }
 
+namespace IG
+{
+
+FrameTime FrameParams::timestampDiff() const
+{
+	assumeExpr(timestamp_ >= lastTimestamp_);
+	return lastTimestamp_.count() ? timestamp_ - lastTimestamp_ : FrameTime{};
+}
+
+uint32_t FrameParams::elapsedFrames() const
+{
+	if(!lastTimestamp_.count())
+		return 1;
+	assumeExpr(timestamp_ >= lastTimestamp_);
+	assumeExpr(frameTime_.count() > 0);
+	FrameTime diff = timestamp_ - lastTimestamp_;
+	uint32_t elapsed = std::round(FloatSeconds(diff) / frameTime_);
+	return std::max(elapsed, 1u);
+}
+
+uint32_t FrameParams::elapsedFrames(uint32_t frameCap) const
+{
+	return std::min(elapsedFrames(), frameCap);
+}
+
+}
+
 #if defined(__has_feature)
 	#if __has_feature(address_sanitizer) && defined CONFIG_BASE_CUSTOM_NEW_DELETE
 	#undef CONFIG_BASE_NO_CUSTOM_NEW_DELETE

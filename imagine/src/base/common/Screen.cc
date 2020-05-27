@@ -71,7 +71,11 @@ bool Screen::containsOnFrame(OnFrameDelegate del)
 
 void Screen::runOnFrameDelegates(FrameTime timestamp)
 {
-	onFrameDelegate.runAll([&](OnFrameDelegate del){ return del({*this, timestamp}); });
+	auto params = makeFrameParams(timestamp);
+	onFrameDelegate.runAll([&](OnFrameDelegate del)
+		{
+			return del(params);
+		});
 	if(onFrameDelegate.size())
 	{
 		//logDMsg("posting next frame");
@@ -162,20 +166,9 @@ bool Screen::screensArePosted()
 	return false;
 }
 
-uint32_t Screen::elapsedFrames(FrameTime timestamp)
+FrameParams Screen::makeFrameParams(FrameTime timestamp) const
 {
-	if(!prevFrameTimestamp.count())
-		return 1;
-	assumeExpr(timestamp >= prevFrameTimestamp);
-	if(unlikely(!timePerFrame.count()))
-	{
-		timePerFrame = frameTime();
-		assert(timePerFrame.count());
-	}
-	assumeExpr(timePerFrame.count() > 0);
-	FrameTime diff = timestamp - prevFrameTimestamp;
-	uint32_t elapsed = std::round(FloatSeconds(diff) / timePerFrame);
-	return std::max(elapsed, 1u);
+	return {timestamp, lastFrameTimestamp(), frameTime()};
 }
 
 void Screen::startDebugFrameStats(FrameTime timestamp)
@@ -187,7 +180,7 @@ void Screen::startDebugFrameStats(FrameTime timestamp)
 		frameTimeBaseToSDec(frameTime),
 		frameTimeBaseToSDec(timeSinceCurrentFrame),
 		frameTimeBaseToSDec(diffFromLastFrame));*/
-	auto elapsed = elapsedFrames(timestamp);
+	auto elapsed = makeFrameParams(timestamp).elapsedFrames();
 	if(elapsed > 1)
 	{
 		if(logDroppedFrames)

@@ -39,6 +39,7 @@ namespace Base
 	void deinitFrameTimer();
 	void frameTimerScheduleVSync();
 	void frameTimerCancel();
+	bool frameTimeIsSimulated();
 }
 
 namespace Input

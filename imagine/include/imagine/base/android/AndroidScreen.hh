@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/util/operators.hh>
+#include <imagine/time/Time.hh>
 #include <jni.h>
 #include <utility>
 
@@ -41,6 +42,7 @@ public:
 
 protected:
 	jobject aDisplay{};
+	IG::FloatSeconds frameTime_{};
 	float xDPI{}, yDPI{};
 	float densityDPI_{};
 	float refreshRate_{};

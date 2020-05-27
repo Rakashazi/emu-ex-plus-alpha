@@ -135,8 +135,8 @@ public:
 	void run(RenderTaskFuncDelegate func, IG::Semaphore *semAddr = nullptr);
 	void runSync(RenderTaskFuncDelegate func);
 	void acquireFenceAndWait(Gfx::SyncFence &fenceVar);
-	bool addOnDrawFinished(DrawFinishedDelegate del, int priority = 0);
-	bool removeOnDrawFinished(DrawFinishedDelegate del);
+	bool addOnFrame(Base::OnFrameDelegate del, int priority = 0);
+	bool removeOnFrame(Base::OnFrameDelegate del);
 	void updateDrawableForSurfaceChange(DrawableHolder &drawable, Base::Window::SurfaceChange change);
 	void destroyDrawable(DrawableHolder &drawable);
 	IG::FrameTime lastDrawTimestamp() const;

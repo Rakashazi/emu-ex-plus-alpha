@@ -33,6 +33,6 @@ public:
 private:
 	Gfx::Text text{};
 	TimedInterpolator<float> fade{};
-	Base::Screen::OnFrameDelegate animate{};
+	Base::OnFrameDelegate animate{};
 	const char *str{};
 };

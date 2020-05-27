@@ -65,4 +65,23 @@ static Time timeFuncDebug(Func &&func)
 	#endif
 }
 
+class FrameParams
+{
+public:
+	constexpr FrameParams(FrameTime timestamp_, FrameTime lastTimestamp_, FloatSeconds frameTime_):
+		timestamp_{timestamp_}, lastTimestamp_{lastTimestamp_}, frameTime_{frameTime_}
+	{}
+	FrameTime timestamp() const { return timestamp_; }
+	FrameTime lastTimestamp() const { return lastTimestamp_; }
+	FloatSeconds frameTime() const { return frameTime_; }
+	FrameTime timestampDiff() const;
+	uint32_t elapsedFrames() const;
+	uint32_t elapsedFrames(uint32_t frameCap) const;
+
+protected:
+	FrameTime timestamp_;
+	FrameTime lastTimestamp_;
+	FloatSeconds frameTime_;
+};
+
 }

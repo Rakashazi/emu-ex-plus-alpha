@@ -263,28 +263,34 @@ class DetectFrameRateView : public View
 public:
 	using DetectFrameRateDelegate = DelegateFunc<void (IG::FloatSeconds frameTime)>;
 	DetectFrameRateDelegate onDetectFrameTime;
-	Base::Screen::OnFrameDelegate detectFrameRate;
-	Gfx::DrawFinishedDelegate detectFrameDrawRate;
+	Base::OnFrameDelegate detectFrameRate;
 	Base::FrameTime totalFrameTime{};
 	Gfx::Text fpsText;
 	uint allTotalFrames = 0;
 	uint callbacks = 0;
 	std::array<char, 32> fpsStr{};
 	std::vector<Base::FrameTime> frameTimeSample{};
+	Base::Screen &screen;
 	Gfx::RendererTask &rendererTask;
+	bool useRenderTaskTime = false;
 
-	DetectFrameRateView(ViewAttachParams attach, Gfx::RendererTask &rendererTask): View(attach),
-		fpsText{nullptr, &View::defaultFace}, rendererTask{rendererTask}
+	DetectFrameRateView(ViewAttachParams attach, Base::Screen &screen, Gfx::RendererTask &rendererTask): View(attach),
+		fpsText{nullptr, &View::defaultFace}, screen{screen}, rendererTask{rendererTask}
 	{
 		View::defaultFace.precacheAlphaNum(attach.renderer());
 		View::defaultFace.precache(attach.renderer(), ".");
 		fpsText.setString("Preparing to detect frame rate...");
+		useRenderTaskTime = !screen.supportsTimestamps();
+		frameTimeSample.reserve(std::round(screen.frameRate() * 2.));
 	}
 
 	~DetectFrameRateView() final
 	{
 		setCPUNeedsLowLatency(false);
-		emuViewController.emuWindowScreen()->removeOnFrame(detectFrameRate);
+		if(useRenderTaskTime)
+			emuViewController.emuWindowScreen()->removeOnFrame(detectFrameRate);
+		else
+			rendererTask.removeOnFrame(detectFrameRate);
 	}
 
 	void place() final
@@ -377,61 +383,25 @@ public:
 
 	void onAddedToController(Input::Event e) final
 	{
-		auto screen = emuViewController.emuWindowScreen();
-		assumeExpr(screen);
-		frameTimeSample.reserve(std::round(screen->frameRate() * 2.));
-		if(screen->supportsTimestamps())
-		{
-			logMsg("detecting via frame timestamps");
-			detectFrameRate =
-				[this](Base::Screen::FrameParams params)
+		detectFrameRate =
+			[this, slack = useRenderTaskTime ? 0.001f : 0.00001f](IG::FrameParams params)
+			{
+				postDraw();
+				const uint callbacksToSkip = 10;
+				callbacks++;
+				if(callbacks < callbacksToSkip)
 				{
-					postDraw();
-					const uint callbacksToSkip = 8;
-					callbacks++;
-					if(callbacks >= callbacksToSkip)
-					{
-						detectFrameRate =
-							[this](Base::Screen::FrameParams params)
-							{
-								return runFrameTimeDetection(params.timestampDiff(), 0.00001);
-							};
-						params.screen().addOnFrame(detectFrameRate);
-						return false;
-					}
-					else
-					{
-						return true;
-					}
-				};
-			screen->addOnFrame(detectFrameRate);
+					return true;
+				}
+				return runFrameTimeDetection(params.timestampDiff(), slack);
+			};
+		if(useRenderTaskTime)
+		{
+			screen.addOnFrame(detectFrameRate);
 		}
 		else
 		{
-			logMsg("detecting via draw finished timestamps");
-			detectFrameDrawRate =
-				[this](Gfx::DrawFinishedParams params)
-				{
-					postDraw();
-					const uint callbacksToSkip = 10;
-					callbacks++;
-					if(callbacks >= callbacksToSkip)
-					{
-						detectFrameDrawRate =
-							[this](Gfx::DrawFinishedParams params)
-							{
-								return runFrameTimeDetection(params.timestampDiff(), 0.001);
-							};
-						params.rendererTask().addOnDrawFinished(detectFrameDrawRate);
-						postDraw();
-						return false;
-					}
-					else
-					{
-						return true;
-					}
-				};
-			rendererTask.addOnDrawFinished(detectFrameDrawRate);
+			rendererTask.addOnFrame(detectFrameRate);
 			postDraw();
 		}
 		setCPUNeedsLowLatency(true);
@@ -1205,7 +1175,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 		multiChoiceView->appendItem("Detect screen's rate and set",
 			[this, vidSys](Input::Event e)
 			{
-				auto frView = makeView<DetectFrameRateView>(emuViewController.rendererTask());
+				auto frView = makeView<DetectFrameRateView>(*emuViewController.emuWindowScreen(), emuViewController.rendererTask());
 				frView->onDetectFrameTime =
 					[this, vidSys](IG::FloatSeconds frameTime)
 					{

@@ -22,6 +22,7 @@
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/util/math/space.hh>
 #include <imagine/util/math/int.hh>
 #include <algorithm>
@@ -40,7 +41,7 @@ ScrollView::ScrollView(const char *name, ViewAttachParams attach):
 	View{name, attach},
 	animate
 	{
-		[this](Base::Screen::FrameParams params)
+		[this](IG::FrameParams params)
 		{
 			auto frames = params.elapsedFrames(200);
 			auto prevOffset = offset;

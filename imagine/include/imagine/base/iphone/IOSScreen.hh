@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/util/operators.hh>
+#include <imagine/time/Time.hh>
 
 #ifdef __OBJC__
 #import <UIKit/UIKit.h>
@@ -31,6 +32,7 @@ class IOSScreen : public NotEquals<IOSScreen>
 public:
 	void *uiScreen_ = nullptr; // UIScreen in ObjC
 	void *displayLink_ = nullptr; // CADisplayLink in ObjC
+	IG::FloatSeconds frameTime_{};
 	bool displayLinkActive = false;
 
 	constexpr IOSScreen() {}

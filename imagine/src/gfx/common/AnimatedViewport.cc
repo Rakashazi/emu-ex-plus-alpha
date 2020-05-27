@@ -15,6 +15,7 @@
 
 #include <imagine/gfx/AnimatedViewport.hh>
 #include <imagine/base/Window.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 
 namespace Gfx
@@ -43,7 +44,7 @@ void AnimatedViewport::start(Base::Window &w, Gfx::Viewport begin, Gfx::Viewport
 	animator[3].set(begin.bounds().y2, end.bounds().y2, type, time);
 	win->setNeedsCustomViewportResize(true);
 	animate =
-		[this](Base::Screen::FrameParams params)
+		[this](IG::FrameParams params)
 		{
 			auto frames = params.elapsedFrames(200);
 			for(auto &d : animator)

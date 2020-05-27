@@ -177,12 +177,13 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 		else
 			reliableRefreshRate = false;
 	}
-	if(refreshRate_ < 20.f || refreshRate_ > 200.f) // sanity check in case device has a junk value
+	if(refreshRate_ < 20.f || refreshRate_ > 250.f) // sanity check in case device has a junk value
 	{
 		logWarn("ignoring unusual refresh rate: %f", (double)refreshRate_);
 		refreshRate_ = 60;
 		reliableRefreshRate = false;
 	}
+	frameTime_ = IG::FloatSeconds(1. / refreshRate_);
 
 	// DisplayMetrics
 	if(!metrics)

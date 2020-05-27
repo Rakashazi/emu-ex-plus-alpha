@@ -63,7 +63,7 @@ void Renderer::animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle)
 {
 	projAngleM.set(srcAngle, destAngle, INTERPOLATOR_TYPE_EASEOUTQUAD, 10);
 	Base::mainScreen().addOnFrame(
-		[this](Base::Screen::FrameParams params)
+		[this](IG::FrameParams params)
 		{
 			using namespace Base;
 			//logMsg("animating rotation");

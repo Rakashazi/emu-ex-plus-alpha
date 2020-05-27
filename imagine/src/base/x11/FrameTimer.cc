@@ -25,6 +25,7 @@ namespace Base
 {
 
 std::unique_ptr<FrameTimer> frameTimer{};
+static bool usingSimpleFrameTimer = false;
 
 void initFrameTimer(EventLoop loop)
 {
@@ -48,6 +49,7 @@ void initFrameTimer(EventLoop loop)
 	}
 	logMsg("using simple frame timer");
 	frameTimer = std::make_unique<SimpleFrameTimer>(loop);
+	usingSimpleFrameTimer = true;
 }
 
 void deinitFrameTimer()
@@ -65,6 +67,11 @@ void frameTimerCancel()
 {
 	assumeExpr(frameTimer);
 	frameTimer->cancel();
+}
+
+bool frameTimeIsSimulated()
+{
+	return usingSimpleFrameTimer;
 }
 
 }

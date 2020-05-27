@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "EmuViewController"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuView.hh>
@@ -148,8 +149,12 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			}
 			return true;
 		}, 10);
-
-	onFrameUpdate = [this](Base::Screen::FrameParams params)
+	if(!Base::Screen::supportsTimestamps())
+	{
+		useRenderTaskTime = true;
+	}
+	logMsg("timestamp source:%s", useRenderTaskTime ? "renderer" : "screen");
+	onFrameUpdate = [this](IG::FrameParams params)
 		{
 			if(emuVideoInProgress)
 			{
@@ -176,7 +181,11 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			}
 			uint32_t framesAdvanced = EmuSystem::advanceFramesWithTime(params.timestamp());
 			if(!framesAdvanced)
+			{
+				if(useRenderTaskTime)
+					postDrawToEmuWindows();
 				return true;
+			}
 			if(!optionSkipLateFrames && !fastForwarding)
 			{
 				framesAdvanced = currentFrameInterval();
@@ -571,8 +580,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 				mainWin.win.postDraw();
 				if(EmuSystem::isActive() && mainWin.win.screen() != win.screen())
 				{
-					win.screen()->removeOnFrame(onFrameUpdate);
-					mainWin.win.screen()->addOnFrame(onFrameUpdate);
+					moveOnFrame(*win.screen(), *mainWin.win.screen());
 					applyFrameRates();
 				}
 			});
@@ -590,8 +598,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 		auto &mainWin = mainWindowData();
 		if(EmuSystem::isActive() && mainWin.win.screen() != extraWin->win.screen())
 		{
-			mainWin.win.screen()->removeOnFrame(onFrameUpdate);
-			extraWin->win.screen()->addOnFrame(onFrameUpdate);
+			moveOnFrame(*mainWin.win.screen(), *extraWin->win.screen());
 			applyFrameRates();
 		}
 		moveEmuViewToWindow(extraWin->win);
@@ -662,30 +669,38 @@ void EmuViewController::applyFrameRates()
 	EmuSystem::configFrameTime(optionSoundRate);
 }
 
-static uint initialDelayFrames(Base::Screen &screen)
+void EmuViewController::addOnFrame()
 {
-	return std::round(screen.frameRate() / 5.);
+	if(!useRenderTaskTime)
+	{
+		emuWindowScreen()->addOnFrame(onFrameUpdate);
+	}
+	else
+	{
+		rendererTask().addOnFrame(onFrameUpdate);
+		postDrawToEmuWindows();
+	}
 }
 
-void EmuViewController::addInitialOnFrame(Base::Screen &screen, uint delay)
+void EmuViewController::removeOnFrame()
 {
-	screen.addOnFrame(
-		[this, delay](Base::Screen::FrameParams params)
-		{
-			if(!EmuSystem::isActive())
-				return false;
-			postDrawToEmuWindows();
-			// delay for timestamps to stabilize
-			if(delay)
-			{
-				addInitialOnFrame(params.screen(), delay - 1);
-			}
-			else
-			{
-				params.screen().addOnFrame(onFrameUpdate);
-			}
-			return false;
-		});
+	if(!useRenderTaskTime)
+	{
+		emuWindowScreen()->removeOnFrame(onFrameUpdate);
+	}
+	else
+	{
+		rendererTask().removeOnFrame(onFrameUpdate);
+	}
+}
+
+void EmuViewController::moveOnFrame(Base::Screen &from, Base::Screen &to)
+{
+	if(!useRenderTaskTime)
+	{
+		from.removeOnFrame(onFrameUpdate);
+		to.addOnFrame(onFrameUpdate);
+	}
 }
 
 void EmuViewController::startEmulation()
@@ -694,8 +709,7 @@ void EmuViewController::startEmulation()
 	systemTask->start();
 	EmuSystem::start();
 	videoLayer().setBrightness(1.f);
-	auto &screen = *emuView.window().screen();
-	addInitialOnFrame(screen, initialDelayFrames(screen));
+	addOnFrame();
 }
 
 void EmuViewController::pauseEmulation()
@@ -706,7 +720,7 @@ void EmuViewController::pauseEmulation()
 	videoLayer().setBrightness(showingEmulation ? .75f : .25f);
 	setFastForwardActive(false);
 	emuVideoInProgress = false;
-	emuView.window().screen()->removeOnFrame(onFrameUpdate);
+	removeOnFrame();
 }
 
 void EmuViewController::closeSystem(bool allowAutosaveState)

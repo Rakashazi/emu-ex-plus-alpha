@@ -16,6 +16,7 @@
 #define LOGTAG "RendererTask"
 #include <imagine/gfx/Gfx.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/thread/Thread.hh>
 #include "private.hh"
 
@@ -106,8 +107,9 @@ void GLRendererTask::replyHandler(Renderer &r, GLRendererTask::ReplyMessage msg)
 		case Reply::DRAW_FINISHED:
 		{
 			//logDMsg("draw presented");
-			onDrawFinished.runAll([=](DrawFinishedDelegate del){ return del(msg.params); });
-			drawTimestamp = msg.params.timestamp();
+			FrameParams frameParams{msg.timestamp, drawTimestamp, Base::Screen::screen(0)->frameTime()};
+			onFrame.runAll([&](Base::OnFrameDelegate del){ return del(frameParams); });
+			drawTimestamp = msg.timestamp;
 			return;
 		}
 		default:
@@ -135,13 +137,12 @@ bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Ba
 				assumeExpr(drawArgs.del);
 				assumeExpr(drawArgs.winPtr);
 				drawArgs.del(drawArgs.drawable, *drawArgs.winPtr, drawArgs.fence, {*static_cast<RendererTask*>(this), glDpy, msg.semAddr});
-				drawArgs.winPtr->deferredDrawComplete();
-				if(onDrawFinished.size())
+				if(onFrame.size())
 				{
 					auto now = IG::steadyClockTimestamp();
-					replyPort.send({Reply::DRAW_FINISHED,
-						DrawFinishedParams{static_cast<RendererTask*>(this), now, drawArgs.drawable}});
+					replyPort.send({Reply::DRAW_FINISHED, now});
 				}
+				drawArgs.winPtr->deferredDrawComplete();
 			}
 			bcase Command::RUN_FUNC:
 			{
@@ -404,14 +405,19 @@ void RendererTask::acquireFenceAndWait(Gfx::SyncFence &fenceVar)
 	renderer().waitSync(fence);
 }
 
-bool RendererTask::addOnDrawFinished(DrawFinishedDelegate del, int priority)
+bool RendererTask::addOnFrame(Base::OnFrameDelegate del, int priority)
 {
-	return onDrawFinished.add(del, priority);
+	if(!onFrame.size())
+	{
+		// reset time-stamp when first delegate is added
+		drawTimestamp = {};
+	}
+	return onFrame.add(del, priority);
 }
 
-bool RendererTask::removeOnDrawFinished(DrawFinishedDelegate del)
+bool RendererTask::removeOnFrame(Base::OnFrameDelegate del)
 {
-	return onDrawFinished.remove(del);
+	return onFrame.remove(del);
 }
 
 void RendererTask::stop()
@@ -596,13 +602,6 @@ void RendererDrawTask::notifyCommandsFinished()
 Renderer &RendererDrawTask::renderer() const
 {
 	return task.renderer();
-}
-
-Base::FrameTime DrawFinishedParams::timestampDiff() const
-{
-	auto lastTimestamp = drawTask_->lastDrawTimestamp();
-	assumeExpr(timestamp_ >= lastTimestamp);
-	return lastTimestamp.count() ? timestamp_ - lastTimestamp : Base::FrameTime{};
 }
 
 }

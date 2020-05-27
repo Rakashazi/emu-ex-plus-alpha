@@ -95,8 +95,9 @@ void TestFramework::place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, c
 	placeTest(testRect);
 }
 
-void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, IG::FrameTime timestamp)
+void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Base::FrameParams frameParams)
 {
+	auto timestamp = frameParams.timestamp();
 	// CPU stats
 	auto &screen = *win.screen();
 	bool updatedCPUStats = false;
@@ -129,7 +130,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, IG:
 		}
 		else
 		{
-			auto elapsedScreenFrames = screen.elapsedFrames(timestamp);
+			auto elapsedScreenFrames = frameParams.elapsedFrames();
 			//logMsg("elapsed: %d", screen.elapsedFrames(frameTime));
 			if(elapsedScreenFrames > 1)
 			{
@@ -138,7 +139,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, IG:
 
 				droppedFrames++;
 				string_printf(skippedFrameStr, "Lost %u frame(s) taking %.3fs after %u continuous\nat time %.3fs",
-					elapsedScreenFrames - 1, IG::FloatSeconds(timestamp - screen.lastFrameTimestamp()).count(),
+					elapsedScreenFrames - 1, IG::FloatSeconds(timestamp - frameParams.lastTimestamp()).count(),
 					continuousFrames, IG::FloatSeconds(timestamp).count());
 				updatedFrameStats = true;
 				continuousFrames = 0;

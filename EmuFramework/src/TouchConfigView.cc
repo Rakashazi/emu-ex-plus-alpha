@@ -133,7 +133,7 @@ class OnScreenInputPlaceView : public View
 	Gfx::Text text;
 	TimedInterpolator<float> textFade;
 	Base::Timer animationStartTimer{"OnScreenInputPlaceView::animationStartTimer"};
-	Base::Screen::OnFrameDelegate animate;
+	Base::OnFrameDelegate animate;
 	IG::WindowRect exitBtnRect;
 	DragState drag[Config::Input::MAX_POINTERS];
 	Input::DragTracker dragTracker{};
@@ -154,7 +154,7 @@ void OnScreenInputPlaceView::init()
 	text = {"Click center to go back", &View::defaultFace};
 	textFade.set(1.);
 	animate =
-		[this](Base::Screen::FrameParams params)
+		[this](IG::FrameParams params)
 		{
 			postDraw();
 			//logMsg("updating fade");

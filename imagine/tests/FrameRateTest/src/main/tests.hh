@@ -76,7 +76,7 @@ public:
 	void init(Gfx::Renderer &r, IG::Point2D<int> pixmapSize);
 	void deinit();
 	void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect);
-	void frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, IG::FrameTime timestamp);
+	void frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Base::FrameParams frameParams);
 	void prepareDraw(Gfx::Renderer &r);
 	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds);
 	void finish(IG::FrameTime frameTime);

@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/Viewport.hh>
-#include <imagine/base/Screen.hh>
+#include <imagine/base/baseDefs.hh>
 #include <imagine/util/Interpolator.hh>
 
 namespace Gfx
@@ -36,7 +36,7 @@ public:
 
 protected:
 	TimedInterpolator<int> animator[4];
-	Base::Screen::OnFrameDelegate animate;
+	Base::OnFrameDelegate animate;
 	Base::Window *win{};
 };
 

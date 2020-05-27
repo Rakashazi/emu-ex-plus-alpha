@@ -24,7 +24,7 @@ CreditsView::CreditsView(const char *str, ViewAttachParams attach):
 	text = {str, &View::defaultFace};
 	fade.set(0., 1., INTERPOLATOR_TYPE_LINEAR, 20);
 	animate =
-		[this](Base::Screen::FrameParams params)
+		[this](IG::FrameParams params)
 		{
 			postDraw();
 			return fade.update(1);

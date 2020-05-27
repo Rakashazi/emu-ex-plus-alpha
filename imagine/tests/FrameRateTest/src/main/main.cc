@@ -19,6 +19,7 @@
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/base/Screen.hh>
 #include "tests.hh"
 #include "TestPicker.hh"
 #include "cpuUtils.hh"
@@ -116,12 +117,11 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 	placeElements(win, r);
 
 	win.screen()->addOnFrame(
-		[&win](Base::Screen::FrameParams params)
+		[&win](Base::FrameParams params)
 		{
 			if(unlikely(!activeTest))
 				return false;
 			auto atOnFrame = IG::steadyClockTimestamp();
-			auto timestamp = params.timestamp();
 			if(activeTest->started)
 			{
 				if(activeTest->lastFramePresentTime.atWinPresent < activeTest->lastFramePresentTime.atOnFrame)
@@ -130,7 +130,7 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 						double(activeTest->lastFramePresentTime.atWinPresent),
 						double(activeTest->lastFramePresentTime.atOnFrame));*/
 				}
-				activeTest->frameUpdate(rendererTask, win, timestamp);
+				activeTest->frameUpdate(rendererTask, win, params);
 			}
 			else
 			{
@@ -139,7 +139,7 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 			activeTest->lastFramePresentTime.atOnFrame = atOnFrame;
 			if(activeTest->frames == framesToRun || activeTest->shouldEndTest)
 			{
-				finishTest(win, renderer, timestamp);
+				finishTest(win, renderer, params.timestamp());
 				return false;
 			}
 			else

@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/Screen.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/input/VelocityTracker.hh>
@@ -43,7 +42,7 @@ public:
 protected:
 	using VelocityTrackerType = Input::VelocityTracker<float, 1>;
 
-	Base::Screen::OnFrameDelegate animate;
+	Base::OnFrameDelegate animate;
 	Input::SingleDragTracker dragTracker{};
 	VelocityTrackerType velTracker{}; // tracks y velocity as pixels/sec
 	IG::WindowRect scrollBarRect{};

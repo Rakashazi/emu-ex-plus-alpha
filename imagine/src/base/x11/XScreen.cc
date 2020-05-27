@@ -130,13 +130,16 @@ void Screen::setFrameRate(double rate)
 		if(rate != 50 && rate != 60)
 		{
 			logWarn("tried to set unsupported frame rate: %f", rate);
+			return;
 		}
 		auto cmd = string_makePrintf<64>("sudo /usr/pandora/scripts/op_lcdrate.sh %u", (unsigned int)rate);
 		int err = system(cmd.data());
 		if(err)
 		{
 			logErr("error setting frame rate, %d", err);
+			return;
 		}
+		frameTime_ = IG::FloatSeconds(1. / rate);
 	}
 }
 
@@ -176,7 +179,7 @@ bool Screen::supportsFrameInterval()
 
 bool Screen::supportsTimestamps()
 {
-	return true;
+	return !frameTimeIsSimulated();
 }
 
 int indexOfScreen(Screen &screen)

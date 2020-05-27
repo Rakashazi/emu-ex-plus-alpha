@@ -36,18 +36,6 @@ class RendererTask;
 class RendererDrawTask;
 class SyncFence;
 
-struct DrawFinishedParams
-{
-	RendererTask *drawTask_;
-	FrameTime timestamp_;
-	Drawable drawable_;
-
-	RendererTask &rendererTask() const { return *drawTask_; }
-	FrameTime timestamp() const { return timestamp_; }
-	FrameTime timestampDiff() const;
-	Drawable drawable() const { return drawable_; }
-};
-
 using GC = TransformCoordinate;
 using Coordinate = TransformCoordinate;
 using GTexC = TextureCoordinate;
@@ -56,7 +44,6 @@ using GP = GfxPoint;
 using GCRect = IG::CoordinateRect<GC, true, true>;
 using Error = std::optional<std::runtime_error>;
 using DrawDelegate = DelegateFunc<void(Drawable drawable, Base::Window &win, SyncFence fence, RendererDrawTask task)>;
-using DrawFinishedDelegate = DelegateFunc<bool(DrawFinishedParams params)>;
 using RenderTaskFuncDelegate = DelegateFunc<void(RendererTask &task)>;
 
 static constexpr GC operator"" _gc (long double n)

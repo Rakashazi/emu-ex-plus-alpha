@@ -107,6 +107,20 @@ void IOSScreen::init(UIScreen *screen)
 	displayLink_ = (void*)CFBridgingRetain([screen displayLinkWithTarget:[[DisplayLinkHelper alloc] initWithScreen:(Screen*)this]
 	                                       selector:@selector(onFrame)]);
 	displayLink().paused = YES;
+
+	if(hasAtLeastIOS5())
+	{
+		// note: the _refreshRate value is actually time per frame in seconds
+		auto frameTime = [uiScreen() _refreshRate];
+		if(!frameTime || 1. / frameTime < 20. || 1. / frameTime > 200.)
+		{
+			logWarn("ignoring unusual refresh rate: %f", 1. / frameTime);
+			frameTime = 1. / 60.;
+		}
+		frameTime_ = IG::FloatSeconds(frameTime);
+	}
+	else
+		frameTime_ = IG::FloatSeconds(1. / 60.);
 }
 
 void Screen::deinit()
@@ -151,19 +165,7 @@ double Screen::frameRate() const
 
 IG::FloatSeconds Screen::frameTime() const
 {
-	if(hasAtLeastIOS5())
-	{
-		// note: the _refreshRate value is actually time per frame in seconds
-		auto frameTime = [uiScreen() _refreshRate];
-		if(!frameTime || 1. / frameTime < 20. || 1. / frameTime > 200.)
-		{
-			logWarn("ignoring unusual refresh rate: %f", 1. / frameTime);
-			return IG::FloatSeconds(1. / 60.);
-		}
-		return IG::FloatSeconds(frameTime);
-	}
-	else
-		return IG::FloatSeconds(1. / 60.);
+	return frameTime_;
 }
 
 bool Screen::frameRateIsReliable() const

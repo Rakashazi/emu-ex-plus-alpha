@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/time/Time.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/bits.h>
 
@@ -77,6 +78,8 @@ static constexpr bool SYSTEM_ROTATES_WINDOWS = true;
 namespace Base
 {
 using namespace IG;
+
+using OnFrameDelegate = DelegateFunc<bool (FrameParams params)>;
 
 // orientation
 using Orientation = uint32_t;

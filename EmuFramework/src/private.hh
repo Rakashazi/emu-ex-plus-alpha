@@ -117,16 +117,19 @@ protected:
 	ToastView popup;
 	EmuMenuViewStack viewStack{};
 	EmuModalViewStack modalViewController{};
-	Base::Screen::OnFrameDelegate onFrameUpdate{};
+	Base::OnFrameDelegate onFrameUpdate{};
 	Gfx::RendererTask *rendererTask_{};
 	EmuSystemTask *systemTask{};
 	bool showingEmulation = false;
 	bool physicalControlsPresent = false;
+	bool useRenderTaskTime = false;
 	uint8_t targetFastForwardSpeed = 0;
 	std::atomic_bool emuVideoInProgress{};
 
 	void onFocusChange(uint in);
-	void addInitialOnFrame(Base::Screen &screen, uint delay);
+	void addOnFrame();
+	void removeOnFrame();
+	void moveOnFrame(Base::Screen &from, Base::Screen &to);
 	void startEmulation();
 	void pauseEmulation();
 	void configureAppForEmulation(bool running);
