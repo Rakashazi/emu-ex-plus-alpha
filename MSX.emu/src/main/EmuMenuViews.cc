@@ -42,7 +42,11 @@ static std::vector<FS::FileString> machinesNames(const char *basePath)
 		machineName.emplace_back(FS::makeFileString(entry.name()));
 		logMsg("found machine:%s", entry.name());
 	}
-	std::sort(machineName.begin(), machineName.end(), FS::fileStringNoCaseLexCompare());
+	std::sort(machineName.begin(), machineName.end(),
+		[](FS::FileString n1, FS::FileString n2)
+		{
+			return FS::fileStringNoCaseLexCompare(n1, n2);
+		});
 	return machineName;
 }
 

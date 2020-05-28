@@ -882,9 +882,6 @@ pluginLDFlags = $(CFLAGS_TARGET) $(LDFLAGS_SYSTEM) $(LDLIBS_SYSTEM) -lz
 ifeq ($(ENV),android)
  # must link to the app's main shared object so Android resolves runtime symbols correctly
  pluginLDFlags += -llog $(targetDir)/$(targetFile)
-
- # TODO: compiling with -O2 causes an error on arm64 ABI, reported as NDK bug: https://github.com/android/ndk/issues/1207
- $(objDir)/vicii/vicii-draw.o : CFLAGS_CODEGEN += -O3
 endif
 
 c64_obj := $(addprefix $(objDir)/,$(c64_src:.c=.o))
