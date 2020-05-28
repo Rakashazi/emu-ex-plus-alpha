@@ -201,39 +201,48 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 			{
 				continue;
 			}
-			dir.emplace_back(FS::makeFileString(entry.name()));
+			bool isDir = entry.type() == FS::file_type::directory;
+			dir.emplace_back(FS::makeFileString(entry.name()), isDir);
 		}
 	}
-	std::sort(dir.begin(), dir.end(), FS::fileStringNoCaseLexCompare());
+	std::sort(dir.begin(), dir.end(),
+		[](FileEntry e1, FileEntry e2)
+		{
+			if(e1.isDir && !e2.isDir)
+				return true;
+			else if(!e1.isDir && e2.isDir)
+				return false;
+			else
+				return FS::fileStringNoCaseLexCompare(e1.name, e2.name);
+		});
 	waitForDrawFinished();
 	text.clear();
 	if(dir.size())
 	{
 		msgStr = {};
 		text.reserve(dir.size());
-		iterateTimes(dir.size(), i)
+		for(unsigned idx = 0; auto const &entry : dir)
 		{
-			auto filePath = makePathString(dir[i].data());
-			bool isDir = FS::status(filePath.data()).type() == FS::file_type::directory;
-			if(isDir)
+			if(entry.isDir)
 			{
-				text.emplace_back(dir[i].data(),
-					[this, i](Input::Event e)
+				text.emplace_back(entry.name.data(), &View::defaultBoldFace,
+					[this, idx](Input::Event e)
 					{
 						assert(!singleDir);
-						auto filePath = makePathString(dir[i].data());
+						auto filePath = makePathString(dir[idx].name.data());
 						logMsg("going to dir %s", filePath.data());
 						changeDirByInput(filePath.data(), root, false, e);
 					});
 			}
 			else
 			{
-				text.emplace_back(dir[i].data(),
-					[this, i](Input::Event e)
+				text.emplace_back(entry.name.data(),
+					[this, idx](Input::Event e)
 					{
-						onSelectFile_.callCopy(*this, dir[i].data(), e);
+						onSelectFile_.callCopy(*this, dir[idx].name.data(), e);
 					});
 			}
+			idx++;
 		}
 	}
 	else

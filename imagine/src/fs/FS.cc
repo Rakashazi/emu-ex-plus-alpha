@@ -130,18 +130,15 @@ PathString dirname(const char *path)
 	return dir;
 }
 
-FileStringCompareFunc fileStringNoCaseLexCompare()
+bool fileStringNoCaseLexCompare(FS::FileString s1, FS::FileString s2)
 {
-	return [](const FS::FileString &s1, const FS::FileString &s2)
+	return std::lexicographical_compare(
+		s1.data(), s1.data() + strlen(s1.data()),
+		s2.data(), s2.data() + strlen(s2.data()),
+		[](char c1, char c2)
 		{
-			return std::lexicographical_compare(
-				s1.data(), s1.data() + strlen(s1.data()),
-				s2.data(), s2.data() + strlen(s2.data()),
-				[](char c1, char c2)
-				{
-					return std::tolower(c1) < std::tolower(c2);
-				});
-		};
+			return std::tolower(c1) < std::tolower(c2);
+		});
 }
 
 int directoryItems(const char *path)

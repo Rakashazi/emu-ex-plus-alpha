@@ -200,6 +200,7 @@ public:
 
 	TextMenuItem();
 	TextMenuItem(const char *str, SelectDelegate selectDel);
+	TextMenuItem(const char *str, Gfx::GlyphTextureSet *face, SelectDelegate selectDel);
 	bool select(View &parent, Input::Event e) override;
 	void setOnSelect(SelectDelegate onSelect);
 	SelectDelegate onSelect() const;
@@ -213,6 +214,9 @@ public:
 
 	template<class Func>
 	TextMenuItem(const char *str, Func &&func): TextMenuItem{str, makeSelectDelegate(std::forward<Func>(func))} {}
+
+	template<class Func>
+	TextMenuItem(const char *str, Gfx::GlyphTextureSet *face, Func &&func): TextMenuItem{str, face, makeSelectDelegate(std::forward<Func>(func))} {}
 
 	template<class Func>
 	void setOnSelect(Func &&func) { setOnSelect(makeSelectDelegate(std::forward<Func>(func))); }

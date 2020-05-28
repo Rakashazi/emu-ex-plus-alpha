@@ -116,6 +116,11 @@ TextMenuItem::TextMenuItem(const char *str, SelectDelegate selectDel):
 	selectD{selectDel}
 {}
 
+TextMenuItem::TextMenuItem(const char *str, Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
+	BaseTextMenuItem{str, face},
+	selectD{selectDel}
+{}
+
 bool TextMenuItem::select(View &parent, Input::Event e)
 {
 	//logMsg("calling delegate");

@@ -221,7 +221,7 @@ static PathString dirname(std::array<char, S> &path)
 
 using FileStringCompareFunc = bool (*)(const FS::FileString &s1, const FS::FileString &s2);
 
-FileStringCompareFunc fileStringNoCaseLexCompare();
+bool fileStringNoCaseLexCompare(FS::FileString s1, FS::FileString s2);
 
 int directoryItems(const char *path);
 static int directoryItems(PathString path) { return directoryItems(path.data()); }

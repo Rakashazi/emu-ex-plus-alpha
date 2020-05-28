@@ -81,6 +81,17 @@ public:
 	void goUpDirectory(Input::Event e);
 
 protected:
+	struct FileEntry
+	{
+		FS::FileString name{};
+		bool isDir{};
+
+		constexpr FileEntry() {}
+		constexpr FileEntry(FS::FileString name, bool isDir):
+			name{name}, isDir{isDir}
+		{}
+	};
+
 	FilterFunc filter{};
 	ViewStack controller{};
 	OnChangePathDelegate onChangePath_{};
@@ -94,7 +105,7 @@ protected:
 	};
 	OnPathReadError onPathReadError_{};
 	std::vector<TextMenuItem> text{};
-	std::vector<FS::FileString> dir{};
+	std::vector<FileEntry> dir{};
 	std::vector<FS::PathLocation> rootLocation{};
 	FS::RootPathInfo root{};
 	FS::PathString currPath{};
