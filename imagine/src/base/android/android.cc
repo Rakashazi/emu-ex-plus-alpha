@@ -480,8 +480,24 @@ void setSustainedPerformanceMode(bool on)
 		{
 			if(!userActivityFaker)
 				userActivityFaker = std::make_unique<Base::UserActivityFaker>();
-			if(appState == APP_RUNNING)
+			if(appIsRunning())
 				userActivityFaker->start();
+			addOnResume(
+				[](bool)
+				{
+					if(!userActivityFaker)
+						return false;
+					userActivityFaker->start();
+					return true;
+				}, 100);
+			addOnExit(
+				[](bool)
+				{
+					if(!userActivityFaker)
+						return false;
+					userActivityFaker->stop();
+					return true;
+				}, 100);
 			logMsg("enabled user activity faker");
 		}
 		else
@@ -521,10 +537,10 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 		[](ANativeActivity *activity)
 		{
 			logMsg("app started");
-			appState = APP_RUNNING;
 			Screen::setActiveAll(true);
 			if(Base::androidSDK() >= 11)
 			{
+				appState = APP_RUNNING;
 				dispatchOnResume(aHasFocus);
 			}
 		};
@@ -532,21 +548,17 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 		[](ANativeActivity *activity)
 		{
 			logMsg("app resumed");
-			appState = APP_RUNNING;
 			if(Base::androidSDK() < 11)
 			{
+				appState = APP_RUNNING;
 				dispatchOnResume(aHasFocus);
 			}
 			handleIntent(activity->env, activity->clazz);
-			if(userActivityFaker)
-				userActivityFaker->start();
 		};
 	//activity->callbacks->onSaveInstanceState = nullptr; // unused
 	activity->callbacks->onPause =
 		[](ANativeActivity *activity)
 		{
-			if(userActivityFaker)
-				userActivityFaker->stop();
 			if(Base::androidSDK() < 11)
 			{
 				if(appIsRunning())

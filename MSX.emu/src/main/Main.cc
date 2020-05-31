@@ -405,7 +405,6 @@ bool insertROM(const char *name, uint slot)
 	assert(strlen(EmuSystem::gamePath()));
 	auto path = FS::makePathString(EmuSystem::gamePath(), name);
 	FS::FileString fileInZipName{};
-	const char* fileInZipNamePtr{};
 	if(EmuApp::hasArchiveExtension(path.data()))
 	{
 		fileInZipName = getFirstROMFilenameInArchive(path.data());
@@ -414,10 +413,9 @@ bool insertROM(const char *name, uint slot)
 			EmuApp::postMessage(true, "No ROM found in archive:%s", path.data());
 			return false;
 		}
-		fileInZipNamePtr = fileInZipName.data();
 		logMsg("found:%s in archive:%s", fileInZipName.data(), path.data());
 	}
-	if(!boardChangeCartridge(slot, ROM_UNKNOWN, path.data(), fileInZipNamePtr))
+	if(!boardChangeCartridge(slot, ROM_UNKNOWN, path.data(), strlen(fileInZipName.data()) ? fileInZipName.data() : nullptr))
 	{
 		EmuApp::postMessage(true, "Error loading ROM");
 		return false;
@@ -430,7 +428,6 @@ bool insertDisk(const char *name, uint slot)
 	assert(strlen(EmuSystem::gamePath()));
 	auto path = FS::makePathString(EmuSystem::gamePath(), name);
 	FS::FileString fileInZipName{};
-	const char* fileInZipNamePtr{};
 	if(EmuApp::hasArchiveExtension(path.data()))
 	{
 		fileInZipName = getFirstDiskFilenameInArchive(path.data());
@@ -441,7 +438,7 @@ bool insertDisk(const char *name, uint slot)
 		}
 		logMsg("found:%s in archive:%s", fileInZipName.data(), path.data());
 	}
-	if(!diskChange(slot, path.data(), fileInZipNamePtr))
+	if(!diskChange(slot, path.data(), strlen(fileInZipName.data()) ? fileInZipName.data() : nullptr))
 	{
 		EmuApp::postMessage(true, "Error loading Disk");
 		return false;

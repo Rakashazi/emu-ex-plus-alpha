@@ -19,7 +19,11 @@ CPPFLAGS += -I$(projectPath)/src \
 -DFRAMESKIP \
 -I$(projectPath)/src/fceu
 
-CXXFLAGS_WARN += -Wno-register -Wno-volatile
+CXXFLAGS_WARN += -Wno-register
+
+ifneq ($(config_compiler), clang)
+ CXXFLAGS_WARN += -Wno-volatile
+endif
 
 # fceux sources
 FCEUX_SRC := fceu/cart.cpp \

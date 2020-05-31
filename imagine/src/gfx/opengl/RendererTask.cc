@@ -158,6 +158,7 @@ bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Ba
 				if(ownsThread)
 				{
 					Base::GLContext::setCurrent(glDpy, {}, {});
+					eventLoopRunning = false;
 					Base::EventLoop::forThread().stop();
 				}
 				else
@@ -237,7 +238,8 @@ void RendererTask::start()
 					});
 				sem.notify();
 				logMsg("starting render task event loop");
-				eventLoop.run();
+				eventLoopRunning = true;
+				eventLoop.run(eventLoopRunning);
 				commandPort.detach();
 				logMsg("render task thread finished");
 			});

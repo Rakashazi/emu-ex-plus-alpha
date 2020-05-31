@@ -93,7 +93,8 @@ void BaseWindow::initDelegates(const WindowConfig &config)
 	onResume =
 		[this](bool)
 		{
-			notifyDrawAllowed = true;
+			// allow drawing and trigger the draw event if this window was posted since app was suspended
+			static_cast<Window*>(this)->deferredDrawComplete();
 			return true;
 		};
 	Base::addOnResume(onResume, ON_RESUME_PRIORITY);

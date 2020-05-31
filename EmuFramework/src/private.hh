@@ -127,6 +127,9 @@ protected:
 	std::atomic_bool emuVideoInProgress{};
 
 	void onFocusChange(uint in);
+	Base::OnFrameDelegate makeOnFrameDelayed(uint8_t delay);
+	void addOnFrameDelegate(Base::OnFrameDelegate onFrame);
+	void addOnFrameDelayed();
 	void addOnFrame();
 	void removeOnFrame();
 	void moveOnFrame(Base::Screen &from, Base::Screen &to);

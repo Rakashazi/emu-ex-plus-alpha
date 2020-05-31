@@ -99,6 +99,7 @@ void EmuSystemTask::start()
 							bcase Command::EXIT:
 							{
 								//logMsg("got exit command");
+								started = false;
 								Base::EventLoop::forThread().stop();
 								assumeExpr(msg.semAddr);
 								msg.semAddr->notify();
@@ -112,13 +113,13 @@ void EmuSystemTask::start()
 					}
 					return true;
 				});
+			started = true;
 			sem.notify();
 			logMsg("starting emu system thread event loop");
-			eventLoop.run();
+			eventLoop.run(started);
 			logMsg("emu system thread exit");
 			commandPort.detach();
 		});
-	started = true;
 }
 
 void EmuSystemTask::pause()
@@ -139,7 +140,6 @@ void EmuSystemTask::stop()
 	sem.wait();
 	replyPort.clear();
 	replyPort.detach();
-	started = false;
 }
 
 void EmuSystemTask::runFrame(EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward)

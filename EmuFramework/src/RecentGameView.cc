@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/gui/AlertView.hh>
 #include <emuframework/RecentGameView.hh>
 #include <emuframework/Recent.hh>
 #include "private.hh"
@@ -36,8 +37,15 @@ RecentGameView::RecentGameView(ViewAttachParams attach):
 		"Clear List",
 		[this](Input::Event e)
 		{
-			dismiss();
-			recentGameList.clear();
+			auto ynAlertView = makeView<YesNoAlertView>("Really clear the list?");
+			ynAlertView->setOnYes(
+				[this](TextMenuItem &, View &view, Input::Event)
+				{
+					view.dismiss();
+					recentGameList.clear();
+					popAndShow();
+				});
+			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
 		}
 	}
 {

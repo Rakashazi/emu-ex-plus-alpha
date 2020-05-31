@@ -28,8 +28,6 @@
 namespace Base
 {
 
-static __thread bool loopRunning;
-
 #ifdef NDEBUG
 GlibFDEventSource::GlibFDEventSource(int fd):
 #else
@@ -198,20 +196,14 @@ EventLoop EventLoop::makeForThread()
 
 void EventLoop::run()
 {
-	logMsg("running GMainContext:%p", mainContext);
-	loopRunning = true;
-	while(loopRunning)
+	if(g_main_context_iteration(mainContext, true))
 	{
-		if(g_main_context_iteration(mainContext, true))
-		{
-			//logDMsg("handled events for event loop:%p", mainContext);
-		}
+		//logDMsg("handled events for event loop:%p", mainContext);
 	}
 }
 
 void EventLoop::stop()
 {
-	loopRunning = false;
 	g_main_context_wakeup(mainContext);
 }
 

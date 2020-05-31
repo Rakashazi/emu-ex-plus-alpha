@@ -59,6 +59,7 @@ void GLMainTask::start(Base::GLContext context)
 							bcase Command::EXIT:
 							{
 								Base::GLContext::setCurrent(glDpy, {}, {});
+								started = false;
 								Base::EventLoop::forThread().stop();
 								if(msg.semAddr)
 									msg.semAddr->notify();
@@ -72,13 +73,13 @@ void GLMainTask::start(Base::GLContext context)
 					}
 					return true;
 				});
+			started = true;
 			sem.notify();
 			logMsg("starting main GL thread event loop");
-			eventLoop.run();
+			eventLoop.run(started);
 			commandPort.detach();
 			logMsg("main GL thread exit");
 		});
-	started = true;
 }
 
 void GLMainTask::runFunc(FuncDelegate del, IG::Semaphore *semAddr)
@@ -102,7 +103,6 @@ void GLMainTask::stop()
 	IG::Semaphore sem{0};
 	commandPort.send({Command::EXIT, &sem});
 	sem.wait();
-	started = false;
 }
 
 bool GLMainTask::isStarted() const

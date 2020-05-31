@@ -287,7 +287,7 @@ public:
 	~DetectFrameRateView() final
 	{
 		setCPUNeedsLowLatency(false);
-		if(useRenderTaskTime)
+		if(!useRenderTaskTime)
 			emuViewController.emuWindowScreen()->removeOnFrame(detectFrameRate);
 		else
 			rendererTask.removeOnFrame(detectFrameRate);
@@ -320,7 +320,6 @@ public:
 
 	bool runFrameTimeDetection(Base::FrameTime timestampDiff, double slack)
 	{
-		postDraw();
 		const uint framesToTime = frameTimeSample.capacity() * 10;
 		allTotalFrames++;
 		frameTimeSample.emplace_back(timestampDiff);
@@ -364,6 +363,7 @@ public:
 				return false;
 			}
 			frameTimeSample.erase(frameTimeSample.cbegin());
+			postDraw();
 		}
 		else
 		{
@@ -377,6 +377,8 @@ public:
 		}
 		else
 		{
+			if(useRenderTaskTime)
+				postDraw();
 			return true;
 		}
 	}
@@ -384,18 +386,19 @@ public:
 	void onAddedToController(Input::Event e) final
 	{
 		detectFrameRate =
-			[this, slack = useRenderTaskTime ? 0.001f : 0.00001f](IG::FrameParams params)
+			[this](IG::FrameParams params)
 			{
-				postDraw();
 				const uint callbacksToSkip = 10;
 				callbacks++;
 				if(callbacks < callbacksToSkip)
 				{
+					if(useRenderTaskTime)
+						postDraw();
 					return true;
 				}
-				return runFrameTimeDetection(params.timestampDiff(), slack);
+				return runFrameTimeDetection(params.timestampDiff(), 0.00175);
 			};
-		if(useRenderTaskTime)
+		if(!useRenderTaskTime)
 		{
 			screen.addOnFrame(detectFrameRate);
 		}

@@ -166,6 +166,7 @@ protected:
 	GLuint fbo = 0;
 	bool resetDrawable = false;
 	bool contextInitialStateSet = false;
+	bool eventLoopRunning = false;
 	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 	bool canDraw = true;
 	#endif

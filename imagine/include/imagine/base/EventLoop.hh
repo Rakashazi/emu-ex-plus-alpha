@@ -40,6 +40,15 @@ public:
 	void run();
 	void stop();
 	explicit operator bool() const;
+
+	template <class T>
+	void run(const T &condition)
+	{
+		while((bool)condition)
+		{
+			run();
+		}
+	}
 };
 
 struct FDEventSource : public FDEventSourceImpl

@@ -153,10 +153,22 @@ EventLoop EventLoop::makeForThread()
 	return {ALooper_prepare(0)};
 }
 
+static const char *aLooperPollResultStr(int res)
+{
+	switch(res)
+	{
+		case ALOOPER_POLL_CALLBACK: return "Callback";
+		case ALOOPER_POLL_ERROR: return "Error";
+		case ALOOPER_POLL_TIMEOUT: return "Timeout";
+		case ALOOPER_POLL_WAKE: return "Wake";
+	}
+	return "Unknown";
+}
+
 void EventLoop::run()
 {
-	logMsg("running ALooper:%p", looper);
-	ALooper_pollAll(-1, nullptr, nullptr, nullptr);
+	int res = ALooper_pollAll(-1, nullptr, nullptr, nullptr);
+	logDMsg("ALooper_pollAll returned:%s", aLooperPollResultStr(res));
 }
 
 void EventLoop::stop()

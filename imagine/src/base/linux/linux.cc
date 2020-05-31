@@ -246,6 +246,7 @@ int main(int argc, char** argv)
 	Input::initEvdev(eventLoop);
 	#endif
 	onInit(argc, argv);
-	eventLoop.run();
+	bool eventLoopRunning = true;
+	eventLoop.run(eventLoopRunning);
 	return 0;
 }

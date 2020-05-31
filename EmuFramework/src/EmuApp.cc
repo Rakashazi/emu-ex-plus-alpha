@@ -303,8 +303,6 @@ void mainInitCommon(int argc, char** argv)
 	Base::addOnExit(
 		[](bool backgrounded)
 		{
-			emuAudio.close();
-			AudioManager::endSession();
 			if(backgrounded)
 			{
 				emuViewController.showUI();
@@ -319,6 +317,7 @@ void mainInitCommon(int argc, char** argv)
 			{
 				emuViewController.closeSystem();
 			}
+			AudioManager::endSession();
 
 			saveConfigFile();
 

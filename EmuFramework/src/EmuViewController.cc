@@ -669,17 +669,51 @@ void EmuViewController::applyFrameRates()
 	EmuSystem::configFrameTime(optionSoundRate);
 }
 
-void EmuViewController::addOnFrame()
+Base::OnFrameDelegate EmuViewController::makeOnFrameDelayed(uint8_t delay)
+{
+	return
+		[this, delay](IG::FrameParams params)
+		{
+			if(delay)
+			{
+				addOnFrameDelegate(makeOnFrameDelayed(delay - 1));
+				if(useRenderTaskTime)
+					postDrawToEmuWindows();
+				return false;
+			}
+			else
+			{
+				if(EmuSystem::isActive())
+					addOnFrameDelegate(onFrameUpdate);
+				return false;
+			}
+		};
+}
+
+void EmuViewController::addOnFrameDelegate(Base::OnFrameDelegate onFrame)
 {
 	if(!useRenderTaskTime)
 	{
-		emuWindowScreen()->addOnFrame(onFrameUpdate);
+		emuWindowScreen()->addOnFrame(onFrame);
 	}
 	else
 	{
-		rendererTask().addOnFrame(onFrameUpdate);
+		rendererTask().addOnFrame(onFrame);
 		postDrawToEmuWindows();
 	}
+}
+
+void EmuViewController::addOnFrameDelayed()
+{
+	// delay before adding onFrame handler to let timestamps stabilize
+	auto delay = emuWindowScreen()->frameRate() / 4;
+	//logMsg("delaying onFrame handler by %d frames", onFrameHandlerDelay);
+	addOnFrameDelegate(makeOnFrameDelayed(delay));
+}
+
+void EmuViewController::addOnFrame()
+{
+	addOnFrameDelegate(onFrameUpdate);
 }
 
 void EmuViewController::removeOnFrame()
@@ -709,7 +743,7 @@ void EmuViewController::startEmulation()
 	systemTask->start();
 	EmuSystem::start();
 	videoLayer().setBrightness(1.f);
-	addOnFrame();
+	addOnFrameDelayed();
 }
 
 void EmuViewController::pauseEmulation()
@@ -915,7 +949,6 @@ void EmuViewController::onFocusChange(uint in)
 			vController.resetInput();
 			#endif
 			startEmulation();
-			postDrawToEmuWindows();
 		}
 		else if(optionPauseUnfocused && !EmuSystem::isPaused() && !allWindowsAreFocused())
 		{

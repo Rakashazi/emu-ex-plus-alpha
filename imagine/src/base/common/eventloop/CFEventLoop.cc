@@ -193,7 +193,6 @@ EventLoop EventLoop::makeForThread()
 
 void EventLoop::run()
 {
-	logMsg("running CFRunLoop:%p", loop);
 	CFRunLoopRun();
 }
 
