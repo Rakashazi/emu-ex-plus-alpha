@@ -122,7 +122,9 @@ protected:
 	EmuSystemTask *systemTask{};
 	bool showingEmulation = false;
 	bool physicalControlsPresent = false;
-	bool useRenderTaskTime = false;
+	#ifdef EMU_FRAMEWORK_RENDER_TASK_TIME
+	bool useRenderTaskTime_ = false;
+	#endif
 	uint8_t targetFastForwardSpeed = 0;
 	std::atomic_bool emuVideoInProgress{};
 
@@ -145,6 +147,8 @@ protected:
 	void applyFrameRates();
 	bool allWindowsAreFocused() const;
 	AppWindowData &mainWindowData() const;
+	void setUseRenderTaskTime(bool on);
+	bool useRenderTaskTime() const;
 };
 
 extern EmuVideoLayer emuVideoLayer;

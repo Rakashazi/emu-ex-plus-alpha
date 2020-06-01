@@ -80,8 +80,10 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 	}
 	IG::Pixmap srcPix = {{{width, height}, pixFmt}, GFX.Screen};
 	emuVideo->startFrameWithFormat(emuSysTask, srcPix);
+	#ifndef SNES9X_VERSION_1_4
 	memset(GFX.ZBuffer, 0, GFX.ScreenSize);
 	memset(GFX.SubZBuffer, 0, GFX.ScreenSize);
+	#endif
 	return 1;
 }
 

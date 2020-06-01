@@ -442,6 +442,13 @@ bool GLDisplay::deinit()
 		return true;
 	auto dpy = display;
 	display = EGL_NO_DISPLAY;
+	#if defined __ANDROID__
+	if(Base::androidSDK() < 26)
+	{
+		// don't call eglTerminate() on older Android versions due to possible driver issues (random freeze in libMali.so)
+		return true;
+	}
+	#endif
 	if(!HAS_DISPLAY_REF_COUNT)
 	{
 		if(!refCount)

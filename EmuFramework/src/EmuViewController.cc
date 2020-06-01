@@ -151,9 +151,9 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 		}, 10);
 	if(!Base::Screen::supportsTimestamps())
 	{
-		useRenderTaskTime = true;
+		setUseRenderTaskTime(true);
 	}
-	logMsg("timestamp source:%s", useRenderTaskTime ? "renderer" : "screen");
+	logMsg("timestamp source:%s", useRenderTaskTime() ? "renderer" : "screen");
 	onFrameUpdate = [this](IG::FrameParams params)
 		{
 			if(emuVideoInProgress)
@@ -182,7 +182,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			uint32_t framesAdvanced = EmuSystem::advanceFramesWithTime(params.timestamp());
 			if(!framesAdvanced)
 			{
-				if(useRenderTaskTime)
+				if(useRenderTaskTime())
 					postDrawToEmuWindows();
 				return true;
 			}
@@ -677,22 +677,21 @@ Base::OnFrameDelegate EmuViewController::makeOnFrameDelayed(uint8_t delay)
 			if(delay)
 			{
 				addOnFrameDelegate(makeOnFrameDelayed(delay - 1));
-				if(useRenderTaskTime)
-					postDrawToEmuWindows();
-				return false;
 			}
 			else
 			{
 				if(EmuSystem::isActive())
 					addOnFrameDelegate(onFrameUpdate);
-				return false;
 			}
+			if(useRenderTaskTime())
+				postDrawToEmuWindows();
+			return false;
 		};
 }
 
 void EmuViewController::addOnFrameDelegate(Base::OnFrameDelegate onFrame)
 {
-	if(!useRenderTaskTime)
+	if(!useRenderTaskTime())
 	{
 		emuWindowScreen()->addOnFrame(onFrame);
 	}
@@ -718,7 +717,7 @@ void EmuViewController::addOnFrame()
 
 void EmuViewController::removeOnFrame()
 {
-	if(!useRenderTaskTime)
+	if(!useRenderTaskTime())
 	{
 		emuWindowScreen()->removeOnFrame(onFrameUpdate);
 	}
@@ -730,7 +729,7 @@ void EmuViewController::removeOnFrame()
 
 void EmuViewController::moveOnFrame(Base::Screen &from, Base::Screen &to)
 {
-	if(!useRenderTaskTime)
+	if(!useRenderTaskTime())
 	{
 		from.removeOnFrame(onFrameUpdate);
 		to.addOnFrame(onFrameUpdate);
@@ -1002,4 +1001,20 @@ void EmuViewController::setFastForwardActive(bool active)
 {
 	targetFastForwardSpeed = active ? optionFastForwardSpeed.val : 0;
 	emuAudio.setAddSoundBuffersOnUnderrun(active ? optionAddSoundBuffersOnUnderrun.val : false);
+}
+
+void EmuViewController::setUseRenderTaskTime(bool on)
+{
+	#ifdef EMU_FRAMEWORK_RENDER_TASK_TIME
+	useRenderTaskTime_ = on;
+	#endif
+}
+
+bool EmuViewController::useRenderTaskTime() const
+{
+	#ifdef EMU_FRAMEWORK_RENDER_TASK_TIME
+	return useRenderTaskTime_;
+	#else
+	return false;
+	#endif
 }
