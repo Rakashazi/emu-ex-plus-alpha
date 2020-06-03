@@ -17,7 +17,6 @@
 #include <emuframework/FilePicker.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
-#include <emuframework/Recent.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/gui/AlertView.hh>
@@ -79,12 +78,13 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, 
 
 std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, Input::Event e, bool singleDir)
 {
-	auto rootInfo = Base::nearestRootPath(lastLoadPath.data());
-	auto picker = std::make_unique<EmuFilePicker>(attach, lastLoadPath.data(), false, EmuSystem::defaultBenchmarkFsFilter, rootInfo, e, singleDir);
+	auto searchPath = EmuApp::mediaSearchPath();
+	auto rootInfo = Base::nearestRootPath(searchPath.data());
+	auto picker = std::make_unique<EmuFilePicker>(attach, searchPath.data(), false, EmuSystem::defaultBenchmarkFsFilter, rootInfo, e, singleDir);
 	picker->setOnChangePath(
 		[](FSPicker &picker, FS::PathString, Input::Event)
 		{
-			lastLoadPath = picker.path();
+			EmuApp::setMediaSearchPath(picker.path());
 		});
 	picker->setOnSelectFile(
 		[](FSPicker &picker, const char* name, Input::Event e)
@@ -101,12 +101,13 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachPara
 
 std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForLoading(ViewAttachParams attach, Input::Event e, bool singleDir)
 {
-	auto rootInfo = Base::nearestRootPath(lastLoadPath.data());
-	auto picker = std::make_unique<EmuFilePicker>(attach, lastLoadPath.data(), false, EmuSystem::defaultFsFilter, rootInfo, e, singleDir);
+	auto searchPath = EmuApp::mediaSearchPath();
+	auto rootInfo = Base::nearestRootPath(searchPath.data());
+	auto picker = std::make_unique<EmuFilePicker>(attach, searchPath.data(), false, EmuSystem::defaultFsFilter, rootInfo, e, singleDir);
 	picker->setOnChangePath(
 		[](FSPicker &picker, FS::PathString, Input::Event)
 		{
-			lastLoadPath = picker.path();
+			EmuApp::setMediaSearchPath(picker.path());
 		});
 	picker->setOnSelectFile(
 		[](FSPicker &picker, const char *name, Input::Event e)

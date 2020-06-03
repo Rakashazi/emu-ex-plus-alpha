@@ -47,5 +47,5 @@ private:
 	void renamed(const char *str) final;
 
 public:
-	EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat);
+	EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat, RefreshCheatsDelegate onCheatListChanged_);
 };

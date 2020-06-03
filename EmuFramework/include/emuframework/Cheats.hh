@@ -25,12 +25,10 @@ class BaseCheatsView : public TableView
 {
 public:
 	BaseCheatsView(ViewAttachParams attach);
-	~BaseCheatsView() override;
 
 protected:
 	TextMenuItem edit{};
 	std::vector<BoolMenuItem> cheat{};
-	RefreshCheatsDelegate onRefreshCheats{};
 
 	virtual void loadCheatItems() = 0;
 };
@@ -39,12 +37,13 @@ class BaseEditCheatListView : public TableView
 {
 public:
 	BaseEditCheatListView(ViewAttachParams attach, TableView::ItemsDelegate items, TableView::ItemDelegate item);
-	~BaseEditCheatListView() override;
+	void setOnCheatListChanged(RefreshCheatsDelegate del);
 
 protected:
 	std::vector<TextMenuItem> cheat{};
-	RefreshCheatsDelegate onRefreshCheats{};
+	RefreshCheatsDelegate onCheatListChanged_{};
 
+	void onCheatListChanged();
 	virtual void loadCheatItems() = 0;
 };
 
@@ -52,10 +51,13 @@ class BaseEditCheatView : public TableView
 {
 public:
 	BaseEditCheatView(const char *name, ViewAttachParams attach, const char *cheatName,
-		TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed);
+		TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed,
+		RefreshCheatsDelegate onCheatListChanged);
 
 protected:
 	TextMenuItem name{}, remove{};
+	RefreshCheatsDelegate onCheatListChanged_{};
 
+	void onCheatListChanged();
 	virtual void renamed(const char *str) = 0;
 };

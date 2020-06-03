@@ -20,6 +20,7 @@
 #include <imagine/util/math/int.hh>
 #include <imagine/util/math/space.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/gfx/Gfx.hh>
 #include "private.hh"
 #include "privateInput.hh"
 

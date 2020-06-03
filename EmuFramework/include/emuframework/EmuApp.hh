@@ -69,7 +69,6 @@ public:
 	static void launchSystem(Input::Event e, bool tryAutoState, bool addToRecent);
 	static bool hasArchiveExtension(const char *name);
 	static void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
-	static void refreshCheatViews();
 	[[gnu::format(printf, 3, 4)]]
 	static void printfMessage(uint secs, bool error, const char *format, ...);
 	static void postMessage(const char *msg);
@@ -88,6 +87,7 @@ public:
 	static void setDefaultVControlsButtonSpacing(int spacing);
 	static void setDefaultVControlsButtonStagger(int stagger);
 	static FS::PathString mediaSearchPath();
+	static void setMediaSearchPath(FS::PathString path);
 	static FS::PathString firmwareSearchPath();
 	static void setFirmwareSearchPath(const char *path);
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);

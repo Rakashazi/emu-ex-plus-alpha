@@ -19,8 +19,6 @@
 #include <imagine/logger/logger.h>
 #include "private.hh"
 
-static StaticArrayList<RefreshCheatsDelegate*, 2> onRefreshCheatsList;
-
 BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 	TableView
 	{
@@ -43,31 +41,47 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 		"Add/Edit",
 		[this](Input::Event e)
 		{
-			pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::EDIT_CHEATS), e);
-		}
-	},
-	onRefreshCheats
-	{
-		[this]()
-		{
-			auto selectedCell = selected;
-			loadCheatItems();
-			highlightCell(selectedCell);
-			place();
+			auto editCheatsView = makeEmuView(attachParams(), EmuApp::ViewID::EDIT_CHEATS);
+			static_cast<BaseEditCheatListView*>(editCheatsView.get())->setOnCheatListChanged(
+				[this]()
+				{
+					auto selectedCell = selected;
+					loadCheatItems();
+					highlightCell(selectedCell);
+					place();
+				});
+			pushAndShow(std::move(editCheatsView), e);
 		}
 	}
+{}
+
+BaseEditCheatListView::BaseEditCheatListView(ViewAttachParams attach, TableView::ItemsDelegate items, TableView::ItemDelegate item):
+	TableView
+	{
+		"Edit Cheats",
+		attach,
+		items,
+		item
+	}
+{}
+
+void BaseEditCheatListView::setOnCheatListChanged(RefreshCheatsDelegate del)
 {
-	assert(!onRefreshCheatsList.isFull());
-	onRefreshCheatsList.emplace_back(&onRefreshCheats);
+	onCheatListChanged_ = del;
 }
 
-BaseCheatsView::~BaseCheatsView()
+void BaseEditCheatListView::onCheatListChanged()
 {
-	onRefreshCheatsList.remove(&onRefreshCheats);
+	auto selectedCell = selected;
+	loadCheatItems();
+	highlightCell(selectedCell);
+	place();
+	onCheatListChanged_.callSafe();
 }
 
 BaseEditCheatView::BaseEditCheatView(const char *viewName, ViewAttachParams attach, const char *cheatName,
-	TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed):
+	TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed,
+	RefreshCheatsDelegate onCheatListChanged_):
 	TableView
 	{
 		viewName,
@@ -86,6 +100,7 @@ BaseEditCheatView::BaseEditCheatView(const char *viewName, ViewAttachParams atta
 					logMsg("setting cheat name %s", str);
 					renamed(str);
 					name.compile(renderer(), projP);
+					onCheatListChanged();
 					postDraw();
 					return true;
 				});
@@ -95,43 +110,11 @@ BaseEditCheatView::BaseEditCheatView(const char *viewName, ViewAttachParams atta
 	{
 		"Delete Cheat",
 		removed
-	}
+	},
+	onCheatListChanged_{onCheatListChanged_}
 {}
 
-BaseEditCheatListView::BaseEditCheatListView(ViewAttachParams attach, TableView::ItemsDelegate items, TableView::ItemDelegate item):
-	TableView
-	{
-		"Edit Cheats",
-		attach,
-		items,
-		item
-	},
-	onRefreshCheats
-	{
-		[this]()
-		{
-			auto selectedCell = selected;
-			loadCheatItems();
-			highlightCell(selectedCell);
-			place();
-		}
-	}
+void BaseEditCheatView::onCheatListChanged()
 {
-	assert(!onRefreshCheatsList.isFull());
-	onRefreshCheatsList.emplace_back(&onRefreshCheats);
-}
-
-BaseEditCheatListView::~BaseEditCheatListView()
-{
-	onRefreshCheatsList.remove(&onRefreshCheats);
-}
-
-void EmuApp::refreshCheatViews()
-{
-	logMsg("calling refresh cheat delegates");
-	auto list = onRefreshCheatsList;
-	for(auto e : list)
-	{
-		(*e)();
-	}
+	onCheatListChanged_.callSafe();
 }

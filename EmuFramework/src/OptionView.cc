@@ -87,7 +87,7 @@ BiosSelectMenu::BiosSelectMenu(const char *name, ViewAttachParams attach, FS::Pa
 					onBiosChangeD.callSafe();
 					popAndShow();
 				});
-			emuViewController.pushAndShowModal(std::move(fPicker), e, false);
+			pushAndShowModal(std::move(fPicker), e);
 		}
 	},
 	unset
@@ -642,7 +642,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 								view.dismiss();
 							}
 						});
-					emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+					pushAndShowModal(std::move(ynAlertView), e);
 					return false;
 				}
 				else
@@ -1192,7 +1192,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 						}
 					};
 				popAndShow();
-				emuViewController.pushAndShowModal(std::move(frView), e, false);
+				pushAndShowModal(std::move(frView), e);
 			});
 	}
 	pushAndShow(std::move(multiChoiceView), e);
@@ -1331,7 +1331,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 							picker.dismiss();
 							popAndShow();
 						});
-					emuViewController.pushAndShowModal(std::move(fPicker), e, false);
+					pushAndShowModal(std::move(fPicker), e);
 				});
 			multiChoiceView->appendItem("Same as Game",
 				[this]()

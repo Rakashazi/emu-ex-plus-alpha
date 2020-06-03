@@ -753,6 +753,11 @@ FS::PathString EmuApp::mediaSearchPath()
 	return lastLoadPath;
 }
 
+void EmuApp::setMediaSearchPath(FS::PathString path)
+{
+	lastLoadPath = path;
+}
+
 FS::PathString EmuApp::firmwareSearchPath()
 {
 	if(!strlen(optionFirmwarePath))

@@ -29,7 +29,7 @@ public:
 	BasicViewController();
 	RemoveViewDelegate &onRemoveView() { return removeViewDel; }
 	void push(std::unique_ptr<View> v, Input::Event e);
-	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView) override;
+	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal) override;
 	using ViewController::pushAndShow;
 	void pop() override;
 	void dismissView(View &v) override;
@@ -61,13 +61,13 @@ public:
 	void prepareDraw();
 	void draw(Gfx::RendererCommands &cmds);
 	void push(std::unique_ptr<View> v, Input::Event e);
-	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView) override;
+	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal) override;
 	using ViewController::pushAndShow;
 	void pop() override;
 	void popAndShow() override;
 	void popToRoot();
 	void popAll();
-	void popTo(View &v);
+	void popTo(View &v) override;
 	void show();
 	View &top() const;
 	View &viewAtIdx(uint32_t idx) const;
@@ -81,6 +81,8 @@ public:
 	uint32_t size() const;
 	void setOnRemoveView(RemoveViewDelegate del);
 	bool viewHasFocus() const;
+	bool hasModalView() const;
+	void popModalViews();
 
 protected:
 	struct ViewEntry
@@ -90,6 +92,7 @@ protected:
 		{}
 		std::unique_ptr<View> v;
 		bool needsNavView;
+		bool isModal;
 	};
 	std::vector<ViewEntry> view{};
 	std::unique_ptr<NavView> nav{};

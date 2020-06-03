@@ -14,11 +14,10 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/AlertView.hh>
-#include <emuframework/RecentGameView.hh>
-#include <emuframework/Recent.hh>
-#include "private.hh"
+#include "Recent.hh"
+#include "RecentGameView.hh"
 
-RecentGameView::RecentGameView(ViewAttachParams attach):
+RecentGameView::RecentGameView(ViewAttachParams attach, RecentGameList &list):
 	TableView
 	{
 		"Recent Games",
@@ -42,15 +41,16 @@ RecentGameView::RecentGameView(ViewAttachParams attach):
 				[this](TextMenuItem &, View &view, Input::Event)
 				{
 					view.dismiss();
-					recentGameList.clear();
+					this->list.clear();
 					popAndShow();
 				});
-			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+			pushAndShowModal(std::move(ynAlertView), e);
 		}
-	}
+	},
+	list{list}
 {
-	recentGame.reserve(recentGameList.size());
-	for(auto &e : recentGameList)
+	recentGame.reserve(list.size());
+	for(auto &e : list)
 	{
 		recentGame.emplace_back(e.name.data(),
 			[&e](TextMenuItem &item, View &view, Input::Event ev)
@@ -59,5 +59,5 @@ RecentGameView::RecentGameView(ViewAttachParams attach):
 			});
 		recentGame.back().setActive(FS::exists(e.path.data()));
 	}
-	clear.setActive(recentGameList.size());
+	clear.setActive(list.size());
 }

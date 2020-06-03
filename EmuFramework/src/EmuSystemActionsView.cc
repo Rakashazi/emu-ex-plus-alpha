@@ -20,7 +20,6 @@
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/RecentGameView.hh>
 #include <emuframework/CreditsView.hh>
 #include <emuframework/FilePicker.hh>
 #include <emuframework/StateSlotView.hh>
@@ -142,7 +141,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			{
 				if(EmuSystem::hasResetModes)
 				{
-					emuViewController.pushAndShowModal(makeView<ResetAlertView>("Really reset?"), e, false);
+					pushAndShowModal(makeView<ResetAlertView>("Really reset?"), e);
 				}
 				else
 				{
@@ -154,7 +153,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 							EmuSystem::reset(EmuSystem::RESET_SOFT);
 							emuViewController.showEmulation();
 						});
-					emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+					pushAndShowModal(std::move(ynAlertView), e);
 				}
 			}
 		}
@@ -179,7 +178,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 						else
 							emuViewController.showEmulation();
 					});
-				emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+				pushAndShowModal(std::move(ynAlertView), e);
 			}
 		}
 	},
@@ -215,7 +214,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 							view.dismiss();
 							doSaveState();
 						});
-					emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+					pushAndShowModal(std::move(ynAlertView), e);
 				}
 			}
 		}
@@ -286,7 +285,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 					view.dismiss();
 					EmuApp::deleteSessionOptions();
 				});
-			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+			pushAndShowModal(std::move(ynAlertView), e);
 		}
 	},
 	close
@@ -301,7 +300,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 					view.dismiss();
 					emuViewController.closeSystem(true); // pops any System Actions views in stack
 				});
-			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+			pushAndShowModal(std::move(ynAlertView), e);
 		}
 	}
 {

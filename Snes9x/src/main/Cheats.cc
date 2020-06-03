@@ -188,7 +188,7 @@ void EmuEditCheatView::renamed(const char *str)
 	name.compile(cheatName(idx), renderer(), projP);
 }
 
-EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
+EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
 		"Edit Address/Values",
@@ -212,10 +212,11 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		[this](TextMenuItem &, View &, Input::Event)
 		{
 			deleteCheat(idx);
-			EmuApp::refreshCheatViews();
+			onCheatListChanged();
 			dismiss();
 			return true;
-		}
+		},
+		onCheatListChanged_
 	},
 	addr
 	{
@@ -364,7 +365,7 @@ void EmuEditCheatListView::loadCheatItems()
 		cheat.emplace_back(cheatName(c),
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				pushAndShow(makeView<EmuEditCheatView>(c), e);
+				pushAndShow(makeView<EmuEditCheatView>(c, [this](){ onCheatListChanged(); }), e);
 			});
 	}
 }
@@ -410,16 +411,16 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						auto idx = numCheats() - 1;
 						setCheatName(idx, "Unnamed Cheat");
 						logMsg("added new cheat, %d total", numCheats());
+						onCheatListChanged();
 						view.dismiss();
-						EmuApp::refreshCheatViews();
 						EmuApp::pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
-							[idx](CollectTextInputView &view, const char *str)
+							[this, idx](CollectTextInputView &view, const char *str)
 							{
 								if(str)
 								{
 									setCheatName(idx, str);
+									onCheatListChanged();
 									view.dismiss();
-									EmuApp::refreshCheatViews();
 								}
 								else
 								{

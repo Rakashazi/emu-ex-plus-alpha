@@ -754,7 +754,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 		{
 			auto onScreenInputPlace = makeView<OnScreenInputPlaceView>();
 			onScreenInputPlace->init(); // TODO: rework view init
-			emuViewController.pushAndShowModal(std::move(onScreenInputPlace), e, false);
+			pushAndShowModal(std::move(onScreenInputPlace), e);
 		}
 	},
 	menuStateItem
@@ -802,7 +802,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 					EmuControls::setupVControllerVars();
 					refreshTouchConfigMenu();
 				});
-			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+			pushAndShowModal(std::move(ynAlertView), e);
 		}
 	},
 	resetAllControls
@@ -819,7 +819,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 					EmuControls::setupVControllerVars();
 					refreshTouchConfigMenu();
 				});
-			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+			pushAndShowModal(std::move(ynAlertView), e);
 		}
 	},
 	btnTogglesHeading

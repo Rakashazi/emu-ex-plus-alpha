@@ -29,13 +29,18 @@ Gfx::Renderer &ViewAttachParams::renderer() const
 
 void ViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e)
 {
-	pushAndShow(std::move(v), e, true);
+	pushAndShow(std::move(v), e, true, false);
 }
 
 void ViewController::popAndShow()
 {
 	pop();
 };
+
+void ViewController::popTo(View &v)
+{
+	pop();
+}
 
 bool ViewController::moveFocusToNextView(Input::Event, _2DOrigin)
 {
@@ -44,10 +49,15 @@ bool ViewController::moveFocusToNextView(Input::Event, _2DOrigin)
 
 View::~View() {}
 
-void View::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
+void View::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal)
 {
 	assumeExpr(controller_);
-	controller_->pushAndShow(std::move(v), e, needsNavView);
+	controller_->pushAndShow(std::move(v), e, needsNavView, isModal);
+}
+
+void View::pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
+{
+	pushAndShow(std::move(v), e, needsNavView, true);
 }
 
 void View::pop()
@@ -60,6 +70,12 @@ void View::popAndShow()
 {
 	assumeExpr(controller_);
 	controller_->popAndShow();
+}
+
+void View::popTo(View &v)
+{
+	assumeExpr(controller_);
+	controller_->popTo(v);
 }
 
 void View::dismiss()

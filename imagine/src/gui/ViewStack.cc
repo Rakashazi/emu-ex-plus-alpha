@@ -37,7 +37,7 @@ void BasicViewController::push(std::unique_ptr<View> v, Input::Event e)
 	logMsg("push view in basic view controller");
 }
 
-void BasicViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
+void BasicViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal)
 {
 	push(std::move(v), e);
 	place();
@@ -236,10 +236,11 @@ void ViewStack::push(std::unique_ptr<View> v, Input::Event e)
 	}
 }
 
-void ViewStack::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
+void ViewStack::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal)
 {
 	push(std::move(v), e);
 	view.back().needsNavView = needsNavView;
+	view.back().isModal = isModal;
 	place();
 	top().show();
 	top().postDraw();
@@ -419,4 +420,20 @@ void ViewStack::setOnRemoveView(RemoveViewDelegate del)
 bool ViewStack::viewHasFocus() const
 {
 	return !navViewHasFocus;
+}
+
+bool ViewStack::hasModalView() const
+{
+	if(!view.size())
+		return false;
+	return view.back().isModal;
+}
+
+void ViewStack::popModalViews()
+{
+	while(view.size() > 1 && view.back().isModal)
+		pop();
+	place();
+	top().show();
+	top().postDraw();
 }

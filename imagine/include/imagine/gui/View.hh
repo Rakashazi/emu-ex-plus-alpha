@@ -41,10 +41,11 @@ class ViewController
 {
 public:
 	constexpr ViewController() {}
-	virtual void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView) = 0;
+	virtual void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal) = 0;
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e);
 	virtual void pop() = 0;
 	virtual void popAndShow();
+	virtual void popTo(View &v);
 	virtual void dismissView(View &v) = 0;
 	virtual bool inputEvent(Input::Event e) = 0;
 	virtual bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
@@ -89,9 +90,11 @@ public:
 	static void setNeedsBackControl(bool on);
 	static bool compileGfxPrograms(Gfx::Renderer &r);
 	void dismiss();
-	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView = true);
+	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView = true, bool isModal = false);
+	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView = false);
 	void pop();
 	void popAndShow();
+	void popTo(View &v);
 	void show();
 	bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
 	void setWindow(Base::Window *w) { win = w; }

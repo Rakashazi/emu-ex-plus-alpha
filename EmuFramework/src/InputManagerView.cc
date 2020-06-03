@@ -146,7 +146,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 								keyMapping.buildAll();
 								onShow();
 							});
-						emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+						pushAndShowModal(std::move(ynAlertView), e);
 					});
 			}
 			pushAndShow(std::move(multiChoiceView), e);
@@ -193,7 +193,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 								keyMapping.buildAll();
 								onShow();
 							});
-						emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+						pushAndShowModal(std::move(ynAlertView), e);
 					});
 			}
 			pushAndShow(std::move(multiChoiceView), e);
@@ -234,7 +234,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 						pushAndShow(std::move(imdMenu), e);
 					}
 				};
-			emuViewController.pushAndShowModal(std::move(identView), e, false);
+			pushAndShowModal(std::move(identView), e);
 		}
 	},
 	generalOptions
@@ -254,7 +254,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 	onUpdateInputDevices =
 		[this]()
 		{
-			emuViewController.popTo(*this);
+			popTo(*this);
 			auto selectedCell = selected;
 			waitForDrawFinished();
 			loadItems();
@@ -687,7 +687,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 							return true;
 						});
 				});
-			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+			pushAndShowModal(std::move(ynAlertView), e);
 		}
 	},
 	deleteProfile
@@ -717,7 +717,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 					onShow();
 					keyMapping.buildAll();
 				});
-			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+			pushAndShowModal(std::move(ynAlertView), e);
 		}
 	},
 	#if defined CONFIG_INPUT_ICADE
@@ -740,7 +740,7 @@ InputManagerDeviceView::InputManagerDeviceView(ViewAttachParams attach, InputMan
 						view.dismiss();
 						confirmICadeMode(e);
 					});
-				emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+				pushAndShowModal(std::move(ynAlertView), e);
 			}
 			else
 				confirmICadeMode(e);

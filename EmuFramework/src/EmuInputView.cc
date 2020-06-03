@@ -23,8 +23,8 @@
 #include "private.hh"
 #include "privateInput.hh"
 
-EmuInputView::EmuInputView(ViewAttachParams attach, SysVController &vCtrl)
-	: View(attach), vController{vCtrl}
+EmuInputView::EmuInputView(ViewAttachParams attach, SysVController &vCtrl, EmuVideoLayer &videoLayer)
+	: View(attach), vController{vCtrl}, videoLayer{videoLayer}
 {}
 
 void EmuInputView::draw(Gfx::RendererCommands &cmds)
@@ -73,9 +73,9 @@ bool EmuInputView::inputEvent(Input::Event e)
 			|| vController.isInKeyboardMode())
 		{
 			vController.applyInput(e);
-			EmuSystem::handlePointerInputEvent(e, emuVideoLayer.gameRect());
+			EmuSystem::handlePointerInputEvent(e, videoLayer.gameRect());
 		}
-		else if(EmuSystem::handlePointerInputEvent(e, emuVideoLayer.gameRect()))
+		else if(EmuSystem::handlePointerInputEvent(e, videoLayer.gameRect()))
 		{
 			//logMsg("game consumed pointer input event");
 		}
@@ -190,7 +190,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 									view.dismiss();
 									emuViewController.showEmulation();
 								});
-							emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+							pushAndShowModal(std::move(ynAlertView), e);
 						}
 						return true;
 					}

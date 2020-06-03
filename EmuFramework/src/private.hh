@@ -22,14 +22,13 @@
 #include <imagine/gui/ToastView.hh>
 #include <imagine/gfx/AnimatedViewport.hh>
 #include <imagine/gfx/Gfx.hh>
-#include <imagine/util/container/ArrayList.hh>
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
-#include <emuframework/Recent.hh>
+#include "Recent.hh"
 #include <memory>
 #include <atomic>
 
@@ -58,12 +57,6 @@ public:
 	bool inputEvent(Input::Event e) final;
 };
 
-class EmuModalViewStack : public ViewStack
-{
-public:
-	bool inputEvent(Input::Event e) final;
-};
-
 class EmuViewController : public ViewController
 {
 public:
@@ -71,7 +64,7 @@ public:
 		VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystemTask &systemTask);
 	void initViews(ViewAttachParams attach);
 	Base::WindowConfig addWindowConfig(Base::WindowConfig conf, AppWindowData &winData);
-	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView) final;
+	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal = false) final;
 	using ViewController::pushAndShow;
 	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView);
 	void pop() final;
@@ -91,10 +84,10 @@ public:
 	Base::Screen *emuWindowScreen() const;
 	Base::Window &emuWindow() const;
 	Gfx::RendererTask &rendererTask() const;
-	bool hasModalView();
+	bool hasModalView() const;
 	void popModalViews();
 	void prepareDraw();
-	void popTo(View &v);
+	void popTo(View &v) final;
 	void popToRoot();
 	void showNavView(bool show);
 	void setShowNavViewBackButton(bool show);
@@ -116,7 +109,6 @@ protected:
 	EmuInputView emuInputView;
 	ToastView popup;
 	EmuMenuViewStack viewStack{};
-	EmuModalViewStack modalViewController{};
 	Base::OnFrameDelegate onFrameUpdate{};
 	Gfx::RendererTask *rendererTask_{};
 	EmuSystemTask *systemTask{};
@@ -157,7 +149,7 @@ extern DelegateFunc<void ()> onUpdateInputDevices;
 extern FS::PathString lastLoadPath;
 extern EmuVideo emuVideo;
 extern EmuAudio emuAudio;
-extern StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList;
+extern RecentGameList recentGameList;
 static constexpr const char *strftimeFormat = "%x  %r";
 
 void loadConfigFile();

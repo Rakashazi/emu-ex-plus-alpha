@@ -20,7 +20,6 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/logger/logger.h>
-#include "private.hh"
 #include "privateInput.hh"
 
 class KeyConflictAlertView : public AlertView
@@ -141,8 +140,7 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 				EmuApp::unpostMessage();
 				auto &rootIMView = this->rootIMView;
 				auto attach = attachParams();
-				dismiss();
-				emuViewController.popTo(rootIMView);
+				popTo(rootIMView);
 				auto imdMenu = std::make_unique<InputManagerDeviceView>(attach, rootIMView, inputDevConf[d->idx]);
 				imdMenu->setName(rootIMView.deviceName(d->idx));
 				rootIMView.pushAndShow(std::move(imdMenu), e);
@@ -331,7 +329,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 					}
 					keyMapping.buildAll();
 				});
-			emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+			pushAndShowModal(std::move(ynAlertView), e);
 		}
 	}
 {
@@ -383,13 +381,13 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 										onSet(ctx->mapKey, ctx->keyToSet);
 										view.dismiss();
 									});
-								emuViewController.pushAndShowModal(std::move(alertView), e, false);
+								pushAndShowModal(std::move(alertView), e);
 								return;
 							}
 						}
 						onSet(mapKey, keyToSet);
 					});
-				emuViewController.pushAndShowModal(std::move(btnSetView), e, false);
+				pushAndShowModal(std::move(btnSetView), e);
 			});
 	}
 }

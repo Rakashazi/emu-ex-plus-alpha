@@ -18,11 +18,12 @@
 #include <imagine/gui/View.hh>
 
 class VController;
+class EmuVideoLayer;
 
 class EmuInputView : public View
 {
 public:
-	EmuInputView(ViewAttachParams attach, VController &vCtrl);
+	EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideoLayer &videoLayer);
 	void place() final;
 	void draw(Gfx::RendererCommands &cmds) final;
 	bool inputEvent(Input::Event e) final;
@@ -32,6 +33,7 @@ public:
 
 private:
 	VController &vController;
+	EmuVideoLayer &videoLayer;
 	bool touchControlsOn = false;
 	bool ffToggleActive = false;
 

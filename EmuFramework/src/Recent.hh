@@ -15,16 +15,27 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/TableView.hh>
-#include <imagine/gui/MenuItem.hh>
-#include <vector>
+#include <imagine/fs/FS.hh>
+#include <imagine/util/string.h>
+#include <imagine/input/Input.hh>
+#include <imagine/util/container/ArrayList.hh>
 
-class RecentGameView : public TableView
+class TextMenuItem;
+
+struct RecentGameInfo
 {
-public:
-	RecentGameView(ViewAttachParams attach);
+	FS::PathString path{};
+	FS::FileString name{};
+	static constexpr uint MAX_RECENT = 10;
 
-private:
-	std::vector<TextMenuItem> recentGame{};
-	TextMenuItem clear{};
+	constexpr RecentGameInfo() {}
+
+	bool operator ==(RecentGameInfo const& rhs) const
+	{
+		return string_equal(path.data(), rhs.path.data());
+	}
+
+	void handleMenuSelection(TextMenuItem &, Input::Event e);
 };
+
+using RecentGameList = StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT>;

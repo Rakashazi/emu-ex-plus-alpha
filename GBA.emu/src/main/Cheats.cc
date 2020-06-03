@@ -28,7 +28,7 @@ void EmuEditCheatView::renamed(const char *str)
 	name.compile(cheat.desc, renderer(), projP);
 }
 
-EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
+EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
 		"Edit Code",
@@ -51,10 +51,11 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 		{
 			cheatsModified = true;
 			cheatsDelete(gGba.cpu, idx, true);
-			EmuApp::refreshCheatViews();
+			onCheatListChanged();
 			dismiss();
 			return true;
-		}
+		},
+		onCheatListChanged_
 	},
 	code
 	{
@@ -78,7 +79,7 @@ void EmuEditCheatListView::loadCheatItems()
 		cheat.emplace_back(cheatsList[c].desc,
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				pushAndShow(makeView<EmuEditCheatView>(c), e);
+				pushAndShow(makeView<EmuEditCheatView>(c, [this](){ onCheatListChanged(); }), e);
 			});
 	}
 }
@@ -119,16 +120,16 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 				}
 				cheatsModified = true;
 				cheatsDisable(gGba.cpu, cheatsNumber-1);
+				onCheatListChanged();
 				view.dismiss();
-				EmuApp::refreshCheatViews();
 				EmuApp::pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
-					[](CollectTextInputView &view, const char *str)
+					[this](CollectTextInputView &view, const char *str)
 					{
 						if(str)
 						{
 							string_copy(cheatsList[cheatsNumber-1].desc, str);
+							onCheatListChanged();
 							view.dismiss();
-							EmuApp::refreshCheatViews();
 						}
 						else
 						{

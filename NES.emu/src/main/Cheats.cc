@@ -55,7 +55,6 @@ void EmuEditCheatView::renamed(const char *str)
 	syncCheat(str);
 	FCEUI_GetCheat(idx, &nameStr, nullptr, nullptr, nullptr, nullptr, nullptr);
 	name.compile(nameStr, renderer(), projP);
-	EmuApp::refreshCheatViews();
 }
 
 static bool isValidGGCodeLen(const char *str)
@@ -63,7 +62,7 @@ static bool isValidGGCodeLen(const char *str)
 	return strlen(str) == 6 || strlen(str) == 8;
 }
 
-EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
+EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
 		"",
@@ -101,10 +100,11 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx):
 			assert(fceuCheats != 0);
 			FCEUI_DelCheat(idx);
 			fceuCheats--;
-			EmuApp::refreshCheatViews();
+			onCheatListChanged();
 			dismiss();
 			return true;
-		}
+		},
+		onCheatListChanged_
 	},
 	addr
 	{
@@ -256,7 +256,7 @@ void EmuEditCheatListView::loadCheatItems()
 		cheat.emplace_back(gotCheat ? name : "Corrupt Cheat",
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
-				pushAndShow(makeView<EmuEditCheatView>(c), e);
+				pushAndShow(makeView<EmuEditCheatView>(c, [this](){ onCheatListChanged(); }), e);
 			});
 	}
 }
@@ -312,15 +312,14 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						FCEUI_ToggleCheat(fceuCheats-1);
 						logMsg("added new cheat, %d total", fceuCheats);
 						view.dismiss();
-						EmuApp::refreshCheatViews();
 						EmuApp::pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
-							[](CollectTextInputView &view, const char *str)
+							[this](CollectTextInputView &view, const char *str)
 							{
 								if(str)
 								{
 									FCEUI_SetCheat(fceuCheats-1, str, UNCHANGED_VAL, UNCHANGED_VAL, UNCHANGED_VAL, -1, 1);
+									onCheatListChanged();
 									view.dismiss();
-									EmuApp::refreshCheatViews();
 								}
 								else
 								{
@@ -356,9 +355,9 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						fceuCheats++;
 						FCEUI_ToggleCheat(fceuCheats-1);
 						logMsg("added new cheat, %d total", fceuCheats);
-						auto editCheatView = makeView<EmuEditCheatView>(fceuCheats-1);
+						onCheatListChanged();
+						auto editCheatView = makeView<EmuEditCheatView>(fceuCheats-1, [this](){ onCheatListChanged(); });
 						view.dismiss();
-						EmuApp::refreshCheatViews();
 						pushAndShow(std::move(editCheatView), {});
 					}
 					else

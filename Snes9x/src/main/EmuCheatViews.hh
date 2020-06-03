@@ -41,5 +41,5 @@ private:
 	void renamed(const char *str) final;
 
 public:
-	EmuEditCheatView(ViewAttachParams attach, uint cheatIdx);
+	EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, RefreshCheatsDelegate onCheatListChanged_);
 };

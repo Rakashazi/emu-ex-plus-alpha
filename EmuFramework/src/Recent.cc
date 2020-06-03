@@ -13,13 +13,12 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/Recent.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
-#include "private.hh"
+#include "Recent.hh"
 
-StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT> recentGameList{};
+RecentGameList recentGameList{};
 
 void addRecentGame(const char *fullPath, const char *name)
 {

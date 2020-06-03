@@ -62,7 +62,7 @@ static std::unique_ptr<AppWindowData> extraWin{};
 EmuViewController::EmuViewController(AppWindowData &winData, Gfx::Renderer &renderer, Gfx::RendererTask &rTask,
 	VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystemTask &systemTask):
 	emuView{{winData.win, rTask}, &videoLayer},
-	emuInputView{{winData.win, rTask}, vController},
+	emuInputView{{winData.win, rTask}, vController, videoLayer},
 	popup{{winData.win, rTask}},
 	rendererTask_{&rTask},
 	systemTask{&systemTask}
@@ -75,6 +75,8 @@ static bool shouldExitFromViewRootWithoutPrompt(Input::Event e)
 
 bool EmuMenuViewStack::inputEvent(Input::Event e)
 {
+	if(ViewStack::inputEvent(e))
+		return true;
 	if(e.pushed() && e.isDefaultCancelButton())
 	{
 		if(size() == 1)
@@ -85,10 +87,6 @@ bool EmuMenuViewStack::inputEvent(Input::Event e)
 			{
 				EmuApp::showExitAlert(top().attachParams(), e);
 			}
-			else
-			{
-				Base::exit();
-			}
 			return true;
 		}
 		else
@@ -97,24 +95,12 @@ bool EmuMenuViewStack::inputEvent(Input::Event e)
 		}
 		return true;
 	}
-	if(e.pushed() && isMenuDismissKey(e))
+	if(e.pushed() && isMenuDismissKey(e) && !hasModalView())
 	{
 		if(EmuSystem::gameIsRunning())
 		{
 			emuViewController.showEmulation();
 		}
-		return true;
-	}
-	return ViewStack::inputEvent(e);
-}
-
-bool EmuModalViewStack::inputEvent(Input::Event e)
-{
-	if(ViewStack::inputEvent(e))
-		return true;
-	if(e.pushed() && e.isDefaultCancelButton())
-	{
-		popAndShow();
 		return true;
 	}
 	return false;
@@ -130,8 +116,6 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 		{
 			if(backgrounded)
 			{
-				if(modalViewController.size())
-					modalViewController.top().onHide();
 				viewStack.top().onHide();
 			}
 			return true;
@@ -226,33 +210,6 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 		EmuApp::onCustomizeNavView(*viewNav);
 		viewStack.setNavView(std::move(viewNav));
 	}
-	{
-		auto viewNav = std::make_unique<BasicNavView>
-		(
-			viewAttach,
-			&View::defaultFace,
-			&getAsset(emuView.renderer(), ASSET_ARROW),
-			nullptr
-		);
-		viewNav->rotateLeftBtn = true;
-		viewNav->setOnPushLeftBtn(
-			[this](Input::Event)
-			{
-				modalViewController.popAndShow();
-			});
-		modalViewController.setShowNavViewBackButton(View::needsBackControl);
-		EmuApp::onCustomizeNavView(*viewNav);
-		modalViewController.setNavView(std::move(viewNav));
-	}
-	modalViewController.setOnRemoveView(
-		[this](const ViewStack &controller, View &)
-		{
-			if(controller.size() == 1 && showingEmulation)
-			{
-				showEmulation();
-			}
-		});
-	modalViewController.showNavView(optionTitleBar);
 	viewStack.showNavView(optionTitleBar);
 	emuView.setLayoutInputView(&inputView());
 	placeElements();
@@ -343,15 +300,14 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 	return winConf;
 }
 
-void EmuViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
+void EmuViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal)
 {
 	showUI(false);
-	viewStack.pushAndShow(std::move(v), e, needsNavView);
+	viewStack.pushAndShow(std::move(v), e, needsNavView, isModal);
 }
 
 void EmuViewController::pop()
 {
-	popModalViews();
 	viewStack.pop();
 }
 
@@ -370,15 +326,11 @@ bool EmuViewController::inputEvent(Input::Event e)
 	{
 		//logMsg("%s %s from %s", e.device->keyName(e.button), e.actionToStr(e.state), e.device->name());
 	}
-	if(likely(EmuSystem::isActive()))
+	if(showingEmulation)
 	{
 		return emuInputView.inputEvent(e);
 	}
-	else if(modalViewController.size())
-		return modalViewController.inputEvent(e);
-	else if(!showingEmulation)
-		return viewStack.inputEvent(e);
-	return false;
+	return viewStack.inputEvent(e);
 }
 
 void EmuViewController::movePopupToWindow(Base::Window &win)
@@ -490,7 +442,6 @@ void EmuViewController::placeElements()
 	TableView::setDefaultXIndent(inputView().window(), winData.projectionPlane);
 	placeEmuViews();
 	viewStack.place(winData.viewport().bounds(), winData.projectionPlane);
-	modalViewController.place(winData.viewport().bounds(), winData.projectionPlane);
 }
 
 void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
@@ -791,24 +742,21 @@ Gfx::RendererTask &EmuViewController::rendererTask() const
 
 void EmuViewController::pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
 {
-	showUI();
-	viewStack.top().onHide();
-	modalViewController.pushAndShow(std::move(v), e, needsNavView);
+	pushAndShow(std::move(v), e, needsNavView, true);
 }
 
-bool EmuViewController::hasModalView()
+bool EmuViewController::hasModalView() const
 {
-	return modalViewController.size();
+	return viewStack.hasModalView();
 }
 
 void EmuViewController::popModalViews()
 {
-	modalViewController.popAll();
+	viewStack.popModalViews();
 }
 
 void EmuViewController::prepareDraw()
 {
-	modalViewController.prepareDraw();
 	viewStack.prepareDraw();
 }
 
@@ -830,10 +778,7 @@ void EmuViewController::drawMainWindow(Base::Window &win, Gfx::RendererCommands 
 		{
 			emuView.draw(cmds);
 		}
-		if(modalViewController.size())
-			modalViewController.draw(cmds);
-		else
-			viewStack.draw(cmds);
+		viewStack.draw(cmds);
 		popup.draw(cmds);
 	}
 	cmds.present();
@@ -841,13 +786,11 @@ void EmuViewController::drawMainWindow(Base::Window &win, Gfx::RendererCommands 
 
 void EmuViewController::popTo(View &v)
 {
-	popModalViews();
 	viewStack.popTo(v);
 }
 
 void EmuViewController::popToRoot()
 {
-	popModalViews();
 	viewStack.popToRoot();
 }
 
@@ -922,7 +865,7 @@ void EmuViewController::handleOpenFileCommand(const char *path)
 		logMsg("changing to dir %s from external command", path);
 		showUI(false);
 		popToRoot();
-		string_copy(lastLoadPath, path);
+		EmuApp::setMediaSearchPath(FS::makePathString(path));
 		pushAndShow(EmuFilePicker::makeForLoading(viewStack.top().attachParams(), Input::defaultEvent()), Input::defaultEvent(), false);
 		return;
 	}

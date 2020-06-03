@@ -20,7 +20,6 @@
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
-#include <emuframework/RecentGameView.hh>
 #include <emuframework/CreditsView.hh>
 #include <emuframework/FilePicker.hh>
 #include <emuframework/StateSlotView.hh>
@@ -31,6 +30,7 @@
 #include <emuframework/BundledGamesView.hh>
 #include "private.hh"
 #include "privateInput.hh"
+#include "RecentGameView.hh"
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
@@ -154,7 +154,7 @@ static auto onScanStatus =
 		}
 	};
 
-static void handledFailedBTAdapterInit(ViewAttachParams attach, Input::Event e)
+static void handledFailedBTAdapterInit(View &view, ViewAttachParams attach, Input::Event e)
 {
 	EmuApp::postErrorMessage("Unable to initialize Bluetooth adapter");
 	#ifdef CONFIG_BLUETOOTH_BTSTACK
@@ -168,7 +168,7 @@ static void handledFailedBTAdapterInit(ViewAttachParams attach, Input::Event e)
 				logMsg("launching Cydia");
 				Base::openURL("cydia://package/ch.ringwald.btstack");
 			});
-		emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+		view.pushAndShowModal(std::move(ynAlertView), e, false);
 	}
 	#endif
 }
@@ -244,7 +244,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		{
 			if(recentGameList.size())
 			{
-				pushAndShow(makeView<RecentGameView>(), e);
+				pushAndShow(makeView<RecentGameView>(recentGameList), e);
 			}
 		}
 	},
@@ -307,7 +307,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 			}
 			else
 			{
-				handledFailedBTAdapterInit(attachParams(), e);
+				handledFailedBTAdapterInit(*this, attachParams(), e);
 			}
 			postDraw();
 		}
@@ -327,7 +327,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 						view.dismiss();
 						Bluetooth::closeBT(bta);
 					});
-				emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);
+				pushAndShowModal(std::move(ynAlertView), e);
 			}
 		}
 	},
@@ -367,7 +367,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 			}
 			else
 			{
-				handledFailedBTAdapterInit(attachParams(), e);
+				handledFailedBTAdapterInit(*this, attachParams(), e);
 			}
 			postDraw();
 		}
