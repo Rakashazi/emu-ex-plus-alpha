@@ -125,7 +125,7 @@ void MemPtrs::setRombank(unsigned bank) {
 }
 
 void MemPtrs::setRambank(unsigned const flags, unsigned const rambank) {
-	unsigned char *srambankptr = 0;
+	unsigned char *srambankptr = (unsigned char *)mm_sram_begin;
 	if (!(flags & rtc_en)) {
 		srambankptr = rambankdata() != rambankdataend()
 			? rambankdata_ + rambank * rambank_size()
