@@ -37,7 +37,7 @@ public:
 	void loadStockItems();
 
 protected:
-	static constexpr uint MAX_ASPECT_RATIOS = 4;
+	static constexpr uint MAX_ASPECT_RATIO_ITEMS = 5;
 
 	#ifdef __ANDROID__
 	TextMenuItem androidTextureStorageItem[4];
@@ -52,8 +52,9 @@ protected:
 	TextMenuItem frameRate;
 	char frameRatePALStr[64]{};
 	TextMenuItem frameRatePAL;
-	TextMenuItem aspectRatioItem[MAX_ASPECT_RATIOS]{};
+	StaticArrayList<TextMenuItem, MAX_ASPECT_RATIO_ITEMS> aspectRatioItem;
 	MultiChoiceMenuItem aspectRatio;
+	char aspectRatioStr[6]{};
 	TextMenuItem zoomItem[6];
 	char zoomStr[5]{};
 	MultiChoiceMenuItem zoom;
@@ -97,6 +98,7 @@ protected:
 	void setOverlayEffectLevel(uint8_t val);
 	void setZoom(uint8_t val);
 	void setViewportZoom(uint8_t val);
+	void setAspectRatio(double val);
 };
 
 class AudioOptionView : public TableView
@@ -107,6 +109,7 @@ public:
 
 protected:
 	BoolMenuItem snd;
+	BoolMenuItem soundDuringFastForward;
 	TextMenuItem soundBuffersItem[7];
 	MultiChoiceMenuItem soundBuffers;
 	BoolMenuItem addSoundBuffersOnUnderrun;
@@ -115,7 +118,7 @@ protected:
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	BoolMenuItem audioSoloMix;
 	#endif
-	StaticArrayList<MenuItem*, 12> item{};
+	StaticArrayList<MenuItem*, 13> item{};
 
 	void updateAudioRateItem();
 };

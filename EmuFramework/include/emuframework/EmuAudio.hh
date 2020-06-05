@@ -44,6 +44,7 @@ public:
 	void setDefaultMonoFormat();
 	void setSpeedMultiplier(uint8_t speed);
 	void setAddSoundBuffersOnUnderrun(bool on);
+	void setSoundDuringFastForward(bool on);
 	IG::Audio::PcmFormat pcmFormat() const;
 	explicit operator bool() const;
 
@@ -57,6 +58,7 @@ protected:
 	bool addSoundBuffersOnUnderrun = false;
 	uint8_t extraSoundBuffers = 0;
 	uint8_t speedMultiplier = 1;
+	bool soundDuringFastForward = true;
 
 	uint32_t framesFree() const;
 	uint32_t framesWritten() const;

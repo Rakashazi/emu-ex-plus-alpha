@@ -77,42 +77,6 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	// 256+ is reserved
 };
 
-struct OptionAspectRatio : public Option<OptionMethodVar<IG::Point2D<uint> > >
-{
-	constexpr OptionAspectRatio(T defaultVal, bool isConst = 0): Option<OptionMethodVar<IG::Point2D<uint> > >(CFGKEY_GAME_ASPECT_RATIO, defaultVal, isConst) {}
-
-	uint ioSize() const override
-	{
-		return 2 + 2;
-	}
-
-	bool writeToIO(IO &io) override
-	{
-		io.write((uint16_t)CFGKEY_GAME_ASPECT_RATIO);
-		logMsg("writing aspect ratio config %u:%u", val.x, val.y);
-		io.write((uint8_t)val.x);
-		io.write((uint8_t)val.y);
-		return true;
-	}
-
-	bool readFromIO(IO &io, uint readSize)
-	{
-		if(isConst || readSize != 2)
-		{
-			logMsg("skipping %d byte option value, expected %d", readSize, 2);
-			return false;
-		}
-
-		auto x = io.get<uint8_t>();
-		auto y = io.get<uint8_t>();
-		logMsg("read aspect ratio config %u,%u", x, y);
-		if(y == 0)
-			y = 1;
-		val = {x, y};
-		return true;
-	}
-};
-
 struct OptionRecentGames : public OptionBase
 {
 	const uint16_t key = CFGKEY_RECENT_GAMES;
@@ -173,7 +137,7 @@ extern Byte1Option optionShowBluetoothScan;
 #endif
 
 extern Byte1Option optionImgFilter;
-extern OptionAspectRatio optionAspectRatio;
+extern DoubleOption optionAspectRatio;
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 extern Byte1Option optionImgEffect;
 extern Byte1Option optionImageEffectPixelFormat;
@@ -253,3 +217,7 @@ extern PathOption optionFirmwarePath;
 
 void initOptions();
 void setupFont(Gfx::Renderer &r, Base::Window &win);
+bool soundIsEnabled();
+void setSoundEnabled(bool on);
+bool soundDuringFastForwardIsEnabled();
+void setSoundDuringFastForwardEnabled(bool on);

@@ -4,7 +4,8 @@ ifneq ($(filter linux ios android,$(ENV)),)
  emuFramework_onScreenControls := 1
 endif
 
-SRC += BundledGamesView.cc \
+SRC += AudioOptionView.cc \
+BundledGamesView.cc \
 ButtonConfigView.cc \
 Cheats.cc \
 ConfigFile.cc \
@@ -26,14 +27,16 @@ EmuView.cc \
 EmuViewController.cc \
 FilePicker.cc \
 FileUtils.cc \
+GUIOptionView.cc \
 InputManagerView.cc \
-OptionView.cc \
 Recent.cc \
 RecentGameView.cc \
 Screenshot.cc \
 StateSlotView.cc \
+SystemOptionView.cc \
 VideoImageEffect.cc \
-VideoImageOverlay.cc
+VideoImageOverlay.cc \
+VideoOptionView.cc
 
 ifeq ($(emuFramework_onScreenControls), 1)
  SRC += TouchConfigView.cc \

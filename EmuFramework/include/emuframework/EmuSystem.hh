@@ -34,6 +34,7 @@ class EmuVideo;
 struct AspectRatioInfo
 {
 	constexpr AspectRatioInfo(const char *name, uint n, uint d): name(name), aspect{n, d} {}
+	constexpr explicit operator double() const { return aspect.ratio<double>(); }
 	const char *name;
 	IG::Point2D<uint> aspect;
 };

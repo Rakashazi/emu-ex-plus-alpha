@@ -19,9 +19,10 @@
 #include <emuframework/VideoImageEffect.hh>
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VController.hh>
-#include <imagine/base/Base.hh>
 #include "private.hh"
 #include "privateInput.hh"
+#include <imagine/base/Base.hh>
+#include <imagine/util/bits.h>
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 extern SysVController vController;
 #endif
@@ -47,9 +48,19 @@ bool optionOrientationIsValid(uint32_t val)
 			val == Base::VIEW_ROTATE_270;
 }
 
+bool optionAspectRatioIsValid(double val)
+{
+	return val == 0. || (val >= 0.1 && val <= 10.);
+}
+
 Byte1Option optionAutoSaveState(CFGKEY_AUTO_SAVE_STATE, 1);
 Byte1Option optionConfirmAutoLoadState(CFGKEY_CONFIRM_AUTO_LOAD_STATE, 1);
-Byte1Option optionSound(CFGKEY_SOUND, 1);
+
+constexpr uint8_t OPTION_SOUND_ENABLED_FLAG = IG::bit(0);
+constexpr uint8_t OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG = IG::bit(1);
+constexpr uint8_t OPTION_SOUND_DEFAULT_FLAGS = OPTION_SOUND_ENABLED_FLAG | OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG;
+
+Byte1Option optionSound(CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS);
 
 Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
 	4, 0, optionIsValidWithMinMax<2, 8, uint8_t>);
@@ -103,7 +114,7 @@ Byte1Option optionShowBluetoothScan(CFGKEY_SHOW_BLUETOOTH_SCAN, 1);
 	#endif
 #endif
 
-OptionAspectRatio optionAspectRatio(EmuSystem::aspectRatioInfo[0].aspect);
+DoubleOption optionAspectRatio{CFGKEY_GAME_ASPECT_RATIO, (double)EmuSystem::aspectRatioInfo[0], 0, optionAspectRatioIsValid};
 
 Byte1Option optionImgFilter(CFGKEY_GAME_IMG_FILTER, 1, 0);
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -355,7 +366,7 @@ void initOptions()
 
 	if(!EmuSystem::hasSound)
 	{
-		optionSound.initDefault(false);
+		optionSound.initDefault(0);
 	}
 
 	if(EmuSystem::constFrameRate)
@@ -622,4 +633,24 @@ IG::PixelFormatID optionImageEffectPixelFormatValue()
 	#else
 	return IG::PIXEL_NONE;
 	#endif
+}
+
+bool soundIsEnabled()
+{
+	return optionSound & OPTION_SOUND_ENABLED_FLAG;
+}
+
+void setSoundEnabled(bool on)
+{
+	optionSound = IG::setOrClearBits(optionSound.val, OPTION_SOUND_ENABLED_FLAG, on);
+}
+
+bool soundDuringFastForwardIsEnabled()
+{
+	return optionSound & OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG;
+}
+
+void setSoundDuringFastForwardEnabled(bool on)
+{
+	optionSound = IG::setOrClearBits(optionSound.val, OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG, on);
 }

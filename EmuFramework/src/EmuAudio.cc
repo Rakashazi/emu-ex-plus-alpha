@@ -125,7 +125,7 @@ void EmuAudio::resizeAudioBuffer(uint32_t buffers)
 
 void EmuAudio::start()
 {
-	if(!optionSound)
+	if(!soundIsEnabled())
 		return;
 
 	lastUnderrunTime = {};
@@ -261,8 +261,16 @@ void EmuAudio::writeFrames(const void *samples, uint32_t framesToWrite)
 		{
 			switch(format.channels)
 			{
-				bcase 1: simpleResample<int16_t>((int16_t*)rBuff.writeAddr(), framesToWrite, (int16_t*)samples, sampleFrames);
-				bcase 2: simpleResample<int32_t>((int32_t*)rBuff.writeAddr(), framesToWrite, (int32_t*)samples, sampleFrames);
+				bcase 1:
+					if(soundDuringFastForward)
+						simpleResample<int16_t>((int16_t*)rBuff.writeAddr(), framesToWrite, (int16_t*)samples, sampleFrames);
+					else
+						std::fill_n((int16_t*)rBuff.writeAddr(), framesToWrite, 0);
+				bcase 2:
+					if(soundDuringFastForward)
+						simpleResample<int32_t>((int32_t*)rBuff.writeAddr(), framesToWrite, (int32_t*)samples, sampleFrames);
+					else
+						std::fill_n((int32_t*)rBuff.writeAddr(), framesToWrite, 0);
 				bdefault: bug_unreachable("channels == %d", format.channels);
 			}
 			rBuff.commitWrite(bytes);
@@ -333,6 +341,11 @@ void EmuAudio::setSpeedMultiplier(uint8_t speed)
 void EmuAudio::setAddSoundBuffersOnUnderrun(bool on)
 {
 	addSoundBuffersOnUnderrun = on;
+}
+
+void EmuAudio::setSoundDuringFastForward(bool on)
+{
+	soundDuringFastForward = on;
 }
 
 IG::Audio::PcmFormat EmuAudio::pcmFormat() const

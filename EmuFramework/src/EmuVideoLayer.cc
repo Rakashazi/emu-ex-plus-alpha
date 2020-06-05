@@ -120,8 +120,8 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 			if((uint)optionImageZoom == optionImageZoomIntegerOnlyY)
 			{
 				// get width from previously calculated pixel height
-				Gfx::GC width = projP.unprojectYSize(gameRect_.ySize()) * aR.ratio<Gfx::GC>();
-				if(!aR.x)
+				Gfx::GC width = projP.unprojectYSize(gameRect_.ySize()) * (Gfx::GC)aR;
+				if(!aR)
 				{
 					width = projP.width();
 				}
@@ -131,9 +131,9 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 			else
 			{
 				Gfx::GP size = projP.size();
-				if(aR.x)
+				if(aR)
 				{
-					size = IG::sizesWithRatioBestFit(aR.ratio<Gfx::GC>(), size.x, size.y);
+					size = IG::sizesWithRatioBestFit((Gfx::GC)aR, size.x, size.y);
 				}
 				gameRectG.x = -size.x/2.;
 				gameRectG.x2 = size.x/2.;

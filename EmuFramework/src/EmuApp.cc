@@ -234,6 +234,7 @@ void mainInitCommon(int argc, char** argv)
 	if((int)optionSoundRate > AudioManager::nativeFormat().rate)
 		optionSoundRate = AudioManager::nativeFormat().rate;
 	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
+	emuAudio.setSoundDuringFastForward(soundDuringFastForwardIsEnabled());
 	applyOSNavStyle(false);
 
 	{
