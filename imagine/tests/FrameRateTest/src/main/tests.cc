@@ -148,9 +148,9 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 		if(frames && frames % 4 == 0)
 		{
 			string_printf(statsStr, "Process: %02lums (%02ums)\nPresent: %02lums (%02ums)",
-				std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count(),
+				(unsigned long)std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count(),
 				lostFrameProcessTime,
-				std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).count(),
+				(unsigned long)std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).count(),
 				lostFramePresentTime);
 			updatedFrameStats = true;
 		}

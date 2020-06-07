@@ -17,6 +17,7 @@
 #include <sys/resource.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Timer.hh>
+#include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
 #include "internal.hh"
 #include "android.hh"
@@ -115,33 +116,36 @@ void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate)
 	// TODO
 }
 
-UserActivityFaker::UserActivityFaker()
+void NoopThread::start()
 {
-	auto env = jEnvForThread();
-	JavaInstMethod<jobject()> jUserActivityFaker{env,
-		jBaseActivityCls, "userActivityFaker", "()Lcom/imagine/UserActivityFaker;"};
-	auto userActivityFaker = jUserActivityFaker(env, jBaseActivity);
-	assert(userActivityFaker);
-	auto cls = env->GetObjectClass(userActivityFaker);
-	inst = env->NewGlobalRef(userActivityFaker);
-	jStart.setup(env, cls, "start", "()V");
-	jStop.setup(env, cls, "stop", "()V");
+	if(runFlagAddr)
+		return;
+	IG::makeDetachedThreadSync(
+		[this](auto &sem)
+		{
+			// keep cpu governor busy by running a low priority thread executing no-op instructions
+			setpriority(PRIO_PROCESS, gettid(), 19);
+			bool run = true;
+			runFlagAddr = &run;
+			logMsg("started no-op thread");
+			sem.notify();
+			while(run)
+			{
+				iterateTimes(16, i)
+				{
+					asm("nop");
+				}
+			}
+			logMsg("ended no-op thread");
+		});
 }
 
-UserActivityFaker::~UserActivityFaker()
+void NoopThread::stop()
 {
-	stop();
-	jEnvForThread()->DeleteGlobalRef(inst);
-}
-
-void UserActivityFaker::start()
-{
-	jStart(jEnvForThread(), inst);
-}
-
-void UserActivityFaker::stop()
-{
-	jStop(jEnvForThread(), inst);
+	if(!runFlagAddr)
+		return;
+	*runFlagAddr = false;
+	runFlagAddr = {};
 }
 
 void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)

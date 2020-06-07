@@ -28,17 +28,16 @@ struct ANativeWindow;
 namespace Base
 {
 
-class UserActivityFaker
+class NoopThread
 {
-	jobject inst{};
-	JavaInstMethod<void()> jStart{};
-	JavaInstMethod<void()> jStop{};
-
 public:
-	UserActivityFaker();
-	~UserActivityFaker();
+	constexpr NoopThread() {}
 	void start();
 	void stop();
+	explicit operator bool() { return runFlagAddr; }
+
+private:
+	bool *runFlagAddr{};
 };
 
 JNIEnv *jEnvForThread();

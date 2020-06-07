@@ -235,7 +235,7 @@ OptionRecentGames optionRecentGames;
 Byte1Option optionAndroidTextureStorage{CFGKEY_ANDROID_TEXTURE_STORAGE, OPTION_ANDROID_TEXTURE_STORAGE_AUTO,
 	0, optionIsValidWithMax<OPTION_ANDROID_TEXTURE_STORAGE_MAX_VALUE>};
 SByte1Option optionProcessPriority{CFGKEY_PROCESS_PRIORITY, -6, 0, optionIsValidWithMinMax<-17, 0>};
-Byte1Option optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 1, 0};
+Byte1Option optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 1};
 #endif
 
 #ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
@@ -330,10 +330,18 @@ void initOptions()
 		optionShowBluetoothScan.initDefault(0);
 		#endif
 	}
-	if(Base::androidSDK() < 16)
 	{
-		optionSustainedPerformanceMode.initDefault(0);
-		optionSustainedPerformanceMode.isConst = true;
+		auto type = Base::sustainedPerformanceModeType();
+		if(type == Base::SustainedPerformanceType::NOOP)
+		{
+			// default to off if using no-op implementation
+			optionSustainedPerformanceMode.initDefault(0);
+		}
+		else if(type == Base::SustainedPerformanceType::NONE)
+		{
+			optionSustainedPerformanceMode.initDefault(0);
+			optionSustainedPerformanceMode.isConst = true;
+		}
 	}
 	if(Base::androidSDK() < 11)
 	{

@@ -64,7 +64,7 @@ static uint32_t uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
 AInputQueue *inputQueue{};
 static void *mainLibHandle{};
 static bool unloadNativeLibOnDestroy = false;
-static std::unique_ptr<UserActivityFaker> userActivityFaker{};
+static NoopThread noopThread{};
 
 // window
 JavaInstMethod<void(jint, jint)> jSetWinFlags{};
@@ -470,48 +470,56 @@ bool hasTranslucentSysUI()
 	return androidSDK() >= 19;
 }
 
+SustainedPerformanceType sustainedPerformanceModeType()
+{
+	int sdk = androidSDK();
+	if(sdk >= 24)
+	{
+		return SustainedPerformanceType::DEVICE;
+	}
+	if(Config::MACHINE_IS_GENERIC_ARMV7 && sdk >= 16)
+	{
+		return SustainedPerformanceType::NOOP;
+	}
+	return SustainedPerformanceType::NONE;
+}
+
 void setSustainedPerformanceMode(bool on)
 {
-	if(Base::androidSDK() < 16)
-		return;
-	else if(Base::androidSDK() < 24)
+	switch(sustainedPerformanceModeType())
 	{
-		if(on)
+		case SustainedPerformanceType::DEVICE:
 		{
-			if(!userActivityFaker)
-				userActivityFaker = std::make_unique<Base::UserActivityFaker>();
-			if(appIsRunning())
-				userActivityFaker->start();
-			addOnResume(
-				[](bool)
-				{
-					if(!userActivityFaker)
-						return false;
-					userActivityFaker->start();
-					return true;
-				}, 100);
-			addOnExit(
-				[](bool)
-				{
-					if(!userActivityFaker)
-						return false;
-					userActivityFaker->stop();
-					return true;
-				}, 100);
-			logMsg("enabled user activity faker");
+			logMsg("set sustained performance mode:%s", on ? "on" : "off");
+			auto env = jEnvForThread();
+			JavaInstMethod<void(jboolean)> jSetSustainedPerformanceMode{env, jBaseActivityCls, "setSustainedPerformanceMode", "(Z)V"};
+			jSetSustainedPerformanceMode(env, jBaseActivity, on);
+			return;
 		}
-		else
+		case SustainedPerformanceType::NOOP:
 		{
-			userActivityFaker.reset();
-			logMsg("disabled user activity faker");
+			if(!Config::MACHINE_IS_GENERIC_ARMV7)
+				return;
+			if(on)
+			{
+				if(noopThread)
+					return;
+				addOnExit(
+					[](bool)
+					{
+						noopThread.stop();
+						return false;
+					}, 100);
+				noopThread.start();
+			}
+			else
+			{
+				noopThread.stop();
+			}
+			return;
 		}
-	}
-	else
-	{
-		logMsg("set sustained performance mode:%s", on ? "on" : "off");
-		auto env = jEnvForThread();
-		JavaInstMethod<void(jboolean)> jSetSustainedPerformanceMode{env, jBaseActivityCls, "setSustainedPerformanceMode", "(Z)V"};
-		jSetSustainedPerformanceMode(env, jBaseActivity, on);
+		default:
+			return;
 	}
 }
 

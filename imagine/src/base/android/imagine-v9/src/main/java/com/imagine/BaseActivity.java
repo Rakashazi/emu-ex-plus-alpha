@@ -465,11 +465,6 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			return null;
 		return new PresentationHelper(this, display, windowAddr);
 	}
-	
-	UserActivityFaker userActivityFaker()
-	{
-		return new UserActivityFaker();
-	}
 
 	StorageManagerHelper storageManagerHelper()
 	{

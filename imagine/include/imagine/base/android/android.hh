@@ -25,6 +25,13 @@ namespace Base
 
 using AndroidPropString = std::array<char, 92>;
 
+enum class SustainedPerformanceType
+{
+	NONE,
+	DEVICE,
+	NOOP
+};
+
 uint32_t androidSDK();
 void setProcessPriority(int nice);
 int processPriority();
@@ -32,6 +39,7 @@ bool apkSignatureIsConsistent();
 AndroidPropString androidBuildDevice();
 bool packageIsInstalled(const char *name);
 FS::PathString mainSOPath();
+SustainedPerformanceType sustainedPerformanceModeType();
 void setSustainedPerformanceMode(bool on);
 
 }

@@ -128,7 +128,8 @@ static Gfx::PixmapTexture *getCollectTextCloseAsset(Gfx::Renderer &r)
 void setCPUNeedsLowLatency(bool needed)
 {
 	#ifdef __ANDROID__
-	Base::setSustainedPerformanceMode(needed);
+	if(optionSustainedPerformanceMode)
+		Base::setSustainedPerformanceMode(needed);
 	#endif
 }
 
