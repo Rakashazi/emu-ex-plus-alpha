@@ -75,6 +75,7 @@ struct VicePlugin
 	int (*tape_image_attach_)(unsigned int unit, const char *name){};
 	int (*tape_image_detach_)(unsigned int unit){};
 	const char *(*tape_get_file_name_)(){};
+	void (*datasette_control_)(int command){};
 	int (*file_system_attach_disk_)(unsigned int unit, const char *filename){};
 	void (*file_system_detach_disk_)(int unit){};
 	const char *(*file_system_get_disk_name_)(unsigned int unit){};
@@ -115,6 +116,7 @@ struct VicePlugin
 	int tape_image_attach(unsigned int unit, const char *name);
 	int tape_image_detach(unsigned int unit);
 	const char *tape_get_file_name();
+	void datasette_control(int command);
 	int file_system_attach_disk(unsigned int unit, const char *filename);
 	void file_system_detach_disk(int unit);
 	const char *file_system_get_disk_name(unsigned int unit);

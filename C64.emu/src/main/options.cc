@@ -43,7 +43,7 @@ enum
 	CFGKEY_PET_MODEL = 270, CFGKEY_PLUS4_MODEL = 271,
 	CFGKEY_VIC20_MODEL = 272, CFGKEY_VICE_SYSTEM = 273,
 	CFGKEY_VIRTUAL_DEVICE_TRAPS = 274, CFGKEY_RESID_SAMPLING = 275,
-	CFGKEY_MODEL = 276
+	CFGKEY_MODEL = 276, CFGKEY_AUTOSTART_BASIC_LOAD = 277
 };
 
 const char *EmuSystem::configFilename = "C64Emu.config";
@@ -58,6 +58,7 @@ Byte1Option optionVirtualDeviceTraps(CFGKEY_VIRTUAL_DEVICE_TRAPS, 1);
 Byte1Option optionCropNormalBorders(CFGKEY_CROP_NORMAL_BORDERS, 1);
 Byte1Option optionAutostartWarp(CFGKEY_AUTOSTART_WARP, 1);
 Byte1Option optionAutostartTDE(CFGKEY_AUTOSTART_TDE, 0);
+Byte1Option optionAutostartBasicLoad(CFGKEY_AUTOSTART_BASIC_LOAD, 0);
 Byte1Option optionViceSystem(CFGKEY_VICE_SYSTEM, VICE_SYSTEM_C64, false,
 	optionIsValidWithMax<VicePlugin::SYSTEMS-1, uint8_t>);
 SByte1Option optionModel(CFGKEY_MODEL, -1, false,
@@ -115,6 +116,7 @@ bool EmuSystem::resetSessionOptions()
 	optionVirtualDeviceTraps.reset();
 	optionAutostartWarp.reset();
 	optionAutostartTDE.reset();
+	optionAutostartBasicLoad.reset();
 	optionSwapJoystickPorts.reset();
 	onSessionOptionsLoaded();
 	return true;
@@ -135,6 +137,7 @@ bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
 		bcase CFGKEY_VIRTUAL_DEVICE_TRAPS: optionVirtualDeviceTraps.readFromIO(io, readSize);
 		bcase CFGKEY_AUTOSTART_WARP: optionAutostartWarp.readFromIO(io, readSize);
 		bcase CFGKEY_AUTOSTART_TDE: optionAutostartTDE.readFromIO(io, readSize);
+		bcase CFGKEY_AUTOSTART_BASIC_LOAD: optionAutostartBasicLoad.readFromIO(io, readSize);
 		bcase CFGKEY_SWAP_JOYSTICK_PORTS: optionSwapJoystickPorts.readFromIO(io, readSize);
 	}
 	return 1;
@@ -147,6 +150,7 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionVirtualDeviceTraps.writeWithKeyIfNotDefault(io);
 	optionAutostartWarp.writeWithKeyIfNotDefault(io);
 	optionAutostartTDE.writeWithKeyIfNotDefault(io);
+	optionAutostartBasicLoad.writeWithKeyIfNotDefault(io);
 	optionSwapJoystickPorts.writeWithKeyIfNotDefault(io);
 }
 

@@ -353,7 +353,6 @@ void ui_display_tape_current_image(const char *image) {}
 void ui_display_drive_current_image(unsigned int drive_number, const char *image) {}
 void ui_display_tape_control_status(int control) {}
 void ui_display_tape_motor_status(int motor) {}
-void ui_display_tape_counter(int counter) {}
 void ui_display_recording(int recording_status) {}
 void ui_display_playback(int playback_status, char *version) {}
 void ui_display_event_time(unsigned int current, unsigned int total) {}

@@ -484,6 +484,14 @@ void runBenchmarkOneShot()
 	EmuApp::printfMessage(2, 0, "%.2f fps", double(180.)/time.count());
 }
 
+void EmuApp::showEmuation()
+{
+	if(EmuSystem::gameIsRunning())
+	{
+		emuViewController.showEmulation();
+	}
+}
+
 void EmuApp::launchSystemWithResumePrompt(Input::Event e, bool addToRecent)
 {
 	if(!emuViewController.showAutoStateConfirm(e, addToRecent))

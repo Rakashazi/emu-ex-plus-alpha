@@ -66,7 +66,9 @@ EmuViewController::EmuViewController(AppWindowData &winData, Gfx::Renderer &rend
 	popup{{winData.win, rTask}},
 	rendererTask_{&rTask},
 	systemTask{&systemTask}
-{}
+{
+	emuInputView.setController(this, Input::defaultEvent());
+}
 
 static bool shouldExitFromViewRootWithoutPrompt(Input::Event e)
 {

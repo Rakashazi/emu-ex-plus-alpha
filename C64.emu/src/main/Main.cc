@@ -120,6 +120,16 @@ static bool autostartTDE()
 	return intResource("AutostartHandleTrueDriveEmulation");
 }
 
+void setAutostartBasicLoad(bool on)
+{
+	plugin.resources_set_int("AutostartBasicLoad", on);
+}
+
+bool autostartBasicLoad()
+{
+	return intResource("AutostartBasicLoad");
+}
+
 static bool sysIsPal()
 {
 	switch(intResource("MachineVideoStandard"))
@@ -274,6 +284,7 @@ void applySessionOptions()
 	setDriveTrueEmulation(optionDriveTrueEmulation);
 	setAutostartWarp(optionAutostartWarp);
 	setAutostartTDE(optionAutostartTDE);
+	setAutostartBasicLoad(optionAutostartBasicLoad);
 }
 
 static void applyInitialOptionResources()

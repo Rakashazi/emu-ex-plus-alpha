@@ -277,6 +277,12 @@ const char *VicePlugin::tape_get_file_name()
 	return "";
 }
 
+void VicePlugin::datasette_control(int command)
+{
+	if(datasette_control_)
+		datasette_control_(command);
+}
+
 int VicePlugin::file_system_attach_disk(unsigned int unit, const char *filename)
 {
 	if(file_system_attach_disk_)
@@ -432,6 +438,7 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 	plugin.tape_image_attach_ = (typeof plugin.tape_image_attach_)dlsymCheck(lib, "tape_image_attach");
 	plugin.tape_image_detach_ = (typeof plugin.tape_image_detach_)dlsymCheck(lib, "tape_image_detach");
 	plugin.tape_get_file_name_ = (typeof plugin.tape_get_file_name_)dlsymCheck(lib, "tape_get_file_name");
+	plugin.datasette_control_ = (typeof plugin.datasette_control_)dlsymCheck(lib, "datasette_control");
 	plugin.file_system_attach_disk_ = (typeof plugin.file_system_attach_disk_)dlsymCheck(lib, "file_system_attach_disk");
 	plugin.file_system_detach_disk_ = (typeof plugin.file_system_detach_disk_)dlsymCheck(lib, "file_system_detach_disk");
 	plugin.file_system_get_disk_name_ = (typeof plugin.file_system_get_disk_name_)dlsymCheck(lib, "file_system_get_disk_name");

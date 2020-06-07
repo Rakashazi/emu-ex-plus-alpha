@@ -79,6 +79,9 @@ VICE_API const char *tape_get_file_name(void);
 VICE_API int tape_image_detach(unsigned int unit);
 VICE_API int tape_image_attach(unsigned int unit, const char *name);
 
+VICE_API void datasette_control(int command);
+
 VICE_API void ui_error(const char *format, ...);
+VICE_API void ui_display_tape_counter(int counter);
 
 VICE_API int uimon_out(const char *buffer);

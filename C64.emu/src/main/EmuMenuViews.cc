@@ -33,6 +33,7 @@ extern "C"
 	#include "sid/sid-resources.h"
 	#include "vicii.h"
 	#include "drive.h"
+	#include "datasette.h"
 	#include "c64model.h"
 	#include "c64dtvmodel.h"
 	#include "c128model.h"
@@ -113,6 +114,8 @@ static int defaultPALModel[]
 	PLUS4MODEL_PLUS4_PAL,
 	VIC20MODEL_VIC20_PAL
 };
+
+static int tapeCounter = 0;
 
 static constexpr const char *driveTypeStr(int type)
 {
@@ -464,6 +467,125 @@ public:
 	}
 };
 
+class DatasetteControlsView : public TableView
+{
+public:
+	public:
+	DatasetteControlsView(ViewAttachParams attach):
+		TableView
+		{
+			"Datasette Controls",
+			attach,
+			menuItem
+		}
+	{}
+
+private:
+	TextMenuItem stop
+	{
+		"Stop",
+		[this]()
+		{
+			plugin.datasette_control(DATASETTE_CONTROL_STOP);
+			EmuApp::showEmuation();
+		}
+	};
+
+	TextMenuItem start
+	{
+		"Start",
+		[]()
+		{
+			plugin.datasette_control(DATASETTE_CONTROL_START);
+			EmuApp::showEmuation();
+		}
+	};
+
+	TextMenuItem forward
+	{
+		"Forward",
+		[]()
+		{
+			plugin.datasette_control(DATASETTE_CONTROL_FORWARD);
+			EmuApp::showEmuation();
+		}
+	};
+
+	TextMenuItem rewind
+	{
+		"Rewind",
+		[]()
+		{
+			plugin.datasette_control(DATASETTE_CONTROL_REWIND);
+			EmuApp::showEmuation();
+		}
+	};
+
+	TextMenuItem record
+	{
+		"Record",
+		[]()
+		{
+			plugin.datasette_control(DATASETTE_CONTROL_RECORD);
+			EmuApp::showEmuation();
+		}
+	};
+
+	TextMenuItem reset
+	{
+		"Reset",
+		[this](TextMenuItem &, View &view, Input::Event)
+		{
+			plugin.datasette_control(DATASETTE_CONTROL_RESET);
+			updateTapeCounter();
+			view.place();
+			EmuApp::postMessage("Tape reset");
+		}
+	};
+
+	TextMenuItem resetCounter
+	{
+		"Reset Counter",
+		[this](TextMenuItem &, View &view, Input::Event)
+		{
+			plugin.datasette_control(DATASETTE_CONTROL_RESET_COUNTER);
+			updateTapeCounter();
+			view.place();
+			EmuApp::postMessage("Tape counter reset");
+		}
+	};
+
+	TextMenuItem tapeCounter
+	{
+		tapeCounterStr.data(), nullptr
+	};
+
+	std::array<MenuItem*, 8> menuItem
+	{
+		&stop,
+		&start,
+		&forward,
+		&rewind,
+		&record,
+		&reset,
+		&resetCounter,
+		&tapeCounter
+	};
+
+	std::array<char, 20> tapeCounterStr{};
+
+	void updateTapeCounter()
+	{
+		sprintf(tapeCounterStr.data(), "Tape Counter: %d", ::tapeCounter);
+	}
+
+	void onShow() final
+	{
+		updateTapeCounter();
+		tapeCounter.compile(renderer(), projP);
+	}
+};
+
 class C64IOControlView : public TableView
 {
 private:
@@ -473,6 +595,7 @@ private:
 	{
 		auto name = plugin.tape_get_file_name();
 		string_printf(tapeSlotStr, "Tape: %s", name ? FS::basename(name).data() : "");
+		datasetteControls.setActive(name);
 	}
 
 public:
@@ -530,6 +653,17 @@ private:
 				addTapeFilePickerView(e);
 			}
 			window().postDraw();
+		}
+	};
+
+	TextMenuItem datasetteControls
+	{
+		"Datasette Controls",
+		[this](TextMenuItem &item, View &, Input::Event e)
+		{
+			if(!item.active())
+				return;
+			pushAndShow(makeView<DatasetteControlsView>(), e);
 		}
 	};
 
@@ -863,7 +997,7 @@ private:
 
 	TextHeadingMenuItem mediaOptions{"Media Options"};
 
-	StaticArrayList<MenuItem*, 11> item{};
+	StaticArrayList<MenuItem*, 12> item{};
 
 public:
 	C64IOControlView(ViewAttachParams attach):
@@ -886,6 +1020,7 @@ public:
 		}
 		updateTapeText();
 		item.emplace_back(&tapeSlot);
+		item.emplace_back(&datasetteControls);
 		item.emplace_back(&mediaOptions);
 		item.emplace_back(&drive8Type);
 		item.emplace_back(&drive9Type);
@@ -934,7 +1069,20 @@ class MachineOptionView : public TableView
 		{
 			EmuSystem::sessionOptionSet();
 			optionAutostartTDE = item.flipBoolValue(*this);
-			setAutostartTDE(optionAutostartTDE);		}
+			setAutostartTDE(optionAutostartTDE);
+		}
+	};
+
+	BoolMenuItem autostartBasicLoad
+	{
+		"Autostart Basic Load (Omit ',1')",
+		(bool)optionAutostartBasicLoad,
+		[this](BoolMenuItem &item, View &, Input::Event e)
+		{
+			EmuSystem::sessionOptionSet();
+			optionAutostartBasicLoad = item.flipBoolValue(*this);
+			setAutostartBasicLoad(optionAutostartBasicLoad);
+		}
 	};
 
 	BoolMenuItem trueDriveEmu
@@ -965,11 +1113,12 @@ class MachineOptionView : public TableView
 		}
 	};
 
-	std::array<MenuItem*, 5> menuItem
+	std::array<MenuItem*, 6> menuItem
 	{
 		&model,
 		&trueDriveEmu,
 		&autostartTDE,
+		&autostartBasicLoad,
 		&autostartWarp,
 		&virtualDeviceTraps
 	};
@@ -1257,4 +1406,10 @@ std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
 		default: return nullptr;
 	}
+}
+
+CLINK void ui_display_tape_counter(int counter)
+{
+	//logMsg("tape counter:%d", counter);
+	tapeCounter = counter;
 }

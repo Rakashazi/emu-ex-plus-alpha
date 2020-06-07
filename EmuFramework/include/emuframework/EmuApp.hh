@@ -65,6 +65,7 @@ public:
 	static void showSystemActionsViewFromSystem(ViewAttachParams attach, Input::Event e);
 	static void showLastViewFromSystem(ViewAttachParams attach, Input::Event e);
 	static void showExitAlert(ViewAttachParams attach, Input::Event e);
+	static void showEmuation();
 	static void launchSystemWithResumePrompt(Input::Event e, bool addToRecent);
 	static void launchSystem(Input::Event e, bool tryAutoState, bool addToRecent);
 	static bool hasArchiveExtension(const char *name);
