@@ -78,7 +78,9 @@ static bool shouldExitFromViewRootWithoutPrompt(Input::Event e)
 bool EmuMenuViewStack::inputEvent(Input::Event e)
 {
 	if(ViewStack::inputEvent(e))
+	{
 		return true;
+	}
 	if(e.pushed() && e.isDefaultCancelButton())
 	{
 		if(size() == 1)
@@ -89,7 +91,10 @@ bool EmuMenuViewStack::inputEvent(Input::Event e)
 			{
 				EmuApp::showExitAlert(top().attachParams(), e);
 			}
-			return true;
+			else
+			{
+				Base::exit();
+			}
 		}
 		else
 		{

@@ -555,6 +555,8 @@ private:
 		}
 	};
 
+	std::array<char, 20> tapeCounterStr{};
+
 	TextMenuItem tapeCounter
 	{
 		tapeCounterStr.data(), nullptr
@@ -571,8 +573,6 @@ private:
 		&resetCounter,
 		&tapeCounter
 	};
-
-	std::array<char, 20> tapeCounterStr{};
 
 	void updateTapeCounter()
 	{
