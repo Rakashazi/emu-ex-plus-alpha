@@ -16,16 +16,72 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/audio/defs.hh>
+#include <imagine/time/Time.hh>
+#include <imagine/util/audio/PcmFormat.hh>
+#include <imagine/util/DelegateFunc.hh>
+#include <system_error>
+#include <memory>
 
-#if defined __ANDROID__
-#include <imagine/audio/opensl/OpenSLESOutputStream.hh>
-#elif defined __APPLE__
-#include <imagine/audio/coreaudio/CAOutputStream.hh>
-#else
-	#ifdef CONFIG_AUDIO_PULSEAUDIO
-	#include <imagine/audio/pulseaudio/PAOutputStream.hh>
-	#endif
-	#ifdef CONFIG_AUDIO_ALSA
-	#include <imagine/audio/alsa/ALSAOutputStream.hh>
-	#endif
-#endif
+namespace IG::Audio
+{
+using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, unsigned bytes)>;
+
+class OutputStreamConfig
+{
+public:
+	constexpr OutputStreamConfig() {}
+	constexpr OutputStreamConfig(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded):
+		format_{format}, onSamplesNeeded_{onSamplesNeeded}
+		{}
+
+	PcmFormat format() const;
+
+	OnSamplesNeededDelegate onSamplesNeeded() const
+	{
+		return onSamplesNeeded_;
+	}
+
+	void setWantedLatencyHint(IG::Microseconds uSecs)
+	{
+		wantedLatency = uSecs;
+	}
+
+	IG::Microseconds wantedLatencyHint() const
+	{
+		return wantedLatency;
+	}
+
+	void setStartPlaying(bool on)
+	{
+		startPlaying_ = on;
+	}
+
+	bool startPlaying()
+	{
+		return startPlaying_;
+	}
+
+protected:
+	PcmFormat format_{};
+	OnSamplesNeededDelegate onSamplesNeeded_{};
+	IG::Microseconds wantedLatency{20000};
+	bool startPlaying_ = true;
+};
+
+class OutputStream
+{
+public:
+	virtual ~OutputStream();
+	virtual std::error_code open(OutputStreamConfig config) = 0;
+	virtual void play() = 0;
+	virtual void pause() = 0;
+	virtual void close() = 0;
+	virtual void flush() = 0;
+	virtual bool isOpen() = 0;
+	virtual bool isPlaying() = 0;
+};
+
+std::unique_ptr<OutputStream> makeOutputStream(Api api = Api::DEFAULT);
+
+}

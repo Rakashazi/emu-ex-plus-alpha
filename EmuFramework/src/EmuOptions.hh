@@ -19,6 +19,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <imagine/bluetooth/BluetoothAdapter.hh>
 #include <imagine/audio/AudioManager.hh>
+#include <imagine/audio/defs.hh>
 #include <imagine/gui/View.hh>
 
 using OptionBackNavigation = Option<OptionMethodRef<bool, View::needsBackControl>, uint8_t>;
@@ -73,7 +74,8 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_SKIP_LATE_FRAMES = 76, CFGKEY_FRAME_RATE = 77,
 	CFGKEY_FRAME_RATE_PAL = 78, CFGKEY_TIME_FRAMES_WITH_SCREEN_REFRESH = 79,
 	CFGKEY_SUSTAINED_PERFORMANCE_MODE = 80, CFGKEY_SHOW_BLUETOOTH_SCAN = 81,
-	CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN = 82, CFGKEY_GPU_MULTITHREADING = 83
+	CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN = 82, CFGKEY_GPU_MULTITHREADING = 83,
+	CFGKEY_AUDIO_API = 84
 	// 256+ is reserved
 };
 
@@ -105,6 +107,9 @@ extern Byte1Option optionAddSoundBuffersOnUnderrun;
 #ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 using OptionAudioSoloMix = Option<OptionMethodFunc<bool, IG::AudioManager::soloMix, IG::AudioManager::setSoloMix>, uint8_t>;
 extern OptionAudioSoloMix optionAudioSoloMix;
+#endif
+#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
+extern Byte1Option optionAudioAPI;
 #endif
 extern Byte4Option optionSoundRate;
 extern Byte2Option optionFontSize;
@@ -221,3 +226,4 @@ bool soundIsEnabled();
 void setSoundEnabled(bool on);
 bool soundDuringFastForwardIsEnabled();
 void setSoundDuringFastForwardEnabled(bool on);
+IG::Audio::Api audioOutputAPI();

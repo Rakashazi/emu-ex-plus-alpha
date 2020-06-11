@@ -28,7 +28,6 @@ static void setAudioRate(uint32_t rate)
 
 static void setSoundBuffers(int val)
 {
-	emuAudio.close();
 	optionSoundBuffers = val;
 }
 
@@ -41,7 +40,9 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			setSoundEnabled(item.flipBoolValue(*this));
-			if(!item.boolValue())
+			if(item.boolValue())
+				emuAudio.open(audioOutputAPI());
+			else
 				emuAudio.close();
 		}
 	},
@@ -105,7 +106,36 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		}
 	}
 	#endif
+	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
+	,api
+	{
+		"Audio Driver",
+		0,
+		apiItem
+	}
+	#endif
 {
+	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
+	apiItem.emplace_back("Auto",
+		[this](TextMenuItem &, View &parent, Input::Event)
+		{
+			optionAudioAPI = 0;
+			auto defaultApi = IG::Audio::makeValidAPI();
+			emuAudio.open(defaultApi);
+			api.setSelected(idxOfAPI(defaultApi));
+			parent.dismiss();
+			return false;
+		});
+	for(auto desc: IG::Audio::audioAPIs())
+	{
+		apiItem.emplace_back(desc.name,
+			[this, api = desc.api]()
+			{
+				optionAudioAPI = (uint8_t)api;
+				emuAudio.open(api);
+			});
+	}
+	#endif
 	if(!customMenu)
 	{
 		loadStockItems();
@@ -140,6 +170,10 @@ void AudioOptionView::loadStockItems()
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	item.emplace_back(&audioSoloMix);
 	#endif
+	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
+	item.emplace_back(&api);
+	api.setSelected(idxOfAPI(IG::Audio::makeValidAPI(audioOutputAPI())));
+	#endif
 }
 
 void AudioOptionView::updateAudioRateItem()
@@ -152,3 +186,19 @@ void AudioOptionView::updateAudioRateItem()
 		bcase 48000: audioRate.setSelected(4);
 	}
 }
+
+#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
+unsigned AudioOptionView::idxOfAPI(IG::Audio::Api api)
+{
+	for(unsigned idx = 0; auto desc: IG::Audio::audioAPIs())
+	{
+		if(desc.api == api)
+		{
+			assert(idx + 1 < std::size(apiItem));
+			return idx + 1;
+		}
+		idx++;
+	}
+	return 0;
+}
+#endif

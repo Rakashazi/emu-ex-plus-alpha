@@ -206,6 +206,9 @@ static OptionBase *cfgFileOption[] =
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	&optionAudioSoloMix,
 	#endif
+	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
+	&optionAudioAPI,
+	#endif
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	&optionWindowPixelFormat,
 	#endif
@@ -505,6 +508,9 @@ void loadConfigFile()
 				bcase CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN: optionAddSoundBuffersOnUnderrun.readFromIO(io, size);
 				#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 				bcase CFGKEY_AUDIO_SOLO_MIX: optionAudioSoloMix.readFromIO(io, size);
+				#endif
+				#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
+				bcase CFGKEY_AUDIO_API: optionAudioAPI.readFromIO(io, size);
 				#endif
 				bcase CFGKEY_SAVE_PATH: logMsg("reading save path"); optionSavePath.readFromIO(io, size);
 				bcase CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS: optionCheckSavePathWriteAccess.readFromIO(io, size);

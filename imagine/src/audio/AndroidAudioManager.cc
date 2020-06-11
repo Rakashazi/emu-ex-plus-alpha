@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/audio/AudioManager.hh>
+#include <imagine/audio/defs.hh>
 #include <imagine/util/jni.hh>
 #include <imagine/util/utility.h>
 #include <imagine/logger/logger.h>
@@ -197,6 +198,21 @@ void endSession()
 	{
 		abandonAudioFocus(Base::jEnvForThread());
 	}
+}
+
+}
+
+namespace IG::Audio
+{
+
+std::vector<ApiDesc> audioAPIs()
+{
+	return {{"OpenSL ES", Api::OPENSL_ES}};
+}
+
+Api makeValidAPI(Api api)
+{
+	return Api::OPENSL_ES;
 }
 
 }

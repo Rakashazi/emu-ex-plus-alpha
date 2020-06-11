@@ -70,6 +70,11 @@ double EmuSystem::currentAudioFramesPerVideoFrame = 0;
 uint32_t EmuSystem::audioFramesPerVideoFrame = 0;
 static EmuTiming emuTiming{};
 
+static IG::Microseconds makeWantedAudioLatencyUSecs(uint8_t buffers)
+{
+	return buffers * std::chrono::duration_cast<IG::Microseconds>(EmuSystem::frameTime());
+}
+
 void EmuSystem::cancelAutoSaveStateTimer()
 {
 	autoSaveStateTimer.cancel();
@@ -310,7 +315,7 @@ void EmuSystem::start()
 	state = State::ACTIVE;
 	clearInputBuffers(emuViewController.inputView());
 	resetFrameTime();
-	emuAudio.start();
+	emuAudio.start(makeWantedAudioLatencyUSecs(optionSoundBuffers), makeWantedAudioLatencyUSecs(1));
 	startAutoSaveStateTimer();
 }
 

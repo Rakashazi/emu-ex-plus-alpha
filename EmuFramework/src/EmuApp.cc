@@ -236,6 +236,8 @@ void mainInitCommon(int argc, char** argv)
 		optionSoundRate = AudioManager::nativeFormat().rate;
 	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
 	emuAudio.setSoundDuringFastForward(soundDuringFastForwardIsEnabled());
+	if(soundIsEnabled())
+		emuAudio.open(audioOutputAPI());
 	applyOSNavStyle(false);
 
 	{
@@ -290,6 +292,8 @@ void mainInitCommon(int argc, char** argv)
 		[](bool focused)
 		{
 			AudioManager::startSession();
+			if(soundIsEnabled())
+				emuAudio.open(audioOutputAPI());
 			if(!keyMapping)
 				keyMapping.buildAll();
 			return true;
@@ -319,6 +323,7 @@ void mainInitCommon(int argc, char** argv)
 			{
 				emuViewController.closeSystem();
 			}
+			emuAudio.close();
 			AudioManager::endSession();
 
 			saveConfigFile();

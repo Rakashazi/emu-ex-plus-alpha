@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/audio/defs.hh>
+#include <imagine/audio/OutputStream.hh>
 #include <AudioUnit/AudioUnit.h>
 
 namespace IG::Audio
@@ -43,7 +43,5 @@ private:
 	bool isPlaying_ = false;
 	bool isOpen_ = false;
 };
-
-using SysOutputStream = CAOutputStream;
 
 }

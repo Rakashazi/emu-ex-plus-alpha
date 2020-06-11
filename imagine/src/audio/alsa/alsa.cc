@@ -123,6 +123,7 @@ std::error_code ALSAOutputStream::open(OutputStreamConfig config)
 		return {EINVAL, std::system_category()};
 	}
 	closePcm.cancel();
+	quitFlag = false;
 	IG::makeDetachedThread(
 		[this]()
 		{
@@ -130,11 +131,13 @@ std::error_code ALSAOutputStream::open(OutputStreamConfig config)
 			auto ufds = std::make_unique<struct pollfd[]>(count);
 			snd_pcm_poll_descriptors(pcmHnd, ufds.get(), count);
 			auto waitForEvent =
-				[](snd_pcm_t *handle, struct pollfd *ufds, unsigned int count)
+				[](snd_pcm_t *handle, struct pollfd *ufds, unsigned int count, std::atomic_bool &quitFlag)
 				{
 					while(1)
 					{
 						poll(ufds, count, -1);
+						if(quitFlag)
+							return -ENODEV;
 						unsigned short revents = 0;
 						//logMsg("waiting for events");
 						snd_pcm_poll_descriptors_revents(handle, ufds, count, &revents);
@@ -148,14 +151,18 @@ std::error_code ALSAOutputStream::open(OutputStreamConfig config)
 							//logMsg("got POLLOUT");
 							return 0;
 						}
-						logMsg("got other events");
+						logMsg("got other events:0x%X", revents);
 					}
 				};
 			while(1)
 			{
-				if(int err = waitForEvent(pcmHnd, ufds.get(), count);
+				if(int err = waitForEvent(pcmHnd, ufds.get(), count, quitFlag);
 					err < 0)
 				{
+					if(err == -ENODEV)
+					{
+						return;
+					}
 					if(!recoverPCM(pcmHnd))
 					{
 						logErr("couldn't recover PCM");
@@ -255,6 +262,8 @@ void ALSAOutputStream::close()
 	if(unlikely(!isOpen()))
 		return;
 	logDMsg("closing pcm");
+	quitFlag = true;
+	snd_pcm_drop(pcmHnd);
 	snd_pcm_close(pcmHnd);
 	pcmHnd = nullptr;
 }
@@ -285,7 +294,7 @@ ALSAOutputStream::operator bool() const
 	return true;
 }
 
-int ALSAOutputStream::setupPcm(PcmFormat format, snd_pcm_access_t access, std::chrono::microseconds wantedLatency)
+int ALSAOutputStream::setupPcm(PcmFormat format, snd_pcm_access_t access, IG::Microseconds wantedLatency)
 {
 	int alsalibResample = 1;
 	if(int err = snd_pcm_set_params(pcmHnd,

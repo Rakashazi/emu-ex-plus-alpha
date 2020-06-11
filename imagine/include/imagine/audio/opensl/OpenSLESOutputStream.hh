@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/audio/defs.hh>
+#include <imagine/audio/OutputStream.hh>
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
 
@@ -50,7 +50,5 @@ private:
 
 	void doBufferCallback(SLAndroidSimpleBufferQueueItf queue);
 };
-
-using SysOutputStream = OpenSLESOutputStream;
 
 }

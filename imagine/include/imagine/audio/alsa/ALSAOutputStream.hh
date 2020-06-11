@@ -16,9 +16,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/audio/defs.hh>
+#include <imagine/audio/OutputStream.hh>
 #include <alsa/asoundlib.h>
-#include <chrono>
+#include <atomic>
 
 namespace IG::Audio
 {
@@ -42,12 +42,9 @@ private:
 	PcmFormat pcmFormat;
 	snd_pcm_uframes_t bufferSize, periodSize;
 	bool useMmap;
+	std::atomic_bool quitFlag{};
 
-	int setupPcm(PcmFormat format, snd_pcm_access_t access, std::chrono::microseconds wantedLatency);
+	int setupPcm(PcmFormat format, snd_pcm_access_t access, IG::Microseconds wantedLatency);
 };
-
-#ifndef CONFIG_AUDIO_PULSEAUDIO
-using SysOutputStream = ALSAOutputStream;
-#endif
 
 }

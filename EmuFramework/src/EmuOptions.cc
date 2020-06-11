@@ -70,6 +70,10 @@ Byte1Option optionAddSoundBuffersOnUnderrun(CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN
 OptionAudioSoloMix optionAudioSoloMix(CFGKEY_AUDIO_SOLO_MIX, 1);
 #endif
 
+#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
+Byte1Option optionAudioAPI(CFGKEY_AUDIO_API, 0);
+#endif
+
 Byte4Option optionSoundRate(CFGKEY_SOUND_RATE,
 	(Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? 48000 : 44100, false, optionIsValidWithMax<48000>);
 
@@ -661,4 +665,13 @@ bool soundDuringFastForwardIsEnabled()
 void setSoundDuringFastForwardEnabled(bool on)
 {
 	optionSound = IG::setOrClearBits(optionSound.val, OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG, on);
+}
+
+IG::Audio::Api audioOutputAPI()
+{
+	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
+	return (IG::Audio::Api)optionAudioAPI.val;
+	#else
+	return IG::Audio::Api::DEFAULT;
+	#endif
 }

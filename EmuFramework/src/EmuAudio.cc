@@ -16,8 +16,8 @@
 #define LOGTAG "EmuAudio"
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuSystem.hh>
-#include "EmuOptions.hh"
 #include "private.hh"
+#include <imagine/logger/logger.h>
 
 struct AudioStats
 {
@@ -103,45 +103,42 @@ static void simpleResample(T *dest, uint destFrames, const T *src, uint srcFrame
 	}
 }
 
-static IG::Microseconds makeWantedLatencyUSecs(uint8_t buffers)
+void EmuAudio::resizeAudioBuffer(uint32_t targetBufferFillBytes)
 {
-	return buffers * std::chrono::duration_cast<IG::Microseconds>(EmuSystem::frameTime());
-}
-
-void EmuAudio::resizeAudioBuffer(uint32_t buffers)
-{
-	auto targetBufferFillUSecs = makeWantedLatencyUSecs(buffers);
-	targetBufferFillBytes = format.timeToBytes(targetBufferFillUSecs);
 	auto oldCapacity = rBuff.capacity();
-	auto bufferSizeUSecs = makeWantedLatencyUSecs(buffers + 1);
-	rBuff.setMinCapacity(format.timeToBytes(bufferSizeUSecs));
+	rBuff.setMinCapacity(targetBufferFillBytes + bufferIncrementBytes);
 	if(Config::DEBUG_BUILD && rBuff.capacity() != oldCapacity)
 	{
-		logMsg("created audio buffer:%d frames (%uus), fill target:%d frames (%uus)",
-			format.bytesToFrames(rBuff.freeSpace()), (unsigned)bufferSizeUSecs.count(),
-			format.bytesToFrames(targetBufferFillBytes), (unsigned)targetBufferFillUSecs.count());
+		logMsg("created audio buffer:%d frames (%.4fs), fill target:%d frames (%.4fs)",
+			format.bytesToFrames(rBuff.freeSpace()), format.bytesToTime(rBuff.freeSpace()).count(),
+			format.bytesToFrames(targetBufferFillBytes), format.bytesToTime(targetBufferFillBytes).count());
 	}
 }
 
-void EmuAudio::start()
+void EmuAudio::open(IG::Audio::Api api)
 {
-	if(!soundIsEnabled())
-		return;
+	close();
+	audioStream = IG::Audio::makeOutputStream(api);
+}
 
-	lastUnderrunTime = {};
-	extraSoundBuffers = 0;
+void EmuAudio::start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bufferIncrementUSecs)
+{
 	if(!audioStream)
 	{
-		audioStream = std::make_unique<IG::Audio::SysOutputStream>();
+		logMsg("sound is disabled");
+		return;
 	}
+	lastUnderrunTime = {};
+	targetBufferFillBytes = format.timeToBytes(targetBufferFillUSecs);
+	bufferIncrementBytes = format.timeToBytes(bufferIncrementUSecs);
 	if(!audioStream->isOpen())
 	{
-		resizeAudioBuffer(optionSoundBuffers);
+		resizeAudioBuffer(targetBufferFillBytes);
 		audioWriteState = AudioWriteState::BUFFER;
 		IG::Audio::OutputStreamConfig outputConf
 		{
 			format,
-			[this](void *samples, uint bytes)
+			[this](void *samples, unsigned bytes)
 			{
 				#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 				audioStats.callbacks++;
@@ -237,8 +234,8 @@ void EmuAudio::writeFrames(const void *samples, uint32_t framesToWrite)
 				format.bytesToTime(rBuff.capacity()).count() <= 1.) // hard cap buffer increase to 1 sec
 			{
 				logWarn("increasing buffer size due to multiple underruns within a short time");
-				extraSoundBuffers++;
-				resizeAudioBuffer(optionSoundBuffers + extraSoundBuffers);
+				targetBufferFillBytes += bufferIncrementBytes;
+				resizeAudioBuffer(targetBufferFillBytes);
 			}
 			[[fallthrough]];
 		case AudioWriteState::UNDERRUN:
@@ -313,7 +310,7 @@ void EmuAudio::setRate(uint32_t rate)
 	if(prevFormat != format)
 	{
 		logMsg("rate changed:%u -> %u", prevFormat.rate, rate);
-		close();
+		stop();
 	}
 }
 
@@ -324,7 +321,7 @@ void EmuAudio::setFormat(IG::Audio::SampleFormat sample, uint8_t channels)
 	format.channels = channels;
 	if(prevFormat != format)
 	{
-		close();
+		stop();
 	}
 }
 

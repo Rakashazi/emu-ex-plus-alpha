@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/audio/defs.hh>
+#include <imagine/audio/OutputStream.hh>
 
 struct pa_context;
 struct pa_stream;
@@ -64,7 +64,5 @@ private:
 	void freeMainLoop();
 	void iterateMainLoop();
 };
-
-using SysOutputStream = PAOutputStream;
 
 }

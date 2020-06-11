@@ -34,7 +34,8 @@ public:
 	};
 
 	constexpr EmuAudio() {}
-	void start();
+	void open(IG::Audio::Api api);
+	void start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bufferIncrementUSecs);
 	void stop();
 	void close();
 	void flush();
@@ -49,14 +50,14 @@ public:
 	explicit operator bool() const;
 
 protected:
-	std::unique_ptr<IG::Audio::SysOutputStream> audioStream{};
+	std::unique_ptr<IG::Audio::OutputStream> audioStream{};
 	IG::RingBuffer rBuff{};
 	IG::Audio::PcmFormat format{44100, IG::Audio::SampleFormats::s16, 2};
 	IG::Time lastUnderrunTime{};
-	std::atomic<AudioWriteState> audioWriteState = AudioWriteState::BUFFER;
 	uint32_t targetBufferFillBytes = 0;
+	uint32_t bufferIncrementBytes = 0;
+	std::atomic<AudioWriteState> audioWriteState = AudioWriteState::BUFFER;
 	bool addSoundBuffersOnUnderrun = false;
-	uint8_t extraSoundBuffers = 0;
 	uint8_t speedMultiplier = 1;
 	bool soundDuringFastForward = true;
 
@@ -64,5 +65,5 @@ protected:
 	uint32_t framesWritten() const;
 	uint32_t framesCapacity() const;
 	bool shouldStartAudioWrites(uint32_t bytesToWrite = 0) const;
-	void resizeAudioBuffer(uint32_t wantedLatency);
+	void resizeAudioBuffer(uint32_t targetBufferFillBytes);
 };

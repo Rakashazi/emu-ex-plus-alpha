@@ -16,70 +16,36 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/DelegateFunc.hh>
-#include <imagine/util/audio/PcmFormat.hh>
-#include <imagine/audio/AudioManager.hh>
-#include <imagine/time/Time.hh>
-#include <system_error>
+#include <vector>
 
 namespace IG::Audio
 {
+	namespace Config
+	{
+	#if (defined __linux__ && !defined CONFIG_MACHINE_PANDORA && !defined __ANDROID__)
+	#define CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
+	static constexpr bool MULTIPLE_SYSTEM_APIS = true;
+	#else
+	static constexpr bool MULTIPLE_SYSTEM_APIS = false;
+	#endif
+	}
 
-using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, size_t bytes)>;
-
-class OutputStreamConfig
+enum class Api: uint8_t
 {
-public:
-	constexpr OutputStreamConfig() {}
-	constexpr OutputStreamConfig(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded):
-		format_{format}, onSamplesNeeded_{onSamplesNeeded}
-		{}
-
-	PcmFormat format() const;
-
-	OnSamplesNeededDelegate onSamplesNeeded() const
-	{
-		return onSamplesNeeded_;
-	}
-
-	void setWantedLatencyHint(IG::Microseconds uSecs)
-	{
-		wantedLatency = uSecs;
-	}
-
-	IG::Microseconds wantedLatencyHint() const
-	{
-		return wantedLatency;
-	}
-
-	void setStartPlaying(bool on)
-	{
-		startPlaying_ = on;
-	}
-
-	bool startPlaying()
-	{
-		return startPlaying_;
-	}
-
-protected:
-	PcmFormat format_{};
-	OnSamplesNeededDelegate onSamplesNeeded_{};
-	IG::Microseconds wantedLatency{20000};
-	bool startPlaying_ = true;
+	DEFAULT,
+	ALSA,
+	PULSEAUDIO,
+	COREAUDIO,
+	OPENSL_ES,
 };
 
-class OutputStream
+struct ApiDesc
 {
-public:
-	virtual ~OutputStream();
-	virtual std::error_code open(OutputStreamConfig config) = 0;
-	virtual void play() = 0;
-	virtual void pause() = 0;
-	virtual void close() = 0;
-	virtual void flush() = 0;
-	virtual bool isOpen() = 0;
-	virtual bool isPlaying() = 0;
+	const char *name;
+	Api api;
 };
+
+std::vector<ApiDesc> audioAPIs();
+Api makeValidAPI(Api api = Api::DEFAULT);
 
 }

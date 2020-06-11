@@ -15,6 +15,7 @@
 
 #import <AVFoundation/AVFoundation.h>
 #include <imagine/audio/AudioManager.hh>
+#include <imagine/audio/defs.hh>
 #include <imagine/logger/logger.h>
 #include "../base/iphone/ios.hh"
 
@@ -115,6 +116,21 @@ void endSession()
 	sessionInterruptionObserver = nil;
 	#endif
 	sessionActive = false;
+}
+
+}
+
+namespace IG::Audio
+{
+
+std::vector<ApiDesc> audioAPIs()
+{
+	return {{"Core Audio", Api::COREAUDIO}};
+}
+
+Api makeValidAPI(Api api)
+{
+	return Api::COREAUDIO;
 }
 
 }

@@ -18,6 +18,7 @@
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/audio/AudioManager.hh>
+#include <imagine/audio/defs.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <emuframework/EmuSystem.hh>
 
@@ -108,6 +109,8 @@ public:
 	void loadStockItems();
 
 protected:
+	static constexpr unsigned MAX_APIS = 2;
+
 	BoolMenuItem snd;
 	BoolMenuItem soundDuringFastForward;
 	TextMenuItem soundBuffersItem[7];
@@ -118,9 +121,14 @@ protected:
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	BoolMenuItem audioSoloMix;
 	#endif
-	StaticArrayList<MenuItem*, 13> item{};
+	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
+	StaticArrayList<TextMenuItem, MAX_APIS + 1> apiItem{};
+	MultiChoiceMenuItem api;
+	#endif
+	StaticArrayList<MenuItem*, 14> item{};
 
 	void updateAudioRateItem();
+	unsigned idxOfAPI(IG::Audio::Api api);
 };
 
 class SystemOptionView : public TableView

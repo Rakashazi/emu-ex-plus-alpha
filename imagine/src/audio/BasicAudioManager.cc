@@ -14,6 +14,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/audio/AudioManager.hh>
+#include <imagine/audio/defs.hh>
+#include <imagine/logger/logger.h>
 
 namespace IG::AudioManager
 {
@@ -32,5 +34,39 @@ void setMusicVolumeControlHint() {}
 void startSession() {}
 
 void endSession() {}
+
+}
+
+namespace IG::Audio
+{
+
+static constexpr ApiDesc apiDesc[]
+{
+	#ifdef CONFIG_AUDIO_PULSEAUDIO
+	{"PulseAudio", Api::PULSEAUDIO},
+	#endif
+	#ifdef CONFIG_AUDIO_ALSA
+	{"ALSA", Api::ALSA},
+	#endif
+};
+
+std::vector<ApiDesc> audioAPIs()
+{
+	return {apiDesc, apiDesc + std::size(apiDesc)};
+}
+
+Api makeValidAPI(Api api)
+{
+	for(auto desc: apiDesc)
+	{
+		if(desc.api == api)
+		{
+			logDMsg("found requested API:%s", desc.name);
+			return api;
+		}
+	}
+	// API not found, use the default
+	return apiDesc[0].api;
+}
 
 }
