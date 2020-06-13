@@ -37,12 +37,16 @@ enum class Api: uint8_t
 	PULSEAUDIO,
 	COREAUDIO,
 	OPENSL_ES,
+	AAUDIO,
 };
 
 struct ApiDesc
 {
-	const char *name;
-	Api api;
+	const char *name = "";
+	Api api{Api::DEFAULT};
+
+	constexpr ApiDesc() {}
+	constexpr ApiDesc(const char *name, Api api):name{name}, api{api} {}
 };
 
 std::vector<ApiDesc> audioAPIs();

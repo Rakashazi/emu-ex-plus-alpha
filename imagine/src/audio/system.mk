@@ -8,6 +8,7 @@ ifeq ($(ENV), linux)
  include $(imagineSrcDir)/audio/BasicAudioManager.mk
 else ifeq ($(ENV), android)
  include $(imagineSrcDir)/audio/opensl/build.mk
+ include $(imagineSrcDir)/audio/android/build.mk
  include $(imagineSrcDir)/audio/AndroidAudioManager.mk
 else ifeq ($(ENV), ios)
  include $(imagineSrcDir)/audio/coreaudio/build.mk

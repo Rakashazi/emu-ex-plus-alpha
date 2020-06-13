@@ -207,12 +207,28 @@ namespace IG::Audio
 
 std::vector<ApiDesc> audioAPIs()
 {
-	return {{"OpenSL ES", Api::OPENSL_ES}};
+	std::vector<ApiDesc> desc;
+	if(Base::androidSDK() >= 26)
+	{
+		desc.reserve(2);
+		desc.emplace_back("AAudio", Api::AAUDIO);
+	}
+	desc.emplace_back("OpenSL ES", Api::OPENSL_ES);
+	return desc;
 }
 
 Api makeValidAPI(Api api)
 {
-	return Api::OPENSL_ES;
+	if(Base::androidSDK() >= 26)
+	{
+		if(api == Api::OPENSL_ES)
+			return Api::OPENSL_ES; // OpenSL ES was explicitly requested
+		return Api::AAUDIO;
+	}
+	else
+	{
+		return Api::OPENSL_ES;
+	}
 }
 
 }

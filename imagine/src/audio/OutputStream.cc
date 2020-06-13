@@ -19,6 +19,7 @@
 
 #if defined __ANDROID__
 #include <imagine/audio/opensl/OpenSLESOutputStream.hh>
+#include <imagine/audio/android/AAudioOutputStream.hh>
 #elif defined __APPLE__
 #include <imagine/audio/coreaudio/CAOutputStream.hh>
 #else
@@ -46,6 +47,7 @@ std::unique_ptr<OutputStream> makeOutputStream(Api api)
 		#endif
 		#ifdef __ANDROID__
 		case Api::OPENSL_ES: return std::make_unique<OpenSLESOutputStream>();
+		case Api::AAUDIO: return std::make_unique<AAudioOutputStream>();
 		#endif
 		#ifdef __APPLE__
 		case Api::COREAUDIO: return std::make_unique<CAOutputStream>();
