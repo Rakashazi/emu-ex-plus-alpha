@@ -82,8 +82,6 @@
 namespace Gfx
 {
 
-static constexpr int ON_EXIT_PRIORITY = 200;
-
 static constexpr bool CAN_USE_OPENGL_ES_3 = !Config::MACHINE_IS_PANDORA;
 
 Gfx::GC orientationToGC(Base::Orientation o)
@@ -948,7 +946,7 @@ void GLRenderer::addOnExitHandler()
 			}
 			return true;
 		};
-	Base::addOnExit(onExit, ON_EXIT_PRIORITY);
+	Base::addOnExit(onExit, GLRENDERER_ON_EXIT_PRIORITY);
 }
 
 }

@@ -21,17 +21,8 @@
 namespace IG::Audio
 {
 
-static uint32_t defaultFramesPerBuffer()
-{
-	if(AudioManager::nativeOutputFramesPerBuffer())
-		return AudioManager::nativeOutputFramesPerBuffer();
-	return 192; // default used in Google Oboe library
-}
-
 OpenSLESOutputStream::OpenSLESOutputStream()
 {
-	logMsg("running init");
-
 	// engine object
 	SLObjectItf slE;
 	SLresult result = slCreateEngine(&slE, 0, nullptr, 0, nullptr, nullptr);
@@ -60,30 +51,43 @@ std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
 		return {EINVAL, std::system_category()};
 	}
 	auto format = config.format();
-	pcmFormat = format;
-	onSamplesNeeded = config.onSamplesNeeded();
 	// must create queue with 2 buffers on Android <= 4.2
 	// to get low-latency path, even though we only queue 1
-	uint32_t outputBuffers = Base::androidSDK() >= 18 ? 1 : 2;
-	bufferBytes = format.framesToBytes(defaultFramesPerBuffer());
-	buffer = new char[bufferBytes];
-	logMsg("creating playback %dHz, %d channels, %u byte buffer", format.rate, format.channels, bufferBytes);
-	assert(format.sample.bits == 16);
+	auto androidSDK = Base::androidSDK();
+	uint32_t outputBuffers = androidSDK >= 18 ? 1 : 2;
+	auto bufferFrames = AudioManager::nativeOutputFramesPerBuffer();
+	logMsg("creating stream %dHz, %d channels, %u frames/buffer", format.rate, format.channels, bufferFrames);
 	SLDataLocator_AndroidSimpleBufferQueue buffQLoc{SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, outputBuffers};
 	SLDataFormat_PCM slFormat
 	{
 		SL_DATAFORMAT_PCM, (SLuint32)format.channels, (SLuint32)format.rate * 1000, // as milliHz
-		SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16,
+		format.sample.bits(), format.sample.bits(),
 		format.channels == 1 ? SL_SPEAKER_FRONT_CENTER : SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
 		SL_BYTEORDER_LITTLEENDIAN
 	};
 	SLDataSource audioSrc{&buffQLoc, &slFormat};
+	SLAndroidDataFormat_PCM_EX slFormatEx{};
+	if(androidSDK >= 21)
+	{
+		slFormatEx =
+		{
+			SL_ANDROID_DATAFORMAT_PCM_EX, slFormat.numChannels, slFormat.samplesPerSec,
+			slFormat.bitsPerSample, slFormat.containerSize, slFormat.channelMask, slFormat.endianness,
+			format.sample.isFloat() ? SL_ANDROID_PCM_REPRESENTATION_FLOAT : SL_ANDROID_PCM_REPRESENTATION_SIGNED_INT
+		};
+		audioSrc.pFormat = &slFormatEx;
+	}
+	else if(unlikely(format.sample.isFloat()))
+	{
+		logErr("floating-point samples need API level 21+");
+		return {EINVAL, std::system_category()};
+	}
 	SLDataLocator_OutputMix outMixLoc{SL_DATALOCATOR_OUTPUTMIX, outMix};
 	SLDataSink sink{&outMixLoc, nullptr};
 	const SLInterfaceID ids[]{SL_IID_ANDROIDSIMPLEBUFFERQUEUE, SL_IID_VOLUME};
 	const SLboolean req[std::size(ids)]{SL_BOOLEAN_TRUE, SL_BOOLEAN_FALSE};
 	SLresult result = (*slI)->CreateAudioPlayer(slI, &player, &audioSrc, &sink, std::size(ids), ids, req);
-	if(result != SL_RESULT_SUCCESS)
+	if(unlikely(result != SL_RESULT_SUCCESS))
 	{
 		logErr("CreateAudioPlayer returned 0x%X", (uint32_t)result);
 		player = nullptr;
@@ -95,6 +99,10 @@ std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
 	assert(result == SL_RESULT_SUCCESS);
 	result = (*player)->GetInterface(player, SL_IID_ANDROIDSIMPLEBUFFERQUEUE, &slBuffQI);
 	assert(result == SL_RESULT_SUCCESS);
+	pcmFormat = format;
+	onSamplesNeeded = config.onSamplesNeeded();
+	bufferBytes = format.framesToBytes(bufferFrames);
+	buffer = std::make_unique<uint8_t[]>(bufferBytes);
 	result = (*slBuffQI)->RegisterCallback(slBuffQI,
 		[](SLAndroidSimpleBufferQueueItf queue, void *thisPtr_)
 		{
@@ -102,7 +110,6 @@ std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
 			thisPtr->doBufferCallback(queue);
 		}, this);
 	assert(result == SL_RESULT_SUCCESS);
-	logMsg("stream opened");
 	if(config.startPlaying())
 		play();
 	return {};
@@ -144,19 +151,15 @@ void OpenSLESOutputStream::pause()
 
 void OpenSLESOutputStream::close()
 {
-	if(player)
-	{
-		logMsg("closing pcm");
-		isPlaying_ = false;
-		slBuffQI = nullptr;
-		(*player)->Destroy(player);
-		player = nullptr;
-		delete[] buffer;
-		buffer = nullptr;
-		bufferQueued = false;
-	}
-	else
-		logMsg("called closePcm when pcm already off");
+	if(!player)
+		return
+	logMsg("closing player");
+	isPlaying_ = false;
+	slBuffQI = nullptr;
+	(*player)->Destroy(player);
+	player = nullptr;
+	buffer.reset();
+	bufferQueued = false;
 }
 
 void OpenSLESOutputStream::flush()
@@ -190,8 +193,8 @@ OpenSLESOutputStream::operator bool() const
 
 void OpenSLESOutputStream::doBufferCallback(SLAndroidSimpleBufferQueueItf queue)
 {
-	onSamplesNeeded(buffer, bufferBytes);
-	if(SLresult result = (*queue)->Enqueue(queue, buffer, bufferBytes);
+	onSamplesNeeded(buffer.get(), bufferBytes);
+	if(SLresult result = (*queue)->Enqueue(queue, buffer.get(), bufferBytes);
 			result != SL_RESULT_SUCCESS)
 		{
 			logWarn("Enqueue returned 0x%X", (uint32_t)result);

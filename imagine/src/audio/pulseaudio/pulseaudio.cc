@@ -29,12 +29,13 @@ namespace IG::Audio
 
 static pa_sample_format_t pcmFormatToPA(const SampleFormat &format)
 {
-	switch(format.toBits())
+	switch(format.bytes())
 	{
-		case 16 : return PA_SAMPLE_S16LE;
-		case 8 : return PA_SAMPLE_U8;
+		case 4 : return format.isFloat() ? PA_SAMPLE_FLOAT32NE : PA_SAMPLE_S32NE;
+		case 2 : return PA_SAMPLE_S16NE;
+		case 1 : return PA_SAMPLE_U8;
 		default:
-			bug_unreachable("bits == %d", format.toBits());
+			bug_unreachable("bytes == %d", format.bytes());
 			return (pa_sample_format_t)0;
 	}
 }

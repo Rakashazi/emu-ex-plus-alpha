@@ -185,11 +185,6 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return (AudioManager)getSystemService(Context.AUDIO_SERVICE);
 	}
 	
-	boolean hasLowLatencyAudio()
-	{
-		return getPackageManager().hasSystemFeature(PackageManager.FEATURE_AUDIO_LOW_LATENCY);
-	}
-	
 	@Override public void onAudioFocusChange(int focusChange)
 	{
 		//Log.i(logTag, "audio focus change: " focusChange);

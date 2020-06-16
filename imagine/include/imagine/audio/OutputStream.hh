@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/audio/defs.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/audio/PcmFormat.hh>
+#include <imagine/audio/PcmFormat.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <system_error>
 #include <memory>

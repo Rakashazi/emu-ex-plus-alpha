@@ -15,48 +15,56 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <assert.h>
+#include <imagine/util/operators.hh>
 
 namespace IG::Audio
 {
 
-struct SampleFormat
+struct SampleFormat : public NotEquals<SampleFormat>
 {
-	uint32_t bits = 0;
-	bool isSigned = false;
-
 	constexpr SampleFormat() {}
-	constexpr SampleFormat(uint32_t bits, bool isSigned): bits(bits), isSigned(isSigned) {}
-	uint32_t toBits() const { return bits; }
-	uint32_t toBytes() const { return bits / 8; }
+	constexpr SampleFormat(uint8_t bytes, bool isFloat = false):
+		bytes_{bytes}, isFloatType{isFloat}
+	{}
+
+	uint8_t bytes() const
+	{
+		return bytes_;
+	}
+
+	uint8_t bits() const
+	{
+		return bytes_ * 8;
+	}
+
+	bool isFloat() const
+	{
+		return isFloatType;
+	}
 
 	bool operator ==(SampleFormat const& rhs) const
 	{
-		return bits == rhs.bits;
+		return bytes_ == rhs.bytes_
+			&& isFloatType == rhs.isFloatType;
 	}
 
 	explicit operator bool() const
 	{
-		return bits;
+		return bytes_;
 	}
+
+protected:
+	uint8_t bytes_ = 0;
+	bool isFloatType = 0;
 };
 
 namespace SampleFormats
 {
-	static constexpr SampleFormat s8 {8, true};
-	static constexpr SampleFormat u8 {8, false};
-	static constexpr SampleFormat s16 {16, true};
+	static constexpr SampleFormat   i8 {1};
+	static constexpr SampleFormat  i16 {2};
+	static constexpr SampleFormat  i32 {4};
+	static constexpr SampleFormat  f32 {4, true};
 	static constexpr SampleFormat none {};
-
-	static const SampleFormat &getFromBits(uint32_t bits)
-	{
-		assert(bits == 8 || bits == 16);
-		switch(bits)
-		{
-			case 8: return s8;
-			default: return s16;
-		}
-	}
 }
 
 }

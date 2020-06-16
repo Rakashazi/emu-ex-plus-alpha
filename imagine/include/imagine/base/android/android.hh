@@ -44,14 +44,6 @@ void setSustainedPerformanceMode(bool on);
 
 }
 
-namespace IG::AudioManager
-{
-
-uint32_t nativeOutputFramesPerBuffer();
-bool hasLowLatency();
-
-}
-
 namespace Input
 {
 

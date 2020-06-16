@@ -51,7 +51,7 @@ static id sessionInterruptionObserver = nil;
 
 Audio::PcmFormat nativeFormat()
 {
-	return {44100, Audio::SampleFormats::s16, 2};
+	return {44100, Audio::SampleFormats::i16, 2};
 }
 
 void setSoloMix(bool newSoloMix)

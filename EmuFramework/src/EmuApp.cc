@@ -232,8 +232,8 @@ void mainInitCommon(int argc, char** argv)
 	}
 	AudioManager::setMusicVolumeControlHint();
 	AudioManager::startSession();
-	if((int)optionSoundRate > AudioManager::nativeFormat().rate)
-		optionSoundRate = AudioManager::nativeFormat().rate;
+	if(optionSoundRate > optionSoundRate.defaultVal)
+		optionSoundRate.reset();
 	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
 	emuAudio.setSoundDuringFastForward(soundDuringFastForwardIsEnabled());
 	if(soundIsEnabled())
@@ -322,6 +322,7 @@ void mainInitCommon(int argc, char** argv)
 			else
 			{
 				emuViewController.closeSystem();
+				emuVideo.deleteImage();
 			}
 			emuAudio.close();
 			AudioManager::endSession();

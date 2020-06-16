@@ -886,7 +886,7 @@ void AddExState(void *v, uint32 s, int type, const char *desc)
 	if(desc)
 	{
 		//SFMDATA[SFEXINDEX].desc=(char *)FCEU_malloc(strlen(desc)+1);
-		assert(strlen(desc) <= 10);
+		assert(strlen(desc) <= 20);
 		strcpy(SFMDATA[SFEXINDEX].desc,desc);
 	}
 	else

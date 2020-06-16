@@ -26,12 +26,12 @@ namespace IG::AudioManager
 static jobject audioManager{};
 static JavaInstMethod<jint(jobject, jint, jint)> jRequestAudioFocus{};
 static JavaInstMethod<jint(jobject)> jAbandonAudioFocus{};
+static JavaInstMethod<jobject(jstring)> jGetProperty{};
 static bool soloMix_ = true;
 static bool sessionActive = false;
-static int outputBufferFrames = -1;
-static Audio::PcmFormat nativeFmt{0, Audio::SampleFormats::s16, 2};
+static constexpr uint32_t defaultOutputBufferFrames = 192; // default used in Google Oboe library
 
-static int audioManagerIntProperty(JNIEnv* env, JavaInstMethod<jobject(jstring)> &jGetProperty, const char *propStr)
+static int audioManagerIntProperty(JNIEnv* env, JavaInstMethod<jobject(jstring)> jGetProperty, const char *propStr)
 {
 	auto propJStr = env->NewStringUTF(propStr);
 	auto valJStr = (jstring)jGetProperty(env, audioManager, propJStr);
@@ -48,17 +48,16 @@ static int audioManagerIntProperty(JNIEnv* env, JavaInstMethod<jobject(jstring)>
 
 static void setupAudioManagerJNI(JNIEnv* env)
 {
-	using namespace Base;
-	if(!audioManager)
-	{
-		JavaInstMethod<jobject()> jAudioManager{env, jBaseActivityCls, "audioManager", "()Landroid/media/AudioManager;"};
-		audioManager = jAudioManager(env, jBaseActivity);
-		assert(audioManager);
-		audioManager = env->NewGlobalRef(audioManager);
-		jclass jAudioManagerCls = env->GetObjectClass(audioManager);
-		jRequestAudioFocus.setup(env, jAudioManagerCls, "requestAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;II)I");
-		jAbandonAudioFocus.setup(env, jAudioManagerCls, "abandonAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;)I");
-	}
+	if(audioManager)
+		return;
+	JavaInstMethod<jobject()> jAudioManager{env, Base::jBaseActivityCls, "audioManager", "()Landroid/media/AudioManager;"};
+	audioManager = jAudioManager(env, Base::jBaseActivity);
+	assert(audioManager);
+	audioManager = env->NewGlobalRef(audioManager);
+	jclass jAudioManagerCls = env->GetObjectClass(audioManager);
+	jRequestAudioFocus.setup(env, jAudioManagerCls, "requestAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;II)I");
+	jAbandonAudioFocus.setup(env, jAudioManagerCls, "abandonAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;)I");
+	jGetProperty.setup(env, jAudioManagerCls, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;");
 }
 
 static void requestAudioFocus(JNIEnv* env)
@@ -74,78 +73,51 @@ static void abandonAudioFocus(JNIEnv* env)
 	jAbandonAudioFocus(env, audioManager, Base::jBaseActivity);
 }
 
-static void setAudioManagerProperties()
+Audio::PcmFormat nativeFormat()
 {
-	using namespace Base;
-	auto env = jEnvForThread();
-	setupAudioManagerJNI(env);
-	jclass jAudioManagerCls = env->GetObjectClass(audioManager);
-	JavaInstMethod<jobject(jstring)> jGetProperty{env, jAudioManagerCls, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;"};
-	nativeFmt.rate = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_SAMPLE_RATE");
-	if(nativeFmt.rate != 44100 && nativeFmt.rate != 48000)
+	Audio::PcmFormat nativeFmt{0, Audio::SampleFormats::i16, 2};
+	if(Base::androidSDK() >= 17)
 	{
-		// only support 44KHz and 48KHz for now
-		logMsg("ignoring native sample rate: %d", nativeFmt.rate);
-		nativeFmt.rate = 44100;
+		auto env = Base::jEnvForThread();
+		setupAudioManagerJNI(env);
+		nativeFmt.rate = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_SAMPLE_RATE");
+		if(nativeFmt.rate != 44100 && nativeFmt.rate != 48000)
+		{
+			// only support 44KHz and 48KHz for now
+			logWarn("ignoring OUTPUT_SAMPLE_RATE value:%d", nativeFmt.rate);
+			nativeFmt.rate = 44100;
+		}
+		else
+		{
+			logMsg("native sample rate: %d", nativeFmt.rate);
+		}
 	}
 	else
 	{
-		logMsg("set native sample rate: %d", nativeFmt.rate);
-		// find the preferred buffer size for this rate if device has low-latency support
-		JavaInstMethod<jboolean()> jHasLowLatencyAudio{env, jBaseActivityCls, "hasLowLatencyAudio", "()Z"};
-		if(jHasLowLatencyAudio(env, jBaseActivity))
-		{
-			outputBufferFrames = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_FRAMES_PER_BUFFER");
-			if(!outputBufferFrames)
-				logMsg("native buffer frames value not present");
-			else
-				logMsg("set native buffer frames: %d", outputBufferFrames);
-		}
-		else
-		{
-			outputBufferFrames = 0;
-			logMsg("no low-latency support");
-		}
+		nativeFmt.rate = 44100;
 	}
-}
-
-Audio::PcmFormat nativeFormat()
-{
-	if(unlikely(!nativeFmt))
-	{
-		if(Base::androidSDK() >= 17)
-		{
-			setAudioManagerProperties();
-		}
-		else
-		{
-			nativeFmt.rate = 44100;
-		}
-	}
-	assumeExpr(nativeFmt);
 	return nativeFmt;
 }
 
 uint32_t nativeOutputFramesPerBuffer()
 {
-	if(unlikely(outputBufferFrames == -1))
+	if(Base::androidSDK() >= 17)
 	{
-		if(Base::androidSDK() >= 17)
+		auto env = Base::jEnvForThread();
+		setupAudioManagerJNI(env);
+		int outputBufferFrames = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_FRAMES_PER_BUFFER");
+		//logMsg("native buffer frames: %d", outputBufferFrames);
+		if(outputBufferFrames <= 0 || outputBufferFrames > 4096)
 		{
-			setAudioManagerProperties();
+			logWarn("ignoring OUTPUT_FRAMES_PER_BUFFER value:%d", outputBufferFrames);
+			return defaultOutputBufferFrames;
 		}
-		else
-		{
-			outputBufferFrames = 0;
-		}
+		return outputBufferFrames;
 	}
-	assumeExpr(outputBufferFrames >= 0);
-	return outputBufferFrames;
-}
-
-bool hasLowLatency()
-{
-	return nativeOutputFramesPerBuffer();
+	else
+	{
+		return defaultOutputBufferFrames;
+	}
 }
 
 void setSoloMix(bool newSoloMix)

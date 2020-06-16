@@ -74,7 +74,6 @@ namespace Gfx
 bool checkGLErrors = Config::DEBUG_BUILD;
 bool checkGLErrorsVerbose = false;
 static constexpr bool useGLCache = true;
-static constexpr int DRAWABLE_ON_EXIT_PRIORITY = 100;
 static constexpr int DRAWABLE_ON_RESUME_PRIORITY = -100;
 
 void GLRenderer::verifyCurrentResourceContext()
@@ -355,7 +354,7 @@ void GLDrawableHolder::makeDrawable(Renderer &r, Base::Window &win)
 				glDpy.deleteDrawable(drawable);
 			return true;
 		};
-	Base::addOnExit(onExit, DRAWABLE_ON_EXIT_PRIORITY);
+	Base::addOnExit(onExit, GLRENDERER_ON_EXIT_PRIORITY-2);
 }
 
 void GLDrawableHolder::destroyDrawable(Renderer &r)

@@ -40,7 +40,6 @@ namespace Gfx
 {
 
 static constexpr int ON_RESUME_PRIORITY = -110;
-static constexpr int ON_EXIT_PRIORITY = 110;
 
 void GLRendererTask::initVBOs()
 {
@@ -158,16 +157,16 @@ bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Ba
 				if(ownsThread)
 				{
 					Base::GLContext::setCurrent(glDpy, {}, {});
-					eventLoopRunning = false;
+					threadRunning = false;
 					Base::EventLoop::forThread().stop();
 				}
 				else
 				{
 					// only unset the drawable
 					Base::GLContext::setCurrent(glDpy, glCtx, {});
+					assumeExpr(msg.semAddr);
+					msg.semAddr->notify();
 				}
-				assumeExpr(msg.semAddr);
-				msg.semAddr->notify();
 				return false;
 			}
 			bdefault:
@@ -202,7 +201,7 @@ void RendererTask::start()
 				stop();
 				return true;
 			};
-		Base::addOnExit(onExit, ON_EXIT_PRIORITY);
+		Base::addOnExit(onExit, GLRENDERER_ON_EXIT_PRIORITY-1);
 	}
 	r.addOnExitHandler();
 	if constexpr(Config::envIsIOS)
@@ -225,7 +224,7 @@ void RendererTask::start()
 		#ifndef NDEBUG
 		r.drawContextDebug = false;
 		#endif
-		IG::makeDetachedThreadSync(
+		thread = IG::makeThreadSync(
 			[this](auto &sem)
 			{
 				auto glDpy = Base::GLDisplay::getDefault(glAPI);
@@ -236,10 +235,10 @@ void RendererTask::start()
 					{
 						return commandHandler(msgs, glDpy, true);
 					});
+				threadRunning = true;
 				sem.notify();
 				logMsg("starting render task event loop");
-				eventLoopRunning = true;
-				eventLoop.run(eventLoopRunning);
+				eventLoop.run(threadRunning);
 				commandPort.detach();
 				logMsg("render task thread finished");
 			});
@@ -395,7 +394,7 @@ void RendererTask::runSync(RenderTaskFuncDelegate func)
 
 void RendererTask::acquireFenceAndWait(Gfx::SyncFence &fenceVar)
 {
-	if(!r.useSeparateDrawContext)
+	if(!hasSeparateContextThread())
 		return;
 	Gfx::SyncFence fence{};
 	runSync([&fence, &fenceVar](RendererTask &)
@@ -428,21 +427,28 @@ void RendererTask::stop()
 	{
 		return;
 	}
-	IG::Semaphore sem{0};
-	commandPort.send({Command::EXIT, &sem});
-	sem.wait();
-	commandPort.clear();
-	if(!r.useSeparateDrawContext)
+	if(hasSeparateContextThread())
 	{
+		commandPort.send({Command::EXIT});
+		thread.join(); // GL implementation may assign thread destructor so must join() to make sure it completes
+		commandPort.clear();
+		destroyContext(r.glDpy);
+	}
+	else
+	{
+		IG::Semaphore sem{0};
+		commandPort.send({Command::EXIT, &sem});
+		sem.wait();
+		commandPort.clear();
 		r.runGLTaskSync(
 			[this]()
 			{
 				commandPort.detach();
 			});
+		glCtx = {}; // unset context, owned by GLMainTask
 	}
 	replyPort.clear();
 	replyPort.detach();
-	destroyContext(r.useSeparateDrawContext, r.glDpy);
 }
 
 void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder, Base::Window::SurfaceChange change)
@@ -468,15 +474,10 @@ Base::FrameTime RendererTask::lastDrawTimestamp() const
 	return drawTimestamp;
 }
 
-void GLRendererTask::destroyContext(bool useSeparateDrawContext, Base::GLDisplay dpy)
+void GLRendererTask::destroyContext(Base::GLDisplay dpy)
 {
 	if(!glCtx)
 		return;
-	if(!useSeparateDrawContext)
-	{
-		glCtx = {};
-		return;
-	}
 	glCtx.deinit(dpy);
 	#ifndef CONFIG_GFX_OPENGL_ES
 	streamVAO = 0;
@@ -488,6 +489,11 @@ void GLRendererTask::destroyContext(bool useSeparateDrawContext, Base::GLDisplay
 	defaultFB = 0;
 	#endif
 	contextInitialStateSet = false;
+}
+
+bool GLRendererTask::hasSeparateContextThread() const
+{
+	return threadRunning;
 }
 
 bool GLRendererTask::handleDrawableReset()
@@ -535,7 +541,7 @@ void GLRendererDrawTask::setCurrentDrawable(Drawable drawable)
 	else if(task.handleDrawableReset() || !Base::GLContext::isCurrentDrawable(glDpy, drawable))
 	{
 		glCtx.setDrawable(glDpy, drawable, glCtx);
-		if(!r.useSeparateDrawContext && r.support.hasDrawReadBuffers() && drawable)
+		if(!task.hasSeparateContextThread() && r.support.hasDrawReadBuffers() && drawable)
 		{
 			//logMsg("specifying draw/read buffers");
 			const GLenum back = Config::Gfx::OPENGL_ES_MAJOR_VERSION ? GL_BACK : GL_BACK_LEFT;

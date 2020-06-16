@@ -19,6 +19,7 @@
 #include <imagine/audio/OutputStream.hh>
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
+#include <memory>
 
 namespace IG::Audio
 {
@@ -42,7 +43,7 @@ private:
 	SLPlayItf playerI{};
 	SLAndroidSimpleBufferQueueItf slBuffQI{};
 	OnSamplesNeededDelegate onSamplesNeeded{};
-	char *buffer{};
+	std::unique_ptr<uint8_t[]> buffer{};
 	uint32_t bufferBytes = 0;
 	PcmFormat pcmFormat{};
 	bool isPlaying_ = false;

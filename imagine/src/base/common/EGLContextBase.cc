@@ -22,9 +22,6 @@
 #include <EGL/eglext.h>
 #include <imagine/util/egl.hh>
 #include <imagine/util/container/ArrayList.hh>
-#ifdef __ANDROID__
-#include <imagine/base/android/android.hh>
-#endif
 
 #ifndef EGL_OPENGL_ES3_BIT
 #define EGL_OPENGL_ES3_BIT 0x0040
@@ -442,13 +439,6 @@ bool GLDisplay::deinit()
 		return true;
 	auto dpy = display;
 	display = EGL_NO_DISPLAY;
-	#if defined __ANDROID__
-	if(Base::androidSDK() < 26)
-	{
-		// don't call eglTerminate() on older Android versions due to possible driver issues (random freeze in libMali.so)
-		return true;
-	}
-	#endif
 	if(!HAS_DISPLAY_REF_COUNT)
 	{
 		if(!refCount)

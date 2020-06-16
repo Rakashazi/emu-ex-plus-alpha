@@ -74,8 +74,7 @@ OptionAudioSoloMix optionAudioSoloMix(CFGKEY_AUDIO_SOLO_MIX, 1);
 Byte1Option optionAudioAPI(CFGKEY_AUDIO_API, 0);
 #endif
 
-Byte4Option optionSoundRate(CFGKEY_SOUND_RATE,
-	(Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? 48000 : 44100, false, optionIsValidWithMax<48000>);
+Byte4Option optionSoundRate(CFGKEY_SOUND_RATE, 48000, false, optionIsValidWithMax<48000>);
 
 // Store in micro-meters
 Byte2Option optionFontSize(CFGKEY_FONT_Y_SIZE,

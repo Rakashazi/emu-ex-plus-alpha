@@ -18,7 +18,6 @@
 #include <imagine/audio/OutputStream.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/ringbuffer/RingBuffer.hh>
-#include <imagine/util/audio/PcmFormat.hh>
 #include <memory>
 #include <atomic>
 
@@ -52,7 +51,7 @@ public:
 protected:
 	std::unique_ptr<IG::Audio::OutputStream> audioStream{};
 	IG::RingBuffer rBuff{};
-	IG::Audio::PcmFormat format{44100, IG::Audio::SampleFormats::s16, 2};
+	IG::Audio::PcmFormat format{44100, IG::Audio::SampleFormats::i16, 2};
 	IG::Time lastUnderrunTime{};
 	uint32_t targetBufferFillBytes = 0;
 	uint32_t bufferIncrementBytes = 0;

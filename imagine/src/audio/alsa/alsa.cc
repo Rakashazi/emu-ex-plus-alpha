@@ -31,9 +31,10 @@ static const SampleFormat &alsaFormatToPcm(snd_pcm_format_t format)
 {
 	switch(format)
 	{
-		case SND_PCM_FORMAT_S16: return SampleFormats::s16;
-		case SND_PCM_FORMAT_S8: return SampleFormats::s8;
-		case SND_PCM_FORMAT_U8: return SampleFormats::u8;
+		case SND_PCM_FORMAT_FLOAT: return SampleFormats::f32;
+		case SND_PCM_FORMAT_S32: return SampleFormats::i32;
+		case SND_PCM_FORMAT_S16: return SampleFormats::i16;
+		case SND_PCM_FORMAT_U8: return SampleFormats::i8;
 		default:
 			bug_unreachable("format == %d", format);
 			return SampleFormats::none;
@@ -42,12 +43,13 @@ static const SampleFormat &alsaFormatToPcm(snd_pcm_format_t format)
 
 static snd_pcm_format_t pcmFormatToAlsa(const SampleFormat &format)
 {
-	switch(format.toBits())
+	switch(format.bytes())
 	{
-		case 16 : return SND_PCM_FORMAT_S16;
-		case 8 : return format.isSigned ? SND_PCM_FORMAT_S8 : SND_PCM_FORMAT_U8;
+		case 4 : return format.isFloat() ? SND_PCM_FORMAT_FLOAT : SND_PCM_FORMAT_S32;
+		case 2 : return SND_PCM_FORMAT_S16;
+		case 1 : return SND_PCM_FORMAT_U8;
 		default:
-			bug_unreachable("bits == %d", format.toBits());
+			bug_unreachable("bytes == %d", format.bytes());
 			return (snd_pcm_format_t)0;
 	}
 }

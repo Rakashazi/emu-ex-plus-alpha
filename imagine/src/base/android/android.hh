@@ -64,3 +64,10 @@ int pixelFormatToDirectAndroidFormat(IG::PixelFormatID format);
 void recycleBitmap(JNIEnv *env, jobject bitmap);
 
 }
+
+namespace IG::AudioManager
+{
+
+uint32_t nativeOutputFramesPerBuffer();
+
+}

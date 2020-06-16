@@ -32,7 +32,7 @@ void GLMainTask::start(Base::GLContext context)
 {
 	if(started)
 		return;
-	IG::makeDetachedThreadSync(
+	thread = IG::makeThreadSync(
 		[this, context](auto &sem)
 		{
 			auto glDpy = Base::GLDisplay::getDefault(glAPI);
@@ -61,8 +61,6 @@ void GLMainTask::start(Base::GLContext context)
 								Base::GLContext::setCurrent(glDpy, {}, {});
 								started = false;
 								Base::EventLoop::forThread().stop();
-								if(msg.semAddr)
-									msg.semAddr->notify();
 								return false;
 							}
 							bdefault:
@@ -100,9 +98,8 @@ void GLMainTask::stop()
 {
 	if(!started)
 		return;
-	IG::Semaphore sem{0};
-	commandPort.send({Command::EXIT, &sem});
-	sem.wait();
+	commandPort.send({Command::EXIT});
+	thread.join(); // GL implementation may assign thread destructor so must join() to make sure it completes
 }
 
 bool GLMainTask::isStarted() const

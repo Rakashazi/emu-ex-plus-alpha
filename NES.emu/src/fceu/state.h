@@ -44,7 +44,7 @@ struct SFORMAT
 	uint32 s;
 
 	//a string description of the element
-	char desc[11];
+	char desc[21];
 };
 
 void ResetExState(void (*PreSave)(void),void (*PostSave)(void));

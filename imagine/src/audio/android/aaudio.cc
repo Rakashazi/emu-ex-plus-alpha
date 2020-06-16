@@ -125,12 +125,16 @@ bool AAudioOutputStream::openStream(PcmFormat format, bool lowLatencyMode)
 	assert(!stream);
 	logMsg("creating stream %dHz, %d channels, low-latency:%s", format.rate, format.channels,
 		lowLatencyMode ? "y" : "n");
+	if(format.sample != SampleFormats::i16 || format.sample != SampleFormats::f32)
+	{
+		logErr("only i16 and f32 sample formats are supported");
+		return false;
+	}
 	AAudioStreamBuilder *builder;
 	AAudio_createStreamBuilder(&builder);
 	auto deleteStreamBuilder = IG::scopeGuard([&](){ AAudioStreamBuilder_delete(builder); });
 	AAudioStreamBuilder_setChannelCount(builder, format.channels);
-	assert(format.sample.bits == 16);
-	AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+	AAudioStreamBuilder_setFormat(builder, format.sample.isFloat() ? AAUDIO_FORMAT_PCM_FLOAT : AAUDIO_FORMAT_PCM_I16);
 	AAudioStreamBuilder_setSampleRate(builder, format.rate);
 	if(lowLatencyMode)
 	{

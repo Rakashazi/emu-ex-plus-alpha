@@ -32,6 +32,36 @@ T thisThreadID()
 }
 
 template<class Func>
+static std::thread makeThreadSync(Func &&f)
+{
+	Semaphore sem{0};
+	if constexpr(std::is_copy_constructible_v<Func>)
+	{
+		std::thread t
+		{
+			[f{f}, &sem]()
+			{
+				f(sem);
+			}
+		};
+		sem.wait();
+		return t;
+	}
+	else
+	{
+		std::thread t
+		{
+			[f{std::move(f)}, &sem]() mutable
+			{
+				f(sem);
+			}
+		};
+		sem.wait();
+		return t;
+	}
+}
+
+template<class Func>
 static void makeDetachedThread(Func &&f)
 {
 	std::thread t{std::forward<Func>(f)};

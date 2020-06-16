@@ -327,7 +327,7 @@ void EmuAudio::setFormat(IG::Audio::SampleFormat sample, uint8_t channels)
 
 void EmuAudio::setDefaultMonoFormat()
 {
-	setFormat(IG::Audio::SampleFormats::s16, 1);
+	setFormat(IG::Audio::SampleFormats::i16, 1);
 }
 
 void EmuAudio::setSpeedMultiplier(uint8_t speed)

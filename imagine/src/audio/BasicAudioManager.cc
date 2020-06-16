@@ -22,7 +22,7 @@ namespace IG::AudioManager
 
 Audio::PcmFormat nativeFormat()
 {
-	return {::Config::MACHINE_IS_PANDORA ? 44100 : 48000, Audio::SampleFormats::s16, 2};
+	return {::Config::MACHINE_IS_PANDORA ? 44100 : 48000, Audio::SampleFormats::i16, 2};
 }
 
 void setSoloMix(bool newSoloMix) {}

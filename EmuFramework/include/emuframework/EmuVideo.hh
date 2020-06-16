@@ -47,6 +47,7 @@ public:
 	EmuVideo(Gfx::RendererTask &rTask): rTask{rTask} {}
 	void setFormat(IG::PixmapDesc desc);
 	void resetImage();
+	IG::PixmapDesc deleteImage();
 	EmuVideoImage startFrame(EmuSystemTask *task);
 	void startFrame(EmuSystemTask *task, IG::Pixmap pix);
 	EmuVideoImage startFrameWithFormat(EmuSystemTask *task, IG::PixmapDesc desc);

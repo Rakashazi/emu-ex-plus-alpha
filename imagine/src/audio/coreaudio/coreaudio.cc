@@ -75,16 +75,15 @@ std::error_code CAOutputStream::open(OutputStreamConfig config)
 		return {};
 	}
 	auto format = config.format();
-	pcmFormat = format;
-	onSamplesNeeded = config.onSamplesNeeded();
+	AudioFormatFlags formatFlags = format.sample.isFloat() ? kAudioFormatFlagIsFloat : kLinearPCMFormatFlagIsSignedInteger;
 	streamFormat.mSampleRate = format.rate;
 	streamFormat.mFormatID = kAudioFormatLinearPCM;
-	streamFormat.mFormatFlags = kLinearPCMFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked | kAudioFormatFlagsNativeEndian;
+	streamFormat.mFormatFlags = formatFlags | kAudioFormatFlagIsPacked | kAudioFormatFlagsNativeEndian;
 	streamFormat.mBytesPerPacket = format.framesToBytes(1);
 	streamFormat.mFramesPerPacket = 1;
 	streamFormat.mBytesPerFrame = format.framesToBytes(1);
 	streamFormat.mChannelsPerFrame = format.channels;
-	streamFormat.mBitsPerChannel = format.sample.bits == 16 ? 16 : 8;
+	streamFormat.mBitsPerChannel = format.sample.bits();
 	logMsg("creating unit %dHz %d channels", (int)streamFormat.mSampleRate, (int)streamFormat.mChannelsPerFrame);
 	if(auto err = AudioUnitSetProperty(outputUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input,
 			0, &streamFormat, sizeof(AudioStreamBasicDescription));
@@ -93,6 +92,8 @@ std::error_code CAOutputStream::open(OutputStreamConfig config)
 		logErr("error %d setting stream format", (int)err);
 		return {EINVAL, std::system_category()};
 	}
+	pcmFormat = format;
+	onSamplesNeeded = config.onSamplesNeeded();
 	AudioUnitInitialize(outputUnit);
 	isOpen_ = true;
 	if(config.startPlaying())

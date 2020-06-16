@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/audio/PcmFormat.hh>
+#include <imagine/audio/PcmFormat.hh>
 
 namespace IG::AudioManager
 {

@@ -29,6 +29,7 @@
 #include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/FunctionTraits.hh>
 #include <memory>
+#include <thread>
 #ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 #include <mutex>
 #include <condition_variable>
@@ -137,7 +138,8 @@ public:
 	void initDefaultFramebuffer();
 	GLuint defaultFBO() const { return defaultFB; }
 	GLuint bindFramebuffer(Texture &tex);
-	void destroyContext(bool useSeparateDrawContext, Base::GLDisplay dpy);
+	void destroyContext(Base::GLDisplay dpy);
+	bool hasSeparateContextThread() const;
 	bool handleDrawableReset();
 	void initialCommands(RendererCommands &cmds);
 
@@ -149,6 +151,7 @@ protected:
 	Base::ResumeDelegate onResume{};
 	Base::ExitDelegate onExit{};
 	IG::FrameTime drawTimestamp{};
+	std::thread thread{};
 	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 	std::mutex drawMutex{};
 	std::condition_variable drawCondition{};
@@ -166,7 +169,7 @@ protected:
 	GLuint fbo = 0;
 	bool resetDrawable = false;
 	bool contextInitialStateSet = false;
-	bool eventLoopRunning = false;
+	bool threadRunning = false;
 	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 	bool canDraw = true;
 	#endif
@@ -326,6 +329,7 @@ public:
 
 private:
 	Base::MessagePort<CommandMessage> commandPort{"GLMainTask Command"};
+	std::thread thread{};
 	bool started = false;
 };
 

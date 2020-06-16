@@ -23,12 +23,17 @@
 
 void EmuVideo::resetImage()
 {
+	setFormat(deleteImage());
+}
+
+IG::PixmapDesc EmuVideo::deleteImage()
+{
 	rTask.waitForDrawFinished();
 	renderer().deleteSyncFence(fence);
 	fence = {};
 	auto desc = vidImg.usedPixmapDesc();
 	vidImg = {};
-	setFormat(desc);
+	return desc;
 }
 
 void EmuVideo::setFormat(IG::PixmapDesc desc)

@@ -26,18 +26,18 @@ namespace IG::Audio
 class PcmFormat : public NotEquals<PcmFormat>
 {
 public:
-	int rate = 0;
+	uint32_t rate = 0;
 	SampleFormat sample{};
-	int channels = 0;
+	uint8_t channels = 0;
 
 	constexpr PcmFormat() {}
-	constexpr PcmFormat(int rate, const SampleFormat &sample, int channels) :
-		rate(rate), sample(sample), channels(channels) {}
+	constexpr PcmFormat(uint32_t rate, SampleFormat sample, uint8_t channels) :
+		rate{rate}, sample{sample}, channels{channels} {}
 
 	bool canSupport(const PcmFormat &p2) const
 	{
 		return rate >= p2.rate &&
-			sample.toBits() >= p2.sample.toBits() &&
+			sample.bytes() >= p2.sample.bytes() &&
 			channels >= p2.channels;
 	}
 
@@ -53,7 +53,7 @@ public:
 
 	uint32_t bytesPerFrame() const
 	{
-		return sample.toBytes() * channels;
+		return sample.bytes() * channels;
 	}
 
 	uint32_t framesToBytes(uint32_t frames) const
