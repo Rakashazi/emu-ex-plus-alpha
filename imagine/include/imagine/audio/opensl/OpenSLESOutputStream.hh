@@ -28,6 +28,7 @@ class OpenSLESOutputStream : public OutputStream
 {
 public:
 	OpenSLESOutputStream();
+	~OpenSLESOutputStream();
 	std::error_code open(OutputStreamConfig config) final;
 	void play() final;
 	void pause() final;
@@ -38,8 +39,9 @@ public:
 	explicit operator bool() const;
 
 private:
-	SLEngineItf slI{};
-	SLObjectItf outMix{}, player{};
+	SLObjectItf slE{};
+	SLObjectItf outMix{};
+	SLObjectItf player{};
 	SLPlayItf playerI{};
 	SLAndroidSimpleBufferQueueItf slBuffQI{};
 	OnSamplesNeededDelegate onSamplesNeeded{};

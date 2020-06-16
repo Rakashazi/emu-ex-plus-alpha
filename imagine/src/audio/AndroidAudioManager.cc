@@ -57,7 +57,8 @@ static void setupAudioManagerJNI(JNIEnv* env)
 	jclass jAudioManagerCls = env->GetObjectClass(audioManager);
 	jRequestAudioFocus.setup(env, jAudioManagerCls, "requestAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;II)I");
 	jAbandonAudioFocus.setup(env, jAudioManagerCls, "abandonAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;)I");
-	jGetProperty.setup(env, jAudioManagerCls, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;");
+	if(Base::androidSDK() >= 17)
+		jGetProperty.setup(env, jAudioManagerCls, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;");
 }
 
 static void requestAudioFocus(JNIEnv* env)

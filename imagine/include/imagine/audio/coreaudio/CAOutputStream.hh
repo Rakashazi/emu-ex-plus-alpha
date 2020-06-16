@@ -26,6 +26,7 @@ class CAOutputStream : public OutputStream
 {
 public:
 	CAOutputStream();
+	~CAOutputStream();
 	std::error_code open(OutputStreamConfig config) final;
 	void play() final;
 	void pause() final;

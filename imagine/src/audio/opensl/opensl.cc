@@ -26,17 +26,38 @@ OpenSLESOutputStream::OpenSLESOutputStream()
 	// engine object
 	SLObjectItf slE;
 	SLresult result = slCreateEngine(&slE, 0, nullptr, 0, nullptr, nullptr);
-	assert(result == SL_RESULT_SUCCESS);
+	if(result != SL_RESULT_SUCCESS)
+	{
+		logErr("error creating engine");
+		return;
+	}
 	result = (*slE)->Realize(slE, SL_BOOLEAN_FALSE);
-	assert(result == SL_RESULT_SUCCESS);
-	result = (*slE)->GetInterface(slE, SL_IID_ENGINE, &slI);
 	assert(result == SL_RESULT_SUCCESS);
 
 	// output mix object
+	SLEngineItf slI;
+	result = (*slE)->GetInterface(slE, SL_IID_ENGINE, &slI);
+	assert(result == SL_RESULT_SUCCESS);
+	SLObjectItf outMix;
 	result = (*slI)->CreateOutputMix(slI, &outMix, 0, nullptr, nullptr);
 	assert(result == SL_RESULT_SUCCESS);
 	result = (*outMix)->Realize(outMix, SL_BOOLEAN_FALSE);
-	assert(result == SL_RESULT_SUCCESS);
+	if(result != SL_RESULT_SUCCESS)
+	{
+		logErr("error creating output mix");
+		return;
+	}
+	this->slE = slE;
+	this->outMix = outMix;
+}
+
+OpenSLESOutputStream::~OpenSLESOutputStream()
+{
+	if(!outMix)
+		return;
+	close();
+	(*outMix)->Destroy(outMix);
+	(*slE)->Destroy(slE);
 }
 
 std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
@@ -86,7 +107,10 @@ std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
 	SLDataSink sink{&outMixLoc, nullptr};
 	const SLInterfaceID ids[]{SL_IID_ANDROIDSIMPLEBUFFERQUEUE, SL_IID_VOLUME};
 	const SLboolean req[std::size(ids)]{SL_BOOLEAN_TRUE, SL_BOOLEAN_FALSE};
-	SLresult result = (*slI)->CreateAudioPlayer(slI, &player, &audioSrc, &sink, std::size(ids), ids, req);
+	SLEngineItf slI;
+	SLresult result = (*slE)->GetInterface(slE, SL_IID_ENGINE, &slI);
+	assert(result == SL_RESULT_SUCCESS);
+	result = (*slI)->CreateAudioPlayer(slI, &player, &audioSrc, &sink, std::size(ids), ids, req);
 	if(unlikely(result != SL_RESULT_SUCCESS))
 	{
 		logErr("CreateAudioPlayer returned 0x%X", (uint32_t)result);
@@ -152,7 +176,7 @@ void OpenSLESOutputStream::pause()
 void OpenSLESOutputStream::close()
 {
 	if(!player)
-		return
+		return;
 	logMsg("closing player");
 	isPlaying_ = false;
 	slBuffQI = nullptr;

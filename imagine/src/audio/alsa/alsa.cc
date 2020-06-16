@@ -79,6 +79,11 @@ static bool recoverPCM(snd_pcm_t *handle)
 
 ALSAOutputStream::ALSAOutputStream() {}
 
+ALSAOutputStream::~ALSAOutputStream()
+{
+	close();
+}
+
 std::error_code ALSAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())

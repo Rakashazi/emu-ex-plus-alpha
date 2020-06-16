@@ -27,6 +27,7 @@ class ALSAOutputStream : public OutputStream
 {
 public:
 	ALSAOutputStream();
+	~ALSAOutputStream();
 	std::error_code open(OutputStreamConfig config) final;
 	void play() final;
 	void pause() final;

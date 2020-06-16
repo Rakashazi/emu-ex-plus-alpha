@@ -103,6 +103,16 @@ PAOutputStream::PAOutputStream()
 	freeMain.cancel();
 }
 
+PAOutputStream::~PAOutputStream()
+{
+	if(!context)
+		return;
+	close();
+	pa_context_unref(context);
+	stopMainLoop();
+	freeMainLoop();
+}
+
 std::error_code PAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())
@@ -234,7 +244,6 @@ void PAOutputStream::close()
 {
 	if(!isOpen())
 	{
-		logMsg("audio already closed");
 		return;
 	}
 	lockMainLoop();

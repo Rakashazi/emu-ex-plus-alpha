@@ -98,6 +98,11 @@ AAudioOutputStream::AAudioOutputStream()
 		});
 }
 
+AAudioOutputStream::~AAudioOutputStream()
+{
+	close();
+}
+
 std::error_code AAudioOutputStream::open(OutputStreamConfig config)
 {
 	assert(libHandle);
@@ -125,7 +130,7 @@ bool AAudioOutputStream::openStream(PcmFormat format, bool lowLatencyMode)
 	assert(!stream);
 	logMsg("creating stream %dHz, %d channels, low-latency:%s", format.rate, format.channels,
 		lowLatencyMode ? "y" : "n");
-	if(format.sample != SampleFormats::i16 || format.sample != SampleFormats::f32)
+	if(format.sample != SampleFormats::i16 && format.sample != SampleFormats::f32)
 	{
 		logErr("only i16 and f32 sample formats are supported");
 		return false;

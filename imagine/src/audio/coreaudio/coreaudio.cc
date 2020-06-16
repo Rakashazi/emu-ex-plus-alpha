@@ -67,6 +67,14 @@ CAOutputStream::CAOutputStream()
 	}
 }
 
+CAOutputStream::~CAOutputStream()
+{
+	if(!outputUnit)
+		return;
+	close();
+	AudioComponentInstanceDispose(outputUnit);
+}
+
 std::error_code CAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())
