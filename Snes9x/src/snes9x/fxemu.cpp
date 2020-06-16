@@ -30,7 +30,7 @@ void S9xSetSuperFXTiming(uint16 speedMultiplier)
 	const double speedPerLineFloat = 5823405. * ((1. / Memory.ROMFramesPerSecond) / (double)Timings.V_Max);
 	const double speedPerLinePreMultFloat = speedPerLineFloat * (speedMultiplier / 100.);
 	SuperFX.speedPerLine = speedPerLinePreMultFloat;
-	SuperFX.speedPerLine2x = speedPerLinePreMultFloat * 8. / 3.;
+	SuperFX.speedPerLine2x = speedPerLinePreMultFloat * 5. / 2.;
 }
 
 void S9xResetSuperFX (void)

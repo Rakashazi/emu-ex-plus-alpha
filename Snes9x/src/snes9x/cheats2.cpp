@@ -555,26 +555,26 @@ static void S9xLoadCheatsFromBMLNode (bml_node *n)
 
     for (i = 0; i < n->child.size (); i++)
     {
-        if (!strcasecmp (n->child[i]->name, "cheat"))
+        if (!strcasecmp (n->child[i].name.c_str(), "cheat"))
         {
-            char *desc = NULL;
-            char *code = NULL;
+            const char *desc = NULL;
+            const char *code = NULL;
             bool8 enabled = false;
 
-            bml_node *c = n->child[i];
+            bml_node *c = &n->child[i];
             bml_node *tmp = NULL;
 
-            tmp = bml_find_sub(c, "name");
+            tmp = c->find_subnode("name");
             if (!tmp)
                 desc = (char *) "";
             else
-                desc = tmp->data;
+                desc = tmp->data.c_str();
 
-            tmp = bml_find_sub(c, "code");
+            tmp = c->find_subnode("code");
             if (tmp)
-                code = tmp->data;
+                code = tmp->data.c_str();
 
-            if (bml_find_sub(c, "enable"))
+            if (c->find_subnode("enable"))
                 enabled = true;
 
             if (code && !S9xCheatIsDuplicate (desc, code))
@@ -624,23 +624,17 @@ static bool8 S9xLoadCheatFileClassic (const char *filename)
 
 bool8 S9xLoadCheatFile (const char *filename)
 {
-    bml_node *bml = NULL;
-    bml_node *n   = NULL;
-
-    bml = bml_parse_file (filename);
-    if (!bml)
+    bml_node bml;
+    if (!bml.parse_file(filename))
     {
         return S9xLoadCheatFileClassic (filename);
     }
 
-    n = bml_find_sub (bml, "cheat");
+   bml_node *n = bml.find_subnode("cheat");
     if (n)
     {
-        S9xLoadCheatsFromBMLNode (bml);
+        S9xLoadCheatsFromBMLNode (&bml);
     }
-
-    bml_free_node (bml);
-    delete bml;
 
     if (!n)
     {
@@ -728,15 +722,13 @@ void S9xCheatsEnable (void)
 
 int S9xImportCheatsFromDatabase (const char *filename)
 {
-    bml_node *bml;
     char sha256_txt[65];
     char hextable[] = "0123456789abcdef";
     unsigned int i;
 
-    bml = bml_parse_file (filename);
-
-    if (!bml)
-        return -1; /* No file */
+    bml_node bml;
+    if (!bml.parse_file(filename))
+        return -1; // No file
 
     for (i = 0; i < 32; i++)
     {
@@ -745,25 +737,22 @@ int S9xImportCheatsFromDatabase (const char *filename)
     }
     sha256_txt[64] = '\0';
 
-    for (i = 0; i < bml->child.size (); i++)
+    for (i = 0; i < bml.child.size (); i++)
     {
-        if (!strcasecmp (bml->child[i]->name, "cartridge"))
+        if (!strcasecmp (bml.child[i].name.c_str(), "cartridge"))
         {
             bml_node *n;
 
-            if ((n = bml_find_sub (bml->child[i], "sha256")))
+            if ((n = bml.child[i].find_subnode ("sha256")))
             {
-                if (!strcasecmp (n->data, sha256_txt))
+                if (!strcasecmp (n->data.c_str(), sha256_txt))
                 {
-                    S9xLoadCheatsFromBMLNode (bml->child[i]);
-                    bml_free_node (bml);
+                    S9xLoadCheatsFromBMLNode (&bml.child[i]);
                     return 0;
                 }
             }
         }
     }
-
-    bml_free_node (bml);
 
     return -2; /* No codes */
 }

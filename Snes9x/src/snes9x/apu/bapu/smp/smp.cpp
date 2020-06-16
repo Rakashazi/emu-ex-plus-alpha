@@ -67,8 +67,7 @@ void SMP::reset() {
 }
 
 SMP::SMP() {
-  apuram = new uint8[64 * 1024 * 2];
-  memset(apuram, 0, 64 * 1024 * 2);
+  apuram = new uint8[64 * 1024];
 }
 
 SMP::~SMP() {

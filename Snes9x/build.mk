@@ -60,6 +60,9 @@ snapshot.cpp \
 spc7110.cpp \
 srtc.cpp \
 tile.cpp \
+tileimpl-h2x1.cpp \
+tileimpl-n1x1.cpp \
+tileimpl-n2x1.cpp \
 apu/apu.cpp \
 apu/bapu/dsp/sdsp.cpp \
 apu/bapu/smp/smp.cpp \

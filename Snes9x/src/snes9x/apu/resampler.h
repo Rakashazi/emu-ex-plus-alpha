@@ -56,9 +56,16 @@ class Resampler
         return (a0 * b) + (a1 * m0) + (a2 * m1) + (a3 * c);
     }
 
+    Resampler()
+    {
+        this->buffer_size = 0;
+        buffer = NULL;
+        r_step = 1.0;
+    }
+
     Resampler(int num_samples)
     {
-    	  num_samples = ((num_samples + 1) / 2) * 2;
+        num_samples = ((num_samples + 1) / 2) * 2;
         this->buffer_size = num_samples;
         buffer = new int16_t[this->buffer_size];
         r_step = 1.0;
@@ -78,6 +85,9 @@ class Resampler
 
     inline void clear(void)
     {
+        if (!buffer)
+            return;
+
         start = 0;
         size = 0;
         memset(buffer, 0, buffer_size * 2);

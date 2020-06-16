@@ -24,6 +24,7 @@ void (*S9xCustomDisplayString) (const char *, int, int, bool, int) = NULL;
 
 static void SetupOBJ (void);
 static void DrawOBJS (int);
+static void DisplayTime (void);
 static void DisplayFrameRate (void);
 static void DisplayPressedKeys (void);
 static void DisplayWatchedAddresses (void);
@@ -596,6 +597,7 @@ static void SetupOBJ (void)
 
 	int		Height;
 	uint8	S;
+	int sprite_limit = (Settings.MaxSpriteTilesPerLine == 128) ? 128 : 32;
 
 	if (!PPU.OAMPriorityRotation || !(PPU.OAMFlip & PPU.OAMAddr & 1)) // normal case
 	{
@@ -606,7 +608,7 @@ static void SetupOBJ (void)
 		{
 			GFX.OBJLines[i].RTOFlags = 0;
 			GFX.OBJLines[i].Tiles = Settings.MaxSpriteTilesPerLine;
-			for (int j = 0; j < 32; j++)
+			for (int j = 0; j < sprite_limit; j++)
 				GFX.OBJLines[i].OBJ[j].Sprite = -1;
 		}
 
@@ -645,7 +647,7 @@ static void SetupOBJ (void)
 					if (Y >= SNES_HEIGHT_EXTENDED)
 						continue;
 
-					if (LineOBJ[Y] >= 32)
+					if (LineOBJ[Y] >= sprite_limit)
 					{
 						GFX.OBJLines[Y].RTOFlags |= 0x40;
 						continue;
@@ -749,7 +751,7 @@ static void SetupOBJ (void)
 				{
 					if (OBJOnLine[Y][S])
 					{
-						if (j >= 32)
+						if (j >= sprite_limit)
 						{
 							GFX.OBJLines[Y].RTOFlags |= 0x40;
 							break;
@@ -766,7 +768,7 @@ static void SetupOBJ (void)
 				} while (S != FirstSprite);
 			}
 
-			if (j < 32)
+			if (j < sprite_limit)
 				GFX.OBJLines[Y].OBJ[j].Sprite = -1;
 		}
 	}
@@ -786,13 +788,14 @@ static void DrawOBJS (int D)
 	int	PixWidth = IPPU.DoubleWidthPixels ? 2 : 1;
 	BG.InterlaceLine = GFX.InterlaceFrame ? 8 : 0;
 	GFX.Z1 = 2;
+	int sprite_limit = (Settings.MaxSpriteTilesPerLine == 128) ? 128 : 32;
 
 	for (uint32 Y = GFX.StartY, Offset = Y * GFX.PPL; Y <= GFX.EndY; Y++, Offset += GFX.PPL)
 	{
 		int	I = 0;
 		int	tiles = GFX.OBJLines[Y].Tiles;
 
-		for (int S = GFX.OBJLines[Y].OBJ[I].Sprite; S >= 0 && I < 32; S = GFX.OBJLines[Y].OBJ[++I].Sprite)
+		for (int S = GFX.OBJLines[Y].OBJ[I].Sprite; S >= 0 && I < sprite_limit; S = GFX.OBJLines[Y].OBJ[++I].Sprite)
 		{
 			tiles += GFX.OBJVisibleTiles[S];
 			if (tiles <= 0)
@@ -1835,6 +1838,20 @@ static void S9xDisplayStringType (const char *string, int linesFromBottom, int p
     S9xDisplayString (string, linesFromBottom, pixelsFromLeft, allowWrap);
 }
 
+static void DisplayTime (void)
+{
+	char string[10];
+
+	time_t rawtime;
+	struct tm *timeinfo;
+
+	time (&rawtime);
+	timeinfo = localtime(&rawtime);
+
+	sprintf(string, "%02u:%02u", timeinfo->tm_hour, timeinfo->tm_min);
+	S9xDisplayString(string, 0, 0, false);
+}
+
 static void DisplayFrameRate (void)
 {
 	char	string[10];
@@ -2028,6 +2045,9 @@ static void DisplayWatchedAddresses (void)
 
 void S9xDisplayMessages (uint16 *screen, int ppl, int width, int height, int scale)
 {
+	if (Settings.DisplayTime)
+		DisplayTime();
+
 	if (Settings.DisplayFrameRate)
 		DisplayFrameRate();
 
@@ -2114,10 +2134,10 @@ void S9xDrawCrosshair (const char *crosshair, uint8 fgcolor, uint8 bgcolor, int1
 			uint8	p = crosshair[(r / rx) * 15 + (c / cx)];
 
 			if (p == '#' && fgcolor)
-				*s = (fgcolor & 0x10) ? COLOR_ADD1_2(fg, *s) : fg;
+				*s = (fgcolor & 0x10) ? COLOR_ADD::fn1_2(fg, *s) : fg;
 			else
 			if (p == '.' && bgcolor)
-				*s = (bgcolor & 0x10) ? COLOR_ADD1_2(*s, bg) : bg;
+				*s = (bgcolor & 0x10) ? COLOR_ADD::fn1_2(*s, bg) : bg;
 		}
 	}
 }
