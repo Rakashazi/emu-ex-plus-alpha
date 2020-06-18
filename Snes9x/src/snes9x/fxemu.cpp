@@ -8,6 +8,7 @@
 #include "memmap.h"
 #include "fxinst.h"
 #include "fxemu.h"
+#include <cmath>
 
 static void FxReset (struct FxInfo_s *);
 static void fx_readRegisterSpace (void);
@@ -28,9 +29,11 @@ void S9xInitSuperFX (void)
 void S9xSetSuperFXTiming(uint16 speedMultiplier)
 {
 	const double speedPerLineFloat = 5823405. * ((1. / Memory.ROMFramesPerSecond) / (double)Timings.V_Max);
-	const double speedPerLinePreMultFloat = speedPerLineFloat * (speedMultiplier / 100.);
-	SuperFX.speedPerLine = speedPerLinePreMultFloat;
-	SuperFX.speedPerLine2x = speedPerLinePreMultFloat * 5. / 2.;
+	const double speedPerLine2xFloat = speedPerLineFloat * Timings.SuperFX2SpeedMultiplier;
+	const double overclockMultiplier = speedMultiplier / 100.;
+	SuperFX.speedPerLine = std::round(speedPerLineFloat * overclockMultiplier);
+	SuperFX.speedPerLine2x = std::round(speedPerLine2xFloat * overclockMultiplier);
+	S9xPrintf("set SuperFX speed/line 1x:%u 2x:%u\n", SuperFX.speedPerLine, SuperFX.speedPerLine2x);
 }
 
 void S9xResetSuperFX (void)

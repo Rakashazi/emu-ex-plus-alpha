@@ -2624,6 +2624,7 @@ void CMemory::InitROM (void)
 	Timings.NMIDMADelay  = 24;
 	Timings.IRQTriggerCycles = 14;
 	Timings.APUSpeedup = 0;
+	Timings.SuperFX2SpeedMultiplier = 5. / 2.;
 	S9xAPUTimingSetSpeedup(Timings.APUSpeedup);
 
 	IPPU.TotalEmulatedFrames = 0;
@@ -3618,6 +3619,11 @@ void CMemory::ApplyROMFixes (void)
 {
 	if (Settings.DisableGameSpecificHacks)
 		return;
+
+	if (match_id("YI  ")) // Super Mario World 2 - Yoshi's Island
+	{
+		Timings.SuperFX2SpeedMultiplier = 8. / 3.;
+	}
 
 	// APU timing hacks
 	if (match_na("CIRCUIT USA"))
