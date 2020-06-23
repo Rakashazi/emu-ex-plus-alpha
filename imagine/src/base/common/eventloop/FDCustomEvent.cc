@@ -50,7 +50,7 @@ static void notifyEventFD(int fd, const char *debugLabel)
 	auto ret = write(fd, &counter, sizeof(counter));
 	if(ret == -1)
 	{
-		logErr("error writing eventfd (%s)", debugLabel);
+		logErr("error writing eventfd:%d (%s)", fd, debugLabel);
 	}
 #else
 	struct kevent kev;
@@ -67,7 +67,7 @@ static void cancelEventFD(int fd, const char *debugLabel)
 	if(ret == -1)
 	{
 		if(Config::DEBUG_BUILD && errno != EAGAIN)
-			logErr("error reading eventfd (%s)", debugLabel);
+			logErr("error reading eventfd:%d (%s)", fd, debugLabel);
 	}
 #else
 	struct kevent kev;
@@ -160,7 +160,7 @@ bool FDCustomEvent::shouldPerformCallback(int fd)
 	if(ret == -1)
 	{
 		if(Config::DEBUG_BUILD && errno != EAGAIN)
-			logErr("error reading eventfd in callback");
+			logErr("error reading eventfd:%d in callback", fd);
 		return false;
 	}
 	#else

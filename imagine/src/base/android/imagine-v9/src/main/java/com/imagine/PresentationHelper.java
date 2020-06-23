@@ -33,6 +33,7 @@ final class PresentationHelper extends Presentation
 	private native void onSurfaceCreated(long windowAddr, Surface surface);
 	private native void onSurfaceRedrawNeeded(long windowAddr);
 	private native void onSurfaceDestroyed(long windowAddr);
+	private native void onWindowDismiss(long windowAddr);
 	
 	PresentationHelper(Activity context, Display display, long windowAddr)
 	{
@@ -42,6 +43,7 @@ final class PresentationHelper extends Presentation
 			contentView = new ContentViewV24(context, windowAddr);
 		else
 			contentView = new ContentViewV16(context, windowAddr);
+		show();
 	}
 
 	@Override protected void onCreate(Bundle savedInstanceState)
@@ -63,7 +65,7 @@ final class PresentationHelper extends Presentation
 		//Log.i(logTag, "presentation dismissed");
 		if(contentView.windowAddr != 0)
 		{
-			// TODO: need to call native code and deinit the window
+			onWindowDismiss(contentView.windowAddr);
 		}
 	}
 	

@@ -85,10 +85,6 @@ static MFMailComposeViewController *composeController;
 #include "gameKit.h"
 #endif
 
-uint32_t appState = APP_RUNNING;
-
-uint32_t appActivityState() { return appState; }
-
 static Screen &setupUIScreen(UIScreen *screen, bool setOverscanCompensation)
 {
 	// prevent overscan compensation
@@ -314,7 +310,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	using namespace Base;
 	logMsg("app exiting");
-	Base::appState = APP_EXITING;
+	setExitingActivityState();
 	dispatchOnExit(false);
 	logMsg("app exited");
 }
@@ -323,7 +319,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	using namespace Base;
 	logMsg("entering background");
-	appState = APP_PAUSED;
+	setPausedActivityState();
 	dispatchOnExit(true);
 	Base::Screen::setActiveAll(false);
 	Input::deinitKeyRepeatTimer();
@@ -334,7 +330,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	using namespace Base;
 	logMsg("entered foreground");
-	Base::appState = APP_RUNNING;
+	setRunningActivityState();
 	Base::Screen::setActiveAll(true);
 	iterateTimes(Window::windows(), i)
 	{
@@ -496,7 +492,7 @@ void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)
 
 void exit(int returnVal)
 {
-	appState = APP_EXITING;
+	setExitingActivityState();
 	dispatchOnExit(false);
 	::exit(returnVal);
 }

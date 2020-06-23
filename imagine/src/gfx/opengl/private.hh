@@ -23,6 +23,4 @@ static constexpr Base::GLDisplay::API glAPI =
 Gfx::GC orientationToGC(Base::Orientation o);
 void setGLDebugOutput(DrawContextSupport &support, bool on);
 
-static constexpr int GLRENDERER_ON_EXIT_PRIORITY = 110;
-
 }

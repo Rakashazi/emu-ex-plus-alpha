@@ -142,14 +142,16 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 		}, 10);
 	if(!Base::Screen::supportsTimestamps())
 	{
-		setUseRenderTaskTime(true);
+		setUseRendererTime(true);
 	}
-	logMsg("timestamp source:%s", useRenderTaskTime() ? "renderer" : "screen");
+	logMsg("timestamp source:%s", useRendererTime() ? "renderer" : "screen");
 	onFrameUpdate = [this](IG::FrameParams params)
 		{
 			if(emuVideoInProgress)
 			{
 				// frame not ready yet, retry on next vblank
+				if(useRendererTime())
+					postDrawToEmuWindows();
 				return true;
 			}
 			bool skipForward = false;
@@ -173,7 +175,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			uint32_t framesAdvanced = EmuSystem::advanceFramesWithTime(params.timestamp());
 			if(!framesAdvanced)
 			{
-				if(useRenderTaskTime())
+				if(useRendererTime())
 					postDrawToEmuWindows();
 				return true;
 			}
@@ -273,7 +275,10 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 			if(change.resized())
 			{
 				updateWindowViewport(winData, change);
-				emuView.setViewRect(winData.viewport().bounds(), winData.projectionPlane);
+				if(winData.hasEmuView)
+				{
+					emuView.setViewRect(winData.viewport().bounds(), winData.projectionPlane);
+				}
 				emuInputView.setViewRect(winData.viewport().bounds(), winData.projectionPlane);
 				placeElements();
 			}
@@ -282,13 +287,16 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 	winConf.setOnDraw(
 		[this, &winData](Base::Window &win, Base::Window::DrawParams params)
 		{
-			if(unlikely(emuVideoInProgress))
-			{
-				//logMsg("waiting for EmuVideo to signal draw");
-				return true;
-			}
 			popup.prepareDraw();
-			emuView.prepareDraw();
+			if(winData.hasEmuView)
+			{
+				if(unlikely(emuVideoInProgress))
+				{
+					//logMsg("waiting for EmuVideo to signal draw");
+					return true;
+				}
+				emuView.prepareDraw();
+			}
 			if(!EmuSystem::isActive())
 			{
 				prepareDraw();
@@ -302,6 +310,13 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 					drawMainWindow(win, cmds, winData.hasEmuView, winData.hasPopup);
 				});
 			return false;
+		});
+
+	winConf.setOnFree(
+		[this, &winData]()
+		{
+			rendererTask().waitForDrawFinished();
+			winData.drawableHolder.destroyDrawable(rendererTask().renderer());
 		});
 
 	return winConf;
@@ -362,6 +377,7 @@ void EmuViewController::moveEmuViewToWindow(Base::Window &win)
 	auto &winData = appWindowData(win);
 	winData.hasEmuView = true;
 	emuView.setWindow(&win);
+	emuView.setViewRect(winData.viewport().bounds(), winData.projectionPlane);
 }
 
 void EmuViewController::configureAppForEmulation(bool running)
@@ -536,16 +552,18 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 				emuView.setLayoutInputView(&inputView());
 				placeEmuViews();
 				mainWin.win.postDraw();
-				if(EmuSystem::isActive() && mainWin.win.screen() != win.screen())
+				if(EmuSystem::isActive())
 				{
-					moveOnFrame(*win.screen(), *mainWin.win.screen());
+					moveOnFrame(win, mainWin.win);
 					applyFrameRates();
 				}
 			});
 
 		winConf.setOnFree(
-			[]()
+			[this]()
 			{
+				rendererTask().waitForDrawFinished();
+				extraWin->drawableHolder.destroyDrawable(rendererTask().renderer());
 				extraWin.reset();
 			});
 
@@ -554,14 +572,14 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 		extraWin->focused = true;
 		logMsg("init extra window");
 		auto &mainWin = mainWindowData();
-		if(EmuSystem::isActive() && mainWin.win.screen() != extraWin->win.screen())
+		if(EmuSystem::isActive())
 		{
-			moveOnFrame(*mainWin.win.screen(), *extraWin->win.screen());
+			moveOnFrame(mainWin.win, extraWin->win);
 			applyFrameRates();
 		}
+		updateProjection(*extraWin, makeViewport(extraWin->win));
 		moveEmuViewToWindow(extraWin->win);
 		emuView.setLayoutInputView(nullptr);
-		updateProjection(*extraWin, makeViewport(extraWin->win));
 		extraWin->win.setTitle(appName());
 		extraWin->win.show();
 		placeEmuViews();
@@ -641,7 +659,7 @@ Base::OnFrameDelegate EmuViewController::makeOnFrameDelayed(uint8_t delay)
 				if(EmuSystem::isActive())
 					addOnFrameDelegate(onFrameUpdate);
 			}
-			if(useRenderTaskTime())
+			if(useRendererTime())
 				postDrawToEmuWindows();
 			return false;
 		};
@@ -649,13 +667,13 @@ Base::OnFrameDelegate EmuViewController::makeOnFrameDelayed(uint8_t delay)
 
 void EmuViewController::addOnFrameDelegate(Base::OnFrameDelegate onFrame)
 {
-	if(!useRenderTaskTime())
+	if(!useRendererTime())
 	{
 		emuWindowScreen()->addOnFrame(onFrame);
 	}
 	else
 	{
-		rendererTask().addOnFrame(onFrame);
+		emuWindowData().drawableHolder.addOnFrame(onFrame);
 		postDrawToEmuWindows();
 	}
 }
@@ -675,22 +693,27 @@ void EmuViewController::addOnFrame()
 
 void EmuViewController::removeOnFrame()
 {
-	if(!useRenderTaskTime())
+	if(!useRendererTime())
 	{
 		emuWindowScreen()->removeOnFrame(onFrameUpdate);
 	}
 	else
 	{
-		rendererTask().removeOnFrame(onFrameUpdate);
+		emuWindowData().drawableHolder.removeOnFrame(onFrameUpdate);
 	}
 }
 
-void EmuViewController::moveOnFrame(Base::Screen &from, Base::Screen &to)
+void EmuViewController::moveOnFrame(Base::Window &from, Base::Window &to)
 {
-	if(!useRenderTaskTime())
+	if(!useRendererTime())
 	{
-		from.removeOnFrame(onFrameUpdate);
-		to.addOnFrame(onFrameUpdate);
+		from.screen()->removeOnFrame(onFrameUpdate);
+		to.screen()->addOnFrame(onFrameUpdate);
+	}
+	else
+	{
+		appWindowData(from).drawableHolder.removeOnFrame(onFrameUpdate);
+		appWindowData(to).drawableHolder.addOnFrame(onFrameUpdate);
 	}
 }
 
@@ -740,6 +763,11 @@ Base::Screen *EmuViewController::emuWindowScreen() const
 Base::Window &EmuViewController::emuWindow() const
 {
 	return emuView.window();
+}
+
+AppWindowData &EmuViewController::emuWindowData()
+{
+	return appWindowData(emuView.window());
 }
 
 Gfx::RendererTask &EmuViewController::rendererTask() const
@@ -953,18 +981,12 @@ void EmuViewController::setFastForwardActive(bool active)
 	emuAudio.setAddSoundBuffersOnUnderrun(active ? optionAddSoundBuffersOnUnderrun.val : false);
 }
 
-void EmuViewController::setUseRenderTaskTime(bool on)
+void EmuViewController::setUseRendererTime(bool on)
 {
-	#ifdef EMU_FRAMEWORK_RENDER_TASK_TIME
-	useRenderTaskTime_ = on;
-	#endif
+	useRendererTime_ = on;
 }
 
-bool EmuViewController::useRenderTaskTime() const
+bool EmuViewController::useRendererTime() const
 {
-	#ifdef EMU_FRAMEWORK_RENDER_TASK_TIME
-	return useRenderTaskTime_;
-	#else
-	return false;
-	#endif
+	return useRendererTime_;
 }

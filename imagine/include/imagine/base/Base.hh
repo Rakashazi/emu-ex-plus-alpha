@@ -44,9 +44,7 @@ void registerInstance(const char *appID, int argc, char** argv);
 void setAcceptIPC(const char *appID, bool on);
 
 // App run state
-static const uint32_t APP_RUNNING = 0, APP_PAUSED = 1, APP_EXITING = 2;
-uint32_t appActivityState();
-static bool appIsRunning() { return appActivityState() == APP_RUNNING; }
+bool appIsRunning();
 
 // external services
 void openURL(const char *url);
@@ -108,7 +106,14 @@ void dispatchOnInterProcessMessage(const char *filename);
 const InterProcessMessageDelegate &onInterProcessMessage();
 
 // Called when app returns from backgrounded state
-bool addOnResume(ResumeDelegate del, int priority = 0);
+static constexpr int INPUT_DEVICES_ON_RESUME_PRIORITY = -600;
+static constexpr int RENDERER_ON_RESUME_PRIORITY = -500;
+static constexpr int WINDOW_ON_RESUME_PRIORITY = -400;
+static constexpr int RENDERER_DRAWABLE_ON_RESUME_PRIORITY = -300;
+static constexpr int RENDERER_TASK_ON_RESUME_PRIORITY = -200;
+static constexpr int APP_ON_RESUME_PRIORITY = 0;
+
+bool addOnResume(ResumeDelegate del, int priority = APP_ON_RESUME_PRIORITY);
 bool removeOnResume(ResumeDelegate del);
 bool containsOnResume(ResumeDelegate del);
 void dispatchOnResume(bool focused);
@@ -120,7 +125,14 @@ const FreeCachesDelegate &onFreeCaches();
 
 // Called when app will finish execution
 // If backgrounded == true, app may eventually resume execution
-bool addOnExit(ExitDelegate del, int priority = 0);
+static constexpr int RENDERER_TASK_ON_EXIT_PRIORITY = -400;
+static constexpr int RENDERER_DRAWABLE_ON_EXIT_PRIORITY = -300;
+static constexpr int WINDOW_ON_EXIT_PRIORITY = -200;
+static constexpr int APP_ON_EXIT_PRIORITY = 0;
+static constexpr int RENDERER_ON_EXIT_PRIORITY = 200;
+static constexpr int INPUT_DEVICES_ON_EXIT_PRIORITY = 300;
+
+bool addOnExit(ExitDelegate del, int priority = APP_ON_EXIT_PRIORITY);
 bool removeOnExit(ExitDelegate del);
 bool containsOnExit(ExitDelegate del);
 void dispatchOnExit(bool backgrounded);

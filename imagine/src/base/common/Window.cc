@@ -23,9 +23,6 @@
 namespace Base
 {
 
-static constexpr int ON_EXIT_PRIORITY = 200;
-static constexpr int ON_RESUME_PRIORITY = -200;
-
 #ifdef CONFIG_BASE_MULTI_WINDOW
 std::vector<Window*> window_;
 #else
@@ -89,7 +86,7 @@ void BaseWindow::initDelegates(const WindowConfig &config)
 			drawEvent.cancel();
 			return true;
 		};
-	Base::addOnExit(onExit, ON_EXIT_PRIORITY);
+	Base::addOnExit(onExit, WINDOW_ON_EXIT_PRIORITY);
 	onResume =
 		[this](bool)
 		{
@@ -97,7 +94,7 @@ void BaseWindow::initDelegates(const WindowConfig &config)
 			static_cast<Window*>(this)->deferredDrawComplete();
 			return true;
 		};
-	Base::addOnResume(onResume, ON_RESUME_PRIORITY);
+	Base::addOnResume(onResume, WINDOW_ON_RESUME_PRIORITY);
 	drawEvent.attach(
 		[this]()
 		{

@@ -51,8 +51,6 @@ static const AndroidInputDevice *builtinKeyboardDev{};
 const AndroidInputDevice *virtualDev{};
 static jclass inputDeviceHelperCls{};
 static JavaClassMethod<void()> jEnumDevices{};
-static constexpr int ON_RESUME_PRIORITY = -300;
-static constexpr int ON_EXIT_PRIORITY = 300;
 
 // InputDeviceListener-based device changes
 static jobject inputDeviceListenerHelper{};
@@ -626,13 +624,13 @@ void init(JNIEnv *env)
 					logMsg("registering input device listener");
 					jRegister(env, inputDeviceListenerHelper);
 					return true;
-				}, ON_RESUME_PRIORITY);
+				}, Base::INPUT_DEVICES_ON_RESUME_PRIORITY);
 			Base::addOnExit([env](bool backgrounded)
 				{
 					logMsg("unregistering input device listener");
 					jUnregister(env, inputDeviceListenerHelper);
 					return true;
-				}, ON_EXIT_PRIORITY);
+				}, Base::INPUT_DEVICES_ON_EXIT_PRIORITY);
 		}
 		else
 		{
@@ -681,7 +679,7 @@ void init(JNIEnv *env)
 							}
 						}
 						return true;
-					}, ON_RESUME_PRIORITY);
+					}, Base::INPUT_DEVICES_ON_RESUME_PRIORITY);
 				Base::addOnExit([env](bool backgrounded)
 					{
 						if(watch != -1)
@@ -692,7 +690,7 @@ void init(JNIEnv *env)
 							inputRescanCallback.reset();
 						}
 						return true;
-					}, ON_EXIT_PRIORITY);
+					}, Base::INPUT_DEVICES_ON_EXIT_PRIORITY);
 			}
 		}
 	}

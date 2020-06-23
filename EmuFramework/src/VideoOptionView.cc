@@ -38,27 +38,25 @@ public:
 	uint callbacks = 0;
 	std::array<char, 32> fpsStr{};
 	std::vector<Base::FrameTime> frameTimeSample{};
-	Base::Screen &screen;
-	Gfx::RendererTask &rendererTask;
 	bool useRenderTaskTime = false;
 
-	DetectFrameRateView(ViewAttachParams attach, Base::Screen &screen, Gfx::RendererTask &rendererTask): View(attach),
-		fpsText{nullptr, &View::defaultFace}, screen{screen}, rendererTask{rendererTask}
+	DetectFrameRateView(ViewAttachParams attach): View(attach),
+		fpsText{nullptr, &View::defaultFace}
 	{
 		View::defaultFace.precacheAlphaNum(attach.renderer());
 		View::defaultFace.precache(attach.renderer(), ".");
 		fpsText.setString("Preparing to detect frame rate...");
-		useRenderTaskTime = !screen.supportsTimestamps();
-		frameTimeSample.reserve(std::round(screen.frameRate() * 2.));
+		useRenderTaskTime = !screen()->supportsTimestamps();
+		frameTimeSample.reserve(std::round(screen()->frameRate() * 2.));
 	}
 
 	~DetectFrameRateView() final
 	{
 		setCPUNeedsLowLatency(false);
 		if(!useRenderTaskTime)
-			emuViewController.emuWindowScreen()->removeOnFrame(detectFrameRate);
+			screen()->removeOnFrame(detectFrameRate);
 		else
-			rendererTask.removeOnFrame(detectFrameRate);
+			appWindowData(window()).drawableHolder.removeOnFrame(detectFrameRate);
 	}
 
 	void place() final
@@ -168,11 +166,11 @@ public:
 			};
 		if(!useRenderTaskTime)
 		{
-			screen.addOnFrame(detectFrameRate);
+			screen()->addOnFrame(detectFrameRate);
 		}
 		else
 		{
-			rendererTask.addOnFrame(detectFrameRate);
+			appWindowData(window()).drawableHolder.addOnFrame(detectFrameRate);
 			postDraw();
 		}
 		setCPUNeedsLowLatency(true);
@@ -956,7 +954,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 		multiChoiceView->appendItem("Detect screen's rate and set",
 			[this, vidSys](Input::Event e)
 			{
-				auto frView = makeView<DetectFrameRateView>(*emuViewController.emuWindowScreen(), emuViewController.rendererTask());
+				auto frView = makeView<DetectFrameRateView>();
 				frView->onDetectFrameTime =
 					[this, vidSys](IG::FloatSeconds frameTime)
 					{

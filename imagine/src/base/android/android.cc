@@ -46,7 +46,6 @@ static JavaInstMethod<void()> jRecycle{};
 // activity
 jclass jBaseActivityCls{};
 jobject jBaseActivity{};
-uint32_t appState = APP_PAUSED;
 static bool aHasFocus = true;
 static AAssetManager *assetManager{};
 static JavaInstMethod<void(jint)> jSetUIVisibility{};
@@ -80,12 +79,10 @@ void recycleBitmap(JNIEnv *env, jobject bitmap)
 	jRecycle(env, bitmap);
 }
 
-uint32_t appActivityState() { return appState; }
-
 void exit(int returnVal)
 {
 	// TODO: return exit value as activity result
-	appState = APP_EXITING;
+	setExitingActivityState();
 	auto env = jEnvForThread();
 	JavaInstMethod<void()> jFinish{env, jBaseActivityCls, "finish", "()V"};
 	jFinish(env, jBaseActivity);
@@ -500,7 +497,7 @@ void setSustainedPerformanceMode(bool on)
 		{
 			if(!Config::MACHINE_IS_GENERIC_ARMV7)
 				return;
-			if(on)
+			if(on && appIsRunning())
 			{
 				if(noopThread)
 					return;
@@ -509,7 +506,7 @@ void setSustainedPerformanceMode(bool on)
 					{
 						noopThread.stop();
 						return false;
-					}, 100);
+					}, -1000);
 				noopThread.start();
 			}
 			else
@@ -548,7 +545,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			Screen::setActiveAll(true);
 			if(Base::androidSDK() >= 11)
 			{
-				appState = APP_RUNNING;
+				setRunningActivityState();
 				dispatchOnResume(aHasFocus);
 			}
 		};
@@ -558,7 +555,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			logMsg("app resumed");
 			if(Base::androidSDK() < 11)
 			{
-				appState = APP_RUNNING;
+				setRunningActivityState();
 				dispatchOnResume(aHasFocus);
 			}
 			handleIntent(activity->env, activity->clazz);
@@ -569,11 +566,10 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 		{
 			if(Base::androidSDK() < 11)
 			{
-				if(appIsRunning())
-					appState = APP_PAUSED;
-				logMsg("app %s", appState == APP_PAUSED ? "paused" : "exiting");
+				setPausedActivityState();
+				logMsg("app %s", appIsPaused() ? "paused" : "exiting");
 				// App is killable in Android 2.3, run exit handler to save volatile data
-				dispatchOnExit(appState == APP_PAUSED);
+				dispatchOnExit(appIsPaused());
 			}
 			else
 				logMsg("app paused");
@@ -584,10 +580,9 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 		{
 			if(Base::androidSDK() >= 11)
 			{
-				if(appIsRunning())
-					appState = APP_PAUSED;
-				logMsg("app %s", appState == APP_PAUSED ? "stopped" : "exiting");
-				dispatchOnExit(appState == APP_PAUSED);
+				setPausedActivityState();
+				logMsg("app %s", appIsPaused() ? "stopped" : "exiting");
+				dispatchOnExit(appIsPaused());
 			}
 			else
 				logMsg("app stopped");

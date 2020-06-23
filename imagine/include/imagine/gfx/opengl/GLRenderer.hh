@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/GLContext.hh>
-#include <imagine/base/Timer.hh>
+#include <imagine/base/CustomEvent.hh>
 #include <imagine/base/MessagePort.hh>
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/time/Time.hh>
@@ -47,6 +47,7 @@ class RenderTarget;
 class SyncFence;
 class RendererCommands;
 class TextureSampler;
+class DrawableHolder;
 
 class GLSyncFence
 {
@@ -66,11 +67,15 @@ public:
 	void makeDrawable(Renderer &r, Base::Window &win);
 	void destroyDrawable(Renderer &r);
 	Drawable drawable() const { return drawable_; };
+	void notifyOnFrame();
 
 protected:
 	Drawable drawable_;
 	Base::ResumeDelegate onResume;
 	Base::ExitDelegate onExit;
+	Base::CustomEvent drawFinishedEvent{"GLDrawableHolder::drawFinishedEvent"};
+	DelegateFuncSet<Base::OnFrameDelegate> onFrame{};
+	FrameTime lastTimestamp{};
 };
 
 using DrawableHolderImpl = GLDrawableHolder;
@@ -85,7 +90,7 @@ public:
 
 	enum class Reply: uint8_t
 	{
-		UNSET, DRAW_FINISHED
+		UNSET
 	};
 
 	struct CommandMessage
@@ -97,7 +102,7 @@ public:
 			{
 				DrawDelegate del;
 				Base::Window *winPtr;
-				Drawable drawable;
+				DrawableHolder *drawableHolderPtr;
 				GLsync fence;
 			} draw;
 			struct RunFuncArgs
@@ -110,8 +115,8 @@ public:
 		constexpr CommandMessage() {}
 		constexpr CommandMessage(Command command, IG::Semaphore *semAddr = nullptr):
 			semAddr{semAddr}, command{command} {}
-		constexpr CommandMessage(Command command, DrawDelegate drawDel, Drawable drawable, Base::Window &win, GLsync fence, IG::Semaphore *semAddr = nullptr):
-			semAddr{semAddr}, args{drawDel, &win, drawable, fence}, command{command} {}
+		constexpr CommandMessage(Command command, DrawDelegate drawDel, DrawableHolder &drawableHolder, Base::Window &win, GLsync fence, IG::Semaphore *semAddr = nullptr):
+			semAddr{semAddr}, args{drawDel, &win, &drawableHolder, fence}, command{command} {}
 		constexpr CommandMessage(Command command, RenderTaskFuncDelegate func, IG::Semaphore *semAddr = nullptr):
 			semAddr{semAddr}, command{command}
 		{
@@ -123,11 +128,10 @@ public:
 	struct ReplyMessage
 	{
 		Reply reply{Reply::UNSET};
-		FrameTime timestamp{};
 
 		constexpr ReplyMessage() {}
-		constexpr ReplyMessage(Reply reply, FrameTime timestamp):
-			reply{reply}, timestamp{timestamp} {}
+		constexpr ReplyMessage(Reply reply):
+			reply{reply} {}
 		explicit operator bool() const { return reply != Reply::UNSET; }
 	};
 
@@ -145,12 +149,11 @@ public:
 
 protected:
 	Base::MessagePort<CommandMessage> commandPort{"RenderTask Command"};
-	Base::MessagePort<ReplyMessage> replyPort{"RenderTask Reply"};
+	#ifdef CONFIG_GFX_RENDERER_TASK_REPLY_PORT
+	Base::MessagePort<ReplyMessage> replyPort{"RenderTask Reply"}; // currently unused
+	#endif
 	Base::GLContext glCtx{};
-	DelegateFuncSet<Base::OnFrameDelegate> onFrame{};
-	Base::ResumeDelegate onResume{};
 	Base::ExitDelegate onExit{};
-	IG::FrameTime drawTimestamp{};
 	std::thread thread{};
 	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 	std::mutex drawMutex{};
@@ -362,14 +365,14 @@ public:
 	TextureSampler defaultNoLinearNoMipClampSampler{};
 	TextureSampler defaultRepeatSampler{};
 	TextureSampler defaultNearestMipRepeatSampler{};
-	Base::Timer releaseShaderCompilerTimer{"GLRenderer::releaseShaderCompilerTimer"};
+	Base::CustomEvent releaseShaderCompilerEvent{"GLRenderer::releaseShaderCompilerEvent"};
 	Base::ExitDelegate onExit{};
 	TimedInterpolator<Gfx::GC> projAngleM;
 	std::unique_ptr<GLMainTask> mainTask{};
 	DrawContextSupport support{};
 
 	GLRenderer() {}
-	void addOnExitHandler();
+	void addEventHandlers();
 	Base::GLContextAttributes makeKnownGLContextAttributes();
 	void finishContextCreation(Base::GLContext ctx);
 	void setCurrentDrawable(Base::GLDisplay dpy, Base::GLContext ctx, Drawable win);

@@ -914,14 +914,14 @@ void Renderer::setWindowValidOrientations(Base::Window &win, Base::Orientation v
 	updateSensorStateForWindowOrientations(win);
 }
 
-void GLRenderer::addOnExitHandler()
+void GLRenderer::addEventHandlers()
 {
 	if(onExit)
 		return;
 	onExit =
 		[this](bool backgrounded)
 		{
-			releaseShaderCompilerTimer.cancel();
+			releaseShaderCompilerEvent.cancel();
 			if(backgrounded)
 			{
 				runGLTaskSync(
@@ -946,7 +946,15 @@ void GLRenderer::addOnExitHandler()
 			}
 			return true;
 		};
-	Base::addOnExit(onExit, GLRENDERER_ON_EXIT_PRIORITY);
+	Base::addOnExit(onExit, Base::RENDERER_ON_EXIT_PRIORITY);
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	releaseShaderCompilerEvent.attach(
+		[this]()
+		{
+			logMsg("automatically releasing shader compiler");
+			static_cast<Renderer*>(this)->releaseShaderCompiler();
+		});
+	#endif
 }
 
 }

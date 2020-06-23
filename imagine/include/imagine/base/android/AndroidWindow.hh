@@ -32,17 +32,8 @@ class AndroidWindow : public BaseWindow, public NotEquals<AndroidWindow>
 {
 public:
 	constexpr AndroidWindow() {}
-
-	bool operator ==(AndroidWindow const &rhs) const
-	{
-		return nWin == rhs.nWin;
-	}
-
-	explicit operator bool() const
-	{
-		return initialInit;
-	}
-
+	bool operator ==(AndroidWindow const &rhs) const;
+	explicit operator bool() const;
 	void setNativeWindow(ANativeWindow *nWin);
 	int nativePixelFormat();
 	void updateContentRect(const IG::WindowRect &rect);

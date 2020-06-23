@@ -84,6 +84,8 @@ class DrawableHolder : public DrawableHolderImpl
 {
 public:
 	constexpr DrawableHolder() {}
+	bool addOnFrame(Base::OnFrameDelegate del, int priority = 0);
+	bool removeOnFrame(Base::OnFrameDelegate del);
 };
 
 class RendererTask : public RendererTaskImpl
@@ -135,11 +137,8 @@ public:
 	void run(RenderTaskFuncDelegate func, IG::Semaphore *semAddr = nullptr);
 	void runSync(RenderTaskFuncDelegate func);
 	void acquireFenceAndWait(Gfx::SyncFence &fenceVar);
-	bool addOnFrame(Base::OnFrameDelegate del, int priority = 0);
-	bool removeOnFrame(Base::OnFrameDelegate del);
 	void updateDrawableForSurfaceChange(DrawableHolder &drawable, Base::Window::SurfaceChange change);
 	void destroyDrawable(DrawableHolder &drawable);
-	IG::FrameTime lastDrawTimestamp() const;
 	constexpr Renderer &renderer() const { return r; }
 
 private:

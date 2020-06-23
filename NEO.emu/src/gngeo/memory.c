@@ -827,12 +827,12 @@ Uint16 sma_random(void) {
 Uint8 mem68k_fetch_bk_normal_byte(Uint32 addr) {
 	addr &= 0xFFFFF;
     if (memory.bksw_unscramble) { /* SMA prot & random number generator */
-        Uint32 a=addr&0xFFFFFE;
+        Uint32 a=addr&0xFFFFE;
 		if (a == 0xfe446) {
 			//printf("Prot reading B %08x\n", addr);
 			return (addr&0x1?0x9a:0x37);
 		}
-		if (memory.sma_rng_addr && addr>=0x2fff00 &&
+		if (memory.sma_rng_addr && addr>=0xfff00 &&
             (((a & 0xFF) == (memory.sma_rng_addr & 0xFF)) || 
              ((a & 0xFF) == memory.sma_rng_addr >> 8))) {
             //printf("SMA_Random B %08x\n",addr);
@@ -849,7 +849,7 @@ Uint16 mem68k_fetch_bk_normal_word(Uint32 addr) {
 			//printf("Prot reading W %08x\n", addr);
 			return 0x9a37;
 		}
-		if (memory.sma_rng_addr && addr>=0x2fff00 &&
+		if (memory.sma_rng_addr && addr>=0xfff00 &&
             (((addr & 0xFF) == (memory.sma_rng_addr & 0xFF)) || 
              ((addr & 0xFF) == memory.sma_rng_addr >> 8))) {
             //printf("SMA_Random W %08x\n",addr);

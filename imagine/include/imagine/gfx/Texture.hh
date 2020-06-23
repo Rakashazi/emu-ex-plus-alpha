@@ -66,8 +66,8 @@ public:
 	bool generateMipmaps();
 	uint32_t levels() const;
 	Error setFormat(IG::PixmapDesc desc, uint32_t levels);
-	void write(uint32_t level, const IG::Pixmap &pixmap, IG::WP destPos, uint32_t commitFlags = 0);
-	void writeAligned(uint32_t level, const IG::Pixmap &pixmap, IG::WP destPos, uint32_t assumedDataAlignment, uint32_t commitFlags = 0);
+	void write(uint32_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t commitFlags = 0);
+	void writeAligned(uint32_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t assumedDataAlignment, uint32_t commitFlags = 0);
 	void clear(uint32_t level);
 	LockedTextureBuffer lock(uint32_t level);
 	LockedTextureBuffer lock(uint32_t level, IG::WindowRect rect);

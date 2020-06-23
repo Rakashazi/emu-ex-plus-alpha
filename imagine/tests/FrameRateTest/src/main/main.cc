@@ -156,6 +156,13 @@ namespace Base
 
 void onInit(int argc, char** argv)
 {
+	Base::addOnResume(
+		[](bool focused)
+		{
+			rendererTask.start();
+			return true;
+		});
+
 	Base::addOnExit(
 		[](bool backgrounded)
 		{
@@ -182,7 +189,6 @@ void onInit(int argc, char** argv)
 			return;
 		}
 	}
-	rendererTask.start();
 	View::compileGfxPrograms(renderer);
 	View::defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{});
 	WindowConfig winConf;

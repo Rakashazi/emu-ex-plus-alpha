@@ -44,8 +44,6 @@ private:
 	JavaInstMethod<jint(jint)> jMOGAGetState{};
 	JavaInstMethod<void()> jMOGAOnPause{}, jMOGAOnResume{}, jMOGAExit{};
 	AndroidInputDevice *mogaDev{};
-	static constexpr int ON_RESUME_PRIORITY = -100;
-	static constexpr int ON_EXIT_PRIORITY = 100;
 	Base::ResumeDelegate onResume{};
 	Base::ExitDelegate onExit{};
 	bool exiting = false;
@@ -78,7 +76,7 @@ MogaSystem::MogaSystem(JNIEnv *env, bool notify)
 			onResumeMOGA(env, true);
 			return true;
 		};
-	Base::addOnResume(onResume, ON_RESUME_PRIORITY);
+	Base::addOnResume(onResume, Base::INPUT_DEVICES_ON_RESUME_PRIORITY);
 	onExit =
 		[this, env](bool backgrounded)
 		{
@@ -93,7 +91,7 @@ MogaSystem::MogaSystem(JNIEnv *env, bool notify)
 			}
 			return true;
 		};
-	Base::addOnExit(onExit, ON_EXIT_PRIORITY);
+	Base::addOnExit(onExit, Base::INPUT_DEVICES_ON_EXIT_PRIORITY);
 }
 
 MogaSystem::~MogaSystem()

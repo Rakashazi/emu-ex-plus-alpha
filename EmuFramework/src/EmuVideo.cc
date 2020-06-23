@@ -147,7 +147,7 @@ void EmuVideo::finishFrame(EmuSystemTask *task, IG::Pixmap pix)
 		doScreenshot(task, pix);
 	}
 	rTask.acquireFenceAndWait(fence);
-	vidImg.write(0, pix, {}, Gfx::Texture::COMMIT_FLAG_ASYNC);
+	vidImg.write(0, pix, {});
 	dispatchFinishFrame(task);
 }
 

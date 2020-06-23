@@ -45,11 +45,52 @@ static InterProcessMessageDelegate onInterProcessMessage_;
 static DelegateFuncSet<ResumeDelegate> onResume_;
 static FreeCachesDelegate onFreeCaches_;
 static DelegateFuncSet<ExitDelegate> onExit_;
+static ActivityState appState = ActivityState::PAUSED;
 
 void engineInit()
 {
 	logDMsg("%s", copyright);
 	logDMsg("compiled on %s %s", __DATE__, __TIME__);
+}
+
+ActivityState activityState()
+{
+	return appState;
+}
+
+void setPausedActivityState()
+{
+	if(appState == ActivityState::EXITING)
+	{
+		return; // ignore setting paused state while exiting
+	}
+	appState = ActivityState::PAUSED;
+}
+
+void setRunningActivityState()
+{
+	assert(appState != ActivityState::EXITING); // should never set running state after exit state
+	appState = ActivityState::RUNNING;
+}
+
+void setExitingActivityState()
+{
+	appState = ActivityState::EXITING;
+}
+
+bool appIsRunning()
+{
+	return activityState() == ActivityState::RUNNING;
+}
+
+bool appIsPaused()
+{
+	return activityState() == ActivityState::PAUSED;
+}
+
+bool appIsExiting()
+{
+	return activityState() == ActivityState::EXITING;
 }
 
 void setOnInterProcessMessage(InterProcessMessageDelegate del)

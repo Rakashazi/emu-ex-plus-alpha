@@ -547,7 +547,7 @@ void GLTexture::bindTex(RendererCommands &cmds, const TextureSampler &bindSample
 	}
 }
 
-void Texture::writeAligned(uint32_t level, const IG::Pixmap &pixmap, IG::WP destPos, uint32_t assumeAlign, uint32_t commitFlags)
+void Texture::writeAligned(uint32_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t assumeAlign, uint32_t commitFlags)
 {
 	//logDMsg("writing pixmap %dx%d to pos %dx%d", pixmap.x, pixmap.y, destPos.x, destPos.y);
 	if(unlikely(!texName_))
@@ -590,7 +590,7 @@ void Texture::writeAligned(uint32_t level, const IG::Pixmap &pixmap, IG::WP dest
 		if(hasUnpackRowLength || !pixmap.isPadded())
 		{
 			r->runGLTaskSyncConditional(
-				[texName_ = this->texName_, hasUnpackRowLength, level, pixmap, destPos, assumeAlign, format, dataType]()
+				[=, texName_ = this->texName_]()
 				{
 					glBindTexture(GL_TEXTURE_2D, texName_);
 					glPixelStorei(GL_UNPACK_ALIGNMENT, assumeAlign);
@@ -623,7 +623,7 @@ void Texture::writeAligned(uint32_t level, const IG::Pixmap &pixmap, IG::WP dest
 			IG::Pixmap tempPix{pixmap, tempPixData};
 			tempPix.write(pixmap, {});
 			r->runGLTask(
-				[texName_ = this->texName_, level, tempPix, destPos, assumeAlign, format, dataType]()
+				[=, texName_ = this->texName_]()
 				{
 					glBindTexture(GL_TEXTURE_2D, texName_);
 					glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, tempPix.pitchBytes()));
@@ -639,7 +639,7 @@ void Texture::writeAligned(uint32_t level, const IG::Pixmap &pixmap, IG::WP dest
 	}
 }
 
-void Texture::write(uint32_t level, const IG::Pixmap &pixmap, IG::WP destPos, uint32_t commitFlags)
+void Texture::write(uint32_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t commitFlags)
 {
 	writeAligned(level, pixmap, destPos, bestAlignment(pixmap), commitFlags);
 }

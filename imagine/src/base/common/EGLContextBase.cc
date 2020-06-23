@@ -254,7 +254,7 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 		auto surface = win.eglSurface();
 		if(Config::DEBUG_BUILD)
 		{
-			logDMsg("setting surface %p current on context:%p thread:0x%lx", context, surface, IG::thisThreadID<long>());
+			logDMsg("setting surface %p current on context:%p thread:0x%lx", surface, context, IG::thisThreadID<long>());
 		}
 		if(eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
 		{

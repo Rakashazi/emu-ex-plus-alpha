@@ -30,7 +30,6 @@ namespace Base
 {
 
 extern JavaInstMethod<jobject(jobject, jlong)> jPresentation;
-static JavaInstMethod<void()> jPresentationShow{};
 static JavaInstMethod<void()> jPresentationDeinit{};
 
 Window *deviceWindow()
@@ -44,7 +43,6 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 		return; // already init
 	logMsg("Setting up Presentation JNI functions");
 	auto cls = env->GetObjectClass(presentation);
-	jPresentationShow.setup(env, cls, "show", "()V");
 	jPresentationDeinit.setup(env, cls, "deinit", "()V");
 	JNINativeMethod method[] =
 	{
@@ -75,6 +73,15 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 				auto &win = *((Window*)windowAddr);
 				ANativeWindow_release(win.nativeObject());
 				win.setNativeWindow(nullptr);
+			})
+		},
+		{
+			"onWindowDismiss", "(J)V",
+			(void*)(void (*)(JNIEnv*, jobject, jlong))
+			([](JNIEnv* env, jobject thiz, jlong windowAddr)
+			{
+				auto &win = *((Window*)windowAddr);
+				win.dismiss();
 			})
 		},
 	};
@@ -146,12 +153,11 @@ std::error_code Window::init(const WindowConfig &config)
 	window_.push_back(this);
 	if(window_.size() > 1)
 	{
-		logMsg("making presentation window");
 		assert(screen() != Screen::screen(0));
 		auto env = jEnvForThread();
 		jDialog = env->NewGlobalRef(jPresentation(env, Base::jBaseActivity, screen()->displayObject(), (jlong)this));
 		initPresentationJNI(env, jDialog);
-		jPresentationShow(env, jDialog);
+		logMsg("making dialog window:%p", jDialog);
 	}
 	else
 	{
@@ -183,7 +189,7 @@ void Window::deinit()
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	if(jDialog)
 	{
-		logMsg("deinit presentation");
+		logMsg("deinit dialog window:%p", jDialog);
 		if(nWin)
 		{
 			ANativeWindow_release(nWin);
@@ -192,6 +198,7 @@ void Window::deinit()
 		auto env = jEnvForThread();
 		jPresentationDeinit(env, jDialog);
 		env->DeleteGlobalRef(jDialog);
+		jDialog = {};
 	}
 	#endif
 	nWin = nullptr;
@@ -217,6 +224,22 @@ void AndroidWindow::updateContentRect(const IG::WindowRect &rect)
 {
 	contentRect = rect;
 	surfaceChange.addContentRectResized();
+}
+
+bool AndroidWindow::operator ==(AndroidWindow const &rhs) const
+{
+	assert(initialInit);
+	assert(rhs.initialInit);
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	return jDialog == rhs.jDialog;
+	#else
+	return true;
+	#endif
+}
+
+AndroidWindow::operator bool() const
+{
+	return initialInit;
 }
 
 void AndroidWindow::setNativeWindow(ANativeWindow *nWindow)

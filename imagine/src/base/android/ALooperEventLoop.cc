@@ -168,7 +168,8 @@ static const char *aLooperPollResultStr(int res)
 void EventLoop::run()
 {
 	int res = ALooper_pollAll(-1, nullptr, nullptr, nullptr);
-	logDMsg("ALooper_pollAll returned:%s", aLooperPollResultStr(res));
+	if(res != ALOOPER_POLL_WAKE)
+		logDMsg("ALooper_pollAll returned:%s", aLooperPollResultStr(res));
 }
 
 void EventLoop::stop()

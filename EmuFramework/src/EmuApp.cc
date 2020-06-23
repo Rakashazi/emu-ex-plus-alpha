@@ -249,7 +249,6 @@ void mainInitCommon(int argc, char** argv)
 		}
 		if(!renderer.supportsThreadMode())
 			optionGPUMultiThreading.reset();
-		rendererTask.start();
 	}
 
 	auto compiled = renderer.texAlphaProgram.compile(renderer);
@@ -294,6 +293,11 @@ void mainInitCommon(int argc, char** argv)
 				emuAudio.open(audioOutputAPI());
 			if(!keyMapping)
 				keyMapping.buildAll();
+			rendererTask.start();
+			if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
+			{
+				emuViewController.setEmuViewOnExtraWindow(true, *Base::Screen::screen(1));
+			}
 			return true;
 		});
 
@@ -311,6 +315,10 @@ void mainInitCommon(int argc, char** argv)
 			{
 				emuViewController.showUI();
 				suspendEmulation();
+				if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
+				{
+					emuViewController.setEmuViewOnExtraWindow(false, *Base::Screen::screen(1));
+				}
 				if(optionNotificationIcon)
 				{
 					auto title = string_makePrintf<64>("%s was suspended", appName());
@@ -411,10 +419,6 @@ void mainInitCommon(int argc, char** argv)
 	win.show();
 	win.postDraw();
 	EmuApp::onMainWindowCreated(viewAttach, Input::defaultEvent());
-	if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
-	{
-		emuViewController.setEmuViewOnExtraWindow(true, *Base::Screen::screen(1));
-	}
 	if(launchGame)
 	{
 		emuViewController.handleOpenFileCommand(launchGame);

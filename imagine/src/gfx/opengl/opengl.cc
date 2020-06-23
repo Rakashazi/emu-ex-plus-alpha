@@ -74,7 +74,6 @@ namespace Gfx
 bool checkGLErrors = Config::DEBUG_BUILD;
 bool checkGLErrorsVerbose = false;
 static constexpr bool useGLCache = true;
-static constexpr int DRAWABLE_ON_RESUME_PRIORITY = -100;
 
 void GLRenderer::verifyCurrentResourceContext()
 {
@@ -113,16 +112,7 @@ void Renderer::releaseShaderCompiler()
 void Renderer::autoReleaseShaderCompiler()
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	releaseShaderCompilerTimer.runOnce(IG::Milliseconds{20}, {},
-		[this]()
-		{
-			logMsg("automatically releasing shader compiler");
-			runGLTask(
-				[]()
-				{
-					glReleaseShaderCompiler();
-				});
-		});
+	releaseShaderCompilerEvent.notify();
 	#endif
 }
 
@@ -329,8 +319,6 @@ ClipRect Renderer::makeClipRect(const Base::Window &win, IG::WindowRect rect)
 void GLDrawableHolder::makeDrawable(Renderer &r, Base::Window &win)
 {
 	destroyDrawable(r);
-	Base::removeOnExit(onResume);
-	Base::removeOnExit(onExit);
 	auto [ec, drawable] = r.glDpy.makeDrawable(win, r.gfxBufferConfig);
 	if(ec)
 	{
@@ -344,17 +332,28 @@ void GLDrawableHolder::makeDrawable(Renderer &r, Base::Window &win)
 			drawable.restoreCaches();
 			return true;
 		};
-	Base::addOnResume(onResume, DRAWABLE_ON_RESUME_PRIORITY);
+	Base::addOnResume(onResume, Base::RENDERER_DRAWABLE_ON_RESUME_PRIORITY);
 	onExit =
-		[glDpy = r.glDpy, drawable = drawable](bool backgrounded) mutable
+		[this, glDpy = r.glDpy](bool backgrounded) mutable
 		{
 			if(backgrounded)
-				drawable.freeCaches();
+			{
+				drawFinishedEvent.cancel();
+				drawable_.freeCaches();
+			}
 			else
-				glDpy.deleteDrawable(drawable);
+				glDpy.deleteDrawable(drawable_);
 			return true;
 		};
-	Base::addOnExit(onExit, GLRENDERER_ON_EXIT_PRIORITY-2);
+	Base::addOnExit(onExit, Base::RENDERER_DRAWABLE_ON_EXIT_PRIORITY);
+	drawFinishedEvent.attach(
+		[this]()
+		{
+			auto now = IG::steadyClockTimestamp();
+			FrameParams frameParams{now, lastTimestamp, IG::FloatSeconds{0}};
+			onFrame.runAll([&](Base::OnFrameDelegate del){ return del(frameParams); });
+			lastTimestamp = now;
+		});
 }
 
 void GLDrawableHolder::destroyDrawable(Renderer &r)
@@ -363,6 +362,33 @@ void GLDrawableHolder::destroyDrawable(Renderer &r)
 		return;
 	r.glDpy.deleteDrawable(drawable_);
 	drawable_ = {};
+	Base::removeOnExit(onResume);
+	Base::removeOnExit(onExit);
+	drawFinishedEvent.detach();
+	lastTimestamp = {};
+}
+
+bool DrawableHolder::addOnFrame(Base::OnFrameDelegate del, int priority)
+{
+	if(!onFrame.size())
+	{
+		// reset time-stamp when first delegate is added
+		lastTimestamp = {};
+	}
+	return onFrame.add(del, priority);
+}
+
+bool DrawableHolder::removeOnFrame(Base::OnFrameDelegate del)
+{
+	return onFrame.remove(del);
+}
+
+void GLDrawableHolder::notifyOnFrame()
+{
+	if(onFrame.size())
+	{
+		drawFinishedEvent.notify();
+	}
 }
 
 #ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE

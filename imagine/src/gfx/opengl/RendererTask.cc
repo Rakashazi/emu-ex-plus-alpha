@@ -39,8 +39,6 @@
 namespace Gfx
 {
 
-static constexpr int ON_RESUME_PRIORITY = -110;
-
 void GLRendererTask::initVBOs()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
@@ -99,18 +97,11 @@ GLuint GLRendererTask::bindFramebuffer(Texture &tex)
 	return fbo;
 }
 
+#ifdef CONFIG_GFX_RENDERER_TASK_REPLY_PORT
 void GLRendererTask::replyHandler(Renderer &r, GLRendererTask::ReplyMessage msg)
 {
 	switch(msg.reply)
 	{
-		case Reply::DRAW_FINISHED:
-		{
-			//logDMsg("draw presented");
-			FrameParams frameParams{msg.timestamp, drawTimestamp, Base::Screen::screen(0)->frameTime()};
-			onFrame.runAll([&](Base::OnFrameDelegate del){ return del(frameParams); });
-			drawTimestamp = msg.timestamp;
-			return;
-		}
 		default:
 		{
 			logWarn("clearing RenderThreadReplyMessage value:%d", (int)msg.reply);
@@ -118,6 +109,7 @@ void GLRendererTask::replyHandler(Renderer &r, GLRendererTask::ReplyMessage msg)
 		}
 	}
 }
+#endif
 
 bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Base::GLDisplay glDpy, bool ownsThread)
 {
@@ -135,12 +127,9 @@ bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Ba
 				auto &drawArgs = msg.args.draw;
 				assumeExpr(drawArgs.del);
 				assumeExpr(drawArgs.winPtr);
-				drawArgs.del(drawArgs.drawable, *drawArgs.winPtr, drawArgs.fence, {*static_cast<RendererTask*>(this), glDpy, msg.semAddr});
-				if(onFrame.size())
-				{
-					auto now = IG::steadyClockTimestamp();
-					replyPort.send({Reply::DRAW_FINISHED, now});
-				}
+				assumeExpr(drawArgs.drawableHolderPtr);
+				drawArgs.del(drawArgs.drawableHolderPtr->drawable(), *drawArgs.winPtr, drawArgs.fence, {*static_cast<RendererTask*>(this), glDpy, msg.semAddr});
+				drawArgs.drawableHolderPtr->notifyOnFrame();
 				drawArgs.winPtr->deferredDrawComplete();
 			}
 			bcase Command::RUN_FUNC:
@@ -182,35 +171,32 @@ bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Ba
 	return true;
 }
 
-RendererTask::RendererTask(Renderer &r): r{r} {}
+RendererTask::RendererTask(Renderer &r): r{r}
+{
+	onExit =
+		[this](bool backgrounded)
+		{
+			stop();
+			return true;
+		};
+}
 
 void RendererTask::start()
 {
-	if(unlikely(!onResume))
+	if(unlikely(!Base::appIsRunning()))
 	{
-		onResume =
-			[this](bool focused)
-			{
-				start();
-				return true;
-			};
-		Base::addOnResume(onResume, ON_RESUME_PRIORITY);
-		onExit =
-			[this](bool backgrounded)
-			{
-				stop();
-				return true;
-			};
-		Base::addOnExit(onExit, GLRENDERER_ON_EXIT_PRIORITY-1);
+		logErr("can't start render task when not in running state");
+		return;
 	}
-	r.addOnExitHandler();
-	if constexpr(Config::envIsIOS)
-		r.setIOSDrawableDelegates();
 	if((bool)glCtx)
 	{
 		//logWarn("render thread already started");
 		return;
 	}
+	Base::addOnExit(onExit, Base::RENDERER_TASK_ON_EXIT_PRIORITY);
+	r.addEventHandlers();
+	if constexpr(Config::envIsIOS)
+		r.setIOSDrawableDelegates();
 	if(r.useSeparateDrawContext)
 	{
 		//logMsg("setting up rendering separate GL thread");
@@ -259,6 +245,7 @@ void RendererTask::start()
 					});
 			});
 	}
+	#ifdef CONFIG_GFX_RENDERER_TASK_REPLY_PORT
 	replyPort.attach(
 		[this](auto msgs)
 		{
@@ -266,6 +253,7 @@ void RendererTask::start()
 			replyHandler(r, msg);
 			return true;
 		});
+	#endif
 }
 
 void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base::Window::DrawParams winParams, DrawParams params, DrawDelegate del)
@@ -330,7 +318,7 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 			{
 				Command::DRAW,
 				del,
-				drawableHolder.drawable(),
+				drawableHolder,
 				win,
 				fence.sync,
 				params.asyncMode() == AsyncMode::PRESENT ? &drawSem : nullptr
@@ -406,21 +394,6 @@ void RendererTask::acquireFenceAndWait(Gfx::SyncFence &fenceVar)
 	renderer().waitSync(fence);
 }
 
-bool RendererTask::addOnFrame(Base::OnFrameDelegate del, int priority)
-{
-	if(!onFrame.size())
-	{
-		// reset time-stamp when first delegate is added
-		drawTimestamp = {};
-	}
-	return onFrame.add(del, priority);
-}
-
-bool RendererTask::removeOnFrame(Base::OnFrameDelegate del)
-{
-	return onFrame.remove(del);
-}
-
 void RendererTask::stop()
 {
 	if(!glCtx)
@@ -447,8 +420,10 @@ void RendererTask::stop()
 			});
 		glCtx = {}; // unset context, owned by GLMainTask
 	}
+	#ifdef CONFIG_GFX_RENDERER_TASK_REPLY_PORT
 	replyPort.clear();
 	replyPort.detach();
+	#endif
 }
 
 void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder, Base::Window::SurfaceChange change)
@@ -467,11 +442,6 @@ void RendererTask::destroyDrawable(DrawableHolder &drawableHolder)
 {
 	waitForDrawFinished();
 	drawableHolder.destroyDrawable(r);
-}
-
-Base::FrameTime RendererTask::lastDrawTimestamp() const
-{
-	return drawTimestamp;
 }
 
 void GLRendererTask::destroyContext(Base::GLDisplay dpy)

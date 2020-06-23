@@ -83,6 +83,7 @@ public:
 	void postDrawToEmuWindows();
 	Base::Screen *emuWindowScreen() const;
 	Base::Window &emuWindow() const;
+	AppWindowData &emuWindowData();
 	Gfx::RendererTask &rendererTask() const;
 	bool hasModalView() const;
 	void popModalViews();
@@ -105,6 +106,8 @@ public:
 	void setFastForwardActive(bool active);
 
 protected:
+	static constexpr bool HAS_USE_RENDER_TIME = Config::envIsLinux
+		|| (Config::envIsAndroid && Config::ENV_ANDROID_MINSDK < 16);
 	EmuView emuView;
 	EmuInputView emuInputView;
 	ToastView popup;
@@ -114,9 +117,7 @@ protected:
 	EmuSystemTask *systemTask{};
 	bool showingEmulation = false;
 	bool physicalControlsPresent = false;
-	#ifdef EMU_FRAMEWORK_RENDER_TASK_TIME
-	bool useRenderTaskTime_ = false;
-	#endif
+	[[no_unique_address]] IG::UseTypeIf<HAS_USE_RENDER_TIME, bool> useRendererTime_ = false;
 	uint8_t targetFastForwardSpeed = 0;
 	std::atomic_bool emuVideoInProgress{};
 
@@ -126,7 +127,7 @@ protected:
 	void addOnFrameDelayed();
 	void addOnFrame();
 	void removeOnFrame();
-	void moveOnFrame(Base::Screen &from, Base::Screen &to);
+	void moveOnFrame(Base::Window &from, Base::Window &to);
 	void startEmulation();
 	void pauseEmulation();
 	void configureAppForEmulation(bool running);
@@ -139,8 +140,8 @@ protected:
 	void applyFrameRates();
 	bool allWindowsAreFocused() const;
 	AppWindowData &mainWindowData() const;
-	void setUseRenderTaskTime(bool on);
-	bool useRenderTaskTime() const;
+	void setUseRendererTime(bool on);
+	bool useRendererTime() const;
 };
 
 extern EmuVideoLayer emuVideoLayer;

@@ -54,8 +54,6 @@ static GSourceFuncs x11SourceFuncs
 	nullptr
 };
 
-uint32_t appActivityState() { return APP_RUNNING; }
-
 static void cleanup()
 {
 	#ifdef CONFIG_BASE_DBUS
@@ -68,6 +66,7 @@ static void cleanup()
 
 void exit(int returnVal)
 {
+	setExitingActivityState();
 	dispatchOnExit(false);
 	cleanup();
 	::exit(returnVal);
@@ -246,6 +245,8 @@ int main(int argc, char** argv)
 	Input::initEvdev(eventLoop);
 	#endif
 	onInit(argc, argv);
+	setRunningActivityState();
+	dispatchOnResume(true);
 	bool eventLoopRunning = true;
 	eventLoop.run(eventLoopRunning);
 	return 0;
