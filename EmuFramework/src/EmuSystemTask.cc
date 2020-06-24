@@ -27,7 +27,7 @@ void EmuSystemTask::start()
 	replyPort.attach(
 		[this](auto msgs)
 		{
-			for(auto msg = msgs.get(); msg; msg = msgs.get())
+			for(auto msg : msgs)
 			{
 				switch(msg.reply)
 				{
@@ -57,9 +57,9 @@ void EmuSystemTask::start()
 		{
 			auto eventLoop = Base::EventLoop::makeForThread();
 			commandPort.attach(eventLoop,
-				[this](auto messages)
+				[this](auto msgs)
 				{
-					for(auto msg = messages.get(); msg; msg = messages.get())
+					for(auto msg : msgs)
 					{
 						switch(msg.command)
 						{

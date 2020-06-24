@@ -34,9 +34,7 @@ static JavaInstMethod<jobject()> jGetSupportedRefreshRates{};
 static JavaInstMethod<jobject(jobject)> jGetMetrics{};
 JavaInstMethod<jobject(jobject, jlong)> jPresentation{};
 JavaInstMethod<jobject(jint)> jGetDisplay{};
-#ifdef CONFIG_BASE_MULTI_SCREEN
 static JavaInstMethod<jint()> jGetDisplayId{};
-#endif
 
 void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 {
@@ -48,7 +46,6 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 		main.init(env, jDefaultDpy(env, activity), jDisplayMetrics(env, activity), true);
 		Screen::addScreen(&main);
 	}
-	#ifdef CONFIG_BASE_MULTI_SCREEN
 	if(Base::androidSDK() >= 17)
 	{
 		jPresentation.setup(env, activityCls, "presentation", "(Landroid/view/Display;J)Lcom/imagine/PresentationHelper;");
@@ -126,7 +123,6 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 			}
 		}
 	}
-	#endif
 }
 
 void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool isMain)
@@ -138,31 +134,24 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 		jclass jDisplayCls = env->GetObjectClass(aDisplay);
 		jGetRotation.setup(env, jDisplayCls, "getRotation", "()I");
 		jGetRefreshRate.setup(env, jDisplayCls, "getRefreshRate", "()F");
-		#ifdef CONFIG_BASE_MULTI_SCREEN
 		jGetDisplayId.setup(env, jDisplayCls, "getDisplayId", "()I");
-		#endif
 		jGetMetrics.setup(env, Base::jBaseActivityCls, "getDisplayMetrics", "(Landroid/view/Display;)Landroid/util/DisplayMetrics;");
 	}
 
 	bool isStraightRotation = true;
 	if(isMain)
 	{
+		id_ = 0;
 		auto orientation = (SurfaceRotation)jGetRotation(env, aDisplay);
 		logMsg("starting orientation %d", orientation);
 		osRotation = orientation;
 		isStraightRotation = surfaceRotationIsStraight(orientation);
-	}
-	#ifdef CONFIG_BASE_MULTI_SCREEN
-	if(isMain)
-	{
-		id_ = 0;
 	}
 	else
 	{
 		id_ = jGetDisplayId(env, aDisplay);
 		logMsg("init display with id: %d", id_);
 	}
-	#endif
 
 	// refresh rate
 	refreshRate_ = jGetRefreshRate(env, aDisplay);

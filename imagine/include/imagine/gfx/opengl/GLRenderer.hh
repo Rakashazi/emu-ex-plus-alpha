@@ -28,6 +28,7 @@
 #include <imagine/util/Interpolator.hh>
 #include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/FunctionTraits.hh>
+#include <imagine/util/typeTraits.hh>
 #include <memory>
 #include <thread>
 #ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
@@ -350,10 +351,8 @@ public:
 	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
 	uint8_t glMajorVer = 0;
 	#endif
-	#ifndef NDEBUG
-	bool contextDestroyed = false;
-	bool drawContextDebug = false;
-	#endif
+	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, bool> contextDestroyed = false;
+	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, bool> drawContextDebug = false;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	GLuint defaultVShader = 0;
 	#endif

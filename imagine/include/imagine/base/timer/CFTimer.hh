@@ -17,6 +17,7 @@
 
 #include <imagine/base/timerDefs.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/util/typeTraits.hh>
 #include <CoreFoundation/CoreFoundation.h>
 #include <memory>
 
@@ -34,21 +35,14 @@ class CFTimer
 public:
 	using Time = IG::FloatSeconds;
 
-	#ifdef NDEBUG
-	CFTimer(CallbackDelegate c);
-	CFTimer(const char *debugLabel, CallbackDelegate c): CFTimer(c) {}
-	#else
 	CFTimer(CallbackDelegate c) : CFTimer{nullptr, c} {}
 	CFTimer(const char *debugLabel, CallbackDelegate c);
-	#endif
 	CFTimer(CFTimer &&o);
 	CFTimer &operator=(CFTimer &&o);
 	~CFTimer();
 
 protected:
-	#ifndef NDEBUG
-	const char *debugLabel{};
-	#endif
+	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
 	CFRunLoopTimerRef timer{};
 	std::unique_ptr<CFTimerInfo> info{};
 

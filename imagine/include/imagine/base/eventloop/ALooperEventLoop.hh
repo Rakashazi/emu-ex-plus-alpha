@@ -17,6 +17,7 @@
 
 #include <android/looper.h>
 #include <imagine/base/eventLoopDefs.hh>
+#include <imagine/util/typeTraits.hh>
 #include <memory>
 
 namespace Base
@@ -35,21 +36,14 @@ class ALooperFDEventSource
 {
 public:
 	constexpr ALooperFDEventSource() {}
-	#ifdef NDEBUG
-	ALooperFDEventSource(int fd);
-	ALooperFDEventSource(const char *debugLabel, int fd): ALooperFDEventSource(fd) {}
-	#else
 	ALooperFDEventSource(int fd) : ALooperFDEventSource{nullptr, fd} {}
 	ALooperFDEventSource(const char *debugLabel, int fd);
-	#endif
 	ALooperFDEventSource(ALooperFDEventSource &&o);
 	ALooperFDEventSource &operator=(ALooperFDEventSource &&o);
 	~ALooperFDEventSource();
 
 protected:
-	#ifndef NDEBUG
-	const char *debugLabel{};
-	#endif
+	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
 	std::unique_ptr<ALooperFDEventSourceInfo> info{};
 	int fd_ = -1;
 

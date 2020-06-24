@@ -59,12 +59,8 @@ static int timerfd_gettime(int ufd,
 namespace Base
 {
 
-#ifdef NDEBUG
-TimerFD::TimerFD(CallbackDelegate c):
-#else
 TimerFD::TimerFD(const char *debugLabel, CallbackDelegate c):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
-#endif
 	fdSrc{label(), timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC)},
 	callback_{std::make_unique<CallbackDelegate>(c)}
 {
@@ -84,9 +80,7 @@ TimerFD &TimerFD::operator=(TimerFD &&o)
 	deinit();
 	fdSrc = std::move(o.fdSrc);
 	callback_ = std::move(o.callback_);
-	#ifndef NDEBUG
 	debugLabel = o.debugLabel;
-	#endif
 	return *this;
 }
 
@@ -175,11 +169,7 @@ Timer::operator bool() const
 
 const char *TimerFD::label()
 {
-	#ifdef NDEBUG
-	return nullptr;
-	#else
 	return debugLabel;
-	#endif
 }
 
 }

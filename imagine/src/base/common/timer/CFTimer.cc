@@ -20,12 +20,8 @@
 namespace Base
 {
 
-#ifdef NDEBUG
-CFTimer::CFTimer(CallbackDelegate c):
-#else
 CFTimer::CFTimer(const char *debugLabel, CallbackDelegate c):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
-#endif
 	info{std::make_unique<CFTimerInfo>(CFTimerInfo{c, {}})}
 {}
 
@@ -39,9 +35,7 @@ CFTimer &CFTimer::operator=(CFTimer &&o)
 	deinit();
 	timer = std::exchange(o.timer, {});
 	info = std::move(o.info);
-	#ifndef NDEBUG
 	debugLabel = o.debugLabel;
-	#endif
 	return *this;
 }
 
@@ -135,11 +129,7 @@ void CFTimer::deinit()
 
 const char *CFTimer::label()
 {
-	#ifdef NDEBUG
-	return nullptr;
-	#else
 	return debugLabel;
-	#endif
 }
 
 }

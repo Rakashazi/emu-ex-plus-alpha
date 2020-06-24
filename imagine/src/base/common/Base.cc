@@ -202,13 +202,8 @@ void exitWithErrorMessagePrintf(int exitVal, const char *format, ...)
 	exitWithErrorMessageVPrintf(exitVal, format, args);
 }
 
-#ifdef NDEBUG
-FDEventSource::FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint32_t events):
-	FDEventSource{fd}
-#else
 FDEventSource::FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint32_t events):
 	FDEventSource{debugLabel, fd}
-#endif
 {
 	attach(loop, callback, events);
 }

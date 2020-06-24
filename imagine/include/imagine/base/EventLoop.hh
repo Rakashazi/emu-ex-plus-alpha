@@ -55,15 +55,9 @@ struct FDEventSource : public FDEventSourceImpl
 {
 public:
 	using FDEventSourceImpl::FDEventSourceImpl;
-	#ifdef NDEBUG
-	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
-	FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN):
-		FDEventSource(fd, loop, callback, events) {}
-	#else
 	FDEventSource(int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN):
 		FDEventSource(nullptr, fd, loop, callback, events) {}
 	FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
-	#endif
 	bool attach(PollEventDelegate callback, uint32_t events = POLLEV_IN);
 	bool attach(EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
 	#if defined CONFIG_BASE_GLIB

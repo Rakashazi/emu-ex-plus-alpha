@@ -26,18 +26,47 @@ namespace Base
 template<class MsgType>
 class PipeMessagePort
 {
-	static_assert(sizeof(MsgType) < PIPE_BUF, "size of message too big for atomic writes");
-
 public:
 	class Messages
 	{
 	public:
+		class Iterator
+		{
+		public:
+			constexpr Iterator(IO *io):
+				io{io}, msg{io ? io->get<MsgType>() : MsgType{}}
+			{}
+
+			Iterator operator++()
+			{
+				msg = io->get<MsgType>();
+				if(!msg)
+				{
+					// end of messages
+					io = nullptr;
+				}
+				return *this;
+			}
+
+			bool operator!=(const Iterator &rhs) const
+			{
+				return io != rhs.io;
+			}
+
+			const MsgType &operator*() const
+			{
+				return msg;
+			}
+
+		private:
+			IO *io;
+			MsgType msg;
+		};
+
 		constexpr Messages(IO &io): io{io} {}
 
-		MsgType get()
-		{
-			return io.get<MsgType>();
-		}
+		Iterator begin() { return Iterator{&io}; }
+		Iterator end() { return Iterator{nullptr}; }
 
 		template <class T>
 		T getExtraData()
@@ -55,8 +84,11 @@ public:
 		IO &io;
 	};
 
+	static constexpr uint32_t MSG_SIZE = sizeof(MsgType);
+	static_assert(MSG_SIZE < PIPE_BUF, "size of message too big for atomic writes");
+
 	PipeMessagePort(const char *debugLabel = nullptr, uint32_t capacity = 8):
-		pipe{debugLabel, (uint32_t)sizeof(MsgType) * capacity}
+		pipe{debugLabel, MSG_SIZE * capacity}
 	{
 		pipe.setReadNonBlocking(true);
 	}
@@ -100,22 +132,18 @@ public:
 	template <class T>
 	bool sendWithExtraData(MsgType msg, T obj)
 	{
-		static_assert(sizeof(MsgType) + sizeof(T) < PIPE_BUF, "size of data too big for atomic writes");
-		const auto bufferSize = sizeof(MsgType) + sizeof(T);
-		char buffer[bufferSize];
-		memcpy(buffer, &msg, sizeof(MsgType));
-		memcpy(buffer + sizeof(MsgType), &obj, sizeof(T));
-		return pipe.sink().write(buffer, bufferSize);
+		static_assert(MSG_SIZE + sizeof(T) < PIPE_BUF, "size of data too big for atomic writes");
+		return sendWithExtraData(msg, &obj, sizeof(T));
 	}
 
 	template <class T>
 	bool sendWithExtraData(MsgType msg, T *obj, uint32_t size)
 	{
-		assumeExpr(sizeof(MsgType) + size < PIPE_BUF);
-		const auto bufferSize = sizeof(MsgType) + size;
+		const auto bufferSize = MSG_SIZE + size;
+		assumeExpr(bufferSize < PIPE_BUF);
 		char buffer[bufferSize];
-		memcpy(buffer, &msg, sizeof(MsgType));
-		memcpy(buffer + sizeof(MsgType), obj, size);
+		memcpy(buffer, &msg, MSG_SIZE);
+		memcpy(buffer + MSG_SIZE, obj, size);
 		return pipe.sink().write(buffer, bufferSize);
 	}
 

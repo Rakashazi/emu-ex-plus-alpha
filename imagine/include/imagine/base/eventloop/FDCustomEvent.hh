@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/EventLoop.hh>
+#include <imagine/util/typeTraits.hh>
 #include <utility>
 
 namespace Base
@@ -24,13 +25,8 @@ namespace Base
 class FDCustomEvent
 {
 public:
-	#ifdef NDEBUG
-	FDCustomEvent();
-	FDCustomEvent(const char *debugLabel): FDCustomEvent() {}
-	#else
 	FDCustomEvent() : FDCustomEvent{nullptr} {}
 	FDCustomEvent(const char *debugLabel);
-	#endif
 	FDCustomEvent(FDCustomEvent &&o);
 	FDCustomEvent &operator=(FDCustomEvent &&o);
 	~FDCustomEvent();
@@ -58,9 +54,7 @@ public:
 	}
 
 protected:
-	#ifndef NDEBUG
-	const char *debugLabel{};
-	#endif
+	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
 	FDEventSource fdSrc{};
 
 	const char *label();

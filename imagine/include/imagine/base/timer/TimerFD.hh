@@ -18,6 +18,7 @@
 #include <imagine/base/timerDefs.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/util/typeTraits.hh>
 #include <time.h>
 #include <memory>
 
@@ -29,21 +30,14 @@ class TimerFD
 public:
 	using Time = IG::Nanoseconds;
 
-	#ifdef NDEBUG
-	TimerFD(CallbackDelegate c);
-	TimerFD(const char *debugLabel, CallbackDelegate c): TimerFD(c) {}
-	#else
 	TimerFD(CallbackDelegate c) : TimerFD{nullptr, c} {}
 	TimerFD(const char *debugLabel, CallbackDelegate c);
-	#endif
 	TimerFD(TimerFD &&o);
 	TimerFD &operator=(TimerFD &&o);
 	~TimerFD();
 
 protected:
-	#ifndef NDEBUG
-	const char *debugLabel{};
-	#endif
+	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
 	FDEventSource fdSrc{};
 	std::unique_ptr<CallbackDelegate> callback_{};
 

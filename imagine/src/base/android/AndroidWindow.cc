@@ -144,12 +144,9 @@ std::error_code Window::init(const WindowConfig &config)
 	{
 		bug_unreachable("no multi-window support");
 	}
-	#ifdef CONFIG_BASE_MULTI_SCREEN
 	this->screen_ = &config.screen();
-	#endif
 
 	initialInit = true;
-	#ifdef CONFIG_BASE_MULTI_WINDOW
 	window_.push_back(this);
 	if(window_.size() > 1)
 	{
@@ -163,9 +160,6 @@ std::error_code Window::init(const WindowConfig &config)
 	{
 		logMsg("making device window");
 	}
-	#else
-	mainWin = this;
-	#endif
 	pixelFormat = config.format();
 	if(Base::androidSDK() < 11 && this == deviceWindow())
 	{
@@ -186,7 +180,6 @@ std::error_code Window::init(const WindowConfig &config)
 void Window::deinit()
 {
 	assert(this != deviceWindow());
-	#ifdef CONFIG_BASE_MULTI_WINDOW
 	if(jDialog)
 	{
 		logMsg("deinit dialog window:%p", jDialog);
@@ -200,7 +193,6 @@ void Window::deinit()
 		env->DeleteGlobalRef(jDialog);
 		jDialog = {};
 	}
-	#endif
 	nWin = nullptr;
 	initialInit = false;
 }
@@ -230,11 +222,7 @@ bool AndroidWindow::operator ==(AndroidWindow const &rhs) const
 {
 	assert(initialInit);
 	assert(rhs.initialInit);
-	#ifdef CONFIG_BASE_MULTI_WINDOW
 	return jDialog == rhs.jDialog;
-	#else
-	return true;
-	#endif
 }
 
 AndroidWindow::operator bool() const

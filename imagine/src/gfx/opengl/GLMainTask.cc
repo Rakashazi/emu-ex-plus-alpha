@@ -42,7 +42,7 @@ void GLMainTask::start(Base::GLContext context)
 			commandPort.attach(eventLoop,
 				[this, glDpy](auto msgs)
 				{
-					for(auto msg = msgs.get(); msg; msg = msgs.get())
+					for(auto msg : msgs)
 					{
 						switch(msg.command)
 						{

@@ -28,12 +28,8 @@
 namespace Base
 {
 
-#ifdef NDEBUG
-GlibFDEventSource::GlibFDEventSource(int fd):
-#else
 GlibFDEventSource::GlibFDEventSource(const char *debugLabel, int fd):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
-#endif
 	fd_{fd}
 {}
 
@@ -48,9 +44,7 @@ GlibFDEventSource &GlibFDEventSource::operator=(GlibFDEventSource &&o)
 	source = std::exchange(o.source, {});
 	tag = std::exchange(o.tag, {});
 	fd_ = std::exchange(o.fd_, -1);
-	#ifndef NDEBUG
 	debugLabel = o.debugLabel;
-	#endif
 	return *this;
 }
 
@@ -167,11 +161,7 @@ void GlibFDEventSource::deinit()
 
 const char *GlibFDEventSource::label()
 {
-	#ifdef NDEBUG
-	return nullptr;
-	#else
 	return debugLabel;
-	#endif
 }
 
 EventLoop EventLoop::forThread()

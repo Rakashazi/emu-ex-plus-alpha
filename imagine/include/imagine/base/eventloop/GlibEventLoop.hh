@@ -15,8 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <glib.h>
 #include <imagine/base/eventLoopDefs.hh>
+#include <imagine/util/typeTraits.hh>
+#include <glib.h>
 
 namespace Base
 {
@@ -32,21 +33,14 @@ class GlibFDEventSource
 {
 public:
 	constexpr GlibFDEventSource() {}
-	#ifdef NDEBUG
-	GlibFDEventSource(int fd);
-	GlibFDEventSource(const char *debugLabel, int fd): GlibFDEventSource(fd) {}
-	#else
 	GlibFDEventSource(int fd) : GlibFDEventSource{nullptr, fd} {}
 	GlibFDEventSource(const char *debugLabel, int fd);
-	#endif
 	GlibFDEventSource(GlibFDEventSource &&o);
 	GlibFDEventSource &operator=(GlibFDEventSource &&o);
 	~GlibFDEventSource();
 
 protected:
-	#ifndef NDEBUG
-	const char *debugLabel{};
-	#endif
+	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
 	GSource2 *source{};
 	gpointer tag{};
 	int fd_ = -1;

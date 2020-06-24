@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/io/PosixIO.hh>
+#include <imagine/util/typeTraits.hh>
 #include <array>
 #include <optional>
 #include <utility>
@@ -28,13 +29,8 @@ namespace Base
 class Pipe
 {
 public:
-	#ifdef NDEBUG
-	Pipe(uint32_t preferredSize = 0);
-	Pipe(const char *debugLabel, uint32_t preferredSize = 0): Pipe(preferredSize) {}
-	#else
 	Pipe(uint32_t preferredSize = 0): Pipe(nullptr, preferredSize) {}
 	Pipe(const char *debugLabel, uint32_t preferredSize = 0);
-	#endif
 	Pipe(Pipe &&o);
 	Pipe &operator=(Pipe &&o);
 	~Pipe();
@@ -71,9 +67,7 @@ public:
 	}
 
 protected:
-	#ifndef NDEBUG
-	const char *debugLabel{};
-	#endif
+	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
 	std::array<PosixIO, 2> io{-1, -1};
 	FDEventSource fdSrc{};
 

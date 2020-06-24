@@ -17,6 +17,7 @@
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <imagine/base/eventLoopDefs.hh>
+#include <imagine/util/typeTraits.hh>
 #include <memory>
 
 namespace Base
@@ -39,21 +40,14 @@ class CFFDEventSource
 {
 public:
 	constexpr CFFDEventSource() {}
-	#ifdef NDEBUG
-	CFFDEventSource(int fd);
-	CFFDEventSource(const char *debugLabel, int fd): CFFDEventSource(fd) {}
-	#else
 	CFFDEventSource(int fd) : CFFDEventSource{nullptr, fd} {}
 	CFFDEventSource(const char *debugLabel, int fd);
-	#endif
 	CFFDEventSource(CFFDEventSource &&o);
 	CFFDEventSource &operator=(CFFDEventSource &&o);
 	~CFFDEventSource();
 
 protected:
-	#ifndef NDEBUG
-	const char *debugLabel{};
-	#endif
+	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
 	std::unique_ptr<CFFDEventSourceInfo> info{};
 
 	const char *label();

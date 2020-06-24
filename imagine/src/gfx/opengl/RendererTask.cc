@@ -114,7 +114,7 @@ void GLRendererTask::replyHandler(Renderer &r, GLRendererTask::ReplyMessage msg)
 bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Base::GLDisplay glDpy, bool ownsThread)
 {
 	int msgs = 0, draws = 0;
-	for(auto msg = messages.get(); msg; msg = messages.get())
+	for(auto msg : messages)
 	{
 		msgs++;
 		//logMsg("command pipe data");
@@ -207,9 +207,7 @@ void RendererTask::start()
 			logErr("error creating context");
 		}
 		r.finishContextCreation(glCtx);
-		#ifndef NDEBUG
 		r.drawContextDebug = false;
-		#endif
 		thread = IG::makeThreadSync(
 			[this](auto &sem)
 			{

@@ -20,8 +20,9 @@
 namespace IG::Audio
 {
 
-struct SampleFormat : public NotEquals<SampleFormat>
+class SampleFormat : public NotEquals<SampleFormat>
 {
+public:
 	constexpr SampleFormat() {}
 	constexpr SampleFormat(uint8_t bytes, bool isFloat = false):
 		bytes_{bytes}, isFloatType{isFloat}

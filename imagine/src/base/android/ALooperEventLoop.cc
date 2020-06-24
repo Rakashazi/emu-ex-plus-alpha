@@ -32,12 +32,8 @@ static int pollEventCallback(int fd, int events, void *data)
 	return keep;
 }
 
-#ifdef NDEBUG
-ALooperFDEventSource::ALooperFDEventSource(int fd):
-#else
 ALooperFDEventSource::ALooperFDEventSource(const char *debugLabel, int fd):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
-#endif
 	info{std::make_unique<ALooperFDEventSourceInfo>()},
 	fd_{fd}
 {}
@@ -52,9 +48,7 @@ ALooperFDEventSource &ALooperFDEventSource::operator=(ALooperFDEventSource &&o)
 	deinit();
 	info = std::move(o.info);
 	fd_ = std::exchange(o.fd_, -1);
-	#ifndef NDEBUG
 	debugLabel = o.debugLabel;
-	#endif
 	return *this;
 }
 
@@ -136,11 +130,7 @@ void ALooperFDEventSource::deinit()
 
 const char *ALooperFDEventSource::label()
 {
-	#ifdef NDEBUG
-	return nullptr;
-	#else
 	return debugLabel;
-	#endif
 }
 
 EventLoop EventLoop::forThread()

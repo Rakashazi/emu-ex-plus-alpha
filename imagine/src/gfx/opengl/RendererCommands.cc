@@ -525,7 +525,8 @@ void RendererCommands::uniformF(int uniformLocation, float v1, float v2)
 
 void RendererCommands::setDebugOutput(bool on)
 {
-	#ifndef NDEBUG
+	if constexpr(!Config::DEBUG_BUILD)
+		return;
 	if(!renderer().support.hasDebugOutput || renderer().drawContextDebug == on)
 	{
 		return;
@@ -533,7 +534,6 @@ void RendererCommands::setDebugOutput(bool on)
 	logMsg("draw context debug output:%s", on ? "on" : "off");
 	setGLDebugOutput(renderer().support, on);
 	renderer().drawContextDebug = on;
-	#endif
 }
 
 }

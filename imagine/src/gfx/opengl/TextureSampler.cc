@@ -67,10 +67,8 @@ static GLint makeWrapMode(WrapMode mode)
 GLTextureSampler::GLTextureSampler(Renderer &r, TextureSamplerConfig config):
 	r{&r}
 {
-	#ifndef NDEBUG
 	if(config.debugLabel())
 		debugLabel = config.debugLabel();
-	#endif
 	magFilter = makeMagFilter(config.minLinearFilter());
 	minFilter = makeMinFilter(config.magLinearFilter(), config.mipFilter());
 	xWrapMode_ = makeWrapMode(config.xWrapMode());
@@ -151,11 +149,7 @@ GLuint GLTextureSampler::name() const
 
 const char *GLTextureSampler::label() const
 {
-	#ifdef NDEBUG
-	return nullptr;
-	#else
 	return debugLabel;
-	#endif
 }
 
 }

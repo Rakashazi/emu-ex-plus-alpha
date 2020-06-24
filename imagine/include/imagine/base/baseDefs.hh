@@ -43,7 +43,7 @@ static constexpr bool BASE_SUPPORTS_ORIENTATION_SENSOR = true;
 static constexpr bool BASE_SUPPORTS_ORIENTATION_SENSOR = false;
 #endif
 
-#if (defined __ANDROID__ && !(defined __arm__ && __ARM_ARCH < 7)) || defined CONFIG_BASE_IOS
+#if defined __ANDROID__ || defined CONFIG_BASE_IOS
 #define CONFIG_BASE_MULTI_SCREEN
 #define CONFIG_BASE_SCREEN_HOTPLUG
 static constexpr bool BASE_MULTI_SCREEN = true;

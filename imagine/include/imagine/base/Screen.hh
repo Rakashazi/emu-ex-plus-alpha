@@ -20,6 +20,7 @@
 #include <imagine/time/Time.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFuncSet.hh>
+#include <imagine/util/typeTraits.hh>
 #include <vector>
 #include <algorithm>
 
@@ -95,10 +96,8 @@ private:
 	bool framePosted = false;
 	bool inFrameHandler = false;
 	bool isActive = true;
-	#ifndef NDEBUG
 	// for debug frame stats
-	uint32_t continuousFrames{};
-	#endif
+	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, uint32_t> continuousFrames{};
 	DelegateFuncSet<OnFrameDelegate> onFrameDelegate{};
 
 	void runOnFrameDelegates(FrameTime timestamp);

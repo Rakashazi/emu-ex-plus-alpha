@@ -38,7 +38,6 @@ int processPriority();
 bool apkSignatureIsConsistent();
 AndroidPropString androidBuildDevice();
 bool packageIsInstalled(const char *name);
-FS::PathString mainSOPath();
 SustainedPerformanceType sustainedPerformanceModeType();
 void setSustainedPerformanceMode(bool on);
 

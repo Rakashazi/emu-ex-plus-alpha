@@ -25,7 +25,7 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, Input::Event e
 	msgPort.attach(
 		[this](auto msgs)
 		{
-			for(auto msg = msgs.get(); msg; msg = msgs.get())
+			for(auto msg : msgs)
 			{
 				switch(msg.progress)
 				{

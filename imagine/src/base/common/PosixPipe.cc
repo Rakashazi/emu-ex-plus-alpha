@@ -39,12 +39,8 @@ static std::array<PosixIO, 2> makePipe()
 	return {fd[0], fd[1]};
 }
 
-#ifdef NDEBUG
-Pipe::Pipe(uint32_t preferredSize):
-#else
 Pipe::Pipe(const char *debugLabel, uint32_t preferredSize):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
-#endif
 	io{makePipe()},
 	fdSrc{label(), io[0].fd()}
 {
@@ -70,9 +66,7 @@ Pipe &Pipe::operator=(Pipe &&o)
 	deinit();
 	io = std::exchange(o.io, {-1, -1});
 	fdSrc = std::move(o.fdSrc);
-	#ifndef NDEBUG
 	debugLabel = o.debugLabel;
-	#endif
 	return *this;
 }
 
@@ -137,11 +131,7 @@ void Pipe::deinit()
 
 const char *Pipe::label() const
 {
-	#ifdef NDEBUG
-	return nullptr;
-	#else
 	return debugLabel;
-	#endif
 }
 
 }

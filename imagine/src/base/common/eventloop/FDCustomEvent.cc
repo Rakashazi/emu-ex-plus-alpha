@@ -79,12 +79,8 @@ static void cancelEventFD(int fd, const char *debugLabel)
 namespace Base
 {
 
-#ifdef NDEBUG
-FDCustomEvent::FDCustomEvent():
-#else
 FDCustomEvent::FDCustomEvent(const char *debugLabel):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
-#endif
 	fdSrc{label(), makeEventFD()}
 {
 	if(fdSrc.fd() == -1)
@@ -102,9 +98,7 @@ FDCustomEvent &FDCustomEvent::operator=(FDCustomEvent &&o)
 {
 	deinit();
 	fdSrc = std::move(o.fdSrc);
-	#ifndef NDEBUG
 	debugLabel = o.debugLabel;
-	#endif
 	return *this;
 }
 
@@ -140,11 +134,7 @@ CustomEvent::operator bool() const
 
 const char *FDCustomEvent::label()
 {
-	#ifdef NDEBUG
-	return nullptr;
-	#else
 	return debugLabel;
-	#endif
 }
 
 void FDCustomEvent::deinit()

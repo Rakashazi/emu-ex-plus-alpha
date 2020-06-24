@@ -43,9 +43,7 @@ protected:
 	ANativeWindow *nWin{};
 	int32_t pixelFormat = 0;
 	IG::WindowRect contentRect; // active window content
-	#ifdef CONFIG_BASE_MULTI_WINDOW
 	jobject jDialog{};
-	#endif
 	bool initialInit = false;
 };
 

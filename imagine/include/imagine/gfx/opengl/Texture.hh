@@ -19,6 +19,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureConfig.hh>
 #include <imagine/gfx/TextureSamplerConfig.hh>
+#include <imagine/util/typeTraits.hh>
 
 class GfxImageSource;
 
@@ -30,17 +31,6 @@ class TextureSampler;
 
 class GLTextureSampler
 {
-protected:
-	Renderer *r{};
-	GLuint name_ = 0;
-	GLenum minFilter = 0;
-	GLenum magFilter = 0;
-	GLenum xWrapMode_ = 0;
-	GLenum yWrapMode_ = 0;
-	#ifndef NDEBUG
-	const char *debugLabel = "unnamed";
-	#endif
-
 public:
 	constexpr GLTextureSampler() {}
 	GLTextureSampler(Renderer &r, TextureSamplerConfig config);
@@ -49,6 +39,15 @@ public:
 	void deinit();
 	GLuint name() const;
 	const char *label() const;
+
+protected:
+	Renderer *r{};
+	GLuint name_ = 0;
+	GLenum minFilter = 0;
+	GLenum magFilter = 0;
+	GLenum xWrapMode_ = 0;
+	GLenum yWrapMode_ = 0;
+	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
 };
 
 using TextureSamplerImpl = GLTextureSampler;

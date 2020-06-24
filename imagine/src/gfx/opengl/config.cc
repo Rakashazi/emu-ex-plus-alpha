@@ -940,9 +940,7 @@ void GLRenderer::addEventHandlers()
 				mainTask->stop();
 				gfxResourceContext.deinit(glDpy);
 				glDpy.deinit();
-				#ifndef NDEBUG
 				contextDestroyed = true;
-				#endif
 			}
 			return true;
 		};

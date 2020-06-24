@@ -187,12 +187,13 @@ FS::PathString libPath(const char *)
 	return {};
 }
 
-FS::PathString mainSOPath()
+static FS::PathString mainSOPath()
 {
-	auto env = jEnvForThread();
-	JavaInstMethod<jobject()> soPath{env, jBaseActivityCls, "mainSOPath", "()Ljava/lang/String;"};
-	auto soPathStr = (jstring)soPath(env, jBaseActivity);
-	return javaStringCopy<FS::PathString>(env, (jstring)soPath(env, jBaseActivity));
+	if(Base::androidSDK() < 24)
+	{
+		return FS::makePathStringPrintf("%s/libmain.so", libPath(nullptr).data());
+	}
+	return FS::makePathString("libmain.so");
 }
 
 static jstring permissionToJString(JNIEnv *env, Permission p)

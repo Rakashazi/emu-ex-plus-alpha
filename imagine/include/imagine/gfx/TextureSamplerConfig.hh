@@ -17,22 +17,13 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
+#include <imagine/util/typeTraits.hh>
 
 namespace Gfx
 {
 
 class TextureSamplerConfig
 {
-private:
-	bool minLinearFiltering = true;
-	bool magLinearFiltering = true;
-	MipFilterMode mipFiltering = MIP_FILTER_LINEAR;
-	WrapMode xWrapMode_ = WRAP_CLAMP;
-	WrapMode yWrapMode_ = WRAP_CLAMP;
-	#ifndef NDEBUG
-	const char *label{};
-	#endif
-
 public:
 	constexpr TextureSamplerConfig() {}
 
@@ -98,18 +89,12 @@ public:
 
 	void setDebugLabel(const char *str)
 	{
-		#ifndef NDEBUG
 		label = str;
-		#endif
 	}
 
 	const char *debugLabel()
 	{
-		#ifndef NDEBUG
 		return label;
-		#else
-		return nullptr;
-		#endif
 	}
 
 	static TextureSamplerConfig makeWithVideoUseConfig()
@@ -120,6 +105,14 @@ public:
 		config.setWrapMode(WRAP_CLAMP);
 		return config;
 	}
+
+private:
+	bool minLinearFiltering = true;
+	bool magLinearFiltering = true;
+	MipFilterMode mipFiltering = MIP_FILTER_LINEAR;
+	WrapMode xWrapMode_ = WRAP_CLAMP;
+	WrapMode yWrapMode_ = WRAP_CLAMP;
+	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> label{};
 };
 
 }

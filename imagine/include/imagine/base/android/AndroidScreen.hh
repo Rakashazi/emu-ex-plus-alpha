@@ -47,11 +47,7 @@ protected:
 	float densityDPI_{};
 	float refreshRate_{};
 	int width_{}, height_{};
-	#ifdef CONFIG_BASE_MULTI_SCREEN
 	int id_{};
-	#else
-	static constexpr int id_ = 0;
-	#endif
 	bool reliableRefreshRate = true;
 };
 

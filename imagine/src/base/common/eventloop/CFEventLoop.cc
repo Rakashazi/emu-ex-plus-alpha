@@ -35,12 +35,8 @@ void CFFDEventSourceInfo::detachSource()
 	loop = {};
 }
 
-#ifdef NDEBUG
-CFFDEventSource::CFFDEventSource(int fd)
-#else
 CFFDEventSource::CFFDEventSource(const char *debugLabel, int fd):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
-#endif
 	info{std::make_unique<CFFDEventSourceInfo>()}
 {
 	CFFileDescriptorContext ctx{0, info.get()};
@@ -73,9 +69,7 @@ CFFDEventSource &CFFDEventSource::operator=(CFFDEventSource &&o)
 {
 	deinit();
 	info = std::move(o.info);
-	#ifndef NDEBUG
 	debugLabel = o.debugLabel;
-	#endif
 	return *this;
 }
 
@@ -174,11 +168,7 @@ void CFFDEventSource::deinit()
 
 const char *CFFDEventSource::label()
 {
-	#ifdef NDEBUG
-	return nullptr;
-	#else
 	return debugLabel;
-	#endif
 }
 
 EventLoop EventLoop::forThread()
