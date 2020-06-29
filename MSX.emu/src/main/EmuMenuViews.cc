@@ -169,7 +169,7 @@ private:
 	void reloadMachineItem()
 	{
 		msxMachineItem.clear();
-		msxMachineName = std::move(machinesNames(machineBasePath.data()));
+		msxMachineName = machinesNames(machineBasePath.data());
 		for(const auto &name : msxMachineName)
 		{
 			msxMachineItem.emplace_back(name.data(),
@@ -596,7 +596,7 @@ private:
 	void reloadMachineItem()
 	{
 		msxMachineItem.clear();
-		msxMachineName = std::move(machinesNames(machineBasePath.data()));
+		msxMachineName = machinesNames(machineBasePath.data());
 		for(const auto &name : msxMachineName)
 		{
 			msxMachineItem.emplace_back(name.data(),
@@ -650,12 +650,323 @@ public:
 	}
 };
 
+static const MixerAudioType channelType[]
+{
+	MIXER_CHANNEL_PSG,
+	MIXER_CHANNEL_SCC,
+	MIXER_CHANNEL_MSXMUSIC,
+	MIXER_CHANNEL_MSXAUDIO,
+	MIXER_CHANNEL_MOONSOUND,
+	MIXER_CHANNEL_YAMAHA_SFG,
+	MIXER_CHANNEL_PCM,
+};
+
+class SoundMixerView : public TableView
+{
+public:
+	SoundMixerView(ViewAttachParams attach):
+		TableView
+		{
+			"Sound Mixer",
+			attach,
+			menuItem
+		}
+	{
+		for(MixerAudioType type : channelType)
+		{
+			updateVolumeString(type, mixerVolumeOption(type));
+			updatePanString(type, mixerPanOption(type));
+		}
+	}
+
+protected:
+	static constexpr unsigned CHANNEL_TYPES = std::size(channelType);
+
+	std::array<TextHeadingMenuItem, CHANNEL_TYPES> heading
+	{
+		"PSG",
+		"SCC",
+		"MSX-MUSIC",
+		"MSX-AUDIO",
+		"MoonSound",
+		"Yamaha SFG",
+		"PCM",
+	};
+
+	BoolMenuItem makeEnableChannel(MixerAudioType type)
+	{
+		return
+		{
+			"Output",
+			(bool)mixerEnableOption(type),
+			[this, type](BoolMenuItem &item, View &, Input::Event)
+			{
+				setMixerEnableOption(type, item.flipBoolValue(*this));
+			}
+		};
+	}
+
+	std::array<BoolMenuItem, CHANNEL_TYPES> enableChannel
+	{
+		makeEnableChannel(MIXER_CHANNEL_PSG),
+		makeEnableChannel(MIXER_CHANNEL_SCC),
+		makeEnableChannel(MIXER_CHANNEL_MSXMUSIC),
+		makeEnableChannel(MIXER_CHANNEL_MSXAUDIO),
+		makeEnableChannel(MIXER_CHANNEL_MOONSOUND),
+		makeEnableChannel(MIXER_CHANNEL_YAMAHA_SFG),
+		makeEnableChannel(MIXER_CHANNEL_PCM),
+	};
+
+	using ValueString = std::array<char, 5>;
+
+	std::array<ValueString, CHANNEL_TYPES> volumeStr{};
+
+	ValueString &volumeString(MixerAudioType type)
+	{
+		switch(type)
+		{
+			default: [[fallthrough]];
+			case MIXER_CHANNEL_PSG: return volumeStr[0];
+			case MIXER_CHANNEL_SCC: return volumeStr[1];
+			case MIXER_CHANNEL_MSXMUSIC: return volumeStr[2];
+			case MIXER_CHANNEL_MSXAUDIO: return volumeStr[3];
+			case MIXER_CHANNEL_MOONSOUND: return volumeStr[4];
+			case MIXER_CHANNEL_YAMAHA_SFG: return volumeStr[5];
+			case MIXER_CHANNEL_PCM: return volumeStr[6];
+		}
+	}
+
+	void updateVolumeString(MixerAudioType type, uint8_t val)
+	{
+		string_printf(volumeString(type), "%u%%", val);
+	}
+
+	using ValueItemArr = std::array<TextMenuItem, 2>;
+
+	ValueItemArr makeVolumeLevelItems(MixerAudioType type, uint8_t idx)
+	{
+		return
+		{
+			TextMenuItem{"Default Value",
+				[this, type]()
+				{
+					updateVolumeString(type, setMixerVolumeOption(type, -1));
+				}},
+			TextMenuItem{"Custom Value",
+				[this, type = (uint8_t)type, idx](Input::Event e)
+				{
+					EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
+						[this, type, idx](auto val)
+						{
+							if(val >= 0 && val <= 100)
+							{
+								updateVolumeString((MixerAudioType)type, val);
+								volumeLevel[idx].setSelected(std::size(volumeLevelItem[idx]) - 1, *this);
+								setMixerVolumeOption((MixerAudioType)type, val);
+								popAndShow();
+								return true;
+							}
+							else
+							{
+								EmuApp::postErrorMessage("Value not in range");
+								return false;
+							}
+						});
+					return false;
+				}
+			}
+		};
+	}
+
+	std::array<ValueItemArr, CHANNEL_TYPES> volumeLevelItem
+	{
+		makeVolumeLevelItems(MIXER_CHANNEL_PSG, 0),
+		makeVolumeLevelItems(MIXER_CHANNEL_SCC, 1),
+		makeVolumeLevelItems(MIXER_CHANNEL_MSXMUSIC, 2),
+		makeVolumeLevelItems(MIXER_CHANNEL_MSXAUDIO, 3),
+		makeVolumeLevelItems(MIXER_CHANNEL_MOONSOUND, 4),
+		makeVolumeLevelItems(MIXER_CHANNEL_YAMAHA_SFG, 5),
+		makeVolumeLevelItems(MIXER_CHANNEL_PCM, 6),
+	};
+
+	MultiChoiceMenuItem makeVolumeLevel(MixerAudioType type, unsigned idx)
+	{
+		return
+		{
+			"Volume",
+			[this, type](uint32_t idx)
+			{
+				return volumeString(type).data();
+			},
+			1,
+			volumeLevelItem[idx]
+		};
+	}
+
+	std::array<MultiChoiceMenuItem, CHANNEL_TYPES> volumeLevel
+	{
+		makeVolumeLevel(MIXER_CHANNEL_PSG, 0),
+		makeVolumeLevel(MIXER_CHANNEL_SCC, 1),
+		makeVolumeLevel(MIXER_CHANNEL_MSXMUSIC, 2),
+		makeVolumeLevel(MIXER_CHANNEL_MSXAUDIO, 3),
+		makeVolumeLevel(MIXER_CHANNEL_MOONSOUND, 4),
+		makeVolumeLevel(MIXER_CHANNEL_YAMAHA_SFG, 5),
+		makeVolumeLevel(MIXER_CHANNEL_PCM, 6),
+	};
+
+	std::array<ValueString, CHANNEL_TYPES> panStr{};
+
+	ValueString &panString(MixerAudioType type)
+	{
+		switch(type)
+		{
+			default: [[fallthrough]];
+			case MIXER_CHANNEL_PSG: return panStr[0];
+			case MIXER_CHANNEL_SCC: return panStr[1];
+			case MIXER_CHANNEL_MSXMUSIC: return panStr[2];
+			case MIXER_CHANNEL_MSXAUDIO: return panStr[3];
+			case MIXER_CHANNEL_MOONSOUND: return panStr[4];
+			case MIXER_CHANNEL_YAMAHA_SFG: return panStr[5];
+			case MIXER_CHANNEL_PCM: return panStr[6];
+		}
+	}
+
+	void updatePanString(MixerAudioType type, uint8_t val)
+	{
+		string_printf(panString(type), "%u%%", val);
+	}
+
+	ValueItemArr makePanLevelItems(MixerAudioType type, uint8_t idx)
+	{
+		return
+		{
+			TextMenuItem{"Default Value",
+				[this, type]()
+				{
+					updatePanString(type, setMixerPanOption(type, -1));
+				}},
+			TextMenuItem{"Custom Value",
+				[this, type = (uint8_t)type, idx](Input::Event e)
+				{
+					EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
+						[this, type, idx](auto val)
+						{
+							if(val >= 0 && val <= 100)
+							{
+								updatePanString((MixerAudioType)type, val);
+								panLevel[idx].setSelected(std::size(panLevelItem[idx]) - 1, *this);
+								setMixerPanOption((MixerAudioType)type, val);
+								popAndShow();
+								return true;
+							}
+							else
+							{
+								EmuApp::postErrorMessage("Value not in range");
+								return false;
+							}
+						});
+					return false;
+				}
+			}
+		};
+	}
+
+	std::array<ValueItemArr, CHANNEL_TYPES> panLevelItem
+	{
+		makePanLevelItems(MIXER_CHANNEL_PSG, 0),
+		makePanLevelItems(MIXER_CHANNEL_SCC, 1),
+		makePanLevelItems(MIXER_CHANNEL_MSXMUSIC, 2),
+		makePanLevelItems(MIXER_CHANNEL_MSXAUDIO, 3),
+		makePanLevelItems(MIXER_CHANNEL_MOONSOUND, 4),
+		makePanLevelItems(MIXER_CHANNEL_YAMAHA_SFG, 5),
+		makePanLevelItems(MIXER_CHANNEL_PCM, 6),
+	};
+
+	MultiChoiceMenuItem makePanLevel(MixerAudioType type, unsigned idx)
+	{
+		return
+		{
+			"Pan",
+			[this, type](uint32_t idx)
+			{
+				return panString(type).data();
+			},
+			1,
+			panLevelItem[idx]
+		};
+	}
+
+	std::array<MultiChoiceMenuItem, CHANNEL_TYPES> panLevel
+	{
+		makePanLevel(MIXER_CHANNEL_PSG, 0),
+		makePanLevel(MIXER_CHANNEL_SCC, 1),
+		makePanLevel(MIXER_CHANNEL_MSXMUSIC, 2),
+		makePanLevel(MIXER_CHANNEL_MSXAUDIO, 3),
+		makePanLevel(MIXER_CHANNEL_MOONSOUND, 4),
+		makePanLevel(MIXER_CHANNEL_YAMAHA_SFG, 5),
+		makePanLevel(MIXER_CHANNEL_PCM, 6),
+	};
+
+	std::array<MenuItem*, CHANNEL_TYPES * 4> menuItem
+	{
+		&heading[0],
+		&enableChannel[0],
+		&volumeLevel[0],
+		&panLevel[0],
+		&heading[1],
+		&enableChannel[1],
+		&volumeLevel[1],
+		&panLevel[1],
+		&heading[2],
+		&enableChannel[2],
+		&volumeLevel[2],
+		&panLevel[2],
+		&heading[3],
+		&enableChannel[3],
+		&volumeLevel[3],
+		&panLevel[3],
+		&heading[4],
+		&enableChannel[4],
+		&volumeLevel[4],
+		&panLevel[4],
+		&heading[5],
+		&enableChannel[5],
+		&volumeLevel[5],
+		&panLevel[5],
+		&heading[6],
+		&enableChannel[6],
+		&volumeLevel[6],
+		&panLevel[6],
+	};
+};
+
+class CustomAudioOptionView : public AudioOptionView
+{
+public:
+	CustomAudioOptionView(ViewAttachParams attach): AudioOptionView{attach, true}
+	{
+		loadStockItems();
+		item.emplace_back(&mixer);
+	}
+
+protected:
+	TextMenuItem mixer
+	{
+		"Sound Mixer",
+		[this](Input::Event e)
+		{
+			pushAndShow(makeView<SoundMixerView>(), e);
+		}
+	};
+};
+
 std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {
 	switch(id)
 	{
 		case ViewID::SYSTEM_ACTIONS: return std::make_unique<CustomSystemActionsView>(attach);
 		case ViewID::SYSTEM_OPTIONS: return std::make_unique<CustomSystemOptionView>(attach);
+		case ViewID::AUDIO_OPTIONS: return std::make_unique<CustomAudioOptionView>(attach);
 		default: return nullptr;
 	}
 }

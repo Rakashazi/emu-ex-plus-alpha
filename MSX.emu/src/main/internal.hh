@@ -9,6 +9,8 @@ extern "C"
 	#include <blueMSX/Board/Board.h>
 }
 
+struct Mixer;
+
 extern bool canInstallCBIOS;
 extern Byte1Option optionSkipFdcAccess;
 extern PathOption optionFirmwarePath;
@@ -22,6 +24,7 @@ extern FS::FileString diskName[2];
 extern uint activeBoardType;
 extern BoardInfo boardInfo;
 extern bool fdcActive;
+extern Mixer *mixer;
 
 static const char *installFirmwareFilesMessage =
 	#if defined CONFIG_BASE_ANDROID
@@ -50,3 +53,9 @@ IG::Pixmap frameBufferPixmap();
 bool setDefaultMachineName(const char *name);
 const char *currentMachineName();
 EmuSystem::Error setCurrentMachineName(const char *machineName, bool insertMediaFiles = true);
+bool mixerEnableOption(MixerAudioType type);
+void setMixerEnableOption(MixerAudioType type, bool on);
+uint8_t mixerVolumeOption(MixerAudioType type);
+uint8_t setMixerVolumeOption(MixerAudioType type, int volume);
+uint8_t mixerPanOption(MixerAudioType type);
+uint8_t setMixerPanOption(MixerAudioType type, int pan);

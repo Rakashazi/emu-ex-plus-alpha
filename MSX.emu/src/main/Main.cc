@@ -825,47 +825,7 @@ EmuSystem::Error EmuSystem::onInit()
 	mediaDbSetDefaultRomType(ROM_UNKNOWN);
 
 	// Init Mixer
-	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_PSG, 100);
-	mixerSetChannelTypePan(mixer, MIXER_CHANNEL_PSG, 50/*40*/);
-	mixerEnableChannelType(mixer, MIXER_CHANNEL_PSG, 1);
-
-	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_SCC, 100);
-	mixerSetChannelTypePan(mixer, MIXER_CHANNEL_SCC, 50/*60*/);
-	mixerEnableChannelType(mixer, MIXER_CHANNEL_SCC, 1);
-
-	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_MSXMUSIC, 95);
-	mixerSetChannelTypePan(mixer, MIXER_CHANNEL_MSXMUSIC, 50/*60*/);
-	mixerEnableChannelType(mixer, MIXER_CHANNEL_MSXMUSIC, 1);
-
-	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_MSXAUDIO, 95);
-	mixerSetChannelTypePan(mixer, MIXER_CHANNEL_MSXAUDIO, 50);
-	mixerEnableChannelType(mixer, MIXER_CHANNEL_MSXAUDIO, 1);
-
-	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_MOONSOUND, 95);
-	mixerSetChannelTypePan(mixer, MIXER_CHANNEL_MOONSOUND, 50);
-	mixerEnableChannelType(mixer, MIXER_CHANNEL_MOONSOUND, 1);
-
-	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_YAMAHA_SFG, 95);
-	mixerSetChannelTypePan(mixer, MIXER_CHANNEL_YAMAHA_SFG, 50);
-	mixerEnableChannelType(mixer, MIXER_CHANNEL_YAMAHA_SFG, 1);
-
-	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_PCM, 95);
-	mixerSetChannelTypePan(mixer, MIXER_CHANNEL_PCM, 50);
-	mixerEnableChannelType(mixer, MIXER_CHANNEL_PCM, 1);
-
-	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_IO, 50);
-	mixerSetChannelTypePan(mixer, MIXER_CHANNEL_IO, 50/*70*/);
-	mixerEnableChannelType(mixer, MIXER_CHANNEL_IO, 0);
-
-	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_MIDI, 90);
-	mixerSetChannelTypePan(mixer, MIXER_CHANNEL_MIDI, 50);
-	mixerEnableChannelType(mixer, MIXER_CHANNEL_MIDI, 1);
-
-	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_KEYBOARD, 65);
-	mixerSetChannelTypePan(mixer, MIXER_CHANNEL_KEYBOARD, 50/*55*/);
-	mixerEnableChannelType(mixer, MIXER_CHANNEL_KEYBOARD, 1);
-
-	//mixerSetMasterVolume(mixer, 100);
+	mixerSetMasterVolume(mixer, 100);
 	mixerSetStereo(mixer, 1);
 	mixerEnableMaster(mixer, 1);
 	int logFrequency = 50;

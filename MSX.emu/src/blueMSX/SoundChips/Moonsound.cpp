@@ -141,6 +141,8 @@ void moonsoundDestroy(Moonsound* moonsound)
     
     boardTimerDestroy(moonsound->timer1);
     boardTimerDestroy(moonsound->timer2);
+
+    delete moonsound;
 }
 
 void moonsoundSaveState(Moonsound* moonsound)

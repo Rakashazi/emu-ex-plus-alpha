@@ -49,9 +49,9 @@ UInt8 boardCaptureUInt8(UInt8 logId, UInt8 value)
 int boardGetY8950Oversampling() { return 1; }
 int boardGetYm2413Oversampling() { return 1; }
 int boardGetMoonsoundOversampling() { return 1; }
-int boardGetY8950Enable() { return 0; }
+int boardGetY8950Enable() { return 1; }
 int boardGetYm2413Enable() { return 1; }
-int boardGetMoonsoundEnable() { return 0; }
+int boardGetMoonsoundEnable() { return 1; }
 
 void boardChangeDiskette(int driveId, char* fileName, const char* fileInZipFile)
 {

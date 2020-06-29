@@ -127,7 +127,7 @@ struct Mixer
     //Int32   logging;
     Int32   stereo;
     UInt32 rate;
-    //DoubleT  masterVolume;
+    DoubleT  masterVolume;
     Int32   masterEnable;
     Int32   volIntLeft;
     Int32   volIntRight;
@@ -192,7 +192,7 @@ void mixerSetStereo(Mixer* mixer, Int32 stereo)
     }
 }
 
-/*void mixerSetMasterVolume(Mixer* mixer, Int32 volume)
+void mixerSetMasterVolume(Mixer* mixer, Int32 volume)
 {
     int i;
 
@@ -201,7 +201,7 @@ void mixerSetStereo(Mixer* mixer, Int32 stereo)
     for (i = 0; i < MIXER_CHANNEL_TYPE_COUNT; i++) {
         mixerRecalculateType(mixer, i);
     }
-}*/
+}
 
 void mixerEnableMaster(Mixer* mixer, Int32 enable)
 {
@@ -286,8 +286,8 @@ static void recalculateChannelVolume(Mixer* mixer, MixerChannel* channel)
 	DoubleT panLeft       = pow(10.0, (MIN(100 - channel->pan, 50) - 50) / 30.0) - pow(10.0, -50 / 30.0);
 	DoubleT panRight      = pow(10.0, (MIN(channel->pan, 50) - 50) / 30.0) - pow(10.0, -50 / 30.0);
 
-    channel->volumeLeft  = channel->enable * mixer->masterEnable * (Int32)(1024 * /*mixer->masterVolume **/ volume * panLeft);
-    channel->volumeRight = channel->enable * mixer->masterEnable * (Int32)(1024 * /*mixer->masterVolume **/ volume * panRight);
+    channel->volumeLeft  = channel->enable * mixer->masterEnable * (Int32)(1024 * mixer->masterVolume * volume * panLeft);
+    channel->volumeRight = channel->enable * mixer->masterEnable * (Int32)(1024 * mixer->masterVolume * volume * panRight);
 
     if (!mixer->stereo) {
         Int32 tmp = (channel->volumeLeft + channel->volumeRight) / 2;
@@ -633,8 +633,8 @@ void mixerSync(Mixer* mixer)
         mixer->volCntRight = 0;
 
         for (i = 0; i < mixer->channelCount; i++) {
-            Int32 newVolumeLeft  = (Int32)(mixer->channels[i].volCntLeft  / /*mixer->masterVolume /*/ mixer->volIndex / 328);
-            Int32 newVolumeRight = (Int32)(mixer->channels[i].volCntRight / /*mixer->masterVolume /*/ mixer->volIndex / 328);
+            Int32 newVolumeLeft  = (Int32)(mixer->channels[i].volCntLeft  / mixer->masterVolume / mixer->volIndex / 328);
+            Int32 newVolumeRight = (Int32)(mixer->channels[i].volCntRight / mixer->masterVolume / mixer->volIndex / 328);
 
             if (newVolumeLeft > 100) {
                 newVolumeLeft = 100;

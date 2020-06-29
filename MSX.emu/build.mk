@@ -5,17 +5,7 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 # TODO: fix pointer type casts
 CFLAGS_LANG += -Wno-incompatible-pointer-types -Wno-sign-compare -Wno-switch
-
-SRC += main/Main.cc \
-main/options.cc \
-main/input.cc \
-main/EmuControls.cc \
-main/EmuMenuViews.cc \
-main/BlueMSXApi.cc \
-main/Board.cc \
-main/ziphelper.cc \
-main/RomLoader.cc \
-main/FrameBuffer.cc
+CFLAGS_LANG += -Werror=implicit-function-declaration
 
 BMSX := blueMSX
 
@@ -25,6 +15,7 @@ CPPFLAGS += -DNO_FRAMEBUFFER \
 -DNO_EMBEDDED_SAMPLES \
 -I$(projectPath)/src/$(BMSX)
 
+# BlueMSX includes
 CPPFLAGS += -I$(projectPath)/src \
 -I$(projectPath)/src/$(BMSX)/SoundChips \
 -I$(projectPath)/src/$(BMSX)/VideoChips \
@@ -43,9 +34,18 @@ CPPFLAGS += -I$(projectPath)/src \
 -I$(projectPath)/src/$(BMSX)/IoDevice \
 -I$(projectPath)/src/$(BMSX)/Debugger
 
-CFLAGS_LANG += -Werror=implicit-function-declaration
+SRC += main/Main.cc \
+main/options.cc \
+main/input.cc \
+main/EmuControls.cc \
+main/EmuMenuViews.cc \
+main/BlueMSXApi.cc \
+main/Board.cc \
+main/ziphelper.cc \
+main/RomLoader.cc \
+main/FrameBuffer.cc
 
-# blueMSX sources
+# BlueMSX sources
 
 # Sound Chips
 SRC += $(BMSX)/SoundChips/AudioMixer.c \
@@ -99,17 +99,11 @@ $(BMSX)/IoDevice/Z8530.c \
 $(BMSX)/IoDevice/HarddiskIDE.c \
 $(BMSX)/IoDevice/DirAsDisk.c \
 
-# TODO: this file causes LTO linker error with multiple read() symbols
-# in Android NDK r10, possibly due to linker bug
-# $(BMSX)/IoDevice/DirAsDisk.c
-
 # Utils
 SRC += $(BMSX)/Utils/SaveState.c \
 $(BMSX)/Utils/TokenExtract.c \
 $(BMSX)/Utils/IniFileParser.c \
 $(BMSX)/Utils/IsFileExtension.c
-# $(BMSX)/Utils/ZipFromMem.c \
-# $(BMSX)/Utils/StrcmpNoCase.c
 
 # Input
 SRC += $(BMSX)/Input/JoystickPort.c \
@@ -209,7 +203,8 @@ $(BMSX)/Memory/romMapperGIDE.c \
 $(BMSX)/Memory/sramMapperMatsuchita.c \
 $(BMSX)/Memory/romMapperNational.c \
 $(BMSX)/Memory/romMapperBunsetu.c \
-$(BMSX)/Memory/romMapperSunriseIDE.c
+$(BMSX)/Memory/romMapperSunriseIDE.c \
+$(BMSX)/Memory/romMapperNet.c
 
 # Z80
 SRC += $(BMSX)/Z80/R800.c \
@@ -217,7 +212,6 @@ $(BMSX)/Z80/R800SaveState.c
 
 useXMLDB := 0
 
-include $(IMAGINE_PATH)/make/package/zlib.mk
 ifeq ($(useXMLDB), 1)
  # TinyXML
  SRC += $(BMSX)/TinyXML/tinystr.cpp \
@@ -229,10 +223,7 @@ ifeq ($(useXMLDB), 1)
  SRC += $(BMSX)/Media/MediaDb.cpp \
  $(BMSX)/Media/Sha1.cpp \
  $(BMSX)/Media/Crc32Calc.c
-
- include $(IMAGINE_PATH)/make/package/stdc++.mk
 else
- include $(IMAGINE_PATH)/make/package/stdc++-headers.mk
  SRC += main/MediaDb.cc
 endif
 
@@ -240,12 +231,7 @@ endif
 SRC +=  $(BMSX)/Bios/Patch.c \
 $(BMSX)/Language/LanguageMinimal.c
 
-ifdef RELEASE
- # TODO: Use LTO for proper weak symbol overriding 
- # since iOS build currently has it disabled due to app exit crash
- $(objDir)/main/Main.o $(objDir)/main/BlueMSXApi.o $(objDir)/main/MediaDb.o $(objDir)/main/EmuControls.o : CXXFLAGS += -flto
-endif
-
+include $(IMAGINE_PATH)/make/package/zlib.mk
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk
