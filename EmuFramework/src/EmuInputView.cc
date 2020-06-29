@@ -158,21 +158,23 @@ bool EmuInputView::inputEvent(Input::Event e)
 					if(e.pushed())
 					{
 						static auto doSaveState =
-							[]()
+							[](bool notify)
 							{
 								if(auto err = EmuApp::saveStateWithSlot(EmuSystem::saveStateSlot);
 									err)
 								{
 									EmuApp::printfMessage(4, true, "Save State: %s", err->what());
 								}
-								else
+								else if(notify)
+								{
 									EmuApp::postMessage("State Saved");
+								}
 							};
 
 						if(EmuSystem::shouldOverwriteExistingState())
 						{
 							EmuApp::syncEmulationThread();
-							doSaveState();
+							doSaveState(optionConfirmOverwriteState);
 						}
 						else
 						{
@@ -181,7 +183,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 								[](TextMenuItem &, View &view, Input::Event e)
 								{
 									view.dismiss();
-									doSaveState();
+									doSaveState(false);
 									emuViewController.showEmulation();
 								});
 							ynAlertView->setOnNo(
