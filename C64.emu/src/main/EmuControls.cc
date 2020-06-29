@@ -487,6 +487,68 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::GAME_X,
 		}
 	},
+	{
+		Event::MAP_SYSTEM,
+		Device::SUBTYPE_8BITDO_SF30_PRO,
+		"8Bitdo SF30 Pro",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_SF30_PRO_PROFILE_INIT,
+
+			// JS 1
+			Keycode::UP,
+			Keycode::RIGHT,
+			Keycode::DOWN,
+			Keycode::LEFT,
+			0, 0, 0, 0,
+			Keycode::GAME_B,
+			Keycode::GAME_A,
+			Keycode::GAME_X,
+
+			// JS 2
+			PP_ZERO_LIST(11)
+
+			// Keyboard
+			Keycode::GAME_START,
+			Keycode::GAME_LEFT_THUMB, // F1 ... F8
+			0,
+			Keycode::GAME_L1,
+			0,
+			Keycode::GAME_R1,
+			0,
+			Keycode::GAME_Y,
+		}
+	},
+	{
+		Event::MAP_SYSTEM,
+		Device::SUBTYPE_8BITDO_SN30_PRO_PLUS,
+		"8BitDo SN30 Pro+",
+		{
+			EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_SN30_PRO_PLUS_PROFILE_INIT,
+
+			// JS 1
+			Keycode::UP,
+			Keycode::RIGHT,
+			Keycode::DOWN,
+			Keycode::LEFT,
+			0, 0, 0, 0,
+			Keycode::GAME_B,
+			Keycode::GAME_A,
+			Keycode::GAME_X,
+
+			// JS 2
+			PP_ZERO_LIST(11)
+
+			// Keyboard
+			Keycode::GAME_START,
+			Keycode::GAME_LEFT_THUMB, // F1 ... F8
+			0,
+			Keycode::GAME_L1,
+			0,
+			Keycode::GAME_R1,
+			0,
+			Keycode::GAME_Y,
+		}
+	},
 		#if __ARM_ARCH == 7
 		{
 			Event::MAP_SYSTEM,

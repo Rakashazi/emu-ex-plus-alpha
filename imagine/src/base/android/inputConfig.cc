@@ -249,6 +249,21 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumI
 			logMsg("detected wireless 360 gamepad");
 			subtype_ = Device::SUBTYPE_XBOX_360_CONTROLLER;
 		}
+		else if(string_equal(name, "8Bitdo SF30 Pro"))
+		{
+			logMsg("detected 8Bitdo SF30 Pro");
+			subtype_ = Device::SUBTYPE_8BITDO_SF30_PRO;
+		}
+		else if(string_equal(name, "8BitDo SN30 Pro+"))
+		{
+			logMsg("detected 8BitDo SN30 Pro+");
+			subtype_ = Device::SUBTYPE_8BITDO_SN30_PRO_PLUS;
+		}
+		else if(string_equal(name, "8BitDo M30 gamepad"))
+		{
+			logMsg("detected 8BitDo M30 gamepad");
+			subtype_ = Device::SUBTYPE_8BITDO_M30_GAMEPAD;
+		}
 		else
 		{
 			logMsg("detected a gamepad");

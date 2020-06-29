@@ -299,3 +299,69 @@ Input::Keycode::F11, \
 	0, \
 	0, \
 	0
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_SF30_PRO_PROFILE_INIT \
+0, \
+Input::Keycode::JS2_YAXIS_NEG, \
+0, \
+0, \
+0, \
+0, \
+Input::Keycode::GAME_R2, \
+0, \
+Input::Keycode::GAME_L2
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_SF30_PRO_MINIMAL_PROFILE_INIT \
+0, \
+Input::Keycode::JS2_YAXIS_NEG, \
+0, \
+0, \
+0, \
+0, \
+Input::Keycode::GAME_R2, \
+0, \
+Input::Keycode::GAME_L2
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_SN30_PRO_PLUS_PROFILE_INIT \
+0, \
+Input::Keycode::JS2_YAXIS_NEG, \
+0, \
+0, \
+0, \
+0, \
+Input::Keycode::GAME_R2, \
+0, \
+Input::Keycode::GAME_L2
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_SN30_PRO_PLUS_MINIMAL_PROFILE_INIT \
+0, \
+Input::Keycode::JS2_YAXIS_NEG, \
+0, \
+0, \
+0, \
+0, \
+Input::Keycode::GAME_R2, \
+0, \
+Input::Keycode::GAME_L2
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_M30_GAMEPAD_PROFILE_INIT \
+0, \
+Input::Keycode::JS2_YAXIS_NEG, \
+0, \
+0, \
+0, \
+0, \
+Input::Keycode::GAME_R2, \
+0, \
+Input::Keycode::GAME_L2
+
+#define EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_M30_GAMEPAD_MINIMAL_PROFILE_INIT \
+0, \
+Input::Keycode::JS2_YAXIS_NEG, \
+0, \
+0, \
+0, \
+0, \
+Input::Keycode::GAME_R2, \
+0, \
+Input::Keycode::GAME_L2
