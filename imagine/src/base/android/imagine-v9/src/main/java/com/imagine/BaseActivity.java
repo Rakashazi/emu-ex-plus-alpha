@@ -519,7 +519,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	String libDir()
 	{
-		if(android.os.Build.VERSION.SDK_INT < 24)
+		if(android.os.Build.VERSION.SDK_INT >= 24)
 			return null;
 		return getApplicationInfo().nativeLibraryDir;
 	}

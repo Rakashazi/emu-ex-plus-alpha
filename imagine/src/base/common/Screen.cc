@@ -192,7 +192,7 @@ void Screen::startDebugFrameStats(FrameTime timestamp)
 	{
 		if(logDroppedFrames)
 			logDMsg("Lost %u frame(s) after %u continuous, at time %f (%f since last frame)",
-				elapsed - 1, continuousFrames,
+				elapsed - 1, (unsigned)continuousFrames,
 				IG::FloatSeconds(timestamp).count(),
 				IG::FloatSeconds(diffFromLastFrame).count());
 		continuousFrames = 0;
