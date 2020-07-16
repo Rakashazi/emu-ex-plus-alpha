@@ -65,13 +65,6 @@ static int machineIndex(std::vector<FS::FileString> &name, FS::FileString search
 	}
 }
 
-template <size_t S>
-static void printInstallFirmwareFilesStr(char (&str)[S])
-{
-	FS::PathString basenameTemp;
-	string_printf(str, "Install the C-BIOS BlueMSX machine files to: %s", machineBasePath.data());
-}
-
 void installFirmwareFiles()
 {
 	std::error_code ec{};
@@ -146,12 +139,14 @@ private:
 	MultiChoiceMenuItem msxMachine
 	{
 		"Default Machine Type",
-		[](int idx) -> const char*
+		[](int idx, Gfx::Text &t)
 		{
 			if(idx == -1)
-				return "None";
-			else
-				return nullptr;
+			{
+				t.setString("None");
+				return true;
+			}
+			return false;
 		},
 		0,
 		msxMachineItem,
@@ -173,28 +168,25 @@ private:
 		for(const auto &name : msxMachineName)
 		{
 			msxMachineItem.emplace_back(name.data(),
-			[](TextMenuItem &item, View &, Input::Event)
+			[name = name.data()](Input::Event)
 			{
-				setDefaultMachineName(item.name());
-				logMsg("set machine type: %s", item.name());
+				setDefaultMachineName(name);
+				logMsg("set machine type: %s", name);
 			});
 		}
 		msxMachine.setSelected(machineIndex(msxMachineName, FS::makeFileString(optionDefaultMachineName)));
 	}
 
-	char installFirmwareFilesStr[512]{};
-
 	TextMenuItem installCBIOS
 	{
 		"Install MSX C-BIOS",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
-			printInstallFirmwareFilesStr(installFirmwareFilesStr);
-			auto ynAlertView = makeView<YesNoAlertView>(installFirmwareFilesStr);
+			auto ynAlertView = makeView<YesNoAlertView>(
+				string_makePrintf<512>("Install the C-BIOS BlueMSX machine files to: %s", machineBasePath.data()).data());
 			ynAlertView->setOnYes(
-				[](TextMenuItem &, View &view, Input::Event e)
+				[]()
 				{
-					view.dismiss();
 					installFirmwareFiles();
 				});
 			EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
@@ -211,18 +203,15 @@ private:
 		}
 	};
 
-	template <size_t S>
-	static void printMachinePathMenuEntryStr(char (&str)[S])
+	static std::array<char, 256> makeMachinePathMenuEntryStr()
 	{
-		string_printf(str, "System/BIOS Path: %s", strlen(machineCustomPath.data()) ? FS::basename(machineCustomPath).data() : "Default");
+		return string_makePrintf<256>("System/BIOS Path: %s", strlen(machineCustomPath.data()) ? FS::basename(machineCustomPath).data() : "Default");
 	}
-
-	char machineFilePathStr[256]{};
 
 	TextMenuItem machineFilePath
 	{
-		machineFilePathStr,
-		[this](TextMenuItem &, View &, Input::Event e)
+		nullptr,
+		[this](Input::Event e)
 		{
 			pushAndShowFirmwarePathMenu("System/BIOS Path", e);
 			postDraw();
@@ -231,8 +220,7 @@ private:
 
 	void onFirmwarePathChange(const char *path, Input::Event e) final
 	{
-		printMachinePathMenuEntryStr(machineFilePathStr);
-		machineFilePath.compile(renderer(), projP);
+		machineFilePath.compile(makeMachinePathMenuEntryStr().data(), renderer(), projP);
 		machineBasePath = makeMachineBasePath(machineCustomPath);
 		reloadMachineItem();
 		msxMachine.compile(renderer(), projP);
@@ -249,7 +237,7 @@ public:
 		reloadMachineItem();
 		item.emplace_back(&skipFdcAccess);
 		item.emplace_back(&msxMachine);
-		printMachinePathMenuEntryStr(machineFilePathStr);
+		machineFilePath.setName(makeMachinePathMenuEntryStr().data());
 		item.emplace_back(&machineFilePath);
 		if(canInstallCBIOS)
 		{
@@ -280,11 +268,10 @@ class MsxIOControlView : public TableView
 {
 public:
 	static const char *hdSlotPrefix[4];
-	char hdSlotStr[4][1024]{};
 
 	void updateHDText(int slot)
 	{
-		string_printf(hdSlotStr[slot], "%s %s", hdSlotPrefix[slot], hdName[slot].data());
+		hdSlot[slot].setName(string_makePrintf<1024>("%s %s", hdSlotPrefix[slot], hdName[slot].data()).data());
 	}
 
 	void updateHDStatusFromCartSlot(int cartSlot)
@@ -304,17 +291,19 @@ public:
 		hdSlot[slot].compile(renderer(), projP);
 	}
 
-	void addHDFilePickerView(Input::Event e, uint8_t slot)
+	void addHDFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
 		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
-			[this, slot](FSPicker &picker, const char* name, Input::Event e)
+			[this, slot, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
 				auto id = diskGetHdDriveId(slot / 2, slot % 2);
 				logMsg("inserting hard drive id %d", id);
 				if(insertDisk(name, id))
 				{
 					onHDMediaChange(name, slot);
+					if(dismissPreviousView)
+						dismissPrevious();
 				}
 				picker.dismiss();
 			});
@@ -329,42 +318,38 @@ public:
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>("Hard Drive", std::size(insertEjectDiskMenuStr));
 			multiChoiceView->appendItem(insertEjectDiskMenuStr[0],
-				[this, slot](TextMenuItem &, View &, Input::Event e)
+				[this, slot](View &view, Input::Event e)
 				{
-					addHDFilePickerView(e, slot);
-					postDraw();
-					popAndShow();
+					addHDFilePickerView(e, slot, true);
 				});
 			multiChoiceView->appendItem(insertEjectDiskMenuStr[1],
-				[this, slot](TextMenuItem &, View &, Input::Event e)
+				[this, slot](View &view, Input::Event e)
 				{
 					diskChange(diskGetHdDriveId(slot / 2, slot % 2), 0, 0);
 					onHDMediaChange("", slot);
-					popAndShow();
+					view.dismiss();
 				});
 			pushAndShow(std::move(multiChoiceView), e);
 		}
 		else
 		{
-			addHDFilePickerView(e, slot);
-			window().postDraw();
+			addHDFilePickerView(e, slot, false);
 		}
 	}
 
 	TextMenuItem hdSlot[4]
 	{
-		{hdSlotStr[0], [this](TextMenuItem &item, View &, Input::Event e) { onSelectHD(item, e, 0); }},
-		{hdSlotStr[1], [this](TextMenuItem &item, View &, Input::Event e) { onSelectHD(item, e, 1); }},
-		{hdSlotStr[2], [this](TextMenuItem &item, View &, Input::Event e) { onSelectHD(item, e, 2); }},
-		{hdSlotStr[3], [this](TextMenuItem &item, View &, Input::Event e) { onSelectHD(item, e, 3); }}
+		{nullptr, [this](TextMenuItem &item, View &, Input::Event e) { onSelectHD(item, e, 0); }},
+		{nullptr, [this](TextMenuItem &item, View &, Input::Event e) { onSelectHD(item, e, 1); }},
+		{nullptr, [this](TextMenuItem &item, View &, Input::Event e) { onSelectHD(item, e, 2); }},
+		{nullptr, [this](TextMenuItem &item, View &, Input::Event e) { onSelectHD(item, e, 3); }}
 	};
 
 	static const char *romSlotPrefix[2];
-	char romSlotStr[2][1024]{};
 
 	void updateROMText(int slot)
 	{
-		string_printf(romSlotStr[slot], "%s %s", romSlotPrefix[slot], cartName[slot].data());
+		romSlot[slot].setName(string_makePrintf<1024>("%s %s", romSlotPrefix[slot], cartName[slot].data()).data());
 	}
 
 	void onROMMediaChange(const char *name, int slot)
@@ -375,15 +360,17 @@ public:
 		updateHDStatusFromCartSlot(slot);
 	}
 
-	void addROMFilePickerView(Input::Event e, uint8_t slot)
+	void addROMFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
 		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM),
-			[this, slot](FSPicker &picker, const char* name, Input::Event e)
+			[this, slot, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
 				if(insertROM(name, slot))
 				{
 					onROMMediaChange(name, slot);
+					if(dismissPreviousView)
+						dismissPrevious();
 				}
 				picker.dismiss();
 			});
@@ -394,35 +381,34 @@ public:
 	{
 		auto multiChoiceView = makeViewWithName<TextTableView>("ROM Cartridge Slot", 5);
 		multiChoiceView->appendItem("Insert File",
-			[this, slot](TextMenuItem &, View &, Input::Event e)
+			[this, slot](View &view, Input::Event e)
 			{
-				addROMFilePickerView(e, slot);
+				addROMFilePickerView(e, slot, true);
 				postDraw();
-				popAndShow();
 			});
 		multiChoiceView->appendItem("Eject",
-			[this, slot](TextMenuItem &, View &, Input::Event e)
+			[this, slot](View &view, Input::Event e)
 			{
 				boardChangeCartridge(slot, ROM_UNKNOWN, 0, 0);
 				onROMMediaChange("", slot);
-				popAndShow();
+				view.dismiss();
 			});
 		multiChoiceView->appendItem("Insert SCC",
-			[this, slot](TextMenuItem &, View &, Input::Event e)
+			[this, slot](View &view, Input::Event e)
 			{
 				boardChangeCartridge(slot, ROM_SCC, "", 0);
 				onROMMediaChange("SCC", slot);
-				popAndShow();
+				view.dismiss();
 			});
 		multiChoiceView->appendItem("Insert SCC+",
-			[this, slot](TextMenuItem &, View &, Input::Event e)
+			[this, slot](View &view, Input::Event e)
 			{
 				boardChangeCartridge(slot, ROM_SCCPLUS, "", 0);
 				onROMMediaChange("SCC+", slot);
-				popAndShow();
+				view.dismiss();
 			});
 		multiChoiceView->appendItem("Insert Sunrise IDE",
-			[this, slot](TextMenuItem &, View &, Input::Event e)
+			[this, slot](View &view, Input::Event e)
 			{
 				if(!boardChangeCartridge(slot, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 				{
@@ -430,23 +416,22 @@ public:
 				}
 				else
 					onROMMediaChange("Sunrise IDE", slot);
-				popAndShow();
+				view.dismiss();
 			});
 		pushAndShow(std::move(multiChoiceView), e);
 	}
 
 	TextMenuItem romSlot[2]
 	{
-		{romSlotStr[0], [this](TextMenuItem &, View &, Input::Event e) { onSelectROM(e, 0); }},
-		{romSlotStr[1], [this](TextMenuItem &, View &, Input::Event e) { onSelectROM(e, 1); }}
+		{nullptr, [this](Input::Event e) { onSelectROM(e, 0); }},
+		{nullptr, [this](Input::Event e) { onSelectROM(e, 1); }}
 	};
 
 	static const char *diskSlotPrefix[2];
-	char diskSlotStr[2][1024]{};
 
 	void updateDiskText(int slot)
 	{
-		string_printf(diskSlotStr[slot], "%s %s", diskSlotPrefix[slot], diskName[slot].data());
+		diskSlot[slot].setName(string_makePrintf<1024>("%s %s", diskSlotPrefix[slot], diskName[slot].data()).data());
 	}
 
 	void onDiskMediaChange(const char *name, int slot)
@@ -456,16 +441,18 @@ public:
 		diskSlot[slot].compile(renderer(), projP);
 	}
 
-	void addDiskFilePickerView(Input::Event e, uint8_t slot)
+	void addDiskFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
 		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
-			[this, slot](FSPicker &picker, const char* name, Input::Event e)
+			[this, slot, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
 				logMsg("inserting disk in slot %d", slot);
 				if(insertDisk(name, slot))
 				{
 					onDiskMediaChange(name, slot);
+					if(dismissPreviousView)
+						dismissPrevious();
 				}
 				picker.dismiss();
 			});
@@ -478,32 +465,31 @@ public:
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>("Disk Drive", std::size(insertEjectDiskMenuStr));
 			multiChoiceView->appendItem(insertEjectDiskMenuStr[0],
-				[this, slot](TextMenuItem &, View &, Input::Event e)
+				[this, slot](Input::Event e)
 				{
-					addDiskFilePickerView(e, slot);
+					addDiskFilePickerView(e, slot, true);
 					postDraw();
-					popAndShow();
 				});
 			multiChoiceView->appendItem(insertEjectDiskMenuStr[1],
-				[this, slot](TextMenuItem &, View &, Input::Event e)
+				[this, slot](View &view, Input::Event e)
 				{
 					diskChange(slot, 0, 0);
 					onDiskMediaChange("", slot);
-					popAndShow();
+					view.dismiss();
 				});
 			pushAndShow(std::move(multiChoiceView), e);
 		}
 		else
 		{
-			addDiskFilePickerView(e, slot);
+			addDiskFilePickerView(e, slot, false);
 		}
 		window().postDraw();
 	}
 
 	TextMenuItem diskSlot[2]
 	{
-		{diskSlotStr[0], [this](TextMenuItem &, View &, Input::Event e) { onSelectDisk(e, 0); }},
-		{diskSlotStr[1], [this](TextMenuItem &, View &, Input::Event e) { onSelectDisk(e, 1); }}
+		{nullptr, [this](Input::Event e) { onSelectDisk(e, 0); }},
+		{nullptr, [this](Input::Event e) { onSelectDisk(e, 1); }}
 	};
 
 	StaticArrayList<MenuItem*, 9> item{};
@@ -574,12 +560,14 @@ private:
 	MultiChoiceMenuItem msxMachine
 	{
 		"Machine Type",
-		[this](int idx) -> const char*
+		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == -1)
-				return "None";
-			else
-				return nullptr;
+			{
+				t.setString("None");
+				return true;
+			}
+			return false;
 		},
 		0,
 		msxMachineItem,
@@ -600,25 +588,23 @@ private:
 		for(const auto &name : msxMachineName)
 		{
 			msxMachineItem.emplace_back(name.data(),
-			[this](TextMenuItem &item, View &, Input::Event e)
+			[this, name = name.data()](Input::Event e)
 			{
 				auto ynAlertView = makeView<YesNoAlertView>("Change machine type and reset emulation?");
 				ynAlertView->setOnYes(
-					[this, name = item.name()](TextMenuItem &, View &view, Input::Event)
+					[this, name]()
 					{
 						if(auto err = setCurrentMachineName(name);
 							err)
 						{
 							EmuApp::printfMessage(3, true, "%s", err->what());
-							view.dismiss();
 							return;
 						}
 						auto machineName = currentMachineName();
 						strcpy(optionMachineName.val, machineName);
 						msxMachine.setSelected(machineIndex(msxMachineName, FS::makeFileString(machineName)));
 						EmuSystem::sessionOptionSet();
-						view.dismiss();
-						popAndShow();
+						dismissPrevious();
 					});
 				EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
 				return false;
@@ -671,13 +657,7 @@ public:
 			attach,
 			menuItem
 		}
-	{
-		for(MixerAudioType type : channelType)
-		{
-			updateVolumeString(type, mixerVolumeOption(type));
-			updatePanString(type, mixerPanOption(type));
-		}
-	}
+	{}
 
 protected:
 	static constexpr unsigned CHANNEL_TYPES = std::size(channelType);
@@ -717,30 +697,6 @@ protected:
 		makeEnableChannel(MIXER_CHANNEL_PCM),
 	};
 
-	using ValueString = std::array<char, 5>;
-
-	std::array<ValueString, CHANNEL_TYPES> volumeStr{};
-
-	ValueString &volumeString(MixerAudioType type)
-	{
-		switch(type)
-		{
-			default: [[fallthrough]];
-			case MIXER_CHANNEL_PSG: return volumeStr[0];
-			case MIXER_CHANNEL_SCC: return volumeStr[1];
-			case MIXER_CHANNEL_MSXMUSIC: return volumeStr[2];
-			case MIXER_CHANNEL_MSXAUDIO: return volumeStr[3];
-			case MIXER_CHANNEL_MOONSOUND: return volumeStr[4];
-			case MIXER_CHANNEL_YAMAHA_SFG: return volumeStr[5];
-			case MIXER_CHANNEL_PCM: return volumeStr[6];
-		}
-	}
-
-	void updateVolumeString(MixerAudioType type, uint8_t val)
-	{
-		string_printf(volumeString(type), "%u%%", val);
-	}
-
 	using ValueItemArr = std::array<TextMenuItem, 2>;
 
 	ValueItemArr makeVolumeLevelItems(MixerAudioType type, uint8_t idx)
@@ -750,7 +706,7 @@ protected:
 			TextMenuItem{"Default Value",
 				[this, type]()
 				{
-					updateVolumeString(type, setMixerVolumeOption(type, -1));
+					setMixerVolumeOption(type, -1);
 				}},
 			TextMenuItem{"Custom Value",
 				[this, type = (uint8_t)type, idx](Input::Event e)
@@ -760,10 +716,9 @@ protected:
 						{
 							if(val >= 0 && val <= 100)
 							{
-								updateVolumeString((MixerAudioType)type, val);
-								volumeLevel[idx].setSelected(std::size(volumeLevelItem[idx]) - 1, *this);
 								setMixerVolumeOption((MixerAudioType)type, val);
-								popAndShow();
+								volumeLevel[idx].setSelected(std::size(volumeLevelItem[idx]) - 1, *this);
+								dismissPrevious();
 								return true;
 							}
 							else
@@ -794,9 +749,10 @@ protected:
 		return
 		{
 			"Volume",
-			[this, type](uint32_t idx)
+			[this, type](uint32_t idx, Gfx::Text &t)
 			{
-				return volumeString(type).data();
+				t.setString(string_makePrintf<5>("%u%%", mixerVolumeOption(type)).data());
+				return true;
 			},
 			1,
 			volumeLevelItem[idx]
@@ -814,28 +770,6 @@ protected:
 		makeVolumeLevel(MIXER_CHANNEL_PCM, 6),
 	};
 
-	std::array<ValueString, CHANNEL_TYPES> panStr{};
-
-	ValueString &panString(MixerAudioType type)
-	{
-		switch(type)
-		{
-			default: [[fallthrough]];
-			case MIXER_CHANNEL_PSG: return panStr[0];
-			case MIXER_CHANNEL_SCC: return panStr[1];
-			case MIXER_CHANNEL_MSXMUSIC: return panStr[2];
-			case MIXER_CHANNEL_MSXAUDIO: return panStr[3];
-			case MIXER_CHANNEL_MOONSOUND: return panStr[4];
-			case MIXER_CHANNEL_YAMAHA_SFG: return panStr[5];
-			case MIXER_CHANNEL_PCM: return panStr[6];
-		}
-	}
-
-	void updatePanString(MixerAudioType type, uint8_t val)
-	{
-		string_printf(panString(type), "%u%%", val);
-	}
-
 	ValueItemArr makePanLevelItems(MixerAudioType type, uint8_t idx)
 	{
 		return
@@ -843,7 +777,7 @@ protected:
 			TextMenuItem{"Default Value",
 				[this, type]()
 				{
-					updatePanString(type, setMixerPanOption(type, -1));
+					setMixerPanOption(type, -1);
 				}},
 			TextMenuItem{"Custom Value",
 				[this, type = (uint8_t)type, idx](Input::Event e)
@@ -853,10 +787,9 @@ protected:
 						{
 							if(val >= 0 && val <= 100)
 							{
-								updatePanString((MixerAudioType)type, val);
-								panLevel[idx].setSelected(std::size(panLevelItem[idx]) - 1, *this);
 								setMixerPanOption((MixerAudioType)type, val);
-								popAndShow();
+								panLevel[idx].setSelected(std::size(panLevelItem[idx]) - 1, *this);
+								dismissPrevious();
 								return true;
 							}
 							else
@@ -887,9 +820,10 @@ protected:
 		return
 		{
 			"Pan",
-			[this, type](uint32_t idx)
+			[this, type](uint32_t idx, Gfx::Text &t)
 			{
-				return panString(type).data();
+				t.setString(string_makePrintf<5>("%u%%", mixerPanOption(type)).data());
+				return true;
 			},
 			1,
 			panLevelItem[idx]

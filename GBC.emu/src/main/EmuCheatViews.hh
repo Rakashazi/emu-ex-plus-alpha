@@ -20,32 +20,33 @@
 
 class EmuCheatsView : public BaseCheatsView
 {
-private:
-	void loadCheatItems() final;
-
 public:
 	EmuCheatsView(ViewAttachParams attach);
+
+private:
+	void loadCheatItems() final;
 };
 
 class EmuEditCheatListView : public BaseEditCheatListView
 {
+public:
+	EmuEditCheatListView(ViewAttachParams attach);
+
 private:
 	TextMenuItem addGGGS{};
 
 	void loadCheatItems() final;
-
-public:
-	EmuEditCheatListView(ViewAttachParams attach);
 };
 
 class EmuEditCheatView : public BaseEditCheatView
 {
+public:
+	EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat, RefreshCheatsDelegate onCheatListChanged_);
+
 private:
 	DualTextMenuItem ggCode{};
 	GbcCheat *cheat{};
 
+	const char *cheatNameString() const final;
 	void renamed(const char *str) final;
-
-public:
-	EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat, RefreshCheatsDelegate onCheatListChanged_);
 };

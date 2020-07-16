@@ -27,33 +27,34 @@ static const uint MAX = 100;
 
 class EmuCheatsView : public BaseCheatsView
 {
-private:
-	void loadCheatItems() final;
-
 public:
 	EmuCheatsView(ViewAttachParams attach);
+
+private:
+	void loadCheatItems() final;
 };
 
 class EmuEditCheatListView : public BaseEditCheatListView
 {
+public:
+	EmuEditCheatListView(ViewAttachParams attach);
+
 private:
 	TextMenuItem addGS12CBCode{}, addGS3Code{};
 
 	void loadCheatItems() final;
 	void addNewCheat(int isGSv3);
-
-public:
-	EmuEditCheatListView(ViewAttachParams attach);
 };
 
 class EmuEditCheatView : public BaseEditCheatView
 {
+public:
+	EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, RefreshCheatsDelegate onCheatListChanged_);
+
 private:
 	DualTextMenuItem code{};
 	uint idx = 0;
 
+	const char *cheatNameString() const final;
 	void renamed(const char *str) final;
-
-public:
-	EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, RefreshCheatsDelegate onCheatListChanged_);
 };

@@ -68,7 +68,9 @@ public:
 	using ViewController::pushAndShow;
 	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView);
 	void pop() final;
-	void dismissView(View &v) final;
+	void popTo(View &v) final;
+	void dismissView(View &v, bool refreshLayout) final;
+	void dismissView(int idx, bool refreshLayout) final;
 	bool inputEvent(Input::Event e) final;
 	void showEmulation();
 	void showUI(bool updateTopView = true);
@@ -80,6 +82,7 @@ public:
 	void updateEmuAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames);
 	void clearEmuAudioStats();
 	void closeSystem(bool allowAutosaveState = true);
+	void popToSystemActionsMenu();
 	void postDrawToEmuWindows();
 	Base::Screen *emuWindowScreen() const;
 	Base::Window &emuWindow() const;
@@ -88,7 +91,6 @@ public:
 	bool hasModalView() const;
 	void popModalViews();
 	void prepareDraw();
-	void popTo(View &v) final;
 	void popToRoot();
 	void showNavView(bool show);
 	void setShowNavViewBackButton(bool show);

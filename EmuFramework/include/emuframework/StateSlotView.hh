@@ -25,6 +25,5 @@ public:
 
 private:
 	static constexpr uint stateSlots = 11;
-	char stateStr[stateSlots][40]{};
 	TextMenuItem stateSlot[stateSlots]{};
 };

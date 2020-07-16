@@ -59,5 +59,6 @@ protected:
 	RefreshCheatsDelegate onCheatListChanged_{};
 
 	void onCheatListChanged();
+	virtual const char *cheatNameString() const = 0;
 	virtual void renamed(const char *str) = 0;
 };

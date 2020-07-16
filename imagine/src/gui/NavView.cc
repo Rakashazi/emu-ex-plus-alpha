@@ -128,6 +128,16 @@ bool NavView::inputEvent(Input::Event e)
 	return false;
 }
 
+void NavView::setTitle(NameString title)
+{
+	text.setString(std::move(title));
+}
+
+void NavView::setTitle(NameStringView title)
+{
+	setTitle(NameString{title});
+}
+
 void NavView::prepareDraw()
 {
 	text.makeGlyphs(renderer());
@@ -151,11 +161,9 @@ void NavView::clearSelection()
 	selected = -1;
 }
 
-void NavView::onAddedToController(Input::Event e) {}
-
 Gfx::GlyphTextureSet *NavView::titleFace()
 {
-	return text.face;
+	return text.face();
 }
 
 bool NavView::hasButtons() const
@@ -227,7 +235,7 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 	}
 	else
 	{
-		if(text.xSize > projP.unprojectXSize(textRect) - TableView::globalXIndent*2)
+		if(text.width() > projP.unprojectXSize(textRect) - TableView::globalXIndent*2)
 		{
 			cmds.setClipRect(renderer().makeClipRect(window(), textRect));
 			cmds.setClipTest(true);

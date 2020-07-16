@@ -43,6 +43,5 @@ private:
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 	Gfx::Text audioStatsText{};
 	Gfx::GCRect audioStatsRect{};
-	std::array<char, 512> audioStatsStr{};
 	#endif
 };

@@ -163,6 +163,29 @@ std::errc string_convertCharCode(const char** sourceStart, uint32_t &c)
 	}
 }
 
+std::u16string string_makeUTF16(const char *str)
+{
+	std::u16string u16String{};
+	unsigned utf16Len = 0;
+	const char *s = str;
+	uint32_t c = 0;
+	while(!(bool)string_convertCharCode(&s, c))
+	{
+		if(c > INT16_MAX)
+			continue;
+		utf16Len++;
+	}
+	u16String.reserve(utf16Len);
+	s = str;
+	while(!(bool)string_convertCharCode(&s, c))
+	{
+		if(c > INT16_MAX)
+			continue;
+		u16String.push_back(c);
+	}
+	return u16String;
+}
+
 void string_toUpper(char *s)
 {
 	while(*s != '\0')

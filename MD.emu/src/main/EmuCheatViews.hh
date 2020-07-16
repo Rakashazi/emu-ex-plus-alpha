@@ -23,32 +23,33 @@ uint decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &orig
 
 class EmuCheatsView : public BaseCheatsView
 {
-private:
-	void loadCheatItems() final;
-
 public:
 	EmuCheatsView(ViewAttachParams attach);
+
+private:
+	void loadCheatItems() final;
 };
 
 class EmuEditCheatListView : public BaseEditCheatListView
 {
+public:
+	EmuEditCheatListView(ViewAttachParams attach);
+
 private:
 	TextMenuItem addCode{};
 
 	void loadCheatItems() final;
-
-public:
-	EmuEditCheatListView(ViewAttachParams attach);
 };
 
 class EmuEditCheatView : public BaseEditCheatView
 {
+public:
+	EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat, RefreshCheatsDelegate onCheatListChanged_);
+
 private:
 	DualTextMenuItem code{};
 	MdCheat *cheat{};
 
+	const char *cheatNameString() const final;
 	void renamed(const char *str) final;
-
-public:
-	EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat, RefreshCheatsDelegate onCheatListChanged_);
 };

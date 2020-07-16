@@ -21,7 +21,7 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
-#include <vector>
+#include <memory>
 #include <iterator>
 
 class BaseAlertView : public View
@@ -34,14 +34,14 @@ public:
 		{
 			attach,
 			label,
-			[&item](const TableView &) { return std::size(item); },
-			[&item](const TableView &, uint32_t idx) -> MenuItem& { return TableView::derefMenuItem(std::data(item)[idx]); }
+			[&item](const ::TableView &) { return std::size(item); },
+			[&item](const ::TableView &, uint32_t idx) -> MenuItem& { return ::TableView::derefMenuItem(std::data(item)[idx]); }
 		} {}
 	void place() override;
 	bool inputEvent(Input::Event e) override;
 	void prepareDraw() override;
 	void draw(Gfx::RendererCommands &cmds) override;
-	void onAddedToController(Input::Event e) override;
+	void onAddedToController(ViewController *c, Input::Event e) override;
 	void setLabel(const char *label);
 
 protected:

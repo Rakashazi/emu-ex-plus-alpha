@@ -20,14 +20,6 @@
 #include <gba/Cheats.h>
 static bool cheatsModified = false;
 
-void EmuEditCheatView::renamed(const char *str)
-{
-	cheatsModified = true;
-	auto &cheat = cheatsList[idx];
-	string_copy(cheat.desc, str);
-	name.compile(cheat.desc, renderer(), projP);
-}
-
 EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
@@ -69,6 +61,18 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 	idx{cheatIdx}
 {}
 
+const char *EmuEditCheatView::cheatNameString() const
+{
+	return cheatsList[idx].desc;
+}
+
+void EmuEditCheatView::renamed(const char *str)
+{
+	cheatsModified = true;
+	auto &cheat = cheatsList[idx];
+	string_copy(cheat.desc, str);
+}
+
 void EmuEditCheatListView::loadCheatItems()
 {
 	uint cheats = cheatsNumber;
@@ -89,7 +93,6 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 	if(cheatsNumber == EmuCheats::MAX)
 	{
 		EmuApp::postMessage(true, "Too many cheats, delete some first");
-		window().postDraw();
 		return;
 	}
 	EmuApp::pushAndShowNewCollectTextInputView(attachParams(), {},

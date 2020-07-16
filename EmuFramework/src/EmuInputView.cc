@@ -180,16 +180,14 @@ bool EmuInputView::inputEvent(Input::Event e)
 						{
 							auto ynAlertView = makeView<YesNoAlertView>("Really Overwrite State?");
 							ynAlertView->setOnYes(
-								[](TextMenuItem &, View &view, Input::Event e)
+								[]()
 								{
-									view.dismiss();
 									doSaveState(false);
 									emuViewController.showEmulation();
 								});
 							ynAlertView->setOnNo(
-								[](TextMenuItem &, View &view, Input::Event e)
+								[]()
 								{
-									view.dismiss();
 									emuViewController.showEmulation();
 								});
 							pushAndShowModal(std::move(ynAlertView), e);

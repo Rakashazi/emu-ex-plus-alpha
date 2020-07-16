@@ -7,6 +7,7 @@
 #include <cstdarg>
 #include <system_error>
 #include <iterator>
+#include <string>
 #else
 #include <string.h>
 #include <ctype.h>
@@ -83,5 +84,7 @@ static std::array<char, S> string_makePrintf(const char *format, ...)
 std::errc string_convertCharCode(const char** sourceStart, uint32_t &c);
 
 std::array<char, 2> string_fromChar(char c);
+
+std::u16string string_makeUTF16(const char *str);
 
 #endif

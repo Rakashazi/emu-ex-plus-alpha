@@ -102,12 +102,11 @@ void EmuLoadProgressView::setPos(int val)
 
 void EmuLoadProgressView::setLabel(const char *labelStr)
 {
-	string_copy(str, labelStr);
+	text.setString(labelStr);
 }
 
 void EmuLoadProgressView::place()
 {
-	text.setString(str.data());
 	text.compile(renderer(), projP);
 }
 
@@ -118,7 +117,7 @@ bool EmuLoadProgressView::inputEvent(Input::Event e)
 
 void EmuLoadProgressView::draw(Gfx::RendererCommands &cmds)
 {
-	if(!strlen(str.data()))
+	if(!text.isVisible())
 		return;
 	using namespace Gfx;
 	projP.resetTransforms(cmds);
@@ -127,7 +126,7 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &cmds)
 	{
 		cmds.setCommonProgram(CommonProgram::NO_TEX);
 		cmds.setColor(.0, .0, .75);
-		Gfx::GC barHeight = text.ySize*1.5;
+		Gfx::GC barHeight = text.height()*1.5;
 		auto bar = makeGCRectRel(projP.bounds().pos(LC2DO) - GP{0_gc, barHeight/2_gc},
 			{IG::scalePointRange((Gfx::GC)pos, 0_gc, (Gfx::GC)max, 0_gc, projP.width()), barHeight});
 		GeomRect::draw(cmds, bar);

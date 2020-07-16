@@ -50,14 +50,15 @@ class ConsoleOptionView : public TableView
 	MultiChoiceMenuItem timer
 	{
 		"Emulate Timer",
-		[this](int idx) -> const char*
+		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == 2)
 			{
-				return conf.raster ? "On" : "Off";
+				t.setString(conf.raster ? "On" : "Off");
+				return true;
 			}
 			else
-				return nullptr;
+				return false;
 		},
 		std::min((int)optionTimerInt, 2),
 		timerItem
@@ -513,9 +514,8 @@ public:
 								auto ynAlertView = makeView<YesNoAlertView>(
 									"This game doesn't yet work properly, load anyway?");
 								ynAlertView->setOnYes(
-									[&entry](TextMenuItem &, View &view, Input::Event e)
+									[&entry](Input::Event e)
 									{
-										view.dismiss();
 										loadGame(entry, e);
 									});
 								EmuApp::pushAndShowModalView(std::move(ynAlertView), e);

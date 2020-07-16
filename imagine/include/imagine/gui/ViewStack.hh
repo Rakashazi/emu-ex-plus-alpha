@@ -31,8 +31,8 @@ public:
 	void push(std::unique_ptr<View> v, Input::Event e);
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal) override;
 	using ViewController::pushAndShow;
-	void pop() override;
-	void dismissView(View &v) override;
+	void dismissView(View &v, bool refreshLayout = true) override;
+	void dismissView(int idx, bool refreshLayout = true) override;
 	void place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP);
 	void place();
 	bool hasView() { return (bool)view; }
@@ -49,8 +49,6 @@ protected:
 class ViewStack : public ViewController
 {
 public:
-	using RemoveViewDelegate = DelegateFunc<void (const ViewStack &controller, View &view)>;
-
 	ViewStack();
 	void setNavView(std::unique_ptr<NavView> nav);
 	NavView *navView() const;
@@ -68,18 +66,21 @@ public:
 	void popToRoot();
 	void popAll();
 	void popTo(View &v) override;
+	void popTo(int idx);
 	void show();
 	View &top() const;
 	View &viewAtIdx(uint32_t idx) const;
 	int viewIdx(View &v) const;
+	int viewIdx(View::NameStringView name) const;
 	int viewIdx(const char *name) const;
 	bool contains(View &v) const;
+	bool contains(View::NameStringView name) const;
 	bool contains(const char *name) const;
-	void dismissView(View &v) override;
+	void dismissView(View &v, bool refreshLayout = true) override;
+	void dismissView(int idx, bool refreshLayout = true) override;
 	void showNavView(bool show);
 	void setShowNavViewBackButton(bool show);
 	uint32_t size() const;
-	void setOnRemoveView(RemoveViewDelegate del);
 	bool viewHasFocus() const;
 	bool hasModalView() const;
 	void popModalViews();
@@ -99,7 +100,6 @@ protected:
 	//ViewController *nextController{};
 	IG::WindowRect viewRect{}, customViewRect{};
 	Gfx::ProjectionPlane projP{};
-	RemoveViewDelegate onRemoveView_{};
 	bool showNavBackBtn = true;
 	bool showNavView_ = true;
 	bool navViewHasFocus = false;

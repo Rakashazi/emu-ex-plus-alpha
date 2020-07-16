@@ -23,51 +23,25 @@ extern uint fceuCheats;
 void EncodeGG(char *str, int a, int v, int c);
 static const int UNCHANGED_VAL = -2;
 
-void EmuEditCheatView::syncCheat(const char *newName)
-{
-	if(type)
-	{
-		int a, v, c;
-		if(!FCEUI_DecodeGG(ggCodeStr, &a, &v, &c))
-		{
-			logWarn("error decoding GG code %s", ggCodeStr);
-			a = 0; v = 0; c = -1;
-		}
-		if(!FCEUI_SetCheat(idx, newName, a, v, c, -1, 1))
-		{
-			logWarn("error setting cheat %d", idx);
-		}
-	}
-	else
-	{
-		logMsg("setting comp %d", strlen(compStr) ? (int)strtoul(compStr, nullptr, 16) : -1);
-		if(!FCEUI_SetCheat(idx,
-				newName, strtoul(addrStr, nullptr, 16), strtoul(valueStr, nullptr, 16),
-				strlen(compStr) ? strtoul(compStr, nullptr, 16) : -1, -1, 0))
-		{
-			logWarn("error setting cheat %d", idx);
-		}
-	}
-}
-
-void EmuEditCheatView::renamed(const char *str)
-{
-	syncCheat(str);
-	FCEUI_GetCheat(idx, &nameStr, nullptr, nullptr, nullptr, nullptr, nullptr);
-	name.compile(nameStr, renderer(), projP);
-}
-
 static bool isValidGGCodeLen(const char *str)
 {
 	return strlen(str) == 6 || strlen(str) == 8;
 }
 
+static const char *cheatName(unsigned idx)
+{
+	char *name{};
+	int gotCheat = FCEUI_GetCheat(idx, &name, 0, 0, 0, 0, 0);
+	assert(gotCheat);
+	return name;
+}
+
 EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
-		"",
+		{},
 		attach,
-		"",
+		{},
 		[this](const TableView &)
 		{
 			return type ? 3 : 5;
@@ -109,7 +83,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 	addr
 	{
 		"Address",
-		addrStr,
+		nullptr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 4-digit hex", addrStr,
@@ -125,6 +99,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 					}
 					string_copy(addrStr, a ? str : "0");
 					syncCheat();
+					addr.set2ndName(addrStr);
 					addr.compile(renderer(), projP);
 					postDraw();
 					return true;
@@ -134,7 +109,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 	value
 	{
 		"Value",
-		valueStr,
+		nullptr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr,
@@ -150,6 +125,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 					}
 					string_copy(valueStr, a ? str : "0");
 					syncCheat();
+					value.set2ndName(valueStr);
 					value.compile(renderer(), projP);
 					postDraw();
 					return true;
@@ -159,7 +135,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 	comp
 	{
 		"Compare",
-		compStr,
+		nullptr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", compStr,
@@ -178,10 +154,12 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 								return 1;
 							}
 							string_copy(compStr, str);
+							comp.set2ndName(str);
 						}
 						else
 						{
 							compStr[0] = 0;
+							comp.set2ndName(nullptr);
 						}
 						syncCheat();
 						comp.compile(renderer(), projP);
@@ -195,7 +173,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 	ggCode
 	{
 		"GG Code",
-		ggCodeStr,
+		nullptr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input Game Genie code", ggCodeStr,
@@ -204,11 +182,11 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 					if(!isValidGGCodeLen(str))
 					{
 						EmuApp::postMessage(true, "Invalid, must be 6 or 8 digits");
-						postDraw();
 						return false;
 					}
 					string_copy(ggCodeStr, str);
 					syncCheat();
+					ggCode.set2ndName(str);
 					ggCode.compile(renderer(), projP);
 					postDraw();
 					return true;
@@ -220,27 +198,71 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 	uint32 a;
 	uint8 v;
 	int compare;
+	char *nameStr{};
 	int gotCheat = FCEUI_GetCheat(cheatIdx, &nameStr, &a, &v, &compare, 0, &type);
 	logMsg("got cheat with addr 0x%.4x val 0x%.2x comp %d", a, v, compare);
 	name.setName(nameStr);
 	if(type)
 	{
-		name_ = "Edit Code";
+		setName("Edit Code");
 		if(a == 0 && v == 0 && compare == -1)
 			ggCodeStr[0] = 0;
 		else
 			EncodeGG(ggCodeStr, a, v, compare);
+		ggCode.set2ndName(ggCodeStr);
 	}
 	else
 	{
-		name_ = "Edit RAM Patch";
+		setName("Edit RAM Patch");
 		snprintf(addrStr, sizeof(addrStr), "%x", a);
+		addr.set2ndName(addrStr);
 		snprintf(valueStr, sizeof(valueStr), "%x", v);
+		value.set2ndName(valueStr);
 		if(compare == -1)
 			compStr[0] = 0;
 		else
+		{
 			snprintf(compStr, sizeof(compStr), "%x", compare);
+			comp.set2ndName(compStr);
+		}
 	}
+}
+
+void EmuEditCheatView::syncCheat(const char *newName)
+{
+	if(type)
+	{
+		int a, v, c;
+		if(!FCEUI_DecodeGG(ggCodeStr, &a, &v, &c))
+		{
+			logWarn("error decoding GG code %s", ggCodeStr);
+			a = 0; v = 0; c = -1;
+		}
+		if(!FCEUI_SetCheat(idx, newName, a, v, c, -1, 1))
+		{
+			logWarn("error setting cheat %d", idx);
+		}
+	}
+	else
+	{
+		logMsg("setting comp %d", strlen(compStr) ? (int)strtoul(compStr, nullptr, 16) : -1);
+		if(!FCEUI_SetCheat(idx,
+				newName, strtoul(addrStr, nullptr, 16), strtoul(valueStr, nullptr, 16),
+				strlen(compStr) ? strtoul(compStr, nullptr, 16) : -1, -1, 0))
+		{
+			logWarn("error setting cheat %d", idx);
+		}
+	}
+}
+
+const char *EmuEditCheatView::cheatNameString() const
+{
+	return cheatName(idx);
+}
+
+void EmuEditCheatView::renamed(const char *str)
+{
+	syncCheat(str);
 }
 
 void EmuEditCheatListView::loadCheatItems()
@@ -250,10 +272,8 @@ void EmuEditCheatListView::loadCheatItems()
 	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		char *name;
-		int gotCheat = FCEUI_GetCheat(c, &name, 0, 0, 0, 0, 0);
-		assert(gotCheat);
-		cheat.emplace_back(gotCheat ? name : "Corrupt Cheat",
+		const char *name = cheatName(c);
+		cheat.emplace_back(name ? name : "Corrupt Cheat",
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				pushAndShow(makeView<EmuEditCheatView>(c, [this](){ onCheatListChanged(); }), e);

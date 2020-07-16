@@ -46,7 +46,6 @@ private:
 	Gfx::Text text{};
 	Base::Timer unpostTimer;
 	Gfx::GCRect msgFrame{};
-	std::array<char, 1024> str{};
 	bool error = false;
 
 	void contentUpdated(bool error);

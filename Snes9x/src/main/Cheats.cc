@@ -182,12 +182,6 @@ static bool addCheat(const char *cheatStr)
 	#endif
 }
 
-void EmuEditCheatView::renamed(const char *str)
-{
-	setCheatName(idx, str);
-	name.compile(cheatName(idx), renderer(), projP);
-}
-
 EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
@@ -221,7 +215,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 	addr
 	{
 		"Address",
-		addrStr,
+		nullptr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 6-digit hex", addrStr,
@@ -232,7 +226,6 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 					{
 						logMsg("addr 0x%X too large", a);
 						EmuApp::postMessage(true, "Invalid input");
-						postDraw();
 						return false;
 					}
 					string_copy(addrStr, a ? str : "0");
@@ -246,6 +239,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 					{
 						enableCheat(idx);
 					}
+					addr.set2ndName(addrStr);
 					addr.compile(renderer(), projP);
 					postDraw();
 					return true;
@@ -255,7 +249,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 	value
 	{
 		"Value",
-		valueStr,
+		nullptr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr,
@@ -265,7 +259,6 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 					if(a > 0xFF)
 					{
 						EmuApp::postMessage(true, "value must be <= FF");
-						postDraw();
 						return false;
 					}
 					string_copy(valueStr, a ? str : "0");
@@ -279,6 +272,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 					{
 						enableCheat(idx);
 					}
+					value.set2ndName(valueStr);
 					value.compile(renderer(), projP);
 					postDraw();
 					return true;
@@ -292,7 +286,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 		#else
 		"Saved Value",
 		#endif
-		savedStr,
+		nullptr,
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
 			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", savedStr,
@@ -307,8 +301,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 							if(a > 0xFF)
 							{
 								EmuApp::postMessage(true, "value must be <= FF");
-								window().postDraw();
-								return 1;
+								return true;
 							}
 							string_copy(savedStr, str);
 						}
@@ -333,11 +326,12 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 						{
 							enableCheat(idx);
 						}
+						saved.set2ndName(savedStr);
 						saved.compile(renderer(), projP);
 						window().postDraw();
 					}
 					view.dismiss();
-					return 0;
+					return false;
 				});
 		}
 	},
@@ -348,11 +342,26 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 	auto [saved, savedVal] = cheatConditionalValue(idx);
 	logMsg("got cheat with addr 0x%.6x val 0x%.2x saved val 0x%.2x", address, value, savedVal);
 	string_printf(addrStr, "%x", address);
+	addr.set2ndName(addrStr);
 	string_printf(valueStr, "%x", value);
+	this->value.set2ndName(valueStr);
 	if(!saved)
 		savedStr[0] = 0;
 	else
+	{
 		string_printf(savedStr, "%x", savedVal);
+		this->saved.set2ndName(savedStr);
+	}
+}
+
+const char *EmuEditCheatView::cheatNameString() const
+{
+	return cheatName(idx);
+}
+
+void EmuEditCheatView::renamed(const char *str)
+{
+	setCheatName(idx, str);
 }
 
 void EmuEditCheatListView::loadCheatItems()

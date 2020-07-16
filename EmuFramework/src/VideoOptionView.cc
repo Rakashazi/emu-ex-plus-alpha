@@ -36,7 +36,6 @@ public:
 	Gfx::Text fpsText;
 	uint allTotalFrames = 0;
 	uint callbacks = 0;
-	std::array<char, 32> fpsStr{};
 	std::vector<Base::FrameTime> frameTimeSample{};
 	bool useRenderTaskTime = false;
 
@@ -69,7 +68,7 @@ public:
 		if(e.pushed() && e.isDefaultCancelButton())
 		{
 			logMsg("aborted detection");
-			popAndShow();
+			dismiss();
 			return true;
 		}
 		return false;
@@ -114,6 +113,7 @@ public:
 			IG::FloatSeconds detectedFrameTime = frameTimeTotalSecs / (double)frameTimeSample.size();
 			{
 				waitForDrawFinished();
+				std::array<char, 32> fpsStr{};
 				if(detectedFrameTime.count())
 					string_printf(fpsStr, "%.2ffps", 1. / detectedFrameTime.count());
 				else
@@ -125,7 +125,7 @@ public:
 			{
 				logMsg("found frame time:%f", detectedFrameTime.count());
 				onDetectFrameTime(detectedFrameTime);
-				popAndShow();
+				dismiss();
 				return false;
 			}
 			frameTimeSample.erase(frameTimeSample.cbegin());
@@ -138,7 +138,7 @@ public:
 		if(allTotalFrames >= framesToTime)
 		{
 			onDetectFrameTime({});
-			popAndShow();
+			dismiss();
 			return false;
 		}
 		else
@@ -149,7 +149,7 @@ public:
 		}
 	}
 
-	void onAddedToController(Input::Event e) final
+	void onAddedToController(ViewController *, Input::Event e) final
 	{
 		detectFrameRate =
 			[this](IG::FrameParams params)
@@ -177,17 +177,15 @@ public:
 	}
 };
 
-template <size_t S>
-static void printFrameRateStr(char (&str)[S])
+static std::array<char, 64> makeFrameRateStr()
 {
-	string_printf(str, "Frame Rate: %.2fHz",
+	return string_makePrintf<64>("Frame Rate: %.2fHz",
 		EmuSystem::frameRate(EmuSystem::VIDSYS_NATIVE_NTSC));
 }
 
-template <size_t S>
-static void printFrameRatePALStr(char (&str)[S])
+static std::array<char, 64> makeFrameRatePALStr()
 {
-	string_printf(str, "Frame Rate (PAL): %.2fHz",
+	return string_makePrintf<64>("Frame Rate (PAL): %.2fHz",
 		EmuSystem::frameRate(EmuSystem::VIDSYS_PAL));
 }
 
@@ -321,17 +319,12 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						"the app depending on your device or GPU",
 						"OK", "Cancel");
 					ynAlertView->setOnYes(
-						[this](TextMenuItem &, View &view, Input::Event e)
+						[this]()
 						{
 							if(setAndroidTextureStorageGraphicBuffer())
 							{
 								androidTextureStorage.setSelected(2);
-								view.dismiss();
-								popAndShow();
-							}
-							else
-							{
-								view.dismiss();
+								dismissPrevious();
 							}
 						});
 					pushAndShowModal(std::move(ynAlertView), e);
@@ -359,14 +352,15 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	androidTextureStorage
 	{
 		"GPU Copy Mode",
-		[this](int idx) -> const char*
+		[this](uint32_t idx, Gfx::Text &t)
 		{
 			if(idx == 0)
 			{
-				return Gfx::Texture::androidStorageImplStr(renderer());
+				t.setString(Gfx::Texture::androidStorageImplStr(renderer()));
+				return true;
 			}
 			else
-				return nullptr;
+				return false;
 		},
 		optionAndroidTextureStorage,
 		[items = Base::androidSDK() >= 14 ? 4u : 3u](const MultiChoiceMenuItem &) -> int
@@ -405,7 +399,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	frameRate
 	{
-		frameRateStr,
+		nullptr,
 		[this](Input::Event e)
 		{
 			pushAndShowFrameRateSelectMenu(EmuSystem::VIDSYS_NATIVE_NTSC, e);
@@ -414,7 +408,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	frameRatePAL
 	{
-		frameRatePALStr,
+		nullptr,
 		[this](Input::Event e)
 		{
 			pushAndShowFrameRateSelectMenu(EmuSystem::VIDSYS_PAL, e);
@@ -424,13 +418,14 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	aspectRatio
 	{
 		"Aspect Ratio",
-		[this](uint32_t idx) -> const char*
+		[this](uint32_t idx, Gfx::Text &t)
 		{
 			if(idx == EmuSystem::aspectRatioInfos)
 			{
-				return aspectRatioStr;
+				t.setString(string_makePrintf<6>("%.2f", optionAspectRatio.val).data());
+				return true;
 			}
-			return nullptr;
+			return false;
 		},
 		(int)EmuSystem::aspectRatioInfos,
 		aspectRatioItem
@@ -452,7 +447,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						{
 							setZoom(val);
 							zoom.setSelected(std::size(zoomItem) - 1, *this);
-							popAndShow();
+							dismissPrevious();
 							return true;
 						}
 						else
@@ -468,12 +463,14 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	zoom
 	{
 		"Content Zoom",
-		[this](uint32_t idx) -> const char*
+		[this](uint32_t idx, Gfx::Text &t)
 		{
 			if(optionImageZoom <= 100)
-				return zoomStr;
-			else
-				return nullptr;
+			{
+				t.setString(string_makePrintf<5>("%u%%", optionImageZoom.val).data());
+				return true;
+			}
+			return false;
 		},
 		[]()
 		{
@@ -504,7 +501,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						{
 							setViewportZoom(val);
 							viewportZoom.setSelected(std::size(viewportZoomItem) - 1, *this);
-							popAndShow();
+							dismissPrevious();
 							return true;
 						}
 						else
@@ -520,9 +517,10 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	viewportZoom
 	{
 		"App Zoom",
-		[this](uint32_t idx)
+		[this](uint32_t idx, Gfx::Text &t)
 		{
-			return viewportZoomStr;
+			t.setString(string_makePrintf<5>("%u%%", optionViewportZoom.val).data());
+			return true;
 		},
 		[]()
 		{
@@ -614,7 +612,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						{
 							setOverlayEffectLevel(val);
 							overlayEffectLevel.setSelected(std::size(overlayEffectLevelItem) - 1, *this);
-							popAndShow();
+							dismissPrevious();
 							return true;
 						}
 						else
@@ -630,9 +628,10 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	overlayEffectLevel
 	{
 		"Overlay Effect Level",
-		[this](uint32_t idx)
+		[this](uint32_t idx, Gfx::Text &t)
 		{
-			return overlayEffectLevelStr;
+			t.setString(string_makePrintf<5>("%u%%", optionOverlayEffectLevel.val).data());
+			return true;
 		},
 		[]()
 		{
@@ -657,12 +656,15 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	imgEffectPixelFormat
 	{
 		"Effect Color Format",
-		[](int idx) -> const char*
+		[](int idx, Gfx::Text &t)
 		{
 			if(idx == 0)
-				return "Auto";
+			{
+				t.setString("Auto");
+				return true;
+			}
 			else
-				return nullptr;
+				return false;
 		},
 		[]()
 		{
@@ -688,14 +690,15 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	windowPixelFormat
 	{
 		"Display Color Format",
-		[](int idx) -> const char*
+		[](int idx, Gfx::Text &t)
 		{
 			if(idx == 0)
 			{
-				return autoWindowPixelFormatStr();
+				t.setString(autoWindowPixelFormatStr());
+				return true;
 			}
 			else
-				return nullptr;
+				return false;
 		},
 		[]()
 		{
@@ -745,14 +748,15 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	gpuMultithreading
 	{
 		"Render Multithreading",
-		[this](int idx) -> const char*
+		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == 0)
 			{
-				return renderer().threadMode() == Gfx::Renderer::ThreadMode::MULTI ? "On" : "Off";
+				t.setString(renderer().threadMode() == Gfx::Renderer::ThreadMode::MULTI ? "On" : "Off");
+				return true;
 			}
 			else
-				return nullptr;
+				return false;
 		},
 		[]()
 		{
@@ -798,7 +802,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						{
 							aspectRatio.setSelected(std::size(aspectRatioItem) - 1, *this);
 						}
-						popAndShow();
+						dismissPrevious();
 						return true;
 					}
 					else
@@ -828,12 +832,12 @@ void VideoOptionView::loadStockItems()
 	item.emplace_back(&dropLateFrames);
 	if(!optionFrameRate.isConst)
 	{
-		printFrameRateStr(frameRateStr);
+		frameRate.setName(makeFrameRateStr().data());
 		item.emplace_back(&frameRate);
 	}
 	if(!optionFrameRatePAL.isConst)
 	{
-		printFrameRatePALStr(frameRatePALStr);
+		frameRatePAL.setName(makeFrameRatePALStr().data());
 		item.emplace_back(&frameRatePAL);
 	}
 	item.emplace_back(&visualsHeading);
@@ -842,14 +846,10 @@ void VideoOptionView::loadStockItems()
 	item.emplace_back(&imgEffect);
 	#endif
 	item.emplace_back(&overlayEffect);
-	string_printf(overlayEffectLevelStr, "%u%%", optionOverlayEffectLevel.val);
 	item.emplace_back(&overlayEffectLevel);
 	item.emplace_back(&screenShapeHeading);
-	string_printf(zoomStr, "%u%%", optionImageZoom.val);
 	item.emplace_back(&zoom);
-	string_printf(viewportZoomStr, "%u%%", optionViewportZoom.val);
 	item.emplace_back(&viewportZoom);
-	string_printf(aspectRatioStr, "%.2f", optionAspectRatio.val);
 	item.emplace_back(&aspectRatio);
 	item.emplace_back(&advancedHeading);
 	#ifdef CONFIG_BASE_ANDROID
@@ -890,14 +890,13 @@ bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::Float
 	if(vidSys == EmuSystem::VIDSYS_NATIVE_NTSC)
 	{
 		optionFrameRate = time.count();
-		printFrameRateStr(frameRateStr);
+		frameRate.setName(makeFrameRateStr().data());
 		frameRate.compile(renderer(), projP);
 	}
 	else
 	{
 		optionFrameRatePAL = time.count();
-		printFrameRatePALStr(frameRatePALStr);
-		frameRatePAL.compile(renderer(), projP);
+		frameRatePAL.compile(makeFrameRatePALStr().data(), renderer(), projP);
 	}
 	return true;
 }
@@ -907,7 +906,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 	const bool includeFrameRateDetection = !Config::envIsIOS;
 	auto multiChoiceView = makeViewWithName<TextTableView>("Frame Rate", includeFrameRateDetection ? 4 : 3);
 	multiChoiceView->appendItem("Set with screen's reported rate",
-		[this, vidSys](Input::Event e)
+		[this, vidSys](View &view, Input::Event e)
 		{
 			if(!emuViewController.emuWindowScreen()->frameRateIsReliable())
 			{
@@ -925,13 +924,13 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 				}
 			}
 			if(onFrameTimeChange(vidSys, {}))
-				popAndShow();
+				view.dismiss();
 		});
 	multiChoiceView->appendItem("Set default rate",
-		[this, vidSys](Input::Event e)
+		[this, vidSys](View &view, Input::Event e)
 		{
 			onFrameTimeChange(vidSys, EmuSystem::defaultFrameTime(vidSys));
-			popAndShow();
+			view.dismiss();
 		});
 	multiChoiceView->appendItem("Set custom rate",
 		[this, vidSys](Input::Event e)
@@ -942,7 +941,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 				{
 					if(onFrameTimeChange(vidSys, IG::FloatSeconds{val.second / val.first}))
 					{
-						popAndShow();
+						dismissPrevious();
 						return true;
 					}
 					else
@@ -960,14 +959,14 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 					{
 						if(frameTime.count())
 						{
-							onFrameTimeChange(vidSys, frameTime);
+							if(onFrameTimeChange(vidSys, frameTime))
+								dismissPrevious();
 						}
 						else
 						{
 							EmuApp::postErrorMessage("Detected rate too unstable to use");
 						}
 					};
-				popAndShow();
 				pushAndShowModal(std::move(frView), e);
 			});
 	}
@@ -976,7 +975,6 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 
 void VideoOptionView::setZoom(uint8_t val)
 {
-	string_printf(zoomStr, "%u%%", val);
 	optionImageZoom = val;
 	logMsg("set image zoom: %d", int(optionImageZoom));
 	emuViewController.placeEmuViews();
@@ -985,7 +983,6 @@ void VideoOptionView::setZoom(uint8_t val)
 
 void VideoOptionView::setViewportZoom(uint8_t val)
 {
-	string_printf(viewportZoomStr, "%u%%", val);
 	optionViewportZoom = val;
 	logMsg("set viewport zoom: %d", int(optionViewportZoom));
 	emuViewController.startMainViewportAnimation();
@@ -993,7 +990,6 @@ void VideoOptionView::setViewportZoom(uint8_t val)
 
 void VideoOptionView::setOverlayEffectLevel(uint8_t val)
 {
-	string_printf(overlayEffectLevelStr, "%u%%", val);
 	optionOverlayEffectLevel = val;
 	emuVideoLayer.setOverlayIntensity(val/100.);
 	emuViewController.postDrawToEmuWindows();
@@ -1001,7 +997,6 @@ void VideoOptionView::setOverlayEffectLevel(uint8_t val)
 
 void VideoOptionView::setAspectRatio(double val)
 {
-	string_printf(aspectRatioStr, "%.2f", val);
 	optionAspectRatio = val;
 	logMsg("set aspect ratio: %.2f", val);
 	emuViewController.placeEmuViews();

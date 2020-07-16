@@ -30,8 +30,6 @@
 
 class AutoStateConfirmAlertView : public YesNoAlertView
 {
-	std::array<char, 96> msg{};
-
 public:
 	AutoStateConfirmAlertView(ViewAttachParams attach, const char *dateStr, bool addToRecent):
 		YesNoAlertView
@@ -40,20 +38,17 @@ public:
 			"",
 			"Continue",
 			"Restart Game",
-			[addToRecent](TextMenuItem &, View &view, Input::Event e)
+			[this, addToRecent]()
 			{
-				view.dismiss();
 				launchSystem(true, addToRecent);
 			},
-			[addToRecent](TextMenuItem &, View &view, Input::Event e)
+			[this, addToRecent]()
 			{
-				view.dismiss();
 				launchSystem(false, addToRecent);
 			}
 		}
 	{
-		string_printf(msg, "Auto-save state exists from:\n%s", dateStr);
-		setLabel(msg.data());
+		setLabel(string_makePrintf<96>("Auto-save state exists from:\n%s", dateStr).data());
 	}
 };
 
@@ -333,9 +328,19 @@ void EmuViewController::pop()
 	viewStack.pop();
 }
 
-void EmuViewController::dismissView(View &v)
+void EmuViewController::popTo(View &v)
 {
-	viewStack.dismissView(v);
+	viewStack.popTo(v);
+}
+
+void EmuViewController::dismissView(View &v, bool refreshLayout)
+{
+	viewStack.dismissView(v, showingEmulation ? false : refreshLayout);
+}
+
+void EmuViewController::dismissView(int idx, bool refreshLayout)
+{
+	viewStack.dismissView(idx, showingEmulation ? false : refreshLayout);
 }
 
 bool EmuViewController::inputEvent(Input::Event e)
@@ -746,8 +751,14 @@ void EmuViewController::closeSystem(bool allowAutosaveState)
 	if(int idx = viewStack.viewIdx("System Actions");
 		idx > 0)
 	{
-		viewStack.popTo(viewStack.viewAtIdx(idx - 1));
+		// pop to menu below System Actions
+		viewStack.popTo(idx - 1);
 	}
+}
+
+void EmuViewController::popToSystemActionsMenu()
+{
+	viewStack.popTo(viewStack.viewIdx("System Actions"));
 }
 
 void EmuViewController::postDrawToEmuWindows()
@@ -817,11 +828,6 @@ void EmuViewController::drawMainWindow(Base::Window &win, Gfx::RendererCommands 
 		popup.draw(cmds);
 	}
 	cmds.present();
-}
-
-void EmuViewController::popTo(View &v)
-{
-	viewStack.popTo(v);
 }
 
 void EmuViewController::popToRoot()

@@ -65,7 +65,7 @@ public:
 	TestFinishedDelegate onTestFinished;
 	FramePresentTime lastFramePresentTime;
 
-	constexpr TestFramework() {}
+	TestFramework() {}
 	virtual ~TestFramework() {}
 	virtual void initTest(Gfx::Renderer &r, IG::Point2D<int> pixmapSize) {}
 	virtual void placeTest(const Gfx::GCRect &testRect) {}
@@ -88,12 +88,10 @@ protected:
 	Gfx::GCRect cpuStatsRect{};
 	std::array<char, 256> cpuFreqStr{};
 	std::array<char, 64> cpuUseStr{};
-	std::array<char, 256> cpuStatsStr{};
 	Gfx::Text frameStatsText;
 	Gfx::GCRect frameStatsRect{};
 	std::array<char, 256> skippedFrameStr{};
 	std::array<char, 256> statsStr{};
-	std::array<char, 512> frameStatsStr{};
 	Gfx::ProjectionPlane projP;
 	uint lostFrameDispatchTime = 0;
 	uint lostFrameProcessTime = 0;

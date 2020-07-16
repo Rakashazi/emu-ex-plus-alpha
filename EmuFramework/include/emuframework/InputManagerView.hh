@@ -49,12 +49,11 @@ public:
 	InputManagerView(ViewAttachParams attach);
 	~InputManagerView() final;
 	void onShow() final;
-	const char *deviceName(uint idx) const;
+	void pushAndShowDeviceView(unsigned idx, Input::Event e);
+	static DeviceNameString makeDeviceName(const char *name, unsigned id);
 
 private:
-	std::vector<DeviceNameString> deviceConfigStr{};
 	TextMenuItem deleteDeviceConfig{};
-	std::vector<const char*> profileStr{};
 	TextMenuItem deleteProfile{};
 	#ifdef __ANDROID__
 	TextMenuItem rescanOSDevices{};
@@ -63,7 +62,6 @@ private:
 	TextMenuItem generalOptions{};
 	TextHeadingMenuItem deviceListHeading{};
 	std::vector<TextMenuItem> inputDevName{};
-	std::vector<DeviceNameString> inputDevNameStr{};
 	std::vector<MenuItem*> item{};
 
 	void loadItems();
@@ -102,11 +100,15 @@ public:
 
 class InputManagerDeviceView : public TableView
 {
+public:
+	InputManagerDeviceView(NameString name, ViewAttachParams attach, InputManagerView &rootIMView, InputDeviceConfig &devConf);
+	void setPlayer(int playerVal);
+	void onShow() final;
+
 private:
 	InputManagerView &rootIMView;
 	TextMenuItem playerItem[6];
 	MultiChoiceMenuItem player{};
-	char profileStr[128]{};
 	TextMenuItem loadProfile{};
 	TextMenuItem renameProfile{};
 	TextMenuItem newProfile{};
@@ -125,9 +127,4 @@ private:
 
 	void confirmICadeMode(Input::Event e);
 	void loadItems();
-
-public:
-	InputManagerDeviceView(ViewAttachParams attach, InputManagerView &rootIMView, InputDeviceConfig &devConf);
-	void setPlayer(int playerVal);
-	void onShow() final;
 };

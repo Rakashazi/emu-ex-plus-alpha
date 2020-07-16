@@ -21,6 +21,7 @@
 #include <imagine/audio/AudioManager.hh>
 #include <imagine/audio/defs.hh>
 #include <imagine/gui/View.hh>
+#include <imagine/gfx/Texture.hh>
 
 using OptionBackNavigation = Option<OptionMethodRef<bool, View::needsBackControl>, uint8_t>;
 using OptionSwappedGamepadConfirm = Option<OptionMethodFunc<bool, Input::swappedGamepadConfirm, Input::setSwappedGamepadConfirm>, uint8_t>;

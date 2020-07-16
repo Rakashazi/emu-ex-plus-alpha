@@ -112,11 +112,9 @@ public:
 		EmuApp::pushAndShowNewCollectTextInputView(attach, e, msgText, initialContent,
 			[=](CollectTextInputView &view, const char *str)
 			{
-				auto controller = view.controller();
-				assumeExpr(controller);
 				if(!str)
 				{
-					controller->popAndShow();
+					view.dismiss();
 					return false;
 				}
 				T val;
@@ -165,7 +163,7 @@ public:
 				}
 				else
 				{
-					controller->popAndShow();
+					view.dismiss();
 					return false;
 				}
 			});

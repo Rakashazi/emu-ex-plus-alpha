@@ -16,6 +16,7 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/gui/TableView.hh>
+#include <imagine/util/string.h>
 
 void TextEntry::setAcceptingInput(bool on)
 {
@@ -171,7 +172,7 @@ void CollectTextInputView::place()
 		cancelSpr.setPos(-projP.unprojectXSize(cancelBtn)/3., -projP.unprojectYSize(cancelBtn)/3., projP.unprojectXSize(cancelBtn)/3., projP.unprojectYSize(cancelBtn)/3.);
 	}
 	#endif
-	message.maxLineSize = projP.width() * 0.95;
+	message.setMaxLineSize(projP.width() * 0.95);
 	message.compile(renderer(), projP);
 	IG::WindowRect textRect;
 	int xSize = viewRect().xSize() * 0.95;
@@ -239,10 +240,10 @@ void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 	cmds.setColor(COLOR_WHITE);
 	textEntry.draw(cmds);
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
-	message.draw(cmds, 0, projP.unprojectY(textEntry.b.pos(C2DO).y) + message.nominalHeight, CB2DO, projP);
+	message.draw(cmds, 0, projP.unprojectY(textEntry.b.pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
 	#else
 	cmds.setColor(COLOR_WHITE);
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
-	message.draw(cmds, 0, projP.unprojectY(Input::sysTextInputRect().pos(C2DO).y) + message.nominalHeight, CB2DO, projP);
+	message.draw(cmds, 0, projP.unprojectY(Input::sysTextInputRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
 	#endif
 }

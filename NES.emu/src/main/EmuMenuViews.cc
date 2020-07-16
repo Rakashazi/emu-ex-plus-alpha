@@ -86,14 +86,14 @@ class ConsoleOptionView : public TableView
 	MultiChoiceMenuItem videoSystem
 	{
 		"Video System",
-		[this](int idx) -> const char*
+		[this](uint32_t idx, Gfx::Text &t)
 		{
 			if(idx == 0)
 			{
-				return dendy ? "Dendy" : pal_emulation ? "PAL" : "NTSC";
+				t.setString(dendy ? "Dendy" : pal_emulation ? "PAL" : "NTSC");
+				return true;
 			}
-			else
-				return nullptr;
+			return false;
 		},
 		optionVideoSystem,
 		videoSystemItem
@@ -120,9 +120,8 @@ class ConsoleOptionView : public TableView
 					"Use compatible mode if the current game has glitches when "
 					"fast-forwarding/frame-skipping, at the cost of increased CPU usage.");
 				ynAlertView->setOnYes(
-					[this, &item](TextMenuItem &, View &view, Input::Event e)
+					[this, &item]()
 					{
-						view.dismiss();
 						EmuSystem::sessionOptionSet();
 						optionCompatibleFrameskip = item.flipBoolValue(*this);
 					});
@@ -186,8 +185,6 @@ class CustomVideoOptionView : public VideoOptionView
 	static constexpr const char *wavebeamPalPath = "Wavebeam.pal";
 	static constexpr const char *classicPalPath = "Classic (FBX).pal";
 
-	std::array<char, 32> paletteFileName{};
-
 	static void setPalette(const char *palPath)
 	{
 		if(palPath)
@@ -197,9 +194,9 @@ class CustomVideoOptionView : public VideoOptionView
 		setDefaultPalette(palPath);
 	}
 
-	constexpr int defaultPaletteCustomFileIdx()
+	constexpr uint32_t defaultPaletteCustomFileIdx()
 	{
-		return (int)std::size(defaultPalItem) - 1;
+		return std::size(defaultPalItem) - 1;
 	}
 
 	TextMenuItem defaultPalItem[5]
@@ -220,11 +217,9 @@ class CustomVideoOptionView : public VideoOptionView
 					[this](FSPicker &picker, const char *name, Input::Event)
 					{
 						setPalette(picker.makePathString(name).data());
-						string_copy(paletteFileName,
-							FS::makeFileStringWithoutDotExtension(name).data());
-						picker.dismiss();
 						defaultPal.setSelected(defaultPaletteCustomFileIdx());
-						popAndShow();
+						dismissPrevious();
+						picker.dismiss();
 					});
 				EmuApp::pushAndShowModalView(std::move(fPicker), e);
 				return false;
@@ -234,14 +229,15 @@ class CustomVideoOptionView : public VideoOptionView
 	MultiChoiceMenuItem defaultPal
 	{
 		"Default Palette",
-		[this](int idx) -> const char*
+		[this](uint32_t idx, Gfx::Text &t)
 		{
 			if(idx == defaultPaletteCustomFileIdx())
 			{
-				return paletteFileName.data();
+				auto paletteName = FS::basename(defaultPalettePath);
+				t.setString(FS::makeFileStringWithoutDotExtension(paletteName).data());
+				return true;
 			}
-			else
-				return nullptr;
+			return false;
 		},
 		[this]()
 		{
@@ -254,7 +250,7 @@ class CustomVideoOptionView : public VideoOptionView
 			else if(string_equal(defaultPalettePath.data(), classicPalPath))
 				return 3;
 			else
-				return defaultPaletteCustomFileIdx();
+				return (int)defaultPaletteCustomFileIdx();
 		}(),
 		defaultPalItem
 	};
@@ -262,8 +258,6 @@ class CustomVideoOptionView : public VideoOptionView
 public:
 	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
-		auto paletteName = FS::basename(defaultPalettePath);
-		string_copy(paletteFileName, FS::makeFileStringWithoutDotExtension(paletteName).data());
 		loadStockItems();
 		item.emplace_back(&systemSpecificHeading);
 		item.emplace_back(&defaultPal);
@@ -304,36 +298,32 @@ public:
 
 class CustomSystemOptionView : public SystemOptionView
 {
-	char fdsBiosPathStr[256]{};
-
 	TextMenuItem fdsBiosPath
 	{
-		fdsBiosPathStr,
+		nullptr,
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("Disk System BIOS", &::fdsBiosPath,
 				[this]()
 				{
 					logMsg("set fds bios %s", ::fdsBiosPath.data());
-					printBiosMenuEntryStr(fdsBiosPathStr);
-					fdsBiosPath.compile(renderer(), projP);
+					fdsBiosPath.compile(makeBiosMenuEntryStr().data(), renderer(), projP);
 				},
 				hasFDSBIOSExtension);
 			pushAndShow(std::move(biosSelectMenu), e);
 		}
 	};
 
-	template <size_t S>
-	static void printBiosMenuEntryStr(char (&str)[S])
+	static std::array<char, 256> makeBiosMenuEntryStr()
 	{
-		string_printf(str, "Disk System BIOS: %s", strlen(::fdsBiosPath.data()) ? FS::basename(::fdsBiosPath).data() : "None set");
+		return string_makePrintf<256>("Disk System BIOS: %s", strlen(::fdsBiosPath.data()) ? FS::basename(::fdsBiosPath).data() : "None set");
 	}
 
 public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
-		printBiosMenuEntryStr(fdsBiosPathStr);
+		fdsBiosPath.setName(makeBiosMenuEntryStr().data());
 		item.emplace_back(&fdsBiosPath);
 	}
 };
@@ -346,34 +336,34 @@ private:
 	{
 		{
 			"Set Disk 1 Side A",
-			[](TextMenuItem &, View &view, Input::Event e)
+			[](View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(0);
-				view.popAndShow();
+				view.dismiss();
 			}
 		},
 		{
 			"Set Disk 1 Side B",
-			[](TextMenuItem &, View &view, Input::Event e)
+			[](View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(1);
-				view.popAndShow();
+				view.dismiss();
 			}
 		},
 		{
 			"Set Disk 2 Side A",
-			[](TextMenuItem &, View &view, Input::Event e)
+			[](View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(2);
-				view.popAndShow();
+				view.dismiss();
 			}
 		},
 		{
 			"Set Disk 2 Side B",
-			[](TextMenuItem &, View &view, Input::Event e)
+			[](View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(3);
-				view.popAndShow();
+				view.dismiss();
 			}
 		}
 	};
@@ -381,12 +371,12 @@ private:
 	TextMenuItem insertEject
 	{
 		"Eject",
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](View &view, Input::Event e)
 		{
 			if(FCEU_FDSInserted())
 			{
 				FCEU_FDSInsert();
-				popAndShow();
+				view.dismiss();
 			}
 		}
 	};
@@ -425,11 +415,9 @@ public:
 class CustomSystemActionsView : public EmuSystemActionsView
 {
 private:
-	char diskLabel[sizeof("FDS Control (Disk 1:A)")+2]{};
-
 	TextMenuItem fdsControl
 	{
-		diskLabel,
+		nullptr,
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning() && isFDS)
@@ -444,6 +432,7 @@ private:
 	void refreshFDSItem()
 	{
 		fdsControl.setActive(isFDS);
+		char diskLabel[sizeof("FDS Control (Disk 1:A)")+2]{};
 		if(!isFDS)
 			strcpy(diskLabel, "FDS Control");
 		else if(!FCEU_FDSInserted())

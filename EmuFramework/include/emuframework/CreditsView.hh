@@ -23,7 +23,7 @@
 class CreditsView : public View
 {
 public:
-	CreditsView(const char *str, ViewAttachParams attach);
+	CreditsView(ViewAttachParams attach, const char *str);
 	~CreditsView();
 	void prepareDraw() final;
 	void draw(Gfx::RendererCommands &cmds) final;
@@ -34,5 +34,4 @@ private:
 	Gfx::Text text{};
 	TimedInterpolator<float> fade{};
 	Base::OnFrameDelegate animate{};
-	const char *str{};
 };

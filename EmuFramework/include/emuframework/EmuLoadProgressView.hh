@@ -39,5 +39,4 @@ private:
 	Gfx::Text text{"Loading...", &View::defaultFace};
 	Input::Event originalEvent{};
 	int pos = 0, max = 0;
-	std::array<char, 128> str{};
 };

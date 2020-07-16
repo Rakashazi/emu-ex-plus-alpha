@@ -110,12 +110,14 @@ class CustomVideoOptionView : public VideoOptionView
 	MultiChoiceMenuItem renderPixelFormat
 	{
 		"Render Color Format",
-		[](int idx) -> const char*
+		[](int idx, Gfx::Text &t)
 		{
 			if(idx == 0)
-				return "Auto";
-			else
-				return nullptr;
+			{
+				t.setString("Auto");
+				return true;
+			}
+			return false;
 		},
 		[]()
 		{

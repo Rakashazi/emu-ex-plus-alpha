@@ -39,59 +39,6 @@
 extern BluetoothAdapter *bta;
 #endif
 
-class ResetAlertView : public BaseAlertView
-{
-public:
-	ResetAlertView(ViewAttachParams attach, const char *label):
-		BaseAlertView(attach, label,
-			[this](const TableView &)
-			{
-				return 3;
-			},
-			[this](const TableView &, int idx) -> MenuItem&
-			{
-				switch(idx)
-				{
-					default: bug_unreachable("idx == %d", idx); [[fallthrough]];
-					case 0: return soft;
-					case 1: return hard;
-					case 2: return cancel;
-				}
-			}),
-		soft
-		{
-			"Soft Reset",
-			[this](Input::Event e)
-			{
-				dismiss();
-				EmuSystem::reset(EmuSystem::RESET_SOFT);
-				emuViewController.showEmulation();
-			}
-		},
-		hard
-		{
-			"Hard Reset",
-			[this](Input::Event e)
-			{
-				dismiss();
-				EmuSystem::reset(EmuSystem::RESET_HARD);
-				emuViewController.showEmulation();
-			}
-		},
-		cancel
-		{
-			"Cancel",
-			[this](Input::Event e)
-			{
-				dismiss();
-			}
-		}
-	{}
-
-protected:
-	TextMenuItem soft, hard, cancel;
-};
-
 #ifdef CONFIG_BLUETOOTH
 
 static bool initBTAdapter()
@@ -162,9 +109,8 @@ static void handledFailedBTAdapterInit(View &view, ViewAttachParams attach, Inpu
 	{
 		auto ynAlertView = std::make_unique<YesNoAlertView>(attach, "BTstack not found, open Cydia and install?");
 		ynAlertView->setOnYes(
-			[](TextMenuItem &, View &view, Input::Event)
+			[]()
 			{
-				view.dismiss();
 				logMsg("launching Cydia");
 				Base::openURL("cydia://package/ch.ringwald.btstack");
 			});
@@ -319,12 +265,11 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		{
 			if(Bluetooth::devsConnected())
 			{
-				string_printf(bluetoothDisconnectStr, "Really disconnect %d Bluetooth device(s)?", Bluetooth::devsConnected());
-				auto ynAlertView = makeView<YesNoAlertView>(bluetoothDisconnectStr.data());
+				auto ynAlertView = makeView<YesNoAlertView>(
+					string_makePrintf<64>("Really disconnect %d Bluetooth device(s)?", Bluetooth::devsConnected()).data());
 				ynAlertView->setOnYes(
-					[](TextMenuItem &, View &view, Input::Event e)
+					[]()
 					{
-						view.dismiss();
 						Bluetooth::closeBT(bta);
 					});
 				pushAndShowModal(std::move(ynAlertView), e);
@@ -378,7 +323,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"About",
 		[this](Input::Event e)
 		{
-			pushAndShow(makeViewWithName<CreditsView>(EmuSystem::creditsViewStr), e);
+			pushAndShow(makeView<CreditsView>(EmuSystem::creditsViewStr), e);
 		}
 	},
 	exitApp

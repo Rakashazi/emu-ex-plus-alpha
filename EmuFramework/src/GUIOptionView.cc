@@ -51,7 +51,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fontSizeItem
 	{
-		{"2", [this](){ setFontSize(2000); }},
+		{"2", [this]() { setFontSize(2000); }},
 		{"3", [this]() { setFontSize(3000); }},
 		{"4", [this]() { setFontSize(4000); }},
 		{"5", [this]() { setFontSize(5000); }},
@@ -71,7 +71,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 						{
 							setFontSize(scaledIntVal);
 							fontSize.setSelected(std::size(fontSizeItem) - 1, *this);
-							popAndShow();
+							dismissPrevious();
 							return true;
 						}
 						else
@@ -87,9 +87,10 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	fontSize
 	{
 		"Font Size",
-		[this](uint32_t idx)
+		[this](uint32_t idx, Gfx::Text &t)
 		{
-			return fontSizeStr;
+			t.setString(string_makePrintf<6>("%.2f", optionFontSize / 1000.).data());
+			return true;
 		},
 		[]()
 		{
@@ -365,7 +366,6 @@ void GUIOptionView::loadStockItems()
 	item.emplace_back(&systemActionsIsDefaultMenu);
 	if(!optionFontSize.isConst)
 	{
-		string_printf(fontSizeStr, "%.2f", optionFontSize / 1000.);
 		item.emplace_back(&fontSize);
 	}
 	if(!optionIdleDisplayPowerSave.isConst)
@@ -401,7 +401,6 @@ void GUIOptionView::loadStockItems()
 
 void GUIOptionView::setFontSize(uint16_t val)
 {
-	string_printf(fontSizeStr, "%.2f", val / 1000.);
 	optionFontSize = val;
 	setupFont(renderer(), window());
 	emuViewController.placeElements();

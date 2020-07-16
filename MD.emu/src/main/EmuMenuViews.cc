@@ -91,14 +91,14 @@ class ConsoleOptionView : public TableView
 	MultiChoiceMenuItem videoSystem
 	{
 		"Video System",
-		[this](int idx) -> const char*
+		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == 0)
 			{
-				return vdp_pal ? "PAL" : "NTSC";
+				t.setString(vdp_pal ? "PAL" : "NTSC");
+				return true;
 			}
-			else
-				return nullptr;
+			return false;
 		},
 		optionVideoSystem,
 		videoSystemItem
@@ -122,19 +122,23 @@ class ConsoleOptionView : public TableView
 	MultiChoiceMenuItem region
 	{
 		"Game Region",
-		[this](int idx) -> const char*
+		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == 0)
 			{
-				switch(region_code)
+				auto regionStr = [](unsigned region)
 				{
-					case REGION_USA: return "USA";
-					case REGION_EUROPE: return "Europe";
-					default: return "Japan";
-				}
+					switch(region)
+					{
+						case REGION_USA: return "USA";
+						case REGION_EUROPE: return "Europe";
+						default: return "Japan";
+					}
+				};
+				t.setString(regionStr(region_code));
+				return true;
 			}
-			else
-				return nullptr;
+			return false;
 		},
 		std::min((int)config.region_detect, 4),
 		regionItem
@@ -224,9 +228,8 @@ class CustomSystemOptionView : public SystemOptionView
 				"Turn on to make them compatible with other emulators like Gens. "
 				"Any SRAM loaded with the incorrect setting will be corrupted.");
 			ynAlertView->setOnYes(
-				[this, &item](TextMenuItem &, View &view, Input::Event e)
+				[this, &item]()
 				{
-					view.dismiss();
 					optionBigEndianSram = item.flipBoolValue(*this);
 				});
 			EmuApp::pushAndShowModalView(std::move(ynAlertView), e);

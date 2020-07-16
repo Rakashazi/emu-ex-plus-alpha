@@ -116,15 +116,16 @@ class ConsoleOptionView : public TableView
 	MultiChoiceMenuItem tvPhosphor
 	{
 		"Simulate TV Phosphor",
-		[this](int idx) -> const char*
+		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 2)
+			if(idx == 2 && osystem->hasConsole())
 			{
 				bool phospherInUse = osystem->console().properties().get(PropType::Display_Phosphor) == "YES";
-				return phospherInUse ? "On" : "Off";
+				t.setString(phospherInUse ? "On" : "Off");
+				return true;
 			}
 			else
-				return nullptr;
+				return false;
 		},
 		optionTVPhosphor,
 		tvPhosphorItem
@@ -141,19 +142,18 @@ class ConsoleOptionView : public TableView
 		{"SECAM 60", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(6, e); }},
 	};
 
-	std::array<char, 12> autoVideoSystemStr{};
-
 	MultiChoiceMenuItem videoSystem
 	{
 		"Video System",
-		[this](int idx) -> const char*
+		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 0)
+			if(idx == 0 && osystem->hasConsole())
 			{
-				return autoVideoSystemStr.data();
+				t.setString(osystem->console().about().DisplayFormat.c_str());
+				return true;
 			}
 			else
-				return nullptr;
+				return false;
 		},
 		optionVideoSystem,
 		videoSystemItem
@@ -184,14 +184,15 @@ class ConsoleOptionView : public TableView
 	MultiChoiceMenuItem inputPorts
 	{
 		"Input Ports",
-		[](int idx) -> const char*
+		[](int idx, Gfx::Text &t)
 		{
 			if(idx == 0 && osystem->hasConsole())
 			{
-				return controllerTypeStr(osystem->console().leftController().type());
+				t.setString(controllerTypeStr(osystem->console().leftController().type()));
+				return true;
 			}
 			else
-				return nullptr;
+				return false;
 		},
 		[]()
 		{
@@ -217,8 +218,6 @@ class ConsoleOptionView : public TableView
 		}
 	}
 
-	char dPaddleSensitivityStr[4]{};
-
 	TextMenuItem dPaddleSensitivityItem[2]
 	{
 		{"Default", [this]() { setDPaddleSensitivity(1); }},
@@ -232,7 +231,7 @@ class ConsoleOptionView : public TableView
 						{
 							setDPaddleSensitivity(val);
 							dPaddleSensitivity.setSelected(std::size(dPaddleSensitivityItem) - 1, *this);
-							popAndShow();
+							dismissPrevious();
 							return true;
 						}
 						else
@@ -249,9 +248,10 @@ class ConsoleOptionView : public TableView
 	MultiChoiceMenuItem dPaddleSensitivity
 	{
 		"Digital Paddle Sensitivity",
-		[this](uint32_t idx)
+		[this](uint32_t idx, Gfx::Text &t)
 		{
-			return dPaddleSensitivityStr;
+			t.setString(string_makePrintf<4>("%u", optionPaddleDigitalSensitivity.val).data());
+			return true;
 		},
 		[]()
 		{
@@ -267,7 +267,6 @@ class ConsoleOptionView : public TableView
 	void setDPaddleSensitivity(uint8_t val)
 	{
 		EmuSystem::sessionOptionSet();
-		string_printf(dPaddleSensitivityStr, "%u", val);
 		optionPaddleDigitalSensitivity = val;
 		Paddles::setDigitalSensitivity(optionPaddleDigitalSensitivity);
 	}
@@ -288,18 +287,7 @@ public:
 			attach,
 			menuItem
 		}
-	{
-		if(osystem->hasConsole())
-			string_copy(autoVideoSystemStr, osystem->console().about().DisplayFormat.c_str());
-		string_printf(dPaddleSensitivityStr, "%u", optionPaddleDigitalSensitivity.val);
-	}
-
-	void onShow() final
-	{
-		if(osystem->hasConsole())
-			string_copy(autoVideoSystemStr, osystem->console().about().DisplayFormat.c_str());
-		string_printf(dPaddleSensitivityStr, "%u", optionPaddleDigitalSensitivity.val);
-	}
+	{}
 };
 
 class VCSSwitchesView : public TableView

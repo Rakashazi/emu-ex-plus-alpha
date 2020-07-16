@@ -94,12 +94,12 @@ BaseEditCheatView::BaseEditCheatView(const char *viewName, ViewAttachParams atta
 		cheatName,
 		[this](Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input description", name.name(),
+			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input description", cheatNameString(),
 				[this](auto str)
 				{
 					logMsg("setting cheat name %s", str);
+					name.compile(str, renderer(), projP);
 					renamed(str);
-					name.compile(renderer(), projP);
 					onCheatListChanged();
 					postDraw();
 					return true;

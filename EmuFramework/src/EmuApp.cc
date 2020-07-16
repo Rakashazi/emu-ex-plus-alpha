@@ -45,13 +45,12 @@ public:
 		}
 	{
 		setItem(0, "Yes", [](){ Base::exit(); });
-		setItem(1, "No", [](TextMenuItem &, View &view, Input::Event){ view.dismiss(); });
+		setItem(1, "No", [](){});
 		if(item.size() == 3)
 		{
 			setItem(2, "Close Menu",
-				[](TextMenuItem &, View &view, Input::Event)
+				[]()
 				{
-					view.dismiss();
 					if(EmuSystem::gameIsRunning())
 					{
 						emuViewController.showEmulation();
@@ -553,6 +552,7 @@ void EmuApp::reloadGame()
 {
 	if(!EmuSystem::gameIsRunning())
 		return;
+	emuViewController.popToSystemActionsMenu();
 	FS::PathString gamePath;
 	string_copy(gamePath, EmuSystem::fullGamePath());
 	emuSystemTask.pause();
@@ -573,9 +573,8 @@ void EmuApp::promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Ev
 	auto ynAlertView = std::make_unique<YesNoAlertView>(attach,
 		"This option takes effect next time the system starts. Restart it now?");
 	ynAlertView->setOnYes(
-		[](TextMenuItem &, View &view, Input::Event e)
+		[]()
 		{
-			view.dismiss();
 			reloadGame();
 		});
 	emuViewController.pushAndShowModal(std::move(ynAlertView), e, false);

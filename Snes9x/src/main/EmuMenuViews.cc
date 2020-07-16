@@ -151,11 +151,8 @@ class ConsoleOptionView : public TableView
 	{
 		EmuSystem::sessionOptionSet();
 		optionSuperFXClockMultiplier = val;
-		string_printf(superFXClockStr, "%u%%", optionSuperFXClockMultiplier.val);
 		setSuperFXSpeedMultiplier(optionSuperFXClockMultiplier);
 	}
-
-	char superFXClockStr[5]{};
 
 	TextMenuItem superFXClockItem[2]
 	{
@@ -170,7 +167,7 @@ class ConsoleOptionView : public TableView
 						{
 							setSuperFXClock(val);
 							superFXClock.setSelected(std::size(superFXClockItem) - 1, *this);
-							popAndShow();
+							dismissPrevious();
 							return true;
 						}
 						else
@@ -187,9 +184,10 @@ class ConsoleOptionView : public TableView
 	MultiChoiceMenuItem superFXClock
 	{
 		"SuperFX Clock Multiplier",
-		[this](uint32_t idx)
+		[this](uint32_t idx, Gfx::Text &t)
 		{
-			return superFXClockStr;
+			t.setString(string_makePrintf<5>("%u%%", optionSuperFXClockMultiplier.val).data());
+			return true;
 		},
 		[]()
 		{
@@ -223,11 +221,7 @@ public:
 			attach,
 			menuItem
 		}
-	{
-		#ifndef SNES9X_VERSION_1_4
-		string_printf(superFXClockStr, "%u%%", optionSuperFXClockMultiplier.val);
-		#endif
-	}
+	{}
 };
 
 class CustomSystemActionsView : public EmuSystemActionsView

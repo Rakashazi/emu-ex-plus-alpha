@@ -31,8 +31,8 @@ TableView::TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate 
 	ScrollView{attach}, items{items}, item{item}
 {}
 
-TableView::TableView(const char *name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
-	ScrollView{name, attach}, items{items}, item{item}
+TableView::TableView(NameString name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
+	ScrollView{std::move(name), attach}, items{items}, item{item}
 {}
 
 uint32_t TableView::cells() const
@@ -194,7 +194,7 @@ void TableView::onHide()
 	ScrollView::onHide();
 }
 
-void TableView::onAddedToController(Input::Event e)
+void TableView::onAddedToController(ViewController *, Input::Event e)
 {
 	if((!Config::Input::POINTING_DEVICES || !e.isPointer()))
 	{
@@ -208,6 +208,11 @@ void TableView::onAddedToController(Input::Event e)
 void TableView::setFocus(bool focused)
 {
 	hasFocus = focused;
+}
+
+void TableView::setOnSelectElement(SelectElementDelegate del)
+{
+	selectElementDel = del;
 }
 
 void TableView::setScrollableIfNeeded(bool on)
@@ -492,7 +497,10 @@ void TableView::drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &i
 
 void TableView::onSelectElement(Input::Event e, uint32_t i, MenuItem &item)
 {
-	item.select(*this, e);
+	if(selectElementDel)
+		selectElementDel(e, i, item);
+	else
+		item.select(*this, e);
 }
 
 bool TableView::elementIsSelectable(MenuItem &item)

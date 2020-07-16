@@ -40,11 +40,11 @@ static FS::PathString savePathStrToDescStr(char *savePathStr)
 	return desc;
 }
 
-BiosSelectMenu::BiosSelectMenu(const char *name, ViewAttachParams attach, FS::PathString *biosPathStr_, BiosChangeDelegate onBiosChange_,
+BiosSelectMenu::BiosSelectMenu(NameString name, ViewAttachParams attach, FS::PathString *biosPathStr_, BiosChangeDelegate onBiosChange_,
 	EmuSystem::NameFilterFunc fsFilter_):
 	TableView
 	{
-		name,
+		std::move(name),
 		attach,
 		[this](const TableView &)
 		{
@@ -70,9 +70,9 @@ BiosSelectMenu::BiosSelectMenu(const char *name, ViewAttachParams attach, FS::Pa
 				[this](FSPicker &picker, const char* name, Input::Event e)
 				{
 					*biosPathStr = picker.makePathString(name);
-					picker.dismiss();
 					onBiosChangeD.callSafe();
-					popAndShow();
+					dismiss();
+					picker.dismiss();
 				});
 			pushAndShowModal(std::move(fPicker), e);
 		}
@@ -84,8 +84,8 @@ BiosSelectMenu::BiosSelectMenu(const char *name, ViewAttachParams attach, FS::Pa
 		{
 			strcpy(biosPathStr->data(), "");
 			auto onBiosChange = onBiosChangeD;
-			popAndShow();
 			onBiosChange.callSafe();
+			dismiss();
 		}
 	},
 	onBiosChangeD{onBiosChange_},
@@ -101,10 +101,9 @@ static void setAutoSaveState(uint val)
 	logMsg("set auto-savestate %d", optionAutoSaveState.val);
 }
 
-template <size_t S>
-static void printPathMenuEntryStr(PathOption optionSavePath, char (&str)[S])
+static std::array<char, 256> makePathMenuEntryStr(PathOption optionSavePath)
 {
-	string_printf(str, "Save Path: %s", savePathStrToDescStr(optionSavePath).data());
+	return string_makePrintf<256>("Save Path: %s", savePathStrToDescStr(optionSavePath).data());
 }
 
 SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
@@ -151,7 +150,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	savePath
 	{
-		savePathStr,
+		nullptr,
 		[this](TextMenuItem &, View &view, Input::Event e)
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>("Save Path", 3);
@@ -167,24 +166,24 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 							EmuSystem::savePath_ = picker.path();
 							logMsg("set save path %s", (char*)optionSavePath);
 							onSavePathChange(optionSavePath);
+							dismissPrevious();
 							picker.dismiss();
-							popAndShow();
 						});
 					pushAndShowModal(std::move(fPicker), e);
 				});
 			multiChoiceView->appendItem("Same as Game",
-				[this]()
+				[this](View &view)
 				{
-					popAndShow();
 					strcpy(optionSavePath, "");
 					onSavePathChange("");
+					view.dismiss();
 				});
 			multiChoiceView->appendItem("Default",
-				[this]()
+				[this](View &view)
 				{
-					popAndShow();
 					strcpy(optionSavePath, optionSavePathDefaultToken);
 					onSavePathChange(optionSavePathDefaultToken);
+					view.dismiss();
 				});
 			pushAndShow(std::move(multiChoiceView), e);
 			postDraw();
@@ -286,7 +285,7 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&autoSaveState);
 	item.emplace_back(&confirmAutoLoadState);
 	item.emplace_back(&confirmOverwriteState);
-	printPathMenuEntryStr(optionSavePath, savePathStr);
+	savePath.setName(makePathMenuEntryStr(optionSavePath).data());
 	item.emplace_back(&savePath);
 	item.emplace_back(&checkSavePathWriteAccess);
 	item.emplace_back(&fastForwardSpeed);
@@ -304,8 +303,7 @@ void SystemOptionView::onSavePathChange(const char *path)
 		auto defaultPath = EmuSystem::baseDefaultGameSavePath();
 		EmuApp::printfMessage(4, false, "Default Save Path:\n%s", defaultPath.data());
 	}
-	printPathMenuEntryStr(optionSavePath, savePathStr);
-	savePath.compile(renderer(), projP);
+	savePath.compile(makePathMenuEntryStr(optionSavePath).data(), renderer(), projP);
 	EmuSystem::setupGameSavePath();
 	EmuSystem::savePathChanged();
 }
@@ -328,9 +326,9 @@ void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Even
 					EmuApp::setFirmwareSearchPath(path.data());
 					logMsg("set firmware path:%s", path.data());
 					onFirmwarePathChange(path.data(), e);
+					dismissPrevious();
 					picker.dismiss();
 				});
-			popAndShow();
 			EmuApp::pushAndShowModalView(std::move(fPicker), e);
 		});
 	if(allowFiles)
@@ -348,18 +346,18 @@ void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Even
 						EmuApp::setFirmwareSearchPath(path.data());
 						logMsg("set firmware archive file:%s", path.data());
 						onFirmwarePathChange(path.data(), e);
+						dismissPrevious();
 						picker.dismiss();
 					});
-				popAndShow();
 				EmuApp::pushAndShowModalView(std::move(fPicker), e);
 			});
 	}
 	multiChoiceView->appendItem("Default",
-		[this](Input::Event e)
+		[this](View &view, Input::Event e)
 		{
-			popAndShow();
 			EmuApp::setFirmwareSearchPath("");
 			onFirmwarePathChange("", e);
+			view.dismiss();
 		});
 	pushAndShow(std::move(multiChoiceView), e);
 }

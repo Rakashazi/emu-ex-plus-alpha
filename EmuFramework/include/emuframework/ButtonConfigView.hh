@@ -34,13 +34,12 @@ public:
 	void place() final;
 	bool inputEvent(Input::Event e) final;
 	void draw(Gfx::RendererCommands &cmds) final;
-	void onAddedToController(Input::Event e) final;
+	void onAddedToController(ViewController *c, Input::Event e) final;
 
 private:
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	IG::WindowRect unbindB{}, cancelB{};
 	#endif
-	std::array<char, 128> str{};
 	std::array<char, 24> actionStr{};
 	Gfx::Text text{};
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
@@ -67,26 +66,15 @@ private:
 	InputManagerView &rootIMView;
 	TextMenuItem reset{};
 	using KeyNameStr = std::array<char, 20>;
-	struct BtnConfigEntry
-	{
-		BtnConfigMenuItem item{nullptr, ""};
-		KeyNameStr str{};
-
-		BtnConfigEntry()
-		{
-			item.set2ndName(str.data());
-		}
-	} *btn{};
+	std::unique_ptr<BtnConfigMenuItem[]> btn{};
 	const KeyCategory *cat{};
 	InputDeviceConfig *devConf{};
 	Input::Time leftKeyPushTime{};
-	std::array<char, 96> conflictStr{};
 
 	void onSet(Input::Key mapKey, int keyToSet);
 	static KeyNameStr makeKeyNameStr(Input::Key key, const char *name);
 
 public:
 	ButtonConfigView(ViewAttachParams attach, InputManagerView &rootIMView, const KeyCategory *cat, InputDeviceConfig &devConf);
-	~ButtonConfigView() final;
 	bool inputEvent(Input::Event e) final;
 };

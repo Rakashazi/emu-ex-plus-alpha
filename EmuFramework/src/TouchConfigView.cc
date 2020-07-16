@@ -145,7 +145,6 @@ public:
 	void place() final;
 	bool inputEvent(Input::Event e) final;
 	void draw(Gfx::RendererCommands &cmds) final;
-	void onAddedToController(Input::Event e) final {}
 };
 
 void OnScreenInputPlaceView::init()
@@ -276,8 +275,8 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)
 	if(textFade.now() != 0.)
 	{
 		cmds.setColor(0., 0., 0., textFade.now()/2.);
-		GeomRect::draw(cmds, Gfx::makeGCRectRel({-text.xSize/(Gfx::GC)2. - text.spaceSize, -text.ySize/(Gfx::GC)2. - text.spaceSize},
-			{text.xSize + text.spaceSize*(Gfx::GC)2., text.ySize + text.spaceSize*(Gfx::GC)2.}));
+		GeomRect::draw(cmds, Gfx::makeGCRectRel({-text.width()/(Gfx::GC)2. - text.spaceWidth(), -text.height()/(Gfx::GC)2. - text.spaceWidth()},
+			{text.width() + text.spaceWidth()*(Gfx::GC)2., text.height() + text.spaceWidth()*(Gfx::GC)2.}));
 		cmds.setColor(1., 1., 1., textFade.now());
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 		text.draw(cmds, projP.unProjectRect(viewRect()).pos(C2DO), C2DO, projP);
@@ -315,7 +314,6 @@ static void setPointerInputPlayer(uint val)
 
 void TouchConfigView::setSize(uint16_t val)
 {
-	string_printf(sizeStr, "%.2f", val / 100.);
 	optionTouchCtrlSize = val;
 	EmuControls::setupVControllerVars();
 	vController.place();
@@ -500,7 +498,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 						{
 							setSize(scaledIntVal);
 							size.setSelected(std::size(sizeItem) - 1, *this);
-							popAndShow();
+							dismissPrevious();
 							return true;
 						}
 						else
@@ -516,9 +514,10 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	size
 	{
 		"Button Size",
-		[this](uint32_t idx)
+		[this](uint32_t idx, Gfx::Text &t)
 		{
-			return sizeStr;
+			t.setString(string_makePrintf<6>("%.2f", optionTouchCtrlSize / 100.).data());
+			return true;
 		},
 		findIdxInArrayOrDefault(touchCtrlSizeMenuVal, (uint)optionTouchCtrlSize, std::size(sizeItem) - 1),
 		sizeItem
@@ -795,9 +794,8 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Reset buttons to default positions & spacing?");
 			ynAlertView->setOnYes(
-				[this](TextMenuItem &, View &view, Input::Event e)
+				[this]()
 				{
-					view.dismiss();
 					resetVControllerOptions();
 					EmuControls::setupVControllerVars();
 					refreshTouchConfigMenu();
@@ -812,9 +810,8 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Reset all on-screen control options to default?");
 			ynAlertView->setOnYes(
-				[this](TextMenuItem &, View &view, Input::Event e)
+				[this]()
 				{
-					view.dismiss();
 					resetAllVControllerOptions();
 					EmuControls::setupVControllerVars();
 					refreshTouchConfigMenu();
@@ -845,7 +842,6 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	{
 		item.emplace_back(&pointerInput);
 	}
-	string_printf(sizeStr, "%.2f", optionTouchCtrlSize / 100.);
 	item.emplace_back(&size);
 	#endif
 	item.emplace_back(&btnPlace);

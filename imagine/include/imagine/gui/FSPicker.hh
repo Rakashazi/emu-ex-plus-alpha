@@ -20,12 +20,10 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/fs/FS.hh>
-#include <imagine/gui/TableView.hh>
+#include <imagine/fs/FSDefs.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/gui/View.hh>
-#include <imagine/gui/NavView.hh>
 #include <imagine/gui/ViewStack.hh>
 
 namespace Gfx
@@ -49,7 +47,7 @@ public:
 	bool inputEvent(Input::Event e) override;
 	void prepareDraw() override;
 	void draw(Gfx::RendererCommands &cmds) override;
-	void onAddedToController(Input::Event e) override;
+	void onAddedToController(ViewController *c, Input::Event e) override;
 	void setOnChangePath(OnChangePathDelegate del);
 	void setOnSelectFile(OnSelectFileDelegate del);
 	void setOnClose(OnCloseDelegate del);
@@ -110,7 +108,6 @@ protected:
 	FS::RootPathInfo root{};
 	FS::PathString currPath{};
 	FS::PathString rootedPath{};
-	std::array<char, 48> msgStr{};
 	Gfx::Text msgText{};
 	bool singleDir = false;
 

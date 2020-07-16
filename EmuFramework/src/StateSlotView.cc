@@ -40,22 +40,22 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 		{
 			auto saveStr = EmuSystem::sprintStateFilename(slot);
 			bool fileExists = FS::exists(saveStr);
+			std::array<char, 128> str;
 			if(fileExists)
 			{
 				auto mTime = FS::status(saveStr).lastWriteTimeLocal();
-				char dateStr[64]{};
-				std::strftime(dateStr, sizeof(dateStr), strftimeFormat, &mTime);
-				string_printf(stateStr[idx], "%s (%s)", stateNameStr(slot), dateStr);
+				std::array<char, 64> dateStr{};
+				std::strftime(dateStr.data(), dateStr.size(), strftimeFormat, &mTime);
+				string_printf(str, "%s (%s)", stateNameStr(slot), dateStr.data());
 			}
 			else
-				string_printf(stateStr[idx], "%s", stateNameStr(slot));
-			stateSlot[idx] = {stateStr[idx], {}};
+				string_printf(str, "%s", stateNameStr(slot));
+			stateSlot[idx] = {str.data(), nullptr};
 			stateSlot[idx].setActive(fileExists);
 		}
 		else
 		{
-			string_printf(stateStr[idx], "%s", stateNameStr(slot));
-			stateSlot[idx] = {stateStr[idx], {}};
+			stateSlot[idx] = {string_makePrintf<40>("%s", stateNameStr(slot)).data(), nullptr};
 			stateSlot[idx].setActive(false);
 		}
 

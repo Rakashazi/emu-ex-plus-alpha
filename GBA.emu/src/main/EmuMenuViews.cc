@@ -33,14 +33,14 @@ class ConsoleOptionView : public TableView
 	MultiChoiceMenuItem rtc
 	{
 		"RTC Emulation",
-		[this](int idx) -> const char*
+		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == 0)
 			{
-				return rtcIsEnabled() ? "On" : "Off";
+				t.setString(rtcIsEnabled() ? "On" : "Off");
+				return true;
 			}
-			else
-				return nullptr;
+			return false;
 		},
 		optionRtcEmulation,
 		rtcItem

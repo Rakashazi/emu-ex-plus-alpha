@@ -20,6 +20,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/string.h>
 #include <utility>
 
 BasicViewController::BasicViewController() {}
@@ -37,7 +38,7 @@ void BasicViewController::push(std::unique_ptr<View> v, Input::Event e)
 	logMsg("push view in basic view controller");
 }
 
-void BasicViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal)
+void BasicViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool, bool)
 {
 	push(std::move(v), e);
 	place();
@@ -45,20 +46,23 @@ void BasicViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e, b
 	view->postDraw();
 }
 
-void BasicViewController::pop()
+void BasicViewController::dismissView(View &v, bool)
 {
-	assert(view);
+	if(&v != view.get())
+		return;
+	dismissView(0, false);
+}
+
+void BasicViewController::dismissView(int idx, bool)
+{
+	if(!view || idx != 0 || idx != -1)
+		return;
 	auto &win = view->window();
 	view->waitForDrawFinished();
 	view.reset();
 	if(removeViewDel)
 		removeViewDel();
 	win.postDraw();
-}
-
-void BasicViewController::dismissView(View &v)
-{
-	pop();
 }
 
 void BasicViewController::place(const IG::WindowRect &rect, const Gfx::ProjectionPlane &projP)
@@ -250,8 +254,8 @@ void ViewStack::pop()
 {
 	if(!view.size())
 		return;
-	onRemoveView_.callSafe(*this, top());
 	top().waitForDrawFinished();
+	view.back().v->onDismiss();
 	view.pop_back();
 	logMsg("pop view, %d in stack", (int)view.size());
 	if(nav)
@@ -299,7 +303,15 @@ void ViewStack::popAll()
 
 void ViewStack::popTo(View &v)
 {
-	while(view.size() > 1 && &top() != &v)
+	popTo(viewIdx(v));
+}
+
+void ViewStack::popTo(int idx)
+{
+	if(idx < 0)
+		return;
+	unsigned popToSize = idx + 1;
+	while(view.size() > popToSize)
 		pop();
 	place();
 	top().show();
@@ -335,15 +347,20 @@ int ViewStack::viewIdx(View &v) const
 	return -1;
 }
 
-int ViewStack::viewIdx(const char *name) const
+int ViewStack::viewIdx(View::NameStringView name) const
 {
 	for(int i = 0; auto &viewEntry : view)
 	{
-		if(string_equal(viewEntry.v->name(), name))
+		if(viewEntry.v->name() == name)
 			return i;
 		i++;
 	}
 	return -1;
+}
+
+int ViewStack::viewIdx(const char *name) const
+{
+	return viewIdx(View::makeNameString(name));
 }
 
 bool ViewStack::contains(View &v) const
@@ -351,22 +368,57 @@ bool ViewStack::contains(View &v) const
 	return viewIdx(v) != -1;
 }
 
-bool ViewStack::contains(const char *name) const
+bool ViewStack::contains(View::NameStringView name) const
 {
 	return viewIdx(name) != -1;
 }
 
-void ViewStack::dismissView(View &v)
+bool ViewStack::contains(const char *name) const
 {
-	//logMsg("dismissing view: %p", &v);
+	return contains(View::makeNameString(name));
+}
+
+void ViewStack::dismissView(View &v, bool refreshLayout)
+{
 	auto idx = viewIdx(v);
-	if(idx > 0)
+	if(idx < 0)
 	{
-		popTo(*view[idx-1].v);
+		logWarn("view:%p not found to dismiss", &v);
+		return;
+	}
+	return dismissView(idx, refreshLayout);
+}
+
+void ViewStack::dismissView(int idx, bool refreshLayout)
+{
+	if(idx < 0)
+	{
+		// negative index is treated as an offset from the current size
+		idx = size() + idx;
+	}
+	if(idx == 0)
+	{
+		logWarn("not dismissing root view");
+		return;
+	}
+	if(idx < 0 || (uint32_t)idx >= size())
+	{
+		logWarn("view dismiss index out of range:%d", idx);
+		return;
+	}
+	if((uint32_t)idx == size() - 1)
+	{
+		// topmost view case
+		if(refreshLayout)
+			popAndShow();
+		else
+			pop();
 	}
 	else
 	{
-		popAndShow();
+		logMsg("dismissing view at index:%d", idx);
+		view[idx].v->onDismiss();
+		view.erase(view.begin() + idx);
 	}
 }
 
@@ -410,11 +462,6 @@ bool ViewStack::topNeedsNavView() const
 bool ViewStack::navViewIsActive() const
 {
 	return nav && showNavView_ && topNeedsNavView();
-}
-
-void ViewStack::setOnRemoveView(RemoveViewDelegate del)
-{
-	onRemoveView_ = del;
 }
 
 bool ViewStack::viewHasFocus() const

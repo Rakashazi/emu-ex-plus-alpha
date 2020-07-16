@@ -38,11 +38,10 @@ RecentGameView::RecentGameView(ViewAttachParams attach, RecentGameList &list):
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Really clear the list?");
 			ynAlertView->setOnYes(
-				[this](TextMenuItem &, View &view, Input::Event)
+				[this]()
 				{
-					view.dismiss();
 					this->list.clear();
-					popAndShow();
+					dismiss();
 				});
 			pushAndShowModal(std::move(ynAlertView), e);
 		}

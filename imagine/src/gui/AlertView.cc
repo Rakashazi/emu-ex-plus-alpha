@@ -32,16 +32,40 @@ BaseAlertView::BaseAlertView(ViewAttachParams attach, const char *label, TableVi
 {
 	menu.setAlign(C2DO);
 	menu.setScrollableIfNeeded(true);
+	menu.setOnSelectElement(
+		[this](Input::Event e, uint32_t i, MenuItem &item)
+		{
+			bool wasDismissed = false;
+			setOnDismiss(
+				[&wasDismissed](View &)
+				{
+					logMsg("called alert onDismiss");
+					wasDismissed = true;
+					return false;
+				});
+			bool shouldDismiss = item.select(*this, e);
+			if(wasDismissed)
+			{
+				logDMsg("dismissed in onSelect");
+				return;
+			}
+			setOnDismiss(nullptr);
+			if(shouldDismiss)
+			{
+				logMsg("dismissing");
+				dismiss();
+			}
+		});
 }
 
 void BaseAlertView::place()
 {
 	using namespace Gfx;
 	int xSize = viewRect().xSize() * .8;
-	text.maxLineSize = projP.unprojectXSize(xSize) * 0.95_gc;
+	text.setMaxLineSize(projP.unprojectXSize(xSize) * 0.95_gc);
 	text.compile(renderer(), projP);
 
-	int menuYSize = menu.cells() * text.face->nominalHeight()*2;
+	int menuYSize = menu.cells() * text.face()->nominalHeight()*2;
 	int labelYSize = IG::makeEvenRoundedUp(projP.projectYSize(text.fullHeight()));
 	IG::WindowRect viewFrame;
 	viewFrame.setPosRel(viewRect().pos(C2DO),
@@ -93,9 +117,9 @@ void BaseAlertView::draw(Gfx::RendererCommands &cmds)
 	//setClipRect(0);
 }
 
-void BaseAlertView::onAddedToController(Input::Event e)
+void BaseAlertView::onAddedToController(ViewController *c, Input::Event e)
 {
-	menu.setController(controller(), e);
+	menu.setController(c, e);
 }
 
 void BaseAlertView::setLabel(const char *label)
@@ -142,5 +166,5 @@ void YesNoAlertView::setOnNo(TextMenuItem::SelectDelegate del)
 
 TextMenuItem::SelectDelegate YesNoAlertView::makeDefaultSelectDelegate()
 {
-	return TextMenuItem::makeSelectDelegate([this]() { dismiss(); });
+	return TextMenuItem::makeSelectDelegate([](){});
 }

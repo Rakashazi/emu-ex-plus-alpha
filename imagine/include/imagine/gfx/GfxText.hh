@@ -17,9 +17,10 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
+#include <imagine/gfx/ProjectionPlane.hh>
 #include <float.h>
 #include <imagine/util/2DOrigin.h>
-#include <imagine/util/string.h>
+#include <vector>
 
 namespace Gfx
 {
@@ -35,38 +36,57 @@ public:
 	static constexpr uint16_t NO_MAX_LINES = 0-1;
 	static constexpr GC NO_MAX_LINE_SIZE = FLT_MAX;
 
-	struct LineInfo
+	Text();
+	Text(GlyphTextureSet *face);
+	Text(const char *str, GlyphTextureSet *face = nullptr);
+	Text(TextString str, GlyphTextureSet *face = nullptr);
+	void setString(const char *str);
+	void setString(const Text &o);
+	void setString(TextString v);
+	void setFace(GlyphTextureSet *face);
+	void makeGlyphs(Renderer &r);
+	bool compile(Renderer &r, ProjectionPlane projP);
+	void draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, ProjectionPlane projP) const;
+	void draw(RendererCommands &cmds, GP p, _2DOrigin o, ProjectionPlane projP) const
 	{
+		draw(cmds, p.x, p.y, o, projP);
+	}
+	void setMaxLineSize(GC size);
+	void setMaxLines(uint16_t lines);
+	GC width() const;
+	GC height() const;
+	GC fullHeight() const;
+	GC nominalHeight() const;
+	GC spaceWidth() const;
+	GlyphTextureSet *face() const;
+	uint16_t currentLines() const;
+	unsigned stringSize() const;
+	bool isVisible() const;
+	TextStringView stringView() const;
+
+protected:
+	struct LineSpan
+	{
+		constexpr LineSpan(GC size, uint32_t chars):
+			size{size}, chars{chars}
+		{}
 		GC size;
 		uint32_t chars;
 	};
 
-	GlyphTextureSet *face{};
+	TextString textStr{};
+	GlyphTextureSet *face_{};
+	std::vector<LineSpan> lineInfo{};
 	GC spaceSize = 0;
-	GC nominalHeight = 0;
+	GC nominalHeight_ = 0;
 	GC yLineStart = 0;
-	GC xSize = 0, ySize = 0;
+	GC xSize = 0;
+	GC ySize = 0;
 	GC maxLineSize = NO_MAX_LINE_SIZE;
-	const char *str{};
-	uint32_t chars = 0;
 	uint16_t lines = 0;
 	uint16_t maxLines = NO_MAX_LINES;
-	LineInfo *lineInfo{};
 
-	constexpr Text() {}
-	constexpr Text(const char *str): str{str} {}
-	constexpr Text(const char *str, GlyphTextureSet *face): face{face}, str{str} {}
-	~Text();
-	void setString(const char *str);
-	void setFace(GlyphTextureSet *face);
-	void makeGlyphs(Renderer &r);
-	void compile(Renderer &r, const ProjectionPlane &projP);
-	void draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, const ProjectionPlane &projP) const;
-	void draw(RendererCommands &cmds, GP p, _2DOrigin o, const ProjectionPlane &projP) const
-	{
-		draw(cmds, p.x, p.y, o, projP);
-	}
-	GC fullHeight() const;
+	void drawSpan(RendererCommands &cmds, GC xPos, GC yPos, ProjectionPlane projP, TextStringView strView, std::array<TexVertex, 4> &vArr) const;
 };
 
 }

@@ -31,7 +31,7 @@ class ScrollView : public View
 {
 public:
 	ScrollView(ViewAttachParams attach);
-	ScrollView(const char *name, ViewAttachParams attach);
+	ScrollView(NameString name, ViewAttachParams attach);
 	~ScrollView();
 	void onShow() override;
 	void onHide() override;

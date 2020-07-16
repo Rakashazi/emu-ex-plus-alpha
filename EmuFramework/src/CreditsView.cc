@@ -18,17 +18,19 @@
 #include <imagine/util/math/int.hh>
 #include "private.hh"
 
-CreditsView::CreditsView(const char *str, ViewAttachParams attach):
-	View{appViewTitle(), attach}, str(str)
-{
-	text = {str, &View::defaultFace};
-	fade.set(0., 1., INTERPOLATOR_TYPE_LINEAR, 20);
-	animate =
+CreditsView::CreditsView(ViewAttachParams attach, const char *str):
+	View{appViewTitle(), attach},
+	text{str, &View::defaultFace},
+	animate
+	{
 		[this](IG::FrameParams params)
 		{
 			postDraw();
 			return fade.update(1);
-		};
+		}
+	}
+{
+	fade.set(0., 1., INTERPOLATOR_TYPE_LINEAR, 20);
 	screen()->addOnFrame(animate);
 	place();
 }

@@ -45,7 +45,6 @@ protected:
 	TextMenuItem benchmark;
 	#ifdef CONFIG_BLUETOOTH
 	TextMenuItem scanWiimotes;
-	std::array<char, 64> bluetoothDisconnectStr{};
 	TextMenuItem bluetoothDisconnect;
 	#endif
 	#ifdef CONFIG_BLUETOOTH_SERVER

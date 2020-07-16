@@ -37,7 +37,6 @@ protected:
 	TextMenuItem pointerInputItem[5];
 	MultiChoiceMenuItem pointerInput;
 	TextMenuItem sizeItem[11];
-	char sizeStr[6]{};
 	MultiChoiceMenuItem size;
 	TextMenuItem deadzoneItem[3];
 	MultiChoiceMenuItem deadzone;

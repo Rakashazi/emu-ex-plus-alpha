@@ -517,12 +517,6 @@ void ROMCheatUpdate()
 	}
 }
 
-void EmuEditCheatView::renamed(const char *str)
-{
-	string_copy(cheat->name, str);
-	cheatsModified = 1;
-}
-
 EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
@@ -573,6 +567,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 					}
 					cheatsModified = 1;
 					updateCheats();
+					code.set2ndName(str);
 					code.compile(renderer(), projP);
 					postDraw();
 					return true;
@@ -581,6 +576,17 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 	},
 	cheat{&cheat_}
 {}
+
+const char *EmuEditCheatView::cheatNameString() const
+{
+	return cheat->name;
+}
+
+void EmuEditCheatView::renamed(const char *str)
+{
+	string_copy(cheat->name, str);
+	cheatsModified = 1;
+}
 
 void EmuEditCheatListView::loadCheatItems()
 {

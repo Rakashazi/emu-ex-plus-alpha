@@ -18,6 +18,7 @@
 #include <cstdio>
 #include "tests.hh"
 #include <imagine/io/FileIO.hh>
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 
 struct CPUTime

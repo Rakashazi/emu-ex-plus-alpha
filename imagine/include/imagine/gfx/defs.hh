@@ -22,6 +22,8 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <optional>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/gfx-globals.hh>
@@ -126,5 +128,8 @@ enum class CommonTextureSampler
 	REPEAT,
 	NEAREST_MIP_REPEAT
 };
+
+using TextString = std::u16string;
+using TextStringView = std::u16string_view;
 
 }

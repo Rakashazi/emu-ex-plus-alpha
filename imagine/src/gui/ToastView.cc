@@ -32,31 +32,29 @@ ToastView::ToastView(ViewAttachParams attach): View{attach},
 		}
 	}
 {
-	text.maxLines = 6;
+	text.setMaxLines(6);
 }
 
 void ToastView::setFace(Gfx::GlyphTextureSet &face)
 {
 	waitForDrawFinished();
 	text.setFace(&face);
-	text.setString(str.data());
 }
 
 void ToastView::clear()
 {
-	if(strlen(str.data()))
+	if(text.stringSize())
 	{
 		unpostTimer.cancel();
 		waitForDrawFinished();
-		str = {};
+		text.setString(nullptr);
 	}
 }
 
 void ToastView::place()
 {
-	text.maxLineSize = projP.width();
-	if(strlen(str.data()))
-		text.compile(renderer(), projP);
+	text.setMaxLineSize(projP.width());
+	text.compile(renderer(), projP);
 
 	int labelYSize = IG::makeEvenRoundedUp(projP.projectYSize(text.fullHeight()));
 	IG::WindowRect viewFrame;
@@ -69,17 +67,13 @@ void ToastView::place()
 void ToastView::unpost()
 {
 	logMsg("unposting");
-	{
-		waitForDrawFinished();
-		str = {};
-	}
+	waitForDrawFinished();
+	text.setString(nullptr);
 	postDraw();
 }
 
 void ToastView::contentUpdated(bool error)
 {
-	assert(strlen(str.data()));
-	logMsg("%s", str.data());
 	place();
 	this->error = error;
 }
@@ -94,7 +88,8 @@ void ToastView::post(const char *msg, int secs, bool error)
 {
 	{
 		waitForDrawFinished();
-		string_copy(str, msg);
+		text.setString(msg);
+		logMsg("posting string:%s", msg);
 		contentUpdated(error);
 	}
 	postContent(secs);
@@ -127,7 +122,10 @@ void ToastView::vprintf(uint32_t secs, bool error, const char *format, va_list a
 {
 	{
 		waitForDrawFinished();
+		std::array<char, 1024> str{};
 		auto result = vsnprintf(str.data(), str.size(), format, args);
+		text.setString(str.data());
+		logMsg("posting formatted string:%s", str.data());
 		contentUpdated(error);
 	}
 	postContent(secs);
@@ -141,7 +139,7 @@ void ToastView::prepareDraw()
 void ToastView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
-	if(!strlen(str.data()))
+	if(!text.isVisible())
 		return;
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	cmds.setBlendMode(BLEND_MODE_ALPHA);

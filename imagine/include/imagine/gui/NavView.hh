@@ -40,12 +40,12 @@ public:
 	void setOnPushLeftBtn(OnPushDelegate del);
 	void setOnPushRightBtn(OnPushDelegate del);
 	void setOnPushMiddleBtn(OnPushDelegate del);
-	void setTitle(const char *title) { text.setString(title); }
+	void setTitle(NameString title);
+	void setTitle(NameStringView title);
 	void prepareDraw() override;
 	void place() override;
 	bool inputEvent(Input::Event e) override;
 	void clearSelection() override;
-	void onAddedToController(Input::Event e) override;
 	virtual void showLeftBtn(bool show) = 0;
 	virtual void showRightBtn(bool show) = 0;
 	Gfx::GlyphTextureSet *titleFace();

@@ -22,12 +22,11 @@
 class TestTableEntry : public DualTextMenuItem
 {
 public:
-	std::array<char, 64> testStr{};
-	std::array<char, 9> fpsStr{};
 	bool redText{};
 
 	TestTableEntry(SelectDelegate selectDel);
 	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const final;
+	void setTestName(const char *name);
 };
 
 class TestPicker : public TableView

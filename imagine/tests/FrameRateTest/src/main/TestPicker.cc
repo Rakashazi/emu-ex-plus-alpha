@@ -16,17 +16,16 @@
 #include "TestPicker.hh"
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/string.h>
 
 TestTableEntry::TestTableEntry(SelectDelegate selectDel):
-	DualTextMenuItem{nullptr, nullptr, selectDel}
-{
-	t = {testStr.data(), &View::defaultFace};
-}
+	DualTextMenuItem{{}, {}, selectDel}
+{}
 
 void TestTableEntry::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP);
-	if(t2.str)
+	if(t2.isVisible())
 	{
 		if(redText)
 			cmds.setColor(1., 0., 0.);
@@ -34,6 +33,11 @@ void TestTableEntry::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPo
 			cmds.setColor(1., 1., 1.);
 		draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP);
 	}
+}
+
+void TestTableEntry::setTestName(const char *name)
+{
+	t.setString(name);
 }
 
 TestPicker::TestPicker(ViewAttachParams attach):
@@ -72,12 +76,11 @@ void TestPicker::setTests(const TestParams *testParams, uint tests)
 							diff.count());
 						auto &entry = testEntry[i];
 						auto fps = double(test.frames-1) / diff.count();
-						string_printf(entry.fpsStr, "%.2f", fps);
-						entry.set2ndName(entry.fpsStr.data());
+						entry.set2ndName(string_makePrintf<9>("%.2f", fps).data());
 						entry.redText = test.droppedFrames;
 					};
 			});
-		testEntry[i].testStr = testParams[i].makeTestName();
+		testEntry[i].setTestName(testParams[i].makeTestName().data());
 	}
 	if(Input::keyInputIsPresent())
 		highlightCell(0);

@@ -18,6 +18,8 @@
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gui/TextEntry.hh>
+#include <imagine/gui/NavView.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
@@ -33,9 +35,9 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::Pi
 	FilterFunc filter,  bool singleDir, Gfx::GlyphTextureSet *face):
 	View{attach},
 	filter{filter},
+	msgText{face},
 	singleDir{singleDir}
 {
-	msgText = {msgStr.data(), face};
 	const Gfx::LGradientStopDesc fsNavViewGrad[]
 	{
 		{ .0, Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
@@ -172,9 +174,9 @@ void FSPicker::draw(Gfx::RendererCommands &cmds)
 	controller.navView()->draw(cmds);
 }
 
-void FSPicker::onAddedToController(Input::Event e)
+void FSPicker::onAddedToController(ViewController *, Input::Event e)
 {
-	controller.top().onAddedToController(e);
+	controller.top().onAddedToController(&controller, e);
 }
 
 std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::RootPathInfo rootInfo, Input::Event e)
@@ -219,7 +221,7 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 	text.clear();
 	if(dir.size())
 	{
-		msgStr = {};
+		msgText.setString(nullptr);
 		text.reserve(dir.size());
 		for(unsigned idx = 0; auto const &entry : dir)
 		{
@@ -249,9 +251,9 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 	{
 		// no entires, show a message instead
 		if(ec)
-			string_printf(msgStr, "Can't open directory:\n%s", ec.message().c_str());
+			msgText.setString(string_makePrintf<48>("Can't open directory:\n%s", ec.message().c_str()).data());
 		else
-			string_copy(msgStr, "Empty Directory");
+			msgText.setString("Empty Directory");
 	}
 	if(!e.isPointer())
 		static_cast<TableView*>(&controller.top())->highlightCell(0);
@@ -337,19 +339,22 @@ void FSPicker::pushFileLocationsView(Input::Event e)
 	auto view = makeViewWithName<TextTableView>("File Locations", rootLocation.size() + 2);
 	for(auto &loc : rootLocation)
 	{
-		view->appendItem(loc.description.data(), [this, &loc](TextMenuItem &, View &, Input::Event e)
+		view->appendItem(loc.description.data(),
+			[this, &loc](View &view, Input::Event e)
 			{
 				auto pathLen = strlen(loc.path.data());
 				changeDirByInput(loc.path.data(), loc.root, true, e);
-				popAndShow();
+				view.dismiss();
 			});
 	}
-	view->appendItem("Root Filesystem", [this](TextMenuItem &, View &, Input::Event e)
+	view->appendItem("Root Filesystem",
+		[this](View &view, Input::Event e)
 		{
 			changeDirByInput("/", {}, true, e);
-			popAndShow();
+			view.dismiss();
 		});
-	view->appendItem("Custom Path", [this](TextMenuItem &, View &, Input::Event e)
+	view->appendItem("Custom Path",
+		[this](Input::Event e)
 		{
 			auto textInputView = makeView<CollectTextInputView>(
 				"Input a directory path", currPath.data(), nullptr,
@@ -361,8 +366,8 @@ void FSPicker::pushFileLocationsView(Input::Event e)
 						return false;
 					}
 					changeDirByInput(str, Base::nearestRootPath(str), false, Input::defaultEvent());
+					dismissPrevious();
 					view.dismiss();
-					popAndShow();
 					return false;
 				});
 			pushAndShow(std::move(textInputView), e);

@@ -16,6 +16,7 @@
 #define LOGTAG "test"
 #include <imagine/gui/TableView.hh>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/string.h>
 #include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 #include "tests.hh"
@@ -44,8 +45,8 @@ std::array<char, 64> TestParams::makeTestName() const
 
 void TestFramework::init(Gfx::Renderer &r, IG::Point2D<int> pixmapSize)
 {
-	cpuStatsText = {cpuStatsStr.data(), &View::defaultFace};
-	frameStatsText = {frameStatsStr.data(), &View::defaultFace};
+	cpuStatsText = {&View::defaultFace};
+	frameStatsText = {&View::defaultFace};
 	initTest(r, pixmapSize);
 }
 
@@ -66,30 +67,28 @@ void TestFramework::setCPUUseText(const char *str)
 
 void TestFramework::placeCPUStatsText(Gfx::Renderer &r)
 {
-	if(strlen(cpuStatsStr.data()))
+	if(cpuStatsText.compile(r, projP))
 	{
-		cpuStatsText.compile(r, projP);
 		cpuStatsRect = projP.bounds();
-		cpuStatsRect.y = (cpuStatsRect.y2 - cpuStatsText.nominalHeight * cpuStatsText.lines)
-			- cpuStatsText.nominalHeight * .5f; // adjust to top
+		cpuStatsRect.y = (cpuStatsRect.y2 - cpuStatsText.nominalHeight() * cpuStatsText.currentLines())
+			- cpuStatsText.nominalHeight() * .5f; // adjust to top
 	}
 }
 
 void TestFramework::placeFrameStatsText(Gfx::Renderer &r)
 {
-	if(strlen(frameStatsStr.data()))
+	if(frameStatsText.compile(r, projP))
 	{
-		frameStatsText.compile(r, projP);
 		frameStatsRect = projP.bounds();
-		frameStatsRect.y2 = (frameStatsRect.y + frameStatsText.nominalHeight * frameStatsText.lines)
-			+ cpuStatsText.nominalHeight * .5f; // adjust to bottom
+		frameStatsRect.y2 = (frameStatsRect.y + frameStatsText.nominalHeight() * frameStatsText.currentLines())
+			+ cpuStatsText.nominalHeight() * .5f; // adjust to bottom
 	}
 }
 
 void TestFramework::place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect)
 {
 	this->projP = projP;
-	frameStatsText.maxLineSize = projP.bounds().xSize();
+	frameStatsText.setMaxLineSize(projP.bounds().xSize());
 	placeCPUStatsText(r);
 	placeFrameStatsText(r);
 	placeTest(testRect);
@@ -114,10 +113,12 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 	{
 		if(updatedCPUStats)
 		{
-			string_printf(cpuStatsStr, "%s%s%s",
+			cpuStatsText.setString(
+				string_makePrintf<256>("%s%s%s",
 				strlen(cpuUseStr.data()) ? cpuUseStr.data() : "",
 				strlen(cpuUseStr.data()) && strlen(cpuFreqStr.data()) ? "\n" : "",
-				strlen(cpuFreqStr.data()) ? cpuFreqStr.data() : "");
+				strlen(cpuFreqStr.data()) ? cpuFreqStr.data() : "").data()
+			);
 			placeCPUStatsText(rTask.renderer());
 		}
 
@@ -156,10 +157,12 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 		}
 		if(updatedFrameStats)
 		{
-			string_printf(frameStatsStr, "%s%s%s",
+			frameStatsText.setString(
+				string_makePrintf<512>("%s%s%s",
 				strlen(skippedFrameStr.data()) ? skippedFrameStr.data() : "",
 				strlen(skippedFrameStr.data()) && strlen(statsStr.data()) ? "\n" : "",
-				strlen(statsStr.data()) ? statsStr.data() : "");
+				strlen(statsStr.data()) ? statsStr.data() : "").data()
+			);
 			placeFrameStatsText(rTask.renderer());
 		}
 	}
@@ -181,7 +184,7 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	cmds.loadTransform(projP.makeTranslate());
 	drawTest(cmds, bounds);
 	cmds.setClipTest(false);
-	if(strlen(cpuStatsStr.data()))
+	if(cpuStatsText.isVisible())
 	{
 		cmds.setCommonProgram(CommonProgram::NO_TEX);
 		cmds.setBlendMode(BLEND_MODE_ALPHA);
@@ -192,7 +195,7 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 		cpuStatsText.draw(cmds, projP.alignXToPixel(cpuStatsRect.x + TableView::globalXIndent),
 			projP.alignYToPixel(cpuStatsRect.yCenter()), LC2DO, projP);
 	}
-	if(strlen(frameStatsStr.data()))
+	if(frameStatsText.isVisible())
 	{
 		cmds.setCommonProgram(CommonProgram::NO_TEX);
 		cmds.setBlendMode(BLEND_MODE_ALPHA);

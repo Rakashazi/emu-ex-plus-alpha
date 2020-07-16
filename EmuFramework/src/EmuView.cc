@@ -37,7 +37,7 @@ void EmuView::draw(Gfx::RendererCommands &cmds)
 		layer->draw(cmds, projP);
 	}
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-	if(strlen(audioStatsStr.data()))
+	if(audioStatsText.isVisible())
 	{
 		cmds.setCommonProgram(CommonProgram::NO_TEX);
 		cmds.setBlendMode(BLEND_MODE_ALPHA);
@@ -58,9 +58,8 @@ void EmuView::place()
 		layer->place(viewRect(), projP, inputView);
 	}
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-	if(strlen(audioStatsStr.data()))
+	if(audioStatsText.compile(renderer(), projP))
 	{
-		audioStatsText.compile(renderer(), projP);
 		audioStatsRect = projP.bounds();
 		audioStatsRect.y2 = (audioStatsRect.y + audioStatsText.nominalHeight * audioStatsText.lines)
 			+ audioStatsText.nominalHeight * .5f; // adjust to bottom
@@ -81,12 +80,8 @@ void EmuView::setLayoutInputView(EmuInputView *view)
 void EmuView::updateAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames)
 {
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-	string_printf(audioStatsStr, "Underruns:%u\nOverruns:%u\nCallbacks per second:%u\nFrames per callback:%.2f\nTotal frames:%u",
-		underruns, overruns, callbacks, avgCallbackFrames, frames);
-	if(!audioStatsText.str)
-	{
-		audioStatsText = {audioStatsStr.data(), &View::defaultFace};
-	}
+	audioStatsText.setString(string_makePrintf<512>("Underruns:%u\nOverruns:%u\nCallbacks per second:%u\nFrames per callback:%.2f\nTotal frames:%u",
+		underruns, overruns, callbacks, avgCallbackFrames, frames), &View::defaultFace);
 	place();
 	#endif
 }
@@ -94,6 +89,6 @@ void EmuView::updateAudioStats(uint underruns, uint overruns, uint callbacks, do
 void EmuView::clearAudioStats()
 {
 	#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-	audioStatsStr = {};
+	audioStatsText.setString(nullptr);
 	#endif
 }

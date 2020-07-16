@@ -77,12 +77,12 @@ void BaseTextMenuItem::compile(const char *str, Gfx::Renderer &r, const Gfx::Pro
 
 int BaseTextMenuItem::ySize()
 {
-	return t.face->nominalHeight();
+	return t.face()->nominalHeight();
 }
 
 Gfx::GC BaseTextMenuItem::xSize()
 {
-	return t.xSize;
+	return t.width();
 }
 
 void BaseTextMenuItem::setName(const char *name, Gfx::GlyphTextureSet *face)
@@ -94,9 +94,9 @@ void BaseTextMenuItem::setName(const char *name, Gfx::GlyphTextureSet *face)
 	}
 }
 
-const char *BaseTextMenuItem::name() const
+const Gfx::Text &BaseTextMenuItem::text() const
 {
-	return t.str;
+	return t;
 }
 
 void BaseTextMenuItem::setActive(bool on)
@@ -158,10 +158,7 @@ void BaseDualTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane 
 
 void BaseDualTextMenuItem::compile2nd(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 {
-	if(t2.str)
-	{
-		t2.compile(r, projP);
-	}
+	t2.compile(r, projP);
 }
 
 void BaseDualTextMenuItem::prepareDraw(Gfx::Renderer &r)
@@ -179,8 +176,7 @@ void BaseDualTextMenuItem::draw2ndText(Gfx::RendererCommands &cmds, Gfx::GC xPos
 void BaseDualTextMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
 {
 	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP);
-	if(t2.str)
-		BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP);
+	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP);
 }
 
 void BaseDualTextMenuItem::set2ndName(const char *name)
@@ -296,13 +292,23 @@ public:
 	int activeItem;
 	MultiChoiceMenuItem &src;
 
-	MenuItemTableView(const char *name, ViewAttachParams attach, int active, ItemsDelegate items, ItemDelegate item, MultiChoiceMenuItem &src):
-		TableView{name, attach, items, item},
+	MenuItemTableView(NameString name, ViewAttachParams attach, int active, ItemsDelegate items, ItemDelegate item, MultiChoiceMenuItem &src):
+		TableView{std::move(name), attach, items, item},
 		activeItem{active},
 		src{src}
-	{}
+	{
+		setOnSelectElement(
+			[this](Input::Event e, uint32_t i, MenuItem &item)
+			{
+				if(item.select(*this, e))
+				{
+					this->src.setSelected(i, *this);
+					dismiss();
+				}
+			});
+	}
 
-	void onAddedToController(Input::Event e) override
+	void onAddedToController(ViewController *, Input::Event e) final
 	{
 		if(!e.isPointer())
 		{
@@ -310,22 +316,13 @@ public:
 		}
 	}
 
-	void drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect) const override
+	void drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect) const final
 	{
 		if((int)i == activeItem)
 			cmds.setColor(0., .8, 1.);
 		else
 			cmds.setColor(Gfx::COLOR_WHITE);
 		item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP);
-	}
-
-	void onSelectElement(Input::Event e, uint32_t i, MenuItem &item) override
-	{
-		if(item.select(*this, e))
-		{
-			src.setSelected(i, *this);
-			dismiss();
-		}
 	}
 };
 
@@ -409,17 +406,17 @@ bool MultiChoiceMenuItem::setSelected(int idx)
 
 void MultiChoiceMenuItem::setDisplayString(int idx)
 {
-	if(const char *str = onSetDisplayString.callSafe(idx); str)
+	if(onSetDisplayString.callSafe(idx, t2))
 	{
-		t2.setString(str);
+		return;
 	}
 	else if((uint32_t)idx < items_(*this))
 	{
-		t2.setString(item_(*this, idx).name());
+		t2.setString(item_(*this, idx).text());
 	}
 	else
 	{
-		t2.setString("");
+		t2.setString(nullptr);
 	}
 }
 
@@ -451,7 +448,7 @@ std::unique_ptr<TableView> MultiChoiceMenuItem::makeTableView(ViewAttachParams a
 {
 	return std::make_unique<MenuItemTableView>
 	(
-		t.str,
+		View::NameString{t.stringView()},
 		attach,
 		(uint32_t)selected_ < items_(*this) ? selected_ : -1,
 		[this](const TableView &)

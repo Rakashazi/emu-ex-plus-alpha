@@ -49,18 +49,13 @@ protected:
 	MultiChoiceMenuItem frameInterval;
 	#endif
 	BoolMenuItem dropLateFrames;
-	char frameRateStr[64]{};
 	TextMenuItem frameRate;
-	char frameRatePALStr[64]{};
 	TextMenuItem frameRatePAL;
 	StaticArrayList<TextMenuItem, MAX_ASPECT_RATIO_ITEMS> aspectRatioItem;
 	MultiChoiceMenuItem aspectRatio;
-	char aspectRatioStr[6]{};
 	TextMenuItem zoomItem[6];
-	char zoomStr[5]{};
 	MultiChoiceMenuItem zoom;
 	TextMenuItem viewportZoomItem[4];
-	char viewportZoomStr[5]{};
 	MultiChoiceMenuItem viewportZoom;
 	BoolMenuItem imgFilter;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -68,7 +63,6 @@ protected:
 	MultiChoiceMenuItem imgEffect;
 	#endif
 	TextMenuItem overlayEffectItem[6];
-	char overlayEffectLevelStr[5]{};
 	MultiChoiceMenuItem overlayEffect;
 	TextMenuItem overlayEffectLevelItem[5];
 	MultiChoiceMenuItem overlayEffectLevel;
@@ -142,7 +136,6 @@ protected:
 	MultiChoiceMenuItem autoSaveState;
 	BoolMenuItem confirmAutoLoadState;
 	BoolMenuItem confirmOverwriteState;
-	char savePathStr[256]{};
 	TextMenuItem savePath;
 	BoolMenuItem checkSavePathWriteAccess;
 	static constexpr uint MIN_FAST_FORWARD_SPEED = 2;
@@ -170,7 +163,6 @@ public:
 protected:
 	BoolMenuItem pauseUnfocused;
 	TextMenuItem fontSizeItem[10];
-	char fontSizeStr[6]{};
 	MultiChoiceMenuItem fontSize;
 	BoolMenuItem notificationIcon;
 	TextMenuItem statusBarItem[3];
@@ -200,7 +192,7 @@ class BiosSelectMenu : public TableView
 public:
 	using BiosChangeDelegate = DelegateFunc<void ()>;
 
-	BiosSelectMenu(const char *name, ViewAttachParams attach, FS::PathString *biosPathStr, BiosChangeDelegate onBiosChange,
+	BiosSelectMenu(NameString name, ViewAttachParams attach, FS::PathString *biosPathStr, BiosChangeDelegate onBiosChange,
 		EmuSystem::NameFilterFunc fsFilter);
 
 protected:

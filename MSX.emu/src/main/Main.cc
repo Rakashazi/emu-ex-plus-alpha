@@ -793,9 +793,8 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 		pushAndShowNewYesNoAlertView(attach, e,
 			installFirmwareFilesMessage,
 			"Yes", "No",
-			[](TextMenuItem &, View &view, Input::Event)
+			[]()
 			{
-				view.dismiss();
 				installFirmwareFiles();
 			}, nullptr);
 	}

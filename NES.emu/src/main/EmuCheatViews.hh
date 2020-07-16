@@ -34,10 +34,10 @@ private:
 	DualTextMenuItem addr{}, value{}, comp{}, ggCode{};
 	uint idx = 0;
 	int type = 0;
-	char *nameStr{};
 	char addrStr[5]{}, valueStr[3]{}, compStr[3]{}, ggCodeStr[9]{};
 
 	void syncCheat(const char *newName = {});
+	const char *cheatNameString() const final;
 	void renamed(const char *str) final;
 
 public:

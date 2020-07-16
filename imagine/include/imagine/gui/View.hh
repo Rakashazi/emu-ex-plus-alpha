@@ -20,6 +20,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
+#include <imagine/util/DelegateFunc.hh>
 #include <utility>
 #include <memory>
 
@@ -36,6 +37,7 @@ class RendererTask;
 }
 
 class View;
+class BaseTextMenuItem;
 
 class ViewController
 {
@@ -43,17 +45,21 @@ public:
 	constexpr ViewController() {}
 	virtual void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal) = 0;
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e);
-	virtual void pop() = 0;
+	virtual void pop();
 	virtual void popAndShow();
-	virtual void popTo(View &v);
-	virtual void dismissView(View &v) = 0;
-	virtual bool inputEvent(Input::Event e) = 0;
+	virtual void popTo(View &v) = 0;
+	virtual void dismissView(View &v, bool refreshLayout = true) = 0;
+	virtual void dismissView(int idx, bool refreshLayout = true) = 0;
+	virtual bool inputEvent(Input::Event e);
 	virtual bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
 };
 
 class View
 {
 public:
+	using NameString = Gfx::TextString;
+	using NameStringView = Gfx::TextStringView;
+	using DismissDelegate = DelegateFunc<bool (View &view)>;
 	static Gfx::GlyphTextureSet defaultFace;
 	static Gfx::GlyphTextureSet defaultBoldFace;
 	// Does the platform need an on-screen/pointer-based control to move to a previous view?
@@ -61,12 +67,11 @@ public:
 	static const bool needsBackControlDefault = !Config::envIsAndroid;
 	static const bool needsBackControlIsConst = Config::envIsIOS;
 
-	constexpr View() {}
+	View();
+	View(ViewAttachParams attach);
+	View(NameString name, ViewAttachParams attach);
+	View(const char *name, ViewAttachParams attach);
 	virtual ~View();
-	constexpr View(ViewAttachParams attach):
-		win{&attach.window()}, rendererTask_{&attach.rendererTask()} {}
-	constexpr View(const char *name, ViewAttachParams attach):
-		win(&attach.window()), rendererTask_{&attach.rendererTask()}, name_(name) {}
 
 	virtual void place() = 0;
 	virtual void prepareDraw();
@@ -75,7 +80,7 @@ public:
 	virtual void clearSelection(); // de-select any items from previous input
 	virtual void onShow();
 	virtual void onHide();
-	virtual void onAddedToController(Input::Event e);
+	virtual void onAddedToController(ViewController *c, Input::Event e);
 	virtual void setFocus(bool focused);
 
 	void setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP);
@@ -85,19 +90,23 @@ public:
 	Gfx::RendererTask &rendererTask() const;
 	ViewAttachParams attachParams() const;
 	Base::Screen *screen() const;
-	const char *name() const { return name_; }
-	void setName(const char *name) { name_ = name; }
+	NameStringView name() const;
+	void setName(const char *name);
+	void setName(NameString name);
+	static NameString makeNameString(const char *name);
+	static NameString makeNameString(const BaseTextMenuItem &item);
 	static void setNeedsBackControl(bool on);
 	static bool compileGfxPrograms(Gfx::Renderer &r);
-	void dismiss();
+	void dismiss(bool refreshLayout = true);
+	void dismissPrevious();
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView = true, bool isModal = false);
 	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView = false);
-	void pop();
-	void popAndShow();
 	void popTo(View &v);
 	void show();
 	bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
-	void setWindow(Base::Window *w) { win = w; }
+	void setWindow(Base::Window *w);
+	void setOnDismiss(DismissDelegate del);
+	void onDismiss();
 	void setController(ViewController *c, Input::Event e);
 	ViewController *controller() const;
 	IG::WindowRect viewRect() const;
@@ -112,16 +121,29 @@ public:
 	}
 
 	template<class T, class... Args>
+	std::unique_ptr<T> makeViewWithName(NameString name, Args&&... args)
+	{
+		return std::make_unique<T>(std::move(name), attachParams(), std::forward<Args>(args)...);
+	}
+
+	template<class T, class... Args>
 	std::unique_ptr<T> makeViewWithName(const char *name, Args&&... args)
 	{
-		return std::make_unique<T>(name, attachParams(), std::forward<Args>(args)...);
+		return std::make_unique<T>(makeNameString(name), attachParams(), std::forward<Args>(args)...);
+	}
+
+	template<class T, class... Args>
+	std::unique_ptr<T> makeViewWithName(const BaseTextMenuItem &item, Args&&... args)
+	{
+		return std::make_unique<T>(makeNameString(item), attachParams(), std::forward<Args>(args)...);
 	}
 
 protected:
 	Base::Window *win{};
 	Gfx::RendererTask *rendererTask_{};
 	ViewController *controller_{};
+	NameString nameStr{};
+	DismissDelegate dismissDel{};
 	IG::WindowRect viewRect_{};
 	Gfx::ProjectionPlane projP{};
-	const char *name_ = "";
 };

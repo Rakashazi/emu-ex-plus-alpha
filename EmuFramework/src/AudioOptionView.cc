@@ -117,13 +117,13 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 {
 	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 	apiItem.emplace_back("Auto",
-		[this](TextMenuItem &, View &parent, Input::Event)
+		[this](View &view)
 		{
 			optionAudioAPI = 0;
 			auto defaultApi = IG::Audio::makeValidAPI();
 			emuAudio.open(defaultApi);
 			api.setSelected(idxOfAPI(defaultApi));
-			parent.dismiss();
+			view.dismiss();
 			return false;
 		});
 	for(auto desc: IG::Audio::audioAPIs())
@@ -150,11 +150,11 @@ void AudioOptionView::loadStockItems()
 	{
 		audioRateItem.clear();
 		audioRateItem.emplace_back("Device Native",
-			[this](TextMenuItem &, View &parent, Input::Event)
+			[this](View &view)
 			{
 				setAudioRate(optionSoundRate.defaultVal);
 				updateAudioRateItem();
-				parent.dismiss();
+				view.dismiss();
 				return false;
 			});
 		audioRateItem.emplace_back("22KHz", [this]() { setAudioRate(22050); });

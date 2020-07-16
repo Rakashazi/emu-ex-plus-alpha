@@ -18,13 +18,17 @@
 #include <imagine/util/math/int.hh>
 #include <algorithm>
 
-TextTableView::TextTableView(ViewAttachParams attach, uint32_t itemsHint): TextTableView{"", attach, itemsHint} {}
+TextTableView::TextTableView(ViewAttachParams attach, uint32_t itemsHint): TextTableView{{}, attach, itemsHint} {}
 
-TextTableView::TextTableView(const char *name, ViewAttachParams attach, uint32_t itemsHint):
-	TableView{name, attach, textItem}
+TextTableView::TextTableView(NameString name, ViewAttachParams attach, uint32_t itemsHint):
+	TableView{std::move(name), attach, textItem}
 {
 	textItem.reserve(itemsHint);
 }
+
+TextTableView::TextTableView(const char *name, ViewAttachParams attach, uint32_t itemsHint):
+	TextTableView{makeNameString(name), attach, itemsHint}
+{}
 
 void TextTableView::appendItem(const char *name, TextMenuItem::SelectDelegate del)
 {
@@ -48,13 +52,13 @@ void TextTableView::setItems(uint32_t items)
 	textItem.resize(items);
 }
 
-void TextTableView::onAddedToController(Input::Event e)
+void TextTableView::onAddedToController(ViewController *c, Input::Event e)
 {
 	if(activeItem != -1 && !e.isPointer())
 	{
 		selected = activeItem;
 	}
-	else TableView::onAddedToController(e);
+	else TableView::onAddedToController(c, e);
 }
 
 void TextTableView::drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect) const

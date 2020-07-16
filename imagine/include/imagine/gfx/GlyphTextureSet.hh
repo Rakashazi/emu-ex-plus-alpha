@@ -17,14 +17,15 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/io/IO.hh>
-#include <imagine/pixmap/Pixmap.hh>
-#include <imagine/gfx/Texture.hh>
 #include <imagine/font/Font.hh>
 #include <system_error>
 #include <memory>
 
 namespace Gfx
 {
+
+class Renderer;
+class PixmapTexture;
 
 struct GlyphEntry
 {

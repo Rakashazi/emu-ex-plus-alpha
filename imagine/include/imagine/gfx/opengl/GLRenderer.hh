@@ -27,7 +27,6 @@
 #include <imagine/gfx/opengl/GLStateCache.hh>
 #include <imagine/util/Interpolator.hh>
 #include <imagine/util/DelegateFuncSet.hh>
-#include <imagine/util/FunctionTraits.hh>
 #include <imagine/util/typeTraits.hh>
 #include <memory>
 #include <thread>

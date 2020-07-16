@@ -39,7 +39,6 @@ protected:
 	TextMenuItem loadState;
 	TextMenuItem saveState;
 	TextMenuItem stateSlot;
-	char stateSlotText[sizeof("State Slot (0)")]{};
 	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 	TextMenuItem addLauncherIcon;
 	#endif

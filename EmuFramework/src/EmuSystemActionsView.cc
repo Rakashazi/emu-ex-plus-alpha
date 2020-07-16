@@ -53,7 +53,6 @@ public:
 			"Soft Reset",
 			[this]()
 			{
-				dismiss();
 				EmuSystem::reset(EmuSystem::RESET_SOFT);
 				emuViewController.showEmulation();
 			}
@@ -63,7 +62,6 @@ public:
 			"Hard Reset",
 			[this]()
 			{
-				dismiss();
 				EmuSystem::reset(EmuSystem::RESET_HARD);
 				emuViewController.showEmulation();
 			}
@@ -71,16 +69,18 @@ public:
 		cancel
 		{
 			"Cancel",
-			[this]()
-			{
-				dismiss();
-			}
+			[](){}
 		}
 	{}
 
 protected:
 	TextMenuItem soft, hard, cancel;
 };
+
+static std::array<char, 16> makeStateSlotStr(int slot)
+{
+	return string_makePrintf<16>("State Slot (%c)", EmuSystem::saveSlotChar(slot));
+}
 
 void EmuSystemActionsView::onShow()
 {
@@ -90,8 +90,7 @@ void EmuSystemActionsView::onShow()
 	reset.setActive(EmuSystem::gameIsRunning());
 	saveState.setActive(EmuSystem::gameIsRunning());
 	loadState.setActive(EmuSystem::gameIsRunning() && EmuSystem::stateExists(EmuSystem::saveStateSlot));
-	stateSlotText[12] = EmuSystem::saveSlotChar(EmuSystem::saveStateSlot);
-	stateSlot.compile(renderer(), projP);
+	stateSlot.compile(makeStateSlotStr(EmuSystem::saveStateSlot).data(), renderer(), projP);
 	screenshot.setActive(EmuSystem::gameIsRunning());
 	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 	addLauncherIcon.setActive(EmuSystem::gameIsRunning());
@@ -109,7 +108,7 @@ void EmuSystemActionsView::loadStandardItems()
 	item.emplace_back(&reset);
 	item.emplace_back(&loadState);
 	item.emplace_back(&saveState);
-	stateSlotText[12] = EmuSystem::saveSlotChar(EmuSystem::saveStateSlot);
+	stateSlot.setName(makeStateSlotStr(EmuSystem::saveStateSlot).data());
 	item.emplace_back(&stateSlot);
 	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 	item.emplace_back(&addLauncherIcon);
@@ -147,9 +146,8 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 				{
 					auto ynAlertView = makeView<YesNoAlertView>("Really reset?");
 					ynAlertView->setOnYes(
-						[](TextMenuItem &, View &view, Input::Event e)
+						[]()
 						{
-							view.dismiss();
 							EmuSystem::reset(EmuSystem::RESET_SOFT);
 							emuViewController.showEmulation();
 						});
@@ -167,9 +165,8 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			{
 				auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(), "Really load state?");
 				ynAlertView->setOnYes(
-					[](TextMenuItem &, View &view, Input::Event e)
+					[]()
 					{
-						view.dismiss();
 						if(auto err = EmuApp::loadStateWithSlot(EmuSystem::saveStateSlot);
 							err)
 						{
@@ -209,9 +206,8 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 				{
 					auto ynAlertView = std::make_unique<YesNoAlertView>(attachParams(), "Really overwrite state?");
 					ynAlertView->setOnYes(
-						[](TextMenuItem &, View &view, Input::Event e)
+						[]()
 						{
-							view.dismiss();
 							doSaveState();
 						});
 					pushAndShowModal(std::move(ynAlertView), e);
@@ -221,14 +217,12 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	},
 	stateSlot
 	{
-		stateSlotText,
+		nullptr,
 		[this](Input::Event e)
 		{
 			pushAndShow(makeView<StateSlotView>(), e);
 		}
 	},
-	stateSlotText // Can't init with string literal due to GCC bug #43453
-		{'S', 't', 'a', 't', 'e', ' ', 'S', 'l', 'o', 't', ' ', '(', '0', ')' },
 	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 	addLauncherIcon
 	{
@@ -279,10 +273,9 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			auto ynAlertView = makeView<YesNoAlertView>(
 				"Reset saved options for the currently running system to defaults? Some options only take effect next time the system loads.");
 			ynAlertView->setOnYes(
-				[this](TextMenuItem &item, View &view, Input::Event)
+				[this]()
 				{
 					resetSessionOptions.setActive(false);
-					view.dismiss();
 					EmuApp::deleteSessionOptions();
 				});
 			pushAndShowModal(std::move(ynAlertView), e);
@@ -295,9 +288,8 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Really close current game?");
 			ynAlertView->setOnYes(
-				[this](TextMenuItem &, View &view, Input::Event)
+				[this]()
 				{
-					view.dismiss();
 					emuViewController.closeSystem(true); // pops any System Actions views in stack
 				});
 			pushAndShowModal(std::move(ynAlertView), e);

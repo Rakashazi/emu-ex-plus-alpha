@@ -137,12 +137,6 @@ void readCheatFile()
 	}
 }
 
-void EmuEditCheatView::renamed(const char *str)
-{
-	string_copy(cheat->name, str);
-	cheatsModified = 1;
-}
-
 EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
@@ -193,6 +187,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 					string_toUpper(cheat->code);
 					cheatsModified = 1;
 					applyCheats();
+					ggCode.set2ndName(str);
 					ggCode.compile(renderer(), projP);
 					postDraw();
 					return true;
@@ -201,6 +196,17 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 	},
 	cheat{&cheat_}
 {}
+
+const char *EmuEditCheatView::cheatNameString() const
+{
+	return cheat->name;
+}
+
+void EmuEditCheatView::renamed(const char *str)
+{
+	string_copy(cheat->name, str);
+	cheatsModified = 1;
+}
 
 EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	BaseEditCheatListView

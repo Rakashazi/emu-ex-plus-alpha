@@ -35,10 +35,10 @@ static constexpr float SCROLL_DECEL = 1. * 60.;
 // over scroll animation velocity scale
 static constexpr float OVER_SCROLL_VEL_SCALE = .2 * 60.;
 
-ScrollView::ScrollView(ViewAttachParams attach): ScrollView{"", attach} {}
+ScrollView::ScrollView(ViewAttachParams attach): ScrollView{{}, attach} {}
 
-ScrollView::ScrollView(const char *name, ViewAttachParams attach):
-	View{name, attach},
+ScrollView::ScrollView(NameString name, ViewAttachParams attach):
+	View{std::move(name), attach},
 	animate
 	{
 		[this](IG::FrameParams params)
