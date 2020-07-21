@@ -2,7 +2,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/pixmap/Pixmap.hh>
+#include <imagine/pixmap/PixmapDesc.hh>
 
 namespace Gfx
 {

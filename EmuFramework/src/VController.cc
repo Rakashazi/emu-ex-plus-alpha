@@ -20,7 +20,8 @@
 #include <imagine/util/math/int.hh>
 #include <imagine/util/math/space.hh>
 #include <imagine/base/Base.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include "private.hh"
 #include "privateInput.hh"
 
@@ -39,7 +40,8 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, const AppWindowDat
 {
 	if(visualizeBounds && padArea.xSize())
 	{
-		IG::MemPixmap mapPix{{padArea.size(), IG::PIXEL_FMT_RGB565}};
+		IG::MemPixmap mapMemPix{{padArea.size(), IG::PIXEL_FMT_RGB565}};
+		auto mapPix = mapMemPix.view();
 		iterateTimes(mapPix.h(), y)
 			iterateTimes(mapPix.w(), x)
 			{

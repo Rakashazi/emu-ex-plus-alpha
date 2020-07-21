@@ -15,8 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/Gfx.hh>
 #include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/SyncFence.hh>
+#include <imagine/pixmap/MemPixmap.hh>
 
 class EmuVideo;
 class EmuSystemTask;
@@ -61,7 +62,7 @@ public:
 	void takeGameScreenshot();
 	bool isExternalTexture();
 	Gfx::PixmapTexture &image();
-	Gfx::Renderer &renderer() { return rTask.renderer(); }
+	Gfx::Renderer &renderer();
 	IG::WP size() const;
 	bool formatIsEqual(IG::PixmapDesc desc) const;
 	void setOnFrameFinished(FrameFinishedDelegate del);

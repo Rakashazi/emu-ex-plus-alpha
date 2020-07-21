@@ -14,7 +14,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "RendererTask"
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/DrawableHolder.hh>
+#include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/thread/Thread.hh>

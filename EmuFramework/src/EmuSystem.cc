@@ -20,6 +20,7 @@
 #include <emuframework/FileUtils.hh>
 #include <emuframework/FilePicker.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/base/platformExtras.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>

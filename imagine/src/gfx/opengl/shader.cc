@@ -14,7 +14,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "GLShader"
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/Program.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #if __ANDROID__
 #include <imagine/base/android/android.hh>
 #endif

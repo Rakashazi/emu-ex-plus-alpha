@@ -22,6 +22,9 @@
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/FileUtils.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/base/platformExtras.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererTask.hh>
 #include <imagine/gui/ToastView.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/utility.h>

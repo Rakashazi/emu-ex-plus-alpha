@@ -41,9 +41,9 @@ public:
 
 protected:
 	ANativeWindow *nWin{};
+	jobject jDialog{};
 	int32_t pixelFormat = 0;
 	IG::WindowRect contentRect; // active window content
-	jobject jDialog{};
 	bool initialInit = false;
 };
 

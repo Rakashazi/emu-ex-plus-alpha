@@ -17,9 +17,10 @@
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuVideoLayer.hh>
+#include <emuframework/FilePicker.hh>
 #include "EmuOptions.hh"
 #include <imagine/gui/AlertView.hh>
-#include <emuframework/FilePicker.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include "private.hh"
 #include "privateInput.hh"
 

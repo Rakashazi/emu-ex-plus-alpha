@@ -15,7 +15,6 @@
 
 #define LOGTAG "ResFont"
 #include <imagine/font/Font.hh>
-#include <imagine/gfx/Gfx.hh>
 
 namespace IG
 {

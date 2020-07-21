@@ -18,6 +18,7 @@
 #include "EmuOptions.hh"
 #include "private.hh"
 #include <imagine/base/Base.hh>
+#include <imagine/gfx/Renderer.hh>
 
 static constexpr bool USE_MOBILE_ORIENTATION_NAMES = Config::envIsAndroid || Config::envIsIOS;
 static const char *landscapeName = USE_MOBILE_ORIENTATION_NAMES ? "Landscape" : "90 Left";

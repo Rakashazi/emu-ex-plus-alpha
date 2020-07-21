@@ -70,7 +70,7 @@ static uint_least32_t makeOutputColor(uint_least32_t rgb888)
 	unsigned b = rgb888       & 0xFF;
 	unsigned g = rgb888 >>  8 & 0xFF;
 	unsigned r = rgb888 >> 16 & 0xFF;
-	return b << 16 | g << 8 | r;
+	return 0xFF << 24 | b << 16 | g << 8 | r;
 }
 
 uint_least32_t gbcToRgb32(unsigned const bgr15)
@@ -267,16 +267,9 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 				{
 					// convert RGBA8888 to RGB565, for older GPUs with slow texture uploads
 					auto img = video->startFrame(task);
-					img.pixmap().writeTransformed(
-						[](uint32_t p)
-						{
-							unsigned r = p       & 0xFF;
-							unsigned g = p >>  8 & 0xFF;
-							unsigned b = p >> 16 & 0xFF;
-							return ((r * (31 * 2) + 255) / (255 * 2)) << 11 |
-									((g * 63 + 127) / 255) << 5 |
-									((b * 31 + 127) / 255);
-						}, frameBufferPix);
+					assumeExpr(img.pixmap().format().id() ==  IG::PIXEL_RGB565);
+					assumeExpr(frameBufferPix.format().id() ==  IG::PIXEL_RGBA8888);
+					img.pixmap().writeConverted(frameBufferPix);
 					img.endFrame();
 				}
 			});

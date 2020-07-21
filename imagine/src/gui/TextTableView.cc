@@ -14,8 +14,9 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/TextTableView.hh>
-#include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
+#include <imagine/gfx/RendererCommands.hh>
+#include <imagine/logger/logger.h>
 #include <algorithm>
 
 TextTableView::TextTableView(ViewAttachParams attach, uint32_t itemsHint): TextTableView{{}, attach, itemsHint} {}

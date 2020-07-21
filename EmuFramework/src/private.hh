@@ -21,7 +21,7 @@
 #include <imagine/gui/ViewStack.hh>
 #include <imagine/gui/ToastView.hh>
 #include <imagine/gfx/AnimatedViewport.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/DrawableHolder.hh>
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>

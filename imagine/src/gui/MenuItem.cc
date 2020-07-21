@@ -15,6 +15,7 @@
 
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TextTableView.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 
 MenuItem::~MenuItem() {}
@@ -335,7 +336,6 @@ MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, SetDisplayStringDelega
 		str,
 		nullptr
 	},
-	selected_{selected},
 	selectD
 	{
 		selectDel ? selectDel :
@@ -346,7 +346,8 @@ MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, SetDisplayStringDelega
 	},
 	items_{items},
 	item_{item},
-	onSetDisplayString{onDisplayStr}
+	onSetDisplayString{onDisplayStr},
+	selected_{selected}
 {}
 
 MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, int selected,

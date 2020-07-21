@@ -14,7 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuLoadProgressView.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/space.hh>
 #include <imagine/logger/logger.h>
 #include "private.hh"

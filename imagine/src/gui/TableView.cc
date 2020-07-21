@@ -17,13 +17,15 @@
 
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/logger/logger.h>
 #include <imagine/gfx/GeomRect.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/math/space.hh>
+#include <imagine/logger/logger.h>
 
 Gfx::GC TableView::globalXIndent{};
 

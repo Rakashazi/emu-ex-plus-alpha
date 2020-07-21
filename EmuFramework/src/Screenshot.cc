@@ -17,49 +17,36 @@
 #include <emuframework/EmuSystem.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/data-type/image/sys.hh>
-#include <imagine/pixmap/Pixmap.hh>
+#include <imagine/pixmap/MemPixmap.hh>
 #include <imagine/io/FileIO.hh>
 
 #ifdef CONFIG_DATA_TYPE_IMAGE_QUARTZ2D
 
-bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
+bool writeScreenshot(IG::Pixmap vidPix, const char *fname)
 {
 	auto screen = vidPix.pixel({});
-	IG::MemPixmap tempPix{{vidPix.size(), IG::PIXEL_FMT_RGB888}};
-	for(uint y = 0; y < vidPix.h(); y++, screen += vidPix.pitchBytes())
-	{
-		auto rowpix = tempPix.pixel({0, (int)y});
-		for(uint x = 0; x < vidPix.w(); x++)
-		{
-			// assumes RGB565
-			uint16_t pixVal = *(uint16_t *)(screen+2*x);
-			uint32_t r = pixVal >> 11, g = (pixVal >> 5) & 0x3f, b = pixVal & 0x1f;
-			r *= 8; g *= 4; b *= 8;
-			*(rowpix++) = r;
-			*(rowpix++) = g;
-			*(rowpix++) = b;
-		}
-	}
+	IG::MemPixmap tempMemPix{{vidPix.size(), IG::PIXEL_FMT_RGB888}};
+	auto tempPix = tempMemPix.view();
+	tempPix.writeConverted(vidPix);
 	Quartz2dImage::writeImage(tempPix, fname);
-	logMsg("%s saved.", fname);
-	return 1;
+	return true;
 }
 
 #elif defined CONFIG_DATA_TYPE_IMAGE_ANDROID
 
 #include <imagine/util/jni.hh>
+#include <imagine/base/platformExtras.hh>
 
 // TODO: make png writer module in imagine
 namespace Base
 {
 
-JNIEnv* jEnvForThread(); // JNIEnv of main event thread
 extern jclass jBaseActivityCls;
 extern jobject jBaseActivity;
 
 }
 
-bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
+bool writeScreenshot(IG::Pixmap vidPix, const char *fname)
 {
 	static JavaInstMethod<jobject(jint, jint, jint)> jMakeBitmap;
 	static JavaInstMethod<jboolean(jobject, jobject)> jWritePNG;
@@ -70,20 +57,16 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 		jMakeBitmap.setup(env, jBaseActivityCls, "makeBitmap", "(III)Landroid/graphics/Bitmap;");
 		jWritePNG.setup(env, jBaseActivityCls, "writePNG", "(Landroid/graphics/Bitmap;Ljava/lang/String;)Z");
 	}
-	auto bitmap = jMakeBitmap(env, jBaseActivity, vidPix.w(), vidPix.h(), ANDROID_BITMAP_FORMAT_RGB_565);
+	auto aFormat = vidPix.format().id() == PIXEL_RGB565 ? ANDROID_BITMAP_FORMAT_RGB_565 : ANDROID_BITMAP_FORMAT_RGBA_8888;
+	auto bitmap = jMakeBitmap(env, jBaseActivity, vidPix.w(), vidPix.h(), aFormat);
 	if(!bitmap)
 	{
 		logErr("error allocating bitmap");
 		return false;
 	}
-	AndroidBitmapInfo info;
-	AndroidBitmap_getInfo(env, bitmap, &info);
-	logMsg("%d %d %d", info.width, info.height, info.stride);
-	assert(info.format == ANDROID_BITMAP_FORMAT_RGB_565);
 	void *buffer;
 	AndroidBitmap_lockPixels(env, bitmap, &buffer);
-	Pixmap dest{{{(int)info.width, (int)info.height}, PIXEL_FMT_RGB565}, buffer, {info.stride, Pixmap::BYTE_UNITS}};
-	dest.write(vidPix, {});
+	Base::makePixmapView(env, bitmap, buffer, vidPix.format()).write(vidPix, {});
 	AndroidBitmap_unlockPixels(env, bitmap);
 	auto nameJStr = env->NewStringUTF(fname);
 	auto writeOK = jWritePNG(env, jBaseActivity, bitmap, nameJStr);
@@ -94,29 +77,12 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 		logErr("error writing PNG");
 		return false;
 	}
-	logMsg("%s saved.", fname);
 	return true;
 }
 
 #else
 
-static void png_ioWriter(png_structp pngPtr, png_bytep data, png_size_t length)
-{
-	auto &io = *(IO*)png_get_io_ptr(pngPtr);
-
-	if(io.write(data, length) != (ssize_t)length)
-	{
-		logErr("error writing png file");
-		//png_error(pngPtr, "Write Error");
-	}
-}
-
-static void png_ioFlush(png_structp pngPtr)
-{
-	logMsg("called png_ioFlush");
-}
-
-bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
+bool writeScreenshot(IG::Pixmap vidPix, const char *fname)
 {
 	FileIO fp;
 	fp.create(fname);
@@ -124,7 +90,6 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 	{
 		return false;
 	}
-
 	png_structp pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if(!pngPtr)
 	{
@@ -138,58 +103,46 @@ bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname)
 		FS::remove(fname);
 		return false;
 	}
-
 	if(setjmp(png_jmpbuf(pngPtr)))
 	{
 		png_destroy_write_struct(&pngPtr, &infoPtr);
 		FS::remove(fname);
 		return false;
 	}
-
-	uint imgwidth = vidPix.w();
-	uint imgheight = vidPix.h();
-
-	png_set_write_fn(pngPtr, &fp, png_ioWriter, png_ioFlush);
-	png_set_IHDR(pngPtr, infoPtr, imgwidth, imgheight, 8,
+	png_set_write_fn(pngPtr, &fp,
+		[](png_structp pngPtr, png_bytep data, png_size_t length)
+		{
+			auto &io = *(IO*)png_get_io_ptr(pngPtr);
+			if(io.write(data, length) != (ssize_t)length)
+			{
+				logErr("error writing png file");
+				//png_error(pngPtr, "Write Error");
+			}
+		},
+		[](png_structp pngPtr)
+		{
+			logMsg("called png_ioFlush");
+		});
+	png_set_IHDR(pngPtr, infoPtr, vidPix.w(), vidPix.h(), 8,
 		PNG_COLOR_TYPE_RGB,
 		PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
 		PNG_FILTER_TYPE_DEFAULT);
-
 	png_write_info(pngPtr, infoPtr);
-
-	//png_set_packing(pngPtr);
-
-	auto screen = vidPix.pixel({});
-	uint32_t rowBytes = png_get_rowbytes(pngPtr, infoPtr);
-	for(uint y=0; y < vidPix.h(); y++, screen+=vidPix.pitchBytes())
 	{
-		png_byte rowArr[rowBytes];
-		png_byte *rowpix = rowArr;
-		for(uint x=0; x < vidPix.w(); x++)
+		IG::MemPixmap tempMemPix{{vidPix.size(), IG::PIXEL_FMT_RGB888}};
+		auto tempPix = tempMemPix.view();
+		tempPix.writeConverted(vidPix);
+		uint32_t rowBytes = png_get_rowbytes(pngPtr, infoPtr);
+		assert(rowBytes == tempPix.pitchBytes());
+		auto rowData = (png_const_bytep)tempPix.pixel({});
+		iterateTimes(tempPix.h(), i)
 		{
-			// assumes RGB565
-			uint16_t pixVal = *(uint16_t *)(screen+2*x);
-			uint32_t r = pixVal >> 11, g = (pixVal >> 5) & 0x3f, b = pixVal & 0x1f;
-			r *= 8; g *= 4; b *= 8;
-			*(rowpix++) = r;
-			*(rowpix++) = g;
-			*(rowpix++) = b;
-			if(imgwidth != vidPix.w())
-			{
-				*(rowpix++) = r;
-				*(rowpix++) = g;
-				*(rowpix++) = b;
-			}
+			png_write_row(pngPtr, rowData);
+			rowData += tempPix.pitchBytes();
 		}
-		png_write_row(pngPtr, rowArr);
-		if(imgheight != vidPix.h())
-			png_write_row(pngPtr, rowArr);
 	}
-
 	png_write_end(pngPtr, infoPtr);
 	png_destroy_write_struct(&pngPtr, &infoPtr);
-
-	logMsg("%s saved.", fname);
 	return true;
 }
 

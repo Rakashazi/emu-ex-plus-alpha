@@ -18,6 +18,9 @@
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuVideo.hh>
 #include <imagine/util/math/Point2D.hh>
+#include <imagine/base/Window.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 #include "privateInput.hh"
 #include "EmuOptions.hh"

@@ -31,7 +31,7 @@ class Png
 public:
 	constexpr Png() {}
 	std::error_code readHeader(GenericIO io);
-	std::errc readImage(IG::Pixmap &dest);
+	std::errc readImage(IG::Pixmap dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();

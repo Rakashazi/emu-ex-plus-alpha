@@ -15,7 +15,7 @@
 
 #define LOGTAG "ToastView"
 #include <imagine/gui/ToastView.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/ScopeGuard.hh>

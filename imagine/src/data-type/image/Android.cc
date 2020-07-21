@@ -44,21 +44,7 @@ bool BitmapFactoryImage::isGrayscale()
 
 PixelFormat BitmapFactoryImage::pixelFormat() const
 {
-	switch(info.format)
-	{
-		case ANDROID_BITMAP_FORMAT_RGBA_8888: return PIXEL_FMT_RGBA8888;
-		case ANDROID_BITMAP_FORMAT_RGB_565: return PIXEL_FMT_RGB565;
-		case ANDROID_BITMAP_FORMAT_RGBA_4444: return PIXEL_FMT_RGBA4444;
-		case ANDROID_BITMAP_FORMAT_A_8: return PIXEL_FMT_I8;
-		default:
-		{
-			if(info.format == ANDROID_BITMAP_FORMAT_NONE)
-				logWarn("format wasn't provided");
-			else
-				logErr("unhandled format");
-			return PIXEL_FMT_RGBA8888;
-		}
-	}
+	return Base::makePixelFormatFromAndroidFormat(info.format);
 }
 
 std::error_code BitmapFactoryImage::load(const char *name)
@@ -112,7 +98,7 @@ bool BitmapFactoryImage::hasAlphaChannel()
 	return info.format == ANDROID_BITMAP_FORMAT_RGBA_8888 || info.format == ANDROID_BITMAP_FORMAT_RGBA_4444;
 }
 
-std::errc BitmapFactoryImage::readImage(IG::Pixmap &dest)
+std::errc BitmapFactoryImage::readImage(IG::Pixmap dest)
 {
 	assert(dest.format() == pixelFormat());
 	auto env = Base::jEnvForThread();

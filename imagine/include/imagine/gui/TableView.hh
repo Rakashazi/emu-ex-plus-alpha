@@ -18,13 +18,19 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/input/Input.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/defs.hh>
+#include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/gui/ScrollView.hh>
 #include <iterator>
 
 namespace Base
 {
 class Window;
+}
+
+namespace Gfx
+{
+class RendererCommands;
 }
 
 class MenuItem;
@@ -86,16 +92,16 @@ public:
 	}
 
 protected:
-	bool onlyScrollIfNeeded = false;
-	bool selectedIsActivated = false;
-	bool hasFocus = true;
+	ItemsDelegate items{};
+	ItemDelegate item{};
+	SelectElementDelegate selectElementDel{};
 	int yCellSize = 0;
 	int selected = -1;
 	int visibleCells = 0;
 	_2DOrigin align{LC2DO};
-	ItemsDelegate items{};
-	ItemDelegate item{};
-	SelectElementDelegate selectElementDel{};
+	bool onlyScrollIfNeeded = false;
+	bool selectedIsActivated = false;
+	bool hasFocus = true;
 
 	void setYCellSize(int s);
 	IG::WindowRect focusRect();

@@ -22,6 +22,8 @@
 #include "private.hh"
 #include "privateInput.hh"
 #include <imagine/base/Base.hh>
+#include <imagine/base/platformExtras.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/util/bits.h>
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 extern SysVController vController;

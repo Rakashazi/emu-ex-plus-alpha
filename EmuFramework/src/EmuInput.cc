@@ -17,6 +17,7 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/data-type/image/sys.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <emuframework/EmuSystem.hh>
 #include "EmuOptions.hh"
 #include <emuframework/EmuApp.hh>

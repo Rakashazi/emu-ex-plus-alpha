@@ -14,7 +14,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "GLRenderer"
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/DrawableHolder.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>

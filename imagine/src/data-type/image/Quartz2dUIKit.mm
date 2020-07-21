@@ -19,7 +19,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include "../../base/iphone/private.hh"
 #import <UIKit/UIImage.h>
 
-void Quartz2dImage::writeImage(const IG::Pixmap &pix, const char *name)
+void Quartz2dImage::writeImage(const IG::Pixmap pix, const char *name)
 {
 	auto provider = CGDataProviderCreateWithData(nullptr, pix.pixel({}), pix.bytes(), nullptr);
 	int bitsPerComponent = 8;

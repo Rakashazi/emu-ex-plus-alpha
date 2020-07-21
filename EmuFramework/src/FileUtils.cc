@@ -19,6 +19,7 @@
 #include "private.hh"
 #if defined CONFIG_BASE_IOS
 #include <spawn.h>
+#include <imagine/base/platformExtras.hh>
 #endif
 
 extern "C"

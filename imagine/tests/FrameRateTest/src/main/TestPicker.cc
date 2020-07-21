@@ -14,9 +14,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include "TestPicker.hh"
-#include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
+#include <imagine/gfx/RendererCommands.hh>
+#include <imagine/logger/logger.h>
 
 TestTableEntry::TestTableEntry(SelectDelegate selectDel):
 	DualTextMenuItem{{}, {}, selectDel}

@@ -18,8 +18,9 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/SyncFence.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/pixmap/MemPixmap.hh>
 
 enum TestID
 {

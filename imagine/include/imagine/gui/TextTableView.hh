@@ -23,8 +23,6 @@
 class TextTableView : public TableView
 {
 public:
-	int activeItem = -1;
-
 	TextTableView(ViewAttachParams attach, uint32_t itemsHint);
 	TextTableView(NameString name, ViewAttachParams attach, uint32_t itemsHint);
 	TextTableView(const char *name, ViewAttachParams attach, uint32_t itemsHint);
@@ -43,4 +41,5 @@ public:
 
 protected:
 	std::vector<TextMenuItem> textItem{};
+	int activeItem = -1;
 };

@@ -15,6 +15,8 @@
 
 #include <imagine/gui/NavView.hh>
 #include <imagine/gui/TableView.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 
 NavView::NavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face):

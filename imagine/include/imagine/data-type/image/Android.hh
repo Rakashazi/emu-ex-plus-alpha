@@ -30,7 +30,7 @@ public:
 	constexpr BitmapFactoryImage() {}
 	std::error_code load(const char *name);
 	std::error_code loadAsset(const char *name);
-	std::errc readImage(IG::Pixmap &dest);
+	std::errc readImage(IG::Pixmap dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();

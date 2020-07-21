@@ -15,7 +15,7 @@
 
 #define LOGTAG "GLRenderer"
 #include <assert.h>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
 #include "private.hh"

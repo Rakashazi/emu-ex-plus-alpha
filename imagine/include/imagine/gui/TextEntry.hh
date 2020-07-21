@@ -22,12 +22,12 @@
 class TextEntry
 {
 public:
-	IG::WindowRect b{};
 	Gfx::Text t{};
+	Gfx::ProjectionPlane projP;
+	IG::WindowRect b{};
 	char str[128]{};
 	bool acceptingInput = false;
 	bool multiLine = false;
-	Gfx::ProjectionPlane projP;
 
 	TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP);
 	void setAcceptingInput(bool on);

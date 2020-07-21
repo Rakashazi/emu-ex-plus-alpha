@@ -17,7 +17,8 @@
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
@@ -140,13 +141,15 @@ bool Text::compile(Renderer &r, ProjectionPlane projP)
 		}
 		xLineSize += cSize;
 		textBlockSize += cSize;
+		bool lineHasMultipleBlocks = textBlockIdx != currLineIdx;
+		bool lineExceedsMaxSize = xLineSize > maxLineSize;
 		if(lines < maxLines)
 		{
-			bool wentToNextLine = 0;
+			bool wentToNextLine = false;
 			// Go to next line?
-			if(c == '\n')
+			if(c == '\n' || (lineExceedsMaxSize && !lineHasMultipleBlocks))
 			{
-				wentToNextLine = 1;
+				wentToNextLine = true;
 				// Don't break text
 				//logMsg("new line %d without text break @ char %d, %d chars in line", lines+1, charIdx, charsInLine);
 				lineInfo.emplace_back(xLineSize, charsInLine);
@@ -154,9 +157,9 @@ bool Text::compile(Renderer &r, ProjectionPlane projP)
 				xLineSize = 0;
 				charsInLine = 0;
 			}
-			else if(xLineSize > maxLineSize && textBlockIdx != currLineIdx)
+			else if(lineExceedsMaxSize && lineHasMultipleBlocks)
 			{
-				wentToNextLine = 1;
+				wentToNextLine = true;
 				// Line has more than 1 block and is too big, needs text break
 				//logMsg("new line %d with text break @ char %d, %d chars in line", lines+1, charIdx, charsInLine);
 				xLineSize -= textBlockSize;
@@ -167,7 +170,6 @@ bool Text::compile(Renderer &r, ProjectionPlane projP)
 				charsInLine = charsInNextLine;
 				//logMsg("break @ char %d with line starting @ %d, %d chars moved to next line, leaving %d", textBlockIdx, currLineIdx, charsInNextLine, lineInfo[lines-1].chars);
 			}
-
 			if(wentToNextLine)
 			{
 				textBlockIdx = currLineIdx = charIdx+1;

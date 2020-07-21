@@ -150,7 +150,6 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 							{
 								logMsg("val 0x%X too large", a);
 								EmuApp::postMessage(true, "Invalid input");
-								window().postDraw();
 								return 1;
 							}
 							string_copy(compStr, str);
@@ -163,7 +162,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 						}
 						syncCheat();
 						comp.compile(renderer(), projP);
-						window().postDraw();
+						postDraw();
 					}
 					view.dismiss();
 					return 0;

@@ -20,6 +20,7 @@
 #include <android/looper.h>
 #include <android/native_activity.h>
 #include <android/api-level.h>
+#include <android/bitmap.h>
 #include <dlfcn.h>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
@@ -69,6 +70,43 @@ static NoopThread noopThread{};
 JavaInstMethod<void(jint, jint)> jSetWinFlags{};
 JavaInstMethod<void(jint)> jSetWinFormat{};
 JavaInstMethod<jint()> jWinFormat{}, jWinFlags{};
+
+IG::PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat)
+{
+	switch(androidFormat)
+	{
+		case ANDROID_BITMAP_FORMAT_RGBA_8888: return PIXEL_FMT_RGBA8888;
+		case ANDROID_BITMAP_FORMAT_RGB_565: return PIXEL_FMT_RGB565;
+		case ANDROID_BITMAP_FORMAT_RGBA_4444: return PIXEL_FMT_RGBA4444;
+		case ANDROID_BITMAP_FORMAT_A_8: return PIXEL_FMT_I8;
+		default:
+		{
+			if(androidFormat == ANDROID_BITMAP_FORMAT_NONE)
+				logWarn("format wasn't provided");
+			else
+				logErr("unhandled format");
+			return PIXEL_FMT_RGBA8888;
+		}
+	}
+}
+
+IG::Pixmap makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFormat format)
+{
+	AndroidBitmapInfo info;
+	auto res = AndroidBitmap_getInfo(env, bitmap, &info);
+	if(unlikely(res != ANDROID_BITMAP_RESULT_SUCCESS))
+	{
+		logMsg("error getting bitmap info");
+		return {};
+	}
+	//logMsg("android bitmap info:size %ux%u, stride:%u", info.width, info.height, info.stride);
+	if(format == PIXEL_FMT_NONE)
+	{
+		// use format from bitmap info
+		format = makePixelFormatFromAndroidFormat(info.format);
+	}
+	return {{{(int)info.width, (int)info.height}, format}, pixels, {info.stride, IG::Pixmap::BYTE_UNITS}};
+}
 
 void recycleBitmap(JNIEnv *env, jobject bitmap)
 {

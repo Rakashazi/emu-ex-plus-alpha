@@ -2,7 +2,7 @@
 
 #include "vice.h"
 #ifdef __cplusplus
-#include <imagine/pixmap/Pixmap.hh>
+#include <imagine/pixmap/MemPixmap.hh>
 #endif
 
 struct video_canvas_s

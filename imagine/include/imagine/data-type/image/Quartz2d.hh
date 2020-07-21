@@ -28,8 +28,8 @@ class Quartz2dImage
 public:
 	constexpr Quartz2dImage() {}
 	std::error_code load(const char *name);
-	std::errc readImage(IG::Pixmap &dest);
-	static void writeImage(const IG::Pixmap &pix, const char *name);
+	std::errc readImage(IG::Pixmap dest);
+	static void writeImage(IG::Pixmap pix, const char *name);
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();

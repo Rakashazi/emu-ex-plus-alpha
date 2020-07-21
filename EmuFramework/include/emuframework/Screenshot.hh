@@ -22,5 +22,5 @@ namespace IG
 class Pixmap;
 }
 
-bool writeScreenshot(const IG::Pixmap &vidPix, const char *fname);
+bool writeScreenshot(IG::Pixmap vidPix, const char *fname);
 int sprintScreenshotFilename(FS::PathString &str);

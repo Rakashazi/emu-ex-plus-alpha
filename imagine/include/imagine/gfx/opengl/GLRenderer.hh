@@ -19,21 +19,17 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/CustomEvent.hh>
 #include <imagine/base/MessagePort.hh>
-#include <imagine/thread/Semaphore.hh>
-#include <imagine/time/Time.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureSizeSupport.hh>
-#include <imagine/gfx/Texture.hh>
-#include <imagine/gfx/opengl/GLStateCache.hh>
 #include <imagine/util/Interpolator.hh>
-#include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/typeTraits.hh>
 #include <memory>
 #include <thread>
-#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
-#include <mutex>
-#include <condition_variable>
-#endif
+
+namespace IG
+{
+class Semaphore;
+}
 
 namespace Gfx
 {
@@ -42,166 +38,9 @@ namespace Gfx
 #define CONFIG_GFX_OPENGL_DEBUG_CONTEXT
 #endif
 
-class RendererTask;
-class RenderTarget;
-class SyncFence;
 class RendererCommands;
 class TextureSampler;
-class DrawableHolder;
-
-class GLSyncFence
-{
-public:
-	static constexpr uint64_t IGNORE_TIMEOUT = 0xFFFFFFFFFFFFFFFFull;
-	GLsync sync{};
-
-	constexpr GLSyncFence() {}
-	constexpr GLSyncFence(GLsync sync): sync{sync} {}
-};
-
-using SyncFenceImpl = GLSyncFence;
-
-class GLDrawableHolder
-{
-public:
-	void makeDrawable(Renderer &r, Base::Window &win);
-	void destroyDrawable(Renderer &r);
-	Drawable drawable() const { return drawable_; };
-	void notifyOnFrame();
-
-protected:
-	Drawable drawable_;
-	Base::ResumeDelegate onResume;
-	Base::ExitDelegate onExit;
-	Base::CustomEvent drawFinishedEvent{"GLDrawableHolder::drawFinishedEvent"};
-	DelegateFuncSet<Base::OnFrameDelegate> onFrame{};
-	FrameTime lastTimestamp{};
-};
-
-using DrawableHolderImpl = GLDrawableHolder;
-
-class GLRendererTask
-{
-public:
-	enum class Command: uint8_t
-	{
-		UNSET, DRAW, RUN_FUNC, EXIT
-	};
-
-	enum class Reply: uint8_t
-	{
-		UNSET
-	};
-
-	struct CommandMessage
-	{
-		IG::Semaphore *semAddr{};
-		union Args
-		{
-			struct DrawArgs
-			{
-				DrawDelegate del;
-				Base::Window *winPtr;
-				DrawableHolder *drawableHolderPtr;
-				GLsync fence;
-			} draw;
-			struct RunFuncArgs
-			{
-				RenderTaskFuncDelegate func;
-			} runFunc;
-		} args{};
-		Command command{Command::UNSET};
-
-		constexpr CommandMessage() {}
-		constexpr CommandMessage(Command command, IG::Semaphore *semAddr = nullptr):
-			semAddr{semAddr}, command{command} {}
-		constexpr CommandMessage(Command command, DrawDelegate drawDel, DrawableHolder &drawableHolder, Base::Window &win, GLsync fence, IG::Semaphore *semAddr = nullptr):
-			semAddr{semAddr}, args{drawDel, &win, &drawableHolder, fence}, command{command} {}
-		constexpr CommandMessage(Command command, RenderTaskFuncDelegate func, IG::Semaphore *semAddr = nullptr):
-			semAddr{semAddr}, command{command}
-		{
-			args.runFunc.func = func;
-		}
-		explicit operator bool() const { return command != Command::UNSET; }
-	};
-
-	struct ReplyMessage
-	{
-		Reply reply{Reply::UNSET};
-
-		constexpr ReplyMessage() {}
-		constexpr ReplyMessage(Reply reply):
-			reply{reply} {}
-		explicit operator bool() const { return reply != Reply::UNSET; }
-	};
-
-	Base::GLContext glContext() const { return glCtx; };
-	void initVBOs();
-	GLuint getVBO();
-	void initVAO();
-	void initDefaultFramebuffer();
-	GLuint defaultFBO() const { return defaultFB; }
-	GLuint bindFramebuffer(Texture &tex);
-	void destroyContext(Base::GLDisplay dpy);
-	bool hasSeparateContextThread() const;
-	bool handleDrawableReset();
-	void initialCommands(RendererCommands &cmds);
-
-protected:
-	Base::MessagePort<CommandMessage> commandPort{"RenderTask Command"};
-	#ifdef CONFIG_GFX_RENDERER_TASK_REPLY_PORT
-	Base::MessagePort<ReplyMessage> replyPort{"RenderTask Reply"}; // currently unused
-	#endif
-	Base::GLContext glCtx{};
-	Base::ExitDelegate onExit{};
-	std::thread thread{};
-	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
-	std::mutex drawMutex{};
-	std::condition_variable drawCondition{};
-	#endif
-	#ifndef CONFIG_GFX_OPENGL_ES
-	GLuint streamVAO = 0;
-	std::array<GLuint, 6> streamVBO{};
-	uint32_t streamVBOIdx = 0;
-	#endif
-	#ifdef CONFIG_GLDRAWABLE_NEEDS_FRAMEBUFFER
-	GLuint defaultFB = 0;
-	#else
-	static constexpr GLuint defaultFB = 0;
-	#endif
-	GLuint fbo = 0;
-	bool resetDrawable = false;
-	bool contextInitialStateSet = false;
-	bool threadRunning = false;
-	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
-	bool canDraw = true;
-	#endif
-
-	void replyHandler(Renderer &r, ReplyMessage msg);
-	bool commandHandler(decltype(commandPort)::Messages messages, Base::GLDisplay glDpy, bool ownsThread);
-};
-
-using RendererTaskImpl = GLRendererTask;
-
-class GLRendererDrawTask
-{
-public:
-	GLRendererDrawTask(RendererTask &task, Base::GLDisplay glDpy, IG::Semaphore *semAddr);
-	void setCurrentDrawable(Drawable win);
-	void present(Drawable win);
-	GLuint bindFramebuffer(Texture &t);
-	GLuint getVBO();
-	GLuint defaultFramebuffer() const;
-	void notifySemaphore();
-	Base::GLDisplay glDisplay() const { return glDpy; };
-
-protected:
-	RendererTask &task;
-	Base::GLDisplay glDpy{};
-	IG::Semaphore *semAddr{};
-};
-
-using RendererDrawTaskImpl = GLRendererDrawTask;
+class GLSLProgram;
 
 class DrawContextSupport
 {
@@ -445,54 +284,5 @@ public:
 };
 
 using RendererImpl = GLRenderer;
-
-class GLRendererCommands
-{
-public:
-	const TextureSampler *currSampler{};
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	uint32_t currentVtxArrayPointerID = 0;
-	Mat4 modelMat, projectionMat;
-	#endif
-	GLStateCache glState{};
-
-	void discardTemporaryData();
-	void bindGLArrayBuffer(GLuint vbo);
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	void glcMatrixMode(GLenum mode);
-	#endif
-	void glcBindTexture(GLenum target, GLuint texture);
-	void glcDeleteTextures(GLsizei n, const GLuint *textures);
-	void glcBlendFunc(GLenum sfactor, GLenum dfactor);
-	void glcBlendEquation(GLenum mode);
-	void glcEnable(GLenum cap);
-	void glcDisable(GLenum cap);
-	GLboolean glcIsEnabled(GLenum cap);
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	void glcEnableClientState(GLenum cap);
-	void glcDisableClientState(GLenum cap);
-	void glcTexEnvi(GLenum target, GLenum pname, GLint param);
-	void glcTexEnvfv(GLenum target, GLenum pname, const GLfloat *params);
-	void glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
-	void glcTexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
-	void glcColorPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
-	void glcVertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid *pointer);
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	void glcVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer);
-	#endif
-
-protected:
-	Viewport currViewport;
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	GLSLProgram *currProgram{};
-	#endif
-	std::array<ColorComp, 4> vColor{}; // color when using shader pipeline
-	std::array<ColorComp, 4> texEnvColor{}; // color when using shader pipeline
-	GLuint arrayBuffer = 0;
-	bool arrayBufferIsSet = false;
-};
-
-using RendererCommandsImpl = GLRendererCommands;
 
 }

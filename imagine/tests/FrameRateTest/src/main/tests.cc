@@ -15,6 +15,9 @@
 
 #define LOGTAG "test"
 #include <imagine/gui/TableView.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
 #include <imagine/base/Base.hh>
@@ -241,8 +244,9 @@ void ClearTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect)
 void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize)
 {
 	pixmap = {{pixmapSize, IG::PIXEL_FMT_RGB565}};
-	memset(pixmap.pixel({}), 0xFF, pixmap.pixelBytes());
-	Gfx::TextureConfig texConf{pixmap};
+	auto pixView = pixmap.view();
+	memset(pixView.pixel({}), 0xFF, pixView.pixelBytes());
+	Gfx::TextureConfig texConf{pixView};
 	texConf.setWillWriteOften(true);
 	texture = r.makePixmapTexture(texConf);
 	if(!texture)
@@ -250,7 +254,7 @@ void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize)
 		Base::exitWithErrorMessagePrintf(-1, "Can't init test texture");
 		return;
 	}
-	texture.write(0, pixmap, {});
+	texture.write(0, pixView, {});
 	texture.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);
 	texture.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
 	sprite.init({}, texture);
@@ -307,7 +311,7 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &s
 	}
 	else
 	{
-		pix = pixmap;
+		pix = pixmap.view();
 	}
 	if(flash)
 	{

@@ -17,7 +17,6 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "UIKitFont"
 #include <imagine/font/Font.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/gfx/Gfx.hh>
 #include <imagine/util/Mem2D.hh>
 #include "../base/iphone/private.hh"
 #import <CoreGraphics/CGBitmapContext.h>

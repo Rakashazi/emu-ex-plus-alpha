@@ -18,6 +18,7 @@
 #include <emuframework/FilePicker.hh>
 #include "EmuOptions.hh"
 #include <imagine/base/Base.hh>
+#include <imagine/base/platformExtras.hh>
 #include <imagine/gui/TextTableView.hh>
 #include "private.hh"
 

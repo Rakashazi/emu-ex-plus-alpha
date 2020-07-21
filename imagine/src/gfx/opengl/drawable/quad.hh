@@ -1,5 +1,6 @@
 #pragma once
 #include <imagine/gfx/GeomQuad.hh>
+#include <imagine/gfx/RendererCommands.hh>
 
 namespace Gfx
 {

@@ -17,6 +17,7 @@
 #include <emuframework/inGameActionKeys.hh>
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/EmuApp.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/logger/logger.h>

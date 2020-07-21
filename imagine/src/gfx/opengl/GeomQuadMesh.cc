@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/GeomQuadMesh.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/space.hh>
 #include "private.hh"
 

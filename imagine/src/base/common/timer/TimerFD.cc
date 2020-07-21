@@ -61,8 +61,8 @@ namespace Base
 
 TimerFD::TimerFD(const char *debugLabel, CallbackDelegate c):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
-	fdSrc{label(), timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC)},
-	callback_{std::make_unique<CallbackDelegate>(c)}
+	callback_{std::make_unique<CallbackDelegate>(c)},
+	fdSrc{label(), timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC)}
 {
 	if(fdSrc.fd() == -1)
 	{

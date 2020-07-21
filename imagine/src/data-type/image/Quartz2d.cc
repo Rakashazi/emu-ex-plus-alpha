@@ -73,7 +73,7 @@ bool Quartz2dImage::hasAlphaChannel()
 		|| info == kCGImageAlphaLast || info == kCGImageAlphaFirst;
 }
 
-std::errc Quartz2dImage::readImage(IG::Pixmap &dest)
+std::errc Quartz2dImage::readImage(IG::Pixmap dest)
 {
 	assert(dest.format() == pixelFormat());
 	int height = this->height();

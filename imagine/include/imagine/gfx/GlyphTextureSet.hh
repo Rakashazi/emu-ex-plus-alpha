@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/io/IO.hh>
 #include <imagine/font/Font.hh>
+#include <imagine/gfx/Texture.hh>
 #include <system_error>
 #include <memory>
 
@@ -25,7 +26,6 @@ namespace Gfx
 {
 
 class Renderer;
-class PixmapTexture;
 
 struct GlyphEntry
 {

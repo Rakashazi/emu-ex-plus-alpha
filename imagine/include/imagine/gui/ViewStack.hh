@@ -41,9 +41,9 @@ public:
 
 protected:
 	std::unique_ptr<View> view{};
+	RemoveViewDelegate removeViewDel{};
 	IG::WindowRect viewRect{};
 	Gfx::ProjectionPlane projP{};
-	RemoveViewDelegate removeViewDel{};
 };
 
 class ViewStack : public ViewController

@@ -38,8 +38,8 @@ public:
 
 protected:
 	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
-	FDEventSource fdSrc{};
 	std::unique_ptr<CallbackDelegate> callback_{};
+	FDEventSource fdSrc{};
 
 	void deinit();
 	bool arm(timespec ms, timespec repeatInterval, EventLoop loop);

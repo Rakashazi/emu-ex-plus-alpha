@@ -1,5 +1,6 @@
 #pragma once
 #include <imagine/gfx/GfxSprite.hh>
+#include <imagine/gfx/RendererCommands.hh>
 
 
 namespace Gfx

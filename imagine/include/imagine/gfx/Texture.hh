@@ -20,6 +20,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureConfig.hh>
 #include <imagine/gfx/TextureSamplerConfig.hh>
+#include <imagine/gfx/Mat4.hh>
 #include <imagine/pixmap/Pixmap.hh>
 
 #ifdef CONFIG_GFX_OPENGL
@@ -61,7 +62,7 @@ public:
 	using TextureImpl::TextureImpl;
 	Texture(Texture &&o);
 	Texture &operator=(Texture &&o);
-	static uint32_t bestAlignment(const IG::Pixmap &pixmap);
+	static uint32_t bestAlignment(IG::Pixmap pixmap);
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
 	uint32_t levels() const;

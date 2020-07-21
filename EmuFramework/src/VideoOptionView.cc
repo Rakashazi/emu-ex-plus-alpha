@@ -21,6 +21,9 @@
 #include "private.hh"
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/base/platformExtras.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextTableView.hh>
 

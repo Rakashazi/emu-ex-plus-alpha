@@ -17,6 +17,9 @@
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Screenshot.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 #include "private.hh"
 #include "EmuSystemTask.hh"
@@ -83,7 +86,7 @@ EmuVideoImage EmuVideo::startFrame(EmuSystemTask *task)
 			logMsg("created backing memory pixmap");
 			memPix = {vidImg.usedPixmapDesc()};
 		}
-		return {task, *this, (IG::Pixmap)memPix};
+		return {task, *this, memPix.view()};
 	}
 	return {task, *this, lockedTex};
 }
@@ -215,6 +218,11 @@ bool EmuVideo::isExternalTexture()
 Gfx::PixmapTexture &EmuVideo::image()
 {
 	return vidImg;
+}
+
+Gfx::Renderer &EmuVideo::renderer()
+{
+	return rTask.renderer();
 }
 
 EmuVideoImage::EmuVideoImage() {}

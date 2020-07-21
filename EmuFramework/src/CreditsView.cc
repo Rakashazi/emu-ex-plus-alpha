@@ -15,6 +15,7 @@
 
 #define LOGTAG "CreditsView"
 #include <emuframework/CreditsView.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/int.hh>
 #include "private.hh"
 

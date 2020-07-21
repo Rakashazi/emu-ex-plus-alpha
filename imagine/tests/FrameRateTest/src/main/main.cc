@@ -18,6 +18,10 @@
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/GfxText.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/DrawableHolder.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Screen.hh>
 #include "tests.hh"

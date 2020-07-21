@@ -17,6 +17,7 @@
 
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gfx/GeomRect.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 

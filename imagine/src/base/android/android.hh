@@ -40,8 +40,6 @@ private:
 	bool *runFlagAddr{};
 };
 
-JNIEnv *jEnvForThread();
-
 // BaseActivity JNI
 extern jclass jBaseActivityCls;
 extern jobject jBaseActivity;

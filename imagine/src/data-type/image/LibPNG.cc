@@ -281,7 +281,7 @@ void Png::setTransforms(IG::PixelFormat outFormat, png_infop transInfo)
 	png_read_update_info(png, info);
 }
 
-std::errc Png::readImage(IG::Pixmap &dest)
+std::errc Png::readImage(IG::Pixmap dest)
 {
 	//logMsg("reading whole image to %p", buffer);
 	//log_mPrintf(LOG_MSG,"buffer has %d byte pitch", pitch);

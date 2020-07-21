@@ -328,7 +328,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 						}
 						saved.set2ndName(savedStr);
 						saved.compile(renderer(), projP);
-						window().postDraw();
+						postDraw();
 					}
 					view.dismiss();
 					return false;

@@ -21,6 +21,8 @@
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/base/platformExtras.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include "private.hh"
 #include "privateInput.hh"

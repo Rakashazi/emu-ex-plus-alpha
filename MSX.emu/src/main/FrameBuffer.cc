@@ -116,7 +116,7 @@ static FrameBufferImpl fb{};
 IG::Pixmap frameBufferPixmap()
 {
 	auto fbPix = fb.pixmap();
-	return fbPix.subPixmap({0, 8}, {(int)fbPix.w(), (int)fbPix.h() - 16});
+	return fbPix.subView({0, 8}, {(int)fbPix.w(), (int)fbPix.h() - 16});
 }
 
 FrameBufferData* frameBufferDataCreate(int maxWidth, int maxHeight, int defaultHorizZoom)

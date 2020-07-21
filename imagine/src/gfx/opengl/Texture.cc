@@ -14,12 +14,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "GLTexture"
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/Texture.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
+#include <imagine/pixmap/MemPixmap.hh>
 #include "private.hh"
 #ifdef __ANDROID__
 #include "../../base/android/android.hh"
@@ -265,8 +266,8 @@ static Error initTextureCommon(Renderer &r, T &texture, GfxImageSource &img, boo
 			IG::MemPixmap texPix{imgPix};
 			if(!texPix)
 				return std::runtime_error{"Out of memory"};
-			img.write(texPix);
-			texture.write(0, texPix, {});
+			img.write(texPix.view());
+			texture.write(0, texPix.view(), {});
 		}
 	}
 	unlockImgPixmap();
@@ -403,7 +404,7 @@ void GLTexture::deinit()
 	delete directTex;
 }
 
-uint32_t Texture::bestAlignment(const IG::Pixmap &p)
+uint32_t Texture::bestAlignment(IG::Pixmap p)
 {
 	return unpackAlignForAddrAndPitch(p.pixel({}), p.pitchBytes());
 }

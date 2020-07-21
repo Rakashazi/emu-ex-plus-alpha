@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "GLTextureSampler"
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Texture.hh>
 #include "private.hh"
 

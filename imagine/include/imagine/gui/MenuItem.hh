@@ -128,8 +128,8 @@ public:
 	bool active();
 
 protected:
-	Gfx::Text t{};
 	bool active_ = true;
+	Gfx::Text t{};
 };
 
 class TextMenuItem : public BaseTextMenuItem
@@ -318,11 +318,11 @@ public:
 	void defaultOnSelect(View &view, Input::Event e);
 
 protected:
-	int selected_ = 0;
 	SelectDelegate selectD{};
 	ItemsDelegate items_{};
 	ItemDelegate item_{};
 	SetDisplayStringDelegate onSetDisplayString{};
+	int selected_ = 0;
 
 	void setDisplayString(int idx);
 };

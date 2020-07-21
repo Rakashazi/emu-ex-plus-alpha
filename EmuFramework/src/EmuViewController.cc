@@ -20,6 +20,9 @@
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/FilePicker.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/ToastView.hh>
 #include "EmuOptions.hh"

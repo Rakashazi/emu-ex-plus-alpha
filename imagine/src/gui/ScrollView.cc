@@ -19,7 +19,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/GeomRect.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>

@@ -103,11 +103,12 @@ void video_canvas_refresh(struct video_canvas_s *c, unsigned int xs, unsigned in
 	w *= c->videoconfig->scalex;
 	yi *= c->videoconfig->scaley;
 	h *= c->videoconfig->scaley;
+	auto pixView = c->pixmap->view();
 
-	w = std::min(w, c->pixmap->w());
-	h = std::min(h, c->pixmap->h());
+	w = std::min(w, pixView.w());
+	h = std::min(h, pixView.h());
 
-	plugin.video_canvas_render(c, (uint8_t*)c->pixmap->pixel({}), w, h, xs, ys, xi, yi, c->pixmap->pitchBytes(), pixFmt.bitsPerPixel());
+	plugin.video_canvas_render(c, (uint8_t*)pixView.pixel({}), w, h, xs, ys, xi, yi, pixView.pitchBytes(), pixFmt.bitsPerPixel());
 }
 
 void resetCanvasSourcePixmap(struct video_canvas_s *c)
@@ -130,11 +131,11 @@ void resetCanvasSourcePixmap(struct video_canvas_s *c)
 		}
 		int width = 320+(xBorderSize*2 - startX*2);
 		int widthPadding = startX*2;
-		canvasSrcPix = c->pixmap->subPixmap({startX, startY}, {width, height});
+		canvasSrcPix = c->pixmap->subView({startX, startY}, {width, height});
 	}
 	else
 	{
-		canvasSrcPix = *c->pixmap;
+		canvasSrcPix = c->pixmap->view();
 	}
 }
 

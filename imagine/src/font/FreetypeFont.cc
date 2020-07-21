@@ -15,12 +15,11 @@
 
 #define LOGTAG "FreetypeFont"
 #include <imagine/font/Font.hh>
-#include <imagine/logger/logger.h>
-#include <imagine/gfx/Gfx.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
 #include <imagine/io/FileIO.hh>
+#include <imagine/logger/logger.h>
 #ifdef CONFIG_PACKAGE_FONTCONFIG
 #include <fontconfig/fontconfig.h>
 #endif

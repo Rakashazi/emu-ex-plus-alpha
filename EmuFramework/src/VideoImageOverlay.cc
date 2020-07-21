@@ -16,7 +16,8 @@
 #define LOGTAG "VideoImageOverlay"
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/EmuSystem.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 
 #define CONV_COL(x) 0, x

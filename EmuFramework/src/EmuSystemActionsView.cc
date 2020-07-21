@@ -254,13 +254,18 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	screenshot
 	{
 		"Screenshot Next Frame",
-		[]()
+		[this](Input::Event e)
 		{
-			if(EmuSystem::gameIsRunning())
-			{
-				emuVideo.takeGameScreenshot();
-				EmuSystem::runFrame(nullptr, &emuVideo, nullptr);
-			}
+			if(!EmuSystem::gameIsRunning())
+				return;
+			auto ynAlertView = makeView<YesNoAlertView>(string_makePrintf<1024>("Save screenshot to %s ?", EmuSystem::savePath()).data());
+			ynAlertView->setOnYes(
+				[]()
+				{
+					emuVideo.takeGameScreenshot();
+					EmuSystem::runFrame(nullptr, &emuVideo, nullptr);
+				});
+			pushAndShowModal(std::move(ynAlertView), e);
 		}
 	},
 	resetSessionOptions

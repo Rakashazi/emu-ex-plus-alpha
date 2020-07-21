@@ -487,6 +487,10 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	boolean writePNG(Bitmap bitmap, String path)
 	{
 		boolean success;
+		if(Build.VERSION.SDK_INT >= 12)
+		{
+			bitmap.setHasAlpha(false);
+		}
 		try
 		{
 			FileOutputStream output = new FileOutputStream(path);

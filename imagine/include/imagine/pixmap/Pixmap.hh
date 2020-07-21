@@ -16,36 +16,14 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/pixmap/PixelFormat.hh>
+#include <imagine/pixmap/PixmapDesc.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/FunctionTraits.hh>
-#include <memory>
 
 namespace IG
 {
 
-class PixmapDesc : public NotEquals<PixmapDesc>
-{
-public:
-	constexpr PixmapDesc() {}
-	constexpr PixmapDesc(WP size, PixelFormat format): w_{(uint32_t)size.x}, h_{(uint32_t)size.y}, format_(format) {}
-	constexpr uint32_t w() const { return w_; }
-	constexpr uint32_t h() const { return h_; }
-	constexpr WP size() const { return {(int)w(), (int)h()}; }
-	constexpr PixelFormat format() const { return format_; }
-	constexpr size_t pixelBytes() const { return format().pixelBytes(w() * h()); }
-
-	constexpr bool operator ==(const PixmapDesc &rhs) const
-	{
-		return w_ == rhs.w_ && h_ == rhs.h_ && format_ == rhs.format_;
-	}
-
-protected:
-	uint32_t w_ = 0, h_ = 0;
-	PixelFormat format_{};
-};
-
+// TODO: rename this class to PixmapView
 class Pixmap : public PixmapDesc
 {
 public:
@@ -64,29 +42,42 @@ public:
 	constexpr Pixmap() {}
 
 	constexpr Pixmap(PixmapDesc desc, void *data, PitchInit pitch):
-		PixmapDesc{desc}, data{data},
-		pitch{pitch.units == PIXEL_UNITS ? pitch.val * desc.format().bytesPerPixel() : pitch.val}
+		PixmapDesc{desc},
+		pitch{pitch.units == PIXEL_UNITS ? pitch.val * desc.format().bytesPerPixel() : pitch.val},
+		data{data}
 		{}
 
 	constexpr Pixmap(PixmapDesc desc, void *data):
 		Pixmap{desc, data, {desc.w(), PIXEL_UNITS}}
 		{}
 
-	char *pixel(IG::WP pos) const;
-	void write(const IG::Pixmap &pixmap);
-	void write(const IG::Pixmap &pixmap, IG::WP destPos);
+	char *pixel(WP pos) const;
+	void write(Pixmap pixmap);
+	void write(Pixmap pixmap, WP destPos);
+	void writeConverted(Pixmap pixmap);
+	void writeConverted(Pixmap pixmap, WP destPos);
+	void clear(WP pos, WP size);
+	void clear();
+	Pixmap subView(WP pos, WP size) const;
+	explicit operator bool() const;
+	uint32_t pitchPixels() const;
+	uint32_t pitchBytes() const;
+	size_t bytes() const;
+	bool isPadded() const;
+	uint32_t paddingPixels() const;
+	uint32_t paddingBytes() const;
 
 	template <class Func>
 	static constexpr bool checkTransformFunc()
 	{
-		constexpr bool isValid = std::is_arithmetic_v<IG::FunctionTraitsR<Func>>
-			&& IG::functionTraitsArity<Func> == 1;
-		static_assert(isValid, "Transform function must take 1 argument and return an arithmetic value");
+		constexpr bool isValid = !std::is_void_v<FunctionTraitsR<Func>>
+			&& functionTraitsArity<Func> == 1;
+		static_assert(isValid, "Transform function must take 1 argument and return a value");
 		return isValid;
 	}
 
 	template <class Func>
-	void writeTransformed(Func func, const IG::Pixmap &pixmap)
+	void writeTransformed(Func func, Pixmap pixmap)
 	{
 		if constexpr(!checkTransformFunc<Func>())
 		{
@@ -98,50 +89,45 @@ public:
 			bcase 1:
 				switch(srcBytesPerPixel)
 				{
-					bcase 1: writeTransformed2<uint8_t, uint8_t>(func, pixmap);
-					bcase 2: writeTransformed2<uint16_t, uint8_t>(func, pixmap);
-					bcase 4: writeTransformed2<uint32_t, uint8_t>(func, pixmap);
+					case 1: return writeTransformed2<uint8_t,  uint8_t>(func, pixmap);
+					case 2: return writeTransformed2<uint16_t, uint8_t>(func, pixmap);
+					case 4: return writeTransformed2<uint32_t, uint8_t>(func, pixmap);
 				}
 			bcase 2:
 				switch(srcBytesPerPixel)
 				{
-					bcase 1: writeTransformed2<uint8_t, uint16_t>(func, pixmap);
-					bcase 2: writeTransformed2<uint16_t, uint16_t>(func, pixmap);
-					bcase 4: writeTransformed2<uint32_t, uint16_t>(func, pixmap);
+					case 1: return writeTransformed2<uint8_t,  uint16_t>(func, pixmap);
+					case 2: return writeTransformed2<uint16_t, uint16_t>(func, pixmap);
+					case 4: return writeTransformed2<uint32_t, uint16_t>(func, pixmap);
 				}
 			bcase 4:
 				switch(srcBytesPerPixel)
 				{
-					bcase 1: writeTransformed2<uint8_t, uint32_t>(func, pixmap);
-					bcase 2: writeTransformed2<uint16_t, uint32_t>(func, pixmap);
-					bcase 4: writeTransformed2<uint32_t, uint32_t>(func, pixmap);
+					case 1: return writeTransformed2<uint8_t,  uint32_t>(func, pixmap);
+					case 2: return writeTransformed2<uint16_t, uint32_t>(func, pixmap);
+					case 4: return writeTransformed2<uint32_t, uint32_t>(func, pixmap);
 				}
 		}
 	}
 
 	template <class Func>
-	void writeTransformed(Func func, const IG::Pixmap &pixmap, IG::WP destPos)
+	void writeTransformed(Func func, Pixmap pixmap, WP destPos)
 	{
-		subPixmap(destPos, size() - destPos).writeTransformed(func, pixmap);
+		subView(destPos, size() - destPos).writeTransformed(func, pixmap);
 	}
 
-	void clear(IG::WP pos, IG::WP size);
-	void clear();
-	Pixmap subPixmap(IG::WP pos, IG::WP size) const;
-	explicit operator bool() const;
-	uint32_t pitchPixels() const;
-	uint32_t pitchBytes() const;
-	size_t bytes() const;
-	bool isPadded() const;
-	uint32_t paddingPixels() const;
-	uint32_t paddingBytes() const;
+	template <class Src, class Dest, class Func>
+	void writeTransformedDirect(Func func, Pixmap pixmap)
+	{
+		writeTransformed2<Src, Dest>(func, pixmap);
+	}
 
 protected:
-	void *data{};
 	uint32_t pitch = 0; // in bytes
+	void *data{};
 
 	template <class Src, class Dest, class Func>
-	void writeTransformed2(Func func, const IG::Pixmap &pixmap)
+	void writeTransformed2(Func func, Pixmap pixmap)
 	{
 		auto srcData = (Src*)pixmap.data;
 		auto destData = (Dest*)data;
@@ -167,18 +153,6 @@ protected:
 			}
 		}
 	}
-};
-
-class MemPixmap : public Pixmap
-{
-public:
-	constexpr MemPixmap() {}
-	MemPixmap(PixmapDesc format);
-	MemPixmap(MemPixmap &&o);
-	MemPixmap &operator=(MemPixmap &&o);
-
-protected:
-	std::unique_ptr<uint8_t[]> buffer{};
 };
 
 }

@@ -483,7 +483,6 @@ public:
 		{
 			addDiskFilePickerView(e, slot, false);
 		}
-		window().postDraw();
 	}
 
 	TextMenuItem diskSlot[2]

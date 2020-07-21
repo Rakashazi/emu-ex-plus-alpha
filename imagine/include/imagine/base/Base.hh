@@ -20,11 +20,6 @@
 #include <imagine/util/rectangle2.h>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/fs/FSDefs.hh>
-#if defined __ANDROID__
-#include <imagine/base/android/android.hh>
-#elif defined __APPLE__ && TARGET_OS_IPHONE
-#include <imagine/base/iphone/public.hh>
-#endif
 #include <vector>
 
 namespace Base

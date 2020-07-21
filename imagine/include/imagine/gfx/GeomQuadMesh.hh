@@ -34,11 +34,11 @@ public:
 	Mem2D<ColVertex> v() const;
 
 protected:
-	uint32_t verts = 0;
-	uint32_t xVals = 0;
 	std::unique_ptr<char[]> vMem{};
-	uint32_t idxs = 0;
 	VertexIndex *i{};
+	uint32_t verts = 0;
+	uint32_t idxs = 0;
+	uint32_t xVals = 0;
 };
 
 }

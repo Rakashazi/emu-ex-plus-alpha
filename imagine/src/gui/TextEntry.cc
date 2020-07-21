@@ -16,6 +16,8 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/gui/TableView.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/string.h>
 
 void TextEntry::setAcceptingInput(bool on)

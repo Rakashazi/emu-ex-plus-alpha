@@ -278,7 +278,7 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 			multiResOutputWidth = 1024;
 		}
 	}
-	IG::Pixmap srcPix = mSurfacePix.subPixmap(
+	IG::Pixmap srcPix = mSurfacePix.subView(
 		{spec.DisplayRect.x, spec.DisplayRect.y},
 		{pixWidth, pixHeight});
 	auto &video = *espec->video;

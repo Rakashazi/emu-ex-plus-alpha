@@ -18,7 +18,7 @@
 #include <imagine/base/MessagePort.hh>
 #include <imagine/base/CustomEvent.hh>
 #include <imagine/thread/Semaphore.hh>
-#include <imagine/pixmap/Pixmap.hh>
+#include <imagine/pixmap/PixmapDesc.hh>
 
 class EmuVideo;
 class EmuAudio;

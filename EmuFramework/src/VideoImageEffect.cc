@@ -16,6 +16,8 @@
 #include <emuframework/VideoImageEffect.hh>
 #include <emuframework/EmuApp.hh>
 #include <imagine/io/FileIO.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 
 static const VideoImageEffect::EffectDesc

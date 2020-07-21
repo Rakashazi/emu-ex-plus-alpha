@@ -15,7 +15,6 @@
 
 #define LOGTAG "AndroidFont"
 #include <imagine/font/Font.hh>
-#include <imagine/gfx/Gfx.hh>
 #include <imagine/util/jni.hh>
 #include <imagine/logger/logger.h>
 #include "../base/android/android.hh"
@@ -129,17 +128,12 @@ Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 	}
 	ec = {};
 	//logMsg("got bitmap @ %p", lockedBitmap);
-	AndroidBitmapInfo info;
-	auto res = AndroidBitmap_getInfo(env, lockedBitmap, &info);
-	//logMsg("AndroidBitmap_getInfo returned %s", androidBitmapResultToStr(res));
-	assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
 	//logMsg("size %dx%d, pitch %d", info.width, info.height, info.stride);
 	void *data{};
-	res = AndroidBitmap_lockPixels(env, lockedBitmap, &data);
+	auto res = AndroidBitmap_lockPixels(env, lockedBitmap, &data);
 	//logMsg("AndroidBitmap_lockPixels returned %s", androidBitmapResultToStr(res));
 	assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
-	IG::Pixmap pixmap{{{(int)info.width, (int)info.height}, PIXEL_A8}, data, {info.stride, IG::Pixmap::BYTE_UNITS}};
-	return {{pixmap, lockedBitmap}, metrics};
+	return {{Base::makePixmapView(env, lockedBitmap, data, PIXEL_A8), lockedBitmap}, metrics};
 }
 
 GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)

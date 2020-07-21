@@ -21,6 +21,7 @@
 #include <imagine/gui/NavView.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/string.h>

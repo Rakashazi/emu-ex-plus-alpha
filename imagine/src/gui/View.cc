@@ -15,7 +15,8 @@
 
 #include <imagine/gui/View.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/string.h>
 #include <imagine/logger/logger.h>

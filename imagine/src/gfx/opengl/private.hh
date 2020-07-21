@@ -1,6 +1,6 @@
 #pragma once
 #include <imagine/gfx/opengl/gfx-globals.hh>
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/base/GLContext.hh>
 #include "utils.h"
 

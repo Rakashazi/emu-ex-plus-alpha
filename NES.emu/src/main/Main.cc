@@ -417,7 +417,7 @@ void FCEUPPU_FrameReady(EmuSystemTask *task, EmuVideo *video, uint8 *buf)
 	auto img = video->startFrame(task);
 	auto pix = img.pixmap();
 	IG::Pixmap ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};
-	auto ppuPixRegion = ppuPix.subPixmap({0, 8}, {256, 224});
+	auto ppuPixRegion = ppuPix.subView({0, 8}, {256, 224});
 	pix.writeTransformed([](uint8 p){ return nativeCol[p]; }, ppuPixRegion);
 	img.endFrame();
 }

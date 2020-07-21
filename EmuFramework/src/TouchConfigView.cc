@@ -18,6 +18,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/input/DragTracker.hh>
+#include <imagine/gfx/RendererCommands.hh>
 #include <utility>
 #include "private.hh"
 #include "privateInput.hh"

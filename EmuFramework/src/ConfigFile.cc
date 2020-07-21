@@ -17,6 +17,7 @@
 #include "EmuOptions.hh"
 #include <emuframework/FileUtils.hh>
 #include <imagine/base/Base.hh>
+#include <imagine/base/platformExtras.hh>
 #include <imagine/io/FileIO.hh>
 #include "privateInput.hh"
 #include "configFile.hh"

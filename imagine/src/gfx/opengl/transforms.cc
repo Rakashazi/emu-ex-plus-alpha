@@ -13,7 +13,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/Gfx.hh>
+#include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/Screen.hh>
 #include "utils.h"
 #include "private.hh"

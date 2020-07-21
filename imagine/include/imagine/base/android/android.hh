@@ -17,6 +17,8 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/fs/FSDefs.hh>
+#include <imagine/pixmap/Pixmap.hh>
+#include <imagine/util/jni.hh>
 #include <android/api-level.h>
 #include <array>
 
@@ -32,6 +34,7 @@ enum class SustainedPerformanceType
 	NOOP
 };
 
+JNIEnv *jEnvForThread();
 uint32_t androidSDK();
 void setProcessPriority(int nice);
 int processPriority();
@@ -40,6 +43,8 @@ AndroidPropString androidBuildDevice();
 bool packageIsInstalled(const char *name);
 SustainedPerformanceType sustainedPerformanceModeType();
 void setSustainedPerformanceMode(bool on);
+IG::PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat);
+IG::Pixmap makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFormat format = IG::PIXEL_FMT_NONE);
 
 }
 
