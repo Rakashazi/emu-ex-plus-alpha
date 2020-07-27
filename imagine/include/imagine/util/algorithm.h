@@ -66,11 +66,32 @@ static bool contains(C c, const V& val)
 	return std::find(c.begin(), c.end(), val) != c.end();
 }
 
-template <class T>
-static void setLinked(T &var, T newVal, T &linkedVar)
+// wrapper functions for iterators to non-overlapping memory regions
+// to improve compiler optimization opportunities
+template<typename InputIt, typename OutputIt, typename UnaryOperation>
+OutputIt transform_r(InputIt __restrict__ first, InputIt last,
+	OutputIt __restrict__ result, UnaryOperation unary_op)
 {
-	linkedVar += newVal - var;
-	var = newVal;
+	return std::transform(first, last, result, unary_op);
+}
+
+template<typename InputIt, class Size, typename OutputIt, typename UnaryOperation>
+OutputIt transform_n_r(InputIt __restrict__ first, Size count,
+	OutputIt __restrict__ result, UnaryOperation unary_op)
+{
+	return std::transform(first, first + count, result, unary_op);
+}
+
+template< class InputIt, class OutputIt>
+OutputIt copy_r(InputIt __restrict__ first, InputIt last, OutputIt __restrict__ d_first)
+{
+	return std::copy(first, last, d_first);
+}
+
+template< class InputIt, class Size, class OutputIt>
+OutputIt copy_n_r(InputIt __restrict__ first, Size count, OutputIt __restrict__ d_first)
+{
+	return std::copy_n(first, count, d_first);
 }
 
 }

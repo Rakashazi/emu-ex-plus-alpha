@@ -122,6 +122,7 @@ static OptionBase *cfgFileOption[] =
 	&optionAutoSaveState,
 	&optionConfirmAutoLoadState,
 	&optionSound,
+	&optionSoundVolume,
 	&optionSoundRate,
 	&optionAspectRatio,
 	&optionImageZoom,
@@ -506,6 +507,7 @@ void loadConfigFile()
 					#endif
 				#endif
 				bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);
+				bcase CFGKEY_SOUND_VOLUME: optionSoundVolume.readFromIO(io, size);
 				bcase CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN: optionAddSoundBuffersOnUnderrun.readFromIO(io, size);
 				#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 				bcase CFGKEY_AUDIO_SOLO_MIX: optionAudioSoloMix.readFromIO(io, size);

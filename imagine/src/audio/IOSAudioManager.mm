@@ -49,9 +49,19 @@ static bool sessionActive = false;
 static id sessionInterruptionObserver = nil;
 #endif
 
-Audio::PcmFormat nativeFormat()
+Audio::SampleFormat nativeSampleFormat()
 {
-	return {44100, Audio::SampleFormats::i16, 2};
+	return Audio::SampleFormats::f32;
+}
+
+uint32_t nativeRate()
+{
+	return 44100;
+}
+
+Audio::Format nativeFormat()
+{
+	return {nativeRate(), nativeSampleFormat(), 2};
 }
 
 void setSoloMix(bool newSoloMix)

@@ -40,25 +40,25 @@ public:
 	void flush();
 	void writeFrames(const void *samples, uint32_t framesToWrite);
 	void setRate(uint32_t rate);
-	void setFormat(IG::Audio::SampleFormat sample, uint8_t channels);
-	void setDefaultMonoFormat();
+	void setStereo(bool on);
 	void setSpeedMultiplier(uint8_t speed);
 	void setAddSoundBuffersOnUnderrun(bool on);
-	void setSoundDuringFastForward(bool on);
-	IG::Audio::PcmFormat pcmFormat() const;
+	void setVolume(uint8_t vol);
+	IG::Audio::Format format() const;
 	explicit operator bool() const;
 
 protected:
 	std::unique_ptr<IG::Audio::OutputStream> audioStream{};
 	IG::RingBuffer rBuff{};
-	IG::Audio::PcmFormat format{44100, IG::Audio::SampleFormats::i16, 2};
 	IG::Time lastUnderrunTime{};
 	uint32_t targetBufferFillBytes = 0;
 	uint32_t bufferIncrementBytes = 0;
+	uint32_t rate{44100};
+	float volume = 1.0;
 	std::atomic<AudioWriteState> audioWriteState = AudioWriteState::BUFFER;
 	bool addSoundBuffersOnUnderrun = false;
 	uint8_t speedMultiplier = 1;
-	bool soundDuringFastForward = true;
+	uint8_t channels = 2;
 
 	uint32_t framesFree() const;
 	uint32_t framesWritten() const;

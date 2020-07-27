@@ -125,7 +125,7 @@ std::error_code AAudioOutputStream::open(OutputStreamConfig config)
 	return {};
 }
 
-bool AAudioOutputStream::openStream(PcmFormat format, bool lowLatencyMode)
+bool AAudioOutputStream::openStream(Format format, bool lowLatencyMode)
 {
 	assert(!stream);
 	logMsg("creating stream %dHz, %d channels, low-latency:%s", format.rate, format.channels,

@@ -18,7 +18,6 @@ bool soundInit();
 void soundSetThrottle(unsigned short throttle);
 
 // Manages sound volume, where 1.0 is normal
-void soundSetVolume( float );
 float soundGetVolume();
 
 // Manages muting bitmask. The bits control the following channels:

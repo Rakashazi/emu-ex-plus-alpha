@@ -211,7 +211,7 @@ void systemOnWriteDataToSoundBuffer(EmuAudio *audio, const u16 * finalWave, int 
 	//logMsg("%d audio frames", Audio::pPCM.bytesToFrames(length));
 	if(audio)
 	{
-		audio->writeFrames(finalWave, audio->pcmFormat().bytesToFrames(length));
+		audio->writeFrames(finalWave, audio->format().bytesToFrames(length));
 	}
 }
 

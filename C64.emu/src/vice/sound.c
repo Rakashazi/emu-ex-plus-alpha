@@ -322,7 +322,7 @@ static int buffer_size;                /* app_resources.soundBufferSize */
 static int suspend_time;               /* app_resources.soundSuspendTime */
 static int speed_adjustment_setting;   /* app_resources.soundSpeedAdjustment */
 static int volume;
-static int amp;
+static const int amp = 4096;
 static int fragment_size;
 static int output_option;
 
@@ -494,6 +494,7 @@ static int set_speed_adjustment_setting(int val, void *param)
 
 static int set_volume(int val, void *param)
 {
+#if 0
     volume = val;
 
     if (volume < 0) {
@@ -508,6 +509,7 @@ static int set_volume(int val, void *param)
 
     ui_display_volume(volume);
 
+#endif
     return 0;
 }
 
@@ -536,8 +538,10 @@ static const resource_int_t resources_int[] = {
       (void *)&suspend_time, set_suspend_time, NULL },
     { "SoundSpeedAdjustment", SOUND_ADJUST_EXACT, RES_EVENT_NO, NULL,
       (void *)&speed_adjustment_setting, set_speed_adjustment_setting, NULL },
+#if 0
     { "SoundVolume", 100, RES_EVENT_NO, NULL,
       (void *)&volume, set_volume, NULL },
+#endif
     { "SoundOutput", ARCHDEP_SOUND_OUTPUT_MODE, RES_EVENT_NO, NULL,
       (void *)&output_option, set_output_option, NULL },
     RESOURCE_INT_LIST_END

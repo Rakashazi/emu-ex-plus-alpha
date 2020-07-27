@@ -66,10 +66,10 @@ uint activeBoardType = BOARD_MSX;
 
 Byte1Option optionMixerPSGVolume{CFGKEY_MIXER_PSG_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
 Byte1Option optionMixerSCCVolume{CFGKEY_MIXER_SCC_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
-Byte1Option optionMixerMSXMUSICVolume{CFGKEY_MIXER_MSX_MUSIC_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
-Byte1Option optionMixerMSXAUDIOVolume{CFGKEY_MIXER_MSX_AUDIO_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
-Byte1Option optionMixerMoonSoundVolume{CFGKEY_MIXER_MOON_SOUND_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
-Byte1Option optionMixerYamahaSFGVolume{CFGKEY_MIXER_YAMAHA_SFG_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
+Byte1Option optionMixerMSXMUSICVolume{CFGKEY_MIXER_MSX_MUSIC_VOLUME, 80 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
+Byte1Option optionMixerMSXAUDIOVolume{CFGKEY_MIXER_MSX_AUDIO_VOLUME, 80 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
+Byte1Option optionMixerMoonSoundVolume{CFGKEY_MIXER_MOON_SOUND_VOLUME, 80 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
+Byte1Option optionMixerYamahaSFGVolume{CFGKEY_MIXER_YAMAHA_SFG_VOLUME, 80 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
 Byte1Option optionMixerPCMVolume{CFGKEY_MIXER_PCM_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
 
 Byte1Option optionMixerPSGPan{CFGKEY_MIXER_PSG_PAN, 50, false, panOptionIsValid};

@@ -76,7 +76,7 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_FRAME_RATE_PAL = 78, CFGKEY_TIME_FRAMES_WITH_SCREEN_REFRESH = 79,
 	CFGKEY_SUSTAINED_PERFORMANCE_MODE = 80, CFGKEY_SHOW_BLUETOOTH_SCAN = 81,
 	CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN = 82, CFGKEY_GPU_MULTITHREADING = 83,
-	CFGKEY_AUDIO_API = 84
+	CFGKEY_AUDIO_API = 84, CFGKEY_SOUND_VOLUME = 85
 	// 256+ is reserved
 };
 
@@ -103,6 +103,7 @@ struct OptionVControllerLayoutPosition : public OptionBase
 extern Byte1Option optionAutoSaveState;
 extern Byte1Option optionConfirmAutoLoadState;
 extern Byte1Option optionSound;
+extern Byte1Option optionSoundVolume;
 extern Byte1Option optionSoundBuffers;
 extern Byte1Option optionAddSoundBuffersOnUnderrun;
 #ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX

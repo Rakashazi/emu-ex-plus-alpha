@@ -237,7 +237,6 @@ void mainInitCommon(int argc, char** argv)
 	if(optionSoundRate > optionSoundRate.defaultVal)
 		optionSoundRate.reset();
 	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
-	emuAudio.setSoundDuringFastForward(soundDuringFastForwardIsEnabled());
 	applyOSNavStyle(false);
 
 	{

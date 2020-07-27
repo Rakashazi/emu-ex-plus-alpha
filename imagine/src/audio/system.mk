@@ -17,3 +17,5 @@ else ifeq ($(ENV), macosx)
  include $(imagineSrcDir)/audio/coreaudio/build.mk
  include $(imagineSrcDir)/audio/BasicAudioManager.mk
 endif
+
+include $(imagineSrcDir)/audio/build.mk

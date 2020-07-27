@@ -41,12 +41,12 @@ public:
 private:
 	AAudioStream *stream{};
 	OnSamplesNeededDelegate onSamplesNeeded{};
-	PcmFormat pcmFormat{};
+	Format pcmFormat{};
 	Base::CustomEvent disconnectEvent{"AAudioOutputStream::disconnectEvent"};
 	bool isPlaying_ = false;
 	bool lowLatencyMode = false;
 
-	bool openStream(PcmFormat format, bool lowLatencyMode);
+	bool openStream(Format format, bool lowLatencyMode);
 };
 
 }

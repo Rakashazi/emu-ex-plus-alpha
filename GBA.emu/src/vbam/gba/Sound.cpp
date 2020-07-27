@@ -93,10 +93,9 @@ public:
 	float soundFiltering     = 0.5f;
 	int   soundTicks         = SOUND_CLOCK_TICKS_;
 
-	float soundVolume     = 1.0f;
+	static constexpr float soundVolume     = 1.0f;
 	int soundEnableFlag   = 0x3ff; // emulator channels enabled
 	float soundFiltering_ = -1;
-	float soundVolume_    = -1;
 
 	Gba_Pcm_Fifo     pcm [2];
 	Gb_Apu          gb_apu;
@@ -111,7 +110,6 @@ static auto &gb_apu = gbaSound.gb_apu;
 static auto &stereo_buffer = gbaSound.stereo_buffer;
 static auto &pcm_synth = gbaSound.pcm_synth;
 static auto &soundEnableFlag = gbaSound.soundEnableFlag;
-static auto &soundVolume_ = gbaSound.soundVolume_;
 static auto &soundVolume = gbaSound.soundVolume;
 static auto &soundSampleRate = gbaSound.soundSampleRate;
 static auto &soundFiltering_ = gbaSound.soundFiltering_;
@@ -298,19 +296,16 @@ void soundEvent(GBASys &gba, u32 address, u8 data)
 
 static void apply_volume( GBASys &gba, bool apu_only = false )
 {
-	if ( !apu_only )
-		soundVolume_ = soundVolume;
-
 	//if ( gb_apu )
 	{
 		static float const apu_vols [4] = { 0.25, 0.5, 1, 0.25 };
-		gb_apu.volume( soundVolume_ * apu_vols [gba.mem.ioMem.b [SGCNT0_H] & 3] );
+		gb_apu.volume( soundVolume * apu_vols [gba.mem.ioMem.b [SGCNT0_H] & 3] );
 	}
 
 	if ( !apu_only )
 	{
 		for ( int i = 0; i < 3; i++ )
-			pcm_synth [i].volume( 0.66 / 256 * soundVolume_ );
+			pcm_synth [i].volume( 0.66 / 256 * soundVolume );
 	}
 }
 
@@ -495,11 +490,6 @@ void soundResume()
 	/*soundPaused = false;
 	if (soundDriver)
 		soundDriver->resume();*/
-}
-
-void soundSetVolume( float volume )
-{
-	soundVolume = volume;
 }
 
 float soundGetVolume()

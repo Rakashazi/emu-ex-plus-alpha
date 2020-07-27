@@ -58,7 +58,7 @@ std::unique_ptr<OutputStream> makeOutputStream(Api api)
 	}
 }
 
-PcmFormat OutputStreamConfig::format() const
+Format OutputStreamConfig::format() const
 {
 	if(format_)
 		return format_;

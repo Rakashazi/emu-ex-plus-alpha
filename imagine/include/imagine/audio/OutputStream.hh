@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/audio/defs.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/audio/PcmFormat.hh>
+#include <imagine/audio/Format.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <system_error>
 #include <memory>
@@ -31,11 +31,16 @@ class OutputStreamConfig
 {
 public:
 	constexpr OutputStreamConfig() {}
-	constexpr OutputStreamConfig(PcmFormat format, OnSamplesNeededDelegate onSamplesNeeded):
+	constexpr OutputStreamConfig(Format format, OnSamplesNeededDelegate onSamplesNeeded = nullptr):
 		format_{format}, onSamplesNeeded_{onSamplesNeeded}
 		{}
 
-	PcmFormat format() const;
+	Format format() const;
+
+	void setOnSamplesNeeded(OnSamplesNeededDelegate del)
+	{
+		onSamplesNeeded_ = del;
+	}
 
 	OnSamplesNeededDelegate onSamplesNeeded() const
 	{
@@ -63,7 +68,7 @@ public:
 	}
 
 protected:
-	PcmFormat format_{};
+	Format format_{};
 	OnSamplesNeededDelegate onSamplesNeeded_{};
 	IG::Microseconds wantedLatency{20000};
 	bool startPlaying_ = true;

@@ -21,6 +21,7 @@
 #include <imagine/base/Timer.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/input/Input.hh>
+#include <imagine/audio/SampleFormat.hh>
 #include <imagine/util/string.h>
 #include <emuframework/config.hh>
 #include <optional>
@@ -124,6 +125,7 @@ public:
 	static bool hasCheats;
 	static bool hasSound;
 	static int forcedSoundRate;
+	static IG::Audio::SampleFormat audioSampleFormat;
 	static bool constFrameRate;
 	static NameFilterFunc defaultFsFilter;
 	static NameFilterFunc defaultBenchmarkFsFilter;

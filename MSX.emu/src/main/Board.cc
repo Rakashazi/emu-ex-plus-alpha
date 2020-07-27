@@ -34,6 +34,8 @@ extern Machine *machine;
 static HdType hdType[MAX_HD_COUNT]{};
 RomType currentRomType[2]{};
 static BoardTimer* fdcTimer{};
+static BoardTimer* mixerTimer;
+static constexpr unsigned mixerSyncHz = 120;
 
 Mixer* boardGetMixer()
 {
@@ -76,6 +78,12 @@ void boardSetFdcActive()
 		boardTimerAdd(fdcTimer, boardSystemTime() + (UInt32)((UInt64)300 * boardFrequency() / 1000));
 		fdcActive = 1;
 	}
+}
+
+static void onMixerSync(void* mixer, UInt32 time)
+{
+    mixerSync((Mixer*)mixer);
+    boardTimerAdd(mixerTimer, boardSystemTime() + boardFrequency() / mixerSyncHz);
 }
 
 void boardSetDataBus(UInt8 value, UInt8 defValue, int useDef)
@@ -432,4 +440,9 @@ void boardInit(UInt32* systemTime)
 
     if(!fdcTimer)
     	fdcTimer = boardTimerCreate(onFdcDone, NULL);
+
+    if(!mixerTimer)
+      mixerTimer = boardTimerCreate(onMixerSync, mixer);
+
+    boardTimerAdd(mixerTimer, boardSystemTime() + boardFrequency() / mixerSyncHz);
 }

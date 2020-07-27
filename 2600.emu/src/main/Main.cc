@@ -48,6 +48,7 @@ Controller::Type autoDetectedInput1{};
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella-emu.github.io";
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
+IG::Audio::SampleFormat EmuSystem::audioSampleFormat = IG::Audio::SampleFormats::f32;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](const char *name)
 	{
@@ -225,7 +226,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 
 void EmuSystem::onPrepareAudio(EmuAudio &audio)
 {
-	audio.setDefaultMonoFormat(); // TODO: stereo mode
+	audio.setStereo(false); // TODO: stereo mode
 }
 
 EmuSystem::Error EmuSystem::onInit()

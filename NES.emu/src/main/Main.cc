@@ -367,7 +367,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 
 void EmuSystem::onPrepareAudio(EmuAudio &audio)
 {
-	audio.setDefaultMonoFormat();
+	audio.setStereo(false);
 }
 
 void EmuSystem::onPrepareVideo(EmuVideo &video)

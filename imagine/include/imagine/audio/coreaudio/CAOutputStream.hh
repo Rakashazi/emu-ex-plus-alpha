@@ -40,7 +40,7 @@ private:
 	AudioComponentInstance outputUnit{};
 	AudioStreamBasicDescription streamFormat;
 	OnSamplesNeededDelegate onSamplesNeeded{};
-	PcmFormat pcmFormat;
+	Format pcmFormat;
 	bool isPlaying_ = false;
 	bool isOpen_ = false;
 };

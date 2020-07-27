@@ -107,6 +107,8 @@ protected:
 
 	BoolMenuItem snd;
 	BoolMenuItem soundDuringFastForward;
+	TextMenuItem soundVolumeItem[4];
+	MultiChoiceMenuItem soundVolume;
 	TextMenuItem soundBuffersItem[7];
 	MultiChoiceMenuItem soundBuffers;
 	BoolMenuItem addSoundBuffersOnUnderrun;
@@ -119,7 +121,7 @@ protected:
 	StaticArrayList<TextMenuItem, MAX_APIS + 1> apiItem{};
 	MultiChoiceMenuItem api;
 	#endif
-	StaticArrayList<MenuItem*, 14> item{};
+	StaticArrayList<MenuItem*, 15> item{};
 
 	void updateAudioRateItem();
 	unsigned idxOfAPI(IG::Audio::Api api);

@@ -129,14 +129,15 @@ protected:
 	template <class Src, class Dest, class Func>
 	void writeTransformed2(Func func, Pixmap pixmap)
 	{
-		auto srcData = (Src*)pixmap.data;
+		auto srcData = (const Src*)pixmap.data;
 		auto destData = (Dest*)data;
 		if(w() == pixmap.w() && !isPadded() && !pixmap.isPadded())
 		{
-			iterateTimes(pixmap.w() * pixmap.h(), i)
-			{
-				*destData++ = func(*srcData++);
-			}
+			IG::transform_n_r(srcData, pixmap.w() * pixmap.h(), destData,
+				[=](Src srcPixel)
+				{
+					return func(srcPixel);
+				});
 		}
 		else
 		{
@@ -144,10 +145,11 @@ protected:
 			{
 				auto destLineData = destData;
 				auto srcLineData = srcData;
-				iterateTimes(pixmap.w(), w)
-				{
-					*destLineData++ = func(*srcLineData++);
-				}
+				IG::transform_n_r(srcLineData, pixmap.w(), destLineData,
+					[=](Src srcPixel)
+					{
+						return func(srcPixel);
+					});
 				srcData += pixmap.pitchPixels();
 				destData += pitchPixels();
 			}

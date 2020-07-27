@@ -20,9 +20,19 @@
 namespace IG::AudioManager
 {
 
-Audio::PcmFormat nativeFormat()
+Audio::SampleFormat nativeSampleFormat()
 {
-	return {::Config::MACHINE_IS_PANDORA ? 44100 : 48000, Audio::SampleFormats::i16, 2};
+	return Audio::SampleFormats::f32;
+}
+
+uint32_t nativeRate()
+{
+	return ::Config::MACHINE_IS_PANDORA ? 44100 : 48000;
+}
+
+Audio::Format nativeFormat()
+{
+	return {nativeRate(), nativeSampleFormat(), 2};
 }
 
 void setSoloMix(bool newSoloMix) {}

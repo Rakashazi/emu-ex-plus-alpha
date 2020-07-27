@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/audio/PcmFormat.hh>
+#include <imagine/audio/Format.hh>
 
 namespace IG::AudioManager
 {
@@ -27,7 +27,9 @@ namespace IG::AudioManager
 	#endif
 	}
 
-Audio::PcmFormat nativeFormat();
+Audio::SampleFormat nativeSampleFormat();
+uint32_t nativeRate();
+Audio::Format nativeFormat();
 void setSoloMix(bool newSoloMix);
 bool soloMix();
 void setMusicVolumeControlHint();

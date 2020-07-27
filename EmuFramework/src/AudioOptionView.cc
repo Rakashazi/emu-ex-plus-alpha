@@ -31,6 +31,12 @@ static void setSoundBuffers(int val)
 	optionSoundBuffers = val;
 }
 
+static void setSoundVolume(uint8_t val)
+{
+	optionSoundVolume = val;
+	emuAudio.setVolume(val);
+}
+
 AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"Audio Options", attach, item},
 	snd
@@ -53,8 +59,55 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			setSoundDuringFastForwardEnabled(item.flipBoolValue(*this));
-			emuAudio.setSoundDuringFastForward(item.boolValue());
 		}
+	},
+	soundVolumeItem
+	{
+		{"100%", [this]() { setSoundVolume(100); }},
+		{"50%", [this]() { setSoundVolume(50); }},
+		{"25%", [this]() { setSoundVolume(25); }},
+		{"Custom Value",
+			[this](Input::Event e)
+			{
+				EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
+					[this](auto val)
+					{
+						if(optionSoundVolume.isValidVal(val))
+						{
+							setSoundVolume(val);
+							soundVolume.setSelected(std::size(soundVolumeItem) - 1, *this);
+							dismissPrevious();
+							return true;
+						}
+						else
+						{
+							EmuApp::postErrorMessage("Value not in range");
+							return false;
+						}
+					});
+				return false;
+			}
+		},
+	},
+	soundVolume
+	{
+		"Volume",
+		[this](uint32_t idx, Gfx::Text &t)
+		{
+			t.setString(string_makePrintf<5>("%u%%", optionSoundVolume.val).data());
+			return true;
+		},
+		[]()
+		{
+			switch(optionSoundVolume.val)
+			{
+				case 100: return 0;
+				case 50: return 1;
+				case 25: return 2;
+				default: return 3;
+			}
+		}(),
+		soundVolumeItem
 	},
 	soundBuffersItem
 	{
@@ -146,6 +199,7 @@ void AudioOptionView::loadStockItems()
 {
 	item.emplace_back(&snd);
 	item.emplace_back(&soundDuringFastForward);
+	item.emplace_back(&soundVolume);
 	if(!optionSoundRate.isConst)
 	{
 		audioRateItem.clear();

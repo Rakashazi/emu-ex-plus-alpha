@@ -64,6 +64,7 @@ IG::FloatSeconds EmuSystem::frameTimePAL{1./50.};
 [[gnu::weak]] bool EmuSystem::hasCheats = false;
 [[gnu::weak]] bool EmuSystem::hasSound = true;
 [[gnu::weak]] int EmuSystem::forcedSoundRate = 0;
+[[gnu::weak]] IG::Audio::SampleFormat EmuSystem::audioSampleFormat = IG::Audio::SampleFormats::i16;
 [[gnu::weak]] bool EmuSystem::constFrameRate = false;
 bool EmuSystem::sessionOptionsSet = false;
 double EmuSystem::audioFramesPerVideoFrameFloat = 0;
@@ -367,7 +368,7 @@ void EmuSystem::configFrameTime(uint32_t rate)
 
 void EmuSystem::configFrameTime()
 {
-	configFrameTime(emuAudio.pcmFormat().rate);
+	configFrameTime(emuAudio.format().rate);
 }
 
 void EmuSystem::configAudioPlayback(uint32_t rate)

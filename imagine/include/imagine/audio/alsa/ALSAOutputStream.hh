@@ -40,12 +40,12 @@ public:
 private:
 	snd_pcm_t *pcmHnd{};
 	OnSamplesNeededDelegate onSamplesNeeded{};
-	PcmFormat pcmFormat;
+	Format pcmFormat;
 	snd_pcm_uframes_t bufferSize, periodSize;
 	bool useMmap;
 	std::atomic_bool quitFlag{};
 
-	int setupPcm(PcmFormat format, snd_pcm_access_t access, IG::Microseconds wantedLatency);
+	int setupPcm(Format format, snd_pcm_access_t access, IG::Microseconds wantedLatency);
 };
 
 }

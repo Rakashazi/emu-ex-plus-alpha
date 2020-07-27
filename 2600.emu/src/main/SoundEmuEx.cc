@@ -131,12 +131,7 @@ void SoundEmuEx::processAudio(OSystem &osystem, EmuAudio *audio)
 		myResampler->fillFragment(buffF, fragFrames);
 		if(audio)
 		{
-			Int16 buff[fragSamples];
-			iterateTimes(fragSamples, i)
-			{
-				buff[i] = buffF[i] * static_cast<float>(0x7fff);
-			}
-			audio->writeFrames(buff, fragFrames);
+			audio->writeFrames(buffF, fragFrames);
 			wroteFrames += fragFrames;
 		}
 	}

@@ -586,7 +586,7 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 
 void EmuSystem::onPrepareAudio(EmuAudio &audio)
 {
-	audio.setDefaultMonoFormat();
+	audio.setStereo(false);
 }
 
 EmuSystem::Error EmuSystem::onInit()

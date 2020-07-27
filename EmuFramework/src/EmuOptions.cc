@@ -63,6 +63,8 @@ constexpr uint8_t OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG = IG::bit(1);
 constexpr uint8_t OPTION_SOUND_DEFAULT_FLAGS = OPTION_SOUND_ENABLED_FLAG | OPTION_SOUND_DURING_FAST_FORWARD_ENABLED_FLAG;
 
 Byte1Option optionSound(CFGKEY_SOUND, OPTION_SOUND_DEFAULT_FLAGS);
+Byte1Option optionSoundVolume(CFGKEY_SOUND_VOLUME,
+	100, false, optionIsValidWithMinMax<0, 100, uint8_t>);
 
 Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
 	4, 0, optionIsValidWithMinMax<2, 8, uint8_t>);
@@ -276,7 +278,7 @@ void initOptions()
 		lastLoadPath = Base::sharedStoragePath();
 	}
 
-	optionSoundRate.initDefault(IG::AudioManager::nativeFormat().rate);
+	optionSoundRate.initDefault(IG::AudioManager::nativeRate());
 
 	#ifdef CONFIG_BASE_IOS
 	if(Base::deviceIsIPad())

@@ -197,12 +197,12 @@ public:
 
 	void setXPos(T newX)
 	{
-		IG::setLinked(x, newX, x2);
+		setLinked(x, newX, x2);
 	}
 
 	void setYPos(T newY)
 	{
-		IG::setLinked(y, newY, y2);
+		setLinked(y, newY, y2);
 	}
 
 	void setPos(IG::Point2D<T> newPos)
@@ -257,7 +257,7 @@ public:
 		}
 		else if(x2 > r.x2)
 		{
-			IG::setLinked(x2, r.x2, x);
+			setLinked(x2, r.x2, x);
 			return 1;
 		}
 		return 0;
@@ -278,7 +278,7 @@ public:
 		}
 		else if(y2 > r.y2)
 		{
-			IG::setLinked(y2, r.y2, y);
+			setLinked(y2, r.y2, y);
 			return 1;
 		}
 		return 0;
@@ -303,6 +303,12 @@ public:
 			p.y = y;
 		else if(p.y > y2)
 			p.y = y2;
+	}
+
+	static void setLinked(T &var, T newVal, T &linkedVar)
+	{
+		linkedVar += newVal - var;
+		var = newVal;
 	}
 };
 

@@ -720,10 +720,9 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	logMsg("set mixer rate %d", (int)mixerGetSampleRate(mixer));
 }
 
-static Int32 soundWrite(void* dummy, Int16 *buffer, UInt32 count)
+static Int32 soundWrite(void *audio, Int16 *buffer, UInt32 samples)
 {
-	//logMsg("called audio callback %d samples", count);
-	bug_unreachable("should never be called");
+	static_cast<EmuAudio*>(audio)->writeFrames(buffer, samples / 2);
 	return 0;
 }
 
@@ -753,17 +752,10 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	emuSysTask = task;
 	emuVideo = video;
+	mixerSetWriteCallback(mixer, audio ? soundWrite : nullptr, audio, 0);
 	boardInfo.run(boardInfo.cpuRef);
 	((R800*)boardInfo.cpuRef)->terminate = 0;
 	commitUnchangedVideoFrame(); // runs if emuVideo wasn't unset in emulation of this frame
-	mixerSync(mixer);
-	UInt32 samples;
-	uint8_t *aBuff = (uint8_t*)mixerGetBuffer(mixer, &samples);
-	//logMsg("%d samples", samples/2);
-	if(audio && samples)
-	{
-		audio->writeFrames(aBuff, samples/2);
-	}
 }
 
 bool EmuSystem::shouldFastForward()
@@ -830,7 +822,6 @@ EmuSystem::Error EmuSystem::onInit()
 	int logFrequency = 50;
 	int frequency = (int)(3579545 * ::pow(2.0, (logFrequency - 50) / 15.0515));
 	mixerSetBoardFrequencyFixed(frequency);
-	mixerSetWriteCallback(mixer, 0, 0, 10000);
 
 	return {};
 }

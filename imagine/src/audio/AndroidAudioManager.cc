@@ -74,30 +74,36 @@ static void abandonAudioFocus(JNIEnv* env)
 	jAbandonAudioFocus(env, audioManager, Base::jBaseActivity);
 }
 
-Audio::PcmFormat nativeFormat()
+Audio::SampleFormat nativeSampleFormat()
 {
-	Audio::PcmFormat nativeFmt{0, Audio::SampleFormats::i16, 2};
+	return Base::androidSDK() >= 21 ? Audio::SampleFormats::f32 : Audio::SampleFormats::i16;
+}
+
+uint32_t nativeRate()
+{
+	uint32_t rate = 44100;
 	if(Base::androidSDK() >= 17)
 	{
 		auto env = Base::jEnvForThread();
 		setupAudioManagerJNI(env);
-		nativeFmt.rate = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_SAMPLE_RATE");
-		if(nativeFmt.rate != 44100 && nativeFmt.rate != 48000)
+		rate = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_SAMPLE_RATE");
+		if(rate != 44100 && rate != 48000)
 		{
 			// only support 44KHz and 48KHz for now
-			logWarn("ignoring OUTPUT_SAMPLE_RATE value:%d", nativeFmt.rate);
-			nativeFmt.rate = 44100;
+			logWarn("ignoring OUTPUT_SAMPLE_RATE value:%u", rate);
+			rate = 44100;
 		}
 		else
 		{
-			logMsg("native sample rate: %d", nativeFmt.rate);
+			logMsg("native sample rate: %u", rate);
 		}
 	}
-	else
-	{
-		nativeFmt.rate = 44100;
-	}
-	return nativeFmt;
+	return rate;
+}
+
+Audio::Format nativeFormat()
+{
+	return {nativeRate(), nativeSampleFormat(), 2};
 }
 
 uint32_t nativeOutputFramesPerBuffer()

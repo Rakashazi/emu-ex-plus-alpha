@@ -381,7 +381,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 		const bool using263Lines = vce.CR & 0x04;
 		if(unlikely(prevUsing263Lines != using263Lines))
 		{
-			configFrameTime(audio->pcmFormat().rate);
+			configFrameTime(audio->format().rate);
 		}
 	}
 	espec.task = task;
@@ -394,7 +394,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 	emuSys->Emulate(&espec);
 	if(audio)
 	{
-		assert((uint)espec.SoundBufSize <= audio->pcmFormat().bytesToFrames(sizeof(audioBuff)));
+		assert((uint)espec.SoundBufSize <= audio->format().bytesToFrames(sizeof(audioBuff)));
 		audio->writeFrames((uint8_t*)audioBuff, espec.SoundBufSize);
 	}
 }

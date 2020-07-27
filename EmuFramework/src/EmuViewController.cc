@@ -988,6 +988,8 @@ void EmuViewController::setFastForwardActive(bool active)
 {
 	targetFastForwardSpeed = active ? optionFastForwardSpeed.val : 0;
 	emuAudio.setAddSoundBuffersOnUnderrun(active ? optionAddSoundBuffersOnUnderrun.val : false);
+	auto soundVolume = (active && !soundDuringFastForwardIsEnabled()) ? 0 : optionSoundVolume.val;
+	emuAudio.setVolume(soundVolume);
 }
 
 void EmuViewController::setUseRendererTime(bool on)

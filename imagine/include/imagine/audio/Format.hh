@@ -23,25 +23,18 @@
 namespace IG::Audio
 {
 
-class PcmFormat : public NotEquals<PcmFormat>
+class Format : public NotEquals<Format>
 {
 public:
 	uint32_t rate = 0;
 	SampleFormat sample{};
 	uint8_t channels = 0;
 
-	constexpr PcmFormat() {}
-	constexpr PcmFormat(uint32_t rate, SampleFormat sample, uint8_t channels) :
+	constexpr Format() {}
+	constexpr Format(uint32_t rate, SampleFormat sample, uint8_t channels) :
 		rate{rate}, sample{sample}, channels{channels} {}
 
-	bool canSupport(const PcmFormat &p2) const
-	{
-		return rate >= p2.rate &&
-			sample.bytes() >= p2.sample.bytes() &&
-			channels >= p2.channels;
-	}
-
-	bool operator ==(PcmFormat const& rhs) const
+	bool operator ==(Format const& rhs) const
 	{
 		return rate == rhs.rate && sample == rhs.sample && channels == rhs.channels;
 	}
@@ -89,6 +82,8 @@ public:
 	{
 		return framesToBytes(timeToFrames(time));
 	}
+
+	void *copyFrames(void *dest, const void *src, unsigned frames, Format srcFormat, float volume = 1.f) const;
 };
 
 }

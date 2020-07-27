@@ -53,7 +53,7 @@ private:
 	pa_threaded_mainloop* mainloop{};
 	#endif
 	OnSamplesNeededDelegate onSamplesNeeded{};
-	PcmFormat pcmFormat;
+	Format pcmFormat;
 	bool isCorked = true;
 
 	void lockMainLoop();

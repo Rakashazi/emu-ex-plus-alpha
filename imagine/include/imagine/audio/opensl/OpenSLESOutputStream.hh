@@ -47,7 +47,7 @@ private:
 	OnSamplesNeededDelegate onSamplesNeeded{};
 	std::unique_ptr<uint8_t[]> buffer{};
 	uint32_t bufferBytes = 0;
-	PcmFormat pcmFormat{};
+	Format pcmFormat{};
 	bool isPlaying_ = false;
 	bool bufferQueued = false;
 

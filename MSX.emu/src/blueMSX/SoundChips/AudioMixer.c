@@ -112,7 +112,6 @@ struct Mixer
 { 
     MixerWriteCallback writeCallback;
     void*  writeRef;
-    Int32  fragmentSize;
     UInt32 refTime;
     UInt32 refFrag;
     UInt32 index;
@@ -127,7 +126,7 @@ struct Mixer
     //Int32   logging;
     Int32   stereo;
     UInt32 rate;
-    DoubleT  masterVolume;
+    //DoubleT  masterVolume;
     Int32   masterEnable;
     Int32   volIntLeft;
     Int32   volIntRight;
@@ -194,6 +193,7 @@ void mixerSetStereo(Mixer* mixer, Int32 stereo)
 
 void mixerSetMasterVolume(Mixer* mixer, Int32 volume)
 {
+#if 0
     int i;
 
     mixer->masterVolume = pow(10.0, (volume - 100) / 60.0) - pow(10.0, -100 / 60.0);
@@ -201,6 +201,7 @@ void mixerSetMasterVolume(Mixer* mixer, Int32 volume)
     for (i = 0; i < MIXER_CHANNEL_TYPE_COUNT; i++) {
         mixerRecalculateType(mixer, i);
     }
+#endif
 }
 
 void mixerEnableMaster(Mixer* mixer, Int32 enable)
@@ -286,8 +287,8 @@ static void recalculateChannelVolume(Mixer* mixer, MixerChannel* channel)
 	DoubleT panLeft       = pow(10.0, (MIN(100 - channel->pan, 50) - 50) / 30.0) - pow(10.0, -50 / 30.0);
 	DoubleT panRight      = pow(10.0, (MIN(channel->pan, 50) - 50) / 30.0) - pow(10.0, -50 / 30.0);
 
-    channel->volumeLeft  = channel->enable * mixer->masterEnable * (Int32)(1024 * mixer->masterVolume * volume * panLeft);
-    channel->volumeRight = channel->enable * mixer->masterEnable * (Int32)(1024 * mixer->masterVolume * volume * panRight);
+    channel->volumeLeft  = channel->enable * mixer->masterEnable * (Int32)(1024 * /*mixer->masterVolume **/ volume * panLeft);
+    channel->volumeRight = channel->enable * mixer->masterEnable * (Int32)(1024 * /*mixer->masterVolume **/ volume * panRight);
 
     if (!mixer->stereo) {
         Int32 tmp = (channel->volumeLeft + channel->volumeRight) / 2;
@@ -349,7 +350,6 @@ Mixer* mixerCreate()
 {
     Mixer* mixer = (Mixer*)calloc(1, sizeof(Mixer));
 
-    mixer->fragmentSize = 512;
     mixer->enable = 1;
     mixer->rate = AUDIO_SAMPLERATE;
 
@@ -383,13 +383,8 @@ void mixerSetSampleRate(Mixer* mixer, UInt32 rate)
 
 void mixerSetWriteCallback(Mixer* mixer, MixerWriteCallback callback, void* ref, int fragmentSize)
 {
-    mixer->fragmentSize = fragmentSize;
     mixer->writeCallback = callback;
     mixer->writeRef = ref;
-
-    if (mixer->fragmentSize <= 0) {
-        mixer->fragmentSize = 512;
-    }
 }
 
 Int32 mixerRegisterChannel(Mixer* mixer, Int32 audioType, Int32 stereo, MixerUpdateCallback callback, MixerSetSampleRateCallback rateCallback, void* ref)
@@ -455,6 +450,19 @@ void mixerReset(Mixer* mixer)
     mixer->index = 0;
 }
 
+static void flushMixerSamples(Mixer* mixer, Int16* buffer)
+{
+    if (mixer->index) {
+        if (mixer->writeCallback != NULL) {
+            mixer->writeCallback(mixer->writeRef, buffer, mixer->index);
+        }
+				/*if (mixer->logging) {
+						fwrite(buffer, 2 * mixer->fragmentSize, 1, mixer->file);
+				}*/
+				mixer->index = 0;
+    }
+}
+
 void mixerSync(Mixer* mixer)
 {
     UInt32 systemTime = boardSystemTime();
@@ -483,17 +491,8 @@ void mixerSync(Mixer* mixer)
             else {
                 buffer[mixer->index++] = 0;
             }
-
-            if (mixer->index == mixer->fragmentSize) {
-                if (mixer->writeCallback != NULL) {
-                    mixer->writeCallback(mixer->writeRef, buffer, mixer->fragmentSize);
-                }
-                /*if (mixer->logging) {
-                    fwrite(buffer, 2 * mixer->fragmentSize, 1, mixer->file);
-                }*/
-                mixer->index = 0;
-            }
         }
+        flushMixerSamples(mixer, buffer);
         return;
     }
     
@@ -550,16 +549,6 @@ void mixerSync(Mixer* mixer)
             buffer[mixer->index++] = (Int16)left;
             buffer[mixer->index++] = (Int16)right;
 
-            if (mixer->index == mixer->fragmentSize) {
-                if (mixer->writeCallback != NULL) {
-                    mixer->writeCallback(mixer->writeRef, buffer, mixer->fragmentSize);
-                }
-                /*if (mixer->logging) {
-                    fwrite(buffer, 2 * mixer->fragmentSize, 1, mixer->file);
-                }*/
-                mixer->index = 0;
-            }
-
             mixer->volIndex++;
         }
     }
@@ -596,20 +585,12 @@ void mixerSync(Mixer* mixer)
             if (left  < -32767) left  = -32767;
 
             buffer[mixer->index++] = (Int16)left;
-            
-            if (mixer->index == mixer->fragmentSize) {
-                if (mixer->writeCallback != NULL) {
-                    mixer->writeCallback(mixer->writeRef, buffer, mixer->fragmentSize);
-                }
-                /*if (mixer->logging) {
-                    fwrite(buffer, 2 * mixer->fragmentSize, 1, mixer->file);
-                }*/
-                mixer->index = 0;
-            }
 
             mixer->volIndex++;
         }
     }
+
+    flushMixerSamples(mixer, buffer);
 
     if (mixer->volIndex >= 441) {
         Int32 newVolumeLeft  = mixer->volCntLeft  / mixer->volIndex / 164;
@@ -633,8 +614,8 @@ void mixerSync(Mixer* mixer)
         mixer->volCntRight = 0;
 
         for (i = 0; i < mixer->channelCount; i++) {
-            Int32 newVolumeLeft  = (Int32)(mixer->channels[i].volCntLeft  / mixer->masterVolume / mixer->volIndex / 328);
-            Int32 newVolumeRight = (Int32)(mixer->channels[i].volCntRight / mixer->masterVolume / mixer->volIndex / 328);
+            Int32 newVolumeLeft  = (Int32)(mixer->channels[i].volCntLeft  / /*mixer->masterVolume /*/ mixer->volIndex / 328);
+            Int32 newVolumeRight = (Int32)(mixer->channels[i].volCntRight / /*mixer->masterVolume /*/ mixer->volIndex / 328);
 
             if (newVolumeLeft > 100) {
                 newVolumeLeft = 100;

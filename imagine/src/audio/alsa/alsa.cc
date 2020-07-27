@@ -301,7 +301,7 @@ ALSAOutputStream::operator bool() const
 	return true;
 }
 
-int ALSAOutputStream::setupPcm(PcmFormat format, snd_pcm_access_t access, IG::Microseconds wantedLatency)
+int ALSAOutputStream::setupPcm(Format format, snd_pcm_access_t access, IG::Microseconds wantedLatency)
 {
 	int alsalibResample = 1;
 	if(int err = snd_pcm_set_params(pcmHnd,
