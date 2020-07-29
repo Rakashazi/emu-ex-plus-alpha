@@ -19,6 +19,7 @@
 #include <emuframework/EmuSystemActionsView.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/bits.h>
+#include <imagine/util/ScopeGuard.hh>
 #include "internal.hh"
 
 extern "C"
@@ -452,20 +453,7 @@ static bool gameFileExists(const char *name)
 class GameListView : public TableView
 {
 private:
-	struct GameMenuItem
-	{
-		std::array<char, 128> longNameStr{};
-		TextMenuItem i;
-
-		GameMenuItem(char longName[128], TextMenuItem::SelectDelegate selectDel): i{longNameStr.data(), selectDel}
-		{
-			string_copy(longNameStr, longName);
-		}
-
-		GameMenuItem(const GameMenuItem &o): longNameStr(o.longNameStr), i{longNameStr.data(), o.i.onSelect()} {}
-	};
-
-	std::vector<GameMenuItem> item{};
+	std::vector<TextMenuItem> item{};
 
 	static void loadGame(const RomListEntry &entry, Input::Event e)
 	{
@@ -482,58 +470,48 @@ public:
 		{
 			"Game List",
 			attach,
-			[this](const TableView &)
-			{
-				return item.size();
-			},
-			[this](const TableView &, uint idx) -> MenuItem&
-			{
-				return item[idx].i;
-			}
+			item
 		}
 	{
 		for(const auto &entry : romlist)
 		{
 			ROM_DEF *drv = res_load_drv(entry.name);
-			if(drv)
+			if(!drv)
+				continue;
+			auto freeDrv = IG::scopeGuard([&](){ free(drv); });
+			bool fileExists = gameFileExists(drv->name);
+			if(!optionListAllGames && !fileExists)
 			{
-				bool fileExists = gameFileExists(drv->name);
-				if(!optionListAllGames && !fileExists)
+				continue;
+			}
+			item.emplace_back(drv->longname,
+				[this, &entry](TextMenuItem &item, View &, Input::Event e)
 				{
-					// TODO: free via scope exit wrapper
-					free(drv);
-					continue;
-				}
-				item.emplace_back(drv->longname,
-					[this, &entry](TextMenuItem &item, View &, Input::Event e)
+					if(item.active())
 					{
-						if(item.active())
+						if(entry.bugs)
 						{
-							if(entry.bugs)
-							{
-								auto ynAlertView = makeView<YesNoAlertView>(
-									"This game doesn't yet work properly, load anyway?");
-								ynAlertView->setOnYes(
-									[&entry](Input::Event e)
-									{
-										loadGame(entry, e);
-									});
-								EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
-							}
-							else
-							{
-								loadGame(entry, e);
-							}
+							auto ynAlertView = makeView<YesNoAlertView>(
+								"This game doesn't yet work properly, load anyway?");
+							ynAlertView->setOnYes(
+								[&entry](Input::Event e)
+								{
+									loadGame(entry, e);
+								});
+							EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
 						}
 						else
 						{
-							EmuApp::printfMessage(3, 1, "%s not present", entry.name);
+							loadGame(entry, e);
 						}
-						return true;
-					});
-				item.back().i.setActive(fileExists);
-			}
-			free(drv);
+					}
+					else
+					{
+						EmuApp::printfMessage(3, 1, "%s not present", entry.name);
+					}
+					return true;
+				});
+			item.back().setActive(fileExists);
 		}
 	}
 

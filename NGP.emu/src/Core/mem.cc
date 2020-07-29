@@ -91,6 +91,9 @@ should stop "Gals Fighters" from writing all over itself.
 #include <imagine/logger/logger.h>
 #include <imagine/util/bits.h>
 
+using uint16u [[gnu::aligned(1)]] = uint16;
+using uint32u [[gnu::aligned(1)]] = uint32;
+
 //=============================================================================
 
 //Hack way of returning good EEPROM status.
@@ -362,7 +365,7 @@ uint8 loadB(uint32 address)
 
 uint16 loadW(uint32 address)
 {
-	uint16* ptr = (uint16*)translate_address_read(address);
+	uint16u *ptr = (uint16u*)translate_address_read(address);
 	if((uintptr_t)ptr % 2 != 0)
 	{
 		//bug_exit("address %X", address);
@@ -382,7 +385,7 @@ uint16 loadW(uint32 address)
 
 uint32 loadL(uint32 address)
 {
-	uint32* ptr = (uint32*)translate_address_read(address);
+	uint32u *ptr = (uint32u*)translate_address_read(address);
 	if((uintptr_t)ptr % 4 != 0)
 	{
 		//bug_exit("address %X", address);
@@ -417,7 +420,7 @@ void storeB(uint32 address, uint8 data)
 
 void storeW(uint32 address, uint16 data)
 {
-	uint16* ptr = (uint16*)translate_address_write(address);
+	uint16u *ptr = (uint16u*)translate_address_write(address);
 	if((uintptr_t)ptr % 2 != 0)
 	{
 		//bug_exit("address %X", address);
@@ -438,7 +441,7 @@ void storeW(uint32 address, uint16 data)
 
 void storeL(uint32 address, uint32 data)
 {
-	uint32* ptr = (uint32*)translate_address_write(address);
+	uint32u *ptr = (uint32u*)translate_address_write(address);
 	if((uintptr_t)ptr % 4 != 0)
 	{
 		//bug_exit("address %X", address);
