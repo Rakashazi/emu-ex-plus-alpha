@@ -91,13 +91,17 @@ ifdef hasSCD
  -DMDFN_CD_NO_CCD \
  -DHAVE_LIBSNDFILE \
  -DPSS_STYLE=1
+
  SRC += MDFNApi.cc \
- FileStreamIOWrapper.cc \
+ CDImpl.cc \
  error.cpp \
  endian.cpp \
  general.cpp \
- FileStream.cpp \
+ MemoryStream.cpp \
+ NativeVFS.cpp \
  Stream.cpp \
+ StreamImpl.cc \
+ VirtualFS.cpp \
  cdrom/CDAFReader.cpp \
  cdrom/CDAFReader_SF.cpp \
  cdrom/CDAFReader_Vorbis.cpp \
@@ -109,6 +113,7 @@ ifdef hasSCD
  cdrom/CDUtility.cpp \
  cdrom/CDAccess_Image.cpp \
  cdrom/CDAccess.cpp \
+ hash/crc.cpp \
  string/string.cpp
 
  cxxExceptions := 1

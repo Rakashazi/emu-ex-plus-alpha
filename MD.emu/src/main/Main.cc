@@ -358,6 +358,7 @@ FS::PathString EmuSystem::willLoadGameFromPath(FS::PathString path)
 EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 {
 	#ifndef NO_SCD
+	using namespace Mednafen;
 	CDAccess *cd{};
 	if(hasMDCDExtension(gameFileName().data()) ||
 		(string_hasDotExtension(gameFileName().data(), "bin") && FS::file_size(fullGamePath()) > 1024*1024*10)) // CD
@@ -365,7 +366,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 		FS::current_path(gamePath());
 		try
 		{
-			cd = CDAccess_Open(fullGamePath(), false);
+			cd = CDAccess_Open(&NVFS, fullGamePath(), false);
 		}
 		catch(std::exception &e)
 		{

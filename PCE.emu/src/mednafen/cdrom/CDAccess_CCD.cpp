@@ -2,7 +2,7 @@
 /* Mednafen - Multi-system Emulator                                           */
 /******************************************************************************/
 /* CDAccess_CCD.cpp:
-**  Copyright (C) 2013-2016 Mednafen Team
+**  Copyright (C) 2013-2018 Mednafen Team
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU General Public License
@@ -22,11 +22,15 @@
 #include <mednafen/mednafen.h>
 #include <mednafen/general.h>
 #include <mednafen/string/string.h>
+#include <mednafen/MemoryStream.h>
 
 #include "CDAccess_CCD.h"
 #include <trio/trio.h>
 
 #include <map>
+
+namespace Mednafen
+{
 
 using namespace CDUtility;
 
@@ -78,14 +82,14 @@ static T CCD_ReadInt(CCD_Section &s, const std::string &propname, const bool hav
 }
 
 
-CDAccess_CCD::CDAccess_CCD(const std::string& path, bool image_memcache) : img_numsectors(0)
+CDAccess_CCD::CDAccess_CCD(VirtualFS* vfs, const std::string& path, bool image_memcache) : img_numsectors(0)
 {
- Load(path, image_memcache);
+ Load(vfs, path, image_memcache);
 }
 
-void CDAccess_CCD::Load(const std::string& path, bool image_memcache)
+void CDAccess_CCD::Load(VirtualFS* vfs, const std::string& path, bool image_memcache)
 {
- FileStreamIOWrapper cf(path, FileStream::MODE_READ);
+ std::unique_ptr<Stream> cf(vfs->open(path, VirtualFS::MODE_READ));
  std::map<std::string, CCD_Section> Sections;
  std::string linebuf;
  std::string cur_section_name;
@@ -93,7 +97,7 @@ void CDAccess_CCD::Load(const std::string& path, bool image_memcache)
  char img_extsd[4] = { 'i', 'm', 'g', 0 };
  char sub_extsd[4] = { 's', 'u', 'b', 0 };
 
- MDFN_GetFilePathComponents(path, &dir_path, &file_base, &file_ext);
+ vfs->get_file_path_components(path, &dir_path, &file_base, &file_ext);
 
  if(file_ext.length() == 4 && file_ext[0] == '.')
  {
@@ -136,9 +140,9 @@ void CDAccess_CCD::Load(const std::string& path, bool image_memcache)
 
  linebuf.reserve(256);
 
- while(cf.get_line(linebuf) >= 0)
+ while(cf->get_line(linebuf) >= 0)
  {
-  MDFN_trim(linebuf);
+  MDFN_trim(&linebuf);
 
   if(linebuf.length() == 0)	// Skip blank lines.
    continue;
@@ -149,7 +153,7 @@ void CDAccess_CCD::Load(const std::string& path, bool image_memcache)
     throw MDFN_Error(0, _("Malformed section specifier: %s"), linebuf.c_str());
 
    cur_section_name = linebuf.substr(1, linebuf.length() - 2);
-   MDFN_strazupper(cur_section_name);
+   MDFN_strazupper(&cur_section_name);
   }
   else
   {
@@ -163,10 +167,10 @@ void CDAccess_CCD::Load(const std::string& path, bool image_memcache)
    k = linebuf.substr(0, feqpos);
    v = linebuf.substr(feqpos + 1);
 
-   MDFN_trim(k);
-   MDFN_trim(v);
+   MDFN_trim(&k);
+   MDFN_trim(&v);
 
-   MDFN_strazupper(k);
+   MDFN_strazupper(&k);
 
    Sections[cur_section_name][k] = v;
   }
@@ -239,11 +243,19 @@ void CDAccess_CCD::Load(const std::string& path, bool image_memcache)
  //
  // Open image stream.
  {
-  std::string image_path = MDFN_EvalFIP(dir_path, file_base + std::string(".") + std::string(img_extsd), true);
+  std::string image_path = vfs->eval_fip(dir_path, file_base + "." + img_extsd, true);
 
-  img_stream = {image_path, FileStream::MODE_READ};
+  if(image_memcache)
+  {
+   img_stream.reset(new MemoryStream(vfs->open(image_path, VirtualFS::MODE_READ)));
+  }
+  else
+  {
+   img_stream.reset(vfs->open(image_path, VirtualFS::MODE_READ));
+   img_stream->require_fast_seekable();
+  }
 
-  uint64 ss = img_stream.size();
+  uint64 ss = img_stream->size();
 
   if(ss % 2352)
    throw MDFN_Error(0, _("CCD image size is not evenly divisible by 2352."));
@@ -257,14 +269,14 @@ void CDAccess_CCD::Load(const std::string& path, bool image_memcache)
  //
  // Open subchannel stream
  {
-  std::string sub_path = MDFN_EvalFIP(dir_path, file_base + std::string(".") + std::string(sub_extsd), true);
-  FileStreamIOWrapper sub_stream(sub_path, FileStream::MODE_READ);
+  std::string sub_path = vfs->eval_fip(dir_path, file_base + "." + sub_extsd, true);
+  std::unique_ptr<Stream> sub_stream(vfs->open(sub_path, VirtualFS::MODE_READ));
 
-  if(sub_stream.size() != (size_t)img_numsectors * 96)
+  if(sub_stream->size() != (uint64)img_numsectors * 96)
    throw MDFN_Error(0, _("CCD SUB file size mismatch."));
 
   sub_data.reset(new uint8[(uint64)img_numsectors * 96]);
-  sub_stream.read(sub_data.get(), (uint64)img_numsectors * 96);
+  sub_stream->read(sub_data.get(), (uint64)img_numsectors * 96);
  }
 
  CheckSubQSanity();
@@ -326,10 +338,10 @@ void CDAccess_CCD::CheckSubQSanity(void)
      int lba = ((BCD_to_U8(am_bcd) * 60 + BCD_to_U8(as_bcd)) * 75 + BCD_to_U8(af_bcd)) - 150;
      uint8 track = BCD_to_U8(track_bcd);
 
-     if(prev_lba != INT_MAX && std::abs(lba - prev_lba) > 100)
+     if(prev_lba != INT_MAX && abs(lba - prev_lba) > 100)
       throw MDFN_Error(0, _("Garbage subchannel Q data detected(excessively large jump in AMSF)"));
 
-     if(std::abs(lba - (int)s) > 100)
+     if(abs((int)(lba - s)) > 100)
       throw MDFN_Error(0, _("Garbage subchannel Q data detected(AMSF value is out of tolerance)"));
 
      prev_lba = lba;
@@ -367,7 +379,7 @@ int CDAccess_CCD::Read_Raw_Sector(uint8 *buf, int32 lba)
   return -1;
  }
 
- img_stream.readAtPos(buf, 2352, lba * 2352);
+ img_stream->readAtPos(buf, 2352, lba * 2352);
 
  subpw_interleave(&sub_data[lba * 96], buf + 2352);
  return 0;
@@ -397,16 +409,4 @@ void CDAccess_CCD::Read_TOC(CDUtility::TOC *toc)
  *toc = tocd;
 }
 
-int CDAccess_CCD::Read_Sector(uint8 *buf, int32 lba, uint32 size)
-{
-	if(lba < 0 || (size_t)lba >= img_numsectors)
-	 return -1;
-
-	img_stream.readAtPos(buf, size, lba * 2352);
-	return 0;
-}
-
-void CDAccess_CCD::HintReadSector(uint32 lba, int32 count)
-{
- img_stream.advise(lba * 2352, 2352 * count, IO::Advice::WILLNEED);
 }

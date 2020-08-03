@@ -3,6 +3,9 @@
 
 #include <atomic>
 
+namespace Mednafen
+{
+
 template<typename T, size_t size>
 class AtomicFIFO
 {
@@ -57,5 +60,5 @@ class AtomicFIFO
  std::atomic_size_t in_count;
 };
 
-
+}
 #endif

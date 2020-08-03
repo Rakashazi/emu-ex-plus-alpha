@@ -22,6 +22,9 @@
 #include <mednafen/mednafen.h>
 #include "surface.h"
 
+namespace Mednafen
+{
+
 MDFN_PixelFormat::MDFN_PixelFormat()
 {
  bpp = 0;
@@ -114,7 +117,7 @@ void MDFN_Surface::Init(void *const p_pixels, const uint32 p_width, const uint32
  else
  {
   assert((nf.Rshift + nf.Gshift + nf.Bshift + nf.Ashift) == 48);
-  assert(!((nf.Rshift | nf.Gshift | nf.Bshift | nf.Ashift) & 0x7));
+  assert(((1ULL << nf.Rshift) | (1ULL << nf.Gshift) | (1ULL << nf.Bshift) | (1ULL << nf.Ashift)) == 0x01010101);
 
   format.Rprec = 8;
   format.Gprec = 8;
@@ -424,4 +427,6 @@ MDFN_Surface::~MDFN_Surface()
   if(palette)
    free(palette);
  }
+}
+
 }

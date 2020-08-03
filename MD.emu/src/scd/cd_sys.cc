@@ -201,7 +201,7 @@ void Reset_CD(void)
 }
 
 
-int Insert_CD(CDAccess *cd)
+int Insert_CD(Mednafen::CDAccess *cd)
 {
 	int ret = 0;
 

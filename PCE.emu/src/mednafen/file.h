@@ -3,25 +3,24 @@
 
 #include <mednafen/Stream.h>
 
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+namespace Mednafen
+{
 
 class MDFNFILE
 {
 	public:
 
-	MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose = NULL);
-	MDFNFILE(std::unique_ptr<Stream> str, const char *path, const char *purpose = nullptr);
+	MDFNFILE(VirtualFS* vfs, const char* path, const std::vector<FileExtensionSpecStruct>& known_ext, const char* purpose = nullptr);
+	MDFNFILE(VirtualFS* vfs, std::unique_ptr<Stream> str, const char *path, const char *purpose = nullptr);
 	~MDFNFILE();
 
-        void ApplyIPS(Stream *);
+        void ApplyIPS(Stream*);
 	void Close(void) throw();
 
         const std::string &ext;		// For file-type determination.  Leading period has been removed, and A-Z chars have been converted to a-z.
         const std::string &fbase;	// For region detection heuristics.
 
-	inline uint64 size(void)
+	INLINE uint64 size(void)
 	{
 	 return str->size();
 	}
@@ -51,14 +50,42 @@ class MDFNFILE
 	 return str.get();
 	}
 
+	INLINE VirtualFS* active_vfs(void)
+	{
+	 return f_vfs;
+	}
+
+	// Path of file opened from archive, in the archive.
+	INLINE std::string active_dir_path(void)
+	{
+	 return f_dir_path;
+	}
+
+	INLINE std::string active_path(void)
+	{
+	 return f_path;
+	}
+
+	INLINE std::unique_ptr<VirtualFS> steal_archive_vfs(void)
+	{
+	 f_vfs = nullptr;
+
+	 return std::move(archive_vfs);
+	}
+
 	private:
 
 	std::string f_ext;
 	std::string f_fbase;
 
 	std::unique_ptr<Stream> str;
+	std::unique_ptr<VirtualFS> archive_vfs;
 
-	void Open(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose = NULL);
+	VirtualFS* f_vfs;
+	std::string f_dir_path;
+	std::string f_path;
+
+	void Open(VirtualFS* vfs, const char* path, const std::vector<FileExtensionSpecStruct>& known_ext, const char* purpose = nullptr);
 
 	MDFNFILE(const MDFNFILE&);
 	MDFNFILE& operator=(const MDFNFILE&);
@@ -106,8 +133,5 @@ void MDFN_BackupSavFile(const uint8 max_backup_count, const char* sav_ext);
 //
 std::unique_ptr<Stream> MDFN_AmbigGZOpenHelper(const std::string& path, std::vector<size_t> good_sizes);
 
-void MDFN_mkdir_T(const char* path);
-int MDFN_stat(const char*, struct stat*);
-void MDFN_unlink(const char* path);
-void MDFN_rename(const char* oldpath, const char* newpath);
+}
 #endif

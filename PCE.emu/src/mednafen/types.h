@@ -8,9 +8,26 @@
 //
 //
 //
+#ifndef MDFN_DISABLE_PICPIE_ERRWARN
+ #if defined(__PIC__) || defined(__pic__) || defined(__PIE__) || defined(__pie__)
+  #warning "Compiling with position-independent code generation enabled is not recommended, for performance reasons."
+ #endif
+#endif
 
-#if defined(__x86_64__) && defined(__code_model_large__)
- #error "Compiling with large memory model is not recommended, for performance reasons."
+#ifndef MDFN_DISABLE_NO_OPT_ERRWARN
+ #if defined(__GNUC__)
+  #if !defined(__OPTIMIZE__) && !defined(__OPTIMIZE_SIZE__)
+   #warning "Compiling without optimizations."
+  #endif
+
+  #if defined(__x86_64__) && defined(__code_model_large__)
+   #error "Compiling with large memory model is not recommended, for performance reasons."
+  #endif
+ #endif
+
+ #ifdef __USING_SJLJ_EXCEPTIONS__
+  #error "SJLJ-style exception handling will incur a significant performance penalty even when exceptions are not thrown, and thus an alternative(e.g. DWARF) should be used if at all possible."
+ #endif
 #endif
 //
 //
@@ -29,6 +46,7 @@
 #include <math.h>
 
 #ifdef __cplusplus
+#include <cmath>
 #include <limits>
 #include <exception>
 #include <stdexcept>
@@ -41,27 +59,81 @@
 #include <vector>
 #include <array>
 #include <list>
+#include <map>
 #endif
 
-#include <imagine/util/builtins.h>
+typedef int8_t int8;
+typedef int16_t int16;
+typedef int32_t int32;
+typedef int64_t int64;
 
-using int8 = int8_t;
-using int16 = int16_t;
-using int32 = int32_t;
-using int64 = int64_t;
-using uint8 = uint8_t;
-using uint16 = uint16_t;
-using uint32 = uint32_t;
-using uint64 = uint64_t;
+typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
 
-#if !defined(HAVE_NATIVE64BIT) && (SIZEOF_VOID_P >= 8 || defined(__x86_64__))
-#define HAVE_NATIVE64BIT 1
+#if !defined(ARCH_X86) && !defined(ARCH_POWERPC)
+ #if defined(_M_AMD64) || defined(__x86_64__)
+  #define ARCH_X86 1
+  #ifdef __ILP32__
+   #define ARCH_X86_X32 1
+  #else
+   #define ARCH_X86_64 1
+  #endif
+ #elif defined(__386__) || defined(__i386__) || defined(__i386) || defined(_M_IX86) || defined(_M_I386)
+  #define ARCH_X86 1
+  #define ARCH_X86_32 1
+ #elif defined(__powerpc__) || defined(__powerpc64__)
+  #define ARCH_POWERPC 1
+ #endif
+#endif
+
+#if SIZEOF_VOID_P >= 8 || ARCH_X86_64 || ARCH_X86_X32
+ #define HAVE_NATIVE64BIT 1
 #endif
 
 #if defined(__GNUC__) || defined(__clang__) || defined(__ICC) || defined(__INTEL_COMPILER)
  #define HAVE_COMPUTED_GOTO 1
+ #define HAVE_INLINEASM 1
 #endif
 
+#if defined(__MMX__)
+ #define HAVE_MMX_INTRINSICS 1
+#endif
+
+#if defined(__SSE__) || defined(__SSE2__) || _M_IX86_FP >= 1 || defined(_M_AMD64)
+ #define HAVE_SSE_INTRINSICS 1
+#endif
+
+#if defined(__SSE2__) || _M_IX86_FP >= 2 || defined(_M_AMD64)
+ #define HAVE_SSE2_INTRINSICS 1
+#endif
+
+#if defined(__ARM_NEON__) || defined(__ARM_NEON) || defined(_M_ARM64)
+ #define HAVE_NEON_INTRINSICS 1
+#endif
+
+#if defined(__ALTIVEC__)
+ #define HAVE_ALTIVEC_INTRINSICS 1
+#endif
+//
+//
+//
+//
+#if defined(ARCH_X86) && defined(MSB_FIRST)
+ #error "Bad configuration macros."
+#endif
+
+#if defined(DOS) && defined(WIN32)
+ #error "Bad configuration macros."
+#endif
+
+#if (defined(DOS) || defined(OS2) || defined(WIN32)) && (defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__))
+ #error "Bad configuration macros."
+#endif
+//
+//
+//
 #if defined(__clang__)
   //
   // Begin clang
@@ -73,7 +145,7 @@ using uint64 = uint64_t;
   #define NO_INLINE
   #define NO_CLONE
 
-  #if defined(__386__) || defined(__i386__) || defined(__i386) || defined(_M_IX86) || defined(_M_I386)
+  #if defined(ARCH_X86_32)
     #define MDFN_FASTCALL __attribute__((fastcall))
   #else
     #define MDFN_FASTCALL
@@ -82,6 +154,8 @@ using uint64 = uint64_t;
   #define MDFN_FORMATSTR(a,b,c)
   #define MDFN_WARN_UNUSED_RESULT __attribute__ ((warn_unused_result))
   #define MDFN_NOWARN_UNUSED __attribute__((unused))
+
+  #define MDFN_RESTRICT __restrict__
 
   #define MDFN_UNLIKELY(n) __builtin_expect((n) != 0, 0)
   #define MDFN_LIKELY(n) __builtin_expect((n) != 0, 1)
@@ -93,6 +167,12 @@ using uint64 = uint64_t;
    #define MDFN_ASSUME_ALIGNED(p, align) ((decltype(p))__builtin_assume_aligned((p), (align)))
   #else
    #define MDFN_ASSUME_ALIGNED(p, align) (p)
+  #endif
+
+  #if defined(WIN32) || defined(DOS)
+   #define MDFN_HIDE
+  #else
+   #define MDFN_HIDE __attribute__((visibility("hidden")))
   #endif
 #elif defined(__GNUC__)
   //
@@ -123,7 +203,7 @@ using uint64 = uint64_t;
   // http://gcc.gnu.org/bugzilla/show_bug.cgi?id=17025
   //
   #if MDFN_GCC_VERSION >= MDFN_MAKE_GCCV(4,1,0)
-   #if defined(__386__) || defined(__i386__) || defined(__i386) || defined(_M_IX86) || defined(_M_I386)
+   #if defined(ARCH_X86_32)
      #define MDFN_FASTCALL __attribute__((fastcall))
    #else
      #define MDFN_FASTCALL
@@ -135,6 +215,8 @@ using uint64 = uint64_t;
   #define MDFN_FORMATSTR(a,b,c) __attribute__ ((format (a, b, c)))
   #define MDFN_WARN_UNUSED_RESULT __attribute__ ((warn_unused_result))
   #define MDFN_NOWARN_UNUSED __attribute__((unused))
+
+  #define MDFN_RESTRICT __restrict__
 
   #define MDFN_UNLIKELY(n) __builtin_expect((n) != 0, 0)
   #define MDFN_LIKELY(n) __builtin_expect((n) != 0, 1)
@@ -151,6 +233,12 @@ using uint64 = uint64_t;
    #define MDFN_ASSUME_ALIGNED(p, align) ((decltype(p))__builtin_assume_aligned((p), (align)))
   #else
    #define MDFN_ASSUME_ALIGNED(p, align) (p)
+  #endif
+
+  #if defined(WIN32) || defined(DOS)
+   #define MDFN_HIDE
+  #else
+   #define MDFN_HIDE __attribute__((visibility("hidden")))
   #endif
 #elif defined(_MSC_VER)
   //
@@ -170,6 +258,8 @@ using uint64 = uint64_t;
 
   #define MDFN_NOWARN_UNUSED
 
+  #define MDFN_RESTRICT __restrict
+
   #define MDFN_UNLIKELY(n) ((n) != 0)
   #define MDFN_LIKELY(n) ((n) != 0)
 
@@ -177,6 +267,7 @@ using uint64 = uint64_t;
   #define MDFN_HOT
 
   #define MDFN_ASSUME_ALIGNED(p, align) (p)
+  #define MDFN_HIDE
 #else
   #define INLINE inline
   #define NO_INLINE
@@ -190,6 +281,8 @@ using uint64 = uint64_t;
 
   #define MDFN_NOWARN_UNUSED
 
+  #define MDFN_RESTRICT
+
   #define MDFN_UNLIKELY(n) ((n) != 0)
   #define MDFN_LIKELY(n) ((n) != 0)
 
@@ -197,6 +290,7 @@ using uint64 = uint64_t;
   #define MDFN_HOT
 
   #define MDFN_ASSUME_ALIGNED(p, align) (p)
+  #define MDFN_HIDE
 #endif
 
 #ifndef FALSE
@@ -219,11 +313,26 @@ using uint64 = uint64_t;
  #define MDFN_IS_BIGENDIAN true
 #endif
 
+#ifdef ENABLE_NLS
+ #include "gettext.h"
+#else
+ #define gettext(s) (s)
+ #define dgettext(d, s) (s)
+ #define dcgettext(d, s, c) (s)
+ #define gettext_noop(s) (s)
+#endif
+
+#define _(s) gettext(s)
+
 #ifdef __cplusplus
-template<typename T> typename std::remove_all_extents<T>::type* MDAP(T* v) { return (typename std::remove_all_extents<T>::type*)v; }
+namespace Mednafen
+{
+template<typename T> static INLINE typename std::remove_all_extents<T>::type* MDAP(T* v) { return (typename std::remove_all_extents<T>::type*)v; }
+}
 #include "error.h"
 #include "math_ops.h"
 #include "endian.h"
+
 #endif
 
 #endif

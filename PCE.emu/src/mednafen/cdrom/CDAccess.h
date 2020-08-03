@@ -23,7 +23,9 @@
 #define __MDFN_CDROM_CDACCESS_H
 
 #include "CDUtility.h"
-#include <string>
+
+namespace Mednafen
+{
 
 class CDAccess
 {
@@ -42,7 +44,7 @@ class CDAccess
 
  virtual void Read_TOC(CDUtility::TOC *toc) = 0;
 
- virtual void HintReadSector(uint32 lba, int32 count) = 0;
+ virtual void HintReadSector(int32 lba, int32 count) = 0;
 
  virtual int Read_Sector(uint8 *buf, int32 lba, uint32 size) = 0;
 
@@ -51,6 +53,7 @@ class CDAccess
  CDAccess& operator=(const CDAccess&); // No assignment operator.
 };
 
-CDAccess* CDAccess_Open(const std::string& path, bool image_memcache);
+CDAccess* CDAccess_Open(VirtualFS* vfs, const std::string& path, bool image_memcache);
 
+}
 #endif

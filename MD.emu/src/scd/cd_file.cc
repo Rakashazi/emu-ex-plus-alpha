@@ -22,12 +22,20 @@
 //#define cdprintf(f,...) printf(f "\n",##__VA_ARGS__) // tmp
 //#define DEBUG_CD
 
+namespace Mednafen
+{
+
+NativeVFS NVFS;
+
 bool MDFN_GetSettingB(const char *name) { return 0; }
 
-static CDAccess *cdImage = nullptr;
+}
 
-int Load_ISO(CDAccess *cd)
+static Mednafen::CDAccess *cdImage = nullptr;
+
+int Load_ISO(Mednafen::CDAccess *cd)
 {
+	using namespace Mednafen;
 	_scd_track *Tracks = sCD.TOC.Tracks;
 	CDUtility::TOC toc;
 	cd->Read_TOC(&toc);

@@ -1,6 +1,9 @@
 #ifndef __MDFN_SIMPLEFIFO_H
 #define __MDFN_SIMPLEFIFO_H
 
+namespace Mednafen
+{
+
 template<typename T>
 class SimpleFIFO
 {
@@ -131,5 +134,5 @@ class SimpleFIFO
  uint32 in_count; // Number of units in the FIFO
 };
 
-
+}
 #endif

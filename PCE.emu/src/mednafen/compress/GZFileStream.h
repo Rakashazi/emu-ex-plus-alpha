@@ -26,6 +26,9 @@
 
 #include <zlib.h>
 
+namespace Mednafen
+{
+
 class GZFileStream : public Stream
 {
  public:
@@ -81,6 +84,6 @@ class GZFileStream : public Stream
  std::string path_save;
 };
 
-
+}
 
 #endif

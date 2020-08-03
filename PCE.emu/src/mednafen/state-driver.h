@@ -4,6 +4,8 @@
 #include "video.h"
 #include "state-common.h"
 
+namespace Mednafen
+{
 //
 // "fname", when non-NULL, overrides the default save state filename generation.
 // "suffix", when non-NULL, just override the default suffix(mc0-mc9).
@@ -17,5 +19,6 @@ void MDFNI_SelectState(int) noexcept;
 
 void MDFND_SetStateStatus(StateStatusStruct *status) noexcept;
 void MDFND_SetMovieStatus(StateStatusStruct *status) noexcept;
+}
 
 #endif

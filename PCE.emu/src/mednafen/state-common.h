@@ -1,6 +1,9 @@
 #ifndef __MDFN_STATE_COMMON_H
 #define __MDFN_STATE_COMMON_H
 
+namespace Mednafen
+{
+
 typedef struct
 {
  int status[10];
@@ -15,4 +18,5 @@ typedef struct
  uint32 w, h;
 } StateStatusStruct;
 
+}
 #endif

@@ -19,24 +19,26 @@
 #include <imagine/logger/logger.h>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
+#include <mednafen/types.h>
 #include <mednafen/git.h>
 #include <mednafen/file.h>
 #include <mednafen/memory.h>
 #include <mednafen/MemoryStream.h>
 
-static bool hasKnownExtension(const char *name, const FileExtensionSpecStruct *extSpec)
+using namespace Mednafen;
+
+static bool hasKnownExtension(const char *name, const std::vector<FileExtensionSpecStruct>& extSpec)
 {
-	while(extSpec->extension)
+	for(const auto &e : extSpec)
 	{
-		if(string_hasDotExtension(name, extSpec->extension + 1)) // skip "." in extSpec->extension
+		if(string_hasDotExtension(name, e.extension + 1)) // skip "."
 			return true;
-		extSpec++;
 	}
 	return false;
 }
 
-MDFNFILE::MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose):
-	ext(f_ext), fbase(f_fbase)
+MDFNFILE::MDFNFILE(VirtualFS* vfs, const char* path, const std::vector<FileExtensionSpecStruct>& known_ext, const char* purpose):
+	ext(f_ext), fbase(f_fbase), f_vfs{vfs}
 {
 	if(EmuApp::hasArchiveExtension(path))
 	{
@@ -70,25 +72,16 @@ MDFNFILE::MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, c
 	}
 	else
 	{
-		FileIO file;
-		file.open(path, IO::AccessHint::ALL);
-		if(!file)
-		{
-			throw MDFN_Error(0, "Error opening file");
-		}
-		str = std::make_unique<MemoryStream>(file.size(), true);
-		if(file.read(str->map(), str->map_size()) != (int)str->map_size())
-		{
-			throw MDFN_Error(0, "Error reading file");
-		}
+		str.reset(vfs->open(path, VirtualFS::MODE_READ));
 		auto extStr = strrchr(path, '.');
 		f_ext = extStr ? extStr + 1 : "";
 	}
 }
 
-MDFNFILE::MDFNFILE(std::unique_ptr<Stream> str, const char *path, const char *purpose):
+MDFNFILE::MDFNFILE(VirtualFS* vfs, std::unique_ptr<Stream> str, const char *path, const char *purpose):
 	ext(f_ext), fbase(f_fbase),
-	str{std::move(str)}
+	str{std::move(str)},
+	f_vfs{vfs}
 {
 	auto extStr = strrchr(path, '.');
 	f_ext = extStr ? extStr + 1 : "";

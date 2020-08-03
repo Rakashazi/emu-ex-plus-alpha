@@ -30,6 +30,9 @@
  #include <mednafen/mpcdec/mpcdec.h>
 #endif
 
+namespace Mednafen
+{
+
 class CDAFReader_MPC final : public CDAFReader
 {
  public:
@@ -233,4 +236,6 @@ uint64 CDAFReader_MPC::FrameCount(void)
 CDAFReader* CDAFR_MPC_Open(Stream* fp)
 {
  return new CDAFReader_MPC(fp);
+}
+
 }

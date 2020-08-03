@@ -120,5 +120,5 @@ void scd_updateCddaVol();
 int scd_saveState(uint8 *state);
 int scd_loadState(uint8 *state, uint exVersion);
 
-int Insert_CD(CDAccess *cd);
+int Insert_CD(Mednafen::CDAccess *cd);
 void Stop_CD();

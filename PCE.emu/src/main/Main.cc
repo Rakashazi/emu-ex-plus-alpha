@@ -30,7 +30,7 @@
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
 FS::PathString sysCardPath{};
-static std::vector<CDIF *> CDInterfaces;
+static std::vector<CDInterface *> CDInterfaces;
 using Pixel = uint16;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static const uint vidBufferX = 512, vidBufferY = 242;
@@ -131,7 +131,7 @@ void EmuSystem::closeSystem()
 
 static void writeCDMD5()
 {
-	CD_TOC toc;
+	CDUtility::TOC toc;
 	md5_context layout_md5;
 
 	CDInterfaces[0]->ReadTOC(&toc);
@@ -179,7 +179,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 		FS::current_path(gamePath());
 		try
 		{
-			CDInterfaces.push_back(CDIF_Open(fullGamePath(), false));
+			CDInterfaces.push_back(CDInterface::Open(&NVFS, fullGamePath(), false, 0));
 			writeCDMD5();
 			emuSys->LoadCD(&CDInterfaces);
 			PCECD_Drive_SetDisc(false, CDInterfaces[0]);
@@ -196,8 +196,9 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 			auto size = io.size();
 			auto stream = std::make_unique<MemoryStream>(size, true);
 			io.read(stream->map(), stream->map_size());
-			MDFNFILE fp(std::move(stream), originalGameFileName().data());
-			emuSys->Load(&fp);
+			MDFNFILE fp(&NVFS, std::move(stream), originalGameFileName().data());
+			GameFile gf{fp.active_vfs(), fp.active_dir_path(), fp.stream(), fp.ext, fp.fbase};
+			emuSys->Load(&gf);
 		}
 		catch(std::exception &e)
 		{
@@ -237,6 +238,9 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	logMsg("emu sound rate:%f, 263 lines:%d", (double)espec.SoundRate, using263Lines);
 	PCE_Fast::applySoundFormat(&espec);
 }
+
+namespace Mednafen
+{
 
 void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 {
@@ -367,6 +371,8 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 	{
 		video.startFrameWithFormat(espec->task, srcPix);
 	}
+}
+
 }
 
 void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)

@@ -178,7 +178,7 @@ static int simple_lec(unsigned char *frame)
 
 int ValidateRawSector(unsigned char *frame, bool xaMode)
 {  
- int lec_did_sth = FALSE;
+  //int lec_did_sth = FALSE;
 
   /* Do simple L-EC.
      It seems that drives stop their internal L-EC as soon as the
@@ -196,17 +196,17 @@ int ValidateRawSector(unsigned char *frame, bool xaMode)
     memset(frame + 12, 0, 4);
    }
 
-   lec_did_sth = simple_lec(frame);
+   /*lec_did_sth =*/ simple_lec(frame);
 
    if(xaMode)
     memcpy(frame + 12, header, 4);
-  }
 
-  /* Test internal sector checksum again */
-  if(!CheckEDC(frame, xaMode))
-  {
-   /* EDC failure in RAW sector */
-   return FALSE;
+   /* Test internal sector checksum again */
+   if(!CheckEDC(frame, xaMode))
+   {
+    /* EDC failure in RAW sector */
+    return FALSE;
+   }
   }
 
   return TRUE;

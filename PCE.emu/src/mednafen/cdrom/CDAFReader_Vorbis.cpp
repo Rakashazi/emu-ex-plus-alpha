@@ -33,12 +33,13 @@
 #include <tremor/ivorbisfile.h>
 #endif
 
-#include <imagine/io/api/vorbis.hh>
+namespace Mednafen
+{
 
 class CDAFReader_Vorbis final : public CDAFReader
 {
  public:
- CDAFReader_Vorbis(IO *fp);
+ CDAFReader_Vorbis(Stream *fp);
  ~CDAFReader_Vorbis();
 
  uint64 Read_(int16 *buffer, uint64 frames) override;
@@ -47,7 +48,7 @@ class CDAFReader_Vorbis final : public CDAFReader
 
  private:
  OggVorbis_File ovfile;
- IO *fw;
+ Stream *fw;
 };
 
 
@@ -112,9 +113,15 @@ static long iov_tell_func(void *user_data)
  }
 }
 
-CDAFReader_Vorbis::CDAFReader_Vorbis(IO *fp) : fw(fp)
+CDAFReader_Vorbis::CDAFReader_Vorbis(Stream *fp) : fw(fp)
 {
- ov_callbacks cb = IOAPI::vorbisNoClose;
+ ov_callbacks cb;
+
+ memset(&cb, 0, sizeof(cb));
+ cb.read_func = iov_read_func;
+ cb.seek_func = iov_seek_func;
+ cb.close_func = iov_close_func;
+ cb.tell_func = iov_tell_func;
 
  if(ov_open_callbacks(fp, &ovfile, NULL, 0, cb))
   throw(0);
@@ -166,7 +173,9 @@ uint64 CDAFReader_Vorbis::FrameCount(void)
  return(ov_pcm_total(&ovfile, -1));
 }
 
-CDAFReader* CDAFR_Vorbis_Open(IO* fp)
+CDAFReader* CDAFR_Vorbis_Open(Stream* fp)
 {
  return new CDAFReader_Vorbis(fp);
+}
+
 }

@@ -4,6 +4,9 @@
 #include <mednafen/video.h>
 #include <mednafen/FileStream.h>
 
+namespace Mednafen
+{
+
 class PNGWrite
 {
  public:
@@ -24,5 +27,6 @@ class PNGWrite
  std::vector<uint8> tmp_buffer;
 };
 
+}
 #endif
 

@@ -379,3 +379,5 @@
 /* Define to unsigned long or unsigned long long if <stdint.h> and
    <inttypes.h> don't define. */
 /* #undef uintmax_t */
+
+#define MDFN_DISABLE_PICPIE_ERRWARN

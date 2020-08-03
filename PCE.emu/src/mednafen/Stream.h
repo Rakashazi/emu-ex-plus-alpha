@@ -2,7 +2,7 @@
 /* Mednafen - Multi-system Emulator                                           */
 /******************************************************************************/
 /* Stream.h:
-**  Copyright (C) 2012-2016 Mednafen Team
+**  Copyright (C) 2012-2018 Mednafen Team
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU General Public License
@@ -19,18 +19,16 @@
 ** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+// TODO?: BufferedStream, no virtual functions, yes inline functions, constructor takes a Stream* argument.
+
 #ifndef __MDFN_STREAM_H
 #define __MDFN_STREAM_H
 
-#include <common/FileStreamIOWrapper.hh>
-
-// TODO?: BufferedStream, no virtual functions, yes inline functions, constructor takes a Stream* argument.
-
 #include <mednafen/types.h>
+#include <imagine/io/IO.hh>
 
-#include "gettext.h"
-#define _(String) gettext (String)
-
+namespace Mednafen
+{
 /*
  The data read into the pointer passed to read*() functions should be considered undefined if the function throws
  or propagates an exception.
@@ -50,7 +48,11 @@ class Stream
   ATTRIBUTE_SEEKABLE =	1U <<  2,	// Indicates that Stream is capable of being seeked, regardless of how performant seeking is.
 
   ATTRIBUTE_SLOW_SEEK =	1U <<  3,	// Indicates that seeking(particularly backwards) is slow, and should be avoided if at all possible.
-  ATTRIBUTE_SLOW_SIZE =	1U <<  4	// Indicates that size() is slow, and should be avoided if at all possible.
+  ATTRIBUTE_SLOW_SIZE =	1U <<  4,	// Indicates that size() is slow, and should be avoided if at all possible.  May be cleared
+					// after a successful call to size() if the class caches the determined size.
+
+  ATTRIBUTE_INMEM_FAST = 1U << 5,	// Indicates the stream's underlying data is in memory or synthesizable from data in memory with low computational complexity,
+					// and that reads and seeks are both very fast.
  };
  virtual uint64 attributes(void) = 0;
 
@@ -84,6 +86,7 @@ class Stream
 				// then this will be a nop.
 
  virtual uint64 read(void *data, uint64 count, bool error_on_eos = true) = 0;
+ virtual uint64 readAtPos(void *data, uint64 count, uint64 pos);
  virtual void write(const void *data, uint64 count) = 0;
 
  virtual void truncate(uint64 length) = 0;	// Should have ftruncate()-like semantics; but avoid using it to extend files.
@@ -105,6 +108,7 @@ class Stream
 				// exceptions thrown caught and logged.
 
  virtual bool isMemoryStream();
+ virtual void advise(off_t offset, size_t bytes, IO::Advice advice);
 
  //
  // Utility functions(TODO):
@@ -224,9 +228,11 @@ class Stream
  // Implemented as virtual so that a higher-performance version can be implemented if possible(IE with MemoryStream)
  virtual int get_line(std::string &str);
 
- virtual void put_line(const std::string& str);
-
  virtual void print_format(const char *format, ...) MDFN_FORMATSTR(gnu_printf, 2, 3);
+
+ void put_line(const std::string& str);
+ void put_line(const char* s);
+
 
 #if 0
  int scanf(const char *format, ...) MDFN_FORMATSTR(gnu_scanf, 2, 3);
@@ -283,5 +289,5 @@ class StreamPosFilter final : public Stream
  std::shared_ptr<Stream> s;
 };
 */
-
+}
 #endif

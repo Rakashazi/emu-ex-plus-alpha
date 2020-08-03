@@ -5,6 +5,8 @@
 #include <mednafen/general.h>
 #include <mednafen/memory.h>
 
+using namespace Mednafen;
+
 #define PCE_MASTER_CLOCK        21477272.727273
 
 #define DECLFR(x) uint8 MDFN_FASTCALL x (uint32 A)

@@ -22,6 +22,9 @@
 #ifndef __MDFN_VIDEO_TEXT_H
 #define __MDFN_VIDEO_TEXT_H
 
+namespace Mednafen
+{
+
 enum
 {
  // If the order of these constants is changed, you must also update the array of FontDescriptor
@@ -71,5 +74,5 @@ INLINE uint32 DrawText(MDFN_Surface* surf, const MDFN_Rect& crect, int32 x, int3
 INLINE uint32 DrawTextShadow(MDFN_Surface* surf, int32 x, int32 y, const std::u32string& text, uint32 color, uint32 shadcolor, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0) { return DrawTextShadow(surf, x, y, text.c_str(), color, shadcolor, fontid, hcenterw); }
 INLINE uint32 DrawTextShadow(MDFN_Surface* surf, const MDFN_Rect& crect, int32 x, int32 y, const std::u32string& text, uint32 color, uint32 shadcolor, uint32 fontid = MDFN_FONT_9x18_18x18, uint32 hcenterw = 0) { return DrawTextShadow(surf, crect, x, y, text.c_str(), color, shadcolor, fontid, hcenterw); }
 
-
+}
 #endif

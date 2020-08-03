@@ -1,30 +1,40 @@
-/* Mednafen - Multi-system Emulator
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
+/******************************************************************************/
+/* Mednafen - Multi-system Emulator                                           */
+/******************************************************************************/
+/* scsicd.cpp:
+**  Copyright (C) 2006-2018 Mednafen Team
+**
+**  DoNEC_*() functions additionally:
+**   Copyright (C) 2004 Ki
+**
+** This program is free software; you can redistribute it and/or
+** modify it under the terms of the GNU General Public License
+** as published by the Free Software Foundation; either version 2
+** of the License, or (at your option) any later version.
+**
+** This program is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with this program; if not, write to the Free Software Foundation, Inc.,
+** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+*/
 
 #include <mednafen/mednafen.h>
+#include <mednafen/cdrom/CDInterface.h>
 #include <trio/trio.h>
 #include "scsicd.h"
-#include "cdromif.h"
 #include "SimpleFIFO.h"
 
 #if defined(__SSE2__)
 #include <xmmintrin.h>
 #include <emmintrin.h>
 #endif
+
+namespace Mednafen
+{
 
 //#define SCSIDBG(format, ...) { printf("[SCSICD] " format "\n",  ## __VA_ARGS__); }
 //#define SCSIDBG(format, ...) { }
@@ -38,7 +48,7 @@ static void (*CDStuffSubchannels)(uint8, int);
 static int32* HRBufs[2];
 static int WhichSystem;
 
-static CDIF *Cur_CDIF;
+static CDInterface *Cur_CDIF;
 static bool TrayOpen;
 
 // Internal operation to the SCSI CD unit.  Only pass 1 or 0 to these macros!
@@ -485,7 +495,7 @@ static void DoSimpleDataIn(const uint8 *data_in, uint32 len)
  ChangePhase(PHASE_DATA_IN);
 }
 
-void SCSICD_SetDisc(bool new_tray_open, CDIF *cdif, bool no_emu_side_effects)
+void SCSICD_SetDisc(bool new_tray_open, CDInterface *cdif, bool no_emu_side_effects)
 {
  Cur_CDIF = cdif;
 
@@ -526,7 +536,18 @@ static void CommandCCError(int key, int asc = 0, int ascq = 0)
 
 static bool ValidateRawDataSector(uint8 *data, const uint32 lba)
 {
- if(!Cur_CDIF->ValidateRawSector(data))
+ bool ok = true;
+ const uint8 mode = data[12 + 3];
+
+ // TODO: Don't accept mode 2 on PC Engine
+ if(mode != 0x1 && mode != 0x2)
+  ok = false;
+ else if(mode == 0x2 && (data[12 + 6] & 0x20)) // Error if mode 2 form 2.
+  ok = false;
+ else if(!edc_lec_check_and_correct(data, mode == 2))
+  ok = false;
+
+ if(!ok)
  {
   MDFN_Notify(MDFN_NOTICE_WARNING, _("Uncorrectable error(s) in sector %d."), lba);
 
@@ -1925,7 +1946,7 @@ static void DoREADBase(uint32 sa, uint32 sc)
  {
   Cur_CDIF->HintReadSector(sa);	//, sa + sc);
 
-  CDReadTimer = (uint64)((WhichSystem == SCSICD_PCE) ? 3 : 1) * 2048 * System_Clock / CD_DATA_TRANSFER_RATE;
+  CDReadTimer = (uint64)((WhichSystem == SCSICD_PCE) ? 8 : 1) * 2048 * System_Clock / CD_DATA_TRANSFER_RATE;
  }
  else
  {
@@ -3242,4 +3263,6 @@ void SCSICD_StateAction(StateMem* sm, const unsigned load, const bool data_only,
   for(int i = 0; i < NumModePages; i++)
    UpdateMPCacheP(&ModePages[i]);
  }
+}
+
 }

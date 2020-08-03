@@ -22,6 +22,9 @@
 #include <mednafen/mednafen.h>
 #include "okiadpcm.h"
 
+namespace Mednafen
+{
+
 const int OKIADPCM_StepSizes[49] =
 {
  // These can also be generated like:
@@ -50,3 +53,4 @@ const int32 OKIADPCM_DeltaTable[49][16] =
  #endif
 };
 
+}

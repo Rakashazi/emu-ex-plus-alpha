@@ -1,8 +1,8 @@
 /******************************************************************************/
 /* Mednafen - Multi-system Emulator                                           */
 /******************************************************************************/
-/* SSFLoader.cpp:
-**  Copyright (C) 2015-2016 Mednafen Team
+/* CDInterface_ST.h - Single-threaded CD Reading Interface
+**  Copyright (C) 2012-2018 Mednafen Team
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU General Public License
@@ -19,42 +19,30 @@
 ** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include <mednafen/mednafen.h>
-#include <mednafen/SSFLoader.h>
+#ifndef __MDFN_CDROM_CDINTERFACE_ST_H
+#define __MDFN_CDROM_CDINTERFACE_ST_H
 
-bool SSFLoader::TestMagic(Stream* fp)
-{
- return PSFLoader::TestMagic(0x11, fp);
-}
+#include <mednafen/cdrom/CDInterface.h>
+#include <mednafen/cdrom/CDAccess.h>
 
-SSFLoader::SSFLoader(Stream *fp)
-{
- tags = Load(0x11, 4 + 524288, fp);
- assert(RAM_Data.size() <= 524288);
-}
-
-SSFLoader::~SSFLoader()
+namespace Mednafen
 {
 
-}
-
-void SSFLoader::HandleEXE(Stream* fp, bool ignore_pcsp)
+// TODO: prohibit copy constructor
+class CDInterface_ST : public CDInterface
 {
- uint8 raw_load_addr[4];
- uint32 load_addr;
- uint32 load_size;
+ public:
 
- fp->read(raw_load_addr, sizeof(raw_load_addr));
- load_addr = MDFN_de32lsb(raw_load_addr);
+ CDInterface_ST(std::unique_ptr<CDAccess> cda);
+ virtual ~CDInterface_ST();
 
- if(load_addr >= 524288)
-  throw MDFN_Error(0, _("SSF Load Address(=0x%08x) is too high."), load_addr);
+ virtual void HintReadSector(int32 lba) override;
+ virtual bool ReadRawSector(uint8* buf, int32 lba) override;
+ virtual bool ReadRawSectorPWOnly(uint8* pwbuf, int32 lba, bool hint_fullread) override;
 
- load_size = 524288 - load_addr;
+ private:
+ std::unique_ptr<CDAccess> disc_cdaccess;
+};
 
- if((load_addr + load_size) > RAM_Data.size())
-  RAM_Data.truncate(load_addr + load_size);
-
- fp->read(&RAM_Data.map()[load_addr], load_size, false);
 }
-
+#endif

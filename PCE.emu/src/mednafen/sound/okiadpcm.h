@@ -22,6 +22,9 @@
 #ifndef __MDFN_OKIADPCM_H
 #define __MDFN_OKIADPCM_H
 
+namespace Mednafen
+{
+
 typedef enum
 {
  OKIADPCM_MSM5205 = 0,
@@ -164,4 +167,6 @@ class OKIADPCM_Encoder
  int32 StepSizeIndex;
  OKIADPCM_Chip ChipType;
 };
+
+}
 #endif

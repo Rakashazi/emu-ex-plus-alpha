@@ -36,17 +36,18 @@
 
 #include <mednafen/general.h>
 #include <mednafen/string/string.h>
-#include <mednafen/FileStream.h>
 #include <mednafen/MemoryStream.h>
 
 #include "CDAccess.h"
 #include "CDAccess_Image.h"
 
 #include "CDAFReader.h"
-#include <imagine/io/api/stdio.hh>
 #include <imagine/util/string.h>
 
 #include <map>
+
+namespace Mednafen
+{
 
 using namespace CDUtility;
 
@@ -171,8 +172,9 @@ static size_t UnQuotify(const std::string &src, size_t source_offset, std::strin
 uint32 CDAccess_Image::GetSectorCount(CDRFILE_TRACK_INFO *track)
 {
  const int div = DI_Size_Table[track->DIFormat] + (track->SubchannelMode ? 96 : 0);
+ int64 size;
 
- auto size = track->AReader ? track->AReader->FrameCount() * 4 : track->fp->size();
+ size = track->AReader ? track->AReader->FrameCount() * 4 : track->fp->size();
  size -= track->FileOffset;
 
  if(size < 0)
@@ -185,15 +187,16 @@ uint32 CDAccess_Image::GetSectorCount(CDRFILE_TRACK_INFO *track)
  return size / div;
 }
 
-void CDAccess_Image::ParseTOCFileLineInfo(CDRFILE_TRACK_INFO *track, const int tracknum, const std::string &filename, const char *binoffset, const char *msfoffset, const char *length, bool image_memcache, std::map<std::string, std::shared_ptr<FileStreamIOWrapper>> &toc_streamcache)
+void CDAccess_Image::ParseTOCFileLineInfo(VirtualFS* vfs, CDRFILE_TRACK_INFO *track, const int tracknum, const std::string &filename, const char *binoffset, const char *msfoffset, const char *length, bool image_memcache, std::map<std::string, Stream*> &toc_streamcache)
 {
  long offset = 0; // In bytes!
  long tmp_long;
  int m, s, f;
  uint32 sector_mult;
  long sectors;
+ std::map<std::string, Stream*>::iterator ribbit;
 
- auto ribbit = toc_streamcache.find(filename);
+ ribbit = toc_streamcache.find(filename);
 
  if(ribbit != toc_streamcache.end())
  {
@@ -207,15 +210,22 @@ void CDAccess_Image::ParseTOCFileLineInfo(CDRFILE_TRACK_INFO *track, const int t
 
   track->FirstFileInstance = 1;
 
-  efn = MDFN_EvalFIP(base_dir, filename);
+  efn = vfs->eval_fip(base_dir, filename);
 
-  track->fp = std::make_shared<FileStreamIOWrapper>(efn, FileStream::MODE_READ);
+  if(image_memcache)
+   track->fp = new MemoryStream(vfs->open(efn, VirtualFS::MODE_READ));
+  else
+  {
+   track->fp = vfs->open(efn, VirtualFS::MODE_READ);
+   track->fp->require_fast_seekable();
+  }
+
   toc_streamcache[filename] = track->fp;
  }
 
  if(filename.length() >= 4 && !MDFN_strazicmp(filename.c_str() + filename.length() - 4, ".wav"))
  {
-  track->AReader = CDAFR_Open(static_cast<IO*>(*track->fp));
+  track->AReader = CDAFR_Open(track->fp);
 
   if(!track->AReader)
    throw MDFN_Error(0, "TODO ERROR");
@@ -305,7 +315,7 @@ std::string MDFN_toupper(const std::string &str)
 }
 #endif
 
-void CDAccess_Image::LoadSBI(const std::string& sbi_path)
+void CDAccess_Image::LoadSBI(VirtualFS* vfs, const std::string& sbi_path)
 {
  MDFN_printf(_("Loading SBI file \"%s\"...\n"), sbi_path.c_str());
  {
@@ -313,17 +323,17 @@ void CDAccess_Image::LoadSBI(const std::string& sbi_path)
 
   try
   {
-   FileStream sbis(sbi_path, FileStream::MODE_READ);
+   std::unique_ptr<Stream> sbis(vfs->open(sbi_path, VirtualFS::MODE_READ));
    uint8 header[4];
    uint8 ed[4 + 10];
    uint8 tmpq[12];
 
-   sbis.read(header, 4);
+   sbis->read(header, 4);
 
    if(memcmp(header, "SBI\0", 4))
     throw MDFN_Error(0, _("Not recognized a valid SBI file."));
 
-   while(sbis.read(ed, sizeof(ed), false) == sizeof(ed))
+   while(sbis->read(ed, sizeof(ed), false) == sizeof(ed))
    {
     if(!BCD_is_valid(ed[0]) || !BCD_is_valid(ed[1]) || !BCD_is_valid(ed[2]))
      throw MDFN_Error(0, _("Bad BCD MSF offset in SBI file: %02x:%02x:%02x"), ed[0], ed[1], ed[2]);
@@ -373,9 +383,9 @@ static void StringToMSF(const char* str, unsigned* m, unsigned* s, unsigned* f)
   throw MDFN_Error(0, _("M:S:F time \"%s\" contains component(s) out of range."), str);
 }
 
-void CDAccess_Image::ImageOpen(const std::string& path, bool image_memcache)
+void CDAccess_Image::ImageOpen(VirtualFS* vfs, const std::string& path, bool image_memcache)
 {
- FileStreamIOWrapper fp(path, FileStream::MODE_READ);
+ MemoryStream fp(vfs->open(path, VirtualFS::MODE_READ));
  static const unsigned max_args = 4;
  std::string linebuf;
  std::string cmdbuf, args[max_args];
@@ -384,12 +394,12 @@ void CDAccess_Image::ImageOpen(const std::string& path, bool image_memcache)
  int32 AutoTrackInc = 1; // For TOC
  CDRFILE_TRACK_INFO TmpTrack;
  std::string file_base, file_ext;
- std::map<std::string, std::shared_ptr<FileStreamIOWrapper>> toc_streamcache;
+ std::map<std::string, Stream*> toc_streamcache;
 
  disc_type = DISC_TYPE_CDDA_OR_M1;
  TmpTrack = {};
 
- MDFN_GetFilePathComponents(path, &base_dir, &file_base, &file_ext);
+ vfs->get_file_path_components(path, &base_dir, &file_base, &file_ext);
 
  if(!MDFN_strazicmp(file_ext.c_str(), ".toc"))
  {
@@ -421,7 +431,7 @@ void CDAccess_Image::ImageOpen(const std::string& path, bool image_memcache)
    }
 
    // Call trim AFTER we handle TOC-style comments, so we'll be sure to remove trailing whitespace in lines like: MONKEY  // BABIES
-   MDFN_trim(linebuf);
+   MDFN_trim(&linebuf);
 
    if(linebuf.length() == 0)	// Skip blank lines.
     continue;
@@ -525,7 +535,7 @@ void CDAccess_Image::ImageOpen(const std::string& path, bool image_memcache)
       length = args[2].c_str();
      }
      //printf("%s, %s, %s, %s\n", args[0].c_str(), binoffset, msfoffset, length);
-     ParseTOCFileLineInfo(&TmpTrack, active_track, args[0], binoffset, msfoffset, length, image_memcache, toc_streamcache);
+     ParseTOCFileLineInfo(vfs, &TmpTrack, active_track, args[0], binoffset, msfoffset, length, image_memcache, toc_streamcache);
     }
     else if(cmdbuf == "DATAFILE")
     {
@@ -540,7 +550,7 @@ void CDAccess_Image::ImageOpen(const std::string& path, bool image_memcache)
      else
       length = args[1].c_str();
 
-     ParseTOCFileLineInfo(&TmpTrack, active_track, args[0], binoffset, NULL, length, image_memcache, toc_streamcache);
+     ParseTOCFileLineInfo(vfs, &TmpTrack, active_track, args[0], binoffset, NULL, length, image_memcache, toc_streamcache);
     }
     else if(cmdbuf == "INDEX")
     {
@@ -631,9 +641,14 @@ void CDAccess_Image::ImageOpen(const std::string& path, bool image_memcache)
       active_track = -1;
      }
 
-     std::string efn = MDFN_EvalFIP(base_dir, args[0]);
-     TmpTrack.fp = std::make_shared<FileStreamIOWrapper>(efn, FileStream::MODE_READ);
+     std::string efn = vfs->eval_fip(base_dir, args[0]);
+     TmpTrack.fp = vfs->open(efn, VirtualFS::MODE_READ);
      TmpTrack.FirstFileInstance = 1;
+
+     if(image_memcache)
+      TmpTrack.fp = new MemoryStream(TmpTrack.fp);
+     else
+      TmpTrack.fp->require_fast_seekable();
 
      if(!MDFN_strazicmp(args[1].c_str(), "BINARY"))
      {
@@ -645,7 +660,7 @@ void CDAccess_Image::ImageOpen(const std::string& path, bool image_memcache)
      else if(!MDFN_strazicmp(args[1].c_str(), "OGG") || !MDFN_strazicmp(args[1].c_str(), "VORBIS") || !MDFN_strazicmp(args[1].c_str(), "WAVE") || !MDFN_strazicmp(args[1].c_str(), "WAV") || !MDFN_strazicmp(args[1].c_str(), "PCM")
 	|| !MDFN_strazicmp(args[1].c_str(), "MPC") || !MDFN_strazicmp(args[1].c_str(), "MP+"))
      {
-      TmpTrack.AReader = CDAFR_Open(static_cast<IO*>(*TmpTrack.fp));
+      TmpTrack.AReader = CDAFR_Open(TmpTrack.fp);
       if(!TmpTrack.AReader)
       {
        throw(MDFN_Error(0, _("Unsupported audio track file format: %s\n"), args[0].c_str()));
@@ -788,11 +803,9 @@ void CDAccess_Image::ImageOpen(const std::string& path, bool image_memcache)
   throw(MDFN_Error(0, _("No tracks found!\n")));
  }
 
- FirstTrack = FirstTrack;
  NumTracks = 1 + LastTrack - FirstTrack;
 
  int32 RunningLBA = 0;
- int32 LastIndex = 0;
  long FileOffset = 0;
 
  RunningLBA -= 150;
@@ -841,7 +854,6 @@ void CDAccess_Image::ImageOpen(const std::string& path, bool image_memcache)
   {
    if(Tracks[x].FirstFileInstance) 
    {
-    LastIndex = 0;
     FileOffset = 0;
    }
 
@@ -918,35 +930,10 @@ void CDAccess_Image::ImageOpen(const std::string& path, bool image_memcache)
    }
   }
 
-  LoadSBI(MDFN_EvalFIP(base_dir, file_base + std::string(".") + std::string(sbi_ext), true).c_str());
+  LoadSBI(vfs, vfs->eval_fip(base_dir, file_base + "." + sbi_ext, true));
  }
 
  GenerateTOC();
-}
-
-void CDAccess_Image::ImageOpenBinary(const std::string& path, bool isIso)
-{
-	NumTracks = FirstTrack = LastTrack = 1;
-	total_sectors = 0;
-	disc_type = DISC_TYPE_CDDA_OR_M1;
-	auto &track = Tracks[1];
-	track = {};
-	track.fp = std::make_shared<FileStreamIOWrapper>(path, FileStream::MODE_READ);
-	track.FirstFileInstance = 1;
-	track.DIFormat = DI_FORMAT_MODE1_RAW;
-	if(isIso)
-	{
-		track.DIFormat = DI_FORMAT_MODE1;
-		track.postgap = 150;
-		total_sectors += track.postgap;
-	}
-	track.index[0] = -1;
-	for(int32 i = 2; i < 100; i++)
-		track.index[i] = -1;
-	track.sectors = GetSectorCount(&track);
-	total_sectors += track.sectors;
-	track.subq_control |= SUBQ_CTRLF_DATA;
-	GenerateTOC();
 }
 
 void CDAccess_Image::Cleanup(void)
@@ -965,22 +952,23 @@ void CDAccess_Image::Cleanup(void)
 
    if(this_track->fp)
    {
-    this_track->fp.reset();
+    delete this_track->fp;
+    this_track->fp = NULL;
    }
   }
  }
 }
 
-CDAccess_Image::CDAccess_Image(const std::string& path, bool image_memcache) : NumTracks(0), FirstTrack(0), LastTrack(0), total_sectors(0)
+CDAccess_Image::CDAccess_Image(VirtualFS* vfs, const std::string& path, bool image_memcache) : NumTracks(0), FirstTrack(0), LastTrack(0), total_sectors(0)
 {
  try
  {
   if(string_hasDotExtension(path.c_str(), "bin") || string_hasDotExtension(path.c_str(), "iso"))
   {
-   ImageOpenBinary(path, string_hasDotExtension(path.c_str(), "iso"));
+   ImageOpenBinary(vfs, path, string_hasDotExtension(path.c_str(), "iso"));
   }
   else
-   ImageOpen(path, image_memcache);
+   ImageOpen(vfs, path, image_memcache);
  }
  catch(...)
  {
@@ -1163,76 +1151,6 @@ int CDAccess_Image::Read_Raw_Sector(uint8 *buf, int32 lba)
 	return ct->DIFormat;
 }
 
-int CDAccess_Image::Read_Sector(uint8 *buf, int32 lba, uint32 size)
-{
-	uint8 data[2352 + 96]{};
-	int format = Read_Raw_Sector(data, lba);
-	switch(format)
-	{
-		case DI_FORMAT_AUDIO:
-		assert(size == 2352);
-		memcpy(buf, data, size);
-		break;
-
-		case DI_FORMAT_MODE1:
-		case DI_FORMAT_MODE1_RAW:
-		assert(size == 2048);
-		memcpy(buf, data + 12 + 3 + 1, size);
-		break;
-
-		case DI_FORMAT_CDI_RAW:
-		memcpy(buf, data, size);
-		break;
-
-		case DI_FORMAT_MODE2:
-		case DI_FORMAT_MODE2_RAW:
-		memcpy(buf, data + 16, size);
-		break;
-
-		case DI_FORMAT_MODE2_FORM1:
-		case DI_FORMAT_MODE2_FORM2:
-		memcpy(buf, data + 24, size);
-		break;
-	}
-	return format;
-}
-
-void CDAccess_Image::HintReadSector(uint32 lba, int32 count)
-{
-	for(int32 track = FirstTrack; track < (FirstTrack + NumTracks); track++)
-	{
-	 CDRFILE_TRACK_INFO *ct = &Tracks[track];
-
-	 if(lba >= (ct->LBA - ct->pregap_dv - ct->pregap) && lba < (ct->LBA + ct->sectors + ct->postgap))
-	 {
-		// Handle pregap and postgap reading
-		if(lba < (ct->LBA - ct->pregap_dv) || lba >= (ct->LBA + ct->sectors))
-		{
-		 // Null sector data, per spec
-		}
-		else
-		{
-			if(ct->AReader)
-			{
-				// ignore audio readers, they are read sequentially anyway
-			}
-			else
-			{
-				long SeekPos = ct->FileOffset;
-				long LBARelPos = lba - ct->LBA;
-
-				SeekPos += LBARelPos * DI_Size_Table[ct->DIFormat];
-
-				if(ct->SubchannelMode)
-				 SeekPos += 96 * (lba - ct->LBA);
-
-				ct->fp->advise(SeekPos, 2352 * count, IO::Advice::WILLNEED);
-			}
-		}
-	 }
-	}
-}
-
 bool CDAccess_Image::Fast_Read_Raw_PW_TSRE(uint8* pwbuf, int32 lba) const noexcept
 {
  int32 track;
@@ -1270,8 +1188,6 @@ int32 CDAccess_Image::MakeSubPQ(int32 lba, uint8 *SubPWBuf) const
  uint8 buf[0xC];
  int32 track;
  uint32 lba_relative;
- uint32 ma, sa, fa;
- uint32 m, s, f;
  uint8 pause_or = 0x00;
  bool track_found = false;
 
@@ -1291,14 +1207,6 @@ int32 CDAccess_Image::MakeSubPQ(int32 lba, uint8 *SubPWBuf) const
   lba_relative = Tracks[track].LBA - 1 - lba;
  else
   lba_relative = lba - Tracks[track].LBA;
-
- f = (lba_relative % 75);
- s = ((lba_relative / 75) % 60);
- m = (lba_relative / 75 / 60);
-
- fa = (lba + 150) % 75;
- sa = ((lba + 150) / 75) % 60;
- ma = ((lba + 150) / 75 / 60);
 
  uint8 adr = 0x1; // Q channel data encodes position
  uint8 control = Tracks[track].subq_control;
@@ -1329,16 +1237,13 @@ int32 CDAccess_Image::MakeSubPQ(int32 lba, uint8 *SubPWBuf) const
   }
  }
 
-
  memset(buf, 0, 0xC);
  buf[0] = (adr << 0) | (control << 4);
  buf[1] = U8_to_BCD(track);
 
- // Index
- //if(lba < Tracks[track].LBA) // Index is 00 in pregap
- // buf[2] = U8_to_BCD(0x00);
- //else
- // buf[2] = U8_to_BCD(0x01);
+ //
+ //
+ //
  {
   int index = 0;
 
@@ -1350,18 +1255,23 @@ int32 CDAccess_Image::MakeSubPQ(int32 lba, uint8 *SubPWBuf) const
   buf[2] = U8_to_BCD(index);
  }
 
+ //
  // Track relative MSF address
- buf[3] = U8_to_BCD(m);
- buf[4] = U8_to_BCD(s);
- buf[5] = U8_to_BCD(f);
+ //
+ ABA_to_AMSF_BCD(lba_relative, &buf[3], &buf[4], &buf[5]);
 
- buf[6] = 0; // Zerroooo
+ //
+ // Zero, the best number.
+ //
+ buf[6] = 0;
 
+ //
  // Absolute MSF address
- buf[7] = U8_to_BCD(ma);
- buf[8] = U8_to_BCD(sa);
- buf[9] = U8_to_BCD(fa);
+ //
+ ABA_to_AMSF_BCD(LBA_to_ABA(lba), &buf[7], &buf[8], &buf[9]);
 
+ //
+ //
  subq_generate_checksum(buf);
 
  if(!SubQReplaceMap.empty())
@@ -1415,4 +1325,4 @@ void CDAccess_Image::GenerateTOC(void)
  toc.tracks[100].valid = true;
 }
 
-
+}

@@ -19,10 +19,13 @@
 ** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef MDFN_SETTINGS_H
-#define MDFN_SETTINGS_H
+#ifndef __MDFN_SETTINGS_H
+#define __MDFN_SETTINGS_H
 
 #include "settings-common.h"
+
+namespace Mednafen
+{
 
 bool MDFN_LoadSettings(const std::string& path, bool override = false);
 void MDFN_MergeSettings(const MDFNSetting *);
@@ -52,4 +55,5 @@ static INLINE std::string MDFN_GetSettingS(const std::string& name) { return MDF
 static INLINE std::vector<uint64> MDFN_GetSettingMultiUI(const std::string& name) { return MDFN_GetSettingMultiUI(name.c_str()); }
 static INLINE std::vector<int64> MDFN_GetSettingMultiI(const std::string& name) { return MDFN_GetSettingMultiI(name.c_str()); }
 
+}
 #endif

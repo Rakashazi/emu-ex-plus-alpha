@@ -3,8 +3,8 @@
 #include <mednafen/mednafen.h>
 #include <mednafen/general.h>
 #include <mednafen/hash/md5.h>
-#include <mednafen/cdrom/cdromif.h>
+#include <mednafen/cdrom/CDInterface.h>
 #include <mednafen/state-driver.h>
 
-extern MDFNGI EmulatedPCE_Fast;
-static MDFNGI *emuSys = &EmulatedPCE_Fast;
+extern Mednafen::MDFNGI EmulatedPCE_Fast;
+static Mednafen::MDFNGI *emuSys = &EmulatedPCE_Fast;

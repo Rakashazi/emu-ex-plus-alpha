@@ -16,6 +16,7 @@
  */
 
 #include <mednafen/mednafen.h>
+using namespace Mednafen;
 #include "psg.h"
 
 #include <trio/trio.h>

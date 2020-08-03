@@ -24,6 +24,9 @@
 
 #include <trio/trio.h>
 
+namespace Mednafen
+{
+
 Stream::Stream()
 {
 
@@ -203,6 +206,13 @@ void Stream::put_line(const std::string& str)
  write(&l, sizeof(l));
 }
 
+void Stream::put_line(const char* str)
+{
+ char l = '\n';
+
+ write(&str[0], strlen(str));
+ write(&l, sizeof(l));
+}
 
 void Stream::print_format(const char *format, ...)
 {
@@ -334,3 +344,5 @@ void StreamPosFilter::flush(void)
  s->flush();
 }
 */
+
+}

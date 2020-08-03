@@ -3,7 +3,10 @@
 
 #include "settings-common.h"
 
-extern std::vector<MDFNGI *>MDFNSystems;
+namespace Mednafen
+{
+
+MDFN_HIDE extern std::vector<MDFNGI *>MDFNSystems;
 
 /* Indent stdout newlines +- "indent" amount */
 void MDFN_indent(int indent);
@@ -24,68 +27,27 @@ void MDFND_OutputNotice(MDFN_NoticeType t, const char* s) noexcept;
 // Output from MDFN_printf(); fairly verbose informational messages.
 void MDFND_OutputInfo(const char* s) noexcept;
 
-// Synchronize virtual time to actual time using members of espec:
+// If MIDSYNC_FLAG_SYNC_TIME is set in 'flags', synchronize virtual time to actual time using members of espec:
 //
-//  MasterCycles and MasterCyclesALMS (coupled with MasterClock of MDFNGI)
-//   and/or
-//  SoundBuf, SoundBufSize, and SoundBufSizeALMS
+//   MasterCycles and MasterCycles_DriverProcessed (coupled with MasterClock of MDFNGI)
+//    and/or
+//   SoundBuf, SoundBufSize, and SoundBufSize_DriverProcessed
 //
-// ...and after synchronization, update the data pointed to by the pointers passed to MDFNI_SetInput().
-// DO NOT CALL MDFN_* or MDFNI_* functions from within MDFND_MidSync().
-// Calling MDFN_printf(), MDFN_DispMessage(),and MDFND_PrintError() are ok, though.
+// Otherwise, if MIDSYNC_FLAG_SYNC_TIME is not set, then simply write as much sound data as possible without blocking.
+//
+// MasterCycles_DriverProcessed and SoundBufSize_DriverProcessed may be updated from within MDFND_MidSync().
+//
+// Then, if MIDSYNC_FLAG_UPDATE_INPUT is set in 'flags', update the data pointed to by the pointers passed to MDFNI_SetInput().
+// If this flag is not set, the input MUST NOT be updated, or things will go boom in subtle ways!
+//
+// Other than MDFN_printf() and MDFN_Notify(), DO NOT CALL MDFN_* or MDFNI_* functions from within MDFND_MidSync()!
 //
 // If you do not understand how to implement this function, you can leave it empty at first, but know that doing so
 // will subtly break at least one PC Engine game(Takeda Shingen), and raise input latency on some other PC Engine games.
-void MDFND_MidSync(const EmulateSpecStruct *espec);
+void MDFND_MidSync(EmulateSpecStruct *espec, const unsigned flags);
 
 // Called from inside blocking loops on unreliable resources(e.g. netplay).
 bool MDFND_CheckNeedExit(void);
-
-//
-// Begin threading support.
-//
-// Mostly based off SDL's prototypes and semantics.
-// Driver code should actually define MDFN_Thread and MDFN_Mutex.
-//
-// Caution: Do not attempt to use the synchronization primitives(mutex, cond variables, etc.) for inter-process synchronization, they'll only work reliably with
-// intra-process synchronization(the "mutex" is implemented as a a critical section under Windows, for example).
-//
-struct MDFN_Thread;
-struct MDFN_Mutex;
-struct MDFN_Cond;	// mmm condiments
-struct MDFN_Sem;
-
-MDFN_Thread *MDFND_CreateThread(void* (*fn)(void *), void *data);
-void MDFND_WaitThread(MDFN_Thread *thread, int *status);
-uint32 MDFND_ThreadID(void);
-
-MDFN_Mutex *MDFND_CreateMutex(void) MDFN_COLD;
-void MDFND_DestroyMutex(MDFN_Mutex *mutex) MDFN_COLD;
-
-int MDFND_LockMutex(MDFN_Mutex *mutex);
-int MDFND_UnlockMutex(MDFN_Mutex *mutex);
-
-MDFN_Cond* MDFND_CreateCond(void) MDFN_COLD;
-void MDFND_DestroyCond(MDFN_Cond* cond) MDFN_COLD;
-
-/* MDFND_SignalCond() *MUST* be called with a lock on the mutex used with MDFND_WaitCond() or MDFND_WaitCondTimeout() */
-int MDFND_SignalCond(MDFN_Cond* cond);
-int MDFND_WaitCond(MDFN_Cond* cond, MDFN_Mutex* mutex);
-
-#define MDFND_COND_TIMEDOUT	1
-int MDFND_WaitCondTimeout(MDFN_Cond* cond, MDFN_Mutex* mutex, unsigned ms);
-
-
-MDFN_Sem* MDFND_CreateSem(void);
-void MDFND_DestroySem(MDFN_Sem* sem);
-
-int MDFND_WaitSem(MDFN_Sem* sem);
-#define MDFND_SEM_TIMEDOUT	1
-int MDFND_WaitSemTimeout(MDFN_Sem* sem, unsigned ms);
-int MDFND_PostSem(MDFN_Sem* sem);
-//
-// End threading support.
-//
 
 void MDFNI_Reset(void);
 void MDFNI_Power(void);
@@ -93,7 +55,19 @@ void MDFNI_Power(void);
 
 // path = path of game/file to load.
 // Returns NULL on error.
-MDFNGI *MDFNI_LoadGame(const char *force_module, const char *path, bool force_cd = false) MDFN_COLD;
+//
+// Don't pass anything other than &::Mednafen::NVFS for vfs unless you absolutely know what
+// you're doing; the object it points to must remain valid until MDFNI_CloseGame() returns,
+// and if the file you're loading is a CD image, it will be cached in memory regardless of
+// the cd.image_memcache setting, in order to avoid thread safety issues.  You'd also need to make
+// sure filesys.fname_* settings are appropriate given the "path" specified, and be aware of
+// other similar issues with naming.
+//
+MDFNGI* MDFNI_LoadGame(const char* force_module, VirtualFS* vfs, const char* path, bool force_cd = false) MDFN_COLD;
+
+// Advanced usage; normally don't call.
+class CDInterface;
+MDFNGI *MDFNI_LoadExternalCD(const char* force_module, const char* path_hint, CDInterface* cdif) MDFN_COLD;
 
 // Call this function as early as possible, even before MDFNI_Initialize()
 bool MDFNI_InitializeModules(void) MDFN_COLD;
@@ -160,4 +134,5 @@ void MDFNI_StopWAVRecord(void) MDFN_COLD;
 
 void MDFNI_DumpModulesDef(const char *fn) MDFN_COLD;
 
+}
 #endif

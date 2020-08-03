@@ -29,6 +29,9 @@
 #ifndef __MDFN_SETTINGS_COMMON_H
 #define __MDFN_SETTINGS_COMMON_H
 
+namespace Mednafen
+{
+
 enum MDFNSettingType
 {
 	// Actual base types
@@ -109,4 +112,5 @@ struct MDFNCS
 	uint32 name_hash;
 };
 
+}
 #endif

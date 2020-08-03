@@ -1,6 +1,9 @@
 #ifndef __PCFX_SCSICD_H
 #define __PCFX_SCSICD_H
 
+namespace Mednafen
+{
+
 typedef int32 scsicd_timestamp_t;
 
 typedef struct
@@ -94,6 +97,7 @@ void SCSICD_SetTransferRate(uint32 TransferRate);
 void SCSICD_SetCDDAVolume(double left, double right);
 void SCSICD_StateAction(StateMem *sm, const unsigned load, const bool data_only, const char *sname);
 
-void SCSICD_SetDisc(bool tray_open, CDIF *cdif, bool no_emu_side_effects = false);
+void SCSICD_SetDisc(bool tray_open, CDInterface* cdif, bool no_emu_side_effects = false);
 
+}
 #endif

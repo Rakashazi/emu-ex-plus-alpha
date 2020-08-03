@@ -21,7 +21,8 @@
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 
-MDFNGI *MDFNGameInfo = &EmulatedPCE_Fast;
+using namespace Mednafen;
+
 extern FS::PathString sysCardPath;
 extern Byte1Option optionArcadeCard;
 
@@ -36,6 +37,12 @@ uint8 ReadIBP(unsigned int A) { return 0; }
 };
 
 #define PCE_MODULE "pce_fast"
+
+namespace Mednafen
+{
+
+NativeVFS NVFS;
+MDFNGI *MDFNGameInfo = &EmulatedPCE_Fast;
 
 uint64 MDFN_GetSettingUI(const char *name)
 {
@@ -136,14 +143,6 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 			logMsg("getting firmware path %s", sysCardPath.data());
 			return std::string(sysCardPath.data());
 		}
-		case MDFNMKF_AUX:
-		{
-			std::string path(FS::current_path().data());
-			path += PSS;
-			path += cd1;
-			logMsg("created aux path %s", path.c_str());
-			return path;
-		}
 		default:
 			bug_unreachable("type == %d", type);
 			return 0;
@@ -153,4 +152,6 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 void MDFN_DoSimpleCommand(int cmd)
 {
 	emuSys->DoSimpleCommand(cmd);
+}
+
 }

@@ -18,9 +18,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef _PCE_PSG_H
-#define _PCE_PSG_H
+#ifndef __MDFN_HW_SOUND_PCE_PSG_PCE_PSG_H
+#define __MDFN_HW_SOUND_PCE_PSG_PCE_PSG_H
 
+namespace Mednafen
+{
 class PCE_PSG;
 
 struct psg_channel
@@ -188,4 +190,5 @@ class PCE_PSG
 	int32 dbtable[32][32];
 };
 
+}
 #endif

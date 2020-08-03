@@ -17,8 +17,11 @@
 
 #include <mednafen/mednafen.h>
 #include <trio/trio.h>
+
+using namespace Mednafen;
+
 #include "pcecd_drive.h"
-#include <mednafen/cdrom/cdromif.h>
+#include <mednafen/cdrom/CDInterface.h>
 #include <mednafen/cdrom/SimpleFIFO.h>
 
 namespace PCE_Fast
@@ -34,7 +37,7 @@ static void (*CDIRQCallback)(int);
 static void (*CDStuffSubchannels)(uint8, int);
 static Blip_Buffer* sbuf;
 
-static CDIF *Cur_CDIF;
+static CDInterface* Cur_CDIF;
 static bool TrayOpen;
 
 // Internal operation to the SCSI CD unit.  Only pass 1 or 0 to these macros!
@@ -394,7 +397,7 @@ static void DoSimpleDataIn(const uint8 *data_in, uint32 len)
  ChangePhase(PHASE_DATA_IN);
 }
 
-void PCECD_Drive_SetDisc(bool new_tray_open, CDIF *cdif, bool no_emu_side_effects)
+void PCECD_Drive_SetDisc(bool new_tray_open, CDInterface* cdif, bool no_emu_side_effects)
 {
  Cur_CDIF = cdif;
 

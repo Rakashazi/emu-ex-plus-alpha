@@ -22,10 +22,13 @@
 #include "MemoryStream.h"
 
 #ifdef WIN32
-// For mswin_utf8_convert_kludge()
-#include <mednafen/string/string.h>
-#include <windows.h>
+ // For mswin_utf8_convert_kludge()
+ #include <mednafen/string/string.h>
+ #include <mednafen/win32-common.h>
 #endif
+
+namespace Mednafen
+{
 
 /*
  TODO:	Copy and assignment constructor fixes.
@@ -136,7 +139,7 @@ MemoryStream::~MemoryStream()
 
 uint64 MemoryStream::attributes(void)
 {
- return (ATTRIBUTE_READABLE | ATTRIBUTE_WRITEABLE | ATTRIBUTE_SEEKABLE);
+ return (ATTRIBUTE_READABLE | ATTRIBUTE_WRITEABLE | ATTRIBUTE_SEEKABLE | ATTRIBUTE_INMEM_FAST);
 }
 
 
@@ -364,4 +367,6 @@ void MemoryStream::mswin_utf8_convert_kludge(void)
   }
  }
 #endif
+}
+
 }

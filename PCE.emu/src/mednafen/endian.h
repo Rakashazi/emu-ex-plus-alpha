@@ -22,6 +22,9 @@
 #ifndef __MDFN_ENDIAN_H
 #define __MDFN_ENDIAN_H
 
+namespace Mednafen
+{
+
 void Endian_A16_Swap(void *src, uint32 nelements);
 void Endian_A32_Swap(void *src, uint32 nelements);
 void Endian_A64_Swap(void *src, uint32 nelements);
@@ -529,5 +532,5 @@ static INLINE void ne64_rwbo_le(BT base, const size_t byte_offset, T* value)
   *value = ne64_rbo_le<T>(base, byte_offset);
 }
 
-
+}
 #endif

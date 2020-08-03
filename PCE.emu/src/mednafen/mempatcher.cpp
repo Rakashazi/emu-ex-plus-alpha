@@ -32,6 +32,9 @@
 #include "FileStream.h"
 #include "MemoryStream.h"
 
+namespace Mednafen
+{
+
 static std::string compat0938_name;	// PS1 cheat kludge, <= 0.9.38.x stripped bytes with upper bit == 1 in MDFNGameInfo->name
 
 MemoryPatch::MemoryPatch() : addr(0), val(0), compare(0), 
@@ -189,6 +192,7 @@ void MDFNMP_AddRAM(uint32 size, uint32 A, uint8 *RAM, bool use_in_search)
 
  for(uint32 page = 0; page < page_count; page++)
  {
+  assert((page_base + page) < RAMInfo.size());
   auto& ri = RAMInfo[page_base + page];
 
   ri.Ptr = RAM;
@@ -256,7 +260,7 @@ void MDFN_LoadGameCheats(Stream* override)
    if((int8)c < 0x20)	// (int8) here, not (uint8)
     c = ' ';
  }
- MDFN_trim(compat0938_name);
+ MDFN_trim(&compat0938_name);
  //
 
  if(!override)
@@ -307,13 +311,13 @@ void MDFN_LoadGameCheats(Stream* override)
     if(tbuf.size() >= 1 && tbuf[0] == '[') // No more cheats for this game, so sad :(
      break;
 
-    MDFN_trim(tbuf);
+    MDFN_trim(&tbuf);
 
     if(tbuf.size() >= 1 && tbuf[0] == '!')
     {
      ext_format = true;
      tbuf = tbuf.substr(1);
-     MDFN_trim(tbuf);
+     MDFN_trim(&tbuf);
     }
 
     if(!tbuf.size()) // Don't parse if the line is empty.
@@ -352,7 +356,7 @@ void MDFN_LoadGameCheats(Stream* override)
      if(name[i] < 0x20)
       name[i] = ' ';
 
-    MDFN_trim(name);
+    MDFN_trim(&name);
 
     //
     // Grab the conditions.
@@ -365,7 +369,7 @@ void MDFN_LoadGameCheats(Stream* override)
       if(conditions[i] < 0x20)
        conditions[i] = ' ';
 
-     MDFN_trim(conditions);
+     MDFN_trim(&conditions);
     }
 
     {
@@ -532,20 +536,7 @@ static void WriteCheats(void)
 
   tmp_fp->close();
 
-  try
-  {
-   MDFN_rename(tmp_fn.c_str(), fn.c_str());
-  }
-  catch(MDFN_Error &e)
-  {
-   if(e.GetErrno() == EACCES || e.GetErrno() == EEXIST) // For MS Windows
-   {
-    MDFN_unlink(fn.c_str());
-    MDFN_rename(tmp_fn.c_str(), fn.c_str());
-   }
-   else
-    throw;
-  }
+  NVFS.rename(tmp_fn, fn);
  }
 }
 
@@ -1009,3 +1000,5 @@ extern const MDFNSetting MDFNMP_Settings[] =
  { "cheats", MDFNSF_NOFLAGS, "Enable cheats.", NULL, MDFNST_BOOL, "1", NULL, NULL, NULL, SettingChanged },
  { NULL}
 };
+
+}

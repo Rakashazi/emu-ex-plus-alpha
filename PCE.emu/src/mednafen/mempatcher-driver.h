@@ -1,6 +1,9 @@
 #ifndef __MDFN_MEMPATCHER_DRIVER_H
 #define __MDFN_MEMPATCHER_DRIVER_H
 
+namespace Mednafen
+{
+
 struct MemoryPatch
 {
  MemoryPatch();
@@ -53,4 +56,5 @@ void MDFNI_SetCheat(uint32 which, const MemoryPatch& patch);
 void MDFNI_CheatSearchShowExcluded(void);
 void MDFNI_CheatSearchSetCurrentAsOriginal(void);
 
+}
 #endif

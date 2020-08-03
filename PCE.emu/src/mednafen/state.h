@@ -26,6 +26,9 @@
 #include "state-common.h"
 #include "Stream.h"
 
+namespace Mednafen
+{
+
 void MDFNSS_GetStateInfo(const std::string& path, StateStatusStruct* status);
 
 struct StateMem;
@@ -43,7 +46,7 @@ struct StateMem;
 // throws exceptions on errors.
 //
 void MDFNSS_SaveSM(Stream *st, bool data_only = false, const MDFN_Surface *surface = (MDFN_Surface *)NULL, const MDFN_Rect *DisplayRect = (MDFN_Rect*)NULL, const int32 *LineWidths = (int32*)NULL);
-void MDFNSS_LoadSM(Stream *st, bool data_only = false);
+void MDFNSS_LoadSM(Stream *st, bool data_only = false, const bool fuzz = false);
 
 void MDFNSS_CheckStates(void);
 
@@ -130,13 +133,24 @@ static INLINE SFORMAT SFBASE_(T* const v, const uint32 count, const char* const 
 {
  return SFBASE_(v, count, 1, 0, v, name);
 }
-
+// Take care in how the SF*() macros are set up, or else stringification result of a macro passed as the "x" argument may change.
 #define SFVARN(x, ...)	SFBASE_(&(x), 1, __VA_ARGS__)
+#ifdef _MSC_VER
+ #define SFVAR(x, ...)   SFBASE_(&(x), 1, __VA_ARGS__, #x)
+#else
+ #define SFVAR(x, ...)   SFBASE_(&(x), 1, ## __VA_ARGS__, #x)
+#endif
 
-#define SFVAR1_(x)	   SFVARN((x), #x)
-#define SFVAR4_(x, tc, rs, rb) SFVARN((x), tc, rs, rb, #x)
-#define SFVAR_(a, b, c, d, e, ...)	e
-#define SFVAR(...) 	SFVAR_(__VA_ARGS__, SFVAR4_, SFVAR3_, SFVAR2_, SFVAR1_, SFVAR0_)(__VA_ARGS__)
+static INLINE SFORMAT SFCONDVAR_(const bool cond, const SFORMAT sf)
+{
+ return cond ? sf : SFORMAT({ sf.name, sf.data, 0, 0, 0, 0 });
+}
+
+#ifdef _MSC_VER
+ #define SFCONDVAR(cond, x, ...) SFCONDVAR_(cond, SFVAR(x, __VA_ARGS__))
+#else
+ #define SFCONDVAR(cond, x, ...) SFCONDVAR_(cond, SFVAR(x, ## __VA_ARGS__))
+#endif
 
 static_assert(sizeof(double) == 8, "sizeof(double) != 8");
 
@@ -180,5 +194,7 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8");
 // is run.
 //
 bool MDFNSS_StateAction(StateMem *sm, const unsigned load, const bool data_only, const SFORMAT *sf, const char *name, const bool optional = false) noexcept;
+
+}
 
 #endif

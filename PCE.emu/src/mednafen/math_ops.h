@@ -32,6 +32,9 @@
  #include <intrin.h>
 #endif
 
+namespace Mednafen
+{
+
 static INLINE unsigned MDFN_lzcount16_0UD(uint16 v)
 {
  #if defined(__GNUC__) || defined(__clang__) || defined(__ICC) || defined(__INTEL_COMPILER)
@@ -275,4 +278,5 @@ template<typename T, typename U, typename V> static INLINE void clamp(T *val, U 
  }
 }
 
+}
 #endif

@@ -61,6 +61,12 @@ off_t IOUtils<IO>::seekC(off_t offset, std::error_code *ecOut)
 }
 
 template <class IO>
+bool IOUtils<IO>::rewind()
+{
+	return seekS(0) != -1;
+}
+
+template <class IO>
 off_t IOUtils<IO>::tell(std::error_code *ecOut)
 {
 	return static_cast<IO*>(this)->seekC(0, ecOut);

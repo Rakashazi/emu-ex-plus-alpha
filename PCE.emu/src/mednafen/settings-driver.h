@@ -1,8 +1,10 @@
-#ifndef _MDFN_SETTINGS_DRIVER_H
-#define _MDFN_SETTINGS_DRIVER_H
+#ifndef __MDFN_SETTINGS_DRIVER_H
+#define __MDFN_SETTINGS_DRIVER_H
 
 #include "settings-common.h"
 
+namespace Mednafen
+{
 //
 // Due to how the per-module(and in the future, per-game) settings overrides work, we should
 // take care not to call MDFNI_SetSetting*() unless the setting has actually changed due to a user action.
@@ -18,9 +20,11 @@ static INLINE bool MDFNI_SetSettingB(const std::string& name, bool value) { retu
 bool MDFNI_SetSettingUI(const char *name, uint64 value);
 static INLINE bool MDFNI_SetSettingUI(const std::string& name, uint64 value) { return MDFNI_SetSettingUI(name.c_str(), value); }
 
-bool MDFNI_DumpSettingsDef(const char *path);
+void MDFNI_DumpSettingsDef(const char *path) MDFN_COLD;
 
 const std::vector<MDFNCS>* MDFNI_GetSettings(void);
 std::string MDFNI_GetSettingDefault(const char* name);
 static INLINE std::string MDFNI_GetSettingDefault(const std::string& name) { return MDFNI_GetSettingDefault(name.c_str()); }
+
+}
 #endif

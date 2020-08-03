@@ -21,6 +21,9 @@
 #include <mednafen/mednafen.h>
 #include "arcade_card.h"
 
+namespace Mednafen
+{
+
 static INLINE void ACAutoIncrement(ACPort_t *port)
 {
  if(port->control & 0x1)
@@ -360,3 +363,4 @@ void ArcadeCard::PokeRAM(uint32 Address, uint32 Length, const uint8 *Buffer)
   ACRAMUsed = true;
 }
 
+}

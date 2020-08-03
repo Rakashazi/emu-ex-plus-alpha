@@ -31,6 +31,9 @@
 
 #include "Stream.h"
 
+namespace Mednafen
+{
+
 class MemoryStream : public Stream
 {
  public:
@@ -57,6 +60,7 @@ class MemoryStream : public Stream
  virtual void unmap(void) noexcept override;
 
  virtual uint64 read(void *data, uint64 count, bool error_on_eos = true) override;
+ uint64 readAtPos(void *data, uint64 count, uint64 pos) override;
  virtual void write(const void *data, uint64 count) override;
  virtual void truncate(uint64 length) override;
  virtual void seek(int64 offset, int whence) override;
@@ -97,4 +101,6 @@ class MemoryStream : public Stream
 
  void grow_if_necessary(uint64 new_required_size, uint64 hole_end);
 };
+
+}
 #endif

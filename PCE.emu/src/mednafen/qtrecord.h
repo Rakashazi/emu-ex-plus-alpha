@@ -25,6 +25,9 @@
 #include <mednafen/FileStream.h>
 #include "resampler/resampler.h"
 
+namespace Mednafen
+{
+
 class QTRecord
 {
  public:
@@ -146,4 +149,5 @@ class QTRecord
  std::vector<int16> ResampOutBuffer;
 };
 
+}
 #endif

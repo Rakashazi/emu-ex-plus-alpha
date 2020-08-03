@@ -34,6 +34,9 @@
 #include "CDAFReader_SF.h"
 #endif
 
+namespace Mednafen
+{
+
 CDAFReader::CDAFReader() : LastReadPos(0)
 {
 
@@ -44,9 +47,9 @@ CDAFReader::~CDAFReader()
 
 }
 
-CDAFReader *CDAFR_Open(IO *fp)
+CDAFReader *CDAFR_Open(Stream *fp)
 {
- static CDAFReader* (* const OpenFuncs[])(IO* fp) =
+ static CDAFReader* (* const OpenFuncs[])(Stream* fp) =
  {
   //CDAFR_MPC_Open,
   CDAFR_Vorbis_Open,	// Must come before CDAFR_SF_Open
@@ -59,7 +62,7 @@ CDAFReader *CDAFR_Open(IO *fp)
  {
   try
   {
-   fp->seekS(0);
+   fp->rewind();
    return f(fp);
   }
   catch(int i)
@@ -69,4 +72,6 @@ CDAFReader *CDAFR_Open(IO *fp)
  }
 
  return(NULL);
+}
+
 }

@@ -24,6 +24,9 @@
 
 #include <mednafen/Stream.h>
 
+namespace Mednafen
+{
+
 class CDAFReader
 {
  public:
@@ -57,6 +60,7 @@ class CDAFReader
 
 // AR_Open(), and CDAFReader, will NOT take "ownership" of the Stream object(IE it won't ever delete it).  Though it does assume it has exclusive access
 // to it for as long as the CDAFReader object exists.
-CDAFReader *CDAFR_Open(IO *fp);
+CDAFReader *CDAFR_Open(Stream *fp);
 
+}
 #endif

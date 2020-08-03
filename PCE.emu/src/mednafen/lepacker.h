@@ -1,11 +1,11 @@
 #ifndef __MDFN_LEPACKER_H
 #define __MDFN_LEPACKER_H
 
-#include "mednafen.h"
+#include "types.h"
 
 /* Little-endian byte packer(and unpacker). */
 
-namespace MDFN
+namespace Mednafen
 {
 
 class LEPacker;

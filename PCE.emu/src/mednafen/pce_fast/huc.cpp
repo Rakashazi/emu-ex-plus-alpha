@@ -26,7 +26,7 @@
 #include <mednafen/hw_misc/arcade_card/arcade_card.h>
 #include <mednafen/hash/md5.h>
 #include <mednafen/file.h>
-#include <mednafen/cdrom/cdromif.h>
+#include <mednafen/cdrom/CDInterface.h>
 #include <mednafen/mempatcher.h>
 #include <mednafen/compress/GZFileStream.h>
 
@@ -141,7 +141,7 @@ static void LoadSaveMemory(const std::string& path, uint8* const data, const uin
  }
 }
 
-uint32 HuC_Load(MDFNFILE* fp)
+uint32 HuC_Load(Stream* fp)
 {
  uint32 crc = 0;
 
@@ -282,17 +282,16 @@ bool IsBRAMUsed(void)
 
 void HuC_LoadCD(const std::string& bios_path)
 {
- static const FileExtensionSpecStruct KnownBIOSExtensions[] =
+ static const std::vector<FileExtensionSpecStruct> KnownBIOSExtensions =
  {
-  { ".pce", gettext_noop("PC Engine ROM Image") },
-  { ".bin", gettext_noop("PC Engine ROM Image") },
-  { ".bios", gettext_noop("BIOS Image") },
-  { NULL, NULL }
+  { ".pce", 0, gettext_noop("PC Engine ROM Image") },
+  { ".bin", -10, gettext_noop("PC Engine ROM Image") },
+  { ".bios", 0, gettext_noop("BIOS Image") },
  };
 
  try
  {
-  MDFNFILE fp(bios_path.c_str(), KnownBIOSExtensions, _("CD BIOS"));
+  MDFNFILE fp(&NVFS, bios_path.c_str(), KnownBIOSExtensions, _("CD BIOS"));
 
   memset(ROMSpace, 0xFF, 262144);
 

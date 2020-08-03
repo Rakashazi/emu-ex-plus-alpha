@@ -31,6 +31,9 @@
  #error "State rewinding code untested with QLZ_COMPRESSION_LEVEL != 0"
 #endif
 
+namespace Mednafen
+{
+
 struct StateMemPacket
 {
 	std::unique_ptr<MemoryStream> data;
@@ -228,3 +231,4 @@ bool MDFNI_EnableStateRewind(bool enable)
  return Active;
 }
 
+}

@@ -51,6 +51,7 @@ public:
 	off_t seekS(off_t offset, std::error_code *ecOut = nullptr);
 	off_t seekE(off_t offset, std::error_code *ecOut = nullptr);
 	off_t seekC(off_t offset, std::error_code *ecOut = nullptr);
+	bool rewind();
 	off_t tell(std::error_code *ecOut = nullptr);
 	ssize_t send(IO &output, off_t *srcOffset, size_t bytes, std::error_code *ecOut = nullptr);
 	IG::ConstBufferView constBufferView();

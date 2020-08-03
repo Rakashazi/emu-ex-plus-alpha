@@ -24,13 +24,15 @@
 #include "CDAFReader_SF.h"
 
 #include <sndfile.h>
-#include <imagine/io/api/sndfile.hh>
+
+namespace Mednafen
+{
 
 class CDAFReader_SF final : public CDAFReader
 {
  public:
 
- CDAFReader_SF(IO *fp);
+ CDAFReader_SF(Stream *fp);
  ~CDAFReader_SF();
 
  uint64 Read_(int16 *buffer, uint64 frames) override;
@@ -42,7 +44,7 @@ class CDAFReader_SF final : public CDAFReader
  SF_INFO sfinfo;
  SF_VIRTUAL_IO sfvf;
 
- IO *fw;
+ Stream *fw;
 };
 
 static sf_count_t isf_get_filelen(void *user_data)
@@ -115,9 +117,14 @@ static sf_count_t isf_tell(void *user_data)
  }
 }
 
-CDAFReader_SF::CDAFReader_SF(IO *fp) : fw(fp)
+CDAFReader_SF::CDAFReader_SF(Stream *fp) : fw(fp)
 {
- sfvf = IOAPI::sndfile;
+ memset(&sfvf, 0, sizeof(sfvf));
+ sfvf.get_filelen = isf_get_filelen;
+ sfvf.seek = isf_seek;
+ sfvf.read = isf_read;
+ sfvf.write = isf_write;
+ sfvf.tell = isf_tell;
 
  memset(&sfinfo, 0, sizeof(sfinfo));
  if(!(sf = sf_open_virtual(&sfvf, SFM_READ, &sfinfo, (void*)fp)))
@@ -149,7 +156,9 @@ uint64 CDAFReader_SF::FrameCount(void)
 }
 
 
-CDAFReader* CDAFR_SF_Open(IO* fp)
+CDAFReader* CDAFR_SF_Open(Stream* fp)
 {
  return new CDAFReader_SF(fp);
+}
+
 }

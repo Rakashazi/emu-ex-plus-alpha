@@ -2,7 +2,7 @@
 /* Mednafen - Multi-system Emulator                                           */
 /******************************************************************************/
 /* GZFileStream.cpp:
-**  Copyright (C) 2014-2016 Mednafen Team
+**  Copyright (C) 2014-2018 Mednafen Team
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU General Public License
@@ -29,6 +29,9 @@
 #include <unistd.h>
 
 #include <zlib.h>
+
+namespace Mednafen
+{
 
 GZFileStream::GZFileStream(const std::string& path, const MODE mode, const int level) : OpenedMode(mode)
 {
@@ -70,6 +73,9 @@ GZFileStream::GZFileStream(const std::string& path, const MODE mode, const int l
   open_flags |= _O_BINARY;
  #endif
 
+ if(path.find('\0') != std::string::npos)
+  throw MDFN_Error(EINVAL, _("Error opening file \"%s\": %s"), path_save.c_str(), _("Null character in path."));
+
  #ifdef WIN32
  {
   bool invalid_utf8;
@@ -109,6 +115,13 @@ GZFileStream::~GZFileStream()
 {
  try
  {
+#if 0
+  if(gzp && (attributes() & ATTRIBUTE_WRITEABLE))
+  {
+   MDFN_printf(_("GZFileStream::close() not explicitly called for file \"%s\" opened for writing!\n"), path_save.c_str());
+  } 
+#endif
+
   close();
  }
  catch(std::exception &e)
@@ -125,10 +138,9 @@ void GZFileStream::close(void)
 
   gzp = NULL;
 
-  int result = gzclose(tmp);
-  if(result != Z_OK)
+  if(gzclose(tmp) != Z_OK)
   {
-   throw MDFN_Error(0, _("Error %d closing opened gz file \"%s\"."), result, path_save.c_str());
+   throw MDFN_Error(0, _("Error closing opened file \"%s\"."), path_save.c_str());
   }
  }
 }
@@ -288,4 +300,6 @@ uint64 GZFileStream::attributes(void)
  }
 
  return ret;
+}
+
 }

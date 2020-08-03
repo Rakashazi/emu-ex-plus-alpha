@@ -26,6 +26,9 @@
 
 #include <zlib.h>
 
+namespace Mednafen
+{
+
 class ZLInflateFilter : public Stream
 {
  public:
@@ -38,7 +41,7 @@ class ZLInflateFilter : public Stream
   AUTO_ZGZ = 3	// zlib or gzip, autodetect
  };
 
- ZLInflateFilter(Stream *source_stream, const std::string& vfp, FORMAT df, uint64 csize, uint64 ucs = ~(uint64)0, uint64 ucrc32 = ~(uint64)0);
+ ZLInflateFilter(Stream *source_stream, const std::string& vfcontext, FORMAT df, uint64 csize, uint64 ucs = ~(uint64)0, uint64 ucrc32 = ~(uint64)0);
  virtual ~ZLInflateFilter() override;
  virtual uint64 read(void *data, uint64 count, bool error_on_eos = true) override;
  virtual void write(const void *data, uint64 count) override;
@@ -52,6 +55,8 @@ class ZLInflateFilter : public Stream
 
  private:
 
+ uint64 read_real(void *data, uint64 count, bool error_on_eos);
+
  Stream* ss;
  const uint64 ss_startpos;
  const uint64 ss_boundpos;
@@ -61,12 +66,23 @@ class ZLInflateFilter : public Stream
  uint8 buf[8192];
 
  uint64 position;
- const uint64 uc_size;
+ uint64 target_position;
+ uint64 uc_size;
 
  uint32 running_crc32;
  const uint64 expected_crc32;
 
- std::string vfpath;
+ std::string vfcontext;
 };
 
+/*
+class GZIPReadFilter : public ZLInflateFilter
+{
+ public:
+ INLINE GZIPReadFilter(Stream* source_stream) : ZLInflateFilter(source_stream, "", FORMAT::GZIP, ~(uint64)0);
+
+}
+*/
+
+}
 #endif

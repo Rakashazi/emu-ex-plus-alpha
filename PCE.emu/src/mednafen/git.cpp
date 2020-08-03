@@ -21,6 +21,9 @@
 
 #include <mednafen/mednafen.h>
 
+namespace Mednafen
+{
+
 const IDIISG IDII_Empty;
 
 IDIISG::IDIISG()
@@ -88,7 +91,7 @@ IDIISG::IDIISG(std::initializer_list<InputDeviceInputInfoStruct> l) : std::vecto
 	break;
 
    case IDIT_STATUS:
-	bit_size = ceil(log2(idii.Status_.NumStates));
+	bit_size = ceil(log2(idii.Status.NumStates));
 	break;
 
    case IDIT_POINTER_X:
@@ -149,3 +152,4 @@ const CheatInfoStruct CheatInfo_Empty =
  CheatFormatInfo_Empty
 };
 
+}

@@ -22,16 +22,30 @@
 #ifndef __MDFN_COMPRESS_ZIPREADER_H
 #define __MDFN_COMPRESS_ZIPREADER_H
 
-class ZIPReader
+namespace Mednafen
+{
+
+class ZIPReader : public VirtualFS
 {
  public:
  ZIPReader(std::unique_ptr<Stream> s);
+ virtual ~ZIPReader();
 
  INLINE size_t num_files(void) { return entries.size(); }
  INLINE const char* get_file_path(size_t which) { return entries[which].name.c_str(); }
  INLINE size_t get_file_size(size_t which) { return entries[which].uncomp_size; }
 
  Stream* open(size_t which);
+
+ virtual Stream* open(const std::string& path, const uint32 mode, const int do_lock = false, const bool throw_on_noent = true, const CanaryType canary = CanaryType::open) override;
+ virtual bool mkdir(const std::string& path, const bool throw_on_exist = false) override;
+ virtual bool unlink(const std::string& path, const bool throw_on_noent = false, const CanaryType canary = CanaryType::unlink) override;
+ virtual void rename(const std::string& oldpath, const std::string& newpath, const CanaryType canary = CanaryType::rename) override;
+ virtual bool finfo(const std::string& path, FileInfo*, const bool throw_on_noent = true) override;
+ virtual void readdirentries(const std::string& path, std::function<bool(const std::string&)> callb) override;
+
+ virtual bool is_absolute_path(const std::string& path) override;
+ virtual void check_firop_safe(const std::string& path) override;
 
  private:
 
@@ -58,9 +72,11 @@ class ZIPReader
   std::string name;
  };
 
+ size_t find_by_path(const std::string& path);
+
  std::unique_ptr<Stream> zs;
  std::vector<FileDesc> entries;
 };
 
-
+}
 #endif

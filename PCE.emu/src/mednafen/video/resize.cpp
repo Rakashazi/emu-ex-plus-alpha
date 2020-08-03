@@ -21,6 +21,9 @@
 
 #include "video-common.h"
 
+namespace Mednafen
+{
+
 #define INT(x) ((int)(x))
 #define FRACT(x) ((x) - floor(x))
 
@@ -151,4 +154,6 @@ bool MDFN_ResizeSurface(const MDFN_Surface *src, const MDFN_Rect *src_rect, cons
 
 
  return(true);
+}
+
 }

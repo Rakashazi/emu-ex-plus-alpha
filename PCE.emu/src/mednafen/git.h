@@ -2,17 +2,45 @@
 #define __MDFN_GIT_H
 
 #include "video.h"
+#include "VirtualFS.h"
+
+#include "state.h"
+#include "settings-common.h"
 
 class EmuVideo;
 class EmuSystemTask;
+#ifdef WANT_DEBUGGER
+// #ifdef WANT_DEBUGGER
+// typedef struct DebuggerInfoStruct;
+// #else
+ #include "debug.h"
+#endif
 
-typedef struct
+namespace Mednafen
+{
+
+struct FileExtensionSpecStruct
 {
  const char *extension; // Example ".nes"
- const char *description; // Example "iNES Format ROM Image"
-} FileExtensionSpecStruct;
 
-#include "file.h"
+ /*
+  Priorities used in heuristics to determine which file to load from a multi-file archive:
+
+    10 = mai (Apple II, and others in future, system configuration file; should be highest)
+     0 = woz, nes, unif, vboy, pce, gb, gba, sms, smc, sfc, etc.
+   -10 = dsk, d13, etc.
+   -20 = nsf, nsfe, hes, psf, ssf, gsf, etc.
+   -30 = vb
+   -40 = m3u (should be higher than single CD image format extensions, but lower than ripped music format extensions).
+   -50 = ccd
+   -60 = cue
+   -70 = toc (not guaranteed to be cdrdao format, so prefer ccd or cue)
+   -80 = bin (lower than everything due to be overused)
+ */
+ int priority;
+
+ const char *description; // Example "iNES Format ROM Image"
+};
 
 enum
 {
@@ -39,16 +67,6 @@ typedef enum
  GMT_PLAYER	// Music player(NSF, HES, GSF)
 } GameMediumTypes;
 
-#include "state.h"
-#include "settings-common.h"
-
-#ifdef WANT_DEBUGGER
-// #ifdef WANT_DEBUGGER
-// typedef struct DebuggerInfoStruct;
-// #else
-#include "debug.h"
-
-#endif
 
 enum InputDeviceInputType : uint8
 {
@@ -80,7 +98,6 @@ enum InputDeviceInputType : uint8
  IDIT_RUMBLE,		// 16-bits, lower 8 bits are weak rumble(0-255), next 8 bits are strong rumble(0-255), 0=no rumble, 255=max rumble.  Somewhat subjective, too...
 			// It's a rather special case of game module->driver code communication.
 };
-
 
 enum : uint8
 {
@@ -141,13 +158,14 @@ struct InputDeviceInputInfoStruct
          {
 	  const IDIIS_SwitchPos* Pos;
 	  uint32 NumPos;
+	  uint32 DefPos;
          } Switch;
 
 	 struct
 	 {
 	  const IDIIS_StatusState* States;
 	  uint32 NumStates;
-	 } Status_;
+	 } Status;
 	};
 };
 
@@ -158,16 +176,16 @@ struct IDIISG : public std::vector<InputDeviceInputInfoStruct>
  uint32 InputByteSize;
 };
 
-extern const IDIISG IDII_Empty;
+MDFN_HIDE extern const IDIISG IDII_Empty;
 
 static INLINE constexpr InputDeviceInputInfoStruct IDIIS_Button(const char* sname, const char* name, int16 co, const char* exn = nullptr)
 {
- return { sname, name, co, IDIT_BUTTON, 0, 0, 0, { exn } };
+ return { sname, name, co, IDIT_BUTTON, 0, 0, 0, { { exn } } };
 }
 
 static INLINE constexpr InputDeviceInputInfoStruct IDIIS_ButtonCR(const char* sname, const char* name, int16 co, const char* exn = nullptr)
 {
- return { sname, name, co, IDIT_BUTTON_CAN_RAPID, 0, 0, 0, { exn } };
+ return { sname, name, co, IDIT_BUTTON_CAN_RAPID, 0, 0, 0, { { exn } } };
 }
 
 static INLINE constexpr InputDeviceInputInfoStruct IDIIS_AnaButton(const char* sname, const char* name, int16 co)
@@ -215,13 +233,16 @@ static INLINE /*constexpr*/ InputDeviceInputInfoStruct IDIIS_AxisRel(const char*
  return ret;
 }
 
-template<uint32 spn_count>
-static INLINE /*constexpr*/ InputDeviceInputInfoStruct IDIIS_Switch(const char* sname, const char* name, int16 co, const IDIIS_SwitchPos (&spn)[spn_count], bool undoc_defpos = true)
+template<uint32 spn_count, uint32 defpos = 0>
+static INLINE /*constexpr*/ InputDeviceInputInfoStruct IDIIS_Switch(const char* sname, const char* name, int16 co, const IDIIS_SwitchPos (&spn)[spn_count], const bool undoc_defpos_setting = true)
 {
- InputDeviceInputInfoStruct ret = { sname, name, co, IDIT_SWITCH, (uint8)(undoc_defpos ? IDIT_FLAG_AUX_SETTINGS_UNDOC : 0), 0, 0 };
+ InputDeviceInputInfoStruct ret = { sname, name, co, IDIT_SWITCH, (uint8)(undoc_defpos_setting ? IDIT_FLAG_AUX_SETTINGS_UNDOC : 0), 0, 0 };
+
+ static_assert(defpos < spn_count, "Invalid default switch position!");
 
  ret.Switch.Pos = spn;
  ret.Switch.NumPos = spn_count;
+ ret.Switch.DefPos = defpos;
 
  return ret;
 }
@@ -231,8 +252,8 @@ static INLINE /*constexpr*/ InputDeviceInputInfoStruct IDIIS_Status(const char* 
 {
  InputDeviceInputInfoStruct ret = { sname, name, -1, IDIT_STATUS, 0, 0, 0 };
 
- ret.Status_.States = ss;
- ret.Status_.NumStates = ss_count;
+ ret.Status.States = ss;
+ ret.Status.NumStates = ss_count;
 
  return ret;
 }
@@ -276,7 +297,7 @@ struct CheatFormatStruct
 										// Will return true if this is part of a multipart cheat.
 };
 
-extern const std::vector<CheatFormatStruct> CheatFormatInfo_Empty;
+MDFN_HIDE extern const std::vector<CheatFormatStruct> CheatFormatInfo_Empty;
 
 struct CheatInfoStruct
 {
@@ -296,7 +317,7 @@ struct CheatInfoStruct
  bool BigEndian;	// UI default for cheat search and new cheats.
 };
 
-extern const CheatInfoStruct CheatInfo_Empty;
+MDFN_HIDE extern const CheatInfoStruct CheatInfo_Empty;
 
 // Miscellaneous system/simple commands(power, reset, dip switch toggles, coin insert, etc.)
 // (for DoSimpleCommand() )
@@ -335,31 +356,34 @@ struct EmulateSpecStruct
 	// Pitch(32-bit) must be equal to width and >= the "fb_width" specified in the MDFNGI struct for the emulated system.
 	// Height must be >= to the "fb_height" specified in the MDFNGI struct for the emulated system.
 	// The framebuffer pointed to by surface->pixels is written to by the system emulation code.
-	MDFN_Surface *surface{};
+	MDFN_Surface* surface = nullptr;
 
 	// Will be set to true if the video pixel format has changed since the last call to Emulate(), false otherwise.
 	// Will be set to true on the first call to the Emulate() function/method
+	//
+	// Driver-side can set it to true if it has changed the custom palette.
 	static constexpr bool VideoFormatChanged = false;
 
 	// Set by the system emulation code every frame, to denote the horizontal and vertical offsets of the image, and the size
 	// of the image.  If the emulated system sets the elements of LineWidths, then the width(w) of this structure
 	// is ignored while drawing the image.
-	MDFN_Rect DisplayRect{};
+	MDFN_Rect DisplayRect = { 0, 0, 0, 0 };
 
 	// Pointer to an array of int32, number of elements = fb_height, set by the driver code.  Individual elements written
 	// to by system emulation code.  If the emulated system doesn't support multiple screen widths per frame, or if you handle
 	// such a situation by outputting at a constant width-per-frame that is the least-common-multiple of the screen widths, then
 	// you can ignore this.  If you do wish to use this, you must set all elements every frame.
-	int32 *LineWidths{};
+	int32 *LineWidths = nullptr;
 
 	// Pointer to an array of uint8, 3 * CustomPaletteEntries.
 	// CustomPalette must be NULL and CustomPaletteEntries mujst be 0 if no custom palette is specified/available;
 	// otherwise, CustomPalette must be non-NULL and CustomPaletteEntries must be equal to a non-zero "num_entries" member of a CustomPalette_Spec
 	// entry of MDFNGI::CPInfo.
 	//
-	// Set and used internally, driver-side code needn't concern itself with this.
+	// Set and used internally if driver-side code hasn't specified a non-NULL value for CustomPalette.  If driver side uses it, driver side should
+	// set VideoFormatChanged to true whenever the custom palette changes.
 	//
-	uint8 *CustomPalette{};
+	uint8 *CustomPalette = nullptr;
 	uint32 CustomPaletteNumEntries = 0;
 
 	// Set(optionally) by emulation code.  If InterlaceOn is true, then assume field height is 1/2 DisplayRect.h, and
@@ -369,7 +393,7 @@ struct EmulateSpecStruct
 	//bool InterlaceField;
 
 	// Skip rendering this frame if true.  Set by the driver code.
-	int skip = 0;
+	int skip = false;
 
 	// Calls MDFND_commitVideoFrame upon drawing a frame if non-null. Set by the driver code.
 	EmuSystemTask *task{};
@@ -383,27 +407,28 @@ struct EmulateSpecStruct
 	static constexpr bool SoundFormatChanged = false;
 
 	// Sound rate.  Set by driver side.
-	double SoundRate = 0.;
+	double SoundRate = 0;
 
 	// Pointer to sound buffer, set by the driver code, that the emulation code should render sound to.
 	// Guaranteed to be at least 500ms in length, but emulation code really shouldn't exceed 40ms or so.  Additionally, if emulation code
 	// generates >= 100ms, 
 	// DEPRECATED: Emulation code may set this pointer to a sound buffer internal to the emulation module.
-	int16 *SoundBuf{};
+	int16 *SoundBuf = nullptr;
 
 	// Maximum size of the sound buffer, in frames.  Set by the driver code.
 	int32 SoundBufMaxSize = 0;
 
 	// Number of frames currently in internal sound buffer.  Set by the system emulation code, to be read by the driver code.
 	int32 SoundBufSize = 0;
-	int32 SoundBufSizeALMS = 0;	// SoundBufSize value at last MidSync(), 0
-				// if mid sync isn't implemented for the emulation module in use.
+	int32 SoundBufSize_InternalProcessed = 0;	// Internal Mednafen use only.
+	int32 SoundBufSize_DriverProcessed = 0;		// Driver side(frontend) use only.
 
 	// Number of cycles that this frame consumed, using MDFNGI::MasterClock as a time base.
 	// Set by emulation code.
+	// MasterCycles value at last MidSync(), 0 if mid sync isn't implemented for the emulation module in use.
 	int64 MasterCycles = 0;
-	int64 MasterCyclesALMS = 0;	// MasterCycles value at last MidSync(), 0
-				// if mid sync isn't implemented for the emulation module in use.
+	int64 MasterCycles_InternalProcessed = 0;	// Internal Mednafen use only.
+	int64 MasterCycles_DriverProcessed = 0;		// Driver side(frontend) use only.
 
 	// Current sound volume(0.000...<=volume<=1.000...).  If, after calling Emulate(), it is still != 1, Mednafen will handle it internally.
 	// Emulation modules can handle volume themselves if they like, for speed reasons.  If they do, afterwards, they should set its value to 1.
@@ -435,7 +460,7 @@ typedef enum
  MODPRIO_EXTERNAL_HIGH = 40
 } ModPrio;
 
-class CDIF;
+class CDInterface;
 
 struct RMD_Media
 {
@@ -491,6 +516,54 @@ struct CustomPalette_Spec
  unsigned valid_entry_count[32];	// 0-terminated
 };
 
+struct GameFile
+{
+ VirtualFS* const vfs;
+ const std::string dir;	// path = vfs->eval_fip(dir, whatever);
+ Stream* const stream;
+
+ const std::string ext;		// Lowercase.
+ const std::string fbase;
+
+ // Outside archive.
+ struct
+ {
+  VirtualFS* const vfs;
+  const std::string dir;
+  const std::string fbase;
+ } outside;
+};
+
+struct DesiredInputType
+{
+ DesiredInputType() : device_name(nullptr) { }
+ DesiredInputType(const char* dn) : device_name(dn) { }
+
+ // nullptr for don't care
+ const char* device_name;
+
+ // Should override any *.defpos settings.
+ std::map<std::string, uint32> switches;
+};
+
+struct GameDB_Entry
+{
+ std::string GameID;
+ bool GameIDIsHash = false;
+ std::string Name;
+ std::string Setting;
+ std::string Purpose;
+};
+
+struct GameDB_Database
+{
+ std::string ShortName;
+ std::string FullName;
+ std::string Description;
+
+ std::vector<GameDB_Entry> Entries;
+};
+
 typedef struct
 {
  /* Private functions to Mednafen.  Do not call directly
@@ -517,24 +590,30 @@ typedef struct
  #endif
  const std::vector<InputPortInfoStruct> &PortInfo;
 
+ void (*GetInternalDB)(std::vector<GameDB_Database>* databases);
+
  //
  // throws exception on fatal error.
  //
- // fp's stream position is guaranteed to be 0 when this function is called.
+ // gf->stream's stream position is guaranteed to be 0 when this function is called.
  //
- void (*Load)(MDFNFILE *fp);
+ // any streams created via vfs->open() should be delete'd before returning(use std::unique_ptr<Stream>)
+ //
+ void (*Load)(GameFile* gf);
 
  //
  // Return true if the file is a recognized type, false if not.
  //
- // fp's stream position is guaranteed to be 0 when this function is called.
+ // gf->stream's position is guaranteed to be 0 when this function is called.
  //
- bool (*TestMagic)(MDFNFILE *fp);
+ // TODO/REEVALUATE: gf->dir will be an empty string, and gf->vfs will be nullptr.
+ //
+ bool (*TestMagic)(GameFile* gf);
 
  //
  // (*CDInterfaces).size() is guaranteed to be >= 1.
- void (*LoadCD)(std::vector<CDIF *> *CDInterfaces);
- bool (*TestMagicCD)(std::vector<CDIF *> *CDInterfaces);
+ void (*LoadCD)(std::vector<CDInterface*> *CDInterfaces);
+ bool (*TestMagicCD)(std::vector<CDInterface*> *CDInterfaces);
 
  //
  // CloseGame() must only be called after a matching Load() or LoadCD() completes successfully.  Calling it before Load*(), or after Load*() throws an exception or
@@ -572,7 +651,7 @@ typedef struct
 				// that won't cause desyncs with movies and netplay.
 
  void (*SetInput)(unsigned port, const char *type, uint8* data);
- bool (*SetMedia)(uint32 drive_idx, uint32 state_idx, uint32 media_idx, uint32 orientation_idx);
+ void (*SetMedia)(uint32 drive_idx, uint32 state_idx, uint32 media_idx, uint32 orientation_idx);
 
  void (*DoSimpleCommand)(int cmd);
 
@@ -626,8 +705,6 @@ typedef struct
 
  std::string name;    /* Game name, UTF-8 encoding */
  uint8 MD5[16];
- uint8 GameSetMD5[16];	/* A unique ID for the game set this CD belongs to, only used in PC-FX emulation. */
- bool GameSetMD5Valid; /* True if GameSetMD5 is valid. */
 
  VideoSystems VideoSystem;
  GameMediumTypes GameType;	// Deprecated.
@@ -636,7 +713,9 @@ typedef struct
 
  const char *cspecial;  /* Special cart expansion: DIP switches, barcode reader, etc. */
 
- std::vector<const char *>DesiredInput; // Desired input device for the input ports, NULL for don't care
+ std::vector<DesiredInputType> DesiredInput; // Desired input devices and default switch positions for the input ports
+
+ double IdealSoundRate;
 
  // For mouse relative motion.
  double mouse_sensitivity;
@@ -648,4 +727,9 @@ typedef struct
  float mouse_scale_x, mouse_scale_y;
  float mouse_offs_x, mouse_offs_y; 
 } MDFNGI;
+
+}
+
+#include "file.h"
+
 #endif

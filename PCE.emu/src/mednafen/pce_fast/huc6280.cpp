@@ -44,9 +44,9 @@ HuC6280 HuCPU;
 
 
 #ifdef HUC6280_CRAZY_VERSION
-#define LOAD_LOCALS_PC()        register uintptr_t PC_local = HuCPU.PC;
+#define LOAD_LOCALS_PC()        uintptr_t PC_local = HuCPU.PC;
 #else
-#define LOAD_LOCALS_PC()        register uint32 PC_local /*asm ("edi")*/ = HuCPU.PC; // asm ("edi") = HuCPU.PC;
+#define LOAD_LOCALS_PC()        uint32 PC_local /*asm ("edi")*/ = HuCPU.PC; // asm ("edi") = HuCPU.PC;
 #endif
 
 #define LOAD_LOCALS()				\
@@ -501,8 +501,7 @@ static const uint8 CycTable[256] =
  /*0xF0*/ 2, 7, 7, 17, 2, 4, 6, 7, 2, 5, 4, 2, 2, 5, 7, 6, 
 };
 #if 0
-static bool WillIRQOccur(void) NO_INLINE;
-static bool WillIRQOccur(void)
+static NO_INLINE bool WillIRQOccur(void)
 {
  bool ret = false;
 

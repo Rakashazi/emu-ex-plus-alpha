@@ -1,7 +1,10 @@
 #ifndef __MDFN_CDROM_CDUTILITY_H
 #define __MDFN_CDROM_CDUTILITY_H
 
-#include "../types.h"
+#include <mednafen/hash/crc.h>
+
+namespace Mednafen
+{
 
 namespace CDUtility
 {
@@ -93,41 +96,6 @@ namespace CDUtility
  };
 
  //
- // Address conversion functions.
- //
- static INLINE uint32 AMSF_to_ABA(int32 m_a, int32 s_a, int32 f_a)
- {
-  return(f_a + 75 * s_a + 75 * 60 * m_a);
- }
-
- static INLINE void ABA_to_AMSF(uint32 aba, uint8 *m_a, uint8 *s_a, uint8 *f_a)
- {
-  *m_a = aba / 75 / 60;
-  *s_a = (aba - *m_a * 75 * 60) / 75;
-  *f_a = aba - (*m_a * 75 * 60) - (*s_a * 75);
- }
-
- static INLINE int32 ABA_to_LBA(uint32 aba)
- {
-  return(aba - 150);
- }
-
- static INLINE uint32 LBA_to_ABA(int32 lba)
- {
-  return(lba + 150);
- }
-
- static INLINE int32 AMSF_to_LBA(uint8 m_a, uint8 s_a, uint8 f_a)
- {
-  return(ABA_to_LBA(AMSF_to_ABA(m_a, s_a, f_a)));
- }
-
- static INLINE void LBA_to_AMSF(int32 lba, uint8 *m_a, uint8 *s_a, uint8 *f_a)
- {
-  ABA_to_AMSF(LBA_to_ABA(lba), m_a, s_a, f_a);
- }
-
- //
  // BCD conversion functions
  //
  static INLINE bool BCD_is_valid(uint8 bcd_number)
@@ -160,6 +128,50 @@ namespace CDUtility
    return(false);
 
   return(true);
+ }
+
+ //
+ // Address conversion functions.
+ //
+ static INLINE uint32 AMSF_to_ABA(int32 m_a, int32 s_a, int32 f_a)
+ {
+  return(f_a + 75 * s_a + 75 * 60 * m_a);
+ }
+
+ static INLINE void ABA_to_AMSF(uint32 aba, uint8 *m_a, uint8 *s_a, uint8 *f_a)
+ {
+  *m_a = aba / 75 / 60;
+  *s_a = (aba - *m_a * 75 * 60) / 75;
+  *f_a = aba - (*m_a * 75 * 60) - (*s_a * 75);
+ }
+
+ static INLINE void ABA_to_AMSF_BCD(uint32 aba, uint8 *m_a, uint8 *s_a, uint8 *f_a)
+ {
+  ABA_to_AMSF(aba, m_a, s_a, f_a);
+
+  *m_a = U8_to_BCD(*m_a);
+  *s_a = U8_to_BCD(*s_a);
+  *f_a = U8_to_BCD(*f_a);
+ }
+
+ static INLINE int32 ABA_to_LBA(uint32 aba)
+ {
+  return(aba - 150);
+ }
+
+ static INLINE uint32 LBA_to_ABA(int32 lba)
+ {
+  return(lba + 150);
+ }
+
+ static INLINE int32 AMSF_to_LBA(uint8 m_a, uint8 s_a, uint8 f_a)
+ {
+  return(ABA_to_LBA(AMSF_to_ABA(m_a, s_a, f_a)));
+ }
+
+ static INLINE void LBA_to_AMSF(int32 lba, uint8 *m_a, uint8 *s_a, uint8 *f_a)
+ {
+  ABA_to_AMSF(LBA_to_ABA(lba), m_a, s_a, f_a);
  }
 
  //
@@ -211,11 +223,17 @@ namespace CDUtility
  //
 
  // Returns false on checksum mismatch, true on match.
- bool subq_check_checksum(const uint8 *subq_buf);
+ static INLINE bool subq_check_checksum(const uint8* subq_buf)
+ {
+  return MDFN_de16msb(&subq_buf[0xA]) == (0xFFFF ^ crc16_ccitt(subq_buf, 0xA));
+ }
 
  // Calculates the checksum of Q subchannel data(not including the checksum bytes of course ;)) from subq_buf, and stores it into the appropriate position
  // in subq_buf.
- void subq_generate_checksum(uint8 *subq_buf);
+ static INLINE void subq_generate_checksum(uint8* subq_buf)
+ {
+  MDFN_en16msb(&subq_buf[0xA], 0xFFFF ^ crc16_ccitt(subq_buf, 0xA));
+ }
 
  // Deinterleaves 12 bytes of subchannel Q data from 96 bytes of interleaved subchannel PW data.
  void subq_deinterleave(const uint8 *subpw_buf, uint8 *subq_buf);
@@ -236,4 +254,5 @@ namespace CDUtility
  void scrambleize_data_sector(uint8 *sector_data);
 }
 
+}
 #endif

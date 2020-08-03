@@ -1,6 +1,9 @@
 #ifndef __MDFN_PCE_ARCADE_CARD_H
 #define __MDFN_PCE_ARCADE_CARD_H
 
+namespace Mednafen
+{
+
 typedef struct
 {
  uint32 base;           // 24 bits
@@ -52,4 +55,5 @@ class ArcadeCard
  uint8 ACRAM[0x200000];
 };
 
+}
 #endif

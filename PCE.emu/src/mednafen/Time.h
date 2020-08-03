@@ -26,6 +26,9 @@
 
 #include <time.h>
 
+namespace Mednafen
+{
+
 namespace Time
 {
  void Time_Init(void) MDFN_COLD;
@@ -47,5 +50,5 @@ namespace Time
  void SleepMS(uint32) noexcept;	// Sleep for approximately the time specified in milliseconds.
 }
 
-
+}
 #endif

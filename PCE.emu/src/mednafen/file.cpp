@@ -19,17 +19,18 @@
 #include <mednafen/FileStream.h>
 #include <mednafen/compress/GZFileStream.h>
 #include <mednafen/compress/ZIPReader.h>
+#include <mednafen/compress/ZLInflateFilter.h>
 #include <mednafen/MemoryStream.h>
 #include <mednafen/IPSPatcher.h>
 #include <mednafen/string/string.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <trio/trio.h>
 
 #include "file.h"
 #include "general.h"
+
+namespace Mednafen
+{
 
 static const uint64 MaxROMImageSize = (int64)1 << 26; // 2 ^ 26 = 64MiB
 
@@ -61,18 +62,36 @@ void MDFNFILE::ApplyIPS(Stream *ips)
  }
 }
 
-/*MDFNFILE::MDFNFILE(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose) : ext((const std::string&)f_ext), fbase((const std::string&)f_fbase)
+#if 0
+MDFNFILE::MDFNFILE(VirtualFS* vfs, const char *path, const std::vector<FileExtensionSpecStruct>& known_ext, const char *purpose) : ext((const std::string&)f_ext), fbase((const std::string&)f_fbase)
 {
- Open(path, known_ext, purpose);
-}*/
+ Open(vfs, path, known_ext, purpose);
+}
+#endif
 
 MDFNFILE::~MDFNFILE()
 {
  Close();
 }
 
+/*
+	VirtualFS* gf_vfs;
+	const std::string gf_path;
+	std::string gf_dir_path;
 
-void MDFNFILE::Open(const char *path, const FileExtensionSpecStruct *known_ext, const char *purpose)
+	if((gf_vfs = mfgf.archive_vfs()))
+	{
+         gf_dir_path = mfgf.archive_dir_path();
+	}
+	else
+	{
+	 gf_vfs = &NVFS;
+	 NVFS.get_file_path_components(path, &dir_path);
+	}
+*/
+
+#if 0
+void MDFNFILE::Open(VirtualFS* vfs, const char *path, const std::vector<FileExtensionSpecStruct>& known_ext, const char *purpose)
 {
  try
  {
@@ -83,15 +102,15 @@ void MDFNFILE::Open(const char *path, const FileExtensionSpecStruct *known_ext, 
   //
   if(path_len >= 4 && !MDFN_strazicmp(path + (path_len - 4), ".zip"))
   {
-   ZIPReader zr(std::unique_ptr<FileStream>(new FileStream(path, FileStream::MODE_READ)));
-   const size_t num_files = zr.num_files();
+   std::unique_ptr<ZIPReader> zr(new ZIPReader(std::unique_ptr<Stream>(vfs->open(path, VirtualFS::MODE_READ))));
+   const size_t num_files = zr->num_files();
    size_t which_to_use = SIZE_MAX;
-   bool which_to_use_lpext = true;
    size_t fallback = SIZE_MAX;
+   int priority = INT_MIN;
 
    for(size_t i = 0; i < num_files; i++)
    {
-    const size_t zf_size = zr.get_file_size(i);
+    const size_t zf_size = zr->get_file_size(i);
 
     if(!zf_size)
      continue;
@@ -102,30 +121,31 @@ void MDFNFILE::Open(const char *path, const FileExtensionSpecStruct *known_ext, 
     if(zf_size > MaxROMImageSize)
      continue;
 
-    const char* zf_path = zr.get_file_path(i);
+    const char* zf_path = zr->get_file_path(i);
     const size_t zf_path_len = strlen(zf_path);
 
-    for(const FileExtensionSpecStruct* ex = known_ext; ex->extension; ex++)
+    for(FileExtensionSpecStruct const& ex : known_ext)
     {
-     const size_t ex_ext_len = strlen(ex->extension);
+     const size_t ex_ext_len = strlen(ex.extension);
 
      if(zf_path_len >= ex_ext_len)
      {
-      if(!MDFN_strazicmp(zf_path + (zf_path_len - ex_ext_len), ex->extension))
+      if(!MDFN_strazicmp(zf_path + (zf_path_len - ex_ext_len), ex.extension))
       {
-       const bool new_which_to_use_lpext = !MDFN_strazicmp(ex->extension, ".bin");
+       //printf("%s, %s %d, %d\n", zf_path, ex.extension, ex.priority, priority);
 
-       if(which_to_use == SIZE_MAX || (which_to_use_lpext && !new_which_to_use_lpext))
+       if(which_to_use == SIZE_MAX || ex.priority > priority)
        {
         which_to_use = i;
-        which_to_use_lpext = new_which_to_use_lpext;
-        if(!which_to_use_lpext)
-         goto Found;
+        priority = ex.priority;
        }
+
+       break;
       }
      }
     }
    }
+
    if(which_to_use == SIZE_MAX)
    {
     if(fallback == SIZE_MAX)
@@ -133,12 +153,10 @@ void MDFNFILE::Open(const char *path, const FileExtensionSpecStruct *known_ext, 
     else
      which_to_use = fallback;
    }
-   //
-   Found:;
 
    //
    {
-    std::unique_ptr<Stream> tmpfp(zr.open(which_to_use));
+    std::unique_ptr<Stream> tmpfp(zr->open(which_to_use));
     const size_t zf_size = tmpfp->size();
 
     if(zf_size > MaxROMImageSize)
@@ -150,32 +168,45 @@ void MDFNFILE::Open(const char *path, const FileExtensionSpecStruct *known_ext, 
     tmpfp->close();
    }
 
-   // Don't use MDFN_GetFilePathComponents() here.
-   {
-    const char* zf_path = zr.get_file_path(which_to_use);
-    const char* ls = strrchr(zf_path, '/');
-    const char* zf_fname = ls ? ls + 1 : zf_path;
-    const char* ld = strrchr(zf_fname, '.');
+   //
+   // Don't use vfs->get_file_path_components() here.
+   //
+   const char* zf_path = zr->get_file_path(which_to_use);
+   const char* ls = strrchr(zf_path, '/');
+   const char* zf_fname = ls ? ls + 1 : zf_path;
+   const char* ld = strrchr(zf_fname, '.');
 
-    f_ext = std::string(ld ? ld : "");
-    f_fbase = std::string(zf_fname, ld ? (ld - zf_fname) : strlen(zf_fname));
+   f_ext = std::string(ld ? ld : "");
+   f_fbase = std::string(zf_fname, ld ? (ld - zf_fname) : strlen(zf_fname));
 
-    //printf("f_ext=%s, f_fbase=%s\n", f_ext.c_str(), f_fbase.c_str());
-   }
+   //printf("f_ext=%s, f_fbase=%s\n", f_ext.c_str(), f_fbase.c_str());
+   //
+   //
+   //
+   archive_vfs = std::move(zr);
+   //
+   archive_vfs->get_file_path_components(zf_path, &f_dir_path);
+   f_path = zf_path;
+   f_vfs = archive_vfs.get();
+   //printf("FOOO: %s\n", f_dir_path.c_str());
   }
-  else // If it's not a zip file, handle it as...another type of file!
+  else
   {
-   std::unique_ptr<Stream> tfp(new FileStream(path, FileStream::MODE_READ));
-
    // We'll clean up f_ext to remove the leading period, and convert to lowercase, after
    // the plain vs gzip file handling code below(since gzip handling path will want to strip off an extra extension).
-   MDFN_GetFilePathComponents(path, NULL, &f_fbase, &f_ext);
+   vfs->get_file_path_components(path, nullptr, &f_fbase, &f_ext);
 
-   uint8 gzmagic[3] = { 0 };
-
-   if(tfp->read(gzmagic, 3, false) != 3 || gzmagic[0] != 0x1F || gzmagic[1] != 0x8b || gzmagic[2] != 0x08)
+   if(path_len >= 3 && !MDFN_strazicmp(path + (path_len - 3), ".gz")) // gzip
    {
-    tfp->seek(0, SEEK_SET);
+    std::unique_ptr<Stream> tfp(vfs->open(path, VirtualFS::MODE_READ));
+
+    str.reset(new MemoryStream(new ZLInflateFilter(tfp.get(), MDFN_sprintf(_("opened file \"%s\""), path), ZLInflateFilter::FORMAT::GZIP, tfp->size()), MaxROMImageSize));
+
+    vfs->get_file_path_components(f_fbase, nullptr, &f_fbase, &f_ext);
+   }
+   else // Plain
+   {
+    std::unique_ptr<Stream> tfp(vfs->open(path, VirtualFS::MODE_READ));
 
     if(tfp->size() > MaxROMImageSize)
     {
@@ -186,26 +217,24 @@ void MDFNFILE::Open(const char *path, const FileExtensionSpecStruct *known_ext, 
 
      throw MDFN_Error(0, _("ROM image is too large; maximum size allowed is %llu bytes.%s"), (unsigned long long)MaxROMImageSize, hint);
     }
-
     str = std::move(tfp);
    }
-   else                  /* Probably gzip */
-   {
-    delete tfp.release();
-
-    str.reset(new MemoryStream(new GZFileStream(path, GZFileStream::MODE::READ), MaxROMImageSize));
-
-    MDFN_GetFilePathComponents(f_fbase, NULL, &f_fbase, &f_ext);
-   } // End gzip handling
-  } // End normal and gzip file handling else to zip
+   //
+   vfs->get_file_path_components(path, &f_dir_path);
+   f_path = path;
+   f_vfs = vfs;
+  }
 
   // Remove leading period in file extension.
   if(f_ext.size() > 0 && f_ext[0] == '.')
    f_ext = f_ext.substr(1);
 
-  MDFN_strazlower(f_ext);
+  MDFN_strazlower(&f_ext);
 
   //printf("|%s| --- |%s|\n", f_fbase.c_str(), f_ext.c_str());
+  //
+  //
+  //
  }
  catch(...)
  {
@@ -213,6 +242,7 @@ void MDFNFILE::Open(const char *path, const FileExtensionSpecStruct *known_ext, 
   throw;
  }
 }
+#endif
 
 void MDFNFILE::Close(void) throw()
 {
@@ -358,90 +388,4 @@ void MDFN_BackupSavFile(const uint8 max_backup_count, const char* sav_ext)
  cts.close();
 }
 
-
-//
-//
-//
-void MDFN_mkdir_T(const char* path)
-{
- #ifdef WIN32
- bool invalid_utf8;
- std::u16string u16path = UTF8_to_UTF16(path, &invalid_utf8, true);
-
- if(invalid_utf8)
- {
-  errno = EINVAL;
-  /*return -1;*/
- }
- else
-  /*return*/ _wmkdir((const wchar_t*)u16path.c_str());
- #elif defined HAVE_MKDIR
-  #if MKDIR_TAKES_ONE_ARG
-   ::mkdir(path);
-  #else
-   ::mkdir(path, S_IRWXU);
-  #endif
- #else
-  #error "mkdir() missing?!"
- #endif
-}
-
-int MDFN_stat(const char* path, struct stat* buf)
-{
- #ifdef WIN32
- bool invalid_utf8;
- std::u16string u16path = UTF8_to_UTF16(path, &invalid_utf8, true);
-
- if(invalid_utf8)
- {
-  errno = EINVAL;
-  return -1;
- }
- else
-  return _wstati64((const wchar_t*)u16path.c_str(), buf);
- #else
- return stat(path, buf);
- #endif
-}
-
-void MDFN_unlink(const char* path)
-{
- #ifdef WIN32
- bool invalid_utf8;
- std::u16string u16path = UTF8_to_UTF16(path, &invalid_utf8, true);
-
- if(invalid_utf8)
-  throw MDFN_Error(ErrnoHolder(EINVAL));
-
- if(_wunlink((const wchar_t*)u16path.c_str()))
- #else
- if(unlink(path))
- #endif
- {
-  ErrnoHolder ene(errno);
-
-  throw MDFN_Error(ene.Errno(), _("Error unlinking \"%s\": %s"), path, ene.StrError());
- }
-}
-
-void MDFN_rename(const char* oldpath, const char* newpath)
-{
- #ifdef WIN32
- bool invalid_utf8_old;
- bool invalid_utf8_new;
- std::u16string u16oldpath = UTF8_to_UTF16(oldpath, &invalid_utf8_old, true);
- std::u16string u16newpath = UTF8_to_UTF16(newpath, &invalid_utf8_new, true);
-
- if(invalid_utf8_old || invalid_utf8_new)
-  throw MDFN_Error(ErrnoHolder(EINVAL));
-
- if(_wrename((const wchar_t*)u16oldpath.c_str(), (const wchar_t*)u16newpath.c_str()))
- #else
- if(rename(oldpath, newpath))
- #endif
- {
-  ErrnoHolder ene(errno);
-
-  throw MDFN_Error(ene.Errno(), _("Error renaming \"%s\" to \"%s\": %s"), oldpath, newpath, ene.StrError());
- }
 }

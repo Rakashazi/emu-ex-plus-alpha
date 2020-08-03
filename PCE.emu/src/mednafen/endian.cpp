@@ -19,8 +19,11 @@
 ** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include "mednafen.h"
+#include <mednafen/types.h>
 #include "endian.h"
+
+namespace Mednafen
+{
 
 void Endian_A16_Swap(void *src, uint32 nelements)
 {
@@ -130,4 +133,6 @@ void Endian_V_NE_BE(void* p, size_t len)
  #ifdef LSB_FIRST
  std::reverse((uint8*)p, (uint8*)p + len);
  #endif
+}
+
 }

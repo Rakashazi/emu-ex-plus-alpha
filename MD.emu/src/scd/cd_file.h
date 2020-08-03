@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mednafen/mednafen.h>
 #include <mednafen/cdrom/CDAccess.h>
 
 #define TYPE_ISO 1
@@ -8,7 +9,7 @@
 //#define TYPE_WAV 4
 
 
-int Load_ISO(CDAccess *cd);
+int Load_ISO(Mednafen::CDAccess *cd);
 //int  Load_ISO(const char *iso_name, int is_bin);
 void Unload_ISO(void);
 int  FILE_Read_One_LBA_CDC(void);

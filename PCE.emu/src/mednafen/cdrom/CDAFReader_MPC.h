@@ -22,6 +22,10 @@
 #ifndef __MDFN_CDAFREADER_MPC_H
 #define __MDFN_CDAFREADER_MPC_H
 
+namespace Mednafen
+{
+
 CDAFReader* CDAFR_MPC_Open(Stream* fp);
 
+}
 #endif

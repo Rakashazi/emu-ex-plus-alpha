@@ -694,8 +694,7 @@ static const uint64 cblock_exlut[16] =  {
                                         CB_EXL(8ULL), CB_EXL(9ULL), CB_EXL(10ULL), CB_EXL(11ULL), CB_EXL(12ULL), CB_EXL(13ULL), CB_EXL(14ULL), CB_EXL(15ULL)
                                    };
 
-static void DrawBG(const vdc_t *vdc, const uint32 count, uint8* __restrict__ target) NO_INLINE;
-static void DrawBG(const vdc_t *vdc, const uint32 count, uint8* __restrict__ target)
+static NO_INLINE void DrawBG(const vdc_t *vdc, const uint32 count, uint8* __restrict__ target)
 {
  int bat_width_shift = bat_width_shift_tab[(vdc->MWR >> 4) & 3];
  int bat_width_mask = (1U << bat_width_shift) - 1;
@@ -834,8 +833,7 @@ typedef struct
 static const unsigned int spr_hpmask = 0x8000;	// High priority bit mask(don't change).
 
 // DrawSprites will write up to 0x20 units before the start of the pointer it's passed.
-static void DrawSprites(vdc_t *vdc, const int32 end, uint16 *spr_linebuf) NO_INLINE;
-static void DrawSprites(vdc_t *vdc, const int32 end, uint16 *spr_linebuf)
+static NO_INLINE void DrawSprites(vdc_t *vdc, const int32 end, uint16 *spr_linebuf)
 {
  spr_linebuf = MDFN_ASSUME_ALIGNED(spr_linebuf, 8);
  //
@@ -1085,7 +1083,7 @@ static void MixNone(const uint32 count, T* __restrict__ target)
   target[x] = bg_color;
 }
 
-//static void MixVPC(const uint32 count, const uint32 *lb0, const uint32 *lb1, uint32 *target) NO_INLINE;
+//static NO_INLINE void MixVPC(const uint32 count, const uint32 *lb0, const uint32 *lb1, uint32 *target);
 
 static const int prio_select[4] = { 1, 1, 0, 0 };
 static const int prio_shift[4] = { 4, 0, 4, 0 };

@@ -23,6 +23,9 @@
 #include "error.h"
 #include <trio/trio.h>
 
+namespace Mednafen
+{
+
 MDFN_Error::MDFN_Error() noexcept
 {
  abort();
@@ -43,7 +46,7 @@ MDFN_Error::MDFN_Error(const ErrnoHolder &enh)
 {
  errno_code = enh.Errno();
 
- asprintf(&error_message, "%s", enh.StrError());
+ error_message = strdup(enh.StrError());
 }
 
 
@@ -136,3 +139,4 @@ void ErrnoHolder::SetErrno(int the_errno)
  }
 }
 
+}

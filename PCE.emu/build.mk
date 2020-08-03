@@ -8,8 +8,10 @@ main/options.cc \
 main/input.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc \
+common/CDImpl.cc \
 common/MDFNApi.cc \
-common/FileStreamIOWrapper.cc \
+common/MThreading.cc \
+common/StreamImpl.cc \
 main/PCEFast.cc \
 main/MDFNFILE.cc
 
@@ -37,11 +39,12 @@ mednafen/file.cpp \
 mednafen/mempatcher.cpp \
 mednafen/general.cpp \
 mednafen/error.cpp \
-mednafen/FileStream.cpp \
 mednafen/MemoryStream.cpp \
+mednafen/NativeVFS.cpp \
 mednafen/Stream.cpp \
 mednafen/memory.cpp \
 mednafen/git.cpp \
+mednafen/VirtualFS.cpp \
 mednafen/cputest/cputest.c \
 mednafen/sound/okiadpcm.cpp \
 mednafen/sound/Blip_Buffer.cpp \
@@ -56,7 +59,9 @@ mednafen/cdrom/CDAccess_CCD.cpp \
 mednafen/cdrom/CDUtility.cpp \
 mednafen/cdrom/l-ec.cpp \
 mednafen/cdrom/scsicd.cpp \
-mednafen/cdrom/cdromif.cpp \
+mednafen/cdrom/CDInterface.cpp \
+mednafen/cdrom/CDInterface_MT.cpp \
+mednafen/cdrom/CDInterface_ST.cpp \
 mednafen/cdrom/lec.cpp \
 mednafen/cdrom/crc32.cpp \
 mednafen/hw_misc/arcade_card/arcade_card.cpp \
@@ -65,6 +70,7 @@ mednafen/video/resize.cpp \
 mednafen/video/surface.cpp \
 mednafen/compress/GZFileStream.cpp \
 mednafen/string/string.cpp \
+mednafen/hash/crc.cpp \
 mednafen/hash/md5.cpp
 
 SRC += $(MDFN_SRC)

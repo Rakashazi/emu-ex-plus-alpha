@@ -5,6 +5,9 @@
 #include "video/primitives.h"
 #include "video/text.h"
 
+namespace Mednafen
+{
 void MDFN_InitFontData(void) MDFN_COLD;
+}
 
 #endif

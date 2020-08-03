@@ -22,6 +22,9 @@
 #include "mednafen.h"
 #include "memory.h"
 
+namespace Mednafen
+{
+
 void MDFN_FastMemXOR(void* dest, const void* src, size_t count)
 {
  const unsigned alch = ((uintptr_t)dest | (uintptr_t)src);
@@ -48,3 +51,4 @@ void MDFN_FastMemXOR(void* dest, const void* src, size_t count)
   pd[i] ^= sd[i];
 }
 
+}
