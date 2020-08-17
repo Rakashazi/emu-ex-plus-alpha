@@ -192,29 +192,6 @@ static std::array<char, 64> makeFrameRatePALStr()
 		EmuSystem::frameRate(EmuSystem::VIDSYS_PAL));
 }
 
-#ifdef __ANDROID__
-static bool setAndroidTextureStorage(uint8_t mode)
-{
-	static auto resetVideo =
-		[]()
-		{
-			if(emuVideo.image())
-			{
-				// texture may switch to external format so
-				// force effect shaders to re-compile
-				emuVideoLayer.reset(optionImgEffect, optionImageEffectPixelFormatValue());
-			}
-		};
-	if(!Gfx::Texture::setAndroidStorageImpl(emuVideo.renderer(), makeAndroidStorageImpl(mode)))
-	{
-		return false;
-	}
-	resetVideo();
-	optionAndroidTextureStorage = mode;
-	return true;
-}
-#endif
-
 #if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 static void setFrameInterval(int interval)
 {
@@ -284,98 +261,12 @@ static int aspectRatioValueIndex(double val)
 
 VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"Video Options", attach, item},
-	#ifdef __ANDROID__
-	androidTextureStorageItem
-	{
-		{
-			"Auto",
-			[this]()
-			{
-				setAndroidTextureStorage(OPTION_ANDROID_TEXTURE_STORAGE_AUTO);
-			}
-		},
-		{
-			"Standard",
-			[this]()
-			{
-				setAndroidTextureStorage(OPTION_ANDROID_TEXTURE_STORAGE_NONE);
-			}
-		},
-		{
-			"Graphic Buffer",
-			[this](Input::Event e)
-			{
-				static auto setAndroidTextureStorageGraphicBuffer =
-					[]()
-					{
-						if(!setAndroidTextureStorage(OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER))
-						{
-							EmuApp::postErrorMessage("Not supported on this GPU");
-							return false;
-						}
-						return true;
-					};
-				if(!Gfx::Texture::isAndroidGraphicBufferStorageWhitelisted(renderer()))
-				{
-					auto ynAlertView = makeView<YesNoAlertView>(
-						"Setting Graphic Buffer improves performance but may hang or crash "
-						"the app depending on your device or GPU",
-						"OK", "Cancel");
-					ynAlertView->setOnYes(
-						[this]()
-						{
-							if(setAndroidTextureStorageGraphicBuffer())
-							{
-								androidTextureStorage.setSelected(2);
-								dismissPrevious();
-							}
-						});
-					pushAndShowModal(std::move(ynAlertView), e);
-					return false;
-				}
-				else
-				{
-					return setAndroidTextureStorageGraphicBuffer();
-				}
-			}
-		},
-		{
-			"Surface Texture",
-			[this]()
-			{
-				if(!setAndroidTextureStorage(OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE))
-				{
-					EmuApp::postErrorMessage("Not supported on this GPU");
-					return false;
-				}
-				return true;
-			}
-		}
-	},
-	androidTextureStorage
+	textureBufferMode
 	{
 		"GPU Copy Mode",
-		[this](uint32_t idx, Gfx::Text &t)
-		{
-			if(idx == 0)
-			{
-				t.setString(Gfx::Texture::androidStorageImplStr(renderer()));
-				return true;
-			}
-			else
-				return false;
-		},
-		optionAndroidTextureStorage,
-		[items = Base::androidSDK() >= 14 ? 4u : 3u](const MultiChoiceMenuItem &) -> int
-		{
-			return items;
-		},
-		[this](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
-		{
-			return androidTextureStorageItem[idx];
-		}
+		0,
+		textureBufferModeItem
 	},
-	#endif
 	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 	frameIntervalItem
 	{
@@ -821,6 +712,25 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		aspectRatio.setSelected(idx, *this);
 	}
+	textureBufferModeItem.emplace_back("Auto (Set optimal mode)",
+		[this](View &view)
+		{
+			optionTextureBufferMode = 0;
+			auto defaultMode = renderer().makeValidTextureBufferMode();
+			emuVideoLayer.setTextureBufferMode(defaultMode);
+			textureBufferMode.setSelected(idxOfBufferMode(defaultMode));
+			view.dismiss();
+			return false;
+		});
+	for(auto desc: renderer().textureBufferModes())
+	{
+		textureBufferModeItem.emplace_back(desc.name,
+			[this, mode = desc.mode]()
+			{
+				optionTextureBufferMode = (uint8_t)mode;
+				emuVideoLayer.setTextureBufferMode(mode);
+			});
+	}
 	if(!customMenu)
 	{
 		loadStockItems();
@@ -855,9 +765,9 @@ void VideoOptionView::loadStockItems()
 	item.emplace_back(&viewportZoom);
 	item.emplace_back(&aspectRatio);
 	item.emplace_back(&advancedHeading);
-	#ifdef CONFIG_BASE_ANDROID
-	item.emplace_back(&androidTextureStorage);
-	#endif
+	item.emplace_back(&textureBufferMode);
+	textureBufferMode.setSelected(
+		idxOfBufferMode(renderer().makeValidTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val)));
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	item.emplace_back(&imgEffectPixelFormat);
 	#endif
@@ -1004,4 +914,18 @@ void VideoOptionView::setAspectRatio(double val)
 	logMsg("set aspect ratio: %.2f", val);
 	emuViewController.placeEmuViews();
 	emuViewController.postDrawToEmuWindows();
+}
+
+unsigned VideoOptionView::idxOfBufferMode(Gfx::TextureBufferMode mode)
+{
+	for(unsigned idx = 0; auto desc: renderer().textureBufferModes())
+	{
+		if(desc.mode == mode)
+		{
+			assert(idx + 1 < std::size(textureBufferModeItem));
+			return idx + 1;
+		}
+		idx++;
+	}
+	return 0;
 }

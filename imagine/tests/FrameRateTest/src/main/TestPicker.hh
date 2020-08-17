@@ -26,16 +26,15 @@ public:
 
 	TestTableEntry(SelectDelegate selectDel);
 	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const final;
-	void setTestName(const char *name);
 };
 
 class TestPicker : public TableView
 {
 public:
 	TestPicker(ViewAttachParams attach);
-	void setTests(const TestParams *testParams, uint tests);
+	void setTests(const TestDesc *testParams, uint tests);
 
 private:
 	std::vector<TestTableEntry> testEntry{};
-	const TestParams *testParamPtr{};
+	std::vector<TestParams> testParam{};
 };

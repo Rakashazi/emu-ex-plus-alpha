@@ -119,7 +119,7 @@ TextEntry::TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSe
 }
 
 CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *msgText, const char *initialContent,
-	Gfx::PixmapTexture *closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face):
+	Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face):
 	View{attach},
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	textEntry{initialContent, attach.renderer(), face, projP},
@@ -129,7 +129,7 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *
 	#ifndef CONFIG_BASE_ANDROID
 	if(View::needsBackControl && closeRes)
 	{
-		cancelSpr.init({-.5, -.5, .5, .5}, *closeRes);
+		cancelSpr.init({-.5, -.5, .5, .5}, closeRes);
 		if(cancelSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
 			renderer().autoReleaseShaderCompiler();
 	}

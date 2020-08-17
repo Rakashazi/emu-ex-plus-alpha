@@ -15,7 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/bits.h>
 #include <imagine/util/utility.h>
 #include <cmath>
 #include <algorithm>
@@ -82,10 +81,34 @@ static constexpr T clamp(T val, T low, T high)
 	return std::min(std::max(val, low), high);
 }
 
-template<class RET, class T>
-constexpr static RET scaleDecToBits(T val, unsigned int bits)
+template<class IntType, class FloatType = float>
+constexpr static FloatType floatScaler(uint8_t bits)
 {
-	return (T)makeFullBits<RET>(bits) * val;
+	static_assert(std::is_integral_v<IntType>, "floatScaler() needs integral type");
+	assumeExpr(bits <= 64);
+	if constexpr(std::is_signed_v<IntType>)
+	{
+		assumeExpr(bits);
+		return 1ul << (bits - 1);
+	}
+	else
+	{
+		return 1ul << bits;
+	}
+}
+
+template<class IntType, class FloatType = float>
+constexpr static IntType clampFromFloat(FloatType x, uint8_t bits)
+{
+	const FloatType scale = floatScaler<IntType, FloatType>(bits);
+	return std::round(std::fmax(std::fmin(x * scale, scale - (FloatType)1.), -scale));
+}
+
+template<class IntType, class FloatType = float>
+constexpr static IntType clampFromFloat(FloatType x)
+{
+	const FloatType scale = floatScaler<IntType, FloatType>(sizeof(IntType) * 8);
+	return std::round(x * scale);
 }
 
 template <class T>

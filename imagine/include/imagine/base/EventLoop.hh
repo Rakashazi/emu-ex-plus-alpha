@@ -65,6 +65,7 @@ public:
 	#endif
 	void detach();
 	void setEvents(uint32_t events);
+	void dispatchEvents(uint32_t events);
 	void setCallback(PollEventDelegate callback);
 	bool hasEventLoop() const;
 	int fd() const;

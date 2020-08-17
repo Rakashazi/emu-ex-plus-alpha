@@ -32,7 +32,7 @@ static bool isValidRootEndChar(char c)
 	return c == '/' || c == '\0';
 }
 
-FSPicker::FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
+FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes,
 	FilterFunc filter,  bool singleDir, Gfx::GlyphTextureSet *face):
 	View{attach},
 	filter{filter},

@@ -40,10 +40,8 @@ public:
 protected:
 	static constexpr uint MAX_ASPECT_RATIO_ITEMS = 5;
 
-	#ifdef __ANDROID__
-	TextMenuItem androidTextureStorageItem[4];
-	MultiChoiceMenuItem androidTextureStorage;
-	#endif
+	StaticArrayList<TextMenuItem, 5> textureBufferModeItem{};
+	MultiChoiceMenuItem textureBufferMode;
 	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 	TextMenuItem frameIntervalItem[4];
 	MultiChoiceMenuItem frameInterval;
@@ -94,6 +92,7 @@ protected:
 	void setZoom(uint8_t val);
 	void setViewportZoom(uint8_t val);
 	void setAspectRatio(double val);
+	unsigned idxOfBufferMode(Gfx::TextureBufferMode mode);
 };
 
 class AudioOptionView : public TableView

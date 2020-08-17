@@ -238,9 +238,8 @@ Byte1Option optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 1, 0};
 
 OptionRecentGames optionRecentGames;
 
+Byte1Option optionTextureBufferMode{CFGKEY_TEXTURE_BUFFER_MODE, 0};
 #ifdef __ANDROID__
-Byte1Option optionAndroidTextureStorage{CFGKEY_ANDROID_TEXTURE_STORAGE, OPTION_ANDROID_TEXTURE_STORAGE_AUTO,
-	0, optionIsValidWithMax<OPTION_ANDROID_TEXTURE_STORAGE_MAX_VALUE>};
 SByte1Option optionProcessPriority{CFGKEY_PROCESS_PRIORITY, -6, 0, optionIsValidWithMinMax<-17, 0>};
 Byte1Option optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 1};
 #endif
@@ -501,20 +500,6 @@ void setupFont(Gfx::Renderer &r, Base::Window &win)
 	View::defaultFace.setFontSettings(r, IG::FontSettings(win.heightSMMInPixels(size)));
 	View::defaultBoldFace.setFontSettings(r, IG::FontSettings(win.heightSMMInPixels(size)));
 }
-
-#ifdef __ANDROID__
-Gfx::Texture::AndroidStorageImpl makeAndroidStorageImpl(uint8_t val)
-{
-	using namespace Gfx;
-	switch(val)
-	{
-		case OPTION_ANDROID_TEXTURE_STORAGE_NONE: return Texture::ANDROID_NONE;
-		case OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER: return Texture::ANDROID_GRAPHIC_BUFFER;
-		case OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE: return Texture::ANDROID_SURFACE_TEXTURE;
-		default: return Texture::ANDROID_AUTO;
-	}
-}
-#endif
 
 bool OptionRecentGames::isDefault() const
 {

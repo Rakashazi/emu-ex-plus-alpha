@@ -32,32 +32,10 @@ class SpriteBase : public BaseRect
 {
 public:
 	constexpr SpriteBase() {}
-	void init(GCRect pos, Texture *img, IG::Rect2<GTexC> uvBounds);
-
-	void init(GCRect pos)
-	{
-		return init(pos, (Texture*)nullptr, {});
-	}
-
-	void init(GCRect pos, PixmapTexture &img)
-	{
-		return init(pos, &img, img.uvBounds());
-	}
-
+	void init(GCRect pos, TextureSpan span = {});
 	void deinit();
-	void setImg(Texture *img);
-
-	void setImg(Texture *img, IG::Rect2<GTexC> uvBounds)
-	{
-		setImg(img);
-		setUVBounds(uvBounds);
-	}
-
-	void setImg(PixmapTexture &img)
-	{
-		setImg(&img, img.uvBounds());
-	}
-
+	void setImg(const Texture *img);
+	void setImg(TextureSpan span);
 	void setUVBounds(IG::Rect2<GTexC> uvBounds);
 	void draw(RendererCommands &r) const;
 
@@ -85,16 +63,15 @@ public:
 
 	void setCommonProgram(RendererCommands &cmds, uint32_t mode) const { setCommonProgram(cmds, mode, nullptr); }
 	void setCommonProgram(RendererCommands &cmds, uint32_t mode, Mat4 modelMat) const { setCommonProgram(cmds, mode, &modelMat); }
-	Texture *image() { return img; }
 	const Texture *image() const { return img; }
 
 private:
-	Texture *img{};
+	const Texture *img{};
 };
 
 using Sprite = SpriteBase<TexRect>;
 using ShadedSprite = SpriteBase<ColTexQuad>;
 
-std::array<TexVertex, 4> makeTexVertArray(GCRect pos, PixmapTexture &img);
+std::array<TexVertex, 4> makeTexVertArray(GCRect pos, TextureSpan img);
 
 }

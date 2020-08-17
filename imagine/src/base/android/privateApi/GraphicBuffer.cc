@@ -59,15 +59,43 @@ static void initAllocDev()
 GraphicBuffer::GraphicBuffer()
 {
 	initAllocDev();
-	common.incRef = [](struct android_native_base_t *){ logMsg("called incRef"); };
-	common.decRef = [](struct android_native_base_t *){ logMsg("called decRef"); };
+	common.incRef =
+		[](struct android_native_base_t *ptr)
+		{
+			//logMsg("called incRef:%p", ptr);
+		};
+	common.decRef =
+		[](struct android_native_base_t *ptr)
+		{
+			//logMsg("called decRef:%p", ptr);
+		};
+}
+
+GraphicBuffer::GraphicBuffer(GraphicBuffer &&o)
+{
+	*this = std::move(o);
+}
+
+GraphicBuffer &GraphicBuffer::operator=(GraphicBuffer &&o)
+{
+	deinit();
+	android_native_buffer_t::operator=(o);
+	handle = std::exchange(o.handle, {});
+	return *this;
 }
 
 GraphicBuffer::~GraphicBuffer()
 {
+	deinit();
+}
+
+void GraphicBuffer::deinit()
+{
 	if(handle)
 	{
+		//logMsg("free handle:%p", handle);
 		allocDev->free(allocDev, handle);
+		handle = {};
 	}
 }
 
@@ -75,16 +103,13 @@ bool GraphicBuffer::reallocate(uint32_t w, uint32_t h, uint32_t f, uint32_t reqU
 {
 	if(handle && w == (uint32_t)width && h == (uint32_t)height && f == (uint32_t)format && reqUsage == (uint32_t)usage)
 		return true;
-	if(handle)
-	{
-		allocDev->free(allocDev, handle);
-		handle = nullptr;
-	}
+	deinit();
 	return initSize(w, h, f, reqUsage);
 }
 
 bool GraphicBuffer::initSize(uint32_t w, uint32_t h, uint32_t f, uint32_t reqUsage)
 {
+	assert(!handle);
 	auto err = allocDev->alloc(allocDev, w, h, f, reqUsage, &handle, &stride);
 	if(!err)
 	{

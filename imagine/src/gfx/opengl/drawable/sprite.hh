@@ -7,31 +7,32 @@ namespace Gfx
 {
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::init(GCRect pos, Texture *img, IG::Rect2<GTexC> uvBounds)
+void SpriteBase<BaseRect>::init(GCRect pos, TextureSpan span)
 {
 	BaseRect::init(pos.x, pos.y, pos.x2, pos.y2);
-	setImg(img);
-	setUVBounds(uvBounds);
+	setImg(span);
 }
 
 template<class BaseRect>
-void SpriteBase<BaseRect>::setImg(Texture *newImg)
+void SpriteBase<BaseRect>::setImg(const Texture *newImg)
 {
 	img = newImg;
 }
 
 template<class BaseRect>
+void SpriteBase<BaseRect>::setImg(TextureSpan span)
+{
+	setImg(span.texture());
+	setUVBounds(span.uvBounds());
+}
+
+template<class BaseRect>
 void SpriteBase<BaseRect>::setUVBounds(IG::Rect2<GTexC> uvBounds)
 {
-	if(uvBounds.xSize())
-	{
-		//logMsg("setting UV bounds:%f:%f:%f:%f", (double)uvBounds.x, (double)uvBounds.y, (double)uvBounds.x2, (double)uvBounds.y2);
-		mapImg(BaseRect::v, uvBounds.x, uvBounds.y, uvBounds.x2, uvBounds.y2);
-	}
-	else
-	{
-		mapImg(BaseRect::v, 0., 0., 1., 1.);
-	}
+	if(!uvBounds.xSize())
+		logWarn("setting Empty UV bounds");
+	//logMsg("setting UV bounds:%f:%f:%f:%f", (double)uvBounds.x, (double)uvBounds.y, (double)uvBounds.x2, (double)uvBounds.y2);
+	mapImg(BaseRect::v, uvBounds.x, uvBounds.y, uvBounds.x2, uvBounds.y2);
 }
 
 template<class BaseRect>
@@ -51,7 +52,7 @@ void SpriteBase<BaseRect>::draw(RendererCommands &cmds) const
 	}
 }
 
-std::array<TexVertex, 4> makeTexVertArray(GCRect pos, PixmapTexture &img)
+std::array<TexVertex, 4> makeTexVertArray(GCRect pos, TextureSpan img)
 {
 	std::array<TexVertex, 4> arr{};
 	setPos(arr, pos.x, pos.y, pos.x2, pos.y2);

@@ -30,10 +30,10 @@ public:
 		uint32_t r = 0, g = 0, b = 0, a = 0;
 		if constexpr(std::is_floating_point_v<T>)
 		{
-			r = IG::scaleDecToBits<uint32_t>(r_, rBits);
-			g = IG::scaleDecToBits<uint32_t>(g_, gBits);
-			b = IG::scaleDecToBits<uint32_t>(b_, bBits);
-			a = IG::scaleDecToBits<uint32_t>(a_, aBits);
+			r = IG::clampFromFloat<uint32_t>(r_, rBits);
+			g = IG::clampFromFloat<uint32_t>(g_, gBits);
+			b = IG::clampFromFloat<uint32_t>(b_, bBits);
+			a = IG::clampFromFloat<uint32_t>(a_, aBits);
 		}
 		else
 		{

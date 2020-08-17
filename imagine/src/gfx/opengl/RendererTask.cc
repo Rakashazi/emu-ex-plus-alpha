@@ -120,24 +120,30 @@ bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Ba
 	{
 		msgs++;
 		//logMsg("command pipe data");
+		auto thisRenderTask = static_cast<RendererTask*>(this);
 		switch(msg.command)
 		{
 			bcase Command::DRAW:
 			{
 				//logMsg("got draw command");
 				draws++;
+				if(!ownsThread)
+				{
+					// When running on same thread as GLMainTask, run any pending tasks before drawing starts
+					thisRenderTask->renderer().mainTask->runPendingTasksOnThisThread();
+				}
 				auto &drawArgs = msg.args.draw;
 				assumeExpr(drawArgs.del);
 				assumeExpr(drawArgs.winPtr);
 				assumeExpr(drawArgs.drawableHolderPtr);
-				drawArgs.del(drawArgs.drawableHolderPtr->drawable(), *drawArgs.winPtr, drawArgs.fence, {*static_cast<RendererTask*>(this), glDpy, msg.semAddr});
+				drawArgs.del(drawArgs.drawableHolderPtr->drawable(), *drawArgs.winPtr, drawArgs.fence, {*thisRenderTask, glDpy, msg.semAddr});
 				drawArgs.drawableHolderPtr->notifyOnFrame();
 				drawArgs.winPtr->deferredDrawComplete();
 			}
 			bcase Command::RUN_FUNC:
 			{
 				assumeExpr(msg.args.runFunc.func);
-				msg.args.runFunc.func(*static_cast<RendererTask*>(this));
+				msg.args.runFunc.func(*thisRenderTask);
 				if(msg.semAddr)
 				{
 					msg.semAddr->notify();

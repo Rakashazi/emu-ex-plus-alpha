@@ -26,11 +26,6 @@
 #include <imagine/gui/View.hh>
 #include <imagine/gui/ViewStack.hh>
 
-namespace Gfx
-{
-class PixmapTexture;
-}
-
 class FSPicker : public View
 {
 public:
@@ -41,7 +36,7 @@ public:
 	using OnPathReadError = DelegateFunc<void (FSPicker &picker, std::error_code ec)>;
 	static constexpr bool needsUpDirControl = true;
 
-	FSPicker(ViewAttachParams attach, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes,
+	FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes,
 			FilterFunc filter = {}, bool singleDir = false, Gfx::GlyphTextureSet *face = &View::defaultFace);
 	void place() override;
 	bool inputEvent(Input::Event e) override;

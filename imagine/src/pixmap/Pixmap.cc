@@ -27,7 +27,12 @@ namespace IG
 
 char *Pixmap::pixel(WP pos) const
 {
-	return (char*)data + format().offsetBytes(pos.x, pos.y, pitch);
+	return data() + format().offsetBytes(pos.x, pos.y, pitch);
+}
+
+char *Pixmap::data() const
+{
+	return (char*)data_;
 }
 
 void Pixmap::write(Pixmap pixmap)
@@ -37,13 +42,13 @@ void Pixmap::write(Pixmap pixmap)
 	{
 		// whole block
 		//logDMsg("copying whole block");
-		memcpy(data, pixmap.data, pixmap.pixelBytes());
+		memcpy(data_, pixmap.data_, pixmap.pixelBytes());
 	}
 	else
 	{
 		// line at a time
-		auto srcData = (char*)pixmap.data;
-		auto destData = (char*)data;
+		auto srcData = pixmap.data();
+		auto destData = data();
 		uint32_t lineBytes = format().pixelBytes(pixmap.w());
 		iterateTimes(pixmap.h(), i)
 		{
@@ -204,7 +209,7 @@ Pixmap Pixmap::subView(WP pos, WP size) const
 
 Pixmap::operator bool() const
 {
-	return data;
+	return data_;
 }
 
 uint32_t Pixmap::pitchPixels() const
@@ -219,7 +224,7 @@ uint32_t Pixmap::pitchBytes() const
 
 size_t Pixmap::bytes() const
 {
-	return pitchBytes() * format().pixelBytes(h());
+	return pitchBytes() * h();
 }
 
 bool Pixmap::isPadded() const

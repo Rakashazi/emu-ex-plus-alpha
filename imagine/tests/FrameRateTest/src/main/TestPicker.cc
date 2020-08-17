@@ -36,37 +36,26 @@ void TestTableEntry::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPo
 	}
 }
 
-void TestTableEntry::setTestName(const char *name)
-{
-	t.setString(name);
-}
-
 TestPicker::TestPicker(ViewAttachParams attach):
 	TableView
 	{
 		attach,
-		[this](const TableView &)
-		{
-			return testEntry.size();
-		},
-		[this](const TableView &, int idx) -> MenuItem&
-		{
-			return testEntry[idx];
-		}
+		testEntry
 	}
 {}
 
-void TestPicker::setTests(const TestParams *testParams, uint tests)
+void TestPicker::setTests(const TestDesc *testDesc, uint tests)
 {
-	testParamPtr = testParams;
 	testEntry.clear();
 	testEntry.reserve(tests);
+	testParam.clear();
+	testParam.reserve(tests);
 	iterateTimes(tests, i)
 	{
 		testEntry.emplace_back(
 			[this, i](DualTextMenuItem &, View &, Input::Event e)
 			{
-				auto test = startTest(window(), renderer(), testParamPtr[i]);
+				auto test = startTest(window(), renderer(), testParam[i]);
 				test->onTestFinished =
 					[this, i](TestFramework &test)
 					{
@@ -81,7 +70,8 @@ void TestPicker::setTests(const TestParams *testParams, uint tests)
 						entry.redText = test.droppedFrames;
 					};
 			});
-		testEntry[i].setTestName(testParams[i].makeTestName().data());
+		testEntry[i].setName(testDesc[i].name.data());
+		testParam.emplace_back(testDesc[i].params);
 	}
 	if(Input::keyInputIsPresent())
 		highlightCell(0);

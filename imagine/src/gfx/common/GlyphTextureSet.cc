@@ -23,6 +23,8 @@
 #include <imagine/logger/logger.h>
 #include <cstdlib>
 
+void GfxImageSource::freePixmap() {}
+
 namespace Gfx
 {
 
@@ -62,12 +64,13 @@ public:
 		return {};
 	}
 
-	IG::Pixmap lockPixmap() final
+	IG::Pixmap pixmapView() final
 	{
+		assert((bool)*this);
 		return lockBuff.pixmap();
 	}
 
-	void unlockPixmap() final
+	void freePixmap() final
 	{
 		lockBuff.unlock();
 	}

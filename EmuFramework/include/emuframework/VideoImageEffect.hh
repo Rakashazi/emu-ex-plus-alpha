@@ -40,14 +40,20 @@ public:
 		IG::WP scale;
 	};
 
+	struct EffectParams
+	{
+		IG::PixelFormatID formatID;
+		uint8_t effectID;
+	};
+
 	constexpr	VideoImageEffect() {}
 	void setEffect(Gfx::Renderer &r, uint effect, uint bitDepth, bool isExternalTex);
-	uint effect();
+	EffectParams effectParams() const;
 	void setImageSize(Gfx::Renderer &r, IG::WP size);
 	void setBitDepth(Gfx::Renderer &r, uint bitDepth);
 	Gfx::Program &program();
 	Gfx::Texture &renderTarget();
-	void drawRenderTarget(Gfx::RendererCommands &cmds, Gfx::PixmapTexture &img);
+	void drawRenderTarget(Gfx::RendererCommands &cmds, Gfx::Texture &img);
 	void deinit(Gfx::Renderer &r);
 
 private:
@@ -58,10 +64,10 @@ private:
 	int srcTexelDeltaU{};
 	int srcTexelHalfDeltaU{};
 	int srcPixelsU{};
-	uint effect_ = NO_EFFECT;
 	IG::WP renderTargetScale{};
 	IG::WP renderTargetImgSize{};
 	IG::WP inputImgSize{1, 1};
+	uint8_t effect_ = NO_EFFECT;
 	bool useRGB565RenderTarget = true;
 
 	void initRenderTargetTexture(Gfx::Renderer &r);

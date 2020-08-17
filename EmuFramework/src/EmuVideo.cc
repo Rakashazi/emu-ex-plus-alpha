@@ -45,21 +45,15 @@ void EmuVideo::setFormat(IG::PixmapDesc desc)
 	{
 		return; // no change to format
 	}
-	if(memPix)
-	{
-		renderer().waitAsyncCommands();
-		memPix = {};
-	}
 	if(!vidImg)
 	{
 		Gfx::TextureConfig conf{desc};
-		conf.setWillWriteOften(true);
-		vidImg = renderer().makePixmapTexture(conf);
-		vidImg.clear(0);
+		vidImg = renderer().makePixmapBufferTexture(conf, bufferMode, true);
+		vidImg.clear();
 	}
 	else
 	{
-		vidImg.setFormat(desc, 1);
+		vidImg.setFormat(desc);
 	}
 	logMsg("resized to:%dx%d", desc.w(), desc.h());
 	onFormatChanged(*this);
@@ -78,16 +72,8 @@ void EmuVideo::postSetFormat(EmuSystemTask &task, IG::PixmapDesc desc)
 
 EmuVideoImage EmuVideo::startFrame(EmuSystemTask *task)
 {
-	auto lockedTex = vidImg.lock(0);
-	if(!lockedTex)
-	{
-		if(unlikely(!memPix))
-		{
-			logMsg("created backing memory pixmap");
-			memPix = {vidImg.usedPixmapDesc()};
-		}
-		return {task, *this, memPix.view()};
-	}
+	auto lockedTex = vidImg.lock();
+	rTask.acquireFenceAndWait(fence);
 	return {task, *this, lockedTex};
 }
 
@@ -138,7 +124,6 @@ void EmuVideo::finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff
 	{
 		doScreenshot(task, texBuff.pixmap());
 	}
-	rTask.acquireFenceAndWait(fence);
 	vidImg.unlock(texBuff);
 	dispatchFinishFrame(task);
 }
@@ -150,7 +135,7 @@ void EmuVideo::finishFrame(EmuSystemTask *task, IG::Pixmap pix)
 		doScreenshot(task, pix);
 	}
 	rTask.acquireFenceAndWait(fence);
-	vidImg.write(0, pix, {});
+	vidImg.write(pix, vidImg.WRITE_FLAG_ASYNC);
 	dispatchFinishFrame(task);
 }
 
@@ -168,7 +153,7 @@ void EmuVideo::clear()
 {
 	if(!vidImg)
 		return;
-	vidImg.clear(0);
+	vidImg.clear();
 }
 
 void EmuVideo::takeGameScreenshot()
@@ -215,7 +200,7 @@ bool EmuVideo::isExternalTexture()
 	#endif
 }
 
-Gfx::PixmapTexture &EmuVideo::image()
+Gfx::PixmapBufferTexture &EmuVideo::image()
 {
 	return vidImg;
 }
@@ -230,33 +215,20 @@ EmuVideoImage::EmuVideoImage() {}
 EmuVideoImage::EmuVideoImage(EmuSystemTask *task, EmuVideo &vid, Gfx::LockedTextureBuffer texBuff):
 	task{task}, emuVideo{&vid}, texBuff{texBuff} {}
 
-EmuVideoImage::EmuVideoImage(EmuSystemTask *task, EmuVideo &vid, IG::Pixmap pix):
-	task{task}, emuVideo{&vid}, pix{pix} {}
-
 IG::Pixmap EmuVideoImage::pixmap() const
 {
-	if(texBuff)
-		return texBuff.pixmap();
-	else
-		return pix;
+	return texBuff.pixmap();
 }
 
 EmuVideoImage::operator bool() const
 {
-	return texBuff || pix;
+	return (bool)texBuff;
 }
-
 
 void EmuVideoImage::endFrame()
 {
-	if(texBuff)
-	{
-		emuVideo->finishFrame(task, texBuff);
-	}
-	else if(pix)
-	{
-		emuVideo->finishFrame(task, pix);
-	}
+	assumeExpr(texBuff);
+	emuVideo->finishFrame(task, texBuff);
 }
 
 IG::WP EmuVideo::size() const
@@ -280,4 +252,12 @@ void EmuVideo::setOnFrameFinished(FrameFinishedDelegate del)
 void EmuVideo::setOnFormatChanged(FormatChangedDelegate del)
 {
 	onFormatChanged = del;
+}
+
+bool EmuVideo::setTextureBufferMode(Gfx::TextureBufferMode mode)
+{
+	mode = renderer().makeValidTextureBufferMode(mode);
+	bool modeChanged = bufferMode != mode;
+	bufferMode = mode;
+	return modeChanged && vidImg;
 }

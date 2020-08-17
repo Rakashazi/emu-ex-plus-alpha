@@ -189,10 +189,10 @@ static OptionBase *cfgFileOption[] =
 	&optionBackNavigation,
 	#endif
 	&optionSystemActionsIsDefaultMenu,
+	&optionTextureBufferMode,
 	#if defined __ANDROID__
 	&optionLowProfileOSNav,
 	&optionHideOSNav,
-	&optionAndroidTextureStorage,
 	&optionProcessPriority,
 	&optionSustainedPerformanceMode,
 	#endif
@@ -491,11 +491,11 @@ void loadConfigFile()
 				#ifdef CONFIG_INPUT_ANDROID_MOGA
 				bcase CFGKEY_MOGA_INPUT_SYSTEM: optionMOGAInputSystem.readFromIO(io, size);
 				#endif
+				bcase CFGKEY_TEXTURE_BUFFER_MODE: optionTextureBufferMode.readFromIO(io, size);
 				#if defined __ANDROID__
 				bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);
 				bcase CFGKEY_HIDE_OS_NAV: optionHideOSNav.readFromIO(io, size);
 				//bcase CFGKEY_REL_POINTER_DECEL: optionRelPointerDecel.readFromIO(io, size);
-				bcase CFGKEY_ANDROID_TEXTURE_STORAGE: optionAndroidTextureStorage.readFromIO(io, size);
 				bcase CFGKEY_PROCESS_PRIORITY: optionProcessPriority.readFromIO(io, size);
 				bcase CFGKEY_SUSTAINED_PERFORMANCE_MODE: optionSustainedPerformanceMode.readFromIO(io, size);
 				#endif

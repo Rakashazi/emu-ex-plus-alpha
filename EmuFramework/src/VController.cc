@@ -22,17 +22,18 @@
 #include <imagine/base/Base.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/pixmap/MemPixmap.hh>
 #include "private.hh"
 #include "privateInput.hh"
 
 static constexpr uint TOGGLE_KEYBOARD = 65536;
 static constexpr uint CHANGE_KEYBOARD_MODE = 65537;
 
-void VControllerDPad::setImg(Gfx::Renderer &r, Gfx::PixmapTexture &dpadR, Gfx::GTexC texHeight)
+void VControllerDPad::setImg(Gfx::Renderer &r, Gfx::Texture &dpadR, Gfx::GTexC texHeight)
 {
 	using namespace Gfx;
 	spr.init({-.5, -.5, .5, .5,});
-	spr.setImg(&dpadR, {0., 0., 1., 64._gtexc/texHeight});
+	spr.setImg({&dpadR, {0., 0., 1., 64._gtexc/texHeight}});
 	spr.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
 }
 
@@ -185,10 +186,10 @@ void VControllerKeyboard::updateImg(Gfx::Renderer &r)
 	spr.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
 }
 
-void VControllerKeyboard::setImg(Gfx::Renderer &r, Gfx::PixmapTexture *img)
+void VControllerKeyboard::setImg(Gfx::Renderer &r, Gfx::TextureSpan img)
 {
-	spr.init({-.5, -.5, .5, .5}, *img);
-	texXEnd = img->uvBounds().x2;
+	spr.init({-.5, -.5, .5, .5}, img);
+	texXEnd = img.uvBounds().x2;
 	updateImg(r);
 }
 
@@ -481,7 +482,7 @@ bool VControllerGamepad::boundingAreaVisible() const
 	return showBoundingArea;
 }
 
-void VControllerGamepad::setImg(Gfx::Renderer &r, Gfx::PixmapTexture &pics)
+void VControllerGamepad::setImg(Gfx::Renderer &r, Gfx::Texture &pics)
 {
 	using namespace Gfx;
 	pics.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
@@ -491,10 +492,10 @@ void VControllerGamepad::setImg(Gfx::Renderer &r, Gfx::PixmapTexture &pics)
 	{
 		centerBtnSpr[i].init({});
 	}
-	centerBtnSpr[0].setImg(&pics, {0., 65._gtexc/h, 32./64., 81._gtexc/h});
+	centerBtnSpr[0].setImg({&pics, {0., 65._gtexc/h, 32./64., 81._gtexc/h}});
 	if(EmuSystem::inputCenterBtns == 2)
 	{
-		centerBtnSpr[1].setImg(&pics, {33./64., 65._gtexc/h, 1., 81._gtexc/h});
+		centerBtnSpr[1].setImg({&pics, {33./64., 65._gtexc/h, 1., 81._gtexc/h}});
 	}
 
 	iterateTimes(EmuSystem::inputFaceBtns, i)
@@ -503,31 +504,31 @@ void VControllerGamepad::setImg(Gfx::Renderer &r, Gfx::PixmapTexture &pics)
 	}
 	if(EmuSystem::inputFaceBtns == 2)
 	{
-		circleBtnSpr[0].setImg(&pics, {0., 82._gtexc/h, 32./64., 114._gtexc/h});
-		circleBtnSpr[1].setImg(&pics, {33./64., 83._gtexc/h, 1., 114._gtexc/h});
+		circleBtnSpr[0].setImg({&pics, {0., 82._gtexc/h, 32./64., 114._gtexc/h}});
+		circleBtnSpr[1].setImg({&pics, {33./64., 83._gtexc/h, 1., 114._gtexc/h}});
 	}
 	else if(EmuSystem::inputFaceBtns == 4 && EmuSystem::inputHasShortBtnTexture)
 	{
-		circleBtnSpr[0].setImg(&pics, {0., 82._gtexc/h, 32./64., 114._gtexc/h});
-		circleBtnSpr[1].setImg(&pics, {33./64., 83._gtexc/h, 1., 114._gtexc/h});
-		circleBtnSpr[2].setImg(&pics, {0., 82._gtexc/h, 32./64., 114._gtexc/h});
-		circleBtnSpr[3].setImg(&pics, {33./64., 83._gtexc/h, 1., 114._gtexc/h});
+		circleBtnSpr[0].setImg({&pics, {0., 82._gtexc/h, 32./64., 114._gtexc/h}});
+		circleBtnSpr[1].setImg({&pics, {33./64., 83._gtexc/h, 1., 114._gtexc/h}});
+		circleBtnSpr[2].setImg({&pics, {0., 82._gtexc/h, 32./64., 114._gtexc/h}});
+		circleBtnSpr[3].setImg({&pics, {33./64., 83._gtexc/h, 1., 114._gtexc/h}});
 	}
 	else // for tall overlay image
 	{
-		circleBtnSpr[0].setImg(&pics, {0., 82._gtexc/h, 32./64., 114._gtexc/h});
-		circleBtnSpr[1].setImg(&pics, {33./64., 83._gtexc/h, 1., 114._gtexc/h});
-		circleBtnSpr[2].setImg(&pics, {0., 115._gtexc/h, 32./64., 147._gtexc/h});
-		circleBtnSpr[3].setImg(&pics, {33./64., 116._gtexc/h, 1., 147._gtexc/h});
+		circleBtnSpr[0].setImg({&pics, {0., 82._gtexc/h, 32./64., 114._gtexc/h}});
+		circleBtnSpr[1].setImg({&pics, {33./64., 83._gtexc/h, 1., 114._gtexc/h}});
+		circleBtnSpr[2].setImg({&pics, {0., 115._gtexc/h, 32./64., 147._gtexc/h}});
+		circleBtnSpr[3].setImg({&pics, {33./64., 116._gtexc/h, 1., 147._gtexc/h}});
 		if(EmuSystem::inputFaceBtns >= 6)
 		{
-			circleBtnSpr[4].setImg(&pics, {0., 148._gtexc/h, 32./64., 180._gtexc/h});
-			circleBtnSpr[5].setImg(&pics, {33./64., 149._gtexc/h, 1., 180._gtexc/h});
+			circleBtnSpr[4].setImg({&pics, {0., 148._gtexc/h, 32./64., 180._gtexc/h}});
+			circleBtnSpr[5].setImg({&pics, {33./64., 149._gtexc/h, 1., 180._gtexc/h}});
 		}
 		if(EmuSystem::inputFaceBtns == 8)
 		{
-			circleBtnSpr[6].setImg(&pics, {0., 181._gtexc/h, 32./64., 213._gtexc/h});
-			circleBtnSpr[7].setImg(&pics, {33./64., 182._gtexc/h, 1., 213._gtexc/h});
+			circleBtnSpr[6].setImg({&pics, {0., 181._gtexc/h, 32./64., 213._gtexc/h}});
+			circleBtnSpr[7].setImg({&pics, {33./64., 182._gtexc/h, 1., 213._gtexc/h}});
 		}
 	}
 }
@@ -895,7 +896,7 @@ bool VController::hasTriggers() const
 	return EmuSystem::inputHasTriggerBtns;
 }
 
-void VController::setImg(Gfx::PixmapTexture &pics)
+void VController::setImg(Gfx::Texture &pics)
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	gp.setImg(renderer_, pics);
@@ -1289,19 +1290,19 @@ void VController::updateKeyboardMapping()
 
 [[gnu::weak]] SysVController::KbMap updateVControllerKeyboardMapping(uint mode) { return {}; }
 
-void VController::setMenuImage(Gfx::PixmapTexture &img)
+void VController::setMenuImage(Gfx::TextureSpan img)
 {
 	menuBtnSpr.init({}, img);
 }
 
-void VController::setFastForwardImage(Gfx::PixmapTexture &img)
+void VController::setFastForwardImage(Gfx::TextureSpan img)
 {
 	ffBtnSpr.init({}, img);
 }
 
-void VController::setKeyboardImage(Gfx::PixmapTexture &img)
+void VController::setKeyboardImage(Gfx::TextureSpan img)
 {
-	kb.setImg(renderer_, &img);
+	kb.setImg(renderer_, img);
 }
 
 bool VController::menuHitTest(IG::WP pos)

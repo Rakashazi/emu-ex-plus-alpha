@@ -138,13 +138,10 @@ std::errc PngFile::write(IG::Pixmap dest)
 	return(png.readImage(dest));
 }
 
-IG::Pixmap PngFile::lockPixmap()
+IG::Pixmap PngFile::pixmapView()
 {
-	IG::Pixmap pix{{{(int)png.width(), (int)png.height()}, png.pixelFormat()}, nullptr};
-	return pix;
+	return {{{(int)png.width(), (int)png.height()}, png.pixelFormat()}, {}};
 }
-
-void PngFile::unlockPixmap() {}
 
 std::error_code PngFile::load(const char *name)
 {

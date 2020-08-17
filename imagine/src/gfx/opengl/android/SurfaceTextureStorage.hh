@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/thread/Semaphore.hh>
 #include <android/native_window_jni.h>
 
@@ -24,19 +24,24 @@ namespace Gfx
 
 class Renderer;
 
-struct SurfaceTextureStorage: public DirectTextureStorage
+class SurfaceTextureStorage: public DirectTextureStorage
 {
+public:
+	SurfaceTextureStorage(Renderer &r, GLuint tex, bool singleBuffered, Error &err);
+	SurfaceTextureStorage(SurfaceTextureStorage &&o);
+	SurfaceTextureStorage &operator=(SurfaceTextureStorage &&o);
+	~SurfaceTextureStorage() final;
+	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) final;
+	Buffer lock(Renderer &r) final;
+	void unlock(Renderer &r) final;
+
+protected:
+	void deinit();
+
 	jobject surfaceTex{}, surface{};
 	ANativeWindow *nativeWin{};
 	uint8_t bpp = 0;
 	bool singleBuffered = false;
-
-	SurfaceTextureStorage(Renderer &r, GLuint tex, bool singleBuffered, Error &err);
-	~SurfaceTextureStorage() final;
-	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) final;
-	Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) final;
-	void unlock(Renderer &r, GLuint tex) final;
-	static bool isRendererBlacklisted(const char *rendererStr);
 };
 
 }

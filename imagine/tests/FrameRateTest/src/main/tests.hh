@@ -19,8 +19,8 @@
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/gfx/SyncFence.hh>
+#include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/pixmap/MemPixmap.hh>
 
 enum TestID
 {
@@ -38,19 +38,27 @@ struct FramePresentTime
 	constexpr FramePresentTime() {}
 };
 
-class TestParams
+struct TestParams
 {
-public:
-	TestID test;
-	IG::Point2D<int> pixmapSize;
+	TestID test{};
+	IG::WP pixmapSize{};
+	Gfx::TextureBufferMode bufferMode{};
 
 	constexpr TestParams(TestID test)
 		: test{test} {}
 
-	constexpr TestParams(TestID test, IG::Point2D<int> pixmapSize)
-		: test{test}, pixmapSize{pixmapSize} {}
+	constexpr TestParams(TestID test, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
+		: test{test}, pixmapSize{pixmapSize}, bufferMode{bufferMode} {}
+};
 
-	std::array<char, 64> makeTestName() const;
+struct TestDesc
+{
+	TestParams params;
+	std::string name;
+
+	TestDesc(TestID test, const char *name, IG::WP pixmapSize = {},
+		Gfx::TextureBufferMode bufferMode = {})
+		: params{test, pixmapSize, bufferMode}, name{name} {}
 };
 
 class TestFramework
@@ -68,14 +76,12 @@ public:
 
 	TestFramework() {}
 	virtual ~TestFramework() {}
-	virtual void initTest(Gfx::Renderer &r, IG::Point2D<int> pixmapSize) {}
+	virtual void initTest(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode) {}
 	virtual void placeTest(const Gfx::GCRect &testRect) {}
 	virtual void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, IG::FrameTime frameTime) = 0;
-	virtual void deinitTest() {}
 	virtual void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) = 0;
 	virtual void presentedTest(Gfx::RendererCommands &cmds) {}
-	void init(Gfx::Renderer &r, IG::Point2D<int> pixmapSize);
-	void deinit();
+	void init(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode);
 	void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect);
 	void frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Base::FrameParams frameParams);
 	void prepareDraw(Gfx::Renderer &r);
@@ -118,16 +124,14 @@ class DrawTest : public TestFramework
 {
 protected:
 	int flash{true};
-	IG::MemPixmap pixmap;
-	Gfx::PixmapTexture texture;
+	Gfx::PixmapBufferTexture texture;
 	Gfx::Sprite sprite;
 
 public:
 	DrawTest() {}
 
-	void initTest(Gfx::Renderer &r, IG::WP pixmapSize) override;
+	void initTest(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode) override;
 	void placeTest(const Gfx::GCRect &rect) override;
-	void deinitTest() override;
 	void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, IG::FrameTime frameTime) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };
@@ -139,10 +143,10 @@ protected:
 
 public:
 	WriteTest() {}
+	~WriteTest() override;
 
 	void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, IG::FrameTime frameTime) override;
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
-	void deinitTest() override;
 };
 
 TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &t);

@@ -16,6 +16,7 @@
 #include <imagine/audio/Format.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/math/math.hh>
 #include <cmath>
 
 namespace IG::Audio
@@ -23,8 +24,7 @@ namespace IG::Audio
 
 static int16_t clamp16FromFloat(float x)
 {
-	static constexpr float scale = 1 << 15;
-	return std::roundf(std::fmaxf(std::fminf(x * scale, scale - 1.f), -scale));
+	return IG::clampFromFloat<int16_t>(x);
 }
 
 static float *convertI16SamplesToFloat(float * __restrict__ dest, unsigned samples, const int16_t * __restrict__ src, float volume)

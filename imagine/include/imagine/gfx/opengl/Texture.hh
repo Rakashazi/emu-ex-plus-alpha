@@ -28,6 +28,7 @@ namespace Gfx
 
 class Renderer;
 class TextureSampler;
+class PixmapTexture;
 
 class GLTextureSampler
 {
@@ -52,37 +53,27 @@ protected:
 
 using TextureSamplerImpl = GLTextureSampler;
 
-class DirectTextureStorage
-{
-public:
-	struct Buffer
-	{
-		void *data{};
-		uint32_t pitch = 0;
-
-		constexpr Buffer() {}
-		constexpr Buffer(void *data, uint32_t pitch): data{data}, pitch{pitch} {}
-	};
-
-	virtual ~DirectTextureStorage() = 0;
-	virtual Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) = 0;
-	virtual Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) = 0;
-	virtual void unlock(Renderer &r, GLuint tex) = 0;
-};
-
 class GLLockedTextureBuffer
 {
-protected:
-	IG::Pixmap pix;
-	IG::WindowRect srcDirtyRect;
-	uint32_t lockedLevel = 0;
-	GLuint pbo_ = 0;
-
 public:
 	constexpr GLLockedTextureBuffer() {}
-	void set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uint32_t lockedLevel, GLuint pbo);
-	uint32_t level() const { return lockedLevel; }
-	GLuint pbo() const { return pbo_; };
+	constexpr GLLockedTextureBuffer(void *bufferOffset, IG::Pixmap pix, IG::WindowRect srcDirtyRect,
+		uint16_t lockedLevel, bool shouldFreeBuffer, GLuint pbo = 0):
+		bufferOffset_{bufferOffset}, pix{pix}, srcDirtyRect{srcDirtyRect}, pbo_{pbo},
+		lockedLevel{lockedLevel}, shouldFreeBuffer_{shouldFreeBuffer}
+	{}
+	uint16_t level() const { return lockedLevel; }
+	GLuint pbo() const { return pbo_; }
+	bool shouldFreeBuffer() const { return shouldFreeBuffer_; }
+	void *bufferOffset() const { return bufferOffset_; }
+
+protected:
+	void *bufferOffset_{};
+	IG::Pixmap pix{};
+	IG::WindowRect srcDirtyRect{};
+	GLuint pbo_ = 0;
+	uint16_t lockedLevel = 0;
+	bool shouldFreeBuffer_ = false;
 };
 
 using LockedTextureBufferImpl = GLLockedTextureBuffer;
@@ -90,58 +81,50 @@ using LockedTextureBufferImpl = GLLockedTextureBuffer;
 class GLTexture
 {
 public:
-	#ifdef __ANDROID__
-	enum AndroidStorageImpl : int
-	{
-		ANDROID_AUTO,
-		ANDROID_NONE,
-		ANDROID_GRAPHIC_BUFFER,
-		ANDROID_SURFACE_TEXTURE
-	};
-	#endif
-
 	constexpr GLTexture() {}
 	GLTexture(Renderer &r, TextureConfig config, Error *errorPtr = nullptr);
 	GLTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, Error *errorPtr = nullptr);
 	~GLTexture();
 	Error init(Renderer &r, TextureConfig config);
+	TextureConfig baseInit(Renderer &r, TextureConfig config);
 	GLuint texName() const;
-	#ifdef __ANDROID__
-	static bool setAndroidStorageImpl(Renderer &r, AndroidStorageImpl impl);
-	static AndroidStorageImpl androidStorageImpl(Renderer &r);
-	static bool isAndroidGraphicBufferStorageWhitelisted(Renderer &r);
-	bool isExternal();
-	static const char *androidStorageImplStr(AndroidStorageImpl);
-	static const char *androidStorageImplStr(Renderer &r);
-	#endif
-	void bindTex(RendererCommands &cmds, const TextureSampler &sampler);
+	void bindTex(RendererCommands &cmds, const TextureSampler &sampler) const;
 	bool canUseMipmaps(Renderer &r) const;
+	bool isExternal() const;
 
 protected:
 	Renderer *r{};
-	DirectTextureStorage *directTex{};
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	uint32_t type_ = TEX_UNSET;
-	#else
-	static constexpr uint32_t type_ = TEX_2D_4;
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
-	GLenum target = GL_TEXTURE_2D;
-	#else
-	static constexpr GLenum target = GL_TEXTURE_2D;
-	#endif
 	TextureRef texName_ = 0;
 	IG::PixmapDesc pixDesc;
-	GLuint sampler = 0; // used when separate sampler objects not supported
-	uint32_t levels_ = 0;
-	#ifdef __ANDROID__
-	static AndroidStorageImpl androidStorageImpl_;
+	mutable GLuint sampler = 0; // used when separate sampler objects not supported
+	uint16_t levels_ = 0;
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	uint8_t type_ = TEX_UNSET;
+	#else
+	static constexpr uint8_t type_ = TEX_2D_4;
 	#endif
 
 	void deinit();
 	static void setSwizzleForFormat(Renderer &r, IG::PixelFormatID format, GLuint tex, GLenum target);
+	void updateFormatInfo(IG::PixmapDesc desc, uint16_t levels, GLenum target = GL_TEXTURE_2D);
+	void updateLevelsForMipmapGeneration();
+	GLenum target() const;
 };
 
 using TextureImpl = GLTexture;
+
+class GLPixmapTexture
+{
+public:
+	constexpr GLPixmapTexture() {}
+	Error init(PixmapTexture &self, TextureConfig config);
+	void updateUsedPixmapSize(IG::PixmapDesc usedDesc, IG::PixmapDesc fullDesc);
+
+protected:
+	GTexCPoint uv{};
+	IG::WP usedSize{};
+};
+
+using PixmapTextureImpl = GLPixmapTexture;
 
 }

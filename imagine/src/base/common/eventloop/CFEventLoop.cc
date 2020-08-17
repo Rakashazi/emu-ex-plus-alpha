@@ -19,6 +19,24 @@
 namespace Base
 {
 
+static void eventCallback(CFFileDescriptorRef fdRef, CFOptionFlags callbackEventTypes, void *infoPtr)
+{
+	//logMsg("got fd events: 0x%X", (int)callbackEventTypes);
+	auto &info = *((CFFDEventSourceInfo*)infoPtr);
+	auto fd = CFFileDescriptorGetNativeDescriptor(fdRef);
+	if(info.callback(fd, callbackEventTypes))
+	{
+		if(info.fdRef) // re-enable callbacks if fd is still open
+		{
+			CFFileDescriptorEnableCallBacks(fdRef, callbackEventTypes);
+		}
+	}
+	else
+	{
+		info.detachSource();
+	}
+}
+
 static void releaseCFFileDescriptor(CFFileDescriptorRef fdRef)
 {
 	CFFileDescriptorInvalidate(fdRef);
@@ -41,23 +59,7 @@ CFFDEventSource::CFFDEventSource(const char *debugLabel, int fd):
 {
 	CFFileDescriptorContext ctx{0, info.get()};
 	info->fdRef = CFFileDescriptorCreate(kCFAllocatorDefault, fd, false,
-		[](CFFileDescriptorRef fdRef, CFOptionFlags callbackEventTypes, void *infoPtr)
-		{
-			//logMsg("got fd events: 0x%X", (int)callbackEventTypes);
-			auto &info = *((CFFDEventSourceInfo*)infoPtr);
-			auto fd = CFFileDescriptorGetNativeDescriptor(fdRef);
-			if(info.callback(fd, callbackEventTypes))
-			{
-				if(info.fdRef) // re-enable callbacks if fd is still open
-				{
-					CFFileDescriptorEnableCallBacks(fdRef, callbackEventTypes);
-				}
-			}
-			else
-			{
-				info.detachSource();
-			}
-		}, &ctx);
+		eventCallback, &ctx);
 }
 
 CFFDEventSource::CFFDEventSource(CFFDEventSource &&o)
@@ -120,6 +122,12 @@ void FDEventSource::setEvents(uint32_t events)
 		CFFileDescriptorDisableCallBacks(info->fdRef, disableEvents);
 	if(events)
 		CFFileDescriptorEnableCallBacks(info->fdRef, events);
+}
+
+void FDEventSource::dispatchEvents(uint32_t events)
+{
+	assumeExpr(info);
+	eventCallback(info->fdRef, events, info.get());
 }
 
 void FDEventSource::setCallback(PollEventDelegate callback)

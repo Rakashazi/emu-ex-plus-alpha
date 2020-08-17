@@ -97,7 +97,7 @@ public:
 	void setVisibleGeomFace(uint32_t sides);
 	void setClipTest(bool on);
 	void setClipRect(ClipRect b);
-	void setTexture(Texture &t);
+	void setTexture(const Texture &t);
 	void setTextureSampler(const TextureSampler &sampler);
 	void setCommonTextureSampler(CommonTextureSampler sampler);
 	void setViewport(Viewport v);

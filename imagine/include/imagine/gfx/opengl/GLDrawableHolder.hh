@@ -27,6 +27,7 @@
 namespace Base
 {
 class Window;
+class Screen;
 }
 
 namespace Gfx
@@ -43,6 +44,7 @@ public:
 	void notifyOnFrame();
 
 protected:
+	Base::Screen *screen{};
 	Drawable drawable_;
 	Base::ResumeDelegate onResume;
 	Base::ExitDelegate onExit;

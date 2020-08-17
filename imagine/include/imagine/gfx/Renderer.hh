@@ -19,6 +19,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/Viewport.hh>
 #include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/gfx/Program.hh>
 #include <imagine/gfx/SyncFence.hh>
 #include <imagine/pixmap/PixelFormat.hh>
@@ -26,6 +27,8 @@
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/GLRenderer.hh>
 #endif
+
+#include <vector>
 
 class GfxImageSource;
 
@@ -36,6 +39,17 @@ class Window;
 
 namespace Gfx
 {
+
+static_assert((uint8_t)TextureBufferMode::DEFAULT == 0, "TextureBufferMode::DEFAULT != 0");
+
+struct TextureBufferModeDesc
+{
+	const char *name = "";
+	TextureBufferMode mode{};
+
+	constexpr TextureBufferModeDesc() {}
+	constexpr TextureBufferModeDesc(const char *name, TextureBufferMode mode):name{name}, mode{mode} {}
+};
 
 class Renderer : public RendererImpl
 {
@@ -104,6 +118,9 @@ public:
 	{
 		return makePixmapTexture(img, true);
 	}
+	PixmapBufferTexture makePixmapBufferTexture(TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false);
+	std::vector<TextureBufferModeDesc> textureBufferModes();
+	TextureBufferMode makeValidTextureBufferMode(TextureBufferMode mode = {});
 	TextureSampler makeTextureSampler(TextureSamplerConfig config);
 	void makeCommonTextureSampler(CommonTextureSampler sampler);
 

@@ -26,11 +26,6 @@
 #include <memory>
 #include <array>
 
-namespace Gfx
-{
-class PixmapTexture;
-}
-
 class NavView : public View
 {
 public:
@@ -73,8 +68,8 @@ public:
 	bool centerTitle = true;
 	bool rotateLeftBtn = false;
 
-	BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::PixmapTexture *leftRes, Gfx::PixmapTexture *rightRes);
-	void setBackImage(Gfx::PixmapTexture *img);
+	BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::TextureSpan leftRes, Gfx::TextureSpan rightRes);
+	void setBackImage(Gfx::TextureSpan img);
 	void setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint32_t gradStops);
 
 	template <size_t S>

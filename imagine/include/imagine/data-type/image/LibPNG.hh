@@ -58,8 +58,7 @@ public:
 	std::error_code loadAsset(const char *name, const char *appName);
 	void deinit();
 	std::errc write(IG::Pixmap dest) final;
-	IG::Pixmap lockPixmap() final;
-	void unlockPixmap() final;
+	IG::Pixmap pixmapView() final;
 	explicit operator bool() const final;
 
 private:

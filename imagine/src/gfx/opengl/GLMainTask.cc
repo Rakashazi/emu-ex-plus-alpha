@@ -107,4 +107,10 @@ bool GLMainTask::isStarted() const
 	return started;
 }
 
+void GLMainTask::runPendingTasksOnThisThread()
+{
+	assert(started);
+	commandPort.dispatchMessages();
+}
+
 }

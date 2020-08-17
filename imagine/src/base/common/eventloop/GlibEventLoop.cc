@@ -98,6 +98,12 @@ void FDEventSource::setEvents(uint32_t events)
 	g_source_modify_unix_fd(source, tag, (GIOCondition)events);
 }
 
+void FDEventSource::dispatchEvents(uint32_t events)
+{
+	assumeExpr(source);
+	source->callback(fd(), events);
+}
+
 void FDEventSource::setCallback(PollEventDelegate callback)
 {
 	if(!hasEventLoop())

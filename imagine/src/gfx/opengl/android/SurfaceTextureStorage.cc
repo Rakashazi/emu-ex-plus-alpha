@@ -21,68 +21,102 @@
 namespace Gfx
 {
 
-SurfaceTextureStorage::~SurfaceTextureStorage()
+SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, bool makeSingleBuffered, Error &err):
+	DirectTextureStorage{GL_TEXTURE_EXTERNAL_OES}
 {
 	using namespace Base;
-	if(nativeWin)
-	{
-		logMsg("deinit SurfaceTexture, releasing window:%p", nativeWin);
-		ANativeWindow_release(nativeWin);
-	}
-	auto env = jEnvForThread();
-	if(surface)
-	{
-		releaseSurface(env, surface);
-		env->DeleteGlobalRef(surface);
-	}
-	if(surfaceTex)
-	{
-		releaseSurfaceTexture(env, surfaceTex);
-		env->DeleteGlobalRef(surfaceTex);
-	}
-}
-
-SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, bool makeSingleBuffered, Error &err)
-{
-	using namespace Base;
-	if(!r.support.hasExternalEGLImages)
+	if(unlikely(!r.support.hasExternalEGLImages))
 	{
 		err = std::runtime_error("can't init without OES_EGL_image_external extension");
 		return;
 	}
-	auto env = jEnvForThread();
-	jobject localSurfaceTex{};
 	singleBuffered = makeSingleBuffered;
-	localSurfaceTex = makeSurfaceTexture(env, tex, makeSingleBuffered);
-	if(!localSurfaceTex && makeSingleBuffered)
-	{
-		// fall back to buffered mode
-		localSurfaceTex = makeSurfaceTexture(env, tex, false);
-		singleBuffered = false;
-	}
-	if(!localSurfaceTex)
+	r.runGLTaskSync(
+		[=, this]()
+		{
+			auto env = jEnvForThread();
+			auto surfaceTex = makeSurfaceTexture(jEnvForThread(), tex, makeSingleBuffered);
+			if(!surfaceTex && makeSingleBuffered)
+			{
+				// fall back to buffered mode
+				surfaceTex = makeSurfaceTexture(jEnvForThread(), tex, false);
+			}
+			if(!surfaceTex)
+				return;
+			updateSurfaceTextureImage(env, surfaceTex); // set the initial display & context
+			this->surfaceTex = env->NewGlobalRef(surfaceTex);
+		});
+	if(unlikely(!surfaceTex))
 	{
 		err = std::runtime_error("SurfaceTexture ctor failed");
 		return;
 	}
 	logMsg("made%sSurfaceTexture with texture:0x%X",
 		singleBuffered ? " " : " buffered ", tex);
-	auto localSurface = makeSurface(env, localSurfaceTex);
-	if(!localSurface)
+	auto env = jEnvForThread();
+	auto localSurface = makeSurface(env, surfaceTex);
+	if(unlikely(!localSurface))
 	{
 		err = std::runtime_error("Surface ctor failed");
+		deinit();
 		return;
 	}
+	surface = env->NewGlobalRef(localSurface);
 	nativeWin = ANativeWindow_fromSurface(env, localSurface);
-	if(!nativeWin)
+	if(unlikely(!nativeWin))
 	{
 		err = std::runtime_error("ANativeWindow_fromSurface failed");
+		deinit();
 		return;
 	}
 	logMsg("native window:%p from Surface:%p%s", nativeWin, localSurface, singleBuffered ? " (single-buffered)" : "");
-	surfaceTex = env->NewGlobalRef(localSurfaceTex);
-	surface = env->NewGlobalRef(localSurface);
 	err = {};
+}
+
+SurfaceTextureStorage::SurfaceTextureStorage(SurfaceTextureStorage &&o)
+{
+	*this = std::move(o);
+}
+
+SurfaceTextureStorage &SurfaceTextureStorage::operator=(SurfaceTextureStorage &&o)
+{
+	deinit();
+	DirectTextureStorage::operator=(o);
+	surfaceTex = std::exchange(o.surfaceTex, {});
+	surface = std::exchange(o.surface, {});
+	nativeWin = std::exchange(o.nativeWin, {});
+	bpp = o.bpp;
+	singleBuffered = o.singleBuffered;
+	return *this;
+}
+
+SurfaceTextureStorage::~SurfaceTextureStorage()
+{
+	deinit();
+}
+
+void SurfaceTextureStorage::deinit()
+{
+	using namespace Base;
+	if(nativeWin)
+	{
+		logMsg("deinit SurfaceTexture, releasing window:%p", nativeWin);
+		ANativeWindow_release(nativeWin);
+		nativeWin = {};
+	}
+	auto env = jEnvForThread();
+	if(surface)
+	{
+		releaseSurface(env, surface);
+		env->DeleteGlobalRef(surface);
+		surface = {};
+	}
+	if(surfaceTex)
+	{
+		releaseSurfaceTexture(env, surfaceTex);
+		env->DeleteGlobalRef(surfaceTex);
+		surfaceTex = {};
+	}
 }
 
 Error SurfaceTextureStorage::setFormat(Renderer &, IG::PixmapDesc desc, GLuint tex)
@@ -101,7 +135,7 @@ Error SurfaceTextureStorage::setFormat(Renderer &, IG::PixmapDesc desc, GLuint t
 	return {};
 }
 
-SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(Renderer &r, IG::WindowRect *dirtyRect)
+SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(Renderer &r)
 {
 	using namespace Base;
 	if(unlikely(!nativeWin))
@@ -118,34 +152,28 @@ SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(Renderer &r, IG::Windo
 			});
 	}
 	ANativeWindow_Buffer winBuffer;
-	ARect aRect;
-	if(dirtyRect)
-	{
-		aRect.left = dirtyRect->x;
-		aRect.top = dirtyRect->y;
-		aRect.right = dirtyRect->x2;
-		aRect.bottom = dirtyRect->y2;
-	}
-	if(ANativeWindow_lock(nativeWin, &winBuffer, dirtyRect ? &aRect : nullptr) < 0)
+	// setup the dirty rectangle, not currently needed by our use case
+	/*ARect aRect;
+	aRect.left = rect.x;
+	aRect.top = rect.y;
+	aRect.right = rect.x2;
+	aRect.bottom = rect.y2;*/
+	if(ANativeWindow_lock(nativeWin, &winBuffer, nullptr) < 0)
 	{
 		logErr("ANativeWindow_lock failed");
 		return {};
 	}
+	/*rect.x = aRect.left;
+	rect.y = aRect.top;
+	rect.x2 = aRect.right;
+	rect.y2 = aRect.bottom;*/
 	Buffer buff{winBuffer.bits, (uint32_t)winBuffer.stride * bpp};
+	//buff.data = (char*)buff.data + (aRect.top * buff.pitch + aRect.left * bpp);
 	//logMsg("locked buffer %p with pitch %d", buff.data, buff.pitch);
-	if(dirtyRect)
-	{
-		// update dirty rectangle & adjust pointer by locked region
-		dirtyRect->x = aRect.left;
-		dirtyRect->y = aRect.top;
-		dirtyRect->x2 = aRect.right;
-		dirtyRect->y2 = aRect.bottom;
-		buff.data = (char*)buff.data + (aRect.top * buff.pitch + aRect.left * bpp);
-	}
 	return buff;
 }
 
-void SurfaceTextureStorage::unlock(Renderer &r, GLuint tex)
+void SurfaceTextureStorage::unlock(Renderer &r)
 {
 	using namespace Base;
 	if(unlikely(!nativeWin))
@@ -160,27 +188,5 @@ void SurfaceTextureStorage::unlock(Renderer &r, GLuint tex)
 			Base::updateSurfaceTextureImage(Base::jEnvForThread(), surfaceTex);
 		});
 }
-
-bool SurfaceTextureStorage::isRendererBlacklisted(const char *rendererStr)
-{
-	return false;
-	// TODO: these need to be tested on an ES 2.0 context,
-	// so assume nothing is blacklisted for now
-	if(strstr(rendererStr, "GC1000")) // Texture binding issues on Samsung Galaxy Tab 3 7.0 on Android 4.1
-	{
-		logWarn("buggy SurfaceTexture implementation on Vivante GC1000, blacklisted");
-		return true;
-	}
-	else if(strstr(rendererStr, "Adreno"))
-	{
-		if(strstr(rendererStr, "200")) // Textures may stop updating on HTC EVO 4G (supersonic) on Android 4.1
-		{
-			logWarn("buggy SurfaceTexture implementation on Adreno 200, blacklisted");
-			return true;
-		}
-	}
-	return false;
-}
-
 
 }

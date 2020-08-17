@@ -91,6 +91,11 @@ void VideoImageEffect::setEffect(Gfx::Renderer &r, uint effect, uint bitDepth, b
 	compile(r, isExternalTex);
 }
 
+VideoImageEffect::EffectParams VideoImageEffect::effectParams() const
+{
+	return {useRGB565RenderTarget ? IG::PIXEL_FMT_RGB565 : IG::PIXEL_FMT_RGBA8888, effect_};
+}
+
 void VideoImageEffect::deinit(Gfx::Renderer &r)
 {
 	renderTarget_ = {};
@@ -112,11 +117,6 @@ void VideoImageEffect::deinitProgram(Gfx::Renderer &r)
 		r.deleteShader(fShader);
 		fShader = 0;
 	}
-}
-
-uint VideoImageEffect::effect()
-{
-	return effect_;
 }
 
 void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r)
@@ -287,12 +287,12 @@ Gfx::Texture &VideoImageEffect::renderTarget()
 	return renderTarget_;
 }
 
-void VideoImageEffect::drawRenderTarget(Gfx::RendererCommands &cmds, Gfx::PixmapTexture &img)
+void VideoImageEffect::drawRenderTarget(Gfx::RendererCommands &cmds, Gfx::Texture &img)
 {
 	auto viewport = Gfx::Viewport::makeFromRect({0, 0, (int)renderTargetImgSize.x, (int)renderTargetImgSize.y});
 	cmds.setViewport(viewport);
 	cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
 	Gfx::Sprite spr;
-	spr.init({-1., -1., 1., 1.}, &img, {0., 1., 1., 0.});
+	spr.init({-1., -1., 1., 1.}, {&img, {0., 1., 1., 0.}});
 	spr.draw(cmds);
 }

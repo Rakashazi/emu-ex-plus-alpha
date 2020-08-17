@@ -47,7 +47,7 @@ public:
 class LockedTextureBuffer: public LockedTextureBufferImpl
 {
 public:
-	constexpr LockedTextureBuffer() {}
+	using LockedTextureBufferImpl::LockedTextureBufferImpl;
 	IG::Pixmap pixmap() const;
 	IG::WindowRect sourceDirtyRect() const;
 	explicit operator bool() const;
@@ -57,49 +57,46 @@ class Texture: public TextureImpl
 {
 public:
 	static constexpr uint32_t MAX_ASSUME_ALIGN = 8;
-	static constexpr uint32_t COMMIT_FLAG_ASYNC = IG::bit(0);
+	static constexpr uint32_t WRITE_FLAG_ASYNC = IG::bit(0);
+	static constexpr uint32_t WRITE_FLAG_MAKE_MIPMAPS = IG::bit(1);
+	static constexpr uint32_t BUFFER_FLAG_CLEARED = IG::bit(0);
 
 	using TextureImpl::TextureImpl;
 	Texture(Texture &&o);
 	Texture &operator=(Texture &&o);
-	static uint32_t bestAlignment(IG::Pixmap pixmap);
+	static uint8_t bestAlignment(IG::Pixmap pixmap);
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
 	uint32_t levels() const;
-	Error setFormat(IG::PixmapDesc desc, uint32_t levels);
-	void write(uint32_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t commitFlags = 0);
-	void writeAligned(uint32_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t assumedDataAlignment, uint32_t commitFlags = 0);
-	void clear(uint32_t level);
-	LockedTextureBuffer lock(uint32_t level);
-	LockedTextureBuffer lock(uint32_t level, IG::WindowRect rect);
-	void unlock(LockedTextureBuffer lockBuff);
-	IG::WP size(uint32_t level) const;
+	Error setFormat(IG::PixmapDesc desc, uint16_t levels);
+	void write(uint16_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t writeFlags = 0);
+	void writeAligned(uint16_t level, IG::Pixmap pixmap, IG::WP destPos, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
+	void clear(uint16_t level);
+	LockedTextureBuffer lock(uint16_t level, uint32_t bufferFlags = 0);
+	LockedTextureBuffer lock(uint16_t level, IG::WindowRect rect, uint32_t bufferFlags = 0);
+	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
+	IG::WP size(uint16_t level) const;
 	IG::PixmapDesc pixmapDesc() const;
-	bool compileDefaultProgram(uint32_t mode);
-	bool compileDefaultProgramOneShot(uint32_t mode);
+	bool compileDefaultProgram(uint32_t mode) const;
+	bool compileDefaultProgramOneShot(uint32_t mode) const;
 	void useDefaultProgram(RendererCommands &cmds, uint32_t mode, const Mat4 *modelMat) const;
 	void useDefaultProgram(RendererCommands &cmds, uint32_t mode) const { useDefaultProgram(cmds, mode, nullptr); }
 	void useDefaultProgram(RendererCommands &cmds, uint32_t mode, Mat4 modelMat) const { useDefaultProgram(cmds, mode, &modelMat); }
 	explicit operator bool() const;
 	Renderer &renderer();
+	operator TextureSpan() const;
 };
 
-class PixmapTexture: public Texture
+class PixmapTexture: public Texture, public PixmapTextureImpl
 {
 public:
 	constexpr PixmapTexture() {}
 	PixmapTexture(Renderer &r, TextureConfig config, Error *errorPtr = nullptr);
 	PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, Error *errorPtr = nullptr);
-	Error init(Renderer &r, TextureConfig config);
 	Error setFormat(IG::PixmapDesc desc, uint32_t levels);
 	IG::Rect2<GTexC> uvBounds() const;
 	IG::PixmapDesc usedPixmapDesc() const;
-
-protected:
-	IG::Rect2<GTexC> uv{};
-	IG::WP usedSize{};
-
-	void updateUV(IG::WP pixPos, IG::WP pixSize);
+	operator TextureSpan() const;
 };
 
 }

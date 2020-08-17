@@ -36,26 +36,11 @@ const char *testIDToStr(TestID id)
 	}
 }
 
-std::array<char, 64> TestParams::makeTestName() const
-{
-	std::array<char, 64> name;
-	if(pixmapSize.x)
-		string_printf(name, "%s RGB565 %ux%u", testIDToStr(test), pixmapSize.x, pixmapSize.y);
-	else
-		string_printf(name, "%s", testIDToStr(test));
-	return name;
-}
-
-void TestFramework::init(Gfx::Renderer &r, IG::Point2D<int> pixmapSize)
+void TestFramework::init(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
 {
 	cpuStatsText = {&View::defaultFace};
 	frameStatsText = {&View::defaultFace};
-	initTest(r, pixmapSize);
-}
-
-void TestFramework::deinit()
-{
-	deinitTest();
+	initTest(r, pixmapSize, bufferMode);
 }
 
 void TestFramework::setCPUFreqText(const char *str)
@@ -241,20 +226,20 @@ void ClearTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect)
 	cmds.clear();
 }
 
-void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize)
+void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
 {
-	pixmap = {{pixmapSize, IG::PIXEL_FMT_RGB565}};
-	auto pixView = pixmap.view();
-	memset(pixView.pixel({}), 0xFF, pixView.pixelBytes());
-	Gfx::TextureConfig texConf{pixView};
-	texConf.setWillWriteOften(true);
-	texture = r.makePixmapTexture(texConf);
+	IG::PixmapDesc pixmapDesc = {pixmapSize, IG::PIXEL_FMT_RGB565};
+	Gfx::TextureConfig texConf{pixmapDesc};
+	texture = r.makePixmapBufferTexture(texConf, bufferMode, true);
 	if(!texture)
 	{
 		Base::exitWithErrorMessagePrintf(-1, "Can't init test texture");
 		return;
 	}
-	texture.write(0, pixView, {});
+	auto lockedBuff = texture.lock();
+	assert(lockedBuff);
+	memset(lockedBuff.pixmap().pixel({}), 0xFF, lockedBuff.pixmap().bytes());
+	texture.unlock(lockedBuff);
 	texture.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);
 	texture.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
 	sprite.init({}, texture);
@@ -264,12 +249,6 @@ void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize)
 void DrawTest::placeTest(const Gfx::GCRect &rect)
 {
 	sprite.setPos(rect);
-}
-
-void DrawTest::deinitTest()
-{
-	sprite.deinit();
-	texture = {};
 }
 
 void DrawTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, IG::FrameTime)
@@ -303,16 +282,9 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, IG::FrameTime frameTime)
 {
 	DrawTest::frameUpdateTest(rendererTask, screen, frameTime);
-	auto lockedBuff = texture.lock(0);
-	IG::Pixmap pix;
-	if(lockedBuff)
-	{
-		pix = lockedBuff.pixmap();
-	}
-	else
-	{
-		pix = pixmap.view();
-	}
+	auto lockedBuff = texture.lock();
+	rendererTask.acquireFenceAndWait(fence);
+	IG::Pixmap pix = lockedBuff.pixmap();
 	if(flash)
 	{
 		uint writeColor;
@@ -331,15 +303,7 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &s
 	{
 		memset(pix.pixel({}), 0, pix.pitchBytes() * pix.h());
 	}
-	rendererTask.acquireFenceAndWait(fence);
-	if(lockedBuff)
-	{
-		texture.unlock(lockedBuff);
-	}
-	else
-	{
-		texture.write(0, pix, {});
-	}
+	texture.unlock(lockedBuff);
 }
 
 void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
@@ -355,8 +319,7 @@ void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	fence = cmds.replaceSyncFence(fence);
 }
 
-void WriteTest::deinitTest()
+WriteTest::~WriteTest()
 {
 	texture.renderer().deleteSyncFence(fence);
-	DrawTest::deinitTest();
 }

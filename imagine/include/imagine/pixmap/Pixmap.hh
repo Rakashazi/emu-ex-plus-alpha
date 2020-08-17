@@ -44,7 +44,7 @@ public:
 	constexpr Pixmap(PixmapDesc desc, void *data, PitchInit pitch):
 		PixmapDesc{desc},
 		pitch{pitch.units == PIXEL_UNITS ? pitch.val * desc.format().bytesPerPixel() : pitch.val},
-		data{data}
+		data_{data}
 		{}
 
 	constexpr Pixmap(PixmapDesc desc, void *data):
@@ -52,6 +52,7 @@ public:
 		{}
 
 	char *pixel(WP pos) const;
+	char *data() const;
 	void write(Pixmap pixmap);
 	void write(Pixmap pixmap, WP destPos);
 	void writeConverted(Pixmap pixmap);
@@ -124,13 +125,13 @@ public:
 
 protected:
 	uint32_t pitch = 0; // in bytes
-	void *data{};
+	void *data_{};
 
 	template <class Src, class Dest, class Func>
 	void writeTransformed2(Func func, Pixmap pixmap)
 	{
-		auto srcData = (const Src*)pixmap.data;
-		auto destData = (Dest*)data;
+		auto srcData = (const Src*)pixmap.data_;
+		auto destData = (Dest*)data_;
 		if(w() == pixmap.w() && !isPadded() && !pixmap.isPadded())
 		{
 			IG::transform_n_r(srcData, pixmap.w() * pixmap.h(), destData,

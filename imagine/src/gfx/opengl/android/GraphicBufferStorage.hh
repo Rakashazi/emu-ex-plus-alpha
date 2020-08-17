@@ -18,28 +18,30 @@
 #define EGL_EGLEXT_PROTOTYPES
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
-#include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/PixmapBufferTexture.hh>
 #include "../../../base/android/privateApi/GraphicBuffer.hh"
 
 namespace Gfx
 {
 
-struct GraphicBufferStorage: public DirectTextureStorage
+class GraphicBufferStorage: public DirectTextureStorage
 {
+public:
+	GraphicBufferStorage();
+	GraphicBufferStorage(GraphicBufferStorage &&o);
+	GraphicBufferStorage &operator=(GraphicBufferStorage &&o);
+	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) final;
+	Buffer lock(Renderer &r) final;
+	void unlock(Renderer &r) final;
+	static bool canSupport(const char *rendererStr);
+	static bool testSupport();
+	static bool isSupported();
+
+protected:
 	Base::GraphicBuffer gBuff{};
-	EGLImageKHR eglImg = EGL_NO_IMAGE_KHR;
 	uint32_t pitch = 0;
 	uint8_t bpp = 0;
-	static bool testPassed;
-
-	GraphicBufferStorage() {}
-	~GraphicBufferStorage() final;
-	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) final;
-	Buffer lock(Renderer &r, IG::WindowRect *dirtyRect) final;
-	void unlock(Renderer &r, GLuint tex) final;
-	void resetImage(EGLDisplay dpy);
-	void reset(EGLDisplay dpy);
-	static bool isRendererWhitelisted(const char *rendererStr);
+	static bool testPassed_;
 };
 
 }

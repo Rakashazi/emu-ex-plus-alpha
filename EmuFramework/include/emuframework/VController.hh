@@ -41,7 +41,7 @@ class VControllerDPad
 {
 public:
 	constexpr VControllerDPad() {}
-	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture &dpadR, Gfx::GTexC texHeight);
+	void setImg(Gfx::Renderer &r, Gfx::Texture &dpadR, Gfx::GTexC texHeight);
 	void draw(Gfx::RendererCommands &cmds) const;
 	void setBoundingAreaVisible(Gfx::Renderer &r, bool on, const AppWindowData &winData);
 	int getInput(IG::WP c) const;
@@ -79,7 +79,7 @@ public:
 
 	constexpr VControllerKeyboard() {}
 	void updateImg(Gfx::Renderer &r);
-	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture *img);
+	void setImg(Gfx::Renderer &r, Gfx::TextureSpan img);
 	void place(Gfx::GC btnSize, Gfx::GC yOffset, const AppWindowData &winData);
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP) const;
 	int getInput(IG::WP c) const;
@@ -114,7 +114,7 @@ public:
 	constexpr VControllerGamepad(uint faceButtons): activeFaceBtns{faceButtons} {}
 	void setBoundingAreaVisible(Gfx::Renderer &r, bool on, const AppWindowData &winData);
 	bool boundingAreaVisible() const;
-	void setImg(Gfx::Renderer &r, Gfx::PixmapTexture &pics);
+	void setImg(Gfx::Renderer &r, Gfx::Texture &pics);
 	uint rowsForButtons(uint activeButtons);
 	void setBaseBtnSize(Gfx::Renderer &r, uint sizeInPixels, const AppWindowData &winData);
 	IG::WindowRect centerBtnBounds() const;
@@ -198,7 +198,7 @@ public:
 	void updateMapping(uint player);
 	void updateKeyboardMapping();
 	bool hasTriggers() const;
-	void setImg(Gfx::PixmapTexture &pics);
+	void setImg(Gfx::Texture &pics);
 	void setBoundingAreaVisible(bool on);
 	bool boundingAreaVisible() const;
 	void setMenuBtnPos(IG::Point2D<int> pos);
@@ -219,9 +219,9 @@ public:
 	uint state(int elemIdx) const;
 	void setBaseBtnSize(uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP);
 	bool isInKeyboardMode() const;
-	void setMenuImage(Gfx::PixmapTexture &img);
-	void setFastForwardImage(Gfx::PixmapTexture &img);
-	void setKeyboardImage(Gfx::PixmapTexture &img);
+	void setMenuImage(Gfx::TextureSpan img);
+	void setFastForwardImage(Gfx::TextureSpan img);
+	void setKeyboardImage(Gfx::TextureSpan img);
 	bool menuHitTest(IG::WP pos);
 	bool fastForwardHitTest(IG::WP pos);
 	void setUsesScaledCoordinates(bool on);

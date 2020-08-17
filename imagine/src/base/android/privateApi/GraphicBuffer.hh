@@ -28,6 +28,8 @@ class GraphicBuffer : public android_native_buffer_t
 {
 public:
 	GraphicBuffer();
+	GraphicBuffer(GraphicBuffer &&o);
+	GraphicBuffer &operator=(GraphicBuffer &&o);
 	~GraphicBuffer();
 	bool reallocate(uint32_t w, uint32_t h, uint32_t format, uint32_t usage);
 	bool lock(uint32_t usage, void **vaddr);
@@ -41,6 +43,7 @@ public:
 
 private:
 	bool initSize(uint32_t w, uint32_t h, uint32_t format, uint32_t usage);
+	void deinit();
 };
 
 }

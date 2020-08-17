@@ -59,6 +59,7 @@ public:
 	bool hasUnpackRowLength = !Config::Gfx::OPENGL_ES;
 	bool hasSamplerObjects = !Config::Gfx::OPENGL_ES;
 	bool hasImmutableTexStorage = false;
+	bool hasImmutableBufferStorage = false;
 	bool hasPBOFuncs = false;
 	#ifdef CONFIG_GFX_OPENGL_DEBUG_CONTEXT
 	bool hasDebugOutput = false;
@@ -94,6 +95,8 @@ public:
 	void (* GL_APIENTRY glDeleteSync) (GLsync sync){};
 	GLenum (* GL_APIENTRY glClientWaitSync) (GLsync sync, GLbitfield flags, GLuint64 timeout){};
 	void (* GL_APIENTRY glWaitSync) (GLsync sync, GLbitfield flags, GLuint64 timeout){};
+	void (* GL_APIENTRY glBufferStorage) (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags){};
+	void (* GL_APIENTRY glFlushMappedBufferRange)(GLenum target, GLintptr offset, GLsizeiptr length){};
 	#else
 	static void glGenSamplers(GLsizei count, GLuint* samplers) { ::glGenSamplers(count, samplers); };
 	static void glDeleteSamplers(GLsizei count, const GLuint* samplers) { ::glDeleteSamplers(count,samplers); };
@@ -108,6 +111,8 @@ public:
 	static void glDeleteSync(GLsync sync) { ::glDeleteSync(sync); }
 	static GLenum glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout) { return ::glClientWaitSync(sync, flags, timeout); }
 	static void glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout) { ::glWaitSync(sync, flags, timeout); }
+	static void glBufferStorage(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags) { ::glBufferStorage(target, size, data, flags); }
+	static void glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length) { ::glFlushMappedBufferRange(target, offset, length); }
 	#endif
 	GLenum luminanceFormat = GL_LUMINANCE;
 	GLenum luminanceInternalFormat = GL_LUMINANCE8;
@@ -168,6 +173,7 @@ public:
 	void runFuncSync(FuncDelegate del);
 	void stop();
 	bool isStarted() const;
+	void runPendingTasksOnThisThread();
 
 private:
 	Base::MessagePort<CommandMessage> commandPort{"GLMainTask Command"};
@@ -229,6 +235,7 @@ public:
 	void setupPBO();
 	void setupSpecifyDrawReadBuffers();
 	void setupUnmapBufferFunc();
+	void setupImmutableBufferStorage();
 	void setupFenceSync();
 	void setupAppleFenceSync();
 	void setupEGLFenceSync(bool supportsServerSync);

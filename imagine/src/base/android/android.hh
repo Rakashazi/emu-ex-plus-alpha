@@ -50,7 +50,7 @@ jobject newFontRenderer(JNIEnv *env);
 
 jobject makeSurfaceTexture(JNIEnv *env, jint texName);
 jobject makeSurfaceTexture(JNIEnv *env, jint texName, jboolean singleBufferMode);
-void releaseSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture);
+bool releaseSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture);
 void updateSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture);
 void releaseSurfaceTexture(JNIEnv *env, jobject surfaceTexture);
 

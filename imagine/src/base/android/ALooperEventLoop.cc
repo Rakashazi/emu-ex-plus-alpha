@@ -21,7 +21,7 @@
 namespace Base
 {
 
-static int pollEventCallback(int fd, int events, void *data)
+static int eventCallback(int fd, int events, void *data)
 {
 	auto &info = *((ALooperFDEventSourceInfo*)data);
 	bool keep = info.callback(fd, events);
@@ -64,7 +64,7 @@ bool FDEventSource::attach(EventLoop loop, PollEventDelegate callback, uint32_t 
 	detach();
 	if(!loop)
 		loop = EventLoop::forThread();
-	if(auto res = ALooper_addFd(loop.nativeObject(), fd_, ALOOPER_POLL_CALLBACK, events, pollEventCallback, info.get());
+	if(auto res = ALooper_addFd(loop.nativeObject(), fd_, ALOOPER_POLL_CALLBACK, events, eventCallback, info.get());
 		res != 1)
 	{
 		return false;
@@ -90,7 +90,12 @@ void FDEventSource::setEvents(uint32_t events)
 		logErr("trying to set events while not attached to event loop");
 		return;
 	}
-	ALooper_addFd(info->looper, fd_, ALOOPER_POLL_CALLBACK, events, pollEventCallback, info.get());
+	ALooper_addFd(info->looper, fd_, ALOOPER_POLL_CALLBACK, events, eventCallback, info.get());
+}
+
+void FDEventSource::dispatchEvents(uint32_t events)
+{
+	eventCallback(fd(), events, info.get());
 }
 
 void FDEventSource::setCallback(PollEventDelegate callback)

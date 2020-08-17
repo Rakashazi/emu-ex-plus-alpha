@@ -85,7 +85,7 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, unsigned effect_)
 	img = r.makeTexture(texConf);
 	img.write(0, pix, {});
 	img.generateMipmaps();
-	spr.init({}, &img, {});
+	spr.init({}, img);
 	spr.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
 }
 
@@ -105,15 +105,15 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
 	switch(effect)
 	{
 		bcase SCANLINES:
-			spr.setImg(&img, {0., 0., 1.0, (Gfx::GTexC)lines});
+			spr.setImg({&img, {0., 0., 1.0, (Gfx::GTexC)lines}});
 		bcase SCANLINES_2:
-			spr.setImg(&img, {0., 0., 1.0, lines*2._gtexc});
+			spr.setImg({&img, {0., 0., 1.0, lines*2._gtexc}});
 		bcase CRT:
-			spr.setImg(&img, {0., 0., width/2._gtexc, lines/2._gtexc});
+			spr.setImg({&img, {0., 0., width/2._gtexc, lines/2._gtexc}});
 		bcase CRT_RGB:
-			spr.setImg(&img, {0., 0., width/2._gtexc, (Gfx::GTexC)lines});
+			spr.setImg({&img, {0., 0., width/2._gtexc, (Gfx::GTexC)lines}});
 		bcase CRT_RGB_2:
-			spr.setImg(&img, {0., 0., width/2._gtexc, lines*2._gtexc});
+			spr.setImg({&img, {0., 0., width/2._gtexc, lines*2._gtexc}});
 	}
 }
 

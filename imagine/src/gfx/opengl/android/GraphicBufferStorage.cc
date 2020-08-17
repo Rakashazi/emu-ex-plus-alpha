@@ -24,40 +24,37 @@
 namespace Gfx
 {
 
-bool GraphicBufferStorage::testPassed = false;
+static constexpr uint32_t allocateUsage = GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_HW_TEXTURE;
+static constexpr uint32_t lockUsage = GRALLOC_USAGE_SW_WRITE_OFTEN;
 
-void GraphicBufferStorage::resetImage(EGLDisplay dpy)
+bool GraphicBufferStorage::testPassed_ = false;
+
+GraphicBufferStorage::GraphicBufferStorage() {}
+
+GraphicBufferStorage::GraphicBufferStorage(GraphicBufferStorage &&o)
 {
-	if(eglImg != EGL_NO_IMAGE_KHR)
-	{
-		eglDestroyImageKHR(dpy, eglImg);
-		eglImg = EGL_NO_IMAGE_KHR;
-	}
+	*this = std::move(o);
 }
 
-void GraphicBufferStorage::reset(EGLDisplay dpy)
+GraphicBufferStorage &GraphicBufferStorage::operator=(GraphicBufferStorage &&o)
 {
-	resetImage(dpy);
-	gBuff = {};
-}
-
-GraphicBufferStorage::~GraphicBufferStorage()
-{
-	resetImage(Base::GLDisplay::getDefault().eglDisplay());
+	DirectTextureStorage::operator=(o);
+	gBuff = std::move(o.gBuff);
+	pitch = std::exchange(o.pitch, {});
+	bpp = std::exchange(o.bpp, {});
+	return *this;
 }
 
 Error GraphicBufferStorage::setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex)
 {
 	auto dpy = Base::GLDisplay::getDefault().eglDisplay();
-	reset(dpy);
 	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
 	int androidFormat = Base::pixelFormatToDirectAndroidFormat(desc.format());
 	if(!androidFormat)
 	{
 		return std::runtime_error("pixel format not usable");
 	}
-	if(!gBuff.reallocate(desc.w(), desc.h(), androidFormat,
-		GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_HW_TEXTURE))
+	if(!gBuff.reallocate(desc.w(), desc.h(), androidFormat, allocateUsage))
 	{
 		return std::runtime_error("allocation failed");
 	}
@@ -67,16 +64,15 @@ Error GraphicBufferStorage::setFormat(Renderer &r, IG::PixmapDesc desc, GLuint t
 		EGL_IMAGE_PRESERVED_KHR, EGL_TRUE,
 		EGL_NONE, EGL_NONE
 	};
-	eglImg = eglCreateImageKHR(dpy, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
+	auto eglImg = eglCreateImageKHR(dpy, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
 		(EGLClientBuffer)gBuff.getNativeBuffer(), eglImgAttrs);
 	if(eglImg == EGL_NO_IMAGE_KHR)
 	{
-		reset(dpy);
 		return std::runtime_error("error creating EGL image");
 	}
 	bool success = false;
 	r.runGLTaskSync(
-		[this, tex, &success]()
+		[=, this, &success]()
 		{
 			glBindTexture(GL_TEXTURE_2D, tex);
 			success = runGLCheckedAlways(
@@ -85,9 +81,9 @@ Error GraphicBufferStorage::setFormat(Renderer &r, IG::PixmapDesc desc, GLuint t
 					glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImg);
 				}, "glEGLImageTargetTexture2DOES()");
 		});
+	eglDestroyImageKHR(dpy, eglImg);
 	if(!success)
 	{
-		reset(dpy);
 		return std::runtime_error("glEGLImageTargetTexture2DOES() failed");
 	}
 	bpp = desc.format().bytesPerPixel();
@@ -95,54 +91,39 @@ Error GraphicBufferStorage::setFormat(Renderer &r, IG::PixmapDesc desc, GLuint t
 	return {};
 }
 
-GraphicBufferStorage::Buffer GraphicBufferStorage::lock(Renderer &, IG::WindowRect *dirtyRect)
+GraphicBufferStorage::Buffer GraphicBufferStorage::lock(Renderer &)
 {
 	assert(gBuff.handle);
 	Buffer buff{nullptr, pitch};
-	bool success;
-	if(dirtyRect)
-		success = gBuff.lock(GRALLOC_USAGE_SW_WRITE_OFTEN, *dirtyRect, &buff.data);
-	else
-		success = gBuff.lock(GRALLOC_USAGE_SW_WRITE_OFTEN, &buff.data);
-	if(!success)
+	if(unlikely(!gBuff.lock(lockUsage, &buff.data)))
 	{
 		logErr("error locking");
 		return {};
 	}
-	if(dirtyRect)
-	{
-		// adjust pointer by locked region
-		buff.data = (char*)buff.data + (dirtyRect->y * buff.pitch + dirtyRect->x * bpp);
-	}
+	//buff.data = (char*)buff.data + (rect->y * buff.pitch + rect->x * bpp);
 	return buff;
 }
 
-void GraphicBufferStorage::unlock(Renderer &, GLuint tex)
+void GraphicBufferStorage::unlock(Renderer &)
 {
 	assert(gBuff.handle);
 	gBuff.unlock();
 }
 
-bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
+bool GraphicBufferStorage::canSupport(const char *rendererStr)
 {
 	auto androidSDK = Base::androidSDK();
-	if(androidSDK >= 14)
+	if(androidSDK >= 24)
 	{
-		// TODO: Currently prefer SurfaceTexture on all devices that support it
-		// until better synchronization is implemented with multi-threaded renderer
+		// non-NDK library loading is blocked by the OS
 		return false;
 	}
 	else if(androidSDK >= 11)
 	{
-		// whitelist known tested devices with Android 3.0+
+		// known tested devices with Android 3.0+
 		auto buildDevice = Base::androidBuildDevice();
 		if(Config::MACHINE_IS_GENERIC_ARMV7)
 		{
-			if(string_equal(buildDevice.data(), "shamu"))
-			{
-				// works on Nexus 6 on Android 6.0
-				return true;
-			}
 			if(androidSDK >= 20 &&
 				string_equal(buildDevice.data(), "mako"))
 			{
@@ -182,6 +163,37 @@ bool GraphicBufferStorage::isRendererWhitelisted(const char *rendererStr)
 		}
 	}
 	return false;
+}
+
+bool GraphicBufferStorage::testSupport()
+{
+	// test API functions work
+	Base::GraphicBuffer gb{};
+	if(!gb.hasBufferMapper())
+	{
+		logErr("failed GraphicBuffer mapper initialization");
+		return false;
+	}
+	if(!gb.reallocate(256, 256, HAL_PIXEL_FORMAT_RGB_565, allocateUsage))
+	{
+		logErr("failed GraphicBuffer allocation test");
+		return false;
+	}
+	void *addr;
+	if(!gb.lock(lockUsage, &addr))
+	{
+		logErr("failed GraphicBuffer lock test");
+		return false;
+	}
+	gb.unlock();
+	testPassed_ = true;
+	logMsg("Android GraphicBuffer test passed");
+	return true;
+}
+
+bool GraphicBufferStorage::isSupported()
+{
+	return testPassed_;
 }
 
 }

@@ -404,7 +404,7 @@ void RendererCommands::setClipRect(ClipRect b)
 	glScissor(r.x, r.y, r.x2, r.y2);
 }
 
-void RendererCommands::setTexture(Texture &t)
+void RendererCommands::setTexture(const Texture &t)
 {
 	rTask->verifyCurrentContext();
 	if(unlikely(!currSampler))

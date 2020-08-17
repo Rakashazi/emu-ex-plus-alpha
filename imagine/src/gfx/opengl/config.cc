@@ -366,6 +366,17 @@ void GLRenderer::setupUnmapBufferFunc()
 	#endif
 }
 
+void GLRenderer::setupImmutableBufferStorage()
+{
+	if(support.hasImmutableBufferStorage)
+		return;
+	logMsg("using immutable buffer storage");
+	support.hasImmutableBufferStorage = true;
+	#ifdef CONFIG_GFX_OPENGL_ES
+	support.glBufferStorage = (typeof(support.glBufferStorage))Base::GLContext::procAddress("glBufferStorageEXT");
+	#endif
+}
+
 void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 {
 	//logMsg("checking %s", extStr);
@@ -458,7 +469,14 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 		logMsg("supports map buffer range");
 		if(!support.glMapBufferRange)
 			support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeEXT");
+		// Only using ES 3.0 version currently
+		//if(!support.glFlushMappedBufferRange)
+		//	support.glFlushMappedBufferRange = (typeof(support.glFlushMappedBufferRange))Base::GLContext::procAddress("glFlushMappedBufferRangeEXT");
 		setupUnmapBufferFunc();
+	}
+	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_EXT_buffer_storage"))
+	{
+		setupImmutableBufferStorage();
 	}
 	/*else if(string_equal(extStr, "GL_OES_mapbuffer"))
 	{
@@ -504,6 +522,10 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	else if(string_equal(extStr, "GL_ARB_sync"))
 	{
 		setupFenceSync();
+	}
+	else if(string_equal(extStr, "GL_ARB_buffer_storage"))
+	{
+		setupImmutableBufferStorage();
 	}
 	#endif
 }
@@ -761,6 +783,7 @@ void Renderer::configureRenderer(ThreadMode threadMode)
 				{
 					support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRange");
 					support.glUnmapBuffer = (typeof(support.glUnmapBuffer))Base::GLContext::procAddress("glUnmapBuffer");
+					support.glFlushMappedBufferRange = (typeof(support.glFlushMappedBufferRange))Base::GLContext::procAddress("glFlushMappedBufferRange");
 					setupImmutableTexStorage(false);
 					setupTextureSwizzle();
 					setupRGFormats();
@@ -824,7 +847,7 @@ void Renderer::configureRenderer(ThreadMode threadMode)
 	{
 		useSeparateDrawContext = support.hasSyncFences();
 		#if defined __ANDROID__
-		if(Base::androidSDK() < 26)
+		if(Base::androidSDK() < 26 && !support.hasImmutableBufferStorage)
 		{
 			useSeparateDrawContext = false; // disable by default due to various devices with driver bugs
 		}

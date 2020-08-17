@@ -15,6 +15,7 @@
 
 #define LOGTAG "SurfaceTex"
 #include <imagine/util/jni.hh>
+#include <imagine/logger/logger.h>
 #include "android.hh"
 
 namespace Base
@@ -72,10 +73,17 @@ jobject makeSurfaceTexture(JNIEnv *env, jint texName, jboolean singleBufferMode)
 	return env->NewObject(jSurfaceTextureCls, jSurfaceTexture2.method, texName, singleBufferMode);
 }
 
-void releaseSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture)
+bool releaseSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture)
 {
-	assert(jReleaseTexImage);
+	assumeExpr(jReleaseTexImage);
 	jReleaseTexImage(env, surfaceTexture);
+	if(unlikely(env->ExceptionCheck()))
+	{
+		logErr("exception in releaseTexImage()");
+		env->ExceptionClear();
+		return false;
+	}
+	return true;
 }
 
 void updateSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture)

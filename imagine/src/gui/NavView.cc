@@ -175,7 +175,7 @@ bool NavView::hasButtons() const
 
 // BasicNavView
 
-BasicNavView::BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::PixmapTexture *backRes, Gfx::PixmapTexture *closeRes):
+BasicNavView::BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes):
 	NavView{attach, face}
 {
 	leftSpr.init({-.5, -.5, .5, .5});
@@ -183,21 +183,21 @@ BasicNavView::BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, 
 	bool compiled = false;
 	if(backRes)
 	{
-		leftSpr.setImg(*backRes);
-		compiled |= backRes->compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
+		leftSpr.setImg(backRes);
+		compiled |= leftSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
 		control[0].isActive = true;
 	}
 	if(closeRes)
 	{
-		rightSpr.setImg(*closeRes);
-		compiled |= closeRes->compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
+		rightSpr.setImg(closeRes);
+		compiled |= rightSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
 		control[2].isActive = true;
 	}
 	if(compiled)
 		renderer().autoReleaseShaderCompiler();
 }
 
-void BasicNavView::setBackImage(Gfx::PixmapTexture *img)
+void BasicNavView::setBackImage(Gfx::TextureSpan img)
 {
 	leftSpr.setImg(img);
 	if(leftSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))

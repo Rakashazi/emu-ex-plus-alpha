@@ -21,7 +21,7 @@
 #include <imagine/audio/AudioManager.hh>
 #include <imagine/audio/defs.hh>
 #include <imagine/gui/View.hh>
-#include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/PixmapBufferTexture.hh>
 
 using OptionBackNavigation = Option<OptionMethodRef<bool, View::needsBackControl>, uint8_t>;
 using OptionSwappedGamepadConfirm = Option<OptionMethodFunc<bool, Input::swappedGamepadConfirm, Input::setSwappedGamepadConfirm>, uint8_t>;
@@ -43,7 +43,7 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_TOUCH_CONTROL_DPAD_POS = 11, CFGKEY_TOUCH_CONTROL_FACE_BTN_POS = 12,
 	CFGKEY_GAME_IMG_FILTER = 13, CFGKEY_REL_POINTER_DECEL = 14,
 	CFGKEY_TOUCH_CONTROL_FACE_BTN_SPACE = 15, CFGKEY_TOUCH_CONTROL_FACE_BTN_STAGGER = 16,
-	CFGKEY_DPI = 17, CFGKEY_ANDROID_TEXTURE_STORAGE = 18, CFGKEY_MENU_ORIENTATION = 19,
+	CFGKEY_DPI = 17, CFGKEY_TEXTURE_BUFFER_MODE = 18, CFGKEY_MENU_ORIENTATION = 19,
 	CFGKEY_SWAPPED_GAMEPAD_CONFIM = 20, CFGKEY_TOUCH_CONTROL_DPAD_DEADZONE = 21,
 	CFGKEY_TOUCH_CONTROL_CENTER_BTN_POS = 22, CFGKEY_TOUCH_CONTROL_TRIGGER_BTN_POS = 23,
 	CFGKEY_TOUCH_CONTROL_MENU_POS = 24, CFGKEY_TOUCH_CONTROL_FF_POS = 25,
@@ -195,14 +195,8 @@ extern Byte1Option optionShowOnSecondScreen;
 
 extern OptionRecentGames optionRecentGames;
 
+extern Byte1Option optionTextureBufferMode;
 #ifdef __ANDROID__
-static constexpr uint8_t OPTION_ANDROID_TEXTURE_STORAGE_AUTO = 0;
-static constexpr uint8_t OPTION_ANDROID_TEXTURE_STORAGE_NONE = 1;
-static constexpr uint8_t OPTION_ANDROID_TEXTURE_STORAGE_GRAPHIC_BUFFER = 2;
-static constexpr uint8_t OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE = 3;
-static constexpr uint8_t OPTION_ANDROID_TEXTURE_STORAGE_MAX_VALUE = OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE;
-extern Byte1Option optionAndroidTextureStorage;
-Gfx::Texture::AndroidStorageImpl makeAndroidStorageImpl(uint8_t val);
 extern SByte1Option optionProcessPriority;
 extern Byte1Option optionSustainedPerformanceMode;
 #endif

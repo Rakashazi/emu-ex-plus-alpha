@@ -47,6 +47,7 @@ SRC += gfx/opengl/opengl.cc \
  gfx/opengl/GLMainTask.cc \
  gfx/opengl/GLStateCache.cc \
  gfx/opengl/RendererTask.cc \
+ gfx/opengl/PixmapBufferTexture.cc \
  gfx/opengl/Texture.cc \
  gfx/opengl/TextureSampler.cc \
  gfx/opengl/geometry.cc \

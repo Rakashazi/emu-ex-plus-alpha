@@ -24,6 +24,8 @@
 #include <imagine/gfx/DrawableHolder.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Screen.hh>
+#include <imagine/base/platformExtras.hh>
+#include <imagine/util/string.h>
 #include "tests.hh"
 #include "TestPicker.hh"
 #include "cpuUtils.hh"
@@ -42,12 +44,6 @@ static IG::WindowRect testRectWin;
 static Gfx::GCRect testRect;
 static TestFramework *activeTest{};
 static std::unique_ptr<TestPicker> picker;
-static TestParams testParam[]
-{
-	{TEST_CLEAR},
-	{TEST_DRAW, {320, 224}},
-	{TEST_WRITE, {320, 224}},
-};
 #ifdef __ANDROID__
 static std::unique_ptr<Base::RootCpufreqParamSetter> cpuFreq{};
 #endif
@@ -69,10 +65,6 @@ static void placeElements(Base::Window &win, Gfx::Renderer &r)
 static void cleanupTest(TestFramework *test)
 {
 	rendererTask.runSync([](Gfx::RendererTask &){ activeTest = nullptr; });
-	if(test)
-	{
-		test->deinit();
-	}
 	delete test;
 	deinitCPUFreqStatus();
 	deinitCPULoadStatus();
@@ -113,14 +105,14 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 		bcase TEST_WRITE:
 			activeTest = new WriteTest{};
 	}
-	activeTest->init(r, t.pixmapSize);
+	activeTest->init(r, t.pixmapSize, t.bufferMode);
 	Base::setIdleDisplayPowerSave(false);
 	Input::setKeyRepeat(false);
 	initCPUFreqStatus();
 	initCPULoadStatus();
 	placeElements(win, r);
 
-	win.screen()->addOnFrame(
+	Base::OnFrameDelegate onFrameUpdate =
 		[&win](Base::FrameParams params)
 		{
 			if(unlikely(!activeTest))
@@ -151,7 +143,16 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 				win.postDraw();
 				return true;
 			}
-		});
+		};
+	if(Base::Screen::supportsTimestamps())
+	{
+		win.screen()->addOnFrame(onFrameUpdate);
+	}
+	else
+	{
+		drawableHolder.addOnFrame(onFrameUpdate);
+		win.postDraw();
+	}
 	return activeTest;
 }
 
@@ -177,10 +178,6 @@ void onInit(int argc, char** argv)
 			}
 			cleanupTest(activeTest);
 			View::defaultFace.freeCaches();
-			if(!backgrounded)
-			{
-				picker.reset();
-			}
 			return true;
 		});
 
@@ -277,8 +274,18 @@ void onInit(int argc, char** argv)
 	View::defaultFace.setFontSettings(renderer, faceSize);
 	View::defaultFace.precacheAlphaNum(renderer);
 	View::defaultFace.precache(renderer, ":.%()");
+	std::vector<TestDesc> testDesc;
+	testDesc.emplace_back(TEST_CLEAR, "Clear");
+	IG::WP pixmapSize{256, 256};
+	for(auto desc: renderer.textureBufferModes())
+	{
+		testDesc.emplace_back(TEST_DRAW, string_makePrintf<64>("Draw RGB565 %ux%u (%s)", pixmapSize.x, pixmapSize.y, desc.name).data(),
+			pixmapSize, desc.mode);
+		testDesc.emplace_back(TEST_WRITE, string_makePrintf<64>("Write RGB565 %ux%u (%s)", pixmapSize.x, pixmapSize.y, desc.name).data(),
+			pixmapSize, desc.mode);
+	}
 	picker = std::make_unique<TestPicker>(ViewAttachParams{mainWin, rendererTask});
-	picker->setTests(testParam, std::size(testParam));
+	picker->setTests(testDesc.data(), testDesc.size());
 	mainWin.show();
 
 	#ifdef __ANDROID__

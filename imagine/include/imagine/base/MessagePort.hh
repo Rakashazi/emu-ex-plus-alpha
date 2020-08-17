@@ -33,9 +33,12 @@ public:
 		class Iterator
 		{
 		public:
-			constexpr Iterator(IO *io):
-				io{io}, msg{io ? io->get<MsgType>() : MsgType{}}
-			{}
+			constexpr Iterator(IO *io): io{io}
+			{
+				if(!io)
+					return;
+				this->operator++();
+			}
 
 			Iterator operator++()
 			{
@@ -151,6 +154,11 @@ public:
 	{
 		auto &io = pipe.source();
 		while(io.template get<MsgType>()) {}
+	}
+
+	void dispatchMessages()
+	{
+		pipe.dispatchSourceEvents();
 	}
 
 	explicit operator bool() const { return (bool)pipe; }

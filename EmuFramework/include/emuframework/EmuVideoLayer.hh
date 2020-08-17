@@ -37,7 +37,7 @@ public:
 	void setLinearFilter(bool on);
 	void resetImage();
 	void setBrightness(float b);
-	void reset(uint effect, IG::PixelFormatID fmt);
+	void setTextureBufferMode(Gfx::TextureBufferMode mode);
 	EmuVideo &emuVideo() const { return video; }
 
 	const IG::WindowRect &gameRect() const

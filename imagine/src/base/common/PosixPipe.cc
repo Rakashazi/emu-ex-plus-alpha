@@ -100,6 +100,11 @@ bool Pipe::hasData()
 	return fd_bytesReadable(io[0].fd());
 }
 
+void Pipe::dispatchSourceEvents()
+{
+	fdSrc.dispatchEvents(POLLEV_IN);
+}
+
 void Pipe::setPreferredSize(int size)
 {
 	#ifdef __linux__

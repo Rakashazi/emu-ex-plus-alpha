@@ -261,17 +261,6 @@ void mainInitCommon(int argc, char** argv)
 	#ifdef __ANDROID__
 	if((int8_t)optionProcessPriority != 0)
 		Base::setProcessPriority(optionProcessPriority);
-
-	if(Base::androidSDK() < 14 && optionAndroidTextureStorage == OPTION_ANDROID_TEXTURE_STORAGE_SURFACE_TEXTURE)
-	{
-		optionAndroidTextureStorage = OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
-	}
-	if(!Gfx::Texture::setAndroidStorageImpl(renderer, makeAndroidStorageImpl(optionAndroidTextureStorage)))
-	{
-		// try auto if the stored setting didn't work
-		optionAndroidTextureStorage = OPTION_ANDROID_TEXTURE_STORAGE_AUTO;
-		Gfx::Texture::setAndroidStorageImpl(renderer, makeAndroidStorageImpl(optionAndroidTextureStorage));
-	}
 	#endif
 
 	View::defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{});
@@ -283,6 +272,16 @@ void mainInitCommon(int argc, char** argv)
 	#endif
 	updateInputDevices();
 
+	if(optionTextureBufferMode.val)
+	{
+		auto mode = (Gfx::TextureBufferMode)optionTextureBufferMode.val;
+		if(renderer.makeValidTextureBufferMode(mode) != mode)
+		{
+			// reset to default if saved non-default mode isn't supported
+			optionTextureBufferMode.reset();
+		}
+	}
+	emuVideo.setTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val);
 	emuVideoLayer.setLinearFilter(optionImgFilter);
 	emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
 

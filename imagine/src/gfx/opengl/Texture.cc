@@ -20,13 +20,7 @@
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
-#include <imagine/pixmap/MemPixmap.hh>
 #include "private.hh"
-#ifdef __ANDROID__
-#include "../../base/android/android.hh"
-#include "android/GraphicBufferStorage.hh"
-#include "android/SurfaceTextureStorage.hh"
-#endif
 #include <cstdlib>
 #include <algorithm>
 
@@ -48,40 +42,23 @@ using namespace IG;
 #define GL_TEXTURE_SWIZZLE_A 0x8E45
 #endif
 
-#ifndef GL_MAP_WRITE_BIT
-#define GL_MAP_WRITE_BIT 0x0002
-#endif
-
-#ifndef GL_MAP_INVALIDATE_BUFFER_BIT
-#define GL_MAP_INVALIDATE_BUFFER_BIT 0x0008
-#endif
-
-#ifndef GL_MAP_UNSYNCHRONIZED_BIT
-#define GL_MAP_UNSYNCHRONIZED_BIT 0x0020
-#endif
-
 namespace Gfx
 {
 
-#ifdef __ANDROID__
-// set to actual implementation when androidStorageImpl() or setAndroidStorageImpl() is called
-GLTexture::AndroidStorageImpl GLTexture::androidStorageImpl_ = GLTexture::ANDROID_AUTO;
-#endif
-
-static uint32_t makeUnpackAlignment(uintptr_t addr)
+static uint8_t makeUnpackAlignment(uintptr_t addr)
 {
 	// find best alignment with lower 3 bits
-	constexpr uint32_t map[]
+	constexpr uint8_t map[]
 	{
 		8, 1, 2, 1, 4, 1, 2, 1
 	};
 	return map[addr & 7];
 }
 
-static uint32_t unpackAlignForAddrAndPitch(void *srcAddr, uint32_t pitch)
+static uint8_t unpackAlignForAddrAndPitch(void *srcAddr, uint32_t pitch)
 {
-	uint32_t alignmentForAddr = makeUnpackAlignment((uintptr_t)srcAddr);
-	uint32_t alignmentForPitch = makeUnpackAlignment(pitch);
+	uint8_t alignmentForAddr = makeUnpackAlignment((uintptr_t)srcAddr);
+	uint8_t alignmentForPitch = makeUnpackAlignment(pitch);
 	if(alignmentForAddr < alignmentForPitch)
 	{
 		/*logMsg("using lowest alignment of address %p (%d) and pitch %d (%d)",
@@ -220,63 +197,26 @@ static TextureConfig configWithLoadedImagePixmap(IG::PixmapDesc desc, bool makeM
 	return config;
 }
 
-static LockedTextureBuffer makeLockedTextureBuffer(IG::Pixmap pix, IG::WindowRect srcDirtyBounds, uint32_t lockedLevel, GLuint pbo = 0)
+static Error loadImageSource(Texture &texture, GfxImageSource &img, bool makeMipmaps)
 {
-	LockedTextureBuffer lockBuff;
-	lockBuff.set(pix, srcDirtyBounds, lockedLevel, pbo);
-	return lockBuff;
-}
-
-static bool supportsDirectStorage(Renderer &r)
-{
-	#ifdef __ANDROID__
-	if(Texture::androidStorageImpl(r) != Texture::ANDROID_NONE)
-		return true;
-	#endif
-	return false;
-}
-
-template<class T>
-static Error initTextureCommon(Renderer &r, T &texture, GfxImageSource &img, bool makeMipmaps)
-{
-	auto imgPix = img.lockPixmap();
-	auto unlockImgPixmap = IG::scopeGuard([&](){ img.unlockPixmap(); });
-	if(auto err = texture.init(r, configWithLoadedImagePixmap(imgPix, makeMipmaps));
-		err)
-	{
-		return err;
-	}
+	auto imgPix = img.pixmapView();
 	if(imgPix)
 	{
-		//logDMsg("writing locked image pixmap to texture");
-		texture.write(0, imgPix, {});
+		//logDMsg("writing image source pixmap to texture");
+		texture.write(0, imgPix, {}, makeMipmaps ? Texture::WRITE_FLAG_MAKE_MIPMAPS : 0);
 	}
 	else
 	{
 		auto lockBuff = texture.lock(0);
-		if(lockBuff)
-		{
-			//logDMsg("writing image to locked texture");
-			img.write(lockBuff.pixmap());
-			texture.unlock(lockBuff);
-		}
-		else
-		{
-			//logDMsg("writing image to texture");
-			IG::MemPixmap texPix{imgPix};
-			if(!texPix)
-				return std::runtime_error{"Out of memory"};
-			img.write(texPix.view());
-			texture.write(0, texPix.view(), {});
-		}
+		if(unlikely(!lockBuff))
+			return std::runtime_error{"Out of memory"};
+		//logDMsg("writing image source into texture pixel buffer");
+		img.write(lockBuff.pixmap());
+		img.freePixmap();
+		texture.unlock(lockBuff, makeMipmaps ? Texture::WRITE_FLAG_MAKE_MIPMAPS : 0);
 	}
-	unlockImgPixmap();
-	if(makeMipmaps)
-		texture.generateMipmaps();
 	return {};
 }
-
-DirectTextureStorage::~DirectTextureStorage() {}
 
 IG::Pixmap LockedTextureBuffer::pixmap() const
 {
@@ -293,19 +233,11 @@ LockedTextureBuffer::operator bool() const
 	return (bool)pix;
 }
 
-void GLLockedTextureBuffer::set(IG::Pixmap pix, IG::WindowRect srcDirtyRect, uint32_t lockedLevel, GLuint pbo)
-{
-	this->pix = pix;
-	this->srcDirtyRect = srcDirtyRect;
-	this->lockedLevel = lockedLevel;
-	this->pbo_ = pbo;
-}
-
 GLTexture::GLTexture(Renderer &r, TextureConfig config, Error *errorPtr):
 	r{&r}
 {
 	Error err = init(r, config);
-	if(err && errorPtr)
+	if(unlikely(err && errorPtr))
 	{
 		*errorPtr = err;
 	}
@@ -314,11 +246,14 @@ GLTexture::GLTexture(Renderer &r, TextureConfig config, Error *errorPtr):
 GLTexture::GLTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, Error *errorPtr):
 	r{&r}
 {
-	Error err = initTextureCommon(r, *static_cast<Texture*>(this), img, makeMipmaps);
-	if(err && errorPtr)
+	Error err;
+	auto setError = IG::scopeGuard([&](){ if(unlikely(err && errorPtr)) { *errorPtr = err; } });
+	if(err = init(r, configWithLoadedImagePixmap(img.pixmapView(), makeMipmaps));
+		unlikely(err))
 	{
-		*errorPtr = err;
+		return;
 	}
+	err = loadImageSource(*static_cast<Texture*>(this), img, makeMipmaps);
 }
 
 Texture::Texture(Texture &&o)
@@ -340,45 +275,15 @@ GLTexture::~GLTexture()
 	deinit();
 }
 
-Error GLTexture::init(Renderer &r, TextureConfig config)
+TextureConfig GLTexture::baseInit(Renderer &r, TextureConfig config)
 {
-	assert(!texName_);
-	r.runGLTaskSync(
-		[this]()
-		{
-			texName_ = makeGLTexture();
-		});
-	if(config.willWriteOften())
+	if(!texName_)
 	{
-		#ifdef __ANDROID__
-		if(config.levels() == 1)
-		{
-			if(androidStorageImpl_ == ANDROID_AUTO)
+		r.runGLTaskSync(
+			[this]()
 			{
-				setAndroidStorageImpl(r, ANDROID_AUTO);
-			}
-			if(androidStorageImpl_ == ANDROID_SURFACE_TEXTURE)
-			{
-				Error err{};
-				auto *surfaceTex = new SurfaceTextureStorage(r, texName_, false, err);
-				if(err)
-				{
-					logWarn("SurfaceTexture error with texture:0x%X (%s)", texName_, err->what());
-					delete surfaceTex;
-				}
-				else
-				{
-					target = GL_TEXTURE_EXTERNAL_OES;
-					directTex = surfaceTex;
-				}
-			}
-			else if(androidStorageImpl_ == ANDROID_GRAPHIC_BUFFER)
-			{
-				auto *gbTex = new GraphicBufferStorage();
-				directTex = gbTex;
-			}
-		}
-		#endif
+				texName_ = makeGLTexture();
+			});
 	}
 	if(config.willGenerateMipmaps() && !r.support.hasImmutableTexStorage)
 	{
@@ -386,6 +291,12 @@ Error GLTexture::init(Renderer &r, TextureConfig config)
 		// all texture levels with glTexImage2D beforehand
 		config.setLevels(1);
 	}
+	return config;
+}
+
+Error GLTexture::init(Renderer &r, TextureConfig config)
+{
+	config = baseInit(r, config);
 	return static_cast<Texture*>(this)->setFormat(config.pixmapDesc(), config.levels());
 }
 
@@ -401,23 +312,28 @@ void GLTexture::deinit()
 			glDeleteTextures(1, &texName_);
 			texName_ = 0;
 		});
-	delete directTex;
 }
 
-uint32_t Texture::bestAlignment(IG::Pixmap p)
+uint8_t Texture::bestAlignment(IG::Pixmap p)
 {
 	return unpackAlignForAddrAndPitch(p.pixel({}), p.pitchBytes());
 }
 
 bool GLTexture::canUseMipmaps(Renderer &r) const
 {
-	return !directTex && r.support.textureSizeSupport.supportsMipmaps(pixDesc.w(), pixDesc.h());
+	return r.support.textureSizeSupport.supportsMipmaps(pixDesc.w(), pixDesc.h());
 }
 
 bool Texture::canUseMipmaps() const
 {
 	assumeExpr(r);
 	return GLTexture::canUseMipmaps(*r);
+}
+
+GLenum GLTexture::target() const
+{
+	return Config::Gfx::OPENGL_MULTIPLE_TEXTURE_TARGETS && type_ == TEX_2D_EXTERNAL ?
+			GL_TEXTURE_EXTERNAL_OES : GL_TEXTURE_2D;
 }
 
 bool Texture::generateMipmaps()
@@ -433,11 +349,7 @@ bool Texture::generateMipmaps()
 			logMsg("generating mipmaps for texture:0x%X", texName_);
 			r->support.generateMipmaps(GL_TEXTURE_2D);
 		});
-	if(!r->support.hasImmutableTexStorage)
-	{
-		// all possible levels generated by glGenerateMipmap
-		levels_ = fls(pixDesc.w() | pixDesc.h());
-	}
+	updateLevelsForMipmapGeneration();
 	return true;
 }
 
@@ -446,109 +358,89 @@ uint32_t Texture::levels() const
 	return levels_;
 }
 
-Error Texture::setFormat(IG::PixmapDesc desc, uint32_t levels)
+Error Texture::setFormat(IG::PixmapDesc desc, uint16_t levels)
 {
 	if(unlikely(!texName_))
 		return std::runtime_error("texture not initialized");
 	assumeExpr(r);
-	Error err{};
-	if(directTex)
+	if(r->support.textureSizeSupport.supportsMipmaps(desc.w(), desc.h()))
 	{
-		levels = 1;
-		if(pixDesc == desc)
-			logWarn("resizing with same dimensions %dx%d, should optimize caller code", desc.w(), desc.h());
-		err = directTex->setFormat(*r, desc, texName_);
+		if(!levels)
+			levels = fls(desc.w() | desc.h());
 	}
 	else
 	{
-		if(r->support.textureSizeSupport.supportsMipmaps(desc.w(), desc.h()))
+		levels = 1;
+	}
+	r->runGLTaskSync(
+		[this, desc, levels]()
 		{
-			if(!levels)
-				levels = fls(desc.w() | desc.h());
-		}
-		else
-		{
-			levels = 1;
-		}
-		r->runGLTaskSync(
-			[this, desc, levels]()
+			if(r->support.hasImmutableTexStorage)
 			{
-				if(r->support.hasImmutableTexStorage)
+				if(levels_) // texture format was previously set
 				{
-					if(levels_) // texture format was previously set
+					sampler = 0;
+					glDeleteTextures(1, &texName_);
+					texName_ = makeGLTexture();
+				}
+				glBindTexture(GL_TEXTURE_2D, texName_);
+				auto internalFormat = makeGLSizedInternalFormat(*r, desc.format());
+				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s",
+					texName_, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat));
+				runGLChecked(
+					[&]()
 					{
-						sampler = 0;
-						glDeleteTextures(1, &texName_);
-						texName_ = makeGLTexture();
-					}
-					glBindTexture(GL_TEXTURE_2D, texName_);
-					auto internalFormat = makeGLSizedInternalFormat(*r, desc.format());
-					logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s",
-						texName_, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat));
+						r->support.glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, desc.w(), desc.h());
+					}, "glTexStorage2D()");
+			}
+			else
+			{
+				if(unlikely(levels_ && levels != levels_)) // texture format was previously set
+				{
+					sampler = 0;
+					glDeleteTextures(1, &texName_);
+					texName_ = makeGLTexture();
+				}
+				glBindTexture(GL_TEXTURE_2D, texName_);
+				auto format = makeGLFormat(*r, desc.format());
+				auto dataType = makeGLDataType(desc.format());
+				auto internalFormat = makeGLInternalFormat(*r, desc.format());
+				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s image format:%s:%s",
+					texName_, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
+				uint32_t w = desc.w(), h = desc.h();
+				iterateTimes(levels, i)
+				{
 					runGLChecked(
 						[&]()
 						{
-							r->support.glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, desc.w(), desc.h());
-						}, "glTexStorage2D()");
+							glTexImage2D(GL_TEXTURE_2D, i, internalFormat, w, h, 0, format, dataType, nullptr);
+						}, "glTexImage2D()");
+					w = std::max(1u, (w / 2));
+					h = std::max(1u, (h / 2));
 				}
-				else
-				{
-					if(unlikely(levels_ && levels != levels_)) // texture format was previously set
-					{
-						sampler = 0;
-						glDeleteTextures(1, &texName_);
-						texName_ = makeGLTexture();
-					}
-					glBindTexture(GL_TEXTURE_2D, texName_);
-					auto format = makeGLFormat(*r, desc.format());
-					auto dataType = makeGLDataType(desc.format());
-					auto internalFormat = makeGLInternalFormat(*r, desc.format());
-					logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s image format:%s:%s",
-						texName_, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
-					uint32_t w = desc.w(), h = desc.h();
-					iterateTimes(levels, i)
-					{
-						runGLChecked(
-							[&]()
-							{
-								glTexImage2D(GL_TEXTURE_2D, i, internalFormat, w, h, 0, format, dataType, nullptr);
-							}, "glTexImage2D()");
-						w = std::max(1u, (w / 2));
-						h = std::max(1u, (h / 2));
-					}
-				}
-			});
-	}
-	assert(levels);
-	levels_ = levels;
-	pixDesc = desc;
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(Config::Gfx::OPENGL_ES && target == GL_TEXTURE_EXTERNAL_OES)
-		type_ = TEX_2D_EXTERNAL;
-	else
-		type_ = typeForPixelFormat(desc.format());
-	#endif
-	setSwizzleForFormat(*r, desc.format(), texName_, target);
-	return err;
+			}
+		});
+	updateFormatInfo(desc, levels);
+	return {};
 }
 
-void GLTexture::bindTex(RendererCommands &cmds, const TextureSampler &bindSampler)
+void GLTexture::bindTex(RendererCommands &cmds, const TextureSampler &bindSampler) const
 {
 	if(!texName_)
 	{
 		logErr("tried to bind uninitialized texture");
 		return;
 	}
-	cmds.glcBindTexture(target, texName_);
+	cmds.glcBindTexture(target(), texName_);
 	if(!cmds.renderer().support.hasSamplerObjects && bindSampler.name() != sampler)
 	{
 		logMsg("setting sampler:0x%X for texture:0x%X", (int)bindSampler.name(), texName_);
 		sampler = bindSampler.name();
-		bindSampler.setTexParams(target);
+		bindSampler.setTexParams(target());
 	}
 }
 
-void Texture::writeAligned(uint32_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t assumeAlign, uint32_t commitFlags)
+void Texture::writeAligned(uint16_t level, IG::Pixmap pixmap, IG::WP destPos, uint8_t assumeAlign, uint32_t writeFlags)
 {
 	//logDMsg("writing pixmap %dx%d to pos %dx%d", pixmap.x, pixmap.y, destPos.x, destPos.y);
 	if(unlikely(!texName_))
@@ -560,210 +452,157 @@ void Texture::writeAligned(uint32_t level, IG::Pixmap pixmap, IG::WP destPos, ui
 	assumeExpr(destPos.x + pixmap.w() <= (uint32_t)size(level).x);
 	assumeExpr(destPos.y + pixmap.h() <= (uint32_t)size(level).y);
 	assumeExpr(pixmap.format() == pixDesc.format());
-	r->resourceUpdate = true;
 	if(!assumeAlign)
 		assumeAlign = unpackAlignForAddrAndPitch(pixmap.pixel({}), pixmap.pitchBytes());
-	if(directTex)
+	if((uintptr_t)pixmap.pixel({}) % (uintptr_t)assumeAlign != 0)
 	{
-		assert(level == 0);
-		if(destPos != IG::WP{0, 0} || pixmap.w() != (uint32_t)size(0).x || pixmap.h() != (uint32_t)size(0).y)
-		{
-			logErr("partial write of direct texture unsupported, use lock()");
-			return;
-		}
-		auto lockBuff = lock(0);
-		if(!lockBuff)
-		{
-			return;
-		}
-		lockBuff.pixmap().write(pixmap, {});
-		unlock(lockBuff);
+		bug_unreachable("expected data from address %p to be aligned to %u bytes", pixmap.pixel({}), assumeAlign);
 	}
-	else
+	GLenum format = makeGLFormat(*r, pixmap.format());
+	GLenum dataType = makeGLDataType(pixmap.format());
+	auto hasUnpackRowLength = r->support.hasUnpackRowLength;
+	bool makeMipmaps = writeFlags & WRITE_FLAG_MAKE_MIPMAPS && canUseMipmaps();
+	if(hasUnpackRowLength || !pixmap.isPadded())
 	{
-		if((uintptr_t)pixmap.pixel({}) % (uintptr_t)assumeAlign != 0)
-		{
-			bug_unreachable("expected data from address %p to be aligned to %u bytes", pixmap.pixel({}), assumeAlign);
-		}
-		GLenum format = makeGLFormat(*r, pixmap.format());
-		GLenum dataType = makeGLDataType(pixmap.format());
-		auto hasUnpackRowLength = r->support.hasUnpackRowLength;
-		if(hasUnpackRowLength || !pixmap.isPadded())
-		{
-			r->runGLTaskSyncConditional(
-				[=, texName_ = this->texName_]()
-				{
-					glBindTexture(GL_TEXTURE_2D, texName_);
-					glPixelStorei(GL_UNPACK_ALIGNMENT, assumeAlign);
-					if(hasUnpackRowLength)
-						glPixelStorei(GL_UNPACK_ROW_LENGTH, pixmap.pitchPixels());
-					runGLCheckedVerbose(
-						[&]()
-						{
-							glTexSubImage2D(GL_TEXTURE_2D, level, destPos.x, destPos.y,
-								pixmap.w(), pixmap.h(), format, dataType, pixmap.pixel({}));
-						}, "glTexSubImage2D()");
-				}, !(commitFlags & COMMIT_FLAG_ASYNC));
-		}
-		else
-		{
-			// must copy to temp pixmap without extra pitch pixels
-			static uint32_t prevPixmapX = 0, prevPixmapY = 0;
-			if(pixmap.w() != prevPixmapX || pixmap.h() != prevPixmapY) // don't spam log with repeated calls of same size pixmap
+		r->resourceUpdate = true;
+		r->runGLTaskSyncConditional(
+			[=, r = this->r, texName_ = this->texName_]()
 			{
-				prevPixmapX = pixmap.w();
-				prevPixmapY = pixmap.h();
-				logDMsg("non-optimal texture write operation with %ux%u pixmap", pixmap.w(), pixmap.h());
-			}
-			void *tempPixData;
-			if(posix_memalign(&tempPixData, (size_t)__BIGGEST_ALIGNMENT__, pixmap.pixelBytes()))
-			{
-				logErr("posix_memalign failed allocating %zu bytes", pixmap.pixelBytes());
-				return;
-			}
-			IG::Pixmap tempPix{pixmap, tempPixData};
-			tempPix.write(pixmap, {});
-			r->runGLTask(
-				[=, texName_ = this->texName_]()
-				{
-					glBindTexture(GL_TEXTURE_2D, texName_);
-					glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, tempPix.pitchBytes()));
-					runGLCheckedVerbose(
-						[&]()
-						{
-							glTexSubImage2D(GL_TEXTURE_2D, level, destPos.x, destPos.y,
-								tempPix.w(), tempPix.h(), format, dataType, tempPix.pixel({}));
-						}, "glTexSubImage2D()");
-					free(tempPix.pixel({}));
-				});
-		}
-	}
-}
-
-void Texture::write(uint32_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t commitFlags)
-{
-	writeAligned(level, pixmap, destPos, bestAlignment(pixmap), commitFlags);
-}
-
-void Texture::clear(uint32_t level)
-{
-	auto lockBuff = lock(level);
-	if(lockBuff)
-	{
-		lockBuff.pixmap().clear();
-		unlock(lockBuff);
-	}
-	else
-	{
-		IG::PixmapDesc levelPixDesc{size(level), pixDesc.format()};
-		void *tempPixData = std::calloc(1, levelPixDesc.pixelBytes());
-		IG::Pixmap blankPix{levelPixDesc, tempPixData};
-		writeAligned(level, blankPix, {}, unpackAlignForAddrAndPitch(nullptr, blankPix.pitchBytes()));
-		std::free(tempPixData);
-	}
-}
-
-LockedTextureBuffer Texture::lock(uint32_t level)
-{
-	assumeExpr(r);
-	if(directTex)
-	{
-		assert(level == 0);
-		auto buff = directTex->lock(*r, nullptr);
-		IG::Pixmap pix{pixDesc, buff.data, {buff.pitch, IG::Pixmap::BYTE_UNITS}};
-		return makeLockedTextureBuffer(pix, {}, 0);
-	}
-	else if(r->support.hasPBOFuncs)
-	{
-		return lock(level, {0, 0, size(level).x, size(level).y});
-	}
-	else
-		return {}; // lock() not supported
-}
-
-LockedTextureBuffer Texture::lock(uint32_t level, IG::WindowRect rect)
-{
-	assumeExpr(r);
-	assert(rect.x2  <= size(level).x);
-	assert(rect.y2 <= size(level).y);
-	if(directTex)
-	{
-		assert(level == 0);
-		auto buff = directTex->lock(*r, &rect);
-		IG::Pixmap pix{pixDesc, buff.data, {buff.pitch, IG::Pixmap::BYTE_UNITS}};
-		return makeLockedTextureBuffer(pix, rect, 0);
-	}
-	else if(r->support.hasPBOFuncs)
-	{
-		void *data;
-		GLuint pbo = 0;
-		r->runGLTaskSync(
-			[this, &data, &pbo, rect]()
-			{
-				uint32_t rangeBytes = pixDesc.format().pixelBytes(rect.xSize() * rect.ySize());
-				glGenBuffers(1, &pbo);
-				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
-				glBufferData(GL_PIXEL_UNPACK_BUFFER, rangeBytes, nullptr, GL_STREAM_DRAW);
-				data = r->support.glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, rangeBytes,
-					GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-				if(likely(data))
-				{
-					glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-					//logDMsg("mapped PBO at addr:%p", data);
-				}
-				else
-				{
-					glDeleteBuffers(1, &pbo);
-				}
-			});
-		if(!data)
-		{
-			logErr("error mapping buffer");
-			return {};
-		}
-		IG::Pixmap pix{{rect.size(), pixDesc.format()}, data};
-		return makeLockedTextureBuffer(pix, rect, level, pbo);
-	}
-	else
-		return {}; // lock() not supported
-}
-
-void Texture::unlock(LockedTextureBuffer lockBuff)
-{
-	if(unlikely(!lockBuff))
-		return;
-	assumeExpr(r);
-	r->resourceUpdate = true;
-	if(directTex)
-		directTex->unlock(*r, texName_);
-	else if(r->support.hasPBOFuncs)
-	{
-		r->runGLTask(
-			[r = this->r, texName_ = this->texName_, pix = lockBuff.pixmap(),
-			 destPos = IG::WP{lockBuff.sourceDirtyRect().x, lockBuff.sourceDirtyRect().y},
-			 level = lockBuff.level(), pbo = lockBuff.pbo()]()
-			{
-				//logDMsg("unmapped PBO");
-				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
-				r->support.glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 				glBindTexture(GL_TEXTURE_2D, texName_);
-				glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, pix.pitchBytes()));
-				glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-				GLenum format = makeGLFormat(*r, pix.format());
-				GLenum dataType = makeGLDataType(pix.format());
+				glPixelStorei(GL_UNPACK_ALIGNMENT, assumeAlign);
+				if(hasUnpackRowLength)
+					glPixelStorei(GL_UNPACK_ROW_LENGTH, pixmap.pitchPixels());
 				runGLCheckedVerbose(
 					[&]()
 					{
 						glTexSubImage2D(GL_TEXTURE_2D, level, destPos.x, destPos.y,
-							pix.w(), pix.h(), format, dataType, nullptr);
+							pixmap.w(), pixmap.h(), format, dataType, pixmap.pixel({}));
 					}, "glTexSubImage2D()");
-				//logDMsg("deleting temporary PBO:%u", pbo);
-				glDeleteBuffers(1, &pbo);
-			});
+				if(makeMipmaps)
+				{
+					logMsg("generating mipmaps for texture:0x%X", texName_);
+					r->support.generateMipmaps(GL_TEXTURE_2D);
+				}
+			}, !(writeFlags & WRITE_FLAG_ASYNC));
+		if(makeMipmaps)
+		{
+			updateLevelsForMipmapGeneration();
+		}
+	}
+	else
+	{
+		// must copy to buffer without extra pitch pixels
+		IG::WindowRect lockRect{0, 0, pixmap.size().x, pixmap.size().y};
+		lockRect += destPos;
+		auto lockBuff = lock(level, lockRect);
+		if(unlikely(!lockBuff))
+		{
+			logErr("error getting buffer for writeAligned()");
+			return;
+		}
+		lockBuff.pixmap().write(pixmap);
+		unlock(lockBuff, writeFlags);
 	}
 }
 
-IG::WP Texture::size(uint32_t level) const
+void Texture::write(uint16_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t commitFlags)
+{
+	writeAligned(level, pixmap, destPos, bestAlignment(pixmap), commitFlags);
+}
+
+void Texture::clear(uint16_t level)
+{
+	auto lockBuff = lock(level, BUFFER_FLAG_CLEARED);
+	if(unlikely(!lockBuff))
+	{
+		logErr("error getting buffer for clear()");
+		return;
+	}
+	unlock(lockBuff);
+}
+
+LockedTextureBuffer Texture::lock(uint16_t level, uint32_t bufferFlags)
+{
+	return lock(level, {0, 0, size(level).x, size(level).y}, bufferFlags);
+}
+
+LockedTextureBuffer Texture::lock(uint16_t level, IG::WindowRect rect, uint32_t bufferFlags)
+{
+	assumeExpr(r);
+	assumeExpr(rect.x2  <= size(level).x);
+	assumeExpr(rect.y2 <= size(level).y);
+	const unsigned bufferBytes = pixDesc.format().pixelBytes(rect.xSize() * rect.ySize());
+	char *data;
+	if(bufferFlags & BUFFER_FLAG_CLEARED)
+		data = (char*)std::calloc(1, bufferBytes);
+	else
+		data = (char*)std::malloc(bufferBytes);
+	if(unlikely(!data))
+	{
+		logErr("failed allocating %u bytes for pixel buffer", bufferBytes);
+		return {};
+	}
+	r->resourceUpdate = true;
+	IG::Pixmap pix{{rect.size(), pixDesc.format()}, data};
+	return {data, pix, rect, level, true};
+}
+
+void Texture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
+{
+	if(unlikely(!lockBuff))
+		return;
+	assumeExpr(r);
+	if(lockBuff.pbo())
+		assert(r->support.hasPBOFuncs);
+	bool makeMipmaps = writeFlags & WRITE_FLAG_MAKE_MIPMAPS && canUseMipmaps();
+	if(makeMipmaps)
+	{
+		updateLevelsForMipmapGeneration();
+	}
+	r->runGLTask(
+		[=, r = this->r, texName_ = this->texName_, pix = lockBuff.pixmap(), bufferOffset = lockBuff.bufferOffset(),
+		 destPos = IG::WP{lockBuff.sourceDirtyRect().x, lockBuff.sourceDirtyRect().y},
+		 level = lockBuff.level(), pbo = lockBuff.pbo(), shouldFreeBuffer = lockBuff.shouldFreeBuffer()]()
+		{
+			glBindTexture(GL_TEXTURE_2D, texName_);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, pix.pitchBytes()));
+			if(pbo)
+			{
+				assumeExpr(r->support.hasUnpackRowLength);
+				glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+				r->support.glFlushMappedBufferRange(GL_PIXEL_UNPACK_BUFFER, (GLintptr)bufferOffset, pix.bytes());
+			}
+			else
+			{
+				if(r->support.hasUnpackRowLength)
+					glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+			}
+			GLenum format = makeGLFormat(*r, pix.format());
+			GLenum dataType = makeGLDataType(pix.format());
+			runGLCheckedVerbose(
+				[&]()
+				{
+					glTexSubImage2D(GL_TEXTURE_2D, level, destPos.x, destPos.y,
+						pix.w(), pix.h(), format, dataType, bufferOffset);
+				}, "glTexSubImage2D()");
+			if(pbo)
+			{
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+			}
+			else if(shouldFreeBuffer)
+			{
+				std::free(pix.data());
+			}
+			if(makeMipmaps)
+			{
+				logMsg("generating mipmaps for texture:0x%X", texName_);
+				r->support.generateMipmaps(GL_TEXTURE_2D);
+			}
+		});
+}
+
+IG::WP Texture::size(uint16_t level) const
 {
 	uint32_t w = pixDesc.w(), h = pixDesc.h();
 	iterateTimes(level, i)
@@ -779,7 +618,7 @@ IG::PixmapDesc Texture::pixmapDesc() const
 	return pixDesc;
 }
 
-bool Texture::compileDefaultProgram(uint32_t mode)
+bool Texture::compileDefaultProgram(uint32_t mode) const
 {
 	assumeExpr(r);
 	switch(mode)
@@ -810,7 +649,7 @@ bool Texture::compileDefaultProgram(uint32_t mode)
 	}
 }
 
-bool Texture::compileDefaultProgramOneShot(uint32_t mode)
+bool Texture::compileDefaultProgramOneShot(uint32_t mode) const
 {
 	assumeExpr(r);
 	auto compiled = compileDefaultProgram(mode);
@@ -860,6 +699,11 @@ Renderer &Texture::renderer()
 	return *r;
 }
 
+Texture::operator TextureSpan() const
+{
+	return {this};
+}
+
 GLuint GLTexture::texName() const
 {
 	return texName_;
@@ -897,164 +741,39 @@ void GLTexture::setSwizzleForFormat(Renderer &r, PixelFormatID format, GLuint te
 	#endif
 }
 
-#ifdef __ANDROID__
-GLTexture::AndroidStorageImpl GLTexture::androidStorageImpl(Renderer &r)
+void GLTexture::updateFormatInfo(IG::PixmapDesc desc, uint16_t levels, GLenum target)
 {
-	if(unlikely(androidStorageImpl_ == ANDROID_AUTO))
-	{
-		setAndroidStorageImpl(r, ANDROID_AUTO);
-	}
-	return androidStorageImpl_;
+	assert(levels);
+	levels_ = levels;
+	pixDesc = desc;
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	if(Config::Gfx::OPENGL_ES && target == GL_TEXTURE_EXTERNAL_OES)
+		type_ = TEX_2D_EXTERNAL;
+	else
+		type_ = typeForPixelFormat(desc.format());
+	#endif
+	setSwizzleForFormat(*r, desc.format(), texName_, target);
 }
 
-static const char *rendererGLStr(Renderer &r)
+void GLTexture::updateLevelsForMipmapGeneration()
 {
-	const char *str;
-	r.runGLTaskSync(
-		[&str]()
-		{
-			str = (const char*)glGetString(GL_RENDERER);
-		});
-	return str;
-}
-
-bool GLTexture::setAndroidStorageImpl(Renderer &r, AndroidStorageImpl impl)
-{
-	switch(impl)
+	if(!r->support.hasImmutableTexStorage)
 	{
-		bcase ANDROID_AUTO:
-		{
-			logMsg("auto-detecting Android storage implementation");
-			androidStorageImpl_ = ANDROID_NONE;
-			if(GraphicBufferStorage::isRendererWhitelisted(rendererGLStr(r)))
-			{
-				// use GraphicBuffer if whitelisted
-				androidStorageImpl_ = ANDROID_GRAPHIC_BUFFER;
-				logMsg("using Android GraphicBuffers as texture storage (white-listed)");
-			}
-			else
-			{
-				// try SurfaceTexture if supported
-				setAndroidStorageImpl(r, ANDROID_SURFACE_TEXTURE);
-			}
-			if(androidStorageImpl_ == ANDROID_NONE)
-			{
-				logMsg("not using Android-specific texture storage");
-			}
-			return true;
-		}
-		bcase ANDROID_NONE:
-		{
-			androidStorageImpl_ = ANDROID_NONE;
-			logMsg("not using Android-specific texture storage");
-			return true;
-		}
-		bcase ANDROID_GRAPHIC_BUFFER:
-		{
-			auto rendererStr = rendererGLStr(r);
-			if(Config::ARM_ARCH == 7 && r.support.useLegacyGLSL && strstr(rendererStr, "Tegra"))
-			{
-				logMsg("not using GraphicBuffer due to app lockup on Tegra 4 and older");
-				return false;
-			}
-			if(GraphicBufferStorage::testPassed)
-			{
-				androidStorageImpl_ = ANDROID_GRAPHIC_BUFFER;
-				logMsg("using Android GraphicBuffer as texture storage (skipping test)");
-				return true;
-			}
-			else
-			{
-				// test before enabling
-				if(!r.support.hasEGLImages)
-				{
-					logErr("Can't use GraphicBuffer without OES_EGL_image extension");
-					return false;
-				}
-				Base::GraphicBuffer gb{};
-				if(!gb.hasBufferMapper())
-				{
-					logErr("failed GraphicBuffer mapper initialization");
-					return false;
-				}
-				if(!gb.reallocate(256, 256, HAL_PIXEL_FORMAT_RGB_565, GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_HW_TEXTURE))
-				{
-					logErr("failed GraphicBuffer allocation test");
-					return false;
-				}
-				void *addr;
-				if(!gb.lock(GRALLOC_USAGE_SW_WRITE_OFTEN, &addr))
-				{
-					logErr("failed GraphicBuffer lock test");
-					return false;
-				}
-				gb.unlock();
-				androidStorageImpl_ = ANDROID_GRAPHIC_BUFFER;
-				GraphicBufferStorage::testPassed = true;
-				logMsg("using Android GraphicBuffer as texture storage");
-				return true;
-			}
-		}
-		bcase ANDROID_SURFACE_TEXTURE:
-		{
-			if(Base::androidSDK() < 14)
-				return false;
-			if(!r.support.hasExternalEGLImages)
-			{
-				logErr("can't use SurfaceTexture without OES_EGL_image_external");
-				return false;
-			}
-			// check if external textures work in GLSL
-			if(r.texExternalReplaceProgram.compile(r))
-				r.autoReleaseShaderCompiler();
-			if(!r.texExternalReplaceProgram)
-			{
-				logErr("can't use SurfaceTexture due to test shader compilation error");
-				return false;
-			}
-			androidStorageImpl_ = ANDROID_SURFACE_TEXTURE;
-			logMsg("using Android SurfaceTexture as texture storage");
-			return true;
-		}
-		bdefault:
-			bug_unreachable("impl == %d", (int)impl);
-			return false;
+		// all possible levels generated by glGenerateMipmap
+		levels_ = fls(pixDesc.w() | pixDesc.h());
 	}
 }
 
-bool GLTexture::isAndroidGraphicBufferStorageWhitelisted(Renderer &r)
+bool GLTexture::isExternal() const
 {
-	return GraphicBufferStorage::isRendererWhitelisted(rendererGLStr(r));
+	return target() == GL_TEXTURE_EXTERNAL_OES;
 }
-
-bool GLTexture::isExternal()
-{
-	return target == GL_TEXTURE_EXTERNAL_OES;
-}
-
-const char *GLTexture::androidStorageImplStr(AndroidStorageImpl impl)
-{
-	switch(impl)
-	{
-		case ANDROID_AUTO: return "Auto";
-		case ANDROID_NONE: return "Standard";
-		case ANDROID_GRAPHIC_BUFFER: return "Graphic Buffer";
-		case ANDROID_SURFACE_TEXTURE: return "Surface Texture";
-	}
-	return "Unknown";
-}
-
-const char *GLTexture::androidStorageImplStr(Renderer &r)
-{
-	return androidStorageImplStr(androidStorageImpl(r));
-}
-#endif
 
 PixmapTexture::PixmapTexture(Renderer &r, TextureConfig config, Error *errorPtr)
 {
 	this->r = &r;
-	Error err = init(r, config);
-	if(err && errorPtr)
+	Error err = GLPixmapTexture::init(*this, config);
+	if(unlikely(err && errorPtr))
 	{
 		*errorPtr = err;
 	}
@@ -1064,70 +783,52 @@ PixmapTexture::PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps,
 {
 	this->r = &r;
 	Error err;
+	auto setError = IG::scopeGuard([&](){ if(unlikely(err && errorPtr)) { *errorPtr = err; } });
 	if(img)
-		err = initTextureCommon(r, *this, img, makeMipmaps);
-	else
-		err = init(r, {{{1, 1}, Base::PIXEL_FMT_A8}});
-	if(err && errorPtr)
 	{
-		*errorPtr = err;
+		if(err = GLPixmapTexture::init(*this, configWithLoadedImagePixmap(img.pixmapView(), makeMipmaps));
+			unlikely(err))
+		{
+			return;
+		}
+		err = loadImageSource(*this, img, makeMipmaps);
+	}
+	else
+	{
+		err = GLPixmapTexture::init(*this, {{{1, 1}, Base::PIXEL_FMT_A8}});
 	}
 }
 
-Error PixmapTexture::init(Renderer &r, TextureConfig config)
+Error GLPixmapTexture::init(PixmapTexture &self, TextureConfig config)
 {
-	assert(!texName_);
-	if(config.willWriteOften() && config.levels() == 1 && supportsDirectStorage(r))
-	{
-		// try without changing size when using direct pixel storage
-		if(auto err = Texture::init(r, config);
-			!err)
-		{
-			usedSize = config.pixmapDesc().size();
-			return {};
-		}
-	}
-	auto origPixDesc = config.pixmapDesc();
-	config.setPixmapDesc(r.support.textureSizeSupport.makePixmapDescWithSupportedSize(origPixDesc));
-	if(auto err = Texture::init(r, config);
+	auto &r = self.renderer();
+	config = self.baseInit(r, config);
+	if(auto err = self.setFormat(config.pixmapDesc(), config.levels());
 		err)
 	{
 		return err;
 	}
-	if(origPixDesc != config.pixmapDesc())
-		clear(0);
-	usedSize = origPixDesc.size();
-	updateUV({}, origPixDesc.size());
 	return {};
 }
 
 Error PixmapTexture::setFormat(IG::PixmapDesc desc, uint32_t levels)
 {
 	assumeExpr(r);
-	if(directTex)
+	IG::PixmapDesc fullPixDesc = r->support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
+	if(auto err = Texture::setFormat(fullPixDesc, levels);
+		err)
 	{
-		usedSize = desc.size();
-		return Texture::setFormat(desc, levels);
+		return err;
 	}
-	else
-	{
-		IG::PixmapDesc fullPixDesc = r->support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
-		auto result = Texture::setFormat(fullPixDesc, levels);
-		if(result)
-		{
-			return result;
-		}
-		if(desc != fullPixDesc)
-			clear(0);
-		usedSize = desc.size();
-		updateUV({}, desc.size());
-		return {};
-	}
+	if(desc != fullPixDesc)
+		clear(0);
+	updateUsedPixmapSize(desc, pixmapDesc());
+	return {};
 }
 
 IG::Rect2<GTexC> PixmapTexture::uvBounds() const
 {
-	return uv;
+	return {0, 0, uv.x, uv.y};
 }
 
 IG::PixmapDesc PixmapTexture::usedPixmapDesc() const
@@ -1135,12 +836,16 @@ IG::PixmapDesc PixmapTexture::usedPixmapDesc() const
 	return {usedSize, pixmapDesc().format()};
 }
 
-void PixmapTexture::updateUV(IG::WP pixPos, IG::WP pixSize)
+PixmapTexture::operator TextureSpan() const
 {
-	uv.x = pixelToTexC((uint32_t)pixPos.x, pixDesc.w());
-	uv.y = pixelToTexC((uint32_t)pixPos.y, pixDesc.h());
-	uv.x2 = pixelToTexC((uint32_t)(pixPos.x + pixSize.x), pixDesc.w());
-	uv.y2 = pixelToTexC((uint32_t)(pixPos.y + pixSize.y), pixDesc.h());
+	return {this, uvBounds()};
+}
+
+void GLPixmapTexture::updateUsedPixmapSize(IG::PixmapDesc usedDesc, IG::PixmapDesc fullDesc)
+{
+	usedSize = usedDesc.size();
+	uv.x = pixelToTexC((uint32_t)(usedDesc.size().x), fullDesc.w());
+	uv.y = pixelToTexC((uint32_t)(usedDesc.size().y), fullDesc.h());
 }
 
 IG::PixmapDesc TextureSizeSupport::makePixmapDescWithSupportedSize(IG::PixmapDesc desc) const

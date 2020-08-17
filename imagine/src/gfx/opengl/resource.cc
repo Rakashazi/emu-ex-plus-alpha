@@ -38,6 +38,11 @@ PixmapTexture Renderer::makePixmapTexture(GfxImageSource &img, bool makeMipmaps)
 	return {*this, img, makeMipmaps};
 }
 
+PixmapBufferTexture Renderer::makePixmapBufferTexture(TextureConfig config, TextureBufferMode mode, bool singleBuffer)
+{
+	return {*this, config, mode, singleBuffer};
+}
+
 TextureSampler Renderer::makeTextureSampler(TextureSamplerConfig config)
 {
 	return {*this, config};

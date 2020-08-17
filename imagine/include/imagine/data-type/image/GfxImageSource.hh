@@ -23,7 +23,7 @@ public:
 	constexpr GfxImageSource() {}
 	virtual ~GfxImageSource() {}
 	virtual std::errc write(IG::Pixmap dest) = 0;
-	virtual IG::Pixmap lockPixmap() = 0;
-	virtual void unlockPixmap() = 0;
+	virtual IG::Pixmap pixmapView() = 0;
+	virtual void freePixmap();
 	virtual explicit operator bool() const = 0;
 };

@@ -24,12 +24,6 @@ namespace Gfx
 
 class TextureConfig
 {
-private:
-	bool writeOften = false;
-	bool genMipmaps = false;
-	uint32_t levels_ = 1;
-	IG::PixmapDesc pixmapDesc_;
-
 public:
 	constexpr TextureConfig() {}
 	constexpr TextureConfig(IG::PixmapDesc pixDesc): pixmapDesc_{pixDesc} {}
@@ -49,16 +43,6 @@ public:
 		return levels_;
 	}
 
-	void setWillWriteOften(bool on)
-	{
-		writeOften = on;
-	}
-
-	bool willWriteOften() const
-	{
-		return writeOften;
-	}
-
 	void setWillGenerateMipmaps(bool on)
 	{
 		genMipmaps = on;
@@ -76,10 +60,15 @@ public:
 		pixmapDesc_ = pixDesc;
 	}
 
-	IG::PixmapDesc pixmapDesc()
+	IG::PixmapDesc pixmapDesc() const
 	{
 		return pixmapDesc_;
 	}
+
+private:
+	uint32_t levels_ = 1;
+	IG::PixmapDesc pixmapDesc_;
+	bool genMipmaps = false;
 };
 
 }

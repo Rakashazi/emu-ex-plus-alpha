@@ -45,9 +45,9 @@ public:
 	using OnTextDelegate = DelegateFunc<uint32_t (CollectTextInputView &view, const char *str)>;
 
 	CollectTextInputView(ViewAttachParams attach, const char *msgText, const char *initialContent,
-		Gfx::PixmapTexture *closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = &View::defaultFace);
+		Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = &View::defaultFace);
 	CollectTextInputView(ViewAttachParams attach, const char *msgText,
-		Gfx::PixmapTexture *closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = &View::defaultFace):
+		Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = &View::defaultFace):
 		CollectTextInputView(attach, msgText, "", closeRes, onText, face) {}
 	~CollectTextInputView() override;
 	void place() override;

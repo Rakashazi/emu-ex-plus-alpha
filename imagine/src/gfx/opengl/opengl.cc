@@ -20,6 +20,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/Interpolator.hh>
 #include <imagine/util/string.h>
@@ -321,6 +322,7 @@ ClipRect Renderer::makeClipRect(const Base::Window &win, IG::WindowRect rect)
 void GLDrawableHolder::makeDrawable(Renderer &r, Base::Window &win)
 {
 	destroyDrawable(r);
+	screen = win.screen();
 	auto [ec, drawable] = r.glDpy.makeDrawable(win, r.gfxBufferConfig);
 	if(ec)
 	{
@@ -352,7 +354,7 @@ void GLDrawableHolder::makeDrawable(Renderer &r, Base::Window &win)
 		[this]()
 		{
 			auto now = IG::steadyClockTimestamp();
-			FrameParams frameParams{now, lastTimestamp, IG::FloatSeconds{0}};
+			FrameParams frameParams{now, lastTimestamp, screen->frameTime()};
 			onFrame.runAll([&](Base::OnFrameDelegate del){ return del(frameParams); });
 			lastTimestamp = now;
 		});

@@ -15,9 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/gfx/SyncFence.hh>
-#include <imagine/pixmap/MemPixmap.hh>
 
 class EmuVideo;
 class EmuSystemTask;
@@ -27,7 +26,6 @@ class EmuVideoImage
 public:
 	EmuVideoImage();
 	EmuVideoImage(EmuSystemTask *task, EmuVideo &vid, Gfx::LockedTextureBuffer texBuff);
-	EmuVideoImage(EmuSystemTask *task, EmuVideo &vid, IG::Pixmap pix);
 	IG::Pixmap pixmap() const;
 	explicit operator bool() const;
 	void endFrame();
@@ -36,7 +34,6 @@ private:
 	EmuSystemTask *task{};
 	EmuVideo *emuVideo{};
 	Gfx::LockedTextureBuffer texBuff{};
-	IG::Pixmap pix{};
 };
 
 class EmuVideo
@@ -61,21 +58,22 @@ public:
 	void clear();
 	void takeGameScreenshot();
 	bool isExternalTexture();
-	Gfx::PixmapTexture &image();
+	Gfx::PixmapBufferTexture &image();
 	Gfx::Renderer &renderer();
 	IG::WP size() const;
 	bool formatIsEqual(IG::PixmapDesc desc) const;
 	void setOnFrameFinished(FrameFinishedDelegate del);
 	void setOnFormatChanged(FormatChangedDelegate del);
+	bool setTextureBufferMode(Gfx::TextureBufferMode mode);
 
 protected:
 	Gfx::RendererTask &rTask;
 	Gfx::SyncFence fence{};
-	Gfx::PixmapTexture vidImg{};
-	IG::MemPixmap memPix{};
+	Gfx::PixmapBufferTexture vidImg{};
 	FrameFinishedDelegate onFrameFinished{};
 	FormatChangedDelegate onFormatChanged{};
 	bool screenshotNextFrame = false;
+	Gfx::TextureBufferMode bufferMode{};
 
 	void doScreenshot(EmuSystemTask *task, IG::Pixmap pix);
 	void dispatchFinishFrame(EmuSystemTask *task);

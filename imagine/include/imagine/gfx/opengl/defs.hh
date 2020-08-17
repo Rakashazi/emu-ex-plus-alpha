@@ -57,6 +57,9 @@ namespace Config
 
 	#ifdef __ANDROID__
 	#define CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
+	static constexpr bool OPENGL_MULTIPLE_TEXTURE_TARGETS = true;
+	#else
+	static constexpr bool OPENGL_MULTIPLE_TEXTURE_TARGETS = false;
 	#endif
 	}
 }

@@ -39,6 +39,7 @@ public:
 	void attach(EventLoop loop, PollEventDelegate del);
 	void detach();
 	bool hasData();
+	void dispatchSourceEvents();
 	void setPreferredSize(int size);
 	void setReadNonBlocking(bool on);
 	bool isReadNonBlocking() const;
