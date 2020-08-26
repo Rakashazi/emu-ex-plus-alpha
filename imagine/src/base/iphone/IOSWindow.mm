@@ -168,7 +168,7 @@ IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 	return {(size.x / (float)dpi) * 25.4f, (size.y / (float)dpi) * 25.4f};
 }
 
-std::error_code Window::init(const WindowConfig &config)
+IG::ErrorCode Window::init(const WindowConfig &config)
 {
 	if(uiWin_)
 		return {};

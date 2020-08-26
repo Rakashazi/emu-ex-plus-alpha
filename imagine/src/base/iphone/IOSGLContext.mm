@@ -27,17 +27,17 @@ namespace Base
 
 // GLDisplay
 
-std::pair<std::error_code, GLDisplay> GLDisplay::makeDefault()
+std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault()
 {
 	return {};
 }
 
-std::pair<std::error_code, GLDisplay> GLDisplay::makeDefault(GLDisplay::API api)
+std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(GLDisplay::API api)
 {
 	if(!bindAPI(api))
 	{
 		logErr("error binding requested API");
-		return {{EINVAL, std::system_category()}, {}};
+		return {{EINVAL}, {}};
 	}
 	return {};
 }
@@ -79,7 +79,7 @@ bool GLDisplay::deinit()
 	return true;
 }
 
-std::pair<std::error_code, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBufferConfig config) const
+std::pair<IG::ErrorCode, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBufferConfig config) const
 {
 	CGRect rect = win.screen()->uiScreen().bounds;
 	// Create the OpenGL ES view and add it to the Window
@@ -156,7 +156,7 @@ static EAGLRenderingAPI majorVersionToAPI(uint32_t version)
 	}
 }
 
-GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, std::error_code &ec)
+GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, IG::ErrorCode &ec)
 {
 	assert(attr.openGLESAPI());
 	EAGLRenderingAPI api = majorVersionToAPI(attr.majorVersion());
@@ -166,14 +166,14 @@ GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig
 	if(!newContext)
 	{
 		logErr("error creating context");
-		ec = {EINVAL, std::system_category()};
+		ec = {EINVAL};
 		return;
 	}
 	context_ = (void*)CFBridgingRetain(newContext);
 	ec = {};
 }
 
-GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec):
+GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec):
 	GLContext{display, attr, config, {}, ec}
 {}
 

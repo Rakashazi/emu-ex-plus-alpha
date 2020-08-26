@@ -30,11 +30,11 @@ class PixmapBufferTexture: public PixmapTexture, public PixmapBufferTextureImpl
 {
 public:
 	constexpr PixmapBufferTexture() {}
-	PixmapBufferTexture(Renderer &r, TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false, Error *errorPtr = nullptr);
+	PixmapBufferTexture(Renderer &r, TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false, IG::ErrorCode *errorPtr = nullptr);
 	PixmapBufferTexture(PixmapBufferTexture &&o);
 	PixmapBufferTexture &operator=(PixmapBufferTexture &&o);
 	~PixmapBufferTexture();
-	Error setFormat(IG::PixmapDesc desc);
+	IG::ErrorCode setFormat(IG::PixmapDesc desc);
 	void write(IG::Pixmap pixmap, uint32_t writeFlags = 0);
 	void writeAligned(IG::Pixmap pixmap, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
 	void clear();

@@ -103,7 +103,7 @@ AAudioOutputStream::~AAudioOutputStream()
 	close();
 }
 
-std::error_code AAudioOutputStream::open(OutputStreamConfig config)
+IG::ErrorCode AAudioOutputStream::open(OutputStreamConfig config)
 {
 	assert(libHandle);
 	if(stream)
@@ -115,7 +115,7 @@ std::error_code AAudioOutputStream::open(OutputStreamConfig config)
 	auto format = config.format();
 	if(!openStream(format, lowLatencyMode))
 	{
-		return {EINVAL, std::system_category()};
+		return {EINVAL};
 	}
 	pcmFormat = format;
 	onSamplesNeeded = config.onSamplesNeeded();

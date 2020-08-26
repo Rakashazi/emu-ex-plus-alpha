@@ -16,10 +16,11 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/EventLoop.hh>
+#include <imagine/base/Error.hh>
 
 namespace Base
 {
-	std::pair<std::error_code, int> initWindowSystem(EventLoop loop);
+	std::pair<IG::ErrorCode, int> initWindowSystem(EventLoop loop);
 	void deinitWindowSystem();
 	void x11FDHandler();
 	bool x11FDPending();

@@ -52,11 +52,11 @@ GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttribute
 	return GLBufferConfig{eglConfig};
 }
 
-GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec):
+GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec):
 	AndroidGLContext{display.eglDisplay(), attr, config, EGL_NO_CONTEXT, ec}
 {}
 
-GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, std::error_code &ec):
+GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, IG::ErrorCode &ec):
 	AndroidGLContext{display.eglDisplay(), attr, config, shareContext.nativeObject(), ec}
 {}
 

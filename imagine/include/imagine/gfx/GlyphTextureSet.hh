@@ -54,8 +54,8 @@ public:
 	static GlyphTextureSet makeFromAsset(Renderer &r, const char *name, const char *appName, IG::FontSettings set);
 	operator bool() const;
 	bool setFontSettings(Renderer &r, IG::FontSettings set);
-	std::errc precache(Renderer &r, const char *string);
-	std::errc precacheAlphaNum(Renderer &r)
+	unsigned precache(Renderer &r, const char *string);
+	unsigned precacheAlphaNum(Renderer &r)
 	{
 		return precache(r, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
 	}

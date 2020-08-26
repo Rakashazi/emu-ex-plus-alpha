@@ -89,18 +89,6 @@ void GLRenderer::verifyCurrentResourceContext()
 	}
 }
 
-void GLRenderer::verifyCurrentTexture2D(TextureRef tex)
-{
-	if(!Config::DEBUG_BUILD)
-		return;
-	GLint realTexture = 0;
-	glGetIntegerv(GL_TEXTURE_BINDING_2D, &realTexture);
-	if(tex != (GLuint)realTexture)
-	{
-		bug_unreachable("out of sync, expected %u but got %u, TEXTURE_2D", tex, realTexture);
-	}
-}
-
 void Renderer::releaseShaderCompiler()
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE

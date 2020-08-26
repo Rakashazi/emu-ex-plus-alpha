@@ -29,11 +29,11 @@ public:
 	struct Buffer
 	{
 		void *data{};
-		uint32_t pitch = 0;
+		uint32_t pitchBytes = 0;
 
 		constexpr Buffer() {}
-		constexpr Buffer(void *data, uint32_t pitch):
-			data{data}, pitch{pitch}
+		constexpr Buffer(void *data, uint32_t pitchBytes):
+			data{data}, pitchBytes{pitchBytes}
 		{}
 	};
 
@@ -42,7 +42,7 @@ public:
 	constexpr DirectTextureStorage() {}
 	constexpr DirectTextureStorage(GLenum target): target{target} {}
 	virtual ~DirectTextureStorage() = 0;
-	virtual Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) = 0;
+	virtual IG::ErrorCode setFormat(Renderer &r, IG::PixmapDesc desc, GLuint &texNameMember) = 0;
 	virtual Buffer lock(Renderer &r) = 0;
 	virtual void unlock(Renderer &r) = 0;
 };
@@ -66,7 +66,7 @@ public:
 		{}
 	};
 
-	Error init(PixmapBufferTexture &self, TextureConfig config, TextureBufferMode mode, bool singleBuffer);
+	IG::ErrorCode init(PixmapBufferTexture &self, TextureConfig config, TextureBufferMode mode, GLuint &texNameMember, bool singleBuffer);
 
 protected:
 	std::unique_ptr<DirectTextureStorage> directTex{};
@@ -75,9 +75,9 @@ protected:
 	uint8_t bufferIdx{};
 	static constexpr uint8_t SINGLE_BUFFER_VALUE = 2;
 
-	Error initWithPixelBuffer(PixmapBufferTexture &self, TextureConfig config, bool usePBO = false, bool singleBuffer = false);
-	Error initWithHardwareBuffer(PixmapBufferTexture &self, TextureConfig config, bool singleBuffer = false);
-	Error initWithSurfaceTexture(PixmapBufferTexture &self, TextureConfig config, bool singleBuffer = false);
+	IG::ErrorCode initWithPixelBuffer(PixmapBufferTexture &self, TextureConfig config, bool usePBO = false, bool singleBuffer = false);
+	IG::ErrorCode initWithHardwareBuffer(PixmapBufferTexture &self, TextureConfig config, bool singleBuffer = false);
+	IG::ErrorCode initWithSurfaceTexture(PixmapBufferTexture &self, TextureConfig config, GLuint &texNameMember, bool singleBuffer = false);
 	void initPixelBuffer(Renderer &r, IG::PixmapDesc desc, bool usePBO, bool singleBuffer);
 	BufferInfo swapBuffer();
 	bool isSingleBuffered() const;

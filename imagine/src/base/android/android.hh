@@ -18,12 +18,10 @@
 #include <imagine/util/jni.hh>
 #include <imagine/base/android/android.hh>
 #include <imagine/pixmap/PixelFormat.hh>
-#include <android/looper.h>
-#include <android/asset_manager.h>
-#include "privateApi/GraphicBuffer.hh"
 
 class BluetoothSocket;
 struct ANativeWindow;
+struct AAssetManager;
 
 namespace Base
 {
@@ -57,7 +55,7 @@ void releaseSurfaceTexture(JNIEnv *env, jobject surfaceTexture);
 jobject makeSurface(JNIEnv *env, jobject surfaceTexture);
 void releaseSurface(JNIEnv *env, jobject surface);
 
-int pixelFormatToDirectAndroidFormat(IG::PixelFormatID format);
+uint32_t toAHardwareBufferFormat(IG::PixelFormatID format);
 
 void recycleBitmap(JNIEnv *env, jobject bitmap);
 

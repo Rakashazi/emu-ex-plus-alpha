@@ -75,7 +75,7 @@ CAOutputStream::~CAOutputStream()
 	AudioComponentInstanceDispose(outputUnit);
 }
 
-std::error_code CAOutputStream::open(OutputStreamConfig config)
+IG::ErrorCode CAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())
 	{
@@ -98,7 +98,7 @@ std::error_code CAOutputStream::open(OutputStreamConfig config)
 		err)
 	{
 		logErr("error %d setting stream format", (int)err);
-		return {EINVAL, std::system_category()};
+		return {EINVAL};
 	}
 	pcmFormat = format;
 	onSamplesNeeded = config.onSamplesNeeded();

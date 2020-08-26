@@ -15,34 +15,29 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-#include <imagine/audio/OutputStream.hh>
-#include <AudioUnit/AudioUnit.h>
+#include <imagine/gfx/PixmapBufferTexture.hh>
 
-namespace IG::Audio
+struct AHardwareBuffer;
+
+namespace Gfx
 {
 
-class CAOutputStream : public OutputStream
+class AHardwareBufferStorage: public DirectTextureStorage
 {
 public:
-	CAOutputStream();
-	~CAOutputStream();
-	IG::ErrorCode open(OutputStreamConfig config) final;
-	void play() final;
-	void pause() final;
-	void close() final;
-	void flush() final;
-	bool isOpen() final;
-	bool isPlaying() final;
-	explicit operator bool() const;
+	AHardwareBufferStorage();
+	AHardwareBufferStorage(AHardwareBufferStorage &&o);
+	~AHardwareBufferStorage();
+	AHardwareBufferStorage &operator=(AHardwareBufferStorage &&o);
+	IG::ErrorCode setFormat(Renderer &r, IG::PixmapDesc desc, GLuint &tex) final;
+	Buffer lock(Renderer &r) final;
+	void unlock(Renderer &r) final;
 
-private:
-	AudioComponentInstance outputUnit{};
-	AudioStreamBasicDescription streamFormat;
-	OnSamplesNeededDelegate onSamplesNeeded{};
-	Format pcmFormat;
-	bool isPlaying_ = false;
-	bool isOpen_ = false;
+protected:
+	AHardwareBuffer *hBuff{};
+	uint32_t pitchBytes = 0;
+
+	void deinit();
 };
 
 }

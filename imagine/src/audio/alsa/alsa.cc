@@ -84,7 +84,7 @@ ALSAOutputStream::~ALSAOutputStream()
 	close();
 }
 
-std::error_code ALSAOutputStream::open(OutputStreamConfig config)
+IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())
 	{
@@ -100,7 +100,7 @@ std::error_code ALSAOutputStream::open(OutputStreamConfig config)
 		err < 0)
 	{
 		logErr("Playback open error: %s", snd_strerror(err));
-		return {EINVAL, std::system_category()};
+		return {EINVAL};
 	}
 	auto closePcm = IG::scopeGuard([this](){ snd_pcm_close(pcmHnd); pcmHnd = 0; });
 	logMsg("Stream parameters: %iHz, %s, %i channels", format.rate, snd_pcm_format_name(pcmFormatToAlsa(format.sample)), format.channels);
@@ -127,7 +127,7 @@ std::error_code ALSAOutputStream::open(OutputStreamConfig config)
 	//logMsg("pcm state: %s", alsaPcmStateToString(snd_pcm_state(pcmHnd)));
 	if(err < 0)
 	{
-		return {EINVAL, std::system_category()};
+		return {EINVAL};
 	}
 	closePcm.cancel();
 	quitFlag = false;

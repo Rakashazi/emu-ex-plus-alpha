@@ -147,8 +147,12 @@ static bool runGLCheckedVerbose(FUNC func, const char *label = nullptr)
 	return runGLChecked(func, label);
 }
 
-static GLuint makeGLTexture()
+static GLuint makeGLTextureName(GLuint oldTex)
 {
+	if(oldTex)
+	{
+		glDeleteTextures(1, &oldTex);
+	}
 	GLuint tex;
 	glGenTextures(1, &tex);
 	return tex;

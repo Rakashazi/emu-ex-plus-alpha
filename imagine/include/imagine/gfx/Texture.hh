@@ -15,7 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <utility>
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureConfig.hh>
@@ -26,6 +25,8 @@
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/Texture.hh>
 #endif
+
+#include <utility>
 
 class GfxImageSource;
 
@@ -68,7 +69,7 @@ public:
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
 	uint32_t levels() const;
-	Error setFormat(IG::PixmapDesc desc, uint16_t levels);
+	IG::ErrorCode setFormat(IG::PixmapDesc desc, uint16_t levels);
 	void write(uint16_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t writeFlags = 0);
 	void writeAligned(uint16_t level, IG::Pixmap pixmap, IG::WP destPos, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
 	void clear(uint16_t level);
@@ -91,9 +92,9 @@ class PixmapTexture: public Texture, public PixmapTextureImpl
 {
 public:
 	constexpr PixmapTexture() {}
-	PixmapTexture(Renderer &r, TextureConfig config, Error *errorPtr = nullptr);
-	PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, Error *errorPtr = nullptr);
-	Error setFormat(IG::PixmapDesc desc, uint32_t levels);
+	PixmapTexture(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr = nullptr);
+	PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
+	IG::ErrorCode setFormat(IG::PixmapDesc desc, uint32_t levels);
 	IG::Rect2<GTexC> uvBounds() const;
 	IG::PixmapDesc usedPixmapDesc() const;
 	operator TextureSpan() const;

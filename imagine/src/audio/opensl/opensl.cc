@@ -60,7 +60,7 @@ OpenSLESOutputStream::~OpenSLESOutputStream()
 	(*slE)->Destroy(slE);
 }
 
-std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
+IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 {
 	if(player)
 	{
@@ -69,7 +69,7 @@ std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
 	}
 	if(unlikely(!*this))
 	{
-		return {EINVAL, std::system_category()};
+		return {EINVAL};
 	}
 	auto format = config.format();
 	// must create queue with 2 buffers on Android <= 4.2
@@ -101,7 +101,7 @@ std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
 	else if(unlikely(format.sample.isFloat()))
 	{
 		logErr("floating-point samples need API level 21+");
-		return {EINVAL, std::system_category()};
+		return {EINVAL};
 	}
 	SLDataLocator_OutputMix outMixLoc{SL_DATALOCATOR_OUTPUTMIX, outMix};
 	SLDataSink sink{&outMixLoc, nullptr};
@@ -115,7 +115,7 @@ std::error_code OpenSLESOutputStream::open(OutputStreamConfig config)
 	{
 		logErr("CreateAudioPlayer returned 0x%X", (uint32_t)result);
 		player = nullptr;
-		return {EINVAL, std::system_category()};
+		return {EINVAL};
 	}
 	result = (*player)->Realize(player, SL_BOOLEAN_FALSE);
 	assert(result == SL_RESULT_SUCCESS);

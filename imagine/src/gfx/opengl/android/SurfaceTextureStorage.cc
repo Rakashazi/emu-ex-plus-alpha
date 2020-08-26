@@ -17,38 +17,43 @@
 #include "SurfaceTextureStorage.hh"
 #include "../private.hh"
 #include "../../../base/android/android.hh"
+#include <android/native_window_jni.h>
 
 namespace Gfx
 {
 
-SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, bool makeSingleBuffered, Error &err):
+SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint &tex, bool makeSingleBuffered, IG::ErrorCode &err):
 	DirectTextureStorage{GL_TEXTURE_EXTERNAL_OES}
 {
 	using namespace Base;
 	if(unlikely(!r.support.hasExternalEGLImages))
 	{
-		err = std::runtime_error("can't init without OES_EGL_image_external extension");
+		logErr("can't init without OES_EGL_image_external extension");
+		err = {ENOTSUP};
 		return;
 	}
 	singleBuffered = makeSingleBuffered;
 	r.runGLTaskSync(
-		[=, this]()
+		[=, this, &tex]()
 		{
 			auto env = jEnvForThread();
+			assert(!tex);
+			glGenTextures(1, &tex);
 			auto surfaceTex = makeSurfaceTexture(jEnvForThread(), tex, makeSingleBuffered);
 			if(!surfaceTex && makeSingleBuffered)
 			{
 				// fall back to buffered mode
 				surfaceTex = makeSurfaceTexture(jEnvForThread(), tex, false);
 			}
-			if(!surfaceTex)
+			if(unlikely(!surfaceTex))
 				return;
 			updateSurfaceTextureImage(env, surfaceTex); // set the initial display & context
 			this->surfaceTex = env->NewGlobalRef(surfaceTex);
 		});
 	if(unlikely(!surfaceTex))
 	{
-		err = std::runtime_error("SurfaceTexture ctor failed");
+		logErr("SurfaceTexture ctor failed");
+		err = {EINVAL};
 		return;
 	}
 	logMsg("made%sSurfaceTexture with texture:0x%X",
@@ -57,7 +62,8 @@ SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, bool makeS
 	auto localSurface = makeSurface(env, surfaceTex);
 	if(unlikely(!localSurface))
 	{
-		err = std::runtime_error("Surface ctor failed");
+		logErr("Surface ctor failed");
+		err = {EINVAL};
 		deinit();
 		return;
 	}
@@ -65,7 +71,8 @@ SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint tex, bool makeS
 	nativeWin = ANativeWindow_fromSurface(env, localSurface);
 	if(unlikely(!nativeWin))
 	{
-		err = std::runtime_error("ANativeWindow_fromSurface failed");
+		logErr("ANativeWindow_fromSurface failed");
+		err = {EINVAL};
 		deinit();
 		return;
 	}
@@ -119,17 +126,19 @@ void SurfaceTextureStorage::deinit()
 	}
 }
 
-Error SurfaceTextureStorage::setFormat(Renderer &, IG::PixmapDesc desc, GLuint tex)
+IG::ErrorCode SurfaceTextureStorage::setFormat(Renderer &, IG::PixmapDesc desc, GLuint &)
 {
 	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
-	int winFormat = Base::pixelFormatToDirectAndroidFormat(desc.format());
+	int winFormat = Base::toAHardwareBufferFormat(desc.format());
 	if(!winFormat)
 	{
-		return std::runtime_error("pixel format not usable");
+		logErr("pixel format not usable");
+		return {EINVAL};
 	}
 	if(ANativeWindow_setBuffersGeometry(nativeWin, desc.w(), desc.h(), winFormat) < 0)
 	{
-		return std::runtime_error("ANativeWindow_setBuffersGeometry failed");
+		logErr("ANativeWindow_setBuffersGeometry failed");
+		return {EINVAL};
 	}
 	bpp = desc.format().bytesPerPixel();
 	return {};

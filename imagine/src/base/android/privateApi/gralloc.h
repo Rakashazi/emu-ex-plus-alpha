@@ -312,48 +312,6 @@ struct android_native_buffer_t
   void* reserved_proc[8];
 };
 
-// include/pixelflinger/format.h
-
-enum GGLPixelFormat {
-	// these constants need to match those
-	// in graphics/PixelFormat.java, ui/PixelFormat.h, BlitHardware.h
-	GGL_PIXEL_FORMAT_UNKNOWN    =   0,
-	GGL_PIXEL_FORMAT_NONE       =   0,
-
-	GGL_PIXEL_FORMAT_RGBA_8888   =   1,  // 4x8-bit ARGB
-	GGL_PIXEL_FORMAT_RGBX_8888   =   2,  // 3x8-bit RGB stored in 32-bit chunks
-	GGL_PIXEL_FORMAT_RGB_888     =   3,  // 3x8-bit RGB
-	GGL_PIXEL_FORMAT_RGB_565     =   4,  // 16-bit RGB
-	GGL_PIXEL_FORMAT_BGRA_8888   =   5,  // 4x8-bit BGRA
-	GGL_PIXEL_FORMAT_RGBA_5551   =   6,  // 16-bit RGBA
-	GGL_PIXEL_FORMAT_RGBA_4444   =   7,  // 16-bit RGBA
-
-	GGL_PIXEL_FORMAT_A_8         =   8,  // 8-bit A
-	GGL_PIXEL_FORMAT_L_8         =   9,  // 8-bit L (R=G=B = L)
-	GGL_PIXEL_FORMAT_LA_88       = 0xA,  // 16-bit LA
-	GGL_PIXEL_FORMAT_RGB_332     = 0xB,  // 8-bit RGB (non paletted)
-
-	// reserved range. don't use.
-	GGL_PIXEL_FORMAT_RESERVED_10 = 0x10,
-	GGL_PIXEL_FORMAT_RESERVED_11 = 0x11,
-	GGL_PIXEL_FORMAT_RESERVED_12 = 0x12,
-	GGL_PIXEL_FORMAT_RESERVED_13 = 0x13,
-	GGL_PIXEL_FORMAT_RESERVED_14 = 0x14,
-	GGL_PIXEL_FORMAT_RESERVED_15 = 0x15,
-	GGL_PIXEL_FORMAT_RESERVED_16 = 0x16,
-	GGL_PIXEL_FORMAT_RESERVED_17 = 0x17,
-
-	// reserved/special formats
-	GGL_PIXEL_FORMAT_Z_16       =  0x18,
-	GGL_PIXEL_FORMAT_S_8        =  0x19,
-	GGL_PIXEL_FORMAT_SZ_24      =  0x1A,
-	GGL_PIXEL_FORMAT_SZ_8       =  0x1B,
-
-	// reserved range. don't use.
-	GGL_PIXEL_FORMAT_RESERVED_20 = 0x20,
-	GGL_PIXEL_FORMAT_RESERVED_21 = 0x21,
-};
-
 #ifdef __cplusplus
 }
 #endif

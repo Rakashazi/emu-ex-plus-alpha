@@ -21,8 +21,8 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/WindowConfig.hh>
+#include <imagine/base/Error.hh>
 #include <EGL/egl.h>
-#include <system_error>
 
 namespace Base
 {
@@ -55,7 +55,7 @@ public:
 	constexpr EGLDisplayConnection() {}
 	constexpr EGLDisplayConnection(EGLDisplay display): display{display} {}
 	EGLDisplay eglDisplay() { return display; }
-	static std::error_code initDisplay(EGLDisplay display);
+	static IG::ErrorCode initDisplay(EGLDisplay display);
 	const char *queryExtensions();
 
 protected:
@@ -77,7 +77,7 @@ class EGLContextBase
 {
 public:
 	constexpr EGLContextBase() {}
-	EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGLBufferConfig config, EGLContext shareContext, std::error_code &ec);
+	EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGLBufferConfig config, EGLContext shareContext, IG::ErrorCode &ec);
 	static void swapBuffers(EGLDisplay display, GLDrawable &win);
 
 protected:

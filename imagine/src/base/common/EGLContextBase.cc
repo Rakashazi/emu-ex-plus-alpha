@@ -185,7 +185,7 @@ void *GLContext::procAddress(const char *funcName)
 	return (void*)eglGetProcAddress(funcName);
 }
 
-EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGLBufferConfig config, EGLContext shareContext, std::error_code &ec)
+EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGLBufferConfig config, EGLContext shareContext, IG::ErrorCode &ec)
 {
 	EGLConfig glConfig = supportsNoConfig ? EGL_NO_CONFIG_KHR : config.glConfig;
 	logMsg("making context with version: %d.%d config:0x%llX share context:%p",
@@ -203,7 +203,7 @@ EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGL
 		{
 			if(Config::DEBUG_BUILD)
 				logErr("error creating context: 0x%X", (int)eglGetError());
-			ec = {EINVAL, std::system_category()};
+			ec = {EINVAL};
 			return;
 		}
 	}
@@ -365,19 +365,19 @@ NativeGLContext GLContext::nativeObject()
 
 // GLDisplay
 
-std::pair<std::error_code, GLDisplay> GLDisplay::makeDefault()
+std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault()
 {
 	auto display = getDefault();
 	auto ec = initDisplay(display.display);
 	return {ec, display};
 }
 
-std::pair<std::error_code, GLDisplay> GLDisplay::makeDefault(GLDisplay::API api)
+std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(GLDisplay::API api)
 {
 	if(!bindAPI(api))
 	{
 		logErr("error binding requested API");
-		return {{EINVAL, std::system_category()}, {}};
+		return {{EINVAL}, {}};
 	}
 	return makeDefault();
 }
@@ -392,14 +392,14 @@ GLDisplay GLDisplay::getDefault(API api)
 	return getDefault();
 }
 
-std::error_code EGLDisplayConnection::initDisplay(EGLDisplay display)
+IG::ErrorCode EGLDisplayConnection::initDisplay(EGLDisplay display)
 {
 	logMsg("initializing EGL with display:%p", display);
 	EGLint major, minor;
 	if(!eglInitialize(display, &major, &minor))
 	{
 		logErr("error initializing EGL for display:%p", display);
-		return {EINVAL, std::system_category()};
+		return {EINVAL};
 	}
 	if(!eglVersion)
 	{
@@ -457,14 +457,14 @@ bool GLDisplay::deinit()
 	return eglTerminate(dpy);
 }
 
-std::pair<std::error_code, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBufferConfig config) const
+std::pair<IG::ErrorCode, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBufferConfig config) const
 {
 	auto surface = eglCreateWindowSurface(display, config.glConfig,
 		Config::MACHINE_IS_PANDORA ? (EGLNativeWindowType)0 : (EGLNativeWindowType)win.nativeObject(),
 		nullptr);
 	if(surface == EGL_NO_SURFACE)
 	{
-		return {{EINVAL, std::system_category()}, {}};
+		return {{EINVAL}, {}};
 	}
 	return {{}, surface};
 }

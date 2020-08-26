@@ -22,6 +22,7 @@
 #include "private.hh"
 #ifdef __ANDROID__
 #include "../../base/android/android.hh"
+#include "android/AHardwareBufferStorage.hh"
 #include "android/GraphicBufferStorage.hh"
 #include "android/SurfaceTextureStorage.hh"
 #endif
@@ -55,10 +56,10 @@
 namespace Gfx
 {
 
-PixmapBufferTexture::PixmapBufferTexture(Renderer &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer, Error *errorPtr)
+PixmapBufferTexture::PixmapBufferTexture(Renderer &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer, IG::ErrorCode *errorPtr)
 {
 	this->r = &r;
-	Error err = GLPixmapBufferTexture::init(*this, config, mode, singleBuffer);
+	IG::ErrorCode err = GLPixmapBufferTexture::init(*this, config, mode, texName_, singleBuffer);
 	if(unlikely(err && errorPtr))
 	{
 		*errorPtr = err;
@@ -111,7 +112,7 @@ void GLPixmapBufferTexture::deinit(Renderer *r)
 	bufferIdx = 0;
 }
 
-Error GLPixmapBufferTexture::init(PixmapBufferTexture &self, TextureConfig config, TextureBufferMode mode, bool singleBuffer)
+IG::ErrorCode GLPixmapBufferTexture::init(PixmapBufferTexture &self, TextureConfig config, TextureBufferMode mode, GLuint &texNameMember, bool singleBuffer)
 {
 	auto &r = self.renderer();
 	mode = self.renderer().makeValidTextureBufferMode(mode);
@@ -125,7 +126,7 @@ Error GLPixmapBufferTexture::init(PixmapBufferTexture &self, TextureConfig confi
 		case TextureBufferMode::ANDROID_HARDWARE_BUFFER:
 			return initWithHardwareBuffer(self, config, singleBuffer);
 		case TextureBufferMode::ANDROID_SURFACE_TEXTURE:
-			return initWithSurfaceTexture(self, config, singleBuffer);
+			return initWithSurfaceTexture(self, config, texNameMember, singleBuffer);
 		#endif
 	}
 }
@@ -134,14 +135,14 @@ static std::array<GLPixmapBufferTexture::BufferInfo, 2> makeSystemMemoryPixelBuf
 {
 	std::free(oldBuffer);
 	unsigned fullBytes = singleBuffer ? bytes : bytes * 2;
-	auto bufferPtr = (char*)std::calloc(1, fullBytes);
+	auto bufferPtr = (char*)std::malloc(fullBytes);
 	logMsg("allocated system memory pixel buffer with size:%u", fullBytes);
 	return {bufferPtr, singleBuffer ? nullptr : bufferPtr + bytes};
 }
 
 static bool hasPersistentBufferMapping(Renderer &r)
 {
-	return r.support.hasImmutableBufferStorage;
+	return r.support.hasImmutableBufferStorage();
 }
 
 void GLPixmapBufferTexture::initPixelBuffer(Renderer &r, IG::PixmapDesc desc, bool usePBO, bool singleBuffer)
@@ -219,30 +220,37 @@ bool GLPixmapBufferTexture::isSingleBuffered() const
 	return bufferIdx == SINGLE_BUFFER_VALUE;
 }
 
-Error GLPixmapBufferTexture::initWithPixelBuffer(PixmapBufferTexture &self, TextureConfig config, bool usePBO, bool singleBuffer)
+IG::ErrorCode GLPixmapBufferTexture::initWithPixelBuffer(PixmapBufferTexture &self, TextureConfig config, bool usePBO, bool singleBuffer)
 {
 	initPixelBuffer(self.renderer(), config.pixmapDesc(), usePBO, singleBuffer);
 	return self.GLPixmapTexture::init(self, config);
 }
 
 #ifdef __ANDROID__
-Error GLPixmapBufferTexture::initWithHardwareBuffer(PixmapBufferTexture &self, TextureConfig config, bool singleBuffer)
+IG::ErrorCode GLPixmapBufferTexture::initWithHardwareBuffer(PixmapBufferTexture &self, TextureConfig config, bool singleBuffer)
 {
 	auto &r = self.renderer();
 	config = self.baseInit(r, config);
-	directTex = std::make_unique<GraphicBufferStorage>();
+	auto androidSDK = Base::androidSDK();
+	if(androidSDK >= 26)
+	{
+		directTex = std::make_unique<AHardwareBufferStorage>();
+	}
+	else
+	{
+		directTex = std::make_unique<GraphicBufferStorage>();
+	}
 	return self.setFormat(config.pixmapDesc());
 }
 
-Error GLPixmapBufferTexture::initWithSurfaceTexture(PixmapBufferTexture &self, TextureConfig config, bool singleBuffer)
+IG::ErrorCode GLPixmapBufferTexture::initWithSurfaceTexture(PixmapBufferTexture &self, TextureConfig config, GLuint &texNameMember, bool singleBuffer)
 {
 	auto &r = self.renderer();
 	config = self.baseInit(r, config);
-	Error err{};
-	auto surfaceTex = std::make_unique<SurfaceTextureStorage>(r, self.texName(), singleBuffer, err);
-	if(err)
+	IG::ErrorCode err{};
+	auto surfaceTex = std::make_unique<SurfaceTextureStorage>(r, texNameMember, singleBuffer, err);
+	if(unlikely(err))
 	{
-		logWarn("SurfaceTexture error with texture:0x%X (%s)", self.texName(), err->what());
 		return initWithPixelBuffer(self, config, false, singleBuffer);
 	}
 	else
@@ -253,17 +261,22 @@ Error GLPixmapBufferTexture::initWithSurfaceTexture(PixmapBufferTexture &self, T
 }
 #endif
 
-Error PixmapBufferTexture::setFormat(IG::PixmapDesc desc)
+IG::ErrorCode PixmapBufferTexture::setFormat(IG::PixmapDesc desc)
 {
 	assumeExpr(r);
 	if(directTex)
 	{
 		if(pixDesc == desc)
 			logWarn("resizing with same dimensions %dx%d, should optimize caller code", desc.w(), desc.h());
+		auto oldTexName = texName_;
 		if(auto err = directTex->setFormat(*r, desc, texName_);
-			err)
+			unlikely(err))
 		{
 			return err;
+		}
+		if(oldTexName != texName_)
+		{
+			sampler = 0; // invalidate sampler settings from deleted texture name
 		}
 		updateUsedPixmapSize(desc, desc);
 		updateFormatInfo(desc, 1, directTex->target);
@@ -281,7 +294,7 @@ void PixmapBufferTexture::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, u
 	//logDMsg("writing pixmap %dx%d to pos %dx%d", pixmap.x, pixmap.y, destPos.x, destPos.y);
 	if(unlikely(!texName_))
 	{
-		logErr("can't write to uninitialized texture");
+		logErr("called writeAligned() on uninitialized texture");
 		return;
 	}
 	if(directTex)
@@ -337,7 +350,7 @@ LockedTextureBuffer PixmapBufferTexture::lock(uint32_t bufferFlags)
 			return Texture::lock(0, fullRect, bufferFlags);
 		}
 		r->resourceUpdate = true;
-		IG::Pixmap pix{pixDesc, buff.data, {buff.pitch, IG::Pixmap::BYTE_UNITS}};
+		IG::Pixmap pix{pixDesc, buff.data, {buff.pitchBytes, IG::Pixmap::BYTE_UNITS}};
 		if(bufferFlags & BUFFER_FLAG_CLEARED)
 			pix.clear();
 		return {nullptr, pix, fullRect, 0, false};
@@ -404,13 +417,16 @@ static bool hasSurfaceTexture(Renderer &r)
 
 static bool hasHardwareBuffer(Renderer &r)
 {
-	if(GraphicBufferStorage::isSupported())
+	auto androidSDK = Base::androidSDK();
+	if(androidSDK >= 26)
 		return true;
 	if(!r.support.hasEGLImages)
 	{
 		logErr("Can't use GraphicBuffer without OES_EGL_image extension");
 		return false;
 	}
+	if(GraphicBufferStorage::isSupported())
+		return true;
 	auto rendererStr = rendererGLStr(r);
 	if(!GraphicBufferStorage::canSupport(rendererStr))
 		return false;

@@ -82,10 +82,10 @@ class GLTexture
 {
 public:
 	constexpr GLTexture() {}
-	GLTexture(Renderer &r, TextureConfig config, Error *errorPtr = nullptr);
-	GLTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, Error *errorPtr = nullptr);
+	GLTexture(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr = nullptr);
+	GLTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
 	~GLTexture();
-	Error init(Renderer &r, TextureConfig config);
+	IG::ErrorCode init(Renderer &r, TextureConfig config);
 	TextureConfig baseInit(Renderer &r, TextureConfig config);
 	GLuint texName() const;
 	void bindTex(RendererCommands &cmds, const TextureSampler &sampler) const;
@@ -117,7 +117,7 @@ class GLPixmapTexture
 {
 public:
 	constexpr GLPixmapTexture() {}
-	Error init(PixmapTexture &self, TextureConfig config);
+	IG::ErrorCode init(PixmapTexture &self, TextureConfig config);
 	void updateUsedPixmapSize(IG::PixmapDesc usedDesc, IG::PixmapDesc fullDesc);
 
 protected:

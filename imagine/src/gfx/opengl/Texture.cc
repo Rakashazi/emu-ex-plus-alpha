@@ -197,7 +197,7 @@ static TextureConfig configWithLoadedImagePixmap(IG::PixmapDesc desc, bool makeM
 	return config;
 }
 
-static Error loadImageSource(Texture &texture, GfxImageSource &img, bool makeMipmaps)
+static IG::ErrorCode loadImageSource(Texture &texture, GfxImageSource &img, bool makeMipmaps)
 {
 	auto imgPix = img.pixmapView();
 	if(imgPix)
@@ -209,7 +209,7 @@ static Error loadImageSource(Texture &texture, GfxImageSource &img, bool makeMip
 	{
 		auto lockBuff = texture.lock(0);
 		if(unlikely(!lockBuff))
-			return std::runtime_error{"Out of memory"};
+			return {ENOMEM};
 		//logDMsg("writing image source into texture pixel buffer");
 		img.write(lockBuff.pixmap());
 		img.freePixmap();
@@ -233,20 +233,20 @@ LockedTextureBuffer::operator bool() const
 	return (bool)pix;
 }
 
-GLTexture::GLTexture(Renderer &r, TextureConfig config, Error *errorPtr):
+GLTexture::GLTexture(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr):
 	r{&r}
 {
-	Error err = init(r, config);
+	IG::ErrorCode err = init(r, config);
 	if(unlikely(err && errorPtr))
 	{
 		*errorPtr = err;
 	}
 }
 
-GLTexture::GLTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, Error *errorPtr):
+GLTexture::GLTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr):
 	r{&r}
 {
-	Error err;
+	IG::ErrorCode err;
 	auto setError = IG::scopeGuard([&](){ if(unlikely(err && errorPtr)) { *errorPtr = err; } });
 	if(err = init(r, configWithLoadedImagePixmap(img.pixmapView(), makeMipmaps));
 		unlikely(err))
@@ -277,14 +277,6 @@ GLTexture::~GLTexture()
 
 TextureConfig GLTexture::baseInit(Renderer &r, TextureConfig config)
 {
-	if(!texName_)
-	{
-		r.runGLTaskSync(
-			[this]()
-			{
-				texName_ = makeGLTexture();
-			});
-	}
 	if(config.willGenerateMipmaps() && !r.support.hasImmutableTexStorage)
 	{
 		// when using glGenerateMipmaps exclusively, there is no need to define
@@ -294,7 +286,7 @@ TextureConfig GLTexture::baseInit(Renderer &r, TextureConfig config)
 	return config;
 }
 
-Error GLTexture::init(Renderer &r, TextureConfig config)
+IG::ErrorCode GLTexture::init(Renderer &r, TextureConfig config)
 {
 	config = baseInit(r, config);
 	return static_cast<Texture*>(this)->setFormat(config.pixmapDesc(), config.levels());
@@ -338,6 +330,11 @@ GLenum GLTexture::target() const
 
 bool Texture::generateMipmaps()
 {
+	if(unlikely(!texName_))
+	{
+		logErr("called generateMipmaps() on uninitialized texture");
+		return false;
+	}
 	if(!canUseMipmaps())
 		return false;
 	assumeExpr(r);
@@ -358,10 +355,8 @@ uint32_t Texture::levels() const
 	return levels_;
 }
 
-Error Texture::setFormat(IG::PixmapDesc desc, uint16_t levels)
+IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint16_t levels)
 {
-	if(unlikely(!texName_))
-		return std::runtime_error("texture not initialized");
 	assumeExpr(r);
 	if(r->support.textureSizeSupport.supportsMipmaps(desc.w(), desc.h()))
 	{
@@ -377,12 +372,8 @@ Error Texture::setFormat(IG::PixmapDesc desc, uint16_t levels)
 		{
 			if(r->support.hasImmutableTexStorage)
 			{
-				if(levels_) // texture format was previously set
-				{
-					sampler = 0;
-					glDeleteTextures(1, &texName_);
-					texName_ = makeGLTexture();
-				}
+				sampler = 0;
+				texName_ = makeGLTextureName(texName_);
 				glBindTexture(GL_TEXTURE_2D, texName_);
 				auto internalFormat = makeGLSizedInternalFormat(*r, desc.format());
 				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s",
@@ -395,11 +386,10 @@ Error Texture::setFormat(IG::PixmapDesc desc, uint16_t levels)
 			}
 			else
 			{
-				if(unlikely(levels_ && levels != levels_)) // texture format was previously set
+				if(levels != levels_) // make new texture name whenever number of levels changes
 				{
 					sampler = 0;
-					glDeleteTextures(1, &texName_);
-					texName_ = makeGLTexture();
+					texName_ = makeGLTextureName(texName_);
 				}
 				glBindTexture(GL_TEXTURE_2D, texName_);
 				auto format = makeGLFormat(*r, desc.format());
@@ -428,7 +418,7 @@ void GLTexture::bindTex(RendererCommands &cmds, const TextureSampler &bindSample
 {
 	if(!texName_)
 	{
-		logErr("tried to bind uninitialized texture");
+		logErr("called bindTex() on uninitialized texture");
 		return;
 	}
 	cmds.glcBindTexture(target(), texName_);
@@ -445,7 +435,7 @@ void Texture::writeAligned(uint16_t level, IG::Pixmap pixmap, IG::WP destPos, ui
 	//logDMsg("writing pixmap %dx%d to pos %dx%d", pixmap.x, pixmap.y, destPos.x, destPos.y);
 	if(unlikely(!texName_))
 	{
-		logErr("can't write to uninitialized texture");
+		logErr("called writeAligned() on uninitialized texture");
 		return;
 	}
 	assumeExpr(r);
@@ -528,6 +518,11 @@ LockedTextureBuffer Texture::lock(uint16_t level, uint32_t bufferFlags)
 
 LockedTextureBuffer Texture::lock(uint16_t level, IG::WindowRect rect, uint32_t bufferFlags)
 {
+	if(unlikely(!texName_))
+	{
+		logErr("called lock() on uninitialized texture");
+		return {};
+	}
 	assumeExpr(r);
 	assumeExpr(rect.x2  <= size(level).x);
 	assumeExpr(rect.y2 <= size(level).y);
@@ -604,6 +599,7 @@ void Texture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 
 IG::WP Texture::size(uint16_t level) const
 {
+	assert(levels_);
 	uint32_t w = pixDesc.w(), h = pixDesc.h();
 	iterateTimes(level, i)
 	{
@@ -709,17 +705,30 @@ GLuint GLTexture::texName() const
 	return texName_;
 }
 
+static void verifyCurrentTexture2D(TextureRef tex)
+{
+	if(!Config::DEBUG_BUILD)
+		return;
+	GLint realTexture = 0;
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &realTexture);
+	if(tex != (GLuint)realTexture)
+	{
+		bug_unreachable("out of sync, expected %u but got %u, TEXTURE_2D", tex, realTexture);
+	}
+}
+
 void GLTexture::setSwizzleForFormat(Renderer &r, PixelFormatID format, GLuint tex, GLenum target)
 {
+	assert(tex);
 	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(r.support.useFixedFunctionPipeline)
 		return;
 	if(r.support.hasTextureSwizzle && target == GL_TEXTURE_2D)
 	{
 		r.runGLTask(
-			[&r, format, tex]()
+			[=]()
 			{
-				r.verifyCurrentTexture2D(tex);
+				verifyCurrentTexture2D(tex);
 				const GLint swizzleMaskRGBA[] {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
 				const GLint swizzleMaskIA88[] {GL_RED, GL_RED, GL_RED, GL_GREEN};
 				const GLint swizzleMaskA8[] {GL_ONE, GL_ONE, GL_ONE, GL_RED};
@@ -769,20 +778,20 @@ bool GLTexture::isExternal() const
 	return target() == GL_TEXTURE_EXTERNAL_OES;
 }
 
-PixmapTexture::PixmapTexture(Renderer &r, TextureConfig config, Error *errorPtr)
+PixmapTexture::PixmapTexture(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr)
 {
 	this->r = &r;
-	Error err = GLPixmapTexture::init(*this, config);
+	IG::ErrorCode err = GLPixmapTexture::init(*this, config);
 	if(unlikely(err && errorPtr))
 	{
 		*errorPtr = err;
 	}
 }
 
-PixmapTexture::PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, Error *errorPtr)
+PixmapTexture::PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr)
 {
 	this->r = &r;
-	Error err;
+	IG::ErrorCode err;
 	auto setError = IG::scopeGuard([&](){ if(unlikely(err && errorPtr)) { *errorPtr = err; } });
 	if(img)
 	{
@@ -799,24 +808,24 @@ PixmapTexture::PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps,
 	}
 }
 
-Error GLPixmapTexture::init(PixmapTexture &self, TextureConfig config)
+IG::ErrorCode GLPixmapTexture::init(PixmapTexture &self, TextureConfig config)
 {
 	auto &r = self.renderer();
 	config = self.baseInit(r, config);
 	if(auto err = self.setFormat(config.pixmapDesc(), config.levels());
-		err)
+		unlikely(err))
 	{
 		return err;
 	}
 	return {};
 }
 
-Error PixmapTexture::setFormat(IG::PixmapDesc desc, uint32_t levels)
+IG::ErrorCode PixmapTexture::setFormat(IG::PixmapDesc desc, uint32_t levels)
 {
 	assumeExpr(r);
 	IG::PixmapDesc fullPixDesc = r->support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
 	if(auto err = Texture::setFormat(fullPixDesc, levels);
-		err)
+		unlikely(err))
 	{
 		return err;
 	}

@@ -15,34 +15,16 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-#include <imagine/audio/OutputStream.hh>
-#include <AudioUnit/AudioUnit.h>
+#include <system_error>
 
-namespace IG::Audio
+namespace IG
 {
 
-class CAOutputStream : public OutputStream
+class ErrorCode : public std::error_code
 {
 public:
-	CAOutputStream();
-	~CAOutputStream();
-	IG::ErrorCode open(OutputStreamConfig config) final;
-	void play() final;
-	void pause() final;
-	void close() final;
-	void flush() final;
-	bool isOpen() final;
-	bool isPlaying() final;
-	explicit operator bool() const;
-
-private:
-	AudioComponentInstance outputUnit{};
-	AudioStreamBasicDescription streamFormat;
-	OnSamplesNeededDelegate onSamplesNeeded{};
-	Format pcmFormat;
-	bool isPlaying_ = false;
-	bool isOpen_ = false;
+	ErrorCode();
+	ErrorCode(int code);
 };
 
 }

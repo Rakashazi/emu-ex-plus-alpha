@@ -21,6 +21,7 @@
 #include <android/native_activity.h>
 #include <android/api-level.h>
 #include <android/bitmap.h>
+#include <android/hardware_buffer.h>
 #include <dlfcn.h>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
@@ -309,15 +310,15 @@ static void initConfig(AConfiguration* config)
 	Input::initInputConfig(config);
 }
 
-int pixelFormatToDirectAndroidFormat(IG::PixelFormatID format)
+uint32_t toAHardwareBufferFormat(IG::PixelFormatID format)
 {
 	using namespace IG;
 	switch(format)
 	{
-		case PIXEL_RGBA8888: return HAL_PIXEL_FORMAT_RGBA_8888;
-		case PIXEL_BGRA8888: return HAL_PIXEL_FORMAT_BGRA_8888;
-		case PIXEL_RGB888: return HAL_PIXEL_FORMAT_RGB_888;
-		case PIXEL_RGB565: return HAL_PIXEL_FORMAT_RGB_565;
+		case PIXEL_RGBA8888: return AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
+		case PIXEL_RGBX8888: return AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM;
+		case PIXEL_RGB888: return AHARDWAREBUFFER_FORMAT_R8G8B8_UNORM;
+		case PIXEL_RGB565: return AHARDWAREBUFFER_FORMAT_R5G6B5_UNORM;
 		default: return 0;
 	}
 }

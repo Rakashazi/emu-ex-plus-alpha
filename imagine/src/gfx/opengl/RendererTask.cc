@@ -208,7 +208,7 @@ void RendererTask::start()
 	if(r.useSeparateDrawContext)
 	{
 		//logMsg("setting up rendering separate GL thread");
-		std::error_code ec{};
+		IG::ErrorCode ec{};
 		glCtx = {r.glDpy, r.makeKnownGLContextAttributes(), r.gfxBufferConfig, r.gfxResourceContext, ec};
 		if(!glCtx)
 		{

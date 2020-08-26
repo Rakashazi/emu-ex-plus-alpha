@@ -164,7 +164,7 @@ static IG::WindowRect makeWindowRectWithConfig(const WindowConfig &config, ::Win
 	return winRect;
 }
 
-std::error_code Window::init(const WindowConfig &config)
+IG::ErrorCode Window::init(const WindowConfig &config)
 {
 	if(xWin != None)
 	{
@@ -199,7 +199,7 @@ std::error_code Window::init(const WindowConfig &config)
 		{
 			logErr("error initializing window");
 			deinit();
-			return {EINVAL, std::system_category()};
+			return {EINVAL};
 		}
 		#ifndef CONFIG_MACHINE_PANDORA
 		pos = {winRect.x, winRect.y};

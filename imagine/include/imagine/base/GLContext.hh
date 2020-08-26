@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/operators.hh>
 #include <imagine/pixmap/PixelFormat.hh>
-#include <system_error>
+#include <imagine/base/Error.hh>
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XGL.hh>
@@ -143,14 +143,14 @@ public:
 	using GLDisplayImpl::GLDisplayImpl;
 
 	constexpr GLDisplay() {}
-	static std::pair<std::error_code, GLDisplay> makeDefault();
-	static std::pair<std::error_code, GLDisplay> makeDefault(API api);
+	static std::pair<IG::ErrorCode, GLDisplay> makeDefault();
+	static std::pair<IG::ErrorCode, GLDisplay> makeDefault(API api);
 	static GLDisplay getDefault();
 	static GLDisplay getDefault(API api);
 	explicit operator bool() const;
 	bool operator ==(GLDisplay const &rhs) const;
 	bool deinit();
-	std::pair<std::error_code, GLDrawable> makeDrawable(Window &win, GLBufferConfig config) const;
+	std::pair<IG::ErrorCode, GLDrawable> makeDrawable(Window &win, GLBufferConfig config) const;
 	bool deleteDrawable(GLDrawable &drawable) const;
 	void logInfo() const;
 	static bool bindAPI(API api);
@@ -162,8 +162,8 @@ public:
 	using GLContextImpl::GLContextImpl;
 
 	constexpr GLContext() {}
-	GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, std::error_code &ec);
-	GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, std::error_code &ec);
+	GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec);
+	GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, IG::ErrorCode &ec);
 	explicit operator bool() const;
 	bool operator ==(GLContext const &rhs) const;
 	void deinit(GLDisplay display);

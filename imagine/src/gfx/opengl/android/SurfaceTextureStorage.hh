@@ -16,8 +16,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/PixmapBufferTexture.hh>
-#include <imagine/thread/Semaphore.hh>
-#include <android/native_window_jni.h>
+#include <jni.h>
+
+struct ANativeWindow;
 
 namespace Gfx
 {
@@ -27,18 +28,19 @@ class Renderer;
 class SurfaceTextureStorage: public DirectTextureStorage
 {
 public:
-	SurfaceTextureStorage(Renderer &r, GLuint tex, bool singleBuffered, Error &err);
+	SurfaceTextureStorage(Renderer &r, GLuint &tex, bool singleBuffered, IG::ErrorCode &err);
 	SurfaceTextureStorage(SurfaceTextureStorage &&o);
 	SurfaceTextureStorage &operator=(SurfaceTextureStorage &&o);
 	~SurfaceTextureStorage() final;
-	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) final;
+	IG::ErrorCode setFormat(Renderer &r, IG::PixmapDesc desc, GLuint &tex) final;
 	Buffer lock(Renderer &r) final;
 	void unlock(Renderer &r) final;
 
 protected:
 	void deinit();
 
-	jobject surfaceTex{}, surface{};
+	jobject surfaceTex{};
+	jobject surface{};
 	ANativeWindow *nativeWin{};
 	uint8_t bpp = 0;
 	bool singleBuffered = false;

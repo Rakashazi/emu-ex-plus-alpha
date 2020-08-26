@@ -231,14 +231,14 @@ void initXScreens(Display *dpy)
 	#endif
 }
 
-std::pair<std::error_code, int> initWindowSystem(EventLoop loop)
+std::pair<IG::ErrorCode, int> initWindowSystem(EventLoop loop)
 {
 	XInitThreads();
 	dpy = XOpenDisplay(0);
 	if(!dpy)
 	{
 		logErr("couldn't open display");
-		return {{EIO, std::system_category()}, -1};
+		return {{EIO}, -1};
 	}
 	initXScreens(dpy);
 	initFrameTimer(loop);

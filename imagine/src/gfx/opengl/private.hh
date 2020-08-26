@@ -3,6 +3,11 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/base/GLContext.hh>
 #include "utils.h"
+#ifdef __ANDROID__
+#include <EGL/egl.h>
+#define EGL_EGLEXT_PROTOTYPES
+#include <EGL/eglext.h>
+#endif
 
 #if defined CONFIG_BASE_X11 || defined __ANDROID__
 #define CONFIG_BASE_GLAPI_EGL
@@ -22,5 +27,10 @@ static constexpr Base::GLDisplay::API glAPI =
 
 Gfx::GC orientationToGC(Base::Orientation o);
 void setGLDebugOutput(DrawContextSupport &support, bool on);
+
+#ifdef __ANDROID__
+EGLImageKHR makeAndroidNativeBufferEGLImage(EGLDisplay dpy, EGLClientBuffer clientBuff);
+GLuint defineEGLImageTexture(Renderer &r, EGLImageKHR eglImg, GLuint tex);
+#endif
 
 }

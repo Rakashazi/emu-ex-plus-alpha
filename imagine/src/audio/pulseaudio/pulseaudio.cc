@@ -113,7 +113,7 @@ PAOutputStream::~PAOutputStream()
 	freeMainLoop();
 }
 
-std::error_code PAOutputStream::open(OutputStreamConfig config)
+IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 {
 	if(isOpen())
 	{
@@ -122,7 +122,7 @@ std::error_code PAOutputStream::open(OutputStreamConfig config)
 	}
 	if(unlikely(!context))
 	{
-		return {EINVAL, std::system_category()};
+		return {EINVAL};
 	}
 	auto format = config.format();
 	pcmFormat = format;
@@ -139,7 +139,7 @@ std::error_code PAOutputStream::open(OutputStreamConfig config)
 	{
 		logErr("error creating stream");
 		pa_proplist_free(props);
-		return {EINVAL, std::system_category()};
+		return {EINVAL};
 	}
 	pa_proplist_free(props);
 	StreamStateResult result{this};
@@ -190,7 +190,7 @@ std::error_code PAOutputStream::open(OutputStreamConfig config)
 	{
 		logErr("error connecting playback stream");
 		close();
-		return {EINVAL, std::system_category()};
+		return {EINVAL};
 	}
 	waitMainLoop();
 	pa_stream_set_state_callback(stream, nullptr, nullptr);
@@ -198,7 +198,7 @@ std::error_code PAOutputStream::open(OutputStreamConfig config)
 	{
 		logErr("error connecting playback stream async");
 		close();
-		return {EINVAL, std::system_category()};
+		return {EINVAL};
 	}
 	auto serverAttr = pa_stream_get_buffer_attr(stream);
 	if(config.startPlaying())

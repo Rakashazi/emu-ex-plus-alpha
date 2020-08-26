@@ -97,6 +97,55 @@ Gfx::GC orientationToGC(Base::Orientation o)
 	}
 }
 
+#ifdef __ANDROID__
+EGLImageKHR makeAndroidNativeBufferEGLImage(EGLDisplay dpy, EGLClientBuffer clientBuff)
+{
+	const EGLint eglImgAttrs[]
+	{
+		EGL_IMAGE_PRESERVED_KHR, EGL_TRUE,
+		EGL_NONE, EGL_NONE
+	};
+	return eglCreateImageKHR(dpy, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
+		clientBuff, eglImgAttrs);
+}
+
+GLuint defineEGLImageTexture(Renderer &r, EGLImageKHR eglImg, GLuint tex)
+{
+	if(r.support.hasEGLTextureStorage())
+	{
+		r.runGLTaskSync(
+			[=, &tex, EGLImageTargetTexStorageEXT = r.support.glEGLImageTargetTexStorageEXT]()
+			{
+				tex = makeGLTextureName(tex);
+				glBindTexture(GL_TEXTURE_2D, tex);
+				runGLChecked(
+					[&]()
+					{
+						EGLImageTargetTexStorageEXT(GL_TEXTURE_2D, (GLeglImageOES)eglImg, nullptr);
+					}, "glEGLImageTargetTexStorageEXT()");
+			});
+	}
+	else
+	{
+		r.runGLTaskSync(
+			[=, &tex]()
+			{
+				if(!tex) // texture storage is mutable, only need to make name once
+				{
+					glGenTextures(1, &tex);
+				}
+				glBindTexture(GL_TEXTURE_2D, tex);
+				runGLChecked(
+					[&]()
+					{
+						glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImg);
+					}, "glEGLImageTargetTexture2DOES()");
+			});
+	}
+	return tex;
+}
+#endif
+
 void GLRenderer::setupAnisotropicFiltering()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
@@ -342,6 +391,22 @@ bool DrawContextSupport::hasSyncFences() const
 	#endif
 }
 
+#ifdef __ANDROID__
+bool DrawContextSupport::hasEGLTextureStorage() const
+{
+	return glEGLImageTargetTexStorageEXT;
+}
+#endif
+
+bool DrawContextSupport::hasImmutableBufferStorage() const
+{
+	#ifdef CONFIG_GFX_OPENGL_ES
+	return glBufferStorage;
+	#else
+	return hasBufferStorage;
+	#endif
+}
+
 void GLRenderer::setupUnmapBufferFunc()
 {
 	#ifdef CONFIG_GFX_OPENGL_ES
@@ -368,12 +433,13 @@ void GLRenderer::setupUnmapBufferFunc()
 
 void GLRenderer::setupImmutableBufferStorage()
 {
-	if(support.hasImmutableBufferStorage)
+	if(support.hasImmutableBufferStorage())
 		return;
 	logMsg("using immutable buffer storage");
-	support.hasImmutableBufferStorage = true;
 	#ifdef CONFIG_GFX_OPENGL_ES
 	support.glBufferStorage = (typeof(support.glBufferStorage))Base::GLContext::procAddress("glBufferStorageEXT");
+	#else
+	support.hasBufferStorage = true;
 	#endif
 }
 
@@ -451,6 +517,11 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 		string_equal(extStr, "GL_OES_EGL_image_external"))
 	{
 		support.hasExternalEGLImages = true;
+	}
+	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 &&
+		string_equal(extStr, "GL_EXT_EGL_image_storage"))
+	{
+		support.glEGLImageTargetTexStorageEXT = (typeof(support.glEGLImageTargetTexStorageEXT))Base::GLContext::procAddress("glEGLImageTargetTexStorageEXT");
 	}
 	#endif
 	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_NV_pixel_buffer_object"))
@@ -630,14 +701,14 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
 	auto glAttr = makeGLContextAttributes(1, 0);
 	gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
-	std::error_code ec{};
+	IG::ErrorCode ec{};
 	gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
 	#elif CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
 	if(CAN_USE_OPENGL_ES_3)
 	{
 		auto glAttr = makeGLContextAttributes(3, 0);
 		gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
-		std::error_code ec{};
+		IG::ErrorCode ec{};
 		if(gfxBufferConfig)
 		{
 			gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
@@ -648,7 +719,7 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 	{
 		auto glAttr = makeGLContextAttributes(2, 0);
 		gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
-		std::error_code ec{};
+		IG::ErrorCode ec{};
 		gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
 		glMajorVer = glAttr.majorVersion();
 	}
@@ -660,7 +731,7 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 		#endif
 		auto glAttr = makeGLContextAttributes(3, 3);
 		gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
-		std::error_code ec{};
+		IG::ErrorCode ec{};
 		gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
 		if(!gfxResourceContext)
 		{
@@ -674,7 +745,7 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 		#endif
 		auto glAttr = makeGLContextAttributes(1, 3);
 		gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
-		std::error_code ec{};
+		IG::ErrorCode ec{};
 		gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
 		if(!gfxResourceContext)
 		{
@@ -847,7 +918,7 @@ void Renderer::configureRenderer(ThreadMode threadMode)
 	{
 		useSeparateDrawContext = support.hasSyncFences();
 		#if defined __ANDROID__
-		if(Base::androidSDK() < 26 && !support.hasImmutableBufferStorage)
+		if(Base::androidSDK() < 26 && !support.hasImmutableBufferStorage())
 		{
 			useSeparateDrawContext = false; // disable by default due to various devices with driver bugs
 		}

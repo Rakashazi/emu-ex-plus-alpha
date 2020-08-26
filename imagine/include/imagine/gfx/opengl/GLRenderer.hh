@@ -51,6 +51,7 @@ public:
 	bool hasMultisample = false;
 	bool hasMultisampleHints = false;
 	bool hasFenceSync = false;
+	bool hasBufferStorage = false;
 	#endif
 	bool hasBGRPixels = false;
 	GLenum bgrInternalFormat = GL_BGRA;
@@ -59,7 +60,6 @@ public:
 	bool hasUnpackRowLength = !Config::Gfx::OPENGL_ES;
 	bool hasSamplerObjects = !Config::Gfx::OPENGL_ES;
 	bool hasImmutableTexStorage = false;
-	bool hasImmutableBufferStorage = false;
 	bool hasPBOFuncs = false;
 	#ifdef CONFIG_GFX_OPENGL_DEBUG_CONTEXT
 	bool hasDebugOutput = false;
@@ -80,6 +80,8 @@ public:
 
 	bool hasDrawReadBuffers() const;
 	bool hasSyncFences() const;
+	bool hasEGLTextureStorage() const;
+	bool hasImmutableBufferStorage() const;
 	#ifdef CONFIG_GFX_OPENGL_ES
 	void (* GL_APIENTRY glGenSamplers) (GLsizei count, GLuint* samplers){};
 	void (* GL_APIENTRY glDeleteSamplers) (GLsizei count, const GLuint* samplers){};
@@ -113,6 +115,9 @@ public:
 	static void glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout) { ::glWaitSync(sync, flags, timeout); }
 	static void glBufferStorage(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags) { ::glBufferStorage(target, size, data, flags); }
 	static void glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length) { ::glFlushMappedBufferRange(target, offset, length); }
+	#endif
+	#ifdef __ANDROID__
+	void (GL_APIENTRYP glEGLImageTargetTexStorageEXT)(GLenum target, GLeglImageOES image, const GLint* attrib_list){};
 	#endif
 	GLenum luminanceFormat = GL_LUMINANCE;
 	GLenum luminanceInternalFormat = GL_LUMINANCE8;
@@ -242,7 +247,6 @@ public:
 	void checkExtensionString(const char *extStr, bool &useFBOFuncs);
 	void checkFullExtensionString(const char *fullExtStr);
 	void verifyCurrentResourceContext();
-	void verifyCurrentTexture2D(TextureRef tex);
 	void setGLProjectionMatrix(RendererCommands &cmds, const Mat4 &mat);
 	void setProgram(GLSLProgram &program);
 	GLuint makeProgram(GLuint vShader, GLuint fShader);

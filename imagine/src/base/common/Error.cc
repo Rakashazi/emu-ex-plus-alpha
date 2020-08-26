@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -15,34 +13,31 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-#include <imagine/audio/OutputStream.hh>
-#include <AudioUnit/AudioUnit.h>
+#include <imagine/base/Error.hh>
+#include <string>
 
-namespace IG::Audio
+namespace IG
 {
 
-class CAOutputStream : public OutputStream
+class GeneralErrorCategory final : public std::error_category
 {
 public:
-	CAOutputStream();
-	~CAOutputStream();
-	IG::ErrorCode open(OutputStreamConfig config) final;
-	void play() final;
-	void pause() final;
-	void close() final;
-	void flush() final;
-	bool isOpen() final;
-	bool isPlaying() final;
-	explicit operator bool() const;
+	const char* name() const noexcept final
+	{
+		return "general";
+	}
 
-private:
-	AudioComponentInstance outputUnit{};
-	AudioStreamBasicDescription streamFormat;
-	OnSamplesNeededDelegate onSamplesNeeded{};
-	Format pcmFormat;
-	bool isPlaying_ = false;
-	bool isOpen_ = false;
+	std::string message(int condition) const final
+	{
+		// TODO
+		return {};
+	}
 };
+
+static GeneralErrorCategory generalErrorCategory{};
+
+ErrorCode::ErrorCode() {}
+
+ErrorCode::ErrorCode(int code): std::error_code{code, generalErrorCategory} {}
 
 }

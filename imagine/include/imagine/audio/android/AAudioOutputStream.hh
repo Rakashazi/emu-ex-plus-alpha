@@ -29,7 +29,7 @@ class AAudioOutputStream : public OutputStream
 public:
 	AAudioOutputStream();
 	~AAudioOutputStream();
-	std::error_code open(OutputStreamConfig config) final;
+	IG::ErrorCode open(OutputStreamConfig config) final;
 	void play() final;
 	void pause() final;
 	void close() final;

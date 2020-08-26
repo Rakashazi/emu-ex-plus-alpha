@@ -23,7 +23,7 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/bits.h>
 #include <imagine/input/Input.hh>
-#include <system_error>
+#include <imagine/base/Error.hh>
 
 namespace Base
 {
@@ -35,7 +35,7 @@ class Window : public WindowImpl
 public:
 	constexpr Window() {}
 
-	std::error_code init(const WindowConfig &config);
+	IG::ErrorCode init(const WindowConfig &config);
 	void show();
 	void dismiss();
 	void setAcceptDnd(bool on);

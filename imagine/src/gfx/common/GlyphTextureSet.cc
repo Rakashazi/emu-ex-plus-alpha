@@ -319,9 +319,10 @@ static std::errc mapCharToTable(uint32_t c, uint32_t &tableIdx)
 }
 
 // TODO: update for unicode
-std::errc GlyphTextureSet::precache(Renderer &r, const char *string)
+unsigned GlyphTextureSet::precache(Renderer &r, const char *string)
 {
 	assert(settings);
+	unsigned glyphsCached = 0;
 	iterateTimes(strlen(string), i)
 	{
 		auto c = string[i];
@@ -338,8 +339,9 @@ std::errc GlyphTextureSet::precache(Renderer &r, const char *string)
 		}
 		logMsg("making glyph:%c (0x%X)", c, c);
 		cacheChar(r, c, tableIdx);
+		glyphsCached++;
 	}
-	return {};
+	return glyphsCached;
 }
 
 GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c, bool allowCache)

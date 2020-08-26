@@ -15,9 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define EGL_EGLEXT_PROTOTYPES
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include "../../../base/android/privateApi/GraphicBuffer.hh"
 
@@ -30,7 +27,7 @@ public:
 	GraphicBufferStorage();
 	GraphicBufferStorage(GraphicBufferStorage &&o);
 	GraphicBufferStorage &operator=(GraphicBufferStorage &&o);
-	Error setFormat(Renderer &r, IG::PixmapDesc desc, GLuint tex) final;
+	IG::ErrorCode setFormat(Renderer &r, IG::PixmapDesc desc, GLuint &tex) final;
 	Buffer lock(Renderer &r) final;
 	void unlock(Renderer &r) final;
 	static bool canSupport(const char *rendererStr);
@@ -39,8 +36,7 @@ public:
 
 protected:
 	Base::GraphicBuffer gBuff{};
-	uint32_t pitch = 0;
-	uint8_t bpp = 0;
+	uint32_t pitchBytes = 0;
 	static bool testPassed_;
 };
 

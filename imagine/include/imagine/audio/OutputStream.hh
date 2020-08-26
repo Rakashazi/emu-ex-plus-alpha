@@ -20,7 +20,7 @@
 #include <imagine/time/Time.hh>
 #include <imagine/audio/Format.hh>
 #include <imagine/util/DelegateFunc.hh>
-#include <system_error>
+#include <imagine/base/Error.hh>
 #include <memory>
 
 namespace IG::Audio
@@ -78,7 +78,7 @@ class OutputStream
 {
 public:
 	virtual ~OutputStream();
-	virtual std::error_code open(OutputStreamConfig config) = 0;
+	virtual IG::ErrorCode open(OutputStreamConfig config) = 0;
 	virtual void play() = 0;
 	virtual void pause() = 0;
 	virtual void close() = 0;
