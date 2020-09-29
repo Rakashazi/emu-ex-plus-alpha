@@ -101,26 +101,23 @@ static int charIsDrawableUnicode(int c)
 			);
 }
 
-bool GlyphTextureSet::initGlyphTable()
+void GlyphTextureSet::resetGlyphTable()
 {
-	if(glyphTable)
-	{
-		logMsg("flushing glyph cache");
-		deinit();
-	}
-	logMsg("allocating glyph table, %d entries", glyphTableEntries);
-	glyphTable = (GlyphEntry*)std::calloc(glyphTableEntries, sizeof(GlyphEntry));
-	if(!glyphTable)
-	{
-		logErr("out of memory");
-		return false;
-	}
+	if(!usedGlyphTableBits)
+		return;
+	logMsg("resetting glyph table");
 	usedGlyphTableBits = 0;
-	return true;
+	glyphTable.resetElements();
 }
 
 void GlyphTextureSet::freeCaches(uint32_t purgeBits)
 {
+	if(purgeBits == ~0u)
+	{
+		// free the whole table
+		resetGlyphTable();
+		return;
+	}
 	auto tableBits = usedGlyphTableBits;
 	iterateTimes(32, i)
 	{
@@ -136,9 +133,7 @@ void GlyphTextureSet::freeCaches(uint32_t purgeBits)
 					//logMsg( "%c not a known drawable character, skipping", c);
 					continue;
 				}
-				auto &glyphPtr = glyphTable[tableIdx].glyphPtr;
-				if(glyphPtr)
-					glyphPtr.reset();
+				glyphTable[i].~GlyphEntry();
 			}
 			usedGlyphTableBits = IG::clearBits(usedGlyphTableBits, IG::bit(i));
 		}
@@ -148,7 +143,7 @@ void GlyphTextureSet::freeCaches(uint32_t purgeBits)
 }
 
 GlyphTextureSet::GlyphTextureSet(Renderer &r, const char *path, IG::FontSettings set):
-		GlyphTextureSet(r, std::make_unique<IG::Font>(path), set)
+	GlyphTextureSet(r, std::make_unique<IG::Font>(path), set)
 {}
 
 GlyphTextureSet::GlyphTextureSet(Renderer &r, GenericIO io, IG::FontSettings set):
@@ -158,6 +153,12 @@ GlyphTextureSet::GlyphTextureSet(Renderer &r, GenericIO io, IG::FontSettings set
 GlyphTextureSet::GlyphTextureSet(Renderer &r, std::unique_ptr<IG::Font> font, IG::FontSettings set):
 	font{std::move(font)}
 {
+	glyphTable.resize(glyphTableEntries);
+	if(glyphTable.empty())
+	{
+		logErr("failed allocating glyph table (%d entries)", glyphTableEntries);
+		return;
+	}
 	if(set)
 	{
 		setFontSettings(r, set);
@@ -186,33 +187,13 @@ GlyphTextureSet::GlyphTextureSet(GlyphTextureSet &&o)
 
 GlyphTextureSet &GlyphTextureSet::operator=(GlyphTextureSet &&o)
 {
-	deinit();
 	settings = std::exchange(o.settings, {});
 	font = std::move(o.font);
-	glyphTable = std::exchange(o.glyphTable, {});
+	glyphTable = std::move(o.glyphTable);
 	faceSize = std::move(o.faceSize);
 	nominalHeight_ = o.nominalHeight_;
 	usedGlyphTableBits = o.usedGlyphTableBits;
 	return *this;
-}
-
-GlyphTextureSet::~GlyphTextureSet()
-{
-	deinit();
-}
-
-void GlyphTextureSet::deinit()
-{
-	if(!glyphTable)
-		return;
-	iterateTimes(glyphTableEntries, i)
-	{
-		auto &glyphPtr = glyphTable[i].glyphPtr;
-		if(glyphPtr)
-			glyphPtr.reset();
-	}
-	std::free(glyphTable);
-	glyphTable = {};
 }
 
 GlyphTextureSet::operator bool() const
@@ -244,10 +225,7 @@ bool GlyphTextureSet::setFontSettings(Renderer &r, IG::FontSettings set)
 		set.setPixelHeight(font->minUsablePixels());
 	if(set == settings)
 		return false;
-	if(!initGlyphTable())
-	{
-		logErr("couldn't allocate glyph table");
-	}
+	resetGlyphTable();
 	settings = set;
 	std::errc ec{};
 	faceSize = font->makeSize(settings, ec);
@@ -275,7 +253,7 @@ std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 	//logMsg("setting up table entry %d", tableIdx);
 	glyphTable[tableIdx].metrics = res.metrics;
 	auto img = GfxGlyphImage(std::move(res.image));
-	glyphTable[tableIdx].glyphPtr = std::make_unique<Gfx::PixmapTexture>(r.makePixmapTexture(img, false));
+	glyphTable[tableIdx].glyph_ = r.makePixmapTexture(img, false);
 	usedGlyphTableBits |= IG::bit((c >> 11) & 0x1F); // use upper 5 BMP plane bits to map in range 0-31
 	//logMsg("used table bits 0x%X", usedGlyphTableBits);
 	return {};
@@ -332,7 +310,7 @@ unsigned GlyphTextureSet::precache(Renderer &r, const char *string)
 			//logMsg( "%c not a known drawable character, skipping", c);
 			continue;
 		}
-		if(glyphTable[tableIdx].glyphPtr)
+		if(glyphTable[tableIdx].glyph())
 		{
 			//logMsg( "%c already cached", c);
 			continue;
@@ -351,7 +329,7 @@ GlyphEntry *GlyphTextureSet::glyphEntry(Renderer &r, int c, bool allowCache)
 	if((bool)mapCharToTable(c, tableIdx))
 		return nullptr;
 	assert(tableIdx < glyphTableEntries);
-	if(!glyphTable[tableIdx].glyphPtr)
+	if(!glyphTable[tableIdx].glyph())
 	{
 		if(!allowCache)
 		{

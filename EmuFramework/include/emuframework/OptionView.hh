@@ -123,7 +123,7 @@ protected:
 	StaticArrayList<MenuItem*, 15> item{};
 
 	void updateAudioRateItem();
-	unsigned idxOfAPI(IG::Audio::Api api);
+	unsigned idxOfAPI(IG::Audio::Api api, std::vector<IG::Audio::ApiDesc> apiVec);
 };
 
 class SystemOptionView : public TableView
@@ -143,8 +143,6 @@ protected:
 	TextMenuItem fastForwardSpeedItem[6];
 	MultiChoiceMenuItem fastForwardSpeed;
 	#if defined __ANDROID__
-	TextMenuItem processPriorityItem[3];
-	MultiChoiceMenuItem processPriority;
 	BoolMenuItem performanceMode;
 	#endif
 	StaticArrayList<MenuItem*, 24> item{};

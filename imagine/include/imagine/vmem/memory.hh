@@ -15,13 +15,27 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <cstdint>
+#include <cstddef>
 
 namespace IG
 {
 
-uint32_t adjustMirroredBufferAllocSize(uint32_t size);
-void *allocMirroredBuffer(uint32_t size);
-void freeMirroredBuffer(void *buff, uint32_t size);
+void *allocVMem(size_t bytes);
+void freeVMem(void *vMemPtr, size_t bytes);
+size_t adjustVMemAllocSize(size_t bytes);
+void *allocMirroredBuffer(size_t bytes);
+void freeMirroredBuffer(void *vMemPtr, size_t bytes);
+
+template<class T>
+T *allocVMemObjects(size_t size)
+{
+	return (T*)allocVMem(adjustVMemAllocSize(sizeof(T) * size));
+}
+
+template<class T>
+void freeVMemObjects(T *vMemPtr, size_t size)
+{
+	freeVMem(vMemPtr, adjustVMemAllocSize(sizeof(T) * size));
+}
 
 }

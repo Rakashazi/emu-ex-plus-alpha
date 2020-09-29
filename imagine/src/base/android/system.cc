@@ -43,18 +43,6 @@ bool isXperiaPlayDeviceStr(const char *str)
 	return strstr(str, "R800") || string_equal(str, "zeus");
 }
 
-int processPriority()
-{
-	return getpriority(PRIO_PROCESS, 0);
-}
-
-void setProcessPriority(int nice)
-{
-	assert(nice > -20);
-	logMsg("setting process nice level: %d", nice);
-	setpriority(PRIO_PROCESS, 0, nice);
-}
-
 bool apkSignatureIsConsistent()
 {
 	bool sigMatchesAPK = true;

@@ -97,4 +97,7 @@ static void makeDetachedThreadSync(Func &&f)
 	sem.wait();
 }
 
+void setThisThreadPriority(int nice);
+int thisThreadPriority();
+
 }

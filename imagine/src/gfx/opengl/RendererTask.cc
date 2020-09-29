@@ -189,6 +189,12 @@ RendererTask::RendererTask(Renderer &r): r{r}
 		};
 }
 
+static void setDrawThreadPriority()
+{
+	constexpr int DRAW_THREAD_PRIORITY = -4;
+	Base::setThisThreadPriority(DRAW_THREAD_PRIORITY);
+}
+
 void RendererTask::start()
 {
 	if(unlikely(!Base::appIsRunning()))
@@ -229,6 +235,7 @@ void RendererTask::start()
 					});
 				threadRunning = true;
 				sem.notify();
+				setDrawThreadPriority();
 				logMsg("starting render task event loop");
 				eventLoop.run(threadRunning);
 				commandPort.detach();
@@ -243,6 +250,7 @@ void RendererTask::start()
 			[this]()
 			{
 				logMsg("starting render task in main GL thread");
+				setDrawThreadPriority();
 				auto glDpy = Base::GLDisplay::getDefault();
 				commandPort.attach(
 					[this, glDpy](auto msgs)

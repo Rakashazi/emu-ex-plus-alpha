@@ -298,12 +298,12 @@ void GLTexture::deinit()
 		return;
 	logMsg("deinit texture:0x%X", texName_);
 	assumeExpr(r);
-	r->runGLTaskSync(
-		[this]()
+	r->runGLTask(
+		[texName = texName_]()
 		{
-			glDeleteTextures(1, &texName_);
-			texName_ = 0;
+			glDeleteTextures(1, &texName);
 		});
+	texName_ = 0;
 }
 
 uint8_t Texture::bestAlignment(IG::Pixmap p)

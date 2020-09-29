@@ -14,8 +14,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "RingBuffer"
-#include <imagine/util/ringbuffer/RingBuffer.hh>
-#include <imagine/util/ringbuffer/mirroredBuffer.hh>
+#include <imagine/vmem/RingBuffer.hh>
+#include <imagine/vmem/memory.hh>
 #include <imagine/util/utility.h>
 #include <imagine/logger/logger.h>
 #include <cstring>
@@ -27,7 +27,7 @@ using SizeType = RingBuffer::SizeType;
 
 RingBuffer::RingBuffer(SizeType size)
 {
-	init(adjustMirroredBufferAllocSize(size));
+	init(adjustVMemAllocSize(size));
 }
 
 RingBuffer::RingBuffer(RingBuffer &&o)
@@ -95,7 +95,7 @@ SizeType RingBuffer::capacity() const
 
 void RingBuffer::setMinCapacity(SizeType capacity)
 {
-	SizeType realCapacity = adjustMirroredBufferAllocSize(capacity);
+	SizeType realCapacity = adjustVMemAllocSize(capacity);
 	if(realCapacity == buffSize)
 		return;
 	SizeType oldSize = size();

@@ -95,8 +95,8 @@ public:
 protected:
 	Renderer *r{};
 	TextureRef texName_ = 0;
-	IG::PixmapDesc pixDesc;
 	mutable GLuint sampler = 0; // used when separate sampler objects not supported
+	IG::PixmapDesc pixDesc;
 	uint16_t levels_ = 0;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	uint8_t type_ = TEX_UNSET;

@@ -193,7 +193,6 @@ static OptionBase *cfgFileOption[] =
 	#if defined __ANDROID__
 	&optionLowProfileOSNav,
 	&optionHideOSNav,
-	&optionProcessPriority,
 	&optionSustainedPerformanceMode,
 	#endif
 	#ifdef CONFIG_BLUETOOTH
@@ -496,7 +495,6 @@ void loadConfigFile()
 				bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);
 				bcase CFGKEY_HIDE_OS_NAV: optionHideOSNav.readFromIO(io, size);
 				//bcase CFGKEY_REL_POINTER_DECEL: optionRelPointerDecel.readFromIO(io, size);
-				bcase CFGKEY_PROCESS_PRIORITY: optionProcessPriority.readFromIO(io, size);
 				bcase CFGKEY_SUSTAINED_PERFORMANCE_MODE: optionSustainedPerformanceMode.readFromIO(io, size);
 				#endif
 				#ifdef CONFIG_BLUETOOTH

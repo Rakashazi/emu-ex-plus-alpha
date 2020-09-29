@@ -186,20 +186,19 @@ bool GLSLProgram::init(Renderer &r, Shader vShader, Shader fShader, bool hasColo
 
 void GLSLProgram::deinit(Renderer &r)
 {
-	if(program_)
-	{
-		r.runGLTaskSync(
-			[this]()
-			{
-				logMsg("deleting program %d", (int)program_);
-				runGLChecked(
-					[&]()
-					{
-						glDeleteProgram(program_);
-					}, "glDeleteProgram()");
-				program_ = 0;
-			});
-	}
+	if(!program_)
+		return;
+	logMsg("deleting program:%d", (int)program_);
+	r.runGLTask(
+		[program = program_]()
+		{
+			runGLChecked(
+				[&]()
+				{
+					glDeleteProgram(program);
+				}, "glDeleteProgram()");
+		});
+	program_ = 0;
 }
 
 bool GLSLProgram::link(Renderer &r)

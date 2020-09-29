@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Input.hh>
+#include <imagine/util/container/VMemArray.hh>
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
@@ -91,8 +92,9 @@ struct KeyMapping
 {
 	static constexpr uint maxKeyActions = 4;
 	using Action = uint8_t;
-	using ActionGroup = Action[maxKeyActions];
+	using ActionGroup = std::array<Action, maxKeyActions>;
 	std::unique_ptr<ActionGroup*[]> inputDevActionTablePtr{};
+	IG::VMemArray<ActionGroup> inputDevActionTable{};
 
 	KeyMapping() {}
 	void buildAll();

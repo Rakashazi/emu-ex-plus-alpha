@@ -197,7 +197,6 @@ extern OptionRecentGames optionRecentGames;
 
 extern Byte1Option optionTextureBufferMode;
 #ifdef __ANDROID__
-extern SByte1Option optionProcessPriority;
 extern Byte1Option optionSustainedPerformanceMode;
 #endif
 

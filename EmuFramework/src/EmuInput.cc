@@ -592,7 +592,7 @@ bool InputDeviceConfig::setKey(Input::Key mapKey, const KeyCategory &cat, int ke
 void KeyMapping::buildAll()
 {
 	assert(inputDevConf.size() == Input::deviceList().size());
-	free();
+	inputDevActionTable.resize(0);
 	inputDevActionTablePtr = std::make_unique<ActionGroup*[]>(Input::deviceList().size());
 	// calculate & allocate complete map including all devices
 	{
@@ -608,18 +608,14 @@ void KeyMapping::buildAll()
 			return;
 		}
 		logMsg("allocating key mapping with %d keys", totalKeys);
-		inputDevActionTablePtr[0] = (ActionGroup*)std::calloc(totalKeys, sizeof(ActionGroup));
+		inputDevActionTable.resize(totalKeys);
 	}
 	uint totalKeys = 0;
 	int i = 0;
 	for(auto &e : Input::deviceList())
 	{
-		if(i)
-		{
-			// [0] is the base pointer to the allocated map, subsequent elements
-			// point to an offset within it
-			inputDevActionTablePtr[i] = &inputDevActionTablePtr[0][totalKeys];
-		}
+		// set the offset for this device from the full action table
+		inputDevActionTablePtr[i] = &inputDevActionTable[totalKeys];
 		auto mapKeys = Input::Event::mapNumKeys(e->map());
 		totalKeys += mapKeys;
 		auto actionGroup = inputDevActionTablePtr[i];
@@ -640,7 +636,7 @@ void KeyMapping::buildAll()
 			assert(key[k] < Input::Event::mapNumKeys(e->map()));
 			auto &group = actionGroup[key[k]];
 			auto slot = IG::findData_if(group, [](Action a){ return a == 0; });
-			if(slot != group + std::size(group))
+			if(slot != group.data() + std::size(group))
 				*slot = k+1; // add 1 to avoid 0 value (considered unmapped)
 		}
 
@@ -650,10 +646,7 @@ void KeyMapping::buildAll()
 
 void KeyMapping::free()
 {
-	if(inputDevActionTablePtr)
-	{
-		std::free(inputDevActionTablePtr[0]);
-	}
+	inputDevActionTable.resize(0);
 	inputDevActionTablePtr.reset();
 }
 

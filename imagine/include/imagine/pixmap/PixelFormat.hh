@@ -6,7 +6,7 @@
 namespace IG
 {
 
-enum PixelFormatID
+enum PixelFormatID : uint16_t
 {
 	PIXEL_NONE = 0,
 	PIXEL_I8,

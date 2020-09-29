@@ -258,11 +258,6 @@ void mainInitCommon(int argc, char** argv)
 	if(compiled)
 		renderer.autoReleaseShaderCompiler();
 
-	#ifdef __ANDROID__
-	if((int8_t)optionProcessPriority != 0)
-		Base::setProcessPriority(optionProcessPriority);
-	#endif
-
 	View::defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{});
 	View::defaultBoldFace = Gfx::GlyphTextureSet::makeBoldSystem(renderer, IG::FontSettings{});
 

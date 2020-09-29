@@ -13,32 +13,53 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "MirroredBuffer"
-#include <imagine/util/ringbuffer/mirroredBuffer.hh>
-#include <imagine/logger/logger.h>
+#define LOGTAG "VMem"
 #include <imagine/config/env.hh>
+#include <imagine/vmem/memory.hh>
+#include <imagine/util/utility.h>
+#include <imagine/logger/logger.h>
 #include <mach/mach.h>
 #include <mach/vm_map.h>
 
 namespace IG
 {
 
-uint32_t adjustMirroredBufferAllocSize(uint32_t size)
+void *allocVMem(size_t size)
+{
+	if(Config::DEBUG_BUILD && size != adjustVMemAllocSize(size))
+	{
+		logErr("size:%lu is not a multiple of page size", (unsigned long)size);
+	}
+	vm_address_t addr;
+	if(unlikely(vm_allocate(mach_task_self(), &addr, size, VM_FLAGS_ANYWHERE) != KERN_SUCCESS))
+	{
+		logErr("error in vm_allocate");
+		return nullptr;
+	}
+	return (void*)addr;
+}
+
+void freeVMem(void *vMemPtr, size_t size)
+{
+	if(!vMemPtr)
+		return;
+	if(vm_deallocate(mach_task_self(), (vm_address_t)vMemPtr, size) != KERN_SUCCESS)
+	{
+		logWarn("error in vm_deallocate");
+	}
+}
+
+size_t adjustVMemAllocSize(size_t size)
 {
 	return round_page(size);
 }
 
-void *allocMirroredBuffer(uint32_t size)
+void *allocMirroredBuffer(size_t size)
 {
-	if(Config::DEBUG_BUILD && size != adjustMirroredBufferAllocSize(size))
-	{
-		logErr("size:%u is not a multiple of page size", size);
-	}
-	vm_address_t addr;
 	// allocate enough pages for the buffer + the mirrored pages
-	if(vm_allocate(mach_task_self(), &addr, size * 2, VM_FLAGS_ANYWHERE) != KERN_SUCCESS)
+	vm_address_t addr = (vm_address_t)allocVMem(size * 2);
+	if(unlikely(!addr))
 	{
-		logErr("error in vm_allocate");
 		return nullptr;
 	}
 	#ifdef __ARM_ARCH_6K__
@@ -63,14 +84,9 @@ void *allocMirroredBuffer(uint32_t size)
 	return (void*)addr;
 }
 
-void freeMirroredBuffer(void *buff, uint32_t size)
+void freeMirroredBuffer(void *vMemPtr, size_t size)
 {
-	if(!buff)
-		return;
-	if(vm_deallocate(mach_task_self(), (vm_address_t)buff, size*2) != KERN_SUCCESS)
-	{
-		logWarn("error in vm_deallocate");
-	}
+	freeVMem(vMemPtr, size * 2);
 }
 
 }

@@ -279,6 +279,34 @@ uint32_t FrameParams::elapsedFrames(uint32_t frameCap) const
 	return std::min(elapsedFrames(), frameCap);
 }
 
+void setThisThreadPriority(int nice)
+{
+	#ifdef __linux__
+	assert(nice > -20);
+	auto tid = gettid();
+	if(setpriority(PRIO_PROCESS, tid, nice) == -1)
+	{
+		if(Config::DEBUG_BUILD)
+		{
+			logErr("error:%s setting thread:0x%X nice level:%d", strerror(errno), (unsigned)tid, nice);
+		}
+	}
+	else
+	{
+		//logDMsg("set thread:0x%X nice level:%d", (unsigned)tid, nice);
+	}
+	#endif
+}
+
+int thisThreadPriority()
+{
+	#ifdef __linux__
+	return getpriority(PRIO_PROCESS, gettid());
+	#else
+	return 0;
+	#endif
+}
+
 }
 
 #if defined(__has_feature)

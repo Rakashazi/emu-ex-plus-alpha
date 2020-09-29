@@ -19,6 +19,7 @@
 #include <imagine/io/IO.hh>
 #include <imagine/font/Font.hh>
 #include <imagine/gfx/Texture.hh>
+#include <imagine/util/container/VMemArray.hh>
 #include <system_error>
 #include <memory>
 
@@ -29,11 +30,11 @@ class Renderer;
 
 struct GlyphEntry
 {
-	std::unique_ptr<Gfx::PixmapTexture> glyphPtr{};
+	Gfx::PixmapTexture glyph_{};
 	IG::GlyphMetrics metrics{};
 
 	constexpr GlyphEntry() {}
-	Gfx::PixmapTexture &glyph() { return *glyphPtr; }
+	const Gfx::PixmapTexture &glyph() const { return glyph_; }
 };
 
 class GlyphTextureSet
@@ -48,7 +49,6 @@ public:
 	GlyphTextureSet(Renderer &r, GenericIO io, IG::FontSettings set);
 	GlyphTextureSet(GlyphTextureSet &&o);
 	GlyphTextureSet &operator=(GlyphTextureSet &&o);
-	~GlyphTextureSet();
 	static GlyphTextureSet makeSystem(Renderer &r, IG::FontSettings set);
 	static GlyphTextureSet makeBoldSystem(Renderer &r, IG::FontSettings set);
 	static GlyphTextureSet makeFromAsset(Renderer &r, const char *name, const char *appName, IG::FontSettings set);
@@ -66,15 +66,14 @@ public:
 
 private:
 	std::unique_ptr<IG::Font> font{};
-	GlyphEntry *glyphTable{};
+	IG::VMemArray<GlyphEntry> glyphTable{};
 	IG::FontSize faceSize{};
 	uint32_t nominalHeight_ = 0;
 	uint32_t usedGlyphTableBits = 0;
 
 	void calcNominalHeight(Renderer &r);
-	bool initGlyphTable();
+	void resetGlyphTable();
 	std::errc cacheChar(Renderer &r, int c, int tableIdx);
-	void deinit();
 };
 
 }

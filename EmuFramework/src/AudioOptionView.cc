@@ -175,7 +175,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			optionAudioAPI = 0;
 			auto defaultApi = IG::Audio::makeValidAPI();
 			emuAudio.open(defaultApi);
-			api.setSelected(idxOfAPI(defaultApi));
+			api.setSelected(idxOfAPI(defaultApi, IG::Audio::audioAPIs()));
 			view.dismiss();
 			return false;
 		});
@@ -225,8 +225,12 @@ void AudioOptionView::loadStockItems()
 	item.emplace_back(&audioSoloMix);
 	#endif
 	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-	item.emplace_back(&api);
-	api.setSelected(idxOfAPI(IG::Audio::makeValidAPI(audioOutputAPI())));
+	if(auto apiVec = IG::Audio::audioAPIs();
+		apiVec.size() > 1)
+	{
+		item.emplace_back(&api);
+		api.setSelected(idxOfAPI(IG::Audio::makeValidAPI(audioOutputAPI()), std::move(apiVec)));
+	}
 	#endif
 }
 
@@ -242,9 +246,9 @@ void AudioOptionView::updateAudioRateItem()
 }
 
 #ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-unsigned AudioOptionView::idxOfAPI(IG::Audio::Api api)
+unsigned AudioOptionView::idxOfAPI(IG::Audio::Api api, std::vector<IG::Audio::ApiDesc> apiVec)
 {
-	for(unsigned idx = 0; auto desc: IG::Audio::audioAPIs())
+	for(unsigned idx = 0; auto desc: apiVec)
 	{
 		if(desc.api == api)
 		{

@@ -36,8 +36,6 @@ enum class SustainedPerformanceType
 
 JNIEnv *jEnvForThread();
 uint32_t androidSDK();
-void setProcessPriority(int nice);
-int processPriority();
 bool apkSignatureIsConsistent();
 AndroidPropString androidBuildDevice();
 bool packageIsInstalled(const char *name);

@@ -120,7 +120,7 @@ void GLTextureSampler::deinit()
 	if(!name_ || !r->support.hasSamplerObjects || !r->hasGLTask())
 		return;
 	logDMsg("deleting sampler object:0x%X (%s)", name_, label());
-	r->runGLTaskSync(
+	r->runGLTask(
 		[r = this->r, name = name_]()
 		{
 			r->support.glDeleteSamplers(1, &name);

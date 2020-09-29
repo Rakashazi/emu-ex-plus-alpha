@@ -13,11 +13,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "MirroredBuffer"
-#include <imagine/util/ringbuffer/mirroredBuffer.hh>
+#define LOGTAG "VMem"
+#include <imagine/config/env.hh>
+#include <imagine/vmem/memory.hh>
+#include <imagine/util/utility.h>
 #include <imagine/util/system/pagesize.h>
 #include <imagine/logger/logger.h>
-#include <imagine/config/env.hh>
 #include <sys/mman.h>
 
 #if defined __ANDROID__ && __ANDROID_API__ <= 24
@@ -38,27 +39,53 @@ static void *mremap(void *old_address, size_t old_size, size_t new_size, int fla
 namespace IG
 {
 
-uint32_t adjustMirroredBufferAllocSize(uint32_t size)
+static void *allocVMem(size_t size, bool shared)
 {
-	return roundUpToPageSize(size);
-}
-
-void *allocMirroredBuffer(uint32_t size)
-{
-	if(Config::DEBUG_BUILD && size != adjustMirroredBufferAllocSize(size))
+	if(Config::DEBUG_BUILD && size != adjustVMemAllocSize(size))
 	{
-		logErr("size:%u is not a multiple of page size", size);
+		logErr("size:%lu is not a multiple of page size", (unsigned long)size);
 	}
-	// allocate enough pages for the buffer + the mirrored pages
-	char *buff = (char*)mmap(nullptr, size*2, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-	if(buff == MAP_FAILED)
+	int flags = (shared ? MAP_SHARED : MAP_PRIVATE) | MAP_ANONYMOUS;
+	void *buff = mmap(nullptr, size, PROT_READ | PROT_WRITE, flags, -1, 0);
+	if(unlikely(buff == MAP_FAILED))
 	{
 		logErr("error in mmap");
 		return nullptr;
 	}
+	return buff;
+}
+
+void *allocVMem(size_t size)
+{
+	return allocVMem(size, false);
+}
+
+void freeVMem(void *vMemPtr, size_t size)
+{
+	if(!vMemPtr)
+		return;
+	if(munmap(vMemPtr, size) == -1)
+	{
+		logWarn("error in unmap");
+	}
+}
+
+size_t adjustVMemAllocSize(size_t size)
+{
+	return roundUpToPageSize(size);
+}
+
+void *allocMirroredBuffer(size_t size)
+{
+	// allocate enough pages for the buffer + the mirrored pages
+	char *buff = (char*)allocVMem(size * 2, true);
+	if(unlikely(!buff))
+	{
+		return nullptr;
+	}
 	// pass 0 to old_size to create a mirror of the buffer in the 2nd half of the mapping
 	auto mirror = mremap(buff, 0, size, MREMAP_MAYMOVE | MREMAP_FIXED, buff + size);
-	if(mirror == MAP_FAILED)
+	if(unlikely(mirror == MAP_FAILED))
 	{
 		logErr("error in mremap");
 		freeMirroredBuffer(buff, size);
@@ -67,14 +94,9 @@ void *allocMirroredBuffer(uint32_t size)
 	return buff;
 }
 
-void freeMirroredBuffer(void *buff, uint32_t size)
+void freeMirroredBuffer(void *vMemPtr, size_t size)
 {
-	if(!buff)
-		return;
-	if(munmap(buff, size*2) == -1)
-	{
-		logWarn("error in unmap");
-	}
+	freeVMem(vMemPtr, size * 2);
 }
 
 }

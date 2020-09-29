@@ -17,7 +17,7 @@
 
 #include <imagine/audio/OutputStream.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/ringbuffer/RingBuffer.hh>
+#include <imagine/vmem/RingBuffer.hh>
 #include <memory>
 #include <atomic>
 

@@ -222,48 +222,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		fastForwardSpeedItem
 	}
 	#if defined __ANDROID__
-	,processPriorityItem
-	{
-		{
-			"Normal",
-			[this]()
-			{
-				optionProcessPriority = 0;
-				Base::setProcessPriority(optionProcessPriority);
-			}
-		},
-		{
-			"High",
-			[this]()
-			{
-				optionProcessPriority = -6;
-				Base::setProcessPriority(optionProcessPriority);
-			}
-		},
-		{
-			"Very High",
-			[this]()
-			{
-				optionProcessPriority = -14;
-				Base::setProcessPriority(optionProcessPriority);
-			}
-		}
-	},
-	processPriority
-	{
-		"Process Priority",
-		[]()
-		{
-			switch(optionProcessPriority.val)
-			{
-				default: return 0;
-				case -6: return 1;
-				case -14: return 2;
-			}
-		}(),
-		processPriorityItem
-	},
-	performanceMode
+	,performanceMode
 	{
 		"Performance Mode",
 		(bool)optionSustainedPerformanceMode,
@@ -291,7 +250,6 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&checkSavePathWriteAccess);
 	item.emplace_back(&fastForwardSpeed);
 	#ifdef __ANDROID__
-	item.emplace_back(&processPriority);
 	if(!optionSustainedPerformanceMode.isConst)
 		item.emplace_back(&performanceMode);
 	#endif
