@@ -49,8 +49,6 @@ void S9xPrintfError(const char* msg, ...)
 	va_end(args);
 }
 
-void S9xSetPalette() {}
-
 #ifndef SNES9X_VERSION_1_4
 
 bool8 S9xContinueUpdate(int width, int height)
@@ -245,16 +243,6 @@ void _makepath(char *path, const char *, const char *dir, const char *fname, con
 		strcat(path, ".");
 		strcat(path, ext);
 	}
-}
-
-const char *S9xChooseFilename(bool8 read_only)
-{
-	return 0;
-}
-
-const char *S9xChooseMovieFilename(bool8 read_only)
-{
-	return 0;
 }
 
 const char *S9xBasename(const char *f)
