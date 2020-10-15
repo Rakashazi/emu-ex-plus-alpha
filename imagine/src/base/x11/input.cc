@@ -101,11 +101,6 @@ static const Device *deviceForInputId(int osId)
 	return vkbDevice;
 }
 
-void setKeyRepeat(bool on)
-{
-	setAllowKeyRepeats(on);
-}
-
 static void setXIEventMaskData(XIEventMaskData &data)
 {
 	data.eventMask.deviceid = XIAllMasterDevices;
@@ -412,11 +407,11 @@ bool handleXI2GenericEvent(XEvent &event)
 			KeySym k = XkbKeycodeToKeysym(dpy, ievent.detail, 0, 0);
 			bool repeated = ievent.flags & XIKeyRepeat;
 			//logMsg("KeySym %d, KeyCode %d, repeat: %d", (int)k, ievent.detail, repeated);
-			if(pushed && k == XK_Return && (ievent.mods.effective & Mod1Mask) && !repeated)
+			if(pushed && k == XK_Return && (ievent.mods.effective & (Mod1Mask | Mod5Mask)) && !repeated)
 			{
 				toggleFullScreen(win.nativeObject());
 			}
-			else if(!pushed || (pushed && (allowKeyRepeats() || !repeated)))
+			else
 			{
 				if(!dev->iCadeMode()
 					|| (dev->iCadeMode() && !processICadeKey(k, action, time, *dev, win)))

@@ -111,6 +111,7 @@ static const int guiKeyIdxIncStateSlot = 5;
 static const int guiKeyIdxFastForward = 6;
 static const int guiKeyIdxGameScreenshot = 7;
 static const int guiKeyIdxExit = 8;
+static const int guiKeyIdxToggleFastForward = 9;
 
 static const uint VCTRL_LAYOUT_DPAD_IDX = 0,
 	VCTRL_LAYOUT_CENTER_BTN_IDX = 1,

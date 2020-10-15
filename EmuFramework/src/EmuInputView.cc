@@ -133,6 +133,8 @@ bool EmuInputView::inputEvent(Input::Event e)
 				{
 					bcase guiKeyIdxFastForward:
 					{
+						if(e.repeated())
+							continue;
 						ffToggleActive = e.pushed();
 						updateFastforward();
 						logMsg("fast-forward state:%d", ffToggleActive);
@@ -234,6 +236,16 @@ bool EmuInputView::inputEvent(Input::Event e)
 						return true;
 					}
 
+					bcase guiKeyIdxToggleFastForward:
+					if(e.pushed())
+					{
+						if(e.repeated())
+							continue;
+						ffToggleActive = !ffToggleActive;
+						updateFastforward();
+						logMsg("fast-forward state:%d", ffToggleActive);
+					}
+
 					bcase guiKeyIdxExit:
 					if(e.pushed())
 					{
@@ -244,6 +256,10 @@ bool EmuInputView::inputEvent(Input::Event e)
 
 					bdefault:
 					{
+						if(e.repeated())
+						{
+							continue;
+						}
 						//logMsg("action %d, %d", emuKey, state);
 						bool turbo;
 						uint sysAction = EmuSystem::translateInputAction(action, turbo);

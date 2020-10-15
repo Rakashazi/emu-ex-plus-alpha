@@ -202,11 +202,6 @@ bool Device::anyTypeBitsPresent(uint32_t typeBits)
 	return false;
 }
 
-void setKeyRepeat(bool on)
-{
-	setAllowKeyRepeats(on);
-}
-
 void handleKeyEvent(UIEvent *event)
 {
 	const auto *eventMem = [event _gsEvent];

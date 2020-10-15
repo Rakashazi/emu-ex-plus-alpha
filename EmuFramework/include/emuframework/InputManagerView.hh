@@ -32,7 +32,6 @@ public:
 	OnIdentInputDelegate onIdentInput{};
 
 	IdentInputDeviceView(ViewAttachParams attach);
-	~IdentInputDeviceView() final;
 	void place() final;
 	bool inputEvent(Input::Event e) final;
 	void draw(Gfx::RendererCommands &cmds) final;

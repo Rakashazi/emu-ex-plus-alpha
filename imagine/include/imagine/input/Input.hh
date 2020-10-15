@@ -163,7 +163,7 @@ void finishSysTextInput();
 void placeSysTextInput(IG::WindowRect rect);
 IG::WindowRect sysTextInputRect();
 
-void setKeyRepeat(bool on);
+void setHintKeyRepeat(bool on);
 
 void showSoftInput();
 void hideSoftInput();

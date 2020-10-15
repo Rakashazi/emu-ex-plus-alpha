@@ -392,6 +392,26 @@ GLDisplay GLDisplay::getDefault(API api)
 	return getDefault();
 }
 
+static void printFeatures(bool supportsSurfaceless, bool supportsNoConfig)
+{
+	if(!Config::DEBUG_BUILD)
+		return;
+	std::string featuresStr{};
+
+	if(supportsSurfaceless)
+	{
+		featuresStr.append(" [Surfaceless]");
+	}
+	if(supportsNoConfig)
+	{
+		featuresStr.append(" [No Config]");
+	}
+
+	if(featuresStr.empty())
+		return;
+	logMsg("features:%s", featuresStr.c_str());
+}
+
 IG::ErrorCode EGLDisplayConnection::initDisplay(EGLDisplay display)
 {
 	logMsg("initializing EGL with display:%p", display);
@@ -407,8 +427,7 @@ IG::ErrorCode EGLDisplayConnection::initDisplay(EGLDisplay display)
 		auto extStr = eglQueryString(display, EGL_EXTENSIONS);
 		supportsSurfaceless = eglVersion >= 15 || strstr(extStr, "EGL_KHR_surfaceless_context");
 		supportsNoConfig = strstr(extStr, "EGL_KHR_no_config_context");
-		if(supportsSurfaceless || supportsNoConfig)
-			logMsg("context features: surfaceless:%u no-config:%u", supportsSurfaceless, supportsNoConfig);
+		printFeatures(supportsSurfaceless, supportsNoConfig);
 	}
 	if(!HAS_DISPLAY_REF_COUNT)
 	{

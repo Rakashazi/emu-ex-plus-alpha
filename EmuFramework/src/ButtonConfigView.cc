@@ -72,12 +72,6 @@ ButtonConfigSetView::ButtonConfigSetView(ViewAttachParams attach,
 		rootIMView{rootIMView}
 {
 	string_copy(actionStr, actionName);
-	Input::setKeyRepeat(false);
-}
-
-ButtonConfigSetView::~ButtonConfigSetView()
-{
-	Input::setKeyRepeat(true);
 }
 
 void ButtonConfigSetView::place()

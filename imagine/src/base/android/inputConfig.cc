@@ -161,11 +161,6 @@ void changeInputConfig(AConfiguration *config)
 	setHardKeyboardState(hasXperiaPlayGamepad() ? navState : hardKeyboardState);
 }
 
-void setKeyRepeat(bool on)
-{
-	setAllowKeyRepeats(on);
-}
-
 void setEventsUseOSInputMethod(bool on)
 {
 	logMsg("set IME use %s", on ? "On" : "Off");

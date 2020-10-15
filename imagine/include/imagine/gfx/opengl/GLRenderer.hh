@@ -45,43 +45,6 @@ class GLSLProgram;
 class DrawContextSupport
 {
 public:
-	bool isConfigured = false;
-	#ifndef CONFIG_GFX_OPENGL_ES
-	bool hasAnisotropicFiltering = false;
-	bool hasMultisample = false;
-	bool hasMultisampleHints = false;
-	bool hasFenceSync = false;
-	bool hasBufferStorage = false;
-	#endif
-	bool hasBGRPixels = false;
-	GLenum bgrInternalFormat = GL_BGRA;
-	bool hasVBOFuncs = false;
-	bool hasTextureSwizzle = false;
-	bool hasUnpackRowLength = !Config::Gfx::OPENGL_ES;
-	bool hasSamplerObjects = !Config::Gfx::OPENGL_ES;
-	bool hasImmutableTexStorage = false;
-	bool hasPBOFuncs = false;
-	#ifdef CONFIG_GFX_OPENGL_DEBUG_CONTEXT
-	bool hasDebugOutput = false;
-	#else
-	static constexpr bool hasDebugOutput = false;
-	#endif
-	bool useLegacyGLSL = Config::Gfx::OPENGL_ES;
-	#ifdef __ANDROID__
-	bool hasEGLImages = false;
-	bool hasExternalEGLImages = false;
-	#endif
-	#if !defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	static constexpr bool useFixedFunctionPipeline = false;
-	#else
-	bool useFixedFunctionPipeline = true;
-	#endif
-	TextureSizeSupport textureSizeSupport{};
-
-	bool hasDrawReadBuffers() const;
-	bool hasSyncFences() const;
-	bool hasEGLTextureStorage() const;
-	bool hasImmutableBufferStorage() const;
 	#ifdef CONFIG_GFX_OPENGL_ES
 	void (* GL_APIENTRY glGenSamplers) (GLsizei count, GLuint* samplers){};
 	void (* GL_APIENTRY glDeleteSamplers) (GLsizei count, const GLuint* samplers){};
@@ -119,12 +82,6 @@ public:
 	#ifdef __ANDROID__
 	void (GL_APIENTRYP glEGLImageTargetTexStorageEXT)(GLenum target, GLeglImageOES image, const GLint* attrib_list){};
 	#endif
-	GLenum luminanceFormat = GL_LUMINANCE;
-	GLenum luminanceInternalFormat = GL_LUMINANCE8;
-	GLenum luminanceAlphaFormat = GL_LUMINANCE_ALPHA;
-	GLenum luminanceAlphaInternalFormat = GL_LUMINANCE8_ALPHA8;
-	GLenum alphaFormat = GL_ALPHA;
-	GLenum alphaInternalFormat = GL_ALPHA8;
 	#if defined CONFIG_GFX_OPENGL_DEBUG_CONTEXT && defined CONFIG_GFX_OPENGL_ES
 	void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROCKHR callback, const void *userParam){};
 	static constexpr auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT_KHR;
@@ -138,6 +95,49 @@ public:
 	using GenerateMipmapsProto = void (* GL_APIENTRY)(GLenum target);
 	GenerateMipmapsProto generateMipmaps{}; // set via extensions
 	#endif
+	GLenum luminanceFormat = GL_LUMINANCE;
+	GLenum luminanceInternalFormat = GL_LUMINANCE8;
+	GLenum luminanceAlphaFormat = GL_LUMINANCE_ALPHA;
+	GLenum luminanceAlphaInternalFormat = GL_LUMINANCE8_ALPHA8;
+	GLenum alphaFormat = GL_ALPHA;
+	GLenum alphaInternalFormat = GL_ALPHA8;
+	GLenum bgrInternalFormat = GL_BGRA;
+	TextureSizeSupport textureSizeSupport{};
+	#ifndef CONFIG_GFX_OPENGL_ES
+	GLfloat maximumAnisotropy{};
+	bool hasMultisample = false;
+	bool hasMultisampleHints = false;
+	bool hasFenceSync = false;
+	bool hasBufferStorage = false;
+	#endif
+	bool hasBGRPixels = false;
+	bool hasVBOFuncs = false;
+	bool hasTextureSwizzle = false;
+	bool hasUnpackRowLength = !Config::Gfx::OPENGL_ES;
+	bool hasSamplerObjects = !Config::Gfx::OPENGL_ES;
+	bool hasImmutableTexStorage = false;
+	bool hasPBOFuncs = false;
+	#ifdef CONFIG_GFX_OPENGL_DEBUG_CONTEXT
+	bool hasDebugOutput = false;
+	#else
+	static constexpr bool hasDebugOutput = false;
+	#endif
+	bool useLegacyGLSL = Config::Gfx::OPENGL_ES;
+	#ifdef __ANDROID__
+	bool hasEGLImages = false;
+	bool hasExternalEGLImages = false;
+	#endif
+	#if !defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+	static constexpr bool useFixedFunctionPipeline = false;
+	#else
+	bool useFixedFunctionPipeline = true;
+	#endif
+	bool isConfigured = false;
+
+	bool hasDrawReadBuffers() const;
+	bool hasSyncFences() const;
+	bool hasEGLTextureStorage() const;
+	bool hasImmutableBufferStorage() const;
 };
 
 class GLMainTask

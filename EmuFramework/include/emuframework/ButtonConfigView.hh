@@ -30,7 +30,6 @@ public:
 
 	ButtonConfigSetView(ViewAttachParams attach, InputManagerView &rootIMView,
 		Input::Device &dev, const char *actionName, SetDelegate onSet);
-	~ButtonConfigSetView() final;
 	void place() final;
 	bool inputEvent(Input::Event e) final;
 	void draw(Gfx::RendererCommands &cmds) final;

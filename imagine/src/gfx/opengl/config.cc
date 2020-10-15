@@ -25,6 +25,7 @@
 #ifdef __ANDROID__
 #include "../../base/android/android.hh"
 #endif
+#include <string>
 
 #if defined CONFIG_BASE_GLAPI_EGL && defined CONFIG_GFX_OPENGL_ES
 #define CAN_USE_EGL_SYNC
@@ -97,6 +98,87 @@ Gfx::GC orientationToGC(Base::Orientation o)
 	}
 }
 
+static void printFeatures(DrawContextSupport support)
+{
+	if(!Config::DEBUG_BUILD)
+		return;
+	std::string featuresStr{};
+	featuresStr.reserve(256);
+
+	featuresStr.append(" [Texture Size:");
+	featuresStr.append(string_makePrintf<8>("%u", support.textureSizeSupport.maxXSize).data());
+	featuresStr.append("]");
+	if(support.textureSizeSupport.nonPow2)
+	{
+		featuresStr.append(" [NPOT Textures");
+		if(support.textureSizeSupport.nonPow2CanRepeat)
+			featuresStr.append(" w/ Mipmap+Repeat]");
+		else if(support.textureSizeSupport.nonPow2CanMipmap)
+			featuresStr.append(" w/ Mipmap]");
+		else
+			featuresStr.append("]");
+	}
+	#ifdef CONFIG_GFX_OPENGL_ES
+	if(support.hasBGRPixels)
+	{
+		if(support.bgrInternalFormat == GL_RGBA)
+			featuresStr.append(" [BGR Formats (Apple)]");
+		else
+			featuresStr.append(" [BGR Formats]");
+	}
+	#endif
+	if(support.hasTextureSwizzle)
+	{
+		featuresStr.append(" [Texture Swizzle]");
+	}
+	if(support.hasImmutableTexStorage)
+	{
+		featuresStr.append(" [Immutable Texture Storage]");
+	}
+	if(support.hasImmutableBufferStorage())
+	{
+		featuresStr.append(" [Immutable Buffer Storage]");
+	}
+	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && support.hasUnpackRowLength)
+	{
+		featuresStr.append(" [Unpack Sub-Images]");
+	}
+	if(support.hasSamplerObjects)
+	{
+		featuresStr.append(" [Sampler Objects]");
+	}
+	if(support.hasPBOFuncs)
+	{
+		featuresStr.append(" [PBOs]");
+	}
+	if(support.glMapBufferRange)
+	{
+		featuresStr.append(" [Map Buffer Range]");
+	}
+	if(support.hasSyncFences())
+	{
+		featuresStr.append(" [Sync Fences]");
+	}
+	#ifndef CONFIG_GFX_OPENGL_ES
+	if(support.maximumAnisotropy)
+	{
+		featuresStr.append(" [Max Anisotropy:");
+		featuresStr.append(string_makePrintf<8>("%.1f", support.maximumAnisotropy).data());
+		featuresStr.append("]");
+	}
+	#endif
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	if(!support.useFixedFunctionPipeline)
+	{
+		featuresStr.append(" [GLSL:");
+		featuresStr.append((const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
+		featuresStr.append("]");
+	}
+	#endif
+
+	logMsg("features:%s", featuresStr.c_str());
+}
+
 #ifdef __ANDROID__
 EGLImageKHR makeAndroidNativeBufferEGLImage(EGLDisplay dpy, EGLClientBuffer clientBuff)
 {
@@ -149,17 +231,15 @@ GLuint defineEGLImageTexture(Renderer &r, EGLImageKHR eglImg, GLuint tex)
 void GLRenderer::setupAnisotropicFiltering()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
-	GLfloat maximumAnisotropy;
+	GLfloat maximumAnisotropy{};
 	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maximumAnisotropy);
-	logMsg("anisotropic filtering supported, max value: %f", (double)maximumAnisotropy);
-	support.hasAnisotropicFiltering = true;
+	support.maximumAnisotropy = maximumAnisotropy;
 	#endif
 }
 
 void GLRenderer::setupMultisample()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
-	logMsg("multisample antialiasing supported");
 	support.hasMultisample = true;
 	#endif
 }
@@ -167,7 +247,6 @@ void GLRenderer::setupMultisample()
 void GLRenderer::setupMultisampleHints()
 {
 	#if !defined CONFIG_GFX_OPENGL_ES && !defined __APPLE__
-	logMsg("multisample hints supported");
 	support.hasMultisampleHints = true;
 	//glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
 	#endif
@@ -175,23 +254,17 @@ void GLRenderer::setupMultisampleHints()
 
 void GLRenderer::setupNonPow2Textures()
 {
-	if(!support.textureSizeSupport.nonPow2)
-		logMsg("Non-Power-of-2 textures supported");
 	support.textureSizeSupport.nonPow2 = true;
 }
 
 void GLRenderer::setupNonPow2MipmapTextures()
 {
-	if(!support.textureSizeSupport.nonPow2CanMipmap)
-		logMsg("Non-Power-of-2 textures with mipmaps supported");
 	support.textureSizeSupport.nonPow2 = true;
 	support.textureSizeSupport.nonPow2CanMipmap = true;
 }
 
 void GLRenderer::setupNonPow2MipmapRepeatTextures()
 {
-	if(!support.textureSizeSupport.nonPow2CanRepeat)
-		logMsg("Non-Power-of-2 textures with mipmaps & repeat modes supported");
 	support.textureSizeSupport.nonPow2 = true;
 	support.textureSizeSupport.nonPow2CanMipmap = true;
 	support.textureSizeSupport.nonPow2CanRepeat = true;
@@ -201,7 +274,6 @@ void GLRenderer::setupNonPow2MipmapRepeatTextures()
 void GLRenderer::setupBGRPixelSupport()
 {
 	support.hasBGRPixels = true;
-	logMsg("BGR pixel types are supported%s", support.bgrInternalFormat == GL_RGBA ? " (Apple version)" : "");
 }
 #endif
 
@@ -213,22 +285,17 @@ void GLRenderer::setupFBOFuncs(bool &useFBOFuncs)
 	#elif !defined CONFIG_GFX_OPENGL_ES
 	support.generateMipmaps = glGenerateMipmap;
 	#endif
-	logMsg("FBO functions are supported");
 }
 
 void GLRenderer::setupVAOFuncs()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
-	logMsg("using VAOs");
 	useStreamVAO = true;
 	#endif
 }
 
 void GLRenderer::setupTextureSwizzle()
 {
-	if(support.hasTextureSwizzle)
-		return;
-	logMsg("using texture swizzling");
 	support.hasTextureSwizzle = true;
 }
 
@@ -236,7 +303,6 @@ void GLRenderer::setupImmutableTexStorage(bool extSuffix)
 {
 	if(support.hasImmutableTexStorage)
 		return;
-	logMsg("using immutable texture storage");
 	support.hasImmutableTexStorage = true;
 	#ifdef CONFIG_GFX_OPENGL_ES
 	const char *procName = extSuffix ? "glTexStorage2DEXT" : "glTexStorage2D";
@@ -258,7 +324,6 @@ void GLRenderer::setupSamplerObjects()
 {
 	if(support.hasSamplerObjects)
 		return;
-	logMsg("using sampler objects");
 	support.hasSamplerObjects = true;
 	#ifdef CONFIG_GFX_OPENGL_ES
 	support.glGenSamplers = (typeof(support.glGenSamplers))Base::GLContext::procAddress("glGenSamplers");
@@ -270,9 +335,6 @@ void GLRenderer::setupSamplerObjects()
 
 void GLRenderer::setupPBO()
 {
-	if(support.hasPBOFuncs)
-		return;
-	logMsg("using PBOs");
 	support.hasPBOFuncs = true;
 }
 
@@ -280,7 +342,6 @@ void GLRenderer::setupFenceSync()
 {
 	if(support.hasSyncFences())
 		return;
-	logMsg("using sync fences");
 	#ifdef CONFIG_GFX_OPENGL_ES
 	support.glFenceSync = (typeof(support.glFenceSync))Base::GLContext::procAddress("glFenceSync");
 	support.glDeleteSync = (typeof(support.glDeleteSync))Base::GLContext::procAddress("glDeleteSync");
@@ -296,7 +357,6 @@ void GLRenderer::setupAppleFenceSync()
 {
 	if(support.hasSyncFences())
 		return;
-	logMsg("Using sync fences (Apple version)");
 	support.glFenceSync = (typeof(support.glFenceSync))Base::GLContext::procAddress("glFenceSyncAPPLE");
 	support.glDeleteSync = (typeof(support.glDeleteSync))Base::GLContext::procAddress("glDeleteSyncAPPLE");
 	support.glClientWaitSync = (typeof(support.glClientWaitSync))Base::GLContext::procAddress("glClientWaitSyncAPPLE");
@@ -309,7 +369,7 @@ void GLRenderer::setupEGLFenceSync(bool supportsServerSync)
 {
 	if(support.hasSyncFences())
 		return;
-	logMsg("Using sync fences (EGL version)%s", supportsServerSync ? "" : ", only client sync supported");
+	logMsg("Using EGL sync fences%s", supportsServerSync ? "" : ", only client sync supported");
 	#ifdef EGL_SYNC_NEEDS_PROC_ADDR
 	eglCreateSyncFunc = (typeof(eglCreateSyncFunc))Base::GLContext::procAddress("eglCreateSyncKHR");
 	eglDestroySyncFunc = (typeof(eglDestroySyncFunc))Base::GLContext::procAddress("eglDestroySyncKHR");
@@ -435,7 +495,6 @@ void GLRenderer::setupImmutableBufferStorage()
 {
 	if(support.hasImmutableBufferStorage())
 		return;
-	logMsg("using immutable buffer storage");
 	#ifdef CONFIG_GFX_OPENGL_ES
 	support.glBufferStorage = (typeof(support.glBufferStorage))Base::GLContext::procAddress("glBufferStorageEXT");
 	#else
@@ -481,7 +540,6 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	}
 	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_EXT_unpack_subimage"))
 	{
-		logMsg("unpacking sub-images supported");
 		support.hasUnpackRowLength = true;
 	}
 	else if(string_equal(extStr, "GL_APPLE_texture_format_BGRA8888"))
@@ -530,14 +588,12 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	}
 	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_NV_map_buffer_range"))
 	{
-		logMsg("supports map buffer range (NVIDIA)");
 		if(!support.glMapBufferRange)
 			support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeNV");
 		setupUnmapBufferFunc();
 	}
 	else if(string_equal(extStr, "GL_EXT_map_buffer_range"))
 	{
-		logMsg("supports map buffer range");
 		if(!support.glMapBufferRange)
 			support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeEXT");
 		// Only using ES 3.0 version currently
@@ -895,15 +951,8 @@ void Renderer::configureRenderer(ThreadMode threadMode)
 			glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
 			support.textureSizeSupport.maxXSize = support.textureSizeSupport.maxYSize = texSize;
 			assert(support.textureSizeSupport.maxXSize > 0 && support.textureSizeSupport.maxYSize > 0);
-			logMsg("max texture size is %d", texSize);
 
-			#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-			if(!support.useFixedFunctionPipeline)
-			{
-				if(Config::DEBUG_BUILD)
-					logMsg("shader language version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
-			}
-			#endif
+			printFeatures(support);
 		});
 
 	if(Config::DEBUG_BUILD && defaultToFullErrorChecks)

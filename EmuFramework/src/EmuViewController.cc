@@ -392,7 +392,7 @@ void EmuViewController::configureAppForEmulation(bool running)
 {
 	Base::setIdleDisplayPowerSave(running ? (bool)optionIdleDisplayPowerSave : true);
 	applyOSNavStyle(running);
-	Input::setKeyRepeat(!running);
+	Input::setHintKeyRepeat(!running);
 }
 
 void EmuViewController::configureWindowForEmulation(Base::Window &win, bool running)

@@ -69,7 +69,6 @@ static void cleanupTest(TestFramework *test)
 	deinitCPUFreqStatus();
 	deinitCPULoadStatus();
 	Base::setIdleDisplayPowerSave(true);
-	Input::setKeyRepeat(true);
 	#ifdef __ANDROID__
 	if(cpuFreq)
 		cpuFreq->setDefaults();
@@ -107,7 +106,6 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 	}
 	activeTest->init(r, t.pixmapSize, t.bufferMode);
 	Base::setIdleDisplayPowerSave(false);
-	Input::setKeyRepeat(false);
 	initCPUFreqStatus();
 	initCPULoadStatus();
 	placeElements(win, r);

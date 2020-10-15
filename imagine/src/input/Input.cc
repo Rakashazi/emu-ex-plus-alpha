@@ -26,7 +26,7 @@ namespace Input
 
 static std::optional<Base::Timer> keyRepeatTimer{};
 static Event keyRepeatEvent{};
-static bool allowKeyRepeats_ = true;
+static bool allowKeyRepeatTimer_ = true;
 DeviceChangeDelegate onDeviceChange{};
 DevicesEnumeratedDelegate onDevicesEnumerated{};
 std::vector<Device*> devList{};
@@ -49,23 +49,28 @@ const std::vector<Device*> &deviceList()
 	return devList;
 }
 
-void setAllowKeyRepeats(bool on)
+static void setAllowKeyRepeatTimer(bool on)
 {
-	allowKeyRepeats_ = on;
+	allowKeyRepeatTimer_ = on;
 	if(!on)
 	{
 		deinitKeyRepeatTimer();
 	}
 }
 
-bool allowKeyRepeats()
+static bool allowKeyRepeatTimer()
 {
-	return allowKeyRepeats_;
+	return allowKeyRepeatTimer_;
+}
+
+void setHintKeyRepeat(bool on)
+{
+	setAllowKeyRepeatTimer(on);
 }
 
 void startKeyRepeatTimer(Event event)
 {
-	if(!allowKeyRepeats_)
+	if(!allowKeyRepeatTimer_)
 		return;
 	if(!event.pushed())
 	{

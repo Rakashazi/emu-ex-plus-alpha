@@ -313,32 +313,25 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 			{
 				//logMsg("key event, code: %d id: %d repeat: %d action: %d", keyCode, AInputEvent_getDeviceId(event), AKeyEvent_getRepeatCount(event), AKeyEvent_getAction(event));
 			}
-			auto keyWasRepeated =
-				[](int devID, int mostRecentKeyEventDevID, int repeatCount)
-				{
-					if(Base::androidSDK() < 12)
-					{
-						return repeatCount != 0;
-					}
-					else
-					{
-						// On Android 3.1+, 2 or more devices pushing the same
-						// button is considered a repeat event by the OS.
-						// Filter out this case by checking that the previous
-						// event came from the same device ID if it has
-						// a repeat count.
-						return repeatCount != 0 && devID == mostRecentKeyEventDevID;
-					}
-				};
 			auto devID = AInputEvent_getDeviceId(event);
 			auto repeatCount = AKeyEvent_getRepeatCount(event);
-			if(!allowKeyRepeats())
-			{
-				if(keyWasRepeated(devID, mostRecentKeyEventDevID, repeatCount))
+			auto keyWasReallyRepeated =
+				[](int devID, int mostRecentKeyEventDevID, int repeatCount)
 				{
-					//logMsg("skipped repeat key event");
-					return true;
+					// On Android 3.1+, 2 or more devices pushing the same
+					// button may be considered a repeat event by the OS.
+					// Filter out this case by checking that the previous
+					// event came from the same device ID if it has
+					// a repeat count.
+					return repeatCount != 0 && devID == mostRecentKeyEventDevID;
+				};
+			if(!keyWasReallyRepeated(devID, mostRecentKeyEventDevID, repeatCount))
+			{
+				if(repeatCount)
+				{
+					//logDMsg("ignoring repeat count:%d from device:%d", repeatCount, devID);
 				}
+				repeatCount = 0;
 			}
 			mostRecentKeyEventDevID = devID;
 			const AndroidInputDevice *dev = deviceForInputId(devID);
