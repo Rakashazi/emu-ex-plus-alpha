@@ -27,13 +27,13 @@ void *allocMirroredBuffer(size_t bytes);
 void freeMirroredBuffer(void *vMemPtr, size_t bytes);
 
 template<class T>
-T *allocVMemObjects(size_t size)
+static T *allocVMemObjects(size_t size)
 {
 	return (T*)allocVMem(adjustVMemAllocSize(sizeof(T) * size));
 }
 
 template<class T>
-void freeVMemObjects(T *vMemPtr, size_t size)
+static void freeVMemObjects(T *vMemPtr, size_t size)
 {
 	freeVMem(vMemPtr, adjustVMemAllocSize(sizeof(T) * size));
 }

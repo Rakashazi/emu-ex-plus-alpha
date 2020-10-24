@@ -122,18 +122,6 @@ typedef void (GL_APIENTRY *GLDEBUGPROCKHR)(GLenum source,GLenum type,GLuint id,G
 #define GL_APIENTRY APIENTRY
 #endif
 
-#ifndef GL_UNPACK_ROW_LENGTH
-#define GL_UNPACK_ROW_LENGTH 0x0CF2
-#endif
-
-#ifndef GL_MIRRORED_REPEAT
-#define GL_MIRRORED_REPEAT 0x8370
-#endif
-
-#ifndef GL_TEXTURE_EXTERNAL_OES
-#define GL_TEXTURE_EXTERNAL_OES 0x8D65
-#endif
-
 #ifndef GL_BGRA
 #define GL_BGRA GL_BGRA_EXT
 #endif
@@ -196,16 +184,4 @@ typedef void (GL_APIENTRY *GLDEBUGPROCKHR)(GLenum source,GLenum type,GLuint id,G
 
 #ifndef GL_RG8
 #define GL_RG8 0x822B
-#endif
-
-#ifndef GL_PIXEL_PACK_BUFFER
-#define GL_PIXEL_PACK_BUFFER 0x88EB
-#endif
-
-#ifndef GL_PIXEL_UNPACK_BUFFER
-#define GL_PIXEL_UNPACK_BUFFER 0x88EC
-#endif
-
-#ifndef GL_APICALL
-#define GL_APICALL
 #endif

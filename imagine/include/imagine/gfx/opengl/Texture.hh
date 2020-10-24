@@ -20,6 +20,10 @@
 #include <imagine/gfx/TextureConfig.hh>
 #include <imagine/gfx/TextureSamplerConfig.hh>
 #include <imagine/util/typeTraits.hh>
+#ifdef __ANDROID__
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#endif
 
 class GfxImageSource;
 
@@ -28,7 +32,8 @@ namespace Gfx
 
 class Renderer;
 class TextureSampler;
-class PixmapTexture;
+
+enum { TEX_UNSET, TEX_2D_1, TEX_2D_2, TEX_2D_4, TEX_2D_EXTERNAL };
 
 class GLTextureSampler
 {
@@ -82,22 +87,24 @@ class GLTexture
 {
 public:
 	constexpr GLTexture() {}
-	GLTexture(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr = nullptr);
-	GLTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
+	constexpr GLTexture(Renderer &r):r{&r} {}
 	~GLTexture();
 	IG::ErrorCode init(Renderer &r, TextureConfig config);
 	TextureConfig baseInit(Renderer &r, TextureConfig config);
 	GLuint texName() const;
 	void bindTex(RendererCommands &cmds, const TextureSampler &sampler) const;
 	bool canUseMipmaps(Renderer &r) const;
-	bool isExternal() const;
+	void updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
+	#ifdef __ANDROID__
+	void setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc);
+	#endif
 
 protected:
 	Renderer *r{};
 	TextureRef texName_ = 0;
 	mutable GLuint sampler = 0; // used when separate sampler objects not supported
 	IG::PixmapDesc pixDesc;
-	uint16_t levels_ = 0;
+	uint8_t levels_ = 0;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	uint8_t type_ = TEX_UNSET;
 	#else
@@ -106,25 +113,10 @@ protected:
 
 	void deinit();
 	static void setSwizzleForFormat(Renderer &r, IG::PixelFormatID format, GLuint tex, GLenum target);
-	void updateFormatInfo(IG::PixmapDesc desc, uint16_t levels, GLenum target = GL_TEXTURE_2D);
 	void updateLevelsForMipmapGeneration();
 	GLenum target() const;
 };
 
 using TextureImpl = GLTexture;
-
-class GLPixmapTexture
-{
-public:
-	constexpr GLPixmapTexture() {}
-	IG::ErrorCode init(PixmapTexture &self, TextureConfig config);
-	void updateUsedPixmapSize(IG::PixmapDesc usedDesc, IG::PixmapDesc fullDesc);
-
-protected:
-	GTexCPoint uv{};
-	IG::WP usedSize{};
-};
-
-using PixmapTextureImpl = GLPixmapTexture;
 
 }

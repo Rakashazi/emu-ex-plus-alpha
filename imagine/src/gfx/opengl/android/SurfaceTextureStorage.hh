@@ -25,25 +25,25 @@ namespace Gfx
 
 class Renderer;
 
-class SurfaceTextureStorage: public DirectTextureStorage
+class SurfaceTextureStorage: public TextureBufferStorage
 {
 public:
-	SurfaceTextureStorage(Renderer &r, GLuint &tex, bool singleBuffered, IG::ErrorCode &err);
+	SurfaceTextureStorage(Renderer &r, TextureConfig config, bool singleBuffered, IG::ErrorCode *errorPtr);
 	SurfaceTextureStorage(SurfaceTextureStorage &&o);
 	SurfaceTextureStorage &operator=(SurfaceTextureStorage &&o);
 	~SurfaceTextureStorage() final;
-	IG::ErrorCode setFormat(Renderer &r, IG::PixmapDesc desc, GLuint &tex) final;
-	Buffer lock(Renderer &r) final;
-	void unlock(Renderer &r) final;
+	IG::ErrorCode setFormat(IG::PixmapDesc desc) final;
+	LockedTextureBuffer lock(uint32_t bufferFlags) final;
+	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
 
 protected:
-	void deinit();
-
 	jobject surfaceTex{};
 	jobject surface{};
 	ANativeWindow *nativeWin{};
 	uint8_t bpp = 0;
 	bool singleBuffered = false;
+
+	void deinit();
 };
 
 }

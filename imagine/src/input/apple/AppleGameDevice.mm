@@ -279,8 +279,7 @@ static void addController(GCController *controller, bool notify)
 		return;
 	}
 	logMsg("adding controller: %p", controller);
-	gcList.emplace_back(std::make_unique<AppleGameDevice>(controller, findFreeDevId()));
-	auto &gc = gcList.back();
+	auto &gc = gcList.emplace_back(std::make_unique<AppleGameDevice>(controller, findFreeDevId()));
 	Input::addDevice(*gc);
 	if(notify)
 	{

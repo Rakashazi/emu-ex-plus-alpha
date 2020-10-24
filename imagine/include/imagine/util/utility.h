@@ -9,9 +9,6 @@
 
 #define var_isConst(E) __builtin_constant_p(E)
 
-#define static_assertIsPod(type) static_assert(__is_pod(type), #type " isn't POD")
-#define static_assertHasTrivialDestructor(type) static_assert(__has_trivial_destructor(type), #type " has non-trivial destructor")
-
 #define bcase break; case
 #define bdefault break; default
 

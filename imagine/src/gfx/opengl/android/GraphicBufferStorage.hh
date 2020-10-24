@@ -21,15 +21,15 @@
 namespace Gfx
 {
 
-class GraphicBufferStorage: public DirectTextureStorage
+class GraphicBufferStorage: public TextureBufferStorage
 {
 public:
-	GraphicBufferStorage();
+	GraphicBufferStorage(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr);
 	GraphicBufferStorage(GraphicBufferStorage &&o);
 	GraphicBufferStorage &operator=(GraphicBufferStorage &&o);
-	IG::ErrorCode setFormat(Renderer &r, IG::PixmapDesc desc, GLuint &tex) final;
-	Buffer lock(Renderer &r) final;
-	void unlock(Renderer &r) final;
+	IG::ErrorCode setFormat(IG::PixmapDesc desc) final;
+	LockedTextureBuffer lock(uint32_t bufferFlags) final;
+	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
 	static bool canSupport(const char *rendererStr);
 	static bool testSupport();
 	static bool isSupported();

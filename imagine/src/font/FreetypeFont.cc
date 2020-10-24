@@ -345,8 +345,7 @@ std::errc FreetypeFont::loadIntoNextSlot(GenericIO io)
 {
 	if(f.isFull())
 		return std::errc::no_space_on_device;
-	f.emplace_back();
-	auto ec = f.back().openFont(std::move(io));
+	auto ec = f.emplace_back().openFont(std::move(io));
 	if((bool)ec)
 	{
 		logErr("error reading font");

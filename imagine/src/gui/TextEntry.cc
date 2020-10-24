@@ -129,7 +129,7 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *
 	#ifndef CONFIG_BASE_ANDROID
 	if(View::needsBackControl && closeRes)
 	{
-		cancelSpr.init({-.5, -.5, .5, .5}, closeRes);
+		cancelSpr = {{-.5, -.5, .5, .5}, closeRes};
 		if(cancelSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
 			renderer().autoReleaseShaderCompiler();
 	}
@@ -171,7 +171,7 @@ void CollectTextInputView::place()
 	if(cancelSpr.image())
 	{
 		cancelBtn.setPosRel(viewRect().pos(RT2DO), View::defaultFace.nominalHeight() * 1.75, RT2DO);
-		cancelSpr.setPos(-projP.unprojectXSize(cancelBtn)/3., -projP.unprojectYSize(cancelBtn)/3., projP.unprojectXSize(cancelBtn)/3., projP.unprojectYSize(cancelBtn)/3.);
+		cancelSpr.setPos(projP.unProjectRect(cancelBtn));
 	}
 	#endif
 	message.setMaxLineSize(projP.width() * 0.95);
@@ -231,7 +231,7 @@ void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 		cmds.setColor(COLOR_WHITE);
 		cmds.setBlendMode(BLEND_MODE_ALPHA);
 		cmds.setCommonTextureSampler(CommonTextureSampler::NEAREST_MIP_CLAMP);
-		cancelSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(cancelBtn).pos(C2DO)));
+		cancelSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, projP.makeTranslate());
 		cancelSpr.draw(cmds);
 	}
 	#endif

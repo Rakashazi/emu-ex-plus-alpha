@@ -31,39 +31,24 @@ template<class BaseRect>
 class SpriteBase : public BaseRect
 {
 public:
-	constexpr SpriteBase() {}
-	void init(GCRect pos, TextureSpan span = {});
-	void deinit();
+	constexpr SpriteBase():
+		BaseRect{{}, GTexCRect{0, 0, 1, 1}}
+	{}
+
+	constexpr SpriteBase(GCRect pos, TextureSpan span = {}):
+		BaseRect{pos, span.uvBounds()},
+		img{span.texture()}
+	{}
+
 	void setImg(const Texture *img);
 	void setImg(TextureSpan span);
-	void setUVBounds(IG::Rect2<GTexC> uvBounds);
+	void setUVBounds(GTexCRect uvBounds);
 	void draw(RendererCommands &r) const;
-
-	bool compileDefaultProgram(uint32_t mode)
-	{
-		if(img)
-			return img->compileDefaultProgram(mode);
-		else
-			return false;
-	}
-
-	bool compileDefaultProgramOneShot(uint32_t mode)
-	{
-		if(img)
-			return img->compileDefaultProgramOneShot(mode);
-		else
-			return false;
-	}
-
-	void setCommonProgram(RendererCommands &cmds, uint32_t mode, const Mat4 *modelMat) const
-	{
-		if(img)
-			img->useDefaultProgram(cmds, mode, modelMat);
-	}
-
-	void setCommonProgram(RendererCommands &cmds, uint32_t mode) const { setCommonProgram(cmds, mode, nullptr); }
-	void setCommonProgram(RendererCommands &cmds, uint32_t mode, Mat4 modelMat) const { setCommonProgram(cmds, mode, &modelMat); }
-	const Texture *image() const { return img; }
+	bool compileDefaultProgram(uint32_t mode);
+	bool compileDefaultProgramOneShot(uint32_t mode);
+	void setCommonProgram(RendererCommands &cmds, uint32_t mode, const Mat4 *modelMat = {}) const;
+	void setCommonProgram(RendererCommands &cmds, uint32_t mode, Mat4 modelMat) const;
+	const Texture *image() const;
 
 private:
 	const Texture *img{};

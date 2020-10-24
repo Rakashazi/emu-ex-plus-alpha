@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/Viewport.hh>
-#include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/PixmapTexture.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/gfx/Program.hh>
 #include <imagine/gfx/SyncFence.hh>

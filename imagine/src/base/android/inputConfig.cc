@@ -470,9 +470,8 @@ bool addInputDevice(AndroidInputDevice dev, bool updateExisting, bool notify)
 		[=](const auto &e) { return e->osId == id; });
 	if(existingIt == sysInputDev.end())
 	{
-		sysInputDev.emplace_back(std::make_unique<AndroidInputDevice>(dev));
+		auto &devPtr = sysInputDev.emplace_back(std::make_unique<AndroidInputDevice>(dev));
 		logMsg("added device id %d to list", id);
-		auto devPtr = sysInputDev.back().get();
 		addDevice(*devPtr);
 		if(notify)
 			onDeviceChange.callCopySafe(*devPtr, { Device::Change::ADDED });

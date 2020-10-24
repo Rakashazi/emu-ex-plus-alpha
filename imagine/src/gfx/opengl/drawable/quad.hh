@@ -6,28 +6,18 @@ namespace Gfx
 {
 
 template<class Vtx>
-void QuadGeneric<Vtx>::init(Coordinate x, Coordinate y, Coordinate x2, Coordinate y2, Coordinate x3, Coordinate y3, Coordinate x4, Coordinate y4)
+void QuadGeneric<Vtx>::setPos(IG::WindowRect b, ProjectionPlane proj)
 {
-	v[0] = Vtx(x, y); //BL
-	v[1] = Vtx(x2, y2); //TL
-	v[2] = Vtx(x4, y4); //BR
-	v[3] = Vtx(x3, y3); //TR
+	auto pos = proj.unProjectRect(b);
+	setPos({pos.x, pos.y, pos.x2, pos.y2});
 }
 
 template<class Vtx>
-void QuadGeneric<Vtx>::deinit()
+void QuadGeneric<Vtx>::setPosRel(GC x, GC y, GC xSize, GC ySize)
 {
-
+	setPos({x, y, x+xSize, y+ySize});
 }
 
-template<class Vtx>
-void QuadGeneric<Vtx>::setPos(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4)
-{
-	v[0].x = x; v[0].y = y; //BL
-	v[1].x = x2; v[1].y = y2; //TL
-	v[2].x = x4; v[2].y = y4; //BR
-	v[3].x = x3; v[3].y = y3; //TR
-}
 
 template<class Vtx>
 void QuadGeneric<Vtx>::draw(RendererCommands &cmds) const
@@ -38,21 +28,62 @@ void QuadGeneric<Vtx>::draw(RendererCommands &cmds) const
 	cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
 }
 
+template<class Vtx>
+void QuadGeneric<Vtx>::draw(RendererCommands &cmds, IG::WindowRect b, ProjectionPlane proj)
+{
+	draw(cmds, proj.unProjectRect(b));
+}
+
+template<class Vtx>
+void QuadGeneric<Vtx>::draw(RendererCommands &cmds, GCRect d)
+{
+	QuadGeneric<Vtx> rect{d};
+	rect.draw(cmds);
+}
+
 template class QuadGeneric<Vertex>;
 template class QuadGeneric<ColVertex>;
 template class QuadGeneric<TexVertex>;
 template class QuadGeneric<ColTexVertex>;
 
-void TexQuad::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV) { Gfx::mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV); };
+template<class Vtx>
+void QuadGeneric<Vtx>::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges)
+{
+	if constexpr(!Vtx::hasColor)
+	{
+		return;
+	}
+	else
+	{
+		Gfx::setColor(v, r, g, b, a, edges);
+	}
+}
 
-void ColQuad::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges) { Gfx::setColor(v, r, g, b, a, edges); }
-void ColQuad::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32_t edges) { Gfx::setColorRGB(v, r, g, b, edges); }
-void ColQuad::setColorAlpha(ColorComp a, uint32_t edges) { Gfx::setColorAlpha(v, a, edges); }
+template<class Vtx>
+void QuadGeneric<Vtx>::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32_t edges)
+{
+	if constexpr(!Vtx::hasColor)
+	{
+		return;
+	}
+	else
+	{
+		Gfx::setColorRGB(v, r, g, b, edges);
+	}
+}
 
-void ColTexQuad::mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV) { Gfx::mapImg(v, leftTexU, topTexV, rightTexU, bottomTexV); };
-void ColTexQuad::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges) { Gfx::setColor(v, r, g, b, a, edges); }
-void ColTexQuad::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32_t edges) { Gfx::setColorRGB(v, r, g, b, edges); }
-void ColTexQuad::setColorAlpha(ColorComp a, uint32_t edges) { Gfx::setColorAlpha(v, a, edges); }
+template<class Vtx>
+void QuadGeneric<Vtx>::setColorAlpha(ColorComp a, uint32_t edges)
+{
+	if constexpr(!Vtx::hasColor)
+	{
+		return;
+	}
+	else
+	{
+		Gfx::setColorAlpha(v, a, edges);
+	}
+}
 
 std::array<Vertex, 4> makeVertArray(GCRect pos)
 {

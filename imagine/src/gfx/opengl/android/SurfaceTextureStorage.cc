@@ -17,15 +17,26 @@
 #include "SurfaceTextureStorage.hh"
 #include "../private.hh"
 #include "../../../base/android/android.hh"
+#include <imagine/util/ScopeGuard.hh>
 #include <android/native_window_jni.h>
 
 namespace Gfx
 {
 
-SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint &tex, bool makeSingleBuffered, IG::ErrorCode &err):
-	DirectTextureStorage{GL_TEXTURE_EXTERNAL_OES}
+SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, TextureConfig config, bool makeSingleBuffered, IG::ErrorCode *errorPtr):
+	TextureBufferStorage{r}
 {
 	using namespace Base;
+	IG::ErrorCode err{};
+	auto setErrorPtr = IG::scopeGuard(
+		[&]()
+		{
+			if(unlikely(err && errorPtr))
+			{
+				*errorPtr = err;
+			}
+		});
+	config = baseInit(r, config);
 	if(unlikely(!r.support.hasExternalEGLImages))
 	{
 		logErr("can't init without OES_EGL_image_external extension");
@@ -34,16 +45,15 @@ SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint &tex, bool make
 	}
 	singleBuffered = makeSingleBuffered;
 	r.runGLTaskSync(
-		[=, this, &tex]()
+		[=, this]()
 		{
 			auto env = jEnvForThread();
-			assert(!tex);
-			glGenTextures(1, &tex);
-			auto surfaceTex = makeSurfaceTexture(jEnvForThread(), tex, makeSingleBuffered);
+			glGenTextures(1, &texName_);
+			auto surfaceTex = makeSurfaceTexture(jEnvForThread(), texName_, makeSingleBuffered);
 			if(!surfaceTex && makeSingleBuffered)
 			{
 				// fall back to buffered mode
-				surfaceTex = makeSurfaceTexture(jEnvForThread(), tex, false);
+				surfaceTex = makeSurfaceTexture(jEnvForThread(), texName_, false);
 			}
 			if(unlikely(!surfaceTex))
 				return;
@@ -57,7 +67,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint &tex, bool make
 		return;
 	}
 	logMsg("made%sSurfaceTexture with texture:0x%X",
-		singleBuffered ? " " : " buffered ", tex);
+		singleBuffered ? " " : " buffered ", texName_);
 	auto env = jEnvForThread();
 	auto localSurface = makeSurface(env, surfaceTex);
 	if(unlikely(!localSurface))
@@ -77,7 +87,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, GLuint &tex, bool make
 		return;
 	}
 	logMsg("native window:%p from Surface:%p%s", nativeWin, localSurface, singleBuffered ? " (single-buffered)" : "");
-	err = {};
+	err = setFormat(config.pixmapDesc());
 }
 
 SurfaceTextureStorage::SurfaceTextureStorage(SurfaceTextureStorage &&o)
@@ -88,7 +98,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(SurfaceTextureStorage &&o)
 SurfaceTextureStorage &SurfaceTextureStorage::operator=(SurfaceTextureStorage &&o)
 {
 	deinit();
-	DirectTextureStorage::operator=(o);
+	TextureBufferStorage::operator=(std::move(o));
 	surfaceTex = std::exchange(o.surfaceTex, {});
 	surface = std::exchange(o.surface, {});
 	nativeWin = std::exchange(o.nativeWin, {});
@@ -126,25 +136,26 @@ void SurfaceTextureStorage::deinit()
 	}
 }
 
-IG::ErrorCode SurfaceTextureStorage::setFormat(Renderer &, IG::PixmapDesc desc, GLuint &)
+IG::ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc)
 {
 	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
 	int winFormat = Base::toAHardwareBufferFormat(desc.format());
-	if(!winFormat)
+	if(unlikely(!winFormat))
 	{
 		logErr("pixel format not usable");
 		return {EINVAL};
 	}
-	if(ANativeWindow_setBuffersGeometry(nativeWin, desc.w(), desc.h(), winFormat) < 0)
+	if(unlikely(ANativeWindow_setBuffersGeometry(nativeWin, desc.w(), desc.h(), winFormat) < 0))
 	{
 		logErr("ANativeWindow_setBuffersGeometry failed");
 		return {EINVAL};
 	}
+	updateFormatInfo(desc.size(), desc, 1, GL_TEXTURE_EXTERNAL_OES);
 	bpp = desc.format().bytesPerPixel();
 	return {};
 }
 
-SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(Renderer &r)
+LockedTextureBuffer SurfaceTextureStorage::lock(uint32_t bufferFlags)
 {
 	using namespace Base;
 	if(unlikely(!nativeWin))
@@ -154,7 +165,7 @@ SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(Renderer &r)
 	}
 	if(singleBuffered)
 	{
-		r.runGLTaskSync(
+		renderer().runGLTaskSync(
 			[this]()
 			{
 				releaseSurfaceTextureImage(jEnvForThread(), surfaceTex);
@@ -176,13 +187,12 @@ SurfaceTextureStorage::Buffer SurfaceTextureStorage::lock(Renderer &r)
 	rect.y = aRect.top;
 	rect.x2 = aRect.right;
 	rect.y2 = aRect.bottom;*/
-	Buffer buff{winBuffer.bits, (uint32_t)winBuffer.stride * bpp};
-	//buff.data = (char*)buff.data + (aRect.top * buff.pitch + aRect.left * bpp);
-	//logMsg("locked buffer %p with pitch %d", buff.data, buff.pitch);
-	return buff;
+	//buff.data = (char*)winBuffer.bits + (aRect.top * buff.pitch + aRect.left * bpp);
+	//logMsg("locked buffer %p with pitch %d", winBuffer.bits, winBuffer.stride * bpp);
+	return makeLockedBuffer(winBuffer.bits, (uint32_t)winBuffer.stride * bpp, bufferFlags);
 }
 
-void SurfaceTextureStorage::unlock(Renderer &r)
+void SurfaceTextureStorage::unlock(LockedTextureBuffer, uint32_t)
 {
 	using namespace Base;
 	if(unlikely(!nativeWin))
@@ -191,11 +201,12 @@ void SurfaceTextureStorage::unlock(Renderer &r)
 		return;
 	}
 	ANativeWindow_unlockAndPost(nativeWin);
-	r.runGLTask(
+	renderer().runGLTask(
 		[this]()
 		{
 			Base::updateSurfaceTextureImage(Base::jEnvForThread(), surfaceTex);
 		});
+	renderer().resourceUpdate = true;
 }
 
 }

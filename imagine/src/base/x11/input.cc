@@ -223,16 +223,15 @@ static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify, bool isPo
 		if(string_equal(e->name(), xDevInfo.name) && e->enumId() == devId)
 			devId++;
 	}
-	xDevice.emplace_back(std::make_unique<XInputDevice>(xDevInfo, devId, isPointingDevice, isPowerButtonName(xDevInfo.name)));
-	auto dev = xDevice.back().get();
-	addDevice(*dev);
+	auto &devPtr = xDevice.emplace_back(std::make_unique<XInputDevice>(xDevInfo, devId, isPointingDevice, isPowerButtonName(xDevInfo.name)));
+	addDevice(*devPtr);
 	if(Config::MACHINE_IS_PANDORA && (string_equal(xDevInfo.name, "gpio-keys")
 		|| string_equal(xDevInfo.name, "keypad")))
 	{
-		dev->subtype_ = Device::SUBTYPE_PANDORA_HANDHELD;
+		devPtr->subtype_ = Device::SUBTYPE_PANDORA_HANDHELD;
 	}
 	if(notify)
-		onDeviceChange.callCopySafe(*dev, { Device::Change::ADDED });
+		onDeviceChange.callCopySafe(*devPtr, { Device::Change::ADDED });
 }
 
 static void removeXInputDevice(int xDeviceId)

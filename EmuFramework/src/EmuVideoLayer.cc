@@ -28,12 +28,7 @@
 
 EmuVideoLayer::EmuVideoLayer(EmuVideo &video):
 	video{video}
-{
-	disp.init({});
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setImageSize(video.renderer(), video.size());
-	#endif
-}
+{}
 
 void EmuVideoLayer::resetImage()
 {

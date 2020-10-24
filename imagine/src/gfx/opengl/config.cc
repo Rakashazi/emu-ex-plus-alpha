@@ -35,7 +35,6 @@
 #endif
 
 #ifdef CAN_USE_EGL_SYNC
-#define EGL_EGLEXT_PROTOTYPES
 #include <EGL/eglext.h>
 	#ifdef CONFIG_MACHINE_PANDORA
 	using EGLSyncKHR = void*;
@@ -61,6 +60,12 @@
 	static EGLint (EGLAPIENTRY *eglClientWaitSyncFunc)(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTime timeout){};
 	static EGLint (EGLAPIENTRY *eglWaitSyncFunc)(EGLDisplay dpy, EGLSync sync, EGLint flags){};
 	#else
+	extern "C" {
+	EGLAPI EGLSyncKHR EGLAPIENTRY eglCreateSyncKHR (EGLDisplay dpy, EGLenum type, const EGLint *attrib_list);
+	EGLAPI EGLBoolean EGLAPIENTRY eglDestroySyncKHR (EGLDisplay dpy, EGLSyncKHR sync);
+	EGLAPI EGLint EGLAPIENTRY eglClientWaitSyncKHR (EGLDisplay dpy, EGLSyncKHR sync, EGLint flags, EGLTimeKHR timeout);
+	EGLAPI EGLint EGLAPIENTRY eglWaitSyncKHR (EGLDisplay dpy, EGLSyncKHR sync, EGLint flags);
+	}
 	#define eglCreateSyncFunc eglCreateSyncKHR
 	#define eglDestroySyncFunc eglDestroySyncKHR
 	#define eglClientWaitSyncFunc eglClientWaitSyncKHR
@@ -189,42 +194,6 @@ EGLImageKHR makeAndroidNativeBufferEGLImage(EGLDisplay dpy, EGLClientBuffer clie
 	};
 	return eglCreateImageKHR(dpy, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
 		clientBuff, eglImgAttrs);
-}
-
-GLuint defineEGLImageTexture(Renderer &r, EGLImageKHR eglImg, GLuint tex)
-{
-	if(r.support.hasEGLTextureStorage())
-	{
-		r.runGLTaskSync(
-			[=, &tex, EGLImageTargetTexStorageEXT = r.support.glEGLImageTargetTexStorageEXT]()
-			{
-				tex = makeGLTextureName(tex);
-				glBindTexture(GL_TEXTURE_2D, tex);
-				runGLChecked(
-					[&]()
-					{
-						EGLImageTargetTexStorageEXT(GL_TEXTURE_2D, (GLeglImageOES)eglImg, nullptr);
-					}, "glEGLImageTargetTexStorageEXT()");
-			});
-	}
-	else
-	{
-		r.runGLTaskSync(
-			[=, &tex]()
-			{
-				if(!tex) // texture storage is mutable, only need to make name once
-				{
-					glGenTextures(1, &tex);
-				}
-				glBindTexture(GL_TEXTURE_2D, tex);
-				runGLChecked(
-					[&]()
-					{
-						glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImg);
-					}, "glEGLImageTargetTexture2DOES()");
-			});
-	}
-	return tex;
 }
 #endif
 

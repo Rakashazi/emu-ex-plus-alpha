@@ -27,10 +27,10 @@ const uint32_t TexVertex::textureOffset = offsetof(TexVertex, u);
 const uint32_t ColTexVertex::colorOffset = offsetof(ColTexVertex, color);
 const uint32_t ColTexVertex::textureOffset = offsetof(ColTexVertex, u);
 
-static_assertIsPod(Vertex);
-static_assertIsPod(ColVertex);
-static_assertIsPod(TexVertex);
-static_assertIsPod(ColTexVertex);
+static_assertIsStandardLayout(Vertex);
+static_assertIsStandardLayout(ColVertex);
+static_assertIsStandardLayout(TexVertex);
+static_assertIsStandardLayout(ColTexVertex);
 
 static const GLenum GL_VERT_ARRAY_TYPE = GL_FLOAT;
 static const GLenum GL_TEX_ARRAY_TYPE = GL_FLOAT;
@@ -134,15 +134,6 @@ template<class Vtx>
 static void setPos(std::array<Vtx, 4> &v, GC x, GC y, GC x2, GC y2)
 {
 	setPos(v, x, y,  x, y2,  x2, y2,  x2, y);
-}
-
-template<class Vtx>
-static void mapImg(std::array<Vtx, 4> &v, GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV)
-{
-	v[0].u = leftTexU; v[0].v = bottomTexV; //BL
-	v[1].u = leftTexU; v[1].v = topTexV; //TL
-	v[2].u = rightTexU; v[2].v = bottomTexV; //BR
-	v[3].u = rightTexU; v[3].v = topTexV; //TR
 }
 
 template<class Vtx>

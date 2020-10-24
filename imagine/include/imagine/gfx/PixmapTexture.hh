@@ -17,58 +17,31 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/pixmap/PixmapDesc.hh>
+#include <imagine/gfx/TextureConfig.hh>
+#include <imagine/pixmap/Pixmap.hh>
+
+#ifdef CONFIG_GFX_OPENGL
+#include <imagine/gfx/opengl/GLPixmapTexture.hh>
+#endif
+
+class GfxImageSource;
 
 namespace Gfx
 {
 
-class TextureConfig
+class Renderer;
+class RendererCommands;
+
+class PixmapTexture: public PixmapTextureImpl
 {
 public:
-	constexpr TextureConfig() {}
-	constexpr TextureConfig(IG::PixmapDesc pixDesc): pixmapDesc_{pixDesc} {}
-
-	void setLevels(uint8_t levels)
-	{
-		levels_ = levels;
-	}
-
-	void setAllLevels()
-	{
-		levels_ = 0;
-	}
-
-	uint8_t levels()
-	{
-		return levels_;
-	}
-
-	void setWillGenerateMipmaps(bool on)
-	{
-		genMipmaps = on;
-		if(on)
-			setAllLevels();
-	}
-
-	bool willGenerateMipmaps() const
-	{
-		return genMipmaps;
-	}
-
-	void setPixmapDesc(IG::PixmapDesc pixDesc)
-	{
-		pixmapDesc_ = pixDesc;
-	}
-
-	IG::PixmapDesc pixmapDesc() const
-	{
-		return pixmapDesc_;
-	}
-
-private:
-	IG::PixmapDesc pixmapDesc_;
-	uint8_t levels_ = 1;
-	bool genMipmaps = false;
+	using PixmapTextureImpl::PixmapTextureImpl;
+	PixmapTexture(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr = nullptr);
+	PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
+	IG::ErrorCode setFormat(IG::PixmapDesc desc, uint8_t levels);
+	GTexCRect uvBounds() const;
+	IG::PixmapDesc usedPixmapDesc() const;
+	operator TextureSpan() const;
 };
 
 }

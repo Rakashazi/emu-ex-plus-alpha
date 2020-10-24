@@ -46,7 +46,8 @@ using GfxPoint = IG::Point2D<GC>;
 using GP = GfxPoint;
 using GCRect = IG::CoordinateRect<GC, true, true>;
 using GTexC = TextureCoordinate;
-using GTexCPoint = IG::Point2D<GTexC>;;
+using GTexCPoint = IG::Point2D<GTexC>;
+using GTexCRect = IG::Rect2<GTexC>;
 using Error = std::optional<std::runtime_error>;
 using DrawDelegate = DelegateFunc<void(Drawable drawable, Base::Window &win, SyncFence fence, RendererDrawTask task)>;
 using RenderTaskFuncDelegate = DelegateFunc<void(RendererTask &task)>;
@@ -138,16 +139,16 @@ using TextStringView = std::u16string_view;
 class TextureSpan
 {
 public:
-	constexpr TextureSpan(const Texture *tex = {}, IG::Rect2<GTexC> uv = {0., 0., 1., 1.}):
+	constexpr TextureSpan(const Texture *tex = {}, GTexCRect uv = {0., 0., 1., 1.}):
 		tex{tex}, uv{uv}
 	{}
 	const Texture *texture() const { return tex; }
-	IG::Rect2<GTexC> uvBounds() const { return uv; }
+	GTexCRect uvBounds() const { return uv; }
 	explicit operator bool() const { return tex; }
 
 protected:
 	const Texture *tex;
-	IG::Rect2<GTexC> uv;
+	GTexCRect uv;
 };
 
 enum class TextureBufferMode : uint8_t

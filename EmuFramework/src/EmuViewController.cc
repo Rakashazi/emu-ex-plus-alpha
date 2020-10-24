@@ -138,7 +138,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			}
 			return true;
 		}, 10);
-	if(!Base::Screen::supportsTimestamps())
+	if(!Base::Screen::supportsTimestamps() && (!Config::envIsLinux || viewAttach.window().screen()->frameRate() < 100.))
 	{
 		setUseRendererTime(true);
 	}

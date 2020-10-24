@@ -15,6 +15,7 @@
 
 #pragma once
 #include <imagine/gfx/GfxSprite.hh>
+#include <imagine/gfx/PixmapTexture.hh>
 #include <emuframework/EmuSystem.hh>
 
 class VController;

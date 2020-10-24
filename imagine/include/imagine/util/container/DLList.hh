@@ -351,13 +351,14 @@ public:
 	}
 
 	template <class... ARGS>
-	void emplace_back(ARGS&&... args)
+	T &emplace_back(ARGS&&... args)
 	{
 		if(!addToEnd())
 		{
 			bug_unreachable("out of space in list");
 		}
 		new(&back()) T(std::forward<ARGS>(args)...);
+		return back();
 	}
 
 	void pop_front()

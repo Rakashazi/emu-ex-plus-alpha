@@ -27,3 +27,6 @@ template<bool CONDITION, class T, T VALUE = T{}>
 using UseTypeIf = std::conditional_t<CONDITION, T, EmptyConstant<T, VALUE>>;
 
 }
+
+#define static_assertIsStandardLayout(type) static_assert(std::is_standard_layout_v<type>, #type " isn't standard-layout")
+#define static_assertHasTrivialDestructor(type) static_assert(std::is_trivially_destructible_v<type>, #type " has non-trivial destructor")

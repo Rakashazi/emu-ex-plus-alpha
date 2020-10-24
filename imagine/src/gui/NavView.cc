@@ -178,8 +178,8 @@ bool NavView::hasButtons() const
 BasicNavView::BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes):
 	NavView{attach, face}
 {
-	leftSpr.init({-.5, -.5, .5, .5});
-	rightSpr.init({-.5, -.5, .5, .5});
+	leftSpr = {{-.5, -.5, .5, .5}};
+	rightSpr = {{-.5, -.5, .5, .5}};
 	bool compiled = false;
 	if(backRes)
 	{

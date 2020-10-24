@@ -12,95 +12,96 @@ namespace Gfx
 class RendererCommands;
 
 template<class Vtx>
+static constexpr std::array<Vtx, 4> mapQuadUV(std::array<Vtx, 4> v, GTexCRect rect)
+{
+	v[0].u = rect.x;  v[0].v = rect.y2; //BL
+	v[1].u = rect.x;  v[1].v = rect.y;  //TL
+	v[2].u = rect.x2; v[2].v = rect.y2; //BR
+	v[3].u = rect.x2; v[3].v = rect.y;  //TR
+	return v;
+}
+
+template<class Vtx>
+static constexpr std::array<Vtx, 4> mapQuadPos(std::array<Vtx, 4> v, GP bl, GP tl, GP tr, GP br)
+{
+	v[0].x = bl.x; v[0].y = bl.y;
+	v[1].x = tl.x; v[1].y = tl.y;
+	v[2].x = br.x; v[2].y = br.y;
+	v[3].x = tr.x; v[3].y = tr.y;
+	return v;
+}
+
+template<class Vtx>
 class QuadGeneric
 {
 public:
 	constexpr QuadGeneric() {}
-	void init(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4);
-	void deinit();
-	void setPos(GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4);
+
+	constexpr QuadGeneric(GP bl, GP tl, GP tr, GP br)
+	{
+		setPos(bl, tl, tr, br);
+	}
+
+	constexpr QuadGeneric(GCRect posRect)
+	{
+		setPos(posRect);
+	}
+
+	constexpr QuadGeneric(GCRect posRect, GTexCRect uvRect)
+	{
+		setPos(posRect);
+		setUV(uvRect);
+	}
+
+	constexpr void setPos(GP bl, GP tl, GP tr, GP br)
+	{
+		v = mapQuadPos(v, bl, tl, tr, br);
+	}
+
+	constexpr void setPos(QuadGeneric quad)
+	{
+		setPos(
+			{quad.v[0].x, quad.v[0].y},
+			{quad.v[1].x, quad.v[1].y},
+			{quad.v[3].x, quad.v[3].y},
+			{quad.v[2].x, quad.v[2].y});
+	}
+
+	constexpr void setPos(GCRect rect)
+	{
+		setPos({rect.x, rect.y}, {rect.x, rect.y2}, {rect.x2, rect.y2}, {rect.x2, rect.y});
+	}
+
+	void setPos(IG::WindowRect b, ProjectionPlane proj);
+	void setPosRel(GC x, GC y, GC xSize, GC ySize);
+
+	constexpr void setUV(GTexCRect rect)
+	{
+		if constexpr(!Vtx::hasTexture)
+		{
+			return;
+		}
+		else
+		{
+			v = mapQuadUV(v, rect);
+		}
+	}
+
+	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges = EDGE_AI);
+	void setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32_t edges = EDGE_AI);
+	void setColorAlpha(ColorComp a, uint32_t edges = EDGE_AI);
 	void draw(RendererCommands &r) const;
-
-	// as rectangle
-	void init(GC x, GC y, GC x2, GC y2)
-	{
-		return init(x, y,  x, y2,  x2, y2,  x2, y);
-	}
-
-	void init(const GCRect &d)
-	{
-		return init(d.x, d.y, d.x2, d.y2);
-	}
-
-	void setPos(GC x, GC y, GC x2, GC y2)
-	{
-		setPos(x, y,  x, y2,  x2, y2,  x2, y);
-	}
-
-	void setPos(const QuadGeneric &quad)
-	{
-		v = quad.v;
-	}
-
-	void setPos(const IG::WindowRect &b, const ProjectionPlane &proj)
-	{
-		auto pos = proj.unProjectRect(b);
-		setPos(pos.x, pos.y, pos.x2, pos.y2);
-	}
-
-	void setPos(const GCRect &r)
-	{
-		setPos(r.x, r.y, r.x2, r.y2);
-	}
-
-	void setPosRel(GC x, GC y, GC xSize, GC ySize)
-	{
-		setPos(x, y, x+xSize, y+ySize);
-	}
-
-	static void draw(RendererCommands &cmds, const IG::WindowRect &b, const ProjectionPlane &proj)
-	{
-		draw(cmds, proj.unProjectRect(b));
-	}
-
-	static void draw(RendererCommands &cmds, const GCRect &d)
-	{
-		QuadGeneric<Vtx> rect;
-		rect.init(d);
-		rect.draw(cmds);
-	}
+	static void draw(RendererCommands &cmds, IG::WindowRect b, ProjectionPlane proj);
+	static void draw(RendererCommands &cmds, GCRect d);
 
 protected:
-	std::array<Vtx, 4> v;
+	std::array<Vtx, 4> v{};
 };
 
 using Quad = QuadGeneric<Vertex>;
-
-class TexQuad : public QuadGeneric<TexVertex>
-{
-public:
-	constexpr TexQuad() { }
-	void mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV);
-};
-
-class ColQuad : public QuadGeneric<ColVertex>
-{
-public:
-	constexpr ColQuad() { }
-	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges = EDGE_AI);
-	void setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32_t edges = EDGE_AI);
-	void setColorAlpha(ColorComp a, uint32_t edges = EDGE_AI);
-};
-
-class ColTexQuad : public QuadGeneric<ColTexVertex>
-{
-public:
-	constexpr ColTexQuad() { }
-	void mapImg(GTexC leftTexU, GTexC topTexV, GTexC rightTexU, GTexC bottomTexV);
-	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges = EDGE_AI);
-	void setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32_t edges = EDGE_AI);
-	void setColorAlpha(ColorComp a, uint32_t edges = EDGE_AI);
-};
+using TexQuad = QuadGeneric<TexVertex>;
+using ColQuad = QuadGeneric<ColVertex>;
+using ColTexQuad = QuadGeneric<ColTexVertex>;
 
 std::array<Vertex, 4> makeVertArray(GCRect pos);
 std::array<ColVertex, 4> makeColVertArray(GCRect pos, VertexColor col);

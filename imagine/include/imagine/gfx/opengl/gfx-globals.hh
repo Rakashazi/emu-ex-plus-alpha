@@ -64,11 +64,11 @@ static constexpr auto VertexColorPixelFormat = IG::PIXEL_DESC_ABGR8888;
 class VertexInfo
 {
 public:
-	static const uint32_t posOffset = 0;
+	static constexpr uint32_t posOffset = 0;
 	static constexpr bool hasColor = false;
-	static const uint32_t colorOffset = 0;
+	static constexpr uint32_t colorOffset = 0;
 	static constexpr bool hasTexture = false;
-	static const uint32_t textureOffset = 0;
+	static constexpr uint32_t textureOffset = 0;
 	template<class Vtx>
 	static void bindAttribs(RendererCommands &cmds, const Vtx *v);
 };
@@ -76,10 +76,10 @@ public:
 class Vertex : public VertexInfo
 {
 public:
-	VertexPos x,y;
+	VertexPos x{}, y{};
 
-	Vertex() = default;
-	Vertex(VertexPos x, VertexPos y):
+	constexpr Vertex() {};
+	constexpr Vertex(VertexPos x, VertexPos y):
 		x{x}, y{y} {}
 	static constexpr uint32_t ID = 1;
 };
@@ -87,10 +87,10 @@ public:
 class ColVertex : public VertexInfo
 {
 public:
-	VertexPos x,y;
-	VertexColor color;
+	VertexPos x{}, y{};
+	VertexColor color{};
 
-	ColVertex() = default;
+	constexpr ColVertex() {};
 	constexpr ColVertex(VertexPos x, VertexPos y, uint32_t color = 0):
 		x{x}, y{y}, color(color) {}
 	static constexpr bool hasColor = true;
@@ -101,10 +101,10 @@ public:
 class TexVertex : public VertexInfo
 {
 public:
-	VertexPos x,y;
-	TextureCoordinate u,v;
+	VertexPos x{}, y{};
+	TextureCoordinate u{}, v{};
 
-	TexVertex() = default;
+	constexpr TexVertex() {};
 	constexpr TexVertex(VertexPos x, VertexPos y, TextureCoordinate u = 0, TextureCoordinate v = 0):
 		x{x}, y{y}, u{u}, v{v} {}
 	static constexpr bool hasTexture = true;
@@ -115,11 +115,11 @@ public:
 class ColTexVertex : public VertexInfo
 {
 public:
-	VertexPos x, y;
-	TextureCoordinate u, v;
-	VertexColor color;
+	VertexPos x{}, y{};
+	TextureCoordinate u{}, v{};
+	VertexColor color{};
 
-	ColTexVertex() = default;
+	constexpr ColTexVertex() {};
 	constexpr ColTexVertex(VertexPos x, VertexPos y, uint32_t color = 0, TextureCoordinate u = 0, TextureCoordinate v = 0):
 		x{x}, y{y}, u{u}, v{v}, color(color) {}
 	static constexpr bool hasColor = true;
@@ -137,8 +137,6 @@ public:
 	constexpr ClipRect() {};
 	constexpr ClipRect(int x, int y, int w, int h): rect{x, y, w, h} {}
 };
-
-enum { TEX_UNSET, TEX_2D_1, TEX_2D_2, TEX_2D_4, TEX_2D_EXTERNAL };
 
 using Drawable = Base::GLDrawable;
 

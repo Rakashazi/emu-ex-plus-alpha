@@ -22,16 +22,16 @@ struct AHardwareBuffer;
 namespace Gfx
 {
 
-class AHardwareBufferStorage: public DirectTextureStorage
+class AHardwareBufferStorage: public TextureBufferStorage
 {
 public:
-	AHardwareBufferStorage();
+	AHardwareBufferStorage(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr);
 	AHardwareBufferStorage(AHardwareBufferStorage &&o);
 	~AHardwareBufferStorage();
 	AHardwareBufferStorage &operator=(AHardwareBufferStorage &&o);
-	IG::ErrorCode setFormat(Renderer &r, IG::PixmapDesc desc, GLuint &tex) final;
-	Buffer lock(Renderer &r) final;
-	void unlock(Renderer &r) final;
+	IG::ErrorCode setFormat(IG::PixmapDesc desc) final;
+	LockedTextureBuffer lock(uint32_t bufferFlags) final;
+	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
 
 protected:
 	AHardwareBuffer *hBuff{};

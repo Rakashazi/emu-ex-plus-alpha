@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/io/IO.hh>
 #include <imagine/font/Font.hh>
-#include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/PixmapTexture.hh>
 #include <imagine/util/container/VMemArray.hh>
 #include <system_error>
 #include <memory>

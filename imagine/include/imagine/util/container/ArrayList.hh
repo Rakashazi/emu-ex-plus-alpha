@@ -140,11 +140,13 @@ public:
 	}
 
 	template <class... ARGS>
-	void emplace_back(ARGS&&... args)
+	T &emplace_back(ARGS&&... args)
 	{
 		assert(size_ < max_size());
-		new(&data()[size_]) T(std::forward<ARGS>(args)...);
+		auto newAddr = &data()[size_];
+		new(newAddr) T(std::forward<ARGS>(args)...);
 		size_++;
+		return *newAddr;
 	}
 
 	iterator insert(const_iterator position, const T& val)

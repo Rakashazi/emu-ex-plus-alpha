@@ -53,7 +53,7 @@ public:
 	void setBitDepth(Gfx::Renderer &r, uint bitDepth);
 	Gfx::Program &program();
 	Gfx::Texture &renderTarget();
-	void drawRenderTarget(Gfx::RendererCommands &cmds, Gfx::Texture &img);
+	void drawRenderTarget(Gfx::RendererCommands &cmds, const Gfx::Texture &img);
 	void deinit(Gfx::Renderer &r);
 
 private:

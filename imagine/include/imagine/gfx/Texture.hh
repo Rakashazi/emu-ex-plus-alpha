@@ -63,20 +63,22 @@ public:
 	static constexpr uint32_t BUFFER_FLAG_CLEARED = IG::bit(0);
 
 	using TextureImpl::TextureImpl;
+	Texture(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr = nullptr);
+	Texture(Renderer &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
 	Texture(Texture &&o);
 	Texture &operator=(Texture &&o);
 	static uint8_t bestAlignment(IG::Pixmap pixmap);
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
-	uint32_t levels() const;
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, uint16_t levels);
-	void write(uint16_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t writeFlags = 0);
-	void writeAligned(uint16_t level, IG::Pixmap pixmap, IG::WP destPos, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
-	void clear(uint16_t level);
-	LockedTextureBuffer lock(uint16_t level, uint32_t bufferFlags = 0);
-	LockedTextureBuffer lock(uint16_t level, IG::WindowRect rect, uint32_t bufferFlags = 0);
+	uint8_t levels() const;
+	IG::ErrorCode setFormat(IG::PixmapDesc desc, uint8_t levels);
+	void write(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t writeFlags = 0);
+	void writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
+	void clear(uint8_t level);
+	LockedTextureBuffer lock(uint8_t level, uint32_t bufferFlags = 0);
+	LockedTextureBuffer lock(uint8_t level, IG::WindowRect rect, uint32_t bufferFlags = 0);
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
-	IG::WP size(uint16_t level) const;
+	IG::WP size(uint8_t level) const;
 	IG::PixmapDesc pixmapDesc() const;
 	bool compileDefaultProgram(uint32_t mode) const;
 	bool compileDefaultProgramOneShot(uint32_t mode) const;
@@ -85,18 +87,6 @@ public:
 	void useDefaultProgram(RendererCommands &cmds, uint32_t mode, Mat4 modelMat) const { useDefaultProgram(cmds, mode, &modelMat); }
 	explicit operator bool() const;
 	Renderer &renderer();
-	operator TextureSpan() const;
-};
-
-class PixmapTexture: public Texture, public PixmapTextureImpl
-{
-public:
-	constexpr PixmapTexture() {}
-	PixmapTexture(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr = nullptr);
-	PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, uint32_t levels);
-	IG::Rect2<GTexC> uvBounds() const;
-	IG::PixmapDesc usedPixmapDesc() const;
 	operator TextureSpan() const;
 };
 

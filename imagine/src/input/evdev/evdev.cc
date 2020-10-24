@@ -370,8 +370,7 @@ static bool processDevNode(const char *path, int id, bool notify)
 		logWarn("unable to get device name");
 		string_copy(nameStr, "Unknown");
 	}
-	evDevice.emplace_back(std::make_unique<EvdevInputDevice>(id, fd, Device::TYPE_BIT_GAMEPAD, nameStr.data()));
-	auto &evDev = evDevice.back();
+	auto &evDev = evDevice.emplace_back(std::make_unique<EvdevInputDevice>(id, fd, Device::TYPE_BIT_GAMEPAD, nameStr.data()));
 	bool isJoystick = evDev->setupJoystickBits();
 
 	fd_setNonblock(fd, 1);

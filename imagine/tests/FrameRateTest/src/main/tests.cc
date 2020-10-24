@@ -242,7 +242,7 @@ void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferM
 	texture.unlock(lockedBuff);
 	texture.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);
 	texture.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
-	sprite.init({}, texture);
+	sprite = {{}, texture};
 	r.makeCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
 }
 

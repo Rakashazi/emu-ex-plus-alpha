@@ -43,17 +43,25 @@ static void dlsymFunc(T &funcPtr, const char *funcName)
 	funcPtr = (T)dlsym(RTLD_DEFAULT, funcName);
 }
 
-AHardwareBufferStorage::AHardwareBufferStorage()
+AHardwareBufferStorage::AHardwareBufferStorage(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr):
+	TextureBufferStorage{r}
 {
-	if(AHardwareBuffer_allocate)
-		return;
-	logMsg("loading AHardwareBuffer functions");
-	dlsymFunc(AHardwareBuffer_allocate, "AHardwareBuffer_allocate");
-	dlsymFunc(AHardwareBuffer_release, "AHardwareBuffer_release");
-	dlsymFunc(AHardwareBuffer_describe, "AHardwareBuffer_describe");
-	dlsymFunc(AHardwareBuffer_lock, "AHardwareBuffer_lock");
-	dlsymFunc(AHardwareBuffer_unlock, "AHardwareBuffer_unlock");
-	dlsymFunc(eglGetNativeClientBufferANDROID, "eglGetNativeClientBufferANDROID");
+	if(!AHardwareBuffer_allocate)
+	{
+		logMsg("loading AHardwareBuffer functions");
+		dlsymFunc(AHardwareBuffer_allocate, "AHardwareBuffer_allocate");
+		dlsymFunc(AHardwareBuffer_release, "AHardwareBuffer_release");
+		dlsymFunc(AHardwareBuffer_describe, "AHardwareBuffer_describe");
+		dlsymFunc(AHardwareBuffer_lock, "AHardwareBuffer_lock");
+		dlsymFunc(AHardwareBuffer_unlock, "AHardwareBuffer_unlock");
+		dlsymFunc(eglGetNativeClientBufferANDROID, "eglGetNativeClientBufferANDROID");
+	}
+	config = baseInit(r, config);
+	auto err = setFormat(config.pixmapDesc());
+	if(unlikely(err && errorPtr))
+	{
+		*errorPtr = err;
+	}
 }
 
 AHardwareBufferStorage::AHardwareBufferStorage(AHardwareBufferStorage &&o)
@@ -77,7 +85,7 @@ void AHardwareBufferStorage::deinit()
 AHardwareBufferStorage &AHardwareBufferStorage::operator=(AHardwareBufferStorage &&o)
 {
 	deinit();
-	DirectTextureStorage::operator=(o);
+	TextureBufferStorage::operator=(std::move(o));
 	hBuff = std::exchange(o.hBuff, {});
 	pitchBytes = std::exchange(o.pitchBytes, {});
 	return *this;
@@ -97,7 +105,7 @@ static AHardwareBuffer *makeAHardwareBuffer(IG::PixmapDesc desc, uint32_t usage)
 	return newBuff;
 }
 
-IG::ErrorCode AHardwareBufferStorage::setFormat(Renderer &r, IG::PixmapDesc desc, GLuint &tex)
+IG::ErrorCode AHardwareBufferStorage::setFormat(IG::PixmapDesc desc)
 {
 	deinit();
 	if(auto newBuff = makeAHardwareBuffer(desc, allocateUsage);
@@ -122,25 +130,25 @@ IG::ErrorCode AHardwareBufferStorage::setFormat(Renderer &r, IG::PixmapDesc desc
 		logErr("error creating EGL image");
 		return {EINVAL};
 	}
-	tex = defineEGLImageTexture(r, eglImg, tex);
+	setFromEGLImage(desc.size(), eglImg, desc);
 	eglDestroyImageKHR(dpy, eglImg);
 	pitchBytes = hardwareDesc.stride * desc.format().bytesPerPixel();
 	return {};
 }
 
-AHardwareBufferStorage::Buffer AHardwareBufferStorage::lock(Renderer &)
+LockedTextureBuffer AHardwareBufferStorage::lock(uint32_t bufferFlags)
 {
 	assert(hBuff);
-	Buffer buff{nullptr, pitchBytes};
-	if(unlikely(AHardwareBuffer_lock(hBuff, lockUsage, -1, nullptr, &buff.data) != 0))
+	void *buff{};
+	if(unlikely(AHardwareBuffer_lock(hBuff, lockUsage, -1, nullptr, &buff) != 0))
 	{
 		logErr("error locking");
 		return {};
 	}
-	return buff;
+	return makeLockedBuffer(buff, pitchBytes, bufferFlags);
 }
 
-void AHardwareBufferStorage::unlock(Renderer &)
+void AHardwareBufferStorage::unlock(LockedTextureBuffer, uint32_t)
 {
 	assert(hBuff);
 	AHardwareBuffer_unlock(hBuff, nullptr);

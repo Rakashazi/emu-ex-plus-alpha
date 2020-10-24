@@ -32,8 +32,7 @@ static constexpr uint CHANGE_KEYBOARD_MODE = 65537;
 void VControllerDPad::setImg(Gfx::Renderer &r, Gfx::Texture &dpadR, Gfx::GTexC texHeight)
 {
 	using namespace Gfx;
-	spr.init({-.5, -.5, .5, .5,});
-	spr.setImg({&dpadR, {0., 0., 1., 64._gtexc/texHeight}});
+	spr = {{-.5, -.5, .5, .5,}, {&dpadR, {0., 0., 1., 64._gtexc/texHeight}}};
 	spr.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
 }
 
@@ -54,7 +53,7 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, const AppWindowDat
 			}
 		mapImg = r.makePixmapTexture({mapPix});
 		mapImg.write(0, mapPix, {});
-		mapSpr.init({}, mapImg);
+		mapSpr = {{}, mapImg};
 		mapSpr.setPos(padArea, winData.projectionPlane);
 	}
 }
@@ -123,7 +122,7 @@ void VControllerDPad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, const Ap
 		if(mapSpr.image())
 		{
 			logMsg("deallocating bounding box display resources");
-			mapSpr.deinit();
+			mapSpr = {};
 			mapImg = {};
 		}
 	}
@@ -188,7 +187,7 @@ void VControllerKeyboard::updateImg(Gfx::Renderer &r)
 
 void VControllerKeyboard::setImg(Gfx::Renderer &r, Gfx::TextureSpan img)
 {
-	spr.init({-.5, -.5, .5, .5}, img);
+	spr = {{-.5, -.5, .5, .5}, img};
 	texXEnd = img.uvBounds().x2;
 	updateImg(r);
 }
@@ -490,7 +489,7 @@ void VControllerGamepad::setImg(Gfx::Renderer &r, Gfx::Texture &pics)
 	dp.setImg(r, pics, h);
 	iterateTimes(EmuSystem::inputCenterBtns, i)
 	{
-		centerBtnSpr[i].init({});
+		centerBtnSpr[i] = {};
 	}
 	centerBtnSpr[0].setImg({&pics, {0., 65._gtexc/h, 32./64., 81._gtexc/h}});
 	if(EmuSystem::inputCenterBtns == 2)
@@ -500,7 +499,7 @@ void VControllerGamepad::setImg(Gfx::Renderer &r, Gfx::Texture &pics)
 
 	iterateTimes(EmuSystem::inputFaceBtns, i)
 	{
-		circleBtnSpr[i].init({});
+		circleBtnSpr[i] = {};
 	}
 	if(EmuSystem::inputFaceBtns == 2)
 	{
@@ -1292,12 +1291,12 @@ void VController::updateKeyboardMapping()
 
 void VController::setMenuImage(Gfx::TextureSpan img)
 {
-	menuBtnSpr.init({}, img);
+	menuBtnSpr = {{}, img};
 }
 
 void VController::setFastForwardImage(Gfx::TextureSpan img)
 {
-	ffBtnSpr.init({}, img);
+	ffBtnSpr = {{}, img};
 }
 
 void VController::setKeyboardImage(Gfx::TextureSpan img)

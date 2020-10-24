@@ -310,8 +310,8 @@ void BluezBluetoothAdapter::setL2capService(uint32_t psm, bool active, OnStatusD
 		return;
 	}
 
-	serverList.emplace_back(psm, serverFd);
-	serverList.back().connectSrc = {serverFd, {},
+	auto &server = serverList.emplace_back(psm, serverFd);
+	server.connectSrc = {serverFd, {},
 		[this](int fd, int events)
 		{
 			logMsg("incoming l2cap connection from server fd %d", fd);

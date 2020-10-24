@@ -17,58 +17,32 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/pixmap/PixmapDesc.hh>
+#include <imagine/gfx/TextureConfig.hh>
+#include <imagine/gfx/Texture.hh>
 
 namespace Gfx
 {
 
-class TextureConfig
+class Renderer;
+class PixmapTexture;
+
+class GLPixmapTexture : public Texture
 {
 public:
-	constexpr TextureConfig() {}
-	constexpr TextureConfig(IG::PixmapDesc pixDesc): pixmapDesc_{pixDesc} {}
+	using Texture::Texture;
+	constexpr GLPixmapTexture() {}
+	IG::ErrorCode init(Renderer &r, TextureConfig config);
+	void updateUsedPixmapSize(IG::WP usedSize, IG::WP fullSize);
+	void updateFormatInfo(IG::WP usedSize, IG::PixmapDesc desc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
+	#ifdef __ANDROID__
+	void setFromEGLImage(IG::WP usedSize, EGLImageKHR eglImg, IG::PixmapDesc desc);
+	#endif
 
-	void setLevels(uint8_t levels)
-	{
-		levels_ = levels;
-	}
-
-	void setAllLevels()
-	{
-		levels_ = 0;
-	}
-
-	uint8_t levels()
-	{
-		return levels_;
-	}
-
-	void setWillGenerateMipmaps(bool on)
-	{
-		genMipmaps = on;
-		if(on)
-			setAllLevels();
-	}
-
-	bool willGenerateMipmaps() const
-	{
-		return genMipmaps;
-	}
-
-	void setPixmapDesc(IG::PixmapDesc pixDesc)
-	{
-		pixmapDesc_ = pixDesc;
-	}
-
-	IG::PixmapDesc pixmapDesc() const
-	{
-		return pixmapDesc_;
-	}
-
-private:
-	IG::PixmapDesc pixmapDesc_;
-	uint8_t levels_ = 1;
-	bool genMipmaps = false;
+protected:
+	GTexCPoint uv{};
+	IG::WP usedSize{};
 };
+
+using PixmapTextureImpl = GLPixmapTexture;
 
 }

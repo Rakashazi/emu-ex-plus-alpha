@@ -28,7 +28,16 @@ static constexpr uint32_t lockUsage = GRALLOC_USAGE_SW_WRITE_OFTEN;
 
 bool GraphicBufferStorage::testPassed_ = false;
 
-GraphicBufferStorage::GraphicBufferStorage() {}
+GraphicBufferStorage::GraphicBufferStorage(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr):
+	TextureBufferStorage{r}
+{
+	config = baseInit(r, config);
+	auto err = setFormat(config.pixmapDesc());
+	if(unlikely(err && errorPtr))
+	{
+		*errorPtr = err;
+	}
+}
 
 GraphicBufferStorage::GraphicBufferStorage(GraphicBufferStorage &&o)
 {
@@ -37,13 +46,13 @@ GraphicBufferStorage::GraphicBufferStorage(GraphicBufferStorage &&o)
 
 GraphicBufferStorage &GraphicBufferStorage::operator=(GraphicBufferStorage &&o)
 {
-	DirectTextureStorage::operator=(o);
+	TextureBufferStorage::operator=(std::move(o));
 	gBuff = std::move(o.gBuff);
 	pitchBytes = std::exchange(o.pitchBytes, {});
 	return *this;
 }
 
-IG::ErrorCode GraphicBufferStorage::setFormat(Renderer &r, IG::PixmapDesc desc, GLuint &tex)
+IG::ErrorCode GraphicBufferStorage::setFormat(IG::PixmapDesc desc)
 {
 	auto androidFormat = Base::toAHardwareBufferFormat(desc.format());
 	assert(androidFormat);
@@ -61,26 +70,26 @@ IG::ErrorCode GraphicBufferStorage::setFormat(Renderer &r, IG::PixmapDesc desc, 
 		logErr("error creating EGL image");
 		return {EINVAL};
 	}
-	tex = defineEGLImageTexture(r, eglImg, tex);
+	GLPixmapTexture::setFromEGLImage(desc.size(), eglImg, desc);
 	eglDestroyImageKHR(dpy, eglImg);
 	pitchBytes = gBuff.getStride() * desc.format().bytesPerPixel();
 	return {};
 }
 
-GraphicBufferStorage::Buffer GraphicBufferStorage::lock(Renderer &)
+LockedTextureBuffer GraphicBufferStorage::lock(uint32_t bufferFlags)
 {
 	assert(gBuff.handle);
-	Buffer buff{nullptr, pitchBytes};
-	if(unlikely(!gBuff.lock(lockUsage, &buff.data)))
+	void *buff{};
+	if(unlikely(!gBuff.lock(lockUsage, &buff)))
 	{
 		logErr("error locking");
 		return {};
 	}
-	//buff.data = (char*)buff.data + (rect->y * buff.pitchBytes + rect->x * bpp);
-	return buff;
+	//buff = (char*)buff + (rect->y * buff.pitchBytes + rect->x * bpp);
+	return makeLockedBuffer(buff, pitchBytes, bufferFlags);
 }
 
-void GraphicBufferStorage::unlock(Renderer &)
+void GraphicBufferStorage::unlock(LockedTextureBuffer, uint32_t)
 {
 	assert(gBuff.handle);
 	gBuff.unlock();

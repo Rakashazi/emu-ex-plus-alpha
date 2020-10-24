@@ -75,7 +75,7 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, unsigned effect_)
 		bcase CRT_RGB ... CRT_RGB_2:
 			pix = {{{16, 2}, IG::PIXEL_RGBA8888}, crtRgbPixmapBuff};
 		bdefault: // turn off effect
-			spr.deinit();
+			spr = {};
 			img = {};
 			return;
 	}
@@ -85,7 +85,7 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, unsigned effect_)
 	img = r.makeTexture(texConf);
 	img.write(0, pix, {});
 	img.generateMipmaps();
-	spr.init({}, img);
+	spr = {{}, img};
 	spr.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
 }
 
