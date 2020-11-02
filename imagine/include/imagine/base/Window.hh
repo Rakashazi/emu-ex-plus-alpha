@@ -59,6 +59,7 @@ public:
 	{
 		return static_cast<T*>(customDataPtr);
 	}
+	void setIntendedFrameRate(double rate);
 
 	// Called when the state of the window's drawing surface changes,
 	// such as a re-size or if it becomes the current drawing target

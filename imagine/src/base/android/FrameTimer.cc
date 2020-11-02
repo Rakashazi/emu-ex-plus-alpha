@@ -19,6 +19,7 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoop.hh>
+#include <imagine/base/sharedLibrary.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/algorithm.h>
@@ -27,7 +28,6 @@
 #include "android.hh"
 #include "../common/SimpleFrameTimer.hh"
 #include <android/choreographer.h>
-#include <dlfcn.h>
 
 namespace Base
 {
@@ -141,10 +141,10 @@ void ChoreographerFrameTimer::cancel()
 AChoreographerFrameTimer::AChoreographerFrameTimer()
 {
 	assumeExpr(Base::androidSDK() >= 24);
-	using GetInstanceFunc = AChoreographer* (*)();
-	GetInstanceFunc getInstance = (GetInstanceFunc)dlsym(RTLD_DEFAULT, "AChoreographer_getInstance");
+	AChoreographer* (*getInstance)(){};
+	Base::loadSymbol(getInstance, {}, "AChoreographer_getInstance");
 	assumeExpr(getInstance);
-	postFrameCallback = (PostFrameCallbackFunc)dlsym(RTLD_DEFAULT, "AChoreographer_postFrameCallback");
+	Base::loadSymbol(postFrameCallback, {}, "AChoreographer_postFrameCallback");
 	assumeExpr(postFrameCallback);
 	choreographer = getInstance();
 	assumeExpr(choreographer);

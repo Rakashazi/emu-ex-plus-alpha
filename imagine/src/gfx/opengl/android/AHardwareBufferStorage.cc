@@ -19,10 +19,10 @@
 #include "../utils.h"
 #include "../../../base/android/android.hh"
 #include <imagine/base/GLContext.hh>
+#include <imagine/base/sharedLibrary.hh>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <android/hardware_buffer.h>
-#include <dlfcn.h>
 
 namespace Gfx
 {
@@ -30,18 +30,12 @@ namespace Gfx
 static constexpr uint32_t allocateUsage = AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE;
 static constexpr uint32_t lockUsage = AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN;
 
-static int (*AHardwareBuffer_allocate)(const AHardwareBuffer_Desc* desc, AHardwareBuffer** outBuffer);
-static void (*AHardwareBuffer_release)(AHardwareBuffer* buffer);
-static void (*AHardwareBuffer_describe)(const AHardwareBuffer* buffer, AHardwareBuffer_Desc* outDesc);
-static int (*AHardwareBuffer_lock)(AHardwareBuffer* buffer, uint64_t usage, int32_t fence, const ARect* rect, void** outVirtualAddress);
-static int (*AHardwareBuffer_unlock)(AHardwareBuffer* buffer, int32_t* fence);
-static EGLClientBuffer (EGLAPIENTRYP eglGetNativeClientBufferANDROID)(const struct AHardwareBuffer *buffer);
-
-template<class T>
-static void dlsymFunc(T &funcPtr, const char *funcName)
-{
-	funcPtr = (T)dlsym(RTLD_DEFAULT, funcName);
-}
+static int (*AHardwareBuffer_allocate)(const AHardwareBuffer_Desc* desc, AHardwareBuffer** outBuffer){};
+static void (*AHardwareBuffer_release)(AHardwareBuffer* buffer){};
+static void (*AHardwareBuffer_describe)(const AHardwareBuffer* buffer, AHardwareBuffer_Desc* outDesc){};
+static int (*AHardwareBuffer_lock)(AHardwareBuffer* buffer, uint64_t usage, int32_t fence, const ARect* rect, void** outVirtualAddress){};
+static int (*AHardwareBuffer_unlock)(AHardwareBuffer* buffer, int32_t* fence){};
+static EGLClientBuffer (EGLAPIENTRYP eglGetNativeClientBufferANDROID)(const struct AHardwareBuffer *buffer){};
 
 AHardwareBufferStorage::AHardwareBufferStorage(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr):
 	TextureBufferStorage{r}
@@ -49,12 +43,12 @@ AHardwareBufferStorage::AHardwareBufferStorage(Renderer &r, TextureConfig config
 	if(!AHardwareBuffer_allocate)
 	{
 		logMsg("loading AHardwareBuffer functions");
-		dlsymFunc(AHardwareBuffer_allocate, "AHardwareBuffer_allocate");
-		dlsymFunc(AHardwareBuffer_release, "AHardwareBuffer_release");
-		dlsymFunc(AHardwareBuffer_describe, "AHardwareBuffer_describe");
-		dlsymFunc(AHardwareBuffer_lock, "AHardwareBuffer_lock");
-		dlsymFunc(AHardwareBuffer_unlock, "AHardwareBuffer_unlock");
-		dlsymFunc(eglGetNativeClientBufferANDROID, "eglGetNativeClientBufferANDROID");
+		Base::loadSymbol(AHardwareBuffer_allocate, {}, "AHardwareBuffer_allocate");
+		Base::loadSymbol(AHardwareBuffer_release, {}, "AHardwareBuffer_release");
+		Base::loadSymbol(AHardwareBuffer_describe, {}, "AHardwareBuffer_describe");
+		Base::loadSymbol(AHardwareBuffer_lock, {}, "AHardwareBuffer_lock");
+		Base::loadSymbol(AHardwareBuffer_unlock, {}, "AHardwareBuffer_unlock");
+		Base::loadSymbol(eglGetNativeClientBufferANDROID, {}, "eglGetNativeClientBufferANDROID");
 	}
 	config = baseInit(r, config);
 	auto err = setFormat(config.pixmapDesc());

@@ -26,25 +26,29 @@ final class DisplayListenerHelper
 {
 	private static final String logTag = "DisplayListenerHelper";
 	private DisplayManager displayManager;
-	private native void displayChange(int id, int change);
+	private native void displayAdd(int id, Display dpy, float refreshRate);
+	private native void displayChange(int id, float refreshRate);
+	private native void displayRemove(int id);
 	private final class Listener implements DisplayManager.DisplayListener
 	{
 		@Override public void onDisplayAdded(int deviceId)
 		{
 			//Log.i(logTag, "added id: " + deviceId);
-			displayChange(deviceId, 0);
+			Display dpy = displayManager.getDisplay(deviceId);
+			displayAdd(deviceId, dpy, dpy.getRefreshRate());
 		}
 
 		@Override public void onDisplayChanged(int deviceId)
 		{
 			//Log.i(logTag, "changed id: " + deviceId);
-			displayChange(deviceId, 1);
+			Display dpy = displayManager.getDisplay(deviceId);
+			displayChange(deviceId, dpy.getRefreshRate());
 		}
 		
 		@Override public void onDisplayRemoved(int deviceId)
 		{
 			//Log.i(logTag, "removed id: " + deviceId);
-			displayChange(deviceId, 2);
+			displayRemove(deviceId);
 		}
 	}
 	
@@ -53,11 +57,6 @@ final class DisplayListenerHelper
 		//Log.i(logTag, "registering input device listener");
 		displayManager = (DisplayManager)act.getSystemService(Context.DISPLAY_SERVICE);
 		displayManager.registerDisplayListener(new Listener(), null);
-	}
-	
-	Display getDisplay(int displayId)
-	{
-		return displayManager.getDisplay(displayId);
 	}
 	
 	Display[] getPresentationDisplays()

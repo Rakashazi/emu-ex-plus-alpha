@@ -39,6 +39,7 @@ static const int AINPUT_SOURCE_JOYSTICK = 0x01000010;
 static const int AINPUT_SOURCE_CLASS_JOYSTICK = 0x00000010;
 static int mostRecentKeyEventDevID = -1;
 static TouchStateArray m{};
+static const char* aInputSourceToStr(uint32_t source);
 
 static AndroidInputDevice *deviceForInputId(int id)
 {
@@ -301,7 +302,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 				}
 				default:
 				{
-					//logWarn("from other source: %s, %dx%d", aInputSourceToStr(source), (int)AMotionEvent_getX(event, 0), (int)AMotionEvent_getY(event, 0));
+					//logWarn("from other source:%s, %dx%d", aInputSourceToStr(source), (int)AMotionEvent_getX(event, 0), (int)AMotionEvent_getY(event, 0));
 					return false;
 				}
 			}
@@ -309,12 +310,12 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 		bcase AINPUT_EVENT_TYPE_KEY:
 		{
 			auto keyCode = AKeyEvent_getKeyCode(event);
-			if(Config::DEBUG_BUILD)
-			{
-				//logMsg("key event, code: %d id: %d repeat: %d action: %d", keyCode, AInputEvent_getDeviceId(event), AKeyEvent_getRepeatCount(event), AKeyEvent_getAction(event));
-			}
 			auto devID = AInputEvent_getDeviceId(event);
 			auto repeatCount = AKeyEvent_getRepeatCount(event);
+			if(Config::DEBUG_BUILD)
+			{
+				//logMsg("key event, code:%d id:%d repeat:%d action:%d", keyCode, devID, repeatCount, AKeyEvent_getAction(event));
+			}
 			auto keyWasReallyRepeated =
 				[](int devID, int mostRecentKeyEventDevID, int repeatCount)
 				{

@@ -31,12 +31,13 @@ class AndroidScreen : public NotEquals<AndroidScreen>
 public:
 	constexpr AndroidScreen() {}
 
-	void init(JNIEnv *env, jobject aDisplay, jobject metrics, bool isMain);
+	void init(JNIEnv *env, jobject aDisplay, jobject metrics, int id, float refreshRate);
 	SurfaceRotation rotation(JNIEnv *env) const;
 	std::pair<float, float> dpi() const;
 	float densityDPI() const;
 	jobject displayObject() const;
 	int id() const;
+	void updateRefreshRate(float refreshRate);
 	bool operator ==(AndroidScreen const &rhs) const;
 	explicit operator bool() const;
 

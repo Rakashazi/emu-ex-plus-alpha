@@ -77,9 +77,9 @@ Gfx::Renderer renderer;
 static Gfx::RendererTask rendererTask{renderer};
 static AppWindowData mainWin{};
 static EmuSystemTask emuSystemTask{};
-EmuViewController emuViewController{mainWin, renderer, rendererTask, vController, emuVideoLayer, emuSystemTask};
 EmuVideo emuVideo{rendererTask};
-EmuVideoLayer emuVideoLayer{emuVideo};
+static EmuVideoLayer emuVideoLayer{emuVideo};
+EmuViewController emuViewController{mainWin, renderer, rendererTask, vController, emuVideoLayer, emuSystemTask};
 EmuAudio emuAudio{};
 DelegateFunc<void ()> onUpdateInputDevices{};
 #ifdef CONFIG_BLUETOOTH
@@ -210,6 +210,11 @@ IG::PixelFormat EmuApp::defaultRenderPixelFormat()
 		fmt = Base::Window::defaultPixelFormat();
 	}
 	return fmt;
+}
+
+void EmuApp::resetVideo()
+{
+	EmuSystem::prepareVideo(emuVideo);
 }
 
 void mainInitCommon(int argc, char** argv)
@@ -482,7 +487,7 @@ void onSelectFileFromPicker(const char* name, Input::Event e)
 void runBenchmarkOneShot()
 {
 	logMsg("starting benchmark");
-	IG::FloatSeconds time = EmuSystem::benchmark();
+	IG::FloatSeconds time = EmuSystem::benchmark(emuVideo);
 	emuViewController.closeSystem(false);
 	logMsg("done in: %f", time.count());
 	EmuApp::printfMessage(2, 0, "%.2f fps", double(180.)/time.count());
@@ -556,7 +561,7 @@ void EmuApp::reloadGame()
 	EmuSystem::createWithMedia({}, gamePath.data(), "", err, [](int pos, int max, const char *label){ return true; });
 	if(!err)
 	{
-		EmuSystem::prepareAudioVideo();
+		EmuSystem::prepareAudioVideo(emuAudio, emuVideo);
 		emuViewController.onSystemCreated();
 		emuViewController.showEmulation();
 	}

@@ -15,8 +15,8 @@
 
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuAudio.hh>
 #include "EmuOptions.hh"
-#include "private.hh"
 
 static void setAudioRate(uint32_t rate)
 {
@@ -31,10 +31,10 @@ static void setSoundBuffers(int val)
 	optionSoundBuffers = val;
 }
 
-static void setSoundVolume(uint8_t val)
+static void setSoundVolume(uint8_t val, EmuAudio &audio)
 {
 	optionSoundVolume = val;
-	emuAudio.setVolume(val);
+	audio.setVolume(val);
 }
 
 AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
@@ -47,9 +47,9 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			setSoundEnabled(item.flipBoolValue(*this));
 			if(item.boolValue())
-				emuAudio.open(audioOutputAPI());
+				audio->open(audioOutputAPI());
 			else
-				emuAudio.close();
+				audio->close();
 		}
 	},
 	soundDuringFastForward
@@ -63,9 +63,9 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	soundVolumeItem
 	{
-		{"100%", [this]() { setSoundVolume(100); }},
-		{"50%", [this]() { setSoundVolume(50); }},
-		{"25%", [this]() { setSoundVolume(25); }},
+		{"100%", [this]() { setSoundVolume(100, *audio); }},
+		{"50%", [this]() { setSoundVolume(50, *audio); }},
+		{"25%", [this]() { setSoundVolume(25, *audio); }},
 		{"Custom Value",
 			[this](Input::Event e)
 			{
@@ -74,7 +74,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 					{
 						if(optionSoundVolume.isValidVal(val))
 						{
-							setSoundVolume(val);
+							setSoundVolume(val, *audio);
 							soundVolume.setSelected(std::size(soundVolumeItem) - 1, *this);
 							dismissPrevious();
 							return true;
@@ -139,7 +139,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionAddSoundBuffersOnUnderrun = item.flipBoolValue(*this);
-			emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
+			audio->setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
 		}
 	},
 	audioRate
@@ -174,7 +174,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			optionAudioAPI = 0;
 			auto defaultApi = IG::Audio::makeValidAPI();
-			emuAudio.open(defaultApi);
+			audio->open(defaultApi);
 			api.setSelected(idxOfAPI(defaultApi, IG::Audio::audioAPIs()));
 			view.dismiss();
 			return false;
@@ -185,7 +185,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			[this, api = desc.api]()
 			{
 				optionAudioAPI = (uint8_t)api;
-				emuAudio.open(api);
+				audio->open(api);
 			});
 	}
 	#endif
@@ -232,6 +232,11 @@ void AudioOptionView::loadStockItems()
 		api.setSelected(idxOfAPI(IG::Audio::makeValidAPI(audioOutputAPI()), std::move(apiVec)));
 	}
 	#endif
+}
+
+void AudioOptionView::setEmuAudio(EmuAudio &audio_)
+{
+	audio = &audio_;
 }
 
 void AudioOptionView::updateAudioRateItem()

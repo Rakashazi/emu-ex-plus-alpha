@@ -16,6 +16,7 @@
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/FilePicker.hh>
 #include "EmuOptions.hh"
@@ -232,7 +233,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 					bcase guiKeyIdxGameScreenshot:
 					if(e.pushed())
 					{
-						emuVideo.takeGameScreenshot();
+						videoLayer.emuVideo().takeGameScreenshot();
 						return true;
 					}
 

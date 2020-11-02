@@ -18,6 +18,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuVideoLayer.hh>
+#include <emuframework/EmuMainMenuView.hh>
 #include <emuframework/FilePicker.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/gfx/Renderer.hh>
@@ -185,7 +186,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			uint32_t framesToEmulate = std::min(framesAdvanced, maxFrameSkip);
 			emuVideoInProgress = true;
 			EmuAudio *audioPtr = emuAudio ? &emuAudio : nullptr;
-			systemTask->runFrame(&emuVideo, audioPtr, framesToEmulate, skipForward);
+			systemTask->runFrame(&videoLayer().emuVideo(), audioPtr, framesToEmulate, skipForward);
 			return true;
 		};
 
@@ -220,7 +221,9 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	viewStack.showNavView(optionTitleBar);
 	emuView.setLayoutInputView(&inputView());
 	placeElements();
-	pushAndShow(makeEmuView(viewAttach, EmuApp::ViewID::MAIN_MENU), Input::defaultEvent());
+	auto mainMenu = makeEmuView(viewAttach, EmuApp::ViewID::MAIN_MENU);
+	static_cast<EmuMainMenuView*>(mainMenu.get())->setAudioVideo(emuAudio, videoLayer());
+	pushAndShow(std::move(mainMenu), Input::defaultEvent());
 	applyFrameRates();
 	videoLayer().emuVideo().setOnFrameFinished(
 		[this](EmuVideo &)
@@ -401,7 +404,7 @@ void EmuViewController::configureWindowForEmulation(Base::Window &win, bool runn
 	win.screen()->setFrameInterval(optionFrameInterval);
 	#endif
 	emuView.renderer().setWindowValidOrientations(win, running ? optionGameOrientation : optionMenuOrientation);
-	win.screen()->setFrameRate(running ? EmuSystem::frameRate() : Base::Screen::DISPLAY_RATE_DEFAULT);
+	win.setIntendedFrameRate(running ? EmuSystem::frameRate() : 0.);
 	movePopupToWindow(running ? emuView.window() : emuInputView.window());
 }
 

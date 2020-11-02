@@ -219,14 +219,14 @@ public:
 	static void setupGameSavePath();
 	static void clearGamePaths();
 	static FS::PathString baseDefaultGameSavePath();
-	static IG::Time benchmark();
+	static IG::Time benchmark(EmuVideo &video);
 	static bool gameIsRunning()
 	{
 		return !string_equal(gameName_.data(), "");
 	}
 	static void resetFrameTime();
-	static void prepareAudioVideo();
-	static void prepareVideo();
+	static void prepareAudioVideo(EmuAudio &audio, EmuVideo &video);
+	static void prepareVideo(EmuVideo &video);
 	static void pause();
 	static void start();
 	static void closeSystem();

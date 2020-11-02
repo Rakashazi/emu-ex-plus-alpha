@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <dlfcn.h>
 #include <cstring>
 #include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
@@ -73,15 +72,11 @@ static FS::PathString makePluginLibPath(const char *libName, const char *libBase
 		return FS::makePathString(libName);
 }
 
-static void *dlsymCheck(void *lib, const char *name)
+template<class T>
+static void loadSymbolCheck(T &symPtr, Base::SharedLibraryRef lib, const char *name)
 {
-	auto sym = dlsym(lib, name);
-	if(!sym)
-	{
+	if(!Base::loadSymbol(symPtr, lib, name))
 		logErr("symbol:%s missing from plugin", name);
-	}
-	assumeExpr(sym);
-	return sym;
 }
 
 void VicePlugin::deinit()
@@ -90,10 +85,10 @@ void VicePlugin::deinit()
 	{
 		// TODO: doesn't fully clean up all VICE heap allocations, don't use for now
 		logMsg("doing machine_shutdown()");
-		using ShutdownFunc = void (*)();
-		ShutdownFunc machine_shutdown = (ShutdownFunc)dlsymCheck(libHandle, "machine_shutdown");
+		void (*machine_shutdown)();
+		loadSymbolCheck(machine_shutdown, libHandle, "machine_shutdown");
 		machine_shutdown();
-		dlclose(libHandle);
+		Base::closeSharedLibrary(libHandle);
 		libHandle = {};
 	}
 }
@@ -365,32 +360,32 @@ int VicePlugin::vdrive_internal_create_format_disk_image(const char *filename, c
 VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 {
 	VicePlugin plugin{};
-	plugin.keyarr = (typeof plugin.keyarr)dlsymCheck(lib, "keyarr");
-	plugin.rev_keyarr = (typeof plugin.rev_keyarr)dlsymCheck(lib, "rev_keyarr");
-	plugin.joystick_value = (typeof plugin.joystick_value)dlsymCheck(lib, "joystick_value");
-	plugin.keyconvmap = (typeof plugin.keyconvmap)dlsymCheck(lib, "keyconvmap");
-	plugin.warp_mode_enabled = (typeof plugin.warp_mode_enabled)dlsymCheck(lib, "warp_mode_enabled");
-	plugin.resources_get_string_ = (typeof plugin.resources_get_string_)dlsymCheck(lib, "resources_get_string");
-	plugin.resources_set_string_ = (typeof plugin.resources_set_string_)dlsymCheck(lib, "resources_set_string");
-	plugin.resources_get_int_ = (typeof plugin.resources_get_int_)dlsymCheck(lib, "resources_get_int");
-	plugin.resources_set_int_ = (typeof plugin.resources_set_int_)dlsymCheck(lib, "resources_set_int");
-	plugin.resources_get_default_value_ = (typeof plugin.resources_get_default_value_)dlsymCheck(lib, "resources_get_default_value");
-	plugin.machine_write_snapshot_ = (typeof plugin.machine_write_snapshot_)dlsymCheck(lib, "machine_write_snapshot");
-	plugin.machine_read_snapshot_ = (typeof plugin.machine_read_snapshot_)dlsymCheck(lib, "machine_read_snapshot");
-	plugin.machine_set_restore_key_ = (typeof plugin.machine_set_restore_key_)dlsymCheck(lib, "machine_set_restore_key");
-	plugin.machine_trigger_reset_ = (typeof plugin.machine_trigger_reset_)dlsymCheck(lib, "machine_trigger_reset");
-	plugin.interrupt_maincpu_trigger_trap_ = (typeof plugin.interrupt_maincpu_trigger_trap_)dlsymCheck(lib, "interrupt_maincpu_trigger_trap");
-	plugin.init_main_ = (typeof plugin.init_main_)dlsymCheck(lib, "init_main");
+	loadSymbolCheck(plugin.keyarr, lib, "keyarr");
+	loadSymbolCheck(plugin.rev_keyarr, lib, "rev_keyarr");
+	loadSymbolCheck(plugin.joystick_value, lib, "joystick_value");
+	loadSymbolCheck(plugin.keyconvmap, lib, "keyconvmap");
+	loadSymbolCheck(plugin.warp_mode_enabled, lib, "warp_mode_enabled");
+	loadSymbolCheck(plugin.resources_get_string_, lib, "resources_get_string");
+	loadSymbolCheck(plugin.resources_set_string_, lib, "resources_set_string");
+	loadSymbolCheck(plugin.resources_get_int_, lib, "resources_get_int");
+	loadSymbolCheck(plugin.resources_set_int_, lib, "resources_set_int");
+	loadSymbolCheck(plugin.resources_get_default_value_, lib, "resources_get_default_value");
+	loadSymbolCheck(plugin.machine_write_snapshot_, lib, "machine_write_snapshot");
+	loadSymbolCheck(plugin.machine_read_snapshot_, lib, "machine_read_snapshot");
+	loadSymbolCheck(plugin.machine_set_restore_key_, lib, "machine_set_restore_key");
+	loadSymbolCheck(plugin.machine_trigger_reset_, lib, "machine_trigger_reset");
+	loadSymbolCheck(plugin.interrupt_maincpu_trigger_trap_, lib, "interrupt_maincpu_trigger_trap");
+	loadSymbolCheck(plugin.init_main_, lib, "init_main");
 	assert(plugin.init_main_);
-	plugin.maincpu_mainloop_ = (typeof plugin.maincpu_mainloop_)dlsymCheck(lib, "maincpu_mainloop");
+	loadSymbolCheck(plugin.maincpu_mainloop_, lib, "maincpu_mainloop");
 	if(system == VICE_SYSTEM_PET)
 	{
-		plugin.autostart_autodetect_ = (typeof plugin.autostart_autodetect_)dlsymCheck(lib, "autostart_autodetect");
+		loadSymbolCheck(plugin.autostart_autodetect_, lib, "autostart_autodetect");
 		// no cart system
 	}
 	else if(system == VICE_SYSTEM_PLUS4)
 	{
-		plugin.autostart_autodetect_ = (typeof plugin.autostart_autodetect_)dlsymCheck(lib, "autostart_autodetect");
+		loadSymbolCheck(plugin.autostart_autodetect_, lib, "autostart_autodetect");
 		plugin.cart_getid_slotmain_ =
 			[]()
 			{
@@ -401,8 +396,8 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 			{
 				return "";
 			};
-		plugin.cartridge_attach_image_ = (typeof plugin.cartridge_attach_image_)dlsymCheck(lib, "cartridge_attach_image");
-		plugin.cartridge_detach_image_ = (typeof plugin.cartridge_detach_image_)dlsymCheck(lib, "cartridge_detach_image");
+		loadSymbolCheck(plugin.cartridge_attach_image_, lib, "cartridge_attach_image");
+		loadSymbolCheck(plugin.cartridge_detach_image_, lib, "cartridge_detach_image");
 	}
 	else if(system == VICE_SYSTEM_CBM2 || system == VICE_SYSTEM_CBM5X0)
 	{
@@ -411,44 +406,44 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 			{
 				return CARTRIDGE_CBM2_8KB_1000;
 			};
-		plugin.cartridge_attach_image_ = (typeof plugin.cartridge_attach_image_)dlsymCheck(lib, "cartridge_attach_image");
-		plugin.cartridge_detach_image_ = (typeof plugin.cartridge_detach_image_)dlsymCheck(lib, "cartridge_detach_image");
+		loadSymbolCheck(plugin.cartridge_attach_image_, lib, "cartridge_attach_image");
+		loadSymbolCheck(plugin.cartridge_detach_image_, lib, "cartridge_detach_image");
 	}
 	else if(system == VICE_SYSTEM_VIC20)
 	{
-		plugin.autostart_autodetect_ = (typeof plugin.autostart_autodetect_)dlsymCheck(lib, "autostart_autodetect");
+		loadSymbolCheck(plugin.autostart_autodetect_, lib, "autostart_autodetect");
 		plugin.cart_getid_slotmain_ =
 			[]()
 			{
 				return CARTRIDGE_VIC20_DETECT;
 			};
-		plugin.cartridge_get_file_name_ = (typeof plugin.cartridge_get_file_name_)dlsymCheck(lib, "cartridge_get_file_name");
-		plugin.cartridge_attach_image_ = (typeof plugin.cartridge_attach_image_)dlsymCheck(lib, "cartridge_attach_image");
-		plugin.cartridge_detach_image_ = (typeof plugin.cartridge_detach_image_)dlsymCheck(lib, "cartridge_detach_image");
+		loadSymbolCheck(plugin.cartridge_get_file_name_, lib, "cartridge_get_file_name");
+		loadSymbolCheck(plugin.cartridge_attach_image_, lib, "cartridge_attach_image");
+		loadSymbolCheck(plugin.cartridge_detach_image_, lib, "cartridge_detach_image");
 	}
 	else
 	{
-		plugin.autostart_autodetect_ = (typeof plugin.autostart_autodetect_)dlsymCheck(lib, "autostart_autodetect");
+		loadSymbolCheck(plugin.autostart_autodetect_, lib, "autostart_autodetect");
 		if(system != VICE_SYSTEM_C64DTV)
-			plugin.cart_getid_slotmain_ = (typeof plugin.cart_getid_slotmain_)dlsymCheck(lib, "cart_getid_slotmain");
-		plugin.cartridge_get_file_name_ = (typeof plugin.cartridge_get_file_name_)dlsymCheck(lib, "cartridge_get_file_name");
-		plugin.cartridge_attach_image_ = (typeof plugin.cartridge_attach_image_)dlsymCheck(lib, "cartridge_attach_image");
-		plugin.cartridge_detach_image_ = (typeof plugin.cartridge_detach_image_)dlsymCheck(lib, "cartridge_detach_image");
+			loadSymbolCheck(plugin.cart_getid_slotmain_, lib, "cart_getid_slotmain");
+		loadSymbolCheck(plugin.cartridge_get_file_name_, lib, "cartridge_get_file_name");
+		loadSymbolCheck(plugin.cartridge_attach_image_, lib, "cartridge_attach_image");
+		loadSymbolCheck(plugin.cartridge_detach_image_, lib, "cartridge_detach_image");
 	}
-	plugin.tape_image_attach_ = (typeof plugin.tape_image_attach_)dlsymCheck(lib, "tape_image_attach");
-	plugin.tape_image_detach_ = (typeof plugin.tape_image_detach_)dlsymCheck(lib, "tape_image_detach");
-	plugin.tape_get_file_name_ = (typeof plugin.tape_get_file_name_)dlsymCheck(lib, "tape_get_file_name");
-	plugin.datasette_control_ = (typeof plugin.datasette_control_)dlsymCheck(lib, "datasette_control");
-	plugin.file_system_attach_disk_ = (typeof plugin.file_system_attach_disk_)dlsymCheck(lib, "file_system_attach_disk");
-	plugin.file_system_detach_disk_ = (typeof plugin.file_system_detach_disk_)dlsymCheck(lib, "file_system_detach_disk");
-	plugin.file_system_get_disk_name_ = (typeof plugin.file_system_get_disk_name_)dlsymCheck(lib, "file_system_get_disk_name");
-	plugin.drive_check_type_ = (typeof plugin.drive_check_type_)dlsymCheck(lib, "drive_check_type");
-	plugin.sound_register_device_ = (typeof plugin.sound_register_device_)dlsymCheck(lib, "sound_register_device");
-	plugin.video_canvas_render_ = (typeof plugin.video_canvas_render_)dlsymCheck(lib, "video_canvas_render");
-	plugin.video_render_setphysicalcolor_ = (typeof plugin.video_render_setphysicalcolor_)dlsymCheck(lib, "video_render_setphysicalcolor");
-	plugin.video_render_setrawrgb_ = (typeof plugin.video_render_setrawrgb_)dlsymCheck(lib, "video_render_setrawrgb");
-	plugin.video_render_initraw_ = (typeof plugin.video_render_initraw_)dlsymCheck(lib, "video_render_initraw");
-	plugin.vdrive_internal_create_format_disk_image_ = (typeof plugin.vdrive_internal_create_format_disk_image_)dlsymCheck(lib, "vdrive_internal_create_format_disk_image");
+	loadSymbolCheck(plugin.tape_image_attach_, lib, "tape_image_attach");
+	loadSymbolCheck(plugin.tape_image_detach_, lib, "tape_image_detach");
+	loadSymbolCheck(plugin.tape_get_file_name_, lib, "tape_get_file_name");
+	loadSymbolCheck(plugin.datasette_control_, lib, "datasette_control");
+	loadSymbolCheck(plugin.file_system_attach_disk_, lib, "file_system_attach_disk");
+	loadSymbolCheck(plugin.file_system_detach_disk_, lib, "file_system_detach_disk");
+	loadSymbolCheck(plugin.file_system_get_disk_name_, lib, "file_system_get_disk_name");
+	loadSymbolCheck(plugin.drive_check_type_, lib, "drive_check_type");
+	loadSymbolCheck(plugin.sound_register_device_, lib, "sound_register_device");
+	loadSymbolCheck(plugin.video_canvas_render_, lib, "video_canvas_render");
+	loadSymbolCheck(plugin.video_render_setphysicalcolor_, lib, "video_render_setphysicalcolor");
+	loadSymbolCheck(plugin.video_render_setrawrgb_, lib, "video_render_setrawrgb");
+	loadSymbolCheck(plugin.video_render_initraw_, lib, "video_render_initraw");
+	loadSymbolCheck(plugin.vdrive_internal_create_format_disk_image_, lib, "vdrive_internal_create_format_disk_image");
 	return plugin;
 }
 
@@ -537,23 +532,22 @@ VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath)
 	};
 	FS::PathString libPath = makePluginLibPath(libName[system], libBasePath);
 	logMsg("loading VICE plugin:%s", libPath.data());
-	auto lib = dlopen(libPath.data(), RTLD_NOW);
+	auto lib = Base::openSharedLibrary(libPath.data(), Base::RESOLVE_ALL_SYMBOLS_FLAG);
 	if(!lib)
 	{
-		logErr("dlopen error: %s", dlerror());
 		return {};
 	}
 	auto plugin = commonVicePlugin(lib, system);
 	auto &conf = pluginConf[system];
 	plugin.models = conf.models;
 	plugin.modelStr = conf.modelStr;
-	plugin.model_get_ = (typeof plugin.model_get_)dlsymCheck(lib, conf.getModelFuncName);
-	plugin.model_set_ = (typeof plugin.model_set_)dlsymCheck(lib, conf.setModelFuncName);
+	loadSymbolCheck(plugin.model_get_, lib, conf.getModelFuncName);
+	loadSymbolCheck(plugin.model_set_, lib, conf.setModelFuncName);
 	plugin.borderModeStr = conf.borderModeStr;
 	//logMsg("getModel() address:%p", plugin.model_get_);
 	//logMsg("setModel() address:%p", plugin.model_set_);
-	using ViceInitFunc = int (*)();
-	ViceInitFunc vice_init = (ViceInitFunc)dlsymCheck(lib, "vice_init");
+	int (*vice_init)();
+	loadSymbolCheck(vice_init, lib, "vice_init");
 	vice_init();
 	plugin.libHandle = lib;
 	return plugin;

@@ -286,6 +286,14 @@ NativeWindow Window::nativeObject() const
 	return xWin;
 }
 
+void Window::setIntendedFrameRate(double rate)
+{
+	if(rate)
+		screen()->setFrameRate(rate);
+	else
+		screen()->setFrameRate(60.);
+}
+
 std::pair<unsigned long, unsigned long> XWindow::xdndData() const
 {
 	return {draggerXWin, dragAction};

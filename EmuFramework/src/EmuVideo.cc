@@ -21,7 +21,6 @@
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
-#include "private.hh"
 #include "EmuSystemTask.hh"
 
 void EmuVideo::resetImage()

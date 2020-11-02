@@ -26,10 +26,10 @@ static const char *landscape2Name = USE_MOBILE_ORIENTATION_NAMES ? "Landscape 2"
 static const char *portraitName = USE_MOBILE_ORIENTATION_NAMES ? "Portrait" : "Standard";
 static const char *portrait2Name = USE_MOBILE_ORIENTATION_NAMES ? "Portrait 2" : "Upside Down";
 
-static void setMenuOrientation(uint val, Base::Window &win)
+static void setMenuOrientation(uint val, Base::Window &win, Gfx::Renderer &r)
 {
 	optionMenuOrientation = val;
-	emuVideo.renderer().setWindowValidOrientations(win, optionMenuOrientation);
+	r.setWindowValidOrientations(win, optionMenuOrientation);
 	logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
 }
 
@@ -288,12 +288,12 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	menuOrientationItem
 	{
 		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
-		{"Auto", [this](){ setMenuOrientation(Base::VIEW_ROTATE_AUTO, window()); }},
+		{"Auto", [this](){ setMenuOrientation(Base::VIEW_ROTATE_AUTO, window(), renderer()); }},
 		#endif
-		{landscapeName, [this](){ setMenuOrientation(Base::VIEW_ROTATE_90, window()); }},
-		{landscape2Name, [this](){ setMenuOrientation(Base::VIEW_ROTATE_270, window()); }},
-		{portraitName, [this](){ setMenuOrientation(Base::VIEW_ROTATE_0, window()); }},
-		{portrait2Name, [this](){ setMenuOrientation(Base::VIEW_ROTATE_180, window()); }},
+		{landscapeName, [this](){ setMenuOrientation(Base::VIEW_ROTATE_90, window(), renderer()); }},
+		{landscape2Name, [this](){ setMenuOrientation(Base::VIEW_ROTATE_270, window(), renderer()); }},
+		{portraitName, [this](){ setMenuOrientation(Base::VIEW_ROTATE_0, window(), renderer()); }},
+		{portrait2Name, [this](){ setMenuOrientation(Base::VIEW_ROTATE_180, window(), renderer()); }},
 	},
 	menuOrientation
 	{

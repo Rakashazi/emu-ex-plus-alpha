@@ -146,7 +146,6 @@ protected:
 	bool useRendererTime() const;
 };
 
-extern EmuVideoLayer emuVideoLayer;
 extern EmuViewController emuViewController;
 extern DelegateFunc<void ()> onUpdateInputDevices;
 extern FS::PathString lastLoadPath;

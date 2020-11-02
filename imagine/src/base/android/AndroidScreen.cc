@@ -29,23 +29,25 @@ namespace Base
 {
 
 static JavaInstMethod<jint()> jGetRotation{};
-static JavaInstMethod<jfloat()> jGetRefreshRate{};
 static JavaInstMethod<jobject()> jGetSupportedRefreshRates{};
 static JavaInstMethod<jobject(jobject)> jGetMetrics{};
 JavaInstMethod<jobject(jobject, jlong)> jPresentation{};
-JavaInstMethod<jobject(jint)> jGetDisplay{};
-static JavaInstMethod<jint()> jGetDisplayId{};
+static Screen main;
 
 void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 {
-	{
-		JavaInstMethod<jobject()> jDefaultDpy{env, activityCls, "defaultDpy", "()Landroid/view/Display;"};
-		// DisplayMetrics obtained via getResources().getDisplayMetrics() so the scaledDensity field is correct
-		JavaInstMethod<jobject()> jDisplayMetrics{env, activityCls, "displayMetrics", "()Landroid/util/DisplayMetrics;"};
-		static Screen main;
-		main.init(env, jDefaultDpy(env, activity), jDisplayMetrics(env, activity), true);
-		Screen::addScreen(&main);
-	}
+	assert(!main);
+	JavaInstMethod<jobject()> jDefaultDpy{env, activityCls, "defaultDpy", "()Landroid/view/Display;"};
+	// DisplayMetrics obtained via getResources().getDisplayMetrics() so the scaledDensity field is correct
+	JavaInstMethod<jobject()> jDisplayMetrics{env, activityCls, "displayMetrics", "()Landroid/util/DisplayMetrics;"};
+	auto mainDpy = jDefaultDpy(env, activity);
+	jclass jDisplayCls = env->GetObjectClass(mainDpy);
+	jGetRotation.setup(env, jDisplayCls, "getRotation", "()I");
+	jGetMetrics.setup(env, Base::jBaseActivityCls, "getDisplayMetrics", "(Landroid/view/Display;)Landroid/util/DisplayMetrics;");
+	JavaInstMethod<jint()> jGetDisplayId{env, jDisplayCls, "getDisplayId", "()I"};
+	JavaInstMethod<jfloat()> jGetRefreshRate{env, jDisplayCls, "getRefreshRate", "()F"};
+	main.init(env, mainDpy, jDisplayMetrics(env, activity), 0, jGetRefreshRate(env, mainDpy));
+	Screen::addScreen(&main);
 	if(Base::androidSDK() >= 17)
 	{
 		jPresentation.setup(env, activityCls, "presentation", "(Landroid/view/Display;J)Lcom/imagine/PresentationHelper;");
@@ -54,52 +56,61 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 		auto displayListenerHelper = jDisplayListenerHelper(env, activity);
 		assert(displayListenerHelper);
 		auto displayListenerHelperCls = env->GetObjectClass(displayListenerHelper);
-		JNINativeMethod method[] =
+		JNINativeMethod method[]
 		{
 			{
-				"displayChange", "(II)V",
-				(void*)(void (*)(JNIEnv*, jobject, jint, jint))
-				([](JNIEnv* env, jobject thiz, jint id, jint change)
+				"displayAdd", "(ILandroid/view/Display;F)V",
+				(void*)(void (*)(JNIEnv*, jobject, jint, jobject, jfloat))
+				([](JNIEnv* env, jobject thiz, jint id, jobject disp, jfloat refreshRate)
 				{
-					switch(change)
+					for(auto s : screen_)
 					{
-						bcase 0:
+						if(s->id() == id)
 						{
-							for(auto s : screen_)
-							{
-								if(s->id() == id)
-								{
-									logMsg("screen %d already in device list", id);
-									break;
-								}
-							}
-							auto disp = jGetDisplay(env, thiz, id);
-							if(!disp)
-							{
-								logWarn("display ID:%d was added but doesn't exist", (int)id);
-								break;
-							}
-							Screen *s = new Screen();
-							s->init(env, disp, nullptr, false);
-							Screen::addScreen(s);
-							if(Screen::onChange)
-								Screen::onChange(*s, {Screen::Change::ADDED});
+							logMsg("screen %d already in device list", id);
+							break;
 						}
-						bcase 2:
-							logMsg("screen %d removed", id);
-							forEachInContainer(screen_, it)
-							{
-								Screen *removedScreen = *it;
-								if(removedScreen->id() == id)
-								{
-									it.erase();
-									if(Screen::onChange)
-										Screen::onChange(*removedScreen, {Screen::Change::REMOVED});
-									removedScreen->deinit();
-									delete removedScreen;
-									break;
-								}
-							}
+					}
+					Screen *s = new Screen();
+					s->init(env, disp, nullptr, id, refreshRate);
+					Screen::addScreen(s);
+					if(Screen::onChange)
+						Screen::onChange(*s, {Screen::Change::ADDED});
+				})
+			},
+			{
+				"displayChange", "(IF)V",
+				(void*)(void (*)(JNIEnv*, jobject, jint, jfloat))
+				([](JNIEnv* env, jobject thiz, jint id, jfloat refreshRate)
+				{
+					for(auto s : screen_)
+					{
+						if(s->id() == id)
+						{
+							s->updateRefreshRate(refreshRate);
+							break;
+						}
+					}
+				})
+			},
+			{
+				"displayRemove", "(I)V",
+				(void*)(void (*)(JNIEnv*, jobject, jint))
+				([](JNIEnv* env, jobject thiz, jint id)
+				{
+					logMsg("screen %d removed", id);
+					forEachInContainer(screen_, it)
+					{
+						Screen *removedScreen = *it;
+						if(removedScreen->id() == id)
+						{
+							it.erase();
+							if(Screen::onChange)
+								Screen::onChange(*removedScreen, {Screen::Change::REMOVED});
+							removedScreen->deinit();
+							delete removedScreen;
+							break;
+						}
 					}
 				})
 			}
@@ -108,7 +119,6 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 
 		// get the current presentation screens
 		JavaInstMethod<jobject()> jGetPresentationDisplays{env, displayListenerHelperCls, "getPresentationDisplays", "()[Landroid/view/Display;"};
-		jGetDisplay.setup(env, displayListenerHelperCls, "getDisplay", "(I)Landroid/view/Display;");
 		auto jPDisplay = (jobjectArray)jGetPresentationDisplays(env, displayListenerHelper);
 		uint32_t pDisplays = env->GetArrayLength(jPDisplay);
 		if(pDisplays)
@@ -118,28 +128,19 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 			{
 				auto display = env->GetObjectArrayElement(jPDisplay, i);
 				Screen *s = new Screen();
-				s->init(env, display, nullptr, false);
+				s->init(env, display, nullptr, jGetDisplayId(env, display), jGetRefreshRate(env, display));
 				Screen::addScreen(s);
 			}
 		}
 	}
 }
 
-void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool isMain)
+void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, int id, float refreshRate)
 {
 	assert(aDisplay);
 	this->aDisplay = env->NewGlobalRef(aDisplay);
-	if(!jGetRotation)
-	{
-		jclass jDisplayCls = env->GetObjectClass(aDisplay);
-		jGetRotation.setup(env, jDisplayCls, "getRotation", "()I");
-		jGetRefreshRate.setup(env, jDisplayCls, "getRefreshRate", "()F");
-		jGetDisplayId.setup(env, jDisplayCls, "getDisplayId", "()I");
-		jGetMetrics.setup(env, Base::jBaseActivityCls, "getDisplayMetrics", "(Landroid/view/Display;)Landroid/util/DisplayMetrics;");
-	}
-
 	bool isStraightRotation = true;
-	if(isMain)
+	if(id == 0)
 	{
 		id_ = 0;
 		auto orientation = (SurfaceRotation)jGetRotation(env, aDisplay);
@@ -149,12 +150,11 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 	}
 	else
 	{
-		id_ = jGetDisplayId(env, aDisplay);
+		id_ = id;
 		logMsg("init display with id: %d", id_);
 	}
 
-	// refresh rate
-	refreshRate_ = jGetRefreshRate(env, aDisplay);
+	updateRefreshRate(refreshRate);
 	if(Base::androidSDK() <= 10)
 	{
 		// corrections for devices known to report wrong refresh rates
@@ -166,13 +166,6 @@ void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, bool is
 		else
 			reliableRefreshRate = false;
 	}
-	if(refreshRate_ < 20.f || refreshRate_ > 250.f) // sanity check in case device has a junk value
-	{
-		logWarn("ignoring unusual refresh rate: %f", (double)refreshRate_);
-		refreshRate_ = 60;
-		reliableRefreshRate = false;
-	}
-	frameTime_ = IG::FloatSeconds(1. / refreshRate_);
 
 	// DisplayMetrics
 	if(!metrics)
@@ -235,6 +228,23 @@ jobject AndroidScreen::displayObject() const
 int AndroidScreen::id() const
 {
 	return id_;
+}
+
+void AndroidScreen::updateRefreshRate(float refreshRate)
+{
+	if(refreshRate_ && refreshRate != refreshRate_)
+	{
+		logMsg("refresh rate updated to:%.2f on screen:%d", refreshRate, id());
+	}
+	if(refreshRate < 20.f || refreshRate > 250.f) // sanity check in case device has a junk value
+	{
+		logWarn("ignoring unusual refresh rate: %f", (double)refreshRate);
+		refreshRate = 60;
+		reliableRefreshRate = false;
+	}
+	refreshRate_ = refreshRate;
+	frameTime_ = IG::FloatSeconds(1. / refreshRate);
+
 }
 
 bool AndroidScreen::operator ==(AndroidScreen const &rhs) const

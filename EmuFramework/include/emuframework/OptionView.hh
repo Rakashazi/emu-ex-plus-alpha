@@ -22,10 +22,13 @@
 #include <imagine/util/container/ArrayList.hh>
 #include <emuframework/EmuSystem.hh>
 
+class EmuVideoLayer;
+class EmuAudio;
+
 class OptionCategoryView : public TableView
 {
 public:
-	OptionCategoryView(ViewAttachParams attach);
+	OptionCategoryView(ViewAttachParams attach, EmuAudio &audio, EmuVideoLayer &videoLayer);
 
 protected:
 	TextMenuItem subConfig[5];
@@ -36,9 +39,11 @@ class VideoOptionView : public TableView
 public:
 	VideoOptionView(ViewAttachParams attach, bool customMenu = false);
 	void loadStockItems();
+	void setEmuVideoLayer(EmuVideoLayer &videoLayer);
 
 protected:
 	static constexpr uint MAX_ASPECT_RATIO_ITEMS = 5;
+	EmuVideoLayer *videoLayer{};
 
 	StaticArrayList<TextMenuItem, 5> textureBufferModeItem{};
 	MultiChoiceMenuItem textureBufferMode;
@@ -100,9 +105,11 @@ class AudioOptionView : public TableView
 public:
 	AudioOptionView(ViewAttachParams attach, bool customMenu = false);
 	void loadStockItems();
+	void setEmuAudio(EmuAudio &audio);
 
 protected:
 	static constexpr unsigned MAX_APIS = 2;
+	EmuAudio *audio{};
 
 	BoolMenuItem snd;
 	BoolMenuItem soundDuringFastForward;

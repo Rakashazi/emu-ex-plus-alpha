@@ -97,7 +97,7 @@ class CustomVideoOptionView : public VideoOptionView
 	void setRenderFormat(IG::PixelFormatID fmt)
 	{
 		optionRenderPixelFormat = fmt;
-		EmuSystem::prepareVideo();
+		EmuApp::resetVideo();
 	}
 
 	TextMenuItem renderPixelFormatItem[3]

@@ -16,15 +16,13 @@
 #define LOGTAG "AAudio"
 #include "../../base/android/android.hh"
 #include <imagine/audio/android/AAudioOutputStream.hh>
+#include <imagine/base/sharedLibrary.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
 #include <aaudio/AAudio.h>
-#include <dlfcn.h>
 
 namespace IG::Audio
 {
-
-static void *libHandle{};
 
 static aaudio_result_t (*AAudio_createStreamBuilder)(AAudioStreamBuilder** builder){};
 static aaudio_result_t (*AAudioStreamBuilder_openStream)(AAudioStreamBuilder* builder, AAudioStream** stream){};
@@ -43,43 +41,41 @@ static aaudio_result_t (*AAudioStream_requestPause)(AAudioStream* stream){};
 static aaudio_result_t (*AAudioStream_requestFlush)(AAudioStream* stream){};
 static aaudio_result_t (*AAudioStream_requestStop)(AAudioStream* stream){};
 
-template<class T>
-static void dlsymFunc(T &funcPtr, void *lib, const char *funcName)
+static bool loadedAAudioLib()
 {
-	funcPtr = (T)dlsym(lib, funcName);
+	return AAudio_createStreamBuilder;
 }
 
 static void loadAAudioLib()
 {
-	if(libHandle)
+	if(loadedAAudioLib())
 		return;
 	logMsg("loading libaaudio.so functions");
-	void *lib = dlopen("libaaudio.so", RTLD_NOW);
+	auto lib = Base::openSharedLibrary("libaaudio.so");
 	if(!lib)
 	{
 		logErr("error opening libaaudio.so");
 		return;
 	}
-	dlsymFunc(AAudio_createStreamBuilder, lib, "AAudio_createStreamBuilder");
-	dlsymFunc(AAudioStreamBuilder_openStream, lib, "AAudioStreamBuilder_openStream");
-	dlsymFunc(AAudioStreamBuilder_setChannelCount, lib, "AAudioStreamBuilder_setChannelCount");
-	dlsymFunc(AAudioStreamBuilder_setFormat, lib, "AAudioStreamBuilder_setFormat");
-	dlsymFunc(AAudioStreamBuilder_setPerformanceMode, lib, "AAudioStreamBuilder_setPerformanceMode");
-	dlsymFunc(AAudioStreamBuilder_setSampleRate, lib, "AAudioStreamBuilder_setSampleRate");
-	dlsymFunc(AAudioStreamBuilder_setSharingMode, lib, "AAudioStreamBuilder_setSharingMode");
-	dlsymFunc(AAudioStreamBuilder_setDataCallback, lib, "AAudioStreamBuilder_setDataCallback");
-	dlsymFunc(AAudioStreamBuilder_setErrorCallback, lib, "AAudioStreamBuilder_setErrorCallback");
-	dlsymFunc(AAudioStreamBuilder_delete, lib, "AAudioStreamBuilder_delete");
-	dlsymFunc(AAudioStream_close, lib, "AAudioStream_close");
-	dlsymFunc(AAudioStream_requestStart, lib, "AAudioStream_requestStart");
-	dlsymFunc(AAudioStream_requestPause, lib, "AAudioStream_requestPause");
-	dlsymFunc(AAudioStream_requestFlush, lib, "AAudioStream_requestFlush");
-	dlsymFunc(AAudioStream_requestStop, lib, "AAudioStream_requestStop");
+	Base::loadSymbol(AAudio_createStreamBuilder, lib, "AAudio_createStreamBuilder");
+	Base::loadSymbol(AAudioStreamBuilder_openStream, lib, "AAudioStreamBuilder_openStream");
+	Base::loadSymbol(AAudioStreamBuilder_setChannelCount, lib, "AAudioStreamBuilder_setChannelCount");
+	Base::loadSymbol(AAudioStreamBuilder_setFormat, lib, "AAudioStreamBuilder_setFormat");
+	Base::loadSymbol(AAudioStreamBuilder_setPerformanceMode, lib, "AAudioStreamBuilder_setPerformanceMode");
+	Base::loadSymbol(AAudioStreamBuilder_setSampleRate, lib, "AAudioStreamBuilder_setSampleRate");
+	Base::loadSymbol(AAudioStreamBuilder_setSharingMode, lib, "AAudioStreamBuilder_setSharingMode");
+	Base::loadSymbol(AAudioStreamBuilder_setDataCallback, lib, "AAudioStreamBuilder_setDataCallback");
+	Base::loadSymbol(AAudioStreamBuilder_setErrorCallback, lib, "AAudioStreamBuilder_setErrorCallback");
+	Base::loadSymbol(AAudioStreamBuilder_delete, lib, "AAudioStreamBuilder_delete");
+	Base::loadSymbol(AAudioStream_close, lib, "AAudioStream_close");
+	Base::loadSymbol(AAudioStream_requestStart, lib, "AAudioStream_requestStart");
+	Base::loadSymbol(AAudioStream_requestPause, lib, "AAudioStream_requestPause");
+	Base::loadSymbol(AAudioStream_requestFlush, lib, "AAudioStream_requestFlush");
+	Base::loadSymbol(AAudioStream_requestStop, lib, "AAudioStream_requestStop");
 	if(Base::androidSDK() >= 28)
 	{
-		dlsymFunc(AAudioStreamBuilder_setUsage, lib, "AAudioStreamBuilder_setUsage");
+		Base::loadSymbol(AAudioStreamBuilder_setUsage, lib, "AAudioStreamBuilder_setUsage");
 	}
-	libHandle = lib;
 }
 
 AAudioOutputStream::AAudioOutputStream()
@@ -105,7 +101,7 @@ AAudioOutputStream::~AAudioOutputStream()
 
 IG::ErrorCode AAudioOutputStream::open(OutputStreamConfig config)
 {
-	assert(libHandle);
+	assert(loadedAAudioLib());
 	if(stream)
 	{
 		logWarn("stream already open");
@@ -223,7 +219,7 @@ bool AAudioOutputStream::isPlaying()
 
 AAudioOutputStream::operator bool() const
 {
-	return libHandle;
+	return loadedAAudioLib();
 }
 
 }

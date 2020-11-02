@@ -320,16 +320,16 @@ void TouchConfigView::setSize(uint16_t val)
 	vController.place();
 }
 
-static void setDeadzone(uint val)
+static void setDeadzone(uint val, Gfx::Renderer &r)
 {
 	optionTouchDpadDeadzone = val;
-	vController.gamePad().dPad().setDeadzone(emuVideo.renderer(), vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchDpadDeadzone) / 100.), vController.windowData());
+	vController.gamePad().dPad().setDeadzone(r, vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchDpadDeadzone) / 100.), vController.windowData());
 }
 
-static void setDiagonalSensitivity(uint val)
+static void setDiagonalSensitivity(uint val, Gfx::Renderer &r)
 {
 	optionTouchDpadDiagonalSensitivity = val;
-	vController.gamePad().dPad().setDiagonalSensitivity(emuVideo.renderer(), optionTouchDpadDiagonalSensitivity / 1000., vController.windowData());
+	vController.gamePad().dPad().setDiagonalSensitivity(r, optionTouchDpadDiagonalSensitivity / 1000., vController.windowData());
 }
 
 static void setButtonSpace(uint val)
@@ -525,9 +525,9 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	},
 	deadzoneItem
 	{
-		{touchDpadDeadzoneMenuName[0], [this](){ setDeadzone(touchDpadDeadzoneMenuVal[0]); }},
-		{touchDpadDeadzoneMenuName[1], [this](){ setDeadzone(touchDpadDeadzoneMenuVal[1]); }},
-		{touchDpadDeadzoneMenuName[2], [this](){ setDeadzone(touchDpadDeadzoneMenuVal[2]); }},
+		{touchDpadDeadzoneMenuName[0], [this](){ setDeadzone(touchDpadDeadzoneMenuVal[0], renderer()); }},
+		{touchDpadDeadzoneMenuName[1], [this](){ setDeadzone(touchDpadDeadzoneMenuVal[1], renderer()); }},
+		{touchDpadDeadzoneMenuName[2], [this](){ setDeadzone(touchDpadDeadzoneMenuVal[2], renderer()); }},
 	},
 	deadzone
 	{
@@ -537,11 +537,11 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	},
 	diagonalSensitivityItem
 	{
-		{touchDpadDiagonalSensitivityMenuName[0], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[0]); }},
-		{touchDpadDiagonalSensitivityMenuName[1], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[1]); }},
-		{touchDpadDiagonalSensitivityMenuName[2], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[2]); }},
-		{touchDpadDiagonalSensitivityMenuName[3], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[3]); }},
-		{touchDpadDiagonalSensitivityMenuName[4], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[4]); }},
+		{touchDpadDiagonalSensitivityMenuName[0], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[0], renderer()); }},
+		{touchDpadDiagonalSensitivityMenuName[1], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[1], renderer()); }},
+		{touchDpadDiagonalSensitivityMenuName[2], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[2], renderer()); }},
+		{touchDpadDiagonalSensitivityMenuName[3], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[3], renderer()); }},
+		{touchDpadDiagonalSensitivityMenuName[4], [this](){ setDiagonalSensitivity(touchDpadDiagonalSensitivityMenuVal[4], renderer()); }},
 	},
 	diagonalSensitivity
 	{

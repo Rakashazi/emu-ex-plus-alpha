@@ -163,6 +163,12 @@ void EmuMainMenuView::loadStandardItems()
 	item.emplace_back(&exitApp);
 }
 
+void EmuMainMenuView::setAudioVideo(EmuAudio &audio_, EmuVideoLayer &videoLayer_)
+{
+	audio = &audio_;
+	videoLayer = &videoLayer_;
+}
+
 EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	TableView{appViewTitle(), attach, item},
 	loadGame
@@ -207,7 +213,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Options",
 		[this](Input::Event e)
 		{
-			pushAndShow(makeView<OptionCategoryView>(), e);
+			pushAndShow(makeView<OptionCategoryView>(*audio, *videoLayer), e);
 		}
 	},
 	onScreenInputManager
@@ -350,7 +356,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	}
 }
 
-OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
+OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio, EmuVideoLayer &videoLayer):
 	TableView
 	{
 		"Options",
@@ -362,16 +368,20 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach):
 	{
 		{
 			"Video",
-			[this](Input::Event e)
+			[this, &videoLayer](Input::Event e)
 			{
-				pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::VIDEO_OPTIONS), e);
+				auto view = makeEmuView(attachParams(), EmuApp::ViewID::VIDEO_OPTIONS);
+				static_cast<VideoOptionView*>(view.get())->setEmuVideoLayer(videoLayer);
+				pushAndShow(std::move(view), e);
 			}
 		},
 		{
 			"Audio",
-			[this](Input::Event e)
+			[this, &audio](Input::Event e)
 			{
-				pushAndShow(makeEmuView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS), e);
+				auto view = makeEmuView(attachParams(), EmuApp::ViewID::AUDIO_OPTIONS);
+				static_cast<AudioOptionView*>(view.get())->setEmuAudio(audio);
+				pushAndShow(std::move(view), e);
 			}
 		},
 		{

@@ -23,6 +23,9 @@
 #include <imagine/bluetooth/sys.hh>
 #endif
 
+class EmuVideoLayer;
+class EmuAudio;
+
 class EmuMainMenuView : public TableView
 {
 public:
@@ -30,11 +33,14 @@ public:
 	void onShow() final;
 	void loadFileBrowserItems();
 	void loadStandardItems();
+	void setAudioVideo(EmuAudio &audio, EmuVideoLayer &videoLayer);
 
 	static const uint STANDARD_ITEMS = 14;
 	static const uint MAX_SYSTEM_ITEMS = 5;
 
 protected:
+	EmuAudio *audio{};
+	EmuVideoLayer *videoLayer{};
 	TextMenuItem loadGame;
 	TextMenuItem systemActions;
 	TextMenuItem recentGames;

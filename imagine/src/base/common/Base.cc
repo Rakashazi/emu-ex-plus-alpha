@@ -26,6 +26,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/Timer.hh>
+#include <imagine/base/sharedLibrary.hh>
 #include <imagine/util/system/pagesize.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/DelegateFuncSet.hh>
@@ -35,6 +36,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 #include <cstdlib>
+#include <dlfcn.h>
 
 namespace Base
 {
@@ -250,6 +252,29 @@ FS::RootPathInfo nearestRootPath(const char *path)
 		return {};
 	logMsg("found root location:%s with length:%d", nearestPtr->root.name.data(), (int)nearestPtr->root.length);
 	return {nearestPtr->root.name, nearestPtr->root.length};
+}
+
+SharedLibraryRef openSharedLibrary(const char *name, unsigned flags)
+{
+	int mode = flags & RESOLVE_ALL_SYMBOLS_FLAG ? RTLD_NOW : RTLD_LAZY;
+	auto lib = dlopen(name, mode);
+	if(Config::DEBUG_BUILD && !lib)
+	{
+		logErr("dlopen(%s) error:%s", name, dlerror());
+	}
+	return lib;
+}
+
+void closeSharedLibrary(SharedLibraryRef lib)
+{
+	dlclose(lib);
+}
+
+void *loadSymbol(SharedLibraryRef lib, const char *name)
+{
+	if(!lib)
+		lib = RTLD_DEFAULT;
+	return dlsym(lib, name);
 }
 
 }

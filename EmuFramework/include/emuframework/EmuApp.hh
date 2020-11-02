@@ -104,6 +104,7 @@ public:
 	static void deleteSessionOptions();
 	static void syncEmulationThread();
 	static IG::PixelFormat defaultRenderPixelFormat();
+	static void resetVideo();
 
 	template<class T, class Func>
 	static void pushAndShowNewCollectValueInputView(ViewAttachParams attach, Input::Event e,

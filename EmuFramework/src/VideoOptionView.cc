@@ -201,29 +201,29 @@ static void setFrameInterval(int interval)
 #endif
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-static void setImgEffect(uint val)
+static void setImgEffect(uint val, EmuVideoLayer &layer)
 {
 	optionImgEffect = val;
-	if(emuVideo.image())
+	if(layer.emuVideo().image())
 	{
-		emuVideoLayer.setEffect(val, optionImageEffectPixelFormatValue());
+		layer.setEffect(val, optionImageEffectPixelFormatValue());
 		emuViewController.postDrawToEmuWindows();
 	}
 }
 #endif
 
-static void setOverlayEffect(uint val)
+static void setOverlayEffect(uint val, EmuVideoLayer &layer)
 {
 	optionOverlayEffect = val;
-	emuVideoLayer.setOverlay(val);
+	layer.setOverlay(val);
 	emuViewController.postDrawToEmuWindows();
 }
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-static void setImgEffectPixelFormat(PixelFormatID format)
+static void setImgEffectPixelFormat(PixelFormatID format, EmuVideoLayer &layer)
 {
 	optionImageEffectPixelFormat = format;
-	emuVideoLayer.setEffectFormat(format);
+	layer.setEffectFormat(format);
 	emuViewController.postDrawToEmuWindows();
 }
 #endif
@@ -436,17 +436,17 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionImgFilter.val = item.flipBoolValue(*this);
-			emuVideoLayer.setLinearFilter(optionImgFilter);
+			videoLayer->setLinearFilter(optionImgFilter);
 			emuViewController.postDrawToEmuWindows();
 		}
 	},
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	imgEffectItem
 	{
-		{"Off", [this]() { setImgEffect(0); }},
-		{"hq2x", [this]() { setImgEffect(VideoImageEffect::HQ2X); }},
-		{"Scale2x", [this]() { setImgEffect(VideoImageEffect::SCALE2X); }},
-		{"Prescale 2x", [this]() { setImgEffect(VideoImageEffect::PRESCALE2X); }}
+		{"Off", [this]() { setImgEffect(0, *videoLayer); }},
+		{"hq2x", [this]() { setImgEffect(VideoImageEffect::HQ2X, *videoLayer); }},
+		{"Scale2x", [this]() { setImgEffect(VideoImageEffect::SCALE2X, *videoLayer); }},
+		{"Prescale 2x", [this]() { setImgEffect(VideoImageEffect::PRESCALE2X, *videoLayer); }}
 	},
 	imgEffect
 	{
@@ -466,12 +466,12 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	#endif
 	overlayEffectItem
 	{
-		{"Off", [this]() { setOverlayEffect(0); }},
-		{"Scanlines", [this]() { setOverlayEffect(VideoImageOverlay::SCANLINES); }},
-		{"Scanlines 2x", [this]() { setOverlayEffect(VideoImageOverlay::SCANLINES_2); }},
-		{"CRT Mask", [this]() { setOverlayEffect(VideoImageOverlay::CRT); }},
-		{"CRT", [this]() { setOverlayEffect(VideoImageOverlay::CRT_RGB); }},
-		{"CRT 2x", [this]() { setOverlayEffect(VideoImageOverlay::CRT_RGB_2); }}
+		{"Off", [this]() { setOverlayEffect(0, *videoLayer); }},
+		{"Scanlines", [this]() { setOverlayEffect(VideoImageOverlay::SCANLINES, *videoLayer); }},
+		{"Scanlines 2x", [this]() { setOverlayEffect(VideoImageOverlay::SCANLINES_2, *videoLayer); }},
+		{"CRT Mask", [this]() { setOverlayEffect(VideoImageOverlay::CRT, *videoLayer); }},
+		{"CRT", [this]() { setOverlayEffect(VideoImageOverlay::CRT_RGB, *videoLayer); }},
+		{"CRT 2x", [this]() { setOverlayEffect(VideoImageOverlay::CRT_RGB_2, *videoLayer); }}
 	},
 	overlayEffect
 	{
@@ -543,9 +543,9 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	imgEffectPixelFormatItem
 	{
-		{"Auto (Match render format as needed)", [this]() { setImgEffectPixelFormat(PIXEL_NONE); }},
-		{"RGB565", [this]() { setImgEffectPixelFormat(PIXEL_RGB565); }},
-		{"RGBA8888", [this]() { setImgEffectPixelFormat(PIXEL_RGBA8888);}},
+		{"Auto (Match render format as needed)", [this]() { setImgEffectPixelFormat(PIXEL_NONE, *videoLayer); }},
+		{"RGB565", [this]() { setImgEffectPixelFormat(PIXEL_RGB565, *videoLayer); }},
+		{"RGBA8888", [this]() { setImgEffectPixelFormat(PIXEL_RGBA8888, *videoLayer);}},
 	},
 	imgEffectPixelFormat
 	{
@@ -717,7 +717,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			optionTextureBufferMode = 0;
 			auto defaultMode = renderer().makeValidTextureBufferMode();
-			emuVideoLayer.setTextureBufferMode(defaultMode);
+			videoLayer->setTextureBufferMode(defaultMode);
 			textureBufferMode.setSelected(idxOfBufferMode(defaultMode));
 			view.dismiss();
 			return false;
@@ -728,7 +728,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			[this, mode = desc.mode]()
 			{
 				optionTextureBufferMode = (uint8_t)mode;
-				emuVideoLayer.setTextureBufferMode(mode);
+				videoLayer->setTextureBufferMode(mode);
 			});
 	}
 	if(!customMenu)
@@ -785,6 +785,11 @@ void VideoOptionView::loadStockItems()
 		item.emplace_back(&showOnSecondScreen);
 	}
 	#endif
+}
+
+void VideoOptionView::setEmuVideoLayer(EmuVideoLayer &videoLayer_)
+{
+	videoLayer = &videoLayer_;
 }
 
 bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::FloatSeconds time)
@@ -904,7 +909,7 @@ void VideoOptionView::setViewportZoom(uint8_t val)
 void VideoOptionView::setOverlayEffectLevel(uint8_t val)
 {
 	optionOverlayEffectLevel = val;
-	emuVideoLayer.setOverlayIntensity(val/100.);
+	videoLayer->setOverlayIntensity(val/100.);
 	emuViewController.postDrawToEmuWindows();
 }
 

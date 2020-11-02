@@ -22,6 +22,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Screen.hh>
+#include <imagine/base/sharedLibrary.hh>
 #include <android/native_activity.h>
 #include <android/native_window_jni.h>
 #include <android/looper.h>
@@ -31,6 +32,7 @@ namespace Base
 
 extern JavaInstMethod<jobject(jobject, jlong)> jPresentation;
 static JavaInstMethod<void()> jPresentationDeinit{};
+static int32_t (*ANativeWindow_setFrameRate)(ANativeWindow* window, float frameRate, int8_t compatibility){};
 
 Window *deviceWindow()
 {
@@ -249,6 +251,21 @@ void AndroidWindow::setNativeWindow(ANativeWindow *nWindow)
 NativeWindow Window::nativeObject() const
 {
 	return nWin;
+}
+
+void Window::setIntendedFrameRate(double rate)
+{
+	if(Base::androidSDK() < 30)
+		return;
+	if(unlikely(!ANativeWindow_setFrameRate))
+	{
+		auto lib = Base::openSharedLibrary("libnativewindow.so");
+		Base::loadSymbol(ANativeWindow_setFrameRate, lib, "ANativeWindow_setFrameRate");
+	}
+	if(ANativeWindow_setFrameRate(nWin, rate, 0))
+	{
+		logErr("error in ANativeWindow_setFrameRate() with window:%p rate:%.2f", nWin, rate);
+	}
 }
 
 int AndroidWindow::nativePixelFormat()

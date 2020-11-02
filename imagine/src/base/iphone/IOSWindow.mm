@@ -263,6 +263,8 @@ NativeWindow Window::nativeObject() const
 	return uiWin_;
 }
 
+void Window::setIntendedFrameRate(double rate) {}
+
 }
 
 @implementation ImagineUIViewController

@@ -24,6 +24,8 @@ extern "C"
 	#include "video.h"
 }
 
+#include <imagine/base/sharedLibrary.hh>
+
 struct keyboard_conv_t;
 
 enum ViceSystem
@@ -43,7 +45,7 @@ enum ViceSystem
 struct VicePlugin
 {
 	static constexpr int SYSTEMS = 10;
-	void *libHandle{};
+	Base::SharedLibraryRef libHandle{};
 	int (*keyarr)[KBD_ROWS]{};
 	int (*rev_keyarr)[KBD_COLS]{};
 	uint8_t (*joystick_value)[JOYSTICK_NUM + 1]{};

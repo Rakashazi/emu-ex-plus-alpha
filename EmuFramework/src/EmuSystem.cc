@@ -321,12 +321,12 @@ void EmuSystem::start()
 	startAutoSaveStateTimer();
 }
 
-IG::Time EmuSystem::benchmark()
+IG::Time EmuSystem::benchmark(EmuVideo &video)
 {
 	auto now = IG::steadyClockTimestamp();
 	iterateTimes(180, i)
 	{
-		runFrame(nullptr, &emuVideo, nullptr);
+		runFrame(nullptr, &video, nullptr);
 	}
 	auto after = IG::steadyClockTimestamp();
 	return after-now;
@@ -449,17 +449,17 @@ bool EmuSystem::setFrameTime(VideoSystem system, IG::FloatSeconds time)
 	return path;
 }
 
-void EmuSystem::prepareAudioVideo()
+void EmuSystem::prepareAudioVideo(EmuAudio &audio, EmuVideo &video)
 {
-	onPrepareAudio(emuAudio);
+	onPrepareAudio(audio);
 	configAudioPlayback(optionSoundRate);
-	prepareVideo();
+	prepareVideo(video);
 }
 
-void EmuSystem::prepareVideo()
+void EmuSystem::prepareVideo(EmuVideo &video)
 {
-	onPrepareVideo(emuVideo);
-	emuVideo.clear();
+	onPrepareVideo(video);
+	video.clear();
 }
 
 static void closeAndSetupNew(const char *path)

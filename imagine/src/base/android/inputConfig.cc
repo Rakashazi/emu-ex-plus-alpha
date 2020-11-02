@@ -16,6 +16,7 @@
 #define LOGTAG "InputConfig"
 #include <imagine/base/Base.hh>
 #include <imagine/base/Timer.hh>
+#include <imagine/base/sharedLibrary.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/algorithm.h>
@@ -24,7 +25,6 @@
 #include "../../input/private.hh"
 #include "AndroidInputDevice.hh"
 #include <sys/inotify.h>
-#include <dlfcn.h>
 #include <optional>
 
 #ifdef ANDROID_COMPAT_API
@@ -553,9 +553,9 @@ void init(JNIEnv *env)
 
 		#ifdef ANDROID_COMPAT_API
 		// load AMotionEvent_getAxisValue dynamically
-		if(!(AMotionEvent_getAxisValueFunc = (typeof(AMotionEvent_getAxisValueFunc))dlsym(RTLD_DEFAULT, "AMotionEvent_getAxisValue")))
+		if(!Base::loadSymbol(AMotionEvent_getAxisValueFunc, {}, "AMotionEvent_getAxisValue"))
 		{
-			logWarn("AMotionEvent_getAxisValue not found even though using SDK %d", Base::androidSDK());
+			logWarn("AMotionEvent_getAxisValue not found even though using SDK level >= 12");
 		}
 		#endif
 
