@@ -1013,6 +1013,84 @@ public:
 	}
 };
 
+class Vic20MemoryExpansionsView : public TableView
+{
+	void setRamBlock(const char *name, bool on)
+	{
+		EmuSystem::sessionOptionSet();
+		plugin.resources_set_int(name, on);
+	}
+
+	BoolMenuItem block0
+	{
+		"Block 0 (3KB @ $0400-$0FFF)",
+		(bool)intResource("RamBlock0"),
+		[this](BoolMenuItem &item)
+		{
+			setRamBlock("RamBlock0", item.flipBoolValue(*this));
+		}
+	};
+
+	BoolMenuItem block1
+	{
+		"Block 1 (8KB @ $2000-$3FFF)",
+		(bool)intResource("RamBlock1"),
+		[this](BoolMenuItem &item)
+		{
+			setRamBlock("RamBlock1", item.flipBoolValue(*this));
+		}
+	};
+
+	BoolMenuItem block2
+	{
+		"Block 2 (8KB @ $4000-$5FFF)",
+		(bool)intResource("RamBlock2"),
+		[this](BoolMenuItem &item)
+		{
+			setRamBlock("RamBlock2", item.flipBoolValue(*this));
+		}
+	};
+
+	BoolMenuItem block3
+	{
+		"Block 3 (8KB @ $6000-$7FFF)",
+		(bool)intResource("RamBlock3"),
+		[this](BoolMenuItem &item)
+		{
+			setRamBlock("RamBlock3", item.flipBoolValue(*this));
+		}
+	};
+
+	BoolMenuItem block5
+	{
+		"Block 5 (8KB @ $A000-$BFFF)",
+		(bool)intResource("RamBlock5"),
+		[this](BoolMenuItem &item)
+		{
+			setRamBlock("RamBlock5", item.flipBoolValue(*this));
+		}
+	};
+
+	std::array<MenuItem*, 5> menuItem
+	{
+		&block0,
+		&block1,
+		&block2,
+		&block3,
+		&block5
+	};
+
+public:
+	Vic20MemoryExpansionsView(ViewAttachParams attach):
+		TableView
+		{
+			"Memory Expansions",
+			attach,
+			menuItem
+		}
+	{}
+};
+
 class MachineOptionView : public TableView
 {
 	std::vector<TextMenuItem> modelItem{};
@@ -1031,6 +1109,15 @@ class MachineOptionView : public TableView
 			return modelVal;
 		}(),
 		modelItem
+	};
+
+	TextMenuItem vic20MemExpansions
+	{
+		"Memory Expansions",
+		[this](Input::Event e)
+		{
+			pushAndShow(makeView<Vic20MemoryExpansionsView>(), e);
+		}
 	};
 
 	BoolMenuItem autostartWarp
@@ -1097,15 +1184,7 @@ class MachineOptionView : public TableView
 		}
 	};
 
-	std::array<MenuItem*, 6> menuItem
-	{
-		&model,
-		&trueDriveEmu,
-		&autostartTDE,
-		&autostartBasicLoad,
-		&autostartWarp,
-		&virtualDeviceTraps
-	};
+	StaticArrayList<MenuItem*, 7> menuItem{};
 
 public:
 	MachineOptionView(ViewAttachParams attach):
@@ -1129,6 +1208,16 @@ public:
 					setSysModel(val);
 				});
 		}
+		menuItem.emplace_back(&model);
+		if(currSystem == VICE_SYSTEM_VIC20)
+		{
+			menuItem.emplace_back(&vic20MemExpansions);
+		}
+		menuItem.emplace_back(&trueDriveEmu);
+		menuItem.emplace_back(&autostartTDE);
+		menuItem.emplace_back(&autostartBasicLoad);
+		menuItem.emplace_back(&autostartWarp);
+		menuItem.emplace_back(&virtualDeviceTraps);
 	}
 };
 

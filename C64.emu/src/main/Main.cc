@@ -285,6 +285,20 @@ void applySessionOptions()
 	setAutostartWarp(optionAutostartWarp);
 	setAutostartTDE(optionAutostartTDE);
 	setAutostartBasicLoad(optionAutostartBasicLoad);
+	if(currSystem == VICE_SYSTEM_VIC20)
+	{
+		uint8_t blocks = optionVic20RamExpansions;
+		if(blocks & BLOCK_0)
+			plugin.resources_set_int("RamBlock0", 1);
+		if(blocks & BLOCK_1)
+			plugin.resources_set_int("RamBlock1", 1);
+		if(blocks & BLOCK_2)
+			plugin.resources_set_int("RamBlock2", 1);
+		if(blocks & BLOCK_3)
+			plugin.resources_set_int("RamBlock3", 1);
+		if(blocks & BLOCK_5)
+			plugin.resources_set_int("RamBlock5", 1);
+	}
 }
 
 static void applyInitialOptionResources()

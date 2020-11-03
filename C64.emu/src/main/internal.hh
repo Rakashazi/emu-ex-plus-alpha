@@ -8,6 +8,15 @@
 
 class EmuAudio;
 
+enum Vic20Ram : uint8_t
+{
+	BLOCK_0 = 1,
+	BLOCK_1 = 1 << 1,
+	BLOCK_2 = 1 << 2,
+	BLOCK_3 = 1 << 3,
+	BLOCK_5 = 1 << 5
+};
+
 extern VicePlugin plugin;
 extern ViceSystem currSystem;
 extern FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3];
@@ -41,6 +50,7 @@ extern Byte1Option optionSidEngine;
 extern Byte1Option optionReSidSampling;
 extern Byte1Option optionSwapJoystickPorts;
 extern PathOption optionFirmwarePath;
+extern Byte1Option optionVic20RamExpansions;
 
 int intResource(const char *name);
 void setBorderMode(int mode);

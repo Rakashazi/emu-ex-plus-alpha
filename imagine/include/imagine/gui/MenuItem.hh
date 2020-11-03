@@ -87,6 +87,10 @@ public:
 					{
 						return funcAdaptor(view, e);
 					}
+					else if constexpr(std::is_invocable_v<Func, T&>)
+					{
+						return funcAdaptor(item);
+					}
 					else if constexpr(std::is_invocable_v<Func, View&>)
 					{
 						return funcAdaptor(view);
