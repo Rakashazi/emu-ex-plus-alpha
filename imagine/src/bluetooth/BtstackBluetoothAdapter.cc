@@ -16,8 +16,9 @@
 #define LOGTAG "BTstack"
 #include <imagine/bluetooth/BtstackBluetoothAdapter.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/container/DLList.hh>
+#include <imagine/util/container/ArrayList.hh>
 #include <imagine/util/utility.h>
+#include <imagine/util/algorithm.h>
 
 static BtstackBluetoothAdapter defaultBtstackAdapter;
 static int writeAuthEnable = -1;
@@ -167,7 +168,7 @@ struct BtstackCmd
 	}
 };
 
-static StaticDLList<BtstackCmd, 8> pendingCmdList;
+static StaticArrayList<BtstackCmd, 8> pendingCmdList;
 static BtstackCmd activeCmd = { BtstackCmd::NOOP };
 
 bool BtstackBluetoothAdapter::cmdActive = 0;
@@ -199,7 +200,7 @@ public:
 	void requestName()
 	{
 		logMsg("requesting name");
-		pendingCmdList.addToEnd(BtstackCmd::remoteNameRequest(address, pageScanRepetitionMode, clockOffset | 0x8000));
+		pendingCmdList.emplace_back(BtstackCmd::remoteNameRequest(address, pageScanRepetitionMode, clockOffset | 0x8000));
 	}
 };
 
@@ -216,9 +217,9 @@ static void sprintBTAddr(char *addrStr, bd_addr_t &addr)
 	}
 }
 
-static StaticDLList<BTDevice, 10> scanDevList;
-static StaticDLList<BTDevice, 2> incomingDevList;
-static StaticDLList<BtstackBluetoothSocket*, 16> socketList;
+static StaticArrayList<BTDevice, 10> scanDevList;
+static StaticArrayList<BTDevice, 2> incomingDevList;
+static StaticArrayList<BtstackBluetoothSocket*, 16> socketList;
 
 static void btHandler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size)
 {
@@ -501,17 +502,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						break;
 					}
 
-					bool removedFromScanList = 0;
-					forEachInContainer(scanDevList, e)
-					{
-						if(BD_ADDR_CMP(e->address, addr) == 0)
-						{
-							//e_it.removeElem();
-							scanDevList.erase(e);
-							removedFromScanList = 1;
-							break;
-						}
-					}
+					bool removedFromScanList = IG::erase_if(scanDevList, [&](BTDevice &dev){ return BD_ADDR_CMP(dev.address, addr) == 0; });
 					assert(removedFromScanList);
 
 					if(!cached && !scanDevList.size())
@@ -652,7 +643,7 @@ void BtstackBluetoothAdapter::setL2capService(uint32_t psm, bool on, OnStatusDel
 		logMsg("registering l2cap service for psm 0x%X", psm);
 		assert(!setL2capServiceOnResult); // only handle one request at a time
 		setL2capServiceOnResult = onResult;
-		pendingCmdList.addToEnd(BtstackCmd::l2capRegisterService(psm, 672));
+		pendingCmdList.emplace_back(BtstackCmd::l2capRegisterService(psm, 672));
 		if(isInactive())
 		{
 			setActiveState(true,
@@ -734,7 +725,7 @@ bool BtstackBluetoothAdapter::startScan(OnStatusDelegate onResult, OnScanDeviceC
 		onScanStatusD = onResult;
 		onScanDeviceClassD = onDeviceClass;
 		onScanDeviceNameD = onDeviceName;
-		pendingCmdList.addToEnd(BtstackCmd::inquiry(scanSecs));
+		pendingCmdList.emplace_back(BtstackCmd::inquiry(scanSecs));
 		logMsg("starting inquiry");
 		if(isInactive())
 		{
@@ -798,22 +789,14 @@ void BtstackBluetoothAdapter::cancelScan()
 	if(inDetect)
 	{
 		// check if scan is queued
-		bool wasQueued = 0;
-		forEachInContainer(pendingCmdList, e)
+		bool wasQueued = IG::erase_if(pendingCmdList, [&](BtstackCmd &cmd){ return cmd.cmd == BtstackCmd::INQUIRY; });
+		if(wasQueued)
 		{
-			if(e->cmd == BtstackCmd::INQUIRY)
-			{
-				//e_it.removeElem();
-				pendingCmdList.erase(e);
-				wasQueued = 1;
-				logMsg("cancelling scan from queue");
-				inDetect = 0;
-				onScanStatusD(*this, SCAN_CANCELLED, 0);
-				break;
-			}
+			logMsg("cancelling scan from queue");
+			inDetect = 0;
+			onScanStatusD(*this, SCAN_CANCELLED, 0);
 		}
-
-		if(!wasQueued)
+		else
 		{
 			logMsg("cancelling scan in progress");
 			bt_send_cmd(&hci_inquiry_cancel);
@@ -847,7 +830,7 @@ BtstackBluetoothAdapter *BtstackBluetoothAdapter::defaultAdapter()
 void BtstackBluetoothAdapter::requestName(BluetoothPendingSocket &pending, OnScanDeviceNameDelegate onDeviceName)
 {
 	onScanDeviceNameD = onDeviceName;
-	pendingCmdList.addToEnd(BtstackCmd::remoteNameRequest(pending.addr, 0, 0));
+	pendingCmdList.emplace_back(BtstackCmd::remoteNameRequest(pending.addr, 0, 0));
 	BtstackBluetoothAdapter::processCommands();
 }
 
@@ -868,14 +851,14 @@ void BluetoothPendingSocket::close()
 CallResult BtstackBluetoothSocket::openRfcomm(BluetoothAddr addr, uint32_t channel)
 {
 	type = 1;
-	if(!socketList.add(this))
+	if(!socketList.emplace_back(this))
 	{
 		logMsg("no space left in socket list");
 		return NO_FREE_ENTRIES;
 	}
 	logMsg("creating RFCOMM channel %d socket", channel);
-	pendingCmdList.addToEnd(BtstackCmd::writeAuthenticationEnable(1));
-	pendingCmdList.addToEnd(BtstackCmd::rfcommCreateChannel(addr, channel));
+	pendingCmdList.emplace_back(BtstackCmd::writeAuthenticationEnable(1));
+	pendingCmdList.emplace_back(BtstackCmd::rfcommCreateChannel(addr, channel));
 	this->addr = addr;
 	ch = channel;
 	BtstackBluetoothAdapter::processCommands();
@@ -885,7 +868,7 @@ CallResult BtstackBluetoothSocket::openRfcomm(BluetoothAddr addr, uint32_t chann
 CallResult BtstackBluetoothSocket::openL2cap(BluetoothAddr addr, uint32_t psm)
 {
 	type = 0;
-	if(!socketList.add(this))
+	if(!socketList.emplace_back(this))
 	{
 		logMsg("no space left in socket list");
 		return NO_FREE_ENTRIES;
@@ -893,12 +876,12 @@ CallResult BtstackBluetoothSocket::openL2cap(BluetoothAddr addr, uint32_t psm)
 	if(inL2capSocketOpenHandler)
 	{
 		// hack to boost command priority when opening 2nd Wiimote channel
-		pendingCmdList.add(BtstackCmd::l2capCreateChannel(addr, psm));
+		pendingCmdList.emplace_back(BtstackCmd::l2capCreateChannel(addr, psm));
 	}
 	else
 	{
-		pendingCmdList.addToEnd(BtstackCmd::writeAuthenticationEnable(0));
-		pendingCmdList.addToEnd(BtstackCmd::l2capCreateChannel(addr, psm));
+		pendingCmdList.emplace_back(BtstackCmd::writeAuthenticationEnable(0));
+		pendingCmdList.emplace_back(BtstackCmd::l2capCreateChannel(addr, psm));
 	}
 	this->addr = addr;
 	ch = psm;
@@ -913,12 +896,12 @@ CallResult BtstackBluetoothSocket::open(BluetoothPendingSocket &pending)
 	type = pending.type;
 	ch = pending.ch;
 	localCh = pending.localCh;
-	if(!socketList.add(this))
+	if(!socketList.emplace_back(this))
 	{
 		logMsg("no space left in socket list");
 		return NO_FREE_ENTRIES;
 	}
-	pendingCmdList.addToEnd(BtstackCmd::l2capAcceptConnection(localCh));
+	pendingCmdList.emplace_back(BtstackCmd::l2capAcceptConnection(localCh));
 	pending = {};
 	BtstackBluetoothAdapter::processCommands();
 	return OK;
@@ -1058,7 +1041,7 @@ void BtstackBluetoothSocket::close()
 		handle = 0;
 		localCh = 0;
 	}
-	socketList.remove(this);
+	IG::eraseFirst(socketList, this);
 }
 
 CallResult BtstackBluetoothSocket::write(const void *data, size_t size)

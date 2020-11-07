@@ -17,6 +17,7 @@
 
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/container/FlatSet.hh>
+#include <imagine/util/algorithm.h>
 
 template <typename FUNC>
 class DelegateFuncSet
@@ -65,7 +66,7 @@ public:
 		{
 			if(!exec(d.del))
 			{
-				delegate.remove(d);
+				IG::eraseFirst(delegate, d);
 			}
 		}
 	}

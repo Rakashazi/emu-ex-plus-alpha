@@ -99,18 +99,13 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 				([](JNIEnv* env, jobject thiz, jint id)
 				{
 					logMsg("screen %d removed", id);
-					forEachInContainer(screen_, it)
+					if(auto removedScreen = IG::moveOutIf(screen_, [&](Screen *s){ return s->id() == id; });
+						removedScreen)
 					{
-						Screen *removedScreen = *it;
-						if(removedScreen->id() == id)
-						{
-							it.erase();
-							if(Screen::onChange)
-								Screen::onChange(*removedScreen, {Screen::Change::REMOVED});
-							removedScreen->deinit();
-							delete removedScreen;
-							break;
-						}
+						if(Screen::onChange)
+							Screen::onChange(*removedScreen, {Screen::Change::REMOVED});
+						removedScreen->deinit();
+						delete removedScreen;
 					}
 				})
 			}

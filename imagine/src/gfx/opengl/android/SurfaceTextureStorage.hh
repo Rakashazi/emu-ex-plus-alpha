@@ -25,7 +25,7 @@ namespace Gfx
 
 class Renderer;
 
-class SurfaceTextureStorage: public TextureBufferStorage
+class SurfaceTextureStorage final: public TextureBufferStorage
 {
 public:
 	SurfaceTextureStorage(Renderer &r, TextureConfig config, bool singleBuffered, IG::ErrorCode *errorPtr);

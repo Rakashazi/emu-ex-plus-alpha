@@ -19,7 +19,7 @@
 #include <imagine/base/Base.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/bits.h>
-#include <imagine/util/container/containerUtils.hh>
+#include <imagine/util/algorithm.h>
 #include "../input/private.hh"
 #include "private.hh"
 
@@ -197,8 +197,8 @@ void PS3Controller::close()
 void PS3Controller::removeFromSystem()
 {
 	close();
-	IG::removeFirst(devList, this);
-	if(IG::removeFirst(btInputDevList, this))
+	IG::eraseFirst(devList, this);
+	if(IG::eraseFirst(btInputDevList, this))
 	{
 		removeDevice(*this);
 		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::REMOVED });

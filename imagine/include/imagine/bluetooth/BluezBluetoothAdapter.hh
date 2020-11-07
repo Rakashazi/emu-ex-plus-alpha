@@ -22,7 +22,7 @@
 #include <imagine/base/EventLoop.hh>
 #include <imagine/base/Pipe.hh>
 #ifdef CONFIG_BLUETOOTH_SERVER
-#include <imagine/util/container/DLList.hh>
+#include <imagine/util/container/ArrayList.hh>
 #endif
 
 class BluetoothPendingSocket
@@ -70,7 +70,7 @@ private:
 		int fd = -1;
 		Base::FDEventSource connectSrc;
 	};
-	StaticDLList<L2CapServer, 2> serverList;
+	StaticArrayList<L2CapServer, 2> serverList;
 	#endif
 
 	bool openDefault();

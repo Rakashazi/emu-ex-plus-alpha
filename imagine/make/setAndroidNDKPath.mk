@@ -14,7 +14,7 @@ endif
 
 ANDROID_NDK_PATH ?= $(studioNDKPath)
 
-ifeq ($(wildcard $(ANDROID_NDK_PATH)/sysroot/usr/include/android),)
+ifeq ($(wildcard $(ANDROID_NDK_PATH)/toolchains/llvm),)
  $(error Can't find Android NDK, please set ANDROID_SDK_ROOT or ANDROID_HOME to your SDK root path, or set ANDROID_NDK_PATH to your NDK root path)
 endif
 

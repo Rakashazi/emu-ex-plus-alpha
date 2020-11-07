@@ -20,7 +20,6 @@
 #include <imagine/time/Time.hh>
 #include <imagine/util/bits.h>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/container/containerUtils.hh>
 #include "../input/private.hh"
 #include "private.hh"
 
@@ -269,8 +268,8 @@ void Wiimote::close()
 void Wiimote::removeFromSystem()
 {
 	close();
-	IG::removeFirst(devList, this);
-	if(IG::removeFirst(btInputDevList, this))
+	IG::eraseFirst(devList, this);
+	if(IG::eraseFirst(btInputDevList, this))
 	{
 		if(extDevice.map())
 		{
@@ -434,7 +433,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						logMsg("extension is CC");
 						extension = EXT_CC;
 						sendDataModeByExtension();
-						IG::fillData(prevExtData, 0xFF);
+						IG::fill(prevExtData, 0xFF);
 						axisKey[0] = {31-8, 31+8,
 							WiiCC::LSTICK_LEFT, WiiCC::LSTICK_RIGHT, Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS};
 						axisKey[1] = {31-8, 31+8,
@@ -455,7 +454,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						logMsg("extension is Nunchuk");
 						extension = EXT_NUNCHUK;
 						sendDataModeByExtension();
-						IG::fillData(prevExtData, 0xFF);
+						IG::fill(prevExtData, 0xFF);
 						axisKey[0] = {127-64, 127+64,
 							Input::Wiimote::NUN_STICK_LEFT, Input::Wiimote::NUN_STICK_RIGHT, Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS};
 						axisKey[1] = {127-64, 127+64,
@@ -467,7 +466,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						logMsg("extension is Wii U Pro");
 						extension = EXT_WIIU_PRO;
 						sendDataModeByExtension();
-						IG::fillData(prevExtData, 0xFF);
+						IG::fill(prevExtData, 0xFF);
 						axisKey[0] = {2048-256, 2048+256,
 							WiiCC::LSTICK_LEFT, WiiCC::LSTICK_RIGHT, Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS};
 						axisKey[1] = {2048-256, 2048+256,

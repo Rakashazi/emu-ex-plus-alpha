@@ -440,7 +440,7 @@ void InputDeviceConfig::deleteConf()
 	if(savedConf)
 	{
 		logMsg("removing device config for %s", savedConf->name);
-		auto removed = IG::removeFirst(savedInputDevList, *savedConf);
+		auto removed = IG::eraseFirst(savedInputDevList, *savedConf);
 		assert(removed);
 		savedConf = nullptr;
 	}
@@ -635,8 +635,8 @@ void KeyMapping::buildAll()
 			//logMsg("mapping key %d to %u %s", k, key, Input::buttonName(inputDevConf[i].dev->map, key[k]));
 			assert(key[k] < Input::Event::mapNumKeys(e->map()));
 			auto &group = actionGroup[key[k]];
-			auto slot = IG::findData_if(group, [](Action a){ return a == 0; });
-			if(slot != group.data() + std::size(group))
+			auto slot = IG::find_if(group, [](Action a){ return a == 0; });
+			if(slot != group.end())
 				*slot = k+1; // add 1 to avoid 0 value (considered unmapped)
 		}
 
@@ -810,7 +810,7 @@ void updateVControllerMapping()
 
 void TurboInput::addEvent(uint action)
 {
-	Action *slot = IG::findData_if(activeAction, [](Action a){ return a == 0; });
+	Action *slot = IG::find_if(activeAction, [](Action a){ return a == 0; });
 	if(slot != activeAction.end())
 	{
 		slot->action = action;

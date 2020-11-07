@@ -367,7 +367,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	//logMsg("run frame %d", (int)processGfx);
 	if(video)
-		IG::fillData(screenBuff, (uint16_t)current_pc_pal[4095]);
+		IG::fill(screenBuff, (uint16_t)current_pc_pal[4095]);
 	main_frame(task, video);
 	auto audioFrames = updateAudioFramesPerVideoFrame();
 	Uint16 audioBuff[audioFrames * 2];

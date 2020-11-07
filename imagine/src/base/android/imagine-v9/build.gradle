@@ -4,7 +4,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.0.0'
+        classpath 'com.android.tools.build:gradle:4.1.0'
     }
 }
 
@@ -18,11 +18,11 @@ allprojects {
 apply plugin: 'android-library'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion 29
 
     defaultConfig {
         minSdkVersion 9
-        targetSdkVersion 28
+        targetSdkVersion 29
     }
 
     buildTypes {

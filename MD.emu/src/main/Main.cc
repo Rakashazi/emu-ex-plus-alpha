@@ -268,7 +268,7 @@ void setupMDInput()
 		return;
 	}
 
-	IG::fillData(playerIdxMap);
+	IG::fill(playerIdxMap);
 	playerIdxMap[0] = 0;
 	playerIdxMap[1] = 4;
 
@@ -449,7 +449,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 		if(!bramFile)
 		{
 			logMsg("no BRAM on disk, formatting");
-			IG::fillData(bram);
+			IG::fill(bram);
 			memcpy(bram + sizeof(bram) - sizeof(fmtBram), fmtBram, sizeof(fmtBram));
 			auto sramFormatStart = sram.sram + 0x10000 - sizeof(fmt64kSram);
 			memcpy(sramFormatStart, fmt64kSram, sizeof(fmt64kSram));

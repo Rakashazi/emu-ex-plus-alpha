@@ -43,27 +43,53 @@ static bool equal_n(InputIterator1 first1, Size size, InputIterator2 first2)
 }
 
 template <class C, class V>
-static void fillData(C &c, const V &val)
+static void fill(C &c, V val)
 {
-	std::fill_n(std::data(c), std::size(c), val);
+	std::fill(std::begin(c), std::end(c), val);
 }
 
 template <class C>
-static void fillData(C &c)
+static void fill(C &c)
 {
-	fillData(c, typeof(*std::data(c)){});
+	fill(c, std::decay_t<decltype(*std::data(c))>{});
 }
 
 template <class C, class UnaryPredicate>
-static auto findData_if(C &c, UnaryPredicate pred) -> decltype(std::data(c))
+static auto find_if(C &c, UnaryPredicate pred) -> decltype(std::data(c))
 {
-	return std::find_if(std::data(c), std::data(c) + std::size(c), pred);
+	return std::find_if(std::begin(c), std::end(c), pred);
 }
 
 template <class C, class V>
-static bool contains(C c, const V& val)
+static bool contains(const C &c, const V& val)
 {
-	return std::find(c.begin(), c.end(), val) != c.end();
+	return std::find(std::begin(c), std::end(c), val) != c.end();
+}
+
+template <class C, class T>
+static bool eraseFirst(C &c, const T &val)
+{
+	auto it = std::find(c.begin(), c.end(), val);
+	if(it == c.end())
+		return false;
+	c.erase(it);
+	return true;
+}
+
+template <class C, class UnaryPredicate>
+static typename C::value_type moveOutIf(C &c, UnaryPredicate pred)
+{
+	if(auto it = std::find_if(c.begin(), c.end(), pred);
+		it != c.end())
+	{
+		auto val = std::move(*it);
+		c.erase(it);
+		return val;
+	}
+	else
+	{
+		return {};
+	}
 }
 
 // wrapper functions for iterators to non-overlapping memory regions

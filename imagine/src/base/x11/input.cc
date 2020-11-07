@@ -236,17 +236,12 @@ static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify, bool isPo
 
 static void removeXInputDevice(int xDeviceId)
 {
-	forEachInContainer(xDevice, e)
+	if(auto removedDev = IG::moveOutIf(xDevice, [&](std::unique_ptr<XInputDevice> &dev){ return dev->id == xDeviceId; });
+		removedDev)
 	{
-		auto dev = e->get();
-		if(dev->id == xDeviceId)
-		{
-			auto removedDev = *dev;
-			removeDevice(*dev);
-			xDevice.erase(e.it);
-			onDeviceChange.callCopySafe(removedDev, { Device::Change::REMOVED });
-			return;
-		}
+		removeDevice(*removedDev);
+		onDeviceChange.callCopySafe(*removedDev, { Device::Change::REMOVED });
+		return;
 	}
 	logErr("key input device %d not in list", xDeviceId);
 }

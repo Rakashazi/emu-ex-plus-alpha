@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/util/algorithm.h>
 #include <chrono>
 #include <type_traits>
 #include <array>

@@ -20,7 +20,6 @@
 #include <imagine/time/Time.hh>
 #include <imagine/util/bits.h>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/container/containerUtils.hh>
 #include <algorithm>
 #include "../input/private.hh"
 #include "private.hh"
@@ -108,8 +107,8 @@ void Zeemote::close()
 void Zeemote::removeFromSystem()
 {
 	close();
-	IG::removeFirst(devList, this);
-	if(IG::removeFirst(btInputDevList, this))
+	IG::eraseFirst(devList, this);
+	if(IG::eraseFirst(btInputDevList, this))
 	{
 		Input::removeDevice(*this);
 		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::REMOVED });

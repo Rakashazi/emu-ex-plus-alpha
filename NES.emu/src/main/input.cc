@@ -181,6 +181,6 @@ bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
 
 void EmuSystem::clearInputBuffers(EmuInputView &)
 {
-	IG::fillData(zapperData);
+	IG::fill(zapperData);
 	padData = {};
 }

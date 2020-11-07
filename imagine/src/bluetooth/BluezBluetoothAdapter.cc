@@ -24,6 +24,7 @@
 #include <bluetooth/rfcomm.h>
 #include <bluetooth/hidp.h>
 #include <imagine/util/fd-utils.h>
+#include <imagine/util/algorithm.h>
 #include <errno.h>
 
 #ifdef __ANDROID__
@@ -249,15 +250,11 @@ void BluezBluetoothAdapter::setL2capService(uint32_t psm, bool active, OnStatusD
 	if(!active)
 	{
 		logMsg("unregistering psm: 0x%X", psm);
-		forEachInContainer(serverList, e)
+		if(auto removedServer = IG::moveOutIf(serverList, [&](L2CapServer &server){ return server.psm == psm; });
+			removedServer.fd != -1)
 		{
-			if(e->psm == psm)
-			{
-				::close(e->fd);
-				serverList.erase(e);
-				//e_it.removeElem();
-				return;
-			}
+			::close(removedServer.fd);
+			return;
 		}
 		logMsg("psm not found in server list");
 		return;

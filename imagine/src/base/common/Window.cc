@@ -16,6 +16,7 @@
 #define LOGTAG "Window"
 #include <imagine/base/Base.hh>
 #include <imagine/base/Screen.hh>
+#include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
 #include "windowPrivate.hh"
 #include <imagine/input/Input.hh>
@@ -444,7 +445,7 @@ void Window::dismiss()
 	auto onFree = this->onFree;
 	deinit();
 	#ifdef CONFIG_BASE_MULTI_WINDOW
-	IG::removeFirst(window_, this);
+	IG::eraseFirst(window_, this);
 	#else
 	mainWin = nullptr;
 	#endif

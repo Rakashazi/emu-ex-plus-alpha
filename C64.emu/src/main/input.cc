@@ -370,7 +370,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 							optionSwapJoystickPorts = 0;
 						else
 							optionSwapJoystickPorts = 1;
-						IG::fillData(*plugin.joystick_value);
+						IG::fill(*plugin.joystick_value);
 						EmuApp::postMessage(1, false, "Swapped Joystick Ports");
 					}
 				}
@@ -414,9 +414,9 @@ void EmuSystem::clearInputBuffers(EmuInputView &)
 	auto &joystick_value = *plugin.joystick_value;
 	shiftLock = false;
 	ctrlLock = false;
-	IG::fillData(keyarr);
-	IG::fillData(rev_keyarr);
-	IG::fillData(joystick_value);
+	IG::fill(keyarr);
+	IG::fill(rev_keyarr);
+	IG::fill(joystick_value);
 }
 
 void updateKeyMappingArray()

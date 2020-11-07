@@ -46,7 +46,7 @@ protected:
 	using Texture::generateMipmaps;
 };
 
-class GLTextureStorage : public TextureBufferStorage
+class GLTextureStorage final: public TextureBufferStorage
 {
 public:
 	struct BufferInfo

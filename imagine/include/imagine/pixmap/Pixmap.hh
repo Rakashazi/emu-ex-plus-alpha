@@ -19,6 +19,7 @@
 #include <imagine/pixmap/PixmapDesc.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/FunctionTraits.hh>
+#include <imagine/util/algorithm.h>
 
 namespace IG
 {

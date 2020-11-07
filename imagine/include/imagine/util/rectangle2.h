@@ -18,7 +18,6 @@
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/operators.hh>
 #include <imagine/util/Point2D.hh>
-#include <imagine/util/algorithm.h>
 
 namespace IG
 {

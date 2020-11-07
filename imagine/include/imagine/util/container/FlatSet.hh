@@ -15,7 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "containerUtils.hh"
 #include <vector>
 #include <iterator>
 #include <utility>
@@ -39,11 +38,6 @@ public:
 	using const_reverse_iterator = typename VectorType::const_reverse_iterator;
 
 	constexpr FlatSet(const COMPARE& c = COMPARE()): c{c} {}
-
-	bool remove(const T &val)
-	{
-		return IG::removeFirst(*this, val);
-	}
 
 	// Iterators (STL API)
 	iterator begin() { return v.begin(); }

@@ -29,7 +29,7 @@
 
 using namespace IG;
 
-class DetectFrameRateView : public View
+class DetectFrameRateView final: public View
 {
 public:
 	using DetectFrameRateDelegate = DelegateFunc<void (IG::FloatSeconds frameTime)>;

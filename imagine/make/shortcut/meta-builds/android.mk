@@ -6,7 +6,7 @@ include $(buildSysPath)/setAndroidNDKPath.mk
 .PHONY: all
 all : android-bundle
 
-BUNDLETOOL_PATH ?= $(IMAGINE_PATH)/tools/bundletool-all-0.15.0.jar
+BUNDLETOOL_PATH ?= $(IMAGINE_PATH)/tools/bundletool-all-1.3.0.jar
 BUNDLETOOL := java -jar $(BUNDLETOOL_PATH)
 
 # Code signing parameters used when generating APKs from the app bundle
@@ -262,7 +262,6 @@ $(android_drawableIconPaths) $(android_assetsPath) $(android_stylesXmlFiles)
 	echo METADATA_PROJECT=$(android_metadata_project) >> $(@D)/gradle.properties
 	echo METADATA_MIN_SDK=$(android_minSDK) >> $(@D)/gradle.properties
 	echo METADATA_TARGET_SDK=$(android_metadata_target_sdk) >> $(@D)/gradle.properties
-	echo ndk.dir=$(ANDROID_NDK_PATH) > $(@D)/local.properties
 
 ifneq ($(wildcard $(android_resSrcPath)/proguard.cfg),)
 android_proguardConfSrcPath = $(android_resSrcPath)/proguard.cfg

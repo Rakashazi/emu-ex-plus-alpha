@@ -183,7 +183,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
 		return makeError("ROM is too large");
 	}
 	#ifndef SNES9X_VERSION_1_4
-	IG::fillData(Memory.NSRTHeader);
+	IG::fill(Memory.NSRTHeader);
 	#endif
 	Memory.HeaderCount = 0;
 	string_copy(Memory.ROMFilename, fullGamePath());

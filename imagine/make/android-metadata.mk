@@ -76,7 +76,7 @@ ifdef android_metadata_bluetooth
 endif
 
 ifndef android_metadata_target_sdk
- android_metadata_target_sdk := 28
+ android_metadata_target_sdk := 29
 endif
 
 ifdef android_metadata_vibrate
@@ -91,4 +91,8 @@ ifndef metadata_noIcon
  ifdef android_metadata_xperiaPlayOptimized
   android_gen_metadata_args += --xperia-play-optimized
  endif
+endif
+
+ifdef android_metadata_legacyStorage
+ android_gen_metadata_args += --legacy-storage
 endif

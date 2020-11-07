@@ -222,5 +222,5 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 
 void EmuSystem::clearInputBuffers(EmuInputView &)
 {
-	IG::fillData(eventMap);
+	IG::fill(eventMap);
 }

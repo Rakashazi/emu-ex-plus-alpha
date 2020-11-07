@@ -158,7 +158,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 		},
 		[this](TextMenuItem &, View &, Input::Event)
 		{
-			cheatList.remove(*cheat);
+			IG::eraseFirst(cheatList, *cheat);
 			cheatsModified = 1;
 			onCheatListChanged();
 			applyCheats();

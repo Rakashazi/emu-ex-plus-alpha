@@ -99,7 +99,7 @@ void scd_init()
 {
 	logMsg("doing scd init");
 	M68KCPU &sm68k = sCD.cpu;
-	IG::fillData(sm68k.memory_map);
+	IG::fill(sm68k.memory_map);
 
 	for (int i=0; i<=0xFF; i++)
 	{
@@ -173,7 +173,7 @@ void scd_reset()
 	sCD.pcmMem = {};
 	sCD.word = {};
 	sCD.prg = {};
-	IG::fillData(sCD.gate);
+	IG::fill(sCD.gate);
 	sCD.pcm = {};
 	sCD.gate[0x3] = 1; // 2M word RAM mode with m68k access after reset
 	sCD.volume = 1024;

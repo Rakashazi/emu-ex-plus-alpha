@@ -17,6 +17,7 @@
 #include <imagine/io/IOStream.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/util/mayAliasInt.h>
+#include <imagine/util/ranges.hh>
 #include <imagine/logger/logger.h>
 #include <emuframework/EmuApp.hh>
 #include <main/Cheats.hh>
@@ -538,7 +539,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 		},
 		[this](TextMenuItem &, View &, Input::Event)
 		{
-			cheatList.remove(*cheat);
+			IG::eraseFirst(cheatList, *cheat);
 			cheatsModified = 1;
 			onCheatListChanged();
 			updateCheats();

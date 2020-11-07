@@ -244,19 +244,14 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 			{
 				logMsg("screen disconnected");
 				UIScreen *screen = [note object];
-				forEachInContainer(screen_, it)
+				if(auto removedScreen = IG::moveOutIf(screen_, [&](Screen *s){ return s->uiScreen() == screen; });
+					removedScreen)
 				{
-					Screen *removedScreen = *it;
-					if(removedScreen->uiScreen() == screen)
-					{
-						it.erase();
-						if(Screen::onChange)
-							Screen::onChange(*removedScreen, { Screen::Change::REMOVED });
-						[removedScreen->displayLink() removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-						removedScreen->deinit();
-						delete removedScreen;
-						break;
-					}
+					if(Screen::onChange)
+						Screen::onChange(*removedScreen, { Screen::Change::REMOVED });
+					[removedScreen->displayLink() removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+					removedScreen->deinit();
+					delete removedScreen;
 				}
 			}];
 		if(Config::DEBUG_BUILD)

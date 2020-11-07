@@ -21,7 +21,7 @@
 #include "../private.hh"
 #include <imagine/util/coreFoundation.h>
 #include <imagine/util/string.h>
-#include <imagine/util/container/containerUtils.hh>
+#include <imagine/util/algorithm.h>
 #import <GameController/GameController.h>
 
 namespace Input
@@ -289,19 +289,14 @@ static void addController(GCController *controller, bool notify)
 
 static void removeController(GCController *controller)
 {
-	forEachInContainer(gcList, it)
+	if(auto removedDev = IG::moveOutIf(gcList, [&](std::unique_ptr<AppleGameDevice> &dev){ return dev->gcController == controller; });
+		removedDev)
 	{
-		auto &dev = *it;
-		if(dev->gcController == controller)
-		{
-			logMsg("removing controller: %p", controller);
-			auto removedDev = *dev;
-			removeDevice(*dev);
-			it.erase();
-			logMsg("name: %s", removedDev.name());
-			onDeviceChange.callCopySafe(removedDev, { Device::Change::REMOVED });
-			return;
-		}
+		logMsg("removing controller: %p", controller);
+		removeDevice(*removedDev);
+		logMsg("name: %s", removedDev->name());
+		onDeviceChange.callCopySafe(*removedDev, { Device::Change::REMOVED });
+		return;
 	}
 }
 

@@ -40,7 +40,7 @@ private:
 	Gfx::Text text{};
 };
 
-class InputManagerView : public TableView
+class InputManagerView final: public TableView
 {
 public:
 	using DeviceNameString = std::array<char, MAX_INPUT_DEVICE_NAME_SIZE>;

@@ -15,11 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "containerUtils.hh"
 #include <assert.h>
 #include <cstddef>
 #include <iterator>
-#include <algorithm>
 #include <cstring>
 
 template <class T, size_t SIZE>
@@ -54,17 +52,13 @@ private:
 public:
 	using STORAGE_BASE::storage;
 	using value_type = T;
+	using size_type = size_t;
 	using iterator = T*;
 	using const_iterator = const T*;
 	using reverse_iterator = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 	constexpr ArrayListBase() {}
-
-	bool remove(const T &val)
-	{
-		return IG::removeFirst(*this, val);
-	}
 
 	// Iterators (STL API)
 	iterator begin() { return data(); }
@@ -184,6 +178,20 @@ public:
 	}
 };
 
-
 template<class T, size_t SIZE>
 using StaticArrayList = ArrayListBase<T, StaticStorageBase<T, SIZE> >;
+
+namespace IG
+{
+
+template<class T, size_t SIZE, class Pred>
+static constexpr typename StaticArrayList<T,SIZE>::size_type
+	erase_if(StaticArrayList<T,SIZE>& c, Pred pred)
+{
+	auto it = std::remove_if(c.begin(), c.end(), pred);
+	auto r = std::distance(it, c.end());
+	c.erase(it, c.end());
+	return r;
+}
+
+}

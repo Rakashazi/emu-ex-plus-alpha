@@ -62,6 +62,9 @@ do
 		--ouya)
 			hasOuyaIntent=1
 		;;
+		--legacy-storage)
+			usesLegacyStorage=1
+		;;
 		# special actions
 		-v | --verbose)
 			verbose=1
@@ -128,6 +131,11 @@ fi
 if [ $isGame ]
 then
 	applicationOutput="$applicationOutput android:isGame=\"true\""
+fi
+
+if [ $usesLegacyStorage ]
+then
+	applicationOutput="$applicationOutput android:requestLegacyExternalStorage=\"true\""
 fi
 
 if [ ! $versionCode ]

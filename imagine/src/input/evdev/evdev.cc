@@ -22,7 +22,6 @@
 #include <imagine/util/bits.h>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/string.h>
-#include <imagine/util/container/containerUtils.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
@@ -297,15 +296,10 @@ static std::vector<std::unique_ptr<EvdevInputDevice>> evDevice{};
 
 static void removeFromSystem(int fd)
 {
-	forEachInContainer(evDevice, e)
+	if(auto removedDev = IG::moveOutIf(evDevice, [&](std::unique_ptr<EvdevInputDevice> &dev){ return dev->fd == fd; });
+		removedDev)
 	{
-		auto &dev = *e;
-		if(dev->fd == fd)
-		{
-			dev->close();
-			evDevice.erase(e.it);
-			return;
-		}
+		removedDev->close();
 	}
 }
 

@@ -29,7 +29,7 @@ public:
 	virtual void cancel() = 0;
 };
 
-class SimpleFrameTimer : public FrameTimer
+class SimpleFrameTimer final: public FrameTimer
 {
 public:
 	SimpleFrameTimer(EventLoop loop);

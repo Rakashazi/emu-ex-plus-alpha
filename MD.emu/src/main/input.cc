@@ -147,9 +147,9 @@ bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
 
 void EmuSystem::clearInputBuffers(EmuInputView &)
 {
-	IG::fillData(input.pad);
+	IG::fill(input.pad);
 	for(auto &analog : input.analog)
 	{
-		IG::fillData(analog);
+		IG::fill(analog);
 	}
 }

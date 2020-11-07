@@ -16,8 +16,8 @@
 #include <imagine/input/Input.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Timer.hh>
+#include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
-#include <imagine/util/container/containerUtils.hh>
 #include "private.hh"
 #include <optional>
 
@@ -120,7 +120,7 @@ void removeDevice(Device &d)
 {
 	logMsg("removing device: %s,%d", d.name(), d.enumId());
 	cancelKeyRepeatTimer();
-	IG::removeFirst(devList, &d);
+	IG::eraseFirst(devList, &d);
 	indexDevices();
 }
 

@@ -4,7 +4,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.0.0'
+        classpath 'com.android.tools.build:gradle:4.1.0'
     }
 }
 
@@ -18,7 +18,7 @@ allprojects {
 apply plugin: 'android'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion 29
 
     defaultConfig {
         minSdkVersion METADATA_MIN_SDK
@@ -64,7 +64,7 @@ android {
     }
 
     defaultConfig {
-		project.ext.set("archivesBaseName", METADATA_PROJECT)
+		archivesBaseName = METADATA_PROJECT
 	}
 }
 

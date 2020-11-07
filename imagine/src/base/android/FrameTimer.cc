@@ -32,7 +32,7 @@
 namespace Base
 {
 
-class ChoreographerFrameTimer : public FrameTimer
+class ChoreographerFrameTimer final : public FrameTimer
 {
 public:
 	ChoreographerFrameTimer(JNIEnv *env, jobject activity);
@@ -48,7 +48,7 @@ protected:
 	bool requested = false;
 };
 
-class AChoreographerFrameTimer : public FrameTimer
+class AChoreographerFrameTimer final : public FrameTimer
 {
 public:
 	AChoreographerFrameTimer();
