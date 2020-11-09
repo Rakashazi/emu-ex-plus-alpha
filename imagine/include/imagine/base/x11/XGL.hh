@@ -17,13 +17,13 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/EGLContextBase.hh>
-#include <imagine/base/WindowConfig.hh>
 
 namespace Base
 {
 
 class GLDisplay;
 class GLDrawable;
+class Window;
 
 class XGLContext : public EGLContextBase
 {

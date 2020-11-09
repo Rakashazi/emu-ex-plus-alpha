@@ -16,12 +16,12 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/operators.hh>
+#include <compare>
 
 namespace IG
 {
 
-class FontSettings : public NotEquals<FontSettings>
+class FontSettings
 {
 public:
 	constexpr FontSettings() {}
@@ -32,13 +32,7 @@ public:
 	int pixelHeight() const;
 	void setPixelWidth(int w);
 	void setPixelHeight(int h);
-
-	bool operator==(const FontSettings& other) const
-	{
-		return pixHeight == other.pixHeight
-			&& pixWidth == other.pixWidth;
-	}
-
+	constexpr bool operator==(const FontSettings& other) const = default;
 
 private:
 	int pixWidth = 0, pixHeight = 0;

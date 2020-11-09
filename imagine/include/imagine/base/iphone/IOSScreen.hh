@@ -16,8 +16,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/operators.hh>
 #include <imagine/time/Time.hh>
+#include <compare>
 
 #ifdef __OBJC__
 #import <UIKit/UIKit.h>
@@ -27,7 +27,7 @@
 namespace Base
 {
 
-class IOSScreen : public NotEquals<IOSScreen>
+class IOSScreen
 {
 public:
 	void *uiScreen_ = nullptr; // UIScreen in ObjC

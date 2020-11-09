@@ -21,6 +21,7 @@
 #include <bluetooth/l2cap.h>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/base/Pipe.hh>
+#include <imagine/base/Error.hh>
 #ifdef CONFIG_BLUETOOTH_SERVER
 #include <imagine/util/container/ArrayList.hh>
 #endif
@@ -74,7 +75,7 @@ private:
 	#endif
 
 	bool openDefault();
-	CallResult doScan(const OnScanDeviceClassDelegate &onDeviceClass, const OnScanDeviceNameDelegate &onDeviceName);
+	IG::ErrorCode doScan(const OnScanDeviceClassDelegate &onDeviceClass, const OnScanDeviceNameDelegate &onDeviceName);
 	void sendBTScanStatusDelegate(uint8_t type, uint8_t arg);
 };
 
@@ -82,13 +83,13 @@ class BluezBluetoothSocket : public BluetoothSocket
 {
 public:
 	BluezBluetoothSocket() {}
-	CallResult openL2cap(BluetoothAddr addr, uint32_t psm) final;
-	CallResult openRfcomm(BluetoothAddr addr, uint32_t channel) final;
+	IG::ErrorCode openL2cap(BluetoothAddr addr, uint32_t psm) final;
+	IG::ErrorCode openRfcomm(BluetoothAddr addr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	CallResult open(BluetoothPendingSocket &socket) final;
+	IG::ErrorCode open(BluetoothPendingSocket &socket) final;
 	#endif
 	void close() final;
-	CallResult write(const void *data, size_t size) final;
+	IG::ErrorCode write(const void *data, size_t size) final;
 	int readPendingData(int events);
 
 private:

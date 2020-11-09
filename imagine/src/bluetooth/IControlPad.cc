@@ -127,7 +127,7 @@ uint32_t IControlPad::findFreeDevId()
 	return 0;
 }
 
-CallResult IControlPad::open(BluetoothAdapter &adapter)
+IG::ErrorCode IControlPad::open(BluetoothAdapter &adapter)
 {
 	logMsg("connecting to iCP");
 	sock.onData() =
@@ -140,13 +140,13 @@ CallResult IControlPad::open(BluetoothAdapter &adapter)
 		{
 			return statusHandler(sock, status);
 		};
-	if(sock.openRfcomm(addr, 1) != OK)
+	if(auto err = sock.openRfcomm(addr, 1);
+		err)
 	{
 		logErr("error opening socket");
-		return IO_ERROR;
+		return err;
 	}
-
-	return OK;
+	return {};
 }
 
 void IControlPad::close()

@@ -648,7 +648,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 	activity->callbacks->onLowMemory =
 		[](ANativeActivity *)
 		{
-			dispatchOnFreeCaches();
+			dispatchOnFreeCaches(appIsRunning());
 		};
 	activity->callbacks->onWindowFocusChanged =
 		[](ANativeActivity *activity, int focused)

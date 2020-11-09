@@ -17,13 +17,13 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/operators.hh>
 #include <utility>
+#include <compare>
 
 namespace Base
 {
 
-class XScreen : public NotEquals<XScreen>
+class XScreen
 {
 public:
 	constexpr XScreen() {}

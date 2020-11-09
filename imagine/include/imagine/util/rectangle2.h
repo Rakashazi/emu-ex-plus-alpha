@@ -18,12 +18,13 @@
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/operators.hh>
 #include <imagine/util/Point2D.hh>
+#include <compare>
 
 namespace IG
 {
 
 template<class T>
-class Rect2 : public NotEquals< Rect2<T> >, public Arithmetics< Rect2<T> >
+class Rect2 : public Arithmetics< Rect2<T> >
 {
 public:
 	T x = 0, y = 0, x2 = 0, y2 = 0;
@@ -40,10 +41,7 @@ public:
 		return r;
 	}
 
-	bool operator ==(Rect2 const& rhs) const
-	{
-		return x == rhs.x && y == rhs.y && x2 == rhs.x2 && y2 == rhs.y2;
-	}
+	constexpr bool operator ==(Rect2 const& rhs) const = default;
 
 	Rect2 & operator +=(Rect2 const& rhs)
 	{

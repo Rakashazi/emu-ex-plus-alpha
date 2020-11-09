@@ -546,7 +546,7 @@ static int nativeFdForSocket(JNIEnv *env, jobject btSocket)
 	return -1;
 }
 
-CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint32_t channel, bool l2cap)
+IG::ErrorCode AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint32_t channel, bool l2cap)
 {
 	ba2str(bdaddr, addrStr);
 	this->channel = channel;
@@ -591,16 +591,16 @@ CallResult AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint32_t cha
 			isConnecting = false;
 		}
 	);
-	return OK;
+	return {};
 }
 
-CallResult AndroidBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint32_t channel)
+IG::ErrorCode AndroidBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint32_t channel)
 {
 	logMsg("opening RFCOMM channel %d", channel);
 	return openSocket(bdaddr, channel, 0);
 }
 
-CallResult AndroidBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint32_t psm)
+IG::ErrorCode AndroidBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint32_t psm)
 {
 	logMsg("opening L2CAP psm %d", psm);
 	return openSocket(bdaddr, psm, 1);
@@ -631,14 +631,14 @@ void AndroidBluetoothSocket::close()
 	}
 }
 
-CallResult AndroidBluetoothSocket::write(const void *data, size_t size)
+IG::ErrorCode AndroidBluetoothSocket::write(const void *data, size_t size)
 {
 	logMsg("writing %zd bytes", size);
 	if(nativeFd != -1)
 	{
 		if(fd_writeAll(nativeFd, data, size) != (ssize_t)size)
 		{
-			return IO_ERROR;
+			return {EIO};
 		}
 	}
 	else
@@ -649,5 +649,5 @@ CallResult AndroidBluetoothSocket::write(const void *data, size_t size)
 		jOutWrite(env, outStream, jData, 0, size);
 		env->DeleteLocalRef(jData);
 	}
-	return OK;
+	return {};
 }

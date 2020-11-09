@@ -18,6 +18,7 @@
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
+#include <imagine/base/Error.hh>
 #include <vector>
 
 class PS3Controller : public BluetoothInputDevice, public Input::Device
@@ -29,9 +30,9 @@ public:
 		Device{0, Input::Event::MAP_PS3PAD, Input::Device::TYPE_BIT_GAMEPAD, "PS3 Controller"},
 		addr{addr}
 	{}
-	CallResult open(BluetoothAdapter &adapter) final;
-	CallResult open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
-	CallResult open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
+	IG::ErrorCode open(BluetoothAdapter &adapter) final;
+	IG::ErrorCode open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
+	IG::ErrorCode open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
 	void close();
 	void removeFromSystem() final;
 	bool dataHandler(const char *data, size_t size);

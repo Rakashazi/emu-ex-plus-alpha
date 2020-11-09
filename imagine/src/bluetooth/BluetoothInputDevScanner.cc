@@ -234,7 +234,7 @@ void connectPendingDevs(BluetoothAdapter *bta)
 	logMsg("connecting to %d devices", (int)btInputDevPendingList.size());
 	for(auto e : btInputDevPendingList)
 	{
-		if(e->open(*bta) != OK)
+		if(e->open(*bta))
 		{
 			delete e;
 		}

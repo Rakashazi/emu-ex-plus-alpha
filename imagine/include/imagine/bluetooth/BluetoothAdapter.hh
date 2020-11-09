@@ -15,16 +15,16 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <array>
-#include <cstddef>
 #include <imagine/config/defs.hh>
 #include <imagine/bluetooth/config.hh>
 #include <imagine/util/DelegateFunc.hh>
-#include <imagine/util/operators.hh>
+#include <imagine/base/Error.hh>
+#include <array>
+#include <compare>
 
 class BluetoothPendingSocket;
 
-struct BluetoothAddr : public NotEquals<BluetoothAddr>
+struct BluetoothAddr
 {
 	constexpr BluetoothAddr() {}
 	constexpr BluetoothAddr(const uint8_t b[6]): b{b[0], b[1], b[2], b[3], b[4], b[5]} {}
@@ -39,10 +39,7 @@ struct BluetoothAddr : public NotEquals<BluetoothAddr>
 		return b.data();
 	}
 
-	bool operator ==(BluetoothAddr const& rhs) const
-	{
-		return b == rhs.b;
-	}
+	constexpr bool operator ==(BluetoothAddr const& rhs) const = default;
 
 private:
 	std::array<uint8_t, 6>b{};
@@ -99,13 +96,13 @@ class BluetoothSocket
 {
 public:
 	constexpr BluetoothSocket() {}
-	virtual CallResult openL2cap(BluetoothAddr addr, uint32_t psm) = 0;
-	virtual CallResult openRfcomm(BluetoothAddr addr, uint32_t channel) = 0;
+	virtual IG::ErrorCode openL2cap(BluetoothAddr addr, uint32_t psm) = 0;
+	virtual IG::ErrorCode openRfcomm(BluetoothAddr addr, uint32_t channel) = 0;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	virtual CallResult open(BluetoothPendingSocket &socket) = 0;
+	virtual IG::ErrorCode open(BluetoothPendingSocket &socket) = 0;
 	#endif
 	virtual void close() = 0;
-	virtual CallResult write(const void *data, size_t size) = 0;
+	virtual IG::ErrorCode write(const void *data, size_t size) = 0;
 	typedef DelegateFunc<bool (const char *data, size_t size)> OnDataDelegate;
 	OnDataDelegate &onData() { return onDataD; }
 	typedef DelegateFunc<uint32_t (BluetoothSocket &sock, uint32_t status)> OnStatusDelegate;
@@ -122,6 +119,6 @@ class BluetoothInputDevice
 {
 public:
 	virtual ~BluetoothInputDevice() {}
-	virtual CallResult open(BluetoothAdapter &adapter) = 0;
+	virtual IG::ErrorCode open(BluetoothAdapter &adapter) = 0;
 	virtual void removeFromSystem() = 0;
 };

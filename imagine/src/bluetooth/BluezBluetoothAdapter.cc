@@ -29,7 +29,7 @@
 
 #ifdef __ANDROID__
 // Bluez dlsym functions
-CLINK CallResult bluez_dl();
+CLINK int bluez_dl();
 #endif
 
 struct ScanStatusMessage
@@ -56,7 +56,7 @@ bool BluezBluetoothAdapter::openDefault()
 		return 1;
 	logMsg("opening default BT adapter");
 	#ifdef __ANDROID__
-	if(bluez_dl() != OK)
+	if(bluez_dl() != 0)
 		return 0;
 	#endif
 	devId = hci_get_route(0);
@@ -124,7 +124,7 @@ BluezBluetoothAdapter *BluezBluetoothAdapter::defaultAdapter()
 		return nullptr;
 }
 
-CallResult BluezBluetoothAdapter::doScan(const OnScanDeviceClassDelegate &onDeviceClass, const OnScanDeviceNameDelegate &onDeviceName)
+IG::ErrorCode BluezBluetoothAdapter::doScan(const OnScanDeviceClassDelegate &onDeviceClass, const OnScanDeviceNameDelegate &onDeviceName)
 {
 	using namespace Base;
 	logMsg("starting Bluetooth scan, cache %d", BluetoothAdapter::useScanCache);
@@ -137,14 +137,14 @@ CallResult BluezBluetoothAdapter::doScan(const OnScanDeviceClassDelegate &onDevi
 		logMsg("inquiry failed");
 		if(deviceInfo) free(deviceInfo);
 		sendBTScanStatusDelegate(SCAN_FAILED);
-		return INVALID_PARAMETER;
+		return {EINVAL};
 	}
 
 	if(scanCancelled)
 	{
 		logMsg("cancelled scan after hci_inquiry");
 		sendBTScanStatusDelegate(SCAN_CANCELLED);
-		return OK;
+		return {};
 	}
 
 	logMsg("%d devices", devices);
@@ -152,7 +152,7 @@ CallResult BluezBluetoothAdapter::doScan(const OnScanDeviceClassDelegate &onDevi
 	{
 		sendBTScanStatusDelegate(SCAN_NO_DEVS);
 		if(deviceInfo) free(deviceInfo);
-		return OK;
+		return {};
 	}
 	else
 		sendBTScanStatusDelegate(SCAN_PROCESSING, devices);
@@ -168,7 +168,7 @@ CallResult BluezBluetoothAdapter::doScan(const OnScanDeviceClassDelegate &onDevi
 		{
 			logMsg("cancelled scan in hci_read_remote_name loop");
 			sendBTScanStatusDelegate(SCAN_CANCELLED);
-			return OK;
+			return {};
 		}
 
 		char name[248];
@@ -187,11 +187,11 @@ CallResult BluezBluetoothAdapter::doScan(const OnScanDeviceClassDelegate &onDevi
 	{
 		logMsg("canceled scan after hci_read_remote_name loop");
 		sendBTScanStatusDelegate(SCAN_CANCELLED);
-		return OK;
+		return {};
 	}
 
 	sendBTScanStatusDelegate(SCAN_COMPLETE);
-	return OK;
+	return {};
 }
 
 bool BluezBluetoothAdapter::startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName)
@@ -354,7 +354,7 @@ void BluetoothPendingSocket::requestName(BluetoothAdapter::OnScanDeviceNameDeleg
 	defaultBluezAdapter.requestName(*this, onDeviceName);
 }
 
-CallResult BluezBluetoothSocket::open(BluetoothPendingSocket &pending)
+IG::ErrorCode BluezBluetoothSocket::open(BluetoothPendingSocket &pending)
 {
 	assert(pending);
 	logMsg("accepting connection from fd %d", pending.fd);
@@ -363,7 +363,7 @@ CallResult BluezBluetoothSocket::open(BluetoothPendingSocket &pending)
 	if(onStatusD(*this, STATUS_OPENED) == OPEN_USAGE_READ_EVENTS)
 		setupFDEvents(Base::POLLEV_IN);
 		//Base::addPollEvent(fd, pollEvDel, Base::POLLEV_IN);
-	return OK;
+	return {};
 }
 
 int BluezBluetoothSocket::readPendingData(int events)
@@ -431,7 +431,7 @@ void BluezBluetoothSocket::setupFDEvents(int events)
 		Base::POLLEV_OUT};
 }
 
-CallResult BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint32_t channel)
+IG::ErrorCode BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint32_t channel)
 {
 	struct sockaddr_rc addr{};
 	addr.rc_family = AF_BLUETOOTH;
@@ -443,7 +443,7 @@ CallResult BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint32_t chann
 	{
 		logMsg("error creating RFCOMM socket with channel %d", channel);
 		//onStatus.invoke(*this, STATUS_ERROR);
-		return IO_ERROR;
+		return {EIO};
 	}
 	fd_setNonblock(fd, 1);
 	if(connect(fd, (struct sockaddr *)&addr, sizeof addr) == -1)
@@ -456,10 +456,10 @@ CallResult BluezBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint32_t chann
 	}
 	fd_setNonblock(fd, 0);
 	setupFDEvents(Base::POLLEV_OUT);
-	return OK;
+	return {};
 }
 
-CallResult BluezBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint32_t psm)
+IG::ErrorCode BluezBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint32_t psm)
 {
 	struct sockaddr_l2 addr{};
 	addr.l2_family = AF_BLUETOOTH;
@@ -470,7 +470,7 @@ CallResult BluezBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint32_t psm)
 	if(fd == -1)
 	{
 		logMsg("error creating L2CAP socket with PSM %d", psm);
-		return IO_ERROR;
+		return {EIO};
 	}
 
 	fd_setNonblock(fd, 1);
@@ -488,7 +488,7 @@ CallResult BluezBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint32_t psm)
 	}
 	fd_setNonblock(fd, 0);
 	setupFDEvents(Base::POLLEV_OUT);
-	return OK;
+	return {};
 }
 
 void BluezBluetoothSocket::close()
@@ -504,12 +504,12 @@ void BluezBluetoothSocket::close()
 	}
 }
 
-CallResult BluezBluetoothSocket::write(const void *data, size_t size)
+IG::ErrorCode BluezBluetoothSocket::write(const void *data, size_t size)
 {
 	assert(fd >= 0);
 	if(fd_writeAll(fd, data, size) != (ssize_t)size)
 	{
-		return IO_ERROR;
+		return {EIO};
 	}
-	return OK;
+	return {};
 }

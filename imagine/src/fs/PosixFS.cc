@@ -14,17 +14,17 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "PosixFS"
-#include <cstdlib>
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Base.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/string.h>
-#include <errno.h>
-
 #ifdef __APPLE__
 #include <imagine/util/string/apple.h>
 #endif
+#include <errno.h>
+#include <sys/stat.h>
+#include <cstdlib>
 
 namespace FS
 {

@@ -16,23 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 template <class T>
-class NotEquals
-{
-public:
-	constexpr NotEquals() {}
-	friend bool operator!=(const T &lhs, const T &rhs) { return !(lhs == rhs); }
-};
-
-template <class T>
-class Compares
-{
-public:
-	constexpr Compares() {}
-	friend bool operator<=(const T &lhs, const T &rhs) { return !(lhs > rhs); }
-	friend bool operator>=(const T &lhs, const T &rhs) { return !(lhs < rhs); }
-};
-
-template <class T>
 class Adds
 {
 public:
@@ -43,6 +26,8 @@ public:
 		sum += v2;
 		return sum;
 	}
+
+	constexpr bool operator ==(Adds<T> const& rhs) const = default;
 };
 
 template <class T>
@@ -56,6 +41,8 @@ public:
 		diff -= v2;
 		return diff;
 	}
+
+	constexpr bool operator ==(Subtracts<T> const& rhs) const = default;
 };
 
 template <class T>
@@ -69,6 +56,8 @@ public:
 		prod *= v2;
 		return prod;
 	}
+
+	constexpr bool operator ==(Multiplies<T> const& rhs) const = default;
 };
 
 template <class T>
@@ -82,13 +71,19 @@ public:
 		quot /= v2;
 		return quot;
 	}
+
+	constexpr bool operator ==(Divides<T> const& rhs) const = default;
 };
 
 template <class T>
-class Arithmetics : public Adds<T>, public Subtracts<T>, public Multiplies<T>, public Divides<T> {};
+class Arithmetics : public Adds<T>, public Subtracts<T>, public Multiplies<T>, public Divides<T>
+{
+public:
+	constexpr bool operator ==(Arithmetics<T> const& rhs) const = default;
+};
 
 template <class T>
-class PrimitiveOperators : public Arithmetics<T>, public NotEquals<T>, public Compares<T>
+class PrimitiveOperators : public Arithmetics<T>
 {
 public:
 	friend T &operator +=(T &lhs, const T &rhs)
@@ -138,4 +133,6 @@ public:
 	{
 		return lhs.primitiveVal() == rhs.primitiveVal();
 	}
+
+	constexpr bool operator ==(PrimitiveOperators<T> const& rhs) const = default;
 };

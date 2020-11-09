@@ -17,9 +17,9 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
-#include <imagine/util/operators.hh>
 #include <imagine/base/iphone/config.h>
 #import <CoreGraphics/CGBase.h>
+#include <compare>
 
 #ifdef __OBJC__
 #import <UIKit/UIKit.h>
@@ -37,7 +37,7 @@ extern uint32_t screenPointScale;
 static constexpr uint32_t screenPointScale = 1;
 #endif
 
-class IOSWindow : public BaseWindow, public NotEquals<IOSWindow>
+class IOSWindow : public BaseWindow
 {
 public:
 	void *uiWin_ = nullptr; // UIWindow in ObjC

@@ -25,6 +25,7 @@
 #ifdef CONFIG_INPUT_EVDEV
 #include "../../input/evdev/evdev.hh"
 #endif
+#include <sys/stat.h>
 #include <cstring>
 
 namespace Base

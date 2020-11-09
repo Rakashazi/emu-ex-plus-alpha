@@ -51,7 +51,7 @@ struct T_CART_HW
 };
 
 /* Cartridge type */
-typedef struct
+struct T_CART
 {
   uint8 rom[MAXROMSIZE] __attribute__ ((aligned (8))){};     /* ROM area */
   uint8 *base{};    /* ROM base (saved for OS/Cartridge ROM swap) */
@@ -59,7 +59,7 @@ typedef struct
   uint32 mask = 0;    /* ROM mask */
   uint8 special = 0;  /* Lock-On, J-Cart or SMS 3-D glasses hardware */
   T_CART_HW hw{};   /* Extra mapping hardware */
-} T_CART;
+};
 
 /* global variables */
 extern T_CART cart;

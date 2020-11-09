@@ -66,6 +66,8 @@ void TableView::setAlign(_2DOrigin align)
 
 void TableView::prepareDraw()
 {
+	if(!yCellSize)
+		return;
 	auto cells_ = items(*this);
 	if(!cells_)
 		return;

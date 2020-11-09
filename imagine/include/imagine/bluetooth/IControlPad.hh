@@ -18,6 +18,7 @@
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
+#include <imagine/base/Error.hh>
 #include <vector>
 
 struct IControlPad : public BluetoothInputDevice, public Input::Device
@@ -31,7 +32,7 @@ public:
 		addr{addr}
 	{}
 
-	CallResult open(BluetoothAdapter &adapter) final;
+	IG::ErrorCode open(BluetoothAdapter &adapter) final;
 	void close();
 	void removeFromSystem() final;
 	uint32_t joystickAxisBits() final;

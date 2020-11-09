@@ -298,14 +298,17 @@ void mainInitCommon(int argc, char** argv)
 			{
 				emuViewController.setEmuViewOnExtraWindow(true, *Base::Screen::screen(1));
 			}
+			emuViewController.prepareDraw();
 			return true;
 		});
 
 	Base::setOnFreeCaches(
-		[]()
+		[](bool running)
 		{
 			View::defaultFace.freeCaches();
 			View::defaultBoldFace.freeCaches();
+			if(running)
+				emuViewController.prepareDraw();
 		});
 
 	Base::addOnExit(
@@ -340,7 +343,7 @@ void mainInitCommon(int argc, char** argv)
 				Bluetooth::closeBT(bta);
 			#endif
 
-			Base::dispatchOnFreeCaches();
+			Base::dispatchOnFreeCaches(false);
 			keyMapping.free();
 
 			#ifdef CONFIG_BASE_IOS

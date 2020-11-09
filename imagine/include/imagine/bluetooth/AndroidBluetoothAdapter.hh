@@ -20,6 +20,7 @@
 #include <imagine/config/defs.hh>
 #include "BluetoothAdapter.hh"
 #include <imagine/base/EventLoop.hh>
+#include <imagine/base/Error.hh>
 
 struct SocketStatusMessage;
 
@@ -56,13 +57,13 @@ class AndroidBluetoothSocket : public BluetoothSocket
 {
 public:
 	AndroidBluetoothSocket() {}
-	CallResult openL2cap(BluetoothAddr addr, uint32_t psm) final;
-	CallResult openRfcomm(BluetoothAddr addr, uint32_t channel) final;
+	IG::ErrorCode openL2cap(BluetoothAddr addr, uint32_t psm) final;
+	IG::ErrorCode openRfcomm(BluetoothAddr addr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	CallResult open(BluetoothPendingSocket &socket) final;
+	IG::ErrorCode open(BluetoothPendingSocket &socket) final;
 	#endif
 	void close() final;
-	CallResult write(const void *data, size_t size) final;
+	IG::ErrorCode write(const void *data, size_t size) final;
 	void onStatusDelegateMessage(int arg);
 
 private:
@@ -76,6 +77,6 @@ private:
 	bool isConnecting = false;
 	char addrStr[18]{};
 
-	CallResult openSocket(BluetoothAddr addr, uint32_t channel, bool l2cap);
+	IG::ErrorCode openSocket(BluetoothAddr addr, uint32_t channel, bool l2cap);
 	int readPendingData(int events);
 };

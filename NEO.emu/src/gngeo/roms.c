@@ -44,7 +44,7 @@ void kof2000_decrypt_68k(GAME_ROMS *r);
 void kof2002_decrypt_68k(GAME_ROMS *r);
 void matrim_decrypt_68k(GAME_ROMS *r);
 void samsho5_decrypt_68k(GAME_ROMS *r);
-void samsh5p_decrypt_68k(GAME_ROMS *r);
+void samsh5sp_decrypt_68k(GAME_ROMS *r);
 void mslug5_decrypt_68k(GAME_ROMS *r);
 void kf2k3pcb_decrypt_s1data(GAME_ROMS *r);
 void kf2k3pcb_decrypt_68k(GAME_ROMS *r);

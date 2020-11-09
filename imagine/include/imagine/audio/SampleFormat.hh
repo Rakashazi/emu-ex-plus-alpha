@@ -15,12 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/operators.hh>
+#include <compare>
 
 namespace IG::Audio
 {
 
-class SampleFormat : public NotEquals<SampleFormat>
+class SampleFormat
 {
 public:
 	constexpr SampleFormat() {}
@@ -28,28 +28,24 @@ public:
 		bytes_{bytes}, isFloatType{isFloat}
 	{}
 
-	uint8_t bytes() const
+	constexpr uint8_t bytes() const
 	{
 		return bytes_;
 	}
 
-	uint8_t bits() const
+	constexpr uint8_t bits() const
 	{
 		return bytes_ * 8;
 	}
 
-	bool isFloat() const
+	constexpr bool isFloat() const
 	{
 		return isFloatType;
 	}
 
-	bool operator ==(SampleFormat const& rhs) const
-	{
-		return bytes_ == rhs.bytes_
-			&& isFloatType == rhs.isFloatType;
-	}
+	constexpr bool operator ==(SampleFormat const& rhs) const = default;
 
-	explicit operator bool() const
+	constexpr explicit operator bool() const
 	{
 		return bytes_;
 	}

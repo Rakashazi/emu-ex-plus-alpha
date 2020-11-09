@@ -145,9 +145,9 @@ void dispatchOnResume(bool focused)
 	onResume_.runAll([&](ResumeDelegate del){ return del(focused); });
 }
 
-void dispatchOnFreeCaches()
+void dispatchOnFreeCaches(bool running)
 {
-	onFreeCaches_.callCopySafe();
+	onFreeCaches_.callCopySafe(running);
 }
 
 void dispatchOnExit(bool backgrounded)

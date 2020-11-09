@@ -200,7 +200,7 @@ uint32_t Wiimote::findFreeDevId()
 	return 0;
 }
 
-CallResult Wiimote::open(BluetoothAdapter &adapter)
+IG::ErrorCode Wiimote::open(BluetoothAdapter &adapter)
 {
 	logMsg("opening Wiimote");
 	ctlSock.onData() = intSock.onData() =
@@ -213,12 +213,12 @@ CallResult Wiimote::open(BluetoothAdapter &adapter)
 		{
 			return statusHandler(sock, status);
 		};
-	if(ctlSock.openL2cap(addr, 17) != OK)
+	if(ctlSock.openL2cap(addr, 17))
 	{
 		logErr("error opening control socket");
-		return IO_ERROR;
+		return {EIO};
 	}
-	return OK;
+	return {};
 }
 
 uint32_t Wiimote::statusHandler(BluetoothSocket &sock, uint32_t status)

@@ -19,15 +19,15 @@ static hci_open_devProto hci_open_devSym = 0;
 static hci_read_remote_nameProto hci_read_remote_nameSym = 0;
 static hci_get_routeProto hci_get_routeSym = 0;
 
-CallResult bluez_dl()
+int bluez_dl()
 {
 	if(hci_inquirySym)
-		return OK;
+		return 0;
 	void *libbluetooth = dlopen("/system/lib/libbluetooth.so", RTLD_LOCAL | RTLD_LAZY);
 	if(!libbluetooth)
 	{
 		logErr("libbluetooth not found");
-		return INVALID_PARAMETER;
+		return -1;
 	}
 	logMsg("libbluetooth present");
 	hci_inquirySym = (hci_inquiryProto)dlsym(libbluetooth, "hci_inquiry");
@@ -40,10 +40,10 @@ CallResult bluez_dl()
 		logErr("missing bluetooth functions");
 		dlclose(libbluetooth);
 		hci_inquirySym = 0;
-		return INVALID_PARAMETER;
+		return -1;
 	}
 	logMsg("all symbols loaded");
-	return OK;
+	return 0;
 }
 
 int hci_inquiry(int dev_id, int len, int num_rsp, const uint8_t *lap, inquiry_info **ii, long flags)

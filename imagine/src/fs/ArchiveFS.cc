@@ -88,10 +88,11 @@ void ArchiveIterator::init(GenericIO io, std::error_code &result)
 		{
 			//logMsg("skip %lld", (long long)request);
 			auto &gIO = *((ArchiveGenericIO*)data);
-			if(gIO.io.seekC(request) == OK)
-				return request;
+			if(auto bytes = gIO.io.seekC(request);
+				bytes != -1)
+				return bytes;
 			else
-				return 0;
+				return ARCHIVE_FAILED;
 		};
 	auto closeFunc =
 		[](struct archive *, void *data)

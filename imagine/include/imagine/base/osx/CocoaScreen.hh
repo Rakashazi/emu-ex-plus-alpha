@@ -16,14 +16,14 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/operators.hh>
+#include <compare>
 
 #import <QuartzCore/CVDisplayLink.h>
 
 namespace Base
 {
 
-class CocoaScreen : public NotEquals<CocoaScreen>
+class CocoaScreen
 {
 public:
 	CVDisplayLinkRef displayLink{}; // CADisplayLink in ObjC

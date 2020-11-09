@@ -16,17 +16,17 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/operators.hh>
 #include <imagine/time/Time.hh>
 #include <jni.h>
 #include <utility>
+#include <compare>
 
 namespace Base
 {
 
 enum SurfaceRotation : int;
 
-class AndroidScreen : public NotEquals<AndroidScreen>
+class AndroidScreen
 {
 public:
 	constexpr AndroidScreen() {}

@@ -20,7 +20,6 @@
 #include <imagine/io/PosixIO.hh>
 #include <imagine/util/typeTraits.hh>
 #include <array>
-#include <optional>
 #include <utility>
 
 namespace Base

@@ -23,6 +23,8 @@ CXXFLAGS_WARN += -Wno-register
 
 ifneq ($(config_compiler), clang)
  CXXFLAGS_WARN += -Wno-volatile
+else
+ CXXFLAGS_WARN += -Wno-deprecated-volatile -Wno-non-c-typedef-for-linkage
 endif
 
 # fceux sources

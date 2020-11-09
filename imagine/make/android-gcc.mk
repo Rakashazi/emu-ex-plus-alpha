@@ -23,17 +23,12 @@ ifdef V
  $(info NDK Clang path: $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH))
 endif
 
-# NDK r22+ no longer needs explicit --sysroot param
 ifneq ($(wildcard $(ANDROID_NDK_PATH)/sysroot),)
- android_ndkSysroot := $(ANDROID_NDK_PATH)/sysroot
+ $(error your NDK contains a deprecated sysroot directory, please upgrade to at least r22)
 endif
 
 ifeq ($(android_ndkSDK), 9)
  android_ndkLinkSysroot := $(IMAGINE_PATH)/bundle/android-$(android_ndkSDK)/arch-$(android_ndkArch)
-else
- ifdef android_ndkSysroot
-  android_ndkLinkSysroot := $(ANDROID_NDK_PATH)/platforms/android-$(android_ndkSDK)/arch-$(android_ndkArch)
- endif
 endif
 
 ifdef android_ndkLinkSysroot
@@ -108,13 +103,9 @@ linkAction = -Wl,-soname,lib$(android_metadata_soName).so -shared
 LDLIBS_SYSTEM += -lm
 LDLIBS += $(LDLIBS_SYSTEM)
 CPPFLAGS += -DANDROID
-ifdef android_ndkSysroot
- CPPFLAGS += --sysroot=$(android_ndkSysroot)
-endif
 LDFLAGS_SYSTEM += -fuse-ld=$(android_linker) -s \
 -Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed,--warn-shared-textrel,--fatal-warnings \
 -Wl,--exclude-libs,libgcc.a,--exclude-libs,libgcc_real.a -Wl,--exclude-libs,libatomic.a
-CFLAGS_WARN += -Wno-non-c-typedef-for-linkage
 
 ifeq ($(android_ndkSDK), 9)
  # SDK 9 no longer supported since NDK r16, enable compatibilty work-arounds

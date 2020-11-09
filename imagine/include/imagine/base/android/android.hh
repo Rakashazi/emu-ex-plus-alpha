@@ -16,9 +16,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/fs/FSDefs.hh>
 #include <imagine/pixmap/Pixmap.hh>
-#include <imagine/util/jni.hh>
+#include <jni.h>
 #include <android/api-level.h>
 #include <array>
 

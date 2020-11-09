@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/operators.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/base/Error.hh>
 
@@ -29,6 +28,8 @@
 #elif defined CONFIG_BASE_MACOSX
 #include <imagine/base/osx/CocoaGL.hh>
 #endif
+
+#include <compare>
 
 namespace Base
 {
@@ -123,7 +124,7 @@ private:
 	bool debug_ = false;
 };
 
-class GLDrawable : public GLDrawableImpl, public NotEquals<GLDrawable>
+class GLDrawable : public GLDrawableImpl
 {
 public:
 	using GLDrawableImpl::GLDrawableImpl;
@@ -135,7 +136,7 @@ public:
 	bool operator ==(GLDrawable const &rhs) const;
 };
 
-class GLDisplay : public GLDisplayImpl, public NotEquals<GLDisplay>
+class GLDisplay : public GLDisplayImpl
 {
 public:
 	enum class API {OPENGL, OPENGL_ES};
@@ -156,7 +157,7 @@ public:
 	static bool bindAPI(API api);
 };
 
-class GLContext : public GLContextImpl, public NotEquals<GLContext>
+class GLContext : public GLContextImpl
 {
 public:
 	using GLContextImpl::GLContextImpl;

@@ -288,7 +288,6 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 	winConf.setOnDraw(
 		[this, &winData](Base::Window &win, Base::Window::DrawParams params)
 		{
-			popup.prepareDraw();
 			if(winData.hasEmuView)
 			{
 				if(unlikely(emuVideoInProgress))
@@ -296,11 +295,6 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 					//logMsg("waiting for EmuVideo to signal draw");
 					return true;
 				}
-				emuView.prepareDraw();
-			}
-			if(!EmuSystem::isActive())
-			{
-				prepareDraw();
 			}
 			rendererTask().draw(winData.drawableHolder, win, params, {},
 				[this, &winData](Gfx::Drawable &drawable, Base::Window &win, Gfx::SyncFence fence, Gfx::RendererDrawTask task)
@@ -508,11 +502,6 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 					//logMsg("waiting for EmuVideo to signal draw");
 					return true;
 				}
-				if(winData.hasPopup)
-				{
-					popup.prepareDraw();
-				}
-				emuView.prepareDraw();
 				rendererTask().draw(winData.drawableHolder, win, params, {},
 					[this, &winData](Gfx::Drawable &drawable, Base::Window &win, Gfx::SyncFence fence, Gfx::RendererDrawTask task)
 					{
@@ -809,6 +798,8 @@ void EmuViewController::popModalViews()
 
 void EmuViewController::prepareDraw()
 {
+	popup.prepareDraw();
+	emuView.prepareDraw();
 	viewStack.prepareDraw();
 }
 

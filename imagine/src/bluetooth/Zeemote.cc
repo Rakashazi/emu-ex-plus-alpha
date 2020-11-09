@@ -74,7 +74,7 @@ uint32_t Zeemote::findFreeDevId()
 	return 0;
 }
 
-CallResult Zeemote::open(BluetoothAdapter &adapter)
+IG::ErrorCode Zeemote::open(BluetoothAdapter &adapter)
 {
 	logMsg("connecting to Zeemote");
 	sock.onData() =
@@ -90,13 +90,13 @@ CallResult Zeemote::open(BluetoothAdapter &adapter)
 	#ifdef CONFIG_BLUETOOTH_BTSTACK
 	sock.setPin("0000", 4);
 	#endif
-	if(sock.openRfcomm(addr, 1) != OK)
+	if(auto err = sock.openRfcomm(addr, 1);
+		err)
 	{
 		logErr("error opening socket");
-		return IO_ERROR;
+		return err;
 	}
-
-	return OK;
+	return {};
 }
 
 void Zeemote::close()

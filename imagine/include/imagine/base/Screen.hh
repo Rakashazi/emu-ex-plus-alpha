@@ -22,7 +22,6 @@
 #include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/typeTraits.hh>
 #include <vector>
-#include <algorithm>
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XScreen.hh>

@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include "BluetoothAdapter.hh"
+#include <imagine/base/Error.hh>
 #import <btstack/btstack.h>
 
 class BtstackBluetoothAdapter : public BluetoothAdapter
@@ -41,7 +42,7 @@ private:
 	OnStatusDelegate setL2capServiceOnResult;
 	OnStateChangeDelegate onStateChangeD;
 
-	CallResult openDefault();
+	IG::ErrorCode openDefault();
 	bool isInactive();
 };
 
@@ -70,13 +71,13 @@ class BtstackBluetoothSocket : public BluetoothSocket
 {
 public:
 	constexpr BtstackBluetoothSocket() {}
-	CallResult openL2cap(BluetoothAddr addr, uint32_t psm) final;
-	CallResult openRfcomm(BluetoothAddr addr, uint32_t channel) final;
+	IG::ErrorCode openL2cap(BluetoothAddr addr, uint32_t psm) final;
+	IG::ErrorCode openRfcomm(BluetoothAddr addr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	CallResult open(BluetoothPendingSocket &pending) final;
+	IG::ErrorCode open(BluetoothPendingSocket &pending) final;
 	#endif
 	void close() final;
-	CallResult write(const void *data, size_t size) final;
+	IG::ErrorCode write(const void *data, size_t size) final;
 	const void *pin(uint32_t &size);
 	void setPin(const void *pin, uint32_t size);
 	static BtstackBluetoothSocket *findSocket(const bd_addr_t addr, uint16_t ch);

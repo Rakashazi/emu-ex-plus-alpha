@@ -15,11 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/config/defs.hh>
+#include <imagine/fs/FSDefs.hh>
 #include <cstddef>
 #include <system_error>
-#include <imagine/config/defs.hh>
-#include <imagine/util/operators.hh>
-#include <imagine/fs/FSDefs.hh>
+#include <compare>
 
 // Tries to mirror API of C++ filesystem TS library in most cases
 
@@ -27,8 +27,7 @@ namespace FS
 {
 
 class directory_iterator : public DirectoryIteratorImpl,
-	public std::iterator<std::input_iterator_tag, directory_entry>,
-	public NotEquals<directory_iterator>
+	public std::iterator<std::input_iterator_tag, directory_entry>
 {
 public:
 	constexpr directory_iterator() {}
@@ -36,6 +35,8 @@ public:
 	directory_iterator(const char *path);
 	directory_iterator(PathString path, std::error_code &result): directory_iterator{path.data(), result} {}
 	directory_iterator(const char *path, std::error_code &result);
+	directory_iterator(const directory_iterator&) = default;
+	directory_iterator(directory_iterator&&) = default;
 	~directory_iterator();
 	directory_entry& operator*();
 	directory_entry* operator->();

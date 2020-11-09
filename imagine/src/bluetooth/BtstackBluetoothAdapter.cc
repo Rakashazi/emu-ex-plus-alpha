@@ -757,11 +757,11 @@ bool BtstackBluetoothAdapter::isInactive()
 	return state_ != HCI_STATE_INITIALIZING && state_ != HCI_STATE_WORKING;
 }
 
-CallResult BtstackBluetoothAdapter::openDefault()
+IG::ErrorCode BtstackBluetoothAdapter::openDefault()
 {
 	if(isOpen)
 	{
-		return OK;
+		return {};
 	}
 
 	logMsg("opening BT adapter");
@@ -776,12 +776,12 @@ CallResult BtstackBluetoothAdapter::openDefault()
 	if(bt_open())
 	{
 		logWarn("Failed to open connection to BTdaemon");
-		return INVALID_PARAMETER;
+		return {EINVAL};
 	}
 	bt_register_packet_handler(btHandler);
 	isOpen = 1;
 	logMsg("BTStack init");
-	return OK;
+	return {};
 }
 
 void BtstackBluetoothAdapter::cancelScan()
@@ -821,10 +821,10 @@ void BtstackBluetoothAdapter::close()
 
 BtstackBluetoothAdapter *BtstackBluetoothAdapter::defaultAdapter()
 {
-	if(defaultBtstackAdapter.openDefault() == OK)
-		return &defaultBtstackAdapter;
-	else
+	if(defaultBtstackAdapter.openDefault())
 		return nullptr;
+	else
+		return &defaultBtstackAdapter;
 }
 
 void BtstackBluetoothAdapter::requestName(BluetoothPendingSocket &pending, OnScanDeviceNameDelegate onDeviceName)
@@ -848,31 +848,33 @@ void BluetoothPendingSocket::close()
 	ch = 0;
 }
 
-CallResult BtstackBluetoothSocket::openRfcomm(BluetoothAddr addr, uint32_t channel)
+IG::ErrorCode BtstackBluetoothSocket::openRfcomm(BluetoothAddr addr, uint32_t channel)
 {
 	type = 1;
-	if(!socketList.emplace_back(this))
+	if(socketList.isFull())
 	{
 		logMsg("no space left in socket list");
-		return NO_FREE_ENTRIES;
+		return {ENOSPC};
 	}
+	socketList.emplace_back(this);
 	logMsg("creating RFCOMM channel %d socket", channel);
 	pendingCmdList.emplace_back(BtstackCmd::writeAuthenticationEnable(1));
 	pendingCmdList.emplace_back(BtstackCmd::rfcommCreateChannel(addr, channel));
 	this->addr = addr;
 	ch = channel;
 	BtstackBluetoothAdapter::processCommands();
-	return OK;
+	return {};
 }
 
-CallResult BtstackBluetoothSocket::openL2cap(BluetoothAddr addr, uint32_t psm)
+IG::ErrorCode BtstackBluetoothSocket::openL2cap(BluetoothAddr addr, uint32_t psm)
 {
 	type = 0;
-	if(!socketList.emplace_back(this))
+	if(socketList.isFull())
 	{
 		logMsg("no space left in socket list");
-		return NO_FREE_ENTRIES;
+		return {ENOSPC};
 	}
+	socketList.emplace_back(this);
 	if(inL2capSocketOpenHandler)
 	{
 		// hack to boost command priority when opening 2nd Wiimote channel
@@ -886,25 +888,26 @@ CallResult BtstackBluetoothSocket::openL2cap(BluetoothAddr addr, uint32_t psm)
 	this->addr = addr;
 	ch = psm;
 	BtstackBluetoothAdapter::processCommands();
-	return OK;
+	return {};
 }
 
-CallResult BtstackBluetoothSocket::open(BluetoothPendingSocket &pending)
+IG::ErrorCode BtstackBluetoothSocket::open(BluetoothPendingSocket &pending)
 {
 	assert(pending);
 	addr = pending.addr;
 	type = pending.type;
 	ch = pending.ch;
 	localCh = pending.localCh;
-	if(!socketList.emplace_back(this))
+	if(socketList.isFull())
 	{
 		logMsg("no space left in socket list");
-		return NO_FREE_ENTRIES;
+		return {ENOSPC};
 	}
+	socketList.emplace_back(this);
 	pendingCmdList.emplace_back(BtstackCmd::l2capAcceptConnection(localCh));
 	pending = {};
 	BtstackBluetoothAdapter::processCommands();
-	return OK;
+	return {};
 }
 
 static bool btAddrIsEqual(BluetoothAddr addr1, const bd_addr_t addr2)
@@ -1044,12 +1047,12 @@ void BtstackBluetoothSocket::close()
 	IG::eraseFirst(socketList, this);
 }
 
-CallResult BtstackBluetoothSocket::write(const void *data, size_t size)
+IG::ErrorCode BtstackBluetoothSocket::write(const void *data, size_t size)
 {
 	assert(localCh);
 	if(type)
 		bt_send_rfcomm(localCh, (uint8_t*)data, size);
 	else
 		bt_send_l2cap(localCh, (uint8_t*)data, size);
-	return OK;
+	return {};
 }

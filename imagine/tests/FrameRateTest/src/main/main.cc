@@ -163,6 +163,11 @@ void onInit(int argc, char** argv)
 		[](bool focused)
 		{
 			rendererTask.start();
+			picker->prepareDraw();
+			if(activeTest)
+			{
+				activeTest->prepareDraw(renderer);
+			}
 			return true;
 		});
 
@@ -210,14 +215,6 @@ void onInit(int argc, char** argv)
 	winConf.setOnDraw(
 		[](Base::Window &win, Base::Window::DrawParams params)
 		{
-			if(!activeTest)
-			{
-				picker->prepareDraw();
-			}
-			else if(activeTest->started)
-			{
-				activeTest->prepareDraw(renderer);
-			}
 			rendererTask.draw(drawableHolder, win, params, {},
 				[](Gfx::Drawable &drawable, Base::Window &win, Gfx::SyncFence fence, Gfx::RendererDrawTask task)
 				{

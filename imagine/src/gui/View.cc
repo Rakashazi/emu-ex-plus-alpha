@@ -224,6 +224,7 @@ void View::setNeedsBackControl(bool on)
 
 void View::show()
 {
+	prepareDraw();
 	onShow();
 	//logMsg("showed view");
 	postDraw();

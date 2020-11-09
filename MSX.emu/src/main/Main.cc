@@ -477,8 +477,7 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 
 static EmuSystem::Error saveBlueMSXState(const char *filename)
 {
-	CallResult res = zipStartWrite(filename);
-	if(res != OK)
+	if(!zipStartWrite(filename))
 	{
 		logErr("error creating zip:%s", filename);
 		return EmuSystem::makeFileWriteError();

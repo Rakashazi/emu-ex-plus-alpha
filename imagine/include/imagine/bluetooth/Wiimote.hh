@@ -18,6 +18,7 @@
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
+#include <imagine/base/Error.hh>
 #include <vector>
 
 class Wiimote : public BluetoothInputDevice, public Input::Device
@@ -30,7 +31,7 @@ public:
 		Device{0, Input::Event::MAP_WIIMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Wiimote"},
 		addr{addr}
 	{}
-	CallResult open(BluetoothAdapter &adapter) final;
+	IG::ErrorCode open(BluetoothAdapter &adapter) final;
 	void close();
 	void removeFromSystem() final;
 	uint32_t joystickAxisBits() final;

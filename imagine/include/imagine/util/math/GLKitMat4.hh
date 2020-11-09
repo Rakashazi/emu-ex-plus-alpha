@@ -3,11 +3,11 @@
 #include <imagine/util/math/GLKitVec3.hh>
 #include <imagine/util/math/GLKitVec4.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/operators.hh>
 #include <GLKit/GLKMathTypes.h>
 #include <GLKit/GLKMatrix4.h>
+#include <compare>
 
-class GLKitMat4 : NotEquals<GLKitMat4>
+class GLKitMat4
 {
 public:
 	class RowRef

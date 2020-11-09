@@ -18,10 +18,10 @@
 #include <imagine/util/math/GLMVec3.hh>
 #include <imagine/util/math/GLMVec4.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/operators.hh>
 #include <imagine/glm/ext/matrix_float4x4.hpp>
+#include <compare>
 
-class GLMMat4 : NotEquals<GLMMat4>
+class GLMMat4
 {
 public:
 	constexpr GLMMat4() {}

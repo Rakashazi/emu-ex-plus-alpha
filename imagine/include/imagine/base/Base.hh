@@ -115,7 +115,7 @@ void dispatchOnResume(bool focused);
 
 // Called when OS needs app to free any cached data
 void setOnFreeCaches(FreeCachesDelegate del);
-void dispatchOnFreeCaches();
+void dispatchOnFreeCaches(bool running);
 const FreeCachesDelegate &onFreeCaches();
 
 // Called when app will finish execution

@@ -96,7 +96,7 @@ Orientation validateOrientationMask(Orientation oMask);
 
 using InterProcessMessageDelegate = DelegateFunc<void (const char *filename)>;
 using ResumeDelegate = DelegateFunc<bool (bool focused)>;
-using FreeCachesDelegate = DelegateFunc<void ()>;
+using FreeCachesDelegate = DelegateFunc<void (bool running)>;
 using ExitDelegate = DelegateFunc<bool (bool backgrounded)>;
 using DeviceOrientationChangedDelegate = DelegateFunc<void (Orientation newOrientation)>;
 using SystemOrientationChangedDelegate = DelegateFunc<void (Orientation oldOrientation, Orientation newOrientation)>;

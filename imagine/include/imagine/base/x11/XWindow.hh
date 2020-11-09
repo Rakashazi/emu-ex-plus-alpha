@@ -17,8 +17,8 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
-#include <imagine/util/operators.hh>
 #include <utility>
+#include <compare>
 
 namespace Base
 {
@@ -26,7 +26,7 @@ namespace Base
 using NativeWindowFormat = void*;
 using NativeWindow = unsigned long;
 
-class XWindow : public BaseWindow, public NotEquals<XWindow>
+class XWindow : public BaseWindow
 {
 public:
 	constexpr XWindow() {}

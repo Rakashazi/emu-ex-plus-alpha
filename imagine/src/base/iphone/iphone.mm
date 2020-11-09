@@ -337,7 +337,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 - (void)applicationDidReceiveMemoryWarning:(UIApplication *)application
 {
 	logMsg("got memory warning");
-	Base::dispatchOnFreeCaches();
+	Base::dispatchOnFreeCaches(Base::appIsRunning());
 }
 
 @end

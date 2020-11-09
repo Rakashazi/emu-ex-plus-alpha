@@ -17,22 +17,20 @@
 
 #include <imagine/util/operators.hh>
 #include <imagine/util/math/math.hh>
+#include <compare>
 
 namespace IG
 {
 
 template <class T>
-struct Point2D : public NotEquals< Point2D<T> >, public Arithmetics< Point2D<T> >
+struct Point2D : public Arithmetics< Point2D<T> >
 {
 	T x = 0, y = 0;
 
 	constexpr Point2D() {}
 	constexpr Point2D(T x, T y): x(x), y(y) {}
 
-	bool operator ==(Point2D<T> const& rhs) const
-	{
-		return x == rhs.x && y == rhs.y;
-	}
+	constexpr bool operator ==(Point2D<T> const& rhs) const = default;
 
 	Point2D<T> & operator +=(Point2D<T> const& rhs)
 	{

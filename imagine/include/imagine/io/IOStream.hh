@@ -17,7 +17,6 @@
 
 #include <imagine/io/IO.hh>
 #include <cstdio>
-#include <cerrno>
 
 template <class IO>
 class IOStream

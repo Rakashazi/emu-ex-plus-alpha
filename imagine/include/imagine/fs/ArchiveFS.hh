@@ -16,16 +16,14 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/operators.hh>
 #include <imagine/io/ArchiveIO.hh>
 #include <system_error>
+#include <compare>
 
 namespace FS
 {
 
-class ArchiveIterator :
-	public std::iterator<std::input_iterator_tag, ArchiveEntry>,
-	public NotEquals<ArchiveIterator>
+class ArchiveIterator : public std::iterator<std::input_iterator_tag, ArchiveEntry>
 {
 public:
 	ArchiveIterator() {}

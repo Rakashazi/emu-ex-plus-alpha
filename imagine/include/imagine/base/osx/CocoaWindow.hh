@@ -2,7 +2,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
-#include <imagine/util/operators.hh>
+#include <compare>
 
 namespace Base
 {
@@ -10,7 +10,7 @@ namespace Base
 struct NativeWindowFormat {};
 using NativeWindow = void*;
 
-class CocoaWindow : public BaseWindow, public NotEquals<CocoaWindow>
+class CocoaWindow : public BaseWindow
 {
 public:
 	void *nsWin_ = nullptr; // NSWindow in ObjC

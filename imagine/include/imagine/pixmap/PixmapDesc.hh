@@ -18,11 +18,12 @@
 #include <imagine/config/defs.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/rectangle2.h>
+#include <compare>
 
 namespace IG
 {
 
-class PixmapDesc : public NotEquals<PixmapDesc>
+class PixmapDesc
 {
 public:
 	constexpr PixmapDesc() {}
@@ -32,11 +33,7 @@ public:
 	constexpr WP size() const { return {(int)w(), (int)h()}; }
 	constexpr PixelFormat format() const { return format_; }
 	constexpr size_t pixelBytes() const { return format().pixelBytes(w() * h()); }
-
-	constexpr bool operator ==(const PixmapDesc &rhs) const
-	{
-		return w_ == rhs.w_ && h_ == rhs.h_ && format_ == rhs.format_;
-	}
+	constexpr bool operator ==(const PixmapDesc &rhs) const = default;
 
 protected:
 	uint32_t w_ = 0, h_ = 0;

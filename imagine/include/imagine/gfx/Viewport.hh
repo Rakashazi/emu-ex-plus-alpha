@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/operators.hh>
+#include <compare>
 
 namespace Base
 {
@@ -30,7 +30,7 @@ class Window;
 namespace Gfx
 {
 
-class Viewport : public NotEquals<Viewport>
+class Viewport
 {
 public:
 	constexpr Viewport() {}

@@ -115,12 +115,12 @@ const char *PS3Controller::keyName(Input::Key k) const
 	return ps3ButtonName(k);
 }
 
-CallResult PS3Controller::open(BluetoothAdapter &adapter)
+IG::ErrorCode PS3Controller::open(BluetoothAdapter &adapter)
 {
-	return UNSUPPORTED_OPERATION;
+	return {ENOTSUP};
 }
 
-CallResult PS3Controller::open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending)
+IG::ErrorCode PS3Controller::open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending)
 {
 	ctlSock.onData() = intSock.onData() =
 		[this](const char *packet, size_t size)
@@ -133,23 +133,25 @@ CallResult PS3Controller::open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSo
 			return statusHandler(sock, status);
 		};
 	logMsg("accepting PS3 control channel");
-	if(ctlSock.open(pending) != OK)
+	if(auto err = ctlSock.open(pending);
+		err)
 	{
 		logErr("error opening control socket");
-		return IO_ERROR;
+		return err;
 	}
-	return OK;
+	return {};
 }
 
-CallResult PS3Controller::open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending)
+IG::ErrorCode PS3Controller::open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending)
 {
 	logMsg("accepting PS3 interrupt channel");
-	if(intSock.open(pending) != OK)
+	if(auto err = intSock.open(pending);
+		err)
 	{
 		logErr("error opening interrupt socket");
-		return IO_ERROR;
+		return err;
 	}
-	return OK;
+	return {};
 }
 
 uint32_t PS3Controller::statusHandler(BluetoothSocket &sock, uint32_t status)

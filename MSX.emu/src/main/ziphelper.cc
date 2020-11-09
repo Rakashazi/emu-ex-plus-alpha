@@ -64,7 +64,7 @@ void* zipLoadFile(const char* zipName, const char* fileName, int* size)
 	}
 }
 
-CallResult zipStartWrite(const char *fileName)
+bool zipStartWrite(const char *fileName)
 {
 	assert(!writeArch);
 	writeArch = archive_write_new();
@@ -73,9 +73,9 @@ CallResult zipStartWrite(const char *fileName)
 	{
 		archive_write_free(writeArch);
 		writeArch = {};
-		return IO_ERROR;
+		return false;
 	}
-	return OK;
+	return true;
 }
 
 int zipSaveFile(const char* zipName, const char* fileName, int append, const void* buffer, int size)

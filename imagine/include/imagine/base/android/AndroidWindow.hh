@@ -17,8 +17,8 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
-#include <imagine/util/operators.hh>
 #include <jni.h>
+#include <compare>
 
 struct ANativeWindow;
 
@@ -28,7 +28,7 @@ namespace Base
 using NativeWindowFormat = int32_t;
 using NativeWindow = ANativeWindow*;
 
-class AndroidWindow : public BaseWindow, public NotEquals<AndroidWindow>
+class AndroidWindow : public BaseWindow
 {
 public:
 	constexpr AndroidWindow() {}

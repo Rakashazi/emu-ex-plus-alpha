@@ -17,7 +17,6 @@
 #include <imagine/util/math/GLKitVec3.hh>
 #include <imagine/util/math/GLKitVec4.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/operators.hh>
 #include <GLKit/GLKMathUtils.h>
 
 GLKitMat4 GLKitMat4::translate(GLKitVec3 translation) const
