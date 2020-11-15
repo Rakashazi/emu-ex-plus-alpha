@@ -21,6 +21,8 @@
 namespace Base
 {
 
+class Screen;
+
 class FrameTimer
 {
 public:
@@ -32,7 +34,7 @@ public:
 class SimpleFrameTimer final: public FrameTimer
 {
 public:
-	SimpleFrameTimer(EventLoop loop);
+	SimpleFrameTimer(EventLoop loop, Screen &screen);
 	~SimpleFrameTimer() final;
 	void scheduleVSync() final;
 	void cancel() final;

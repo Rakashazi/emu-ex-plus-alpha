@@ -17,7 +17,6 @@
 
 #include <emuframework/EmuApp.hh>
 #include <imagine/base/MessagePort.hh>
-#include <array>
 
 class EmuLoadProgressView : public View
 {

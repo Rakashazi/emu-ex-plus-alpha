@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/iphone/config.h>
-#include <imagine/base/Window.hh>
+#include <imagine/base/iphone/IOSWindow.hh>
 
 #ifdef __OBJC__
 #import <OpenGLES/EAGL.h>
@@ -62,11 +62,6 @@ protected:
 struct GLBufferConfig
 {
 	bool useRGB565 = false;
-
-	explicit operator bool() const
-	{
-		return true;
-	}
 
 	Base::NativeWindowFormat windowFormat(GLDisplay display);
 };

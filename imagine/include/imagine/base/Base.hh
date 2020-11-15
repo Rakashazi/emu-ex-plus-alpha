@@ -24,7 +24,10 @@
 
 namespace Base
 {
+
 using namespace IG;
+class Screen;
+class Window;
 
 // App exit
 void exit(int returnVal);
@@ -140,5 +143,8 @@ void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del);
 
 // Called on app startup
 [[gnu::cold]] void onInit(int argc, char** argv);
+
+Screen &mainScreen();
+Window &mainWindow();
 
 } // Base

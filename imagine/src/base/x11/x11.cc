@@ -121,7 +121,6 @@ static int eventHandler(XEvent &event)
 			if(event.xconfigure.width == win.width() && event.xconfigure.height == win.height())
 				break;
 			win.updateSize({event.xconfigure.width, event.xconfigure.height});
-			win.postDraw();
 		}
 		bcase ClientMessage:
 		{
@@ -241,7 +240,7 @@ std::pair<IG::ErrorCode, int> initWindowSystem(EventLoop loop)
 		return {{EIO}, -1};
 	}
 	initXScreens(dpy);
-	initFrameTimer(loop);
+	initFrameTimer(loop, Base::mainScreen());
 	Input::init(dpy);
 	return {{}, ConnectionNumber(dpy)};
 }

@@ -62,7 +62,7 @@ void LGradient::setPos(const LGradientStopDesc *stop, uint32_t stops, GC x, GC y
 		g = {thickness, stopPos, stops};
 	}
 
-	ColVertex *v = g.v();
+	ColVertex *v = g.v().data();
 	iterateTimes(stops, i)
 	{
 		v[i*2].x = x;

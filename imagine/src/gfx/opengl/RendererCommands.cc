@@ -396,11 +396,10 @@ void RendererCommands::setClipTest(bool on)
 		glcDisable(GL_SCISSOR_TEST);
 }
 
-void RendererCommands::setClipRect(ClipRect b)
+void RendererCommands::setClipRect(ClipRect r)
 {
 	rTask->verifyCurrentContext();
-	//logMsg("setting Scissor %d,%d size %d,%d", b.x, b.y, b.w, b.h);
-	auto r = b.rect;
+	//logMsg("setting Scissor %d,%d size %d,%d", r.x, r.y, r.x2, r.y2);
 	glScissor(r.x, r.y, r.x2, r.y2);
 }
 

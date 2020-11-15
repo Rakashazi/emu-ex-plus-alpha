@@ -89,7 +89,7 @@ public:
 	void initWindow(Base::Window &win, Base::WindowConfig config);
 	void setWindowValidOrientations(Base::Window &win, Base::Orientation validO);
 	void setProjectionMatrixRotation(Angle angle);
-	void animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle);
+	void animateProjectionMatrixRotation(Base::Window &win, Angle srcAngle, Angle destAngle);
 	static ClipRect makeClipRect(const Base::Window &win, IG::WindowRect rect);
 
 	// shaders
@@ -128,6 +128,7 @@ public:
 	void setDebugOutput(bool on);
 
 	// synchronization
+	void queueResourceSyncFence();
 	SyncFence addResourceSyncFence();
 	SyncFence addSyncFence();
 	void deleteSyncFence(SyncFence);

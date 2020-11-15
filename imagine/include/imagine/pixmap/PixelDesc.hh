@@ -58,7 +58,7 @@ public:
 	constexpr uint32_t g(uint32_t pixel) const { return component(pixel, gShift, gBits); }
 	constexpr uint32_t b(uint32_t pixel) const { return component(pixel, bShift, bBits); }
 
-	constexpr size_t offsetBytes(int x, int y, uint32_t pitch)
+	constexpr size_t offsetBytes(int x, int y, uint32_t pitch) const
 	{
 		return (y * pitch) + pixelBytes(x);
 	}

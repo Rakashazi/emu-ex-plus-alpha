@@ -40,17 +40,8 @@ using namespace IG;
 class Screen : public ScreenImpl
 {
 public:
-	struct Change
-	{
-		uint32_t state;
-		enum { ADDED, REMOVED };
-
-		constexpr Change(uint32_t state): state(state) {}
-		bool added() const { return state == ADDED; }
-		bool removed() const { return state == REMOVED; }
-	};
-
-	using ChangeDelegate = DelegateFunc<void (Screen &screen, Change change)>;
+	using Change = ScreenChange;
+	using ChangeDelegate = DelegateFunc<void (Screen &screen, ScreenChange change)>;
 
   static constexpr double DISPLAY_RATE_DEFAULT = 0;
 

@@ -24,7 +24,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/Viewport.hh>
 #include <imagine/gfx/Mat4.hh>
-#include <imagine/base/Window.hh>
+#include <imagine/base/baseDefs.hh>
 
 namespace IG
 {
@@ -77,16 +77,16 @@ public:
 	RendererTask(Renderer &r);
 	void start();
 	void stop();
-	void draw(DrawableHolder &drawable, Base::Window &win, Base::Window::DrawParams winParams, DrawParams params, DrawDelegate del);
+	void draw(DrawableHolder &drawable, Base::Window &win, Base::WindowDrawParams winParams, DrawParams params, DrawDelegate del);
 	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 	void lockDraw();
 	void unlockDraw();
 	#endif
 	void waitForDrawFinished();
-	void run(RenderTaskFuncDelegate func, IG::Semaphore *semAddr = nullptr);
+	void run(RenderTaskFuncDelegate func, bool awaitReply = false);
 	void runSync(RenderTaskFuncDelegate func);
 	void acquireFenceAndWait(Gfx::SyncFence &fenceVar);
-	void updateDrawableForSurfaceChange(DrawableHolder &drawable, Base::Window::SurfaceChange change);
+	void updateDrawableForSurfaceChange(DrawableHolder &drawable, Base::WindowSurfaceChange change);
 	void destroyDrawable(DrawableHolder &drawable);
 	constexpr Renderer &renderer() const { return r; }
 

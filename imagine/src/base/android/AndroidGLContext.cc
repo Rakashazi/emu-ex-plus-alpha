@@ -37,19 +37,15 @@ bool GLDisplay::bindAPI(API api)
 
 // GLContext
 
-GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
+std::pair<bool, GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
 {
 	if(ctxAttr.majorVersion() > 2 && Base::androidSDK() < 18)
 	{
 		// need at least Android 4.3 to use ES 3 attributes
-		return GLBufferConfig{};
+		return {false, {}};
 	}
-	auto [success, eglConfig] = chooseConfig(display.eglDisplay(), ctxAttr, attr);
-	if(!success)
-	{
-		return GLBufferConfig{};
-	}
-	return GLBufferConfig{eglConfig};
+	auto [found, eglConfig] = chooseConfig(display.eglDisplay(), ctxAttr, attr);
+	return {found, eglConfig};
 }
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec):

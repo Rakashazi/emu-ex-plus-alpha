@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <algorithm>
 #include <ctime>
-#include <memory>
 #include <array>
 #include <system_error>
 #include <unistd.h>
@@ -45,24 +44,27 @@ static constexpr int accExecBitImpl = X_OK;
 class DirectoryEntryImpl
 {
 public:
+	DirectoryEntryImpl(const char *path, std::error_code &ec);
+	DirectoryEntryImpl(const char *path);
+	DirectoryEntryImpl(DirectoryEntryImpl &&o);
+	DirectoryEntryImpl &operator=(DirectoryEntryImpl &&o);
+	~DirectoryEntryImpl();
+	bool readNextDir();
+	const char *name() const;
+	file_type type() const;
+	file_type symlink_type() const;
+	PathStringImpl path() const;
+
+protected:
+	DirectoryEntryImpl(const char *path, std::error_code *ec);
+
+	DIR *dir{};
 	struct dirent *dirent_{};
-	file_type type_{};
-	file_type linkType_{};
+	mutable file_type type_{};
+	mutable file_type linkType_{};
 	PathStringImpl basePath{};
 
-	const char *name() const;
-	file_type type();
-	file_type symlink_type();
-	PathStringImpl path() const;
-};
-
-class DirectoryIteratorImpl
-{
-protected:
-	std::shared_ptr<DIR> dir{};
-	DirectoryEntryImpl entry{};
-
-	void init(const char *path, std::error_code &result);
+	void deinit();
 };
 
 };

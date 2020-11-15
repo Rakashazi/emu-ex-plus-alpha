@@ -107,12 +107,52 @@ void Renderer::autoReleaseShaderCompiler()
 	#endif
 }
 
+void Renderer::queueResourceSyncFence()
+{
+	if(!useSeparateDrawContext)
+		return; // no-op
+	if(!resourceUpdate)
+	{
+		logWarn("called queueResourceSyncFence() with no pending resource updates");
+	}
+	resourceUpdate = false;
+	if(resourceFenceQueued)
+	{
+		logMsg("waiting for previously queued resource fence");
+		resourceFenceSem.wait();
+	}
+	runGLTask(
+		[this]()
+		{
+			resourceFence = support.glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+			resourceFenceSem.notify();
+			glFlush();
+		});
+	resourceFenceQueued = true;
+}
+
 SyncFence Renderer::addResourceSyncFence()
 {
-	if(!resourceUpdate)
-		return {};
-	resourceUpdate = false;
-	return addSyncFence();
+	if(!useSeparateDrawContext)
+		return {}; // no-op
+	if(resourceFenceQueued)
+	{
+		resourceFenceQueued = false;
+		resourceFenceSem.wait();
+		if(resourceUpdate) // resources have been updated since call to queueResourceSyncFence()
+		{
+			logWarn("skipping queued resource fence");
+			resourceUpdate = false;
+			return addSyncFence();
+		}
+		return resourceFence;
+	}
+	else if(resourceUpdate)
+	{
+		resourceUpdate = false;
+		return addSyncFence();
+	}
+	return {};
 }
 
 SyncFence Renderer::addSyncFence()
@@ -433,14 +473,9 @@ bool GLRenderer::hasGLTask() const
 	return mainTask && mainTask->isStarted();
 }
 
-void GLRenderer::runGLTask2(GLMainTask::FuncDelegate del, IG::Semaphore *semAddr)
+void GLRenderer::runGLTask2(GLMainTask::FuncDelegate del, bool awaitReply)
 {
-	mainTask->runFunc(del, semAddr);
-}
-
-void GLRenderer::runGLTaskSync2(GLMainTask::FuncDelegate del)
-{
-	mainTask->runFuncSync(del);
+	mainTask->runFunc(del, awaitReply);
 }
 
 void Renderer::waitAsyncCommands()

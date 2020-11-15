@@ -20,7 +20,6 @@
 #include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/util/math/space.hh>

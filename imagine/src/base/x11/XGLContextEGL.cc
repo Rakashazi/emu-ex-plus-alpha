@@ -20,6 +20,7 @@
 #include "internal.hh"
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#include <X11/Xutil.h>
 
 namespace Base
 {
@@ -63,14 +64,10 @@ void GLContext::setCurrent(GLDisplay display, GLContext context, GLDrawable win)
 	setCurrentContext(display.eglDisplay(), context.context, win);
 }
 
-GLBufferConfig GLContext::makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
+std::pair<bool, GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
 {
-	auto [success, eglConfig] = chooseConfig(display.eglDisplay(), ctxAttr, attr);
-	if(!success)
-	{
-		return GLBufferConfig{};
-	}
-	return {eglConfig};
+	auto [found, eglConfig] = chooseConfig(display.eglDisplay(), ctxAttr, attr);
+	return {found, eglConfig};
 }
 
 void GLContext::present(GLDisplay display, GLDrawable win)

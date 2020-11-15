@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Input.hh>
+#include <imagine/input/Device.hh>
 #include <emuframework/config.hh>
 #include <emuframework/inGameActionKeys.hh>
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS

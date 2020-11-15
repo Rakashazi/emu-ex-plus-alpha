@@ -35,16 +35,10 @@ class GLBufferConfigAttributes;
 struct EGLBufferConfig
 {
 	EGLConfig glConfig{};
-	bool isInit = false;
 
 	constexpr EGLBufferConfig() {}
 	constexpr EGLBufferConfig(EGLConfig eglConfig):
-		glConfig{eglConfig}, isInit{true} {}
-
-	explicit operator bool() const
-	{
-		return isInit;
-	}
+		glConfig{eglConfig} {}
 
 	Base::NativeWindowFormat windowFormat(GLDisplay display);
 };

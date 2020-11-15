@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/input/config.hh>
 #include <imagine/util/bits.h>
+#include <imagine/util/DelegateFunc.hh>
 #include <string>
 
 namespace Input
@@ -145,5 +146,15 @@ public:
 	uint32_t subtype_ = 0;
 	uint32_t idx = 0;
 };
+
+using DeviceChangeDelegate = DelegateFunc<void (const Device &dev, Device::Change change)>;
+
+// Called when a known input device addition/removal/change occurs
+void setOnDeviceChange(DeviceChangeDelegate del);
+
+using DevicesEnumeratedDelegate = DelegateFunc<void ()>;
+
+// Called when the device list is rebuilt, all devices should be re-checked
+void setOnDevicesEnumerated(DevicesEnumeratedDelegate del);
 
 }

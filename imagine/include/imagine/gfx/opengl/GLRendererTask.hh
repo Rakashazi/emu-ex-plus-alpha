@@ -57,7 +57,7 @@ public:
 
 	struct CommandMessage
 	{
-		IG::Semaphore *semAddr{};
+		IG::Semaphore *semPtr{};
 		union Args
 		{
 			struct DrawArgs
@@ -75,16 +75,17 @@ public:
 		Command command{Command::UNSET};
 
 		constexpr CommandMessage() {}
-		constexpr CommandMessage(Command command, IG::Semaphore *semAddr = nullptr):
-			semAddr{semAddr}, command{command} {}
-		constexpr CommandMessage(Command command, DrawDelegate drawDel, DrawableHolder &drawableHolder, Base::Window &win, GLsync fence, IG::Semaphore *semAddr = nullptr):
-			semAddr{semAddr}, args{drawDel, &win, &drawableHolder, fence}, command{command} {}
-		constexpr CommandMessage(Command command, RenderTaskFuncDelegate func, IG::Semaphore *semAddr = nullptr):
-			semAddr{semAddr}, command{command}
+		constexpr CommandMessage(Command command, IG::Semaphore *semPtr = nullptr):
+			semPtr{semPtr}, command{command} {}
+		constexpr CommandMessage(Command command, DrawDelegate drawDel, DrawableHolder &drawableHolder, Base::Window &win, GLsync fence, IG::Semaphore *semPtr = nullptr):
+			semPtr{semPtr}, args{drawDel, &win, &drawableHolder, fence}, command{command} {}
+		constexpr CommandMessage(Command command, RenderTaskFuncDelegate func, IG::Semaphore *semPtr = nullptr):
+			semPtr{semPtr}, command{command}
 		{
 			args.runFunc.func = func;
 		}
 		explicit operator bool() const { return command != Command::UNSET; }
+		void setReplySemaphore(IG::Semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 
 	struct ReplyMessage

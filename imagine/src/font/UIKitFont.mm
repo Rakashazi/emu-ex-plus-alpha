@@ -17,7 +17,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "UIKitFont"
 #include <imagine/font/Font.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/Mem2D.hh>
+#include <imagine/util/container/array.hh>
 #include "../base/iphone/private.hh"
 #import <CoreGraphics/CGBitmapContext.h>
 #import <CoreGraphics/CGContext.h>
@@ -79,11 +79,12 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, bool kee
 		Base::grayColorSpace, textColor, fontSize.font());
 
 	// measure real bounds
+	auto pixView = IG::ArrayView2<char>{pixBuffer, cXFullSize};
 	uint32_t minX = cXFullSize, maxX = 0, minY = cYFullSize, maxY = 0;
 	iterateTimes(cYFullSize, y)
 		iterateTimes(cXFullSize, x)
 		{
-			if(pixBuffer[Mem2D<char>::arrOffsetRM(x, y, cXFullSize)])
+			if(pixView[y][x])
 			{
 				if (x < minX) minX = x;
 				if (x > maxX) maxX = x;
@@ -96,7 +97,7 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, bool kee
 	uint32_t cXSize = (maxX - minX) + 1;
 	auto cYOffset = minY;
 	uint32_t cYSize = (maxY - minY) + 1;
-	auto startOfCharInPixBuffer = pixBuffer + Mem2D<char>::arrOffsetRM(cXOffset, cYOffset, cXFullSize);
+	auto startOfCharInPixBuffer = &pixView[cYOffset][cXOffset];
 
 	GlyphMetrics metrics;
 	metrics.xSize = cXSize;

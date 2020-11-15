@@ -44,18 +44,19 @@ GeomQuadMesh::GeomQuadMesh(const VertexPos *x, uint32_t xVals, const VertexPos *
 
 	VertexIndex *currI = i;
 	quads = 0;
+	auto vArr = v();
 	iterateTimes(yVals-1, yIdx)
 		iterateTimes(xVals-1, xIdx)
 		{
 			// Triangle 1, LB LT RT
-			currI[0] = v().idxOf(yIdx, xIdx);
-			currI[1] = v().idxOf(yIdx, xIdx+1);
-			currI[2] = v().idxOf(yIdx+1, xIdx);
+			currI[0] = vArr.flatOffset(yIdx, xIdx);
+			currI[1] = vArr.flatOffset(yIdx, xIdx+1);
+			currI[2] = vArr.flatOffset(yIdx+1, xIdx);
 
 			// Triangle 1, LB RT RB
-			currI[3] = v().idxOf(yIdx, xIdx+1);
-			currI[4] = v().idxOf(yIdx+1, xIdx+1);
-			currI[5] = v().idxOf(yIdx+1, xIdx);
+			currI[3] = vArr.flatOffset(yIdx, xIdx+1);
+			currI[4] = vArr.flatOffset(yIdx+1, xIdx+1);
+			currI[5] = vArr.flatOffset(yIdx+1, xIdx);
 
 			//logMsg("quad %d %d,%d,%d %d,%d,%d", quads, currI[0], currI[1], currI[2], currI[3], currI[4], currI[5]);
 
@@ -74,47 +75,51 @@ void GeomQuadMesh::draw(RendererCommands &cmds)
 
 void GeomQuadMesh::setColorRGB(ColorComp r, ColorComp g, ColorComp b)
 {
+	auto vPtr = v().data();
 	iterateTimes(verts, i)
 	{
-		v()[i].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, VertexColorPixelFormat.a(v()[i].color));
+		vPtr[i].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, VertexColorPixelFormat.a(vPtr[i].color));
 	}
 }
 
 void GeomQuadMesh::setColorTranslucent(ColorComp a)
 {
+	auto vPtr = v().data();
 	iterateTimes(verts, i)
 	{
-		v()[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v()[i].color), VertexColorPixelFormat.g(v()[i].color), VertexColorPixelFormat.b(v()[i].color), (uint32_t)a);
+		vPtr[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(vPtr[i].color), VertexColorPixelFormat.g(vPtr[i].color), VertexColorPixelFormat.b(vPtr[i].color), (uint32_t)a);
 	}
 }
 
 void GeomQuadMesh::setColorRGBV(ColorComp r, ColorComp g, ColorComp b, uint32_t i)
 {
-	v()[i].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, VertexColorPixelFormat.a(v()[i].color));
+	auto vPtr = v().data();
+	vPtr[i].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, VertexColorPixelFormat.a(vPtr[i].color));
 }
 
 void GeomQuadMesh::setColorTranslucentV(ColorComp a, uint32_t i)
 {
 	// swap for tri strip
-	v()[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(v()[i].color), VertexColorPixelFormat.g(v()[i].color), VertexColorPixelFormat.b(v()[i].color), (uint32_t)a);
+	auto vPtr = v().data();
+	vPtr[i].color = VertexColorPixelFormat.build(VertexColorPixelFormat.r(vPtr[i].color), VertexColorPixelFormat.g(vPtr[i].color), VertexColorPixelFormat.b(vPtr[i].color), (uint32_t)a);
 }
 
 void GeomQuadMesh::setPos(GC x, GC y, GC x2, GC y2)
 {
 	uint32_t yVals = verts/xVals;
-	ColVertex *currV = v();
+	auto vPtr = v().data();
 	iterateTimes(yVals, yIdx)
 		iterateTimes(xVals, xIdx)
 		{
-			currV->x = yIdx == 0 ? IG::scalePointRange((GC)xIdx, (GC)0, GC(xVals-1), x, x2)
-					: (currV-v().columns)->x;
-			currV->y = xIdx == 0 ? IG::scalePointRange((GC)yIdx, (GC)0, GC(yVals-1), y, y2)
-					: (currV-xIdx)->y;
-			currV++;
+			vPtr->x = yIdx == 0 ? IG::scalePointRange((GC)xIdx, (GC)0, GC(xVals-1), x, x2)
+					: (vPtr-xVals)->x;
+			vPtr->y = xIdx == 0 ? IG::scalePointRange((GC)yIdx, (GC)0, GC(yVals-1), y, y2)
+					: (vPtr-xIdx)->y;
+			vPtr++;
 		}
 }
 
-Mem2D<ColVertex> GeomQuadMesh::v() const
+ArrayView2<ColVertex> GeomQuadMesh::v() const
 {
 	return {(ColVertex*)vMem.get(), xVals};
 }

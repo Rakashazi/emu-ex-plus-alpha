@@ -22,6 +22,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
+#include <X11/Xutil.h>
 
 namespace Base
 {

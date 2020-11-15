@@ -168,7 +168,7 @@ public:
 	explicit operator bool() const;
 	bool operator ==(GLContext const &rhs) const;
 	void deinit(GLDisplay display);
-	static GLBufferConfig makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr);
+	static std::pair<bool, GLBufferConfig> makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr);
 	static GLContext current(GLDisplay display);
 	static bool isCurrentDrawable(GLDisplay display, GLDrawable drawable);
 	static void *procAddress(const char *funcName);

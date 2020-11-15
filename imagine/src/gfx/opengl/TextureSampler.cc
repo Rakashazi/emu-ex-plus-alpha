@@ -17,6 +17,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Texture.hh>
 #include "private.hh"
+#include <limits>
 
 namespace Gfx
 {
@@ -32,7 +33,7 @@ static void setTexParameteriImpl(GLenum target, GLenum pname, GLint param, const
 
 #define setTexParameteri(target, pname, param) setTexParameteriImpl(target, pname, param, #pname);
 
-static void setSamplerParameteriImpl(Renderer &r, GLuint sampler, GLenum pname, GLint param, const char *pnameStr)
+static void setSamplerParameteriImpl(const Renderer &r, GLuint sampler, GLenum pname, GLint param, const char *pnameStr)
 {
 	runGLCheckedVerbose(
 		[&]()
@@ -42,6 +43,16 @@ static void setSamplerParameteriImpl(Renderer &r, GLuint sampler, GLenum pname, 
 }
 
 #define setSamplerParameteri(r, sampler, pname, param) setSamplerParameteriImpl(r, sampler, pname, param, #pname);
+
+// make sure sampler-related enums can fit into a 16-bit int
+static_assert(GL_LINEAR < std::numeric_limits<uint16_t>::max());
+static_assert(GL_NEAREST < std::numeric_limits<uint16_t>::max());
+static_assert(GL_LINEAR_MIPMAP_NEAREST < std::numeric_limits<uint16_t>::max());
+static_assert(GL_NEAREST_MIPMAP_NEAREST < std::numeric_limits<uint16_t>::max());
+static_assert(GL_LINEAR_MIPMAP_LINEAR < std::numeric_limits<uint16_t>::max());
+static_assert(GL_NEAREST_MIPMAP_LINEAR < std::numeric_limits<uint16_t>::max());
+static_assert(GL_CLAMP_TO_EDGE < std::numeric_limits<uint16_t>::max());
+static_assert(GL_REPEAT < std::numeric_limits<uint16_t>::max());
 
 static GLint makeMinFilter(bool linearFiltering, MipFilterMode mipFiltering)
 {
@@ -76,7 +87,7 @@ GLTextureSampler::GLTextureSampler(Renderer &r, TextureSamplerConfig config):
 	if(r.support.hasSamplerObjects)
 	{
 		r.runGLTaskSync(
-			[this, &r]()
+			[this, &r = std::as_const(r)]()
 			{
 				r.support.glGenSamplers(1, &name_);
 				if(magFilter != GL_LINEAR) // GL_LINEAR is the default
@@ -121,7 +132,7 @@ void GLTextureSampler::deinit()
 		return;
 	logDMsg("deleting sampler object:0x%X (%s)", name_, label());
 	r->runGLTask(
-		[r = this->r, name = name_]()
+		[r = std::as_const(this->r), name = name_]()
 		{
 			r->support.glDeleteSamplers(1, &name);
 		});

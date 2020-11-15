@@ -23,6 +23,13 @@
 namespace Gfx
 {
 
+void GLMainTask::TaskContext::notifySemaphore()
+{
+	assumeExpr(semPtr);
+	semPtr->notify();
+	*notifySemaporeAfterDelegatePtr = false;
+}
+
 GLMainTask::~GLMainTask()
 {
 	stop();
@@ -48,12 +55,13 @@ void GLMainTask::start(Base::GLContext context)
 						{
 							bcase Command::RUN_FUNC:
 							{
-								TaskContext ctx{};
+								bool notifySemaporeAfterDelegate = msg.semPtr;
+								TaskContext ctx{msg.semPtr, &notifySemaporeAfterDelegate};
 								msg.args.run.func(ctx);
-								if(msg.semAddr)
+								if(notifySemaporeAfterDelegate)
 								{
-									//logDMsg("notifying semaphore:%p", msg.semAddr);
-									msg.semAddr->notify();
+									//logDMsg("notifying semaphore:%p", msg.semPtr);
+									msg.semPtr->notify();
 								}
 							}
 							bcase Command::EXIT:
@@ -80,18 +88,10 @@ void GLMainTask::start(Base::GLContext context)
 		});
 }
 
-void GLMainTask::runFunc(FuncDelegate del, IG::Semaphore *semAddr)
+void GLMainTask::runFunc(FuncDelegate del, bool awaitReply)
 {
 	assert(started);
-	commandPort.send({Command::RUN_FUNC, del, semAddr});
-}
-
-void GLMainTask::runFuncSync(FuncDelegate del)
-{
-	IG::Semaphore sem{0};
-	runFunc(del, &sem);
-	//logDMsg("waiting for semaphore:%p", &sem);
-	sem.wait();
+	commandPort.send({Command::RUN_FUNC, del}, awaitReply);
 }
 
 void GLMainTask::stop()

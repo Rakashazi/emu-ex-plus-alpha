@@ -107,7 +107,7 @@ static GLenum makeGLDataType(IG::PixelFormatID format)
 	}
 }
 
-static GLenum makeGLFormat(Renderer &r, IG::PixelFormatID format)
+static GLenum makeGLFormat(const Renderer &r, IG::PixelFormatID format)
 {
 	switch(format)
 	{
@@ -140,14 +140,14 @@ static GLenum makeGLFormat(Renderer &r, IG::PixelFormatID format)
 	}
 }
 
-static int makeGLESInternalFormat(Renderer &r, IG::PixelFormatID format)
+static int makeGLESInternalFormat(const Renderer &r, IG::PixelFormatID format)
 {
 	if(format == PIXEL_BGRA8888) // Apple's BGRA extension loosens the internalformat match requirement
 		return r.support.bgrInternalFormat;
 	else return makeGLFormat(r, format); // OpenGL ES manual states internalformat always equals format
 }
 
-static int makeGLSizedInternalFormat(Renderer &r, IG::PixelFormatID format)
+static int makeGLSizedInternalFormat(const Renderer &r, IG::PixelFormatID format)
 {
 	switch(format)
 	{
@@ -181,7 +181,7 @@ static int makeGLSizedInternalFormat(Renderer &r, IG::PixelFormatID format)
 	}
 }
 
-static int makeGLInternalFormat(Renderer &r, PixelFormatID format)
+static int makeGLInternalFormat(const Renderer &r, PixelFormatID format)
 {
 	return Config::Gfx::OPENGL_ES ? makeGLESInternalFormat(r, format)
 		: makeGLSizedInternalFormat(r, format);
@@ -312,10 +312,10 @@ void GLTexture::deinit()
 
 uint8_t Texture::bestAlignment(IG::Pixmap p)
 {
-	return unpackAlignForAddrAndPitch(p.pixel({}), p.pitchBytes());
+	return unpackAlignForAddrAndPitch(p.data(), p.pitchBytes());
 }
 
-bool GLTexture::canUseMipmaps(Renderer &r) const
+bool GLTexture::canUseMipmaps(const Renderer &r) const
 {
 	return r.support.textureSizeSupport.supportsMipmaps(pixDesc.w(), pixDesc.h());
 }
@@ -344,7 +344,7 @@ bool Texture::generateMipmaps()
 	assumeExpr(r);
 	r->resourceUpdate = true;
 	r->runGLTask(
-		[r = this->r, texName_ = this->texName_]()
+		[r = std::as_const(this->r), texName_ = this->texName_]()
 		{
 			glBindTexture(GL_TEXTURE_2D, texName_);
 			logMsg("generating mipmaps for texture:0x%X", texName_);
@@ -371,36 +371,47 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels)
 	{
 		levels = 1;
 	}
-	r->runGLTaskSync(
-		[this, desc, levels]()
-		{
-			if(r->support.hasImmutableTexStorage)
+	if(r->support.hasImmutableTexStorage)
+	{
+		sampler = 0;
+		r->runGLTaskSync(
+			[=, r = std::as_const(this->r), &texName_ = texName_](GLMainTask::TaskContext ctx)
 			{
-				sampler = 0;
-				texName_ = makeGLTextureName(texName_);
-				glBindTexture(GL_TEXTURE_2D, texName_);
+				auto texName = makeGLTextureName(texName_);
+				texName_ = texName;
+				ctx.notifySemaphore();
+				glBindTexture(GL_TEXTURE_2D, texName);
 				auto internalFormat = makeGLSizedInternalFormat(*r, desc.format());
 				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s",
-					texName_, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat));
+					texName, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat));
 				runGLChecked(
 					[&]()
 					{
 						r->support.glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, desc.w(), desc.h());
 					}, "glTexStorage2D()");
-			}
-			else
+				setSwizzleForFormatInGLTask(*r, desc.format(), texName);
+			});
+	}
+	else
+	{
+		bool remakeTexName = levels != levels_; // make new texture name whenever number of levels changes
+		r->runGLTask(
+			[=, r = std::as_const(this->r), &sampler = sampler, &texName_ = texName_, currTexName = texName_](GLMainTask::TaskContext ctx)
 			{
-				if(levels != levels_) // make new texture name whenever number of levels changes
+				auto texName = currTexName; // a copy of texName_ is passed by value for the async case to avoid accessing this->texName_
+				if(remakeTexName)
 				{
+					texName = makeGLTextureName(texName);
 					sampler = 0;
-					texName_ = makeGLTextureName(texName_);
+					texName_ = texName;
+					ctx.notifySemaphore();
 				}
-				glBindTexture(GL_TEXTURE_2D, texName_);
+				glBindTexture(GL_TEXTURE_2D, texName);
 				auto format = makeGLFormat(*r, desc.format());
 				auto dataType = makeGLDataType(desc.format());
 				auto internalFormat = makeGLInternalFormat(*r, desc.format());
 				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s image format:%s:%s",
-					texName_, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
+					texName, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
 				uint32_t w = desc.w(), h = desc.h();
 				iterateTimes(levels, i)
 				{
@@ -412,8 +423,9 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels)
 					w = std::max(1u, (w / 2));
 					h = std::max(1u, (h / 2));
 				}
-			}
-		});
+				setSwizzleForFormatInGLTask(*r, desc.format(), texName);
+			}, remakeTexName);
+	}
 	updateFormatInfo(desc, levels);
 	return {};
 }
@@ -447,10 +459,10 @@ void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uin
 	assumeExpr(destPos.y + pixmap.h() <= (uint32_t)size(level).y);
 	assumeExpr(pixmap.format() == pixDesc.format());
 	if(!assumeAlign)
-		assumeAlign = unpackAlignForAddrAndPitch(pixmap.pixel({}), pixmap.pitchBytes());
-	if((uintptr_t)pixmap.pixel({}) % (uintptr_t)assumeAlign != 0)
+		assumeAlign = unpackAlignForAddrAndPitch(pixmap.data(), pixmap.pitchBytes());
+	if((uintptr_t)pixmap.data() % (uintptr_t)assumeAlign != 0)
 	{
-		bug_unreachable("expected data from address %p to be aligned to %u bytes", pixmap.pixel({}), assumeAlign);
+		bug_unreachable("expected data from address %p to be aligned to %u bytes", pixmap.data(), assumeAlign);
 	}
 	GLenum format = makeGLFormat(*r, pixmap.format());
 	GLenum dataType = makeGLDataType(pixmap.format());
@@ -459,8 +471,8 @@ void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uin
 	if(hasUnpackRowLength || !pixmap.isPadded())
 	{
 		r->resourceUpdate = true;
-		r->runGLTaskSyncConditional(
-			[=, r = this->r, texName_ = this->texName_]()
+		r->runGLTask(
+			[=, r = std::as_const(this->r), texName_ = this->texName_]()
 			{
 				glBindTexture(GL_TEXTURE_2D, texName_);
 				glPixelStorei(GL_UNPACK_ALIGNMENT, assumeAlign);
@@ -470,7 +482,7 @@ void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uin
 					[&]()
 					{
 						glTexSubImage2D(GL_TEXTURE_2D, level, destPos.x, destPos.y,
-							pixmap.w(), pixmap.h(), format, dataType, pixmap.pixel({}));
+							pixmap.w(), pixmap.h(), format, dataType, pixmap.data());
 					}, "glTexSubImage2D()");
 				if(makeMipmaps)
 				{
@@ -559,7 +571,7 @@ void Texture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 		updateLevelsForMipmapGeneration();
 	}
 	r->runGLTask(
-		[=, r = this->r, texName_ = this->texName_, pix = lockBuff.pixmap(), bufferOffset = lockBuff.bufferOffset(),
+		[=, r = std::as_const(this->r), texName_ = this->texName_, pix = lockBuff.pixmap(), bufferOffset = lockBuff.bufferOffset(),
 		 destPos = IG::WP{lockBuff.sourceDirtyRect().x, lockBuff.sourceDirtyRect().y},
 		 level = lockBuff.level(), pbo = lockBuff.pbo(), shouldFreeBuffer = lockBuff.shouldFreeBuffer()]()
 		{
@@ -722,36 +734,26 @@ static void verifyCurrentTexture2D(TextureRef tex)
 	}
 }
 
-void GLTexture::setSwizzleForFormat(Renderer &r, PixelFormatID format, GLuint tex, GLenum target)
+void GLTexture::setSwizzleForFormatInGLTask(const Renderer &r, PixelFormatID format, GLuint tex)
 {
-	assert(tex);
-	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(r.support.useFixedFunctionPipeline)
+	if(r.support.useFixedFunctionPipeline || !r.support.hasTextureSwizzle)
 		return;
-	if(r.support.hasTextureSwizzle && target == GL_TEXTURE_2D)
-	{
-		r.runGLTask(
-			[=]()
-			{
-				verifyCurrentTexture2D(tex);
-				const GLint swizzleMaskRGBA[] {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
-				const GLint swizzleMaskIA88[] {GL_RED, GL_RED, GL_RED, GL_GREEN};
-				const GLint swizzleMaskA8[] {GL_ONE, GL_ONE, GL_ONE, GL_RED};
-				#ifdef CONFIG_GFX_OPENGL_ES
-				auto &swizzleMask = (format == PIXEL_IA88) ? swizzleMaskIA88
-						: (format == PIXEL_A8) ? swizzleMaskA8
-						: swizzleMaskRGBA;
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, swizzleMask[0]);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, swizzleMask[1]);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, swizzleMask[2]);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, swizzleMask[3]);
-				#else
-				glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, (format == PIXEL_IA88) ? swizzleMaskIA88
-						: (format == PIXEL_A8) ? swizzleMaskA8
-						: swizzleMaskRGBA);
-				#endif
-			});
-	}
+	verifyCurrentTexture2D(tex);
+	const GLint swizzleMaskRGBA[] {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
+	const GLint swizzleMaskIA88[] {GL_RED, GL_RED, GL_RED, GL_GREEN};
+	const GLint swizzleMaskA8[] {GL_ONE, GL_ONE, GL_ONE, GL_RED};
+	#ifdef CONFIG_GFX_OPENGL_ES
+	auto &swizzleMask = (format == PIXEL_IA88) ? swizzleMaskIA88
+			: (format == PIXEL_A8) ? swizzleMaskA8
+			: swizzleMaskRGBA;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, swizzleMask[0]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, swizzleMask[1]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, swizzleMask[2]);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, swizzleMask[3]);
+	#else
+	glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, (format == PIXEL_IA88) ? swizzleMaskIA88
+			: (format == PIXEL_A8) ? swizzleMaskA8
+			: swizzleMaskRGBA);
 	#endif
 }
 
@@ -766,31 +768,33 @@ void GLTexture::updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum tar
 	else
 		type_ = typeForPixelFormat(desc.format());
 	#endif
-	setSwizzleForFormat(*r, desc.format(), texName_, target);
 }
 
 #ifdef __ANDROID__
 void GLTexture::setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc)
 {
+	r->resourceUpdate = true;
 	if(r->support.hasEGLTextureStorage())
 	{
 		sampler = 0;
 		r->runGLTaskSync(
-			[=, &tex = texName_, EGLImageTargetTexStorageEXT = r->support.glEGLImageTargetTexStorageEXT]()
+			[=, r = std::as_const(this->r), &tex = texName_, formatID = (IG::PixelFormatID)desc.format()](GLMainTask::TaskContext ctx)
 			{
 				tex = makeGLTextureName(tex);
 				glBindTexture(GL_TEXTURE_2D, tex);
 				runGLChecked(
 					[&]()
 					{
-						EGLImageTargetTexStorageEXT(GL_TEXTURE_2D, (GLeglImageOES)eglImg, nullptr);
+						r->support.glEGLImageTargetTexStorageEXT(GL_TEXTURE_2D, (GLeglImageOES)eglImg, nullptr);
 					}, "glEGLImageTargetTexStorageEXT()");
+				ctx.notifySemaphore();
+				setSwizzleForFormatInGLTask(*r, formatID, tex);
 			});
 	}
 	else
 	{
 		r->runGLTaskSync(
-			[=, &tex = texName_]()
+			[=, r = std::as_const(this->r), &tex = texName_, formatID = (IG::PixelFormatID)desc.format()](GLMainTask::TaskContext ctx)
 			{
 				if(!tex) // texture storage is mutable, only need to make name once
 				{
@@ -802,6 +806,8 @@ void GLTexture::setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc)
 					{
 						glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImg);
 					}, "glEGLImageTargetTexture2DOES()");
+				ctx.notifySemaphore();
+				setSwizzleForFormatInGLTask(*r, formatID, tex);
 			});
 	}
 	updateFormatInfo(desc, 1);

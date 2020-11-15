@@ -24,6 +24,7 @@
 #include <imagine/gfx/DrawableHolder.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Screen.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/base/platformExtras.hh>
 #include <imagine/util/string.h>
 #include "tests.hh"

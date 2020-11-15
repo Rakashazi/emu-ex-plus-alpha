@@ -15,7 +15,6 @@
 
 #define LOGTAG "FBDevFrameTimer"
 #include <imagine/base/Screen.hh>
-#include <imagine/base/Window.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
@@ -29,7 +28,7 @@
 namespace Base
 {
 
-FBDevFrameTimer::FBDevFrameTimer(EventLoop loop)
+FBDevFrameTimer::FBDevFrameTimer(EventLoop loop, Screen &screen)
 {
 	const char *fbDevPath = "/dev/fb0";
 	logMsg("opening device path:%s", fbDevPath);
@@ -56,7 +55,7 @@ FBDevFrameTimer::FBDevFrameTimer(EventLoop loop)
 	}
 	sem_init(&sem, 0, 0);
 	fdSrc = {"FBDevFrameTimer", fd, loop,
-		[this](int fd, int event)
+		[this, &screen](int fd, int event)
 		{
 			eventfd_t timestamp;
 			auto ret = read(fd, &timestamp, sizeof(timestamp));
@@ -68,7 +67,6 @@ FBDevFrameTimer::FBDevFrameTimer(EventLoop loop)
 				cancelled = false;
 				return true; // frame request was cancelled
 			}
-			auto &screen = mainScreen();
 			assert(screen.isPosted());
 			assumeExpr(timestamp >= (eventfd_t)screen.prevFrameTimestamp.count());
 			if(screen.prevFrameTimestamp.count())

@@ -143,7 +143,18 @@ public:
 class GLMainTask
 {
 public:
-	struct TaskContext {};
+	class TaskContext
+	{
+	public:
+		constexpr TaskContext(IG::Semaphore *semPtr, bool *notifySemaporeAfterDelegatePtr):
+			semPtr{semPtr}, notifySemaporeAfterDelegatePtr{notifySemaporeAfterDelegatePtr}
+		{}
+		void notifySemaphore();
+
+	protected:
+		IG::Semaphore *semPtr{};
+		bool *notifySemaporeAfterDelegatePtr{};
+	};
 
 	using FuncDelegate = DelegateFunc2<sizeof(uintptr_t)*4 + sizeof(int)*10, void(TaskContext)>;
 
@@ -154,7 +165,7 @@ public:
 
 	struct CommandMessage
 	{
-		IG::Semaphore *semAddr{};
+		IG::Semaphore *semPtr{};
 		union Args
 		{
 			struct RunArgs
@@ -165,17 +176,17 @@ public:
 		Command command{Command::UNSET};
 
 		constexpr CommandMessage() {}
-		constexpr CommandMessage(Command command, IG::Semaphore *semAddr = nullptr):
-			semAddr{semAddr}, command{command} {}
-		constexpr CommandMessage(Command command, FuncDelegate funcDel, IG::Semaphore *semAddr):
-			semAddr{semAddr}, args{funcDel}, command{command} {}
+		constexpr CommandMessage(Command command, IG::Semaphore *semPtr = nullptr):
+			semPtr{semPtr}, command{command} {}
+		constexpr CommandMessage(Command command, FuncDelegate funcDel, IG::Semaphore *semPtr = nullptr):
+			semPtr{semPtr}, args{funcDel}, command{command} {}
 		explicit operator bool() const { return command != Command::UNSET; }
+		void setReplySemaphore(IG::Semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 
 	~GLMainTask();
 	void start(Base::GLContext context);
-	void runFunc(FuncDelegate del, IG::Semaphore *semAddr = nullptr);
-	void runFuncSync(FuncDelegate del);
+	void runFunc(FuncDelegate del, bool awaitReply = false);
 	void stop();
 	bool isStarted() const;
 	void runPendingTasksOnThisThread();
@@ -189,10 +200,29 @@ private:
 class GLRenderer
 {
 public:
+	DrawContextSupport support{};
+	std::unique_ptr<GLMainTask> mainTask{};
 	Base::GLDisplay glDpy{};
 	Base::GLContext gfxResourceContext{};
 	Base::GLBufferConfig gfxBufferConfig{};
+	TextureSampler defaultClampSampler{};
+	TextureSampler defaultNearestMipClampSampler{};
+	TextureSampler defaultNoMipClampSampler{};
+	TextureSampler defaultNoLinearNoMipClampSampler{};
+	TextureSampler defaultRepeatSampler{};
+	TextureSampler defaultNearestMipRepeatSampler{};
+	Base::CustomEvent releaseShaderCompilerEvent{"GLRenderer::releaseShaderCompilerEvent"};
+	Base::ExitDelegate onExit{};
+	IG::Semaphore resourceFenceSem{0};
+	SyncFence resourceFence{};
+	TimedInterpolator<Gfx::GC> projAngleM;
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	GLuint defaultVShader = 0;
+	#endif
+	Angle projectionMatRot = 0;
+	GLuint samplerNames = 0; // used when separate sampler objects not supported
 	bool resourceUpdate = false;
+	bool resourceFenceQueued = false;
 	bool useSeparateDrawContext = false;
 	#ifndef CONFIG_GFX_OPENGL_ES
 	bool useStreamVAO = false;
@@ -202,22 +232,6 @@ public:
 	#endif
 	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, bool> contextDestroyed = false;
 	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, bool> drawContextDebug = false;
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	GLuint defaultVShader = 0;
-	#endif
-	Angle projectionMatRot = 0;
-	GLuint samplerNames = 0; // used when separate sampler objects not supported
-	TextureSampler defaultClampSampler{};
-	TextureSampler defaultNearestMipClampSampler{};
-	TextureSampler defaultNoMipClampSampler{};
-	TextureSampler defaultNoLinearNoMipClampSampler{};
-	TextureSampler defaultRepeatSampler{};
-	TextureSampler defaultNearestMipRepeatSampler{};
-	Base::CustomEvent releaseShaderCompilerEvent{"GLRenderer::releaseShaderCompilerEvent"};
-	Base::ExitDelegate onExit{};
-	TimedInterpolator<Gfx::GC> projAngleM;
-	std::unique_ptr<GLMainTask> mainTask{};
-	DrawContextSupport support{};
 
 	GLRenderer() {}
 	void addEventHandlers();
@@ -253,20 +267,11 @@ public:
 	bool linkProgram(GLuint program);
 	TextureSampler &commonTextureSampler(CommonTextureSampler sampler);
 	bool hasGLTask() const;
-	void runGLTask2(GLMainTask::FuncDelegate del, IG::Semaphore *semAddr = nullptr);
+	void runGLTask2(GLMainTask::FuncDelegate del, bool awaitReply);
 	template<class Func>
-	void runGLTask(Func &&del, IG::Semaphore *semAddr = nullptr) { runGLTask2(wrapGLMainTaskDelegate(del), semAddr); }
-	void runGLTaskSync2(GLMainTask::FuncDelegate del);
+	void runGLTask(Func &&del, bool awaitReply = false) { runGLTask2(wrapGLMainTaskDelegate(del), awaitReply); }
 	template<class Func>
-	void runGLTaskSync(Func &&del) { runGLTaskSync2(wrapGLMainTaskDelegate(del)); }
-	template<class Func>
-	void runGLTaskSyncConditional(Func &&del, bool shouldRunSync, IG::Semaphore *semAddr = nullptr)
-	{
-		if(shouldRunSync)
-			runGLTaskSync2(wrapGLMainTaskDelegate(del));
-		else
-			runGLTask2(wrapGLMainTaskDelegate(del), semAddr);
-	}
+	void runGLTaskSync(Func &&del) { runGLTask2(wrapGLMainTaskDelegate(del), true); }
 
 	template<class Func = GLMainTask::FuncDelegate>
 	static GLMainTask::FuncDelegate wrapGLMainTaskDelegate(Func del)

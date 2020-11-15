@@ -54,11 +54,11 @@ public:
 	{
 		auto src = lockBuff.pixmap();
 		//logDMsg("copying char %dx%d, pitch %d to dest %dx%d, pitch %d", src.x, src.y, src.pitch, out.x, out.y, out.pitch);
-		assert(src.w() != 0 && src.h() != 0 && src.pixel({}));
+		assert(src.w() != 0 && src.h() != 0 && src.data());
 		if(Config::envIsAndroid && !src.pitchBytes()) // Hack for JXD S7300B which returns y = x, and pitch = 0
 		{
 			logWarn("invalid pitch returned for char bitmap");
-			src = {{out.size(), out.format()}, src.pixel({}), {out.pitchBytes(), IG::Pixmap::BYTE_UNITS}};
+			src = {{out.size(), out.format()}, src.data(), {out.pitchBytes(), IG::Pixmap::BYTE_UNITS}};
 		}
 		out.write(src, {});
 		return {};

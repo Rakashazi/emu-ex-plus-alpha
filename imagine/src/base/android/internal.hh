@@ -1,7 +1,6 @@
 #pragma once
 
 #include <imagine/util/jni.hh>
-#include <imagine/base/Window.hh>
 #include <android/input.h>
 #include <android/configuration.h>
 #include <vector>
@@ -9,6 +8,9 @@
 
 namespace Base
 {
+
+class Window;
+class Screen;
 
 enum SurfaceRotation : int
 {
@@ -27,7 +29,7 @@ extern std::unique_ptr<FrameTimer> frameTimer;
 
 Window *deviceWindow();
 void androidWindowNeedsRedraw(Window &win, bool sync = true);
-void initFrameTimer(JNIEnv *env, jobject activity);
+void initFrameTimer(JNIEnv *env, jobject activity, Screen &screen);
 void removePostedNotifications();
 void initScreens(JNIEnv *env, jobject activity, jclass activityCls);
 void handleIntent(JNIEnv *env, jobject activity);

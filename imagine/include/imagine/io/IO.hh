@@ -150,7 +150,7 @@ public:
 	using IOUtils<GenericIO>::constBufferView;
 	using IOUtils<GenericIO>::get;
 
-	GenericIO() {}
+	constexpr GenericIO() {}
 	template<class T>
 	GenericIO(T &io): io{std::unique_ptr<IO>{new T(std::move(io))}} {}
 	GenericIO(std::unique_ptr<IO> io): io{std::move(io)} {}

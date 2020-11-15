@@ -320,10 +320,10 @@ void TouchConfigView::setSize(uint16_t val)
 	vController.place();
 }
 
-static void setDeadzone(uint val, Gfx::Renderer &r)
+static void setDeadzone(uint val, Gfx::Renderer &r, Base::Window &win)
 {
 	optionTouchDpadDeadzone = val;
-	vController.gamePad().dPad().setDeadzone(r, vController.xMMSizeToPixel(Base::mainWindow(), int(optionTouchDpadDeadzone) / 100.), vController.windowData());
+	vController.gamePad().dPad().setDeadzone(r, vController.xMMSizeToPixel(win, int(optionTouchDpadDeadzone) / 100.), vController.windowData());
 }
 
 static void setDiagonalSensitivity(uint val, Gfx::Renderer &r)
@@ -525,9 +525,9 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	},
 	deadzoneItem
 	{
-		{touchDpadDeadzoneMenuName[0], [this](){ setDeadzone(touchDpadDeadzoneMenuVal[0], renderer()); }},
-		{touchDpadDeadzoneMenuName[1], [this](){ setDeadzone(touchDpadDeadzoneMenuVal[1], renderer()); }},
-		{touchDpadDeadzoneMenuName[2], [this](){ setDeadzone(touchDpadDeadzoneMenuVal[2], renderer()); }},
+		{touchDpadDeadzoneMenuName[0], [this](){ setDeadzone(touchDpadDeadzoneMenuVal[0], renderer(), window()); }},
+		{touchDpadDeadzoneMenuName[1], [this](){ setDeadzone(touchDpadDeadzoneMenuVal[1], renderer(), window()); }},
+		{touchDpadDeadzoneMenuName[2], [this](){ setDeadzone(touchDpadDeadzoneMenuVal[2], renderer(), window()); }},
 	},
 	deadzone
 	{

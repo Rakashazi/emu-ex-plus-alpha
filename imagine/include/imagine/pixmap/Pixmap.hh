@@ -20,6 +20,7 @@
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/FunctionTraits.hh>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/container/array.hh>
 
 namespace IG
 {
@@ -52,22 +53,65 @@ public:
 		Pixmap{desc, data, {desc.w(), PIXEL_UNITS}}
 		{}
 
-	char *pixel(WP pos) const;
-	char *data() const;
+	constexpr operator bool() const
+	{
+		return data_;
+	}
+
+	constexpr char *pixel(WP pos) const
+	{
+		return &IG::ArrayView2<char>{data(), pitchBytes()}[pos.y][format().pixelBytes(pos.x)];
+	}
+
+	constexpr char *data() const
+	{
+		return (char*)data_;
+	}
+
+	constexpr uint32_t pitchPixels() const
+	{
+		return pitch / format().bytesPerPixel();
+	}
+
+	constexpr uint32_t pitchBytes() const
+	{
+		return pitch;
+	}
+
+	constexpr size_t bytes() const
+	{
+		return pitchBytes() * h();
+	}
+
+	constexpr bool isPadded() const
+	{
+		return w() != pitchPixels();
+	}
+
+	constexpr uint32_t paddingPixels() const
+	{
+		return pitchPixels() - w();
+	}
+
+	constexpr uint32_t paddingBytes() const
+	{
+		return pitchBytes() - format().pixelBytes(w());
+	}
+
+	constexpr Pixmap subView(WP pos, WP size) const
+	{
+		//logDMsg("sub-pixmap with pos:%dx%d size:%dx%d", pos.x, pos.y, size.x, size.y);
+		assumeExpr(pos.x >= 0 && pos.y >= 0);
+		assumeExpr(pos.x + size.x <= (int)w() && pos.y + size.y <= (int)h());
+		return Pixmap{{size, format()}, pixel(pos), {pitchBytes(), BYTE_UNITS}};
+	}
+
 	void write(Pixmap pixmap);
 	void write(Pixmap pixmap, WP destPos);
 	void writeConverted(Pixmap pixmap);
 	void writeConverted(Pixmap pixmap, WP destPos);
 	void clear(WP pos, WP size);
 	void clear();
-	Pixmap subView(WP pos, WP size) const;
-	explicit operator bool() const;
-	uint32_t pitchPixels() const;
-	uint32_t pitchBytes() const;
-	size_t bytes() const;
-	bool isPadded() const;
-	uint32_t paddingPixels() const;
-	uint32_t paddingBytes() const;
 
 	template <class Func>
 	static constexpr bool checkTransformFunc()

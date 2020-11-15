@@ -64,9 +64,7 @@ void EmuVideo::postSetFormat(EmuSystemTask &task, IG::PixmapDesc desc)
 	{
 		return; // no change to format
 	}
-	IG::Semaphore sem{0};
-	task.sendVideoFormatChangedReply(*this, desc, &sem);
-	sem.wait();
+	task.sendVideoFormatChangedReply(*this, desc);
 }
 
 EmuVideoImage EmuVideo::startFrame(EmuSystemTask *task)
@@ -114,6 +112,7 @@ void EmuVideo::startUnchangedFrame(EmuSystemTask *task)
 
 void EmuVideo::dispatchFinishFrame(EmuSystemTask *task)
 {
+	vidImg.renderer().queueResourceSyncFence();
 	onFrameFinished(*this);
 }
 

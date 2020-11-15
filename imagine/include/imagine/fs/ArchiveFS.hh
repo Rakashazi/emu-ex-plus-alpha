@@ -19,6 +19,7 @@
 #include <imagine/io/ArchiveIO.hh>
 #include <system_error>
 #include <compare>
+#include <memory>
 
 namespace FS
 {
@@ -26,15 +27,17 @@ namespace FS
 class ArchiveIterator : public std::iterator<std::input_iterator_tag, ArchiveEntry>
 {
 public:
-	ArchiveIterator() {}
+	constexpr ArchiveIterator() {}
 	ArchiveIterator(PathString path): ArchiveIterator{path.data()} {}
 	ArchiveIterator(const char *path);
-	ArchiveIterator(PathString path, std::error_code &result): ArchiveIterator{path.data(), result} {}
-	ArchiveIterator(const char *path, std::error_code &result);
+	ArchiveIterator(PathString path, std::error_code &ec): ArchiveIterator{path.data(), ec} {}
+	ArchiveIterator(const char *path, std::error_code &ec);
 	ArchiveIterator(GenericIO io);
-	ArchiveIterator(GenericIO io, std::error_code &result);
-	ArchiveIterator(ArchiveEntry &&entry);
-	~ArchiveIterator();
+	ArchiveIterator(GenericIO io, std::error_code &ec);
+	ArchiveIterator(ArchiveEntry entry);
+	ArchiveIterator(const ArchiveIterator&) = default;
+	ArchiveIterator(ArchiveIterator&&) = default;
+	ArchiveIterator &operator=(ArchiveIterator &&o) = default;
 	ArchiveEntry& operator*();
 	ArchiveEntry* operator->();
 	void operator++();
@@ -42,10 +45,7 @@ public:
 	void rewind();
 
 private:
-	void init(const char *path, std::error_code &result);
-	void init(GenericIO io, std::error_code &result);
-
-	ArchiveEntry archEntry{};
+	std::shared_ptr<ArchiveEntry> impl{};
 };
 
 static const ArchiveIterator &begin(const ArchiveIterator &iter)

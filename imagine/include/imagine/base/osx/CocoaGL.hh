@@ -59,11 +59,6 @@ protected:
 
 struct GLBufferConfig
 {
-	explicit operator bool() const
-	{
-		return true;
-	}
-
 	Base::NativeWindowFormat windowFormat(GLDisplay display);
 };
 

@@ -24,7 +24,7 @@
 
 bool writeScreenshot(IG::Pixmap vidPix, const char *fname)
 {
-	auto screen = vidPix.pixel({});
+	auto screen = vidPix.data();
 	IG::MemPixmap tempMemPix{{vidPix.size(), IG::PIXEL_FMT_RGB888}};
 	auto tempPix = tempMemPix.view();
 	tempPix.writeConverted(vidPix);
@@ -82,6 +82,10 @@ bool writeScreenshot(IG::Pixmap vidPix, const char *fname)
 
 #else
 
+#if PNG_LIBPNG_VER < 10500
+using png_const_bytep = png_bytep;
+#endif
+
 bool writeScreenshot(IG::Pixmap vidPix, const char *fname)
 {
 	FileIO fp;
@@ -134,7 +138,7 @@ bool writeScreenshot(IG::Pixmap vidPix, const char *fname)
 		tempPix.writeConverted(vidPix);
 		uint32_t rowBytes = png_get_rowbytes(pngPtr, infoPtr);
 		assert(rowBytes == tempPix.pitchBytes());
-		auto rowData = (png_const_bytep)tempPix.pixel({});
+		auto rowData = (png_const_bytep)tempPix.data();
 		iterateTimes(tempPix.h(), i)
 		{
 			png_write_row(pngPtr, rowData);

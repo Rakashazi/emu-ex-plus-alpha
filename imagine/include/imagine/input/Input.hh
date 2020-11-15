@@ -19,7 +19,6 @@
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/input/config.hh>
-#include <imagine/input/Device.hh>
 #include <imagine/input/bluetoothInputDefs.hh>
 #include <array>
 #include <vector>
@@ -32,25 +31,7 @@ class Window;
 namespace Input
 {
 
-struct PackedInputAccess
-{
-	uint32_t byteOffset;
-	uint32_t mask;
-	Key keyEvent;
-	Key sysKey;
-
-	int updateState(const uint8_t *prev, const uint8_t *curr) const
-	{
-		bool oldState = prev[byteOffset] & mask,
-			newState = curr[byteOffset] & mask;
-		if(oldState != newState)
-		{
-			return newState;
-		}
-		return -1; // no state change
-	}
-
-};
+class Device;
 
 enum { UNUSED, RELEASED, PUSHED, MOVED, MOVED_RELATIVE, EXIT_VIEW, ENTER_VIEW, CANCELED };
 enum { POINTER_NORMAL, POINTER_INVERT };
@@ -194,16 +175,6 @@ void cancelKeyRepeatTimer();
 void deinitKeyRepeatTimer();
 
 IG::Point2D<int> transformInputPos(const Base::Window &win, IG::Point2D<int> srcPos);
-
-using DeviceChangeDelegate = DelegateFunc<void (const Device &dev, Device::Change change)>;
-
-// Called when a known input device addition/removal/change occurs
-void setOnDeviceChange(DeviceChangeDelegate del);
-
-using DevicesEnumeratedDelegate = DelegateFunc<void ()>;
-
-// Called when the device list is rebuilt, all devices should be re-checked
-void setOnDevicesEnumerated(DevicesEnumeratedDelegate del);
 
 void setSwappedGamepadConfirm(bool swapped);
 bool swappedGamepadConfirm();

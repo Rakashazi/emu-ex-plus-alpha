@@ -16,7 +16,6 @@
 #define LOGTAG "PosixFS"
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/base/Base.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/string.h>
 #ifdef __APPLE__
@@ -44,13 +43,92 @@ static file_type makeDirType(int type)
 	return file_type::unknown;
 }
 
+static bool isDotName(const char *name)
+{
+	return string_equal(name, ".") || string_equal(name, "..");
+}
+
+DirectoryEntryImpl::DirectoryEntryImpl(const char *path, std::error_code &ec):
+	DirectoryEntryImpl{path, &ec}
+{}
+
+DirectoryEntryImpl::DirectoryEntryImpl(const char *path):
+	DirectoryEntryImpl{path, nullptr}
+{}
+
+DirectoryEntryImpl::DirectoryEntryImpl(const char *path, std::error_code *ecPtr)
+{
+	dir = opendir(path);
+	if(!dir)
+	{
+		if(Config::DEBUG_BUILD)
+			logErr("opendir(%s) error: %s", path, strerror(errno));
+		if(ecPtr)
+			*ecPtr = {errno, std::system_category()};
+		return;
+	}
+	logMsg("opened directory:%s", path);
+	if(ecPtr)
+		ecPtr->clear();
+	string_copy(basePath, path);
+	readNextDir(); // go to first entry
+}
+
+DirectoryEntryImpl::DirectoryEntryImpl(DirectoryEntryImpl &&o)
+{
+	*this = std::move(o);
+}
+
+DirectoryEntryImpl &DirectoryEntryImpl::operator=(DirectoryEntryImpl &&o)
+{
+	deinit();
+	dir = std::exchange(o.dir, {});
+	dirent_ = std::exchange(o.dirent_, {});
+	type_ = std::exchange(o.type_, {});
+	linkType_ = std::exchange(o.linkType_, {});
+	basePath = std::exchange(o.basePath, {});
+	return *this;
+}
+
+DirectoryEntryImpl::~DirectoryEntryImpl()
+{
+	deinit();
+}
+
+bool DirectoryEntryImpl::readNextDir()
+{
+	if(unlikely(!dir))
+		return false;
+	errno = 0;
+	// clear cached types
+	type_ = {};
+	linkType_ = {};
+	while((dirent_ = readdir(dir)))
+	{
+		//logMsg("reading entry:%s", dirent.d_name);
+		if(!isDotName(dirent_->d_name))
+		{
+			#ifdef __APPLE__
+			// Precompose all strings for text renderer
+			// TODO: make optional when renderer supports decomposed unicode
+			precomposeUnicodeString(dirent_->d_name, dirent_->d_name, NAME_MAX + 1);
+			#endif
+			return true; // got an entry
+		}
+	}
+	// handle error or end of directory
+	if(Config::DEBUG_BUILD && errno)
+		logErr("readdir error: %s", strerror(errno));
+	return false;
+}
+
 const char *DirectoryEntryImpl::name() const
 {
 	assumeExpr(dirent_);
 	return dirent_->d_name;
 }
 
-file_type DirectoryEntryImpl::type()
+file_type DirectoryEntryImpl::type() const
 {
 	assumeExpr(dirent_);
 	if(type_ == file_type::none)
@@ -64,7 +142,7 @@ file_type DirectoryEntryImpl::type()
 	return type_;
 }
 
-file_type DirectoryEntryImpl::symlink_type()
+file_type DirectoryEntryImpl::symlink_type() const
 {
 	assumeExpr(dirent_);
 	if(linkType_ == file_type::none)
@@ -84,88 +162,45 @@ PathStringImpl DirectoryEntryImpl::path() const
 	return makePathStringPrintf("%s/%s", basePath.data(), name());
 }
 
-static bool isDotName(const char *name)
+void DirectoryEntryImpl::deinit()
 {
-	return string_equal(name, ".") || string_equal(name, "..");
-}
-
-void DirectoryIteratorImpl::init(const char *path, std::error_code &result)
-{
-	DIR *d = opendir(path);
-	if(!d)
-	{
-		if(Config::DEBUG_BUILD)
-			logErr("opendir(%s) error: %s", path, strerror(errno));
-		result = {errno, std::system_category()};
+	if(!dir)
 		return;
-	}
-	logMsg("opened directory:%s", path);
-	result.clear();
-	dir = {d,
-		[](DIR *dir)
-		{
-			logMsg("closing directory");
-			closedir(dir);
-		}
-	};
-	string_copy(entry.basePath, path);
-	++(*static_cast<directory_iterator*>(this)); // go to first entry
+	logMsg("closing directory:%s", basePath.data());
+	closedir(dir);
+	dir = {};
 }
 
-directory_iterator::directory_iterator(const char *path)
-{
-	std::error_code dummy;
-	init(path, dummy);
-}
+directory_iterator::directory_iterator(const char *path):
+	impl{std::make_shared<DirectoryEntryImpl>(path)}
+{}
 
-directory_iterator::directory_iterator(const char *path, std::error_code &result)
-{
-	init(path, result);
-}
+directory_iterator::directory_iterator(const char *path, std::error_code &ec):
+	impl{std::make_shared<DirectoryEntryImpl>(path, ec)}
+{}
 
 directory_iterator::~directory_iterator() {}
 
 directory_entry& directory_iterator::operator*()
 {
-	return entry;
+	return *impl;
 }
 
 directory_entry* directory_iterator::operator->()
 {
-	return &entry;
+	return impl.get();
 }
 
 void directory_iterator::operator++()
 {
-	assumeExpr(dir); // incrementing end-iterator is undefined
-	int ret = 0;
-	auto &dirent = entry.dirent_;
-	errno = 0;
-	while((dirent = readdir(dir.get())))
-	{
-		//logMsg("reading entry:%s", dirent.d_name);
-		if(!isDotName(dirent->d_name))
-		{
-			// clear cached types
-			entry.type_ = {};
-			entry.linkType_ = {};
-			#ifdef __APPLE__
-			// Precompose all strings for text renderer
-			// TODO: make optional when renderer supports decomposed unicode
-			precomposeUnicodeString(dirent->d_name, dirent->d_name, NAME_MAX + 1);
-			#endif
-			return; // got an entry
-		}
-	}
-	// handle error or end of directory
-	if(Config::DEBUG_BUILD && errno)
-		logErr("readdir error: %s", strerror(errno));
-	dir = nullptr;
+	assumeExpr(impl); // incrementing end-iterator is undefined
+	if(!impl->readNextDir())
+		impl.reset();
 }
 
 bool directory_iterator::operator==(directory_iterator const &rhs) const
 {
-	return dir == rhs.dir;
+	return impl == rhs.impl;
 }
 
 static file_type makeFileType(struct stat s)

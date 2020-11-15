@@ -23,22 +23,45 @@
 
 struct archive;
 struct archive_entry;
-struct ArchiveGenericIO;
 class ArchiveIO;
+
+// data used by libarchive callbacks allocated in its own memory block
+struct ArchiveControlBlock
+{
+	ArchiveControlBlock(GenericIO io): io{std::move(io)} {}
+	GenericIO io;
+};
 
 class ArchiveEntry
 {
 public:
-	std::shared_ptr<struct archive> arch{};
-	struct archive_entry *ptr{};
-	ArchiveGenericIO *genericIO{};
-
+	constexpr ArchiveEntry() {}
+	ArchiveEntry(const char *path, std::error_code &result);
+	ArchiveEntry(const char *path);
+	ArchiveEntry(GenericIO io, std::error_code &result);
+	ArchiveEntry(GenericIO io);
+	ArchiveEntry(ArchiveEntry &&o);
+	ArchiveEntry &operator=(ArchiveEntry &&o);
+	~ArchiveEntry();
 	const char *name() const;
 	FS::file_type type() const;
 	size_t size() const;
 	uint32_t crc32() const;
 	ArchiveIO moveIO();
 	void moveIO(ArchiveIO io);
+	bool readNextEntry();
+	void rewind();
+	struct archive* archive() const { return arch; }
+
+protected:
+	struct archive *arch{};
+	struct archive_entry *ptr{};
+	std::unique_ptr<ArchiveControlBlock> ctrlBlock{};
+
+	ArchiveEntry(const char *path, std::error_code *ec);
+	ArchiveEntry(GenericIO io, std::error_code *ec);
+	bool init(GenericIO io);
+	void deinit();
 };
 
 class ArchiveIO final : public IO
@@ -60,7 +83,6 @@ public:
 	ArchiveIO(ArchiveEntry entry);
 	ArchiveIO(ArchiveIO &&o);
 	ArchiveIO &operator=(ArchiveIO &&o);
-	~ArchiveIO() final;
 	GenericIO makeGeneric();
 	ArchiveEntry releaseArchive();
 	const char *name();

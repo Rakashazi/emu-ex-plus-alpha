@@ -80,7 +80,7 @@ std::errc Quartz2dImage::readImage(IG::Pixmap dest)
 	int width = this->width();
 	auto colorSpace = isGrayscale() ? Base::grayColorSpace : Base::rgbColorSpace;
 	auto bitmapInfo = hasAlphaChannel() ? kCGImageAlphaPremultipliedLast : kCGImageAlphaNone;
-	auto context = CGBitmapContextCreate(dest.pixel({}), width, height, 8, dest.pitchBytes(), colorSpace, bitmapInfo);
+	auto context = CGBitmapContextCreate(dest.data(), width, height, 8, dest.pitchBytes(), colorSpace, bitmapInfo);
 	CGContextSetBlendMode(context, kCGBlendModeCopy);
 	CGContextDrawImage(context, CGRectMake(0.0, 0.0, (CGFloat)width, (CGFloat)height), img);
 	CGContextRelease(context);

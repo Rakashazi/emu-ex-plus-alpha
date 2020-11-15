@@ -21,6 +21,7 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
 #include <imagine/base/Base.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/logger/logger.h>
 #include "tests.hh"
 #include "cpuUtils.hh"
@@ -304,6 +305,7 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &s
 		memset(pix.pixel({}), 0, pix.pitchBytes() * pix.h());
 	}
 	texture.unlock(lockedBuff);
+	texture.renderer().queueResourceSyncFence();
 }
 
 void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)

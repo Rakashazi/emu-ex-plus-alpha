@@ -17,7 +17,8 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/Pipe.hh>
-#include <type_traits>
+#include <imagine/thread/Semaphore.hh>
+#include <imagine/util/typeTraits.hh>
 #include <utility>
 
 namespace Base
@@ -129,7 +130,33 @@ public:
 
 	bool send(MsgType msg)
 	{
-		return pipe.sink().write(msg);
+		return pipe.sink().write(msg) != -1;
+	}
+
+	bool send(MsgType msg, bool awaitReply)
+	{
+		if(awaitReply)
+		{
+			IG::Semaphore sem{0};
+			if constexpr(std::is_invocable_v<decltype(&MsgType::setReplySemaphore), MsgType, IG::Semaphore*>)
+			{
+				msg.setReplySemaphore(&sem);
+			}
+			else
+			{
+				static_assert(IG::dependentFalseValue<MsgType>, "Called send() overload with MsgType missing setReplySemaphore()");
+			}
+			if(unlikely(pipe.sink().write(msg) == -1))
+			{
+				return false;
+			}
+			sem.wait();
+			return true;
+		}
+		else
+		{
+			return send(msg);
+		}
 	}
 
 	template <class T>
@@ -147,7 +174,7 @@ public:
 		char buffer[bufferSize];
 		memcpy(buffer, &msg, MSG_SIZE);
 		memcpy(buffer + MSG_SIZE, obj, size);
-		return pipe.sink().write(buffer, bufferSize);
+		return pipe.sink().write(buffer, bufferSize) != -1;
 	}
 
 	void clear()

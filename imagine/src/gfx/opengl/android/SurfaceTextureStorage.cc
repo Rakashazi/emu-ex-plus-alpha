@@ -202,9 +202,9 @@ void SurfaceTextureStorage::unlock(LockedTextureBuffer, uint32_t)
 	}
 	ANativeWindow_unlockAndPost(nativeWin);
 	renderer().runGLTask(
-		[this]()
+		[tex = surfaceTex]()
 		{
-			Base::updateSurfaceTextureImage(Base::jEnvForThread(), surfaceTex);
+			Base::updateSurfaceTextureImage(Base::jEnvForThread(), tex);
 		});
 	renderer().resourceUpdate = true;
 }

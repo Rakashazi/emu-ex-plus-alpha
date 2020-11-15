@@ -34,10 +34,10 @@ void EmuSystemTask::start()
 					bcase Reply::VIDEO_FORMAT_CHANGED:
 					{
 						msg.args.videoFormat.videoAddr->setFormat(msg.args.videoFormat.desc);
-						auto semAddr = msg.args.videoFormat.semAddr;
-						if(semAddr)
+						auto semPtr = msg.semPtr;
+						if(semPtr)
 						{
-							semAddr->notify();
+							semPtr->notify();
 						}
 					}
 					bcase Reply::TOOK_SCREENSHOT:
@@ -93,16 +93,16 @@ void EmuSystemTask::start()
 							bcase Command::PAUSE:
 							{
 								//logMsg("got pause command");
-								assumeExpr(msg.semAddr);
-								msg.semAddr->notify();
+								assumeExpr(msg.semPtr);
+								msg.semPtr->notify();
 							}
 							bcase Command::EXIT:
 							{
 								//logMsg("got exit command");
 								started = false;
 								Base::EventLoop::forThread().stop();
-								assumeExpr(msg.semAddr);
-								msg.semAddr->notify();
+								assumeExpr(msg.semPtr);
+								msg.semPtr->notify();
 								return false;
 							}
 							bdefault:
@@ -126,18 +126,14 @@ void EmuSystemTask::pause()
 {
 	if(!started)
 		return;
-	IG::Semaphore sem{0};
-	commandPort.send({Command::PAUSE, &sem});
-	sem.wait();
+	commandPort.send({Command::PAUSE}, true);
 }
 
 void EmuSystemTask::stop()
 {
 	if(!started)
 		return;
-	IG::Semaphore sem{0};
-	commandPort.send({Command::EXIT, &sem});
-	sem.wait();
+	commandPort.send({Command::EXIT}, true);
 	replyPort.clear();
 	replyPort.detach();
 }
@@ -150,9 +146,9 @@ void EmuSystemTask::runFrame(EmuVideo *video, EmuAudio *audio, uint8_t frames, b
 	commandPort.send({Command::RUN_FRAME, video, audio, frames, skipForward});
 }
 
-void EmuSystemTask::sendVideoFormatChangedReply(EmuVideo &video, IG::PixmapDesc desc, IG::Semaphore *semAddr)
+void EmuSystemTask::sendVideoFormatChangedReply(EmuVideo &video, IG::PixmapDesc desc)
 {
-	replyPort.send({Reply::VIDEO_FORMAT_CHANGED, video, desc, semAddr});
+	replyPort.send({Reply::VIDEO_FORMAT_CHANGED, video, desc}, true);
 }
 
 void EmuSystemTask::sendScreenshotReply(int num, bool success)

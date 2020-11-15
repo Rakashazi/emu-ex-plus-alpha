@@ -14,233 +14,57 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "ArchFS"
-#include <cstdlib>
 #include <imagine/fs/ArchiveFS.hh>
-#include <imagine/io/FileIO.hh>
-#include <imagine/logger/logger.h>
-#include <imagine/util/utility.h>
 #include <imagine/util/string.h>
-#include <archive.h>
-#include <archive_entry.h>
-
-struct ArchiveGenericIO
-{
-	GenericIO io;
-	bool rewindOnClose = false;
-
-	ArchiveGenericIO(GenericIO io): io{std::move(io)} {}
-};
-
-struct ArchiveGenericBufferedIO : public ArchiveGenericIO
-{
-	alignas(__BIGGEST_ALIGNMENT__) std::array<char, 32 * 1024> buff{};
-
-	ArchiveGenericBufferedIO(GenericIO io): ArchiveGenericIO{std::move(io)} {}
-};
 
 namespace FS
 {
 
-static void setReadSupport(struct archive *arch)
-{
-	archive_read_support_format_7zip(arch);
-	archive_read_support_format_rar(arch);
-	archive_read_support_format_zip(arch);
-}
+ArchiveIterator::ArchiveIterator(const char *path):
+	impl{std::make_shared<ArchiveEntry>(path)}
+{}
 
-void ArchiveIterator::init(const char *path, std::error_code &ec)
-{
-	FileIO file;
-	auto fileEC = file.open(path, IO::AccessHint::SEQUENTIAL);
-	if(fileEC)
-	{
-		ec = fileEC;
-		return;
-	}
-	init(file.makeGeneric(), ec);
-}
+ArchiveIterator::ArchiveIterator(const char *path, std::error_code &ec):
+	impl{std::make_shared<ArchiveEntry>(path, ec)}
+{}
 
-void ArchiveIterator::init(GenericIO io, std::error_code &result)
-{
-	archEntry.arch = {archive_read_new(),
-		[](struct archive *arch)
-		{
-			logMsg("freeing archive data");
-			archive_read_free(arch);
-		}
-	};
-	setReadSupport(archEntry.arch.get());
-	auto seekFunc =
-		[](struct archive *, void *data, int64_t offset, int whence) -> int64_t
-		{
-			//logMsg("seek %lld %d", (long long)offset, whence);
-			auto &gIO = *((ArchiveGenericIO*)data);
-			auto newPos = gIO.io.seek(offset, whence);
-			if(newPos == -1)
-			{
-				logErr("error seeking to %llu", (long long)newPos);
-				return ARCHIVE_FATAL;
-			}
-			return newPos;
-		};
-	auto skipFunc =
-		[](struct archive *, void *data, int64_t request) -> int64_t
-		{
-			//logMsg("skip %lld", (long long)request);
-			auto &gIO = *((ArchiveGenericIO*)data);
-			if(auto bytes = gIO.io.seekC(request);
-				bytes != -1)
-				return bytes;
-			else
-				return ARCHIVE_FAILED;
-		};
-	auto closeFunc =
-		[](struct archive *, void *data)
-		{
-			auto gIO = (ArchiveGenericIO*)data;
-			if(gIO->rewindOnClose)
-			{
-				//logMsg("rewinding IO");
-				gIO->io.seekS(0);
-				gIO->rewindOnClose = false;
-			}
-			else
-			{
-				gIO->io.close();
-				delete gIO;
-			}
-			return ARCHIVE_OK;
-		};
-	archive_read_set_seek_callback(archEntry.arch.get(), seekFunc);
-	int openRes = ARCHIVE_FATAL;
-	auto fileMap = io.mmapConst();
-	if(fileMap)
-	{
-		//logMsg("source IO supports mapping");
-		auto readFunc =
-			[](struct archive *, void *data, const void **buffOut) -> ssize_t
-			{
-				auto &gIO = *((ArchiveGenericIO*)data);
-				// return the entire buffer after the file position
-				auto pos = gIO.io.tell();
-				ssize_t bytesRead = gIO.io.size() - pos;
-				if(bytesRead)
-				{
-					*buffOut = gIO.io.mmapConst() + pos;
-					gIO.io.seekC(bytesRead);
-				}
-				//logMsg("read %lld bytes @ offset:%llu", (long long)bytesRead, (long long)pos);
-				return bytesRead;
-			};
-		auto archGenIO = new ArchiveGenericIO{std::move(io)};
-		archEntry.genericIO = archGenIO;
-		openRes = archive_read_open2(archEntry.arch.get(),
-			archGenIO, nullptr, readFunc, skipFunc, closeFunc);
-	}
-	else
-	{
-		auto readFunc =
-			[](struct archive *, void *data, const void **buffOut) -> ssize_t
-			{
-				auto &gIO = *((ArchiveGenericBufferedIO*)data);
-				auto bytesRead = gIO.io.read(gIO.buff.data(), gIO.buff.size());
-				*buffOut = gIO.buff.data();
-				return bytesRead;
-			};
-		auto archGenIO = new ArchiveGenericBufferedIO{std::move(io)};
-		archEntry.genericIO = archGenIO;
-		openRes = archive_read_open2(archEntry.arch.get(),
-			archGenIO, nullptr, readFunc, skipFunc, closeFunc);
-	}
-	if(openRes != ARCHIVE_OK)
-	{
-		if(Config::DEBUG_BUILD)
-			logErr("error opening archive:%s", archive_error_string(archEntry.arch.get()));
-		archEntry.arch = {};
-		result = {EILSEQ, std::system_category()};
-		return;
-	}
-	result.clear();
-	++(*static_cast<ArchiveIterator*>(this)); // go to first entry
-}
+ArchiveIterator::ArchiveIterator(GenericIO io):
+	impl{std::make_shared<ArchiveEntry>(std::move(io))}
+{}
 
-ArchiveIterator::ArchiveIterator(const char *path)
-{
-	std::error_code dummy;
-	init(path, dummy);
-}
+ArchiveIterator::ArchiveIterator(GenericIO io, std::error_code &ec):
+	impl{std::make_shared<ArchiveEntry>(std::move(io), ec)}
+{}
 
-ArchiveIterator::ArchiveIterator(const char *path, std::error_code &result)
-{
-	init(path, result);
-}
-
-ArchiveIterator::ArchiveIterator(GenericIO io)
-{
-	std::error_code dummy;
-	init(std::move(io), dummy);
-}
-
-ArchiveIterator::ArchiveIterator(GenericIO io, std::error_code &result)
-{
-	init(std::move(io), result);
-}
-
-ArchiveIterator::~ArchiveIterator() {}
-
-ArchiveIterator::ArchiveIterator(ArchiveEntry &&entry):
-	archEntry{std::move(entry)}
+ArchiveIterator::ArchiveIterator(ArchiveEntry entry):
+	impl{std::make_shared<ArchiveEntry>(std::move(entry))}
 {}
 
 ArchiveEntry& ArchiveIterator::operator*()
 {
-	return archEntry;
+	return *impl;
 }
 
 ArchiveEntry* ArchiveIterator::operator->()
 {
-	return &archEntry;
+	return impl.get();
 }
 
 void ArchiveIterator::operator++()
 {
-	if(!archEntry.arch) // check in case archive object was moved out
-		return;
-	auto ret = archive_read_next_header(archEntry.arch.get(), &archEntry.ptr);
-	if(ret == ARCHIVE_EOF)
-	{
-		logMsg("reached archive end");
-		archEntry.arch = {};
-	}
-	else if(ret <= ARCHIVE_FAILED)
-	{
-		if(Config::DEBUG_BUILD)
-			logErr("error reading archive entry:%s", archive_error_string(archEntry.arch.get()));
-		archEntry.arch = {};
-	}
-	else if(ret != ARCHIVE_OK)
-	{
-		if(Config::DEBUG_BUILD)
-			logWarn("warning reading archive entry:%s", archive_error_string(archEntry.arch.get()));
-	}
+	assumeExpr(impl); // incrementing end-iterator is undefined
+	if(!impl->readNextEntry())
+		impl.reset();
 }
 
 bool ArchiveIterator::operator==(ArchiveIterator const &rhs) const
 {
-	return archEntry.arch == rhs.archEntry.arch;
+	return impl == rhs.impl;
 }
 
 void ArchiveIterator::rewind()
 {
-	archEntry.genericIO->rewindOnClose = true;
-	assumeExpr(archEntry.arch.unique());
-	archEntry.arch.reset();
-	auto io = std::move(archEntry.genericIO->io);
-	delete archEntry.genericIO;
-	archEntry.genericIO = nullptr;
-	std::error_code dummy;
-	logMsg("re-opening archive");
-	init(std::move(io), dummy);
+	impl->rewind();
 }
 
 ArchiveIO fileFromArchive(const char *archivePath, const char *filePath)

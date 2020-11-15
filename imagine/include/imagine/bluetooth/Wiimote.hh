@@ -17,6 +17,7 @@
 
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
+#include <imagine/input/Device.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/base/Error.hh>
 #include <vector>

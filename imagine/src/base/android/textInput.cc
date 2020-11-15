@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "TextInput"
-#include <imagine/base/Base.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include "internal.hh"

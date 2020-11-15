@@ -16,6 +16,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Timer.hh>
+#include <imagine/base/Base.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
 #include "private.hh"

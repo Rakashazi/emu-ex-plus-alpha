@@ -19,6 +19,7 @@
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Screen.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/thread/Thread.hh>
 #include "private.hh"
 
@@ -136,7 +137,7 @@ bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Ba
 				assumeExpr(drawArgs.del);
 				assumeExpr(drawArgs.winPtr);
 				assumeExpr(drawArgs.drawableHolderPtr);
-				drawArgs.del(drawArgs.drawableHolderPtr->drawable(), *drawArgs.winPtr, drawArgs.fence, {*thisRenderTask, glDpy, msg.semAddr});
+				drawArgs.del(drawArgs.drawableHolderPtr->drawable(), *drawArgs.winPtr, drawArgs.fence, {*thisRenderTask, glDpy, msg.semPtr});
 				drawArgs.drawableHolderPtr->notifyOnFrame();
 				drawArgs.winPtr->deferredDrawComplete();
 			}
@@ -144,9 +145,9 @@ bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Ba
 			{
 				assumeExpr(msg.args.runFunc.func);
 				msg.args.runFunc.func(*thisRenderTask);
-				if(msg.semAddr)
+				if(msg.semPtr)
 				{
-					msg.semAddr->notify();
+					msg.semPtr->notify();
 				}
 			}
 			bcase Command::EXIT:
@@ -161,8 +162,8 @@ bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Ba
 				{
 					// only unset the drawable
 					Base::GLContext::setCurrent(glDpy, glCtx, {});
-					assumeExpr(msg.semAddr);
-					msg.semAddr->notify();
+					assumeExpr(msg.semPtr);
+					msg.semPtr->notify();
 				}
 				return false;
 			}
@@ -270,7 +271,7 @@ void RendererTask::start()
 	#endif
 }
 
-void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base::Window::DrawParams winParams, DrawParams params, DrawDelegate del)
+void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams params, DrawDelegate del)
 {
 	if(unlikely(!glCtx))
 	{
@@ -290,14 +291,14 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 						auto oldWinO = win.softOrientation();
 						if(win.requestOrientationChange(newO))
 						{
-							renderer.animateProjectionMatrixRotation(orientationToGC(oldWinO), orientationToGC(newO));
+							renderer.animateProjectionMatrixRotation(win, orientationToGC(oldWinO), orientationToGC(newO));
 						}
 					});
 			}
 			else if(Config::SYSTEM_ROTATES_WINDOWS && !Base::Window::systemAnimatesRotation())
 			{
 				Base::setOnSystemOrientationChanged(
-					[&renderer = r](Base::Orientation oldO, Base::Orientation newO) // TODO: parameters need proper type definitions in API
+					[&renderer = r, &win](Base::Orientation oldO, Base::Orientation newO) // TODO: parameters need proper type definitions in API
 					{
 						const Angle orientationDiffTable[4][4]
 						{
@@ -308,7 +309,7 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 						};
 						auto rotAngle = orientationDiffTable[oldO][newO];
 						logMsg("animating from %d degrees", (int)angleToDegree(rotAngle));
-						renderer.animateProjectionMatrixRotation(rotAngle, 0.);
+						renderer.animateProjectionMatrixRotation(win, rotAngle, 0.);
 					});
 			}
 		}
@@ -322,7 +323,6 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 		params.setAsyncMode(AsyncMode::NONE);
 	}
 	SyncFence fence = params.fenceMode() == FenceMode::RESOURCE ? r.addResourceSyncFence() : SyncFence();
-	IG::Semaphore drawSem{0};
 	{
 		#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
 		auto lock = std::unique_lock<std::mutex>{drawMutex};
@@ -334,17 +334,11 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 				del,
 				drawableHolder,
 				win,
-				fence.sync,
-				params.asyncMode() == AsyncMode::PRESENT ? &drawSem : nullptr
-			});
+				fence.sync
+			}, params.asyncMode() == AsyncMode::PRESENT);
 	}
 	//logMsg("wrote render thread draw command");
-	if(params.asyncMode() == AsyncMode::PRESENT)
-	{
-		//logMsg("waiting for draw to present");
-		drawSem.wait();
-	}
-	else if(unlikely(params.asyncMode() == AsyncMode::NONE))
+	if(unlikely(params.asyncMode() == AsyncMode::NONE))
 	{
 		//logMsg("waiting for draw to finish");
 		waitForDrawFinished();
@@ -378,20 +372,16 @@ void RendererTask::waitForDrawFinished()
 	runSync([](RendererTask &){});
 }
 
-void RendererTask::run(RenderTaskFuncDelegate func, IG::Semaphore *semAddr)
+void RendererTask::run(RenderTaskFuncDelegate func, bool awaitReply)
 {
 	if(!glCtx)
 		return;
-	commandPort.send({Command::RUN_FUNC, func, semAddr});
+	commandPort.send({Command::RUN_FUNC, func}, awaitReply);
 }
 
 void RendererTask::runSync(RenderTaskFuncDelegate func)
 {
-	if(!glCtx)
-		return;
-	IG::Semaphore sem{0};
-	run(func, &sem);
-	sem.wait();
+	run(func, true);
 }
 
 void RendererTask::acquireFenceAndWait(Gfx::SyncFence &fenceVar)
@@ -423,9 +413,7 @@ void RendererTask::stop()
 	}
 	else
 	{
-		IG::Semaphore sem{0};
-		commandPort.send({Command::EXIT, &sem});
-		sem.wait();
+		commandPort.send({Command::EXIT}, true);
 		commandPort.clear();
 		r.runGLTaskSync(
 			[this]()
@@ -440,7 +428,7 @@ void RendererTask::stop()
 	#endif
 }
 
-void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder, Base::Window::SurfaceChange change)
+void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder, Base::WindowSurfaceChange change)
 {
 	if(change.destroyed())
 	{

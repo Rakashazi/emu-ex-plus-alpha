@@ -17,16 +17,7 @@
 
 #include <imagine/base/Screen.hh>
 #include <imagine/base/EventLoop.hh>
-
-#include <X11/keysym.h>
-#include <X11/Xatom.h>
 #include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/extensions/XInput2.h>
-#include <X11/cursorfont.h>
-#include <X11/XKBlib.h>
-#include <X11/extensions/Xfixes.h>
-#include <X11/extensions/Xrandr.h>
 
 namespace Base
 {
@@ -35,7 +26,7 @@ namespace Base
 	Window *windowForXWindow(::Window xWin);
 	int indexOfScreen(Screen &screen);
 	void toggleFullScreen(::Window xWin);
-	void initFrameTimer(EventLoop loop);
+	void initFrameTimer(EventLoop loop, Screen &screen);
 	void deinitFrameTimer();
 	void frameTimerScheduleVSync();
 	void frameTimerCancel();
@@ -55,13 +46,6 @@ namespace Config
 {
 	namespace Base
 	{
-	#if defined CONFIG_MACHINE_PANDORA
-	#define CONFIG_BASE_FBDEV_VSYNC
-	static constexpr bool FBDEV_VSYNC = true;
-	#else
-	static constexpr bool FBDEV_VSYNC = false;
-	#endif
-
 	static constexpr bool XDND = !Config::MACHINE_IS_PANDORA;
 	}
 }

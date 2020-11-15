@@ -31,6 +31,7 @@ namespace Gfx
 {
 
 class Renderer;
+class RendererCommands;
 class TextureSampler;
 
 enum { TEX_UNSET, TEX_2D_1, TEX_2D_2, TEX_2D_4, TEX_2D_EXTERNAL };
@@ -49,10 +50,10 @@ public:
 protected:
 	Renderer *r{};
 	GLuint name_ = 0;
-	GLenum minFilter = 0;
-	GLenum magFilter = 0;
-	GLenum xWrapMode_ = 0;
-	GLenum yWrapMode_ = 0;
+	uint16_t minFilter = 0;
+	uint16_t magFilter = 0;
+	uint16_t xWrapMode_ = 0;
+	uint16_t yWrapMode_ = 0;
 	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
 };
 
@@ -89,15 +90,8 @@ public:
 	constexpr GLTexture() {}
 	constexpr GLTexture(Renderer &r):r{&r} {}
 	~GLTexture();
-	IG::ErrorCode init(Renderer &r, TextureConfig config);
-	TextureConfig baseInit(Renderer &r, TextureConfig config);
 	GLuint texName() const;
 	void bindTex(RendererCommands &cmds, const TextureSampler &sampler) const;
-	bool canUseMipmaps(Renderer &r) const;
-	void updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
-	#ifdef __ANDROID__
-	void setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc);
-	#endif
 
 protected:
 	Renderer *r{};
@@ -111,10 +105,17 @@ protected:
 	static constexpr uint8_t type_ = TEX_2D_4;
 	#endif
 
+	IG::ErrorCode init(Renderer &r, TextureConfig config);
+	TextureConfig baseInit(Renderer &r, TextureConfig config);
 	void deinit();
-	static void setSwizzleForFormat(Renderer &r, IG::PixelFormatID format, GLuint tex, GLenum target);
+	bool canUseMipmaps(const Renderer &r) const;
+	void updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
+	static void setSwizzleForFormatInGLTask(const Renderer &r, IG::PixelFormatID format, GLuint tex);
 	void updateLevelsForMipmapGeneration();
 	GLenum target() const;
+	#ifdef __ANDROID__
+	void setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc);
+	#endif
 };
 
 using TextureImpl = GLTexture;

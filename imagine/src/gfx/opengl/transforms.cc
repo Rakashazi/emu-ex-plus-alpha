@@ -15,6 +15,7 @@
 
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/RendererTask.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include "utils.h"
 #include "private.hh"
@@ -60,17 +61,17 @@ void RendererCommands::setProjectionMatrix(const Mat4 &mat)
 	}
 }
 
-void Renderer::animateProjectionMatrixRotation(Angle srcAngle, Angle destAngle)
+void Renderer::animateProjectionMatrixRotation(Base::Window &win, Angle srcAngle, Angle destAngle)
 {
 	projAngleM.set(srcAngle, destAngle, INTERPOLATOR_TYPE_EASEOUTQUAD, 10);
-	Base::mainScreen().addOnFrame(
-		[this](IG::FrameParams params)
+	win.screen()->addOnFrame(
+		[this, &win](IG::FrameParams params)
 		{
 			using namespace Base;
 			//logMsg("animating rotation");
 			projAngleM.update(1);
 			setProjectionMatrixRotation(projAngleM.now());
-			mainWindow().postDraw();
+			win.postDraw();
 			return !projAngleM.isComplete();
 		});
 }

@@ -21,10 +21,12 @@
 namespace Base
 {
 
+class Screen;
+
 class FBDevFrameTimer : public FrameTimer
 {
 public:
-	FBDevFrameTimer(EventLoop loop);
+	FBDevFrameTimer(EventLoop loop, Screen &screen);
 	~FBDevFrameTimer() final;
 	void scheduleVSync() final;
 	void cancel() final;

@@ -33,7 +33,7 @@ public:
 
 	struct CommandMessage
 	{
-		IG::Semaphore *semAddr{};
+		IG::Semaphore *semPtr{};
 		union Args
 		{
 			struct RunArgs
@@ -47,11 +47,12 @@ public:
 		Command command{Command::UNSET};
 
 		constexpr CommandMessage() {}
-		constexpr CommandMessage(Command command, IG::Semaphore *semAddr = nullptr):
-			semAddr{semAddr}, command{command} {}
+		constexpr CommandMessage(Command command, IG::Semaphore *semPtr = nullptr):
+			semPtr{semPtr}, command{command} {}
 		constexpr CommandMessage(Command command, EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward = false):
 			args{video, audio, frames, skipForward}, command{command} {}
 		explicit operator bool() const { return command != Command::UNSET; }
+		void setReplySemaphore(IG::Semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 
 	enum class Reply: uint8_t
@@ -61,13 +62,13 @@ public:
 
 	struct ReplyMessage
 	{
+		IG::Semaphore *semPtr{};
 		union Args
 		{
 			struct VideoFormatArgs
 			{
 				IG::PixmapDesc desc;
 				EmuVideo *videoAddr;
-				IG::Semaphore *semAddr;
 			} videoFormat;
 			struct ScreenshotArgs
 			{
@@ -78,21 +79,22 @@ public:
 		Reply reply{Reply::UNSET};
 
 		constexpr ReplyMessage() {}
-		constexpr ReplyMessage(Reply reply, EmuVideo &video, IG::PixmapDesc desc, IG::Semaphore *semAddr):
-			args{desc, &video, semAddr}, reply{reply} {}
+		constexpr ReplyMessage(Reply reply, EmuVideo &video, IG::PixmapDesc desc):
+			args{desc, &video}, reply{reply} {}
 		constexpr ReplyMessage(Reply reply, int num, bool success):
 			reply{reply}
 		{
 			args.screenshot = {num, success};
 		}
 		explicit operator bool() const { return reply != Reply::UNSET; }
+		void setReplySemaphore(IG::Semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 
 	void start();
 	void pause();
 	void stop();
 	void runFrame(EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward = false);
-	void sendVideoFormatChangedReply(EmuVideo &video, IG::PixmapDesc desc, IG::Semaphore *semAddr);
+	void sendVideoFormatChangedReply(EmuVideo &video, IG::PixmapDesc desc);
 	void sendScreenshotReply(int num, bool success);
 
 private:

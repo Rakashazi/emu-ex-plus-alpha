@@ -16,7 +16,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <imagine/base/Screen.hh>
-#include <imagine/base/Base.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>

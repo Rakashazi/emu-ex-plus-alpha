@@ -16,6 +16,7 @@
 #define LOGTAG "GLPixmapBufferTexture"
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
+#include <imagine/thread/Semaphore.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
@@ -275,7 +276,7 @@ void GLTextureStorage::initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool si
 		char *bufferPtr;
 		const unsigned fullBufferBytes = singleBuffer ? bufferBytes : bufferBytes * 2;
 		r.runGLTaskSync(
-			[=, &r, &bufferPtr, &pbo = pbo]()
+			[=, &r, &bufferPtr, &pbo = pbo](GLMainTask::TaskContext ctx)
 			{
 				if(pbo)
 				{
@@ -292,12 +293,14 @@ void GLTextureStorage::initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool si
 				if(unlikely(!bufferPtr))
 				{
 					logErr("PBO:%u mapping failed", newPbo);
+					ctx.notifySemaphore();
 					glDeleteBuffers(1, &newPbo);
 				}
 				else
 				{
-					glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 					pbo = newPbo;
+					ctx.notifySemaphore();
+					glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 				}
 			});
 		if(bufferPtr)

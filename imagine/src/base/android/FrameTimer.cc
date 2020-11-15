@@ -170,12 +170,12 @@ void AChoreographerFrameTimer::cancel()
 	requested = false;
 }
 
-void initFrameTimer(JNIEnv *env, jobject activity)
+void initFrameTimer(JNIEnv *env, jobject activity, Screen &screen)
 {
 	if(Base::androidSDK() < 16)
 	{
 		// No OS frame timer
-		frameTimer = std::make_unique<SimpleFrameTimer>(Base::EventLoop::forThread());
+		frameTimer = std::make_unique<SimpleFrameTimer>(Base::EventLoop::forThread(), screen);
 	}
 	else if(sizeof(long) < sizeof(int64_t)
 		|| Base::androidSDK() < 24)

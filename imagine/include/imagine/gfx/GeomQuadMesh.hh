@@ -4,7 +4,8 @@
 #include <memory>
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/util/Mem2D.hh>
+#include <imagine/gfx/Vertex.hh>
+#include <imagine/util/container/array.hh>
 
 namespace Gfx
 {
@@ -31,7 +32,7 @@ public:
 	void setColorRGBV(ColorComp r, ColorComp g, ColorComp b, uint32_t i);
 	void setColorTranslucentV(ColorComp a, uint32_t i);
 	void setPos(GC x, GC y, GC x2, GC y2);
-	Mem2D<ColVertex> v() const;
+	IG::ArrayView2<ColVertex> v() const;
 
 protected:
 	std::unique_ptr<char[]> vMem{};

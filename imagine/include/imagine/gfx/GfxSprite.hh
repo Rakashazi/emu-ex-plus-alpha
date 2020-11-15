@@ -21,6 +21,7 @@
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/GeomQuad.hh>
+#include <imagine/gfx/Vertex.hh>
 
 namespace Gfx
 {

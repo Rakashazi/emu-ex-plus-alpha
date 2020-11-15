@@ -21,10 +21,12 @@
 namespace Base
 {
 
+class Screen;
+
 class DRMFrameTimer : public FrameTimer
 {
 public:
-	DRMFrameTimer(EventLoop loop);
+	DRMFrameTimer(EventLoop loop, Screen &screen);
 	~DRMFrameTimer() final;
 	void scheduleVSync() final;
 	void cancel() final;

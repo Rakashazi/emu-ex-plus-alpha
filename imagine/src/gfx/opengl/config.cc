@@ -725,17 +725,20 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 	glBuffAttr.setPixelFormat(pixelFormat);
 	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
 	auto glAttr = makeGLContextAttributes(1, 0);
-	gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+	auto [found, config] = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+	assert(found);
+	gfxBufferConfig = config;
 	IG::ErrorCode ec{};
 	gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
 	#elif CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
 	if(CAN_USE_OPENGL_ES_3)
 	{
 		auto glAttr = makeGLContextAttributes(3, 0);
-		gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
-		IG::ErrorCode ec{};
-		if(gfxBufferConfig)
+		auto [found, config] = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+		if(found)
 		{
+			gfxBufferConfig = config;
+			IG::ErrorCode ec{};
 			gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
 			glMajorVer = glAttr.majorVersion();
 		}
@@ -743,7 +746,9 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 	if(!gfxResourceContext) // fall back to OpenGL ES 2.0
 	{
 		auto glAttr = makeGLContextAttributes(2, 0);
-		gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+		auto [found, config] = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+		assert(found);
+		gfxBufferConfig = config;
 		IG::ErrorCode ec{};
 		gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
 		glMajorVer = glAttr.majorVersion();
@@ -755,8 +760,10 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 		support.useFixedFunctionPipeline = false;
 		#endif
 		auto glAttr = makeGLContextAttributes(3, 3);
-		gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+		auto [found, config] = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+		assert(found);
 		IG::ErrorCode ec{};
+		gfxBufferConfig = config;
 		gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
 		if(!gfxResourceContext)
 		{
@@ -769,8 +776,10 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 		support.useFixedFunctionPipeline = true;
 		#endif
 		auto glAttr = makeGLContextAttributes(1, 3);
-		gfxBufferConfig = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+		auto [found, config] = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+		assert(found);
 		IG::ErrorCode ec{};
+		gfxBufferConfig = config;
 		gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
 		if(!gfxResourceContext)
 		{
@@ -1021,7 +1030,7 @@ void Renderer::setWindowValidOrientations(Base::Window &win, Base::Orientation v
 	auto oldWinO = win.softOrientation();
 	if(win.setValidOrientations(validO) && !Config::SYSTEM_ROTATES_WINDOWS)
 	{
-		animateProjectionMatrixRotation(orientationToGC(oldWinO), orientationToGC(win.softOrientation()));
+		animateProjectionMatrixRotation(win, orientationToGC(oldWinO), orientationToGC(win.softOrientation()));
 	}
 	updateSensorStateForWindowOrientations(win);
 }

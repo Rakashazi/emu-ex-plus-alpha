@@ -90,11 +90,11 @@ class GLPixmapBufferTexture
 {
 public:
 	constexpr GLPixmapBufferTexture() {}
-	IG::ErrorCode init(Renderer &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer);
 
 protected:
 	std::unique_ptr<TextureBufferStorage> directTex{};
 
+	IG::ErrorCode init(Renderer &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer);
 	IG::ErrorCode initWithPixelBuffer(Renderer &r, TextureConfig config, bool usePBO = false, bool singleBuffer = false);
 	IG::ErrorCode initWithHardwareBuffer(Renderer &r, TextureConfig config, bool singleBuffer = false);
 	IG::ErrorCode initWithSurfaceTexture(Renderer &r, TextureConfig config, bool singleBuffer = false);

@@ -126,7 +126,4 @@ private:
 	void draw(bool needsSync = false);
 };
 
-Window &mainWindow();
-Screen &mainScreen();
-
 }

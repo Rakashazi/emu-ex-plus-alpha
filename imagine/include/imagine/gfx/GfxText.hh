@@ -29,6 +29,7 @@ class Renderer;
 class RendererCommands;
 class GlyphTextureSet;
 class ProjectionPlane;
+class TexVertex;
 
 class Text
 {

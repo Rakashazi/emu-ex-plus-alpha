@@ -18,6 +18,8 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <dlfcn.h>
 #import <OpenGLES/ES2/gl.h> // for GL_RENDERBUFFER, same values in ES1/ES2
 #include <imagine/base/GLContext.hh>
+#include <imagine/base/Base.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include "private.hh"
@@ -177,14 +179,14 @@ GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig
 	GLContext{display, attr, config, {}, ec}
 {}
 
-GLBufferConfig GLContext::makeBufferConfig(GLDisplay, GLContextAttributes, GLBufferConfigAttributes attr)
+std::pair<bool, GLBufferConfig> GLContext::makeBufferConfig(GLDisplay, GLContextAttributes, GLBufferConfigAttributes attr)
 {
 	GLBufferConfig conf;
 	if(attr.pixelFormat() == PIXEL_RGB565)
 	{
 		conf.useRGB565 = true;
 	}
-	return conf;
+	return {true, conf};
 }
 
 void GLContext::setCurrent(GLDisplay, GLContext c, GLDrawable win)

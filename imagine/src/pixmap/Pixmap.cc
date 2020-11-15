@@ -25,16 +25,6 @@
 namespace IG
 {
 
-char *Pixmap::pixel(WP pos) const
-{
-	return data() + format().offsetBytes(pos.x, pos.y, pitch);
-}
-
-char *Pixmap::data() const
-{
-	return (char*)data_;
-}
-
 void Pixmap::write(Pixmap pixmap)
 {
 	assumeExpr(format() == pixmap.format());
@@ -197,49 +187,6 @@ void Pixmap::writeConverted(Pixmap pixmap)
 void Pixmap::writeConverted(Pixmap pixmap, WP destPos)
 {
 	subView(destPos, size() - destPos).writeConverted(pixmap);
-}
-
-Pixmap Pixmap::subView(WP pos, WP size) const
-{
-	//logDMsg("sub-pixmap with pos:%dx%d size:%dx%d", pos.x, pos.y, size.x, size.y);
-	assumeExpr(pos.x >= 0 && pos.y >= 0);
-	assumeExpr(pos.x + size.x <= (int)w() && pos.y + size.y <= (int)h());
-	return Pixmap{{size, format()}, pixel(pos), {pitchBytes(), BYTE_UNITS}};
-}
-
-Pixmap::operator bool() const
-{
-	return data_;
-}
-
-uint32_t Pixmap::pitchPixels() const
-{
-	return pitch / format().bytesPerPixel();
-}
-
-uint32_t Pixmap::pitchBytes() const
-{
-	return pitch;
-}
-
-size_t Pixmap::bytes() const
-{
-	return pitchBytes() * h();
-}
-
-bool Pixmap::isPadded() const
-{
-	return w() != pitchPixels();
-}
-
-uint32_t Pixmap::paddingPixels() const
-{
-	return pitchPixels() - w();
-}
-
-uint32_t Pixmap::paddingBytes() const
-{
-	return pitchBytes() - format().pixelBytes(w());
 }
 
 void Pixmap::clear(WP pos, WP size)

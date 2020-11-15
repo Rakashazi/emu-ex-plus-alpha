@@ -25,11 +25,11 @@ namespace Base
 
 FrameTimer::~FrameTimer() {}
 
-SimpleFrameTimer::SimpleFrameTimer(EventLoop loop):
+SimpleFrameTimer::SimpleFrameTimer(EventLoop loop, Screen &screen):
 	timer
 	{
 		"SimpleFrameTimer",
-		[this]()
+		[this, &screen]()
 		{
 			if(!requested)
 			{
@@ -38,11 +38,10 @@ SimpleFrameTimer::SimpleFrameTimer(EventLoop loop):
 			requested = false;
 			Input::flushEvents();
 			auto timestamp = IG::steadyClockTimestamp();
-			auto s = Screen::screen(0);
-			if(s->isPosted())
+			if(screen.isPosted())
 			{
-				s->frameUpdate(timestamp);
-				s->prevFrameTimestamp = timestamp;
+				screen.frameUpdate(timestamp);
+				screen.prevFrameTimestamp = timestamp;
 			}
 			return true;
 		}

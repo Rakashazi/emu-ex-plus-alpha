@@ -20,14 +20,14 @@
 #include <cstddef>
 #include <system_error>
 #include <compare>
+#include <memory>
 
 // Tries to mirror API of C++ filesystem TS library in most cases
 
 namespace FS
 {
 
-class directory_iterator : public DirectoryIteratorImpl,
-	public std::iterator<std::input_iterator_tag, directory_entry>
+class directory_iterator : public std::iterator<std::input_iterator_tag, directory_entry>
 {
 public:
 	constexpr directory_iterator() {}
@@ -42,6 +42,9 @@ public:
 	directory_entry* operator->();
 	void operator++();
 	bool operator==(directory_iterator const &rhs) const;
+
+protected:
+	std::shared_ptr<DirectoryEntryImpl> impl{};
 };
 
 static const directory_iterator &begin(const directory_iterator &iter)

@@ -27,10 +27,10 @@ namespace Base
 std::unique_ptr<FrameTimer> frameTimer{};
 static bool usingSimpleFrameTimer = false;
 
-void initFrameTimer(EventLoop loop)
+void initFrameTimer(EventLoop loop, Screen &screen)
 {
 	{
-		auto timer = std::make_unique<DRMFrameTimer>(loop);
+		auto timer = std::make_unique<DRMFrameTimer>(loop, screen);
 		if(*timer)
 		{
 			logMsg("using DRM frame timer");
@@ -39,7 +39,7 @@ void initFrameTimer(EventLoop loop)
 		}
 	}
 	{
-		auto timer = std::make_unique<FBDevFrameTimer>(loop);
+		auto timer = std::make_unique<FBDevFrameTimer>(loop, screen);
 		if(*timer)
 		{
 			logMsg("using FBDev frame timer");
@@ -48,7 +48,7 @@ void initFrameTimer(EventLoop loop)
 		}
 	}
 	logMsg("using simple frame timer");
-	frameTimer = std::make_unique<SimpleFrameTimer>(loop);
+	frameTimer = std::make_unique<SimpleFrameTimer>(loop, screen);
 	usingSimpleFrameTimer = true;
 }
 

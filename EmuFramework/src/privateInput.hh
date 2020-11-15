@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Input.hh>
+#include <imagine/input/Device.hh>
 #include <imagine/util/container/VMemArray.hh>
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>

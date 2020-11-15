@@ -116,18 +116,18 @@ static bool isFromSource(int src, int srcTest)
 	return (src & srcTest) == srcTest;
 }
 
-static void dispatchTouch(uint32_t idx, uint32_t action, TouchState &p, IG::Point2D<int> pos, Time time, bool isMouse, const Device *device)
+static void dispatchTouch(uint32_t idx, uint32_t action, TouchState &p, IG::Point2D<int> pos, Time time, bool isMouse, const Device *device, Base::Window &win)
 {
 	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
 	uint32_t metaState = action == Input::RELEASED ? 0 : IG::bit(Pointer::LBUTTON);
-	Base::mainWindow().dispatchInputEvent(Event{idx, Event::MAP_POINTER, Pointer::LBUTTON, metaState, action, pos.x, pos.y, (int)idx, !isMouse, time, device});
+	win.dispatchInputEvent(Event{idx, Event::MAP_POINTER, Pointer::LBUTTON, metaState, action, pos.x, pos.y, (int)idx, !isMouse, time, device});
 }
 
-static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int pid, Time time, bool isMouse, const Device *device)
+static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int pid, Time time, bool isMouse, const Device *device, Base::Window &win)
 {
 	//logMsg("%s action: %s from id %d @ %d,%d @ time %llu",
 	//	isMouse ? "mouse" : "touch", androidEventEnumToStr(action), pid, x, y, (unsigned long long)time.nSecs());
-	auto pos = transformInputPos(Base::mainWindow(), {x, y});
+	auto pos = transformInputPos(win, {x, y});
 	switch(action)
 	{
 		case AMOTION_EVENT_ACTION_DOWN:
@@ -139,7 +139,7 @@ static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int 
 				{
 					p.id = pid;
 					p.isTouching = true;
-					dispatchTouch(i, PUSHED, p, pos, time, isMouse, device);
+					dispatchTouch(i, PUSHED, p, pos, time, isMouse, device, win);
 					break;
 				}
 				i++;
@@ -154,7 +154,7 @@ static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int 
 					p.id = -1;
 					p.isTouching = false;
 					auto touchAction = action == AMOTION_EVENT_ACTION_UP ? RELEASED : CANCELED;
-					dispatchTouch(i, touchAction, p, {x, y}, time, isMouse, device);
+					dispatchTouch(i, touchAction, p, {x, y}, time, isMouse, device, win);
 				}
 				i++;
 			}
@@ -166,7 +166,7 @@ static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int 
 				{
 					p.id = -1;
 					p.isTouching = false;
-					dispatchTouch(i, RELEASED, p, pos, time, isMouse, device);
+					dispatchTouch(i, RELEASED, p, pos, time, isMouse, device, win);
 					break;
 				}
 				i++;
@@ -178,7 +178,7 @@ static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int 
 			{
 				if(p.id == pid)
 				{
-					dispatchTouch(i, MOVED, p, pos, time, isMouse, device);
+					dispatchTouch(i, MOVED, p, pos, time, isMouse, device, win);
 					break;
 				}
 				i++;
@@ -225,7 +225,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 								AMotionEvent_getX(event, 0),
 								AMotionEvent_getY(event, 0),
 								AMotionEvent_getPointerId(event, 0),
-								makeTimeFromMotionEvent(event), isMouse, dev);
+								makeTimeFromMotionEvent(event), isMouse, dev, win);
 						return true;
 					}
 					uint32_t actionPIdx = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
@@ -245,7 +245,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 							AMotionEvent_getX(event, i),
 							AMotionEvent_getY(event, i),
 							AMotionEvent_getPointerId(event, i),
-							makeTimeFromMotionEvent(event), isMouse, dev);
+							makeTimeFromMotionEvent(event), isMouse, dev, win);
 					}
 					return true;
 				}
@@ -256,15 +256,15 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 					auto y = AMotionEvent_getY(event, 0);
 					auto time = makeTimeFromMotionEvent(event);
 					int iX = x * 1000., iY = y * 1000.;
-					auto pos = transformInputPos(Base::mainWindow(), {iX, iY});
+					auto pos = transformInputPos(win, {iX, iY});
 					//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
 
 					if(eventAction == AMOTION_EVENT_ACTION_MOVE)
-						Base::mainWindow().dispatchInputEvent({0, Event::MAP_REL_POINTER, 0, 0, MOVED_RELATIVE, pos.x, pos.y, 0, false, time, nullptr});
+						win.dispatchInputEvent({0, Event::MAP_REL_POINTER, 0, 0, MOVED_RELATIVE, pos.x, pos.y, 0, false, time, nullptr});
 					else
 					{
 						Key key = Keycode::ENTER;
-						Base::mainWindow().dispatchInputEvent({0, Event::MAP_REL_POINTER, key, key, eventAction == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, 0, time, nullptr});
+						win.dispatchInputEvent({0, Event::MAP_REL_POINTER, key, key, eventAction == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, 0, time, nullptr});
 					}
 					return true;
 				}
@@ -359,11 +359,11 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 			auto time = makeTimeFromKeyEvent(event);
 			assert((uint32_t)keyCode < Keycode::COUNT);
 			uint32_t action = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? RELEASED : PUSHED;
-			if(!dev->iCadeMode() || (dev->iCadeMode() && !processICadeKey(keyCode, action, time, *dev, Base::mainWindow())))
+			if(!dev->iCadeMode() || (dev->iCadeMode() && !processICadeKey(keyCode, action, time, *dev, win)))
 			{
 				cancelKeyRepeatTimer();
 				Key key = keyCode & 0x1ff;
-				return Base::mainWindow().dispatchInputEvent({dev->enumId(), Event::MAP_SYSTEM, key, key, action, shiftState, repeatCount, time, dev});
+				return win.dispatchInputEvent({dev->enumId(), Event::MAP_SYSTEM, key, key, action, shiftState, repeatCount, time, dev});
 			}
 			return true;
 		}

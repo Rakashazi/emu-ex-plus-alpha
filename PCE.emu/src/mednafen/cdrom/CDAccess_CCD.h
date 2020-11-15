@@ -24,7 +24,7 @@
 namespace Mednafen
 {
 
-class CDAccess_CCD : public CDAccess
+class CDAccess_CCD final: public CDAccess
 {
  public:
 

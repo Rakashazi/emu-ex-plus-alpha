@@ -31,6 +31,8 @@ class GLPixmapTexture : public Texture
 public:
 	using Texture::Texture;
 	constexpr GLPixmapTexture() {}
+
+protected:
 	IG::ErrorCode init(Renderer &r, TextureConfig config);
 	void updateUsedPixmapSize(IG::WP usedSize, IG::WP fullSize);
 	void updateFormatInfo(IG::WP usedSize, IG::PixmapDesc desc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
@@ -38,7 +40,6 @@ public:
 	void setFromEGLImage(IG::WP usedSize, EGLImageKHR eglImg, IG::PixmapDesc desc);
 	#endif
 
-protected:
 	GTexCPoint uv{};
 	IG::WP usedSize{};
 };

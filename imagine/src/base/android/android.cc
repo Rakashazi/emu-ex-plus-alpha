@@ -398,7 +398,7 @@ static void activityInit(JNIEnv* env, jobject activity)
 	}
 
 	initScreens(env, activity, jBaseActivityCls);
-	initFrameTimer(env, activity);
+	initFrameTimer(env, activity, Base::mainScreen());
 
 	jSetWinFlags.setup(env, jBaseActivityCls, "setWinFlags", "(II)V");
 	jWinFlags.setup(env, jBaseActivityCls, "winFlags", "()I");

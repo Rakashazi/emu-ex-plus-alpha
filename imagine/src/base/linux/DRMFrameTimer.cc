@@ -26,7 +26,7 @@
 namespace Base
 {
 
-DRMFrameTimer::DRMFrameTimer(EventLoop loop)
+DRMFrameTimer::DRMFrameTimer(EventLoop loop, Screen &screen)
 {
 	const char *drmCardPath = getenv("KMSDEVICE");
 	if(!drmCardPath)
@@ -52,7 +52,7 @@ DRMFrameTimer::DRMFrameTimer(EventLoop loop)
 		}
 	}
 	fdSrc = {"DRMFrameTimer", fd, loop,
-		[this](int fd, int event)
+		[this, &screen](int fd, int event)
 		{
 			requested = false;
 			if(cancelled)
@@ -76,14 +76,10 @@ DRMFrameTimer::DRMFrameTimer(EventLoop loop)
 				logErr("error in drmHandleEvent");
 			}
 			Input::flushEvents();
-			iterateTimes(Screen::screens(), i)
+			if(screen.isPosted())
 			{
-				auto s = Screen::screen(i);
-				if(s->isPosted())
-				{
-					s->frameUpdate(timestamp);
-					s->prevFrameTimestamp = timestamp;
-				}
+				screen.frameUpdate(timestamp);
+				screen.prevFrameTimestamp = timestamp;
 			}
 			return 1;
 		}};

@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/Vertex.hh>
 #include <imagine/util/edge.h>
 #include "private.hh"
 

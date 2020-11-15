@@ -62,7 +62,7 @@ struct CD_Chunk
 static std::vector<CD_Chunk> Chunks;
 #endif
 
-class CDAccess_Image : public CDAccess
+class CDAccess_Image final: public CDAccess
 {
  public:
 

@@ -19,6 +19,7 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
 #include "internal.hh"
+#include <X11/extensions/Xrandr.h>
 
 namespace Base
 {

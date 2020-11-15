@@ -17,7 +17,6 @@
 
 #include <imagine/data-type/image/LibPNG.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/base/Base.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/util/string.h>
 #include <assert.h>

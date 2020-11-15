@@ -15,6 +15,7 @@
 
 #define LOGTAG "Input"
 #include <imagine/base/Base.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/bits.h>
@@ -25,6 +26,9 @@
 #include "x11.hh"
 #include "internal.hh"
 #include "../../input/private.hh"
+#include <X11/XKBlib.h>
+#include <X11/cursorfont.h>
+#include <memory>
 
 using namespace Base;
 

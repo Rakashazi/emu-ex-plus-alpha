@@ -20,7 +20,6 @@
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>

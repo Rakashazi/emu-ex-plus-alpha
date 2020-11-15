@@ -24,6 +24,8 @@
 namespace Gfx
 {
 
+class RendererCommands;
+
 class ProjectionPlane
 {
 public:

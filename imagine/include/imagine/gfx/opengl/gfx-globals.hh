@@ -22,8 +22,6 @@
 
 namespace Gfx
 {
-class Renderer;
-class RendererCommands;
 
 using TransformCoordinate = GLfloat;
 using VertexPos = GLfloat;
@@ -59,85 +57,7 @@ static constexpr int ONE_MINUS_CONSTANT_COLOR_IMPL = GL_ONE_MINUS_CONSTANT_COLOR
 static constexpr int CONSTANT_ALPHA_IMPL = GL_CONSTANT_ALPHA;
 static constexpr int ONE_MINUS_CONSTANT_ALPHA_IMPL = GL_ONE_MINUS_CONSTANT_ALPHA;
 
-static constexpr auto VertexColorPixelFormat = IG::PIXEL_DESC_ABGR8888;
-
-class VertexInfo
-{
-public:
-	static constexpr uint32_t posOffset = 0;
-	static constexpr bool hasColor = false;
-	static constexpr uint32_t colorOffset = 0;
-	static constexpr bool hasTexture = false;
-	static constexpr uint32_t textureOffset = 0;
-	template<class Vtx>
-	static void bindAttribs(RendererCommands &cmds, const Vtx *v);
-};
-
-class Vertex : public VertexInfo
-{
-public:
-	VertexPos x{}, y{};
-
-	constexpr Vertex() {};
-	constexpr Vertex(VertexPos x, VertexPos y):
-		x{x}, y{y} {}
-	static constexpr uint32_t ID = 1;
-};
-
-class ColVertex : public VertexInfo
-{
-public:
-	VertexPos x{}, y{};
-	VertexColor color{};
-
-	constexpr ColVertex() {};
-	constexpr ColVertex(VertexPos x, VertexPos y, uint32_t color = 0):
-		x{x}, y{y}, color(color) {}
-	static constexpr bool hasColor = true;
-	static const uint32_t colorOffset;
-	static constexpr uint32_t ID = 2;
-};
-
-class TexVertex : public VertexInfo
-{
-public:
-	VertexPos x{}, y{};
-	TextureCoordinate u{}, v{};
-
-	constexpr TexVertex() {};
-	constexpr TexVertex(VertexPos x, VertexPos y, TextureCoordinate u = 0, TextureCoordinate v = 0):
-		x{x}, y{y}, u{u}, v{v} {}
-	static constexpr bool hasTexture = true;
-	static const uint32_t textureOffset;
-	static constexpr uint32_t ID = 3;
-};
-
-class ColTexVertex : public VertexInfo
-{
-public:
-	VertexPos x{}, y{};
-	TextureCoordinate u{}, v{};
-	VertexColor color{};
-
-	constexpr ColTexVertex() {};
-	constexpr ColTexVertex(VertexPos x, VertexPos y, uint32_t color = 0, TextureCoordinate u = 0, TextureCoordinate v = 0):
-		x{x}, y{y}, u{u}, v{v}, color(color) {}
-	static constexpr bool hasColor = true;
-	static const uint32_t colorOffset;
-	static constexpr bool hasTexture = true;
-	static const uint32_t textureOffset;
-	static constexpr uint32_t ID = 4;
-};
-
-class ClipRect
-{
-public:
-	IG::WindowRect rect{};
-
-	constexpr ClipRect() {};
-	constexpr ClipRect(int x, int y, int w, int h): rect{x, y, w, h} {}
-};
-
+using ClipRect = IG::WindowRect;
 using Drawable = Base::GLDrawable;
 
 }
