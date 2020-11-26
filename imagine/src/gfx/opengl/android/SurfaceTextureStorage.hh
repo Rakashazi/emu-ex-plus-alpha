@@ -28,7 +28,7 @@ class Renderer;
 class SurfaceTextureStorage final: public TextureBufferStorage
 {
 public:
-	SurfaceTextureStorage(Renderer &r, TextureConfig config, bool singleBuffered, IG::ErrorCode *errorPtr);
+	SurfaceTextureStorage(RendererTask &, TextureConfig config, bool singleBuffered, IG::ErrorCode *errorPtr);
 	SurfaceTextureStorage(SurfaceTextureStorage &&o);
 	SurfaceTextureStorage &operator=(SurfaceTextureStorage &&o);
 	~SurfaceTextureStorage() final;

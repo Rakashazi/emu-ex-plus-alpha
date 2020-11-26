@@ -15,29 +15,36 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/PixmapBufferTexture.hh>
-
-struct AHardwareBuffer;
+#include <imagine/config/defs.hh>
+#include <imagine/gfx/defs.hh>
+#include <imagine/gfx/TextureSamplerConfig.hh>
 
 namespace Gfx
 {
 
-class AHardwareBufferStorage: public TextureBufferStorage
+class RendererTask;
+
+class GLTextureSampler
 {
 public:
-	AHardwareBufferStorage(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr);
-	AHardwareBufferStorage(AHardwareBufferStorage &&o);
-	~AHardwareBufferStorage();
-	AHardwareBufferStorage &operator=(AHardwareBufferStorage &&o);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc) final;
-	LockedTextureBuffer lock(uint32_t bufferFlags) final;
-	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
+	constexpr GLTextureSampler() {}
+	GLTextureSampler(RendererTask &rTask, TextureSamplerConfig config);
+	~GLTextureSampler();
+	void setTexParams(GLenum target) const;
+	void deinit();
+	GLuint name() const;
+	const char *label() const;
 
 protected:
-	AHardwareBuffer *hBuff{};
-	uint32_t pitchBytes = 0;
-
-	void deinit();
+	RendererTask *rTask{};
+	GLuint name_ = 0;
+	uint16_t minFilter = 0;
+	uint16_t magFilter = 0;
+	uint16_t xWrapMode_ = 0;
+	uint16_t yWrapMode_ = 0;
+	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
 };
+
+using TextureSamplerImpl = GLTextureSampler;
 
 }

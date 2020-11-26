@@ -30,6 +30,7 @@ class TimerFD
 public:
 	using Time = IG::Nanoseconds;
 
+	constexpr TimerFD() {}
 	TimerFD(CallbackDelegate c) : TimerFD{nullptr, c} {}
 	TimerFD(const char *debugLabel, CallbackDelegate c);
 	TimerFD(TimerFD &&o);

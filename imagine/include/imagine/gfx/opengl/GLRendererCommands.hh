@@ -20,22 +20,25 @@
 #include <imagine/gfx/Mat4.hh>
 #include <imagine/gfx/Viewport.hh>
 
+namespace IG
+{
+class Semaphore;
+}
+
 namespace Gfx
 {
 
 class TextureSampler;
 class GLSLProgram;
+class Renderer;
+class RendererTask;
 
 class GLRendererCommands
 {
 public:
-	const TextureSampler *currSampler{};
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	uint32_t currentVtxArrayPointerID = 0;
-	Mat4 modelMat, projectionMat;
-	#endif
-	GLStateCache glState{};
-
+	constexpr GLRendererCommands() {}
+	GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, DrawableHolder &drawableHolder, Base::GLDisplay glDpy,
+		IG::Semaphore *drawCompleteSemPtr, bool notifySemaphoreAfterPresent);
 	void discardTemporaryData();
 	void bindGLArrayBuffer(GLuint vbo);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
@@ -61,16 +64,40 @@ public:
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	void glcVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer);
 	#endif
+	void setCachedProjectionMatrix(Mat4 projectionMat);
+	void setupVertexArrayPointers(const char *v, int numV, unsigned stride,
+		unsigned textureOffset, unsigned colorOffset, unsigned posOffset, bool hasTexture, bool hasColor);
+	void setupShaderVertexArrayPointers(const char *v, int numV, unsigned stride, unsigned id,
+		unsigned textureOffset, unsigned colorOffset, unsigned posOffset, bool hasTexture, bool hasColor);
 
 protected:
-	Viewport currViewport;
+	void setCurrentDrawable(Drawable win);
+	void present(Drawable win);
+	void doPresent();
+	void notifyDrawComplete();
+	void notifyPresentComplete();
+
+	RendererTask *rTask{};
+	Renderer *r{};
+	IG::Semaphore *drawCompleteSemPtr{};
+	Base::Window *winPtr{};
+	DrawableHolder *drawableHolderPtr{};
+	Base::GLDisplay glDpy{};
+	Drawable drawable{};
+	Viewport currViewport{};
+	const TextureSampler *currSampler{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	GLSLProgram *currProgram{};
+	Mat4 modelMat{}, projectionMat{};
+	uint32_t currentVtxArrayPointerID = 0;
 	#endif
+	GLStateCache glState{};
 	std::array<ColorComp, 4> vColor{}; // color when using shader pipeline
 	std::array<ColorComp, 4> texEnvColor{}; // color when using shader pipeline
 	GLuint arrayBuffer = 0;
 	bool arrayBufferIsSet = false;
+	bool drawableWasPresented = false;
+	bool notifySemaphoreAfterPresent = false;
 };
 
 using RendererCommandsImpl = GLRendererCommands;

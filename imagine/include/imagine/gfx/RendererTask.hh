@@ -22,9 +22,9 @@
 #endif
 
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/Viewport.hh>
-#include <imagine/gfx/Mat4.hh>
+#include <imagine/gfx/SyncFence.hh>
 #include <imagine/base/baseDefs.hh>
+#include <utility>
 
 namespace IG
 {
@@ -35,74 +35,42 @@ namespace Gfx
 {
 
 class DrawableHolder;
-class SyncFence;
 
 class RendererTask : public RendererTaskImpl
 {
 public:
-	enum class AsyncMode
-	{
-		NONE, PRESENT, FULL
-	};
-
-	enum class FenceMode
-	{
-		NONE, RESOURCE
-	};
-
-	class DrawParams
-	{
-	public:
-		constexpr DrawParams() {}
-
-		void setAsyncMode(AsyncMode mode)
-		{
-			asyncMode_ = mode;
-		}
-
-		AsyncMode asyncMode() const { return asyncMode_; }
-
-		void setFenceMode(FenceMode mode)
-		{
-			fenceMode_ = mode;
-		}
-
-		FenceMode fenceMode() const { return fenceMode_; }
-
-	private:
-		AsyncMode asyncMode_ = AsyncMode::PRESENT;
-		FenceMode fenceMode_ = FenceMode::RESOURCE;
-	};
-
-	RendererTask(Renderer &r);
-	void start();
-	void stop();
-	void draw(DrawableHolder &drawable, Base::Window &win, Base::WindowDrawParams winParams, DrawParams params, DrawDelegate del);
-	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
-	void lockDraw();
-	void unlockDraw();
-	#endif
-	void waitForDrawFinished();
-	void run(RenderTaskFuncDelegate func, bool awaitReply = false);
-	void runSync(RenderTaskFuncDelegate func);
-	void acquireFenceAndWait(Gfx::SyncFence &fenceVar);
-	void updateDrawableForSurfaceChange(DrawableHolder &drawable, Base::WindowSurfaceChange change);
+	using RendererTaskImpl::RendererTaskImpl;
+	RendererTask(RendererTask &&o);
+	RendererTask &operator=(RendererTask &&o);
+	void updateDrawableForSurfaceChange(DrawableHolder &drawable, Base::Window &win, Base::WindowSurfaceChange change);
 	void destroyDrawable(DrawableHolder &drawable);
-	constexpr Renderer &renderer() const { return r; }
-
-private:
-	Renderer &r;
-};
-
-class RendererDrawTask : public RendererDrawTaskImpl
-{
-public:
-	using RendererDrawTaskImpl::RendererDrawTaskImpl;
-
-	RendererCommands makeRendererCommands(Drawable drawable, Viewport viewport, Mat4 projMat);
-	void verifyCurrentContext() const;
-	void notifyCommandsFinished();
+	void releaseShaderCompiler();
+	void flush();
 	Renderer &renderer() const;
-};
+	explicit operator bool() const;
 
+	// Run a delegate on the renderer thread with signature:
+	// void()
+	template<class Func>
+	void run(Func &&del, bool awaitReply = false)
+	{
+		RendererTaskImpl::run(std::forward<Func>(del), awaitReply);
+	}
+
+	// Run a delegate for drawing on the renderer thread with signature:
+	// void(DrawableHolder &drawableHolder, Base::Window &win, RendererTaskDrawContext taskContext)
+	template<class Func>
+	void draw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams params, Func &&del)
+	{
+		RendererTaskImpl::draw(drawableHolder, win, winParams, params, std::forward<Func>(del));
+	}
+
+	// synchronization
+	SyncFence addSyncFence();
+	void deleteSyncFence(SyncFence);
+	void clientWaitSync(SyncFence fence, int flags = 0, std::chrono::nanoseconds timeout = SyncFence::IGNORE_TIMEOUT);
+	SyncFence clientWaitSyncReset(SyncFence fence, int flags = 0, std::chrono::nanoseconds timeout = SyncFence::IGNORE_TIMEOUT);
+	void waitSync(SyncFence fence);
+	void awaitPending();
+};
 }

@@ -37,7 +37,7 @@ static int (*AHardwareBuffer_lock)(AHardwareBuffer* buffer, uint64_t usage, int3
 static int (*AHardwareBuffer_unlock)(AHardwareBuffer* buffer, int32_t* fence){};
 static EGLClientBuffer (EGLAPIENTRYP eglGetNativeClientBufferANDROID)(const struct AHardwareBuffer *buffer){};
 
-AHardwareBufferStorage::AHardwareBufferStorage(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr):
+AHardwareBufferStorage::AHardwareBufferStorage(RendererTask &r, TextureConfig config, IG::ErrorCode *errorPtr):
 	TextureBufferStorage{r}
 {
 	if(!AHardwareBuffer_allocate)
@@ -117,7 +117,7 @@ IG::ErrorCode AHardwareBufferStorage::setFormat(IG::PixmapDesc desc)
 	AHardwareBuffer_describe(hBuff, &hardwareDesc);
 	logMsg("allocated buffer:%p size:%dx%d format:%s stride:%d",
 		hBuff, desc.w(), desc.h(), desc.format().name(), hardwareDesc.stride);
-	auto dpy = Base::GLDisplay::getDefault().eglDisplay();
+	auto dpy = renderer().glDpy;
 	auto eglImg = makeAndroidNativeBufferEGLImage(dpy, eglGetNativeClientBufferANDROID(hBuff));
 	if(unlikely(eglImg == EGL_NO_IMAGE_KHR))
 	{

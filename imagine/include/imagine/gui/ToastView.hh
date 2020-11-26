@@ -25,6 +25,7 @@
 class ToastView : public View
 {
 public:
+	ToastView();
 	ToastView(ViewAttachParams attach);
 	void setFace(Gfx::GlyphTextureSet &face);
 	void clear();
@@ -44,7 +45,7 @@ public:
 
 private:
 	Gfx::Text text{};
-	Base::Timer unpostTimer;
+	Base::Timer unpostTimer{Base::Timer::NullInit{}};
 	Gfx::GCRect msgFrame{};
 	bool error = false;
 

@@ -21,6 +21,7 @@
 namespace Gfx
 {
 
+class RendererTask;
 class PixmapBufferTexture;
 
 class TextureBufferStorage : public PixmapTexture
@@ -65,7 +66,7 @@ public:
 		{}
 	};
 
-	GLTextureStorage(Renderer &r, TextureConfig config, bool usePBO, bool singleBuffer, IG::ErrorCode *errorPtr = {});
+	GLTextureStorage(RendererTask &rTask, TextureConfig config, bool usePBO, bool singleBuffer, IG::ErrorCode *errorPtr = {});
 	~GLTextureStorage() final;
 	GLTextureStorage(GLTextureStorage &&o);
 	GLTextureStorage &operator=(GLTextureStorage &&o);
@@ -94,10 +95,10 @@ public:
 protected:
 	std::unique_ptr<TextureBufferStorage> directTex{};
 
-	IG::ErrorCode init(Renderer &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer);
-	IG::ErrorCode initWithPixelBuffer(Renderer &r, TextureConfig config, bool usePBO = false, bool singleBuffer = false);
-	IG::ErrorCode initWithHardwareBuffer(Renderer &r, TextureConfig config, bool singleBuffer = false);
-	IG::ErrorCode initWithSurfaceTexture(Renderer &r, TextureConfig config, bool singleBuffer = false);
+	IG::ErrorCode init(RendererTask &rTask, TextureConfig config, TextureBufferMode mode, bool singleBuffer);
+	IG::ErrorCode initWithPixelBuffer(RendererTask &rTask, TextureConfig config, bool usePBO = false, bool singleBuffer = false);
+	IG::ErrorCode initWithHardwareBuffer(RendererTask &rTask, TextureConfig config, bool singleBuffer = false);
+	IG::ErrorCode initWithSurfaceTexture(RendererTask &rTask, TextureConfig config, bool singleBuffer = false);
 };
 
 using PixmapBufferTextureImpl = GLPixmapBufferTexture;

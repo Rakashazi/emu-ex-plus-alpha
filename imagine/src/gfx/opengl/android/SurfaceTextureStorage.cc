@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "SurfaceTexStorage"
+#include <imagine/gfx/RendererTask.hh>
 #include "SurfaceTextureStorage.hh"
 #include "../private.hh"
 #include "../../../base/android/android.hh"
@@ -23,7 +24,7 @@
 namespace Gfx
 {
 
-SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, TextureConfig config, bool makeSingleBuffered, IG::ErrorCode *errorPtr):
+SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig config, bool makeSingleBuffered, IG::ErrorCode *errorPtr):
 	TextureBufferStorage{r}
 {
 	using namespace Base;
@@ -37,23 +38,24 @@ SurfaceTextureStorage::SurfaceTextureStorage(Renderer &r, TextureConfig config, 
 			}
 		});
 	config = baseInit(r, config);
-	if(unlikely(!r.support.hasExternalEGLImages))
+	if(unlikely(!renderer().support.hasExternalEGLImages))
 	{
 		logErr("can't init without OES_EGL_image_external extension");
 		err = {ENOTSUP};
 		return;
 	}
-	singleBuffered = makeSingleBuffered;
-	r.runGLTaskSync(
+	task().runSync(
 		[=, this]()
 		{
 			auto env = jEnvForThread();
 			glGenTextures(1, &texName_);
 			auto surfaceTex = makeSurfaceTexture(jEnvForThread(), texName_, makeSingleBuffered);
+			singleBuffered = makeSingleBuffered;
 			if(!surfaceTex && makeSingleBuffered)
 			{
 				// fall back to buffered mode
 				surfaceTex = makeSurfaceTexture(jEnvForThread(), texName_, false);
+				singleBuffered = false;
 			}
 			if(unlikely(!surfaceTex))
 				return;
@@ -165,10 +167,10 @@ LockedTextureBuffer SurfaceTextureStorage::lock(uint32_t bufferFlags)
 	}
 	if(singleBuffered)
 	{
-		renderer().runGLTaskSync(
-			[this]()
+		task().runSync(
+			[tex = surfaceTex]()
 			{
-				releaseSurfaceTextureImage(jEnvForThread(), surfaceTex);
+				releaseSurfaceTextureImage(jEnvForThread(), tex);
 			});
 	}
 	ANativeWindow_Buffer winBuffer;
@@ -201,12 +203,11 @@ void SurfaceTextureStorage::unlock(LockedTextureBuffer, uint32_t)
 		return;
 	}
 	ANativeWindow_unlockAndPost(nativeWin);
-	renderer().runGLTask(
+	task().run(
 		[tex = surfaceTex]()
 		{
 			Base::updateSurfaceTextureImage(Base::jEnvForThread(), tex);
 		});
-	renderer().resourceUpdate = true;
 }
 
 }

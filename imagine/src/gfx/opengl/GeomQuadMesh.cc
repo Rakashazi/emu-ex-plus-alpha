@@ -65,7 +65,7 @@ GeomQuadMesh::GeomQuadMesh(const VertexPos *x, uint32_t xVals, const VertexPos *
 		}
 }
 
-void GeomQuadMesh::draw(RendererCommands &cmds)
+void GeomQuadMesh::draw(RendererCommands &cmds) const
 {
 	cmds.bindTempVertexBuffer();
 	cmds.vertexBufferData(v().arr, sizeof(ColVertex) * verts);

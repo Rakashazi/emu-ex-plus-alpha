@@ -146,7 +146,7 @@ bool EmuFilePicker::inputEvent(Input::Event e)
 			if(EmuSystem::gameIsRunning())
 			{
 				dismiss();
-				emuViewController.showEmulation();
+				emuViewController().showEmulation();
 				return true;
 			}
 		}

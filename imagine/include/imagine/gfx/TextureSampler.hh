@@ -15,29 +15,29 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/PixmapBufferTexture.hh>
+#include <imagine/config/defs.hh>
+#include <imagine/gfx/defs.hh>
+#include <imagine/gfx/TextureSamplerConfig.hh>
 
-struct AHardwareBuffer;
+#ifdef CONFIG_GFX_OPENGL
+#include <imagine/gfx/opengl/GLTextureSampler.hh>
+#endif
 
 namespace Gfx
 {
 
-class AHardwareBufferStorage: public TextureBufferStorage
+class Renderer;
+class RendererTask;
+
+class TextureSampler: public TextureSamplerImpl
 {
 public:
-	AHardwareBufferStorage(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr);
-	AHardwareBufferStorage(AHardwareBufferStorage &&o);
-	~AHardwareBufferStorage();
-	AHardwareBufferStorage &operator=(AHardwareBufferStorage &&o);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc) final;
-	LockedTextureBuffer lock(uint32_t bufferFlags) final;
-	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
-
-protected:
-	AHardwareBuffer *hBuff{};
-	uint32_t pitchBytes = 0;
-
-	void deinit();
+	using TextureSamplerImpl::TextureSamplerImpl;
+	TextureSampler(TextureSampler &&o);
+	TextureSampler &operator=(TextureSampler &&o);
+	explicit operator bool() const;
+	Renderer &renderer() const;
+	RendererTask &task() const;
 };
 
 }

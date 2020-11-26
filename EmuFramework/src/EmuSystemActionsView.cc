@@ -54,7 +54,7 @@ public:
 			[this]()
 			{
 				EmuSystem::reset(EmuSystem::RESET_SOFT);
-				emuViewController.showEmulation();
+				emuViewController().showEmulation();
 			}
 		},
 		hard
@@ -63,7 +63,7 @@ public:
 			[this]()
 			{
 				EmuSystem::reset(EmuSystem::RESET_HARD);
-				emuViewController.showEmulation();
+				emuViewController().showEmulation();
 			}
 		},
 		cancel
@@ -149,7 +149,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 						[]()
 						{
 							EmuSystem::reset(EmuSystem::RESET_SOFT);
-							emuViewController.showEmulation();
+							emuViewController().showEmulation();
 						});
 					pushAndShowModal(std::move(ynAlertView), e);
 				}
@@ -173,7 +173,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 							EmuApp::printfMessage(4, true, "Load State: %s", err->what());
 						}
 						else
-							emuViewController.showEmulation();
+							emuViewController().showEmulation();
 					});
 				pushAndShowModal(std::move(ynAlertView), e);
 			}
@@ -195,7 +195,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 							EmuApp::printfMessage(4, true, "Save State: %s", err->what());
 						}
 						else
-							emuViewController.showEmulation();
+							emuViewController().showEmulation();
 					};
 
 				if(EmuSystem::shouldOverwriteExistingState())
@@ -295,7 +295,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 			ynAlertView->setOnYes(
 				[this]()
 				{
-					emuViewController.closeSystem(true); // pops any System Actions views in stack
+					emuViewController().closeSystem(true); // pops any System Actions views in stack
 				});
 			pushAndShowModal(std::move(ynAlertView), e);
 		}

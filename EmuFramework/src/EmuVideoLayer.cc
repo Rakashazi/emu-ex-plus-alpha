@@ -257,8 +257,10 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 	else
 		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
 	disp.draw(cmds);
-	video.addFence(cmds);
+	bool addedFence = video.addFence(cmds);
 	vidImgOverlay.draw(cmds);
+	if(addedFence)
+		cmds.flush();
 }
 
 void EmuVideoLayer::setOverlay(uint effect)
@@ -341,4 +343,17 @@ void EmuVideoLayer::setTextureBufferMode(Gfx::TextureBufferMode mode)
 		setEffect(params.effectID, params.formatID);
 		#endif
 	}
+}
+
+void EmuVideoLayer::setImageBuffers(unsigned num)
+{
+	if(video.setImageBuffers(num))
+	{
+		video.resetImage();
+	}
+}
+
+unsigned EmuVideoLayer::imageBuffers() const
+{
+	return video.imageBuffers();
 }

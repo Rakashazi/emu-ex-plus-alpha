@@ -241,7 +241,7 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 				vCtrlLayoutPos[d.elem].origin = layoutPos.origin;
 				vCtrlLayoutPos[d.elem].pos = layoutPos.pos;
 				vController.setLayoutPositionChanged();
-				emuViewController.placeEmuViews();
+				emuViewController().placeEmuViews();
 				postDraw();
 			}
 		},
@@ -445,9 +445,9 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vControll
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	touchCtrlItem
 	{
-		{"Off", [this]() { optionTouchCtrl = 0; emuViewController.setOnScreenControls(0); }},
-		{"On", [this]() { optionTouchCtrl = 1; emuViewController.setOnScreenControls(1); }},
-		{"Auto", [this]() { optionTouchCtrl = 2; emuViewController.updateAutoOnScreenControlVisible(); }}
+		{"Off", [this]() { optionTouchCtrl = 0; emuViewController().setOnScreenControls(0); }},
+		{"On", [this]() { optionTouchCtrl = 1; emuViewController().setOnScreenControls(1); }},
+		{"Auto", [this]() { optionTouchCtrl = 2; emuViewController().updateAutoOnScreenControlVisible(); }}
 	},
 	touchCtrl
 	{

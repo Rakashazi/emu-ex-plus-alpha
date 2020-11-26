@@ -43,6 +43,7 @@ include $(IMAGINE_PATH)/make/package/opengl.mk
 SRC += gfx/opengl/opengl.cc \
  gfx/opengl/transforms.cc \
  gfx/opengl/config.cc \
+ gfx/opengl/DrawableHolder.cc \
  gfx/opengl/shader.cc \
  gfx/opengl/GLMainTask.cc \
  gfx/opengl/GLStateCache.cc \
@@ -55,6 +56,7 @@ SRC += gfx/opengl/opengl.cc \
  gfx/opengl/Viewport.cc \
  gfx/opengl/resource.cc \
  gfx/opengl/RendererCommands.cc \
+ gfx/opengl/sync.cc \
  gfx/common/ProjectionPlane.cc \
  gfx/common/GfxText.cc \
  gfx/common/GlyphTextureSet.cc \

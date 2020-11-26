@@ -301,7 +301,8 @@ void AndroidWindow::setContentRect(const IG::WindowRect &rect, const IG::Point2D
 	logMsg("content rect changed: %d:%d:%d:%d in %dx%d",
 		rect.x, rect.y, rect.x2, rect.y2, winSize.x, winSize.y);
 	updateContentRect(rect);
-	if(static_cast<Window*>(this)->updateSize(winSize))
+	auto &win = *static_cast<Window*>(this);
+	if(win.updateSize(winSize))
 	{
 		// If the surface changed size, make sure
 		// it's set again with eglMakeCurrent to avoid
@@ -309,7 +310,7 @@ void AndroidWindow::setContentRect(const IG::WindowRect &rect, const IG::Point2D
 		// the old size, as occurs on Intel HD Graphics
 		surfaceChange.addReset();
 	}
-	static_cast<Window*>(this)->postDraw();
+	win.postDraw();
 }
 
 void Window::setTitle(const char *name) {}

@@ -23,22 +23,6 @@
 #include <imagine/thread/Thread.hh>
 #include "private.hh"
 
-#ifndef GL_BACK_LEFT
-#define GL_BACK_LEFT				0x0402
-#endif
-
-#ifndef GL_BACK_RIGHT
-#define GL_BACK_RIGHT				0x0403
-#endif
-
-#ifndef GL_TIMEOUT_IGNORED
-#define GL_TIMEOUT_IGNORED 0xFFFFFFFFFFFFFFFFull
-#endif
-
-#ifndef GL_SYNC_GPU_COMMANDS_COMPLETE
-#define GL_SYNC_GPU_COMMANDS_COMPLETE 0x9117
-#endif
-
 namespace Gfx
 {
 
@@ -80,7 +64,7 @@ void GLRendererTask::initDefaultFramebuffer()
 	#ifdef CONFIG_GLDRAWABLE_NEEDS_FRAMEBUFFER
 	if(!defaultFB)
 	{
-		glCtx.setCurrent(Base::GLDisplay::getDefault(), glCtx, {});
+		Base::GLContext::setCurrent(Base::GLDisplay::getDefault(), glContext(), {});
 		glGenFramebuffers(1, &defaultFB);
 		logMsg("created default framebuffer:%u", defaultFB);
 		glBindFramebuffer(GL_FRAMEBUFFER, defaultFB);
@@ -90,6 +74,7 @@ void GLRendererTask::initDefaultFramebuffer()
 
 GLuint GLRendererTask::bindFramebuffer(Texture &tex)
 {
+	assert(tex);
 	if(unlikely(!fbo))
 	{
 		glGenFramebuffers(1, &fbo);
@@ -100,182 +85,37 @@ GLuint GLRendererTask::bindFramebuffer(Texture &tex)
 	return fbo;
 }
 
-#ifdef CONFIG_GFX_RENDERER_TASK_REPLY_PORT
-void GLRendererTask::replyHandler(Renderer &r, GLRendererTask::ReplyMessage msg)
+void GLRendererTask::setRenderer(Renderer *r_)
 {
-	switch(msg.reply)
-	{
-		default:
-		{
-			logWarn("clearing RenderThreadReplyMessage value:%d", (int)msg.reply);
-			return;
-		}
-	}
-}
-#endif
-
-bool GLRendererTask::commandHandler(decltype(commandPort)::Messages messages, Base::GLDisplay glDpy, bool ownsThread)
-{
-	int msgs = 0, draws = 0;
-	for(auto msg : messages)
-	{
-		msgs++;
-		//logMsg("command pipe data");
-		auto thisRenderTask = static_cast<RendererTask*>(this);
-		switch(msg.command)
-		{
-			bcase Command::DRAW:
-			{
-				//logMsg("got draw command");
-				draws++;
-				if(!ownsThread)
-				{
-					// When running on same thread as GLMainTask, run any pending tasks before drawing starts
-					thisRenderTask->renderer().mainTask->runPendingTasksOnThisThread();
-				}
-				auto &drawArgs = msg.args.draw;
-				assumeExpr(drawArgs.del);
-				assumeExpr(drawArgs.winPtr);
-				assumeExpr(drawArgs.drawableHolderPtr);
-				drawArgs.del(drawArgs.drawableHolderPtr->drawable(), *drawArgs.winPtr, drawArgs.fence, {*thisRenderTask, glDpy, msg.semPtr});
-				drawArgs.drawableHolderPtr->notifyOnFrame();
-				drawArgs.winPtr->deferredDrawComplete();
-			}
-			bcase Command::RUN_FUNC:
-			{
-				assumeExpr(msg.args.runFunc.func);
-				msg.args.runFunc.func(*thisRenderTask);
-				if(msg.semPtr)
-				{
-					msg.semPtr->notify();
-				}
-			}
-			bcase Command::EXIT:
-			{
-				if(ownsThread)
-				{
-					Base::GLContext::setCurrent(glDpy, {}, {});
-					threadRunning = false;
-					Base::EventLoop::forThread().stop();
-				}
-				else
-				{
-					// only unset the drawable
-					Base::GLContext::setCurrent(glDpy, glCtx, {});
-					assumeExpr(msg.semPtr);
-					msg.semPtr->notify();
-				}
-				return false;
-			}
-			bdefault:
-			{
-				logWarn("unknown GLRendererTask::CommandMessage value:%d", (int)msg.command);
-			}
-		}
-	}
-	if(msgs > 1)
-	{
-		//logDMsg("read %d messages, %d draws", msgs, draws);
-	}
-	return true;
+	r = r_;
 }
 
-RendererTask::RendererTask(Renderer &r): r{r}
+Renderer &RendererTask::renderer() const
 {
-	onExit =
-		[this](bool backgrounded)
-		{
-			stop();
-			return true;
-		};
+	return *r;
 }
 
-static void setDrawThreadPriority()
+GLRendererTask::GLRendererTask(const char *debugLabel, Renderer &r, Base::GLContext context):
+	GLMainTask{debugLabel, context, true}, r{&r}
+{}
+
+RendererTask::RendererTask(RendererTask &&o)
 {
-	constexpr int DRAW_THREAD_PRIORITY = -4;
-	Base::setThisThreadPriority(DRAW_THREAD_PRIORITY);
+	*this = std::move(o);
 }
 
-void RendererTask::start()
+RendererTask &RendererTask::operator=(RendererTask &&o)
 {
-	if(unlikely(!Base::appIsRunning()))
-	{
-		logErr("can't start render task when not in running state");
-		return;
-	}
-	if((bool)glCtx)
-	{
-		//logWarn("render thread already started");
-		return;
-	}
-	Base::addOnExit(onExit, Base::RENDERER_TASK_ON_EXIT_PRIORITY);
-	r.addEventHandlers();
-	if constexpr(Config::envIsIOS)
-		r.setIOSDrawableDelegates();
-	if(r.useSeparateDrawContext)
-	{
-		//logMsg("setting up rendering separate GL thread");
-		IG::ErrorCode ec{};
-		glCtx = {r.glDpy, r.makeKnownGLContextAttributes(), r.gfxBufferConfig, r.gfxResourceContext, ec};
-		if(!glCtx)
-		{
-			logErr("error creating context");
-		}
-		r.finishContextCreation(glCtx);
-		r.drawContextDebug = false;
-		thread = IG::makeThreadSync(
-			[this](auto &sem)
-			{
-				auto glDpy = Base::GLDisplay::getDefault(glAPI);
-				assumeExpr(glDpy);
-				auto eventLoop = Base::EventLoop::makeForThread();
-				commandPort.attach(eventLoop,
-					[this, glDpy](auto msgs)
-					{
-						return commandHandler(msgs, glDpy, true);
-					});
-				threadRunning = true;
-				sem.notify();
-				setDrawThreadPriority();
-				logMsg("starting render task event loop");
-				eventLoop.run(threadRunning);
-				commandPort.detach();
-				logMsg("render task thread finished");
-			});
-	}
-	else
-	{
-		//logMsg("setting up rendering in main GL thread");
-		glCtx = r.gfxResourceContext;
-		r.runGLTaskSync(
-			[this]()
-			{
-				logMsg("starting render task in main GL thread");
-				setDrawThreadPriority();
-				auto glDpy = Base::GLDisplay::getDefault();
-				commandPort.attach(
-					[this, glDpy](auto msgs)
-					{
-						return commandHandler(msgs, glDpy, false);
-					});
-			});
-	}
-	#ifdef CONFIG_GFX_RENDERER_TASK_REPLY_PORT
-	replyPort.attach(
-		[this](auto msgs)
-		{
-			auto msg = msgs.get();
-			replyHandler(r, msg);
-			return true;
-		});
-	#endif
+	GLRendererTask::operator=(std::move(o));
+	o.r = {};
+	return *this;
 }
 
-void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams params, DrawDelegate del)
+void GLRendererTask::doPreDraw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params)
 {
-	if(unlikely(!glCtx))
+	if(unlikely(!context))
 	{
-		logWarn("drawing without starting render task");
+		logWarn("draw() called without context");
 		return;
 	}
 	if(winParams.wasResized())
@@ -284,9 +124,9 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 		{
 			if(!Config::SYSTEM_ROTATES_WINDOWS)
 			{
-				r.setProjectionMatrixRotation(orientationToGC(win.softOrientation()));
+				r->setProjectionMatrixRotation(orientationToGC(win.softOrientation()));
 				Base::setOnDeviceOrientationChanged(
-					[&renderer = r, &win](Base::Orientation newO)
+					[&renderer = *r, &win](Base::Orientation newO)
 					{
 						auto oldWinO = win.softOrientation();
 						if(win.requestOrientationChange(newO))
@@ -298,7 +138,7 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 			else if(Config::SYSTEM_ROTATES_WINDOWS && !Base::Window::systemAnimatesRotation())
 			{
 				Base::setOnSystemOrientationChanged(
-					[&renderer = r, &win](Base::Orientation oldO, Base::Orientation newO) // TODO: parameters need proper type definitions in API
+					[&renderer = *r, &win](Base::Orientation oldO, Base::Orientation newO) // TODO: parameters need proper type definitions in API
 					{
 						const Angle orientationDiffTable[4][4]
 						{
@@ -314,127 +154,32 @@ void RendererTask::draw(DrawableHolder &drawableHolder, Base::Window &win, Base:
 			}
 		}
 	}
-	if(unlikely(!drawableHolder.drawable()))
+	if(unlikely(!drawableHolder))
 	{
-		drawableHolder.makeDrawable(r, win);
+		drawableHolder.makeDrawable(*r, *static_cast<RendererTask*>(this), win);
 	}
 	if(unlikely(winParams.needsSync()))
 	{
-		params.setAsyncMode(AsyncMode::NONE);
-	}
-	SyncFence fence = params.fenceMode() == FenceMode::RESOURCE ? r.addResourceSyncFence() : SyncFence();
-	{
-		#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
-		auto lock = std::unique_lock<std::mutex>{drawMutex};
-		drawCondition.wait(lock, [this](){ return canDraw; });
-		#endif
-		commandPort.send(
-			{
-				Command::DRAW,
-				del,
-				drawableHolder,
-				win,
-				fence.sync
-			}, params.asyncMode() == AsyncMode::PRESENT);
-	}
-	//logMsg("wrote render thread draw command");
-	if(unlikely(params.asyncMode() == AsyncMode::NONE))
-	{
-		//logMsg("waiting for draw to finish");
-		waitForDrawFinished();
+		params.setAsyncMode(DrawAsyncMode::NONE);
 	}
 }
 
-#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
-void RendererTask::lockDraw()
+RendererTask::operator bool() const
 {
-	assumeExpr(canDraw);
-	{
-		auto lock = std::scoped_lock<std::mutex>{drawMutex};
-		canDraw = false;
-	}
-	waitForDrawFinished();
+	return GLMainTask::operator bool();
 }
 
-void RendererTask::unlockDraw()
-{
-	assumeExpr(!canDraw);
-	{
-		auto lock = std::scoped_lock<std::mutex>{drawMutex};
-		canDraw = true;
-	}
-	drawCondition.notify_one();
-}
-#endif
-
-void RendererTask::waitForDrawFinished()
-{
-	runSync([](RendererTask &){});
-}
-
-void RendererTask::run(RenderTaskFuncDelegate func, bool awaitReply)
-{
-	if(!glCtx)
-		return;
-	commandPort.send({Command::RUN_FUNC, func}, awaitReply);
-}
-
-void RendererTask::runSync(RenderTaskFuncDelegate func)
-{
-	run(func, true);
-}
-
-void RendererTask::acquireFenceAndWait(Gfx::SyncFence &fenceVar)
-{
-	if(!hasSeparateContextThread())
-		return;
-	Gfx::SyncFence fence{};
-	runSync([&fence, &fenceVar](RendererTask &)
-	{
-		fence = fenceVar;
-		fenceVar = {};
-	});
-	//logDMsg("waiting on fence:%p", fence.sync);
-	renderer().waitSync(fence);
-}
-
-void RendererTask::stop()
-{
-	if(!glCtx)
-	{
-		return;
-	}
-	if(hasSeparateContextThread())
-	{
-		commandPort.send({Command::EXIT});
-		thread.join(); // GL implementation may assign thread destructor so must join() to make sure it completes
-		commandPort.clear();
-		destroyContext(r.glDpy);
-	}
-	else
-	{
-		commandPort.send({Command::EXIT}, true);
-		commandPort.clear();
-		r.runGLTaskSync(
-			[this]()
-			{
-				commandPort.detach();
-			});
-		glCtx = {}; // unset context, owned by GLMainTask
-	}
-	#ifdef CONFIG_GFX_RENDERER_TASK_REPLY_PORT
-	replyPort.clear();
-	replyPort.detach();
-	#endif
-}
-
-void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder, Base::WindowSurfaceChange change)
+void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowSurfaceChange change)
 {
 	if(change.destroyed())
 	{
 		destroyDrawable(drawableHolder);
 	}
-	else if(change.reset())
+	else if(!drawableHolder)
+	{
+		drawableHolder.makeDrawable(renderer(), *this, win);
+	}
+	if(change.reset())
 	{
 		resetDrawable = true;
 	}
@@ -442,30 +187,8 @@ void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder
 
 void RendererTask::destroyDrawable(DrawableHolder &drawableHolder)
 {
-	waitForDrawFinished();
-	drawableHolder.destroyDrawable(r);
-}
-
-void GLRendererTask::destroyContext(Base::GLDisplay dpy)
-{
-	if(!glCtx)
-		return;
-	glCtx.deinit(dpy);
-	#ifndef CONFIG_GFX_OPENGL_ES
-	streamVAO = 0;
-	streamVBO = {};
-	streamVBOIdx = 0;
-	#endif
-	fbo = 0;
-	#ifdef CONFIG_GLDRAWABLE_NEEDS_FRAMEBUFFER
-	defaultFB = 0;
-	#endif
-	contextInitialStateSet = false;
-}
-
-bool GLRendererTask::hasSeparateContextThread() const
-{
-	return threadRunning;
+	awaitPending();
+	drawableHolder.destroyDrawable(renderer());
 }
 
 bool GLRendererTask::handleDrawableReset()
@@ -496,92 +219,144 @@ void GLRendererTask::initialCommands(RendererCommands &cmds)
 	contextInitialStateSet = true;
 }
 
-GLRendererDrawTask::GLRendererDrawTask(RendererTask &task, Base::GLDisplay glDpy, IG::Semaphore *semAddr):
-	task{task}, glDpy{glDpy}, semAddr{semAddr}
+void GLRendererTask::verifyCurrentContext(Base::GLDisplay glDpy) const
+{
+	if(!Config::DEBUG_BUILD)
+		return;
+	auto currentCtx = Base::GLContext::current(glDpy);
+	if(unlikely(glContext() != currentCtx))
+	{
+		bug_unreachable("expected GL context:%p but current is:%p", glContext().nativeObject(), currentCtx.nativeObject());
+	}
+}
+
+SyncFence RendererTask::addSyncFence()
+{
+	if(!r->support.hasSyncFences())
+		return {}; // no-op
+	GLsync sync;
+	runSync(
+		[&support = r->support, &sync](TaskContext ctx)
+		{
+			sync = support.fenceSync(ctx.glDisplay());
+		});
+	return sync;
+}
+
+void RendererTask::deleteSyncFence(SyncFence fence)
+{
+	if(!fence.sync)
+		return;
+	assumeExpr(r->support.hasSyncFences());
+	const bool canPerformInCurrentThread = Config::Base::GL_PLATFORM_EGL;
+	if(canPerformInCurrentThread)
+	{
+		auto dpy = renderer().glDpy;
+		renderer().support.deleteSync(dpy, fence.sync);
+	}
+	else
+	{
+		run(
+			[&support = r->support, sync = fence.sync](TaskContext ctx)
+			{
+				support.deleteSync(ctx.glDisplay(), sync);
+			});
+	}
+}
+
+void RendererTask::clientWaitSync(SyncFence fence, int flags, std::chrono::nanoseconds timeout)
+{
+	if(!fence.sync)
+		return;
+	assumeExpr(r->support.hasSyncFences());
+	const bool canPerformInCurrentThread = Config::Base::GL_PLATFORM_EGL && !flags;
+	if(canPerformInCurrentThread)
+	{
+		//logDMsg("waiting on sync:%p flush:%s timeout:0%llX", fence.sync, flags & 1 ? "yes" : "no", (unsigned long long)timeout);
+		auto dpy = renderer().glDpy;
+		renderer().support.clientWaitSync(dpy, fence.sync, 0, timeout.count());
+		renderer().support.deleteSync(dpy, fence.sync);
+	}
+	else
+	{
+		runSync(
+			[&support = r->support, sync = fence.sync, timeout, flags](TaskContext ctx)
+			{
+				support.clientWaitSync(ctx.glDisplay(), sync, flags, timeout.count());
+				ctx.notifySemaphore();
+				support.deleteSync(ctx.glDisplay(), sync);
+			});
+	}
+}
+
+SyncFence RendererTask::clientWaitSyncReset(SyncFence fence, int flags, std::chrono::nanoseconds timeout)
+{
+	clientWaitSync(fence, flags, timeout);
+	return addSyncFence();
+}
+
+void RendererTask::waitSync(SyncFence fence)
+{
+	if(!fence.sync)
+		return;
+	assumeExpr(r->support.hasSyncFences());
+	run(
+		[&support = r->support, sync = fence.sync](TaskContext ctx)
+		{
+			support.waitSync(ctx.glDisplay(), sync);
+			support.deleteSync(ctx.glDisplay(), sync);
+		});
+}
+
+void RendererTask::awaitPending()
+{
+	if(!*this)
+		return;
+	runSync([](){});
+}
+
+void RendererTask::flush()
+{
+	run(
+		[]()
+		{
+			glFlush();
+		});
+}
+
+void RendererTask::releaseShaderCompiler()
+{
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	run(
+		[]()
+		{
+			glReleaseShaderCompiler();
+		});
+	#endif
+}
+
+GLRendererTaskDrawContext::GLRendererTaskDrawContext(GLRendererTask &task, GLMainTask::TaskContext taskCtx, bool notifySemaphoreAfterPresent):
+	task{static_cast<RendererTask*>(&task)}, drawCompleteSemPtr{taskCtx.semaphorePtr()}, glDpy{taskCtx.glDisplay()}, notifySemaphoreAfterPresent{notifySemaphoreAfterPresent}
 {}
 
-void GLRendererDrawTask::setCurrentDrawable(Drawable drawable)
+RendererCommands RendererTaskDrawContext::makeRendererCommands(DrawableHolder &drawableHolder, Base::Window &win, Viewport viewport, Mat4 projMat)
 {
-	auto glCtx = task.glContext();
-	auto &r = task.renderer();
-	assert(glCtx);
-	if(unlikely(glCtx != Base::GLContext::current(glDpy)))
-	{
-		//logMsg("restoring context");
-		glCtx.setCurrent(glDpy, glCtx, drawable);
-	}
-	else if(task.handleDrawableReset() || !Base::GLContext::isCurrentDrawable(glDpy, drawable))
-	{
-		glCtx.setDrawable(glDpy, drawable, glCtx);
-		if(!task.hasSeparateContextThread() && r.support.hasDrawReadBuffers() && drawable)
-		{
-			//logMsg("specifying draw/read buffers");
-			const GLenum back = Config::Gfx::OPENGL_ES_MAJOR_VERSION ? GL_BACK : GL_BACK_LEFT;
-			r.support.glDrawBuffers(1, &back);
-			r.support.glReadBuffer(GL_BACK);
-		}
-	}
-}
-
-void GLRendererDrawTask::present(Drawable win)
-{
-	task.glContext().present(glDpy, win, task.glContext());
-}
-
-GLuint GLRendererDrawTask::bindFramebuffer(Texture &tex)
-{
-	if(!tex)
-		return 0;
-	return task.bindFramebuffer(tex);
-}
-
-GLuint GLRendererDrawTask::getVBO()
-{
-	return task.getVBO();
-}
-
-GLuint GLRendererDrawTask::defaultFramebuffer() const
-{
-	return task.defaultFBO();
-}
-
-void GLRendererDrawTask::notifySemaphore()
-{
-	if(semAddr)
-	{
-		semAddr->notify();
-	}
-}
-
-RendererCommands RendererDrawTask::makeRendererCommands(Drawable drawable, Viewport viewport, Mat4 projMat)
-{
-	task.initDefaultFramebuffer();
-	RendererCommands cmds{*this, drawable};
-	task.initialCommands(cmds);
+	task->initDefaultFramebuffer();
+	RendererCommands cmds{*task, &win, drawableHolder, glDpy, drawCompleteSemPtr, notifySemaphoreAfterPresent};
+	task->initialCommands(cmds);
 	cmds.setViewport(viewport);
 	cmds.setProjectionMatrix(projMat);
 	return cmds;
 }
 
-void RendererDrawTask::verifyCurrentContext() const
+RendererTask &RendererTaskDrawContext::rendererTask() const
 {
-	if(!Config::DEBUG_BUILD)
-		return;
-	auto currentCtx = Base::GLContext::current(glDpy);
-	if(unlikely(task.glContext() != currentCtx))
-	{
-		bug_unreachable("expected GL context:%p but current is:%p", task.glContext().nativeObject(), currentCtx.nativeObject());
-	}
+	return *task;
 }
 
-void RendererDrawTask::notifyCommandsFinished()
+Renderer &RendererTaskDrawContext::renderer() const
 {
-	notifySemaphore();
-}
-
-Renderer &RendererDrawTask::renderer() const
-{
-	return task.renderer();
+	return rendererTask().renderer();
 }
 
 }

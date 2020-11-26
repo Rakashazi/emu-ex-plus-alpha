@@ -61,5 +61,12 @@ namespace Config
 	#else
 	static constexpr bool OPENGL_MULTIPLE_TEXTURE_TARGETS = false;
 	#endif
+
+	#ifndef __APPLE__
+	#define CONFIG_GFX_OPENGL_DEBUG_CONTEXT
+	static constexpr bool OPENGL_DEBUG_CONTEXT = true;
+	#else
+	static constexpr bool OPENGL_DEBUG_CONTEXT = false;
+	#endif
 	}
 }

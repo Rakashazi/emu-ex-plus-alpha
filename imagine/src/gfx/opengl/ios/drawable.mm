@@ -22,10 +22,10 @@ namespace Gfx
 
 static constexpr bool USE_DEPTH_BUFFER = false;
 
-IG::Point2D<int> GLRenderer::makeIOSDrawableRenderbuffer(void *layer, GLuint &colorRenderbuffer, GLuint &depthRenderbuffer)
+IG::Point2D<int> GLRendererTask::makeIOSDrawableRenderbuffer(void *layer, GLuint &colorRenderbuffer, GLuint &depthRenderbuffer)
 {
 	GLint backingWidth, backingHeight;
-	runGLTaskSync(
+	runSync(
 		[layer, &colorRenderbuffer, &depthRenderbuffer, &backingWidth, &backingHeight]()
 		{
 			// make the color renderbuffer
@@ -58,9 +58,9 @@ IG::Point2D<int> GLRenderer::makeIOSDrawableRenderbuffer(void *layer, GLuint &co
 	return {backingWidth, backingHeight};
 }
 
-void GLRenderer::deleteIOSDrawableRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffer)
+void GLRendererTask::deleteIOSDrawableRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffer)
 {
-	runGLTaskSync(
+	runSync(
 		[colorRenderbuffer, depthRenderbuffer]()
 		{
 			glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
@@ -73,7 +73,7 @@ void GLRenderer::deleteIOSDrawableRenderbuffer(GLuint colorRenderbuffer, GLuint 
 		});
 }
 
-void GLRenderer::setIOSDrawableDelegates()
+void GLRendererTask::setIOSDrawableDelegates()
 {
 	Base::makeRenderbuffer =
 		[this](void *layer, GLuint &colorRenderbuffer, GLuint &depthRenderbuffer)

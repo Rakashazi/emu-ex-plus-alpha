@@ -28,7 +28,6 @@ namespace Gfx
 {
 
 class Renderer;
-class RendererDrawTask;
 class Program;
 class Texture;
 
@@ -59,11 +58,11 @@ enum class BlendFunc
 class RendererCommands : public RendererCommandsImpl
 {
 public:
-	RendererCommands(RendererDrawTask &rTaskCtx, Drawable drawable);
+	using RendererCommandsImpl::RendererCommandsImpl;
 	RendererCommands(RendererCommands &&o);
 	RendererCommands &operator=(RendererCommands &&o);
+	~RendererCommands();
 	void present();
-	void setDrawable(Drawable win);
 	void setRenderTarget(Texture &t);
 	void setDefaultRenderTarget();
 	void setDebugOutput(bool on);
@@ -101,9 +100,10 @@ public:
 	void setTextureSampler(const TextureSampler &sampler);
 	void setCommonTextureSampler(CommonTextureSampler sampler);
 	void setViewport(Viewport v);
-	Viewport viewport();
+	Viewport viewport() const;
 	void vertexBufferData(const void *v, uint32_t size);
 	void bindTempVertexBuffer();
+	void flush();
 
 	// transforms
 
@@ -111,7 +111,7 @@ public:
 	void loadTransform(Mat4 mat);
 	void loadTranslate(GC x, GC y, GC z);
 	void loadIdentTransform();
-	void setProjectionMatrix(const Mat4 &mat);
+	void setProjectionMatrix(Mat4 mat);
 
 	// shaders
 
@@ -123,9 +123,9 @@ public:
 
 	// synchronization
 	SyncFence addSyncFence();
-	SyncFence replaceSyncFence(SyncFence fence);
 	void deleteSyncFence(SyncFence fence);
-	void clientWaitSync(SyncFence fence, uint64_t timeoutNS = SyncFence::IGNORE_TIMEOUT);
+	void clientWaitSync(SyncFence fence, int flags = 0, std::chrono::nanoseconds timeoutNS = SyncFence::IGNORE_TIMEOUT);
+	SyncFence clientWaitSyncReset(SyncFence oldFence, int flags = 0, std::chrono::nanoseconds timeoutNS = SyncFence::IGNORE_TIMEOUT);
 	void waitSync(SyncFence fence);
 
 	// rendering
@@ -135,10 +135,6 @@ public:
 	void drawPrimitiveElements(Primitive mode, const VertexIndex *idx, uint32_t count);
 
 private:
-	RendererDrawTask *rTask{};
-	Renderer *r{};
-	Drawable drawable{};
-
 	void setCommonProgram(CommonProgram program, const Mat4 *modelMat);
 };
 

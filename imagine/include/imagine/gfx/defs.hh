@@ -36,9 +36,11 @@ namespace Gfx
 using namespace IG;
 
 class RendererTask;
-class RendererDrawTask;
+class RendererTaskDrawContext;
+class RendererCommands;
 class SyncFence;
 class Texture;
+class DrawableHolder;
 
 using GC = TransformCoordinate;
 using Coordinate = TransformCoordinate;
@@ -49,8 +51,6 @@ using GTexC = TextureCoordinate;
 using GTexCPoint = IG::Point2D<GTexC>;
 using GTexCRect = IG::Rect2<GTexC>;
 using Error = std::optional<std::runtime_error>;
-using DrawDelegate = DelegateFunc<void(Drawable drawable, Base::Window &win, SyncFence fence, RendererDrawTask task)>;
-using RenderTaskFuncDelegate = DelegateFunc<void(RendererTask &task)>;
 
 static constexpr GC operator"" _gc (long double n)
 {
@@ -159,5 +159,31 @@ enum class TextureBufferMode : uint8_t
 	ANDROID_SURFACE_TEXTURE,
 	PBO,
 };
+
+enum class DrawAsyncMode : uint8_t
+{
+	NONE, PRESENT, FULL
+};
+
+class DrawParams
+{
+public:
+	constexpr DrawParams() {}
+	constexpr DrawParams(DrawAsyncMode asyncMode):
+		asyncMode_{asyncMode}
+	{}
+
+	void setAsyncMode(DrawAsyncMode mode)
+	{
+		asyncMode_ = mode;
+	}
+
+	DrawAsyncMode asyncMode() const { return asyncMode_; }
+
+private:
+	DrawAsyncMode asyncMode_ = DrawAsyncMode::PRESENT;
+};
+
+
 
 }

@@ -105,7 +105,7 @@ bool EmuMenuViewStack::inputEvent(Input::Event e)
 	{
 		if(EmuSystem::gameIsRunning())
 		{
-			emuViewController.showEmulation();
+			emuViewController().showEmulation();
 		}
 		return true;
 	}
@@ -144,7 +144,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 		setUseRendererTime(true);
 	}
 	logMsg("timestamp source:%s", useRendererTime() ? "renderer" : "screen");
-	onFrameUpdate = [this](IG::FrameParams params)
+	onFrameUpdate = [this, &r = std::as_const(viewAttach.renderer())](IG::FrameParams params)
 		{
 			if(emuVideoInProgress)
 			{
@@ -187,6 +187,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			emuVideoInProgress = true;
 			EmuAudio *audioPtr = emuAudio ? &emuAudio : nullptr;
 			systemTask->runFrame(&videoLayer().emuVideo(), audioPtr, framesToEmulate, skipForward);
+			r.setPresentationTime(emuWindowData().drawableHolder, params.presentTime());
 			return true;
 		};
 
@@ -272,7 +273,7 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 	winConf.setOnSurfaceChange(
 		[this, &winData](Base::Window &win, Base::Window::SurfaceChange change)
 		{
-			rendererTask().updateDrawableForSurfaceChange(winData.drawableHolder, change);
+			rendererTask().updateDrawableForSurfaceChange(winData.drawableHolder, win, change);
 			if(change.resized())
 			{
 				updateWindowViewport(winData, change);
@@ -297,11 +298,10 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 				}
 			}
 			rendererTask().draw(winData.drawableHolder, win, params, {},
-				[this, &winData](Gfx::Drawable &drawable, Base::Window &win, Gfx::SyncFence fence, Gfx::RendererDrawTask task)
+				[this, &winData](Gfx::DrawableHolder &drawableHolder, Base::Window &win, Gfx::RendererTaskDrawContext ctx)
 				{
-					auto cmds = task.makeRendererCommands(drawable, winData.viewport(), winData.projectionMat);
+					auto cmds = ctx.makeRendererCommands(drawableHolder, win, winData.viewport(), winData.projectionMat);
 					cmds.clear();
-					cmds.waitSync(fence);
 					drawMainWindow(win, cmds, winData.hasEmuView, winData.hasPopup);
 				});
 			return false;
@@ -310,7 +310,7 @@ Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf
 	winConf.setOnFree(
 		[this, &winData]()
 		{
-			rendererTask().waitForDrawFinished();
+			rendererTask().awaitPending();
 			winData.drawableHolder.destroyDrawable(rendererTask().renderer());
 		});
 
@@ -413,7 +413,6 @@ void EmuViewController::showEmulation()
 	commonInitInput();
 	popup.clear();
 	emuInputView.resetInput();
-	emuInputView.postDraw();
 	startEmulation();
 	placeEmuViews();
 }
@@ -484,7 +483,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 		winConf.setOnSurfaceChange(
 			[this, &winData = *extraWin](Base::Window &win, Base::Window::SurfaceChange change)
 			{
-				rendererTask().updateDrawableForSurfaceChange(winData.drawableHolder, change);
+				rendererTask().updateDrawableForSurfaceChange(winData.drawableHolder, win, change);
 				if(change.resized())
 				{
 					logMsg("view resize for extra window");
@@ -503,11 +502,10 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 					return true;
 				}
 				rendererTask().draw(winData.drawableHolder, win, params, {},
-					[this, &winData](Gfx::Drawable &drawable, Base::Window &win, Gfx::SyncFence fence, Gfx::RendererDrawTask task)
+					[this, &winData](Gfx::DrawableHolder &drawableHolder, Base::Window &win, Gfx::RendererTaskDrawContext ctx)
 					{
-						auto cmds = task.makeRendererCommands(drawable, winData.viewport(), winData.projectionMat);
+						auto cmds = ctx.makeRendererCommands(drawableHolder, win, winData.viewport(), winData.projectionMat);
 						cmds.clear();
-						cmds.waitSync(fence);
 						emuView.draw(cmds);
 						if(winData.hasPopup)
 						{
@@ -562,7 +560,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 		winConf.setOnFree(
 			[this]()
 			{
-				rendererTask().waitForDrawFinished();
+				rendererTask().awaitPending();
 				extraWin->drawableHolder.destroyDrawable(rendererTask().renderer());
 				extraWin.reset();
 			});

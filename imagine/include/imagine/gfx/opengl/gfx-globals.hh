@@ -57,6 +57,8 @@ static constexpr int ONE_MINUS_CONSTANT_COLOR_IMPL = GL_ONE_MINUS_CONSTANT_COLOR
 static constexpr int CONSTANT_ALPHA_IMPL = GL_CONSTANT_ALPHA;
 static constexpr int ONE_MINUS_CONSTANT_ALPHA_IMPL = GL_ONE_MINUS_CONSTANT_ALPHA;
 
+static constexpr int SYNC_FLUSH_COMMANDS_BIT = GL_SYNC_FLUSH_COMMANDS_BIT;
+
 using ClipRect = IG::WindowRect;
 using Drawable = Base::GLDrawable;
 

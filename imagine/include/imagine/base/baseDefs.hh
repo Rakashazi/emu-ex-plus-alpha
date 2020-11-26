@@ -73,6 +73,16 @@ static constexpr bool SYSTEM_ROTATES_WINDOWS = false;
 #else
 static constexpr bool SYSTEM_ROTATES_WINDOWS = true;
 #endif
+
+	namespace Base
+	{
+	#if defined __linux__
+	#define CONFIG_BASE_GL_PLATFORM_EGL
+	static constexpr bool GL_PLATFORM_EGL = true;
+	#else
+	static constexpr bool GL_PLATFORM_EGL = false;
+	#endif
+	}
 }
 
 namespace Base

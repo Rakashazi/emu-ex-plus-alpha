@@ -26,6 +26,7 @@ class EmuVideoLayer;
 class EmuView : public View
 {
 public:
+	EmuView();
 	EmuView(ViewAttachParams attach, EmuVideoLayer *layer);
 	void place() final;
 	void prepareDraw() final;

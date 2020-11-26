@@ -15,6 +15,7 @@
 
 #define LOGTAG "GLPixmapBufferTexture"
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/util/ScopeGuard.hh>
@@ -57,9 +58,9 @@
 namespace Gfx
 {
 
-PixmapBufferTexture::PixmapBufferTexture(Renderer &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer, IG::ErrorCode *errorPtr)
+PixmapBufferTexture::PixmapBufferTexture(RendererTask &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer, IG::ErrorCode *errorPtr)
 {
-	mode = r.makeValidTextureBufferMode(mode);
+	mode = r.renderer().makeValidTextureBufferMode(mode);
 	IG::ErrorCode err = init(r, config, mode, singleBuffer);
 	if(unlikely(err && mode != TextureBufferMode::SYSTEM_MEMORY))
 	{
@@ -72,7 +73,7 @@ PixmapBufferTexture::PixmapBufferTexture(Renderer &r, TextureConfig config, Text
 	}
 }
 
-IG::ErrorCode GLPixmapBufferTexture::init(Renderer &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer)
+IG::ErrorCode GLPixmapBufferTexture::init(RendererTask &r, TextureConfig config, TextureBufferMode mode, bool singleBuffer)
 {
 	switch(mode)
 	{
@@ -94,7 +95,7 @@ static bool hasPersistentBufferMapping(Renderer &r)
 	return r.support.hasImmutableBufferStorage();
 }
 
-IG::ErrorCode GLPixmapBufferTexture::initWithPixelBuffer(Renderer &r, TextureConfig config, bool usePBO, bool singleBuffer)
+IG::ErrorCode GLPixmapBufferTexture::initWithPixelBuffer(RendererTask &r, TextureConfig config, bool usePBO, bool singleBuffer)
 {
 	IG::ErrorCode err;
 	directTex = std::make_unique<GLTextureStorage>(r, config, usePBO, singleBuffer, &err);
@@ -102,7 +103,7 @@ IG::ErrorCode GLPixmapBufferTexture::initWithPixelBuffer(Renderer &r, TextureCon
 }
 
 #ifdef __ANDROID__
-IG::ErrorCode GLPixmapBufferTexture::initWithHardwareBuffer(Renderer &r, TextureConfig config, bool singleBuffer)
+IG::ErrorCode GLPixmapBufferTexture::initWithHardwareBuffer(RendererTask &r, TextureConfig config, bool singleBuffer)
 {
 	IG::ErrorCode err{};
 	auto androidSDK = Base::androidSDK();
@@ -117,7 +118,7 @@ IG::ErrorCode GLPixmapBufferTexture::initWithHardwareBuffer(Renderer &r, Texture
 	return err;
 }
 
-IG::ErrorCode GLPixmapBufferTexture::initWithSurfaceTexture(Renderer &r, TextureConfig config, bool singleBuffer)
+IG::ErrorCode GLPixmapBufferTexture::initWithSurfaceTexture(RendererTask &r, TextureConfig config, bool singleBuffer)
 {
 	IG::ErrorCode err{};
 	directTex = std::make_unique<SurfaceTextureStorage>(r, config, singleBuffer, &err);
@@ -201,7 +202,7 @@ PixmapBufferTexture::operator bool() const
 	return directTex && (bool)*directTex;
 }
 
-Renderer &PixmapBufferTexture::renderer()
+Renderer &PixmapBufferTexture::renderer() const
 {
 	return directTex->renderer();
 }
@@ -229,11 +230,11 @@ static std::array<GLTextureStorage::BufferInfo, 2> makeSystemMemoryPixelBuffer(u
 	std::free(oldBuffer);
 	unsigned fullBytes = singleBuffer ? bytes : bytes * 2;
 	auto bufferPtr = (char*)std::malloc(fullBytes);
-	logMsg("allocated system memory pixel buffer with size:%u", fullBytes);
+	logMsg("allocated system memory pixel buffer with buffers:%u size:%u data:%p", singleBuffer ? 1 : 2, bytes, bufferPtr);
 	return {bufferPtr, singleBuffer ? nullptr : bufferPtr + bytes};
 }
 
-GLTextureStorage::GLTextureStorage(Renderer &r, TextureConfig config, bool usePBO, bool singleBuffer, IG::ErrorCode *errorPtr):
+GLTextureStorage::GLTextureStorage(RendererTask &r, TextureConfig config, bool usePBO, bool singleBuffer, IG::ErrorCode *errorPtr):
 	TextureBufferStorage{r}
 {
 	initPixelBuffer(config.pixmapDesc(), usePBO, singleBuffer);
@@ -275,7 +276,7 @@ void GLTextureStorage::initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool si
 		assert(hasPersistentBufferMapping(r));
 		char *bufferPtr;
 		const unsigned fullBufferBytes = singleBuffer ? bufferBytes : bufferBytes * 2;
-		r.runGLTaskSync(
+		task().runSync(
 			[=, &r, &bufferPtr, &pbo = pbo](GLMainTask::TaskContext ctx)
 			{
 				if(pbo)
@@ -305,7 +306,7 @@ void GLTextureStorage::initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool si
 			});
 		if(bufferPtr)
 		{
-			logMsg("allocated PBO:%u with size:%u, data @ %p", pbo, fullBufferBytes, bufferPtr);
+			logMsg("allocated PBO:%u with buffers:%u size:%u data:%p", pbo, singleBuffer ? 1 : 2, bufferBytes, bufferPtr);
 			buffer[0] = {bufferPtr, nullptr};
 			if(singleBuffer)
 				buffer[1] = {nullptr};
@@ -317,7 +318,7 @@ void GLTextureStorage::initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool si
 	}
 	else
 	{
-		r.waitAsyncCommands();
+		task().awaitPending();
 		buffer = makeSystemMemoryPixelBuffer(bufferBytes, buffer[0].data, singleBuffer);
 	}
 }
@@ -388,22 +389,26 @@ void GLTextureStorage::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint
 
 void GLTextureStorage::deinit()
 {
-	if(!r)
-		return;
 	if(pbo)
 	{
-		assert(r->support.hasPBOFuncs);
-		logMsg("deleting PBO:%u", pbo);
-		r->runGLTask(
-			[pbo = this->pbo]()
-			{
-				glDeleteBuffers(1, &pbo);
-			});
-		pbo = 0;
+		assert(renderer().support.hasPBOFuncs);
+		if(rTask && task())
+		{
+			logMsg("deleting PBO:%u", pbo);
+			task().run(
+				[pbo = this->pbo]()
+				{
+					glDeleteBuffers(1, &pbo);
+				});
+			pbo = 0;
+		}
 	}
 	else
 	{
-		r->waitAsyncCommands();
+		if(rTask && task())
+		{
+			task().awaitPending();
+		}
 		std::free(buffer[0].data);
 	}
 	buffer = {};
@@ -414,7 +419,7 @@ void GLTextureStorage::deinit()
 static const char *rendererGLStr(Renderer &r)
 {
 	const char *str;
-	r.runGLTaskSync(
+	r.task().runSync(
 		[&str]()
 		{
 			str = (const char*)glGetString(GL_RENDERER);
@@ -432,7 +437,7 @@ static bool hasSurfaceTexture(Renderer &r)
 		return false;
 	}
 	// check if external textures work in GLSL
-	if(r.texExternalReplaceProgram.compile(r))
+	if(r.texExternalReplaceProgram.compile(r.task()))
 		r.autoReleaseShaderCompiler();
 	if(!r.texExternalReplaceProgram)
 	{

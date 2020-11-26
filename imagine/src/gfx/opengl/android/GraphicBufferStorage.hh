@@ -24,7 +24,7 @@ namespace Gfx
 class GraphicBufferStorage: public TextureBufferStorage
 {
 public:
-	GraphicBufferStorage(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr);
+	GraphicBufferStorage(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr);
 	GraphicBufferStorage(GraphicBufferStorage &&o);
 	GraphicBufferStorage &operator=(GraphicBufferStorage &&o);
 	IG::ErrorCode setFormat(IG::PixmapDesc desc) final;

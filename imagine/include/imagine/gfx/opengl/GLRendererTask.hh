@@ -17,14 +17,10 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
+#include "GLMainTask.hh"
+#include <imagine/gfx/RendererTaskDrawContext.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/MessagePort.hh>
-#include <imagine/gfx/SyncFence.hh>
-#include <thread>
-#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
-#include <mutex>
-#include <condition_variable>
-#endif
 
 namespace IG
 {
@@ -41,87 +37,47 @@ namespace Gfx
 
 class DrawableHolder;
 class RendererTask;
+class RendererCommands;
 
-class GLRendererTask
+class GLRendererTask : public GLMainTask
 {
 public:
-	enum class Command: uint8_t
-	{
-		UNSET, DRAW, RUN_FUNC, EXIT
-	};
+	using Command = GLMainTask::Command;
+	using CommandMessage = GLMainTask::CommandMessage;
 
-	enum class Reply: uint8_t
-	{
-		UNSET
-	};
-
-	struct CommandMessage
-	{
-		IG::Semaphore *semPtr{};
-		union Args
-		{
-			struct DrawArgs
-			{
-				DrawDelegate del;
-				Base::Window *winPtr;
-				DrawableHolder *drawableHolderPtr;
-				GLsync fence;
-			} draw;
-			struct RunFuncArgs
-			{
-				RenderTaskFuncDelegate func;
-			} runFunc;
-		} args{};
-		Command command{Command::UNSET};
-
-		constexpr CommandMessage() {}
-		constexpr CommandMessage(Command command, IG::Semaphore *semPtr = nullptr):
-			semPtr{semPtr}, command{command} {}
-		constexpr CommandMessage(Command command, DrawDelegate drawDel, DrawableHolder &drawableHolder, Base::Window &win, GLsync fence, IG::Semaphore *semPtr = nullptr):
-			semPtr{semPtr}, args{drawDel, &win, &drawableHolder, fence}, command{command} {}
-		constexpr CommandMessage(Command command, RenderTaskFuncDelegate func, IG::Semaphore *semPtr = nullptr):
-			semPtr{semPtr}, command{command}
-		{
-			args.runFunc.func = func;
-		}
-		explicit operator bool() const { return command != Command::UNSET; }
-		void setReplySemaphore(IG::Semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
-	};
-
-	struct ReplyMessage
-	{
-		Reply reply{Reply::UNSET};
-
-		constexpr ReplyMessage() {}
-		constexpr ReplyMessage(Reply reply):
-			reply{reply} {}
-		explicit operator bool() const { return reply != Reply::UNSET; }
-	};
-
-	Base::GLContext glContext() const { return glCtx; };
+	using GLMainTask::GLMainTask;
+	GLRendererTask(const char *debugLabel, Renderer &r, Base::GLContext context);
+	GLRendererTask(GLRendererTask &&o) = default;
+	GLRendererTask &operator=(GLRendererTask &&o) = default;
 	void initVBOs();
 	GLuint getVBO();
 	void initVAO();
 	void initDefaultFramebuffer();
 	GLuint defaultFBO() const { return defaultFB; }
 	GLuint bindFramebuffer(Texture &tex);
-	void destroyContext(Base::GLDisplay dpy);
-	bool hasSeparateContextThread() const;
 	bool handleDrawableReset();
 	void initialCommands(RendererCommands &cmds);
+	void setRenderer(Renderer *r);
+	void verifyCurrentContext(Base::GLDisplay glDpy) const;
+	template<class Func>
+	void run(Func &&del, bool awaitReply = false) { GLMainTask::run(std::forward<Func>(del), awaitReply); }
+	template<class Func>
+	void draw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams params, Func &&del)
+	{
+		doPreDraw(drawableHolder, win, winParams, params);
+		bool notifySemaphoreAfterPresent = params.asyncMode() == DrawAsyncMode::NONE;
+		runUnmangedSem([this, &drawableHolder, &win, del, notifySemaphoreAfterPresent](TaskContext ctx)
+			{
+				del(drawableHolder, win, RendererTaskDrawContext{*this, ctx, notifySemaphoreAfterPresent});
+			}, params.asyncMode() != DrawAsyncMode::FULL);
+	}
+	// for iOS EAGLView renderbuffer management
+	void setIOSDrawableDelegates();
+	IG::Point2D<int> makeIOSDrawableRenderbuffer(void *layer, GLuint &colorRenderbuffer, GLuint &depthRenderbuffer);
+	void deleteIOSDrawableRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffer);
 
 protected:
-	Base::MessagePort<CommandMessage> commandPort{"RenderTask Command"};
-	#ifdef CONFIG_GFX_RENDERER_TASK_REPLY_PORT
-	Base::MessagePort<ReplyMessage> replyPort{"RenderTask Reply"}; // currently unused
-	#endif
-	Base::GLContext glCtx{};
-	Base::ExitDelegate onExit{};
-	std::thread thread{};
-	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
-	std::mutex drawMutex{};
-	std::condition_variable drawCondition{};
-	#endif
+	Renderer *r{};
 	#ifndef CONFIG_GFX_OPENGL_ES
 	GLuint streamVAO = 0;
 	std::array<GLuint, 6> streamVBO{};
@@ -135,35 +91,10 @@ protected:
 	GLuint fbo = 0;
 	bool resetDrawable = false;
 	bool contextInitialStateSet = false;
-	bool threadRunning = false;
-	#ifdef CONFIG_GFX_RENDERER_TASK_DRAW_LOCK
-	bool canDraw = true;
-	#endif
 
-	void replyHandler(Renderer &r, ReplyMessage msg);
-	bool commandHandler(decltype(commandPort)::Messages messages, Base::GLDisplay glDpy, bool ownsThread);
+	void doPreDraw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params);
 };
 
 using RendererTaskImpl = GLRendererTask;
-
-class GLRendererDrawTask
-{
-public:
-	GLRendererDrawTask(RendererTask &task, Base::GLDisplay glDpy, IG::Semaphore *semAddr);
-	void setCurrentDrawable(Drawable win);
-	void present(Drawable win);
-	GLuint bindFramebuffer(Texture &t);
-	GLuint getVBO();
-	GLuint defaultFramebuffer() const;
-	void notifySemaphore();
-	Base::GLDisplay glDisplay() const { return glDpy; };
-
-protected:
-	RendererTask &task;
-	Base::GLDisplay glDpy{};
-	IG::Semaphore *semAddr{};
-};
-
-using RendererDrawTaskImpl = GLRendererDrawTask;
 
 }

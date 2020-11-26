@@ -8,10 +8,6 @@
 #include <EGL/eglext.h>
 #endif
 
-#if defined CONFIG_BASE_X11 || defined __ANDROID__
-#define CONFIG_BASE_GLAPI_EGL
-#endif
-
 #ifdef __ANDROID__
 extern "C" {
 EGLAPI EGLImageKHR EGLAPIENTRY eglCreateImageKHR (EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list);

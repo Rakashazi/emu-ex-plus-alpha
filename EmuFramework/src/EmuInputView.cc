@@ -25,35 +25,37 @@
 #include "private.hh"
 #include "privateInput.hh"
 
+EmuInputView::EmuInputView() {}
+
 EmuInputView::EmuInputView(ViewAttachParams attach, SysVController &vCtrl, EmuVideoLayer &videoLayer)
-	: View(attach), vController{vCtrl}, videoLayer{videoLayer}
+	: View(attach), vController{&vCtrl}, videoLayer{&videoLayer}
 {}
 
 void EmuInputView::draw(Gfx::RendererCommands &cmds)
 {
 	cmds.loadTransform(projP.makeTranslate());
-	vController.draw(cmds, touchControlsOn && EmuSystem::touchControlsApplicable(), ffToggleActive);
+	vController->draw(cmds, touchControlsOn && EmuSystem::touchControlsApplicable(), ffToggleActive);
 }
 
 void EmuInputView::place()
 {
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	EmuControls::setupVControllerVars();
-	vController.place();
+	vController->place();
 	#endif
 }
 
 void EmuInputView::resetInput()
 {
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-	vController.resetInput();
+	vController->resetInput();
 	#endif
 	ffToggleActive = false;
 }
 
 void EmuInputView::updateFastforward()
 {
-	emuViewController.setFastForwardActive(ffToggleActive);
+	emuViewController().setFastForwardActive(ffToggleActive);
 }
 
 bool EmuInputView::inputEvent(Input::Event e)
@@ -61,35 +63,35 @@ bool EmuInputView::inputEvent(Input::Event e)
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	if(e.isPointer())
 	{
-		if(e.pushed() && vController.menuHitTest(e.pos()))
+		if(e.pushed() && vController->menuHitTest(e.pos()))
 		{
 			EmuApp::showLastViewFromSystem(attachParams(), e);
 			return true;
 		}
-		else if(e.pushed() && vController.fastForwardHitTest(e.pos()))
+		else if(e.pushed() && vController->fastForwardHitTest(e.pos()))
 		{
 			ffToggleActive ^= true;
 			updateFastforward();
 		}
 		else if((touchControlsOn && EmuSystem::touchControlsApplicable())
-			|| vController.isInKeyboardMode())
+			|| vController->isInKeyboardMode())
 		{
-			vController.applyInput(e);
-			EmuSystem::handlePointerInputEvent(e, videoLayer.gameRect());
+			vController->applyInput(e);
+			EmuSystem::handlePointerInputEvent(e, videoLayer->gameRect());
 		}
-		else if(EmuSystem::handlePointerInputEvent(e, videoLayer.gameRect()))
+		else if(EmuSystem::handlePointerInputEvent(e, videoLayer->gameRect()))
 		{
 			//logMsg("game consumed pointer input event");
 		}
 		#ifdef CONFIG_VCONTROLS_GAMEPAD
 		else if(!touchControlsOn && (uint)optionTouchCtrl == 2 && optionTouchCtrlShowOnTouch
-			&& !vController.isInKeyboardMode()
+			&& !vController->isInKeyboardMode()
 			&& e.isTouch() && e.pushed()
 			)
 		{
 			logMsg("turning on on-screen controls from touch input");
 			touchControlsOn = true;
-			emuViewController.placeEmuViews();
+			emuViewController().placeEmuViews();
 		}
 		#endif
 		return true;
@@ -112,7 +114,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 	else
 	{
 		#ifdef CONFIG_VCONTROLS_GAMEPAD
-		if(vController.keyInput(e))
+		if(vController->keyInput(e))
 			return true;
 		#endif
 		if(unlikely(!keyMapping))
@@ -145,7 +147,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 					if(e.pushed())
 					{
 						logMsg("show load game view from key event");
-						emuViewController.popToRoot();
+						emuViewController().popToRoot();
 						pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e), e, false);
 						return true;
 					}
@@ -187,12 +189,12 @@ bool EmuInputView::inputEvent(Input::Event e)
 								[]()
 								{
 									doSaveState(false);
-									emuViewController.showEmulation();
+									emuViewController().showEmulation();
 								});
 							ynAlertView->setOnNo(
 								[]()
 								{
-									emuViewController.showEmulation();
+									emuViewController().showEmulation();
 								});
 							pushAndShowModal(std::move(ynAlertView), e);
 						}
@@ -233,7 +235,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 					bcase guiKeyIdxGameScreenshot:
 					if(e.pushed())
 					{
-						videoLayer.emuVideo().takeGameScreenshot();
+						videoLayer->emuVideo().takeGameScreenshot();
 						return true;
 					}
 

@@ -24,14 +24,16 @@
 namespace Gfx
 {
 
+class RendererTask;
+
 class Program : public ProgramImpl
 {
 public:
 	constexpr Program() {}
-	bool init(Renderer &r, Shader vShader, Shader fShader, bool hasColor, bool hasTex);
-	void deinit(Renderer &r);
-	bool link(Renderer &r);
-	int uniformLocation(Renderer &r, const char *uniformName);
+	bool init(RendererTask &, Shader vShader, Shader fShader, bool hasColor, bool hasTex);
+	void deinit(RendererTask &);
+	bool link(RendererTask &);
+	int uniformLocation(RendererTask &, const char *uniformName);
 };
 
 }

@@ -30,12 +30,14 @@ void EmuVideo::resetImage()
 
 IG::PixmapDesc EmuVideo::deleteImage()
 {
-	rTask.waitForDrawFinished();
-	renderer().deleteSyncFence(fence);
-	fence = {};
 	auto desc = vidImg.usedPixmapDesc();
 	vidImg = {};
 	return desc;
+}
+
+void EmuVideo::setRendererTask(Gfx::RendererTask &rTask_)
+{
+	rTask = &rTask_;
 }
 
 void EmuVideo::setFormat(IG::PixmapDesc desc)
@@ -47,7 +49,7 @@ void EmuVideo::setFormat(IG::PixmapDesc desc)
 	if(!vidImg)
 	{
 		Gfx::TextureConfig conf{desc};
-		vidImg = renderer().makePixmapBufferTexture(conf, bufferMode, true);
+		vidImg = renderer().makePixmapBufferTexture(conf, bufferMode, singleBuffer);
 		vidImg.clear();
 	}
 	else
@@ -64,13 +66,19 @@ void EmuVideo::postSetFormat(EmuSystemTask &task, IG::PixmapDesc desc)
 	{
 		return; // no change to format
 	}
+	logMsg("postSetFormat");
 	task.sendVideoFormatChangedReply(*this, desc);
+}
+
+void EmuVideo::syncImageAccess()
+{
+	rTask->clientWaitSync(std::exchange(fence, {}));
 }
 
 EmuVideoImage EmuVideo::startFrame(EmuSystemTask *task)
 {
 	auto lockedTex = vidImg.lock();
-	rTask.acquireFenceAndWait(fence);
+	syncImageAccess();
 	return {task, *this, lockedTex};
 }
 
@@ -112,7 +120,7 @@ void EmuVideo::startUnchangedFrame(EmuSystemTask *task)
 
 void EmuVideo::dispatchFinishFrame(EmuSystemTask *task)
 {
-	vidImg.renderer().queueResourceSyncFence();
+	//logDMsg("frame finished");
 	onFrameFinished(*this);
 }
 
@@ -132,19 +140,17 @@ void EmuVideo::finishFrame(EmuSystemTask *task, IG::Pixmap pix)
 	{
 		doScreenshot(task, pix);
 	}
-	rTask.acquireFenceAndWait(fence);
+	syncImageAccess();
 	vidImg.write(pix, vidImg.WRITE_FLAG_ASYNC);
 	dispatchFinishFrame(task);
 }
 
-void EmuVideo::waitAsyncFrame()
+bool EmuVideo::addFence(Gfx::RendererCommands &cmds)
 {
-	renderer().waitAsyncCommands();
-}
-
-void EmuVideo::addFence(Gfx::RendererCommands &cmds)
-{
-	fence = cmds.replaceSyncFence(fence);
+	if(!needsFence)
+		return false;
+	fence = cmds.clientWaitSyncReset(fence);
+	return true;
 }
 
 void EmuVideo::clear()
@@ -189,7 +195,7 @@ void EmuVideo::doScreenshot(EmuSystemTask *task, IG::Pixmap pix)
 	}
 }
 
-bool EmuVideo::isExternalTexture()
+bool EmuVideo::isExternalTexture() const
 {
 	#ifdef __ANDROID__
 	return vidImg.isExternal();
@@ -203,9 +209,9 @@ Gfx::PixmapBufferTexture &EmuVideo::image()
 	return vidImg;
 }
 
-Gfx::Renderer &EmuVideo::renderer()
+Gfx::Renderer &EmuVideo::renderer() const
 {
-	return rTask.renderer();
+	return rTask->renderer();
 }
 
 EmuVideoImage::EmuVideoImage() {}
@@ -258,4 +264,24 @@ bool EmuVideo::setTextureBufferMode(Gfx::TextureBufferMode mode)
 	bool modeChanged = bufferMode != mode;
 	bufferMode = mode;
 	return modeChanged && vidImg;
+}
+
+bool EmuVideo::setImageBuffers(unsigned num)
+{
+	assumeExpr(num < 3);
+	if(!num)
+	{
+		num = renderer().maxSwapChainImages() < 3 || renderer().supportsSyncFences() ? 1 : 2;
+	}
+	bool useSingleBuffer = num == 1;
+	bool modeChanged = singleBuffer != useSingleBuffer;
+	singleBuffer = useSingleBuffer;
+	needsFence = singleBuffer && renderer().maxSwapChainImages() > 2;
+	//logDMsg("image buffer count:%d fences:%s", num, needsFence ? "yes" : "no");
+	return modeChanged && vidImg;
+}
+
+unsigned EmuVideo::imageBuffers() const
+{
+	return singleBuffer ? 1 : 2;
 }

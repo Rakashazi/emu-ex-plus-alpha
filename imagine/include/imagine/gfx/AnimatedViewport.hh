@@ -30,9 +30,9 @@ public:
 	constexpr AnimatedViewport() {}
 	void start(Base::Window &w, Gfx::Viewport begin, Gfx::Viewport end);
 	void finish();
-	bool isFinished();
+	bool isFinished() const;
 	void cancel();
-	Gfx::Viewport viewport();
+	Gfx::Viewport viewport() const;
 
 protected:
 	TimedInterpolator<int> animator[4];

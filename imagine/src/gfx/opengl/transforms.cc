@@ -36,7 +36,7 @@ void GLRenderer::setGLProjectionMatrix(RendererCommands &cmds, const Mat4 &mat)
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(!support.useFixedFunctionPipeline)
 	{
-		cmds.projectionMat = mat;
+		cmds.setCachedProjectionMatrix(mat);
 	}
 	#endif
 }
@@ -46,7 +46,7 @@ void Renderer::setProjectionMatrixRotation(Angle angle)
 	projectionMatRot = angle;
 }
 
-void RendererCommands::setProjectionMatrix(const Mat4 &mat)
+void RendererCommands::setProjectionMatrix(Mat4 mat)
 {
 	if(renderer().projectionMatRot)
 	{
@@ -78,7 +78,7 @@ void Renderer::animateProjectionMatrixRotation(Base::Window &win, Angle srcAngle
 
 void RendererCommands::setTransformTarget(TransformTargetEnum target)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 		glcMatrixMode(target == TARGET_TEXTURE ? GL_TEXTURE : GL_MODELVIEW);
@@ -93,7 +93,7 @@ void RendererCommands::setTransformTarget(TransformTargetEnum target)
 
 void RendererCommands::loadTransform(Mat4 mat)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{
@@ -106,7 +106,7 @@ void RendererCommands::loadTransform(Mat4 mat)
 	if(likely(currProgram))
 	{
 		auto mvpMat = projectionMat.mult(mat);
-		glUniformMatrix4fv(currProgram->modelViewProjectionUniform, 1, GL_FALSE, &mvpMat[0][0]);
+		glUniformMatrix4fv(currProgram->modelViewProjectionUniform(), 1, GL_FALSE, &mvpMat[0][0]);
 	}
 	#endif
 }

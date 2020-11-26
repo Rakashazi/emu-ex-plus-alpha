@@ -23,7 +23,7 @@
 namespace Gfx
 {
 
-class Renderer;
+class RendererTask;
 class PixmapTexture;
 
 class GLPixmapTexture : public Texture
@@ -33,7 +33,7 @@ public:
 	constexpr GLPixmapTexture() {}
 
 protected:
-	IG::ErrorCode init(Renderer &r, TextureConfig config);
+	IG::ErrorCode init(RendererTask &rTask, TextureConfig config);
 	void updateUsedPixmapSize(IG::WP usedSize, IG::WP fullSize);
 	void updateFormatInfo(IG::WP usedSize, IG::PixmapDesc desc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
 	#ifdef __ANDROID__

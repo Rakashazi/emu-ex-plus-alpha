@@ -829,8 +829,8 @@ void InputManagerDeviceView::confirmICadeMode(Input::Event e)
 {
 	devConf->setICadeMode(iCadeMode.flipBoolValue(*this));
 	onShow();
-	emuViewController.setPhysicalControlsPresent(Input::keyInputIsPresent());
-	emuViewController.updateAutoOnScreenControlVisible();
+	emuViewController().setPhysicalControlsPresent(Input::keyInputIsPresent());
+	emuViewController().updateAutoOnScreenControlVisible();
 	keyMapping.buildAll();
 }
 #endif

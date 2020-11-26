@@ -106,7 +106,7 @@ void VideoImageEffect::deinit(Gfx::Renderer &r)
 
 void VideoImageEffect::deinitProgram(Gfx::Renderer &r)
 {
-	prog.deinit(r);
+	prog.deinit(r.task());
 	if(vShader)
 	{
 		r.deleteShader(vShader);
@@ -234,16 +234,16 @@ std::optional<std::system_error> VideoImageEffect::compileEffect(Gfx::Renderer &
 		}
 	}
 	logMsg("linking program");
-	prog.init(r, vShader, fShader, false, true);
-	if(!prog.link(r))
+	prog.init(r.task(), vShader, fShader, false, true);
+	if(!prog.link(r.task()))
 	{
 		deinitProgram(r);
 		r.autoReleaseShaderCompiler();
 		return std::system_error{{EINVAL, std::system_category()}, "GPU rejected shader (link error)"};
 	}
-	srcTexelDeltaU = prog.uniformLocation(r, "srcTexelDelta");
-	srcTexelHalfDeltaU = prog.uniformLocation(r, "srcTexelHalfDelta");
-	srcPixelsU = prog.uniformLocation(r, "srcPixels");
+	srcTexelDeltaU = prog.uniformLocation(r.task(), "srcTexelDelta");
+	srcTexelHalfDeltaU = prog.uniformLocation(r.task(), "srcTexelHalfDelta");
+	srcPixelsU = prog.uniformLocation(r.task(), "srcPixels");
 	updateProgramUniforms(r);
 	r.autoReleaseShaderCompiler();
 	return {};

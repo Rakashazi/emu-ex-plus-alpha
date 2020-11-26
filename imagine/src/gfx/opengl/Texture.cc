@@ -15,6 +15,7 @@
 
 #define LOGTAG "GLTexture"
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/PixmapTexture.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
@@ -187,11 +188,11 @@ static int makeGLInternalFormat(const Renderer &r, PixelFormatID format)
 		: makeGLSizedInternalFormat(r, format);
 }
 
-static uint32_t typeForPixelFormat(PixelFormatID format)
+static TextureType typeForPixelFormat(PixelFormatID format)
 {
-	return (format == PIXEL_A8) ? TEX_2D_1 :
-		(format == PIXEL_IA88) ? TEX_2D_2 :
-		TEX_2D_4;
+	return (format == PIXEL_A8) ? TextureType::T2D_1 :
+		(format == PIXEL_IA88) ? TextureType::T2D_2 :
+		TextureType::T2D_4;
 }
 
 static TextureConfig configWithLoadedImagePixmap(IG::PixmapDesc desc, bool makeMipmaps)
@@ -237,7 +238,7 @@ LockedTextureBuffer::operator bool() const
 	return (bool)pix;
 }
 
-Texture::Texture(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr):
+Texture::Texture(RendererTask &r, TextureConfig config, IG::ErrorCode *errorPtr):
 	GLTexture{r}
 {
 	IG::ErrorCode err = init(r, config);
@@ -247,7 +248,7 @@ Texture::Texture(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr):
 	}
 }
 
-Texture::Texture(Renderer &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr):
+Texture::Texture(RendererTask &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr):
 	GLTexture{r}
 {
 	IG::ErrorCode err;
@@ -269,7 +270,7 @@ Texture &Texture::operator=(Texture &&o)
 {
 	deinit();
 	GLTexture::operator=(o);
-	o.r = nullptr;
+	o.rTask = nullptr;
 	o.texName_ = 0;
 	return *this;
 }
@@ -279,9 +280,9 @@ GLTexture::~GLTexture()
 	deinit();
 }
 
-TextureConfig GLTexture::baseInit(Renderer &r, TextureConfig config)
+TextureConfig GLTexture::baseInit(RendererTask &r, TextureConfig config)
 {
-	if(config.willGenerateMipmaps() && !r.support.hasImmutableTexStorage)
+	if(config.willGenerateMipmaps() && !r.renderer().support.hasImmutableTexStorage)
 	{
 		// when using glGenerateMipmaps exclusively, there is no need to define
 		// all texture levels with glTexImage2D beforehand
@@ -290,7 +291,7 @@ TextureConfig GLTexture::baseInit(Renderer &r, TextureConfig config)
 	return config;
 }
 
-IG::ErrorCode GLTexture::init(Renderer &r, TextureConfig config)
+IG::ErrorCode GLTexture::init(RendererTask &r, TextureConfig config)
 {
 	config = baseInit(r, config);
 	return static_cast<Texture*>(this)->setFormat(config.pixmapDesc(), config.levels());
@@ -298,11 +299,10 @@ IG::ErrorCode GLTexture::init(Renderer &r, TextureConfig config)
 
 void GLTexture::deinit()
 {
-	if(!texName_ || !r->hasGLTask())
+	if(!texName_ || !rTask || !*rTask)
 		return;
 	logMsg("deinit texture:0x%X", texName_);
-	assumeExpr(r);
-	r->runGLTask(
+	rTask->run(
 		[texName = texName_]()
 		{
 			glDeleteTextures(1, &texName);
@@ -322,13 +322,12 @@ bool GLTexture::canUseMipmaps(const Renderer &r) const
 
 bool Texture::canUseMipmaps() const
 {
-	assumeExpr(r);
-	return GLTexture::canUseMipmaps(*r);
+	return GLTexture::canUseMipmaps(rTask->renderer());
 }
 
 GLenum GLTexture::target() const
 {
-	return Config::Gfx::OPENGL_MULTIPLE_TEXTURE_TARGETS && type_ == TEX_2D_EXTERNAL ?
+	return Config::Gfx::OPENGL_MULTIPLE_TEXTURE_TARGETS && type_ == TextureType::T2D_EXTERNAL ?
 			GL_TEXTURE_EXTERNAL_OES : GL_TEXTURE_2D;
 }
 
@@ -341,14 +340,12 @@ bool Texture::generateMipmaps()
 	}
 	if(!canUseMipmaps())
 		return false;
-	assumeExpr(r);
-	r->resourceUpdate = true;
-	r->runGLTask(
-		[r = std::as_const(this->r), texName_ = this->texName_]()
+	task().run(
+		[&r = std::as_const(renderer()), texName_ = this->texName_]()
 		{
 			glBindTexture(GL_TEXTURE_2D, texName_);
 			logMsg("generating mipmaps for texture:0x%X", texName_);
-			r->support.generateMipmaps(GL_TEXTURE_2D);
+			r.support.generateMipmaps(GL_TEXTURE_2D);
 		});
 	updateLevelsForMipmapGeneration();
 	return true;
@@ -361,8 +358,7 @@ uint8_t Texture::levels() const
 
 IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels)
 {
-	assumeExpr(r);
-	if(r->support.textureSizeSupport.supportsMipmaps(desc.w(), desc.h()))
+	if(renderer().support.textureSizeSupport.supportsMipmaps(desc.w(), desc.h()))
 	{
 		if(!levels)
 			levels = fls(desc.w() | desc.h());
@@ -371,32 +367,32 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels)
 	{
 		levels = 1;
 	}
-	if(r->support.hasImmutableTexStorage)
+	if(renderer().support.hasImmutableTexStorage)
 	{
 		sampler = 0;
-		r->runGLTaskSync(
-			[=, r = std::as_const(this->r), &texName_ = texName_](GLMainTask::TaskContext ctx)
+		task().runSync(
+			[=, &r = std::as_const(renderer()), &texName_ = texName_](GLMainTask::TaskContext ctx)
 			{
 				auto texName = makeGLTextureName(texName_);
 				texName_ = texName;
 				ctx.notifySemaphore();
 				glBindTexture(GL_TEXTURE_2D, texName);
-				auto internalFormat = makeGLSizedInternalFormat(*r, desc.format());
+				auto internalFormat = makeGLSizedInternalFormat(r, desc.format());
 				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s",
 					texName, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat));
 				runGLChecked(
 					[&]()
 					{
-						r->support.glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, desc.w(), desc.h());
+						r.support.glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, desc.w(), desc.h());
 					}, "glTexStorage2D()");
-				setSwizzleForFormatInGLTask(*r, desc.format(), texName);
+				setSwizzleForFormatInGLTask(r, desc.format(), texName);
 			});
 	}
 	else
 	{
 		bool remakeTexName = levels != levels_; // make new texture name whenever number of levels changes
-		r->runGLTask(
-			[=, r = std::as_const(this->r), &sampler = sampler, &texName_ = texName_, currTexName = texName_](GLMainTask::TaskContext ctx)
+		task().run(
+			[=, &r = std::as_const(renderer()), &sampler = sampler, &texName_ = texName_, currTexName = texName_](GLMainTask::TaskContext ctx)
 			{
 				auto texName = currTexName; // a copy of texName_ is passed by value for the async case to avoid accessing this->texName_
 				if(remakeTexName)
@@ -407,9 +403,9 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels)
 					ctx.notifySemaphore();
 				}
 				glBindTexture(GL_TEXTURE_2D, texName);
-				auto format = makeGLFormat(*r, desc.format());
+				auto format = makeGLFormat(r, desc.format());
 				auto dataType = makeGLDataType(desc.format());
-				auto internalFormat = makeGLInternalFormat(*r, desc.format());
+				auto internalFormat = makeGLInternalFormat(r, desc.format());
 				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s image format:%s:%s",
 					texName, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
 				uint32_t w = desc.w(), h = desc.h();
@@ -423,7 +419,7 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels)
 					w = std::max(1u, (w / 2));
 					h = std::max(1u, (h / 2));
 				}
-				setSwizzleForFormatInGLTask(*r, desc.format(), texName);
+				setSwizzleForFormatInGLTask(r, desc.format(), texName);
 			}, remakeTexName);
 	}
 	updateFormatInfo(desc, levels);
@@ -454,7 +450,7 @@ void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uin
 		logErr("called writeAligned() on uninitialized texture");
 		return;
 	}
-	assumeExpr(r);
+	auto &r = renderer();
 	assumeExpr(destPos.x + pixmap.w() <= (uint32_t)size(level).x);
 	assumeExpr(destPos.y + pixmap.h() <= (uint32_t)size(level).y);
 	assumeExpr(pixmap.format() == pixDesc.format());
@@ -464,15 +460,14 @@ void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uin
 	{
 		bug_unreachable("expected data from address %p to be aligned to %u bytes", pixmap.data(), assumeAlign);
 	}
-	GLenum format = makeGLFormat(*r, pixmap.format());
+	GLenum format = makeGLFormat(r, pixmap.format());
 	GLenum dataType = makeGLDataType(pixmap.format());
-	auto hasUnpackRowLength = r->support.hasUnpackRowLength;
+	auto hasUnpackRowLength = r.support.hasUnpackRowLength;
 	bool makeMipmaps = writeFlags & WRITE_FLAG_MAKE_MIPMAPS && canUseMipmaps();
 	if(hasUnpackRowLength || !pixmap.isPadded())
 	{
-		r->resourceUpdate = true;
-		r->runGLTask(
-			[=, r = std::as_const(this->r), texName_ = this->texName_]()
+		task().run(
+			[=, &r = std::as_const(r), texName_ = this->texName_]()
 			{
 				glBindTexture(GL_TEXTURE_2D, texName_);
 				glPixelStorei(GL_UNPACK_ALIGNMENT, assumeAlign);
@@ -487,7 +482,7 @@ void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uin
 				if(makeMipmaps)
 				{
 					logMsg("generating mipmaps for texture:0x%X", texName_);
-					r->support.generateMipmaps(GL_TEXTURE_2D);
+					r.support.generateMipmaps(GL_TEXTURE_2D);
 				}
 			}, !(writeFlags & WRITE_FLAG_ASYNC));
 		if(makeMipmaps)
@@ -540,7 +535,6 @@ LockedTextureBuffer Texture::lock(uint8_t level, IG::WindowRect rect, uint32_t b
 		logErr("called lock() on uninitialized texture");
 		return {};
 	}
-	assumeExpr(r);
 	assumeExpr(rect.x2  <= size(level).x);
 	assumeExpr(rect.y2 <= size(level).y);
 	const unsigned bufferBytes = pixDesc.format().pixelBytes(rect.xSize() * rect.ySize());
@@ -562,34 +556,36 @@ void Texture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 {
 	if(unlikely(!lockBuff))
 		return;
-	assumeExpr(r);
 	if(lockBuff.pbo())
-		assert(r->support.hasPBOFuncs);
+	{
+		assert(renderer().support.hasPBOFuncs);
+	}
 	bool makeMipmaps = writeFlags & WRITE_FLAG_MAKE_MIPMAPS && canUseMipmaps();
 	if(makeMipmaps)
 	{
 		updateLevelsForMipmapGeneration();
 	}
-	r->runGLTask(
-		[=, r = std::as_const(this->r), texName_ = this->texName_, pix = lockBuff.pixmap(), bufferOffset = lockBuff.bufferOffset(),
-		 destPos = IG::WP{lockBuff.sourceDirtyRect().x, lockBuff.sourceDirtyRect().y},
-		 level = lockBuff.level(), pbo = lockBuff.pbo(), shouldFreeBuffer = lockBuff.shouldFreeBuffer()]()
+	task().run(
+		[&r = std::as_const(renderer()), pix = lockBuff.pixmap(), bufferOffset = lockBuff.bufferOffset(),
+		 texName_ = this->texName_, destPos = IG::WP{lockBuff.sourceDirtyRect().x, lockBuff.sourceDirtyRect().y},
+		 pbo = lockBuff.pbo(), level = lockBuff.level(),
+		 shouldFreeBuffer = lockBuff.shouldFreeBuffer(), makeMipmaps]()
 		{
 			glBindTexture(GL_TEXTURE_2D, texName_);
 			glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignForAddrAndPitch(nullptr, pix.pitchBytes()));
 			if(pbo)
 			{
-				assumeExpr(r->support.hasUnpackRowLength);
+				assumeExpr(r.support.hasUnpackRowLength);
 				glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
-				r->support.glFlushMappedBufferRange(GL_PIXEL_UNPACK_BUFFER, (GLintptr)bufferOffset, pix.bytes());
+				r.support.glFlushMappedBufferRange(GL_PIXEL_UNPACK_BUFFER, (GLintptr)bufferOffset, pix.bytes());
 			}
 			else
 			{
-				if(r->support.hasUnpackRowLength)
+				if(r.support.hasUnpackRowLength)
 					glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 			}
-			GLenum format = makeGLFormat(*r, pix.format());
+			GLenum format = makeGLFormat(r, pix.format());
 			GLenum dataType = makeGLDataType(pix.format());
 			runGLCheckedVerbose(
 				[&]()
@@ -608,10 +604,9 @@ void Texture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 			if(makeMipmaps)
 			{
 				logMsg("generating mipmaps for texture:0x%X", texName_);
-				r->support.generateMipmaps(GL_TEXTURE_2D);
+				r.support.generateMipmaps(GL_TEXTURE_2D);
 			}
 		});
-	r->resourceUpdate = true;
 }
 
 IG::WP Texture::size(uint8_t level) const
@@ -633,41 +628,40 @@ IG::PixmapDesc Texture::pixmapDesc() const
 
 bool Texture::compileDefaultProgram(uint32_t mode) const
 {
-	assumeExpr(r);
+	auto &r = rTask->renderer();
 	switch(mode)
 	{
 		bcase IMG_MODE_REPLACE:
 			switch(type_)
 			{
-				case TEX_2D_1 : return r->texAlphaReplaceProgram.compile(*r);
-				case TEX_2D_2 : return r->texReplaceProgram.compile(*r);
-				case TEX_2D_4 : return r->texReplaceProgram.compile(*r);
+				case TextureType::T2D_1 : return r.makeCommonProgram(CommonProgram::TEX_ALPHA_REPLACE);
+				case TextureType::T2D_2 : return r.makeCommonProgram(CommonProgram::TEX_REPLACE);
+				case TextureType::T2D_4 : return r.makeCommonProgram(CommonProgram::TEX_REPLACE);
 				#ifdef __ANDROID__
-				case TEX_2D_EXTERNAL : return r->texExternalReplaceProgram.compile(*r);
+				case TextureType::T2D_EXTERNAL : return r.makeCommonProgram(CommonProgram::TEX_EXTERNAL_REPLACE);
 				#endif
-				default: bug_unreachable("type == %d", type_); return false;
+				default: bug_unreachable("type == %d", (int)type_); return false;
 			}
 		bcase IMG_MODE_MODULATE:
 			switch(type_)
 			{
-				case TEX_2D_1 : return r->texAlphaProgram.compile(*r);
-				case TEX_2D_2 : return r->texProgram.compile(*r);
-				case TEX_2D_4 : return r->texProgram.compile(*r);
+				case TextureType::T2D_1 : return r.makeCommonProgram(CommonProgram::TEX_ALPHA);
+				case TextureType::T2D_2 : return r.makeCommonProgram(CommonProgram::TEX);
+				case TextureType::T2D_4 : return r.makeCommonProgram(CommonProgram::TEX);
 				#ifdef __ANDROID__
-				case TEX_2D_EXTERNAL : return r->texExternalProgram.compile(*r);
+				case TextureType::T2D_EXTERNAL : return r.makeCommonProgram(CommonProgram::TEX_EXTERNAL);
 				#endif
-				default: bug_unreachable("type == %d", type_); return false;
+				default: bug_unreachable("type == %d", (int)type_); return false;
 			}
-		bdefault: bug_unreachable("type == %d", type_); return false;
+		bdefault: bug_unreachable("type == %d", (int)type_); return false;
 	}
 }
 
 bool Texture::compileDefaultProgramOneShot(uint32_t mode) const
 {
-	assumeExpr(r);
 	auto compiled = compileDefaultProgram(mode);
 	if(compiled)
-		r->autoReleaseShaderCompiler();
+		rTask->renderer().autoReleaseShaderCompiler();
 	return compiled;
 }
 
@@ -676,27 +670,30 @@ void Texture::useDefaultProgram(RendererCommands &cmds, uint32_t mode, const Mat
 	#ifndef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	const uint32_t type_ = TEX_2D_4;
 	#endif
+	auto &r = rTask->renderer();
 	switch(mode)
 	{
 		bcase IMG_MODE_REPLACE:
 			switch(type_)
 			{
-				bcase TEX_2D_1 : r->texAlphaReplaceProgram.use(cmds, modelMat);
-				bcase TEX_2D_2 : r->texReplaceProgram.use(cmds, modelMat);
-				bcase TEX_2D_4 : r->texReplaceProgram.use(cmds, modelMat);
+				bcase TextureType::T2D_1 : r.texAlphaReplaceProgram.use(cmds, modelMat);
+				bcase TextureType::T2D_2 : r.texReplaceProgram.use(cmds, modelMat);
+				bcase TextureType::T2D_4 : r.texReplaceProgram.use(cmds, modelMat);
 				#ifdef __ANDROID__
-				bcase TEX_2D_EXTERNAL : r->texExternalReplaceProgram.use(cmds, modelMat);
+				bcase TextureType::T2D_EXTERNAL : r.texExternalReplaceProgram.use(cmds, modelMat);
 				#endif
+				bdefault: logWarn("no default program for texture type:%d", (int)type_);
 			}
 		bcase IMG_MODE_MODULATE:
 			switch(type_)
 			{
-				bcase TEX_2D_1 : r->texAlphaProgram.use(cmds, modelMat);
-				bcase TEX_2D_2 : r->texProgram.use(cmds, modelMat);
-				bcase TEX_2D_4 : r->texProgram.use(cmds, modelMat);
+				bcase TextureType::T2D_1 : r.texAlphaProgram.use(cmds, modelMat);
+				bcase TextureType::T2D_2 : r.texProgram.use(cmds, modelMat);
+				bcase TextureType::T2D_4 : r.texProgram.use(cmds, modelMat);
 				#ifdef __ANDROID__
-				bcase TEX_2D_EXTERNAL : r->texExternalProgram.use(cmds, modelMat);
+				bcase TextureType::T2D_EXTERNAL : r.texExternalProgram.use(cmds, modelMat);
 				#endif
+				bdefault: logWarn("no default program for texture type:%d", (int)type_);
 			}
 	}
 }
@@ -706,10 +703,15 @@ Texture::operator bool() const
 	return texName();
 }
 
-Renderer &Texture::renderer()
+Renderer &Texture::renderer() const
 {
-	assumeExpr(r);
-	return *r;
+	return task().renderer();
+}
+
+RendererTask &Texture::task() const
+{
+	assumeExpr(rTask);
+	return *rTask;
 }
 
 Texture::operator TextureSpan() const
@@ -764,7 +766,7 @@ void GLTexture::updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum tar
 	pixDesc = desc;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(Config::Gfx::OPENGL_ES && target == GL_TEXTURE_EXTERNAL_OES)
-		type_ = TEX_2D_EXTERNAL;
+		type_ = TextureType::T2D_EXTERNAL;
 	else
 		type_ = typeForPixelFormat(desc.format());
 	#endif
@@ -773,28 +775,28 @@ void GLTexture::updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum tar
 #ifdef __ANDROID__
 void GLTexture::setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc)
 {
-	r->resourceUpdate = true;
-	if(r->support.hasEGLTextureStorage())
+	auto &r = rTask->renderer();
+	if(r.support.hasEGLTextureStorage())
 	{
 		sampler = 0;
-		r->runGLTaskSync(
-			[=, r = std::as_const(this->r), &tex = texName_, formatID = (IG::PixelFormatID)desc.format()](GLMainTask::TaskContext ctx)
+		rTask->runSync(
+			[=, &r = std::as_const(r), &tex = texName_, formatID = (IG::PixelFormatID)desc.format()](GLMainTask::TaskContext ctx)
 			{
 				tex = makeGLTextureName(tex);
 				glBindTexture(GL_TEXTURE_2D, tex);
 				runGLChecked(
 					[&]()
 					{
-						r->support.glEGLImageTargetTexStorageEXT(GL_TEXTURE_2D, (GLeglImageOES)eglImg, nullptr);
+						r.support.glEGLImageTargetTexStorageEXT(GL_TEXTURE_2D, (GLeglImageOES)eglImg, nullptr);
 					}, "glEGLImageTargetTexStorageEXT()");
 				ctx.notifySemaphore();
-				setSwizzleForFormatInGLTask(*r, formatID, tex);
+				setSwizzleForFormatInGLTask(r, formatID, tex);
 			});
 	}
 	else
 	{
-		r->runGLTaskSync(
-			[=, r = std::as_const(this->r), &tex = texName_, formatID = (IG::PixelFormatID)desc.format()](GLMainTask::TaskContext ctx)
+		rTask->runSync(
+			[=, &r = std::as_const(r), &tex = texName_, formatID = (IG::PixelFormatID)desc.format()](GLMainTask::TaskContext ctx)
 			{
 				if(!tex) // texture storage is mutable, only need to make name once
 				{
@@ -807,7 +809,7 @@ void GLTexture::setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc)
 						glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImg);
 					}, "glEGLImageTargetTexture2DOES()");
 				ctx.notifySemaphore();
-				setSwizzleForFormatInGLTask(*r, formatID, tex);
+				setSwizzleForFormatInGLTask(r, formatID, tex);
 			});
 	}
 	updateFormatInfo(desc, 1);
@@ -816,14 +818,14 @@ void GLTexture::setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc)
 
 void GLTexture::updateLevelsForMipmapGeneration()
 {
-	if(!r->support.hasImmutableTexStorage)
+	if(!rTask->renderer().support.hasImmutableTexStorage)
 	{
 		// all possible levels generated by glGenerateMipmap
 		levels_ = fls(pixDesc.w() | pixDesc.h());
 	}
 }
 
-PixmapTexture::PixmapTexture(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr):
+PixmapTexture::PixmapTexture(RendererTask &r, TextureConfig config, IG::ErrorCode *errorPtr):
 	GLPixmapTexture{r}
 {
 	IG::ErrorCode err = GLPixmapTexture::init(r, config);
@@ -833,7 +835,7 @@ PixmapTexture::PixmapTexture(Renderer &r, TextureConfig config, IG::ErrorCode *e
 	}
 }
 
-PixmapTexture::PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr):
+PixmapTexture::PixmapTexture(RendererTask &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr):
 	GLPixmapTexture{r}
 {
 	IG::ErrorCode err;
@@ -853,7 +855,7 @@ PixmapTexture::PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps,
 	}
 }
 
-IG::ErrorCode GLPixmapTexture::init(Renderer &r, TextureConfig config)
+IG::ErrorCode GLPixmapTexture::init(RendererTask &r, TextureConfig config)
 {
 	config = baseInit(r, config);
 	if(auto err = static_cast<PixmapTexture*>(this)->setFormat(config.pixmapDesc(), config.levels());
@@ -866,8 +868,7 @@ IG::ErrorCode GLPixmapTexture::init(Renderer &r, TextureConfig config)
 
 IG::ErrorCode PixmapTexture::setFormat(IG::PixmapDesc desc, uint8_t levels)
 {
-	assumeExpr(r);
-	IG::PixmapDesc fullPixDesc = r->support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
+	IG::PixmapDesc fullPixDesc = renderer().support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
 	if(auto err = Texture::setFormat(fullPixDesc, levels);
 		unlikely(err))
 	{

@@ -16,6 +16,7 @@
 #define LOGTAG "GLRenderer"
 #include <assert.h>
 #include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/string.h>
@@ -26,64 +27,6 @@
 #include "../../base/android/android.hh"
 #endif
 #include <string>
-
-#if defined CONFIG_BASE_GLAPI_EGL && defined CONFIG_GFX_OPENGL_ES
-#define CAN_USE_EGL_SYNC
-	#if __ANDROID_API__ < 18 || defined CONFIG_MACHINE_PANDORA
-	#define EGL_SYNC_NEEDS_PROC_ADDR
-	#endif
-#endif
-
-#ifdef CAN_USE_EGL_SYNC
-#include <EGL/eglext.h>
-	#ifdef CONFIG_MACHINE_PANDORA
-	using EGLSyncKHR = void*;
-	using EGLTimeKHR = uint64_t;
-	#endif
-#ifndef EGL_TIMEOUT_EXPIRED
-#define EGL_TIMEOUT_EXPIRED 0x30F5
-#endif
-#ifndef EGL_CONDITION_SATISFIED
-#define EGL_CONDITION_SATISFIED 0x30F6
-#endif
-#ifndef EGL_SYNC_FENCE
-#define EGL_SYNC_FENCE 0x30F9
-#endif
-#ifndef EGL_FOREVER
-#define EGL_FOREVER 0xFFFFFFFFFFFFFFFFull
-#endif
-#define EGLSync EGLSyncKHR
-#define EGLTime EGLTimeKHR
-	#ifdef EGL_SYNC_NEEDS_PROC_ADDR
-	static EGLSync (EGLAPIENTRY *eglCreateSyncFunc)(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list){};
-	static EGLBoolean (EGLAPIENTRY *eglDestroySyncFunc)(EGLDisplay dpy, EGLSync sync){};
-	static EGLint (EGLAPIENTRY *eglClientWaitSyncFunc)(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTime timeout){};
-	static EGLint (EGLAPIENTRY *eglWaitSyncFunc)(EGLDisplay dpy, EGLSync sync, EGLint flags){};
-	#else
-	extern "C" {
-	EGLAPI EGLSyncKHR EGLAPIENTRY eglCreateSyncKHR (EGLDisplay dpy, EGLenum type, const EGLint *attrib_list);
-	EGLAPI EGLBoolean EGLAPIENTRY eglDestroySyncKHR (EGLDisplay dpy, EGLSyncKHR sync);
-	EGLAPI EGLint EGLAPIENTRY eglClientWaitSyncKHR (EGLDisplay dpy, EGLSyncKHR sync, EGLint flags, EGLTimeKHR timeout);
-	EGLAPI EGLint EGLAPIENTRY eglWaitSyncKHR (EGLDisplay dpy, EGLSyncKHR sync, EGLint flags);
-	}
-	#define eglCreateSyncFunc eglCreateSyncKHR
-	#define eglDestroySyncFunc eglDestroySyncKHR
-	#define eglClientWaitSyncFunc eglClientWaitSyncKHR
-	#define eglWaitSyncFunc eglWaitSyncKHR
-	#endif
-#endif
-
-#ifndef GL_TIMEOUT_EXPIRED
-#define GL_TIMEOUT_EXPIRED 0x911B
-#endif
-
-#ifndef GL_CONDITION_SATISFIED
-#define GL_CONDITION_SATISFIED 0x911C
-#endif
-
-#ifndef GL_WAIT_FAILED
-#define GL_WAIT_FAILED 0x911D
-#endif
 
 namespace Gfx
 {
@@ -144,6 +87,10 @@ static void printFeatures(DrawContextSupport support)
 	{
 		featuresStr.append(" [Immutable Buffer Storage]");
 	}
+	if(support.hasMemoryBarriers())
+	{
+		featuresStr.append(" [Memory Barriers]");
+	}
 	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && support.hasUnpackRowLength)
 	{
 		featuresStr.append(" [Unpack Sub-Images]");
@@ -162,8 +109,24 @@ static void printFeatures(DrawContextSupport support)
 	}
 	if(support.hasSyncFences())
 	{
-		featuresStr.append(" [Sync Fences]");
+		if(Config::Base::GL_PLATFORM_EGL)
+		{
+			if(support.hasServerWaitSync())
+				featuresStr.append(" [EGL Sync Fences + Server Sync]");
+			else
+				featuresStr.append(" [EGL Sync Fences]");
+		}
+		else
+		{
+			featuresStr.append(" [Sync Fences]");
+		}
 	}
+	#ifdef __ANDROID__
+	if(support.eglPresentationTimeANDROID)
+	{
+		featuresStr.append(" [Presentation Time]");
+	}
+	#endif
 	#ifndef CONFIG_GFX_OPENGL_ES
 	if(support.maximumAnisotropy)
 	{
@@ -307,93 +270,6 @@ void GLRenderer::setupPBO()
 	support.hasPBOFuncs = true;
 }
 
-void GLRenderer::setupFenceSync()
-{
-	if(support.hasSyncFences())
-		return;
-	#ifdef CONFIG_GFX_OPENGL_ES
-	support.glFenceSync = (typeof(support.glFenceSync))Base::GLContext::procAddress("glFenceSync");
-	support.glDeleteSync = (typeof(support.glDeleteSync))Base::GLContext::procAddress("glDeleteSync");
-	support.glClientWaitSync = (typeof(support.glClientWaitSync))Base::GLContext::procAddress("glClientWaitSync");
-	support.glWaitSync = (typeof(support.glWaitSync))Base::GLContext::procAddress("glWaitSync");
-	#else
-	support.hasFenceSync = true;
-	#endif
-}
-
-#ifdef CONFIG_GFX_OPENGL_ES
-void GLRenderer::setupAppleFenceSync()
-{
-	if(support.hasSyncFences())
-		return;
-	support.glFenceSync = (typeof(support.glFenceSync))Base::GLContext::procAddress("glFenceSyncAPPLE");
-	support.glDeleteSync = (typeof(support.glDeleteSync))Base::GLContext::procAddress("glDeleteSyncAPPLE");
-	support.glClientWaitSync = (typeof(support.glClientWaitSync))Base::GLContext::procAddress("glClientWaitSyncAPPLE");
-	support.glWaitSync = (typeof(support.glWaitSync))Base::GLContext::procAddress("glWaitSyncAPPLE");
-}
-#endif
-
-#ifdef CAN_USE_EGL_SYNC
-void GLRenderer::setupEGLFenceSync(bool supportsServerSync)
-{
-	if(support.hasSyncFences())
-		return;
-	logMsg("Using EGL sync fences%s", supportsServerSync ? "" : ", only client sync supported");
-	#ifdef EGL_SYNC_NEEDS_PROC_ADDR
-	eglCreateSyncFunc = (typeof(eglCreateSyncFunc))Base::GLContext::procAddress("eglCreateSyncKHR");
-	eglDestroySyncFunc = (typeof(eglDestroySyncFunc))Base::GLContext::procAddress("eglDestroySyncKHR");
-	eglClientWaitSyncFunc = (typeof(eglClientWaitSyncFunc))Base::GLContext::procAddress("eglClientWaitSyncKHR");
-	if(supportsServerSync)
-		eglWaitSyncFunc = (typeof(eglWaitSyncFunc))Base::GLContext::procAddress("eglWaitSyncKHR");
-	#endif
-	// wrap EGL sync in terms of ARB sync
-	support.glFenceSync =
-		[](GLenum condition, GLbitfield flags)
-		{
-			return (GLsync)eglCreateSyncFunc(Base::GLDisplay::getDefault().eglDisplay(), EGL_SYNC_FENCE, nullptr);
-		};
-	support.glDeleteSync =
-		[](GLsync sync)
-		{
-			eglDestroySyncFunc(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync);
-		};
-	support.glClientWaitSync =
-		[](GLsync sync, GLbitfield flags, GLuint64 timeout) -> GLenum
-		{
-			switch(eglClientWaitSyncFunc(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync, 0, timeout))
-			{
-				case EGL_TIMEOUT_EXPIRED: return GL_TIMEOUT_EXPIRED;
-				case EGL_CONDITION_SATISFIED: return GL_CONDITION_SATISFIED;
-				default:
-					logErr("error waiting for sync object:%p", sync);
-					return GL_WAIT_FAILED;
-			}
-		};
-	if(supportsServerSync)
-	{
-		support.glWaitSync =
-			[](GLsync sync, GLbitfield flags, GLuint64 timeout)
-			{
-				if(eglWaitSyncFunc(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync, 0) == GL_FALSE)
-				{
-					logErr("error waiting for sync object:%p", sync);
-				}
-			};
-	}
-	else
-	{
-		support.glWaitSync =
-			[](GLsync sync, GLbitfield flags, GLuint64 timeout)
-			{
-				if(eglClientWaitSyncFunc(Base::GLDisplay::getDefault().eglDisplay(), (EGLSync)sync, 0, timeout) == GL_FALSE)
-				{
-					logErr("error waiting for sync object:%p", sync);
-				}
-			};
-	}
-}
-#endif
-
 void GLRenderer::setupSpecifyDrawReadBuffers()
 {
 	#ifdef CONFIG_GFX_OPENGL_ES
@@ -411,15 +287,6 @@ bool DrawContextSupport::hasDrawReadBuffers() const
 	#endif
 }
 
-bool DrawContextSupport::hasSyncFences() const
-{
-	#ifdef CONFIG_GFX_OPENGL_ES
-	return glFenceSync;
-	#else
-	return hasFenceSync;
-	#endif
-}
-
 #ifdef __ANDROID__
 bool DrawContextSupport::hasEGLTextureStorage() const
 {
@@ -434,6 +301,16 @@ bool DrawContextSupport::hasImmutableBufferStorage() const
 	#else
 	return hasBufferStorage;
 	#endif
+}
+
+bool DrawContextSupport::hasMemoryBarriers() const
+{
+	return false;
+	/*#ifdef CONFIG_GFX_OPENGL_ES
+	return glMemoryBarrier;
+	#else
+	return hasMemoryBarrier;
+	#endif*/
 }
 
 void GLRenderer::setupUnmapBufferFunc()
@@ -468,6 +345,27 @@ void GLRenderer::setupImmutableBufferStorage()
 	support.glBufferStorage = (typeof(support.glBufferStorage))Base::GLContext::procAddress("glBufferStorageEXT");
 	#else
 	support.hasBufferStorage = true;
+	#endif
+}
+
+void GLRenderer::setupMemoryBarrier()
+{
+	/*if(support.hasMemoryBarriers())
+		return;
+	#ifdef CONFIG_GFX_OPENGL_ES
+	support.glMemoryBarrier = (typeof(support.glMemoryBarrier))Base::GLContext::procAddress("glMemoryBarrier");
+	#else
+	support.hasMemoryBarrier = true;
+	#endif*/
+}
+
+void GLRenderer::setupPresentationTime(const char *eglExtenstionStr)
+{
+	#ifdef __ANDROID__
+	if(strstr(eglExtenstionStr, "EGL_ANDROID_presentation_time"))
+	{
+		Base::GLContext::loadSymbol(support.eglPresentationTimeANDROID, "eglPresentationTimeANDROID");
+	}
 	#endif
 }
 
@@ -530,7 +428,7 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 		setupImmutableTexStorage(true);
 	}
 	#if defined __ANDROID__ || defined __APPLE__
-	else if(string_equal(extStr, "GL_APPLE_sync"))
+	else if(!Config::Base::GL_PLATFORM_EGL && string_equal(extStr, "GL_APPLE_sync"))
 	{
 		setupAppleFenceSync();
 	}
@@ -615,13 +513,17 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	{
 		setupPBO();
 	}
-	else if(string_equal(extStr, "GL_ARB_sync"))
+	else if(!Config::Base::GL_PLATFORM_EGL && string_equal(extStr, "GL_ARB_sync"))
 	{
 		setupFenceSync();
 	}
 	else if(string_equal(extStr, "GL_ARB_buffer_storage"))
 	{
 		setupImmutableBufferStorage();
+	}
+	else if(string_equal(extStr, "GL_ARB_shader_image_load_store"))
+	{
+		setupMemoryBarrier();
 	}
 	#endif
 }
@@ -706,9 +608,21 @@ void GLRenderer::finishContextCreation(Base::GLContext ctx)
 	#endif
 }
 
-Renderer::Renderer() {}
+GLRenderer::GLRenderer(Init):
+	releaseShaderCompilerEvent{"GLRenderer::releaseShaderCompilerEvent"}
+{}
 
-Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
+GLRenderer::~GLRenderer()
+{
+	deinit();
+}
+
+void GLRenderer::deinit()
+{
+	glDpy.deinit();
+}
+
+Renderer::Renderer(RendererConfig config, Error &err): GLRenderer{Init{}}
 {
 	auto [ec, dpy] = Base::GLDisplay::makeDefault(glAPI);
 	if(ec)
@@ -719,90 +633,120 @@ Renderer::Renderer(IG::PixelFormat pixelFormat, Error &err)
 	}
 	glDpy = dpy;
 	dpy.logInfo();
+	{
+		auto [mainContext, ec] = makeGLContext(dpy, config.pixelFormat());
+		if(!mainContext)
+		{
+			err = std::runtime_error("error creating GL context");
+			return;
+		}
+		constexpr int DRAW_THREAD_PRIORITY = -4;
+		mainTask = std::make_unique<RendererTask>("Main GL Context Messages", mainContext, DRAW_THREAD_PRIORITY);
+	}
+	addEventHandlers(*mainTask);
+}
+
+Renderer::Renderer(Error &err): Renderer({Base::Window::defaultPixelFormat()}, err) {}
+
+Renderer::Renderer(Renderer &&o)
+{
+	*this = std::move(o);
+}
+
+Renderer &Renderer::operator=(Renderer &&o)
+{
+	deinit();
+	GLRenderer::operator=(std::move(o));
+	if(mainTask)
+		mainTask->setRenderer(this);
+	o.glDpy = {};
+	return *this;
+}
+
+std::pair<Base::GLContext, IG::ErrorCode> GLRenderer::makeGLContext(Base::GLDisplay dpy, IG::PixelFormat pixelFormat)
+{
+	IG::ErrorCode ec{};
 	if(!pixelFormat)
 		pixelFormat = Base::Window::defaultPixelFormat();
 	Base::GLBufferConfigAttributes glBuffAttr;
 	glBuffAttr.setPixelFormat(pixelFormat);
 	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
 	auto glAttr = makeGLContextAttributes(1, 0);
-	auto [found, config] = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+	auto [found, config] = glCtx.makeBufferConfig(dpy, glAttr, glBuffAttr);
 	assert(found);
 	gfxBufferConfig = config;
-	IG::ErrorCode ec{};
-	gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
+	Base::GLContext glCtx{dpy, glAttr, gfxBufferConfig, ec};
 	#elif CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
+	Base::GLContext glCtx{};
 	if(CAN_USE_OPENGL_ES_3)
 	{
 		auto glAttr = makeGLContextAttributes(3, 0);
-		auto [found, config] = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+		auto [found, config] = glCtx.makeBufferConfig(dpy, glAttr, glBuffAttr);
 		if(found)
 		{
 			gfxBufferConfig = config;
-			IG::ErrorCode ec{};
-			gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
+			glCtx = {dpy, glAttr, gfxBufferConfig, ec};
 			glMajorVer = glAttr.majorVersion();
 		}
 	}
-	if(!gfxResourceContext) // fall back to OpenGL ES 2.0
+	if(!glCtx) // fall back to OpenGL ES 2.0
 	{
 		auto glAttr = makeGLContextAttributes(2, 0);
-		auto [found, config] = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+		auto [found, config] = glCtx.makeBufferConfig(dpy, glAttr, glBuffAttr);
 		assert(found);
 		gfxBufferConfig = config;
-		IG::ErrorCode ec{};
-		gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
+		glCtx = {dpy, glAttr, gfxBufferConfig, ec};
 		glMajorVer = glAttr.majorVersion();
 	}
 	#else
+	Base::GLContext glCtx{};
 	if(Config::Gfx::OPENGL_SHADER_PIPELINE)
 	{
 		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 		support.useFixedFunctionPipeline = false;
 		#endif
 		auto glAttr = makeGLContextAttributes(3, 3);
-		auto [found, config] = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+		auto [found, config] = glCtx.makeBufferConfig(dpy, glAttr, glBuffAttr);
 		assert(found);
-		IG::ErrorCode ec{};
 		gfxBufferConfig = config;
-		gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
-		if(!gfxResourceContext)
+		glCtx = {dpy, glAttr, gfxBufferConfig, ec};
+		if(!glCtx)
 		{
 			logMsg("3.3 context not supported");
 		}
 	}
-	if(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE && !gfxResourceContext)
+	if(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE && !glCtx)
 	{
 		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 		support.useFixedFunctionPipeline = true;
 		#endif
 		auto glAttr = makeGLContextAttributes(1, 3);
-		auto [found, config] = gfxResourceContext.makeBufferConfig(dpy, glAttr, glBuffAttr);
+		auto [found, config] = glCtx.makeBufferConfig(dpy, glAttr, glBuffAttr);
 		assert(found);
-		IG::ErrorCode ec{};
 		gfxBufferConfig = config;
-		gfxResourceContext = {dpy, glAttr, gfxBufferConfig, ec};
-		if(!gfxResourceContext)
+		glCtx = {dpy, glAttr, gfxBufferConfig, ec};
+		if(!glCtx)
 		{
 			logMsg("1.3 context not supported");
 		}
 	}
 	#endif
-	if(!gfxResourceContext)
-	{
-		err = std::runtime_error("error creating GL context");
-		return;
-	}
-	err = {};
-	finishContextCreation(gfxResourceContext);
-	mainTask = std::make_unique<GLMainTask>();
-	mainTask->start(gfxResourceContext);
+	finishContextCreation(glCtx);
+	return {glCtx, ec};
 }
 
-Renderer::Renderer(Error &err): Renderer(Base::Window::defaultPixelFormat(), err) {}
-
-void Renderer::configureRenderer(ThreadMode threadMode)
+std::pair<Base::GLContext, IG::ErrorCode> GLRenderer::makeGLContextWithKnownConfig(Base::GLDisplay dpy, Base::GLContext shareContext)
 {
-	runGLTaskSync(
+	assert(mainTask->glContext());
+	IG::ErrorCode ec{};
+	Base::GLContext glCtx{dpy, makeKnownGLContextAttributes(), gfxBufferConfig, shareContext, ec};
+	finishContextCreation(glCtx);
+	return {glCtx, ec};
+}
+
+void Renderer::configureRenderer()
+{
+	task().runSync(
 		[this]()
 		{
 			auto version = (const char*)glGetString(GL_VERSION);
@@ -811,6 +755,15 @@ void Renderer::configureRenderer(ThreadMode threadMode)
 			logMsg("version: %s (%s)", version, rendererName);
 
 			int glVer = glVersionFromStr(version);
+
+			#ifdef CONFIG_BASE_GL_PLATFORM_EGL
+			if constexpr(Config::Gfx::OPENGL_ES)
+			{
+				auto extStr = glDpy.queryExtensions();
+				setupEglFenceSync(extStr);
+				setupPresentationTime(extStr);
+			}
+			#endif
 
 			bool useFBOFuncs = false;
 			#ifndef CONFIG_GFX_OPENGL_ES
@@ -840,7 +793,7 @@ void Renderer::configureRenderer(ThreadMode threadMode)
 				}
 				setupFBOFuncs(useFBOFuncs);
 			}
-			if(glVer >= 32)
+			if(glVer >= 32 && !Config::Base::GL_PLATFORM_EGL)
 			{
 				setupFenceSync();
 			}
@@ -894,29 +847,18 @@ void Renderer::configureRenderer(ThreadMode threadMode)
 					setupRGFormats();
 					setupSamplerObjects();
 					setupPBO();
-					setupFenceSync();
+					if(!Config::Base::GL_PLATFORM_EGL)
+						setupFenceSync();
 					if(!Config::envIsIOS)
 						setupSpecifyDrawReadBuffers();
 					support.hasUnpackRowLength = true;
 					support.useLegacyGLSL = false;
 				}
-			}
-
-			#ifdef CAN_USE_EGL_SYNC
-			// check for fence sync via EGL extensions
-			bool checkFenceSync = glVer < 30
-					&& !Config::MACHINE_IS_PANDORA; // TODO: driver waits for full timeout even if commands complete,
-																					// possibly broken glFlush() behavior?
-			if(checkFenceSync)
-			{
-				auto extStr = glDpy.queryExtensions();
-				if(strstr(extStr, "EGL_KHR_fence_sync"))
+				if(glVer >= 31)
 				{
-					auto supportsServerSync = strstr(extStr, "EGL_KHR_wait_sync");
-					setupEGLFenceSync(supportsServerSync);
+					setupMemoryBarrier();
 				}
 			}
-			#endif
 
 			// extension functionality
 			auto extensions = (const char*)glGetString(GL_EXTENSIONS);
@@ -932,37 +874,10 @@ void Renderer::configureRenderer(ThreadMode threadMode)
 
 			printFeatures(support);
 		});
-
 	if(Config::DEBUG_BUILD && defaultToFullErrorChecks)
 	{
 		setCorrectnessChecks(true);
 		setDebugOutput(true);
-	}
-
-	if(!support.hasSyncFences())
-		threadMode = ThreadMode::SINGLE;
-	if(threadMode == ThreadMode::AUTO)
-	{
-		useSeparateDrawContext = support.hasSyncFences();
-		#if defined __ANDROID__
-		if(Base::androidSDK() < 26 && !support.hasImmutableBufferStorage())
-		{
-			useSeparateDrawContext = false; // disable by default due to various devices with driver bugs
-		}
-		#endif
-	}
-	else
-	{
-		useSeparateDrawContext = threadMode == ThreadMode::MULTI;
-	}
-	if(useSeparateDrawContext)
-	{
-		auto overridePath = FS::makePathStringPrintf("%s/imagine_force_single_gl_context", Base::sharedStoragePath().data());
-		if(FS::exists(overridePath))
-		{
-			logMsg("disabling separate draw context due to file:%s", overridePath.data());
-			useSeparateDrawContext = false;
-		}
 	}
 	support.isConfigured = true;
 }
@@ -972,36 +887,24 @@ bool Renderer::isConfigured() const
 	return support.isConfigured;
 }
 
-Renderer Renderer::makeConfiguredRenderer(ThreadMode threadMode, IG::PixelFormat pixelFormat, Error &err)
+RendererTask &Renderer::task() const
 {
-	auto renderer = Renderer{pixelFormat, err};
+	return *mainTask;
+}
+
+std::pair<Renderer, Error> Renderer::makeConfiguredRenderer(RendererConfig config)
+{
+	if(config.pixelFormat() == PIXEL_FMT_NONE)
+		config.setPixelFormat(Base::Window::defaultPixelFormat());
+	Error err;
+	auto renderer = Renderer{config, err};
 	if(err)
-		return {};
-	renderer.configureRenderer(threadMode);
-	return renderer;
+		return {std::move(renderer), err};
+	renderer.configureRenderer();
+	return {std::move(renderer), Error{}};
 }
 
-Renderer Renderer::makeConfiguredRenderer(ThreadMode threadMode, Error &err)
-{
-	return makeConfiguredRenderer(threadMode, Base::Window::defaultPixelFormat(), err);
-}
-
-Renderer Renderer::makeConfiguredRenderer(Error &err)
-{
-	return makeConfiguredRenderer(Gfx::Renderer::ThreadMode::AUTO, err);
-}
-
-Renderer::ThreadMode Renderer::threadMode() const
-{
-	return useSeparateDrawContext ? ThreadMode::MULTI : ThreadMode::SINGLE;
-}
-
-bool Renderer::supportsThreadMode() const
-{
-	return support.hasSyncFences();
-}
-
-Base::WindowConfig Renderer::addWindowConfig(Base::WindowConfig config)
+Base::WindowConfig Renderer::addWindowConfig(Base::WindowConfig config) const
 {
 	assert(isConfigured());
 	config.setFormat(gfxBufferConfig.windowFormat(glDpy));
@@ -1035,45 +938,20 @@ void Renderer::setWindowValidOrientations(Base::Window &win, Base::Orientation v
 	updateSensorStateForWindowOrientations(win);
 }
 
-void GLRenderer::addEventHandlers()
+void GLRenderer::addEventHandlers(RendererTask &task)
 {
-	if(onExit)
-		return;
-	onExit =
-		[this](bool backgrounded)
-		{
-			releaseShaderCompilerEvent.cancel();
-			if(backgrounded)
-			{
-				runGLTaskSync(
-					[=]()
-					{
-						#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-						glReleaseShaderCompiler();
-						#endif
-						glFinish();
-					});
-			}
-			else
-			{
-				if(!gfxResourceContext)
-					return true;
-				mainTask->stop();
-				gfxResourceContext.deinit(glDpy);
-				glDpy.deinit();
-				contextDestroyed = true;
-			}
-			return true;
-		};
-	Base::addOnExit(onExit, Base::RENDERER_ON_EXIT_PRIORITY);
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	releaseShaderCompilerEvent.attach(
-		[this]()
+		[&task]()
 		{
+			if(!Base::appIsRunning())
+				return;
 			logMsg("automatically releasing shader compiler");
-			static_cast<Renderer*>(this)->releaseShaderCompiler();
+			task.releaseShaderCompiler();
 		});
 	#endif
+	if constexpr(Config::envIsIOS)
+		task.setIOSDrawableDelegates();
 }
 
 }

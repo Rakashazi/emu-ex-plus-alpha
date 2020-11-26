@@ -65,11 +65,11 @@ void EmuSystemTask::start()
 						{
 							bcase Command::RUN_FRAME:
 							{
-								//logMsg("got draw command");
 								auto frames = msg.args.run.frames;
 								assumeExpr(frames);
 								auto *video = msg.args.run.video;
 								auto *audio = msg.args.run.audio;
+								//logMsg("running %d frame(s)", frames);
 								if(unlikely(msg.args.run.skipForward))
 								{
 									if(EmuSystem::skipForwardFrames(this, frames - 1))

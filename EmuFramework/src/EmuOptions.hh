@@ -75,7 +75,7 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	CFGKEY_SKIP_LATE_FRAMES = 76, CFGKEY_FRAME_RATE = 77,
 	CFGKEY_FRAME_RATE_PAL = 78, CFGKEY_TIME_FRAMES_WITH_SCREEN_REFRESH = 79,
 	CFGKEY_SUSTAINED_PERFORMANCE_MODE = 80, CFGKEY_SHOW_BLUETOOTH_SCAN = 81,
-	CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN = 82, CFGKEY_GPU_MULTITHREADING = 83,
+	CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN = 82, CFGKEY_VIDEO_IMAGE_BUFFERS = 83,
 	CFGKEY_AUDIO_API = 84, CFGKEY_SOUND_VOLUME = 85
 	// 256+ is reserved
 };
@@ -203,7 +203,7 @@ extern Byte1Option optionSustainedPerformanceMode;
 #ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 extern Byte1Option optionWindowPixelFormat;
 #endif
-extern Byte1Option optionGPUMultiThreading;
+extern Byte1Option optionVideoImageBuffers;
 
 static const char *optionSavePathDefaultToken = ":DEFAULT:";
 extern PathOption optionSavePath;

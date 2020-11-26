@@ -40,7 +40,7 @@ struct EGLBufferConfig
 	constexpr EGLBufferConfig(EGLConfig eglConfig):
 		glConfig{eglConfig} {}
 
-	Base::NativeWindowFormat windowFormat(GLDisplay display);
+	Base::NativeWindowFormat windowFormat(GLDisplay display) const;
 };
 
 class EGLDisplayConnection
@@ -48,12 +48,13 @@ class EGLDisplayConnection
 public:
 	constexpr EGLDisplayConnection() {}
 	constexpr EGLDisplayConnection(EGLDisplay display): display{display} {}
-	EGLDisplay eglDisplay() { return display; }
+	constexpr operator EGLDisplay() const { return display; }
 	static IG::ErrorCode initDisplay(EGLDisplay display);
 	const char *queryExtensions();
+	static const char *errorString(EGLint error);
 
 protected:
-	EGLDisplay display{};
+	EGLDisplay display{EGL_NO_DISPLAY};
 };
 
 class EGLDrawable
@@ -61,7 +62,7 @@ class EGLDrawable
 public:
 	constexpr EGLDrawable() {}
 	constexpr EGLDrawable(EGLSurface surface): surface{surface} {}
-	EGLSurface &eglSurface() { return surface; }
+	constexpr operator EGLSurface() const { return surface; }
 
 protected:
 	EGLSurface surface{EGL_NO_SURFACE};
@@ -72,7 +73,7 @@ class EGLContextBase
 public:
 	constexpr EGLContextBase() {}
 	EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGLBufferConfig config, EGLContext shareContext, IG::ErrorCode &ec);
-	static void swapBuffers(EGLDisplay display, GLDrawable &win);
+	static void swapBuffers(EGLDisplay display, GLDrawable win);
 
 protected:
 	EGLContext context{EGL_NO_CONTEXT};

@@ -54,6 +54,7 @@ public:
 	EAGLView *glView() { return (__bridge EAGLView*)glView_; }
 	#endif
 	void *glViewPtr() { return glView_; }
+	explicit constexpr operator bool() const { return glView_; };
 
 protected:
 	void *glView_{}; // EAGLView in ObjC
@@ -63,7 +64,7 @@ struct GLBufferConfig
 {
 	bool useRGB565 = false;
 
-	Base::NativeWindowFormat windowFormat(GLDisplay display);
+	Base::NativeWindowFormat windowFormat(GLDisplay display) const;
 };
 
 using GLDrawableImpl = EAGLViewDrawable;

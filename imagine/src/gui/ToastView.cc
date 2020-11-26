@@ -22,6 +22,8 @@
 #include <imagine/util/math/int.hh>
 #include <string>
 
+ToastView::ToastView() {}
+
 ToastView::ToastView(ViewAttachParams attach): View{attach},
 	unpostTimer
 	{

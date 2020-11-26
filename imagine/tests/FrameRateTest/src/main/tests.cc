@@ -22,6 +22,7 @@
 #include <imagine/util/string.h>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include "tests.hh"
 #include "cpuUtils.hh"
@@ -113,7 +114,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 
 		// frame stats
 		bool updatedFrameStats = false;
-		if(!frames)
+		if(!startTime.count())
 		{
 			startTime = timestamp;
 			//logMsg("start time: %llu", (unsigned long long)startTime);
@@ -125,7 +126,6 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 			if(elapsedScreenFrames > 1)
 			{
 				lostFrameProcessTime = std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count();
-				lostFramePresentTime = std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).count();
 
 				droppedFrames++;
 				string_printf(skippedFrameStr, "Lost %u frame(s) taking %.3fs after %u continuous\nat time %.3fs",
@@ -137,11 +137,10 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 		}
 		if(frames && frames % 4 == 0)
 		{
-			string_printf(statsStr, "Process: %02lums (%02ums)\nPresent: %02lums (%02ums)",
+			string_printf(statsStr, "Total Draw Time: %02lums (%02ums)\nTimestamp Diff: %02lums",
 				(unsigned long)std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count(),
 				lostFrameProcessTime,
-				(unsigned long)std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresentEnd - lastFramePresentTime.atWinPresent).count(),
-				lostFramePresentTime);
+				(unsigned long)std::chrono::duration_cast<IG::Milliseconds>(frameParams.timestampDiff()).count());
 			updatedFrameStats = true;
 		}
 		if(updatedFrameStats)
@@ -197,9 +196,11 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	}
 }
 
-void TestFramework::finish(IG::FrameTime frameTime)
+void TestFramework::finish(Gfx::RendererTask &task, IG::FrameTime frameTime)
 {
 	endTime = frameTime;
+	task.deleteSyncFence(presentFence);
+	presentFence = {};
 	if(onTestFinished)
 		onTestFinished(*this);
 }
@@ -231,7 +232,8 @@ void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferM
 {
 	IG::PixmapDesc pixmapDesc = {pixmapSize, IG::PIXEL_FMT_RGB565};
 	Gfx::TextureConfig texConf{pixmapDesc};
-	texture = r.makePixmapBufferTexture(texConf, bufferMode, true);
+	const bool canSingleBuffer = r.maxSwapChainImages() < 3 || r.supportsSyncFences();
+	texture = r.makePixmapBufferTexture(texConf, bufferMode, canSingleBuffer);
 	if(!texture)
 	{
 		Base::exitWithErrorMessagePrintf(-1, "Can't init test texture");
@@ -239,7 +241,7 @@ void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferM
 	}
 	auto lockedBuff = texture.lock();
 	assert(lockedBuff);
-	memset(lockedBuff.pixmap().pixel({}), 0xFF, lockedBuff.pixmap().bytes());
+	memset(lockedBuff.pixmap().data(), 0xFF, lockedBuff.pixmap().bytes());
 	texture.unlock(lockedBuff);
 	texture.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);
 	texture.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
@@ -283,8 +285,8 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, IG::FrameTime frameTime)
 {
 	DrawTest::frameUpdateTest(rendererTask, screen, frameTime);
+	rendererTask.clientWaitSync(std::exchange(presentFence, {}));
 	auto lockedBuff = texture.lock();
-	rendererTask.acquireFenceAndWait(fence);
 	IG::Pixmap pix = lockedBuff.pixmap();
 	if(flash)
 	{
@@ -297,15 +299,14 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &s
 			writeColor = IG::PIXEL_DESC_RGB565.build(.7, .0, .0, 1.);
 		iterateTimes(pix.w() * pix.h(), i)
 		{
-			((uint16_t*)pix.pixel({}))[i] = writeColor;
+			((uint16_t*)pix.data())[i] = writeColor;
 		}
 	}
 	else
 	{
-		memset(pix.pixel({}), 0, pix.pitchBytes() * pix.h());
+		memset(pix.data(), 0, pix.pitchBytes() * pix.h());
 	}
 	texture.unlock(lockedBuff);
-	texture.renderer().queueResourceSyncFence();
 }
 
 void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
@@ -318,10 +319,6 @@ void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
 	sprite.setCommonProgram(cmds, Gfx::IMG_MODE_REPLACE);
 	sprite.draw(cmds);
-	fence = cmds.replaceSyncFence(fence);
 }
 
-WriteTest::~WriteTest()
-{
-	texture.renderer().deleteSyncFence(fence);
-}
+WriteTest::~WriteTest() {}

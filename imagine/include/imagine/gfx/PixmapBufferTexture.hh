@@ -24,6 +24,9 @@
 namespace Gfx
 {
 
+class Renderer;
+class RendererTask;
+
 // A limited 1-level version of PixmapTexture with dedicated pixel buffer for frequent data transfer
 
 class PixmapBufferTexture: public PixmapBufferTextureImpl
@@ -35,7 +38,7 @@ public:
 	static constexpr uint32_t BUFFER_FLAG_CLEARED = Texture::BUFFER_FLAG_CLEARED;
 
 	using PixmapBufferTextureImpl::PixmapBufferTextureImpl;
-	PixmapBufferTexture(Renderer &r, TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false, IG::ErrorCode *errorPtr = nullptr);
+	PixmapBufferTexture(RendererTask &, TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false, IG::ErrorCode *errorPtr = nullptr);
 	IG::ErrorCode setFormat(IG::PixmapDesc desc);
 	void write(IG::Pixmap pixmap, uint32_t writeFlags = 0);
 	void writeAligned(IG::Pixmap pixmap, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
@@ -47,7 +50,7 @@ public:
 	IG::PixmapDesc usedPixmapDesc() const;
 	bool compileDefaultProgram(uint32_t mode) const;
 	explicit operator bool() const;
-	Renderer &renderer();
+	Renderer &renderer() const;
 	operator TextureSpan() const;
 	operator const Texture&() const;
 	bool isExternal() const;

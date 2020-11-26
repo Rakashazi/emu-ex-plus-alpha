@@ -20,32 +20,32 @@ namespace Gfx
 
 Texture Renderer::makeTexture(TextureConfig config)
 {
-	return {*this, config};
+	return {task(), config};
 }
 
 Texture Renderer::makeTexture(GfxImageSource &img, bool makeMipmaps)
 {
-	return {*this, img, makeMipmaps};
+	return {task(), img, makeMipmaps};
 }
 
 PixmapTexture Renderer::makePixmapTexture(TextureConfig config)
 {
-	return {*this, config};
+	return {task(), config};
 }
 
 PixmapTexture Renderer::makePixmapTexture(GfxImageSource &img, bool makeMipmaps)
 {
-	return {*this, img, makeMipmaps};
+	return {task(), img, makeMipmaps};
 }
 
 PixmapBufferTexture Renderer::makePixmapBufferTexture(TextureConfig config, TextureBufferMode mode, bool singleBuffer)
 {
-	return {*this, config, mode, singleBuffer};
+	return {task(), config, mode, singleBuffer};
 }
 
 TextureSampler Renderer::makeTextureSampler(TextureSamplerConfig config)
 {
-	return {*this, config};
+	return {task(), config};
 }
 
 TextureSampler &GLRenderer::commonTextureSampler(CommonTextureSampler sampler)

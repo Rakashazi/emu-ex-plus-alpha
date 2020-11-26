@@ -44,32 +44,32 @@ std::pair<bool, GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, G
 		// need at least Android 4.3 to use ES 3 attributes
 		return {false, {}};
 	}
-	auto [found, eglConfig] = chooseConfig(display.eglDisplay(), ctxAttr, attr);
+	auto [found, eglConfig] = chooseConfig(display, ctxAttr, attr);
 	return {found, eglConfig};
 }
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec):
-	AndroidGLContext{display.eglDisplay(), attr, config, EGL_NO_CONTEXT, ec}
+	AndroidGLContext{display, attr, config, EGL_NO_CONTEXT, ec}
 {}
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, IG::ErrorCode &ec):
-	AndroidGLContext{display.eglDisplay(), attr, config, shareContext.nativeObject(), ec}
+	AndroidGLContext{display, attr, config, shareContext.nativeObject(), ec}
 {}
 
 void GLContext::deinit(GLDisplay display)
 {
-	EGLContextBase::deinit(display.eglDisplay());
+	EGLContextBase::deinit(display);
 }
 
 void GLContext::setCurrent(GLDisplay display, GLContext c, GLDrawable win)
 {
-	setCurrentContext(display.eglDisplay(), c.context, win);
+	setCurrentContext(display, c.context, win);
 }
 
 void GLContext::present(GLDisplay display, GLDrawable win)
 {
 	// check if buffer swap blocks even though triple-buffering is used
-	auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display.eglDisplay(), win); });
+	auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display, win); });
 	if(swapBuffersIsAsync() && swapTime > IG::Milliseconds(16))
 	{
 		logWarn("buffer swap took %lldns", (long long)swapTime.count());
@@ -86,10 +86,9 @@ bool AndroidGLContext::swapBuffersIsAsync()
 	return Base::androidSDK() >= 16;
 }
 
-Base::NativeWindowFormat EGLBufferConfig::windowFormat(GLDisplay display_)
+Base::NativeWindowFormat EGLBufferConfig::windowFormat(GLDisplay display) const
 {
 	EGLint nId;
-	auto display = display_.eglDisplay();
 	eglGetConfigAttrib(display, glConfig, EGL_NATIVE_VISUAL_ID, &nId);
 	if(!nId)
 	{

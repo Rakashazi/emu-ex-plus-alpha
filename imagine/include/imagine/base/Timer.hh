@@ -33,8 +33,10 @@ namespace Base
 struct Timer : public TimerImpl
 {
 public:
-	using TimerImpl::TimerImpl;
+	struct NullInit{};
 
+	using TimerImpl::TimerImpl;
+	explicit constexpr Timer(NullInit) {}
 	Timer() : Timer{CallbackDelegate{}} {}
 	Timer(const char *debugLabel): Timer{debugLabel, CallbackDelegate{}} {}
 	void run(Time time, Time repeatTime, EventLoop loop = {}, CallbackDelegate c = {});

@@ -31,17 +31,17 @@ struct LGradientStopDesc
 class LGradient
 {
 public:
-	LGradient() {}
+	constexpr LGradient() {}
 
-	void draw(RendererCommands &r);
+	void draw(RendererCommands &r) const;
 	void setColor(ColorComp r, ColorComp g, ColorComp b);
 	void setTranslucent(ColorComp a);
 	void setColorStop(ColorComp r, ColorComp g, ColorComp b, uint32_t i);
 	void setTranslucentStop(ColorComp a, uint32_t i);
 	void setPos(const LGradientStopDesc *stop, uint32_t stops, GC x, GC y, GC x2, GC y2);
 	void setPos(const LGradientStopDesc *stop, uint32_t stops, const GCRect &d);
-	uint32_t stops();
-	explicit operator bool();
+	uint32_t stops() const;
+	explicit operator bool() const;
 
 protected:
 	GeomQuadMesh g{};

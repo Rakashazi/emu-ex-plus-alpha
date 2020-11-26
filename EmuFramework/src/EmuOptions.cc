@@ -146,8 +146,8 @@ bool imageEffectPixelFormatIsValid(uint8_t val)
 Byte1Option optionImageEffectPixelFormat(CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT, IG::PIXEL_NONE, 0, imageEffectPixelFormatIsValid);
 #endif
 
-Byte1Option optionGPUMultiThreading{CFGKEY_GPU_MULTITHREADING, 0, 0,
-	optionIsValidWithMax<(int)Gfx::Renderer::ThreadMode::MULTI>};
+Byte1Option optionVideoImageBuffers{CFGKEY_VIDEO_IMAGE_BUFFERS, 0, 0,
+	optionIsValidWithMax<2>};
 
 #if 0
 Byte4Option optionRelPointerDecel(CFGKEY_REL_POINTER_DECEL, optionRelPointerDecelMed,

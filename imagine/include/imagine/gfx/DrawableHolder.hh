@@ -26,12 +26,17 @@
 namespace Gfx
 {
 
+class RendererTask;
+
 class DrawableHolder : public DrawableHolderImpl
 {
 public:
 	constexpr DrawableHolder() {}
+	operator Drawable() const;
+	explicit operator bool() const;
 	bool addOnFrame(Base::OnFrameDelegate del, int priority = 0);
 	bool removeOnFrame(Base::OnFrameDelegate del);
+	void dispatchOnFrame();
 };
 
 }

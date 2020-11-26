@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureConfig.hh>
-#include <imagine/gfx/TextureSamplerConfig.hh>
 #include <imagine/util/typeTraits.hh>
 #ifdef __ANDROID__
 #include <EGL/egl.h>
@@ -31,33 +30,14 @@ namespace Gfx
 {
 
 class Renderer;
+class RendererTask;
 class RendererCommands;
 class TextureSampler;
 
-enum { TEX_UNSET, TEX_2D_1, TEX_2D_2, TEX_2D_4, TEX_2D_EXTERNAL };
-
-class GLTextureSampler
+enum class TextureType : uint8_t
 {
-public:
-	constexpr GLTextureSampler() {}
-	GLTextureSampler(Renderer &r, TextureSamplerConfig config);
-	~GLTextureSampler();
-	void setTexParams(GLenum target) const;
-	void deinit();
-	GLuint name() const;
-	const char *label() const;
-
-protected:
-	Renderer *r{};
-	GLuint name_ = 0;
-	uint16_t minFilter = 0;
-	uint16_t magFilter = 0;
-	uint16_t xWrapMode_ = 0;
-	uint16_t yWrapMode_ = 0;
-	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
+	UNSET, T2D_1, T2D_2, T2D_4, T2D_EXTERNAL
 };
-
-using TextureSamplerImpl = GLTextureSampler;
 
 class GLLockedTextureBuffer
 {
@@ -88,25 +68,25 @@ class GLTexture
 {
 public:
 	constexpr GLTexture() {}
-	constexpr GLTexture(Renderer &r):r{&r} {}
+	constexpr GLTexture(RendererTask &rTask):rTask{&rTask} {}
 	~GLTexture();
 	GLuint texName() const;
 	void bindTex(RendererCommands &cmds, const TextureSampler &sampler) const;
 
 protected:
-	Renderer *r{};
+	RendererTask *rTask{};
 	TextureRef texName_ = 0;
 	mutable GLuint sampler = 0; // used when separate sampler objects not supported
 	IG::PixmapDesc pixDesc;
 	uint8_t levels_ = 0;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	uint8_t type_ = TEX_UNSET;
+	TextureType type_ = TextureType::UNSET;
 	#else
-	static constexpr uint8_t type_ = TEX_2D_4;
+	static constexpr TextureType type_ = TextureType::T2D_4;
 	#endif
 
-	IG::ErrorCode init(Renderer &r, TextureConfig config);
-	TextureConfig baseInit(Renderer &r, TextureConfig config);
+	IG::ErrorCode init(RendererTask &r, TextureConfig config);
+	TextureConfig baseInit(RendererTask &r, TextureConfig config);
 	void deinit();
 	bool canUseMipmaps(const Renderer &r) const;
 	void updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum target = GL_TEXTURE_2D);

@@ -42,7 +42,8 @@ public:
 	using FrameFinishedDelegate = DelegateFunc<void (EmuVideo &)>;
 	using FormatChangedDelegate = DelegateFunc<void (EmuVideo &)>;
 
-	EmuVideo(Gfx::RendererTask &rTask): rTask{rTask} {}
+	constexpr EmuVideo() {}
+	void setRendererTask(Gfx::RendererTask &rTask);
 	void setFormat(IG::PixmapDesc desc);
 	void resetImage();
 	IG::PixmapDesc deleteImage();
@@ -53,29 +54,33 @@ public:
 	void startUnchangedFrame(EmuSystemTask *task);
 	void finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff);
 	void finishFrame(EmuSystemTask *task, IG::Pixmap pix);
-	void waitAsyncFrame();
-	void addFence(Gfx::RendererCommands &cmds);
+	bool addFence(Gfx::RendererCommands &cmds);
 	void clear();
 	void takeGameScreenshot();
-	bool isExternalTexture();
+	bool isExternalTexture() const;
 	Gfx::PixmapBufferTexture &image();
-	Gfx::Renderer &renderer();
+	Gfx::Renderer &renderer() const;
 	IG::WP size() const;
 	bool formatIsEqual(IG::PixmapDesc desc) const;
 	void setOnFrameFinished(FrameFinishedDelegate del);
 	void setOnFormatChanged(FormatChangedDelegate del);
 	bool setTextureBufferMode(Gfx::TextureBufferMode mode);
+	bool setImageBuffers(unsigned num);
+	unsigned imageBuffers() const;
 
 protected:
-	Gfx::RendererTask &rTask;
+	Gfx::RendererTask *rTask{};
 	Gfx::SyncFence fence{};
 	Gfx::PixmapBufferTexture vidImg{};
 	FrameFinishedDelegate onFrameFinished{};
 	FormatChangedDelegate onFormatChanged{};
-	bool screenshotNextFrame = false;
 	Gfx::TextureBufferMode bufferMode{};
+	bool screenshotNextFrame = false;
+	bool singleBuffer = false;
+	bool needsFence = false;
 
 	void doScreenshot(EmuSystemTask *task, IG::Pixmap pix);
 	void dispatchFinishFrame(EmuSystemTask *task);
 	void postSetFormat(EmuSystemTask &task, IG::PixmapDesc desc);
+	void syncImageAccess();
 };

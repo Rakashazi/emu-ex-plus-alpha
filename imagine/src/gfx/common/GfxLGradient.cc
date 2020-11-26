@@ -20,7 +20,7 @@
 namespace Gfx
 {
 
-void LGradient::draw(RendererCommands &cmds)
+void LGradient::draw(RendererCommands &cmds) const
 {
 	g.draw(cmds);
 }
@@ -79,12 +79,12 @@ void LGradient::setPos(const LGradientStopDesc *stop, uint32_t stops, const GCRe
 	 setPos(stop, stops, d.x, d.y2, d.x2, d.y);
 }
 
-uint32_t LGradient::stops()
+uint32_t LGradient::stops() const
 {
 	return stops_;
 }
 
-LGradient::operator bool()
+LGradient::operator bool() const
 {
 	return stops_;
 }

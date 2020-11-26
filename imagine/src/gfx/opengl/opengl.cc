@@ -15,6 +15,7 @@
 
 #define LOGTAG "GLRenderer"
 #include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/DrawableHolder.hh>
 #include <imagine/logger/logger.h>
@@ -26,13 +27,8 @@
 #include <imagine/util/string.h>
 #include "private.hh"
 #include "utils.h"
-
-#ifndef GL_SYNC_GPU_COMMANDS_COMPLETE
-#define GL_SYNC_GPU_COMMANDS_COMPLETE 0x9117
-#endif
-
-#ifndef GL_TIMEOUT_IGNORED
-#define GL_TIMEOUT_IGNORED 0xFFFFFFFFFFFFFFFFull
+#ifdef __ANDROID__
+#include <imagine/base/platformExtras.hh>
 #endif
 
 #ifndef GL_DEBUG_TYPE_ERROR
@@ -76,27 +72,11 @@ namespace Gfx
 
 bool checkGLErrors = Config::DEBUG_BUILD;
 bool checkGLErrorsVerbose = false;
-static constexpr bool useGLCache = true;
-
-void GLRenderer::verifyCurrentResourceContext()
-{
-	if(!Config::DEBUG_BUILD)
-		return;
-	auto currentCtx = Base::GLContext::current(glDpy);
-	if(unlikely(gfxResourceContext != currentCtx))
-	{
-		bug_unreachable("expected GL context:%p but current is:%p", gfxResourceContext.nativeObject(), currentCtx.nativeObject());
-	}
-}
 
 void Renderer::releaseShaderCompiler()
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	runGLTask(
-		[]()
-		{
-			glReleaseShaderCompiler();
-		});
+	task().releaseShaderCompiler();
 	#endif
 }
 
@@ -105,116 +85,6 @@ void Renderer::autoReleaseShaderCompiler()
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	releaseShaderCompilerEvent.notify();
 	#endif
-}
-
-void Renderer::queueResourceSyncFence()
-{
-	if(!useSeparateDrawContext)
-		return; // no-op
-	if(!resourceUpdate)
-	{
-		logWarn("called queueResourceSyncFence() with no pending resource updates");
-	}
-	resourceUpdate = false;
-	if(resourceFenceQueued)
-	{
-		logMsg("waiting for previously queued resource fence");
-		resourceFenceSem.wait();
-	}
-	runGLTask(
-		[this]()
-		{
-			resourceFence = support.glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-			resourceFenceSem.notify();
-			glFlush();
-		});
-	resourceFenceQueued = true;
-}
-
-SyncFence Renderer::addResourceSyncFence()
-{
-	if(!useSeparateDrawContext)
-		return {}; // no-op
-	if(resourceFenceQueued)
-	{
-		resourceFenceQueued = false;
-		resourceFenceSem.wait();
-		if(resourceUpdate) // resources have been updated since call to queueResourceSyncFence()
-		{
-			logWarn("skipping queued resource fence");
-			resourceUpdate = false;
-			return addSyncFence();
-		}
-		return resourceFence;
-	}
-	else if(resourceUpdate)
-	{
-		resourceUpdate = false;
-		return addSyncFence();
-	}
-	return {};
-}
-
-SyncFence Renderer::addSyncFence()
-{
-	if(!useSeparateDrawContext)
-		return {}; // no-op
-	assumeExpr(support.hasSyncFences());
-	GLsync sync;
-	runGLTaskSync(
-		[this, &sync]()
-		{
-			sync = support.glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-			glFlush();
-		});
-	return sync;
-}
-
-void Renderer::deleteSyncFence(SyncFence fence)
-{
-	if(!fence.sync)
-		return;
-	assumeExpr(support.hasSyncFences());
-	runGLTask(
-		[this, sync = fence.sync]()
-		{
-			support.glDeleteSync(sync);
-		});
-}
-
-void Renderer::clientWaitSync(SyncFence fence, uint64_t timeout)
-{
-	if(!fence.sync)
-		return;
-	assumeExpr(support.hasSyncFences());
-	runGLTask(
-		[this, sync = fence.sync, timeout]()
-		{
-			support.glClientWaitSync(sync, 0, timeout);
-			support.glDeleteSync(sync);
-		});
-}
-
-void Renderer::waitSync(SyncFence fence)
-{
-	if(!fence.sync)
-		return;
-	assumeExpr(support.hasSyncFences());
-	runGLTask(
-		[this, sync = fence.sync]()
-		{
-			support.glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
-			support.glDeleteSync(sync);
-		});
-}
-
-void Renderer::flush()
-{
-	runGLTask(
-		[]()
-		{
-			glFlush();
-		});
 }
 
 void Renderer::setCorrectnessChecks(bool on)
@@ -295,7 +165,7 @@ void Renderer::setDebugOutput(bool on)
 	{
 		return;
 	}
-	runGLTaskSync(
+	task().runSync(
 		[this, on]()
 		{
 			setGLDebugOutput(support, on);
@@ -347,145 +217,32 @@ ClipRect Renderer::makeClipRect(const Base::Window &win, IG::WindowRect rect)
 	return {x, y, w, h};
 }
 
-void GLDrawableHolder::makeDrawable(Renderer &r, Base::Window &win)
+bool Renderer::supportsSyncFences() const
 {
-	destroyDrawable(r);
-	screen = win.screen();
-	auto [ec, drawable] = r.glDpy.makeDrawable(win, r.gfxBufferConfig);
-	if(ec)
-	{
-		logErr("Error creating GL drawable");
+	return support.hasSyncFences();
+}
+
+void Renderer::setPresentationTime(Drawable drawable, IG::FrameTime time) const
+{
+	#ifdef __ANDROID__
+	if(!support.eglPresentationTimeANDROID)
 		return;
-	}
-	drawable_ = drawable;
-	onResume =
-		[drawable = drawable](bool focused) mutable
-		{
-			drawable.restoreCaches();
-			return true;
-		};
-	Base::addOnResume(onResume, Base::RENDERER_DRAWABLE_ON_RESUME_PRIORITY);
-	onExit =
-		[this, glDpy = r.glDpy](bool backgrounded) mutable
-		{
-			if(backgrounded)
-			{
-				drawFinishedEvent.cancel();
-				drawable_.freeCaches();
-			}
-			else
-				glDpy.deleteDrawable(drawable_);
-			return true;
-		};
-	Base::addOnExit(onExit, Base::RENDERER_DRAWABLE_ON_EXIT_PRIORITY);
-	drawFinishedEvent.attach(
-		[this]()
-		{
-			auto now = IG::steadyClockTimestamp();
-			FrameParams frameParams{now, lastTimestamp, screen->frameTime()};
-			onFrame.runAll([&](Base::OnFrameDelegate del){ return del(frameParams); });
-			lastTimestamp = now;
-		});
-}
-
-void GLDrawableHolder::destroyDrawable(Renderer &r)
-{
-	if(!drawable_)
-		return;
-	r.glDpy.deleteDrawable(drawable_);
-	drawable_ = {};
-	Base::removeOnExit(onResume);
-	Base::removeOnExit(onExit);
-	drawFinishedEvent.detach();
-	lastTimestamp = {};
-}
-
-bool DrawableHolder::addOnFrame(Base::OnFrameDelegate del, int priority)
-{
-	if(!onFrame.size())
+	bool success = support.eglPresentationTimeANDROID(glDpy, drawable, time.count());
+	if(Config::DEBUG_BUILD && !success)
 	{
-		// reset time-stamp when first delegate is added
-		lastTimestamp = {};
+		logErr("error:%s in eglPresentationTimeANDROID(%p, %llu)",
+			glDpy.errorString(eglGetError()), (EGLSurface)drawable, (unsigned long long)time.count());
 	}
-	return onFrame.add(del, priority);
+	#endif
 }
 
-bool DrawableHolder::removeOnFrame(Base::OnFrameDelegate del)
+unsigned Renderer::maxSwapChainImages() const
 {
-	return onFrame.remove(del);
-}
-
-void GLDrawableHolder::notifyOnFrame()
-{
-	if(onFrame.size())
-	{
-		drawFinishedEvent.notify();
-	}
-}
-
-#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-void GLRendererCommands::glcMatrixMode(GLenum mode)
-{ if(useGLCache) glState.matrixMode(mode); else glMatrixMode(mode); }
-#endif
-
-void GLRendererCommands::glcBindTexture(GLenum target, GLuint texture)
-{ if(useGLCache) glState.bindTexture(target, texture); else glBindTexture(target, texture); }
-void GLRendererCommands::glcBlendFunc(GLenum sfactor, GLenum dfactor)
-{ if(useGLCache) glState.blendFunc(sfactor, dfactor); else glBlendFunc(sfactor, dfactor); }
-void GLRendererCommands::glcBlendEquation(GLenum mode)
-{ if(useGLCache) glState.blendEquation(mode); else glBlendEquation(mode); }
-void GLRendererCommands::glcEnable(GLenum cap)
-{ if(useGLCache) glState.enable(cap); else glEnable(cap); }
-void GLRendererCommands::glcDisable(GLenum cap)
-{ if(useGLCache) glState.disable(cap); else glDisable(cap); }
-
-GLboolean GLRendererCommands::glcIsEnabled(GLenum cap)
-{
-	if(useGLCache)
-		return glState.isEnabled(cap);
-	else
-		return glIsEnabled(cap);
-}
-
-#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-void GLRendererCommands::glcEnableClientState(GLenum cap)
-{ if(useGLCache) glState.enableClientState(cap); else glEnableClientState(cap); }
-void GLRendererCommands::glcDisableClientState(GLenum cap)
-{ if(useGLCache) glState.disableClientState(cap); else glDisableClientState(cap); }
-void GLRendererCommands::glcTexEnvi(GLenum target, GLenum pname, GLint param)
-{ if(useGLCache) glState.texEnvi(target, pname, param); else glTexEnvi(target, pname, param); }
-void GLRendererCommands::glcTexEnvfv(GLenum target, GLenum pname, const GLfloat *params)
-{ if(useGLCache) glState.texEnvfv(target, pname, params); else glTexEnvfv(target, pname, params); }
-void GLRendererCommands::glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
-{
-	if(useGLCache)
-		glState.color4f(red, green, blue, alpha);
-	else
-	{
-		glColor4f(red, green, blue, alpha);
-		glState.colorState[0] = red; glState.colorState[1] = green; glState.colorState[2] = blue; glState.colorState[3] = alpha; // for color()
-	}
-}
-#endif
-
-bool GLRenderer::hasGLTask() const
-{
-	return mainTask && mainTask->isStarted();
-}
-
-void GLRenderer::runGLTask2(GLMainTask::FuncDelegate del, bool awaitReply)
-{
-	mainTask->runFunc(del, awaitReply);
-}
-
-void Renderer::waitAsyncCommands()
-{
-	runGLTaskSync([](){});
-}
-
-SyncFence::operator bool() const
-{
-	return sync;
+	#ifdef __ANDROID__
+	if(Base::androidSDK() < 18)
+		return 2;
+	#endif
+	return 3; // assume triple-buffering by default
 }
 
 }

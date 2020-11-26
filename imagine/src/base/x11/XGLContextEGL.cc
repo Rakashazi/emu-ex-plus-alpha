@@ -47,32 +47,32 @@ bool GLDisplay::bindAPI(API api)
 // GLContext
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec):
-	XGLContext{display.eglDisplay(), attr, config, EGL_NO_CONTEXT, ec}
+	XGLContext{display, attr, config, EGL_NO_CONTEXT, ec}
 {}
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, IG::ErrorCode &ec):
-	XGLContext{display.eglDisplay(), attr, config, shareContext.nativeObject(), ec}
+	XGLContext{display, attr, config, shareContext.nativeObject(), ec}
 {}
 
 void GLContext::deinit(GLDisplay display)
 {
-	EGLContextBase::deinit(display.eglDisplay());
+	EGLContextBase::deinit(display);
 }
 
 void GLContext::setCurrent(GLDisplay display, GLContext context, GLDrawable win)
 {
-	setCurrentContext(display.eglDisplay(), context.context, win);
+	setCurrentContext(display, context.context, win);
 }
 
 std::pair<bool, GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
 {
-	auto [found, eglConfig] = chooseConfig(display.eglDisplay(), ctxAttr, attr);
+	auto [found, eglConfig] = chooseConfig(display, ctxAttr, attr);
 	return {found, eglConfig};
 }
 
 void GLContext::present(GLDisplay display, GLDrawable win)
 {
-	auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display.eglDisplay(), win); });
+	auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display, win); });
 	if(swapBuffersIsAsync() && swapTime >= IG::Milliseconds(16))
 	{
 		logWarn("buffer swap took %lldns", (long long)swapTime.count());
@@ -89,13 +89,13 @@ bool XGLContext::swapBuffersIsAsync()
 	return !Config::MACHINE_IS_PANDORA;
 }
 
-Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay display)
+Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay display) const
 {
 	if(Config::MACHINE_IS_PANDORA)
 		return nullptr;
 	// get matching x visual
 	EGLint nativeID;
-	eglGetConfigAttrib(display.eglDisplay(), glConfig, EGL_NATIVE_VISUAL_ID, &nativeID);
+	eglGetConfigAttrib(display, glConfig, EGL_NATIVE_VISUAL_ID, &nativeID);
 	XVisualInfo viTemplate{};
 	viTemplate.visualid = nativeID;
 	int visuals;

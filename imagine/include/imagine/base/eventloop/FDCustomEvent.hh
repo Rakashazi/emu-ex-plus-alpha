@@ -25,6 +25,9 @@ namespace Base
 class FDCustomEvent
 {
 public:
+	struct NullInit{};
+
+	explicit constexpr FDCustomEvent(NullInit) {}
 	FDCustomEvent() : FDCustomEvent{nullptr} {}
 	FDCustomEvent(const char *debugLabel);
 	FDCustomEvent(FDCustomEvent &&o);

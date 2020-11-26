@@ -16,28 +16,28 @@
 #define LOGTAG "RendererCmds"
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/DrawableHolder.hh>
+#include <imagine/gfx/Program.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/logger/logger.h>
 #include "private.hh"
-
-#ifndef GL_SYNC_GPU_COMMANDS_COMPLETE
-#define GL_SYNC_GPU_COMMANDS_COMPLETE 0x9117
-#endif
-
-#ifndef GL_TIMEOUT_IGNORED
-#define GL_TIMEOUT_IGNORED 0xFFFFFFFFFFFFFFFFull
-#endif
 
 namespace Gfx
 {
 
-RendererCommands::RendererCommands(RendererDrawTask &rTask, Drawable drawable):
-	rTask{&rTask}, r{&rTask.renderer()}, drawable{drawable}
+static constexpr bool useGLCache = true;
+
+GLRendererCommands::GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, DrawableHolder &drawableHolder, Base::GLDisplay glDpy,
+		IG::Semaphore *drawCompleteSemPtr, bool notifySemaphoreAfterPresent):
+	rTask{&rTask}, r{&rTask.renderer()}, drawCompleteSemPtr{drawCompleteSemPtr},
+	winPtr{winPtr}, drawableHolderPtr{&drawableHolder}, glDpy{glDpy}, drawable{drawableHolder},
+	notifySemaphoreAfterPresent{notifySemaphoreAfterPresent}
 {
 	assumeExpr(drawable);
-	rTask.setCurrentDrawable(drawable);
+	setCurrentDrawable(drawable);
 	if(Config::DEBUG_BUILD && defaultToFullErrorChecks)
 	{
-		setDebugOutput(true);
+		static_cast<RendererCommands*>(this)->setDebugOutput(true);
 	}
 }
 
@@ -49,10 +49,18 @@ RendererCommands::RendererCommands(RendererCommands &&o)
 RendererCommands &RendererCommands::operator=(RendererCommands &&o)
 {
 	RendererCommandsImpl::operator=(o);
-	rTask = std::exchange(o.rTask, {});
-	r = std::exchange(o.r, {});
-	drawable = std::exchange(o.drawable, {});
+	o.rTask = {};
+	o.r = {};
+	o.drawableWasPresented = {};
 	return *this;
+}
+
+RendererCommands::~RendererCommands()
+{
+	if(drawableWasPresented)
+	{
+		notifyPresentComplete();
+	}
 }
 
 void GLRendererCommands::discardTemporaryData() {}
@@ -66,6 +74,63 @@ void GLRendererCommands::bindGLArrayBuffer(GLuint vbo)
 	arrayBufferIsSet = true;
 }
 
+void GLRendererCommands::setCurrentDrawable(Drawable drawable)
+{
+	auto glCtx = rTask->glContext();
+	assert(glCtx);
+	assert(glCtx == Base::GLContext::current(glDpy));
+	if(rTask->handleDrawableReset() || !Base::GLContext::isCurrentDrawable(glDpy, drawable))
+	{
+		glCtx.setDrawable(glDpy, drawable, glCtx);
+	}
+}
+
+void GLRendererCommands::present(Drawable win)
+{
+	rTask->glContext().present(glDpy, win, rTask->glContext());
+}
+
+void GLRendererCommands::doPresent()
+{
+	rTask->verifyCurrentContext(glDpy);
+	if(Config::envIsAndroid && r->support.hasSamplerObjects)
+	{
+		// reset sampler object at the end of frame, fixes blank screen
+		// on Android SDK emulator when using mipmaps
+		r->support.glBindSampler(0, 0);
+	}
+	discardTemporaryData();
+	present(drawable);
+	drawableWasPresented = true;
+}
+
+void GLRendererCommands::notifyDrawComplete()
+{
+	if(!notifySemaphoreAfterPresent && drawCompleteSemPtr)
+	{
+		drawCompleteSemPtr->notify();
+	}
+}
+
+void GLRendererCommands::notifyPresentComplete()
+{
+	drawableHolderPtr->notifyOnFrame();
+	if(winPtr)
+	{
+		winPtr->deferredDrawComplete();
+	}
+	if(notifySemaphoreAfterPresent)
+	{
+		assumeExpr(drawCompleteSemPtr);
+		drawCompleteSemPtr->notify();
+	}
+}
+
+void GLRendererCommands::setCachedProjectionMatrix(Mat4 mat)
+{
+	projectionMat = mat;
+}
+
 void RendererCommands::bindTempVertexBuffer()
 {
 	if(renderer().support.hasVBOFuncs)
@@ -74,74 +139,68 @@ void RendererCommands::bindTempVertexBuffer()
 	}
 }
 
+void RendererCommands::flush()
+{
+	rTask->verifyCurrentContext(glDpy);
+	glFlush();
+}
+
 void RendererCommands::present()
 {
-	rTask->notifySemaphore();
-	rTask->verifyCurrentContext();
-	if(Config::envIsAndroid && renderer().support.hasSamplerObjects)
-	{
-		// reset sampler object at the end of frame, fixes blank screen
-		// on Android SDK emulator when using mipmaps
-		renderer().support.glBindSampler(0, 0);
-	}
-	discardTemporaryData();
-	rTask->present(drawable);
+	notifyDrawComplete();
+	doPresent();
 }
 
 SyncFence RendererCommands::addSyncFence()
 {
-	if(!renderer().useSeparateDrawContext)
+	if(!renderer().support.hasSyncFences())
 		return {}; // no-op
-	assumeExpr(renderer().support.hasSyncFences());
-	rTask->verifyCurrentContext();
-	return renderer().support.glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-}
-
-SyncFence RendererCommands::replaceSyncFence(SyncFence fence)
-{
-	deleteSyncFence(fence);
-	return addSyncFence();
+	rTask->verifyCurrentContext(glDpy);
+	return renderer().support.fenceSync(glDpy);
 }
 
 void RendererCommands::deleteSyncFence(SyncFence fence)
 {
 	if(!fence.sync)
 		return;
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	assert(renderer().support.hasSyncFences());
-	renderer().support.glDeleteSync(fence.sync);
+	renderer().support.deleteSync(glDpy, fence.sync);
 }
 
-void RendererCommands::clientWaitSync(SyncFence fence, uint64_t timeout)
+void RendererCommands::clientWaitSync(SyncFence fence, int flags, std::chrono::nanoseconds timeout)
 {
 	if(!fence.sync)
 		return;
-	rTask->verifyCurrentContext();
-	assert(renderer().support.hasSyncFences());
-	renderer().support.glClientWaitSync(fence.sync, 0, timeout);
-	renderer().support.glDeleteSync(fence.sync);
+	rTask->verifyCurrentContext(glDpy);
+	auto &r = renderer();
+	assert(r.support.hasSyncFences());
+	//logDMsg("waiting on sync:%p flush:%s timeout:0%llX", fence.sync, flags & 1 ? "yes" : "no", (unsigned long long)timeout);
+	r.support.clientWaitSync(glDpy, fence.sync, flags, timeout.count());
+	r.support.deleteSync(glDpy, fence.sync);
+}
+
+SyncFence RendererCommands::clientWaitSyncReset(SyncFence oldFence, int flags, std::chrono::nanoseconds timeout)
+{
+	rTask->verifyCurrentContext(glDpy);
+	clientWaitSync(oldFence, flags, timeout);
+	return addSyncFence();
 }
 
 void RendererCommands::waitSync(SyncFence fence)
 {
 	if(!fence.sync)
 		return;
-	rTask->verifyCurrentContext();
-	assert(renderer().support.hasSyncFences());
-	renderer().support.glWaitSync(fence.sync, 0, GL_TIMEOUT_IGNORED);
-	renderer().support.glDeleteSync(fence.sync);
-}
-
-void RendererCommands::setDrawable(Drawable drawable)
-{
-	rTask->verifyCurrentContext();
-	rTask->setCurrentDrawable(drawable);
-	this->drawable = drawable;
+	rTask->verifyCurrentContext(glDpy);
+	auto &r = renderer();
+	assert(r.support.hasSyncFences());
+	r.support.waitSync(glDpy, fence.sync);
+	r.support.deleteSync(glDpy, fence.sync);
 }
 
 void RendererCommands::setRenderTarget(Texture &texture)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	auto id = rTask->bindFramebuffer(texture);
 	if(Config::DEBUG_BUILD && glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
@@ -151,8 +210,8 @@ void RendererCommands::setRenderTarget(Texture &texture)
 
 void RendererCommands::setDefaultRenderTarget()
 {
-	rTask->verifyCurrentContext();
-	glBindFramebuffer(GL_FRAMEBUFFER, rTask->defaultFramebuffer());
+	rTask->verifyCurrentContext(glDpy);
+	glBindFramebuffer(GL_FRAMEBUFFER, rTask->defaultFBO());
 }
 
 Renderer &RendererCommands::renderer() const
@@ -162,7 +221,7 @@ Renderer &RendererCommands::renderer() const
 
 void RendererCommands::setBlend(bool on)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	if(on)
 		glcEnable(GL_BLEND);
 	else
@@ -171,13 +230,13 @@ void RendererCommands::setBlend(bool on)
 
 void RendererCommands::setBlendFunc(BlendFunc s, BlendFunc d)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	glcBlendFunc((GLenum)s, (GLenum)d);
 }
 
 void RendererCommands::setBlendMode(uint32_t mode)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	switch(mode)
 	{
 		bcase BLEND_MODE_OFF:
@@ -194,7 +253,7 @@ void RendererCommands::setBlendMode(uint32_t mode)
 
 void RendererCommands::setBlendEquation(uint32_t mode)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	#if !defined CONFIG_GFX_OPENGL_ES \
 		|| (defined CONFIG_BASE_IOS || defined __ANDROID__)
 	glcBlendEquation(mode == BLEND_EQ_ADD ? GL_FUNC_ADD :
@@ -206,7 +265,7 @@ void RendererCommands::setBlendEquation(uint32_t mode)
 
 void RendererCommands::setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{
@@ -223,7 +282,7 @@ void RendererCommands::setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, C
 
 void RendererCommands::setZTest(bool on)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	if(on)
 	{
 		glcEnable(GL_DEPTH_TEST);
@@ -236,7 +295,7 @@ void RendererCommands::setZTest(bool on)
 
 void RendererCommands::setZBlend(bool on)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	//	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	//	if(support.useFixedFunctionPipeline)
 	//	{
@@ -267,7 +326,7 @@ void RendererCommands::setZBlend(bool on)
 
 void RendererCommands::setZBlendColor(ColorComp r, ColorComp g, ColorComp b)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{
@@ -283,13 +342,13 @@ void RendererCommands::setZBlendColor(ColorComp r, ColorComp g, ColorComp b)
 
 void RendererCommands::clear()
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
 void RendererCommands::setClearColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	//GLfloat c[4] = {r, g, b, a};
 	//logMsg("setting clear color %f %f %f %f", (float)r, (float)g, (float)b, (float)a);
 	glClearColor(r, g, b, a);
@@ -297,7 +356,7 @@ void RendererCommands::setClearColor(ColorComp r, ColorComp g, ColorComp b, Colo
 
 void RendererCommands::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{
@@ -320,7 +379,7 @@ void RendererCommands::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp
 
 std::array<ColorComp, 4> RendererCommands::color() const
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{
@@ -333,7 +392,7 @@ std::array<ColorComp, 4> RendererCommands::color() const
 
 void RendererCommands::setImgMode(uint32_t mode)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{
@@ -352,7 +411,7 @@ void RendererCommands::setImgMode(uint32_t mode)
 
 void RendererCommands::setDither(bool on)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	if(on)
 		glcEnable(GL_DITHER);
 	else
@@ -364,13 +423,13 @@ void RendererCommands::setDither(bool on)
 
 bool RendererCommands::dither()
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	return glcIsEnabled(GL_DITHER);
 }
 
 void RendererCommands::setVisibleGeomFace(uint32_t sides)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	if(sides == BOTH_FACES)
 	{
 		glcDisable(GL_CULL_FACE);
@@ -389,7 +448,7 @@ void RendererCommands::setVisibleGeomFace(uint32_t sides)
 
 void RendererCommands::setClipTest(bool on)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	if(on)
 		glcEnable(GL_SCISSOR_TEST);
 	else
@@ -398,14 +457,14 @@ void RendererCommands::setClipTest(bool on)
 
 void RendererCommands::setClipRect(ClipRect r)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	//logMsg("setting Scissor %d,%d size %d,%d", r.x, r.y, r.x2, r.y2);
 	glScissor(r.x, r.y, r.x2, r.y2);
 }
 
 void RendererCommands::setTexture(const Texture &t)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	if(unlikely(!currSampler))
 	{
 		logErr("set texture without setting a sampler first");
@@ -416,7 +475,7 @@ void RendererCommands::setTexture(const Texture &t)
 
 void RendererCommands::setTextureSampler(const TextureSampler &sampler)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	if(renderer().support.hasSamplerObjects && (!currSampler || currSampler->name() != sampler.name()))
 	{
 		//logMsg("binding sampler object:0x%X (%s)", (int)sampler.name(), sampler.label());
@@ -434,7 +493,7 @@ void RendererCommands::setCommonTextureSampler(CommonTextureSampler sampler)
 
 void RendererCommands::setViewport(Viewport v)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	auto inGLFormat = v.inGLFormat();
 	//logMsg("set GL viewport %d:%d:%d:%d", inGLFormat.x, inGLFormat.y, inGLFormat.x2, inGLFormat.y2);
 	assert(inGLFormat.x2 && inGLFormat.y2);
@@ -442,7 +501,7 @@ void RendererCommands::setViewport(Viewport v)
 	currViewport = v;
 }
 
-Viewport RendererCommands::viewport()
+Viewport RendererCommands::viewport() const
 {
 	return currViewport;
 }
@@ -480,7 +539,7 @@ void RendererCommands::setProgram(Program &program)
 
 void RendererCommands::setProgram(Program &program, Mat4 modelMat)
 {
-	rTask->verifyCurrentContext();
+	rTask->verifyCurrentContext(glDpy);
 	if(currProgram != &program)
 	{
 		glUseProgram(program.program());
@@ -501,21 +560,8 @@ void RendererCommands::setCommonProgram(CommonProgram program, Mat4 modelMat)
 
 void RendererCommands::setCommonProgram(CommonProgram program, const Mat4 *modelMat)
 {
-	switch(program)
-	{
-		bcase CommonProgram::TEX_REPLACE: renderer().texReplaceProgram.use(*this, modelMat);
-		bcase CommonProgram::TEX_ALPHA_REPLACE: renderer().texAlphaReplaceProgram.use(*this, modelMat);
-		#ifdef __ANDROID__
-		bcase CommonProgram::TEX_EXTERNAL_REPLACE: renderer().texExternalProgram.use(*this, modelMat);
-		#endif
-		bcase CommonProgram::TEX: renderer().texProgram.use(*this, modelMat);
-		bcase CommonProgram::TEX_ALPHA: renderer().texAlphaProgram.use(*this, modelMat);
-		#ifdef __ANDROID__
-		bcase CommonProgram::TEX_EXTERNAL: renderer().texExternalProgram.use(*this, modelMat);
-		#endif
-		bcase CommonProgram::NO_TEX: renderer().noTexProgram.use(*this, modelMat);
-		bdefault: bug_unreachable("program:%d", (int)program);
-	}
+	rTask->verifyCurrentContext(glDpy);
+	renderer().useCommonProgram(*this, program, modelMat);
 }
 
 void RendererCommands::uniformF(int uniformLocation, float v1, float v2)
@@ -535,5 +581,50 @@ void RendererCommands::setDebugOutput(bool on)
 	setGLDebugOutput(renderer().support, on);
 	renderer().drawContextDebug = on;
 }
+
+#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+void GLRendererCommands::glcMatrixMode(GLenum mode)
+{ if(useGLCache) glState.matrixMode(mode); else glMatrixMode(mode); }
+#endif
+
+void GLRendererCommands::glcBindTexture(GLenum target, GLuint texture)
+{ if(useGLCache) glState.bindTexture(target, texture); else glBindTexture(target, texture); }
+void GLRendererCommands::glcBlendFunc(GLenum sfactor, GLenum dfactor)
+{ if(useGLCache) glState.blendFunc(sfactor, dfactor); else glBlendFunc(sfactor, dfactor); }
+void GLRendererCommands::glcBlendEquation(GLenum mode)
+{ if(useGLCache) glState.blendEquation(mode); else glBlendEquation(mode); }
+void GLRendererCommands::glcEnable(GLenum cap)
+{ if(useGLCache) glState.enable(cap); else glEnable(cap); }
+void GLRendererCommands::glcDisable(GLenum cap)
+{ if(useGLCache) glState.disable(cap); else glDisable(cap); }
+
+GLboolean GLRendererCommands::glcIsEnabled(GLenum cap)
+{
+	if(useGLCache)
+		return glState.isEnabled(cap);
+	else
+		return glIsEnabled(cap);
+}
+
+#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+void GLRendererCommands::glcEnableClientState(GLenum cap)
+{ if(useGLCache) glState.enableClientState(cap); else glEnableClientState(cap); }
+void GLRendererCommands::glcDisableClientState(GLenum cap)
+{ if(useGLCache) glState.disableClientState(cap); else glDisableClientState(cap); }
+void GLRendererCommands::glcTexEnvi(GLenum target, GLenum pname, GLint param)
+{ if(useGLCache) glState.texEnvi(target, pname, param); else glTexEnvi(target, pname, param); }
+void GLRendererCommands::glcTexEnvfv(GLenum target, GLenum pname, const GLfloat *params)
+{ if(useGLCache) glState.texEnvfv(target, pname, params); else glTexEnvfv(target, pname, params); }
+void GLRendererCommands::glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
+{
+	if(useGLCache)
+		glState.color4f(red, green, blue, alpha);
+	else
+	{
+		glColor4f(red, green, blue, alpha);
+		glState.colorState[0] = red; glState.colorState[1] = green; glState.colorState[2] = blue; glState.colorState[3] = alpha; // for color()
+	}
+}
+#endif
 
 }

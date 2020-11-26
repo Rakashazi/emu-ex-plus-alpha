@@ -71,9 +71,9 @@ void initVControls(Gfx::Renderer &r)
 		resetVControllerPositions();
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	if((int)optionTouchCtrl == 2)
-		emuViewController.updateAutoOnScreenControlVisible();
+		emuViewController().updateAutoOnScreenControlVisible();
 	else
-		emuViewController.setOnScreenControls(optionTouchCtrl);
+		emuViewController().setOnScreenControls(optionTouchCtrl);
 	#endif
 	vController.updateMapping(0);
 	EmuControls::updateVControlImg();
@@ -150,7 +150,7 @@ void resetAllVControllerOptions()
 	#endif
 	resetVControllerOptions();
 	optionTouchCtrlAlpha.reset();
-	emuViewController.updateAutoOnScreenControlVisible();
+	emuViewController().updateAutoOnScreenControlVisible();
 	vController.updateMapping(pointerInputPlayer);
 }
 
@@ -238,7 +238,7 @@ void commonInitInput()
 {
 	relPtr = {};
 	turboActions = {};
-	emuViewController.setFastForwardActive(false);
+	emuViewController().setFastForwardActive(false);
 }
 
 void TurboInput::update()
@@ -296,7 +296,7 @@ bool isMenuDismissKey(Input::Event e)
 	Key dismissKey2 = Keycode::GAME_Y;
 	if(Config::MACHINE_IS_PANDORA && e.device()->subtype() == Device::SUBTYPE_PANDORA_HANDHELD)
 	{
-		if(emuViewController.hasModalView()) // make sure not performing text input
+		if(emuViewController().hasModalView()) // make sure not performing text input
 			return false;
 		dismissKey = Keycode::SPACE;
 	}
@@ -321,7 +321,7 @@ void updateInputDevices()
 		}
 		i++;
 	}
-	emuViewController.setPhysicalControlsPresent(Input::keyInputIsPresent());
+	emuViewController().setPhysicalControlsPresent(Input::keyInputIsPresent());
 	onUpdateInputDevices.callCopySafe();
 	keyMapping.buildAll();
 }
@@ -783,7 +783,7 @@ void setActiveFaceButtons(uint btns)
 	vController.gamePad().setActiveFaceButtons(btns);
 	setupVControllerVars();
 	vController.place();
-	EmuSystem::clearInputBuffers(emuViewController.inputView());
+	EmuSystem::clearInputBuffers(emuViewController().inputView());
 	#endif
 }
 

@@ -229,6 +229,7 @@ void AndroidScreen::updateRefreshRate(float refreshRate)
 	if(refreshRate_ && refreshRate != refreshRate_)
 	{
 		logMsg("refresh rate updated to:%.2f on screen:%d", refreshRate, id());
+		static_cast<Screen*>(this)->prevFrameTimestamp = {};
 	}
 	if(refreshRate < 20.f || refreshRate > 250.f) // sanity check in case device has a junk value
 	{

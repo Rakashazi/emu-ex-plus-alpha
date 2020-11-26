@@ -207,7 +207,7 @@ static void setImgEffect(uint val, EmuVideoLayer &layer)
 	if(layer.emuVideo().image())
 	{
 		layer.setEffect(val, optionImageEffectPixelFormatValue());
-		emuViewController.postDrawToEmuWindows();
+		emuViewController().postDrawToEmuWindows();
 	}
 }
 #endif
@@ -216,7 +216,7 @@ static void setOverlayEffect(uint val, EmuVideoLayer &layer)
 {
 	optionOverlayEffect = val;
 	layer.setOverlay(val);
-	emuViewController.postDrawToEmuWindows();
+	emuViewController().postDrawToEmuWindows();
 }
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -224,7 +224,7 @@ static void setImgEffectPixelFormat(PixelFormatID format, EmuVideoLayer &layer)
 {
 	optionImageEffectPixelFormat = format;
 	layer.setEffectFormat(format);
-	emuViewController.postDrawToEmuWindows();
+	emuViewController().postDrawToEmuWindows();
 }
 #endif
 
@@ -241,10 +241,10 @@ static void setWindowPixelFormat(PixelFormatID format)
 }
 #endif
 
-static void setGPUMultiThreading(Gfx::Renderer::ThreadMode mode)
+static void setImageBuffers(unsigned buffers, EmuVideoLayer &layer)
 {
-	EmuApp::postMessage("Restart app for option to take effect");
-	optionGPUMultiThreading = (int)mode;
+	optionVideoImageBuffers = buffers;
+	layer.setImageBuffers(buffers);
 }
 
 static int aspectRatioValueIndex(double val)
@@ -437,7 +437,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			optionImgFilter.val = item.flipBoolValue(*this);
 			videoLayer->setLinearFilter(optionImgFilter);
-			emuViewController.postDrawToEmuWindows();
+			emuViewController().postDrawToEmuWindows();
 		}
 	},
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -615,7 +615,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		false,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
-			emuViewController.setEmuViewOnExtraWindow(item.flipBoolValue(*this), *Base::Screen::screen(0));
+			emuViewController().setEmuViewOnExtraWindow(item.flipBoolValue(*this), *Base::Screen::screen(0));
 		}
 	},
 	#endif
@@ -629,39 +629,34 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			optionShowOnSecondScreen = item.flipBoolValue(*this);
 			if(Base::Screen::screens() > 1)
-				emuViewController.setEmuViewOnExtraWindow(optionShowOnSecondScreen, *Base::Screen::screen(1));
+				emuViewController().setEmuViewOnExtraWindow(optionShowOnSecondScreen, *Base::Screen::screen(1));
 		}
 	},
 	#endif
-	gpuMultithreadingItem
+	imageBuffersItem
 	{
-		{"Auto", [this]() { setGPUMultiThreading(Gfx::Renderer::ThreadMode::AUTO); }},
-		{"Off", [this]() { setGPUMultiThreading(Gfx::Renderer::ThreadMode::SINGLE); }},
-		{"On", [this]() { setGPUMultiThreading(Gfx::Renderer::ThreadMode::MULTI); }},
+		{"Auto", [this]() { setImageBuffers(0, *videoLayer); }},
+		{"1 (Syncs GPU each frame, less input lag)", [this]() { setImageBuffers(1, *videoLayer); }},
+		{"2 (More stable, may add 1 frame of lag)", [this]() { setImageBuffers(2, *videoLayer); }},
 	},
-	gpuMultithreading
+	imageBuffers
 	{
-		"Render Multithreading",
+		"Image Buffers",
 		[this](int idx, Gfx::Text &t)
 		{
-			if(idx == 0)
-			{
-				t.setString(renderer().threadMode() == Gfx::Renderer::ThreadMode::MULTI ? "On" : "Off");
-				return true;
-			}
-			else
-				return false;
+			t.setString(videoLayer->imageBuffers() == 1 ? "1" : "2");
+			return true;
 		},
 		[]()
 		{
-			switch(optionGPUMultiThreading.val)
+			switch(optionVideoImageBuffers.val)
 			{
 				default: return 0;
-				case (int)Gfx::Renderer::ThreadMode::SINGLE: return 1;
-				case (int)Gfx::Renderer::ThreadMode::MULTI: return 2;
+				case 1: return 1;
+				case 2: return 2;
 			}
 		}(),
-		gpuMultithreadingItem
+		imageBuffersItem
 	},
 	visualsHeading{"Visuals"},
 	screenShapeHeading{"Screen Shape"},
@@ -774,8 +769,8 @@ void VideoOptionView::loadStockItems()
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	item.emplace_back(&windowPixelFormat);
 	#endif
-	if(renderer().supportsThreadMode())
-		item.emplace_back(&gpuMultithreading);
+	if(!optionVideoImageBuffers.isConst)
+		item.emplace_back(&imageBuffers);
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	item.emplace_back(&secondDisplay);
 	#endif
@@ -797,7 +792,7 @@ bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::Float
 	auto wantedTime = time;
 	if(!time.count())
 	{
-		wantedTime = emuViewController.emuWindowScreen()->frameTime();
+		wantedTime = emuViewController().emuWindowScreen()->frameTime();
 	}
 	if(!EmuSystem::setFrameTime(vidSys, wantedTime))
 	{
@@ -826,7 +821,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 	multiChoiceView->appendItem("Set with screen's reported rate",
 		[this, vidSys](View &view, Input::Event e)
 		{
-			if(!emuViewController.emuWindowScreen()->frameRateIsReliable())
+			if(!emuViewController().emuWindowScreen()->frameRateIsReliable())
 			{
 				#ifdef __ANDROID__
 				if(Base::androidSDK() <= 10)
@@ -895,30 +890,30 @@ void VideoOptionView::setZoom(uint8_t val)
 {
 	optionImageZoom = val;
 	logMsg("set image zoom: %d", int(optionImageZoom));
-	emuViewController.placeEmuViews();
-	emuViewController.postDrawToEmuWindows();
+	emuViewController().placeEmuViews();
+	emuViewController().postDrawToEmuWindows();
 }
 
 void VideoOptionView::setViewportZoom(uint8_t val)
 {
 	optionViewportZoom = val;
 	logMsg("set viewport zoom: %d", int(optionViewportZoom));
-	emuViewController.startMainViewportAnimation();
+	emuViewController().startMainViewportAnimation();
 }
 
 void VideoOptionView::setOverlayEffectLevel(uint8_t val)
 {
 	optionOverlayEffectLevel = val;
 	videoLayer->setOverlayIntensity(val/100.);
-	emuViewController.postDrawToEmuWindows();
+	emuViewController().postDrawToEmuWindows();
 }
 
 void VideoOptionView::setAspectRatio(double val)
 {
 	optionAspectRatio = val;
 	logMsg("set aspect ratio: %.2f", val);
-	emuViewController.placeEmuViews();
-	emuViewController.postDrawToEmuWindows();
+	emuViewController().placeEmuViews();
+	emuViewController().postDrawToEmuWindows();
 }
 
 unsigned VideoOptionView::idxOfBufferMode(Gfx::TextureBufferMode mode)

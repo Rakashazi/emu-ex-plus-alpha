@@ -23,6 +23,7 @@ class EmuVideoLayer;
 class EmuInputView : public View
 {
 public:
+	EmuInputView();
 	EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideoLayer &videoLayer);
 	void place() final;
 	void draw(Gfx::RendererCommands &cmds) final;
@@ -32,8 +33,8 @@ public:
 	bool touchControlsAreOn() const;
 
 private:
-	VController &vController;
-	EmuVideoLayer &videoLayer;
+	VController *vController;
+	EmuVideoLayer *videoLayer;
 	bool touchControlsOn = false;
 	bool ffToggleActive = false;
 

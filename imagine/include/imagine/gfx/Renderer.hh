@@ -20,8 +20,6 @@
 #include <imagine/gfx/Viewport.hh>
 #include <imagine/gfx/PixmapTexture.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
-#include <imagine/gfx/Program.hh>
-#include <imagine/gfx/SyncFence.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 
 #ifdef CONFIG_GFX_OPENGL
@@ -40,6 +38,9 @@ class Window;
 namespace Gfx
 {
 
+class RendererTask;
+class Program;
+
 static_assert((uint8_t)TextureBufferMode::DEFAULT == 0, "TextureBufferMode::DEFAULT != 0");
 
 struct TextureBufferModeDesc
@@ -51,46 +52,47 @@ struct TextureBufferModeDesc
 	constexpr TextureBufferModeDesc(const char *name, TextureBufferMode mode):name{name}, mode{mode} {}
 };
 
+class RendererConfig
+{
+public:
+	constexpr RendererConfig() {}
+	constexpr RendererConfig(IG::PixelFormat pixelFormat): pixelFormat_{pixelFormat} {}
+
+	void setPixelFormat(IG::PixelFormat pixelFormat)
+	{
+		pixelFormat_ = pixelFormat;
+	}
+
+	IG::PixelFormat pixelFormat() const
+	{
+		return pixelFormat_;
+	}
+
+private:
+	IG::PixelFormat pixelFormat_{};
+};
+
 class Renderer : public RendererImpl
 {
 public:
-	enum class ThreadMode
-	{
-		AUTO = 0, SINGLE, MULTI
-	};
-
-	// color replacement shaders
-	DefaultTexReplaceProgram texReplaceProgram{};
-	DefaultTexAlphaReplaceProgram texAlphaReplaceProgram{};
-	#ifdef __ANDROID__
-	DefaultTexExternalReplaceProgram texExternalReplaceProgram{};
-	#endif
-
-	// color modulation shaders
-	DefaultTexProgram texProgram{};
-	DefaultTexAlphaProgram texAlphaProgram{};
-	#ifdef __ANDROID__
-	DefaultTexExternalProgram texExternalProgram{};
-	#endif
-	DefaultColorProgram noTexProgram{};
-
-	Renderer();
+	using RendererImpl::RendererImpl;
 	Renderer(Error &err);
-	Renderer(IG::PixelFormat pixelFormat, Error &err);
-	static Renderer makeConfiguredRenderer(Error &err);
-	static Renderer makeConfiguredRenderer(ThreadMode threadMode, Error &err);
-	static Renderer makeConfiguredRenderer(ThreadMode threadMode, IG::PixelFormat pixelFormat, Error &err);
-	void configureRenderer(ThreadMode threadMode);
+	Renderer(RendererConfig config, Error &err);
+	Renderer(Renderer &&o);
+	Renderer &operator=(Renderer &&o);
+	static std::pair<Renderer, Error> makeConfiguredRenderer(RendererConfig config = {});
+	void configureRenderer();
 	bool isConfigured() const;
-	Base::WindowConfig addWindowConfig(Base::WindowConfig config);
-	ThreadMode threadMode() const;
-	bool supportsThreadMode() const;
-	void flush();
+	RendererTask &task() const;
+	Base::WindowConfig addWindowConfig(Base::WindowConfig config) const;
 	void initWindow(Base::Window &win, Base::WindowConfig config);
 	void setWindowValidOrientations(Base::Window &win, Base::Orientation validO);
 	void setProjectionMatrixRotation(Angle angle);
 	void animateProjectionMatrixRotation(Base::Window &win, Angle srcAngle, Angle destAngle);
 	static ClipRect makeClipRect(const Base::Window &win, IG::WindowRect rect);
+	bool supportsSyncFences() const;
+	void setPresentationTime(Drawable drawable, IG::FrameTime time) const;
+	unsigned maxSwapChainImages() const;
 
 	// shaders
 
@@ -99,6 +101,7 @@ public:
 	Shader makeCompatShader(const char **src, uint32_t srcCount, uint32_t type);
 	Shader makeCompatShader(const char *src, uint32_t type);
 	Shader makeDefaultVShader();
+	bool makeCommonProgram(CommonProgram);
 	void deleteShader(Shader shader);
 	void uniformF(Program &program, int uniformLocation, float v1, float v2);
 	void releaseShaderCompiler();
@@ -126,15 +129,6 @@ public:
 
 	void setCorrectnessChecks(bool on);
 	void setDebugOutput(bool on);
-
-	// synchronization
-	void queueResourceSyncFence();
-	SyncFence addResourceSyncFence();
-	SyncFence addSyncFence();
-	void deleteSyncFence(SyncFence);
-	void clientWaitSync(SyncFence fence, uint64_t timeoutNS = SyncFence::IGNORE_TIMEOUT);
-	void waitSync(SyncFence fence);
-	void waitAsyncCommands();
 };
 
 }

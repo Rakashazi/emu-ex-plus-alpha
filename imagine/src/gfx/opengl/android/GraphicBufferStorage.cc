@@ -28,7 +28,7 @@ static constexpr uint32_t lockUsage = GRALLOC_USAGE_SW_WRITE_OFTEN;
 
 bool GraphicBufferStorage::testPassed_ = false;
 
-GraphicBufferStorage::GraphicBufferStorage(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr):
+GraphicBufferStorage::GraphicBufferStorage(RendererTask &r, TextureConfig config, IG::ErrorCode *errorPtr):
 	TextureBufferStorage{r}
 {
 	config = baseInit(r, config);
@@ -63,7 +63,7 @@ IG::ErrorCode GraphicBufferStorage::setFormat(IG::PixmapDesc desc)
 	}
 	logMsg("allocated buffer:%p size:%dx%d format:%s stride:%d",
 		gBuff.handle, desc.w(), desc.h(), desc.format().name(), gBuff.getStride());
-	auto dpy = Base::GLDisplay::getDefault().eglDisplay();
+	auto dpy = renderer().glDpy;
 	auto eglImg = makeAndroidNativeBufferEGLImage(dpy, (EGLClientBuffer)gBuff.getNativeBuffer());
 	if(unlikely(eglImg == EGL_NO_IMAGE_KHR))
 	{

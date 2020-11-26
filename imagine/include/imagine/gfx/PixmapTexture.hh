@@ -29,15 +29,15 @@ class GfxImageSource;
 namespace Gfx
 {
 
-class Renderer;
+class RendererTask;
 class RendererCommands;
 
 class PixmapTexture: public PixmapTextureImpl
 {
 public:
 	using PixmapTextureImpl::PixmapTextureImpl;
-	PixmapTexture(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr = nullptr);
-	PixmapTexture(Renderer &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
+	PixmapTexture(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr = nullptr);
+	PixmapTexture(RendererTask &, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
 	IG::ErrorCode setFormat(IG::PixmapDesc desc, uint8_t levels);
 	GTexCRect uvBounds() const;
 	IG::PixmapDesc usedPixmapDesc() const;

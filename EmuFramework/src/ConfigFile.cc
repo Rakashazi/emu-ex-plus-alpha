@@ -135,7 +135,7 @@ static OptionBase *cfgFileOption[] =
 	&optionImgEffect,
 	&optionImageEffectPixelFormat,
 	#endif
-	&optionGPUMultiThreading,
+	&optionVideoImageBuffers,
 	&optionOverlayEffect,
 	&optionOverlayEffectLevel,
 	#if 0
@@ -469,7 +469,7 @@ void loadConfigFile()
 				bcase CFGKEY_IMAGE_EFFECT: optionImgEffect.readFromIO(io, size);
 				bcase CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: optionImageEffectPixelFormat.readFromIO(io, size);
 				#endif
-				bcase CFGKEY_GPU_MULTITHREADING: optionGPUMultiThreading.readFromIO(io, size);
+				bcase CFGKEY_VIDEO_IMAGE_BUFFERS: optionVideoImageBuffers.readFromIO(io, size);
 				bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);
 				bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);
 				bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: optionVibrateOnPush.readFromIO(io, size);

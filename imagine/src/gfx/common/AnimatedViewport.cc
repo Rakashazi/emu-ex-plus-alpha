@@ -75,7 +75,7 @@ void AnimatedViewport::finish()
 	animator[3].set(animator[3].destVal);
 }
 
-bool AnimatedViewport::isFinished()
+bool AnimatedViewport::isFinished() const
 {
 	return animator[0].isComplete();
 }
@@ -90,7 +90,7 @@ void AnimatedViewport::cancel()
 	}
 }
 
-Gfx::Viewport AnimatedViewport::viewport()
+Gfx::Viewport AnimatedViewport::viewport() const
 {
 	return win ? Gfx::Viewport::makeFromWindow(*win,
 		{animator[0].now(), animator[1].now(), animator[2].now(), animator[3].now()}) : Gfx::Viewport{};

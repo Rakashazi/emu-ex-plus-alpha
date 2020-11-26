@@ -3,6 +3,50 @@
 #include <imagine/gfx/opengl/gfx-globals.hh>
 #include <imagine/logger/logger.h>
 
+#ifndef GL_RGB8
+#define GL_RGB8 0x8051
+#endif
+
+#ifndef GL_RGBA8
+#define GL_RGBA8 0x8058
+#endif
+
+#ifndef GL_LUMINANCE
+#define GL_LUMINANCE 0x1909
+#endif
+
+#ifndef GL_LUMINANCE_ALPHA
+#define GL_LUMINANCE_ALPHA 0x190A
+#endif
+
+#ifndef GL_BGR
+#define GL_BGR 0x80E0
+#endif
+
+#ifndef GL_R8
+#define GL_R8 0x8229
+#endif
+
+#ifndef GL_RG
+#define GL_RG 0x8227
+#endif
+
+#ifndef GL_RG8
+#define GL_RG8 0x822B
+#endif
+
+#ifndef GL_RED
+#define GL_RED 0x1903
+#endif
+
+#ifndef GL_GREEN
+#define GL_GREEN 0x1904
+#endif
+
+#ifndef GL_BLUE
+#define GL_BLUE 0x1905
+#endif
+
 namespace Gfx
 {
 extern bool checkGLErrors;

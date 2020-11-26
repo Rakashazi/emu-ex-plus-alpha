@@ -15,7 +15,9 @@
 
 #define LOGTAG "GLRenderer"
 #include <assert.h>
+#include <imagine/base/Base.hh>
 #include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/opengl/GLRendererTask.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
 #include "private.hh"
@@ -23,24 +25,14 @@
 namespace Gfx
 {
 
-void GLMainTask::TaskContext::notifySemaphore()
-{
-	assumeExpr(semPtr);
-	semPtr->notify();
-	*notifySemaporeAfterDelegatePtr = false;
-}
+GLMainTask::GLMainTask() {}
 
-GLMainTask::~GLMainTask()
+GLMainTask::GLMainTask(const char *debugLabel, Base::GLContext context_, int threadPriority):
+	context{context_}, commandPort{debugLabel}
 {
-	stop();
-}
-
-void GLMainTask::start(Base::GLContext context)
-{
-	if(started)
-		return;
+	assert(context);
 	thread = IG::makeThreadSync(
-		[this, context](auto &sem)
+		[this, threadPriority](auto &sem)
 		{
 			auto glDpy = Base::GLDisplay::getDefault(glAPI);
 			assumeExpr(glDpy);
@@ -55,10 +47,15 @@ void GLMainTask::start(Base::GLContext context)
 						{
 							bcase Command::RUN_FUNC:
 							{
-								bool notifySemaporeAfterDelegate = msg.semPtr;
-								TaskContext ctx{msg.semPtr, &notifySemaporeAfterDelegate};
+								TaskContext ctx{glDpy, msg.semPtr, nullptr};
 								msg.args.run.func(ctx);
-								if(notifySemaporeAfterDelegate)
+							}
+							bcase Command::RUN_FUNC_SEMAPHORE:
+							{
+								bool semaphoreWasNotifiedPtr = !msg.semPtr;
+								TaskContext ctx{glDpy, msg.semPtr, &semaphoreWasNotifiedPtr};
+								msg.args.run.func(ctx);
+								if(!semaphoreWasNotifiedPtr) // semaphore wasn't already notified in the delegate
 								{
 									//logDMsg("notifying semaphore:%p", msg.semPtr);
 									msg.semPtr->notify();
@@ -67,7 +64,9 @@ void GLMainTask::start(Base::GLContext context)
 							bcase Command::EXIT:
 							{
 								Base::GLContext::setCurrent(glDpy, {}, {});
-								started = false;
+								logMsg("exiting GL context:%p thread", context.nativeObject());
+								context.deinit(glDpy);
+								context = {};
 								Base::EventLoop::forThread().stop();
 								return false;
 							}
@@ -79,38 +78,78 @@ void GLMainTask::start(Base::GLContext context)
 					}
 					return true;
 				});
-			started = true;
 			sem.notify();
-			logMsg("starting main GL thread event loop");
-			eventLoop.run(started);
+			logMsg("starting GL context:%p thread event loop", context.nativeObject());
+			if(threadPriority)
+				Base::setThisThreadPriority(threadPriority);
+			eventLoop.run(context);
 			commandPort.detach();
-			logMsg("main GL thread exit");
 		});
+	onExit =
+		[this](bool backgrounded)
+		{
+			if(backgrounded)
+			{
+				run(
+					[]()
+					{
+						#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+						glReleaseShaderCompiler();
+						#endif
+						glFinish();
+					}, true);
+			}
+			else
+			{
+				deinit();
+			}
+			return true;
+		};
+	Base::addOnExit(onExit, Base::RENDERER_TASK_ON_EXIT_PRIORITY);
 }
 
-void GLMainTask::runFunc(FuncDelegate del, bool awaitReply)
+GLMainTask::~GLMainTask()
 {
-	assert(started);
-	commandPort.send({Command::RUN_FUNC, del}, awaitReply);
+	deinit();
 }
 
-void GLMainTask::stop()
+void GLMainTask::runFunc(FuncDelegate del, bool awaitReply, bool manageSemaphore)
 {
-	if(!started)
+	assert(context);
+	Command cmd = manageSemaphore ? Command::RUN_FUNC_SEMAPHORE : Command::RUN_FUNC;
+	commandPort.send({cmd, del}, awaitReply);
+}
+
+Base::GLContext GLMainTask::glContext() const
+{
+	return context;
+}
+
+GLMainTask::operator bool() const
+{
+	return (bool)context;
+}
+
+void GLMainTask::deinit()
+{
+	if(!context)
 		return;
 	commandPort.send({Command::EXIT});
+	Base::removeOnExit(onExit);
 	thread.join(); // GL implementation may assign thread destructor so must join() to make sure it completes
 }
 
-bool GLMainTask::isStarted() const
+void GLMainTask::TaskContext::notifySemaphore()
 {
-	return started;
+	assumeExpr(semPtr);
+	assumeExpr(semaphoreWasNotifiedPtr);
+	semPtr->notify();
+	markSemaphoreNotified();
 }
 
-void GLMainTask::runPendingTasksOnThisThread()
+void GLMainTask::TaskContext::markSemaphoreNotified()
 {
-	assert(started);
-	commandPort.dispatchMessages();
+	*semaphoreWasNotifiedPtr = true;
 }
 
 }

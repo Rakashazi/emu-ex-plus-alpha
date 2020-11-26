@@ -228,7 +228,7 @@ EGLContextBase::EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGL
 	ec = {};
 }
 
-void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, GLDrawable win)
+void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, GLDrawable surface)
 {
 	assert(display != EGL_NO_DISPLAY);
 	if(Config::DEBUG_BUILD)
@@ -241,20 +241,19 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 		{
 			logDMsg("setting no context current on thread:0x%lx", IG::thisThreadID<long>());
 		}
-		assert(!win);
+		assert(!surface);
 		if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) == EGL_FALSE)
 		{
 			if(Config::DEBUG_BUILD)
 				logErr("error:0x%X setting no context current", eglGetError());
 		}
 	}
-	else if(win)
+	else if(surface)
 	{
 		assert(context != EGL_NO_CONTEXT);
-		auto surface = win.eglSurface();
 		if(Config::DEBUG_BUILD)
 		{
-			logDMsg("setting surface %p current on context:%p thread:0x%lx", surface, context, IG::thisThreadID<long>());
+			logDMsg("setting surface %p current on context:%p thread:0x%lx", (EGLSurface)surface, context, IG::thisThreadID<long>());
 		}
 		if(eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
 		{
@@ -306,7 +305,7 @@ void GLContext::setDrawable(GLDisplay display, GLDrawable win)
 
 void GLContext::setDrawable(GLDisplay display, GLDrawable win, GLContext cachedCurrentContext)
 {
-	setCurrentContext(display.eglDisplay(), cachedCurrentContext.context, win);
+	setCurrentContext(display, cachedCurrentContext.context, win);
 }
 
 GLContext GLContext::current(GLDisplay display)
@@ -318,18 +317,17 @@ GLContext GLContext::current(GLDisplay display)
 
 bool GLContext::isCurrentDrawable(GLDisplay display, GLDrawable drawable)
 {
-	return drawable.eglSurface() == eglGetCurrentSurface(EGL_DRAW);
+	return (EGLSurface)drawable == eglGetCurrentSurface(EGL_DRAW);
 }
 
-void EGLContextBase::swapBuffers(EGLDisplay display, GLDrawable &win)
+void EGLContextBase::swapBuffers(EGLDisplay display, GLDrawable surface)
 {
 	assert(display != EGL_NO_DISPLAY);
-	auto surface = win.eglSurface();
-	assert(surface != EGL_NO_SURFACE);
+	assert(surface);
 	if(eglSwapBuffers(display, surface) == EGL_FALSE)
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("error 0x%X swapping buffers for window: %p", eglGetError(), &win);
+			logErr("error 0x%X swapping buffers for surface:%p", eglGetError(), (EGLSurface)surface);
 	}
 }
 
@@ -442,6 +440,29 @@ const char *EGLDisplayConnection::queryExtensions()
 	return eglQueryString(display, EGL_EXTENSIONS);
 }
 
+const char *EGLDisplayConnection::errorString(EGLint error)
+{
+	switch(error)
+	{
+		case EGL_SUCCESS: return "Success";
+		case EGL_NOT_INITIALIZED: return "EGL not initialized";
+		case EGL_BAD_ACCESS: return "Bad access";
+		case EGL_BAD_ALLOC: return "Bad allocation";
+		case EGL_BAD_ATTRIBUTE: return "Bad attribute";
+		case EGL_BAD_CONTEXT: return "Bad context";
+		case EGL_BAD_CONFIG: return "Bad frame buffer config";
+		case EGL_BAD_CURRENT_SURFACE: return "Bad current surface";
+		case EGL_BAD_DISPLAY: return "Bad display";
+		case EGL_BAD_SURFACE: return "Bad surface";
+		case EGL_BAD_MATCH: return "Inconsistent arguments";
+		case EGL_BAD_PARAMETER: return "Bad parameter";
+		case EGL_BAD_NATIVE_PIXMAP: return "Bad native pixmap";
+		case EGL_BAD_NATIVE_WINDOW: return "Bad native window";
+		case EGL_CONTEXT_LOST: return "Context lost";
+	}
+	return "Unknown error";
+}
+
 GLDisplay::operator bool() const
 {
 	return display != EGL_NO_DISPLAY;
@@ -488,16 +509,6 @@ std::pair<IG::ErrorCode, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBuff
 	return {{}, surface};
 }
 
-bool GLDisplay::deleteDrawable(GLDrawable &drawable) const
-{
-	auto &surface = drawable.eglSurface();
-	if(surface == EGL_NO_SURFACE)
-		return true;
-	auto success = eglDestroySurface(display, surface);
-	surface = EGL_NO_SURFACE;
-	return success;
-}
-
 void GLDisplay::logInfo() const
 {
 	if(!Config::DEBUG_BUILD)
@@ -522,6 +533,19 @@ GLDrawable::operator bool() const
 bool GLDrawable::operator ==(GLDrawable const &rhs) const
 {
 	return surface == rhs.surface;
+}
+
+bool GLDrawable::destroy(GLDisplay display)
+{
+	if(surface == EGL_NO_SURFACE)
+		return true;
+	auto success = eglDestroySurface(display, std::exchange(surface, EGL_NO_SURFACE));
+	if(Config::DEBUG_BUILD && !success)
+	{
+		logErr("error:%s in eglDestroySurface(%p, %p)",
+			display.errorString(eglGetError()), (EGLDisplay)display, surface);
+	}
+	return success;
 }
 
 }

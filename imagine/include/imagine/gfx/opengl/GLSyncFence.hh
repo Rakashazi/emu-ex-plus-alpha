@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include "glIncludes.h"
 #include "defs.hh"
+#include <chrono>
 
 namespace Gfx
 {
@@ -25,7 +26,7 @@ namespace Gfx
 class GLSyncFence
 {
 public:
-	static constexpr uint64_t IGNORE_TIMEOUT = 0xFFFFFFFFFFFFFFFFull;
+	static constexpr std::chrono::nanoseconds IGNORE_TIMEOUT{0xFFFFFFFFFFFFFFFFull};
 	GLsync sync{};
 
 	constexpr GLSyncFence() {}

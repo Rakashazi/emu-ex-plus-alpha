@@ -108,6 +108,12 @@ public:
 		return defaultVal;
 	}
 
+	void resetToConst()
+	{
+		reset();
+		isConst = true;
+	}
+
 	operator T() const
 	{
 		return V::get();

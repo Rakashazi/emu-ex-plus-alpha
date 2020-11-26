@@ -98,16 +98,6 @@ std::pair<IG::ErrorCode, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBuff
 	return {{}, {(void*)CFBridgingRetain(glView)}};
 }
 
-bool GLDisplay::deleteDrawable(GLDrawable &drawable) const
-{
-	if(drawable.glViewPtr())
-	{
-		CFRelease(drawable.glViewPtr());
-		drawable = {};
-	}
-	return true;
-}
-
 // GLDrawable
 
 void GLDrawable::freeCaches()
@@ -134,6 +124,16 @@ GLDrawable::operator bool() const
 bool GLDrawable::operator ==(GLDrawable const &rhs) const
 {
 	return glView_ == rhs.glView_;
+}
+
+bool GLDrawable::destroy(GLDisplay display)
+{
+	if(glViewPtr())
+	{
+		CFRelease(glViewPtr());
+		glView_ = {};
+	}
+	return true;
 }
 
 bool GLContext::isCurrentDrawable(GLDisplay display, GLDrawable drawable)
@@ -279,7 +279,7 @@ NativeGLContext GLContext::nativeObject()
 	return context_;
 }
 
-Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay)
+Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay) const
 {
 	return {};
 }

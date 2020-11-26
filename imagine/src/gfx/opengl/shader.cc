@@ -16,6 +16,7 @@
 #define LOGTAG "GLShader"
 #include <imagine/gfx/Program.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/RendererTask.hh>
 #if __ANDROID__
 #include <imagine/base/android/android.hh>
 #endif
@@ -151,11 +152,11 @@ static bool linkGLProgram(GLuint program)
 	return true;
 }
 
-bool GLSLProgram::init(Renderer &r, Shader vShader, Shader fShader, bool hasColor, bool hasTex)
+bool GLSLProgram::init(RendererTask &rTask, Shader vShader, Shader fShader, bool hasColor, bool hasTex)
 {
 	if(program_)
-		deinit(r);
-	r.runGLTaskSync(
+		deinit(rTask);
+	rTask.runSync(
 		[this, vShader, fShader, hasColor, hasTex]()
 		{
 			program_ = makeGLProgram(vShader, fShader);
@@ -184,12 +185,12 @@ bool GLSLProgram::init(Renderer &r, Shader vShader, Shader fShader, bool hasColo
 	return program_;
 }
 
-void GLSLProgram::deinit(Renderer &r)
+void GLSLProgram::deinit(RendererTask &rTask)
 {
 	if(!program_)
 		return;
 	logMsg("deleting program:%d", (int)program_);
-	r.runGLTask(
+	rTask.run(
 		[program = program_]()
 		{
 			runGLChecked(
@@ -201,42 +202,56 @@ void GLSLProgram::deinit(Renderer &r)
 	program_ = 0;
 }
 
-bool GLSLProgram::link(Renderer &r)
+bool GLSLProgram::link(RendererTask &rTask)
 {
 	bool success;
-	r.runGLTaskSync(
+	rTask.runSync(
 		[this, &success]()
 		{
 			success = linkGLProgram(program_);
 		});
 	if(!success)
 	{
-		deinit(r);
+		deinit(rTask);
 		return false;
 	}
-	initUniforms(r);
+	initUniforms(rTask);
 	return true;
 }
 
-bool Program::init(Renderer &r, Shader vShader, Shader fShader, bool hasColor, bool hasTex)
+GLint GLSLProgram::modelViewProjectionUniform() const
+{
+	return mvpUniform;
+}
+
+GLSLProgram::operator bool() const
+{
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	return program_;
+	#else
+	return true;
+	#endif
+}
+
+bool Program::init(RendererTask &r, Shader vShader, Shader fShader, bool hasColor, bool hasTex)
 {
 	return GLSLProgram::init(r, vShader, fShader, hasColor, hasTex);
 }
 
-void Program::deinit(Renderer &r)
+void Program::deinit(RendererTask &r)
 {
 	GLSLProgram::deinit(r);
 }
 
-bool Program::link(Renderer &r)
+bool Program::link(RendererTask &r)
 {
 	return GLSLProgram::link(r);
 }
 
-int Program::uniformLocation(Renderer &r, const char *uniformName)
+int Program::uniformLocation(RendererTask &rTask, const char *uniformName)
 {
 	GLint loc;
-	r.runGLTaskSync(
+	rTask.runSync(
 		[this, &loc, uniformName]()
 		{
 			runGLChecked([&]()
@@ -247,29 +262,17 @@ int Program::uniformLocation(Renderer &r, const char *uniformName)
 	return loc;
 }
 
-void GLSLProgram::initUniforms(Renderer &r)
+void GLSLProgram::initUniforms(RendererTask &rTask)
 {
 	assert(program_);
-	r.runGLTaskSync(
+	rTask.runSync(
 		[this]()
 		{
 			runGLChecked([&]()
 			{
-				modelViewProjectionUniform = glGetUniformLocation(program_, "modelviewproj");
+				mvpUniform = glGetUniformLocation(program_, "modelviewproj");
 			}, "glGetUniformLocation(modelviewproj)");
 		});
-}
-
-void TexProgram::init(Renderer &r, GLuint vShader, GLuint fShader)
-{
-	GLSLProgram::init(r, vShader, fShader, true, true);
-	link(r);
-}
-
-void ColorProgram::init(Renderer &r, GLuint vShader, GLuint fShader)
-{
-	GLSLProgram::init(r, vShader, fShader, true, false);
-	link(r);
 }
 
 static void setGLProgram(GLuint program)
@@ -280,19 +283,10 @@ static void setGLProgram(GLuint program)
 	}, "glUseProgram()");
 }
 
-void GLRenderer::setProgram(GLSLProgram &program)
-{
-	//logMsg("setting program: %d", program.program());
-	verifyCurrentResourceContext();
-	GLuint p = program.program();
-	assert(p);
-	setGLProgram(p);
-}
-
 Shader Renderer::makeShader(const char **src, uint32_t srcCount, uint32_t type)
 {
 	GLuint shader;
-	runGLTaskSync(
+	task().runSync(
 		[this, &shader, src, srcCount, type]()
 		{
 			shader = glCreateShader(type);
@@ -319,10 +313,6 @@ Shader Renderer::makeShader(const char **src, uint32_t srcCount, uint32_t type)
 					}
 				}
 				shader = 0;
-			}
-			else
-			{
-				resourceUpdate = true;
 			}
 		});
 	return shader;
@@ -378,11 +368,50 @@ Shader Renderer::makeDefaultVShader()
 	return defaultVShader;
 }
 
+bool Renderer::makeCommonProgram(CommonProgram program)
+{
+	auto &rTask = task();
+	switch(program)
+	{
+		case CommonProgram::TEX_REPLACE : return texReplaceProgram.compile(rTask);
+		case CommonProgram::TEX_ALPHA_REPLACE : return texAlphaReplaceProgram.compile(rTask);
+		case CommonProgram::TEX : return texProgram.compile(rTask);
+		case CommonProgram::TEX_ALPHA : return texAlphaProgram.compile(rTask);
+		#ifdef __ANDROID__
+		case CommonProgram::TEX_EXTERNAL_REPLACE : return texExternalReplaceProgram.compile(rTask);
+		case CommonProgram::TEX_EXTERNAL : return texExternalProgram.compile(rTask);
+		#endif
+		case CommonProgram::NO_TEX : return noTexProgram.compile(rTask);
+		default:
+			bug_unreachable("program:%d", (int)program);
+			return false;
+	}
+}
+
+void GLRenderer::useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat)
+{
+	switch(program)
+	{
+		bcase CommonProgram::TEX_REPLACE: texReplaceProgram.use(cmds, modelMat);
+		bcase CommonProgram::TEX_ALPHA_REPLACE: texAlphaReplaceProgram.use(cmds, modelMat);
+		#ifdef __ANDROID__
+		bcase CommonProgram::TEX_EXTERNAL_REPLACE: texExternalProgram.use(cmds, modelMat);
+		#endif
+		bcase CommonProgram::TEX: texProgram.use(cmds, modelMat);
+		bcase CommonProgram::TEX_ALPHA: texAlphaProgram.use(cmds, modelMat);
+		#ifdef __ANDROID__
+		bcase CommonProgram::TEX_EXTERNAL: texExternalProgram.use(cmds, modelMat);
+		#endif
+		bcase CommonProgram::NO_TEX: noTexProgram.use(cmds, modelMat);
+		bdefault: bug_unreachable("program:%d", (int)program);
+	}
+}
+
 void Renderer::deleteShader(Shader shader)
 {
 	logMsg("deleting shader:%u", (uint32_t)shader);
 	assert(shader != defaultVShader);
-	runGLTask(
+	task().run(
 		[shader]()
 		{
 			glDeleteShader(shader);
@@ -391,9 +420,8 @@ void Renderer::deleteShader(Shader shader)
 
 void Renderer::uniformF(Program &program, int uniformLocation, float v1, float v2)
 {
-	auto p = program.program();
-	runGLTask(
-		[p, uniformLocation, v1, v2]()
+	task().run(
+		[p = program.program(), uniformLocation, v1, v2]()
 		{
 			setGLProgram(p);
 			runGLCheckedVerbose([&]()
@@ -401,16 +429,15 @@ void Renderer::uniformF(Program &program, int uniformLocation, float v1, float v
 				glUniform2f(uniformLocation, v1, v2);
 			}, "glUniform2f()");
 		});
-	resourceUpdate = true;
 }
 
 template <class T>
-static bool compileDefaultProgram(Renderer &r, T &prog, const char **fragSrc, uint32_t fragSrcCount)
+static bool compileDefaultProgram(RendererTask &r, T &prog, const char **fragSrc, uint32_t fragSrcCount)
 {
 	assert(fragSrc);
-	auto vShader = r.makeDefaultVShader();
+	auto vShader = r.renderer().makeDefaultVShader();
 	assert(vShader);
-	auto fShader = r.makeCompatShader(fragSrc, fragSrcCount, GL_FRAGMENT_SHADER);
+	auto fShader = r.renderer().makeCompatShader(fragSrc, fragSrcCount, GL_FRAGMENT_SHADER);
 	if(!fShader)
 	{
 		return false;
@@ -421,7 +448,7 @@ static bool compileDefaultProgram(Renderer &r, T &prog, const char **fragSrc, ui
 }
 
 template <class T>
-static bool compileDefaultProgram(Renderer &r, T &prog, const char *fragSrc)
+static bool compileDefaultProgram(RendererTask &r, T &prog, const char *fragSrc)
 {
 	const char *singleSrc[]{fragSrc};
 	return compileDefaultProgram(r, prog, singleSrc, 1);
@@ -450,10 +477,10 @@ void deleteShader(Shader shader) {}
 
 #endif
 
-bool DefaultTexProgram::compile(Renderer &r)
+bool DefaultTexProgram::compile(RendererTask &r)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || r.support.useFixedFunctionPipeline)
+	if(program() || r.renderer().support.useFixedFunctionPipeline)
 		return false;
 	logMsg("making texture program");
 	compileDefaultProgram(r, *this, texFragShaderSrc);
@@ -463,7 +490,7 @@ bool DefaultTexProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultTexProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
+void DefaultTexProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(cmds.renderer().support.useFixedFunctionPipeline)
@@ -483,10 +510,10 @@ void DefaultTexProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
 	#endif
 }
 
-bool DefaultTexReplaceProgram::compile(Renderer &r)
+bool DefaultTexReplaceProgram::compile(RendererTask &r)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || r.support.useFixedFunctionPipeline)
+	if(program() || r.renderer().support.useFixedFunctionPipeline)
 		return false;
 	logMsg("making texture program (replace mode)");
 	compileDefaultProgram(r, *this, texReplaceFragShaderSrc);
@@ -496,7 +523,7 @@ bool DefaultTexReplaceProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultTexReplaceProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
+void DefaultTexReplaceProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(cmds.renderer().support.useFixedFunctionPipeline)
@@ -516,15 +543,15 @@ void DefaultTexReplaceProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
 	#endif
 }
 
-bool DefaultTexAlphaReplaceProgram::compile(Renderer &r)
+bool DefaultTexAlphaReplaceProgram::compile(RendererTask &r)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || r.support.useFixedFunctionPipeline)
+	if(program() || r.renderer().support.useFixedFunctionPipeline)
 		return false;
-	if(r.support.hasTextureSwizzle)
+	if(r.renderer().support.hasTextureSwizzle)
 	{
-		auto compiled = r.texProgram.compile(r);
-		impl = &r.texProgram;
+		auto compiled = r.renderer().texProgram.compile(r);
+		impl = &r.renderer().texProgram;
 		return compiled;
 	}
 	logMsg("making alpha-only texture program (replace mode)");
@@ -535,7 +562,7 @@ bool DefaultTexAlphaReplaceProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultTexAlphaReplaceProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
+void DefaultTexAlphaReplaceProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(cmds.renderer().support.useFixedFunctionPipeline)
@@ -560,15 +587,15 @@ void DefaultTexAlphaReplaceProgram::use(RendererCommands &cmds, const Mat4 *mode
 	#endif
 }
 
-bool DefaultTexAlphaProgram::compile(Renderer &r)
+bool DefaultTexAlphaProgram::compile(RendererTask &r)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || r.support.useFixedFunctionPipeline)
+	if(program() || r.renderer().support.useFixedFunctionPipeline)
 		return false;
-	if(r.support.hasTextureSwizzle)
+	if(r.renderer().support.hasTextureSwizzle)
 	{
-		auto compiled = r.texProgram.compile(r);
-		impl = &r.texProgram;
+		auto compiled = r.renderer().texProgram.compile(r);
+		impl = &r.renderer().texProgram;
 		return compiled;
 	}
 	logMsg("making alpha-only texture program");
@@ -579,7 +606,7 @@ bool DefaultTexAlphaProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultTexAlphaProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
+void DefaultTexAlphaProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(cmds.renderer().support.useFixedFunctionPipeline)
@@ -604,10 +631,10 @@ void DefaultTexAlphaProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
 	#endif
 }
 
-bool DefaultTexExternalReplaceProgram::compile(Renderer &r)
+bool DefaultTexExternalReplaceProgram::compile(RendererTask &r)
 {
 	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE && defined CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
-	if(program() || r.support.useFixedFunctionPipeline)
+	if(program() || r.renderer().support.useFixedFunctionPipeline)
 		return false;
 	assert(Base::androidSDK() >= 14);
 	logMsg("making external texture program (replace mode)");
@@ -625,7 +652,7 @@ bool DefaultTexExternalReplaceProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultTexExternalReplaceProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
+void DefaultTexExternalReplaceProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(cmds.renderer().support.useFixedFunctionPipeline)
@@ -642,10 +669,10 @@ void DefaultTexExternalReplaceProgram::use(RendererCommands &cmds, const Mat4 *m
 	#endif
 }
 
-bool DefaultTexExternalProgram::compile(Renderer &r)
+bool DefaultTexExternalProgram::compile(RendererTask &r)
 {
 	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE && defined CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
-	if(program() || r.support.useFixedFunctionPipeline)
+	if(program() || r.renderer().support.useFixedFunctionPipeline)
 		return false;
 	assert(Base::androidSDK() >= 14);
 	logMsg("making external texture program");
@@ -663,7 +690,7 @@ bool DefaultTexExternalProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultTexExternalProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
+void DefaultTexExternalProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(cmds.renderer().support.useFixedFunctionPipeline)
@@ -680,10 +707,10 @@ void DefaultTexExternalProgram::use(RendererCommands &cmds, const Mat4 *modelMat
 	#endif
 }
 
-bool DefaultColorProgram::compile(Renderer &r)
+bool DefaultColorProgram::compile(RendererTask &r)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || r.support.useFixedFunctionPipeline)
+	if(program() || r.renderer().support.useFixedFunctionPipeline)
 		return false;
 	logMsg("making color shaded program");
 	compileDefaultProgram(r, *this, noTexFragShaderSrc);
@@ -693,7 +720,7 @@ bool DefaultColorProgram::compile(Renderer &r)
 	#endif
 };
 
-void DefaultColorProgram::use(RendererCommands &cmds, const Mat4 *modelMat)
+void DefaultColorProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(cmds.renderer().support.useFixedFunctionPipeline)

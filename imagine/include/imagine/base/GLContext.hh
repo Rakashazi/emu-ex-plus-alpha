@@ -35,6 +35,7 @@ namespace Base
 {
 
 class Window;
+class GLDisplay;
 
 class GLBufferConfigAttributes
 {
@@ -130,6 +131,7 @@ public:
 	using GLDrawableImpl::GLDrawableImpl;
 
 	constexpr GLDrawable() {}
+	bool destroy(GLDisplay display);
 	void freeCaches();
 	void restoreCaches();
 	explicit operator bool() const;
@@ -152,7 +154,6 @@ public:
 	bool operator ==(GLDisplay const &rhs) const;
 	bool deinit();
 	std::pair<IG::ErrorCode, GLDrawable> makeDrawable(Window &win, GLBufferConfig config) const;
-	bool deleteDrawable(GLDrawable &drawable) const;
 	void logInfo() const;
 	static bool bindAPI(API api);
 };
@@ -179,6 +180,14 @@ public:
 	static void present(GLDisplay display, GLDrawable drawable, GLContext cachedCurrentContext);
 	static bool supportsNoConfig();
 	NativeGLContext nativeObject();
+
+	template<class T>
+	static bool loadSymbol(T &symPtr, const char *name)
+	{
+		static_assert(std::is_pointer_v<T>, "called loadSymbol() without pointer type");
+		symPtr = (T)procAddress(name);
+		return symPtr;
+	}
 };
 
 }

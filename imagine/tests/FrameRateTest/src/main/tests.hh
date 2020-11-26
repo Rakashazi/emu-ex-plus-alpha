@@ -18,9 +18,10 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
-#include <imagine/gfx/SyncFence.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
+#include <imagine/gfx/SyncFence.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/thread/Semaphore.hh>
 
 enum TestID
 {
@@ -33,7 +34,6 @@ struct FramePresentTime
 {
 	IG::Time atOnFrame{};
 	IG::Time atWinPresent{};
-	IG::Time atWinPresentEnd{};
 
 	constexpr FramePresentTime() {}
 };
@@ -65,7 +65,7 @@ class TestFramework
 {
 public:
 	using TestFinishedDelegate = DelegateFunc<void (TestFramework &test)>;
-	bool started = false;
+	bool started{};
 	bool shouldEndTest{};
 	uint frames{};
 	uint droppedFrames{};
@@ -73,6 +73,7 @@ public:
 	IG::FrameTime startTime{}, endTime{};
 	TestFinishedDelegate onTestFinished;
 	FramePresentTime lastFramePresentTime;
+	Gfx::SyncFence presentFence{};
 
 	TestFramework() {}
 	virtual ~TestFramework() {}
@@ -86,7 +87,7 @@ public:
 	void frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Base::FrameParams frameParams);
 	void prepareDraw(Gfx::Renderer &r);
 	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds);
-	void finish(IG::FrameTime frameTime);
+	void finish(Gfx::RendererTask &task, IG::FrameTime frameTime);
 	void setCPUFreqText(const char *str);
 	void setCPUUseText(const char *str);
 
@@ -100,9 +101,7 @@ protected:
 	std::array<char, 256> skippedFrameStr{};
 	std::array<char, 256> statsStr{};
 	Gfx::ProjectionPlane projP;
-	uint lostFrameDispatchTime = 0;
 	uint lostFrameProcessTime = 0;
-	uint lostFramePresentTime = 0;
 
 	void placeCPUStatsText(Gfx::Renderer &r);
 	void placeFrameStatsText(Gfx::Renderer &r);
@@ -138,9 +137,6 @@ public:
 
 class WriteTest : public DrawTest
 {
-protected:
-	Gfx::SyncFence fence{};
-
 public:
 	WriteTest() {}
 	~WriteTest() override;

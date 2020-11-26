@@ -91,11 +91,15 @@ public:
 	static constexpr uint32_t MSG_SIZE = sizeof(MsgType);
 	static_assert(MSG_SIZE < PIPE_BUF, "size of message too big for atomic writes");
 
+	struct NullInit{};
+
 	PipeMessagePort(const char *debugLabel = nullptr, uint32_t capacity = 8):
 		pipe{debugLabel, MSG_SIZE * capacity}
 	{
 		pipe.setReadNonBlocking(true);
 	}
+
+	explicit constexpr PipeMessagePort(NullInit) {}
 
 	template<class Func>
 	void attach(Func &&func)
@@ -191,7 +195,7 @@ public:
 	explicit operator bool() const { return (bool)pipe; }
 
 protected:
-	Pipe pipe;
+	Pipe pipe{Pipe::NullInit{}};
 };
 
 template<class MsgType>

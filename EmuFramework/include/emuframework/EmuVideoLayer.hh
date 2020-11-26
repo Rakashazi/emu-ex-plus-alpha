@@ -38,6 +38,8 @@ public:
 	void resetImage();
 	void setBrightness(float b);
 	void setTextureBufferMode(Gfx::TextureBufferMode mode);
+	void setImageBuffers(unsigned num);
+	unsigned imageBuffers() const;
 	EmuVideo &emuVideo() const { return video; }
 
 	const IG::WindowRect &gameRect() const

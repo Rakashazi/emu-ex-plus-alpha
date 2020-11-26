@@ -130,6 +130,8 @@ Pipe::operator bool() const
 
 void Pipe::deinit()
 {
+	if(io[0].fd() == -1)
+		return;
 	logMsg("closing %s", label());
 	fdSrc.detach();
 }

@@ -269,7 +269,7 @@ void Window::dispatchOnDraw(bool needsSync)
 	if(!needsDraw())
 		return;
 	drawNeeded = false;
-	draw();
+	draw(needsSync);
 }
 
 void Window::draw(bool needsSync)

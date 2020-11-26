@@ -315,7 +315,7 @@ void EmuSystem::pause()
 void EmuSystem::start()
 {
 	state = State::ACTIVE;
-	clearInputBuffers(emuViewController.inputView());
+	clearInputBuffers(emuViewController().inputView());
 	resetFrameTime();
 	emuAudio.start(makeWantedAudioLatencyUSecs(optionSoundBuffers), makeWantedAudioLatencyUSecs(1));
 	startAutoSaveStateTimer();

@@ -38,9 +38,8 @@ class Renderer;
 class GLDrawableHolder
 {
 public:
-	void makeDrawable(Renderer &r, Base::Window &win);
+	void makeDrawable(Renderer &r, RendererTask &task, Base::Window &win);
 	void destroyDrawable(Renderer &r);
-	Drawable drawable() const { return drawable_; };
 	void notifyOnFrame();
 
 protected:

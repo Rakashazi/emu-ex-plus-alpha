@@ -236,8 +236,8 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionTitleBar = item.flipBoolValue(*this);
-			emuViewController.showNavView(optionTitleBar);
-			emuViewController.placeElements();
+			emuViewController().showNavView(optionTitleBar);
+			emuViewController().placeElements();
 		}
 	},
 	backNav
@@ -247,8 +247,8 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			View::setNeedsBackControl(item.flipBoolValue(*this));
-			emuViewController.setShowNavViewBackButton(View::needsBackControl);
-			emuViewController.placeElements();
+			emuViewController().setShowNavViewBackButton(View::needsBackControl);
+			emuViewController().placeElements();
 		}
 	},
 	systemActionsIsDefaultMenu
@@ -404,5 +404,5 @@ void GUIOptionView::setFontSize(uint16_t val)
 {
 	optionFontSize = val;
 	setupFont(renderer(), window());
-	emuViewController.placeElements();
+	emuViewController().placeElements();
 }

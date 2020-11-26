@@ -288,6 +288,11 @@ FrameTime FrameParams::timestampDiff() const
 	return lastTimestamp_.count() ? timestamp_ - lastTimestamp_ : FrameTime{};
 }
 
+FrameTime FrameParams::presentTime() const
+{
+	return timestamp_ + std::chrono::duration_cast<FrameTime>(frameTime_);
+}
+
 uint32_t FrameParams::elapsedFrames() const
 {
 	if(!lastTimestamp_.count())

@@ -17,6 +17,8 @@
 #include <emuframework/EmuVideoLayer.hh>
 #include <algorithm>
 
+EmuView::EmuView() {}
+
 EmuView::EmuView(ViewAttachParams attach, EmuVideoLayer *layer):
 	View{attach},
 	layer{layer}

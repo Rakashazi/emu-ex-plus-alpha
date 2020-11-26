@@ -59,7 +59,7 @@ protected:
 
 struct GLBufferConfig
 {
-	Base::NativeWindowFormat windowFormat(GLDisplay display);
+	Base::NativeWindowFormat windowFormat(GLDisplay display) const;
 };
 
 using GLDrawableImpl = GLViewDrawable;

@@ -15,7 +15,7 @@ class RendererCommands;
 class GeomQuadMesh
 {
 public:
-	GeomQuadMesh() {}
+	constexpr GeomQuadMesh() {}
 	GeomQuadMesh(const VertexPos *x, uint32_t xVals, const VertexPos *y, uint32_t yVals, VertexColor color = 0);
 	template <size_t S1, size_t S2>
 	GeomQuadMesh(const VertexPos (&x)[S1], const VertexPos (&y)[S2], VertexColor color = 0):
@@ -26,7 +26,7 @@ public:
 	template <size_t S2>
 	GeomQuadMesh(const VertexPos *x, uint32_t xVals, const VertexPos (&y)[S2], VertexColor color = 0):
 		GeomQuadMesh(x, xVals, y, S2, color) {}
-	void draw(RendererCommands &r);
+	void draw(RendererCommands &r) const;
 	void setColorRGB(ColorComp r, ColorComp g, ColorComp b);
 	void setColorTranslucent(ColorComp a);
 	void setColorRGBV(ColorComp r, ColorComp g, ColorComp b, uint32_t i);

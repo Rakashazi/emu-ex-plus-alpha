@@ -57,9 +57,10 @@ public:
 	bool inputEvent(Input::Event e) final;
 };
 
-class EmuViewController : public ViewController
+class EmuViewController final: public ViewController
 {
 public:
+	EmuViewController() {}
 	EmuViewController(AppWindowData &winData, Gfx::Renderer &renderer, Gfx::RendererTask &rTask,
 		VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystemTask &systemTask);
 	void initViews(ViewAttachParams attach);
@@ -110,9 +111,9 @@ public:
 protected:
 	static constexpr bool HAS_USE_RENDER_TIME = Config::envIsLinux
 		|| (Config::envIsAndroid && Config::ENV_ANDROID_MINSDK < 16);
-	EmuView emuView;
-	EmuInputView emuInputView;
-	ToastView popup;
+	EmuView emuView{};
+	EmuInputView emuInputView{};
+	ToastView popup{};
 	EmuMenuViewStack viewStack{};
 	Base::OnFrameDelegate onFrameUpdate{};
 	Gfx::RendererTask *rendererTask_{};
@@ -146,7 +147,6 @@ protected:
 	bool useRendererTime() const;
 };
 
-extern EmuViewController emuViewController;
 extern DelegateFunc<void ()> onUpdateInputDevices;
 extern FS::PathString lastLoadPath;
 extern EmuVideo emuVideo;
@@ -154,6 +154,7 @@ extern EmuAudio emuAudio;
 extern RecentGameList recentGameList;
 static constexpr const char *strftimeFormat = "%x  %r";
 
+EmuViewController &emuViewController();
 void loadConfigFile();
 void saveConfigFile();
 void addRecentGame(const char *fullPath, const char *name);

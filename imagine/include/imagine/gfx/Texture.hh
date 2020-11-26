@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureConfig.hh>
-#include <imagine/gfx/TextureSamplerConfig.hh>
 #include <imagine/gfx/Mat4.hh>
 #include <imagine/pixmap/Pixmap.hh>
 
@@ -34,16 +33,8 @@ namespace Gfx
 {
 
 class Renderer;
+class RendererTask;
 class RendererCommands;
-
-class TextureSampler: public TextureSamplerImpl
-{
-public:
-	using TextureSamplerImpl::TextureSamplerImpl;
-	TextureSampler(TextureSampler &&o);
-	TextureSampler &operator=(TextureSampler &&o);
-	explicit operator bool() const;
-};
 
 class LockedTextureBuffer: public LockedTextureBufferImpl
 {
@@ -63,8 +54,8 @@ public:
 	static constexpr uint32_t BUFFER_FLAG_CLEARED = IG::bit(0);
 
 	using TextureImpl::TextureImpl;
-	Texture(Renderer &r, TextureConfig config, IG::ErrorCode *errorPtr = nullptr);
-	Texture(Renderer &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
+	Texture(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr = nullptr);
+	Texture(RendererTask &, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
 	Texture(Texture &&o);
 	Texture &operator=(Texture &&o);
 	static uint8_t bestAlignment(IG::Pixmap pixmap);
@@ -86,7 +77,8 @@ public:
 	void useDefaultProgram(RendererCommands &cmds, uint32_t mode) const { useDefaultProgram(cmds, mode, nullptr); }
 	void useDefaultProgram(RendererCommands &cmds, uint32_t mode, Mat4 modelMat) const { useDefaultProgram(cmds, mode, &modelMat); }
 	explicit operator bool() const;
-	Renderer &renderer();
+	Renderer &renderer() const;
+	RendererTask &task() const;
 	operator TextureSpan() const;
 };
 

@@ -15,7 +15,8 @@
 
 #define LOGTAG "GLTextureSampler"
 #include <imagine/gfx/Renderer.hh>
-#include <imagine/gfx/Texture.hh>
+#include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/TextureSampler.hh>
 #include "private.hh"
 #include <limits>
 
@@ -75,8 +76,8 @@ static GLint makeWrapMode(WrapMode mode)
 	return mode == WRAP_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
 }
 
-GLTextureSampler::GLTextureSampler(Renderer &r, TextureSamplerConfig config):
-	r{&r}
+GLTextureSampler::GLTextureSampler(RendererTask &rTask, TextureSamplerConfig config):
+	rTask{&rTask}
 {
 	if(config.debugLabel())
 		debugLabel = config.debugLabel();
@@ -84,9 +85,10 @@ GLTextureSampler::GLTextureSampler(Renderer &r, TextureSamplerConfig config):
 	minFilter = makeMinFilter(config.magLinearFilter(), config.mipFilter());
 	xWrapMode_ = makeWrapMode(config.xWrapMode());
 	yWrapMode_ = makeWrapMode(config.yWrapMode());
+	auto &r = rTask.renderer();
 	if(r.support.hasSamplerObjects)
 	{
-		r.runGLTaskSync(
+		rTask.runSync(
 			[this, &r = std::as_const(r)]()
 			{
 				r.support.glGenSamplers(1, &name_);
@@ -121,6 +123,17 @@ TextureSampler &TextureSampler::operator=(TextureSampler &&o)
 	return *this;
 }
 
+Renderer &TextureSampler::renderer() const
+{
+	return task().renderer();
+}
+
+RendererTask &TextureSampler::task() const
+{
+	assumeExpr(rTask);
+	return *rTask;
+}
+
 GLTextureSampler::~GLTextureSampler()
 {
 	deinit();
@@ -128,13 +141,13 @@ GLTextureSampler::~GLTextureSampler()
 
 void GLTextureSampler::deinit()
 {
-	if(!name_ || !r->support.hasSamplerObjects || !r->hasGLTask())
+	if(!name_ || !rTask || !*rTask || !rTask->renderer().support.hasSamplerObjects)
 		return;
 	logDMsg("deleting sampler object:0x%X (%s)", name_, label());
-	r->runGLTask(
-		[r = std::as_const(this->r), name = name_]()
+	rTask->run(
+		[&r = std::as_const(rTask->renderer()), name = name_]()
 		{
-			r->support.glDeleteSamplers(1, &name);
+			r.support.glDeleteSamplers(1, &name);
 		});
 	name_ = 0;
 }
@@ -146,7 +159,7 @@ TextureSampler::operator bool() const
 
 void GLTextureSampler::setTexParams(GLenum target) const
 {
-	assert(!r->support.hasSamplerObjects);
+	assert(!rTask->renderer().support.hasSamplerObjects);
 	setTexParameteri(target, GL_TEXTURE_MAG_FILTER, magFilter);
 	setTexParameteri(target, GL_TEXTURE_MIN_FILTER, minFilter);
 	setTexParameteri(target, GL_TEXTURE_WRAP_S, xWrapMode_);

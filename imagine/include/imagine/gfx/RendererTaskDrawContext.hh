@@ -15,29 +15,36 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/PixmapBufferTexture.hh>
+#include <imagine/config/defs.hh>
 
-struct AHardwareBuffer;
+#ifdef CONFIG_GFX_OPENGL
+#include <imagine/gfx/opengl/GLMainTask.hh>
+#endif
+
+#include <imagine/gfx/defs.hh>
+#include <imagine/gfx/Mat4.hh>
+
+namespace Base
+{
+class Window;
+}
 
 namespace Gfx
 {
 
-class AHardwareBufferStorage: public TextureBufferStorage
+class RendererTask;
+class RendererCommands;
+class DrawableHolder;
+class Viewport;
+
+class RendererTaskDrawContext : public RendererTaskDrawContextImpl
 {
 public:
-	AHardwareBufferStorage(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr);
-	AHardwareBufferStorage(AHardwareBufferStorage &&o);
-	~AHardwareBufferStorage();
-	AHardwareBufferStorage &operator=(AHardwareBufferStorage &&o);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc) final;
-	LockedTextureBuffer lock(uint32_t bufferFlags) final;
-	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
+	using RendererTaskDrawContextImpl::RendererTaskDrawContextImpl;
 
-protected:
-	AHardwareBuffer *hBuff{};
-	uint32_t pitchBytes = 0;
-
-	void deinit();
+	RendererCommands makeRendererCommands(DrawableHolder &drawableHolder, Base::Window &win, Viewport viewport, Mat4 projMat);
+	RendererTask &rendererTask() const;
+	Renderer &renderer() const;
 };
 
 }

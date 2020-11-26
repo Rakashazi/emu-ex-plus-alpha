@@ -75,6 +75,7 @@ public:
 	FrameTime lastTimestamp() const { return lastTimestamp_; }
 	FloatSeconds frameTime() const { return frameTime_; }
 	FrameTime timestampDiff() const;
+	FrameTime presentTime() const;
 	uint32_t elapsedFrames() const;
 	uint32_t elapsedFrames(uint32_t frameCap) const;
 

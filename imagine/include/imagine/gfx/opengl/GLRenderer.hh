@@ -18,13 +18,18 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/CustomEvent.hh>
-#include <imagine/base/MessagePort.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureSizeSupport.hh>
+#include <imagine/gfx/TextureSampler.hh>
+#include <imagine/gfx/RendererTask.hh>
 #include <imagine/util/Interpolator.hh>
 #include <imagine/util/typeTraits.hh>
+#include "GLSLProgram.hh"
 #include <memory>
-#include <thread>
+#ifdef CONFIG_BASE_GL_PLATFORM_EGL
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#endif
 
 namespace IG
 {
@@ -34,17 +39,18 @@ class Semaphore;
 namespace Gfx
 {
 
-#ifndef __APPLE__
-#define CONFIG_GFX_OPENGL_DEBUG_CONTEXT
-#endif
-
 class RendererCommands;
 class TextureSampler;
 class GLSLProgram;
+class RendererTask;
 
 class DrawContextSupport
 {
 public:
+	#ifdef CONFIG_MACHINE_PANDORA
+	using EGLSync = void*;
+	using EGLTime = uint64_t;
+	#endif
 	#ifdef CONFIG_GFX_OPENGL_ES
 	void (* GL_APIENTRY glGenSamplers) (GLsizei count, GLuint* samplers){};
 	void (* GL_APIENTRY glDeleteSamplers) (GLsizei count, const GLuint* samplers){};
@@ -56,12 +62,21 @@ public:
 	UnmapBufferProto glUnmapBuffer{};
 	void (* GL_APIENTRY glDrawBuffers) (GLsizei size, const GLenum *bufs){};
 	void (* GL_APIENTRY glReadBuffer) (GLenum src){};
-	GLsync (* GL_APIENTRY glFenceSync) (GLenum condition, GLbitfield flags){};
-	void (* GL_APIENTRY glDeleteSync) (GLsync sync){};
-	GLenum (* GL_APIENTRY glClientWaitSync) (GLsync sync, GLbitfield flags, GLuint64 timeout){};
-	void (* GL_APIENTRY glWaitSync) (GLsync sync, GLbitfield flags, GLuint64 timeout){};
 	void (* GL_APIENTRY glBufferStorage) (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags){};
 	void (* GL_APIENTRY glFlushMappedBufferRange)(GLenum target, GLintptr offset, GLsizeiptr length){};
+	//void (* GL_APIENTRY glMemoryBarrier) (GLbitfield barriers){};
+		#ifdef CONFIG_BASE_GL_PLATFORM_EGL
+		// Prototypes based on EGL_KHR_fence_sync/EGL_KHR_wait_sync versions
+		EGLSync (EGLAPIENTRY *eglCreateSync)(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list){};
+		EGLBoolean (EGLAPIENTRY *eglDestroySync)(EGLDisplay dpy, EGLSync sync){};
+		EGLint (EGLAPIENTRY *eglClientWaitSync)(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTime timeout){};
+		//EGLint (EGLAPIENTRY *eglWaitSync)(EGLDisplay dpy, EGLSync sync, EGLint flags){};
+		#else
+		GLsync (* GL_APIENTRY glFenceSync) (GLenum condition, GLbitfield flags){};
+		void (* GL_APIENTRY glDeleteSync) (GLsync sync){};
+		GLenum (* GL_APIENTRY glClientWaitSync) (GLsync sync, GLbitfield flags, GLuint64 timeout){};
+		//void (* GL_APIENTRY glWaitSync) (GLsync sync, GLbitfield flags, GLuint64 timeout){};
+		#endif
 	#else
 	static void glGenSamplers(GLsizei count, GLuint* samplers) { ::glGenSamplers(count, samplers); };
 	static void glDeleteSamplers(GLsizei count, const GLuint* samplers) { ::glDeleteSamplers(count,samplers); };
@@ -72,15 +87,24 @@ public:
 	static GLboolean glUnmapBuffer(GLenum target) { return ::glUnmapBuffer(target); }
 	static void glDrawBuffers(GLsizei size, const GLenum *bufs) { ::glDrawBuffers(size, bufs); };
 	static void glReadBuffer(GLenum src) { ::glReadBuffer(src); };
-	static GLsync glFenceSync(GLenum condition, GLbitfield flags) { return ::glFenceSync(condition, flags); }
-	static void glDeleteSync(GLsync sync) { ::glDeleteSync(sync); }
-	static GLenum glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout) { return ::glClientWaitSync(sync, flags, timeout); }
-	static void glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout) { ::glWaitSync(sync, flags, timeout); }
 	static void glBufferStorage(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags) { ::glBufferStorage(target, size, data, flags); }
 	static void glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length) { ::glFlushMappedBufferRange(target, offset, length); }
+	//static void glMemoryBarrier(GLbitfield barriers) { ::glMemoryBarrier(barriers); }
+		#ifdef CONFIG_BASE_GL_PLATFORM_EGL
+		static EGLSync eglCreateSync(EGLDisplay dpy, EGLenum type, const EGLAttrib *attrib_list) { return ::eglCreateSync(dpy, type, attrib_list); }
+		static EGLBoolean eglDestroySync(EGLDisplay dpy, EGLSync sync) { return ::eglDestroySync(dpy, sync); }
+		static EGLint eglClientWaitSync(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTime timeout) { return ::eglClientWaitSync(dpy, sync, flags, timeout); }
+		//static EGLBoolean eglWaitSync(EGLDisplay dpy, EGLSync sync, EGLint flags) { return ::eglWaitSync(dpy, sync, flags); }
+		#else
+		static GLsync glFenceSync(GLenum condition, GLbitfield flags) { return ::glFenceSync(condition, flags); }
+		static void glDeleteSync(GLsync sync) { ::glDeleteSync(sync); }
+		static GLenum glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout) { return ::glClientWaitSync(sync, flags, timeout); }
+		//static void glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout) { ::glWaitSync(sync, flags, timeout); }
+		#endif
 	#endif
 	#ifdef __ANDROID__
 	void (GL_APIENTRYP glEGLImageTargetTexStorageEXT)(GLenum target, GLeglImageOES image, const GLint* attrib_list){};
+	EGLBoolean (EGLAPIENTRY *eglPresentationTimeANDROID)(EGLDisplay dpy, EGLSurface surface, EGLnsecsANDROID time){};
 	#endif
 	#if defined CONFIG_GFX_OPENGL_DEBUG_CONTEXT && defined CONFIG_GFX_OPENGL_ES
 	void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROCKHR callback, const void *userParam){};
@@ -107,8 +131,8 @@ public:
 	GLfloat maximumAnisotropy{};
 	bool hasMultisample = false;
 	bool hasMultisampleHints = false;
-	bool hasFenceSync = false;
 	bool hasBufferStorage = false;
+	//bool hasMemoryBarrier = false;
 	#endif
 	bool hasBGRPixels = false;
 	bool hasVBOFuncs = false;
@@ -117,11 +141,7 @@ public:
 	bool hasSamplerObjects = !Config::Gfx::OPENGL_ES;
 	bool hasImmutableTexStorage = false;
 	bool hasPBOFuncs = false;
-	#ifdef CONFIG_GFX_OPENGL_DEBUG_CONTEXT
-	bool hasDebugOutput = false;
-	#else
-	static constexpr bool hasDebugOutput = false;
-	#endif
+	[[no_unique_address]] IG::UseTypeIf<Config::Gfx::OPENGL_DEBUG_CONTEXT, bool> hasDebugOutput{};
 	bool useLegacyGLSL = Config::Gfx::OPENGL_ES;
 	#ifdef __ANDROID__
 	bool hasEGLImages = false;
@@ -136,105 +156,72 @@ public:
 
 	bool hasDrawReadBuffers() const;
 	bool hasSyncFences() const;
+	bool hasServerWaitSync() const;
 	bool hasEGLTextureStorage() const;
 	bool hasImmutableBufferStorage() const;
-};
-
-class GLMainTask
-{
-public:
-	class TaskContext
-	{
-	public:
-		constexpr TaskContext(IG::Semaphore *semPtr, bool *notifySemaporeAfterDelegatePtr):
-			semPtr{semPtr}, notifySemaporeAfterDelegatePtr{notifySemaporeAfterDelegatePtr}
-		{}
-		void notifySemaphore();
-
-	protected:
-		IG::Semaphore *semPtr{};
-		bool *notifySemaporeAfterDelegatePtr{};
-	};
-
-	using FuncDelegate = DelegateFunc2<sizeof(uintptr_t)*4 + sizeof(int)*10, void(TaskContext)>;
-
-	enum class Command: uint8_t
-	{
-		UNSET, RUN_FUNC, EXIT
-	};
-
-	struct CommandMessage
-	{
-		IG::Semaphore *semPtr{};
-		union Args
-		{
-			struct RunArgs
-			{
-				FuncDelegate func;
-			} run;
-		} args{};
-		Command command{Command::UNSET};
-
-		constexpr CommandMessage() {}
-		constexpr CommandMessage(Command command, IG::Semaphore *semPtr = nullptr):
-			semPtr{semPtr}, command{command} {}
-		constexpr CommandMessage(Command command, FuncDelegate funcDel, IG::Semaphore *semPtr = nullptr):
-			semPtr{semPtr}, args{funcDel}, command{command} {}
-		explicit operator bool() const { return command != Command::UNSET; }
-		void setReplySemaphore(IG::Semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
-	};
-
-	~GLMainTask();
-	void start(Base::GLContext context);
-	void runFunc(FuncDelegate del, bool awaitReply = false);
-	void stop();
-	bool isStarted() const;
-	void runPendingTasksOnThisThread();
-
-private:
-	Base::MessagePort<CommandMessage> commandPort{"GLMainTask Command"};
-	std::thread thread{};
-	bool started = false;
+	bool hasMemoryBarriers() const;
+	GLsync fenceSync(Base::GLDisplay dpy);
+	void deleteSync(Base::GLDisplay dpy, GLsync sync);
+	GLenum clientWaitSync(Base::GLDisplay dpy, GLsync sync, GLbitfield flags, GLuint64 timeout);
+	void waitSync(Base::GLDisplay dpy, GLsync sync);
 };
 
 class GLRenderer
 {
 public:
+	struct Init{};
+
 	DrawContextSupport support{};
-	std::unique_ptr<GLMainTask> mainTask{};
+	std::unique_ptr<RendererTask> mainTask{};
 	Base::GLDisplay glDpy{};
-	Base::GLContext gfxResourceContext{};
 	Base::GLBufferConfig gfxBufferConfig{};
+	// color replacement shaders
+	DefaultTexReplaceProgram texReplaceProgram{};
+	DefaultTexAlphaReplaceProgram texAlphaReplaceProgram{};
+	#ifdef __ANDROID__
+	DefaultTexExternalReplaceProgram texExternalReplaceProgram{};
+	#endif
+	// color modulation shaders
+	DefaultTexProgram texProgram{};
+	DefaultTexAlphaProgram texAlphaProgram{};
+	#ifdef __ANDROID__
+	DefaultTexExternalProgram texExternalProgram{};
+	#endif
+	DefaultColorProgram noTexProgram{};
 	TextureSampler defaultClampSampler{};
 	TextureSampler defaultNearestMipClampSampler{};
 	TextureSampler defaultNoMipClampSampler{};
 	TextureSampler defaultNoLinearNoMipClampSampler{};
 	TextureSampler defaultRepeatSampler{};
 	TextureSampler defaultNearestMipRepeatSampler{};
-	Base::CustomEvent releaseShaderCompilerEvent{"GLRenderer::releaseShaderCompilerEvent"};
-	Base::ExitDelegate onExit{};
-	IG::Semaphore resourceFenceSem{0};
-	SyncFence resourceFence{};
+	Base::CustomEvent releaseShaderCompilerEvent{Base::CustomEvent::NullInit{}};
 	TimedInterpolator<Gfx::GC> projAngleM;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	GLuint defaultVShader = 0;
 	#endif
 	Angle projectionMatRot = 0;
 	GLuint samplerNames = 0; // used when separate sampler objects not supported
-	bool resourceUpdate = false;
-	bool resourceFenceQueued = false;
-	bool useSeparateDrawContext = false;
 	#ifndef CONFIG_GFX_OPENGL_ES
 	bool useStreamVAO = false;
 	#endif
 	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
 	uint8_t glMajorVer = 0;
 	#endif
-	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, bool> contextDestroyed = false;
 	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, bool> drawContextDebug = false;
 
-	GLRenderer() {}
-	void addEventHandlers();
+	constexpr GLRenderer() {}
+	GLRenderer(Init);
+	~GLRenderer();
+	GLRenderer(GLRenderer &&o) = default;
+	GLRenderer &operator=(GLRenderer &&o) = default;
+	void setGLProjectionMatrix(RendererCommands &cmds, const Mat4 &mat);
+	TextureSampler &commonTextureSampler(CommonTextureSampler sampler);
+	void useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat);
+
+protected:
+	std::pair<Base::GLContext, IG::ErrorCode> makeGLContext(Base::GLDisplay glDpy, IG::PixelFormat pixelFormat);
+	std::pair<Base::GLContext, IG::ErrorCode> makeGLContextWithKnownConfig(Base::GLDisplay glDpy, Base::GLContext shareContext);
+	void addEventHandlers(RendererTask &task);
 	Base::GLContextAttributes makeKnownGLContextAttributes();
 	void finishContextCreation(Base::GLContext ctx);
 	void setCurrentDrawable(Base::GLDisplay dpy, Base::GLContext ctx, Drawable win);
@@ -255,48 +242,14 @@ public:
 	void setupSpecifyDrawReadBuffers();
 	void setupUnmapBufferFunc();
 	void setupImmutableBufferStorage();
+	void setupMemoryBarrier();
 	void setupFenceSync();
 	void setupAppleFenceSync();
-	void setupEGLFenceSync(bool supportsServerSync);
+	void setupEglFenceSync(const char *eglExtenstionStr);
+	void setupPresentationTime(const char *eglExtenstionStr);
 	void checkExtensionString(const char *extStr, bool &useFBOFuncs);
 	void checkFullExtensionString(const char *fullExtStr);
-	void verifyCurrentResourceContext();
-	void setGLProjectionMatrix(RendererCommands &cmds, const Mat4 &mat);
-	void setProgram(GLSLProgram &program);
-	GLuint makeProgram(GLuint vShader, GLuint fShader);
-	bool linkProgram(GLuint program);
-	TextureSampler &commonTextureSampler(CommonTextureSampler sampler);
-	bool hasGLTask() const;
-	void runGLTask2(GLMainTask::FuncDelegate del, bool awaitReply);
-	template<class Func>
-	void runGLTask(Func &&del, bool awaitReply = false) { runGLTask2(wrapGLMainTaskDelegate(del), awaitReply); }
-	template<class Func>
-	void runGLTaskSync(Func &&del) { runGLTask2(wrapGLMainTaskDelegate(del), true); }
-
-	template<class Func = GLMainTask::FuncDelegate>
-	static GLMainTask::FuncDelegate wrapGLMainTaskDelegate(Func del)
-	{
-		constexpr auto args = IG::functionTraitsArity<Func>;
-		if constexpr(args == 0)
-		{
-			// for void ()
-			return
-				[=](GLMainTask::TaskContext)
-				{
-					del();
-				};
-		}
-		else
-		{
-			// for void (GLMainTask::TaskContext)
-			return del;
-		}
-	}
-
-	// for iOS EAGLView renderbuffer management
-	IG::Point2D<int> makeIOSDrawableRenderbuffer(void *layer, GLuint &colorRenderbuffer, GLuint &depthRenderbuffer);
-	void deleteIOSDrawableRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffer);
-	void setIOSDrawableDelegates();
+	void deinit();
 };
 
 using RendererImpl = GLRenderer;

@@ -35,6 +35,7 @@ class CFTimer
 public:
 	using Time = IG::FloatSeconds;
 
+	constexpr CFTimer() {}
 	CFTimer(CallbackDelegate c) : CFTimer{nullptr, c} {}
 	CFTimer(const char *debugLabel, CallbackDelegate c);
 	CFTimer(CFTimer &&o);
