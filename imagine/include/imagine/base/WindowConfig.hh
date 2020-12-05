@@ -188,16 +188,6 @@ public:
 		return onFree_;
 	}
 
-	void setCustomData(void *data)
-	{
-		customData_ = data;
-	}
-
-	void *customData() const
-	{
-		return customData_;
-	}
-
 private:
 	Point2D<int> pos{-1, -1};
 	Point2D<int> size_{0, 0};
@@ -212,7 +202,6 @@ private:
 	BaseWindow::DismissRequestDelegate onDismissRequest_;
 	BaseWindow::DismissDelegate onDismiss_;
 	BaseWindow::FreeDelegate onFree_;
-	void *customData_{};
 };
 
 }

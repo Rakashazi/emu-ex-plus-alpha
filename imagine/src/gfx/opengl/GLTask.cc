@@ -20,14 +20,14 @@
 #include <imagine/gfx/opengl/GLRendererTask.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
-#include "private.hh"
+#include "internalDefs.hh"
 
 namespace Gfx
 {
 
-GLMainTask::GLMainTask() {}
+GLTask::GLTask() {}
 
-GLMainTask::GLMainTask(const char *debugLabel, Base::GLContext context_, int threadPriority):
+GLTask::GLTask(const char *debugLabel, Base::GLContext context_, int threadPriority):
 	context{context_}, commandPort{debugLabel}
 {
 	assert(context);
@@ -47,19 +47,7 @@ GLMainTask::GLMainTask(const char *debugLabel, Base::GLContext context_, int thr
 						{
 							bcase Command::RUN_FUNC:
 							{
-								TaskContext ctx{glDpy, msg.semPtr, nullptr};
-								msg.args.run.func(ctx);
-							}
-							bcase Command::RUN_FUNC_SEMAPHORE:
-							{
-								bool semaphoreWasNotifiedPtr = !msg.semPtr;
-								TaskContext ctx{glDpy, msg.semPtr, &semaphoreWasNotifiedPtr};
-								msg.args.run.func(ctx);
-								if(!semaphoreWasNotifiedPtr) // semaphore wasn't already notified in the delegate
-								{
-									//logDMsg("notifying semaphore:%p", msg.semPtr);
-									msg.semPtr->notify();
-								}
+								msg.args.run.func(glDpy, msg.semPtr);
 							}
 							bcase Command::EXIT:
 							{
@@ -108,29 +96,28 @@ GLMainTask::GLMainTask(const char *debugLabel, Base::GLContext context_, int thr
 	Base::addOnExit(onExit, Base::RENDERER_TASK_ON_EXIT_PRIORITY);
 }
 
-GLMainTask::~GLMainTask()
+GLTask::~GLTask()
 {
 	deinit();
 }
 
-void GLMainTask::runFunc(FuncDelegate del, bool awaitReply, bool manageSemaphore)
+void GLTask::runFunc(FuncDelegate del, bool awaitReply)
 {
 	assert(context);
-	Command cmd = manageSemaphore ? Command::RUN_FUNC_SEMAPHORE : Command::RUN_FUNC;
-	commandPort.send({cmd, del}, awaitReply);
+	commandPort.send({Command::RUN_FUNC, del}, awaitReply);
 }
 
-Base::GLContext GLMainTask::glContext() const
+Base::GLContext GLTask::glContext() const
 {
 	return context;
 }
 
-GLMainTask::operator bool() const
+GLTask::operator bool() const
 {
 	return (bool)context;
 }
 
-void GLMainTask::deinit()
+void GLTask::deinit()
 {
 	if(!context)
 		return;
@@ -139,17 +126,17 @@ void GLMainTask::deinit()
 	thread.join(); // GL implementation may assign thread destructor so must join() to make sure it completes
 }
 
-void GLMainTask::TaskContext::notifySemaphore()
+void GLTask::TaskContext::notifySemaphore()
 {
 	assumeExpr(semPtr);
-	assumeExpr(semaphoreWasNotifiedPtr);
+	assumeExpr(semaphoreNeedsNotifyPtr);
 	semPtr->notify();
 	markSemaphoreNotified();
 }
 
-void GLMainTask::TaskContext::markSemaphoreNotified()
+void GLTask::TaskContext::markSemaphoreNotified()
 {
-	*semaphoreWasNotifiedPtr = true;
+	*semaphoreNeedsNotifyPtr = false;
 }
 
 }

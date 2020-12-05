@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/util/rectangle2.h>
+#include <imagine/util/typeTraits.hh>
 #include <compare>
 
 namespace Base
@@ -94,11 +95,8 @@ private:
 	float wSMM = 0, hSMM = 0;
 	#endif
 	IG::Rect2<int> relYFlipViewport;
-	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	Base::Orientation softOrientation_ = Base::VIEW_ROTATE_0;
-	#else
-	static constexpr Base::Orientation softOrientation_ = Base::VIEW_ROTATE_0;
-	#endif
+	IG_enableMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Base::Orientation,
+		Base::VIEW_ROTATE_0, softOrientation_){Base::VIEW_ROTATE_0};
 };
 
 }

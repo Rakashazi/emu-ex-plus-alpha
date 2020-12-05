@@ -38,10 +38,7 @@ protected:
 	unsigned long xWin{};
 	unsigned long draggerXWin{};
 	unsigned long dragAction{};
-	#ifndef CONFIG_MACHINE_PANDORA
-	IG::Point2D<int> pos;
-	unsigned long colormap{};
-	#endif
+	IG_enableMemberIf(!Config::MACHINE_IS_PANDORA, unsigned long, colormap){};
 };
 
 void shutdownWindowSystem();

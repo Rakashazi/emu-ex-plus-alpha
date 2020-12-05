@@ -15,12 +15,14 @@
 
 #define LOGTAG "RendererCmds"
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/DrawableHolder.hh>
 #include <imagine/gfx/Program.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/logger/logger.h>
-#include "private.hh"
+#include "internalDefs.hh"
+#include "utils.hh"
 
 namespace Gfx
 {
@@ -28,17 +30,12 @@ namespace Gfx
 static constexpr bool useGLCache = true;
 
 GLRendererCommands::GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, DrawableHolder &drawableHolder, Base::GLDisplay glDpy,
-		IG::Semaphore *drawCompleteSemPtr, bool notifySemaphoreAfterPresent):
+		IG::Semaphore *drawCompleteSemPtr):
 	rTask{&rTask}, r{&rTask.renderer()}, drawCompleteSemPtr{drawCompleteSemPtr},
-	winPtr{winPtr}, drawableHolderPtr{&drawableHolder}, glDpy{glDpy}, drawable{drawableHolder},
-	notifySemaphoreAfterPresent{notifySemaphoreAfterPresent}
+	winPtr{winPtr}, drawableHolderPtr{&drawableHolder}, glDpy{glDpy}, drawable{drawableHolder}
 {
 	assumeExpr(drawable);
 	setCurrentDrawable(drawable);
-	if(Config::DEBUG_BUILD && defaultToFullErrorChecks)
-	{
-		static_cast<RendererCommands*>(this)->setDebugOutput(true);
-	}
 }
 
 RendererCommands::RendererCommands(RendererCommands &&o)
@@ -57,10 +54,7 @@ RendererCommands &RendererCommands::operator=(RendererCommands &&o)
 
 RendererCommands::~RendererCommands()
 {
-	if(drawableWasPresented)
-	{
-		notifyPresentComplete();
-	}
+	assert(drawableWasPresented);
 }
 
 void GLRendererCommands::discardTemporaryData() {}
@@ -92,6 +86,7 @@ void GLRendererCommands::present(Drawable win)
 
 void GLRendererCommands::doPresent()
 {
+	assert(!drawableWasPresented);
 	rTask->verifyCurrentContext(glDpy);
 	if(Config::envIsAndroid && r->support.hasSamplerObjects)
 	{
@@ -102,11 +97,12 @@ void GLRendererCommands::doPresent()
 	discardTemporaryData();
 	present(drawable);
 	drawableWasPresented = true;
+	notifyPresentComplete();
 }
 
 void GLRendererCommands::notifyDrawComplete()
 {
-	if(!notifySemaphoreAfterPresent && drawCompleteSemPtr)
+	if(drawCompleteSemPtr)
 	{
 		drawCompleteSemPtr->notify();
 	}
@@ -118,11 +114,6 @@ void GLRendererCommands::notifyPresentComplete()
 	if(winPtr)
 	{
 		winPtr->deferredDrawComplete();
-	}
-	if(notifySemaphoreAfterPresent)
-	{
-		assumeExpr(drawCompleteSemPtr);
-		drawCompleteSemPtr->notify();
 	}
 }
 
@@ -548,6 +539,14 @@ void RendererCommands::setProgram(Program &program, Mat4 modelMat)
 	loadTransform(modelMat);
 }
 
+void RendererCommands::setProgram(Program &program, const Mat4 *modelMat)
+{
+	if(modelMat)
+		setProgram(program, *modelMat);
+	else
+		setProgram(program);
+}
+
 void RendererCommands::setCommonProgram(CommonProgram program)
 {
 	setCommonProgram(program, nullptr);
@@ -567,19 +566,6 @@ void RendererCommands::setCommonProgram(CommonProgram program, const Mat4 *model
 void RendererCommands::uniformF(int uniformLocation, float v1, float v2)
 {
 	glUniform2f(uniformLocation, v1, v2);
-}
-
-void RendererCommands::setDebugOutput(bool on)
-{
-	if constexpr(!Config::DEBUG_BUILD)
-		return;
-	if(!renderer().support.hasDebugOutput || renderer().drawContextDebug == on)
-	{
-		return;
-	}
-	logMsg("draw context debug output:%s", on ? "on" : "off");
-	setGLDebugOutput(renderer().support, on);
-	renderer().drawContextDebug = on;
 }
 
 #ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE

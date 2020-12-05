@@ -22,7 +22,7 @@
 #include <imagine/pixmap/Pixmap.hh>
 
 #ifdef CONFIG_GFX_OPENGL
-#include <imagine/gfx/opengl/Texture.hh>
+#include <imagine/gfx/opengl/GLTexture.hh>
 #endif
 
 #include <utility>

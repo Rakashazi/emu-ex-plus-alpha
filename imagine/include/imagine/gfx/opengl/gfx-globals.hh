@@ -62,4 +62,10 @@ static constexpr int SYNC_FLUSH_COMMANDS_BIT = GL_SYNC_FLUSH_COMMANDS_BIT;
 using ClipRect = IG::WindowRect;
 using Drawable = Base::GLDrawable;
 
+enum class ShaderType : uint16_t
+{
+	VERTEX = GL_VERTEX_SHADER,
+	FRAGMENT = GL_FRAGMENT_SHADER
+};
+
 }

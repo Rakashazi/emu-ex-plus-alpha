@@ -25,7 +25,6 @@
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/InputManagerView.hh>
-#include <emuframework/TouchConfigView.hh>
 #include <emuframework/BundledGamesView.hh>
 #include "private.hh"
 

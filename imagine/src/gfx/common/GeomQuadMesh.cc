@@ -16,7 +16,7 @@
 #include <imagine/gfx/GeomQuadMesh.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/space.hh>
-#include "private.hh"
+#include <imagine/util/algorithm.h>
 
 namespace Gfx
 {

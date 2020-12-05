@@ -23,6 +23,8 @@
 #include <imagine/gui/View.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 
+class VController;
+
 using OptionBackNavigation = Option<OptionMethodRef<bool, View::needsBackControl>, uint8_t>;
 using OptionSwappedGamepadConfirm = Option<OptionMethodFunc<bool, Input::swappedGamepadConfirm, Input::setSwappedGamepadConfirm>, uint8_t>;
 
@@ -93,11 +95,14 @@ struct OptionRecentGames : public OptionBase
 struct OptionVControllerLayoutPosition : public OptionBase
 {
 	const uint16_t key = CFGKEY_VCONTROLLER_LAYOUT_POS;
+	VController *vController{};
 
+	constexpr OptionVControllerLayoutPosition() {}
 	bool isDefault() const final;
 	bool writeToIO(IO &io) final;
 	bool readFromIO(IO &io, uint readSize_);
 	uint ioSize() const final;
+	void setVController(VController &);
 };
 
 extern Byte1Option optionAutoSaveState;

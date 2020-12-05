@@ -33,6 +33,25 @@
 namespace Gfx
 {
 
+DrawableHolder::DrawableHolder(DrawableHolder &&o)
+{
+	*this = std::move(o);
+}
+
+DrawableHolder &DrawableHolder::operator=(DrawableHolder &&o)
+{
+	assert(!o.drawable_); // TODO: update delegates in makeDrawable() to support moving
+	destroyDrawable();
+	GLDrawableHolder::operator=(std::move(o));
+	o.drawable_ = {};
+	return *this;
+}
+
+GLDrawableHolder::~GLDrawableHolder()
+{
+	destroyDrawable();
+}
+
 DrawableHolder::operator Drawable() const
 {
 	return drawable_;
@@ -66,11 +85,14 @@ void DrawableHolder::dispatchOnFrame()
 	lastTimestamp = now;
 }
 
-void GLDrawableHolder::makeDrawable(Renderer &r, RendererTask &task, Base::Window &win)
+void GLDrawableHolder::makeDrawable(RendererTask &rTask, Base::Window &win)
 {
-	destroyDrawable(r);
+	destroyDrawable();
+	auto &r = rTask.renderer();
+	task = &rTask;
 	screen = win.screen();
-	auto [ec, drawable] = r.glDpy.makeDrawable(win, r.gfxBufferConfig);
+	auto dpy = r.glDpy;
+	auto [ec, drawable] = dpy.makeDrawable(win, r.gfxBufferConfig);
 	if(ec)
 	{
 		logErr("Error creating GL drawable");
@@ -85,7 +107,7 @@ void GLDrawableHolder::makeDrawable(Renderer &r, RendererTask &task, Base::Windo
 		};
 	Base::addOnResume(onResume, Base::RENDERER_DRAWABLE_ON_RESUME_PRIORITY);
 	onExit =
-		[this, glDpy = r.glDpy](bool backgrounded) mutable
+		[this, dpy](bool backgrounded) mutable
 		{
 			if(backgrounded)
 			{
@@ -93,7 +115,7 @@ void GLDrawableHolder::makeDrawable(Renderer &r, RendererTask &task, Base::Windo
 				drawable_.freeCaches();
 			}
 			else
-				drawable_.destroy(glDpy);
+				drawable_.destroy(dpy);
 			return true;
 		};
 	Base::addOnExit(onExit, Base::RENDERER_DRAWABLE_ON_EXIT_PRIORITY);
@@ -106,23 +128,27 @@ void GLDrawableHolder::makeDrawable(Renderer &r, RendererTask &task, Base::Windo
 		});
 	if(r.support.hasDrawReadBuffers())
 	{
-		task.run([glCtx = task.glContext(), drawable = drawable,
-			&support = std::as_const(r.support)](GLMainTask::TaskContext ctx)
+		rTask.run([glCtx = rTask.glContext(), drawable = drawable,
+			&support = std::as_const(r.support)](GLTask::TaskContext ctx)
 		{
 			Base::GLContext::setDrawable(ctx.glDisplay(), drawable, glCtx);
 			//logMsg("specifying draw/read buffers");
-			const GLenum back = Config::Gfx::OPENGL_ES_MAJOR_VERSION ? GL_BACK : GL_BACK_LEFT;
+			const GLenum back = Config::Gfx::OPENGL_ES ? GL_BACK : GL_BACK_LEFT;
 			support.glDrawBuffers(1, &back);
 			support.glReadBuffer(GL_BACK);
 		});
 	}
 }
 
-void GLDrawableHolder::destroyDrawable(Renderer &r)
+void GLDrawableHolder::destroyDrawable()
 {
 	if(!drawable_)
 		return;
-	drawable_.destroy(r.glDpy);
+	task->run([drawable = std::exchange(drawable_, {})](GLTask::TaskContext ctx)
+	{
+		// destroy drawable on GL thread in case it's currently being used
+		IG::copySelf(drawable).destroy(ctx.glDisplay());
+	});
 	Base::removeOnExit(onResume);
 	Base::removeOnExit(onExit);
 	drawFinishedEvent.detach();

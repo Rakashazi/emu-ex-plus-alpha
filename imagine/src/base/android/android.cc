@@ -295,7 +295,7 @@ bool Window::systemAnimatesRotation()
 	return osAnimatesRotation;
 }
 
-uint32_t defaultSystemOrientations()
+Orientation defaultSystemOrientations()
 {
 	return VIEW_ROTATE_ALL;
 }

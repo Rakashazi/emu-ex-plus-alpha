@@ -21,6 +21,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureSizeSupport.hh>
 #include <imagine/gfx/TextureSampler.hh>
+#include <imagine/gfx/Program.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/util/Interpolator.hh>
 #include <imagine/util/typeTraits.hh>
@@ -127,13 +128,7 @@ public:
 	GLenum alphaInternalFormat = GL_ALPHA8;
 	GLenum bgrInternalFormat = GL_BGRA;
 	TextureSizeSupport textureSizeSupport{};
-	#ifndef CONFIG_GFX_OPENGL_ES
-	GLfloat maximumAnisotropy{};
-	bool hasMultisample = false;
-	bool hasMultisampleHints = false;
-	bool hasBufferStorage = false;
 	//bool hasMemoryBarrier = false;
-	#endif
 	bool hasBGRPixels = false;
 	bool hasVBOFuncs = false;
 	bool hasTextureSwizzle = false;
@@ -141,17 +136,12 @@ public:
 	bool hasSamplerObjects = !Config::Gfx::OPENGL_ES;
 	bool hasImmutableTexStorage = false;
 	bool hasPBOFuncs = false;
-	[[no_unique_address]] IG::UseTypeIf<Config::Gfx::OPENGL_DEBUG_CONTEXT, bool> hasDebugOutput{};
 	bool useLegacyGLSL = Config::Gfx::OPENGL_ES;
-	#ifdef __ANDROID__
-	bool hasEGLImages = false;
-	bool hasExternalEGLImages = false;
-	#endif
-	#if !defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	static constexpr bool useFixedFunctionPipeline = false;
-	#else
-	bool useFixedFunctionPipeline = true;
-	#endif
+	IG_enableMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, hasDebugOutput){};
+	IG_enableMemberIf(!Config::Gfx::OPENGL_ES, bool, hasBufferStorage){};
+	IG_enableMemberIf(Config::envIsAndroid, bool, hasEGLImages){};
+	IG_enableMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, bool, hasExternalEGLImages){};
+	IG_enableMemberIf(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE, bool, useFixedFunctionPipeline){true};
 	bool isConfigured = false;
 
 	bool hasDrawReadBuffers() const;
@@ -164,6 +154,32 @@ public:
 	void deleteSync(Base::GLDisplay dpy, GLsync sync);
 	GLenum clientWaitSync(Base::GLDisplay dpy, GLsync sync, GLbitfield flags, GLuint64 timeout);
 	void waitSync(Base::GLDisplay dpy, GLsync sync);
+	void setGLDebugOutput(bool on);
+};
+
+struct GLCommonPrograms
+{
+	// color replacement
+	Program texReplace{};
+	Program texAlphaReplace{};
+	// color modulation
+	Program tex{};
+	Program texAlpha{};
+	// no texture
+	Program noTex{};
+	// external textures
+	IG_enableMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, Program, texExternalReplace){};
+	IG_enableMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, Program, texExternal){};
+};
+
+struct GLCommonSamplers
+{
+	TextureSampler clamp{};
+	TextureSampler nearestMipClamp{};
+	TextureSampler noMipClamp{};
+	TextureSampler noLinearNoMipClamp{};
+	TextureSampler repeat{};
+	TextureSampler nearestMipRepeat{};
 };
 
 class GLRenderer
@@ -175,65 +191,38 @@ public:
 	std::unique_ptr<RendererTask> mainTask{};
 	Base::GLDisplay glDpy{};
 	Base::GLBufferConfig gfxBufferConfig{};
-	// color replacement shaders
-	DefaultTexReplaceProgram texReplaceProgram{};
-	DefaultTexAlphaReplaceProgram texAlphaReplaceProgram{};
-	#ifdef __ANDROID__
-	DefaultTexExternalReplaceProgram texExternalReplaceProgram{};
-	#endif
-	// color modulation shaders
-	DefaultTexProgram texProgram{};
-	DefaultTexAlphaProgram texAlphaProgram{};
-	#ifdef __ANDROID__
-	DefaultTexExternalProgram texExternalProgram{};
-	#endif
-	DefaultColorProgram noTexProgram{};
-	TextureSampler defaultClampSampler{};
-	TextureSampler defaultNearestMipClampSampler{};
-	TextureSampler defaultNoMipClampSampler{};
-	TextureSampler defaultNoLinearNoMipClampSampler{};
-	TextureSampler defaultRepeatSampler{};
-	TextureSampler defaultNearestMipRepeatSampler{};
+	GLCommonPrograms commonProgram{};
+	GLCommonSamplers commonSampler{};
 	Base::CustomEvent releaseShaderCompilerEvent{Base::CustomEvent::NullInit{}};
 	TimedInterpolator<Gfx::GC> projAngleM;
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	GLuint defaultVShader = 0;
-	#endif
 	Angle projectionMatRot = 0;
 	GLuint samplerNames = 0; // used when separate sampler objects not supported
-	#ifndef CONFIG_GFX_OPENGL_ES
-	bool useStreamVAO = false;
-	#endif
-	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
-	uint8_t glMajorVer = 0;
-	#endif
-	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, bool> drawContextDebug = false;
+	IG_enableMemberIf(Config::Gfx::OPENGL_SHADER_PIPELINE, GLuint, defaultVShader){};
+	IG_enableMemberIf(Config::Gfx::OPENGL_ES > 1, uint8_t, glMajorVer){};
 
 	constexpr GLRenderer() {}
 	GLRenderer(Init);
 	~GLRenderer();
 	GLRenderer(GLRenderer &&o) = default;
 	GLRenderer &operator=(GLRenderer &&o) = default;
-	void setGLProjectionMatrix(RendererCommands &cmds, const Mat4 &mat);
+	void setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat);
 	TextureSampler &commonTextureSampler(CommonTextureSampler sampler);
 	void useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat);
 
 protected:
 	std::pair<Base::GLContext, IG::ErrorCode> makeGLContext(Base::GLDisplay glDpy, IG::PixelFormat pixelFormat);
 	std::pair<Base::GLContext, IG::ErrorCode> makeGLContextWithKnownConfig(Base::GLDisplay glDpy, Base::GLContext shareContext);
+	std::pair<Base::GLContext, IG::ErrorCode> makeGLContext(Base::GLDisplay dpy, Base::GLBufferConfigAttributes glBuffAttr,
+		unsigned majorVersion, unsigned minorVersion);
 	void addEventHandlers(RendererTask &task);
 	Base::GLContextAttributes makeKnownGLContextAttributes();
 	void finishContextCreation(Base::GLContext ctx);
 	void setCurrentDrawable(Base::GLDisplay dpy, Base::GLContext ctx, Drawable win);
-	void setupAnisotropicFiltering();
-	void setupMultisample();
-	void setupMultisampleHints();
 	void setupNonPow2Textures();
 	void setupNonPow2MipmapTextures();
 	void setupNonPow2MipmapRepeatTextures();
 	void setupBGRPixelSupport();
 	void setupFBOFuncs(bool &useFBOFuncs);
-	void setupVAOFuncs();
 	void setupTextureSwizzle();
 	void setupImmutableTexStorage(bool extSuffix);
 	void setupRGFormats();

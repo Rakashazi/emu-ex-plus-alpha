@@ -1,20 +1,6 @@
 #pragma once
 
-#include <imagine/config/defs.hh>
-
-// Automatic CONFIG_GFX_* settings
-
-#ifndef CONFIG_GFX_OPENGL_ES
-	#if defined CONFIG_BASE_IOS || defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
-	#define CONFIG_GFX_OPENGL_ES 1
-	#endif
-#endif
-
-#ifdef CONFIG_GFX_OPENGL_ES
-	#ifndef CONFIG_GFX_OPENGL_ES_MAJOR_VERSION
-	#error "CONFIG_GFX_OPENGL_ES_MAJOR_VERSION isn't defined"
-	#endif
-#endif
+#include "defs.hh"
 
 // Header Locations For Platform
 
@@ -84,7 +70,7 @@ typedef void (GL_APIENTRY *GLDEBUGPROCKHR)(GLenum source,GLenum type,GLuint id,G
 	#endif
 #endif
 
-#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
+#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
 // un-define ES 2.0 symbols in case headers are implicitly included,
 // such as when including UIKit.h on iOS
 	#ifdef GL_FRAMEBUFFER

@@ -53,12 +53,12 @@ TextureSampler &GLRenderer::commonTextureSampler(CommonTextureSampler sampler)
 	switch(sampler)
 	{
 		default: bug_unreachable("sampler:%d", (int)sampler); [[fallthrough]];
-		case CommonTextureSampler::CLAMP: return defaultClampSampler;
-		case CommonTextureSampler::NEAREST_MIP_CLAMP: return defaultNearestMipClampSampler;
-		case CommonTextureSampler::NO_MIP_CLAMP: return defaultNoMipClampSampler;
-		case CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP: return defaultNoLinearNoMipClampSampler;
-		case CommonTextureSampler::REPEAT: return defaultRepeatSampler;
-		case CommonTextureSampler::NEAREST_MIP_REPEAT: return defaultNearestMipRepeatSampler;
+		case CommonTextureSampler::CLAMP: return commonSampler.clamp;
+		case CommonTextureSampler::NEAREST_MIP_CLAMP: return commonSampler.nearestMipClamp;
+		case CommonTextureSampler::NO_MIP_CLAMP: return commonSampler.noMipClamp;
+		case CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP: return commonSampler.noLinearNoMipClamp;
+		case CommonTextureSampler::REPEAT: return commonSampler.repeat;
+		case CommonTextureSampler::NEAREST_MIP_REPEAT: return commonSampler.nearestMipRepeat;
 	}
 }
 

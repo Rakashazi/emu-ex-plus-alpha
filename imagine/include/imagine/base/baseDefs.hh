@@ -92,7 +92,7 @@ using namespace IG;
 using OnFrameDelegate = DelegateFunc<bool (FrameParams params)>;
 
 // orientation
-using Orientation = uint32_t;
+using Orientation = uint8_t;
 static constexpr Orientation VIEW_ROTATE_0 = bit(0), VIEW_ROTATE_90 = bit(1), VIEW_ROTATE_180 = bit(2), VIEW_ROTATE_270 = bit(3);
 static constexpr Orientation VIEW_ROTATE_AUTO = bit(5);
 static constexpr Orientation VIEW_ROTATE_ALL = VIEW_ROTATE_0 | VIEW_ROTATE_90 | VIEW_ROTATE_180 | VIEW_ROTATE_270;

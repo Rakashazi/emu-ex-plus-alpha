@@ -53,13 +53,19 @@ public:
 	static Window *window(uint32_t idx);
 	static PixelFormat defaultPixelFormat();
 	NativeWindow nativeObject() const;
-	void setCustomData(void *data);
+	void setIntendedFrameRate(double rate);
+
+	template<class T>
+	void setCustomData(T &&data)
+	{
+		customDataPtr = std::make_shared<std::decay_t<T>>(std::move(data));
+	}
+
 	template<class T>
 	T *customData() const
 	{
-		return static_cast<T*>(customDataPtr);
+		return static_cast<T*>(customDataPtr.get());
 	}
-	void setIntendedFrameRate(double rate);
 
 	// Called when the state of the window's drawing surface changes,
 	// such as a re-size or if it becomes the current drawing target
@@ -91,8 +97,10 @@ public:
 	bool isLandscape() const;
 	float widthMM() const;
 	float heightMM() const;
+	IG::Point2D<float> sizeMM() const;
 	float widthSMM() const;
 	float heightSMM() const;
+	IG::Point2D<float> sizeSMM() const;
 	int widthMMInPixels(float mm) const;
 	int heightMMInPixels(float mm) const;
 	int widthSMMInPixels(float mm) const;

@@ -76,6 +76,7 @@ class Renderer : public RendererImpl
 {
 public:
 	using RendererImpl::RendererImpl;
+	constexpr Renderer() {}
 	Renderer(Error &err);
 	Renderer(RendererConfig config, Error &err);
 	Renderer(Renderer &&o);
@@ -96,10 +97,10 @@ public:
 
 	// shaders
 
-	Shader makeShader(const char **src, uint32_t srcCount, uint32_t type);
-	Shader makeShader(const char *src, uint32_t type);
-	Shader makeCompatShader(const char **src, uint32_t srcCount, uint32_t type);
-	Shader makeCompatShader(const char *src, uint32_t type);
+	Shader makeShader(const char **src, uint32_t srcCount, ShaderType type);
+	Shader makeShader(const char *src, ShaderType type);
+	Shader makeCompatShader(const char **src, uint32_t srcCount, ShaderType type);
+	Shader makeCompatShader(const char *src, ShaderType type);
 	Shader makeDefaultVShader();
 	bool makeCommonProgram(CommonProgram);
 	void deleteShader(Shader shader);
@@ -128,7 +129,6 @@ public:
 	void makeCommonTextureSampler(CommonTextureSampler sampler);
 
 	void setCorrectnessChecks(bool on);
-	void setDebugOutput(bool on);
 };
 
 }

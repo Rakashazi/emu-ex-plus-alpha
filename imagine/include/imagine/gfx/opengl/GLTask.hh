@@ -34,14 +34,14 @@ class GLRendererTask;
 class DrawableHolder;
 
 // Wraps an OpenGL context in a thread + message port
-class GLMainTask
+class GLTask
 {
 public:
 	class TaskContext
 	{
 	public:
-		constexpr TaskContext(Base::GLDisplay glDpy, IG::Semaphore *semPtr, bool *semaphoreWasNotifiedPtr):
-			glDpy{glDpy}, semPtr{semPtr}, semaphoreWasNotifiedPtr{semaphoreWasNotifiedPtr}
+		constexpr TaskContext(Base::GLDisplay glDpy, IG::Semaphore *semPtr, bool *semaphoreNeedsNotifyPtr):
+			glDpy{glDpy}, semPtr{semPtr}, semaphoreNeedsNotifyPtr{semaphoreNeedsNotifyPtr}
 		{}
 		void notifySemaphore();
 		void markSemaphoreNotified();
@@ -51,16 +51,15 @@ public:
 	protected:
 		Base::GLDisplay glDpy{};
 		IG::Semaphore *semPtr{};
-		bool *semaphoreWasNotifiedPtr{};
+		bool *semaphoreNeedsNotifyPtr{};
 	};
 
-	using FuncDelegate = DelegateFunc2<sizeof(uintptr_t)*4 + sizeof(int)*10, void(TaskContext)>;
+	using FuncDelegate = DelegateFunc2<sizeof(uintptr_t)*4 + sizeof(int)*10, void(Base::GLDisplay glDpy, IG::Semaphore *semPtr)>;
 
 	enum class Command: uint8_t
 	{
 		UNSET,
-		RUN_FUNC,						// delegate manages the semaphore
-		RUN_FUNC_SEMAPHORE, // delegate can signal semaphore, or it's automatically signaled
+		RUN_FUNC,
 		EXIT
 	};
 
@@ -85,40 +84,47 @@ public:
 		void setReplySemaphore(IG::Semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 
-	GLMainTask();
-	GLMainTask(const char *debugLabel, Base::GLContext context, int threadPriority = 0);
-	GLMainTask(GLMainTask &&o) = default;
-	GLMainTask &operator=(GLMainTask &&o) = default;
-	~GLMainTask();
-	void runFunc(FuncDelegate del, bool awaitReply, bool manageSemaphore);
+	GLTask();
+	GLTask(const char *debugLabel, Base::GLContext context, int threadPriority = 0);
+	GLTask(GLTask &&o) = default;
+	GLTask &operator=(GLTask &&o) = default;
+	~GLTask();
+	void runFunc(FuncDelegate del, bool awaitReply);
 	Base::GLContext glContext() const;
 	explicit operator bool() const;
 
 	template<class Func>
-	void run(Func &&del, bool awaitReply = false) { runFunc(wrapFuncDelegate(del), awaitReply, true); }
-	template<class Func>
-	void runSync(Func &&del) { runFunc(wrapFuncDelegate(del), true, true); }
-	template<class Func>
-	void runUnmangedSem(Func &&del, bool awaitReply = false) { runFunc(wrapFuncDelegate(del), awaitReply, false); }
+	void run(Func &&del, bool awaitReply = false) { runFunc(wrapFuncDelegate(std::forward<Func>(del)), awaitReply); }
 
-	template<class Func = FuncDelegate>
-	static FuncDelegate wrapFuncDelegate(Func del)
+	template<class Func>
+	void runSync(Func &&del) { run(std::forward<Func>(del), true); }
+
+	template<class Func>
+	static constexpr FuncDelegate wrapFuncDelegate(Func &&del)
 	{
-		constexpr auto args = IG::functionTraitsArity<Func>;
-		if constexpr(args == 0)
-		{
-			// for void ()
-			return
-				[=](TaskContext)
+		return
+			[=](Base::GLDisplay glDpy, IG::Semaphore *semPtr)
+			{
+				constexpr auto args = IG::functionTraitsArity<Func>;
+				if constexpr(args == 0)
 				{
 					del();
-				};
-		}
-		else
-		{
-			// for void (GLMainTask::TaskContext)
-			return del;
-		}
+					if(semPtr)
+					{
+						semPtr->notify();
+					}
+				}
+				else
+				{
+					bool semaphoreNeedsNotify = semPtr;
+					TaskContext ctx{glDpy, semPtr, &semaphoreNeedsNotify};
+					del(ctx);
+					if(semaphoreNeedsNotify) // semaphore wasn't already notified in the delegate
+					{
+						semPtr->notify();
+					}
+				}
+			};
 	}
 
 protected:
@@ -129,20 +135,5 @@ protected:
 
 	void deinit();
 };
-
-using RendererTaskContext = GLMainTask::TaskContext;
-
-class GLRendererTaskDrawContext
-{
-public:
-	GLRendererTaskDrawContext(GLRendererTask &task, GLMainTask::TaskContext taskCtx, bool notifySemaphoreAfterPresent);
-
-	RendererTask *task;
-	IG::Semaphore *drawCompleteSemPtr{};
-	Base::GLDisplay glDpy{};
-	bool notifySemaphoreAfterPresent{};
-};
-
-using RendererTaskDrawContextImpl = GLRendererTaskDrawContext;
 
 }

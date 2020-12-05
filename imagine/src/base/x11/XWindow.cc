@@ -193,7 +193,7 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 			attr.colormap = XCreateColormap(dpy, rootWindow, (Visual*)config.format(), AllocNone);
 			valueMask |= CWColormap;
 		}
-		xWin = XCreateWindow(dpy, rootWindow, 0, 0, w, h, 0,
+		xWin = XCreateWindow(dpy, rootWindow, winRect.x, winRect.y, width(), height(), 0,
 			CopyFromParent, InputOutput, (Visual*)config.format(),
 			valueMask, &attr);
 		if(!xWin)
@@ -202,10 +202,7 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 			deinit();
 			return {EINVAL};
 		}
-		#ifndef CONFIG_MACHINE_PANDORA
-		pos = {winRect.x, winRect.y};
 		colormap = attr.colormap;
-		#endif
 	}
 	logMsg("made window with XID %d, drawable depth %d", (int)xWin, xDrawableDepth(dpy, xWin));
 	Input::initPerWindowData(xWin);
@@ -221,10 +218,12 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 		XSetWMProtocols(dpy, xWin, &wmDelete, 1);
 		if(config.minimumSize().x || config.minimumSize().y)
 		{
-			XSizeHints hints{0};
-			hints.flags = PMinSize;
+			XSizeHints hints{};
+			hints.x = winRect.x;
+			hints.y = winRect.y;
 			hints.min_width = config.minimumSize().x;
 			hints.min_height = config.minimumSize().y;
+			hints.flags = PPosition | PMinSize;
 			XSetWMNormalHints(dpy, xWin, &hints);
 		}
 	}
@@ -246,13 +245,11 @@ void Window::deinit()
 		XDestroyWindow(dpy, xWin);
 		xWin = None;
 	}
-	#ifndef CONFIG_MACHINE_PANDORA
 	if(colormap != None)
 	{
 		XFreeColormap(dpy, colormap);
 		colormap = None;
 	}
-	#endif
 }
 
 void deinitWindowSystem()
@@ -270,11 +267,7 @@ void deinitWindowSystem()
 void Window::show()
 {
 	assert(xWin != None);
-	postDraw();
 	XMapRaised(dpy, xWin);
-	#ifndef CONFIG_MACHINE_PANDORA
-	XMoveWindow(dpy, xWin, pos.x, pos.y);
-	#endif
 }
 
 bool Window::systemAnimatesRotation()

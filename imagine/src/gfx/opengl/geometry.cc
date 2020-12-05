@@ -14,9 +14,11 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Vertex.hh>
 #include <imagine/util/edge.h>
-#include "private.hh"
+#include <imagine/logger/logger.h>
+#include "internalDefs.hh"
 
 namespace Gfx
 {
@@ -94,7 +96,7 @@ void GLRendererCommands::setupShaderVertexArrayPointers(const char *v, int numV,
 {
 	if(currentVtxArrayPointerID != id)
 	{
-		//logMsg("setting vertex array pointers for type: %d", Vtx::ID);
+		//logMsg("setting vertex array pointers for type: %d", id);
 		currentVtxArrayPointerID = id;
 		if(hasTexture)
 			glEnableVertexAttribArray(VATTR_TEX_UV);
@@ -140,63 +142,9 @@ void VertexInfo::bindAttribs(RendererCommands &cmds, const Vtx *v)
 	#endif
 }
 
-template<class Vtx>
-static void setPos(std::array<Vtx, 4> &v, GC x, GC y, GC x2, GC y2, GC x3, GC y3, GC x4, GC y4)
-{
-	v[0].x = x; v[0].y = y; //BL
-	v[1].x = x2; v[1].y = y2; //TL
-	v[2].x = x4; v[2].y = y4; //BR
-	v[3].x = x3; v[3].y = y3; //TR
-}
-
-template<class Vtx>
-static void setPos(std::array<Vtx, 4> &v, GC x, GC y, GC x2, GC y2)
-{
-	setPos(v, x, y,  x, y2,  x2, y2,  x2, y);
-}
-
-template<class Vtx>
-static void setColor(std::array<Vtx, 4> &v, VertexColor col, uint32_t edges)
-{
-	if(edges & EDGE_BL) v[0].color = col;
-	if(edges & EDGE_TL) v[1].color = col;
-	if(edges & EDGE_TR) v[3].color = col;
-	if(edges & EDGE_BR) v[2].color = col;
-}
-
-template<class Vtx>
-static void setColor(std::array<Vtx, 4> &v, ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges)
-{
-	if(edges & EDGE_BL) v[0].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, (uint32_t)a);
-	if(edges & EDGE_TL) v[1].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, (uint32_t)a);
-	if(edges & EDGE_TR) v[3].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, (uint32_t)a);
-	if(edges & EDGE_BR) v[2].color = VertexColorPixelFormat.build((uint32_t)r, (uint32_t)g, (uint32_t)b, (uint32_t)a);
-}
-
-template<class Vtx>
-static void setColorRGB(std::array<Vtx, 4> &v, ColorComp r, ColorComp g, ColorComp b, uint32_t edges)
-{
-	if(edges & EDGE_BL) setColor(v, r, g, b, VertexColorPixelFormat.a(v[0].color), EDGE_BL);
-	if(edges & EDGE_TL) setColor(v, r, g, b, VertexColorPixelFormat.a(v[1].color), EDGE_TL);
-	if(edges & EDGE_TR) setColor(v, r, g, b, VertexColorPixelFormat.a(v[3].color), EDGE_TR);
-	if(edges & EDGE_BR) setColor(v, r, g, b, VertexColorPixelFormat.a(v[2].color), EDGE_BR);
-}
-
-template<class Vtx>
-static void setColorAlpha(std::array<Vtx, 4> &v, ColorComp a, uint32_t edges)
-{
-	if(edges & EDGE_BL) setColor(v, VertexColorPixelFormat.r(v[0].color), VertexColorPixelFormat.g(v[0].color), VertexColorPixelFormat.b(v[0].color), a, EDGE_BL);
-	if(edges & EDGE_TL) setColor(v, VertexColorPixelFormat.r(v[1].color), VertexColorPixelFormat.g(v[1].color), VertexColorPixelFormat.b(v[1].color), a, EDGE_TL);
-	if(edges & EDGE_TR) setColor(v, VertexColorPixelFormat.r(v[3].color), VertexColorPixelFormat.g(v[3].color), VertexColorPixelFormat.b(v[3].color), a, EDGE_TR);
-	if(edges & EDGE_BR) setColor(v, VertexColorPixelFormat.r(v[2].color), VertexColorPixelFormat.g(v[2].color), VertexColorPixelFormat.b(v[2].color), a, EDGE_BR);
-}
-
 template void VertexInfo::bindAttribs<Vertex>(RendererCommands &cmds, const Vertex *v);
 template void VertexInfo::bindAttribs<ColVertex>(RendererCommands &cmds, const ColVertex *v);
 template void VertexInfo::bindAttribs<TexVertex>(RendererCommands &cmds, const TexVertex *v);
 template void VertexInfo::bindAttribs<ColTexVertex>(RendererCommands &cmds, const ColTexVertex *v);
 
 }
-
-#include "drawable/sprite.hh"
-#include "drawable/quad.hh"

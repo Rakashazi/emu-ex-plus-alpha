@@ -15,7 +15,7 @@
 
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/logger/logger.h>
-#include "../utils.h"
+#include "../utils.hh"
 
 namespace Gfx
 {

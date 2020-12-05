@@ -21,17 +21,16 @@
 #include <imagine/base/Window.hh>
 #include <imagine/util/string.h>
 #include <imagine/fs/FS.hh>
-#include "private.hh"
-#include "utils.h"
+#include "internalDefs.hh"
+#include "utils.hh"
 #ifdef __ANDROID__
 #include "../../base/android/android.hh"
+#include "android/egl.hh"
 #endif
 #include <string>
 
 namespace Gfx
 {
-
-static constexpr bool CAN_USE_OPENGL_ES_3 = !Config::MACHINE_IS_PANDORA;
 
 Gfx::GC orientationToGC(Base::Orientation o)
 {
@@ -91,7 +90,7 @@ static void printFeatures(DrawContextSupport support)
 	{
 		featuresStr.append(" [Memory Barriers]");
 	}
-	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && support.hasUnpackRowLength)
+	if(Config::Gfx::OPENGL_ES >= 2 && support.hasUnpackRowLength)
 	{
 		featuresStr.append(" [Unpack Sub-Images]");
 	}
@@ -127,14 +126,6 @@ static void printFeatures(DrawContextSupport support)
 		featuresStr.append(" [Presentation Time]");
 	}
 	#endif
-	#ifndef CONFIG_GFX_OPENGL_ES
-	if(support.maximumAnisotropy)
-	{
-		featuresStr.append(" [Max Anisotropy:");
-		featuresStr.append(string_makePrintf<8>("%.1f", support.maximumAnisotropy).data());
-		featuresStr.append("]");
-	}
-	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	if(!support.useFixedFunctionPipeline)
 	{
@@ -159,30 +150,6 @@ EGLImageKHR makeAndroidNativeBufferEGLImage(EGLDisplay dpy, EGLClientBuffer clie
 		clientBuff, eglImgAttrs);
 }
 #endif
-
-void GLRenderer::setupAnisotropicFiltering()
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	GLfloat maximumAnisotropy{};
-	glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maximumAnisotropy);
-	support.maximumAnisotropy = maximumAnisotropy;
-	#endif
-}
-
-void GLRenderer::setupMultisample()
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	support.hasMultisample = true;
-	#endif
-}
-
-void GLRenderer::setupMultisampleHints()
-{
-	#if !defined CONFIG_GFX_OPENGL_ES && !defined __APPLE__
-	support.hasMultisampleHints = true;
-	//glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
-	#endif
-}
 
 void GLRenderer::setupNonPow2Textures()
 {
@@ -216,13 +183,6 @@ void GLRenderer::setupFBOFuncs(bool &useFBOFuncs)
 	support.generateMipmaps = glGenerateMipmapOES;
 	#elif !defined CONFIG_GFX_OPENGL_ES
 	support.generateMipmaps = glGenerateMipmap;
-	#endif
-}
-
-void GLRenderer::setupVAOFuncs()
-{
-	#ifndef CONFIG_GFX_OPENGL_ES
-	useStreamVAO = true;
 	#endif
 }
 
@@ -324,7 +284,7 @@ void GLRenderer::setupUnmapBufferFunc()
 		}
 		else
 		{
-			if constexpr(Config::Gfx::OPENGL_ES)
+			if constexpr((bool)Config::Gfx::OPENGL_ES)
 			{
 				support.glUnmapBuffer = (typeof(support.glUnmapBuffer))Base::GLContext::procAddress("glUnmapBufferOES");
 			}
@@ -393,19 +353,19 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_ES
-	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1
+	else if(Config::Gfx::OPENGL_ES == 1
 		&& (string_equal(extStr, "GL_APPLE_texture_2D_limited_npot") || string_equal(extStr, "GL_IMG_texture_npot")))
 	{
 		// no mipmaps or repeat modes
 		setupNonPow2Textures();
 	}
-	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2
+	else if(Config::Gfx::OPENGL_ES >= 2
 		&& !Config::envIsIOS && string_equal(extStr, "GL_NV_texture_npot_2D_mipmap"))
 	{
 		// no repeat modes
 		setupNonPow2MipmapTextures();
 	}
-	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_EXT_unpack_subimage"))
+	else if(Config::Gfx::OPENGL_ES >= 2 && string_equal(extStr, "GL_EXT_unpack_subimage"))
 	{
 		support.hasUnpackRowLength = true;
 	}
@@ -418,7 +378,7 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	{
 		setupBGRPixelSupport();
 	}
-	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1 && string_equal(extStr, "GL_OES_framebuffer_object"))
+	else if(Config::Gfx::OPENGL_ES == 1 && string_equal(extStr, "GL_OES_framebuffer_object"))
 	{
 		if(!useFBOFuncs)
 			setupFBOFuncs(useFBOFuncs);
@@ -427,33 +387,32 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	{
 		setupImmutableTexStorage(true);
 	}
-	#if defined __ANDROID__ || defined __APPLE__
-	else if(!Config::Base::GL_PLATFORM_EGL && string_equal(extStr, "GL_APPLE_sync"))
+	else if(!Config::Base::GL_PLATFORM_EGL && Config::envIsIOS && string_equal(extStr, "GL_APPLE_sync"))
 	{
 		setupAppleFenceSync();
 	}
-	#endif
-	#if defined __ANDROID__
-	else if(string_equal(extStr, "GL_OES_EGL_image"))
+	else if(Config::envIsAndroid && string_equal(extStr, "GL_OES_EGL_image"))
 	{
 		support.hasEGLImages = true;
 	}
-	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 &&
+	else if(Config::Gfx::OPENGL_ES >= 2 &&
+		Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL &&
 		string_equal(extStr, "GL_OES_EGL_image_external"))
 	{
 		support.hasExternalEGLImages = true;
 	}
-	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 &&
+	#ifdef __ANDROID__
+	else if(Config::Gfx::OPENGL_ES >= 2 &&
 		string_equal(extStr, "GL_EXT_EGL_image_storage"))
 	{
 		support.glEGLImageTargetTexStorageEXT = (typeof(support.glEGLImageTargetTexStorageEXT))Base::GLContext::procAddress("glEGLImageTargetTexStorageEXT");
 	}
 	#endif
-	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_NV_pixel_buffer_object"))
+	else if(Config::Gfx::OPENGL_ES >= 2 && string_equal(extStr, "GL_NV_pixel_buffer_object"))
 	{
 		setupPBO();
 	}
-	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_NV_map_buffer_range"))
+	else if(Config::Gfx::OPENGL_ES >= 2 && string_equal(extStr, "GL_NV_map_buffer_range"))
 	{
 		if(!support.glMapBufferRange)
 			support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeNV");
@@ -468,7 +427,7 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 		//	support.glFlushMappedBufferRange = (typeof(support.glFlushMappedBufferRange))Base::GLContext::procAddress("glFlushMappedBufferRangeEXT");
 		setupUnmapBufferFunc();
 	}
-	else if(Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2 && string_equal(extStr, "GL_EXT_buffer_storage"))
+	else if(Config::Gfx::OPENGL_ES >= 2 && string_equal(extStr, "GL_EXT_buffer_storage"))
 	{
 		setupImmutableBufferStorage();
 	}
@@ -478,7 +437,7 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	}*/
 	#endif
 	#ifndef CONFIG_GFX_OPENGL_ES
-	else if(string_equal(extStr, "GL_EXT_texture_filter_anisotropic"))
+	/*else if(string_equal(extStr, "GL_EXT_texture_filter_anisotropic"))
 	{
 		setupAnisotropicFiltering();
 	}
@@ -489,7 +448,7 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	else if(string_equal(extStr, "GL_NV_multisample_filter_hint"))
 	{
 		setupMultisampleHints();
-	}
+	}*/
 	else if(string_equal(extStr, "GL_EXT_framebuffer_object"))
 	{
 		#ifndef __APPLE__
@@ -555,199 +514,14 @@ static int glVersionFromStr(const char *versionStr)
 	return 10 * major + minor;
 }
 
-static Base::GLContextAttributes makeGLContextAttributes(uint32_t majorVersion, uint32_t minorVersion)
-{
-	Base::GLContextAttributes glAttr;
-	if(Config::DEBUG_BUILD)
-		glAttr.setDebug(true);
-	glAttr.setMajorVersion(majorVersion);
-	#ifdef CONFIG_GFX_OPENGL_ES
-	glAttr.setOpenGLESAPI(true);
-	#else
-	glAttr.setMinorVersion(minorVersion);
-	#endif
-	return glAttr;
-}
-
-Base::GLContextAttributes GLRenderer::makeKnownGLContextAttributes()
-{
-	#ifdef CONFIG_GFX_OPENGL_ES
-	if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1)
-	{
-		return makeGLContextAttributes(1, 0);
-	}
-	else
-	{
-		assert(glMajorVer);
-		return makeGLContextAttributes(glMajorVer, 0);
-	}
-	#else
-	if(Config::Gfx::OPENGL_SHADER_PIPELINE)
-	{
-		return makeGLContextAttributes(3, 3);
-	}
-	else
-	{
-		return makeGLContextAttributes(1, 3);
-	}
-	#endif
-}
-
-void GLRenderer::finishContextCreation(Base::GLContext ctx)
-{
-	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
-	if(Config::envIsAndroid && Config::MACHINE == Config::Machine::GENERIC_ARMV7 && glMajorVer == 2)
-	{
-		// Vivante "GC1000 core" GPU (Samsung Galaxy S3 Mini, Galaxy Tab 3), possibly others, will fail
-		// setting context in render thread with EGL_BAD_ACCESS unless it's first set in the creation thread,
-		// exact cause unknown and is most likely a driver bug
-		logDMsg("toggling newly created context current on this thread to avoid driver issues");
-		ctx.setCurrent(glDpy, ctx, {});
-		ctx.setCurrent(glDpy, {}, {});
-	}
-	#endif
-}
-
-GLRenderer::GLRenderer(Init):
-	releaseShaderCompilerEvent{"GLRenderer::releaseShaderCompilerEvent"}
-{}
-
-GLRenderer::~GLRenderer()
-{
-	deinit();
-}
-
-void GLRenderer::deinit()
-{
-	glDpy.deinit();
-}
-
-Renderer::Renderer(RendererConfig config, Error &err): GLRenderer{Init{}}
-{
-	auto [ec, dpy] = Base::GLDisplay::makeDefault(glAPI);
-	if(ec)
-	{
-		logErr("error getting GL display");
-		err = std::runtime_error("error creating GL display");
-		return;
-	}
-	glDpy = dpy;
-	dpy.logInfo();
-	{
-		auto [mainContext, ec] = makeGLContext(dpy, config.pixelFormat());
-		if(!mainContext)
-		{
-			err = std::runtime_error("error creating GL context");
-			return;
-		}
-		constexpr int DRAW_THREAD_PRIORITY = -4;
-		mainTask = std::make_unique<RendererTask>("Main GL Context Messages", mainContext, DRAW_THREAD_PRIORITY);
-	}
-	addEventHandlers(*mainTask);
-}
-
-Renderer::Renderer(Error &err): Renderer({Base::Window::defaultPixelFormat()}, err) {}
-
-Renderer::Renderer(Renderer &&o)
-{
-	*this = std::move(o);
-}
-
-Renderer &Renderer::operator=(Renderer &&o)
-{
-	deinit();
-	GLRenderer::operator=(std::move(o));
-	if(mainTask)
-		mainTask->setRenderer(this);
-	o.glDpy = {};
-	return *this;
-}
-
-std::pair<Base::GLContext, IG::ErrorCode> GLRenderer::makeGLContext(Base::GLDisplay dpy, IG::PixelFormat pixelFormat)
-{
-	IG::ErrorCode ec{};
-	if(!pixelFormat)
-		pixelFormat = Base::Window::defaultPixelFormat();
-	Base::GLBufferConfigAttributes glBuffAttr;
-	glBuffAttr.setPixelFormat(pixelFormat);
-	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
-	auto glAttr = makeGLContextAttributes(1, 0);
-	auto [found, config] = glCtx.makeBufferConfig(dpy, glAttr, glBuffAttr);
-	assert(found);
-	gfxBufferConfig = config;
-	Base::GLContext glCtx{dpy, glAttr, gfxBufferConfig, ec};
-	#elif CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
-	Base::GLContext glCtx{};
-	if(CAN_USE_OPENGL_ES_3)
-	{
-		auto glAttr = makeGLContextAttributes(3, 0);
-		auto [found, config] = glCtx.makeBufferConfig(dpy, glAttr, glBuffAttr);
-		if(found)
-		{
-			gfxBufferConfig = config;
-			glCtx = {dpy, glAttr, gfxBufferConfig, ec};
-			glMajorVer = glAttr.majorVersion();
-		}
-	}
-	if(!glCtx) // fall back to OpenGL ES 2.0
-	{
-		auto glAttr = makeGLContextAttributes(2, 0);
-		auto [found, config] = glCtx.makeBufferConfig(dpy, glAttr, glBuffAttr);
-		assert(found);
-		gfxBufferConfig = config;
-		glCtx = {dpy, glAttr, gfxBufferConfig, ec};
-		glMajorVer = glAttr.majorVersion();
-	}
-	#else
-	Base::GLContext glCtx{};
-	if(Config::Gfx::OPENGL_SHADER_PIPELINE)
-	{
-		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-		support.useFixedFunctionPipeline = false;
-		#endif
-		auto glAttr = makeGLContextAttributes(3, 3);
-		auto [found, config] = glCtx.makeBufferConfig(dpy, glAttr, glBuffAttr);
-		assert(found);
-		gfxBufferConfig = config;
-		glCtx = {dpy, glAttr, gfxBufferConfig, ec};
-		if(!glCtx)
-		{
-			logMsg("3.3 context not supported");
-		}
-	}
-	if(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE && !glCtx)
-	{
-		#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-		support.useFixedFunctionPipeline = true;
-		#endif
-		auto glAttr = makeGLContextAttributes(1, 3);
-		auto [found, config] = glCtx.makeBufferConfig(dpy, glAttr, glBuffAttr);
-		assert(found);
-		gfxBufferConfig = config;
-		glCtx = {dpy, glAttr, gfxBufferConfig, ec};
-		if(!glCtx)
-		{
-			logMsg("1.3 context not supported");
-		}
-	}
-	#endif
-	finishContextCreation(glCtx);
-	return {glCtx, ec};
-}
-
-std::pair<Base::GLContext, IG::ErrorCode> GLRenderer::makeGLContextWithKnownConfig(Base::GLDisplay dpy, Base::GLContext shareContext)
-{
-	assert(mainTask->glContext());
-	IG::ErrorCode ec{};
-	Base::GLContext glCtx{dpy, makeKnownGLContextAttributes(), gfxBufferConfig, shareContext, ec};
-	finishContextCreation(glCtx);
-	return {glCtx, ec};
-}
-
 void Renderer::configureRenderer()
 {
+	if(Config::DEBUG_BUILD && defaultToFullErrorChecks)
+	{
+		setCorrectnessChecks(true);
+	}
 	task().runSync(
-		[this]()
+		[this](GLTask::TaskContext ctx)
 		{
 			auto version = (const char*)glGetString(GL_VERSION);
 			assert(version);
@@ -757,9 +531,9 @@ void Renderer::configureRenderer()
 			int glVer = glVersionFromStr(version);
 
 			#ifdef CONFIG_BASE_GL_PLATFORM_EGL
-			if constexpr(Config::Gfx::OPENGL_ES)
+			if constexpr((bool)Config::Gfx::OPENGL_ES)
 			{
-				auto extStr = glDpy.queryExtensions();
+				auto extStr = ctx.glDisplay().queryExtensions();
 				setupEglFenceSync(extStr);
 				setupPresentationTime(extStr);
 			}
@@ -786,7 +560,7 @@ void Renderer::configureRenderer()
 				if(!support.useFixedFunctionPipeline)
 				{
 					// must render via VAOs/VBOs in 3.1+ without compatibility context
-					setupVAOFuncs();
+					//setupVAOFuncs();
 					setupTextureSwizzle();
 					setupRGFormats();
 					setupSamplerObjects();
@@ -826,11 +600,11 @@ void Renderer::configureRenderer()
 			}
 			#else
 			// core functionality
-			if(Config::Gfx::OPENGL_ES_MAJOR_VERSION == 1 && glVer >= 11)
+			if(Config::Gfx::OPENGL_ES == 1 && glVer >= 11)
 			{
 				// safe to use VBOs
 			}
-			if(Config::Gfx::OPENGL_ES_MAJOR_VERSION > 1)
+			if(Config::Gfx::OPENGL_ES > 1)
 			{
 				if(glVer >= 30)
 					setupNonPow2MipmapRepeatTextures();
@@ -873,12 +647,8 @@ void Renderer::configureRenderer()
 			assert(support.textureSizeSupport.maxXSize > 0 && support.textureSizeSupport.maxYSize > 0);
 
 			printFeatures(support);
+			task().runInitialCommandsInGLThread(ctx, support);
 		});
-	if(Config::DEBUG_BUILD && defaultToFullErrorChecks)
-	{
-		setCorrectnessChecks(true);
-		setDebugOutput(true);
-	}
 	support.isConfigured = true;
 }
 
@@ -917,7 +687,7 @@ static void updateSensorStateForWindowOrientations(Base::Window &win)
 	// has multiple valid orientations
 	if(Config::SYSTEM_ROTATES_WINDOWS || win != Base::mainWindow())
 		return;
-	Base::setDeviceOrientationChangeSensor(IG::bitsSet(win.validSoftOrientations()) > 1);
+	Base::setDeviceOrientationChangeSensor(std::popcount(win.validSoftOrientations()) > 1);
 }
 
 void Renderer::initWindow(Base::Window &win, Base::WindowConfig config)

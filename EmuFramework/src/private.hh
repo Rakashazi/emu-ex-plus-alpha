@@ -36,19 +36,15 @@ enum AssetID { ASSET_ARROW, ASSET_CLOSE, ASSET_ACCEPT, ASSET_GAME_ICON, ASSET_ME
 
 class EmuSystemTask;
 
-struct AppWindowData
+struct WindowData
 {
-	Base::Window win{};
 	Gfx::DrawableHolder drawableHolder{};
-	Gfx::Viewport viewport() const { return projectionPlane.viewport(); }
-	Gfx::Mat4 projectionMat{};
-	Gfx::ProjectionPlane projectionPlane{};
+	Gfx::Viewport viewport() const { return projection.plane().viewport(); }
+	Gfx::Projection projection{};
 	Gfx::AnimatedViewport animatedViewport{};
 	bool hasEmuView = false;
 	bool hasPopup = false;
 	bool focused = true;
-
-	constexpr AppWindowData() {};
 };
 
 class EmuMenuViewStack : public ViewStack
@@ -61,10 +57,10 @@ class EmuViewController final: public ViewController
 {
 public:
 	EmuViewController() {}
-	EmuViewController(AppWindowData &winData, Gfx::Renderer &renderer, Gfx::RendererTask &rTask,
+	EmuViewController(Base::Window &win, Gfx::Renderer &renderer, Gfx::RendererTask &rTask,
 		VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystemTask &systemTask);
 	void initViews(ViewAttachParams attach);
-	Base::WindowConfig addWindowConfig(Base::WindowConfig conf, AppWindowData &winData);
+	Base::WindowConfig addWindowConfig(Base::WindowConfig conf);
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal = false) final;
 	using ViewController::pushAndShow;
 	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView);
@@ -87,7 +83,7 @@ public:
 	void postDrawToEmuWindows();
 	Base::Screen *emuWindowScreen() const;
 	Base::Window &emuWindow() const;
-	AppWindowData &emuWindowData();
+	WindowData &emuWindowData();
 	Gfx::RendererTask &rendererTask() const;
 	bool hasModalView() const;
 	void popModalViews();
@@ -135,14 +131,15 @@ protected:
 	void pauseEmulation();
 	void configureAppForEmulation(bool running);
 	void configureWindowForEmulation(Base::Window &win, bool running);
-	void startViewportAnimation(AppWindowData &winData);
-	void updateWindowViewport(AppWindowData &winData, Base::Window::SurfaceChange change);
+	void startViewportAnimation(Base::Window &win);
+	void updateWindowViewport(Base::Window &win, Base::Window::SurfaceChange change);
 	void drawMainWindow(Base::Window &win, Gfx::RendererCommands &cmds, bool hasEmuView, bool hasPopup);
 	void movePopupToWindow(Base::Window &win);
 	void moveEmuViewToWindow(Base::Window &win);
 	void applyFrameRates();
 	bool allWindowsAreFocused() const;
-	AppWindowData &mainWindowData() const;
+	WindowData &mainWindowData() const;
+	Base::Window &mainWindow() const;
 	void setUseRendererTime(bool on);
 	bool useRendererTime() const;
 };
@@ -170,11 +167,10 @@ void runBenchmarkOneShot();
 void onSelectFileFromPicker(const char* name, Input::Event e);
 void launchSystem(bool tryAutoState, bool addToRecent);
 Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID);
-ViewAttachParams emuViewAttachParams();
 std::unique_ptr<View> makeEmuView(ViewAttachParams attach, EmuApp::ViewID id);
 Gfx::Viewport makeViewport(const Base::Window &win);
-void updateProjection(AppWindowData &appWin, const Gfx::Viewport &viewport);
-AppWindowData &appWindowData(const Base::Window &win);
+Gfx::Projection updateProjection(Gfx::Viewport viewport);
+WindowData &windowData(const Base::Window &win);
 uint8_t currentFrameInterval();
 IG::PixelFormatID optionImageEffectPixelFormatValue();
 

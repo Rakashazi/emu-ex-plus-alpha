@@ -16,8 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include "glIncludes.h"
-#include "defs.hh"
 #include <imagine/gfx/defs.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/base/CustomEvent.hh>
@@ -34,22 +32,28 @@ namespace Gfx
 {
 
 class Renderer;
+class RendererTask;
 
 class GLDrawableHolder
 {
 public:
-	void makeDrawable(Renderer &r, RendererTask &task, Base::Window &win);
-	void destroyDrawable(Renderer &r);
+	GLDrawableHolder() {}
+	GLDrawableHolder(GLDrawableHolder &&o) = default;
+	GLDrawableHolder &operator=(GLDrawableHolder &&o) = default;
+	~GLDrawableHolder();
+	void makeDrawable(RendererTask &task, Base::Window &win);
+	void destroyDrawable();
 	void notifyOnFrame();
 
 protected:
+	RendererTask *task{};
 	Base::Screen *screen{};
-	Drawable drawable_;
-	Base::ResumeDelegate onResume;
-	Base::ExitDelegate onExit;
+	Drawable drawable_{};
+	Base::ResumeDelegate onResume{};
+	Base::ExitDelegate onExit{};
 	Base::CustomEvent drawFinishedEvent{"GLDrawableHolder::drawFinishedEvent"};
 	DelegateFuncSet<Base::OnFrameDelegate> onFrame{};
-	FrameTime lastTimestamp{};
+	IG::FrameTime lastTimestamp{};
 };
 
 using DrawableHolderImpl = GLDrawableHolder;

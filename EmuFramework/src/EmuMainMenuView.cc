@@ -221,7 +221,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"On-screen Input Setup",
 		[this](Input::Event e)
 		{
-			pushAndShow(makeView<TouchConfigView>(vController, EmuSystem::inputFaceBtnName, EmuSystem::inputCenterBtnName), e);
+			pushAndShow(makeView<TouchConfigView>(defaultVController(), EmuSystem::inputFaceBtnName, EmuSystem::inputCenterBtnName), e);
 		}
 	},
 	inputManager

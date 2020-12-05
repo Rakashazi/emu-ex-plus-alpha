@@ -18,5 +18,3 @@
 
 // Make symbol remain visible after linking
 #define LVISIBLE __attribute__((visibility("default")))
-
-#define INITFIRST __attribute__((init_priority(101)))

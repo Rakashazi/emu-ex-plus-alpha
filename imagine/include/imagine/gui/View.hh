@@ -84,6 +84,7 @@ public:
 	virtual void setFocus(bool focused);
 
 	void setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP);
+	void setViewRect(Gfx::ProjectionPlane projP);
 	void postDraw();
 	Base::Window &window() const;
 	Gfx::Renderer &renderer() const;

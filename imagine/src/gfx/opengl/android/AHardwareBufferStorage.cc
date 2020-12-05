@@ -15,13 +15,11 @@
 
 #define LOGTAG "AHardwareBuffStorage"
 #include "AHardwareBufferStorage.hh"
-#include "../private.hh"
-#include "../utils.h"
-#include "../../../base/android/android.hh"
-#include <imagine/base/GLContext.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/base/sharedLibrary.hh>
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
+#include "../../../base/android/android.hh"
+#include "egl.hh"
+#include <imagine/logger/logger.h>
 #include <android/hardware_buffer.h>
 
 namespace Gfx

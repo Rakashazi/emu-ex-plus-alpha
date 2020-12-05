@@ -14,11 +14,12 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "SurfaceTexStorage"
-#include <imagine/gfx/RendererTask.hh>
 #include "SurfaceTextureStorage.hh"
-#include "../private.hh"
+#include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/Renderer.hh>
 #include "../../../base/android/android.hh"
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/logger/logger.h>
 #include <android/native_window_jni.h>
 
 namespace Gfx

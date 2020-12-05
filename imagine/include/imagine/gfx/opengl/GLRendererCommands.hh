@@ -19,6 +19,7 @@
 #include <imagine/gfx/opengl/GLStateCache.hh>
 #include <imagine/gfx/Mat4.hh>
 #include <imagine/gfx/Viewport.hh>
+#include <imagine/util/typeTraits.hh>
 
 namespace IG
 {
@@ -38,7 +39,7 @@ class GLRendererCommands
 public:
 	constexpr GLRendererCommands() {}
 	GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, DrawableHolder &drawableHolder, Base::GLDisplay glDpy,
-		IG::Semaphore *drawCompleteSemPtr, bool notifySemaphoreAfterPresent);
+		IG::Semaphore *drawCompleteSemPtr);
 	void discardTemporaryData();
 	void bindGLArrayBuffer(GLuint vbo);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
@@ -96,8 +97,7 @@ protected:
 	std::array<ColorComp, 4> texEnvColor{}; // color when using shader pipeline
 	GLuint arrayBuffer = 0;
 	bool arrayBufferIsSet = false;
-	bool drawableWasPresented = false;
-	bool notifySemaphoreAfterPresent = false;
+	IG_enableMemberIf(Config::DEBUG_BUILD, bool, drawableWasPresented){};
 };
 
 using RendererCommandsImpl = GLRendererCommands;

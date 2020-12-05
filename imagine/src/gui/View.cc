@@ -145,6 +145,11 @@ void View::setViewRect(IG::WindowRect rect, Gfx::ProjectionPlane projP)
 	this->projP = projP;
 }
 
+void View::setViewRect( Gfx::ProjectionPlane projP)
+{
+	setViewRect(projP.viewport().bounds(), projP);
+}
+
 void View::postDraw()
 {
 	if(likely(win))

@@ -77,7 +77,7 @@ void GLRenderer::setupEglFenceSync(const char *eglExtenstionStr)
 bool DrawContextSupport::hasSyncFences() const
 {
 	#ifdef CONFIG_BASE_GL_PLATFORM_EGL
-	if constexpr(Config::Gfx::OPENGL_ES)
+	if constexpr((bool)Config::Gfx::OPENGL_ES)
 	{
 		return eglCreateSync;
 	}
@@ -86,7 +86,7 @@ bool DrawContextSupport::hasSyncFences() const
 		return true;
 	}
 	#else
-	if constexpr(Config::Gfx::OPENGL_ES)
+	if constexpr((bool)Config::Gfx::OPENGL_ES)
 	{
 		return glFenceSync;
 	}

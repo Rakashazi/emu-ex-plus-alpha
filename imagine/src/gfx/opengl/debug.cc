@@ -15,21 +15,9 @@
 
 #define LOGTAG "GLRenderer"
 #include <imagine/gfx/Renderer.hh>
-#include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/gfx/DrawableHolder.hh>
-#include <imagine/logger/logger.h>
-#include <imagine/base/Base.hh>
-#include <imagine/base/Window.hh>
-#include <imagine/base/Screen.hh>
-#include <imagine/base/GLContext.hh>
-#include <imagine/util/Interpolator.hh>
 #include <imagine/util/string.h>
-#include "private.hh"
-#include "utils.h"
-#ifdef __ANDROID__
-#include <imagine/base/platformExtras.hh>
-#endif
+#include <imagine/logger/logger.h>
 
 #ifndef GL_DEBUG_TYPE_ERROR
 #define GL_DEBUG_TYPE_ERROR 0x824C
@@ -73,20 +61,6 @@ namespace Gfx
 bool checkGLErrors = Config::DEBUG_BUILD;
 bool checkGLErrorsVerbose = false;
 
-void Renderer::releaseShaderCompiler()
-{
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	task().releaseShaderCompiler();
-	#endif
-}
-
-void Renderer::autoReleaseShaderCompiler()
-{
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	releaseShaderCompilerEvent.notify();
-	#endif
-}
-
 void Renderer::setCorrectnessChecks(bool on)
 {
 	if(on)
@@ -123,24 +97,25 @@ static LoggerSeverity severityToLogger(GLenum severity)
 	}
 }
 
-void setGLDebugOutput(DrawContextSupport &support, bool on)
+void DrawContextSupport::setGLDebugOutput(bool on)
 {
-	assumeExpr(support.hasDebugOutput);
 	#ifdef CONFIG_GFX_OPENGL_DEBUG_CONTEXT
+	if(!hasDebugOutput)
+		return;
 	if(!on)
 	{
-		glDisable(support.DEBUG_OUTPUT);
+		glDisable(DEBUG_OUTPUT);
 	}
 	else
 	{
-		if(unlikely(!support.glDebugMessageCallback))
+		if(unlikely(!glDebugMessageCallback))
 		{
 			auto glDebugMessageCallbackStr =
 					Config::Gfx::OPENGL_ES ? "glDebugMessageCallbackKHR" : "glDebugMessageCallback";
 			logWarn("enabling debug output with %s", glDebugMessageCallbackStr);
-			support.glDebugMessageCallback = (typeof(support.glDebugMessageCallback))Base::GLContext::procAddress(glDebugMessageCallbackStr);
+			glDebugMessageCallback = (typeof(glDebugMessageCallback))Base::GLContext::procAddress(glDebugMessageCallbackStr);
 		}
-		support.glDebugMessageCallback(
+		glDebugMessageCallback(
 			GL_APIENTRY [](GLenum source, GLenum type, GLuint id,
 				GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 			{
@@ -154,95 +129,9 @@ void setGLDebugOutput(DrawContextSupport &support, bool on)
 				}
 				logger_modulePrintfn(severityToLogger(severity), "%s: %s", debugTypeToStr(type), message);
 			}, nullptr);
-		glEnable(support.DEBUG_OUTPUT);
+		glEnable(DEBUG_OUTPUT);
 	}
 	#endif
-}
-
-void Renderer::setDebugOutput(bool on)
-{
-	if(!Config::DEBUG_BUILD || !support.hasDebugOutput)
-	{
-		return;
-	}
-	task().runSync(
-		[this, on]()
-		{
-			setGLDebugOutput(support, on);
-		});
-}
-
-ClipRect Renderer::makeClipRect(const Base::Window &win, IG::WindowRect rect)
-{
-	int x = rect.x;
-	int y = rect.y;
-	int w = rect.xSize();
-	int h = rect.ySize();
-	//logMsg("scissor before transform %d,%d size %d,%d", x, y, w, h);
-	// translate from view to window coordinates
-	if(!Config::SYSTEM_ROTATES_WINDOWS)
-	{
-		using namespace Base;
-		switch(win.softOrientation())
-		{
-			bcase VIEW_ROTATE_0:
-				//x += win.viewport.rect.x;
-				y = win.height() - (y + h);
-			bcase VIEW_ROTATE_90:
-				//x += win.viewport.rect.y;
-				//y = win.width() - (y + h /*+ (win.w - win.viewport.rect.x2)*/);
-				std::swap(x, y);
-				std::swap(w, h);
-				x = (win.realWidth() - x) - w;
-				y = (win.realHeight() - y) - h;
-			bcase VIEW_ROTATE_270:
-				//x += win.viewport.rect.y;
-				//y += win.viewport.rect.x;
-				std::swap(x, y);
-				std::swap(w, h);
-			bcase VIEW_ROTATE_180:
-				x = (win.realWidth() - x) - w;
-				//y = win.height() - (y + h);
-				//std::swap(x, y);
-				//std::swap(w, h);
-				//x += win.viewport.rect.x;
-				//y += win.height() - win.viewport.bounds().y2;
-		}
-	}
-	else
-	{
-		//x += win.viewport.rect.x;
-		y = win.height() - (y + h /*+ win.viewport.rect.y*/);
-	}
-	return {x, y, w, h};
-}
-
-bool Renderer::supportsSyncFences() const
-{
-	return support.hasSyncFences();
-}
-
-void Renderer::setPresentationTime(Drawable drawable, IG::FrameTime time) const
-{
-	#ifdef __ANDROID__
-	if(!support.eglPresentationTimeANDROID)
-		return;
-	bool success = support.eglPresentationTimeANDROID(glDpy, drawable, time.count());
-	if(Config::DEBUG_BUILD && !success)
-	{
-		logErr("error:%s in eglPresentationTimeANDROID(%p, %llu)",
-			glDpy.errorString(eglGetError()), (EGLSurface)drawable, (unsigned long long)time.count());
-	}
-	#endif
-}
-
-unsigned Renderer::maxSwapChainImages() const
-{
-	#ifdef __ANDROID__
-	if(Base::androidSDK() < 18)
-		return 2;
-	#endif
-	return 3; // assume triple-buffering by default
 }
 
 }

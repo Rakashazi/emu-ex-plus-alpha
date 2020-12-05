@@ -115,7 +115,6 @@ void BaseWindow::init(const WindowConfig &config)
 {
 	initDelegates(config);
 	initDefaultValidSoftOrientations();
-	customDataPtr = config.customData();
 }
 
 void Window::setOnSurfaceChange(SurfaceChangeDelegate del)
@@ -290,21 +289,22 @@ void Window::draw(bool needsSync)
 
 bool Window::updateSize(IG::Point2D<int> surfaceSize)
 {
-	auto oldW = w, oldH = h;
-	w = surfaceSize.x;
-	h = surfaceSize.y;
 	if(orientationIsSideways(softOrientation_))
-		std::swap(w, h);
-	if(oldW == w && oldH == h) // is the new size the same as the old?
+		std::swap(surfaceSize.x, surfaceSize.y);
+	auto oldSize = std::exchange(winSizePixels, surfaceSize);
+	if(oldSize == winSizePixels)
 	{
 		logMsg("same window size %d,%d", realWidth(), realHeight());
 		return false;
 	}
-	#ifdef __ANDROID__
-	updatePhysicalSize(pixelSizeAsMM({realWidth(), realHeight()}), pixelSizeAsSMM({realWidth(), realHeight()}));
-	#else
-	updatePhysicalSize(pixelSizeAsMM({realWidth(), realHeight()}));
-	#endif
+	if constexpr(Config::envIsAndroid)
+	{
+		updatePhysicalSize(pixelSizeAsMM({realWidth(), realHeight()}), pixelSizeAsSMM({realWidth(), realHeight()}));
+	}
+	else
+	{
+		updatePhysicalSize(pixelSizeAsMM({realWidth(), realHeight()}));
+	}
 	surfaceChange.addSurfaceResized();
 	return true;
 }
@@ -312,27 +312,23 @@ bool Window::updateSize(IG::Point2D<int> surfaceSize)
 bool Window::updatePhysicalSize(IG::Point2D<float> surfaceSizeMM, IG::Point2D<float> surfaceSizeSMM)
 {
 	bool changed = false;
-	auto oldW = wMM, oldH = hMM;
-	wMM = surfaceSizeMM.x;
-	hMM = surfaceSizeMM.y;
 	if(orientationIsSideways(softOrientation_))
-		std::swap(wMM, hMM);
-	mmToPixelXScaler = w / wMM;
-	mmToPixelYScaler = h / hMM;
-	if(oldW != wMM || oldH != hMM)
+		std::swap(surfaceSizeMM.x, surfaceSizeMM.y);
+	auto oldSizeMM = std::exchange(winSizeMM, surfaceSizeMM);
+	if(oldSizeMM != winSizeMM)
 		changed = true;
-	#ifdef __ANDROID__
-	assert(surfaceSizeSMM.x && surfaceSizeSMM.y);
-	auto oldSW = wSMM, oldSH = hSMM;
-	wSMM = surfaceSizeSMM.x;
-	hSMM = surfaceSizeSMM.y;
-	if(orientationIsSideways(softOrientation_))
-		std::swap(wSMM, hSMM);
-	smmToPixelXScaler = w / wSMM;
-	smmToPixelYScaler = h / hSMM;
-	if(oldSW != wSMM || oldSH != hSMM)
-		changed = true;
-	#endif
+	auto pixelSizeFloat = IG::Point2D<float>{(float)width(), (float)height()};
+	mmToPixelScaler = pixelSizeFloat / winSizeMM;
+	if constexpr(Config::envIsAndroid)
+	{
+		assert(surfaceSizeSMM.x && surfaceSizeSMM.y);
+		if(orientationIsSideways(softOrientation_))
+			std::swap(surfaceSizeSMM.x, surfaceSizeSMM.y);
+		auto oldSizeSMM = std::exchange(winSizeSMM, surfaceSizeSMM);
+		if(oldSizeSMM != sizeSMM())
+			changed = true;
+		smmToPixelScaler = pixelSizeFloat / sizeSMM();
+	}
 	if(softOrientation_ == VIEW_ROTATE_0)
 	{
 		logMsg("updated window size:%dx%d (%.2fx%.2fmm, scaled %.2fx%.2fmm)",
@@ -452,22 +448,17 @@ void Window::dismiss()
 	onFree();
 }
 
-void Window::setCustomData(void *data)
-{
-	customDataPtr = data;
-}
+int Window::realWidth() const { return orientationIsSideways(softOrientation()) ? height() : width(); }
 
-int Window::realWidth() const { return orientationIsSideways(softOrientation()) ? h : w; }
+int Window::realHeight() const { return orientationIsSideways(softOrientation()) ? width() : height(); }
 
-int Window::realHeight() const { return orientationIsSideways(softOrientation()) ? w : h; }
+int Window::width() const { return winSizePixels.x; }
 
-int Window::width() const { return w; }
-
-int Window::height() const { return h; }
+int Window::height() const { return winSizePixels.y; }
 
 IG::Point2D<int> Window::realSize() const { return {realWidth(), realHeight()}; }
 
-IG::Point2D<int> Window::size() const { return {width(), height()}; }
+IG::Point2D<int> Window::size() const { return winSizePixels; }
 
 bool Window::isPortrait() const
 {
@@ -481,56 +472,82 @@ bool Window::isLandscape() const
 
 float Window::widthMM() const
 {
-	assert(wMM);
-	return wMM;
+	assert(sizeMM().x);
+	return sizeMM().x;
 }
 
 float Window::heightMM() const
 {
-	assert(hMM);
-	return hMM;
+	assert(sizeMM().y);
+	return sizeMM().y;
 }
 
-#ifdef __ANDROID__
+IG::Point2D<float> Window::sizeMM() const
+{
+	return winSizeMM;
+}
+
 float Window::widthSMM() const
 {
-	assert(wSMM);
-	return wSMM;
+	if constexpr(Config::envIsAndroid)
+	{
+		assert(sizeSMM().x);
+		return sizeSMM().x;
+	}
+	return widthMM();
 }
 
 float Window::heightSMM() const
 {
-	assert(hSMM);
-	return hSMM;
+	if constexpr(Config::envIsAndroid)
+	{
+		assert(sizeSMM().y);
+		return sizeSMM().y;
+	}
+	return heightMM();
 }
-#else
-float Window::widthSMM() const { return widthMM(); }
-float Window::heightSMM() const { return heightMM(); }
-#endif
+
+IG::Point2D<float> Window::sizeSMM() const
+{
+	if constexpr(Config::envIsAndroid)
+	{
+		return winSizeSMM;
+	}
+	return sizeMM();
+}
 
 int Window::widthMMInPixels(float mm) const
 {
-	return std::round(mm * (mmToPixelXScaler));
+	return std::round(mm * (mmToPixelScaler.x));
 }
 
 int Window::heightMMInPixels(float mm) const
 {
-	return std::round(mm * (mmToPixelYScaler));
+	return std::round(mm * (mmToPixelScaler.y));
 }
 
-#ifdef __ANDROID__
 int Window::widthSMMInPixels(float mm) const
 {
-	return std::round(mm * (smmToPixelXScaler));
+	if constexpr(Config::envIsAndroid)
+	{
+		return std::round(mm * (smmPixelScaler().x));
+	}
+	return widthMMInPixels(mm);
 }
+
 int Window::heightSMMInPixels(float mm) const
 {
-	return std::round(mm * (smmToPixelYScaler));
+	if constexpr(Config::envIsAndroid)
+	{
+		return std::round(mm * (smmPixelScaler().y));
+	}
+	return heightMMInPixels(mm);
 }
-#else
-int Window::widthSMMInPixels(float mm) const { return widthMMInPixels(mm); }
-int Window::heightSMMInPixels(float mm) const { return heightMMInPixels(mm); }
-#endif
+
+IG::Point2D<float> BaseWindow::smmPixelScaler() const
+{
+	return smmToPixelScaler;
+}
 
 IG::WindowRect Window::bounds() const
 {

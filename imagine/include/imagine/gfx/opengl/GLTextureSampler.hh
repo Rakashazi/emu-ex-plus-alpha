@@ -37,12 +37,12 @@ public:
 
 protected:
 	RendererTask *rTask{};
-	GLuint name_ = 0;
-	uint16_t minFilter = 0;
-	uint16_t magFilter = 0;
-	uint16_t xWrapMode_ = 0;
-	uint16_t yWrapMode_ = 0;
-	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
+	GLuint name_{};
+	uint16_t minFilter{};
+	uint16_t magFilter{};
+	uint16_t xWrapMode_{};
+	uint16_t yWrapMode_{};
+	IG_enableMemberIf(Config::DEBUG_BUILD, const char *, debugLabel);
 };
 
 using TextureSamplerImpl = GLTextureSampler;

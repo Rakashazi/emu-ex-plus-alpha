@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "EmuSystemTask"
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
 #include <emuframework/EmuApp.hh>
@@ -115,9 +116,9 @@ void EmuSystemTask::start()
 				});
 			started = true;
 			sem.notify();
-			logMsg("starting emu system thread event loop");
+			logMsg("starting thread event loop");
 			eventLoop.run(started);
-			logMsg("emu system thread exit");
+			logMsg("exiting thread");
 			commandPort.detach();
 		});
 }

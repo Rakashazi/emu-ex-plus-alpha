@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/opengl/GLStateCache.hh>
-#include "utils.h"
+#include "utils.hh"
 #include <cstring>
 
 bool GLStateCache::verifyState = false;
@@ -24,7 +24,7 @@ static GLenum textureTargetToGet(GLenum target)
 	switch(target)
 	{
 		case GL_TEXTURE_2D: return GL_TEXTURE_BINDING_2D;
-		#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
+		#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
 		case GL_TEXTURE_EXTERNAL_OES: return GL_TEXTURE_BINDING_EXTERNAL_OES;
 		#endif
 		default: bug_unreachable("target == %d", target); return 0;
@@ -122,7 +122,7 @@ int8_t *GLStateCache::getCap(GLenum cap)
 		GLCAP_CASE(GL_ALPHA_TEST);
 		GLCAP_CASE(GL_FOG);
 		GLCAP_CASE(GL_TEXTURE_2D);
-			#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
+			#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
 			GLCAP_CASE(GL_TEXTURE_EXTERNAL_OES);
 			#endif
 		#endif

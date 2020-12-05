@@ -58,7 +58,7 @@ public:
 		if(!useRenderTaskTime)
 			screen()->removeOnFrame(detectFrameRate);
 		else
-			appWindowData(window()).drawableHolder.removeOnFrame(detectFrameRate);
+			windowData(window()).drawableHolder.removeOnFrame(detectFrameRate);
 	}
 
 	void place() final
@@ -173,7 +173,7 @@ public:
 		}
 		else
 		{
-			appWindowData(window()).drawableHolder.addOnFrame(detectFrameRate);
+			windowData(window()).drawableHolder.addOnFrame(detectFrameRate);
 			postDraw();
 		}
 		setCPUNeedsLowLatency(true);

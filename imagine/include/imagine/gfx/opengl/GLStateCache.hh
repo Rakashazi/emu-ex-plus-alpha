@@ -40,7 +40,7 @@ public:
 		int8_t GL_ALPHA_TEST_state = -1;
 		int8_t GL_FOG_state = -1;
 		int8_t GL_TEXTURE_2D_state = -1;
-			#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
+			#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
 			int8_t GL_TEXTURE_EXTERNAL_OES_state = -1;
 			#endif
 		#endif

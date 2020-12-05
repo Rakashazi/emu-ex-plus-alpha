@@ -40,7 +40,7 @@ void EmuInputView::draw(Gfx::RendererCommands &cmds)
 void EmuInputView::place()
 {
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-	EmuControls::setupVControllerVars();
+	EmuControls::setupVControllerVars(*vController);
 	vController->place();
 	#endif
 }

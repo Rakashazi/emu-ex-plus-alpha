@@ -20,7 +20,10 @@
 #include <imagine/base/baseDefs.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/util/DelegateFunc.hh>
+#include <imagine/util/Point2D.hh>
+#include <imagine/util/typeTraits.hh>
 #include <atomic>
+#include <memory>
 
 namespace Base
 {
@@ -46,32 +49,10 @@ public:
 	using FreeDelegate = DelegateFunc<void ()>;
 
 protected:
-	int w = 0, h = 0; // size of full window surface
-	float wMM = 0, hMM = 0; // size in millimeter
-	float mmToPixelXScaler = 0, mmToPixelYScaler = 0;
-	#ifdef __ANDROID__
-	float wSMM = 0, hSMM = 0; // size in millimeter scaled by OS
-	float smmToPixelXScaler = 0, smmToPixelYScaler = 0;
-	#endif
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	Screen *screen_ = nullptr;
 	#endif
-	void *customDataPtr{};
-	std::atomic_bool drawNeeded = false;
-	std::atomic_bool notifyDrawAllowed = true;
-	// all windows need an initial onSurfaceChange call
-	SurfaceChange surfaceChange{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
-
-	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	Orientation softOrientation_ = VIEW_ROTATE_0;
-	Orientation setSoftOrientation = VIEW_ROTATE_0;
-	Orientation validSoftOrientations_ = VIEW_ROTATE_0;
-	#else
-	static constexpr Orientation softOrientation_ = VIEW_ROTATE_0;
-	static constexpr Orientation setSoftOrientation = VIEW_ROTATE_0;
-	static constexpr Orientation validSoftOrientations_ = VIEW_ROTATE_0;
-	#endif
-
+	std::shared_ptr<void> customDataPtr{};
 	SurfaceChangeDelegate onSurfaceChange{};
 	DrawDelegate onDraw{};
 	InputEventDelegate onInputEvent{};
@@ -83,6 +64,19 @@ protected:
 	Base::ExitDelegate onExit{};
 	Base::ResumeDelegate onResume{};
 	Base::CustomEvent drawEvent{"Window::drawEvent"};
+	IG::Point2D<int> winSizePixels{}; // size of full window surface
+	IG::Point2D<float> winSizeMM{}; // size in millimeter
+	IG::Point2D<float> mmToPixelScaler{};
+	 // size in millimeter scaled by OS
+	IG_enableMemberIf(Config::envIsAndroid, IG::Point2D<float>, winSizeSMM){};
+	IG_enableMemberIf(Config::envIsAndroid, IG::Point2D<float>, smmToPixelScaler){};
+	std::atomic_bool drawNeeded = false;
+	std::atomic_bool notifyDrawAllowed = true;
+	// all windows need an initial onSurfaceChange call
+	SurfaceChange surfaceChange{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
+	IG_enableMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, softOrientation_){VIEW_ROTATE_0};
+	IG_enableMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, setSoftOrientation){VIEW_ROTATE_0};
+	IG_enableMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, validSoftOrientations_){VIEW_ROTATE_0};
 
 	void setOnSurfaceChange(SurfaceChangeDelegate del);
 	void setOnDraw(DrawDelegate del);
@@ -95,6 +89,7 @@ protected:
 	void init(const WindowConfig &config);
 	void initDelegates(const WindowConfig &config);
 	void initDefaultValidSoftOrientations();
+	IG::Point2D<float> smmPixelScaler() const;
 };
 
 }

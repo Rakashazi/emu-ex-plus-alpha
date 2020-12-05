@@ -19,7 +19,7 @@
 #include <emuframework/EmuSystem.hh>
 
 class VController;
-struct AppWindowData;
+struct WindowData;
 
 namespace Base
 {
@@ -44,13 +44,13 @@ public:
 	constexpr VControllerDPad() {}
 	void setImg(Gfx::Renderer &r, Gfx::Texture &dpadR, Gfx::GTexC texHeight);
 	void draw(Gfx::RendererCommands &cmds) const;
-	void setBoundingAreaVisible(Gfx::Renderer &r, bool on, const AppWindowData &winData);
+	void setBoundingAreaVisible(Gfx::Renderer &r, bool on, const WindowData &winData);
 	int getInput(IG::WP c) const;
 	IG::WindowRect bounds() const;
-	void setPos(IG::Point2D<int> pos, const AppWindowData &winData);
-	void setSize(Gfx::Renderer &r, uint sizeInPixels, const AppWindowData &winData);
-	void setDeadzone(Gfx::Renderer &r, int newDeadzone, const AppWindowData &winData);
-	void setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonalSensitivity, const AppWindowData &winData);
+	void setPos(IG::Point2D<int> pos, const WindowData &winData);
+	void setSize(Gfx::Renderer &r, uint sizeInPixels, const WindowData &winData);
+	void setDeadzone(Gfx::Renderer &r, int newDeadzone, const WindowData &winData);
+	void setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonalSensitivity, const WindowData &winData);
 	uint state() const { return state_; }
 	void setState(uint state) { state_ = state; }
 
@@ -66,7 +66,7 @@ protected:
 	bool visualizeBounds = 0;
 	int btnSizePixels = 0;
 
-	void updateBoundingAreaGfx(Gfx::Renderer &r, const AppWindowData &winData);
+	void updateBoundingAreaGfx(Gfx::Renderer &r, const WindowData &winData);
 };
 
 class VControllerKeyboard
@@ -81,7 +81,7 @@ public:
 	constexpr VControllerKeyboard() {}
 	void updateImg(Gfx::Renderer &r);
 	void setImg(Gfx::Renderer &r, Gfx::TextureSpan img);
-	void place(Gfx::GC btnSize, Gfx::GC yOffset, const AppWindowData &winData);
+	void place(Gfx::GC btnSize, Gfx::GC yOffset, const WindowData &winData);
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP) const;
 	int getInput(IG::WP c) const;
 	int translateInput(uint idx) const;
@@ -113,23 +113,23 @@ public:
 	static constexpr uint MAX_FACE_BTNS = 8;
 
 	constexpr VControllerGamepad(uint faceButtons): activeFaceBtns{faceButtons} {}
-	void setBoundingAreaVisible(Gfx::Renderer &r, bool on, const AppWindowData &winData);
+	void setBoundingAreaVisible(Gfx::Renderer &r, bool on, const WindowData &winData);
 	bool boundingAreaVisible() const;
 	void setImg(Gfx::Renderer &r, Gfx::Texture &pics);
 	uint rowsForButtons(uint activeButtons);
-	void setBaseBtnSize(Gfx::Renderer &r, uint sizeInPixels, const AppWindowData &winData);
+	void setBaseBtnSize(Gfx::Renderer &r, uint sizeInPixels, const WindowData &winData);
 	IG::WindowRect centerBtnBounds() const;
-	void setCenterBtnPos(IG::Point2D<int> pos, const AppWindowData &winData);
+	void setCenterBtnPos(IG::Point2D<int> pos, const WindowData &winData);
 	IG::WindowRect lTriggerBounds() const;
-	void setLTriggerPos(IG::Point2D<int> pos, const AppWindowData &winData);
+	void setLTriggerPos(IG::Point2D<int> pos, const WindowData &winData);
 	IG::WindowRect rTriggerBounds() const;
-	void setRTriggerPos(IG::Point2D<int> pos, const AppWindowData &winData);
-	void layoutBtnRows(uint a[], uint btns, uint rows, IG::Point2D<int> pos, const AppWindowData &winData);
+	void setRTriggerPos(IG::Point2D<int> pos, const WindowData &winData);
+	void layoutBtnRows(uint a[], uint btns, uint rows, IG::Point2D<int> pos, const WindowData &winData);
 	IG::WindowRect faceBtnBounds() const;
-	void setFaceBtnPos(IG::Point2D<int> pos, const AppWindowData &winData);
+	void setFaceBtnPos(IG::Point2D<int> pos, const WindowData &winData);
 	std::array<int, 2> getCenterBtnInput(IG::WP pos) const;
 	std::array<int, 2> getBtnInput(IG::WP pos) const;
-	void draw(Gfx::RendererCommands &cmds, bool showHidden, const AppWindowData &winData) const;
+	void draw(Gfx::RendererCommands &cmds, bool showHidden, const WindowData &winData) const;
 	VControllerDPad &dPad() { return dp; }
 	const VControllerDPad &dPad() const { return dp; }
 	Gfx::GC spacing() const { return btnSpace; }
@@ -186,10 +186,9 @@ public:
 	using KbMap = VControllerKeyboard::KbMap;
 	using VControllerLayoutPositionArr = std::array<std::array<VControllerLayoutPosition, 7>, 2>;
 
-	constexpr VController(Gfx::Renderer &r, AppWindowData &winData, uint faceButtons):
-		renderer_{r}, winData{&winData}
+	constexpr VController(unsigned faceButtons)
 		#ifdef CONFIG_VCONTROLS_GAMEPAD
-			,gp{faceButtons}
+			:gp{faceButtons}
 		#endif
 		{}
 	Gfx::GC xMMSize(Gfx::GC mm) const;
@@ -229,15 +228,20 @@ public:
 	bool usesScaledCoordinates();
 	void setAlpha(float val);
 	VControllerGamepad &gamePad();
+	void setRenderer(Gfx::Renderer &renderer);
 	Gfx::Renderer &renderer();
-	const AppWindowData &windowData() const { return *winData; }
+	void setWindow(const Base::Window &win);
+	bool hasWindow() const { return win; }
+	const Base::Window &window() const { return *win; }
+	const WindowData &windowData() const { return *winData; }
 	VControllerLayoutPositionArr &layoutPosition() { return layoutPos; };
 	bool layoutPositionChanged() const { return layoutPosChanged; };
 	void setLayoutPositionChanged(bool changed = true) { layoutPosChanged = changed; }
 
 private:
-	Gfx::Renderer &renderer_;
-	const AppWindowData *winData;
+	Gfx::Renderer *renderer_{};
+	const Base::Window *win{};
+	const WindowData *winData{};
 
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	VControllerGamepad gp;

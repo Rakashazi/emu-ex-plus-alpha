@@ -24,8 +24,6 @@
 #import <imagine/base/iphone/EAGLView.hh>
 #endif
 
-#define CONFIG_GLDRAWABLE_NEEDS_FRAMEBUFFER
-
 namespace Base
 {
 

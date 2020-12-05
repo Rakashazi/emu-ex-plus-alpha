@@ -188,7 +188,7 @@ bool orientationIsSideways(Orientation o)
 
 Orientation validateOrientationMask(Orientation oMask)
 {
-	if(IG::bitsSet(oMask & VIEW_ROTATE_ALL) == 0)
+	if(!(oMask & VIEW_ROTATE_ALL))
 	{
 		// use default when none of the orientation bits are set
 		oMask = defaultSystemOrientations();

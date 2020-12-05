@@ -128,7 +128,7 @@ extern std::list<InputDeviceSavedConfig> savedInputDevList;
 extern std::vector<InputDeviceConfig> inputDevConf;
 extern KeyMapping keyMapping;
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-extern SysVController vController;
+SysVController &defaultVController();
 extern uint pointerInputPlayer;
 #endif
 
@@ -149,17 +149,17 @@ static bool customKeyConfigsContainName(const char *name)
 
 VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::Point2D<int> size, IG::WindowRect viewBounds);
 IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos, Gfx::Viewport viewport);
-void resetVControllerPositions();
-void resetVControllerOptions();
-void resetAllVControllerOptions();
-void initVControls(Gfx::Renderer &r);
+void resetVControllerPositions(VController &);
+void resetVControllerOptions(VController &);
+void resetAllVControllerOptions(VController &);
+void initVControls(VController &, Gfx::Renderer &r);
 
 namespace EmuControls
 {
 
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-void setupVControllerVars();
+void setupVControllerVars(VController &);
 #endif
-void updateVControlImg();
+void updateVControlImg(VController &);
 
 }

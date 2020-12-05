@@ -25,9 +25,6 @@
 #include <imagine/base/platformExtras.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/util/bits.h>
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-extern SysVController vController;
-#endif
 
 template<class T>
 bool optionFrameTimeIsValid(T val)
@@ -397,14 +394,14 @@ void initOptions()
 
 bool OptionVControllerLayoutPosition::isDefault() const
 {
-	return !vController.layoutPositionChanged();
+	return !vController->layoutPositionChanged();
 }
 
 bool OptionVControllerLayoutPosition::writeToIO(IO &io)
 {
 	logMsg("writing vcontroller positions");
 	io.write(key);
-	for(auto &posArr : vController.layoutPosition())
+	for(auto &posArr : vController->layoutPosition())
 	{
 		for(auto &e : posArr)
 		{
@@ -426,7 +423,7 @@ bool OptionVControllerLayoutPosition::readFromIO(IO &io, uint readSize_)
 {
 	int readSize = readSize_;
 
-	for(auto &posArr : vController.layoutPosition())
+	for(auto &posArr : vController->layoutPosition())
 	{
 		for(auto &e : posArr)
 		{
@@ -452,7 +449,7 @@ bool OptionVControllerLayoutPosition::readFromIO(IO &io, uint readSize_)
 				e.state = state;
 			e.pos.x = io.get<int32_t>();
 			e.pos.y = io.get<int32_t>();
-			vController.setLayoutPositionChanged();
+			vController->setLayoutPositionChanged();
 			readSize -= sizeofVControllerLayoutPositionEntry();
 		}
 	}
@@ -467,14 +464,19 @@ bool OptionVControllerLayoutPosition::readFromIO(IO &io, uint readSize_)
 
 uint OptionVControllerLayoutPosition::ioSize() const
 {
-	uint positions = std::size(vController.layoutPosition()[0]) * std::size(vController.layoutPosition());
+	uint positions = std::size(vController->layoutPosition()[0]) * std::size(vController->layoutPosition());
 	return sizeof(key) + positions * sizeofVControllerLayoutPositionEntry();
+}
+
+void OptionVControllerLayoutPosition::setVController(VController &v)
+{
+	vController = &v;
 }
 
 bool vControllerUseScaledCoordinates()
 {
 	#ifdef CONFIG_BASE_ANDROID
-	return vController.usesScaledCoordinates();
+	return defaultVController().usesScaledCoordinates();
 	#else
 	return false;
 	#endif
@@ -483,7 +485,7 @@ bool vControllerUseScaledCoordinates()
 void setVControllerUseScaledCoordinates(bool on)
 {
 	#ifdef CONFIG_BASE_ANDROID
-	vController.setUsesScaledCoordinates(on);
+	defaultVController().setUsesScaledCoordinates(on);
 	#endif
 }
 

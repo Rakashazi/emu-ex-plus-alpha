@@ -27,19 +27,11 @@ class RendererTask;
 class RendererCommands;
 
 using Shader = GLuint;
-#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-enum { SHADER_VERTEX = GL_VERTEX_SHADER, SHADER_FRAGMENT = GL_FRAGMENT_SHADER };
-#else
-enum { SHADER_VERTEX = 1, SHADER_FRAGMENT = 2 }; // dummy values
-#endif
 
 class GLSLProgram
 {
 public:
 	constexpr GLSLProgram() {}
-	bool init(RendererTask &, Shader vShader, Shader fShader, bool hasColor, bool hasTex);
-	void deinit(RendererTask &);
-	bool link(RendererTask &);
 	GLint modelViewProjectionUniform() const;
 	GLuint program() const { return program_; }
 	explicit operator bool() const;
@@ -51,96 +43,6 @@ protected:
 
 	void initUniforms(RendererTask &);
 	#endif
-};
-
-template <bool hasColor, bool hasTex>
-class DefaultProgram : public GLSLProgram
-{
-public:
-	constexpr DefaultProgram() {}
-
-	void init(RendererTask &rTask, GLuint vShader, GLuint fShader)
-	{
-		GLSLProgram::init(rTask, vShader, fShader, hasColor, hasTex);
-		link(rTask);
-	}
-};
-
-using TexProgram = DefaultProgram<true, true>;
-using ColorProgram = DefaultProgram<true, false>;
-
-// default programs
-
-class DefaultTexReplaceProgram : public TexProgram
-{
-public:
-	constexpr DefaultTexReplaceProgram() {}
-	bool compile(RendererTask &);
-	void use(RendererCommands &cmds) const { use(cmds, nullptr); }
-	void use(RendererCommands &cmds, Mat4 modelMat) const { use(cmds, &modelMat); }
-	void use(RendererCommands &cmds, const Mat4 *modelMat) const;
-};
-
-class DefaultTexProgram : public TexProgram
-{
-public:
-	constexpr DefaultTexProgram() {}
-	bool compile(RendererTask &);
-	void use(RendererCommands &cmds) const { use(cmds, nullptr); }
-	void use(RendererCommands &cmds, Mat4 modelMat) const { use(cmds, &modelMat); }
-	void use(RendererCommands &cmds, const Mat4 *modelMat) const;
-};
-
-class DefaultTexAlphaReplaceProgram : public TexProgram
-{
-public:
-	DefaultTexProgram *impl{};
-	constexpr DefaultTexAlphaReplaceProgram() {}
-	bool compile(RendererTask &);
-	void use(RendererCommands &cmds) const { use(cmds, nullptr); }
-	void use(RendererCommands &cmds, Mat4 modelMat) const { use(cmds, &modelMat); }
-	void use(RendererCommands &cmds, const Mat4 *modelMat) const;
-};
-
-class DefaultTexAlphaProgram : public TexProgram
-{
-public:
-	DefaultTexProgram *impl{};
-	constexpr DefaultTexAlphaProgram() {}
-	bool compile(RendererTask &);
-	void use(RendererCommands &cmds) const { use(cmds, nullptr); }
-	void use(RendererCommands &cmds, Mat4 modelMat) const { use(cmds, &modelMat); }
-	void use(RendererCommands &cmds, const Mat4 *modelMat) const;
-};
-
-class DefaultTexExternalReplaceProgram : public TexProgram
-{
-public:
-	constexpr DefaultTexExternalReplaceProgram() {}
-	bool compile(RendererTask &);
-	void use(RendererCommands &cmds) const { use(cmds, nullptr); }
-	void use(RendererCommands &cmds, Mat4 modelMat) const { use(cmds, &modelMat); }
-	void use(RendererCommands &cmds, const Mat4 *modelMat) const;
-};
-
-class DefaultTexExternalProgram : public TexProgram
-{
-public:
-	constexpr DefaultTexExternalProgram() {}
-	bool compile(RendererTask &);
-	void use(RendererCommands &cmds) const { use(cmds, nullptr); }
-	void use(RendererCommands &cmds, Mat4 modelMat) const { use(cmds, &modelMat); }
-	void use(RendererCommands &cmds, const Mat4 *modelMat) const;
-};
-
-class DefaultColorProgram : public ColorProgram
-{
-public:
-	constexpr DefaultColorProgram() {}
-	bool compile(RendererTask &);
-	void use(RendererCommands &cmds) const { use(cmds, nullptr); }
-	void use(RendererCommands &cmds, Mat4 modelMat) const { use(cmds, &modelMat); }
-	void use(RendererCommands &cmds, const Mat4 *modelMat) const;
 };
 
 using ProgramImpl = GLSLProgram;

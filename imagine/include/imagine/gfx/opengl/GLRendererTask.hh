@@ -17,8 +17,8 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include "GLMainTask.hh"
-#include <imagine/gfx/RendererTaskDrawContext.hh>
+#include "GLTask.hh"
+#include <imagine/gfx/RendererCommands.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/MessagePort.hh>
 
@@ -38,15 +38,16 @@ namespace Gfx
 class DrawableHolder;
 class RendererTask;
 class RendererCommands;
+class DrawContextSupport;
 
-class GLRendererTask : public GLMainTask
+class GLRendererTask : public GLTask
 {
 public:
-	using Command = GLMainTask::Command;
-	using CommandMessage = GLMainTask::CommandMessage;
+	using Command = GLTask::Command;
+	using CommandMessage = GLTask::CommandMessage;
 
-	using GLMainTask::GLMainTask;
-	GLRendererTask(const char *debugLabel, Renderer &r, Base::GLContext context);
+	GLRendererTask();
+	GLRendererTask(const char *debugLabel, Renderer &r, Base::GLContext context, int threadPriority = 0);
 	GLRendererTask(GLRendererTask &&o) = default;
 	GLRendererTask &operator=(GLRendererTask &&o) = default;
 	void initVBOs();
@@ -56,21 +57,29 @@ public:
 	GLuint defaultFBO() const { return defaultFB; }
 	GLuint bindFramebuffer(Texture &tex);
 	bool handleDrawableReset();
-	void initialCommands(RendererCommands &cmds);
+	void runInitialCommandsInGLThread(TaskContext ctx, DrawContextSupport &support);
 	void setRenderer(Renderer *r);
 	void verifyCurrentContext(Base::GLDisplay glDpy) const;
+	RendererCommands makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
+		DrawableHolder &drawableHolder, Base::Window &win, Viewport viewport, Mat4 projMat);
+
 	template<class Func>
-	void run(Func &&del, bool awaitReply = false) { GLMainTask::run(std::forward<Func>(del), awaitReply); }
+	void run(Func &&del, bool awaitReply = false) { GLTask::run(std::forward<Func>(del), awaitReply); }
+
 	template<class Func>
-	void draw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams params, Func &&del)
+	void draw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams params,
+		const Viewport &viewport, const Mat4 &projMat, Func &&del)
 	{
 		doPreDraw(drawableHolder, win, winParams, params);
-		bool notifySemaphoreAfterPresent = params.asyncMode() == DrawAsyncMode::NONE;
-		runUnmangedSem([this, &drawableHolder, &win, del, notifySemaphoreAfterPresent](TaskContext ctx)
+		bool manageSemaphore = params.asyncMode() == DrawAsyncMode::PRESENT;
+		bool awaitReply = params.asyncMode() != DrawAsyncMode::FULL;
+		run([=, this, &drawableHolder, &win, &viewport, &projMat](TaskContext ctx)
 			{
-				del(drawableHolder, win, RendererTaskDrawContext{*this, ctx, notifySemaphoreAfterPresent});
-			}, params.asyncMode() != DrawAsyncMode::FULL);
+				auto cmds = makeRendererCommands(ctx, manageSemaphore, drawableHolder, win, viewport, projMat);
+				del(drawableHolder, win, cmds);
+			}, awaitReply);
 	}
+
 	// for iOS EAGLView renderbuffer management
 	void setIOSDrawableDelegates();
 	IG::Point2D<int> makeIOSDrawableRenderbuffer(void *layer, GLuint &colorRenderbuffer, GLuint &depthRenderbuffer);
@@ -83,14 +92,10 @@ protected:
 	std::array<GLuint, 6> streamVBO{};
 	uint32_t streamVBOIdx = 0;
 	#endif
-	#ifdef CONFIG_GLDRAWABLE_NEEDS_FRAMEBUFFER
-	GLuint defaultFB = 0;
-	#else
-	static constexpr GLuint defaultFB = 0;
-	#endif
+	IG_enableMemberIf(Config::Gfx::GLDRAWABLE_NEEDS_FRAMEBUFFER, GLuint, defaultFB){};
 	GLuint fbo = 0;
 	bool resetDrawable = false;
-	bool contextInitialStateSet = false;
+	IG_enableMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, debugEnabled){};
 
 	void doPreDraw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params);
 };

@@ -18,51 +18,43 @@ endif
 
 ifeq ($(openGLAPI), gles)
  ifndef openGLESVersion
+  openGLESVersion := 2
   ifneq ($(filter ios android,$(ENV)),)
    ifeq ($(SUBARCH), armv6)
     openGLESVersion := 1
-   else
-    openGLESVersion := 2
    endif
-  else
-   openGLESVersion := 2
   endif
  endif
 endif
 
-ifeq ($(openGLESVersion), 2) # ES 2.0 back-end cannot fallback to fixed function
- openGLFixedFunctionPipeline := 0
-endif
-
-ifndef openGLFixedFunctionPipeline
- openGLFixedFunctionPipeline := 1
-endif
-
 include $(IMAGINE_PATH)/make/package/opengl.mk
 
-SRC += gfx/opengl/opengl.cc \
- gfx/opengl/transforms.cc \
- gfx/opengl/config.cc \
- gfx/opengl/DrawableHolder.cc \
- gfx/opengl/shader.cc \
- gfx/opengl/GLMainTask.cc \
- gfx/opengl/GLStateCache.cc \
- gfx/opengl/RendererTask.cc \
- gfx/opengl/PixmapBufferTexture.cc \
- gfx/opengl/Texture.cc \
- gfx/opengl/TextureSampler.cc \
- gfx/opengl/geometry.cc \
- gfx/opengl/GeomQuadMesh.cc \
- gfx/opengl/Viewport.cc \
- gfx/opengl/resource.cc \
- gfx/opengl/RendererCommands.cc \
- gfx/opengl/sync.cc \
- gfx/common/ProjectionPlane.cc \
+SRC += gfx/common/AnimatedViewport.cc \
+ gfx/common/GeomQuad.cc \
+ gfx/common/GeomQuadMesh.cc \
+ gfx/common/GfxLGradient.cc \
  gfx/common/GfxText.cc \
  gfx/common/GlyphTextureSet.cc \
- gfx/common/AnimatedViewport.cc \
- gfx/common/GfxLGradient.cc
- 
+ gfx/common/ProjectionPlane.cc \
+ gfx/common/Sprite.cc \
+ gfx/opengl/config.cc \
+ gfx/opengl/debug.cc \
+ gfx/opengl/DrawableHolder.cc \
+ gfx/opengl/geometry.cc \
+ gfx/opengl/GLStateCache.cc \
+ gfx/opengl/GLTask.cc \
+ gfx/opengl/PixmapBufferTexture.cc \
+ gfx/opengl/Renderer.cc \
+ gfx/opengl/RendererCommands.cc \
+ gfx/opengl/RendererTask.cc \
+ gfx/opengl/resource.cc \
+ gfx/opengl/shader.cc \
+ gfx/opengl/sync.cc \
+ gfx/opengl/Texture.cc \
+ gfx/opengl/TextureSampler.cc \
+ gfx/opengl/transforms.cc \
+ gfx/opengl/Viewport.cc
+
 ifeq ($(ENV), ios)
  SRC +=  gfx/opengl/ios/drawable.mm
  ifneq ($(SUBARCH), armv6)

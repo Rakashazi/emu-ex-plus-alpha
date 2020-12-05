@@ -39,7 +39,7 @@ static Gfx::Shader makeEffectVertexShader(Gfx::Renderer &r, const char *src)
 		posDefs,
 		src
 	};
-	return r.makeCompatShader(shaderSrc, std::size(shaderSrc), Gfx::SHADER_VERTEX);
+	return r.makeCompatShader(shaderSrc, std::size(shaderSrc), Gfx::ShaderType::VERTEX);
 }
 
 static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, const char *src, bool isExternalTex)
@@ -58,13 +58,13 @@ static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, const char *src, b
 			"uniform lowp samplerExternalOES TEX;\n",
 			src
 		};
-		auto shader = r.makeCompatShader(shaderSrc, std::size(shaderSrc), Gfx::SHADER_FRAGMENT);
+		auto shader = r.makeCompatShader(shaderSrc, std::size(shaderSrc), Gfx::ShaderType::FRAGMENT);
 		if(!shader)
 		{
 			// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
 			logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
 			shaderSrc[1] = "#define TEXTURE texture\n";
-			shader = r.makeCompatShader(shaderSrc, std::size(shaderSrc), Gfx::SHADER_FRAGMENT);
+			shader = r.makeCompatShader(shaderSrc, std::size(shaderSrc), Gfx::ShaderType::FRAGMENT);
 		}
 		return shader;
 	}
@@ -77,7 +77,7 @@ static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, const char *src, b
 			"uniform sampler2D TEX;\n",
 			src
 		};
-		return r.makeCompatShader(shaderSrc, std::size(shaderSrc), Gfx::SHADER_FRAGMENT);
+		return r.makeCompatShader(shaderSrc, std::size(shaderSrc), Gfx::ShaderType::FRAGMENT);
 	}
 }
 

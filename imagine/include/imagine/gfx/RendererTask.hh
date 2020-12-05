@@ -46,6 +46,7 @@ public:
 	void destroyDrawable(DrawableHolder &drawable);
 	void releaseShaderCompiler();
 	void flush();
+	void setDebugOutput(bool on);
 	Renderer &renderer() const;
 	explicit operator bool() const;
 
@@ -58,11 +59,12 @@ public:
 	}
 
 	// Run a delegate for drawing on the renderer thread with signature:
-	// void(DrawableHolder &drawableHolder, Base::Window &win, RendererTaskDrawContext taskContext)
+	// void(DrawableHolder &drawableHolder, Base::Window &win, RendererCommands &cmds)
 	template<class Func>
-	void draw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams params, Func &&del)
+	void draw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams params,
+		const Viewport &viewport, const Mat4 &projMat, Func &&del)
 	{
-		RendererTaskImpl::draw(drawableHolder, win, winParams, params, std::forward<Func>(del));
+		RendererTaskImpl::draw(drawableHolder, win, winParams, params, viewport, projMat, std::forward<Func>(del));
 	}
 
 	// synchronization

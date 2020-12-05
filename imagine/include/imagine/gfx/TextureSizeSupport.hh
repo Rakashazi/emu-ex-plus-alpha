@@ -11,7 +11,7 @@ class TextureSizeSupport
 {
 public:
 	uint32_t maxXSize = 0, maxYSize = 0;
-	bool nonPow2 = Config::Gfx::OPENGL_ES_MAJOR_VERSION >= 2;
+	bool nonPow2 = Config::Gfx::OPENGL_ES >= 2;
 	static constexpr bool nonSquare = true;
 	bool nonPow2CanMipmap = false;
 	bool nonPow2CanRepeat = false;

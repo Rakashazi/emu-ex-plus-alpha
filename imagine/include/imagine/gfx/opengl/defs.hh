@@ -27,6 +27,23 @@ namespace Config
 {
 	namespace Gfx
 	{
+	#ifndef CONFIG_GFX_OPENGL_ES
+		#if defined CONFIG_BASE_IOS || defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
+		#define CONFIG_GFX_OPENGL_ES
+		#endif
+	#endif
+
+	#if defined CONFIG_GFX_OPENGL_ES && !defined CONFIG_GFX_OPENGL_ES_MAJOR_VERSION
+	#error "Configuration error, CONFIG_GFX_OPENGL_ES set but CONFIG_GFX_OPENGL_ES_MAJOR_VERSION unset"
+	#endif
+
+	#ifdef CONFIG_GFX_OPENGL_ES_MAJOR_VERSION
+	static constexpr int OPENGL_ES = CONFIG_GFX_OPENGL_ES_MAJOR_VERSION;
+	#else
+	static constexpr int OPENGL_ES = 0;
+	#define CONFIG_GFX_OPENGL_ES_MAJOR_VERSION 0
+	#endif
+
 	#if !defined CONFIG_BASE_MACOSX && \
 	((defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1) || !defined CONFIG_GFX_OPENGL_ES)
 	#define CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
@@ -46,27 +63,25 @@ namespace Config
 	#error "Configuration error, OPENGL_FIXED_FUNCTION_PIPELINE & OPENGL_SHADER_PIPELINE both unset"
 	#endif
 
-	#ifdef CONFIG_GFX_OPENGL_ES_MAJOR_VERSION
-	static constexpr bool OPENGL_ES = true;
-	static constexpr int OPENGL_ES_MAJOR_VERSION = CONFIG_GFX_OPENGL_ES_MAJOR_VERSION;
-	#else
-	static constexpr bool OPENGL_ES = false;
-	#define CONFIG_GFX_OPENGL_ES_MAJOR_VERSION 0
-	static constexpr int OPENGL_ES_MAJOR_VERSION = 0;
-	#endif
-
 	#ifdef __ANDROID__
-	#define CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
-	static constexpr bool OPENGL_MULTIPLE_TEXTURE_TARGETS = true;
+	#define CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
+	static constexpr bool OPENGL_TEXTURE_TARGET_EXTERNAL = true;
 	#else
-	static constexpr bool OPENGL_MULTIPLE_TEXTURE_TARGETS = false;
+	static constexpr bool OPENGL_TEXTURE_TARGET_EXTERNAL = false;
 	#endif
 
-	#ifndef __APPLE__
+	#if !defined NDEBUG && !defined __APPLE__
 	#define CONFIG_GFX_OPENGL_DEBUG_CONTEXT
 	static constexpr bool OPENGL_DEBUG_CONTEXT = true;
 	#else
 	static constexpr bool OPENGL_DEBUG_CONTEXT = false;
+	#endif
+
+	#if defined CONFIG_BASE_IOS
+	#define CONFIG_GFX_GLDRAWABLE_NEEDS_FRAMEBUFFER
+	static constexpr bool GLDRAWABLE_NEEDS_FRAMEBUFFER = true;
+	#else
+	static constexpr bool GLDRAWABLE_NEEDS_FRAMEBUFFER = false;
 	#endif
 	}
 }

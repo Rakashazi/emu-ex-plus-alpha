@@ -36,7 +36,7 @@ void VControllerDPad::setImg(Gfx::Renderer &r, Gfx::Texture &dpadR, Gfx::GTexC t
 	spr.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
 }
 
-void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, const AppWindowData &winData)
+void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, const WindowData &winData)
 {
 	if(visualizeBounds && padArea.xSize())
 	{
@@ -54,11 +54,11 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, const AppWindowDat
 		mapImg = r.makePixmapTexture({mapPix});
 		mapImg.write(0, mapPix, {});
 		mapSpr = {{}, mapImg};
-		mapSpr.setPos(padArea, winData.projectionPlane);
+		mapSpr.setPos(padArea, winData.projection.plane());
 	}
 }
 
-void VControllerDPad::setDeadzone(Gfx::Renderer &r, int newDeadzone, const AppWindowData &winData)
+void VControllerDPad::setDeadzone(Gfx::Renderer &r, int newDeadzone, const WindowData &winData)
 {
 	if(deadzone != newDeadzone)
 	{
@@ -67,7 +67,7 @@ void VControllerDPad::setDeadzone(Gfx::Renderer &r, int newDeadzone, const AppWi
 	}
 }
 
-void VControllerDPad::setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonalSensitivity, const AppWindowData &winData)
+void VControllerDPad::setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonalSensitivity, const WindowData &winData)
 {
 	if(diagonalSensitivity != newDiagonalSensitivity)
 	{
@@ -82,7 +82,7 @@ IG::WindowRect VControllerDPad::bounds() const
 	return padBaseArea;
 }
 
-void VControllerDPad::setSize(Gfx::Renderer &r, uint sizeInPixels, const AppWindowData &winData)
+void VControllerDPad::setSize(Gfx::Renderer &r, uint sizeInPixels, const WindowData &winData)
 {
 	//logMsg("set dpad pixel size: %d", sizeInPixels);
 	btnSizePixels = sizeInPixels;
@@ -97,22 +97,22 @@ void VControllerDPad::setSize(Gfx::Renderer &r, uint sizeInPixels, const AppWind
 	}
 }
 
-void VControllerDPad::setPos(IG::Point2D<int> pos, const AppWindowData &winData)
+void VControllerDPad::setPos(IG::Point2D<int> pos, const WindowData &winData)
 {
 	padBaseArea.setPos(pos, C2DO);
 	padBaseArea.fitIn(winData.viewport().bounds());
-	padBase = winData.projectionPlane.unProjectRect(padBaseArea);
+	padBase = winData.projection.plane().unProjectRect(padBaseArea);
 	spr.setPos(padBase);
 	//logMsg("set dpad pos %d:%d:%d:%d, %f:%f:%f:%f", padBaseArea.x, padBaseArea.y, padBaseArea.x2, padBaseArea.y2,
 	//	(double)padBase.x, (double)padBase.y, (double)padBase.x2, (double)padBase.y2);
 	padArea.setPos(padBaseArea.pos(C2DO), C2DO);
 	if(visualizeBounds)
 	{
-		mapSpr.setPos(padArea, winData.projectionPlane);
+		mapSpr.setPos(padArea, winData.projection.plane());
 	}
 }
 
-void VControllerDPad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, const AppWindowData &winData)
+void VControllerDPad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, const WindowData &winData)
 {
 	if(visualizeBounds == on)
 		return;
@@ -192,19 +192,19 @@ void VControllerKeyboard::setImg(Gfx::Renderer &r, Gfx::TextureSpan img)
 	updateImg(r);
 }
 
-void VControllerKeyboard::place(Gfx::GC btnSize, Gfx::GC yOffset, const AppWindowData &winData)
+void VControllerKeyboard::place(Gfx::GC btnSize, Gfx::GC yOffset, const WindowData &winData)
 {
 	Gfx::GC xSize, ySize;
-	IG::setSizesWithRatioX(xSize, ySize, 3./2., std::min(btnSize*10, winData.projectionPlane.width()));
-	Gfx::GC vArea = winData.projectionPlane.height() - yOffset*2;
+	IG::setSizesWithRatioX(xSize, ySize, 3./2., std::min(btnSize*10, winData.projection.plane().width()));
+	Gfx::GC vArea = winData.projection.plane().height() - yOffset*2;
 	if(ySize > vArea)
 	{
 		IG::setSizesWithRatioY(xSize, ySize, 3./2., vArea);
 	}
 	Gfx::GCRect boundGC {0., 0., xSize, ySize};
-	boundGC.setPos({0., winData.projectionPlane.bounds().y + yOffset}, CB2DO);
+	boundGC.setPos({0., winData.projection.plane().bounds().y + yOffset}, CB2DO);
 	spr.setPos(boundGC);
-	bound = winData.projectionPlane.projectRect(boundGC);
+	bound = winData.projection.plane().projectRect(boundGC);
 	keyXSize = std::max(bound.xSize() / VKEY_COLS, 1u);
 	keyYSize = std::max(bound.ySize() / KEY_ROWS, 1u);
 	logMsg("key size %dx%d", keyXSize, keyYSize);
@@ -470,7 +470,7 @@ void VControllerKeyboard::updateKeyboardMapping()
 	applyMap(map);
 }
 
-void VControllerGamepad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, const AppWindowData &winData)
+void VControllerGamepad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, const WindowData &winData)
 {
 	showBoundingArea = on;
 	dp.setBoundingAreaVisible(r, on, winData);
@@ -537,7 +537,7 @@ IG::WindowRect VControllerGamepad::centerBtnBounds() const
 	return centerBtnsBound;
 }
 
-void VControllerGamepad::setCenterBtnPos(IG::Point2D<int> pos, const AppWindowData &winData)
+void VControllerGamepad::setCenterBtnPos(IG::Point2D<int> pos, const WindowData &winData)
 {
 	centerBtnsBound.setPos(pos, C2DO);
 	centerBtnsBound.fitIn(winData.viewport().bounds());
@@ -548,13 +548,13 @@ void VControllerGamepad::setCenterBtnPos(IG::Point2D<int> pos, const AppWindowDa
 	{
 		centerBtnBound[0] = IG::makeWindowRectRel({centerBtnsBound.x - extraXSize/2, centerBtnsBound.y}, {btnSizePixels + extraXSize, centerBtnsBound.ySize()});
 		centerBtnBound[1] = IG::makeWindowRectRel({(centerBtnsBound.x2 - btnSizePixels) - extraXSize/2, centerBtnsBound.y}, {btnSizePixels + extraXSize, centerBtnsBound.ySize()});
-		centerBtnSpr[0].setPos(winData.projectionPlane.unProjectRect(IG::makeWindowRectRel({centerBtnsBound.x, spriteYPos}, {btnSizePixels, btnSizePixels/2})));
-		centerBtnSpr[1].setPos(winData.projectionPlane.unProjectRect(IG::makeWindowRectRel({centerBtnsBound.x2 - btnSizePixels, spriteYPos}, {btnSizePixels, btnSizePixels/2})));
+		centerBtnSpr[0].setPos(winData.projection.plane().unProjectRect(IG::makeWindowRectRel({centerBtnsBound.x, spriteYPos}, {btnSizePixels, btnSizePixels/2})));
+		centerBtnSpr[1].setPos(winData.projection.plane().unProjectRect(IG::makeWindowRectRel({centerBtnsBound.x2 - btnSizePixels, spriteYPos}, {btnSizePixels, btnSizePixels/2})));
 	}
 	else
 	{
 		centerBtnBound[0] = IG::makeWindowRectRel({centerBtnsBound.x - extraXSize/2, centerBtnsBound.y}, {btnSizePixels + extraXSize, centerBtnsBound.ySize()});
-		centerBtnSpr[0].setPos(winData.projectionPlane.unProjectRect(IG::makeWindowRectRel({centerBtnsBound.x, spriteYPos}, {centerBtnsBound.xSize(), btnSizePixels/2})));
+		centerBtnSpr[0].setPos(winData.projection.plane().unProjectRect(IG::makeWindowRectRel({centerBtnsBound.x, spriteYPos}, {centerBtnsBound.xSize(), btnSizePixels/2})));
 	}
 }
 
@@ -573,14 +573,14 @@ IG::WindowRect VControllerGamepad::lTriggerBounds() const
 	return lTriggerBound;
 }
 
-void VControllerGamepad::setLTriggerPos(IG::Point2D<int> pos, const AppWindowData &winData)
+void VControllerGamepad::setLTriggerPos(IG::Point2D<int> pos, const WindowData &winData)
 {
 	uint idx = lTriggerIdx();
 	lTriggerBound.setPos(pos, C2DO);
 	lTriggerBound.fitIn(winData.viewport().bounds());
-	auto lTriggerAreaGC = winData.projectionPlane.unProjectRect(lTriggerBound);
+	auto lTriggerAreaGC = winData.projection.plane().unProjectRect(lTriggerBound);
 	faceBtnBound[idx] = lTriggerBound;
-	circleBtnSpr[idx].setPos(lTriggerBound, winData.projectionPlane);
+	circleBtnSpr[idx].setPos(lTriggerBound, winData.projection.plane());
 }
 
 IG::WindowRect VControllerGamepad::rTriggerBounds() const
@@ -588,23 +588,23 @@ IG::WindowRect VControllerGamepad::rTriggerBounds() const
 	return rTriggerBound;
 }
 
-void VControllerGamepad::setRTriggerPos(IG::Point2D<int> pos, const AppWindowData &winData)
+void VControllerGamepad::setRTriggerPos(IG::Point2D<int> pos, const WindowData &winData)
 {
 	uint idx = rTriggerIdx();
 	rTriggerBound.setPos(pos, C2DO);
 	rTriggerBound.fitIn(winData.viewport().bounds());
-	auto rTriggerAreaGC = winData.projectionPlane.unProjectRect(rTriggerBound);
+	auto rTriggerAreaGC = winData.projection.plane().unProjectRect(rTriggerBound);
 	faceBtnBound[idx] = rTriggerBound;
-	circleBtnSpr[idx].setPos(rTriggerBound, winData.projectionPlane);
+	circleBtnSpr[idx].setPos(rTriggerBound, winData.projection.plane());
 }
 
-void VControllerGamepad::layoutBtnRows(uint a[], uint btns, uint rows, IG::Point2D<int> pos, const AppWindowData &winData)
+void VControllerGamepad::layoutBtnRows(uint a[], uint btns, uint rows, IG::Point2D<int> pos, const WindowData &winData)
 {
 	int btnsPerRow = btns/rows;
 	//logMsg("laying out buttons with size %d, space %d, row shift %d, stagger %d", btnSizePixels, btnSpacePixels, btnRowShiftPixels, btnStaggerPixels);
 	faceBtnsBound.setPos(pos, C2DO);
 	faceBtnsBound.fitIn(winData.viewport().bounds());
-	auto btnArea = winData.projectionPlane.unProjectRect(faceBtnsBound);
+	auto btnArea = winData.projection.plane().unProjectRect(faceBtnsBound);
 
 	int row = 0, btnPos = 0;
 	Gfx::GC yOffset = (btnStagger < 0) ? -btnStagger*(btnsPerRow-1) : 0,
@@ -633,7 +633,7 @@ void VControllerGamepad::layoutBtnRows(uint a[], uint btns, uint rows, IG::Point
 		int extraXSize = buttonXSpace + (Gfx::GC)btnSizePixels * btnExtraXSize;
 		int extraYSize = buttonYSpace + (Gfx::GC)btnSizePixels * btnExtraYSizeVal;
 		auto &bound = faceBtnBound[a[i]];
-		bound = winData.projectionPlane.projectRect(faceBtn);
+		bound = winData.projection.plane().projectRect(faceBtn);
 		bound = IG::makeWindowRectRel(bound.pos(LT2DO) - IG::WP{extraXSize/2, extraYSize/2},
 			bound.size() + IG::WP{extraXSize, extraYSize});
 	}
@@ -656,7 +656,7 @@ uint VControllerGamepad::rowsForButtons(uint activeButtons)
 	}
 }
 
-void VControllerGamepad::setFaceBtnPos(IG::Point2D<int> pos, const AppWindowData &winData)
+void VControllerGamepad::setFaceBtnPos(IG::Point2D<int> pos, const WindowData &winData)
 {
 	using namespace IG;
 
@@ -707,10 +707,10 @@ void VControllerGamepad::setFaceBtnPos(IG::Point2D<int> pos, const AppWindowData
 	}
 }
 
-void VControllerGamepad::setBaseBtnSize(Gfx::Renderer &r, uint sizeInPixels, const AppWindowData &winData)
+void VControllerGamepad::setBaseBtnSize(Gfx::Renderer &r, uint sizeInPixels, const WindowData &winData)
 {
 	btnSizePixels = sizeInPixels;
-	btnSize = winData.projectionPlane.unprojectXSize(sizeInPixels);
+	btnSize = winData.projection.plane().unprojectXSize(sizeInPixels);
 	dp.setSize(r, IG::makeEvenRoundedUp(int(sizeInPixels*(double)2.5)), winData);
 
 	// face buttons
@@ -796,7 +796,7 @@ std::array<int, 2> VControllerGamepad::getBtnInput(IG::WP pos) const
 	return btnOut;
 }
 
-void VControllerGamepad::draw(Gfx::RendererCommands &cmds, bool showHidden, const AppWindowData &winData) const
+void VControllerGamepad::draw(Gfx::RendererCommands &cmds, bool showHidden, const WindowData &winData) const
 {
 	using namespace Gfx;
 	if(dp.state() == 1 || (showHidden && dp.state()))
@@ -812,7 +812,7 @@ void VControllerGamepad::draw(Gfx::RendererCommands &cmds, bool showHidden, cons
 			cmds.setCommonProgram(CommonProgram::NO_TEX);
 			iterateTimes((EmuSystem::inputHasTriggerBtns && !triggersInline_) ? EmuSystem::inputFaceBtns-2 : activeFaceBtns, i)
 			{
-				GeomRect::draw(cmds, faceBtnBound[i], winData.projectionPlane);
+				GeomRect::draw(cmds, faceBtnBound[i], winData.projection.plane());
 			}
 		}
 		circleBtnSpr[0].setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
@@ -831,12 +831,12 @@ void VControllerGamepad::draw(Gfx::RendererCommands &cmds, bool showHidden, cons
 			if(lTriggerState_ == 1 || (showHidden && lTriggerState_))
 			{
 				cmds.setCommonProgram(CommonProgram::NO_TEX);
-				GeomRect::draw(cmds, faceBtnBound[lTriggerIdx()], winData.projectionPlane);
+				GeomRect::draw(cmds, faceBtnBound[lTriggerIdx()], winData.projection.plane());
 			}
 			if(rTriggerState_ == 1 || (showHidden && rTriggerState_))
 			{
 				cmds.setCommonProgram(CommonProgram::NO_TEX);
-				GeomRect::draw(cmds, faceBtnBound[rTriggerIdx()], winData.projectionPlane);
+				GeomRect::draw(cmds, faceBtnBound[rTriggerIdx()], winData.projection.plane());
 			}
 		}
 		if(lTriggerState_ == 1 || (showHidden && lTriggerState_))
@@ -859,7 +859,7 @@ void VControllerGamepad::draw(Gfx::RendererCommands &cmds, bool showHidden, cons
 			cmds.setCommonProgram(CommonProgram::NO_TEX);
 			iterateTimes(EmuSystem::inputCenterBtns, i)
 			{
-				GeomRect::draw(cmds, centerBtnBound[i], winData.projectionPlane);
+				GeomRect::draw(cmds, centerBtnBound[i], winData.projection.plane());
 			}
 		}
 		centerBtnSpr[0].setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
@@ -872,12 +872,12 @@ void VControllerGamepad::draw(Gfx::RendererCommands &cmds, bool showHidden, cons
 
 Gfx::GC VController::xMMSize(Gfx::GC mm) const
 {
-	return useScaledCoordinates ? windowData().projectionPlane.xSMMSize(mm) : windowData().projectionPlane.xMMSize(mm);
+	return useScaledCoordinates ? windowData().projection.plane().xSMMSize(mm) : windowData().projection.plane().xMMSize(mm);
 }
 
 Gfx::GC VController::yMMSize(Gfx::GC mm) const
 {
-	return useScaledCoordinates ? windowData().projectionPlane.ySMMSize(mm) : windowData().projectionPlane.yMMSize(mm);
+	return useScaledCoordinates ? windowData().projection.plane().ySMMSize(mm) : windowData().projection.plane().yMMSize(mm);
 }
 
 int VController::xMMSizeToPixel(const Base::Window &win, Gfx::GC mm) const
@@ -898,14 +898,14 @@ bool VController::hasTriggers() const
 void VController::setImg(Gfx::Texture &pics)
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	gp.setImg(renderer_, pics);
+	gp.setImg(renderer(), pics);
 	#endif
 }
 
 void VController::setBoundingAreaVisible(bool on)
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	gp.setBoundingAreaVisible(renderer_, on, windowData());
+	gp.setBoundingAreaVisible(renderer(), on, windowData());
 	#endif
 }
 
@@ -922,14 +922,14 @@ void VController::setMenuBtnPos(IG::Point2D<int> pos)
 {
 	menuBound.setPos(pos, C2DO);
 	menuBound.fitIn(windowData().viewport().bounds());
-	menuBtnSpr.setPos(menuBound, windowData().projectionPlane);
+	menuBtnSpr.setPos(menuBound, windowData().projection.plane());
 }
 
 void VController::setFFBtnPos(IG::Point2D<int> pos)
 {
 	ffBound.setPos(pos, C2DO);
 	ffBound.fitIn(windowData().viewport().bounds());
-	ffBtnSpr.setPos(ffBound, windowData().projectionPlane);
+	ffBtnSpr.setPos(ffBound, windowData().projection.plane());
 }
 
 void VController::setBaseBtnSize(uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP)
@@ -937,7 +937,7 @@ void VController::setBaseBtnSize(uint gamepadBtnSizeInPixels, uint uiBtnSizeInPi
 	if(EmuSystem::inputHasKeyboard)
 		kb.place(projP.unprojectYSize(gamepadBtnSizeInPixels), projP.unprojectYSize(gamepadBtnSizeInPixels * .75), windowData());
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	gp.setBaseBtnSize(renderer_, gamepadBtnSizeInPixels, windowData());
+	gp.setBaseBtnSize(renderer(), gamepadBtnSizeInPixels, windowData());
 	#endif
 	int size = uiBtnSizeInPixels;
 	if(menuBound.xSize() != size)
@@ -1031,7 +1031,7 @@ std::array<int, 2> VController::findElementUnderPos(Input::Event e)
 			if(!e.pushed())
 				return {-1, -1};
 			logMsg("switch kb mode");
-			kb.setMode(renderer_, kb.mode() ^ true);
+			kb.setMode(renderer(), kb.mode() ^ true);
 			resetInput();
 		}
 		else
@@ -1111,7 +1111,7 @@ bool VController::keyInput(Input::Event e)
 {
 	if(!isInKeyboardMode())
 		return false;
-	return kb.keyInput(*this, renderer_, e);
+	return kb.keyInput(*this, renderer(), e);
 }
 
 void VController::draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool activeFF, bool showHidden)
@@ -1128,12 +1128,12 @@ void VController::draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool
 	cmds.setColor(1., 1., 1., alpha);
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	if(isInKeyboardMode())
-		kb.draw(cmds, windowData().projectionPlane);
+		kb.draw(cmds, windowData().projection.plane());
 	else if(emuSystemControls)
 		gp.draw(cmds, showHidden, windowData());
 	#else
 	if(isInKeyboardMode())
-		kb.draw(cmds, windowData().projectionPlane);
+		kb.draw(cmds, windowData().projection.plane());
 	#endif
 	//GeomRect::draw(menuBound);
 	//GeomRect::draw(ffBound);
@@ -1274,7 +1274,7 @@ uint VController::state(int elemIdx) const
 
 bool VController::isInKeyboardMode() const
 {
-	return EmuSystem::inputHasKeyboard && vController.kbMode;
+	return EmuSystem::inputHasKeyboard && kbMode;
 }
 
 void VController::updateMapping(uint player)
@@ -1301,7 +1301,7 @@ void VController::setFastForwardImage(Gfx::TextureSpan img)
 
 void VController::setKeyboardImage(Gfx::TextureSpan img)
 {
-	kb.setImg(renderer_, img);
+	kb.setImg(renderer(), img);
 }
 
 bool VController::menuHitTest(IG::WP pos)
@@ -1340,7 +1340,18 @@ VControllerGamepad &VController::gamePad()
 }
 #endif
 
+void VController::setRenderer(Gfx::Renderer &renderer)
+{
+	renderer_ = &renderer;
+}
+
 Gfx::Renderer &VController::renderer()
 {
-	return renderer_;
+	return *renderer_;
+}
+
+void VController::setWindow(const Base::Window &win_)
+{
+	win = &win_;
+	winData = &::windowData(win_);
 }

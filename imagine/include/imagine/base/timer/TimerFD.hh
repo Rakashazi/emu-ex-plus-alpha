@@ -38,7 +38,7 @@ public:
 	~TimerFD();
 
 protected:
-	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> debugLabel{};
+	IG_enableMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
 	std::unique_ptr<CallbackDelegate> callback_{};
 	FDEventSource fdSrc{};
 

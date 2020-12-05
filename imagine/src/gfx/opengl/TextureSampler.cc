@@ -17,7 +17,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/TextureSampler.hh>
-#include "private.hh"
+#include "utils.hh"
 #include <limits>
 
 namespace Gfx
@@ -55,7 +55,7 @@ static_assert(GL_NEAREST_MIPMAP_LINEAR < std::numeric_limits<uint16_t>::max());
 static_assert(GL_CLAMP_TO_EDGE < std::numeric_limits<uint16_t>::max());
 static_assert(GL_REPEAT < std::numeric_limits<uint16_t>::max());
 
-static GLint makeMinFilter(bool linearFiltering, MipFilterMode mipFiltering)
+static uint16_t makeMinFilter(bool linearFiltering, MipFilterMode mipFiltering)
 {
 	switch(mipFiltering)
 	{
@@ -66,25 +66,24 @@ static GLint makeMinFilter(bool linearFiltering, MipFilterMode mipFiltering)
 	}
 }
 
-static GLint makeMagFilter(bool linearFiltering)
+static uint16_t makeMagFilter(bool linearFiltering)
 {
 	return linearFiltering ? GL_LINEAR : GL_NEAREST;
 }
 
-static GLint makeWrapMode(WrapMode mode)
+static uint16_t makeWrapMode(WrapMode mode)
 {
 	return mode == WRAP_CLAMP ? GL_CLAMP_TO_EDGE : GL_REPEAT;
 }
 
 GLTextureSampler::GLTextureSampler(RendererTask &rTask, TextureSamplerConfig config):
-	rTask{&rTask}
+	rTask{&rTask},
+	minFilter{makeMinFilter(config.magLinearFilter(), config.mipFilter())},
+	magFilter{makeMagFilter(config.minLinearFilter())},
+	xWrapMode_{makeWrapMode(config.xWrapMode())},
+	yWrapMode_{makeWrapMode(config.yWrapMode())},
+	debugLabel{config.debugLabel() ? config.debugLabel() : ""}
 {
-	if(config.debugLabel())
-		debugLabel = config.debugLabel();
-	magFilter = makeMagFilter(config.minLinearFilter());
-	minFilter = makeMinFilter(config.magLinearFilter(), config.mipFilter());
-	xWrapMode_ = makeWrapMode(config.xWrapMode());
-	yWrapMode_ = makeWrapMode(config.yWrapMode());
 	auto &r = rTask.renderer();
 	if(r.support.hasSamplerObjects)
 	{

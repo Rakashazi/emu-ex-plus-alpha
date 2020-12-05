@@ -31,7 +31,9 @@ class RendererTask;
 class DrawableHolder : public DrawableHolderImpl
 {
 public:
-	constexpr DrawableHolder() {}
+	using DrawableHolderImpl::DrawableHolderImpl;
+	DrawableHolder(DrawableHolder &&o);
+	DrawableHolder &operator=(DrawableHolder &&o);
 	operator Drawable() const;
 	explicit operator bool() const;
 	bool addOnFrame(Base::OnFrameDelegate del, int priority = 0);

@@ -13,9 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/gfx/Viewport.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/math/Point2D.hh>
-#include "private.hh"
 
 namespace Gfx
 {
@@ -61,9 +61,7 @@ Viewport Viewport::makeFromRect(IG::WindowRect fullRect, IG::WindowRect fullReal
 	v.wSMM = 1;
 	v.hSMM = 1;
 	#endif
-	#ifdef CONFIG_GFX_SOFT_ORIENTATION
 	v.softOrientation_ = 0;
-	#endif
 	// glViewport() needs flipped Y and relative size
 	v.relYFlipViewport = {v.realBounds().x, fullRealRect.ySize() - v.realBounds().y2, v.realWidth(), v.realHeight()};
 	//logMsg("transformed for GL %d:%d:%d:%d", v.relYFlipViewport.x, v.relYFlipViewport.y, v.relYFlipViewport.x2, v.relYFlipViewport.y2);
@@ -84,9 +82,7 @@ Viewport Viewport::makeFromWindow(const Base::Window &win, IG::WindowRect rect)
 	v.wSMM = win.widthSMM() * wScaler;
 	v.hSMM = win.heightSMM() * hScaler;
 	#endif
-	#ifdef CONFIG_GFX_SOFT_ORIENTATION
 	v.softOrientation_ = win.softOrientation();
-	#endif
 	//logMsg("made viewport %d:%d:%d:%d from window %d:%d",
 	//	v.rect.x, v.rect.y, v.rect.x2, v.rect.y2,
 	//	win.width(), win.height());

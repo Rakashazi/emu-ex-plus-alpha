@@ -5,6 +5,7 @@
 #ifdef __APPLE__
 #include <strings.h>
 #endif
+#include <bit>
 
 #ifndef __APPLE__
 static int fls(int x)
@@ -72,28 +73,6 @@ static T swapBits(T x, T range1, T range2, unsigned int rangeSize)
 {
 	T t = ((x >> range1) ^ (x >> range2)) & ((1 << rangeSize) - 1); // XOR temporary
 	return x ^ ((t << range1) | (t << range2));
-}
-
-constexpr static int bitsSet(unsigned int x)
-{
-	return __builtin_popcount(x);
-	// alternate generic version
-	/*uint bits;
-	for(bits = 0; x; bits++)
-	{
-		x &= x - 1; // clear the least significant bit set
-	}
-	return bits;*/
-}
-
-constexpr static int bitsSet(unsigned long x)
-{
-	return __builtin_popcountl(x);
-}
-
-constexpr static int bitsSet(unsigned long long x)
-{
-	return __builtin_popcountll(x);
 }
 
 template <class T>

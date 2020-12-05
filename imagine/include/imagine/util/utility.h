@@ -2,12 +2,9 @@
 
 #ifdef __cplusplus
 #include <utility>
-#include <cstddef>
 #endif
 #include <assert.h>
 #include <imagine/util/builtins.h>
-
-#define var_isConst(E) __builtin_constant_p(E)
 
 #define bcase break; case
 #define bdefault break; default
@@ -32,3 +29,16 @@ CLINK void bug_doExit(const char *msg, ...)  __attribute__ ((format (printf, 1, 
 
 // logical xor
 #define lxor(a, b) ( !(a) != !(b) )
+
+#ifdef __cplusplus
+namespace IG
+{
+
+template <class T, class Return = std::decay_t<T>>
+static Return copySelf(T &&obj)
+{
+	return obj;
+}
+
+}
+#endif

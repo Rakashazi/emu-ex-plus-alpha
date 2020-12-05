@@ -17,11 +17,14 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/DrawableHolder.hh>
 #include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/Texture.hh>
 #include <imagine/base/Base.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/thread/Thread.hh>
-#include "private.hh"
+#include "internalDefs.hh"
+#include "utils.hh"
 
 namespace Gfx
 {
@@ -61,15 +64,15 @@ void GLRendererTask::initVAO()
 
 void GLRendererTask::initDefaultFramebuffer()
 {
-	#ifdef CONFIG_GLDRAWABLE_NEEDS_FRAMEBUFFER
-	if(!defaultFB)
+	if(Config::Gfx::GLDRAWABLE_NEEDS_FRAMEBUFFER && !defaultFB)
 	{
 		Base::GLContext::setCurrent(Base::GLDisplay::getDefault(), glContext(), {});
-		glGenFramebuffers(1, &defaultFB);
-		logMsg("created default framebuffer:%u", defaultFB);
-		glBindFramebuffer(GL_FRAMEBUFFER, defaultFB);
+		GLuint fb;
+		glGenFramebuffers(1, &fb);
+		logMsg("created default framebuffer:%u", fb);
+		glBindFramebuffer(GL_FRAMEBUFFER, fb);
+		defaultFB = fb;
 	}
-	#endif
 }
 
 GLuint GLRendererTask::bindFramebuffer(Texture &tex)
@@ -95,8 +98,10 @@ Renderer &RendererTask::renderer() const
 	return *r;
 }
 
-GLRendererTask::GLRendererTask(const char *debugLabel, Renderer &r, Base::GLContext context):
-	GLMainTask{debugLabel, context, true}, r{&r}
+GLRendererTask::GLRendererTask() {}
+
+GLRendererTask::GLRendererTask(const char *debugLabel, Renderer &r, Base::GLContext context, int threadPriority):
+	GLTask{debugLabel, context, threadPriority}, r{&r}
 {}
 
 RendererTask::RendererTask(RendererTask &&o)
@@ -156,7 +161,7 @@ void GLRendererTask::doPreDraw(DrawableHolder &drawableHolder, Base::Window &win
 	}
 	if(unlikely(!drawableHolder))
 	{
-		drawableHolder.makeDrawable(*r, *static_cast<RendererTask*>(this), win);
+		drawableHolder.makeDrawable(*static_cast<RendererTask*>(this), win);
 	}
 	if(unlikely(winParams.needsSync()))
 	{
@@ -166,7 +171,7 @@ void GLRendererTask::doPreDraw(DrawableHolder &drawableHolder, Base::Window &win
 
 RendererTask::operator bool() const
 {
-	return GLMainTask::operator bool();
+	return GLTask::operator bool();
 }
 
 void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowSurfaceChange change)
@@ -177,7 +182,7 @@ void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder
 	}
 	else if(!drawableHolder)
 	{
-		drawableHolder.makeDrawable(renderer(), *this, win);
+		drawableHolder.makeDrawable(*this, win);
 	}
 	if(change.reset())
 	{
@@ -188,7 +193,7 @@ void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder
 void RendererTask::destroyDrawable(DrawableHolder &drawableHolder)
 {
 	awaitPending();
-	drawableHolder.destroyDrawable(renderer());
+	drawableHolder.destroyDrawable();
 }
 
 bool GLRendererTask::handleDrawableReset()
@@ -201,22 +206,26 @@ bool GLRendererTask::handleDrawableReset()
 	return false;
 }
 
-void GLRendererTask::initialCommands(RendererCommands &cmds)
+void GLRendererTask::runInitialCommandsInGLThread(TaskContext ctx, DrawContextSupport &support)
 {
-	if(likely(contextInitialStateSet))
-		return;
-	if(cmds.renderer().support.hasVBOFuncs)
+	verifyCurrentContext(ctx.glDisplay());
+	if(support.hasDebugOutput && defaultToFullErrorChecks)
+	{
+		debugEnabled = true;
+		support.setGLDebugOutput(true);
+	}
+	if(support.hasVBOFuncs)
 		initVBOs();
 	#ifndef CONFIG_GFX_OPENGL_ES
-	if(cmds.renderer().useStreamVAO)
+	if(!support.useFixedFunctionPipeline)
 		initVAO();
 	#endif
+	ctx.notifySemaphore();
 	runGLCheckedVerbose([&]()
 	{
 		glEnableVertexAttribArray(VATTR_POS);
 	}, "glEnableVertexAttribArray(VATTR_POS)");
-	cmds.setClearColor(0, 0, 0);
-	contextInitialStateSet = true;
+	glClearColor(0., 0., 0., 1.);
 }
 
 void GLRendererTask::verifyCurrentContext(Base::GLDisplay glDpy) const
@@ -335,28 +344,32 @@ void RendererTask::releaseShaderCompiler()
 	#endif
 }
 
-GLRendererTaskDrawContext::GLRendererTaskDrawContext(GLRendererTask &task, GLMainTask::TaskContext taskCtx, bool notifySemaphoreAfterPresent):
-	task{static_cast<RendererTask*>(&task)}, drawCompleteSemPtr{taskCtx.semaphorePtr()}, glDpy{taskCtx.glDisplay()}, notifySemaphoreAfterPresent{notifySemaphoreAfterPresent}
-{}
-
-RendererCommands RendererTaskDrawContext::makeRendererCommands(DrawableHolder &drawableHolder, Base::Window &win, Viewport viewport, Mat4 projMat)
+void RendererTask::setDebugOutput(bool on)
 {
-	task->initDefaultFramebuffer();
-	RendererCommands cmds{*task, &win, drawableHolder, glDpy, drawCompleteSemPtr, notifySemaphoreAfterPresent};
-	task->initialCommands(cmds);
+	if(!renderer().support.hasDebugOutput || debugEnabled == on)
+	{
+		return;
+	}
+	logMsg("set context:%p debug output:%s", glContext().nativeObject(), on ? "on" : "off");
+	debugEnabled = on;
+	run(
+		[&support = renderer().support, on]()
+		{
+			support.setGLDebugOutput(on);
+		});
+}
+
+RendererCommands GLRendererTask::makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
+	DrawableHolder &drawableHolder, Base::Window &win, Viewport viewport, Mat4 projMat)
+{
+	initDefaultFramebuffer();
+	RendererCommands cmds{*static_cast<RendererTask*>(this), &win, drawableHolder, taskCtx.glDisplay(),
+		manageSemaphore ? taskCtx.semaphorePtr() : nullptr};
+	if(manageSemaphore)
+		taskCtx.markSemaphoreNotified(); // semaphore will be notified in RendererCommands::present()
 	cmds.setViewport(viewport);
 	cmds.setProjectionMatrix(projMat);
 	return cmds;
-}
-
-RendererTask &RendererTaskDrawContext::rendererTask() const
-{
-	return *task;
-}
-
-Renderer &RendererTaskDrawContext::renderer() const
-{
-	return rendererTask().renderer();
 }
 
 }

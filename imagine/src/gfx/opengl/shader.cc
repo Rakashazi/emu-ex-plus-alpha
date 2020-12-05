@@ -16,11 +16,13 @@
 #define LOGTAG "GLShader"
 #include <imagine/gfx/Program.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #if __ANDROID__
-#include <imagine/base/android/android.hh>
+#include <imagine/base/platformExtras.hh>
 #endif
-#include "private.hh"
+#include "internalDefs.hh"
+#include "utils.hh"
 
 namespace Gfx
 {
@@ -88,7 +90,7 @@ static const char *texAlphaReplaceFragShaderSrc =
 "}"
 ;
 
-#ifdef CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
+#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
 static const char *texExternalFragShaderSrc =
 "#extension GL_OES_EGL_image_external : enable\n"
 "#extension GL_OES_EGL_image_external_essl3 : enable\n"
@@ -152,7 +154,7 @@ static bool linkGLProgram(GLuint program)
 	return true;
 }
 
-bool GLSLProgram::init(RendererTask &rTask, Shader vShader, Shader fShader, bool hasColor, bool hasTex)
+bool Program::init(RendererTask &rTask, Shader vShader, Shader fShader, bool hasColor, bool hasTex)
 {
 	if(program_)
 		deinit(rTask);
@@ -185,7 +187,7 @@ bool GLSLProgram::init(RendererTask &rTask, Shader vShader, Shader fShader, bool
 	return program_;
 }
 
-void GLSLProgram::deinit(RendererTask &rTask)
+void Program::deinit(RendererTask &rTask)
 {
 	if(!program_)
 		return;
@@ -202,7 +204,7 @@ void GLSLProgram::deinit(RendererTask &rTask)
 	program_ = 0;
 }
 
-bool GLSLProgram::link(RendererTask &rTask)
+bool Program::link(RendererTask &rTask)
 {
 	bool success;
 	rTask.runSync(
@@ -231,21 +233,6 @@ GLSLProgram::operator bool() const
 	#else
 	return true;
 	#endif
-}
-
-bool Program::init(RendererTask &r, Shader vShader, Shader fShader, bool hasColor, bool hasTex)
-{
-	return GLSLProgram::init(r, vShader, fShader, hasColor, hasTex);
-}
-
-void Program::deinit(RendererTask &r)
-{
-	GLSLProgram::deinit(r);
-}
-
-bool Program::link(RendererTask &r)
-{
-	return GLSLProgram::link(r);
 }
 
 int Program::uniformLocation(RendererTask &rTask, const char *uniformName)
@@ -283,13 +270,13 @@ static void setGLProgram(GLuint program)
 	}, "glUseProgram()");
 }
 
-Shader Renderer::makeShader(const char **src, uint32_t srcCount, uint32_t type)
+Shader Renderer::makeShader(const char **src, uint32_t srcCount, ShaderType type)
 {
 	GLuint shader;
 	task().runSync(
 		[this, &shader, src, srcCount, type]()
 		{
-			shader = glCreateShader(type);
+			shader = glCreateShader((GLenum)type);
 			glShaderSource(shader, srcCount, src, nullptr);
 			glCompileShader(shader);
 			GLint success;
@@ -318,13 +305,13 @@ Shader Renderer::makeShader(const char **src, uint32_t srcCount, uint32_t type)
 	return shader;
 }
 
-Shader Renderer::makeShader(const char *src, uint32_t type)
+Shader Renderer::makeShader(const char *src, ShaderType type)
 {
 	const char *singleSrc[]{src};
 	return makeShader(singleSrc, 1, type);
 }
 
-Shader Renderer::makeCompatShader(const char **mainSrc, uint32_t mainSrcCount, uint32_t type)
+Shader Renderer::makeCompatShader(const char **mainSrc, uint32_t mainSrcCount, ShaderType type)
 {
 	const uint32_t srcCount = mainSrcCount + 2;
 	const char *src[srcCount];
@@ -347,7 +334,7 @@ Shader Renderer::makeCompatShader(const char **mainSrc, uint32_t mainSrcCount, u
 	};
 	bool legacyGLSL = support.useLegacyGLSL;
 	src[0] = legacyGLSL ? "" : version;
-	if(type == GL_VERTEX_SHADER)
+	if(type == ShaderType::VERTEX)
 		src[1] = legacyGLSL ? legacyVertDefs : "";
 	else
 		src[1] = legacyGLSL ? legacyFragDefs : fragDefs;
@@ -355,7 +342,7 @@ Shader Renderer::makeCompatShader(const char **mainSrc, uint32_t mainSrcCount, u
 	return makeShader(src, srcCount, type);
 }
 
-Shader Renderer::makeCompatShader(const char *src, uint32_t type)
+Shader Renderer::makeCompatShader(const char *src, ShaderType type)
 {
 	const char *singleSrc[]{src};
 	return makeCompatShader(singleSrc, 1, type);
@@ -364,47 +351,147 @@ Shader Renderer::makeCompatShader(const char *src, uint32_t type)
 Shader Renderer::makeDefaultVShader()
 {
 	if(!defaultVShader)
-		defaultVShader = makeCompatShader(vShaderSrc, GL_VERTEX_SHADER);
+		defaultVShader = makeCompatShader(vShaderSrc, ShaderType::VERTEX);
 	return defaultVShader;
 }
 
+static bool linkCommonProgram(RendererTask &rTask, Program &prog, const char **fragSrc, uint32_t fragSrcCount, bool hasTex)
+{
+	assert(fragSrc);
+	auto vShader = rTask.renderer().makeDefaultVShader();
+	assert(vShader);
+	auto fShader = rTask.renderer().makeCompatShader(fragSrc, fragSrcCount, ShaderType::FRAGMENT);
+	if(!fShader)
+	{
+		return false;
+	}
+	prog.init(rTask, vShader, fShader, true, hasTex);
+	prog.link(rTask);
+	assert(prog.program());
+	return true;
+}
+
+static bool linkCommonProgram(RendererTask &rTask, Program &prog, const char *fragSrc, bool hasTex, const char *progName)
+{
+	if(prog.program())
+		return false;
+	logMsg("making %s program", progName);
+	const char *singleSrc[]{fragSrc};
+	return linkCommonProgram(rTask, prog, singleSrc, 1, hasTex);
+}
+
+static bool linkCommonTextureSwizzleProgram(RendererTask &rTask, Program &prog, const char *fragSrc, bool hasTex, const char *progName)
+{
+	if(prog.program())
+		return false;
+	logMsg("making %s program", progName);
+	const char *singleSrc[]{fragSrc};
+	return linkCommonProgram(rTask, prog, singleSrc, 1, hasTex);
+}
+
+#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
+static bool linkCommonExternalTextureProgram(RendererTask &rTask, Program &prog, const char *fragSrc, const char *progName)
+{
+	assert(Base::androidSDK() >= 14);
+	bool compiled = linkCommonProgram(rTask, prog, fragSrc, true, progName);
+	if(!prog.program())
+	{
+		// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
+		logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
+		const char *workaroundFragSrc[]{"#define texture2D texture\n", fragSrc};
+		return linkCommonProgram(rTask, prog, workaroundFragSrc, std::size(workaroundFragSrc), true);
+	}
+	return compiled;
+}
+#endif
+
 bool Renderer::makeCommonProgram(CommonProgram program)
 {
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	if(support.useFixedFunctionPipeline)
+		return false;
 	auto &rTask = task();
 	switch(program)
 	{
-		case CommonProgram::TEX_REPLACE : return texReplaceProgram.compile(rTask);
-		case CommonProgram::TEX_ALPHA_REPLACE : return texAlphaReplaceProgram.compile(rTask);
-		case CommonProgram::TEX : return texProgram.compile(rTask);
-		case CommonProgram::TEX_ALPHA : return texAlphaProgram.compile(rTask);
-		#ifdef __ANDROID__
-		case CommonProgram::TEX_EXTERNAL_REPLACE : return texExternalReplaceProgram.compile(rTask);
-		case CommonProgram::TEX_EXTERNAL : return texExternalProgram.compile(rTask);
+		case CommonProgram::TEX_REPLACE :
+			return linkCommonProgram(rTask, commonProgram.texReplace, texReplaceFragShaderSrc, true, "texture (replace mode)");
+		case CommonProgram::TEX_ALPHA_REPLACE :
+			if(support.hasTextureSwizzle)
+			{
+				bool compiled = makeCommonProgram(CommonProgram::TEX_REPLACE);
+				commonProgram.texAlphaReplace = commonProgram.texReplace;
+				return compiled;
+			}
+			return linkCommonProgram(rTask, commonProgram.texAlphaReplace, texAlphaReplaceFragShaderSrc, true, "alpha-only texture (replace mode)");
+		case CommonProgram::TEX :
+			return linkCommonProgram(rTask, commonProgram.tex, texFragShaderSrc, true, "texture");
+		case CommonProgram::TEX_ALPHA :
+			if(support.hasTextureSwizzle)
+			{
+				bool compiled = makeCommonProgram(CommonProgram::TEX);
+				commonProgram.texAlpha = commonProgram.tex;
+				return compiled;
+			}
+			return linkCommonProgram(rTask, commonProgram.texAlpha, texAlphaFragShaderSrc, true, "alpha-only texture");
+		#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
+		case CommonProgram::TEX_EXTERNAL_REPLACE :
+			return linkCommonExternalTextureProgram(rTask, commonProgram.texExternalReplace, texExternalReplaceFragShaderSrc, "external texture (replace mode)");
+		case CommonProgram::TEX_EXTERNAL :
+			return linkCommonExternalTextureProgram(rTask, commonProgram.texExternal, texExternalFragShaderSrc, "external texture");
 		#endif
-		case CommonProgram::NO_TEX : return noTexProgram.compile(rTask);
+		case CommonProgram::NO_TEX :
+			return linkCommonProgram(rTask, commonProgram.noTex, noTexFragShaderSrc, false, "color shaded");
 		default:
 			bug_unreachable("program:%d", (int)program);
 			return false;
 	}
+	#else
+	return false;
+	#endif
 }
 
 void GLRenderer::useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat)
 {
+	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
+	if(cmds.renderer().support.useFixedFunctionPipeline)
+	{
+		switch(program)
+		{
+			bcase CommonProgram::TEX_REPLACE:
+			bcase CommonProgram::TEX_ALPHA_REPLACE:
+				cmds.glcEnable(GL_TEXTURE_2D);
+				cmds.setImgMode(IMG_MODE_REPLACE);
+			bcase CommonProgram::TEX:
+			bcase CommonProgram::TEX_ALPHA:
+				cmds.glcEnable(GL_TEXTURE_2D);
+				cmds.setImgMode(IMG_MODE_MODULATE);
+			bcase CommonProgram::NO_TEX:
+				cmds.glcDisable(GL_TEXTURE_2D);
+				cmds.setImgMode(IMG_MODE_MODULATE);
+			bdefault: bug_unreachable("program:%d", (int)program);
+		}
+		if(modelMat)
+			cmds.loadTransform(*modelMat);
+		return;
+	}
+	#endif
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	switch(program)
 	{
-		bcase CommonProgram::TEX_REPLACE: texReplaceProgram.use(cmds, modelMat);
-		bcase CommonProgram::TEX_ALPHA_REPLACE: texAlphaReplaceProgram.use(cmds, modelMat);
-		#ifdef __ANDROID__
-		bcase CommonProgram::TEX_EXTERNAL_REPLACE: texExternalProgram.use(cmds, modelMat);
+		bcase CommonProgram::TEX_REPLACE: cmds.setProgram(commonProgram.texReplace, modelMat);
+		bcase CommonProgram::TEX_ALPHA_REPLACE: cmds.setProgram(commonProgram.texAlphaReplace, modelMat);
+		#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
+		bcase CommonProgram::TEX_EXTERNAL_REPLACE: cmds.setProgram(commonProgram.texExternalReplace, modelMat);
 		#endif
-		bcase CommonProgram::TEX: texProgram.use(cmds, modelMat);
-		bcase CommonProgram::TEX_ALPHA: texAlphaProgram.use(cmds, modelMat);
-		#ifdef __ANDROID__
-		bcase CommonProgram::TEX_EXTERNAL: texExternalProgram.use(cmds, modelMat);
+		bcase CommonProgram::TEX: cmds.setProgram(commonProgram.tex, modelMat);
+		bcase CommonProgram::TEX_ALPHA: cmds.setProgram(commonProgram.texAlpha, modelMat);
+		#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
+		bcase CommonProgram::TEX_EXTERNAL: cmds.setProgram(commonProgram.texExternal, modelMat);
 		#endif
-		bcase CommonProgram::NO_TEX: noTexProgram.use(cmds, modelMat);
+		bcase CommonProgram::NO_TEX: cmds.setProgram(commonProgram.noTex, modelMat);
 		bdefault: bug_unreachable("program:%d", (int)program);
 	}
+	#endif
 }
 
 void Renderer::deleteShader(Shader shader)
@@ -431,29 +518,6 @@ void Renderer::uniformF(Program &program, int uniformLocation, float v1, float v
 		});
 }
 
-template <class T>
-static bool compileDefaultProgram(RendererTask &r, T &prog, const char **fragSrc, uint32_t fragSrcCount)
-{
-	assert(fragSrc);
-	auto vShader = r.renderer().makeDefaultVShader();
-	assert(vShader);
-	auto fShader = r.renderer().makeCompatShader(fragSrc, fragSrcCount, GL_FRAGMENT_SHADER);
-	if(!fShader)
-	{
-		return false;
-	}
-	prog.init(r, vShader, fShader);
-	assert(prog.program());
-	return true;
-}
-
-template <class T>
-static bool compileDefaultProgram(RendererTask &r, T &prog, const char *fragSrc)
-{
-	const char *singleSrc[]{fragSrc};
-	return compileDefaultProgram(r, prog, singleSrc, 1);
-}
-
 #else
 
 void uniformF(int uniformLocation, float v1, float v2)
@@ -476,268 +540,5 @@ void Program::deinit() {}
 void deleteShader(Shader shader) {}
 
 #endif
-
-bool DefaultTexProgram::compile(RendererTask &r)
-{
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || r.renderer().support.useFixedFunctionPipeline)
-		return false;
-	logMsg("making texture program");
-	compileDefaultProgram(r, *this, texFragShaderSrc);
-	return true;
-	#else
-	return false;
-	#endif
-};
-
-void DefaultTexProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
-{
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(cmds.renderer().support.useFixedFunctionPipeline)
-	{
-		cmds.glcEnable(GL_TEXTURE_2D);
-		cmds.setImgMode(IMG_MODE_MODULATE);
-		if(modelMat)
-			cmds.loadTransform(*modelMat);
-		return;
-	}
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(modelMat)
-		cmds.setProgram(*(Program*)this, *modelMat);
-	else
-		cmds.setProgram(*(Program*)this);
-	#endif
-}
-
-bool DefaultTexReplaceProgram::compile(RendererTask &r)
-{
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || r.renderer().support.useFixedFunctionPipeline)
-		return false;
-	logMsg("making texture program (replace mode)");
-	compileDefaultProgram(r, *this, texReplaceFragShaderSrc);
-	return true;
-	#else
-	return false;
-	#endif
-};
-
-void DefaultTexReplaceProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
-{
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(cmds.renderer().support.useFixedFunctionPipeline)
-	{
-		cmds.glcEnable(GL_TEXTURE_2D);
-		cmds.setImgMode(IMG_MODE_REPLACE);
-		if(modelMat)
-			cmds.loadTransform(*modelMat);
-		return;
-	}
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(modelMat)
-		cmds.setProgram(*(Program*)this, *modelMat);
-	else
-		cmds.setProgram(*(Program*)this);
-	#endif
-}
-
-bool DefaultTexAlphaReplaceProgram::compile(RendererTask &r)
-{
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || r.renderer().support.useFixedFunctionPipeline)
-		return false;
-	if(r.renderer().support.hasTextureSwizzle)
-	{
-		auto compiled = r.renderer().texProgram.compile(r);
-		impl = &r.renderer().texProgram;
-		return compiled;
-	}
-	logMsg("making alpha-only texture program (replace mode)");
-	compileDefaultProgram(r, *this, texAlphaReplaceFragShaderSrc);
-	return true;
-	#else
-	return false;
-	#endif
-};
-
-void DefaultTexAlphaReplaceProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
-{
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(cmds.renderer().support.useFixedFunctionPipeline)
-	{
-		cmds.glcEnable(GL_TEXTURE_2D);
-		cmds.setImgMode(IMG_MODE_REPLACE);
-		if(modelMat)
-			cmds.loadTransform(*modelMat);
-		return;
-	}
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(impl)
-		impl->use(cmds, modelMat);
-	else
-	{
-		if(modelMat)
-			cmds.setProgram(*(Program*)this, *modelMat);
-		else
-			cmds.setProgram(*(Program*)this);
-	}
-	#endif
-}
-
-bool DefaultTexAlphaProgram::compile(RendererTask &r)
-{
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || r.renderer().support.useFixedFunctionPipeline)
-		return false;
-	if(r.renderer().support.hasTextureSwizzle)
-	{
-		auto compiled = r.renderer().texProgram.compile(r);
-		impl = &r.renderer().texProgram;
-		return compiled;
-	}
-	logMsg("making alpha-only texture program");
-	compileDefaultProgram(r, *this, texAlphaFragShaderSrc);
-	return true;
-	#else
-	return false;
-	#endif
-};
-
-void DefaultTexAlphaProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
-{
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(cmds.renderer().support.useFixedFunctionPipeline)
-	{
-		cmds.glcEnable(GL_TEXTURE_2D);
-		cmds.setImgMode(IMG_MODE_MODULATE);
-		if(modelMat)
-			cmds.loadTransform(*modelMat);
-		return;
-	}
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(impl)
-		impl->use(cmds, modelMat);
-	else
-	{
-		if(modelMat)
-			cmds.setProgram(*(Program*)this, *modelMat);
-		else
-			cmds.setProgram(*(Program*)this);
-	}
-	#endif
-}
-
-bool DefaultTexExternalReplaceProgram::compile(RendererTask &r)
-{
-	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE && defined CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
-	if(program() || r.renderer().support.useFixedFunctionPipeline)
-		return false;
-	assert(Base::androidSDK() >= 14);
-	logMsg("making external texture program (replace mode)");
-	compileDefaultProgram(r, *this, texExternalReplaceFragShaderSrc);
-	if(!program())
-	{
-		// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
-		logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
-		const char *fragSrc[]{"#define texture2D texture\n", texExternalReplaceFragShaderSrc};
-		compileDefaultProgram(r, *this, fragSrc, std::size(fragSrc));
-	}
-	return true;
-	#else
-	return false;
-	#endif
-};
-
-void DefaultTexExternalReplaceProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
-{
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(cmds.renderer().support.useFixedFunctionPipeline)
-	{
-		bug_unreachable("external texture program not supported");
-		return;
-	}
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(modelMat)
-		cmds.setProgram(*(Program*)this, *modelMat);
-	else
-		cmds.setProgram(*(Program*)this);
-	#endif
-}
-
-bool DefaultTexExternalProgram::compile(RendererTask &r)
-{
-	#if defined CONFIG_GFX_OPENGL_SHADER_PIPELINE && defined CONFIG_GFX_OPENGL_MULTIPLE_TEXTURE_TARGETS
-	if(program() || r.renderer().support.useFixedFunctionPipeline)
-		return false;
-	assert(Base::androidSDK() >= 14);
-	logMsg("making external texture program");
-	compileDefaultProgram(r, *this, texExternalFragShaderSrc);
-	if(!program())
-	{
-		// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
-		logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
-		const char *fragSrc[]{"#define texture2D texture\n", texExternalFragShaderSrc};
-		compileDefaultProgram(r, *this, fragSrc, std::size(fragSrc));
-	}
-	return true;
-	#else
-	return false;
-	#endif
-};
-
-void DefaultTexExternalProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
-{
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(cmds.renderer().support.useFixedFunctionPipeline)
-	{
-		bug_unreachable("external texture program not supported");
-		return;
-	}
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(modelMat)
-		cmds.setProgram(*(Program*)this, *modelMat);
-	else
-		cmds.setProgram(*(Program*)this);
-	#endif
-}
-
-bool DefaultColorProgram::compile(RendererTask &r)
-{
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(program() || r.renderer().support.useFixedFunctionPipeline)
-		return false;
-	logMsg("making color shaded program");
-	compileDefaultProgram(r, *this, noTexFragShaderSrc);
-	return true;
-	#else
-	return false;
-	#endif
-};
-
-void DefaultColorProgram::use(RendererCommands &cmds, const Mat4 *modelMat) const
-{
-	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
-	if(cmds.renderer().support.useFixedFunctionPipeline)
-	{
-		cmds.glcDisable(GL_TEXTURE_2D);
-		cmds.setImgMode(IMG_MODE_MODULATE);
-		if(modelMat)
-			cmds.loadTransform(*modelMat);
-		return;
-	}
-	#endif
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(modelMat)
-		cmds.setProgram(*(Program*)this, *modelMat);
-	else
-		cmds.setProgram(*(Program*)this);
-	#endif
-}
 
 }

@@ -112,7 +112,7 @@ private:
 	MipFilterMode mipFiltering = MIP_FILTER_LINEAR;
 	WrapMode xWrapMode_ = WRAP_CLAMP;
 	WrapMode yWrapMode_ = WRAP_CLAMP;
-	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, const char *> label{};
+	IG_enableMemberIf(Config::DEBUG_BUILD, const char *, label){};
 };
 
 }

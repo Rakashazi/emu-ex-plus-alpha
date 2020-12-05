@@ -73,8 +73,8 @@ public:
 	}
 };
 
-Gfx::Renderer renderer;
-static AppWindowData mainWin{};
+static std::unique_ptr<Gfx::Renderer> rendererPtr{};
+static Base::Window mainWin{};
 static EmuSystemTask emuSystemTask{};
 EmuVideo emuVideo{};
 static EmuVideoLayer emuVideoLayer{emuVideo};
@@ -87,7 +87,7 @@ BluetoothAdapter *bta{};
 static EmuApp::OnMainMenuOptionChanged onMainMenuOptionChanged_{};
 FS::PathString lastLoadPath{};
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-SysVController vController{renderer, mainWin, EmuSystem::inputFaceBtns};
+static SysVController vController{EmuSystem::inputFaceBtns};
 #endif
 [[gnu::weak]] bool EmuApp::hasIcon = true;
 [[gnu::weak]] bool EmuApp::autoSaveStateDefault = true;
@@ -237,6 +237,7 @@ void mainInitCommon(int argc, char** argv)
 			logMsg("got IPC: %s", filename);
 			emuViewController().handleOpenFileCommand(filename);
 		});
+	optionVControllerLayoutPos.setVController(vController);
 	initOptions();
 	auto launchGame = parseCmdLineArgs(argc, argv);
 	loadConfigFile();
@@ -262,12 +263,14 @@ void mainInitCommon(int argc, char** argv)
 		}
 		if(!supportsVideoImageBuffersOption(r))
 			optionVideoImageBuffers.resetToConst();
-		renderer = std::move(r);
+		rendererPtr = std::make_unique<Gfx::Renderer>(std::move(r));
 	}
+	auto &renderer = *rendererPtr;
+	vController.setRenderer(renderer);
 	emuViewControllerPtr = std::make_unique<EmuViewController>(mainWin, renderer, renderer.task(), vController, emuVideoLayer, emuSystemTask);
 
-	auto compiled = renderer.texAlphaProgram.compile(renderer.task());
-	compiled |= renderer.noTexProgram.compile(renderer.task());
+	auto compiled = renderer.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
+	compiled |= renderer.makeCommonProgram(Gfx::CommonProgram::NO_TEX);
 	compiled |= View::compileGfxPrograms(renderer);
 	if(compiled)
 		renderer.autoReleaseShaderCompiler();
@@ -403,16 +406,18 @@ void mainInitCommon(int argc, char** argv)
 	{
 		logMsg("requested external storage write permissions");
 	}
-	Base::WindowConfig winConf = emuViewController().addWindowConfig({}, mainWin);
-	winConf.setCustomData(&mainWin);
-	renderer.initWindow(mainWin.win, winConf);
-	auto &win = mainWin.win;
+	Base::WindowConfig winConf = emuViewController().addWindowConfig({});
+	renderer.initWindow(mainWin, winConf);
+	auto &win = mainWin;
+	win.setCustomData(WindowData{});
+	auto &winData = windowData(win);
 	setupFont(renderer, win);
-	updateProjection(mainWin, makeViewport(win));
+	winData.projection = updateProjection(makeViewport(win));
 	win.setTitle(appName());
 	win.setAcceptDnd(true);
 	renderer.setWindowValidOrientations(win, optionMenuOrientation);
-	initVControls(renderer);
+	vController.setWindow(win);
+	initVControls(vController, renderer);
 
 	#if defined CONFIG_BASE_ANDROID
 	if(!Base::apkSignatureIsConsistent())
@@ -427,7 +432,7 @@ void mainInitCommon(int argc, char** argv)
 	}
 	#endif
 
-	ViewAttachParams viewAttach{mainWin.win, renderer.task()};
+	ViewAttachParams viewAttach{win, renderer.task()};
 	emuViewController().initViews(viewAttach);
 	win.show();
 	win.postDraw();
@@ -438,10 +443,9 @@ void mainInitCommon(int argc, char** argv)
 	}
 }
 
-void updateProjection(AppWindowData &appWin, const Gfx::Viewport &viewport)
+Gfx::Projection updateProjection(Gfx::Viewport viewport)
 {
-	appWin.projectionMat = Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.);
-	appWin.projectionPlane = Gfx::ProjectionPlane::makeWithMatrix(viewport, appWin.projectionMat);
+	return {viewport, Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.)};
 }
 
 Gfx::Viewport makeViewport(const Base::Window &win)
@@ -645,9 +649,9 @@ void EmuApp::printScreenshotResult(int num, bool success)
 	}
 }
 
-ViewAttachParams emuViewAttachParams()
+static ViewAttachParams emuViewAttachParams()
 {
-	return {mainWin.win, renderer.task()};
+	return {mainWin, rendererPtr->task()};
 }
 
 [[gnu::weak]] bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event) { return true; }
@@ -922,11 +926,16 @@ void EmuApp::syncEmulationThread()
 	emuSystemTask.pause();
 }
 
-AppWindowData &appWindowData(const Base::Window &win)
+WindowData &windowData(const Base::Window &win)
 {
-	auto data = win.customData<AppWindowData>();
+	auto data = win.customData<WindowData>();
 	assumeExpr(data);
 	return *data;
+}
+
+VController &defaultVController()
+{
+	return vController;
 }
 
 namespace Base

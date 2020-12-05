@@ -15,10 +15,10 @@
 
 #define LOGTAG "GraphicBuffStorage"
 #include "GraphicBufferStorage.hh"
-#include "../private.hh"
-#include "../utils.h"
+#include <imagine/gfx/Renderer.hh>
 #include "../../../base/android/android.hh"
-#include <imagine/base/GLContext.hh>
+#include "egl.hh"
+#include <imagine/logger/logger.h>
 
 namespace Gfx
 {

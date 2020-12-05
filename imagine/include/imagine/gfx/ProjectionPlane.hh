@@ -80,4 +80,23 @@ private:
 	#endif
 };
 
+class Projection
+{
+public:
+	constexpr Projection() {}
+
+	Projection(Viewport viewport, Mat4 matrix)
+	{
+		mat = matrix;
+		plane_ = ProjectionPlane::makeWithMatrix(viewport, matrix);
+	}
+
+	constexpr Mat4 matrix() const { return mat; };
+	constexpr ProjectionPlane plane() const { return plane_; };
+
+protected:
+	Mat4 mat;
+	ProjectionPlane plane_;
+};
+
 }

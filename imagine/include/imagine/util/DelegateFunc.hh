@@ -77,8 +77,7 @@ public:
 	{
 		// Call a copy to avoid trashing captured variables
 		// if delegate's function can modify the delegate
-		auto del = *this;
-		return del(in...);
+		return IG::copySelf(*this)(in...);
 	}
 
 	R callSafe(ARGS ... in) const

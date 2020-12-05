@@ -87,7 +87,7 @@ private:
 	bool inFrameHandler = false;
 	bool isActive = true;
 	// for debug frame stats
-	[[no_unique_address]] IG::UseTypeIf<Config::DEBUG_BUILD, uint32_t> continuousFrames{};
+	IG_enableMemberIf(Config::DEBUG_BUILD, uint32_t, continuousFrames){};
 	DelegateFuncSet<OnFrameDelegate> onFrameDelegate{};
 
 	void runOnFrameDelegates(FrameTime timestamp);

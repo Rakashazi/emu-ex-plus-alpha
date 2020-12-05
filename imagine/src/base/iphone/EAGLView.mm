@@ -33,7 +33,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define glFramebufferRenderbuffer glFramebufferRenderbufferOES
 #define glCheckFramebufferStatus glCheckFramebufferStatusOES
 #endif
-#include "../../gfx/opengl/utils.h"
+#include "../../gfx/opengl/utils.hh"
 
 namespace Input
 {

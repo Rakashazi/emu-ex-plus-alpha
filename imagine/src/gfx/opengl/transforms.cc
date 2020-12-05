@@ -15,15 +15,15 @@
 
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
-#include "utils.h"
-#include "private.hh"
+#include "utils.hh"
 
 namespace Gfx
 {
 
-void GLRenderer::setGLProjectionMatrix(RendererCommands &cmds, const Mat4 &mat)
+void GLRenderer::setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(support.useFixedFunctionPipeline)

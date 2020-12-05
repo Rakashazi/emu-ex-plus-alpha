@@ -31,6 +31,7 @@ public:
 	void resetInput();
 	void setTouchControlsOn(bool on);
 	bool touchControlsAreOn() const;
+	VController *activeVController() const { return vController; }
 
 private:
 	VController *vController;

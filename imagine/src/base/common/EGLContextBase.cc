@@ -506,6 +506,7 @@ std::pair<IG::ErrorCode, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBuff
 	{
 		return {{EINVAL}, {}};
 	}
+	logMsg("made surface:%p", surface);
 	return {{}, surface};
 }
 
@@ -539,6 +540,7 @@ bool GLDrawable::destroy(GLDisplay display)
 {
 	if(surface == EGL_NO_SURFACE)
 		return true;
+	logMsg("destroying surface:%p", surface);
 	auto success = eglDestroySurface(display, std::exchange(surface, EGL_NO_SURFACE));
 	if(Config::DEBUG_BUILD && !success)
 	{

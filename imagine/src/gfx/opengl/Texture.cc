@@ -16,12 +16,13 @@
 #define LOGTAG "GLTexture"
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/PixmapTexture.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
-#include "private.hh"
+#include "utils.hh"
 #include <cstdlib>
 #include <algorithm>
 
@@ -43,8 +44,20 @@ using namespace IG;
 #define GL_TEXTURE_SWIZZLE_A 0x8E45
 #endif
 
+#ifndef GL_TEXTURE_SWIZZLE_RGBA
+#define GL_TEXTURE_SWIZZLE_RGBA 0x8E46
+#endif
+
 #ifndef GL_UNPACK_ROW_LENGTH
 #define GL_UNPACK_ROW_LENGTH 0x0CF2
+#endif
+
+#ifndef GL_PIXEL_UNPACK_BUFFER
+#define GL_PIXEL_UNPACK_BUFFER 0x88EC
+#endif
+
+#ifndef GL_TEXTURE_EXTERNAL_OES
+#define GL_TEXTURE_EXTERNAL_OES 0x8D65
 #endif
 
 namespace Gfx
@@ -327,7 +340,7 @@ bool Texture::canUseMipmaps() const
 
 GLenum GLTexture::target() const
 {
-	return Config::Gfx::OPENGL_MULTIPLE_TEXTURE_TARGETS && type_ == TextureType::T2D_EXTERNAL ?
+	return Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL && type_ == TextureType::T2D_EXTERNAL ?
 			GL_TEXTURE_EXTERNAL_OES : GL_TEXTURE_2D;
 }
 
@@ -371,7 +384,7 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels)
 	{
 		sampler = 0;
 		task().runSync(
-			[=, &r = std::as_const(renderer()), &texName_ = texName_](GLMainTask::TaskContext ctx)
+			[=, &r = std::as_const(renderer()), &texName_ = texName_](GLTask::TaskContext ctx)
 			{
 				auto texName = makeGLTextureName(texName_);
 				texName_ = texName;
@@ -392,7 +405,7 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels)
 	{
 		bool remakeTexName = levels != levels_; // make new texture name whenever number of levels changes
 		task().run(
-			[=, &r = std::as_const(renderer()), &sampler = sampler, &texName_ = texName_, currTexName = texName_](GLMainTask::TaskContext ctx)
+			[=, &r = std::as_const(renderer()), &sampler = sampler, &texName_ = texName_, currTexName = texName_](GLTask::TaskContext ctx)
 			{
 				auto texName = currTexName; // a copy of texName_ is passed by value for the async case to avoid accessing this->texName_
 				if(remakeTexName)
@@ -626,35 +639,45 @@ IG::PixmapDesc Texture::pixmapDesc() const
 	return pixDesc;
 }
 
-bool Texture::compileDefaultProgram(uint32_t mode) const
+static CommonProgram commonProgramForMode(TextureType type, uint32_t mode)
 {
-	auto &r = rTask->renderer();
 	switch(mode)
 	{
-		bcase IMG_MODE_REPLACE:
-			switch(type_)
+		case IMG_MODE_REPLACE:
+			switch(type)
 			{
-				case TextureType::T2D_1 : return r.makeCommonProgram(CommonProgram::TEX_ALPHA_REPLACE);
-				case TextureType::T2D_2 : return r.makeCommonProgram(CommonProgram::TEX_REPLACE);
-				case TextureType::T2D_4 : return r.makeCommonProgram(CommonProgram::TEX_REPLACE);
-				#ifdef __ANDROID__
-				case TextureType::T2D_EXTERNAL : return r.makeCommonProgram(CommonProgram::TEX_EXTERNAL_REPLACE);
+				case TextureType::T2D_1 : return CommonProgram::TEX_ALPHA_REPLACE;
+				case TextureType::T2D_2 : return CommonProgram::TEX_REPLACE;
+				case TextureType::T2D_4 : return CommonProgram::TEX_REPLACE;
+				#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
+				case TextureType::T2D_EXTERNAL : return CommonProgram::TEX_EXTERNAL_REPLACE;
 				#endif
-				default: bug_unreachable("type == %d", (int)type_); return false;
+				default:
+					bug_unreachable("no default program for texture type:%d", (int)type);
+					return CommonProgram::TEX_REPLACE;
 			}
-		bcase IMG_MODE_MODULATE:
-			switch(type_)
+		case IMG_MODE_MODULATE:
+			switch(type)
 			{
-				case TextureType::T2D_1 : return r.makeCommonProgram(CommonProgram::TEX_ALPHA);
-				case TextureType::T2D_2 : return r.makeCommonProgram(CommonProgram::TEX);
-				case TextureType::T2D_4 : return r.makeCommonProgram(CommonProgram::TEX);
-				#ifdef __ANDROID__
-				case TextureType::T2D_EXTERNAL : return r.makeCommonProgram(CommonProgram::TEX_EXTERNAL);
+				case TextureType::T2D_1 : return CommonProgram::TEX_ALPHA;
+				case TextureType::T2D_2 : return CommonProgram::TEX;
+				case TextureType::T2D_4 : return CommonProgram::TEX;
+				#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
+				case TextureType::T2D_EXTERNAL : return CommonProgram::TEX_EXTERNAL;
 				#endif
-				default: bug_unreachable("type == %d", (int)type_); return false;
+				default:
+					bug_unreachable("no default program for texture type:%d", (int)type);
+					return CommonProgram::TEX;
 			}
-		bdefault: bug_unreachable("type == %d", (int)type_); return false;
+		default:
+			bug_unreachable("no default program for texture mode:%d", mode);
+			return CommonProgram::TEX;
 	}
+}
+
+bool Texture::compileDefaultProgram(uint32_t mode) const
+{
+	return renderer().makeCommonProgram(commonProgramForMode(type_, mode));
 }
 
 bool Texture::compileDefaultProgramOneShot(uint32_t mode) const
@@ -667,35 +690,7 @@ bool Texture::compileDefaultProgramOneShot(uint32_t mode) const
 
 void Texture::useDefaultProgram(RendererCommands &cmds, uint32_t mode, const Mat4 *modelMat) const
 {
-	#ifndef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	const uint32_t type_ = TEX_2D_4;
-	#endif
-	auto &r = rTask->renderer();
-	switch(mode)
-	{
-		bcase IMG_MODE_REPLACE:
-			switch(type_)
-			{
-				bcase TextureType::T2D_1 : r.texAlphaReplaceProgram.use(cmds, modelMat);
-				bcase TextureType::T2D_2 : r.texReplaceProgram.use(cmds, modelMat);
-				bcase TextureType::T2D_4 : r.texReplaceProgram.use(cmds, modelMat);
-				#ifdef __ANDROID__
-				bcase TextureType::T2D_EXTERNAL : r.texExternalReplaceProgram.use(cmds, modelMat);
-				#endif
-				bdefault: logWarn("no default program for texture type:%d", (int)type_);
-			}
-		bcase IMG_MODE_MODULATE:
-			switch(type_)
-			{
-				bcase TextureType::T2D_1 : r.texAlphaProgram.use(cmds, modelMat);
-				bcase TextureType::T2D_2 : r.texProgram.use(cmds, modelMat);
-				bcase TextureType::T2D_4 : r.texProgram.use(cmds, modelMat);
-				#ifdef __ANDROID__
-				bcase TextureType::T2D_EXTERNAL : r.texExternalProgram.use(cmds, modelMat);
-				#endif
-				bdefault: logWarn("no default program for texture type:%d", (int)type_);
-			}
-	}
+	renderer().useCommonProgram(cmds, commonProgramForMode(type_, mode), modelMat);
 }
 
 Texture::operator bool() const
@@ -744,19 +739,22 @@ void GLTexture::setSwizzleForFormatInGLTask(const Renderer &r, PixelFormatID for
 	const GLint swizzleMaskRGBA[] {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
 	const GLint swizzleMaskIA88[] {GL_RED, GL_RED, GL_RED, GL_GREEN};
 	const GLint swizzleMaskA8[] {GL_ONE, GL_ONE, GL_ONE, GL_RED};
-	#ifdef CONFIG_GFX_OPENGL_ES
-	auto &swizzleMask = (format == PIXEL_IA88) ? swizzleMaskIA88
-			: (format == PIXEL_A8) ? swizzleMaskA8
-			: swizzleMaskRGBA;
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, swizzleMask[0]);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, swizzleMask[1]);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, swizzleMask[2]);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, swizzleMask[3]);
-	#else
-	glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, (format == PIXEL_IA88) ? swizzleMaskIA88
-			: (format == PIXEL_A8) ? swizzleMaskA8
-			: swizzleMaskRGBA);
-	#endif
+	if constexpr((bool)Config::Gfx::OPENGL_ES)
+	{
+		auto &swizzleMask = (format == PIXEL_IA88) ? swizzleMaskIA88
+				: (format == PIXEL_A8) ? swizzleMaskA8
+				: swizzleMaskRGBA;
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, swizzleMask[0]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, swizzleMask[1]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, swizzleMask[2]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, swizzleMask[3]);
+	}
+	else
+	{
+		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, (format == PIXEL_IA88) ? swizzleMaskIA88
+				: (format == PIXEL_A8) ? swizzleMaskA8
+				: swizzleMaskRGBA);
+	}
 }
 
 void GLTexture::updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum target)
@@ -765,7 +763,7 @@ void GLTexture::updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum tar
 	levels_ = levels;
 	pixDesc = desc;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	if(Config::Gfx::OPENGL_ES && target == GL_TEXTURE_EXTERNAL_OES)
+	if(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL && target == GL_TEXTURE_EXTERNAL_OES)
 		type_ = TextureType::T2D_EXTERNAL;
 	else
 		type_ = typeForPixelFormat(desc.format());
@@ -780,7 +778,7 @@ void GLTexture::setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc)
 	{
 		sampler = 0;
 		rTask->runSync(
-			[=, &r = std::as_const(r), &tex = texName_, formatID = (IG::PixelFormatID)desc.format()](GLMainTask::TaskContext ctx)
+			[=, &r = std::as_const(r), &tex = texName_, formatID = (IG::PixelFormatID)desc.format()](GLTask::TaskContext ctx)
 			{
 				tex = makeGLTextureName(tex);
 				glBindTexture(GL_TEXTURE_2D, tex);
@@ -796,7 +794,7 @@ void GLTexture::setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc)
 	else
 	{
 		rTask->runSync(
-			[=, &r = std::as_const(r), &tex = texName_, formatID = (IG::PixelFormatID)desc.format()](GLMainTask::TaskContext ctx)
+			[=, &r = std::as_const(r), &tex = texName_, formatID = (IG::PixelFormatID)desc.format()](GLTask::TaskContext ctx)
 			{
 				if(!tex) // texture storage is mutable, only need to make name once
 				{

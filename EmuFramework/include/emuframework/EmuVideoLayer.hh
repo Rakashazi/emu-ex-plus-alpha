@@ -20,9 +20,9 @@
 #include <emuframework/VideoImageOverlay.hh>
 #include <emuframework/VideoImageEffect.hh>
 
-struct AppWindowData;
 class EmuInputView;
 class EmuVideo;
+class VController;
 
 class EmuVideoLayer
 {

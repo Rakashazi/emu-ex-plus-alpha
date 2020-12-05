@@ -16,18 +16,19 @@
 #define LOGTAG "GLPixmapBufferTexture"
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
-#include "private.hh"
 #ifdef __ANDROID__
-#include "../../base/android/android.hh"
+#include <imagine/base/platformExtras.hh>
 #include "android/AHardwareBufferStorage.hh"
 #include "android/GraphicBufferStorage.hh"
 #include "android/SurfaceTextureStorage.hh"
 #endif
+#include <imagine/logger/logger.h>
 #include <cstdlib>
 #include <algorithm>
 
@@ -53,6 +54,14 @@
 
 #ifndef GL_MAP_COHERENT_BIT
 #define GL_MAP_COHERENT_BIT 0x0080
+#endif
+
+#ifndef GL_PIXEL_UNPACK_BUFFER
+#define GL_PIXEL_UNPACK_BUFFER 0x88EC
+#endif
+
+#ifndef GL_TEXTURE_EXTERNAL_OES
+#define GL_TEXTURE_EXTERNAL_OES 0x8D65
 #endif
 
 namespace Gfx
@@ -120,6 +129,8 @@ IG::ErrorCode GLPixmapBufferTexture::initWithHardwareBuffer(RendererTask &r, Tex
 
 IG::ErrorCode GLPixmapBufferTexture::initWithSurfaceTexture(RendererTask &r, TextureConfig config, bool singleBuffer)
 {
+	if(!Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL)
+		return {ENOTSUP};
 	IG::ErrorCode err{};
 	directTex = std::make_unique<SurfaceTextureStorage>(r, config, singleBuffer, &err);
 	return err;
@@ -222,7 +233,7 @@ PixmapBufferTexture::operator const Texture&() const
 
 bool PixmapBufferTexture::isExternal() const
 {
-	return Config::envIsAndroid && directTex->isExternal();
+	return Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL && directTex->isExternal();
 }
 
 static std::array<GLTextureStorage::BufferInfo, 2> makeSystemMemoryPixelBuffer(unsigned bytes, void *oldBuffer, bool singleBuffer)
@@ -277,7 +288,7 @@ void GLTextureStorage::initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool si
 		char *bufferPtr;
 		const unsigned fullBufferBytes = singleBuffer ? bufferBytes : bufferBytes * 2;
 		task().runSync(
-			[=, &r, &bufferPtr, &pbo = pbo](GLMainTask::TaskContext ctx)
+			[=, &r, &bufferPtr, &pbo = pbo](GLTask::TaskContext ctx)
 			{
 				if(pbo)
 				{
@@ -429,6 +440,8 @@ static const char *rendererGLStr(Renderer &r)
 
 static bool hasSurfaceTexture(Renderer &r)
 {
+	if(!Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL)
+		return false;
 	if(Base::androidSDK() < 14)
 		return false;
 	if(!r.support.hasExternalEGLImages)
@@ -437,9 +450,9 @@ static bool hasSurfaceTexture(Renderer &r)
 		return false;
 	}
 	// check if external textures work in GLSL
-	if(r.texExternalReplaceProgram.compile(r.task()))
+	if(r.makeCommonProgram(CommonProgram::TEX_EXTERNAL_REPLACE))
 		r.autoReleaseShaderCompiler();
-	if(!r.texExternalReplaceProgram)
+	if(!r.commonProgram.texExternalReplace)
 	{
 		logErr("can't use SurfaceTexture due to test shader compilation error");
 		return false;
@@ -497,7 +510,7 @@ void TextureBufferStorage::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, 
 
 bool TextureBufferStorage::isExternal() const
 {
-	return Config::envIsAndroid && target() == GL_TEXTURE_EXTERNAL_OES;
+	return Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL && target() == GL_TEXTURE_EXTERNAL_OES;
 }
 
 std::vector<TextureBufferModeDesc> Renderer::textureBufferModes()
@@ -539,12 +552,12 @@ TextureBufferMode Renderer::makeValidTextureBufferMode(TextureBufferMode mode)
 			}
 			return TextureBufferMode::SYSTEM_MEMORY;
 		case TextureBufferMode::PBO:
-			return hasPersistentBufferMapping(*this) ? TextureBufferMode::PBO : TextureBufferMode::SYSTEM_MEMORY;
+			return hasPersistentBufferMapping(*this) ? TextureBufferMode::PBO : makeValidTextureBufferMode();
 		#ifdef __ANDROID__
 		case TextureBufferMode::ANDROID_HARDWARE_BUFFER:
-			return hasHardwareBuffer(*this) ? TextureBufferMode::ANDROID_HARDWARE_BUFFER : TextureBufferMode::SYSTEM_MEMORY;
+			return hasHardwareBuffer(*this) ? TextureBufferMode::ANDROID_HARDWARE_BUFFER : makeValidTextureBufferMode();
 		case TextureBufferMode::ANDROID_SURFACE_TEXTURE:
-			return hasSurfaceTexture(*this) ? TextureBufferMode::ANDROID_SURFACE_TEXTURE : TextureBufferMode::SYSTEM_MEMORY;
+			return hasSurfaceTexture(*this) ? TextureBufferMode::ANDROID_SURFACE_TEXTURE : makeValidTextureBufferMode();
 		#endif
 		default:
 			return TextureBufferMode::SYSTEM_MEMORY;
