@@ -17,11 +17,12 @@ enum Vic20Ram : uint8_t
 	BLOCK_5 = 1 << 5
 };
 
+static constexpr uint8_t SYSTEM_FLAG_NO_AUTOSTART = IG::bit(0);
+
 extern VicePlugin plugin;
 extern ViceSystem currSystem;
 extern FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3];
 extern EmuAudio *audioPtr;
-extern bool autostartOnLoad;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 extern IG::Semaphore execSem, execDoneSem;
 extern double systemFrameRate;
@@ -50,6 +51,7 @@ extern Byte1Option optionSidEngine;
 extern Byte1Option optionReSidSampling;
 extern Byte1Option optionSwapJoystickPorts;
 extern PathOption optionFirmwarePath;
+extern Byte1Option optionAutostartOnLaunch;
 extern Byte1Option optionVic20RamExpansions;
 
 int intResource(const char *name);
@@ -84,3 +86,4 @@ int optionDefaultModel(ViceSystem system);
 void resetCanvasSourcePixmap(struct video_canvas_s *c);
 void applySessionOptions();
 void updateKeyMappingArray();
+int systemCartType(ViceSystem system);

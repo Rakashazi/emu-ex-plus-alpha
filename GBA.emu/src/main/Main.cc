@@ -165,7 +165,7 @@ static EmuSystem::Error applyGamePatches(const char *patchDir, const char *romNa
 	return {}; // no patch found
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	int size = CPULoadRomWithIO(gGba, io);
 	if(!size)

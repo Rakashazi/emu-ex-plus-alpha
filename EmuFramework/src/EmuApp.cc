@@ -492,9 +492,9 @@ void launchSystem(bool tryAutoState, bool addToRecent)
 	emuViewController().showEmulation();
 }
 
-void onSelectFileFromPicker(const char* name, Input::Event e)
+void onSelectFileFromPicker(const char* name, Input::Event e, EmuSystemCreateParams params)
 {
-	EmuApp::createSystemWithMedia({}, name, "", e,
+	EmuApp::createSystemWithMedia({}, name, "", e, params,
 		[](Input::Event e)
 		{
 			EmuApp::launchSystemWithResumePrompt(e, true);
@@ -566,7 +566,7 @@ void EmuApp::popMenuToRoot()
 	emuViewController().popToRoot();
 }
 
-void EmuApp::reloadGame()
+void EmuApp::reloadGame(EmuSystemCreateParams params)
 {
 	if(!EmuSystem::gameIsRunning())
 		return;
@@ -575,7 +575,7 @@ void EmuApp::reloadGame()
 	string_copy(gamePath, EmuSystem::fullGamePath());
 	emuSystemTask.pause();
 	EmuSystem::Error err{};
-	EmuSystem::createWithMedia({}, gamePath.data(), "", err, [](int pos, int max, const char *label){ return true; });
+	EmuSystem::createWithMedia({}, gamePath.data(), "", err, params, [](int pos, int max, const char *label){ return true; });
 	if(!err)
 	{
 		EmuSystem::prepareAudioVideo(emuAudio, emuVideo);
@@ -584,16 +584,16 @@ void EmuApp::reloadGame()
 	}
 }
 
-void EmuApp::promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Event e)
+void EmuApp::promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Event e, EmuSystemCreateParams params)
 {
 	if(!EmuSystem::gameIsRunning())
 		return;
 	auto ynAlertView = std::make_unique<YesNoAlertView>(attach,
 		"This option takes effect next time the system starts. Restart it now?");
 	ynAlertView->setOnYes(
-		[]()
+		[=]()
 		{
-			reloadGame();
+			reloadGame(params);
 		});
 	emuViewController().pushAndShowModal(std::move(ynAlertView), e, false);
 }
@@ -656,7 +656,7 @@ static ViewAttachParams emuViewAttachParams()
 
 [[gnu::weak]] bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event) { return true; }
 
-void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *name, Input::Event e, CreateSystemCompleteDelegate onComplete)
+void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *name, Input::Event e, EmuSystemCreateParams params, CreateSystemCompleteDelegate onComplete)
 {
 	if(!EmuApp::willCreateSystem(emuViewAttachParams(), e))
 	{
@@ -667,11 +667,11 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 	auto &msgPort = loadProgressView->messagePort();
 	pushAndShowModalView(std::move(loadProgressView), e);
 	IG::makeDetachedThread(
-		[io{std::move(io)}, pathStr{FS::makePathString(path)}, fileStr{FS::makeFileString(name)}, &msgPort]() mutable
+		[io{std::move(io)}, pathStr{FS::makePathString(path)}, fileStr{FS::makeFileString(name)}, &msgPort, params]() mutable
 		{
 			logMsg("starting loader thread");
 			EmuSystem::Error err;
-			EmuSystem::createWithMedia(std::move(io), pathStr.data(), fileStr.data(), err,
+			EmuSystem::createWithMedia(std::move(io), pathStr.data(), fileStr.data(), err, params,
 				[&msgPort](int pos, int max, const char *label)
 				{
 					int len = label ? strlen(label) : -1;

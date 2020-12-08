@@ -919,7 +919,7 @@ void EmuViewController::handleOpenFileCommand(const char *path)
 	logMsg("opening file %s from external command", path);
 	showUI();
 	popToRoot();
-	onSelectFileFromPicker(path, Input::Event{});
+	onSelectFileFromPicker(path, Input::Event{}, {});
 }
 
 void EmuViewController::onFocusChange(uint in)

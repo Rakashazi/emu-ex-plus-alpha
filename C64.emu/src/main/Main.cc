@@ -69,7 +69,6 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2020\nRobe
 IG::Semaphore execSem{0}, execDoneSem{0};
 EmuAudio *audioPtr{};
 static bool c64IsInit = false, c64FailedInit = false;
-bool autostartOnLoad = true;
 FS::PathString firmwareBasePath{};
 FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3]{};
 VicePlugin plugin{};
@@ -314,6 +313,22 @@ static void applyInitialOptionResources()
 	plugin.resources_set_int("Drive11Type", DRIVE_TYPE_NONE);
 }
 
+int systemCartType(ViceSystem system)
+{
+	switch(system)
+	{
+		case VICE_SYSTEM_CBM2:
+		case VICE_SYSTEM_CBM5X0:
+			return CARTRIDGE_CBM2_8KB_1000;
+		case VICE_SYSTEM_PLUS4:
+			return CARTRIDGE_PLUS4_DETECT;
+		case VICE_SYSTEM_VIC20:
+			return CARTRIDGE_VIC20_DETECT;
+		default:
+			return CARTRIDGE_CRT;
+	}
+}
+
 bool hasC64DiskExtension(const char *name)
 {
 	return string_hasDotExtension(name, "d64") ||
@@ -499,18 +514,59 @@ bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event e)
 	return false;
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
+static FS::FileString vic20ExtraCartName(const char *baseCartName, const char *searchPath)
 {
-	bool shouldAutostart = autostartOnLoad;
-	autostartOnLoad = true;
+	auto findAddrSuffixOffset =
+	[](const char *baseCartName) -> uintptr_t
+	{
+		constexpr std::array<const char*, 5> addrSuffixStr
+		{
+			"-2000.", "-4000.", "-6000.", "-a000.", "-b000."
+		};
+		for(auto suffixStr : addrSuffixStr)
+		{
+			if(auto addr = strstr(baseCartName, suffixStr);
+				addr)
+			{
+				return (addr + 1) - baseCartName;
+			}
+		}
+		return 0;
+	};
+	auto addrSuffixOffset = findAddrSuffixOffset(baseCartName);
+	if(!addrSuffixOffset)
+	{
+		return {};
+	}
+	auto cartName = FS::makeFileString(baseCartName);
+	constexpr std::array<char, 5> addrSuffixChar
+	{
+		'2', '4', '6', 'a', 'b'
+	};
+	for(auto suffixChar : addrSuffixChar) // looks for a matching file with a valid memory address suffix
+	{
+		if(suffixChar == baseCartName[addrSuffixOffset])
+			continue; // skip original filename
+		cartName[addrSuffixOffset] = suffixChar;
+		if(FS::exists(FS::makePathStringPrintf("%s/%s", searchPath, cartName.data())))
+		{
+			return cartName;
+		}
+	}
+	return {};
+}
+
+EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams params, OnLoadProgressDelegate)
+{
 	if(!initC64())
 	{
 		return c64FirmwareError();
 	}
 	applyInitialOptionResources();
-	logMsg("loading %s", fullGamePath());
+	bool shouldAutostart = !(params.systemFlags & SYSTEM_FLAG_NO_AUTOSTART) && optionAutostartOnLaunch;
 	if(shouldAutostart && plugin.autostart_autodetect_)
 	{
+		logMsg("loading & autostarting:%s", fullGamePath());
 		if(string_hasDotExtension(fullGamePath(), "prg"))
 		{
 			// needed to store AutostartPrgDisk.d64
@@ -521,20 +577,47 @@ EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
 			return EmuSystem::makeFileReadError();
 		}
 	}
-	else
+	else // no autostart
 	{
 		if(hasC64DiskExtension(fullGamePath()))
 		{
+			logMsg("loading disk image:%s", fullGamePath());
 			if(plugin.file_system_attach_disk(8, fullGamePath()) != 0)
 			{
 				return EmuSystem::makeFileReadError();
 			}
 		}
-		else
+		else if(hasC64TapeExtension(fullGamePath()))
 		{
-			// TODO
-			return EmuSystem::makeError("Non-disk media needs autostart enabled");
+			logMsg("loading tape image:%s", fullGamePath());
+			if(plugin.tape_image_attach(1, fullGamePath()) != 0)
+			{
+				return EmuSystem::makeFileReadError();
+			}
 		}
+		else // cart
+		{
+			logMsg("loading cart image:%s", fullGamePath());
+			if(plugin.cartridge_attach_image(systemCartType(currSystem), fullGamePath()) != 0)
+			{
+				return EmuSystem::makeFileReadError();
+			}
+			if(currSystem == VICE_SYSTEM_VIC20) // check if the cart is part of a *-x000.prg pair
+			{
+				auto extraCartFilename = vic20ExtraCartName(gameFileName().data(), gamePath());
+				if(strlen(extraCartFilename.data()))
+				{
+					logMsg("loading extra cart image:%s", fullGamePath());
+					if(plugin.cartridge_attach_image(systemCartType(currSystem),
+						FS::makePathStringPrintf("%s/%s", gamePath(), extraCartFilename.data()).data()) != 0)
+					{
+						return EmuSystem::makeFileReadError();
+					}
+				}
+			}
+		}
+		optionAutostartOnLaunch = false;
+		sessionOptionSet();
 	}
 	return {};
 }

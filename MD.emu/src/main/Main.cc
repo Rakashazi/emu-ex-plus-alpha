@@ -355,7 +355,7 @@ FS::PathString EmuSystem::willLoadGameFromPath(FS::PathString path)
 	return path;
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	#ifndef NO_SCD
 	using namespace Mednafen;

@@ -89,7 +89,7 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachPara
 		[](FSPicker &picker, const char* name, Input::Event e)
 		{
 			EmuApp::postMessage("Running benchmark...");
-			EmuApp::createSystemWithMedia({}, picker.makePathString(name).data(), "", e,
+			EmuApp::createSystemWithMedia({}, picker.makePathString(name).data(), "", e, {},
 				[](Input::Event e)
 				{
 					runBenchmarkOneShot();
@@ -98,7 +98,7 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachPara
 	return picker;
 }
 
-std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForLoading(ViewAttachParams attach, Input::Event e, bool singleDir)
+std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForLoading(ViewAttachParams attach, Input::Event e, bool singleDir, EmuSystemCreateParams params)
 {
 	auto searchPath = EmuApp::mediaSearchPath();
 	auto rootInfo = Base::nearestRootPath(searchPath.data());
@@ -109,9 +109,9 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForLoading(ViewAttachParams at
 			EmuApp::setMediaSearchPath(picker.path());
 		});
 	picker->setOnSelectFile(
-		[](FSPicker &picker, const char *name, Input::Event e)
+		[=](FSPicker &picker, const char *name, Input::Event e)
 		{
-			onSelectFileFromPicker(picker.makePathString(name).data(), e);
+			onSelectFileFromPicker(picker.makePathString(name).data(), e, params);
 		});
 	return picker;
 }

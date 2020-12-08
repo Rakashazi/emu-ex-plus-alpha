@@ -278,7 +278,7 @@ CLINK void *res_load_data(const char *name)
 	return buffer;
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate onLoadProgressFunc)
+EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate onLoadProgressFunc)
 {
 	onLoadProgress = onLoadProgressFunc;
 	auto resetOnLoadProgress = IG::scopeGuard([&](){ onLoadProgress = {}; });

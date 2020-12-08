@@ -101,7 +101,7 @@ bool EmuSystem::vidSysIsPAL()
 	return os->hasConsole() && os->console().timing() != ConsoleTiming::ntsc;
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto os = osystem.get();
 	auto size = io.size();

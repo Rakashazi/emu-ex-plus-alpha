@@ -304,7 +304,7 @@ void EmuSystem::closeSystem()
 	}
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	string_printf(bupPath, "%s/bkram.bin", savePath());
 	if(YabauseInit(&yinit) != 0)

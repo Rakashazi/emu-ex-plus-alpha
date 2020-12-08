@@ -469,21 +469,21 @@ static void closeAndSetupNew(const char *path)
 	EmuApp::loadSessionOptions();
 }
 
-void EmuSystem::createWithMedia(GenericIO io, const char *path, const char *name, Error &err, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::createWithMedia(GenericIO io, const char *path, const char *name, Error &err, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	if(io)
-		err = loadGameFromFile(std::move(io), name, onLoadProgress);
+		err = loadGameFromFile(std::move(io), name, params, onLoadProgress);
 	else
-		err = loadGameFromPath(path, onLoadProgress);
+		err = loadGameFromPath(path, params, onLoadProgress);
 }
 
-EmuSystem::Error EmuSystem::loadGameFromPath(const char *pathStr, OnLoadProgressDelegate onLoadProgress)
+EmuSystem::Error EmuSystem::loadGameFromPath(const char *pathStr, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	auto path = willLoadGameFromPath(FS::makePathString(pathStr));
 	if(!handlesGenericIO)
 	{
 		closeAndSetupNew(path.data());
-		auto err = loadGame(GenericIO{}, onLoadProgress);
+		auto err = loadGame(GenericIO{}, params, onLoadProgress);
 		if(err)
 		{
 			clearGamePaths();
@@ -497,10 +497,10 @@ EmuSystem::Error EmuSystem::loadGameFromPath(const char *pathStr, OnLoadProgress
 	{
 		return makeError("Error opening file: %s", ec.message().c_str());
 	}
-	return loadGameFromFile(io.makeGeneric(), path.data(), onLoadProgress);
+	return loadGameFromFile(io.makeGeneric(), path.data(), params, onLoadProgress);
 }
 
-EmuSystem::Error EmuSystem::loadGameFromFile(GenericIO file, const char *name, OnLoadProgressDelegate onLoadProgress)
+EmuSystem::Error EmuSystem::loadGameFromFile(GenericIO file, const char *name, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	Error err;
 	if(EmuApp::hasArchiveExtension(name))
@@ -535,12 +535,12 @@ EmuSystem::Error EmuSystem::loadGameFromFile(GenericIO file, const char *name, O
 		}
 		closeAndSetupNew(name);
 		originalGameName_ = originalName;
-		err = EmuSystem::loadGame(io, onLoadProgress);
+		err = EmuSystem::loadGame(io, params, onLoadProgress);
 	}
 	else
 	{
 		closeAndSetupNew(name);
-		err = EmuSystem::loadGame(file, onLoadProgress);
+		err = EmuSystem::loadGame(file, params, onLoadProgress);
 	}
 	if(err)
 	{

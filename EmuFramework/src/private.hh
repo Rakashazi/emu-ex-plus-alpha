@@ -164,7 +164,7 @@ bool hasGooglePlayStoreFeatures();
 void setCPUNeedsLowLatency(bool needed);
 void onMainMenuItemOptionChanged();
 void runBenchmarkOneShot();
-void onSelectFileFromPicker(const char* name, Input::Event e);
+void onSelectFileFromPicker(const char* name, Input::Event e, EmuSystemCreateParams params);
 void launchSystem(bool tryAutoState, bool addToRecent);
 Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID);
 std::unique_ptr<View> makeEmuView(ViewAttachParams attach, EmuApp::ViewID id);

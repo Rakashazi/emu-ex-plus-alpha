@@ -133,7 +133,7 @@ static bool romLoad(IO &io)
 	return false;
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	if(!romLoad(io))
 	{

@@ -335,7 +335,7 @@ void setRegion(int region, int defaultRegion, int detectedRegion)
 	}
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	setDirOverrides();
 	auto ioStream = new EmuFileIO(io);

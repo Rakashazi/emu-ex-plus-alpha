@@ -175,7 +175,7 @@ bool EmuSystem::vidSysIsPAL() { return Settings.PAL; }
 uint EmuSystem::multiresVideoBaseX() { return 256; }
 uint EmuSystem::multiresVideoBaseY() { return 239; }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto size = io.size();
 	if(size > CMemory::MAX_ROM_SIZE + 512)

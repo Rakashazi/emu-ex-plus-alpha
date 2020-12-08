@@ -670,20 +670,6 @@ public:
 		romSlot.compile(renderer(), projP);
 	}
 
-	static int systemCartType(ViceSystem system)
-	{
-		switch(system)
-		{
-			case VICE_SYSTEM_CBM2:
-			case VICE_SYSTEM_CBM5X0:
-				return CARTRIDGE_CBM2_8KB_1000;
-			case VICE_SYSTEM_PLUS4:
-				return CARTRIDGE_PLUS4_DETECT;
-			default:
-				return CARTRIDGE_CRT;
-		}
-	}
-
 	void addCartFilePickerView(Input::Event e, bool dismissPreviousView)
 	{
 		EmuApp::pushAndShowModalView(
@@ -1315,6 +1301,17 @@ class CustomSystemActionsView : public EmuSystemActionsView
 		}
 	};
 
+	BoolMenuItem autostartOnLaunch
+	{
+		"Autostart On Launch",
+		(bool)optionAutostartOnLaunch,
+		[this](BoolMenuItem &item)
+		{
+			EmuSystem::sessionOptionSet();
+			optionAutostartOnLaunch = item.flipBoolValue(*this);
+		}
+	};
+
 	void reloadItems()
 	{
 		item.clear();
@@ -1323,6 +1320,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 		item.emplace_back(&quickSettings);
 		item.emplace_back(&swapJoystickPorts);
 		item.emplace_back(&warpMode);
+		item.emplace_back(&autostartOnLaunch);
 		loadStandardItems();
 	}
 
@@ -1436,18 +1434,27 @@ class CustomMainMenuView : public EmuMainMenuView
 			EmuApp::postMessage(true, "Error creating disk image");
 			return;
 		}
-		autostartOnLoad = false;
-		EmuApp::createSystemWithMedia({}, diskPath, "", e,
+		EmuApp::createSystemWithMedia({}, diskPath, "", e, {SYSTEM_FLAG_NO_AUTOSTART},
 			[](Input::Event e)
 			{
 				EmuApp::launchSystem(e, false, true);
 			});
 	};
 
+	TextMenuItem loadNoAutostart
+	{
+		"Load Game (No Autostart)",
+		[this](Input::Event e)
+		{
+			pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e, false, {SYSTEM_FLAG_NO_AUTOSTART}), e, false);
+		}
+	};
+
 	void reloadItems()
 	{
 		item.clear();
 		loadFileBrowserItems();
+		item.emplace_back(&loadNoAutostart);
 		item.emplace_back(&startWithBlankDisk);
 		system.setName(string_makePrintf<34>("System: %s", VicePlugin::systemName(currSystem)).data());
 		item.emplace_back(&system);

@@ -618,7 +618,7 @@ void EmuSystem::closeSystem()
 	destroyMachine();
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	// configure media loading
 	auto mediaPath = fullGamePath();

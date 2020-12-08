@@ -44,7 +44,7 @@ enum
 	CFGKEY_VIC20_MODEL = 272, CFGKEY_VICE_SYSTEM = 273,
 	CFGKEY_VIRTUAL_DEVICE_TRAPS = 274, CFGKEY_RESID_SAMPLING = 275,
 	CFGKEY_MODEL = 276, CFGKEY_AUTOSTART_BASIC_LOAD = 277,
-	CFGKEY_VIC20_RAM_EXPANSIONS = 278
+	CFGKEY_VIC20_RAM_EXPANSIONS = 278, CFGKEY_AUTOSTART_ON_LOAD = 279,
 };
 
 const char *EmuSystem::configFilename = "C64Emu.config";
@@ -89,6 +89,9 @@ Byte1Option optionReSidSampling(CFGKEY_RESID_SAMPLING, SID_RESID_SAMPLING_INTERP
 	optionIsValidWithMax<3, uint8_t>);
 Byte1Option optionSwapJoystickPorts(CFGKEY_SWAP_JOYSTICK_PORTS, 0);
 PathOption optionFirmwarePath(CFGKEY_SYSTEM_FILE_PATH, firmwareBasePath, "");
+Byte1Option optionAutostartOnLaunch(CFGKEY_AUTOSTART_ON_LOAD, 1);
+
+// VIC-20 specific
 Byte1Option optionVic20RamExpansions(CFGKEY_VIC20_RAM_EXPANSIONS, 0);
 
 EmuSystem::Error EmuSystem::onOptionsLoaded()
@@ -120,6 +123,7 @@ bool EmuSystem::resetSessionOptions()
 	optionAutostartTDE.reset();
 	optionAutostartBasicLoad.reset();
 	optionSwapJoystickPorts.reset();
+	optionAutostartOnLaunch.reset();
 	optionVic20RamExpansions.reset();
 	onSessionOptionsLoaded();
 	return true;
@@ -142,6 +146,7 @@ bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
 		bcase CFGKEY_AUTOSTART_TDE: optionAutostartTDE.readFromIO(io, readSize);
 		bcase CFGKEY_AUTOSTART_BASIC_LOAD: optionAutostartBasicLoad.readFromIO(io, readSize);
 		bcase CFGKEY_SWAP_JOYSTICK_PORTS: optionSwapJoystickPorts.readFromIO(io, readSize);
+		bcase CFGKEY_AUTOSTART_ON_LOAD: optionAutostartOnLaunch.readFromIO(io, readSize);
 		bcase CFGKEY_VIC20_RAM_EXPANSIONS: optionVic20RamExpansions.readFromIO(io, readSize);
 	}
 	return 1;
@@ -156,6 +161,7 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionAutostartTDE.writeWithKeyIfNotDefault(io);
 	optionAutostartBasicLoad.writeWithKeyIfNotDefault(io);
 	optionSwapJoystickPorts.writeWithKeyIfNotDefault(io);
+	optionAutostartOnLaunch.writeWithKeyIfNotDefault(io);
 	if(currSystem == VICE_SYSTEM_VIC20) // save RAM expansion settings
 	{
 		uint8_t blocks = (intResource("RamBlock0") ? BLOCK_0 : 0);

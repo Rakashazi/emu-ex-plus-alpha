@@ -156,7 +156,7 @@ static void writeCDMD5()
 
 uint EmuSystem::multiresVideoBaseX() { return 512; }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	emuSys->name = EmuSystem::gameName().data();
 	auto unloadCD = IG::scopeGuard(

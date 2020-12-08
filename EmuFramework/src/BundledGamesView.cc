@@ -46,7 +46,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 				logErr("error opening bundled game asset: %s", info.assetName);
 				return;
 			}
-			EmuApp::createSystemWithMedia(file.makeGeneric(), "", info.assetName, e,
+			EmuApp::createSystemWithMedia(file.makeGeneric(), "", info.assetName, e, {},
 				[](Input::Event e)
 				{
 					EmuApp::launchSystemWithResumePrompt(e, false);

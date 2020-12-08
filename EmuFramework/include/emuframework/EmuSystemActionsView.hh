@@ -31,7 +31,7 @@ public:
 	void loadStandardItems();
 
 	static const uint STANDARD_ITEMS = 9;
-	static const uint MAX_SYSTEM_ITEMS = 5;
+	static const uint MAX_SYSTEM_ITEMS = 6;
 
 protected:
 	TextMenuItem cheats;

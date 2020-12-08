@@ -169,7 +169,7 @@ void EmuSystem::closeSystem()
 	totalSamples = 0;
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	gbEmu.setSaveDir(EmuSystem::savePath());
 	auto buffView = io.constBufferView();

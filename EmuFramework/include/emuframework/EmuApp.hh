@@ -48,10 +48,10 @@ public:
 
 	static bool willCreateSystem(ViewAttachParams attach, Input::Event e);
 	static void createSystemWithMedia(GenericIO io, const char *path, const char *name,
-		Input::Event e, CreateSystemCompleteDelegate onComplete);
+		Input::Event e, EmuSystemCreateParams, CreateSystemCompleteDelegate onComplete);
 	static void exitGame(bool allowAutosaveState = true);
-	static void reloadGame();
-	static void promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Event e);
+	static void reloadGame(EmuSystemCreateParams params = {});
+	static void promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Event e, EmuSystemCreateParams params = {});
 	static void onMainWindowCreated(ViewAttachParams attach, Input::Event e);
 	static void onCustomizeNavView(NavView &v);
 	static void pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::Event e,

@@ -48,6 +48,11 @@ struct BundledGameInfo
 	const char *assetName;
 };
 
+struct EmuSystemCreateParams
+{
+	uint8_t systemFlags;
+};
+
 enum { STATE_RESULT_OK, STATE_RESULT_NO_FILE, STATE_RESULT_NO_FILE_ACCESS, STATE_RESULT_IO_ERROR,
 	STATE_RESULT_INVALID_DATA, STATE_RESULT_OTHER_ERROR };
 
@@ -176,11 +181,11 @@ public:
 	static void writeSessionConfig(IO &io);
 	static bool readSessionConfig(IO &io, uint key, uint readSize);
 	static void createWithMedia(GenericIO io, const char *path, const char *name,
-		Error &err, OnLoadProgressDelegate onLoadProgress);
-	static Error loadGame(IO &io, OnLoadProgressDelegate onLoadProgress);
+		Error &err, EmuSystemCreateParams, OnLoadProgressDelegate onLoadProgress);
+	static Error loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate onLoadProgress);
 	static FS::PathString willLoadGameFromPath(FS::PathString path);
-	static Error loadGameFromPath(const char *path, OnLoadProgressDelegate onLoadProgress);
-	static Error loadGameFromFile(GenericIO io, const char *name, OnLoadProgressDelegate onLoadProgress);
+	static Error loadGameFromPath(const char *path, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress);
+	static Error loadGameFromFile(GenericIO io, const char *name, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress);
 	[[gnu::hot]] static void runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio);
 	static void skipFrames(EmuSystemTask *task, uint32_t frames, EmuAudio *audio);
 	static bool skipForwardFrames(EmuSystemTask *task, uint32_t frames);
