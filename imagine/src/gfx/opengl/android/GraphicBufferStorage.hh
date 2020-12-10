@@ -27,7 +27,7 @@ public:
 	GraphicBufferStorage(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr);
 	GraphicBufferStorage(GraphicBufferStorage &&o);
 	GraphicBufferStorage &operator=(GraphicBufferStorage &&o);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc) final;
+	IG::ErrorCode setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler) final;
 	LockedTextureBuffer lock(uint32_t bufferFlags) final;
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
 	static bool canSupport(const char *rendererStr);

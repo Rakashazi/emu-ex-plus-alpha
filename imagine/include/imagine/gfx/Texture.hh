@@ -35,6 +35,7 @@ namespace Gfx
 class Renderer;
 class RendererTask;
 class RendererCommands;
+class TextureSampler;
 
 class LockedTextureBuffer: public LockedTextureBufferImpl
 {
@@ -55,14 +56,14 @@ public:
 
 	using TextureImpl::TextureImpl;
 	Texture(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr = nullptr);
-	Texture(RendererTask &, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
+	Texture(RendererTask &, GfxImageSource &img, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
 	Texture(Texture &&o);
 	Texture &operator=(Texture &&o);
 	static uint8_t bestAlignment(IG::Pixmap pixmap);
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
 	uint8_t levels() const;
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, uint8_t levels);
+	IG::ErrorCode setFormat(IG::PixmapDesc desc, uint8_t levels, const TextureSampler *compatSampler = {});
 	void write(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t writeFlags = 0);
 	void writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
 	void clear(uint8_t level);
@@ -71,6 +72,7 @@ public:
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0);
 	IG::WP size(uint8_t level) const;
 	IG::PixmapDesc pixmapDesc() const;
+	void setCompatTextureSampler(const TextureSampler &compatSampler);
 	bool compileDefaultProgram(uint32_t mode) const;
 	bool compileDefaultProgramOneShot(uint32_t mode) const;
 	void useDefaultProgram(RendererCommands &cmds, uint32_t mode, const Mat4 *modelMat) const;

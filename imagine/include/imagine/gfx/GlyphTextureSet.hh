@@ -28,6 +28,8 @@ namespace Gfx
 
 class Renderer;
 
+static constexpr auto glyphCommonTextureSampler = CommonTextureSampler::NO_MIP_CLAMP;
+
 struct GlyphEntry
 {
 	Gfx::PixmapTexture glyph_{};

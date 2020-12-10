@@ -111,22 +111,15 @@ public:
 	// resources
 
 	Texture makeTexture(TextureConfig config);
-	Texture makeTexture(GfxImageSource &img, bool makeMipmaps);
-	Texture makeTexture(GfxImageSource &img)
-	{
-		return makeTexture(img, true);
-	}
+	Texture makeTexture(GfxImageSource &img, const TextureSampler *compatSampler = {}, bool makeMipmaps = true);
 	PixmapTexture makePixmapTexture(TextureConfig config);
-	PixmapTexture makePixmapTexture(GfxImageSource &img, bool makeMipmaps);
-	PixmapTexture makePixmapTexture(GfxImageSource &img)
-	{
-		return makePixmapTexture(img, true);
-	}
+	PixmapTexture makePixmapTexture(GfxImageSource &img, const TextureSampler *compatSampler = {}, bool makeMipmaps = true);
 	PixmapBufferTexture makePixmapBufferTexture(TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false);
 	std::vector<TextureBufferModeDesc> textureBufferModes();
 	TextureBufferMode makeValidTextureBufferMode(TextureBufferMode mode = {});
 	TextureSampler makeTextureSampler(TextureSamplerConfig config);
-	void makeCommonTextureSampler(CommonTextureSampler sampler);
+	TextureSampler &makeCommonTextureSampler(CommonTextureSampler sampler);
+	TextureSampler &make(CommonTextureSampler sampler) { return makeCommonTextureSampler(sampler); }
 
 	void setCorrectnessChecks(bool on);
 };

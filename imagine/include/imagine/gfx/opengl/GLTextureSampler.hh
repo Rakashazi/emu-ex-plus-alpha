@@ -24,25 +24,36 @@ namespace Gfx
 
 class RendererTask;
 
+struct SamplerParams
+{
+	uint16_t minFilter;
+	uint16_t magFilter;
+	uint16_t xWrapMode;
+	uint16_t yWrapMode;
+};
+
 class GLTextureSampler
 {
 public:
 	constexpr GLTextureSampler() {}
 	GLTextureSampler(RendererTask &rTask, TextureSamplerConfig config);
 	~GLTextureSampler();
-	void setTexParams(GLenum target) const;
-	void deinit();
+	static void setTexParamsInGL(GLenum target, SamplerParams params);
+	static void setTexParamsInGL(GLuint texName, GLenum target, SamplerParams params);
 	GLuint name() const;
 	const char *label() const;
+	SamplerParams samplerParams() const;
 
 protected:
 	RendererTask *rTask{};
-	GLuint name_{};
-	uint16_t minFilter{};
-	uint16_t magFilter{};
-	uint16_t xWrapMode_{};
-	uint16_t yWrapMode_{};
+	union
+	{
+		SamplerParams params{};
+		GLuint name_;
+	};
 	IG_enableMemberIf(Config::DEBUG_BUILD, const char *, debugLabel);
+
+	void deinit();
 };
 
 using TextureSamplerImpl = GLTextureSampler;

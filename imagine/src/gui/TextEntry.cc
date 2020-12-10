@@ -230,7 +230,7 @@ void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 	{
 		cmds.setColor(COLOR_WHITE);
 		cmds.setBlendMode(BLEND_MODE_ALPHA);
-		cmds.setCommonTextureSampler(CommonTextureSampler::NEAREST_MIP_CLAMP);
+		cmds.set(imageCommonTextureSampler);
 		cancelSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, projP.makeTranslate());
 		cancelSpr.draw(cmds);
 	}

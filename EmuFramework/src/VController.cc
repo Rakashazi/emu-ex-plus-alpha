@@ -51,7 +51,7 @@ void VControllerDPad::updateBoundingAreaGfx(Gfx::Renderer &r, const WindowData &
 										: IG::isOdd(input) ? IG::PIXEL_DESC_RGB565.build(1., 1., 1., 1.)
 										: IG::PIXEL_DESC_RGB565.build(0., 1., 0., 1.);
 			}
-		mapImg = r.makePixmapTexture({mapPix});
+		mapImg = r.makePixmapTexture({mapPix, &r.make(View::imageCommonTextureSampler)});
 		mapImg.write(0, mapPix, {});
 		mapSpr = {{}, mapImg};
 		mapSpr.setPos(padArea, winData.projection.plane());
@@ -134,7 +134,7 @@ void VControllerDPad::setBoundingAreaVisible(Gfx::Renderer &r, bool on, const Wi
 
 void VControllerDPad::draw(Gfx::RendererCommands &cmds) const
 {
-	cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
+	cmds.set(View::imageCommonTextureSampler);
 	spr.setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
 	spr.draw(cmds);
 
@@ -213,9 +213,9 @@ void VControllerKeyboard::place(Gfx::GC btnSize, Gfx::GC yOffset, const WindowDa
 void VControllerKeyboard::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP) const
 {
 	if(spr.image()->levels() > 1)
-		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
+		cmds.set(View::imageCommonTextureSampler);
 	else
-		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
+		cmds.set(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
 	spr.setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
 	spr.draw(cmds);
 	if(selected.x != -1)
@@ -806,7 +806,7 @@ void VControllerGamepad::draw(Gfx::RendererCommands &cmds, bool showHidden, cons
 
 	if(faceBtnsState == 1 || (showHidden && faceBtnsState))
 	{
-		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
+		cmds.set(View::imageCommonTextureSampler);
 		if(showBoundingArea)
 		{
 			cmds.setCommonProgram(CommonProgram::NO_TEX);
@@ -825,7 +825,7 @@ void VControllerGamepad::draw(Gfx::RendererCommands &cmds, bool showHidden, cons
 
 	if(EmuSystem::inputHasTriggerBtns && !triggersInline_)
 	{
-		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
+		cmds.set(View::imageCommonTextureSampler);
 		if(showBoundingArea)
 		{
 			if(lTriggerState_ == 1 || (showHidden && lTriggerState_))
@@ -853,7 +853,7 @@ void VControllerGamepad::draw(Gfx::RendererCommands &cmds, bool showHidden, cons
 
 	if(centerBtnsState == 1 || (showHidden && centerBtnsState))
 	{
-		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
+		cmds.set(View::imageCommonTextureSampler);
 		if(showBoundingArea)
 		{
 			cmds.setCommonProgram(CommonProgram::NO_TEX);
@@ -1140,14 +1140,14 @@ void VController::draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool
 	if(menuBtnState == 1 || (showHidden && menuBtnState))
 	{
 		cmds.setColor(1., 1., 1., alpha);
-		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
+		cmds.set(View::imageCommonTextureSampler);
 		menuBtnSpr.setCommonProgram(cmds, IMG_MODE_MODULATE);
 		menuBtnSpr.draw(cmds);
 	}
 	if(ffBtnState == 1 || (showHidden && ffBtnState))
 	{
 		cmds.setColor(1., 1., 1., alpha);
-		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
+		cmds.set(View::imageCommonTextureSampler);
 		ffBtnSpr.setCommonProgram(cmds, IMG_MODE_MODULATE);
 		if(activeFF)
 			cmds.setColor(1., 0., 0., alpha);

@@ -27,7 +27,7 @@ class VController;
 class EmuVideoLayer
 {
 public:
-	EmuVideoLayer(EmuVideo &video);
+	EmuVideoLayer(EmuVideo &video, bool useLinearFilter);
 	void place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, EmuInputView *inputView);
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP);
 	void setOverlay(uint effect);
@@ -53,11 +53,11 @@ private:
 	VideoImageEffect vidImgEffect{};
 	#endif
 	EmuVideo &video;
+	const Gfx::TextureSampler *texSampler{};
 	Gfx::Sprite disp{};
 	IG::WindowRect gameRect_{};
 	Gfx::GCRect gameRectG{};
 	float brightness = 1.f;
-	bool useLinearFilter = true;
 
 	void compileDefaultPrograms();
 	void placeEffect();

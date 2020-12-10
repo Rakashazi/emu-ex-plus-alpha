@@ -208,20 +208,22 @@ static TextureType typeForPixelFormat(PixelFormatID format)
 		TextureType::T2D_4;
 }
 
-static TextureConfig configWithLoadedImagePixmap(IG::PixmapDesc desc, bool makeMipmaps)
+static TextureConfig configWithLoadedImagePixmap(IG::PixmapDesc desc, bool makeMipmaps, const TextureSampler *compatSampler)
 {
 	TextureConfig config{desc};
 	config.setWillGenerateMipmaps(makeMipmaps);
+	config.setCompatSampler(compatSampler);
 	return config;
 }
 
 static IG::ErrorCode loadImageSource(Texture &texture, GfxImageSource &img, bool makeMipmaps)
 {
 	auto imgPix = img.pixmapView();
+	uint32_t writeFlags = makeMipmaps ? Texture::WRITE_FLAG_MAKE_MIPMAPS : 0;
 	if(imgPix)
 	{
 		//logDMsg("writing image source pixmap to texture");
-		texture.write(0, imgPix, {}, makeMipmaps ? Texture::WRITE_FLAG_MAKE_MIPMAPS : 0);
+		texture.write(0, imgPix, {}, writeFlags);
 	}
 	else
 	{
@@ -231,7 +233,7 @@ static IG::ErrorCode loadImageSource(Texture &texture, GfxImageSource &img, bool
 		//logDMsg("writing image source into texture pixel buffer");
 		img.write(lockBuff.pixmap());
 		img.freePixmap();
-		texture.unlock(lockBuff, makeMipmaps ? Texture::WRITE_FLAG_MAKE_MIPMAPS : 0);
+		texture.unlock(lockBuff, writeFlags);
 	}
 	return {};
 }
@@ -261,12 +263,12 @@ Texture::Texture(RendererTask &r, TextureConfig config, IG::ErrorCode *errorPtr)
 	}
 }
 
-Texture::Texture(RendererTask &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr):
+Texture::Texture(RendererTask &r, GfxImageSource &img, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr):
 	GLTexture{r}
 {
 	IG::ErrorCode err;
 	auto setError = IG::scopeGuard([&](){ if(unlikely(err && errorPtr)) { *errorPtr = err; } });
-	if(err = init(r, configWithLoadedImagePixmap(img.pixmapView(), makeMipmaps));
+	if(err = init(r, configWithLoadedImagePixmap(img.pixmapView(), makeMipmaps, compatSampler));
 		unlikely(err))
 	{
 		return;
@@ -307,7 +309,7 @@ TextureConfig GLTexture::baseInit(RendererTask &r, TextureConfig config)
 IG::ErrorCode GLTexture::init(RendererTask &r, TextureConfig config)
 {
 	config = baseInit(r, config);
-	return static_cast<Texture*>(this)->setFormat(config.pixmapDesc(), config.levels());
+	return static_cast<Texture*>(this)->setFormat(config.pixmapDesc(), config.levels(), config.compatSampler());
 }
 
 void GLTexture::deinit()
@@ -316,11 +318,10 @@ void GLTexture::deinit()
 		return;
 	logMsg("deinit texture:0x%X", texName_);
 	rTask->run(
-		[texName = texName_]()
+		[texName = std::exchange(texName_, 0)]()
 		{
 			glDeleteTextures(1, &texName);
 		});
-	texName_ = 0;
 }
 
 uint8_t Texture::bestAlignment(IG::Pixmap p)
@@ -369,7 +370,7 @@ uint8_t Texture::levels() const
 	return levels_;
 }
 
-IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels)
+IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, const TextureSampler *compatSampler)
 {
 	if(renderer().support.textureSizeSupport.supportsMipmaps(desc.w(), desc.h()))
 	{
@@ -380,9 +381,9 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels)
 	{
 		levels = 1;
 	}
+	SamplerParams samplerParams = compatSampler ? compatSampler->samplerParams() : SamplerParams{};
 	if(renderer().support.hasImmutableTexStorage)
 	{
-		sampler = 0;
 		task().runSync(
 			[=, &r = std::as_const(renderer()), &texName_ = texName_](GLTask::TaskContext ctx)
 			{
@@ -398,20 +399,20 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels)
 					{
 						r.support.glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, desc.w(), desc.h());
 					}, "glTexStorage2D()");
-				setSwizzleForFormatInGLTask(r, desc.format(), texName);
+				setSwizzleForFormatInGL(r, desc.format(), texName);
+				setSamplerParamsInGL(r, samplerParams);
 			});
 	}
 	else
 	{
 		bool remakeTexName = levels != levels_; // make new texture name whenever number of levels changes
 		task().run(
-			[=, &r = std::as_const(renderer()), &sampler = sampler, &texName_ = texName_, currTexName = texName_](GLTask::TaskContext ctx)
+			[=, &r = std::as_const(renderer()), &texName_ = texName_, currTexName = texName_](GLTask::TaskContext ctx)
 			{
 				auto texName = currTexName; // a copy of texName_ is passed by value for the async case to avoid accessing this->texName_
 				if(remakeTexName)
 				{
 					texName = makeGLTextureName(texName);
-					sampler = 0;
 					texName_ = texName;
 					ctx.notifySemaphore();
 				}
@@ -432,27 +433,22 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels)
 					w = std::max(1u, (w / 2));
 					h = std::max(1u, (h / 2));
 				}
-				setSwizzleForFormatInGLTask(r, desc.format(), texName);
+				setSwizzleForFormatInGL(r, desc.format(), texName);
+				if(remakeTexName)
+					setSamplerParamsInGL(r, samplerParams);
 			}, remakeTexName);
 	}
 	updateFormatInfo(desc, levels);
 	return {};
 }
 
-void GLTexture::bindTex(RendererCommands &cmds, const TextureSampler &bindSampler) const
+void GLTexture::bindTex(RendererCommands &cmds) const
 {
 	if(!texName_)
 	{
 		logErr("called bindTex() on uninitialized texture");
-		return;
 	}
 	cmds.glcBindTexture(target(), texName_);
-	if(!cmds.renderer().support.hasSamplerObjects && bindSampler.name() != sampler)
-	{
-		logMsg("setting sampler:0x%X for texture:0x%X", (int)bindSampler.name(), texName_);
-		sampler = bindSampler.name();
-		bindSampler.setTexParams(target());
-	}
 }
 
 void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uint8_t assumeAlign, uint32_t writeFlags)
@@ -639,6 +635,17 @@ IG::PixmapDesc Texture::pixmapDesc() const
 	return pixDesc;
 }
 
+void Texture::setCompatTextureSampler(const TextureSampler &compatSampler)
+{
+	if(renderer().support.hasSamplerObjects)
+		return;
+	task().run(
+		[&r = std::as_const(renderer()), texName = texName_, params = compatSampler.samplerParams()]()
+		{
+			GLTextureSampler::setTexParamsInGL(texName, GL_TEXTURE_2D, params);
+		});
+}
+
 static CommonProgram commonProgramForMode(TextureType type, uint32_t mode)
 {
 	switch(mode)
@@ -731,7 +738,7 @@ static void verifyCurrentTexture2D(TextureRef tex)
 	}
 }
 
-void GLTexture::setSwizzleForFormatInGLTask(const Renderer &r, PixelFormatID format, GLuint tex)
+void GLTexture::setSwizzleForFormatInGL(const Renderer &r, PixelFormatID format, GLuint tex)
 {
 	if(r.support.useFixedFunctionPipeline || !r.support.hasTextureSwizzle)
 		return;
@@ -757,6 +764,13 @@ void GLTexture::setSwizzleForFormatInGLTask(const Renderer &r, PixelFormatID for
 	}
 }
 
+void GLTexture::setSamplerParamsInGL(const Renderer &r, SamplerParams params, GLenum target)
+{
+	if(r.support.hasSamplerObjects || !params.magFilter)
+		return;
+	GLTextureSampler::setTexParamsInGL(target, params);
+}
+
 void GLTexture::updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum target)
 {
 	assert(levels);
@@ -771,43 +785,50 @@ void GLTexture::updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum tar
 }
 
 #ifdef __ANDROID__
-void GLTexture::setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc)
+void GLTexture::setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc, SamplerParams samplerParams)
 {
 	auto &r = rTask->renderer();
 	if(r.support.hasEGLTextureStorage())
 	{
-		sampler = 0;
 		rTask->runSync(
-			[=, &r = std::as_const(r), &tex = texName_, formatID = (IG::PixelFormatID)desc.format()](GLTask::TaskContext ctx)
+			[=, &r = std::as_const(r), &texName_ = texName_, formatID = (IG::PixelFormatID)desc.format()](GLTask::TaskContext ctx)
 			{
-				tex = makeGLTextureName(tex);
-				glBindTexture(GL_TEXTURE_2D, tex);
+				auto texName = makeGLTextureName(texName_);
+				texName_ = texName;
+				glBindTexture(GL_TEXTURE_2D, texName);
 				runGLChecked(
 					[&]()
 					{
 						r.support.glEGLImageTargetTexStorageEXT(GL_TEXTURE_2D, (GLeglImageOES)eglImg, nullptr);
 					}, "glEGLImageTargetTexStorageEXT()");
 				ctx.notifySemaphore();
-				setSwizzleForFormatInGLTask(r, formatID, tex);
+				setSwizzleForFormatInGL(r, formatID, texName);
+				setSamplerParamsInGL(r, samplerParams);
 			});
 	}
 	else
 	{
 		rTask->runSync(
-			[=, &r = std::as_const(r), &tex = texName_, formatID = (IG::PixelFormatID)desc.format()](GLTask::TaskContext ctx)
+			[=, &r = std::as_const(r), &texName_ = texName_, formatID = (IG::PixelFormatID)desc.format()](GLTask::TaskContext ctx)
 			{
-				if(!tex) // texture storage is mutable, only need to make name once
+				auto texName = texName_;
+				bool madeTexName = false;
+				if(unlikely(!texName)) // texture storage is mutable, only need to make name once
 				{
-					glGenTextures(1, &tex);
+					glGenTextures(1, &texName);
+					texName_ = texName;
+					madeTexName = true;
 				}
-				glBindTexture(GL_TEXTURE_2D, tex);
+				glBindTexture(GL_TEXTURE_2D, texName);
 				runGLChecked(
 					[&]()
 					{
 						glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImg);
 					}, "glEGLImageTargetTexture2DOES()");
 				ctx.notifySemaphore();
-				setSwizzleForFormatInGLTask(r, formatID, tex);
+				setSwizzleForFormatInGL(r, formatID, texName);
+				if(madeTexName)
+					setSamplerParamsInGL(r, samplerParams);
 			});
 	}
 	updateFormatInfo(desc, 1);
@@ -833,14 +854,14 @@ PixmapTexture::PixmapTexture(RendererTask &r, TextureConfig config, IG::ErrorCod
 	}
 }
 
-PixmapTexture::PixmapTexture(RendererTask &r, GfxImageSource &img, bool makeMipmaps, IG::ErrorCode *errorPtr):
+PixmapTexture::PixmapTexture(RendererTask &r, GfxImageSource &img, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr):
 	GLPixmapTexture{r}
 {
 	IG::ErrorCode err;
 	auto setError = IG::scopeGuard([&](){ if(unlikely(err && errorPtr)) { *errorPtr = err; } });
 	if(img)
 	{
-		if(err = GLPixmapTexture::init(r, configWithLoadedImagePixmap(img.pixmapView(), makeMipmaps));
+		if(err = GLPixmapTexture::init(r, configWithLoadedImagePixmap(img.pixmapView(), makeMipmaps, compatSampler));
 			unlikely(err))
 		{
 			return;
@@ -856,7 +877,7 @@ PixmapTexture::PixmapTexture(RendererTask &r, GfxImageSource &img, bool makeMipm
 IG::ErrorCode GLPixmapTexture::init(RendererTask &r, TextureConfig config)
 {
 	config = baseInit(r, config);
-	if(auto err = static_cast<PixmapTexture*>(this)->setFormat(config.pixmapDesc(), config.levels());
+	if(auto err = static_cast<PixmapTexture*>(this)->setFormat(config.pixmapDesc(), config.levels(), config.compatSampler());
 		unlikely(err))
 	{
 		return err;
@@ -864,10 +885,10 @@ IG::ErrorCode GLPixmapTexture::init(RendererTask &r, TextureConfig config)
 	return {};
 }
 
-IG::ErrorCode PixmapTexture::setFormat(IG::PixmapDesc desc, uint8_t levels)
+IG::ErrorCode PixmapTexture::setFormat(IG::PixmapDesc desc, uint8_t levels, const TextureSampler *compatSampler)
 {
 	IG::PixmapDesc fullPixDesc = renderer().support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
-	if(auto err = Texture::setFormat(fullPixDesc, levels);
+	if(auto err = Texture::setFormat(fullPixDesc, levels, compatSampler);
 		unlikely(err))
 	{
 		return err;
@@ -909,10 +930,10 @@ void GLPixmapTexture::updateFormatInfo(IG::WP usedSize, IG::PixmapDesc desc, uin
 }
 
 #ifdef __ANDROID__
-void GLPixmapTexture::setFromEGLImage(IG::WP usedSize, EGLImageKHR eglImg, IG::PixmapDesc desc)
+void GLPixmapTexture::setFromEGLImage(IG::WP usedSize, EGLImageKHR eglImg, IG::PixmapDesc desc, SamplerParams samplerParams)
 {
 	updateUsedPixmapSize(usedSize, desc.size());
-	GLTexture::setFromEGLImage(eglImg, desc);
+	GLTexture::setFromEGLImage(eglImg, desc, samplerParams);
 }
 #endif
 

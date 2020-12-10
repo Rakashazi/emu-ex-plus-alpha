@@ -29,7 +29,7 @@ public:
 	AHardwareBufferStorage(AHardwareBufferStorage &&o);
 	~AHardwareBufferStorage();
 	AHardwareBufferStorage &operator=(AHardwareBufferStorage &&o);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc) final;
+	IG::ErrorCode setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler) final;
 	LockedTextureBuffer lock(uint32_t bufferFlags) final;
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
 

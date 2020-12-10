@@ -79,8 +79,7 @@ void VideoImageOverlay::setEffect(Gfx::Renderer &r, unsigned effect_)
 			img = {};
 			return;
 	}
-	r.makeCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_REPEAT);
-	Gfx::TextureConfig texConf{pix};
+	Gfx::TextureConfig texConf{pix, &r.make(Gfx::CommonTextureSampler::NEAREST_MIP_REPEAT)};
 	texConf.setWillGenerateMipmaps(true);
 	img = r.makeTexture(texConf);
 	img.write(0, pix, {});
@@ -122,7 +121,7 @@ void VideoImageOverlay::draw(Gfx::RendererCommands &cmds)
 	if(!spr.image())
 		return;
 	using namespace Gfx;
-	cmds.setCommonTextureSampler(CommonTextureSampler::NEAREST_MIP_REPEAT);
+	cmds.set(CommonTextureSampler::NEAREST_MIP_REPEAT);
 	cmds.setColor(1., 1., 1., intensity);
 	cmds.setBlendMode(BLEND_MODE_ALPHA);
 	spr.setCommonProgram(cmds, IMG_MODE_MODULATE);

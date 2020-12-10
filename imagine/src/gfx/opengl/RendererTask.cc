@@ -206,7 +206,7 @@ bool GLRendererTask::handleDrawableReset()
 	return false;
 }
 
-void GLRendererTask::runInitialCommandsInGLThread(TaskContext ctx, DrawContextSupport &support)
+void GLRendererTask::runInitialCommandsInGL(TaskContext ctx, DrawContextSupport &support)
 {
 	verifyCurrentContext(ctx.glDisplay());
 	if(support.hasDebugOutput && defaultToFullErrorChecks)

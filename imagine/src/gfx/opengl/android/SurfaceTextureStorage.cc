@@ -45,8 +45,9 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 		err = {ENOTSUP};
 		return;
 	}
+	SamplerParams samplerParams = config.compatSampler() ? config.compatSampler()->samplerParams() : SamplerParams{};
 	task().runSync(
-		[=, this]()
+		[=, this](GLTask::TaskContext ctx)
 		{
 			auto env = jEnvForThread();
 			glGenTextures(1, &texName_);
@@ -62,6 +63,8 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 				return;
 			updateSurfaceTextureImage(env, surfaceTex); // set the initial display & context
 			this->surfaceTex = env->NewGlobalRef(surfaceTex);
+			ctx.notifySemaphore();
+			setSamplerParamsInGL(renderer(), samplerParams, GL_TEXTURE_EXTERNAL_OES);
 		});
 	if(unlikely(!surfaceTex))
 	{
@@ -90,7 +93,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 		return;
 	}
 	logMsg("native window:%p from Surface:%p%s", nativeWin, localSurface, singleBuffered ? " (single-buffered)" : "");
-	err = setFormat(config.pixmapDesc());
+	err = setFormat(config.pixmapDesc(), config.compatSampler());
 }
 
 SurfaceTextureStorage::SurfaceTextureStorage(SurfaceTextureStorage &&o)
@@ -121,25 +124,22 @@ void SurfaceTextureStorage::deinit()
 	if(nativeWin)
 	{
 		logMsg("deinit SurfaceTexture, releasing window:%p", nativeWin);
-		ANativeWindow_release(nativeWin);
-		nativeWin = {};
+		ANativeWindow_release(std::exchange(nativeWin, {}));
 	}
 	auto env = jEnvForThread();
 	if(surface)
 	{
 		releaseSurface(env, surface);
-		env->DeleteGlobalRef(surface);
-		surface = {};
+		env->DeleteGlobalRef(std::exchange(surface, {}));
 	}
 	if(surfaceTex)
 	{
 		releaseSurfaceTexture(env, surfaceTex);
-		env->DeleteGlobalRef(surfaceTex);
-		surfaceTex = {};
+		env->DeleteGlobalRef(std::exchange(surfaceTex, {}));
 	}
 }
 
-IG::ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc)
+IG::ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, const TextureSampler *)
 {
 	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
 	int winFormat = Base::toAHardwareBufferFormat(desc.format());
@@ -208,6 +208,17 @@ void SurfaceTextureStorage::unlock(LockedTextureBuffer, uint32_t)
 		[tex = surfaceTex]()
 		{
 			Base::updateSurfaceTextureImage(Base::jEnvForThread(), tex);
+		});
+}
+
+void SurfaceTextureStorage::setCompatTextureSampler(const TextureSampler &compatSampler)
+{
+	if(renderer().support.hasSamplerObjects)
+		return;
+	task().run(
+		[&r = std::as_const(renderer()), texName = texName_, params = compatSampler.samplerParams()]()
+		{
+			GLTextureSampler::setTexParamsInGL(texName, GL_TEXTURE_EXTERNAL_OES, params);
 		});
 }
 

@@ -456,23 +456,24 @@ void RendererCommands::setClipRect(ClipRect r)
 void RendererCommands::setTexture(const Texture &t)
 {
 	rTask->verifyCurrentContext(glDpy);
-	if(unlikely(!currSampler))
+	if(renderer().support.hasSamplerObjects && !currSamplerName)
 	{
-		logErr("set texture without setting a sampler first");
-		return;
+		logWarn("set texture without setting a sampler first");
 	}
-	t.bindTex(*this, *currSampler);
+	t.bindTex(*this);
 }
 
 void RendererCommands::setTextureSampler(const TextureSampler &sampler)
 {
+	if(!renderer().support.hasSamplerObjects)
+		return;
 	rTask->verifyCurrentContext(glDpy);
-	if(renderer().support.hasSamplerObjects && (!currSampler || currSampler->name() != sampler.name()))
+	if(currSamplerName != sampler.name())
 	{
 		//logMsg("binding sampler object:0x%X (%s)", (int)sampler.name(), sampler.label());
 		renderer().support.glBindSampler(0, sampler.name());
 	}
-	currSampler = &sampler;
+	currSamplerName = sampler.name();
 }
 
 void RendererCommands::setCommonTextureSampler(CommonTextureSampler sampler)

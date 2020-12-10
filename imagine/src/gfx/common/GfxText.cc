@@ -99,13 +99,12 @@ bool Text::compile(Renderer &r, ProjectionPlane projP)
 {
 	if(unlikely(!face_ || !stringSize()))
 		return false;
-	r.makeCommonTextureSampler(CommonTextureSampler::NO_MIP_CLAMP);
 	//logMsg("compiling text %s", str);
-	
+
 	// TODO: move calc into Face class
 	GlyphEntry *mGly = face_->glyphEntry(r, 'M');
 	GlyphEntry *gGly = face_->glyphEntry(r, 'g');
-	
+
 	if(!mGly || !gGly)
 	{
 		logErr("error reading measurement glyphs to compile text");
@@ -197,7 +196,7 @@ void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, Projectio
 		return;
 	//logMsg("drawing with origin: %s,%s", o.toString(o.x), o.toString(o.y));
 	cmds.setBlendMode(BLEND_MODE_ALPHA);
-	cmds.setCommonTextureSampler(CommonTextureSampler::NO_MIP_CLAMP);
+	cmds.set(glyphCommonTextureSampler);
 	std::array<TexVertex, 4> vArr;
 	cmds.bindTempVertexBuffer();
 	TexVertex::bindAttribs(cmds, vArr.data());

@@ -57,7 +57,7 @@ public:
 	GLuint defaultFBO() const { return defaultFB; }
 	GLuint bindFramebuffer(Texture &tex);
 	bool handleDrawableReset();
-	void runInitialCommandsInGLThread(TaskContext ctx, DrawContextSupport &support);
+	void runInitialCommandsInGL(TaskContext ctx, DrawContextSupport &support);
 	void setRenderer(Renderer *r);
 	void verifyCurrentContext(Base::GLDisplay glDpy) const;
 	RendererCommands makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,

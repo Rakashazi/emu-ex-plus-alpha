@@ -77,7 +77,7 @@ static std::unique_ptr<Gfx::Renderer> rendererPtr{};
 static Base::Window mainWin{};
 static EmuSystemTask emuSystemTask{};
 EmuVideo emuVideo{};
-static EmuVideoLayer emuVideoLayer{emuVideo};
+static std::unique_ptr<EmuVideoLayer> emuVideoLayerPtr{};
 static std::unique_ptr<EmuViewController> emuViewControllerPtr{};
 EmuAudio emuAudio{};
 DelegateFunc<void ()> onUpdateInputDevices{};
@@ -116,7 +116,7 @@ Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID)
 		{
 			logErr("couldn't load %s", assetFilename[assetID]);
 		}
-		res = r.makePixmapTexture(png);
+		res = r.makePixmapTexture(png, &r.make(View::imageCommonTextureSampler));
 	}
 	return res;
 }
@@ -266,7 +266,22 @@ void mainInitCommon(int argc, char** argv)
 		rendererPtr = std::make_unique<Gfx::Renderer>(std::move(r));
 	}
 	auto &renderer = *rendererPtr;
+	if(optionTextureBufferMode.val)
+	{
+		auto mode = (Gfx::TextureBufferMode)optionTextureBufferMode.val;
+		if(renderer.makeValidTextureBufferMode(mode) != mode)
+		{
+			// reset to default if saved non-default mode isn't supported
+			optionTextureBufferMode.reset();
+		}
+	}
 	vController.setRenderer(renderer);
+	emuVideo.setRendererTask(renderer.task());
+	emuVideo.setTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val);
+	emuVideo.setImageBuffers(optionVideoImageBuffers);
+	emuVideoLayerPtr = std::make_unique<EmuVideoLayer>(emuVideo, optionImgFilter);
+	auto &emuVideoLayer = *emuVideoLayerPtr;
+	emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
 	emuViewControllerPtr = std::make_unique<EmuViewController>(mainWin, renderer, renderer.task(), vController, emuVideoLayer, emuSystemTask);
 
 	auto compiled = renderer.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
@@ -283,21 +298,6 @@ void mainInitCommon(int argc, char** argv)
 		Input::initMOGA(false);
 	#endif
 	updateInputDevices();
-
-	if(optionTextureBufferMode.val)
-	{
-		auto mode = (Gfx::TextureBufferMode)optionTextureBufferMode.val;
-		if(renderer.makeValidTextureBufferMode(mode) != mode)
-		{
-			// reset to default if saved non-default mode isn't supported
-			optionTextureBufferMode.reset();
-		}
-	}
-	emuVideo.setRendererTask(renderer.task());
-	emuVideo.setTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val);
-	emuVideo.setImageBuffers(optionVideoImageBuffers);
-	emuVideoLayer.setLinearFilter(optionImgFilter);
-	emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
 
 	Base::addOnResume(
 		[](bool focused)

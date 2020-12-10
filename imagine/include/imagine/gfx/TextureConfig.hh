@@ -22,11 +22,15 @@
 namespace Gfx
 {
 
+class TextureSampler;
+
 class TextureConfig
 {
 public:
 	constexpr TextureConfig() {}
-	constexpr TextureConfig(IG::PixmapDesc pixDesc): pixmapDesc_{pixDesc} {}
+	constexpr TextureConfig(IG::PixmapDesc pixDesc, const TextureSampler *compatSampler = {}):
+		compatSampler_{compatSampler}, pixmapDesc_{pixDesc}
+	{}
 
 	void setLevels(uint8_t levels)
 	{
@@ -65,7 +69,18 @@ public:
 		return pixmapDesc_;
 	}
 
+	void setCompatSampler(const TextureSampler *sampler)
+	{
+		compatSampler_ = sampler;
+	}
+
+	const TextureSampler *compatSampler() const
+	{
+		return compatSampler_;
+	}
+
 private:
+	const TextureSampler *compatSampler_{};
 	IG::PixmapDesc pixmapDesc_;
 	uint8_t levels_ = 1;
 	bool genMipmaps = false;

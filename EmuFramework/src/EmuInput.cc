@@ -761,7 +761,7 @@ void updateVControlImg(VController &vController)
 		{
 			logErr("couldn't load overlay png");
 		}
-		overlayImg = r.makePixmapTexture(png);
+		overlayImg = r.makePixmapTexture(png, &r.make(View::imageCommonTextureSampler));
 		vController.setImg(overlayImg);
 	}
 	#endif
@@ -774,7 +774,7 @@ void updateVControlImg(VController &vController)
 		{
 			logErr("couldn't load kb overlay png");
 		}
-		kbOverlayImg = r.makePixmapTexture(png);
+		kbOverlayImg = r.makePixmapTexture(png, &r.make(View::imageCommonTextureSampler));
 		vController.setKeyboardImage(kbOverlayImg);
 	}
 }

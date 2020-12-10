@@ -66,6 +66,7 @@ public:
 	static bool needsBackControl;
 	static const bool needsBackControlDefault = !Config::envIsAndroid;
 	static const bool needsBackControlIsConst = Config::envIsIOS;
+	static constexpr auto imageCommonTextureSampler = Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP;
 
 	View();
 	View(ViewAttachParams attach);

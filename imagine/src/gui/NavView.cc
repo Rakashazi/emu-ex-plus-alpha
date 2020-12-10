@@ -254,7 +254,7 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 		assumeExpr(leftSpr.image());
 		cmds.setBlendMode(BLEND_MODE_ALPHA);
 		cmds.setColor(COLOR_WHITE);
-		cmds.setCommonTextureSampler(CommonTextureSampler::NEAREST_MIP_CLAMP);
+		cmds.set(imageCommonTextureSampler);
 		auto trans = projP.makeTranslate(projP.unProjectRect(control[0].rect).pos(C2DO));
 		if(rotateLeftBtn)
 			trans = trans.rollRotate(angleFromDegree(90));
@@ -266,7 +266,7 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 		assumeExpr(rightSpr.image());
 		cmds.setBlendMode(BLEND_MODE_ALPHA);
 		cmds.setColor(COLOR_WHITE);
-		cmds.setCommonTextureSampler(CommonTextureSampler::NEAREST_MIP_CLAMP);
+		cmds.set(imageCommonTextureSampler);
 		rightSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(control[2].rect).pos(C2DO)));
 		rightSpr.draw(cmds);
 	}

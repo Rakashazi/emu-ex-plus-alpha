@@ -232,6 +232,7 @@ void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferM
 {
 	IG::PixmapDesc pixmapDesc = {pixmapSize, IG::PIXEL_FMT_RGB565};
 	Gfx::TextureConfig texConf{pixmapDesc};
+	texConf.setCompatSampler(&r.make(Gfx::CommonTextureSampler::NO_MIP_CLAMP));
 	const bool canSingleBuffer = r.maxSwapChainImages() < 3 || r.supportsSyncFences();
 	texture = r.makePixmapBufferTexture(texConf, bufferMode, canSingleBuffer);
 	if(!texture)
@@ -246,7 +247,6 @@ void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferM
 	texture.compileDefaultProgram(Gfx::IMG_MODE_REPLACE);
 	texture.compileDefaultProgram(Gfx::IMG_MODE_MODULATE);
 	sprite = {{}, texture};
-	r.makeCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
 }
 
 void DrawTest::placeTest(const Gfx::GCRect &rect)
@@ -266,7 +266,7 @@ void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	cmds.setClipTest(true);
 	cmds.setClipRect(bounds);
 	cmds.setBlendMode(Gfx::BLEND_MODE_OFF);
-	cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
+	cmds.set(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
 	sprite.setCommonProgram(cmds, Gfx::IMG_MODE_MODULATE);
 	if(flash)
 	{
@@ -316,7 +316,7 @@ void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 	cmds.setClipTest(true);
 	cmds.setClipRect(bounds);
 	cmds.setBlendMode(Gfx::BLEND_MODE_OFF);
-	cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
+	cmds.set(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
 	sprite.setCommonProgram(cmds, Gfx::IMG_MODE_REPLACE);
 	sprite.draw(cmds);
 }

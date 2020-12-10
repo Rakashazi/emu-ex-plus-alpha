@@ -137,13 +137,13 @@ IG::ErrorCode GLPixmapBufferTexture::initWithSurfaceTexture(RendererTask &r, Tex
 }
 #endif
 
-IG::ErrorCode PixmapBufferTexture::setFormat(IG::PixmapDesc desc)
+IG::ErrorCode PixmapBufferTexture::setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler)
 {
 	if(unlikely(!directTex))
 		return {EINVAL};
 	if(Config::DEBUG_BUILD && directTex->pixmapDesc() == desc)
 		logWarn("resizing with same dimensions %dx%d, should optimize caller code", desc.w(), desc.h());
-	return directTex->setFormat(desc);
+	return directTex->setFormat(desc, compatSampler);
 }
 
 void PixmapBufferTexture::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags)
@@ -200,6 +200,11 @@ IG::PixmapDesc PixmapBufferTexture::usedPixmapDesc() const
 	if(unlikely(!directTex))
 		return {};
 	return directTex->usedPixmapDesc();
+}
+
+void PixmapBufferTexture::setCompatTextureSampler(const TextureSampler &compatSampler)
+{
+	return directTex->setCompatTextureSampler(compatSampler);
 }
 
 bool PixmapBufferTexture::compileDefaultProgram(uint32_t mode) const
@@ -353,10 +358,10 @@ bool GLTextureStorage::isSingleBuffered() const
 	return bufferIdx == SINGLE_BUFFER_VALUE;
 }
 
-IG::ErrorCode GLTextureStorage::setFormat(IG::PixmapDesc desc)
+IG::ErrorCode GLTextureStorage::setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler)
 {
 	initPixelBuffer(desc, pbo, isSingleBuffered());
-	return PixmapTexture::setFormat(desc, 1);
+	return PixmapTexture::setFormat(desc, 1, compatSampler);
 }
 
 LockedTextureBuffer GLTextureStorage::lock(uint32_t bufferFlags)
@@ -407,11 +412,10 @@ void GLTextureStorage::deinit()
 		{
 			logMsg("deleting PBO:%u", pbo);
 			task().run(
-				[pbo = this->pbo]()
+				[pbo = std::exchange(pbo, 0)]()
 				{
 					glDeleteBuffers(1, &pbo);
 				});
-			pbo = 0;
 		}
 	}
 	else
@@ -490,6 +494,10 @@ LockedTextureBuffer TextureBufferStorage::makeLockedBuffer(void *data, uint32_t 
 	return {nullptr, pix, fullRect, 0, false};
 }
 
+void TextureBufferStorage::setCompatTextureSampler(const TextureSampler &compatSampler)
+{
+	Texture::setCompatTextureSampler(compatSampler);
+}
 
 void TextureBufferStorage::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags)
 {

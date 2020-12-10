@@ -647,7 +647,7 @@ void Renderer::configureRenderer()
 			assert(support.textureSizeSupport.maxXSize > 0 && support.textureSizeSupport.maxYSize > 0);
 
 			printFeatures(support);
-			task().runInitialCommandsInGLThread(ctx, support);
+			task().runInitialCommandsInGL(ctx, support);
 		});
 	support.isConfigured = true;
 }

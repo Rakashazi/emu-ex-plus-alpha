@@ -67,9 +67,11 @@ public:
 	bool setTextureBufferMode(Gfx::TextureBufferMode mode);
 	bool setImageBuffers(unsigned num);
 	unsigned imageBuffers() const;
+	void setCompatTextureSampler(const Gfx::TextureSampler &);
 
 protected:
 	Gfx::RendererTask *rTask{};
+	const Gfx::TextureSampler *texSampler{};
 	Gfx::SyncFence fence{};
 	Gfx::PixmapBufferTexture vidImg{};
 	FrameFinishedDelegate onFrameFinished{};

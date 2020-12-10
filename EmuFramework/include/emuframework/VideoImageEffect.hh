@@ -47,10 +47,11 @@ public:
 	};
 
 	constexpr	VideoImageEffect() {}
-	void setEffect(Gfx::Renderer &r, uint effect, uint bitDepth, bool isExternalTex);
+	void setEffect(Gfx::Renderer &r, uint effect, uint bitDepth, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler);
 	EffectParams effectParams() const;
-	void setImageSize(Gfx::Renderer &r, IG::WP size);
-	void setBitDepth(Gfx::Renderer &r, uint bitDepth);
+	void setImageSize(Gfx::Renderer &r, IG::WP size, const Gfx::TextureSampler &compatTexSampler);
+	void setBitDepth(Gfx::Renderer &r, uint bitDepth, const Gfx::TextureSampler &compatTexSampler);
+	void setCompatTextureSampler(const Gfx::TextureSampler &);
 	Gfx::Program &program();
 	Gfx::Texture &renderTarget();
 	void drawRenderTarget(Gfx::RendererCommands &cmds, const Gfx::Texture &img);
@@ -70,9 +71,9 @@ private:
 	uint8_t effect_ = NO_EFFECT;
 	bool useRGB565RenderTarget = true;
 
-	void initRenderTargetTexture(Gfx::Renderer &r);
+	void initRenderTargetTexture(Gfx::Renderer &r, const Gfx::TextureSampler &compatTexSampler);
 	void updateProgramUniforms(Gfx::Renderer &r);
-	void compile(Gfx::Renderer &r, bool isExternalTex);
+	void compile(Gfx::Renderer &r, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler);
 	std::optional<std::system_error> compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback);
 	void deinitProgram(Gfx::Renderer &r);
 };

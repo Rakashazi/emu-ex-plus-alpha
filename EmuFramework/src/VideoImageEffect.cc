@@ -81,14 +81,14 @@ static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, const char *src, b
 	}
 }
 
-void VideoImageEffect::setEffect(Gfx::Renderer &r, uint effect, uint bitDepth, bool isExternalTex)
+void VideoImageEffect::setEffect(Gfx::Renderer &r, uint effect, uint bitDepth, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler)
 {
 	if(effect == effect_)
 		return;
 	deinit(r);
 	useRGB565RenderTarget = bitDepth <= 16;
 	effect_ = effect;
-	compile(r, isExternalTex);
+	compile(r, isExternalTex, compatTexSampler);
 }
 
 VideoImageEffect::EffectParams VideoImageEffect::effectParams() const
@@ -119,7 +119,7 @@ void VideoImageEffect::deinitProgram(Gfx::Renderer &r)
 	}
 }
 
-void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r)
+void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r, const Gfx::TextureSampler &compatTexSampler)
 {
 	if(!renderTargetScale.x)
 		return;
@@ -127,13 +127,13 @@ void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r)
 	renderTargetImgSize.y = inputImgSize.y * renderTargetScale.y;
 	IG::PixmapDesc renderPix{renderTargetImgSize, useRGB565RenderTarget ? IG::PIXEL_RGB565 : IG::PIXEL_RGBA8888};
 	if(!renderTarget_)
-		renderTarget_ = r.makeTexture({renderPix});
+		renderTarget_ = r.makeTexture({renderPix, &compatTexSampler});
 	else
-		renderTarget_.setFormat(renderPix, 1);
-	r.makeCommonTextureSampler(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
+		renderTarget_.setFormat(renderPix, 1, &compatTexSampler);
+	r.make(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
 }
 
-void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex)
+void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler)
 {
 	if(program())
 		return; // already compiled
@@ -166,7 +166,7 @@ void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex)
 	}
 
 	renderTargetScale = desc->scale;
-	initRenderTargetTexture(r);
+	initRenderTargetTexture(r, compatTexSampler);
 	auto err = compileEffect(r, *desc, isExternalTex, false);
 	if(err)
 	{
@@ -259,7 +259,7 @@ void VideoImageEffect::updateProgramUniforms(Gfx::Renderer &r)
 		r.uniformF(prog, srcPixelsU, inputImgSize.x, inputImgSize.y);
 }
 
-void VideoImageEffect::setImageSize(Gfx::Renderer &r, IG::WP size)
+void VideoImageEffect::setImageSize(Gfx::Renderer &r, IG::WP size, const Gfx::TextureSampler &compatTexSampler)
 {
 	if(size == IG::WP{0, 0})
 		return;
@@ -268,13 +268,13 @@ void VideoImageEffect::setImageSize(Gfx::Renderer &r, IG::WP size)
 	inputImgSize = size;
 	if(program())
 		updateProgramUniforms(r);
-	initRenderTargetTexture(r);
+	initRenderTargetTexture(r, compatTexSampler);
 }
 
-void VideoImageEffect::setBitDepth(Gfx::Renderer &r, uint bitDepth)
+void VideoImageEffect::setBitDepth(Gfx::Renderer &r, uint bitDepth, const Gfx::TextureSampler &compatTexSampler)
 {
 	useRGB565RenderTarget = bitDepth <= 16;
-	initRenderTargetTexture(r);
+	initRenderTargetTexture(r, compatTexSampler);
 }
 
 Gfx::Program &VideoImageEffect::program()
@@ -291,7 +291,14 @@ void VideoImageEffect::drawRenderTarget(Gfx::RendererCommands &cmds, const Gfx::
 {
 	auto viewport = Gfx::Viewport::makeFromRect({0, 0, (int)renderTargetImgSize.x, (int)renderTargetImgSize.y});
 	cmds.setViewport(viewport);
-	cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
+	cmds.set(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
 	Gfx::Sprite spr{{-1., -1., 1., 1.}, {&img, {0., 1., 1., 0.}}};
 	spr.draw(cmds);
+}
+
+void VideoImageEffect::setCompatTextureSampler(const Gfx::TextureSampler &compatTexSampler)
+{
+	if(!renderTarget_)
+		return;
+	renderTarget_.setCompatTextureSampler(compatTexSampler);
 }

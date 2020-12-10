@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureConfig.hh>
+#include "GLTextureSampler.hh"
 #include <imagine/util/typeTraits.hh>
 #ifdef __ANDROID__
 #include <EGL/egl.h>
@@ -71,12 +72,11 @@ public:
 	constexpr GLTexture(RendererTask &rTask):rTask{&rTask} {}
 	~GLTexture();
 	GLuint texName() const;
-	void bindTex(RendererCommands &cmds, const TextureSampler &sampler) const;
+	void bindTex(RendererCommands &cmds) const;
 
 protected:
 	RendererTask *rTask{};
 	TextureRef texName_ = 0;
-	mutable GLuint sampler = 0; // used when separate sampler objects not supported
 	IG::PixmapDesc pixDesc;
 	uint8_t levels_ = 0;
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -90,11 +90,12 @@ protected:
 	void deinit();
 	bool canUseMipmaps(const Renderer &r) const;
 	void updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
-	static void setSwizzleForFormatInGLTask(const Renderer &r, IG::PixelFormatID format, GLuint tex);
+	static void setSwizzleForFormatInGL(const Renderer &r, IG::PixelFormatID format, GLuint tex);
+	static void setSamplerParamsInGL(const Renderer &r, SamplerParams params, GLenum target = GL_TEXTURE_2D);
 	void updateLevelsForMipmapGeneration();
 	GLenum target() const;
 	#ifdef __ANDROID__
-	void setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc);
+	void setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc, SamplerParams samplerParams);
 	#endif
 };
 

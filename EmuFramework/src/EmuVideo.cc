@@ -48,13 +48,13 @@ void EmuVideo::setFormat(IG::PixmapDesc desc)
 	}
 	if(!vidImg)
 	{
-		Gfx::TextureConfig conf{desc};
+		Gfx::TextureConfig conf{desc, texSampler};
 		vidImg = renderer().makePixmapBufferTexture(conf, bufferMode, singleBuffer);
 		vidImg.clear();
 	}
 	else
 	{
-		vidImg.setFormat(desc);
+		vidImg.setFormat(desc, texSampler);
 	}
 	logMsg("resized to:%dx%d", desc.w(), desc.h());
 	onFormatChanged(*this);
@@ -284,4 +284,12 @@ bool EmuVideo::setImageBuffers(unsigned num)
 unsigned EmuVideo::imageBuffers() const
 {
 	return singleBuffer ? 1 : 2;
+}
+
+void EmuVideo::setCompatTextureSampler(const Gfx::TextureSampler &compatTexSampler)
+{
+	texSampler = &compatTexSampler;
+	if(!vidImg)
+		return;
+	vidImg.setCompatTextureSampler(compatTexSampler);
 }

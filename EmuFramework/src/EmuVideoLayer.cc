@@ -26,9 +26,11 @@
 #include "EmuOptions.hh"
 #include <algorithm>
 
-EmuVideoLayer::EmuVideoLayer(EmuVideo &video):
+EmuVideoLayer::EmuVideoLayer(EmuVideo &video, bool useLinearFilter):
 	video{video}
-{}
+{
+	setLinearFilter(useLinearFilter);
+}
 
 void EmuVideoLayer::resetImage()
 {
@@ -37,18 +39,17 @@ void EmuVideoLayer::resetImage()
 	{
 		logMsg("drawing video via render target");
 		disp.setImg(&vidImgEffect.renderTarget());
+		vidImgEffect.setImageSize(video.renderer(), video.size(), *texSampler);
+		video.setCompatTextureSampler(video.renderer().make(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP));
 	}
 	else
 	#endif
 	{
 		logMsg("drawing video texture directly");
 		disp.setImg(video.image());
+		video.setCompatTextureSampler(*texSampler);
 	}
 	compileDefaultPrograms();
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setImageSize(video.renderer(), video.size());
-	#endif
-	setLinearFilter(useLinearFilter);
 }
 
 void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, EmuInputView *inputView)
@@ -253,10 +254,7 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 	{
 		disp.setCommonProgram(cmds, replaceMode ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
 	}
-	if(useLinearFilter)
-		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
-	else
-		cmds.setCommonTextureSampler(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
+	cmds.setTextureSampler(*texSampler);
 	disp.draw(cmds);
 	bool addedFence = video.addFence(cmds);
 	vidImgOverlay.draw(cmds);
@@ -291,13 +289,13 @@ static unsigned effectFormatToBits(IG::PixelFormatID format, EmuVideo &video)
 
 void EmuVideoLayer::setEffectFormat(IG::PixelFormatID fmt)
 {
-	vidImgEffect.setBitDepth(video.renderer(), effectFormatToBits(fmt, video));
+	vidImgEffect.setBitDepth(video.renderer(), effectFormatToBits(fmt, video), *texSampler);
 }
 
 void EmuVideoLayer::placeEffect()
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	vidImgEffect.setImageSize(video.renderer(), video.size());
+	vidImgEffect.setImageSize(video.renderer(), video.size(), *texSampler);
 	#endif
 }
 
@@ -311,7 +309,7 @@ void EmuVideoLayer::setEffect(uint effect, IG::PixelFormatID fmt)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	assert(video.image());
-	vidImgEffect.setEffect(video.renderer(), effect, effectFormatToBits(fmt, video), video.isExternalTexture());
+	vidImgEffect.setEffect(video.renderer(), effect, effectFormatToBits(fmt, video), video.isExternalTexture(), *texSampler);
 	placeEffect();
 	resetImage();
 	#endif
@@ -319,11 +317,17 @@ void EmuVideoLayer::setEffect(uint effect, IG::PixelFormatID fmt)
 
 void EmuVideoLayer::setLinearFilter(bool on)
 {
-	useLinearFilter = on;
-	if(useLinearFilter)
-		video.renderer().makeCommonTextureSampler(Gfx::CommonTextureSampler::NO_MIP_CLAMP);
+	texSampler = &video.renderer().make(on ? Gfx::CommonTextureSampler::NO_MIP_CLAMP : Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	if(vidImgEffect.renderTarget())
+	{
+		vidImgEffect.setCompatTextureSampler(*texSampler);
+	}
 	else
-		video.renderer().makeCommonTextureSampler(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
+	#endif
+	{
+		video.setCompatTextureSampler(*texSampler);
+	}
 }
 
 void EmuVideoLayer::setBrightness(float b)

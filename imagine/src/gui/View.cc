@@ -119,7 +119,7 @@ void View::dismissPrevious()
 
 bool View::compileGfxPrograms(Gfx::Renderer &r)
 {
-	r.makeCommonTextureSampler(Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP);
+	r.make(imageCommonTextureSampler);
 	auto compiled = r.makeCommonProgram(Gfx::CommonProgram::NO_TEX);
 	// for text
 	compiled |= r.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);

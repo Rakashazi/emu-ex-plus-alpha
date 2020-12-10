@@ -49,7 +49,7 @@ AHardwareBufferStorage::AHardwareBufferStorage(RendererTask &r, TextureConfig co
 		Base::loadSymbol(eglGetNativeClientBufferANDROID, {}, "eglGetNativeClientBufferANDROID");
 	}
 	config = baseInit(r, config);
-	auto err = setFormat(config.pixmapDesc());
+	auto err = setFormat(config.pixmapDesc(), config.compatSampler());
 	if(unlikely(err && errorPtr))
 	{
 		*errorPtr = err;
@@ -97,7 +97,7 @@ static AHardwareBuffer *makeAHardwareBuffer(IG::PixmapDesc desc, uint32_t usage)
 	return newBuff;
 }
 
-IG::ErrorCode AHardwareBufferStorage::setFormat(IG::PixmapDesc desc)
+IG::ErrorCode AHardwareBufferStorage::setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler)
 {
 	deinit();
 	if(auto newBuff = makeAHardwareBuffer(desc, allocateUsage);
@@ -122,7 +122,7 @@ IG::ErrorCode AHardwareBufferStorage::setFormat(IG::PixmapDesc desc)
 		logErr("error creating EGL image");
 		return {EINVAL};
 	}
-	setFromEGLImage(desc.size(), eglImg, desc);
+	setFromEGLImage(desc.size(), eglImg, desc, compatSampler ? compatSampler->samplerParams() : SamplerParams{});
 	eglDestroyImageKHR(dpy, eglImg);
 	pitchBytes = hardwareDesc.stride * desc.format().bytesPerPixel();
 	return {};

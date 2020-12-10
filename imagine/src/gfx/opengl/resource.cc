@@ -23,9 +23,9 @@ Texture Renderer::makeTexture(TextureConfig config)
 	return {task(), config};
 }
 
-Texture Renderer::makeTexture(GfxImageSource &img, bool makeMipmaps)
+Texture Renderer::makeTexture(GfxImageSource &img, const TextureSampler *compatSampler, bool makeMipmaps)
 {
-	return {task(), img, makeMipmaps};
+	return {task(), img, compatSampler, makeMipmaps};
 }
 
 PixmapTexture Renderer::makePixmapTexture(TextureConfig config)
@@ -33,9 +33,9 @@ PixmapTexture Renderer::makePixmapTexture(TextureConfig config)
 	return {task(), config};
 }
 
-PixmapTexture Renderer::makePixmapTexture(GfxImageSource &img, bool makeMipmaps)
+PixmapTexture Renderer::makePixmapTexture(GfxImageSource &img, const TextureSampler *compatSampler, bool makeMipmaps)
 {
-	return {task(), img, makeMipmaps};
+	return {task(), img, compatSampler, makeMipmaps};
 }
 
 PixmapBufferTexture Renderer::makePixmapBufferTexture(TextureConfig config, TextureBufferMode mode, bool singleBuffer)
@@ -96,11 +96,12 @@ static TextureSamplerConfig commonTextureSamplerConfig(CommonTextureSampler samp
 	}
 }
 
-void Renderer::makeCommonTextureSampler(CommonTextureSampler sampler)
+TextureSampler &Renderer::makeCommonTextureSampler(CommonTextureSampler sampler)
 {
 	auto &commonSampler = commonTextureSampler(sampler);
 	if(!commonSampler)
 		commonSampler = makeTextureSampler(commonTextureSamplerConfig(sampler));
+	return commonSampler;
 }
 
 }

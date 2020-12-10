@@ -32,7 +32,7 @@ GraphicBufferStorage::GraphicBufferStorage(RendererTask &r, TextureConfig config
 	TextureBufferStorage{r}
 {
 	config = baseInit(r, config);
-	auto err = setFormat(config.pixmapDesc());
+	auto err = setFormat(config.pixmapDesc(), config.compatSampler());
 	if(unlikely(err && errorPtr))
 	{
 		*errorPtr = err;
@@ -52,7 +52,7 @@ GraphicBufferStorage &GraphicBufferStorage::operator=(GraphicBufferStorage &&o)
 	return *this;
 }
 
-IG::ErrorCode GraphicBufferStorage::setFormat(IG::PixmapDesc desc)
+IG::ErrorCode GraphicBufferStorage::setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler)
 {
 	auto androidFormat = Base::toAHardwareBufferFormat(desc.format());
 	assert(androidFormat);
@@ -70,7 +70,7 @@ IG::ErrorCode GraphicBufferStorage::setFormat(IG::PixmapDesc desc)
 		logErr("error creating EGL image");
 		return {EINVAL};
 	}
-	GLPixmapTexture::setFromEGLImage(desc.size(), eglImg, desc);
+	GLPixmapTexture::setFromEGLImage(desc.size(), eglImg, desc, compatSampler ? compatSampler->samplerParams() : SamplerParams{});
 	eglDestroyImageKHR(dpy, eglImg);
 	pitchBytes = gBuff.getStride() * desc.format().bytesPerPixel();
 	return {};

@@ -86,7 +86,7 @@ protected:
 	Base::GLDisplay glDpy{};
 	Drawable drawable{};
 	Viewport currViewport{};
-	const TextureSampler *currSampler{};
+	GLuint currSamplerName{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	GLSLProgram *currProgram{};
 	Mat4 modelMat{}, projectionMat{};
