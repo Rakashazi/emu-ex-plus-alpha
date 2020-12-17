@@ -37,6 +37,11 @@
 #define TFD_CLOEXEC O_CLOEXEC
 #endif
 
+enum
+{
+	TFD_TIMER_ABSTIME = 1 << 0,
+};
+
 static int timerfd_create(clockid_t clock_id, int flags)
 {
 	return syscall(__NR_timerfd_create, clock_id, flags);
@@ -89,7 +94,7 @@ TimerFD::~TimerFD()
 	deinit();
 }
 
-bool TimerFD::arm(timespec time, timespec repeatInterval, EventLoop loop)
+bool TimerFD::arm(timespec time, timespec repeatInterval, int flags, EventLoop loop)
 {
 	if(!fdSrc.hasEventLoop())
 	{
@@ -111,11 +116,8 @@ bool TimerFD::arm(timespec time, timespec repeatInterval, EventLoop loop)
 				return keepTimer;
 			});
 	}
-	logMsg("arming fd:%d (%s) to run in %lds & %ldns, repeat every %lds & %ldns (%s)",
-		fdSrc.fd(), label(), (long)time.tv_sec, (long)time.tv_nsec,
-		(long)repeatInterval.tv_sec, (long)repeatInterval.tv_nsec, label());
 	struct itimerspec newTime{repeatInterval, time};
-	if(timerfd_settime(fdSrc.fd(), 0, &newTime, nullptr) != 0)
+	if(timerfd_settime(fdSrc.fd(), flags, &newTime, nullptr) != 0)
 	{
 		logErr("error in timerfd_settime: %s (%s)", strerror(errno), label());
 		return false;
@@ -131,7 +133,7 @@ void TimerFD::deinit()
 	fdSrc.closeFD();
 }
 
-void Timer::run(Time time, Time repeatTime, EventLoop loop, CallbackDelegate callback)
+void Timer::run(Time time, Time repeatTime, bool isAbsTime, EventLoop loop, CallbackDelegate callback)
 {
 	if(callback)
 		setCallback(callback);
@@ -139,7 +141,13 @@ void Timer::run(Time time, Time repeatTime, EventLoop loop, CallbackDelegate cal
 	long leftoverNs = time.count() % 1000000000;
 	int repeatSeconds = repeatTime.count() / 1000000000;
 	long repeatLeftoverNs = repeatTime.count() % 1000000000;
-	if(!arm({seconds, leftoverNs}, {repeatSeconds, repeatLeftoverNs}, loop))
+	if(Config::DEBUG_BUILD)
+	{
+		IG::FloatSeconds relTime = isAbsTime ? time - IG::steadyClockTimestamp() : time;
+		logMsg("arming fd:%d (%s) to run in:%.4fs repeats:%.4fs",
+			fdSrc.fd(), label(), relTime.count(), IG::FloatSeconds(repeatTime).count());
+	}
+	if(!arm({seconds, leftoverNs}, {repeatSeconds, repeatLeftoverNs}, isAbsTime ? TFD_TIMER_ABSTIME : 0, loop))
 	{
 		logErr("failed to setup timer, OS resources may be low or bad parameters present");
 	}
@@ -155,6 +163,12 @@ void Timer::cancel()
 void Timer::setCallback(CallbackDelegate callback)
 {
 	*callback_ = callback;
+}
+
+void Timer::dispatchEarly()
+{
+	cancel();
+	(*callback_)();
 }
 
 bool Timer::isArmed()

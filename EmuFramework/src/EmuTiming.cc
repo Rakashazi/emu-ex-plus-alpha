@@ -18,14 +18,14 @@
 #include <imagine/logger/logger.h>
 #include <cmath>
 
-uint32_t EmuTiming::advanceFramesWithTime(IG::FrameTime time)
+EmuFrameTimeInfo EmuTiming::advanceFramesWithTime(IG::FrameTime time)
 {
 	if(unlikely(!startFrameTime.count()))
 	{
 		// first frame
 		startFrameTime = time;
 		lastFrame = 0;
-		return 1;
+		return {1, std::chrono::duration_cast<IG::FrameTime>(timePerVideoFrameScaled) + startFrameTime};
 	}
 	assumeExpr(timePerVideoFrame.count() > 0);
 	assumeExpr(startFrameTime.count() > 0);
@@ -34,7 +34,7 @@ uint32_t EmuTiming::advanceFramesWithTime(IG::FrameTime time)
 	uint32_t now = std::round(IG::FloatSeconds(timeTotal) / timePerVideoFrameScaled);
 	auto elapsedFrames = now - lastFrame;
 	lastFrame = now;
-	return elapsedFrames;
+	return {elapsedFrames, std::chrono::duration_cast<IG::FrameTime>(now * timePerVideoFrameScaled) + startFrameTime};
 }
 
 void EmuTiming::setFrameTime(IG::FloatSeconds time)

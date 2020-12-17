@@ -458,7 +458,7 @@ static const char* aInputSourceToStr(uint32_t source)
 	}
 }
 
-void flushEvents()
+void flushSystemEvents()
 {
 	if(AInputQueue_hasEvents(Base::inputQueue))
 	{

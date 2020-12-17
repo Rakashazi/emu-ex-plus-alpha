@@ -27,11 +27,11 @@ CreditsView::CreditsView(ViewAttachParams attach, const char *str):
 		[this](IG::FrameParams params)
 		{
 			postDraw();
-			return fade.update(1);
+			return fade.update(params.timestamp());
 		}
 	}
 {
-	fade.set(0., 1., INTERPOLATOR_TYPE_LINEAR, 20);
+	fade = {0., 1., {}, IG::steadyClockTimestamp(), IG::Milliseconds{320}};
 	screen()->addOnFrame(animate);
 	place();
 }
@@ -44,7 +44,7 @@ void CreditsView::prepareDraw()
 void CreditsView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
-	cmds.setColor(1., 1., 1., fade.now());
+	cmds.setColor(1., 1., 1., fade);
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
 	auto textRect = viewRect();
 	if(IG::isOdd(textRect.ySize()))

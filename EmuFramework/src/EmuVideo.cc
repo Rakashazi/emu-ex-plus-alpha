@@ -258,11 +258,18 @@ void EmuVideo::setOnFormatChanged(FormatChangedDelegate del)
 	onFormatChanged = del;
 }
 
+void EmuVideo::updateNeedsFence()
+{
+	bool usingDoubleBuffer = !singleBuffer && renderer().textureBufferModeCanDoubleBuffer(bufferMode);
+	needsFence = !usingDoubleBuffer && renderer().maxSwapChainImages() > 2;
+}
+
 bool EmuVideo::setTextureBufferMode(Gfx::TextureBufferMode mode)
 {
 	mode = renderer().makeValidTextureBufferMode(mode);
 	bool modeChanged = bufferMode != mode;
 	bufferMode = mode;
+	updateNeedsFence();
 	return modeChanged && vidImg;
 }
 
@@ -276,7 +283,7 @@ bool EmuVideo::setImageBuffers(unsigned num)
 	bool useSingleBuffer = num == 1;
 	bool modeChanged = singleBuffer != useSingleBuffer;
 	singleBuffer = useSingleBuffer;
-	needsFence = singleBuffer && renderer().maxSwapChainImages() > 2;
+	updateNeedsFence();
 	//logDMsg("image buffer count:%d fences:%s", num, needsFence ? "yes" : "no");
 	return modeChanged && vidImg;
 }

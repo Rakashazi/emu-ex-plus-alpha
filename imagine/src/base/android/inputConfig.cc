@@ -661,7 +661,7 @@ void init(JNIEnv *env)
 							auto size = read(fd, buffer, sizeof(buffer));
 							if(Base::appIsRunning())
 							{
-								inputRescanCallback->run(IG::Milliseconds(250));
+								inputRescanCallback->runIn(IG::Milliseconds(250));
 							}
 						}
 						return 1;

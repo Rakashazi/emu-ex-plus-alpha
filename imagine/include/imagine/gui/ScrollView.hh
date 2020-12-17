@@ -46,6 +46,7 @@ protected:
 	Input::SingleDragTracker dragTracker{};
 	VelocityTrackerType velTracker{}; // tracks y velocity as pixels/sec
 	IG::WindowRect scrollBarRect{};
+	IG::FrameTime lastFrameTimestamp{};
 	float scrollVel = 0;
 	float scrollAccel = 0;
 	float offsetAsDec = 0;

@@ -36,6 +36,7 @@ public:
 	DetectFrameRateDelegate onDetectFrameTime;
 	Base::OnFrameDelegate detectFrameRate;
 	Base::FrameTime totalFrameTime{};
+	Base::FrameTime lastFrameTimestamp{};
 	Gfx::Text fpsText;
 	uint allTotalFrames = 0;
 	uint callbacks = 0;
@@ -154,6 +155,7 @@ public:
 
 	void onAddedToController(ViewController *, Input::Event e) final
 	{
+		lastFrameTimestamp = std::chrono::duration_cast<IG::FrameTime>(IG::steadyClockTimestamp());
 		detectFrameRate =
 			[this](IG::FrameParams params)
 			{
@@ -165,7 +167,7 @@ public:
 						postDraw();
 					return true;
 				}
-				return runFrameTimeDetection(params.timestampDiff(), 0.00175);
+				return runFrameTimeDetection(params.timestamp() - std::exchange(lastFrameTimestamp, params.timestamp()), 0.00175);
 			};
 		if(!useRenderTaskTime)
 		{

@@ -528,7 +528,7 @@ void TableView::setDefaultXIndent(Base::Window &win, Gfx::ProjectionPlane projP)
 void TableView::setXIndentMM(float indentMM, Gfx::ProjectionPlane projP)
 {
 	auto indentGC = projP.xSMMSize(indentMM);
-	if(!IG::valIsWithinStretch(indentGC, globalXIndent, 0.00001f))
+	if(!IG::valIsWithinStretch(indentGC, globalXIndent, 0.001f))
 	{
 		logDMsg("setting X indent:%.2fmm (%f as coordinate)", indentMM, indentGC);
 	}

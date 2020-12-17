@@ -33,23 +33,28 @@ SimpleFrameTimer::SimpleFrameTimer(EventLoop loop, Screen &screen):
 		{
 			if(!requested)
 			{
-				return false;
+				if(keepTimer)
+				{
+					// wait one more tick due to simulated vsync inaccuracy
+					keepTimer = false;
+					return true;
+				}
+				else
+				{
+					return false;
+				}
 			}
 			requested = false;
-			Input::flushEvents();
 			auto timestamp = IG::steadyClockTimestamp();
-			if(screen.isPosted())
-			{
-				screen.frameUpdate(timestamp);
-				screen.prevFrameTimestamp = timestamp;
-			}
+			Input::flushEvents();
+			screen.frameUpdate(timestamp);
 			return true;
 		}
 	},
 	eventLoop{loop}
 {
-	assumeExpr(Screen::screen(0)->frameTime().count());
-	interval = std::chrono::duration_cast<IG::Nanoseconds>(Screen::screen(0)->frameTime());
+	assumeExpr(screen.frameTime().count());
+	interval = std::chrono::duration_cast<IG::Nanoseconds>(screen.frameTime());
 }
 
 SimpleFrameTimer::~SimpleFrameTimer() {}
@@ -61,12 +66,18 @@ void SimpleFrameTimer::scheduleVSync()
 		return;
 	}
 	requested = true;
-	timer.runOnce(IG::Nanoseconds(1), interval);
+	keepTimer = true;
+	if(timer.isArmed())
+	{
+		return;
+	}
+	timer.runIn(IG::Nanoseconds(1), interval);
 }
 
 void SimpleFrameTimer::cancel()
 {
 	requested = false;
+	keepTimer = false;
 }
 
 }

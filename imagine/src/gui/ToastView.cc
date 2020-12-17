@@ -83,7 +83,7 @@ void ToastView::contentUpdated(bool error)
 void ToastView::postContent(int secs)
 {
 	postDraw();
-	unpostTimer.run(IG::Seconds{secs});
+	unpostTimer.runIn(IG::Seconds{secs});
 }
 
 void ToastView::post(const char *msg, int secs, bool error)

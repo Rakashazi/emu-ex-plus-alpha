@@ -161,7 +161,7 @@ enum class TextureBufferMode : uint8_t
 
 enum class DrawAsyncMode : uint8_t
 {
-	NONE, PRESENT, FULL
+	AUTO, NONE, PRESENT, FULL
 };
 
 class DrawParams
@@ -180,7 +180,7 @@ public:
 	DrawAsyncMode asyncMode() const { return asyncMode_; }
 
 private:
-	DrawAsyncMode asyncMode_ = DrawAsyncMode::PRESENT;
+	DrawAsyncMode asyncMode_ = DrawAsyncMode::AUTO;
 };
 
 

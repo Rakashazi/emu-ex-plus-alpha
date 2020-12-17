@@ -68,10 +68,10 @@ static void setPickerHandlers(Base::Window &win, Gfx::Renderer &r)
 			task.draw(winData.drawableHolder, win, params, {}, winData.proj.plane().viewport(), winData.proj.matrix(),
 				[](Gfx::DrawableHolder &drawableHolder, Base::Window &win, Gfx::RendererCommands &cmds)
 				{
-					cmds.setClipTest(false);
-					cmds.setClearColor(0, 0, 0);
 					cmds.clear();
 					picker->draw(cmds);
+					cmds.setClipTest(false);
+					cmds.setClearColor(0, 0, 0);
 					cmds.present();
 				});
 			return false;
@@ -83,8 +83,6 @@ static void setActiveTestHandlers(Base::Window &win, Gfx::Renderer &r, Gfx::Draw
 	Base::OnFrameDelegate onFrameUpdate =
 		[&win, &r](Base::FrameParams params)
 		{
-			if(unlikely(!activeTest))
-				return false;
 			auto atOnFrame = IG::steadyClockTimestamp();
 			auto &winData = windowData(win);
 			r.setPresentationTime(winData.drawableHolder, params.presentTime());
@@ -96,6 +94,7 @@ static void setActiveTestHandlers(Base::Window &win, Gfx::Renderer &r, Gfx::Draw
 			{
 				activeTest->started = true;
 			}
+			activeTest->lastFramePresentTime.timestamp = params.timestamp();
 			activeTest->lastFramePresentTime.atOnFrame = atOnFrame;
 			if(activeTest->frames == framesToRun || activeTest->shouldEndTest)
 			{

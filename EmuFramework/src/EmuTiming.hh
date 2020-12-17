@@ -17,10 +17,16 @@
 
 #include <imagine/time/Time.hh>
 
+struct EmuFrameTimeInfo
+{
+	uint32_t advanced;
+	IG::FrameTime presentTime;
+};
+
 class EmuTiming
 {
 public:
-	uint32_t advanceFramesWithTime(IG::FrameTime time);
+	EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);
 	void setFrameTime(IG::FloatSeconds time);
 	void reset();
 	void setSpeedMultiplier(uint8_t newSpeed);

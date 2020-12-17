@@ -25,7 +25,6 @@
 #include <imagine/base/EventLoop.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/GLContext.hh>
-#include <imagine/base/Timer.hh>
 #include <imagine/base/sharedLibrary.hh>
 #include <imagine/util/system/pagesize.h>
 #include <imagine/util/ScopeGuard.hh>
@@ -215,13 +214,6 @@ bool FDEventSource::attach(PollEventDelegate callback, uint32_t events)
 	return attach({}, callback, events);
 }
 
-void Timer::runOnce(Time time, Time repeatTime, EventLoop loop, CallbackDelegate callback)
-{
-	if(isArmed())
-		return;
-	run(time, repeatTime, loop, callback);
-}
-
 IG::PixelFormat GLBufferConfigAttributes::pixelFormat() const
 {
 	if(!pixelFormat_)
@@ -282,31 +274,25 @@ void *loadSymbol(SharedLibraryRef lib, const char *name)
 namespace IG
 {
 
-FrameTime FrameParams::timestampDiff() const
-{
-	assumeExpr(timestamp_ >= lastTimestamp_);
-	return lastTimestamp_.count() ? timestamp_ - lastTimestamp_ : FrameTime{};
-}
-
 FrameTime FrameParams::presentTime() const
 {
 	return timestamp_ + std::chrono::duration_cast<FrameTime>(frameTime_);
 }
 
-uint32_t FrameParams::elapsedFrames() const
+uint32_t FrameParams::elapsedFrames(FrameTime lastTimestamp) const
 {
-	if(!lastTimestamp_.count())
-		return 1;
-	assumeExpr(timestamp_ >= lastTimestamp_);
-	assumeExpr(frameTime_.count() > 0);
-	FrameTime diff = timestamp_ - lastTimestamp_;
-	uint32_t elapsed = std::round(FloatSeconds(diff) / frameTime_);
-	return std::max(elapsed, 1u);
+	return elapsedFrames(timestamp_, lastTimestamp, frameTime_);
 }
 
-uint32_t FrameParams::elapsedFrames(uint32_t frameCap) const
+uint32_t FrameParams::elapsedFrames(FrameTime timestamp, FrameTime lastTimestamp, FloatSeconds frameTime)
 {
-	return std::min(elapsedFrames(), frameCap);
+	if(!lastTimestamp.count())
+		return 1;
+	assumeExpr(timestamp >= lastTimestamp);
+	assumeExpr(frameTime.count() > 0);
+	FrameTime diff = timestamp - lastTimestamp;
+	uint32_t elapsed = std::round(FloatSeconds(diff) / frameTime);
+	return std::max(elapsed, 1u);
 }
 
 void setThisThreadPriority(int nice)

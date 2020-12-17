@@ -194,7 +194,7 @@ public:
 	GLCommonPrograms commonProgram{};
 	GLCommonSamplers commonSampler{};
 	Base::CustomEvent releaseShaderCompilerEvent{Base::CustomEvent::NullInit{}};
-	TimedInterpolator<Gfx::GC> projAngleM;
+	InterpolatorValue<Gfx::GC, IG::FrameTime, InterpolatorType::EASEOUTQUAD> projAngleM;
 	Angle projectionMatRot = 0;
 	IG_enableMemberIf(Config::Gfx::OPENGL_SHADER_PIPELINE, GLuint, defaultVShader){};
 	IG_enableMemberIf(Config::Gfx::OPENGL_ES > 1, uint8_t, glMajorVer){};

@@ -39,10 +39,10 @@ public:
 	explicit constexpr Timer(NullInit) {}
 	Timer() : Timer{CallbackDelegate{}} {}
 	Timer(const char *debugLabel): Timer{debugLabel, CallbackDelegate{}} {}
-	void run(Time time, Time repeatTime, EventLoop loop = {}, CallbackDelegate c = {});
-	void runOnce(Time time, Time repeatTime, EventLoop loop = {}, CallbackDelegate c = {});
+	void run(Time time, Time repeatTime, bool isAbsoluteTime = false, EventLoop loop = {}, CallbackDelegate c = {});
 	void cancel();
 	void setCallback(CallbackDelegate c);
+	void dispatchEarly();
 	bool isArmed();
 	explicit operator bool() const;
 
@@ -63,33 +63,33 @@ public:
 	}
 
 	template<class Time1, class Time2, class Func = CallbackDelegate>
-	void run(Time1 time, Time2 repeatTime, EventLoop loop = {}, Func &&c = nullptr)
+	void runIn(Time1 time, Time2 repeatTime, EventLoop loop = {}, Func &&c = nullptr)
 	{
 		run(std::chrono::duration_cast<Time>(time),
-			std::chrono::duration_cast<Time>(repeatTime),
+			std::chrono::duration_cast<Time>(repeatTime), false,
 			loop, wrapCallbackDelegate(std::forward<Func>(c)));
 	}
 
 	template<class Time1, class Time2, class Func = CallbackDelegate>
-	void runOnce(Time1 time, Time2 repeatTime, EventLoop loop = {}, Func &&c = nullptr)
+	void runAt(Time1 time, Time2 repeatTime, EventLoop loop = {}, Func &&c = nullptr)
 	{
-		runOnce(std::chrono::duration_cast<Time>(time),
-			std::chrono::duration_cast<Time>(repeatTime),
+		run(std::chrono::duration_cast<Time>(time),
+			std::chrono::duration_cast<Time>(repeatTime), true,
 			loop, wrapCallbackDelegate(std::forward<Func>(c)));
 	}
 
 	// non-repeating timer
 	template<class Time1, class Func = CallbackDelegate>
-	void run(Time1 time, EventLoop loop = {}, Func &&c = nullptr)
+	void runIn(Time1 time, EventLoop loop = {}, Func &&c = nullptr)
 	{
-		run(std::chrono::duration_cast<Time>(time), Time{},
+		run(std::chrono::duration_cast<Time>(time), Time{}, false,
 			loop, wrapCallbackDelegate(std::forward<Func>(c)));
 	}
 
 	template<class Time1, class Func = CallbackDelegate>
-	void runOnce(Time1 time, EventLoop loop = {}, Func &&c = nullptr)
+	void runAt(Time1 time, EventLoop loop = {}, Func &&c = nullptr)
 	{
-		runOnce(std::chrono::duration_cast<Time>(time), Time{},
+		run(std::chrono::duration_cast<Time>(time), Time{}, true,
 			loop, wrapCallbackDelegate(std::forward<Func>(c)));
 	}
 

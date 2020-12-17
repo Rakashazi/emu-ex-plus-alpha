@@ -42,7 +42,7 @@ ScrollView::ScrollView(NameString name, ViewAttachParams attach):
 	{
 		[this](IG::FrameParams params)
 		{
-			auto frames = params.elapsedFrames(200);
+			auto frames = params.elapsedFrames(std::exchange(lastFrameTimestamp, params.timestamp()));
 			auto prevOffset = offset;
 			if(scrollVel) // scrolling deceleration
 			{
@@ -87,6 +87,7 @@ ScrollView::ScrollView(NameString name, ViewAttachParams attach):
 			}
 			if(offset != prevOffset)
 				postDraw();
+			lastFrameTimestamp = {};
 			return false;
 		}
 	}
@@ -242,6 +243,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 			}
 			if(scrollVel || isOverScrolled())
 			{
+				overScrollVelScale = OVER_SCROLL_VEL_SCALE / screen()->frameRate();
 				screen()->addOnFrame(animate);
 			}
 			else
@@ -266,5 +268,6 @@ int ScrollView::scrollOffset() const
 
 void ScrollView::stopScrollAnimation()
 {
+	lastFrameTimestamp = {};
 	screen()->removeOnFrame(animate);
 }

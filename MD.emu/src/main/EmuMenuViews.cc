@@ -264,16 +264,14 @@ class CustomSystemOptionView : public SystemOptionView
 		}
 	}
 
-	char cdBiosPathStr[3][256]{};
 	TextMenuItem cdBiosPath[3]
 	{
-		{cdBiosPathStr[0], [this](TextMenuItem &, View &, Input::Event e){ cdBiosPathHandler(e, REGION_USA); }},
-		{cdBiosPathStr[1], [this](TextMenuItem &, View &, Input::Event e){ cdBiosPathHandler(e, REGION_JAPAN_NTSC); }},
-		{cdBiosPathStr[2], [this](TextMenuItem &, View &, Input::Event e){ cdBiosPathHandler(e, REGION_EUROPE); }}
+		{{}, [this](Input::Event e){ cdBiosPathHandler(e, REGION_USA); }},
+		{{}, [this](Input::Event e){ cdBiosPathHandler(e, REGION_JAPAN_NTSC); }},
+		{{}, [this](Input::Event e){ cdBiosPathHandler(e, REGION_EUROPE); }}
 	};
 
-	template <size_t S>
-	static void printBiosMenuEntryStr(char (&str)[S], int region)
+	static std::array<char, 256> makeBiosMenuEntryStr(int region)
 	{
 		const char *path = "";
 		switch(region)
@@ -283,7 +281,7 @@ class CustomSystemOptionView : public SystemOptionView
 			bcase REGION_EUROPE: path = cdBiosEurPath.data();
 		}
 		const char *regionStr = biosHeadingStr[regionCodeToIdx(region)];
-		string_printf(str, "%s: %s", regionStr, strlen(path) ? FS::basename(path).data() : "None set");
+		return string_makePrintf<256>("%s: %s", regionStr, strlen(path) ? FS::basename(path).data() : "None set");
 	}
 
 	void cdBiosPathHandler(Input::Event e, int region)
@@ -293,7 +291,7 @@ class CustomSystemOptionView : public SystemOptionView
 			{
 				auto idx = regionCodeToIdx(region);
 				logMsg("set bios at idx %d to %s", idx, regionCodeToStrBuffer(region).data());
-				printBiosMenuEntryStr(cdBiosPathStr[idx], region);
+				cdBiosPath[idx].setName(makeBiosMenuEntryStr(region).data());
 				cdBiosPath[idx].compile(renderer(), projP);
 			},
 			hasMDExtension);
@@ -305,7 +303,7 @@ class CustomSystemOptionView : public SystemOptionView
 		const int region[3]{REGION_USA, REGION_JAPAN_NTSC, REGION_EUROPE};
 		iterateTimes(3, i)
 		{
-			printBiosMenuEntryStr(cdBiosPathStr[i], region[i]);
+			cdBiosPath[i].setName(makeBiosMenuEntryStr(region[i]).data());
 			item.emplace_back(&cdBiosPath[i]);
 		}
 	}

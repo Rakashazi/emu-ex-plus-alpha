@@ -35,8 +35,8 @@ public:
 	Gfx::Viewport viewport() const;
 
 protected:
-	TimedInterpolator<int> animator[4];
-	Base::OnFrameDelegate animate;
+	IG::InterpolatorValue<int, IG::FrameTime, IG::InterpolatorType::EASEINOUTQUAD> animator[4]{};
+	Base::OnFrameDelegate animate{};
 	Base::Window *win{};
 };
 

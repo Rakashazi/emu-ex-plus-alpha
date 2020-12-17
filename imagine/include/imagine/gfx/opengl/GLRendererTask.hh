@@ -59,6 +59,7 @@ public:
 	bool handleDrawableReset();
 	void runInitialCommandsInGL(TaskContext ctx, DrawContextSupport &support);
 	void setRenderer(Renderer *r);
+	void setDrawAsyncMode(DrawAsyncMode);
 	void verifyCurrentContext(Base::GLDisplay glDpy) const;
 	RendererCommands makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
 		DrawableHolder &drawableHolder, Base::Window &win, Viewport viewport, Mat4 projMat);
@@ -71,6 +72,7 @@ public:
 		const Viewport &viewport, const Mat4 &projMat, Func &&del)
 	{
 		doPreDraw(drawableHolder, win, winParams, params);
+		assert(params.asyncMode() != DrawAsyncMode::AUTO); // doPreDraw() should set mode
 		bool manageSemaphore = params.asyncMode() == DrawAsyncMode::PRESENT;
 		bool awaitReply = params.asyncMode() != DrawAsyncMode::FULL;
 		run([=, this, &drawableHolder, &win, &viewport, &projMat](TaskContext ctx)
@@ -95,6 +97,7 @@ protected:
 	IG_enableMemberIf(Config::Gfx::GLDRAWABLE_NEEDS_FRAMEBUFFER, GLuint, defaultFB){};
 	GLuint fbo = 0;
 	bool resetDrawable = false;
+	DrawAsyncMode autoDrawAsyncMode = DrawAsyncMode::NONE;
 	IG_enableMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, debugEnabled){};
 
 	void doPreDraw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params);

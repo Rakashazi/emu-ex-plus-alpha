@@ -186,6 +186,17 @@ bool dispatchInputEvent(Input::Event event)
 	return Base::mainWindow().dispatchInputEvent(event);
 }
 
+void flushEvents()
+{
+	flushSystemEvents();
+	flushInternalEvents();
+}
+
+void flushInternalEvents()
+{
+	// TODO
+}
+
 static Key keyToICadeOnKey(Key key)
 {
 	switch(key)

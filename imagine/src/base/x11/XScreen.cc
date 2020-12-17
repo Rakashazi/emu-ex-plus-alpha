@@ -151,10 +151,6 @@ void Screen::postFrame()
 	//logMsg("posting frame");
 	framePosted = true;
 	frameTimerScheduleVSync();
-	if(!inFrameHandler)
-	{
-		prevFrameTimestamp = {};
-	}
 }
 
 void Screen::unpostFrame()

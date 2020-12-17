@@ -31,6 +31,14 @@
 #define EGL_NO_CONFIG_KHR ((EGLConfig)0)
 #endif
 
+#ifndef EGL_CONTEXT_OPENGL_NO_ERROR_KHR
+#define EGL_CONTEXT_OPENGL_NO_ERROR_KHR 0x31B3
+#endif
+
+#ifndef EGL_TRIPLE_BUFFER_NV
+#define EGL_TRIPLE_BUFFER_NV 0x3230
+#endif
+
 namespace Base
 {
 
@@ -43,6 +51,8 @@ static constexpr bool CAN_USE_DEBUG_CONTEXT = !Config::MACHINE_IS_PANDORA;
 static uint8_t eglVersion = 0;
 static bool supportsSurfaceless = false;
 static bool supportsNoConfig = false;
+static bool supportsNoError = false;
+static bool supportsTripleBufferSurfaces = false;
 static bool hasDummyPbuffConfig = false;
 static EGLConfig dummyPbuffConfig{};
 using EGLAttrList = StaticArrayList<int, 24>;
@@ -139,6 +149,12 @@ static EGLContextAttrList glContextAttrsToEGLAttrs(GLContextAttributes attr)
 	{
 		list.push_back(EGL_CONTEXT_FLAGS_KHR);
 		list.push_back(EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR);
+	}
+
+	if(!attr.debug() && supportsNoError)
+	{
+		list.push_back(EGL_CONTEXT_OPENGL_NO_ERROR_KHR);
+		list.push_back(EGL_TRUE);
 	}
 
 	list.push_back(EGL_NONE);
@@ -390,7 +406,7 @@ GLDisplay GLDisplay::getDefault(API api)
 	return getDefault();
 }
 
-static void printFeatures(bool supportsSurfaceless, bool supportsNoConfig)
+static void printFeatures(bool supportsSurfaceless, bool supportsNoConfig, bool supportsNoError, bool supportsTripleBufferSurfaces)
 {
 	if(!Config::DEBUG_BUILD)
 		return;
@@ -403,6 +419,14 @@ static void printFeatures(bool supportsSurfaceless, bool supportsNoConfig)
 	if(supportsNoConfig)
 	{
 		featuresStr.append(" [No Config]");
+	}
+	if(supportsNoError)
+	{
+		featuresStr.append(" [No Error Mode]");
+	}
+	if(supportsTripleBufferSurfaces)
+	{
+		featuresStr.append(" [Triple Buffer Surfaces]");
 	}
 
 	if(featuresStr.empty())
@@ -425,7 +449,12 @@ IG::ErrorCode EGLDisplayConnection::initDisplay(EGLDisplay display)
 		auto extStr = eglQueryString(display, EGL_EXTENSIONS);
 		supportsSurfaceless = eglVersion >= 15 || strstr(extStr, "EGL_KHR_surfaceless_context");
 		supportsNoConfig = strstr(extStr, "EGL_KHR_no_config_context");
-		printFeatures(supportsSurfaceless, supportsNoConfig);
+		supportsNoError = strstr(extStr, "EGL_KHR_create_context_no_error");
+		if(Config::envIsLinux)
+		{
+			supportsTripleBufferSurfaces = strstr(extStr, "EGL_NV_triple_buffer");
+		}
+		printFeatures(supportsSurfaceless, supportsNoConfig, supportsNoError, supportsTripleBufferSurfaces);
 	}
 	if(!HAS_DISPLAY_REF_COUNT)
 	{
@@ -497,11 +526,22 @@ bool GLDisplay::deinit()
 	return eglTerminate(dpy);
 }
 
+static const EGLint *windowSurfaceAttribs()
+{
+	if(Config::envIsLinux && supportsTripleBufferSurfaces)
+	{
+		// request triple-buffering on Nvidia GPUs
+		static const EGLint tripleBufferAttribs[]{EGL_RENDER_BUFFER, EGL_TRIPLE_BUFFER_NV, EGL_NONE};
+		return tripleBufferAttribs;
+	}
+	return nullptr;
+}
+
 std::pair<IG::ErrorCode, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBufferConfig config) const
 {
 	auto surface = eglCreateWindowSurface(display, config.glConfig,
 		Config::MACHINE_IS_PANDORA ? (EGLNativeWindowType)0 : (EGLNativeWindowType)win.nativeObject(),
-		nullptr);
+		windowSurfaceAttribs());
 	if(surface == EGL_NO_SURFACE)
 	{
 		return {{EINVAL}, {}};

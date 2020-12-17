@@ -102,7 +102,7 @@ bool EmuSystem::shouldOverwriteExistingState()
 	return !optionConfirmOverwriteState || !EmuSystem::stateExists(EmuSystem::saveStateSlot);
 }
 
-uint32_t EmuSystem::advanceFramesWithTime(Base::FrameTime time)
+EmuFrameTimeInfo EmuSystem::advanceFramesWithTime(Base::FrameTime time)
 {
 	return emuTiming.advanceFramesWithTime(time);
 }

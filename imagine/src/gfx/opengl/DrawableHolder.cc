@@ -64,11 +64,6 @@ DrawableHolder::operator bool() const
 
 bool DrawableHolder::addOnFrame(Base::OnFrameDelegate del, int priority)
 {
-	if(!onFrame.size())
-	{
-		// reset time-stamp when first delegate is added
-		lastTimestamp = {};
-	}
 	return onFrame.add(del, priority);
 }
 
@@ -80,9 +75,8 @@ bool DrawableHolder::removeOnFrame(Base::OnFrameDelegate del)
 void DrawableHolder::dispatchOnFrame()
 {
 	auto now = IG::steadyClockTimestamp();
-	FrameParams frameParams{now, lastTimestamp, screen->frameTime()};
+	FrameParams frameParams{now, screen->frameTime()};
 	onFrame.runAll([&](Base::OnFrameDelegate del){ return del(frameParams); });
-	lastTimestamp = now;
 }
 
 void GLDrawableHolder::makeDrawable(RendererTask &rTask, Base::Window &win)
@@ -152,7 +146,6 @@ void GLDrawableHolder::destroyDrawable()
 	Base::removeOnExit(onResume);
 	Base::removeOnExit(onExit);
 	drawFinishedEvent.detach();
-	lastTimestamp = {};
 }
 
 void GLDrawableHolder::notifyOnFrame()

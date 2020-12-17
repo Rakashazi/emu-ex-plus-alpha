@@ -74,14 +74,13 @@ static void doOnFrame(T *timerObjPtr, int64_t frameTimeNanos)
 	IG::Nanoseconds frameTime{frameTimeNanos};
 	mainScreen().startDebugFrameStats(frameTime);
 	timerObjPtr->unsetRequested(); // Choreographer callbacks are one-shot
-	Input::flushEvents();
+	Input::flushInternalEvents();
 	iterateTimes(Screen::screens(), i)
 	{
 		auto s = Screen::screen(i);
 		if(s->isPosted())
 		{
 			s->frameUpdate(frameTime);
-			s->prevFrameTimestamp = frameTime;
 		}
 	}
 	mainScreen().endDebugFrameStats();

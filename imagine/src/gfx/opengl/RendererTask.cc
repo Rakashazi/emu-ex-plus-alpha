@@ -93,6 +93,11 @@ void GLRendererTask::setRenderer(Renderer *r_)
 	r = r_;
 }
 
+void GLRendererTask::setDrawAsyncMode(DrawAsyncMode mode)
+{
+	autoDrawAsyncMode = mode;
+}
+
 Renderer &RendererTask::renderer() const
 {
 	return *r;
@@ -162,6 +167,10 @@ void GLRendererTask::doPreDraw(DrawableHolder &drawableHolder, Base::Window &win
 	if(unlikely(!drawableHolder))
 	{
 		drawableHolder.makeDrawable(*static_cast<RendererTask*>(this), win);
+	}
+	if(params.asyncMode() == DrawAsyncMode::AUTO)
+	{
+		params.setAsyncMode(autoDrawAsyncMode);
 	}
 	if(unlikely(winParams.needsSync()))
 	{

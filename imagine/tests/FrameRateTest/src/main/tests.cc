@@ -121,7 +121,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 		}
 		else
 		{
-			auto elapsedScreenFrames = frameParams.elapsedFrames();
+			auto elapsedScreenFrames = frameParams.elapsedFrames(lastFramePresentTime.timestamp);
 			//logMsg("elapsed: %d", screen.elapsedFrames(frameTime));
 			if(elapsedScreenFrames > 1)
 			{
@@ -129,7 +129,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 
 				droppedFrames++;
 				string_printf(skippedFrameStr, "Lost %u frame(s) taking %.3fs after %u continuous\nat time %.3fs",
-					elapsedScreenFrames - 1, IG::FloatSeconds(timestamp - frameParams.lastTimestamp()).count(),
+					elapsedScreenFrames - 1, IG::FloatSeconds(timestamp - lastFramePresentTime.timestamp).count(),
 					continuousFrames, IG::FloatSeconds(timestamp).count());
 				updatedFrameStats = true;
 				continuousFrames = 0;
@@ -140,7 +140,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 			string_printf(statsStr, "Total Draw Time: %02lums (%02ums)\nTimestamp Diff: %02lums",
 				(unsigned long)std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count(),
 				lostFrameProcessTime,
-				(unsigned long)std::chrono::duration_cast<IG::Milliseconds>(frameParams.timestampDiff()).count());
+				(unsigned long)std::chrono::duration_cast<IG::Milliseconds>(timestamp - lastFramePresentTime.timestamp).count());
 			updatedFrameStats = true;
 		}
 		if(updatedFrameStats)

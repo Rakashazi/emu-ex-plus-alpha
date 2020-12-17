@@ -46,7 +46,7 @@ DRMFrameTimer::DRMFrameTimer(EventLoop loop, Screen &screen)
 		if(int err = drmWaitVBlank(fd, &vbl);
 			err)
 		{
-			logErr("error in drmWaitVBlank, cannot use frame timer");
+			logErr("error in drmWaitVBlank:%s, cannot use frame timer", std::system_category().message(errno).c_str());
 			close(fd);
 			return;
 		}
@@ -79,7 +79,6 @@ DRMFrameTimer::DRMFrameTimer(EventLoop loop, Screen &screen)
 			if(screen.isPosted())
 			{
 				screen.frameUpdate(timestamp);
-				screen.prevFrameTimestamp = timestamp;
 			}
 			return 1;
 		}};

@@ -31,6 +31,6 @@ public:
 
 private:
 	Gfx::Text text{};
-	TimedInterpolator<float> fade{};
+	IG::InterpolatorValue<float, IG::FrameTime, IG::InterpolatorType::LINEAR> fade{};
 	Base::OnFrameDelegate animate{};
 };

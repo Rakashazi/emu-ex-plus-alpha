@@ -170,6 +170,8 @@ bool keyInputIsPresent();
 
 bool dispatchInputEvent(Event event);
 void flushEvents();
+void flushSystemEvents();
+void flushInternalEvents();
 void startKeyRepeatTimer(Event event);
 void cancelKeyRepeatTimer();
 void deinitKeyRepeatTimer();

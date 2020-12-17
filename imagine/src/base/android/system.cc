@@ -144,7 +144,7 @@ void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
 	JavaInstMethod<void(jstring)> jMakeErrorPopup{env, jBaseActivityCls, "makeErrorPopup", "(Ljava/lang/String;)V"};
 	jMakeErrorPopup(env, jBaseActivity, env->NewStringUTF(msg.data()));
 	auto exitTimer = new Timer{"exitTimer", [=]() { exit(exitVal); }};
-	exitTimer->run(IG::Seconds{3});
+	exitTimer->runIn(IG::Seconds{3});
 }
 
 }

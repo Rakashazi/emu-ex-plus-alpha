@@ -59,7 +59,6 @@ public:
 	bool containsOnFrame(OnFrameDelegate del);
 	uint32_t onFrameDelegates();
 	bool runningOnFrameDelegates();
-	FrameTime lastFrameTimestamp() const { return prevFrameTimestamp; }
 	FrameParams makeFrameParams(FrameTime timestamp) const;
 	bool frameRateIsReliable() const;
 	double frameRate() const;
@@ -71,7 +70,6 @@ public:
 	static bool supportsTimestamps();
 
 	// for internal use
-	FrameTime prevFrameTimestamp{};
 	static ChangeDelegate onChange;
 
 	static void addScreen(Screen *s);

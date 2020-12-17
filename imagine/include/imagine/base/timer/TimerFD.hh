@@ -43,7 +43,7 @@ protected:
 	FDEventSource fdSrc{};
 
 	void deinit();
-	bool arm(timespec ms, timespec repeatInterval, EventLoop loop);
+	bool arm(timespec ms, timespec repeatInterval, int flags, EventLoop loop);
 	const char *label();
 };
 

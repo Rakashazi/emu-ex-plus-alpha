@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "AnimatedViewport"
 #include <imagine/gfx/AnimatedViewport.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
@@ -27,33 +28,33 @@ void AnimatedViewport::start(Base::Window &w, Gfx::Viewport begin, Gfx::Viewport
 	win = &w;
 	if(begin == end)
 	{
-		animator[0].set(end.bounds().x);
-		animator[1].set(end.bounds().y);
-		animator[2].set(end.bounds().x2);
-		animator[3].set(end.bounds().y2);
+		animator[0] = {end.bounds().x};
+		animator[1] = {end.bounds().y};
+		animator[2] = {end.bounds().x2};
+		animator[3] = {end.bounds().y2};
 		return;
 	}
 	logMsg("animating from viewport %d:%d:%d:%d to %d:%d:%d:%d",
 		begin.bounds().x, begin.bounds().y, begin.bounds().x2, begin.bounds().y2,
 		end.bounds().x, end.bounds().y, end.bounds().x2, end.bounds().y2);
-	auto type = INTERPOLATOR_TYPE_EASEINOUTQUAD;
-	int time = (10. * w.screen()->frameRate())/60.;
-	animator[0].set(begin.bounds().x, end.bounds().x, type, time);
-	animator[1].set(begin.bounds().y, end.bounds().y, type, time);
-	animator[2].set(begin.bounds().x2, end.bounds().x2, type, time);
-	animator[3].set(begin.bounds().y2, end.bounds().y2, type, time);
+	auto now = IG::steadyClockTimestamp();
+	IG::FrameTime duration{IG::Milliseconds{165}};
+	animator[0] = {begin.bounds().x, end.bounds().x, {}, now, duration};
+	animator[1] = {begin.bounds().y, end.bounds().y, {}, now, duration};
+	animator[2] = {begin.bounds().x2, end.bounds().x2, {}, now, duration};
+	animator[3] = {begin.bounds().y2, end.bounds().y2, {}, now, duration};
 	win->setNeedsCustomViewportResize(true);
 	animate =
 		[this](IG::FrameParams params)
 		{
-			auto frames = params.elapsedFrames(200);
+			bool updating{};
 			for(auto &d : animator)
 			{
-				d.update(frames);
+				updating |= d.update(params.timestamp());
 			}
 			win->setNeedsCustomViewportResize(true);
 			win->postDraw();
-			if(animator[0].isComplete())
+			if(!updating)
 			{
 				animate = {};
 				return false;
@@ -69,15 +70,15 @@ void AnimatedViewport::start(Base::Window &w, Gfx::Viewport begin, Gfx::Viewport
 void AnimatedViewport::finish()
 {
 	cancel();
-	animator[0].set(animator[0].destVal);
-	animator[1].set(animator[1].destVal);
-	animator[2].set(animator[2].destVal);
-	animator[3].set(animator[3].destVal);
+	animator[0].finish();
+	animator[1].finish();
+	animator[2].finish();
+	animator[3].finish();
 }
 
 bool AnimatedViewport::isFinished() const
 {
-	return animator[0].isComplete();
+	return animator[0].isFinished();
 }
 
 void AnimatedViewport::cancel()
@@ -93,7 +94,7 @@ void AnimatedViewport::cancel()
 Gfx::Viewport AnimatedViewport::viewport() const
 {
 	return win ? Gfx::Viewport::makeFromWindow(*win,
-		{animator[0].now(), animator[1].now(), animator[2].now(), animator[3].now()}) : Gfx::Viewport{};
+		{animator[0], animator[1], animator[2], animator[3]}) : Gfx::Viewport{};
 }
 
 }

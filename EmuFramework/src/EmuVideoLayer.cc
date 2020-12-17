@@ -256,10 +256,8 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 	}
 	cmds.setTextureSampler(*texSampler);
 	disp.draw(cmds);
-	bool addedFence = video.addFence(cmds);
+	video.addFence(cmds);
 	vidImgOverlay.draw(cmds);
-	if(addedFence)
-		cmds.flush();
 }
 
 void EmuVideoLayer::setOverlay(uint effect)

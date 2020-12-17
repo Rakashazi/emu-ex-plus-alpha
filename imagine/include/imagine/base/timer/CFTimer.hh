@@ -47,7 +47,7 @@ protected:
 	CFRunLoopTimerRef timer{};
 	std::unique_ptr<CFTimerInfo> info{};
 
-	void callbackInCFAbsoluteTime(CFAbsoluteTime relTime, CFTimeInterval repeatInterval, CFRunLoopRef loop);
+	void callbackInCFAbsoluteTime(CFAbsoluteTime absTime, CFTimeInterval repeatInterval, CFRunLoopRef loop);
 	void deinit();
 	const char *label();
 };

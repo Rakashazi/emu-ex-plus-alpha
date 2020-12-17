@@ -17,6 +17,7 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/thread/Thread.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include "FBDevFrameTimer.hh"
 #include <unistd.h>
@@ -68,16 +69,8 @@ FBDevFrameTimer::FBDevFrameTimer(EventLoop loop, Screen &screen)
 				return true; // frame request was cancelled
 			}
 			assert(screen.isPosted());
-			assumeExpr(timestamp >= (eventfd_t)screen.prevFrameTimestamp.count());
-			if(screen.prevFrameTimestamp.count())
-			{
-				/*logDMsg("%lunsecs since last frame (%lu - %lu)",
-					(long unsigned int)(timestamp - screen.prevFrameTimestamp),
-					(long unsigned int)(timestamp),
-					(long unsigned int)(screen.prevFrameTimestamp));*/
-			}
+			Input::flushEvents();
 			screen.frameUpdate(IG::Nanoseconds(timestamp));
-			screen.prevFrameTimestamp = IG::Nanoseconds(timestamp);
 			return true;
 		}};
 	IG::makeDetachedThread(

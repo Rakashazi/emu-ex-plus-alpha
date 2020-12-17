@@ -48,7 +48,8 @@ protected:
 	Timer timer;
 	EventLoop eventLoop{};
 	IG::Nanoseconds interval{};
-	bool requested = false;
+	bool requested{};
+	bool keepTimer{};
 };
 
 }

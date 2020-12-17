@@ -133,7 +133,7 @@ class OnScreenInputPlaceView : public View
 	};
 	Gfx::Text text{};
 	VController &vController;
-	TimedInterpolator<float> textFade{};
+	IG::InterpolatorValue<float, IG::FrameTime, IG::InterpolatorType::LINEAR> textFade{};
 	Base::Timer animationStartTimer{"OnScreenInputPlaceView::animationStartTimer"};
 	Base::OnFrameDelegate animate{};
 	IG::WindowRect exitBtnRect{};
@@ -158,17 +158,17 @@ OnScreenInputPlaceView::OnScreenInputPlaceView(ViewAttachParams attach, VControl
 		{
 			postDraw();
 			//logMsg("updating fade");
-			return textFade.update(1);
+			return textFade.update(params.timestamp());
 		}
 	}
 {
 	applyOSNavStyle(true);
-	textFade.set(1.);
-	animationStartTimer.run(IG::Seconds{2}, {},
+	textFade = {1.};
+	animationStartTimer.runIn(IG::Seconds{2}, {},
 		[this]()
 		{
 			logMsg("starting fade");
-			textFade.set(1., 0., INTERPOLATOR_TYPE_LINEAR, 25);
+			textFade = {1., 0., {}, IG::steadyClockTimestamp(), IG::Milliseconds{400}};
 			screen()->addOnFrame(animate);
 		});
 }
@@ -203,12 +203,9 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 		}
 		return false;
 	}
-	if(e.pushed() && !textFade.duration())
+	if(e.pushed() && animationStartTimer.isArmed())
 	{
-		animationStartTimer.cancel();
-		logMsg("starting fade");
-		textFade.set(1., 0., INTERPOLATOR_TYPE_LINEAR, 20);
-		screen()->addOnFrame(animate);
+		animationStartTimer.dispatchEarly();
 	}
 	auto &d = drag[e.deviceID()];
 	dragTracker.inputEvent(e,
@@ -277,12 +274,12 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)
 	GeomRect::draw(cmds, Gfx::GCRect{-lineSize/(Gfx::GC)2., -projP.hHalf(),
 		lineSize/(Gfx::GC)2., projP.hHalf()});
 
-	if(textFade.now() != 0.)
+	if(textFade != 0.)
 	{
-		cmds.setColor(0., 0., 0., textFade.now()/2.);
+		cmds.setColor(0., 0., 0., textFade/2.);
 		GeomRect::draw(cmds, Gfx::makeGCRectRel({-text.width()/(Gfx::GC)2. - text.spaceWidth(), -text.height()/(Gfx::GC)2. - text.spaceWidth()},
 			{text.width() + text.spaceWidth()*(Gfx::GC)2., text.height() + text.spaceWidth()*(Gfx::GC)2.}));
-		cmds.setColor(1., 1., 1., textFade.now());
+		cmds.setColor(1., 1., 1., textFade);
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 		text.draw(cmds, projP.unProjectRect(viewRect()).pos(C2DO), C2DO, projP);
 	}

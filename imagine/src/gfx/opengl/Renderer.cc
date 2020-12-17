@@ -48,6 +48,7 @@ Renderer::Renderer(RendererConfig config, Error &err): GLRenderer{Init{}}
 		constexpr int DRAW_THREAD_PRIORITY = -4;
 		mainTask = std::make_unique<RendererTask>("Main GL Context Messages", *this, mainContext, DRAW_THREAD_PRIORITY);
 	}
+	mainTask->setDrawAsyncMode(maxSwapChainImages() < 3 ? DrawAsyncMode::PRESENT : DrawAsyncMode::NONE);
 	addEventHandlers(*mainTask);
 }
 

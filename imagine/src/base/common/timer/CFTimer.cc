@@ -44,7 +44,12 @@ CFTimer::~CFTimer()
 	deinit();
 }
 
-void CFTimer::callbackInCFAbsoluteTime(CFAbsoluteTime relTime, CFTimeInterval repeatInterval, CFRunLoopRef loop)
+static double makeRelativeSecs(CFAbsoluteTime futureAbsTime)
+{
+	return futureAbsTime - CFAbsoluteTimeGetCurrent();
+}
+
+void CFTimer::callbackInCFAbsoluteTime(CFAbsoluteTime absTime, CFTimeInterval repeatInterval, CFRunLoopRef loop)
 {
 	auto realRepeatInterval = repeatInterval ? repeatInterval
 		: std::numeric_limits<CFTimeInterval>::max(); // set a massive repeat interval to reuse a one-shot timer
@@ -53,12 +58,12 @@ void CFTimer::callbackInCFAbsoluteTime(CFAbsoluteTime relTime, CFTimeInterval re
 		// re-create timer if repeat interval changed
 		deinit();
 	}
-	CFAbsoluteTime time = CFAbsoluteTimeGetCurrent() + relTime;
+	bool createdTimer = false;
 	if(unlikely(!timer))
 	{
 		CFRunLoopTimerContext context{};
 		context.info = info.get();
-		timer = CFRunLoopTimerCreate(nullptr, time, realRepeatInterval, 0, 0,
+		timer = CFRunLoopTimerCreate(nullptr, absTime, realRepeatInterval, 0, 0,
 			[](CFRunLoopTimerRef timer, void *infoPtr)
 			{
 				using namespace Base;
@@ -71,14 +76,18 @@ void CFTimer::callbackInCFAbsoluteTime(CFAbsoluteTime relTime, CFTimeInterval re
 					info.loop = {};
 				}
 			}, &context);
-		logMsg("creating timer:%p (%s) to run in %f sec(s), repeats %f sec(s)",
-			timer, label(), (double)relTime, (double)repeatInterval);
+		createdTimer = true;
+		logMsg("created timer:%p (%s)", timer, label());
 	}
 	else
 	{
-		logMsg("re-arming timer:%p (%s) to run in %f sec(s), repeats %f sec(s)",
-			timer, label(), (double)relTime, (double)repeatInterval);
-		CFRunLoopTimerSetNextFireDate(timer, time);
+		CFRunLoopTimerSetNextFireDate(timer, absTime);
+	}
+	if(Config::DEBUG_BUILD)
+	{
+		logMsg("%stimer:%p (%s) to run in:%.4fs repeats:%.4fs",
+			createdTimer ? "created " : "",
+			timer, label(), makeRelativeSecs(absTime), (double)repeatInterval);
 	}
 	if(loop != info->loop)
 	{
@@ -89,13 +98,16 @@ void CFTimer::callbackInCFAbsoluteTime(CFAbsoluteTime relTime, CFTimeInterval re
 	}
 }
 
-void Timer::run(Time time, Time repeatTime, EventLoop loop, CallbackDelegate callback)
+void Timer::run(Time time, Time repeatTime, bool isAbsTime, EventLoop loop, CallbackDelegate callback)
 {
 	if(callback)
 		setCallback(callback);
 	if(!loop)
 		loop = EventLoop::forThread();
-	callbackInCFAbsoluteTime(time.count(), repeatTime.count(), loop.nativeObject());
+	CFAbsoluteTime absTime = time.count();
+	if(!isAbsTime)
+		absTime += CFAbsoluteTimeGetCurrent();
+	callbackInCFAbsoluteTime(absTime, repeatTime.count(), loop.nativeObject());
 }
 
 void Timer::cancel()
@@ -109,6 +121,12 @@ void Timer::cancel()
 void Timer::setCallback(CallbackDelegate callback)
 {
 	info->callback = callback;
+}
+
+void Timer::dispatchEarly()
+{
+	cancel();
+	info->callback();
 }
 
 bool Timer::isArmed()

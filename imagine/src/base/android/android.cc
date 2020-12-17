@@ -457,7 +457,7 @@ void endIdleByUserActivity()
 		// quickly toggle KEEP_SCREEN_ON flag to brighten screen,
 		// waiting about 20ms before toggling it back off triggers the screen to brighten if it was already dim
 		jSetWinFlags(env, jBaseActivity, AWINDOW_FLAG_KEEP_SCREEN_ON, AWINDOW_FLAG_KEEP_SCREEN_ON);
-		userActivityCallback.run(IG::Milliseconds(20), {},
+		userActivityCallback.runIn(IG::Milliseconds(20), {},
 			[env]()
 			{
 				if(!keepScreenOn)

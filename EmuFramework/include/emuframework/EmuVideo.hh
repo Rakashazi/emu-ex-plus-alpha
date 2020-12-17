@@ -85,4 +85,5 @@ protected:
 	void dispatchFinishFrame(EmuSystemTask *task);
 	void postSetFormat(EmuSystemTask &task, IG::PixmapDesc desc);
 	void syncImageAccess();
+	void updateNeedsFence();
 };

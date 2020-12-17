@@ -92,15 +92,15 @@ Base::NativeWindowFormat EGLBufferConfig::windowFormat(GLDisplay display) const
 	eglGetConfigAttrib(display, glConfig, EGL_NATIVE_VISUAL_ID, &nId);
 	if(!nId)
 	{
-		nId = WINDOW_FORMAT_RGBA_8888;
+		nId = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
 		EGLint alphaSize;
 		eglGetConfigAttrib(display, glConfig, EGL_ALPHA_SIZE, &alphaSize);
 		if(!alphaSize)
-			nId = WINDOW_FORMAT_RGBX_8888;
+			nId = AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM;
 		EGLint redSize;
 		eglGetConfigAttrib(display, glConfig, EGL_RED_SIZE, &redSize);
 		if(redSize < 8)
-			nId = WINDOW_FORMAT_RGB_565;
+			nId = AHARDWAREBUFFER_FORMAT_R5G6B5_UNORM;
 		//logWarn("config didn't provide a native format id, guessing %d", nId);
 	}
 	return nId;

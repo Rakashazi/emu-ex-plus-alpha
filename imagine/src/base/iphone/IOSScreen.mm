@@ -45,7 +45,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 
 - (void)onFrame
 {
-	Input::flushEvents();
+	Input::flushInternalEvents();
 	auto &screen = *screen_;
 	auto timestamp = IG::FloatSeconds(screen.displayLink().timestamp);
 	//logMsg("screen: %p, frame time stamp: %f, duration: %f",
@@ -57,10 +57,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 	{
 		//logMsg("stopping screen updates");
 		screen.displayLink().paused = YES;
-		screen.prevFrameTimestamp = {};
 	}
-	else
-		screen.prevFrameTimestamp = timestamp;
 	if(&screen == screen.screen(0))
 		screen.endDebugFrameStats();
 }

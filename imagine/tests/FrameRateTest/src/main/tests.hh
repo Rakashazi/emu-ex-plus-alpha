@@ -32,6 +32,7 @@ enum TestID
 
 struct FramePresentTime
 {
+	IG::FrameTime timestamp{};
 	IG::Time atOnFrame{};
 	IG::Time atWinPresent{};
 

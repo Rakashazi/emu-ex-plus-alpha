@@ -572,4 +572,11 @@ TextureBufferMode Renderer::makeValidTextureBufferMode(TextureBufferMode mode)
 	}
 }
 
+bool Renderer::textureBufferModeCanDoubleBuffer(TextureBufferMode mode)
+{
+	if(Config::envIsAndroid && mode == TextureBufferMode::ANDROID_HARDWARE_BUFFER)
+		return false;
+	return true;
+}
+
 }

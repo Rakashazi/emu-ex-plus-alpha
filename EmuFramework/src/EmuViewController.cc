@@ -31,6 +31,7 @@
 #include "privateInput.hh"
 #include "configFile.hh"
 #include "EmuSystemTask.hh"
+#include "EmuTiming.hh"
 
 class AutoStateConfirmAlertView : public YesNoAlertView
 {
@@ -171,8 +172,8 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			{
 				EmuSystem::setSpeedMultiplier(1);
 			}
-			uint32_t framesAdvanced = EmuSystem::advanceFramesWithTime(params.timestamp());
-			if(!framesAdvanced)
+			auto frameInfo = EmuSystem::advanceFramesWithTime(params.timestamp());
+			if(!frameInfo.advanced)
 			{
 				if(useRendererTime())
 					postDrawToEmuWindows();
@@ -180,14 +181,17 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			}
 			if(!optionSkipLateFrames && !fastForwarding)
 			{
-				framesAdvanced = currentFrameInterval();
+				frameInfo.advanced = currentFrameInterval();
 			}
 			constexpr uint maxFrameSkip = 8;
-			uint32_t framesToEmulate = std::min(framesAdvanced, maxFrameSkip);
+			uint32_t framesToEmulate = std::min(frameInfo.advanced, maxFrameSkip);
 			emuVideoInProgress = true;
 			EmuAudio *audioPtr = emuAudio ? &emuAudio : nullptr;
 			systemTask->runFrame(&videoLayer().emuVideo(), audioPtr, framesToEmulate, skipForward);
-			r.setPresentationTime(emuWindowData().drawableHolder, params.presentTime());
+			r.setPresentationTime(emuWindowData().drawableHolder, frameInfo.presentTime);
+			/*logMsg("frame present time:%.4f next display frame:%.4f",
+				std::chrono::duration_cast<IG::FloatSeconds>(frameInfo.presentTime).count(),
+				std::chrono::duration_cast<IG::FloatSeconds>(params.presentTime()).count());*/
 			return true;
 		};
 

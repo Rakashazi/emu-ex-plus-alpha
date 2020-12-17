@@ -174,11 +174,12 @@ bool Screen::screensArePosted()
 
 FrameParams Screen::makeFrameParams(FrameTime timestamp) const
 {
-	return {timestamp, lastFrameTimestamp(), frameTime()};
+	return {timestamp, frameTime()};
 }
 
 void Screen::startDebugFrameStats(FrameTime timestamp)
 {
+#if 0
 	if constexpr(!Config::DEBUG_BUILD)
 		return;
 	FrameTime timeSinceCurrentFrame = IG::steadyClockTimestamp() - timestamp;
@@ -197,6 +198,7 @@ void Screen::startDebugFrameStats(FrameTime timestamp)
 				IG::FloatSeconds(diffFromLastFrame).count());
 		continuousFrames = 0;
 	}
+#endif
 }
 
 void Screen::endDebugFrameStats()

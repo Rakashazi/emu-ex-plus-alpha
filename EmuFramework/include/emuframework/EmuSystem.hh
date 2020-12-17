@@ -31,6 +31,7 @@ class EmuInputView;
 class EmuSystemTask;
 class EmuAudio;
 class EmuVideo;
+struct EmuFrameTimeInfo;
 
 struct AspectRatioInfo
 {
@@ -217,7 +218,7 @@ public:
 	}
 	static bool touchControlsApplicable();
 	static bool handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect);
-	static uint32_t advanceFramesWithTime(IG::FrameTime time);
+	static EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);
 	static void setSpeedMultiplier(uint8_t speed);
 	static void setupGamePaths(const char *filePath);
 	static void setGameSavePath(const char *path);

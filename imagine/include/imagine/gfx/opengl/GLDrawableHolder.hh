@@ -53,7 +53,6 @@ protected:
 	Base::ExitDelegate onExit{};
 	Base::CustomEvent drawFinishedEvent{"GLDrawableHolder::drawFinishedEvent"};
 	DelegateFuncSet<Base::OnFrameDelegate> onFrame{};
-	IG::FrameTime lastTimestamp{};
 };
 
 using DrawableHolderImpl = GLDrawableHolder;

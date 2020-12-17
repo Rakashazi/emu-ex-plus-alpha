@@ -63,16 +63,14 @@ void RendererCommands::setProjectionMatrix(Mat4 mat)
 
 void Renderer::animateProjectionMatrixRotation(Base::Window &win, Angle srcAngle, Angle destAngle)
 {
-	projAngleM.set(srcAngle, destAngle, INTERPOLATOR_TYPE_EASEOUTQUAD, 10);
+	projAngleM = {srcAngle, destAngle, {}, IG::steadyClockTimestamp(), IG::Milliseconds{165}};
 	win.screen()->addOnFrame(
 		[this, &win](IG::FrameParams params)
 		{
-			using namespace Base;
-			//logMsg("animating rotation");
-			projAngleM.update(1);
-			setProjectionMatrixRotation(projAngleM.now());
+			bool didUpdate = projAngleM.update(params.timestamp());
+			setProjectionMatrixRotation(projAngleM);
 			win.postDraw();
-			return !projAngleM.isComplete();
+			return didUpdate;
 		});
 }
 
