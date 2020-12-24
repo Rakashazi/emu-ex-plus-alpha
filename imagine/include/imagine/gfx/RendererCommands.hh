@@ -115,9 +115,9 @@ public:
 
 	// shaders
 
-	void setProgram(Program &program);
-	void setProgram(Program &program, Mat4 modelMat);
-	void setProgram(Program &program, const Mat4 *modelMat);
+	void setProgram(const Program &program);
+	void setProgram(const Program &program, Mat4 modelMat);
+	void setProgram(const Program &program, const Mat4 *modelMat);
 	void setCommonProgram(CommonProgram program);
 	void setCommonProgram(CommonProgram program, Mat4 modelMat);
 	void uniformF(int uniformLocation, float v1, float v2);

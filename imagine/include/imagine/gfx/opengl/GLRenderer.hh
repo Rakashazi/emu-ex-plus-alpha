@@ -237,6 +237,7 @@ protected:
 	void setupPresentationTime(const char *eglExtenstionStr);
 	void checkExtensionString(const char *extStr, bool &useFBOFuncs);
 	void checkFullExtensionString(const char *fullExtStr);
+	const Program &commonProgramRef(CommonProgram program) const;
 	void deinit();
 };
 

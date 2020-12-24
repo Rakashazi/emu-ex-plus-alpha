@@ -103,6 +103,7 @@ public:
 	Shader makeCompatShader(const char *src, ShaderType type);
 	Shader makeDefaultVShader();
 	bool makeCommonProgram(CommonProgram);
+	bool commonProgramIsCompiled(CommonProgram program) const;
 	void deleteShader(Shader shader);
 	void uniformF(Program &program, int uniformLocation, float v1, float v2);
 	void releaseShaderCompiler();

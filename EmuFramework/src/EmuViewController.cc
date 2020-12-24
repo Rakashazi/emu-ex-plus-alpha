@@ -188,7 +188,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			emuVideoInProgress = true;
 			EmuAudio *audioPtr = emuAudio ? &emuAudio : nullptr;
 			systemTask->runFrame(&videoLayer().emuVideo(), audioPtr, framesToEmulate, skipForward);
-			r.setPresentationTime(emuWindowData().drawableHolder, frameInfo.presentTime);
+			r.setPresentationTime(emuWindowData().drawableHolder, params.presentTime());
 			/*logMsg("frame present time:%.4f next display frame:%.4f",
 				std::chrono::duration_cast<IG::FloatSeconds>(frameInfo.presentTime).count(),
 				std::chrono::duration_cast<IG::FloatSeconds>(params.presentTime()).count());*/

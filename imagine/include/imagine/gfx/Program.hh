@@ -34,6 +34,7 @@ public:
 	void deinit(RendererTask &);
 	bool link(RendererTask &);
 	int uniformLocation(RendererTask &, const char *uniformName);
+	explicit operator bool() const;
 };
 
 }

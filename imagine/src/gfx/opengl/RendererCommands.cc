@@ -524,12 +524,12 @@ void RendererCommands::drawPrimitiveElements(Primitive mode, const VertexIndex *
 
 // shaders
 
-void RendererCommands::setProgram(Program &program)
+void RendererCommands::setProgram(const Program &program)
 {
 	setProgram(program, modelMat);
 }
 
-void RendererCommands::setProgram(Program &program, Mat4 modelMat)
+void RendererCommands::setProgram(const Program &program, Mat4 modelMat)
 {
 	rTask->verifyCurrentContext(glDpy);
 	if(currProgram != &program)
@@ -540,7 +540,7 @@ void RendererCommands::setProgram(Program &program, Mat4 modelMat)
 	loadTransform(modelMat);
 }
 
-void RendererCommands::setProgram(Program &program, const Mat4 *modelMat)
+void RendererCommands::setProgram(const Program &program, const Mat4 *modelMat)
 {
 	if(modelMat)
 		setProgram(program, *modelMat);

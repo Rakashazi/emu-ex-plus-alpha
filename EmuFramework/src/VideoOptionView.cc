@@ -55,6 +55,7 @@ public:
 
 	~DetectFrameRateView() final
 	{
+		window().setIntendedFrameRate(0.);
 		setCPUNeedsLowLatency(false);
 		if(!useRenderTaskTime)
 			screen()->removeOnFrame(detectFrameRate);
@@ -868,6 +869,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 		multiChoiceView->appendItem("Detect screen's rate and set",
 			[this, vidSys](Input::Event e)
 			{
+				window().setIntendedFrameRate(vidSys == EmuSystem::VIDSYS_NATIVE_NTSC ? 60. : 50.);
 				auto frView = makeView<DetectFrameRateView>();
 				frView->onDetectFrameTime =
 					[this, vidSys](IG::FloatSeconds frameTime)

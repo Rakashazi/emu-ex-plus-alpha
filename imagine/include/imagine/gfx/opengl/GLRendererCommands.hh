@@ -88,7 +88,7 @@ protected:
 	Viewport currViewport{};
 	GLuint currSamplerName{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	GLSLProgram *currProgram{};
+	const GLSLProgram *currProgram{};
 	Mat4 modelMat{}, projectionMat{};
 	uint32_t currentVtxArrayPointerID = 0;
 	#endif

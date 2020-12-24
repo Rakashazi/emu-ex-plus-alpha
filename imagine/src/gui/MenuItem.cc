@@ -48,16 +48,17 @@ void BaseTextMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC y
 		// half-bright color
 		auto col = cmds.color();
 		cmds.setColor(col[0]/2.f, col[1]/2.f, col[2]/2.f, col[3]);
+		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 	}
-
-	if(cmds.color()[3] == 1.f)
+	else if(cmds.color() == std::array<ColorComp, 4>{1.f, 1.f, 1.f, 1.f})
 	{
 		//logMsg("using replace program for non-alpha modulated text");
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA_REPLACE);
 	}
 	else
+	{
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
-
+	}
 	if(align.isXCentered())
 		xPos += xSize/2;
 	else

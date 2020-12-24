@@ -24,9 +24,6 @@ static GLenum textureTargetToGet(GLenum target)
 	switch(target)
 	{
 		case GL_TEXTURE_2D: return GL_TEXTURE_BINDING_2D;
-		#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
-		case GL_TEXTURE_EXTERNAL_OES: return GL_TEXTURE_BINDING_EXTERNAL_OES;
-		#endif
 		default: bug_unreachable("target == %d", target); return 0;
 	}
 }
@@ -122,9 +119,6 @@ int8_t *GLStateCache::getCap(GLenum cap)
 		GLCAP_CASE(GL_ALPHA_TEST);
 		GLCAP_CASE(GL_FOG);
 		GLCAP_CASE(GL_TEXTURE_2D);
-			#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
-			GLCAP_CASE(GL_TEXTURE_EXTERNAL_OES);
-			#endif
 		#endif
 		GLCAP_CASE(GL_DEPTH_TEST);
 		GLCAP_CASE(GL_BLEND);

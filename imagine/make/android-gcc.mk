@@ -90,7 +90,6 @@ ifdef ANDROID_APK_SIGNATURE_HASH
  CPPFLAGS += -DANDROID_APK_SIGNATURE_HASH=$(ANDROID_APK_SIGNATURE_HASH)
 endif
 
-android_linker ?= lld
 CFLAGS_TARGET += $(android_cpuFlags) -no-canonical-prefixes
 CFLAGS_CODEGEN += -ffunction-sections -fdata-sections
 ASMFLAGS += $(CFLAGS_TARGET) -Wa,--noexecstack
@@ -103,7 +102,7 @@ linkAction = -Wl,-soname,lib$(android_metadata_soName).so -shared
 LDLIBS_SYSTEM += -lm
 LDLIBS += $(LDLIBS_SYSTEM)
 CPPFLAGS += -DANDROID
-LDFLAGS_SYSTEM += -fuse-ld=$(android_linker) -s \
+LDFLAGS_SYSTEM += -s \
 -Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed,--warn-shared-textrel,--fatal-warnings \
 -Wl,--exclude-libs,libgcc.a,--exclude-libs,libgcc_real.a -Wl,--exclude-libs,libatomic.a
 

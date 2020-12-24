@@ -226,7 +226,7 @@ GLint GLSLProgram::modelViewProjectionUniform() const
 	return mvpUniform;
 }
 
-GLSLProgram::operator bool() const
+Program::operator bool() const
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	return program_;
@@ -405,6 +405,26 @@ static bool linkCommonExternalTextureProgram(RendererTask &rTask, Program &prog,
 }
 #endif
 
+const Program &GLRenderer::commonProgramRef(CommonProgram program) const
+{
+	switch(program)
+	{
+		case CommonProgram::TEX_REPLACE: return commonProgram.texReplace;
+		case CommonProgram::TEX_ALPHA_REPLACE: return commonProgram.texAlphaReplace;
+		#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
+		case CommonProgram::TEX_EXTERNAL_REPLACE: return commonProgram.texExternalReplace;
+		#endif
+		case CommonProgram::TEX: return commonProgram.tex;
+		case CommonProgram::TEX_ALPHA: return commonProgram.texAlpha;
+		#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
+		case CommonProgram::TEX_EXTERNAL: return commonProgram.texExternal;
+		#endif
+		case CommonProgram::NO_TEX: return commonProgram.noTex;
+		default: bug_unreachable("program:%d", (int)program);
+			return commonProgram.noTex;
+	}
+}
+
 bool Renderer::makeCommonProgram(CommonProgram program)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -450,6 +470,11 @@ bool Renderer::makeCommonProgram(CommonProgram program)
 	#endif
 }
 
+bool Renderer::commonProgramIsCompiled(CommonProgram program) const
+{
+	return (bool)commonProgramRef(program);
+}
+
 void GLRenderer::useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat)
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
@@ -476,21 +501,7 @@ void GLRenderer::useCommonProgram(RendererCommands &cmds, CommonProgram program,
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	switch(program)
-	{
-		bcase CommonProgram::TEX_REPLACE: cmds.setProgram(commonProgram.texReplace, modelMat);
-		bcase CommonProgram::TEX_ALPHA_REPLACE: cmds.setProgram(commonProgram.texAlphaReplace, modelMat);
-		#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
-		bcase CommonProgram::TEX_EXTERNAL_REPLACE: cmds.setProgram(commonProgram.texExternalReplace, modelMat);
-		#endif
-		bcase CommonProgram::TEX: cmds.setProgram(commonProgram.tex, modelMat);
-		bcase CommonProgram::TEX_ALPHA: cmds.setProgram(commonProgram.texAlpha, modelMat);
-		#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
-		bcase CommonProgram::TEX_EXTERNAL: cmds.setProgram(commonProgram.texExternal, modelMat);
-		#endif
-		bcase CommonProgram::NO_TEX: cmds.setProgram(commonProgram.noTex, modelMat);
-		bdefault: bug_unreachable("program:%d", (int)program);
-	}
+	cmds.setProgram(commonProgramRef(program), modelMat);
 	#endif
 }
 

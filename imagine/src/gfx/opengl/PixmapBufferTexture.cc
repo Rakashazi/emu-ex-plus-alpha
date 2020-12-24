@@ -456,7 +456,7 @@ static bool hasSurfaceTexture(Renderer &r)
 	// check if external textures work in GLSL
 	if(r.makeCommonProgram(CommonProgram::TEX_EXTERNAL_REPLACE))
 		r.autoReleaseShaderCompiler();
-	if(!r.commonProgram.texExternalReplace)
+	if(!r.commonProgramIsCompiled(CommonProgram::TEX_EXTERNAL_REPLACE))
 	{
 		logErr("can't use SurfaceTexture due to test shader compilation error");
 		return false;
@@ -547,7 +547,7 @@ TextureBufferMode Renderer::makeValidTextureBufferMode(TextureBufferMode mode)
 {
 	switch(mode)
 	{
-		case TextureBufferMode::DEFAULT:
+		default:
 			#ifdef __ANDROID__
 			if(hasHardwareBuffer(*this))
 			{
@@ -567,8 +567,6 @@ TextureBufferMode Renderer::makeValidTextureBufferMode(TextureBufferMode mode)
 		case TextureBufferMode::ANDROID_SURFACE_TEXTURE:
 			return hasSurfaceTexture(*this) ? TextureBufferMode::ANDROID_SURFACE_TEXTURE : makeValidTextureBufferMode();
 		#endif
-		default:
-			return TextureBufferMode::SYSTEM_MEMORY;
 	}
 }
 

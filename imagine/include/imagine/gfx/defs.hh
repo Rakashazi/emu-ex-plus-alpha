@@ -109,16 +109,12 @@ enum class CommonProgram
 	// color replacement shaders
 	TEX_REPLACE,
 	TEX_ALPHA_REPLACE,
-	#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
 	TEX_EXTERNAL_REPLACE,
-	#endif
 
 	// color modulation shaders
 	TEX,
 	TEX_ALPHA,
-	#ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
 	TEX_EXTERNAL,
-	#endif
 	NO_TEX
 };
 

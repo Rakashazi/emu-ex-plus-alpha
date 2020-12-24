@@ -34,7 +34,6 @@ public:
 	constexpr GLSLProgram() {}
 	GLint modelViewProjectionUniform() const;
 	GLuint program() const { return program_; }
-	explicit operator bool() const;
 
 protected:
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE

@@ -63,7 +63,7 @@ namespace Config
 	#error "Configuration error, OPENGL_FIXED_FUNCTION_PIPELINE & OPENGL_SHADER_PIPELINE both unset"
 	#endif
 
-	#ifdef __ANDROID__
+	#ifdef CONFIG_GFX_ANDROID_SURFACE_TEXTURE
 	#define CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
 	static constexpr bool OPENGL_TEXTURE_TARGET_EXTERNAL = true;
 	#else
