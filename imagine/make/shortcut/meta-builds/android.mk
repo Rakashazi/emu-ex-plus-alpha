@@ -398,12 +398,12 @@ android-bundle : $(android_bundlePath)
 
 android_bundleApksPath := $(android_targetPath)/build/outputs/bundle/$(android_buildTarget)/$(android_metadata_project).apks
 .PHONY: android-bundle-apks
-$(android_bundleApksPath) : android-bundle
+$(android_bundleApksPath) : $(android_bundlePath)
 	$(BUNDLETOOL) build-apks --bundle="$(android_bundlePath)" --output=$(android_bundleApksPath) --overwrite $(keySignParams)
 android-bundle-apks : $(android_bundleApksPath)
 
 .PHONY: android-bundle-install
-android-bundle-install : android-bundle-apks
+android-bundle-install : $(android_bundleApksPath)
 	$(BUNDLETOOL) install-apks --apks=$(android_bundleApksPath) --allow-downgrade $(bundletoolArgs)
 
 .PHONY: android-bundle-ready

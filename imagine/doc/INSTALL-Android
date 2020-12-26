@@ -18,7 +18,7 @@ android_arch : Optional, default set by app
 2. Dependencies
 ===============
 
-Install the SDK platform for Android 10.0 (API 29), Android NDK Revision 22 (22.0.6917172), and the Android Support Library from Android Studio's SDK tools menu
+Install the SDK platform for Android 10.0 (API 29), Android NDK Revision 22 (tested on 22.0.7026061), and the Android Support Library from Android Studio's SDK tools menu
 
 3. Building
 ===========
