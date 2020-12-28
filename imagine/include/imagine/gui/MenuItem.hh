@@ -39,7 +39,8 @@ public:
 		isSelectable{isSelectable} {}
 	virtual ~MenuItem();
 	virtual void prepareDraw(Gfx::Renderer &r) = 0;
-	virtual void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const = 0;
+	virtual void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+		_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const = 0;
 	virtual void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) = 0;
 	virtual int ySize() = 0;
 	virtual Gfx::GC xSize() = 0;
@@ -121,7 +122,8 @@ public:
 	BaseTextMenuItem(const char *str, bool isSelectable);
 	BaseTextMenuItem(const char *str, bool isSelectable, Gfx::GlyphTextureSet *face);
 	void prepareDraw(Gfx::Renderer &r) override;
-	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
+	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+		_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const override;
 	void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) override;
 	void compile(const char *str, Gfx::Renderer &r, const Gfx::ProjectionPlane &projP);
 	int ySize() override;
@@ -184,8 +186,10 @@ public:
 	void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) override;
 	void compile2nd(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP);
 	void prepareDraw(Gfx::Renderer &r) override;
-	void draw2ndText(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const;
-	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
+	void draw2ndText(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+		_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const;
+	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+		_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const override;
 	void set2ndName(const char *name);
 
 protected:
@@ -238,7 +242,8 @@ public:
 	bool setBoolValue(bool val);
 	bool flipBoolValue(View &view);
 	bool flipBoolValue();
-	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
+	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+		_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const override;
 	bool select(View &view, Input::Event e) override;
 	void setOnSelect(SelectDelegate onSelect);
 
@@ -308,7 +313,8 @@ public:
 	MultiChoiceMenuItem(const char *str, int selected, C &item):
 		MultiChoiceMenuItem{str, SetDisplayStringDelegate{}, selected, item, {}}
 	{}
-	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const override;
+	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+		_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const override;
 	void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) override;
 	int selected() const;
 	uint32_t items() const;

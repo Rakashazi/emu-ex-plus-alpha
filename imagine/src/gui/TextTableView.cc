@@ -64,11 +64,6 @@ void TextTableView::onAddedToController(ViewController *c, Input::Event e)
 
 void TextTableView::drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect) const
 {
-	using namespace Gfx;
-	if((int)i == activeItem)
-		cmds.setColor(0., .8, 1.);
-	else
-		cmds.setColor(COLOR_WHITE);
-	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP);
+	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP, menuTextColor((int)i == activeItem));
 }
 

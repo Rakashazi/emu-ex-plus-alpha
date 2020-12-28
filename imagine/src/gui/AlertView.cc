@@ -109,8 +109,8 @@ void BaseAlertView::draw(Gfx::RendererCommands &cmds)
 	GeomRect::draw(cmds, labelFrame);
 	cmds.setColor(.1, .1, .1, .6);
 	GeomRect::draw(cmds, menu.viewRect(), projP);
-	cmds.setColor(COLOR_WHITE);
-	cmds.setCommonProgram(CommonProgram::TEX_ALPHA_REPLACE);
+	cmds.set(ColorName::WHITE);
+	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 	text.draw(cmds, labelFrame.xPos(C2DO), projP.alignYToPixel(labelFrame.yPos(C2DO)), C2DO, projP);
 	//setClipRect(1);
 	//setClipRectBounds(menu.viewRect());

@@ -65,7 +65,7 @@ void IdentInputDeviceView::draw(Gfx::RendererCommands &cmds)
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	cmds.setColor(.4, .4, .4, 1.);
 	GeomRect::draw(cmds, viewRect(), projP);
-	cmds.setColor(COLOR_WHITE);
+	cmds.set(ColorName::WHITE);
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 	text.draw(cmds, 0, 0, C2DO, projP);
 }

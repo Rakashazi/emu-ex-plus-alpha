@@ -20,6 +20,7 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
 #include <aaudio/AAudio.h>
+#include <unistd.h>
 
 namespace IG::Audio
 {
@@ -109,12 +110,12 @@ IG::ErrorCode AAudioOutputStream::open(OutputStreamConfig config)
 	}
 	bool lowLatencyMode = config.wantedLatencyHint() < IG::Microseconds{20000};
 	auto format = config.format();
+	onSamplesNeeded = config.onSamplesNeeded();
+	pcmFormat = format;
 	if(!openStream(format, lowLatencyMode))
 	{
 		return {EINVAL};
 	}
-	pcmFormat = format;
-	onSamplesNeeded = config.onSamplesNeeded();
 	this->lowLatencyMode = lowLatencyMode;
 	if(config.startPlaying())
 		play();
@@ -194,9 +195,16 @@ void AAudioOutputStream::close()
 	if(unlikely(!stream))
 		return;
 	logMsg("closing stream");
-	AAudioStream_close(stream);
+	const bool delayClose = true;
+	if(delayClose)
+	{
+		// Needed on devices like the Samsung A3 (2017) to prevent spurious callbacks after AAudioStream_close()
+		// Documented in https://github.com/google/oboe/blob/master/src/aaudio/AudioStreamAAudio.cpp
+		AAudioStream_requestStop(stream);
+		usleep(10 * 1000);
+	}
+	AAudioStream_close(std::exchange(stream, {}));
 	isPlaying_ = false;
-	stream = nullptr;
 }
 
 void AAudioOutputStream::flush()

@@ -229,8 +229,8 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 		cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 		GeomRect::draw(cmds, control[selected].rect, projP);
 	}
-	cmds.setColor(COLOR_WHITE);
-	cmds.setCommonProgram(CommonProgram::TEX_ALPHA_REPLACE);
+	cmds.set(ColorName::WHITE);
+	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 	if(centerTitle)
 	{
 		text.draw(cmds, projP.alignToPixel(projP.unProjectRect(viewRect_).pos(C2DO)), C2DO, projP);
@@ -253,7 +253,7 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 	{
 		assumeExpr(leftSpr.image());
 		cmds.setBlendMode(BLEND_MODE_ALPHA);
-		cmds.setColor(COLOR_WHITE);
+		cmds.set(ColorName::WHITE);
 		cmds.set(imageCommonTextureSampler);
 		auto trans = projP.makeTranslate(projP.unProjectRect(control[0].rect).pos(C2DO));
 		if(rotateLeftBtn)
@@ -265,7 +265,7 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 	{
 		assumeExpr(rightSpr.image());
 		cmds.setBlendMode(BLEND_MODE_ALPHA);
-		cmds.setColor(COLOR_WHITE);
+		cmds.set(ColorName::WHITE);
 		cmds.set(imageCommonTextureSampler);
 		rightSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, projP.makeTranslate(projP.unProjectRect(control[2].rect).pos(C2DO)));
 		rightSpr.draw(cmds);

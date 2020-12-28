@@ -165,7 +165,7 @@ void FSPicker::draw(Gfx::RendererCommands &cmds)
 	else
 	{
 		using namespace Gfx;
-		cmds.setColor(COLOR_WHITE);
+		cmds.set(ColorName::WHITE);
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
 		auto textRect = controller.top().viewRect();
 		if(IG::isOdd(textRect.ySize()))

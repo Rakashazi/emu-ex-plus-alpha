@@ -78,17 +78,11 @@ public:
 	void setZBlend(bool on);
 	void setZBlendColor(ColorComp r, ColorComp g, ColorComp b);
 	void setClearColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a = 1.);
+	void setColor(Color);
 	void setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a = 1.);
 	void setColor(ColorComp i) { setColor(i, i, i, 1.); }
-	void setColor(GfxColorEnum colConst)
-	{
-		switch(colConst)
-		{
-			bcase COLOR_WHITE: setColor(1., 1., 1.);
-			bcase COLOR_BLACK: setColor(0., 0., 0.);
-		}
-	}
-	std::array<ColorComp, 4> color() const;
+	void set(ColorName c) { setColor(::Gfx::color(c)); }
+	Color color() const;
 	void setImgMode(uint32_t mode);
 	void setDither(bool on);
 	bool dither();

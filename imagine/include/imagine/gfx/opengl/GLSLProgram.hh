@@ -33,7 +33,8 @@ class GLSLProgram
 public:
 	constexpr GLSLProgram() {}
 	GLint modelViewProjectionUniform() const;
-	GLuint program() const { return program_; }
+	GLuint glProgram() const;
+	bool operator ==(GLSLProgram const&) const;
 
 protected:
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE

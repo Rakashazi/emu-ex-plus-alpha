@@ -100,7 +100,17 @@ enum { BLEND_EQ_ADD, BLEND_EQ_SUB, BLEND_EQ_RSUB };
 
 enum { BOTH_FACES, FRONT_FACES, BACK_FACES };
 
-enum GfxColorEnum { COLOR_WHITE, COLOR_BLACK };
+enum class ColorName
+{
+	RED,
+	GREEN,
+	BLUE,
+	CYAN,
+	YELLOW,
+	MAGENTA,
+	WHITE,
+	BLACK
+};
 
 enum TransformTargetEnum { TARGET_WORLD, TARGET_TEXTURE };
 
@@ -179,6 +189,44 @@ private:
 	DrawAsyncMode asyncMode_ = DrawAsyncMode::AUTO;
 };
 
+static constexpr Color color(float r, float g, float b, float a = 1.f)
+{
+	if constexpr(std::is_floating_point_v<ColorComp>)
+	{
+		return {(ColorComp)r, (ColorComp)g, (ColorComp)b, (ColorComp)a};
+	}
+	else
+	{
+		return {255.f * r, 255.f * g, 255.f * b, 255.f * a};
+	}
+}
 
+static constexpr Color color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
+{
+	if constexpr(std::is_floating_point_v<ColorComp>)
+	{
+		return {r / 255.f, g / 255.f, b / 255.f, a / 255.f};
+	}
+	else
+	{
+		return {(ColorComp)r, (ColorComp)g, (ColorComp)b, (ColorComp)a};
+	}
+}
+
+static constexpr Color color(ColorName c)
+{
+	switch(c)
+	{
+		case ColorName::RED: return color(1.f, 0.f, 0.f);
+		case ColorName::GREEN: return color(0.f, 1.f, 0.f);
+		case ColorName::BLUE: return color(0.f, 0.f, 1.f);
+		case ColorName::CYAN: return color(0.f, 1.f, 1.f);
+		case ColorName::YELLOW: return color(1.f, 1.f, 0.f);
+		case ColorName::MAGENTA: return color(1.f, 0.f, 1.f);
+		case ColorName::WHITE: return color(1.f, 1.f, 1.f);
+		case ColorName::BLACK: return color(0.f, 0.f, 0.f);
+		default: return color(0.f, 0.f, 0.f, 0.f);
+	}
+}
 
 }

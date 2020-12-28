@@ -228,7 +228,7 @@ void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 	#ifndef CONFIG_BASE_ANDROID
 	if(cancelSpr.image())
 	{
-		cmds.setColor(COLOR_WHITE);
+		cmds.set(ColorName::WHITE);
 		cmds.setBlendMode(BLEND_MODE_ALPHA);
 		cmds.set(imageCommonTextureSampler);
 		cancelSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, projP.makeTranslate());
@@ -239,12 +239,12 @@ void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 	cmds.setColor(0.25);
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	GeomRect::draw(cmds, textEntry.b, projP);
-	cmds.setColor(COLOR_WHITE);
+	cmds.set(ColorName::WHITE);
 	textEntry.draw(cmds);
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 	message.draw(cmds, 0, projP.unprojectY(textEntry.b.pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
 	#else
-	cmds.setColor(COLOR_WHITE);
+	cmds.set(ColorName::WHITE);
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
 	message.draw(cmds, 0, projP.unprojectY(Input::sysTextInputRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
 	#endif

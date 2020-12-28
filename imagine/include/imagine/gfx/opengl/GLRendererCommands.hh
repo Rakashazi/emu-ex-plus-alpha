@@ -19,6 +19,7 @@
 #include <imagine/gfx/opengl/GLStateCache.hh>
 #include <imagine/gfx/Mat4.hh>
 #include <imagine/gfx/Viewport.hh>
+#include "GLSLProgram.hh"
 #include <imagine/util/typeTraits.hh>
 
 namespace IG
@@ -30,7 +31,7 @@ namespace Gfx
 {
 
 class TextureSampler;
-class GLSLProgram;
+class Program;
 class Renderer;
 class RendererTask;
 
@@ -88,13 +89,13 @@ protected:
 	Viewport currViewport{};
 	GLuint currSamplerName{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	const GLSLProgram *currProgram{};
+	GLSLProgram currProgram{};
 	Mat4 modelMat{}, projectionMat{};
 	uint32_t currentVtxArrayPointerID = 0;
 	#endif
 	GLStateCache glState{};
-	std::array<ColorComp, 4> vColor{}; // color when using shader pipeline
-	std::array<ColorComp, 4> texEnvColor{}; // color when using shader pipeline
+	Color vColor{}; // color when using shader pipeline
+	Color texEnvColor{}; // color when using shader pipeline
 	GLuint arrayBuffer = 0;
 	bool arrayBufferIsSet = false;
 	IG_enableMemberIf(Config::DEBUG_BUILD, bool, drawableWasPresented){};

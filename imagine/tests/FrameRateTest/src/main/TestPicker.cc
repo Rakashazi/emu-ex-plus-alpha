@@ -23,16 +23,18 @@ TestTableEntry::TestTableEntry(SelectDelegate selectDel):
 	DualTextMenuItem{{}, {}, selectDel}
 {}
 
-void TestTableEntry::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void TestTableEntry::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+	_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
-	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP);
+	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP, color);
 	if(t2.isVisible())
 	{
+		Gfx::Color color2;
 		if(redText)
-			cmds.setColor(1., 0., 0.);
+			color2 = Gfx::color(1.f, 0.f, 0.f);
 		else
-			cmds.setColor(1., 1., 1.);
-		draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP);
+			color2 = Gfx::color(1.f, 1.f, 1.f);
+		draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP, color2);
 	}
 }
 

@@ -101,10 +101,10 @@ void RendererCommands::loadTransform(Mat4 mat)
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	modelMat = mat;
-	if(likely(currProgram))
+	if(likely(currProgram.glProgram()))
 	{
 		auto mvpMat = projectionMat.mult(mat);
-		glUniformMatrix4fv(currProgram->modelViewProjectionUniform(), 1, GL_FALSE, &mvpMat[0][0]);
+		glUniformMatrix4fv(currProgram.modelViewProjectionUniform(), 1, GL_FALSE, &mvpMat[0][0]);
 	}
 	#endif
 }

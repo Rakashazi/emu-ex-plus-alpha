@@ -451,13 +451,17 @@ bool Device::anyTypeBitsPresent(uint32_t typeBits)
 	return false;
 }
 
-static uint32_t nextEnumID(const char *name)
+static uint32_t nextEnumID(const char *name, int devID)
 {
 	uint32_t enumID = 0;
 	// find the next available ID number for devices with this name, starting from 0
 	for(auto &e : sysInputDev)
 	{
-		if(string_equal(e->name(), name) && e->enumId() == enumID)
+		if(!string_equal(e->name(), name))
+			continue;
+		if(e->osId == devID) // device already has an enumID
+			return e->enumId();
+		if(e->enumId() == enumID)
 			enumID++;
 	}
 	return enumID;
@@ -471,7 +475,7 @@ bool addInputDevice(AndroidInputDevice dev, bool updateExisting, bool notify)
 	if(existingIt == sysInputDev.end())
 	{
 		auto &devPtr = sysInputDev.emplace_back(std::make_unique<AndroidInputDevice>(dev));
-		logMsg("added device id %d to list", id);
+		logMsg("added device id:%d (%s) to list", id, dev.name());
 		addDevice(*devPtr);
 		if(notify)
 			onDeviceChange.callCopySafe(*devPtr, { Device::Change::ADDED });
@@ -481,12 +485,12 @@ bool addInputDevice(AndroidInputDevice dev, bool updateExisting, bool notify)
 	{
 		if(!updateExisting)
 		{
-			logMsg("device id %d already in list", id);
+			logMsg("device id:%d (%s) already in list", id, dev.name());
 			return false;
 		}
 		else
 		{
-			logMsg("device id %d updated", id);
+			logMsg("device id:%d (%s) updated", id, dev.name());
 			auto devPtr = existingIt->get();
 			*devPtr = dev;
 			if(notify)
@@ -573,7 +577,7 @@ void init(JNIEnv *env)
 				([](JNIEnv* env, jobject thiz, jint devID, jobject jDev, jstring jName, jint src, jint kbType, jint jsAxisBits, jboolean isPowerButton)
 				{
 					const char *name = env->GetStringUTFChars(jName, nullptr);
-					AndroidInputDevice sysDev{env, jDev, nextEnumID(name), devID, src,
+					AndroidInputDevice sysDev{env, jDev, nextEnumID(name, devID), devID, src,
 						name, kbType, jsAxisBits, (bool)isPowerButton};
 					env->ReleaseStringUTFChars(jName, name);
 					addInputDevice(sysDev, false, false);
@@ -618,7 +622,7 @@ void init(JNIEnv *env)
 						else // add or update
 						{
 							const char *name = env->GetStringUTFChars(jName, nullptr);
-							AndroidInputDevice sysDev{env, jDev, nextEnumID(name), devID,
+							AndroidInputDevice sysDev{env, jDev, nextEnumID(name, devID), devID,
 								src, name, kbType, jsAxisBits, false};
 							env->ReleaseStringUTFChars(jName, name);
 							addInputDevice(sysDev, change == DEVICE_CHANGED, true);

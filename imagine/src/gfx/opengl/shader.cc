@@ -226,6 +226,13 @@ GLint GLSLProgram::modelViewProjectionUniform() const
 	return mvpUniform;
 }
 
+GLuint GLSLProgram::glProgram() const { return program_; }
+
+bool GLSLProgram::operator ==(GLSLProgram const &rhs) const
+{
+	return program_ == rhs.program_;
+}
+
 Program::operator bool() const
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
@@ -330,7 +337,7 @@ Shader Renderer::makeCompatShader(const char **mainSrc, uint32_t mainSrcCount, S
 	};
 	const char fragDefs[]
 	{
-		"#define FRAGCOLOR_DEF out lowp vec4 FRAGCOLOR;\n"
+		"#define FRAGCOLOR_DEF out mediump vec4 FRAGCOLOR;\n"
 	};
 	bool legacyGLSL = support.useLegacyGLSL;
 	src[0] = legacyGLSL ? "" : version;
@@ -367,22 +374,13 @@ static bool linkCommonProgram(RendererTask &rTask, Program &prog, const char **f
 	}
 	prog.init(rTask, vShader, fShader, true, hasTex);
 	prog.link(rTask);
-	assert(prog.program());
+	assert(prog.glProgram());
 	return true;
 }
 
 static bool linkCommonProgram(RendererTask &rTask, Program &prog, const char *fragSrc, bool hasTex, const char *progName)
 {
-	if(prog.program())
-		return false;
-	logMsg("making %s program", progName);
-	const char *singleSrc[]{fragSrc};
-	return linkCommonProgram(rTask, prog, singleSrc, 1, hasTex);
-}
-
-static bool linkCommonTextureSwizzleProgram(RendererTask &rTask, Program &prog, const char *fragSrc, bool hasTex, const char *progName)
-{
-	if(prog.program())
+	if(prog.glProgram())
 		return false;
 	logMsg("making %s program", progName);
 	const char *singleSrc[]{fragSrc};
@@ -519,7 +517,7 @@ void Renderer::deleteShader(Shader shader)
 void Renderer::uniformF(Program &program, int uniformLocation, float v1, float v2)
 {
 	task().run(
-		[p = program.program(), uniformLocation, v1, v2]()
+		[p = program.glProgram(), uniformLocation, v1, v2]()
 		{
 			setGLProgram(p);
 			runGLCheckedVerbose([&]()

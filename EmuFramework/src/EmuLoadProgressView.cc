@@ -132,7 +132,7 @@ void EmuLoadProgressView::draw(Gfx::RendererCommands &cmds)
 		GeomRect::draw(cmds, bar);
 	}
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
-	cmds.setColor(COLOR_WHITE);
+	cmds.set(ColorName::WHITE);
 	text.draw(cmds, 0, 0, C2DO, projP);
 }
 

@@ -123,8 +123,12 @@ bool View::compileGfxPrograms(Gfx::Renderer &r)
 	auto compiled = r.makeCommonProgram(Gfx::CommonProgram::NO_TEX);
 	// for text
 	compiled |= r.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
-	compiled |= r.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA_REPLACE);
 	return compiled;
+}
+
+Gfx::Color View::menuTextColor(bool isSelected)
+{
+	return isSelected ? Gfx::color(0.f, .8f, 1.f) : Gfx::color(Gfx::ColorName::WHITE);
 }
 
 void View::clearSelection() {}

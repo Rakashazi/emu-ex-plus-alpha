@@ -19,6 +19,7 @@
 #include "glIncludes.h"
 #include "defs.hh"
 #include <imagine/base/GLContext.hh>
+#include <array>
 
 namespace Gfx
 {
@@ -28,6 +29,7 @@ using VertexPos = GLfloat;
 using Angle = GLfloat;
 using TextureCoordinate = GLfloat;
 using ColorComp = GLfloat;
+using Color = std::array<GLfloat, 4>;
 
 static constexpr Angle angleFromDegree(Angle deg) { return IG::radians(deg); }
 static constexpr Angle angleFromRadian(Angle rad) { return rad; }

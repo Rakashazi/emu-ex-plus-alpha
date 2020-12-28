@@ -345,9 +345,10 @@ void RendererCommands::setClearColor(ColorComp r, ColorComp g, ColorComp b, Colo
 	glClearColor(r, g, b, a);
 }
 
-void RendererCommands::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
+void RendererCommands::setColor(Color c)
 {
 	rTask->verifyCurrentContext(glDpy);
+	auto [r, g, b, a] = c;
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{
@@ -357,18 +358,20 @@ void RendererCommands::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	// !support.useFixedFunctionPipeline
-	if(vColor[0] == r && vColor[1] == g && vColor[2] == b && vColor[3] == a)
+	if(vColor == c)
 		return;
-	vColor[0] = r;
-	vColor[1] = g;
-	vColor[2] = b;
-	vColor[3] = a;
+	vColor = c;
 	glVertexAttrib4f(VATTR_COLOR, r, g, b, a);
 	//logMsg("set color: %f:%f:%f:%f", (double)r, (double)g, (double)b, (double)a);
 	#endif
 }
 
-std::array<ColorComp, 4> RendererCommands::color() const
+void RendererCommands::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
+{
+	setColor({r, g, b, a});
+}
+
+Color RendererCommands::color() const
 {
 	rTask->verifyCurrentContext(glDpy);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
@@ -532,10 +535,10 @@ void RendererCommands::setProgram(const Program &program)
 void RendererCommands::setProgram(const Program &program, Mat4 modelMat)
 {
 	rTask->verifyCurrentContext(glDpy);
-	if(currProgram != &program)
+	if(currProgram != program)
 	{
-		glUseProgram(program.program());
-		currProgram = &program;
+		glUseProgram(program.glProgram());
+		currProgram = program;
 	}
 	loadTransform(modelMat);
 }

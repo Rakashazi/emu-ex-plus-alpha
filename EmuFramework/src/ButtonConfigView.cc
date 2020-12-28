@@ -171,7 +171,7 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &cmds)
 	}
 	#endif
 
-	cmds.setColor(COLOR_WHITE);
+	cmds.set(ColorName::WHITE);
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(pointerUIIsInit())
@@ -199,12 +199,11 @@ void ButtonConfigSetView::onAddedToController(ViewController *, Input::Event e)
 	#endif
 }
 
-void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize, _2DOrigin align, const Gfx::ProjectionPlane &projP) const
+void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+	_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
-	using namespace Gfx;
-	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP);
-	cmds.setColor(1., 1., 0.); // yellow
-	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP);
+	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP, color);
+	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP, Gfx::color(Gfx::ColorName::YELLOW));
 }
 
 static std::pair<const KeyCategory *, uint> findCategoryAndKeyInConfig(Input::Key key, InputDeviceConfig &devConf, const KeyCategory *skipCat, int skipIdx_)

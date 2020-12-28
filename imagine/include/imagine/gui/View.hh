@@ -99,6 +99,7 @@ public:
 	static NameString makeNameString(const BaseTextMenuItem &item);
 	static void setNeedsBackControl(bool on);
 	static bool compileGfxPrograms(Gfx::Renderer &r);
+	static Gfx::Color menuTextColor(bool isSelected);
 	void dismiss(bool refreshLayout = true);
 	void dismissPrevious();
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView = true, bool isModal = false);

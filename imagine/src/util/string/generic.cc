@@ -171,7 +171,7 @@ std::u16string string_makeUTF16(const char *str)
 	uint32_t c = 0;
 	while(!(bool)string_convertCharCode(&s, c))
 	{
-		if(c > INT16_MAX)
+		if(c > UINT16_MAX)
 			continue;
 		utf16Len++;
 	}
@@ -179,7 +179,7 @@ std::u16string string_makeUTF16(const char *str)
 	s = str;
 	while(!(bool)string_convertCharCode(&s, c))
 	{
-		if(c > INT16_MAX)
+		if(c > UINT16_MAX)
 			continue;
 		u16String.push_back(c);
 	}

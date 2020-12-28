@@ -139,7 +139,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 		if(vRect.size())
 		{
 			cmds.setBlendMode(0);
-			cmds.setColor(COLOR_WHITE);
+			cmds.set(ColorName::WHITE);
 			drawQuads(cmds, &vRect[0], vRect.size(), &vRectIdx[0], vRectIdx.size());
 		}
 	}
@@ -493,9 +493,7 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 
 void TableView::drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect) const
 {
-	using namespace Gfx;
-	cmds.setColor(COLOR_WHITE);
-	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), align, projP);
+	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), align, projP, Gfx::color(Gfx::ColorName::WHITE));
 }
 
 void TableView::onSelectElement(Input::Event e, uint32_t i, MenuItem &item)
