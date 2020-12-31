@@ -112,11 +112,10 @@ void MapIO::advise(off_t offset, size_t bytes, Advice advice)
 	void *srcAddr = (void*)((uintptr_t)data + offset);
 	void *pageSrcAddr = (void*)roundDownToPageSize((uintptr_t)srcAddr);
 	bytes += (uintptr_t)srcAddr - (uintptr_t)pageSrcAddr; // add extra bytes from rounding down to page size
-
 	int mAdv = adviceToMAdv(advice);
-	if(madvise(pageSrcAddr, bytes, mAdv) != 0)
+	if(madvise(pageSrcAddr, bytes, mAdv) != 0 && Config::DEBUG_BUILD)
 	{
-		logWarn("madvise for offset 0x%llX with size %zu failed", (unsigned long long)offset, bytes);
+		logWarn("madvise address:%p size:%zu failed:%s", pageSrcAddr, bytes, strerror(errno));
 	}
 }
 #endif

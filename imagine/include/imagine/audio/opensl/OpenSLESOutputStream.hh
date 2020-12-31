@@ -46,8 +46,8 @@ private:
 	SLAndroidSimpleBufferQueueItf slBuffQI{};
 	OnSamplesNeededDelegate onSamplesNeeded{};
 	std::unique_ptr<uint8_t[]> buffer{};
+	uint32_t bufferFrames = 0;
 	uint32_t bufferBytes = 0;
-	Format pcmFormat{};
 	bool isPlaying_ = false;
 	bool bufferQueued = false;
 

@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <compare>
+#include <cstdint>
 
 namespace IG::Audio
 {
@@ -25,34 +26,35 @@ class SampleFormat
 public:
 	constexpr SampleFormat() {}
 	constexpr SampleFormat(uint8_t bytes, bool isFloat = false):
-		bytes_{bytes}, isFloatType{isFloat}
+		bytesWithFlags{(uint8_t)((bytes & BYTES_MASK) | (isFloat ? IS_FLOAT_BIT : 0))}
 	{}
 
 	constexpr uint8_t bytes() const
 	{
-		return bytes_;
+		return bytesWithFlags & BYTES_MASK;
 	}
 
 	constexpr uint8_t bits() const
 	{
-		return bytes_ * 8;
+		return bytes() * 8;
 	}
 
 	constexpr bool isFloat() const
 	{
-		return isFloatType;
+		return bytesWithFlags & IS_FLOAT_BIT;
 	}
 
 	constexpr bool operator ==(SampleFormat const& rhs) const = default;
 
 	constexpr explicit operator bool() const
 	{
-		return bytes_;
+		return bytesWithFlags;
 	}
 
 protected:
-	uint8_t bytes_ = 0;
-	bool isFloatType = 0;
+	static constexpr uint8_t BYTES_MASK = 0xF;
+	static constexpr uint8_t IS_FLOAT_BIT = 0x80;
+	uint8_t bytesWithFlags = 0;
 };
 
 namespace SampleFormats

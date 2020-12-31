@@ -257,6 +257,8 @@ void Window::setIntendedFrameRate(double rate)
 {
 	if(Base::androidSDK() < 30)
 		return;
+	if(unlikely(!nWin))
+		return;
 	if(unlikely(!ANativeWindow_setFrameRate))
 	{
 		auto lib = Base::openSharedLibrary("libnativewindow.so");

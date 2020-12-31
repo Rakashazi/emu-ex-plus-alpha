@@ -171,7 +171,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 				return;
 			}
 			assumeExpr(thisPtr->onSamplesNeeded);
-			thisPtr->onSamplesNeeded(buff, bytes);
+			thisPtr->onSamplesNeeded(buff, thisPtr->pcmFormat.bytesToFrames(bytes));
 			if(int err = pa_stream_write(stream, buff, bytes, nullptr, 0, PA_SEEK_RELATIVE);
 				err < 0)
 			{

@@ -17,10 +17,8 @@
 #include "../../base/android/android.hh"
 #include <imagine/audio/android/AAudioOutputStream.hh>
 #include <imagine/base/sharedLibrary.hh>
-#include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
 #include <aaudio/AAudio.h>
-#include <unistd.h>
 
 namespace IG::Audio
 {
@@ -41,6 +39,9 @@ static aaudio_result_t (*AAudioStream_requestStart)(AAudioStream* stream){};
 static aaudio_result_t (*AAudioStream_requestPause)(AAudioStream* stream){};
 static aaudio_result_t (*AAudioStream_requestFlush)(AAudioStream* stream){};
 static aaudio_result_t (*AAudioStream_requestStop)(AAudioStream* stream){};
+static aaudio_stream_state_t (*AAudioStream_getState)(AAudioStream *stream){};
+static aaudio_result_t (*AAudioStream_waitForStateChange)(AAudioStream *stream, aaudio_stream_state_t inputState,
+	aaudio_stream_state_t *nextState, int64_t timeoutNanoseconds){};
 
 static bool loadedAAudioLib()
 {
@@ -52,7 +53,7 @@ static void loadAAudioLib()
 	if(loadedAAudioLib())
 		return;
 	logMsg("loading libaaudio.so functions");
-	auto lib = Base::openSharedLibrary("libaaudio.so");
+	auto lib = Base::openSharedLibrary("libaaudio.so", Base::RESOLVE_ALL_SYMBOLS_FLAG);
 	if(!lib)
 	{
 		logErr("error opening libaaudio.so");
@@ -73,24 +74,74 @@ static void loadAAudioLib()
 	Base::loadSymbol(AAudioStream_requestPause, lib, "AAudioStream_requestPause");
 	Base::loadSymbol(AAudioStream_requestFlush, lib, "AAudioStream_requestFlush");
 	Base::loadSymbol(AAudioStream_requestStop, lib, "AAudioStream_requestStop");
+	Base::loadSymbol(AAudioStream_getState, lib, "AAudioStream_getState");
+	Base::loadSymbol(AAudioStream_waitForStateChange, lib, "AAudioStream_waitForStateChange");
 	if(Base::androidSDK() >= 28)
 	{
 		Base::loadSymbol(AAudioStreamBuilder_setUsage, lib, "AAudioStreamBuilder_setUsage");
 	}
 }
 
+static const char *streamResultStr(aaudio_result_t result)
+{
+	switch(result)
+	{
+		case AAUDIO_OK: return "OK";
+		default: return "Unknown";
+		case AAUDIO_ERROR_ILLEGAL_ARGUMENT: return "Illegal Argument";
+		case AAUDIO_ERROR_INVALID_STATE: return "Invalid State";
+		case AAUDIO_ERROR_INVALID_HANDLE: return "Invalid Handle";
+		case AAUDIO_ERROR_UNIMPLEMENTED: return "Unimplemented";
+		case AAUDIO_ERROR_UNAVAILABLE: return "Unavailable";
+		case AAUDIO_ERROR_NO_MEMORY: return "No Memory";
+		case AAUDIO_ERROR_NULL: return "Null Pointer";
+		case AAUDIO_ERROR_TIMEOUT: return "Timed Out";
+		case AAUDIO_ERROR_WOULD_BLOCK: return "Would Block";
+		case AAUDIO_ERROR_INVALID_FORMAT: return "Invalid Format";
+		case AAUDIO_ERROR_OUT_OF_RANGE: return "Value Out of Range";
+		case AAUDIO_ERROR_NO_SERVICE: return "No Audio Service";
+		case AAUDIO_ERROR_INVALID_RATE: return "Invalid Rate";
+	}
+}
+
+static const char *streamStateStr(aaudio_stream_state_t state)
+{
+	switch(state)
+	{
+		case AAUDIO_STREAM_STATE_UNINITIALIZED: return "Uninitialized";
+		default: return "Unknown";
+		case AAUDIO_STREAM_STATE_OPEN: return "Open";
+		case AAUDIO_STREAM_STATE_STARTING: return "Starting";
+		case AAUDIO_STREAM_STATE_STARTED: return "Started";
+		case AAUDIO_STREAM_STATE_PAUSING: return "Pausing";
+		case AAUDIO_STREAM_STATE_PAUSED: return "Paused";
+		case AAUDIO_STREAM_STATE_FLUSHING: return "Flushing";
+		case AAUDIO_STREAM_STATE_FLUSHED: return "Flushed";
+		case AAUDIO_STREAM_STATE_STOPPING: return "Stopping";
+		case AAUDIO_STREAM_STATE_STOPPED: return "Stopped";
+		case AAUDIO_STREAM_STATE_CLOSING: return "Closing";
+		case AAUDIO_STREAM_STATE_CLOSED: return "Closed";
+		case AAUDIO_STREAM_STATE_DISCONNECTED: return "Disconnected";
+	}
+}
+
 AAudioOutputStream::AAudioOutputStream()
 {
 	loadAAudioLib();
+	AAudio_createStreamBuilder(&builder);
 	disconnectEvent.attach(
 		[this]()
 		{
 			if(!stream)
 				return;
 			logMsg("trying to re-open stream after disconnect");
-			close();
-			if(!openStream(pcmFormat, lowLatencyMode))
+			AAudioStream_close(std::exchange(stream, {}));
+			if(auto res = AAudioStreamBuilder_openStream(builder, &stream);
+				res != AAUDIO_OK)
+			{
+				logErr("error:%s creating stream", streamResultStr(res));
 				return;
+			}
 			play();
 		});
 }
@@ -98,6 +149,7 @@ AAudioOutputStream::AAudioOutputStream()
 AAudioOutputStream::~AAudioOutputStream()
 {
 	close();
+	AAudioStreamBuilder_delete(builder);
 }
 
 IG::ErrorCode AAudioOutputStream::open(OutputStreamConfig config)
@@ -110,109 +162,83 @@ IG::ErrorCode AAudioOutputStream::open(OutputStreamConfig config)
 	}
 	bool lowLatencyMode = config.wantedLatencyHint() < IG::Microseconds{20000};
 	auto format = config.format();
-	onSamplesNeeded = config.onSamplesNeeded();
-	pcmFormat = format;
-	if(!openStream(format, lowLatencyMode))
-	{
-		return {EINVAL};
-	}
-	this->lowLatencyMode = lowLatencyMode;
-	if(config.startPlaying())
-		play();
-	return {};
-}
-
-bool AAudioOutputStream::openStream(Format format, bool lowLatencyMode)
-{
-	assert(!stream);
-	logMsg("creating stream %dHz, %d channels, low-latency:%s", format.rate, format.channels,
-		lowLatencyMode ? "y" : "n");
 	if(format.sample != SampleFormats::i16 && format.sample != SampleFormats::f32)
 	{
 		logErr("only i16 and f32 sample formats are supported");
-		return false;
+		return {EINVAL};
 	}
-	AAudioStreamBuilder *builder;
-	AAudio_createStreamBuilder(&builder);
-	auto deleteStreamBuilder = IG::scopeGuard([&](){ AAudioStreamBuilder_delete(builder); });
-	AAudioStreamBuilder_setChannelCount(builder, format.channels);
-	AAudioStreamBuilder_setFormat(builder, format.sample.isFloat() ? AAUDIO_FORMAT_PCM_FLOAT : AAUDIO_FORMAT_PCM_I16);
-	AAudioStreamBuilder_setSampleRate(builder, format.rate);
-	if(lowLatencyMode)
-	{
-		AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
-		AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE);
-	}
-	if(AAudioStreamBuilder_setUsage) // present in API level 28+
-		AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_GAME);
-	AAudioStreamBuilder_setDataCallback(builder,
-		[](AAudioStream *stream, void *userData, void *audioData, int32_t numFrames) -> aaudio_data_callback_result_t
-		{
-			auto thisPtr = (AAudioOutputStream*)userData;
-			thisPtr->onSamplesNeeded(audioData, thisPtr->pcmFormat.framesToBytes(numFrames));
-			return AAUDIO_CALLBACK_RESULT_CONTINUE;
-		}, this);
-	AAudioStreamBuilder_setErrorCallback(builder,
-		[](AAudioStream *stream, void *userData, aaudio_result_t error)
-		{
-			//logErr("got error:%d callback", error);
-			if(error == AAUDIO_ERROR_DISCONNECTED)
-			{
-				// can't re-open stream on worker thread callback, notify main thread
-				auto thisPtr = (AAudioOutputStream*)userData;
-				thisPtr->disconnectEvent.notify();
-			}
-		}, this);
-	AAudioStream *stream;
+	logMsg("creating stream %dHz, %d channels, low-latency:%s", format.rate, format.channels,
+		lowLatencyMode ? "y" : "n");
+	onSamplesNeeded = config.onSamplesNeeded();
+	setBuilderData(builder, format, lowLatencyMode);
 	if(auto res = AAudioStreamBuilder_openStream(builder, &stream);
 		res != AAUDIO_OK)
 	{
-		logErr("error:%d creating stream", res);
-		return false;
+		logErr("error:%s creating stream", streamResultStr(res));
+		return {EINVAL};
 	}
-	this->stream = stream;
-	return true;
+	if(config.startPlaying())
+		play();
+	return {};
 }
 
 void AAudioOutputStream::play()
 {
 	if(unlikely(!stream))
 		return;
-	AAudioStream_requestStart(stream);
 	isPlaying_ = true;
+	AAudioStream_requestStart(stream);
 }
 
 void AAudioOutputStream::pause()
 {
 	if(unlikely(!stream))
 		return;
-	AAudioStream_requestPause(stream);
 	isPlaying_ = false;
+	AAudioStream_requestPause(stream);
+}
+
+static void waitUntilState(AAudioStream *stream, aaudio_stream_state_t wantedState)
+{
+	aaudio_result_t res = AAUDIO_OK;
+	aaudio_stream_state_t currentState = AAudioStream_getState(stream);
+	aaudio_stream_state_t inputState = currentState;
+	while(res == AAUDIO_OK && currentState != wantedState)
+	{
+		res = AAudioStream_waitForStateChange(stream, inputState, &currentState, INT64_MAX);
+		logMsg("transitioned form state:%s to %s", streamStateStr(inputState), streamStateStr(currentState));
+		inputState = currentState;
+	}
+	if(res != AAUDIO_OK)
+	{
+		logErr("error:%s waiting for state:%s", streamResultStr(res), streamStateStr(wantedState));
+	}
 }
 
 void AAudioOutputStream::close()
 {
 	if(unlikely(!stream))
 		return;
-	logMsg("closing stream");
-	const bool delayClose = true;
-	if(delayClose)
-	{
-		// Needed on devices like the Samsung A3 (2017) to prevent spurious callbacks after AAudioStream_close()
-		// Documented in https://github.com/google/oboe/blob/master/src/aaudio/AudioStreamAAudio.cpp
-		AAudioStream_requestStop(stream);
-		usleep(10 * 1000);
-	}
-	AAudioStream_close(std::exchange(stream, {}));
+	logMsg("closing stream:%p", stream);
 	isPlaying_ = false;
+	// Devices like the Samsung A3 (2017) have spurious callbacks after AAudioStream_close()
+	// To avoid this make sure the stream is fully stopped before closing
+	// Documented in https://github.com/google/oboe/blob/master/src/aaudio/AudioStreamAAudio.cpp
+	AAudioStream_requestStop(stream);
+	waitUntilState(stream, AAUDIO_STREAM_STATE_STOPPED);
+	if(auto res = AAudioStream_close(std::exchange(stream, {}));
+		res != AAUDIO_OK)
+	{
+		logErr("error:%s closing stream", streamResultStr(res));
+	}
 }
 
 void AAudioOutputStream::flush()
 {
 	if(unlikely(!stream))
 		return;
-	AAudioStream_requestFlush(stream);
 	isPlaying_ = false;
+	AAudioStream_requestFlush(stream);
 }
 
 bool AAudioOutputStream::isOpen()
@@ -228,6 +254,38 @@ bool AAudioOutputStream::isPlaying()
 AAudioOutputStream::operator bool() const
 {
 	return loadedAAudioLib();
+}
+
+void AAudioOutputStream::setBuilderData(AAudioStreamBuilder *builder, Format format, bool lowLatencyMode)
+{
+	AAudioStreamBuilder_setChannelCount(builder, format.channels);
+	AAudioStreamBuilder_setFormat(builder, format.sample.isFloat() ? AAUDIO_FORMAT_PCM_FLOAT : AAUDIO_FORMAT_PCM_I16);
+	AAudioStreamBuilder_setSampleRate(builder, format.rate);
+	if(lowLatencyMode)
+	{
+		AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+		AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE);
+	}
+	if(AAudioStreamBuilder_setUsage) // present in API level 28+
+		AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_GAME);
+	AAudioStreamBuilder_setDataCallback(builder,
+		[](AAudioStream *stream, void *userData, void *audioData, int32_t numFrames) -> aaudio_data_callback_result_t
+		{
+			auto thisPtr = (AAudioOutputStream*)userData;
+			thisPtr->onSamplesNeeded(audioData, numFrames);
+			return AAUDIO_CALLBACK_RESULT_CONTINUE;
+		}, this);
+	AAudioStreamBuilder_setErrorCallback(builder,
+		[](AAudioStream *stream, void *userData, aaudio_result_t error)
+		{
+			//logErr("got error:%s callback", streamResultStr(error));
+			if(error == AAUDIO_ERROR_DISCONNECTED)
+			{
+				// can't re-open stream on worker thread callback, notify main thread
+				auto thisPtr = (AAudioOutputStream*)userData;
+				thisPtr->disconnectEvent.notify();
+			}
+		}, this);
 }
 
 }

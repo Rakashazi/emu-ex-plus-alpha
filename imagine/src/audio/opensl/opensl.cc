@@ -76,7 +76,7 @@ IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 	// to get low-latency path, even though we only queue 1
 	auto androidSDK = Base::androidSDK();
 	uint32_t outputBuffers = androidSDK >= 18 ? 1 : 2;
-	auto bufferFrames = AudioManager::nativeOutputFramesPerBuffer();
+	bufferFrames = AudioManager::nativeOutputFramesPerBuffer();
 	logMsg("creating stream %dHz, %d channels, %u frames/buffer", format.rate, format.channels, bufferFrames);
 	SLDataLocator_AndroidSimpleBufferQueue buffQLoc{SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, outputBuffers};
 	SLDataFormat_PCM slFormat
@@ -123,7 +123,6 @@ IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 	assert(result == SL_RESULT_SUCCESS);
 	result = (*player)->GetInterface(player, SL_IID_ANDROIDSIMPLEBUFFERQUEUE, &slBuffQI);
 	assert(result == SL_RESULT_SUCCESS);
-	pcmFormat = format;
 	onSamplesNeeded = config.onSamplesNeeded();
 	bufferBytes = format.framesToBytes(bufferFrames);
 	buffer = std::make_unique<uint8_t[]>(bufferBytes);
@@ -217,7 +216,7 @@ OpenSLESOutputStream::operator bool() const
 
 void OpenSLESOutputStream::doBufferCallback(SLAndroidSimpleBufferQueueItf queue)
 {
-	onSamplesNeeded(buffer.get(), bufferBytes);
+	onSamplesNeeded(buffer.get(), bufferFrames);
 	if(SLresult result = (*queue)->Enqueue(queue, buffer.get(), bufferBytes);
 			result != SL_RESULT_SUCCESS)
 		{

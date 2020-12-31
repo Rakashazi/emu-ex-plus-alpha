@@ -20,6 +20,7 @@
 #include <imagine/base/CustomEvent.hh>
 
 typedef struct AAudioStreamStruct AAudioStream;
+typedef struct AAudioStreamBuilderStruct AAudioStreamBuilder;
 
 namespace IG::Audio
 {
@@ -40,13 +41,12 @@ public:
 
 private:
 	AAudioStream *stream{};
+	AAudioStreamBuilder *builder{};
 	OnSamplesNeededDelegate onSamplesNeeded{};
-	Format pcmFormat{};
 	Base::CustomEvent disconnectEvent{"AAudioOutputStream::disconnectEvent"};
 	bool isPlaying_ = false;
-	bool lowLatencyMode = false;
 
-	bool openStream(Format format, bool lowLatencyMode);
+	void setBuilderData(AAudioStreamBuilder *builder, Format format, bool lowLatencyMode);
 };
 
 }

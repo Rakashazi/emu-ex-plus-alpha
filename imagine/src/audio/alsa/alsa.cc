@@ -198,8 +198,7 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 							break;
 						}
 						auto buff = (char*)areas->addr + offset * (areas->step / 8);
-						auto bytes = pcmFormat.framesToBytes(frames);
-						onSamplesNeeded(buff, bytes);
+						onSamplesNeeded(buff, frames);
 						if(snd_pcm_mmap_commit(pcmHnd, offset, frames) < 0)
 						{
 							logErr("error in snd_pcm_mmap_begin");
@@ -217,8 +216,8 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 				else
 				{
 					auto bytes = pcmFormat.framesToBytes(periodSize);
-					char buff[bytes];
-					onSamplesNeeded(buff, bytes);
+					alignas(4) char buff[bytes];
+					onSamplesNeeded(buff, periodSize);
 					if(snd_pcm_writei(pcmHnd, buff, periodSize) < 0)
 					{
 						if(!recoverPCM(pcmHnd))

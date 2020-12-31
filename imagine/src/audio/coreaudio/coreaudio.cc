@@ -49,9 +49,8 @@ CAOutputStream::CAOutputStream()
 			const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) -> OSStatus
 		{
 			auto thisPtr = static_cast<CAOutputStream*>(inRefCon);
-			auto *buff = (char*)ioData->mBuffers[0].mData;
-			UInt32 bytes = inNumberFrames * thisPtr->streamFormat.mBytesPerFrame;
-			if(!thisPtr->onSamplesNeeded(buff, bytes))
+			auto *buff = ioData->mBuffers[0].mData;
+			if(!thisPtr->onSamplesNeeded(buff, inNumberFrames))
 			{
 				*ioActionFlags |= kAudioUnitRenderAction_OutputIsSilence;
 			}
@@ -100,7 +99,6 @@ IG::ErrorCode CAOutputStream::open(OutputStreamConfig config)
 		logErr("error %d setting stream format", (int)err);
 		return {EINVAL};
 	}
-	pcmFormat = format;
 	onSamplesNeeded = config.onSamplesNeeded();
 	AudioUnitInitialize(outputUnit);
 	isOpen_ = true;

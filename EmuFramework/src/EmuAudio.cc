@@ -159,30 +159,28 @@ void EmuAudio::start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bu
 	{
 		resizeAudioBuffer(targetBufferFillBytes);
 		audioWriteState = AudioWriteState::BUFFER;
-		IG::Audio::Format outputFormat{rate, IG::AudioManager::nativeSampleFormat(), channels};
+		IG::Audio::Format outputFormat{inputFormat.rate, IG::AudioManager::nativeSampleFormat(), inputFormat.channels};
 		IG::Audio::OutputStreamConfig outputConf
 		{
 			outputFormat,
-			[this, outputSampleFormat = outputFormat.sample](void *samples, unsigned bytes)
+			[this, outputSampleFormat = outputFormat.sample, inputSampleFormat = inputFormat.sample, channels = outputFormat.channels](void *samples, unsigned frames)
 			{
+				IG::Audio::Format outputFormat{{}, outputSampleFormat, channels};
 				#ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
 				audioStats.callbacks++;
 				audioStats.callbackBytes += bytes;
 				#endif
 				if(audioWriteState == AudioWriteState::ACTIVE)
 				{
-					auto inputFormat = format();
-					IG::Audio::Format outputFormat{rate, outputSampleFormat, channels};
+					IG::Audio::Format inputFormat = {{}, inputSampleFormat, channels};
 					auto framesReady = inputFormat.bytesToFrames(rBuff.size());
-					auto framesToRead = std::min(outputFormat.bytesToFrames(bytes), framesReady);
+					auto const framesToRead = std::min(frames, framesReady);
 					auto frameEndAddr = (char*)outputFormat.copyFrames(samples, rBuff.readAddr(), framesToRead, inputFormat, volume);
 					rBuff.commitRead(inputFormat.framesToBytes(framesToRead));
-					if(unsigned bytesWritten = frameEndAddr - (char*)samples;
-						unlikely(bytesWritten < bytes))
+					if(unlikely(framesToRead < frames))
 					{
-						assert(bytesWritten == outputFormat.framesToBytes(framesToRead));
-						auto padBytes = bytes - bytesWritten;
-						std::fill_n(frameEndAddr, padBytes, 0);
+						auto padFrames = frames - framesToRead;
+						std::fill_n(frameEndAddr, outputFormat.framesToBytes(padFrames), 0);
 						//logMsg("underrun, %d bytes ready out of %d", bytesReady, bytes);
 						auto now = IG::steadyClockTimestamp();
 						if(now - lastUnderrunTime < IG::Seconds(1))
@@ -203,7 +201,7 @@ void EmuAudio::start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bu
 				}
 				else
 				{
-					std::fill_n((char*)samples, bytes, 0);
+					std::fill_n((char*)samples, outputFormat.framesToBytes(frames), 0);
 					return false;
 				}
 			}
@@ -241,8 +239,8 @@ void EmuAudio::stop()
 void EmuAudio::close()
 {
 	stop();
-	rBuff = {};
 	audioStream.reset();
+	rBuff = {};
 }
 
 void EmuAudio::flush()

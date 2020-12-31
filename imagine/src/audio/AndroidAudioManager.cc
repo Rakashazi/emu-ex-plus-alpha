@@ -198,7 +198,11 @@ std::vector<ApiDesc> audioAPIs()
 
 Api makeValidAPI(Api api)
 {
-	if(Base::androidSDK() >= 26)
+	// Don't default to AAudio on Android 8.0 (SDK 26) due
+	// too various device-specific driver bugs:
+	// ASUS ZenFone 4 (ZE554KL) crashes randomly ~5 mins after playback starts
+	// Samsung Galaxy S7 may crash when closing audio stream even when stopping it beforehand
+	if(Base::androidSDK() >= 27)
 	{
 		if(api == Api::OPENSL_ES)
 			return Api::OPENSL_ES; // OpenSL ES was explicitly requested
