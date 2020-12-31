@@ -1,4 +1,4 @@
-metadata_version = 1.5.48
+metadata_version = 1.5.49
 android_metadata_versionCodeExtra = 15
 android_metadata_writeExtStore = 1
 android_metadata_bluetooth = 1
