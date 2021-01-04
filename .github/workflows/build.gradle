@@ -1,0 +1,65 @@
+buildscript {
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:4.1.0'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+}
+
+apply plugin: 'android'
+
+android {
+    compileSdkVersion 29
+
+    defaultConfig {
+        minSdkVersion METADATA_MIN_SDK
+        targetSdkVersion METADATA_TARGET_SDK
+    }
+
+    buildTypes {
+        release {
+	        shrinkResources true
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard.cfg'
+        }
+    }
+
+    lintOptions {
+    	abortOnError false
+	}
+
+	sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            resources.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    defaultConfig {
+		archivesBaseName = METADATA_PROJECT
+	}
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: '*.aar')
+    implementation "com.android.support:support-v4:23.3.+"
+}
+

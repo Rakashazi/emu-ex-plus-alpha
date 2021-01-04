@@ -1,0 +1,123 @@
+name: EX Emulators
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: ubuntu-20.04
+    runs-on: ubuntu-20.04
+    container: cirrusci/android-sdk:30-ndk
+ 
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: true
+
+    - name: Install
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y autoconf
+        sudo apt-get install -y automake
+        sudo apt-get install -y autopoint
+        sudo apt-get install -y bash
+        sudo apt-get install -y clang
+        sudo apt-get install -y file
+        sudo apt-get install -y gawk
+        sudo apt-get install -y gettext
+        sudo apt-get install -y git
+        sudo apt-get install -y libtool
+        sudo apt-get install -y libtool-bin
+        sudo apt-get install -y llvm 
+        sudo apt-get install -y make
+        sudo apt-get install -y openjdk-8-jdk
+        sudo apt-get install -y pkg-config
+        sudo apt-get install -y unzip
+        sudo apt-get upgrade -y
+        echo y | sdkmanager "cmake;3.10.2.4988404"
+        
+    - name: Download and unzip NDK
+      working-directory: /opt/android-sdk-linux/ndk
+      run: |
+        wget -q https://dl.google.com/android/repository/android-ndk-r22-linux-x86_64.zip
+        unzip -qq ./android-ndk-r22-linux-x86_64.zip
+        
+    - name: Set up environment
+      run: |
+        mkdir imagine-sdk
+        mkdir EX-Emulators
+        echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r22" >> $GITHUB_ENV
+        echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
+        echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
+        echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
+        
+    - name: Run script
+      run: |
+        cd imagine/bundle/all
+        chmod +x ./makeAll-android.sh
+        ./makeAll-android.sh install
+      shell: bash
+          
+    - name: Build environment
+      run: |
+        make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
+        make -f $EMUFRAMEWORK_PATH/android-release.mk config -j2
+        make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
+
+    - name: Copy build.gradle
+      run: |
+        cp -f .github/workflows/build.gradle imagine/make/gradle/app/build.gradle
+
+    - name: Build 2600.emu
+      run: |
+        cd 2600.emu
+        make -f android-release.mk V=1 -j2
+        
+    - name: Build C64.emu
+      run: |        
+        cd C64.emu
+        make -f android-release.mk V=1 -j2
+
+    - name: Build GBA.emu
+      run: |        
+        cd GBA.emu
+        make -f android-release.mk V=1 -j2
+
+    - name: Build GBC.emu
+      run: |        
+        cd GBC.emu
+        make -f android-release.mk V=1 -j2
+
+    - name: Build MD.emu
+      run: |        
+        cd MD.emu
+        make -f android-release.mk V=1 -j2
+
+    - name: Build MSX.emu
+      run: |        
+        cd MSX.emu
+        make -f android-release.mk V=1 -j2
+
+    - name: Build NEO.emu
+      run: |        
+        cd NEO.emu
+        make -f android-release.mk V=1 -j2
+
+    - name: Build NES.emu
+      run: |        
+        cd NES.emu
+        make -f android-release.mk V=1 -j2
+
+    - name: Build NGP.emu
+      run: |        
+        cd NGP.emu
+        make -f android-release.mk V=1 -j2
+
+    - name: Build PCE.emu
+      run: |        
+        cd PCE.emu
+        make -f android-release.mk V=1 -j2
+
+    - name: Build Snes9x
+      run: |        
+        cd Snes9x
+        make -f android-release.mk V=1 -j2
