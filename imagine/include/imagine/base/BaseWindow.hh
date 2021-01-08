@@ -49,9 +49,7 @@ public:
 	using FreeDelegate = DelegateFunc<void ()>;
 
 protected:
-	#ifdef CONFIG_BASE_MULTI_SCREEN
-	Screen *screen_ = nullptr;
-	#endif
+	IG_enableMemberIf(Config::BASE_MULTI_SCREEN, Screen *, screen_){};
 	std::shared_ptr<void> customDataPtr{};
 	SurfaceChangeDelegate onSurfaceChange{};
 	DrawDelegate onDraw{};

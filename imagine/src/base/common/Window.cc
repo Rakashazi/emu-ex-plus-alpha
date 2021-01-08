@@ -160,11 +160,10 @@ Window &mainWindow()
 
 Screen *Window::screen() const
 {
-	#ifdef CONFIG_BASE_MULTI_SCREEN
-	return screen_;
-	#else
-	return &mainScreen();
-	#endif
+	if constexpr(Config::BASE_MULTI_SCREEN)
+		return screen_;
+	else
+		return &mainScreen();
 }
 
 bool Window::setNeedsDraw(bool needsDraw)

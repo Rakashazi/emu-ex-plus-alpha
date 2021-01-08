@@ -26,7 +26,7 @@
 #include <emuframework/EmuVideo.hh>
 #include <imagine/logger/logger.h>
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
 uint32 frameskip_active = 0;
 static const int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;

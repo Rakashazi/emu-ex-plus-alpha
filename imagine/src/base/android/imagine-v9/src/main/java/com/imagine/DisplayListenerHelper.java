@@ -51,16 +51,28 @@ final class DisplayListenerHelper
 			displayRemove(deviceId);
 		}
 	}
+	Listener listener = new Listener();
 	
 	DisplayListenerHelper(Activity act)
 	{
 		//Log.i(logTag, "registering input device listener");
 		displayManager = (DisplayManager)act.getSystemService(Context.DISPLAY_SERVICE);
-		displayManager.registerDisplayListener(new Listener(), null);
 	}
-	
+
 	Display[] getPresentationDisplays()
 	{
 		return displayManager.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION);
+	}
+
+	void setListener(boolean on)
+	{
+		if(on)
+		{
+			displayManager.registerDisplayListener(listener, null);
+		}
+		else
+		{
+			displayManager.unregisterDisplayListener(listener);
+		}
 	}
 }

@@ -27,7 +27,7 @@
 #include <main/Palette.hh>
 #include "internal.hh"
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011\nthe Gambatte Team\ngambatte.sourceforge.net";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011\nthe Gambatte Team\ngambatte.sourceforge.net";
 gambatte::GB gbEmu;
 static Resampler *resampler{};
 static uint8_t activeResampler = 1;

@@ -177,9 +177,7 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 		bug_unreachable("no multi-window support");
 	}
 	BaseWindow::init(config);
-	#ifdef CONFIG_BASE_MULTI_SCREEN
-	this->screen_ = &mainScreen();
-	#endif
+	this->screen_ = Screen::screen(0);
 	auto rootWindow = RootWindowOfScreen((::Screen*)screen()->nativeObject());
 	auto winRect = Config::MACHINE_IS_PANDORA ? IG::WindowRect{0, 0, 800, 480} :
 		makeWindowRectWithConfig(config, rootWindow);

@@ -34,7 +34,7 @@ extern "C"
 	#include <yabause/cs2.h>
 }
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2020\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
 bool EmuSystem::handlesGenericIO = false;
 static EmuSystemTask *emuSysTask{};
 static EmuAudio *emuAudio{};

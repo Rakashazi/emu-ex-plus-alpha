@@ -24,7 +24,7 @@
 namespace Base
 {
 
-void XScreen::init(void *xScreen_)
+XScreen::XScreen(void *xScreen_)
 {
 	::Screen *xScreen = (::Screen*)xScreen_;
 	assert(xScreen);
@@ -93,8 +93,6 @@ XScreen::operator bool() const
 {
 	return xScreen;
 }
-
-void Screen::deinit() {}
 
 int Screen::width()
 {

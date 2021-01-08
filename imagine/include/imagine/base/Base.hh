@@ -105,6 +105,7 @@ const InterProcessMessageDelegate &onInterProcessMessage();
 
 // Called when app returns from backgrounded state
 static constexpr int INPUT_DEVICES_ON_RESUME_PRIORITY = -600;
+static constexpr int SCREEN_ON_RESUME_PRIORITY = -550;
 static constexpr int RENDERER_ON_RESUME_PRIORITY = -500;
 static constexpr int WINDOW_ON_RESUME_PRIORITY = -400;
 static constexpr int RENDERER_DRAWABLE_ON_RESUME_PRIORITY = -300;
@@ -128,6 +129,7 @@ static constexpr int RENDERER_DRAWABLE_ON_EXIT_PRIORITY = -300;
 static constexpr int WINDOW_ON_EXIT_PRIORITY = -200;
 static constexpr int APP_ON_EXIT_PRIORITY = 0;
 static constexpr int RENDERER_ON_EXIT_PRIORITY = 200;
+static constexpr int SCREEN_ON_EXIT_PRIORITY = 250;
 static constexpr int INPUT_DEVICES_ON_EXIT_PRIORITY = 300;
 
 bool addOnExit(ExitDelegate del, int priority = APP_ON_EXIT_PRIORITY);

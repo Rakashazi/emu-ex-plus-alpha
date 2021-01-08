@@ -35,7 +35,7 @@ using PalArray = std::array<pal, 512>;
 void ApplyDeemphasisComplete(pal* pal512);
 void FCEU_setDefaultPalettePtr(pal *ptr);
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nFCEUX Team\nfceux.com";
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;

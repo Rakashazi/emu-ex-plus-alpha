@@ -213,21 +213,16 @@ void x11FDHandler()
 void initXScreens(Display *dpy)
 {
 	auto defaultScreenIdx = DefaultScreen(dpy);
-	static Screen main;
-	main.init(ScreenOfDisplay(dpy, defaultScreenIdx));
-	Screen::addScreen(&main);
-	#ifdef CONFIG_BASE_MULTI_SCREEN
-	iterateTimes(ScreenCount(dpy), i)
+	Screen::addScreen(std::make_unique<Screen>(ScreenOfDisplay(dpy, defaultScreenIdx)));
+	if constexpr(Config::BASE_MULTI_SCREEN)
 	{
-		if((int)i == defaultScreenIdx)
-			continue;
-		Screen s = new Screen();
-		screen->init(ScreenOfDisplay(dpy, i));
-		Screen::addScreen(s);
-		if(!extraScreen.freeSpace())
-			break;
+		iterateTimes(ScreenCount(dpy), i)
+		{
+			if((int)i == defaultScreenIdx)
+				continue;
+			Screen::addScreen(std::make_unique<Screen>(ScreenOfDisplay(dpy, i)));
+		}
 	}
-	#endif
 }
 
 std::pair<IG::ErrorCode, int> initWindowSystem(EventLoop loop)

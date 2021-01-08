@@ -45,7 +45,7 @@ std::unique_ptr<OSystem> osystem{};
 Properties defaultGameProps{};
 bool p1DiffB = true, p2DiffB = true, vcsColor = true;
 Controller::Type autoDetectedInput1{};
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella-emu.github.io";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nStella Team\nstella-emu.github.io";
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 IG::Audio::SampleFormat EmuSystem::audioSampleFormat = IG::Audio::SampleFormats::f32;

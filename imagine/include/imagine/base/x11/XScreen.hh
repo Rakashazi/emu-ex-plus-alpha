@@ -27,7 +27,7 @@ class XScreen
 {
 public:
 	constexpr XScreen() {}
-	void init(void *xScreen);
+	XScreen(void *xScreen);
 	std::pair<float, float> mmSize() const;
 	void *nativeObject() const;
 	bool operator ==(XScreen const &rhs) const;

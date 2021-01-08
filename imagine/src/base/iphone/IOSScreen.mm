@@ -67,7 +67,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 namespace Base
 {
 
-void IOSScreen::init(UIScreen *screen)
+IOSScreen::IOSScreen(UIScreen *screen)
 {
 	logMsg("init screen %p", screen);
 	auto currMode = screen.currentMode;
@@ -120,12 +120,11 @@ void IOSScreen::init(UIScreen *screen)
 		frameTime_ = IG::FloatSeconds(1. / 60.);
 }
 
-void Screen::deinit()
+IOSScreen::~IOSScreen()
 {
 	logMsg("deinit screen %p", uiScreen_);
 	CFRelease(displayLink_);
 	CFRelease(uiScreen_);
-	*this = {};
 }
 
 void Screen::setFrameInterval(int interval)

@@ -36,7 +36,7 @@ bool CPUReadState(GBASys &gba, const char *);
 bool CPUWriteState(GBASys &gba, const char *);
 
 bool detectedRtcGame = 0;
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2020\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 bool EmuSystem::hasBundledGames = true;
 bool EmuSystem::hasCheats = true;
 

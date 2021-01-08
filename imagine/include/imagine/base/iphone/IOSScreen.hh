@@ -36,6 +36,7 @@ public:
 	bool displayLinkActive = false;
 
 	constexpr IOSScreen() {}
+	~IOSScreen();
 
 	bool operator ==(IOSScreen const &rhs) const
 	{
@@ -48,7 +49,7 @@ public:
 	}
 
 	#ifdef __OBJC__
-	void init(UIScreen *screen);
+	IOSScreen(UIScreen *screen);
 	UIScreen *uiScreen() const { return (__bridge UIScreen*)uiScreen_; }
 	CADisplayLink *displayLink() const { return (__bridge CADisplayLink*)displayLink_; }
 	#endif

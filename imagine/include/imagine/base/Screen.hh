@@ -21,7 +21,6 @@
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/typeTraits.hh>
-#include <vector>
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XScreen.hh>
@@ -32,6 +31,9 @@
 #elif defined CONFIG_BASE_MACOSX
 #include <imagine/base/osx/CocoaScreen.hh>
 #endif
+
+#include <vector>
+#include <memory>
 
 namespace Base
 {
@@ -45,7 +47,9 @@ public:
 
   static constexpr double DISPLAY_RATE_DEFAULT = 0;
 
-	constexpr Screen() {}
+	using ScreenImpl::ScreenImpl;
+	Screen(const Screen &) = delete;
+	Screen &operator=(const Screen &) = delete;
 	static uint32_t screens();
 	static Screen *screen(uint32_t idx);
 	// Called when a screen addition/removal/change occurs
@@ -72,13 +76,12 @@ public:
 	// for internal use
 	static ChangeDelegate onChange;
 
-	static void addScreen(Screen *s);
+	static Screen &addScreen(std::unique_ptr<Screen> s);
 	void frameUpdate(FrameTime timestamp);
 	void startDebugFrameStats(FrameTime timestamp);
 	void endDebugFrameStats();
 	void setActive(bool active);
 	static void setActiveAll(bool active);
-	void deinit();
 
 private:
 	bool framePosted = false;

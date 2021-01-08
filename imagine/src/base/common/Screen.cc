@@ -28,11 +28,9 @@ namespace Base
 {
 
 #ifdef CONFIG_BASE_MULTI_SCREEN
-std::vector<Screen*> screen_;
-static auto &screenArr() { return screen_; }
+std::vector<std::unique_ptr<Screen>> screen_;
 #else
-static Screen mainScreen_;
-static auto screenArr() { return std::array<Screen*, 1>{&mainScreen_}; }
+static std::array<std::unique_ptr<Screen>, 1> screen_;
 #endif
 
 Screen::ChangeDelegate Screen::onChange;
@@ -134,29 +132,31 @@ void Screen::setActive(bool active)
 
 uint32_t Screen::screens()
 {
-	return screenArr().size();
+	return screen_.size();
 }
 
 Screen *Screen::screen(uint32_t idx)
 {
-	if(idx >= screenArr().size())
+	if(idx >= screen_.size())
 		return nullptr;
-	return screenArr()[idx];
+	return screen_[idx].get();
 }
 
-void Screen::addScreen(Screen *s)
+Screen &Screen::addScreen(std::unique_ptr<Screen> s)
 {
 	#ifdef CONFIG_BASE_MULTI_SCREEN
-	screen_.push_back(s);
+	screen_.emplace_back(std::move(s));
+	return *screen_.back();
 	#else
-	assert(!mainScreen_);
-	mainScreen_ = *s;
+	assert(!screen_[0]);
+	screen_[0] = std::move(s);
+	return *screen_[0];
 	#endif
 }
 
 void Screen::setActiveAll(bool active)
 {
-	for(auto screen : screenArr())
+	for(auto &screen : screen_)
 	{
 		screen->setActive(active);
 	}
@@ -164,7 +164,7 @@ void Screen::setActiveAll(bool active)
 
 bool Screen::screensArePosted()
 {
-	for(auto screen : screenArr())
+	for(auto &screen : screen_)
 	{
 		if(screen->isPosted())
 			return true;

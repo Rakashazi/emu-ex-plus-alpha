@@ -81,7 +81,7 @@ extern "C"
 	}
 }
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2020\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2011 the\nGngeo Team\ncode.google.com/p/gngeo";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor GnGeo file loading code
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static uint16_t screenBuff[352*256] __attribute__ ((aligned (8))){};

@@ -90,11 +90,9 @@ static Screen &setupUIScreen(UIScreen *screen, bool setOverscanCompensation)
 	// prevent overscan compensation
 	if(hasAtLeastIOS5() && setOverscanCompensation)
 		screen.overscanCompensation = UIScreenOverscanCompensationInsetApplicationFrame;
-	auto s = new Screen();
-	s->init(screen);
+	auto s = std::make_unique<Screen>(screen);
 	[s->displayLink() addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-	Screen::addScreen(s);
-	return *s;
+	return Screen::addScreen(std::move(s));
 }
 
 }

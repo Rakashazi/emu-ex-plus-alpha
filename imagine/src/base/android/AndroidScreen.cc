@@ -13,9 +13,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "Screen"
 #include <unistd.h>
 #include <errno.h>
 #include <imagine/base/Screen.hh>
+#include <imagine/base/Base.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
@@ -30,31 +32,68 @@ namespace Base
 static JavaInstMethod<jint()> jGetRotation{};
 static JavaInstMethod<jobject()> jGetSupportedRefreshRates{};
 static JavaInstMethod<jobject(jobject)> jGetMetrics{};
+static JavaInstMethod<jint()> jGetDisplayId;
+static JavaInstMethod<jfloat()> jGetRefreshRate;
 JavaInstMethod<jobject(jobject, jlong)> jPresentation{};
-static Screen main;
+static JavaInstMethod<jobject()> jGetPresentationDisplays{};
+static JavaInstMethod<void(jboolean)> jSetListener{};
+
+static bool displayIdIsInList(int id)
+{
+	return IG::containsIf(screen_, [=](const auto &e) { return e->id() == id; });
+}
+
+static void enumDisplays(JNIEnv *env, jobject displayListenerHelper)
+{
+	auto jPDisplay = (jobjectArray)jGetPresentationDisplays(env, displayListenerHelper);
+	uint32_t pDisplays = env->GetArrayLength(jPDisplay);
+	if(pDisplays)
+	{
+		logMsg("checking %d presentation display(s)", pDisplays);
+		iterateTimes(pDisplays, i)
+		{
+			auto display = env->GetObjectArrayElement(jPDisplay, i);
+			auto id = jGetDisplayId(env, display);
+			if(displayIdIsInList(id))
+			{
+				continue;
+			}
+			Screen::addScreen(std::make_unique<Screen>(env, display, nullptr, id, jGetRefreshRate(env, display)));
+		}
+	}
+}
+
+static void clearSecondaryDisplays()
+{
+	while(screen_.size() > 1)
+	{
+		screen_.pop_back();
+	}
+}
 
 void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 {
-	assert(!main);
+	assert(!Screen::screen(0));
 	JavaInstMethod<jobject()> jDefaultDpy{env, activityCls, "defaultDpy", "()Landroid/view/Display;"};
 	// DisplayMetrics obtained via getResources().getDisplayMetrics() so the scaledDensity field is correct
 	JavaInstMethod<jobject()> jDisplayMetrics{env, activityCls, "displayMetrics", "()Landroid/util/DisplayMetrics;"};
 	auto mainDpy = jDefaultDpy(env, activity);
 	jclass jDisplayCls = env->GetObjectClass(mainDpy);
-	jGetRotation.setup(env, jDisplayCls, "getRotation", "()I");
-	jGetMetrics.setup(env, Base::jBaseActivityCls, "getDisplayMetrics", "(Landroid/view/Display;)Landroid/util/DisplayMetrics;");
-	JavaInstMethod<jint()> jGetDisplayId{env, jDisplayCls, "getDisplayId", "()I"};
-	JavaInstMethod<jfloat()> jGetRefreshRate{env, jDisplayCls, "getRefreshRate", "()F"};
-	main.init(env, mainDpy, jDisplayMetrics(env, activity), 0, jGetRefreshRate(env, mainDpy));
-	Screen::addScreen(&main);
+	jGetRotation = {env, jDisplayCls, "getRotation", "()I"};
+	jGetMetrics = {env, Base::jBaseActivityCls, "getDisplayMetrics", "(Landroid/view/Display;)Landroid/util/DisplayMetrics;"};
+	jGetDisplayId = {env, jDisplayCls, "getDisplayId", "()I"};
+	jGetRefreshRate = {env, jDisplayCls, "getRefreshRate", "()F"};
+	Screen::addScreen(std::make_unique<Screen>(env, mainDpy, jDisplayMetrics(env, activity), 0, jGetRefreshRate(env, mainDpy)));
 	if(Base::androidSDK() >= 17)
 	{
 		jPresentation.setup(env, activityCls, "presentation", "(Landroid/view/Display;J)Lcom/imagine/PresentationHelper;");
-		logMsg("setting up screen notifications");
 		JavaInstMethod<jobject()> jDisplayListenerHelper{env, activityCls, "displayListenerHelper", "()Lcom/imagine/DisplayListenerHelper;"};
 		auto displayListenerHelper = jDisplayListenerHelper(env, activity);
 		assert(displayListenerHelper);
+		displayListenerHelper = env->NewGlobalRef(displayListenerHelper);
 		auto displayListenerHelperCls = env->GetObjectClass(displayListenerHelper);
+		jSetListener = {env, displayListenerHelperCls, "setListener", "(Z)V"};
+		jGetPresentationDisplays = {env, displayListenerHelperCls, "getPresentationDisplays", "()[Landroid/view/Display;"};
 		JNINativeMethod method[]
 		{
 			{
@@ -62,19 +101,14 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 				(void*)(void (*)(JNIEnv*, jobject, jint, jobject, jfloat))
 				([](JNIEnv* env, jobject thiz, jint id, jobject disp, jfloat refreshRate)
 				{
-					for(auto s : screen_)
+					if(displayIdIsInList(id))
 					{
-						if(s->id() == id)
-						{
-							logMsg("screen %d already in device list", id);
-							break;
-						}
+						logMsg("screen id:%d already in device list", id);
+						return;
 					}
-					Screen *s = new Screen();
-					s->init(env, disp, nullptr, id, refreshRate);
-					Screen::addScreen(s);
+					Screen &s = Screen::addScreen(std::make_unique<Screen>(env, disp, nullptr, id, refreshRate));
 					if(Screen::onChange)
-						Screen::onChange(*s, {Screen::Change::ADDED});
+						Screen::onChange(s, {Screen::Change::ADDED});
 				})
 			},
 			{
@@ -82,14 +116,13 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 				(void*)(void (*)(JNIEnv*, jobject, jint, jfloat))
 				([](JNIEnv* env, jobject thiz, jint id, jfloat refreshRate)
 				{
-					for(auto s : screen_)
+					auto it = IG::find_if(screen_, [=](const auto &e) { return e->id() == id; });
+					if(it == screen_.end())
 					{
-						if(s->id() == id)
-						{
-							s->updateRefreshRate(refreshRate);
-							break;
-						}
+						logWarn("screen id:%d changed but isn't in device list", id);
+						return;
 					}
+					(*it)->updateRefreshRate(refreshRate);
 				})
 			},
 			{
@@ -97,39 +130,35 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 				(void*)(void (*)(JNIEnv*, jobject, jint))
 				([](JNIEnv* env, jobject thiz, jint id)
 				{
-					logMsg("screen %d removed", id);
-					if(auto removedScreen = IG::moveOutIf(screen_, [&](Screen *s){ return s->id() == id; });
+					logMsg("screen id:%d removed", id);
+					if(auto removedScreen = IG::moveOutIf(screen_, [&](auto &s){ return s->id() == id; });
 						removedScreen)
 					{
 						if(Screen::onChange)
 							Screen::onChange(*removedScreen, {Screen::Change::REMOVED});
-						removedScreen->deinit();
-						delete removedScreen;
 					}
 				})
 			}
 		};
 		env->RegisterNatives(displayListenerHelperCls, method, std::size(method));
-
-		// get the current presentation screens
-		JavaInstMethod<jobject()> jGetPresentationDisplays{env, displayListenerHelperCls, "getPresentationDisplays", "()[Landroid/view/Display;"};
-		auto jPDisplay = (jobjectArray)jGetPresentationDisplays(env, displayListenerHelper);
-		uint32_t pDisplays = env->GetArrayLength(jPDisplay);
-		if(pDisplays)
+		Base::addOnResume([env, displayListenerHelper](bool)
 		{
-			logMsg("checking %d presentation display(s)", pDisplays);
-			iterateTimes(pDisplays, i)
-			{
-				auto display = env->GetObjectArrayElement(jPDisplay, i);
-				Screen *s = new Screen();
-				s->init(env, display, nullptr, jGetDisplayId(env, display), jGetRefreshRate(env, display));
-				Screen::addScreen(s);
-			}
-		}
+			enumDisplays(env, displayListenerHelper);
+			logMsg("registering secondary display listener");
+			jSetListener(env, displayListenerHelper, true);
+			return true;
+		}, Base::SCREEN_ON_RESUME_PRIORITY);
+		Base::addOnExit([env, displayListenerHelper](bool backgrounded)
+		{
+			clearSecondaryDisplays();
+			logMsg("unregistering secondary display listener");
+			jSetListener(env, displayListenerHelper, false);
+			return true;
+		}, Base::SCREEN_ON_EXIT_PRIORITY);
 	}
 }
 
-void AndroidScreen::init(JNIEnv *env, jobject aDisplay, jobject metrics, int id, float refreshRate)
+AndroidScreen::AndroidScreen(JNIEnv *env, jobject aDisplay, jobject metrics, int id, float refreshRate)
 {
 	assert(aDisplay);
 	this->aDisplay = env->NewGlobalRef(aDisplay);
@@ -251,11 +280,9 @@ AndroidScreen::operator bool() const
 	return aDisplay;
 }
 
-void Screen::deinit()
+AndroidScreen::~AndroidScreen()
 {
-	unpostFrame();
 	jEnvForThread()->DeleteGlobalRef(aDisplay);
-	*this = {};
 }
 
 int Screen::width()

@@ -50,7 +50,7 @@ extern "C"
 
 #include <blueMSX/Utils/ziphelper.h>
 
-const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2020\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
+const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nBlueMSX Team\nbluemsx.com";
 bool EmuSystem::handlesGenericIO = false; // TODO: need to re-factor BlueMSX file loading code
 bool EmuSystem::hasResetModes = true;
 BoardInfo boardInfo{};
