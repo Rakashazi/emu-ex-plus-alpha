@@ -39,7 +39,7 @@
 class ExitConfirmAlertView : public AlertView
 {
 public:
-	ExitConfirmAlertView(ViewAttachParams attach):
+	ExitConfirmAlertView(ViewAttachParams attach, EmuViewController &emuViewController):
 		AlertView
 		{
 			attach,
@@ -52,11 +52,11 @@ public:
 		if(item.size() == 3)
 		{
 			setItem(2, "Close Menu",
-				[]()
+				[&]()
 				{
 					if(EmuSystem::gameIsRunning())
 					{
-						emuViewController().showEmulation();
+						emuViewController.showEmulation();
 					}
 				});
 		}
@@ -74,7 +74,6 @@ public:
 };
 
 static std::unique_ptr<Gfx::Renderer> rendererPtr{};
-static Base::Window mainWin{};
 static EmuSystemTask emuSystemTask{};
 EmuVideo emuVideo{};
 static std::unique_ptr<EmuVideoLayer> emuVideoLayerPtr{};
@@ -183,7 +182,7 @@ void EmuApp::showLastViewFromSystem(ViewAttachParams attach, Input::Event e)
 
 void EmuApp::showExitAlert(ViewAttachParams attach, Input::Event e)
 {
-	emuViewController().pushAndShowModal(std::make_unique<ExitConfirmAlertView>(attach), e, false);
+	emuViewController().pushAndShowModal(std::make_unique<ExitConfirmAlertView>(attach, emuViewController()), e, false);
 }
 
 static const char *parseCmdLineArgs(int argc, char** argv)
@@ -282,7 +281,6 @@ void mainInitCommon(int argc, char** argv)
 	emuVideoLayerPtr = std::make_unique<EmuVideoLayer>(emuVideo, optionImgFilter);
 	auto &emuVideoLayer = *emuVideoLayerPtr;
 	emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
-	emuViewControllerPtr = std::make_unique<EmuViewController>(mainWin, renderer, renderer.task(), vController, emuVideoLayer, emuSystemTask);
 
 	auto compiled = renderer.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
 	compiled |= renderer.makeCommonProgram(Gfx::CommonProgram::NO_TEX);
@@ -293,12 +291,6 @@ void mainInitCommon(int argc, char** argv)
 	View::defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{});
 	View::defaultBoldFace = Gfx::GlyphTextureSet::makeBoldSystem(renderer, IG::FontSettings{});
 
-	#ifdef CONFIG_INPUT_ANDROID_MOGA
-	if(optionMOGAInputSystem)
-		Input::initMOGA(false);
-	#endif
-	updateInputDevices();
-
 	Base::addOnResume(
 		[](bool focused)
 		{
@@ -307,11 +299,6 @@ void mainInitCommon(int argc, char** argv)
 				emuAudio.open(audioOutputAPI());
 			if(!keyMapping)
 				keyMapping.buildAll();
-			if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
-			{
-				emuViewController().setEmuViewOnExtraWindow(true, *Base::Screen::screen(1));
-			}
-			emuViewController().prepareDraw();
 			return true;
 		});
 
@@ -329,12 +316,7 @@ void mainInitCommon(int argc, char** argv)
 		{
 			if(backgrounded)
 			{
-				emuViewController().showUI();
 				suspendEmulation();
-				if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
-				{
-					emuViewController().setEmuViewOnExtraWindow(false, *Base::Screen::screen(1));
-				}
 				if(optionNotificationIcon)
 				{
 					auto title = string_makePrintf<64>("%s was suspended", appName());
@@ -343,8 +325,8 @@ void mainInitCommon(int argc, char** argv)
 			}
 			else
 			{
-				emuViewController().closeSystem();
 				emuVideo.deleteImage();
+				emuViewControllerPtr.reset();
 			}
 			emuAudio.close();
 			AudioManager::endSession();
@@ -377,7 +359,7 @@ void mainInitCommon(int argc, char** argv)
 		[]()
 		{
 			logMsg("input devs enumerated");
-			updateInputDevices();
+			updateInputDevices(emuViewController());
 			emuViewController().updateAutoOnScreenControlVisible();
 		});
 
@@ -386,7 +368,7 @@ void mainInitCommon(int argc, char** argv)
 		{
 			logMsg("got input dev change");
 
-			updateInputDevices();
+			updateInputDevices(emuViewController());
 			emuViewController().updateAutoOnScreenControlVisible();
 
 			if(optionNotifyInputDeviceChange && (change.added() || change.removed()))
@@ -406,10 +388,8 @@ void mainInitCommon(int argc, char** argv)
 	{
 		logMsg("requested external storage write permissions");
 	}
-	Base::WindowConfig winConf = emuViewController().addWindowConfig({});
-	renderer.initWindow(mainWin, winConf);
-	auto &win = mainWin;
-	win.setCustomData(WindowData{});
+	auto &win = *renderer.makeWindow({});
+	win.makeCustomData<WindowData>();
 	auto &winData = windowData(win);
 	setupFont(renderer, win);
 	winData.projection = updateProjection(makeViewport(win));
@@ -418,6 +398,14 @@ void mainInitCommon(int argc, char** argv)
 	renderer.setWindowValidOrientations(win, optionMenuOrientation);
 	vController.setWindow(win);
 	initVControls(vController, renderer);
+	ViewAttachParams viewAttach{win, renderer.task()};
+	emuViewControllerPtr = std::make_unique<EmuViewController>(viewAttach, vController, emuVideoLayer, emuSystemTask);
+
+	#ifdef CONFIG_INPUT_ANDROID_MOGA
+	if(optionMOGAInputSystem)
+		Input::initMOGA(false);
+	#endif
+	updateInputDevices(*emuViewControllerPtr);
 
 	#if defined CONFIG_BASE_ANDROID
 	if(!Base::apkSignatureIsConsistent())
@@ -428,18 +416,16 @@ void mainInitCommon(int argc, char** argv)
 			{
 				Base::exit();
 			});
-		emuViewController().pushAndShowModal(std::move(ynAlertView), Input::defaultEvent(), false);
+		emuViewControllerPtr->pushAndShowModal(std::move(ynAlertView), Input::defaultEvent(), false);
 	}
 	#endif
 
-	ViewAttachParams viewAttach{win, renderer.task()};
-	emuViewController().initViews(viewAttach);
 	win.show();
 	win.postDraw();
 	EmuApp::onMainWindowCreated(viewAttach, Input::defaultEvent());
 	if(launchGame)
 	{
-		emuViewController().handleOpenFileCommand(launchGame);
+		emuViewControllerPtr->handleOpenFileCommand(launchGame);
 	}
 }
 
@@ -492,9 +478,9 @@ void launchSystem(bool tryAutoState, bool addToRecent)
 	emuViewController().showEmulation();
 }
 
-void onSelectFileFromPicker(const char* name, Input::Event e, EmuSystemCreateParams params)
+void onSelectFileFromPicker(const char* name, Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams)
 {
-	EmuApp::createSystemWithMedia({}, name, "", e, params,
+	EmuApp::createSystemWithMedia({}, name, "", e, params, attachParams,
 		[](Input::Event e)
 		{
 			EmuApp::launchSystemWithResumePrompt(e, true);
@@ -649,21 +635,17 @@ void EmuApp::printScreenshotResult(int num, bool success)
 	}
 }
 
-static ViewAttachParams emuViewAttachParams()
-{
-	return {mainWin, rendererPtr->task()};
-}
-
 [[gnu::weak]] bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event) { return true; }
 
-void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *name, Input::Event e, EmuSystemCreateParams params, CreateSystemCompleteDelegate onComplete)
+void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *name, Input::Event e, EmuSystemCreateParams params,
+	ViewAttachParams attachParams, CreateSystemCompleteDelegate onComplete)
 {
-	if(!EmuApp::willCreateSystem(emuViewAttachParams(), e))
+	if(!EmuApp::willCreateSystem(attachParams, e))
 	{
 		return;
 	}
 	emuViewController().closeSystem();
-	auto loadProgressView = std::make_unique<EmuLoadProgressView>(emuViewAttachParams(), e, onComplete);
+	auto loadProgressView = std::make_unique<EmuLoadProgressView>(attachParams, e, onComplete);
 	auto &msgPort = loadProgressView->messagePort();
 	pushAndShowModalView(std::move(loadProgressView), e);
 	IG::makeDetachedThread(

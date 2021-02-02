@@ -50,7 +50,7 @@ protected:
 	IG_enableMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
 	std::unique_ptr<CFFDEventSourceInfo> info{};
 
-	const char *label();
+	const char *label() const;
 	void deinit();
 };
 

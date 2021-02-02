@@ -58,6 +58,11 @@ void EmuInputView::updateFastforward()
 	emuViewController().setFastForwardActive(ffToggleActive);
 }
 
+EmuViewController &EmuInputView::emuViewController()
+{
+	return *static_cast<EmuViewController*>(controller());
+}
+
 bool EmuInputView::inputEvent(Input::Event e)
 {
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
@@ -186,13 +191,13 @@ bool EmuInputView::inputEvent(Input::Event e)
 						{
 							auto ynAlertView = makeView<YesNoAlertView>("Really Overwrite State?");
 							ynAlertView->setOnYes(
-								[]()
+								[this]()
 								{
 									doSaveState(false);
 									emuViewController().showEmulation();
 								});
 							ynAlertView->setOnNo(
-								[]()
+								[this]()
 								{
 									emuViewController().showEmulation();
 								});

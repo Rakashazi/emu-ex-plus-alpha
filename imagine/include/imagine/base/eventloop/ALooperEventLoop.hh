@@ -47,7 +47,7 @@ protected:
 	std::unique_ptr<ALooperFDEventSourceInfo> info{};
 	int fd_ = -1;
 
-	const char *label();
+	const char *label() const;
 	void deinit();
 };
 

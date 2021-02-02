@@ -111,6 +111,48 @@ using ExitDelegate = DelegateFunc<bool (bool backgrounded)>;
 using DeviceOrientationChangedDelegate = DelegateFunc<void (Orientation newOrientation)>;
 using SystemOrientationChangedDelegate = DelegateFunc<void (Orientation oldOrientation, Orientation newOrientation)>;
 
+static constexpr int INPUT_DEVICES_ON_RESUME_PRIORITY = -600;
+static constexpr int SCREEN_ON_RESUME_PRIORITY = -550;
+static constexpr int RENDERER_ON_RESUME_PRIORITY = -500;
+static constexpr int WINDOW_ON_RESUME_PRIORITY = -400;
+static constexpr int RENDERER_DRAWABLE_ON_RESUME_PRIORITY = -300;
+static constexpr int RENDERER_TASK_ON_RESUME_PRIORITY = -200;
+static constexpr int APP_ON_RESUME_PRIORITY = 0;
+
+class OnResume
+{
+public:
+	constexpr OnResume() {}
+	OnResume(ResumeDelegate del, int priority = APP_ON_RESUME_PRIORITY);
+	OnResume(OnResume &&o);
+	OnResume &operator=(OnResume &&o);
+	~OnResume();
+
+protected:
+	ResumeDelegate del{};
+};
+
+static constexpr int RENDERER_TASK_ON_EXIT_PRIORITY = -400;
+static constexpr int RENDERER_DRAWABLE_ON_EXIT_PRIORITY = -300;
+static constexpr int APP_ON_EXIT_PRIORITY = 0;
+static constexpr int RENDERER_ON_EXIT_PRIORITY = 200;
+static constexpr int WINDOW_ON_EXIT_PRIORITY = 300;
+static constexpr int SCREEN_ON_EXIT_PRIORITY = 400;
+static constexpr int INPUT_DEVICES_ON_EXIT_PRIORITY = 500;
+
+class OnExit
+{
+public:
+	constexpr OnExit() {}
+	OnExit(ExitDelegate del, int priority = APP_ON_EXIT_PRIORITY);
+	OnExit(OnExit &&o);
+	OnExit &operator=(OnExit &&o);
+	~OnExit();
+
+protected:
+	ExitDelegate del{};
+};
+
 // Window/Screen helper classes
 struct WindowSurfaceChange
 {

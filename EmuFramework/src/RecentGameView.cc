@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/EmuApp.hh>
 #include <imagine/gui/AlertView.hh>
 #include "Recent.hh"
 #include "RecentGameView.hh"
@@ -49,14 +50,18 @@ RecentGameView::RecentGameView(ViewAttachParams attach, RecentGameList &list):
 	list{list}
 {
 	recentGame.reserve(list.size());
-	for(auto &e : list)
+	for(auto &entry : list)
 	{
-		recentGame.emplace_back(e.name.data(),
-			[&e](TextMenuItem &item, View &view, Input::Event ev)
+		recentGame.emplace_back(entry.name.data(),
+			[this, &entry](Input::Event e)
 			{
-				e.handleMenuSelection(item, ev);
+				EmuApp::createSystemWithMedia({}, entry.path.data(), "", e, {}, attachParams(),
+					[](Input::Event e)
+					{
+						EmuApp::launchSystemWithResumePrompt(e, false);
+					});
 			});
-		recentGame.back().setActive(FS::exists(e.path.data()));
+		recentGame.back().setActive(FS::exists(entry.path.data()));
 	}
 	clear.setActive(list.size());
 }

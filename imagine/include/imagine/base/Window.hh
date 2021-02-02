@@ -34,7 +34,7 @@ class Window : public WindowImpl
 {
 public:
 	constexpr Window() {}
-
+	static Window *makeWindow(WindowConfig config);
 	IG::ErrorCode init(const WindowConfig &config);
 	void show();
 	void dismiss();
@@ -45,7 +45,9 @@ public:
 	bool needsDraw() const;
 	void postDraw();
 	void unpostDraw();
-	void deferredDrawComplete();
+	void blockDraw();
+	void unblockDraw();
+	bool isDrawBlocked() const;
 	void drawNow(bool needsSync = false);
 	void dispatchOnDraw(bool needsSync = false);
 	Screen *screen() const;
@@ -54,11 +56,12 @@ public:
 	static PixelFormat defaultPixelFormat();
 	NativeWindow nativeObject() const;
 	void setIntendedFrameRate(double rate);
+	bool operator ==(Window const &rhs) const;
 
-	template<class T>
-	void setCustomData(T &&data)
+	template <class T, class... Args>
+	void makeCustomData(Args&&... args)
 	{
-		customDataPtr = std::make_shared<std::decay_t<T>>(std::move(data));
+		customDataPtr = std::make_shared<T>(std::forward<Args>(args)...);
 	}
 
 	template<class T>
@@ -125,7 +128,6 @@ public:
 	void dispatchFocusChange(bool in);
 	void dispatchDragDrop(const char *filename);
 	void dispatchDismissRequest();
-	void deinit();
 
 private:
 	IG::Point2D<float> pixelSizeAsMM(IG::Point2D<int> size);

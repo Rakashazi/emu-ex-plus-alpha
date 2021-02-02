@@ -93,26 +93,27 @@ void GLDrawableHolder::makeDrawable(RendererTask &rTask, Base::Window &win)
 		return;
 	}
 	drawable_ = drawable;
-	onResume =
-		[drawable = drawable](bool focused) mutable
-		{
-			drawable.restoreCaches();
-			return true;
-		};
-	Base::addOnResume(onResume, Base::RENDERER_DRAWABLE_ON_RESUME_PRIORITY);
 	onExit =
+	{
 		[this, dpy](bool backgrounded) mutable
 		{
 			if(backgrounded)
 			{
 				drawFinishedEvent.cancel();
 				drawable_.freeCaches();
+				Base::addOnResume(
+					[drawable = drawable_](bool focused) mutable
+					{
+						drawable.restoreCaches();
+						return false;
+					}, Base::RENDERER_DRAWABLE_ON_RESUME_PRIORITY
+				);
 			}
 			else
 				drawable_.destroy(dpy);
 			return true;
-		};
-	Base::addOnExit(onExit, Base::RENDERER_DRAWABLE_ON_EXIT_PRIORITY);
+		}, Base::RENDERER_DRAWABLE_ON_EXIT_PRIORITY
+	};
 	drawFinishedEvent.attach(
 		[this]()
 		{
@@ -143,8 +144,7 @@ void GLDrawableHolder::destroyDrawable()
 		// destroy drawable on GL thread in case it's currently being used
 		IG::copySelf(drawable).destroy(ctx.glDisplay());
 	});
-	Base::removeOnExit(onResume);
-	Base::removeOnExit(onExit);
+	onExit = {};
 	drawFinishedEvent.detach();
 }
 

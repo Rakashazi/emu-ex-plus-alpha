@@ -268,6 +268,11 @@ bool ArchiveEntry::readNextEntry()
 	return true;
 }
 
+bool ArchiveEntry::hasEntry() const
+{
+	return ptr;
+}
+
 void ArchiveEntry::rewind()
 {
 	if(unlikely(!arch))

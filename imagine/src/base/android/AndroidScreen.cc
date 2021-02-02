@@ -144,14 +144,14 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 		Base::addOnResume([env, displayListenerHelper](bool)
 		{
 			enumDisplays(env, displayListenerHelper);
-			logMsg("registering secondary display listener");
+			logMsg("registering display listener");
 			jSetListener(env, displayListenerHelper, true);
 			return true;
 		}, Base::SCREEN_ON_RESUME_PRIORITY);
 		Base::addOnExit([env, displayListenerHelper](bool backgrounded)
 		{
 			clearSecondaryDisplays();
-			logMsg("unregistering secondary display listener");
+			logMsg("unregistering display listener");
 			jSetListener(env, displayListenerHelper, false);
 			return true;
 		}, Base::SCREEN_ON_EXIT_PRIORITY);

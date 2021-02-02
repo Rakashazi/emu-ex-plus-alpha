@@ -17,6 +17,7 @@
 
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
+#include <imagine/base/Base.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/gui/ViewStack.hh>
 #include <imagine/gui/ToastView.hh>
@@ -30,11 +31,11 @@
 #include <emuframework/EmuVideo.hh>
 #include "Recent.hh"
 #include <memory>
-#include <atomic>
 
 enum AssetID { ASSET_ARROW, ASSET_CLOSE, ASSET_ACCEPT, ASSET_GAME_ICON, ASSET_MENU, ASSET_FAST_FORWARD };
 
 class EmuSystemTask;
+class EmuViewController;
 
 struct WindowData
 {
@@ -50,17 +51,19 @@ struct WindowData
 class EmuMenuViewStack : public ViewStack
 {
 public:
+	EmuMenuViewStack(EmuViewController &);
 	bool inputEvent(Input::Event e) final;
+
+protected:
+	EmuViewController *emuViewControllerPtr;
 };
 
 class EmuViewController final: public ViewController
 {
 public:
 	EmuViewController() {}
-	EmuViewController(Base::Window &win, Gfx::Renderer &renderer, Gfx::RendererTask &rTask,
+	EmuViewController(ViewAttachParams,
 		VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystemTask &systemTask);
-	void initViews(ViewAttachParams attach);
-	Base::WindowConfig addWindowConfig(Base::WindowConfig conf);
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal = false) final;
 	using ViewController::pushAndShow;
 	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView);
@@ -110,16 +113,18 @@ protected:
 	EmuView emuView{};
 	EmuInputView emuInputView{};
 	ToastView popup{};
-	EmuMenuViewStack viewStack{};
+	EmuMenuViewStack viewStack{*this};
 	Base::OnFrameDelegate onFrameUpdate{};
 	Gfx::RendererTask *rendererTask_{};
 	EmuSystemTask *systemTask{};
+	Base::OnResume onResume{};
+	Base::OnExit onExit{};
 	bool showingEmulation = false;
 	bool physicalControlsPresent = false;
 	[[no_unique_address]] IG::UseTypeIf<HAS_USE_RENDER_TIME, bool> useRendererTime_ = false;
 	uint8_t targetFastForwardSpeed = 0;
-	std::atomic_bool emuVideoInProgress{};
 
+	void initViews(ViewAttachParams attach);
 	void onFocusChange(uint in);
 	Base::OnFrameDelegate makeOnFrameDelayed(uint8_t delay);
 	void addOnFrameDelegate(Base::OnFrameDelegate onFrame);
@@ -155,7 +160,7 @@ EmuViewController &emuViewController();
 void loadConfigFile();
 void saveConfigFile();
 void addRecentGame(const char *fullPath, const char *name);
-bool isMenuDismissKey(Input::Event e);
+bool isMenuDismissKey(Input::Event e, EmuViewController &emuViewController);
 void applyOSNavStyle(bool inGame);
 const char *appViewTitle();
 const char *appName();
@@ -164,7 +169,7 @@ bool hasGooglePlayStoreFeatures();
 void setCPUNeedsLowLatency(bool needed);
 void onMainMenuItemOptionChanged();
 void runBenchmarkOneShot();
-void onSelectFileFromPicker(const char* name, Input::Event e, EmuSystemCreateParams params);
+void onSelectFileFromPicker(const char* name, Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams);
 void launchSystem(bool tryAutoState, bool addToRecent);
 Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID);
 std::unique_ptr<View> makeEmuView(ViewAttachParams attach, EmuApp::ViewID id);

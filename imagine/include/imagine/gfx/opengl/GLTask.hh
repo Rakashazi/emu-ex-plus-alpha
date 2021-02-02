@@ -130,7 +130,7 @@ public:
 protected:
 	std::thread thread{};
 	Base::GLContext context{};
-	Base::ExitDelegate onExit{};
+	Base::OnExit onExit{};
 	Base::MessagePort<CommandMessage> commandPort{Base::MessagePort<CommandMessage>::NullInit{}};
 
 	void deinit();

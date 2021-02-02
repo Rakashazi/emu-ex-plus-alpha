@@ -32,6 +32,7 @@ public:
 	void detach();
 	void notify();
 	void cancel();
+	bool isAttached() const;
 	explicit operator bool() const;
 };
 

@@ -178,16 +178,6 @@ public:
 		return onDismiss_;
 	}
 
-	void setOnFree(BaseWindow::FreeDelegate del)
-	{
-		onFree_ = del;
-	}
-
-	BaseWindow::FreeDelegate onFree() const
-	{
-		return onFree_;
-	}
-
 private:
 	Point2D<int> pos{-1, -1};
 	Point2D<int> size_{0, 0};
@@ -201,7 +191,6 @@ private:
 	BaseWindow::DragDropDelegate onDragDrop_;
 	BaseWindow::DismissRequestDelegate onDismissRequest_;
 	BaseWindow::DismissDelegate onDismiss_;
-	BaseWindow::FreeDelegate onFree_;
 };
 
 }

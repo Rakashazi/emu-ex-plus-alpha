@@ -57,23 +57,119 @@ public:
 	}
 };
 
-static std::unique_ptr<Base::Window> extraWin{};
-
-EmuViewController::EmuViewController(Base::Window &win, Gfx::Renderer &renderer, Gfx::RendererTask &rTask,
+EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystemTask &systemTask):
-	emuView{{win, rTask}, &videoLayer},
-	emuInputView{{win, rTask}, vCtrl, videoLayer},
-	popup{{win, rTask}},
-	rendererTask_{&rTask},
-	systemTask{&systemTask}
+	emuView{viewAttach, &videoLayer},
+	emuInputView{viewAttach, vCtrl, videoLayer},
+	popup{viewAttach},
+	rendererTask_{&viewAttach.rendererTask()},
+	systemTask{&systemTask},
+	onResume
+	{
+		[this](bool focused)
+		{
+			if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
+			{
+				setEmuViewOnExtraWindow(true, *Base::Screen::screen(1));
+			}
+			prepareDraw();
+			if(showingEmulation && focused && EmuSystem::isPaused())
+			{
+				logMsg("resuming emulation due to app resume");
+				#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+				emuInputView.activeVController()->resetInput();
+				#endif
+				startEmulation();
+			}
+			return true;
+		}, 10
+	},
+	onExit
+	{
+		[this](bool backgrounded)
+		{
+			if(backgrounded)
+			{
+				showUI();
+				if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
+				{
+					setEmuViewOnExtraWindow(false, *Base::Screen::screen(1));
+				}
+				viewStack.top().onHide();
+			}
+			else
+			{
+				closeSystem();
+			}
+			return true;
+		}, -10
+	}
 {
 	emuInputView.setController(this, Input::defaultEvent());
+	auto &win = viewAttach.window();
+
+	win.setOnInputEvent(
+		[this](Base::Window &win, Input::Event e)
+		{
+			return inputEvent(e);
+		});
+
+	win.setOnFocusChange(
+		[this](Base::Window &win, uint in)
+		{
+			windowData(win).focused = in;
+			onFocusChange(in);
+		});
+
+	win.setOnDragDrop(
+		[this](Base::Window &win, const char *filename)
+		{
+			logMsg("got DnD: %s", filename);
+			handleOpenFileCommand(filename);
+		});
+
+	win.setOnSurfaceChange(
+		[this](Base::Window &win, Base::Window::SurfaceChange change)
+		{
+			auto &winData = windowData(win);
+			rendererTask().updateDrawableForSurfaceChange(winData.drawableHolder, win, change);
+			if(change.resized())
+			{
+				updateWindowViewport(win, change);
+				if(winData.hasEmuView)
+				{
+					emuView.setViewRect(winData.viewport().bounds(), winData.projection.plane());
+				}
+				emuInputView.setViewRect(winData.viewport().bounds(), winData.projection.plane());
+				placeElements();
+			}
+		});
+
+	win.setOnDraw(
+		[this](Base::Window &win, Base::Window::DrawParams params)
+		{
+			auto &winData = windowData(win);
+			rendererTask().draw(winData.drawableHolder, win, params, {}, winData.viewport(), winData.projection.matrix(),
+				[this](Gfx::DrawableHolder &drawableHolder, Base::Window &win, Gfx::RendererCommands &cmds)
+				{
+					auto &winData = windowData(win);
+					cmds.clear();
+					drawMainWindow(win, cmds, winData.hasEmuView, winData.hasPopup);
+				});
+			return false;
+		});
+
+	initViews(viewAttach);
 }
 
 static bool shouldExitFromViewRootWithoutPrompt(Input::Event e)
 {
 	return e.map() == Input::Event::MAP_SYSTEM && (Config::envIsAndroid || Config::envIsLinux);
 }
+
+EmuMenuViewStack::EmuMenuViewStack(EmuViewController &emuViewController):
+	ViewStack{}, emuViewControllerPtr{&emuViewController}
+{}
 
 bool EmuMenuViewStack::inputEvent(Input::Event e)
 {
@@ -102,11 +198,11 @@ bool EmuMenuViewStack::inputEvent(Input::Event e)
 		}
 		return true;
 	}
-	if(e.pushed() && isMenuDismissKey(e) && !hasModalView())
+	if(e.pushed() && isMenuDismissKey(e, *emuViewControllerPtr) && !hasModalView())
 	{
 		if(EmuSystem::gameIsRunning())
 		{
-			emuViewController().showEmulation();
+			emuViewControllerPtr->showEmulation();
 		}
 		return true;
 	}
@@ -118,28 +214,6 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	auto &winData = windowData(viewAttach.window());
 	winData.hasEmuView = true;
 	winData.hasPopup = true;
-	Base::addOnExit(
-		[this](bool backgrounded)
-		{
-			if(backgrounded)
-			{
-				viewStack.top().onHide();
-			}
-			return true;
-		}, 10);
-	Base::addOnResume(
-		[this](bool focused)
-		{
-			if(showingEmulation && focused && EmuSystem::isPaused())
-			{
-				logMsg("resuming emulation due to app resume");
-				#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-				emuInputView.activeVController()->resetInput();
-				#endif
-				startEmulation();
-			}
-			return true;
-		}, 10);
 	if(!Base::Screen::supportsTimestamps() && (!Config::envIsLinux || viewAttach.window().screen()->frameRate() < 100.))
 	{
 		setUseRendererTime(true);
@@ -147,11 +221,9 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	logMsg("timestamp source:%s", useRendererTime() ? "renderer" : "screen");
 	onFrameUpdate = [this, &r = std::as_const(viewAttach.renderer())](IG::FrameParams params)
 		{
-			if(emuVideoInProgress)
+			if(emuView.window().isDrawBlocked())
 			{
 				// frame not ready yet, retry on next vblank
-				if(useRendererTime())
-					postDrawToEmuWindows();
 				return true;
 			}
 			bool skipForward = false;
@@ -185,7 +257,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			}
 			constexpr uint maxFrameSkip = 8;
 			uint32_t framesToEmulate = std::min(frameInfo.advanced, maxFrameSkip);
-			emuVideoInProgress = true;
+			emuView.window().blockDraw();
 			EmuAudio *audioPtr = emuAudio ? &emuAudio : nullptr;
 			systemTask->runFrame(&videoLayer().emuVideo(), audioPtr, framesToEmulate, skipForward);
 			r.setPresentationTime(emuWindowData().drawableHolder, params.presentTime());
@@ -233,7 +305,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	videoLayer().emuVideo().setOnFrameFinished(
 		[this](EmuVideo &)
 		{
-			emuVideoInProgress = false;
+			emuView.window().unblockDraw();
 			postDrawToEmuWindows();
 		});
 	videoLayer().emuVideo().setOnFormatChanged(
@@ -250,76 +322,12 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 				placeEmuViews();
 			}
 		});
-}
-
-Base::WindowConfig EmuViewController::addWindowConfig(Base::WindowConfig winConf)
-{
-	winConf.setOnInputEvent(
-		[this](Base::Window &win, Input::Event e)
-		{
-			return inputEvent(e);
-		});
-
-	winConf.setOnFocusChange(
-		[this](Base::Window &win, uint in)
-		{
-			windowData(win).focused = in;
-			onFocusChange(in);
-		});
-
-	winConf.setOnDragDrop(
-		[this](Base::Window &win, const char *filename)
-		{
-			logMsg("got DnD: %s", filename);
-			handleOpenFileCommand(filename);
-		});
-
-	winConf.setOnSurfaceChange(
-		[this](Base::Window &win, Base::Window::SurfaceChange change)
-		{
-			auto &winData = windowData(win);
-			rendererTask().updateDrawableForSurfaceChange(winData.drawableHolder, win, change);
-			if(change.resized())
-			{
-				updateWindowViewport(win, change);
-				if(winData.hasEmuView)
-				{
-					emuView.setViewRect(winData.viewport().bounds(), winData.projection.plane());
-				}
-				emuInputView.setViewRect(winData.viewport().bounds(), winData.projection.plane());
-				placeElements();
-			}
-		});
-
-	winConf.setOnDraw(
-		[this](Base::Window &win, Base::Window::DrawParams params)
-		{
-			auto &winData = windowData(win);
-			if(winData.hasEmuView)
-			{
-				if(unlikely(emuVideoInProgress))
-				{
-					//logMsg("waiting for EmuVideo to signal draw");
-					return true;
-				}
-			}
-			rendererTask().draw(winData.drawableHolder, win, params, {}, winData.viewport(), winData.projection.matrix(),
-				[this](Gfx::DrawableHolder &drawableHolder, Base::Window &win, Gfx::RendererCommands &cmds)
-				{
-					auto &winData = windowData(win);
-					cmds.clear();
-					drawMainWindow(win, cmds, winData.hasEmuView, winData.hasPopup);
-				});
-			return false;
-		});
-
-	winConf.setOnFree(
-		[this]()
-		{
-			rendererTask().awaitPending();
-		});
-
-	return winConf;
+	#ifdef CONFIG_VCONTROLS_GAMEPAD
+	if((int)optionTouchCtrl == 2)
+		updateAutoOnScreenControlVisible();
+	else
+		setOnScreenControls(optionTouchCtrl);
+	#endif
 }
 
 void EmuViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal)
@@ -382,6 +390,7 @@ void EmuViewController::moveEmuViewToWindow(Base::Window &win)
 	auto &origWin = emuView.window();
 	if(origWin == win)
 		return;
+	origWin.unblockDraw();
 	auto &origWinData = windowData(origWin);
 	origWinData.hasEmuView = false;
 	auto &winData = windowData(win);
@@ -415,7 +424,9 @@ void EmuViewController::showEmulation()
 	showingEmulation = true;
 	configureAppForEmulation(true);
 	configureWindowForEmulation(emuView.window(), true);
-	commonInitInput();
+	if(emuView.window() != emuInputView.window())
+		emuInputView.postDraw();
+	commonInitInput(*this);
 	popup.clear();
 	emuInputView.resetInput();
 	startEmulation();
@@ -476,12 +487,37 @@ void EmuViewController::placeElements()
 	viewStack.place(winData.viewport().bounds(), winData.projection.plane());
 }
 
+static bool hasExtraWindow()
+{
+	return Base::Window::windows() == 2;
+}
+
+static void dismissExtraWindow()
+{
+	if(!hasExtraWindow())
+		return;
+	Base::Window::window(1)->dismiss();
+}
+
+static bool extraWindowIsFocused()
+{
+	if(!hasExtraWindow())
+		return false;
+	return windowData(*Base::Window::window(1)).focused;
+}
+
+static Base::Screen *extraWindowScreen()
+{
+	if(!hasExtraWindow())
+		return nullptr;
+	return Base::Window::window(1)->screen();
+}
+
 void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 {
-	if(on && !extraWin)
+	if(on && !hasExtraWindow())
 	{
 		logMsg("setting emu view on extra window");
-		extraWin = std::make_unique<Base::Window>();
 		Base::WindowConfig winConf;
 		winConf.setScreen(screen);
 
@@ -503,11 +539,6 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 			[this](Base::Window &win, Base::Window::DrawParams params)
 			{
 				auto &winData = windowData(win);
-				if(unlikely(emuVideoInProgress))
-				{
-					//logMsg("waiting for EmuVideo to signal draw");
-					return true;
-				}
 				rendererTask().draw(winData.drawableHolder, win, params, {}, winData.viewport(), winData.projection.matrix(),
 					[this, &winData](Gfx::DrawableHolder &drawableHolder, Base::Window &win, Gfx::RendererCommands &cmds)
 					{
@@ -562,22 +593,16 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 				}
 			});
 
-		winConf.setOnFree(
-			[this]()
-			{
-				rendererTask().awaitPending();
-				extraWin.reset();
-			});
-
-		emuView.renderer().initWindow(*extraWin, winConf);
+		auto extraWin = emuView.renderer().makeWindow(winConf);
+		if(!extraWin)
 		{
-			WindowData data{};
-			data.focused = true;
-			extraWin->setCustomData(data);
+			logErr("error creating extra window");
+			return;
 		}
-		logMsg("init extra window");
+		extraWin->makeCustomData<WindowData>();
 		auto &mainWinData = mainWindowData();
 		auto &extraWinData = windowData(*extraWin);
+		extraWinData.focused = true;
 		if(EmuSystem::isActive())
 		{
 			moveOnFrame(mainWindow(), *extraWin);
@@ -591,9 +616,9 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 		placeEmuViews();
 		mainWindow().postDraw();
 	}
-	else if(!on && extraWin)
+	else if(!on && hasExtraWindow())
 	{
-		extraWin->dismiss();
+		dismissExtraWindow();
 	}
 }
 
@@ -641,7 +666,7 @@ void EmuViewController::clearEmuAudioStats()
 
 bool EmuViewController::allWindowsAreFocused() const
 {
-	return mainWindowData().focused && (!extraWin || windowData(*extraWin).focused);
+	return mainWindowData().focused && (!hasExtraWindow() || extraWindowIsFocused());
 }
 
 void EmuViewController::applyFrameRates()
@@ -741,7 +766,7 @@ void EmuViewController::pauseEmulation()
 	EmuSystem::pause();
 	videoLayer().setBrightness(showingEmulation ? .75f : .25f);
 	setFastForwardActive(false);
-	emuVideoInProgress = false;
+	emuView.window().unblockDraw();
 	removeOnFrame();
 }
 
@@ -898,7 +923,7 @@ void EmuViewController::onScreenChange(Base::Screen &screen, Base::Screen::Chang
 	else if(change.removed())
 	{
 		logMsg("screen removed");
-		if(extraWin && *extraWin->screen() == screen)
+		if(hasExtraWindow() && *extraWindowScreen() == screen)
 			setEmuViewOnExtraWindow(false, screen);
 	}
 }
@@ -923,7 +948,7 @@ void EmuViewController::handleOpenFileCommand(const char *path)
 	logMsg("opening file %s from external command", path);
 	showUI();
 	popToRoot();
-	onSelectFileFromPicker(path, Input::Event{}, {});
+	onSelectFileFromPicker(path, Input::Event{}, {}, viewStack.top().attachParams());
 }
 
 void EmuViewController::onFocusChange(uint in)

@@ -19,6 +19,7 @@
 
 class VController;
 class EmuVideoLayer;
+class EmuViewController;
 
 class EmuInputView : public View
 {
@@ -40,4 +41,5 @@ private:
 	bool ffToggleActive = false;
 
 	void updateFastforward();
+	EmuViewController &emuViewController();
 };

@@ -34,8 +34,6 @@ struct RecentGameInfo
 	{
 		return string_equal(path.data(), rhs.path.data());
 	}
-
-	void handleMenuSelection(TextMenuItem &, Input::Event e);
 };
 
 using RecentGameList = StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT>;

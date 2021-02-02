@@ -49,8 +49,7 @@ protected:
 	RendererTask *task{};
 	Base::Screen *screen{};
 	Drawable drawable_{};
-	Base::ResumeDelegate onResume{};
-	Base::ExitDelegate onExit{};
+	Base::OnExit onExit{};
 	Base::CustomEvent drawFinishedEvent{"GLDrawableHolder::drawFinishedEvent"};
 	DelegateFuncSet<Base::OnFrameDelegate> onFrame{};
 };

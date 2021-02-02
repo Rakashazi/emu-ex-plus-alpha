@@ -31,6 +31,8 @@
 #include <list>
 #include <memory>
 
+class EmuViewController;
+
 struct InputDeviceSavedConfig
 {
 	const KeyConfig *keyConf{};
@@ -133,9 +135,9 @@ extern uint pointerInputPlayer;
 #endif
 
 void processRelPtr(Input::Event e);
-void commonInitInput();
+void commonInitInput(EmuViewController &emuViewController);
 void commonUpdateInput();
-void updateInputDevices();
+void updateInputDevices(EmuViewController &emuViewController);
 
 static bool customKeyConfigsContainName(const char *name)
 {
@@ -151,7 +153,7 @@ VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::
 IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos, Gfx::Viewport viewport);
 void resetVControllerPositions(VController &);
 void resetVControllerOptions(VController &);
-void resetAllVControllerOptions(VController &);
+void resetAllVControllerOptions(VController &, EmuViewController &emuViewController);
 void initVControls(VController &, Gfx::Renderer &r);
 
 namespace EmuControls

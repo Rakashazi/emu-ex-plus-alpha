@@ -122,6 +122,11 @@ bool DirectoryEntryImpl::readNextDir()
 	return false;
 }
 
+bool DirectoryEntryImpl::hasEntry() const
+{
+	return dirent_;
+}
+
 const char *DirectoryEntryImpl::name() const
 {
 	assumeExpr(dirent_);
@@ -171,12 +176,27 @@ void DirectoryEntryImpl::deinit()
 	dir = {};
 }
 
+template <class... Args>
+static std::shared_ptr<DirectoryEntryImpl> makeDirEntryPtr(Args&& ...args)
+{
+	DirectoryEntryImpl dirEntry{std::forward<Args>(args)...};
+	if(dirEntry.hasEntry())
+	{
+		return std::make_shared<DirectoryEntryImpl>(std::move(dirEntry));
+	}
+	else
+	{
+		// empty directory
+		return {};
+	}
+}
+
 directory_iterator::directory_iterator(const char *path):
-	impl{std::make_shared<DirectoryEntryImpl>(path)}
+	impl{makeDirEntryPtr(path)}
 {}
 
 directory_iterator::directory_iterator(const char *path, std::error_code &ec):
-	impl{std::make_shared<DirectoryEntryImpl>(path, ec)}
+	impl{makeDirEntryPtr(path, ec)}
 {}
 
 directory_iterator::~directory_iterator() {}

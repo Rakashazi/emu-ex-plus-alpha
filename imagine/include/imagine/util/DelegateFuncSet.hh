@@ -55,8 +55,8 @@ public:
 		return delegate.size();
 	}
 
-	template <typename EXEC>
-	void runAll(EXEC exec)
+	template <typename Exec>
+	void runAll(Exec exec, bool skipRemovedDelegates = false)
 	{
 		if(!size())
 			return;
@@ -64,6 +64,10 @@ public:
 		std::copy(delegate.begin(), delegate.end(), delegateCopy);
 		for(auto &d : delegateCopy)
 		{
+			if(skipRemovedDelegates && !contains(d.del))
+			{
+				continue;
+			}
 			if(!exec(d.del))
 			{
 				IG::eraseFirst(delegate, d);

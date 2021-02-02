@@ -165,7 +165,7 @@ void GlibFDEventSource::deinit()
 	static_cast<FDEventSource*>(this)->detach();
 }
 
-const char *GlibFDEventSource::label()
+const char *GlibFDEventSource::label() const
 {
 	return debugLabel;
 }

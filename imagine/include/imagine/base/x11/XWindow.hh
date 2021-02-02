@@ -30,8 +30,8 @@ class XWindow : public BaseWindow
 {
 public:
 	constexpr XWindow() {}
+	~XWindow();
 	std::pair<unsigned long, unsigned long> xdndData() const;
-	bool operator ==(XWindow const &rhs) const;
 	explicit operator bool() const;
 
 protected:

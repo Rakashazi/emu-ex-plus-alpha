@@ -133,7 +133,7 @@ void ALooperFDEventSource::deinit()
 	static_cast<FDEventSource*>(this)->detach();
 }
 
-const char *ALooperFDEventSource::label()
+const char *ALooperFDEventSource::label() const
 {
 	return debugLabel;
 }

@@ -86,7 +86,7 @@ public:
 	bool isConfigured() const;
 	RendererTask &task() const;
 	Base::WindowConfig addWindowConfig(Base::WindowConfig config) const;
-	void initWindow(Base::Window &win, Base::WindowConfig config);
+	Base::Window *makeWindow(Base::WindowConfig config);
 	void setWindowValidOrientations(Base::Window &win, Base::Orientation validO);
 	void setProjectionMatrixRotation(Angle angle);
 	void animateProjectionMatrixRotation(Base::Window &win, Angle srcAngle, Angle destAngle);

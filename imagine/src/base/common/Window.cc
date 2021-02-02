@@ -25,10 +25,51 @@ namespace Base
 {
 
 #ifdef CONFIG_BASE_MULTI_WINDOW
-std::vector<Window*> window_;
+static std::vector<std::unique_ptr<Window>> window_;
 #else
-Window *mainWin = nullptr;
+static std::array<std::unique_ptr<Window>, 1> window_;
 #endif
+
+static void addWindow(std::unique_ptr<Window> winPtr)
+{
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	window_.emplace_back(std::move(winPtr));
+	#else
+	assert(!window_[0]);
+	window_[0] = std::move(winPtr);
+	#endif
+}
+
+std::unique_ptr<Window> moveOutWindow(Window &win)
+{
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	return IG::moveOutIf(window_, [&](auto &w){ return *w == win; });
+	#else
+	return std::move(window_[0]);
+	#endif
+}
+
+void deinitWindows()
+{
+	#ifdef CONFIG_BASE_MULTI_WINDOW
+	window_.clear();
+	#else
+	window_[0].reset();
+	#endif
+}
+
+Window *Window::makeWindow(WindowConfig config)
+{
+	auto winPtr = std::make_unique<Window>();
+	if(auto ec = winPtr->init(config);
+		ec)
+	{
+		return nullptr;
+	}
+	auto ptr = winPtr.get();
+	addWindow(std::move(winPtr));
+	return ptr;
+}
 
 void BaseWindow::setOnSurfaceChange(SurfaceChangeDelegate del)
 {
@@ -65,11 +106,6 @@ void BaseWindow::setOnDismiss(DismissDelegate del)
 	onDismiss = del ? del : [](Window &win){};
 }
 
-void BaseWindow::setOnFree(FreeDelegate del)
-{
-	onFree = del ? del : [](){};
-}
-
 void BaseWindow::initDelegates(const WindowConfig &config)
 {
 	setOnSurfaceChange(config.onSurfaceChange());
@@ -79,23 +115,24 @@ void BaseWindow::initDelegates(const WindowConfig &config)
 	setOnInputEvent(config.onInputEvent());
 	setOnDismissRequest(config.onDismissRequest());
 	setOnDismiss(config.onDismiss());
-	setOnFree(config.onFree());
 	onExit =
+	{
 		[this](bool backgrounded)
 		{
-			notifyDrawAllowed = false;
-			drawEvent.cancel();
+			static_cast<Window*>(this)->blockDraw();
+			if(backgrounded)
+			{
+				addOnResume(
+					[this](bool)
+					{
+						static_cast<Window*>(this)->unblockDraw();
+						return false;
+					}, WINDOW_ON_RESUME_PRIORITY
+				);
+			}
 			return true;
-		};
-	Base::addOnExit(onExit, WINDOW_ON_EXIT_PRIORITY);
-	onResume =
-		[this](bool)
-		{
-			// allow drawing and trigger the draw event if this window was posted since app was suspended
-			static_cast<Window*>(this)->deferredDrawComplete();
-			return true;
-		};
-	Base::addOnResume(onResume, WINDOW_ON_RESUME_PRIORITY);
+		}, WINDOW_ON_EXIT_PRIORITY
+	};
 	drawEvent.attach(
 		[this]()
 		{
@@ -210,7 +247,13 @@ void Window::unpostDraw()
 	//logDMsg("window:%p cancelled draw", this);
 }
 
-void Window::deferredDrawComplete()
+void Window::blockDraw()
+{
+	notifyDrawAllowed = false;
+	drawEvent.cancel();
+}
+
+void Window::unblockDraw()
 {
 	notifyDrawAllowed = true;
 	if(drawNeeded)
@@ -218,6 +261,11 @@ void Window::deferredDrawComplete()
 		//logDMsg("draw event after deferred draw complete");
 		drawEvent.notify();
 	}
+}
+
+bool Window::isDrawBlocked() const
+{
+	return !notifyDrawAllowed;
 }
 
 void Window::drawNow(bool needsSync)
@@ -282,7 +330,7 @@ void Window::draw(bool needsSync)
 	notifyDrawAllowed = false;
 	if(onDraw.callCopy(*this, params))
 	{
-		deferredDrawComplete();
+		unblockDraw();
 	}
 }
 
@@ -413,38 +461,28 @@ Orientation Window::validSoftOrientations() const
 
 uint32_t Window::windows()
 {
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	return window_.size();
-	#else
-	return mainWin ? 1 : 0;
-	#endif
+	if constexpr(Config::BASE_MULTI_WINDOW)
+	{
+		return window_.size();
+	}
+	else
+	{
+		return (bool)window_[0];
+	}
 }
 
 Window *Window::window(uint32_t idx)
 {
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	if(idx >= window_.size())
+	if(unlikely(idx >= window_.size()))
 		return nullptr;
-	return window_[idx];
-	#else
-	return mainWin;
-	#endif
+	return window_[idx].get();
 }
 
 void Window::dismiss()
 {
 	onDismiss(*this);
-	Base::removeOnExit(onExit);
-	Base::removeOnResume(onResume);
 	drawEvent.detach();
-	auto onFree = this->onFree;
-	deinit();
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	IG::eraseFirst(window_, this);
-	#else
-	mainWin = nullptr;
-	#endif
-	onFree();
+	moveOutWindow(*this);
 }
 
 int Window::realWidth() const { return orientationIsSideways(softOrientation()) ? height() : width(); }

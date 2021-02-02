@@ -1425,7 +1425,7 @@ class CustomMainMenuView : public EmuMainMenuView
 		}
 	};
 
-	static void createDiskAndLaunch(const char *diskPath, const char *diskName, Input::Event e)
+	void createDiskAndLaunch(const char *diskPath, const char *diskName, Input::Event e)
 	{
 		if(plugin.vdrive_internal_create_format_disk_image(diskPath,
 			FS::makeFileStringPrintf("%s,dsk", diskName).data(),
@@ -1434,7 +1434,7 @@ class CustomMainMenuView : public EmuMainMenuView
 			EmuApp::postMessage(true, "Error creating disk image");
 			return;
 		}
-		EmuApp::createSystemWithMedia({}, diskPath, "", e, {SYSTEM_FLAG_NO_AUTOSTART},
+		EmuApp::createSystemWithMedia({}, diskPath, "", e, {SYSTEM_FLAG_NO_AUTOSTART}, attachParams(),
 			[](Input::Event e)
 			{
 				EmuApp::launchSystem(e, false, true);

@@ -23,7 +23,8 @@
 #include <string>
 #include "private.hh"
 
-EmuFilePicker::EmuFilePicker(ViewAttachParams attach, const char *startingPath, bool pickingDir,
+EmuFilePicker::EmuFilePicker(ViewAttachParams attach,
+	const char *startingPath, bool pickingDir,
 	EmuSystem::NameFilterFunc filter, FS::RootPathInfo rootInfo,
 	Input::Event e, bool singleDir, bool includeArchives):
 	FSPicker
@@ -89,7 +90,7 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachPara
 		[](FSPicker &picker, const char* name, Input::Event e)
 		{
 			EmuApp::postMessage("Running benchmark...");
-			EmuApp::createSystemWithMedia({}, picker.makePathString(name).data(), "", e, {},
+			EmuApp::createSystemWithMedia({}, picker.makePathString(name).data(), "", e, {}, picker.attachParams(),
 				[](Input::Event e)
 				{
 					runBenchmarkOneShot();
@@ -98,7 +99,8 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachPara
 	return picker;
 }
 
-std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForLoading(ViewAttachParams attach, Input::Event e, bool singleDir, EmuSystemCreateParams params)
+std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForLoading(ViewAttachParams attach, Input::Event e,
+	bool singleDir, EmuSystemCreateParams params)
 {
 	auto searchPath = EmuApp::mediaSearchPath();
 	auto rootInfo = Base::nearestRootPath(searchPath.data());
@@ -111,13 +113,12 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForLoading(ViewAttachParams at
 	picker->setOnSelectFile(
 		[=](FSPicker &picker, const char *name, Input::Event e)
 		{
-			onSelectFileFromPicker(picker.makePathString(name).data(), e, params);
+			onSelectFileFromPicker(picker.makePathString(name).data(), e, params, picker.attachParams());
 		});
 	return picker;
 }
 
-std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaChange(ViewAttachParams attach, Input::Event e, const char *path,
-	EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate onSelect)
+std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaChange(ViewAttachParams attach, Input::Event e, const char *path, EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate onSelect)
 {
 	auto picker = std::make_unique<EmuFilePicker>(attach, path, false, filter,
 		FS::RootPathInfo{FS::makeFileString("Media Path"), strlen(path)}, e, true);
@@ -140,15 +141,6 @@ bool EmuFilePicker::inputEvent(Input::Event e)
 		{
 			onClose_.callCopy(*this, e);
 			return true;
-		}
-		if(isMenuDismissKey(e))
-		{
-			if(EmuSystem::gameIsRunning())
-			{
-				dismiss();
-				emuViewController().showEmulation();
-				return true;
-			}
 		}
 	}
 	return FSPicker::inputEvent(e);

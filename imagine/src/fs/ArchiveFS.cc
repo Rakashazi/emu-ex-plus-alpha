@@ -20,24 +20,39 @@
 namespace FS
 {
 
+template <class... Args>
+static std::shared_ptr<ArchiveEntry> makeArchiveEntryPtr(Args&& ...args)
+{
+	ArchiveEntry entry{std::forward<Args>(args)...};
+	if(entry.hasEntry())
+	{
+		return std::make_shared<ArchiveEntry>(std::move(entry));
+	}
+	else
+	{
+		// empty archive
+		return {};
+	}
+}
+
 ArchiveIterator::ArchiveIterator(const char *path):
-	impl{std::make_shared<ArchiveEntry>(path)}
+	impl{makeArchiveEntryPtr(path)}
 {}
 
 ArchiveIterator::ArchiveIterator(const char *path, std::error_code &ec):
-	impl{std::make_shared<ArchiveEntry>(path, ec)}
+	impl{makeArchiveEntryPtr(path, ec)}
 {}
 
 ArchiveIterator::ArchiveIterator(GenericIO io):
-	impl{std::make_shared<ArchiveEntry>(std::move(io))}
+	impl{makeArchiveEntryPtr(std::move(io))}
 {}
 
 ArchiveIterator::ArchiveIterator(GenericIO io, std::error_code &ec):
-	impl{std::make_shared<ArchiveEntry>(std::move(io), ec)}
+	impl{makeArchiveEntryPtr(std::move(io), ec)}
 {}
 
 ArchiveIterator::ArchiveIterator(ArchiveEntry entry):
-	impl{std::make_shared<ArchiveEntry>(std::move(entry))}
+	impl{entry.hasEntry() ? std::make_shared<ArchiveEntry>(std::move(entry)) : std::shared_ptr<ArchiveEntry>{}}
 {}
 
 ArchiveEntry& ArchiveIterator::operator*()

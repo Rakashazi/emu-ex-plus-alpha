@@ -509,7 +509,7 @@ bool TableView::elementIsSelectable(MenuItem &item)
 	return item.isSelectable;
 }
 
-float TableView::defaultXIndentMM(Base::Window &win)
+float TableView::defaultXIndentMM(const Base::Window &win)
 {
 	auto wMM = win.widthMM();
 	return
@@ -518,7 +518,7 @@ float TableView::defaultXIndentMM(Base::Window &win)
 		4.;
 }
 
-void TableView::setDefaultXIndent(Base::Window &win, Gfx::ProjectionPlane projP)
+void TableView::setDefaultXIndent(const Base::Window &win, Gfx::ProjectionPlane projP)
 {
 	setXIndentMM(defaultXIndentMM(win), projP);
 }

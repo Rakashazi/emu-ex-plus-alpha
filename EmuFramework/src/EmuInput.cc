@@ -70,12 +70,6 @@ void initVControls(VController &vController, Gfx::Renderer &r)
 
 	if(!vController.layoutPositionChanged()) // setup default positions if not provided in config file
 		resetVControllerPositions(vController);
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	if((int)optionTouchCtrl == 2)
-		emuViewController().updateAutoOnScreenControlVisible();
-	else
-		emuViewController().setOnScreenControls(optionTouchCtrl);
-	#endif
 	vController.updateMapping(0);
 	EmuControls::updateVControlImg(vController);
 	vController.setMenuImage(getAsset(r, ASSET_MENU));
@@ -130,7 +124,7 @@ void resetVControllerOptions(VController &vController)
 	#endif
 }
 
-void resetAllVControllerOptions(VController &vController)
+void resetAllVControllerOptions(VController &vController, EmuViewController &emuViewController)
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	optionTouchCtrl.reset();
@@ -151,7 +145,7 @@ void resetAllVControllerOptions(VController &vController)
 	#endif
 	resetVControllerOptions(vController);
 	optionTouchCtrlAlpha.reset();
-	emuViewController().updateAutoOnScreenControlVisible();
+	emuViewController.updateAutoOnScreenControlVisible();
 	vController.updateMapping(pointerInputPlayer);
 }
 
@@ -235,11 +229,11 @@ void processRelPtr(Input::Event e)
 	//logMsg("trackball event %d,%d, rel ptr %d,%d", e.x, e.y, relPtr.x, relPtr.y);
 }
 
-void commonInitInput()
+void commonInitInput(EmuViewController &emuViewController)
 {
 	relPtr = {};
 	turboActions = {};
-	emuViewController().setFastForwardActive(false);
+	emuViewController.setFastForwardActive(false);
 }
 
 void TurboInput::update()
@@ -290,21 +284,21 @@ void commonUpdateInput()
 #endif
 }
 
-bool isMenuDismissKey(Input::Event e)
+bool isMenuDismissKey(Input::Event e, EmuViewController &emuViewController)
 {
 	using namespace Input;
 	Key dismissKey = Keycode::MENU;
 	Key dismissKey2 = Keycode::GAME_Y;
 	if(Config::MACHINE_IS_PANDORA && e.device()->subtype() == Device::SUBTYPE_PANDORA_HANDHELD)
 	{
-		if(emuViewController().hasModalView()) // make sure not performing text input
+		if(emuViewController.hasModalView()) // make sure not performing text input
 			return false;
 		dismissKey = Keycode::SPACE;
 	}
 	return e.key() == dismissKey || e.key() == dismissKey2;
 }
 
-void updateInputDevices()
+void updateInputDevices(EmuViewController &emuViewController)
 {
 	int i = 0;
 	inputDevConf.clear();
@@ -322,7 +316,7 @@ void updateInputDevices()
 		}
 		i++;
 	}
-	emuViewController().setPhysicalControlsPresent(Input::keyInputIsPresent());
+	emuViewController.setPhysicalControlsPresent(Input::keyInputIsPresent());
 	onUpdateInputDevices.callCopySafe();
 	keyMapping.buildAll();
 }

@@ -127,6 +127,11 @@ void CustomEvent::cancel()
 	cancelEventFD(fdSrc.fd(), label());
 }
 
+bool CustomEvent::isAttached() const
+{
+	return fdSrc.hasEventLoop();
+}
+
 CustomEvent::operator bool() const
 {
 	return fdSrc.fd() != -1;

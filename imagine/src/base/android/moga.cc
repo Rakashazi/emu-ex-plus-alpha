@@ -44,8 +44,7 @@ private:
 	JavaInstMethod<jint(jint)> jMOGAGetState{};
 	JavaInstMethod<void()> jMOGAOnPause{}, jMOGAOnResume{}, jMOGAExit{};
 	AndroidInputDevice *mogaDev{};
-	Base::ResumeDelegate onResume{};
-	Base::ExitDelegate onExit{};
+	Base::OnExit onExit{};
 	bool exiting = false;
 
 	static AndroidInputDevice makeMOGADevice(const char *name);
@@ -55,7 +54,30 @@ private:
 
 static std::unique_ptr<MogaSystem> mogaSystem{};
 
-MogaSystem::MogaSystem(JNIEnv *env, bool notify)
+MogaSystem::MogaSystem(JNIEnv *env, bool notify):
+	onExit
+	{
+		[this, env](bool backgrounded)
+		{
+			if(backgrounded)
+			{
+				jMOGAOnPause(env, mogaHelper);
+				Base::addOnResume(
+					[this, env](bool)
+					{
+						onResumeMOGA(env, true);
+						return false;
+					}, Base::INPUT_DEVICES_ON_RESUME_PRIORITY
+				);
+			}
+			else
+			{
+				exiting = true;
+				mogaSystem.reset();
+			}
+			return true;
+		}, Base::INPUT_DEVICES_ON_EXIT_PRIORITY
+	}
 {
 	JavaInstMethod<jobject(jlong)> jNewMOGAHelper{env, Base::jBaseActivityCls, "mogaHelper", "(J)Lcom/imagine/MOGAHelper;"};
 	mogaHelper = jNewMOGAHelper(env, Base::jBaseActivity, (jlong)this);
@@ -70,28 +92,6 @@ MogaSystem::MogaSystem(JNIEnv *env, bool notify)
 	initMOGAJNIAndDevice(env, mogaHelper);
 	logMsg("init MOGA input system");
 	onResumeMOGA(env, notify);
-	onResume =
-		[this, env](bool)
-		{
-			onResumeMOGA(env, true);
-			return true;
-		};
-	Base::addOnResume(onResume, Base::INPUT_DEVICES_ON_RESUME_PRIORITY);
-	onExit =
-		[this, env](bool backgrounded)
-		{
-			if(backgrounded)
-			{
-				jMOGAOnPause(env, mogaHelper);
-			}
-			else
-			{
-				exiting = true;
-				mogaSystem.reset();
-			}
-			return true;
-		};
-	Base::addOnExit(onExit, Base::INPUT_DEVICES_ON_EXIT_PRIORITY);
 }
 
 MogaSystem::~MogaSystem()
@@ -103,8 +103,6 @@ MogaSystem::~MogaSystem()
 	jMOGAExit(env, mogaHelper);
 	env->DeleteGlobalRef(mogaHelper);
 	removeInputDevice(0, !exiting);
-	Base::removeOnResume(onResume);
-	Base::removeOnExit(onExit);
 }
 
 AndroidInputDevice MogaSystem::makeMOGADevice(const char *name)

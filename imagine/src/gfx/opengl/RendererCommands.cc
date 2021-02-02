@@ -113,7 +113,7 @@ void GLRendererCommands::notifyPresentComplete()
 	drawableHolderPtr->notifyOnFrame();
 	if(winPtr)
 	{
-		winPtr->deferredDrawComplete();
+		winPtr->unblockDraw();
 	}
 }
 

@@ -49,17 +49,13 @@ public:
 	#endif
 
 	constexpr IOSWindow() {}
+	~IOSWindow();
 	#ifdef __OBJC__
 	void updateContentRect(int width, int height, uint32_t softOrientation, UIApplication *sharedApp);
 	UIWindow *uiWin() { return (__bridge UIWindow*)uiWin_; }
 	#endif
 
 	void resetSurface();
-
-	bool operator ==(IOSWindow const &rhs) const
-	{
-		return uiWin_ == rhs.uiWin_;
-	}
 
 	explicit operator bool() const
 	{

@@ -224,7 +224,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 			{
 				logMsg("screen connected");
 				UIScreen *screen = [note object];
-				for(auto s : screen_)
+				for(const auto &s : screen_)
 				{
 					if(s->uiScreen() == screen)
 					{
@@ -242,14 +242,12 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 			{
 				logMsg("screen disconnected");
 				UIScreen *screen = [note object];
-				if(auto removedScreen = IG::moveOutIf(screen_, [&](Screen *s){ return s->uiScreen() == screen; });
+				if(auto removedScreen = IG::moveOutIf(screen_, [&](auto &s){ return s->uiScreen() == screen; });
 					removedScreen)
 				{
 					if(Screen::onChange)
 						Screen::onChange(*removedScreen, { Screen::Change::REMOVED });
 					[removedScreen->displayLink() removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-					removedScreen->deinit();
-					delete removedScreen;
 				}
 			}];
 		if(Config::DEBUG_BUILD)

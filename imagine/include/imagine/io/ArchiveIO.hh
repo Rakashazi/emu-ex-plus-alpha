@@ -50,6 +50,7 @@ public:
 	ArchiveIO moveIO();
 	void moveIO(ArchiveIO io);
 	bool readNextEntry();
+	bool hasEntry() const;
 	void rewind();
 	struct archive* archive() const { return arch; }
 

@@ -13,7 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuApp.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include "Recent.hh"
@@ -38,13 +37,4 @@ void addRecentGame(const char *fullPath, const char *name)
 	{
 		logMsg("path: %s name: %s", e.path.data(), e.name.data());
 	}*/
-}
-
-void RecentGameInfo::handleMenuSelection(TextMenuItem &, Input::Event e)
-{
-	EmuApp::createSystemWithMedia({}, path.data(), "", e, {},
-		[](Input::Event e)
-		{
-			EmuApp::launchSystemWithResumePrompt(e, false);
-		});
 }

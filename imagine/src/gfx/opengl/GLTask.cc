@@ -28,7 +28,30 @@ namespace Gfx
 GLTask::GLTask() {}
 
 GLTask::GLTask(const char *debugLabel, Base::GLContext context_, int threadPriority):
-	context{context_}, commandPort{debugLabel}
+	context{context_},
+	onExit
+	{
+		[this](bool backgrounded)
+		{
+			if(backgrounded)
+			{
+				run(
+					[]()
+					{
+						#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+						glReleaseShaderCompiler();
+						#endif
+						glFinish();
+					}, true);
+			}
+			else
+			{
+				deinit();
+			}
+			return true;
+		}, Base::RENDERER_TASK_ON_EXIT_PRIORITY
+	},
+	commandPort{debugLabel}
 {
 	assert(context);
 	thread = IG::makeThreadSync(
@@ -73,27 +96,6 @@ GLTask::GLTask(const char *debugLabel, Base::GLContext context_, int threadPrior
 			eventLoop.run(context);
 			commandPort.detach();
 		});
-	onExit =
-		[this](bool backgrounded)
-		{
-			if(backgrounded)
-			{
-				run(
-					[]()
-					{
-						#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-						glReleaseShaderCompiler();
-						#endif
-						glFinish();
-					}, true);
-			}
-			else
-			{
-				deinit();
-			}
-			return true;
-		};
-	Base::addOnExit(onExit, Base::RENDERER_TASK_ON_EXIT_PRIORITY);
 }
 
 GLTask::~GLTask()
@@ -122,7 +124,6 @@ void GLTask::deinit()
 	if(!context)
 		return;
 	commandPort.send({Command::EXIT});
-	Base::removeOnExit(onExit);
 	thread.join(); // GL implementation may assign thread destructor so must join() to make sure it completes
 }
 

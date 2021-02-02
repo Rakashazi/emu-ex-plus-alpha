@@ -455,9 +455,9 @@ class GameListView : public TableView
 private:
 	std::vector<TextMenuItem> item{};
 
-	static void loadGame(const RomListEntry &entry, Input::Event e)
+	void loadGame(const RomListEntry &entry, Input::Event e)
 	{
-		EmuApp::createSystemWithMedia({}, gameFilePath(entry.name).data(), "", e, {},
+		EmuApp::createSystemWithMedia({}, gameFilePath(entry.name).data(), "", e, {}, attachParams(),
 			[](Input::Event e)
 			{
 				EmuApp::launchSystemWithResumePrompt(e, true);
@@ -494,7 +494,7 @@ public:
 							auto ynAlertView = makeView<YesNoAlertView>(
 								"This game doesn't yet work properly, load anyway?");
 							ynAlertView->setOnYes(
-								[&entry](Input::Event e)
+								[this, &entry](Input::Event e)
 								{
 									loadGame(entry, e);
 								});

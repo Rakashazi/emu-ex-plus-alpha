@@ -32,7 +32,7 @@ class AndroidWindow : public BaseWindow
 {
 public:
 	constexpr AndroidWindow() {}
-	bool operator ==(AndroidWindow const &rhs) const;
+	~AndroidWindow();
 	explicit operator bool() const;
 	void setNativeWindow(ANativeWindow *nWin);
 	int nativePixelFormat();

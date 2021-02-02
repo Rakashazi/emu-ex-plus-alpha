@@ -48,7 +48,7 @@ protected:
 	bool makeAndAttachSource(GSourceFuncs *fdSourceFuncs,
 		PollEventDelegate callback_, GIOCondition events, GMainContext *ctx);
 	void deinit();
-	const char *label();
+	const char *label() const;
 };
 
 using FDEventSourceImpl = GlibFDEventSource;

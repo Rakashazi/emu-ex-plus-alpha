@@ -197,7 +197,6 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 		if(!xWin)
 		{
 			logErr("error initializing window");
-			deinit();
 			return {EINVAL};
 		}
 		colormap = attr.colormap;
@@ -225,28 +224,19 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 			XSetWMNormalHints(dpy, xWin, &hints);
 		}
 	}
-
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	window_.push_back(this);
-	#else
-	mainWin = this;
-	#endif
-
 	return {};
 }
 
-void Window::deinit()
+XWindow::~XWindow()
 {
 	if(xWin != None)
 	{
 		logMsg("destroying window with ID %d", (int)xWin);
 		XDestroyWindow(dpy, xWin);
-		xWin = None;
 	}
 	if(colormap != None)
 	{
 		XFreeColormap(dpy, colormap);
-		colormap = None;
 	}
 }
 
@@ -254,10 +244,7 @@ void deinitWindowSystem()
 {
 	logMsg("shutting down window system");
 	deinitFrameTimer();
-	iterateTimes(Window::windows(), i)
-	{
-		Window::window(i)->deinit();
-	}
+	Base::deinitWindows();
 	Input::deinit();
 	XCloseDisplay(dpy);
 }
@@ -291,7 +278,7 @@ std::pair<unsigned long, unsigned long> XWindow::xdndData() const
 	return {draggerXWin, dragAction};
 }
 
-bool XWindow::operator ==(XWindow const &rhs) const
+bool Window::operator ==(Window const &rhs) const
 {
 	return xWin == rhs.xWin;
 }

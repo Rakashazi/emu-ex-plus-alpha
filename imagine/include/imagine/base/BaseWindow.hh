@@ -46,7 +46,6 @@ public:
 	using DragDropDelegate = DelegateFunc<void (Window &win, const char *filename)>;
 	using DismissRequestDelegate = DelegateFunc<void (Window &win)>;
 	using DismissDelegate = DelegateFunc<void (Window &win)>;
-	using FreeDelegate = DelegateFunc<void ()>;
 
 protected:
 	IG_enableMemberIf(Config::BASE_MULTI_SCREEN, Screen *, screen_){};
@@ -58,9 +57,7 @@ protected:
 	DragDropDelegate onDragDrop{};
 	DismissRequestDelegate onDismissRequest{};
 	DismissDelegate onDismiss{};
-	FreeDelegate onFree{};
-	Base::ExitDelegate onExit{};
-	Base::ResumeDelegate onResume{};
+	Base::OnExit onExit{};
 	Base::CustomEvent drawEvent{"Window::drawEvent"};
 	IG::Point2D<int> winSizePixels{}; // size of full window surface
 	IG::Point2D<float> winSizeMM{}; // size in millimeter
@@ -83,7 +80,6 @@ protected:
 	void setOnDragDrop(DragDropDelegate del);
 	void setOnDismissRequest(DismissRequestDelegate del);
 	void setOnDismiss(DismissDelegate del);
-	void setOnFree(FreeDelegate del);
 	void init(const WindowConfig &config);
 	void initDelegates(const WindowConfig &config);
 	void initDefaultValidSoftOrientations();

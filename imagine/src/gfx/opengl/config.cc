@@ -690,10 +690,11 @@ static void updateSensorStateForWindowOrientations(Base::Window &win)
 	Base::setDeviceOrientationChangeSensor(std::popcount(win.validSoftOrientations()) > 1);
 }
 
-void Renderer::initWindow(Base::Window &win, Base::WindowConfig config)
+Base::Window *Renderer::makeWindow(Base::WindowConfig config)
 {
-	win.init(addWindowConfig(config));
-	updateSensorStateForWindowOrientations(win);
+	auto winPtr = Base::Window::makeWindow(addWindowConfig(config));
+	updateSensorStateForWindowOrientations(*winPtr);
+	return winPtr;
 }
 
 void Renderer::setWindowValidOrientations(Base::Window &win, Base::Orientation validO)

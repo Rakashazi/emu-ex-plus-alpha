@@ -50,6 +50,7 @@ public:
 	DirectoryEntryImpl &operator=(DirectoryEntryImpl &&o);
 	~DirectoryEntryImpl();
 	bool readNextDir();
+	bool hasEntry() const;
 	const char *name() const;
 	file_type type() const;
 	file_type symlink_type() const;

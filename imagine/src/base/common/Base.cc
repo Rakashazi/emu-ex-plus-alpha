@@ -106,6 +106,8 @@ bool addOnResume(ResumeDelegate del, int priority)
 
 bool removeOnResume(ResumeDelegate del)
 {
+	if(appIsExiting())
+		return false;
 	return onResume_.remove(del);
 }
 
@@ -126,6 +128,8 @@ bool addOnExit(ExitDelegate del, int priority)
 
 bool removeOnExit(ExitDelegate del)
 {
+	if(appIsExiting())
+		return false;
 	return onExit_.remove(del);
 }
 
@@ -151,7 +155,7 @@ void dispatchOnFreeCaches(bool running)
 
 void dispatchOnExit(bool backgrounded)
 {
-	onExit_.runAll([&](ExitDelegate del){ return del(backgrounded); });
+	onExit_.runAll([&](ExitDelegate del){ return del(backgrounded); }, true);
 }
 
 const InterProcessMessageDelegate &onInterProcessMessage()
@@ -162,6 +166,54 @@ const InterProcessMessageDelegate &onInterProcessMessage()
 const FreeCachesDelegate &onFreeCaches()
 {
 	return onFreeCaches_;
+}
+
+OnResume::OnResume(ResumeDelegate del, int priority): del{del}
+{
+	addOnResume(del, priority);
+}
+
+OnResume::OnResume(OnResume &&o)
+{
+	*this = std::move(o);
+}
+
+OnResume &OnResume::operator=(OnResume &&o)
+{
+	if(del)
+		removeOnResume(del);
+	del = std::exchange(o.del, {});
+	return *this;
+}
+
+OnResume::~OnResume()
+{
+	if(del)
+		removeOnResume(del);
+}
+
+OnExit::OnExit(ResumeDelegate del, int priority): del{del}
+{
+	addOnExit(del, priority);
+}
+
+OnExit::OnExit(OnExit &&o)
+{
+	*this = std::move(o);
+}
+
+OnExit &OnExit::operator=(OnExit &&o)
+{
+	if(del)
+		removeOnExit(del);
+	del = std::exchange(o.del, {});
+	return *this;
+}
+
+OnExit::~OnExit()
+{
+	if(del)
+		removeOnExit(del);
 }
 
 const char *orientationToStr(Orientation o)

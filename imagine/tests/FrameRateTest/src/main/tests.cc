@@ -220,12 +220,13 @@ void ClearTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect)
 			cmds.setClearColor(.7, .7, .0);
 		else
 			cmds.setClearColor(.7, .0, .0);
+		cmds.clear();
+		cmds.setClearColor(0, 0, 0);
 	}
 	else
 	{
-		cmds.setClearColor(0, 0, 0);
+		cmds.clear();
 	}
-	cmds.clear();
 }
 
 void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
@@ -261,7 +262,6 @@ void DrawTest::frameUpdateTest(Gfx::RendererTask &, Base::Screen &, IG::FrameTim
 
 void DrawTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 {
-	cmds.setClearColor(0, 0, 0);
 	cmds.clear();
 	cmds.setClipTest(true);
 	cmds.setClipRect(bounds);
@@ -311,7 +311,6 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &s
 
 void WriteTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 {
-	cmds.setClearColor(0, 0, 0);
 	cmds.clear();
 	cmds.setClipTest(true);
 	cmds.setClipRect(bounds);

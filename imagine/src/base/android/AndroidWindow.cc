@@ -147,10 +147,8 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 		bug_unreachable("no multi-window support");
 	}
 	this->screen_ = &config.screen();
-
 	initialInit = true;
-	window_.push_back(this);
-	if(window_.size() > 1)
+	if(windows() > 0)
 	{
 		assert(screen() != Screen::screen(0));
 		auto env = jEnvForThread();
@@ -179,24 +177,19 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 	return {};
 }
 
-void Window::deinit()
+AndroidWindow::~AndroidWindow()
 {
-	assert(this != deviceWindow());
 	if(jDialog)
 	{
 		logMsg("deinit dialog window:%p", jDialog);
-		if(nWin)
-		{
-			ANativeWindow_release(nWin);
-		}
-		setNativeWindow(nullptr);
 		auto env = jEnvForThread();
 		jPresentationDeinit(env, jDialog);
 		env->DeleteGlobalRef(jDialog);
-		jDialog = {};
 	}
-	nWin = nullptr;
-	initialInit = false;
+	if(nWin)
+	{
+		ANativeWindow_release(nWin);
+	}
 }
 
 void Window::show()
@@ -220,7 +213,7 @@ void AndroidWindow::updateContentRect(const IG::WindowRect &rect)
 	surfaceChange.addContentRectResized();
 }
 
-bool AndroidWindow::operator ==(AndroidWindow const &rhs) const
+bool Window::operator ==(Window const &rhs) const
 {
 	assert(initialInit);
 	assert(rhs.initialInit);

@@ -813,7 +813,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 			ynAlertView->setOnYes(
 				[this]()
 				{
-					resetAllVControllerOptions(vController);
+					resetAllVControllerOptions(vController, emuViewController());
 					EmuControls::setupVControllerVars(vController);
 					refreshTouchConfigMenu();
 				});

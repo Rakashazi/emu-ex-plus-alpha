@@ -174,7 +174,7 @@ void CFFDEventSource::deinit()
 	}
 }
 
-const char *CFFDEventSource::label()
+const char *CFFDEventSource::label() const
 {
 	return debugLabel;
 }

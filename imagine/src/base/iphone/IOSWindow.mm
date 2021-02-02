@@ -180,16 +180,6 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 	#ifdef CONFIG_BASE_MULTI_SCREEN
 	this->screen_ = &config.screen();
 	#endif
-
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	window_.push_back(this);
-	if(window_.size() > 1)
-	{
-		logMsg("making additional window");
-	}
-	#else
-	mainWin = this;
-	#endif
 	CGRect rect = screen()->uiScreen().bounds;
 	// Create a full-screen window
 	uiWin_ = (void*)CFBridgingRetain([[UIWindow alloc] initWithFrame:rect]);
@@ -215,15 +205,13 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 	return {};
 }
 
-void Window::deinit()
+IOSWindow::~IOSWindow()
 {
-	assert(this != deviceWindow());
 	#ifdef CONFIG_BASE_MULTI_WINDOW
 	if(uiWin_)
 	{
 		logMsg("deinit window %p", uiWin_);
 		CFRelease(uiWin_);
-		uiWin_ = nullptr;
 	}
 	#endif
 }
@@ -236,6 +224,11 @@ void Window::show()
 	else
 		uiWin().hidden = NO;
 	postDraw();
+}
+
+bool Window::operator ==(Window const &rhs) const
+{
+	return uiWin_ == rhs.uiWin_;
 }
 
 Window *windowForUIWindow(UIWindow *uiWin)

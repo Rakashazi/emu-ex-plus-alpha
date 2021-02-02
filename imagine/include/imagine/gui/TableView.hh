@@ -79,8 +79,8 @@ public:
 	IG::WP cellSize() const;
 	void highlightCell(int idx);
 	void setAlign(_2DOrigin align);
-	static float defaultXIndentMM(Base::Window &win);
-	static void setDefaultXIndent(Base::Window &win, Gfx::ProjectionPlane projP);
+	static float defaultXIndentMM(const Base::Window &win);
+	static void setDefaultXIndent(const Base::Window &win, Gfx::ProjectionPlane projP);
 	static void setXIndentMM(float indent, Gfx::ProjectionPlane projP);
 	static MenuItem& derefMenuItem(MenuItem *item)
 	{

@@ -38,7 +38,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 {
 	auto &info = EmuSystem::bundledGameInfo(0);
 	game[0] = {info.displayName,
-		[&info](Input::Event e)
+		[this, &info](Input::Event e)
 		{
 			auto file = EmuApp::openAppAssetIO(info.assetName, IO::AccessHint::ALL);
 			if(!file)
@@ -46,7 +46,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 				logErr("error opening bundled game asset: %s", info.assetName);
 				return;
 			}
-			EmuApp::createSystemWithMedia(file.makeGeneric(), "", info.assetName, e, {},
+			EmuApp::createSystemWithMedia(file.makeGeneric(), "", info.assetName, e, {}, attachParams(),
 				[](Input::Event e)
 				{
 					EmuApp::launchSystemWithResumePrompt(e, false);
