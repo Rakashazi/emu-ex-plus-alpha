@@ -44,7 +44,6 @@ jobs:
     - name: Set up environment
       run: |
         mkdir imagine-sdk
-        mkdir EX-Emulators
         echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r22" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
