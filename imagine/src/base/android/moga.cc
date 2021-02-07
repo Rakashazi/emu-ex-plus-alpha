@@ -180,7 +180,7 @@ void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 				Base::endIdleByUserActivity();
 				Key key = keyCode & 0x1ff;
 				auto time = IG::Nanoseconds(timestamp);
-				Event event{0, Event::MAP_SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? PUSHED : RELEASED, 0, 0, time, mogaDev};
+				Event event{0, Map::SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, mogaDev};
 				startKeyRepeatTimer(event);
 				Base::mainWindow().dispatchInputEvent(event);
 			})
@@ -195,12 +195,12 @@ void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 				auto time = IG::Nanoseconds(timestamp);
 				logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)timestamp);
 				auto &win = Base::mainWindow();
-				mogaDev->axis[0].keyEmu.dispatch(x, 0, Event::MAP_SYSTEM, time, *mogaDev, win);
-				mogaDev->axis[1].keyEmu.dispatch(y, 0, Event::MAP_SYSTEM, time, *mogaDev, win);
-				mogaDev->axis[2].keyEmu.dispatch(z, 0, Event::MAP_SYSTEM, time, *mogaDev, win);
-				mogaDev->axis[3].keyEmu.dispatch(rz, 0, Event::MAP_SYSTEM, time, *mogaDev, win);
-				mogaDev->axis[4].keyEmu.dispatch(lTrigger, 0, Event::MAP_SYSTEM, time, *mogaDev, win);
-				mogaDev->axis[5].keyEmu.dispatch(rTrigger, 0, Event::MAP_SYSTEM, time, *mogaDev, win);
+				mogaDev->axis[0].keyEmu.dispatch(x, 0, Map::SYSTEM, time, *mogaDev, win);
+				mogaDev->axis[1].keyEmu.dispatch(y, 0, Map::SYSTEM, time, *mogaDev, win);
+				mogaDev->axis[2].keyEmu.dispatch(z, 0, Map::SYSTEM, time, *mogaDev, win);
+				mogaDev->axis[3].keyEmu.dispatch(rz, 0, Map::SYSTEM, time, *mogaDev, win);
+				mogaDev->axis[4].keyEmu.dispatch(lTrigger, 0, Map::SYSTEM, time, *mogaDev, win);
+				mogaDev->axis[5].keyEmu.dispatch(rTrigger, 0, Map::SYSTEM, time, *mogaDev, win);
 			})
 		},
 		{

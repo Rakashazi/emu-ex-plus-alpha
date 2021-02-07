@@ -45,7 +45,7 @@ struct KeyCategory
 
 struct KeyConfig
 {
-	uint map;
+	Input::Map map;
 	uint devSubtype;
 	char name[MAX_KEY_CONFIG_NAME_SIZE];
 	using Key = Input::Key;
@@ -67,7 +67,7 @@ struct KeyConfig
 		return key_;
 	}
 
-	static const KeyConfig *defaultConfigsForInputMap(uint map, uint &size);
+	static const KeyConfig *defaultConfigsForInputMap(Input::Map map, uint &size);
 	static const KeyConfig &defaultConfigForDevice(const Input::Device &dev);
 	static const KeyConfig *defaultConfigsForDevice(const Input::Device &dev, uint &size);
 	static const KeyConfig *defaultConfigsForDevice(const Input::Device &dev);
@@ -112,7 +112,7 @@ void genericMultiplayerTranspose(KeyConfig::KeyArray &key, uint player, uint sta
 #ifdef __ANDROID__
 static constexpr KeyConfig KEY_CONFIG_ANDROID_NAV_KEYS =
 {
-	Input::Event::MAP_SYSTEM,
+	Input::Map::SYSTEM,
 	0,
 	"Android Navigation Keys",
 	{

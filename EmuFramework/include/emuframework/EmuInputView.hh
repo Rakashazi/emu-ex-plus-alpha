@@ -32,6 +32,8 @@ public:
 	void resetInput();
 	void setTouchControlsOn(bool on);
 	bool touchControlsAreOn() const;
+	void setConsumeUnboundGamepadKeys(bool on);
+	bool shouldConsumeUnboundGamepadKeys() const;
 	VController *activeVController() const { return vController; }
 
 private:
@@ -39,6 +41,7 @@ private:
 	EmuVideoLayer *videoLayer;
 	bool touchControlsOn = false;
 	bool ffToggleActive = false;
+	IG_enableMemberIf(Config::envIsAndroid, bool, consumeUnboundGamepadKeys){};
 
 	void updateFastforward();
 	EmuViewController &emuViewController();

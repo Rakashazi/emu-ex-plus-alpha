@@ -29,7 +29,7 @@ public:
 	static std::vector<Wiimote*> devList;
 
 	Wiimote(BluetoothAddr addr):
-		Device{0, Input::Event::MAP_WIIMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Wiimote"},
+		Device{0, Input::Map::WIIMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Wiimote"},
 		addr{addr}
 	{}
 	IG::ErrorCode open(BluetoothAdapter &adapter) final;
@@ -64,7 +64,7 @@ private:
 	struct ExtDevice : public Device
 	{
 		ExtDevice() {}
-		ExtDevice(uint32_t devId, uint32_t map, uint32_t type, const char *name):
+		ExtDevice(uint32_t devId, Input::Map map, uint32_t type, const char *name):
 			Device{devId, map, type, name} {}
 		const char *keyName(Input::Key k) const final;
 	};

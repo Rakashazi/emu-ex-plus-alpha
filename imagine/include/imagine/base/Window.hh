@@ -47,6 +47,7 @@ public:
 	void unpostDraw();
 	void blockDraw();
 	void unblockDraw();
+	void unblockDrawAndPost();
 	bool isDrawBlocked() const;
 	void drawNow(bool needsSync = false);
 	void dispatchOnDraw(bool needsSync = false);

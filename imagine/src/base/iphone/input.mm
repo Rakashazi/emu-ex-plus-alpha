@@ -43,7 +43,7 @@ struct KeyboardDevice : public Device
 {
 	bool iCadeMode_ = false;
 
-	KeyboardDevice(): Device{0, Event::MAP_SYSTEM,
+	KeyboardDevice(): Device{0, Map::SYSTEM,
 		Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC, "Keyboard/iCade"}
 	{}
 
@@ -216,7 +216,8 @@ void handleKeyEvent(UIEvent *event)
 	if(!keyDev.iCadeMode()
 		|| (keyDev.iCadeMode() && !processICadeKey(key, action, time, keyDev, *Base::deviceWindow())))
 	{
-		Base::deviceWindow()->dispatchInputEvent({0, Event::MAP_SYSTEM, key, key, action, 0, 0, time, &keyDev});
+		auto src = keyDev.iCadeMode() ? Input::Source::GAMEPAD : Input::Source::KEYBOARD;
+		Base::deviceWindow()->dispatchInputEvent({0, Map::SYSTEM, key, key, action, 0, 0, src, time, &keyDev});
 	}
 }
 

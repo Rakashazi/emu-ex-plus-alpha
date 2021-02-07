@@ -20,6 +20,7 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/input/config.hh>
 #include <imagine/input/bluetoothInputDefs.hh>
+#include <imagine/input/inputDefs.hh>
 #include <array>
 #include <vector>
 
@@ -39,40 +40,22 @@ enum { POINTER_NORMAL, POINTER_INVERT };
 class Event
 {
 public:
-	static constexpr uint32_t MAP_NULL = 0,
-		MAP_SYSTEM = 1,
-		MAP_X = 1,
-		MAP_EVDEV = 1,
-		MAP_ANDROID = 1,
-		MAP_WIN32 = 1,
-		MAP_MACOSX = 1,
-
-		MAP_POINTER = 2,
-		MAP_REL_POINTER = 3,
-		MAP_WIIMOTE = 10, MAP_WII_CC = 11,
-		MAP_ICONTROLPAD = 20,
-		MAP_ZEEMOTE = 21,
-		MAP_ICADE = 22,
-		MAP_PS3PAD = 23,
-		MAP_APPLE_GAME_CONTROLLER = 31
-		;
-
 	using KeyString = std::array<char, 4>;
 
 	constexpr Event() {}
 
-	constexpr Event(uint32_t devId, uint32_t map, Key button, uint32_t metaState, uint32_t state, int x, int y, int pointerID, bool pointerIsTouch, Time time, const Device *device)
-		: devId{devId}, map_{map}, button{button}, state_{state}, x{x}, y{y}, pointerID_{pointerID}, metaState{metaState}, time_{time}, device_{device}, pointerIsTouch{pointerIsTouch} {}
+	constexpr Event(uint32_t devId, Map map, Key button, uint32_t metaState, uint32_t state, int x, int y, int pointerID, Source src, Time time, const Device *device)
+		: device_{device}, time_{time}, devId{devId}, state_{state}, x{x}, y{y}, pointerID_{pointerID}, metaState{metaState}, button{button}, map_{map}, src{src} {}
 
-	constexpr Event(uint32_t devId, uint32_t map, Key button, Key sysKey, uint32_t state, uint32_t metaState, int repeatCount, Time time, const Device *device)
-		: devId{devId}, map_{map}, button{button}, sysKey_{sysKey}, state_{state}, metaState{metaState}, repeatCount{repeatCount}, time_{time}, device_{device} {}
+	constexpr Event(uint32_t devId, Map map, Key button, Key sysKey, uint32_t state, uint32_t metaState, int repeatCount, Source src, Time time, const Device *device)
+		: device_{device}, time_{time}, devId{devId}, state_{state}, metaState{metaState}, repeatCount{repeatCount}, button{button}, sysKey_{sysKey}, map_{map}, src{src} {}
 
 	uint32_t deviceID() const;
-	static const char *mapName(uint32_t map);
+	static const char *mapName(Map map);
 	const char *mapName();
-	static uint32_t mapNumKeys(uint32_t map);
-	uint32_t map() const;
-	void setMap(uint32_t map);
+	static uint32_t mapNumKeys(Map map);
+	Map map() const;
+	void setMap(Map map);
 	int pointerID() const;
 	uint32_t state() const;
 	bool stateIsPointer() const;
@@ -80,6 +63,7 @@ public:
 	bool isRelativePointer() const;
 	bool isTouch() const;
 	bool isKey() const;
+	bool isGamepad() const;
 	bool isDefaultConfirmButton(uint32_t swapped) const;
 	bool isDefaultCancelButton(uint32_t swapped) const;
 	bool isDefaultConfirmButton() const;
@@ -117,19 +101,20 @@ public:
 	const Device *device() const;
 
 protected:
-	uint32_t devId = 0, map_ = MAP_NULL;
-	Key button = 0, sysKey_ = 0;
-	#ifdef CONFIG_BASE_X11
-	Key rawKey = 0;
-	#endif
+	const Device *device_{};
+	Time time_{};
+	uint32_t devId = 0;
 	uint32_t state_ = 0;
 	int x = 0, y = 0;
 	int pointerID_ = 0;
 	uint32_t metaState = 0;
 	int repeatCount = 0;
-	Time time_{};
-	const Device *device_{};
-	bool pointerIsTouch = false;
+	Key button = 0, sysKey_ = 0;
+	#ifdef CONFIG_BASE_X11
+	Key rawKey = 0;
+	#endif
+	Map map_{Map::UNKNOWN};
+	Source src{Source::UNKNOWN};
 };
 
 static constexpr bool SWAPPED_GAMEPAD_CONFIRM_DEFAULT = Config::MACHINE_IS_PANDORA ? true : false;
@@ -180,5 +165,8 @@ IG::Point2D<int> transformInputPos(const Base::Window &win, IG::Point2D<int> src
 
 void setSwappedGamepadConfirm(bool swapped);
 bool swappedGamepadConfirm();
+
+const char *sourceStr(Source);
+Map validateMap(uint8_t mapValue);
 
 }

@@ -29,7 +29,7 @@ public:
 	static std::vector<IControlPad*> devList;
 
 	IControlPad(BluetoothAddr addr):
-		Device{0, Input::Event::MAP_ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"},
+		Device{0, Input::Map::ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"},
 		addr{addr}
 	{}
 

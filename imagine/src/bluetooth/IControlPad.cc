@@ -238,7 +238,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 				auto time = IG::steadyClockTimestamp();
 				iterateTimes(4, i)
 				{
-					if(axisKey[i].dispatch(inputBuffer[i], player, Input::Event::MAP_ICONTROLPAD, time, *this, Base::mainWindow()))
+					if(axisKey[i].dispatch(inputBuffer[i], player, Input::Map::ICONTROLPAD, time, *this, Base::mainWindow()))
 						Base::endIdleByUserActivity();
 				}
 				processBtnReport(&inputBuffer[4], time, player);
@@ -263,7 +263,7 @@ void IControlPad::processBtnReport(const char *btnData, Input::Time time, uint32
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_ICONTROLPAD, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, 0, time, this};
+			Event event{player, Map::ICONTROLPAD, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}

@@ -343,7 +343,8 @@ const char *Device::keyName(Key k) const
 {
 	switch(map())
 	{
-		case Input::Event::MAP_SYSTEM:
+		default: return "";
+		case Map::SYSTEM:
 		{
 			const char *name = nullptr;
 			switch(subtype())
@@ -361,7 +362,7 @@ const char *Device::keyName(Key k) const
 				return keyButtonName(k);
 			return name;
 		}
-		case Input::Event::MAP_ICADE:
+		case Map::ICADE:
 		{
 			auto name = iCadeButtonName(k);
 			if(!name)
@@ -371,12 +372,11 @@ const char *Device::keyName(Key k) const
 			return name;
 		}
 	}
-	return "";
 }
 
-uint32_t Device::map() const
+Map Device::map() const
 {
-	return iCadeMode() ? (uint32_t)Input::Event::MAP_ICADE : map_;
+	return iCadeMode() ? Input::Map::ICADE : map_;
 }
 
 uint32_t Device::typeBits() const

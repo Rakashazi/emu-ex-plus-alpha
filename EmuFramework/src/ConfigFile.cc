@@ -36,7 +36,7 @@ static bool readKeyConfig(IO &io, uint16_t &size)
 	{
 		KeyConfig keyConf{};
 
-		keyConf.map = io.get<uint8_t>();
+		keyConf.map = (Input::Map)io.get<uint8_t>();
 		size--;
 		if(!size)
 			return false;
@@ -96,7 +96,7 @@ static bool readKeyConfig(IO &io, uint16_t &size)
 				{
 					if(key[i] >= keyMax)
 					{
-						logWarn("key code 0x%X out of range for map type %d", key[i], keyConf.map);
+						logWarn("key code 0x%X out of range for map type %d", key[i], (int)keyConf.map);
 						key[i] = 0;
 					}
 				}
@@ -165,6 +165,9 @@ static OptionBase *cfgFileOption[] =
 	#endif
 	&optionVControllerLayoutPos,
 	&optionSwappedGamepadConfirm,
+	#ifdef __ANDROID__
+	&optionConsumeUnboundGamepadKeys,
+	#endif
 	&optionConfirmOverwriteState,
 	&optionFastForwardSpeed,
 	#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
@@ -356,7 +359,7 @@ static void writeConfig2(IO &io)
 			uint8_t nameLen = strlen(e.name);
 			io.write(nameLen);
 			io.write(e.name, nameLen);
-			uint8_t keyConfMap = e.keyConf ? e.keyConf->map : 0;
+			uint8_t keyConfMap = e.keyConf ? (uint8_t)e.keyConf->map : 0;
 			io.write(keyConfMap);
 			if(keyConfMap)
 			{
@@ -475,6 +478,9 @@ void loadConfigFile()
 				bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: optionVibrateOnPush.readFromIO(io, size);
 				bcase CFGKEY_RECENT_GAMES: optionRecentGames.readFromIO(io, size);
 				bcase CFGKEY_SWAPPED_GAMEPAD_CONFIM: optionSwappedGamepadConfirm.readFromIO(io, size);
+				#ifdef __ANDROID__
+				bcase CFGKEY_CONSUME_UNBOUND_GAMEPAD_KEYS: optionConsumeUnboundGamepadKeys.readFromIO(io, size);
+				#endif
 				bcase CFGKEY_PAUSE_UNFOCUSED: optionPauseUnfocused.readFromIO(io, size);
 				bcase CFGKEY_NOTIFICATION_ICON: optionNotificationIcon.readFromIO(io, size);
 				bcase CFGKEY_TITLE_BAR: optionTitleBar.readFromIO(io, size);
@@ -595,10 +601,10 @@ void loadConfigFile()
 						if(!size)
 							break;
 
-						auto keyConfMap = io.get<uint8_t>();
+						auto keyConfMap = Input::validateMap(io.get<uint8_t>());
 						size--;
 
-						if(keyConfMap)
+						if(keyConfMap != Input::Map::UNKNOWN)
 						{
 							if(!size)
 								break;

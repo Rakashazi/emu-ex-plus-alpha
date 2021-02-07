@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/input/config.hh>
+#include <imagine/input/inputDefs.hh>
 #include <imagine/util/bits.h>
 #include <imagine/util/DelegateFunc.hh>
 #include <string>
@@ -80,7 +81,7 @@ public:
 	};
 
 	Device() {}
-	Device(uint32_t devId, uint32_t map, uint32_t type, const char *name):
+	Device(uint32_t devId, Map map, uint32_t type, const char *name):
 		name_{name}, map_{map}, type_{type}, devId{devId} {}
 	virtual ~Device() {}
 
@@ -116,7 +117,7 @@ public:
 
 	uint32_t enumId() const { return devId; }
 	const char *name() const { return name_.c_str(); }
-	uint32_t map() const;
+	Map map() const;
 	uint32_t typeBits() const;
 	uint32_t subtype() const { return subtype_; }
 
@@ -139,7 +140,7 @@ public:
 
 protected:
 	std::string name_{""};
-	uint32_t map_ = 0;
+	Map map_{Map::UNKNOWN};
 	uint32_t type_ = 0;
 	uint32_t devId = 0;
 public:

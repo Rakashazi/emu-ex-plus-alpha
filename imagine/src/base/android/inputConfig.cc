@@ -185,7 +185,7 @@ static const char *inputDeviceKeyboardTypeToStr(int type)
 
 AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumId,
 	int osId, int src, const char *name, int kbType, int jsAxisBits, bool isPowerButton):
-	Device{enumId, Event::MAP_SYSTEM, Device::TYPE_BIT_KEY_MISC, name},
+	Device{enumId, Map::SYSTEM, Device::TYPE_BIT_KEY_MISC, name},
 	osId{osId}
 {
 	if(osId == -1)

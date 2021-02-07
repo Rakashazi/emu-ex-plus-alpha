@@ -263,6 +263,12 @@ void Window::unblockDraw()
 	}
 }
 
+void Window::unblockDrawAndPost()
+{
+	setNeedsDraw(true);
+	unblockDraw();
+}
+
 bool Window::isDrawBlocked() const
 {
 	return !notifyDrawAllowed;

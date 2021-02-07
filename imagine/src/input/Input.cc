@@ -244,7 +244,7 @@ bool processICadeKey(Key key, uint32_t action, Time time, const Device &dev, Bas
 		if(action == PUSHED)
 		{
 			//logMsg("pushed iCade keyboard key: %s", dev.keyName(key));
-			Event event{0, Event::MAP_ICADE, onKey, onKey, PUSHED, 0, 0, time, &dev};
+			Event event{0, Map::ICADE, onKey, onKey, PUSHED, 0, 0, Source::GAMEPAD, time, &dev};
 			startKeyRepeatTimer(event);
 			win.dispatchInputEvent(event);
 		}
@@ -255,7 +255,7 @@ bool processICadeKey(Key key, uint32_t action, Time time, const Device &dev, Bas
 		if(action == PUSHED)
 		{
 			cancelKeyRepeatTimer();
-			win.dispatchInputEvent({0, Event::MAP_ICADE, offKey, offKey, RELEASED, 0, 0, time, &dev});
+			win.dispatchInputEvent({0, Map::ICADE, offKey, offKey, RELEASED, 0, 0, Source::GAMEPAD, time, &dev});
 		}
 		return true;
 	}
@@ -272,58 +272,56 @@ void setOnDevicesEnumerated(DevicesEnumeratedDelegate del)
 	onDevicesEnumerated = del;
 }
 
-const char *Event::mapName(uint32_t map)
+const char *Event::mapName(Map map)
 {
 	switch(map)
 	{
-		case MAP_NULL: return "Null";
-		case MAP_SYSTEM: return "Key Input";
-		case MAP_POINTER: return "Pointer";
-		case MAP_REL_POINTER: return "Relative Pointer";
+		default: return "Unknown";
+		case Map::SYSTEM: return "Key Input";
+		case Map::POINTER: return "Pointer";
+		case Map::REL_POINTER: return "Relative Pointer";
 		#ifdef CONFIG_BLUETOOTH
-		case MAP_WIIMOTE: return "Wiimote";
-		case MAP_WII_CC: return "Classic / Wii U Pro Controller";
-		case MAP_ICONTROLPAD: return "iControlPad";
-		case MAP_ZEEMOTE: return "Zeemote JS1";
+		case Map::WIIMOTE: return "Wiimote";
+		case Map::WII_CC: return "Classic / Wii U Pro Controller";
+		case Map::ICONTROLPAD: return "iControlPad";
+		case Map::ZEEMOTE: return "Zeemote JS1";
 		#endif
 		#ifdef CONFIG_BLUETOOTH_SERVER
-		case MAP_PS3PAD: return "PS3 Gamepad";
+		case Map::PS3PAD: return "PS3 Gamepad";
 		#endif
-		case MAP_ICADE: return "iCade";
+		case Map::ICADE: return "iCade";
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case MAP_APPLE_GAME_CONTROLLER: return "Apple Game Controller";
+		case Map::APPLE_GAME_CONTROLLER: return "Apple Game Controller";
 		#endif
-		default: return "Unknown";
 	}
 }
 
-uint32_t Event::mapNumKeys(uint32_t map)
+uint32_t Event::mapNumKeys(Map map)
 {
 	switch(map)
 	{
-		case MAP_NULL: return 0;
-		case MAP_SYSTEM: return Input::Keycode::COUNT;
+		default: return 0;
+		case Map::SYSTEM: return Input::Keycode::COUNT;
 		#ifdef CONFIG_BLUETOOTH
-		case MAP_WIIMOTE: return Input::Wiimote::COUNT;
-		case MAP_WII_CC: return Input::WiiCC::COUNT;
-		case MAP_ICONTROLPAD: return Input::iControlPad::COUNT;
-		case MAP_ZEEMOTE: return Input::Zeemote::COUNT;
+		case Map::WIIMOTE: return Input::Wiimote::COUNT;
+		case Map::WII_CC: return Input::WiiCC::COUNT;
+		case Map::ICONTROLPAD: return Input::iControlPad::COUNT;
+		case Map::ZEEMOTE: return Input::Zeemote::COUNT;
 		#endif
 		#ifdef CONFIG_BLUETOOTH_SERVER
-		case MAP_PS3PAD: return Input::PS3::COUNT;
+		case Map::PS3PAD: return Input::PS3::COUNT;
 		#endif
-		case MAP_ICADE: return Input::ICade::COUNT;
+		case Map::ICADE: return Input::ICade::COUNT;
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case MAP_APPLE_GAME_CONTROLLER: return Input::AppleGC::COUNT;
+		case Map::APPLE_GAME_CONTROLLER: return Input::AppleGC::COUNT;
 		#endif
-		default: bug_unreachable("map == %d", map); return 0;
 	}
 }
 
 Event defaultEvent()
 {
 	Event e{};
-	e.setMap(keyInputIsPresent() ? Event::MAP_SYSTEM : Event::MAP_POINTER);
+	e.setMap(keyInputIsPresent() ? Map::SYSTEM : Map::POINTER);
 	return e;
 }
 
@@ -353,6 +351,43 @@ void setSwappedGamepadConfirm(bool swapped)
 bool swappedGamepadConfirm()
 {
 	return swappedGamepadConfirm_;
+}
+
+const char *sourceStr(Source src)
+{
+	switch(src)
+	{
+		default: return "Unknown";
+		case Source::KEYBOARD: return "Keyboard";
+		case Source::GAMEPAD: return "Gamepad";
+		case Source::MOUSE: return "Mouse";
+		case Source::TOUCHSCREEN: return "Touchscreen";
+		case Source::NAVIGATION: return "Navigation";
+		case Source::JOYSTICK: return "Joystick";
+	}
+}
+
+Map validateMap(uint8_t mapValue)
+{
+	switch(mapValue)
+	{
+		default: return Map::UNKNOWN;
+		case (uint8_t)Map::SYSTEM:
+		#ifdef CONFIG_BLUETOOTH
+		case (uint8_t)Map::WIIMOTE:
+		case (uint8_t)Map::WII_CC:
+		case (uint8_t)Map::ICONTROLPAD:
+		case (uint8_t)Map::ZEEMOTE:
+		#endif
+		#ifdef CONFIG_BLUETOOTH_SERVER
+		case (uint8_t)Map::PS3PAD:
+		#endif
+		case (uint8_t)Map::ICADE:
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case (uint8_t)Map::APPLE_GAME_CONTROLLER:
+		#endif
+		return Map(mapValue);
+	}
 }
 
 }

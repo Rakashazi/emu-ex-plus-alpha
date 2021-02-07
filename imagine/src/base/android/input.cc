@@ -68,15 +68,24 @@ static Time makeTimeFromKeyEvent(AInputEvent *event)
 	return IG::Nanoseconds(AKeyEvent_getEventTime(event));
 }
 
-static void mapKeycodesForSpecialDevices(const Device &dev, int32_t &keyCode, int32_t &metaState, AInputEvent *event)
+static void mapKeycodesForSpecialDevices(const Device &dev, int32_t &keyCode, int32_t &metaState, Source &src, AInputEvent *event)
 {
 	switch(dev.subtype())
 	{
 		bcase Device::SUBTYPE_XPERIA_PLAY:
 		{
-			if(Config::MACHINE_IS_GENERIC_ARMV7 && unlikely(keyCode == (int)Keycode::BACK && (metaState & AMETA_ALT_ON)))
+			if(!Config::MACHINE_IS_GENERIC_ARMV7)
+				break;
+			switch(keyCode)
 			{
-				keyCode = Keycode::GAME_B;
+				bcase Keycode::BACK:
+					if(metaState & AMETA_ALT_ON)
+					{
+						keyCode = Keycode::GAME_B;
+						src = Source::GAMEPAD;
+					}
+				bcase Keycode::GAME_A ... Keycode::GAME_SELECT:
+					src = Source::GAMEPAD;
 			}
 		}
 		bcase Device::SUBTYPE_XBOX_360_CONTROLLER:
@@ -111,6 +120,17 @@ static const char *androidEventEnumToStr(uint32_t e)
 	return "Unknown";
 }
 
+static const char *keyEventActionStr(uint32_t action)
+{
+	switch(action)
+	{
+		default: return "Unknown";
+		case AKEY_EVENT_ACTION_DOWN: return "Down";
+		case AKEY_EVENT_ACTION_UP: return "Up";
+		case AKEY_EVENT_ACTION_MULTIPLE: return "Multiple";
+	}
+}
+
 static bool isFromSource(int src, int srcTest)
 {
 	return (src & srcTest) == srcTest;
@@ -120,7 +140,8 @@ static void dispatchTouch(uint32_t idx, uint32_t action, TouchState &p, IG::Poin
 {
 	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
 	uint32_t metaState = action == Input::RELEASED ? 0 : IG::bit(Pointer::LBUTTON);
-	win.dispatchInputEvent(Event{idx, Event::MAP_POINTER, Pointer::LBUTTON, metaState, action, pos.x, pos.y, (int)idx, !isMouse, time, device});
+	auto src = isMouse ? Source::MOUSE : Source::TOUCHSCREEN;
+	win.dispatchInputEvent(Event{idx, Map::POINTER, Pointer::LBUTTON, metaState, action, pos.x, pos.y, (int)idx, src, time, device});
 }
 
 static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int pid, Time time, bool isMouse, const Device *device, Base::Window &win)
@@ -258,13 +279,13 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 					int iX = x * 1000., iY = y * 1000.;
 					auto pos = transformInputPos(win, {iX, iY});
 					//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
-
+					auto src = Source::KEYBOARD;
 					if(eventAction == AMOTION_EVENT_ACTION_MOVE)
-						win.dispatchInputEvent({0, Event::MAP_REL_POINTER, 0, 0, MOVED_RELATIVE, pos.x, pos.y, 0, false, time, nullptr});
+						win.dispatchInputEvent({0, Map::REL_POINTER, 0, 0, MOVED_RELATIVE, pos.x, pos.y, 0, Source::NAVIGATION, time, nullptr});
 					else
 					{
 						Key key = Keycode::ENTER;
-						win.dispatchInputEvent({0, Event::MAP_REL_POINTER, key, key, eventAction == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, 0, time, nullptr});
+						win.dispatchInputEvent({0, Map::REL_POINTER, key, key, eventAction == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, 0, Source::KEYBOARD, time, nullptr});
 					}
 					return true;
 				}
@@ -286,7 +307,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 						{
 							auto pos = AMotionEvent_getAxisValue(event, axis.id, 0);
 							//logMsg("axis %d with value: %f", axis.id, (double)pos);
-							axis.keyEmu.dispatch(pos, enumID, Event::MAP_SYSTEM, time, *dev, win);
+							axis.keyEmu.dispatch(pos, enumID, Map::SYSTEM, time, *dev, win);
 						}
 					}
 					else
@@ -295,7 +316,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 						iterateTimes(std::min((uint32_t)dev->axis.size(), 2u), i)
 						{
 							auto pos = i ? AMotionEvent_getY(event, 0) : AMotionEvent_getX(event, 0);
-							dev->axis[i].keyEmu.dispatch(pos, enumID, Event::MAP_SYSTEM, time, *dev, win);
+							dev->axis[i].keyEmu.dispatch(pos, enumID, Map::SYSTEM, time, *dev, win);
 						}
 					}
 					return true;
@@ -312,9 +333,12 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 			auto keyCode = AKeyEvent_getKeyCode(event);
 			auto devID = AInputEvent_getDeviceId(event);
 			auto repeatCount = AKeyEvent_getRepeatCount(event);
+			auto source = AInputEvent_getSource(event);
+			auto eventSource = isFromSource(source, AINPUT_SOURCE_GAMEPAD) ? Source::GAMEPAD : Source::KEYBOARD;
 			if(Config::DEBUG_BUILD)
 			{
-				//logMsg("key event, code:%d id:%d repeat:%d action:%d", keyCode, devID, repeatCount, AKeyEvent_getAction(event));
+				//logMsg("key event, code:%d id:%d repeat:%d action:%s source:%s", keyCode, devID, repeatCount,
+				//	keyEventActionStr(AKeyEvent_getAction(event)), sourceStr(eventSource));
 			}
 			auto keyWasReallyRepeated =
 				[](int devID, int mostRecentKeyEventDevID, int repeatCount)
@@ -350,7 +374,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 				}
 			}
 			auto metaState = AKeyEvent_getMetaState(event);
-			mapKeycodesForSpecialDevices(*dev, keyCode, metaState, event);
+			mapKeycodesForSpecialDevices(*dev, keyCode, metaState, eventSource, event);
 			if(unlikely(!keyCode)) // ignore "unknown" key codes
 			{
 				return false;
@@ -363,7 +387,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 			{
 				cancelKeyRepeatTimer();
 				Key key = keyCode & 0x1ff;
-				return win.dispatchInputEvent({dev->enumId(), Event::MAP_SYSTEM, key, key, action, shiftState, repeatCount, time, dev});
+				return win.dispatchInputEvent({dev->enumId(), Map::SYSTEM, key, key, action, shiftState, repeatCount, eventSource, time, dev});
 			}
 			return true;
 		}

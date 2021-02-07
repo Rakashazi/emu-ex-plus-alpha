@@ -190,7 +190,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 				pos.y *= win.pointScale;
 				auto time = IG::FloatSeconds((double)[touch timestamp]);
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
-				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, 1, PUSHED, transPos.x, transPos.y, (int)i, true, time, nullptr});
+				win.dispatchInputEvent(Input::Event{i, Map::POINTER, Input::Pointer::LBUTTON, 1, PUSHED, transPos.x, transPos.y, (int)i, Input::Source::TOUCHSCREEN, time, nullptr});
 				break;
 			}
 		}
@@ -214,7 +214,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 				pos.y *= win.pointScale;
 				auto time = IG::FloatSeconds((double)[touch timestamp]);
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
-				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, 1, MOVED, transPos.x, transPos.y, (int)i, true, time, nullptr});
+				win.dispatchInputEvent(Input::Event{i, Map::POINTER, Input::Pointer::LBUTTON, 1, MOVED, transPos.x, transPos.y, (int)i, Input::Source::TOUCHSCREEN, time, nullptr});
 				break;
 			}
 		}
@@ -239,7 +239,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 				pos.y *= win.pointScale;
 				auto time = IG::FloatSeconds((double)[touch timestamp]);
 				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
-				win.dispatchInputEvent(Input::Event{i, Event::MAP_POINTER, Input::Pointer::LBUTTON, 0, RELEASED, transPos.x, transPos.y, (int)i, true, time, nullptr});
+				win.dispatchInputEvent(Input::Event{i, Map::POINTER, Input::Pointer::LBUTTON, 0, RELEASED, transPos.x, transPos.y, (int)i, Input::Source::TOUCHSCREEN, time, nullptr});
 				break;
 			}
 		}

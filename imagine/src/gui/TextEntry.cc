@@ -42,7 +42,7 @@ bool TextEntry::inputEvent(View &parentView, Input::Event e)
 		setAcceptingInput(true);
 		return true;
 	}
-	if(acceptingInput && e.pushed() && e.map() == e.MAP_SYSTEM)
+	if(acceptingInput && e.pushed() && e.map() == Input::Map::SYSTEM)
 	{
 		bool updateText = false;
 

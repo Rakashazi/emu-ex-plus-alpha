@@ -237,7 +237,7 @@ void onInit(int argc, char** argv)
 		{
 			if(!activeTest)
 			{
-				if(e.pushed() && e.isDefaultCancelButton())
+				if(e.pushed() && !e.repeated() && e.isDefaultCancelButton())
 				{
 					Base::exit();
 					return true;

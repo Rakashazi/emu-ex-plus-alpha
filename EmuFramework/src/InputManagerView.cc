@@ -177,12 +177,11 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 		"Re-scan OS Input Devices",
 		[this](Input::Event e)
 		{
-			using namespace Input;
 			Input::enumDevices();
 			uint devices = 0;
 			for(auto &e : Input::deviceList())
 			{
-				if(e->map() == Event::MAP_SYSTEM || e->map() == Event::MAP_ICADE)
+				if(e->map() == Input::Map::SYSTEM || e->map() == Input::Map::ICADE)
 					devices++;
 			}
 			EmuApp::printfMessage(2, false, "%d OS devices present", devices);
@@ -213,7 +212,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 		"General Options",
 		[this](Input::Event e)
 		{
-			pushAndShow(makeView<InputManagerOptionsView>(), e);
+			pushAndShow(makeView<InputManagerOptionsView>(&emuViewController().inputView()), e);
 		}
 	},
 	deviceListHeading
@@ -307,7 +306,7 @@ static void setBTScanSecs(int secs)
 }
 #endif
 
-InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
+InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInputView *emuInputView_):
 	TableView{"General Input Options", attach, item},
 	#if 0
 	relativePointerDecelItem
@@ -473,12 +472,28 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach):
 		{
 			Input::setSwappedGamepadConfirm(item.flipBoolValue(*this));
 		}
-	}
+	},
+	consumeUnboundGamepadKeys
+	{
+		"Handle Unbound Gamepad Keys",
+		(bool)optionConsumeUnboundGamepadKeys,
+		[this](BoolMenuItem &item, Input::Event e)
+		{
+			optionConsumeUnboundGamepadKeys = item.flipBoolValue(*this);
+			if(emuInputView)
+				emuInputView->setConsumeUnboundGamepadKeys(optionConsumeUnboundGamepadKeys);
+		}
+	},
+	emuInputView{emuInputView_}
 {
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	item.emplace_back(&mogaInputSystem);
 	#endif
 	item.emplace_back(&altGamepadConfirm);
+	if constexpr(Config::envIsAndroid)
+	{
+		item.emplace_back(&consumeUnboundGamepadKeys);
+	}
 	#if 0
 	if(Input::hasTrackball())
 	{
@@ -795,8 +810,8 @@ void InputManagerDeviceView::loadItems()
 	item.emplace_back(&renameProfile);
 	item.emplace_back(&deleteProfile);
 	#if defined CONFIG_INPUT_ICADE
-	if((devConf->dev->map() == Input::Event::MAP_SYSTEM && devConf->dev->hasKeyboard())
-			|| devConf->dev->map() == Input::Event::MAP_ICADE)
+	if((devConf->dev->map() == Input::Map::SYSTEM && devConf->dev->hasKeyboard())
+			|| devConf->dev->map() == Input::Map::ICADE)
 	{
 		item.emplace_back(&iCadeMode);
 	}

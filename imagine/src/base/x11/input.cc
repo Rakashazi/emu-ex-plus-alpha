@@ -49,11 +49,11 @@ struct XInputDevice : public Device
 	XInputDevice() {}
 
 	XInputDevice(uint32_t typeBits, const char *name):
-		Device(0, Event::MAP_SYSTEM, typeBits, name)
+		Device(0, Map::SYSTEM, typeBits, name)
 	{}
 
 	XInputDevice(const XIDeviceInfo &info, int enumId, bool isPointingDevice, bool isPowerButton):
-		Device(enumId, Event::MAP_SYSTEM, 0, info.name),
+		Device(enumId, Map::SYSTEM, 0, info.name),
 		id(info.deviceid)
 	{
 		if(isPointingDevice)
@@ -222,7 +222,7 @@ static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify, bool isPo
 	uint32_t devId = 0;
 	for(auto &e : devList)
 	{
-		if(e->map() != Event::MAP_SYSTEM)
+		if(e->map() != Map::SYSTEM)
 			continue;
 		if(string_equal(e->name(), xDevInfo.name) && e->enumId() == devId)
 			devId++;
@@ -341,7 +341,7 @@ static void updatePointer(Base::Window &win, uint32_t key, uint32_t btnState, in
 {
 	auto dev = deviceForInputId(sourceID);
 	auto pos = transformInputPos(win, {x, y});
-	win.dispatchInputEvent(Event{(uint32_t)p, Event::MAP_POINTER, (Key)key, btnState, action, pos.x, pos.y, p, false, time, dev});
+	win.dispatchInputEvent(Event{(uint32_t)p, Map::POINTER, (Key)key, btnState, action, pos.x, pos.y, p, Source::MOUSE, time, dev});
 }
 
 bool handleXI2GenericEvent(XEvent &event)
@@ -416,7 +416,7 @@ bool handleXI2GenericEvent(XEvent &event)
 				{
 					bool isShiftPushed = ievent.mods.effective & ShiftMask;
 					auto key = keysymToKey(k);
-					auto ev = Event{dev->enumId(), Event::MAP_SYSTEM, key, key, action, isShiftPushed, repeated, time, dev};
+					auto ev = Event{dev->enumId(), Map::SYSTEM, key, key, action, isShiftPushed, repeated, Source::KEYBOARD, time, dev};
 					ev.setX11RawKey(ievent.detail);
 					win.dispatchInputEvent(ev);
 				}

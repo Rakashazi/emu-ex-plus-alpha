@@ -129,7 +129,7 @@ struct EvdevInputDevice : public Device
 
 	EvdevInputDevice() {}
 	EvdevInputDevice(int id, int fd, uint32_t type, const char *name):
-		Device{0, Event::MAP_SYSTEM, type, name},
+		Device{0, Map::SYSTEM, type, name},
 		id{id}, fd{fd}
 	{}
 
@@ -148,7 +148,7 @@ struct EvdevInputDevice : public Device
 				{
 					logMsg("got key event code 0x%X, value %d", ev.code, ev.value);
 					auto key = toSysKey(ev.code);
-					Event event{enumId(), Event::MAP_SYSTEM, key, key, ev.value ? PUSHED : RELEASED, 0, 0, time, this};
+					Event event{enumId(), Map::SYSTEM, key, key, ev.value ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
 					startKeyRepeatTimer(event);
 					dispatchInputEvent(event);
 				}
@@ -159,7 +159,7 @@ struct EvdevInputDevice : public Device
 						continue; // out of range or inactive
 					}
 					//logMsg("got abs event code 0x%X, value %d", ev.code, ev.value);
-					axis[ev.code].keyEmu.dispatch(ev.value, enumId(), Event::MAP_SYSTEM, time, *this, Base::mainWindow());
+					axis[ev.code].keyEmu.dispatch(ev.value, enumId(), Map::SYSTEM, time, *this, Base::mainWindow());
 				}
 			}
 		}
@@ -374,7 +374,7 @@ static bool processDevNode(const char *path, int id, bool notify)
 	uint32_t devId = 0;
 	for(auto &e : devList)
 	{
-		if(e->map() != Event::MAP_SYSTEM)
+		if(e->map() != Map::SYSTEM)
 			continue;
 		if(string_equal(e->name(), evDev->name()) && e->enumId() == devId)
 			devId++;

@@ -29,7 +29,7 @@ public:
 	static std::vector<Zeemote*> devList;
 
 	Zeemote(BluetoothAddr addr):
-		Device{0, Input::Event::MAP_ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"},
+		Device{0, Input::Map::ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"},
 		addr{addr}
 	{}
 	IG::ErrorCode open(BluetoothAdapter &adapter) final;

@@ -189,7 +189,7 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 					//processStickDataForButtonEmulation((int8_t*)&inputBuffer[4], player);
 					iterateTimes(2, i)
 					{
-						if(axisKey[i].dispatch(inputBuffer[4+i], player, Input::Event::MAP_ZEEMOTE, time, *this, Base::mainWindow()))
+						if(axisKey[i].dispatch(inputBuffer[4+i], player, Input::Map::ZEEMOTE, time, *this, Base::mainWindow()))
 							Base::endIdleByUserActivity();
 					}
 			}
@@ -233,7 +233,7 @@ void Zeemote::processBtnReport(const uint8_t *btnData, Input::Time time, uint32_
 			uint32_t code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
 			Base::endIdleByUserActivity();
-			Event event{player, Event::MAP_ZEEMOTE, (Key)code, sysKeyMap[i], newState ? PUSHED : RELEASED, 0, 0, time, this};
+			Event event{player, Map::ZEEMOTE, (Key)code, sysKeyMap[i], newState ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
 			startKeyRepeatTimer(event);
 			dispatchInputEvent(event);
 		}

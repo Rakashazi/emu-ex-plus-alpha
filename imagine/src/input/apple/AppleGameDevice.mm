@@ -36,7 +36,7 @@ struct AppleGameDevice : public Device
 	bool pushState[AppleGC::COUNT]{};
 	
 	AppleGameDevice(GCController *gcController, uint32_t enumId):
-		Device{enumId, Event::MAP_APPLE_GAME_CONTROLLER, TYPE_BIT_GAMEPAD, [gcController.vendorName UTF8String]},
+		Device{enumId, Map::APPLE_GAME_CONTROLLER, TYPE_BIT_GAMEPAD, [gcController.vendorName UTF8String]},
 		gcController{gcController}
 	{
 		auto extGamepad = gcController.extendedGamepad;
@@ -195,7 +195,7 @@ struct AppleGameDevice : public Device
 		auto time = IG::steadyClockTimestamp();
 		pushState[key] = pressed;
 		Base::endIdleByUserActivity();
-		Event event{enumId(), Event::MAP_APPLE_GAME_CONTROLLER, key, sysKey, pressed ? PUSHED : RELEASED, 0, 0, time, this};
+		Event event{enumId(), Map::APPLE_GAME_CONTROLLER, key, sysKey, pressed ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
 		if(repeatable)
 			startKeyRepeatTimer(event);
 		dispatchInputEvent(event);

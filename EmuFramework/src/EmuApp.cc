@@ -66,7 +66,10 @@ public:
 	{
 		if(e.pushed() && e.isDefaultCancelButton())
 		{
-			Base::exit();
+			if(!e.repeated())
+			{
+				Base::exit();
+			}
 			return true;
 		}
 		return AlertView::inputEvent(e);

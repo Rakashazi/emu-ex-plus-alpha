@@ -290,7 +290,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 			else
 				break;
 		}
-		return didAction;
+		return didAction || (consumeUnboundGamepadKeys && e.isGamepad());
 	}
 }
 
@@ -302,4 +302,14 @@ void EmuInputView::setTouchControlsOn(bool on)
 bool EmuInputView::touchControlsAreOn() const
 {
 	return touchControlsOn;
+}
+
+void EmuInputView::setConsumeUnboundGamepadKeys(bool on)
+{
+	consumeUnboundGamepadKeys = on;
+}
+
+bool EmuInputView::shouldConsumeUnboundGamepadKeys() const
+{
+	return consumeUnboundGamepadKeys;
 }

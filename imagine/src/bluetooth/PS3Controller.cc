@@ -237,7 +237,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 				{
 					//logMsg("%s %s @ PS3 Pad %d", device->keyName(e.keyEvent), newState ? "pushed" : "released", player);
 					Base::endIdleByUserActivity();
-					Event event{player, Event::MAP_PS3PAD, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, 0, time, this};
+					Event event{player, Map::PS3PAD, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
 					startKeyRepeatTimer(event);
 					dispatchInputEvent(event);
 				}
@@ -248,7 +248,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 			//logMsg("left: %d,%d right: %d,%d", stickData[0], stickData[1], stickData[2], stickData[3]);
 			iterateTimes(4, i)
 			{
-				if(axisKey[i].dispatch(stickData[i], player, Event::MAP_PS3PAD, time, *this, Base::mainWindow()))
+				if(axisKey[i].dispatch(stickData[i], player, Map::PS3PAD, time, *this, Base::mainWindow()))
 					Base::endIdleByUserActivity();
 			}
 		}

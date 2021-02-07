@@ -75,7 +75,7 @@ const KeyConfig defaultKeyProfile[] =
 	KEY_CONFIG_ANDROID_NAV_KEYS,
 	#endif
 	{
-		Event::MAP_SYSTEM,
+		Map::SYSTEM,
 		0,
 		"PC Keyboard",
 		{
@@ -102,7 +102,7 @@ const KeyConfig defaultKeyProfile[] =
 	},
 	#ifdef CONFIG_INPUT_GAMEPAD_DEVICES
 	{
-		Event::MAP_SYSTEM,
+		Map::SYSTEM,
 		Device::SUBTYPE_GENERIC_GAMEPAD,
 		"Generic Gamepad",
 		{
@@ -124,7 +124,7 @@ const KeyConfig defaultKeyProfile[] =
 	#endif
 	#ifdef CONFIG_ENV_WEBOS
 	{
-		Event::MAP_SYSTEM,
+		Map::SYSTEM,
 		0,
 		"WebOS Keyboard",
 		{
@@ -147,7 +147,7 @@ const KeyConfig defaultKeyProfile[] =
 	#endif
 	#ifdef CONFIG_BASE_ANDROID
 	{
-		Event::MAP_SYSTEM,
+		Map::SYSTEM,
 		Device::SUBTYPE_PS3_CONTROLLER,
 		"PS3 Controller",
 		{
@@ -167,7 +167,7 @@ const KeyConfig defaultKeyProfile[] =
 		}
 	},
 	{
-		Event::MAP_SYSTEM,
+		Map::SYSTEM,
 		Device::SUBTYPE_OUYA_CONTROLLER,
 		"OUYA Controller",
 		{
@@ -187,7 +187,7 @@ const KeyConfig defaultKeyProfile[] =
 		}
 	},
 	{
-		Event::MAP_SYSTEM,
+		Map::SYSTEM,
 		Device::SUBTYPE_NVIDIA_SHIELD,
 		"NVidia Shield",
 		{
@@ -207,7 +207,7 @@ const KeyConfig defaultKeyProfile[] =
 		}
 	},
 	{
-		Event::MAP_SYSTEM,
+		Map::SYSTEM,
 		Device::SUBTYPE_8BITDO_SF30_PRO,
 		"8Bitdo SF30 Pro",
 		{
@@ -227,7 +227,7 @@ const KeyConfig defaultKeyProfile[] =
 		}
 	},
 	{
-		Event::MAP_SYSTEM,
+		Map::SYSTEM,
 		Device::SUBTYPE_8BITDO_SN30_PRO_PLUS,
 		"8BitDo SN30 Pro+",
 		{
@@ -248,7 +248,7 @@ const KeyConfig defaultKeyProfile[] =
 	},
 		#if __ARM_ARCH == 7
 		{
-			Event::MAP_SYSTEM,
+			Map::SYSTEM,
 			Device::SUBTYPE_XPERIA_PLAY,
 			"Xperia Play",
 			{
@@ -268,7 +268,7 @@ const KeyConfig defaultKeyProfile[] =
 			}
 		},
 		{
-			Event::MAP_SYSTEM,
+			Map::SYSTEM,
 			Device::SUBTYPE_MOTO_DROID_KEYBOARD,
 			"Droid/Milestone Keyboard",
 			{
@@ -296,7 +296,7 @@ const KeyConfig defaultKeyProfile[] =
 	#endif
 	#ifdef CONFIG_MACHINE_PANDORA
 	{
-		Event::MAP_SYSTEM,
+		Map::SYSTEM,
 		Device::SUBTYPE_PANDORA_HANDHELD,
 		"Default Pandora",
 		{
@@ -325,7 +325,7 @@ const uint defaultKeyProfiles = std::size(defaultKeyProfile);
 const KeyConfig defaultAppleGCProfile[] =
 {
 	{
-		Event::MAP_APPLE_GAME_CONTROLLER,
+		Map::APPLE_GAME_CONTROLLER,
 		0,
 		"Default",
 		{
@@ -354,7 +354,7 @@ const uint defaultAppleGCProfiles = std::size(defaultAppleGCProfile);
 const KeyConfig defaultWiimoteProfile[] =
 {
 	{
-		Event::MAP_WIIMOTE,
+		Map::WIIMOTE,
 		0,
 		"Default",
 		{
@@ -380,7 +380,7 @@ const uint defaultWiimoteProfiles = std::size(defaultWiimoteProfile);
 const KeyConfig defaultWiiCCProfile[] =
 {
 	{
-		Event::MAP_WII_CC,
+		Map::WII_CC,
 		0,
 		"Default",
 		{
@@ -408,7 +408,7 @@ const uint defaultWiiCCProfiles = std::size(defaultWiiCCProfile);
 const KeyConfig defaultIControlPadProfile[] =
 {
 	{
-		Event::MAP_ICONTROLPAD,
+		Map::ICONTROLPAD,
 		0,
 		"Default",
 		{
@@ -436,7 +436,7 @@ const uint defaultIControlPadProfiles = std::size(defaultIControlPadProfile);
 const KeyConfig defaultICadeProfile[] =
 {
 	{
-		Event::MAP_ICADE,
+		Map::ICADE,
 		0,
 		"Default",
 		{
@@ -464,7 +464,7 @@ const uint defaultICadeProfiles = std::size(defaultICadeProfile);
 const KeyConfig defaultZeemoteProfile[] =
 {
 	{
-		Event::MAP_ZEEMOTE,
+		Map::ZEEMOTE,
 		0,
 		"Default",
 		{
@@ -490,7 +490,7 @@ const uint defaultZeemoteProfiles = std::size(defaultZeemoteProfile);
 const KeyConfig defaultPS3Profile[] =
 {
 	{
-		Event::MAP_PS3PAD,
+		Map::PS3PAD,
 		0,
 		"Default",
 		{

@@ -304,7 +304,7 @@ void updateInputDevices(EmuViewController &emuViewController)
 	inputDevConf.clear();
 	for(auto &e : Input::deviceList())
 	{
-		logMsg("input device %d: name: %s, id: %d, map: %d", i, e->name(), e->enumId(), e->map());
+		logMsg("input device %d: name: %s, id: %d, map: %d", i, e->name(), e->enumId(), (int)e->map());
 		inputDevConf.emplace_back(e);
 		for(auto &saved : savedInputDevList)
 		{
@@ -327,7 +327,8 @@ const KeyConfig &KeyConfig::defaultConfigForDevice(const Input::Device &dev)
 {
 	switch(dev.map())
 	{
-		case Input::Event::MAP_SYSTEM:
+		default: return defaultConfigsForDevice(dev)[0];
+		case Input::Map::SYSTEM:
 		{
 			#if defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_X11
 			uint confs = 0;
@@ -344,47 +345,46 @@ const KeyConfig &KeyConfig::defaultConfigForDevice(const Input::Device &dev)
 			return defaultConfigsForDevice(dev)[0];
 		}
 	}
-	return defaultConfigsForDevice(dev)[0];
 }
 
-const KeyConfig *KeyConfig::defaultConfigsForInputMap(uint map, uint &size)
+const KeyConfig *KeyConfig::defaultConfigsForInputMap(Input::Map map, uint &size)
 {
 	switch(map)
 	{
-		case Input::Event::MAP_SYSTEM:
+		default: return nullptr;
+		case Input::Map::SYSTEM:
 			size = EmuControls::defaultKeyProfiles;
 			return EmuControls::defaultKeyProfile;
 		#ifdef CONFIG_BLUETOOTH
-		case Input::Event::MAP_WIIMOTE:
+		case Input::Map::WIIMOTE:
 			size = EmuControls::defaultWiimoteProfiles;
 			return EmuControls::defaultWiimoteProfile;
-		case Input::Event::MAP_WII_CC:
+		case Input::Map::WII_CC:
 			size = EmuControls::defaultWiiCCProfiles;
 			return EmuControls::defaultWiiCCProfile;
-		case Input::Event::MAP_ICONTROLPAD:
+		case Input::Map::ICONTROLPAD:
 			size = EmuControls::defaultIControlPadProfiles;
 			return EmuControls::defaultIControlPadProfile;
-		case Input::Event::MAP_ZEEMOTE:
+		case Input::Map::ZEEMOTE:
 			size = EmuControls::defaultZeemoteProfiles;
 			return EmuControls::defaultZeemoteProfile;
 		#endif
 		#ifdef CONFIG_BLUETOOTH_SERVER
-		case Input::Event::MAP_PS3PAD:
+		case Input::Map::PS3PAD:
 			size = EmuControls::defaultPS3Profiles;
 			return EmuControls::defaultPS3Profile;
 		#endif
 		#ifdef CONFIG_INPUT_ICADE
-		case Input::Event::MAP_ICADE:
+		case Input::Map::ICADE:
 			size = EmuControls::defaultICadeProfiles;
 			return EmuControls::defaultICadeProfile;
 		#endif
 		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-		case Input::Event::MAP_APPLE_GAME_CONTROLLER:
+		case Input::Map::APPLE_GAME_CONTROLLER:
 			size = EmuControls::defaultAppleGCProfiles;
 			return EmuControls::defaultAppleGCProfile;
 		#endif
 	}
-	return nullptr;
 }
 
 const KeyConfig *KeyConfig::defaultConfigsForDevice(const Input::Device &dev, uint &size)
@@ -392,7 +392,7 @@ const KeyConfig *KeyConfig::defaultConfigsForDevice(const Input::Device &dev, ui
 	auto conf = defaultConfigsForInputMap(dev.map(), size);
 	if(!conf)
 	{
-		bug_unreachable("device type %d missing default configs", dev.map());
+		bug_unreachable("device map:%d missing default configs", (int)dev.map());
 		return nullptr;
 	}
 	return conf;

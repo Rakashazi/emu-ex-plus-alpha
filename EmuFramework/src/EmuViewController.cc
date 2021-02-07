@@ -106,6 +106,10 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	}
 {
 	emuInputView.setController(this, Input::defaultEvent());
+	if constexpr(Config::envIsAndroid)
+	{
+		emuInputView.setConsumeUnboundGamepadKeys(optionConsumeUnboundGamepadKeys);
+	}
 	auto &win = viewAttach.window();
 
 	win.setOnInputEvent(
@@ -164,7 +168,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 
 static bool shouldExitFromViewRootWithoutPrompt(Input::Event e)
 {
-	return e.map() == Input::Event::MAP_SYSTEM && (Config::envIsAndroid || Config::envIsLinux);
+	return e.map() == Input::Map::SYSTEM && (Config::envIsAndroid || Config::envIsLinux);
 }
 
 EmuMenuViewStack::EmuMenuViewStack(EmuViewController &emuViewController):
@@ -182,6 +186,10 @@ bool EmuMenuViewStack::inputEvent(Input::Event e)
 		if(size() == 1)
 		{
 			//logMsg("cancel button at view stack root");
+			if(e.repeated())
+			{
+				return true;
+			}
 			if(EmuSystem::gameIsRunning() ||
 					(!EmuSystem::gameIsRunning() && !shouldExitFromViewRootWithoutPrompt(e)))
 			{
@@ -305,8 +313,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	videoLayer().emuVideo().setOnFrameFinished(
 		[this](EmuVideo &)
 		{
-			emuView.window().unblockDraw();
-			postDrawToEmuWindows();
+			emuView.window().unblockDrawAndPost();
 		});
 	videoLayer().emuVideo().setOnFormatChanged(
 		[this, &videoLayer = videoLayer()](EmuVideo &)

@@ -68,6 +68,9 @@ private:
 
 class InputManagerOptionsView : public TableView
 {
+public:
+	InputManagerOptionsView(ViewAttachParams attach, EmuInputView *emuInputView);
+
 private:
 	#if 0
 	TextMenuItem relativePointerDecelItem[3];
@@ -91,10 +94,9 @@ private:
 	BoolMenuItem btScanCache{};
 	#endif
 	BoolMenuItem altGamepadConfirm{};
+	IG_enableMemberIf(Config::envIsAndroid, BoolMenuItem, consumeUnboundGamepadKeys){};
 	StaticArrayList<MenuItem*, 10> item{};
-
-public:
-	InputManagerOptionsView(ViewAttachParams attach);
+	EmuInputView *emuInputView{};
 };
 
 class InputManagerDeviceView : public TableView

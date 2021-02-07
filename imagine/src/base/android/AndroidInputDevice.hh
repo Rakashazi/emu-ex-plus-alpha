@@ -58,7 +58,7 @@ public:
 	StaticArrayList<Axis, MAX_AXES> axis;
 
 	AndroidInputDevice(int osId, uint32_t typeBits, const char *name):
-		Device{0, Event::MAP_SYSTEM, typeBits, name},
+		Device{0, Map::SYSTEM, typeBits, name},
 		osId{osId}
 	{}
 
