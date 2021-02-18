@@ -19,6 +19,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuVideo.hh>
 #include "EmuSystemTask.hh"
+#include "private.hh"
 #include "privateInput.hh"
 
 void EmuSystemTask::start()
@@ -34,12 +35,11 @@ void EmuSystemTask::start()
 				{
 					bcase Reply::VIDEO_FORMAT_CHANGED:
 					{
-						msg.args.videoFormat.videoAddr->setFormat(msg.args.videoFormat.desc);
-						auto semPtr = msg.semPtr;
-						if(semPtr)
-						{
-							semPtr->notify();
-						}
+						msg.args.videoFormat.videoAddr->dispatchFormatChanged();
+					}
+					bcase Reply::FRAME_FINISHED:
+					{
+						msg.args.videoFormat.videoAddr->dispatchFrameFinished();
 					}
 					bcase Reply::TOOK_SCREENSHOT:
 					{
@@ -128,6 +128,7 @@ void EmuSystemTask::pause()
 	if(!started)
 		return;
 	commandPort.send({Command::PAUSE}, true);
+	replyPort.dispatchMessages();
 }
 
 void EmuSystemTask::stop()
@@ -147,9 +148,14 @@ void EmuSystemTask::runFrame(EmuVideo *video, EmuAudio *audio, uint8_t frames, b
 	commandPort.send({Command::RUN_FRAME, video, audio, frames, skipForward});
 }
 
-void EmuSystemTask::sendVideoFormatChangedReply(EmuVideo &video, IG::PixmapDesc desc)
+void EmuSystemTask::sendVideoFormatChangedReply(EmuVideo &video)
 {
-	replyPort.send({Reply::VIDEO_FORMAT_CHANGED, video, desc}, true);
+	replyPort.send({Reply::VIDEO_FORMAT_CHANGED, video});
+}
+
+void EmuSystemTask::sendFrameFinishedReply(EmuVideo &video)
+{
+	replyPort.send({Reply::FRAME_FINISHED, video});
 }
 
 void EmuSystemTask::sendScreenshotReply(int num, bool success)

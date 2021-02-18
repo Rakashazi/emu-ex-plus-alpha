@@ -44,7 +44,8 @@ public:
 
 	constexpr EmuVideo() {}
 	void setRendererTask(Gfx::RendererTask &rTask);
-	void setFormat(IG::PixmapDesc desc);
+	void setFormat(IG::PixmapDesc desc, EmuSystemTask *task = {});
+	void dispatchFormatChanged();
 	void resetImage();
 	IG::PixmapDesc deleteImage();
 	EmuVideoImage startFrame(EmuSystemTask *task);
@@ -54,6 +55,7 @@ public:
 	void startUnchangedFrame(EmuSystemTask *task);
 	void finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff);
 	void finishFrame(EmuSystemTask *task, IG::Pixmap pix);
+	void dispatchFrameFinished();
 	bool addFence(Gfx::RendererCommands &cmds);
 	void clear();
 	void takeGameScreenshot();
@@ -82,8 +84,7 @@ protected:
 	bool needsFence = false;
 
 	void doScreenshot(EmuSystemTask *task, IG::Pixmap pix);
-	void dispatchFinishFrame(EmuSystemTask *task);
-	void postSetFormat(EmuSystemTask &task, IG::PixmapDesc desc);
+	void postFrameFinished(EmuSystemTask *task);
 	void syncImageAccess();
 	void updateNeedsFence();
 };

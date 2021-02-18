@@ -169,14 +169,14 @@ OnScreenInputPlaceView::OnScreenInputPlaceView(ViewAttachParams attach, VControl
 		{
 			logMsg("starting fade");
 			textFade = {1., 0., {}, IG::steadyClockTimestamp(), IG::Milliseconds{400}};
-			screen()->addOnFrame(animate);
+			window().addOnFrame(animate);
 		});
 }
 
 OnScreenInputPlaceView::~OnScreenInputPlaceView()
 {
 	applyOSNavStyle(false);
-	screen()->removeOnFrame(animate);
+	window().removeOnFrame(animate);
 }
 
 void OnScreenInputPlaceView::place()

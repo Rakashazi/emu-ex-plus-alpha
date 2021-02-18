@@ -15,7 +15,6 @@
 
 #define LOGTAG "DRMFrameTimer"
 #include <imagine/base/Screen.hh>
-#include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include "DRMFrameTimer.hh"
 #include <xf86drm.h>
@@ -75,7 +74,6 @@ DRMFrameTimer::DRMFrameTimer(EventLoop loop, Screen &screen)
 			{
 				logErr("error in drmHandleEvent");
 			}
-			Input::flushEvents();
 			if(screen.isPosted())
 			{
 				screen.frameUpdate(timestamp);

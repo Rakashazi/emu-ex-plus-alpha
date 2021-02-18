@@ -19,10 +19,11 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
 #include "windowPrivate.hh"
-#include <imagine/input/Input.hh>
 
 namespace Base
 {
+
+static constexpr uint8_t MAX_DRAW_EVENT_PRIORITY = 0xFF;
 
 #ifdef CONFIG_BASE_MULTI_WINDOW
 static std::vector<std::unique_ptr<Window>> window_;
@@ -115,17 +116,31 @@ void BaseWindow::initDelegates(const WindowConfig &config)
 	setOnInputEvent(config.onInputEvent());
 	setOnDismissRequest(config.onDismissRequest());
 	setOnDismiss(config.onDismiss());
+	static auto attachDrawEvent =
+		[](Window *win)
+		{
+			win->drawEvent.attach(
+				[win]()
+				{
+					//logDMsg("running window events");
+					win->dispatchOnFrame();
+					win->dispatchOnDraw();
+				});
+		};
 	onExit =
 	{
 		[this](bool backgrounded)
 		{
-			static_cast<Window*>(this)->blockDraw();
+			auto savedDrawEventPriority = static_cast<Window*>(this)->setDrawEventPriority(MAX_DRAW_EVENT_PRIORITY);
+			drawEvent.cancel();
+			drawEvent.detach();
 			if(backgrounded)
 			{
 				addOnResume(
-					[this](bool)
+					[this, savedDrawEventPriority](bool)
 					{
-						static_cast<Window*>(this)->unblockDraw();
+						static_cast<Window*>(this)->setDrawEventPriority(savedDrawEventPriority);
+						attachDrawEvent(static_cast<Window*>(this));
 						return false;
 					}, WINDOW_ON_RESUME_PRIORITY
 				);
@@ -133,12 +148,7 @@ void BaseWindow::initDelegates(const WindowConfig &config)
 			return true;
 		}, WINDOW_ON_EXIT_PRIORITY
 	};
-	drawEvent.attach(
-		[this]()
-		{
-			//logDMsg("running window draw event");
-			static_cast<Window*>(this)->dispatchOnDraw();
-		});
+	attachDrawEvent(static_cast<Window*>(this));
 }
 
 void BaseWindow::initDefaultValidSoftOrientations()
@@ -189,6 +199,41 @@ void Window::setOnDismiss(DismissDelegate del)
 	BaseWindow::setOnDismiss(del);
 }
 
+static Window::FrameTimeSource frameClock(Window::FrameTimeSource clock)
+{
+	if(clock == Window::FrameTimeSource::AUTO)
+		return Base::Screen::supportsTimestamps() ? Window::FrameTimeSource::SCREEN : Window::FrameTimeSource::RENDERER;
+	return clock;
+}
+
+bool Window::addOnFrame(Base::OnFrameDelegate del, FrameTimeSource clock, int priority)
+{
+	clock = frameClock(clock);
+	if(clock == FrameTimeSource::SCREEN)
+	{
+		return screen()->addOnFrame(del);
+	}
+	else
+	{
+		bool added = onFrame.add(del, priority);
+		drawEvent.notify();
+		return added;
+	}
+}
+
+bool Window::removeOnFrame(Base::OnFrameDelegate del, FrameTimeSource clock)
+{
+	clock = frameClock(clock);
+	if(clock == FrameTimeSource::SCREEN)
+	{
+		return screen()->removeOnFrame(del);
+	}
+	else
+	{
+		return onFrame.remove(del);
+	}
+}
+
 Window &mainWindow()
 {
 	assert(Window::windows());
@@ -227,16 +272,17 @@ bool Window::needsDraw() const
 	return drawNeeded;
 }
 
-void Window::postDraw()
+void Window::postDraw(uint8_t priority)
 {
-	if(!setNeedsDraw(true))
-		return;
-	if(!notifyDrawAllowed)
+	if(priority < drawEventPriority())
 	{
-		//logDMsg("posted draw but event notification disabled");
+		logDMsg("skipped posting draw with priority:%u < %u", priority, drawEventPriority());
 		return;
 	}
-	drawEvent.notify();
+	if(!setNeedsDraw(true))
+		return;
+	if(drawPhase != DrawPhase::DRAW)
+		drawEvent.notify();
 	//logDMsg("window:%p needs draw", this);
 }
 
@@ -247,31 +293,21 @@ void Window::unpostDraw()
 	//logDMsg("window:%p cancelled draw", this);
 }
 
-void Window::blockDraw()
+void Window::postFrameReady()
 {
-	notifyDrawAllowed = false;
-	drawEvent.cancel();
-}
-
-void Window::unblockDraw()
-{
-	notifyDrawAllowed = true;
-	if(drawNeeded)
-	{
-		//logDMsg("draw event after deferred draw complete");
+	drawPhase = DrawPhase::READY;
+	if(onFrame.size())
 		drawEvent.notify();
-	}
 }
 
-void Window::unblockDrawAndPost()
+uint8_t Window::setDrawEventPriority(uint8_t priority)
 {
-	setNeedsDraw(true);
-	unblockDraw();
+	return std::exchange(drawEventPriority_, priority);
 }
 
-bool Window::isDrawBlocked() const
+uint8_t Window::drawEventPriority() const
 {
-	return !notifyDrawAllowed;
+	return drawEventPriority_;
 }
 
 void Window::drawNow(bool needsSync)
@@ -320,8 +356,28 @@ void Window::dispatchOnDraw(bool needsSync)
 {
 	if(!needsDraw())
 		return;
-	drawNeeded = false;
 	draw(needsSync);
+}
+
+void Window::dispatchOnFrame()
+{
+	if(drawPhase != DrawPhase::READY)
+	{
+		return;
+	}
+	drawPhase = DrawPhase::UPDATE;
+	if(!onFrame.size())
+	{
+		return;
+	}
+	//logDMsg("running %u onFrame delegates", onFrame.size());
+	auto now = IG::steadyClockTimestamp();
+	FrameParams frameParams{now, screen()->frameTime()};
+	onFrame.runAll([&](Base::OnFrameDelegate del){ return del(frameParams); });
+	if(onFrame.size())
+	{
+		setNeedsDraw(true);
+	}
 }
 
 void Window::draw(bool needsSync)
@@ -333,10 +389,11 @@ void Window::draw(bool needsSync)
 		dispatchSurfaceChange();
 		params.wasResized_ = true;
 	}
-	notifyDrawAllowed = false;
+	drawNeeded = false;
+	drawPhase = DrawPhase::DRAW;
 	if(onDraw.callCopy(*this, params))
 	{
-		unblockDraw();
+		postFrameReady();
 	}
 }
 

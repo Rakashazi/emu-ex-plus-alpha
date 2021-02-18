@@ -20,7 +20,6 @@
 #include <imagine/base/baseDefs.hh>
 #include <imagine/base/CustomEvent.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/DelegateFuncSet.hh>
 
 namespace Base
 {
@@ -43,15 +42,11 @@ public:
 	~GLDrawableHolder();
 	void makeDrawable(RendererTask &task, Base::Window &win);
 	void destroyDrawable();
-	void notifyOnFrame();
 
 protected:
 	RendererTask *task{};
-	Base::Screen *screen{};
 	Drawable drawable_{};
 	Base::OnExit onExit{};
-	Base::CustomEvent drawFinishedEvent{"GLDrawableHolder::drawFinishedEvent"};
-	DelegateFuncSet<Base::OnFrameDelegate> onFrame{};
 };
 
 using DrawableHolderImpl = GLDrawableHolder;

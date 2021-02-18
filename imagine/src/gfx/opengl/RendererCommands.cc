@@ -110,10 +110,9 @@ void GLRendererCommands::notifyDrawComplete()
 
 void GLRendererCommands::notifyPresentComplete()
 {
-	drawableHolderPtr->notifyOnFrame();
 	if(winPtr)
 	{
-		winPtr->unblockDraw();
+		winPtr->postFrameReady();
 	}
 }
 

@@ -33,6 +33,13 @@ class Screen;
 class Window : public WindowImpl
 {
 public:
+	enum class FrameTimeSource : uint8_t
+	{
+		AUTO,
+		SCREEN,
+		RENDERER,
+	};
+
 	constexpr Window() {}
 	static Window *makeWindow(WindowConfig config);
 	IG::ErrorCode init(const WindowConfig &config);
@@ -43,14 +50,12 @@ public:
 	bool setNeedsDraw(bool needsDraw);
 	void setNeedsCustomViewportResize(bool needsResize);
 	bool needsDraw() const;
-	void postDraw();
+	void postDraw(uint8_t priority = 0);
 	void unpostDraw();
-	void blockDraw();
-	void unblockDraw();
-	void unblockDrawAndPost();
-	bool isDrawBlocked() const;
+	void postFrameReady();
+	uint8_t setDrawEventPriority(uint8_t = 0);
+	uint8_t drawEventPriority() const;
 	void drawNow(bool needsSync = false);
-	void dispatchOnDraw(bool needsSync = false);
 	Screen *screen() const;
 	static uint32_t windows();
 	static Window *window(uint32_t idx);
@@ -58,6 +63,8 @@ public:
 	NativeWindow nativeObject() const;
 	void setIntendedFrameRate(double rate);
 	bool operator ==(Window const &rhs) const;
+	bool addOnFrame(Base::OnFrameDelegate del, FrameTimeSource src = {}, int priority = 0);
+	bool removeOnFrame(Base::OnFrameDelegate del, FrameTimeSource src = {});
 
 	template <class T, class... Args>
 	void makeCustomData(Args&&... args)
@@ -129,6 +136,8 @@ public:
 	void dispatchFocusChange(bool in);
 	void dispatchDragDrop(const char *filename);
 	void dispatchDismissRequest();
+	void dispatchOnDraw(bool needsSync = false);
+	void dispatchOnFrame();
 
 private:
 	IG::Point2D<float> pixelSizeAsMM(IG::Point2D<int> size);

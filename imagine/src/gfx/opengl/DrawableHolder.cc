@@ -62,29 +62,11 @@ DrawableHolder::operator bool() const
 	return (bool)drawable_;
 }
 
-bool DrawableHolder::addOnFrame(Base::OnFrameDelegate del, int priority)
-{
-	return onFrame.add(del, priority);
-}
-
-bool DrawableHolder::removeOnFrame(Base::OnFrameDelegate del)
-{
-	return onFrame.remove(del);
-}
-
-void DrawableHolder::dispatchOnFrame()
-{
-	auto now = IG::steadyClockTimestamp();
-	FrameParams frameParams{now, screen->frameTime()};
-	onFrame.runAll([&](Base::OnFrameDelegate del){ return del(frameParams); });
-}
-
 void GLDrawableHolder::makeDrawable(RendererTask &rTask, Base::Window &win)
 {
 	destroyDrawable();
 	auto &r = rTask.renderer();
 	task = &rTask;
-	screen = win.screen();
 	auto dpy = r.glDpy;
 	auto [ec, drawable] = dpy.makeDrawable(win, r.gfxBufferConfig);
 	if(ec)
@@ -95,16 +77,15 @@ void GLDrawableHolder::makeDrawable(RendererTask &rTask, Base::Window &win)
 	drawable_ = drawable;
 	onExit =
 	{
-		[this, dpy](bool backgrounded) mutable
+		[this, dpy](bool backgrounded)
 		{
 			if(backgrounded)
 			{
-				drawFinishedEvent.cancel();
 				drawable_.freeCaches();
 				Base::addOnResume(
-					[drawable = drawable_](bool focused) mutable
+					[drawable = drawable_](bool focused)
 					{
-						drawable.restoreCaches();
+						IG::copySelf(drawable).restoreCaches();
 						return false;
 					}, Base::RENDERER_DRAWABLE_ON_RESUME_PRIORITY
 				);
@@ -114,13 +95,6 @@ void GLDrawableHolder::makeDrawable(RendererTask &rTask, Base::Window &win)
 			return true;
 		}, Base::RENDERER_DRAWABLE_ON_EXIT_PRIORITY
 	};
-	drawFinishedEvent.attach(
-		[this]()
-		{
-			if(!onFrame.size())
-				return;
-			static_cast<DrawableHolder*>(this)->dispatchOnFrame();
-		});
 	if(r.support.hasDrawReadBuffers())
 	{
 		rTask.run([glCtx = rTask.glContext(), drawable = drawable,
@@ -145,15 +119,6 @@ void GLDrawableHolder::destroyDrawable()
 		IG::copySelf(drawable).destroy(ctx.glDisplay());
 	});
 	onExit = {};
-	drawFinishedEvent.detach();
-}
-
-void GLDrawableHolder::notifyOnFrame()
-{
-	if(onFrame.size())
-	{
-		drawFinishedEvent.notify();
-	}
 }
 
 }

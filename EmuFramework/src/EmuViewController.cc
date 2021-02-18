@@ -224,16 +224,15 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	winData.hasPopup = true;
 	if(!Base::Screen::supportsTimestamps() && (!Config::envIsLinux || viewAttach.window().screen()->frameRate() < 100.))
 	{
-		setUseRendererTime(true);
+		setWindowFrameClockSource(Base::Window::FrameTimeSource::RENDERER);
+	}
+	else
+	{
+		setWindowFrameClockSource(Base::Window::FrameTimeSource::SCREEN);
 	}
 	logMsg("timestamp source:%s", useRendererTime() ? "renderer" : "screen");
 	onFrameUpdate = [this, &r = std::as_const(viewAttach.renderer())](IG::FrameParams params)
 		{
-			if(emuView.window().isDrawBlocked())
-			{
-				// frame not ready yet, retry on next vblank
-				return true;
-			}
 			bool skipForward = false;
 			bool fastForwarding = false;
 			if(unlikely(EmuSystem::shouldFastForward()))
@@ -255,8 +254,6 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			auto frameInfo = EmuSystem::advanceFramesWithTime(params.timestamp());
 			if(!frameInfo.advanced)
 			{
-				if(useRendererTime())
-					postDrawToEmuWindows();
 				return true;
 			}
 			if(!optionSkipLateFrames && !fastForwarding)
@@ -265,14 +262,13 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			}
 			constexpr uint maxFrameSkip = 8;
 			uint32_t framesToEmulate = std::min(frameInfo.advanced, maxFrameSkip);
-			emuView.window().blockDraw();
 			EmuAudio *audioPtr = emuAudio ? &emuAudio : nullptr;
 			systemTask->runFrame(&videoLayer().emuVideo(), audioPtr, framesToEmulate, skipForward);
 			r.setPresentationTime(emuWindowData().drawableHolder, params.presentTime());
 			/*logMsg("frame present time:%.4f next display frame:%.4f",
 				std::chrono::duration_cast<IG::FloatSeconds>(frameInfo.presentTime).count(),
 				std::chrono::duration_cast<IG::FloatSeconds>(params.presentTime()).count());*/
-			return true;
+			return false;
 		};
 
 	popup.setFace(View::defaultFace);
@@ -313,7 +309,8 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	videoLayer().emuVideo().setOnFrameFinished(
 		[this](EmuVideo &)
 		{
-			emuView.window().unblockDrawAndPost();
+			emuWindow().drawNow();
+			addOnFrame();
 		});
 	videoLayer().emuVideo().setOnFormatChanged(
 		[this, &videoLayer = videoLayer()](EmuVideo &)
@@ -397,7 +394,10 @@ void EmuViewController::moveEmuViewToWindow(Base::Window &win)
 	auto &origWin = emuView.window();
 	if(origWin == win)
 		return;
-	origWin.unblockDraw();
+	if(showingEmulation)
+	{
+		win.setDrawEventPriority(origWin.setDrawEventPriority());
+	}
 	auto &origWinData = windowData(origWin);
 	origWinData.hasEmuView = false;
 	auto &winData = windowData(win);
@@ -595,6 +595,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 				mainWindow().postDraw();
 				if(EmuSystem::isActive())
 				{
+					systemTask->pause();
 					moveOnFrame(win, mainWindow());
 					applyFrameRates();
 				}
@@ -612,6 +613,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 		extraWinData.focused = true;
 		if(EmuSystem::isActive())
 		{
+			systemTask->pause();
 			moveOnFrame(mainWindow(), *extraWin);
 			applyFrameRates();
 		}
@@ -697,25 +699,18 @@ Base::OnFrameDelegate EmuViewController::makeOnFrameDelayed(uint8_t delay)
 			else
 			{
 				if(EmuSystem::isActive())
-					addOnFrameDelegate(onFrameUpdate);
+				{
+					emuWindow().setDrawEventPriority(1); // block UI from posting draws
+					addOnFrame();
+				}
 			}
-			if(useRendererTime())
-				postDrawToEmuWindows();
 			return false;
 		};
 }
 
 void EmuViewController::addOnFrameDelegate(Base::OnFrameDelegate onFrame)
 {
-	if(!useRendererTime())
-	{
-		emuWindowScreen()->addOnFrame(onFrame);
-	}
-	else
-	{
-		emuWindowData().drawableHolder.addOnFrame(onFrame);
-		postDrawToEmuWindows();
-	}
+	emuWindow().addOnFrame(onFrame, winFrameTimeSrc);
 }
 
 void EmuViewController::addOnFrameDelayed()
@@ -733,28 +728,13 @@ void EmuViewController::addOnFrame()
 
 void EmuViewController::removeOnFrame()
 {
-	if(!useRendererTime())
-	{
-		emuWindowScreen()->removeOnFrame(onFrameUpdate);
-	}
-	else
-	{
-		emuWindowData().drawableHolder.removeOnFrame(onFrameUpdate);
-	}
+	emuWindow().removeOnFrame(onFrameUpdate, winFrameTimeSrc);
 }
 
 void EmuViewController::moveOnFrame(Base::Window &from, Base::Window &to)
 {
-	if(!useRendererTime())
-	{
-		from.screen()->removeOnFrame(onFrameUpdate);
-		to.screen()->addOnFrame(onFrameUpdate);
-	}
-	else
-	{
-		windowData(from).drawableHolder.removeOnFrame(onFrameUpdate);
-		windowData(to).drawableHolder.addOnFrame(onFrameUpdate);
-	}
+	from.removeOnFrame(onFrameUpdate, winFrameTimeSrc);
+	to.addOnFrame(onFrameUpdate, winFrameTimeSrc);
 }
 
 void EmuViewController::startEmulation()
@@ -773,7 +753,7 @@ void EmuViewController::pauseEmulation()
 	EmuSystem::pause();
 	videoLayer().setBrightness(showingEmulation ? .75f : .25f);
 	setFastForwardActive(false);
-	emuView.window().unblockDraw();
+	emuWindow().setDrawEventPriority();
 	removeOnFrame();
 }
 
@@ -1031,12 +1011,12 @@ void EmuViewController::setFastForwardActive(bool active)
 	emuAudio.setVolume(soundVolume);
 }
 
-void EmuViewController::setUseRendererTime(bool on)
+void EmuViewController::setWindowFrameClockSource(Base::Window::FrameTimeSource src)
 {
-	useRendererTime_ = on;
+	winFrameTimeSrc = src;
 }
 
 bool EmuViewController::useRendererTime() const
 {
-	return useRendererTime_;
+	return winFrameTimeSrc == Base::Window::FrameTimeSource::RENDERER;
 }

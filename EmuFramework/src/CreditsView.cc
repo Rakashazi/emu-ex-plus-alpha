@@ -32,7 +32,7 @@ CreditsView::CreditsView(ViewAttachParams attach, const char *str):
 	}
 {
 	fade = {0., 1., {}, IG::steadyClockTimestamp(), IG::Milliseconds{320}};
-	screen()->addOnFrame(animate);
+	window().addOnFrame(animate);
 	place();
 }
 
@@ -70,5 +70,5 @@ bool CreditsView::inputEvent(Input::Event e)
 
 CreditsView::~CreditsView()
 {
-	screen()->removeOnFrame(animate);
+	window().removeOnFrame(animate);
 }

@@ -78,10 +78,9 @@ static void setPickerHandlers(Base::Window &win, Gfx::Renderer &r)
 		});
 }
 
-static void setActiveTestHandlers(Base::Window &win, Gfx::Renderer &r, Gfx::DrawableHolder &drawableHolder)
+static void setActiveTestHandlers(Base::Window &win, Gfx::Renderer &r)
 {
-	Base::OnFrameDelegate onFrameUpdate =
-		[&win, &r](Base::FrameParams params)
+	win.addOnFrame([&win, &r](Base::FrameParams params)
 		{
 			auto atOnFrame = IG::steadyClockTimestamp();
 			auto &winData = windowData(win);
@@ -106,16 +105,7 @@ static void setActiveTestHandlers(Base::Window &win, Gfx::Renderer &r, Gfx::Draw
 				win.postDraw();
 				return true;
 			}
-		};
-	if(Base::Screen::supportsTimestamps())
-	{
-		win.screen()->addOnFrame(onFrameUpdate);
-	}
-	else
-	{
-		drawableHolder.addOnFrame(onFrameUpdate);
-		drawableHolder.dispatchOnFrame();
-	}
+		});
 	win.setOnDraw(
 		[&task = r.task()](Base::Window &win, Base::Window::DrawParams params)
 		{
@@ -193,7 +183,7 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 	initCPULoadStatus();
 	placeElements(win, r);
 	auto &winData = windowData(win);
-	setActiveTestHandlers(win, r, winData.drawableHolder);
+	setActiveTestHandlers(win, r);
 	return activeTest.get();
 }
 

@@ -50,7 +50,7 @@ public:
 		return it != delegate.end();
 	}
 
-	unsigned int size()
+	unsigned size() const
 	{
 		return delegate.size();
 	}

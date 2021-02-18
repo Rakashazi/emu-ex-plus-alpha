@@ -57,10 +57,7 @@ public:
 	{
 		window().setIntendedFrameRate(0.);
 		setCPUNeedsLowLatency(false);
-		if(!useRenderTaskTime)
-			screen()->removeOnFrame(detectFrameRate);
-		else
-			windowData(window()).drawableHolder.removeOnFrame(detectFrameRate);
+		window().removeOnFrame(detectFrameRate);
 	}
 
 	void place() final
@@ -170,15 +167,7 @@ public:
 				}
 				return runFrameTimeDetection(params.timestamp() - std::exchange(lastFrameTimestamp, params.timestamp()), 0.00175);
 			};
-		if(!useRenderTaskTime)
-		{
-			screen()->addOnFrame(detectFrameRate);
-		}
-		else
-		{
-			windowData(window()).drawableHolder.addOnFrame(detectFrameRate);
-			postDraw();
-		}
+		window().addOnFrame(detectFrameRate);
 		setCPUNeedsLowLatency(true);
 	}
 };

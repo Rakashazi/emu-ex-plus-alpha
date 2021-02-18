@@ -132,7 +132,7 @@ void ScrollView::setContentSize(IG::WP size)
 	offsetMax = std::max(0, contentSize.y - viewFrame.ySize());
 	if(isOverScrolled())
 	{
-		screen()->addOnFrame(animate);
+		window().addOnFrame(animate);
 	}
 	if(viewFrame.ySize() > 0)
 		allowScrollWholeArea_ = contentSize.y / viewFrame.ySize() > 3;
@@ -244,7 +244,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 			if(scrollVel || isOverScrolled())
 			{
 				overScrollVelScale = OVER_SCROLL_VEL_SCALE / screen()->frameRate();
-				screen()->addOnFrame(animate);
+				window().addOnFrame(animate);
 			}
 			else
 			{
@@ -269,5 +269,5 @@ int ScrollView::scrollOffset() const
 void ScrollView::stopScrollAnimation()
 {
 	lastFrameTimestamp = {};
-	screen()->removeOnFrame(animate);
+	window().removeOnFrame(animate);
 }

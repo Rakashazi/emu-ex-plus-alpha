@@ -121,7 +121,7 @@ protected:
 	Base::OnExit onExit{};
 	bool showingEmulation = false;
 	bool physicalControlsPresent = false;
-	[[no_unique_address]] IG::UseTypeIf<HAS_USE_RENDER_TIME, bool> useRendererTime_ = false;
+	Base::Window::FrameTimeSource winFrameTimeSrc{};
 	uint8_t targetFastForwardSpeed = 0;
 
 	void initViews(ViewAttachParams attach);
@@ -145,7 +145,7 @@ protected:
 	bool allWindowsAreFocused() const;
 	WindowData &mainWindowData() const;
 	Base::Window &mainWindow() const;
-	void setUseRendererTime(bool on);
+	void setWindowFrameClockSource(Base::Window::FrameTimeSource);
 	bool useRendererTime() const;
 };
 

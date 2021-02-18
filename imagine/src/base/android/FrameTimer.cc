@@ -20,7 +20,6 @@
 #include <imagine/base/Base.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/base/sharedLibrary.hh>
-#include <imagine/input/Input.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
@@ -74,7 +73,6 @@ static void doOnFrame(T *timerObjPtr, int64_t frameTimeNanos)
 	IG::Nanoseconds frameTime{frameTimeNanos};
 	mainScreen().startDebugFrameStats(frameTime);
 	timerObjPtr->unsetRequested(); // Choreographer callbacks are one-shot
-	Input::flushInternalEvents();
 	iterateTimes(Screen::screens(), i)
 	{
 		auto s = Screen::screen(i);

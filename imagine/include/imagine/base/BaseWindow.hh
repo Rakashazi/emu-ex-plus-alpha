@@ -20,6 +20,7 @@
 #include <imagine/base/baseDefs.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/util/DelegateFunc.hh>
+#include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/typeTraits.hh>
 #include <atomic>
@@ -48,6 +49,13 @@ public:
 	using DismissDelegate = DelegateFunc<void (Window &win)>;
 
 protected:
+	enum class DrawPhase : uint8_t
+	{
+		READY,	// Ready to run any onFrame delegates and enter UPDATE phase afterwards
+		UPDATE,	// Stay in this phase until drawing is needed, then enter DRAW phase
+		DRAW		// Drawing in progress, return to READY phase when finished
+	};
+
 	IG_enableMemberIf(Config::BASE_MULTI_SCREEN, Screen *, screen_){};
 	std::shared_ptr<void> customDataPtr{};
 	SurfaceChangeDelegate onSurfaceChange{};
@@ -58,6 +66,7 @@ protected:
 	DismissRequestDelegate onDismissRequest{};
 	DismissDelegate onDismiss{};
 	Base::OnExit onExit{};
+	DelegateFuncSet<Base::OnFrameDelegate> onFrame{};
 	Base::CustomEvent drawEvent{"Window::drawEvent"};
 	IG::Point2D<int> winSizePixels{}; // size of full window surface
 	IG::Point2D<float> winSizeMM{}; // size in millimeter
@@ -66,7 +75,8 @@ protected:
 	IG_enableMemberIf(Config::envIsAndroid, IG::Point2D<float>, winSizeSMM){};
 	IG_enableMemberIf(Config::envIsAndroid, IG::Point2D<float>, smmToPixelScaler){};
 	std::atomic_bool drawNeeded = false;
-	std::atomic_bool notifyDrawAllowed = true;
+	std::atomic<DrawPhase> drawPhase{DrawPhase::READY};
+	uint8_t drawEventPriority_{};
 	// all windows need an initial onSurfaceChange call
 	SurfaceChange surfaceChange{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
 	IG_enableMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, softOrientation_){VIEW_ROTATE_0};

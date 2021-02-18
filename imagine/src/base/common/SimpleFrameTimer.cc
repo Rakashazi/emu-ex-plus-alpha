@@ -16,7 +16,6 @@
 #define LOGTAG "FrameTimer"
 #include <imagine/base/Screen.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include "SimpleFrameTimer.hh"
 
@@ -46,7 +45,6 @@ SimpleFrameTimer::SimpleFrameTimer(EventLoop loop, Screen &screen):
 			}
 			requested = false;
 			auto timestamp = IG::steadyClockTimestamp();
-			Input::flushEvents();
 			screen.frameUpdate(timestamp);
 			return true;
 		}

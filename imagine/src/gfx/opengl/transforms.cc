@@ -64,7 +64,7 @@ void RendererCommands::setProjectionMatrix(Mat4 mat)
 void Renderer::animateProjectionMatrixRotation(Base::Window &win, Angle srcAngle, Angle destAngle)
 {
 	projAngleM = {srcAngle, destAngle, {}, IG::steadyClockTimestamp(), IG::Milliseconds{165}};
-	win.screen()->addOnFrame(
+	win.addOnFrame(
 		[this, &win](IG::FrameParams params)
 		{
 			bool didUpdate = projAngleM.update(params.timestamp());

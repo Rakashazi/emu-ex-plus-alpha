@@ -64,7 +64,7 @@ void AnimatedViewport::start(Base::Window &w, Gfx::Viewport begin, Gfx::Viewport
 				return true;
 			}
 		};
-	w.screen()->addOnFrame(animate);
+	w.addOnFrame(animate);
 }
 
 void AnimatedViewport::finish()
@@ -86,7 +86,7 @@ void AnimatedViewport::cancel()
 	if(animate)
 	{
 		assert(win);
-		win->screen()->removeOnFrame(animate);
+		win->removeOnFrame(animate);
 		animate = {};
 	}
 }

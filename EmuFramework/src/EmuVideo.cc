@@ -40,7 +40,7 @@ void EmuVideo::setRendererTask(Gfx::RendererTask &rTask_)
 	rTask = &rTask_;
 }
 
-void EmuVideo::setFormat(IG::PixmapDesc desc)
+void EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTask *task)
 {
 	if(formatIsEqual(desc))
 	{
@@ -57,17 +57,19 @@ void EmuVideo::setFormat(IG::PixmapDesc desc)
 		vidImg.setFormat(desc, texSampler);
 	}
 	logMsg("resized to:%dx%d", desc.w(), desc.h());
-	onFormatChanged(*this);
+	if(task)
+	{
+		task->sendVideoFormatChangedReply(*this);
+	}
+	else
+	{
+		dispatchFormatChanged();
+	}
 }
 
-void EmuVideo::postSetFormat(EmuSystemTask &task, IG::PixmapDesc desc)
+void EmuVideo::dispatchFormatChanged()
 {
-	if(formatIsEqual(desc))
-	{
-		return; // no change to format
-	}
-	logMsg("postSetFormat");
-	task.sendVideoFormatChangedReply(*this, desc);
+	onFormatChanged(*this);
 }
 
 void EmuVideo::syncImageAccess()
@@ -89,39 +91,33 @@ void EmuVideo::startFrame(EmuSystemTask *task, IG::Pixmap pix)
 
 EmuVideoImage EmuVideo::startFrameWithFormat(EmuSystemTask *task, IG::PixmapDesc desc)
 {
-	if(task)
-	{
-		postSetFormat(*task, desc);
-	}
-	else
-	{
-		setFormat(desc);
-	}
+	setFormat(desc, task);
 	return startFrame(task);
 }
 
 void EmuVideo::startFrameWithFormat(EmuSystemTask *task, IG::Pixmap pix)
 {
-	if(task)
-	{
-		postSetFormat(*task, pix);
-	}
-	else
-	{
-		setFormat(pix);
-	}
+	setFormat(pix, task);
 	startFrame(task, pix);
 }
 
 void EmuVideo::startUnchangedFrame(EmuSystemTask *task)
 {
-	dispatchFinishFrame(task);
+	postFrameFinished(task);
 }
 
-void EmuVideo::dispatchFinishFrame(EmuSystemTask *task)
+void EmuVideo::dispatchFrameFinished()
 {
 	//logDMsg("frame finished");
 	onFrameFinished(*this);
+}
+
+void EmuVideo::postFrameFinished(EmuSystemTask *task)
+{
+	if(task)
+	{
+		task->sendFrameFinishedReply(*this);
+	}
 }
 
 void EmuVideo::finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff)
@@ -131,7 +127,7 @@ void EmuVideo::finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff
 		doScreenshot(task, texBuff.pixmap());
 	}
 	vidImg.unlock(texBuff);
-	dispatchFinishFrame(task);
+	postFrameFinished(task);
 }
 
 void EmuVideo::finishFrame(EmuSystemTask *task, IG::Pixmap pix)
@@ -142,7 +138,7 @@ void EmuVideo::finishFrame(EmuSystemTask *task, IG::Pixmap pix)
 	}
 	syncImageAccess();
 	vidImg.write(pix, vidImg.WRITE_FLAG_ASYNC);
-	dispatchFinishFrame(task);
+	postFrameFinished(task);
 }
 
 bool EmuVideo::addFence(Gfx::RendererCommands &cmds)

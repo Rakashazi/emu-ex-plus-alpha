@@ -28,7 +28,10 @@ class EmuSystemTask
 public:
 	enum class Command: uint8_t
 	{
-		UNSET, RUN_FRAME, PAUSE, EXIT
+		UNSET,
+		RUN_FRAME,
+		PAUSE,
+		EXIT,
 	};
 
 	struct CommandMessage
@@ -57,17 +60,18 @@ public:
 
 	enum class Reply: uint8_t
 	{
-		UNSET, VIDEO_FORMAT_CHANGED, TOOK_SCREENSHOT
+		UNSET,
+		VIDEO_FORMAT_CHANGED,
+		FRAME_FINISHED,
+		TOOK_SCREENSHOT,
 	};
 
 	struct ReplyMessage
 	{
-		IG::Semaphore *semPtr{};
 		union Args
 		{
 			struct VideoFormatArgs
 			{
-				IG::PixmapDesc desc;
 				EmuVideo *videoAddr;
 			} videoFormat;
 			struct ScreenshotArgs
@@ -79,22 +83,22 @@ public:
 		Reply reply{Reply::UNSET};
 
 		constexpr ReplyMessage() {}
-		constexpr ReplyMessage(Reply reply, EmuVideo &video, IG::PixmapDesc desc):
-			args{desc, &video}, reply{reply} {}
+		constexpr ReplyMessage(Reply reply, EmuVideo &video):
+			args{&video}, reply{reply} {}
 		constexpr ReplyMessage(Reply reply, int num, bool success):
 			reply{reply}
 		{
 			args.screenshot = {num, success};
 		}
 		explicit operator bool() const { return reply != Reply::UNSET; }
-		void setReplySemaphore(IG::Semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 
 	void start();
 	void pause();
 	void stop();
 	void runFrame(EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward = false);
-	void sendVideoFormatChangedReply(EmuVideo &video, IG::PixmapDesc desc);
+	void sendVideoFormatChangedReply(EmuVideo &video);
+	void sendFrameFinishedReply(EmuVideo &video);
 	void sendScreenshotReply(int num, bool success);
 
 private:
