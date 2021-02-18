@@ -13,6 +13,19 @@ jobs:
       with:
         submodules: true
 
+    - name: Decode debug keystore
+      env:
+        DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
+      run: |
+        if [ -z "$DEBUG_KEYSTORE" ]
+        then
+           echo "No debug keystore value"
+        else
+           echo $DEBUG_KEYSTORE > debug.keystore.base64
+           base64 --decode debug.keystore.base64 > debug.keystore
+           sudo cp -f debug.keystore /root/.android/.
+        fi
+        
     - name: Install
       run: |
         sudo apt-get update
@@ -48,6 +61,20 @@ jobs:
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
         echo "IMAGINE_SDK_PATH=${{ github.workspace }}/imagine-sdk" >> $GITHUB_ENV
+
+    - name: Patch build.gradle
+      run: |
+        cp -f .github/workflows/01-change-signing-to-debug.patch imagine/make/gradle/app/
+        cd imagine/make/gradle/app/
+        patch -p 1 -i 01-change-signing-to-debug.patch
+        rm 01-change-signing-to-debug.patch
+  
+    - name: Patch android.mk
+      run: |
+        cp -f .github/workflows/02-change-bundle-to-apk.patch imagine/make/shortcut/meta-builds/
+        cd imagine/make/shortcut/meta-builds
+        patch -p 1 -i 02-change-bundle-to-apk.patch
+        rm 02-change-bundle-to-apk.patch
         
     - name: Run script
       run: |
@@ -61,10 +88,6 @@ jobs:
         make -f $IMAGINE_PATH/android-release.mk install V=1 -j2
         make -f $EMUFRAMEWORK_PATH/android-release.mk config -j2
         make -f $EMUFRAMEWORK_PATH/android-release.mk install V=1 -j2
-
-    - name: Copy build.gradle
-      run: |
-        cp -f .github/workflows/build.gradle imagine/make/gradle/app/build.gradle
 
     - name: Build 2600.emu
       run: |
@@ -120,3 +143,69 @@ jobs:
       run: |        
         cd Snes9x
         make -f android-release.mk V=1 -j2
+
+    - name: Upload 2600.emu Artifact
+      uses: actions/upload-artifact@v2
+      with: 
+        name: 2600emu
+        path: ${{ github.workspace }}/2600.emu/target/android-release/build/outputs/apk/release/2600Emu-release.apk
+    
+    - name: Upload C64.emu Artifact
+      uses: actions/upload-artifact@v2
+      with: 
+        name: C64emu
+        path: ${{ github.workspace }}/C64.emu/target/android-release/build/outputs/apk/release/C64Emu-release.apk
+
+    - name: Upload GBA.emu Artifact
+      uses: actions/upload-artifact@v2
+      with: 
+        name: GBAemu
+        path: ${{ github.workspace }}/GBA.emu/target/android-release/build/outputs/apk/release/GbaEmu-release.apk
+        
+    - name: Upload GBC.emu Artifact
+      uses: actions/upload-artifact@v2
+      with: 
+        name: GBCemu
+        path: ${{ github.workspace }}/GBC.emu/target/android-release/build/outputs/apk/release/GbcEmu-release.apk
+        
+    - name: Upload MD.emu Artifact
+      uses: actions/upload-artifact@v2
+      with: 
+        name: MDemu
+        path: ${{ github.workspace }}/MD.emu/target/android-release/build/outputs/apk/release/MdEmu-release.apk
+        
+    - name: Upload MSX.emu Artifact
+      uses: actions/upload-artifact@v2
+      with: 
+        name: MSXemu
+        path: ${{ github.workspace }}/MSX.emu/target/android-release/build/outputs/apk/release/MsxEmu-release.apk
+        
+    - name: Upload NEO.emu Artifact
+      uses: actions/upload-artifact@v2
+      with: 
+        name: NEOemu
+        path: ${{ github.workspace }}/NEO.emu/target/android-release/build/outputs/apk/release/NeoEmu-release.apk
+        
+    - name: Upload NES.emu Artifact
+      uses: actions/upload-artifact@v2
+      with: 
+        name: NESemu
+        path: ${{ github.workspace }}/NES.emu/target/android-release/build/outputs/apk/release/NesEmu-release.apk 
+        
+    - name: Upload NGP.emu Artifact
+      uses: actions/upload-artifact@v2
+      with: 
+        name: NGPemu
+        path: ${{ github.workspace }}/NGP.emu/target/android-release/build/outputs/apk/release/NgpEmu-release.apk 
+        
+    - name: Upload PCE.emu Artifact
+      uses: actions/upload-artifact@v2
+      with: 
+        name: PCEemu
+        path: ${{ github.workspace }}/PCE.emu/target/android-release/build/outputs/apk/release/PceEmu-release.apk
+        
+    - name: Upload Snes9x Artifact
+      uses: actions/upload-artifact@v2
+      with: 
+        name: Snes9x
+        path: ${{ github.workspace }}/Snes9x/target/android-release/build/outputs/apk/release/Snes9xEXPlus-release.apk

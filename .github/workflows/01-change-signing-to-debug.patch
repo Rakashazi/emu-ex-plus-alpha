@@ -1,0 +1,25 @@
+diff --git a/build.gradle b/build1.gradle
+index 829d2dc..a3c61f5 100644
+--- a/build.gradle
++++ b/build1.gradle
+@@ -47,19 +47,9 @@ android {
+         }
+     }
+ 
+-    // set code signing variables in ~/.gradle/gradle.properties
+-    signingConfigs {
+-        release {
+-            storeFile file(ANDROID_KEY_STORE)
+-            storePassword ANDROID_KEY_STORE_PASSWORD
+-            keyAlias ANDROID_KEY_ALIAS
+-            keyPassword ANDROID_KEY_PASSWORD
+-        }
+-    }
+-
+     buildTypes {
+         release {
+-            signingConfig signingConfigs.release
++            signingConfig signingConfigs.debug
+         }
+     }
+ 
