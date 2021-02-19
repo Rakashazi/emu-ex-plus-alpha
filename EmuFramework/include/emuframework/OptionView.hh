@@ -21,9 +21,11 @@
 #include <imagine/audio/defs.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <emuframework/EmuSystem.hh>
+#include <memory>
 
 class EmuVideoLayer;
 class EmuAudio;
+class TextTableView;
 
 class OptionCategoryView : public TableView
 {
@@ -156,6 +158,7 @@ protected:
 
 	void onSavePathChange(const char *path);
 	virtual void onFirmwarePathChange(const char *path, Input::Event e);
+	std::unique_ptr<TextTableView> makeFirmwarePathMenu(const char *name, bool allowFiles = false, unsigned extraItemsHint = 0);
 	void pushAndShowFirmwarePathMenu(const char *name, Input::Event e, bool allowFiles = false);
 	void pushAndShowFirmwareFilePathMenu(const char *name, Input::Event e);
 };

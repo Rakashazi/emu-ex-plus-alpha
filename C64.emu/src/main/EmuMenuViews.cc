@@ -419,9 +419,22 @@ class CustomSystemOptionView : public SystemOptionView
 	TextMenuItem systemFilePath
 	{
 		nullptr,
-		[this](TextMenuItem &, View &, Input::Event e)
+		[this](Input::Event e)
 		{
-			pushAndShowFirmwareFilePathMenu("VICE System File Path", e);
+			auto view = makeFirmwarePathMenu("VICE System File Path", true, 1);
+			view->appendItem("Download Base VICE Files",
+				[this](Input::Event e)
+				{
+					auto ynAlertView = makeView<YesNoAlertView>(
+						"Download the basic VICE system files? To use, set the ZIP file as a custom archive in the previous menu.");
+					ynAlertView->setOnYes(
+						[this](Input::Event e)
+						{
+							Base::openURL("http://www.explusalpha.com/home/c64-emu/C64.emu.zip");
+						});
+					pushAndShowModal(std::move(ynAlertView), e);
+				});
+			pushAndShow(std::move(view), e);
 		}
 	};
 

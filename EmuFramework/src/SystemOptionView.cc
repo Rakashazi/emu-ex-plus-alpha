@@ -269,9 +269,10 @@ void SystemOptionView::onSavePathChange(const char *path)
 
 void SystemOptionView::onFirmwarePathChange(const char *path, Input::Event e) {}
 
-void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Event e, bool allowFiles)
+std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(const char *name, bool allowFiles, unsigned extraItemsHint)
 {
-	auto multiChoiceView = std::make_unique<TextTableView>(name, attachParams(), allowFiles ? 3 : 2);
+	unsigned items = (allowFiles ? 3 : 2) + extraItemsHint;
+	auto multiChoiceView = std::make_unique<TextTableView>(name, attachParams(), items);
 	multiChoiceView->appendItem("Set Custom Path",
 		[this](Input::Event e)
 		{
@@ -318,7 +319,12 @@ void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Even
 			onFirmwarePathChange("", e);
 			view.dismiss();
 		});
-	pushAndShow(std::move(multiChoiceView), e);
+	return multiChoiceView;
+}
+
+void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Event e, bool allowFiles)
+{
+	pushAndShow(makeFirmwarePathMenu(name, allowFiles), e);
 }
 
 void SystemOptionView::pushAndShowFirmwareFilePathMenu(const char *name, Input::Event e)
