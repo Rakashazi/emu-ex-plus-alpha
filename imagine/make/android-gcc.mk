@@ -9,17 +9,9 @@ ifeq ($(ANDROID_NDK_PATH),)
 endif
 
 ANDROID_CLANG_TOOLCHAIN_PATH ?= $(wildcard $(ANDROID_NDK_PATH)/toolchains/llvm/prebuilt/*)
-ANDROID_GCC_VERSION ?= 4.9
-ANDROID_GCC_TOOLCHAIN_ROOT_DIR ?= $(CHOST)
-ANDROID_GCC_TOOLCHAIN_PATH ?= $(wildcard $(ANDROID_NDK_PATH)/toolchains/$(ANDROID_GCC_TOOLCHAIN_ROOT_DIR)-$(ANDROID_GCC_VERSION)/prebuilt/*)
-ifeq ($(ANDROID_GCC_TOOLCHAIN_PATH),)
- $(error missing Android GCC toolchain at path:$(ANDROID_GCC_TOOLCHAIN_PATH))
-endif
-ANDROID_GCC_TOOLCHAIN_BIN_PATH := $(ANDROID_GCC_TOOLCHAIN_PATH)/bin
 ANDROID_CLANG_TOOLCHAIN_BIN_PATH := $(ANDROID_CLANG_TOOLCHAIN_PATH)/bin
 
 ifdef V
- $(info NDK GCC path: $(ANDROID_GCC_TOOLCHAIN_BIN_PATH))
  $(info NDK Clang path: $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH))
 endif
 
@@ -63,28 +55,10 @@ ifneq ($(config_compiler),clang)
 endif
 
 include $(buildSysPath)/clang.mk
-CFLAGS_TARGET += -target $(clangTarget) -gcc-toolchain $(ANDROID_GCC_TOOLCHAIN_PATH)
-ASMFLAGS += -fno-integrated-as
+CFLAGS_TARGET += -target $(clangTarget)
 
 # libc++
-android_stdcxxLibPath := $(ANDROID_NDK_PATH)/sources/cxx-stl/llvm-libc++/libs
-android_stdcxxLibName := libc++_static.a
-android_stdcxxLibArchPath := $(android_stdcxxLibPath)/$(android_abi)
-android_stdcxxLib := $(android_stdcxxLibArchPath)/$(android_stdcxxLibName) \
-$(android_stdcxxLibArchPath)/libc++abi.a
-ifneq ($(wildcard $(android_stdcxxLibArchPath)/libandroid_support.a),)
- android_stdcxxLib += $(android_stdcxxLibArchPath)/libandroid_support.a
-endif
-ifneq ($(wildcard $(android_stdcxxLibArchPath)/libunwind.a),)
- android_stdcxxLib += $(android_stdcxxLibArchPath)/libunwind.a
- LDFLAGS_SYSTEM += -Wl,--exclude-libs,libunwind.a
-endif
-
-ifdef android_ndkLinkSysroot
- pkg_stdcxxStaticLib := $(android_stdcxxLib)
-else
- STDCXXLIB = -static-libstdc++
-endif
+STDCXXLIB = -static-libstdc++
 
 ifdef ANDROID_APK_SIGNATURE_HASH
  CPPFLAGS += -DANDROID_APK_SIGNATURE_HASH=$(ANDROID_APK_SIGNATURE_HASH)
@@ -92,7 +66,7 @@ endif
 
 CFLAGS_TARGET += $(android_cpuFlags) -no-canonical-prefixes
 CFLAGS_CODEGEN += -ffunction-sections -fdata-sections
-ASMFLAGS += $(CFLAGS_TARGET) -Wa,--noexecstack
+ASMFLAGS ?= $(CFLAGS_TARGET) -Wa,--noexecstack
 ifdef android_ndkLinkSysroot
  LDFLAGS_SYSTEM += --sysroot=$(android_ndkLinkSysroot)
 endif

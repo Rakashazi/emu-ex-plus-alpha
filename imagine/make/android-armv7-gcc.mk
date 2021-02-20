@@ -14,5 +14,9 @@ android_cpuFlags ?= $(armv7CPUFlags)
 android_armv7State ?= -mthumb
 android_armState := $(android_armv7State)
 android_cpuFlags += $(android_armv7State)
+ASMFLAGS = --noexecstack -EL -mfloat-abi=softfp -march=armv7-a -mfpu=vfpv3-d16
 
 include $(buildSysPath)/android-gcc.mk
+
+# Directly call the GNU assembler until assembly in projects is updated for clang's integrated assembler
+AS = $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/arm-linux-androideabi-as
