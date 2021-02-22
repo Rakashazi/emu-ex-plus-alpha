@@ -832,7 +832,6 @@ void S9xEndScreenRefresh ()
 		}
 	    }
 	    IPPU.ColorsChanged = FALSE;
-	    //S9xSetPalette ();
 	    PPU.CGDATA[0] = saved;
 	}
 	#endif

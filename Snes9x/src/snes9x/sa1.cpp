@@ -117,10 +117,12 @@ void S9xSA1PostLoadState (void)
 	SA1.VirtualBitmapFormat = (Memory.FillRAM[0x223f] & 0x80) ? 2 : 4;
 	Memory.BWRAM = Memory.SRAM + (Memory.FillRAM[0x2224] & 0x1f) * 0x2000;
 	S9xSA1SetBWRAMMemMap(Memory.FillRAM[0x2225]);
+#if 0
 	S9xSetSA1(Memory.FillRAM[0x2220], 0x2220);
 	S9xSetSA1(Memory.FillRAM[0x2221], 0x2221);
 	S9xSetSA1(Memory.FillRAM[0x2222], 0x2222);
 	S9xSetSA1(Memory.FillRAM[0x2223], 0x2223);
+#endif
 }
 
 static void S9xSetSA1MemMap (uint32 which1, uint8 map)

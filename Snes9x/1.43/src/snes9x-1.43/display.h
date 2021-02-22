@@ -92,7 +92,6 @@
 
 START_EXTERN_C
 // Routines the port specific code has to implement
-void S9xSetPalette ();
 void S9xTextMode ();
 void S9xGraphicsMode ();
 char *S9xParseArgs (char **argv, int argc);
@@ -118,7 +117,6 @@ bool8 S9xLoadROMImage (const char *string);
 const char *S9xSelectFilename (const char *def, const char *dir,
 			       const char *ext, const char *title);
 
-const char *S9xChooseFilename (bool8 read_only);
 bool8 S9xOpenSnapshotFile (const char *base, bool8 read_only, STREAM *file);
 void S9xCloseSnapshotFile (STREAM file);
 
