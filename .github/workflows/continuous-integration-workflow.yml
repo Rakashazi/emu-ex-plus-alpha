@@ -57,6 +57,7 @@ jobs:
     - name: Set up environment
       run: |
         mkdir imagine-sdk
+        mkdir EX-Emulators
         echo "ANDROID_NDK_PATH=/opt/android-sdk-linux/ndk/android-ndk-r22" >> $GITHUB_ENV
         echo "EMUFRAMEWORK_PATH=${{ github.workspace }}/EmuFramework" >> $GITHUB_ENV
         echo "IMAGINE_PATH=${{ github.workspace }}/imagine" >> $GITHUB_ENV
@@ -143,6 +144,26 @@ jobs:
       run: |        
         cd Snes9x
         make -f android-release.mk V=1 -j2
+
+    - name: Copy Artifacts
+      run: |
+        cp 2600.emu/target/android-release/build/outputs/apk/release/2600Emu-release.apk EX-Emulators/2600Emu-release.apk
+        cp C64.emu/target/android-release/build/outputs/apk/release/C64Emu-release.apk EX-Emulators/C64Emu-release.apk
+        cp GBA.emu/target/android-release/build/outputs/apk/release/GbaEmu-release.apk EX-Emulators/GbaEmu-release.apk
+        cp GBC.emu/target/android-release/build/outputs/apk/release/GbcEmu-release.apk EX-Emulators/GbcEmu-release.apk
+        cp MD.emu/target/android-release/build/outputs/apk/release/MdEmu-release.apk EX-Emulators/MdEmu-release.apk
+        cp MSX.emu/target/android-release/build/outputs/apk/release/MsxEmu-release.apk EX-Emulators/MsxEmu-release.apk
+        cp NEO.emu/target/android-release/build/outputs/apk/release/NeoEmu-release.apk EX-Emulators/NeoEmu-release-.apk
+        cp NES.emu/target/android-release/build/outputs/apk/release/NesEmu-release.apk EX-Emulators/NesEmu-release.apk
+        cp NGP.emu/target/android-release/build/outputs/apk/release/NgpEmu-release.apk EX-Emulators/NgpEmu-release.apk
+        cp PCE.emu/target/android-release/build/outputs/apk/release/PceEmu-release.apk EX-Emulators/PceEmu-release.apk
+        cp Snes9x/target/android-release/build/outputs/apk/release/Snes9xEXPlus-release.apk EX-Emulators/Snes9xEXPlus-release.apk
+        
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2
+      with: 
+        name: EX-Emulators
+        path: EX-Emulators/
 
     - name: Upload 2600.emu Artifact
       uses: actions/upload-artifact@v2
