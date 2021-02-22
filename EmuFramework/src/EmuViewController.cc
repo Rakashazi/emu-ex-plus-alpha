@@ -326,6 +326,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 				placeEmuViews();
 			}
 		});
+	setPhysicalControlsPresent(Input::keyInputIsPresent());
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	if((int)optionTouchCtrl == 2)
 		updateAutoOnScreenControlVisible();
@@ -986,11 +987,11 @@ void EmuViewController::updateAutoOnScreenControlVisible()
 
 void EmuViewController::setPhysicalControlsPresent(bool present)
 {
-	physicalControlsPresent = present;
-	if(present)
+	if(present != physicalControlsPresent)
 	{
-		logMsg("Physical controls are present");
+		logMsg("Physical controls present:%s", present ? "y" : "n");
 	}
+	physicalControlsPresent = present;
 }
 
 WindowData &EmuViewController::mainWindowData() const

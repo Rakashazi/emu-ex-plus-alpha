@@ -138,11 +138,11 @@ public:
 	void dispatchDismissRequest();
 	void dispatchOnDraw(bool needsSync = false);
 	void dispatchOnFrame();
+	void dispatchSurfaceChange();
 
 private:
 	IG::Point2D<float> pixelSizeAsMM(IG::Point2D<int> size);
 	IG::Point2D<float> pixelSizeAsSMM(IG::Point2D<int> size);
-	void dispatchSurfaceChange();
 	void draw(bool needsSync = false);
 };
 

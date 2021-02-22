@@ -229,9 +229,10 @@ void AndroidWindow::setNativeWindow(ANativeWindow *nWindow)
 {
 	if(nWin)
 	{
+		nWin = nullptr;
 		static_cast<Window*>(this)->unpostDraw();
 		static_cast<Window*>(this)->surfaceChange.addDestroyed();
-		nWin = nullptr;
+		static_cast<Window*>(this)->dispatchSurfaceChange();
 	}
 	if(!nWindow)
 		return;

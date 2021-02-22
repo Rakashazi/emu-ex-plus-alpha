@@ -64,7 +64,7 @@ DrawableHolder::operator bool() const
 
 void GLDrawableHolder::makeDrawable(RendererTask &rTask, Base::Window &win)
 {
-	destroyDrawable();
+	destroyDrawable(true);
 	auto &r = rTask.renderer();
 	task = &rTask;
 	auto dpy = r.glDpy;
@@ -82,13 +82,16 @@ void GLDrawableHolder::makeDrawable(RendererTask &rTask, Base::Window &win)
 			if(backgrounded)
 			{
 				drawable_.freeCaches();
-				Base::addOnResume(
-					[drawable = drawable_](bool focused)
-					{
-						IG::copySelf(drawable).restoreCaches();
-						return false;
-					}, Base::RENDERER_DRAWABLE_ON_RESUME_PRIORITY
-				);
+				if constexpr(Config::envIsIOS)
+				{
+					Base::addOnResume(
+						[drawable = drawable_](bool focused)
+						{
+							IG::copySelf(drawable).restoreCaches();
+							return false;
+						}, Base::RENDERER_DRAWABLE_ON_RESUME_PRIORITY
+					);
+				}
 			}
 			else
 				drawable_.destroy(dpy);
@@ -109,7 +112,7 @@ void GLDrawableHolder::makeDrawable(RendererTask &rTask, Base::Window &win)
 	}
 }
 
-void GLDrawableHolder::destroyDrawable()
+void GLDrawableHolder::destroyDrawable(bool sync)
 {
 	if(!drawable_)
 		return;
@@ -117,7 +120,7 @@ void GLDrawableHolder::destroyDrawable()
 	{
 		// destroy drawable on GL thread in case it's currently being used
 		IG::copySelf(drawable).destroy(ctx.glDisplay());
-	});
+	}, sync);
 	onExit = {};
 }
 

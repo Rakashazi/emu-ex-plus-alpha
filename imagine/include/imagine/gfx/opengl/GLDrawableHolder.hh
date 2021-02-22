@@ -41,7 +41,7 @@ public:
 	GLDrawableHolder &operator=(GLDrawableHolder &&o) = default;
 	~GLDrawableHolder();
 	void makeDrawable(RendererTask &task, Base::Window &win);
-	void destroyDrawable();
+	void destroyDrawable(bool sync = false);
 
 protected:
 	RendererTask *task{};
