@@ -180,27 +180,6 @@ GlyphTextureSet GlyphTextureSet::makeFromAsset(Renderer &r, const char *name, co
 	return {r, FileUtils::openAppAsset(name, IO::AccessHint::ALL, appName).makeGeneric(), set};
 }
 
-GlyphTextureSet::GlyphTextureSet(GlyphTextureSet &&o)
-{
-	*this = std::move(o);
-}
-
-GlyphTextureSet &GlyphTextureSet::operator=(GlyphTextureSet &&o)
-{
-	settings = std::exchange(o.settings, {});
-	font = std::move(o.font);
-	glyphTable = std::move(o.glyphTable);
-	faceSize = std::move(o.faceSize);
-	nominalHeight_ = o.nominalHeight_;
-	usedGlyphTableBits = o.usedGlyphTableBits;
-	return *this;
-}
-
-GlyphTextureSet::operator bool() const
-{
-	return settings;
-}
-
 uint32_t GlyphTextureSet::nominalHeight() const
 {
 	return nominalHeight_;
@@ -215,6 +194,11 @@ void GlyphTextureSet::calcNominalHeight(Renderer &r)
 	assert(mGly && gGly);
 
 	nominalHeight_ = mGly->metrics.ySize + (gGly->metrics.ySize/2);
+}
+
+IG::FontSettings GlyphTextureSet::fontSettings() const
+{
+	return settings;
 }
 
 bool GlyphTextureSet::setFontSettings(Renderer &r, IG::FontSettings set)

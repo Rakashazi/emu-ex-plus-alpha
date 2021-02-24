@@ -153,7 +153,7 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *
 				dismiss();
 			}
 		},
-		initialContent, msgText, face->settings.pixelHeight());
+		initialContent, msgText, face->fontSettings().pixelHeight());
 	#endif
 }
 

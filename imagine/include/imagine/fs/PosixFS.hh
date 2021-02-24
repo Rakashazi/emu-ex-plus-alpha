@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <ctime>
 #include <array>
+#include <memory>
 #include <system_error>
 #include <unistd.h>
 #include <dirent.h>
@@ -46,26 +47,32 @@ class DirectoryEntryImpl
 public:
 	DirectoryEntryImpl(const char *path, std::error_code &ec);
 	DirectoryEntryImpl(const char *path);
-	DirectoryEntryImpl(DirectoryEntryImpl &&o);
-	DirectoryEntryImpl &operator=(DirectoryEntryImpl &&o);
-	~DirectoryEntryImpl();
 	bool readNextDir();
 	bool hasEntry() const;
 	const char *name() const;
 	file_type type() const;
 	file_type symlink_type() const;
 	PathStringImpl path() const;
+	void close();
 
 protected:
-	DirectoryEntryImpl(const char *path, std::error_code *ec);
+	struct DirectoryStreamDeleter
+	{
+		void operator()(DIR *ptr) const
+		{
+			closeDirectoryStream(ptr);
+		}
+	};
+	using UniqueDirectoryStream = std::unique_ptr<DIR, DirectoryStreamDeleter>;
 
-	DIR *dir{};
+	UniqueDirectoryStream dir{};
 	struct dirent *dirent_{};
 	mutable file_type type_{};
 	mutable file_type linkType_{};
 	PathStringImpl basePath{};
 
-	void deinit();
+	DirectoryEntryImpl(const char *path, std::error_code *ec);
+	static void closeDirectoryStream(DIR *);
 };
 
 };

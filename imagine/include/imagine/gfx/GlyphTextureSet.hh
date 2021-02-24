@@ -42,19 +42,16 @@ struct GlyphEntry
 class GlyphTextureSet
 {
 public:
-	IG::FontSettings settings{};
 	static constexpr bool supportsUnicode = Config::UNICODE_CHARS;
 
 	constexpr GlyphTextureSet() {}
 	GlyphTextureSet(Renderer &r, std::unique_ptr<IG::Font> font, IG::FontSettings set);
 	GlyphTextureSet(Renderer &r, const char *path, IG::FontSettings set);
 	GlyphTextureSet(Renderer &r, GenericIO io, IG::FontSettings set);
-	GlyphTextureSet(GlyphTextureSet &&o);
-	GlyphTextureSet &operator=(GlyphTextureSet &&o);
 	static GlyphTextureSet makeSystem(Renderer &r, IG::FontSettings set);
 	static GlyphTextureSet makeBoldSystem(Renderer &r, IG::FontSettings set);
 	static GlyphTextureSet makeFromAsset(Renderer &r, const char *name, const char *appName, IG::FontSettings set);
-	operator bool() const;
+	IG::FontSettings fontSettings() const;
 	bool setFontSettings(Renderer &r, IG::FontSettings set);
 	unsigned precache(Renderer &r, const char *string);
 	unsigned precacheAlphaNum(Renderer &r)
@@ -69,6 +66,7 @@ public:
 private:
 	std::unique_ptr<IG::Font> font{};
 	IG::VMemArray<GlyphEntry> glyphTable{};
+	IG::FontSettings settings{};
 	IG::FontSize faceSize{};
 	uint32_t nominalHeight_ = 0;
 	uint32_t usedGlyphTableBits = 0;

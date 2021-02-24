@@ -39,8 +39,6 @@ class AndroidFont
 {
 public:
 	constexpr AndroidFont() {}
-	AndroidFont(AndroidFont &&o);
-	AndroidFont &operator=(AndroidFont &&o);
 
 protected:
 	bool isBold{};

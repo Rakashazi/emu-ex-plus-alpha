@@ -40,9 +40,6 @@ public:
 	ArchiveEntry(const char *path);
 	ArchiveEntry(GenericIO io, std::error_code &result);
 	ArchiveEntry(GenericIO io);
-	ArchiveEntry(ArchiveEntry &&o);
-	ArchiveEntry &operator=(ArchiveEntry &&o);
-	~ArchiveEntry();
 	const char *name() const;
 	FS::file_type type() const;
 	size_t size() const;
@@ -52,17 +49,26 @@ public:
 	bool readNextEntry();
 	bool hasEntry() const;
 	void rewind();
-	struct archive* archive() const { return arch; }
+	struct archive* archive() const { return arch.get(); }
 
 protected:
-	struct archive *arch{};
+	struct ArchiveDeleter
+	{
+		void operator()(struct archive *ptr) const
+		{
+			freeArchive(ptr);
+		}
+	};
+	using UniqueArchive = std::unique_ptr<struct archive, ArchiveDeleter>;
+
+	UniqueArchive arch{};
 	struct archive_entry *ptr{};
 	std::unique_ptr<ArchiveControlBlock> ctrlBlock{};
 
 	ArchiveEntry(const char *path, std::error_code *ec);
 	ArchiveEntry(GenericIO io, std::error_code *ec);
 	bool init(GenericIO io);
-	void deinit();
+	static void freeArchive(struct archive *);
 };
 
 class ArchiveIO final : public IO
@@ -82,8 +88,6 @@ public:
 
 	constexpr ArchiveIO() {}
 	ArchiveIO(ArchiveEntry entry);
-	ArchiveIO(ArchiveIO &&o);
-	ArchiveIO &operator=(ArchiveIO &&o);
 	GenericIO makeGeneric();
 	ArchiveEntry releaseArchive();
 	const char *name();

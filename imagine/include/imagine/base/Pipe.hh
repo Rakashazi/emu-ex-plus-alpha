@@ -33,9 +33,6 @@ public:
 	Pipe(uint32_t preferredSize = 0): Pipe(nullptr, preferredSize) {}
 	Pipe(const char *debugLabel, uint32_t preferredSize = 0);
 	explicit constexpr Pipe(NullInit) {}
-	Pipe(Pipe &&o);
-	Pipe &operator=(Pipe &&o);
-	~Pipe();
 	PosixIO &source();
 	PosixIO &sink();
 	void attach(EventLoop loop, PollEventDelegate del);
@@ -74,7 +71,6 @@ protected:
 	std::array<PosixIO, 2> io{-1, -1};
 	FDEventSource fdSrc{};
 
-	void deinit();
 	const char *label() const;
 };
 

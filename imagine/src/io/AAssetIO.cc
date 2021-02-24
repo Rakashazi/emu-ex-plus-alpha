@@ -22,24 +22,6 @@
 #include <imagine/logger/logger.h>
 #include <android/asset_manager.h>
 
-AAssetIO::~AAssetIO()
-{
-	close();
-}
-
-AAssetIO::AAssetIO(AAssetIO &&o)
-{
-	*this = std::move(o);
-}
-
-AAssetIO &AAssetIO::operator=(AAssetIO &&o)
-{
-	close();
-	asset = std::exchange(o.asset, {});
-	mapIO = std::move(o.mapIO);
-	return *this;
-}
-
 GenericIO AAssetIO::makeGeneric()
 {
 	return GenericIO{*this};
@@ -60,7 +42,7 @@ std::error_code AAssetIO::open(const char *name, AccessHint access)
 {
 	logMsg("opening asset %s", name);
 	auto mode = accessHintToAAssetMode(access);
-	asset = AAssetManager_open(Base::activityAAssetManager(), name, mode);
+	asset.reset(AAssetManager_open(Base::activityAAssetManager(), name, mode));
 	if(!asset)
 	{
 		logErr("error in AAssetManager_open");
@@ -80,7 +62,7 @@ ssize_t AAssetIO::read(void *buff, size_t bytes, std::error_code *ecOut)
 {
 	if(mapIO)
 		return mapIO.read(buff, bytes, ecOut);
-	auto bytesRead = AAsset_read(asset, buff, bytes);
+	auto bytesRead = AAsset_read(asset.get(), buff, bytes);
 	if(bytesRead < 0)
 	{
 		if(ecOut)
@@ -109,7 +91,7 @@ off_t AAssetIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 	if(mapIO)
 		return mapIO.seek(offset, mode, ecOut);
 	assumeExpr(isSeekModeValid(mode));
-	auto newPos = AAsset_seek(asset, offset, mode);
+	auto newPos = AAsset_seek(asset.get(), offset, mode);
 	if(newPos < 0)
 	{
 		if(ecOut)
@@ -122,36 +104,31 @@ off_t AAssetIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 void AAssetIO::close()
 {
 	mapIO.close();
-	if(asset)
-	{
-		logMsg("closing asset: %p", asset);
-		AAsset_close(asset);
-		asset = nullptr;
-	}
+	asset.reset();
 }
 
 size_t AAssetIO::size()
 {
 	if(mapIO)
 		return mapIO.size();
-	return AAsset_getLength(asset);
+	return AAsset_getLength(asset.get());
 }
 
 bool AAssetIO::eof()
 {
 	if(mapIO)
 		return mapIO.eof();
-	return !AAsset_getRemainingLength(asset);
+	return !AAsset_getRemainingLength(asset.get());
 }
 
 AAssetIO::operator bool() const
 {
-	return asset;
+	return (bool)asset;
 }
 
 void AAssetIO::advise(off_t offset, size_t bytes, Advice advice)
 {
-	if(!makeMapIO() || AAsset_isAllocated(asset))
+	if(!makeMapIO() || AAsset_isAllocated(asset.get()))
 		return;
 	mapIO.advise(offset, bytes, advice);
 }
@@ -160,11 +137,19 @@ bool AAssetIO::makeMapIO()
 {
 	if(mapIO)
 		return true;
-	const void *buff = AAsset_getBuffer(asset);
+	const void *buff = AAsset_getBuffer(asset.get());
 	if(!buff)
 		return false;
-	auto size = AAsset_getLength(asset);
+	auto size = AAsset_getLength(asset.get());
 	mapIO.open(buff, size);
 	logMsg("mapped into memory");
 	return true;
+}
+
+void AAssetIO::closeAAsset(AAsset *asset)
+{
+	if(!asset)
+		return;
+	logMsg("closing asset:%p", asset);
+	AAsset_close(asset);
 }

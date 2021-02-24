@@ -51,25 +51,6 @@ Pipe::Pipe(const char *debugLabel, uint32_t preferredSize):
 	}
 }
 
-Pipe::~Pipe()
-{
-	deinit();
-}
-
-Pipe::Pipe(Pipe &&o)
-{
-	*this = std::move(o);
-}
-
-Pipe &Pipe::operator=(Pipe &&o)
-{
-	deinit();
-	io = std::exchange(o.io, {-1, -1});
-	fdSrc = std::move(o.fdSrc);
-	debugLabel = o.debugLabel;
-	return *this;
-}
-
 PosixIO &Pipe::source()
 {
 	return io[0];
@@ -126,14 +107,6 @@ bool Pipe::isReadNonBlocking() const
 Pipe::operator bool() const
 {
 	return io[0].fd() != -1;
-}
-
-void Pipe::deinit()
-{
-	if(io[0].fd() == -1)
-		return;
-	logMsg("closing %s", label());
-	fdSrc.detach();
 }
 
 const char *Pipe::label() const

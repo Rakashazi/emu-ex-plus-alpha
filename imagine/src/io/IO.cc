@@ -43,17 +43,6 @@ ssize_t IO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *e
 	return bytesRead;
 }
 
-GenericIO::GenericIO(GenericIO &&o)
-{
-	*this = std::move(o);
-}
-
-GenericIO &GenericIO::operator=(GenericIO &&o)
-{
-	io = std::move(o.io);
-	return *this;
-}
-
 FILE *GenericIO::moveToFileStream(const char *opentype)
 {
 	#if defined __ANDROID__ || __APPLE__

@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -15,23 +13,25 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/pixmap/Pixmap.hh>
-#include <memory>
+#pragma once
 
 namespace IG
 {
 
-class MemPixmap : public PixmapDesc
+class UniqueFileDescriptor
 {
 public:
-	constexpr MemPixmap() {}
-	MemPixmap(PixmapDesc format);
-	explicit operator bool() const;
-	Pixmap view() const;
-	Pixmap subView(WP pos, WP size) const;
+	constexpr UniqueFileDescriptor() {}
+	constexpr UniqueFileDescriptor(int fd):fd_{fd} {}
+	UniqueFileDescriptor(UniqueFileDescriptor &&o);
+	UniqueFileDescriptor &operator=(UniqueFileDescriptor &&o);
+	~UniqueFileDescriptor();
+	constexpr operator int() const { return fd_; }
+	int release();
+	void reset();
 
 protected:
-	std::unique_ptr<uint8_t[]> buffer{};
+	int fd_ = -1;
 };
 
 }

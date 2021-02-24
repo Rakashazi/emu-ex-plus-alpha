@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/io/BufferMapIO.hh>
+#include <memory>
 
 struct AAsset;
 
@@ -36,12 +37,8 @@ public:
 	using IO::get;
 
 	constexpr AAssetIO() {}
-	AAssetIO(AAssetIO &&o);
-	AAssetIO &operator=(AAssetIO &&o);
-	~AAssetIO() final;
 	GenericIO makeGeneric();
 	std::error_code open(const char *name, AccessHint access);
-
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
 	const char *mmapConst() final;
 	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) final;
@@ -53,8 +50,18 @@ public:
 	void advise(off_t offset, size_t bytes, Advice advice) final;
 
 protected:
-	AAsset *asset{};
+	struct AAssetDeleter
+	{
+		void operator()(AAsset *ptr) const
+		{
+			closeAAsset(ptr);
+		}
+	};
+	using UniqueAAsset = std::unique_ptr<AAsset, AAssetDeleter>;
+
+	UniqueAAsset asset{};
 	BufferMapIO mapIO{};
 
 	bool makeMapIO();
+	static void closeAAsset(AAsset *);
 };

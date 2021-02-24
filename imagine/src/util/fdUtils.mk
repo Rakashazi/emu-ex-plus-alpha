@@ -1,6 +1,7 @@
 ifndef inc_fd_utils
 inc_fd_utils := 1
 
-SRC += util/fdUtils.cc
+SRC += util/fdUtils.cc \
+util/UniqueFileDescriptor.cc
 
 endif

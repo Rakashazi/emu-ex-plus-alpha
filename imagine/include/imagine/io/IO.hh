@@ -154,8 +154,6 @@ public:
 	template<class T>
 	GenericIO(T &io): io{std::unique_ptr<IO>{new T(std::move(io))}} {}
 	GenericIO(std::unique_ptr<IO> io): io{std::move(io)} {}
-	GenericIO(GenericIO &&o);
-	GenericIO &operator=(GenericIO &&o);
 	explicit operator IO*(){ return io.get(); }
 	operator IO&(){ return *io; }
 	IO *release() { return io.release(); }

@@ -1,3 +1,5 @@
+#pragma once
+
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -13,10 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#pragma once
-
 #include <imagine/config/defs.hh>
 #include <imagine/io/IO.hh>
+#include <imagine/util/UniqueFileDescriptor.hh>
 
 class PosixIO final : public IO
 {
@@ -35,9 +36,6 @@ public:
 
 	constexpr PosixIO() {}
 	constexpr PosixIO(int fd):fd_{fd} {}
-	PosixIO(PosixIO &&o);
-	PosixIO &operator=(PosixIO &&o);
-	~PosixIO() final;
 	GenericIO makeGeneric();
 	std::error_code open(const char *path, uint32_t mode = 0);
 	std::error_code create(const char *path, uint32_t mode = 0)
@@ -61,5 +59,5 @@ public:
 	explicit operator bool() const final;
 
 protected:
-	int fd_ = -1;
+	IG::UniqueFileDescriptor fd_{};
 };

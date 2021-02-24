@@ -25,23 +25,6 @@
 
 using namespace IG;
 
-PosixIO::~PosixIO()
-{
-	close();
-}
-
-PosixIO::PosixIO(PosixIO &&o)
-{
-	*this = std::move(o);
-}
-
-PosixIO &PosixIO::operator=(PosixIO &&o)
-{
-	close();
-	fd_ = std::exchange(o.fd_, -1);
-	return *this;
-}
-
 GenericIO PosixIO::makeGeneric()
 {
 	return GenericIO{*this};
@@ -95,7 +78,7 @@ std::error_code PosixIO::open(const char *path, uint32_t mode)
 		logMsg("error opening file (%s) @ %s", logFlagsStr.data(), path);
 		return {errno, std::system_category()};
 	}
-	logMsg("opened file (%s) fd %d @ %s", logFlagsStr.data(), fd_, path);
+	logMsg("opened file (%s) fd %d @ %s", logFlagsStr.data(), (int)fd_, path);
 	return {};
 }
 
@@ -167,12 +150,11 @@ off_t PosixIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 
 void PosixIO::close()
 {
-	if(fd_ >= 0)
+	if(fd_ != -1)
 	{
-		logMsg("closing fd:%d", fd_);
-		::close(fd_);
-		fd_ = -1;
+		logMsg("closing fd:%d", (int)fd_);
 	}
+	fd_.reset();
 }
 
 void PosixIO::sync()
@@ -226,7 +208,7 @@ PosixIO::operator bool() const
 
 int PosixIO::releaseFD()
 {
-	return std::exchange(fd_, -1);
+	return fd_.release();
 }
 
 int PosixIO::fd() const

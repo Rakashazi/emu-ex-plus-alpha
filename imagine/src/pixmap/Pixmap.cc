@@ -219,18 +219,6 @@ MemPixmap::MemPixmap(PixmapDesc desc):
 	//logDMsg("allocated memory pixmap data:%p", data);
 }
 
-MemPixmap::MemPixmap(MemPixmap &&o)
-{
-	*this = std::move(o);
-}
-
-MemPixmap &MemPixmap::operator=(MemPixmap &&o)
-{
-	PixmapDesc::operator=(o);
-	buffer = std::move(o.buffer);
-	return *this;
-}
-
 MemPixmap::operator bool() const
 {
 	return (bool)buffer;

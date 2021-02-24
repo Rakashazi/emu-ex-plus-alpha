@@ -90,33 +90,11 @@ ArchiveEntry::ArchiveEntry(GenericIO io, std::error_code *ecPtr)
 	}
 }
 
-ArchiveEntry::ArchiveEntry(ArchiveEntry &&o)
-{
-	*this = std::move(o);
-}
-
-ArchiveEntry &ArchiveEntry::operator=(ArchiveEntry &&o)
-{
-	deinit();
-	arch = std::exchange(o.arch, {});
-	ptr = std::exchange(o.ptr, {});
-	ctrlBlock = std::move(o.ctrlBlock);
-	return *this;
-}
-
-ArchiveEntry::~ArchiveEntry()
-{
-	deinit();
-}
-
 bool ArchiveEntry::init(GenericIO io)
 {
-	if(arch)
-	{
-		archive_read_free(arch);
-	}
-	arch = archive_read_new();
-	setReadSupport(arch);
+	arch.reset();
+	UniqueArchive newArch{archive_read_new()};
+	setReadSupport(newArch.get());
 	auto seekFunc =
 		[](struct archive *, void *data, int64_t offset, int whence) -> int64_t
 		{
@@ -141,14 +119,7 @@ bool ArchiveEntry::init(GenericIO io)
 			else
 				return ARCHIVE_FAILED;
 		};
-	auto closeFunc =
-		[](struct archive *, void *data)
-		{
-			auto &a = *((ArchiveControlBlock*)data);
-			a.io.close();
-			return ARCHIVE_OK;
-		};
-	archive_read_set_seek_callback(arch, seekFunc);
+	archive_read_set_seek_callback(newArch.get(), seekFunc);
 	int openRes = ARCHIVE_FATAL;
 	if(auto fileMap = io.mmapConst();
 		fileMap)
@@ -170,8 +141,8 @@ bool ArchiveEntry::init(GenericIO io)
 				return bytesRead;
 			};
 		ctrlBlock = std::make_unique<ArchiveControlBlock>(std::move(io));
-		openRes = archive_read_open2(arch,
-			ctrlBlock.get(), nullptr, readFunc, skipFunc, closeFunc);
+		openRes = archive_read_open2(newArch.get(),
+			ctrlBlock.get(), nullptr, readFunc, skipFunc, nullptr);
 	}
 	else
 	{
@@ -185,28 +156,27 @@ bool ArchiveEntry::init(GenericIO io)
 				return bytesRead;
 			};
 		ctrlBlock = std::make_unique<ArchiveControlBlockWithBuffer>(std::move(io));
-		openRes = archive_read_open2(arch,
-			ctrlBlock.get(), nullptr, readFunc, skipFunc, closeFunc);
+		openRes = archive_read_open2(newArch.get(),
+			ctrlBlock.get(), nullptr, readFunc, skipFunc, nullptr);
 	}
 	if(openRes != ARCHIVE_OK)
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("error opening archive:%s", archive_error_string(arch));
-		deinit();
+			logErr("error opening archive:%s", archive_error_string(newArch.get()));
 		return false;
 	}
-	logMsg("opened archive:%p", arch);
+	logMsg("opened archive:%p", newArch.get());
+	arch = std::move(newArch);
 	readNextEntry(); // go to first entry
 	return true;
 }
 
-void ArchiveEntry::deinit()
+void ArchiveEntry::freeArchive(struct archive *arch)
 {
 	if(!arch)
 		return;
 	logMsg("freeing archive:%p", arch);
 	archive_read_free(arch);
-	arch = {};
 }
 
 const char *ArchiveEntry::name() const
@@ -248,7 +218,7 @@ bool ArchiveEntry::readNextEntry()
 {
 	if(unlikely(!arch))
 		return false;
-	auto ret = archive_read_next_header(arch, &ptr);
+	auto ret = archive_read_next_header(arch.get(), &ptr);
 	if(ret == ARCHIVE_EOF)
 	{
 		logMsg("reached archive end");
@@ -257,13 +227,13 @@ bool ArchiveEntry::readNextEntry()
 	else if(ret <= ARCHIVE_FAILED)
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("error reading archive entry:%s", archive_error_string(arch));
+			logErr("error reading archive entry:%s", archive_error_string(arch.get()));
 		return false;
 	}
 	else if(ret != ARCHIVE_OK)
 	{
 		if(Config::DEBUG_BUILD)
-			logWarn("warning reading archive entry:%s", archive_error_string(arch));
+			logWarn("warning reading archive entry:%s", archive_error_string(arch.get()));
 	}
 	return true;
 }
@@ -277,7 +247,7 @@ void ArchiveEntry::rewind()
 {
 	if(unlikely(!arch))
 		return;
-	logMsg("rewinding archive:%p", arch);
+	logMsg("rewinding archive:%p", arch.get());
 	// take the existing IO, rewind, and re-use it
 	auto io = std::move(ctrlBlock->io);
 	io.rewind();
@@ -287,18 +257,6 @@ void ArchiveEntry::rewind()
 ArchiveIO::ArchiveIO(ArchiveEntry entry):
 	entry{std::move(entry)}
 {}
-
-ArchiveIO::ArchiveIO(ArchiveIO &&o)
-{
-	*this = std::move(o);
-}
-
-ArchiveIO &ArchiveIO::operator=(ArchiveIO &&o)
-{
-	close();
-	entry = std::exchange(o.entry, {});
-	return *this;
-}
 
 GenericIO ArchiveIO::makeGeneric()
 {

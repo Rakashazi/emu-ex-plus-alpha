@@ -56,9 +56,9 @@ DirectoryEntryImpl::DirectoryEntryImpl(const char *path):
 	DirectoryEntryImpl{path, nullptr}
 {}
 
-DirectoryEntryImpl::DirectoryEntryImpl(const char *path, std::error_code *ecPtr)
+DirectoryEntryImpl::DirectoryEntryImpl(const char *path, std::error_code *ecPtr):
+	dir{opendir(path)}
 {
-	dir = opendir(path);
 	if(!dir)
 	{
 		if(Config::DEBUG_BUILD)
@@ -74,27 +74,6 @@ DirectoryEntryImpl::DirectoryEntryImpl(const char *path, std::error_code *ecPtr)
 	readNextDir(); // go to first entry
 }
 
-DirectoryEntryImpl::DirectoryEntryImpl(DirectoryEntryImpl &&o)
-{
-	*this = std::move(o);
-}
-
-DirectoryEntryImpl &DirectoryEntryImpl::operator=(DirectoryEntryImpl &&o)
-{
-	deinit();
-	dir = std::exchange(o.dir, {});
-	dirent_ = std::exchange(o.dirent_, {});
-	type_ = std::exchange(o.type_, {});
-	linkType_ = std::exchange(o.linkType_, {});
-	basePath = std::exchange(o.basePath, {});
-	return *this;
-}
-
-DirectoryEntryImpl::~DirectoryEntryImpl()
-{
-	deinit();
-}
-
 bool DirectoryEntryImpl::readNextDir()
 {
 	if(unlikely(!dir))
@@ -103,7 +82,7 @@ bool DirectoryEntryImpl::readNextDir()
 	// clear cached types
 	type_ = {};
 	linkType_ = {};
-	while((dirent_ = readdir(dir)))
+	while((dirent_ = readdir(dir.get())))
 	{
 		//logMsg("reading entry:%s", dirent.d_name);
 		if(!isDotName(dirent_->d_name))
@@ -167,13 +146,24 @@ PathStringImpl DirectoryEntryImpl::path() const
 	return makePathStringPrintf("%s/%s", basePath.data(), name());
 }
 
-void DirectoryEntryImpl::deinit()
+void DirectoryEntryImpl::close()
+{
+	if(dir)
+	{
+		logMsg("closing directory:%s", basePath.data());
+	}
+	dir.reset();
+}
+
+void DirectoryEntryImpl::closeDirectoryStream(DIR *dir)
 {
 	if(!dir)
 		return;
-	logMsg("closing directory:%s", basePath.data());
-	closedir(dir);
-	dir = {};
+	//logDMsg("closing dir:%p", dir);
+	if(::closedir(dir) == -1 && Config::DEBUG_BUILD)
+	{
+		logErr("closedir(%p) error: %s", dir, strerror(errno));
+	}
 }
 
 template <class... Args>

@@ -100,17 +100,6 @@ Font Font::makeBoldSystem()
 	return font;
 }
 
-AndroidFont::AndroidFont(AndroidFont &&o)
-{
-	*this = std::move(o);
-}
-
-AndroidFont &AndroidFont::operator=(AndroidFont &&o)
-{
-	isBold = o.isBold;
-	return *this;
-}
-
 Font::operator bool() const
 {
 	return true;

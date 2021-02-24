@@ -21,23 +21,6 @@
 
 template class IOUtils<PosixFileIO>;
 
-PosixFileIO::PosixFileIO(PosixFileIO &&o)
-{
-	*this = std::move(o);
-}
-
-PosixFileIO &PosixFileIO::operator=(PosixFileIO &&o)
-{
-	close();
-	ioImpl = std::exchange(o.ioImpl, {});
-	return *this;
-}
-
-PosixFileIO::~PosixFileIO()
-{
-	close();
-}
-
 PosixFileIO::operator IO*() { return &io(); }
 
 PosixFileIO::operator IO&() { return io(); }

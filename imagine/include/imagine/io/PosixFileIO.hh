@@ -36,9 +36,6 @@ public:
 	using IOUtils<PosixFileIO>::get;
 
 	constexpr PosixFileIO() {}
-	PosixFileIO(PosixFileIO &&o);
-	PosixFileIO &operator=(PosixFileIO &&o);
-	~PosixFileIO();
 	explicit operator IO*();
 	operator IO&();
 	GenericIO makeGeneric();
