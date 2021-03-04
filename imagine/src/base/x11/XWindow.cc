@@ -37,20 +37,21 @@ void Window::setAcceptDnd(bool on)
 	if(!Config::Base::XDND)
 		return;
 	if(on)
-		enableXdnd(dpy, xWin);
+		enableXdnd((Display*)dpy, xWin);
 	else
-		disableXdnd(dpy, xWin);
+		disableXdnd((Display*)dpy, xWin);
 }
 
 void Window::setTitle(const char *name)
 {
 	XTextProperty nameProp;
-	char tempName[128];
-	string_copy(tempName, name);
+	char tempName[128]{};
+	if(name)
+		string_copy(tempName, name);
 	char *tempNameArr[1] {tempName};
 	if(XStringListToTextProperty(tempNameArr, 1, &nameProp))
 	{
-		XSetWMName(dpy, xWin, &nameProp);
+		XSetWMName((Display*)dpy, xWin, &nameProp);
 		XFree(nameProp.value);
 	}
 	else
@@ -88,7 +89,7 @@ Window *windowForXWindow(::Window xWin)
 	return nullptr;
 }
 
-static IG::WindowRect makeWindowRectWithConfig(const WindowConfig &config, ::Window rootWindow)
+static IG::WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig &config, ::Window rootWindow)
 {
 	IG::WindowRect workAreaRect;
 	{
@@ -165,7 +166,7 @@ static IG::WindowRect makeWindowRectWithConfig(const WindowConfig &config, ::Win
 	return winRect;
 }
 
-IG::ErrorCode Window::init(const WindowConfig &config)
+IG::ErrorCode Window::init(const WindowConfig &config, InitDelegate)
 {
 	if(xWin != None)
 	{
@@ -178,22 +179,25 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 	}
 	BaseWindow::init(config);
 	this->screen_ = Screen::screen(0);
-	auto rootWindow = RootWindowOfScreen((::Screen*)screen()->nativeObject());
+	auto xScreen = (::Screen*)screen()->nativeObject();
+	auto rootWindow = RootWindowOfScreen(xScreen);
+	auto dpy = DisplayOfScreen(xScreen);
 	auto winRect = Config::MACHINE_IS_PANDORA ? IG::WindowRect{0, 0, 800, 480} :
-		makeWindowRectWithConfig(config, rootWindow);
+		makeWindowRectWithConfig(dpy, config, rootWindow);
 	updateSize({winRect.xSize(), winRect.ySize()});
 	{
 		XSetWindowAttributes attr{};
 		attr.event_mask = ExposureMask | PropertyChangeMask | StructureNotifyMask;
 		unsigned long valueMask = CWEventMask;
+		Visual *visual = DefaultVisualOfScreen(xScreen);
 		if(config.format())
 		{
-			attr.colormap = XCreateColormap(dpy, rootWindow, (Visual*)config.format(), AllocNone);
+			visual = (Visual*)config.format();
+			attr.colormap = XCreateColormap(dpy, rootWindow, visual, AllocNone);
 			valueMask |= CWColormap;
 		}
 		xWin = XCreateWindow(dpy, rootWindow, winRect.x, winRect.y, width(), height(), 0,
-			CopyFromParent, InputOutput, (Visual*)config.format(),
-			valueMask, &attr);
+			CopyFromParent, InputOutput, visual, valueMask, &attr);
 		if(!xWin)
 		{
 			logErr("error initializing window");
@@ -202,7 +206,7 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 		colormap = attr.colormap;
 	}
 	logMsg("made window with XID %d, drawable depth %d", (int)xWin, xDrawableDepth(dpy, xWin));
-	Input::initPerWindowData(xWin);
+	Input::initPerWindowData(dpy, xWin);
 	if(Config::MACHINE_IS_PANDORA)
 	{
 		auto wmState = XInternAtom(dpy, "_NET_WM_STATE", False);
@@ -224,6 +228,9 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 			XSetWMNormalHints(dpy, xWin, &hints);
 		}
 	}
+	this->dpy = dpy;
+	if(config.title())
+		setTitle(config.title());
 	return {};
 }
 
@@ -232,27 +239,19 @@ XWindow::~XWindow()
 	if(xWin != None)
 	{
 		logMsg("destroying window with ID %d", (int)xWin);
-		XDestroyWindow(dpy, xWin);
+		XDestroyWindow((Display*)dpy, xWin);
 	}
 	if(colormap != None)
 	{
-		XFreeColormap(dpy, colormap);
+		XFreeColormap((Display*)dpy, colormap);
 	}
-}
-
-void deinitWindowSystem()
-{
-	logMsg("shutting down window system");
-	deinitFrameTimer();
-	Base::deinitWindows();
-	Input::deinit();
-	XCloseDisplay(dpy);
 }
 
 void Window::show()
 {
 	assert(xWin != None);
-	XMapRaised(dpy, xWin);
+	XMapRaised((Display*)dpy, xWin);
+	postDraw();
 }
 
 bool Window::systemAnimatesRotation()
@@ -272,6 +271,8 @@ void Window::setIntendedFrameRate(double rate)
 	else
 		screen()->setFrameRate(60.);
 }
+
+void Window::setFormat(NativeWindowFormat fmt) {}
 
 std::pair<unsigned long, unsigned long> XWindow::xdndData() const
 {

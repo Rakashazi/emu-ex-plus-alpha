@@ -58,7 +58,7 @@ static EGLConfig dummyPbuffConfig{};
 using EGLAttrList = StaticArrayList<int, 24>;
 using EGLContextAttrList = StaticArrayList<int, 16>;
 
-static EGLAttrList glConfigAttrsToEGLAttrs(GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
+static EGLAttrList glConfigAttrsToEGLAttrs(int renderableType, GLBufferConfigAttributes attr)
 {
 	EGLAttrList list;
 	// don't accept slow configs
@@ -99,22 +99,10 @@ static EGLAttrList glConfigAttrsToEGLAttrs(GLContextAttributes ctxAttr, GLBuffer
 			list.push_back(EGL_ALPHA_SIZE);
 			list.push_back(8);
 	}
-	if(!ctxAttr.openGLESAPI())
+	if(renderableType)
 	{
 		list.push_back(EGL_RENDERABLE_TYPE);
-		list.push_back(EGL_OPENGL_BIT);
-		//logDMsg("using OpenGL renderable");
-	}
-	else if(ctxAttr.majorVersion() == 2)
-	{
-		list.push_back(EGL_RENDERABLE_TYPE);
-		list.push_back(EGL_OPENGL_ES2_BIT);
-		//logDMsg("using OpenGL ES2 renderable");
-	}
-	else if(ctxAttr.majorVersion() == 3)
-	{
-		list.push_back(EGL_RENDERABLE_TYPE);
-		list.push_back(EGL_OPENGL_ES3_BIT);
+		list.push_back(renderableType);
 	}
 	list.push_back(EGL_NONE);
 	return list;
@@ -163,36 +151,36 @@ static EGLContextAttrList glContextAttrsToEGLAttrs(GLContextAttributes attr)
 
 // GLContext
 
-std::pair<bool, EGLConfig> EGLContextBase::chooseConfig(EGLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
+std::optional<EGLConfig> EGLContextBase::chooseConfig(EGLDisplay display, int renderableType, GLBufferConfigAttributes attr)
 {
 	EGLConfig config;
 	EGLint configs = 0;
 	{
-		auto eglAttr = glConfigAttrsToEGLAttrs(ctxAttr, attr);
+		auto eglAttr = glConfigAttrsToEGLAttrs(renderableType, attr);
 		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
 	}
 	if(!configs && attr.pixelFormat() != Window::defaultPixelFormat())
 	{
 		logErr("no EGL configs found, retrying with default window format");
 		attr.setPixelFormat(Window::defaultPixelFormat());
-		auto eglAttr = glConfigAttrsToEGLAttrs(ctxAttr, attr);
+		auto eglAttr = glConfigAttrsToEGLAttrs(renderableType, attr);
 		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
 	}
 	if(!configs)
 	{
 		logErr("no EGL configs found, retrying with no color bits set");
 		attr.setPixelFormat(IG::PIXEL_NONE);
-		auto eglAttr = glConfigAttrsToEGLAttrs(ctxAttr, attr);
+		auto eglAttr = glConfigAttrsToEGLAttrs(renderableType, attr);
 		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
 	}
 	if(!configs)
 	{
-		logErr("no usable EGL configs found with major version:%u", ctxAttr.majorVersion());
-		return {false, EGLConfig{}};
+		logErr("no usable EGL configs found with renderable type:%s", eglRenderableTypeToStr(renderableType));
+		return {};
 	}
 	if(Config::DEBUG_BUILD)
 		printEGLConf(display, config);
-	return {true, config};
+	return config;
 }
 
 void *GLContext::procAddress(const char *funcName)
@@ -261,7 +249,7 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 		if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) == EGL_FALSE)
 		{
 			if(Config::DEBUG_BUILD)
-				logErr("error:0x%X setting no context current", eglGetError());
+				logErr("error:%s setting no context current", GLDisplay::errorString(eglGetError()));
 		}
 	}
 	else if(surface)
@@ -274,7 +262,7 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 		if(eglMakeCurrent(display, surface, surface, context) == EGL_FALSE)
 		{
 			if(Config::DEBUG_BUILD)
-				logErr("error:0x%X setting surface current", eglGetError());
+				logErr("error:%s setting surface current", GLDisplay::errorString(eglGetError()));
 		}
 	}
 	else
@@ -290,12 +278,12 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 			if(dummyPbuff == EGL_NO_SURFACE)
 			{
 				if(Config::DEBUG_BUILD)
-					logErr("error:0x%X making dummy pbuffer", eglGetError());
+					logErr("error:%s making dummy pbuffer", GLDisplay::errorString(eglGetError()));
 			}
 			if(eglMakeCurrent(display, dummyPbuff, dummyPbuff, context) == EGL_FALSE)
 			{
 				if(Config::DEBUG_BUILD)
-					logErr("error:0x%X setting dummy pbuffer current", eglGetError());
+					logErr("error:%s setting dummy pbuffer current", GLDisplay::errorString(eglGetError()));
 			}
 			eglDestroySurface(display, dummyPbuff);
 		}
@@ -308,7 +296,7 @@ void EGLContextBase::setCurrentContext(EGLDisplay display, EGLContext context, G
 			if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, context) == EGL_FALSE)
 			{
 				if(Config::DEBUG_BUILD)
-					logErr("error:0x%X setting no surface current", eglGetError());
+					logErr("error:%s setting no surface current", GLDisplay::errorString(eglGetError()));
 			}
 		}
 	}
@@ -331,9 +319,14 @@ GLContext GLContext::current(GLDisplay display)
 	return c;
 }
 
-bool GLContext::isCurrentDrawable(GLDisplay display, GLDrawable drawable)
+bool GLContext::hasCurrentDrawable(GLDisplay display, GLDrawable drawable)
 {
-	return (EGLSurface)drawable == eglGetCurrentSurface(EGL_DRAW);
+	return eglGetCurrentSurface(EGL_DRAW) == (EGLSurface)drawable;
+}
+
+bool GLContext::hasCurrentDrawable(GLDisplay display)
+{
+	return eglGetCurrentSurface(EGL_DRAW) != EGL_NO_SURFACE;
 }
 
 void EGLContextBase::swapBuffers(EGLDisplay display, GLDrawable surface)
@@ -386,7 +379,7 @@ std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault()
 	return {ec, display};
 }
 
-std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(GLDisplay::API api)
+std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(GL::API api)
 {
 	if(!bindAPI(api))
 	{
@@ -396,7 +389,7 @@ std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(GLDisplay::API api)
 	return makeDefault();
 }
 
-GLDisplay GLDisplay::getDefault(API api)
+GLDisplay GLDisplay::getDefault(GL::API api)
 {
 	if(!bindAPI(api))
 	{
@@ -490,6 +483,23 @@ const char *EGLDisplayConnection::errorString(EGLint error)
 		case EGL_CONTEXT_LOST: return "Context lost";
 	}
 	return "Unknown error";
+}
+
+int EGLDisplayConnection::makeRenderableType(GL::API api, unsigned majorVersion)
+{
+	if(api == GL::API::OPENGL)
+	{
+		return EGL_OPENGL_BIT;
+	}
+	else
+	{
+		switch(majorVersion)
+		{
+			default: return 0;
+			case 2: return EGL_OPENGL_ES2_BIT;
+			case 3: return EGL_OPENGL_ES3_BIT;
+		}
+	}
 }
 
 GLDisplay::operator bool() const
@@ -588,6 +598,26 @@ bool GLDrawable::destroy(GLDisplay display)
 			display.errorString(eglGetError()), (EGLDisplay)display, surface);
 	}
 	return success;
+}
+
+// EGLBufferConfig
+
+EGLint EGLBufferConfig::renderableTypeBits(GLDisplay display) const
+{
+	EGLint bits;
+	eglGetConfigAttrib(display, glConfig, EGL_RENDERABLE_TYPE, &bits);
+	return bits;
+}
+
+bool EGLBufferConfig::maySupportGLES(GLDisplay display, unsigned majorVersion) const
+{
+	switch(majorVersion)
+	{
+		default: return false;
+		case 1: return true;
+		case 2: return renderableTypeBits(display) & EGL_OPENGL_ES2_BIT;
+		case 3: return renderableTypeBits(display) & EGL_OPENGL_ES3_BIT;
+	}
 }
 
 }

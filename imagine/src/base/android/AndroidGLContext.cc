@@ -30,22 +30,22 @@ GLDisplay GLDisplay::getDefault()
 	return {eglGetDisplay(EGL_DEFAULT_DISPLAY)};
 }
 
-bool GLDisplay::bindAPI(API api)
+bool GLDisplay::bindAPI(GL::API api)
 {
-	return api == API::OPENGL_ES;
+	return api == GL::API::OPENGL_ES;
 }
 
 // GLContext
 
-std::pair<bool, GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
+std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion)
 {
-	if(ctxAttr.majorVersion() > 2 && Base::androidSDK() < 18)
+	if(majorVersion > 2 && Base::androidSDK() < 18)
 	{
 		// need at least Android 4.3 to use ES 3 attributes
-		return {false, {}};
+		return {};
 	}
-	auto [found, eglConfig] = chooseConfig(display, ctxAttr, attr);
-	return {found, eglConfig};
+	auto renderableType = GLDisplay::makeRenderableType(GL::API::OPENGL_ES, majorVersion);
+	return chooseConfig(display, renderableType, attr);
 }
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec):

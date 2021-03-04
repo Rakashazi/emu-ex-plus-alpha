@@ -35,7 +35,6 @@ class Window;
 namespace Gfx
 {
 
-class DrawableHolder;
 class RendererTask;
 class RendererCommands;
 class DrawContextSupport;
@@ -46,10 +45,8 @@ public:
 	using Command = GLTask::Command;
 	using CommandMessage = GLTask::CommandMessage;
 
-	GLRendererTask();
-	GLRendererTask(const char *debugLabel, Renderer &r, Base::GLContext context, int threadPriority = 0);
-	GLRendererTask(GLRendererTask &&o) = default;
-	GLRendererTask &operator=(GLRendererTask &&o) = default;
+	GLRendererTask(Renderer &);
+	GLRendererTask(const char *debugLabel, Renderer &);
 	void initVBOs();
 	GLuint getVBO();
 	void initVAO();
@@ -62,23 +59,23 @@ public:
 	void setDrawAsyncMode(DrawAsyncMode);
 	void verifyCurrentContext(Base::GLDisplay glDpy) const;
 	RendererCommands makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
-		DrawableHolder &drawableHolder, Base::Window &win, Viewport viewport, Mat4 projMat);
+		Base::Window &win, Viewport viewport, Mat4 projMat);
 
 	template<class Func>
 	void run(Func &&del, bool awaitReply = false) { GLTask::run(std::forward<Func>(del), awaitReply); }
 
 	template<class Func>
-	void draw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams params,
+	void draw(Base::Window &win, Base::WindowDrawParams winParams, DrawParams params,
 		const Viewport &viewport, const Mat4 &projMat, Func &&del)
 	{
-		doPreDraw(drawableHolder, win, winParams, params);
+		doPreDraw(win, winParams, params);
 		assert(params.asyncMode() != DrawAsyncMode::AUTO); // doPreDraw() should set mode
 		bool manageSemaphore = params.asyncMode() == DrawAsyncMode::PRESENT;
 		bool awaitReply = params.asyncMode() != DrawAsyncMode::FULL;
-		run([=, this, &drawableHolder, &win, &viewport, &projMat](TaskContext ctx)
+		run([=, this, &win, &viewport, &projMat](TaskContext ctx)
 			{
-				auto cmds = makeRendererCommands(ctx, manageSemaphore, drawableHolder, win, viewport, projMat);
-				del(drawableHolder, win, cmds);
+				auto cmds = makeRendererCommands(ctx, manageSemaphore, win, viewport, projMat);
+				del(win, cmds);
 			}, awaitReply);
 	}
 
@@ -100,7 +97,7 @@ protected:
 	DrawAsyncMode autoDrawAsyncMode = DrawAsyncMode::NONE;
 	IG_enableMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, debugEnabled){};
 
-	void doPreDraw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params);
+	void doPreDraw(Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params);
 };
 
 using RendererTaskImpl = GLRendererTask;

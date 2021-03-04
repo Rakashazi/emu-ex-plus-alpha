@@ -13,7 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "GLRenderer"
+#define LOGTAG "GLTask"
 #include <assert.h>
 #include <imagine/base/Base.hh>
 #include <imagine/gfx/Renderer.hh>
@@ -27,39 +27,24 @@ namespace Gfx
 
 GLTask::GLTask() {}
 
-GLTask::GLTask(const char *debugLabel, Base::GLContext context_, int threadPriority):
-	context{context_},
-	onExit
-	{
-		[this](bool backgrounded)
-		{
-			if(backgrounded)
-			{
-				run(
-					[]()
-					{
-						#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-						glReleaseShaderCompiler();
-						#endif
-						glFinish();
-					}, true);
-			}
-			else
-			{
-				deinit();
-			}
-			return true;
-		}, Base::RENDERER_TASK_ON_EXIT_PRIORITY
-	},
+GLTask::GLTask(const char *debugLabel):
 	commandPort{debugLabel}
+{}
+
+Error GLTask::makeGLContext(GLTaskConfig config)
 {
-	assert(context);
+	deinit();
 	thread = IG::makeThreadSync(
-		[this, threadPriority](auto &sem)
+		[this, &config](auto &sem)
 		{
 			auto glDpy = Base::GLDisplay::getDefault(glAPI);
-			assumeExpr(glDpy);
-			context.setCurrent(glDpy, context, {});
+			context = makeGLContext(glDpy, config.bufferConfig);
+			if(unlikely(!context))
+			{
+				sem.notify();
+				return;
+			}
+			context.setCurrent(glDpy, context, config.initialDrawable);
 			auto eventLoop = Base::EventLoop::makeForThread();
 			commandPort.attach(eventLoop,
 				[this, glDpy](auto msgs)
@@ -89,13 +74,43 @@ GLTask::GLTask(const char *debugLabel, Base::GLContext context_, int threadPrior
 					}
 					return true;
 				});
-			sem.notify();
 			logMsg("starting GL context:%p thread event loop", context.nativeObject());
-			if(threadPriority)
-				Base::setThisThreadPriority(threadPriority);
+			if(config.threadPriority)
+				Base::setThisThreadPriority(config.threadPriority);
+			sem.notify();
 			eventLoop.run(context);
 			commandPort.detach();
 		});
+	if(unlikely(!context))
+	{
+		return std::runtime_error("error creating GL context");
+	}
+	onExit =
+		{
+			[this](bool backgrounded)
+			{
+				if(backgrounded)
+				{
+					run(
+						[glContext = context](TaskContext ctx)
+						{
+							// unset the drawable and finish all commands before entering background
+							if(glContext.hasCurrentDrawable(ctx.glDisplay()))
+								glContext.setDrawable(ctx.glDisplay(), {}, glContext);
+							#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+							glReleaseShaderCompiler();
+							#endif
+							glFinish();
+						}, true);
+				}
+				else
+				{
+					deinit();
+				}
+				return true;
+			}, Base::RENDERER_TASK_ON_EXIT_PRIORITY
+		};
+	return {};
 }
 
 GLTask::~GLTask()
@@ -124,6 +139,7 @@ void GLTask::deinit()
 	if(!context)
 		return;
 	commandPort.send({Command::EXIT});
+	onExit = {};
 	thread.join(); // GL implementation may assign thread destructor so must join() to make sure it completes
 }
 
@@ -138,6 +154,70 @@ void GLTask::TaskContext::notifySemaphore()
 void GLTask::TaskContext::markSemaphoreNotified()
 {
 	*semaphoreNeedsNotifyPtr = false;
+}
+
+static Base::GLContextAttributes makeGLContextAttributes(uint32_t majorVersion, uint32_t minorVersion)
+{
+	Base::GLContextAttributes glAttr;
+	if(Config::DEBUG_BUILD)
+		glAttr.setDebug(true);
+	glAttr.setMajorVersion(majorVersion);
+	#ifdef CONFIG_GFX_OPENGL_ES
+	glAttr.setOpenGLESAPI(true);
+	#else
+	glAttr.setMinorVersion(minorVersion);
+	#endif
+	return glAttr;
+}
+
+static Base::GLContext makeVersionedGLContext(Base::GLDisplay dpy, Base::GLBufferConfig config,
+	unsigned majorVersion, unsigned minorVersion)
+{
+	auto glAttr = makeGLContextAttributes(majorVersion, minorVersion);
+	IG::ErrorCode ec{};
+	Base::GLContext glCtx{dpy, glAttr, config, ec};
+	return glCtx;
+}
+
+Base::GLContext GLTask::makeGLContext(Base::GLDisplay dpy, Base::GLBufferConfig bufferConf)
+{
+	if constexpr((bool)Config::Gfx::OPENGL_ES)
+	{
+		if constexpr(Config::Gfx::OPENGL_ES == 1)
+		{
+			return makeVersionedGLContext(dpy, bufferConf, 1, 0);
+		}
+		else
+		{
+			if(bufferConf.maySupportGLES(dpy, 3))
+			{
+				auto ctx = makeVersionedGLContext(dpy, bufferConf, 3, 0);
+				if(ctx)
+				{
+					return ctx;
+				}
+			}
+			// fall back to OpenGL ES 2.0
+			return makeVersionedGLContext(dpy, bufferConf, 2, 0);
+		}
+	}
+	else
+	{
+		if(Config::Gfx::OPENGL_SHADER_PIPELINE)
+		{
+			auto ctx = makeVersionedGLContext(dpy, bufferConf, 3, 3);
+			if(ctx)
+			{
+				return ctx;
+			}
+		}
+		if(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE)
+		{
+			// fall back to OpenGL 1.3
+			return makeVersionedGLContext(dpy, bufferConf, 1, 3);
+		}
+	}
+	return {};
 }
 
 }

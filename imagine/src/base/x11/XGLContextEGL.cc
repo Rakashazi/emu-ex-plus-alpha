@@ -32,13 +32,13 @@ GLDisplay GLDisplay::getDefault()
 	#if defined CONFIG_MACHINE_PANDORA
 	return {eglGetDisplay(EGL_DEFAULT_DISPLAY)};
 	#else
-	return {eglGetPlatformDisplay(EGL_PLATFORM_X11_EXT, dpy, nullptr)};
+	return {eglGetPlatformDisplay(EGL_PLATFORM_X11_EXT, xDisplay, nullptr)};
 	#endif
 }
 
-bool GLDisplay::bindAPI(API api)
+bool GLDisplay::bindAPI(GL::API api)
 {
-	if(api == API::OPENGL_ES)
+	if(api == GL::API::OPENGL_ES)
 		return eglBindAPI(EGL_OPENGL_ES_API);
 	else
 		return eglBindAPI(EGL_OPENGL_API);
@@ -64,10 +64,10 @@ void GLContext::setCurrent(GLDisplay display, GLContext context, GLDrawable win)
 	setCurrentContext(display, context.context, win);
 }
 
-std::pair<bool, GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr)
+std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion)
 {
-	auto [found, eglConfig] = chooseConfig(display, ctxAttr, attr);
-	return {found, eglConfig};
+	auto renderableType = GLDisplay::makeRenderableType(api, majorVersion);
+	return chooseConfig(display, renderableType, attr);
 }
 
 void GLContext::present(GLDisplay display, GLDrawable win)
@@ -99,7 +99,7 @@ Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay display) const
 	XVisualInfo viTemplate{};
 	viTemplate.visualid = nativeID;
 	int visuals;
-	auto viPtr = XGetVisualInfo(dpy, VisualIDMask, &viTemplate, &visuals);
+	auto viPtr = XGetVisualInfo(xDisplay, VisualIDMask, &viTemplate, &visuals);
 	if(!viPtr)
 	{
 		logErr("unable to find matching X Visual");

@@ -298,7 +298,7 @@ bool isMenuDismissKey(Input::Event e, EmuViewController &emuViewController)
 	return e.key() == dismissKey || e.key() == dismissKey2;
 }
 
-void updateInputDevices(EmuViewController &emuViewController)
+void updateInputDevices()
 {
 	int i = 0;
 	inputDevConf.clear();
@@ -316,7 +316,6 @@ void updateInputDevices(EmuViewController &emuViewController)
 		}
 		i++;
 	}
-	emuViewController.setPhysicalControlsPresent(Input::keyInputIsPresent());
 	onUpdateInputDevices.callCopySafe();
 	keyMapping.buildAll();
 }

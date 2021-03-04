@@ -29,6 +29,14 @@
 namespace Gfx
 {
 
+GLRendererTask::GLRendererTask(Renderer &r):
+	GLRendererTask{nullptr, r}
+{}
+
+GLRendererTask::GLRendererTask(const char *debugLabel, Renderer &r):
+	GLTask{debugLabel}, r{&r}
+{}
+
 void GLRendererTask::initVBOs()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
@@ -103,70 +111,17 @@ Renderer &RendererTask::renderer() const
 	return *r;
 }
 
-GLRendererTask::GLRendererTask() {}
-
-GLRendererTask::GLRendererTask(const char *debugLabel, Renderer &r, Base::GLContext context, int threadPriority):
-	GLTask{debugLabel, context, threadPriority}, r{&r}
-{}
-
-RendererTask::RendererTask(RendererTask &&o)
-{
-	*this = std::move(o);
-}
-
-RendererTask &RendererTask::operator=(RendererTask &&o)
-{
-	GLRendererTask::operator=(std::move(o));
-	o.r = {};
-	return *this;
-}
-
-void GLRendererTask::doPreDraw(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params)
+void GLRendererTask::doPreDraw(Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params)
 {
 	if(unlikely(!context))
 	{
 		logWarn("draw() called without context");
 		return;
 	}
-	if(winParams.wasResized())
-	{
-		if(win == Base::mainWindow())
-		{
-			if(!Config::SYSTEM_ROTATES_WINDOWS)
-			{
-				r->setProjectionMatrixRotation(orientationToGC(win.softOrientation()));
-				Base::setOnDeviceOrientationChanged(
-					[&renderer = *r, &win](Base::Orientation newO)
-					{
-						auto oldWinO = win.softOrientation();
-						if(win.requestOrientationChange(newO))
-						{
-							renderer.animateProjectionMatrixRotation(win, orientationToGC(oldWinO), orientationToGC(newO));
-						}
-					});
-			}
-			else if(Config::SYSTEM_ROTATES_WINDOWS && !Base::Window::systemAnimatesRotation())
-			{
-				Base::setOnSystemOrientationChanged(
-					[&renderer = *r, &win](Base::Orientation oldO, Base::Orientation newO) // TODO: parameters need proper type definitions in API
-					{
-						const Angle orientationDiffTable[4][4]
-						{
-							{0, angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90)},
-							{angleFromDegree(-90), 0, angleFromDegree(90), angleFromDegree(-180)},
-							{angleFromDegree(-180), angleFromDegree(-90), 0, angleFromDegree(90)},
-							{angleFromDegree(90), angleFromDegree(-180), angleFromDegree(-90), 0},
-						};
-						auto rotAngle = orientationDiffTable[oldO][newO];
-						logMsg("animating from %d degrees", (int)angleToDegree(rotAngle));
-						renderer.animateProjectionMatrixRotation(win, rotAngle, 0.);
-					});
-			}
-		}
-	}
+	auto &drawableHolder = winData(win).drawableHolder;
 	if(unlikely(!drawableHolder))
 	{
-		drawableHolder.makeDrawable(*static_cast<RendererTask*>(this), win);
+		drawableHolder.makeDrawable(r->glDpy, win, r->gfxBufferConfig);
 	}
 	if(params.asyncMode() == DrawAsyncMode::AUTO)
 	{
@@ -183,15 +138,16 @@ RendererTask::operator bool() const
 	return GLTask::operator bool();
 }
 
-void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder, Base::Window &win, Base::WindowSurfaceChange change)
+void RendererTask::updateDrawableForSurfaceChange(Base::Window &win, Base::WindowSurfaceChange change)
 {
+	auto &drawableHolder = winData(win).drawableHolder;
 	if(change.destroyed())
 	{
 		destroyDrawable(drawableHolder);
 	}
 	else if(!drawableHolder)
 	{
-		drawableHolder.makeDrawable(*this, win);
+		drawableHolder.makeDrawable(r->glDpy, win, r->gfxBufferConfig);
 	}
 	if(change.reset())
 	{
@@ -201,7 +157,15 @@ void RendererTask::updateDrawableForSurfaceChange(DrawableHolder &drawableHolder
 
 void RendererTask::destroyDrawable(DrawableHolder &drawableHolder)
 {
-	awaitPending();
+	if(!drawableHolder)
+		return;
+	run(
+		[glContext = context, drawable = (Drawable)drawableHolder](TaskContext ctx)
+		{
+			// unset the drawable if it's currently in use
+			if(glContext.hasCurrentDrawable(ctx.glDisplay(), drawable))
+				glContext.setDrawable(ctx.glDisplay(), {}, glContext);
+		}, true);
 	drawableHolder.destroyDrawable();
 }
 
@@ -369,15 +333,16 @@ void RendererTask::setDebugOutput(bool on)
 }
 
 RendererCommands GLRendererTask::makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
-	DrawableHolder &drawableHolder, Base::Window &win, Viewport viewport, Mat4 projMat)
+	Base::Window &win, Viewport viewport, Mat4 projMat)
 {
 	initDefaultFramebuffer();
+	auto &drawableHolder = winData(win).drawableHolder;
 	RendererCommands cmds{*static_cast<RendererTask*>(this), &win, drawableHolder, taskCtx.glDisplay(),
 		manageSemaphore ? taskCtx.semaphorePtr() : nullptr};
-	if(manageSemaphore)
-		taskCtx.markSemaphoreNotified(); // semaphore will be notified in RendererCommands::present()
 	cmds.setViewport(viewport);
 	cmds.setProjectionMatrix(projMat);
+	if(manageSemaphore)
+		taskCtx.markSemaphoreNotified(); // semaphore will be notified in RendererCommands::present()
 	return cmds;
 }
 

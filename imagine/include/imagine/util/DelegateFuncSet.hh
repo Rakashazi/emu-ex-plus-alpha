@@ -35,8 +35,7 @@ public:
 
 	bool remove(FUNC del)
 	{
-		auto it = std::find_if(delegate.begin(), delegate.end(),
-			[&](DelegateEntry &e) { return e.del == del; });
+		auto it = find(del);
 		if(it == delegate.end())
 			return false;
 		delegate.erase(it);
@@ -45,9 +44,7 @@ public:
 
 	bool contains(FUNC del)
 	{
-		auto it = std::find_if(delegate.begin(), delegate.end(),
-			[&](DelegateEntry &e) { return e.del == del; });
-		return it != delegate.end();
+		return find(del) != delegate.end();
 	}
 
 	unsigned size() const
@@ -87,6 +84,12 @@ protected:
 		bool operator==(const DelegateEntry &rhs) const { return del == rhs.del; }
 		bool operator<(const DelegateEntry &rhs) const { return priority < rhs.priority; }
 	};
+
+	typename FlatMultiSet<DelegateEntry>::iterator find(FUNC del)
+	{
+		return std::find_if(delegate.begin(), delegate.end(),
+			[&](DelegateEntry &e) { return e.del == del; });
+	}
 
 	FlatMultiSet<DelegateEntry> delegate{};
 };

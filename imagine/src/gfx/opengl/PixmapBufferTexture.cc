@@ -559,6 +559,8 @@ TextureBufferMode Renderer::makeValidTextureBufferMode(TextureBufferMode mode)
 				return TextureBufferMode::PBO;
 			}
 			return TextureBufferMode::SYSTEM_MEMORY;
+		case TextureBufferMode::SYSTEM_MEMORY:
+			return TextureBufferMode::SYSTEM_MEMORY;
 		case TextureBufferMode::PBO:
 			return hasPersistentBufferMapping(*this) ? TextureBufferMode::PBO : makeValidTextureBufferMode();
 		#ifdef __ANDROID__

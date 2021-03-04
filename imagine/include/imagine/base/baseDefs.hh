@@ -111,12 +111,18 @@ using ExitDelegate = DelegateFunc<bool (bool backgrounded)>;
 using DeviceOrientationChangedDelegate = DelegateFunc<void (Orientation newOrientation)>;
 using SystemOrientationChangedDelegate = DelegateFunc<void (Orientation oldOrientation, Orientation newOrientation)>;
 
-static constexpr int INPUT_DEVICES_ON_RESUME_PRIORITY = -600;
-static constexpr int SCREEN_ON_RESUME_PRIORITY = -550;
-static constexpr int RENDERER_ON_RESUME_PRIORITY = -500;
-static constexpr int WINDOW_ON_RESUME_PRIORITY = -400;
-static constexpr int RENDERER_DRAWABLE_ON_RESUME_PRIORITY = -300;
-static constexpr int RENDERER_TASK_ON_RESUME_PRIORITY = -200;
+static constexpr int APP_ON_EXIT_PRIORITY = 0;
+static constexpr int RENDERER_TASK_ON_EXIT_PRIORITY = 200;
+static constexpr int RENDERER_DRAWABLE_ON_EXIT_PRIORITY = 300;
+static constexpr int WINDOW_ON_EXIT_PRIORITY = 400;
+static constexpr int SCREEN_ON_EXIT_PRIORITY = 500;
+static constexpr int INPUT_DEVICE_ON_EXIT_PRIORITY = 600;
+
+static constexpr int INPUT_DEVICE_ON_RESUME_PRIORITY = -INPUT_DEVICE_ON_EXIT_PRIORITY;
+static constexpr int SCREEN_ON_RESUME_PRIORITY = -SCREEN_ON_EXIT_PRIORITY;
+static constexpr int WINDOW_ON_RESUME_PRIORITY = -WINDOW_ON_EXIT_PRIORITY;
+static constexpr int RENDERER_DRAWABLE_ON_RESUME_PRIORITY = -RENDERER_DRAWABLE_ON_EXIT_PRIORITY;
+static constexpr int RENDERER_TASK_ON_RESUME_PRIORITY = -RENDERER_TASK_ON_EXIT_PRIORITY;
 static constexpr int APP_ON_RESUME_PRIORITY = 0;
 
 class OnResume
@@ -131,14 +137,6 @@ public:
 protected:
 	ResumeDelegate del{};
 };
-
-static constexpr int RENDERER_TASK_ON_EXIT_PRIORITY = -400;
-static constexpr int RENDERER_DRAWABLE_ON_EXIT_PRIORITY = -300;
-static constexpr int APP_ON_EXIT_PRIORITY = 0;
-static constexpr int RENDERER_ON_EXIT_PRIORITY = 200;
-static constexpr int WINDOW_ON_EXIT_PRIORITY = 300;
-static constexpr int SCREEN_ON_EXIT_PRIORITY = 400;
-static constexpr int INPUT_DEVICES_ON_EXIT_PRIORITY = 500;
 
 class OnExit
 {
@@ -182,7 +180,7 @@ struct WindowSurfaceChange
 	void addContentRectResized() { flags |= CONTENT_RECT_RESIZED; }
 	void addCustomViewportResized() { flags |= CUSTOM_VIEWPORT_RESIZED; }
 	void addCreated() { flags |= SURFACE_CREATED; }
-	void addDestroyed() { flags |= SURFACE_DESTORYED; }
+	void addDestroyed() { flags = SURFACE_DESTORYED; } // clears all other flags
 	void addReset() { flags |= SURFACE_RESET; }
 	void removeCustomViewportResized() { flags = clearBits(flags, CUSTOM_VIEWPORT_RESIZED); }
 };

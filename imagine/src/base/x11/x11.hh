@@ -17,11 +17,11 @@
 
 #include <imagine/base/EventLoop.hh>
 #include <imagine/base/Error.hh>
+#include <X11/Xlib.h>
 
 namespace Base
 {
-	std::pair<IG::ErrorCode, int> initWindowSystem(EventLoop loop);
-	void deinitWindowSystem();
-	void x11FDHandler();
-	bool x11FDPending();
+	Display *initX11(EventLoop);
+	FDEventSource makeAttachedX11EventSource(Display *, EventLoop);
+	void runX11Events(Display *);
 }

@@ -42,9 +42,11 @@ public:
 protected:
 	ANativeWindow *nWin{};
 	jobject jDialog{};
+	InitDelegate onInit{};
 	int32_t pixelFormat = 0;
 	IG::WindowRect contentRect; // active window content
 	bool initialInit = false;
+	static constexpr bool shouldRunOnInitAfterAddingWindow = false;
 };
 
 using WindowImpl = AndroidWindow;

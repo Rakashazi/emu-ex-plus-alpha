@@ -61,8 +61,8 @@ public:
 	GLvoid* (* GL_APIENTRY glMapBufferRange) (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access){};
 	using UnmapBufferProto = GLboolean (* GL_APIENTRY) (GLenum target);
 	UnmapBufferProto glUnmapBuffer{};
-	void (* GL_APIENTRY glDrawBuffers) (GLsizei size, const GLenum *bufs){};
-	void (* GL_APIENTRY glReadBuffer) (GLenum src){};
+	//void (* GL_APIENTRY glDrawBuffers) (GLsizei size, const GLenum *bufs){};
+	//void (* GL_APIENTRY glReadBuffer) (GLenum src){};
 	void (* GL_APIENTRY glBufferStorage) (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags){};
 	void (* GL_APIENTRY glFlushMappedBufferRange)(GLenum target, GLintptr offset, GLsizeiptr length){};
 	//void (* GL_APIENTRY glMemoryBarrier) (GLbitfield barriers){};
@@ -185,36 +185,24 @@ struct GLCommonSamplers
 class GLRenderer
 {
 public:
-	struct Init{};
-
 	DrawContextSupport support{};
-	std::unique_ptr<RendererTask> mainTask{};
+	RendererTask mainTask;
 	Base::GLDisplay glDpy{};
 	Base::GLBufferConfig gfxBufferConfig{};
 	GLCommonPrograms commonProgram{};
 	GLCommonSamplers commonSampler{};
 	Base::CustomEvent releaseShaderCompilerEvent{Base::CustomEvent::NullInit{}};
-	InterpolatorValue<Gfx::GC, IG::FrameTime, InterpolatorType::EASEOUTQUAD> projAngleM;
-	Angle projectionMatRot = 0;
 	IG_enableMemberIf(Config::Gfx::OPENGL_SHADER_PIPELINE, GLuint, defaultVShader){};
-	IG_enableMemberIf(Config::Gfx::OPENGL_ES > 1, uint8_t, glMajorVer){};
 
-	constexpr GLRenderer() {}
-	GLRenderer(Init);
+	GLRenderer();
 	~GLRenderer();
-	GLRenderer(GLRenderer &&o) = default;
-	GLRenderer &operator=(GLRenderer &&o) = default;
 	void setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat);
 	TextureSampler &commonTextureSampler(CommonTextureSampler sampler);
 	void useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat);
 
 protected:
-	std::pair<Base::GLContext, IG::ErrorCode> makeGLContext(Base::GLDisplay glDpy, IG::PixelFormat pixelFormat);
-	std::pair<Base::GLContext, IG::ErrorCode> makeGLContextWithKnownConfig(Base::GLDisplay glDpy, Base::GLContext shareContext);
-	std::pair<Base::GLContext, IG::ErrorCode> makeGLContext(Base::GLDisplay dpy, Base::GLBufferConfigAttributes glBuffAttr,
-		unsigned majorVersion, unsigned minorVersion);
 	void addEventHandlers(RendererTask &task);
-	Base::GLContextAttributes makeKnownGLContextAttributes();
+	std::optional<Base::GLBufferConfig> makeGLBufferConfig(IG::PixelFormat pixelFormat);
 	void finishContextCreation(Base::GLContext ctx);
 	void setCurrentDrawable(Base::GLDisplay dpy, Base::GLContext ctx, Drawable win);
 	void setupNonPow2Textures();

@@ -41,8 +41,8 @@ public:
 	};
 
 	constexpr Window() {}
-	static Window *makeWindow(WindowConfig config);
-	IG::ErrorCode init(const WindowConfig &config);
+	static Window *makeWindow(WindowConfig config, InitDelegate);
+	IG::ErrorCode init(const WindowConfig &config, InitDelegate);
 	void show();
 	void dismiss();
 	void setAcceptDnd(bool on);
@@ -62,20 +62,37 @@ public:
 	static PixelFormat defaultPixelFormat();
 	NativeWindow nativeObject() const;
 	void setIntendedFrameRate(double rate);
+	void setFormat(NativeWindowFormat);
 	bool operator ==(Window const &rhs) const;
 	bool addOnFrame(Base::OnFrameDelegate del, FrameTimeSource src = {}, int priority = 0);
 	bool removeOnFrame(Base::OnFrameDelegate del, FrameTimeSource src = {});
+	void resetAppData();
+	void resetRendererData();
 
 	template <class T, class... Args>
-	void makeCustomData(Args&&... args)
+	T &makeAppData(Args&&... args)
 	{
-		customDataPtr = std::make_shared<T>(std::forward<Args>(args)...);
+		appDataPtr = std::make_shared<T>(std::forward<Args>(args)...);
+		return *appData<T>();
 	}
 
 	template<class T>
-	T *customData() const
+	T *appData() const
 	{
-		return static_cast<T*>(customDataPtr.get());
+		return static_cast<T*>(appDataPtr.get());
+	}
+
+	template <class T, class... Args>
+	T &makeRendererData(Args&&... args)
+	{
+		rendererDataPtr = std::make_shared<T>(std::forward<Args>(args)...);
+		return *rendererData<T>();
+	}
+
+	template<class T>
+	T *rendererData() const
+	{
+		return static_cast<T*>(rendererDataPtr.get());
 	}
 
 	// Called when the state of the window's drawing surface changes,
@@ -139,6 +156,7 @@ public:
 	void dispatchOnDraw(bool needsSync = false);
 	void dispatchOnFrame();
 	void dispatchSurfaceChange();
+	void dispatchSurfaceDestroyed();
 
 private:
 	IG::Point2D<float> pixelSizeAsMM(IG::Point2D<int> size);

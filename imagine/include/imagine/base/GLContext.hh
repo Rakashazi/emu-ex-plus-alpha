@@ -16,8 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/pixmap/PixelFormat.hh>
-#include <imagine/base/Error.hh>
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XGL.hh>
@@ -29,6 +27,10 @@
 #include <imagine/base/osx/CocoaGL.hh>
 #endif
 
+#include <imagine/pixmap/PixelFormat.hh>
+#include <imagine/base/Error.hh>
+#include <imagine/base/glDefs.hh>
+#include <optional>
 #include <compare>
 
 namespace Base
@@ -141,21 +143,19 @@ public:
 class GLDisplay : public GLDisplayImpl
 {
 public:
-	enum class API {OPENGL, OPENGL_ES};
-
 	using GLDisplayImpl::GLDisplayImpl;
 
 	constexpr GLDisplay() {}
 	static std::pair<IG::ErrorCode, GLDisplay> makeDefault();
-	static std::pair<IG::ErrorCode, GLDisplay> makeDefault(API api);
+	static std::pair<IG::ErrorCode, GLDisplay> makeDefault(GL::API api);
 	static GLDisplay getDefault();
-	static GLDisplay getDefault(API api);
+	static GLDisplay getDefault(GL::API api);
 	explicit operator bool() const;
 	bool operator ==(GLDisplay const &rhs) const;
 	bool deinit();
 	std::pair<IG::ErrorCode, GLDrawable> makeDrawable(Window &win, GLBufferConfig config) const;
 	void logInfo() const;
-	static bool bindAPI(API api);
+	static bool bindAPI(GL::API api);
 };
 
 class GLContext : public GLContextImpl
@@ -169,9 +169,10 @@ public:
 	explicit operator bool() const;
 	bool operator ==(GLContext const &rhs) const;
 	void deinit(GLDisplay display);
-	static std::pair<bool, GLBufferConfig> makeBufferConfig(GLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr);
+	static std::optional<GLBufferConfig> makeBufferConfig(GLDisplay display, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion = 0);
 	static GLContext current(GLDisplay display);
-	static bool isCurrentDrawable(GLDisplay display, GLDrawable drawable);
+	static bool hasCurrentDrawable(GLDisplay display, GLDrawable drawable);
+	static bool hasCurrentDrawable(GLDisplay display);
 	static void *procAddress(const char *funcName);
 	static void setCurrent(GLDisplay display, GLContext context, GLDrawable drawable);
 	static void setDrawable(GLDisplay display, GLDrawable drawable);

@@ -137,7 +137,7 @@ PixelFormat Window::defaultPixelFormat()
 	return ((Config::ARM_ARCH && Config::ARM_ARCH < 7) || androidSDK() < 11) ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
 }
 
-IG::ErrorCode Window::init(const WindowConfig &config)
+IG::ErrorCode Window::init(const WindowConfig &config, InitDelegate onInit)
 {
 	if(initialInit)
 		return {};
@@ -160,20 +160,15 @@ IG::ErrorCode Window::init(const WindowConfig &config)
 	{
 		logMsg("making device window");
 	}
-	pixelFormat = config.format();
-	if(Base::androidSDK() < 11 && this == deviceWindow())
+	if(config.format())
 	{
-		// In testing with CM7 on a Droid, not setting window format to match
-		// what's used in ANativeWindow_setBuffersGeometry() may cause performance issues
-		auto env = jEnvForThread();
-		if(Config::DEBUG_BUILD)
-			logMsg("setting window format to %d (current %d)", pixelFormat, jWinFormat(env, jBaseActivity));
-		jSetWinFormat(env, jBaseActivity, pixelFormat);
+		setFormat(config.format());
 	}
 	// default to screen's size
 	updateSize({screen()->width(), screen()->height()});
 	contentRect.x2 = width();
 	contentRect.y2 = height();
+	this->onInit = onInit;
 	return {};
 }
 
@@ -230,16 +225,24 @@ void AndroidWindow::setNativeWindow(ANativeWindow *nWindow)
 	if(nWin)
 	{
 		nWin = nullptr;
-		static_cast<Window*>(this)->unpostDraw();
-		static_cast<Window*>(this)->surfaceChange.addDestroyed();
-		static_cast<Window*>(this)->dispatchSurfaceChange();
+		static_cast<Window*>(this)->dispatchSurfaceDestroyed();
 	}
 	if(!nWindow)
 		return;
 	nWin = nWindow;
 	if(Config::DEBUG_BUILD)
-		logMsg("creating window with native visual ID: %d with format: %d", pixelFormat, ANativeWindow_getFormat(nWindow));
-	ANativeWindow_setBuffersGeometry(nWindow, 0, 0, pixelFormat);
+	{
+		logMsg("created window with format visual ID:%d (current:%d)", pixelFormat, ANativeWindow_getFormat(nWindow));
+	}
+	if(pixelFormat)
+	{
+		ANativeWindow_setBuffersGeometry(nWindow, 0, 0, pixelFormat);
+	}
+	if(onInit)
+	{
+		onInit(*static_cast<Window*>(this));
+		onInit = {};
+	}
 }
 
 NativeWindow Window::nativeObject() const
@@ -261,6 +264,26 @@ void Window::setIntendedFrameRate(double rate)
 	if(ANativeWindow_setFrameRate(nWin, rate, 0))
 	{
 		logErr("error in ANativeWindow_setFrameRate() with window:%p rate:%.2f", nWin, rate);
+	}
+}
+
+void Window::setFormat(NativeWindowFormat fmt)
+{
+	pixelFormat = fmt;
+	if(Base::androidSDK() < 11 && this == deviceWindow())
+	{
+		// In testing with CM7 on a Droid, not setting window format to match
+		// what's used in ANativeWindow_setBuffersGeometry() may cause performance issues
+		auto env = jEnvForThread();
+		if(Config::DEBUG_BUILD)
+			logMsg("setting window format:%d (current:%d)", fmt, jWinFormat(env, jBaseActivity));
+		jSetWinFormat(env, jBaseActivity, fmt);
+	}
+	if(nWin)
+	{
+		if(Config::DEBUG_BUILD)
+			logMsg("set window format visual ID:%d (current:%d)", fmt, ANativeWindow_getFormat(nWin));
+		ANativeWindow_setBuffersGeometry(nWin, 0, 0, fmt);
 	}
 }
 

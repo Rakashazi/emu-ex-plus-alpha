@@ -32,7 +32,27 @@
 namespace Base
 {
 
-Display *dpy{};
+Display *xDisplay{};
+
+static GSourceFuncs x11SourceFuncs
+{
+	[](GSource *, gint *timeout)
+	{
+		*timeout = -1;
+		return (gboolean)XPending(xDisplay);
+	},
+	[](GSource *)
+	{
+		return (gboolean)XPending(xDisplay);
+	},
+	[](GSource *, GSourceFunc, gpointer)
+	{
+		//logMsg("events for X fd");
+		runX11Events(xDisplay);
+		return (gboolean)TRUE;
+	},
+	nullptr
+};
 
 // TODO: move into generic header after testing
 static void fileURLToPath(char *url)
@@ -96,13 +116,13 @@ static void ewmhFullscreen(Display *dpy, ::Window win, int action)
 	}
 }
 
-void toggleFullScreen(::Window xWin)
+void toggleFullScreen(Display *dpy, ::Window xWin)
 {
 	logMsg("toggle fullscreen");
 	ewmhFullscreen(dpy, xWin, _NET_WM_STATE_TOGGLE);
 }
 
-static int eventHandler(XEvent &event)
+static int eventHandler(Display *dpy, XEvent &event)
 {
 	//logMsg("got event type %s (%d)", xEventTypeToString(event.type), event.type);
 	
@@ -183,7 +203,7 @@ static int eventHandler(XEvent &event)
 		}
 		bcase GenericEvent:
 		{
-			Input::handleXI2GenericEvent(event);
+			Input::handleXI2GenericEvent(dpy, event);
 		}
 		bdefault:
 		{
@@ -195,18 +215,13 @@ static int eventHandler(XEvent &event)
 	return 1;
 }
 
-bool x11FDPending()
+void runX11Events(Display *dpy)
 {
-  return XPending(dpy) > 0;
-}
-
-void x11FDHandler()
-{
-	while(x11FDPending())
+	while(XPending(dpy))
 	{
 		XEvent event;
 		XNextEvent(dpy, &event);
-		eventHandler(event);
+		eventHandler(dpy, event);
 	}
 }
 
@@ -225,19 +240,39 @@ void initXScreens(Display *dpy)
 	}
 }
 
-std::pair<IG::ErrorCode, int> initWindowSystem(EventLoop loop)
+Display *initX11(EventLoop loop)
 {
 	XInitThreads();
-	dpy = XOpenDisplay(0);
+	auto dpy = XOpenDisplay(0);
 	if(!dpy)
 	{
 		logErr("couldn't open display");
-		return {{EIO}, -1};
+		return {};
 	}
+	xDisplay = dpy;
 	initXScreens(dpy);
 	initFrameTimer(loop, Base::mainScreen());
 	Input::init(dpy);
-	return {{}, ConnectionNumber(dpy)};
+	Base::addOnExit(
+		[dpy](bool backgrounded)
+		{
+			if(!backgrounded)
+			{
+				Base::deinitWindows();
+				Input::deinit(dpy);
+				logMsg("closing X display");
+				XCloseDisplay(dpy);
+			}
+			return true;
+		}, 10000);
+	return dpy;
+}
+
+FDEventSource makeAttachedX11EventSource(Display *dpy, EventLoop loop)
+{
+	FDEventSource x11Src{"XServer", ConnectionNumber(dpy)};
+	x11Src.attach(loop, nullptr, &x11SourceFuncs);
+	return x11Src;
 }
 
 void setSysUIStyle(uint32_t flags) {}

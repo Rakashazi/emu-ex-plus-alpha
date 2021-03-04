@@ -35,6 +35,7 @@ public:
 	explicit operator bool() const;
 
 protected:
+	void *dpy{};
 	unsigned long xWin{};
 	unsigned long draggerXWin{};
 	unsigned long dragAction{};

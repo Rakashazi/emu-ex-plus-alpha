@@ -67,7 +67,7 @@ MogaSystem::MogaSystem(JNIEnv *env, bool notify):
 					{
 						onResumeMOGA(env, true);
 						return false;
-					}, Base::INPUT_DEVICES_ON_RESUME_PRIORITY
+					}, Base::INPUT_DEVICE_ON_RESUME_PRIORITY
 				);
 			}
 			else
@@ -76,7 +76,7 @@ MogaSystem::MogaSystem(JNIEnv *env, bool notify):
 				mogaSystem.reset();
 			}
 			return true;
-		}, Base::INPUT_DEVICES_ON_EXIT_PRIORITY
+		}, Base::INPUT_DEVICE_ON_EXIT_PRIORITY
 	}
 {
 	JavaInstMethod<jobject(jlong)> jNewMOGAHelper{env, Base::jBaseActivityCls, "mogaHelper", "(J)Lcom/imagine/MOGAHelper;"};

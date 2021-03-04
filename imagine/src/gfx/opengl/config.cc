@@ -233,15 +233,15 @@ void GLRenderer::setupPBO()
 void GLRenderer::setupSpecifyDrawReadBuffers()
 {
 	#ifdef CONFIG_GFX_OPENGL_ES
-	support.glDrawBuffers = (typeof(support.glDrawBuffers))Base::GLContext::procAddress("glDrawBuffers");
-	support.glReadBuffer = (typeof(support.glReadBuffer))Base::GLContext::procAddress("glReadBuffer");
+	//support.glDrawBuffers = (typeof(support.glDrawBuffers))Base::GLContext::procAddress("glDrawBuffers");
+	//support.glReadBuffer = (typeof(support.glReadBuffer))Base::GLContext::procAddress("glReadBuffer");
 	#endif
 }
 
 bool DrawContextSupport::hasDrawReadBuffers() const
 {
 	#ifdef CONFIG_GFX_OPENGL_ES
-	return glDrawBuffers;
+	return false; //glDrawBuffers;
 	#else
 	return true;
 	#endif
@@ -542,6 +542,7 @@ void Renderer::configureRenderer()
 			bool useFBOFuncs = false;
 			#ifndef CONFIG_GFX_OPENGL_ES
 			// core functionality
+			support.useFixedFunctionPipeline = glVer < 33;
 			if(glVer >= 15)
 			{
 				support.hasVBOFuncs = true;
@@ -657,28 +658,14 @@ bool Renderer::isConfigured() const
 	return support.isConfigured;
 }
 
-RendererTask &Renderer::task() const
+const RendererTask &Renderer::task() const
 {
-	return *mainTask;
+	return mainTask;
 }
 
-std::pair<Renderer, Error> Renderer::makeConfiguredRenderer(RendererConfig config)
+RendererTask &Renderer::task()
 {
-	if(config.pixelFormat() == PIXEL_FMT_NONE)
-		config.setPixelFormat(Base::Window::defaultPixelFormat());
-	Error err;
-	auto renderer = Renderer{config, err};
-	if(err)
-		return {std::move(renderer), err};
-	renderer.configureRenderer();
-	return {std::move(renderer), Error{}};
-}
-
-Base::WindowConfig Renderer::addWindowConfig(Base::WindowConfig config) const
-{
-	assert(isConfigured());
-	config.setFormat(gfxBufferConfig.windowFormat(glDpy));
-	return config;
+	return mainTask;
 }
 
 static void updateSensorStateForWindowOrientations(Base::Window &win)
@@ -688,13 +675,6 @@ static void updateSensorStateForWindowOrientations(Base::Window &win)
 	if(Config::SYSTEM_ROTATES_WINDOWS || win != Base::mainWindow())
 		return;
 	Base::setDeviceOrientationChangeSensor(std::popcount(win.validSoftOrientations()) > 1);
-}
-
-Base::Window *Renderer::makeWindow(Base::WindowConfig config)
-{
-	auto winPtr = Base::Window::makeWindow(addWindowConfig(config));
-	updateSensorStateForWindowOrientations(*winPtr);
-	return winPtr;
 }
 
 void Renderer::setWindowValidOrientations(Base::Window &win, Base::Orientation validO)
@@ -723,6 +703,35 @@ void GLRenderer::addEventHandlers(RendererTask &task)
 	#endif
 	if constexpr(Config::envIsIOS)
 		task.setIOSDrawableDelegates();
+}
+
+Base::NativeWindowFormat Renderer::nativeWindowFormat() const
+{
+	return gfxBufferConfig.windowFormat(glDpy);
+}
+
+std::optional<Base::GLBufferConfig> GLRenderer::makeGLBufferConfig(IG::PixelFormat pixelFormat)
+{
+	if(!pixelFormat)
+		pixelFormat = Base::Window::defaultPixelFormat();
+	Base::GLBufferConfigAttributes glBuffAttr;
+	glBuffAttr.setPixelFormat(pixelFormat);
+	auto dpy = glDpy;
+	if constexpr(Config::Gfx::OPENGL_ES >= 2)
+	{
+		if(auto config = Base::GLContext::makeBufferConfig(dpy, glBuffAttr, glAPI, 3);
+			config)
+		{
+			return config;
+		}
+		// fall back to OpenGL ES 2.0
+		return Base::GLContext::makeBufferConfig(dpy, glBuffAttr, glAPI, 2);
+	}
+	else
+	{
+		// OpenGL ES 1.0 or full OpenGL
+		return Base::GLContext::makeBufferConfig(dpy, glBuffAttr, glAPI);
+	}
 }
 
 }

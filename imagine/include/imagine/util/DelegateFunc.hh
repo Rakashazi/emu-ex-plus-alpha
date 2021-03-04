@@ -18,7 +18,8 @@
 #include <new>
 #include <cstdint>
 #include <cstddef>
-#include <cstring>
+#include <array>
+#include <compare>
 #include <type_traits>
 #include <imagine/util/utility.h>
 
@@ -53,7 +54,7 @@ public:
 		{
 			// construct from lambda
 			static_assert(sizeof(T) <= STORAGE_SIZE, "Delegate too big for storage");
-			new (execData.mem) T(funcObj);
+			new (execData.mem.data()) T(funcObj);
 		}
 	}
 
@@ -68,10 +69,7 @@ public:
 		return exec(execData, in...);
 	}
 
-	bool operator ==(DelegateFunc2 const &rhs) const
-	{
-		return std::memcmp(this, &rhs, sizeof(DelegateFunc2)) == 0;
-	}
+	constexpr bool operator ==(DelegateFunc2 const&) const = default;
 
 	R callCopy(ARGS ... in) const
 	{
@@ -103,18 +101,25 @@ public:
 private:
 	struct Storage
 	{
-		constexpr Storage() {}
-		constexpr Storage(R (*func)(ARGS...)): func{func} {}
-		const void *data() const { return mem; }
+		static_assert(sizeof(STORAGE_SIZE) >= sizeof(uintptr_t), "Storage must be large enough for 1 pointer");
 		union
 		{
-			R (*func)(ARGS...){};
-			char mem[STORAGE_SIZE];
+			std::array<char, STORAGE_SIZE> mem{};
+			R (*func)(ARGS...);
 		};
+
+		constexpr Storage() {}
+		constexpr Storage(R (*func)(ARGS...)): func{func} {}
+		constexpr const void *data() const { return mem.data(); }
+
+		constexpr bool operator ==(Storage const &rhs) const
+		{
+			return mem == rhs.mem;
+		}
 	};
 
 	R (*exec)(const Storage &, ARGS...){};
-	Storage execData;
+	Storage execData{};
 };
 
 template <typename R, typename ...ARGS>

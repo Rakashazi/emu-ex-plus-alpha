@@ -178,12 +178,23 @@ public:
 		return onDismiss_;
 	}
 
+	void setTitle(const char *str)
+	{
+		title_ = str;
+	}
+
+	const char *title() const
+	{
+		return title_;
+	}
+
 private:
 	Point2D<int> pos{-1, -1};
 	Point2D<int> size_{0, 0};
 	Point2D<int> minSize{320, 240};
 	NativeWindowFormat fmt{};
 	Screen *screen_{};
+	const char *title_{};
 	BaseWindow::SurfaceChangeDelegate onSurfaceChange_;
 	BaseWindow::DrawDelegate onDraw_;
 	BaseWindow::InputEventDelegate onInputEvent_;

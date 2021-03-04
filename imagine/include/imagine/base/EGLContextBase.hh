@@ -22,7 +22,9 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/WindowConfig.hh>
 #include <imagine/base/Error.hh>
+#include <imagine/base/glDefs.hh>
 #include <EGL/egl.h>
+#include <optional>
 
 namespace Base
 {
@@ -41,6 +43,8 @@ struct EGLBufferConfig
 		glConfig{eglConfig} {}
 
 	Base::NativeWindowFormat windowFormat(GLDisplay display) const;
+	EGLint renderableTypeBits(GLDisplay display) const;
+	bool maySupportGLES(GLDisplay display, unsigned majorVersion) const;
 };
 
 class EGLDisplayConnection
@@ -52,6 +56,7 @@ public:
 	static IG::ErrorCode initDisplay(EGLDisplay display);
 	const char *queryExtensions();
 	static const char *errorString(EGLint error);
+	static int makeRenderableType(GL::API, unsigned majorVersion);
 
 protected:
 	EGLDisplay display{EGL_NO_DISPLAY};
@@ -79,7 +84,7 @@ protected:
 	EGLContext context{EGL_NO_CONTEXT};
 
 	void deinit(EGLDisplay display);
-	static std::pair<bool, EGLConfig> chooseConfig(EGLDisplay display, GLContextAttributes ctxAttr, GLBufferConfigAttributes attr);
+	static std::optional<EGLConfig> chooseConfig(EGLDisplay display, int renderableType, GLBufferConfigAttributes attr);
 	static void setCurrentContext(EGLDisplay display, EGLContext context, GLDrawable win);
 };
 

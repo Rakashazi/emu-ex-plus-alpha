@@ -19,6 +19,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include "utils.hh"
+#include "internalDefs.hh"
 
 namespace Gfx
 {
@@ -41,17 +42,13 @@ void GLRenderer::setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat)
 	#endif
 }
 
-void Renderer::setProjectionMatrixRotation(Angle angle)
-{
-	projectionMatRot = angle;
-}
-
 void RendererCommands::setProjectionMatrix(Mat4 mat)
 {
-	if(renderer().projectionMatRot)
+	auto projectionMatRot = winPtr ? (Angle)winData(*winPtr).projAngleM : Angle{};
+	if(projectionMatRot)
 	{
-		logMsg("rotated projection matrix by %f degrees", (double)IG::degrees(renderer().projectionMatRot));
-		auto rotatedMat = mat.rollRotate(renderer().projectionMatRot);
+		logMsg("rotated projection matrix by %f degrees", (double)IG::degrees(projectionMatRot));
+		auto rotatedMat = mat.rollRotate(projectionMatRot);
 		renderer().setGLProjectionMatrix(*this, rotatedMat);
 	}
 	else
@@ -63,12 +60,11 @@ void RendererCommands::setProjectionMatrix(Mat4 mat)
 
 void Renderer::animateProjectionMatrixRotation(Base::Window &win, Angle srcAngle, Angle destAngle)
 {
-	projAngleM = {srcAngle, destAngle, {}, IG::steadyClockTimestamp(), IG::Milliseconds{165}};
+	winData(win).projAngleM = {srcAngle, destAngle, {}, IG::steadyClockTimestamp(), IG::Milliseconds{165}};
 	win.addOnFrame(
 		[this, &win](IG::FrameParams params)
 		{
-			bool didUpdate = projAngleM.update(params.timestamp());
-			setProjectionMatrixRotation(projAngleM);
+			bool didUpdate = winData(win).projAngleM.update(params.timestamp());
 			win.postDraw();
 			return didUpdate;
 		});

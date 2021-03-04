@@ -152,6 +152,7 @@ public:
 	static const char *shortSystemName();
 	static const BundledGameInfo &bundledGameInfo(uint idx);
 	static const char *gamePath() { return gamePath_.data(); }
+	static FS::PathString gamePathString() { return gamePath_; }
 	static const char *fullGamePath() { return fullGamePath_.data(); }
 	static FS::FileString gameName() { return gameName_; }
 	static FS::FileString fullGameName() { return strlen(fullGameName_.data()) ? fullGameName_ : gameName_; }
@@ -160,6 +161,7 @@ public:
 	static void setFullGameName(const char *name) { string_copy(fullGameName_, name); }
 	static FS::FileString fullGameNameForPathDefaultImpl(const char *path);
 	static FS::FileString fullGameNameForPath(const char *path);
+	static void setInitialLoadPath(const char *path);
 	static FS::PathString baseSavePath();
 	static FS::PathString makeDefaultBaseSavePath();
 	static void makeDefaultSavePath();
@@ -226,10 +228,7 @@ public:
 	static void clearGamePaths();
 	static FS::PathString baseDefaultGameSavePath();
 	static IG::Time benchmark(EmuVideo &video);
-	static bool gameIsRunning()
-	{
-		return !string_equal(gameName_.data(), "");
-	}
+	static bool gameIsRunning();
 	static void resetFrameTime();
 	static void prepareAudioVideo(EmuAudio &audio, EmuVideo &video);
 	static void prepareVideo(EmuVideo &video);

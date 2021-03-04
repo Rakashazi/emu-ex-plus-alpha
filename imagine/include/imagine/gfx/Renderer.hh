@@ -56,19 +56,10 @@ class RendererConfig
 {
 public:
 	constexpr RendererConfig() {}
-	constexpr RendererConfig(IG::PixelFormat pixelFormat): pixelFormat_{pixelFormat} {}
+	constexpr RendererConfig(IG::PixelFormat pixelFormat):pixelFormat_{pixelFormat} {}
+	constexpr IG::PixelFormat pixelFormat() const { return pixelFormat_; };
 
-	void setPixelFormat(IG::PixelFormat pixelFormat)
-	{
-		pixelFormat_ = pixelFormat;
-	}
-
-	IG::PixelFormat pixelFormat() const
-	{
-		return pixelFormat_;
-	}
-
-private:
+protected:
 	IG::PixelFormat pixelFormat_{};
 };
 
@@ -76,23 +67,24 @@ class Renderer : public RendererImpl
 {
 public:
 	using RendererImpl::RendererImpl;
-	constexpr Renderer() {}
-	Renderer(Error &err);
-	Renderer(RendererConfig config, Error &err);
-	Renderer(Renderer &&o);
-	Renderer &operator=(Renderer &&o);
-	static std::pair<Renderer, Error> makeConfiguredRenderer(RendererConfig config = {});
+	Renderer(Base::Window *initialWindow, Error &err);
+	Renderer(RendererConfig config, Base::Window *initialWindow, Error &err);
+	Renderer(const Renderer &o) = delete;
+	Renderer &operator=(const Renderer &o) = delete;
+	Renderer(Renderer &&o) = delete;
+	Renderer &operator=(Renderer &&o) = delete;
 	void configureRenderer();
 	bool isConfigured() const;
-	RendererTask &task() const;
-	Base::WindowConfig addWindowConfig(Base::WindowConfig config) const;
-	Base::Window *makeWindow(Base::WindowConfig config);
+	const RendererTask &task() const;
+	RendererTask &task();
+	bool attachWindow(Base::Window &);
+	void detachWindow(Base::Window &);
+	Base::NativeWindowFormat nativeWindowFormat() const;
 	void setWindowValidOrientations(Base::Window &win, Base::Orientation validO);
-	void setProjectionMatrixRotation(Angle angle);
 	void animateProjectionMatrixRotation(Base::Window &win, Angle srcAngle, Angle destAngle);
 	static ClipRect makeClipRect(const Base::Window &win, IG::WindowRect rect);
 	bool supportsSyncFences() const;
-	void setPresentationTime(Drawable drawable, IG::FrameTime time) const;
+	void setPresentationTime(Base::Window &, IG::FrameTime time) const;
 	unsigned maxSwapChainImages() const;
 
 	// shaders

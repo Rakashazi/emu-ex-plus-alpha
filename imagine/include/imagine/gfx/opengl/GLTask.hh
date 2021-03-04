@@ -31,7 +31,13 @@ namespace Gfx
 
 class Renderer;
 class GLRendererTask;
-class DrawableHolder;
+
+struct GLTaskConfig
+{
+	Base::GLBufferConfig bufferConfig{};
+	Drawable initialDrawable{};
+	int threadPriority{};
+};
 
 // Wraps an OpenGL context in a thread + message port
 class GLTask
@@ -85,10 +91,13 @@ public:
 	};
 
 	GLTask();
-	GLTask(const char *debugLabel, Base::GLContext context, int threadPriority = 0);
-	GLTask(GLTask &&o) = default;
-	GLTask &operator=(GLTask &&o) = default;
+	GLTask(const char *debugLabel);
+	GLTask(const GLTask &o) = delete;
+	GLTask &operator=(const GLTask &o) = delete;
+	GLTask(GLTask &&o) = delete;
+	GLTask &operator=(GLTask &&o) = delete;
 	~GLTask();
+	Error makeGLContext(GLTaskConfig);
 	void runFunc(FuncDelegate del, bool awaitReply);
 	Base::GLContext glContext() const;
 	explicit operator bool() const;
@@ -133,6 +142,7 @@ protected:
 	Base::OnExit onExit{};
 	Base::MessagePort<CommandMessage> commandPort{Base::MessagePort<CommandMessage>::NullInit{}};
 
+	Base::GLContext makeGLContext(Base::GLDisplay dpy, Base::GLBufferConfig bufferConf);
 	void deinit();
 };
 

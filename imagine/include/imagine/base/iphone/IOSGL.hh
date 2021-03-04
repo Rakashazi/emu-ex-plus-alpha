@@ -63,6 +63,7 @@ struct GLBufferConfig
 	bool useRGB565 = false;
 
 	Base::NativeWindowFormat windowFormat(GLDisplay display) const;
+	bool maySupportGLES(GLDisplay, unsigned majorVersion) const;
 };
 
 using GLDrawableImpl = EAGLViewDrawable;

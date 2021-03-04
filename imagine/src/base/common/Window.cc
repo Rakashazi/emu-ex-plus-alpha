@@ -59,16 +59,18 @@ void deinitWindows()
 	#endif
 }
 
-Window *Window::makeWindow(WindowConfig config)
+Window *Window::makeWindow(WindowConfig config, InitDelegate onInit)
 {
 	auto winPtr = std::make_unique<Window>();
-	if(auto ec = winPtr->init(config);
+	if(auto ec = winPtr->init(config, onInit);
 		ec)
 	{
 		return nullptr;
 	}
 	auto ptr = winPtr.get();
 	addWindow(std::move(winPtr));
+	if(shouldRunOnInitAfterAddingWindow && onInit)
+		onInit(*ptr);
 	return ptr;
 }
 
@@ -144,6 +146,11 @@ void BaseWindow::initDelegates(const WindowConfig &config)
 						return false;
 					}, WINDOW_ON_RESUME_PRIORITY
 				);
+			}
+			else
+			{
+				static_cast<Window*>(this)->resetAppData();
+				static_cast<Window*>(this)->resetRendererData();
 			}
 			return true;
 		}, WINDOW_ON_EXIT_PRIORITY
@@ -232,6 +239,16 @@ bool Window::removeOnFrame(Base::OnFrameDelegate del, FrameTimeSource clock)
 	{
 		return onFrame.remove(del);
 	}
+}
+
+void Window::resetAppData()
+{
+	appDataPtr.reset();
+}
+
+void Window::resetRendererData()
+{
+	rendererDataPtr.reset();
 }
 
 Window &mainWindow()
@@ -350,6 +367,13 @@ void Window::dispatchDismissRequest()
 void Window::dispatchSurfaceChange()
 {
 	onSurfaceChange.callCopy(*this, std::exchange(surfaceChange, {}));
+}
+
+void Window::dispatchSurfaceDestroyed()
+{
+	unpostDraw();
+	surfaceChange.addDestroyed();
+	dispatchSurfaceChange();
 }
 
 void Window::dispatchOnDraw(bool needsSync)

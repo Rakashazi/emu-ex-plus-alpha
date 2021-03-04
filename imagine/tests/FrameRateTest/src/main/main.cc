@@ -40,15 +40,14 @@ struct WindowData
 {
 	WindowData(ViewAttachParams attachParams):picker{attachParams} {}
 
-	Gfx::DrawableHolder drawableHolder{};
 	Gfx::Projection proj{};
 	IG::WindowRect testRectWin{};
 	Gfx::GCRect testRect{};
 	TestPicker picker;
+	std::unique_ptr<TestFramework> activeTest{};
 };
 
 static std::unique_ptr<Gfx::Renderer> rendererPtr{};
-static std::unique_ptr<TestFramework> activeTest{};
 #ifdef __ANDROID__
 static std::unique_ptr<Base::RootCpufreqParamSetter> cpuFreq{};
 #endif
@@ -57,7 +56,7 @@ static void finishTest(Base::Window &win, Gfx::Renderer &r, IG::FrameTime frameT
 
 static WindowData &windowData(const Base::Window &win)
 {
-	return *win.customData<WindowData>();
+	return *win.appData<WindowData>();
 }
 
 static void setPickerHandlers(Base::Window &win, Gfx::Renderer &r)
@@ -66,8 +65,8 @@ static void setPickerHandlers(Base::Window &win, Gfx::Renderer &r)
 		[&task = r.task()](Base::Window &win, Base::Window::DrawParams params)
 		{
 			auto &winData = windowData(win);
-			task.draw(winData.drawableHolder, win, params, {}, winData.proj.plane().viewport(), winData.proj.matrix(),
-				[&picker = winData.picker](Gfx::DrawableHolder &drawableHolder, Base::Window &win, Gfx::RendererCommands &cmds)
+			task.draw(win, params, {}, winData.proj.plane().viewport(), winData.proj.matrix(),
+				[&picker = winData.picker](Base::Window &win, Gfx::RendererCommands &cmds)
 				{
 					cmds.clear();
 					picker.draw(cmds);
@@ -83,8 +82,8 @@ static void setActiveTestHandlers(Base::Window &win, Gfx::Renderer &r)
 	win.addOnFrame([&win, &r](Base::FrameParams params)
 		{
 			auto atOnFrame = IG::steadyClockTimestamp();
-			auto &winData = windowData(win);
-			r.setPresentationTime(winData.drawableHolder, params.presentTime());
+			r.setPresentationTime(win, params.presentTime());
+			auto &activeTest = windowData(win).activeTest;
 			if(activeTest->started)
 			{
 				activeTest->frameUpdate(r.task(), win, params);
@@ -110,10 +109,10 @@ static void setActiveTestHandlers(Base::Window &win, Gfx::Renderer &r)
 		[&task = r.task()](Base::Window &win, Base::Window::DrawParams params)
 		{
 			auto &winData = windowData(win);
-			task.draw(winData.drawableHolder, win, params, {}, winData.proj.plane().viewport(), winData.proj.matrix(),
-				[rect = winData.testRectWin](Gfx::DrawableHolder &drawableHolder, Base::Window &win, Gfx::RendererCommands &cmds)
+			task.draw(win, params, {}, winData.proj.plane().viewport(), winData.proj.matrix(),
+				[rect = winData.testRectWin, &activeTest = windowData(win).activeTest]
+				(Base::Window &win, Gfx::RendererCommands &cmds)
 				{
-					cmds.setClipTest(false);
 					activeTest->draw(cmds, cmds.renderer().makeClipRect(win, rect));
 					activeTest->lastFramePresentTime.atWinPresent = IG::steadyClockTimestamp();
 					activeTest->presentFence = cmds.clientWaitSyncReset(activeTest->presentFence);
@@ -128,6 +127,7 @@ static void placeElements(const Base::Window &win, Gfx::Renderer &r)
 	auto &winData = windowData(win);
 	auto &picker = winData.picker;
 	auto projP = winData.proj.plane();
+	auto &activeTest = winData.activeTest;
 	TableView::setDefaultXIndent(win, projP);
 	if(!activeTest)
 	{
@@ -142,6 +142,7 @@ static void placeElements(const Base::Window &win, Gfx::Renderer &r)
 
 static void finishTest(Base::Window &win, Gfx::Renderer &r, IG::FrameTime frameTime)
 {
+	auto &activeTest = windowData(win).activeTest;
 	if(activeTest)
 	{
 		activeTest->finish(r.task(), frameTime);
@@ -168,6 +169,7 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 		cpuFreq->setLowLatency();
 	Base::setSustainedPerformanceMode(true);
 	#endif
+	auto &activeTest = windowData(win).activeTest;
 	switch(t.test)
 	{
 		bcase TEST_CLEAR:
@@ -192,108 +194,113 @@ namespace Base
 
 void onInit(int argc, char** argv)
 {
-	{
-		auto [r, err] = Gfx::Renderer::makeConfiguredRenderer();
-		if(err)
-		{
-			Base::exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
-			return;
-		}
-		rendererPtr = std::make_unique<Gfx::Renderer>(std::move(r));
-	}
-	auto &renderer = *rendererPtr;
-	View::compileGfxPrograms(renderer);
-	View::defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{});
-
 	WindowConfig winConf;
+	winConf.setTitle("Frame Rate Test");
 
-	winConf.setOnSurfaceChange(
-		[&renderer](Base::Window &win, Base::Window::SurfaceChange change)
+	auto &mainWin = *Window::makeWindow(winConf,
+		[](Window &win)
 		{
-			auto &winData = windowData(win);
-			renderer.task().updateDrawableForSurfaceChange(winData.drawableHolder, win, change);
-			if(change.resized())
 			{
-				auto viewport = Gfx::Viewport::makeFromWindow(win);
-				winData.proj = {viewport, Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.)};
-				winData.testRectWin = viewport.rectWithRatioBestFitFromViewport(0, 0, 4./3., C2DO, C2DO);
-				winData.testRect = winData.proj.plane().unProjectRect(winData.testRectWin);
-				placeElements(win, renderer);
-			}
-		});
-
-	winConf.setOnInputEvent(
-		[](Base::Window &win, Input::Event e)
-		{
-			if(!activeTest)
-			{
-				if(e.pushed() && !e.repeated() && e.isDefaultCancelButton())
+				Gfx::Error err;
+				rendererPtr = std::make_unique<Gfx::Renderer>(&win, err);
+				if(err)
 				{
-					Base::exit();
+					Base::exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
+					return;
+				}
+			}
+			auto &renderer = *rendererPtr;
+			auto &winData = win.makeAppData<WindowData>(ViewAttachParams{win, renderer.task()});
+			View::compileGfxPrograms(renderer);
+			View::defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{});
+
+			uint faceSize = win.heightSMMInPixels(3.5);
+			View::defaultFace.setFontSettings(renderer, faceSize);
+			View::defaultFace.precacheAlphaNum(renderer);
+			View::defaultFace.precache(renderer, ":.%()");
+			std::vector<TestDesc> testDesc;
+			testDesc.emplace_back(TEST_CLEAR, "Clear");
+			IG::WP pixmapSize{256, 256};
+			for(auto desc: renderer.textureBufferModes())
+			{
+				testDesc.emplace_back(TEST_DRAW, string_makePrintf<64>("Draw RGB565 %ux%u (%s)", pixmapSize.x, pixmapSize.y, desc.name).data(),
+					pixmapSize, desc.mode);
+				testDesc.emplace_back(TEST_WRITE, string_makePrintf<64>("Write RGB565 %ux%u (%s)", pixmapSize.x, pixmapSize.y, desc.name).data(),
+					pixmapSize, desc.mode);
+			}
+			auto &picker = winData.picker;
+			picker.setTests(testDesc.data(), testDesc.size());
+			setPickerHandlers(win, renderer);
+
+			win.setOnSurfaceChange(
+				[&renderer](Base::Window &win, Base::Window::SurfaceChange change)
+				{
+					auto &winData = windowData(win);
+					renderer.task().updateDrawableForSurfaceChange(win, change);
+					if(change.resized())
+					{
+						auto viewport = Gfx::Viewport::makeFromWindow(win);
+						winData.proj = {viewport, Gfx::Mat4::makePerspectiveFovRH(M_PI/4.0, viewport.realAspectRatio(), 1.0, 100.)};
+						winData.testRectWin = viewport.rectWithRatioBestFitFromViewport(0, 0, 4./3., C2DO, C2DO);
+						winData.testRect = winData.proj.plane().unProjectRect(winData.testRectWin);
+						placeElements(win, renderer);
+					}
+				});
+
+			win.setOnInputEvent(
+				[](Base::Window &win, Input::Event e)
+				{
+					auto &activeTest = windowData(win).activeTest;
+					if(!activeTest)
+					{
+						if(e.pushed() && !e.repeated() && e.isDefaultCancelButton())
+						{
+							Base::exit();
+							return true;
+						}
+						return windowData(win).picker.inputEvent(e);
+					}
+					else if(e.pushed() && (e.isDefaultCancelButton() || Config::envIsIOS))
+					{
+						logMsg("canceled activeTest from input");
+						activeTest->shouldEndTest = true;
+						return true;
+					}
+					else if(e.pushed(Input::Keycode::D))
+					{
+						logMsg("posting extra draw");
+						win.postDraw();
+					}
+					return false;
+				});
+
+			Base::addOnResume(
+				[&renderer, &win](bool focused)
+				{
+					windowData(win).picker.prepareDraw();
+					auto &activeTest = windowData(win).activeTest;
+					if(activeTest)
+					{
+						activeTest->prepareDraw(renderer);
+					}
 					return true;
-				}
-				return windowData(win).picker.inputEvent(e);
-			}
-			else if(e.pushed() && (e.isDefaultCancelButton() || Config::envIsIOS))
-			{
-				logMsg("canceled activeTest from input");
-				activeTest->shouldEndTest = true;
-				return true;
-			}
-			else if(e.pushed(Input::Keycode::D))
-			{
-				logMsg("posting extra draw");
-				win.postDraw();
-			}
-			return false;
-		});
+				});
 
-	auto &mainWin = *renderer.makeWindow(winConf);
-	mainWin.setTitle("Frame Rate Test");
-
-	uint faceSize = mainWin.heightSMMInPixels(3.5);
-	View::defaultFace.setFontSettings(renderer, faceSize);
-	View::defaultFace.precacheAlphaNum(renderer);
-	View::defaultFace.precache(renderer, ":.%()");
-	std::vector<TestDesc> testDesc;
-	testDesc.emplace_back(TEST_CLEAR, "Clear");
-	IG::WP pixmapSize{256, 256};
-	for(auto desc: renderer.textureBufferModes())
-	{
-		testDesc.emplace_back(TEST_DRAW, string_makePrintf<64>("Draw RGB565 %ux%u (%s)", pixmapSize.x, pixmapSize.y, desc.name).data(),
-			pixmapSize, desc.mode);
-		testDesc.emplace_back(TEST_WRITE, string_makePrintf<64>("Write RGB565 %ux%u (%s)", pixmapSize.x, pixmapSize.y, desc.name).data(),
-			pixmapSize, desc.mode);
-	}
-	mainWin.makeCustomData<WindowData>(ViewAttachParams{mainWin, renderer.task()});
-	auto &picker = windowData(mainWin).picker;
-	picker.setTests(testDesc.data(), testDesc.size());
-	setPickerHandlers(mainWin, renderer);
-	mainWin.show();
-
-	Base::addOnResume(
-		[&renderer, &mainWin](bool focused)
-		{
-			windowData(mainWin).picker.prepareDraw();
-			if(activeTest)
-			{
-				activeTest->prepareDraw(renderer);
-			}
-			return true;
-		});
-
-	Base::addOnExit(
-		[&renderer, &mainWin](bool backgrounded)
-		{
-			if(backgrounded)
-			{
-				if(activeTest)
+			Base::addOnExit(
+				[&renderer, &win](bool backgrounded)
 				{
-					finishTest(mainWin, renderer, IG::steadyClockTimestamp());
-				}
-				View::defaultFace.freeCaches();
-			}
-			return true;
+					if(backgrounded)
+					{
+						if(windowData(win).activeTest)
+						{
+							finishTest(win, renderer, IG::steadyClockTimestamp());
+						}
+						View::defaultFace.freeCaches();
+					}
+					return true;
+				});
+
+			win.show();
 		});
 
 	#ifdef __ANDROID__

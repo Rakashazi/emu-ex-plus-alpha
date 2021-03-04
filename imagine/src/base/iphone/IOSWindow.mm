@@ -168,7 +168,7 @@ IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 	return {(size.x / (float)dpi) * 25.4f, (size.y / (float)dpi) * 25.4f};
 }
 
-IG::ErrorCode Window::init(const WindowConfig &config)
+IG::ErrorCode Window::init(const WindowConfig &config, InitDelegate)
 {
 	if(uiWin_)
 		return {};
@@ -255,6 +255,8 @@ NativeWindow Window::nativeObject() const
 {
 	return uiWin_;
 }
+
+void Window::setFormat(NativeWindowFormat) {}
 
 void Window::setIntendedFrameRate(double rate) {}
 

@@ -34,7 +34,7 @@ std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault()
 	return {};
 }
 
-std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(GLDisplay::API api)
+std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(GL::API api)
 {
 	if(!bindAPI(api))
 	{
@@ -49,7 +49,7 @@ GLDisplay GLDisplay::getDefault()
 	return {};
 }
 
-GLDisplay GLDisplay::getDefault(API api)
+GLDisplay GLDisplay::getDefault(GL::API api)
 {
 	if(!bindAPI(api))
 	{
@@ -71,9 +71,9 @@ bool GLDisplay::operator ==(GLDisplay const &rhs) const
 
 void GLDisplay::logInfo() const {}
 
-bool GLDisplay::bindAPI(API api)
+bool GLDisplay::bindAPI(GL::API api)
 {
-	return api == API::OPENGL_ES;
+	return api == GL::API::OPENGL_ES;
 }
 
 bool GLDisplay::deinit()
@@ -136,11 +136,18 @@ bool GLDrawable::destroy(GLDisplay display)
 	return true;
 }
 
-bool GLContext::isCurrentDrawable(GLDisplay display, GLDrawable drawable)
+bool GLContext::hasCurrentDrawable(GLDisplay display, GLDrawable drawable)
 {
 	GLint renderBuffer = 0;
 	glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &renderBuffer);
 	return drawable.glView().colorRenderbuffer == (GLuint)renderBuffer;
+}
+
+bool GLContext::hasCurrentDrawable(GLDisplay display)
+{
+	GLint renderBuffer = 0;
+	glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &renderBuffer);
+	return renderBuffer;
 }
 
 // GLContext
@@ -179,14 +186,14 @@ GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig
 	GLContext{display, attr, config, {}, ec}
 {}
 
-std::pair<bool, GLBufferConfig> GLContext::makeBufferConfig(GLDisplay, GLContextAttributes, GLBufferConfigAttributes attr)
+std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay, GLBufferConfigAttributes attr, GL::API, unsigned)
 {
 	GLBufferConfig conf;
 	if(attr.pixelFormat() == PIXEL_RGB565)
 	{
 		conf.useRGB565 = true;
 	}
-	return {true, conf};
+	return conf;
 }
 
 void GLContext::setCurrent(GLDisplay, GLContext c, GLDrawable win)
@@ -282,6 +289,11 @@ NativeGLContext GLContext::nativeObject()
 Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay) const
 {
 	return {};
+}
+
+bool GLBufferConfig::maySupportGLES(GLDisplay, unsigned majorVersion) const
+{
+	return majorVersion >= 1 && majorVersion <= 3;
 }
 
 }

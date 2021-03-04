@@ -40,6 +40,7 @@ class BaseWindow
 public:
 	using SurfaceChange = WindowSurfaceChange;
 	using DrawParams = WindowDrawParams;
+	using InitDelegate = DelegateFunc<void (Window &win)>;
 	using SurfaceChangeDelegate = DelegateFunc<void (Window &win, WindowSurfaceChange change)>;
 	using DrawDelegate = DelegateFunc<bool (Window &win, WindowDrawParams params)>;
 	using InputEventDelegate = DelegateFunc<bool (Window &win, Input::Event event)>;
@@ -57,7 +58,8 @@ protected:
 	};
 
 	IG_enableMemberIf(Config::BASE_MULTI_SCREEN, Screen *, screen_){};
-	std::shared_ptr<void> customDataPtr{};
+	std::shared_ptr<void> appDataPtr{};
+	std::shared_ptr<void> rendererDataPtr{};
 	SurfaceChangeDelegate onSurfaceChange{};
 	DrawDelegate onDraw{};
 	InputEventDelegate onInputEvent{};
@@ -82,6 +84,7 @@ protected:
 	IG_enableMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, softOrientation_){VIEW_ROTATE_0};
 	IG_enableMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, setSoftOrientation){VIEW_ROTATE_0};
 	IG_enableMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, validSoftOrientations_){VIEW_ROTATE_0};
+	static constexpr bool shouldRunOnInitAfterAddingWindow = true;
 
 	void setOnSurfaceChange(SurfaceChangeDelegate del);
 	void setOnDraw(DrawDelegate del);

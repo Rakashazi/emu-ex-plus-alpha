@@ -299,6 +299,11 @@ void EmuSystem::closeRuntimeSystem(bool allowAutosaveState)
 	clearGamePaths();
 }
 
+bool EmuSystem::gameIsRunning()
+{
+	return gameName_[0];
+}
+
 void EmuSystem::resetFrameTime()
 {
 	emuTiming.reset();
@@ -587,6 +592,12 @@ FS::FileString EmuSystem::fullGameNameForPathDefaultImpl(const char *path)
 		*dotpos = 0;
 	//logMsg("full game name:%s", basename.data());
 	return basename;
+}
+
+void EmuSystem::setInitialLoadPath(const char *path)
+{
+	assert(!strlen(gameName_.data()));
+	string_copy(gamePath_, path);
 }
 
 char EmuSystem::saveSlotChar(int slot)

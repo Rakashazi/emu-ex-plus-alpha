@@ -234,14 +234,16 @@ void mainInitCommon(int argc, char** argv)
 	Base::registerInstance(appID(), argc, argv);
 	Base::setAcceptIPC(appID(), true);
 	Base::setOnInterProcessMessage(
-		[](const char *filename)
+		[](const char *path)
 		{
-			logMsg("got IPC: %s", filename);
-			emuViewController().handleOpenFileCommand(filename);
+			logMsg("got IPC path:%s", path);
+			EmuSystem::setInitialLoadPath(path);
 		});
 	optionVControllerLayoutPos.setVController(vController);
 	initOptions();
 	auto launchGame = parseCmdLineArgs(argc, argv);
+	if(launchGame)
+		EmuSystem::setInitialLoadPath(launchGame);
 	loadConfigFile();
 	if(auto err = EmuSystem::onOptionsLoaded();
 		err)
@@ -250,49 +252,10 @@ void mainInitCommon(int argc, char** argv)
 		return;
 	}
 	AudioManager::setMusicVolumeControlHint();
-	AudioManager::startSession();
 	if(optionSoundRate > optionSoundRate.defaultVal)
 		optionSoundRate.reset();
 	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
 	applyOSNavStyle(false);
-
-	{
-		auto [r, err] = Gfx::Renderer::makeConfiguredRenderer({windowPixelFormat()});
-		if(err)
-		{
-			Base::exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
-			return;
-		}
-		if(!supportsVideoImageBuffersOption(r))
-			optionVideoImageBuffers.resetToConst();
-		rendererPtr = std::make_unique<Gfx::Renderer>(std::move(r));
-	}
-	auto &renderer = *rendererPtr;
-	if(optionTextureBufferMode.val)
-	{
-		auto mode = (Gfx::TextureBufferMode)optionTextureBufferMode.val;
-		if(renderer.makeValidTextureBufferMode(mode) != mode)
-		{
-			// reset to default if saved non-default mode isn't supported
-			optionTextureBufferMode.reset();
-		}
-	}
-	vController.setRenderer(renderer);
-	emuVideo.setRendererTask(renderer.task());
-	emuVideo.setTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val);
-	emuVideo.setImageBuffers(optionVideoImageBuffers);
-	emuVideoLayerPtr = std::make_unique<EmuVideoLayer>(emuVideo, optionImgFilter);
-	auto &emuVideoLayer = *emuVideoLayerPtr;
-	emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
-
-	auto compiled = renderer.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
-	compiled |= renderer.makeCommonProgram(Gfx::CommonProgram::NO_TEX);
-	compiled |= View::compileGfxPrograms(renderer);
-	if(compiled)
-		renderer.autoReleaseShaderCompiler();
-
-	View::defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{});
-	View::defaultBoldFace = Gfx::GlyphTextureSet::makeBoldSystem(renderer, IG::FontSettings{});
 
 	Base::addOnResume(
 		[](bool focused)
@@ -303,15 +266,6 @@ void mainInitCommon(int argc, char** argv)
 			if(!keyMapping)
 				keyMapping.buildAll();
 			return true;
-		});
-
-	Base::setOnFreeCaches(
-		[](bool running)
-		{
-			View::defaultFace.freeCaches();
-			View::defaultBoldFace.freeCaches();
-			if(running)
-				emuViewController().prepareDraw();
 		});
 
 	Base::addOnExit(
@@ -352,84 +306,150 @@ void mainInitCommon(int argc, char** argv)
 			return true;
 		});
 
-	Base::Screen::setOnChange(
-		[](Base::Screen &screen, Base::Screen::Change change)
-		{
-			emuViewController().onScreenChange(screen, change);
-		});
-
-	Input::setOnDevicesEnumerated(
-		[]()
-		{
-			logMsg("input devs enumerated");
-			updateInputDevices(emuViewController());
-			emuViewController().updateAutoOnScreenControlVisible();
-		});
-
-	Input::setOnDeviceChange(
-		[](const Input::Device &dev, Input::Device::Change change)
-		{
-			logMsg("got input dev change");
-
-			updateInputDevices(emuViewController());
-			emuViewController().updateAutoOnScreenControlVisible();
-
-			if(optionNotifyInputDeviceChange && (change.added() || change.removed()))
-			{
-				EmuApp::printfMessage(2, 0, "%s #%d %s", dev.name(), dev.enumId() + 1, change.added() ? "connected" : "disconnected");
-			}
-			else if(change.hadConnectError())
-			{
-				EmuApp::printfMessage(2, 1, "%s had a connection error", dev.name());
-			}
-
-			emuViewController().onInputDevicesChanged();
-		});
-
 	if(Base::usesPermission(Base::Permission::WRITE_EXT_STORAGE) &&
 		!Base::requestPermission(Base::Permission::WRITE_EXT_STORAGE))
 	{
 		logMsg("requested external storage write permissions");
 	}
-	auto &win = *renderer.makeWindow({});
-	win.makeCustomData<WindowData>();
-	auto &winData = windowData(win);
-	setupFont(renderer, win);
-	winData.projection = updateProjection(makeViewport(win));
-	win.setTitle(appName());
-	win.setAcceptDnd(true);
-	renderer.setWindowValidOrientations(win, optionMenuOrientation);
-	vController.setWindow(win);
-	initVControls(vController, renderer);
-	ViewAttachParams viewAttach{win, renderer.task()};
-	emuViewControllerPtr = std::make_unique<EmuViewController>(viewAttach, vController, emuVideoLayer, emuSystemTask);
 
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	if(optionMOGAInputSystem)
 		Input::initMOGA(false);
 	#endif
-	updateInputDevices(*emuViewControllerPtr);
+	updateInputDevices();
 
-	#if defined CONFIG_BASE_ANDROID
-	if(!Base::apkSignatureIsConsistent())
-	{
-		auto ynAlertView = std::make_unique<YesNoAlertView>(ViewAttachParams{win, renderer.task()}, "Warning: App has been modified by 3rd party, use at your own risk");
-		ynAlertView->setOnNo(
-			[]()
+	Base::WindowConfig winConf{};
+	winConf.setTitle(appName());
+
+	Base::Window::makeWindow(winConf,
+		[](Base::Window &win)
+		{
 			{
-				Base::exit();
-			});
-		emuViewControllerPtr->pushAndShowModal(std::move(ynAlertView), Input::defaultEvent(), false);
-	}
-	#endif
+				Gfx::Error err;
+				rendererPtr = std::make_unique<Gfx::Renderer>(Gfx::RendererConfig{windowPixelFormat()}, &win, err);
+				if(err)
+				{
+					Base::exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
+					return;
+				}
+			}
+			auto &renderer = *rendererPtr;
+			if(!supportsVideoImageBuffersOption(renderer))
+				optionVideoImageBuffers.resetToConst();
+			if(optionTextureBufferMode.val)
+			{
+				auto mode = (Gfx::TextureBufferMode)optionTextureBufferMode.val;
+				if(renderer.makeValidTextureBufferMode(mode) != mode)
+				{
+					// reset to default if saved non-default mode isn't supported
+					optionTextureBufferMode.reset();
+				}
+			}
+			vController.setRenderer(renderer);
+			emuVideo.setRendererTask(renderer.task());
+			emuVideo.setTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val);
+			emuVideo.setImageBuffers(optionVideoImageBuffers);
+			emuVideoLayerPtr = std::make_unique<EmuVideoLayer>(emuVideo, optionImgFilter);
+			auto &emuVideoLayer = *emuVideoLayerPtr;
+			emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
 
-	win.show();
-	win.postDraw();
-	EmuApp::onMainWindowCreated(viewAttach, Input::defaultEvent());
-	if(launchGame)
-	{
-		emuViewControllerPtr->handleOpenFileCommand(launchGame);
-	}
+			auto compiled = renderer.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
+			compiled |= renderer.makeCommonProgram(Gfx::CommonProgram::NO_TEX);
+			compiled |= View::compileGfxPrograms(renderer);
+			if(compiled)
+				renderer.autoReleaseShaderCompiler();
+
+			View::defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{});
+			View::defaultBoldFace = Gfx::GlyphTextureSet::makeBoldSystem(renderer, IG::FontSettings{});
+
+			win.makeAppData<WindowData>();
+			auto &winData = windowData(win);
+			setupFont(renderer, win);
+			winData.projection = updateProjection(makeViewport(win));
+			win.setAcceptDnd(true);
+			renderer.setWindowValidOrientations(win, optionMenuOrientation);
+			vController.setWindow(win);
+			initVControls(vController, renderer);
+			ViewAttachParams viewAttach{win, renderer.task()};
+			emuViewControllerPtr = std::make_unique<EmuViewController>(viewAttach, vController, emuVideoLayer, emuSystemTask);
+			auto &emuViewController = *emuViewControllerPtr;
+
+			#if defined CONFIG_BASE_ANDROID
+			if(!Base::apkSignatureIsConsistent())
+			{
+				auto ynAlertView = std::make_unique<YesNoAlertView>(ViewAttachParams{win, renderer.task()}, "Warning: App has been modified by 3rd party, use at your own risk");
+				ynAlertView->setOnNo(
+					[]()
+					{
+						Base::exit();
+					});
+				emuViewControllerPtr->pushAndShowModal(std::move(ynAlertView), Input::defaultEvent(), false);
+			}
+			#endif
+
+			EmuApp::onMainWindowCreated(viewAttach, Input::defaultEvent());
+
+			Base::setOnInterProcessMessage(
+				[&emuViewController](const char *path)
+				{
+					logMsg("got IPC path:%s", path);
+					emuViewController.handleOpenFileCommand(path);
+				});
+
+			Base::Screen::setOnChange(
+				[&emuViewController](Base::Screen &screen, Base::Screen::Change change)
+				{
+					emuViewController.onScreenChange(screen, change);
+				});
+
+			Input::setOnDevicesEnumerated(
+				[&emuViewController]()
+				{
+					logMsg("input devs enumerated");
+					updateInputDevices();
+					emuViewController.setPhysicalControlsPresent(Input::keyInputIsPresent());
+					emuViewController.updateAutoOnScreenControlVisible();
+				});
+
+			Input::setOnDeviceChange(
+				[&emuViewController](const Input::Device &dev, Input::Device::Change change)
+				{
+					logMsg("got input dev change");
+
+					updateInputDevices();
+					emuViewController.setPhysicalControlsPresent(Input::keyInputIsPresent());
+					emuViewController.updateAutoOnScreenControlVisible();
+
+					if(optionNotifyInputDeviceChange && (change.added() || change.removed()))
+					{
+						EmuApp::printfMessage(2, 0, "%s #%d %s", dev.name(), dev.enumId() + 1, change.added() ? "connected" : "disconnected");
+					}
+					else if(change.hadConnectError())
+					{
+						EmuApp::printfMessage(2, 1, "%s had a connection error", dev.name());
+					}
+
+					emuViewController.onInputDevicesChanged();
+				});
+
+			Base::setOnFreeCaches(
+				[&emuViewController](bool running)
+				{
+					View::defaultFace.freeCaches();
+					View::defaultBoldFace.freeCaches();
+					if(running)
+						emuViewController.prepareDraw();
+				});
+
+			if(auto launchPathStr = EmuSystem::gamePathString();
+				strlen(launchPathStr.data()))
+			{
+				EmuSystem::setInitialLoadPath("");
+				emuViewControllerPtr->handleOpenFileCommand(launchPathStr.data());
+			}
+
+			win.show();
+		});
 }
 
 Gfx::Projection updateProjection(Gfx::Viewport viewport)
@@ -913,7 +933,7 @@ void EmuApp::syncEmulationThread()
 
 WindowData &windowData(const Base::Window &win)
 {
-	auto data = win.customData<WindowData>();
+	auto data = win.appData<WindowData>();
 	assumeExpr(data);
 	return *data;
 }

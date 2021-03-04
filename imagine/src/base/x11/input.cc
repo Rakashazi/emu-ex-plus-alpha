@@ -121,7 +121,7 @@ static void setXIEventMaskData(XIEventMaskData &data)
 	XISetMask(data.maskBits, XI_KeyRelease);
 }
 
-void initPerWindowData(::Window win)
+void initPerWindowData(Display *dpy, ::Window win)
 {
 	if(Config::MACHINE_IS_PANDORA)
 	{
@@ -149,7 +149,7 @@ void initPerWindowData(::Window win)
 	XISelectEvents(dpy, win, &xiMask.eventMask, 1);
 }
 
-void hideCursor(::Window win)
+void hideCursor(Display *dpy, ::Window win)
 {
 	if(Config::MACHINE_IS_PANDORA)
 		XFixesHideCursor(dpy, win);
@@ -157,7 +157,7 @@ void hideCursor(::Window win)
 		XDefineCursor(dpy, win, Input::blankCursor);
 }
 
-void showCursor(::Window win)
+void showCursor(Display *dpy, ::Window win)
 {
 	if(Config::MACHINE_IS_PANDORA)
 		XFixesShowCursor(dpy, win);
@@ -319,7 +319,7 @@ void init(Display *dpy)
 	coreKeyboardDesc = XkbGetKeyboard(dpy, XkbAllComponentsMask, XkbUseCoreKbd);
 }
 
-void deinit()
+void deinit(Display *dpy)
 {
 	//logMsg("deinit input data");
 	if(blankCursor)
@@ -344,7 +344,7 @@ static void updatePointer(Base::Window &win, uint32_t key, uint32_t btnState, in
 	win.dispatchInputEvent(Event{(uint32_t)p, Map::POINTER, (Key)key, btnState, action, pos.x, pos.y, p, Source::MOUSE, time, dev});
 }
 
-bool handleXI2GenericEvent(XEvent &event)
+bool handleXI2GenericEvent(Display *dpy, XEvent &event)
 {
 	assert(event.type == GenericEvent);
 	if(event.xcookie.extension != xI2opcode)
@@ -396,7 +396,7 @@ bool handleXI2GenericEvent(XEvent &event)
 	auto &win = *destWin;
 	auto time = IG::Milliseconds(ievent.time); // X11 timestamps are in ms
 	auto handleKeyEvent =
-		[](Base::Window &win, XIDeviceEvent &ievent, Time time, bool pushed)
+		[](Display *dpy, Base::Window &win, XIDeviceEvent &ievent, Time time, bool pushed)
 		{
 			auto action = pushed ? PUSHED : RELEASED;
 			if(pushed)
@@ -407,7 +407,7 @@ bool handleXI2GenericEvent(XEvent &event)
 			//logMsg("KeySym %d, KeyCode %d, repeat: %d", (int)k, ievent.detail, repeated);
 			if(pushed && k == XK_Return && (ievent.mods.effective & (Mod1Mask | Mod5Mask)) && !repeated)
 			{
-				toggleFullScreen(win.nativeObject());
+				toggleFullScreen(dpy, win.nativeObject());
 			}
 			else
 			{
@@ -446,9 +446,9 @@ bool handleXI2GenericEvent(XEvent &event)
 			win.dispatchFocusChange(false);
 			deinitKeyRepeatTimer();
 		bcase XI_KeyPress:
-			handleKeyEvent(win, ievent, time, true);
+			handleKeyEvent(dpy, win, ievent, time, true);
 		bcase XI_KeyRelease:
-			handleKeyEvent(win, ievent, time, false);
+			handleKeyEvent(dpy, win, ievent, time, false);
 	}
 	return true;
 }
@@ -459,7 +459,7 @@ Event::KeyString Event::keyString() const
 	KeySym k;
 	uint32_t mods = metaState ? ShiftMask : 0;
 	XkbTranslateKeyCode(Input::coreKeyboardDesc, rawKey, mods, nullptr, &k);
-	XkbTranslateKeySym(dpy, &k, 0, str.data(), sizeof(KeyString), nullptr);
+	XkbTranslateKeySym(xDisplay, &k, 0, str.data(), sizeof(KeyString), nullptr);
 	return str;
 }
 
@@ -469,7 +469,7 @@ bool softInputIsActive() { return false; }
 
 void flushSystemEvents()
 {
-	Base::x11FDHandler();
+	Base::runX11Events(Base::xDisplay);
 }
 
 }

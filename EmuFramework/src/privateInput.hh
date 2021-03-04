@@ -137,7 +137,7 @@ extern uint pointerInputPlayer;
 void processRelPtr(Input::Event e);
 void commonInitInput(EmuViewController &emuViewController);
 void commonUpdateInput();
-void updateInputDevices(EmuViewController &emuViewController);
+void updateInputDevices();
 
 static bool customKeyConfigsContainName(const char *name)
 {

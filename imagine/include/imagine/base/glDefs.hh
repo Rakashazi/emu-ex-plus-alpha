@@ -16,35 +16,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/gfx/defs.hh>
-#include <imagine/base/baseDefs.hh>
-#include <imagine/base/CustomEvent.hh>
-#include <imagine/time/Time.hh>
 
-namespace Base
+namespace Base::GL
 {
-class Window;
-class Screen;
-}
-
-namespace Gfx
-{
-
-class GLDrawableHolder
-{
-public:
-	GLDrawableHolder() {}
-	GLDrawableHolder(GLDrawableHolder &&o) = default;
-	GLDrawableHolder &operator=(GLDrawableHolder &&o) = default;
-	~GLDrawableHolder();
-	void makeDrawable(Base::GLDisplay, Base::Window &, Base::GLBufferConfig);
-	void destroyDrawable();
-
-protected:
-	Drawable drawable_{};
-	Base::OnExit onExit{};
-};
-
-using DrawableHolderImpl = GLDrawableHolder;
-
+		enum class API {OPENGL, OPENGL_ES};
 }

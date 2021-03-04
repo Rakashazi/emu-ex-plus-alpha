@@ -136,7 +136,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 		[this](Base::Window &win, Base::Window::SurfaceChange change)
 		{
 			auto &winData = windowData(win);
-			rendererTask().updateDrawableForSurfaceChange(winData.drawableHolder, win, change);
+			rendererTask().updateDrawableForSurfaceChange(win, change);
 			if(change.resized())
 			{
 				updateWindowViewport(win, change);
@@ -153,8 +153,8 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 		[this](Base::Window &win, Base::Window::DrawParams params)
 		{
 			auto &winData = windowData(win);
-			rendererTask().draw(winData.drawableHolder, win, params, {}, winData.viewport(), winData.projection.matrix(),
-				[this](Gfx::DrawableHolder &drawableHolder, Base::Window &win, Gfx::RendererCommands &cmds)
+			rendererTask().draw(win, params, {}, winData.viewport(), winData.projection.matrix(),
+				[this](Base::Window &win, Gfx::RendererCommands &cmds)
 				{
 					auto &winData = windowData(win);
 					cmds.clear();
@@ -264,7 +264,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			uint32_t framesToEmulate = std::min(frameInfo.advanced, maxFrameSkip);
 			EmuAudio *audioPtr = emuAudio ? &emuAudio : nullptr;
 			systemTask->runFrame(&videoLayer().emuVideo(), audioPtr, framesToEmulate, skipForward);
-			r.setPresentationTime(emuWindowData().drawableHolder, params.presentTime());
+			r.setPresentationTime(emuWindow(), params.presentTime());
 			/*logMsg("frame present time:%.4f next display frame:%.4f",
 				std::chrono::duration_cast<IG::FloatSeconds>(frameInfo.presentTime).count(),
 				std::chrono::duration_cast<IG::FloatSeconds>(params.presentTime()).count());*/
@@ -309,8 +309,8 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	videoLayer().emuVideo().setOnFrameFinished(
 		[this](EmuVideo &)
 		{
-			emuWindow().drawNow();
 			addOnFrame();
+			emuWindow().drawNow();
 		});
 	videoLayer().emuVideo().setOnFormatChanged(
 		[this, &videoLayer = videoLayer()](EmuVideo &)
@@ -528,103 +528,107 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 		logMsg("setting emu view on extra window");
 		Base::WindowConfig winConf;
 		winConf.setScreen(screen);
-
-		winConf.setOnSurfaceChange(
-			[this](Base::Window &win, Base::Window::SurfaceChange change)
-			{
-				auto &winData = windowData(win);
-				rendererTask().updateDrawableForSurfaceChange(winData.drawableHolder, win, change);
-				if(change.resized())
-				{
-					logMsg("view resize for extra window");
-					winData.projection = updateProjection(makeViewport(win));
-					emuView.setViewRect(winData.viewport().bounds(), winData.projection.plane());
-					emuView.place();
-				}
-			});
-
-		winConf.setOnDraw(
-			[this](Base::Window &win, Base::Window::DrawParams params)
-			{
-				auto &winData = windowData(win);
-				rendererTask().draw(winData.drawableHolder, win, params, {}, winData.viewport(), winData.projection.matrix(),
-					[this, &winData](Gfx::DrawableHolder &drawableHolder, Base::Window &win, Gfx::RendererCommands &cmds)
-					{
-						cmds.clear();
-						emuView.draw(cmds);
-						if(winData.hasPopup)
-						{
-							popup.draw(cmds);
-						}
-						cmds.present();
-					});
-				return false;
-			});
-
-		winConf.setOnInputEvent(
-			[this](Base::Window &win, Input::Event e)
-			{
-				if(likely(EmuSystem::isActive()) && e.isKey())
-				{
-					return emuInputView.inputEvent(e);
-				}
-				return false;
-			});
-
-		winConf.setOnFocusChange(
-			[this](Base::Window &win, uint in)
-			{
-				windowData(win).focused = in;
-				onFocusChange(in);
-			});
-
-		winConf.setOnDismissRequest(
-			[](Base::Window &win)
-			{
-				win.dismiss();
-			});
-
-		winConf.setOnDismiss(
+		winConf.setTitle(appName());
+		auto extraWin = Base::Window::makeWindow(winConf,
 			[this](Base::Window &win)
 			{
-				EmuSystem::resetFrameTime();
-				logMsg("setting emu view on main window");
-				moveEmuViewToWindow(mainWindow());
-				movePopupToWindow(mainWindow());
-				emuView.setLayoutInputView(&inputView());
-				placeEmuViews();
-				mainWindow().postDraw();
+				emuView.renderer().attachWindow(win);
+				win.makeAppData<WindowData>();
+				auto &mainWinData = mainWindowData();
+				auto &extraWinData = windowData(win);
+				extraWinData.focused = true;
 				if(EmuSystem::isActive())
 				{
 					systemTask->pause();
-					moveOnFrame(win, mainWindow());
+					moveOnFrame(mainWindow(), win);
 					applyFrameRates();
 				}
-			});
+				extraWinData.projection = updateProjection(makeViewport(win));
+				moveEmuViewToWindow(win);
+				emuView.setLayoutInputView(nullptr);
 
-		auto extraWin = emuView.renderer().makeWindow(winConf);
+				win.setOnSurfaceChange(
+					[this](Base::Window &win, Base::Window::SurfaceChange change)
+					{
+						auto &winData = windowData(win);
+						rendererTask().updateDrawableForSurfaceChange(win, change);
+						if(change.resized())
+						{
+							logMsg("view resize for extra window");
+							winData.projection = updateProjection(makeViewport(win));
+							emuView.setViewRect(winData.viewport().bounds(), winData.projection.plane());
+							emuView.place();
+						}
+					});
+
+				win.setOnDraw(
+					[this](Base::Window &win, Base::Window::DrawParams params)
+					{
+						auto &winData = windowData(win);
+						rendererTask().draw(win, params, {}, winData.viewport(), winData.projection.matrix(),
+							[this, &winData](Base::Window &win, Gfx::RendererCommands &cmds)
+							{
+								cmds.clear();
+								emuView.draw(cmds);
+								if(winData.hasPopup)
+								{
+									popup.draw(cmds);
+								}
+								cmds.present();
+							});
+						return false;
+					});
+
+				win.setOnInputEvent(
+					[this](Base::Window &win, Input::Event e)
+					{
+						if(likely(EmuSystem::isActive()) && e.isKey())
+						{
+							return emuInputView.inputEvent(e);
+						}
+						return false;
+					});
+
+				win.setOnFocusChange(
+					[this](Base::Window &win, uint in)
+					{
+						windowData(win).focused = in;
+						onFocusChange(in);
+					});
+
+				win.setOnDismissRequest(
+					[](Base::Window &win)
+					{
+						win.dismiss();
+					});
+
+				win.setOnDismiss(
+					[this](Base::Window &win)
+					{
+						EmuSystem::resetFrameTime();
+						logMsg("setting emu view on main window");
+						moveEmuViewToWindow(mainWindow());
+						movePopupToWindow(mainWindow());
+						emuView.setLayoutInputView(&inputView());
+						placeEmuViews();
+						mainWindow().postDraw();
+						if(EmuSystem::isActive())
+						{
+							systemTask->pause();
+							moveOnFrame(win, mainWindow());
+							applyFrameRates();
+						}
+					});
+
+				win.show();
+				placeEmuViews();
+				mainWindow().postDraw();
+			});
 		if(!extraWin)
 		{
 			logErr("error creating extra window");
 			return;
 		}
-		extraWin->makeCustomData<WindowData>();
-		auto &mainWinData = mainWindowData();
-		auto &extraWinData = windowData(*extraWin);
-		extraWinData.focused = true;
-		if(EmuSystem::isActive())
-		{
-			systemTask->pause();
-			moveOnFrame(mainWindow(), *extraWin);
-			applyFrameRates();
-		}
-		extraWinData.projection = updateProjection(makeViewport(*extraWin));
-		moveEmuViewToWindow(*extraWin);
-		emuView.setLayoutInputView(nullptr);
-		extraWin->setTitle(appName());
-		extraWin->show();
-		placeEmuViews();
-		mainWindow().postDraw();
 	}
 	else if(!on && hasExtraWindow())
 	{
@@ -651,7 +655,7 @@ void EmuViewController::updateWindowViewport(Base::Window &win, Base::Window::Su
 	auto &winData = windowData(win);
 	if(change.surfaceResized())
 	{
-		winData.animatedViewport.cancel();
+		winData.animatedViewport.finish();
 		winData.projection = updateProjection(makeViewport(win));
 	}
 	else if(change.contentRectResized())

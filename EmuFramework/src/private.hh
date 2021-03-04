@@ -39,7 +39,6 @@ class EmuViewController;
 
 struct WindowData
 {
-	Gfx::DrawableHolder drawableHolder{};
 	Gfx::Viewport viewport() const { return projection.plane().viewport(); }
 	Gfx::Projection projection{};
 	Gfx::AnimatedViewport animatedViewport{};
