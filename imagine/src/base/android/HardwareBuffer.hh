@@ -17,38 +17,41 @@
 
 #include <imagine/util/rectangle2.h>
 #include <imagine/pixmap/PixmapDesc.hh>
-#include "gralloc.h"
 #include <EGL/egl.h>
 
-// Wrapper for ANativeWindowBuffer (android_native_buffer_t)
-// similar to GraphicBuffer class in Android frameworks
+struct AHardwareBuffer;
 
 namespace Base
 {
 
-class GraphicBuffer : public android_native_buffer_t
+class HardwareBuffer
 {
 public:
-	GraphicBuffer();
-	GraphicBuffer(IG::PixmapDesc desc, uint32_t usage);
-	GraphicBuffer(uint32_t w, uint32_t h, uint32_t format, uint32_t usage);
-	GraphicBuffer(GraphicBuffer &&o);
-	GraphicBuffer &operator=(GraphicBuffer &&o);
-	~GraphicBuffer();
+	HardwareBuffer();
+	HardwareBuffer(IG::PixmapDesc desc, uint32_t usage);
+	HardwareBuffer(uint32_t w, uint32_t h, uint32_t format, uint32_t usage);
 	bool lock(uint32_t usage, void **outAddr);
 	bool lock(uint32_t usage, IG::WindowRect rect, void **outAddr);
 	void unlock();
 	explicit operator bool() const;
 	uint32_t pitch();
-	android_native_buffer_t *nativeObject();
-	EGLClientBuffer eglClientBuffer();
-	static bool hasBufferMapper();
-	static bool canSupport(const char *rendererStr);
-	static bool testSupport();
-	static bool isSupported();
+	AHardwareBuffer *nativeObject();
+	EGLClientBuffer eglClientBuffer() const;
 
 private:
-	void deinit();
+	struct HardwareBufferDeleter
+	{
+		void operator()(AHardwareBuffer *ptr) const
+		{
+			releaseHardwareBuffer(ptr);
+		}
+	};
+	using UniqueHardwareBuffer = std::unique_ptr<AHardwareBuffer, HardwareBufferDeleter>;
+
+	static void releaseHardwareBuffer(AHardwareBuffer *);
+
+	UniqueHardwareBuffer buff{};
+	uint32_t stride{};
 };
 
 }

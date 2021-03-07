@@ -585,6 +585,8 @@ bool InputDeviceConfig::setKey(Input::Key mapKey, const KeyCategory &cat, int ke
 
 void KeyMapping::buildAll()
 {
+	if(!inputDevConf.size())
+		return;
 	assert(inputDevConf.size() == Input::deviceList().size());
 	inputDevActionTable.resize(0);
 	inputDevActionTablePtr = std::make_unique<ActionGroup*[]>(Input::deviceList().size());

@@ -25,7 +25,7 @@
 
 template <size_t, typename, typename ...> class DelegateFunc2;
 
-template <size_t STORAGE_SIZE, typename R, typename ...ARGS> class DelegateFunc2<STORAGE_SIZE, R(ARGS...)>
+template <size_t STORAGE_SIZE, typename R, typename ...Args> class DelegateFunc2<STORAGE_SIZE, R(Args...)>
 {
 public:
 	constexpr DelegateFunc2() {}
@@ -36,10 +36,10 @@ public:
 	constexpr DelegateFunc2(T const &funcObj) :
 		exec
 		{
-			[](const Storage &funcObj, ARGS... arguments) -> R
+			[](const Storage &funcObj, Args... arguments) -> R
 			{
 				if constexpr(isCompatibleFreeFunc<T>())
-					return funcObj.func(arguments...);
+					return callStoredFreeFunc(funcObj, arguments...);
 				else
 					return ((T*)funcObj.data())->operator()(arguments...);
 			}
@@ -48,79 +48,69 @@ public:
 		if constexpr(isCompatibleFreeFunc<T>())
 		{
 			// construct from free function
-			execData = Storage(funcObj);
+			new (store.data()) FreeFuncPtr(funcObj);
 		}
 		else
 		{
 			// construct from lambda
 			static_assert(sizeof(T) <= STORAGE_SIZE, "Delegate too big for storage");
-			new (execData.mem.data()) T(funcObj);
+			new (store.data()) T(funcObj);
 		}
 	}
 
-	explicit operator bool() const
+	explicit constexpr operator bool() const
 	{
 		return exec;
 	}
 
-	R operator()(ARGS ... in) const
+	constexpr R operator()(Args... args) const
 	{
 		assumeExpr(exec);
-		return exec(execData, in...);
+		return exec(store, args...);
 	}
 
 	constexpr bool operator ==(DelegateFunc2 const&) const = default;
 
-	R callCopy(ARGS ... in) const
+	constexpr R callCopy(Args... args) const
 	{
 		// Call a copy to avoid trashing captured variables
 		// if delegate's function can modify the delegate
-		return IG::copySelf(*this)(in...);
+		return IG::copySelf(*this)(args...);
 	}
 
-	R callSafe(ARGS ... in) const
+	constexpr R callSafe(Args... args) const
 	{
 		if(exec)
-			return this->operator()(in...);
+			return this->operator()(args...);
 		return R();
 	}
 
-	R callCopySafe(ARGS ... in) const
+	constexpr R callCopySafe(Args... args) const
 	{
 		if(exec)
-			return callCopy(in...);
+			return callCopy(args...);
 		return R();
 	}
 
 	template<class T>
 	static constexpr bool isCompatibleFreeFunc()
 	{
-		return std::is_convertible_v<T, R (*)(ARGS...)>;
+		return std::is_convertible_v<T, FreeFuncPtr>;
 	}
 
 private:
-	struct Storage
+	using FreeFuncPtr = R (*)(Args...);
+	using Storage = std::array<unsigned char, STORAGE_SIZE>;
+	static_assert(sizeof(STORAGE_SIZE) >= sizeof(uintptr_t), "Storage must be large enough for 1 pointer");
+
+	alignas(8) Storage store{};
+	R (*exec)(const Storage &, Args...){};
+
+	static constexpr R callStoredFreeFunc(const Storage &s, Args... args)
 	{
-		static_assert(sizeof(STORAGE_SIZE) >= sizeof(uintptr_t), "Storage must be large enough for 1 pointer");
-		union
-		{
-			std::array<char, STORAGE_SIZE> mem{};
-			R (*func)(ARGS...);
-		};
-
-		constexpr Storage() {}
-		constexpr Storage(R (*func)(ARGS...)): func{func} {}
-		constexpr const void *data() const { return mem.data(); }
-
-		constexpr bool operator ==(Storage const &rhs) const
-		{
-			return mem == rhs.mem;
-		}
-	};
-
-	R (*exec)(const Storage &, ARGS...){};
-	Storage execData{};
+		return (*((FreeFuncPtr*)s.data()))(args...);
+	}
 };
 
-template <typename R, typename ...ARGS>
-using DelegateFunc = DelegateFunc2<sizeof(uintptr_t)*2, R, ARGS...>;
+template <typename R, typename ...Args>
+using DelegateFunc = DelegateFunc2<sizeof(uintptr_t)*2, R, Args...>;

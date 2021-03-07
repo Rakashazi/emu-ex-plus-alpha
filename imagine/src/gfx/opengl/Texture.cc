@@ -785,10 +785,10 @@ void GLTexture::updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum tar
 }
 
 #ifdef __ANDROID__
-void GLTexture::setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc, SamplerParams samplerParams)
+void GLTexture::initWithEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc, SamplerParams samplerParams, bool isMutable)
 {
 	auto &r = rTask->renderer();
-	if(r.support.hasEGLTextureStorage())
+	if(r.support.hasEGLTextureStorage() && !isMutable)
 	{
 		rTask->runSync(
 			[=, &r = std::as_const(r), &texName_ = texName_, formatID = (IG::PixelFormatID)desc.format()](GLTask::TaskContext ctx)
@@ -796,11 +796,15 @@ void GLTexture::setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc, Sampler
 				auto texName = makeGLTextureName(texName_);
 				texName_ = texName;
 				glBindTexture(GL_TEXTURE_2D, texName);
-				runGLChecked(
-					[&]()
-					{
-						r.support.glEGLImageTargetTexStorageEXT(GL_TEXTURE_2D, (GLeglImageOES)eglImg, nullptr);
-					}, "glEGLImageTargetTexStorageEXT()");
+				if(eglImg)
+				{
+					logMsg("setting immutable texture:%d with EGL image:%p", texName, eglImg);
+					runGLChecked(
+						[&]()
+						{
+							r.support.glEGLImageTargetTexStorageEXT(GL_TEXTURE_2D, (GLeglImageOES)eglImg, nullptr);
+						}, "glEGLImageTargetTexStorageEXT()");
+				}
 				ctx.notifySemaphore();
 				setSwizzleForFormatInGL(r, formatID, texName);
 				setSamplerParamsInGL(r, samplerParams);
@@ -820,11 +824,15 @@ void GLTexture::setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc, Sampler
 					madeTexName = true;
 				}
 				glBindTexture(GL_TEXTURE_2D, texName);
-				runGLChecked(
-					[&]()
-					{
-						glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImg);
-					}, "glEGLImageTargetTexture2DOES()");
+				if(eglImg)
+				{
+					logMsg("setting texture:%d with EGL image:%p", texName, eglImg);
+					runGLChecked(
+						[&]()
+						{
+							glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImg);
+						}, "glEGLImageTargetTexture2DOES()");
+				}
 				ctx.notifySemaphore();
 				setSwizzleForFormatInGL(r, formatID, texName);
 				if(madeTexName)
@@ -833,6 +841,22 @@ void GLTexture::setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc, Sampler
 	}
 	updateFormatInfo(desc, 1);
 }
+
+void GLTexture::updateWithEGLImage(EGLImageKHR eglImg)
+{
+	rTask->run(
+		[=, texName = texName_](GLTask::TaskContext ctx)
+		{
+			glBindTexture(GL_TEXTURE_2D, texName);
+			assumeExpr(eglImg);
+			runGLChecked(
+				[&]()
+				{
+					glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)eglImg);
+				}, "glEGLImageTargetTexture2DOES()");
+		});
+}
+
 #endif
 
 void GLTexture::updateLevelsForMipmapGeneration()
@@ -930,10 +954,10 @@ void GLPixmapTexture::updateFormatInfo(IG::WP usedSize, IG::PixmapDesc desc, uin
 }
 
 #ifdef __ANDROID__
-void GLPixmapTexture::setFromEGLImage(IG::WP usedSize, EGLImageKHR eglImg, IG::PixmapDesc desc, SamplerParams samplerParams)
+void GLPixmapTexture::initWithEGLImage(IG::WP usedSize, EGLImageKHR eglImg, IG::PixmapDesc desc, SamplerParams samplerParams, bool isMutable)
 {
 	updateUsedPixmapSize(usedSize, desc.size());
-	GLTexture::setFromEGLImage(eglImg, desc, samplerParams);
+	GLTexture::initWithEGLImage(eglImg, desc, samplerParams, isMutable);
 }
 #endif
 

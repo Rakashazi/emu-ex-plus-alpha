@@ -29,38 +29,14 @@
 namespace Base
 {
 
-static JavaInstMethod<jint()> jGetRotation{};
 static JavaInstMethod<jobject()> jGetSupportedRefreshRates{};
-static JavaInstMethod<jobject(jobject)> jGetMetrics{};
-static JavaInstMethod<jint()> jGetDisplayId;
-static JavaInstMethod<jfloat()> jGetRefreshRate;
 JavaInstMethod<jobject(jobject, jlong)> jPresentation{};
-static JavaInstMethod<jobject()> jGetPresentationDisplays{};
 static JavaInstMethod<void(jboolean)> jSetListener{};
+static JavaInstMethod<void()> jEnumDisplays{};
 
 static bool displayIdIsInList(int id)
 {
 	return IG::containsIf(screen_, [=](const auto &e) { return e->id() == id; });
-}
-
-static void enumDisplays(JNIEnv *env, jobject displayListenerHelper)
-{
-	auto jPDisplay = (jobjectArray)jGetPresentationDisplays(env, displayListenerHelper);
-	uint32_t pDisplays = env->GetArrayLength(jPDisplay);
-	if(pDisplays)
-	{
-		logMsg("checking %d presentation display(s)", pDisplays);
-		iterateTimes(pDisplays, i)
-		{
-			auto display = env->GetObjectArrayElement(jPDisplay, i);
-			auto id = jGetDisplayId(env, display);
-			if(displayIdIsInList(id))
-			{
-				continue;
-			}
-			Screen::addScreen(std::make_unique<Screen>(env, display, nullptr, id, jGetRefreshRate(env, display)));
-		}
-	}
 }
 
 static void clearSecondaryDisplays()
@@ -73,17 +49,7 @@ static void clearSecondaryDisplays()
 
 void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 {
-	assert(!Screen::screen(0));
-	JavaInstMethod<jobject()> jDefaultDpy{env, activityCls, "defaultDpy", "()Landroid/view/Display;"};
-	// DisplayMetrics obtained via getResources().getDisplayMetrics() so the scaledDensity field is correct
-	JavaInstMethod<jobject()> jDisplayMetrics{env, activityCls, "displayMetrics", "()Landroid/util/DisplayMetrics;"};
-	auto mainDpy = jDefaultDpy(env, activity);
-	jclass jDisplayCls = env->GetObjectClass(mainDpy);
-	jGetRotation = {env, jDisplayCls, "getRotation", "()I"};
-	jGetMetrics = {env, Base::jBaseActivityCls, "getDisplayMetrics", "(Landroid/view/Display;)Landroid/util/DisplayMetrics;"};
-	jGetDisplayId = {env, jDisplayCls, "getDisplayId", "()I"};
-	jGetRefreshRate = {env, jDisplayCls, "getRefreshRate", "()F"};
-	Screen::addScreen(std::make_unique<Screen>(env, mainDpy, jDisplayMetrics(env, activity), 0, jGetRefreshRate(env, mainDpy)));
+	assert(!jEnumDisplays);
 	if(Base::androidSDK() >= 17)
 	{
 		jPresentation.setup(env, activityCls, "presentation", "(Landroid/view/Display;J)Lcom/imagine/PresentationHelper;");
@@ -92,21 +58,19 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 		assert(displayListenerHelper);
 		displayListenerHelper = env->NewGlobalRef(displayListenerHelper);
 		auto displayListenerHelperCls = env->GetObjectClass(displayListenerHelper);
-		jSetListener = {env, displayListenerHelperCls, "setListener", "(Z)V"};
-		jGetPresentationDisplays = {env, displayListenerHelperCls, "getPresentationDisplays", "()[Landroid/view/Display;"};
 		JNINativeMethod method[]
 		{
 			{
-				"displayAdd", "(ILandroid/view/Display;F)V",
-				(void*)(void (*)(JNIEnv*, jobject, jint, jobject, jfloat))
-				([](JNIEnv* env, jobject thiz, jint id, jobject disp, jfloat refreshRate)
+				"displayAdd", "(ILandroid/view/Display;FLandroid/util/DisplayMetrics;)V",
+				(void*)(void (*)(JNIEnv*, jobject, jint, jobject, jfloat, jobject))
+				([](JNIEnv* env, jobject thiz, jint id, jobject disp, jfloat refreshRate, jobject metrics)
 				{
 					if(displayIdIsInList(id))
 					{
 						logMsg("screen id:%d already in device list", id);
 						return;
 					}
-					Screen &s = Screen::addScreen(std::make_unique<Screen>(env, disp, nullptr, id, refreshRate));
+					Screen &s = Screen::addScreen(std::make_unique<Screen>(env, disp, id, refreshRate, SURFACE_ROTATION_0, metrics));
 					if(Screen::onChange)
 						Screen::onChange(s, {Screen::Change::ADDED});
 				})
@@ -141,40 +105,69 @@ void initScreens(JNIEnv *env, jobject activity, jclass activityCls)
 			}
 		};
 		env->RegisterNatives(displayListenerHelperCls, method, std::size(method));
-		Base::addOnResume([env, displayListenerHelper](bool)
-		{
-			enumDisplays(env, displayListenerHelper);
-			logMsg("registering display listener");
-			jSetListener(env, displayListenerHelper, true);
-			return true;
-		}, Base::SCREEN_ON_RESUME_PRIORITY);
+		jSetListener = {env, displayListenerHelperCls, "setListener", "(Z)V"};
+		jSetListener(env, displayListenerHelper, true);
 		Base::addOnExit([env, displayListenerHelper](bool backgrounded)
 		{
 			clearSecondaryDisplays();
 			logMsg("unregistering display listener");
 			jSetListener(env, displayListenerHelper, false);
+			if(backgrounded)
+			{
+				Base::addOnResume([env, displayListenerHelper](bool)
+				{
+					logMsg("registering display listener");
+					jSetListener(env, displayListenerHelper, true);
+					jEnumDisplays(env, Base::jBaseActivity);
+					return false;
+				}, Base::SCREEN_ON_RESUME_PRIORITY);
+			}
 			return true;
 		}, Base::SCREEN_ON_EXIT_PRIORITY);
 	}
+	JNINativeMethod method[]
+	{
+		{
+			"displayEnumerated", "(Landroid/view/Display;IFILandroid/util/DisplayMetrics;)V",
+			(void*)(void (*)(JNIEnv*, jobject, jobject, jint, jfloat, jint, jobject))
+			([](JNIEnv* env, jobject thiz, jobject disp, jint id, jfloat refreshRate, jint rotation, jobject metrics)
+			{
+				auto it = IG::find_if(screen_, [=](const auto &e) { return e->id() == id; });
+				if(it == screen_.end())
+				{
+					Screen::addScreen(std::make_unique<Screen>(env, disp, id, refreshRate, (SurfaceRotation)rotation, metrics));
+					return;
+				}
+				else
+				{
+					// already in list, update existing
+					(*it)->updateRefreshRate(refreshRate);
+				}
+			})
+		},
+	};
+	env->RegisterNatives(activityCls, method, std::size(method));
+	jEnumDisplays = {env, activityCls, "enumDisplays", "()V"};
+	jEnumDisplays(env, activity);
 }
 
-AndroidScreen::AndroidScreen(JNIEnv *env, jobject aDisplay, jobject metrics, int id, float refreshRate)
+AndroidScreen::AndroidScreen(JNIEnv *env, jobject aDisplay, int id, float refreshRate, SurfaceRotation rotation, jobject metrics)
 {
-	assert(aDisplay);
+	assumeExpr(aDisplay);
+	assumeExpr(metrics);
 	this->aDisplay = env->NewGlobalRef(aDisplay);
 	bool isStraightRotation = true;
 	if(id == 0)
 	{
 		id_ = 0;
-		auto orientation = (SurfaceRotation)jGetRotation(env, aDisplay);
-		logMsg("starting orientation %d", orientation);
-		osRotation = orientation;
-		isStraightRotation = surfaceRotationIsStraight(orientation);
+		logMsg("init main display with starting rotation:%d", (int)rotation);
+		osRotation = rotation;
+		isStraightRotation = surfaceRotationIsStraight(rotation);
 	}
 	else
 	{
 		id_ = id;
-		logMsg("init display with id: %d", id_);
+		logMsg("init display with id:%d", id_);
 	}
 
 	updateRefreshRate(refreshRate);
@@ -191,12 +184,6 @@ AndroidScreen::AndroidScreen(JNIEnv *env, jobject aDisplay, jobject metrics, int
 	}
 
 	// DisplayMetrics
-	if(!metrics)
-	{
-		logMsg("getting metrics from display");
-		metrics = jGetMetrics(env, Base::jBaseActivity, aDisplay);
-		assert(metrics);
-	}
 	jclass jDisplayMetricsCls = env->GetObjectClass(metrics);
 	auto jXDPI = env->GetFieldID(jDisplayMetricsCls, "xdpi", "F");
 	auto jYDPI = env->GetFieldID(jDisplayMetricsCls, "ydpi", "F");
@@ -211,7 +198,7 @@ AndroidScreen::AndroidScreen(JNIEnv *env, jobject aDisplay, jobject metrics, int
 	assert(densityDPI_);
 	logMsg("screen with size %dx%d, DPI size %fx%f, scaled density DPI %f",
 		widthPixels, heightPixels, (double)metricsXDPI, (double)metricsYDPI, (double)densityDPI_);
-	#ifndef NDEBUG
+	if(Config::DEBUG_BUILD)
 	{
 		auto jDensity = env->GetFieldID(jDisplayMetricsCls, "density", "F");
 		auto jDensityDPI = env->GetFieldID(jDisplayMetricsCls, "densityDpi", "I");
@@ -220,17 +207,11 @@ AndroidScreen::AndroidScreen(JNIEnv *env, jobject aDisplay, jobject metrics, int
 			env->GetIntField(metrics, jWidthPixels), env->GetIntField(metrics, jHeightPixels),
 			(double)refreshRate_);
 	}
-	#endif
 	// DPI values are un-rotated from DisplayMetrics
 	xDPI = isStraightRotation ? metricsXDPI : metricsYDPI;
 	yDPI = isStraightRotation ? metricsYDPI : metricsXDPI;
 	width_ = isStraightRotation ? widthPixels : heightPixels;
 	height_ = isStraightRotation ? heightPixels : widthPixels;
-}
-
-SurfaceRotation AndroidScreen::rotation(JNIEnv *env) const
-{
-	return (SurfaceRotation)jGetRotation(env, aDisplay);
 }
 
 std::pair<float, float> AndroidScreen::dpi() const

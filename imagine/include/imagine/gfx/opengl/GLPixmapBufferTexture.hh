@@ -84,7 +84,8 @@ protected:
 	static constexpr uint8_t SINGLE_BUFFER_VALUE = 2;
 
 	void initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool singleBuffer);
-	BufferInfo swapBuffer();
+	BufferInfo currentBuffer() const;
+	void swapBuffer();
 	void deinit();
 };
 

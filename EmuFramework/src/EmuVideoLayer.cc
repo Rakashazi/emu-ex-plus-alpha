@@ -228,7 +228,7 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 		return;
 	using namespace Gfx;
 	bool replaceMode = true;
-	if(unlikely(brightness != 1.f))
+	if(brightness != 1.f)
 	{
 		cmds.setColor(brightness, brightness, brightness);
 		replaceMode = false;

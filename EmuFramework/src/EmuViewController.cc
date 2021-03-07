@@ -68,10 +68,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	{
 		[this](bool focused)
 		{
-			if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
-			{
-				setEmuViewOnExtraWindow(true, *Base::Screen::screen(1));
-			}
+			configureSecondaryScreens();
 			prepareDraw();
 			if(showingEmulation && focused && EmuSystem::isPaused())
 			{
@@ -164,6 +161,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 		});
 
 	initViews(viewAttach);
+	configureSecondaryScreens();
 }
 
 static bool shouldExitFromViewRootWithoutPrompt(Input::Event e)
@@ -1024,4 +1022,12 @@ void EmuViewController::setWindowFrameClockSource(Base::Window::FrameTimeSource 
 bool EmuViewController::useRendererTime() const
 {
 	return winFrameTimeSrc == Base::Window::FrameTimeSource::RENDERER;
+}
+
+void EmuViewController::configureSecondaryScreens()
+{
+	if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
+	{
+		setEmuViewOnExtraWindow(true, *Base::Screen::screen(1));
+	}
 }

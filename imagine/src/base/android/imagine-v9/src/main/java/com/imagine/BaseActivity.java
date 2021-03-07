@@ -45,11 +45,13 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	private static final String logTag = "BaseActivity";
 	static native void onContentRectChanged(long windowAddr,
 		int left, int top, int right, int bottom, int windowWidth, int windowHeight);
+	native void displayEnumerated(Display dpy, int id, float refreshRate, int rotation, DisplayMetrics metrics);
 	private static final Method setSystemUiVisibility =
 		android.os.Build.VERSION.SDK_INT >= 11 ? Util.getMethod(View.class, "setSystemUiVisibility", new Class[] { int.class }) : null;
 	private static final int commonUILayoutFlags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
 		| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
-	
+	private Display defaultDpy;
+
 	boolean hasPermanentMenuKey()
 	{
 		if(android.os.Build.VERSION.SDK_INT < 14) return true;
@@ -111,24 +113,23 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		// Check if Gingerbread OS provides rotation animation
 		return android.os.Build.DISPLAY.contains("cyano"); // Disable our rotation animation on CM7
 	}
-	
-	Display defaultDpy()
+
+	int mainDisplayRotation()
 	{
-		return getWindowManager().getDefaultDisplay();
+		return defaultDpy.getRotation();
 	}
-	
-	DisplayMetrics displayMetrics()
+
+	void enumDisplays()
 	{
-		return getResources().getDisplayMetrics();
+		displayEnumerated(defaultDpy, Display.DEFAULT_DISPLAY,
+			defaultDpy.getRefreshRate(), defaultDpy.getRotation(),
+			getResources().getDisplayMetrics());
+		if(android.os.Build.VERSION.SDK_INT >= 17)
+		{
+			DisplayListenerHelper.enumPresentationDisplays(this);
+		}
 	}
-	
-	DisplayMetrics getDisplayMetrics(Display display)
-	{
-		DisplayMetrics metrics = new DisplayMetrics();
-		display.getMetrics(metrics);
-		return metrics;
-	}
-	
+
 	String filesDir()
 	{
 		return getFilesDir().getAbsolutePath();
@@ -353,6 +354,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	@Override protected void onCreate(Bundle savedInstanceState)
 	{
+		defaultDpy = getWindowManager().getDefaultDisplay();
 		Window win = getWindow();
 		win.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR);
 		super.onCreate(savedInstanceState);

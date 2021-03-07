@@ -53,6 +53,7 @@ static AAssetManager *assetManager{};
 static JavaInstMethod<void(jint)> jSetUIVisibility{};
 static JavaInstMethod<jobject()> jNewFontRenderer{};
 JavaInstMethod<void(jint)> jSetRequestedOrientation{};
+static JavaInstMethod<jint()> jMainDisplayRotation{};
 static const char *filesDir{};
 static uint32_t aSDK = __ANDROID_API__;
 static bool osAnimatesRotation = false;
@@ -328,7 +329,8 @@ static void activityInit(JNIEnv* env, jobject activity)
 	// BaseActivity members
 	{
 		jBaseActivityCls = (jclass)env->NewGlobalRef(env->GetObjectClass(activity));
-		jSetRequestedOrientation.setup(env, jBaseActivityCls, "setRequestedOrientation", "(I)V");
+		jSetRequestedOrientation = {env, jBaseActivityCls, "setRequestedOrientation", "(I)V"};
+		jMainDisplayRotation = {env, jBaseActivityCls, "mainDisplayRotation", "()I"};
 		#ifdef CONFIG_RESOURCE_FONT_ANDROID
 		jNewFontRenderer.setup(env, jBaseActivityCls, "newFontRenderer", "()Lcom/imagine/FontRenderer;");
 		#endif
@@ -634,7 +636,7 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			auto aConfig = AConfiguration_new();
 			auto freeConfig = IG::scopeGuard([&](){ AConfiguration_delete(aConfig); });
 			AConfiguration_fromAssetManager(aConfig, activity->assetManager);
-			auto rotation = mainScreen().rotation(activity->env);
+			auto rotation = (SurfaceRotation)jMainDisplayRotation(activity->env, activity->clazz);
 			if(rotation != osRotation)
 			{
 				logMsg("changed OS orientation");

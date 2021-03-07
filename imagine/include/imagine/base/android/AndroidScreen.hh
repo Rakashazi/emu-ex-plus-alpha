@@ -30,9 +30,8 @@ class AndroidScreen
 {
 public:
 	constexpr AndroidScreen() {}
-	AndroidScreen(JNIEnv *env, jobject aDisplay, jobject metrics, int id, float refreshRate);
+	AndroidScreen(JNIEnv *env, jobject aDisplay, int id, float refreshRate, SurfaceRotation rotation, jobject metrics);
 	~AndroidScreen();
-	SurfaceRotation rotation(JNIEnv *env) const;
 	std::pair<float, float> dpi() const;
 	float densityDPI() const;
 	jobject displayObject() const;

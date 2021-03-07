@@ -146,6 +146,7 @@ protected:
 	Base::Window &mainWindow() const;
 	void setWindowFrameClockSource(Base::Window::FrameTimeSource);
 	bool useRendererTime() const;
+	void configureSecondaryScreens();
 };
 
 extern DelegateFunc<void ()> onUpdateInputDevices;

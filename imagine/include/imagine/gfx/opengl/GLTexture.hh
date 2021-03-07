@@ -95,7 +95,8 @@ protected:
 	void updateLevelsForMipmapGeneration();
 	GLenum target() const;
 	#ifdef __ANDROID__
-	void setFromEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc, SamplerParams samplerParams);
+	void initWithEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc, SamplerParams samplerParams, bool isMutable);
+	void updateWithEGLImage(EGLImageKHR eglImg);
 	#endif
 };
 

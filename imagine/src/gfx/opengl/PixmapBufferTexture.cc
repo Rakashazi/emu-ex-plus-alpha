@@ -24,8 +24,7 @@
 #include <imagine/util/math/int.hh>
 #ifdef __ANDROID__
 #include <imagine/base/platformExtras.hh>
-#include "android/AHardwareBufferStorage.hh"
-#include "android/GraphicBufferStorage.hh"
+#include "android/HardwareBufferStorage.hh"
 #include "android/SurfaceTextureStorage.hh"
 #endif
 #include <imagine/logger/logger.h>
@@ -118,11 +117,17 @@ IG::ErrorCode GLPixmapBufferTexture::initWithHardwareBuffer(RendererTask &r, Tex
 	auto androidSDK = Base::androidSDK();
 	if(androidSDK >= 26)
 	{
-		directTex = std::make_unique<AHardwareBufferStorage>(r, config, &err);
+		if(singleBuffer)
+			directTex = std::make_unique<AHardwareSingleBufferStorage>(r, config, &err);
+		else
+			directTex = std::make_unique<AHardwareBufferStorage>(r, config, &err);
 	}
 	else
 	{
-		directTex = std::make_unique<GraphicBufferStorage>(r, config, &err);
+		if(singleBuffer)
+			directTex = std::make_unique<GraphicSingleBufferStorage>(r, config, &err);
+		else
+			directTex = std::make_unique<GraphicBufferStorage>(r, config, &err);
 	}
 	return err;
 }
@@ -339,7 +344,7 @@ void GLTextureStorage::initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool si
 	}
 }
 
-GLTextureStorage::BufferInfo GLTextureStorage::swapBuffer()
+GLTextureStorage::BufferInfo GLTextureStorage::currentBuffer() const
 {
 	if(isSingleBuffered())
 	{
@@ -347,10 +352,15 @@ GLTextureStorage::BufferInfo GLTextureStorage::swapBuffer()
 	}
 	else
 	{
-		auto info = buffer[bufferIdx];
-		bufferIdx = (bufferIdx + 1) % 2;
-		return info;
+		return buffer[bufferIdx];
 	}
+}
+
+void GLTextureStorage::swapBuffer()
+{
+	if(isSingleBuffered())
+		return;
+	bufferIdx = (bufferIdx + 1) % 2;
 }
 
 bool GLTextureStorage::isSingleBuffered() const
@@ -366,7 +376,7 @@ IG::ErrorCode GLTextureStorage::setFormat(IG::PixmapDesc desc, const TextureSamp
 
 LockedTextureBuffer GLTextureStorage::lock(uint32_t bufferFlags)
 {
-	auto bufferInfo = swapBuffer();
+	auto bufferInfo = currentBuffer();
 	IG::WindowRect fullRect{0, 0, size(0).x, size(0).y};
 	IG::Pixmap pix{{fullRect.size(), pixmapDesc().format()}, bufferInfo.data};
 	if(bufferFlags & Texture::BUFFER_FLAG_CLEARED)
@@ -377,6 +387,7 @@ LockedTextureBuffer GLTextureStorage::lock(uint32_t bufferFlags)
 void GLTextureStorage::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 {
 	Texture::unlock(lockBuff, writeFlags);
+	swapBuffer();
 }
 
 void GLTextureStorage::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags)
@@ -474,12 +485,12 @@ static bool hasHardwareBuffer(Renderer &r)
 		logErr("Can't use GraphicBuffer without OES_EGL_image extension");
 		return false;
 	}
-	if(GraphicBufferStorage::isSupported())
+	if(Base::GraphicBuffer::isSupported())
 		return true;
 	auto rendererStr = rendererGLStr(r);
-	if(!GraphicBufferStorage::canSupport(rendererStr))
+	if(!Base::GraphicBuffer::canSupport(rendererStr))
 		return false;
-	return GraphicBufferStorage::testSupport();
+	return Base::GraphicBuffer::testSupport();
 }
 #endif
 
@@ -570,13 +581,6 @@ TextureBufferMode Renderer::makeValidTextureBufferMode(TextureBufferMode mode)
 			return hasSurfaceTexture(*this) ? TextureBufferMode::ANDROID_SURFACE_TEXTURE : makeValidTextureBufferMode();
 		#endif
 	}
-}
-
-bool Renderer::textureBufferModeCanDoubleBuffer(TextureBufferMode mode)
-{
-	if(Config::envIsAndroid && mode == TextureBufferMode::ANDROID_HARDWARE_BUFFER)
-		return false;
-	return true;
 }
 
 }

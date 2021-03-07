@@ -316,7 +316,6 @@ void mainInitCommon(int argc, char** argv)
 	if(optionMOGAInputSystem)
 		Input::initMOGA(false);
 	#endif
-	updateInputDevices();
 
 	Base::WindowConfig winConf{};
 	winConf.setTitle(appName());
@@ -368,6 +367,7 @@ void mainInitCommon(int argc, char** argv)
 			winData.projection = updateProjection(makeViewport(win));
 			win.setAcceptDnd(true);
 			renderer.setWindowValidOrientations(win, optionMenuOrientation);
+			updateInputDevices();
 			vController.setWindow(win);
 			initVControls(vController, renderer);
 			ViewAttachParams viewAttach{win, renderer.task()};

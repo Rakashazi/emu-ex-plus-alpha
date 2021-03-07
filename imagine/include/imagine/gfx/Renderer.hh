@@ -110,7 +110,6 @@ public:
 	PixmapBufferTexture makePixmapBufferTexture(TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false);
 	std::vector<TextureBufferModeDesc> textureBufferModes();
 	TextureBufferMode makeValidTextureBufferMode(TextureBufferMode mode = {});
-	static bool textureBufferModeCanDoubleBuffer(TextureBufferMode mode);
 	TextureSampler makeTextureSampler(TextureSamplerConfig config);
 	TextureSampler &makeCommonTextureSampler(CommonTextureSampler sampler);
 	TextureSampler &make(CommonTextureSampler sampler) { return makeCommonTextureSampler(sampler); }

@@ -14,6 +14,7 @@ base/android/AndroidScreen.cc \
 base/android/ALooperEventLoop.cc \
 base/android/AndroidGLContext.cc \
 base/android/FrameTimer.cc \
+base/android/HardwareBuffer.cc \
 base/android/intent.cc \
 base/android/inputConfig.cc \
 base/android/textInput.cc \

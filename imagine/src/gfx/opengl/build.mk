@@ -69,8 +69,7 @@ else
 endif
 
 ifeq ($(ENV), android)
- SRC += gfx/opengl/android/AHardwareBufferStorage.cc \
- gfx/opengl/android/GraphicBufferStorage.cc \
+ SRC += gfx/opengl/android/HardwareBufferStorage.cc \
  gfx/opengl/android/SurfaceTextureStorage.cc
 endif
 
