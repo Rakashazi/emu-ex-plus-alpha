@@ -56,7 +56,7 @@ final class PresentationHelper extends Presentation
 	// called by the native code if it deinits the window
 	public void deinit()
 	{
-		contentView.windowAddr = 0;
+		contentView.resetWindowAddr();
 		dismiss();
 	}
 	

@@ -18,6 +18,11 @@
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/gfx/SyncFence.hh>
 
+namespace Base
+{
+class ApplicationContext;
+}
+
 class EmuVideo;
 class EmuSystemTask;
 
@@ -62,6 +67,7 @@ public:
 	bool isExternalTexture() const;
 	Gfx::PixmapBufferTexture &image();
 	Gfx::Renderer &renderer() const;
+	Base::ApplicationContext appContext() const;
 	IG::WP size() const;
 	bool formatIsEqual(IG::PixmapDesc desc) const;
 	void setOnFrameFinished(FrameFinishedDelegate del);

@@ -16,6 +16,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/io/FileIO.hh>
+#include <imagine/logger/logger.h>
 
 template<class ON_KEY>
 static bool readConfigKeys(IO &io, ON_KEY onKey)

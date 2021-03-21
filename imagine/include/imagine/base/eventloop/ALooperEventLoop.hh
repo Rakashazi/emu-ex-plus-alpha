@@ -15,9 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <android/looper.h>
 #include <imagine/base/eventLoopDefs.hh>
 #include <imagine/util/typeTraits.hh>
+#include <android/looper.h>
 #include <memory>
 
 namespace Base

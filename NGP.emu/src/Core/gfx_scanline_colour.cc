@@ -67,7 +67,6 @@ and compatiblity reasons.
 #include "mem.h"
 #include "gfx.h"
 #include <imagine/util/algorithm.h>
-#include <imagine/util/bits.h>
 #include <algorithm>
 
 //=============================================================================

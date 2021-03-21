@@ -35,7 +35,10 @@ public:
 		format_{format}, onSamplesNeeded_{onSamplesNeeded}
 		{}
 
-	Format format() const;
+	Format format() const
+	{
+		return format_;
+	}
 
 	void setOnSamplesNeeded(OnSamplesNeededDelegate del)
 	{
@@ -87,6 +90,7 @@ public:
 	virtual bool isPlaying() = 0;
 };
 
-std::unique_ptr<OutputStream> makeOutputStream(Api api = Api::DEFAULT);
+OutputStreamConfig makeNativeOutputStreamConfig(Base::ApplicationContext);
+std::unique_ptr<OutputStream> makeOutputStream(Base::ApplicationContext, Api api = Api::DEFAULT);
 
 }

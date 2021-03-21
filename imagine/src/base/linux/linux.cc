@@ -15,7 +15,7 @@
 
 #define LOGTAG "Base"
 #include <imagine/logger/logger.h>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/string.h>
@@ -42,7 +42,7 @@ static void cleanup()
 	#endif
 }
 
-void exit(int returnVal)
+void ApplicationContext::exit(int returnVal)
 {
 	setExitingActivityState();
 	dispatchOnExit(false);
@@ -50,20 +50,18 @@ void exit(int returnVal)
 	::exit(returnVal);
 }
 
-void abort() { ::abort(); }
-
-void openURL(const char *url)
+void ApplicationContext::openURL(const char *url)
 {
 	logMsg("opening url:%s", url);
 	auto ret = system(FS::makePathStringPrintf("xdg-open %s", url).data());
 }
 
-FS::PathString assetPath(const char *)
+FS::PathString ApplicationContext::assetPath(const char *)
 {
 	return appPath;
 }
 
-FS::PathString supportPath(const char *appName)
+FS::PathString ApplicationContext::supportPath(const char *appName)
 {
 	if(auto home = getenv("XDG_DATA_HOME");
 		home)
@@ -83,7 +81,7 @@ FS::PathString supportPath(const char *appName)
 	return {};
 }
 
-FS::PathString cachePath(const char *appName)
+FS::PathString ApplicationContext::cachePath(const char *appName)
 {
 	if(auto home = getenv("XDG_CACHE_HOME");
 		home)
@@ -103,7 +101,7 @@ FS::PathString cachePath(const char *appName)
 	return {};
 }
 
-FS::PathString sharedStoragePath()
+FS::PathString ApplicationContext::sharedStoragePath()
 {
 	if(Config::MACHINE_IS_PANDORA)
 	{
@@ -127,14 +125,14 @@ FS::PathString sharedStoragePath()
 	return {};
 }
 
-FS::PathLocation sharedStoragePathLocation()
+FS::PathLocation ApplicationContext::sharedStoragePathLocation()
 {
 	auto path = sharedStoragePath();
 	auto name = Config::MACHINE_IS_PANDORA ? FS::makeFileString("Media") : FS::makeFileString("Home");
 	return {path, name, {name, strlen(path.data())}};
 }
 
-std::vector<FS::PathLocation> rootFileLocations()
+std::vector<FS::PathLocation> ApplicationContext::rootFileLocations()
 {
 	std::vector<FS::PathLocation> path;
 	path.reserve(1);
@@ -146,59 +144,59 @@ std::vector<FS::PathLocation> rootFileLocations()
 	return path;
 }
 
-FS::PathString libPath(const char *)
+FS::PathString ApplicationContext::libPath(const char *)
 {
 	return appPath;
 }
 
-void setDeviceOrientationChangeSensor(bool on) {}
+void ApplicationContext::setDeviceOrientationChangeSensor(bool on) {}
 
-void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate del) {}
+void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate del) {}
 
-void setSystemOrientation(Orientation o) {}
+void ApplicationContext::setSystemOrientation(Orientation o) {}
 
-Orientation defaultSystemOrientations()
+Orientation ApplicationContext::defaultSystemOrientations() const
 {
 	return VIEW_ROTATE_ALL;
 }
 
 void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del) {}
 
-bool usesPermission(Permission p)
+bool ApplicationContext::usesPermission(Permission p) const
 {
 	return false;
 }
 
-bool requestPermission(Permission p)
+bool ApplicationContext::requestPermission(Permission p)
 {
 	return false;
 }
 
 #ifndef CONFIG_BASE_DBUS
-void setIdleDisplayPowerSave(bool on) {}
+void ApplicationContext::setIdleDisplayPowerSave(bool on) {}
 
-void endIdleByUserActivity() {}
+void ApplicationContext::endIdleByUserActivity() {}
 
-void registerInstance(const char *appID, int argc, char** argv) {}
+void ApplicationContext::registerInstance(int argc, char** argv, const char *) {}
 
-void setAcceptIPC(const char *appID, bool on) {}
+void ApplicationContext::setAcceptIPC(bool on, const char *) {}
 #endif
 
-void addNotification(const char *onShow, const char *title, const char *message) {}
+void ApplicationContext::addNotification(const char *onShow, const char *title, const char *message) {}
 
-void addLauncherIcon(const char *name, const char *path) {}
+void ApplicationContext::addLauncherIcon(const char *name, const char *path) {}
 
-bool hasVibrator() { return false; }
+bool ApplicationContext::hasVibrator() { return false; }
 
-void vibrate(uint32_t ms) {}
+void ApplicationContext::vibrate(IG::Milliseconds ms) {}
 
-void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
+void ApplicationContext::exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
 {
 	std::array<char, 512> msg{};
 	auto result = vsnprintf(msg.data(), msg.size(), format, args);
 	auto cmd = string_makePrintf<1024>("zenity --warning --title='Exited with error' --text='%s'", msg.data());
 	auto cmdResult = system(cmd.data());
-	exit(exitVal);
+	::exit(exitVal);
 }
 
 }
@@ -206,24 +204,25 @@ void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
 int main(int argc, char** argv)
 {
 	using namespace Base;
-	logger_init();
+	Base::ApplicationContext app{};
+	logger_init(app);
 	engineInit();
 	appPath = FS::makeAppPathFromLaunchCommand(argv[0]);
 	auto eventLoop = EventLoop::makeForThread();
 	#ifdef CONFIG_BASE_X11
-	auto xDpy = initX11(eventLoop);
+	auto xDpy = initX11(app, eventLoop);
 	if(!xDpy)
 	{
 		return -1;
 	}
-	FDEventSource x11Src{makeAttachedX11EventSource(xDpy, eventLoop)};
+	FDEventSource x11Src{makeAttachedX11EventSource(app, xDpy, eventLoop)};
 	#endif
 	#ifdef CONFIG_INPUT_EVDEV
-	Input::initEvdev(eventLoop);
+	Input::initEvdev(app, eventLoop);
 	#endif
-	onInit(argc, argv);
+	ApplicationContext::onInit(app, argc, argv);
 	setRunningActivityState();
-	dispatchOnResume(true);
+	app.dispatchOnResume(true);
 	bool eventLoopRunning = true;
 	eventLoop.run(eventLoopRunning);
 	return 0;

@@ -18,7 +18,7 @@
 #include <emuframework/EmuMainMenuView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <imagine/gui/AlertView.hh>
-#include <imagine/util/bits.h>
+#include <imagine/util/bitset.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include "internal.hh"
 
@@ -475,7 +475,8 @@ public:
 	{
 		for(const auto &entry : romlist)
 		{
-			ROM_DEF *drv = res_load_drv(entry.name);
+			auto app = appContext();
+			ROM_DEF *drv = res_load_drv(&app, entry.name);
 			if(!drv)
 				continue;
 			auto freeDrv = IG::scopeGuard([&](){ free(drv); });

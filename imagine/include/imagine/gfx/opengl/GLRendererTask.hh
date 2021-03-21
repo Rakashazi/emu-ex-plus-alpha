@@ -38,6 +38,7 @@ namespace Gfx
 class RendererTask;
 class RendererCommands;
 class DrawContextSupport;
+class DrawableHolder;
 
 class GLRendererTask : public GLTask
 {
@@ -58,6 +59,7 @@ public:
 	void setRenderer(Renderer *r);
 	void setDrawAsyncMode(DrawAsyncMode);
 	void verifyCurrentContext(Base::GLDisplay glDpy) const;
+	void destroyDrawable(DrawableHolder &drawable);
 	RendererCommands makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
 		Base::Window &win, Viewport viewport, Mat4 projMat);
 

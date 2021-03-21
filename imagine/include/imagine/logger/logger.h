@@ -14,8 +14,12 @@ extern uint8_t loggerVerbosity;
 
 typedef uint8_t LoggerSeverity;
 
-CLINK void logger_init() __attribute__((cold));
-CLINK void logger_setEnabled(bool enable);
+#ifdef __cplusplus
+namespace Base { class ApplicationContext; }
+void logger_init(Base::ApplicationContext) __attribute__((cold));
+void logger_setEnabled(Base::ApplicationContext, bool enable);
+#endif
+
 CLINK bool logger_isEnabled();
 CLINK void logger_printf(LoggerSeverity severity, const char* msg, ...) __attribute__((format (printf, 2, 3)));
 CLINK void logger_vprintf(LoggerSeverity severity, const char* msg, va_list arg);

@@ -232,9 +232,9 @@ void EmuSystem::writeConfig(IO &io)
 	optionMixerPCMPan.writeWithKeyIfNotDefault(io);
 }
 
-EmuSystem::Error EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext app)
 {
-	machineBasePath = makeMachineBasePath(machineCustomPath);
+	machineBasePath = makeMachineBasePath(app, machineCustomPath);
 
 	mixerEnableChannelType(mixer, MIXER_CHANNEL_PSG, mixerEnableOption(MIXER_CHANNEL_PSG));
 	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_PSG, mixerVolumeOption(MIXER_CHANNEL_PSG));

@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
 #include <imagine/base/iphone/config.h>
+#include <imagine/util/rectangle2.h>
 #import <CoreGraphics/CGBase.h>
 #include <compare>
 
@@ -48,7 +49,7 @@ public:
 	static constexpr CGFloat pointScale{1.};
 	#endif
 
-	constexpr IOSWindow() {}
+	using BaseWindow::BaseWindow;
 	~IOSWindow();
 	#ifdef __OBJC__
 	void updateContentRect(int width, int height, uint32_t softOrientation, UIApplication *sharedApp);

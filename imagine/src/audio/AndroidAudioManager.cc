@@ -15,6 +15,7 @@
 
 #include <imagine/audio/AudioManager.hh>
 #include <imagine/audio/defs.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/jni.hh>
 #include <imagine/util/utility.h>
 #include <imagine/logger/logger.h>
@@ -46,46 +47,46 @@ static int audioManagerIntProperty(JNIEnv* env, JavaInstMethod<jobject(jstring)>
 	return val;
 }
 
-static void setupAudioManagerJNI(JNIEnv* env)
+static void setupAudioManagerJNI(JNIEnv* env, jobject baseActivity, int sdk)
 {
 	if(audioManager)
 		return;
 	JavaInstMethod<jobject()> jAudioManager{env, Base::jBaseActivityCls, "audioManager", "()Landroid/media/AudioManager;"};
-	audioManager = jAudioManager(env, Base::jBaseActivity);
+	audioManager = jAudioManager(env, baseActivity);
 	assert(audioManager);
 	audioManager = env->NewGlobalRef(audioManager);
 	jclass jAudioManagerCls = env->GetObjectClass(audioManager);
 	jRequestAudioFocus.setup(env, jAudioManagerCls, "requestAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;II)I");
 	jAbandonAudioFocus.setup(env, jAudioManagerCls, "abandonAudioFocus", "(Landroid/media/AudioManager$OnAudioFocusChangeListener;)I");
-	if(Base::androidSDK() >= 17)
+	if(sdk >= 17)
 		jGetProperty.setup(env, jAudioManagerCls, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;");
 }
 
-static void requestAudioFocus(JNIEnv* env)
+static void requestAudioFocus(JNIEnv* env, jobject baseActivity, int sdk)
 {
-	setupAudioManagerJNI(env);
-	auto res = jRequestAudioFocus(env, audioManager, Base::jBaseActivity, 3, 1);
+	setupAudioManagerJNI(env, baseActivity, sdk);
+	auto res = jRequestAudioFocus(env, audioManager, baseActivity, 3, 1);
 	//logMsg("%d from requestAudioFocus()", (int)res);
 }
 
-static void abandonAudioFocus(JNIEnv* env)
+static void abandonAudioFocus(JNIEnv* env, jobject baseActivity, int sdk)
 {
-	setupAudioManagerJNI(env);
-	jAbandonAudioFocus(env, audioManager, Base::jBaseActivity);
+	setupAudioManagerJNI(env, baseActivity, sdk);
+	jAbandonAudioFocus(env, audioManager, baseActivity);
 }
 
-Audio::SampleFormat nativeSampleFormat()
+Audio::SampleFormat nativeSampleFormat(Base::ApplicationContext app)
 {
-	return Base::androidSDK() >= 21 ? Audio::SampleFormats::f32 : Audio::SampleFormats::i16;
+	return app.androidSDK() >= 21 ? Audio::SampleFormats::f32 : Audio::SampleFormats::i16;
 }
 
-uint32_t nativeRate()
+uint32_t nativeRate(Base::ApplicationContext app)
 {
 	uint32_t rate = 44100;
-	if(Base::androidSDK() >= 17)
+	if(app.androidSDK() >= 17)
 	{
-		auto env = Base::jEnvForThread();
-		setupAudioManagerJNI(env);
+		auto env = app.mainThreadJniEnv();
+		setupAudioManagerJNI(env, app.baseActivityObject(), app.androidSDK());
 		rate = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_SAMPLE_RATE");
 		if(rate != 44100 && rate != 48000)
 		{
@@ -101,17 +102,17 @@ uint32_t nativeRate()
 	return rate;
 }
 
-Audio::Format nativeFormat()
+Audio::Format nativeFormat(Base::ApplicationContext app)
 {
-	return {nativeRate(), nativeSampleFormat(), 2};
+	return {nativeRate(app), nativeSampleFormat(app), 2};
 }
 
-uint32_t nativeOutputFramesPerBuffer()
+uint32_t nativeOutputFramesPerBuffer(Base::ApplicationContext app)
 {
-	if(Base::androidSDK() >= 17)
+	if(app.androidSDK() >= 17)
 	{
-		auto env = Base::jEnvForThread();
-		setupAudioManagerJNI(env);
+		auto env = app.mainThreadJniEnv();
+		setupAudioManagerJNI(env, app.baseActivityObject(), app.androidSDK());
 		int outputBufferFrames = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_FRAMES_PER_BUFFER");
 		//logMsg("native buffer frames: %d", outputBufferFrames);
 		if(outputBufferFrames <= 0 || outputBufferFrames > 4096)
@@ -127,7 +128,7 @@ uint32_t nativeOutputFramesPerBuffer()
 	}
 }
 
-void setSoloMix(bool newSoloMix)
+void setSoloMix(Base::ApplicationContext app, bool newSoloMix)
 {
 	if(soloMix_ != newSoloMix)
 	{
@@ -137,9 +138,9 @@ void setSoloMix(bool newSoloMix)
 		{
 			// update the current audio focus
 			if(newSoloMix)
-				requestAudioFocus(Base::jEnvForThread());
+				requestAudioFocus(app.mainThreadJniEnv(), app.baseActivityObject(), app.androidSDK());
 			else
-				abandonAudioFocus(Base::jEnvForThread());
+				abandonAudioFocus(app.mainThreadJniEnv(), app.baseActivityObject(), app.androidSDK());
 		}
 	}
 }
@@ -149,33 +150,33 @@ bool soloMix()
 	return soloMix_;
 }
 
-void setMusicVolumeControlHint()
+void setMusicVolumeControlHint(Base::ApplicationContext app)
 {
 	using namespace Base;
-	auto env = jEnvForThread();
+	auto env = app.mainThreadJniEnv();
 	JavaInstMethod<void(jint)> jSetVolumeControlStream{env, jBaseActivityCls, "setVolumeControlStream", "(I)V"};
-	jSetVolumeControlStream(env, jBaseActivity, 3);
+	jSetVolumeControlStream(env, app.baseActivityObject(), 3);
 }
 
-void startSession()
+void startSession(Base::ApplicationContext app)
 {
 	if(sessionActive)
 		return;
 	sessionActive = true;
 	if(soloMix_)
 	{
-		requestAudioFocus(Base::jEnvForThread());
+		requestAudioFocus(app.mainThreadJniEnv(), app.baseActivityObject(), app.androidSDK());
 	}
 }
 
-void endSession()
+void endSession(Base::ApplicationContext app)
 {
 	if(!sessionActive)
 		return;
 	sessionActive = false;
 	if(soloMix_)
 	{
-		abandonAudioFocus(Base::jEnvForThread());
+		abandonAudioFocus(app.mainThreadJniEnv(), app.baseActivityObject(), app.androidSDK());
 	}
 }
 
@@ -184,10 +185,10 @@ void endSession()
 namespace IG::Audio
 {
 
-std::vector<ApiDesc> audioAPIs()
+std::vector<ApiDesc> audioAPIs(Base::ApplicationContext app)
 {
 	std::vector<ApiDesc> desc;
-	if(Base::androidSDK() >= 26)
+	if(app.androidSDK() >= 26)
 	{
 		desc.reserve(2);
 		desc.emplace_back("AAudio", Api::AAUDIO);
@@ -196,13 +197,13 @@ std::vector<ApiDesc> audioAPIs()
 	return desc;
 }
 
-Api makeValidAPI(Api api)
+Api makeValidAPI(Base::ApplicationContext app, Api api)
 {
 	// Don't default to AAudio on Android 8.0 (SDK 26) due
 	// too various device-specific driver bugs:
 	// ASUS ZenFone 4 (ZE554KL) crashes randomly ~5 mins after playback starts
 	// Samsung Galaxy S7 may crash when closing audio stream even when stopping it beforehand
-	if(Base::androidSDK() >= 27)
+	if(app.androidSDK() >= 27)
 	{
 		if(api == Api::OPENSL_ES)
 			return Api::OPENSL_ES; // OpenSL ES was explicitly requested

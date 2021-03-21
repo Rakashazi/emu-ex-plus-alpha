@@ -26,6 +26,8 @@
 namespace Base
 {
 
+class ApplicationContext;
+
 class GraphicBuffer : public android_native_buffer_t
 {
 public:
@@ -43,7 +45,7 @@ public:
 	android_native_buffer_t *nativeObject();
 	EGLClientBuffer eglClientBuffer();
 	static bool hasBufferMapper();
-	static bool canSupport(const char *rendererStr);
+	static bool canSupport(ApplicationContext, const char *rendererStr);
 	static bool testSupport();
 	static bool isSupported();
 

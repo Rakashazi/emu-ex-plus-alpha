@@ -49,22 +49,22 @@ static bool sessionActive = false;
 static id sessionInterruptionObserver = nil;
 #endif
 
-Audio::SampleFormat nativeSampleFormat()
+Audio::SampleFormat nativeSampleFormat(Base::ApplicationContext)
 {
 	return Audio::SampleFormats::f32;
 }
 
-uint32_t nativeRate()
+uint32_t nativeRate(Base::ApplicationContext)
 {
 	return 44100;
 }
 
-Audio::Format nativeFormat()
+Audio::Format nativeFormat(Base::ApplicationContext app)
 {
-	return {nativeRate(), nativeSampleFormat(), 2};
+	return {nativeRate(app), nativeSampleFormat(app), 2};
 }
 
-void setSoloMix(bool newSoloMix)
+void setSoloMix(Base::ApplicationContext, bool newSoloMix)
 {
 	if(soloMix_ != newSoloMix)
 	{
@@ -80,9 +80,9 @@ bool soloMix()
 	return soloMix_;
 }
 
-void setMusicVolumeControlHint() {}
+void setMusicVolumeControlHint(Base::ApplicationContext) {}
 
-void startSession()
+void startSession(Base::ApplicationContext)
 {
 	if(sessionActive)
 		return;
@@ -109,7 +109,7 @@ void startSession()
 	sessionActive = true;
 }
 
-void endSession()
+void endSession(Base::ApplicationContext)
 {
 	if(!sessionActive)
 		return;
@@ -133,12 +133,12 @@ void endSession()
 namespace IG::Audio
 {
 
-std::vector<ApiDesc> audioAPIs()
+std::vector<ApiDesc> audioAPIs(Base::ApplicationContext)
 {
 	return {{"Core Audio", Api::COREAUDIO}};
 }
 
-Api makeValidAPI(Api api)
+Api makeValidAPI(Base::ApplicationContext, Api api)
 {
 	return Api::COREAUDIO;
 }

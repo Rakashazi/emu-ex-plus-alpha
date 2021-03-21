@@ -72,7 +72,7 @@ void EmuSystem::initOptions()
 	EmuApp::setDefaultVControlsButtonStagger(3);
 }
 
-EmuSystem::Error EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)
 {
 	yinit.sh2coretype = optionSH2Core;
 	return {};

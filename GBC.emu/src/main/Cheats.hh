@@ -15,8 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with GBC.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/bits.h>
+#include <imagine/util/bitset.hh>
 #include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/string.h>
 #include <emuframework/EmuSystem.hh>
 
 namespace EmuCheats

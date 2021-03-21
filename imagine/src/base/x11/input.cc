@@ -14,11 +14,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "Input"
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/bits.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
@@ -344,7 +343,7 @@ static void updatePointer(Base::Window &win, uint32_t key, uint32_t btnState, in
 	win.dispatchInputEvent(Event{(uint32_t)p, Map::POINTER, (Key)key, btnState, action, pos.x, pos.y, p, Source::MOUSE, time, dev});
 }
 
-bool handleXI2GenericEvent(Display *dpy, XEvent &event)
+bool handleXI2GenericEvent(Base::ApplicationContext app, Display *dpy, XEvent &event)
 {
 	assert(event.type == GenericEvent);
 	if(event.xcookie.extension != xI2opcode)
@@ -387,7 +386,7 @@ bool handleXI2GenericEvent(Display *dpy, XEvent &event)
 		return true;
 	}
 	// others events are for specific windows
-	auto destWin = windowForXWindow(ievent.event);
+	auto destWin = windowForXWindow(app, ievent.event);
 	if(unlikely(!destWin))
 	{
 		//logWarn("ignored event for unknown window");
@@ -467,9 +466,9 @@ void showSoftInput() {}
 void hideSoftInput() {}
 bool softInputIsActive() { return false; }
 
-void flushSystemEvents()
+void flushSystemEvents(Base::ApplicationContext app)
 {
-	Base::runX11Events(Base::xDisplay);
+	Base::runX11Events(app, Base::xDisplay);
 }
 
 }

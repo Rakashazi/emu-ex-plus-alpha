@@ -20,21 +20,19 @@
 #ifndef __ANDROID__
 #include <execinfo.h>
 #endif
-#include "basePrivate.hh"
-#include <imagine/base/Base.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/sharedLibrary.hh>
 #include <imagine/util/system/pagesize.h>
-#include <imagine/util/ScopeGuard.hh>
-#include <imagine/util/DelegateFuncSet.hh>
 #ifdef __ANDROID__
 #include <android/log.h>
 #endif
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
+#include <imagine/data-type/image/GfxImageSource.hh>
 #include <cstdlib>
+#include <cstring>
 #include <dlfcn.h>
 
 namespace Base
@@ -42,178 +40,10 @@ namespace Base
 
 const char copyright[] = "Imagine is Copyright 2010-2021 Robert Broglia";
 
-static InterProcessMessageDelegate onInterProcessMessage_;
-static DelegateFuncSet<ResumeDelegate> onResume_;
-static FreeCachesDelegate onFreeCaches_;
-static DelegateFuncSet<ExitDelegate> onExit_;
-static ActivityState appState = ActivityState::PAUSED;
-
 void engineInit()
 {
 	logDMsg("%s", copyright);
 	logDMsg("compiled on %s %s", __DATE__, __TIME__);
-}
-
-ActivityState activityState()
-{
-	return appState;
-}
-
-void setPausedActivityState()
-{
-	if(appState == ActivityState::EXITING)
-	{
-		return; // ignore setting paused state while exiting
-	}
-	appState = ActivityState::PAUSED;
-}
-
-void setRunningActivityState()
-{
-	assert(appState != ActivityState::EXITING); // should never set running state after exit state
-	appState = ActivityState::RUNNING;
-}
-
-void setExitingActivityState()
-{
-	appState = ActivityState::EXITING;
-}
-
-bool appIsRunning()
-{
-	return activityState() == ActivityState::RUNNING;
-}
-
-bool appIsPaused()
-{
-	return activityState() == ActivityState::PAUSED;
-}
-
-bool appIsExiting()
-{
-	return activityState() == ActivityState::EXITING;
-}
-
-void setOnInterProcessMessage(InterProcessMessageDelegate del)
-{
-	onInterProcessMessage_ = del;
-}
-
-bool addOnResume(ResumeDelegate del, int priority)
-{
-	return onResume_.add(del, priority);
-}
-
-bool removeOnResume(ResumeDelegate del)
-{
-	if(appIsExiting())
-		return false;
-	return onResume_.remove(del);
-}
-
-bool containsOnResume(ResumeDelegate del)
-{
-	return onResume_.contains(del);
-}
-
-void setOnFreeCaches(FreeCachesDelegate del)
-{
-	onFreeCaches_ = del;
-}
-
-bool addOnExit(ExitDelegate del, int priority)
-{
-	return onExit_.add(del, priority);
-}
-
-bool removeOnExit(ExitDelegate del)
-{
-	if(appIsExiting())
-		return false;
-	return onExit_.remove(del);
-}
-
-bool containsOnExit(ExitDelegate del)
-{
-	return onExit_.contains(del);
-}
-
-void dispatchOnInterProcessMessage(const char *filename)
-{
-	onInterProcessMessage_.callCopySafe(filename);
-}
-
-void dispatchOnResume(bool focused)
-{
-	onResume_.runAll([&](ResumeDelegate del){ return del(focused); });
-}
-
-void dispatchOnFreeCaches(bool running)
-{
-	onFreeCaches_.callCopySafe(running);
-}
-
-void dispatchOnExit(bool backgrounded)
-{
-	onExit_.runAll([&](ExitDelegate del){ return del(backgrounded); }, true);
-}
-
-const InterProcessMessageDelegate &onInterProcessMessage()
-{
-	return onInterProcessMessage_;
-}
-
-const FreeCachesDelegate &onFreeCaches()
-{
-	return onFreeCaches_;
-}
-
-OnResume::OnResume(ResumeDelegate del, int priority): del{del}
-{
-	addOnResume(del, priority);
-}
-
-OnResume::OnResume(OnResume &&o)
-{
-	*this = std::move(o);
-}
-
-OnResume &OnResume::operator=(OnResume &&o)
-{
-	if(del)
-		removeOnResume(del);
-	del = std::exchange(o.del, {});
-	return *this;
-}
-
-OnResume::~OnResume()
-{
-	if(del)
-		removeOnResume(del);
-}
-
-OnExit::OnExit(ResumeDelegate del, int priority): del{del}
-{
-	addOnExit(del, priority);
-}
-
-OnExit::OnExit(OnExit &&o)
-{
-	*this = std::move(o);
-}
-
-OnExit &OnExit::operator=(OnExit &&o)
-{
-	if(del)
-		removeOnExit(del);
-	del = std::exchange(o.del, {});
-	return *this;
-}
-
-OnExit::~OnExit()
-{
-	if(del)
-		removeOnExit(del);
 }
 
 const char *orientationToStr(Orientation o)
@@ -237,24 +67,6 @@ bool orientationIsSideways(Orientation o)
 	return o == VIEW_ROTATE_90 || o == VIEW_ROTATE_270;
 }
 
-Orientation validateOrientationMask(Orientation oMask)
-{
-	if(!(oMask & VIEW_ROTATE_ALL))
-	{
-		// use default when none of the orientation bits are set
-		oMask = defaultSystemOrientations();
-	}
-	return oMask;
-}
-
-void exitWithErrorMessagePrintf(int exitVal, const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	auto vaEnd = IG::scopeGuard([&](){ va_end(args); });
-	exitWithErrorMessageVPrintf(exitVal, format, args);
-}
-
 FDEventSource::FDEventSource(const char *debugLabel, int fd, EventLoop loop, PollEventDelegate callback, uint32_t events):
 	FDEventSource{debugLabel, fd}
 {
@@ -269,33 +81,8 @@ bool FDEventSource::attach(PollEventDelegate callback, uint32_t events)
 IG::PixelFormat GLBufferConfigAttributes::pixelFormat() const
 {
 	if(!pixelFormat_)
-		return Window::defaultPixelFormat();
+		return Window::defaultPixelFormat(app);
 	return pixelFormat_;
-}
-
-FS::RootPathInfo nearestRootPath(const char *path)
-{
-	if(!path)
-		return {};
-	auto location = rootFileLocations();
-	const FS::PathLocation *nearestPtr{};
-	size_t lastMatchOffset = 0;
-	for(const auto &l : location)
-	{
-		auto subStr = strstr(path, l.path.data());
-		if(subStr != path)
-			continue;
-		auto matchOffset = (size_t)(&path[l.root.length] - path);
-		if(matchOffset > lastMatchOffset)
-		{
-			nearestPtr = &l;
-			lastMatchOffset = matchOffset;
-		}
-	}
-	if(!lastMatchOffset)
-		return {};
-	logMsg("found root location:%s with length:%d", nearestPtr->root.name.data(), (int)nearestPtr->root.length);
-	return {nearestPtr->root.name, nearestPtr->root.length};
 }
 
 SharedLibraryRef openSharedLibrary(const char *name, unsigned flags)
@@ -377,6 +164,8 @@ int thisThreadPriority()
 
 }
 
+GfxImageSource::~GfxImageSource() {}
+
 #if defined(__has_feature)
 	#if __has_feature(address_sanitizer) && defined CONFIG_BASE_CUSTOM_NEW_DELETE
 	#undef CONFIG_BASE_NO_CUSTOM_NEW_DELETE
@@ -443,6 +232,6 @@ CLINK void bug_doExit(const char *msg, ...)
 	va_end(args);
 	logger_printf(LOG_E, "\n");
 	usleep(500000); // TODO: need a way to flush every type of log output
-	Base::abort();
+	abort();
 	#endif
 }

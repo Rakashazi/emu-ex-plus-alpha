@@ -16,9 +16,8 @@
 #define LOGTAG "Wiimote"
 #include <imagine/bluetooth/Wiimote.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/base/Base.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/bits.h>
+#include <imagine/util/bitset.hh>
 #include <imagine/util/algorithm.h>
 #include "../input/private.hh"
 #include "private.hh"
@@ -213,7 +212,7 @@ IG::ErrorCode Wiimote::open(BluetoothAdapter &adapter)
 		{
 			return statusHandler(sock, status);
 		};
-	if(ctlSock.openL2cap(addr, 17))
+	if(ctlSock.openL2cap(adapter, addr, 17))
 	{
 		logErr("error opening control socket");
 		return {EIO};
@@ -226,7 +225,7 @@ uint32_t Wiimote::statusHandler(BluetoothSocket &sock, uint32_t status)
 	if(status == BluetoothSocket::STATUS_OPENED && &sock == (BluetoothSocket*)&ctlSock)
 	{
 		logMsg("opened Wiimote control socket, opening interrupt socket");
-		intSock.openL2cap(addr, 19);
+		intSock.openL2cap(*BluetoothAdapter::defaultAdapter(app), addr, 19);
 		return 0; // don't add ctlSock to event loop
 	}
 	else if(status == BluetoothSocket::STATUS_OPENED && &sock == (BluetoothSocket*)&intSock)
@@ -556,10 +555,10 @@ void Wiimote::processCoreButtons(const uint8_t *packet, Input::Time time, uint32
 		if(newState != -1)
 		{
 			//logMsg("%s %s @ wiimote %d", buttonName(Map::WIIMOTE, e.keyEvent), newState ? "pushed" : "released", player);
-			Base::endIdleByUserActivity();
+			app.endIdleByUserActivity();
 			Event event{(uint32_t)player, Map::WIIMOTE, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
-			startKeyRepeatTimer(event);
-			dispatchInputEvent(event);
+			startKeyRepeatTimer(app, event);
+			dispatchInputEvent(app, event);
 		}
 	}
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
@@ -574,8 +573,8 @@ void Wiimote::processClassicButtons(const uint8_t *packet, Input::Time time, uin
 	decodeCCSticks(ccData, stickPos[0], stickPos[1], stickPos[2], stickPos[3]);
 	iterateTimes(4, i)
 	{
-		if(axisKey[i].dispatch(stickPos[i], player, Input::Map::WIIMOTE, time, *this, Base::mainWindow()))
-			Base::endIdleByUserActivity();
+		if(axisKey[i].dispatch(stickPos[i], player, Input::Map::WIIMOTE, time, *this, app.mainWindow()))
+			app.endIdleByUserActivity();
 	}
 	for(auto &e : wiimoteCCDataAccess)
 	{
@@ -584,10 +583,10 @@ void Wiimote::processClassicButtons(const uint8_t *packet, Input::Time time, uin
 		{
 			// note: buttons are 0 when pushed
 			//logMsg("%s %s @ wiimote cc", buttonName(Map::WIIMOTE, e.keyEvent), !newState ? "pushed" : "released");
-			Base::endIdleByUserActivity();
+			app.endIdleByUserActivity();
 			Event event{player, Map::WII_CC, e.keyEvent, e.sysKey, !newState ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, &extDevice};
-			startKeyRepeatTimer(event);
-			dispatchInputEvent(event);
+			startKeyRepeatTimer(app, event);
+			dispatchInputEvent(app, event);
 		}
 	}
 	memcpy(prevExtData, ccData, ccDataBytes);
@@ -602,8 +601,8 @@ void Wiimote::processProButtons(const uint8_t *packet, Input::Time time, uint32_
 	decodeProSticks(proData, stickPos[0], stickPos[1], stickPos[2], stickPos[3]);
 	iterateTimes(4, i)
 	{
-		if(axisKey[i].dispatch(stickPos[i], player, Input::Map::WIIMOTE, time, *this, Base::mainWindow()))
-			Base::endIdleByUserActivity();
+		if(axisKey[i].dispatch(stickPos[i], player, Input::Map::WIIMOTE, time, *this, app.mainWindow()))
+			app.endIdleByUserActivity();
 	}
 	for(auto &e : wiimoteProDataAccess)
 	{
@@ -612,10 +611,10 @@ void Wiimote::processProButtons(const uint8_t *packet, Input::Time time, uint32_
 		{
 			// note: buttons are 0 when pushed
 			//logMsg("%s %s @ wii u pro", buttonName(Map::WIIMOTE, e.keyEvent), !newState ? "pushed" : "released");
-			Base::endIdleByUserActivity();
+			app.endIdleByUserActivity();
 			Event event{player, Map::WII_CC, e.keyEvent, e.sysKey, !newState ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
-			startKeyRepeatTimer(event);
-			dispatchInputEvent(event);
+			startKeyRepeatTimer(app, event);
+			dispatchInputEvent(app, event);
 		}
 	}
 	memcpy(prevExtData, proData, proDataBytes);
@@ -628,8 +627,8 @@ void Wiimote::processNunchukButtons(const uint8_t *packet, Input::Time time, uin
 	//processNunchukStickDataForButtonEmulation(player, nunData);
 	iterateTimes(2, i)
 	{
-		if(axisKey[i].dispatch(nunData[i], player, Input::Map::WIIMOTE, time, *this, Base::mainWindow()))
-			Base::endIdleByUserActivity();
+		if(axisKey[i].dispatch(nunData[i], player, Input::Map::WIIMOTE, time, *this, app.mainWindow()))
+			app.endIdleByUserActivity();
 	}
 	for(auto &e : wiimoteNunchukDataAccess)
 	{
@@ -637,10 +636,10 @@ void Wiimote::processNunchukButtons(const uint8_t *packet, Input::Time time, uin
 		if(newState != -1)
 		{
 			//logMsg("%s %s @ wiimote nunchuk",buttonName(Map::WIIMOTE, e.keyEvent), !newState ? "pushed" : "released");
-			Base::endIdleByUserActivity();
+			app.endIdleByUserActivity();
 			Event event{player, Map::WIIMOTE, e.keyEvent, e.sysKey, !newState ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
-			startKeyRepeatTimer(event);
-			dispatchInputEvent(event);
+			startKeyRepeatTimer(app, event);
+			dispatchInputEvent(app, event);
 		}
 	}
 	memcpy(prevExtData, nunData, nunchuckDataBytes);

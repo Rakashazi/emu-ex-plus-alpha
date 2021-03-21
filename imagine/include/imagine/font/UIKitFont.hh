@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/pixmap/Pixmap.hh>
 #include <CoreFoundation/CFBase.h>
 #ifdef __OBJC__
 #import <UIKit/UIFont.h>

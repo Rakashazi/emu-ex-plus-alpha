@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/timerDefs.hh>
 #include <imagine/base/EventLoop.hh>
-#include <imagine/util/bits.h>
 #include <imagine/util/FunctionTraits.hh>
 
 #if defined __linux

@@ -16,11 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/baseDefs.hh>
-#include <imagine/time/Time.hh>
-#include <imagine/util/rectangle2.h>
-#include <imagine/util/DelegateFuncSet.hh>
-#include <imagine/util/typeTraits.hh>
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XScreen.hh>
@@ -32,8 +27,11 @@
 #include <imagine/base/osx/CocoaScreen.hh>
 #endif
 
+#include <imagine/base/baseDefs.hh>
+#include <imagine/time/Time.hh>
+#include <imagine/util/DelegateFuncSet.hh>
+#include <imagine/util/typeTraits.hh>
 #include <vector>
-#include <memory>
 
 namespace Base
 {
@@ -42,22 +40,15 @@ using namespace IG;
 class Screen : public ScreenImpl
 {
 public:
-	using Change = ScreenChange;
-	using ChangeDelegate = DelegateFunc<void (Screen &screen, ScreenChange change)>;
-
   static constexpr double DISPLAY_RATE_DEFAULT = 0;
 
 	using ScreenImpl::ScreenImpl;
 	Screen(const Screen &) = delete;
 	Screen &operator=(const Screen &) = delete;
-	static uint32_t screens();
-	static Screen *screen(uint32_t idx);
 	// Called when a screen addition/removal/change occurs
-	static void setOnChange(ChangeDelegate del);
 	int width();
 	int height();
 	bool isPosted();
-	static bool screensArePosted();
 	bool addOnFrame(OnFrameDelegate del, int priority = 0);
 	bool removeOnFrame(OnFrameDelegate del);
 	bool containsOnFrame(OnFrameDelegate del);
@@ -68,20 +59,12 @@ public:
 	double frameRate() const;
 	FloatSeconds frameTime() const;
 	void setFrameRate(double rate);
-	std::vector<double> supportedFrameRates();
+	std::vector<double> supportedFrameRates(ApplicationContext);
 	void setFrameInterval(int interval);
 	static bool supportsFrameInterval();
-	static bool supportsTimestamps();
-
-	// for internal use
-	static ChangeDelegate onChange;
-
-	static Screen &addScreen(std::unique_ptr<Screen> s);
+	static bool supportsTimestamps(ApplicationContext);
 	void frameUpdate(FrameTime timestamp);
-	void startDebugFrameStats(FrameTime timestamp);
-	void endDebugFrameStats();
 	void setActive(bool active);
-	static void setActiveAll(bool active);
 
 private:
 	bool framePosted = false;

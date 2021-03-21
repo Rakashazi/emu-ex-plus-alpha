@@ -46,7 +46,8 @@ public:
 class BluezBluetoothAdapter : public BluetoothAdapter
 {
 public:
-	static BluezBluetoothAdapter *defaultAdapter();
+	BluezBluetoothAdapter() {}
+	static BluezBluetoothAdapter *defaultAdapter(Base::ApplicationContext);
 	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) final;
 	void cancelScan() final;
 	void close() final;
@@ -82,11 +83,11 @@ private:
 class BluezBluetoothSocket : public BluetoothSocket
 {
 public:
-	BluezBluetoothSocket() {}
-	IG::ErrorCode openL2cap(BluetoothAddr addr, uint32_t psm) final;
-	IG::ErrorCode openRfcomm(BluetoothAddr addr, uint32_t channel) final;
+	BluezBluetoothSocket(Base::ApplicationContext app) {}
+	IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) final;
+	IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	IG::ErrorCode open(BluetoothPendingSocket &socket) final;
+	IG::ErrorCode open(BluetoothAdapter &, BluetoothPendingSocket &) final;
 	#endif
 	void close() final;
 	IG::ErrorCode write(const void *data, size_t size) final;

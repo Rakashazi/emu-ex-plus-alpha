@@ -18,24 +18,31 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gui/View.hh>
+#include <imagine/input/config.hh>
+#include <imagine/util/typeTraits.hh>
+#include <array>
 
 class TextEntry
 {
 public:
-	Gfx::Text t{};
-	Gfx::ProjectionPlane projP;
-	IG::WindowRect b{};
-	char str[128]{};
-	bool acceptingInput = false;
-	bool multiLine = false;
-
 	TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP);
 	void setAcceptingInput(bool on);
+	bool isAcceptingInput() const;
 	bool inputEvent(View &parentView, Input::Event e);
 	void prepareDraw(Gfx::Renderer &r);
 	void draw(Gfx::RendererCommands &cmds);
 	void place(Gfx::Renderer &r);
 	void place(Gfx::Renderer &r, IG::WindowRect rect, const Gfx::ProjectionPlane &projP);
+	const char *textStr() const;
+	IG::WindowRect bgRect() const;
+
+protected:
+	Gfx::Text t{};
+	Gfx::ProjectionPlane projP{};
+	IG::WindowRect b{};
+	std::array<char, 128> str{};
+	bool acceptingInput{};
+	bool multiLine{};
 };
 
 class CollectTextInputView : public View
@@ -57,12 +64,9 @@ public:
 
 protected:
 	IG::WindowRect cancelBtn{};
-	#ifndef CONFIG_BASE_ANDROID // TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
-	Gfx::Sprite cancelSpr{};
-	#endif
+	// TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
+	IG_enableMemberIf(!Config::envIsAndroid, Gfx::Sprite, cancelSpr){};
 	Gfx::Text message{};
-	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	TextEntry textEntry;
-	#endif
+	IG_enableMemberIf(!Config::Input::SYSTEM_COLLECTS_TEXT, TextEntry, textEntry);
 	OnTextDelegate onTextD{};
 };

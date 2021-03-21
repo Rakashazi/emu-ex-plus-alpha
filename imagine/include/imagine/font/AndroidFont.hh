@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <jni.h>
 
 namespace IG
@@ -25,7 +26,7 @@ class AndroidGlyphImage
 {
 public:
 	constexpr AndroidGlyphImage() {}
-	AndroidGlyphImage(IG::Pixmap pixmap, jobject bitmap);
+	AndroidGlyphImage(Base::ApplicationContext, IG::Pixmap pixmap, jobject bitmap);
 	AndroidGlyphImage(AndroidGlyphImage &&o);
 	AndroidGlyphImage &operator=(AndroidGlyphImage &&o);
 	~AndroidGlyphImage();
@@ -33,14 +34,18 @@ public:
 protected:
 	IG::Pixmap pixmap_{};
 	jobject aBitmap{};
+	Base::ApplicationContext app{};
 };
 
 class AndroidFont
 {
 public:
-	constexpr AndroidFont() {}
+	constexpr AndroidFont(Base::ApplicationContext app):
+		app{app}
+	{}
 
 protected:
+	Base::ApplicationContext app{};
 	bool isBold{};
 };
 
@@ -48,7 +53,7 @@ class AndroidFontSize
 {
 public:
 	constexpr AndroidFontSize() {}
-	AndroidFontSize(jobject paint);
+	AndroidFontSize(Base::ApplicationContext, jobject paint);
 	AndroidFontSize(AndroidFontSize &&o);
 	AndroidFontSize &operator=(AndroidFontSize &&o);
 	~AndroidFontSize();
@@ -56,6 +61,7 @@ public:
 
 protected:
 	jobject paint_{};
+	Base::ApplicationContext app{};
 
 	void deinit();
 };

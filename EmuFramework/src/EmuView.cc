@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuVideoLayer.hh>
+#include <imagine/input/Input.hh>
 #include <algorithm>
 
 EmuView::EmuView() {}

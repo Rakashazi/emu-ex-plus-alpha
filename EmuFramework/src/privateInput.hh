@@ -18,6 +18,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/input/Device.hh>
 #include <imagine/util/container/VMemArray.hh>
+#include <imagine/util/string.h>
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
@@ -154,7 +155,7 @@ IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos, Gfx
 void resetVControllerPositions(VController &);
 void resetVControllerOptions(VController &);
 void resetAllVControllerOptions(VController &, EmuViewController &emuViewController);
-void initVControls(VController &, Gfx::Renderer &r);
+void initVControls(VController &, Gfx::Renderer &);
 
 namespace EmuControls
 {

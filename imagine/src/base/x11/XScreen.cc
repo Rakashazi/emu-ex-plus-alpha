@@ -15,11 +15,13 @@
 
 #define LOGTAG "Screen"
 #include <imagine/base/Screen.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
 #include "internal.hh"
 #include <X11/extensions/Xrandr.h>
+#include <cmath>
 
 namespace Base
 {
@@ -172,23 +174,23 @@ bool Screen::supportsFrameInterval()
 	return false;
 }
 
-bool Screen::supportsTimestamps()
+bool Screen::supportsTimestamps(ApplicationContext)
 {
 	return !frameTimeIsSimulated();
 }
 
-int indexOfScreen(Screen &screen)
+int indexOfScreen(ApplicationContext app, Screen &screen)
 {
-	iterateTimes(Screen::screens(), i)
+	iterateTimes(app.screens(), i)
 	{
-		if(*Screen::screen(i) == screen)
+		if(*app.screen(i) == screen)
 			return i;
 	}
 	logErr("screen wasn't in list");
 	return 0;
 }
 
-std::vector<double> Screen::supportedFrameRates()
+std::vector<double> Screen::supportedFrameRates(ApplicationContext)
 {
 	// TODO
 	std::vector<double> rateVec;

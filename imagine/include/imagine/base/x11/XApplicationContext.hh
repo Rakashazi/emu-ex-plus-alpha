@@ -16,9 +16,15 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/baseDefs.hh>
-#if defined __ANDROID__
-#include <imagine/base/android/android.hh>
-#elif defined __APPLE__ && TARGET_OS_IPHONE
-#include <imagine/base/iphone/public.hh>
-#endif
+
+namespace Base
+{
+
+class XApplicationContext
+{
+
+};
+
+using ApplicationContextImpl = XApplicationContext;
+
+}

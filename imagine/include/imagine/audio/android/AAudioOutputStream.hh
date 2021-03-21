@@ -28,7 +28,7 @@ namespace IG::Audio
 class AAudioOutputStream : public OutputStream
 {
 public:
-	AAudioOutputStream();
+	AAudioOutputStream(Base::ApplicationContext);
 	~AAudioOutputStream();
 	IG::ErrorCode open(OutputStreamConfig config) final;
 	void play() final;

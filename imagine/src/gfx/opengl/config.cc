@@ -17,7 +17,7 @@
 #include <assert.h>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/string.h>
 #include <imagine/fs/FS.hh>
@@ -345,7 +345,7 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 		#ifdef __ANDROID__
 		// older GPU drivers like Tegra 3 can crash when using debug output,
 		// only enable on recent Android version to be safe
-		if(Base::androidSDK() < 23)
+		if(mainTask.appContext().androidSDK() < 23)
 		{
 			support.hasDebugOutput = false;
 		}
@@ -672,14 +672,14 @@ static void updateSensorStateForWindowOrientations(Base::Window &win)
 {
 	// activate orientation sensor if doing rotation in software and the main window
 	// has multiple valid orientations
-	if(Config::SYSTEM_ROTATES_WINDOWS || win != Base::mainWindow())
+	if(Config::SYSTEM_ROTATES_WINDOWS || !win.isMainWindow())
 		return;
-	Base::setDeviceOrientationChangeSensor(std::popcount(win.validSoftOrientations()) > 1);
+	win.appContext().setDeviceOrientationChangeSensor(std::popcount(win.validSoftOrientations()) > 1);
 }
 
 void Renderer::setWindowValidOrientations(Base::Window &win, Base::Orientation validO)
 {
-	if(win != Base::mainWindow())
+	if(!win.isMainWindow())
 		return;
 	auto oldWinO = win.softOrientation();
 	if(win.setValidOrientations(validO) && !Config::SYSTEM_ROTATES_WINDOWS)
@@ -689,13 +689,13 @@ void Renderer::setWindowValidOrientations(Base::Window &win, Base::Orientation v
 	updateSensorStateForWindowOrientations(win);
 }
 
-void GLRenderer::addEventHandlers(RendererTask &task)
+void GLRenderer::addEventHandlers(Base::ApplicationContext app, RendererTask &task)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	releaseShaderCompilerEvent.attach(
-		[&task]()
+		[&task, app]()
 		{
-			if(!Base::appIsRunning())
+			if(!app.isRunning())
 				return;
 			logMsg("automatically releasing shader compiler");
 			task.releaseShaderCompiler();
@@ -710,11 +710,11 @@ Base::NativeWindowFormat Renderer::nativeWindowFormat() const
 	return gfxBufferConfig.windowFormat(glDpy);
 }
 
-std::optional<Base::GLBufferConfig> GLRenderer::makeGLBufferConfig(IG::PixelFormat pixelFormat)
+std::optional<Base::GLBufferConfig> GLRenderer::makeGLBufferConfig(Base::ApplicationContext app, IG::PixelFormat pixelFormat)
 {
 	if(!pixelFormat)
-		pixelFormat = Base::Window::defaultPixelFormat();
-	Base::GLBufferConfigAttributes glBuffAttr;
+		pixelFormat = Base::Window::defaultPixelFormat(app);
+	Base::GLBufferConfigAttributes glBuffAttr{app};
 	glBuffAttr.setPixelFormat(pixelFormat);
 	auto dpy = glDpy;
 	if constexpr(Config::Gfx::OPENGL_ES >= 2)

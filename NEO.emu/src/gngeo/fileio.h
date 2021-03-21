@@ -23,7 +23,7 @@
 
 int open_rom(char *romname);
 
-int init_game(char *rom_name, char romerror[1024]);
+int init_game(void *contextPtr, char *rom_name, char romerror[1024]);
 void open_bios(void);
 void open_conf(void);
 void open_nvram(char *name);

@@ -24,6 +24,7 @@ struct WindowData;
 namespace Base
 {
 class Window;
+class ApplicationContext;
 }
 
 struct VControllerLayoutPosition
@@ -237,6 +238,8 @@ public:
 	VControllerLayoutPositionArr &layoutPosition() { return layoutPos; };
 	bool layoutPositionChanged() const { return layoutPosChanged; };
 	void setLayoutPositionChanged(bool changed = true) { layoutPosChanged = changed; }
+	Base::ApplicationContext appContext() const;
+
 
 private:
 	Gfx::Renderer *renderer_{};

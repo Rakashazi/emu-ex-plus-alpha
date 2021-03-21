@@ -64,7 +64,7 @@ void EmuSystem::initOptions()
 	EmuApp::setDefaultVControlsButtonStagger(5); // original SNES layout
 }
 
-EmuSystem::Error EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)
 {
 	#ifndef SNES9X_VERSION_1_4
 	SNES::dsp.spc_dsp.interpolation = optionAudioDSPInterpolation;

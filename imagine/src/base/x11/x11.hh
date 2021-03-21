@@ -21,7 +21,11 @@
 
 namespace Base
 {
-	Display *initX11(EventLoop);
-	FDEventSource makeAttachedX11EventSource(Display *, EventLoop);
-	void runX11Events(Display *);
+
+class ApplicationContext;
+
+Display *initX11(ApplicationContext, EventLoop);
+FDEventSource makeAttachedX11EventSource(ApplicationContext, Display *, EventLoop);
+void runX11Events(ApplicationContext, Display *);
+
 }

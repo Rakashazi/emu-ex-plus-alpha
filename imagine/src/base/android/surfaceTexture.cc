@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "SurfaceTex"
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/jni.hh>
 #include <imagine/logger/logger.h>
 #include "android.hh"
@@ -30,14 +31,14 @@ static JavaInstMethod<void()> jUpdateTexImage{};
 static JavaInstMethod<void()> jReleaseTexImage{};
 static JavaInstMethod<void()> jSurfaceTextureRelease{};
 
-static void initSurfaceTextureJNI(JNIEnv *env)
+static void initSurfaceTextureJNI(ApplicationContext app, JNIEnv *env)
 {
-	assert(androidSDK() >= 14);
+	assert(app.androidSDK() >= 14);
 	if(likely(jSurfaceTextureCls))
 		return;
 	jSurfaceTextureCls = (jclass)env->NewGlobalRef(env->FindClass("android/graphics/SurfaceTexture"));
 	jSurfaceTexture.setup(env, jSurfaceTextureCls, "<init>", "(I)V");
-	if(androidSDK() >= 19)
+	if(app.androidSDK() >= 19)
 	{
 		jSurfaceTexture2.setup(env, jSurfaceTextureCls, "<init>", "(IZ)V");
 		jReleaseTexImage.setup(env, jSurfaceTextureCls, "releaseTexImage", "()V");
@@ -55,21 +56,21 @@ static void initSurfaceJNI(JNIEnv *env)
 	jSurfaceRelease.setup(env, jSurfaceCls, "release", "()V");
 }
 
-jobject makeSurfaceTexture(JNIEnv *env, jint texName)
+jobject makeSurfaceTexture(ApplicationContext app, JNIEnv *env, jint texName)
 {
-	if(androidSDK() < 14)
+	if(app.androidSDK() < 14)
 		return nullptr;
-	initSurfaceTextureJNI(env);
+	initSurfaceTextureJNI(app, env);
 	return env->NewObject(jSurfaceTextureCls, jSurfaceTexture.method, texName);
 }
 
-jobject makeSurfaceTexture(JNIEnv *env, jint texName, jboolean singleBufferMode)
+jobject makeSurfaceTexture(ApplicationContext app, JNIEnv *env, jint texName, jboolean singleBufferMode)
 {
 	if(!singleBufferMode)
-		return makeSurfaceTexture(env, texName);
-	if(androidSDK() < 19)
+		return makeSurfaceTexture(app, env, texName);
+	if(app.androidSDK() < 19)
 		return nullptr;
-	initSurfaceTextureJNI(env);
+	initSurfaceTextureJNI(app, env);
 	return env->NewObject(jSurfaceTextureCls, jSurfaceTexture2.method, texName, singleBufferMode);
 }
 

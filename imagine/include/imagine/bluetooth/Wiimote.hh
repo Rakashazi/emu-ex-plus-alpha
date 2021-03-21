@@ -28,8 +28,9 @@ public:
 	static const uint8_t btClass[3], btClassDevOnly[3], btClassRemotePlus[3];
 	static std::vector<Wiimote*> devList;
 
-	Wiimote(BluetoothAddr addr):
+	Wiimote(Base::ApplicationContext app, BluetoothAddr addr): BluetoothInputDevice{app},
 		Device{0, Input::Map::WIIMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Wiimote"},
+		ctlSock{app}, intSock{app},
 		addr{addr}
 	{}
 	IG::ErrorCode open(BluetoothAdapter &adapter) final;

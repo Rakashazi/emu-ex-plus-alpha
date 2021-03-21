@@ -15,23 +15,13 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/bits.h>
+#include <imagine/util/bit.hh>
 #include <imagine/util/utility.h>
 #include <cmath>
 #include <type_traits>
 
 namespace IG
 {
-
-template<class T>
-static T fls(T x)
-{
-	static_assert(std::is_integral_v<T>, "expected integral parameter");
-	if(sizeof(T) <= sizeof(int))
-		return ::fls(x);
-	else
-		return ::flsl(x);
-}
 
 template<class T>
 static T roundUpPowOf2(T x)
@@ -109,10 +99,10 @@ static T alignRoundedUp(T addr, unsigned int align)
 }
 
 // divide integer rounding-upwards
-template<class T>
-constexpr static T divRoundUp(T x, T y)
+template<class T1, class T2>
+constexpr static auto divRoundUp(T1 x, T2 y)
 {
-	static_assert(std::is_integral_v<T>, "expected integral parameter");
+	static_assert(std::is_integral_v<T1> && std::is_integral_v<T2>, "expected integral parameters");
 	return (x + (y - 1)) / y;
 }
 

@@ -21,10 +21,10 @@
 #include <emuframework/VController.hh>
 #include "private.hh"
 #include "privateInput.hh"
-#include <imagine/base/Base.hh>
-#include <imagine/base/platformExtras.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
-#include <imagine/util/bits.h>
+#include <imagine/base/Screen.hh>
+#include <imagine/base/Window.hh>
 
 template<class T>
 bool optionFrameTimeIsValid(T val)
@@ -68,7 +68,7 @@ Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
 Byte1Option optionAddSoundBuffersOnUnderrun(CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN, 1, 0);
 
 #ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
-OptionAudioSoloMix optionAudioSoloMix(CFGKEY_AUDIO_SOLO_MIX, 1);
+Byte1Option optionAudioSoloMix(CFGKEY_AUDIO_SOLO_MIX, 1);
 #endif
 
 #ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
@@ -267,22 +267,22 @@ Byte1Option optionShowBundledGames(CFGKEY_SHOW_BUNDLED_GAMES, 1);
 
 [[gnu::weak]] PathOption optionFirmwarePath(0, nullptr, 0, nullptr);
 
-void initOptions()
+void initOptions(Base::ApplicationContext app)
 {
 	if(!strlen(lastLoadPath.data()))
 	{
-		lastLoadPath = Base::sharedStoragePath();
+		lastLoadPath = app.sharedStoragePath();
 	}
 
-	optionSoundRate.initDefault(IG::AudioManager::nativeRate());
+	optionSoundRate.initDefault(IG::AudioManager::nativeRate(app));
 
 	#ifdef CONFIG_BASE_IOS
-	if(Base::deviceIsIPad())
+	if(app.deviceIsIPad())
 		optionFontSize.initDefault(5000);
 	#endif
 
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
-	if(Base::packageIsInstalled("com.bda.pivot.mogapgp"))
+	if(app.packageIsInstalled("com.bda.pivot.mogapgp"))
 	{
 		logMsg("MOGA Pivot app is present");
 		optionMOGAInputSystem.initDefault(1);
@@ -290,7 +290,7 @@ void initOptions()
 	#endif
 
 	#ifdef CONFIG_BASE_ANDROID
-	if(Base::hasHardwareNavButtons())
+	if(app.hasHardwareNavButtons())
 	{
 		optionLowProfileOSNav.isConst = 1;
 		optionHideOSNav.isConst = 1;
@@ -298,30 +298,30 @@ void initOptions()
 	else
 	{
 		optionBackNavigation.initDefault(1);
-		if(Base::androidSDK() >= 19)
+		if(app.androidSDK() >= 19)
 			optionHideOSNav.initDefault(1);
 	}
-	if(Base::androidSDK() >= 11)
+	if(app.androidSDK() >= 11)
 	{
 		optionNotificationIcon.initDefault(false);
-		if(Base::androidSDK() >= 17)
+		if(app.androidSDK() >= 17)
 			optionNotificationIcon.isConst = true;
 	}
-	if(Base::androidSDK() < 12)
+	if(app.androidSDK() < 12)
 	{
 		#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 		optionNotifyInputDeviceChange.isConst = 1;
 		#endif
 	}
-	if(!Base::hasVibrator())
+	if(!app.hasVibrator())
 	{
 		optionVibrateOnPush.isConst = 1;
 	}
-	if(Base::androidSDK() < 17)
+	if(app.androidSDK() < 17)
 	{
 		optionShowOnSecondScreen.isConst = true;
 	}
-	else if(FS::exists(FS::makePathStringPrintf("%s/emuex_disable_presentation_displays", Base::sharedStoragePath().data())))
+	else if(FS::exists(FS::makePathStringPrintf("%s/emuex_disable_presentation_displays", app.sharedStoragePath().data())))
 	{
 		logMsg("force-disabling presentation display support");
 		optionShowOnSecondScreen.initDefault(false);
@@ -334,21 +334,21 @@ void initOptions()
 		#endif
 	}
 	{
-		auto type = Base::sustainedPerformanceModeType();
+		auto type = app.sustainedPerformanceModeType();
 		if(type == Base::SustainedPerformanceType::NONE)
 		{
 			optionSustainedPerformanceMode.initDefault(0);
 			optionSustainedPerformanceMode.isConst = true;
 		}
 	}
-	if(Base::androidSDK() < 11)
+	if(app.androidSDK() < 11)
 	{
 		// never run app in onPaused state on Android 2.3
 		optionPauseUnfocused.isConst = true;
 	}
 	#endif
 
-	if(!Base::Screen::screen(0)->frameRateIsReliable())
+	if(!app.screen(0)->frameRateIsReliable())
 	{
 		optionFrameRate.initDefault(60);
 	}
@@ -384,7 +384,7 @@ void initOptions()
 
 	bool defaultToLargeControls = false;
 	#ifdef CONFIG_BASE_IOS
-	if(Base::deviceIsIPad())
+	if(app.deviceIsIPad())
 		defaultToLargeControls = true;
 	#endif
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
@@ -516,7 +516,7 @@ bool OptionRecentGames::writeToIO(IO &io)
 	return true;
 }
 
-bool OptionRecentGames::readFromIO(IO &io, uint readSize_)
+bool OptionRecentGames::readFromIO(Base::ApplicationContext app, IO &io, uint readSize_)
 {
 	int readSize = readSize_;
 	while(readSize && !recentGameList.isFull())
@@ -547,7 +547,7 @@ bool OptionRecentGames::readFromIO(IO &io, uint readSize_)
 			continue; // don't add empty paths
 		info.path[bytesRead] = 0;
 		readSize -= len;
-		info.name = EmuSystem::fullGameNameForPath(info.path.data());
+		info.name = EmuSystem::fullGameNameForPath(app, info.path.data());
 		//logMsg("adding game to recent list: %s, name: %s", info.path, info.name);
 		recentGameList.push_back(info);
 	}

@@ -15,7 +15,7 @@
 
 #define LOGTAG "Intent"
 #include <android/native_activity.h>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #include "internal.hh"
 #include "android.hh"
@@ -25,61 +25,63 @@ namespace Base
 
 static JavaInstMethod<void(jstring, jstring, jstring)> jAddNotification{};
 
-void addNotification(const char *onShow, const char *title, const char *message)
+void ApplicationContext::addNotification(const char *onShow, const char *title, const char *message)
 {
 	logMsg("adding notificaion icon");
-	auto env = jEnvForThread();
+	auto env = mainThreadJniEnv();
 	if(unlikely(!jAddNotification))
 	{
 		jAddNotification.setup(env, jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 	}
-	jAddNotification(env, jBaseActivity, env->NewStringUTF(onShow), env->NewStringUTF(title), env->NewStringUTF(message));
+	jAddNotification(env, baseActivityObject(), env->NewStringUTF(onShow), env->NewStringUTF(title), env->NewStringUTF(message));
 }
 
-void removePostedNotifications()
+void removePostedNotifications(ApplicationContext app)
 {
 	// check if notification functions were used at some point
 	// and remove the posted notification
 	if(!jAddNotification)
 		return;
-	auto env = jEnvForThread();
+	auto env = app.mainThreadJniEnv();
 	JavaInstMethod<void()> jRemoveNotification{env, jBaseActivityCls, "removeNotification", "()V"};
-	jRemoveNotification(env, jBaseActivity);
+	jRemoveNotification(env, app.baseActivityObject());
 }
 
-void addLauncherIcon(const char *name, const char *path)
+void ApplicationContext::addLauncherIcon(const char *name, const char *path)
 {
 	logMsg("adding launcher icon: %s, for path: %s", name, path);
-	auto env = jEnvForThread();
+	auto env = mainThreadJniEnv();
 	JavaInstMethod<void(jstring, jstring)> jAddViewShortcut{env, jBaseActivityCls, "addViewShortcut", "(Ljava/lang/String;Ljava/lang/String;)V"};
-	jAddViewShortcut(env, jBaseActivity, env->NewStringUTF(name), env->NewStringUTF(path));
+	jAddViewShortcut(env, baseActivityObject(), env->NewStringUTF(name), env->NewStringUTF(path));
 }
 
-void handleIntent(JNIEnv *env, jobject activity)
+void handleIntent(ANativeActivity *activity)
 {
-	if(!onInterProcessMessage())
+	ApplicationContext app{activity};
+	if(!app.hasOnInterProcessMessage())
 		return;
+	auto env = activity->env;
 	// check for view intents
 	JavaInstMethod<jobject()> jIntentDataPath{env, jBaseActivityCls, "intentDataPath", "()Ljava/lang/String;"};
-	jstring intentDataPathJStr = (jstring)jIntentDataPath(env, activity);
+	jstring intentDataPathJStr = (jstring)jIntentDataPath(env, activity->clazz);
 	if(intentDataPathJStr)
 	{
 		const char *intentDataPathStr = env->GetStringUTFChars(intentDataPathJStr, nullptr);
 		logMsg("got intent with path: %s", intentDataPathStr);
-		dispatchOnInterProcessMessage(intentDataPathStr);
+		app.dispatchOnInterProcessMessage(intentDataPathStr);
 		env->ReleaseStringUTFChars(intentDataPathJStr, intentDataPathStr);
 	}
 }
 
-void openURL(const char *url)
+void ApplicationContext::openURL(const char *url)
 {
-	auto env = jEnvForThread();
+	auto env = mainThreadJniEnv();
 	JavaInstMethod<void(jstring)> jOpenURL{env, jBaseActivityCls, "openURL", "(Ljava/lang/String;)V"};
-	jOpenURL(env, jBaseActivity, env->NewStringUTF(url));
+	jOpenURL(env, baseActivityObject(), env->NewStringUTF(url));
 }
 
-void registerInstance(const char *appID, int argc, char** argv) {}
+void ApplicationContext::registerInstance(int argc, char** argv, const char *) {}
 
-void setAcceptIPC(const char *appID, bool on) {}
+void ApplicationContext::setAcceptIPC(bool on, const char *) {}
 
 }

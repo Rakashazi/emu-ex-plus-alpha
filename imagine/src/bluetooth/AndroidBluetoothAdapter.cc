@@ -144,13 +144,15 @@ void AndroidBluetoothAdapter::handleTurnOnResult(bool success)
 	}
 }
 
-bool AndroidBluetoothAdapter::openDefault()
+bool AndroidBluetoothAdapter::openDefault(Base::ApplicationContext app)
 {
 	if(adapter)
 		return true;
 
+	setAppContext(app);
+
 	// setup JNI
-	auto env = jEnvForThread();
+	auto env = app.mainThreadJniEnv();
 	if(!jDefaultAdapter)
 	{
 		logMsg("JNI setup");
@@ -175,7 +177,7 @@ bool AndroidBluetoothAdapter::openDefault()
 		assert(jOutputStreamCls);
 		jOutWrite.setup(env, jOutputStreamCls, "write", "([BII)V");
 
-		if(Base::androidSDK() < 17)
+		if(app.androidSDK() < 17)
 		{
 			// pre-Android 4.2, int mSocketData is a pointer to an asocket C struct
 			fdDataId = env->GetFieldID(jBluetoothSocketCls, "mSocketData", "I");
@@ -214,7 +216,7 @@ bool AndroidBluetoothAdapter::openDefault()
 	}
 
 	logMsg("opening default BT adapter");
-	adapter = jDefaultAdapter(env, jBaseActivity);
+	adapter = jDefaultAdapter(env, app.baseActivityObject());
 	if(!adapter)
 	{
 		logErr("error opening adapter");
@@ -252,7 +254,7 @@ bool AndroidBluetoothAdapter::openDefault()
 void AndroidBluetoothAdapter::cancelScan()
 {
 	scanCancelled = 1;
-	jCancelScan(jEnvForThread(), jBaseActivity, adapter);
+	jCancelScan(appContext().mainThreadJniEnv(), appContext().baseActivityObject(), adapter);
 }
 
 void AndroidBluetoothAdapter::close()
@@ -264,9 +266,9 @@ void AndroidBluetoothAdapter::close()
 	}
 }
 
-AndroidBluetoothAdapter *AndroidBluetoothAdapter::defaultAdapter()
+AndroidBluetoothAdapter *AndroidBluetoothAdapter::defaultAdapter(Base::ApplicationContext app)
 {
-	if(defaultAndroidAdapter.openDefault())
+	if(defaultAndroidAdapter.openDefault(app))
 		return &defaultAndroidAdapter;
 	else
 		return nullptr;
@@ -289,7 +291,7 @@ bool AndroidBluetoothAdapter::startScan(OnStatusDelegate onResult, OnScanDeviceC
  				}
 
  				logMsg("starting scan");
- 				if(!jStartScan(jEnvForThread(), jBaseActivity, adapter))
+ 				if(!jStartScan(appContext().mainThreadJniEnv(), appContext().baseActivityObject(), adapter))
  				{
  					inDetect = 0;
  					logMsg("failed to start scan");
@@ -321,7 +323,7 @@ bool AndroidBluetoothAdapter::startScan(OnStatusDelegate onResult, OnScanDeviceC
 
 BluetoothAdapter::State AndroidBluetoothAdapter::state()
 {
-	auto currState = jState(jEnvForThread(), jBaseActivity, adapter);
+	auto currState = jState(appContext().mainThreadJniEnv(), appContext().baseActivityObject(), adapter);
 	switch(currState)
 	{
 		case 10: return STATE_OFF;
@@ -342,7 +344,7 @@ void AndroidBluetoothAdapter::setActiveState(bool on, OnStateChangeDelegate onSt
 		{
 			logMsg("radio is off, requesting activation");
 			turnOnD = onStateChange;
-			jTurnOn(jEnvForThread(), jBaseActivity);
+			jTurnOn(appContext().mainThreadJniEnv(), appContext().baseActivityObject());
 		}
 		else
 		{
@@ -358,7 +360,7 @@ void AndroidBluetoothAdapter::setActiveState(bool on, OnStateChangeDelegate onSt
 
 jobject AndroidBluetoothAdapter::openSocket(JNIEnv *env, const char *addrStr, int channel, bool isL2cap)
 {
-	return jOpenSocket(env, Base::jBaseActivity, adapter, env->NewStringUTF(addrStr), channel, isL2cap ? 1 : 0);
+	return jOpenSocket(env, appContext().baseActivityObject(), adapter, env->NewStringUTF(addrStr), channel, isL2cap ? 1 : 0);
 }
 
 int AndroidBluetoothSocket::readPendingData(int events)
@@ -416,7 +418,7 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 				{
 					if(Config::DEBUG_BUILD)
 						logMsg("in read thread %d", gettid());
-					JNIEnv *env = Base::jEnvForThread();
+					JNIEnv *env = app.thisThreadJniEnv();
 					if(!env)
 					{
 						logErr("error attaching env to thread");
@@ -546,7 +548,7 @@ static int nativeFdForSocket(JNIEnv *env, jobject btSocket)
 	return -1;
 }
 
-IG::ErrorCode AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint32_t channel, bool l2cap)
+IG::ErrorCode AndroidBluetoothSocket::openSocket(BluetoothAdapter &adapter, BluetoothAddr bdaddr, uint32_t channel, bool l2cap)
 {
 	ba2str(bdaddr, addrStr);
 	this->channel = channel;
@@ -554,10 +556,10 @@ IG::ErrorCode AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint32_t 
 	sem_init(&connectSem, 0, 0);
 	isConnecting = true;
 	IG::makeDetachedThread(
-		[this]()
+		[this, &adapter = *static_cast<AndroidBluetoothAdapter*>(&adapter)]()
 		{
 			logMsg("in connect thread %d", gettid());
-			JNIEnv *env = Base::jEnvForThread();
+			JNIEnv *env = app.thisThreadJniEnv();
 			if(!env)
 			{
 				logErr("error attaching env to thread");
@@ -565,7 +567,7 @@ IG::ErrorCode AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint32_t 
 				isConnecting = false;
 				return;
 			}
-			socket = AndroidBluetoothAdapter::defaultAdapter()->openSocket(env, addrStr, this->channel, isL2cap);
+			socket = adapter.openSocket(env, addrStr, this->channel, isL2cap);
 			if(socket)
 			{
 				logMsg("opened Bluetooth socket %p", socket);
@@ -594,16 +596,16 @@ IG::ErrorCode AndroidBluetoothSocket::openSocket(BluetoothAddr bdaddr, uint32_t 
 	return {};
 }
 
-IG::ErrorCode AndroidBluetoothSocket::openRfcomm(BluetoothAddr bdaddr, uint32_t channel)
+IG::ErrorCode AndroidBluetoothSocket::openRfcomm(BluetoothAdapter &adapter, BluetoothAddr bdaddr, uint32_t channel)
 {
 	logMsg("opening RFCOMM channel %d", channel);
-	return openSocket(bdaddr, channel, 0);
+	return openSocket(adapter, bdaddr, channel, 0);
 }
 
-IG::ErrorCode AndroidBluetoothSocket::openL2cap(BluetoothAddr bdaddr, uint32_t psm)
+IG::ErrorCode AndroidBluetoothSocket::openL2cap(BluetoothAdapter &adapter, BluetoothAddr bdaddr, uint32_t psm)
 {
 	logMsg("opening L2CAP psm %d", psm);
-	return openSocket(bdaddr, psm, 1);
+	return openSocket(adapter, bdaddr, psm, 1);
 }
 
 void AndroidBluetoothSocket::close()
@@ -622,7 +624,7 @@ void AndroidBluetoothSocket::close()
 			nativeFd = -1; // BluetoothSocket closes the FD
 		}
 		isClosing = 1;
-		auto env = jEnvForThread();
+		auto env = app.thisThreadJniEnv();
 		env->DeleteGlobalRef(outStream);
 		jBtSocketClose(env, socket);
 		env->DeleteGlobalRef(socket);
@@ -643,7 +645,7 @@ IG::ErrorCode AndroidBluetoothSocket::write(const void *data, size_t size)
 	}
 	else
 	{
-		auto env = jEnvForThread();
+		auto env = app.thisThreadJniEnv();
 		jbyteArray jData = env->NewByteArray(size);
 		env->SetByteArrayRegion(jData, 0, size, (jbyte *)data);
 		jOutWrite(env, outStream, jData, 0, size);

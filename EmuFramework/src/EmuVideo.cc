@@ -17,11 +17,11 @@
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Screenshot.hh>
+#include "EmuSystemTask.hh"
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
-#include "EmuSystemTask.hh"
 
 void EmuVideo::resetImage()
 {
@@ -179,7 +179,7 @@ void EmuVideo::doScreenshot(EmuSystemTask *task, IG::Pixmap pix)
 	}
 	else
 	{
-		auto success = writeScreenshot(pix, path.data());
+		auto success = writeScreenshot(renderer().appContext(), pix, path.data());
 		if(task)
 		{
 			task->sendScreenshotReply(screenshotNum, success);
@@ -208,6 +208,11 @@ Gfx::PixmapBufferTexture &EmuVideo::image()
 Gfx::Renderer &EmuVideo::renderer() const
 {
 	return rTask->renderer();
+}
+
+Base::ApplicationContext EmuVideo::appContext() const
+{
+	return rTask->appContext();
 }
 
 EmuVideoImage::EmuVideoImage() {}

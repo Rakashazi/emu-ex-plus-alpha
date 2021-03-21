@@ -15,35 +15,36 @@
 
 #include <imagine/audio/AudioManager.hh>
 #include <imagine/audio/defs.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 
 namespace IG::AudioManager
 {
 
-Audio::SampleFormat nativeSampleFormat()
+Audio::SampleFormat nativeSampleFormat(Base::ApplicationContext)
 {
 	return Audio::SampleFormats::f32;
 }
 
-uint32_t nativeRate()
+uint32_t nativeRate(Base::ApplicationContext)
 {
 	return ::Config::MACHINE_IS_PANDORA ? 44100 : 48000;
 }
 
-Audio::Format nativeFormat()
+Audio::Format nativeFormat(Base::ApplicationContext app)
 {
-	return {nativeRate(), nativeSampleFormat(), 2};
+	return {nativeRate(app), nativeSampleFormat(app), 2};
 }
 
-void setSoloMix(bool newSoloMix) {}
+void setSoloMix(Base::ApplicationContext, bool newSoloMix) {}
 
-bool soloMix() { return false; }
+bool soloMix(Base::ApplicationContext) { return false; }
 
-void setMusicVolumeControlHint() {}
+void setMusicVolumeControlHint(Base::ApplicationContext) {}
 
-void startSession() {}
+void startSession(Base::ApplicationContext) {}
 
-void endSession() {}
+void endSession(Base::ApplicationContext) {}
 
 }
 
@@ -60,12 +61,12 @@ static constexpr ApiDesc apiDesc[]
 	#endif
 };
 
-std::vector<ApiDesc> audioAPIs()
+std::vector<ApiDesc> audioAPIs(Base::ApplicationContext)
 {
 	return {apiDesc, apiDesc + std::size(apiDesc)};
 }
 
-Api makeValidAPI(Api api)
+Api makeValidAPI(Base::ApplicationContext, Api api)
 {
 	for(auto desc: apiDesc)
 	{

@@ -16,7 +16,6 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gui/AlertView.hh>
-#include <imagine/base/Base.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
@@ -430,7 +429,7 @@ class CustomSystemOptionView : public SystemOptionView
 					ynAlertView->setOnYes(
 						[this](Input::Event e)
 						{
-							Base::openURL("http://www.explusalpha.com/home/c64-emu/C64.emu.zip");
+							appContext().openURL("http://www.explusalpha.com/home/c64-emu/C64.emu.zip");
 						});
 					pushAndShowModal(std::move(ynAlertView), e);
 				});
@@ -445,9 +444,9 @@ class CustomSystemOptionView : public SystemOptionView
 		if(!strlen(path))
 		{
 			if(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
-				EmuApp::printfMessage(5, false, "Using default paths:\n%s\n%s\n%s", EmuApp::assetPath().data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
+				EmuApp::printfMessage(5, false, "Using default paths:\n%s\n%s\n%s", EmuApp::assetPath(appContext()).data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
 			else
-				EmuApp::printfMessage(4, false, "Using default path:\n%s/C64.emu", Base::sharedStoragePath().data());
+				EmuApp::printfMessage(4, false, "Using default path:\n%s/C64.emu", appContext().sharedStoragePath().data());
 		}
 	}
 
@@ -1368,9 +1367,9 @@ class CustomMainMenuView : public EmuMainMenuView
 						optionViceSystem = i;
 						auto ynAlertView = makeView<YesNoAlertView>("Changing systems needs app restart, exit now?");
 						ynAlertView->setOnYes(
-							[]()
+							[this]()
 							{
-								Base::exit();
+								appContext().exit();
 							});
 						view.dismiss(false);
 						EmuApp::pushAndShowModalView(std::move(ynAlertView), e);

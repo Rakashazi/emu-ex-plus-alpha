@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/input/config.hh>
 #include <imagine/input/inputDefs.hh>
-#include <imagine/util/bits.h>
+#include <imagine/util/bitset.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <string>
 

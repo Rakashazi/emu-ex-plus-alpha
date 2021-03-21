@@ -13,13 +13,10 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/AlertView.hh>
-#include <imagine/gui/TextEntry.hh>
-#include <imagine/base/Base.hh>
-#include <imagine/logger/logger.h>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuVideo.hh>
 #include <emuframework/CreditsView.hh>
 #include <emuframework/FilePicker.hh>
 #include <emuframework/StateSlotView.hh>
@@ -27,6 +24,11 @@
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/BundledGamesView.hh>
 #include "private.hh"
+#include "EmuViewController.hh"
+#include <imagine/gui/AlertView.hh>
+#include <imagine/gui/TextEntry.hh>
+#include <imagine/base/ApplicationContext.hh>
+#include <imagine/logger/logger.h>
 
 class ResetAlertView : public BaseAlertView
 {
@@ -238,7 +240,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 				EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Shortcut Name", EmuSystem::fullGameName().data(),
 					[this](auto str)
 					{
-						Base::addLauncherIcon(str, EmuSystem::fullGamePath());
+						appContext().addLauncherIcon(str, EmuSystem::fullGamePath());
 						EmuApp::printfMessage(2, false, "Added shortcut:\n%s", str);
 						return true;
 					});

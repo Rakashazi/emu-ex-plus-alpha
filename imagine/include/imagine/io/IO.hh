@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/bits.h>
+#include <imagine/util/bitset.hh>
 #include <imagine/util/BufferView.hh>
 #include <imagine/util/typeTraits.hh>
 #include <memory>
@@ -153,10 +153,10 @@ public:
 	constexpr GenericIO() {}
 	template<class T>
 	GenericIO(T &io): io{std::unique_ptr<IO>{new T(std::move(io))}} {}
-	GenericIO(std::unique_ptr<IO> io): io{std::move(io)} {}
-	explicit operator IO*(){ return io.get(); }
-	operator IO&(){ return *io; }
-	IO *release() { return io.release(); }
+	GenericIO(std::unique_ptr<IO> io);
+	explicit operator IO*();
+	operator IO&();
+	IO *release();
 	FILE *moveToFileStream(const char *opentype);
 
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut);

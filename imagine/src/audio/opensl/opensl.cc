@@ -15,13 +15,14 @@
 
 #define LOGTAG "OpenSL"
 #include <imagine/audio/opensl/OpenSLESOutputStream.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #include "../../base/android/android.hh"
 
 namespace IG::Audio
 {
 
-OpenSLESOutputStream::OpenSLESOutputStream()
+OpenSLESOutputStream::OpenSLESOutputStream(Base::ApplicationContext app)
 {
 	// engine object
 	SLObjectItf slE;
@@ -49,6 +50,11 @@ OpenSLESOutputStream::OpenSLESOutputStream()
 	}
 	this->slE = slE;
 	this->outMix = outMix;
+	bufferFrames = AudioManager::nativeOutputFramesPerBuffer(app);
+	supportsFloatFormat = app.androidSDK() >= 21;
+	// must create queue with 2 buffers on Android <= 4.2
+	// to get low-latency path, even though we only queue 1
+	outputBuffers = app.androidSDK() >= 18 ? 1 : 2;
 }
 
 OpenSLESOutputStream::~OpenSLESOutputStream()
@@ -72,11 +78,6 @@ IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 		return {EINVAL};
 	}
 	auto format = config.format();
-	// must create queue with 2 buffers on Android <= 4.2
-	// to get low-latency path, even though we only queue 1
-	auto androidSDK = Base::androidSDK();
-	uint32_t outputBuffers = androidSDK >= 18 ? 1 : 2;
-	bufferFrames = AudioManager::nativeOutputFramesPerBuffer();
 	logMsg("creating stream %dHz, %d channels, %u frames/buffer", format.rate, format.channels, bufferFrames);
 	SLDataLocator_AndroidSimpleBufferQueue buffQLoc{SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, outputBuffers};
 	SLDataFormat_PCM slFormat
@@ -88,7 +89,7 @@ IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 	};
 	SLDataSource audioSrc{&buffQLoc, &slFormat};
 	SLAndroidDataFormat_PCM_EX slFormatEx{};
-	if(androidSDK >= 21)
+	if(supportsFloatFormat)
 	{
 		slFormatEx =
 		{

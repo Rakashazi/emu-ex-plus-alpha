@@ -819,7 +819,7 @@ void BtstackBluetoothAdapter::close()
 	}
 }
 
-BtstackBluetoothAdapter *BtstackBluetoothAdapter::defaultAdapter()
+BtstackBluetoothAdapter *BtstackBluetoothAdapter::defaultAdapter(Base::ApplicationContext)
 {
 	if(defaultBtstackAdapter.openDefault())
 		return nullptr;
@@ -848,7 +848,7 @@ void BluetoothPendingSocket::close()
 	ch = 0;
 }
 
-IG::ErrorCode BtstackBluetoothSocket::openRfcomm(BluetoothAddr addr, uint32_t channel)
+IG::ErrorCode BtstackBluetoothSocket::openRfcomm(BluetoothAdapter &, BluetoothAddr addr, uint32_t channel)
 {
 	type = 1;
 	if(socketList.isFull())
@@ -866,7 +866,7 @@ IG::ErrorCode BtstackBluetoothSocket::openRfcomm(BluetoothAddr addr, uint32_t ch
 	return {};
 }
 
-IG::ErrorCode BtstackBluetoothSocket::openL2cap(BluetoothAddr addr, uint32_t psm)
+IG::ErrorCode BtstackBluetoothSocket::openL2cap(BluetoothAdapter &, BluetoothAddr addr, uint32_t psm)
 {
 	type = 0;
 	if(socketList.isFull())
@@ -891,7 +891,7 @@ IG::ErrorCode BtstackBluetoothSocket::openL2cap(BluetoothAddr addr, uint32_t psm
 	return {};
 }
 
-IG::ErrorCode BtstackBluetoothSocket::open(BluetoothPendingSocket &pending)
+IG::ErrorCode BtstackBluetoothSocket::open(BluetoothAdapter &, BluetoothPendingSocket &pending)
 {
 	assert(pending);
 	addr = pending.addr;

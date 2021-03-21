@@ -298,7 +298,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-EmuSystem::Error EmuSystem::onInit()
+EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
 {
 	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
 	#ifndef SNES9X_VERSION_1_4

@@ -121,12 +121,12 @@ static ArchiveIO archiveIOForSysFile(const char *archivePath, const char *sysFil
 	return {};
 }
 
-static AssetIO assetIOForSysFile(const char *sysFileName, char **complete_path_return)
+static AssetIO assetIOForSysFile(Base::ApplicationContext app, const char *sysFileName, char **complete_path_return)
 {
 	for(const auto &subDir : sysFileDirs)
 	{
 		auto fullPath = FS::makePathStringPrintf("%s/%s", subDir, sysFileName);
-		auto file = EmuApp::openAppAssetIO(fullPath, IO::AccessHint::ALL);
+		auto file = EmuApp::openAppAssetIO(app, fullPath, IO::AccessHint::ALL);
 		if(!file)
 			continue;
 		if(complete_path_return)
@@ -179,7 +179,7 @@ CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const ch
 	}
 	// fallback to asset path
 	{
-		auto io = assetIOForSysFile(name, complete_path_return);
+		auto io = assetIOForSysFile(appContext, name, complete_path_return);
 		if(io)
 		{
 			return io.makeGeneric().moveToFileStream(open_mode);
@@ -221,7 +221,7 @@ CLINK int sysfile_locate(const char *name, char **complete_path_return)
 	}
 	// fallback to asset path
 	{
-		auto io = assetIOForSysFile(name, complete_path_return);
+		auto io = assetIOForSysFile(appContext, name, complete_path_return);
 		if(io)
 		{
 			return 0;
@@ -281,5 +281,5 @@ CLINK int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize
 
 CLINK char *archdep_default_rtc_file_name(void)
 {
-	return strdup(FS::makePathString(EmuApp::supportPath().data(), "vice.rtc").data());
+	return strdup(FS::makePathString(EmuApp::supportPath(appContext).data(), "vice.rtc").data());
 }

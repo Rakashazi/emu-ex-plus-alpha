@@ -17,9 +17,9 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
-#include <imagine/gfx/DrawableHolder.hh>
 #include <imagine/gfx/Program.hh>
 #include <imagine/base/Window.hh>
+#include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include "internalDefs.hh"
 #include "utils.hh"
@@ -29,10 +29,10 @@ namespace Gfx
 
 static constexpr bool useGLCache = true;
 
-GLRendererCommands::GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, DrawableHolder &drawableHolder, Base::GLDisplay glDpy,
+GLRendererCommands::GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, Drawable drawable, Base::GLDisplay glDpy,
 		IG::Semaphore *drawCompleteSemPtr):
 	rTask{&rTask}, r{&rTask.renderer()}, drawCompleteSemPtr{drawCompleteSemPtr},
-	winPtr{winPtr}, drawableHolderPtr{&drawableHolder}, glDpy{glDpy}, drawable{drawableHolder}
+	winPtr{winPtr}, glDpy{glDpy}, drawable{drawable}
 {
 	assumeExpr(drawable);
 	setCurrentDrawable(drawable);
@@ -81,7 +81,16 @@ void GLRendererCommands::setCurrentDrawable(Drawable drawable)
 
 void GLRendererCommands::present(Drawable win)
 {
-	rTask->glContext().present(glDpy, win, rTask->glContext());
+	auto swapTime = IG::timeFuncDebug(
+		[&, this]()
+		{
+			rTask->glContext().present(glDpy, win, rTask->glContext());
+		});
+	// check if buffer swap blocks even though triple-buffering is used
+	if(winPtr && r->maxSwapChainImages() > 2 && swapTime > winPtr->screen()->frameTime())
+	{
+		logWarn("buffer swap took %lldns", (long long)swapTime.count());
+	}
 }
 
 void GLRendererCommands::doPresent()

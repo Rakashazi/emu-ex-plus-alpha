@@ -17,7 +17,12 @@
 
 #include <imagine/base/EventLoop.hh>
 
+namespace Base
+{
+class ApplicationContext;
+}
+
 namespace Input
 {
-	void initEvdev(Base::EventLoop loop);
+	void initEvdev(Base::ApplicationContext app, Base::EventLoop loop);
 }

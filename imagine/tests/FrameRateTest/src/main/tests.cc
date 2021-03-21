@@ -20,7 +20,6 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
-#include <imagine/base/Base.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
@@ -38,11 +37,11 @@ const char *testIDToStr(TestID id)
 	}
 }
 
-void TestFramework::init(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
+void TestFramework::init(Base::ApplicationContext app, Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
 {
 	cpuStatsText = {&View::defaultFace};
 	frameStatsText = {&View::defaultFace};
-	initTest(r, pixmapSize, bufferMode);
+	initTest(app, r, pixmapSize, bufferMode);
 }
 
 void TestFramework::setCPUFreqText(const char *str)
@@ -229,7 +228,7 @@ void ClearTest::drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect)
 	}
 }
 
-void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
+void DrawTest::initTest(Base::ApplicationContext app, Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
 {
 	IG::PixmapDesc pixmapDesc = {pixmapSize, IG::PIXEL_FMT_RGB565};
 	Gfx::TextureConfig texConf{pixmapDesc};
@@ -238,7 +237,7 @@ void DrawTest::initTest(Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferM
 	texture = r.makePixmapBufferTexture(texConf, bufferMode, canSingleBuffer);
 	if(!texture)
 	{
-		Base::exitWithErrorMessagePrintf(-1, "Can't init test texture");
+		app.exitWithErrorMessagePrintf(-1, "Can't init test texture");
 		return;
 	}
 	auto lockedBuff = texture.lock();
@@ -290,7 +289,7 @@ void WriteTest::frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &s
 	IG::Pixmap pix = lockedBuff.pixmap();
 	if(flash)
 	{
-		uint writeColor;
+		uint16_t writeColor;
 		if(!droppedFrames)
 			writeColor = IG::PIXEL_DESC_RGB565.build(.7, .7, .7, 1.);
 		else if(droppedFrames % 2 == 0)

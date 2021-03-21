@@ -19,10 +19,7 @@
 #include <imagine/gui/View.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TableView.hh>
-#include <imagine/util/rectangle2.h>
-#include <imagine/util/DelegateFunc.hh>
-#include <memory>
-#include <iterator>
+#include <utility>
 
 class BaseAlertView : public View
 {

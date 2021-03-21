@@ -45,7 +45,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	private static final String logTag = "BaseActivity";
 	static native void onContentRectChanged(long windowAddr,
 		int left, int top, int right, int bottom, int windowWidth, int windowHeight);
-	native void displayEnumerated(Display dpy, int id, float refreshRate, int rotation, DisplayMetrics metrics);
+	native void displayEnumerated(long nActivityAddr, Display dpy, int id, float refreshRate, int rotation, DisplayMetrics metrics);
 	private static final Method setSystemUiVisibility =
 		android.os.Build.VERSION.SDK_INT >= 11 ? Util.getMethod(View.class, "setSystemUiVisibility", new Class[] { int.class }) : null;
 	private static final int commonUILayoutFlags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -119,14 +119,14 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return defaultDpy.getRotation();
 	}
 
-	void enumDisplays()
+	void enumDisplays(long nativeActivityAddr)
 	{
-		displayEnumerated(defaultDpy, Display.DEFAULT_DISPLAY,
+		displayEnumerated(nativeActivityAddr, defaultDpy, Display.DEFAULT_DISPLAY,
 			defaultDpy.getRefreshRate(), defaultDpy.getRotation(),
 			getResources().getDisplayMetrics());
 		if(android.os.Build.VERSION.SDK_INT >= 17)
 		{
-			DisplayListenerHelper.enumPresentationDisplays(this);
+			DisplayListenerHelper.enumPresentationDisplays(this, nativeActivityAddr);
 		}
 	}
 
@@ -218,27 +218,34 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			//Log.i(logTag, "InvocationTargetException calling setSystemUiVisibility");
 		}
 	}
-	
+
 	void setWinFlags(int flags, int mask)
 	{
 		getWindow().setFlags(flags, mask);
 	}
-	
-	void setWinFormat(int format)
-	{
-		getWindow().setFormat(format);
-	}
-	
+
 	int winFlags()
 	{
 		return getWindow().getAttributes().flags;
 	}
-	
-	int winFormat()
+
+	Window setMainContentView(long windowAddr)
 	{
-		return getWindow().getAttributes().format;
+		// get rid of NativeActivity's view and layout listener, then add our custom view
+		View nativeActivityView = findViewById(android.R.id.content);
+		nativeActivityView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+		View contentView;
+		if(android.os.Build.VERSION.SDK_INT >= 24)
+			contentView = new ContentViewV24(this, windowAddr);
+		else if(android.os.Build.VERSION.SDK_INT >= 16)
+			contentView = new ContentViewV16(this, windowAddr);
+		else
+			contentView = new ContentViewV9(this, windowAddr);
+		setContentView(contentView);
+		contentView.requestFocus();
+		return getWindow();
 	}
-	
+
 	void addNotification(String onShow, String title, String message)
 	{
 		NotificationHelper.addNotification(this, onShow, title, message);
@@ -368,18 +375,6 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			// cause the screen to flash
 			win.setFormat(PixelFormat.UNKNOWN);
 		}
-		// get rid of NativeActivity's view and layout listener, then add our custom view
-		View nativeActivityView = findViewById(android.R.id.content);
-		nativeActivityView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-		View contentView;
-		if(android.os.Build.VERSION.SDK_INT >= 24)
-			contentView = new ContentViewV24(this);
-		else if(android.os.Build.VERSION.SDK_INT >= 16)
-			contentView = new ContentViewV16(this);
-		else
-			contentView = new ContentViewV9(this);
-		setContentView(contentView);
-		contentView.requestFocus();
 	}
 	
 	@Override protected void onResume()
@@ -444,11 +439,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return new InputDeviceListenerHelper(this);
 	}
 	
-	DisplayListenerHelper displayListenerHelper()
+	DisplayListenerHelper displayListenerHelper(long nativeActivityAddr)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 17)
 			return null;
-		return new DisplayListenerHelper(this);
+		return new DisplayListenerHelper(this, nativeActivityAddr);
 	}
 	
 	MOGAHelper mogaHelper(long mogaSystemAddr)

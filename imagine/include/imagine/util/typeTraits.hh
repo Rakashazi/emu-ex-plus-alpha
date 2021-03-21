@@ -14,6 +14,7 @@ template <class T, T VALUE, class Tag = bool>
 struct EmptyConstant
 {
 	// accept dummy assignment from any value
+	constexpr EmptyConstant() {}
 	template <class ...Args>
 	constexpr EmptyConstant(Args&& ...) {}
 
@@ -24,6 +25,7 @@ template <class T, class Tag = bool>
 struct EmptyType
 {
 	// accept dummy assignment from any value
+	constexpr EmptyType() {}
 	template <class ...Args>
 	constexpr EmptyType(Args&& ...) {}
 

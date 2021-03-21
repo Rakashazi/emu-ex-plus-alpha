@@ -16,6 +16,7 @@
 #define LOGTAG "file"
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/ArchiveFS.hh>
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>

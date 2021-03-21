@@ -50,7 +50,7 @@ public:
 	GlyphTextureSet(Renderer &r, GenericIO io, IG::FontSettings set);
 	static GlyphTextureSet makeSystem(Renderer &r, IG::FontSettings set);
 	static GlyphTextureSet makeBoldSystem(Renderer &r, IG::FontSettings set);
-	static GlyphTextureSet makeFromAsset(Renderer &r, const char *name, const char *appName, IG::FontSettings set);
+	static GlyphTextureSet makeFromAsset(Renderer &, const char *name, IG::FontSettings, const char *appName = Base::ApplicationContext::applicationName);
 	IG::FontSettings fontSettings() const;
 	bool setFontSettings(Renderer &r, IG::FontSettings set);
 	unsigned precache(Renderer &r, const char *string);

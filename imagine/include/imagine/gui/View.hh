@@ -17,7 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gui/ViewAttachParams.hh>
-#include <imagine/input/Input.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/util/DelegateFunc.hh>
@@ -28,6 +27,12 @@ namespace Base
 {
 class Window;
 class Screen;
+class ApplicationContext;
+}
+
+namespace Input
+{
+class Event;
 }
 
 namespace Gfx
@@ -92,6 +97,7 @@ public:
 	Gfx::RendererTask &rendererTask() const;
 	ViewAttachParams attachParams() const;
 	Base::Screen *screen() const;
+	Base::ApplicationContext appContext() const;
 	NameStringView name() const;
 	void setName(const char *name);
 	void setName(NameString name);

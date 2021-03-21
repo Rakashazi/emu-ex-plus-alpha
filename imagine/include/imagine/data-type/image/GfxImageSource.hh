@@ -17,11 +17,16 @@
 
 #include <system_error>
 
+namespace IG
+{
+class Pixmap;
+}
+
 class GfxImageSource
 {
 public:
 	constexpr GfxImageSource() {}
-	virtual ~GfxImageSource() {}
+	virtual ~GfxImageSource();
 	virtual std::errc write(IG::Pixmap dest) = 0;
 	virtual IG::Pixmap pixmapView() = 0;
 	virtual void freePixmap();

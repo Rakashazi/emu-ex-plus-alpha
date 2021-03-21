@@ -17,15 +17,15 @@
 #include <emuframework/ButtonConfigView.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuOptions.hh"
+#include "private.hh"
+#include "privateInput.hh"
+#include "EmuViewController.hh"
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gui/AlertView.hh>
-#include <imagine/base/Base.hh>
-#include <imagine/base/platformExtras.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/ScopeGuard.hh>
-#include "private.hh"
-#include "privateInput.hh"
 
 static const char *confirmDeleteDeviceSettingsStr = "Delete device settings from the configuration file? Any key profiles in use are kept";
 static const char *confirmDeleteProfileStr = "Delete profile from the configuration file? Devices using it will revert to their default profile";
@@ -177,7 +177,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 		"Re-scan OS Input Devices",
 		[this](Input::Event e)
 		{
-			Input::enumDevices();
+			appContext().enumInputDevices();
 			uint devices = 0;
 			for(auto &e : Input::deviceList())
 			{
@@ -251,7 +251,7 @@ void InputManagerView::loadItems()
 	item.emplace_back(&deleteDeviceConfig);
 	item.emplace_back(&deleteProfile);
 	#ifdef CONFIG_BASE_ANDROID
-	if(Base::androidSDK() >= 12 && Base::androidSDK() < 16)
+	if(appContext().androidSDK() >= 12 && appContext().androidSDK() < 16)
 	{
 		item.emplace_back(&rescanOSDevices);
 	}
@@ -356,7 +356,7 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 		(bool)optionMOGAInputSystem,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
-			if(!optionMOGAInputSystem && !Base::packageIsInstalled("com.bda.pivot.mogapgp"))
+			if(!optionMOGAInputSystem && !appContext().packageIsInstalled("com.bda.pivot.mogapgp"))
 			{
 				EmuApp::postMessage(8, "Install the MOGA Pivot app from Google Play to use your MOGA Pocket. "
 					"For MOGA Pro or newer, set switch to mode B and pair in the Android Bluetooth settings app instead.");
@@ -364,9 +364,9 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 			}
 			optionMOGAInputSystem = item.flipBoolValue(*this);
 			if(optionMOGAInputSystem)
-				Input::initMOGA(true);
+				appContext().initMogaInputSystem(true);
 			else
-				Input::deinitMOGA();
+				appContext().deinitMogaInputSystem();
 		}
 	},
 	#endif

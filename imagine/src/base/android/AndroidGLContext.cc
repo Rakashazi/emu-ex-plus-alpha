@@ -16,7 +16,6 @@
 #define LOGTAG "EGL"
 #include <imagine/base/GLContext.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/base/android/android.hh>
 #include <imagine/time/Time.hh>
 #include <android/native_window.h>
 
@@ -39,7 +38,7 @@ bool GLDisplay::bindAPI(GL::API api)
 
 std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion)
 {
-	if(majorVersion > 2 && Base::androidSDK() < 18)
+	if(majorVersion > 2 && attr.appContext().androidSDK() < 18)
 	{
 		// need at least Android 4.3 to use ES 3 attributes
 		return {};
@@ -49,11 +48,11 @@ std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, GLB
 }
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec):
-	AndroidGLContext{display, attr, config, EGL_NO_CONTEXT, ec}
+	EGLContextBase{display, attr, config, EGL_NO_CONTEXT, ec}
 {}
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, IG::ErrorCode &ec):
-	AndroidGLContext{display, attr, config, shareContext.nativeObject(), ec}
+	EGLContextBase{display, attr, config, shareContext.nativeObject(), ec}
 {}
 
 void GLContext::deinit(GLDisplay display)
@@ -68,22 +67,12 @@ void GLContext::setCurrent(GLDisplay display, GLContext c, GLDrawable win)
 
 void GLContext::present(GLDisplay display, GLDrawable win)
 {
-	// check if buffer swap blocks even though triple-buffering is used
-	auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display, win); });
-	if(swapBuffersIsAsync() && swapTime > IG::Milliseconds(16))
-	{
-		logWarn("buffer swap took %lldns", (long long)swapTime.count());
-	}
+	EGLContextBase::swapBuffers(display, win);
 }
 
 void GLContext::present(GLDisplay display, GLDrawable win, GLContext cachedCurrentContext)
 {
 	present(display, win);
-}
-
-bool AndroidGLContext::swapBuffersIsAsync()
-{
-	return Base::androidSDK() >= 16;
 }
 
 Base::NativeWindowFormat EGLBufferConfig::windowFormat(GLDisplay display) const

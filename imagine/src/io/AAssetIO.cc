@@ -18,7 +18,7 @@
 #include <sys/mman.h>
 #include <imagine/io/AAssetIO.hh>
 #include "utils.hh"
-#include "../base/android/android.hh"
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #include <android/asset_manager.h>
 
@@ -38,11 +38,11 @@ static int accessHintToAAssetMode(IO::AccessHint advice)
 	}
 }
 
-std::error_code AAssetIO::open(const char *name, AccessHint access)
+std::error_code AAssetIO::open(Base::ApplicationContext app, const char *name, AccessHint access)
 {
 	logMsg("opening asset %s", name);
 	auto mode = accessHintToAAssetMode(access);
-	asset.reset(AAssetManager_open(Base::activityAAssetManager(), name, mode));
+	asset.reset(AAssetManager_open(app.aAssetManager(), name, mode));
 	if(!asset)
 	{
 		logErr("error in AAssetManager_open");

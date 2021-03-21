@@ -19,6 +19,7 @@
 #include <imagine/bluetooth/config.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/base/Error.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <array>
 #include <compare>
 
@@ -64,8 +65,8 @@ public:
 	using OnScanDeviceNameDelegate = DelegateFunc<void (BluetoothAdapter &bta, const char *name, BluetoothAddr addr)>;
 	using OnIncomingL2capConnectionDelegate = DelegateFunc<void (BluetoothAdapter &bta, BluetoothPendingSocket &pending)>;
 
-	BluetoothAdapter();
-	static BluetoothAdapter *defaultAdapter();
+	constexpr BluetoothAdapter() {}
+	static BluetoothAdapter *defaultAdapter(Base::ApplicationContext);
 	virtual bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) = 0;
 	virtual void cancelScan() = 0;
 	#ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
@@ -76,6 +77,8 @@ public:
 	virtual State state() = 0;
 	virtual void setActiveState(bool on, OnStateChangeDelegate onStateChange) = 0;
 	const OnStatusDelegate &onScanStatus() { return onScanStatusD; }
+	Base::ApplicationContext appContext() const;
+	void setAppContext(Base::ApplicationContext);
 
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	OnIncomingL2capConnectionDelegate &onIncomingL2capConnection() { return onIncomingL2capConnectionD; }
@@ -90,16 +93,17 @@ protected:
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	OnIncomingL2capConnectionDelegate onIncomingL2capConnectionD;
 	#endif
+	Base::ApplicationContext app{};
 };
 
 class BluetoothSocket
 {
 public:
 	constexpr BluetoothSocket() {}
-	virtual IG::ErrorCode openL2cap(BluetoothAddr addr, uint32_t psm) = 0;
-	virtual IG::ErrorCode openRfcomm(BluetoothAddr addr, uint32_t channel) = 0;
+	virtual IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) = 0;
+	virtual IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) = 0;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	virtual IG::ErrorCode open(BluetoothPendingSocket &socket) = 0;
+	virtual IG::ErrorCode open(BluetoothAdapter &, BluetoothPendingSocket &socket) = 0;
 	#endif
 	virtual void close() = 0;
 	virtual IG::ErrorCode write(const void *data, size_t size) = 0;
@@ -118,7 +122,11 @@ protected:
 class BluetoothInputDevice
 {
 public:
+	constexpr BluetoothInputDevice(Base::ApplicationContext app):app{app} {}
 	virtual ~BluetoothInputDevice() {}
 	virtual IG::ErrorCode open(BluetoothAdapter &adapter) = 0;
 	virtual void removeFromSystem() = 0;
+
+protected:
+	Base::ApplicationContext app;
 };

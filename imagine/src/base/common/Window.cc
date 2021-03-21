@@ -14,8 +14,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "Window"
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Screen.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
 #include "windowPrivate.hh"
@@ -25,150 +26,98 @@ namespace Base
 
 static constexpr uint8_t MAX_DRAW_EVENT_PRIORITY = 0xFF;
 
-#ifdef CONFIG_BASE_MULTI_WINDOW
-static std::vector<std::unique_ptr<Window>> window_;
-#else
-static std::array<std::unique_ptr<Window>, 1> window_;
-#endif
+static auto defaultOnSurfaceChange = [](Window &, Window::SurfaceChange){};
+static auto defaultOnDraw = [](Window &, Window::DrawParams){ return true; };
+static auto defaultOnFocusChange = [](Window &, bool){};
+static auto defaultOnDragDrop = [](Window &, const char *){};
+static auto defaultOnInputEvent = [](Window &, Input::Event ){ return false; };
+static auto defaultOnDismissRequest = [](Window &win){ win.appContext().exit(); };
+static auto defaultOnDismiss = [](Window &){};
 
-static void addWindow(std::unique_ptr<Window> winPtr)
-{
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	window_.emplace_back(std::move(winPtr));
-	#else
-	assert(!window_[0]);
-	window_[0] = std::move(winPtr);
-	#endif
-}
-
-std::unique_ptr<Window> moveOutWindow(Window &win)
-{
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	return IG::moveOutIf(window_, [&](auto &w){ return *w == win; });
-	#else
-	return std::move(window_[0]);
-	#endif
-}
-
-void deinitWindows()
-{
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	window_.clear();
-	#else
-	window_[0].reset();
-	#endif
-}
-
-Window *Window::makeWindow(WindowConfig config, InitDelegate onInit)
-{
-	auto winPtr = std::make_unique<Window>();
-	if(auto ec = winPtr->init(config, onInit);
-		ec)
+BaseWindow::BaseWindow(ApplicationContext app, WindowConfig config):
+	onExit
 	{
-		return nullptr;
-	}
-	auto ptr = winPtr.get();
-	addWindow(std::move(winPtr));
-	if(shouldRunOnInitAfterAddingWindow && onInit)
-		onInit(*ptr);
-	return ptr;
-}
-
-void BaseWindow::setOnSurfaceChange(SurfaceChangeDelegate del)
-{
-	onSurfaceChange = del ? del : [](Window &, SurfaceChange){};
-}
-
-void BaseWindow::setOnDraw(DrawDelegate del)
-{
-	onDraw = del ? del : [](Window &, DrawParams){ return true; };
-}
-
-void BaseWindow::setOnFocusChange(FocusChangeDelegate del)
-{
-	onFocusChange = del ? del : [](Window &, bool){};
-}
-
-void BaseWindow::setOnDragDrop(DragDropDelegate del)
-{
-	onDragDrop = del ? del : [](Window &, const char *){};
-}
-
-void BaseWindow::setOnInputEvent(InputEventDelegate del)
-{
-	onInputEvent = del ? del : [](Window &, Input::Event ){ return false; };
-}
-
-void BaseWindow::setOnDismissRequest(DismissRequestDelegate del)
-{
-	onDismissRequest = del ? del : [](Window &win){ Base::exit(); };
-}
-
-void BaseWindow::setOnDismiss(DismissDelegate del)
-{
-	onDismiss = del ? del : [](Window &win){};
-}
-
-void BaseWindow::initDelegates(const WindowConfig &config)
-{
-	setOnSurfaceChange(config.onSurfaceChange());
-	setOnDraw(config.onDraw());
-	setOnFocusChange(config.onFocusChange());
-	setOnDragDrop(config.onDragDrop());
-	setOnInputEvent(config.onInputEvent());
-	setOnDismissRequest(config.onDismissRequest());
-	setOnDismiss(config.onDismiss());
-	static auto attachDrawEvent =
-		[](Window *win)
+		[this](ApplicationContext app, bool backgrounded)
 		{
-			win->drawEvent.attach(
-				[win]()
-				{
-					//logDMsg("running window events");
-					win->dispatchOnFrame();
-					win->dispatchOnDraw();
-				});
-		};
-	onExit =
-	{
-		[this](bool backgrounded)
-		{
-			auto savedDrawEventPriority = static_cast<Window*>(this)->setDrawEventPriority(MAX_DRAW_EVENT_PRIORITY);
+			auto &win = *static_cast<Window*>(this);
+			auto savedDrawEventPriority = win.setDrawEventPriority(MAX_DRAW_EVENT_PRIORITY);
 			drawEvent.cancel();
 			drawEvent.detach();
 			if(backgrounded)
 			{
-				addOnResume(
-					[this, savedDrawEventPriority](bool)
+				app.addOnResume(
+					[this, savedDrawEventPriority](ApplicationContext, bool)
 					{
-						static_cast<Window*>(this)->setDrawEventPriority(savedDrawEventPriority);
-						attachDrawEvent(static_cast<Window*>(this));
+						auto &win = *static_cast<Window*>(this);
+						win.setDrawEventPriority(savedDrawEventPriority);
+						attachDrawEvent();
 						return false;
 					}, WINDOW_ON_RESUME_PRIORITY
 				);
 			}
 			else
 			{
-				static_cast<Window*>(this)->resetAppData();
-				static_cast<Window*>(this)->resetRendererData();
+				win.resetAppData();
+				win.resetRendererData();
 			}
 			return true;
-		}, WINDOW_ON_EXIT_PRIORITY
-	};
-	attachDrawEvent(static_cast<Window*>(this));
+		}, app, WINDOW_ON_EXIT_PRIORITY},
+	onSurfaceChange{config.onSurfaceChange() ? config.onSurfaceChange() : defaultOnSurfaceChange},
+	onDraw{config.onDraw() ? config.onDraw() : defaultOnDraw},
+	onInputEvent{config.onInputEvent() ? config.onInputEvent() : defaultOnInputEvent},
+	onFocusChange{config.onFocusChange() ? config.onFocusChange() : defaultOnFocusChange},
+	onDragDrop{config.onDragDrop() ? config.onDragDrop() : defaultOnDragDrop},
+	onDismissRequest{config.onDismissRequest() ? config.onDismissRequest() : defaultOnDismissRequest},
+	onDismiss{config.onDismiss() ? config.onDismiss() : defaultOnDismiss},
+	validSoftOrientations_{app.defaultSystemOrientations()}
+{
+	attachDrawEvent();
 }
 
-void BaseWindow::initDefaultValidSoftOrientations()
+void BaseWindow::setOnSurfaceChange(SurfaceChangeDelegate del)
 {
-	#ifdef CONFIG_GFX_SOFT_ORIENTATION
-	validSoftOrientations_ = defaultSystemOrientations();
-	#endif
+	onSurfaceChange = del ? del : defaultOnSurfaceChange;
 }
 
-void BaseWindow::init(const WindowConfig &config)
+void BaseWindow::setOnDraw(DrawDelegate del)
 {
-	initDelegates(config);
-	initDefaultValidSoftOrientations();
+	onDraw = del ? del : defaultOnDraw;
+}
+
+void BaseWindow::setOnFocusChange(FocusChangeDelegate del)
+{
+	onFocusChange = del ? del : defaultOnFocusChange;
+}
+
+void BaseWindow::setOnDragDrop(DragDropDelegate del)
+{
+	onDragDrop = del ? del : defaultOnDragDrop;
+}
+
+void BaseWindow::setOnInputEvent(InputEventDelegate del)
+{
+	onInputEvent = del ? del : defaultOnInputEvent;
+}
+
+void BaseWindow::setOnDismissRequest(DismissRequestDelegate del)
+{
+	onDismissRequest = del ? del : defaultOnDismissRequest;
+}
+
+void BaseWindow::setOnDismiss(DismissDelegate del)
+{
+	onDismiss = del ? del : defaultOnDismiss;
+}
+
+void BaseWindow::attachDrawEvent()
+{
+	drawEvent.attach(
+		[&win = *static_cast<Window*>(this)]()
+		{
+			//logDMsg("running window events");
+			win.dispatchOnFrame();
+			win.dispatchOnDraw();
+		});
 }
 
 void Window::setOnSurfaceChange(SurfaceChangeDelegate del)
@@ -206,16 +155,16 @@ void Window::setOnDismiss(DismissDelegate del)
 	BaseWindow::setOnDismiss(del);
 }
 
-static Window::FrameTimeSource frameClock(Window::FrameTimeSource clock)
+static Window::FrameTimeSource frameClock(ApplicationContext app, Window::FrameTimeSource clock)
 {
 	if(clock == Window::FrameTimeSource::AUTO)
-		return Base::Screen::supportsTimestamps() ? Window::FrameTimeSource::SCREEN : Window::FrameTimeSource::RENDERER;
+		return Base::Screen::supportsTimestamps(app) ? Window::FrameTimeSource::SCREEN : Window::FrameTimeSource::RENDERER;
 	return clock;
 }
 
 bool Window::addOnFrame(Base::OnFrameDelegate del, FrameTimeSource clock, int priority)
 {
-	clock = frameClock(clock);
+	clock = frameClock(appContext(), clock);
 	if(clock == FrameTimeSource::SCREEN)
 	{
 		return screen()->addOnFrame(del);
@@ -230,7 +179,7 @@ bool Window::addOnFrame(Base::OnFrameDelegate del, FrameTimeSource clock, int pr
 
 bool Window::removeOnFrame(Base::OnFrameDelegate del, FrameTimeSource clock)
 {
-	clock = frameClock(clock);
+	clock = frameClock(appContext(), clock);
 	if(clock == FrameTimeSource::SCREEN)
 	{
 		return screen()->removeOnFrame(del);
@@ -251,10 +200,9 @@ void Window::resetRendererData()
 	rendererDataPtr.reset();
 }
 
-Window &mainWindow()
+bool Window::isMainWindow() const
 {
-	assert(Window::windows());
-	return *Window::window(0);
+	return *this == appContext().mainWindow();
 }
 
 Screen *Window::screen() const
@@ -262,7 +210,7 @@ Screen *Window::screen() const
 	if constexpr(Config::BASE_MULTI_SCREEN)
 		return screen_;
 	else
-		return &mainScreen();
+		return &appContext().mainScreen();
 }
 
 bool Window::setNeedsDraw(bool needsDraw)
@@ -410,6 +358,7 @@ void Window::draw(bool needsSync)
 	params.needsSync_ = needsSync;
 	if(unlikely(surfaceChange.flags))
 	{
+		assert(!surfaceChange.destroyed());
 		dispatchSurfaceChange();
 		params.wasResized_ = true;
 	}
@@ -493,7 +442,7 @@ bool Window::updatePhysicalSizeWithCurrentSize()
 #ifdef CONFIG_GFX_SOFT_ORIENTATION
 bool Window::setValidOrientations(Orientation oMask)
 {
-	oMask = validateOrientationMask(oMask);
+	oMask = appContext().validateOrientationMask(oMask);
 	validSoftOrientations_ = oMask;
 	if(validSoftOrientations_ & setSoftOrientation)
 		return requestOrientationChange(setSoftOrientation);
@@ -527,8 +476,8 @@ bool Window::requestOrientationChange(Orientation o)
 		softOrientation_ = o;
 		updateSize({savedRealWidth, savedRealHeight});
 		postDraw();
-		if(*this == mainWindow())
-			setSystemOrientation(o);
+		if(isMainWindow())
+			appContext().setSystemOrientation(o);
 		Input::configureInputForOrientation(*this);
 		return true;
 	}
@@ -544,25 +493,6 @@ Orientation Window::softOrientation() const
 Orientation Window::validSoftOrientations() const
 {
 	return validSoftOrientations_;
-}
-
-uint32_t Window::windows()
-{
-	if constexpr(Config::BASE_MULTI_WINDOW)
-	{
-		return window_.size();
-	}
-	else
-	{
-		return (bool)window_[0];
-	}
-}
-
-Window *Window::window(uint32_t idx)
-{
-	if(unlikely(idx >= window_.size()))
-		return nullptr;
-	return window_[idx].get();
 }
 
 void Window::dismiss()
@@ -678,9 +608,14 @@ IG::WindowRect Window::bounds() const
 	return {0, 0, width(), height()};
 }
 
-Screen &WindowConfig::screen() const
+Screen &WindowConfig::screen(ApplicationContext app) const
 {
-	return screen_ ? *screen_ : *Screen::screen(0);
+	return screen_ ? *screen_ : *app.screen(0);
+}
+
+ApplicationContext Window::appContext() const
+{
+	return onExit.appContext();
 }
 
 }

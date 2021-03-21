@@ -16,10 +16,7 @@ ifneq ($(filter macosx ios, $(ENV)),)
 else
  ifdef pkg_stdcxxStaticLib
   STDCXXLIB = $(pkg_stdcxxStaticLib)
-  LD := $(CC)
  endif
 endif
-
-include $(buildSysPath)/package/stdc++-headers.mk
 
 endif

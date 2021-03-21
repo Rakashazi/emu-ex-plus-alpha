@@ -73,12 +73,12 @@ typedef struct GAME_ROMS {
 
 
 
-int dr_load_roms(GAME_ROMS *r,char *rom_path,char *name, char romerror[1024]);
+int dr_load_roms(void *contextPtr, GAME_ROMS *r,char *rom_path,char *name, char romerror[1024]);
 void dr_free_roms(GAME_ROMS *r);
 int dr_save_gno(GAME_ROMS *r,char *filename);
-int dr_load_game(char *zip, char romerror[1024]);
-ROM_DEF *dr_check_zip(const char *filename);
+int dr_load_game(void *contextPtr, char *zip, char romerror[1024]);
+ROM_DEF *dr_check_zip(void *contextPtr, const char *filename);
 char *dr_gno_romname(char *filename);
-int dr_open_gno(char *filename, char romerror[1024]);
+int dr_open_gno(void *contextPtr, char *filename, char romerror[1024]);
 
 #endif

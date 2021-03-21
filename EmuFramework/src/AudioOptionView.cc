@@ -47,7 +47,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			setSoundEnabled(item.flipBoolValue(*this));
 			if(item.boolValue())
-				audio->open(audioOutputAPI());
+				audio->open(appContext(), audioOutputAPI());
 			else
 				audio->close();
 		}
@@ -156,6 +156,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionAudioSoloMix = !item.flipBoolValue(*this);
+			IG::AudioManager::setSoloMix(appContext(), optionAudioSoloMix);
 		}
 	}
 	#endif
@@ -172,20 +173,21 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	apiItem.emplace_back("Auto",
 		[this](View &view)
 		{
+			auto app = appContext();
 			optionAudioAPI = 0;
-			auto defaultApi = IG::Audio::makeValidAPI();
-			audio->open(defaultApi);
-			api.setSelected(idxOfAPI(defaultApi, IG::Audio::audioAPIs()));
+			auto defaultApi = IG::Audio::makeValidAPI(app);
+			audio->open(app, defaultApi);
+			api.setSelected(idxOfAPI(defaultApi, IG::Audio::audioAPIs(app)));
 			view.dismiss();
 			return false;
 		});
-	for(auto desc: IG::Audio::audioAPIs())
+	for(auto desc: IG::Audio::audioAPIs(appContext()))
 	{
 		apiItem.emplace_back(desc.name,
 			[this, api = desc.api]()
 			{
 				optionAudioAPI = (uint8_t)api;
-				audio->open(api);
+				audio->open(appContext(), api);
 			});
 	}
 	#endif
@@ -225,11 +227,12 @@ void AudioOptionView::loadStockItems()
 	item.emplace_back(&audioSoloMix);
 	#endif
 	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-	if(auto apiVec = IG::Audio::audioAPIs();
+	auto app = appContext();
+	if(auto apiVec = IG::Audio::audioAPIs(app);
 		apiVec.size() > 1)
 	{
 		item.emplace_back(&api);
-		api.setSelected(idxOfAPI(IG::Audio::makeValidAPI(audioOutputAPI()), std::move(apiVec)));
+		api.setSelected(idxOfAPI(IG::Audio::makeValidAPI(app, audioOutputAPI()), std::move(apiVec)));
 	}
 	#endif
 }

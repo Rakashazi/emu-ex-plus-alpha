@@ -24,6 +24,7 @@
 namespace Base
 {
 
+class ApplicationContext;
 extern CGColorSpaceRef grayColorSpace, rgbColorSpace;
 
 }
@@ -31,7 +32,7 @@ extern CGColorSpaceRef grayColorSpace, rgbColorSpace;
 namespace Input
 {
 
-void init();
+void init(Base::ApplicationContext);
 
 }
 

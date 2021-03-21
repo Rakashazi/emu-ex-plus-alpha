@@ -15,6 +15,7 @@
 
 #define LOGTAG "TextInput"
 #include <imagine/input/Input.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #include "internal.hh"
 #include "android.hh"
@@ -48,47 +49,47 @@ static void setupTextInputJni(JNIEnv* env)
 	}
 }
 
-uint32_t startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels)
+uint32_t startSysTextInput(Base::ApplicationContext app, InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels)
 {
 	using namespace Base;
-	auto env = jEnvForThread();
+	auto env = app.mainThreadJniEnv();
 	setupTextInputJni(env);
 	logMsg("starting system text input");
 	setEventsUseOSInputMethod(true);
 	vKeyboardTextDelegate = callback;
-	jStartSysTextInput(env, jBaseActivity, env->NewStringUTF(initialText), env->NewStringUTF(promptText),
+	jStartSysTextInput(env, app.baseActivityObject(), env->NewStringUTF(initialText), env->NewStringUTF(promptText),
 		textRect.x, textRect.y, textRect.xSize(), textRect.ySize(), fontSizePixels);
 	return 0;
 }
 
-void cancelSysTextInput()
+void cancelSysTextInput(Base::ApplicationContext app)
 {
 	using namespace Base;
-	auto env = jEnvForThread();
+	auto env = app.mainThreadJniEnv();
 	setupTextInputJni(env);
 	vKeyboardTextDelegate = {};
-	jFinishSysTextInput(env, jBaseActivity, 1);
+	jFinishSysTextInput(env, app.baseActivityObject(), 1);
 }
 
-void finishSysTextInput()
+void finishSysTextInput(Base::ApplicationContext app)
 {
 	using namespace Base;
-	auto env = jEnvForThread();
+	auto env = app.mainThreadJniEnv();
 	setupTextInputJni(env);
-	jFinishSysTextInput(env, jBaseActivity, 0);
+	jFinishSysTextInput(env, app.baseActivityObject(), 0);
 }
 
-void placeSysTextInput(IG::WindowRect rect)
+void placeSysTextInput(Base::ApplicationContext app, IG::WindowRect rect)
 {
 	using namespace Base;
-	auto env = jEnvForThread();
+	auto env = app.mainThreadJniEnv();
 	setupTextInputJni(env);
 	textRect = rect;
 	logMsg("placing text edit box at %d,%d with size %d,%d", rect.x, rect.y, rect.xSize(), rect.ySize());
-	jPlaceSysTextInput(env, jBaseActivity, rect.x, rect.y, rect.xSize(), rect.ySize());
+	jPlaceSysTextInput(env, app.baseActivityObject(), rect.x, rect.y, rect.xSize(), rect.ySize());
 }
 
-IG::WindowRect sysTextInputRect()
+IG::WindowRect sysTextInputRect(Base::ApplicationContext app)
 {
 	return textRect;
 }

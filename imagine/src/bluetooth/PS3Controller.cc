@@ -16,9 +16,8 @@
 #define LOGTAG "PS3Ctrl"
 #include <imagine/bluetooth/PS3Controller.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/base/Base.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/bits.h>
+#include <imagine/util/bitset.hh>
 #include <imagine/util/algorithm.h>
 #include "../input/private.hh"
 #include "private.hh"
@@ -133,7 +132,7 @@ IG::ErrorCode PS3Controller::open1Ctl(BluetoothAdapter &adapter, BluetoothPendin
 			return statusHandler(sock, status);
 		};
 	logMsg("accepting PS3 control channel");
-	if(auto err = ctlSock.open(pending);
+	if(auto err = ctlSock.open(adapter, pending);
 		err)
 	{
 		logErr("error opening control socket");
@@ -145,7 +144,7 @@ IG::ErrorCode PS3Controller::open1Ctl(BluetoothAdapter &adapter, BluetoothPendin
 IG::ErrorCode PS3Controller::open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending)
 {
 	logMsg("accepting PS3 interrupt channel");
-	if(auto err = intSock.open(pending);
+	if(auto err = intSock.open(adapter, pending);
 		err)
 	{
 		logErr("error opening interrupt socket");
@@ -236,10 +235,10 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 				if(newState != -1)
 				{
 					//logMsg("%s %s @ PS3 Pad %d", device->keyName(e.keyEvent), newState ? "pushed" : "released", player);
-					Base::endIdleByUserActivity();
+					app.endIdleByUserActivity();
 					Event event{player, Map::PS3PAD, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
-					startKeyRepeatTimer(event);
-					dispatchInputEvent(event);
+					startKeyRepeatTimer(app, event);
+					dispatchInputEvent(app, event);
 				}
 			}
 			memcpy(prevData, digitalBtnData, sizeof(prevData));
@@ -248,8 +247,8 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 			//logMsg("left: %d,%d right: %d,%d", stickData[0], stickData[1], stickData[2], stickData[3]);
 			iterateTimes(4, i)
 			{
-				if(axisKey[i].dispatch(stickData[i], player, Map::PS3PAD, time, *this, Base::mainWindow()))
-					Base::endIdleByUserActivity();
+				if(axisKey[i].dispatch(stickData[i], player, Map::PS3PAD, time, *this, app.mainWindow()))
+					app.endIdleByUserActivity();
 			}
 		}
 	}

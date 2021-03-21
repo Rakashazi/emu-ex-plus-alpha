@@ -21,6 +21,11 @@
 
 struct AAsset;
 
+namespace Base
+{
+class ApplicationContext;
+}
+
 class AAssetIO final : public IO
 {
 public:
@@ -38,7 +43,7 @@ public:
 
 	constexpr AAssetIO() {}
 	GenericIO makeGeneric();
-	std::error_code open(const char *name, AccessHint access);
+	std::error_code open(Base::ApplicationContext, const char *name, AccessHint);
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
 	const char *mmapConst() final;
 	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) final;

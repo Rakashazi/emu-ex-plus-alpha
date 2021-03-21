@@ -14,7 +14,6 @@
 	along with PCE.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include "MDFN.hh"
-#include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/string.h>

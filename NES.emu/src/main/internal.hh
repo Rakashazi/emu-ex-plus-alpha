@@ -31,5 +31,5 @@ void setupNESFourScore();
 void connectNESInput(int port, ESI type);
 const char *regionToStr(int region);
 void emulateSound(EmuAudio *audio);
-void setDefaultPalette(const char *palPath);
+void setDefaultPalette(Base::ApplicationContext, const char *palPath);
 void setRegion(int region, int defaultRegion, int detectedRegion);

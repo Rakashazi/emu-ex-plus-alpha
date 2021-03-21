@@ -15,7 +15,7 @@
 
 #define LOGTAG "GlyphTexture"
 
-#include <imagine/util/bits.h>
+#include <imagine/util/bitset.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/io/FileIO.hh>
@@ -167,17 +167,18 @@ GlyphTextureSet::GlyphTextureSet(Renderer &r, std::unique_ptr<IG::Font> font, IG
 
 GlyphTextureSet GlyphTextureSet::makeSystem(Renderer &r, IG::FontSettings set)
 {
-	return {r, std::make_unique<IG::Font>(IG::Font::makeSystem()), set};
+	return {r, std::make_unique<IG::Font>(IG::Font::makeSystem(r.appContext())), set};
 }
 
 GlyphTextureSet GlyphTextureSet::makeBoldSystem(Renderer &r, IG::FontSettings set)
 {
-	return {r, std::make_unique<IG::Font>(IG::Font::makeBoldSystem()), set};
+	return {r, std::make_unique<IG::Font>(IG::Font::makeBoldSystem(r.appContext())), set};
 }
 
-GlyphTextureSet GlyphTextureSet::makeFromAsset(Renderer &r, const char *name, const char *appName, IG::FontSettings set)
+GlyphTextureSet GlyphTextureSet::makeFromAsset(Renderer &r,
+	const char *name, IG::FontSettings set, const char *appName)
 {
-	return {r, FileUtils::openAppAsset(name, IO::AccessHint::ALL, appName).makeGeneric(), set};
+	return {r, r.appContext().openAsset(name, IO::AccessHint::ALL, appName).makeGeneric(), set};
 }
 
 uint32_t GlyphTextureSet::nominalHeight() const

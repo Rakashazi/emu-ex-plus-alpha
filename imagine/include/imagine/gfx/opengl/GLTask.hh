@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/MessagePort.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/FunctionTraits.hh>
 #include <thread>
 
@@ -97,9 +98,10 @@ public:
 	GLTask(GLTask &&o) = delete;
 	GLTask &operator=(GLTask &&o) = delete;
 	~GLTask();
-	Error makeGLContext(GLTaskConfig);
+	Error makeGLContext(GLTaskConfig, Base::ApplicationContext);
 	void runFunc(FuncDelegate del, bool awaitReply);
 	Base::GLContext glContext() const;
+	Base::ApplicationContext appContext() const;
 	explicit operator bool() const;
 
 	template<class Func>

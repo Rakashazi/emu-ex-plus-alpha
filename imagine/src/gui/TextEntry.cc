@@ -14,11 +14,18 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/TextEntry.hh>
-#include <imagine/logger/logger.h>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/string.h>
+#include <imagine/logger/logger.h>
+
+TextEntry::TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP)
+{
+	string_copy(str, initText);
+	t = {str.data(), face};
+	t.compile(r, projP);
+}
 
 void TextEntry::setAcceptingInput(bool on)
 {
@@ -35,6 +42,11 @@ void TextEntry::setAcceptingInput(bool on)
 	acceptingInput = on;
 }
 
+bool TextEntry::isAcceptingInput() const
+{
+	return acceptingInput;
+}
+
 bool TextEntry::inputEvent(View &parentView, Input::Event e)
 {
 	if(e.isPointer() && e.pushed() && b.overlaps(e.pos()))
@@ -48,7 +60,7 @@ bool TextEntry::inputEvent(View &parentView, Input::Event e)
 
 		if(e.mapKey() == Input::Keycode::BACK_SPACE)
 		{
-			int len = strlen(str);
+			int len = strlen(str.data());
 			if(len > 0)
 			{
 				str[len-1] = '\0';
@@ -77,7 +89,7 @@ bool TextEntry::inputEvent(View &parentView, Input::Event e)
 		{
 			{
 				parentView.waitForDrawFinished();
-				t.setString(str);
+				t.setString(str.data());
 				t.compile(parentView.renderer(), projP);
 			}
 			parentView.postDraw();
@@ -111,19 +123,20 @@ void TextEntry::place(Gfx::Renderer &r, IG::WindowRect rect, const Gfx::Projecti
 	place(r);
 }
 
-TextEntry::TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP)
+const char *TextEntry::textStr() const
 {
-	string_copy(str, initText);
-	t = {str, face};
-	t.compile(r, projP);
+	return str.data();
+}
+
+IG::WindowRect TextEntry::bgRect() const
+{
+	return b;
 }
 
 CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *msgText, const char *initialContent,
 	Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face):
 	View{attach},
-	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	textEntry{initialContent, attach.renderer(), face, projP},
-	#endif
 	onTextD{onText}
 {
 	#ifndef CONFIG_BASE_ANDROID
@@ -138,7 +151,7 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	textEntry.setAcceptingInput(true);
 	#else
-	Input::startSysTextInput(
+	Input::startSysTextInput(appContext(),
 		[this](const char *str)
 		{
 			if(!str)
@@ -160,7 +173,7 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *
 CollectTextInputView::~CollectTextInputView()
 {
 	#ifdef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	Input::cancelSysTextInput();
+	Input::cancelSysTextInput(appContext());
 	#endif
 }
 
@@ -184,7 +197,7 @@ void CollectTextInputView::place()
 	textEntry.place(renderer(), textRect, projP);
 	#else
 	textRect.setPosRel(viewRect().pos(C2DO) - IG::WP{0, (int)viewRect().ySize()/4}, {xSize, ySize}, C2DO);
-	Input::placeSysTextInput(textRect);
+	Input::placeSysTextInput(appContext(), textRect);
 	#endif
 }
 
@@ -199,12 +212,12 @@ bool CollectTextInputView::inputEvent(Input::Event e)
 		}
 	}
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	bool acceptingInput = textEntry.acceptingInput;
+	bool acceptingInput = textEntry.isAcceptingInput();
 	bool handled = textEntry.inputEvent(*this, e);
-	if(!textEntry.acceptingInput && acceptingInput)
+	if(!textEntry.isAcceptingInput() && acceptingInput)
 	{
 		logMsg("calling on-text delegate");
-		if(onTextD.callCopy(*this, textEntry.str))
+		if(onTextD.callCopy(*this, textEntry.textStr()))
 		{
 			textEntry.setAcceptingInput(1);
 		}
@@ -238,14 +251,14 @@ void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	cmds.setColor(0.25);
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
-	GeomRect::draw(cmds, textEntry.b, projP);
+	GeomRect::draw(cmds, textEntry.bgRect(), projP);
 	cmds.set(ColorName::WHITE);
 	textEntry.draw(cmds);
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
-	message.draw(cmds, 0, projP.unprojectY(textEntry.b.pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
+	message.draw(cmds, 0, projP.unprojectY(textEntry.bgRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
 	#else
 	cmds.set(ColorName::WHITE);
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
-	message.draw(cmds, 0, projP.unprojectY(Input::sysTextInputRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
+	message.draw(cmds, 0, projP.unprojectY(Input::sysTextInputRect(appContext()).pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
 	#endif
 }

@@ -16,6 +16,7 @@
 #define LOGTAG "GraphicBuff"
 #include "../android.hh"
 #include "GraphicBuffer.hh"
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 
 namespace Base
@@ -172,9 +173,9 @@ bool GraphicBuffer::hasBufferMapper()
 	return allocDev;
 }
 
-bool GraphicBuffer::canSupport(const char *rendererStr)
+bool GraphicBuffer::canSupport(ApplicationContext app, const char *rendererStr)
 {
-	auto androidSDK = Base::androidSDK();
+	auto androidSDK = app.androidSDK();
 	if(androidSDK >= 24)
 	{
 		// non-NDK library loading is blocked by the OS
@@ -183,7 +184,7 @@ bool GraphicBuffer::canSupport(const char *rendererStr)
 	else if(androidSDK >= 11)
 	{
 		// known tested devices with Android 3.0+
-		auto buildDevice = Base::androidBuildDevice();
+		auto buildDevice = app.androidBuildDevice();
 		if(Config::MACHINE_IS_GENERIC_ARMV7)
 		{
 			if(androidSDK >= 20 &&

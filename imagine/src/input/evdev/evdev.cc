@@ -19,14 +19,15 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/bits.h>
+#include <imagine/util/bitset.hh>
+#include <imagine/util/math/int.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/string.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #include "evdev.hh"
 #include "../private.hh"
@@ -116,6 +117,13 @@ static Key toSysKey(Key key)
 
 static void removeFromSystem(int fd);
 
+template <class T, size_t S>
+static constexpr bool isBitSetInArray(const T (&arr)[S], unsigned int bit)
+{
+	auto bits = IG::bitSize<T>;
+	return arr[bit / bits] & ((T)1 << (bit % bits));
+}
+
 struct EvdevInputDevice : public Device
 {
 	int id = 0;
@@ -135,7 +143,7 @@ struct EvdevInputDevice : public Device
 
 	void setEnumId(int id) { devId = id; }
 
-	void processInputEvents(input_event *event, uint32_t events)
+	void processInputEvents(Base::ApplicationContext app, input_event *event, uint32_t events)
 	{
 		iterateTimes(events, i)
 		{
@@ -149,8 +157,8 @@ struct EvdevInputDevice : public Device
 					logMsg("got key event code 0x%X, value %d", ev.code, ev.value);
 					auto key = toSysKey(ev.code);
 					Event event{enumId(), Map::SYSTEM, key, key, ev.value ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
-					startKeyRepeatTimer(event);
-					dispatchInputEvent(event);
+					startKeyRepeatTimer(app, event);
+					dispatchInputEvent(app, event);
 				}
 				bcase EV_ABS:
 				{
@@ -159,7 +167,7 @@ struct EvdevInputDevice : public Device
 						continue; // out of range or inactive
 					}
 					//logMsg("got abs event code 0x%X, value %d", ev.code, ev.value);
-					axis[ev.code].keyEmu.dispatch(ev.value, enumId(), Map::SYSTEM, time, *this, Base::mainWindow());
+					axis[ev.code].keyEmu.dispatch(ev.value, enumId(), Map::SYSTEM, time, *this, app.mainWindow());
 				}
 			}
 		}
@@ -167,14 +175,14 @@ struct EvdevInputDevice : public Device
 
 	bool setupJoystickBits()
 	{
-		ulong evBit[Bits::elemsToHold<ulong>(EV_MAX)] {0};
+		ulong evBit[IG::divRoundUp(EV_MAX, IG::bitSize<ulong>)]{};
 		bool isJoystick = (ioctl(fd, EVIOCGBIT(0, sizeof(evBit)), evBit) >= 0)
-			&& Bits::isSetInArray(evBit, EV_ABS);
+			&& isBitSetInArray(evBit, EV_ABS);
 
 		if(!isJoystick)
 			return false;
 
-		ulong absBit[Bits::elemsToHold<ulong>(ABS_MAX)] {0};
+		ulong absBit[IG::divRoundUp(ABS_MAX, IG::bitSize<ulong>)]{};
 		if((ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(absBit)), absBit) < 0))
 		{
 			logErr("unable to check abs bits");
@@ -199,7 +207,7 @@ struct EvdevInputDevice : public Device
 			int axes = 0;
 			for(auto axisId : stickAxes)
 			{
-				if(!Bits::isSetInArray(absBit, axisId))
+				if(!isBitSetInArray(absBit, axisId))
 					continue;
 				logMsg("joystick axis: %d", axisId);
 				struct input_absinfo info;
@@ -235,11 +243,11 @@ struct EvdevInputDevice : public Device
 		return true;
 	}
 
-	void addPollEvent()
+	void addPollEvent(Base::ApplicationContext app)
 	{
 		assert(fd >= 0);
 		fdSrc = {"EvdevInputDevice", fd, {},
-			[this](int fd, int pollEvents)
+			[this, app](int fd, int pollEvents)
 			{
 				if(unlikely(pollEvents & Base::POLLEV_ERR))
 				{
@@ -255,7 +263,7 @@ struct EvdevInputDevice : public Device
 					{
 						uint32_t events = len / sizeof(struct input_event);
 						//logMsg("read %d bytes from input fd %d, %d events", len, this->fd, events);
-						processInputEvents(event, events);
+						processInputEvents(app, event, events);
 					}
 					if(len == -1 && errno != EAGAIN)
 					{
@@ -306,7 +314,7 @@ static void removeFromSystem(int fd)
 
 static bool devIsGamepad(int fd)
 {
-	ulong keyBit[Bits::elemsToHold<ulong>(KEY_MAX)] {0};
+	ulong keyBit[IG::divRoundUp(KEY_MAX, IG::bitSize<ulong>)] {0};
 
 	if((ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(keyBit)), keyBit) < 0))
 	{
@@ -317,7 +325,7 @@ static bool devIsGamepad(int fd)
 	bool isGamepad = false;
 	for(uint32_t i = BTN_JOYSTICK; i < BTN_DIGI; i++)
 	{
-		if(Bits::isSetInArray(keyBit, i))
+		if(isBitSetInArray(keyBit, i))
 		{
 			logMsg("has joystick/gamepad button: 0x%X", i);
 			//isGamepad = true;
@@ -328,7 +336,7 @@ static bool devIsGamepad(int fd)
 	return isGamepad;
 }
 
-static bool processDevNode(const char *path, int id, bool notify)
+static bool processDevNode(Base::ApplicationContext app, const char *path, int id, bool notify)
 {
 	if(access(path, R_OK) != 0)
 	{
@@ -369,7 +377,7 @@ static bool processDevNode(const char *path, int id, bool notify)
 	bool isJoystick = evDev->setupJoystickBits();
 
 	fd_setNonblock(fd, 1);
-	evDev->addPollEvent();
+	evDev->addPollEvent(app);
 
 	uint32_t devId = 0;
 	for(auto &e : devList)
@@ -400,7 +408,7 @@ static bool processDevNodeName(const char *name, FS::PathString &path, uint32_t 
 	return true;
 }
 
-void initEvdev(Base::EventLoop loop)
+void initEvdev(Base::ApplicationContext app, Base::EventLoop loop)
 {
 	logMsg("setting up inotify for hotplug");
 	{
@@ -411,7 +419,7 @@ void initEvdev(Base::EventLoop loop)
 			fd_setNonblock(inputDevNotifyFd, 1);
 			static Base::FDEventSource evdevSrc;
 			evdevSrc = {"Evdev Inotify", inputDevNotifyFd, loop,
-				[](int fd, int)
+				[app](int fd, int)
 				{
 					char event[sizeof(struct inotify_event) + 2048];
 					int len;
@@ -429,7 +437,7 @@ void initEvdev(Base::EventLoop loop)
 								FS::PathString path;
 								if(processDevNodeName(inotifyEv->name, path, id))
 								{
-									processDevNode(path.data(), id, true);
+									processDevNode(app, path.data(), id, true);
 								}
 							}
 							len -= inotifyEvSize;
@@ -461,7 +469,7 @@ void initEvdev(Base::EventLoop loop)
 		FS::PathString path;
 		if(!processDevNodeName(filename, path, id))
 			continue;
-		processDevNode(path.data(), id, false);
+		processDevNode(app, path.data(), id, false);
 	}
 	if(err)
 	{

@@ -51,6 +51,7 @@
 #include "resfile.h"
 #include "mame_layer.h"
 #include "menu.h"
+#include "neocrypt.h"
 
 /***************************************************************************
 
@@ -601,7 +602,7 @@ static void neogeo_gfx_decrypt(running_machine *machine, int extra_xor)
 
 
 /* the S data comes from the end of the C data */
-void neogeo_sfix_decrypt(running_machine *machine)
+static void neogeo_sfix_decrypt(running_machine *machine)
 {
 	int i;
 	int rom_size = memory_region_length(machine, "sprites");
@@ -613,7 +614,7 @@ void neogeo_sfix_decrypt(running_machine *machine)
 		dst[i] = src[(i & ~0x1f) + ((i & 7) << 2) + ((~i & 8) >> 2) + ((i & 0x10) >> 4)];
 }
 
-void load_cmc42_table(void) {
+void load_cmc42_table(void *contextPtr) {
 /*
 	FILE *f;
 	type0_t03=malloc(0x950);
@@ -621,7 +622,7 @@ void load_cmc42_table(void) {
 	fread(type0_t03,0xB00,1,f);
 	fclose(f);
 */
-	type0_t03=(UINT8*)res_load_data(DATAFILE_PREFIX "rom/cmc42.xor");
+	type0_t03=(UINT8*)res_load_data(contextPtr, DATAFILE_PREFIX "rom/cmc42.xor");
 	type0_t12 = type0_t03 +256;
 	type1_t03 = type0_t12 +256;
 	type1_t12 = type1_t03 +256;
@@ -631,7 +632,7 @@ void load_cmc42_table(void) {
 	address_16_23_xor2 = address_16_23_xor1 +256;
 	address_0_7_xor = address_16_23_xor2 +256;
 }
-void load_cmc50_table(void) {
+void load_cmc50_table(void *contextPtr) {
 /*
 	FILE *f;
 	type0_t03=malloc(0xB00);
@@ -639,7 +640,7 @@ void load_cmc50_table(void) {
 	fread(type0_t03,0xB00,1,f);
 	fclose(f);
 */
-	type0_t03=(UINT8*)res_load_data(DATAFILE_PREFIX "rom/cmc50.xor");
+	type0_t03=(UINT8*)res_load_data(contextPtr, DATAFILE_PREFIX "rom/cmc50.xor");
 	type0_t12 = type0_t03 +256;
 	type1_t03 = type0_t12 +256;
 	type1_t12 = type1_t03 +256;
@@ -654,7 +655,7 @@ void load_cmc50_table(void) {
 }
 
 /* CMC42 protection chip */
-void kof99_neogeo_gfx_decrypt(running_machine *machine, int extra_xor)
+void kof99_neogeo_gfx_decrypt(void *contextPtr, running_machine *machine, int extra_xor)
 {
 	/*
 	type0_t03 =          kof99_type0_t03;
@@ -667,7 +668,7 @@ void kof99_neogeo_gfx_decrypt(running_machine *machine, int extra_xor)
 	address_16_23_xor2 = kof99_address_16_23_xor2;
 	address_0_7_xor =    kof99_address_0_7_xor;
 	*/
-	load_cmc42_table();
+	load_cmc42_table(contextPtr);
 	neogeo_gfx_decrypt(machine, extra_xor);
 	neogeo_sfix_decrypt(machine);
 	free(type0_t03);
@@ -675,7 +676,7 @@ void kof99_neogeo_gfx_decrypt(running_machine *machine, int extra_xor)
 
 
 /* CMC50 protection chip */
-void kof2000_neogeo_gfx_decrypt(running_machine *machine, int extra_xor)
+void kof2000_neogeo_gfx_decrypt(void *contextPtr, running_machine *machine, int extra_xor)
 {
 	/*
 	type0_t03 =          kof2000_type0_t03;
@@ -688,7 +689,7 @@ void kof2000_neogeo_gfx_decrypt(running_machine *machine, int extra_xor)
 	address_16_23_xor2 = kof2000_address_16_23_xor2;
 	address_0_7_xor =    kof2000_address_0_7_xor;
 	*/
-	load_cmc50_table();
+	load_cmc50_table(contextPtr);
 	neogeo_gfx_decrypt(machine, extra_xor);
 	neogeo_sfix_decrypt(machine);
 	free(type0_t03);
@@ -696,7 +697,7 @@ void kof2000_neogeo_gfx_decrypt(running_machine *machine, int extra_xor)
 
 
 /* CMC42 protection chip */
-void cmc42_neogeo_gfx_decrypt(running_machine *machine, int extra_xor)
+void cmc42_neogeo_gfx_decrypt(void *contextPtr, running_machine *machine, int extra_xor)
 {
 	/*
 	type0_t03 =          kof99_type0_t03;
@@ -709,14 +710,14 @@ void cmc42_neogeo_gfx_decrypt(running_machine *machine, int extra_xor)
 	address_16_23_xor2 = kof99_address_16_23_xor2;
 	address_0_7_xor =    kof99_address_0_7_xor;
 	*/
-	load_cmc42_table();
+	load_cmc42_table(contextPtr);
 	neogeo_gfx_decrypt(machine, extra_xor);
 	free(type0_t03);
 }
 
 
 /* CMC50 protection chip */
-void cmc50_neogeo_gfx_decrypt(running_machine *machine, int extra_xor)
+void cmc50_neogeo_gfx_decrypt(void *contextPtr, running_machine *machine, int extra_xor)
 {
 	/*
 	type0_t03 =          kof2000_type0_t03;
@@ -729,7 +730,7 @@ void cmc50_neogeo_gfx_decrypt(running_machine *machine, int extra_xor)
 	address_16_23_xor2 = kof2000_address_16_23_xor2;
 	address_0_7_xor =    kof2000_address_0_7_xor;
 	*/
-	load_cmc50_table();
+	load_cmc50_table(contextPtr);
 	neogeo_gfx_decrypt(machine, extra_xor);
 	free(type0_t03);
 }
@@ -949,7 +950,7 @@ static int m1_address_scramble(int address, UINT16 key)
 }
 
 
-void neogeo_cmc50_m1_decrypt(running_machine *machine)
+void neogeo_cmc50_m1_decrypt(void *contextPtr, running_machine *machine)
 {
 	UINT8* rom = memory_region(machine, "audiocrypt");
 	size_t rom_size = 0x80000;
@@ -963,7 +964,7 @@ void neogeo_cmc50_m1_decrypt(running_machine *machine)
 	UINT16 key=generate_cs16(rom,0x10000);
 
 	/* TODO don't open it 2 times... */
-	load_cmc50_table();
+	load_cmc50_table(contextPtr);
 	//printf("key %04x\n",key);
 
 	for (i=0; i<rom_size; i++)

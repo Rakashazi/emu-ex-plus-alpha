@@ -16,10 +16,10 @@
 #define LOGTAG "LibPNG"
 
 #include <imagine/data-type/image/LibPNG.hh>
-#include <imagine/logger/logger.h>
 #include <imagine/io/FileIO.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/string.h>
-#include <assert.h>
+#include <imagine/logger/logger.h>
 
 // this must be in the range 1 to 8
 #define INITIAL_HEADER_READ_BYTES 8
@@ -34,8 +34,7 @@ CLINK void PNGAPI png_error(png_const_structrp png_ptr, png_const_charp error_me
 CLINK void PNGAPI png_error(png_const_structrp png_ptr, png_const_charp error_message)
 {
 	// TODO: print out more verbose error
-	logErr("fatal libpng error");
-	Base::abort();
+	bug_unreachable("fatal libpng error");
 }
 
 CLINK void PNGAPI png_chunk_error(png_const_structrp png_ptr, png_const_charp error_message) PNG_NORETURN;
@@ -303,7 +302,7 @@ std::errc Png::readImage(IG::Pixmap dest)
 	
 	//log_mPrintf(LOG_MSG,"after transforms, rowbytes = %u", (uint32_t)png_get_rowbytes(data->png, data->info));
 
-	assert( (uint32_t)width*dest.format().bytesPerPixel() == png_get_rowbytes(png, info) );
+	assumeExpr( (uint32_t)width*dest.format().bytesPerPixel() == png_get_rowbytes(png, info) );
 	
 	if(png_get_interlace_type(png, info) == PNG_INTERLACE_NONE)
 	{
@@ -351,8 +350,6 @@ Png::operator bool() const
 {
 	return info;
 }
-
-PngFile::PngFile() {}
 
 PngFile::~PngFile()
 {
@@ -402,7 +399,7 @@ std::error_code PngFile::load(const char *name)
 
 std::error_code PngFile::loadAsset(const char *name, const char *appName)
 {
-	return load(FileUtils::openAppAsset(name, IO::AccessHint::ALL, appName).makeGeneric());
+	return load(png.appContext().openAsset(name, IO::AccessHint::ALL, appName).makeGeneric());
 }
 
 void PngFile::deinit()

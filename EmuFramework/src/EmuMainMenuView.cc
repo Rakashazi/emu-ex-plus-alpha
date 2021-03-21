@@ -13,9 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/AlertView.hh>
-#include <imagine/gui/TextEntry.hh>
-#include <imagine/base/Base.hh>
 #include <emuframework/EmuMainMenuView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuApp.hh>
@@ -31,6 +28,9 @@
 #include "private.hh"
 #include "privateInput.hh"
 #include "RecentGameView.hh"
+#include <imagine/gui/AlertView.hh>
+#include <imagine/gui/TextEntry.hh>
+#include <imagine/base/ApplicationContext.hh>
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
@@ -41,7 +41,7 @@ extern BluetoothAdapter *bta;
 
 #ifdef CONFIG_BLUETOOTH
 
-static bool initBTAdapter()
+static bool initBTAdapter(Base::ApplicationContext app)
 {
 	if(bta)
 	{
@@ -49,7 +49,7 @@ static bool initBTAdapter()
 	}
 
 	logMsg("initializing Bluetooth");
-	bta = BluetoothAdapter::defaultAdapter();
+	bta = BluetoothAdapter::defaultAdapter(app);
 	return bta;
 }
 
@@ -109,10 +109,10 @@ static void handledFailedBTAdapterInit(View &view, ViewAttachParams attach, Inpu
 	{
 		auto ynAlertView = std::make_unique<YesNoAlertView>(attach, "BTstack not found, open Cydia and install?");
 		ynAlertView->setOnYes(
-			[]()
+			[](View &v)
 			{
 				logMsg("launching Cydia");
-				Base::openURL("cydia://package/ch.ringwald.btstack");
+				v.appContext().openURL("cydia://package/ch.ringwald.btstack");
 			});
 		view.pushAndShowModal(std::move(ynAlertView), e, false);
 	}
@@ -246,9 +246,9 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Scan for Wiimotes/iCP/JS1",
 		[this](Input::Event e)
 		{
-			if(initBTAdapter())
+			if(initBTAdapter(appContext()))
 			{
-				if(Bluetooth::scanForDevices(*bta, onScanStatus))
+				if(Bluetooth::scanForDevices(appContext(), *bta, onScanStatus))
 				{
 					EmuApp::postMessage(4, "Starting Scan...\n(see website for device-specific help)");
 				}
@@ -289,10 +289,10 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Scan for PS3 Controller",
 		[this](Input::Event e)
 		{
-			if(initBTAdapter())
+			if(initBTAdapter(appContext()))
 			{
 				EmuApp::postMessage(4, "Prepare to push the PS button");
-				auto startedScan = Bluetooth::listenForDevices(*bta,
+				auto startedScan = Bluetooth::listenForDevices(appContext(), *bta,
 					[this](BluetoothAdapter &bta, uint status, int arg)
 					{
 						switch(status)
@@ -335,9 +335,9 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	exitApp
 	{
 		"Exit",
-		[](Input::Event e)
+		[this](Input::Event e)
 		{
-			Base::exit();
+			appContext().exit();
 		}
 	}
 {
@@ -407,7 +407,7 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 			"Beta Testing Opt-in/out",
 			[this]()
 			{
-				Base::openURL(string_makePrintf<96>("https://play.google.com/apps/testing/%s", appID()).data());
+				appContext().openURL(string_makePrintf<96>("https://play.google.com/apps/testing/%s", appContext().applicationId).data());
 			}
 		};
 	}

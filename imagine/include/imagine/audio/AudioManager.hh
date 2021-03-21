@@ -18,6 +18,11 @@
 #include <imagine/config/defs.hh>
 #include <imagine/audio/Format.hh>
 
+namespace Base
+{
+class ApplicationContext;
+}
+
 namespace IG::AudioManager
 {
 	namespace Config
@@ -27,13 +32,13 @@ namespace IG::AudioManager
 	#endif
 	}
 
-Audio::SampleFormat nativeSampleFormat();
-uint32_t nativeRate();
-Audio::Format nativeFormat();
-void setSoloMix(bool newSoloMix);
-bool soloMix();
-void setMusicVolumeControlHint();
-void startSession();
-void endSession();
+Audio::SampleFormat nativeSampleFormat(Base::ApplicationContext);
+uint32_t nativeRate(Base::ApplicationContext);
+Audio::Format nativeFormat(Base::ApplicationContext);
+void setSoloMix(Base::ApplicationContext, bool newSoloMix);
+bool soloMix(Base::ApplicationContext);
+void setMusicVolumeControlHint(Base::ApplicationContext);
+void startSession(Base::ApplicationContext);
+void endSession(Base::ApplicationContext);
 
 }

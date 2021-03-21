@@ -33,7 +33,7 @@ class TestPicker : public TableView
 {
 public:
 	TestPicker(ViewAttachParams attach);
-	void setTests(const TestDesc *testParams, uint tests);
+	void setTests(const TestDesc *testParams, unsigned tests);
 
 private:
 	std::vector<TestTableEntry> testEntry{};

@@ -214,6 +214,7 @@ void gn_init_pbar(uint action,int size)
 		onLoadProgress(0, size, str);
 	}
 }
+
 void gn_update_pbar(int pos)
 {
 	using namespace Base;
@@ -224,19 +225,19 @@ void gn_update_pbar(int pos)
 	}
 }
 
-static auto openGngeoDataIO(const char *filename)
+static auto openGngeoDataIO(Base::ApplicationContext app, const char *filename)
 {
 	#ifdef __ANDROID__
-	return EmuApp::openAppAssetIO(filename, IO::AccessHint::ALL);
+	return EmuApp::openAppAssetIO(app, filename, IO::AccessHint::ALL);
 	#else
 	return FS::fileFromArchive(datafilePath.data(), filename);
 	#endif
 }
 
-CLINK ROM_DEF *res_load_drv(const char *name)
+CLINK ROM_DEF *res_load_drv(void *contextPtr, const char *name)
 {
 	auto drvFilename = string_makePrintf<32>(DATAFILE_PREFIX "rom/%s.drv", name);
-	auto io = openGngeoDataIO(drvFilename.data());
+	auto io = openGngeoDataIO(*((Base::ApplicationContext*)contextPtr), drvFilename.data());
 	if(!io)
 	{
 		logErr("Can't open driver %s", name);
@@ -264,9 +265,9 @@ CLINK ROM_DEF *res_load_drv(const char *name)
 	return drv;
 }
 
-CLINK void *res_load_data(const char *name)
+CLINK void *res_load_data(void *contextPtr, const char *name)
 {
-	auto io = openGngeoDataIO(name);
+	auto io = openGngeoDataIO(*((Base::ApplicationContext*)contextPtr), name);
 	if(!io)
 	{
 		logErr("Can't data file %s", name);
@@ -278,11 +279,11 @@ CLINK void *res_load_data(const char *name)
 	return buffer;
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate onLoadProgressFunc)
+EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext app, IO &, EmuSystemCreateParams, OnLoadProgressDelegate onLoadProgressFunc)
 {
 	onLoadProgress = onLoadProgressFunc;
 	auto resetOnLoadProgress = IG::scopeGuard([&](){ onLoadProgress = {}; });
-	ROM_DEF *drv = res_load_drv(gameName().data());
+	ROM_DEF *drv = res_load_drv(&app, gameName().data());
 	if(!drv)
 	{
 		return makeError("This game isn't recognized");
@@ -295,7 +296,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgress
 	{
 		logMsg("loading .gno file");
 		char errorStr[1024];
-		if(!init_game(gnoFilename.data(), errorStr))
+		if(!init_game(&app, gnoFilename.data(), errorStr))
 		{
 			return makeError("%s", errorStr);
 		}
@@ -303,7 +304,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgress
 	else
 	{
 		char errorStr[1024];
-		if(!init_game(drv->name, errorStr))
+		if(!init_game(&app, drv->name, errorStr))
 		{
 			return makeError("%s", errorStr);
 		}
@@ -378,10 +379,10 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 	}
 }
 
-FS::FileString EmuSystem::fullGameNameForPath(const char *path)
+FS::FileString EmuSystem::fullGameNameForPath(Base::ApplicationContext app, const char *path)
 {
 	auto gameName = fullGameNameForPathDefaultImpl(path);
-	ROM_DEF *drv = res_load_drv(gameName.data());
+	ROM_DEF *drv = res_load_drv(&app, gameName.data());
 	if(!drv)
 		return gameName;
 	auto freeDrv = IG::scopeGuard([&](){ free(drv); });
@@ -401,7 +402,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-EmuSystem::Error EmuSystem::onInit()
+EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext app)
 {
 	visible_area.x = 0;//16;
 	visible_area.y = 16;
@@ -415,7 +416,7 @@ EmuSystem::Error EmuSystem::onInit()
 	strcpy(rompathConfItem.data.dt_str.str, ".");
 	if(!Config::envIsAndroid)
 	{
-		string_printf(datafilePath, "%s/gngeo_data.zip", EmuApp::assetPath().data());
+		string_printf(datafilePath, "%s/gngeo_data.zip", EmuApp::assetPath(app).data());
 	}
 	return {};
 }

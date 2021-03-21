@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "EventLoop"
-#include <imagine/base/Base.hh>
 #include <imagine/base/EventLoop.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>

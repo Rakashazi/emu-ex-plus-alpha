@@ -23,6 +23,11 @@
 #include <emuframework/VController.hh>
 #endif
 
+namespace Input
+{
+class Device;
+}
+
 static constexpr uint MAX_INPUT_DEVICE_NAME_SIZE = 64;
 static constexpr uint MAX_KEY_CONFIG_NAME_SIZE = 80;
 static constexpr uint MAX_KEY_CONFIG_KEYS = 256;

@@ -23,17 +23,25 @@ bool BluetoothAdapter::useScanCache = 1;
 uint32_t BluetoothAdapter::scanSecs = 4;
 #endif
 
-BluetoothAdapter::BluetoothAdapter() {}
-
-BluetoothAdapter *BluetoothAdapter::defaultAdapter()
+BluetoothAdapter *BluetoothAdapter::defaultAdapter(Base::ApplicationContext app)
 {
 	#if defined CONFIG_BLUETOOTH_ANDROID
-	return AndroidBluetoothAdapter::defaultAdapter();
+	return AndroidBluetoothAdapter::defaultAdapter(app);
 	#elif defined CONFIG_BLUETOOTH_BTSTACK
-	return BtstackBluetoothAdapter::defaultAdapter();
+	return BtstackBluetoothAdapter::defaultAdapter(app);
 	#elif defined CONFIG_BLUETOOTH_BLUEZ && !defined CONFIG_BASE_ANDROID
-	return BluezBluetoothAdapter::defaultAdapter();
+	return BluezBluetoothAdapter::defaultAdapter(app);
 	#else
 	#error "no Bluetooth back-ends are selected"
 	#endif
+}
+
+Base::ApplicationContext BluetoothAdapter::appContext() const
+{
+	return app;
+}
+
+void BluetoothAdapter::setAppContext(Base::ApplicationContext app_)
+{
+	app = app_;
 }

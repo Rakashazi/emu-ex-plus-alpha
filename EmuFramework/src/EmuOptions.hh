@@ -22,6 +22,12 @@
 #include <imagine/audio/defs.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
+#include <imagine/input/Input.hh>
+
+namespace Base
+{
+class ApplicationContext;
+}
 
 class VController;
 
@@ -89,7 +95,7 @@ struct OptionRecentGames : public OptionBase
 
 	bool isDefault() const override;
 	bool writeToIO(IO &io) override;
-	bool readFromIO(IO &io, uint readSize_);
+	bool readFromIO(Base::ApplicationContext, IO &, uint readSize_);
 	uint ioSize() const override;
 };
 
@@ -113,8 +119,7 @@ extern Byte1Option optionSoundVolume;
 extern Byte1Option optionSoundBuffers;
 extern Byte1Option optionAddSoundBuffersOnUnderrun;
 #ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
-using OptionAudioSoloMix = Option<OptionMethodFunc<bool, IG::AudioManager::soloMix, IG::AudioManager::setSoloMix>, uint8_t>;
-extern OptionAudioSoloMix optionAudioSoloMix;
+extern Byte1Option optionAudioSoloMix;
 #endif
 #ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 extern Byte1Option optionAudioAPI;
@@ -222,7 +227,7 @@ extern Byte1Option optionShowBundledGames;
 // Common options handled per-emulator backend
 extern PathOption optionFirmwarePath;
 
-void initOptions();
+void initOptions(Base::ApplicationContext);
 void setupFont(Gfx::Renderer &r, Base::Window &win);
 bool soundIsEnabled();
 void setSoundEnabled(bool on);

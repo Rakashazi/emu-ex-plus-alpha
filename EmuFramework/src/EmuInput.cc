@@ -13,17 +13,18 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/base/Base.hh>
-#include <imagine/util/algorithm.h>
-#include <imagine/util/math/int.hh>
-#include <imagine/data-type/image/sys.hh>
-#include <imagine/gfx/Renderer.hh>
 #include <emuframework/EmuSystem.hh>
-#include "EmuOptions.hh"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/InputManagerView.hh>
 #include "private.hh"
 #include "privateInput.hh"
+#include "EmuViewController.hh"
+#include "EmuOptions.hh"
+#include <imagine/base/ApplicationContext.hh>
+#include <imagine/util/algorithm.h>
+#include <imagine/util/math/int.hh>
+#include <imagine/data-type/image/sys.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <cstdlib>
 
 struct RelPtr  // for Android trackball
@@ -56,6 +57,7 @@ static int vControllerPixelSize(const SysVController &vController, const Base::W
 
 void initVControls(VController &vController, Gfx::Renderer &r)
 {
+	auto app = vController.appContext();
 	auto &winData = vController.windowData();
 	auto &win = vController.window();
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
@@ -65,7 +67,7 @@ void initVControls(VController &vController, Gfx::Renderer &r)
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 	vController.init((int)optionTouchCtrlAlpha / 255.0, vControllerPixelSize(vController, win), View::defaultFace.nominalHeight()*1.75, winData.projection.plane());
 	#else
-	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(win, 8.5)), View::defaultFace.nominalHeight()*1.75, winData.projectionPlane);
+	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(win, 8.5)), View::defaultFace.nominalHeight()*1.75, winData.projection.plane());
 	#endif
 
 	if(!vController.layoutPositionChanged()) // setup default positions if not provided in config file
@@ -78,11 +80,12 @@ void initVControls(VController &vController, Gfx::Renderer &r)
 
 void resetVControllerPositions(VController &vController)
 {
+	auto app = vController.appContext();
 	auto &win = vController.window();
 	logMsg("resetting on-screen controls to default positions & states");
-	uint initFastForwardState = (Config::envIsIOS || (Config::envIsAndroid  && !Base::hasHardwareNavButtons()))
+	uint initFastForwardState = (Config::envIsIOS || (Config::envIsAndroid  && !app.hasHardwareNavButtons()))
 		? VControllerLayoutPosition::SHOWN : VControllerLayoutPosition::OFF;
-	uint initMenuState = (Config::envIsAndroid && Base::hasHardwareNavButtons())
+	uint initMenuState = (Config::envIsAndroid && app.hasHardwareNavButtons())
 		? VControllerLayoutPosition::HIDDEN : VControllerLayoutPosition::SHOWN;
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	uint initGamepadState = (Config::envIsAndroid || Config::envIsIOS || (int)optionTouchCtrl == 1) ? VControllerLayoutPosition::SHOWN : VControllerLayoutPosition::OFF;
@@ -731,7 +734,7 @@ void setupVControllerVars(VController &vController)
 	vController.setBaseBtnSize(vControllerPixelSize(vController, win), View::defaultFace.nominalHeight()*1.75, winData.projection.plane());
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 	#else
-	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(winData.win, 8.5)), View::defaultFace.nominalHeight()*1.75, winData.projectionPlane);
+	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(win, 8.5)), View::defaultFace.nominalHeight()*1.75, winData.projection.plane());
 	#endif
 
 	auto &layoutPos = vController.layoutPosition()[winData.viewport().isPortrait() ? 1 : 0];
@@ -745,13 +748,14 @@ void setupVControllerVars(VController &vController)
 
 void updateVControlImg(VController &vController)
 {
+	auto app = vController.appContext();
 	auto &r = vController.renderer();
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	{
 		static Gfx::PixmapTexture overlayImg;
-		PngFile png;
+		PngFile png{app};
 		auto filename =	"overlays128.png";
-		if(auto ec = png.loadAsset(filename, appName());
+		if(auto ec = png.loadAsset(filename);
 			ec)
 		{
 			logErr("couldn't load overlay png");
@@ -763,8 +767,8 @@ void updateVControlImg(VController &vController)
 	if(EmuSystem::inputHasKeyboard)
 	{
 		static Gfx::PixmapTexture kbOverlayImg;
-		PngFile png;
-		if(auto ec = png.loadAsset("kbOverlay.png", appName());
+		PngFile png{app};
+		if(auto ec = png.loadAsset("kbOverlay.png");
 			ec)
 		{
 			logErr("couldn't load kb overlay png");

@@ -39,7 +39,7 @@ class GLRendererCommands
 {
 public:
 	constexpr GLRendererCommands() {}
-	GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, DrawableHolder &drawableHolder, Base::GLDisplay glDpy,
+	GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, Drawable drawable, Base::GLDisplay glDpy,
 		IG::Semaphore *drawCompleteSemPtr);
 	void discardTemporaryData();
 	void bindGLArrayBuffer(GLuint vbo);
@@ -83,7 +83,6 @@ protected:
 	Renderer *r{};
 	IG::Semaphore *drawCompleteSemPtr{};
 	Base::Window *winPtr{};
-	DrawableHolder *drawableHolderPtr{};
 	Base::GLDisplay glDpy{};
 	Drawable drawable{};
 	Viewport currViewport{};

@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/jni.hh>
-#include <imagine/base/android/android.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 
 class BluetoothSocket;
@@ -25,6 +24,8 @@ struct AAssetManager;
 
 namespace Base
 {
+
+class ApplicationContext;
 
 class NoopThread
 {
@@ -40,14 +41,11 @@ private:
 
 // BaseActivity JNI
 extern jclass jBaseActivityCls;
-extern jobject jBaseActivity;
 
-AAssetManager *activityAAssetManager();
+jobject newFontRenderer(JNIEnv *env, jobject baseActivity);
 
-jobject newFontRenderer(JNIEnv *env);
-
-jobject makeSurfaceTexture(JNIEnv *env, jint texName);
-jobject makeSurfaceTexture(JNIEnv *env, jint texName, jboolean singleBufferMode);
+jobject makeSurfaceTexture(ApplicationContext, JNIEnv *, jint texName);
+jobject makeSurfaceTexture(ApplicationContext, JNIEnv *, jint texName, jboolean singleBufferMode);
 bool releaseSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture);
 void updateSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture);
 void releaseSurfaceTexture(JNIEnv *env, jobject surfaceTexture);
@@ -64,6 +62,6 @@ void recycleBitmap(JNIEnv *env, jobject bitmap);
 namespace IG::AudioManager
 {
 
-uint32_t nativeOutputFramesPerBuffer();
+uint32_t nativeOutputFramesPerBuffer(Base::ApplicationContext);
 
 }

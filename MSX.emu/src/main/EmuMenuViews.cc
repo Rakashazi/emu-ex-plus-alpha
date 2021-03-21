@@ -17,7 +17,6 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
-#include <imagine/base/Base.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextTableView.hh>
 #include "internal.hh"
@@ -65,7 +64,7 @@ static int machineIndex(std::vector<FS::FileString> &name, FS::FileString search
 	}
 }
 
-void installFirmwareFiles()
+void installFirmwareFiles(Base::ApplicationContext app)
 {
 	std::error_code ec{};
 	FS::create_directory(machineBasePath, ec);
@@ -110,7 +109,7 @@ void installFirmwareFiles()
 
 	for(auto &e : srcPath)
 	{
-		auto src = EmuApp::openAppAssetIO(e, IO::AccessHint::ALL);
+		auto src = EmuApp::openAppAssetIO(app, e, IO::AccessHint::ALL);
 		if(!src)
 		{
 			EmuApp::printfMessage(4, 1, "Can't open source file:\n %s", e);
@@ -185,9 +184,9 @@ private:
 			auto ynAlertView = makeView<YesNoAlertView>(
 				string_makePrintf<512>("Install the C-BIOS BlueMSX machine files to: %s", machineBasePath.data()).data());
 			ynAlertView->setOnYes(
-				[]()
+				[this]()
 				{
-					installFirmwareFiles();
+					installFirmwareFiles(appContext());
 				});
 			EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
 		}
@@ -221,12 +220,12 @@ private:
 	void onFirmwarePathChange(const char *path, Input::Event e) final
 	{
 		machineFilePath.compile(makeMachinePathMenuEntryStr().data(), renderer(), projP);
-		machineBasePath = makeMachineBasePath(machineCustomPath);
+		machineBasePath = makeMachineBasePath(appContext(), machineCustomPath);
 		reloadMachineItem();
 		msxMachine.compile(renderer(), projP);
 		if(!strlen(path))
 		{
-			EmuApp::printfMessage(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? EmuApp::assetPath().data() : Base::sharedStoragePath().data());
+			EmuApp::printfMessage(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? EmuApp::assetPath(appContext()).data() : appContext().sharedStoragePath().data());
 		}
 	}
 

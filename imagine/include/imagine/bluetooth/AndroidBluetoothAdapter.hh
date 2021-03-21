@@ -27,8 +27,8 @@ struct SocketStatusMessage;
 class AndroidBluetoothAdapter : public BluetoothAdapter
 {
 public:
-	AndroidBluetoothAdapter() {}
-	static AndroidBluetoothAdapter *defaultAdapter();
+	constexpr AndroidBluetoothAdapter() {}
+	static AndroidBluetoothAdapter *defaultAdapter(Base::ApplicationContext);
 	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) final;
 	void cancelScan() final;
 	void close() final;
@@ -50,17 +50,17 @@ private:
 	int statusPipe[2]{-1, -1};
 	bool scanCancelled = false;
 
-	bool openDefault();
+	bool openDefault(Base::ApplicationContext);
 };
 
 class AndroidBluetoothSocket : public BluetoothSocket
 {
 public:
-	AndroidBluetoothSocket() {}
-	IG::ErrorCode openL2cap(BluetoothAddr addr, uint32_t psm) final;
-	IG::ErrorCode openRfcomm(BluetoothAddr addr, uint32_t channel) final;
+	AndroidBluetoothSocket(Base::ApplicationContext app):app{app} {}
+	IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) final;
+	IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	IG::ErrorCode open(BluetoothPendingSocket &socket) final;
+	IG::ErrorCode open(BluetoothAdapter &, BluetoothPendingSocket &socket) final;
 	#endif
 	void close() final;
 	IG::ErrorCode write(const void *data, size_t size) final;
@@ -68,6 +68,7 @@ public:
 
 private:
 	jobject socket{}, outStream{};
+	Base::ApplicationContext app{};
 	sem_t connectSem;
 	Base::FDEventSource fdSrc;
 	int nativeFd = -1;
@@ -77,6 +78,6 @@ private:
 	bool isConnecting = false;
 	char addrStr[18]{};
 
-	IG::ErrorCode openSocket(BluetoothAddr addr, uint32_t channel, bool l2cap);
+	IG::ErrorCode openSocket(BluetoothAdapter &, BluetoothAddr, uint32_t channel, bool l2cap);
 	int readPendingData(int events);
 };

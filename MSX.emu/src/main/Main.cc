@@ -18,7 +18,6 @@
 #include <emuframework/EmuAppInlines.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
-#include <imagine/base/Base.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/ScopeGuard.hh>
@@ -77,15 +76,15 @@ static const bool checkForMachineFolderOnStart = false;
 
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 
-FS::PathString makeMachineBasePath(FS::PathString customPath)
+FS::PathString makeMachineBasePath(Base::ApplicationContext app, FS::PathString customPath)
 {
 	FS::PathString outPath;
 	if(!strlen(customPath.data()))
 	{
 		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-		string_printf(outPath, "%s/MSX.emu", EmuApp::assetPath().data());
+		string_printf(outPath, "%s/MSX.emu", EmuApp::assetPath(app).data());
 		#else
-		string_printf(outPath, "%s/MSX.emu", Base::sharedStoragePath().data());
+		string_printf(outPath, "%s/MSX.emu", app.sharedStoragePath().data());
 		#endif
 	}
 	else
@@ -784,14 +783,14 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 		pushAndShowNewYesNoAlertView(attach, e,
 			installFirmwareFilesMessage,
 			"Yes", "No",
-			[]()
+			[](View &v)
 			{
-				installFirmwareFiles();
+				installFirmwareFiles(v.appContext());
 			}, nullptr);
 	}
 };
 
-EmuSystem::Error EmuSystem::onInit()
+EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
 {
 	/*mediaDbCreateRomdb();
 	mediaDbAddFromXmlFile("msxromdb.xml");

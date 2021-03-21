@@ -23,7 +23,6 @@
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
 #ifdef __ANDROID__
-#include <imagine/base/platformExtras.hh>
 #include "android/HardwareBufferStorage.hh"
 #include "android/SurfaceTextureStorage.hh"
 #endif
@@ -114,7 +113,7 @@ IG::ErrorCode GLPixmapBufferTexture::initWithPixelBuffer(RendererTask &r, Textur
 IG::ErrorCode GLPixmapBufferTexture::initWithHardwareBuffer(RendererTask &r, TextureConfig config, bool singleBuffer)
 {
 	IG::ErrorCode err{};
-	auto androidSDK = Base::androidSDK();
+	auto androidSDK = r.appContext().androidSDK();
 	if(androidSDK >= 26)
 	{
 		if(singleBuffer)
@@ -457,7 +456,7 @@ static bool hasSurfaceTexture(Renderer &r)
 {
 	if(!Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL)
 		return false;
-	if(Base::androidSDK() < 14)
+	if(r.appContext().androidSDK() < 14)
 		return false;
 	if(!r.support.hasExternalEGLImages)
 	{
@@ -477,7 +476,7 @@ static bool hasSurfaceTexture(Renderer &r)
 
 static bool hasHardwareBuffer(Renderer &r)
 {
-	auto androidSDK = Base::androidSDK();
+	auto androidSDK = r.appContext().androidSDK();
 	if(androidSDK >= 26)
 		return true;
 	if(!r.support.hasEGLImages)
@@ -488,7 +487,7 @@ static bool hasHardwareBuffer(Renderer &r)
 	if(Base::GraphicBuffer::isSupported())
 		return true;
 	auto rendererStr = rendererGLStr(r);
-	if(!Base::GraphicBuffer::canSupport(rendererStr))
+	if(!Base::GraphicBuffer::canSupport(r.appContext(), rendererStr))
 		return false;
 	return Base::GraphicBuffer::testSupport();
 }

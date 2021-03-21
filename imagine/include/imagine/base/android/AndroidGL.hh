@@ -21,20 +21,9 @@
 namespace Base
 {
 
-class GLDrawable;
-
-struct AndroidGLContext : public EGLContextBase
-{
-public:
-	using EGLContextBase::EGLContextBase;
-
-	constexpr AndroidGLContext() {}
-	static bool swapBuffersIsAsync();
-};
-
 using GLDisplayImpl = EGLDisplayConnection;
 using GLDrawableImpl = EGLDrawable;
-using GLContextImpl = AndroidGLContext;
+using GLContextImpl = EGLContextBase;
 using GLBufferConfig = EGLBufferConfig;
 
 }

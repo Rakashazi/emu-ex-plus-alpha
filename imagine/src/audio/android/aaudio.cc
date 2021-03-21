@@ -14,8 +14,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "AAudio"
-#include "../../base/android/android.hh"
 #include <imagine/audio/android/AAudioOutputStream.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/sharedLibrary.hh>
 #include <imagine/logger/logger.h>
 #include <aaudio/AAudio.h>
@@ -48,7 +48,7 @@ static bool loadedAAudioLib()
 	return AAudio_createStreamBuilder;
 }
 
-static void loadAAudioLib()
+static void loadAAudioLib(Base::ApplicationContext app)
 {
 	if(loadedAAudioLib())
 		return;
@@ -76,7 +76,7 @@ static void loadAAudioLib()
 	Base::loadSymbol(AAudioStream_requestStop, lib, "AAudioStream_requestStop");
 	Base::loadSymbol(AAudioStream_getState, lib, "AAudioStream_getState");
 	Base::loadSymbol(AAudioStream_waitForStateChange, lib, "AAudioStream_waitForStateChange");
-	if(Base::androidSDK() >= 28)
+	if(app.androidSDK() >= 28)
 	{
 		Base::loadSymbol(AAudioStreamBuilder_setUsage, lib, "AAudioStreamBuilder_setUsage");
 	}
@@ -125,9 +125,9 @@ static const char *streamStateStr(aaudio_stream_state_t state)
 	}
 }
 
-AAudioOutputStream::AAudioOutputStream()
+AAudioOutputStream::AAudioOutputStream(Base::ApplicationContext app)
 {
-	loadAAudioLib();
+	loadAAudioLib(app);
 	AAudio_createStreamBuilder(&builder);
 	disconnectEvent.attach(
 		[this]()

@@ -17,6 +17,7 @@
 #include <imagine/gui/ToastView.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/GeomRect.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/math/int.hh>
@@ -153,4 +154,9 @@ void ToastView::draw(Gfx::RendererCommands &cmds)
 	cmds.setColor(1., 1., 1., 1.);
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 	text.draw(cmds, 0, projP.alignYToPixel(msgFrame.pos(C2DO).y), C2DO, projP);
+}
+
+bool ToastView::inputEvent(Input::Event event)
+{
+	return false;
 }

@@ -240,7 +240,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-EmuSystem::Error EmuSystem::onInit()
+EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
 {
 	utilUpdateSystemColorMaps(0);
 	return {};

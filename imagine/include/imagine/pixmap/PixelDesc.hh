@@ -1,7 +1,7 @@
 #pragma once
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/bits.h>
+#include <imagine/util/bitset.hh>
 #include <imagine/util/math/math.hh>
 #include <type_traits>
 
@@ -11,17 +11,18 @@ namespace IG
 class PixelDesc
 {
 public:
-	const uint32_t rBits = 0, gBits = 0, bBits = 0, aBits = 0;
-	const uint32_t rShift = 0, gShift = 0, bShift = 0, aShift = 0;
-	const uint32_t bytesPerPixel_ = 0;
 	const char *name_{};
+	const uint8_t rBits = 0, gBits = 0, bBits = 0, aBits = 0;
+	const uint8_t rShift = 0, gShift = 0, bShift = 0, aShift = 0;
+	const uint8_t bytesPerPixel_ = 0;
 
-	constexpr PixelDesc(uint32_t rBits, uint32_t gBits, uint32_t bBits, uint32_t aBits,
-		uint32_t rShift, uint32_t gShift, uint32_t bShift, uint32_t aShift,
-		uint32_t bytesPerPixel, const char *name):
+	constexpr PixelDesc(uint8_t rBits, uint8_t gBits, uint8_t bBits, uint8_t aBits,
+		uint8_t rShift, uint8_t gShift, uint8_t bShift, uint8_t aShift,
+		uint8_t bytesPerPixel, const char *name):
+		name_{name},
 		rBits{rBits}, gBits{gBits}, bBits{bBits}, aBits{aBits},
 		rShift{rShift}, gShift{gShift}, bShift{bShift}, aShift{aShift},
-		bytesPerPixel_{bytesPerPixel}, name_{name}
+		bytesPerPixel_{bytesPerPixel}
 	{}
 
 	template<class T>
@@ -42,15 +43,15 @@ public:
 			b = (uint32_t)b_;
 			a = (uint32_t)a_;
 		}
-		return (rBits ? ((r & makeFullBits<uint32_t>(rBits)) << rShift) : 0) |
-			(gBits ? ((g & makeFullBits<uint32_t>(gBits)) << gShift) : 0) |
-			(bBits ? ((b & makeFullBits<uint32_t>(bBits)) << bShift) : 0) |
-			(aBits ? ((a & makeFullBits<uint32_t>(aBits)) << aShift) : 0);
+		return (rBits ? ((r & bits<uint32_t>(rBits)) << rShift) : 0) |
+			(gBits ? ((g & bits<uint32_t>(gBits)) << gShift) : 0) |
+			(bBits ? ((b & bits<uint32_t>(bBits)) << bShift) : 0) |
+			(aBits ? ((a & bits<uint32_t>(aBits)) << aShift) : 0);
 	}
 
-	static constexpr uint32_t component(uint32_t pixel, uint8_t shift, uint8_t bits)
+	static constexpr uint32_t component(uint32_t pixel, uint8_t shift, uint8_t bits_)
 	{
-		return (pixel >> shift) & makeFullBits<uint32_t>(bits);
+		return (pixel >> shift) & bits<uint32_t>(bits_);
 	}
 
 	constexpr uint32_t a(uint32_t pixel) const { return component(pixel, aShift, aBits); }
@@ -68,12 +69,12 @@ public:
 		return pixels * bytesPerPixel_;
 	}
 
-	constexpr uint32_t bytesPerPixel() const
+	constexpr uint8_t bytesPerPixel() const
 	{
 		return bytesPerPixel_;
 	}
 
-	constexpr uint32_t bitsPerPixel() const
+	constexpr uint8_t bitsPerPixel() const
 	{
 		return bytesPerPixel_ * 8;
 	}

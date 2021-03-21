@@ -18,7 +18,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import "MainApp.hh"
 #import <OpenGLES/EAGLDrawable.h>
 #import <QuartzCore/CAEAGLLayer.h>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 #include "../common/windowPrivate.hh"
@@ -165,7 +165,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 	logMsg("in layoutSubviews");
 	assumeExpr(Base::makeRenderbuffer);
 	auto size = Base::makeRenderbuffer((__bridge void*)self.layer, _colorRenderbuffer, _depthRenderbuffer);
-	auto &win = *Base::windowForUIWindow(self.window);
+	auto &win = *Base::windowForUIWindow({[UIApplication sharedApplication]}, self.window);
 	win.resetSurface();
 	updateWindowSizeAndContentRect(win, size.x, size.y, Base::sharedApp);
 	win.postDraw();
@@ -176,7 +176,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 {
 	using namespace Base;
 	using namespace Input;
-	auto &win = *Base::deviceWindow();
+	auto &win = *Base::deviceWindow({[UIApplication sharedApplication]});
 	for(UITouch* touch in touches)
 	{
 		iterateTimes(std::size(m), i) // find a free touch element
@@ -201,7 +201,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 {
 	using namespace Base;
 	using namespace Input;
-	auto &win = *Base::deviceWindow();
+	auto &win = *Base::deviceWindow({[UIApplication sharedApplication]});
 	for(UITouch* touch in touches)
 	{
 		iterateTimes(std::size(m), i) // find the touch element
@@ -225,7 +225,7 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 {
 	using namespace Base;
 	using namespace Input;
-	auto &win = *Base::deviceWindow();
+	auto &win = *Base::deviceWindow({[UIApplication sharedApplication]});
 	for(UITouch* touch in touches)
 	{
 		iterateTimes(std::size(m), i) // find the touch element

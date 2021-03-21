@@ -19,6 +19,7 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
 #include <imagine/io/FileIO.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #ifdef CONFIG_PACKAGE_FONTCONFIG
 #include <fontconfig/fontconfig.h>
@@ -276,7 +277,7 @@ Font::Font(const char *name)
 	loadIntoNextSlot(io.makeGeneric());
 }
 
-Font Font::makeSystem()
+Font Font::makeSystem(Base::ApplicationContext)
 {
 	#ifdef CONFIG_PACKAGE_FONTCONFIG
 	logMsg("locating system fonts with fontconfig");
@@ -287,10 +288,10 @@ Font Font::makeSystem()
 	#endif
 }
 
-Font Font::makeBoldSystem()
+Font Font::makeBoldSystem(Base::ApplicationContext app)
 {
 	#ifdef CONFIG_PACKAGE_FONTCONFIG
-	Font font = makeSystem();
+	Font font = makeSystem(app);
 	font.isBold = true;
 	return font;
 	#else
@@ -298,9 +299,9 @@ Font Font::makeBoldSystem()
 	#endif
 }
 
-Font Font::makeFromAsset(const char *name, const char *appName)
+Font Font::makeFromAsset(Base::ApplicationContext app, const char *name, const char *appName)
 {
-	return {FileUtils::openAppAsset(name, IO::AccessHint::ALL, appName).makeGeneric()};
+	return {app.openAsset(name, IO::AccessHint::ALL, appName).makeGeneric()};
 }
 
 FreetypeFont::FreetypeFont(FreetypeFont &&o)

@@ -159,10 +159,10 @@ std::optional<EGLConfig> EGLContextBase::chooseConfig(EGLDisplay display, int re
 		auto eglAttr = glConfigAttrsToEGLAttrs(renderableType, attr);
 		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
 	}
-	if(!configs && attr.pixelFormat() != Window::defaultPixelFormat())
+	if(!configs && attr.pixelFormat() != Window::defaultPixelFormat(attr.appContext()))
 	{
 		logErr("no EGL configs found, retrying with default window format");
-		attr.setPixelFormat(Window::defaultPixelFormat());
+		attr.setPixelFormat(Window::defaultPixelFormat(attr.appContext()));
 		auto eglAttr = glConfigAttrsToEGLAttrs(renderableType, attr);
 		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
 	}

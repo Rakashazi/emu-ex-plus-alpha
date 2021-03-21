@@ -15,11 +15,10 @@
 
 #define LOGTAG "RendererTask"
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/gfx/DrawableHolder.hh>
+#include "../common/DrawableHolder.hh"
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/Texture.hh>
-#include <imagine/base/Base.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/thread/Thread.hh>
@@ -119,10 +118,7 @@ void GLRendererTask::doPreDraw(Base::Window &win, Base::WindowDrawParams winPara
 		return;
 	}
 	auto &drawableHolder = winData(win).drawableHolder;
-	if(unlikely(!drawableHolder))
-	{
-		drawableHolder.makeDrawable(r->glDpy, win, r->gfxBufferConfig);
-	}
+	assumeExpr(drawableHolder);
 	if(params.asyncMode() == DrawAsyncMode::AUTO)
 	{
 		params.setAsyncMode(autoDrawAsyncMode);
@@ -155,7 +151,7 @@ void RendererTask::updateDrawableForSurfaceChange(Base::Window &win, Base::Windo
 	}
 }
 
-void RendererTask::destroyDrawable(DrawableHolder &drawableHolder)
+void GLRendererTask::destroyDrawable(DrawableHolder &drawableHolder)
 {
 	if(!drawableHolder)
 		return;

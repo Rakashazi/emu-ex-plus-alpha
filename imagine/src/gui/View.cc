@@ -27,7 +27,12 @@ bool View::needsBackControl = needsBackControlDefault;
 
 Gfx::Renderer &ViewAttachParams::renderer() const
 {
-	return rTask.renderer();
+	return rendererTask().renderer();
+}
+
+Base::ApplicationContext ViewAttachParams::appContext() const
+{
+	return window().appContext();
 }
 
 void ViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e)
@@ -186,6 +191,11 @@ ViewAttachParams View::attachParams() const
 Base::Screen *View::screen() const
 {
 	return win ? win->screen() : nullptr;
+}
+
+Base::ApplicationContext View::appContext() const
+{
+	return window().appContext();
 }
 
 View::NameStringView View::name() const

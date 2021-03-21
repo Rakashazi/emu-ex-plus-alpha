@@ -18,7 +18,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <dlfcn.h>
 #import <OpenGLES/ES2/gl.h> // for GL_RENDERBUFFER, same values in ES1/ES2
 #include <imagine/base/GLContext.hh>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
@@ -90,7 +90,7 @@ std::pair<IG::ErrorCode, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBuff
 	{
 		[glView setDrawableColorFormat:kEAGLColorFormatRGB565];
 	}
-	if(*win.screen() == mainScreen())
+	if(*win.screen() == win.appContext().mainScreen())
 	{
 		glView.multipleTouchEnabled = YES;
 	}

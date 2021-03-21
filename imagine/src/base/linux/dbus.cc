@@ -20,6 +20,7 @@
 #include "dbus.hh"
 #include "../common/basePrivate.hh"
 #include <imagine/base/EventLoop.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
 
@@ -52,13 +53,13 @@ void deinitDBus()
 	openPathSub = 0;
 }
 
-static guint setOpenPathListener(GDBusConnection *bus, const char *name)
+static guint setOpenPathListener(Base::ApplicationContext app, GDBusConnection *bus, const char *name)
 {
 	return g_dbus_connection_signal_subscribe(bus,
 		name, name, "openPath", appObjectPath,
 		nullptr, G_DBUS_SIGNAL_FLAGS_NONE,
 		[](GDBusConnection *connection, const gchar *name, const gchar *path, const gchar *interface,
-			const gchar *signal, GVariant *param, gpointer)
+			const gchar *signal, GVariant *param, gpointer userData)
 		{
 			if(!g_variant_is_of_type(param, G_VARIANT_TYPE("(s)")))
 			{
@@ -67,9 +68,10 @@ static guint setOpenPathListener(GDBusConnection *bus, const char *name)
 			}
 			gchar *openPath;
 			g_variant_get(param, "(s)", &openPath);
-			Base::dispatchOnInterProcessMessage(openPath);
+			Base::ApplicationContext app{};
+			app.dispatchOnInterProcessMessage(openPath);
 		},
-		nullptr,
+		nullptr, // TODO: pass application instance as user data
 		nullptr);
 }
 
@@ -111,7 +113,7 @@ namespace Base
 static bool allowScreenSaver = true;
 static uint32_t screenSaverCookie = 0;
 
-void setIdleDisplayPowerSave(bool wantsAllowScreenSaver)
+void ApplicationContext::setIdleDisplayPowerSave(bool wantsAllowScreenSaver)
 {
 	if(allowScreenSaver == wantsAllowScreenSaver)
 		return;
@@ -153,7 +155,7 @@ void setIdleDisplayPowerSave(bool wantsAllowScreenSaver)
 	allowScreenSaver = wantsAllowScreenSaver;
 }
 
-void endIdleByUserActivity()
+void ApplicationContext::endIdleByUserActivity()
 {
 	if(!allowScreenSaver)
 		return;
@@ -170,7 +172,7 @@ void endIdleByUserActivity()
 		nullptr);
 }
 
-void registerInstance(const char *name, int argc, char** argv)
+void ApplicationContext::registerInstance(int argc, char** argv, const char *name)
 {
 	if(!initDBus())
 		return;
@@ -181,7 +183,7 @@ void registerInstance(const char *name, int argc, char** argv)
 	}
 	if(argc < 2)
 	{
-		Base::exit();
+		exit();
 	}
 	// send signal
 	auto path = argv[1];
@@ -191,7 +193,7 @@ void registerInstance(const char *name, int argc, char** argv)
 		if(!realpath(path, realPath))
 		{
 			logErr("error in realpath()");
-			Base::exit(1);
+			exit(1);
 		}
 		path = realPath;
 	}
@@ -201,10 +203,10 @@ void registerInstance(const char *name, int argc, char** argv)
 		"openPath", g_variant_new("(s)", path),
 		nullptr);
 	g_dbus_connection_flush_sync(gbus, nullptr, nullptr);
-	Base::exit();
+	exit();
 }
 
-void setAcceptIPC(const char *name, bool on)
+void ApplicationContext::setAcceptIPC(bool on, const char *name)
 {
 	assert(on);
 	if(!initDBus())
@@ -212,7 +214,7 @@ void setAcceptIPC(const char *name, bool on)
 	// listen to openPath events
 	if(!openPathSub)
 	{
-		openPathSub = setOpenPathListener(gbus, name);
+		openPathSub = setOpenPathListener(*this, gbus, name);
 	}
 }
 

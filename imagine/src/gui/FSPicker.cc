@@ -20,7 +20,7 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/NavView.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
@@ -336,7 +336,7 @@ bool FSPicker::isAtRoot() const
 
 void FSPicker::pushFileLocationsView(Input::Event e)
 {
-	rootLocation = Base::rootFileLocations();
+	rootLocation = appContext().rootFileLocations();
 	auto view = makeViewWithName<TextTableView>("File Locations", rootLocation.size() + 2);
 	for(auto &loc : rootLocation)
 	{
@@ -366,7 +366,7 @@ void FSPicker::pushFileLocationsView(Input::Event e)
 						view.dismiss();
 						return false;
 					}
-					changeDirByInput(str, Base::nearestRootPath(str), false, Input::defaultEvent());
+					changeDirByInput(str, appContext().nearestRootPath(str), false, Input::defaultEvent());
 					dismissPrevious();
 					view.dismiss();
 					return false;

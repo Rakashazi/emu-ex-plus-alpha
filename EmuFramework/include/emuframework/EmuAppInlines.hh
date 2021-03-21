@@ -18,19 +18,12 @@
 #include <meta.h>
 #include <imagine/config/version.h>
 
+const char *const Base::ApplicationContext::applicationName{CONFIG_APP_NAME};
+const char *const Base::ApplicationContext::applicationId{CONFIG_APP_ID};
+
 const char *appViewTitle()
 {
 	return CONFIG_APP_NAME " " IMAGINE_VERSION;
-}
-
-const char *appName()
-{
-	return CONFIG_APP_NAME;
-}
-
-const char *appID()
-{
-	return CONFIG_APP_ID;
 }
 
 bool hasGooglePlayStoreFeatures()

@@ -13,9 +13,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include "Recent.hh"
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
-#include "Recent.hh"
 
 RecentGameList recentGameList{};
 

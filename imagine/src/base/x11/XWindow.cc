@@ -27,7 +27,7 @@
 namespace Base
 {
 
-PixelFormat Window::defaultPixelFormat()
+PixelFormat Window::defaultPixelFormat(ApplicationContext)
 {
 	return Config::MACHINE_IS_PANDORA ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
 }
@@ -78,11 +78,11 @@ IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 	return {xMM * ((float)size.x/(float)s.width()), yMM * ((float)size.y/(float)s.height())};
 }
 
-Window *windowForXWindow(::Window xWin)
+Window *windowForXWindow(ApplicationContext app, ::Window xWin)
 {
-	iterateTimes(Window::windows(), i)
+	iterateTimes(app.windows(), i)
 	{
-		auto w = Window::window(i);
+		auto w = app.window(i);
 		if(w->nativeObject() == xWin)
 			return w;
 	}
@@ -166,20 +166,12 @@ static IG::WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig 
 	return winRect;
 }
 
-IG::ErrorCode Window::init(const WindowConfig &config, InitDelegate)
+Window::Window(ApplicationContext app, WindowConfig config, InitDelegate):
+	XWindow{app, config}
 {
-	if(xWin != None)
-	{
-		// already init
-		return {};
-	}
-	if(!Config::BASE_MULTI_WINDOW && windows())
-	{
-		bug_unreachable("no multi-window support");
-	}
-	BaseWindow::init(config);
-	this->screen_ = Screen::screen(0);
-	auto xScreen = (::Screen*)screen()->nativeObject();
+	auto &screen = *app.screen(0);
+	this->screen_ = &screen;
+	auto xScreen = (::Screen*)screen.nativeObject();
 	auto rootWindow = RootWindowOfScreen(xScreen);
 	auto dpy = DisplayOfScreen(xScreen);
 	auto winRect = Config::MACHINE_IS_PANDORA ? IG::WindowRect{0, 0, 800, 480} :
@@ -201,7 +193,7 @@ IG::ErrorCode Window::init(const WindowConfig &config, InitDelegate)
 		if(!xWin)
 		{
 			logErr("error initializing window");
-			return {EINVAL};
+			return;
 		}
 		colormap = attr.colormap;
 	}
@@ -231,7 +223,6 @@ IG::ErrorCode Window::init(const WindowConfig &config, InitDelegate)
 	this->dpy = dpy;
 	if(config.title())
 		setTitle(config.title());
-	return {};
 }
 
 XWindow::~XWindow()

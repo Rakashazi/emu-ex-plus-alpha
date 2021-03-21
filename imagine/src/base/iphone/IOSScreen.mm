@@ -15,7 +15,7 @@
 
 static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/base/Screen.hh>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include "ios.hh"
@@ -45,21 +45,16 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 
 - (void)onFrame
 {
-	Input::flushInternalEvents();
 	auto &screen = *screen_;
 	auto timestamp = IG::FloatSeconds(screen.displayLink().timestamp);
 	//logMsg("screen: %p, frame time stamp: %f, duration: %f",
 	//	screen.uiScreen(), (double)timestamp, (double)screen.displayLink().duration);*/
-	if(&screen == screen.screen(0))
-		screen.startDebugFrameStats(timestamp);
 	screen.frameUpdate(timestamp);
 	if(!screen.isPosted())
 	{
 		//logMsg("stopping screen updates");
 		screen.displayLink().paused = YES;
 	}
-	if(&screen == screen.screen(0))
-		screen.endDebugFrameStats();
 }
 
 @end
@@ -139,7 +134,7 @@ bool Screen::supportsFrameInterval()
 	return true;
 }
 
-bool Screen::supportsTimestamps()
+bool Screen::supportsTimestamps(ApplicationContext)
 {
 	return true;
 }
@@ -197,7 +192,7 @@ void Screen::setFrameRate(double rate)
 	// unsupported
 }
 
-std::vector<double> Screen::supportedFrameRates()
+std::vector<double> Screen::supportedFrameRates(ApplicationContext)
 {
 	// TODO
 	std::vector<double> rateVec;

@@ -73,7 +73,4 @@ public:
 
 protected:
 	std::variant<PosixIO, BufferMapIO> ioImpl{};
-
-	IO &io();
-	const IO &io() const;
 };

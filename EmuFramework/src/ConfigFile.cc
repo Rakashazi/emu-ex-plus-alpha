@@ -14,13 +14,13 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
-#include "EmuOptions.hh"
 #include <emuframework/FileUtils.hh>
-#include <imagine/base/Base.hh>
-#include <imagine/base/platformExtras.hh>
-#include <imagine/io/FileIO.hh>
+#include "EmuOptions.hh"
 #include "privateInput.hh"
 #include "configFile.hh"
+#include <imagine/base/ApplicationContext.hh>
+#include <imagine/io/FileIO.hh>
+#include <imagine/input/config.hh>
 
 static constexpr uint KEY_CONFIGS_HARD_LIMIT = 256;
 static constexpr uint INPUT_DEVICE_CONFIGS_HARD_LIMIT = 256;
@@ -377,13 +377,13 @@ static void writeConfig2(IO &io)
 	EmuSystem::writeConfig(io);
 }
 
-void loadConfigFile()
+void loadConfigFile(Base::ApplicationContext app)
 {
-	auto configFilePath = FS::makePathStringPrintf("%s/config", EmuApp::supportPath().data());
+	auto configFilePath = FS::makePathStringPrintf("%s/config", EmuApp::supportPath(app).data());
 	// move config files from old locations
 	if(Config::envIsLinux)
 	{
-		auto oldConfigFilePath = FS::makePathStringPrintf("%s/config", EmuApp::assetPath().data());
+		auto oldConfigFilePath = FS::makePathStringPrintf("%s/config", EmuApp::assetPath(app).data());
 		if(FS::exists(oldConfigFilePath))
 		{
 			logMsg("moving config file from app path to support path");
@@ -391,20 +391,20 @@ void loadConfigFile()
 		}
 	}
 	#ifdef CONFIG_BASE_IOS
-	if(Base::isSystemApp())
+	if(app.isSystemApp())
 	{
 		const char *oldConfigDir = "/User/Library/Preferences/explusalpha.com";
 		auto oldConfigFilePath = FS::makePathStringPrintf("%s/%s", oldConfigDir, EmuSystem::configFilename);
 		if(FS::exists(oldConfigFilePath))
 		{
 			logMsg("moving config file from prefs path to support path");
-			fixFilePermissions(oldConfigFilePath);
+			fixFilePermissions(app, oldConfigFilePath);
 			FS::rename(oldConfigFilePath, configFilePath);
 		}
 		if(!FS::directoryItems(oldConfigDir))
 		{
 			logMsg("removing old empty config directory");
-			fixFilePermissions(oldConfigDir);
+			fixFilePermissions(app, oldConfigDir);
 			FS::remove(oldConfigDir);
 		}
 	}
@@ -417,7 +417,7 @@ void loadConfigFile()
 		return;
 	}
 	readConfigKeys(configFile,
-		[](uint16_t key, uint16_t size, IO &io)
+		[&](uint16_t key, uint16_t size, IO &io)
 		{
 			switch(key)
 			{
@@ -476,7 +476,7 @@ void loadConfigFile()
 				bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);
 				bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);
 				bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: optionVibrateOnPush.readFromIO(io, size);
-				bcase CFGKEY_RECENT_GAMES: optionRecentGames.readFromIO(io, size);
+				bcase CFGKEY_RECENT_GAMES: optionRecentGames.readFromIO(app, io, size);
 				bcase CFGKEY_SWAPPED_GAMEPAD_CONFIM: optionSwappedGamepadConfirm.readFromIO(io, size);
 				#ifdef __ANDROID__
 				bcase CFGKEY_CONSUME_UNBOUND_GAMEPAD_KEYS: optionConsumeUnboundGamepadKeys.readFromIO(io, size);
@@ -666,12 +666,12 @@ void loadConfigFile()
 		});
 }
 
-void saveConfigFile()
+void saveConfigFile(Base::ApplicationContext app)
 {
-	auto configFilePath = FS::makePathStringPrintf("%s/config", EmuApp::supportPath().data());
+	auto configFilePath = FS::makePathStringPrintf("%s/config", EmuApp::supportPath(app).data());
 	if(Config::envIsIOS)
 	{
-		fixFilePermissions(EmuApp::supportPath().data());
+		fixFilePermissions(app, EmuApp::supportPath(app).data());
 	}
 	FileIO configFile;
 	configFile.create(configFilePath.data());

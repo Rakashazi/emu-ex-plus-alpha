@@ -18,6 +18,7 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gfx/GfxText.hh>
+#include <imagine/input/config.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <emuframework/EmuInput.hh>
 #include <vector>

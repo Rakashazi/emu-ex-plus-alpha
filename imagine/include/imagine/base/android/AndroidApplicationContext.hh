@@ -18,8 +18,10 @@
 #include <imagine/config/defs.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <jni.h>
-#include <android/api-level.h>
 #include <array>
+
+struct ANativeActivity;
+struct AAssetManager;
 
 namespace Base
 {
@@ -33,25 +35,36 @@ enum class SustainedPerformanceType
 	NOOP
 };
 
-JNIEnv *jEnvForThread();
-uint32_t androidSDK();
-bool apkSignatureIsConsistent();
-AndroidPropString androidBuildDevice();
-bool packageIsInstalled(const char *name);
-SustainedPerformanceType sustainedPerformanceModeType();
-void setSustainedPerformanceMode(bool on);
+class AndroidApplicationContext
+{
+public:
+	constexpr AndroidApplicationContext() {}
+	constexpr AndroidApplicationContext(ANativeActivity *act):act{act} {}
+	constexpr ANativeActivity *aNativeActivityPtr() const { return act; }
+	JNIEnv *mainThreadJniEnv() const;
+	JNIEnv *thisThreadJniEnv() const;
+	int32_t androidSDK() const;
+	jobject baseActivityObject() const;
+	AAssetManager *aAssetManager() const;
+	AndroidPropString androidBuildDevice() const;
+	SustainedPerformanceType sustainedPerformanceModeType() const;
+	void setSustainedPerformanceMode(bool on);
+	bool apkSignatureIsConsistent() const;
+	bool packageIsInstalled(const char *name);
+	void enumInputDevices();
+	void initMogaInputSystem(bool notify);
+	void deinitMogaInputSystem();
+	bool mogaInputSystemIsActive() const;
+	bool hasTrackball() const;
+
+protected:
+	ANativeActivity *act{};
+};
+
 IG::PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat);
 IG::Pixmap makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFormat format = IG::PIXEL_FMT_NONE);
 
-}
 
-namespace Input
-{
-
-void initMOGA(bool notify);
-void deinitMOGA();
-bool mogaSystemIsActive();
-void enumDevices();
-bool hasTrackball();
+using ApplicationContextImpl = AndroidApplicationContext;
 
 }

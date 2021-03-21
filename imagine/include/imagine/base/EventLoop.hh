@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/eventLoopDefs.hh>
 
 #if defined CONFIG_BASE_GLIB
 #include <imagine/base/eventloop/GlibEventLoop.hh>
@@ -25,6 +24,8 @@
 #elif defined __APPLE__
 #include <imagine/base/eventloop/CFEventLoop.hh>
 #endif
+
+#include <imagine/base/eventLoopDefs.hh>
 
 namespace Base
 {

@@ -80,7 +80,7 @@ struct AxisKeyEmu
 		if(updateKeys.pushed)
 		{
 			Event event{id, map, updateKeys.pushed, updateKeys.sysPushed, PUSHED, 0, 0, src, time, &dev};
-			startKeyRepeatTimer(event);
+			startKeyRepeatTimer(win.appContext(), event);
 			win.dispatchInputEvent(event);
 		}
 		return true;

@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "GameController"
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
@@ -31,13 +31,14 @@ static const char *appleGCButtonName(Key k);
 
 struct AppleGameDevice : public Device
 {
+	Base::ApplicationContext app{};
 	GCController *gcController = nil;
 	uint32_t joystickAxisAsDpadBits_ = 0;
 	bool pushState[AppleGC::COUNT]{};
 	
-	AppleGameDevice(GCController *gcController, uint32_t enumId):
+	AppleGameDevice(Base::ApplicationContext app, GCController *gcController, uint32_t enumId):
 		Device{enumId, Map::APPLE_GAME_CONTROLLER, TYPE_BIT_GAMEPAD, [gcController.vendorName UTF8String]},
-		gcController{gcController}
+		app{app}, gcController{gcController}
 	{
 		auto extGamepad = gcController.extendedGamepad;
 		if(extGamepad)
@@ -194,11 +195,11 @@ struct AppleGameDevice : public Device
 			return;
 		auto time = IG::steadyClockTimestamp();
 		pushState[key] = pressed;
-		Base::endIdleByUserActivity();
+		app.endIdleByUserActivity();
 		Event event{enumId(), Map::APPLE_GAME_CONTROLLER, key, sysKey, pressed ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
 		if(repeatable)
-			startKeyRepeatTimer(event);
-		dispatchInputEvent(event);
+			startKeyRepeatTimer(app, event);
+		dispatchInputEvent(app, event);
 	}
 
 	void setJoystickAxisAsDpadBits(uint32_t axisMask) final
@@ -271,7 +272,7 @@ static bool devListContainsController(GCController *controller)
 	return false;
 }
 
-static void addController(GCController *controller, bool notify)
+static void addController(Base::ApplicationContext app, GCController *controller, bool notify)
 {
 	if(devListContainsController(controller))
 	{
@@ -279,7 +280,7 @@ static void addController(GCController *controller, bool notify)
 		return;
 	}
 	logMsg("adding controller: %p", controller);
-	auto &gc = gcList.emplace_back(std::make_unique<AppleGameDevice>(controller, findFreeDevId()));
+	auto &gc = gcList.emplace_back(std::make_unique<AppleGameDevice>(app, controller, findFreeDevId()));
 	Input::addDevice(*gc);
 	if(notify)
 	{
@@ -300,7 +301,7 @@ static void removeController(GCController *controller)
 	}
 }
 
-void initAppleGameControllers()
+void initAppleGameControllers(Base::ApplicationContext app)
 {
 	if(kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_7_0)
 	{
@@ -314,7 +315,7 @@ void initAppleGameControllers()
 		{
 			logMsg("game controller connected");
 			GCController *controller = note.object;
-			addController(controller, true);
+			addController(app, controller, true);
 		}];
 	[center addObserverForName:GCControllerDidDisconnectNotification object:nil
 		queue:nil usingBlock:
@@ -327,7 +328,7 @@ void initAppleGameControllers()
 	for(GCController *controller in [GCController controllers])
 	{
 		logMsg("checking game controller: %p", controller);
-		addController(controller, false);
+		addController(app, controller, false);
 	}
 }
 

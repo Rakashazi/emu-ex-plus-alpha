@@ -23,6 +23,7 @@
 #include <system_error>
 #include <unistd.h>
 #include <dirent.h>
+#include <limits.h>
 
 namespace FS
 {

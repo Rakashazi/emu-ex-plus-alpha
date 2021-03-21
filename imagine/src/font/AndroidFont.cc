@@ -15,6 +15,7 @@
 
 #define LOGTAG "AndroidFont"
 #include <imagine/font/Font.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/jni.hh>
 #include <imagine/logger/logger.h>
 #include "../base/android/android.hh"
@@ -73,29 +74,29 @@ static void setupResourceFontAndroidJni(JNIEnv *env, jobject renderer)
 	env->RegisterNatives(jFontRendererCls, method, std::size(method));
 }
 
-Font Font::makeSystem()
+Font Font::makeSystem(Base::ApplicationContext app)
 {
-	auto env = Base::jEnvForThread();
-	Font font{};
+	auto env = app.mainThreadJniEnv();
+	Font font{app};
 	if(unlikely(!renderer))
 	{
 		logMsg("making renderer");
-		renderer = Base::newFontRenderer(env);
+		renderer = Base::newFontRenderer(env, app.baseActivityObject());
 		setupResourceFontAndroidJni(env, renderer);
 		if(env->ExceptionCheck())
 		{
 			logErr("exception");
 			env->ExceptionClear();
-			return {};
+			return {app};
 		}
 		renderer = env->NewGlobalRef(renderer);
 	}
 	return font;
 }
 
-Font Font::makeBoldSystem()
+Font Font::makeBoldSystem(Base::ApplicationContext app)
 {
-	Font font = makeSystem();
+	Font font = makeSystem(app);
 	font.isBold = true;
 	return font;
 }
@@ -107,7 +108,7 @@ Font::operator bool() const
 
 Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 {
-	auto env = Base::jEnvForThread();
+	auto env = app.thisThreadJniEnv();
 	GlyphMetrics metrics{};
 	auto lockedBitmap = jBitmap(env, renderer, idx, size.paint(), (jlong)&metrics);
 	if(!lockedBitmap)
@@ -122,12 +123,12 @@ Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 	auto res = AndroidBitmap_lockPixels(env, lockedBitmap, &data);
 	//logMsg("AndroidBitmap_lockPixels returned %s", androidBitmapResultToStr(res));
 	assert(res == ANDROID_BITMAP_RESULT_SUCCESS);
-	return {{Base::makePixmapView(env, lockedBitmap, data, PIXEL_A8), lockedBitmap}, metrics};
+	return {{app, Base::makePixmapView(env, lockedBitmap, data, PIXEL_A8), lockedBitmap}, metrics};
 }
 
 GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)
 {
-	auto env = Base::jEnvForThread();
+	auto env = app.thisThreadJniEnv();
 	GlyphMetrics metrics{};
 	jMetrics(env, renderer, idx, size.paint(), (jlong)&metrics);
 	if(!metrics.xSize)
@@ -141,7 +142,7 @@ GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)
 
 FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 {
-	auto env = Base::jEnvForThread();
+	auto env = app.thisThreadJniEnv();
 	auto paint = jMakePaint(env, jFontRendererCls, settings.pixelHeight(), isBold);
 	if(!paint)
 	{
@@ -150,10 +151,13 @@ FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 	}
 	logMsg("allocated new size %dpx @ 0x%p", settings.pixelHeight(), paint);
 	ec = {};
-	return {env->NewGlobalRef(paint)};
+	return {app, env->NewGlobalRef(paint)};
 }
 
-AndroidFontSize::AndroidFontSize(jobject paint): paint_{paint} {}
+AndroidFontSize::AndroidFontSize(Base::ApplicationContext app, jobject paint):
+	paint_{paint},
+	app{app}
+{}
 
 AndroidFontSize::AndroidFontSize(AndroidFontSize &&o)
 {
@@ -164,6 +168,7 @@ AndroidFontSize &AndroidFontSize::operator=(AndroidFontSize &&o)
 {
 	deinit();
 	paint_ = std::exchange(o.paint_, {});
+	app = o.app;
 	return *this;
 }
 
@@ -176,12 +181,13 @@ void AndroidFontSize::deinit()
 {
 	if(!paint_)
 		return;
-	Base::jEnvForThread()->DeleteGlobalRef(paint_);
+	app.thisThreadJniEnv()->DeleteGlobalRef(paint_);
 }
 
-AndroidGlyphImage::AndroidGlyphImage(IG::Pixmap pixmap, jobject bitmap):
+AndroidGlyphImage::AndroidGlyphImage(Base::ApplicationContext app, IG::Pixmap pixmap, jobject bitmap):
 	pixmap_{pixmap},
-	aBitmap{bitmap}
+	aBitmap{bitmap},
+	app{app}
 {}
 
 AndroidGlyphImage::AndroidGlyphImage(AndroidGlyphImage &&o)
@@ -194,6 +200,7 @@ AndroidGlyphImage &AndroidGlyphImage::operator=(AndroidGlyphImage &&o)
 	static_cast<GlyphImage*>(this)->unlock();
 	pixmap_ = o.pixmap_;
 	aBitmap = std::exchange(o.aBitmap, {});
+	app = o.app;
 	return *this;
 }
 
@@ -206,7 +213,7 @@ void GlyphImage::unlock()
 {
 	if(!aBitmap)
 		return;
-	auto env = Base::jEnvForThread();
+	auto env = app.thisThreadJniEnv();
 	AndroidBitmap_unlockPixels(env, aBitmap);
 	Base::recycleBitmap(env, aBitmap);
 	env->DeleteLocalRef(aBitmap);

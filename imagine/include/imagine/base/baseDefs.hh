@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/DelegateFunc.hh>
-#include <imagine/util/bits.h>
+#include <imagine/util/bitset.hh>
 
 namespace Config
 {
@@ -85,6 +85,11 @@ static constexpr bool SYSTEM_ROTATES_WINDOWS = true;
 	}
 }
 
+namespace Input
+{
+class Event;
+}
+
 namespace Base
 {
 using namespace IG;
@@ -100,16 +105,6 @@ static constexpr Orientation VIEW_ROTATE_ALL_BUT_UPSIDE_DOWN = VIEW_ROTATE_0 | V
 
 const char *orientationToStr(Orientation o);
 bool orientationIsSideways(Orientation o);
-Orientation validateOrientationMask(Orientation oMask);
-
-// App callback types
-
-using InterProcessMessageDelegate = DelegateFunc<void (const char *filename)>;
-using ResumeDelegate = DelegateFunc<bool (bool focused)>;
-using FreeCachesDelegate = DelegateFunc<void (bool running)>;
-using ExitDelegate = DelegateFunc<bool (bool backgrounded)>;
-using DeviceOrientationChangedDelegate = DelegateFunc<void (Orientation newOrientation)>;
-using SystemOrientationChangedDelegate = DelegateFunc<void (Orientation oldOrientation, Orientation newOrientation)>;
 
 static constexpr int APP_ON_EXIT_PRIORITY = 0;
 static constexpr int RENDERER_TASK_ON_EXIT_PRIORITY = 200;
@@ -124,32 +119,6 @@ static constexpr int WINDOW_ON_RESUME_PRIORITY = -WINDOW_ON_EXIT_PRIORITY;
 static constexpr int RENDERER_DRAWABLE_ON_RESUME_PRIORITY = -RENDERER_DRAWABLE_ON_EXIT_PRIORITY;
 static constexpr int RENDERER_TASK_ON_RESUME_PRIORITY = -RENDERER_TASK_ON_EXIT_PRIORITY;
 static constexpr int APP_ON_RESUME_PRIORITY = 0;
-
-class OnResume
-{
-public:
-	constexpr OnResume() {}
-	OnResume(ResumeDelegate del, int priority = APP_ON_RESUME_PRIORITY);
-	OnResume(OnResume &&o);
-	OnResume &operator=(OnResume &&o);
-	~OnResume();
-
-protected:
-	ResumeDelegate del{};
-};
-
-class OnExit
-{
-public:
-	constexpr OnExit() {}
-	OnExit(ExitDelegate del, int priority = APP_ON_EXIT_PRIORITY);
-	OnExit(OnExit &&o);
-	OnExit &operator=(OnExit &&o);
-	~OnExit();
-
-protected:
-	ExitDelegate del{};
-};
 
 // Window/Screen helper classes
 struct WindowSurfaceChange
@@ -204,4 +173,30 @@ struct ScreenChange
 	bool added() const { return state == ADDED; }
 	bool removed() const { return state == REMOVED; }
 };
+
+class Screen;
+class Window;
+class WindowConfig;
+class ApplicationContext;
+
+using InterProcessMessageDelegate = DelegateFunc<void (ApplicationContext, const char *filename)>;
+using ResumeDelegate = DelegateFunc<bool (ApplicationContext, bool focused)>;
+using FreeCachesDelegate = DelegateFunc<void (ApplicationContext, bool running)>;
+using ExitDelegate = DelegateFunc<bool (ApplicationContext, bool backgrounded)>;
+using DeviceOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Orientation newOrientation)>;
+using SystemOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Orientation oldOrientation, Orientation newOrientation)>;
+using ScreenChangeDelegate = DelegateFunc<void (ApplicationContext, Screen &s, ScreenChange)>;
+
+using WindowInitDelegate = DelegateFunc<void (ApplicationContext, Window &)>;
+using WindowInitDelegate = DelegateFunc<void (ApplicationContext, Window &)>;
+using WindowSurfaceChangeDelegate = DelegateFunc<void (Window &, WindowSurfaceChange)>;
+using WindowDrawDelegate = DelegateFunc<bool (Window &, WindowDrawParams)>;
+using WindowInputEventDelegate = DelegateFunc<bool (Window &, Input::Event)>;
+using WindowFocusChangeDelegate = DelegateFunc<void (Window &, bool in)>;
+using WindowDragDropDelegate = DelegateFunc<void (Window &, const char *filename)>;
+using WindowDismissRequestDelegate = DelegateFunc<void (Window &)>;
+using WindowDismissDelegate = DelegateFunc<void (Window &)>;
+
+using ScreenId = std::conditional_t<Config::envIsAndroid, int, void*>;
+
 }

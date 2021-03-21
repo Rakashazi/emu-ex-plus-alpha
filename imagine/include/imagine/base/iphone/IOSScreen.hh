@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/base/baseDefs.hh>
 #include <compare>
 
 #ifdef __OBJC__
@@ -38,9 +39,14 @@ public:
 	constexpr IOSScreen() {}
 	~IOSScreen();
 
-	bool operator ==(IOSScreen const &rhs) const
+	constexpr bool operator ==(IOSScreen const &rhs) const
 	{
 		return uiScreen_ == rhs.uiScreen_;
+	}
+
+	constexpr bool operator ==(ScreenId uiScreen) const
+	{
+		return uiScreen_ == uiScreen;
 	}
 
 	explicit operator bool() const

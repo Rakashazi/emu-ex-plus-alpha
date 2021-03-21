@@ -14,12 +14,11 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "GLDrawableHolder"
-#include <imagine/gfx/DrawableHolder.hh>
+#include "../common/DrawableHolder.hh"
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/base/Base.hh>
 #include <imagine/logger/logger.h>
 
 #ifndef GL_BACK_LEFT
@@ -75,13 +74,13 @@ void GLDrawableHolder::makeDrawable(Base::GLDisplay dpy, Base::Window &win, Base
 	{
 		onExit =
 		{
-			[drawable = drawable, dpy](bool backgrounded)
+			[drawable = drawable, dpy](Base::ApplicationContext app, bool backgrounded)
 			{
 				if(backgrounded)
 				{
 					IG::copySelf(drawable).freeCaches();
-					Base::addOnResume(
-						[drawable](bool focused)
+					app.addOnResume(
+						[drawable](Base::ApplicationContext, bool focused)
 						{
 							IG::copySelf(drawable).restoreCaches();
 							return false;
@@ -89,7 +88,7 @@ void GLDrawableHolder::makeDrawable(Base::GLDisplay dpy, Base::Window &win, Base
 					);
 				}
 				return true;
-			}, Base::RENDERER_DRAWABLE_ON_EXIT_PRIORITY
+			}, win.appContext(), Base::RENDERER_DRAWABLE_ON_EXIT_PRIORITY
 		};
 	}
 }

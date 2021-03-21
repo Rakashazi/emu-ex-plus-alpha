@@ -23,8 +23,8 @@
 class BtstackBluetoothAdapter : public BluetoothAdapter
 {
 public:
-	BtstackBluetoothAdapter() {}
-	static BtstackBluetoothAdapter *defaultAdapter();
+	constexpr BtstackBluetoothAdapter() {}
+	static BtstackBluetoothAdapter *defaultAdapter(Base::ApplicationContext);
 	bool startScan(OnStatusDelegate onResult, OnScanDeviceClassDelegate onDeviceClass, OnScanDeviceNameDelegate onDeviceName) final;
 	void cancelScan() final;
 	void close() final;
@@ -70,11 +70,11 @@ public:
 class BtstackBluetoothSocket : public BluetoothSocket
 {
 public:
-	constexpr BtstackBluetoothSocket() {}
-	IG::ErrorCode openL2cap(BluetoothAddr addr, uint32_t psm) final;
-	IG::ErrorCode openRfcomm(BluetoothAddr addr, uint32_t channel) final;
+	constexpr BtstackBluetoothSocket(Base::ApplicationContext app) {}
+	IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr addr, uint32_t psm) final;
+	IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr addr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
-	IG::ErrorCode open(BluetoothPendingSocket &pending) final;
+	IG::ErrorCode open(BluetoothAdapter &, BluetoothPendingSocket &pending) final;
 	#endif
 	void close() final;
 	IG::ErrorCode write(const void *data, size_t size) final;

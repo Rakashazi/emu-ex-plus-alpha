@@ -17,11 +17,11 @@
 #include <emuframework/FilePicker.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
-#include <imagine/base/Base.hh>
+#include "private.hh"
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/FSPicker.hh>
 #include <imagine/logger/logger.h>
 #include <string>
-#include "private.hh"
 
 EmuFilePicker::EmuFilePicker(ViewAttachParams attach,
 	const char *startingPath, bool pickingDir,
@@ -72,14 +72,14 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach,
 		});
 	if(setDefaultPath)
 	{
-		setPath(Base::sharedStoragePathLocation(), true, e);
+		setPath(appContext().sharedStoragePathLocation(), true, e);
 	}
 }
 
 std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, Input::Event e, bool singleDir)
 {
 	auto searchPath = EmuApp::mediaSearchPath();
-	auto rootInfo = Base::nearestRootPath(searchPath.data());
+	auto rootInfo = attach.appContext().nearestRootPath(searchPath.data());
 	auto picker = std::make_unique<EmuFilePicker>(attach, searchPath.data(), false, EmuSystem::defaultBenchmarkFsFilter, rootInfo, e, singleDir);
 	picker->setOnChangePath(
 		[](FSPicker &picker, FS::PathString, Input::Event)
@@ -103,7 +103,7 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForLoading(ViewAttachParams at
 	bool singleDir, EmuSystemCreateParams params)
 {
 	auto searchPath = EmuApp::mediaSearchPath();
-	auto rootInfo = Base::nearestRootPath(searchPath.data());
+	auto rootInfo = attach.appContext().nearestRootPath(searchPath.data());
 	auto picker = std::make_unique<EmuFilePicker>(attach, searchPath.data(), false, EmuSystem::defaultFsFilter, rootInfo, e, singleDir);
 	picker->setOnChangePath(
 		[](FSPicker &picker, FS::PathString, Input::Event)
@@ -128,8 +128,9 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaChange(ViewAttachParam
 
 std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaCreation(ViewAttachParams attach, Input::Event e, bool singleDir)
 {
-	auto rootInfo = Base::nearestRootPath(EmuSystem::baseSavePath().data());
-	auto picker = std::make_unique<EmuFilePicker>(attach, EmuSystem::baseSavePath().data(), true, EmuSystem::NameFilterFunc{}, rootInfo, e, singleDir);
+	auto app = attach.appContext();
+	auto rootInfo = app.nearestRootPath(EmuSystem::baseSavePath(app).data());
+	auto picker = std::make_unique<EmuFilePicker>(attach, EmuSystem::baseSavePath(app).data(), true, EmuSystem::NameFilterFunc{}, rootInfo, e, singleDir);
 	return picker;
 }
 

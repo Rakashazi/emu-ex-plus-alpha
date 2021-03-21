@@ -16,9 +16,8 @@
 #define LOGTAG "ICP"
 #include <imagine/bluetooth/IControlPad.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/base/Base.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/bits.h>
+#include <imagine/util/bitset.hh>
 #include <imagine/util/algorithm.h>
 #include "../input/private.hh"
 #include "private.hh"
@@ -140,7 +139,7 @@ IG::ErrorCode IControlPad::open(BluetoothAdapter &adapter)
 		{
 			return statusHandler(sock, status);
 		};
-	if(auto err = sock.openRfcomm(addr, 1);
+	if(auto err = sock.openRfcomm(adapter, addr, 1);
 		err)
 	{
 		logErr("error opening socket");
@@ -238,8 +237,8 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 				auto time = IG::steadyClockTimestamp();
 				iterateTimes(4, i)
 				{
-					if(axisKey[i].dispatch(inputBuffer[i], player, Input::Map::ICONTROLPAD, time, *this, Base::mainWindow()))
-						Base::endIdleByUserActivity();
+					if(axisKey[i].dispatch(inputBuffer[i], player, Input::Map::ICONTROLPAD, time, *this, app.mainWindow()))
+						app.endIdleByUserActivity();
 				}
 				processBtnReport(&inputBuffer[4], time, player);
 				inputBufferPos = 0;
@@ -262,10 +261,10 @@ void IControlPad::processBtnReport(const char *btnData, Input::Time time, uint32
 		if(oldState != newState)
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
-			Base::endIdleByUserActivity();
+			app.endIdleByUserActivity();
 			Event event{player, Map::ICONTROLPAD, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
-			startKeyRepeatTimer(event);
-			dispatchInputEvent(event);
+			startKeyRepeatTimer(app, event);
+			dispatchInputEvent(app, event);
 		}
 	}
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));

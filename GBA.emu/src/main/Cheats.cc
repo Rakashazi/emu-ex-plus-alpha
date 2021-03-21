@@ -14,6 +14,7 @@
 	along with GBA.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/TextEntry.hh>
+#include <imagine/util/string.h>
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"

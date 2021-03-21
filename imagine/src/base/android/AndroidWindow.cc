@@ -15,12 +15,11 @@
 
 #define LOGTAG "Window"
 #include "../common/windowPrivate.hh"
-#include "../common/screenPrivate.hh"
 #include "android.hh"
 #include "internal.hh"
 #include <imagine/util/fd-utils.h>
 #include <imagine/logger/logger.h>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/sharedLibrary.hh>
 #include <android/native_activity.h>
@@ -30,13 +29,14 @@
 namespace Base
 {
 
-extern JavaInstMethod<jobject(jobject, jlong)> jPresentation;
+static JavaInstMethod<jobject(jobject, jlong, jlong)> jPresentation{};
 static JavaInstMethod<void()> jPresentationDeinit{};
+static JavaInstMethod<void(jint)> jSetWinFormat{};
 static int32_t (*ANativeWindow_setFrameRate)(ANativeWindow* window, float frameRate, int8_t compatibility){};
 
-Window *deviceWindow()
+Window *deviceWindow(ApplicationContext app)
 {
-	return Window::window(0);
+	return app.window(0);
 }
 
 static void initPresentationJNI(JNIEnv* env, jobject presentation)
@@ -49,38 +49,38 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 	JNINativeMethod method[] =
 	{
 		{
-			"onSurfaceCreated", "(JLandroid/view/Surface;)V",
-			(void*)(void (*)(JNIEnv*, jobject, jlong, jobject))
-			([](JNIEnv* env, jobject thiz, jlong windowAddr, jobject surface)
+			"onSurfaceCreated", "(JJLandroid/view/Surface;)V",
+			(void*)(void (*)(JNIEnv*, jobject, jlong, jlong, jobject))
+			([](JNIEnv* env, jobject thiz, jlong nActivityAddr, jlong windowAddr, jobject surface)
 			{
 				auto nWin = ANativeWindow_fromSurface(env, surface);
 				auto &win = *((Window*)windowAddr);
-				win.setNativeWindow(nWin);
+				win.setNativeWindow((ANativeActivity*)nActivityAddr, nWin);
 			})
 		},
 		{
-			"onSurfaceRedrawNeeded", "(J)V",
-			(void*)(void (*)(JNIEnv*, jobject, jlong))
-			([](JNIEnv* env, jobject thiz, jlong windowAddr)
+			"onSurfaceRedrawNeeded", "(JJ)V",
+			(void*)(void (*)(JNIEnv*, jobject, jlong, jlong))
+			([](JNIEnv* env, jobject thiz, jlong nActivityAddr, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
 				androidWindowNeedsRedraw(win, true);
 			})
 		},
 		{
-			"onSurfaceDestroyed", "(J)V",
-			(void*)(void (*)(JNIEnv*, jobject, jlong))
-			([](JNIEnv* env, jobject thiz, jlong windowAddr)
+			"onSurfaceDestroyed", "(JJ)V",
+			(void*)(void (*)(JNIEnv*, jobject, jlong, jlong))
+			([](JNIEnv* env, jobject thiz, jlong nActivityAddr, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
 				ANativeWindow_release(win.nativeObject());
-				win.setNativeWindow(nullptr);
+				win.setNativeWindow((ANativeActivity*)nActivityAddr, nullptr);
 			})
 		},
 		{
-			"onWindowDismiss", "(J)V",
-			(void*)(void (*)(JNIEnv*, jobject, jlong))
-			([](JNIEnv* env, jobject thiz, jlong windowAddr)
+			"onWindowDismiss", "(JJ)V",
+			(void*)(void (*)(JNIEnv*, jobject, jlong, jlong))
+			([](JNIEnv* env, jobject thiz, jlong nActivityAddr, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
 				win.dismiss();
@@ -122,7 +122,7 @@ bool Window::setValidOrientations(Orientation oMask)
 		bcase VIEW_ROTATE_0 | VIEW_ROTATE_180: toSet = 7; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
 		bcase VIEW_ROTATE_ALL: toSet = 10; // SCREEN_ORIENTATION_FULL_SENSOR
 	}
-	jSetRequestedOrientation(jEnvForThread(), jBaseActivity, toSet);
+	jSetRequestedOrientation(appContext().mainThreadJniEnv(), appContext().baseActivityObject(), toSet);
 	return true;
 }
 
@@ -132,54 +132,59 @@ bool Window::requestOrientationChange(Orientation o)
 	return false;
 }
 
-PixelFormat Window::defaultPixelFormat()
+PixelFormat Window::defaultPixelFormat(ApplicationContext app)
 {
-	return ((Config::ARM_ARCH && Config::ARM_ARCH < 7) || androidSDK() < 11) ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
+	return ((Config::ARM_ARCH && Config::ARM_ARCH < 7) || app.androidSDK() < 11) ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
 }
 
-IG::ErrorCode Window::init(const WindowConfig &config, InitDelegate onInit)
+Window::Window(ApplicationContext app, WindowConfig config, InitDelegate onInit_):
+	AndroidWindow{app, config}
 {
-	if(initialInit)
-		return {};
-	BaseWindow::init(config);
-	if(!Config::BASE_MULTI_WINDOW && windows())
+	auto &screen = config.screen(app);
+	this->screen_ = &screen;
+	auto env = app.mainThreadJniEnv();
+	if(app.windows() > 0)
 	{
-		bug_unreachable("no multi-window support");
-	}
-	this->screen_ = &config.screen();
-	initialInit = true;
-	if(windows() > 0)
-	{
-		assert(screen() != Screen::screen(0));
-		auto env = jEnvForThread();
-		jDialog = env->NewGlobalRef(jPresentation(env, Base::jBaseActivity, screen()->displayObject(), (jlong)this));
-		initPresentationJNI(env, jDialog);
-		logMsg("making dialog window:%p", jDialog);
+		assert(&screen != app.screen(0));
+		if(!jPresentation)
+			jPresentation = {env, Base::jBaseActivityCls, "presentation", "(Landroid/view/Display;JJ)Lcom/imagine/PresentationHelper;"};
+		jWin = env->NewGlobalRef(jPresentation(env, app.baseActivityObject(), screen.displayObject(),
+			(jlong)app.aNativeActivityPtr(), (jlong)this));
+		initPresentationJNI(env, jWin);
+		type = Type::PRESENTATION;
+		logMsg("made presentation window:%p", jWin);
 	}
 	else
 	{
-		logMsg("making device window");
+		JavaInstMethod<jobject(jlong)> jSetMainContentView(env, Base::jBaseActivityCls, "setMainContentView", "(J)Landroid/view/Window;");
+		jWin = env->NewGlobalRef(jSetMainContentView(env, app.baseActivityObject(), (jlong)this));
+		type = Type::MAIN;
+		logMsg("made device window:%p", jWin);
+		jclass jWindowCls = env->GetObjectClass(jWin);
+		jSetWinFormat = {env, jWindowCls, "setFormat", "(I)V"};
 	}
 	if(config.format())
 	{
 		setFormat(config.format());
 	}
 	// default to screen's size
-	updateSize({screen()->width(), screen()->height()});
+	updateSize({screen.width(), screen.height()});
 	contentRect.x2 = width();
 	contentRect.y2 = height();
-	this->onInit = onInit;
-	return {};
+	onInit = onInit_;
 }
 
 AndroidWindow::~AndroidWindow()
 {
-	if(jDialog)
+	if(jWin)
 	{
-		logMsg("deinit dialog window:%p", jDialog);
-		auto env = jEnvForThread();
-		jPresentationDeinit(env, jDialog);
-		env->DeleteGlobalRef(jDialog);
+		auto env = onExit.appContext().mainThreadJniEnv();
+		if(type == Type::PRESENTATION)
+		{
+			logMsg("dismissing presentation window:%p", jWin);
+			jPresentationDeinit(env, jWin);
+		}
+		env->DeleteGlobalRef(jWin);
 	}
 	if(nWin)
 	{
@@ -210,17 +215,15 @@ void AndroidWindow::updateContentRect(const IG::WindowRect &rect)
 
 bool Window::operator ==(Window const &rhs) const
 {
-	assert(initialInit);
-	assert(rhs.initialInit);
-	return jDialog == rhs.jDialog;
+	return jWin == rhs.jWin;
 }
 
 AndroidWindow::operator bool() const
 {
-	return initialInit;
+	return jWin;
 }
 
-void AndroidWindow::setNativeWindow(ANativeWindow *nWindow)
+void AndroidWindow::setNativeWindow(ApplicationContext app, ANativeWindow *nWindow)
 {
 	if(nWin)
 	{
@@ -230,17 +233,31 @@ void AndroidWindow::setNativeWindow(ANativeWindow *nWindow)
 	if(!nWindow)
 		return;
 	nWin = nWindow;
+	static_cast<Window*>(this)->surfaceChange.addCreated();
 	if(Config::DEBUG_BUILD)
 	{
 		logMsg("created window with format visual ID:%d (current:%d)", pixelFormat, ANativeWindow_getFormat(nWindow));
 	}
 	if(pixelFormat)
 	{
+		if(app.androidSDK() < 11 && this == deviceWindow(app))
+		{
+			// In testing with CM7 on a Droid, the surface is re-created in RGBA8888 upon
+			// resuming the app no matter what format was used in ANativeWindow_setBuffersGeometry().
+			// Explicitly setting the format here seems to fix the problem (Android driver bug?).
+			// In case of a mismatch, the surface is usually destroyed & re-created by the OS after this callback.
+			if(Config::DEBUG_BUILD)
+			{
+				logMsg("setting window format to %d (current %d) after surface creation",
+					nativePixelFormat(), ANativeWindow_getFormat(nWin));
+			}
+			jSetWinFormat(app.mainThreadJniEnv(), jWin, pixelFormat);
+		}
 		ANativeWindow_setBuffersGeometry(nWindow, 0, 0, pixelFormat);
 	}
 	if(onInit)
 	{
-		onInit(*static_cast<Window*>(this));
+		onInit(app, *static_cast<Window*>(this));
 		onInit = {};
 	}
 }
@@ -252,7 +269,7 @@ NativeWindow Window::nativeObject() const
 
 void Window::setIntendedFrameRate(double rate)
 {
-	if(Base::androidSDK() < 30)
+	if(appContext().androidSDK() < 30)
 		return;
 	if(unlikely(!nWin))
 		return;
@@ -270,14 +287,22 @@ void Window::setIntendedFrameRate(double rate)
 void Window::setFormat(NativeWindowFormat fmt)
 {
 	pixelFormat = fmt;
-	if(Base::androidSDK() < 11 && this == deviceWindow())
+	if(appContext().androidSDK() < 11 && this == deviceWindow(appContext()))
 	{
 		// In testing with CM7 on a Droid, not setting window format to match
 		// what's used in ANativeWindow_setBuffersGeometry() may cause performance issues
-		auto env = jEnvForThread();
+		auto env = appContext().mainThreadJniEnv();
 		if(Config::DEBUG_BUILD)
-			logMsg("setting window format:%d (current:%d)", fmt, jWinFormat(env, jBaseActivity));
-		jSetWinFormat(env, jBaseActivity, fmt);
+		{
+			jclass jWindowCls = env->GetObjectClass(jWin);
+			JavaInstMethod<jobject()> jWinAttrs{env, jWindowCls, "getAttributes", "()Landroid/view/WindowManager$LayoutParams;"};
+			auto attrs = jWinAttrs(env, jWin);
+			jclass jLayoutParamsCls = env->GetObjectClass(attrs);
+			auto jFormat = env->GetFieldID(jLayoutParamsCls, "format", "I");
+			auto currFmt = env->GetIntField(attrs, jFormat);
+			logMsg("setting window format:%d (current:%d)", fmt, currFmt);
+		}
+		jSetWinFormat(env, jWin, fmt);
 	}
 	if(nWin)
 	{
@@ -295,7 +320,7 @@ int AndroidWindow::nativePixelFormat()
 void androidWindowNeedsRedraw(Window &win, bool sync)
 {
 	win.setNeedsDraw(true);
-	if(!appIsRunning())
+	if(!win.appContext().isRunning())
 	{
 		logMsg("deferring window surface redraw until app resumes");
 		return;

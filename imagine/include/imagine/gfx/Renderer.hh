@@ -67,8 +67,8 @@ class Renderer : public RendererImpl
 {
 public:
 	using RendererImpl::RendererImpl;
-	Renderer(Base::Window *initialWindow, Error &err);
-	Renderer(RendererConfig config, Base::Window *initialWindow, Error &err);
+	Renderer(Base::ApplicationContext, Base::Window *initialWindow, Error &errOut);
+	Renderer(RendererConfig, Base::ApplicationContext, Base::Window *initialWindow, Error &errOut);
 	Renderer(const Renderer &o) = delete;
 	Renderer &operator=(const Renderer &o) = delete;
 	Renderer(Renderer &&o) = delete;
@@ -77,6 +77,7 @@ public:
 	bool isConfigured() const;
 	const RendererTask &task() const;
 	RendererTask &task();
+	Base::ApplicationContext appContext() const;
 	bool attachWindow(Base::Window &);
 	void detachWindow(Base::Window &);
 	Base::NativeWindowFormat nativeWindowFormat() const;

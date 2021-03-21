@@ -47,11 +47,11 @@ bool GLDisplay::bindAPI(GL::API api)
 // GLContext
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec):
-	XGLContext{display, attr, config, EGL_NO_CONTEXT, ec}
+	EGLContextBase{display, attr, config, EGL_NO_CONTEXT, ec}
 {}
 
 GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, IG::ErrorCode &ec):
-	XGLContext{display, attr, config, shareContext.nativeObject(), ec}
+	EGLContextBase{display, attr, config, shareContext.nativeObject(), ec}
 {}
 
 void GLContext::deinit(GLDisplay display)
@@ -72,21 +72,12 @@ std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, GLB
 
 void GLContext::present(GLDisplay display, GLDrawable win)
 {
-	auto swapTime = IG::timeFuncDebug([&](){ EGLContextBase::swapBuffers(display, win); });
-	if(swapBuffersIsAsync() && swapTime >= IG::Milliseconds(16))
-	{
-		logWarn("buffer swap took %lldns", (long long)swapTime.count());
-	}
+	EGLContextBase::swapBuffers(display, win);
 }
 
 void GLContext::present(GLDisplay display, GLDrawable win, GLContext cachedCurrentContext)
 {
 	present(display, win);
-}
-
-bool XGLContext::swapBuffersIsAsync()
-{
-	return !Config::MACHINE_IS_PANDORA;
 }
 
 Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay display) const

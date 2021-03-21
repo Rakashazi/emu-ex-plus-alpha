@@ -22,5 +22,10 @@ namespace IG
 class Pixmap;
 }
 
-bool writeScreenshot(IG::Pixmap vidPix, const char *fname);
+namespace Base
+{
+class ApplicationContext;
+}
+
+bool writeScreenshot(Base::ApplicationContext, IG::Pixmap vidPix, const char *fname);
 int sprintScreenshotFilename(FS::PathString &str);

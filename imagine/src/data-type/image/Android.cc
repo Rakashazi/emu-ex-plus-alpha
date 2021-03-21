@@ -16,10 +16,10 @@
 #define LOGTAG "BitmapFactory"
 
 #include <imagine/data-type/image/Android.hh>
-#include <assert.h>
-#include <imagine/logger/logger.h>
-#include <imagine/util/jni.hh>
 #include "../../base/android/android.hh"
+#include <imagine/base/ApplicationContext.hh>
+#include <imagine/util/jni.hh>
+#include <imagine/logger/logger.h>
 
 using namespace IG;
 
@@ -50,7 +50,7 @@ PixelFormat BitmapFactoryImage::pixelFormat() const
 std::error_code BitmapFactoryImage::load(const char *name)
 {
 	freeImageData();
-	auto env = Base::jEnvForThread();
+	auto env = app.thisThreadJniEnv();
 	if(!jBitmapFactory)
 	{
 		jBitmapFactory = (jclass)env->NewGlobalRef(env->FindClass("android/graphics/BitmapFactory"));
@@ -73,14 +73,14 @@ std::error_code BitmapFactoryImage::loadAsset(const char *name)
 {
 	freeImageData();
 	logMsg("loading PNG asset: %s", name);
-	auto env = Base::jEnvForThread();
+	auto env = app.thisThreadJniEnv();
 	using namespace Base;
 	if(!jDecodeAsset)
 	{
 		jDecodeAsset.setup(env, jBaseActivityCls, "bitmapDecodeAsset", "(Ljava/lang/String;)Landroid/graphics/Bitmap;");
 	}
 	auto nameJStr = env->NewStringUTF(name);
-	bitmap = jDecodeAsset(env, jBaseActivity, nameJStr);
+	bitmap = jDecodeAsset(env, app.baseActivityObject(), nameJStr);
 	env->DeleteLocalRef(nameJStr);
 	if(!bitmap)
 	{
@@ -100,8 +100,8 @@ bool BitmapFactoryImage::hasAlphaChannel()
 
 std::errc BitmapFactoryImage::readImage(IG::Pixmap dest)
 {
-	assert(dest.format() == pixelFormat());
-	auto env = Base::jEnvForThread();
+	assumeExpr(dest.format() == pixelFormat());
+	auto env = app.thisThreadJniEnv();
 	void *buff;
 	AndroidBitmap_lockPixels(env, bitmap, &buff);
 	IG::Pixmap src{{{(int)info.width, (int)info.height}, pixelFormat()}, buff, {info.stride, IG::Pixmap::BYTE_UNITS}};
@@ -114,7 +114,7 @@ void BitmapFactoryImage::freeImageData()
 {
 	if(bitmap)
 	{
-		auto env = Base::jEnvForThread();
+		auto env = app.thisThreadJniEnv();
 		Base::recycleBitmap(env, bitmap);
 		env->DeleteGlobalRef(bitmap);
 		bitmap = nullptr;
@@ -125,8 +125,6 @@ BitmapFactoryImage::operator bool() const
 {
 	return (bool)bitmap;
 }
-
-PngFile::PngFile() {}
 
 PngFile::~PngFile()
 {

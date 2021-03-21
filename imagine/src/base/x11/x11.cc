@@ -16,10 +16,9 @@
 #define LOGTAG "X11"
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/string.h>
 #include "../common/windowPrivate.hh"
-#include "../common/screenPrivate.hh"
 #include "../common/basePrivate.hh"
 #include "x11.hh"
 #include "internal.hh"
@@ -48,7 +47,7 @@ static GSourceFuncs x11SourceFuncs
 	[](GSource *, GSourceFunc, gpointer)
 	{
 		//logMsg("events for X fd");
-		runX11Events(xDisplay);
+		runX11Events({}, xDisplay); // TODO: Supply an ApplicationContext object
 		return (gboolean)TRUE;
 	},
 	nullptr
@@ -122,29 +121,29 @@ void toggleFullScreen(Display *dpy, ::Window xWin)
 	ewmhFullscreen(dpy, xWin, _NET_WM_STATE_TOGGLE);
 }
 
-static int eventHandler(Display *dpy, XEvent &event)
+static int eventHandler(ApplicationContext app, Display *dpy, XEvent &event)
 {
 	//logMsg("got event type %s (%d)", xEventTypeToString(event.type), event.type);
-	
+
 	switch(event.type)
 	{
 		bcase Expose:
 		{
-			auto &win = *windowForXWindow(event.xexpose.window);
+			auto &win = *windowForXWindow(app, event.xexpose.window);
 			if (event.xexpose.count == 0)
 				win.postDraw();
 		}
 		bcase ConfigureNotify:
 		{
 			//logMsg("ConfigureNotify");
-			auto &win = *windowForXWindow(event.xconfigure.window);
+			auto &win = *windowForXWindow(app, event.xconfigure.window);
 			if(event.xconfigure.width == win.width() && event.xconfigure.height == win.height())
 				break;
 			win.updateSize({event.xconfigure.width, event.xconfigure.height});
 		}
 		bcase ClientMessage:
 		{
-			auto &win = *windowForXWindow(event.xclient.window);
+			auto &win = *windowForXWindow(app, event.xclient.window);
 			auto type = event.xclient.message_type;
 			char *clientMsgName = XGetAtomName(dpy, type);
 			//logDMsg("got client msg %s", clientMsgName);
@@ -176,7 +175,7 @@ static int eventHandler(Display *dpy, XEvent &event)
 			logMsg("SelectionNotify");
 			if(Config::Base::XDND && event.xselection.property != None)
 			{
-				auto &win = *windowForXWindow(event.xselection.requestor);
+				auto &win = *windowForXWindow(app, event.xselection.requestor);
 				int format;
 				unsigned long numItems;
 				unsigned long bytesAfter;
@@ -203,7 +202,7 @@ static int eventHandler(Display *dpy, XEvent &event)
 		}
 		bcase GenericEvent:
 		{
-			Input::handleXI2GenericEvent(dpy, event);
+			Input::handleXI2GenericEvent(app, dpy, event);
 		}
 		bdefault:
 		{
@@ -215,32 +214,32 @@ static int eventHandler(Display *dpy, XEvent &event)
 	return 1;
 }
 
-void runX11Events(Display *dpy)
+void runX11Events(ApplicationContext app, Display *dpy)
 {
 	while(XPending(dpy))
 	{
 		XEvent event;
 		XNextEvent(dpy, &event);
-		eventHandler(dpy, event);
+		eventHandler(app, dpy, event);
 	}
 }
 
-void initXScreens(Display *dpy)
+void initXScreens(ApplicationContext app, Display *dpy)
 {
 	auto defaultScreenIdx = DefaultScreen(dpy);
-	Screen::addScreen(std::make_unique<Screen>(ScreenOfDisplay(dpy, defaultScreenIdx)));
+	app.addScreen(std::make_unique<Screen>(ScreenOfDisplay(dpy, defaultScreenIdx)), false);
 	if constexpr(Config::BASE_MULTI_SCREEN)
 	{
 		iterateTimes(ScreenCount(dpy), i)
 		{
 			if((int)i == defaultScreenIdx)
 				continue;
-			Screen::addScreen(std::make_unique<Screen>(ScreenOfDisplay(dpy, i)));
+			app.addScreen(std::make_unique<Screen>(ScreenOfDisplay(dpy, i)), false);
 		}
 	}
 }
 
-Display *initX11(EventLoop loop)
+Display *initX11(ApplicationContext app, EventLoop loop)
 {
 	XInitThreads();
 	auto dpy = XOpenDisplay(0);
@@ -250,11 +249,11 @@ Display *initX11(EventLoop loop)
 		return {};
 	}
 	xDisplay = dpy;
-	initXScreens(dpy);
-	initFrameTimer(loop, Base::mainScreen());
+	initXScreens(app, dpy);
+	initFrameTimer(loop, app.mainScreen());
 	Input::init(dpy);
-	Base::addOnExit(
-		[dpy](bool backgrounded)
+	app.addOnExit(
+		[dpy](ApplicationContext, bool backgrounded)
 		{
 			if(!backgrounded)
 			{
@@ -268,14 +267,14 @@ Display *initX11(EventLoop loop)
 	return dpy;
 }
 
-FDEventSource makeAttachedX11EventSource(Display *dpy, EventLoop loop)
+FDEventSource makeAttachedX11EventSource(ApplicationContext app, Display *dpy, EventLoop loop)
 {
 	FDEventSource x11Src{"XServer", ConnectionNumber(dpy)};
 	x11Src.attach(loop, nullptr, &x11SourceFuncs);
 	return x11Src;
 }
 
-void setSysUIStyle(uint32_t flags) {}
+void ApplicationContext::setSysUIStyle(uint32_t flags) {}
 
 bool hasTranslucentSysUI() { return false; }
 

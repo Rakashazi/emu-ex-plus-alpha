@@ -30,6 +30,7 @@
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/base/Error.hh>
 #include <imagine/base/glDefs.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <optional>
 #include <compare>
 
@@ -42,6 +43,8 @@ class GLDisplay;
 class GLBufferConfigAttributes
 {
 public:
+	constexpr GLBufferConfigAttributes(ApplicationContext app):app{app} {}
+
 	void setPixelFormat(IG::PixelFormat pixelFormat_)
 	{
 		this->pixelFormat_ = pixelFormat_;
@@ -69,7 +72,13 @@ public:
 		return useStencil_;
 	}
 
+	ApplicationContext appContext() const
+	{
+		return app;
+	}
+
 private:
+	ApplicationContext app;
 	IG::PixelFormat pixelFormat_;
 	bool useDepth_ = false;
 	bool useStencil_ = false;

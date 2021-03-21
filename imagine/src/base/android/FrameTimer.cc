@@ -17,8 +17,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <imagine/base/Screen.hh>
-#include <imagine/base/Base.hh>
 #include <imagine/base/EventLoop.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/sharedLibrary.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/algorithm.h>
@@ -34,14 +34,16 @@ namespace Base
 class ChoreographerFrameTimer final : public FrameTimer
 {
 public:
-	ChoreographerFrameTimer(JNIEnv *env, jobject activity);
+	ChoreographerFrameTimer(ApplicationContext);
 	~ChoreographerFrameTimer() final;
 	void scheduleVSync() final;
 	void cancel() final;
 	void unsetRequested() { requested = false; }
 	explicit operator bool() const { return frameHelper; }
+	ApplicationContext appContext() const { return app; }
 
 protected:
+	ApplicationContext app{};
 	JavaInstMethod<void()> jPostFrame{}, jUnpostFrame{};
 	jobject frameHelper{};
 	bool requested = false;
@@ -50,16 +52,18 @@ protected:
 class AChoreographerFrameTimer final : public FrameTimer
 {
 public:
-	AChoreographerFrameTimer();
+	AChoreographerFrameTimer(ApplicationContext);
 	~AChoreographerFrameTimer() final {};
 	void scheduleVSync() final;
 	void cancel() final;
 	void unsetRequested() { requested = false; }
 	explicit operator bool() const { return choreographer; }
+	ApplicationContext appContext() const { return app; }
 
 protected:
 	using PostFrameCallbackFunc = void (*)(AChoreographer* choreographer,
 			AChoreographer_frameCallback callback, void* data);
+	ApplicationContext app{};
 	PostFrameCallbackFunc postFrameCallback{};
 	AChoreographer *choreographer{};
 	bool requested = false;
@@ -71,24 +75,25 @@ template <class T>
 static void doOnFrame(T *timerObjPtr, int64_t frameTimeNanos)
 {
 	IG::Nanoseconds frameTime{frameTimeNanos};
-	mainScreen().startDebugFrameStats(frameTime);
 	timerObjPtr->unsetRequested(); // Choreographer callbacks are one-shot
-	iterateTimes(Screen::screens(), i)
+	auto app = timerObjPtr->appContext();
+	iterateTimes(app.screens(), i)
 	{
-		auto s = Screen::screen(i);
+		auto s = app.screen(i);
 		if(s->isPosted())
 		{
 			s->frameUpdate(frameTime);
 		}
 	}
-	mainScreen().endDebugFrameStats();
 }
 
-ChoreographerFrameTimer::ChoreographerFrameTimer(JNIEnv *env, jobject activity)
+ChoreographerFrameTimer::ChoreographerFrameTimer(ApplicationContext app):
+	app{app}
 {
-	assumeExpr(Base::androidSDK() >= 16);
+	assert(app.androidSDK() >= 16);
+	JNIEnv *env = app.mainThreadJniEnv();
 	JavaInstMethod<jobject(jlong)> jNewChoreographerHelper{env, jBaseActivityCls, "newChoreographerHelper", "(J)Lcom/imagine/ChoreographerHelper;"};
-	frameHelper = jNewChoreographerHelper(env, activity, (jlong)this);
+	frameHelper = jNewChoreographerHelper(env, app.baseActivityObject(), (jlong)this);
 	assert(frameHelper);
 	frameHelper = env->NewGlobalRef(frameHelper);
 	auto choreographerHelperCls = env->GetObjectClass(frameHelper);
@@ -113,7 +118,7 @@ ChoreographerFrameTimer::~ChoreographerFrameTimer()
 {
 	if(frameHelper)
 	{
-		jEnvForThread()->DeleteGlobalRef(frameHelper);
+		app.mainThreadJniEnv()->DeleteGlobalRef(frameHelper);
 	}
 }
 
@@ -123,7 +128,7 @@ void ChoreographerFrameTimer::scheduleVSync()
 	if(requested)
 		return;
 	requested = true;
-	jPostFrame(jEnvForThread(), frameHelper);
+	jPostFrame(app.mainThreadJniEnv(), frameHelper);
 }
 
 void ChoreographerFrameTimer::cancel()
@@ -132,12 +137,13 @@ void ChoreographerFrameTimer::cancel()
 	if(!requested)
 		return;
 	requested = false;
-	jUnpostFrame(jEnvForThread(), frameHelper);
+	jUnpostFrame(app.mainThreadJniEnv(), frameHelper);
 }
 
-AChoreographerFrameTimer::AChoreographerFrameTimer()
+AChoreographerFrameTimer::AChoreographerFrameTimer(ApplicationContext app):
+	app{app}
 {
-	assumeExpr(Base::androidSDK() >= 24);
+	assert(app.androidSDK() >= 24);
 	AChoreographer* (*getInstance)(){};
 	Base::loadSymbol(getInstance, {}, "AChoreographer_getInstance");
 	assumeExpr(getInstance);
@@ -167,25 +173,25 @@ void AChoreographerFrameTimer::cancel()
 	requested = false;
 }
 
-void initFrameTimer(JNIEnv *env, jobject activity, Screen &screen)
+void initFrameTimer(ApplicationContext app, Screen &screen)
 {
-	if(Base::androidSDK() < 16)
+	if(app.androidSDK() < 16)
 	{
 		// No OS frame timer
 		frameTimer = std::make_unique<SimpleFrameTimer>(Base::EventLoop::forThread(), screen);
 	}
 	else if(sizeof(long) < sizeof(int64_t)
-		|| Base::androidSDK() < 24)
+		|| app.androidSDK() < 24)
 	{
 		// Always use on 32-bit systems due to NDK API issue
 		// that prevents 64-bit timestamp resolution
 		logMsg("using Java Choreographer");
-		frameTimer = std::make_unique<ChoreographerFrameTimer>(env, activity);
+		frameTimer = std::make_unique<ChoreographerFrameTimer>(app);
 	}
 	else
 	{
 		logMsg("using native Choreographer");
-		frameTimer = std::make_unique<AChoreographerFrameTimer>();
+		frameTimer = std::make_unique<AChoreographerFrameTimer>(app);
 	}
 }
 

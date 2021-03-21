@@ -24,6 +24,7 @@
 #include <emuframework/EmuAppInlines.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
@@ -278,7 +279,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-EmuSystem::Error EmuSystem::onInit()
+EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
 {
 	gfx_buildMonoConvMap();
 	gfx_buildColorConvMap();

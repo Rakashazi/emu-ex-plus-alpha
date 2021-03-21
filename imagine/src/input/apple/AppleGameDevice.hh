@@ -1,8 +1,11 @@
 #pragma once
 
+namespace Base
+{
+class ApplicationContext;
+}
+
 namespace Input
 {
-
-void initAppleGameControllers();
-
+void initAppleGameControllers(Base::ApplicationContext);
 }

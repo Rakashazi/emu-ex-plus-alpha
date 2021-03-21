@@ -21,25 +21,9 @@
 namespace Base
 {
 
-class GLDisplay;
-class GLDrawable;
-class Window;
-
-class XGLContext : public EGLContextBase
-{
-public:
-	using EGLContextBase::EGLContextBase;
-
-	constexpr XGLContext() {}
-	static void swapPresentedBuffers(Window &win);
-
-protected:
-	static bool swapBuffersIsAsync();
-};
-
 using GLDisplayImpl = EGLDisplayConnection;
 using GLDrawableImpl = EGLDrawable;
-using GLContextImpl = XGLContext;
+using GLContextImpl = EGLContextBase;
 using GLBufferConfig = EGLBufferConfig;
 
 }

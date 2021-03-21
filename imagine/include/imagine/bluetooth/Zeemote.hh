@@ -28,8 +28,9 @@ public:
 	static const uint8_t btClass[3];
 	static std::vector<Zeemote*> devList;
 
-	Zeemote(BluetoothAddr addr):
+	Zeemote(Base::ApplicationContext app, BluetoothAddr addr): BluetoothInputDevice{app},
 		Device{0, Input::Map::ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"},
+		sock{app},
 		addr{addr}
 	{}
 	IG::ErrorCode open(BluetoothAdapter &adapter) final;

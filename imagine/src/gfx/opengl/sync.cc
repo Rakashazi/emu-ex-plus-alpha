@@ -17,6 +17,7 @@
 #include <imagine/gfx/SyncFence.hh>
 #include <imagine/gfx/opengl/GLRenderer.hh>
 #include <imagine/logger/logger.h>
+#include <cstring>
 
 #ifndef EGL_SYNC_FENCE
 #define EGL_SYNC_FENCE 0x30F9

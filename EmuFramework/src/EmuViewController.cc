@@ -18,20 +18,24 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuVideoLayer.hh>
+#include <emuframework/EmuVideo.hh>
+#include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuMainMenuView.hh>
 #include <emuframework/FilePicker.hh>
-#include <imagine/base/Base.hh>
-#include <imagine/gfx/Renderer.hh>
-#include <imagine/gfx/RendererTask.hh>
-#include <imagine/gfx/RendererCommands.hh>
-#include <imagine/gui/AlertView.hh>
-#include <imagine/gui/ToastView.hh>
 #include "EmuOptions.hh"
 #include "private.hh"
 #include "privateInput.hh"
 #include "configFile.hh"
 #include "EmuSystemTask.hh"
 #include "EmuTiming.hh"
+#include "EmuViewController.hh"
+#include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Screen.hh>
+#include <imagine/gfx/Renderer.hh>
+#include <imagine/gfx/RendererTask.hh>
+#include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gui/AlertView.hh>
+#include <imagine/gui/ToastView.hh>
 
 class AutoStateConfirmAlertView : public YesNoAlertView
 {
@@ -64,42 +68,40 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 	popup{viewAttach},
 	rendererTask_{&viewAttach.rendererTask()},
 	systemTask{&systemTask},
-	onResume
-	{
-		[this](bool focused)
-		{
-			configureSecondaryScreens();
-			prepareDraw();
-			if(showingEmulation && focused && EmuSystem::isPaused())
-			{
-				logMsg("resuming emulation due to app resume");
-				#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-				emuInputView.activeVController()->resetInput();
-				#endif
-				startEmulation();
-			}
-			return true;
-		}, 10
-	},
 	onExit
 	{
-		[this](bool backgrounded)
+		[this](Base::ApplicationContext app, bool backgrounded)
 		{
 			if(backgrounded)
 			{
 				showUI();
-				if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
+				if(optionShowOnSecondScreen && app.screens() > 1)
 				{
-					setEmuViewOnExtraWindow(false, *Base::Screen::screen(1));
+					setEmuViewOnExtraWindow(false, *app.screen(1));
 				}
 				viewStack.top().onHide();
+				app.addOnResume(
+					[this](Base::ApplicationContext, bool focused)
+					{
+						configureSecondaryScreens();
+						prepareDraw();
+						if(showingEmulation && focused && EmuSystem::isPaused())
+						{
+							logMsg("resuming emulation due to app resume");
+							#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+							emuInputView.activeVController()->resetInput();
+							#endif
+							startEmulation();
+						}
+						return false;
+					}, 10);
 			}
 			else
 			{
 				closeSystem();
 			}
 			return true;
-		}, -10
+		}, viewAttach.appContext(), -10
 	}
 {
 	emuInputView.setController(this, Input::defaultEvent());
@@ -195,7 +197,7 @@ bool EmuMenuViewStack::inputEvent(Input::Event e)
 			}
 			else
 			{
-				Base::exit();
+				emuViewControllerPtr->appContext().exit();
 			}
 		}
 		else
@@ -220,7 +222,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	auto &winData = windowData(viewAttach.window());
 	winData.hasEmuView = true;
 	winData.hasPopup = true;
-	if(!Base::Screen::supportsTimestamps() && (!Config::envIsLinux || viewAttach.window().screen()->frameRate() < 100.))
+	if(!Base::Screen::supportsTimestamps(appContext()) && (!Config::envIsLinux || viewAttach.window().screen()->frameRate() < 100.))
 	{
 		setWindowFrameClockSource(Base::Window::FrameTimeSource::RENDERER);
 	}
@@ -407,8 +409,8 @@ void EmuViewController::moveEmuViewToWindow(Base::Window &win)
 
 void EmuViewController::configureAppForEmulation(bool running)
 {
-	Base::setIdleDisplayPowerSave(running ? (bool)optionIdleDisplayPowerSave : true);
-	applyOSNavStyle(running);
+	appContext().setIdleDisplayPowerSave(running ? (bool)optionIdleDisplayPowerSave : true);
+	applyOSNavStyle(appContext(), running);
 	Input::setHintKeyRepeat(!running);
 }
 
@@ -493,42 +495,43 @@ void EmuViewController::placeElements()
 	viewStack.place(winData.viewport().bounds(), winData.projection.plane());
 }
 
-static bool hasExtraWindow()
+static bool hasExtraWindow(Base::ApplicationContext app)
 {
-	return Base::Window::windows() == 2;
+	return app.windows() == 2;
 }
 
-static void dismissExtraWindow()
+static void dismissExtraWindow(Base::ApplicationContext app)
 {
-	if(!hasExtraWindow())
+	if(!hasExtraWindow(app))
 		return;
-	Base::Window::window(1)->dismiss();
+	app.window(1)->dismiss();
 }
 
-static bool extraWindowIsFocused()
+static bool extraWindowIsFocused(Base::ApplicationContext app)
 {
-	if(!hasExtraWindow())
+	if(!hasExtraWindow(app))
 		return false;
-	return windowData(*Base::Window::window(1)).focused;
+	return windowData(*app.window(1)).focused;
 }
 
-static Base::Screen *extraWindowScreen()
+static Base::Screen *extraWindowScreen(Base::ApplicationContext app)
 {
-	if(!hasExtraWindow())
+	if(!hasExtraWindow(app))
 		return nullptr;
-	return Base::Window::window(1)->screen();
+	return app.window(1)->screen();
 }
 
 void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 {
-	if(on && !hasExtraWindow())
+	auto app = appContext();
+	if(on && !hasExtraWindow(app))
 	{
 		logMsg("setting emu view on extra window");
 		Base::WindowConfig winConf;
 		winConf.setScreen(screen);
-		winConf.setTitle(appName());
-		auto extraWin = Base::Window::makeWindow(winConf,
-			[this](Base::Window &win)
+		winConf.setTitle(app.applicationName);
+		auto extraWin = app.makeWindow(winConf,
+			[this](Base::ApplicationContext, Base::Window &win)
 			{
 				emuView.renderer().attachWindow(win);
 				win.makeAppData<WindowData>();
@@ -628,9 +631,9 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 			return;
 		}
 	}
-	else if(!on && hasExtraWindow())
+	else if(!on && hasExtraWindow(app))
 	{
-		dismissExtraWindow();
+		dismissExtraWindow(app);
 	}
 }
 
@@ -678,7 +681,7 @@ void EmuViewController::clearEmuAudioStats()
 
 bool EmuViewController::allWindowsAreFocused() const
 {
-	return mainWindowData().focused && (!hasExtraWindow() || extraWindowIsFocused());
+	return mainWindowData().focused && (!hasExtraWindow(appContext()) || extraWindowIsFocused(appContext()));
 }
 
 void EmuViewController::applyFrameRates()
@@ -742,7 +745,7 @@ void EmuViewController::moveOnFrame(Base::Window &from, Base::Window &to)
 
 void EmuViewController::startEmulation()
 {
-	setCPUNeedsLowLatency(true);
+	setCPUNeedsLowLatency(appContext(), true);
 	systemTask->start();
 	EmuSystem::start();
 	videoLayer().setBrightness(1.f);
@@ -751,7 +754,7 @@ void EmuViewController::startEmulation()
 
 void EmuViewController::pauseEmulation()
 {
-	setCPUNeedsLowLatency(false);
+	setCPUNeedsLowLatency(appContext(), false);
 	systemTask->pause();
 	EmuSystem::pause();
 	videoLayer().setBrightness(showingEmulation ? .75f : .25f);
@@ -902,18 +905,18 @@ EmuVideoLayer &EmuViewController::videoLayer() const
 	return *emuView.videoLayer();
 }
 
-void EmuViewController::onScreenChange(Base::Screen &screen, Base::Screen::Change change)
+void EmuViewController::onScreenChange(Base::ApplicationContext app, Base::Screen &screen, Base::ScreenChange change)
 {
 	if(change.added())
 	{
 		logMsg("screen added");
-		if(optionShowOnSecondScreen && screen.screens() > 1)
+		if(optionShowOnSecondScreen && app.screens() > 1)
 			setEmuViewOnExtraWindow(true, screen);
 	}
 	else if(change.removed())
 	{
 		logMsg("screen removed");
-		if(hasExtraWindow() && *extraWindowScreen() == screen)
+		if(hasExtraWindow(appContext()) && *extraWindowScreen(appContext()) == screen)
 			setEmuViewOnExtraWindow(false, screen);
 	}
 }
@@ -1026,8 +1029,13 @@ bool EmuViewController::useRendererTime() const
 
 void EmuViewController::configureSecondaryScreens()
 {
-	if(optionShowOnSecondScreen && Base::Screen::screens() > 1)
+	if(optionShowOnSecondScreen && appContext().screens() > 1)
 	{
-		setEmuViewOnExtraWindow(true, *Base::Screen::screen(1));
+		setEmuViewOnExtraWindow(true, *appContext().screen(1));
 	}
+}
+
+Base::ApplicationContext EmuViewController::appContext() const
+{
+	return emuWindow().appContext();
 }

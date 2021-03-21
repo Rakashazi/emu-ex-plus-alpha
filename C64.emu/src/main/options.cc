@@ -94,10 +94,10 @@ Byte1Option optionAutostartOnLaunch(CFGKEY_AUTOSTART_ON_LOAD, 1);
 // VIC-20 specific
 Byte1Option optionVic20RamExpansions(CFGKEY_VIC20_RAM_EXPANSIONS, 0);
 
-EmuSystem::Error EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext app)
 {
 	currSystem = (ViceSystem)optionViceSystem.val;
-	plugin = loadVicePlugin(currSystem, EmuApp::libPath().data());
+	plugin = loadVicePlugin(currSystem, EmuApp::libPath(app).data());
 	if(!plugin)
 	{
 		return makeError("Error loading plugin for system %s", VicePlugin::systemName(currSystem));

@@ -15,9 +15,9 @@
 
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
+#include "private.hh"
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/logger/logger.h>
-#include "private.hh"
 
 BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 	TableView

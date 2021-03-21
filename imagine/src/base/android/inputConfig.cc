@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "InputConfig"
-#include <imagine/base/Base.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/base/sharedLibrary.hh>
 #include <imagine/logger/logger.h>
@@ -73,9 +72,9 @@ static AndroidInputDevice makeGenericKeyDevice()
 		"Key Input (All Devices)"};
 }
 
-static bool usesInputDeviceListener()
+static bool usesInputDeviceListener(Base::ApplicationContext app)
 {
-	return Base::androidSDK() >= 16;
+	return app.androidSDK() >= 16;
 }
 
 // NAVHIDDEN_* mirrors KEYSHIDDEN_*
@@ -113,11 +112,6 @@ static void setHardKeyboardState(int hardKeyboardState)
 int keyboardType()
 {
 	return aKeyboardType;
-}
-
-bool hasTrackball()
-{
-	return trackballNav;
 }
 
 bool hasXperiaPlayGamepad()
@@ -352,56 +346,55 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumI
 
 void AndroidInputDevice::setJoystickAxisAsDpadBits(uint32_t axisMask)
 {
-	if(Base::androidSDK() >= 12 && joystickAxisAsDpadBits_ != axisMask)
+	if(!axis.size() || joystickAxisAsDpadBits_ == axisMask)
+		return;
+	joystickAxisAsDpadBits_ = axisMask;
+	logMsg("remapping joystick axes for device: %d", osId);
+	for(auto &e : axis)
 	{
-		joystickAxisAsDpadBits_ = axisMask;
-		logMsg("remapping joystick axes for device: %d", osId);
-		for(auto &e : axis)
+		switch(e.id)
 		{
-			switch(e.id)
+			bcase AXIS_X:
 			{
-				bcase AXIS_X:
-				{
-					bool on = axisMask & AXIS_BIT_X;
-					//logMsg("axis x as dpad: %s", on ? "yes" : "no");
-					e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::LEFT : Keycode::JS1_XAXIS_NEG;
-					e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::RIGHT : Keycode::JS1_XAXIS_POS;
-				}
-				bcase AXIS_Y:
-				{
-					bool on = axisMask & AXIS_BIT_Y;
-					//logMsg("axis y as dpad: %s", on ? "yes" : "no");
-					e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::UP : Keycode::JS1_YAXIS_NEG;
-					e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::DOWN : Keycode::JS1_YAXIS_POS;
-				}
-				bcase AXIS_Z:
-				{
-					bool on = axisMask & AXIS_BIT_Z;
-					//logMsg("axis z as dpad: %s", on ? "yes" : "no");
-					e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::LEFT : Keycode::JS2_XAXIS_NEG;
-					e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::RIGHT : Keycode::JS2_XAXIS_POS;
-				}
-				bcase AXIS_RZ:
-				{
-					bool on = axisMask & AXIS_BIT_RZ;
-					//logMsg("axis rz as dpad: %s", on ? "yes" : "no");
-					e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::UP : Keycode::JS2_YAXIS_NEG;
-					e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::DOWN : Keycode::JS2_YAXIS_POS;
-				}
-				bcase AXIS_HAT_X:
-				{
-					bool on = axisMask & AXIS_BIT_HAT_X;
-					//logMsg("axis hat x as dpad: %s", on ? "yes" : "no");
-					e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::LEFT : Keycode::JS_POV_XAXIS_NEG;
-					e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::RIGHT : Keycode::JS_POV_XAXIS_POS;
-				}
-				bcase AXIS_HAT_Y:
-				{
-					bool on = axisMask & AXIS_BIT_HAT_Y;
-					//logMsg("axis hat y as dpad: %s", on ? "yes" : "no");
-					e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::UP : Keycode::JS_POV_YAXIS_NEG;
-					e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::DOWN : Keycode::JS_POV_YAXIS_POS;
-				}
+				bool on = axisMask & AXIS_BIT_X;
+				//logMsg("axis x as dpad: %s", on ? "yes" : "no");
+				e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::LEFT : Keycode::JS1_XAXIS_NEG;
+				e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::RIGHT : Keycode::JS1_XAXIS_POS;
+			}
+			bcase AXIS_Y:
+			{
+				bool on = axisMask & AXIS_BIT_Y;
+				//logMsg("axis y as dpad: %s", on ? "yes" : "no");
+				e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::UP : Keycode::JS1_YAXIS_NEG;
+				e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::DOWN : Keycode::JS1_YAXIS_POS;
+			}
+			bcase AXIS_Z:
+			{
+				bool on = axisMask & AXIS_BIT_Z;
+				//logMsg("axis z as dpad: %s", on ? "yes" : "no");
+				e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::LEFT : Keycode::JS2_XAXIS_NEG;
+				e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::RIGHT : Keycode::JS2_XAXIS_POS;
+			}
+			bcase AXIS_RZ:
+			{
+				bool on = axisMask & AXIS_BIT_RZ;
+				//logMsg("axis rz as dpad: %s", on ? "yes" : "no");
+				e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::UP : Keycode::JS2_YAXIS_NEG;
+				e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::DOWN : Keycode::JS2_YAXIS_POS;
+			}
+			bcase AXIS_HAT_X:
+			{
+				bool on = axisMask & AXIS_BIT_HAT_X;
+				//logMsg("axis hat x as dpad: %s", on ? "yes" : "no");
+				e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::LEFT : Keycode::JS_POV_XAXIS_NEG;
+				e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::RIGHT : Keycode::JS_POV_XAXIS_POS;
+			}
+			bcase AXIS_HAT_Y:
+			{
+				bool on = axisMask & AXIS_BIT_HAT_Y;
+				//logMsg("axis hat y as dpad: %s", on ? "yes" : "no");
+				e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::UP : Keycode::JS_POV_YAXIS_NEG;
+				e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::DOWN : Keycode::JS_POV_YAXIS_POS;
 			}
 		}
 	}
@@ -543,16 +536,11 @@ static void enumDevices(JNIEnv* env, bool notify)
 	}
 }
 
-void enumDevices()
+void init(Base::ApplicationContext app, JNIEnv *env)
 {
-	enumDevices(Base::jEnvForThread(), true);
-}
-
-void init(JNIEnv *env)
-{
-	if(Base::androidSDK() >= 12)
+	if(app.androidSDK() >= 12)
 	{
-		auto env = Base::jEnvForThread();
+		auto env = app.mainThreadJniEnv();
 		processInput = processInputWithGetEvent;
 
 		#ifdef ANDROID_COMPAT_API
@@ -565,7 +553,7 @@ void init(JNIEnv *env)
 
 		auto inputDeviceCls = env->FindClass("android/view/InputDevice");
 		JavaInstMethod<jobject()> jInputDeviceHelper{env, Base::jBaseActivityCls, "inputDeviceHelper", "()Lcom/imagine/InputDeviceHelper;"};
-		auto inputDeviceHelper = jInputDeviceHelper(env, Base::jBaseActivity);
+		auto inputDeviceHelper = jInputDeviceHelper(env, app.baseActivityObject());
 		assert(inputDeviceHelper);
 		inputDeviceHelperCls = (jclass)env->NewGlobalRef(env->GetObjectClass(inputDeviceHelper));
 		jEnumDevices.setup(env, inputDeviceHelperCls, "enumInputDevices", "()V");
@@ -597,11 +585,11 @@ void init(JNIEnv *env)
 		env->RegisterNatives(inputDeviceHelperCls, method, std::size(method));
 
 		// device change notifications
-		if(usesInputDeviceListener())
+		if(usesInputDeviceListener(app))
 		{
 			logMsg("setting up input notifications");
 			JavaInstMethod<jobject()> jInputDeviceListenerHelper{env, Base::jBaseActivityCls, "inputDeviceListenerHelper", "()Lcom/imagine/InputDeviceListenerHelper;"};
-			inputDeviceListenerHelper = jInputDeviceListenerHelper(env, Base::jBaseActivity);
+			inputDeviceListenerHelper = jInputDeviceListenerHelper(env, app.baseActivityObject());
 			assert(inputDeviceListenerHelper);
 			auto inputDeviceListenerHelperCls = env->GetObjectClass(inputDeviceListenerHelper);
 			inputDeviceListenerHelper = env->NewGlobalRef(inputDeviceListenerHelper);
@@ -631,14 +619,14 @@ void init(JNIEnv *env)
 				}
 			};
 			env->RegisterNatives(inputDeviceListenerHelperCls, method, std::size(method));
-			Base::addOnResume([env](bool)
+			app.addOnResume([env](Base::ApplicationContext, bool)
 				{
 					enumDevices(env, true);
 					logMsg("registering input device listener");
 					jRegister(env, inputDeviceListenerHelper);
 					return true;
 				}, Base::INPUT_DEVICE_ON_RESUME_PRIORITY);
-			Base::addOnExit([env](bool backgrounded)
+			app.addOnExit([env](Base::ApplicationContext, bool backgrounded)
 				{
 					logMsg("unregistering input device listener");
 					jUnregister(env, inputDeviceListenerHelper);
@@ -659,27 +647,28 @@ void init(JNIEnv *env)
 					[](int fd, int events, void* data)
 					{
 						logMsg("got inotify event");
+						Base::ApplicationContext app{(ANativeActivity*)data};
 						if(events == Base::POLLEV_IN)
 						{
 							char buffer[2048];
 							auto size = read(fd, buffer, sizeof(buffer));
-							if(Base::appIsRunning())
+							if(app.isRunning())
 							{
 								inputRescanCallback->runIn(IG::Milliseconds(250));
 							}
 						}
 						return 1;
-					}, nullptr);
+					}, app.aNativeActivityPtr());
 				if(ret != 1)
 				{
 					logErr("couldn't add inotify fd to looper");
 				}
-				Base::addOnResume([env](bool)
+				app.addOnResume([env](Base::ApplicationContext, bool)
 					{
 						inputRescanCallback.emplace("inputRescanCallback",
-							[]()
+							[env]()
 							{
-								enumDevices(Base::jEnvForThread(), true);
+								enumDevices(env, true);
 							});
 						enumDevices(env, true);
 						if(inputDevNotifyFd != -1 && watch == -1)
@@ -693,7 +682,7 @@ void init(JNIEnv *env)
 						}
 						return true;
 					}, Base::INPUT_DEVICE_ON_RESUME_PRIORITY);
-				Base::addOnExit([env](bool backgrounded)
+				app.addOnExit([env](Base::ApplicationContext, bool backgrounded)
 					{
 						if(watch != -1)
 						{
@@ -713,7 +702,7 @@ void init(JNIEnv *env)
 		auto genericKeyDev = makeGenericKeyDevice();
 		if(Config::MACHINE_IS_GENERIC_ARMV7)
 		{
-			auto buildDevice = Base::androidBuildDevice();
+			auto buildDevice = app.androidBuildDevice();
 			if(Base::isXperiaPlayDeviceStr(buildDevice.data()))
 			{
 				logMsg("detected Xperia Play gamepad");
@@ -729,6 +718,21 @@ void init(JNIEnv *env)
 		addInputDevice(genericKeyDev, false, false);
 		builtinKeyboardDev = sysInputDev.back().get();
 	}
+}
+
+}
+
+namespace Base
+{
+
+void AndroidApplicationContext::enumInputDevices()
+{
+	Input::enumDevices(mainThreadJniEnv(), true);
+}
+
+bool AndroidApplicationContext::hasTrackball() const
+{
+	return Input::trackballNav;
 }
 
 }

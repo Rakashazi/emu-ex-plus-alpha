@@ -185,13 +185,13 @@ class CustomVideoOptionView : public VideoOptionView
 	static constexpr const char *wavebeamPalPath = "Wavebeam.pal";
 	static constexpr const char *classicPalPath = "Classic (FBX).pal";
 
-	static void setPalette(const char *palPath)
+	static void setPalette(Base::ApplicationContext app, const char *palPath)
 	{
 		if(palPath)
 			string_copy(defaultPalettePath, palPath);
 		else
 			defaultPalettePath = {};
-		setDefaultPalette(palPath);
+		setDefaultPalette(app, palPath);
 	}
 
 	constexpr uint32_t defaultPaletteCustomFileIdx()
@@ -201,10 +201,10 @@ class CustomVideoOptionView : public VideoOptionView
 
 	TextMenuItem defaultPalItem[5]
 	{
-		{"FCEUX", [](){ setPalette({}); }},
-		{"FirebrandX", []() { setPalette(firebrandXPalPath); }},
-		{"Wavebeam", []() { setPalette(wavebeamPalPath); }},
-		{"Classic", []() { setPalette(classicPalPath); }},
+		{"FCEUX", [this](){ setPalette(appContext(), {}); }},
+		{"FirebrandX", [this]() { setPalette(appContext(), firebrandXPalPath); }},
+		{"Wavebeam", [this]() { setPalette(appContext(), wavebeamPalPath); }},
+		{"Classic", [this]() { setPalette(appContext(), classicPalPath); }},
 		{"Custom File", [this](TextMenuItem &, View &, Input::Event e)
 			{
 				auto startPath = EmuApp::mediaSearchPath();
@@ -216,7 +216,7 @@ class CustomVideoOptionView : public VideoOptionView
 				fPicker->setOnSelectFile(
 					[this](FSPicker &picker, const char *name, Input::Event)
 					{
-						setPalette(picker.makePathString(name).data());
+						setPalette(appContext(), picker.makePathString(name).data());
 						defaultPal.setSelected(defaultPaletteCustomFileIdx());
 						dismissPrevious();
 						picker.dismiss();

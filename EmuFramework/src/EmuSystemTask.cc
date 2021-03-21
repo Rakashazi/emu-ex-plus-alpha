@@ -14,13 +14,13 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "EmuSystemTask"
-#include <imagine/thread/Thread.hh>
-#include <imagine/logger/logger.h>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuVideo.hh>
 #include "EmuSystemTask.hh"
 #include "private.hh"
 #include "privateInput.hh"
+#include <imagine/thread/Thread.hh>
+#include <imagine/logger/logger.h>
 
 void EmuSystemTask::start()
 {

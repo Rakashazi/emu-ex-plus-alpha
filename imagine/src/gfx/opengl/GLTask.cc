@@ -15,7 +15,6 @@
 
 #define LOGTAG "GLTask"
 #include <assert.h>
-#include <imagine/base/Base.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/opengl/GLRendererTask.hh>
 #include <imagine/thread/Thread.hh>
@@ -31,7 +30,7 @@ GLTask::GLTask(const char *debugLabel):
 	commandPort{debugLabel}
 {}
 
-Error GLTask::makeGLContext(GLTaskConfig config)
+Error GLTask::makeGLContext(GLTaskConfig config, Base::ApplicationContext app)
 {
 	deinit();
 	thread = IG::makeThreadSync(
@@ -87,7 +86,7 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 	}
 	onExit =
 		{
-			[this](bool backgrounded)
+			[this](Base::ApplicationContext, bool backgrounded)
 			{
 				if(backgrounded)
 				{
@@ -108,7 +107,7 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 					deinit();
 				}
 				return true;
-			}, Base::RENDERER_TASK_ON_EXIT_PRIORITY
+			}, app, Base::RENDERER_TASK_ON_EXIT_PRIORITY
 		};
 	return {};
 }
@@ -127,6 +126,11 @@ void GLTask::runFunc(FuncDelegate del, bool awaitReply)
 Base::GLContext GLTask::glContext() const
 {
 	return context;
+}
+
+Base::ApplicationContext GLTask::appContext() const
+{
+	return onExit.appContext();
 }
 
 GLTask::operator bool() const

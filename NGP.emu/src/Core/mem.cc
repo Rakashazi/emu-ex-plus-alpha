@@ -89,7 +89,7 @@ should stop "Gals Fighters" from writing all over itself.
 #include "flash.h"
 #include <assert.h>
 #include <imagine/logger/logger.h>
-#include <imagine/util/bits.h>
+#include <imagine/util/bitset.hh>
 
 using uint16u [[gnu::aligned(1)]] = uint16;
 using uint32u [[gnu::aligned(1)]] = uint32;

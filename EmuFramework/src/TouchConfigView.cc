@@ -15,13 +15,14 @@
 
 #include <emuframework/TouchConfigView.hh>
 #include "EmuOptions.hh"
+#include "private.hh"
+#include "privateInput.hh"
+#include "EmuViewController.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <utility>
-#include "private.hh"
-#include "privateInput.hh"
 
 static constexpr bool CAN_TURN_OFF_MENU_BTN = !Config::envIsIOS;
 
@@ -162,7 +163,7 @@ OnScreenInputPlaceView::OnScreenInputPlaceView(ViewAttachParams attach, VControl
 		}
 	}
 {
-	applyOSNavStyle(true);
+	applyOSNavStyle(appContext(), true);
 	textFade = {1.};
 	animationStartTimer.runIn(IG::Seconds{2}, {},
 		[this]()
@@ -175,7 +176,7 @@ OnScreenInputPlaceView::OnScreenInputPlaceView(ViewAttachParams attach, VControl
 
 OnScreenInputPlaceView::~OnScreenInputPlaceView()
 {
-	applyOSNavStyle(false);
+	applyOSNavStyle(appContext(), false);
 	window().removeOnFrame(animate);
 }
 

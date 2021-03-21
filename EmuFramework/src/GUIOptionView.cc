@@ -17,7 +17,8 @@
 #include <emuframework/EmuApp.hh>
 #include "EmuOptions.hh"
 #include "private.hh"
-#include <imagine/base/Base.hh>
+#include "EmuViewController.hh"
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
 
 static constexpr bool USE_MOBILE_ORIENTATION_NAMES = Config::envIsAndroid || Config::envIsIOS;
@@ -127,7 +128,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			[this]()
 			{
 				optionHideStatusBar = 0;
-				applyOSNavStyle(false);
+				applyOSNavStyle(appContext(), false);
 			}
 		},
 		{
@@ -135,7 +136,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			[this]()
 			{
 				optionHideStatusBar = 1;
-				applyOSNavStyle(false);
+				applyOSNavStyle(appContext(), false);
 			}
 		},
 		{
@@ -143,7 +144,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			[this]()
 			{
 				optionHideStatusBar = 2;
-				applyOSNavStyle(false);
+				applyOSNavStyle(appContext(), false);
 			}
 		}
 	},
@@ -160,7 +161,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			[this]()
 			{
 				optionLowProfileOSNav = 0;
-				applyOSNavStyle(false);
+				applyOSNavStyle(appContext(), false);
 			}
 		},
 		{
@@ -168,7 +169,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			[this]()
 			{
 				optionLowProfileOSNav = 1;
-				applyOSNavStyle(false);
+				applyOSNavStyle(appContext(), false);
 			}
 		},
 		{
@@ -176,7 +177,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			[this]()
 			{
 				optionLowProfileOSNav = 2;
-				applyOSNavStyle(false);
+				applyOSNavStyle(appContext(), false);
 			}
 		}
 	},
@@ -193,7 +194,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			[this]()
 			{
 				optionHideOSNav = 0;
-				applyOSNavStyle(false);
+				applyOSNavStyle(appContext(), false);
 			}
 		},
 		{
@@ -201,7 +202,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			[this]()
 			{
 				optionHideOSNav = 1;
-				applyOSNavStyle(false);
+				applyOSNavStyle(appContext(), false);
 			}
 		},
 		{
@@ -209,7 +210,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			[this]()
 			{
 				optionHideOSNav = 2;
-				applyOSNavStyle(false);
+				applyOSNavStyle(appContext(), false);
 			}
 		}
 	},
@@ -226,7 +227,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionIdleDisplayPowerSave = item.flipBoolValue(*this);
-			Base::setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
+			appContext().setIdleDisplayPowerSave(optionIdleDisplayPowerSave);
 		}
 	},
 	navView

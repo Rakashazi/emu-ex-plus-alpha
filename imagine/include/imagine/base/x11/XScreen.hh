@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/base/baseDefs.hh>
 #include <utility>
 #include <compare>
 
@@ -32,6 +33,11 @@ public:
 	void *nativeObject() const;
 	bool operator ==(XScreen const &rhs) const;
 	explicit operator bool() const;
+
+	constexpr bool operator ==(ScreenId screen) const
+	{
+		return xScreen == screen;
+	}
 
 protected:
 	void *xScreen{};

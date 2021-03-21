@@ -18,6 +18,11 @@
 #include <imagine/config/defs.hh>
 #include <vector>
 
+namespace Base
+{
+class ApplicationContext;
+}
+
 namespace IG::Audio
 {
 	namespace Config
@@ -49,7 +54,7 @@ struct ApiDesc
 	constexpr ApiDesc(const char *name, Api api):name{name}, api{api} {}
 };
 
-std::vector<ApiDesc> audioAPIs();
-Api makeValidAPI(Api api = Api::DEFAULT);
+std::vector<ApiDesc> audioAPIs(Base::ApplicationContext);
+Api makeValidAPI(Base::ApplicationContext, Api api = Api::DEFAULT);
 
 }

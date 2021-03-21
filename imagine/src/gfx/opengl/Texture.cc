@@ -21,6 +21,7 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
+#include <imagine/util/bit.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
 #include "utils.hh"
 #include <cstdlib>

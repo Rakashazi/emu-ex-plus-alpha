@@ -14,9 +14,9 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
-#include <imagine/gui/AlertView.hh>
 #include "Recent.hh"
 #include "RecentGameView.hh"
+#include <imagine/gui/AlertView.hh>
 
 RecentGameView::RecentGameView(ViewAttachParams attach, RecentGameList &list):
 	TableView

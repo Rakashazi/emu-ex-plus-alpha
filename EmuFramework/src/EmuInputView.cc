@@ -20,10 +20,11 @@
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/FilePicker.hh>
 #include "EmuOptions.hh"
-#include <imagine/gui/AlertView.hh>
-#include <imagine/gfx/RendererCommands.hh>
 #include "private.hh"
 #include "privateInput.hh"
+#include "EmuViewController.hh"
+#include <imagine/gui/AlertView.hh>
+#include <imagine/gfx/RendererCommands.hh>
 
 EmuInputView::EmuInputView() {}
 

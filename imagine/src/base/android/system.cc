@@ -15,7 +15,7 @@
 
 #define LOGTAG "Base"
 #include <sys/resource.h>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
@@ -29,9 +29,9 @@ static jobject vibrator{};
 static JavaInstMethod<void(jlong)> jVibrate{};
 static bool vibrationSystemIsInit = false;
 
-AndroidPropString androidBuildDevice()
+AndroidPropString AndroidApplicationContext::androidBuildDevice() const
 {
-	auto env = jEnvForThread();
+	auto env = mainThreadJniEnv();
 	JavaClassMethod<jobject()> jDevName{env, jBaseActivityCls, "devName", "()Ljava/lang/String;"};
 	auto str = javaStringCopy<AndroidPropString>(env, (jstring)jDevName(env, jBaseActivityCls));
 	//logMsg("device name: %s", str.data());
@@ -43,31 +43,31 @@ bool isXperiaPlayDeviceStr(const char *str)
 	return strstr(str, "R800") || string_equal(str, "zeus");
 }
 
-bool apkSignatureIsConsistent()
+bool AndroidApplicationContext::apkSignatureIsConsistent() const
 {
 	bool sigMatchesAPK = true;
 	#ifdef ANDROID_APK_SIGNATURE_HASH
-	auto env = jEnvForThread();
+	auto env = mainThreadJniEnv();
 	JavaInstMethod<jint()> jSigHash{env, jBaseActivityCls, "sigHash", "()I"};
-	sigMatchesAPK = jSigHash(env, jBaseActivity) == ANDROID_APK_SIGNATURE_HASH;
+	sigMatchesAPK = jSigHash(env, baseActivityObject()) == ANDROID_APK_SIGNATURE_HASH;
 	#endif
 	return sigMatchesAPK;
 }
 
-bool packageIsInstalled(const char *name)
+bool AndroidApplicationContext::packageIsInstalled(const char *name)
 {
-	auto env = jEnvForThread();
+	auto env = mainThreadJniEnv();
 	JavaInstMethod<jboolean(jstring)> jPackageIsInstalled{env, jBaseActivityCls, "packageIsInstalled", "(Ljava/lang/String;)Z"};
-	return jPackageIsInstalled(env, jBaseActivity, env->NewStringUTF(name));
+	return jPackageIsInstalled(env, baseActivityObject(), env->NewStringUTF(name));
 }
 
-static void initVibration(JNIEnv* env)
+static void initVibration(JNIEnv* env, jobject baseActivity)
 {
 	if(likely(vibrationSystemIsInit))
 		return;
 	{
 		JavaInstMethod<jobject()> jSysVibrator{env, jBaseActivityCls, "systemVibrator", "()Landroid/os/Vibrator;"};
-		vibrator = jSysVibrator(env, jBaseActivity);
+		vibrator = jSysVibrator(env, baseActivity);
 	}
 	vibrationSystemIsInit = true;
 	if(!vibrator)
@@ -78,20 +78,20 @@ static void initVibration(JNIEnv* env)
 	jVibrate.setup(env, vibratorCls, "vibrate", "(J)V");
 }
 
-bool hasVibrator()
+bool ApplicationContext::hasVibrator()
 {
-	initVibration(jEnvForThread());
+	initVibration(mainThreadJniEnv(), baseActivityObject());
 	return vibrator;
 }
 
-void vibrate(uint32_t ms)
+void ApplicationContext::vibrate(IG::Milliseconds ms)
 {
-	auto env = jEnvForThread();
-	initVibration(env);
+	auto env = mainThreadJniEnv();
+	initVibration(env, baseActivityObject());
 	if(unlikely(!vibrator))
 		return;
-	//logDMsg("vibrating for %u ms", ms);
-	jVibrate(env, vibrator, (jlong)ms);
+	//logDMsg("vibrating for %u ms", ms.count());
+	jVibrate(env, vibrator, (jlong)ms.count());
 }
 
 void setDeviceOrientationChangedSensor(bool)
@@ -99,7 +99,7 @@ void setDeviceOrientationChangedSensor(bool)
 	// TODO
 }
 
-void setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate)
+void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate)
 {
 	// TODO
 }
@@ -136,14 +136,14 @@ void NoopThread::stop()
 	runFlagAddr = {};
 }
 
-void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
+void ApplicationContext::exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
 {
 	std::array<char, 512> msg{};
 	auto result = vsnprintf(msg.data(), msg.size(), format, args);
-	auto env = jEnvForThread();
+	auto env = mainThreadJniEnv();
 	JavaInstMethod<void(jstring)> jMakeErrorPopup{env, jBaseActivityCls, "makeErrorPopup", "(Ljava/lang/String;)V"};
-	jMakeErrorPopup(env, jBaseActivity, env->NewStringUTF(msg.data()));
-	auto exitTimer = new Timer{"exitTimer", [=]() { exit(exitVal); }};
+	jMakeErrorPopup(env, baseActivityObject(), env->NewStringUTF(msg.data()));
+	auto exitTimer = new Timer{"exitTimer", [=]() { ::exit(exitVal); }};
 	exitTimer->runIn(IG::Seconds{3});
 }
 

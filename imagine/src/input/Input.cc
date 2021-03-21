@@ -16,7 +16,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Timer.hh>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
 #include "private.hh"
@@ -69,7 +69,7 @@ void setHintKeyRepeat(bool on)
 	setAllowKeyRepeatTimer(on);
 }
 
-void startKeyRepeatTimer(Event event)
+void startKeyRepeatTimer(Base::ApplicationContext app, Event event)
 {
 	if(!allowKeyRepeatTimer_)
 		return;
@@ -86,11 +86,11 @@ void startKeyRepeatTimer(Event event)
 	if(unlikely(!keyRepeatTimer))
 	{
 		keyRepeatTimer.emplace("keyRepeatTimer",
-			[]()
+			[app]()
 			{
 				//logMsg("repeating key event");
 				if(likely(keyRepeatEvent.pushed()))
-					dispatchInputEvent(keyRepeatEvent);
+					dispatchInputEvent(app, keyRepeatEvent);
 				return true;
 			});
 	}
@@ -181,15 +181,15 @@ bool keyInputIsPresent()
 	return Device::anyTypeBitsPresent(Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_GAMEPAD);
 }
 
-bool dispatchInputEvent(Input::Event event)
+bool dispatchInputEvent(Base::ApplicationContext app, Input::Event event)
 {
-	return Base::mainWindow().dispatchInputEvent(event);
+	return app.mainWindow().dispatchInputEvent(event);
 }
 
-void flushEvents()
+void flushEvents(Base::ApplicationContext app)
 {
-	flushSystemEvents();
-	flushInternalEvents();
+	flushSystemEvents(app);
+	flushInternalEvents(app);
 }
 
 void flushInternalEvents()
@@ -245,7 +245,7 @@ bool processICadeKey(Key key, uint32_t action, Time time, const Device &dev, Bas
 		{
 			//logMsg("pushed iCade keyboard key: %s", dev.keyName(key));
 			Event event{0, Map::ICADE, onKey, onKey, PUSHED, 0, 0, Source::GAMEPAD, time, &dev};
-			startKeyRepeatTimer(event);
+			startKeyRepeatTimer(win.appContext(), event);
 			win.dispatchInputEvent(event);
 		}
 		return true;

@@ -25,15 +25,17 @@ import android.util.Log;
 final class ContentViewV9 extends View
 {
 	private static final String logTag = "ContentView";
+	private long windowAddr;
 	private Rect contentRect = new Rect();
 	private Rect globalRect = new Rect(); // preallocate
 	private int windowWidth, windowHeight;
 
-	public ContentViewV9(Context context)
+	public ContentViewV9(Context context, long windowAddr)
 	{
 		super(context);
+		this.windowAddr = windowAddr;
 	}
-	
+
 	@Override protected void onLayout(boolean changed, int left, int top, int right, int bottom)
 	{
 		//Log.i(logTag, "onLayout called: " + left + ":" + top + ":" + right + ":" + bottom);
@@ -57,7 +59,7 @@ final class ContentViewV9 extends View
 		{
 			//Log.i(logTag, "content rect: " + contentRect.left + "," + contentRect.top + " " + contentRect.right + "," + contentRect.bottom
 			//		+ " -> " + left + "," + top + " " + right + "," + bottom);
-			BaseActivity.onContentRectChanged(0, left, top, right, bottom, newWindowWidth, newWindowHeight);
+			BaseActivity.onContentRectChanged(windowAddr, left, top, right, bottom, newWindowWidth, newWindowHeight);
 			contentRect.left = left;
 			contentRect.top = top;
 			contentRect.right = right;

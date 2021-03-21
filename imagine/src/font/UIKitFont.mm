@@ -16,6 +16,7 @@
 static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "UIKitFont"
 #include <imagine/font/Font.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/container/array.hh>
 #include "../base/iphone/private.hh"
@@ -117,7 +118,7 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, bool kee
 	}
 }
 
-Font Font::makeSystem()
+Font Font::makeSystem(Base::ApplicationContext)
 {
 	if(unlikely(!textColor))
 	{
@@ -127,9 +128,9 @@ Font Font::makeSystem()
 	return {};
 }
 
-Font Font::makeBoldSystem()
+Font Font::makeBoldSystem(Base::ApplicationContext app)
 {
-	Font font = makeSystem();
+	Font font = makeSystem(app);
 	font.isBold = true;
 	return font;
 }

@@ -23,6 +23,11 @@
 #include "../../input/private.hh"
 #include "AndroidInputDevice.hh"
 
+namespace Base
+{
+class ApplicationContext;
+}
+
 namespace Input
 {
 
@@ -34,16 +39,16 @@ struct TouchState
 };
 using TouchStateArray = std::array<TouchState, Config::Input::MAX_POINTERS>;
 
-void (*processInput)(AInputQueue *inputQueue) = processInputWithHasEvents;
+void (*processInput)(Base::ApplicationContext, AInputQueue *) = processInputWithHasEvents;
 static const int AINPUT_SOURCE_JOYSTICK = 0x01000010;
 static const int AINPUT_SOURCE_CLASS_JOYSTICK = 0x00000010;
 static int mostRecentKeyEventDevID = -1;
 static TouchStateArray m{};
 static const char* aInputSourceToStr(uint32_t source);
 
-static AndroidInputDevice *deviceForInputId(int id)
+static AndroidInputDevice *deviceForInputId(Base::ApplicationContext app, int id)
 {
-	if(Base::androidSDK() < 12)
+	if(app.androidSDK() < 12)
 	{
 		// no multi-input device support
 		assumeExpr(sysInputDev.size());
@@ -136,7 +141,8 @@ static bool isFromSource(int src, int srcTest)
 	return (src & srcTest) == srcTest;
 }
 
-static void dispatchTouch(uint32_t idx, uint32_t action, TouchState &p, IG::Point2D<int> pos, Time time, bool isMouse, const Device *device, Base::Window &win)
+static void dispatchTouch(uint32_t idx, uint32_t action, TouchState &p, IG::Point2D<int> pos, Time time,
+	bool isMouse, const Device *device, Base::Window &win)
 {
 	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
 	uint32_t metaState = action == Input::RELEASED ? 0 : IG::bit(Pointer::LBUTTON);
@@ -144,7 +150,8 @@ static void dispatchTouch(uint32_t idx, uint32_t action, TouchState &p, IG::Poin
 	win.dispatchInputEvent(Event{idx, Map::POINTER, Pointer::LBUTTON, metaState, action, pos.x, pos.y, (int)idx, src, time, device});
 }
 
-static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int pid, Time time, bool isMouse, const Device *device, Base::Window &win)
+static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int pid, Time time, bool isMouse,
+	const Device *device, Base::Window &win)
 {
 	//logMsg("%s action: %s from id %d @ %d,%d @ time %llu",
 	//	isMouse ? "mouse" : "touch", androidEventEnumToStr(action), pid, x, y, (unsigned long long)time.nSecs());
@@ -230,7 +237,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 			{
 				case AINPUT_SOURCE_CLASS_POINTER:
 				{
-					auto dev = deviceForInputId(AInputEvent_getDeviceId(event));
+					auto dev = deviceForInputId(win.appContext(), AInputEvent_getDeviceId(event));
 					if(unlikely(!dev))
 					{
 						if(Config::DEBUG_BUILD)
@@ -291,7 +298,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 				}
 				case AINPUT_SOURCE_CLASS_JOYSTICK:
 				{
-					auto dev = deviceForInputId(AInputEvent_getDeviceId(event));
+					auto dev = deviceForInputId(win.appContext(), AInputEvent_getDeviceId(event));
 					if(unlikely(!dev))
 					{
 						if(Config::DEBUG_BUILD)
@@ -359,7 +366,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 				repeatCount = 0;
 			}
 			mostRecentKeyEventDevID = devID;
-			const AndroidInputDevice *dev = deviceForInputId(devID);
+			const AndroidInputDevice *dev = deviceForInputId(win.appContext(), devID);
 			if(unlikely(!dev))
 			{
 				if(virtualDev)
@@ -396,10 +403,10 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 	return false;
 }
 
-static void processInputCommon(AInputQueue *inputQueue, AInputEvent* event)
+static void processInputCommon(Base::ApplicationContext app, AInputQueue *inputQueue, AInputEvent* event)
 {
 	//logMsg("input event start");
-	if(unlikely(!Base::deviceWindow()))
+	if(unlikely(!Base::deviceWindow(app)))
 	{
 		logMsg("ignoring input with uninitialized window");
 		AInputQueue_finishEvent(inputQueue, event, 0);
@@ -410,7 +417,7 @@ static void processInputCommon(AInputQueue *inputQueue, AInputEvent* event)
 		//logMsg("input event used by pre-dispatch");
 		return;
 	}
-	auto handled = processInputEvent(event, *Base::deviceWindow());
+	auto handled = processInputEvent(event, *Base::deviceWindow(app));
 	AInputQueue_finishEvent(inputQueue, event, handled);
 	//logMsg("input event end: %s", handled ? "handled" : "not handled");
 }
@@ -423,13 +430,13 @@ static void processInputCommon(AInputQueue *inputQueue, AInputEvent* event)
 // it returns an error instead of using AInputQueue_hasEvents
 // and no warnings are printed to logcat unlike earlier
 // Android versions
-void processInputWithGetEvent(AInputQueue *inputQueue)
+void processInputWithGetEvent(Base::ApplicationContext app, AInputQueue *inputQueue)
 {
 	int events = 0;
 	AInputEvent* event = nullptr;
 	while(AInputQueue_getEvent(inputQueue, &event) >= 0)
 	{
-		processInputCommon(inputQueue, event);
+		processInputCommon(app, inputQueue, event);
 		events++;
 	}
 	if(events > 1)
@@ -438,7 +445,7 @@ void processInputWithGetEvent(AInputQueue *inputQueue)
 	}
 }
 
-void processInputWithHasEvents(AInputQueue *inputQueue)
+void processInputWithHasEvents(Base::ApplicationContext app, AInputQueue *inputQueue)
 {
 	int events = 0;
 	int32_t hasEventsRet = 0;
@@ -452,7 +459,7 @@ void processInputWithHasEvents(AInputQueue *inputQueue)
 			//logWarn("error getting input event from queue");
 			break;
 		}
-		processInputCommon(inputQueue, event);
+		processInputCommon(app, inputQueue, event);
 		events++;
 	} while((hasEventsRet = AInputQueue_hasEvents(inputQueue)) == 1);
 	if(events > 1)
@@ -482,11 +489,11 @@ static const char* aInputSourceToStr(uint32_t source)
 	}
 }
 
-void flushSystemEvents()
+void flushSystemEvents(Base::ApplicationContext app)
 {
 	if(AInputQueue_hasEvents(Base::inputQueue))
 	{
-		processInput(Base::inputQueue);
+		processInput(app, Base::inputQueue);
 	}
 }
 

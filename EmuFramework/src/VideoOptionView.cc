@@ -16,12 +16,13 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuVideoLayer.hh>
+#include <emuframework/EmuVideo.hh>
 #include <emuframework/VideoImageEffect.hh>
 #include "EmuOptions.hh"
 #include "private.hh"
+#include "EmuViewController.hh"
 #include <imagine/base/Screen.hh>
-#include <imagine/base/Base.hh>
-#include <imagine/base/platformExtras.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/AlertView.hh>
@@ -49,14 +50,14 @@ public:
 		View::defaultFace.precacheAlphaNum(attach.renderer());
 		View::defaultFace.precache(attach.renderer(), ".");
 		fpsText.setString("Preparing to detect frame rate...");
-		useRenderTaskTime = !screen()->supportsTimestamps();
+		useRenderTaskTime = !screen()->supportsTimestamps(appContext());
 		frameTimeSample.reserve(std::round(screen()->frameRate() * 2.));
 	}
 
 	~DetectFrameRateView() final
 	{
 		window().setIntendedFrameRate(0.);
-		setCPUNeedsLowLatency(false);
+		setCPUNeedsLowLatency(appContext(), false);
 		window().removeOnFrame(detectFrameRate);
 	}
 
@@ -168,7 +169,7 @@ public:
 				return runFrameTimeDetection(params.timestamp() - std::exchange(lastFrameTimestamp, params.timestamp()), 0.00175);
 			};
 		window().addOnFrame(detectFrameRate);
-		setCPUNeedsLowLatency(true);
+		setCPUNeedsLowLatency(appContext(), true);
 	}
 };
 
@@ -221,9 +222,9 @@ static void setImgEffectPixelFormat(PixelFormatID format, EmuVideoLayer &layer)
 #endif
 
 #ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-static const char *autoWindowPixelFormatStr()
+static const char *autoWindowPixelFormatStr(Base::ApplicationContext app)
 {
-	return Base::Window::defaultPixelFormat() == PIXEL_RGB565 ? "RGB565" : "RGBA8888";
+	return Base::Window::defaultPixelFormat(app) == PIXEL_RGB565 ? "RGB565" : "RGBA8888";
 }
 
 static void setWindowPixelFormat(PixelFormatID format)
@@ -576,11 +577,11 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	windowPixelFormat
 	{
 		"Display Color Format",
-		[](int idx, Gfx::Text &t)
+		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == 0)
 			{
-				t.setString(autoWindowPixelFormatStr());
+				t.setString(autoWindowPixelFormatStr(appContext()));
 				return true;
 			}
 			else
@@ -607,7 +608,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		false,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
-			emuViewController().setEmuViewOnExtraWindow(item.flipBoolValue(*this), *Base::Screen::screen(0));
+			emuViewController().setEmuViewOnExtraWindow(item.flipBoolValue(*this), *appContext().screen(0));
 		}
 	},
 	#endif
@@ -620,8 +621,8 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionShowOnSecondScreen = item.flipBoolValue(*this);
-			if(Base::Screen::screens() > 1)
-				emuViewController().setEmuViewOnExtraWindow(optionShowOnSecondScreen, *Base::Screen::screen(1));
+			if(appContext().screens() > 1)
+				emuViewController().setEmuViewOnExtraWindow(optionShowOnSecondScreen, *appContext().screen(1));
 		}
 	},
 	#endif
@@ -816,7 +817,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 			if(!emuViewController().emuWindowScreen()->frameRateIsReliable())
 			{
 				#ifdef __ANDROID__
-				if(Base::androidSDK() <= 10)
+				if(appContext().androidSDK() <= 10)
 				{
 					EmuApp::postErrorMessage("Many Android 2.3 devices mis-report their refresh rate, "
 						"using the detected or default rate may give better results");

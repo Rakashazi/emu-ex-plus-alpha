@@ -18,6 +18,7 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 
 static const VideoImageEffect::EffectDesc
@@ -185,7 +186,7 @@ void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex, const Gfx::
 std::optional<std::system_error> VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback)
 {
 	{
-		auto file = EmuApp::openAppAssetIO(
+		auto file = EmuApp::openAppAssetIO(r.appContext(),
 			FS::makePathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.vShaderFilename),
 			IO::AccessHint::ALL);
 		if(!file)
@@ -209,7 +210,7 @@ std::optional<std::system_error> VideoImageEffect::compileEffect(Gfx::Renderer &
 		}
 	}
 	{
-		auto file = EmuApp::openAppAssetIO(
+		auto file = EmuApp::openAppAssetIO(r.appContext(),
 			FS::makePathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.fShaderFilename),
 			IO::AccessHint::ALL);
 		if(!file)

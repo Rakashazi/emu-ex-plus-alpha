@@ -46,7 +46,7 @@ TestPicker::TestPicker(ViewAttachParams attach):
 	}
 {}
 
-void TestPicker::setTests(const TestDesc *testDesc, uint tests)
+void TestPicker::setTests(const TestDesc *testDesc, unsigned tests)
 {
 	testEntry.clear();
 	testEntry.reserve(tests);

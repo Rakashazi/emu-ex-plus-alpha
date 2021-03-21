@@ -18,6 +18,7 @@
 namespace Base
 {
 class Window;
+class ApplicationContext;
 }
 
 namespace Gfx
@@ -34,6 +35,7 @@ public:
 	constexpr Base::Window &window() const { return win; }
 	constexpr Gfx::RendererTask &rendererTask() const { return rTask; }
 	Gfx::Renderer &renderer() const;
+	Base::ApplicationContext appContext() const;
 
 protected:
 	Base::Window &win;

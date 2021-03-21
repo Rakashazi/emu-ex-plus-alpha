@@ -21,16 +21,18 @@
 
 template class IOUtils<PosixFileIO>;
 
-PosixFileIO::operator IO*() { return &io(); }
+static IO& getIO(std::variant<PosixIO, BufferMapIO> &ioImpl)
+{
+	return std::visit([](auto &&io) -> IO& { return io; }, ioImpl);
+}
 
-PosixFileIO::operator IO&() { return io(); }
+PosixFileIO::operator IO*() { return &getIO(ioImpl); }
+
+PosixFileIO::operator IO&() { return getIO(ioImpl); }
 
 GenericIO PosixFileIO::makeGeneric()
 {
-	if(std::holds_alternative<BufferMapIO>(ioImpl))
-		return GenericIO{std::get<BufferMapIO>(ioImpl)};
-	else
-		return GenericIO{std::get<PosixIO>(ioImpl)};
+	return std::visit([](auto &&io) { return GenericIO{io}; }, ioImpl);
 }
 
 std::error_code PosixFileIO::open(const char *path, IO::AccessHint access, uint32_t mode)
@@ -95,70 +97,60 @@ BufferMapIO PosixFileIO::makePosixMapIO(IO::AccessHint access, int fd)
 
 ssize_t PosixFileIO::read(void *buff, size_t bytes, std::error_code *ecOut)
 {
-	return io().read(buff, bytes, ecOut);
+	return std::visit([&](auto &&io){ return io.read(buff, bytes, ecOut); }, ioImpl);
 }
 
 ssize_t PosixFileIO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut)
 {
-	return io().readAtPos(buff, bytes, offset, ecOut);
+	return std::visit([&](auto &&io){ return io.readAtPos(buff, bytes, offset, ecOut); }, ioImpl);
 }
 
 const char *PosixFileIO::mmapConst()
 {
-	return io().mmapConst();
+	return std::visit([&](auto &&io){ return io.mmapConst(); }, ioImpl);
 }
 
 ssize_t PosixFileIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
 {
-	return io().write(buff, bytes, ecOut);
+	return std::visit([&](auto &&io){ return io.write(buff, bytes, ecOut); }, ioImpl);
 }
 
 std::error_code PosixFileIO::truncate(off_t offset)
 {
-	return io().truncate(offset);
+	return std::visit([&](auto &&io){ return io.truncate(offset); }, ioImpl);
 }
 
 off_t PosixFileIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 {
-	return io().seek(offset, mode, ecOut);
+	return std::visit([&](auto &&io){ return io.seek(offset, mode, ecOut); }, ioImpl);
 }
 
 void PosixFileIO::close()
 {
-	io().close();
+	std::visit([&](auto &&io){ io.close(); }, ioImpl);
 }
 
 void PosixFileIO::sync()
 {
-	io().sync();
+	std::visit([&](auto &&io){ io.sync(); }, ioImpl);
 }
 
 size_t PosixFileIO::size()
 {
-	return io().size();
+	return std::visit([&](auto &&io){ return io.size(); }, ioImpl);
 }
 
 bool PosixFileIO::eof()
 {
-	return io().eof();
+	return std::visit([&](auto &&io){ return io.eof(); }, ioImpl);
 }
 
 void PosixFileIO::advise(off_t offset, size_t bytes, IO::Advice advice)
 {
-	io().advise(offset, bytes, advice);
+	std::visit([&](auto &&io){ io.advise(offset, bytes, advice); }, ioImpl);
 }
 
 PosixFileIO::operator bool() const
 {
-	return (bool)io();
-}
-
-IO &PosixFileIO::io()
-{
-	return std::visit([](auto &&obj) -> IO& { return obj; }, ioImpl);
-}
-
-const IO &PosixFileIO::io() const
-{
-	return std::visit([](auto &&obj) -> const IO& { return obj; }, ioImpl);
+	return std::visit([&](auto &&io){ return (bool)io; }, ioImpl);
 }

@@ -19,20 +19,17 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/Window.hh>
 #include <imagine/base/GLContext.hh>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include "internalDefs.hh"
-#ifdef __ANDROID__
-#include <imagine/base/platformExtras.hh>
-#endif
 
 namespace Gfx
 {
 
-Renderer::Renderer(RendererConfig config, Base::Window *initialWindow, Error &err)
+Renderer::Renderer(RendererConfig config, Base::ApplicationContext app, Base::Window *initialWindow, Error &err)
 {
 	auto pixelFormat = config.pixelFormat();
 	if(pixelFormat == PIXEL_FMT_NONE)
-		pixelFormat = Base::Window::defaultPixelFormat();
+		pixelFormat = Base::Window::defaultPixelFormat(app);
 	{
 		auto [ec, dpy] = Base::GLDisplay::makeDefault(glAPI);
 		if(ec)
@@ -43,7 +40,7 @@ Renderer::Renderer(RendererConfig config, Base::Window *initialWindow, Error &er
 		glDpy = dpy;
 	}
 	{
-		auto bufferConfig = makeGLBufferConfig(pixelFormat);
+		auto bufferConfig = makeGLBufferConfig(app, pixelFormat);
 		if(unlikely(!bufferConfig))
 		{
 			err = std::runtime_error("error finding a GL configuration");
@@ -69,18 +66,18 @@ Renderer::Renderer(RendererConfig config, Base::Window *initialWindow, Error &er
 		.initialDrawable = initialDrawable,
 		.threadPriority = DRAW_THREAD_PRIORITY,
 	};
-	err = mainTask.makeGLContext(conf);
+	err = mainTask.makeGLContext(conf, app);
 	if(unlikely(err))
 	{
 		return;
 	}
 	mainTask.setDrawAsyncMode(maxSwapChainImages() < 3 ? DrawAsyncMode::PRESENT : DrawAsyncMode::NONE);
-	addEventHandlers(mainTask);
+	addEventHandlers(app, mainTask);
 	configureRenderer();
 }
 
-Renderer::Renderer(Base::Window *initialWindow, Error &err):
-	Renderer({Base::Window::defaultPixelFormat()}, initialWindow, err)
+Renderer::Renderer(Base::ApplicationContext app, Base::Window *initialWindow, Error &err):
+	Renderer({Base::Window::defaultPixelFormat(app)}, app, initialWindow, err)
 {}
 
 GLRenderer::GLRenderer():
@@ -113,13 +110,13 @@ bool Renderer::attachWindow(Base::Window &win)
 	{
 		return false;
 	}
-	if(win == Base::mainWindow())
+	if(win.isMainWindow())
 	{
 		if(!Config::SYSTEM_ROTATES_WINDOWS)
 		{
 			rData.projAngleM = orientationToGC(win.softOrientation());
-			Base::setOnDeviceOrientationChanged(
-				[this, &win](Base::Orientation newO)
+			win.appContext().setOnDeviceOrientationChanged(
+				[this, &win](Base::ApplicationContext, Base::Orientation newO)
 				{
 					auto oldWinO = win.softOrientation();
 					if(win.requestOrientationChange(newO))
@@ -130,8 +127,8 @@ bool Renderer::attachWindow(Base::Window &win)
 		}
 		else if(Config::SYSTEM_ROTATES_WINDOWS && !Base::Window::systemAnimatesRotation())
 		{
-			Base::setOnSystemOrientationChanged(
-				[this, &win](Base::Orientation oldO, Base::Orientation newO) // TODO: parameters need proper type definitions in API
+			win.appContext().setOnSystemOrientationChanged(
+				[this, &win](Base::ApplicationContext, Base::Orientation oldO, Base::Orientation newO) // TODO: parameters need proper type definitions in API
 				{
 					const Angle orientationDiffTable[4][4]
 					{
@@ -152,15 +149,15 @@ bool Renderer::attachWindow(Base::Window &win)
 void Renderer::detachWindow(Base::Window &win)
 {
 	win.resetRendererData();
-	if(win == Base::mainWindow())
+	if(win.isMainWindow())
 	{
 		if(!Config::SYSTEM_ROTATES_WINDOWS)
 		{
-			Base::setOnDeviceOrientationChanged({});
+			win.appContext().setOnDeviceOrientationChanged({});
 		}
 		else if(Config::SYSTEM_ROTATES_WINDOWS && !Base::Window::systemAnimatesRotation())
 		{
-			Base::setOnSystemOrientationChanged({});
+			win.appContext().setOnSystemOrientationChanged({});
 		}
 	}
 }
@@ -247,10 +244,15 @@ void Renderer::setPresentationTime(Base::Window &win, IG::FrameTime time) const
 unsigned Renderer::maxSwapChainImages() const
 {
 	#ifdef __ANDROID__
-	if(Base::androidSDK() < 18)
+	if(appContext().androidSDK() < 18)
 		return 2;
 	#endif
 	return 3; // assume triple-buffering by default
+}
+
+Base::ApplicationContext Renderer::appContext() const
+{
+	return task().appContext();
 }
 
 GLRendererWindowData &winData(Base::Window &win)

@@ -14,27 +14,26 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "main"
-#include <memory>
 #include <imagine/logger/logger.h>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/gfx/DrawableHolder.hh>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/base/platformExtras.hh>
 #include <imagine/util/string.h>
 #include "tests.hh"
 #include "TestPicker.hh"
 #include "cpuUtils.hh"
+#include <meta.h>
 #ifdef __ANDROID__
 #include <imagine/base/android/RootCpufreqParamSetter.hh>
 #endif
+#include <memory>
 
-static constexpr uint framesToRun = 60*60;
+static constexpr unsigned framesToRun = 60*60;
 
 struct WindowData
 {
@@ -142,6 +141,7 @@ static void placeElements(const Base::Window &win, Gfx::Renderer &r)
 
 static void finishTest(Base::Window &win, Gfx::Renderer &r, IG::FrameTime frameTime)
 {
+	auto app = win.appContext();
 	auto &activeTest = windowData(win).activeTest;
 	if(activeTest)
 	{
@@ -151,11 +151,11 @@ static void finishTest(Base::Window &win, Gfx::Renderer &r, IG::FrameTime frameT
 	activeTest.reset();
 	deinitCPUFreqStatus();
 	deinitCPULoadStatus();
-	Base::setIdleDisplayPowerSave(true);
+	app.setIdleDisplayPowerSave(true);
 	#ifdef __ANDROID__
 	if(cpuFreq)
 		cpuFreq->setDefaults();
-	Base::setSustainedPerformanceMode(false);
+	app.setSustainedPerformanceMode(false);
 	#endif
 	placeElements(win, r);
 	setPickerHandlers(win, r);
@@ -164,10 +164,11 @@ static void finishTest(Base::Window &win, Gfx::Renderer &r, IG::FrameTime frameT
 
 TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &t)
 {
+	auto app = win.appContext();
 	#ifdef __ANDROID__
 	if(cpuFreq)
 		cpuFreq->setLowLatency();
-	Base::setSustainedPerformanceMode(true);
+	app.setSustainedPerformanceMode(true);
 	#endif
 	auto &activeTest = windowData(win).activeTest;
 	switch(t.test)
@@ -179,8 +180,8 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 		bcase TEST_WRITE:
 			activeTest = std::make_unique<WriteTest>();
 	}
-	activeTest->init(r, t.pixmapSize, t.bufferMode);
-	Base::setIdleDisplayPowerSave(false);
+	activeTest->init(app, r, t.pixmapSize, t.bufferMode);
+	app.setIdleDisplayPowerSave(false);
 	initCPUFreqStatus();
 	initCPULoadStatus();
 	placeElements(win, r);
@@ -192,20 +193,22 @@ TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &
 namespace Base
 {
 
-void onInit(int argc, char** argv)
+const char *const ApplicationContext::applicationName{CONFIG_APP_NAME};
+
+void ApplicationContext::onInit(ApplicationContext app, int argc, char** argv)
 {
 	WindowConfig winConf;
-	winConf.setTitle("Frame Rate Test");
+	winConf.setTitle(applicationName);
 
-	auto &mainWin = *Window::makeWindow(winConf,
-		[](Window &win)
+	app.makeWindow(winConf,
+		[](ApplicationContext app, Window &win)
 		{
 			{
 				Gfx::Error err;
-				rendererPtr = std::make_unique<Gfx::Renderer>(&win, err);
+				rendererPtr = std::make_unique<Gfx::Renderer>(app, &win, err);
 				if(err)
 				{
-					Base::exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
+					app.exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
 					return;
 				}
 			}
@@ -214,7 +217,7 @@ void onInit(int argc, char** argv)
 			View::compileGfxPrograms(renderer);
 			View::defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{});
 
-			uint faceSize = win.heightSMMInPixels(3.5);
+			auto faceSize = win.heightSMMInPixels(3.5);
 			View::defaultFace.setFontSettings(renderer, faceSize);
 			View::defaultFace.precacheAlphaNum(renderer);
 			View::defaultFace.precache(renderer, ":.%()");
@@ -255,7 +258,7 @@ void onInit(int argc, char** argv)
 					{
 						if(e.pushed() && !e.repeated() && e.isDefaultCancelButton())
 						{
-							Base::exit();
+							win.appContext().exit();
 							return true;
 						}
 						return windowData(win).picker.inputEvent(e);
@@ -274,8 +277,8 @@ void onInit(int argc, char** argv)
 					return false;
 				});
 
-			Base::addOnResume(
-				[&renderer, &win](bool focused)
+			app.addOnResume(
+				[&renderer, &win](Base::ApplicationContext, bool focused)
 				{
 					windowData(win).picker.prepareDraw();
 					auto &activeTest = windowData(win).activeTest;
@@ -286,8 +289,8 @@ void onInit(int argc, char** argv)
 					return true;
 				});
 
-			Base::addOnExit(
-				[&renderer, &win](bool backgrounded)
+			app.addOnExit(
+				[&renderer, &win](Base::ApplicationContext, bool backgrounded)
 				{
 					if(backgrounded)
 					{

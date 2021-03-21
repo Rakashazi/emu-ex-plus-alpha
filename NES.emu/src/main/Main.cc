@@ -194,7 +194,7 @@ static void setDefaultPalette(IO &io)
 	FCEU_setDefaultPalettePtr(defaultPal.data());
 }
 
-void setDefaultPalette(const char *palPath)
+void setDefaultPalette(Base::ApplicationContext app, const char *palPath)
 {
 	if(!palPath || !strlen(palPath))
 	{
@@ -205,7 +205,7 @@ void setDefaultPalette(const char *palPath)
 	if(palPath[0] != '/')
 	{
 		// load as asset
-		auto io = EmuApp::openAppAssetIO(FS::makePathStringPrintf("palette/%s", palPath), IO::AccessHint::ALL);
+		auto io = EmuApp::openAppAssetIO(app, FS::makePathStringPrintf("palette/%s", palPath), IO::AccessHint::ALL);
 		if(!io)
 			return;
 		setDefaultPalette(io);
@@ -447,7 +447,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-EmuSystem::Error EmuSystem::onInit()
+EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
 {
 	backupSavestates = 0;
 	if(!FCEUI_Initialize())

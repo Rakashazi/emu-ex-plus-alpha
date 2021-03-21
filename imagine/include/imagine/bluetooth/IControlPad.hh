@@ -28,8 +28,9 @@ public:
 	static const uint8_t btClass[3];
 	static std::vector<IControlPad*> devList;
 
-	IControlPad(BluetoothAddr addr):
+	IControlPad(Base::ApplicationContext app, BluetoothAddr addr): BluetoothInputDevice{app},
 		Device{0, Input::Map::ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"},
+		sock{app},
 		addr{addr}
 	{}
 

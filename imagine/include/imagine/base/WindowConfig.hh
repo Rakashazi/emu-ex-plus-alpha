@@ -17,7 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/baseDefs.hh>
-#include <imagine/util/DelegateFunc.hh>
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XWindow.hh>
@@ -34,6 +33,7 @@ namespace Base
 
 using namespace IG;
 
+class ApplicationContext;
 class Screen;
 
 class WindowConfig
@@ -106,74 +106,74 @@ public:
 		screen_ = &screen;
 	}
 
-	Screen &screen() const;
+	Screen &screen(ApplicationContext app) const;
 
-	void setOnSurfaceChange(BaseWindow::SurfaceChangeDelegate del)
+	void setOnSurfaceChange(WindowSurfaceChangeDelegate del)
 	{
 		onSurfaceChange_ = del;
 	}
 
-	BaseWindow::SurfaceChangeDelegate onSurfaceChange() const
+	WindowSurfaceChangeDelegate onSurfaceChange() const
 	{
 		return onSurfaceChange_;
 	}
 
-	void setOnDraw(BaseWindow::DrawDelegate del)
+	void setOnDraw(WindowDrawDelegate del)
 	{
 		onDraw_ = del;
 	}
 
-	BaseWindow::DrawDelegate onDraw() const
+	WindowDrawDelegate onDraw() const
 	{
 		return onDraw_;
 	}
 
-	void setOnInputEvent(BaseWindow::InputEventDelegate del)
+	void setOnInputEvent(WindowInputEventDelegate del)
 	{
 		onInputEvent_ = del;
 	}
 
-	BaseWindow::InputEventDelegate onInputEvent() const
+	WindowInputEventDelegate onInputEvent() const
 	{
 		return onInputEvent_;
 	}
 
-	void setOnFocusChange(BaseWindow::FocusChangeDelegate del)
+	void setOnFocusChange(WindowFocusChangeDelegate del)
 	{
 		onFocusChange_ = del;
 	}
 
-	BaseWindow::FocusChangeDelegate onFocusChange() const
+	WindowFocusChangeDelegate onFocusChange() const
 	{
 		return onFocusChange_;
 	}
 
-	void setOnDragDrop(BaseWindow::DragDropDelegate del)
+	void setOnDragDrop(WindowDragDropDelegate del)
 	{
 		onDragDrop_ = del;
 	}
 
-	BaseWindow::DragDropDelegate onDragDrop() const
+	WindowDragDropDelegate onDragDrop() const
 	{
 		return onDragDrop_;
 	}
 
-	void setOnDismissRequest(BaseWindow::DismissRequestDelegate del)
+	void setOnDismissRequest(WindowDismissRequestDelegate del)
 	{
 		onDismissRequest_ = del;
 	}
 
-	BaseWindow::DismissRequestDelegate onDismissRequest() const
+	WindowDismissRequestDelegate onDismissRequest() const
 	{
 		return onDismissRequest_;
 	}
 
-	void setOnDismiss(BaseWindow::DismissDelegate del)
+	void setOnDismiss(WindowDismissDelegate del)
 	{
 		onDismiss_ = del;
 	}
 
-	BaseWindow::DismissDelegate onDismiss() const
+	WindowDismissDelegate onDismiss() const
 	{
 		return onDismiss_;
 	}
@@ -195,13 +195,13 @@ private:
 	NativeWindowFormat fmt{};
 	Screen *screen_{};
 	const char *title_{};
-	BaseWindow::SurfaceChangeDelegate onSurfaceChange_;
-	BaseWindow::DrawDelegate onDraw_;
-	BaseWindow::InputEventDelegate onInputEvent_;
-	BaseWindow::FocusChangeDelegate onFocusChange_;
-	BaseWindow::DragDropDelegate onDragDrop_;
-	BaseWindow::DismissRequestDelegate onDismissRequest_;
-	BaseWindow::DismissDelegate onDismiss_;
+	WindowSurfaceChangeDelegate onSurfaceChange_;
+	WindowDrawDelegate onDraw_;
+	WindowInputEventDelegate onInputEvent_;
+	WindowFocusChangeDelegate onFocusChange_;
+	WindowDragDropDelegate onDragDrop_;
+	WindowDismissRequestDelegate onDismissRequest_;
+	WindowDismissDelegate onDismiss_;
 };
 
 }

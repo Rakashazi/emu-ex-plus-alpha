@@ -84,7 +84,7 @@ const char *EmuSystem::systemName()
 	return "PC Engine (TurboGrafx-16)";
 }
 
-EmuSystem::Error EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)
 {
 	EmuControls::setActiveFaceButtons(2);
 	return {};

@@ -24,6 +24,12 @@ final class FontRenderer
 {
 	private static final String logTag = "FontRenderer";
 	private final Canvas canvas = new Canvas();
+
+	// Android 2.3's Canvas setBitmap() derefs parameter without null checking,  
+	// fixed in Android 4.0.3+ but must use a dummy bitmap for old versions
+	private final Bitmap nullBitmap =
+		android.os.Build.VERSION.SDK_INT < 15 ? Bitmap.createBitmap(1, 1, Bitmap.Config.ALPHA_8) : null;
+
 	private native void charMetricsCallback(long metricsAddr,
 		int xSize, int ySize, int xOff, int yOff, int xAdv);
 
@@ -54,21 +60,17 @@ final class FontRenderer
 		if(!makeBitmap)
 			return null;
 		Bitmap bitmap = Bitmap.createBitmap(cXSize, cYSize, Bitmap.Config.ALPHA_8);
-		bitmap.eraseColor(Color.TRANSPARENT);
 		canvas.setBitmap(bitmap);
 		canvas.drawText(cStr, 0, 1, -left, cYSize - bottom, paint);
-		// Android 2.3's Canvas setBitmap() derefs parameter without null checking,  
-		// fixed in Android 4.0.3+
-		if(android.os.Build.VERSION.SDK_INT >= 15)
-			canvas.setBitmap(null);
+		canvas.setBitmap(nullBitmap); // release text bitmap so it's destroyed later
 		return bitmap;
 	}
-	
+
 	Bitmap bitmap(int idx, Paint paint, long metricsAddr)
 	{
 		return glyphData(idx, paint, metricsAddr, true);
 	}
-	
+
 	void metrics(int idx, Paint paint, long metricsAddr)
 	{
 		glyphData(idx, paint, metricsAddr, false);

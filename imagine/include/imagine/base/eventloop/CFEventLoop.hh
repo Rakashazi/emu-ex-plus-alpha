@@ -15,9 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <CoreFoundation/CoreFoundation.h>
 #include <imagine/base/eventLoopDefs.hh>
 #include <imagine/util/typeTraits.hh>
+#include <CoreFoundation/CoreFoundation.h>
 #include <memory>
 
 namespace Base

@@ -39,7 +39,6 @@ class RendererTask;
 class RendererCommands;
 class SyncFence;
 class Texture;
-class DrawableHolder;
 
 using GC = TransformCoordinate;
 using Coordinate = TransformCoordinate;

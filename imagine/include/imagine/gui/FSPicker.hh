@@ -15,8 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <vector>
-#include <system_error>
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/input/Input.hh>
@@ -25,6 +23,8 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/gui/ViewStack.hh>
+#include <vector>
+#include <system_error>
 
 class FSPicker : public View
 {

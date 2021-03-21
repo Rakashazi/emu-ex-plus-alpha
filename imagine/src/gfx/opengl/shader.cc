@@ -18,11 +18,9 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
-#if __ANDROID__
-#include <imagine/base/platformExtras.hh>
-#endif
 #include "internalDefs.hh"
 #include "utils.hh"
+#include <cstring>
 
 namespace Gfx
 {
@@ -390,7 +388,7 @@ static bool linkCommonProgram(RendererTask &rTask, Program &prog, const char *fr
 #ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
 static bool linkCommonExternalTextureProgram(RendererTask &rTask, Program &prog, const char *fragSrc, const char *progName)
 {
-	assert(Base::androidSDK() >= 14);
+	assert(rTask.appContext().androidSDK() >= 14);
 	bool compiled = linkCommonProgram(rTask, prog, fragSrc, true, progName);
 	if(!prog.program())
 	{

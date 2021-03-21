@@ -8,12 +8,14 @@
 
 namespace Base
 {
+	class ApplicationContext;
+
 	extern UIApplication *sharedApp;
 	extern MainApp *mainApp;
 	extern CADisplayLink *displayLink;
 	extern bool isIPad;
-	Window *windowForUIWindow(UIWindow *uiWin);
-	Window *deviceWindow();
+	Window *windowForUIWindow(ApplicationContext, UIWindow *);
+	Window *deviceWindow(ApplicationContext);
 	bool hasAtLeastIOS5();
 	bool hasAtLeastIOS7();
 	bool hasAtLeastIOS8();
@@ -27,5 +29,5 @@ namespace Input
 	static constexpr int GSEVENTKEY_KEYCODE_IOS7 = 17;
 	static constexpr int GSEVENTKEY_KEYCODE_64_BIT = 13;
 	extern int GSEVENTKEY_KEYCODE;
-	void handleKeyEvent(UIEvent *event);
+	void handleKeyEvent(Base::ApplicationContext, UIEvent *);
 }

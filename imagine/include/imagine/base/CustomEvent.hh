@@ -16,8 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/EventLoop.hh>
-
 #include <imagine/base/eventloop/FDCustomEvent.hh>
 
 namespace Base

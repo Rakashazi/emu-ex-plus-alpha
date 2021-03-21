@@ -16,15 +16,16 @@
 #define LOGTAG "VController"
 #include <emuframework/VController.hh>
 #include "EmuOptions.hh"
+#include "private.hh"
+#include "privateInput.hh"
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/math/space.hh>
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/pixmap/MemPixmap.hh>
-#include "private.hh"
-#include "privateInput.hh"
+#include <imagine/base/Window.hh>
 
 static constexpr uint TOGGLE_KEYBOARD = 65536;
 static constexpr uint CHANGE_KEYBOARD_MODE = 65537;
@@ -1099,7 +1100,7 @@ void VController::applyInput(Input::Event e)
 			inputAction(Input::PUSHED, vBtn);
 			if(optionVibrateOnPush)
 			{
-				Base::vibrate(32);
+				appContext().vibrate(IG::Milliseconds{32});
 			}
 		}
 	}
@@ -1354,4 +1355,10 @@ void VController::setWindow(const Base::Window &win_)
 {
 	win = &win_;
 	winData = &::windowData(win_);
+}
+
+Base::ApplicationContext VController::appContext() const
+{
+	assert(hasWindow());
+	return window().appContext();
 }

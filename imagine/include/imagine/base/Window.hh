@@ -16,19 +16,23 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/baseDefs.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/WindowConfig.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
-#include <imagine/util/bits.h>
-#include <imagine/input/Input.hh>
 #include <imagine/base/Error.hh>
+
+namespace Input
+{
+class Event;
+}
 
 namespace Base
 {
 
 class Screen;
+class ApplicationContext;
 
 class Window : public WindowImpl
 {
@@ -40,9 +44,9 @@ public:
 		RENDERER,
 	};
 
-	constexpr Window() {}
-	static Window *makeWindow(WindowConfig config, InitDelegate);
-	IG::ErrorCode init(const WindowConfig &config, InitDelegate);
+	Window(ApplicationContext, WindowConfig, InitDelegate);
+	Window(const Window &) = delete;
+	Window &operator=(const Window &) = delete;
 	void show();
 	void dismiss();
 	void setAcceptDnd(bool on);
@@ -57,9 +61,7 @@ public:
 	uint8_t drawEventPriority() const;
 	void drawNow(bool needsSync = false);
 	Screen *screen() const;
-	static uint32_t windows();
-	static Window *window(uint32_t idx);
-	static PixelFormat defaultPixelFormat();
+	static PixelFormat defaultPixelFormat(ApplicationContext);
 	NativeWindow nativeObject() const;
 	void setIntendedFrameRate(double rate);
 	void setFormat(NativeWindowFormat);
@@ -68,6 +70,8 @@ public:
 	bool removeOnFrame(Base::OnFrameDelegate del, FrameTimeSource src = {});
 	void resetAppData();
 	void resetRendererData();
+	bool isMainWindow() const;
+	ApplicationContext appContext() const;
 
 	template <class T, class... Args>
 	T &makeAppData(Args&&... args)

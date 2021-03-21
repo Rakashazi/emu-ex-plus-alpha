@@ -37,7 +37,7 @@ public:
 	void post(const char *prefix, std::error_code ec, int secs = 3);
 	void prepareDraw() final;
 	void draw(Gfx::RendererCommands &cmds) final;
-	bool inputEvent(Input::Event event) final { return false; }
+	bool inputEvent(Input::Event event) final;
 
 	[[gnu::format(printf, 4, 5)]]
 	void printf(uint32_t secs, bool error, const char *format, ...);

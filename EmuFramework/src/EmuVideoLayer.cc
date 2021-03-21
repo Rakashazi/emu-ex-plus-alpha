@@ -17,13 +17,13 @@
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuVideo.hh>
+#include "privateInput.hh"
+#include "EmuOptions.hh"
 #include <imagine/util/math/Point2D.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
-#include "privateInput.hh"
-#include "EmuOptions.hh"
 #include <algorithm>
 
 EmuVideoLayer::EmuVideoLayer(EmuVideo &video, bool useLinearFilter):

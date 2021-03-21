@@ -37,9 +37,9 @@ static const char *installFirmwareFilesMessage =
 	"Install the C-BIOS BlueMSX machine files to Machines directory?";
 	#endif
 
-void installFirmwareFiles();
+void installFirmwareFiles(Base::ApplicationContext);
 HdType boardGetHdType(int hdIndex);
-FS::PathString makeMachineBasePath(FS::PathString customPath);
+FS::PathString makeMachineBasePath(Base::ApplicationContext, FS::PathString customPath);
 bool hasMSXTapeExtension(const char *name);
 bool hasMSXDiskExtension(const char *name);
 bool hasMSXROMExtension(const char *name);

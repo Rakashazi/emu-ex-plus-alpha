@@ -19,15 +19,16 @@
 #include <imagine/config/defs.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <android/bitmap.h>
 #include <system_error>
-
-class PixelFormatDesc;
 
 class BitmapFactoryImage
 {
 public:
-	constexpr BitmapFactoryImage() {}
+	constexpr BitmapFactoryImage(Base::ApplicationContext app):
+		app{app}
+	{}
 	std::error_code load(const char *name);
 	std::error_code loadAsset(const char *name);
 	std::errc readImage(IG::Pixmap dest);
@@ -38,24 +39,28 @@ public:
 	uint32_t height();
 	IG::PixelFormat pixelFormat() const;
 	explicit operator bool() const;
+	constexpr Base::ApplicationContext appContext() const { return app; }
 
-private:
+protected:
 	jobject bitmap{};
+	Base::ApplicationContext app{};
 	AndroidBitmapInfo info{};
 };
 
-class PngFile : public GfxImageSource
+class PngFile final: public GfxImageSource
 {
 public:
-	PngFile();
+	constexpr PngFile(Base::ApplicationContext app):
+		png{app}
+	{}
 	~PngFile();
 	std::error_code load(const char *name);
-	std::error_code loadAsset(const char *name, const char *appName);
+	std::error_code loadAsset(const char *name, const char *appName = Base::ApplicationContext::applicationName);
 	void deinit();
 	std::errc write(IG::Pixmap dest) final;
 	IG::Pixmap pixmapView() final;
 	explicit operator bool() const final;
 
-private:
+protected:
 	BitmapFactoryImage png;
 };

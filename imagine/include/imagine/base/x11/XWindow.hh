@@ -29,7 +29,7 @@ using NativeWindow = unsigned long;
 class XWindow : public BaseWindow
 {
 public:
-	constexpr XWindow() {}
+	using BaseWindow::BaseWindow;
 	~XWindow();
 	std::pair<unsigned long, unsigned long> xdndData() const;
 	explicit operator bool() const;
@@ -41,8 +41,6 @@ protected:
 	unsigned long dragAction{};
 	IG_enableMemberIf(!Config::MACHINE_IS_PANDORA, unsigned long, colormap){};
 };
-
-void shutdownWindowSystem();
 
 using WindowImpl = XWindow;
 

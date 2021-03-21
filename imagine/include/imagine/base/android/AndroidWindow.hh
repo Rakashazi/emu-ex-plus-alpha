@@ -17,13 +17,17 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
+#include <imagine/util/rectangle2.h>
 #include <jni.h>
 #include <compare>
 
 struct ANativeWindow;
+struct ANativeActivity;
 
 namespace Base
 {
+
+class ApplicationContext;
 
 using NativeWindowFormat = int32_t;
 using NativeWindow = ANativeWindow*;
@@ -31,22 +35,27 @@ using NativeWindow = ANativeWindow*;
 class AndroidWindow : public BaseWindow
 {
 public:
-	constexpr AndroidWindow() {}
+	static constexpr bool shouldRunOnInitAfterAddingWindow = false;
+
+	using BaseWindow::BaseWindow;
 	~AndroidWindow();
 	explicit operator bool() const;
-	void setNativeWindow(ANativeWindow *nWin);
+	void setNativeWindow(ApplicationContext, ANativeWindow *);
 	int nativePixelFormat();
 	void updateContentRect(const IG::WindowRect &rect);
 	void setContentRect(const IG::WindowRect &rect, const IG::Point2D<int> &winSize);
 
 protected:
+	enum class Type: uint8_t
+	{
+		NONE, MAIN, PRESENTATION
+	};
 	ANativeWindow *nWin{};
-	jobject jDialog{};
+	jobject jWin{};
 	InitDelegate onInit{};
 	int32_t pixelFormat = 0;
 	IG::WindowRect contentRect; // active window content
-	bool initialInit = false;
-	static constexpr bool shouldRunOnInitAfterAddingWindow = false;
+	Type type{};
 };
 
 using WindowImpl = AndroidWindow;

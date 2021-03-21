@@ -112,7 +112,7 @@ void applyGBPalette()
 		gbEmu.setDmgPaletteColor(2, i, makeOutputColor(pal.sp2[i]));
 }
 
-EmuSystem::Error EmuSystem::onOptionsLoaded()
+EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)
 {
 	gbEmu.setInputGetter(&gbcInput);
 	return {};
@@ -199,7 +199,7 @@ void EmuSystem::onPrepareVideo(EmuVideo &video)
 	auto fmt = (IG::PixelFormatID)optionRenderPixelFormat.val;
 	if(fmt == IG::PIXEL_NONE)
 	{
-		fmt = EmuApp::defaultRenderPixelFormat();
+		fmt = EmuApp::defaultRenderPixelFormat(video.appContext());
 	}
 	video.setFormat({{gambatte::lcd_hres, gambatte::lcd_vres}, fmt});
 }

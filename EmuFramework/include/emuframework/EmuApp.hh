@@ -21,8 +21,10 @@
 #include <imagine/gui/NavView.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/FSDefs.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <emuframework/EmuSystem.hh>
 #include <imagine/util/typeTraits.hh>
+#include <cstring>
 
 class EmuApp
 {
@@ -95,16 +97,16 @@ public:
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
 	static void addTurboInputEvent(uint action);
 	static void removeTurboInputEvent(uint action);
-	static FS::PathString assetPath();
-	static FS::PathString libPath();
-	static FS::PathString supportPath();
-	static AssetIO openAppAssetIO(const char *name, IO::AccessHint access);
+	static FS::PathString assetPath(Base::ApplicationContext);
+	static FS::PathString libPath(Base::ApplicationContext);
+	static FS::PathString supportPath(Base::ApplicationContext);
+	static AssetIO openAppAssetIO(Base::ApplicationContext, const char *name, IO::AccessHint access);
 	static void saveSessionOptions();
 	static void loadSessionOptions();
 	static bool hasSavedSessionOptions();
 	static void deleteSessionOptions();
 	static void syncEmulationThread();
-	static IG::PixelFormat defaultRenderPixelFormat();
+	static IG::PixelFormat defaultRenderPixelFormat(Base::ApplicationContext);
 	static void resetVideo();
 
 	template<class T, class Func>
@@ -182,8 +184,8 @@ public:
 	}
 
 	template <size_t S>
-	static AssetIO openAppAssetIO(std::array<char, S> name, IO::AccessHint access)
+	static AssetIO openAppAssetIO(Base::ApplicationContext app, std::array<char, S> name, IO::AccessHint access)
 	{
-		return openAppAssetIO(name.data(), access);
+		return openAppAssetIO(app, name.data(), access);
 	}
 };

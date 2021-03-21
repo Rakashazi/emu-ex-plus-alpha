@@ -17,11 +17,11 @@
 #include <emuframework/inGameActionKeys.hh>
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/EmuApp.hh>
+#include "privateInput.hh"
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/math/int.hh>
 #include <imagine/logger/logger.h>
-#include "privateInput.hh"
 
 class KeyConflictAlertView : public AlertView
 {

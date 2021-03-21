@@ -18,6 +18,7 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
+#include <imagine/input/config.hh>
 
 class InputManagerView;
 struct InputDeviceConfig;

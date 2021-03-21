@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/base/baseDefs.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/CustomEvent.hh>
 #include <imagine/time/Time.hh>
 

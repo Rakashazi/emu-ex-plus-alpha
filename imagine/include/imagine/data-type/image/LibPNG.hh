@@ -19,17 +19,18 @@
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
 #include <imagine/io/IO.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <system_error>
 
 #define PNG_SKIP_SETJMP_CHECK
 #include <png.h>
 
-class PixelFormatDesc;
-
 class Png
 {
 public:
-	constexpr Png() {}
+	constexpr Png(Base::ApplicationContext app):
+		app{app}
+	{}
 	std::error_code readHeader(GenericIO io);
 	std::errc readImage(IG::Pixmap dest);
 	bool hasAlphaChannel();
@@ -39,28 +40,32 @@ public:
 	uint32_t height();
 	IG::PixelFormat pixelFormat();
 	explicit operator bool() const;
+	constexpr Base::ApplicationContext appContext() const { return app; }
 
-private:
-	png_structp png = nullptr;
-	png_infop info = nullptr;
+protected:
+	png_structp png{};
+	png_infop info{};
 	//png_infop end;
+	Base::ApplicationContext app{};
 	void setTransforms(IG::PixelFormat outFormat, png_infop transInfo);
 	static bool supportUncommonConv;
 };
 
-class PngFile : public GfxImageSource
+class PngFile final: public GfxImageSource
 {
 public:
-	PngFile();
+	constexpr PngFile(Base::ApplicationContext app):
+		png{app}
+	{}
 	~PngFile();
 	std::error_code load(GenericIO io);
 	std::error_code load(const char *name);
-	std::error_code loadAsset(const char *name, const char *appName);
+	std::error_code loadAsset(const char *name, const char *appName = Base::ApplicationContext::applicationName);
 	void deinit();
 	std::errc write(IG::Pixmap dest) final;
 	IG::Pixmap pixmapView() final;
 	explicit operator bool() const final;
 
-private:
+protected:
 	Png png;
 };

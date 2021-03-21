@@ -23,9 +23,7 @@
 #include <imagine/gfx/TextureSampler.hh>
 #include <imagine/gfx/Program.hh>
 #include <imagine/gfx/RendererTask.hh>
-#include <imagine/util/Interpolator.hh>
 #include <imagine/util/typeTraits.hh>
-#include "GLSLProgram.hh"
 #include <memory>
 #ifdef CONFIG_BASE_GL_PLATFORM_EGL
 #include <EGL/egl.h>
@@ -35,6 +33,11 @@
 namespace IG
 {
 class Semaphore;
+}
+
+namespace Base
+{
+class ApplicationContext;
 }
 
 namespace Gfx
@@ -201,10 +204,9 @@ public:
 	void useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat);
 
 protected:
-	void addEventHandlers(RendererTask &task);
-	std::optional<Base::GLBufferConfig> makeGLBufferConfig(IG::PixelFormat pixelFormat);
-	void finishContextCreation(Base::GLContext ctx);
-	void setCurrentDrawable(Base::GLDisplay dpy, Base::GLContext ctx, Drawable win);
+	void addEventHandlers(Base::ApplicationContext, RendererTask &);
+	std::optional<Base::GLBufferConfig> makeGLBufferConfig(Base::ApplicationContext, IG::PixelFormat);
+	void setCurrentDrawable(Base::GLDisplay, Base::GLContext, Drawable);
 	void setupNonPow2Textures();
 	void setupNonPow2MipmapTextures();
 	void setupNonPow2MipmapRepeatTextures();

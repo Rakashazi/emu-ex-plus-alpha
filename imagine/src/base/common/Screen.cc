@@ -14,7 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "Screen"
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
@@ -26,26 +26,6 @@
 
 namespace Base
 {
-
-#ifdef CONFIG_BASE_MULTI_SCREEN
-std::vector<std::unique_ptr<Screen>> screen_;
-#else
-static std::array<std::unique_ptr<Screen>, 1> screen_;
-#endif
-
-Screen::ChangeDelegate Screen::onChange;
-
-[[gnu::weak]] bool logDroppedFrames = false;
-
-void Screen::setOnChange(ChangeDelegate del)
-{
-	onChange = del;
-}
-
-Screen &mainScreen()
-{
-	return *Screen::screen(0);
-}
 
 bool Screen::addOnFrame(OnFrameDelegate del, int priority)
 {
@@ -130,82 +110,9 @@ void Screen::setActive(bool active)
 	}
 }
 
-uint32_t Screen::screens()
-{
-	return screen_.size();
-}
-
-Screen *Screen::screen(uint32_t idx)
-{
-	if(idx >= screen_.size())
-		return nullptr;
-	return screen_[idx].get();
-}
-
-Screen &Screen::addScreen(std::unique_ptr<Screen> s)
-{
-	#ifdef CONFIG_BASE_MULTI_SCREEN
-	screen_.emplace_back(std::move(s));
-	return *screen_.back();
-	#else
-	assert(!screen_[0]);
-	screen_[0] = std::move(s);
-	return *screen_[0];
-	#endif
-}
-
-void Screen::setActiveAll(bool active)
-{
-	for(auto &screen : screen_)
-	{
-		screen->setActive(active);
-	}
-}
-
-bool Screen::screensArePosted()
-{
-	for(auto &screen : screen_)
-	{
-		if(screen->isPosted())
-			return true;
-	}
-	return false;
-}
-
 FrameParams Screen::makeFrameParams(FrameTime timestamp) const
 {
 	return {timestamp, frameTime()};
-}
-
-void Screen::startDebugFrameStats(FrameTime timestamp)
-{
-#if 0
-	if constexpr(!Config::DEBUG_BUILD)
-		return;
-	FrameTime timeSinceCurrentFrame = IG::steadyClockTimestamp() - timestamp;
-	FrameTime diffFromLastFrame = timestamp - prevFrameTimestamp;
-	/*logMsg("frame at %f, %f since then, %f since last frame",
-		frameTimeBaseToSDec(frameTime),
-		frameTimeBaseToSDec(timeSinceCurrentFrame),
-		frameTimeBaseToSDec(diffFromLastFrame));*/
-	auto elapsed = makeFrameParams(timestamp).elapsedFrames();
-	if(elapsed > 1)
-	{
-		if(logDroppedFrames)
-			logDMsg("Lost %u frame(s) after %u continuous, at time %f (%f since last frame)",
-				elapsed - 1, (unsigned)continuousFrames,
-				IG::FloatSeconds(timestamp).count(),
-				IG::FloatSeconds(diffFromLastFrame).count());
-		continuousFrames = 0;
-	}
-#endif
-}
-
-void Screen::endDebugFrameStats()
-{
-	if constexpr(!Config::DEBUG_BUILD)
-		return;
-	continuousFrames = isPosted() ? continuousFrames + 1 : 0;
 }
 
 }

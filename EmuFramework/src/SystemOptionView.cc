@@ -17,10 +17,9 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 #include "EmuOptions.hh"
-#include <imagine/base/Base.hh>
-#include <imagine/base/platformExtras.hh>
-#include <imagine/gui/TextTableView.hh>
 #include "private.hh"
+#include <imagine/base/ApplicationContext.hh>
+#include <imagine/gui/TextTableView.hh>
 
 static FS::PathString savePathStrToDescStr(char *savePathStr)
 {
@@ -259,11 +258,11 @@ void SystemOptionView::onSavePathChange(const char *path)
 {
 	if(string_equal(path, optionSavePathDefaultToken))
 	{
-		auto defaultPath = EmuSystem::baseDefaultGameSavePath();
+		auto defaultPath = EmuSystem::baseDefaultGameSavePath(appContext());
 		EmuApp::printfMessage(4, false, "Default Save Path:\n%s", defaultPath.data());
 	}
 	savePath.compile(makePathMenuEntryStr(optionSavePath).data(), renderer(), projP);
-	EmuSystem::setupGameSavePath();
+	EmuSystem::setupGameSavePath(appContext());
 	EmuSystem::savePathChanged();
 }
 

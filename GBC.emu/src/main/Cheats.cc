@@ -14,6 +14,7 @@
 	along with GBC.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/TextEntry.hh>
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>

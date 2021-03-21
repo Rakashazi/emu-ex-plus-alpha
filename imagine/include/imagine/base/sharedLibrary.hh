@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/bits.h>
+#include <imagine/util/bitset.hh>
 #include <type_traits>
 
 namespace Base

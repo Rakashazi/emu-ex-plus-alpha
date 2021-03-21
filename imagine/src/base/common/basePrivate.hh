@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/base/Base.hh>
+#include <cstdint>
 
 namespace Base
 {

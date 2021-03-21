@@ -16,7 +16,6 @@
 #include <cstring>
 #include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
-#include <imagine/base/Base.hh>
 #include <imagine/util/utility.h>
 #include <emuframework/EmuApp.hh>
 #include "VicePlugin.hh"

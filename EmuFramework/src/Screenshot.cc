@@ -19,10 +19,12 @@
 #include <imagine/data-type/image/sys.hh>
 #include <imagine/pixmap/MemPixmap.hh>
 #include <imagine/io/FileIO.hh>
+#include <imagine/base/ApplicationContext.hh>
+#include <imagine/util/string.h>
 
 #ifdef CONFIG_DATA_TYPE_IMAGE_QUARTZ2D
 
-bool writeScreenshot(IG::Pixmap vidPix, const char *fname)
+bool writeScreenshot(Base::ApplicationContext, IG::Pixmap vidPix, const char *fname)
 {
 	auto screen = vidPix.data();
 	IG::MemPixmap tempMemPix{{vidPix.size(), IG::PIXEL_FMT_RGB888}};
@@ -35,30 +37,28 @@ bool writeScreenshot(IG::Pixmap vidPix, const char *fname)
 #elif defined CONFIG_DATA_TYPE_IMAGE_ANDROID
 
 #include <imagine/util/jni.hh>
-#include <imagine/base/platformExtras.hh>
 
 // TODO: make png writer module in imagine
 namespace Base
 {
 
 extern jclass jBaseActivityCls;
-extern jobject jBaseActivity;
 
 }
 
-bool writeScreenshot(IG::Pixmap vidPix, const char *fname)
+bool writeScreenshot(Base::ApplicationContext app, IG::Pixmap vidPix, const char *fname)
 {
 	static JavaInstMethod<jobject(jint, jint, jint)> jMakeBitmap;
 	static JavaInstMethod<jboolean(jobject, jobject)> jWritePNG;
 	using namespace Base;
-	auto env = jEnvForThread();
+	auto env = app.thisThreadJniEnv();
 	if(!jMakeBitmap)
 	{
 		jMakeBitmap.setup(env, jBaseActivityCls, "makeBitmap", "(III)Landroid/graphics/Bitmap;");
 		jWritePNG.setup(env, jBaseActivityCls, "writePNG", "(Landroid/graphics/Bitmap;Ljava/lang/String;)Z");
 	}
 	auto aFormat = vidPix.format().id() == PIXEL_RGB565 ? ANDROID_BITMAP_FORMAT_RGB_565 : ANDROID_BITMAP_FORMAT_RGBA_8888;
-	auto bitmap = jMakeBitmap(env, jBaseActivity, vidPix.w(), vidPix.h(), aFormat);
+	auto bitmap = jMakeBitmap(env, app.baseActivityObject(), vidPix.w(), vidPix.h(), aFormat);
 	if(!bitmap)
 	{
 		logErr("error allocating bitmap");
@@ -69,7 +69,7 @@ bool writeScreenshot(IG::Pixmap vidPix, const char *fname)
 	Base::makePixmapView(env, bitmap, buffer, vidPix.format()).write(vidPix, {});
 	AndroidBitmap_unlockPixels(env, bitmap);
 	auto nameJStr = env->NewStringUTF(fname);
-	auto writeOK = jWritePNG(env, jBaseActivity, bitmap, nameJStr);
+	auto writeOK = jWritePNG(env, app.baseActivityObject(), bitmap, nameJStr);
 	env->DeleteLocalRef(nameJStr);
 	env->DeleteLocalRef(bitmap);
 	if(!writeOK)
@@ -86,7 +86,7 @@ bool writeScreenshot(IG::Pixmap vidPix, const char *fname)
 using png_const_bytep = png_bytep;
 #endif
 
-bool writeScreenshot(IG::Pixmap vidPix, const char *fname)
+bool writeScreenshot(Base::ApplicationContext, IG::Pixmap vidPix, const char *fname)
 {
 	FileIO fp;
 	fp.create(fname);

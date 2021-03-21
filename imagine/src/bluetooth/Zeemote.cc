@@ -16,9 +16,7 @@
 #define LOGTAG "Zeemote"
 #include <imagine/bluetooth/Zeemote.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/base/Base.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/util/bits.h>
 #include <imagine/util/algorithm.h>
 #include <algorithm>
 #include "../input/private.hh"
@@ -90,7 +88,7 @@ IG::ErrorCode Zeemote::open(BluetoothAdapter &adapter)
 	#ifdef CONFIG_BLUETOOTH_BTSTACK
 	sock.setPin("0000", 4);
 	#endif
-	if(auto err = sock.openRfcomm(addr, 1);
+	if(auto err = sock.openRfcomm(adapter, addr, 1);
 		err)
 	{
 		logErr("error opening socket");
@@ -189,8 +187,8 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 					//processStickDataForButtonEmulation((int8_t*)&inputBuffer[4], player);
 					iterateTimes(2, i)
 					{
-						if(axisKey[i].dispatch(inputBuffer[4+i], player, Input::Map::ZEEMOTE, time, *this, Base::mainWindow()))
-							Base::endIdleByUserActivity();
+						if(axisKey[i].dispatch(inputBuffer[4+i], player, Input::Map::ZEEMOTE, time, *this, app.mainWindow()))
+							app.endIdleByUserActivity();
 					}
 			}
 			inputBufferPos = 0;
@@ -232,10 +230,10 @@ void Zeemote::processBtnReport(const uint8_t *btnData, Input::Time time, uint32_
 			bool newState = btnPush[i];
 			uint32_t code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
-			Base::endIdleByUserActivity();
+			app.endIdleByUserActivity();
 			Event event{player, Map::ZEEMOTE, (Key)code, sysKeyMap[i], newState ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
-			startKeyRepeatTimer(event);
-			dispatchInputEvent(event);
+			startKeyRepeatTimer(app, event);
+			dispatchInputEvent(app, event);
 		}
 	}
 	memcpy(prevBtnPush, btnPush, sizeof(prevBtnPush));

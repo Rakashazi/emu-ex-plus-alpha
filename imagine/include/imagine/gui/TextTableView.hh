@@ -17,7 +17,7 @@
 
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TableView.hh>
-#include <cstddef>
+#include <utility>
 #include <vector>
 
 class TextTableView : public TableView

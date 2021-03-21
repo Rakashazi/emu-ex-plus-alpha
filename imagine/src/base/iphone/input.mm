@@ -99,7 +99,7 @@ static CGRect toCGRect(const Base::Window &win, const IG::WindowRect &rect)
 	return CGRectMake(x / win.pointScale, y / win.pointScale, x2 / win.pointScale, y2 / win.pointScale);
 }
 
-static void setupTextView(UITextField *vkbdField, NSString *text)
+static void setupTextView(Base::ApplicationContext app, UITextField *vkbdField, NSString *text)
 {
 	// init input text field
 	using namespace Base;
@@ -130,47 +130,47 @@ static void setupTextView(UITextField *vkbdField, NSString *text)
 	vkbdField.delegate = Base::mainApp;
 	//[ vkbdField setEnabled: YES ];
 	if(!Config::SYSTEM_ROTATES_WINDOWS)
-		vkbdField.transform = makeTransformForOrientation(deviceWindow()->softOrientation());
+		vkbdField.transform = makeTransformForOrientation(deviceWindow(app)->softOrientation());
 	logMsg("init vkeyboard");
 }
 
-uint32_t startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels)
+uint32_t startSysTextInput(Base::ApplicationContext app, InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels)
 {
 	using namespace Base;
 	logMsg("starting system text input");
 	vKeyboardTextDelegate = callback;
 	if(!vkbdField)
 	{
-		vkbdField = [[UITextField alloc] initWithFrame: toCGRect(*deviceWindow(), textRect)];
-		setupTextView(vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
-		[deviceWindow()->uiWin().rootViewController.view addSubview: vkbdField];
+		vkbdField = [[UITextField alloc] initWithFrame: toCGRect(*deviceWindow(app), textRect)];
+		setupTextView(app, vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
+		[deviceWindow(app)->uiWin().rootViewController.view addSubview: vkbdField];
 	}
 	else
 	{
-		vkbdField.frame = toCGRect(*deviceWindow(), textRect);
-		setupTextView(vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
+		vkbdField.frame = toCGRect(*deviceWindow(app), textRect);
+		setupTextView(app, vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
 	}
 
 	[vkbdField becomeFirstResponder];
 	return 0;
 }
 
-void placeSysTextInput(IG::WindowRect rect)
+void placeSysTextInput(Base::ApplicationContext app, IG::WindowRect rect)
 {
 	using namespace Base;
 	textRect = rect;
 	if(vkbdField)
 	{
-		vkbdField.frame = toCGRect(*deviceWindow(), textRect);
+		vkbdField.frame = toCGRect(*deviceWindow(app), textRect);
 		/*#ifdef CONFIG_GFX_SOFT_ORIENTATION
 		vkbdField.transform = makeTransformForOrientation(deviceWindow().softOrientation());
 		#endif*/
 	}
 }
 
-IG::WindowRect sysTextInputRect() { return textRect; }
+IG::WindowRect sysTextInputRect(Base::ApplicationContext) { return textRect; }
 
-void cancelSysTextInput()
+void cancelSysTextInput(Base::ApplicationContext)
 {
 	if(!vkbdField)
 		return;
@@ -179,7 +179,7 @@ void cancelSysTextInput()
 	[vkbdField resignFirstResponder];
 }
 
-void finishSysTextInput()
+void finishSysTextInput(Base::ApplicationContext)
 {
 	if(!vkbdField)
 		return;
@@ -202,7 +202,7 @@ bool Device::anyTypeBitsPresent(uint32_t typeBits)
 	return false;
 }
 
-void handleKeyEvent(UIEvent *event)
+void handleKeyEvent(Base::ApplicationContext app, UIEvent *event)
 {
 	const auto *eventMem = [event _gsEvent];
 	if(!eventMem)
@@ -214,10 +214,10 @@ void handleKeyEvent(UIEvent *event)
 	Key key = eventMem[GSEVENTKEY_KEYCODE] & 0xFF; // only using key codes up to 255
 	auto time = IG::FloatSeconds((double)[event timestamp]);
 	if(!keyDev.iCadeMode()
-		|| (keyDev.iCadeMode() && !processICadeKey(key, action, time, keyDev, *Base::deviceWindow())))
+		|| (keyDev.iCadeMode() && !processICadeKey(key, action, time, keyDev, *Base::deviceWindow(app))))
 	{
 		auto src = keyDev.iCadeMode() ? Input::Source::GAMEPAD : Input::Source::KEYBOARD;
-		Base::deviceWindow()->dispatchInputEvent({0, Map::SYSTEM, key, key, action, 0, 0, src, time, &keyDev});
+		Base::deviceWindow(app)->dispatchInputEvent({0, Map::SYSTEM, key, key, action, 0, 0, src, time, &keyDev});
 	}
 }
 
@@ -230,9 +230,9 @@ void showSoftInput() {}
 void hideSoftInput() {}
 bool softInputIsActive() { return false; }
 
-void flushSystemEvents() {}
+void flushSystemEvents(Base::ApplicationContext) {}
 
-void init()
+void init(Base::ApplicationContext app)
 {
 	addDevice(keyDev);
 	GSEventIsHardwareKeyboardAttached = (GSEventIsHardwareKeyboardAttachedProto)dlsym(RTLD_DEFAULT, "GSEventIsHardwareKeyboardAttached");
@@ -253,7 +253,7 @@ void init()
 			nullptr, CFNotificationSuspensionBehaviorCoalesce);
 	}
 	#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
-	initAppleGameControllers();
+	initAppleGameControllers(app);
 	#endif
 }
 

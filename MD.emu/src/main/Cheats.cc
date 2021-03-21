@@ -18,6 +18,7 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/util/mayAliasInt.h>
 #include <imagine/util/ranges.hh>
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include <emuframework/EmuApp.hh>
 #include <main/Cheats.hh>

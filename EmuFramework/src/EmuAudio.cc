@@ -37,6 +37,7 @@ struct AudioStats
 };
 
 #ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
+#include "EmuViewController.hh"
 static AudioStats audioStats{};
 static Base::Timer audioStatsTimer{"audioStatsTimer"};
 #endif
@@ -138,10 +139,11 @@ void EmuAudio::resizeAudioBuffer(uint32_t targetBufferFillBytes)
 	}
 }
 
-void EmuAudio::open(IG::Audio::Api api)
+void EmuAudio::open(Base::ApplicationContext app_, IG::Audio::Api api)
 {
 	close();
-	audioStream = IG::Audio::makeOutputStream(api);
+	app = app_;
+	audioStream = IG::Audio::makeOutputStream(app_, api);
 }
 
 void EmuAudio::start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bufferIncrementUSecs)
@@ -159,7 +161,7 @@ void EmuAudio::start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bu
 	{
 		resizeAudioBuffer(targetBufferFillBytes);
 		audioWriteState = AudioWriteState::BUFFER;
-		IG::Audio::Format outputFormat{inputFormat.rate, IG::AudioManager::nativeSampleFormat(), inputFormat.channels};
+		IG::Audio::Format outputFormat{inputFormat.rate, IG::AudioManager::nativeSampleFormat(app), inputFormat.channels};
 		IG::Audio::OutputStreamConfig outputConf
 		{
 			outputFormat,

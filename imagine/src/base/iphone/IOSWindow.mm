@@ -19,7 +19,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <QuartzCore/QuartzCore.h>
 #include "../common/windowPrivate.hh"
 #include "private.hh"
-#include <imagine/base/Base.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
@@ -62,7 +62,7 @@ static Orientation defaultValidOrientationMask()
 
 bool Window::setValidOrientations(Orientation oMask)
 {
-	oMask = validateOrientationMask(oMask);
+	oMask = appContext().validateOrientationMask(oMask);
 	validO = 0;
 	if(oMask & VIEW_ROTATE_0)
 		validO |= UIInterfaceOrientationMaskPortrait;
@@ -98,12 +98,12 @@ bool Window::systemAnimatesRotation()
 	return Config::SYSTEM_ROTATES_WINDOWS;
 }
 
-Window *deviceWindow()
+Window *deviceWindow(ApplicationContext app)
 {
-	return Window::window(0);
+	return app.window(0);
 }
 
-IG::PixelFormat Window::defaultPixelFormat()
+IG::PixelFormat Window::defaultPixelFormat(ApplicationContext)
 {
 	return Config::MACHINE_IS_GENERIC_ARMV6 ? PIXEL_RGB565 : PIXEL_RGBA8888;
 }
@@ -123,7 +123,7 @@ void IOSWindow::updateContentRect(int width, int height, uint32_t softOrientatio
 	contentRect.x = contentRect.y = 0;
 	contentRect.x2 = width;
 	contentRect.y2 = height;
-	bool hasStatusBar = deviceWindow()->uiWin_ == uiWin_ && !sharedApp.statusBarHidden;
+	bool hasStatusBar = deviceWindow({sharedApp_})->uiWin_ == uiWin_ && !sharedApp.statusBarHidden;
 	//logMsg("has status bar %d", hasStatusBar);
 	if(hasStatusBar)
 	{
@@ -168,17 +168,11 @@ IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 	return {(size.x / (float)dpi) * 25.4f, (size.y / (float)dpi) * 25.4f};
 }
 
-IG::ErrorCode Window::init(const WindowConfig &config, InitDelegate)
+Window::Window(ApplicationContext app, WindowConfig config, InitDelegate):
+	IOSWindow{app, config}
 {
-	if(uiWin_)
-		return {};
-	BaseWindow::init(config);
-	if(!Config::BASE_MULTI_WINDOW && windows())
-	{
-		bug_unreachable("no multi-window support");
-	}
 	#ifdef CONFIG_BASE_MULTI_SCREEN
-	this->screen_ = &config.screen();
+	this->screen_ = &config.screen(app);
 	#endif
 	CGRect rect = screen()->uiScreen().bounds;
 	// Create a full-screen window
@@ -192,7 +186,7 @@ IG::ErrorCode Window::init(const WindowConfig &config, InitDelegate)
 	validO = defaultValidOrientationMask();
 	#endif
 	updateWindowSizeAndContentRect(*this, rect.size.width * pointScale, rect.size.height * pointScale, sharedApp);
-	if(*screen() != mainScreen())
+	if(*screen() != app.mainScreen())
 	{
 		uiWin().screen = screen()->uiScreen();
 	}
@@ -202,7 +196,6 @@ IG::ErrorCode Window::init(const WindowConfig &config, InitDelegate)
 	rootViewCtrl.wantsFullScreenLayout = YES;
 	#endif
 	uiWin().rootViewController = rootViewCtrl;
-	return {};
 }
 
 IOSWindow::~IOSWindow()
@@ -219,7 +212,7 @@ IOSWindow::~IOSWindow()
 void Window::show()
 {
 	logMsg("showing window");
-	if(this == deviceWindow())
+	if(this == deviceWindow(appContext()))
 		[uiWin() makeKeyAndVisible];
 	else
 		uiWin().hidden = NO;
@@ -231,11 +224,11 @@ bool Window::operator ==(Window const &rhs) const
 	return uiWin_ == rhs.uiWin_;
 }
 
-Window *windowForUIWindow(UIWindow *uiWin)
+Window *windowForUIWindow(ApplicationContext app, UIWindow *uiWin)
 {
-	iterateTimes(Window::windows(), i)
+	iterateTimes(app.windows(), i)
 	{
-		auto w = Window::window(i);
+		auto w = app.window(i);
 		if(w->uiWin() == uiWin)
 			return w;
 	}
@@ -291,7 +284,7 @@ void Window::setIntendedFrameRate(double rate) {}
 - (BOOL)shouldAutorotate
 {
 	//logMsg("reporting if should autorotate");
-	if(self.view.window == Base::deviceWindow()->uiWin())
+	if(self.view.window == Base::deviceWindow({[UIApplication sharedApplication]})->uiWin())
 		return YES;
 	else
 		return NO;

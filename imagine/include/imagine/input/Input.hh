@@ -27,6 +27,7 @@
 namespace Base
 {
 class Window;
+class ApplicationContext;
 }
 
 namespace Input
@@ -123,11 +124,11 @@ const std::vector<Device*> &deviceList();
 
 // OS text input support
 typedef DelegateFunc<void (const char *str)> InputTextDelegate;
-uint32_t startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels);
-void cancelSysTextInput();
-void finishSysTextInput();
-void placeSysTextInput(IG::WindowRect rect);
-IG::WindowRect sysTextInputRect();
+uint32_t startSysTextInput(Base::ApplicationContext, InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels);
+void cancelSysTextInput(Base::ApplicationContext);
+void finishSysTextInput(Base::ApplicationContext);
+void placeSysTextInput(Base::ApplicationContext, IG::WindowRect rect);
+IG::WindowRect sysTextInputRect(Base::ApplicationContext);
 
 void setHintKeyRepeat(bool on);
 
@@ -153,11 +154,11 @@ Event defaultEvent();
 
 bool keyInputIsPresent();
 
-bool dispatchInputEvent(Event event);
-void flushEvents();
-void flushSystemEvents();
-void flushInternalEvents();
-void startKeyRepeatTimer(Event event);
+bool dispatchInputEvent(Base::ApplicationContext, Event);
+void flushEvents(Base::ApplicationContext);
+void flushSystemEvents(Base::ApplicationContext);
+void flushInternalEvents(Base::ApplicationContext);
+void startKeyRepeatTimer(Base::ApplicationContext, Event);
 void cancelKeyRepeatTimer();
 void deinitKeyRepeatTimer();
 

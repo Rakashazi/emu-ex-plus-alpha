@@ -21,10 +21,12 @@
 
 namespace Base
 {
+	class ApplicationContext;
+
 	extern Display *xDisplay;
 
-	Window *windowForXWindow(::Window xWin);
-	int indexOfScreen(Screen &screen);
+	Window *windowForXWindow(ApplicationContext, ::Window);
+	int indexOfScreen(ApplicationContext, Screen &);
 	void toggleFullScreen(Display *dpy, ::Window xWin);
 	void initFrameTimer(EventLoop loop, Screen &screen);
 	void deinitFrameTimer();
@@ -39,7 +41,7 @@ namespace Input
 	void initPerWindowData(Display *dpy, ::Window win);
 	void deinit(Display *dpy);
 	// returns true if event is XI2, false otherwise
-	bool handleXI2GenericEvent(Display *dpy, XEvent &event);
+	bool handleXI2GenericEvent(Base::ApplicationContext, Display *, XEvent &);
 }
 
 namespace Config

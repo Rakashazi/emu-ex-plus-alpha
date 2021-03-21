@@ -20,6 +20,7 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/io/BufferMapIO.hh>
 #include <imagine/fs/ArchiveFS.hh>
+#include <imagine/base/ApplicationContext.hh>
 
 BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	TableView
@@ -40,7 +41,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	game[0] = {info.displayName,
 		[this, &info](Input::Event e)
 		{
-			auto file = EmuApp::openAppAssetIO(info.assetName, IO::AccessHint::ALL);
+			auto file = EmuApp::openAppAssetIO(appContext(), info.assetName, IO::AccessHint::ALL);
 			if(!file)
 			{
 				logErr("error opening bundled game asset: %s", info.assetName);

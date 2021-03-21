@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gui/ViewAttachParams.hh>
 #include <imagine/gfx/GfxText.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/typeTraits.hh>
 #include <imagine/util/FunctionTraits.hh>

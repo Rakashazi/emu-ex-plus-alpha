@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/base/baseDefs.hh>
 #include <jni.h>
 #include <utility>
 #include <compare>
@@ -24,13 +25,15 @@
 namespace Base
 {
 
+class ApplicationContext;
+
 enum SurfaceRotation : int;
 
 class AndroidScreen
 {
 public:
 	constexpr AndroidScreen() {}
-	AndroidScreen(JNIEnv *env, jobject aDisplay, int id, float refreshRate, SurfaceRotation rotation, jobject metrics);
+	AndroidScreen(JNIEnv *, ApplicationContext, jobject aDisplay, int id, float refreshRate, SurfaceRotation, jobject metrics);
 	~AndroidScreen();
 	std::pair<float, float> dpi() const;
 	float densityDPI() const;
@@ -40,7 +43,13 @@ public:
 	bool operator ==(AndroidScreen const &rhs) const;
 	explicit operator bool() const;
 
+	constexpr bool operator ==(ScreenId id) const
+	{
+		return id_ == id;
+	}
+
 protected:
+	JNIEnv *mainThreadJniEnv{};
 	jobject aDisplay{};
 	IG::FloatSeconds frameTime_{};
 	float xDPI{}, yDPI{};

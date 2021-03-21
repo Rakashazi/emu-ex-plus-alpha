@@ -24,13 +24,6 @@ import android.util.Log;
 
 final class ContentViewV24 extends ContentViewV16Base
 {
-	public ContentViewV24(Context context)
-	{
-		super(context);
-		((Activity)context).getWindow().getAttributes().systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN 
-			| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
-	}
-
 	public ContentViewV24(Context context, long windowAddr)
 	{
 		super(context, windowAddr);
@@ -65,7 +58,7 @@ final class ContentViewV24 extends ContentViewV16Base
 			newContentRect.right -= rootInsets.getSystemWindowInsetRight();
 			newContentRect.bottom -= rootInsets.getSystemWindowInsetBottom();
 		}
-		if(!contentRect.equals(newContentRect) || newWindowWidth != windowWidth || newWindowHeight != windowHeight)
+		if(windowAddr != 0 && (!contentRect.equals(newContentRect) || newWindowWidth != windowWidth || newWindowHeight != windowHeight))
 		{
 			//Log.i(logTag, "content rect: " + contentRect.left + "," + contentRect.top + " " + contentRect.right + "," + contentRect.bottom
 			//		+ " -> " + newContentRect.left + "," + newContentRect.top + " " + newContentRect.right + "," + newContentRect.bottom);

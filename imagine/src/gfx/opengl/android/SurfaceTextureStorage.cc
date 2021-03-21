@@ -49,14 +49,14 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 	task().runSync(
 		[=, this](GLTask::TaskContext ctx)
 		{
-			auto env = jEnvForThread();
+			auto env = task().appContext().thisThreadJniEnv();
 			glGenTextures(1, &texName_);
-			auto surfaceTex = makeSurfaceTexture(jEnvForThread(), texName_, makeSingleBuffered);
+			auto surfaceTex = makeSurfaceTexture(renderer().appContext(), env, texName_, makeSingleBuffered);
 			singleBuffered = makeSingleBuffered;
 			if(!surfaceTex && makeSingleBuffered)
 			{
 				// fall back to buffered mode
-				surfaceTex = makeSurfaceTexture(jEnvForThread(), texName_, false);
+				surfaceTex = makeSurfaceTexture(renderer().appContext(), env, texName_, false);
 				singleBuffered = false;
 			}
 			if(unlikely(!surfaceTex))
@@ -74,7 +74,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 	}
 	logMsg("made%sSurfaceTexture with texture:0x%X",
 		singleBuffered ? " " : " buffered ", texName_);
-	auto env = jEnvForThread();
+	auto env = r.appContext().mainThreadJniEnv();
 	auto localSurface = makeSurface(env, surfaceTex);
 	if(unlikely(!localSurface))
 	{
@@ -126,7 +126,7 @@ void SurfaceTextureStorage::deinit()
 		logMsg("deinit SurfaceTexture, releasing window:%p", nativeWin);
 		ANativeWindow_release(std::exchange(nativeWin, {}));
 	}
-	auto env = jEnvForThread();
+	auto env = task().appContext().mainThreadJniEnv();
 	if(surface)
 	{
 		releaseSurface(env, surface);
@@ -169,9 +169,9 @@ LockedTextureBuffer SurfaceTextureStorage::lock(uint32_t bufferFlags)
 	if(singleBuffered)
 	{
 		task().runSync(
-			[tex = surfaceTex]()
+			[tex = surfaceTex, app = task().appContext()]()
 			{
-				releaseSurfaceTextureImage(jEnvForThread(), tex);
+				releaseSurfaceTextureImage(app.thisThreadJniEnv(), tex);
 			});
 	}
 	ANativeWindow_Buffer winBuffer;
@@ -205,9 +205,9 @@ void SurfaceTextureStorage::unlock(LockedTextureBuffer, uint32_t)
 	}
 	ANativeWindow_unlockAndPost(nativeWin);
 	task().run(
-		[tex = surfaceTex]()
+		[tex = surfaceTex, app = task().appContext()]()
 		{
-			Base::updateSurfaceTextureImage(Base::jEnvForThread(), tex);
+			Base::updateSurfaceTextureImage(app.thisThreadJniEnv(), tex);
 		});
 }
 

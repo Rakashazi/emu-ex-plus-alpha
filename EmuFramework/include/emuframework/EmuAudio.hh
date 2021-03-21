@@ -18,6 +18,7 @@
 #include <imagine/audio/OutputStream.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/vmem/RingBuffer.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <memory>
 #include <atomic>
 
@@ -33,7 +34,7 @@ public:
 	};
 
 	constexpr EmuAudio() {}
-	void open(IG::Audio::Api api);
+	void open(Base::ApplicationContext, IG::Audio::Api);
 	void start(IG::Microseconds targetBufferFillUSecs, IG::Microseconds bufferIncrementUSecs);
 	void stop();
 	void close();
@@ -49,6 +50,7 @@ public:
 
 protected:
 	std::unique_ptr<IG::Audio::OutputStream> audioStream{};
+	Base::ApplicationContext app;
 	IG::RingBuffer rBuff{};
 	IG::Time lastUnderrunTime{};
 	uint32_t targetBufferFillBytes = 0;

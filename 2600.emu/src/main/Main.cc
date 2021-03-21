@@ -229,7 +229,7 @@ void EmuSystem::onPrepareAudio(EmuAudio &audio)
 	audio.setStereo(false); // TODO: stereo mode
 }
 
-EmuSystem::Error EmuSystem::onInit()
+EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
 {
 	osystem = make_unique<OSystem>();
 	Paddles::setDigitalSensitivity(5);
