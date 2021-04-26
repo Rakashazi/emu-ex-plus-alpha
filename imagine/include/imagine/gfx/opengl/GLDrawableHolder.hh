@@ -33,7 +33,7 @@ namespace Gfx
 class GLDrawableHolder
 {
 public:
-	GLDrawableHolder() {}
+	constexpr GLDrawableHolder(Base::ApplicationContext ctx):onExit{ctx} {}
 	GLDrawableHolder(GLDrawableHolder &&o) = default;
 	GLDrawableHolder &operator=(GLDrawableHolder &&o) = default;
 	~GLDrawableHolder();
@@ -42,7 +42,8 @@ public:
 
 protected:
 	Drawable drawable_{};
-	Base::OnExit onExit{};
+	Base::GLDisplay glDpy{};
+	Base::OnExit onExit;
 };
 
 using DrawableHolderImpl = GLDrawableHolder;

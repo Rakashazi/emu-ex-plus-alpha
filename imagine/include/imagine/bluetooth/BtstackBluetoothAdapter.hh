@@ -70,7 +70,7 @@ public:
 class BtstackBluetoothSocket : public BluetoothSocket
 {
 public:
-	constexpr BtstackBluetoothSocket(Base::ApplicationContext app) {}
+	constexpr BtstackBluetoothSocket(Base::ApplicationContext) {}
 	IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr addr, uint32_t psm) final;
 	IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr addr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER

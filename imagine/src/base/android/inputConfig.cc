@@ -16,13 +16,13 @@
 #define LOGTAG "InputConfig"
 #include <imagine/base/Timer.hh>
 #include <imagine/base/sharedLibrary.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/algorithm.h>
-#include "internal.hh"
 #include "android.hh"
-#include "../../input/private.hh"
-#include "AndroidInputDevice.hh"
+#include "input.hh"
+#include <android/configuration.h>
 #include <sys/inotify.h>
 #include <optional>
 
@@ -39,42 +39,17 @@ CLINK float AMotionEvent_getAxisValue(const AInputEvent* motion_event, int32_t a
 namespace Input
 {
 
-static int aHardKeyboardState = 0;
-static int aKeyboardType = ACONFIGURATION_KEYBOARD_NOKEYS;
-static int aHasHardKeyboard = 0;
-static bool trackballNav = false;
-bool sendInputToIME = false;
 static constexpr uint32_t maxJoystickAxisPairs = 4; // 2 sticks + POV hat + L/R Triggers
-std::vector<std::unique_ptr<AndroidInputDevice>> sysInputDev{};
-static const AndroidInputDevice *builtinKeyboardDev{};
-const AndroidInputDevice *virtualDev{};
-static jclass inputDeviceHelperCls{};
-static JavaClassMethod<void()> jEnumDevices{};
-
-// InputDeviceListener-based device changes
-static jobject inputDeviceListenerHelper{};
-static JavaInstMethod<void()> jRegister{};
-static JavaInstMethod<void()> jUnregister{};
 
 // Note: values must remain in sync with Java code
 static constexpr int DEVICE_ADDED = 0;
 static constexpr int DEVICE_CHANGED = 1;
 static constexpr int DEVICE_REMOVED = 2;
 
-// inotify-based device changes
-static std::optional<Base::Timer> inputRescanCallback{};
-int inputDevNotifyFd = -1;
-int watch = -1;
-
 static AndroidInputDevice makeGenericKeyDevice()
 {
 	return {-1, Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC,
 		"Key Input (All Devices)"};
-}
-
-static bool usesInputDeviceListener(Base::ApplicationContext app)
-{
-	return app.androidSDK() >= 16;
 }
 
 // NAVHIDDEN_* mirrors KEYSHIDDEN_*
@@ -91,81 +66,6 @@ static const char *hardKeyboardNavStateToStr(int state)
 	}
 }
 
-bool hasHardKeyboard() { return aHasHardKeyboard; }
-int hardKeyboardState() { return aHardKeyboardState; }
-
-static void setHardKeyboardState(int hardKeyboardState)
-{
-	if(aHardKeyboardState != hardKeyboardState)
-	{
-		aHardKeyboardState = hardKeyboardState;
-		logMsg("hard keyboard hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
-		if(builtinKeyboardDev)
-		{
-			bool shown = aHardKeyboardState == ACONFIGURATION_KEYSHIDDEN_NO;
-			Device::Change change{shown ? Device::Change::SHOWN : Device::Change::HIDDEN};
-			onDeviceChange.callCopySafe(*builtinKeyboardDev, change);
-		}
-	}
-}
-
-int keyboardType()
-{
-	return aKeyboardType;
-}
-
-bool hasXperiaPlayGamepad()
-{
-	return builtinKeyboardDev && builtinKeyboardDev->subtype() == Device::SUBTYPE_XPERIA_PLAY;
-}
-
-bool hasGetAxisValue()
-{
-	#ifdef ANDROID_COMPAT_API
-	return likely(AMotionEvent_getAxisValueFunc);
-	#else
-	return true;
-	#endif
-}
-
-void initInputConfig(AConfiguration *config)
-{
-	auto hardKeyboardState = AConfiguration_getKeysHidden(config);
-	auto navigationState = AConfiguration_getNavHidden(config);
-	auto keyboard = AConfiguration_getKeyboard(config);
-	trackballNav = AConfiguration_getNavigation(config) == ACONFIGURATION_NAVIGATION_TRACKBALL;
-	if(trackballNav)
-		logMsg("detected trackball");
-
-	aHardKeyboardState = hasXperiaPlayGamepad() ? navigationState : hardKeyboardState;
-	logMsg("keyboard/nav hidden: %s", hardKeyboardNavStateToStr(aHardKeyboardState));
-
-	aKeyboardType = keyboard;
-	if(aKeyboardType != ACONFIGURATION_KEYBOARD_NOKEYS)
-		logMsg("keyboard type: %d", aKeyboardType);
-}
-
-void changeInputConfig(AConfiguration *config)
-{
-	auto hardKeyboardState = AConfiguration_getKeysHidden(config);
-	auto navState = AConfiguration_getNavHidden(config);
-	auto keyboard = AConfiguration_getKeyboard(config);
-	//trackballNav = AConfiguration_getNavigation(config) == ACONFIGURATION_NAVIGATION_TRACKBALL;
-	logMsg("config change, keyboard: %s, navigation: %s", hardKeyboardNavStateToStr(hardKeyboardState), hardKeyboardNavStateToStr(navState));
-	setHardKeyboardState(hasXperiaPlayGamepad() ? navState : hardKeyboardState);
-}
-
-void setEventsUseOSInputMethod(bool on)
-{
-	logMsg("set IME use %s", on ? "On" : "Off");
-	sendInputToIME = on;
-}
-
-bool eventsUseOSInputMethod()
-{
-	return sendInputToIME;
-}
-
 static const char *inputDeviceKeyboardTypeToStr(int type)
 {
 	switch(type)
@@ -176,6 +76,11 @@ static const char *inputDeviceKeyboardTypeToStr(int type)
 	}
 	return "Unknown";
 }
+
+AndroidInputDevice::AndroidInputDevice(int osId, uint32_t typeBits, const char *name):
+	Device{0, Map::SYSTEM, typeBits, name},
+	osId{osId}
+{}
 
 AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumId,
 	int osId, int src, const char *name, int kbType, int jsAxisBits, bool isPowerButton):
@@ -405,13 +310,36 @@ uint32_t AndroidInputDevice::joystickAxisAsDpadBits()
 	return joystickAxisAsDpadBits_;
 }
 
-bool Device::anyTypeBitsPresent(uint32_t typeBits)
+bool AndroidInputDevice::operator ==(AndroidInputDevice const& rhs) const
 {
+	return osId == rhs.osId && string_equal(name(), rhs.name());
+}
+
+void AndroidInputDevice::setTypeBits(int bits) { type_ = bits; }
+
+uint32_t AndroidInputDevice::joystickAxisAsDpadBitsDefault() { return joystickAxisAsDpadBitsDefault_; };
+
+uint32_t AndroidInputDevice::joystickAxisBits() { return axisBits; };
+
+void AndroidInputDevice::setICadeMode(bool on)
+{
+	logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
+	iCadeMode_ = on;
+}
+
+bool AndroidInputDevice::iCadeMode() const
+{
+	return iCadeMode_;
+}
+
+bool Device::anyTypeBitsPresent(Base::ApplicationContext ctx, uint32_t typeBits)
+{
+	auto &app = ctx.application();
 	if(typeBits & TYPE_BIT_KEYBOARD)
 	{
-		if(keyboardType() == ACONFIGURATION_KEYBOARD_QWERTY)
+		if(app.keyboardType() == ACONFIGURATION_KEYBOARD_QWERTY)
 		{
-			if(hardKeyboardState() == ACONFIGURATION_KEYSHIDDEN_YES || hardKeyboardState() == ACONFIGURATION_KEYSHIDDEN_SOFT)
+			if(app.hardKeyboardState() == ACONFIGURATION_KEYSHIDDEN_YES || app.hardKeyboardState() == ACONFIGURATION_KEYSHIDDEN_SOFT)
 			{
 				logDMsg("keyboard present, but not in use");
 			}
@@ -424,14 +352,14 @@ bool Device::anyTypeBitsPresent(uint32_t typeBits)
 		typeBits = IG::clearBits(typeBits, TYPE_BIT_KEYBOARD); // ignore keyboards in device list
 	}
 
-	if(Config::MACHINE_IS_GENERIC_ARMV7 && hasXperiaPlayGamepad() &&
-		(typeBits & TYPE_BIT_GAMEPAD) && hardKeyboardState() != ACONFIGURATION_KEYSHIDDEN_YES)
+	if(Config::MACHINE_IS_GENERIC_ARMV7 && app.hasXperiaPlayGamepad() &&
+		(typeBits & TYPE_BIT_GAMEPAD) && app.hardKeyboardState() != ACONFIGURATION_KEYSHIDDEN_YES)
 	{
 		logDMsg("Xperia-play gamepad in use");
 		return true;
 	}
 
-	for(auto &devPtr : devList)
+	for(auto &devPtr : app.systemInputDevices())
 	{
 		auto &e = *devPtr;
 		if((e.isVirtual() && ((typeBits & TYPE_BIT_KEY_MISC) & e.typeBits())) // virtual devices count as TYPE_BIT_KEY_MISC only
@@ -444,7 +372,7 @@ bool Device::anyTypeBitsPresent(uint32_t typeBits)
 	return false;
 }
 
-static uint32_t nextEnumID(const char *name, int devID)
+static uint32_t nextEnumID(const char *name, int devID, const Base::AndroidInputDeviceContainer &sysInputDev)
 {
 	uint32_t enumID = 0;
 	// find the next available ID number for devices with this name, starting from 0
@@ -460,89 +388,29 @@ static uint32_t nextEnumID(const char *name, int devID)
 	return enumID;
 }
 
-bool addInputDevice(AndroidInputDevice dev, bool updateExisting, bool notify)
+bool hasGetAxisValue()
 {
-	int id = dev.osId;
-	auto existingIt = std::find_if(sysInputDev.cbegin(), sysInputDev.cend(),
-		[=](const auto &e) { return e->osId == id; });
-	if(existingIt == sysInputDev.end())
-	{
-		auto &devPtr = sysInputDev.emplace_back(std::make_unique<AndroidInputDevice>(dev));
-		logMsg("added device id:%d (%s) to list", id, dev.name());
-		addDevice(*devPtr);
-		if(notify)
-			onDeviceChange.callCopySafe(*devPtr, { Device::Change::ADDED });
-		return true;
-	}
-	else
-	{
-		if(!updateExisting)
-		{
-			logMsg("device id:%d (%s) already in list", id, dev.name());
-			return false;
-		}
-		else
-		{
-			logMsg("device id:%d (%s) updated", id, dev.name());
-			auto devPtr = existingIt->get();
-			*devPtr = dev;
-			if(notify)
-				onDeviceChange.callCopySafe(*devPtr, { Device::Change::CHANGED });
-			return true;
-		}
-	}
-}
-
-bool removeInputDevice(int id, bool notify)
-{
-	auto existingIt = std::find_if(sysInputDev.cbegin(), sysInputDev.cend(),
-		[=](const auto &e) { return e->osId == id; });
-	if(existingIt == sysInputDev.end())
-	{
-		logMsg("device id %d not in list", id);
-		return false;
-	}
-	logMsg("removed device id %d from list", id);
-	auto devPtr = existingIt->get();
-	auto removedDevCopy = *devPtr;
-	removeDevice(*devPtr);
-	sysInputDev.erase(existingIt);
-	if(notify)
-		onDeviceChange.callCopySafe(removedDevCopy, { Device::Change::REMOVED });
+	#ifdef ANDROID_COMPAT_API
+	return likely(AMotionEvent_getAxisValueFunc);
+	#else
 	return true;
+	#endif
 }
 
-static void enumDevices(JNIEnv* env, bool notify)
-{
-	using namespace Base;
-	logMsg("doing input device scan");
-	while(sysInputDev.size())
-	{
-		removeDevice(*sysInputDev.back());
-		sysInputDev.pop_back();
-	}
-	jEnumDevices(env, inputDeviceHelperCls);
-	if(!virtualDev)
-	{
-		logMsg("no \"Virtual\" device id found, adding one");
-		AndroidInputDevice vDev{-1, Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC, "Virtual"};
-		addInputDevice(vDev, false, false);
-		auto sysInput = sysInputDev.back().get();
-		virtualDev = sysInput;
-	}
-	if(notify)
-	{
-		onDevicesEnumerated.callCopySafe();
-	}
 }
 
-void init(Base::ApplicationContext app, JNIEnv *env)
+namespace Base
 {
-	if(app.androidSDK() >= 12)
-	{
-		auto env = app.mainThreadJniEnv();
-		processInput = processInputWithGetEvent;
 
+static bool isXperiaPlayDeviceStr(const char *str)
+{
+	return strstr(str, "R800") || string_equal(str, "zeus");
+}
+
+void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, int32_t androidSDK)
+{
+	if(androidSDK >= 12)
+	{
 		#ifdef ANDROID_COMPAT_API
 		// load AMotionEvent_getAxisValue dynamically
 		if(!Base::loadSymbol(AMotionEvent_getAxisValueFunc, {}, "AMotionEvent_getAxisValue"))
@@ -552,32 +420,33 @@ void init(Base::ApplicationContext app, JNIEnv *env)
 		#endif
 
 		auto inputDeviceCls = env->FindClass("android/view/InputDevice");
-		JavaInstMethod<jobject()> jInputDeviceHelper{env, Base::jBaseActivityCls, "inputDeviceHelper", "()Lcom/imagine/InputDeviceHelper;"};
-		auto inputDeviceHelper = jInputDeviceHelper(env, app.baseActivityObject());
+		JavaInstMethod<jobject()> jInputDeviceHelper{env, jBaseActivityCls, "inputDeviceHelper", "()Lcom/imagine/InputDeviceHelper;"};
+		auto inputDeviceHelper = jInputDeviceHelper(env, baseActivity);
 		assert(inputDeviceHelper);
 		inputDeviceHelperCls = (jclass)env->NewGlobalRef(env->GetObjectClass(inputDeviceHelper));
-		jEnumDevices.setup(env, inputDeviceHelperCls, "enumInputDevices", "()V");
+		jEnumInputDevices.setup(env, inputDeviceHelperCls, "enumInputDevices", "(J)V");
 		JNINativeMethod method[]
 		{
 			{
-				"deviceEnumerated", "(ILandroid/view/InputDevice;Ljava/lang/String;IIIZ)V",
-				(void*)(void (*)(JNIEnv*, jobject, jint, jobject, jstring, jint, jint, jint, jboolean))
-				([](JNIEnv* env, jobject thiz, jint devID, jobject jDev, jstring jName, jint src, jint kbType, jint jsAxisBits, jboolean isPowerButton)
+				"deviceEnumerated", "(JILandroid/view/InputDevice;Ljava/lang/String;IIIZ)V",
+				(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jobject, jstring, jint, jint, jint, jboolean))
+				([](JNIEnv* env, jobject thiz, jlong nUserData, jint devID, jobject jDev, jstring jName, jint src, jint kbType, jint jsAxisBits, jboolean isPowerButton)
 				{
+					auto &app = *((AndroidApplication*)nUserData);
 					const char *name = env->GetStringUTFChars(jName, nullptr);
-					AndroidInputDevice sysDev{env, jDev, nextEnumID(name, devID), devID, src,
+					Input::AndroidInputDevice sysDev{env, jDev, Input::nextEnumID(name, devID, app.sysInputDev), devID, src,
 						name, kbType, jsAxisBits, (bool)isPowerButton};
 					env->ReleaseStringUTFChars(jName, name);
-					addInputDevice(sysDev, false, false);
+					auto devPtr = app.addInputDevice(sysDev, false, false);
 					// check for special device IDs
 					if(devID == -1)
 					{
-						virtualDev = sysInputDev.back().get();
+						app.virtualDev = devPtr;
 					}
 					else if(devID == 0)
 					{
 						// built-in keyboard is always id 0 according to Android docs
-						builtinKeyboardDev = sysInputDev.back().get();
+						app.builtinKeyboardDev = devPtr;
 					}
 				})
 			},
@@ -585,11 +454,11 @@ void init(Base::ApplicationContext app, JNIEnv *env)
 		env->RegisterNatives(inputDeviceHelperCls, method, std::size(method));
 
 		// device change notifications
-		if(usesInputDeviceListener(app))
+		if(androidSDK >= 16)
 		{
 			logMsg("setting up input notifications");
-			JavaInstMethod<jobject()> jInputDeviceListenerHelper{env, Base::jBaseActivityCls, "inputDeviceListenerHelper", "()Lcom/imagine/InputDeviceListenerHelper;"};
-			inputDeviceListenerHelper = jInputDeviceListenerHelper(env, app.baseActivityObject());
+			JavaInstMethod<jobject(jlong)> jInputDeviceListenerHelper{env, jBaseActivityCls, "inputDeviceListenerHelper", "(J)Lcom/imagine/InputDeviceListenerHelper;"};
+			inputDeviceListenerHelper = jInputDeviceListenerHelper(env, baseActivity, (jlong)this);
 			assert(inputDeviceListenerHelper);
 			auto inputDeviceListenerHelperCls = env->GetObjectClass(inputDeviceListenerHelper);
 			inputDeviceListenerHelper = env->NewGlobalRef(inputDeviceListenerHelper);
@@ -598,35 +467,36 @@ void init(Base::ApplicationContext app, JNIEnv *env)
 			JNINativeMethod method[]
 			{
 				{
-					"deviceChanged", "(IILandroid/view/InputDevice;Ljava/lang/String;III)V",
-					(void*)(void (*)(JNIEnv*, jobject, jint, jint, jobject, jstring, jint, jint, jint))
-					([](JNIEnv* env, jobject thiz, jint change, jint devID, jobject jDev,
+					"deviceChanged", "(JIILandroid/view/InputDevice;Ljava/lang/String;III)V",
+					(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jint, jobject, jstring, jint, jint, jint))
+					([](JNIEnv* env, jobject thiz, jlong nUserData, jint change, jint devID, jobject jDev,
 							jstring jName, jint src, jint kbType, jint jsAxisBits)
 					{
-						if(change == DEVICE_REMOVED) // remove
+						auto &app = *((AndroidApplication*)nUserData);
+						if(change == Input::DEVICE_REMOVED)
 						{
-							removeInputDevice(devID, true);
+							app.removeInputDevice(devID, true);
 						}
-						else // add or update
+						else // add or update existing
 						{
 							const char *name = env->GetStringUTFChars(jName, nullptr);
-							AndroidInputDevice sysDev{env, jDev, nextEnumID(name, devID), devID,
+							Input::AndroidInputDevice sysDev{env, jDev, Input::nextEnumID(name, devID, app.sysInputDev), devID,
 								src, name, kbType, jsAxisBits, false};
 							env->ReleaseStringUTFChars(jName, name);
-							addInputDevice(sysDev, change == DEVICE_CHANGED, true);
+							app.addInputDevice(sysDev, change == Input::DEVICE_CHANGED, true);
 						}
 					})
 				}
 			};
 			env->RegisterNatives(inputDeviceListenerHelperCls, method, std::size(method));
-			app.addOnResume([env](Base::ApplicationContext, bool)
+			addOnResume([this, env](Base::ApplicationContext, bool)
 				{
-					enumDevices(env, true);
+					enumInputDevices(env, true);
 					logMsg("registering input device listener");
 					jRegister(env, inputDeviceListenerHelper);
 					return true;
 				}, Base::INPUT_DEVICE_ON_RESUME_PRIORITY);
-			app.addOnExit([env](Base::ApplicationContext, bool backgrounded)
+			addOnExit([this, env](Base::ApplicationContext, bool backgrounded)
 				{
 					logMsg("unregistering input device listener");
 					jUnregister(env, inputDeviceListenerHelper);
@@ -647,30 +517,30 @@ void init(Base::ApplicationContext app, JNIEnv *env)
 					[](int fd, int events, void* data)
 					{
 						logMsg("got inotify event");
-						Base::ApplicationContext app{(ANativeActivity*)data};
+						auto &app = *((AndroidApplication*)data);
 						if(events == Base::POLLEV_IN)
 						{
 							char buffer[2048];
 							auto size = read(fd, buffer, sizeof(buffer));
 							if(app.isRunning())
 							{
-								inputRescanCallback->runIn(IG::Milliseconds(250));
+								app.inputRescanCallback->runIn(IG::Milliseconds(250));
 							}
 						}
 						return 1;
-					}, app.aNativeActivityPtr());
+					}, this);
 				if(ret != 1)
 				{
 					logErr("couldn't add inotify fd to looper");
 				}
-				app.addOnResume([env](Base::ApplicationContext, bool)
+				addOnResume([this, env](Base::ApplicationContext, bool)
 					{
 						inputRescanCallback.emplace("inputRescanCallback",
-							[env]()
+							[this, env]()
 							{
-								enumDevices(env, true);
+								enumInputDevices(env, true);
 							});
-						enumDevices(env, true);
+						enumInputDevices(env, true);
 						if(inputDevNotifyFd != -1 && watch == -1)
 						{
 							logMsg("registering inotify input device listener");
@@ -682,7 +552,7 @@ void init(Base::ApplicationContext app, JNIEnv *env)
 						}
 						return true;
 					}, Base::INPUT_DEVICE_ON_RESUME_PRIORITY);
-				app.addOnExit([env](Base::ApplicationContext, bool backgrounded)
+				addOnExit([this, env](Base::ApplicationContext, bool backgrounded)
 					{
 						if(watch != -1)
 						{
@@ -699,40 +569,167 @@ void init(Base::ApplicationContext app, JNIEnv *env)
 	else
 	{
 		// no multi-input device support
-		auto genericKeyDev = makeGenericKeyDevice();
+		auto genericKeyDev = Input::makeGenericKeyDevice();
 		if(Config::MACHINE_IS_GENERIC_ARMV7)
 		{
-			auto buildDevice = app.androidBuildDevice();
-			if(Base::isXperiaPlayDeviceStr(buildDevice.data()))
+			auto buildDevice = androidBuildDevice(env);
+			if(isXperiaPlayDeviceStr(buildDevice.data()))
 			{
 				logMsg("detected Xperia Play gamepad");
-				genericKeyDev.subtype_ = Device::SUBTYPE_XPERIA_PLAY;
+				genericKeyDev.subtype_ = Input::Device::SUBTYPE_XPERIA_PLAY;
 			}
 			else if(string_equal(buildDevice.data(), "sholes"))
 			{
 				logMsg("detected Droid/Milestone keyboard");
-				genericKeyDev.subtype_ = Device::SUBTYPE_MOTO_DROID_KEYBOARD;
+				genericKeyDev.subtype_ = Input::Device::SUBTYPE_MOTO_DROID_KEYBOARD;
 			}
 		}
 		sysInputDev.reserve(1);
-		addInputDevice(genericKeyDev, false, false);
-		builtinKeyboardDev = sysInputDev.back().get();
+		builtinKeyboardDev = addInputDevice(genericKeyDev, false, false);
 	}
 }
 
+void AndroidApplication::initInputConfig(AConfiguration *config)
+{
+	auto hardKeyboardState = AConfiguration_getKeysHidden(config);
+	auto navigationState = AConfiguration_getNavHidden(config);
+	auto keyboard = AConfiguration_getKeyboard(config);
+	trackballNav = AConfiguration_getNavigation(config) == ACONFIGURATION_NAVIGATION_TRACKBALL;
+	if(trackballNav)
+		logMsg("detected trackball");
+
+	aHardKeyboardState = hasXperiaPlayGamepad() ? navigationState : hardKeyboardState;
+	logMsg("keyboard/nav hidden: %s", Input::hardKeyboardNavStateToStr(aHardKeyboardState));
+
+	aKeyboardType = keyboard;
+	if(aKeyboardType != ACONFIGURATION_KEYBOARD_NOKEYS)
+		logMsg("keyboard type: %d", aKeyboardType);
 }
 
-namespace Base
+void AndroidApplication::updateInputConfig(AConfiguration *config)
 {
+	auto hardKeyboardState = AConfiguration_getKeysHidden(config);
+	auto navState = AConfiguration_getNavHidden(config);
+	auto keyboard = AConfiguration_getKeyboard(config);
+	//trackballNav = AConfiguration_getNavigation(config) == ACONFIGURATION_NAVIGATION_TRACKBALL;
+	logMsg("config change, keyboard: %s, navigation: %s", Input::hardKeyboardNavStateToStr(hardKeyboardState), Input::hardKeyboardNavStateToStr(navState));
+	setHardKeyboardState(hasXperiaPlayGamepad() ? navState : hardKeyboardState);
+}
 
 void AndroidApplicationContext::enumInputDevices()
 {
-	Input::enumDevices(mainThreadJniEnv(), true);
+	application().enumInputDevices(mainThreadJniEnv(), true);
+}
+
+void AndroidApplication::enumInputDevices(JNIEnv* env, bool notify)
+{
+	logMsg("doing input device scan");
+	while(sysInputDev.size())
+	{
+		removeSystemInputDevice(*sysInputDev.back());
+		sysInputDev.pop_back();
+	}
+	jEnumInputDevices(env, inputDeviceHelperCls, (jlong)this);
+	if(!virtualDev)
+	{
+		logMsg("no \"Virtual\" device id found, adding one");
+		Input::AndroidInputDevice vDev{-1, Input::Device::TYPE_BIT_VIRTUAL | Input::Device::TYPE_BIT_KEYBOARD | Input::Device::TYPE_BIT_KEY_MISC, "Virtual"};
+		virtualDev = addInputDevice(vDev, false, false);
+	}
+	if(notify)
+	{
+		onInputDevicesEnumerated.callCopySafe();
+	}
+}
+
+bool AndroidApplication::hasTrackball() const
+{
+	return trackballNav;
 }
 
 bool AndroidApplicationContext::hasTrackball() const
 {
-	return Input::trackballNav;
+	return application().hasTrackball();
+}
+
+int AndroidApplication::hardKeyboardState() const { return aHardKeyboardState; }
+
+void AndroidApplication::setHardKeyboardState(int hardKeyboardState)
+{
+	if(aHardKeyboardState != hardKeyboardState)
+	{
+		aHardKeyboardState = hardKeyboardState;
+		logMsg("hard keyboard hidden: %s", Input::hardKeyboardNavStateToStr(aHardKeyboardState));
+		if(builtinKeyboardDev)
+		{
+			bool shown = aHardKeyboardState == ACONFIGURATION_KEYSHIDDEN_NO;
+			Input::DeviceAction change{shown ? Input::DeviceAction::SHOWN : Input::DeviceAction::HIDDEN};
+			dispatchInputDeviceChange(*builtinKeyboardDev, change);
+		}
+	}
+}
+
+int AndroidApplication::keyboardType() const { return aKeyboardType; }
+
+bool AndroidApplication::hasXperiaPlayGamepad() const
+{
+	return builtinKeyboardDev && builtinKeyboardDev->subtype() == Input::Device::SUBTYPE_XPERIA_PLAY;
+}
+
+void AndroidApplication::setEventsUseOSInputMethod(bool on)
+{
+	logMsg("set IME use %s", on ? "On" : "Off");
+	sendInputToIME = on;
+}
+
+bool AndroidApplication::eventsUseOSInputMethod() const
+{
+	return sendInputToIME;
+}
+
+
+Input::AndroidInputDevice *AndroidApplication::addInputDevice(Input::AndroidInputDevice dev, bool updateExisting, bool notify)
+{
+	int id = dev.osId;
+	auto existingIt = std::find_if(sysInputDev.cbegin(), sysInputDev.cend(),
+		[=](const auto &e) { return e->osId == id; });
+	if(existingIt == sysInputDev.end())
+	{
+		auto &devPtr = sysInputDev.emplace_back(std::make_unique<Input::AndroidInputDevice>(std::move(dev)));
+		logMsg("added device id:%d (%s) to list", id, dev.name());
+		addSystemInputDevice(*devPtr, notify);
+		return devPtr.get();
+	}
+	else
+	{
+		if(!updateExisting)
+		{
+			logMsg("device id:%d (%s) already in list", id, dev.name());
+			return {};
+		}
+		else
+		{
+			logMsg("device id:%d (%s) updated", id, dev.name());
+			auto devPtr = existingIt->get();
+			*devPtr = dev;
+			if(notify)
+				dispatchInputDeviceChange(*devPtr, {Input::DeviceAction::CHANGED});
+			return devPtr;
+		}
+	}
+}
+
+bool AndroidApplication::removeInputDevice(int id, bool notify)
+{
+	if(auto removedDev = IG::moveOutIf(sysInputDev, [&](const auto &e){ return e->osId == id; });
+		removedDev)
+	{
+		logMsg("removed device id:%d from list", id);
+		removeSystemInputDevice(*removedDev, notify);
+		return true;
+	}
+	logMsg("device id:%d not in list", id);
+	return false;
 }
 
 }

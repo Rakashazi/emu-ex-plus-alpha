@@ -15,11 +15,12 @@
 
 #define LOGTAG "ICP"
 #include <imagine/bluetooth/IControlPad.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/algorithm.h>
-#include "../input/private.hh"
+#include "../input/PackedInputAccess.hh"
 #include "private.hh"
 #include <algorithm>
 
@@ -159,8 +160,7 @@ void IControlPad::removeFromSystem()
 	IG::eraseFirst(devList, this);
 	if(IG::eraseFirst(btInputDevList, this))
 	{
-		removeDevice(*this);
-		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::REMOVED });
+		ctx.application().removeSystemInputDevice(*this, true);
 	}
 }
 
@@ -176,14 +176,13 @@ uint32_t IControlPad::statusHandler(BluetoothSocket &sock, uint32_t status)
 		function = FUNC_SET_LED_MODE;
 		devId = player;
 		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
-		Input::addDevice(*this);
-		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::ADDED });
+		ctx.application().addSystemInputDevice(*this, true);
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("iCP connection error");
-		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::CONNECT_ERROR });
+		ctx.application().dispatchInputDeviceChange(*this, {Input::DeviceAction::CONNECT_ERROR});
 		close();
 		delete this;
 	}
@@ -237,8 +236,8 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 				auto time = IG::steadyClockTimestamp();
 				iterateTimes(4, i)
 				{
-					if(axisKey[i].dispatch(inputBuffer[i], player, Input::Map::ICONTROLPAD, time, *this, app.mainWindow()))
-						app.endIdleByUserActivity();
+					if(axisKey[i].dispatch(inputBuffer[i], player, Input::Map::ICONTROLPAD, time, *this, ctx.mainWindow()))
+						ctx.endIdleByUserActivity();
 				}
 				processBtnReport(&inputBuffer[4], time, player);
 				inputBufferPos = 0;
@@ -261,10 +260,9 @@ void IControlPad::processBtnReport(const char *btnData, Input::Time time, uint32
 		if(oldState != newState)
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
-			app.endIdleByUserActivity();
-			Event event{player, Map::ICONTROLPAD, e.keyEvent, e.sysKey, newState ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
-			startKeyRepeatTimer(app, event);
-			dispatchInputEvent(app, event);
+			ctx.endIdleByUserActivity();
+			Event event{player, Map::ICONTROLPAD, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		}
 	}
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));

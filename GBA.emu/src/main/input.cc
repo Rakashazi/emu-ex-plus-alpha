@@ -42,24 +42,24 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
-const uint EmuSystem::inputFaceBtns = 4;
-const uint EmuSystem::inputCenterBtns = 2;
+const unsigned EmuSystem::inputFaceBtns = 4;
+const unsigned EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = true;
 const bool EmuSystem::inputHasRevBtnLayout = false;
-const uint EmuSystem::maxPlayers = 1;
+const unsigned EmuSystem::maxPlayers = 1;
 
 namespace GbaKeyStatus
 {
 
 using namespace IG;
-static const uint A = bit(0), B = bit(1),
+static const unsigned A = bit(0), B = bit(1),
 	SELECT = bit(2), START = bit(3),
 	RIGHT = bit(4), LEFT = bit(5), UP = bit(6), DOWN = bit(7),
 	R = bit(8), L = bit(9);
 
 }
 
-static uint ptrInputToSysButton(int input)
+static unsigned ptrInputToSysButton(int input)
 {
 	using namespace GbaKeyStatus;
 	switch(input)
@@ -84,7 +84,7 @@ static uint ptrInputToSysButton(int input)
 	}
 }
 
-void updateVControllerMapping(uint player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
 	using namespace GbaKeyStatus;
 	map[SysVController::F_ELEM] = A;
@@ -105,7 +105,7 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 	map[SysVController::D_ELEM+8] = DOWN | RIGHT;
 }
 
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
+unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	using namespace GbaKeyStatus;
 	turbo = 0;
@@ -134,9 +134,9 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint state, uint emuKey)
+void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
 {
-	P1 = IG::setOrClearBits(P1, (uint16_t)emuKey, state != Input::PUSHED);
+	P1 = IG::setOrClearBits(P1, (uint16_t)emuKey, action != Input::Action::PUSHED);
 }
 
 void EmuSystem::clearInputBuffers(EmuInputView &)

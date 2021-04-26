@@ -65,7 +65,7 @@ void vsyncarch_refresh_frequency_changed(double rate)
 {
 	logMsg("system frame rate:%.4f", rate);
 	systemFrameRate = rate;
-	EmuSystem::configFrameTime();
+	EmuApp::get(appContext).configFrameTime();
 }
 
 void video_arch_canvas_init(struct video_canvas_s *c)
@@ -113,8 +113,8 @@ void video_canvas_refresh(struct video_canvas_s *c, unsigned int xs, unsigned in
 
 void resetCanvasSourcePixmap(struct video_canvas_s *c)
 {
-	uint canvasW = c->pixmap->w();
-	uint canvasH = c->pixmap->h();
+	unsigned canvasW = c->pixmap->w();
+	unsigned canvasH = c->pixmap->h();
 	if(optionCropNormalBorders && (canvasH == 247 || canvasH == 272))
 	{
 		logMsg("cropping borders");

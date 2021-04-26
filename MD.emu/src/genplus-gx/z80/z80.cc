@@ -130,15 +130,15 @@
 #include "z80.h"
 
 
-static const uint CF = 0x01;
-static const uint NF = 0x02;
-static const uint PF = 0x04;
-static const uint VF = PF;
-static const uint XF = 0x08;
-static const uint HF = 0x10;
-static const uint YF = 0x20;
-static const uint ZF = 0x40;
-static const uint SF = 0x80;
+static const unsigned CF = 0x01;
+static const unsigned NF = 0x02;
+static const unsigned PF = 0x04;
+static const unsigned VF = PF;
+static const unsigned XF = 0x08;
+static const unsigned HF = 0x10;
+static const unsigned YF = 0x20;
+static const unsigned ZF = 0x40;
+static const unsigned SF = 0x80;
 
 #define INLINE __attribute__((hot)) static
 
@@ -378,12 +378,12 @@ INLINE void WM16( UINT32 addr, PAIR *r )
   WM((addr+1)&0xffff,r->b.h);
 }
 
-INLINE uint8_t cpu_readop(uint addr)
+INLINE uint8_t cpu_readop(unsigned addr)
 {
 	return z80_readmap[(addr) >> 10][(addr) & 0x03FF];
 }
 
-INLINE uint8_t cpu_readop_arg(uint addr)
+INLINE uint8_t cpu_readop_arg(unsigned addr)
 {
 	return cpu_readop(addr);
 }
@@ -3262,7 +3262,7 @@ INLINE void take_interrupt(Z80CPU &Z80)
 //#define Z80_COMPUTED_GOTO_EXEC
 
 #ifdef Z80_COMPUTED_GOTO_EXEC
-static uint processNextOpcode(Z80CPU &cpu, uint &cycles)
+static unsigned processNextOpcode(Z80CPU &cpu, unsigned &cycles)
 {
 	if(cpu.cycleCount < cycles)
 	{

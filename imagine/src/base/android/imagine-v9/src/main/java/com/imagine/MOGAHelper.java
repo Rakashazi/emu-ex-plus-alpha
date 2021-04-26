@@ -23,15 +23,15 @@ final class MOGAHelper implements ControllerListener
 {
 	private static final String logTag = "MOGAHelper";
 	Controller controller;
-	private long mogaSystemAddr;
-	private native void keyEvent(long mogaSystemAddr, int action, int keyCode, long time);
-	private native void motionEvent(long mogaSystemAddr, float axisX, float axisY, float axisZ, float axisRZ,
+	private long nativeUserData;
+	private native void keyEvent(long nativeUserData, int action, int keyCode, long time);
+	private native void motionEvent(long nativeUserData, float axisX, float axisY, float axisZ, float axisRZ,
 		float axisLTrigger, float axisRTrigger, long time);
-	private native void stateEvent(long mogaSystemAddr, int state, int action);
+	private native void stateEvent(long nativeUserData, int state, int action);
 
-	MOGAHelper(Context context, long mogaSystemAddr)
+	MOGAHelper(Context context, long nativeUserData)
 	{
-		this.mogaSystemAddr = mogaSystemAddr;
+		this.nativeUserData = nativeUserData;
 		controller = Controller.getInstance(context);
 		controller.init();
 		controller.setListener(this, new Handler());
@@ -39,12 +39,12 @@ final class MOGAHelper implements ControllerListener
 
 	@Override public void onKeyEvent(KeyEvent event)
 	{
-		keyEvent(mogaSystemAddr, event.getAction(), event.getKeyCode(), event.getEventTime());
+		keyEvent(nativeUserData, event.getAction(), event.getKeyCode(), event.getEventTime());
 	}
 
 	@Override public void onMotionEvent(MotionEvent event)
 	{
-		motionEvent(mogaSystemAddr,
+		motionEvent(nativeUserData,
 			event.getAxisValue(Controller.AXIS_X), event.getAxisValue(Controller.AXIS_Y),
 			event.getAxisValue(Controller.AXIS_Z), event.getAxisValue(Controller.AXIS_RZ),
 			event.getAxisValue(Controller.AXIS_LTRIGGER), event.getAxisValue(Controller.AXIS_RTRIGGER),
@@ -53,7 +53,7 @@ final class MOGAHelper implements ControllerListener
 
 	@Override public void onStateEvent(StateEvent event)
 	{
-		stateEvent(mogaSystemAddr, event.getState(), event.getAction());
+		stateEvent(nativeUserData, event.getState(), event.getAction());
 	}
 
 	int getState(int state)

@@ -14,19 +14,20 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include "TestPicker.hh"
+#include "main.hh"
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 
-TestTableEntry::TestTableEntry(SelectDelegate selectDel):
-	DualTextMenuItem{{}, {}, selectDel}
+TestTableEntry::TestTableEntry(Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
+	DualTextMenuItem{{}, {}, face, selectDel}
 {}
 
 void TestTableEntry::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-	_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+	Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
-	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP, color);
+	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
 	if(t2.isVisible())
 	{
 		Gfx::Color color2;
@@ -34,7 +35,7 @@ void TestTableEntry::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPo
 			color2 = Gfx::color(1.f, 0.f, 0.f);
 		else
 			color2 = Gfx::color(1.f, 1.f, 1.f);
-		draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP, color2);
+		draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color2);
 	}
 }
 
@@ -54,10 +55,11 @@ void TestPicker::setTests(const TestDesc *testDesc, unsigned tests)
 	testParam.reserve(tests);
 	iterateTimes(tests, i)
 	{
-		testEntry.emplace_back(
+		testEntry.emplace_back(&defaultFace(),
 			[this, i](DualTextMenuItem &, View &, Input::Event e)
 			{
-				auto test = startTest(window(), renderer(), testParam[i]);
+				auto &app = mainApp(appContext());
+				auto test = app.startTest(window(), testParam[i]);
 				test->onTestFinished =
 					[this, i](TestFramework &test)
 					{
@@ -75,6 +77,6 @@ void TestPicker::setTests(const TestDesc *testDesc, unsigned tests)
 		testEntry[i].setName(testDesc[i].name.data());
 		testParam.emplace_back(testDesc[i].params);
 	}
-	if(Input::keyInputIsPresent())
+	if(appContext().keyInputIsPresent())
 		highlightCell(0);
 }

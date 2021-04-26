@@ -78,7 +78,7 @@ void scd_pcm_update(PCMSampleType *buffer, int length, int stereo)
 	// PCM disabled or all channels off (to be checked by caller)
 	//if (!(sCD.pcm.control & 0x80) || !sCD.pcm.enabled) return;
 
-	uint activeCH = 0;
+	unsigned activeCH = 0;
 
 	for (i = 0; i < 8; i++)
 	{

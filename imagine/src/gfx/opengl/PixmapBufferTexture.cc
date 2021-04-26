@@ -376,7 +376,7 @@ IG::ErrorCode GLTextureStorage::setFormat(IG::PixmapDesc desc, const TextureSamp
 LockedTextureBuffer GLTextureStorage::lock(uint32_t bufferFlags)
 {
 	auto bufferInfo = currentBuffer();
-	IG::WindowRect fullRect{0, 0, size(0).x, size(0).y};
+	IG::WindowRect fullRect{{}, size(0)};
 	IG::Pixmap pix{{fullRect.size(), pixmapDesc().format()}, bufferInfo.data};
 	if(bufferFlags & Texture::BUFFER_FLAG_CLEARED)
 		pix.clear();
@@ -497,7 +497,7 @@ TextureBufferStorage::~TextureBufferStorage() {}
 
 LockedTextureBuffer TextureBufferStorage::makeLockedBuffer(void *data, uint32_t pitchBytes, uint32_t bufferFlags)
 {
-	IG::WindowRect fullRect{0, 0, size(0).x, size(0).y};
+	IG::WindowRect fullRect{{}, size(0)};
 	IG::Pixmap pix{pixmapDesc(), data, {pitchBytes, IG::Pixmap::BYTE_UNITS}};
 	if(bufferFlags & Texture::BUFFER_FLAG_CLEARED)
 		pix.clear();

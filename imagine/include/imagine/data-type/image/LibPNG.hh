@@ -28,8 +28,8 @@
 class Png
 {
 public:
-	constexpr Png(Base::ApplicationContext app):
-		app{app}
+	constexpr Png(Base::ApplicationContext ctx):
+		ctx{ctx}
 	{}
 	std::error_code readHeader(GenericIO io);
 	std::errc readImage(IG::Pixmap dest);
@@ -40,13 +40,13 @@ public:
 	uint32_t height();
 	IG::PixelFormat pixelFormat();
 	explicit operator bool() const;
-	constexpr Base::ApplicationContext appContext() const { return app; }
+	constexpr Base::ApplicationContext appContext() const { return ctx; }
 
 protected:
 	png_structp png{};
 	png_infop info{};
 	//png_infop end;
-	Base::ApplicationContext app{};
+	Base::ApplicationContext ctx{};
 	void setTransforms(IG::PixelFormat outFormat, png_infop transInfo);
 	static bool supportUncommonConv;
 };
@@ -54,8 +54,8 @@ protected:
 class PngFile final: public GfxImageSource
 {
 public:
-	constexpr PngFile(Base::ApplicationContext app):
-		png{app}
+	constexpr PngFile(Base::ApplicationContext ctx):
+		png{ctx}
 	{}
 	~PngFile();
 	std::error_code load(GenericIO io);

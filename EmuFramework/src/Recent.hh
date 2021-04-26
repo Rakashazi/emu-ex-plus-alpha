@@ -26,7 +26,7 @@ struct RecentGameInfo
 {
 	FS::PathString path{};
 	FS::FileString name{};
-	static constexpr uint MAX_RECENT = 10;
+	static constexpr unsigned MAX_RECENT = 10;
 
 	constexpr RecentGameInfo() {}
 

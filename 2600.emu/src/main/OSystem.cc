@@ -32,7 +32,8 @@
 #include <emuframework/EmuSystem.hh>
 #undef Debugger
 
-OSystem::OSystem()
+OSystem::OSystem(EmuApp &app):
+	appPtr{&app}
 {
 	mySettings = std::make_unique<Settings>();
 	mySettings->setValue(AudioSettings::SETTING_PRESET, static_cast<int>(AudioSettings::Preset::custom));
@@ -42,7 +43,7 @@ OSystem::OSystem()
 	mySettings->setValue(AudioSettings::SETTING_VOLUME, 100);
 	myAudioSettings = std::make_unique<AudioSettings>(*mySettings);
 	myRandom = std::make_unique<Random>(uInt32(TimerManager::getTicks()));
-	myFrameBuffer = std::make_unique<FrameBuffer>();
+	myFrameBuffer = std::make_unique<FrameBuffer>(*this);
 	myEventHandler = std::make_unique<EventHandler>(*this);
 	myPropSet = std::make_unique<PropertiesSet>();
 	myStateManager = std::make_unique<StateManager>(*this);
@@ -119,4 +120,9 @@ std::string OSystem::stateDir() const
 std::string OSystem::nvramDir() const
 {
 	return EmuSystem::savePath();
+}
+
+EmuApp &OSystem::app()
+{
+	return *appPtr;
 }

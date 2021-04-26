@@ -32,7 +32,8 @@
 namespace Gfx
 {
 
-DrawableHolder::DrawableHolder(DrawableHolder &&o)
+DrawableHolder::DrawableHolder(DrawableHolder &&o):
+	GLDrawableHolder{o.onExit.appContext()}
 {
 	*this = std::move(o);
 }
@@ -70,16 +71,17 @@ void GLDrawableHolder::makeDrawable(Base::GLDisplay dpy, Base::Window &win, Base
 		return;
 	}
 	drawable_ = drawable;
+	glDpy = dpy;
 	if constexpr(Config::envIsIOS)
 	{
 		onExit =
 		{
-			[drawable = drawable, dpy](Base::ApplicationContext app, bool backgrounded)
+			[drawable = drawable, dpy](Base::ApplicationContext ctx, bool backgrounded)
 			{
 				if(backgrounded)
 				{
 					IG::copySelf(drawable).freeCaches();
-					app.addOnResume(
+					ctx.addOnResume(
 						[drawable](Base::ApplicationContext, bool focused)
 						{
 							IG::copySelf(drawable).restoreCaches();
@@ -97,9 +99,9 @@ void GLDrawableHolder::destroyDrawable()
 {
 	if(!drawable_)
 		return;
-	drawable_.destroy(Base::GLDisplay::getDefault());
+	drawable_.destroy(glDpy);
 	drawable_ = {};
-	onExit = {};
+	onExit.reset();
 }
 
 }

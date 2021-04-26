@@ -109,7 +109,7 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 																	| (((uint)Event::JoystickZeroRight + playerShift) << 8);
 }
 
-static void updateJoytickMapping(Controller::Type type)
+static void updateJoytickMapping(EmuApp &app, Controller::Type type)
 {
 	if(type == Controller::Type::Paddles)
 	{
@@ -123,7 +123,7 @@ static void updateJoytickMapping(Controller::Type type)
 		jsLeftMap = {Event::JoystickZeroLeft, Event::JoystickOneLeft};
 		jsRightMap = {Event::JoystickZeroRight, Event::JoystickOneRight};
 	}
-	EmuControls::updateVControllerMapping();
+	app.updateVControllerMapping();
 }
 
 uint EmuSystem::translateInputAction(uint input, bool &turbo)
@@ -171,7 +171,7 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint state, uint emuKey)
+void EmuSystem::handleInputAction(EmuApp *app, Input::Action action, uint emuKey)
 {
 	auto &ev = osystem->eventHandler().event();
 	uint event1 = emuKey & 0xFF;
@@ -181,45 +181,54 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	switch(event1)
 	{
 		bcase Event::Combo1:
-			if(state != Input::PUSHED)
+			if(action != Input::Action::PUSHED)
 				break;
 			p1DiffB ^= true;
-			EmuApp::postMessage(1, false, p1DiffB ? "P1 Difficulty -> B" : "P1 Difficulty -> A");
+			if(app)
+			{
+				app->postMessage(1, false, p1DiffB ? "P1 Difficulty -> B" : "P1 Difficulty -> A");
+			}
 			ev.set(Event::ConsoleLeftDiffB, p1DiffB);
 			ev.set(Event::ConsoleLeftDiffA, !p1DiffB);
 		bcase Event::Combo2:
-			if(state != Input::PUSHED)
+			if(action != Input::Action::PUSHED)
 				break;
 			p2DiffB ^= true;
-			EmuApp::postMessage(1, false, p2DiffB ? "P2 Difficulty -> B" : "P2 Difficulty -> A");
+			if(app)
+			{
+				app->postMessage(1, false, p2DiffB ? "P2 Difficulty -> B" : "P2 Difficulty -> A");
+			}
 			ev.set(Event::ConsoleRightDiffB, p2DiffB);
 			ev.set(Event::ConsoleRightDiffA, !p2DiffB);
 		bcase Event::Combo3:
-			if(state != Input::PUSHED)
+			if(action != Input::Action::PUSHED)
 				break;
 			vcsColor ^= true;
-			EmuApp::postMessage(1, false, vcsColor ? "Color Switch -> Color" : "Color Switch -> B&W");
+			if(app)
+			{
+				app->postMessage(1, false, vcsColor ? "Color Switch -> Color" : "Color Switch -> B&W");
+			}
 			ev.set(Event::ConsoleColor, vcsColor);
 			ev.set(Event::ConsoleBlackWhite, !vcsColor);
 		bcase Event::KeyboardZero1 ... Event::KeyboardOnePound:
-			ev.set(Event::Type(event1), state == Input::PUSHED);
+			ev.set(Event::Type(event1), action == Input::Action::PUSHED);
 		bdefault:
-			ev.set(Event::Type(event1), state == Input::PUSHED);
+			ev.set(Event::Type(event1), action == Input::Action::PUSHED);
 			uint event2 = emuKey >> 8;
 			if(event2) // extra event for diagonals
 			{
-				ev.set(Event::Type(event2), state == Input::PUSHED);
+				ev.set(Event::Type(event2), action == Input::Action::PUSHED);
 			}
 	}
 }
 
-void setControllerType(Console &console, Controller::Type type)
+void setControllerType(EmuApp &app, Console &console, Controller::Type type)
 {
 	if(type == Controller::Type::Unknown)
 		type = autoDetectedInput1;
 	const bool extraButtons = type == Controller::Type::Genesis;
-	EmuControls::setActiveFaceButtons(extraButtons ? 4 : 2);
-	updateJoytickMapping(type);
+	app.setActiveFaceButtons(extraButtons ? 4 : 2);
+	updateJoytickMapping(app, type);
 	Controller &currentController = console.leftController();
 	if(currentController.type() == type)
 	{

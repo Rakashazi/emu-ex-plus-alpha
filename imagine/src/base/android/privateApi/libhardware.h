@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <imagine/config/imagineTypes.h>
 
 #ifdef __cplusplus
 extern "C" {

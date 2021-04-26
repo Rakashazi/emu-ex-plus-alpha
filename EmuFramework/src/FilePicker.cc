@@ -30,8 +30,8 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach,
 	FSPicker
 	{
 		attach,
-		needsUpDirControl ? &getAsset(attach.renderer(), ASSET_ARROW) : nullptr,
-		pickingDir ? &getAsset(attach.renderer(), ASSET_ACCEPT) : View::needsBackControl ? &getAsset(attach.renderer(), ASSET_CLOSE) : nullptr,
+		needsUpDirControl ? &EmuApp::get(attach.appContext()).asset(attach.renderer(), EmuApp::AssetID::ARROW) : nullptr,
+		pickingDir ? &EmuApp::get(attach.appContext()).asset(attach.renderer(), EmuApp::AssetID::ACCEPT) : attach.viewManager().needsBackControl() ? &EmuApp::get(attach.appContext()).asset(attach.renderer(), EmuApp::AssetID::CLOSE) : nullptr,
 		pickingDir ?
 		FSPicker::FilterFunc{[](FS::directory_entry &entry)
 		{
@@ -55,9 +55,9 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach,
 	if(strlen(startingPath))
 	{
 		setOnPathReadError(
-			[](FSPicker &, std::error_code ec)
+			[this](FSPicker &, std::error_code ec)
 			{
-				EmuApp::printfMessage(4, true, "Can't open last saved directory: %s", ec.message().c_str());
+				app().printfMessage(4, true, "Can't open last saved directory: %s", ec.message().c_str());
 			});
 		if(auto ec = setPath(startingPath, false, rootInfo, e);
 			!ec)
@@ -66,9 +66,9 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach,
 		}
 	}
 	setOnPathReadError(
-		[](FSPicker &, std::error_code ec)
+		[this](FSPicker &, std::error_code ec)
 		{
-			EmuApp::printfMessage(3, true, "Can't open directory: %s", ec.message().c_str());
+			app().printfMessage(3, true, "Can't open directory: %s", ec.message().c_str());
 		});
 	if(setDefaultPath)
 	{
@@ -78,22 +78,23 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach,
 
 std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, Input::Event e, bool singleDir)
 {
-	auto searchPath = EmuApp::mediaSearchPath();
+	auto &app = EmuApp::get(attach.appContext());
+	auto searchPath = app.mediaSearchPath();
 	auto rootInfo = attach.appContext().nearestRootPath(searchPath.data());
 	auto picker = std::make_unique<EmuFilePicker>(attach, searchPath.data(), false, EmuSystem::defaultBenchmarkFsFilter, rootInfo, e, singleDir);
 	picker->setOnChangePath(
-		[](FSPicker &picker, FS::PathString, Input::Event)
+		[&app](FSPicker &picker, FS::PathString, Input::Event)
 		{
-			EmuApp::setMediaSearchPath(picker.path());
+			app.setMediaSearchPath(picker.path());
 		});
 	picker->setOnSelectFile(
-		[](FSPicker &picker, const char* name, Input::Event e)
+		[&app](FSPicker &picker, const char* name, Input::Event e)
 		{
-			EmuApp::postMessage("Running benchmark...");
-			EmuApp::createSystemWithMedia({}, picker.makePathString(name).data(), "", e, {}, picker.attachParams(),
-				[](Input::Event e)
+			app.postMessage("Running benchmark...");
+			app.createSystemWithMedia({}, picker.makePathString(name).data(), "", e, {}, picker.attachParams(),
+				[&app](Input::Event e)
 				{
-					runBenchmarkOneShot();
+					runBenchmarkOneShot(app, app.video());
 				});
 		});
 	return picker;
@@ -102,18 +103,19 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachPara
 std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForLoading(ViewAttachParams attach, Input::Event e,
 	bool singleDir, EmuSystemCreateParams params)
 {
-	auto searchPath = EmuApp::mediaSearchPath();
+	auto &app = EmuApp::get(attach.appContext());
+	auto searchPath = app.mediaSearchPath();
 	auto rootInfo = attach.appContext().nearestRootPath(searchPath.data());
 	auto picker = std::make_unique<EmuFilePicker>(attach, searchPath.data(), false, EmuSystem::defaultFsFilter, rootInfo, e, singleDir);
 	picker->setOnChangePath(
-		[](FSPicker &picker, FS::PathString, Input::Event)
+		[&app](FSPicker &picker, FS::PathString, Input::Event)
 		{
-			EmuApp::setMediaSearchPath(picker.path());
+			app.setMediaSearchPath(picker.path());
 		});
 	picker->setOnSelectFile(
-		[=](FSPicker &picker, const char *name, Input::Event e)
+		[=, &app](FSPicker &picker, const char *name, Input::Event e)
 		{
-			onSelectFileFromPicker(picker.makePathString(name).data(), e, params, picker.attachParams());
+			onSelectFileFromPicker(app, picker.makePathString(name).data(), e, params, picker.attachParams());
 		});
 	return picker;
 }
@@ -132,6 +134,11 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaCreation(ViewAttachPar
 	auto rootInfo = app.nearestRootPath(EmuSystem::baseSavePath(app).data());
 	auto picker = std::make_unique<EmuFilePicker>(attach, EmuSystem::baseSavePath(app).data(), true, EmuSystem::NameFilterFunc{}, rootInfo, e, singleDir);
 	return picker;
+}
+
+std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaCreation(ViewAttachParams attach, bool singleDir)
+{
+	return makeForMediaCreation(attach, attach.appContext().defaultInputEvent(), singleDir);
 }
 
 bool EmuFilePicker::inputEvent(Input::Event e)

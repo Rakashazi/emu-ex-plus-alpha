@@ -22,7 +22,7 @@
 
 CreditsView::CreditsView(ViewAttachParams attach, const char *str):
 	View{appViewTitle(), attach},
-	text{str, &View::defaultFace},
+	text{str, &defaultFace()},
 	animate
 	{
 		[this](IG::FrameParams params)

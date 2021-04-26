@@ -460,7 +460,7 @@ void vdp_dma_update(unsigned int cycles)
   }
 
   /* Remaining DMA bytes for that line */
-  uint dma_bytes = (dma_cycles * rate) / MCYCLES_PER_LINE;
+  unsigned dma_bytes = (dma_cycles * rate) / MCYCLES_PER_LINE;
 
 #ifdef LOGVDP
   error("[%d(%d)][%d(%d)] DMA type %d (%d access/line)(%d cycles left)-> %d access (%d remaining) (%x)\n", v_counter, mm68k.cycleCount/MCYCLES_PER_LINE, mm68k.cycleCount, mm68k.cycleCount%MCYCLES_PER_LINE,dma_type/4, rate, dma_cycles, dma_bytes, dma_length, m68k_get_reg (NULL, M68K_REG_PC));

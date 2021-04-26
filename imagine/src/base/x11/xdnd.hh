@@ -18,12 +18,17 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
-extern bool dndInit;
+namespace Config
+{
+	namespace Base
+	{
+	static constexpr bool XDND = !Config::MACHINE_IS_PANDORA;
+	}
+}
 
 void registerXdndAtoms(Display *dpy);
-void enableXdnd(Display *dpy, ::Window win);
 void disableXdnd(Display *dpy, ::Window win);
 void sendDNDStatus(Display *dpy, ::Window win, ::Window srcWin, int willAcceptDrop, Atom action);
 void sendDNDFinished(Display *dpy, ::Window win, ::Window srcWin, Atom action);
-void receiveDrop(Display *dpy, ::Window win, Time time);
+void receiveDrop(Display *dpy, ::Window win, ::Time time);
 void handleXDNDEvent(Display *dpy, const XClientMessageEvent &e, ::Window win, ::Window &draggerWin, Atom &dragAction);

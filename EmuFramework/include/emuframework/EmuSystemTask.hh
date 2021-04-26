@@ -22,6 +22,7 @@
 
 class EmuVideo;
 class EmuAudio;
+class EmuApp;
 
 class EmuSystemTask
 {
@@ -93,6 +94,7 @@ public:
 		explicit operator bool() const { return reply != Reply::UNSET; }
 	};
 
+	EmuSystemTask(EmuApp &);
 	void start();
 	void pause();
 	void stop();
@@ -100,8 +102,10 @@ public:
 	void sendVideoFormatChangedReply(EmuVideo &video);
 	void sendFrameFinishedReply(EmuVideo &video);
 	void sendScreenshotReply(int num, bool success);
+	EmuApp &app() const;
 
 private:
+	EmuApp *appPtr{};
 	Base::MessagePort<CommandMessage> commandPort{"EmuSystemTask Command"};
 	Base::MessagePort<ReplyMessage> replyPort{"EmuSystemTask Reply"};
 	bool started = false;

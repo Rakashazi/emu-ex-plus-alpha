@@ -22,7 +22,7 @@
 namespace IG::Audio
 {
 
-OpenSLESOutputStream::OpenSLESOutputStream(Base::ApplicationContext app)
+OpenSLESOutputStream::OpenSLESOutputStream(Base::ApplicationContext ctx)
 {
 	// engine object
 	SLObjectItf slE;
@@ -50,11 +50,11 @@ OpenSLESOutputStream::OpenSLESOutputStream(Base::ApplicationContext app)
 	}
 	this->slE = slE;
 	this->outMix = outMix;
-	bufferFrames = AudioManager::nativeOutputFramesPerBuffer(app);
-	supportsFloatFormat = app.androidSDK() >= 21;
+	bufferFrames = AudioManager::nativeOutputFramesPerBuffer(ctx);
+	supportsFloatFormat = ctx.androidSDK() >= 21;
 	// must create queue with 2 buffers on Android <= 4.2
 	// to get low-latency path, even though we only queue 1
-	outputBuffers = app.androidSDK() >= 18 ? 1 : 2;
+	outputBuffers = ctx.androidSDK() >= 18 ? 1 : 2;
 }
 
 OpenSLESOutputStream::~OpenSLESOutputStream()

@@ -28,15 +28,18 @@
 namespace Base
 {
 
+class ApplicationContext;
+
 class IOSScreen
 {
 public:
-	void *uiScreen_ = nullptr; // UIScreen in ObjC
-	void *displayLink_ = nullptr; // CADisplayLink in ObjC
-	IG::FloatSeconds frameTime_{};
-	bool displayLinkActive = false;
+	struct InitParams
+	{
+		void *uiScreen;
+	};
 
 	constexpr IOSScreen() {}
+	IOSScreen(ApplicationContext, InitParams);
 	~IOSScreen();
 
 	constexpr bool operator ==(IOSScreen const &rhs) const
@@ -59,6 +62,12 @@ public:
 	UIScreen *uiScreen() const { return (__bridge UIScreen*)uiScreen_; }
 	CADisplayLink *displayLink() const { return (__bridge CADisplayLink*)displayLink_; }
 	#endif
+
+protected:
+	void *uiScreen_{}; // UIScreen in ObjC
+	void *displayLink_{}; // CADisplayLink in ObjC
+	IG::FloatSeconds frameTime_{};
+	bool displayLinkActive{};
 };
 
 using ScreenImpl = IOSScreen;

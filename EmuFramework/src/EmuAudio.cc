@@ -16,8 +16,8 @@
 #define LOGTAG "EmuAudio"
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuSystem.hh>
-#include "private.hh"
 #include <imagine/audio/AudioManager.hh>
+#include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
 
 struct AudioStats
@@ -37,7 +37,6 @@ struct AudioStats
 };
 
 #ifdef CONFIG_EMUFRAMEWORK_AUDIO_STATS
-#include "EmuViewController.hh"
 static AudioStats audioStats{};
 static Base::Timer audioStatsTimer{"audioStatsTimer"};
 #endif

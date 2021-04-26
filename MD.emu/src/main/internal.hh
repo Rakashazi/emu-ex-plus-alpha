@@ -5,10 +5,12 @@
 
 namespace EmuControls
 {
-extern const uint gamepadKeys;
+extern const unsigned gamepadKeys;
 }
 
-extern uint playerIdxMap[4];
+class EmuApp;
+
+extern unsigned playerIdxMap[4];
 extern int8 mdInputPortDev[2];
 extern t_config config;
 extern Byte1Option optionBigEndianSram;
@@ -26,5 +28,5 @@ extern PathOption optionCDBiosEurPath;
 #endif
 extern Byte1Option optionVideoSystem;
 
-void setupMDInput();
+void setupMDInput(EmuApp &);
 bool hasMDExtension(const char *name);

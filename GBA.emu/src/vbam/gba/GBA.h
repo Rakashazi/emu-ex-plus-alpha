@@ -303,7 +303,7 @@ struct GBALCD
 	bool fxOn = false;
 	bool windowOn = false;
 	MixColorType *lineMix = nullptr;
-	uint layerEnable = 0;
+	unsigned layerEnable = 0;
 	int gfxBG2Changed = 0;
 	int gfxBG3Changed = 0;
 	int gfxBG2X = 0;
@@ -406,7 +406,7 @@ static inline u32 CPUReadHalfWordQuick(ARM7TDMI &cpu, u32 addr);
 
 static inline u32 CPUReadMemoryQuick(ARM7TDMI &cpu, u32 addr);
 
-static const uint cpuBitsSet[256] =
+static const unsigned cpuBitsSet[256] =
 {
 		0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
 		1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
@@ -500,13 +500,13 @@ public:
 	//u8 cpuBitsSet[256];
 	//u8 cpuLowestBitSet[256];
 	GBASys *gba;
-	uint memoryWait[16] =
+	unsigned memoryWait[16] =
 	  { 0, 0, 2, 0, 0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 0 };
-	uint memoryWait32[16] =
+	unsigned memoryWait32[16] =
 	  { 0, 0, 5, 0, 0, 1, 1, 0, 7, 7, 9, 9, 13, 13, 4, 0 };
-	uint memoryWaitSeq[16] =
+	unsigned memoryWaitSeq[16] =
 	  { 0, 0, 2, 0, 0, 0, 0, 0, 2, 2, 4, 4, 8, 8, 4, 0 };
-	uint memoryWaitSeq32[16] =
+	unsigned memoryWaitSeq32[16] =
 	  { 0, 0, 5, 0, 0, 1, 1, 0, 5, 5, 9, 9, 17, 17, 4, 0 };
 	memoryMap map[256];
 

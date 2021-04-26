@@ -52,32 +52,18 @@ struct TextureBufferModeDesc
 	constexpr TextureBufferModeDesc(const char *name, TextureBufferMode mode):name{name}, mode{mode} {}
 };
 
-class RendererConfig
-{
-public:
-	constexpr RendererConfig() {}
-	constexpr RendererConfig(IG::PixelFormat pixelFormat):pixelFormat_{pixelFormat} {}
-	constexpr IG::PixelFormat pixelFormat() const { return pixelFormat_; };
-
-protected:
-	IG::PixelFormat pixelFormat_{};
-};
-
 class Renderer : public RendererImpl
 {
 public:
 	using RendererImpl::RendererImpl;
-	Renderer(Base::ApplicationContext, Base::Window *initialWindow, Error &errOut);
-	Renderer(RendererConfig, Base::ApplicationContext, Base::Window *initialWindow, Error &errOut);
-	Renderer(const Renderer &o) = delete;
-	Renderer &operator=(const Renderer &o) = delete;
-	Renderer(Renderer &&o) = delete;
-	Renderer &operator=(Renderer &&o) = delete;
+	Renderer(Base::ApplicationContext, Error &errOut);
 	void configureRenderer();
 	bool isConfigured() const;
 	const RendererTask &task() const;
 	RendererTask &task();
 	Base::ApplicationContext appContext() const;
+	Error initMainTask(Base::Window *initialWindow, IG::PixelFormat format = PIXEL_FMT_NONE);
+	Error setPixelFormat(IG::PixelFormat);
 	bool attachWindow(Base::Window &);
 	void detachWindow(Base::Window &);
 	Base::NativeWindowFormat nativeWindowFormat() const;

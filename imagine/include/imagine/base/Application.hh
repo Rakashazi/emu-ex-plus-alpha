@@ -15,8 +15,23 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <stdint.h>
+#include <imagine/config/defs.hh>
 
-#ifdef __APPLE__
-typedef unsigned int uint;
+#if defined CONFIG_BASE_X11
+#include <imagine/base/x11/XApplication.hh>
+#elif defined CONFIG_BASE_ANDROID
+#include <imagine/base/android/AndroidApplication.hh>
+#elif defined CONFIG_BASE_IOS
+#include <imagine/base/iphone/IOSApplication.hh>
 #endif
+
+namespace Base
+{
+
+class Application : public ApplicationImpl
+{
+public:
+	using ApplicationImpl::ApplicationImpl;
+};
+
+}

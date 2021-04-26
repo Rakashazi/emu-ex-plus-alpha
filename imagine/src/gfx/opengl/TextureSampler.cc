@@ -146,7 +146,7 @@ GLTextureSampler::~GLTextureSampler()
 
 void GLTextureSampler::deinit()
 {
-	if(!name_ || !rTask || !*rTask || !rTask->renderer().support.hasSamplerObjects)
+	if(!name_ || !rTask->renderer().support.hasSamplerObjects)
 		return;
 	logDMsg("deleting sampler object:0x%X (%s)", name_, label());
 	rTask->run(

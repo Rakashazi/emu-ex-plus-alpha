@@ -31,14 +31,14 @@ public:
 	};
 
 	constexpr	VideoImageOverlay() {}
-	void setEffect(Gfx::Renderer &r, uint effect);
+	void setEffect(Gfx::Renderer &r, unsigned effect);
 	void setIntensity(Gfx::GC intensity);
-	void place(const Gfx::Sprite &disp, uint lines);
+	void place(const Gfx::Sprite &disp, unsigned lines);
 	void draw(Gfx::RendererCommands &cmds);
 
 private:
 	Gfx::Texture img{};
 	Gfx::Sprite spr{};
 	Gfx::GC intensity = 0.25;
-	uint effect = NO_EFFECT;
+	unsigned effect = NO_EFFECT;
 };

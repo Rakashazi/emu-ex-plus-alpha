@@ -17,19 +17,19 @@
 #include <unistd.h>
 #include <sys/param.h>
 #include <gio/gio.h>
-#include "dbus.hh"
-#include "../common/basePrivate.hh"
 #include <imagine/base/EventLoop.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
 
-#define DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER 1
-static const char *appObjectPath = "/com/explusalpha/imagine";
-static GDBusConnection *gbus{};
-static guint openPathSub = 0;
+namespace Base
+{
 
-bool initDBus()
+#define DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER 1
+static constexpr const char *appObjectPath = "/com/explusalpha/imagine";
+
+bool LinuxApplication::initDBus()
 {
 	if(gbus)
 		return true;
@@ -44,16 +44,16 @@ bool initDBus()
 	return true;
 }
 
-void deinitDBus()
+void LinuxApplication::deinitDBus()
 {
 	if(!gbus)
 		return;
 	g_object_unref(gbus);
-	gbus = nullptr;
+	gbus = {};
 	openPathSub = 0;
 }
 
-static guint setOpenPathListener(Base::ApplicationContext app, GDBusConnection *bus, const char *name)
+static guint setOpenPathListener(LinuxApplication &app, GDBusConnection *bus, const char *name)
 {
 	return g_dbus_connection_signal_subscribe(bus,
 		name, name, "openPath", appObjectPath,
@@ -68,14 +68,14 @@ static guint setOpenPathListener(Base::ApplicationContext app, GDBusConnection *
 			}
 			gchar *openPath;
 			g_variant_get(param, "(s)", &openPath);
-			Base::ApplicationContext app{};
-			app.dispatchOnInterProcessMessage(openPath);
+			ApplicationContext ctx{*((Application*)userData)};
+			ctx.dispatchOnInterProcessMessage(openPath);
 		},
-		nullptr, // TODO: pass application instance as user data
+		&app,
 		nullptr);
 }
 
-bool uniqueInstanceRunning(GDBusConnection *bus, const char *name)
+static bool uniqueInstanceRunning(GDBusConnection *bus, const char *name)
 {
 	GError *err{};
 	auto retVar = g_dbus_connection_call_sync(bus,
@@ -107,13 +107,7 @@ bool uniqueInstanceRunning(GDBusConnection *bus, const char *name)
 	}
 }
 
-namespace Base
-{
-
-static bool allowScreenSaver = true;
-static uint32_t screenSaverCookie = 0;
-
-void ApplicationContext::setIdleDisplayPowerSave(bool wantsAllowScreenSaver)
+void LinuxApplication::setIdleDisplayPowerSave(bool wantsAllowScreenSaver)
 {
 	if(allowScreenSaver == wantsAllowScreenSaver)
 		return;
@@ -155,7 +149,7 @@ void ApplicationContext::setIdleDisplayPowerSave(bool wantsAllowScreenSaver)
 	allowScreenSaver = wantsAllowScreenSaver;
 }
 
-void ApplicationContext::endIdleByUserActivity()
+void LinuxApplication::endIdleByUserActivity()
 {
 	if(!allowScreenSaver)
 		return;
@@ -172,23 +166,23 @@ void ApplicationContext::endIdleByUserActivity()
 		nullptr);
 }
 
-void ApplicationContext::registerInstance(int argc, char** argv, const char *name)
+bool LinuxApplication::registerInstance(ApplicationInitParams initParams, const char *name)
 {
 	if(!initDBus())
-		return;
+		return false;
 	if(!uniqueInstanceRunning(gbus, name))
 	{
 		// no running intance
-		return;
+		return false;
 	}
-	if(argc < 2)
+	if(initParams.argc < 2)
 	{
-		exit();
+		return true;
 	}
 	// send signal
-	auto path = argv[1];
+	auto path = initParams.argv[1];
 	char realPath[PATH_MAX];
-	if(argv[1][0] != '/') // is path absolute?
+	if(initParams.argv[1][0] != '/') // is path absolute?
 	{
 		if(!realpath(path, realPath))
 		{
@@ -203,10 +197,10 @@ void ApplicationContext::registerInstance(int argc, char** argv, const char *nam
 		"openPath", g_variant_new("(s)", path),
 		nullptr);
 	g_dbus_connection_flush_sync(gbus, nullptr, nullptr);
-	exit();
+	return true;
 }
 
-void ApplicationContext::setAcceptIPC(bool on, const char *name)
+void LinuxApplication::setAcceptIPC(bool on, const char *name)
 {
 	assert(on);
 	if(!initDBus())

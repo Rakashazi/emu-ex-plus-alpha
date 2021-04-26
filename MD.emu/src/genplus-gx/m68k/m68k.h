@@ -7,4 +7,4 @@
 	#include "musashi/m68k.h"
 //#endif
 
-const char *m68KAddrToStr(M68KCPU &cpu, uint addr);
+const char *m68KAddrToStr(M68KCPU &cpu, unsigned addr);

@@ -15,43 +15,46 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/input/Input.hh>
-#include <imagine/input/Device.hh>
 #include <emuframework/config.hh>
 #include <emuframework/inGameActionKeys.hh>
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 #include <emuframework/VController.hh>
 #endif
+#include <imagine/input/Input.hh>
+#include <imagine/input/Device.hh>
+#include <imagine/util/container/VMemArray.hh>
 
 namespace Input
 {
 class Device;
 }
 
-static constexpr uint MAX_INPUT_DEVICE_NAME_SIZE = 64;
-static constexpr uint MAX_KEY_CONFIG_NAME_SIZE = 80;
-static constexpr uint MAX_KEY_CONFIG_KEYS = 256;
-static constexpr uint MAX_DEFAULT_KEY_CONFIGS_PER_TYPE = 10;
+static constexpr unsigned MAX_INPUT_DEVICE_NAME_SIZE = 64;
+static constexpr unsigned MAX_KEY_CONFIG_NAME_SIZE = 80;
+static constexpr unsigned MAX_KEY_CONFIG_KEYS = 256;
+static constexpr unsigned MAX_DEFAULT_KEY_CONFIGS_PER_TYPE = 10;
+
+struct InputDeviceConfig;
 
 struct KeyCategory
 {
 	constexpr KeyCategory() {}
 	template <size_t S>
 	constexpr KeyCategory(const char *name, const char *(&keyName)[S],
-			uint configOffset, bool isMultiplayer = false) :
+			unsigned configOffset, bool isMultiplayer = false) :
 	name(name), keyName(keyName), keys(S), configOffset(configOffset), isMultiplayer(isMultiplayer) {}
 
 	const char *name{};
 	const char **keyName{};
-	uint keys = 0;
-	uint configOffset = 0;
+	unsigned keys = 0;
+	unsigned configOffset = 0;
 	bool isMultiplayer = false; // category appears when one input device is assigned multiple players
 };
 
 struct KeyConfig
 {
 	Input::Map map;
-	uint devSubtype;
+	unsigned devSubtype;
 	char name[MAX_KEY_CONFIG_NAME_SIZE];
 	using Key = Input::Key;
 	using KeyArray = std::array<Key, MAX_KEY_CONFIG_KEYS>;
@@ -72,10 +75,24 @@ struct KeyConfig
 		return key_;
 	}
 
-	static const KeyConfig *defaultConfigsForInputMap(Input::Map map, uint &size);
+	static const KeyConfig *defaultConfigsForInputMap(Input::Map map, unsigned &size);
 	static const KeyConfig &defaultConfigForDevice(const Input::Device &dev);
-	static const KeyConfig *defaultConfigsForDevice(const Input::Device &dev, uint &size);
+	static const KeyConfig *defaultConfigsForDevice(const Input::Device &dev, unsigned &size);
 	static const KeyConfig *defaultConfigsForDevice(const Input::Device &dev);
+};
+
+struct KeyMapping
+{
+	static constexpr unsigned maxKeyActions = 4;
+	using Action = uint8_t;
+	using ActionGroup = std::array<Action, maxKeyActions>;
+	std::unique_ptr<ActionGroup*[]> inputDevActionTablePtr{};
+	IG::VMemArray<ActionGroup> inputDevActionTable{};
+
+	KeyMapping() {}
+	void buildAll(const std::vector<InputDeviceConfig> &, const Base::InputDeviceContainer &);
+	void free();
+	explicit operator bool() const;
 };
 
 namespace EmuControls
@@ -83,36 +100,36 @@ namespace EmuControls
 
 using namespace Input;
 
-static constexpr uint MAX_CATEGORIES = 8;
+static constexpr unsigned MAX_CATEGORIES = 8;
 
 // Defined in the emulation module
-extern const uint categories;
-extern const uint systemTotalKeys;
+extern const unsigned categories;
+extern const unsigned systemTotalKeys;
 
 extern const KeyCategory category[MAX_CATEGORIES];
 
 extern const KeyConfig defaultKeyProfile[];
-extern const uint defaultKeyProfiles;
+extern const unsigned defaultKeyProfiles;
 extern const KeyConfig defaultWiimoteProfile[];
-extern const uint defaultWiimoteProfiles;
+extern const unsigned defaultWiimoteProfiles;
 extern const KeyConfig defaultWiiCCProfile[];
-extern const uint defaultWiiCCProfiles;
+extern const unsigned defaultWiiCCProfiles;
 extern const KeyConfig defaultIControlPadProfile[];
-extern const uint defaultIControlPadProfiles;
+extern const unsigned defaultIControlPadProfiles;
 extern const KeyConfig defaultICadeProfile[];
-extern const uint defaultICadeProfiles;
+extern const unsigned defaultICadeProfiles;
 extern const KeyConfig defaultZeemoteProfile[];
-extern const uint defaultZeemoteProfiles;
+extern const unsigned defaultZeemoteProfiles;
 extern const KeyConfig defaultAppleGCProfile[];
-extern const uint defaultAppleGCProfiles;
+extern const unsigned defaultAppleGCProfiles;
 extern const KeyConfig defaultPS3Profile[];
-extern const uint defaultPS3Profiles;
+extern const unsigned defaultPS3Profiles;
 
-void transposeKeysForPlayer(KeyConfig::KeyArray &key, uint player);
+void transposeKeysForPlayer(KeyConfig::KeyArray &key, unsigned player);
 
 // common transpose behavior
-void generic2PlayerTranspose(KeyConfig::KeyArray &key, uint player, uint startCategory);
-void genericMultiplayerTranspose(KeyConfig::KeyArray &key, uint player, uint startCategory);
+void generic2PlayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsigned startCategory);
+void genericMultiplayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsigned startCategory);
 
 #ifdef __ANDROID__
 static constexpr KeyConfig KEY_CONFIG_ANDROID_NAV_KEYS =
@@ -130,10 +147,5 @@ static constexpr KeyConfig KEY_CONFIG_ANDROID_NAV_KEYS =
 	}
 };
 #endif
-
-void setActiveFaceButtons(uint btns);
-void updateKeyboardMapping();
-void toggleKeyboard();
-void updateVControllerMapping();
 
 }

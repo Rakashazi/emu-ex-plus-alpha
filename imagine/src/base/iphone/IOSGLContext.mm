@@ -29,12 +29,12 @@ namespace Base
 
 // GLDisplay
 
-std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault()
+std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(NativeDisplayConnection)
 {
 	return {};
 }
 
-std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(GL::API api)
+std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(NativeDisplayConnection, GL::API api)
 {
 	if(!bindAPI(api))
 	{
@@ -44,12 +44,12 @@ std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(GL::API api)
 	return {};
 }
 
-GLDisplay GLDisplay::getDefault()
+GLDisplay GLDisplay::getDefault(NativeDisplayConnection)
 {
 	return {};
 }
 
-GLDisplay GLDisplay::getDefault(GL::API api)
+GLDisplay GLDisplay::getDefault(NativeDisplayConnection, GL::API api)
 {
 	if(!bindAPI(api))
 	{
@@ -186,7 +186,7 @@ GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig
 	GLContext{display, attr, config, {}, ec}
 {}
 
-std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay, GLBufferConfigAttributes attr, GL::API, unsigned)
+std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay, ApplicationContext, GLBufferConfigAttributes attr, GL::API, unsigned)
 {
 	GLBufferConfig conf;
 	if(attr.pixelFormat() == PIXEL_RGB565)
@@ -286,7 +286,7 @@ NativeGLContext GLContext::nativeObject()
 	return context_;
 }
 
-Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay) const
+Base::NativeWindowFormat GLBufferConfig::windowFormat(Base::ApplicationContext, GLDisplay) const
 {
 	return {};
 }

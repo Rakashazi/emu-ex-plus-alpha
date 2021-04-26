@@ -29,6 +29,7 @@
 namespace Base
 {
 
+class ApplicationContext;
 class GLDisplay;
 class GLDrawable;
 class GLContextAttributes;
@@ -42,7 +43,7 @@ struct EGLBufferConfig
 	constexpr EGLBufferConfig(EGLConfig eglConfig):
 		glConfig{eglConfig} {}
 
-	Base::NativeWindowFormat windowFormat(GLDisplay display) const;
+	Base::NativeWindowFormat windowFormat(ApplicationContext, GLDisplay) const;
 	EGLint renderableTypeBits(GLDisplay display) const;
 	bool maySupportGLES(GLDisplay display, unsigned majorVersion) const;
 };

@@ -26,11 +26,11 @@
 
 extern int pal_emulation;
 
-class ConsoleOptionView : public TableView
+class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
 {
 	BoolMenuItem fourScore
 	{
-		"4-Player Adapter",
+		"4-Player Adapter", &defaultFace(),
 		(bool)optionFourScore,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -42,15 +42,15 @@ class ConsoleOptionView : public TableView
 
 	TextMenuItem inputPortsItem[4]
 	{
-		{"Auto", [](){ setInputPorts(SI_UNSET, SI_UNSET); }},
-		{"Gamepads", [](){ setInputPorts(SI_GAMEPAD, SI_GAMEPAD); }},
-		{"Gun (2P, NES)", [](){ setInputPorts(SI_GAMEPAD, SI_ZAPPER); }},
-		{"Gun (1P, VS)", [](){ setInputPorts(SI_ZAPPER, SI_GAMEPAD); }},
+		{"Auto", &defaultFace(), [](){ setInputPorts(SI_UNSET, SI_UNSET); }},
+		{"Gamepads", &defaultFace(), [](){ setInputPorts(SI_GAMEPAD, SI_GAMEPAD); }},
+		{"Gun (2P, NES)", &defaultFace(), [](){ setInputPorts(SI_GAMEPAD, SI_ZAPPER); }},
+		{"Gun (1P, VS)", &defaultFace(), [](){ setInputPorts(SI_ZAPPER, SI_GAMEPAD); }},
 	};
 
 	MultiChoiceMenuItem inputPorts
 	{
-		"Input Ports",
+		"Input Ports", &defaultFace(),
 		[]()
 		{
 			if(nesInputPortDev[0] == SI_GAMEPAD && nesInputPortDev[1] == SI_GAMEPAD)
@@ -77,15 +77,15 @@ class ConsoleOptionView : public TableView
 
 	TextMenuItem videoSystemItem[4]
 	{
-		{"Auto", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(0, e); }},
-		{"NTSC", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(1, e); }},
-		{"PAL", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(2, e); }},
-		{"Dendy", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(3, e); }},
+		{"Auto", &defaultFace(), [this](Input::Event e){ setVideoSystem(0, e); }},
+		{"NTSC", &defaultFace(), [this](Input::Event e){ setVideoSystem(1, e); }},
+		{"PAL", &defaultFace(), [this](Input::Event e){ setVideoSystem(2, e); }},
+		{"Dendy", &defaultFace(), [this](Input::Event e){ setVideoSystem(3, e); }},
 	};
 
 	MultiChoiceMenuItem videoSystem
 	{
-		"Video System",
+		"Video System", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
 			if(idx == 0)
@@ -104,12 +104,12 @@ class ConsoleOptionView : public TableView
 		EmuSystem::sessionOptionSet();
 		optionVideoSystem = val;
 		setRegion(val, optionDefaultVideoSystem.val, autoDetectedRegion);
-		EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
+		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
 	BoolMenuItem compatibleFrameskip
 	{
-		"Frameskip Mode",
+		"Frameskip Mode", &defaultFace(),
 		(bool)optionCompatibleFrameskip,
 		"Fast", "Compatible",
 		[this](BoolMenuItem &item, View &, Input::Event e)
@@ -125,7 +125,7 @@ class ConsoleOptionView : public TableView
 						EmuSystem::sessionOptionSet();
 						optionCompatibleFrameskip = item.flipBoolValue(*this);
 					});
-				EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
+				app().pushAndShowModalView(std::move(ynAlertView), e);
 			}
 			else
 			{
@@ -157,7 +157,7 @@ class CustomVideoOptionView : public VideoOptionView
 {
 	BoolMenuItem spriteLimit
 	{
-		"Sprite Limit",
+		"Sprite Limit", &defaultFace(),
 		(bool)optionSpriteLimit,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -168,15 +168,15 @@ class CustomVideoOptionView : public VideoOptionView
 
 	TextMenuItem videoSystemItem[4]
 	{
-		{"Auto", [this](TextMenuItem &, View &, Input::Event e){ optionDefaultVideoSystem = 0; }},
-		{"NTSC", [this](TextMenuItem &, View &, Input::Event e){ optionDefaultVideoSystem = 1; }},
-		{"PAL", [this](TextMenuItem &, View &, Input::Event e){ optionDefaultVideoSystem = 2; }},
-		{"Dendy", [this](TextMenuItem &, View &, Input::Event e){ optionDefaultVideoSystem = 3; }},
+		{"Auto", &defaultFace(), [this](){ optionDefaultVideoSystem = 0; }},
+		{"NTSC", &defaultFace(), [this](){ optionDefaultVideoSystem = 1; }},
+		{"PAL", &defaultFace(), [this](){ optionDefaultVideoSystem = 2; }},
+		{"Dendy", &defaultFace(), [this](){ optionDefaultVideoSystem = 3; }},
 	};
 
 	MultiChoiceMenuItem videoSystem
 	{
-		"Default Video System",
+		"Default Video System", &defaultFace(),
 		optionDefaultVideoSystem,
 		videoSystemItem
 	};
@@ -201,13 +201,13 @@ class CustomVideoOptionView : public VideoOptionView
 
 	TextMenuItem defaultPalItem[5]
 	{
-		{"FCEUX", [this](){ setPalette(appContext(), {}); }},
-		{"FirebrandX", [this]() { setPalette(appContext(), firebrandXPalPath); }},
-		{"Wavebeam", [this]() { setPalette(appContext(), wavebeamPalPath); }},
-		{"Classic", [this]() { setPalette(appContext(), classicPalPath); }},
-		{"Custom File", [this](TextMenuItem &, View &, Input::Event e)
+		{"FCEUX", &defaultFace(), [this](){ setPalette(appContext(), {}); }},
+		{"FirebrandX", &defaultFace(), [this]() { setPalette(appContext(), firebrandXPalPath); }},
+		{"Wavebeam", &defaultFace(), [this]() { setPalette(appContext(), wavebeamPalPath); }},
+		{"Classic", &defaultFace(), [this]() { setPalette(appContext(), classicPalPath); }},
+		{"Custom File", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto startPath = EmuApp::mediaSearchPath();
+				auto startPath = app().mediaSearchPath();
 				auto fsFilter = [](const char *name)
 					{
 						return string_hasDotExtension(name, "pal");
@@ -221,14 +221,14 @@ class CustomVideoOptionView : public VideoOptionView
 						dismissPrevious();
 						picker.dismiss();
 					});
-				EmuApp::pushAndShowModalView(std::move(fPicker), e);
+				app().pushAndShowModalView(std::move(fPicker), e);
 				return false;
 			}},
 	};
 
 	MultiChoiceMenuItem defaultPal
 	{
-		"Default Palette",
+		"Default Palette", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
 			if(idx == defaultPaletteCustomFileIdx())
@@ -276,14 +276,14 @@ class CustomAudioOptionView : public AudioOptionView
 
 	TextMenuItem qualityItem[3]
 	{
-		{"Normal", [](){ setQuality(0); }},
-		{"High", []() { setQuality(1); }},
-		{"Highest", []() { setQuality(2); }}
+		{"Normal", &defaultFace(), [](){ setQuality(0); }},
+		{"High", &defaultFace(), []() { setQuality(1); }},
+		{"Highest", &defaultFace(), []() { setQuality(2); }}
 	};
 
 	MultiChoiceMenuItem quality
 	{
-		"Emulation Quality",
+		"Emulation Quality", &defaultFace(),
 		optionSoundQuality,
 		qualityItem
 	};
@@ -300,7 +300,7 @@ class CustomSystemOptionView : public SystemOptionView
 {
 	TextMenuItem fdsBiosPath
 	{
-		nullptr,
+		nullptr, &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("Disk System BIOS", &::fdsBiosPath,
@@ -331,11 +331,11 @@ public:
 class FDSControlView : public TableView
 {
 private:
-	static constexpr uint DISK_SIDES = 4;
+	static constexpr unsigned DISK_SIDES = 4;
 	TextMenuItem setSide[DISK_SIDES]
 	{
 		{
-			"Set Disk 1 Side A",
+			"Set Disk 1 Side A", &defaultFace(),
 			[](View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(0);
@@ -343,7 +343,7 @@ private:
 			}
 		},
 		{
-			"Set Disk 1 Side B",
+			"Set Disk 1 Side B", &defaultFace(),
 			[](View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(1);
@@ -351,7 +351,7 @@ private:
 			}
 		},
 		{
-			"Set Disk 2 Side A",
+			"Set Disk 2 Side A", &defaultFace(),
 			[](View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(2);
@@ -359,7 +359,7 @@ private:
 			}
 		},
 		{
-			"Set Disk 2 Side B",
+			"Set Disk 2 Side B", &defaultFace(),
 			[](View &view, Input::Event e)
 			{
 				FCEU_FDSSetDisk(3);
@@ -370,7 +370,7 @@ private:
 
 	TextMenuItem insertEject
 	{
-		"Eject",
+		"Eject", &defaultFace(),
 		[this](View &view, Input::Event e)
 		{
 			if(FCEU_FDSInserted())
@@ -391,7 +391,7 @@ public:
 			{
 				return 5;
 			},
-			[this](const TableView &, uint idx) -> MenuItem&
+			[this](const TableView &, unsigned idx) -> MenuItem&
 			{
 				switch(idx)
 				{
@@ -417,7 +417,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 private:
 	TextMenuItem fdsControl
 	{
-		nullptr,
+		nullptr, &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning() && isFDS)
@@ -425,7 +425,7 @@ private:
 				pushAndShow(makeView<FDSControlView>(), e);
 			}
 			else
-				EmuApp::postMessage(2, false, "Disk System not in use");
+				app().postMessage(2, false, "Disk System not in use");
 		}
 	};
 
@@ -444,7 +444,7 @@ private:
 
 	TextMenuItem options
 	{
-		"Console Options",
+		"Console Options", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())

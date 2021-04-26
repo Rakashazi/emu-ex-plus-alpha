@@ -21,13 +21,13 @@
 #include <imagine/input/config.hh>
 #include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/input/inputDefs.hh>
-#include <array>
 #include <vector>
 
 namespace Base
 {
 class Window;
 class ApplicationContext;
+class Application;
 }
 
 namespace Input
@@ -35,30 +35,42 @@ namespace Input
 
 class Device;
 
-enum { UNUSED, RELEASED, PUSHED, MOVED, MOVED_RELATIVE, EXIT_VIEW, ENTER_VIEW, CANCELED };
-enum { POINTER_NORMAL, POINTER_INVERT };
+enum class Action : uint8_t
+{
+	UNUSED,
+	RELEASED,
+	PUSHED,
+	MOVED,
+	MOVED_RELATIVE,
+	EXIT_VIEW,
+	ENTER_VIEW,
+	CANCELED
+};
+
+static constexpr bool SWAPPED_CONFIRM_KEYS_DEFAULT = Config::MACHINE_IS_PANDORA ? true : false;
 
 class Event
 {
 public:
-	using KeyString = std::array<char, 4>;
+	using KeyString = EventKeyString;
 
 	constexpr Event() {}
 
-	constexpr Event(uint32_t devId, Map map, Key button, uint32_t metaState, uint32_t state, int x, int y, int pointerID, Source src, Time time, const Device *device)
-		: device_{device}, time_{time}, devId{devId}, state_{state}, x{x}, y{y}, pointerID_{pointerID}, metaState{metaState}, button{button}, map_{map}, src{src} {}
+	constexpr Event(uint32_t devId, Map map, Key button, uint32_t metaState, Action state, int x, int y, int pointerID, Source src, Time time, const Device *device)
+		: device_{device}, time_{time}, devId{devId}, x{x}, y{y}, pointerID_{pointerID}, metaState{metaState}, button{button}, state_{state}, map_{map}, src{src} {}
 
-	constexpr Event(uint32_t devId, Map map, Key button, Key sysKey, uint32_t state, uint32_t metaState, int repeatCount, Source src, Time time, const Device *device)
-		: device_{device}, time_{time}, devId{devId}, state_{state}, metaState{metaState}, repeatCount{repeatCount}, button{button}, sysKey_{sysKey}, map_{map}, src{src} {}
+	constexpr Event(uint32_t devId, Map map, Key button, Key sysKey, Action state, uint32_t metaState, int repeatCount, Source src, Time time, const Device *device)
+		: device_{device}, time_{time}, devId{devId}, metaState{metaState}, repeatCount{repeatCount}, button{button}, sysKey_{sysKey}, state_{state}, map_{map}, src{src} {}
 
 	uint32_t deviceID() const;
 	static const char *mapName(Map map);
-	const char *mapName();
+	const char *mapName() const;
 	static uint32_t mapNumKeys(Map map);
 	Map map() const;
 	void setMap(Map map);
 	int pointerID() const;
-	uint32_t state() const;
+	Action state() const;
+	void setKeyFlags(uint8_t flags);
 	bool stateIsPointer() const;
 	bool isPointer() const;
 	bool isRelativePointer() const;
@@ -96,31 +108,29 @@ public:
 	IG::WP pos() const;
 	bool isPointerPushed(Key k) const;
 	bool isSystemFunction() const;
-	static const char *actionToStr(int action);
-	KeyString keyString() const;
+	static const char *actionToStr(Action action);
+	KeyString keyString(Base::ApplicationContext) const;
 	Time time() const;
 	const Device *device() const;
+	bool hasSwappedConfirmKeys() const;
 
 protected:
 	const Device *device_{};
 	Time time_{};
-	uint32_t devId = 0;
-	uint32_t state_ = 0;
-	int x = 0, y = 0;
-	int pointerID_ = 0;
-	uint32_t metaState = 0;
-	int repeatCount = 0;
-	Key button = 0, sysKey_ = 0;
+	uint32_t devId{};
+	int x{}, y{};
+	int pointerID_{};
+	uint32_t metaState{};
+	int repeatCount{};
+	Key button{}, sysKey_{};
 	#ifdef CONFIG_BASE_X11
-	Key rawKey = 0;
+	Key rawKey{};
 	#endif
-	Map map_{Map::UNKNOWN};
-	Source src{Source::UNKNOWN};
+	Action state_{};
+	Map map_{};
+	Source src{};
+	uint8_t keyFlags{};
 };
-
-static constexpr bool SWAPPED_GAMEPAD_CONFIRM_DEFAULT = Config::MACHINE_IS_PANDORA ? true : false;
-
-const std::vector<Device*> &deviceList();
 
 // OS text input support
 typedef DelegateFunc<void (const char *str)> InputTextDelegate;
@@ -129,43 +139,6 @@ void cancelSysTextInput(Base::ApplicationContext);
 void finishSysTextInput(Base::ApplicationContext);
 void placeSysTextInput(Base::ApplicationContext, IG::WindowRect rect);
 IG::WindowRect sysTextInputRect(Base::ApplicationContext);
-
-void setHintKeyRepeat(bool on);
-
-void showSoftInput();
-void hideSoftInput();
-bool softInputIsActive();
-
-void hideCursor();
-void showCursor();
-
-void addDevice(Device &d);
-void removeDevice(Device &d);
-void indexDevices();
-
-void xPointerTransform(uint32_t mode);
-void yPointerTransform(uint32_t mode);
-void pointerAxis(uint32_t mode);
-void configureInputForOrientation(const Base::Window &win);
-
-Event defaultEvent();
-
-// Input device status
-
-bool keyInputIsPresent();
-
-bool dispatchInputEvent(Base::ApplicationContext, Event);
-void flushEvents(Base::ApplicationContext);
-void flushSystemEvents(Base::ApplicationContext);
-void flushInternalEvents(Base::ApplicationContext);
-void startKeyRepeatTimer(Base::ApplicationContext, Event);
-void cancelKeyRepeatTimer();
-void deinitKeyRepeatTimer();
-
-IG::Point2D<int> transformInputPos(const Base::Window &win, IG::Point2D<int> srcPos);
-
-void setSwappedGamepadConfirm(bool swapped);
-bool swappedGamepadConfirm();
 
 const char *sourceStr(Source);
 Map validateMap(uint8_t mapValue);

@@ -15,6 +15,7 @@
 
 #define LOGTAG "Input"
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
@@ -22,17 +23,50 @@
 #include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
 #include "xlibutils.h"
-#include "x11.hh"
-#include "internal.hh"
-#include "../../input/private.hh"
 #include <X11/XKBlib.h>
 #include <X11/cursorfont.h>
 #include <memory>
 
-using namespace Base;
-
-namespace Input
+namespace Base
 {
+
+struct XIDeviceInfo : public ::XIDeviceInfo {};
+struct XkbDescRec : public ::XkbDescRec {};
+
+XInputDevice::XInputDevice() {}
+
+XInputDevice::XInputDevice(uint32_t typeBits, const char *name):
+	Device(0, Input::Map::SYSTEM, typeBits, name)
+{}
+
+XInputDevice::XInputDevice(XIDeviceInfo info, int enumId, bool isPointingDevice, bool isPowerButton):
+	Device(enumId, Input::Map::SYSTEM, 0, info.name),
+	id(info.deviceid)
+{
+	if(isPointingDevice)
+	{
+		type_ = Input::Device::TYPE_BIT_MOUSE;
+	}
+	else
+	{
+		type_ = Input::Device::TYPE_BIT_KEYBOARD;
+		if(isPowerButton)
+		{
+			type_ |= Input::Device::TYPE_BIT_POWER_BUTTON;
+		}
+	}
+}
+
+void XInputDevice::setICadeMode(bool on)
+{
+	logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
+	iCadeMode_ = on;
+}
+
+bool XInputDevice::iCadeMode() const
+{
+	return iCadeMode_;
+}
 
 struct XIEventMaskData
 {
@@ -40,57 +74,7 @@ struct XIEventMaskData
 	uint8_t maskBits[XIMaskLen(XI_LASTEVENT)]{};
 };
 
-struct XInputDevice : public Device
-{
-	int id = -1;
-	bool iCadeMode_ = false;
-
-	XInputDevice() {}
-
-	XInputDevice(uint32_t typeBits, const char *name):
-		Device(0, Map::SYSTEM, typeBits, name)
-	{}
-
-	XInputDevice(const XIDeviceInfo &info, int enumId, bool isPointingDevice, bool isPowerButton):
-		Device(enumId, Map::SYSTEM, 0, info.name),
-		id(info.deviceid)
-	{
-		if(isPointingDevice)
-		{
-			type_ = Device::TYPE_BIT_MOUSE;
-		}
-		else
-		{
-			type_ = Device::TYPE_BIT_KEYBOARD;
-			if(isPowerButton)
-			{
-				type_ |= Device::TYPE_BIT_POWER_BUTTON;
-			}
-		}
-	}
-
-	void setICadeMode(bool on) final
-	{
-		logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
-		iCadeMode_ = on;
-	}
-
-	bool iCadeMode() const final
-	{
-		return iCadeMode_;
-	}
-};
-
-static std::vector<std::unique_ptr<XInputDevice>> xDevice;
-static Cursor blankCursor{};
-static Cursor normalCursor{};
-static uint32_t numCursors = 0;
-static int xI2opcode = 0;
-static int xPointerMapping[Config::Input::MAX_POINTERS]{};
-static XkbDescPtr coreKeyboardDesc{};
-static Device *vkbDevice{};
-
-static const Device *deviceForInputId(int osId)
+const Input::Device *XApplication::deviceForInputId(int osId) const
 {
 	for(auto &dev : xDevice)
 	{
@@ -120,7 +104,7 @@ static void setXIEventMaskData(XIEventMaskData &data)
 	XISetMask(data.maskBits, XI_KeyRelease);
 }
 
-void initPerWindowData(Display *dpy, ::Window win)
+void XApplication::initPerWindowInputData(::Window win)
 {
 	if(Config::MACHINE_IS_PANDORA)
 	{
@@ -148,33 +132,7 @@ void initPerWindowData(Display *dpy, ::Window win)
 	XISelectEvents(dpy, win, &xiMask.eventMask, 1);
 }
 
-void hideCursor(Display *dpy, ::Window win)
-{
-	if(Config::MACHINE_IS_PANDORA)
-		XFixesHideCursor(dpy, win);
-	else
-		XDefineCursor(dpy, win, Input::blankCursor);
-}
-
-void showCursor(Display *dpy, ::Window win)
-{
-	if(Config::MACHINE_IS_PANDORA)
-		XFixesShowCursor(dpy, win);
-	else
-		XDefineCursor(dpy, win, Input::normalCursor);
-}
-
-bool Device::anyTypeBitsPresent(uint32_t typeBits)
-{
-	// TODO
-	if(typeBits & TYPE_BIT_KEYBOARD)
-	{
-		return 1;
-	}
-	return 0;
-}
-
-static void setupXInput2(Display *dpy)
+void XApplication::initXInput2()
 {
 	int event, error;
 	if(!XQueryExtension(dpy, "XInputExtension", &xI2opcode, &event, &error))
@@ -190,7 +148,7 @@ static void setupXInput2(Display *dpy)
 	}
 }
 
-static int devIdToPointer(int id)
+int XApplication::devIdToPointer(int id) const
 {
 	iterateTimes(4, i)
 	{
@@ -207,7 +165,7 @@ static bool isPowerButtonName(const char *name)
 		|| (Config::MACHINE_IS_PANDORA && strstr(name, "power-button"));
 }
 
-static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify, bool isPointingDevice)
+void XApplication::addXInputDevice(XIDeviceInfo xDevInfo, bool notify, bool isPointingDevice)
 {
 	for(auto &e : xDevice)
 	{
@@ -219,31 +177,28 @@ static void addXInputDevice(const XIDeviceInfo &xDevInfo, bool notify, bool isPo
 	}
 	logMsg("adding X key input device %d (%s) to device list", xDevInfo.deviceid, xDevInfo.name);
 	uint32_t devId = 0;
-	for(auto &e : devList)
+	for(auto &e : systemInputDevices())
 	{
-		if(e->map() != Map::SYSTEM)
+		if(e->map() != Input::Map::SYSTEM)
 			continue;
 		if(string_equal(e->name(), xDevInfo.name) && e->enumId() == devId)
 			devId++;
 	}
 	auto &devPtr = xDevice.emplace_back(std::make_unique<XInputDevice>(xDevInfo, devId, isPointingDevice, isPowerButtonName(xDevInfo.name)));
-	addDevice(*devPtr);
 	if(Config::MACHINE_IS_PANDORA && (string_equal(xDevInfo.name, "gpio-keys")
 		|| string_equal(xDevInfo.name, "keypad")))
 	{
-		devPtr->subtype_ = Device::SUBTYPE_PANDORA_HANDHELD;
+		devPtr->subtype_ = Input::Device::SUBTYPE_PANDORA_HANDHELD;
 	}
-	if(notify)
-		onDeviceChange.callCopySafe(*devPtr, { Device::Change::ADDED });
+	addSystemInputDevice(*devPtr, notify);
 }
 
-static void removeXInputDevice(int xDeviceId)
+void XApplication::removeXInputDevice(int xDeviceId)
 {
 	if(auto removedDev = IG::moveOutIf(xDevice, [&](std::unique_ptr<XInputDevice> &dev){ return dev->id == xDeviceId; });
 		removedDev)
 	{
-		removeDevice(*removedDev);
-		onDeviceChange.callCopySafe(*removedDev, { Device::Change::REMOVED });
+		removeSystemInputDevice(*removedDev, true);
 		return;
 	}
 	logErr("key input device %d not in list", xDeviceId);
@@ -262,7 +217,7 @@ static const char *xInputDeviceTypeToStr(int type)
 	}
 }
 
-static Key keysymToKey(KeySym k)
+static Input::Key keysymToKey(KeySym k)
 {
 	// if the keysym fits in 2 bytes leave as is,
 	// otherwise use only first 15-bits to match
@@ -270,9 +225,9 @@ static Key keysymToKey(KeySym k)
 	return k <= 0xFFFF ? k : k & 0xEFFF;
 }
 
-void init(Display *dpy)
+void XApplication::initInputSystem()
 {
-	setupXInput2(dpy);
+	initXInput2();
 
 	// request input device changes events
 	{
@@ -286,11 +241,11 @@ void init(Display *dpy)
 	}
 
 	// setup device list
-	static XInputDevice virt{Device::TYPE_BIT_VIRTUAL | Device::TYPE_BIT_KEYBOARD | Device::TYPE_BIT_KEY_MISC, "Virtual"};
-	addDevice(virt);
+	static XInputDevice virt{Input::Device::TYPE_BIT_VIRTUAL | Input::Device::TYPE_BIT_KEYBOARD | Input::Device::TYPE_BIT_KEY_MISC, "Virtual"};
+	addSystemInputDevice(virt);
 	vkbDevice = &virt;
 	int devices;
-	XIDeviceInfo *device = XIQueryDevice(dpy, XIAllDevices, &devices);
+	::XIDeviceInfo *device = XIQueryDevice(dpy, XIAllDevices, &devices);
 	iterateTimes(devices, i)
 	{
 		if(device[i].use == XIMasterPointer || device[i].use == XISlaveKeyboard)
@@ -302,23 +257,25 @@ void init(Display *dpy)
 		{
 			bcase XIMasterPointer:
 			{
-				logMsg("mapping X pointer %d (%s) as pointer %d", device[i].deviceid, device[i].name, Input::numCursors);
-				xPointerMapping[Input::numCursors] = device[i].deviceid;
-				Input::numCursors++;
-				addXInputDevice(device[i], false, true);
+				logMsg("mapping X pointer %d (%s) as pointer %d", device[i].deviceid, device[i].name, numCursors);
+				xPointerMapping[numCursors] = device[i].deviceid;
+				numCursors++;
+				XIDeviceInfo d{device[i]};
+				addXInputDevice(d, false, true);
 			}
 			bcase XISlaveKeyboard:
 			{
-				addXInputDevice(device[i], false, false);
+				XIDeviceInfo d{device[i]};
+				addXInputDevice(d, false, false);
 			}
 		}
 	}
 	XIFreeDeviceInfo(device);
 
-	coreKeyboardDesc = XkbGetKeyboard(dpy, XkbAllComponentsMask, XkbUseCoreKbd);
+	coreKeyboardDesc = static_cast<XkbDescRec*>(XkbGetKeyboard(dpy, XkbAllComponentsMask, XkbUseCoreKbd));
 }
 
-void deinit(Display *dpy)
+void XApplication::deinitInputSystem()
 {
 	//logMsg("deinit input data");
 	if(blankCursor)
@@ -326,7 +283,7 @@ void deinit(Display *dpy)
 	if(normalCursor)
 		XFreeCursor(dpy, normalCursor);
 	if(coreKeyboardDesc)
-		XkbFreeClientMap(coreKeyboardDesc, 0, true);
+		XkbFreeKeyboard(coreKeyboardDesc, XkbAllComponentsMask, true);
 }
 
 static uint32_t makePointerButtonState(XIButtonState state)
@@ -336,14 +293,8 @@ static uint32_t makePointerButtonState(XIButtonState state)
 	return byte1 | (byte2 << 8);
 }
 
-static void updatePointer(Base::Window &win, uint32_t key, uint32_t btnState, int p, uint32_t action, int x, int y, Input::Time time, int sourceID)
-{
-	auto dev = deviceForInputId(sourceID);
-	auto pos = transformInputPos(win, {x, y});
-	win.dispatchInputEvent(Event{(uint32_t)p, Map::POINTER, (Key)key, btnState, action, pos.x, pos.y, p, Source::MOUSE, time, dev});
-}
-
-bool handleXI2GenericEvent(Base::ApplicationContext app, Display *dpy, XEvent &event)
+// returns true if event is XI2, false otherwise
+bool XApplication::handleXI2GenericEvent(XEvent event)
 {
 	assert(event.type == GenericEvent);
 	if(event.xcookie.extension != xI2opcode)
@@ -368,25 +319,26 @@ bool handleXI2GenericEvent(Base::ApplicationContext app, Display *dpy, XEvent &e
 			if(ev.info[i].flags & XISlaveAdded)
 			{
 				int devices;
-				XIDeviceInfo *device = XIQueryDevice(dpy, ev.info[i].deviceid, &devices);
+				::XIDeviceInfo *device = XIQueryDevice(dpy, ev.info[i].deviceid, &devices);
 				if(devices)
 				{
 					if(device->use == XISlaveKeyboard)
 					{
-						Input::addXInputDevice(*device, true, false);
+						XIDeviceInfo d{*device};
+						addXInputDevice(d, true, false);
 					}
 					XIFreeDeviceInfo(device);
 				}
 			}
 			else if(ev.info[i].flags & XISlaveRemoved)
 			{
-				Input::removeXInputDevice(ev.info[i].deviceid);
+				removeXInputDevice(ev.info[i].deviceid);
 			}
 		}
 		return true;
 	}
 	// others events are for specific windows
-	auto destWin = windowForXWindow(app, ievent.event);
+	auto destWin = windowForXWindow(ievent.event);
 	if(unlikely(!destWin))
 	{
 		//logWarn("ignored event for unknown window");
@@ -394,10 +346,17 @@ bool handleXI2GenericEvent(Base::ApplicationContext app, Display *dpy, XEvent &e
 	}
 	auto &win = *destWin;
 	auto time = IG::Milliseconds(ievent.time); // X11 timestamps are in ms
-	auto handleKeyEvent =
-		[](Display *dpy, Base::Window &win, XIDeviceEvent &ievent, Time time, bool pushed)
+	auto updatePointer =
+		[this](Base::Window &win, uint32_t key, uint32_t btnState, int p, Input::Action action, int x, int y, Input::Time time, int sourceID)
 		{
-			auto action = pushed ? PUSHED : RELEASED;
+			auto dev = deviceForInputId(sourceID);
+			auto pos = win.transformInputPos({x, y});
+			win.dispatchInputEvent(Input::Event{(uint32_t)p, Input::Map::POINTER, (Input::Key)key, btnState, action, pos.x, pos.y, p, Input::Source::MOUSE, time, dev});
+		};
+	auto handleKeyEvent =
+		[this](Base::Window &win, XIDeviceEvent &ievent, Input::Time time, bool pushed)
+		{
+			auto action = pushed ? Input::Action::PUSHED : Input::Action::RELEASED;
 			if(pushed)
 				cancelKeyRepeatTimer();
 			auto dev = deviceForInputId(ievent.sourceid);
@@ -406,7 +365,7 @@ bool handleXI2GenericEvent(Base::ApplicationContext app, Display *dpy, XEvent &e
 			//logMsg("KeySym %d, KeyCode %d, repeat: %d", (int)k, ievent.detail, repeated);
 			if(pushed && k == XK_Return && (ievent.mods.effective & (Mod1Mask | Mod5Mask)) && !repeated)
 			{
-				toggleFullScreen(dpy, win.nativeObject());
+				win.toggleFullScreen();
 			}
 			else
 			{
@@ -415,9 +374,9 @@ bool handleXI2GenericEvent(Base::ApplicationContext app, Display *dpy, XEvent &e
 				{
 					bool isShiftPushed = ievent.mods.effective & ShiftMask;
 					auto key = keysymToKey(k);
-					auto ev = Event{dev->enumId(), Map::SYSTEM, key, key, action, isShiftPushed, repeated, Source::KEYBOARD, time, dev};
+					auto ev = Input::Event{dev->enumId(), Input::Map::SYSTEM, key, key, action, isShiftPushed, repeated, Input::Source::KEYBOARD, time, dev};
 					ev.setX11RawKey(ievent.detail);
-					win.dispatchInputEvent(ev);
+					dispatchKeyInputEvent(ev, win);
 				}
 			}
 		};
@@ -426,18 +385,18 @@ bool handleXI2GenericEvent(Base::ApplicationContext app, Display *dpy, XEvent &e
 	{
 		bcase XI_ButtonPress:
 			updatePointer(win, ievent.detail, makePointerButtonState(ievent.buttons),
-				devIdToPointer(ievent.deviceid), PUSHED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
+				devIdToPointer(ievent.deviceid), Input::Action::PUSHED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_ButtonRelease:
 			updatePointer(win, ievent.detail, makePointerButtonState(ievent.buttons),
-				devIdToPointer(ievent.deviceid), RELEASED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
+				devIdToPointer(ievent.deviceid), Input::Action::RELEASED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_Motion:
 			updatePointer(win, 0, makePointerButtonState(ievent.buttons), devIdToPointer(ievent.deviceid),
-				MOVED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
+				Input::Action::MOVED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_Enter:
-			updatePointer(win, 0, 0, devIdToPointer(ievent.deviceid), ENTER_VIEW,
+			updatePointer(win, 0, 0, devIdToPointer(ievent.deviceid), Input::Action::ENTER_VIEW,
 				ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_Leave:
-			updatePointer(win, 0, 0, devIdToPointer(ievent.deviceid), EXIT_VIEW,
+			updatePointer(win, 0, 0, devIdToPointer(ievent.deviceid), Input::Action::EXIT_VIEW,
 				ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_FocusIn:
 			win.dispatchFocusChange(true);
@@ -445,30 +404,45 @@ bool handleXI2GenericEvent(Base::ApplicationContext app, Display *dpy, XEvent &e
 			win.dispatchFocusChange(false);
 			deinitKeyRepeatTimer();
 		bcase XI_KeyPress:
-			handleKeyEvent(dpy, win, ievent, time, true);
+			handleKeyEvent(win, ievent, time, true);
 		bcase XI_KeyRelease:
-			handleKeyEvent(dpy, win, ievent, time, false);
+			handleKeyEvent(win, ievent, time, false);
 	}
 	return true;
 }
 
-Event::KeyString Event::keyString() const
+Input::Event::KeyString XApplication::inputKeyString(Input::Key rawKey, uint32_t modifiers) const
 {
-	KeyString str{};
+	Input::Event::KeyString str{};
 	KeySym k;
-	uint32_t mods = metaState ? ShiftMask : 0;
-	XkbTranslateKeyCode(Input::coreKeyboardDesc, rawKey, mods, nullptr, &k);
-	XkbTranslateKeySym(xDisplay, &k, 0, str.data(), sizeof(KeyString), nullptr);
+	XkbTranslateKeyCode(coreKeyboardDesc, rawKey, modifiers, nullptr, &k);
+	XkbTranslateKeySym(dpy, &k, 0, str.data(), sizeof(str), nullptr);
 	return str;
 }
 
-void showSoftInput() {}
-void hideSoftInput() {}
-bool softInputIsActive() { return false; }
-
-void flushSystemEvents(Base::ApplicationContext app)
+void ApplicationContext::flushSystemInputEvents()
 {
-	Base::runX11Events(app, Base::xDisplay);
+	application().runX11Events();
+}
+
+}
+
+namespace Input
+{
+
+bool Device::anyTypeBitsPresent(Base::ApplicationContext, uint32_t typeBits)
+{
+	// TODO
+	if(typeBits & TYPE_BIT_KEYBOARD)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+Event::KeyString Event::keyString(Base::ApplicationContext ctx) const
+{
+	return ctx.application().inputKeyString(rawKey, metaState ? ShiftMask : 0);
 }
 
 }

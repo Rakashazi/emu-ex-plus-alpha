@@ -189,7 +189,7 @@ static void reverseSwapCPUMemForDump(bool swappedBIOS)
 
 #endif
 
-void gn_init_pbar(uint action,int size)
+void gn_init_pbar(unsigned action,int size)
 {
 	using namespace Base;
 	logMsg("init pbar %d, %d", action, size);

@@ -47,10 +47,10 @@ public:
 	};
 
 	constexpr	VideoImageEffect() {}
-	void setEffect(Gfx::Renderer &r, uint effect, uint bitDepth, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler);
+	void setEffect(Gfx::Renderer &r, unsigned effect, unsigned bitDepth, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler);
 	EffectParams effectParams() const;
 	void setImageSize(Gfx::Renderer &r, IG::WP size, const Gfx::TextureSampler &compatTexSampler);
-	void setBitDepth(Gfx::Renderer &r, uint bitDepth, const Gfx::TextureSampler &compatTexSampler);
+	void setBitDepth(Gfx::Renderer &r, unsigned bitDepth, const Gfx::TextureSampler &compatTexSampler);
 	void setCompatTextureSampler(const Gfx::TextureSampler &);
 	Gfx::Program &program();
 	Gfx::Texture &renderTarget();

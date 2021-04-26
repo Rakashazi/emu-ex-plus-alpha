@@ -15,10 +15,10 @@ struct SegaCD
 	M68KCPU cpu;
 	bool isActive = 0;
 	uint8_t busreq = 0;
-	uint stopwatchTimer = 0;
-	uint counter75hz = 0;
+	unsigned stopwatchTimer = 0;
+	unsigned counter75hz = 0;
 	int timer_int3 = 0;
-	uint volume = 1024;
+	unsigned volume = 1024;
 
 	uint8_t gate[0x200]{};
 
@@ -26,10 +26,10 @@ struct SegaCD
 	int32 cddaLBA = 0;
 	uint16 cddaDataLeftover = 0;
 	bool CDD_Complete = 0;
-	uint Status_CDD = 0;
-	uint Status_CDC = 0;
+	unsigned Status_CDD = 0;
+	unsigned Status_CDC = 0;
 	int Cur_LBA = 0;
-	uint Cur_Track = 0;
+	unsigned Cur_Track = 0;
 	int File_Add_Delay = 0;
 	CDC cdc;
 	CDD cdd;
@@ -72,7 +72,7 @@ struct SegaCD
 		{
 			constexpr Channel() {}
 			uint8_t regs[8]{};
-			uint  addr = 0;	// .08: played sample address
+			unsigned  addr = 0;	// .08: played sample address
 		} ch[8];
 	};
 	PCM pcm;
@@ -107,9 +107,9 @@ static const uint8_t fmt64kSram[4*0x10] =
 
 extern uint8_t bram[0x2000];
 
-void scd_interruptSubCpu(uint irq);
+void scd_interruptSubCpu(unsigned irq);
 void scd_resetSubCpu();
-void scd_runSubCpu(uint cycles);
+void scd_runSubCpu(unsigned cycles);
 void scd_init();
 void scd_deinit();
 void scd_reset();
@@ -118,7 +118,7 @@ void scd_update();
 void scd_checkDma();
 void scd_updateCddaVol();
 int scd_saveState(uint8 *state);
-int scd_loadState(uint8 *state, uint exVersion);
+int scd_loadState(uint8 *state, unsigned exVersion);
 
 int Insert_CD(Mednafen::CDAccess *cd);
 void Stop_CD();

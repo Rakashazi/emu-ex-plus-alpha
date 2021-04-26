@@ -47,15 +47,15 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "A-Z";
 const char *EmuSystem::inputCenterBtnName = "Start";
-const uint EmuSystem::inputFaceBtns = 8;
-const uint EmuSystem::inputCenterBtns = 1;
+const unsigned EmuSystem::inputFaceBtns = 8;
+const unsigned EmuSystem::inputCenterBtns = 1;
 const bool EmuSystem::inputHasTriggerBtns = true;
 const bool EmuSystem::inputHasRevBtnLayout = false;
-const uint EmuSystem::maxPlayers = 2;
+const unsigned EmuSystem::maxPlayers = 2;
 
-void updateVControllerMapping(uint player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
-	uint playerOffset = player ? EmuControls::gamepadKeys : 0;
+	unsigned playerOffset = player ? EmuControls::gamepadKeys : 0;
 	map[SysVController::F_ELEM] = ssKeyIdxA + playerOffset;
 	map[SysVController::F_ELEM+1] = ssKeyIdxB + playerOffset;
 	map[SysVController::F_ELEM+2] = ssKeyIdxC + playerOffset;
@@ -77,7 +77,7 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 	map[SysVController::D_ELEM+8] = ssKeyIdxRightDown + playerOffset;
 }
 
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
+unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	switch(input)
@@ -99,16 +99,16 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	}
 }
 
-void EmuSystem::handleInputAction(uint state, uint emuKey)
+void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
 {
-	uint player = 0;
+	unsigned player = 0;
 	if(emuKey > ssKeyIdxLastGamepad)
 	{
 		player = 1;
 		emuKey -= EmuControls::gamepadKeys;
 	}
 	PerPad_struct *p = (player == 1) ? pad[1] : pad[0];
-	bool pushed = state == Input::PUSHED;
+	bool pushed = action == Input::Action::PUSHED;
 	switch(emuKey)
 	{
 		bcase ssKeyIdxUp: if(pushed) PerPadUpPressed(p); else PerPadUpReleased(p);

@@ -72,7 +72,7 @@ static constexpr GC operator"" _gtexc (unsigned long long n)
 
 static GCRect makeGCRectRel(GP p, GP size)
 {
-	return GCRect::makeRel(p.x, p.y, size.x, size.y);
+	return GCRect::makeRel(p, size);
 }
 
 template <class T>
@@ -143,7 +143,7 @@ using TextStringView = std::u16string_view;
 class TextureSpan
 {
 public:
-	constexpr TextureSpan(const Texture *tex = {}, GTexCRect uv = {0., 0., 1., 1.}):
+	constexpr TextureSpan(const Texture *tex = {}, GTexCRect uv = {{}, {1., 1.}}):
 		tex{tex}, uv{uv}
 	{}
 	const Texture *texture() const { return tex; }

@@ -163,11 +163,11 @@ int audioUpdateAll(int16 *sb)
 		scd_pcm_update(cdPCMBuff, size, 1);
 	}
 	auto cddaRatio = snd.cddaRatio;
-	uint cddaFrames = round((float)size*cddaRatio);
+	unsigned cddaFrames = round((float)size*cddaRatio);
 	int16 cddaBuff[cddaFrames*2];
 	int16 *cdda = cddaBuff;
 	int16 cddaRemsampledBuff[size*2];
-	extern int readCDDA(void *dest, uint size);
+	extern int readCDDA(void *dest, unsigned size);
 	bool doCDDA = hasSegaCD && readCDDA(cddaBuff, cddaFrames);
 	if(doCDDA && snd.sample_rate != 44100)
 	{
@@ -175,7 +175,7 @@ int audioUpdateAll(int16 *sb)
 		auto cddaResampledPtr = (int32*)cddaRemsampledBuff;
 		iterateTimes(size, i)
 		{
-			uint samplePos = round(i * cddaRatio);
+			unsigned samplePos = round(i * cddaRatio);
 			if(samplePos > cddaFrames)
 			{
 				logMsg("resample pos %u too high", samplePos);
@@ -340,7 +340,7 @@ void system_shutdown (void)
 }
 
 template <bool hasSegaCD>
-static void runM68k(uint cycles)
+static void runM68k(unsigned cycles)
 {
 	m68k_run(mm68k, cycles);
 	#ifndef NO_SCD

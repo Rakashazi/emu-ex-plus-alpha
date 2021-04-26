@@ -990,13 +990,13 @@ void setGameSpecificSettings(GBASys &gba)
 	}
 	doMirroring(gba, mirroringEnable);
 
-	if(detectedRtcGame && (uint)optionRtcEmulation == RTC_EMU_AUTO)
+	if(detectedRtcGame && (unsigned)optionRtcEmulation == RTC_EMU_AUTO)
 	{
 		logMsg("automatically enabling RTC");
 		rtcEnable(true);
 	}
 	else
 	{
-		rtcEnable((uint)optionRtcEmulation == RTC_EMU_ON);
+		rtcEnable((unsigned)optionRtcEmulation == RTC_EMU_ON);
 	}
 }

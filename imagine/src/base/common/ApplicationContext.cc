@@ -15,63 +15,19 @@
 
 #define LOGTAG "AppContext"
 #include <imagine/base/ApplicationContext.hh>
-#include <imagine/base/Window.hh>
-#include <imagine/base/Screen.hh>
+#include <imagine/base/Application.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/ScopeGuard.hh>
-#include "basePrivate.hh"
 #include <imagine/logger/logger.h>
 #include <cstring>
 
 namespace Base
 {
 
-static InterProcessMessageDelegate onInterProcessMessage_;
-static DelegateFuncSet<ResumeDelegate> onResume_;
-static FreeCachesDelegate onFreeCaches_;
-static DelegateFuncSet<ExitDelegate> onExit_;
-static ScreenChangeDelegate onScreenChange_;
-static ActivityState appState = ActivityState::PAUSED;
-
-#ifdef CONFIG_BASE_MULTI_WINDOW
-static std::vector<std::unique_ptr<Window>> window_;
-#else
-static std::array<std::unique_ptr<Window>, 1> window_;
-#endif
-
-#ifdef CONFIG_BASE_MULTI_SCREEN
-std::vector<std::unique_ptr<Screen>> screen_;
-#else
-static std::array<std::unique_ptr<Screen>, 1> screen_;
-#endif
-
-static void addWindow(std::unique_ptr<Window> winPtr)
+Application &ApplicationContext::application() const
 {
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	window_.emplace_back(std::move(winPtr));
-	#else
-	assert(!window_[0]);
-	window_[0] = std::move(winPtr);
-	#endif
-}
-
-std::unique_ptr<Window> moveOutWindow(Window &win)
-{
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	return IG::moveOutIf(window_, [&](auto &w){ return *w == win; });
-	#else
-	return std::move(window_[0]);
-	#endif
-}
-
-void deinitWindows()
-{
-	#ifdef CONFIG_BASE_MULTI_WINDOW
-	window_.clear();
-	#else
-	window_[0].reset();
-	#endif
+	return ApplicationContextImpl::application();
 }
 
 Window *ApplicationContext::makeWindow(WindowConfig config, WindowInitDelegate onInit)
@@ -86,7 +42,7 @@ Window *ApplicationContext::makeWindow(WindowConfig config, WindowInitDelegate o
 		return nullptr;
 	}
 	auto ptr = winPtr.get();
-	addWindow(std::move(winPtr));
+	application().addWindow(std::move(winPtr));
 	if(Window::shouldRunOnInitAfterAddingWindow && onInit)
 		onInit(*this, *ptr);
 	return ptr;
@@ -94,225 +50,120 @@ Window *ApplicationContext::makeWindow(WindowConfig config, WindowInitDelegate o
 
 unsigned ApplicationContext::windows() const
 {
-	if constexpr(Config::BASE_MULTI_WINDOW)
-	{
-		return window_.size();
-	}
-	else
-	{
-		return (bool)window_[0];
-	}
+	return application().windows();
 }
 
 Window *ApplicationContext::window(unsigned idx) const
 {
-	if(unlikely(idx >= window_.size()))
-		return nullptr;
-	return window_[idx].get();
+	return application().window(idx);
 }
 
 Window &ApplicationContext::mainWindow()
 {
-	assert(windows());
-	return *window(0);
-}
-
-Screen &ApplicationContext::addScreen(std::unique_ptr<Screen> ptr, bool notify)
-{
-	auto &screen = *ptr.get();
-	#ifdef CONFIG_BASE_MULTI_SCREEN
-	screen_.emplace_back(std::move(ptr));
-	if(notify && onScreenChange_)
-		onScreenChange_(*this, screen, {ScreenChange::ADDED});
-	#else
-	assert(!screen_[0]);
-	screen_[0] = std::move(ptr);
-	#endif
-	return screen;
-}
-
-Screen *ApplicationContext::findScreen(ScreenId id) const
-{
-	auto it = IG::find_if(screen_, [&](const auto &s) { return *s == id; });
-	if(it == screen_.end())
-	{
-		return nullptr;
-	}
-	return it->get();
-}
-
-std::unique_ptr<Screen> ApplicationContext::removeScreen(ScreenId id, bool notify)
-{
-	#ifdef CONFIG_BASE_MULTI_SCREEN
-	auto removedScreen = IG::moveOutIf(screen_, [&](const auto &s){ return *s == id; });
-	if(notify && removedScreen && onScreenChange_)
-		onScreenChange_(*this, *removedScreen, {ScreenChange::REMOVED});
-	return removedScreen;
-	#else
-	return {};
-	#endif
-}
-
-void ApplicationContext::removeSecondaryDisplays()
-{
-	#ifdef CONFIG_BASE_MULTI_SCREEN
-	while(screen_.size() > 1)
-	{
-		screen_.pop_back();
-	}
-	#endif
+	return application().mainWindow();
 }
 
 unsigned ApplicationContext::screens() const
 {
-	return screen_.size();
+	return application().screens();
 }
 
 Screen *ApplicationContext::screen(unsigned idx) const
 {
-	if(idx >= screen_.size())
-		return nullptr;
-	return screen_[idx].get();
+	return application().screen(idx);
 }
 
 Screen &ApplicationContext::mainScreen()
 {
-	return *screen(0);
-}
-
-bool ApplicationContext::screensArePosted() const
-{
-	for(auto &screen : screen_)
-	{
-		if(screen->isPosted())
-			return true;
-	}
-	return false;
-}
-
-void ApplicationContext::setActiveForAllScreens(bool active)
-{
-	for(auto &screen : screen_)
-	{
-		screen->setActive(active);
-	}
-}
-
-ActivityState activityState()
-{
-	return appState;
-}
-
-void setPausedActivityState()
-{
-	if(appState == ActivityState::EXITING)
-	{
-		return; // ignore setting paused state while exiting
-	}
-	appState = ActivityState::PAUSED;
-}
-
-void setRunningActivityState()
-{
-	assert(appState != ActivityState::EXITING); // should never set running state after exit state
-	appState = ActivityState::RUNNING;
-}
-
-void setExitingActivityState()
-{
-	appState = ActivityState::EXITING;
+	return application().mainScreen();
 }
 
 bool ApplicationContext::isRunning() const
 {
-	return activityState() == ActivityState::RUNNING;
+	return application().isRunning();
 }
 
-bool appIsPaused()
+bool ApplicationContext::isPaused() const
 {
-	return activityState() == ActivityState::PAUSED;
+	return application().isPaused();
 }
 
-bool appIsExiting()
+bool ApplicationContext::isExiting() const
 {
-	return activityState() == ActivityState::EXITING;
+	return application().isExiting();
 }
 
 void ApplicationContext::setOnInterProcessMessage(InterProcessMessageDelegate del)
 {
-	onInterProcessMessage_ = del;
+	application().setOnInterProcessMessage(del);
 }
 
 bool ApplicationContext::addOnResume(ResumeDelegate del, int priority)
 {
-	return onResume_.add(del, priority);
+	return application().addOnResume(del, priority);
 }
 
 bool ApplicationContext::removeOnResume(ResumeDelegate del)
 {
-	if(appIsExiting())
-		return false;
-	return onResume_.remove(del);
+	return application().removeOnResume(del);
 }
 
 bool ApplicationContext::containsOnResume(ResumeDelegate del) const
 {
-	return onResume_.contains(del);
+	return application().containsOnResume(del);
 }
 
 void ApplicationContext::setOnFreeCaches(FreeCachesDelegate del)
 {
-	onFreeCaches_ = del;
+	application().setOnFreeCaches(del);
 }
 
 bool ApplicationContext::addOnExit(ExitDelegate del, int priority)
 {
-	return onExit_.add(del, priority);
+	return application().addOnExit(del, priority);
 }
 
 bool ApplicationContext::removeOnExit(ExitDelegate del)
 {
-	if(appIsExiting())
-		return false;
-	return onExit_.remove(del);
+	return application().removeOnExit(del);
 }
 
 bool ApplicationContext::containsOnExit(ExitDelegate del) const
 {
-	return onExit_.contains(del);
+	return application().containsOnExit(del);
 }
 
 void ApplicationContext::dispatchOnInterProcessMessage(const char *filename)
 {
-	onInterProcessMessage_.callCopySafe(*this, filename);
+	application().dispatchOnInterProcessMessage(*this, filename);
 }
 
 bool ApplicationContext::hasOnInterProcessMessage() const
 {
-	return (bool)onInterProcessMessage_;
+	return application().hasOnInterProcessMessage();
 }
 
 void ApplicationContext::setOnScreenChange(ScreenChangeDelegate del)
 {
-	onScreenChange_ = del;
+	application().setOnScreenChange(del);
 }
 
 void ApplicationContext::dispatchOnResume(bool focused)
 {
-	onResume_.runAll([&](ResumeDelegate del){ return del(*this, focused); });
+	application().dispatchOnResume(*this, focused);
 }
 
 void ApplicationContext::dispatchOnFreeCaches(bool running)
 {
-	onFreeCaches_.callCopySafe(*this, running);
+	application().dispatchOnFreeCaches(*this, running);
 }
 
 void ApplicationContext::dispatchOnExit(bool backgrounded)
 {
-	onExit_.runAll([&](ExitDelegate del){ return del(*this, backgrounded); }, true);
+	application().dispatchOnExit(*this, backgrounded);
 }
 
-FS::RootPathInfo ApplicationContext::nearestRootPath(const char *path)
+FS::RootPathInfo ApplicationContext::nearestRootPath(const char *path) const
 {
 	if(!path)
 		return {};
@@ -337,7 +188,7 @@ FS::RootPathInfo ApplicationContext::nearestRootPath(const char *path)
 	return {nearestPtr->root.name, nearestPtr->root.length};
 }
 
-AssetIO ApplicationContext::openAsset(const char *name, IO::AccessHint access, const char *appName)
+AssetIO ApplicationContext::openAsset(const char *name, IO::AccessHint access, const char *appName) const
 {
 	AssetIO io;
 	#ifdef __ANDROID__
@@ -358,6 +209,48 @@ Orientation ApplicationContext::validateOrientationMask(Orientation oMask) const
 	return oMask;
 }
 
+const std::vector<Input::Device*> &ApplicationContext::inputDevices() const
+{
+	return application().systemInputDevices();
+}
+
+void ApplicationContext::setHintKeyRepeat(bool on)
+{
+	application().setAllowKeyRepeatTimer(on);
+}
+
+Input::Event ApplicationContext::defaultInputEvent() const
+{
+	Input::Event e{};
+	e.setMap(keyInputIsPresent() ? Input::Map::SYSTEM : Input::Map::POINTER);
+	return e;
+}
+
+std::optional<bool> ApplicationContext::swappedConfirmKeysOption() const
+{
+	return application().swappedConfirmKeysOption();
+}
+
+bool ApplicationContext::swappedConfirmKeys() const
+{
+	return application().swappedConfirmKeys();
+}
+
+void ApplicationContext::setSwappedConfirmKeys(std::optional<bool> opt)
+{
+	application().setSwappedConfirmKeys(opt);
+}
+
+void ApplicationContext::setOnInputDeviceChange(InputDeviceChangeDelegate del)
+{
+	application().setOnInputDeviceChange(del);
+}
+
+void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDelegate del)
+{
+	application().setOnInputDevicesEnumerated(del);
+}
+
 void ApplicationContext::exitWithErrorMessagePrintf(int exitVal, const char *format, ...)
 {
 	va_list args;
@@ -366,9 +259,9 @@ void ApplicationContext::exitWithErrorMessagePrintf(int exitVal, const char *for
 	exitWithErrorMessageVPrintf(exitVal, format, args);
 }
 
-OnExit::OnExit(ResumeDelegate del, ApplicationContext app, int priority): del{del}, app{app}
+OnExit::OnExit(ResumeDelegate del, ApplicationContext ctx, int priority): del{del}, ctx{ctx}
 {
-	app.addOnExit(del, priority);
+	ctx.addOnExit(del, priority);
 }
 
 OnExit::OnExit(OnExit &&o)
@@ -379,21 +272,26 @@ OnExit::OnExit(OnExit &&o)
 OnExit &OnExit::operator=(OnExit &&o)
 {
 	if(del)
-		app.removeOnExit(del);
+		ctx.removeOnExit(del);
 	del = std::exchange(o.del, {});
-	app = o.app;
+	ctx = o.ctx;
 	return *this;
 }
 
 OnExit::~OnExit()
 {
 	if(del)
-		app.removeOnExit(del);
+		ctx.removeOnExit(del);
+}
+
+void OnExit::reset()
+{
+	del = {};
 }
 
 ApplicationContext OnExit::appContext() const
 {
-	return app;
+	return ctx;
 }
 
 }

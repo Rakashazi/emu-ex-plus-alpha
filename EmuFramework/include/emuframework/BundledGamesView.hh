@@ -15,10 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 
-class BundledGamesView : public TableView
+class BundledGamesView : public TableView, public EmuAppHelper<BundledGamesView>
 {
 public:
 	BundledGamesView(ViewAttachParams attach);

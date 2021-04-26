@@ -26,12 +26,12 @@ import java.util.List;
 final class StorageManagerHelper
 {
 	private static final String logTag = "StorageManagerHelper";
-	private static native void volumeEnumerated(long userData, String path, String name);
+	private static native void volumeEnumerated(long nativeUserData, String path, String name);
 	private static int pathPosition = -1;
 	
 	StorageManagerHelper() {}
 
-	public static void enumVolumes(Activity act, long userData)
+	public static void enumVolumes(Activity act, long nativeUserData)
 	{
 		if(pathPosition == -2)
 		{
@@ -80,7 +80,7 @@ final class StorageManagerHelper
 			if(path == null || path.indexOf('/') != 0)
 				continue;
 			//Log.v(logTag, vol.getDescription(act) + ":" + path);
-			volumeEnumerated(userData, vol.getDescription(act), path);
+			volumeEnumerated(nativeUserData, vol.getDescription(act), path);
 		}
 	}
 }

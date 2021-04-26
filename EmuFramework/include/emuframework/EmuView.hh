@@ -34,7 +34,7 @@ public:
 	bool inputEvent(Input::Event e) final;
 	bool hasLayer() const { return layer; }
 	void setLayoutInputView(EmuInputView *view);
-	void updateAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames);
+	void updateAudioStats(unsigned underruns, unsigned overruns, unsigned callbacks, double avgCallbackFrames, unsigned frames);
 	void clearAudioStats();
 	EmuVideoLayer *videoLayer() const { return layer; }
 

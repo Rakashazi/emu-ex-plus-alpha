@@ -14,13 +14,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "Window"
-#include "../common/windowPrivate.hh"
 #include "android.hh"
-#include "internal.hh"
 #include <imagine/util/fd-utils.h>
 #include <imagine/logger/logger.h>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/base/Screen.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/base/sharedLibrary.hh>
 #include <android/native_activity.h>
 #include <android/native_window_jni.h>
@@ -33,11 +33,6 @@ static JavaInstMethod<jobject(jobject, jlong, jlong)> jPresentation{};
 static JavaInstMethod<void()> jPresentationDeinit{};
 static JavaInstMethod<void(jint)> jSetWinFormat{};
 static int32_t (*ANativeWindow_setFrameRate)(ANativeWindow* window, float frameRate, int8_t compatibility){};
-
-Window *deviceWindow(ApplicationContext app)
-{
-	return app.window(0);
-}
 
 static void initPresentationJNI(JNIEnv* env, jobject presentation)
 {
@@ -64,7 +59,7 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 			([](JNIEnv* env, jobject thiz, jlong nActivityAddr, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
-				androidWindowNeedsRedraw(win, true);
+				win.systemRequestsRedraw(true);
 			})
 		},
 		{
@@ -92,6 +87,7 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
+	auto osRotation = application().currentRotation();
 	auto [xDPI, yDPI] = screen()->dpi();
 	assert(xDPI && yDPI);
 	float xdpi = surfaceRotationIsStraight(osRotation) ? xDPI : yDPI;
@@ -122,7 +118,7 @@ bool Window::setValidOrientations(Orientation oMask)
 		bcase VIEW_ROTATE_0 | VIEW_ROTATE_180: toSet = 7; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
 		bcase VIEW_ROTATE_ALL: toSet = 10; // SCREEN_ORIENTATION_FULL_SENSOR
 	}
-	jSetRequestedOrientation(appContext().mainThreadJniEnv(), appContext().baseActivityObject(), toSet);
+	application().setRequestedOrientation(appContext().mainThreadJniEnv(), appContext().baseActivityObject(), toSet);
 	return true;
 }
 
@@ -132,32 +128,32 @@ bool Window::requestOrientationChange(Orientation o)
 	return false;
 }
 
-PixelFormat Window::defaultPixelFormat(ApplicationContext app)
+PixelFormat Window::defaultPixelFormat(ApplicationContext ctx)
 {
-	return ((Config::ARM_ARCH && Config::ARM_ARCH < 7) || app.androidSDK() < 11) ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
+	return ((Config::ARM_ARCH && Config::ARM_ARCH < 7) || ctx.androidSDK() < 11) ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
 }
 
-Window::Window(ApplicationContext app, WindowConfig config, InitDelegate onInit_):
-	AndroidWindow{app, config}
+Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate onInit_):
+	AndroidWindow{ctx, config}
 {
-	auto &screen = config.screen(app);
+	auto &screen = config.screen(ctx);
 	this->screen_ = &screen;
-	auto env = app.mainThreadJniEnv();
-	if(app.windows() > 0)
+	auto env = ctx.mainThreadJniEnv();
+	if(ctx.windows() > 0)
 	{
-		assert(&screen != app.screen(0));
+		assert(&screen != ctx.screen(0));
 		if(!jPresentation)
-			jPresentation = {env, Base::jBaseActivityCls, "presentation", "(Landroid/view/Display;JJ)Lcom/imagine/PresentationHelper;"};
-		jWin = env->NewGlobalRef(jPresentation(env, app.baseActivityObject(), screen.displayObject(),
-			(jlong)app.aNativeActivityPtr(), (jlong)this));
+			jPresentation = {env, ctx.baseActivityClass(), "presentation", "(Landroid/view/Display;JJ)Lcom/imagine/PresentationHelper;"};
+		jWin = env->NewGlobalRef(jPresentation(env, ctx.baseActivityObject(), screen.displayObject(),
+			(jlong)ctx.aNativeActivityPtr(), (jlong)this));
 		initPresentationJNI(env, jWin);
 		type = Type::PRESENTATION;
 		logMsg("made presentation window:%p", jWin);
 	}
 	else
 	{
-		JavaInstMethod<jobject(jlong)> jSetMainContentView(env, Base::jBaseActivityCls, "setMainContentView", "(J)Landroid/view/Window;");
-		jWin = env->NewGlobalRef(jSetMainContentView(env, app.baseActivityObject(), (jlong)this));
+		JavaInstMethod<jobject(jlong)> jSetMainContentView(env, ctx.baseActivityClass(), "setMainContentView", "(J)Landroid/view/Window;");
+		jWin = env->NewGlobalRef(jSetMainContentView(env, ctx.baseActivityObject(), (jlong)this));
 		type = Type::MAIN;
 		logMsg("made device window:%p", jWin);
 		jclass jWindowCls = env->GetObjectClass(jWin);
@@ -223,7 +219,7 @@ AndroidWindow::operator bool() const
 	return jWin;
 }
 
-void AndroidWindow::setNativeWindow(ApplicationContext app, ANativeWindow *nWindow)
+void AndroidWindow::setNativeWindow(ApplicationContext ctx, ANativeWindow *nWindow)
 {
 	if(nWin)
 	{
@@ -240,7 +236,7 @@ void AndroidWindow::setNativeWindow(ApplicationContext app, ANativeWindow *nWind
 	}
 	if(pixelFormat)
 	{
-		if(app.androidSDK() < 11 && this == deviceWindow(app))
+		if(ctx.androidSDK() < 11 && this == ctx.application().deviceWindow())
 		{
 			// In testing with CM7 on a Droid, the surface is re-created in RGBA8888 upon
 			// resuming the app no matter what format was used in ANativeWindow_setBuffersGeometry().
@@ -251,13 +247,13 @@ void AndroidWindow::setNativeWindow(ApplicationContext app, ANativeWindow *nWind
 				logMsg("setting window format to %d (current %d) after surface creation",
 					nativePixelFormat(), ANativeWindow_getFormat(nWin));
 			}
-			jSetWinFormat(app.mainThreadJniEnv(), jWin, pixelFormat);
+			jSetWinFormat(ctx.mainThreadJniEnv(), jWin, pixelFormat);
 		}
 		ANativeWindow_setBuffersGeometry(nWindow, 0, 0, pixelFormat);
 	}
 	if(onInit)
 	{
-		onInit(app, *static_cast<Window*>(this));
+		onInit(ctx, *static_cast<Window*>(this));
 		onInit = {};
 	}
 }
@@ -287,7 +283,7 @@ void Window::setIntendedFrameRate(double rate)
 void Window::setFormat(NativeWindowFormat fmt)
 {
 	pixelFormat = fmt;
-	if(appContext().androidSDK() < 11 && this == deviceWindow(appContext()))
+	if(appContext().androidSDK() < 11 && this == application().deviceWindow())
 	{
 		// In testing with CM7 on a Droid, not setting window format to match
 		// what's used in ANativeWindow_setBuffersGeometry() may cause performance issues
@@ -317,8 +313,9 @@ int AndroidWindow::nativePixelFormat()
 	return pixelFormat;
 }
 
-void androidWindowNeedsRedraw(Window &win, bool sync)
+void AndroidWindow::systemRequestsRedraw(bool sync)
 {
+	auto &win = *static_cast<Window*>(this);
 	win.setNeedsDraw(true);
 	if(!win.appContext().isRunning())
 	{

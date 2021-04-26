@@ -16,21 +16,21 @@
 #define LOGTAG "Screen"
 #include <imagine/base/Screen.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
-#include "internal.hh"
 #include <X11/extensions/Xrandr.h>
 #include <cmath>
 
 namespace Base
 {
 
-XScreen::XScreen(void *xScreen_)
+XScreen::XScreen(ApplicationContext ctx, InitParams params)
 {
-	::Screen *xScreen = (::Screen*)xScreen_;
+	::Screen *xScreen = (::Screen*)params.xScreen;
 	assert(xScreen);
-	this->xScreen = xScreen_;
+	this->xScreen = xScreen;
 	xMM = WidthMMOfScreen(xScreen);
 	yMM = HeightMMOfScreen(xScreen);
 	if(Config::MACHINE_IS_PANDORA)
@@ -71,7 +71,7 @@ XScreen::XScreen(void *xScreen_)
 		XRRFreeScreenResources(screenRes);
 		assert(frameTime_.count());
 	}
-	logMsg("screen: %p %dx%d (%dx%dmm) %.2fHz", xScreen,
+	logMsg("screen:%p %dx%d (%dx%dmm) %.2fHz", xScreen,
 		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM,
 		1./ frameTime_.count());
 }
@@ -150,7 +150,7 @@ void Screen::postFrame()
 		return;
 	//logMsg("posting frame");
 	framePosted = true;
-	frameTimerScheduleVSync();
+	ctx.application().frameTimerScheduleVSync();
 }
 
 void Screen::unpostFrame()
@@ -159,7 +159,7 @@ void Screen::unpostFrame()
 		return;
 	//logMsg("un-posting frame");
 	framePosted = false;
-	frameTimerCancel();
+	ctx.application().frameTimerCancel();
 }
 
 void Screen::setFrameInterval(int interval)
@@ -174,20 +174,9 @@ bool Screen::supportsFrameInterval()
 	return false;
 }
 
-bool Screen::supportsTimestamps(ApplicationContext)
+bool Screen::supportsTimestamps(ApplicationContext ctx)
 {
-	return !frameTimeIsSimulated();
-}
-
-int indexOfScreen(ApplicationContext app, Screen &screen)
-{
-	iterateTimes(app.screens(), i)
-	{
-		if(*app.screen(i) == screen)
-			return i;
-	}
-	logErr("screen wasn't in list");
-	return 0;
+	return !ctx.application().frameTimeIsSimulated();
 }
 
 std::vector<double> Screen::supportedFrameRates(ApplicationContext)

@@ -55,7 +55,7 @@ static void removePendingDevs()
 }
 
 #ifdef CONFIG_BLUETOOTH_SERVER
-bool listenForDevices(Base::ApplicationContext app, BluetoothAdapter &bta, const BluetoothAdapter::OnStatusDelegate &onScanStatus)
+bool listenForDevices(Base::ApplicationContext ctx, BluetoothAdapter &bta, const BluetoothAdapter::OnStatusDelegate &onScanStatus)
 {
 	if(bta.inDetect || hidServiceActive)
 	{
@@ -63,7 +63,7 @@ bool listenForDevices(Base::ApplicationContext app, BluetoothAdapter &bta, const
 	}
 	onServerStatus = onScanStatus;
 	bta.onIncomingL2capConnection() =
-		[app](BluetoothAdapter &bta, BluetoothPendingSocket &pending)
+		[ctx](BluetoothAdapter &bta, BluetoothPendingSocket &pending)
 		{
 			if(!pending)
 			{
@@ -81,7 +81,7 @@ bool listenForDevices(Base::ApplicationContext app, BluetoothAdapter &bta, const
 				logMsg("request for PSM 0x11");
 				pendingSocket = pending;
 				pending.requestName(
-					[app](BluetoothAdapter &bta, const char *name, BluetoothAddr addr)
+					[ctx](BluetoothAdapter &bta, const char *name, BluetoothAddr addr)
 					{
 						if(!name)
 						{
@@ -94,7 +94,7 @@ bool listenForDevices(Base::ApplicationContext app, BluetoothAdapter &bta, const
 						{
 							if(strstr(name, "PLAYSTATION(R)3"))
 							{
-								auto *dev = new PS3Controller(app, addr);
+								auto *dev = new PS3Controller(ctx, addr);
 								if(!dev)
 								{
 									logErr("out of memory");
@@ -158,7 +158,7 @@ bool listenForDevices(Base::ApplicationContext app, BluetoothAdapter &bta, const
 }
 #endif
 
-bool scanForDevices(Base::ApplicationContext app, BluetoothAdapter &bta, BluetoothAdapter::OnStatusDelegate onScanStatus)
+bool scanForDevices(Base::ApplicationContext ctx, BluetoothAdapter &bta, BluetoothAdapter::OnStatusDelegate onScanStatus)
 {
 	if(!bta.inDetect && !hidServiceActive)
 	{
@@ -169,7 +169,7 @@ bool scanForDevices(Base::ApplicationContext app, BluetoothAdapter &bta, Bluetoo
 				logMsg("class: %X:%X:%X", devClass[0], devClass[1], devClass[2]);
 				return testSupportedBTDevClasses(devClass);
 			},
-			[&onScanStatus, app](BluetoothAdapter &bta, const char *name, BluetoothAddr addr) // on device name
+			[&onScanStatus, ctx](BluetoothAdapter &bta, const char *name, BluetoothAddr addr) // on device name
 			{
 				if(!name)
 				{
@@ -178,7 +178,7 @@ bool scanForDevices(Base::ApplicationContext app, BluetoothAdapter &bta, Bluetoo
 				}
 				if(strstr(name, "Nintendo RVL-CNT-01"))
 				{
-					auto *dev = new Wiimote(app, addr);
+					auto *dev = new Wiimote(ctx, addr);
 					if(!dev)
 					{
 						logErr("out of memory");
@@ -188,7 +188,7 @@ bool scanForDevices(Base::ApplicationContext app, BluetoothAdapter &bta, Bluetoo
 				}
 				else if(strstr(name, "iControlPad-"))
 				{
-					auto *dev = new IControlPad(app, addr);
+					auto *dev = new IControlPad(ctx, addr);
 					if(!dev)
 					{
 						logErr("out of memory");
@@ -198,7 +198,7 @@ bool scanForDevices(Base::ApplicationContext app, BluetoothAdapter &bta, Bluetoo
 				}
 				else if(strstr(name, "Zeemote JS1"))
 				{
-					auto *dev = new Zeemote(app, addr);
+					auto *dev = new Zeemote(ctx, addr);
 					if(!dev)
 					{
 						logErr("out of memory");

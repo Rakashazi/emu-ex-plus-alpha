@@ -14,6 +14,7 @@
 	along with 2600.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <FrameBuffer.hxx>
+#include <OSystem.hxx>
 #include <stella/emucore/tia/TIA.hxx>
 // TODO: Some Stella types collide with MacTypes.h
 #define Debugger DebuggerMac
@@ -21,9 +22,13 @@
 #undef Debugger
 #include <imagine/logger/logger.h>
 
+FrameBuffer::FrameBuffer(OSystem& osystem):
+	appPtr{&osystem.app()}
+{}
+
 void FrameBuffer::showMessage(const string& message, int position, bool force, uInt32 color)
 {
-	EmuApp::printfMessage(3, false, "%s", message.c_str());
+	appPtr->printfMessage(3, false, "%s", message.c_str());
 }
 
 void FrameBuffer::enablePhosphor(bool enable, int blend)

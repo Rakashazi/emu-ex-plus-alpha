@@ -23,19 +23,23 @@
 namespace Base
 {
 
+class Application;
+
 class IOSApplicationContext
 {
 public:
 	constexpr IOSApplicationContext() {}
 	#ifdef __OBJC__
-	constexpr IOSApplicationContext(UIApplication *app):app{(__bridge void*)app} {}
-	UIApplication *uiApp() const { return (__bridge UIApplication*)app; }
+	constexpr IOSApplicationContext(UIApplication *app):uiAppPtr{(__bridge void*)app} {}
+	UIApplication *uiApp() const { return (__bridge UIApplication*)uiAppPtr; }
 	#endif
+	void setApplicationPtr(Application*);
+	Application &application() const;
 	bool deviceIsIPad() const;
 	bool isSystemApp() const;
 
 protected:
-	void *app{};
+	void *uiAppPtr{};
 };
 
 using ApplicationContextImpl = IOSApplicationContext;

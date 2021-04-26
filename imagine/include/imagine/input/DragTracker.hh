@@ -73,7 +73,7 @@ public:
 		auto pID = e.pointerID();
 		switch(e.state())
 		{
-			case Input::PUSHED:
+			case Input::Action::PUSHED:
 			{
 				if(state_.isFull() || e.mapKey() != Input::Pointer::LBUTTON)
 					return false;
@@ -82,7 +82,7 @@ public:
 				onDown(startState);
 				return false;
 			}
-			case Input::MOVED:
+			case Input::Action::MOVED:
 			{
 				auto s = std::find_if(state_.begin(), state_.end(), [pID](const auto &s){ return s.id() == pID; });
 				if(s == state_.end())
@@ -92,8 +92,8 @@ public:
 				onMove(*s, prevState);
 				return s->isDragging();
 			}
-			case Input::RELEASED:
-			case Input::CANCELED:
+			case Input::Action::RELEASED:
+			case Input::Action::CANCELED:
 			{
 				auto s = std::find_if(state_.begin(), state_.end(), [pID](const auto &s){ return s.id() == pID; });
 				if(s == state_.end())
@@ -107,8 +107,9 @@ public:
 				onUp(finishState);
 				return false;
 			}
+			default:
+				return false;
 		}
-		return false;
 	}
 
 	DragTrackerState state(int id) const;
@@ -130,7 +131,7 @@ public:
 		auto pID = e.pointerID();
 		switch(e.state())
 		{
-			case Input::PUSHED:
+			case Input::Action::PUSHED:
 			{
 				if(state_.isTracking() || e.mapKey() != Input::Pointer::LBUTTON)
 					return false;
@@ -138,7 +139,7 @@ public:
 				onDown(state_);
 				return false;
 			}
-			case Input::MOVED:
+			case Input::Action::MOVED:
 			{
 				if(!state_.isTracking(pID))
 					return false;
@@ -147,8 +148,8 @@ public:
 				onMove(state_, prevState);
 				return state_.isDragging();
 			}
-			case Input::RELEASED:
-			case Input::CANCELED:
+			case Input::Action::RELEASED:
+			case Input::Action::CANCELED:
 			{
 				if(!state_.isTracking(pID))
 					return false;
@@ -160,8 +161,9 @@ public:
 				state_.finish();
 				return false;
 			}
+			default:
+				return false;
 		}
-		return false;
 	}
 
 	DragTrackerState state() const { return state_; }

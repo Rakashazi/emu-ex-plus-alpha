@@ -514,7 +514,7 @@ INLINE void advance_lfo(void)
 {
   /* LFO */
   ym2413.lfo_am_cnt += ym2413.lfo_am_inc;
-  if (ym2413.lfo_am_cnt >= uint(LFO_AM_TAB_ELEMENTS<<LFO_SH) )  /* lfo_am_table is 210 elements long */
+  if (ym2413.lfo_am_cnt >= unsigned(LFO_AM_TAB_ELEMENTS<<LFO_SH) )  /* lfo_am_table is 210 elements long */
     ym2413.lfo_am_cnt -= (LFO_AM_TAB_ELEMENTS<<LFO_SH);
 
   LFO_AM = lfo_am_table[ ym2413.lfo_am_cnt >> LFO_SH ] >> 1;
@@ -1497,7 +1497,7 @@ static void OPLLWriteReg(int r, int v)
     case 0x10:
     case 0x20:
     {
-      uint block_fnum;
+      unsigned block_fnum;
 
       int chan = r&0x0f;
 

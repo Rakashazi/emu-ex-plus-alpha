@@ -93,7 +93,7 @@ protected:
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	OnIncomingL2capConnectionDelegate onIncomingL2capConnectionD;
 	#endif
-	Base::ApplicationContext app{};
+	Base::ApplicationContext ctx{};
 };
 
 class BluetoothSocket
@@ -122,11 +122,11 @@ protected:
 class BluetoothInputDevice
 {
 public:
-	constexpr BluetoothInputDevice(Base::ApplicationContext app):app{app} {}
+	constexpr BluetoothInputDevice(Base::ApplicationContext ctx):ctx{ctx} {}
 	virtual ~BluetoothInputDevice() {}
 	virtual IG::ErrorCode open(BluetoothAdapter &adapter) = 0;
 	virtual void removeFromSystem() = 0;
 
 protected:
-	Base::ApplicationContext app;
+	Base::ApplicationContext ctx;
 };

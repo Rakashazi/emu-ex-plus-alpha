@@ -15,13 +15,14 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <vector>
 
 using RefreshCheatsDelegate = DelegateFunc<void ()>;
 
-class BaseCheatsView : public TableView
+class BaseCheatsView : public TableView, public EmuAppHelper<BaseCheatsView>
 {
 public:
 	BaseCheatsView(ViewAttachParams attach);
@@ -33,7 +34,7 @@ protected:
 	virtual void loadCheatItems() = 0;
 };
 
-class BaseEditCheatListView : public TableView
+class BaseEditCheatListView : public TableView, public EmuAppHelper<BaseEditCheatListView>
 {
 public:
 	BaseEditCheatListView(ViewAttachParams attach, TableView::ItemsDelegate items, TableView::ItemDelegate item);
@@ -47,7 +48,7 @@ protected:
 	virtual void loadCheatItems() = 0;
 };
 
-class BaseEditCheatView : public TableView
+class BaseEditCheatView : public TableView, public EmuAppHelper<BaseEditCheatView>
 {
 public:
 	BaseEditCheatView(const char *name, ViewAttachParams attach, const char *cheatName,

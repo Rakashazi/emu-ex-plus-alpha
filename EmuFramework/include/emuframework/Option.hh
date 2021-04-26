@@ -15,11 +15,94 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <array>
 #include <imagine/io/IO.hh>
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
+#include <array>
+#include <optional>
+#include <cstring>
+
+template<class T> struct isOptional : public std::false_type {};
+
+template<class T>
+struct isOptional<std::optional<T>> : public std::true_type {};
+
+template <class T>
+static std::optional<T> readOptionValue(IO &io, unsigned bytesToRead)
+{
+	if(bytesToRead != sizeof(T))
+	{
+		logMsg("skipping %u byte option value, expected %u bytes", bytesToRead, (unsigned)sizeof(T));
+		return {};
+	}
+	auto [val, size] = io.read<T>();
+	if(unlikely(size == -1))
+	{
+		logErr("error reading %u byte option", bytesToRead);
+		return {};
+	}
+	return val;
+}
+
+template <class T>
+static std::optional<T> readStringOptionValue(IO &io, unsigned bytesToRead)
+{
+	static_assert(sizeof(T) != 0, "Destination type cannot have 0 size");
+	constexpr auto destStringSize = sizeof(T) - 1;
+	if(bytesToRead > destStringSize)
+	{
+		logMsg("skipping %u byte string option value, too large for %u bytes", bytesToRead, (unsigned)destStringSize);
+		return {};
+	}
+	T val{};
+	auto size = io.read(val.data(), bytesToRead);
+	if(unlikely(size == -1))
+	{
+		logErr("error reading %u byte string option", bytesToRead);
+		return {};
+	}
+	return val;
+}
+
+template <class T>
+static void writeOptionValue(IO &io, uint16_t key, T &&val)
+{
+	if constexpr(isOptional<T>::value)
+	{
+		if(!val)
+			return;
+		writeOptionValue(io, key, *val);
+	}
+	else
+	{
+		uint16_t ioSize = sizeof(typeof(key)) + sizeof(T);
+		logMsg("writing option key:%u with size:%u", key, ioSize);
+		io.write(ioSize);
+		io.write(key);
+		io.write(val);
+	}
+}
+
+template <class T>
+static void writeStringOptionValue(IO &io, uint16_t key, T &&val)
+{
+	if constexpr(isOptional<T>::value)
+	{
+		if(!val)
+			return;
+		writeStringOptionValue(io, key, *val);
+	}
+	else
+	{
+		uint16_t stringLen = strlen(val.data());
+		uint16_t ioSize = sizeof(typeof(key)) + stringLen;
+		logMsg("writing string option key:%u with size:%u", key, ioSize);
+		io.write(ioSize);
+		io.write(key);
+		io.write(val.data(), stringLen);
+	}
+}
 
 struct OptionBase
 {
@@ -28,7 +111,7 @@ struct OptionBase
 	constexpr OptionBase() {}
 	constexpr OptionBase(bool isConst): isConst(isConst) {}
 	virtual bool isDefault() const = 0;
-	virtual uint ioSize() const = 0;
+	virtual unsigned ioSize() const = 0;
 	virtual bool writeToIO(IO &io) = 0;
 };
 
@@ -137,7 +220,7 @@ public:
 		return true;
 	}
 
-	bool readFromIO(IO &io, uint readSize)
+	bool readFromIO(IO &io, unsigned readSize)
 	{
 		if(isConst || readSize != sizeof(SERIALIZED_T))
 		{
@@ -161,7 +244,7 @@ public:
 		return true;
 	}
 
-	uint ioSize() const override
+	unsigned ioSize() const override
 	{
 		return sizeof(typeof(KEY)) + sizeof(SERIALIZED_T);
 	}
@@ -170,11 +253,11 @@ public:
 struct PathOption : public OptionBase
 {
 	char *val;
-	uint strSize;
+	unsigned strSize;
 	const char *defaultVal;
 	const uint16_t KEY;
 
-	constexpr PathOption(uint16_t key, char *val, uint size, const char *defaultVal): val(val), strSize(size), defaultVal(defaultVal), KEY(key) {}
+	constexpr PathOption(uint16_t key, char *val, unsigned size, const char *defaultVal): val(val), strSize(size), defaultVal(defaultVal), KEY(key) {}
 	template <size_t S>
 	constexpr PathOption(uint16_t key, char (&val)[S], const char *defaultVal): PathOption(key, val, S, defaultVal) {}
 	template <size_t S>
@@ -188,8 +271,8 @@ struct PathOption : public OptionBase
 	}
 
 	bool writeToIO(IO &io) override;
-	bool readFromIO(IO &io, uint readSize);
-	uint ioSize() const override;
+	bool readFromIO(IO &io, unsigned readSize);
+	unsigned ioSize() const override;
 };
 
 using SByte1Option = Option<OptionMethodVar<int8_t>, int8_t>;
@@ -201,13 +284,13 @@ using Byte4s1Option = Option<OptionMethodVar<uint32_t>, uint8_t>;
 using DoubleOption = Option<OptionMethodVar<double>, double>;
 
 template<int MAX, class T>
-bool optionIsValidWithMax(T val)
+static bool optionIsValidWithMax(T val)
 {
 	return val <= MAX;
 }
 
 template<int MIN, int MAX, class T>
-bool optionIsValidWithMinMax(T val)
+static bool optionIsValidWithMinMax(T val)
 {
 	return val >= MIN && val <= MAX;
 }

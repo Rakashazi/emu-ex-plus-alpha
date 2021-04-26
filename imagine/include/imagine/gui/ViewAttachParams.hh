@@ -27,17 +27,21 @@ class Renderer;
 class RendererTask;
 }
 
+class ViewManager;
+
 class ViewAttachParams
 {
 public:
-	constexpr ViewAttachParams(Base::Window &win, Gfx::RendererTask &rTask):
-		win{win}, rTask{rTask} {}
+	constexpr ViewAttachParams(ViewManager &manager, Base::Window &win, Gfx::RendererTask &rTask):
+		manager{manager}, win{win}, rTask{rTask} {}
+	constexpr ViewManager &viewManager() const { return manager; }
 	constexpr Base::Window &window() const { return win; }
 	constexpr Gfx::RendererTask &rendererTask() const { return rTask; }
 	Gfx::Renderer &renderer() const;
 	Base::ApplicationContext appContext() const;
 
 protected:
+	ViewManager &manager;
 	Base::Window &win;
 	Gfx::RendererTask &rTask;
 };

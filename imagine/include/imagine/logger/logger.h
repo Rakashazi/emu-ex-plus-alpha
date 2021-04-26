@@ -1,7 +1,6 @@
 #pragma once
 
 #include <imagine/config/build.h>
-#include <imagine/config/imagineTypes.h>
 #include <imagine/util/builtins.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -14,12 +13,8 @@ extern uint8_t loggerVerbosity;
 
 typedef uint8_t LoggerSeverity;
 
-#ifdef __cplusplus
-namespace Base { class ApplicationContext; }
-void logger_init(Base::ApplicationContext) __attribute__((cold));
-void logger_setEnabled(Base::ApplicationContext, bool enable);
-#endif
-
+CLINK void logger_setLogDirectoryPrefix(const char *dirStr) __attribute__((cold));
+CLINK void logger_setEnabled(bool enable);
 CLINK bool logger_isEnabled();
 CLINK void logger_printf(LoggerSeverity severity, const char* msg, ...) __attribute__((format (printf, 2, 3)));
 CLINK void logger_vprintf(LoggerSeverity severity, const char* msg, va_list arg);

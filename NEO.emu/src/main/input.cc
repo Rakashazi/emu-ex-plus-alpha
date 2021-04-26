@@ -48,18 +48,18 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "A/B/C/D";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
-const uint EmuSystem::inputFaceBtns = 4;
-const uint EmuSystem::inputCenterBtns = 2;
+const unsigned EmuSystem::inputFaceBtns = 4;
+const unsigned EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
-const uint EmuSystem::maxPlayers = 2;
+const unsigned EmuSystem::maxPlayers = 2;
 
 namespace NGKey
 {
 
 using namespace IG;
 
-static const uint COIN1 = bit(0), COIN2 = bit(1), SERVICE = bit(2),
+static const unsigned COIN1 = bit(0), COIN2 = bit(1), SERVICE = bit(2),
 	START1 = bit(0), SELECT1 = bit(1),
 	START2 = bit(2), SELECT2 = bit(3),
 
@@ -72,10 +72,10 @@ static const uint COIN1 = bit(0), COIN2 = bit(1), SERVICE = bit(2),
 
 }
 
-void updateVControllerMapping(uint player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
 	using namespace NGKey;
-	uint playerMask = player << 11;
+	unsigned playerMask = player << 11;
 	map[SysVController::F_ELEM] = A | playerMask;
 	map[SysVController::F_ELEM+1] = B | playerMask;
 	map[SysVController::F_ELEM+2] = C | playerMask;
@@ -94,7 +94,7 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 	map[SysVController::D_ELEM+8] = DOWN | RIGHT | playerMask;
 }
 
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
+unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	using namespace NGKey;
@@ -103,8 +103,8 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 		return SERVICE_EMU_INPUT;
 	}
 	assert(input >= neogeoKeyIdxUp);
-	uint player = (input - neogeoKeyIdxUp) / EmuControls::joystickKeys;
-	uint playerMask = player << 11;
+	unsigned player = (input - neogeoKeyIdxUp) / EmuControls::joystickKeys;
+	unsigned playerMask = player << 11;
 	input -= EmuControls::joystickKeys * player;
 	switch(input)
 	{
@@ -132,23 +132,23 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint state, uint emuKey)
+void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
 {
-	uint player = emuKey >> 11;
+	auto player = emuKey >> 11;
 
 	if(emuKey & 0xFF) // joystick
 	{
 		auto &p = player ? memory.intern_p2 : memory.intern_p1;
 		// Don't permit simultaneous left + right input, locks up Metal Slug 3
-		if(state == Input::PUSHED && (emuKey & 0xFF) == NGKey::LEFT)
+		if(action == Input::Action::PUSHED && (emuKey & 0xFF) == NGKey::LEFT)
 		{
 			p = IG::setBits(p, (Uint8)NGKey::RIGHT);
 		}
-		else if(state == Input::PUSHED && (emuKey & 0xFF) == NGKey::RIGHT)
+		else if(action == Input::Action::PUSHED && (emuKey & 0xFF) == NGKey::RIGHT)
 		{
 			p = IG::setBits(p, (Uint8)NGKey::LEFT);
 		}
-		p = IG::setOrClearBits(p, (Uint8)(emuKey & 0xFF), state != Input::PUSHED);
+		p = IG::setOrClearBits(p, (Uint8)(emuKey & 0xFF), action != Input::Action::PUSHED);
 		return;
 	}
 
@@ -156,28 +156,28 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 	{
 		if(conf.system == SYS_ARCADE)
 		{
-			uint bits = player ? NGKey::COIN2 : NGKey::COIN1;
-			memory.intern_coin = IG::setOrClearBits(memory.intern_coin, (Uint8)bits, state != Input::PUSHED);
+			unsigned bits = player ? NGKey::COIN2 : NGKey::COIN1;
+			memory.intern_coin = IG::setOrClearBits(memory.intern_coin, (Uint8)bits, action != Input::Action::PUSHED);
 		}
 		else
 		{
 			// convert COIN to SELECT
-			uint bits = player ? NGKey::SELECT2 : NGKey::SELECT1;
-			memory.intern_start = IG::setOrClearBits(memory.intern_start, (Uint8)bits, state != Input::PUSHED);
+			unsigned bits = player ? NGKey::SELECT2 : NGKey::SELECT1;
+			memory.intern_start = IG::setOrClearBits(memory.intern_start, (Uint8)bits, action != Input::Action::PUSHED);
 		}
 		return;
 	}
 
 	if(emuKey & NGKey::START_EMU_INPUT)
 	{
-		uint bits = player ? NGKey::START2 : NGKey::START1;
-		memory.intern_start = IG::setOrClearBits(memory.intern_start, (Uint8)bits, state != Input::PUSHED);
+		unsigned bits = player ? NGKey::START2 : NGKey::START1;
+		memory.intern_start = IG::setOrClearBits(memory.intern_start, (Uint8)bits, action != Input::Action::PUSHED);
 		return;
 	}
 
 	if(emuKey & NGKey::SERVICE_EMU_INPUT)
 	{
-		if(state == Input::PUSHED)
+		if(action == Input::Action::PUSHED)
 			conf.test_switch = 1; // Test Switch is reset to 0 after every frame
 		return;
 	}

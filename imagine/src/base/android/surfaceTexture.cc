@@ -31,14 +31,14 @@ static JavaInstMethod<void()> jUpdateTexImage{};
 static JavaInstMethod<void()> jReleaseTexImage{};
 static JavaInstMethod<void()> jSurfaceTextureRelease{};
 
-static void initSurfaceTextureJNI(ApplicationContext app, JNIEnv *env)
+static void initSurfaceTextureJNI(ApplicationContext ctx, JNIEnv *env)
 {
-	assert(app.androidSDK() >= 14);
+	assert(ctx.androidSDK() >= 14);
 	if(likely(jSurfaceTextureCls))
 		return;
 	jSurfaceTextureCls = (jclass)env->NewGlobalRef(env->FindClass("android/graphics/SurfaceTexture"));
 	jSurfaceTexture.setup(env, jSurfaceTextureCls, "<init>", "(I)V");
-	if(app.androidSDK() >= 19)
+	if(ctx.androidSDK() >= 19)
 	{
 		jSurfaceTexture2.setup(env, jSurfaceTextureCls, "<init>", "(IZ)V");
 		jReleaseTexImage.setup(env, jSurfaceTextureCls, "releaseTexImage", "()V");
@@ -56,21 +56,21 @@ static void initSurfaceJNI(JNIEnv *env)
 	jSurfaceRelease.setup(env, jSurfaceCls, "release", "()V");
 }
 
-jobject makeSurfaceTexture(ApplicationContext app, JNIEnv *env, jint texName)
+jobject makeSurfaceTexture(ApplicationContext ctx, JNIEnv *env, jint texName)
 {
-	if(app.androidSDK() < 14)
+	if(ctx.androidSDK() < 14)
 		return nullptr;
-	initSurfaceTextureJNI(app, env);
+	initSurfaceTextureJNI(ctx, env);
 	return env->NewObject(jSurfaceTextureCls, jSurfaceTexture.method, texName);
 }
 
-jobject makeSurfaceTexture(ApplicationContext app, JNIEnv *env, jint texName, jboolean singleBufferMode)
+jobject makeSurfaceTexture(ApplicationContext ctx, JNIEnv *env, jint texName, jboolean singleBufferMode)
 {
 	if(!singleBufferMode)
-		return makeSurfaceTexture(app, env, texName);
-	if(app.androidSDK() < 19)
+		return makeSurfaceTexture(ctx, env, texName);
+	if(ctx.androidSDK() < 19)
 		return nullptr;
-	initSurfaceTextureJNI(app, env);
+	initSurfaceTextureJNI(ctx, env);
 	return env->NewObject(jSurfaceTextureCls, jSurfaceTexture2.method, texName, singleBufferMode);
 }
 

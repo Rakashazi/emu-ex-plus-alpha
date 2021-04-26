@@ -94,7 +94,7 @@ void AnimatedViewport::cancel()
 Gfx::Viewport AnimatedViewport::viewport() const
 {
 	return win ? Gfx::Viewport::makeFromWindow(*win,
-		{animator[0], animator[1], animator[2], animator[3]}) : Gfx::Viewport{};
+		{{animator[0], animator[1]}, {animator[2], animator[3]}}) : Gfx::Viewport{};
 }
 
 }

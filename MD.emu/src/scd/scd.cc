@@ -19,9 +19,9 @@ static int intAckS68k(M68KCPU &m68ki_cpu, int level)
   return M68K_INT_ACK_AUTOVECTOR;
 }
 
-void scd_interruptSubCpu(uint irq)
+void scd_interruptSubCpu(unsigned irq)
 {
-	uint enabled = sCD.gate[0x33] & (1 << irq);
+	unsigned enabled = sCD.gate[0x33] & (1 << irq);
 	if(!enabled) { bug_unreachable("irq"); }
 	//logMsg("int %d, mask %X, enabled %d", irq, sCD.gate[0x33], enabled);
 	sCD.cpu.setIRQ(irq);
@@ -40,7 +40,7 @@ void handleBad68KIns()
 	//bug_unreachable("");
 }
 
-void m68kPCChange(M68KCPU &cpu, uint oldPC, uint PC)
+void m68kPCChange(M68KCPU &cpu, unsigned oldPC, unsigned PC)
 {
 	if(oldPC < 0x20000 && PC >= 0xFF0000)
 		logMsg("main cpu bios %08X -> ram %08X code", oldPC, PC);
@@ -48,7 +48,7 @@ void m68kPCChange(M68KCPU &cpu, uint oldPC, uint PC)
 		logMsg("main cpu ram %08X -> bios %08X code", oldPC, PC);
 }
 
-void s68kPCChange(M68KCPU &cpu, uint oldPC, uint PC)
+void s68kPCChange(M68KCPU &cpu, unsigned oldPC, unsigned PC)
 {
 	if(oldPC < 0x6000 && PC >= 0x6000)
 		logMsg("sub cpu bios %08X -> user %08X code", oldPC, PC);
@@ -65,7 +65,7 @@ void scd_resetSubCpu()
 	//dumpPRG("s68kcode.bin");
 }
 
-void scd_runSubCpu(uint cycles)
+void scd_runSubCpu(unsigned cycles)
 {
 	if((sCD.busreq&3) == 1)
 	{
@@ -76,13 +76,13 @@ void scd_runSubCpu(uint cycles)
 		sCD.cpu.cycleCount = cycles;
 }
 
-uint nullRead8(uint address)
+unsigned nullRead8(unsigned address)
 {
   logMsg("Null read8 %08X (%08X)", address, m68k_get_reg (mm68k, M68K_REG_PC));
   return 0;
 }
 
-uint nullRead16(uint address)
+unsigned nullRead16(unsigned address)
 {
 	logMsg("Null read16 %08X (%08X)", address, m68k_get_reg (mm68k, M68K_REG_PC));
   return 0;
@@ -301,7 +301,7 @@ void scd_shutdown(void)
 void scd_update()
 {
 	//logMsg("scd scanline update");
-	const uint counter75hz_lim = vdp_pal ? 2080 : 2096;
+	const unsigned counter75hz_lim = vdp_pal ? 2080 : 2096;
 
 	// 75Hz CDC update
 	if ((sCD.counter75hz+=10) >= counter75hz_lim)
@@ -312,7 +312,7 @@ void scd_update()
 	}
 
 	// update timers
-	const uint counter_timer = vdp_pal ? 0x21630 : 0x2121c; // 136752 : 135708;
+	const unsigned counter_timer = vdp_pal ? 0x21630 : 0x2121c; // 136752 : 135708;
 	sCD.stopwatchTimer += counter_timer;
 	int int3_set;
 	if ((int3_set = sCD.gate[0x31]))
@@ -352,7 +352,7 @@ void scd_update()
 	//logMsg("done");
 }
 
-int scd_loadState(uint8 *state, uint exVersion)
+int scd_loadState(uint8 *state, unsigned exVersion)
 {
 	logMsg("loading CD state");
 	int bufferptr = 0;

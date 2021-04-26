@@ -43,7 +43,7 @@ import android.support.v4.app.ActivityCompat;
 public final class BaseActivity extends NativeActivity implements AudioManager.OnAudioFocusChangeListener
 {
 	private static final String logTag = "BaseActivity";
-	static native void onContentRectChanged(long windowAddr,
+	static native void onContentRectChanged(long nativeUserData,
 		int left, int top, int right, int bottom, int windowWidth, int windowHeight);
 	native void displayEnumerated(long nActivityAddr, Display dpy, int id, float refreshRate, int rotation, DisplayMetrics metrics);
 	private static final Method setSystemUiVisibility =
@@ -119,14 +119,14 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return defaultDpy.getRotation();
 	}
 
-	void enumDisplays(long nativeActivityAddr)
+	void enumDisplays(long nativeUserData)
 	{
-		displayEnumerated(nativeActivityAddr, defaultDpy, Display.DEFAULT_DISPLAY,
+		displayEnumerated(nativeUserData, defaultDpy, Display.DEFAULT_DISPLAY,
 			defaultDpy.getRefreshRate(), defaultDpy.getRotation(),
 			getResources().getDisplayMetrics());
 		if(android.os.Build.VERSION.SDK_INT >= 17)
 		{
-			DisplayListenerHelper.enumPresentationDisplays(this, nativeActivityAddr);
+			DisplayListenerHelper.enumPresentationDisplays(this, nativeUserData);
 		}
 	}
 
@@ -229,18 +229,18 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return getWindow().getAttributes().flags;
 	}
 
-	Window setMainContentView(long windowAddr)
+	Window setMainContentView(long nativeUserData)
 	{
 		// get rid of NativeActivity's view and layout listener, then add our custom view
 		View nativeActivityView = findViewById(android.R.id.content);
 		nativeActivityView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
 		View contentView;
 		if(android.os.Build.VERSION.SDK_INT >= 24)
-			contentView = new ContentViewV24(this, windowAddr);
+			contentView = new ContentViewV24(this, nativeUserData);
 		else if(android.os.Build.VERSION.SDK_INT >= 16)
-			contentView = new ContentViewV16(this, windowAddr);
+			contentView = new ContentViewV16(this, nativeUserData);
 		else
-			contentView = new ContentViewV9(this, windowAddr);
+			contentView = new ContentViewV9(this, nativeUserData);
 		setContentView(contentView);
 		contentView.requestFocus();
 		return getWindow();
@@ -390,17 +390,17 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		super.onDestroy();
 	}
 	
-	static native void sysTextInputEnded(String text, boolean processText, boolean isDoingDismiss);
+	static native void sysTextInputEnded(long nativeUserData, String text, boolean processText, boolean isDoingDismiss);
 	
-	static void endSysTextInput(String text, boolean processText, boolean isDoingDismiss)
+	static void endSysTextInput(long nativeUserData, String text, boolean processText, boolean isDoingDismiss)
 	{
-		sysTextInputEnded(text, processText, isDoingDismiss);
+		sysTextInputEnded(nativeUserData, text, processText, isDoingDismiss);
 	}
 	
 	void startSysTextInput(final String initialText, final String promptText,
-		int x, int y, int width, int height, int fontSize)
+		int x, int y, int width, int height, int fontSize, long nativeUserData)
 	{
-		TextEntry.startSysTextInput(this, initialText, promptText, x, y, width, height, fontSize);
+		TextEntry.startSysTextInput(this, initialText, promptText, x, y, width, height, fontSize, nativeUserData);
 	}
 	
 	void finishSysTextInput(final boolean canceled)
@@ -432,30 +432,30 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return new InputDeviceHelper();
 	}
 	
-	InputDeviceListenerHelper inputDeviceListenerHelper()
+	InputDeviceListenerHelper inputDeviceListenerHelper(long nativeUserData)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 16)
 			return null;
-		return new InputDeviceListenerHelper(this);
+		return new InputDeviceListenerHelper(this, nativeUserData);
 	}
 	
-	DisplayListenerHelper displayListenerHelper(long nativeActivityAddr)
+	DisplayListenerHelper displayListenerHelper(long nativeUserData)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 17)
 			return null;
-		return new DisplayListenerHelper(this, nativeActivityAddr);
+		return new DisplayListenerHelper(this, nativeUserData);
 	}
 	
-	MOGAHelper mogaHelper(long mogaSystemAddr)
+	MOGAHelper mogaHelper(long nativeUserData)
 	{
-		return new MOGAHelper(this, mogaSystemAddr);
+		return new MOGAHelper(this, nativeUserData);
 	}
 	
-	PresentationHelper presentation(Display display, long windowAddr)
+	PresentationHelper presentation(Display display, long nativeUserData)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 17)
 			return null;
-		return new PresentationHelper(this, display, windowAddr);
+		return new PresentationHelper(this, display, nativeUserData);
 	}
 
 	StorageManagerHelper storageManagerHelper()

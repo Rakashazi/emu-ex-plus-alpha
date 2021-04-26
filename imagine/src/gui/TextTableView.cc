@@ -33,13 +33,13 @@ TextTableView::TextTableView(const char *name, ViewAttachParams attach, uint32_t
 
 void TextTableView::appendItem(const char *name, TextMenuItem::SelectDelegate del)
 {
-	textItem.emplace_back(name, del);
+	textItem.emplace_back(name, &defaultFace(), del);
 }
 
 void TextTableView::setItem(uint32_t idx, const char *name, TextMenuItem::SelectDelegate del)
 {
 	assert(idx < textItem.size());
-	textItem[idx] = {name, del};
+	textItem[idx] = {name, &defaultFace(), del};
 }
 
 TextMenuItem &TextTableView::item(uint32_t idx)
@@ -62,8 +62,9 @@ void TextTableView::onAddedToController(ViewController *c, Input::Event e)
 	else TableView::onAddedToController(c, e);
 }
 
-void TextTableView::drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect) const
+void TextTableView::drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect, Gfx::GC xIndent) const
 {
-	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP, menuTextColor((int)i == activeItem));
+	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(),
+		xIndent, TableView::align, projP, menuTextColor((int)i == activeItem));
 }
 

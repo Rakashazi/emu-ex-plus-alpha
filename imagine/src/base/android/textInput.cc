@@ -16,91 +16,93 @@
 #define LOGTAG "TextInput"
 #include <imagine/input/Input.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
-#include "internal.hh"
 #include "android.hh"
 
 namespace Input
 {
 
 static InputTextDelegate vKeyboardTextDelegate;
-static IG::WindowRect textRect(8, 200, 8+304, 200+48);
-static JavaInstMethod<void(jstring, jstring, jint, jint, jint, jint, jint)> jStartSysTextInput;
+static IG::WindowRect textRect{{8, 200}, {8+304, 200+48}};
+static JavaInstMethod<void(jstring, jstring, jint, jint, jint, jint, jint, jlong)> jStartSysTextInput;
 static JavaInstMethod<void(jboolean)> jFinishSysTextInput;
 static JavaInstMethod<void(jint, jint, jint, jint)> jPlaceSysTextInput;
 static
-void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr, jboolean processText, jboolean isDoingDismiss);
+void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jlong userData, jstring jStr, jboolean processText, jboolean isDoingDismiss);
 
-static void setupTextInputJni(JNIEnv* env)
+static void setupTextInputJni(JNIEnv* env, jclass baseActivityClass)
 {
 	using namespace Base;
 	if(!jStartSysTextInput)
 	{
 		logMsg("setting up text input JNI");
-		jStartSysTextInput.setup(env, jBaseActivityCls, "startSysTextInput", "(Ljava/lang/String;Ljava/lang/String;IIIII)V");
-		jFinishSysTextInput.setup(env, jBaseActivityCls, "finishSysTextInput", "(Z)V");
-		jPlaceSysTextInput.setup(env, jBaseActivityCls, "placeSysTextInput", "(IIII)V");
+		jStartSysTextInput.setup(env, baseActivityClass, "startSysTextInput", "(Ljava/lang/String;Ljava/lang/String;IIIIIJ)V");
+		jFinishSysTextInput.setup(env, baseActivityClass, "finishSysTextInput", "(Z)V");
+		jPlaceSysTextInput.setup(env, baseActivityClass, "placeSysTextInput", "(IIII)V");
 
 		static JNINativeMethod activityMethods[] =
 		{
-			{"sysTextInputEnded", "(Ljava/lang/String;ZZ)V", (void *)&textInputEnded}
+			{"sysTextInputEnded", "(JLjava/lang/String;ZZ)V", (void *)&textInputEnded}
 		};
-		env->RegisterNatives(jBaseActivityCls, activityMethods, std::size(activityMethods));
+		env->RegisterNatives(baseActivityClass, activityMethods, std::size(activityMethods));
 	}
 }
 
-uint32_t startSysTextInput(Base::ApplicationContext app, InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels)
+uint32_t startSysTextInput(Base::ApplicationContext ctx, InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels)
 {
 	using namespace Base;
-	auto env = app.mainThreadJniEnv();
-	setupTextInputJni(env);
+	auto env = ctx.mainThreadJniEnv();
+	auto &app = ctx.application();
+	setupTextInputJni(env, app.baseActivityClass());
 	logMsg("starting system text input");
-	setEventsUseOSInputMethod(true);
+	app.setEventsUseOSInputMethod(true);
 	vKeyboardTextDelegate = callback;
-	jStartSysTextInput(env, app.baseActivityObject(), env->NewStringUTF(initialText), env->NewStringUTF(promptText),
-		textRect.x, textRect.y, textRect.xSize(), textRect.ySize(), fontSizePixels);
+	jStartSysTextInput(env, ctx.baseActivityObject(), env->NewStringUTF(initialText), env->NewStringUTF(promptText),
+		textRect.x, textRect.y, textRect.xSize(), textRect.ySize(), fontSizePixels, (jlong)&app);
 	return 0;
 }
 
-void cancelSysTextInput(Base::ApplicationContext app)
+void cancelSysTextInput(Base::ApplicationContext ctx)
 {
 	using namespace Base;
-	auto env = app.mainThreadJniEnv();
-	setupTextInputJni(env);
+	auto env = ctx.mainThreadJniEnv();
+	setupTextInputJni(env, ctx.baseActivityClass());
 	vKeyboardTextDelegate = {};
-	jFinishSysTextInput(env, app.baseActivityObject(), 1);
+	jFinishSysTextInput(env, ctx.baseActivityObject(), 1);
 }
 
-void finishSysTextInput(Base::ApplicationContext app)
+void finishSysTextInput(Base::ApplicationContext ctx)
 {
 	using namespace Base;
-	auto env = app.mainThreadJniEnv();
-	setupTextInputJni(env);
-	jFinishSysTextInput(env, app.baseActivityObject(), 0);
+	auto env = ctx.mainThreadJniEnv();
+	setupTextInputJni(env, ctx.baseActivityClass());
+	jFinishSysTextInput(env, ctx.baseActivityObject(), 0);
 }
 
-void placeSysTextInput(Base::ApplicationContext app, IG::WindowRect rect)
+void placeSysTextInput(Base::ApplicationContext ctx, IG::WindowRect rect)
 {
 	using namespace Base;
-	auto env = app.mainThreadJniEnv();
-	setupTextInputJni(env);
+	auto env = ctx.mainThreadJniEnv();
+	setupTextInputJni(env, ctx.baseActivityClass());
 	textRect = rect;
 	logMsg("placing text edit box at %d,%d with size %d,%d", rect.x, rect.y, rect.xSize(), rect.ySize());
-	jPlaceSysTextInput(env, app.baseActivityObject(), rect.x, rect.y, rect.xSize(), rect.ySize());
+	jPlaceSysTextInput(env, ctx.baseActivityObject(), rect.x, rect.y, rect.xSize(), rect.ySize());
 }
 
-IG::WindowRect sysTextInputRect(Base::ApplicationContext app)
+IG::WindowRect sysTextInputRect(Base::ApplicationContext)
 {
 	return textRect;
 }
 
-static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jstring jStr, jboolean processText, jboolean isDoingDismiss)
+static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jlong nUserData, jstring jStr, jboolean processText, jboolean isDoingDismiss)
 {
 	if(!processText)
 	{
 		return;
 	}
-	setEventsUseOSInputMethod(false);
+	auto &app = *((Base::AndroidApplication*)nUserData);
+	app.setEventsUseOSInputMethod(false);
 	auto delegate = std::exchange(vKeyboardTextDelegate, {});
 	if(delegate)
 	{

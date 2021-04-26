@@ -31,12 +31,10 @@ void TextEntry::setAcceptingInput(bool on)
 {
 	if(on)
 	{
-		Input::showSoftInput();
 		logMsg("accepting input");
 	}
 	else
 	{
-		Input::hideSoftInput();
 		logMsg("stopped accepting input");
 	}
 	acceptingInput = on;
@@ -69,7 +67,7 @@ bool TextEntry::inputEvent(View &parentView, Input::Event e)
 		}
 		else
 		{
-			auto keyStr = e.keyString();
+			auto keyStr = e.keyString(parentView.appContext());
 			if(strlen(keyStr.data()))
 			{
 				if(!multiLine)
@@ -108,7 +106,7 @@ void TextEntry::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
 	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
-	t.draw(cmds, projP.unProjectRect(b).pos(LC2DO) + GP{TableView::globalXIndent, 0}, LC2DO, projP);
+	t.draw(cmds, projP.unProjectRect(b).pos(LC2DO), LC2DO, projP);
 }
 
 void TextEntry::place(Gfx::Renderer &r)
@@ -136,13 +134,20 @@ IG::WindowRect TextEntry::bgRect() const
 CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *msgText, const char *initialContent,
 	Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face):
 	View{attach},
-	textEntry{initialContent, attach.renderer(), face, projP},
+	textEntry
+	{
+		initialContent,
+		attach.renderer(),
+		face ? face : &attach.viewManager().defaultFace(),
+		projP
+	},
 	onTextD{onText}
 {
+	face = face ? face : &attach.viewManager().defaultFace();
 	#ifndef CONFIG_BASE_ANDROID
-	if(View::needsBackControl && closeRes)
+	if(manager().needsBackControl() && closeRes)
 	{
-		cancelSpr = {{-.5, -.5, .5, .5}, closeRes};
+		cancelSpr = {{{-.5, -.5}, {.5, .5}}, closeRes};
 		if(cancelSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
 			renderer().autoReleaseShaderCompiler();
 	}
@@ -180,10 +185,11 @@ CollectTextInputView::~CollectTextInputView()
 void CollectTextInputView::place()
 {
 	using namespace Gfx;
+	auto &face = *message.face();
 	#ifndef CONFIG_BASE_ANDROID
 	if(cancelSpr.image())
 	{
-		cancelBtn.setPosRel(viewRect().pos(RT2DO), View::defaultFace.nominalHeight() * 1.75, RT2DO);
+		cancelBtn.setPosRel(viewRect().pos(RT2DO), face.nominalHeight() * 1.75, RT2DO);
 		cancelSpr.setPos(projP.unProjectRect(cancelBtn));
 	}
 	#endif
@@ -191,7 +197,7 @@ void CollectTextInputView::place()
 	message.compile(renderer(), projP);
 	IG::WindowRect textRect;
 	int xSize = viewRect().xSize() * 0.95;
-	int ySize = View::defaultFace.nominalHeight()* (Config::envIsAndroid ? 2. : 1.5);
+	int ySize = face.nominalHeight() * (Config::envIsAndroid ? 2. : 1.5);
 	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	textRect.setPosRel(viewRect().pos(C2DO), {xSize, ySize}, C2DO);
 	textEntry.place(renderer(), textRect, projP);
@@ -203,7 +209,7 @@ void CollectTextInputView::place()
 
 bool CollectTextInputView::inputEvent(Input::Event e)
 {
-	if(e.state() == Input::PUSHED)
+	if(e.state() == Input::Action::PUSHED)
 	{
 		if(e.isDefaultCancelButton() || (e.isPointer() && cancelBtn.overlaps(e.pos())))
 		{

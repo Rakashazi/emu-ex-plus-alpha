@@ -30,9 +30,19 @@
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/io/FileIO.hh>
 #include <vector>
+#include <optional>
+
+namespace Input
+{
+class Event;
+class Device;
+}
 
 namespace Base
 {
+
+class Application;
+struct ApplicationInitParams;
 
 enum class Permission
 {
@@ -55,23 +65,32 @@ public:
 	static const char *const applicationName;
 	static const char *const applicationId;
 
-	// Called on app startup, defined in user code
-	[[gnu::cold]] static void onInit(ApplicationContext, int argc, char** argv);
+	// Called on app startup to create the Application object, defined in user code
+	[[gnu::cold]] void onInit(ApplicationInitParams);
+
+	// Initialize the main Application object with a user-defined class,
+	// must be called first in onInit() before using any other methods
+	template<class T, class... Args>
+	T &initApplication(Args&&... args)
+	{
+		auto appStoragePtr = ::operator new(sizeof(T)); // allocate the storage
+		setApplicationPtr((Application*)appStoragePtr); // point the context to the storage
+		return *(new(appStoragePtr) T(std::forward<Args>(args)...)); // construct the application with the storage
+	}
+
+	Application &application() const;
 
 	Window *makeWindow(WindowConfig, WindowInitDelegate);
 	unsigned windows() const;
 	Window *window(unsigned idx) const;
 	Window &mainWindow();
+	bool systemAnimatesWindowRotation() const;
 
-	Screen &addScreen(std::unique_ptr<Screen>, bool notify);
-	Screen *findScreen(ScreenId) const;
-	std::unique_ptr<Screen> removeScreen(ScreenId, bool notify);
-	void removeSecondaryDisplays();
 	unsigned screens() const;
 	Screen *screen(unsigned idx) const;
 	Screen &mainScreen();
-	bool screensArePosted() const;
-	void setActiveForAllScreens(bool active);
+
+	NativeDisplayConnection nativeDisplayConnection() const;
 
 	// App Callbacks
 
@@ -108,24 +127,26 @@ public:
 
 	// App run state
 	bool isRunning() const;
+	bool isPaused() const;
+	bool isExiting() const;
 
 	// Inter-process messages
-	void registerInstance(int argc, char** argv, const char *appId = applicationId);
+	bool registerInstance(ApplicationInitParams, const char *appId = applicationId);
 	void setAcceptIPC(bool on, const char *appId = applicationId);
 
 	// external services
-	void openURL(const char *url);
+	void openURL(const char *url) const;
 
 	// file system paths & asset loading, thread-safe
-	FS::PathString assetPath(const char *appName = applicationName);
-	FS::PathString libPath(const char *appName = applicationName);
-	FS::PathString supportPath(const char *appName = applicationName);
-	FS::PathString cachePath(const char *appName = applicationName);
-	FS::PathString sharedStoragePath();
-	FS::PathLocation sharedStoragePathLocation();
-	std::vector<FS::PathLocation> rootFileLocations();
-	FS::RootPathInfo nearestRootPath(const char *path);
-	AssetIO openAsset(const char *name, IO::AccessHint access, const char *appName = applicationName);
+	FS::PathString assetPath(const char *appName = applicationName) const;
+	FS::PathString libPath(const char *appName = applicationName) const;
+	FS::PathString supportPath(const char *appName = applicationName) const;
+	FS::PathString cachePath(const char *appName = applicationName) const;
+	FS::PathString sharedStoragePath() const;
+	FS::PathLocation sharedStoragePathLocation() const;
+	std::vector<FS::PathLocation> rootFileLocations() const;
+	FS::RootPathInfo nearestRootPath(const char *path) const;
+	AssetIO openAsset(const char *name, IO::AccessHint access, const char *appName = applicationName) const;
 
 	// OS UI management (status & navigation bar)
 	void setSysUIStyle(uint32_t flags);
@@ -154,6 +175,24 @@ public:
 	bool usesPermission(Permission p) const;
 	bool requestPermission(Permission p);
 
+	// Input
+	const InputDeviceContainer &inputDevices() const;
+	void setHintKeyRepeat(bool on);
+	Input::Event defaultInputEvent() const;
+	std::optional<bool> swappedConfirmKeysOption() const;
+	bool swappedConfirmKeys() const;
+	void setSwappedConfirmKeys(std::optional<bool>);
+	bool keyInputIsPresent() const;
+	void flushInputEvents();
+	void flushSystemInputEvents();
+	void flushInternalInputEvents();
+
+	// Called when a known input device addition/removal/change occurs
+	void setOnInputDeviceChange(InputDeviceChangeDelegate);
+
+	// Called when the device list is rebuilt, all devices should be re-checked
+	void setOnInputDevicesEnumerated(InputDevicesEnumeratedDelegate);
+
 	// App exit
 	void exit(int returnVal);
 	void exit() { exit(0); }
@@ -166,15 +205,17 @@ class OnExit
 {
 public:
 	constexpr OnExit() {}
+	constexpr OnExit(ApplicationContext ctx):ctx{ctx} {}
 	OnExit(ExitDelegate, ApplicationContext, int priority = APP_ON_EXIT_PRIORITY);
 	OnExit(OnExit &&);
 	OnExit &operator=(OnExit &&);
 	~OnExit();
+	void reset();
 	ApplicationContext appContext() const;
 
 protected:
 	ExitDelegate del{};
-	ApplicationContext app{};
+	ApplicationContext ctx{};
 };
 
 }

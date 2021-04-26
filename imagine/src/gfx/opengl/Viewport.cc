@@ -63,7 +63,7 @@ Viewport Viewport::makeFromRect(IG::WindowRect fullRect, IG::WindowRect fullReal
 	#endif
 	v.softOrientation_ = 0;
 	// glViewport() needs flipped Y and relative size
-	v.relYFlipViewport = {v.realBounds().x, fullRealRect.ySize() - v.realBounds().y2, v.realWidth(), v.realHeight()};
+	v.relYFlipViewport = {{v.realBounds().x, fullRealRect.ySize() - v.realBounds().y2}, {v.realWidth(), v.realHeight()}};
 	//logMsg("transformed for GL %d:%d:%d:%d", v.relYFlipViewport.x, v.relYFlipViewport.y, v.relYFlipViewport.x2, v.relYFlipViewport.y2);
 	return v;
 }
@@ -88,7 +88,7 @@ Viewport Viewport::makeFromWindow(const Base::Window &win, IG::WindowRect rect)
 	//	win.width(), win.height());
 
 	// glViewport() needs flipped Y and relative size
-	v.relYFlipViewport = {v.realBounds().x, win.realHeight() - v.realBounds().y2, v.realWidth(), v.realHeight()};
+	v.relYFlipViewport = {{v.realBounds().x, win.realHeight() - v.realBounds().y2}, {v.realWidth(), v.realHeight()}};
 	//logMsg("transformed for GL %d:%d:%d:%d", v.relYFlipViewport.x, v.relYFlipViewport.y, v.relYFlipViewport.x2, v.relYFlipViewport.y2);
 	return v;
 }

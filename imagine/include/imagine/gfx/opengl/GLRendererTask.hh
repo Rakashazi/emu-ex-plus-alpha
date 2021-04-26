@@ -46,8 +46,8 @@ public:
 	using Command = GLTask::Command;
 	using CommandMessage = GLTask::CommandMessage;
 
-	GLRendererTask(Renderer &);
-	GLRendererTask(const char *debugLabel, Renderer &);
+	GLRendererTask(Base::ApplicationContext, Renderer &);
+	GLRendererTask(Base::ApplicationContext, const char *debugLabel, Renderer &);
 	void initVBOs();
 	GLuint getVBO();
 	void initVAO();

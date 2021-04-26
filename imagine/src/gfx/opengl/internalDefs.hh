@@ -7,6 +7,7 @@
 namespace Base
 {
 class Window;
+class ApplicationContext;
 }
 
 namespace Gfx
@@ -14,7 +15,8 @@ namespace Gfx
 
 struct GLRendererWindowData
 {
-	Gfx::DrawableHolder drawableHolder{};
+	constexpr GLRendererWindowData(Base::ApplicationContext ctx):drawableHolder{ctx} {}
+	Gfx::DrawableHolder drawableHolder;
 	InterpolatorValue<Angle, IG::FrameTime, InterpolatorType::EASEOUTQUAD> projAngleM{};
 };
 

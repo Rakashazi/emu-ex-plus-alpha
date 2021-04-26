@@ -36,16 +36,16 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Option";
-const uint EmuSystem::inputFaceBtns = 2;
-const uint EmuSystem::inputCenterBtns = 1;
+const unsigned EmuSystem::inputFaceBtns = 2;
+const unsigned EmuSystem::inputCenterBtns = 1;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = true;
-const uint EmuSystem::maxPlayers = 1;
+const unsigned EmuSystem::maxPlayers = 1;
 
-static const uint ctrlUpBit = 0x01, ctrlDownBit = 0x02, ctrlLeftBit = 0x04, ctrlRightBit = 0x08,
+static const unsigned ctrlUpBit = 0x01, ctrlDownBit = 0x02, ctrlLeftBit = 0x04, ctrlRightBit = 0x08,
 		ctrlABit = 0x10, ctrlBBit = 0x20, ctrlOptionBit = 0x40;
 
-void updateVControllerMapping(uint player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
 	map[SysVController::F_ELEM] = ctrlABit;
 	map[SysVController::F_ELEM+1] = ctrlBBit;
@@ -62,7 +62,7 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 	map[SysVController::D_ELEM+8] = ctrlDownBit | ctrlRightBit;
 }
 
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
+unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	switch(input)
@@ -85,10 +85,10 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint state, uint emuKey)
+void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
 {
 	uint8_t &ctrlBits = ram[0x6F82];
-	ctrlBits = IG::setOrClearBits(ctrlBits, (uint8_t)emuKey, state == Input::PUSHED);
+	ctrlBits = IG::setOrClearBits(ctrlBits, (uint8_t)emuKey, action == Input::Action::PUSHED);
 }
 
 void EmuSystem::clearInputBuffers(EmuInputView &)

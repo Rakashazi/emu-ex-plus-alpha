@@ -53,7 +53,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"4:3 (Original)", 4, 3},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 int EmuSystem::forcedSoundRate = 44100;
 #define optionMachineNameDefault "MSX2"
 static char optionDefaultMachineNameStr[128] = optionMachineNameDefault;
@@ -62,7 +62,7 @@ PathOption optionDefaultMachineName{CFGKEY_DEFAULT_MACHINE_NAME, optionDefaultMa
 PathOption optionMachineName{CFGKEY_SESSION_MACHINE_NAME, optionSessionMachineNameStr, ""};
 Byte1Option optionSkipFdcAccess{CFGKEY_SKIP_FDC_ACCESS, 1};
 PathOption optionFirmwarePath{CFGKEY_MACHINE_FILE_PATH, machineCustomPath, ""};
-uint activeBoardType = BOARD_MSX;
+unsigned activeBoardType = BOARD_MSX;
 
 Byte1Option optionMixerPSGVolume{CFGKEY_MIXER_PSG_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
 Byte1Option optionMixerSCCVolume{CFGKEY_MIXER_SCC_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
@@ -159,13 +159,13 @@ uint8_t setMixerPanOption(MixerAudioType type, int pan)
 	return pan;
 }
 
-bool EmuSystem::resetSessionOptions()
+bool EmuSystem::resetSessionOptions(EmuApp &)
 {
 	string_copy(optionSessionMachineNameStr, "");
 	return true;
 }
 
-bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{
@@ -180,7 +180,7 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionMachineName.writeToIO(io);
 }
 
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{

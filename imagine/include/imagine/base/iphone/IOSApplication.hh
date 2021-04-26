@@ -15,14 +15,30 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/base/EventLoop.hh>
+#include <imagine/config/defs.hh>
+#include <imagine/base/BaseApplication.hh>
 
 namespace Base
 {
-class ApplicationContext;
-}
 
-namespace Input
+struct ApplicationInitParams
 {
-	void initEvdev(Base::ApplicationContext app, Base::EventLoop loop);
+	void *uiAppPtr;
+	int argc;
+	char **argv;
+
+	constexpr CommandArgs commandArgs() const
+	{
+		return {argc, argv};
+	}
+};
+
+class IOSApplication : public BaseApplication
+{
+public:
+	IOSApplication(ApplicationInitParams);
+};
+
+using ApplicationImpl = IOSApplication;
+
 }

@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/EmuAppHelper.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
@@ -24,7 +25,7 @@ class InputManagerView;
 struct InputDeviceConfig;
 struct KeyCategory;
 
-class ButtonConfigSetView : public View
+class ButtonConfigSetView : public View, public EmuAppHelper<ButtonConfigSetView>
 {
 public:
 	using SetDelegate = DelegateFunc<void (Input::Event e)>;
@@ -54,14 +55,14 @@ private:
 	bool pointerUIIsInit();
 };
 
-class ButtonConfigView : public TableView
+class ButtonConfigView : public TableView, public EmuAppHelper<ButtonConfigView>
 {
 private:
 	struct BtnConfigMenuItem : public DualTextMenuItem
 	{
 		using DualTextMenuItem::DualTextMenuItem;
-		void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-			_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const final;
+		void draw(Gfx::RendererCommands &, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+			Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const final;
 	};
 
 	InputManagerView &rootIMView;

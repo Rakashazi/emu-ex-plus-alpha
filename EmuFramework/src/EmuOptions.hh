@@ -31,13 +31,6 @@ class ApplicationContext;
 
 class VController;
 
-using OptionBackNavigation = Option<OptionMethodRef<bool, View::needsBackControl>, uint8_t>;
-using OptionSwappedGamepadConfirm = Option<OptionMethodFunc<bool, Input::swappedGamepadConfirm, Input::setSwappedGamepadConfirm>, uint8_t>;
-
-bool vControllerUseScaledCoordinates();
-void setVControllerUseScaledCoordinates(bool on);
-using OptionTouchCtrlScaledCoordinates = Option<OptionMethodFunc<bool, vControllerUseScaledCoordinates, setVControllerUseScaledCoordinates>, uint8_t>;
-
 #ifdef CONFIG_BLUETOOTH_SCAN_CACHE_USAGE
 using OptionBlueToothScanCache = Option<OptionMethodFunc<bool, BluetoothAdapter::scanCacheUsage, BluetoothAdapter::setScanCacheUsage>, uint8_t>;
 #endif
@@ -95,8 +88,8 @@ struct OptionRecentGames : public OptionBase
 
 	bool isDefault() const override;
 	bool writeToIO(IO &io) override;
-	bool readFromIO(Base::ApplicationContext, IO &, uint readSize_);
-	uint ioSize() const override;
+	bool readFromIO(Base::ApplicationContext, IO &, unsigned readSize_);
+	unsigned ioSize() const override;
 };
 
 struct OptionVControllerLayoutPosition : public OptionBase
@@ -107,8 +100,8 @@ struct OptionVControllerLayoutPosition : public OptionBase
 	constexpr OptionVControllerLayoutPosition() {}
 	bool isDefault() const final;
 	bool writeToIO(IO &io) final;
-	bool readFromIO(IO &io, uint readSize_);
-	uint ioSize() const final;
+	bool readFromIO(IO &io, unsigned readSize_);
+	unsigned ioSize() const final;
 	void setVController(VController &);
 };
 
@@ -130,13 +123,11 @@ extern Byte1Option optionVibrateOnPush;
 extern Byte1Option optionPauseUnfocused;
 extern Byte1Option optionNotificationIcon;
 extern Byte1Option optionTitleBar;
-extern OptionBackNavigation optionBackNavigation;
 extern Byte1Option optionSystemActionsIsDefaultMenu;
 extern Byte1Option optionLowProfileOSNav;
 extern Byte1Option optionHideOSNav;
 extern Byte1Option optionIdleDisplayPowerSave;
 extern Byte1Option optionHideStatusBar;
-extern OptionSwappedGamepadConfirm optionSwappedGamepadConfirm;
 extern Byte1Option optionConsumeUnboundGamepadKeys;
 extern Byte1Option optionConfirmOverwriteState;
 extern Byte1Option optionFastForwardSpeed;
@@ -165,7 +156,7 @@ extern Byte1Option optionOverlayEffect;
 extern Byte1Option optionOverlayEffectLevel;
 
 #if 0
-static const uint optionRelPointerDecelLow = 500, optionRelPointerDecelMed = 250, optionRelPointerDecelHigh = 125;
+static const unsigned optionRelPointerDecelLow = 500, optionRelPointerDecelMed = 250, optionRelPointerDecelHigh = 125;
 extern Byte4Option optionRelPointerDecel;
 #endif
 
@@ -185,9 +176,6 @@ extern Byte4s2Option optionTouchCtrlExtraYBtnSize;
 extern Byte4s2Option optionTouchCtrlExtraYBtnSizeMultiRow;
 extern Byte1Option optionTouchCtrlBoundingBoxes;
 extern Byte1Option optionTouchCtrlShowOnTouch;
-	#if defined(CONFIG_BASE_ANDROID)
-	extern OptionTouchCtrlScaledCoordinates optionTouchCtrlScaledCoordinates;
-	#endif
 #endif
 extern Byte1Option optionTouchCtrlAlpha;
 extern OptionVControllerLayoutPosition optionVControllerLayoutPos;
@@ -200,7 +188,7 @@ extern DoubleOption optionFrameRate;
 extern DoubleOption optionFrameRatePAL;
 extern DoubleOption optionRefreshRateOverride;
 
-static const uint optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOnlyY = 254;
+static const unsigned optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOnlyY = 254;
 extern Byte1Option optionImageZoom;
 extern Byte1Option optionViewportZoom;
 extern Byte1Option optionShowOnSecondScreen;
@@ -219,7 +207,6 @@ extern Byte1Option optionVideoImageBuffers;
 
 static const char *optionSavePathDefaultToken = ":DEFAULT:";
 extern PathOption optionSavePath;
-extern PathOption optionLastLoadPath;
 extern Byte1Option optionCheckSavePathWriteAccess;
 
 extern Byte1Option optionShowBundledGames;
@@ -228,7 +215,7 @@ extern Byte1Option optionShowBundledGames;
 extern PathOption optionFirmwarePath;
 
 void initOptions(Base::ApplicationContext);
-void setupFont(Gfx::Renderer &r, Base::Window &win);
+void setupFont(ViewManager &manager, Gfx::Renderer &r, Base::Window &win);
 bool soundIsEnabled();
 void setSoundEnabled(bool on);
 bool soundDuringFastForwardIsEnabled();

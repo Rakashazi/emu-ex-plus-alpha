@@ -6,7 +6,7 @@
 
 namespace EmuControls
 {
-extern const uint gamepadKeys;
+extern const unsigned gamepadKeys;
 }
 
 extern Byte1Option optionArcadeCard;

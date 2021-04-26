@@ -14,6 +14,7 @@
 	along with NEO.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuAppHelper.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuMainMenuView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
@@ -36,9 +37,9 @@ class ConsoleOptionView : public TableView
 {
 	TextMenuItem timerItem[3]
 	{
-		{"Off", [](){ setTimerInt(0); }},
-		{"On", [](){ setTimerInt(1); }},
-		{"Auto", [](){ setTimerInt(2); }},
+		{"Off", &defaultFace(), [](){ setTimerInt(0); }},
+		{"On", &defaultFace(), [](){ setTimerInt(1); }},
+		{"Auto", &defaultFace(), [](){ setTimerInt(2); }},
 	};
 
 	static void setTimerInt(int val)
@@ -50,7 +51,7 @@ class ConsoleOptionView : public TableView
 
 	MultiChoiceMenuItem timer
 	{
-		"Emulate Timer",
+		"Emulate Timer", &defaultFace(),
 		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == 2)
@@ -86,33 +87,33 @@ class CustomSystemOptionView : public SystemOptionView
 private:
 	TextMenuItem regionItem[4]
 	{
-		{"Japan", [](){ conf.country = CTY_JAPAN; optionMVSCountry = conf.country; }},
-		{"Europe", [](){ conf.country = CTY_EUROPE; optionMVSCountry = conf.country; }},
-		{"USA", [](){ conf.country = CTY_USA; optionMVSCountry = conf.country; }},
-		{"Asia", [](){ conf.country = CTY_ASIA; optionMVSCountry = conf.country; }},
+		{"Japan", &defaultFace(), [](){ conf.country = CTY_JAPAN; optionMVSCountry = conf.country; }},
+		{"Europe", &defaultFace(), [](){ conf.country = CTY_EUROPE; optionMVSCountry = conf.country; }},
+		{"USA", &defaultFace(), [](){ conf.country = CTY_USA; optionMVSCountry = conf.country; }},
+		{"Asia", &defaultFace(), [](){ conf.country = CTY_ASIA; optionMVSCountry = conf.country; }},
 	};
 
 	MultiChoiceMenuItem region
 	{
-		"MVS Region",
+		"MVS Region", &defaultFace(),
 		std::min((int)conf.country, 3),
 		regionItem
 	};
 
 	TextMenuItem biosItem[7]
 	{
-		{"Unibios 2.3", [](){ conf.system = SYS_UNIBIOS; optionBIOSType = conf.system; }},
-		{"Unibios 3.0", [](){ conf.system = SYS_UNIBIOS_3_0; optionBIOSType = conf.system; }},
-		{"Unibios 3.1", [](){ conf.system = SYS_UNIBIOS_3_1; optionBIOSType = conf.system; }},
-		{"Unibios 3.2", [](){ conf.system = SYS_UNIBIOS_3_2; optionBIOSType = conf.system; }},
-		{"Unibios 3.3", [](){ conf.system = SYS_UNIBIOS_3_3; optionBIOSType = conf.system; }},
-		{"Unibios 4.0", [](){ conf.system = SYS_UNIBIOS_4_0; optionBIOSType = conf.system; }},
-		{"MVS", [](){ conf.system = SYS_ARCADE; optionBIOSType = conf.system; }},
+		{"Unibios 2.3", &defaultFace(), [](){ conf.system = SYS_UNIBIOS; optionBIOSType = conf.system; }},
+		{"Unibios 3.0", &defaultFace(), [](){ conf.system = SYS_UNIBIOS_3_0; optionBIOSType = conf.system; }},
+		{"Unibios 3.1", &defaultFace(), [](){ conf.system = SYS_UNIBIOS_3_1; optionBIOSType = conf.system; }},
+		{"Unibios 3.2", &defaultFace(), [](){ conf.system = SYS_UNIBIOS_3_2; optionBIOSType = conf.system; }},
+		{"Unibios 3.3", &defaultFace(), [](){ conf.system = SYS_UNIBIOS_3_3; optionBIOSType = conf.system; }},
+		{"Unibios 4.0", &defaultFace(), [](){ conf.system = SYS_UNIBIOS_4_0; optionBIOSType = conf.system; }},
+		{"MVS", &defaultFace(), [](){ conf.system = SYS_ARCADE; optionBIOSType = conf.system; }},
 	};
 
 	MultiChoiceMenuItem bios
 	{
-		"BIOS Type",
+		"BIOS Type", &defaultFace(),
 		[]()
 		{
 			switch(conf.system)
@@ -131,7 +132,7 @@ private:
 
 	BoolMenuItem createAndUseCache
 	{
-		"Make/Use Cache Files",
+		"Make/Use Cache Files", &defaultFace(),
 		(bool)optionCreateAndUseCache,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -141,7 +142,7 @@ private:
 
 	BoolMenuItem strictROMChecking
 	{
-		"Strict ROM Checking",
+		"Strict ROM Checking", &defaultFace(),
 		(bool)optionStrictROMChecking,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -164,7 +165,7 @@ class EmuGUIOptionView : public GUIOptionView
 {
 	BoolMenuItem listAll
 	{
-		"List All Games",
+		"List All Games", &defaultFace(),
 		(bool)optionListAllGames,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -183,7 +184,7 @@ public:
 struct RomListEntry
 {
 	const char* name;
-	uint bugs;
+	unsigned bugs;
 };
 
 static const RomListEntry romlist[]
@@ -430,9 +431,9 @@ static const RomListEntry romlist[]
 	{ "zupapa", 0 },
 };
 
-static FS::PathString gameFilePath(const char *name)
+static FS::PathString gameFilePath(EmuApp &app, const char *name)
 {
-	auto path = EmuApp::mediaSearchPath();
+	auto path = app.mediaSearchPath();
 	auto zipPath = FS::makePathStringPrintf("%s/%s.zip", path.data(), name);
 	if(FS::exists(zipPath))
 		return zipPath;
@@ -445,22 +446,22 @@ static FS::PathString gameFilePath(const char *name)
 	return {};
 }
 
-static bool gameFileExists(const char *name)
+static bool gameFileExists(EmuApp &app, const char *name)
 {
-	return strlen(gameFilePath(name).data());
+	return strlen(gameFilePath(app, name).data());
 }
 
-class GameListView : public TableView
+class GameListView : public TableView, public EmuAppHelper<GameListView>
 {
 private:
 	std::vector<TextMenuItem> item{};
 
 	void loadGame(const RomListEntry &entry, Input::Event e)
 	{
-		EmuApp::createSystemWithMedia({}, gameFilePath(entry.name).data(), "", e, {}, attachParams(),
-			[](Input::Event e)
+		app().createSystemWithMedia({}, gameFilePath(app(), entry.name).data(), "", e, {}, attachParams(),
+			[this](Input::Event e)
 			{
-				EmuApp::launchSystemWithResumePrompt(e, true);
+				app().launchSystemWithResumePrompt(e, true);
 			});
 	}
 
@@ -475,17 +476,17 @@ public:
 	{
 		for(const auto &entry : romlist)
 		{
-			auto app = appContext();
-			ROM_DEF *drv = res_load_drv(&app, entry.name);
+			auto ctx = appContext();
+			ROM_DEF *drv = res_load_drv(&ctx, entry.name);
 			if(!drv)
 				continue;
 			auto freeDrv = IG::scopeGuard([&](){ free(drv); });
-			bool fileExists = gameFileExists(drv->name);
+			bool fileExists = gameFileExists(app(), drv->name);
 			if(!optionListAllGames && !fileExists)
 			{
 				continue;
 			}
-			item.emplace_back(drv->longname,
+			item.emplace_back(drv->longname, &defaultFace(),
 				[this, &entry](TextMenuItem &item, View &, Input::Event e)
 				{
 					if(item.active())
@@ -499,7 +500,7 @@ public:
 								{
 									loadGame(entry, e);
 								});
-							EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
+							app().pushAndShowModalView(std::move(ynAlertView), e);
 						}
 						else
 						{
@@ -508,7 +509,7 @@ public:
 					}
 					else
 					{
-						EmuApp::printfMessage(3, 1, "%s not present", entry.name);
+						app().printfMessage(3, 1, "%s not present", entry.name);
 					}
 					return true;
 				});
@@ -526,21 +527,21 @@ class UnibiosSwitchesView : public TableView
 {
 	TextMenuItem regionItem[3]
 	{
-		{"Japan", [](){ setRegion(0); }},
-		{"USA", [](){ setRegion(1); }},
-		{"Europe", [](){ setRegion(2); }},
+		{"Japan", &defaultFace(), [](){ setRegion(0); }},
+		{"USA", &defaultFace(), [](){ setRegion(1); }},
+		{"Europe", &defaultFace(), [](){ setRegion(2); }},
 	};
 
 	MultiChoiceMenuItem region
 	{
-		"Region",
+		"Region", &defaultFace(),
 		(int)memory.memcard[3] & 0x3,
 		regionItem
 	};
 
 	BoolMenuItem system
 	{
-		"Mode",
+		"Mode", &defaultFace(),
 		bool(memory.memcard[2] & 0x80),
 		"Console (AES)", "Arcade (MVS)",
 		[this](BoolMenuItem &item, View &, Input::Event e)
@@ -565,7 +566,7 @@ public:
 			{
 				return 2;
 			},
-			[this](const TableView &, uint idx) -> MenuItem&
+			[this](const TableView &, unsigned idx) -> MenuItem&
 			{
 				switch(idx)
 				{
@@ -589,7 +590,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 private:
 	TextMenuItem unibiosSwitches
 	{
-		"Unibios Switches",
+		"Unibios Switches", &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
@@ -600,7 +601,7 @@ private:
 				}
 				else
 				{
-					EmuApp::postMessage("Only used with Unibios");
+					app().postMessage("Only used with Unibios");
 				}
 			}
 		}
@@ -608,7 +609,7 @@ private:
 
 	TextMenuItem options
 	{
-		"Console Options",
+		"Console Options", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
@@ -639,13 +640,13 @@ class CustomMainMenuView : public EmuMainMenuView
 private:
 	TextMenuItem gameList
 	{
-		"Load Game From List",
+		"Load Game From List", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto gameListMenu = makeView<GameListView>();
 			if(!gameListMenu->games())
 			{
-				EmuApp::postMessage(6, true, "No games found, use \"Load Game\" command to browse to a directory with valid games.");
+				app().postMessage(6, true, "No games found, use \"Load Game\" command to browse to a directory with valid games.");
 				return;
 			}
 			pushAndShow(std::move(gameListMenu), e);
@@ -664,7 +665,7 @@ public:
 	CustomMainMenuView(ViewAttachParams attach): EmuMainMenuView{attach, true}
 	{
 		reloadItems();
-		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
+		app().setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 };
 

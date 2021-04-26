@@ -80,7 +80,7 @@ void LBA_to_MSF(int lba, _msf *MSF)
 
 static unsigned int MSF_to_Track(_msf *MSF)
 {
-	uint i, Start, Cur;
+	unsigned i, Start, Cur;
 
 	Start = (MSF->M << 16) + (MSF->S << 8) + MSF->F;
 

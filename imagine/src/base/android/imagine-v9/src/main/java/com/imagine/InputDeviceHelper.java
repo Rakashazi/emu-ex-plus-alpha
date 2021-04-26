@@ -22,8 +22,8 @@ import android.view.MotionEvent;
 final class InputDeviceHelper
 {
 	private static final String logTag = "InputDeviceHelper";
-	private static native void deviceEnumerated(int devID,
-		InputDevice dev, String name, int src, int kbType,
+	private static native void deviceEnumerated(long nativeActivityAddr,
+		int devID, InputDevice dev, String name, int src, int kbType,
 		int jsAxisBits, boolean isPowerButton);
 	
 	InputDeviceHelper() {}
@@ -81,7 +81,7 @@ final class InputDeviceHelper
 		return bits;
 	}
 
-	public static void enumInputDevices()
+	public static void enumInputDevices(long nativeActivityAddr)
 	{
 		int[] idArr = InputDevice.getDeviceIds();
 		for(int id : idArr)
@@ -89,7 +89,7 @@ final class InputDeviceHelper
 			InputDevice dev = InputDevice.getDevice(id);
 			if(!shouldHandleDevice(dev))
 				continue;
-			deviceEnumerated(id, dev, dev.getName(), dev.getSources(), dev.getKeyboardType(),
+			deviceEnumerated(nativeActivityAddr, id, dev, dev.getName(), dev.getSources(), dev.getKeyboardType(),
 				axisBits(dev), isPowerButtonName(dev.getName()));
 		}
 	}

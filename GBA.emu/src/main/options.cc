@@ -29,17 +29,17 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 		{"3:2 (Original)", 3, 2},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 Byte1Option optionRtcEmulation(CFGKEY_RTC_EMULATION, RTC_EMU_AUTO, 0, optionIsValidWithMax<2>);
 
-bool EmuSystem::resetSessionOptions()
+bool EmuSystem::resetSessionOptions(EmuApp &)
 {
 	optionRtcEmulation.reset();
 	setRTC(optionRtcEmulation);
 	return true;
 }
 
-bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{
@@ -54,7 +54,7 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionRtcEmulation.writeWithKeyIfNotDefault(io);
 }
 
-void setRTC(uint mode)
+void setRTC(unsigned mode)
 {
 	if(detectedRtcGame && mode == RTC_EMU_AUTO)
 	{

@@ -17,7 +17,6 @@
 #include <emuframework/EmuApp.hh>
 #include "EmuOptions.hh"
 #include "private.hh"
-#include "EmuViewController.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
 
@@ -27,14 +26,14 @@ static const char *landscape2Name = USE_MOBILE_ORIENTATION_NAMES ? "Landscape 2"
 static const char *portraitName = USE_MOBILE_ORIENTATION_NAMES ? "Portrait" : "Standard";
 static const char *portrait2Name = USE_MOBILE_ORIENTATION_NAMES ? "Portrait 2" : "Upside Down";
 
-static void setMenuOrientation(uint val, Base::Window &win, Gfx::Renderer &r)
+static void setMenuOrientation(unsigned val, Base::Window &win, Gfx::Renderer &r)
 {
 	optionMenuOrientation = val;
 	r.setWindowValidOrientations(win, optionMenuOrientation);
 	logMsg("set menu orientation: %s", Base::orientationToStr(int(optionMenuOrientation)));
 }
 
-static void setGameOrientation(uint val)
+static void setGameOrientation(unsigned val)
 {
 	optionGameOrientation = val;
 	logMsg("set game orientation: %s", Base::orientationToStr(int(optionGameOrientation)));
@@ -44,7 +43,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"GUI Options", attach, item},
 	pauseUnfocused
 	{
-		"Pause if unfocused",
+		"Pause if unfocused", &defaultFace(),
 		(bool)optionPauseUnfocused,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -53,20 +52,20 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fontSizeItem
 	{
-		{"2", [this]() { setFontSize(2000); }},
-		{"3", [this]() { setFontSize(3000); }},
-		{"4", [this]() { setFontSize(4000); }},
-		{"5", [this]() { setFontSize(5000); }},
-		{"6", [this]() { setFontSize(6000); }},
-		{"7", [this]() { setFontSize(7000); }},
-		{"8", [this]() { setFontSize(8000); }},
-		{"9", [this]() { setFontSize(9000); }},
-		{"10", [this]() { setFontSize(10000); }},
-		{"Custom Value",
+		{"2", &defaultFace(), [this]() { setFontSize(2000); }},
+		{"3", &defaultFace(), [this]() { setFontSize(3000); }},
+		{"4", &defaultFace(), [this]() { setFontSize(4000); }},
+		{"5", &defaultFace(), [this]() { setFontSize(5000); }},
+		{"6", &defaultFace(), [this]() { setFontSize(6000); }},
+		{"7", &defaultFace(), [this]() { setFontSize(7000); }},
+		{"8", &defaultFace(), [this]() { setFontSize(8000); }},
+		{"9", &defaultFace(), [this]() { setFontSize(9000); }},
+		{"10", &defaultFace(), [this]() { setFontSize(10000); }},
+		{"Custom Value", &defaultFace(),
 			[this](Input::Event e)
 			{
-				EmuApp::pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 2.0 to 10.0", "",
-					[this](auto val)
+				app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 2.0 to 10.0", "",
+					[this](EmuApp &app, auto val)
 					{
 						int scaledIntVal = val * 1000.0;
 						if(optionFontSize.isValidVal(scaledIntVal))
@@ -78,7 +77,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 						}
 						else
 						{
-							EmuApp::postErrorMessage("Value not in range");
+							app.postErrorMessage("Value not in range");
 							return false;
 						}
 					});
@@ -88,7 +87,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	fontSize
 	{
-		"Font Size",
+		"Font Size", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
 			t.setString(string_makePrintf<6>("%.2f", optionFontSize / 1000.).data());
@@ -114,7 +113,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	notificationIcon
 	{
-		"Suspended App Icon",
+		"Suspended App Icon", &defaultFace(),
 		(bool)optionNotificationIcon,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -124,105 +123,105 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	statusBarItem
 	{
 		{
-			"Off",
+			"Off", &defaultFace(),
 			[this]()
 			{
 				optionHideStatusBar = 0;
-				applyOSNavStyle(appContext(), false);
+				app().applyOSNavStyle(appContext(), false);
 			}
 		},
 		{
-			"In Game",
+			"In Game", &defaultFace(),
 			[this]()
 			{
 				optionHideStatusBar = 1;
-				applyOSNavStyle(appContext(), false);
+				app().applyOSNavStyle(appContext(), false);
 			}
 		},
 		{
-			"On",
+			"On", &defaultFace(),
 			[this]()
 			{
 				optionHideStatusBar = 2;
-				applyOSNavStyle(appContext(), false);
+				app().applyOSNavStyle(appContext(), false);
 			}
 		}
 	},
 	statusBar
 	{
-		"Hide Status Bar",
+		"Hide Status Bar", &defaultFace(),
 		optionHideStatusBar,
 		statusBarItem
 	},
 	lowProfileOSNavItem
 	{
 		{
-			"Off",
+			"Off", &defaultFace(),
 			[this]()
 			{
 				optionLowProfileOSNav = 0;
-				applyOSNavStyle(appContext(), false);
+				app().applyOSNavStyle(appContext(), false);
 			}
 		},
 		{
-			"In Game",
+			"In Game", &defaultFace(),
 			[this]()
 			{
 				optionLowProfileOSNav = 1;
-				applyOSNavStyle(appContext(), false);
+				app().applyOSNavStyle(appContext(), false);
 			}
 		},
 		{
-			"On",
+			"On", &defaultFace(),
 			[this]()
 			{
 				optionLowProfileOSNav = 2;
-				applyOSNavStyle(appContext(), false);
+				app().applyOSNavStyle(appContext(), false);
 			}
 		}
 	},
 	lowProfileOSNav
 	{
-		"Dim OS UI",
+		"Dim OS UI", &defaultFace(),
 		optionLowProfileOSNav,
 		lowProfileOSNavItem
 	},
 	hideOSNavItem
 	{
 		{
-			"Off",
+			"Off", &defaultFace(),
 			[this]()
 			{
 				optionHideOSNav = 0;
-				applyOSNavStyle(appContext(), false);
+				app().applyOSNavStyle(appContext(), false);
 			}
 		},
 		{
-			"In Game",
+			"In Game", &defaultFace(),
 			[this]()
 			{
 				optionHideOSNav = 1;
-				applyOSNavStyle(appContext(), false);
+				app().applyOSNavStyle(appContext(), false);
 			}
 		},
 		{
-			"On",
+			"On", &defaultFace(),
 			[this]()
 			{
 				optionHideOSNav = 2;
-				applyOSNavStyle(appContext(), false);
+				app().applyOSNavStyle(appContext(), false);
 			}
 		}
 	},
 	hideOSNav
 	{
-		"Hide OS Navigation",
+		"Hide OS Navigation", &defaultFace(),
 		optionHideOSNav,
 		hideOSNavItem
 	},
 	idleDisplayPowerSave
 	{
-		"Allow Screen Timeout In Emulation",
+		"Allow Screen Timeout In Emulation", &defaultFace(),
 		(bool)optionIdleDisplayPowerSave,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -232,29 +231,29 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	navView
 	{
-		"Title Bar",
+		"Title Bar", &defaultFace(),
 		(bool)optionTitleBar,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionTitleBar = item.flipBoolValue(*this);
-			emuViewController().showNavView(optionTitleBar);
-			emuViewController().placeElements();
+			app().viewController().showNavView(optionTitleBar);
+			app().viewController().placeElements();
 		}
 	},
 	backNav
 	{
-		"Title Back Navigation",
-		View::needsBackControl,
+		"Title Back Navigation", &defaultFace(),
+		attach.viewManager().needsBackControl(),
 		[this](BoolMenuItem &item, Input::Event e)
 		{
-			View::setNeedsBackControl(item.flipBoolValue(*this));
-			emuViewController().setShowNavViewBackButton(View::needsBackControl);
-			emuViewController().placeElements();
+			manager().setNeedsBackControl(item.flipBoolValue(*this));
+			app().viewController().setShowNavViewBackButton(manager().needsBackControl());
+			app().viewController().placeElements();
 		}
 	},
 	systemActionsIsDefaultMenu
 	{
-		"Default Menu",
+		"Default Menu", &defaultFace(),
 		(bool)optionSystemActionsIsDefaultMenu,
 		"Last Used", "System Actions",
 		[this](BoolMenuItem &item, Input::Event e)
@@ -264,41 +263,41 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	showBundledGames
 	{
-		"Show Bundled Games",
+		"Show Bundled Games", &defaultFace(),
 		(bool)optionShowBundledGames,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionShowBundledGames = item.flipBoolValue(*this);
-			onMainMenuItemOptionChanged();
+			app().dispatchOnMainMenuItemOptionChanged();
 		}
 	},
 	showBluetoothScan
 	{
-		"Show Bluetooth Menu Items",
+		"Show Bluetooth Menu Items", &defaultFace(),
 		(bool)optionShowBluetoothScan,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionShowBluetoothScan = item.flipBoolValue(*this);
-			onMainMenuItemOptionChanged();
+			app().dispatchOnMainMenuItemOptionChanged();
 		}
 	},
 	orientationHeading
 	{
-		"Orientation",
+		"Orientation", &defaultBoldFace()
 	},
 	menuOrientationItem
 	{
 		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
-		{"Auto", [this](){ setMenuOrientation(Base::VIEW_ROTATE_AUTO, window(), renderer()); }},
+		{"Auto", &defaultFace(), [this](){ setMenuOrientation(Base::VIEW_ROTATE_AUTO, window(), renderer()); }},
 		#endif
-		{landscapeName, [this](){ setMenuOrientation(Base::VIEW_ROTATE_90, window(), renderer()); }},
-		{landscape2Name, [this](){ setMenuOrientation(Base::VIEW_ROTATE_270, window(), renderer()); }},
-		{portraitName, [this](){ setMenuOrientation(Base::VIEW_ROTATE_0, window(), renderer()); }},
-		{portrait2Name, [this](){ setMenuOrientation(Base::VIEW_ROTATE_180, window(), renderer()); }},
+		{landscapeName, &defaultFace(), [this](){ setMenuOrientation(Base::VIEW_ROTATE_90, window(), renderer()); }},
+		{landscape2Name, &defaultFace(), [this](){ setMenuOrientation(Base::VIEW_ROTATE_270, window(), renderer()); }},
+		{portraitName, &defaultFace(), [this](){ setMenuOrientation(Base::VIEW_ROTATE_0, window(), renderer()); }},
+		{portrait2Name, &defaultFace(), [this](){ setMenuOrientation(Base::VIEW_ROTATE_180, window(), renderer()); }},
 	},
 	menuOrientation
 	{
-		"In Menu",
+		"In Menu", &defaultFace(),
 		[]()
 		{
 			int itemOffset = Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 0 : 1;
@@ -316,16 +315,16 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	gameOrientationItem
 	{
 		#ifdef CONFIG_BASE_SUPPORTS_ORIENTATION_SENSOR
-		{"Auto", [](){ setGameOrientation(Base::VIEW_ROTATE_AUTO); }},
+		{"Auto", &defaultFace(), [](){ setGameOrientation(Base::VIEW_ROTATE_AUTO); }},
 		#endif
-		{landscapeName, [](){ setGameOrientation(Base::VIEW_ROTATE_90); }},
-		{landscape2Name, [](){ setGameOrientation(Base::VIEW_ROTATE_270); }},
-		{portraitName, [](){ setGameOrientation(Base::VIEW_ROTATE_0); }},
-		{portrait2Name, [](){ setGameOrientation(Base::VIEW_ROTATE_180); }},
+		{landscapeName, &defaultFace(), [](){ setGameOrientation(Base::VIEW_ROTATE_90); }},
+		{landscape2Name, &defaultFace(), [](){ setGameOrientation(Base::VIEW_ROTATE_270); }},
+		{portraitName, &defaultFace(), [](){ setGameOrientation(Base::VIEW_ROTATE_0); }},
+		{portrait2Name, &defaultFace(), [](){ setGameOrientation(Base::VIEW_ROTATE_180); }},
 	},
 	gameOrientation
 	{
-		"In Game",
+		"In Game", &defaultFace(),
 		[]()
 		{
 			int itemOffset = Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 0 : 1;
@@ -361,7 +360,7 @@ void GUIOptionView::loadStockItems()
 	{
 		item.emplace_back(&navView);
 	}
-	if(!View::needsBackControlIsConst)
+	if(View::needsBackControlIsMutable)
 	{
 		item.emplace_back(&backNav);
 	}
@@ -404,6 +403,6 @@ void GUIOptionView::loadStockItems()
 void GUIOptionView::setFontSize(uint16_t val)
 {
 	optionFontSize = val;
-	setupFont(renderer(), window());
-	emuViewController().placeElements();
+	setupFont(manager(), renderer(), window());
+	app().viewController().placeElements();
 }

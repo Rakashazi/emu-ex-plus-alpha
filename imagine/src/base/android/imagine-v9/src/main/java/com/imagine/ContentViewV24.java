@@ -24,9 +24,9 @@ import android.util.Log;
 
 final class ContentViewV24 extends ContentViewV16Base
 {
-	public ContentViewV24(Context context, long windowAddr)
+	public ContentViewV24(Context context, long nativeUserData)
 	{
-		super(context, windowAddr);
+		super(context, nativeUserData);
 	}
 
 	@Override public WindowInsets onApplyWindowInsets(WindowInsets insets)
@@ -58,11 +58,11 @@ final class ContentViewV24 extends ContentViewV16Base
 			newContentRect.right -= rootInsets.getSystemWindowInsetRight();
 			newContentRect.bottom -= rootInsets.getSystemWindowInsetBottom();
 		}
-		if(windowAddr != 0 && (!contentRect.equals(newContentRect) || newWindowWidth != windowWidth || newWindowHeight != windowHeight))
+		if(nativeUserData != 0 && (!contentRect.equals(newContentRect) || newWindowWidth != windowWidth || newWindowHeight != windowHeight))
 		{
 			//Log.i(logTag, "content rect: " + contentRect.left + "," + contentRect.top + " " + contentRect.right + "," + contentRect.bottom
 			//		+ " -> " + newContentRect.left + "," + newContentRect.top + " " + newContentRect.right + "," + newContentRect.bottom);
-			BaseActivity.onContentRectChanged(windowAddr,
+			BaseActivity.onContentRectChanged(nativeUserData,
 				newContentRect.left, newContentRect.top, newContentRect.right, newContentRect.bottom,
 				newWindowWidth, newWindowHeight);
 			contentRect.set(newContentRect);

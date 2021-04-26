@@ -40,8 +40,8 @@ void soundShutdown();
 
 //// GBA sound options
 
-uint soundGetSampleRate();
-void soundSetSampleRate(GBASys &gba, uint sampleRate);
+unsigned soundGetSampleRate();
+void soundSetSampleRate(GBASys &gba, unsigned sampleRate);
 
 // Sound settings
 extern bool &soundInterpolation; // 1 if PCM should have low-pass filtering

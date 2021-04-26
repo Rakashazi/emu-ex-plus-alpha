@@ -6,6 +6,7 @@
 
 class OSystem;
 class Console;
+class EmuApp;
 
 static constexpr uint TV_PHOSPHOR_AUTO = 2;
 extern Byte1Option optionTVPhosphor;
@@ -21,6 +22,6 @@ extern Controller::Type autoDetectedInput1;
 
 const char *optionVideoSystemToStr();
 void setRuntimeTVPhosphor(int val, int blend);
-void setControllerType(Console &console, Controller::Type type);
+void setControllerType(EmuApp &, Console &console, Controller::Type type);
 Controller::Type limitToSupportedControllerTypes(Controller::Type type);
 const char *controllerTypeStr(Controller::Type type);

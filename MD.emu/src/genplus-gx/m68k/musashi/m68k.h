@@ -200,64 +200,64 @@ struct M68KCPU
 	constexpr M68KCPU(const unsigned char (&cycles)[0x10000], bool hasWorkingTas):
 		cycles(cycles), hasWorkingTas(hasWorkingTas) {}
 
-  static const uint cpu_type = 1;     /* CPU Type: 68000, 68008, 68010, 68EC020, or 68020 */
+  static const unsigned cpu_type = 1;     /* CPU Type: 68000, 68008, 68010, 68EC020, or 68020 */
   const unsigned char (&cycles)[0x10000];
-  uint dar[16]{};      /* Data and Address Registers */
+  unsigned dar[16]{};      /* Data and Address Registers */
 #ifdef M68K_USE_PPC
-  uint ppc = 0;       /* Previous program counter */
+  unsigned ppc = 0;       /* Previous program counter */
 #endif
-  uint pc = 0;           /* Program Counter */
-  uint sp[7]{};        /* User, Interrupt, and Master Stack Pointers */
-  uint ir = 0;           /* Instruction Register */
+  unsigned pc = 0;           /* Program Counter */
+  unsigned sp[7]{};        /* User, Interrupt, and Master Stack Pointers */
+  unsigned ir = 0;           /* Instruction Register */
 #if M68K_EMULATE_010 || M68K_EMULATE_020 || M68K_EMULATE_EC020 || M68K_EMULATE_040
-  uint vbr = 0;          /* Vector Base Register (m68010+) */
-  uint sfc = 0;          /* Source Function Code Register (m68010+) */
-  uint dfc = 0;          /* Destination Function Code Register (m68010+) */
-  uint cacr = 0;         /* Cache Control Register (m68020, unemulated) */
-  uint caar = 0;         /* Cache Address Register (m68020, unemulated) */
+  unsigned vbr = 0;          /* Vector Base Register (m68010+) */
+  unsigned sfc = 0;          /* Source Function Code Register (m68010+) */
+  unsigned dfc = 0;          /* Destination Function Code Register (m68010+) */
+  unsigned cacr = 0;         /* Cache Control Register (m68020, unemulated) */
+  unsigned caar = 0;         /* Cache Address Register (m68020, unemulated) */
   fp_reg fpr[8]{};     /* FPU Data Register (m68040) */
-  uint fpiar = 0;        /* FPU Instruction Address Register (m68040) */
-  uint fpsr = 0;         /* FPU Status Register (m68040) */
-  uint fpcr = 0;         /* FPU Control Register (m68040) */
+  unsigned fpiar = 0;        /* FPU Instruction Address Register (m68040) */
+  unsigned fpsr = 0;         /* FPU Status Register (m68040) */
+  unsigned fpcr = 0;         /* FPU Control Register (m68040) */
 #endif
-  uint t1_flag = 0;      /* Trace 1 */
+  unsigned t1_flag = 0;      /* Trace 1 */
 #if M68K_EMULATE_020 || M68K_EMULATE_EC020 || M68K_EMULATE_040
-  uint t0_flag = 0;      /* Trace 0 */
+  unsigned t0_flag = 0;      /* Trace 0 */
 #endif
-  uint s_flag = 0;       /* Supervisor */
+  unsigned s_flag = 0;       /* Supervisor */
 #if M68K_EMULATE_020 || M68K_EMULATE_EC020 || M68K_EMULATE_040
-  uint m_flag = 0;       /* Master/Interrupt state */
+  unsigned m_flag = 0;       /* Master/Interrupt state */
 #endif
-  uint x_flag = 0;       /* Extend */
-  uint n_flag = 0;       /* Negative */
-  uint not_z_flag = 0;   /* Zero, inverted for speedups */
-  uint v_flag = 0;       /* Overflow */
-  uint c_flag = 0;       /* Carry */
-  uint int_mask = 0;     /* I0-I2 */
-  uint int_level = 0;    /* State of interrupt pins IPL0-IPL2 -- ASG: changed from ints_pending */
-  uint stopped = 0;      /* Stopped state */
+  unsigned x_flag = 0;       /* Extend */
+  unsigned n_flag = 0;       /* Negative */
+  unsigned not_z_flag = 0;   /* Zero, inverted for speedups */
+  unsigned v_flag = 0;       /* Overflow */
+  unsigned c_flag = 0;       /* Carry */
+  unsigned int_mask = 0;     /* I0-I2 */
+  unsigned int_level = 0;    /* State of interrupt pins IPL0-IPL2 -- ASG: changed from ints_pending */
+  unsigned stopped = 0;      /* Stopped state */
 #if M68K_EMULATE_PREFETCH
-  uint pref_addr = 0;    /* Last prefetch address */
-  uint pref_data = 0;    /* Data in the prefetch queue */
+  unsigned pref_addr = 0;    /* Last prefetch address */
+  unsigned pref_data = 0;    /* Data in the prefetch queue */
 #endif
-  static const uint address_mask = 0x00ffffff; /* Available address pins */
-  static const uint sr_mask = 0xa71f;      /* Implemented status register bits */
+  static const unsigned address_mask = 0x00ffffff; /* Available address pins */
+  static const unsigned sr_mask = 0xa71f;      /* Implemented status register bits */
 #if M68K_EMULATE_ADDRESS_ERROR
-  uint instr_mode = 0;   /* Stores whether we are in instruction mode or group 0/1 exception mode */
-  uint run_mode = 0;     /* Stores whether we are processing a reset, bus error, address error, or something else */
+  unsigned instr_mode = 0;   /* Stores whether we are in instruction mode or group 0/1 exception mode */
+  unsigned run_mode = 0;     /* Stores whether we are processing a reset, bus error, address error, or something else */
 #endif
   const bool hasWorkingTas;
 
   /* Clocks required for instructions / exceptions */
-  static const uint cyc_bcc_notake_b = -2 * M68K_CYCLE_SCALER;
-  static const uint cyc_bcc_notake_w = 2 * M68K_CYCLE_SCALER;
-  static const uint cyc_dbcc_f_noexp = -2 * M68K_CYCLE_SCALER;
-  static const uint cyc_dbcc_f_exp = 2 * M68K_CYCLE_SCALER;
-  static const uint cyc_scc_r_true = 2 * M68K_CYCLE_SCALER;
-  static const uint cyc_movem_w = 4 * M68K_CYCLE_SCALER;
-  static const uint cyc_movem_l = 8 * M68K_CYCLE_SCALER;
-  static const uint cyc_shift = 2 * M68K_CYCLE_SCALER;
-  static const uint cyc_reset = 132 * M68K_CYCLE_SCALER;
+  static const unsigned cyc_bcc_notake_b = -2 * M68K_CYCLE_SCALER;
+  static const unsigned cyc_bcc_notake_w = 2 * M68K_CYCLE_SCALER;
+  static const unsigned cyc_dbcc_f_noexp = -2 * M68K_CYCLE_SCALER;
+  static const unsigned cyc_dbcc_f_exp = 2 * M68K_CYCLE_SCALER;
+  static const unsigned cyc_scc_r_true = 2 * M68K_CYCLE_SCALER;
+  static const unsigned cyc_movem_w = 4 * M68K_CYCLE_SCALER;
+  static const unsigned cyc_movem_l = 8 * M68K_CYCLE_SCALER;
+  static const unsigned cyc_shift = 2 * M68K_CYCLE_SCALER;
+  static const unsigned cyc_reset = 132 * M68K_CYCLE_SCALER;
   /*static const uint8* cyc_instruction = m68ki_cycles;
   static const uint16* cyc_exception = m68ki_exception_cycle_table;*/
 
@@ -273,7 +273,7 @@ struct M68KCPU
   int  (*tas_instr_callback)(M68KCPU &m68ki_cpu);                 /* Called when a TAS instruction is encountered, allows / disallows writeback */
 #endif
 #if M68K_MONITOR_PC == OPT_ON
-  void (*pc_changed_callback)(M68KCPU &m68ki_cpu, uint oldPC, uint PC) = nullptr; /* Called when the PC changes by a large amount */
+  void (*pc_changed_callback)(M68KCPU &m68ki_cpu, unsigned oldPC, unsigned PC) = nullptr; /* Called when the PC changes by a large amount */
 #endif
 #if 0
   void (*set_fc_callback)(M68KCPU &m68ki_cpu, unsigned int new_fc);     /* Called when the CPU function code changes */
@@ -290,9 +290,9 @@ struct M68KCPU
    * Setting IRQ to 0 will clear an interrupt request.
    */
 
-  void updateIRQ(uint mask);
-  void setIRQ(uint mask);
-  void setIRQDelay(uint mask);
+  void updateIRQ(unsigned mask);
+  void setIRQ(unsigned mask);
+  void setIRQDelay(unsigned mask);
 
   static const bool callMemHooks =
 	#ifndef NDEBUG
@@ -303,21 +303,21 @@ struct M68KCPU
   ;
 
 #ifndef NDEBUG
-  uint id_ = 0;
-  void setID(uint id) { id_ = id; }
-  uint id() const { return id_; }
+  unsigned id_ = 0;
+  void setID(unsigned id) { id_ = id; }
+  unsigned id() const { return id_; }
 #else
-  void setID(uint id) { }
-  uint id() const { return 0; }
+  void setID(unsigned id) { }
+  unsigned id() const { return 0; }
 #endif
 };
 
-void m68k_read_immediate_16_hook(M68KCPU &cpu, uint address);
-void m68k_read_immediate_32_hook(M68KCPU &cpu, uint address);
-void m68k_read_pcrelative_8_hook(M68KCPU &cpu, uint address);
+void m68k_read_immediate_16_hook(M68KCPU &cpu, unsigned address);
+void m68k_read_immediate_32_hook(M68KCPU &cpu, unsigned address);
+void m68k_read_pcrelative_8_hook(M68KCPU &cpu, unsigned address);
 
 /* Read data immediately following the PC */
-static inline uint16_t m68k_read_immediate_16(M68KCPU &cpu, uint address)
+static inline uint16_t m68k_read_immediate_16(M68KCPU &cpu, unsigned address)
 {
 	if(cpu.callMemHooks)
 		m68k_read_immediate_16_hook(cpu, address);
@@ -329,7 +329,7 @@ static inline uint16_t m68k_read_immediate_16(M68KCPU &cpu, uint address)
 		return *(uint16_t *)(cpu.memory_map[mapIdx].base + ((address) & 0xffff));
 }
 
-static inline uint32_t m68k_read_immediate_32(M68KCPU &cpu, uint address)
+static inline uint32_t m68k_read_immediate_32(M68KCPU &cpu, unsigned address)
 {
 	if(cpu.callMemHooks)
 		m68k_read_immediate_32_hook(cpu, address);
@@ -337,7 +337,7 @@ static inline uint32_t m68k_read_immediate_32(M68KCPU &cpu, uint address)
 }
 
 /* Read data relative to the PC */
-static inline uint8_t m68k_read_pcrelative_8(M68KCPU &cpu, uint address)
+static inline uint8_t m68k_read_pcrelative_8(M68KCPU &cpu, unsigned address)
 {
 	if(cpu.callMemHooks)
 		m68k_read_pcrelative_8_hook(cpu, address);
@@ -424,7 +424,7 @@ void m68k_set_tas_instr_callback(int  (*callback)(M68KCPU &m68ki_cpu));
  * by a large value (currently set for changes by longwords).
  * Default behavior: do nothing.
  */
-void m68k_set_pc_changed_callback(void  (*callback)(M68KCPU &m68ki_cpu,  uint oldPC, uint PC));
+void m68k_set_pc_changed_callback(void  (*callback)(M68KCPU &m68ki_cpu,  unsigned oldPC, unsigned PC));
 
 
 /* Set the callback for CPU function code changes.

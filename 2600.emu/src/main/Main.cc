@@ -101,7 +101,7 @@ bool EmuSystem::vidSysIsPAL()
 	return os->hasConsole() && os->console().timing() != ConsoleTiming::ntsc;
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto os = osystem.get();
 	auto size = io.size();
@@ -136,7 +136,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 	os->makeConsole(cartridge, props, gamePath());
 	auto &console = os->console();
 	autoDetectedInput1 = limitToSupportedControllerTypes(console.leftController().type());
-	setControllerType(console, (Controller::Type)optionInputPort1.val);
+	setControllerType(EmuApp::get(ctx), console, (Controller::Type)optionInputPort1.val);
 	Paddles::setDigitalSensitivity(optionPaddleDigitalSensitivity);
 	console.initializeVideo();
 	console.initializeAudio();
@@ -229,11 +229,12 @@ void EmuSystem::onPrepareAudio(EmuAudio &audio)
 	audio.setStereo(false); // TODO: stereo mode
 }
 
-EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
+EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
 {
-	osystem = make_unique<OSystem>();
+	auto &app = EmuApp::get(ctx);
+	osystem = make_unique<OSystem>(app);
 	Paddles::setDigitalSensitivity(5);
 	Paddles::setMouseSensitivity(7);
-	EmuControls::setActiveFaceButtons(2);
+	app.setActiveFaceButtons(2);
 	return {};
 }

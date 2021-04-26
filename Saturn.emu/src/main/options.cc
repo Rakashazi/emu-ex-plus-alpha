@@ -58,8 +58,8 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"4:3 (Original)", 4, 3},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
-uint SH2Cores = std::size(SH2CoreList) - 1;
+const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+unsigned SH2Cores = std::size(SH2CoreList) - 1;
 bool EmuApp::hasIcon = false;
 bool EmuApp::autoSaveStateDefault = false;
 bool EmuSystem::hasSound = !(Config::envIsAndroid || Config::envIsIOS);
@@ -78,7 +78,7 @@ EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)
 	return {};
 }
 
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{

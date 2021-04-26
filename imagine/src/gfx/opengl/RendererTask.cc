@@ -28,12 +28,12 @@
 namespace Gfx
 {
 
-GLRendererTask::GLRendererTask(Renderer &r):
-	GLRendererTask{nullptr, r}
+GLRendererTask::GLRendererTask(Base::ApplicationContext ctx, Renderer &r):
+	GLRendererTask{ctx, nullptr, r}
 {}
 
-GLRendererTask::GLRendererTask(const char *debugLabel, Renderer &r):
-	GLTask{debugLabel}, r{&r}
+GLRendererTask::GLRendererTask(Base::ApplicationContext ctx, const char *debugLabel, Renderer &r):
+	GLTask{ctx, debugLabel}, r{&r}
 {}
 
 void GLRendererTask::initVBOs()
@@ -73,7 +73,8 @@ void GLRendererTask::initDefaultFramebuffer()
 {
 	if(Config::Gfx::GLDRAWABLE_NEEDS_FRAMEBUFFER && !defaultFB)
 	{
-		Base::GLContext::setCurrent(Base::GLDisplay::getDefault(), glContext(), {});
+		Base::GLContext::setCurrent(
+			Base::GLDisplay::getDefault(appContext().nativeDisplayConnection()), glContext(), {});
 		GLuint fb;
 		glGenFramebuffers(1, &fb);
 		logMsg("created default framebuffer:%u", fb);
@@ -143,7 +144,7 @@ void RendererTask::updateDrawableForSurfaceChange(Base::Window &win, Base::Windo
 	}
 	else if(!drawableHolder)
 	{
-		drawableHolder.makeDrawable(r->glDpy, win, r->gfxBufferConfig);
+		drawableHolder.makeDrawable(r->glDisplay(), win, r->gfxBufferConfig);
 	}
 	if(change.reset())
 	{
@@ -229,7 +230,7 @@ void RendererTask::deleteSyncFence(SyncFence fence)
 	const bool canPerformInCurrentThread = Config::Base::GL_PLATFORM_EGL;
 	if(canPerformInCurrentThread)
 	{
-		auto dpy = renderer().glDpy;
+		auto dpy = renderer().glDisplay();
 		renderer().support.deleteSync(dpy, fence.sync);
 	}
 	else
@@ -251,7 +252,7 @@ void RendererTask::clientWaitSync(SyncFence fence, int flags, std::chrono::nanos
 	if(canPerformInCurrentThread)
 	{
 		//logDMsg("waiting on sync:%p flush:%s timeout:0%llX", fence.sync, flags & 1 ? "yes" : "no", (unsigned long long)timeout);
-		auto dpy = renderer().glDpy;
+		auto dpy = (Base::GLDisplay)renderer().glDisplay();
 		renderer().support.clientWaitSync(dpy, fence.sync, 0, timeout.count());
 		renderer().support.deleteSync(dpy, fence.sync);
 	}

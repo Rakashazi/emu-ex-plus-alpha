@@ -28,6 +28,7 @@
 #endif
 
 #include <imagine/base/baseDefs.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/typeTraits.hh>
@@ -42,9 +43,7 @@ class Screen : public ScreenImpl
 public:
   static constexpr double DISPLAY_RATE_DEFAULT = 0;
 
-	using ScreenImpl::ScreenImpl;
-	Screen(const Screen &) = delete;
-	Screen &operator=(const Screen &) = delete;
+	Screen(ApplicationContext, InitParams);
 	// Called when a screen addition/removal/change occurs
 	int width();
 	int height();
@@ -67,12 +66,11 @@ public:
 	void setActive(bool active);
 
 private:
-	bool framePosted = false;
-	bool inFrameHandler = false;
-	bool isActive = true;
-	// for debug frame stats
-	IG_enableMemberIf(Config::DEBUG_BUILD, uint32_t, continuousFrames){};
 	DelegateFuncSet<OnFrameDelegate> onFrameDelegate{};
+	ApplicationContext ctx;
+	bool framePosted{};
+	bool inFrameHandler{};
+	bool isActive{};
 
 	void runOnFrameDelegates(FrameTime timestamp);
 	void postFrame();

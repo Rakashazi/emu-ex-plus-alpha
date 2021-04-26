@@ -125,7 +125,7 @@ void GraphicBuffer::deinit()
 
 bool GraphicBuffer::lock(uint32_t usage, void **vaddr)
 {
-	return lock(usage, {0, 0, width, height}, vaddr);
+	return lock(usage, {{}, {width, height}}, vaddr);
 }
 
 bool GraphicBuffer::lock(uint32_t usage, IG::WindowRect rect, void **vaddr)
@@ -173,9 +173,9 @@ bool GraphicBuffer::hasBufferMapper()
 	return allocDev;
 }
 
-bool GraphicBuffer::canSupport(ApplicationContext app, const char *rendererStr)
+bool GraphicBuffer::canSupport(ApplicationContext ctx, const char *rendererStr)
 {
-	auto androidSDK = app.androidSDK();
+	auto androidSDK = ctx.androidSDK();
 	if(androidSDK >= 24)
 	{
 		// non-NDK library loading is blocked by the OS
@@ -184,7 +184,7 @@ bool GraphicBuffer::canSupport(ApplicationContext app, const char *rendererStr)
 	else if(androidSDK >= 11)
 	{
 		// known tested devices with Android 3.0+
-		auto buildDevice = app.androidBuildDevice();
+		auto buildDevice = ctx.androidBuildDevice();
 		if(Config::MACHINE_IS_GENERIC_ARMV7)
 		{
 			if(androidSDK >= 20 &&

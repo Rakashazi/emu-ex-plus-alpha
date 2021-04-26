@@ -39,14 +39,14 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobe
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
-uint fceuCheats = 0;
+unsigned fceuCheats = 0;
 ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
-uint autoDetectedRegion = 0;
+unsigned autoDetectedRegion = 0;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 const char *fceuReturnedError = {};
 static PalArray defaultPal{};
 static uint16 nativeCol[256]{};
-static const uint nesPixX = 256, nesPixY = 240, nesVisiblePixY = 224;
+static const unsigned nesPixX = 256, nesPixY = 240, nesVisiblePixY = 224;
 static uint8 XBufData[256 * 256 + 16]{};
 // Separate front & back buffers not needed for our video implementation
 uint8 *XBuf = XBufData;
@@ -77,7 +77,7 @@ static bool hasNESExtension(const char *name)
 	return hasROMExtension(name) || hasFDSExtension(name);
 }
 
-const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
+const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx)
 {
 	static const BundledGameInfo info[]
 	{
@@ -387,9 +387,9 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 
 void emulateSound(EmuAudio *audio)
 {
-	const uint maxAudioFrames = EmuSystem::audioFramesPerVideoFrame+32;
+	const unsigned maxAudioFrames = EmuSystem::audioFramesPerVideoFrame+32;
 	int32 sound[maxAudioFrames];
-	uint frames = FlushEmulateSound(sound);
+	unsigned frames = FlushEmulateSound(sound);
 	//logMsg("%d frames", frames);
 	assert(frames <= maxAudioFrames);
 	if(audio)

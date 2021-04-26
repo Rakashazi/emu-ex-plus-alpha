@@ -23,10 +23,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
-#include <imagine/util/math/space.hh>
 #include <imagine/logger/logger.h>
-
-Gfx::GC TableView::globalXIndent{};
 
 TableView::TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
 	ScrollView{attach}, items{items}, item{item}
@@ -161,10 +158,11 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 
 	// draw elements
 	y = yStart;
+	auto xIndent = manager().tableXIndent();
 	for(int i = startYCell; i < endYCell; i++)
 	{
 		auto rect = IG::makeWindowRectRel({x, y}, {viewRect().xSize(), yCellSize});
-		drawElement(cmds, i, item(*this, i), projP.unProjectRect(rect));
+		drawElement(cmds, i, item(*this, i), projP.unProjectRect(rect), xIndent);
 		y += yCellSize;
 	}
 }
@@ -491,9 +489,9 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 	return false;
 }
 
-void TableView::drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect) const
+void TableView::drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect, Gfx::GC xIndent) const
 {
-	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), align, projP, Gfx::color(Gfx::ColorName::WHITE));
+	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, align, projP, Gfx::color(Gfx::ColorName::WHITE));
 }
 
 void TableView::onSelectElement(Input::Event e, uint32_t i, MenuItem &item)
@@ -507,28 +505,4 @@ void TableView::onSelectElement(Input::Event e, uint32_t i, MenuItem &item)
 bool TableView::elementIsSelectable(MenuItem &item)
 {
 	return item.isSelectable;
-}
-
-float TableView::defaultXIndentMM(const Base::Window &win)
-{
-	auto wMM = win.widthMM();
-	return
-		wMM < 150. ? 1. :
-		wMM < 250. ? 2. :
-		4.;
-}
-
-void TableView::setDefaultXIndent(const Base::Window &win, Gfx::ProjectionPlane projP)
-{
-	setXIndentMM(defaultXIndentMM(win), projP);
-}
-
-void TableView::setXIndentMM(float indentMM, Gfx::ProjectionPlane projP)
-{
-	auto indentGC = projP.xSMMSize(indentMM);
-	if(!IG::valIsWithinStretch(indentGC, globalXIndent, 0.001f))
-	{
-		logDMsg("setting X indent:%.2fmm (%f as coordinate)", indentMM, indentGC);
-	}
-	globalXIndent = projP.xSMMSize(indentMM);
 }

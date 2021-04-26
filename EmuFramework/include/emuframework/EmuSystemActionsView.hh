@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/container/ArrayList.hh>
@@ -23,15 +24,15 @@
 #define CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 #endif
 
-class EmuSystemActionsView : public TableView
+class EmuSystemActionsView : public TableView, public EmuAppHelper<EmuSystemActionsView>
 {
 public:
 	EmuSystemActionsView(ViewAttachParams attach, bool customMenu = false);
 	void onShow() override;
 	void loadStandardItems();
 
-	static const uint STANDARD_ITEMS = 9;
-	static const uint MAX_SYSTEM_ITEMS = 6;
+	static constexpr unsigned STANDARD_ITEMS = 9;
+	static constexpr unsigned MAX_SYSTEM_ITEMS = 6;
 
 protected:
 	TextMenuItem cheats;

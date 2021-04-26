@@ -15,6 +15,16 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/config.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuSystemTask.hh>
+#include <emuframework/EmuAudio.hh>
+#include <emuframework/EmuVideo.hh>
+#include <emuframework/EmuVideoLayer.hh>
+#include <emuframework/EmuViewController.hh>
+#include <emuframework/EmuInput.hh>
+#include <emuframework/VController.hh>
+#include <emuframework/TurboInput.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/MenuItem.hh>
@@ -22,11 +32,16 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/base/ApplicationContext.hh>
-#include <emuframework/EmuSystem.hh>
+#include <imagine/base/Application.hh>
+#include <imagine/base/Timer.hh>
+#include <imagine/gfx/Renderer.hh>
 #include <imagine/util/typeTraits.hh>
 #include <cstring>
+#include <optional>
 
-class EmuApp
+struct InputDeviceConfig;
+
+class EmuApp : public Base::Application
 {
 public:
 	using OnMainMenuOptionChanged = DelegateFunc<void()>;
@@ -45,76 +60,120 @@ public:
 		LIST_CHEATS,
 	};
 
+	enum class AssetID
+	{
+		ARROW,
+		CLOSE,
+		ACCEPT,
+		GAME_ICON,
+		MENU,
+		FAST_FORWARD,
+		GAMEPAD_OVERLAY,
+		KEYBOARD_OVERLAY,
+		END
+	};
+
 	static bool autoSaveStateDefault;
 	static bool hasIcon;
 
-	static bool willCreateSystem(ViewAttachParams attach, Input::Event e);
-	static void createSystemWithMedia(GenericIO io, const char *path, const char *name,
+	EmuApp(Base::ApplicationInitParams, Base::ApplicationContext &, Gfx::Error &);
+
+	bool willCreateSystem(ViewAttachParams attach, Input::Event e);
+	void createSystemWithMedia(GenericIO io, const char *path, const char *name,
 		Input::Event e, EmuSystemCreateParams, ViewAttachParams,
 		CreateSystemCompleteDelegate onComplete);
-	static void exitGame(bool allowAutosaveState = true);
-	static void reloadGame(EmuSystemCreateParams params = {});
-	static void promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Event e, EmuSystemCreateParams params = {});
-	static void onMainWindowCreated(ViewAttachParams attach, Input::Event e);
+	void exitGame(bool allowAutosaveState = true);
+	void reloadGame(EmuSystemCreateParams params = {});
+	void promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Event e, EmuSystemCreateParams params = {});
+	void onMainWindowCreated(ViewAttachParams attach, Input::Event e);
 	static void onCustomizeNavView(NavView &v);
-	static void pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::Event e,
+	void pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::Event e,
 		const char *msgText, const char *initialContent, CollectTextInputView::OnTextDelegate onText);
-	static void pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event e,
+	void pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event e,
 		const char *label, const char *choice1, const char *choice2,
 		TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo);
-	static void pushAndShowModalView(std::unique_ptr<View> v, Input::Event e);
-	static void popModalViews();
-	static void popMenuToRoot();
-	static void showSystemActionsViewFromSystem(ViewAttachParams attach, Input::Event e);
-	static void showLastViewFromSystem(ViewAttachParams attach, Input::Event e);
-	static void showExitAlert(ViewAttachParams attach, Input::Event e);
-	static void showEmuation();
-	static void launchSystemWithResumePrompt(Input::Event e, bool addToRecent);
-	static void launchSystem(Input::Event e, bool tryAutoState, bool addToRecent);
+	void pushAndShowModalView(std::unique_ptr<View> v, Input::Event e);
+	void pushAndShowModalView(std::unique_ptr<View> v);
+	void popModalViews();
+	void popMenuToRoot();
+	void showSystemActionsViewFromSystem(ViewAttachParams attach, Input::Event e);
+	void showLastViewFromSystem(ViewAttachParams attach, Input::Event e);
+	void showExitAlert(ViewAttachParams attach, Input::Event e);
+	void showEmuation();
+	void launchSystemWithResumePrompt(Input::Event e, bool addToRecent);
+	void launchSystem(Input::Event e, bool tryAutoState, bool addToRecent);
 	static bool hasArchiveExtension(const char *name);
-	static void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
-	[[gnu::format(printf, 3, 4)]]
-	static void printfMessage(uint secs, bool error, const char *format, ...);
-	static void postMessage(const char *msg);
-	static void postMessage(bool error, const char *msg);
-	static void postMessage(uint secs, bool error, const char *msg);
-	static void postErrorMessage(const char *msg);
-	static void postErrorMessage(uint secs, const char *msg);
-	static void unpostMessage();
-	static void printScreenshotResult(int num, bool success);
-	static void saveAutoState();
-	static bool loadAutoState();
-	static EmuSystem::Error saveState(const char *path);
-	static EmuSystem::Error saveStateWithSlot(int slot);
-	static EmuSystem::Error loadState(const char *path);
-	static EmuSystem::Error loadStateWithSlot(int slot);
+	void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
+	void dispatchOnMainMenuItemOptionChanged();
+	[[gnu::format(printf, 4, 5)]]
+	void printfMessage(unsigned secs, bool error, const char *format, ...);
+	void postMessage(const char *msg);
+	void postMessage(bool error, const char *msg);
+	void postMessage(unsigned secs, bool error, const char *msg);
+	void postErrorMessage(const char *msg);
+	void postErrorMessage(unsigned secs, const char *msg);
+	void unpostMessage();
+	void printScreenshotResult(int num, bool success);
+	void saveAutoState();
+	bool loadAutoState();
+	EmuSystem::Error saveState(const char *path);
+	EmuSystem::Error saveStateWithSlot(int slot);
+	EmuSystem::Error loadState(const char *path);
+	EmuSystem::Error loadStateWithSlot(int slot);
 	static void setDefaultVControlsButtonSpacing(int spacing);
 	static void setDefaultVControlsButtonStagger(int stagger);
-	static FS::PathString mediaSearchPath();
-	static void setMediaSearchPath(FS::PathString path);
-	static FS::PathString firmwareSearchPath();
-	static void setFirmwareSearchPath(const char *path);
+	FS::PathString mediaSearchPath();
+	void setMediaSearchPath(std::optional<FS::PathString>);
+	FS::PathString firmwareSearchPath();
+	void setFirmwareSearchPath(const char *path);
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
-	static void addTurboInputEvent(uint action);
-	static void removeTurboInputEvent(uint action);
+	void addTurboInputEvent(unsigned action);
+	void removeTurboInputEvent(unsigned action);
+	void runTurboInputEvents();
+	void resetInput();
 	static FS::PathString assetPath(Base::ApplicationContext);
 	static FS::PathString libPath(Base::ApplicationContext);
 	static FS::PathString supportPath(Base::ApplicationContext);
 	static AssetIO openAppAssetIO(Base::ApplicationContext, const char *name, IO::AccessHint access);
 	static void saveSessionOptions();
-	static void loadSessionOptions();
+	void loadSessionOptions();
 	static bool hasSavedSessionOptions();
-	static void deleteSessionOptions();
-	static void syncEmulationThread();
+	void deleteSessionOptions();
+	void syncEmulationThread();
 	static IG::PixelFormat defaultRenderPixelFormat(Base::ApplicationContext);
-	static void resetVideo();
+	void resetVideo();
+	EmuAudio &audio();
+	EmuVideo &video();
+	EmuViewController &viewController();
+	void cancelAutoSaveStateTimer();
+	void startAutoSaveStateTimer();
+	void configFrameTime();
+	void setActiveFaceButtons(unsigned btns);
+	void updateKeyboardMapping();
+	void toggleKeyboard();
+	void updateVControllerMapping();
+	Gfx::PixmapTexture &asset(Gfx::Renderer &, AssetID) const;
+	void updateVControlImg(VController &);
+	void updateInputDevices(Base::ApplicationContext);
+	void setOnUpdateInputDevices(DelegateFunc<void ()>);
+	SysVController &defaultVController();
+	static std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
+	void applyOSNavStyle(Base::ApplicationContext, bool inGame);
+	void setCPUNeedsLowLatency(Base::ApplicationContext, bool needed);
+	void skipFrames(EmuSystemTask *, uint32_t frames, EmuAudio *);
+	bool skipForwardFrames(EmuSystemTask *task, uint32_t frames);
+	void buildKeyInputMapping();
+	const KeyMapping &keyInputMapping();
+	std::vector<InputDeviceConfig> &inputDeviceConfigs();
+	Base::ApplicationContext appContext() const;
+	static EmuApp &get(Base::ApplicationContext);
 
 	template<class T, class Func>
-	static void pushAndShowNewCollectValueInputView(ViewAttachParams attach, Input::Event e,
+	void pushAndShowNewCollectValueInputView(ViewAttachParams attach, Input::Event e,
 	const char *msgText, const char *initialContent, Func &&collectedValueFunc)
 	{
-		EmuApp::pushAndShowNewCollectTextInputView(attach, e, msgText, initialContent,
-			[=](CollectTextInputView &view, const char *str)
+		pushAndShowNewCollectTextInputView(attach, e, msgText, initialContent,
+			[collectedValueFunc](CollectTextInputView &view, const char *str)
 			{
 				if(!str)
 				{
@@ -156,12 +215,13 @@ public:
 				{
 					static_assert(IG::dependentFalseValue<T>, "can't collect value of this type");
 				}
+				auto &app = get(view.appContext());
 				if(items <= 0)
 				{
-					postErrorMessage("Enter a value");
+					app.postErrorMessage("Enter a value");
 					return true;
 				}
-				else if(!collectedValueFunc(val))
+				else if(!collectedValueFunc(app, val))
 				{
 					return true;
 				}
@@ -174,7 +234,7 @@ public:
 	}
 
 	template<class Func1, class Func2>
-	static void pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event e,
+	void pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event e,
 		const char *label, const char *yesStr, const char *noStr,
 		Func1 &&onYes, Func2 &&onNo)
 	{
@@ -188,4 +248,56 @@ public:
 	{
 		return openAppAssetIO(app, name.data(), access);
 	}
+
+protected:
+	Gfx::Renderer renderer;
+	ViewManager viewManager{};
+	EmuAudio emuAudio{};
+	EmuVideo emuVideo{};
+	EmuVideoLayer emuVideoLayer;
+	EmuSystemTask emuSystemTask;
+	mutable Gfx::PixmapTexture assetBuffImg[(unsigned)AssetID::END]{};
+	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
+	SysVController vController;
+	#endif
+	std::optional<EmuViewController> emuViewController{};
+	Base::Timer autoSaveStateTimer;
+	DelegateFunc<void ()> onUpdateInputDevices_{};
+	OnMainMenuOptionChanged onMainMenuOptionChanged_{};
+	std::vector<InputDeviceConfig> inputDevConf;
+	KeyMapping keyMapping{};
+	TurboInput turboActions{};
+	FS::PathString lastLoadPath{};
+
+	class ConfigParams
+	{
+	public:
+		static constexpr uint8_t BACK_NAVIGATION_IS_SET_BIT = IG::bit(0);
+		static constexpr uint8_t BACK_NAVIGATION_BIT = IG::bit(1);
+
+		constexpr std::optional<bool> backNavigation() const
+		{
+			if(flags & BACK_NAVIGATION_IS_SET_BIT)
+				return flags & BACK_NAVIGATION_BIT;
+			return {};
+		}
+
+		constexpr void setBackNavigation(std::optional<bool> opt)
+		{
+			if(!opt)
+				return;
+			flags |= BACK_NAVIGATION_IS_SET_BIT;
+			flags = IG::setOrClearBits(flags, BACK_NAVIGATION_BIT, *opt);
+		}
+
+	protected:
+		uint8_t flags{};
+	};
+
+	void mainInitCommon(Base::ApplicationInitParams, Base::ApplicationContext);
+	void initVControls();
+	Gfx::PixmapTexture *collectTextCloseAsset(Gfx::Renderer &) const;
+	ConfigParams loadConfigFile(Base::ApplicationContext);
+	void saveConfigFile(Base::ApplicationContext);
+	void saveConfigFile(IO &);
 };

@@ -40,8 +40,8 @@ public:
 		isSelectable{isSelectable} {}
 	virtual ~MenuItem();
 	virtual void prepareDraw(Gfx::Renderer &r) = 0;
-	virtual void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-		_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const = 0;
+	virtual void draw(Gfx::RendererCommands &, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+		Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const = 0;
 	virtual void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) = 0;
 	virtual int ySize() = 0;
 	virtual Gfx::GC xSize() = 0;
@@ -118,13 +118,11 @@ class BaseTextMenuItem : public MenuItem
 {
 public:
 	BaseTextMenuItem();
-	BaseTextMenuItem(const char *str);
 	BaseTextMenuItem(const char *str, Gfx::GlyphTextureSet *face);
-	BaseTextMenuItem(const char *str, bool isSelectable);
 	BaseTextMenuItem(const char *str, bool isSelectable, Gfx::GlyphTextureSet *face);
 	void prepareDraw(Gfx::Renderer &r) override;
-	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-		_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const override;
+	void draw(Gfx::RendererCommands &, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+		Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const override;
 	void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) override;
 	void compile(const char *str, Gfx::Renderer &r, const Gfx::ProjectionPlane &projP);
 	int ySize() override;
@@ -145,9 +143,8 @@ public:
 	using SelectDelegate = DelegateFunc<bool (TextMenuItem &item, View &view, Input::Event e)>;
 
 	TextMenuItem();
-	TextMenuItem(const char *str, SelectDelegate selectDel);
-	TextMenuItem(const char *str, Gfx::GlyphTextureSet *face, SelectDelegate selectDel);
-	bool select(View &view, Input::Event e) override;
+	TextMenuItem(const char *str, Gfx::GlyphTextureSet *face, SelectDelegate);
+	bool select(View &, Input::Event) override;
 	void setOnSelect(SelectDelegate onSelect);
 	SelectDelegate onSelect() const;
 
@@ -157,9 +154,6 @@ public:
 	{
 		return wrapSelectDelegateFunction<TextMenuItem>(std::forward<Func>(func));
 	}
-
-	template<class Func>
-	TextMenuItem(const char *str, Func &&func): TextMenuItem{str, makeSelectDelegate(std::forward<Func>(func))} {}
 
 	template<class Func>
 	TextMenuItem(const char *str, Gfx::GlyphTextureSet *face, Func &&func): TextMenuItem{str, face, makeSelectDelegate(std::forward<Func>(func))} {}
@@ -175,7 +169,7 @@ class TextHeadingMenuItem : public BaseTextMenuItem
 {
 public:
 	TextHeadingMenuItem();
-	TextHeadingMenuItem(const char *str);
+	TextHeadingMenuItem(const char *str, Gfx::GlyphTextureSet *face);
 	bool select(View &view, Input::Event e) override;
 };
 
@@ -183,14 +177,14 @@ class BaseDualTextMenuItem : public BaseTextMenuItem
 {
 public:
 	BaseDualTextMenuItem();
-	BaseDualTextMenuItem(const char *str, const char *str2);
+	BaseDualTextMenuItem(const char *str, const char *str2, Gfx::GlyphTextureSet *face);
 	void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) override;
 	void compile2nd(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP);
 	void prepareDraw(Gfx::Renderer &r) override;
-	void draw2ndText(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-		_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const;
-	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-		_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const override;
+	void draw2ndText(Gfx::RendererCommands &, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+		Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const;
+	void draw(Gfx::RendererCommands &, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+		Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const override;
 	void set2ndName(const char *name);
 
 protected:
@@ -203,8 +197,8 @@ public:
 	using SelectDelegate = DelegateFunc<void (DualTextMenuItem &item, View &view, Input::Event e)>;
 
 	DualTextMenuItem();
-	DualTextMenuItem(const char *str, const char *str2);
-	DualTextMenuItem(const char *str, const char *str2, SelectDelegate selectDel);
+	DualTextMenuItem(const char *str, const char *str2, Gfx::GlyphTextureSet *face);
+	DualTextMenuItem(const char *str, const char *str2, Gfx::GlyphTextureSet *face, SelectDelegate selectDel);
 	bool select(View &view, Input::Event e) override;
 	void setOnSelect(SelectDelegate onSelect);
 
@@ -216,8 +210,8 @@ public:
 	}
 
 	template<class Func>
-	DualTextMenuItem(const char *str, const char *str2, Func &&func):
-		DualTextMenuItem{str, str2, makeSelectDelegate(std::forward<Func>(func))} {}
+	DualTextMenuItem(const char *str, const char *str2, Gfx::GlyphTextureSet *face, Func &&func):
+		DualTextMenuItem{str, str2, face, makeSelectDelegate(std::forward<Func>(func))} {}
 
 	template<class Func>
 	void setOnSelect(Func &&func)
@@ -236,15 +230,15 @@ public:
 	using SelectDelegate = DelegateFunc<void (BoolMenuItem &item, View &view, Input::Event e)>;
 
 	BoolMenuItem();
-	BoolMenuItem(const char *str, bool val, SelectDelegate selectDel);
-	BoolMenuItem(const char *str, bool val, const char *offStr, const char *onStr, SelectDelegate selectDel);
+	BoolMenuItem(const char *str, Gfx::GlyphTextureSet *face, bool val, SelectDelegate);
+	BoolMenuItem(const char *str, Gfx::GlyphTextureSet *face, bool val, const char *offStr, const char *onStr, SelectDelegate);
 	bool boolValue() const;
 	bool setBoolValue(bool val, View &view);
 	bool setBoolValue(bool val);
 	bool flipBoolValue(View &view);
 	bool flipBoolValue();
-	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-		_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const override;
+	void draw(Gfx::RendererCommands &, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+		Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const override;
 	bool select(View &view, Input::Event e) override;
 	void setOnSelect(SelectDelegate onSelect);
 
@@ -256,12 +250,12 @@ public:
 	}
 
 	template<class Func>
-	BoolMenuItem(const char *str, bool val, Func &&func):
-		BoolMenuItem{str, val, makeSelectDelegate(std::forward<Func>(func))} {}
+	BoolMenuItem(const char *str, Gfx::GlyphTextureSet *face, bool val, Func &&func):
+		BoolMenuItem{str, face, val, makeSelectDelegate(std::forward<Func>(func))} {}
 
 	template<class Func>
-	BoolMenuItem(const char *str, bool val, const char *offStr, const char *onStr, Func &&func):
-		BoolMenuItem{str, val, offStr, onStr, makeSelectDelegate(std::forward<Func>(func))} {}
+	BoolMenuItem(const char *str, Gfx::GlyphTextureSet *face, bool val, const char *offStr, const char *onStr, Func &&func):
+		BoolMenuItem{str, face, val, offStr, onStr, makeSelectDelegate(std::forward<Func>(func))} {}
 
 	template<class Func>
 	void setOnSelect(Func &&func)
@@ -285,13 +279,13 @@ public:
 	using SetDisplayStringDelegate = DelegateFunc<bool(uint32_t idx, Gfx::Text &text)>;
 
 	MultiChoiceMenuItem();
-	MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr, int selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel);
-	MultiChoiceMenuItem(const char *str, int selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel);
-	MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr, int selected, ItemsDelegate items, ItemDelegate item);
-	MultiChoiceMenuItem(const char *str, int selected, ItemsDelegate items, ItemDelegate item);
+	MultiChoiceMenuItem(const char *str, Gfx::GlyphTextureSet *face, SetDisplayStringDelegate, int selected, ItemsDelegate items, ItemDelegate item, SelectDelegate);
+	MultiChoiceMenuItem(const char *str, Gfx::GlyphTextureSet *face, int selected, ItemsDelegate items, ItemDelegate item, SelectDelegate);
+	MultiChoiceMenuItem(const char *str, Gfx::GlyphTextureSet *face, SetDisplayStringDelegate, int selected, ItemsDelegate items, ItemDelegate item);
+	MultiChoiceMenuItem(const char *str, Gfx::GlyphTextureSet *face, int selected, ItemsDelegate items, ItemDelegate item);
 	template <class C>
-	MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr, int selected, C &item, SelectDelegate selectDel):
-		MultiChoiceMenuItem{str, onDisplayStr, selected,
+	MultiChoiceMenuItem(const char *str, Gfx::GlyphTextureSet *face, SetDisplayStringDelegate onDisplayStr, int selected, C &item, SelectDelegate selectDel):
+		MultiChoiceMenuItem{str, face, onDisplayStr, selected,
 		[&item](const MultiChoiceMenuItem &) -> int
 		{
 			return std::size(item);
@@ -303,19 +297,19 @@ public:
 		selectDel}
 	{}
 	template <class C>
-	MultiChoiceMenuItem(const char *str, int selected, C &item, SelectDelegate selectDel):
-		MultiChoiceMenuItem{str, SetDisplayStringDelegate{}, selected, item, selectDel}
+	MultiChoiceMenuItem(const char *str, Gfx::GlyphTextureSet *face, int selected, C &item, SelectDelegate selectDel):
+		MultiChoiceMenuItem{str, face, SetDisplayStringDelegate{}, selected, item, selectDel}
 	{}
 	template <class C>
-	MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr, int selected, C &item):
-		MultiChoiceMenuItem{str, onDisplayStr, selected, item, {}}
+	MultiChoiceMenuItem(const char *str, Gfx::GlyphTextureSet *face, SetDisplayStringDelegate onDisplayStr, int selected, C &item):
+		MultiChoiceMenuItem{str, face, onDisplayStr, selected, item, {}}
 	{}
 	template <class C>
-	MultiChoiceMenuItem(const char *str, int selected, C &item):
-		MultiChoiceMenuItem{str, SetDisplayStringDelegate{}, selected, item, {}}
+	MultiChoiceMenuItem(const char *str, Gfx::GlyphTextureSet *face, int selected, C &item):
+		MultiChoiceMenuItem{str, face, SetDisplayStringDelegate{}, selected, item, {}}
 	{}
-	void draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-		_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const override;
+	void draw(Gfx::RendererCommands &, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
+		Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &, Gfx::Color) const override;
 	void compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP) override;
 	int selected() const;
 	uint32_t items() const;

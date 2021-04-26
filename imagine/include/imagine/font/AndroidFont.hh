@@ -34,18 +34,18 @@ public:
 protected:
 	IG::Pixmap pixmap_{};
 	jobject aBitmap{};
-	Base::ApplicationContext app{};
+	Base::ApplicationContext ctx{};
 };
 
 class AndroidFont
 {
 public:
-	constexpr AndroidFont(Base::ApplicationContext app):
-		app{app}
+	constexpr AndroidFont(Base::ApplicationContext ctx):
+		ctx{ctx}
 	{}
 
 protected:
-	Base::ApplicationContext app{};
+	Base::ApplicationContext ctx{};
 	bool isBold{};
 };
 
@@ -61,7 +61,7 @@ public:
 
 protected:
 	jobject paint_{};
-	Base::ApplicationContext app{};
+	Base::ApplicationContext ctx{};
 
 	void deinit();
 };

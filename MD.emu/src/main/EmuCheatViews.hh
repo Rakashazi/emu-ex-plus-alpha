@@ -19,7 +19,7 @@
 #include <main/Cheats.hh>
 #include <vector>
 #include "system.h"
-uint decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &originalData);
+unsigned decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &originalData);
 
 class EmuCheatsView : public BaseCheatsView
 {

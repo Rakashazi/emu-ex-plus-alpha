@@ -20,6 +20,7 @@
 #include <imagine/base/MessagePort.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/FunctionTraits.hh>
+#include <imagine/util/NonCopyable.hh>
 #include <thread>
 
 namespace IG
@@ -35,13 +36,14 @@ class GLRendererTask;
 
 struct GLTaskConfig
 {
+	Base::GLDisplay display;
 	Base::GLBufferConfig bufferConfig{};
 	Drawable initialDrawable{};
 	int threadPriority{};
 };
 
 // Wraps an OpenGL context in a thread + message port
-class GLTask
+class GLTask : private NonCopyable
 {
 public:
 	class TaskContext
@@ -91,14 +93,10 @@ public:
 		void setReplySemaphore(IG::Semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 
-	GLTask();
-	GLTask(const char *debugLabel);
-	GLTask(const GLTask &o) = delete;
-	GLTask &operator=(const GLTask &o) = delete;
-	GLTask(GLTask &&o) = delete;
-	GLTask &operator=(GLTask &&o) = delete;
+	GLTask(Base::ApplicationContext);
+	GLTask(Base::ApplicationContext, const char *debugLabel);
 	~GLTask();
-	Error makeGLContext(GLTaskConfig, Base::ApplicationContext);
+	Error makeGLContext(GLTaskConfig);
 	void runFunc(FuncDelegate del, bool awaitReply);
 	Base::GLContext glContext() const;
 	Base::ApplicationContext appContext() const;
@@ -141,7 +139,7 @@ public:
 protected:
 	std::thread thread{};
 	Base::GLContext context{};
-	Base::OnExit onExit{};
+	Base::OnExit onExit;
 	Base::MessagePort<CommandMessage> commandPort{Base::MessagePort<CommandMessage>::NullInit{}};
 
 	Base::GLContext makeGLContext(Base::GLDisplay dpy, Base::GLBufferConfig bufferConf);

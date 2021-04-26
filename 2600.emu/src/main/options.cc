@@ -65,7 +65,7 @@ void EmuSystem::initOptions()
 	EmuApp::setDefaultVControlsButtonStagger(5);
 }
 
-bool EmuSystem::resetSessionOptions()
+bool EmuSystem::resetSessionOptions(EmuApp &app)
 {
 	optionTVPhosphor.reset();
 	setRuntimeTVPhosphor(optionTVPhosphor, optionTVPhosphorBlend);
@@ -74,7 +74,7 @@ bool EmuSystem::resetSessionOptions()
 	optionPaddleDigitalSensitivity.reset();
 	if(osystem->hasConsole())
 	{
-		setControllerType(osystem->console(), (Controller::Type)optionInputPort1.val);
+		setControllerType(app, osystem->console(), (Controller::Type)optionInputPort1.val);
 	}
 	return true;
 }

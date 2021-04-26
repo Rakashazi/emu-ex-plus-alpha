@@ -15,11 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/input/Device.hh>
-#include <imagine/input/AxisKeyEmu.hh>
-#include <imagine/util/container/ArrayList.hh>
-#include <imagine/util/string.h>
-#include <imagine/util/jni.hh>
+#include <imagine/input/config.hh>
 
 namespace Input
 {
@@ -36,58 +32,6 @@ namespace Input
 	static constexpr jint KEYBOARD_TYPE_NONE = 0,  KEYBOARD_TYPE_NON_ALPHABETIC = 1, KEYBOARD_TYPE_ALPHABETIC = 2;
 
 	}
-
-class AndroidInputDevice : public Input::Device
-{
-public:
-	int osId = 0;
-	uint32_t joystickAxisAsDpadBits_ = 0, joystickAxisAsDpadBitsDefault_ = 0;
-	uint32_t axisBits = 0;
-	bool iCadeMode_ = false;
-	//static constexpr uint32_t MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
-	static constexpr uint32_t MAX_AXES = 10;
-	//static_assert(MAX_STICK_AXES <= MAX_AXES, "MAX_AXES must be large enough to hold MAX_STICK_AXES");
-
-	struct Axis
-	{
-		constexpr Axis() {}
-		constexpr Axis(uint8_t id, AxisKeyEmu<float> keyEmu): id{id}, keyEmu{keyEmu} {}
-		uint8_t id = 0;
-		AxisKeyEmu<float> keyEmu;
-	};
-	StaticArrayList<Axis, MAX_AXES> axis;
-
-	AndroidInputDevice(int osId, uint32_t typeBits, const char *name):
-		Device{0, Map::SYSTEM, typeBits, name},
-		osId{osId}
-	{}
-
-	AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumId, int osId, int src,
-		const char *name, int kbType, int axisBits, bool isPowerButton);
-
-	bool operator ==(AndroidInputDevice const& rhs) const
-	{
-		return osId == rhs.osId && string_equal(name(), rhs.name());
-	}
-
-	void setTypeBits(int bits) { type_ = bits; }
-
-	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
-	uint32_t joystickAxisAsDpadBits() final;
-	uint32_t joystickAxisAsDpadBitsDefault() final { return joystickAxisAsDpadBitsDefault_; };
-	uint32_t joystickAxisBits() final { return axisBits; };
-
-	void setICadeMode(bool on) final
-	{
-		logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
-		iCadeMode_ = on;
-	}
-
-	bool iCadeMode() const final
-	{
-		return iCadeMode_;
-	}
-};
 
 static constexpr int AXIS_X = 0, AXIS_Y = 1, AXIS_Z = 11,
 	AXIS_RX = 12, AXIS_RY = 13, AXIS_RZ = 14,
@@ -118,5 +62,7 @@ static Key axisToKeycode(int axis)
 	}
 	return Keycode::JS3_YAXIS_POS;
 }
+
+bool hasGetAxisValue();
 
 }

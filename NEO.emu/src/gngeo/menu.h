@@ -70,7 +70,7 @@ Uint32 run_menu(void);
 void gn_reset_pbar(void);
 //void gn_init_pbar(const char *name,int size);
 enum { PBAR_ACTION_LOADROM, PBAR_ACTION_DECRYPT, PBAR_ACTION_LOADGNO, PBAR_ACTION_SAVEGNO };
-void gn_init_pbar(uint action,int size);
+void gn_init_pbar(unsigned action,int size);
 void gn_update_pbar(int pos);
 void gn_terminate_pbar(void);
 

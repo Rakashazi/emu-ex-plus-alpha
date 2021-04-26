@@ -24,7 +24,7 @@ namespace Base
 
 // GLDisplay
 
-GLDisplay GLDisplay::getDefault()
+GLDisplay GLDisplay::getDefault(Base::NativeDisplayConnection)
 {
 	return {eglGetDisplay(EGL_DEFAULT_DISPLAY)};
 }
@@ -36,9 +36,9 @@ bool GLDisplay::bindAPI(GL::API api)
 
 // GLContext
 
-std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion)
+std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, ApplicationContext ctx, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion)
 {
-	if(majorVersion > 2 && attr.appContext().androidSDK() < 18)
+	if(majorVersion > 2 && ctx.androidSDK() < 18)
 	{
 		// need at least Android 4.3 to use ES 3 attributes
 		return {};
@@ -75,7 +75,7 @@ void GLContext::present(GLDisplay display, GLDrawable win, GLContext cachedCurre
 	present(display, win);
 }
 
-Base::NativeWindowFormat EGLBufferConfig::windowFormat(GLDisplay display) const
+Base::NativeWindowFormat EGLBufferConfig::windowFormat(Base::ApplicationContext, GLDisplay display) const
 {
 	EGLint nId;
 	eglGetConfigAttrib(display, glConfig, EGL_NATIVE_VISUAL_ID, &nId);

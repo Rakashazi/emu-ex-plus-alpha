@@ -47,11 +47,11 @@ static int audioManagerIntProperty(JNIEnv* env, JavaInstMethod<jobject(jstring)>
 	return val;
 }
 
-static void setupAudioManagerJNI(JNIEnv* env, jobject baseActivity, int sdk)
+static void setupAudioManagerJNI(JNIEnv* env, jobject baseActivity, jclass baseActivityClass, int sdk)
 {
 	if(audioManager)
 		return;
-	JavaInstMethod<jobject()> jAudioManager{env, Base::jBaseActivityCls, "audioManager", "()Landroid/media/AudioManager;"};
+	JavaInstMethod<jobject()> jAudioManager{env, baseActivityClass, "audioManager", "()Landroid/media/AudioManager;"};
 	audioManager = jAudioManager(env, baseActivity);
 	assert(audioManager);
 	audioManager = env->NewGlobalRef(audioManager);
@@ -62,31 +62,31 @@ static void setupAudioManagerJNI(JNIEnv* env, jobject baseActivity, int sdk)
 		jGetProperty.setup(env, jAudioManagerCls, "getProperty", "(Ljava/lang/String;)Ljava/lang/String;");
 }
 
-static void requestAudioFocus(JNIEnv* env, jobject baseActivity, int sdk)
+static void requestAudioFocus(JNIEnv* env, jobject baseActivity, jclass baseActivityClass, int sdk)
 {
-	setupAudioManagerJNI(env, baseActivity, sdk);
+	setupAudioManagerJNI(env, baseActivity, baseActivityClass, sdk);
 	auto res = jRequestAudioFocus(env, audioManager, baseActivity, 3, 1);
 	//logMsg("%d from requestAudioFocus()", (int)res);
 }
 
-static void abandonAudioFocus(JNIEnv* env, jobject baseActivity, int sdk)
+static void abandonAudioFocus(JNIEnv* env, jobject baseActivity, jclass baseActivityClass, int sdk)
 {
-	setupAudioManagerJNI(env, baseActivity, sdk);
+	setupAudioManagerJNI(env, baseActivity, baseActivityClass, sdk);
 	jAbandonAudioFocus(env, audioManager, baseActivity);
 }
 
-Audio::SampleFormat nativeSampleFormat(Base::ApplicationContext app)
+Audio::SampleFormat nativeSampleFormat(Base::ApplicationContext ctx)
 {
-	return app.androidSDK() >= 21 ? Audio::SampleFormats::f32 : Audio::SampleFormats::i16;
+	return ctx.androidSDK() >= 21 ? Audio::SampleFormats::f32 : Audio::SampleFormats::i16;
 }
 
-uint32_t nativeRate(Base::ApplicationContext app)
+uint32_t nativeRate(Base::ApplicationContext ctx)
 {
 	uint32_t rate = 44100;
-	if(app.androidSDK() >= 17)
+	if(ctx.androidSDK() >= 17)
 	{
-		auto env = app.mainThreadJniEnv();
-		setupAudioManagerJNI(env, app.baseActivityObject(), app.androidSDK());
+		auto env = ctx.mainThreadJniEnv();
+		setupAudioManagerJNI(env, ctx.baseActivityObject(), ctx.baseActivityClass(), ctx.androidSDK());
 		rate = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_SAMPLE_RATE");
 		if(rate != 44100 && rate != 48000)
 		{
@@ -102,17 +102,17 @@ uint32_t nativeRate(Base::ApplicationContext app)
 	return rate;
 }
 
-Audio::Format nativeFormat(Base::ApplicationContext app)
+Audio::Format nativeFormat(Base::ApplicationContext ctx)
 {
-	return {nativeRate(app), nativeSampleFormat(app), 2};
+	return {nativeRate(ctx), nativeSampleFormat(ctx), 2};
 }
 
-uint32_t nativeOutputFramesPerBuffer(Base::ApplicationContext app)
+uint32_t nativeOutputFramesPerBuffer(Base::ApplicationContext ctx)
 {
-	if(app.androidSDK() >= 17)
+	if(ctx.androidSDK() >= 17)
 	{
-		auto env = app.mainThreadJniEnv();
-		setupAudioManagerJNI(env, app.baseActivityObject(), app.androidSDK());
+		auto env = ctx.mainThreadJniEnv();
+		setupAudioManagerJNI(env, ctx.baseActivityObject(), ctx.baseActivityClass(), ctx.androidSDK());
 		int outputBufferFrames = audioManagerIntProperty(env, jGetProperty, "android.media.property.OUTPUT_FRAMES_PER_BUFFER");
 		//logMsg("native buffer frames: %d", outputBufferFrames);
 		if(outputBufferFrames <= 0 || outputBufferFrames > 4096)
@@ -128,7 +128,7 @@ uint32_t nativeOutputFramesPerBuffer(Base::ApplicationContext app)
 	}
 }
 
-void setSoloMix(Base::ApplicationContext app, bool newSoloMix)
+void setSoloMix(Base::ApplicationContext ctx, bool newSoloMix)
 {
 	if(soloMix_ != newSoloMix)
 	{
@@ -138,9 +138,9 @@ void setSoloMix(Base::ApplicationContext app, bool newSoloMix)
 		{
 			// update the current audio focus
 			if(newSoloMix)
-				requestAudioFocus(app.mainThreadJniEnv(), app.baseActivityObject(), app.androidSDK());
+				requestAudioFocus(ctx.mainThreadJniEnv(), ctx.baseActivityObject(), ctx.baseActivityClass(), ctx.androidSDK());
 			else
-				abandonAudioFocus(app.mainThreadJniEnv(), app.baseActivityObject(), app.androidSDK());
+				abandonAudioFocus(ctx.mainThreadJniEnv(), ctx.baseActivityObject(), ctx.baseActivityClass(), ctx.androidSDK());
 		}
 	}
 }
@@ -150,33 +150,33 @@ bool soloMix()
 	return soloMix_;
 }
 
-void setMusicVolumeControlHint(Base::ApplicationContext app)
+void setMusicVolumeControlHint(Base::ApplicationContext ctx)
 {
 	using namespace Base;
-	auto env = app.mainThreadJniEnv();
-	JavaInstMethod<void(jint)> jSetVolumeControlStream{env, jBaseActivityCls, "setVolumeControlStream", "(I)V"};
-	jSetVolumeControlStream(env, app.baseActivityObject(), 3);
+	auto env = ctx.mainThreadJniEnv();
+	JavaInstMethod<void(jint)> jSetVolumeControlStream{env, ctx.baseActivityClass(), "setVolumeControlStream", "(I)V"};
+	jSetVolumeControlStream(env, ctx.baseActivityObject(), 3);
 }
 
-void startSession(Base::ApplicationContext app)
+void startSession(Base::ApplicationContext ctx)
 {
 	if(sessionActive)
 		return;
 	sessionActive = true;
 	if(soloMix_)
 	{
-		requestAudioFocus(app.mainThreadJniEnv(), app.baseActivityObject(), app.androidSDK());
+		requestAudioFocus(ctx.mainThreadJniEnv(), ctx.baseActivityObject(), ctx.baseActivityClass(), ctx.androidSDK());
 	}
 }
 
-void endSession(Base::ApplicationContext app)
+void endSession(Base::ApplicationContext ctx)
 {
 	if(!sessionActive)
 		return;
 	sessionActive = false;
 	if(soloMix_)
 	{
-		abandonAudioFocus(app.mainThreadJniEnv(), app.baseActivityObject(), app.androidSDK());
+		abandonAudioFocus(ctx.mainThreadJniEnv(), ctx.baseActivityObject(), ctx.baseActivityClass(), ctx.androidSDK());
 	}
 }
 
@@ -185,10 +185,10 @@ void endSession(Base::ApplicationContext app)
 namespace IG::Audio
 {
 
-std::vector<ApiDesc> audioAPIs(Base::ApplicationContext app)
+std::vector<ApiDesc> audioAPIs(Base::ApplicationContext ctx)
 {
 	std::vector<ApiDesc> desc;
-	if(app.androidSDK() >= 26)
+	if(ctx.androidSDK() >= 26)
 	{
 		desc.reserve(2);
 		desc.emplace_back("AAudio", Api::AAUDIO);
@@ -197,13 +197,13 @@ std::vector<ApiDesc> audioAPIs(Base::ApplicationContext app)
 	return desc;
 }
 
-Api makeValidAPI(Base::ApplicationContext app, Api api)
+Api makeValidAPI(Base::ApplicationContext ctx, Api api)
 {
 	// Don't default to AAudio on Android 8.0 (SDK 26) due
 	// too various device-specific driver bugs:
 	// ASUS ZenFone 4 (ZE554KL) crashes randomly ~5 mins after playback starts
 	// Samsung Galaxy S7 may crash when closing audio stream even when stopping it beforehand
-	if(app.androidSDK() >= 27)
+	if(ctx.androidSDK() >= 27)
 	{
 		if(api == Api::OPENSL_ES)
 			return Api::OPENSL_ES; // OpenSL ES was explicitly requested

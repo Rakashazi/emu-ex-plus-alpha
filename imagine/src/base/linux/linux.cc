@@ -16,26 +16,28 @@
 #define LOGTAG "Base"
 #include <imagine/logger/logger.h>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
+#include <imagine/base/EventLoop.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/string.h>
-#include "dbus.hh"
-#include "../common/basePrivate.hh"
-#include "../x11/x11.hh"
-#ifdef CONFIG_INPUT_EVDEV
-#include "../../input/evdev/evdev.hh"
-#endif
 #include <sys/stat.h>
 #include <cstring>
 
 namespace Base
 {
 
-static FS::PathString appPath{};
-
 constexpr mode_t defaultDirMode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
 
-static void cleanup()
+LinuxApplication::LinuxApplication(ApplicationInitParams initParams)
+{
+	setAppPath(FS::makeAppPathFromLaunchCommand(initParams.argv[0]));
+	#ifdef CONFIG_INPUT_EVDEV
+	initEvdev(initParams.eventLoop);
+	#endif
+}
+
+LinuxApplication::~LinuxApplication()
 {
 	#ifdef CONFIG_BASE_DBUS
 	deinitDBus();
@@ -44,24 +46,24 @@ static void cleanup()
 
 void ApplicationContext::exit(int returnVal)
 {
-	setExitingActivityState();
+	application().setExitingActivityState();
 	dispatchOnExit(false);
-	cleanup();
+	delete static_cast<BaseApplication*>(appPtr);
 	::exit(returnVal);
 }
 
-void ApplicationContext::openURL(const char *url)
+void ApplicationContext::openURL(const char *url) const
 {
 	logMsg("opening url:%s", url);
 	auto ret = system(FS::makePathStringPrintf("xdg-open %s", url).data());
 }
 
-FS::PathString ApplicationContext::assetPath(const char *)
+FS::PathString ApplicationContext::assetPath(const char *) const
 {
-	return appPath;
+	return application().appPath();
 }
 
-FS::PathString ApplicationContext::supportPath(const char *appName)
+FS::PathString ApplicationContext::supportPath(const char *appName) const
 {
 	if(auto home = getenv("XDG_DATA_HOME");
 		home)
@@ -81,7 +83,7 @@ FS::PathString ApplicationContext::supportPath(const char *appName)
 	return {};
 }
 
-FS::PathString ApplicationContext::cachePath(const char *appName)
+FS::PathString ApplicationContext::cachePath(const char *appName) const
 {
 	if(auto home = getenv("XDG_CACHE_HOME");
 		home)
@@ -101,7 +103,7 @@ FS::PathString ApplicationContext::cachePath(const char *appName)
 	return {};
 }
 
-FS::PathString ApplicationContext::sharedStoragePath()
+FS::PathString ApplicationContext::sharedStoragePath() const
 {
 	if(Config::MACHINE_IS_PANDORA)
 	{
@@ -125,14 +127,14 @@ FS::PathString ApplicationContext::sharedStoragePath()
 	return {};
 }
 
-FS::PathLocation ApplicationContext::sharedStoragePathLocation()
+FS::PathLocation ApplicationContext::sharedStoragePathLocation() const
 {
 	auto path = sharedStoragePath();
 	auto name = Config::MACHINE_IS_PANDORA ? FS::makeFileString("Media") : FS::makeFileString("Home");
 	return {path, name, {name, strlen(path.data())}};
 }
 
-std::vector<FS::PathLocation> ApplicationContext::rootFileLocations()
+std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const
 {
 	std::vector<FS::PathLocation> path;
 	path.reserve(1);
@@ -144,9 +146,9 @@ std::vector<FS::PathLocation> ApplicationContext::rootFileLocations()
 	return path;
 }
 
-FS::PathString ApplicationContext::libPath(const char *)
+FS::PathString ApplicationContext::libPath(const char *) const
 {
-	return appPath;
+	return application().appPath();
 }
 
 void ApplicationContext::setDeviceOrientationChangeSensor(bool on) {}
@@ -173,14 +175,22 @@ bool ApplicationContext::requestPermission(Permission p)
 }
 
 #ifndef CONFIG_BASE_DBUS
-void ApplicationContext::setIdleDisplayPowerSave(bool on) {}
+void LinuxApplication::setIdleDisplayPowerSave(bool on) {}
 
-void ApplicationContext::endIdleByUserActivity() {}
+void LinuxApplication::endIdleByUserActivity() {}
 
-void ApplicationContext::registerInstance(int argc, char** argv, const char *) {}
+bool LinuxApplication::registerInstance(int argc, char** argv, const char *) { return false; }
 
-void ApplicationContext::setAcceptIPC(bool on, const char *) {}
+void LinuxApplication::setAcceptIPC(bool on, const char *) {}
 #endif
+
+void ApplicationContext::setIdleDisplayPowerSave(bool on) { application().setIdleDisplayPowerSave(on); }
+
+void ApplicationContext::endIdleByUserActivity() { application().endIdleByUserActivity(); }
+
+bool ApplicationContext::registerInstance(ApplicationInitParams initParams, const char *name) { return application().registerInstance(initParams, name); }
+
+void ApplicationContext::setAcceptIPC(bool on, const char *name) { application().setAcceptIPC(on, name); }
 
 void ApplicationContext::addNotification(const char *onShow, const char *title, const char *message) {}
 
@@ -199,30 +209,27 @@ void ApplicationContext::exitWithErrorMessageVPrintf(int exitVal, const char *fo
 	::exit(exitVal);
 }
 
+FS::PathString LinuxApplication::appPath() const
+{
+	return appPath_;
+}
+
+void LinuxApplication::setAppPath(FS::PathString path)
+{
+	appPath_ = path;
+}
+
 }
 
 int main(int argc, char** argv)
 {
-	using namespace Base;
-	Base::ApplicationContext app{};
-	logger_init(app);
-	engineInit();
-	appPath = FS::makeAppPathFromLaunchCommand(argv[0]);
-	auto eventLoop = EventLoop::makeForThread();
-	#ifdef CONFIG_BASE_X11
-	auto xDpy = initX11(app, eventLoop);
-	if(!xDpy)
-	{
-		return -1;
-	}
-	FDEventSource x11Src{makeAttachedX11EventSource(app, xDpy, eventLoop)};
-	#endif
-	#ifdef CONFIG_INPUT_EVDEV
-	Input::initEvdev(app, eventLoop);
-	#endif
-	ApplicationContext::onInit(app, argc, argv);
-	setRunningActivityState();
-	app.dispatchOnResume(true);
+	logger_setLogDirectoryPrefix(".");
+	auto eventLoop = Base::EventLoop::makeForThread();
+	Base::ApplicationInitParams initParams{eventLoop, argc, argv};
+	Base::ApplicationContext ctx{};
+	ctx.onInit(initParams);
+	ctx.application().setRunningActivityState();
+	ctx.dispatchOnResume(true);
 	bool eventLoopRunning = true;
 	eventLoop.run(eventLoopRunning);
 	return 0;

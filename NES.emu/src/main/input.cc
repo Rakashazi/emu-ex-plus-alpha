@@ -40,11 +40,11 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
-const uint EmuSystem::inputFaceBtns = 2;
-const uint EmuSystem::inputCenterBtns = 2;
+const unsigned EmuSystem::inputFaceBtns = 2;
+const unsigned EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
-const uint EmuSystem::maxPlayers = 4;
+const unsigned EmuSystem::maxPlayers = 4;
 static uint32 padData = 0;
 uint32 zapperData[3]{};
 bool usingZapper = false;
@@ -74,10 +74,10 @@ void GetMouseData(uint32 (&d)[3])
 }
 
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-void updateVControllerMapping(uint player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
 	using namespace IG;
-	uint playerMask = player << 8;
+	unsigned playerMask = player << 8;
 	map[SysVController::F_ELEM] = bit(0) | playerMask;
 	map[SysVController::F_ELEM+1] = bit(1) | playerMask;
 
@@ -95,7 +95,7 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 }
 #endif
 
-static uint playerInputShift(uint player)
+static unsigned playerInputShift(unsigned player)
 {
 	switch(player)
 	{
@@ -106,13 +106,13 @@ static uint playerInputShift(uint player)
 	return 0;
 }
 
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
+unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	using namespace IG;
 	turbo = 0;
 	assert(input >= nesKeyIdxUp);
-	uint player = (input - nesKeyIdxUp) / EmuControls::gamepadKeys;
-	uint playerMask = player << 8;
+	unsigned player = (input - nesKeyIdxUp) / EmuControls::gamepadKeys;
+	unsigned playerMask = player << 8;
 	input -= EmuControls::gamepadKeys * player;
 	switch(input)
 	{
@@ -136,16 +136,16 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint state, uint emuKey)
+void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
 {
-	uint player = emuKey >> 8;
+	unsigned player = emuKey >> 8;
 	auto key = emuKey & 0xFF;
 	if(unlikely(GameInfo->type==GIT_VSUNI)) // TODO: make coin insert separate key
 	{
-		if(state == Input::PUSHED && key == IG::bit(3))
+		if(action == Input::Action::PUSHED && key == IG::bit(3))
 			FCEUI_VSUniCoin();
 	}
-	padData = IG::setOrClearBits(padData, key << playerInputShift(player), state == Input::PUSHED);
+	padData = IG::setOrClearBits(padData, key << playerInputShift(player), action == Input::Action::PUSHED);
 }
 
 bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)

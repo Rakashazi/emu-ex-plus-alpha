@@ -30,19 +30,19 @@ final class PresentationHelper extends Presentation
 {
 	private static final String logTag = "Presentation";
 	private ContentViewV16Base contentView;
-	private native void onSurfaceCreated(long windowAddr, Surface surface);
-	private native void onSurfaceRedrawNeeded(long windowAddr);
-	private native void onSurfaceDestroyed(long windowAddr);
-	private native void onWindowDismiss(long windowAddr);
+	private native void onSurfaceCreated(long nativeUserData, Surface surface);
+	private native void onSurfaceRedrawNeeded(long nativeUserData);
+	private native void onSurfaceDestroyed(long nativeUserData);
+	private native void onWindowDismiss(long nativeUserData);
 	
-	PresentationHelper(Activity context, Display display, long windowAddr)
+	PresentationHelper(Activity context, Display display, long nativeUserData)
 	{
 		super(context, display);
 		setOnDismissListener(this);
 		if(android.os.Build.VERSION.SDK_INT >= 24)
-			contentView = new ContentViewV24(context, windowAddr);
+			contentView = new ContentViewV24(context, nativeUserData);
 		else
-			contentView = new ContentViewV16(context, windowAddr);
+			contentView = new ContentViewV16(context, nativeUserData);
 		show();
 	}
 
@@ -56,24 +56,24 @@ final class PresentationHelper extends Presentation
 	// called by the native code if it deinits the window
 	public void deinit()
 	{
-		contentView.resetWindowAddr();
+		contentView.resetNativeUserData();
 		dismiss();
 	}
 	
 	@Override public void onDismiss(DialogInterface dialog)
 	{
 		//Log.i(logTag, "presentation dismissed");
-		if(contentView.windowAddr != 0)
+		if(contentView.nativeUserData != 0)
 		{
-			onWindowDismiss(contentView.windowAddr);
+			onWindowDismiss(contentView.nativeUserData);
 		}
 	}
 	
 	public void surfaceCreated(SurfaceHolder holder)
 	{
 		//Log.i(logTag, "surfaceCreated");
-		if(contentView.windowAddr != 0)
-			onSurfaceCreated(contentView.windowAddr, holder.getSurface());
+		if(contentView.nativeUserData != 0)
+			onSurfaceCreated(contentView.nativeUserData, holder.getSurface());
 	}
 	
 	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height)
@@ -84,14 +84,14 @@ final class PresentationHelper extends Presentation
 	public void surfaceRedrawNeeded(SurfaceHolder holder)
 	{
 		//Log.i(logTag, "surfaceRedrawNeeded");
-		if(contentView.windowAddr != 0)
-			onSurfaceRedrawNeeded(contentView.windowAddr);
+		if(contentView.nativeUserData != 0)
+			onSurfaceRedrawNeeded(contentView.nativeUserData);
 	}
 	
 	public void surfaceDestroyed(SurfaceHolder holder)
 	{
 		//Log.i(logTag, "surfaceDestroyed");
-		if(contentView.windowAddr != 0)
-			onSurfaceDestroyed(contentView.windowAddr);
+		if(contentView.nativeUserData != 0)
+			onSurfaceDestroyed(contentView.nativeUserData);
 	}
 }

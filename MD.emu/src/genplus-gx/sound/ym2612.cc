@@ -2203,7 +2203,7 @@ void YM2612RestoreContext(unsigned char *buffer)
   init_tables();
 }
 
-int YM2612Restore(unsigned char *state, bool hasExcessData, uint ptrSize)
+int YM2612Restore(unsigned char *state, bool hasExcessData, unsigned ptrSize)
 {
   /* save current timings */
 	float clock = ym2612.OPN.ST.clock;
@@ -2309,7 +2309,7 @@ int YM2612Restore(unsigned char *state, bool hasExcessData, uint ptrSize)
   return bufferptr;
 }
 
-int YM2612LoadContext(unsigned char *state, bool hasExcessData, uint ptrSize)
+int YM2612LoadContext(unsigned char *state, bool hasExcessData, unsigned ptrSize)
 {
   /* restore YM2612 context */
   int bufferptr = YM2612Restore(state, hasExcessData, ptrSize);
@@ -2331,7 +2331,7 @@ int YM2612LoadContext(unsigned char *state, bool hasExcessData, uint ptrSize)
   return bufferptr;
 }
 
-static constexpr uint chPtrOffset[6]
+static constexpr unsigned chPtrOffset[6]
 {
 	offsetof(YM2612, CH[0].connect1),
 	offsetof(YM2612, CH[1].connect1),

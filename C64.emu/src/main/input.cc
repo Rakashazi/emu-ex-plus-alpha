@@ -169,12 +169,12 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "JS Buttons";
 const char *EmuSystem::inputCenterBtnName = "F1/KB";
-const uint EmuSystem::inputFaceBtns = 2;
-const uint EmuSystem::inputCenterBtns = 2;
+const unsigned EmuSystem::inputFaceBtns = 2;
+const unsigned EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
 bool EmuSystem::inputHasKeyboard = true;
-const uint EmuSystem::maxPlayers = 2;
+const unsigned EmuSystem::maxPlayers = 2;
 
 static bool shiftLock = false, ctrlLock = false;
 
@@ -239,14 +239,14 @@ static uint32_t keyboardCodeFromEmuKey(uint32_t emuKey)
 	return c64KeyMap[emuKey - c64KeyFirstKeyboardKey];
 }
 
-SysVController::KbMap updateVControllerKeyboardMapping(uint mode)
+SysVController::KbMap updateVControllerKeyboardMapping(unsigned mode)
 {
 	return mode ? (shiftLock ? kbToEventMap2Shifted : kbToEventMap2) : (shiftLock ? kbToEventMapShifted : kbToEventMap);
 }
 
-void updateVControllerMapping(uint player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
-	const uint p2Bit = player ? JS_P2_BIT : 0;
+	const unsigned p2Bit = player ? JS_P2_BIT : 0;
 	map[SysVController::F_ELEM] = JS_FIRE | p2Bit;
 	map[SysVController::F_ELEM+1] = JS_FIRE | p2Bit | SysVController::TURBO_BIT;
 
@@ -263,7 +263,7 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 	map[SysVController::D_ELEM+8] = JS_SE | p2Bit;
 }
 
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
+unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	switch(input)
@@ -336,26 +336,26 @@ static void setC64KBKey(uint32_t key, bool pushed)
 	}
 }
 
-void EmuSystem::handleInputAction(uint state, uint emuKey)
+void EmuSystem::handleInputAction(EmuApp *app, Input::Action action, unsigned emuKey)
 {
 	switch(emuKey >> KEY_MODE_SHIFT)
 	{
 		bcase JS_MODE:
 		{
 			auto &joystick_value = *plugin.joystick_value;
-			uint key = emuKey & 0x1F;
-			uint player = (emuKey & IG::bit(5)) ? 2 : 1;
+			auto key = emuKey & 0x1F;
+			auto player = (emuKey & IG::bit(5)) ? 2 : 1;
 			if(optionSwapJoystickPorts)
 			{
 				player = (player == 1) ? 2 : 1;
 			}
 			//logMsg("js %X p %d", key, player);
-			joystick_value[player] = IG::setOrClearBits(joystick_value[player], (uint8_t)key, state == Input::PUSHED);
+			joystick_value[player] = IG::setOrClearBits(joystick_value[player], (uint8_t)key, action == Input::Action::PUSHED);
 		}
 		bcase KB_MODE:
 		{
-			uint key = emuKey & CODE_MASK;
-			setC64KBKey(key, state == Input::PUSHED);
+			auto key = emuKey & CODE_MASK;
+			setC64KBKey(key, action == Input::Action::PUSHED);
 		}
 		bcase EX_MODE:
 		{
@@ -363,7 +363,7 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 			{
 				bcase KBEX_SWAP_JS_PORTS:
 				{
-					if(state == Input::PUSHED)
+					if(action == Input::Action::PUSHED)
 					{
 						EmuSystem::sessionOptionSet();
 						if(optionSwapJoystickPorts)
@@ -371,26 +371,27 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 						else
 							optionSwapJoystickPorts = 1;
 						IG::fill(*plugin.joystick_value);
-						EmuApp::postMessage(1, false, "Swapped Joystick Ports");
+						if(app)
+							app->postMessage(1, false, "Swapped Joystick Ports");
 					}
 				}
 				bcase KBEX_TOGGLE_VKEYBOARD:
 				{
-					if(state == Input::PUSHED)
-						EmuControls::toggleKeyboard();
+					if(app && action == Input::Action::PUSHED)
+						app->toggleKeyboard();
 				}
 				bcase KBEX_SHIFT_LOCK:
 				{
-					if(state == Input::PUSHED)
+					if(app && action == Input::Action::PUSHED)
 					{
 						shiftLock ^= true;
 						setC64KBKey(keyboardCodeFromEmuKey(c64KeyLeftShift), shiftLock);
-						EmuControls::updateKeyboardMapping();
+						app->updateKeyboardMapping();
 					}
 				}
 				bcase KBEX_CTRL_LOCK:
 				{
-					if(state == Input::PUSHED)
+					if(action == Input::Action::PUSHED)
 					{
 						ctrlLock ^= true;
 						setC64KBKey(keyboardCodeFromEmuKey(c64KeyCtrl), ctrlLock);
@@ -398,9 +399,12 @@ void EmuSystem::handleInputAction(uint state, uint emuKey)
 				}
 				bcase KBEX_RESTORE:
 				{
-					logMsg("pushed restore key");
-					EmuApp::syncEmulationThread();
-					plugin.machine_set_restore_key(state == Input::PUSHED);
+					if(app)
+					{
+						logMsg("pushed restore key");
+						app->syncEmulationThread();
+						plugin.machine_set_restore_key(action == Input::Action::PUSHED);
+					}
 				}
 			}
 		}
@@ -419,7 +423,7 @@ void EmuSystem::clearInputBuffers(EmuInputView &)
 	IG::fill(joystick_value);
 }
 
-void updateKeyMappingArray()
+void updateKeyMappingArray(EmuApp &app)
 {
 	auto keyconvmap = *plugin.keyconvmap;
 	iterateTimes(150, i)
@@ -432,7 +436,7 @@ void updateKeyMappingArray()
 		//logMsg("mapped input code 0x%X -> 0x%X", (unsigned)e.sym, key);
 	}
 
-	EmuControls::updateVControllerMapping();
+	app.updateVControllerMapping();
 
 	const uint32_t KB_Q = keyboardCodeFromEmuKey(c64KeyQ),
 		KB_W = keyboardCodeFromEmuKey(c64KeyW),
@@ -529,7 +533,7 @@ void updateKeyMappingArray()
 		KBEX_NONE, KBEX_NONE, KBEX_NONE, KB_SPACE, KB_SPACE, KB_SPACE, KB_SPACE, KB_PERIOD | KB_SHIFT_BIT, KBEX_CTRL_LOCK, KB_RETURN
 	};
 
-	EmuControls::updateKeyboardMapping();
+	app.updateKeyboardMapping();
 }
 
 signed long kbd_arch_keyname_to_keynum(char *keyname)

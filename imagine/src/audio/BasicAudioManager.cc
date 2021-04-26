@@ -31,9 +31,9 @@ uint32_t nativeRate(Base::ApplicationContext)
 	return ::Config::MACHINE_IS_PANDORA ? 44100 : 48000;
 }
 
-Audio::Format nativeFormat(Base::ApplicationContext app)
+Audio::Format nativeFormat(Base::ApplicationContext ctx)
 {
-	return {nativeRate(app), nativeSampleFormat(app), 2};
+	return {nativeRate(ctx), nativeSampleFormat(ctx), 2};
 }
 
 void setSoloMix(Base::ApplicationContext, bool newSoloMix) {}

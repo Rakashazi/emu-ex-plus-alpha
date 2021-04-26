@@ -28,11 +28,11 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"20:19 (Original)", 20, 19},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 
 static Option<OptionMethodRef<bool, language_english>, uint8> optionNGPLanguage{CFGKEY_NGPKEY_LANGUAGE, 1};
 
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{

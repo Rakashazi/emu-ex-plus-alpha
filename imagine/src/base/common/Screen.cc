@@ -21,11 +21,14 @@
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
-#include "windowPrivate.hh"
-#include "basePrivate.hh"
 
 namespace Base
 {
+
+Screen::Screen(ApplicationContext ctx, InitParams params):
+	ScreenImpl{ctx, params},
+	ctx{ctx}
+{}
 
 bool Screen::addOnFrame(OnFrameDelegate del, int priority)
 {
@@ -35,11 +38,6 @@ bool Screen::addOnFrame(OnFrameDelegate del, int priority)
 
 bool Screen::removeOnFrame(OnFrameDelegate del)
 {
-	if(unlikely(appIsExiting()))
-	{
-		// Screen destructor may have run already
-		return false;
-	}
 	bool removed = onFrameDelegate.remove(del);
 	if(!onFrameDelegate.size())
 	{

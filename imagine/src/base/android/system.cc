@@ -16,10 +16,10 @@
 #define LOGTAG "Base"
 #include <sys/resource.h>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
-#include "internal.hh"
 #include "android.hh"
 
 namespace Base
@@ -29,18 +29,17 @@ static jobject vibrator{};
 static JavaInstMethod<void(jlong)> jVibrate{};
 static bool vibrationSystemIsInit = false;
 
-AndroidPropString AndroidApplicationContext::androidBuildDevice() const
+AndroidPropString AndroidApplication::androidBuildDevice(JNIEnv *env) const
 {
-	auto env = mainThreadJniEnv();
 	JavaClassMethod<jobject()> jDevName{env, jBaseActivityCls, "devName", "()Ljava/lang/String;"};
 	auto str = javaStringCopy<AndroidPropString>(env, (jstring)jDevName(env, jBaseActivityCls));
 	//logMsg("device name: %s", str.data());
 	return str;
 }
 
-bool isXperiaPlayDeviceStr(const char *str)
+AndroidPropString AndroidApplicationContext::androidBuildDevice() const
 {
-	return strstr(str, "R800") || string_equal(str, "zeus");
+	return application().androidBuildDevice(mainThreadJniEnv());
 }
 
 bool AndroidApplicationContext::apkSignatureIsConsistent() const
@@ -48,25 +47,25 @@ bool AndroidApplicationContext::apkSignatureIsConsistent() const
 	bool sigMatchesAPK = true;
 	#ifdef ANDROID_APK_SIGNATURE_HASH
 	auto env = mainThreadJniEnv();
-	JavaInstMethod<jint()> jSigHash{env, jBaseActivityCls, "sigHash", "()I"};
+	JavaInstMethod<jint()> jSigHash{env, baseActivityClass(), "sigHash", "()I"};
 	sigMatchesAPK = jSigHash(env, baseActivityObject()) == ANDROID_APK_SIGNATURE_HASH;
 	#endif
 	return sigMatchesAPK;
 }
 
-bool AndroidApplicationContext::packageIsInstalled(const char *name)
+bool AndroidApplicationContext::packageIsInstalled(const char *name) const
 {
 	auto env = mainThreadJniEnv();
-	JavaInstMethod<jboolean(jstring)> jPackageIsInstalled{env, jBaseActivityCls, "packageIsInstalled", "(Ljava/lang/String;)Z"};
+	JavaInstMethod<jboolean(jstring)> jPackageIsInstalled{env, baseActivityClass(), "packageIsInstalled", "(Ljava/lang/String;)Z"};
 	return jPackageIsInstalled(env, baseActivityObject(), env->NewStringUTF(name));
 }
 
-static void initVibration(JNIEnv* env, jobject baseActivity)
+static void initVibration(JNIEnv* env, jobject baseActivity, jclass baseActivityClass)
 {
 	if(likely(vibrationSystemIsInit))
 		return;
 	{
-		JavaInstMethod<jobject()> jSysVibrator{env, jBaseActivityCls, "systemVibrator", "()Landroid/os/Vibrator;"};
+		JavaInstMethod<jobject()> jSysVibrator{env, baseActivityClass, "systemVibrator", "()Landroid/os/Vibrator;"};
 		vibrator = jSysVibrator(env, baseActivity);
 	}
 	vibrationSystemIsInit = true;
@@ -80,14 +79,14 @@ static void initVibration(JNIEnv* env, jobject baseActivity)
 
 bool ApplicationContext::hasVibrator()
 {
-	initVibration(mainThreadJniEnv(), baseActivityObject());
+	initVibration(mainThreadJniEnv(), baseActivityObject(), baseActivityClass());
 	return vibrator;
 }
 
 void ApplicationContext::vibrate(IG::Milliseconds ms)
 {
 	auto env = mainThreadJniEnv();
-	initVibration(env, baseActivityObject());
+	initVibration(env, baseActivityObject(), baseActivityClass());
 	if(unlikely(!vibrator))
 		return;
 	//logDMsg("vibrating for %u ms", ms.count());
@@ -141,7 +140,7 @@ void ApplicationContext::exitWithErrorMessageVPrintf(int exitVal, const char *fo
 	std::array<char, 512> msg{};
 	auto result = vsnprintf(msg.data(), msg.size(), format, args);
 	auto env = mainThreadJniEnv();
-	JavaInstMethod<void(jstring)> jMakeErrorPopup{env, jBaseActivityCls, "makeErrorPopup", "(Ljava/lang/String;)V"};
+	JavaInstMethod<void(jstring)> jMakeErrorPopup{env, baseActivityClass(), "makeErrorPopup", "(Ljava/lang/String;)V"};
 	jMakeErrorPopup(env, baseActivityObject(), env->NewStringUTF(msg.data()));
 	auto exitTimer = new Timer{"exitTimer", [=]() { ::exit(exitVal); }};
 	exitTimer->runIn(IG::Seconds{3});

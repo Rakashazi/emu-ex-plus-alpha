@@ -15,19 +15,20 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/MenuItem.hh>
+#include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/TableView.hh>
+#include <imagine/gui/MenuItem.hh>
 #include <imagine/audio/AudioManager.hh>
 #include <imagine/audio/defs.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <emuframework/EmuSystem.hh>
 #include <memory>
 
 class EmuVideoLayer;
 class EmuAudio;
 class TextTableView;
 
-class OptionCategoryView : public TableView
+class OptionCategoryView : public TableView, public EmuAppHelper<OptionCategoryView>
 {
 public:
 	OptionCategoryView(ViewAttachParams attach, EmuAudio &audio, EmuVideoLayer &videoLayer);
@@ -36,7 +37,7 @@ protected:
 	TextMenuItem subConfig[5];
 };
 
-class VideoOptionView : public TableView
+class VideoOptionView : public TableView, public EmuAppHelper<VideoOptionView>
 {
 public:
 	VideoOptionView(ViewAttachParams attach, bool customMenu = false);
@@ -44,7 +45,7 @@ public:
 	void setEmuVideoLayer(EmuVideoLayer &videoLayer);
 
 protected:
-	static constexpr uint MAX_ASPECT_RATIO_ITEMS = 5;
+	static constexpr unsigned MAX_ASPECT_RATIO_ITEMS = 5;
 	EmuVideoLayer *videoLayer{};
 
 	StaticArrayList<TextMenuItem, 5> textureBufferModeItem{};
@@ -99,10 +100,14 @@ protected:
 	void setZoom(uint8_t val);
 	void setViewportZoom(uint8_t val);
 	void setAspectRatio(double val);
+	void setImgEffect(unsigned val);
+	void setOverlayEffect(unsigned val);
+	void setImgEffectPixelFormat(Base::PixelFormatID format);
+	void setWindowPixelFormat(Base::PixelFormatID format);
 	unsigned idxOfBufferMode(Gfx::TextureBufferMode mode);
 };
 
-class AudioOptionView : public TableView
+class AudioOptionView : public TableView, public EmuAppHelper<AudioOptionView>
 {
 public:
 	AudioOptionView(ViewAttachParams attach, bool customMenu = false);
@@ -135,7 +140,7 @@ protected:
 	unsigned idxOfAPI(IG::Audio::Api api, std::vector<IG::Audio::ApiDesc> apiVec);
 };
 
-class SystemOptionView : public TableView
+class SystemOptionView : public TableView, public EmuAppHelper<SystemOptionView>
 {
 public:
 	SystemOptionView(ViewAttachParams attach, bool customMenu = false);
@@ -148,7 +153,7 @@ protected:
 	BoolMenuItem confirmOverwriteState;
 	TextMenuItem savePath;
 	BoolMenuItem checkSavePathWriteAccess;
-	static constexpr uint MIN_FAST_FORWARD_SPEED = 2;
+	static constexpr unsigned MIN_FAST_FORWARD_SPEED = 2;
 	TextMenuItem fastForwardSpeedItem[6];
 	MultiChoiceMenuItem fastForwardSpeed;
 	#if defined __ANDROID__
@@ -163,7 +168,7 @@ protected:
 	void pushAndShowFirmwareFilePathMenu(const char *name, Input::Event e);
 };
 
-class GUIOptionView : public TableView
+class GUIOptionView : public TableView, public EmuAppHelper<GUIOptionView>
 {
 public:
 	GUIOptionView(ViewAttachParams attach, bool customMenu = false);
@@ -196,7 +201,7 @@ protected:
 	void setFontSize(uint16_t val);
 };
 
-class BiosSelectMenu : public TableView
+class BiosSelectMenu : public TableView, public EmuAppHelper<BiosSelectMenu>
 {
 public:
 	using BiosChangeDelegate = DelegateFunc<void ()>;

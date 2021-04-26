@@ -25,18 +25,25 @@ import android.view.InputDevice;
 final class InputDeviceListenerHelper
 {
 	private static final String logTag = "InputDeviceListenerHelper";
-	private static native void deviceChanged(int change, int devID,
+	private static native void deviceChanged(long nativeUserData, int change, int devID,
 		InputDevice dev, String name, int src, int kbType, int jsAxisBits);
 	
 	private final class Listener implements InputManager.InputDeviceListener
 	{
+		private long nativeUserData;
+
+		Listener(long nativeUserData)
+		{
+			this.nativeUserData = nativeUserData;
+		}
+
 		@Override public void onInputDeviceAdded(int id)
 		{
 			//Log.i(logTag, "added id: " + id);
 			InputDevice dev = InputDevice.getDevice(id);
 			if(InputDeviceHelper.shouldHandleDevice(dev))
 			{
-				deviceChanged(DEVICE_ADDED, id, dev, dev.getName(), dev.getSources(),
+				deviceChanged(nativeUserData, DEVICE_ADDED, id, dev, dev.getName(), dev.getSources(),
 					dev.getKeyboardType(), InputDeviceHelper.axisBits(dev));
 			}
 		}
@@ -47,7 +54,7 @@ final class InputDeviceListenerHelper
 			InputDevice dev = InputDevice.getDevice(id);
 			if(InputDeviceHelper.shouldHandleDevice(dev))
 			{
-				deviceChanged(DEVICE_CHANGED, id, dev, dev.getName(), dev.getSources(),
+				deviceChanged(nativeUserData, DEVICE_CHANGED, id, dev, dev.getName(), dev.getSources(),
 					dev.getKeyboardType(), InputDeviceHelper.axisBits(dev));
 			}
 		}
@@ -55,27 +62,28 @@ final class InputDeviceListenerHelper
 		@Override public void onInputDeviceRemoved(int id)
 		{
 			//Log.i(logTag, "removed id: " + id);
-			deviceChanged(DEVICE_REMOVED, id, null, null, 0, 0, 0);
+			deviceChanged(nativeUserData, DEVICE_REMOVED, id, null, null, 0, 0, 0);
 		}
 	}
 
 	private static final int DEVICE_ADDED = 0;
 	private static final int DEVICE_CHANGED = 1;
 	private static final int DEVICE_REMOVED = 2;
-	private final Listener listener = new Listener();
-	private InputManager inputManager = null;
+	private final Listener listener;
+	private InputManager inputManager;
 	
-	InputDeviceListenerHelper(Activity act)
+	InputDeviceListenerHelper(Activity act, long nativeUserData)
 	{
 		//Log.i(logTag, "registering input device listener");
+		listener = new Listener(nativeUserData);
 		inputManager = (InputManager)act.getSystemService(Context.INPUT_SERVICE);
 	}
-	
+
 	void register()
 	{
 		inputManager.registerInputDeviceListener(listener, null);
 	}
-	
+
 	void unregister()
 	{
 		inputManager.unregisterInputDeviceListener(listener);

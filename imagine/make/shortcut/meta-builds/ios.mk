@@ -19,6 +19,13 @@ ios_icons := $(wildcard $(ios_iconPath)/*)
 ifdef CFLAGS_OPTIMIZE
  ios_CFLAGS_OPTIMIZE_param = "CFLAGS_OPTIMIZE=$(CFLAGS_OPTIMIZE)"
 endif
+ifdef CCTOOLS_TOOCHAIN_PATH
+LIPO := $(firstword $(wildcard $(CCTOOLS_TOOCHAIN_PATH)/bin/*-lipo))
+PLISTUTIL := plistutil
+else
+LIPO := lipo
+PLUTIL := plutil
+endif
 
 # Host/IP of the iOS device to install the app over SSH
 ios_installHost := iphone5
@@ -170,7 +177,7 @@ endif
 ios_fatExec := $(ios_targetBinPath)/$(iOS_metadata_exec)
 $(ios_fatExec) : $(ios_execs)
 	@mkdir -p $(@D)
-	lipo -create $^ -output $@
+	$(LIPO) -create $^ -output $@
 
 .PHONY: ios-build
 ios-build : $(ios_fatExec) $(ios_plist)
@@ -239,7 +246,11 @@ $(ios_plistTxt) : $(projectPath)/metadata/conf.mk $(metadata_confDeps)
 	bash $(IMAGINE_PATH)/tools/genIOSMeta.sh $(iOS_gen_metadata_args) $@
 $(ios_plist) : $(ios_plistTxt)
 	@mkdir -p $(@D)
-	plutil -convert binary1 -o $@ $<
+ifdef PLISTUTIL
+	$(PLISTUTIL) -o $@ -i $<
+else
+	$(PLUTIL) -convert binary1 -o $@ $<
+endif
 .PHONY: ios-metadata
 ios-metadata : $(ios_plist)
 

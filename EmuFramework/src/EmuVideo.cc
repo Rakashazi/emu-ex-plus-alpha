@@ -17,7 +17,6 @@
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/Screenshot.hh>
-#include "EmuSystemTask.hh"
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/RendererCommands.hh>
@@ -174,7 +173,7 @@ void EmuVideo::doScreenshot(EmuSystemTask *task, IG::Pixmap pix)
 		}
 		else
 		{
-			EmuApp::printScreenshotResult(-1, false);
+			app().printScreenshotResult(-1, false);
 		}
 	}
 	else
@@ -186,7 +185,7 @@ void EmuVideo::doScreenshot(EmuSystemTask *task, IG::Pixmap pix)
 		}
 		else
 		{
-			EmuApp::printScreenshotResult(screenshotNum, success);
+			app().printScreenshotResult(screenshotNum, success);
 		}
 	}
 }

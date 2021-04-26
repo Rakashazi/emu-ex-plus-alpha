@@ -83,7 +83,7 @@ private:
 class BluezBluetoothSocket : public BluetoothSocket
 {
 public:
-	BluezBluetoothSocket(Base::ApplicationContext app) {}
+	BluezBluetoothSocket(Base::ApplicationContext) {}
 	IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) final;
 	IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER

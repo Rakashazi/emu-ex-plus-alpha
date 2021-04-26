@@ -43,7 +43,7 @@ t_config config{};
 bool config_ym2413_enabled = true;
 int8 mdInputPortDev[2]{-1, -1};
 t_bitmap bitmap{};
-static uint autoDetectedVidSysPAL = 0;
+static unsigned autoDetectedVidSysPAL = 0;
 
 bool hasMDExtension(const char *name)
 {
@@ -121,7 +121,7 @@ static FS::PathString sprintBRAMSaveFilename()
 	return FS::makePathStringPrintf("%s/%s.brm", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
-static const uint maxSaveStateSize = STATE_SIZE+4;
+static const unsigned maxSaveStateSize = STATE_SIZE+4;
 
 static EmuSystem::Error saveMDState(const char *path)
 {
@@ -190,7 +190,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 			bramFile.write(bram, sizeof(bram));
 			char sramTemp[0x10000];
 			memcpy(sramTemp, sram.sram, 0x10000); // make a temp copy to byte-swap
-			for(uint i = 0; i < 0x10000; i += 2)
+			for(unsigned i = 0; i < 0x10000; i += 2)
 			{
 				std::swap(sramTemp[i], sramTemp[i+1]);
 			}
@@ -210,7 +210,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 		if(optionBigEndianSram)
 		{
 			memcpy(sramTemp, sram.sram, 0x10000); // make a temp copy to byte-swap
-			for(uint i = 0; i < 0x10000; i += 2)
+			for(unsigned i = 0; i < 0x10000; i += 2)
 			{
 				std::swap(sramTemp[i], sramTemp[i+1]);
 			}
@@ -250,7 +250,7 @@ const char *mdInputSystemToStr(uint8 system)
 	}
 }
 
-static bool inputPortWasAutoSetByGame(uint port)
+static bool inputPortWasAutoSetByGame(unsigned port)
 {
 	return old_system[port] != -1;
 }
@@ -260,11 +260,11 @@ static void setupSMSInput()
 	input.system[0] = input.system[1] =  SYSTEM_MS_GAMEPAD;
 }
 
-void setupMDInput()
+void setupMDInput(EmuApp &app)
 {
 	if(!EmuSystem::gameIsRunning())
 	{
-		EmuControls::setActiveFaceButtons(option6BtnPad ? 6 : 3);
+		app.setActiveFaceButtons(option6BtnPad ? 6 : 3);
 		return;
 	}
 
@@ -272,7 +272,7 @@ void setupMDInput()
 	playerIdxMap[0] = 0;
 	playerIdxMap[1] = 4;
 
-	uint mdPad = option6BtnPad ? DEVICE_PAD6B : DEVICE_PAD3B;
+	unsigned mdPad = option6BtnPad ? DEVICE_PAD6B : DEVICE_PAD3B;
 	iterateTimes(4, i)
 		config.input[i].padtype = mdPad;
 
@@ -280,7 +280,7 @@ void setupMDInput()
 	{
 		setupSMSInput();
 		io_init();
-		EmuControls::setActiveFaceButtons(3);
+		app.setActiveFaceButtons(3);
 		return;
 	}
 
@@ -320,10 +320,10 @@ void setupMDInput()
 	}
 
 	io_init();
-	EmuControls::setActiveFaceButtons(option6BtnPad ? 6 : 3);
+	app.setActiveFaceButtons(option6BtnPad ? 6 : 3);
 }
 
-static uint detectISORegion(uint8 bootSector[0x800])
+static unsigned detectISORegion(uint8 bootSector[0x800])
 {
 	auto bootByte = bootSector[0x20b];
 
@@ -355,7 +355,7 @@ FS::PathString EmuSystem::willLoadGameFromPath(FS::PathString path)
 	return path;
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	#ifndef NO_SCD
 	using namespace Mednafen;
@@ -373,7 +373,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 			return makeError("%s", e.what());
 		}
 
-		uint region = REGION_USA;
+		unsigned region = REGION_USA;
 		if (config.region_detect == 1) region = REGION_USA;
 	  else if (config.region_detect == 2) region = REGION_EUROPE;
 	  else if (config.region_detect == 3) region = REGION_JAPAN_NTSC;
@@ -437,7 +437,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 		if(old_system[i] != -1)
 			old_system[i] = input.system[i]; // store input ports set by game
 	}
-	setupMDInput();
+	setupMDInput(EmuApp::get(ctx));
 
 	#ifndef NO_SCD
 	if(sCD.isActive)
@@ -453,7 +453,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 			memcpy(bram + sizeof(bram) - sizeof(fmtBram), fmtBram, sizeof(fmtBram));
 			auto sramFormatStart = sram.sram + 0x10000 - sizeof(fmt64kSram);
 			memcpy(sramFormatStart, fmt64kSram, sizeof(fmt64kSram));
-			for(uint i = 0; i < 0x40; i += 2) // byte-swap sram cart format region
+			for(unsigned i = 0; i < 0x40; i += 2) // byte-swap sram cart format region
 			{
 				std::swap(sramFormatStart[i], sramFormatStart[i+1]);
 			}
@@ -462,7 +462,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 		{
 			bramFile.read(bram, sizeof(bram));
 			bramFile.read(sram.sram, 0x10000);
-			for(uint i = 0; i < 0x10000; i += 2) // byte-swap
+			for(unsigned i = 0; i < 0x10000; i += 2) // byte-swap
 			{
 				std::swap(sram.sram[i], sram.sram[i+1]);
 			}
@@ -482,7 +482,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 
 		if(optionBigEndianSram)
 		{
-			for(uint i = 0; i < 0x10000; i += 2)
+			for(unsigned i = 0; i < 0x10000; i += 2)
 			{
 				std::swap(sram.sram[i], sram.sram[i+1]);
 			}

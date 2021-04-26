@@ -23,7 +23,7 @@
 namespace EmuCheats
 {
 
-static const uint MAX = 100;
+static const unsigned MAX = 100;
 
 }
 

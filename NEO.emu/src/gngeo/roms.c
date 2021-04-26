@@ -1575,7 +1575,7 @@ int dr_load_game(void *contextPtr, char *name, char romerror[1024]) {
 #if defined(HAVE_LIBZ)//&& defined (HAVE_MMAP)
 
 static int dump_region(FILE *gno, const ROM_REGION *rom, Uint8 id, Uint8 type,
-		Uint32 block_size, uint verbose) {
+		Uint32 block_size, unsigned verbose) {
 	if (rom->p == NULL)
 		return false;
 	fwrite(&rom->size, sizeof (Uint32), 1, gno);

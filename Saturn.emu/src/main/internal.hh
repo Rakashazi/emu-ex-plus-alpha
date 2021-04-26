@@ -11,13 +11,13 @@ extern "C"
 
 namespace EmuControls
 {
-static const uint gamepadKeys = 23;
+static const unsigned gamepadKeys = 23;
 }
 
 extern Byte1Option optionSH2Core;
 extern FS::PathString biosPath;
 extern SH2Interface_struct *SH2CoreList[];
-extern uint SH2Cores;
+extern unsigned SH2Cores;
 extern yabauseinit_struct yinit;
 extern const int defaultSH2CoreID;
 extern PerPad_struct *pad[2];

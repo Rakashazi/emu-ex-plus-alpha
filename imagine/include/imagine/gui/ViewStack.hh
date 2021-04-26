@@ -59,6 +59,7 @@ public:
 	void prepareDraw();
 	void draw(Gfx::RendererCommands &cmds);
 	void push(std::unique_ptr<View> v, Input::Event e);
+	void push(std::unique_ptr<View> v);
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal) override;
 	using ViewController::pushAndShow;
 	void pop() override;

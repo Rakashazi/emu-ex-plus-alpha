@@ -18,9 +18,9 @@
 namespace EmuControls
 {
 
-static const uint gameActionKeys = 10;
-static const uint systemKeyMapStart = gameActionKeys;
-typedef uint GameActionKeyArray[gameActionKeys];
+static constexpr unsigned gameActionKeys = 10;
+static constexpr unsigned systemKeyMapStart = gameActionKeys;
+typedef unsigned GameActionKeyArray[gameActionKeys];
 
 static const char *gameActionName[gameActionKeys] =
 {

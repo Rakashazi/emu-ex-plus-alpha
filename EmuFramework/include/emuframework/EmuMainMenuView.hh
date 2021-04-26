@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/container/ArrayList.hh>
@@ -26,7 +27,7 @@
 class EmuVideoLayer;
 class EmuAudio;
 
-class EmuMainMenuView : public TableView
+class EmuMainMenuView : public TableView, public EmuAppHelper<EmuMainMenuView>
 {
 public:
 	EmuMainMenuView(ViewAttachParams attach, bool customMenu = false);
@@ -35,8 +36,8 @@ public:
 	void loadStandardItems();
 	void setAudioVideo(EmuAudio &audio, EmuVideoLayer &videoLayer);
 
-	static const uint STANDARD_ITEMS = 14;
-	static const uint MAX_SYSTEM_ITEMS = 5;
+	static constexpr unsigned STANDARD_ITEMS = 14;
+	static constexpr unsigned MAX_SYSTEM_ITEMS = 5;
 
 protected:
 	EmuAudio *audio{};

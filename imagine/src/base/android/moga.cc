@@ -15,12 +15,12 @@
 
 #define LOGTAG "MOGAInput"
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
-#include "internal.hh"
 #include "android.hh"
-#include "../../input/private.hh"
-#include "AndroidInputDevice.hh"
+#include "input.hh"
+#include <android/input.h>
 #include <memory>
 
 namespace Input
@@ -33,7 +33,7 @@ static const int STATE_SELECTED_VERSION = 4;
 class MogaSystem
 {
 public:
-	MogaSystem(Base::ApplicationContext app, JNIEnv *env, bool notify);
+	MogaSystem(Base::ApplicationContext, JNIEnv *, bool notify);
 	~MogaSystem();
 	void updateMOGAState(JNIEnv *env, bool connected, bool notify);
 	explicit operator bool() const { return mogaHelper; }
@@ -44,7 +44,7 @@ private:
 	JavaInstMethod<jint(jint)> jMOGAGetState{};
 	JavaInstMethod<void()> jMOGAOnPause{}, jMOGAOnResume{}, jMOGAExit{};
 	AndroidInputDevice *mogaDev{};
-	Base::OnExit onExit{};
+	Base::OnExit onExit;
 	bool exiting = false;
 
 	static AndroidInputDevice makeMOGADevice(const char *name);
@@ -55,15 +55,15 @@ private:
 
 static std::unique_ptr<MogaSystem> mogaSystem{};
 
-MogaSystem::MogaSystem(Base::ApplicationContext app, JNIEnv *env, bool notify):
+MogaSystem::MogaSystem(Base::ApplicationContext ctx, JNIEnv *env, bool notify):
 	onExit
 	{
-		[this, env](Base::ApplicationContext app, bool backgrounded)
+		[this, env](Base::ApplicationContext ctx, bool backgrounded)
 		{
 			if(backgrounded)
 			{
 				jMOGAOnPause(env, mogaHelper);
-				app.addOnResume(
+				ctx.addOnResume(
 					[this, env](Base::ApplicationContext, bool)
 					{
 						onResumeMOGA(env, true);
@@ -77,11 +77,11 @@ MogaSystem::MogaSystem(Base::ApplicationContext app, JNIEnv *env, bool notify):
 				mogaSystem.reset();
 			}
 			return true;
-		}, app, Base::INPUT_DEVICE_ON_EXIT_PRIORITY
+		}, ctx, Base::INPUT_DEVICE_ON_EXIT_PRIORITY
 	}
 {
-	JavaInstMethod<jobject(jlong)> jNewMOGAHelper{env, Base::jBaseActivityCls, "mogaHelper", "(J)Lcom/imagine/MOGAHelper;"};
-	mogaHelper = jNewMOGAHelper(env, app.baseActivityObject(), (jlong)this);
+	JavaInstMethod<jobject(jlong)> jNewMOGAHelper{env, ctx.baseActivityClass(), "mogaHelper", "(J)Lcom/imagine/MOGAHelper;"};
+	mogaHelper = jNewMOGAHelper(env, ctx.baseActivityObject(), (jlong)this);
 	if(env->ExceptionCheck())
 	{
 		env->ExceptionClear();
@@ -103,7 +103,7 @@ MogaSystem::~MogaSystem()
 	auto env = appContext().mainThreadJniEnv();
 	jMOGAExit(env, mogaHelper);
 	env->DeleteGlobalRef(mogaHelper);
-	removeInputDevice(0, !exiting);
+	appContext().application().removeInputDevice(0, !exiting);
 }
 
 AndroidInputDevice MogaSystem::makeMOGADevice(const char *name)
@@ -143,19 +143,18 @@ void MogaSystem::updateMOGAState(JNIEnv *env, bool connected, bool notify)
 	bool mogaConnected = mogaDev;
 	if(connected != mogaConnected)
 	{
+		auto &app = appContext().application();
 		if(connected)
 		{
 			logMsg("MOGA connected");
 			const char *name = jMOGAGetState(env, mogaHelper, STATE_SELECTED_VERSION) == ACTION_VERSION_MOGAPRO ? "MOGA Pro Controller" : "MOGA Controller";
-			sysInputDev.reserve(2);
-			addInputDevice(makeMOGADevice(name), false, notify);
-			mogaDev = sysInputDev.back().get();
+			mogaDev = app.addInputDevice(makeMOGADevice(name), false, notify);
 		}
 		else
 		{
 			logMsg("MOGA disconnected");
 			mogaDev = {};
-			removeInputDevice(0, notify);
+			app.removeInputDevice(0, notify);
 		}
 	}
 }
@@ -177,15 +176,14 @@ void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 			{
 				auto &mogaSystem = *((MogaSystem*)mogaSystemPtr);
 				auto &mogaDev = *mogaSystem.mogaDevice();
-				auto app = mogaSystem.appContext();
+				auto ctx = mogaSystem.appContext();
 				//logMsg("MOGA key event: %d %d %d", action, keyCode, (int)time);
 				assert((uint32_t)keyCode < Keycode::COUNT);
-				app.endIdleByUserActivity();
+				ctx.endIdleByUserActivity();
 				Key key = keyCode & 0x1ff;
 				auto time = IG::Nanoseconds(timestamp);
-				Event event{0, Map::SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, &mogaDev};
-				startKeyRepeatTimer(app, event);
-				app.mainWindow().dispatchInputEvent(event);
+				Event event{0, Map::SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &mogaDev};
+				ctx.application().dispatchRepeatableKeyInputEvent(event);
 			})
 		},
 		{
@@ -195,11 +193,11 @@ void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 			{
 				auto &mogaSystem = *((MogaSystem*)mogaSystemPtr);
 				auto &mogaDev = *mogaSystem.mogaDevice();
-				auto app = mogaSystem.appContext();
-				app.endIdleByUserActivity();
+				auto ctx = mogaSystem.appContext();
+				ctx.endIdleByUserActivity();
 				auto time = IG::Nanoseconds(timestamp);
 				logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)timestamp);
-				auto &win = app.mainWindow();
+				auto &win = ctx.mainWindow();
 				mogaDev.axis[0].keyEmu.dispatch(x, 0, Map::SYSTEM, time, mogaDev, win);
 				mogaDev.axis[1].keyEmu.dispatch(y, 0, Map::SYSTEM, time, mogaDev, win);
 				mogaDev.axis[2].keyEmu.dispatch(z, 0, Map::SYSTEM, time, mogaDev, win);

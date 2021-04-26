@@ -15,13 +15,15 @@
 
 #include <emuframework/EmuLoadProgressView.hh>
 #include "private.hh"
-#include "EmuViewController.hh"
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/space.hh>
 #include <imagine/logger/logger.h>
 
 EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, Input::Event e, EmuApp::CreateSystemCompleteDelegate onComplete):
-	View{attach}, onComplete{onComplete}, originalEvent{e}
+	View{attach},
+	onComplete{onComplete},
+	text{"Loading...", &defaultFace()},
+	originalEvent{e}
 {
 	msgPort.attach(
 		[this](auto msgs)
@@ -33,13 +35,14 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, Input::Event e
 					bcase EmuSystem::LoadProgress::FAILED:
 					{
 						assumeExpr(msg.intArg3 > 0);
-						uint len = msg.intArg3;
+						unsigned len = msg.intArg3;
 						char errorStr[len + 1];
 						msgs.getExtraData(errorStr, len);
 						errorStr[len] = 0;
 						msgPort.detach();
-						EmuApp::popModalViews();
-						EmuApp::postErrorMessage(4, errorStr);
+						auto &app = this->app();
+						app.popModalViews();
+						app.postErrorMessage(4, errorStr);
 						return;
 					}
 					bcase EmuSystem::LoadProgress::OK:
@@ -47,9 +50,10 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, Input::Event e
 						msgPort.detach();
 						auto onComplete = this->onComplete;
 						auto originalEvent = this->originalEvent;
-						EmuApp::popModalViews();
-						EmuSystem::prepareAudioVideo(emuAudio, emuVideo);
-						emuViewController().onSystemCreated();
+						auto &app = this->app();
+						app.popModalViews();
+						EmuSystem::prepareAudioVideo(app.audio(), app.video());
+						app.viewController().onSystemCreated();
 						onComplete(originalEvent);
 						return;
 					}
@@ -68,7 +72,7 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, Input::Event e
 							}
 							bdefault: // custom string
 							{
-								uint len = msg.intArg3;
+								unsigned len = msg.intArg3;
 								char labelStr[len + 1];
 								msgs.getExtraData(labelStr, len);
 								labelStr[len] = 0;

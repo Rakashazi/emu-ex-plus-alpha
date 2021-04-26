@@ -21,7 +21,6 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
-#include "../common/windowPrivate.hh"
 #include <imagine/input/Input.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/util/algorithm.h>
@@ -189,8 +188,8 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 				pos.x *= win.pointScale;
 				pos.y *= win.pointScale;
 				auto time = IG::FloatSeconds((double)[touch timestamp]);
-				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
-				win.dispatchInputEvent(Input::Event{i, Map::POINTER, Input::Pointer::LBUTTON, 1, PUSHED, transPos.x, transPos.y, (int)i, Input::Source::TOUCHSCREEN, time, nullptr});
+				auto transPos = win.transformInputPos({(int)pos.x, (int)pos.y});
+				win.dispatchInputEvent(Input::Event{i, Map::POINTER, Input::Pointer::LBUTTON, 1, Action::PUSHED, transPos.x, transPos.y, (int)i, Input::Source::TOUCHSCREEN, time, nullptr});
 				break;
 			}
 		}
@@ -213,8 +212,8 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 				pos.x *= win.pointScale;
 				pos.y *= win.pointScale;
 				auto time = IG::FloatSeconds((double)[touch timestamp]);
-				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
-				win.dispatchInputEvent(Input::Event{i, Map::POINTER, Input::Pointer::LBUTTON, 1, MOVED, transPos.x, transPos.y, (int)i, Input::Source::TOUCHSCREEN, time, nullptr});
+				auto transPos = win.transformInputPos({(int)pos.x, (int)pos.y});
+				win.dispatchInputEvent(Input::Event{i, Map::POINTER, Input::Pointer::LBUTTON, 1, Action::MOVED, transPos.x, transPos.y, (int)i, Input::Source::TOUCHSCREEN, time, nullptr});
 				break;
 			}
 		}
@@ -238,8 +237,8 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 				pos.x *= win.pointScale;
 				pos.y *= win.pointScale;
 				auto time = IG::FloatSeconds((double)[touch timestamp]);
-				auto transPos = transformInputPos(win, {(int)pos.x, (int)pos.y});
-				win.dispatchInputEvent(Input::Event{i, Map::POINTER, Input::Pointer::LBUTTON, 0, RELEASED, transPos.x, transPos.y, (int)i, Input::Source::TOUCHSCREEN, time, nullptr});
+				auto transPos = win.transformInputPos({(int)pos.x, (int)pos.y});
+				win.dispatchInputEvent(Input::Event{i, Map::POINTER, Input::Pointer::LBUTTON, 0, Action::RELEASED, transPos.x, transPos.y, (int)i, Input::Source::TOUCHSCREEN, time, nullptr});
 				break;
 			}
 		}

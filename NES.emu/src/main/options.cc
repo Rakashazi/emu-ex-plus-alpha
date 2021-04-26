@@ -32,7 +32,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"8:7", 8, 7},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 FS::PathString fdsBiosPath{};
 PathOption optionFdsBiosPath{CFGKEY_FDS_BIOS_PATH, fdsBiosPath, ""};
 Byte1Option optionFourScore{CFGKEY_FOUR_SCORE, 0};
@@ -54,13 +54,13 @@ EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext app)
 	return {};
 }
 
-void EmuSystem::onSessionOptionsLoaded()
+void EmuSystem::onSessionOptionsLoaded(EmuApp &)
 {
 	nesInputPortDev[0] = (ESI)(int)optionInputPort1;
 	nesInputPortDev[1] = (ESI)(int)optionInputPort2;
 }
 
-bool EmuSystem::resetSessionOptions()
+bool EmuSystem::resetSessionOptions(EmuApp &)
 {
 	optionFourScore.reset();
 	setupNESFourScore();
@@ -74,7 +74,7 @@ bool EmuSystem::resetSessionOptions()
 	return true;
 }
 
-bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{
@@ -97,7 +97,7 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionCompatibleFrameskip.writeWithKeyIfNotDefault(io);
 }
 
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{

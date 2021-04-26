@@ -18,7 +18,7 @@
 #include <emuframework/EmuMainMenuView.hh>
 #include "internal.hh"
 
-static constexpr uint MAX_SH2_CORES = 4;
+static constexpr unsigned MAX_SH2_CORES = 4;
 
 class CustomSystemOptionView : public SystemOptionView
 {
@@ -26,7 +26,7 @@ class CustomSystemOptionView : public SystemOptionView
 
 	TextMenuItem biosPath
 	{
-		biosPathStr,
+		biosPathStr, &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			pushAndShow(
@@ -51,7 +51,7 @@ class CustomSystemOptionView : public SystemOptionView
 
 	MultiChoiceMenuItem sh2Core
 	{
-		"SH2",
+		"SH2", &defaultFace(),
 		[]() -> int
 		{
 			iterateTimes(std::min(SH2Cores, MAX_SH2_CORES), i)
@@ -73,7 +73,7 @@ public:
 			iterateTimes(std::min(SH2Cores, MAX_SH2_CORES), i)
 			{
 				int id = SH2CoreList[i]->id;
-				sh2CoreItem.emplace_back(SH2CoreList[i]->Name,
+				sh2CoreItem.emplace_back(SH2CoreList[i]->Name, &defaultFace(),
 					[id]()
 					{
 						yinit.sh2coretype = id;

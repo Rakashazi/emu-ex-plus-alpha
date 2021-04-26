@@ -265,7 +265,7 @@ void Text::drawSpan(RendererCommands &cmds, GC xPos, GC yPos, ProjectionPlane pr
 		auto x = xPos + projP.unprojectXSize(gly->metrics.xOffset);
 		auto y = yPos - projP.unprojectYSize(gly->metrics.ySize - gly->metrics.yOffset);
 		auto &glyph = gly->glyph();
-		vArr = makeTexVertArray({x, y, x + xSize, y + projP.unprojectYSize(gly->metrics.ySize)}, glyph);
+		vArr = makeTexVertArray({{x, y}, {x + xSize, y + projP.unprojectYSize(gly->metrics.ySize)}}, glyph);
 		cmds.vertexBufferData(vArr.data(), sizeof(vArr));
 		cmds.setTexture(glyph);
 		//logMsg("drawing");

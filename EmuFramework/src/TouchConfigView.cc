@@ -14,24 +14,24 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/TouchConfigView.hh>
+#include <emuframework/EmuApp.hh>
 #include "EmuOptions.hh"
-#include "private.hh"
 #include "privateInput.hh"
-#include "EmuViewController.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/util/Interpolator.hh>
 #include <utility>
 
 static constexpr bool CAN_TURN_OFF_MENU_BTN = !Config::envIsIOS;
 
-static const char *ctrlStateStr[]
+static constexpr const char *ctrlStateStr[]
 {
 	"Off", "On", "Hidden"
 };
 
-static const char *touchCtrlSizeMenuName[10]
+static constexpr const char *touchCtrlSizeMenuName[10]
 {
 	"6.5",
 	"7",
@@ -45,7 +45,7 @@ static const char *touchCtrlSizeMenuName[10]
 	"15",
 };
 
-static const uint touchCtrlSizeMenuVal[10]
+static constexpr unsigned touchCtrlSizeMenuVal[10]
 {
 	650,
 	700,
@@ -59,62 +59,62 @@ static const uint touchCtrlSizeMenuVal[10]
 	1500,
 };
 
-static const char *touchDpadDeadzoneMenuName[3]
+static constexpr const char *touchDpadDeadzoneMenuName[3]
 {
 	"1", "1.35", "1.6"
 };
 
-static const uint touchDpadDeadzoneMenuVal[3]
+static constexpr unsigned touchDpadDeadzoneMenuVal[3]
 {
 	100, 135, 160
 };
 
-static const char *touchDpadDiagonalSensitivityMenuName[5]
+static constexpr const char *touchDpadDiagonalSensitivityMenuName[5]
 {
 	"None", "Low", "M-Low","Med.", "High"
 };
 
-static const uint touchDpadDiagonalSensitivityMenuVal[5]
+static constexpr unsigned touchDpadDiagonalSensitivityMenuVal[5]
 {
 	1000, 1500, 1750, 2000, 2500
 };
 
-static const char *touchCtrlBtnSpaceMenuName[4]
+static constexpr const char *touchCtrlBtnSpaceMenuName[4]
 {
 	"1", "2", "3", "4"
 };
 
-static const uint touchCtrlBtnSpaceMenuVal[4]
+static constexpr unsigned touchCtrlBtnSpaceMenuVal[4]
 {
 	100, 200, 300, 400
 };
 
-static const char *touchCtrlExtraXBtnSizeMenuName[4]
+static constexpr const char *touchCtrlExtraXBtnSizeMenuName[4]
 {
 	"None", "Gap only", "10%", "25%"
 };
 
-static const uint touchCtrlExtraXBtnSizeMenuVal[4]
+static constexpr unsigned touchCtrlExtraXBtnSizeMenuVal[4]
 {
 	0, 1, 200, 500
 };
 
-static const char *touchCtrlExtraYBtnSizeMenuName[4]
+static constexpr const char *touchCtrlExtraYBtnSizeMenuName[4]
 {
 	"None", "Gap only", "25%", "50%"
 };
 
-static const uint touchCtrlExtraYBtnSizeMenuVal[4]
+static constexpr unsigned touchCtrlExtraYBtnSizeMenuVal[4]
 {
 	0, 1, 500, 1000
 };
 
-static const char *alphaMenuName[6]
+static constexpr const char *alphaMenuName[6]
 {
 	"0%", "10%", "25%", "50%", "65%", "75%"
 };
 
-static const uint alphaMenuVal[6]
+static constexpr unsigned alphaMenuVal[6]
 {
 	0, int(255 * .1), int(255 * .25), int(255 * .5), int(255 * .65), int(255 * .75)
 };
@@ -124,13 +124,13 @@ static auto &layoutPosArr(VController &vController, Base::Window &win)
 	return vController.layoutPosition()[win.isPortrait() ? 1 : 0];
 }
 
-class OnScreenInputPlaceView : public View
+class OnScreenInputPlaceView : public View, public EmuAppHelper<OnScreenInputPlaceView>
 {
 	struct DragState
 	{
 		constexpr DragState() {};
-		int elem = -1;
-		IG::Point2D<int> startPos;
+		int elem{-1};
+		IG::Point2D<int> startPos{};
 	};
 	Gfx::Text text{};
 	VController &vController;
@@ -151,7 +151,7 @@ public:
 
 OnScreenInputPlaceView::OnScreenInputPlaceView(ViewAttachParams attach, VController &vController):
 	View(attach),
-	text{"Click center to go back", &View::defaultFace},
+	text{"Click center to go back", &defaultFace()},
 	vController{vController},
 	animate
 	{
@@ -163,7 +163,7 @@ OnScreenInputPlaceView::OnScreenInputPlaceView(ViewAttachParams attach, VControl
 		}
 	}
 {
-	applyOSNavStyle(appContext(), true);
+	app().applyOSNavStyle(appContext(), true);
 	textFade = {1.};
 	animationStartTimer.runIn(IG::Seconds{2}, {},
 		[this]()
@@ -176,7 +176,7 @@ OnScreenInputPlaceView::OnScreenInputPlaceView(ViewAttachParams attach, VControl
 
 OnScreenInputPlaceView::~OnScreenInputPlaceView()
 {
-	applyOSNavStyle(appContext(), false);
+	app().applyOSNavStyle(appContext(), false);
 	window().removeOnFrame(animate);
 }
 
@@ -243,7 +243,7 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 				vCtrlLayoutPos[d.elem].origin = layoutPos.origin;
 				vCtrlLayoutPos[d.elem].pos = layoutPos.pos;
 				vController.setLayoutPositionChanged();
-				emuViewController().placeEmuViews();
+				app().viewController().placeEmuViews();
 				postDraw();
 			}
 		},
@@ -269,11 +269,11 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)
 	cmds.setColor(.5, .5, .5);
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	Gfx::GC lineSize = projP.unprojectYSize(1);
-	GeomRect::draw(cmds, Gfx::GCRect{-projP.wHalf(), -lineSize/(Gfx::GC)2.,
-		projP.wHalf(), lineSize/(Gfx::GC)2.});
+	GeomRect::draw(cmds, Gfx::GCRect{{-projP.wHalf(), -lineSize/(Gfx::GC)2.},
+		{projP.wHalf(), lineSize/(Gfx::GC)2.}});
 	lineSize = projP.unprojectYSize(1);
-	GeomRect::draw(cmds, Gfx::GCRect{-lineSize/(Gfx::GC)2., -projP.hHalf(),
-		lineSize/(Gfx::GC)2., projP.hHalf()});
+	GeomRect::draw(cmds, Gfx::GCRect{{-lineSize/(Gfx::GC)2., -projP.hHalf()},
+		{lineSize/(Gfx::GC)2., projP.hHalf()}});
 
 	if(textFade != 0.)
 	{
@@ -309,10 +309,9 @@ static int findIdxInArrayOrDefault(T (&arr)[S], const T2 &val, int defaultIdx)
 }
 
 #ifdef CONFIG_VCONTROLS_GAMEPAD
-static void setPointerInputPlayer(VController &vController, uint val)
+static void setPointerInputPlayer(VController &vController, unsigned val)
 {
-	pointerInputPlayer = val;
-	vController.updateMapping(pointerInputPlayer);
+	vController.setInputPlayer(val);
 }
 
 void TouchConfigView::setSize(uint16_t val)
@@ -322,47 +321,47 @@ void TouchConfigView::setSize(uint16_t val)
 	vController.place();
 }
 
-static void setDeadzone(VController &vController, uint val, Gfx::Renderer &r, Base::Window &win)
+static void setDeadzone(VController &vController, unsigned val, Gfx::Renderer &r, Base::Window &win)
 {
 	optionTouchDpadDeadzone = val;
 	vController.gamePad().dPad().setDeadzone(r, vController.xMMSizeToPixel(win, int(optionTouchDpadDeadzone) / 100.), vController.windowData());
 }
 
-static void setDiagonalSensitivity(VController &vController, uint val, Gfx::Renderer &r)
+static void setDiagonalSensitivity(VController &vController, unsigned val, Gfx::Renderer &r)
 {
 	optionTouchDpadDiagonalSensitivity = val;
 	vController.gamePad().dPad().setDiagonalSensitivity(r, optionTouchDpadDiagonalSensitivity / 1000., vController.windowData());
 }
 
-static void setButtonSpace(VController &vController, uint val)
+static void setButtonSpace(VController &vController, unsigned val)
 {
 	optionTouchCtrlBtnSpace = val;
 	EmuControls::setupVControllerVars(vController);
 	vController.place();
 }
 
-static void setButtonExtraXSize(VController &vController, uint val)
+static void setButtonExtraXSize(VController &vController, unsigned val)
 {
 	optionTouchCtrlExtraXBtnSize = val;
 	EmuControls::setupVControllerVars(vController);
 	vController.place();
 }
 
-static void setButtonExtraYSizeMultiRow(VController &vController, uint val)
+static void setButtonExtraYSizeMultiRow(VController &vController, unsigned val)
 {
 	optionTouchCtrlExtraYBtnSizeMultiRow = val;
 	EmuControls::setupVControllerVars(vController);
 	vController.place();
 }
 
-static void setButtonExtraYSize(VController &vController, uint val)
+static void setButtonExtraYSize(VController &vController, unsigned val)
 {
 	optionTouchCtrlExtraYBtnSize = val;
 	EmuControls::setupVControllerVars(vController);
 	vController.place();
 }
 
-static void setButtonStagger(VController &vController, uint val)
+static void setButtonStagger(VController &vController, unsigned val)
 {
 	optionTouchCtrlBtnStagger = val;
 	EmuControls::setupVControllerVars(vController);
@@ -370,14 +369,14 @@ static void setButtonStagger(VController &vController, uint val)
 }
 #endif
 
-static void setButtonState(VController &vController, uint state, uint btnIdx, Base::Window &win)
+static void setButtonState(VController &vController, unsigned state, unsigned btnIdx, Base::Window &win)
 {
 	vController.layoutPosition()[win.isPortrait() ? 1 : 0][btnIdx].state = state;
 	vController.setLayoutPositionChanged();
 	EmuControls::setupVControllerVars(vController);
 }
 
-static void setAlpha(VController &vController, uint val)
+static void setAlpha(VController &vController, unsigned val)
 {
 	optionTouchCtrlAlpha = val;
 	vController.setAlpha((int)optionTouchCtrlAlpha / 255.0);
@@ -406,8 +405,8 @@ void TouchConfigView::refreshTouchConfigMenu()
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	touchCtrl.setSelected((int)optionTouchCtrl, *this);
 	if(EmuSystem::maxPlayers > 1)
-		pointerInput.setSelected((int)pointerInputPlayer, *this);
-	size.setSelected(findIdxInArrayOrDefault(touchCtrlSizeMenuVal, (uint)optionTouchCtrlSize, std::size(sizeItem) - 1), *this);
+		pointerInput.setSelected((int)vController.inputPlayer(), *this);
+	size.setSelected(findIdxInArrayOrDefault(touchCtrlSizeMenuVal, (unsigned)optionTouchCtrlSize, std::size(sizeItem) - 1), *this);
 	dPadState.setSelected(layoutPos[0].state, *this);
 	faceBtnState.setSelected(layoutPos[2].state, *this);
 	centerBtnState.setSelected(layoutPos[1].state, *this);
@@ -416,17 +415,17 @@ void TouchConfigView::refreshTouchConfigMenu()
 		lTriggerState.setSelected(layoutPos[5].state, *this);
 		rTriggerState.setSelected(layoutPos[6].state, *this);
 	}
-	deadzone.setSelected(findIdxInArray(touchDpadDeadzoneMenuVal, (uint)optionTouchDpadDeadzone), *this);
-	diagonalSensitivity.setSelected(findIdxInArray(touchDpadDiagonalSensitivityMenuVal, (uint)optionTouchDpadDiagonalSensitivity), *this);
-	btnSpace.setSelected(findIdxInArray(touchCtrlBtnSpaceMenuVal, (uint)optionTouchCtrlBtnSpace), *this);
-	btnExtraXSize.setSelected(findIdxInArray(touchCtrlExtraXBtnSizeMenuVal, (uint)optionTouchCtrlExtraXBtnSize), *this);
+	deadzone.setSelected(findIdxInArray(touchDpadDeadzoneMenuVal, (unsigned)optionTouchDpadDeadzone), *this);
+	diagonalSensitivity.setSelected(findIdxInArray(touchDpadDiagonalSensitivityMenuVal, (unsigned)optionTouchDpadDiagonalSensitivity), *this);
+	btnSpace.setSelected(findIdxInArray(touchCtrlBtnSpaceMenuVal, (unsigned)optionTouchCtrlBtnSpace), *this);
+	btnExtraXSize.setSelected(findIdxInArray(touchCtrlExtraXBtnSizeMenuVal, (unsigned)optionTouchCtrlExtraXBtnSize), *this);
 	if(EmuSystem::inputFaceBtns < 4 || (EmuSystem::inputFaceBtns == 6 && !EmuSystem::inputHasTriggerBtns))
 	{
-		btnExtraYSize.setSelected(findIdxInArray(touchCtrlExtraYBtnSizeMenuVal, (uint)optionTouchCtrlExtraYBtnSize), *this);
+		btnExtraYSize.setSelected(findIdxInArray(touchCtrlExtraYBtnSizeMenuVal, (unsigned)optionTouchCtrlExtraYBtnSize), *this);
 	}
 	if(EmuSystem::inputFaceBtns >= 4)
 	{
-		btnExtraYSizeMultiRow.setSelected(findIdxInArray(touchCtrlExtraXBtnSizeMenuVal, (uint)optionTouchCtrlExtraYBtnSizeMultiRow), *this);
+		btnExtraYSizeMultiRow.setSelected(findIdxInArray(touchCtrlExtraXBtnSizeMenuVal, (unsigned)optionTouchCtrlExtraYBtnSizeMultiRow), *this);
 	}
 	btnStagger.setSelected(optionTouchCtrlBtnStagger, *this);
 	boundingBoxes.setBoolValue((int)optionTouchCtrlBoundingBoxes, *this);
@@ -435,9 +434,13 @@ void TouchConfigView::refreshTouchConfigMenu()
 		vibrate.setBoolValue((int)optionVibrateOnPush, *this);
 	}
 	showOnTouch.setBoolValue((int)optionTouchCtrlShowOnTouch, *this);
-		#ifdef CONFIG_BASE_ANDROID
-		useScaledCoordinates.setBoolValue(optionTouchCtrlScaledCoordinates, *this);
-		#endif
+	[this](auto &useScaledCoordinates)
+	{
+		if constexpr(Config::EmuFramework::USE_SCALED_COORDINATES)
+		{
+			useScaledCoordinates.setBoolValue(vController.usesScaledCoordinates(), *this);
+		}
+	}(useScaledCoordinates);
 	#endif
 }
 
@@ -447,54 +450,54 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	touchCtrlItem
 	{
-		{"Off", [this]() { optionTouchCtrl = 0; emuViewController().setOnScreenControls(0); }},
-		{"On", [this]() { optionTouchCtrl = 1; emuViewController().setOnScreenControls(1); }},
-		{"Auto", [this]() { optionTouchCtrl = 2; emuViewController().updateAutoOnScreenControlVisible(); }}
+		{"Off", &defaultFace(), [this]() { optionTouchCtrl = 0; app().viewController().setOnScreenControls(0); }},
+		{"On", &defaultFace(), [this]() { optionTouchCtrl = 1; app().viewController().setOnScreenControls(1); }},
+		{"Auto", &defaultFace(), [this]() { optionTouchCtrl = 2; app().viewController().updateAutoOnScreenControlVisible(); }}
 	},
 	touchCtrl
 	{
-		"Use Virtual Gamepad",
+		"Use Virtual Gamepad", &defaultFace(),
 		optionTouchCtrl,
 		touchCtrlItem
 	},
 	pointerInputItem
 	{
-		{"1", [this](){ setPointerInputPlayer(vController, 0); }},
-		{"2", [this](){ setPointerInputPlayer(vController, 1); }},
-		{"3", [this](){ setPointerInputPlayer(vController, 2); }},
-		{"4", [this](){ setPointerInputPlayer(vController, 3); }},
-		{"5", [this](){ setPointerInputPlayer(vController, 4); }}
+		{"1", &defaultFace(), [this](){ setPointerInputPlayer(vController, 0); }},
+		{"2", &defaultFace(), [this](){ setPointerInputPlayer(vController, 1); }},
+		{"3", &defaultFace(), [this](){ setPointerInputPlayer(vController, 2); }},
+		{"4", &defaultFace(), [this](){ setPointerInputPlayer(vController, 3); }},
+		{"5", &defaultFace(), [this](){ setPointerInputPlayer(vController, 4); }}
 	},
 	pointerInput
 	{
-		"Virtual Gamepad Player",
-		(int)pointerInputPlayer,
+		"Virtual Gamepad Player", &defaultFace(),
+		(int)vCtrl.inputPlayer(),
 		[this](const MultiChoiceMenuItem &) -> int
 		{
 			return EmuSystem::maxPlayers;
 		},
-		[this](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
+		[this](const MultiChoiceMenuItem &, unsigned idx) -> TextMenuItem&
 		{
 			return pointerInputItem[idx];
 		}
 	},
 	sizeItem
 	{
-		{touchCtrlSizeMenuName[0], [this](){ setSize(touchCtrlSizeMenuVal[0]); }},
-		{touchCtrlSizeMenuName[1], [this](){ setSize(touchCtrlSizeMenuVal[1]); }},
-		{touchCtrlSizeMenuName[2], [this](){ setSize(touchCtrlSizeMenuVal[2]); }},
-		{touchCtrlSizeMenuName[3], [this](){ setSize(touchCtrlSizeMenuVal[3]); }},
-		{touchCtrlSizeMenuName[4], [this](){ setSize(touchCtrlSizeMenuVal[4]); }},
-		{touchCtrlSizeMenuName[5], [this](){ setSize(touchCtrlSizeMenuVal[5]); }},
-		{touchCtrlSizeMenuName[6], [this](){ setSize(touchCtrlSizeMenuVal[6]); }},
-		{touchCtrlSizeMenuName[7], [this](){ setSize(touchCtrlSizeMenuVal[7]); }},
-		{touchCtrlSizeMenuName[8], [this](){ setSize(touchCtrlSizeMenuVal[8]); }},
-		{touchCtrlSizeMenuName[9], [this](){ setSize(touchCtrlSizeMenuVal[9]); }},
-		{"Custom Value",
+		{touchCtrlSizeMenuName[0], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[0]); }},
+		{touchCtrlSizeMenuName[1], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[1]); }},
+		{touchCtrlSizeMenuName[2], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[2]); }},
+		{touchCtrlSizeMenuName[3], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[3]); }},
+		{touchCtrlSizeMenuName[4], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[4]); }},
+		{touchCtrlSizeMenuName[5], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[5]); }},
+		{touchCtrlSizeMenuName[6], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[6]); }},
+		{touchCtrlSizeMenuName[7], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[7]); }},
+		{touchCtrlSizeMenuName[8], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[8]); }},
+		{touchCtrlSizeMenuName[9], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[9]); }},
+		{"Custom Value", &defaultFace(),
 			[this](Input::Event e)
 			{
-				EmuApp::pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 3.0 to 15.0", "",
-					[this](auto val)
+				app().pushAndShowNewCollectValueInputView<double>(attachParams(), e, "Input 3.0 to 15.0", "",
+					[this](EmuApp &app, auto val)
 					{
 						int scaledIntVal = val * 100.0;
 						if(optionTouchCtrlSize.isValidVal(scaledIntVal))
@@ -506,7 +509,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 						}
 						else
 						{
-							EmuApp::postErrorMessage("Value not in range");
+							app.postErrorMessage("Value not in range");
 							return false;
 						}
 					});
@@ -516,98 +519,98 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 	},
 	size
 	{
-		"Button Size",
+		"Button Size", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
 			t.setString(string_makePrintf<6>("%.2f", optionTouchCtrlSize / 100.).data());
 			return true;
 		},
-		findIdxInArrayOrDefault(touchCtrlSizeMenuVal, (uint)optionTouchCtrlSize, std::size(sizeItem) - 1),
+		findIdxInArrayOrDefault(touchCtrlSizeMenuVal, (unsigned)optionTouchCtrlSize, std::size(sizeItem) - 1),
 		sizeItem
 	},
 	deadzoneItem
 	{
-		{touchDpadDeadzoneMenuName[0], [this](){ setDeadzone(vController, touchDpadDeadzoneMenuVal[0], renderer(), window()); }},
-		{touchDpadDeadzoneMenuName[1], [this](){ setDeadzone(vController, touchDpadDeadzoneMenuVal[1], renderer(), window()); }},
-		{touchDpadDeadzoneMenuName[2], [this](){ setDeadzone(vController, touchDpadDeadzoneMenuVal[2], renderer(), window()); }},
+		{touchDpadDeadzoneMenuName[0], &defaultFace(), [this](){ setDeadzone(vController, touchDpadDeadzoneMenuVal[0], renderer(), window()); }},
+		{touchDpadDeadzoneMenuName[1], &defaultFace(), [this](){ setDeadzone(vController, touchDpadDeadzoneMenuVal[1], renderer(), window()); }},
+		{touchDpadDeadzoneMenuName[2], &defaultFace(), [this](){ setDeadzone(vController, touchDpadDeadzoneMenuVal[2], renderer(), window()); }},
 	},
 	deadzone
 	{
-		"Deadzone",
-		findIdxInArrayOrDefault(touchDpadDeadzoneMenuVal, (uint)optionTouchDpadDeadzone, 0),
+		"Deadzone", &defaultFace(),
+		findIdxInArrayOrDefault(touchDpadDeadzoneMenuVal, (unsigned)optionTouchDpadDeadzone, 0),
 		deadzoneItem
 	},
 	diagonalSensitivityItem
 	{
-		{touchDpadDiagonalSensitivityMenuName[0], [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[0], renderer()); }},
-		{touchDpadDiagonalSensitivityMenuName[1], [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[1], renderer()); }},
-		{touchDpadDiagonalSensitivityMenuName[2], [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[2], renderer()); }},
-		{touchDpadDiagonalSensitivityMenuName[3], [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[3], renderer()); }},
-		{touchDpadDiagonalSensitivityMenuName[4], [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[4], renderer()); }},
+		{touchDpadDiagonalSensitivityMenuName[0], &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[0], renderer()); }},
+		{touchDpadDiagonalSensitivityMenuName[1], &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[1], renderer()); }},
+		{touchDpadDiagonalSensitivityMenuName[2], &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[2], renderer()); }},
+		{touchDpadDiagonalSensitivityMenuName[3], &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[3], renderer()); }},
+		{touchDpadDiagonalSensitivityMenuName[4], &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[4], renderer()); }},
 	},
 	diagonalSensitivity
 	{
-		"Diagonal Sensitivity",
-		findIdxInArrayOrDefault(touchDpadDiagonalSensitivityMenuVal, (uint)optionTouchDpadDiagonalSensitivity, 0),
+		"Diagonal Sensitivity", &defaultFace(),
+		findIdxInArrayOrDefault(touchDpadDiagonalSensitivityMenuVal, (unsigned)optionTouchDpadDiagonalSensitivity, 0),
 		diagonalSensitivityItem
 	},
 	btnSpaceItem
 	{
-		{touchCtrlBtnSpaceMenuName[0], [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[0]); }},
-		{touchCtrlBtnSpaceMenuName[1], [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[1]); }},
-		{touchCtrlBtnSpaceMenuName[2], [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[2]); }},
-		{touchCtrlBtnSpaceMenuName[3], [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[3]); }},
+		{touchCtrlBtnSpaceMenuName[0], &defaultFace(), [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[0]); }},
+		{touchCtrlBtnSpaceMenuName[1], &defaultFace(), [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[1]); }},
+		{touchCtrlBtnSpaceMenuName[2], &defaultFace(), [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[2]); }},
+		{touchCtrlBtnSpaceMenuName[3], &defaultFace(), [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[3]); }},
 	},
 	btnSpace
 	{
-		"Spacing",
-		findIdxInArrayOrDefault(touchCtrlBtnSpaceMenuVal, (uint)optionTouchCtrlBtnSpace, 0),
+		"Spacing", &defaultFace(),
+		findIdxInArrayOrDefault(touchCtrlBtnSpaceMenuVal, (unsigned)optionTouchCtrlBtnSpace, 0),
 		btnSpaceItem
 	},
 	btnExtraXSizeItem
 	{
-		{touchCtrlExtraXBtnSizeMenuName[0], [this](){ setButtonExtraXSize(vController, touchCtrlExtraXBtnSizeMenuVal[0]); }},
-		{touchCtrlExtraXBtnSizeMenuName[1], [this](){ setButtonExtraXSize(vController, touchCtrlExtraXBtnSizeMenuVal[1]); }},
-		{touchCtrlExtraXBtnSizeMenuName[2], [this](){ setButtonExtraXSize(vController, touchCtrlExtraXBtnSizeMenuVal[2]); }},
-		{touchCtrlExtraXBtnSizeMenuName[3], [this](){ setButtonExtraXSize(vController, touchCtrlExtraXBtnSizeMenuVal[3]); }},
+		{touchCtrlExtraXBtnSizeMenuName[0], &defaultFace(), [this](){ setButtonExtraXSize(vController, touchCtrlExtraXBtnSizeMenuVal[0]); }},
+		{touchCtrlExtraXBtnSizeMenuName[1], &defaultFace(), [this](){ setButtonExtraXSize(vController, touchCtrlExtraXBtnSizeMenuVal[1]); }},
+		{touchCtrlExtraXBtnSizeMenuName[2], &defaultFace(), [this](){ setButtonExtraXSize(vController, touchCtrlExtraXBtnSizeMenuVal[2]); }},
+		{touchCtrlExtraXBtnSizeMenuName[3], &defaultFace(), [this](){ setButtonExtraXSize(vController, touchCtrlExtraXBtnSizeMenuVal[3]); }},
 	},
 	btnExtraXSize
 	{
-		"H Overlap",
-		findIdxInArrayOrDefault(touchCtrlExtraXBtnSizeMenuVal, (uint)optionTouchCtrlExtraXBtnSize, 0),
+		"H Overlap", &defaultFace(),
+		findIdxInArrayOrDefault(touchCtrlExtraXBtnSizeMenuVal, (unsigned)optionTouchCtrlExtraXBtnSize, 0),
 		btnExtraXSizeItem
 	},
 	btnExtraYSizeMultiRowItem
 	{
 		// uses same values as X counter-part
-		{touchCtrlExtraXBtnSizeMenuName[0], [this](){ setButtonExtraYSizeMultiRow(vController, touchCtrlExtraXBtnSizeMenuVal[0]); }},
-		{touchCtrlExtraXBtnSizeMenuName[1], [this](){ setButtonExtraYSizeMultiRow(vController, touchCtrlExtraXBtnSizeMenuVal[1]); }},
-		{touchCtrlExtraXBtnSizeMenuName[2], [this](){ setButtonExtraYSizeMultiRow(vController, touchCtrlExtraXBtnSizeMenuVal[2]); }},
-		{touchCtrlExtraXBtnSizeMenuName[3], [this](){ setButtonExtraYSizeMultiRow(vController, touchCtrlExtraXBtnSizeMenuVal[3]); }},
+		{touchCtrlExtraXBtnSizeMenuName[0], &defaultFace(), [this](){ setButtonExtraYSizeMultiRow(vController, touchCtrlExtraXBtnSizeMenuVal[0]); }},
+		{touchCtrlExtraXBtnSizeMenuName[1], &defaultFace(), [this](){ setButtonExtraYSizeMultiRow(vController, touchCtrlExtraXBtnSizeMenuVal[1]); }},
+		{touchCtrlExtraXBtnSizeMenuName[2], &defaultFace(), [this](){ setButtonExtraYSizeMultiRow(vController, touchCtrlExtraXBtnSizeMenuVal[2]); }},
+		{touchCtrlExtraXBtnSizeMenuName[3], &defaultFace(), [this](){ setButtonExtraYSizeMultiRow(vController, touchCtrlExtraXBtnSizeMenuVal[3]); }},
 	},
 	btnExtraYSizeMultiRow
 	{
 		(EmuSystem::inputFaceBtns == 4 || (EmuSystem::inputFaceBtns >= 6 && EmuSystem::inputHasTriggerBtns))
-			? "V Overlap" : "V Overlap (2 rows)",
-		findIdxInArrayOrDefault(touchCtrlExtraXBtnSizeMenuVal, (uint)optionTouchCtrlExtraYBtnSizeMultiRow, 0),
+			? "V Overlap" : "V Overlap (2 rows)", &defaultFace(),
+		findIdxInArrayOrDefault(touchCtrlExtraXBtnSizeMenuVal, (unsigned)optionTouchCtrlExtraYBtnSizeMultiRow, 0),
 		btnExtraYSizeMultiRowItem
 	},
 	btnExtraYSizeItem
 	{
-		{touchCtrlExtraYBtnSizeMenuName[0], [this](){ setButtonExtraYSize(vController, touchCtrlExtraYBtnSizeMenuVal[0]); }},
-		{touchCtrlExtraYBtnSizeMenuName[1], [this](){ setButtonExtraYSize(vController, touchCtrlExtraYBtnSizeMenuVal[1]); }},
-		{touchCtrlExtraYBtnSizeMenuName[2], [this](){ setButtonExtraYSize(vController, touchCtrlExtraYBtnSizeMenuVal[2]); }},
-		{touchCtrlExtraYBtnSizeMenuName[3], [this](){ setButtonExtraYSize(vController, touchCtrlExtraYBtnSizeMenuVal[3]); }},
+		{touchCtrlExtraYBtnSizeMenuName[0], &defaultFace(), [this](){ setButtonExtraYSize(vController, touchCtrlExtraYBtnSizeMenuVal[0]); }},
+		{touchCtrlExtraYBtnSizeMenuName[1], &defaultFace(), [this](){ setButtonExtraYSize(vController, touchCtrlExtraYBtnSizeMenuVal[1]); }},
+		{touchCtrlExtraYBtnSizeMenuName[2], &defaultFace(), [this](){ setButtonExtraYSize(vController, touchCtrlExtraYBtnSizeMenuVal[2]); }},
+		{touchCtrlExtraYBtnSizeMenuName[3], &defaultFace(), [this](){ setButtonExtraYSize(vController, touchCtrlExtraYBtnSizeMenuVal[3]); }},
 	},
 	btnExtraYSize
 	{
-		"V Overlap",
-		findIdxInArrayOrDefault(touchCtrlExtraYBtnSizeMenuVal, (uint)optionTouchCtrlExtraYBtnSize, 0),
+		"V Overlap", &defaultFace(),
+		findIdxInArrayOrDefault(touchCtrlExtraYBtnSizeMenuVal, (unsigned)optionTouchCtrlExtraYBtnSize, 0),
 		btnExtraYSizeItem
 	},
 	triggerPos
 	{
-		"Inline L/R",
+		"Inline L/R", &defaultFace(),
 		(bool)optionTouchCtrlTriggerBtnPos,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -617,82 +620,82 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 	},
 	btnStaggerItem
 	{
-		{"-0.75x V", [this](){ setButtonStagger(vController, 0); }},
-		{"-0.5x V", [this](){ setButtonStagger(vController, 1); }},
-		{"0", [this](){ setButtonStagger(vController, 2); }},
-		{"0.5x V", [this](){ setButtonStagger(vController, 3); }},
-		{"0.75x V", [this](){ setButtonStagger(vController, 4); }},
-		{"1x H&V", [this](){ setButtonStagger(vController, 5); }},
+		{"-0.75x V", &defaultFace(), [this](){ setButtonStagger(vController, 0); }},
+		{"-0.5x V", &defaultFace(), [this](){ setButtonStagger(vController, 1); }},
+		{"0", &defaultFace(), [this](){ setButtonStagger(vController, 2); }},
+		{"0.5x V", &defaultFace(), [this](){ setButtonStagger(vController, 3); }},
+		{"0.75x V", &defaultFace(), [this](){ setButtonStagger(vController, 4); }},
+		{"1x H&V", &defaultFace(), [this](){ setButtonStagger(vController, 5); }},
 	},
 	btnStagger
 	{
-		"Stagger",
+		"Stagger", &defaultFace(),
 		(int)optionTouchCtrlBtnStagger,
 		btnStaggerItem
 	},
 	dPadStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(vController, 0, 0, window()); }},
-		{ctrlStateStr[1], [this](){ setButtonState(vController, 1, 0, window()); }},
-		{ctrlStateStr[2], [this](){ setButtonState(vController, 2, 0, window()); }},
+		{ctrlStateStr[0], &defaultFace(), [this](){ setButtonState(vController, 0, 0, window()); }},
+		{ctrlStateStr[1], &defaultFace(), [this](){ setButtonState(vController, 1, 0, window()); }},
+		{ctrlStateStr[2], &defaultFace(), [this](){ setButtonState(vController, 2, 0, window()); }},
 	},
 	dPadState
 	{
-		"D-Pad",
+		"D-Pad", &defaultFace(),
 		(int)layoutPosArr(vController, window())[0].state,
 		dPadStateItem
 	},
 	faceBtnStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(vController, 0, 2, window()); }},
-		{ctrlStateStr[1], [this](){ setButtonState(vController, 1, 2, window()); }},
-		{ctrlStateStr[2], [this](){ setButtonState(vController, 2, 2, window()); }},
+		{ctrlStateStr[0], &defaultFace(), [this](){ setButtonState(vController, 0, 2, window()); }},
+		{ctrlStateStr[1], &defaultFace(), [this](){ setButtonState(vController, 1, 2, window()); }},
+		{ctrlStateStr[2], &defaultFace(), [this](){ setButtonState(vController, 2, 2, window()); }},
 	},
 	faceBtnState
 	{
-		faceBtnName,
+		faceBtnName, &defaultFace(),
 		(int)layoutPosArr(vController, window())[2].state,
 		faceBtnStateItem
 	},
 	centerBtnStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(vController, 0, 1, window()); }},
-		{ctrlStateStr[1], [this](){ setButtonState(vController, 1, 1, window()); }},
-		{ctrlStateStr[2], [this](){ setButtonState(vController, 2, 1, window()); }},
+		{ctrlStateStr[0], &defaultFace(), [this](){ setButtonState(vController, 0, 1, window()); }},
+		{ctrlStateStr[1], &defaultFace(), [this](){ setButtonState(vController, 1, 1, window()); }},
+		{ctrlStateStr[2], &defaultFace(), [this](){ setButtonState(vController, 2, 1, window()); }},
 	},
 	centerBtnState
 	{
-		centerBtnName,
+		centerBtnName, &defaultFace(),
 		(int)layoutPosArr(vController, window())[1].state,
 		centerBtnStateItem
 	},
 	lTriggerStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(vController, 0, 5, window()); }},
-		{ctrlStateStr[1], [this](){ setButtonState(vController, 1, 5, window()); }},
-		{ctrlStateStr[2], [this](){ setButtonState(vController, 2, 5, window()); }},
+		{ctrlStateStr[0], &defaultFace(), [this](){ setButtonState(vController, 0, 5, window()); }},
+		{ctrlStateStr[1], &defaultFace(), [this](){ setButtonState(vController, 1, 5, window()); }},
+		{ctrlStateStr[2], &defaultFace(), [this](){ setButtonState(vController, 2, 5, window()); }},
 	},
 	lTriggerState
 	{
-		"L",
+		"L", &defaultFace(),
 		(int)layoutPosArr(vController, window())[5].state,
 		lTriggerStateItem
 	},
 	rTriggerStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(vController, 0, 6, window()); }},
-		{ctrlStateStr[1], [this](){ setButtonState(vController, 1, 6, window()); }},
-		{ctrlStateStr[2], [this](){ setButtonState(vController, 2, 6, window()); }},
+		{ctrlStateStr[0], &defaultFace(), [this](){ setButtonState(vController, 0, 6, window()); }},
+		{ctrlStateStr[1], &defaultFace(), [this](){ setButtonState(vController, 1, 6, window()); }},
+		{ctrlStateStr[2], &defaultFace(), [this](){ setButtonState(vController, 2, 6, window()); }},
 	},
 	rTriggerState
 	{
-		"R",
+		"R", &defaultFace(),
 		(int)layoutPosArr(vController, window())[6].state,
 		rTriggerStateItem
 	},
 	boundingBoxes
 	{
-		"Show Bounding Boxes",
+		"Show Bounding Boxes", &defaultFace(),
 		(bool)optionTouchCtrlBoundingBoxes,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -703,7 +706,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 	},
 	vibrate
 	{
-		"Vibration",
+		"Vibration", &defaultFace(),
 		(bool)optionVibrateOnPush,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -713,20 +716,20 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 		#ifdef CONFIG_BASE_ANDROID
 		useScaledCoordinates
 		{
-			"Size Units",
-			(bool)optionTouchCtrlScaledCoordinates,
+			"Size Units", &defaultFace(),
+			vCtrl.usesScaledCoordinates(),
 			"Physical (Millimeters)", "Scaled Points",
 			[this](BoolMenuItem &item, Input::Event e)
 			{
-				optionTouchCtrlScaledCoordinates = item.flipBoolValue(*this);
+				vController.setUsesScaledCoordinates(item.flipBoolValue(*this));
 				EmuControls::setupVControllerVars(vController);
-				this->vController.place();
+				vController.place();
 			}
 		},
 		#endif
 	showOnTouch
 	{
-		"Show Gamepad If Screen Touched",
+		"Show Gamepad If Screen Touched", &defaultFace(),
 		(bool)optionTouchCtrlShowOnTouch,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -736,22 +739,22 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 	#endif // CONFIG_VCONTROLS_GAMEPAD
 	alphaItem
 	{
-		{alphaMenuName[0], [this](){ setAlpha(vController, alphaMenuVal[0]); }},
-		{alphaMenuName[1], [this](){ setAlpha(vController, alphaMenuVal[1]); }},
-		{alphaMenuName[2], [this](){ setAlpha(vController, alphaMenuVal[2]); }},
-		{alphaMenuName[3], [this](){ setAlpha(vController, alphaMenuVal[3]); }},
-		{alphaMenuName[4], [this](){ setAlpha(vController, alphaMenuVal[4]); }},
-		{alphaMenuName[5], [this](){ setAlpha(vController, alphaMenuVal[5]); }},
+		{alphaMenuName[0], &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[0]); }},
+		{alphaMenuName[1], &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[1]); }},
+		{alphaMenuName[2], &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[2]); }},
+		{alphaMenuName[3], &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[3]); }},
+		{alphaMenuName[4], &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[4]); }},
+		{alphaMenuName[5], &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[5]); }},
 	},
 	alpha
 	{
-		"Blend Amount",
+		"Blend Amount", &defaultFace(),
 		findIdxInArrayOrDefault(alphaMenuVal, optionTouchCtrlAlpha.val, 3),
 		alphaItem
 	},
 	btnPlace
 	{
-		"Set Button Positions",
+		"Set Button Positions", &defaultFace(),
 		[this](Input::Event e)
 		{
 			auto onScreenInputPlace = makeView<OnScreenInputPlaceView>(vController);
@@ -760,38 +763,38 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 	},
 	menuStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(vController, 0, 3, window()); }},
-		{ctrlStateStr[1], [this](){ setButtonState(vController, 1, 3, window()); }},
-		{ctrlStateStr[2], [this](){ setButtonState(vController, 2, 3, window()); }},
+		{ctrlStateStr[0], &defaultFace(), [this](){ setButtonState(vController, 0, 3, window()); }},
+		{ctrlStateStr[1], &defaultFace(), [this](){ setButtonState(vController, 1, 3, window()); }},
+		{ctrlStateStr[2], &defaultFace(), [this](){ setButtonState(vController, 2, 3, window()); }},
 	},
 	menuState
 	{
-		"Open Menu Button",
+		"Open Menu Button", &defaultFace(),
 		(int)layoutPosArr(vController, window())[3].state,
 		[](const MultiChoiceMenuItem &) -> int
 		{
 			return CAN_TURN_OFF_MENU_BTN ? 3 : 2; // iOS port doesn't use "off" value
 		},
-		[this](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
+		[this](const MultiChoiceMenuItem &, unsigned idx) -> TextMenuItem&
 		{
 			return menuStateItem[CAN_TURN_OFF_MENU_BTN ? idx : idx + 1];
 		}
 	},
 	ffStateItem
 	{
-		{ctrlStateStr[0], [this](){ setButtonState(vController, 0, 4, window()); }},
-		{ctrlStateStr[1], [this](){ setButtonState(vController, 1, 4, window()); }},
-		{ctrlStateStr[2], [this](){ setButtonState(vController, 2, 4, window()); }},
+		{ctrlStateStr[0], &defaultFace(), [this](){ setButtonState(vController, 0, 4, window()); }},
+		{ctrlStateStr[1], &defaultFace(), [this](){ setButtonState(vController, 1, 4, window()); }},
+		{ctrlStateStr[2], &defaultFace(), [this](){ setButtonState(vController, 2, 4, window()); }},
 	},
 	ffState
 	{
-		"Fast-forward Button",
+		"Fast-forward Button", &defaultFace(),
 		(int)layoutPosArr(vController, window())[4].state,
 		ffStateItem
 	},
 	resetControls
 	{
-		"Reset Position & Spacing Options",
+		"Reset Position & Spacing Options", &defaultFace(),
 		[this](Input::Event e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Reset buttons to default positions & spacing?");
@@ -807,14 +810,14 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 	},
 	resetAllControls
 	{
-		"Reset All Options",
+		"Reset All Options", &defaultFace(),
 		[this](Input::Event e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Reset all on-screen control options to default?");
 			ynAlertView->setOnYes(
 				[this]()
 				{
-					resetAllVControllerOptions(vController, emuViewController());
+					resetAllVControllerOptions(vController, app().viewController());
 					EmuControls::setupVControllerVars(vController);
 					refreshTouchConfigMenu();
 				});
@@ -823,19 +826,19 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 	},
 	btnTogglesHeading
 	{
-		"Individual Button Toggles"
+		"Individual Button Toggles", &defaultBoldFace()
 	},
 	dpadtHeading
 	{
-		"D-Pad Options"
+		"D-Pad Options", &defaultBoldFace()
 	},
 	faceBtnHeading
 	{
-		"Face Button Layout"
+		"Face Button Layout", &defaultBoldFace()
 	},
 	otherHeading
 	{
-		"Other Options"
+		"Other Options", &defaultBoldFace()
 	}
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
@@ -890,9 +893,10 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 		item.emplace_back(&vibrate);
 	}
 	item.emplace_back(&showOnTouch);
-		#ifdef CONFIG_BASE_ANDROID
+	if constexpr(Config::EmuFramework::USE_SCALED_COORDINATES)
+	{
 		item.emplace_back(&useScaledCoordinates);
-		#endif
+	}
 	#else
 	item.emplace_back(&otherHeading);
 	#endif // CONFIG_VCONTROLS_GAMEPAD

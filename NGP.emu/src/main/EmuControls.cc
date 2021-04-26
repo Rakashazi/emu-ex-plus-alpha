@@ -19,11 +19,11 @@
 namespace EmuControls
 {
 
-const uint categories = 2;
-static const uint gamepadKeys = 13;
-const uint systemTotalKeys = gameActionKeys + gamepadKeys;
+const unsigned categories = 2;
+static const unsigned gamepadKeys = 13;
+const unsigned systemTotalKeys = gameActionKeys + gamepadKeys;
 
-void transposeKeysForPlayer(KeyConfig::KeyArray &key, uint player) {}
+void transposeKeysForPlayer(KeyConfig::KeyArray &key, unsigned player) {}
 
 static const char *gamepadName[gamepadKeys] =
 {
@@ -42,7 +42,7 @@ static const char *gamepadName[gamepadKeys] =
 	"Turbo B",
 };
 
-static const uint gamepadKeyOffset = gameActionKeys;
+static const unsigned gamepadKeyOffset = gameActionKeys;
 
 const KeyCategory category[MAX_CATEGORIES]
 {
@@ -272,7 +272,7 @@ const KeyConfig defaultKeyProfile[] =
 	#endif
 };
 
-const uint defaultKeyProfiles = std::size(defaultKeyProfile);
+const unsigned defaultKeyProfiles = std::size(defaultKeyProfile);
 
 #ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
 
@@ -298,7 +298,7 @@ const KeyConfig defaultAppleGCProfile[] =
 	},
 };
 
-const uint defaultAppleGCProfiles = std::size(defaultAppleGCProfile);
+const unsigned defaultAppleGCProfiles = std::size(defaultAppleGCProfile);
 
 #endif
 
@@ -330,7 +330,7 @@ const KeyConfig defaultWiimoteProfile[] =
 	},
 };
 
-const uint defaultWiimoteProfiles = std::size(defaultWiimoteProfile);
+const unsigned defaultWiimoteProfiles = std::size(defaultWiimoteProfile);
 
 const KeyConfig defaultWiiCCProfile[] =
 {
@@ -358,7 +358,7 @@ const KeyConfig defaultWiiCCProfile[] =
 	},
 };
 
-const uint defaultWiiCCProfiles = std::size(defaultWiiCCProfile);
+const unsigned defaultWiiCCProfiles = std::size(defaultWiiCCProfile);
 
 // iControlPad
 
@@ -388,7 +388,7 @@ const KeyConfig defaultIControlPadProfile[] =
 	},
 };
 
-const uint defaultIControlPadProfiles = std::size(defaultIControlPadProfile);
+const unsigned defaultIControlPadProfiles = std::size(defaultIControlPadProfile);
 
 // iCade
 
@@ -418,7 +418,7 @@ const KeyConfig defaultICadeProfile[] =
 	},
 };
 
-const uint defaultICadeProfiles = std::size(defaultICadeProfile);
+const unsigned defaultICadeProfiles = std::size(defaultICadeProfile);
 
 // Zeemote
 
@@ -448,7 +448,7 @@ const KeyConfig defaultZeemoteProfile[] =
 	},
 };
 
-const uint defaultZeemoteProfiles = std::size(defaultZeemoteProfile);
+const unsigned defaultZeemoteProfiles = std::size(defaultZeemoteProfile);
 
 // PS3
 
@@ -475,6 +475,6 @@ const KeyConfig defaultPS3Profile[] =
 	},
 };
 
-const uint defaultPS3Profiles = std::size(defaultPS3Profile);
+const unsigned defaultPS3Profiles = std::size(defaultPS3Profile);
 
 };

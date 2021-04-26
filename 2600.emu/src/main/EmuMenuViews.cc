@@ -19,6 +19,7 @@
 #define Debugger DebuggerMac
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuAppHelper.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #undef Debugger
 #include "internal.hh"
@@ -35,14 +36,14 @@ class CustomAudioOptionView : public AudioOptionView
 
 	TextMenuItem resampleQualityItem[3]
 	{
-		{"Low", [this](){ setResampleQuality(AudioSettings::ResamplingQuality::nearestNeightbour); }},
-		{"High", [this](){ setResampleQuality(AudioSettings::ResamplingQuality::lanczos_2); }},
-		{"Ultra", [this](){ setResampleQuality(AudioSettings::ResamplingQuality::lanczos_3); }},
+		{"Low", &defaultFace(), [this](){ setResampleQuality(AudioSettings::ResamplingQuality::nearestNeightbour); }},
+		{"High", &defaultFace(), [this](){ setResampleQuality(AudioSettings::ResamplingQuality::lanczos_2); }},
+		{"Ultra", &defaultFace(), [this](){ setResampleQuality(AudioSettings::ResamplingQuality::lanczos_3); }},
 	};
 
 	MultiChoiceMenuItem resampleQuality
 	{
-		"Resampling Quality",
+		"Resampling Quality", &defaultFace(),
 		[]()
 		{
 			switch((AudioSettings::ResamplingQuality)optionAudioResampleQuality.val)
@@ -67,15 +68,15 @@ class CustomVideoOptionView : public VideoOptionView
 {
 	TextMenuItem tvPhosphorBlendItem[4]
 	{
-		{"70%", []() { setTVPhosphorBlend(70); }},
-		{"80%", []() { setTVPhosphorBlend(80); }},
-		{"90%", []() { setTVPhosphorBlend(90); }},
-		{"100%", []() { setTVPhosphorBlend(100); }},
+		{"70%", &defaultFace(), []() { setTVPhosphorBlend(70); }},
+		{"80%", &defaultFace(), []() { setTVPhosphorBlend(80); }},
+		{"90%", &defaultFace(), []() { setTVPhosphorBlend(90); }},
+		{"100%", &defaultFace(), []() { setTVPhosphorBlend(100); }},
 	};
 
 	MultiChoiceMenuItem tvPhosphorBlend
 	{
-		"TV Phosphor Blending",
+		"TV Phosphor Blending", &defaultFace(),
 		[]()
 		{
 			switch(optionTVPhosphorBlend)
@@ -104,18 +105,18 @@ public:
 	}
 };
 
-class ConsoleOptionView : public TableView
+class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
 {
 	TextMenuItem tvPhosphorItem[3]
 	{
-		{"Off", []() { setTVPhosphor(0); }},
-		{"On", []() { setTVPhosphor(1); }},
-		{"Auto", []() { setTVPhosphor(TV_PHOSPHOR_AUTO); }},
+		{"Off", &defaultFace(), []() { setTVPhosphor(0); }},
+		{"On", &defaultFace(), []() { setTVPhosphor(1); }},
+		{"Auto", &defaultFace(), []() { setTVPhosphor(TV_PHOSPHOR_AUTO); }},
 	};
 
 	MultiChoiceMenuItem tvPhosphor
 	{
-		"Simulate TV Phosphor",
+		"Simulate TV Phosphor", &defaultFace(),
 		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == 2 && osystem->hasConsole())
@@ -133,18 +134,18 @@ class ConsoleOptionView : public TableView
 
 	TextMenuItem videoSystemItem[7]
 	{
-		{"Auto", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(0, e); }},
-		{"NTSC", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(1, e); }},
-		{"PAL", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(2, e); }},
-		{"SECAM", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(3, e); }},
-		{"NTSC 50", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(4, e); }},
-		{"PAL 60", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(5, e); }},
-		{"SECAM 60", [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(6, e); }},
+		{"Auto", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(0, e); }},
+		{"NTSC", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(1, e); }},
+		{"PAL", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(2, e); }},
+		{"SECAM", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(3, e); }},
+		{"NTSC 50", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(4, e); }},
+		{"PAL 60", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(5, e); }},
+		{"SECAM 60", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e) { setVideoSystem(6, e); }},
 	};
 
 	MultiChoiceMenuItem videoSystem
 	{
-		"Video System",
+		"Video System", &defaultFace(),
 		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == 0 && osystem->hasConsole())
@@ -170,20 +171,20 @@ class ConsoleOptionView : public TableView
 	{
 		EmuSystem::sessionOptionSet();
 		optionVideoSystem = val;
-		EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
+		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
 	TextMenuItem inputPortsItem[4]
 	{
-		{"Auto", [](){ setInputPorts(Controller::Type::Unknown); }},
-		{"Joystick", [](){ setInputPorts(Controller::Type::Joystick); }},
-		{"Genesis Gamepad", [](){ setInputPorts(Controller::Type::Genesis); }},
-		{"Paddles", [](){ setInputPorts(Controller::Type::Paddles); }},
+		{"Auto", &defaultFace(), [this](){ setInputPorts(Controller::Type::Unknown); }},
+		{"Joystick", &defaultFace(), [this](){ setInputPorts(Controller::Type::Joystick); }},
+		{"Genesis Gamepad", &defaultFace(), [this](){ setInputPorts(Controller::Type::Genesis); }},
+		{"Paddles", &defaultFace(), [this](){ setInputPorts(Controller::Type::Paddles); }},
 	};
 
 	MultiChoiceMenuItem inputPorts
 	{
-		"Input Ports",
+		"Input Ports", &defaultFace(),
 		[](int idx, Gfx::Text &t)
 		{
 			if(idx == 0 && osystem->hasConsole())
@@ -208,24 +209,24 @@ class ConsoleOptionView : public TableView
 		inputPortsItem
 	};
 
-	static void setInputPorts(Controller::Type type)
+	void setInputPorts(Controller::Type type)
 	{
 		EmuSystem::sessionOptionSet();
 		optionInputPort1 = (uint8_t)type;
 		if(osystem->hasConsole())
 		{
-			setControllerType(osystem->console(), type);
+			setControllerType(app(), osystem->console(), type);
 		}
 	}
 
 	TextMenuItem dPaddleSensitivityItem[2]
 	{
-		{"Default", [this]() { setDPaddleSensitivity(1); }},
-		{"Custom Value",
+		{"Default", &defaultFace(), [this]() { setDPaddleSensitivity(1); }},
+		{"Custom Value", &defaultFace(),
 			[this](Input::Event e)
 			{
-				EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 1 to 20", "",
-					[this](auto val)
+				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 1 to 20", "",
+					[this](EmuApp &app, auto val)
 					{
 						if(optionPaddleDigitalSensitivity.isValidVal(val))
 						{
@@ -236,7 +237,7 @@ class ConsoleOptionView : public TableView
 						}
 						else
 						{
-							EmuApp::postErrorMessage("Value not in range");
+							app.postErrorMessage("Value not in range");
 							return false;
 						}
 					});
@@ -247,7 +248,7 @@ class ConsoleOptionView : public TableView
 
 	MultiChoiceMenuItem dPaddleSensitivity
 	{
-		"Digital Paddle Sensitivity",
+		"Digital Paddle Sensitivity", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
 			t.setString(string_makePrintf<4>("%u", optionPaddleDigitalSensitivity.val).data());
@@ -294,7 +295,7 @@ class VCSSwitchesView : public TableView
 {
 	BoolMenuItem diff1
 	{
-		"Left (P1) Difficulty",
+		"Left (P1) Difficulty", &defaultFace(),
 		p1DiffB,
 		"A", "B",
 		[this](BoolMenuItem &item, View &, Input::Event e)
@@ -305,7 +306,7 @@ class VCSSwitchesView : public TableView
 
 	BoolMenuItem diff2
 	{
-		"Right (P2) Difficulty",
+		"Right (P2) Difficulty", &defaultFace(),
 		p2DiffB,
 		"A", "B",
 		[this](BoolMenuItem &item, View &, Input::Event e)
@@ -316,7 +317,7 @@ class VCSSwitchesView : public TableView
 
 	BoolMenuItem color
 	{
-		"Color",
+		"Color", &defaultFace(),
 		vcsColor,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -355,7 +356,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 private:
 	TextMenuItem switches
 	{
-		"Console Switches",
+		"Console Switches", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
@@ -367,7 +368,7 @@ private:
 
 	TextMenuItem options
 	{
-		"Console Options",
+		"Console Options", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())

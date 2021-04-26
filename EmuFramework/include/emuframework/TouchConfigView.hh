@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/util/container/ArrayList.hh>
@@ -22,7 +23,7 @@
 
 class VController;
 
-class TouchConfigView : public TableView
+class TouchConfigView : public TableView, public EmuAppHelper<TouchConfigView>
 {
 public:
 	TouchConfigView(ViewAttachParams attach, VController &vController, const char *faceBtnName, const char *centerBtnName);
@@ -68,9 +69,8 @@ protected:
 		#endif
 	BoolMenuItem boundingBoxes;
 	BoolMenuItem vibrate;
-		#ifdef CONFIG_EMUFRAMEWORK_USE_SCALED_COORDINATES
-		BoolMenuItem useScaledCoordinates;
-		#endif
+	IG_enableMemberIf(Config::EmuFramework::USE_SCALED_COORDINATES,
+		BoolMenuItem, useScaledCoordinates);
 	BoolMenuItem showOnTouch;
 	#endif
 	TextMenuItem alphaItem[6];

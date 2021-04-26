@@ -19,30 +19,30 @@
 #include <emuframework/EmuInput.hh>
 #include "internal.hh"
 
-class ConsoleOptionView : public TableView
+class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
 {
 	BoolMenuItem sixButtonPad
 	{
-		"6-button Gamepad",
+		"6-button Gamepad", &defaultFace(),
 		(bool)option6BtnPad,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			EmuSystem::sessionOptionSet();
 			bool on = item.flipBoolValue(*this);
 			option6BtnPad = on;
-			EmuControls::setActiveFaceButtons(on ? 6 : 2);
+			app().setActiveFaceButtons(on ? 6 : 2);
 		}
 	};
 
 	BoolMenuItem arcadeCard
 	{
-		"Arcade Card",
+		"Arcade Card", &defaultFace(),
 		(bool)optionArcadeCard,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			EmuSystem::sessionOptionSet();
 			optionArcadeCard = item.flipBoolValue(*this);
-			EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
+			app().promptSystemReloadDueToSetOption(attachParams(), e);
 		}
 	};
 
@@ -68,7 +68,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 private:
 	TextMenuItem options
 	{
-		"Console Options",
+		"Console Options", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			pushAndShow(makeView<ConsoleOptionView>(), e);
@@ -87,7 +87,7 @@ class CustomSystemOptionView : public SystemOptionView
 {
 	TextMenuItem sysCardPath
 	{
-		nullptr,
+		nullptr, &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("System Card", &::sysCardPath,

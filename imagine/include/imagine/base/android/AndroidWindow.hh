@@ -44,6 +44,7 @@ public:
 	int nativePixelFormat();
 	void updateContentRect(const IG::WindowRect &rect);
 	void setContentRect(const IG::WindowRect &rect, const IG::Point2D<int> &winSize);
+	void systemRequestsRedraw(bool sync = true);
 
 protected:
 	enum class Type: uint8_t

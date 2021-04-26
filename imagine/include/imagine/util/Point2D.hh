@@ -15,49 +15,67 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/operators.hh>
-#include <imagine/util/math/math.hh>
+#include <imagine/util/AssignmentArithmetics.hh>
+#include <numeric>
 #include <compare>
+#include <cmath>
 
 namespace IG
 {
 
 template <class T>
-struct Point2D : public Arithmetics< Point2D<T> >
+struct Point2D : public AssignmentArithmetics< Point2D<T> >
 {
-	T x = 0, y = 0;
+	T x{}, y{};
 
 	constexpr Point2D() {}
-	constexpr Point2D(T x, T y): x(x), y(y) {}
+	constexpr Point2D(T x, T y): x{x}, y{y} {}
 
-	constexpr bool operator ==(Point2D<T> const& rhs) const = default;
+	constexpr bool operator ==(Point2D const& rhs) const = default;
 
-	Point2D<T> & operator +=(Point2D<T> const& rhs)
+	constexpr Point2D operator +(Point2D const& rhs) const
 	{
-		x += rhs.x;
-		y += rhs.y;
-		return *this;
+		return {x + rhs.x, y + rhs.y};
 	}
 
-	Point2D<T> & operator -=(Point2D<T> const& rhs)
+	constexpr Point2D operator -(Point2D const& rhs) const
 	{
-		x -= rhs.x;
-		y -= rhs.y;
-		return *this;
+		return {x - rhs.x, y - rhs.y};
 	}
 
-	Point2D<T> & operator *=(Point2D<T> const& rhs)
+	constexpr Point2D operator *(Point2D const& rhs) const
 	{
-		x *= rhs.x;
-		y *= rhs.y;
-		return *this;
+		return {x * rhs.x, y * rhs.y};
 	}
 
-	Point2D<T> & operator /=(Point2D<T> const& rhs)
+	constexpr Point2D operator /(Point2D const& rhs) const
 	{
-		x /= rhs.x;
-		y /= rhs.y;
-		return *this;
+		return {x / rhs.x, y / rhs.y};
+	}
+
+	constexpr Point2D operator-() const
+	{
+		return {-x, -y};
+	}
+
+	constexpr Point2D operator +(T const& rhs) const
+	{
+		return {x + rhs, y + rhs};
+	}
+
+	constexpr Point2D operator -(T const& rhs) const
+	{
+		return {x - rhs, y - rhs};
+	}
+
+	constexpr Point2D operator *(T const& rhs) const
+	{
+		return {x * rhs, y * rhs};
+	}
+
+	constexpr Point2D operator /(T const& rhs) const
+	{
+		return {x / rhs, y / rhs};
 	}
 
 	template <class Ratio>
@@ -73,7 +91,7 @@ struct Point2D : public Arithmetics< Point2D<T> >
 
 	constexpr T midpoint()
 	{
-		return (x + y) / (T)2;
+		return std::midpoint(x, y);
 	}
 
 	constexpr T distance()
@@ -81,9 +99,11 @@ struct Point2D : public Arithmetics< Point2D<T> >
 		return std::abs(x - y);
 	}
 
-	constexpr T distance(Point2D<T> other)
+	constexpr T distance(Point2D other)
 	{
-		return std::sqrt(pow2(x - other.x) + pow2(y - other.y));
+		auto dx = x - other.x;
+		auto dy = y - other.y;
+		return std::sqrt(dx * dx + dy * dy);
 	}
 };
 

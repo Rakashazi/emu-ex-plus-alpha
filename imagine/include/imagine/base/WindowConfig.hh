@@ -106,7 +106,7 @@ public:
 		screen_ = &screen;
 	}
 
-	Screen &screen(ApplicationContext app) const;
+	Screen &screen(ApplicationContext) const;
 
 	void setOnSurfaceChange(WindowSurfaceChangeDelegate del)
 	{

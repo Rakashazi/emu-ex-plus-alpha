@@ -37,10 +37,11 @@ const char *testIDToStr(TestID id)
 	}
 }
 
-void TestFramework::init(Base::ApplicationContext app, Gfx::Renderer &r, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
+void TestFramework::init(Base::ApplicationContext app, Gfx::Renderer &r,
+	Gfx::GlyphTextureSet &face, IG::WP pixmapSize, Gfx::TextureBufferMode bufferMode)
 {
-	cpuStatsText = {&View::defaultFace};
-	frameStatsText = {&View::defaultFace};
+	cpuStatsText = {&face};
+	frameStatsText = {&face};
 	initTest(app, r, pixmapSize, bufferMode);
 }
 
@@ -165,7 +166,7 @@ void TestFramework::prepareDraw(Gfx::Renderer &r)
 	frameStatsText.makeGlyphs(r);
 }
 
-void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
+void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, Gfx::GC xIndent)
 {
 	using namespace Gfx;
 	cmds.loadTransform(projP.makeTranslate());
@@ -179,7 +180,7 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 		GeomRect::draw(cmds, cpuStatsRect);
 		cmds.setColor(1., 1., 1., 1.);
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
-		cpuStatsText.draw(cmds, projP.alignXToPixel(cpuStatsRect.x + TableView::globalXIndent),
+		cpuStatsText.draw(cmds, projP.alignXToPixel(cpuStatsRect.x + xIndent),
 			projP.alignYToPixel(cpuStatsRect.yCenter()), LC2DO, projP);
 	}
 	if(frameStatsText.isVisible())
@@ -190,7 +191,7 @@ void TestFramework::draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds)
 		GeomRect::draw(cmds, frameStatsRect);
 		cmds.setColor(1., 1., 1., 1.);
 		cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
-		frameStatsText.draw(cmds, projP.alignXToPixel(frameStatsRect.x + TableView::globalXIndent),
+		frameStatsText.draw(cmds, projP.alignXToPixel(frameStatsRect.x + xIndent),
 			projP.alignYToPixel(frameStatsRect.yCenter()), LC2DO, projP);
 	}
 }

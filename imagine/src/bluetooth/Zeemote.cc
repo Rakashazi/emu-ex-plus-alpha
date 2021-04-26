@@ -15,11 +15,12 @@
 
 #define LOGTAG "Zeemote"
 #include <imagine/bluetooth/Zeemote.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 #include <imagine/util/algorithm.h>
 #include <algorithm>
-#include "../input/private.hh"
+#include "../input/PackedInputAccess.hh"
 #include "private.hh"
 
 std::vector<Zeemote*> Zeemote::devList;
@@ -108,8 +109,7 @@ void Zeemote::removeFromSystem()
 	IG::eraseFirst(devList, this);
 	if(IG::eraseFirst(btInputDevList, this))
 	{
-		Input::removeDevice(*this);
-		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::REMOVED });
+		ctx.application().removeSystemInputDevice(*this, true);
 	}
 }
 
@@ -122,14 +122,13 @@ uint32_t Zeemote::statusHandler(BluetoothSocket &sock, uint32_t status)
 		devList.push_back(this);
 		btInputDevList.push_back(this);
 		devId = player;
-		Input::addDevice(*this);
-		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::ADDED });
+		ctx.application().addSystemInputDevice(*this, true);
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("Zeemote connection error");
-		Input::onDeviceChange.callCopySafe(*this, { Input::Device::Change::CONNECT_ERROR });
+		ctx.application().dispatchInputDeviceChange(*this, {Input::DeviceAction::CONNECT_ERROR});
 		close();
 		delete this;
 	}
@@ -187,8 +186,8 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 					//processStickDataForButtonEmulation((int8_t*)&inputBuffer[4], player);
 					iterateTimes(2, i)
 					{
-						if(axisKey[i].dispatch(inputBuffer[4+i], player, Input::Map::ZEEMOTE, time, *this, app.mainWindow()))
-							app.endIdleByUserActivity();
+						if(axisKey[i].dispatch(inputBuffer[4+i], player, Input::Map::ZEEMOTE, time, *this, ctx.mainWindow()))
+							ctx.endIdleByUserActivity();
 					}
 			}
 			inputBufferPos = 0;
@@ -230,10 +229,9 @@ void Zeemote::processBtnReport(const uint8_t *btnData, Input::Time time, uint32_
 			bool newState = btnPush[i];
 			uint32_t code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
-			app.endIdleByUserActivity();
-			Event event{player, Map::ZEEMOTE, (Key)code, sysKeyMap[i], newState ? PUSHED : RELEASED, 0, 0, Source::GAMEPAD, time, this};
-			startKeyRepeatTimer(app, event);
-			dispatchInputEvent(app, event);
+			ctx.endIdleByUserActivity();
+			Event event{player, Map::ZEEMOTE, (Key)code, sysKeyMap[i], newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+			ctx.application().dispatchRepeatableKeyInputEvent( event);
 		}
 	}
 	memcpy(prevBtnPush, btnPush, sizeof(prevBtnPush));

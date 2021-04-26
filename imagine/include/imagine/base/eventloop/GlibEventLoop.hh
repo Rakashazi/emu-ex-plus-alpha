@@ -24,7 +24,7 @@ namespace Base
 
 static const int POLLEV_IN = G_IO_IN, POLLEV_OUT = G_IO_OUT, POLLEV_ERR = G_IO_ERR, POLLEV_HUP = G_IO_HUP;
 
-struct GSource2 : public GSource
+struct GlibSource : public GSource
 {
 	PollEventDelegate callback{};
 };
@@ -41,12 +41,12 @@ public:
 
 protected:
 	IG_enableMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
-	GSource2 *source{};
+	GSource *source{};
 	gpointer tag{};
 	int fd_ = -1;
+	IG_enableMemberIfOrConstant(Config::DEBUG_BUILD, bool, true, usingGlibSource){};
 
-	bool makeAndAttachSource(GSourceFuncs *fdSourceFuncs,
-		PollEventDelegate callback_, GIOCondition events, GMainContext *ctx);
+	bool attachGSource(GSource *, GIOCondition events, GMainContext *);
 	void deinit();
 	const char *label() const;
 };

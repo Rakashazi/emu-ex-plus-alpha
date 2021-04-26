@@ -31,7 +31,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"10:9 (Original)", 10, 9},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 Byte1Option optionGBPal{CFGKEY_GB_PAL_IDX, 0, 0, optionIsValidWithMax<std::size(gbPal)-1>};
 Byte1Option optionUseBuiltinGBPalette{CFGKEY_USE_BUILTIN_GB_PAL, 1};
 Byte1Option optionReportAsGba{CFGKEY_REPORT_AS_GBA, 0};
@@ -51,7 +51,7 @@ bool renderPixelFormatIsValid(uint8_t val)
 	return false;
 }
 
-bool EmuSystem::resetSessionOptions()
+bool EmuSystem::resetSessionOptions(EmuApp &)
 {
 	optionUseBuiltinGBPalette.reset();
 	applyGBPalette();
@@ -59,7 +59,7 @@ bool EmuSystem::resetSessionOptions()
 	return true;
 }
 
-bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{
@@ -76,7 +76,7 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionReportAsGba.writeWithKeyIfNotDefault(io);
 }
 
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{

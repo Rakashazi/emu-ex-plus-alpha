@@ -29,9 +29,9 @@ public:
 	struct Context
 	{
 		Input::Key mapKey;
-		uint keyToSet;
+		unsigned keyToSet;
 		const KeyCategory *conflictCat{};
-		uint conflictKey;
+		unsigned conflictKey;
 	};
 
 	Context ctx;
@@ -55,8 +55,8 @@ void ButtonConfigSetView::initPointerUI()
 	{
 		logMsg("init pointer UI elements");
 		waitForDrawFinished();
-		unbind = {"Unbind", &View::defaultFace};
-		cancel = {"Cancel", &View::defaultFace};
+		unbind = {"Unbind", &defaultFace()};
+		cancel = {"Cancel", &defaultFace()};
 		unbindB.x2 = 1;
 	}
 }
@@ -66,7 +66,7 @@ ButtonConfigSetView::ButtonConfigSetView(ViewAttachParams attach,
 	InputManagerView &rootIMView, Input::Device &dev, const char *actionName,
 	SetDelegate onSet):
 		View{attach},
-		text{&View::defaultFace},
+		text{&defaultFace()},
 		onSetD{onSet},
 		dev{dev},
 		rootIMView{rootIMView}
@@ -132,7 +132,7 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 		{
 			if(d == savedDev)
 			{
-				EmuApp::unpostMessage();
+				app().unpostMessage();
 				auto &rootIMView = this->rootIMView;
 				popTo(rootIMView);
 				rootIMView.pushAndShowDeviceView(d->idx, e);
@@ -140,7 +140,7 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 			else
 			{
 				savedDev = d;
-				EmuApp::printfMessage(7, false,
+				app().printfMessage(7, false,
 					"You pushed a key from device:\n%s\nPush another from it to open its config menu",
 					rootIMView.makeDeviceName(d->name(), d->enumId()).data());
 				postDraw();
@@ -200,13 +200,13 @@ void ButtonConfigSetView::onAddedToController(ViewController *, Input::Event e)
 }
 
 void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-	_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+	Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
-	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP, color);
-	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP, Gfx::color(Gfx::ColorName::YELLOW));
+	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
+	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, Gfx::color(Gfx::ColorName::YELLOW));
 }
 
-static std::pair<const KeyCategory *, uint> findCategoryAndKeyInConfig(Input::Key key, InputDeviceConfig &devConf, const KeyCategory *skipCat, int skipIdx_)
+static std::pair<const KeyCategory *, unsigned> findCategoryAndKeyInConfig(Input::Key key, InputDeviceConfig &devConf, const KeyCategory *skipCat, int skipIdx_)
 {
 	iterateTimes(EmuControls::categories, c)
 	{
@@ -244,7 +244,7 @@ ButtonConfigView::KeyNameStr ButtonConfigView::makeKeyNameStr(Input::Key key, co
 
 void ButtonConfigView::onSet(Input::Key mapKey, int keyToSet)
 {
-	if(!devConf->setKey(mapKey, *cat, keyToSet))
+	if(!devConf->setKey(app(), mapKey, *cat, keyToSet))
 		return;
 	auto &b = btn[keyToSet];
 	{
@@ -252,7 +252,7 @@ void ButtonConfigView::onSet(Input::Key mapKey, int keyToSet)
 		b.set2ndName(makeKeyNameStr(mapKey, devConf->dev->keyName(mapKey)).data());
 		b.compile2nd(renderer(), projP);
 	}
-	keyMapping.buildAll();
+	app().buildKeyInputMapping();
 }
 
 bool ButtonConfigView::inputEvent(Input::Event e)
@@ -285,7 +285,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 		{
 			return 1 + cat->keys;
 		},
-		[this](const TableView &, uint idx) -> MenuItem&
+		[this](const TableView &, unsigned idx) -> MenuItem&
 		{
 			if(idx == 0)
 				return reset;
@@ -296,14 +296,14 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 	rootIMView{rootIMView_},
 	reset
 	{
-		"Unbind All",
+		"Unbind All", &defaultFace(),
 		[this](Input::Event e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Really unbind all keys in this category?");
 			ynAlertView->setOnYes(
 				[this](Input::Event e)
 				{
-					auto conf = devConf->makeMutableKeyConf();
+					auto conf = devConf->makeMutableKeyConf(app());
 					if(!conf)
 						return;
 					conf->unbindCategory(*cat);
@@ -315,7 +315,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 							btn[i].compile2nd(renderer(), projP);
 						}
 					}
-					keyMapping.buildAll();
+					app().buildKeyInputMapping();
 				});
 			pushAndShowModal(std::move(ynAlertView), e);
 		}
@@ -333,6 +333,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 		{
 			cat->keyName[i],
 			makeKeyNameStr(key, devConf_.dev->keyName(key)).data(),
+			&defaultFace(),
 			[this, keyToSet = i](Input::Event e)
 			{
 				auto btnSetView = makeView<ButtonConfigSetView>(rootIMView,
@@ -347,7 +348,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 							if(conflictCat)
 							{
 								// prompt to resolve key conflict
-								auto conflictKey = std::get<uint>(conflict);
+								auto conflictKey = std::get<unsigned>(conflict);
 								auto alertView = makeView<KeyConflictAlertView>(
 									string_makePrintf<96>("Key \"%s\" already used for action \"%s\", unbind it before setting?",
 									devConf->dev->keyName(mapKey),
@@ -359,7 +360,9 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 										if(ctx->conflictCat == this->cat)
 											onSet(0, ctx->conflictKey);
 										else
-											devConf->setKey(0, *ctx->conflictCat, ctx->conflictKey);
+										{
+											devConf->setKey(app(), 0, *ctx->conflictCat, ctx->conflictKey);
+										}
 										onSet(ctx->mapKey, ctx->keyToSet);
 									});
 								alertView->setItem(1, "No",

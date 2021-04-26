@@ -20,14 +20,17 @@
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/util/DelegateFunc.hh>
+#include <imagine/util/NonCopyable.hh>
 #include <utility>
 #include <memory>
+#include <optional>
 
 namespace Base
 {
 class Window;
 class Screen;
 class ApplicationContext;
+class Application;
 }
 
 namespace Input
@@ -44,12 +47,13 @@ class RendererTask;
 class View;
 class BaseTextMenuItem;
 
-class ViewController
+class ViewController : private NonCopyable
 {
 public:
 	constexpr ViewController() {}
 	virtual void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal) = 0;
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e);
+	void pushAndShow(std::unique_ptr<View> v);
 	virtual void pop();
 	virtual void popAndShow();
 	virtual void popTo(View &v) = 0;
@@ -59,19 +63,45 @@ public:
 	virtual bool moveFocusToNextView(Input::Event e, _2DOrigin direction);
 };
 
-class View
+class ViewManager
+{
+public:
+	static constexpr bool needsBackControlDefault = !Config::envIsAndroid;
+	static constexpr bool needsBackControlIsMutable = !Config::envIsIOS;
+	static constexpr auto imageCommonTextureSampler = Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP;
+
+	constexpr ViewManager() {}
+	ViewManager(Gfx::Renderer &);
+	void setDefaultFace(Gfx::GlyphTextureSet);
+	void setDefaultBoldFace(Gfx::GlyphTextureSet);
+	Gfx::GlyphTextureSet &defaultFace();
+	Gfx::GlyphTextureSet &defaultBoldFace();
+	constexpr bool needsBackControl() const { return needsBackControl_; }
+	void setNeedsBackControl(std::optional<bool>);
+	std::optional<bool> needsBackControlOption() const;
+	Gfx::GC tableXIndent() const;
+	void setTableXIndentMM(float indentMM, Gfx::ProjectionPlane);
+	float defaultTableXIndentMM(const Base::Window &);
+	void setTableXIndentToDefault(const Base::Window &, Gfx::ProjectionPlane);
+
+protected:
+	Gfx::GlyphTextureSet defaultFace_{};
+	Gfx::GlyphTextureSet defaultBoldFace_{};
+	Gfx::GC tableXIndent_{};
+	// True if the platform needs an on-screen/pointer-based control to move to a previous view
+	IG_enableMemberIfOrConstant(needsBackControlIsMutable,
+		bool, needsBackControlDefault, needsBackControl_){needsBackControlDefault};
+};
+
+class View : private NonCopyable
 {
 public:
 	using NameString = Gfx::TextString;
 	using NameStringView = Gfx::TextStringView;
 	using DismissDelegate = DelegateFunc<bool (View &view)>;
-	static Gfx::GlyphTextureSet defaultFace;
-	static Gfx::GlyphTextureSet defaultBoldFace;
-	// Does the platform need an on-screen/pointer-based control to move to a previous view?
-	static bool needsBackControl;
-	static const bool needsBackControlDefault = !Config::envIsAndroid;
-	static const bool needsBackControlIsConst = Config::envIsIOS;
-	static constexpr auto imageCommonTextureSampler = Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP;
+	static constexpr bool needsBackControlDefault = ViewManager::needsBackControlDefault;
+	static constexpr bool needsBackControlIsMutable = ViewManager::needsBackControlIsMutable;
+	static constexpr auto imageCommonTextureSampler = ViewManager::imageCommonTextureSampler;
 
 	View();
 	View(ViewAttachParams attach);
@@ -95,6 +125,7 @@ public:
 	Base::Window &window() const;
 	Gfx::Renderer &renderer() const;
 	Gfx::RendererTask &rendererTask() const;
+	ViewManager &manager();
 	ViewAttachParams attachParams() const;
 	Base::Screen *screen() const;
 	Base::ApplicationContext appContext() const;
@@ -103,8 +134,8 @@ public:
 	void setName(NameString name);
 	static NameString makeNameString(const char *name);
 	static NameString makeNameString(const BaseTextMenuItem &item);
-	static void setNeedsBackControl(bool on);
-	static bool compileGfxPrograms(Gfx::Renderer &r);
+	Gfx::GlyphTextureSet &defaultFace();
+	Gfx::GlyphTextureSet &defaultBoldFace();
 	static Gfx::Color menuTextColor(bool isSelected);
 	void dismiss(bool refreshLayout = true);
 	void dismissPrevious();
@@ -117,6 +148,7 @@ public:
 	void setOnDismiss(DismissDelegate del);
 	void onDismiss();
 	void setController(ViewController *c, Input::Event e);
+	void setController(ViewController *c);
 	ViewController *controller() const;
 	IG::WindowRect viewRect() const;
 	Gfx::ProjectionPlane projection() const;
@@ -150,6 +182,7 @@ public:
 protected:
 	Base::Window *win{};
 	Gfx::RendererTask *rendererTask_{};
+	ViewManager *manager_{};
 	ViewController *controller_{};
 	NameString nameStr{};
 	DismissDelegate dismissDel{};

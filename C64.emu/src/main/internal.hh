@@ -86,5 +86,5 @@ bool hasC64CartExtension(const char *name);
 int optionDefaultModel(ViceSystem system);
 void resetCanvasSourcePixmap(struct video_canvas_s *c);
 void applySessionOptions();
-void updateKeyMappingArray();
+void updateKeyMappingArray(EmuApp &);
 int systemCartType(ViceSystem system);

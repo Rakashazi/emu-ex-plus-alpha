@@ -39,7 +39,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"8:7", 8, 7},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 
 #ifndef SNES9X_VERSION_1_4
 void setSuperFXSpeedMultiplier(unsigned val)
@@ -72,7 +72,7 @@ EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)
 	return {};
 }
 
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{
@@ -91,7 +91,7 @@ void EmuSystem::writeConfig(IO &io)
 	#endif
 }
 
-void EmuSystem::onSessionOptionsLoaded()
+void EmuSystem::onSessionOptionsLoaded(EmuApp &)
 {
 	applyInputPortOption(optionInputPort);
 	#ifndef SNES9X_VERSION_1_4
@@ -101,7 +101,7 @@ void EmuSystem::onSessionOptionsLoaded()
 	#endif
 }
 
-bool EmuSystem::resetSessionOptions()
+bool EmuSystem::resetSessionOptions(EmuApp &)
 {
 	applyInputPortOption(optionInputPort.reset());
 	optionMultitap.reset();
@@ -115,7 +115,7 @@ bool EmuSystem::resetSessionOptions()
 	return true;
 }
 
-bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{

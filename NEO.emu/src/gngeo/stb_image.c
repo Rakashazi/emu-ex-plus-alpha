@@ -105,7 +105,7 @@ typedef unsigned short uint16;
 typedef   signed short  int16;
 typedef unsigned int   uint32;
 typedef   signed int    int32;
-typedef unsigned int   uint;
+typedef unsigned int   unsigned;
 #endif
 // should produce compiler error if size is wrong
 typedef unsigned char validate_uint32[sizeof(uint32)==4];
@@ -473,7 +473,7 @@ static uint8 compute_y(int r, int g, int b)
    return (uint8) (((r*77) + (g*150) +  (29*b)) >> 8);
 }
 
-static unsigned char *convert_format(unsigned char *data, int img_n, int req_comp, uint x, uint y)
+static unsigned char *convert_format(unsigned char *data, int img_n, int req_comp, unsigned x, unsigned y)
 {
    int i,j;
    unsigned char *good;
@@ -1470,7 +1470,7 @@ static uint8 *load_jpeg_image(jpeg *z, int *out_x, int *out_y, int *comp, int re
    // resample and color-convert
    {
       int k;
-      uint i,j;
+      unsigned i,j;
       uint8 *output;
       uint8 *coutput[4];
 

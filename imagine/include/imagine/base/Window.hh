@@ -33,6 +33,7 @@ namespace Base
 
 class Screen;
 class ApplicationContext;
+class Application;
 
 class Window : public WindowImpl
 {
@@ -45,8 +46,6 @@ public:
 	};
 
 	Window(ApplicationContext, WindowConfig, InitDelegate);
-	Window(const Window &) = delete;
-	Window &operator=(const Window &) = delete;
 	void show();
 	void dismiss();
 	void setAcceptDnd(bool on);
@@ -72,6 +71,8 @@ public:
 	void resetRendererData();
 	bool isMainWindow() const;
 	ApplicationContext appContext() const;
+	Application &application() const;
+	void setCursorVisible(bool);
 
 	template <class T, class... Args>
 	T &makeAppData(Args&&... args)
@@ -138,6 +139,7 @@ public:
 	int widthSMMInPixels(float mm) const;
 	int heightSMMInPixels(float mm) const;
 	IG::WindowRect bounds() const;
+	IG::Point2D<int> transformInputPos(IG::Point2D<int> srcPos) const;
 
 	// content in these bounds isn't blocked by system overlays and receives pointer input
 	IG::WindowRect contentBounds() const;
@@ -146,7 +148,6 @@ public:
 	Orientation validSoftOrientations() const;
 	bool requestOrientationChange(Orientation o);
 	bool setValidOrientations(Orientation oMask);
-	static bool systemAnimatesRotation();
 
 	bool updateSize(IG::Point2D<int> surfaceSize);
 	bool updatePhysicalSize(IG::Point2D<float> surfaceSizeMM);
@@ -154,6 +155,7 @@ public:
 	bool updatePhysicalSizeWithCurrentSize();
 	bool hasSurface() const;
 	bool dispatchInputEvent(Input::Event event);
+	bool dispatchRepeatableKeyInputEvent(Input::Event event);
 	void dispatchFocusChange(bool in);
 	void dispatchDragDrop(const char *filename);
 	void dispatchDismissRequest();

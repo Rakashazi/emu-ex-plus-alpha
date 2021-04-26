@@ -19,11 +19,12 @@
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/math/space.hh>
 #include <imagine/logger/logger.h>
 
-Gfx::GlyphTextureSet View::defaultFace{};
-Gfx::GlyphTextureSet View::defaultBoldFace{};
-bool View::needsBackControl = needsBackControlDefault;
+//Gfx::GlyphTextureSet View::defaultFace{};
+//Gfx::GlyphTextureSet View::defaultBoldFace{};
+//bool View::needsBackControl = needsBackControlDefault;
 
 Gfx::Renderer &ViewAttachParams::renderer() const
 {
@@ -38,6 +39,12 @@ Base::ApplicationContext ViewAttachParams::appContext() const
 void ViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e)
 {
 	pushAndShow(std::move(v), e, true, false);
+}
+
+void ViewController::pushAndShow(std::unique_ptr<View> v)
+{
+	auto e = v->appContext().defaultInputEvent();
+	pushAndShow(std::move(v), e);
 }
 
 void ViewController::pop()
@@ -65,6 +72,77 @@ bool ViewController::moveFocusToNextView(Input::Event, _2DOrigin)
 	return false;
 };
 
+ViewManager::ViewManager(Gfx::Renderer &r)
+{
+	r.make(imageCommonTextureSampler);
+	r.makeCommonProgram(Gfx::CommonProgram::NO_TEX);
+	// for text
+	r.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
+}
+
+void ViewManager::setDefaultFace(Gfx::GlyphTextureSet face)
+{
+	defaultFace_ = std::move(face);
+}
+
+void ViewManager::setDefaultBoldFace(Gfx::GlyphTextureSet face)
+{
+	defaultBoldFace_ = std::move(face);
+}
+
+Gfx::GlyphTextureSet &ViewManager::defaultFace()
+{
+	return defaultFace_;
+}
+
+Gfx::GlyphTextureSet &ViewManager::defaultBoldFace()
+{
+	return defaultBoldFace_;
+}
+
+void ViewManager::setNeedsBackControl(std::optional<bool> opt)
+{
+	if(!opt)
+		return;
+	needsBackControl_ = *opt;
+}
+
+std::optional<bool> ViewManager::needsBackControlOption() const
+{
+	if(!needsBackControlIsMutable || needsBackControl() == needsBackControlDefault)
+		return {};
+	return needsBackControl();
+}
+
+Gfx::GC ViewManager::tableXIndent() const
+{
+	return tableXIndent_;
+}
+
+void ViewManager::setTableXIndentMM(float indentMM, Gfx::ProjectionPlane projP)
+{
+	auto indentGC = projP.xSMMSize(indentMM);
+	if(!IG::valIsWithinStretch(indentGC, tableXIndent(), 0.001f))
+	{
+		logDMsg("setting X indent:%.2fmm (%f as coordinate)", indentMM, indentGC);
+	}
+	tableXIndent_ = projP.xSMMSize(indentMM);
+}
+
+float ViewManager::defaultTableXIndentMM(const Base::Window &win)
+{
+	auto wMM = win.widthMM();
+	return
+		wMM < 150. ? 1. :
+		wMM < 250. ? 2. :
+		4.;
+}
+
+void ViewManager::setTableXIndentToDefault(const Base::Window &win, Gfx::ProjectionPlane projP)
+{
+	setTableXIndentMM(defaultTableXIndentMM(win), projP);
+}
+
 View::View() {}
 
 View::View(ViewAttachParams attach):
@@ -72,7 +150,8 @@ View::View(ViewAttachParams attach):
 {}
 
 View::View(NameString name, ViewAttachParams attach):
-	win(&attach.window()), rendererTask_{&attach.rendererTask()}, nameStr{std::move(name)}
+	win(&attach.window()), rendererTask_{&attach.rendererTask()},
+	manager_{&attach.viewManager()}, nameStr{std::move(name)}
 {}
 
 View::View(const char *name, ViewAttachParams attach):
@@ -122,13 +201,23 @@ void View::dismissPrevious()
 	}
 }
 
-bool View::compileGfxPrograms(Gfx::Renderer &r)
+//bool View::compileGfxPrograms(Gfx::Renderer &r)
+//{
+//	r.make(imageCommonTextureSampler);
+//	auto compiled = r.makeCommonProgram(Gfx::CommonProgram::NO_TEX);
+//	// for text
+//	compiled |= r.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
+//	return compiled;
+//}
+
+Gfx::GlyphTextureSet &View::defaultFace()
 {
-	r.make(imageCommonTextureSampler);
-	auto compiled = r.makeCommonProgram(Gfx::CommonProgram::NO_TEX);
-	// for text
-	compiled |= r.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
-	return compiled;
+	return manager().defaultFace();
+}
+
+Gfx::GlyphTextureSet &View::defaultBoldFace()
+{
+	return manager().defaultBoldFace();
 }
 
 Gfx::Color View::menuTextColor(bool isSelected)
@@ -183,9 +272,14 @@ Gfx::RendererTask &View::rendererTask() const
 	return *rendererTask_;
 }
 
+ViewManager &View::manager()
+{
+	return *manager_;
+}
+
 ViewAttachParams View::attachParams() const
 {
-	return {*win, *rendererTask_};
+	return {*manager_, *win, *rendererTask_};
 }
 
 Base::Screen *View::screen() const
@@ -233,14 +327,6 @@ View::NameString View::makeNameString(const BaseTextMenuItem &item)
 	return NameString{item.text().stringView()};
 }
 
-void View::setNeedsBackControl(bool on)
-{
-	if(!needsBackControlIsConst) // only modify on environments that make sense
-	{
-		needsBackControl = on;
-	}
-}
-
 void View::show()
 {
 	prepareDraw();
@@ -278,6 +364,11 @@ void View::setController(ViewController *c, Input::Event e)
 	{
 		onAddedToController(c, e);
 	}
+}
+
+void View::setController(ViewController *c)
+{
+	setController(c, appContext().defaultInputEvent());
 }
 
 ViewController *View::controller() const

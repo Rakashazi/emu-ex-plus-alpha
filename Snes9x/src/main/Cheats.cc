@@ -183,7 +183,7 @@ static bool addCheat(const char *cheatStr)
 	#endif
 }
 
-EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
+EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, RefreshCheatsDelegate onCheatListChanged_):
 	BaseEditCheatView
 	{
 		"Edit Address/Values",
@@ -193,7 +193,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 		{
 			return 5;
 		},
-		[this](const TableView &, uint idx) -> MenuItem&
+		[this](const TableView &, unsigned idx) -> MenuItem&
 		{
 			switch(idx)
 			{
@@ -217,16 +217,17 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 	{
 		"Address",
 		nullptr,
+		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 6-digit hex", addrStr,
-				[this](auto str)
+			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 6-digit hex", addrStr,
+				[this](EmuApp &app, auto str)
 				{
-					uint a = strtoul(str, nullptr, 16);
+					unsigned a = strtoul(str, nullptr, 16);
 					if(a > 0xFFFFFF)
 					{
 						logMsg("addr 0x%X too large", a);
-						EmuApp::postMessage(true, "Invalid input");
+						app.postMessage(true, "Invalid input");
 						return false;
 					}
 					string_copy(addrStr, a ? str : "0");
@@ -251,15 +252,16 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 	{
 		"Value",
 		nullptr,
+		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr,
-				[this](const char *str)
+			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr,
+				[this](EmuApp &app, const char *str)
 				{
-					uint a = strtoul(str, nullptr, 16);
+					unsigned a = strtoul(str, nullptr, 16);
 					if(a > 0xFF)
 					{
-						EmuApp::postMessage(true, "value must be <= FF");
+						app.postMessage(true, "value must be <= FF");
 						return false;
 					}
 					string_copy(valueStr, a ? str : "0");
@@ -288,20 +290,21 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, Refre
 		"Saved Value",
 		#endif
 		nullptr,
+		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", savedStr,
+			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", savedStr,
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
-						uint a = 0x100;
+						unsigned a = 0x100;
 						if(strlen(str))
 						{
-							uint a = strtoul(str, nullptr, 16);
+							unsigned a = strtoul(str, nullptr, 16);
 							if(a > 0xFF)
 							{
-								EmuApp::postMessage(true, "value must be <= FF");
+								app().postMessage(true, "value must be <= FF");
 								return true;
 							}
 							string_copy(savedStr, str);
@@ -367,12 +370,12 @@ void EmuEditCheatView::renamed(const char *str)
 
 void EmuEditCheatListView::loadCheatItems()
 {
-	uint cheats = numCheats();
+	unsigned cheats = numCheats();
 	cheat.clear();
 	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		cheat.emplace_back(cheatName(c),
+		cheat.emplace_back(cheatName(c), &defaultFace(),
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				pushAndShow(makeView<EmuEditCheatView>(c, [this](){ onCheatListChanged(); }), e);
@@ -388,7 +391,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		{
 			return 1 + cheat.size();
 		},
-		[this](const TableView &, uint idx) -> MenuItem&
+		[this](const TableView &, unsigned idx) -> MenuItem&
 		{
 			switch(idx)
 			{
@@ -399,15 +402,15 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	},
 	addCode
 	{
-		"Add Game Genie/Action Replay/Gold Finger Code",
+		"Add Game Genie/Action Replay/Gold Finger Code", &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(numCheats() == EmuCheats::MAX)
 			{
-				EmuApp::postMessage(true, "Too many cheats, delete some first");
+				app().postMessage(true, "Too many cheats, delete some first");
 				return;
 			}
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e,
+			app().pushAndShowNewCollectTextInputView(attachParams(), e,
 				"Input xxxx-xxxx (GG), xxxxxxxx (AR), or GF code", "",
 				[this](CollectTextInputView &view, const char *str)
 				{
@@ -415,7 +418,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 					{
 						if(!addCheat(str))
 						{
-							EmuApp::postMessage(true, "Invalid format");
+							app().postMessage(true, "Invalid format");
 							return 1;
 						}
 						auto idx = numCheats() - 1;
@@ -423,7 +426,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						logMsg("added new cheat, %d total", numCheats());
 						onCheatListChanged();
 						view.dismiss();
-						EmuApp::pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
+						app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 							[this, idx](CollectTextInputView &view, const char *str)
 							{
 								if(str)
@@ -458,12 +461,12 @@ EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
 
 void EmuCheatsView::loadCheatItems()
 {
-	uint cheats = numCheats();
+	unsigned cheats = numCheats();
 	cheat.clear();
 	cheat.reserve(cheats);
 	iterateTimes(cheats, c)
 	{
-		cheat.emplace_back(cheatName(c), cheatIsEnabled(c),
+		cheat.emplace_back(cheatName(c), &defaultFace(), cheatIsEnabled(c),
 			[this, c](BoolMenuItem &item, View &, Input::Event e)
 			{
 				bool on = item.flipBoolValue(*this);

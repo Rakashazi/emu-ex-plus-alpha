@@ -19,6 +19,7 @@
 #include <imagine/time/Time.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/bitset.hh>
+#include <vector>
 
 namespace Config
 {
@@ -88,6 +89,8 @@ static constexpr bool SYSTEM_ROTATES_WINDOWS = true;
 namespace Input
 {
 class Event;
+class Device;
+class DeviceChange;
 }
 
 namespace Base
@@ -174,6 +177,8 @@ struct ScreenChange
 	bool removed() const { return state == REMOVED; }
 };
 
+using InputDeviceContainer = std::vector<Input::Device*>;
+
 class Screen;
 class Window;
 class WindowConfig;
@@ -187,6 +192,9 @@ using DeviceOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, 
 using SystemOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Orientation oldOrientation, Orientation newOrientation)>;
 using ScreenChangeDelegate = DelegateFunc<void (ApplicationContext, Screen &s, ScreenChange)>;
 
+using InputDeviceChangeDelegate = DelegateFunc<void (const Input::Device &dev, Input::DeviceChange)>;
+using InputDevicesEnumeratedDelegate = DelegateFunc<void ()>;
+
 using WindowInitDelegate = DelegateFunc<void (ApplicationContext, Window &)>;
 using WindowInitDelegate = DelegateFunc<void (ApplicationContext, Window &)>;
 using WindowSurfaceChangeDelegate = DelegateFunc<void (Window &, WindowSurfaceChange)>;
@@ -198,5 +206,6 @@ using WindowDismissRequestDelegate = DelegateFunc<void (Window &)>;
 using WindowDismissDelegate = DelegateFunc<void (Window &)>;
 
 using ScreenId = std::conditional_t<Config::envIsAndroid, int, void*>;
+using NativeDisplayConnection = void*;
 
 }

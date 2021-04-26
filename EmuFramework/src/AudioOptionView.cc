@@ -18,12 +18,12 @@
 #include <emuframework/EmuAudio.hh>
 #include "EmuOptions.hh"
 
-static void setAudioRate(uint32_t rate)
+static void setAudioRate(uint32_t rate, EmuAudio &audio)
 {
 	if(rate > optionSoundRate.defaultVal)
 		return;
 	optionSoundRate = rate;
-	EmuSystem::configAudioPlayback(rate);
+	EmuSystem::configAudioPlayback(audio, rate);
 }
 
 static void setSoundBuffers(int val)
@@ -41,7 +41,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"Audio Options", attach, item},
 	snd
 	{
-		"Sound",
+		"Sound", &defaultFace(),
 		(bool)soundIsEnabled(),
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -54,7 +54,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	soundDuringFastForward
 	{
-		"Sound During Fast Forward",
+		"Sound During Fast Forward", &defaultFace(),
 		(bool)soundDuringFastForwardIsEnabled(),
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -63,14 +63,14 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	soundVolumeItem
 	{
-		{"100%", [this]() { setSoundVolume(100, *audio); }},
-		{"50%", [this]() { setSoundVolume(50, *audio); }},
-		{"25%", [this]() { setSoundVolume(25, *audio); }},
-		{"Custom Value",
+		{"100%", &defaultFace(), [this]() { setSoundVolume(100, *audio); }},
+		{"50%", &defaultFace(), [this]() { setSoundVolume(50, *audio); }},
+		{"25%", &defaultFace(), [this]() { setSoundVolume(25, *audio); }},
+		{"Custom Value", &defaultFace(),
 			[this](Input::Event e)
 			{
-				EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
-					[this](auto val)
+				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
+					[this](EmuApp &app, auto val)
 					{
 						if(optionSoundVolume.isValidVal(val))
 						{
@@ -81,7 +81,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 						}
 						else
 						{
-							EmuApp::postErrorMessage("Value not in range");
+							app.postErrorMessage("Value not in range");
 							return false;
 						}
 					});
@@ -91,7 +91,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	soundVolume
 	{
-		"Volume",
+		"Volume", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
 			t.setString(string_makePrintf<5>("%u%%", optionSoundVolume.val).data());
@@ -111,30 +111,30 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	soundBuffersItem
 	{
-		{"2", [this]() { setSoundBuffers(2); }},
-		{"3", [this]() { setSoundBuffers(3); }},
-		{"4", [this]() { setSoundBuffers(4); }},
-		{"5", [this]() { setSoundBuffers(5); }},
-		{"6", [this]() { setSoundBuffers(6); }},
-		{"7", [this]() { setSoundBuffers(7); }},
-		{"8", [this]() { setSoundBuffers(8); }},
+		{"2", &defaultFace(), [this]() { setSoundBuffers(2); }},
+		{"3", &defaultFace(), [this]() { setSoundBuffers(3); }},
+		{"4", &defaultFace(), [this]() { setSoundBuffers(4); }},
+		{"5", &defaultFace(), [this]() { setSoundBuffers(5); }},
+		{"6", &defaultFace(), [this]() { setSoundBuffers(6); }},
+		{"7", &defaultFace(), [this]() { setSoundBuffers(7); }},
+		{"8", &defaultFace(), [this]() { setSoundBuffers(8); }},
 	},
 	soundBuffers
 	{
-		"Buffer Size In Frames",
+		"Buffer Size In Frames", &defaultFace(),
 		(int)optionSoundBuffers - 2,
 		[this](const MultiChoiceMenuItem &) -> int
 		{
 			return std::size(soundBuffersItem);
 		},
-		[this](const MultiChoiceMenuItem &, uint idx) -> TextMenuItem&
+		[this](const MultiChoiceMenuItem &, unsigned idx) -> TextMenuItem&
 		{
 			return soundBuffersItem[idx];
 		}
 	},
 	addSoundBuffersOnUnderrun
 	{
-		"Auto-increase Buffer Size",
+		"Auto-increase Buffer Size", &defaultFace(),
 		(bool)optionAddSoundBuffersOnUnderrun,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -144,14 +144,14 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	audioRate
 	{
-		"Sound Rate",
+		"Sound Rate", &defaultFace(),
 		0,
 		audioRateItem
 	}
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	,audioSoloMix
 	{
-		"Mix With Other Apps",
+		"Mix With Other Apps", &defaultFace(),
 		!optionAudioSoloMix,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -163,14 +163,14 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 	,api
 	{
-		"Audio Driver",
+		"Audio Driver", &defaultFace(),
 		0,
 		apiItem
 	}
 	#endif
 {
 	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-	apiItem.emplace_back("Auto",
+	apiItem.emplace_back("Auto", &defaultFace(),
 		[this](View &view)
 		{
 			auto app = appContext();
@@ -183,7 +183,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		});
 	for(auto desc: IG::Audio::audioAPIs(appContext()))
 	{
-		apiItem.emplace_back(desc.name,
+		apiItem.emplace_back(desc.name, &defaultFace(),
 			[this, api = desc.api]()
 			{
 				optionAudioAPI = (uint8_t)api;
@@ -205,19 +205,19 @@ void AudioOptionView::loadStockItems()
 	if(!optionSoundRate.isConst)
 	{
 		audioRateItem.clear();
-		audioRateItem.emplace_back("Device Native",
+		audioRateItem.emplace_back("Device Native", &defaultFace(),
 			[this](View &view)
 			{
-				setAudioRate(optionSoundRate.defaultVal);
+				setAudioRate(optionSoundRate.defaultVal, *audio);
 				updateAudioRateItem();
 				view.dismiss();
 				return false;
 			});
-		audioRateItem.emplace_back("22KHz", [this]() { setAudioRate(22050); });
-		audioRateItem.emplace_back("32KHz", [this]() { setAudioRate(32000); });
-		audioRateItem.emplace_back("44KHz", [this]() { setAudioRate(44100); });
+		audioRateItem.emplace_back("22KHz", &defaultFace(), [this]() { setAudioRate(22050, *audio); });
+		audioRateItem.emplace_back("32KHz", &defaultFace(), [this]() { setAudioRate(32000, *audio); });
+		audioRateItem.emplace_back("44KHz", &defaultFace(), [this]() { setAudioRate(44100, *audio); });
 		if(optionSoundRate.defaultVal >= 48000)
-			audioRateItem.emplace_back("48KHz", [this]() { setAudioRate(48000); });
+			audioRateItem.emplace_back("48KHz", &defaultFace(), [this]() { setAudioRate(48000, *audio); });
 		item.emplace_back(&audioRate);
 		updateAudioRateItem();
 	}

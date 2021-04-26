@@ -12,6 +12,7 @@
 class Console;
 class OSystem;
 class TIA;
+class EmuApp;
 
 class FrameBuffer
 {
@@ -41,6 +42,7 @@ public:
 			return os;
 		}
 	};
+	EmuApp *appPtr{};
 	uInt16 tiaColorMap16[256]{};
 	uInt32 tiaColorMap32[256]{};
 	uInt8 myPhosphorPalette[256][256]{};
@@ -49,7 +51,7 @@ public:
 	float myPhosphorPercent = 0.80f;
 	bool myUsePhosphor = false;
 
-	FrameBuffer() {}
+	FrameBuffer(OSystem& osystem);
 
 	void render(IG::Pixmap pix, TIA &tia);
 

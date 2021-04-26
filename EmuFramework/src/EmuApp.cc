@@ -24,10 +24,9 @@
 #include "private.hh"
 #include "privateInput.hh"
 #include "configFile.hh"
-#include "EmuSystemTask.hh"
-#include "EmuViewController.hh"
 #include "EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gui/ToastView.hh>
@@ -37,6 +36,40 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/thread/Thread.hh>
 #include <cmath>
+
+EmuApp::EmuApp(Base::ApplicationInitParams initParams, Base::ApplicationContext &ctx, Gfx::Error &rendererErr):
+	Application{initParams},
+	renderer{ctx, rendererErr},
+	emuVideoLayer{emuVideo},
+	emuSystemTask{*this},
+	vController{EmuSystem::inputFaceBtns},
+	autoSaveStateTimer
+	{
+		"EmuApp::autoSaveStateTimer",
+		[this]()
+		{
+			logMsg("running auto-save state timer");
+			syncEmulationThread();
+			saveAutoState();
+			return true;
+		}
+	},
+	inputDevConf{},
+	lastLoadPath{ctx.sharedStoragePath()}
+{
+	if(rendererErr)
+	{
+		ctx.exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", rendererErr->what());
+		return;
+	}
+	if(auto err = EmuSystem::onInit(ctx);
+		err)
+	{
+		ctx.exitWithErrorMessagePrintf(-1, "%s", err->what());
+		return;
+	}
+	mainInitCommon(initParams, ctx);
+}
 
 class ExitConfirmAlertView : public AlertView
 {
@@ -78,20 +111,8 @@ public:
 	}
 };
 
-static std::unique_ptr<Gfx::Renderer> rendererPtr{};
-static EmuSystemTask emuSystemTask{};
-EmuVideo emuVideo{};
-static std::unique_ptr<EmuVideoLayer> emuVideoLayerPtr{};
-static std::unique_ptr<EmuViewController> emuViewControllerPtr{};
-EmuAudio emuAudio{};
-DelegateFunc<void ()> onUpdateInputDevices{};
 #ifdef CONFIG_BLUETOOTH
 BluetoothAdapter *bta{};
-#endif
-static EmuApp::OnMainMenuOptionChanged onMainMenuOptionChanged_{};
-FS::PathString lastLoadPath{};
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-static SysVController vController{EmuSystem::inputFaceBtns};
 #endif
 [[gnu::weak]] bool EmuApp::hasIcon = true;
 [[gnu::weak]] bool EmuApp::autoSaveStateDefault = true;
@@ -103,49 +124,52 @@ static constexpr const char *assetFilename[]
 	"accept.png",
 	"game.png",
 	"menu.png",
-	"fastForward.png"
+	"fastForward.png",
+	"overlays128.png",
+	"kbOverlay.png",
 };
 
-static Gfx::PixmapTexture assetBuffImg[std::size(assetFilename)];
+static_assert(std::size(assetFilename) == (unsigned)EmuApp::AssetID::END);
 
-Gfx::PixmapTexture &getAsset(Gfx::Renderer &r, AssetID assetID)
+Gfx::PixmapTexture &EmuApp::asset(Gfx::Renderer &r, AssetID assetID) const
 {
-	assumeExpr(assetID < std::size(assetFilename));
-	auto &res = assetBuffImg[assetID];
+	assumeExpr(assetID < AssetID::END);
+	auto assetIdx = (unsigned)assetID;
+	auto &res = assetBuffImg[assetIdx];
 	if(!res)
 	{
 		PngFile png{r.appContext()};
-		if(auto ec = png.loadAsset(assetFilename[assetID]);
+		if(auto ec = png.loadAsset(assetFilename[assetIdx]);
 			ec)
 		{
-			logErr("couldn't load %s", assetFilename[assetID]);
+			logErr("couldn't load %s", assetFilename[assetIdx]);
 		}
 		res = r.makePixmapTexture(png, &r.make(View::imageCommonTextureSampler));
 	}
 	return res;
 }
 
-static Gfx::PixmapTexture *getCollectTextCloseAsset(Gfx::Renderer &r)
+Gfx::PixmapTexture *EmuApp::collectTextCloseAsset(Gfx::Renderer &r) const
 {
-	return Config::envIsAndroid ? nullptr : &getAsset(r, ASSET_CLOSE);
+	return Config::envIsAndroid ? nullptr : &asset(r, AssetID::CLOSE);
 }
 
-extern EmuViewController &emuViewController()
+EmuViewController &EmuApp::viewController()
 {
-	return *emuViewControllerPtr;
+	return *emuViewController;
 }
 
-void setCPUNeedsLowLatency(Base::ApplicationContext app, bool needed)
+void EmuApp::setCPUNeedsLowLatency(Base::ApplicationContext ctx, bool needed)
 {
 	#ifdef __ANDROID__
 	if(optionSustainedPerformanceMode)
-		app.setSustainedPerformanceMode(needed);
+		ctx.setSustainedPerformanceMode(needed);
 	#endif
 }
 
-static void suspendEmulation()
+static void suspendEmulation(EmuApp &app)
 {
-	EmuApp::saveAutoState();
+	app.saveAutoState();
 	EmuSystem::saveBackupMem();
 }
 
@@ -153,10 +177,10 @@ void EmuApp::exitGame(bool allowAutosaveState)
 {
 	// leave any sub menus that may depending on running game state
 	popMenuToRoot();
-	emuViewController().closeSystem(allowAutosaveState);
+	viewController().closeSystem(allowAutosaveState);
 }
 
-void applyOSNavStyle(Base::ApplicationContext app, bool inGame)
+void EmuApp::applyOSNavStyle(Base::ApplicationContext ctx, bool inGame)
 {
 	auto flags = Base::SYS_UI_STYLE_NO_FLAGS;
 	if(optionLowProfileOSNav > (inGame ? 0 : 1))
@@ -165,12 +189,17 @@ void applyOSNavStyle(Base::ApplicationContext app, bool inGame)
 		flags |= Base::SYS_UI_STYLE_HIDE_NAV;
 	if(optionHideStatusBar > (inGame ? 0 : 1))
 		flags |= Base::SYS_UI_STYLE_HIDE_STATUS;
-	app.setSysUIStyle(flags);
+	ctx.setSysUIStyle(flags);
+}
+
+Base::ApplicationContext EmuApp::appContext() const
+{
+	return renderer.appContext();
 }
 
 void EmuApp::showSystemActionsViewFromSystem(ViewAttachParams attach, Input::Event e)
 {
-	emuViewController().showSystemActionsView(attach, e);
+	viewController().showSystemActionsView(attach, e);
 }
 
 void EmuApp::showLastViewFromSystem(ViewAttachParams attach, Input::Event e)
@@ -181,22 +210,22 @@ void EmuApp::showLastViewFromSystem(ViewAttachParams attach, Input::Event e)
 	}
 	else
 	{
-		emuViewController().showUI();
+		viewController().showUI();
 	}
 }
 
 void EmuApp::showExitAlert(ViewAttachParams attach, Input::Event e)
 {
-	emuViewController().pushAndShowModal(std::make_unique<ExitConfirmAlertView>(attach, emuViewController()), e, false);
+	viewController().pushAndShowModal(std::make_unique<ExitConfirmAlertView>(attach, *emuViewController), e, false);
 }
 
-static const char *parseCmdLineArgs(int argc, char** argv)
+static const char *parseCommandArgs(Base::CommandArgs arg)
 {
-	if(argc < 2)
+	if(arg.c < 2)
 	{
 		return nullptr;
 	}
-	auto launchGame = argv[1];
+	auto launchGame = arg.v[1];
 	logMsg("starting game from command line: %s", launchGame);
 	return launchGame;
 }
@@ -210,12 +239,12 @@ IG::PixelFormat windowPixelFormat()
 	#endif
 }
 
-IG::PixelFormat EmuApp::defaultRenderPixelFormat(Base::ApplicationContext app)
+IG::PixelFormat EmuApp::defaultRenderPixelFormat(Base::ApplicationContext ctx)
 {
 	auto fmt = windowPixelFormat();
 	if(fmt == IG::PIXEL_NONE)
 	{
-		fmt = Base::Window::defaultPixelFormat(app);
+		fmt = Base::Window::defaultPixelFormat(ctx);
 	}
 	return fmt;
 }
@@ -230,77 +259,85 @@ void EmuApp::resetVideo()
 	EmuSystem::prepareVideo(emuVideo);
 }
 
-static void mainInitCommon(Base::ApplicationContext app, int argc, char** argv)
+EmuAudio &EmuApp::audio()
 {
-	using namespace IG;
-	app.registerInstance(argc, argv);
-	app.setAcceptIPC(true);
-	app.setOnInterProcessMessage(
+	return emuAudio;
+}
+
+EmuVideo &EmuApp::video()
+{
+	return emuVideo;
+}
+
+void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::ApplicationContext ctx)
+{
+	if(ctx.registerInstance(initParams))
+	{
+		ctx.exit();
+		return;
+	}
+	ctx.setAcceptIPC(true);
+	ctx.setOnInterProcessMessage(
 		[](Base::ApplicationContext, const char *path)
 		{
 			logMsg("got IPC path:%s", path);
 			EmuSystem::setInitialLoadPath(path);
 		});
 	optionVControllerLayoutPos.setVController(vController);
-	initOptions(app);
-	auto launchGame = parseCmdLineArgs(argc, argv);
-	if(launchGame)
-		EmuSystem::setInitialLoadPath(launchGame);
-	loadConfigFile(app);
-	if(auto err = EmuSystem::onOptionsLoaded(app);
+	initOptions(ctx);
+	auto appConfig = loadConfigFile(ctx);
+	if(auto err = EmuSystem::onOptionsLoaded(ctx);
 		err)
 	{
-		app.exitWithErrorMessagePrintf(-1, "%s", err->what());
+		ctx.exitWithErrorMessagePrintf(-1, "%s", err->what());
 		return;
 	}
-	AudioManager::setMusicVolumeControlHint(app);
+	auto launchGame = parseCommandArgs(initParams.commandArgs());
+	if(launchGame)
+		EmuSystem::setInitialLoadPath(launchGame);
+	Base::AudioManager::setMusicVolumeControlHint(ctx);
 	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
-	AudioManager::setSoloMix(app, optionAudioSoloMix);
+	Base::AudioManager::setSoloMix(ctx, optionAudioSoloMix);
 	#endif
 	if(optionSoundRate > optionSoundRate.defaultVal)
 		optionSoundRate.reset();
 	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
-	applyOSNavStyle(app, false);
+	applyOSNavStyle(ctx, false);
 
-	app.addOnResume(
-		[](Base::ApplicationContext app, bool focused)
+	ctx.addOnResume(
+		[this](Base::ApplicationContext ctx, bool focused)
 		{
-			AudioManager::startSession(app);
+			Base::AudioManager::startSession(ctx);
 			if(soundIsEnabled())
-				emuAudio.open(app, audioOutputAPI());
+				emuAudio.open(ctx, audioOutputAPI());
 			if(!keyMapping)
-				keyMapping.buildAll();
+				keyMapping.buildAll(inputDevConf, ctx.inputDevices());
 			return true;
 		});
 
-	app.addOnExit(
-		[](Base::ApplicationContext app, bool backgrounded)
+	ctx.addOnExit(
+		[this](Base::ApplicationContext ctx, bool backgrounded)
 		{
 			if(backgrounded)
 			{
-				suspendEmulation();
+				suspendEmulation(*this);
 				if(optionNotificationIcon)
 				{
-					auto title = string_makePrintf<64>("%s was suspended", app.applicationName);
-					app.addNotification(title.data(), title.data(), EmuSystem::fullGameName().data());
+					auto title = string_makePrintf<64>("%s was suspended", ctx.applicationName);
+					ctx.addNotification(title.data(), title.data(), EmuSystem::fullGameName().data());
 				}
 			}
-			else
-			{
-				emuVideo.deleteImage();
-				emuViewControllerPtr.reset();
-			}
 			emuAudio.close();
-			AudioManager::endSession(app);
+			Base::AudioManager::endSession(ctx);
 
-			saveConfigFile(app);
+			saveConfigFile(ctx);
 
 			#ifdef CONFIG_BLUETOOTH
 			if(bta && (!backgrounded || (backgrounded && !optionKeepBluetoothActive)))
 				Bluetooth::closeBT(bta);
 			#endif
 
-			app.dispatchOnFreeCaches(false);
+			ctx.dispatchOnFreeCaches(false);
 			keyMapping.free();
 
 			#ifdef CONFIG_BASE_IOS
@@ -311,33 +348,29 @@ static void mainInitCommon(Base::ApplicationContext app, int argc, char** argv)
 			return true;
 		});
 
-	if(app.usesPermission(Base::Permission::WRITE_EXT_STORAGE) &&
-		!app.requestPermission(Base::Permission::WRITE_EXT_STORAGE))
+	if(ctx.usesPermission(Base::Permission::WRITE_EXT_STORAGE) &&
+		!ctx.requestPermission(Base::Permission::WRITE_EXT_STORAGE))
 	{
 		logMsg("requested external storage write permissions");
 	}
 
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	if(optionMOGAInputSystem)
-		app.initMogaInputSystem(false);
+		ctx.initMogaInputSystem(false);
 	#endif
 
 	Base::WindowConfig winConf{};
-	winConf.setTitle(Base::ApplicationContext::applicationName);
+	winConf.setTitle(ctx.applicationName);
 
-	app.makeWindow(winConf,
-		[](Base::ApplicationContext app, Base::Window &win)
+	ctx.makeWindow(winConf,
+		[this, appConfig](Base::ApplicationContext ctx, Base::Window &win)
 		{
+			if(auto err = renderer.initMainTask(&win, windowPixelFormat());
+				err)
 			{
-				Gfx::Error err;
-				rendererPtr = std::make_unique<Gfx::Renderer>(Gfx::RendererConfig{windowPixelFormat()}, app, &win, err);
-				if(err)
-				{
-					app.exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
-					return;
-				}
+				ctx.exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
+				return;
 			}
-			auto &renderer = *rendererPtr;
 			if(!supportsVideoImageBuffersOption(renderer))
 				optionVideoImageBuffers.resetToConst();
 			if(optionTextureBufferMode.val)
@@ -353,104 +386,99 @@ static void mainInitCommon(Base::ApplicationContext app, int argc, char** argv)
 			emuVideo.setRendererTask(renderer.task());
 			emuVideo.setTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val);
 			emuVideo.setImageBuffers(optionVideoImageBuffers);
-			emuVideoLayerPtr = std::make_unique<EmuVideoLayer>(emuVideo, optionImgFilter);
-			auto &emuVideoLayer = *emuVideoLayerPtr;
+			emuVideoLayer.setLinearFilter(optionImgFilter);
 			emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
 
-			auto compiled = renderer.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
-			compiled |= renderer.makeCommonProgram(Gfx::CommonProgram::NO_TEX);
-			compiled |= View::compileGfxPrograms(renderer);
-			if(compiled)
-				renderer.autoReleaseShaderCompiler();
-
-			View::defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{});
-			View::defaultBoldFace = Gfx::GlyphTextureSet::makeBoldSystem(renderer, IG::FontSettings{});
+			viewManager = {renderer};
+			viewManager.setNeedsBackControl(appConfig.backNavigation());
+			viewManager.setDefaultFace(Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{}));
+			viewManager.setDefaultBoldFace(Gfx::GlyphTextureSet::makeBoldSystem(renderer, IG::FontSettings{}));
+			vController.setFace(viewManager.defaultFace());
 
 			win.makeAppData<WindowData>();
 			auto &winData = windowData(win);
-			setupFont(renderer, win);
+			setupFont(viewManager, renderer, win);
 			winData.projection = updateProjection(makeViewport(win));
 			win.setAcceptDnd(true);
 			renderer.setWindowValidOrientations(win, optionMenuOrientation);
-			updateInputDevices();
+			updateInputDevices(ctx);
 			vController.setWindow(win);
-			initVControls(vController, renderer);
-			ViewAttachParams viewAttach{win, renderer.task()};
-			emuViewControllerPtr = std::make_unique<EmuViewController>(viewAttach, vController, emuVideoLayer, emuSystemTask);
-			auto &emuViewController = *emuViewControllerPtr;
+			initVControls();
+			ViewAttachParams viewAttach{viewManager, win, renderer.task()};
+			emuViewController.emplace(viewAttach, vController, emuVideoLayer, emuSystemTask, emuAudio);
 
 			#if defined CONFIG_BASE_ANDROID
-			if(!app.apkSignatureIsConsistent())
+			if(!ctx.apkSignatureIsConsistent())
 			{
-				auto ynAlertView = std::make_unique<YesNoAlertView>(ViewAttachParams{win, renderer.task()}, "Warning: App has been modified by 3rd party, use at your own risk");
+				auto ynAlertView = std::make_unique<YesNoAlertView>(viewAttach, "Warning: App has been modified by 3rd party, use at your own risk");
 				ynAlertView->setOnNo(
 					[](View &v)
 					{
 						v.appContext().exit();
 					});
-				emuViewControllerPtr->pushAndShowModal(std::move(ynAlertView), Input::defaultEvent(), false);
+				viewController().pushAndShowModal(std::move(ynAlertView), false);
 			}
 			#endif
 
-			EmuApp::onMainWindowCreated(viewAttach, Input::defaultEvent());
+			onMainWindowCreated(viewAttach, ctx.defaultInputEvent());
 
-			app.setOnInterProcessMessage(
-				[&emuViewController](Base::ApplicationContext app, const char *path)
+			ctx.setOnInterProcessMessage(
+				[this](Base::ApplicationContext, const char *path)
 				{
 					logMsg("got IPC path:%s", path);
-					emuViewController.handleOpenFileCommand(path);
+					viewController().handleOpenFileCommand(path);
 				});
 
-			app.setOnScreenChange(
-				[&emuViewController](Base::ApplicationContext app, Base::Screen &screen, Base::ScreenChange change)
+			ctx.setOnScreenChange(
+				[this](Base::ApplicationContext ctx, Base::Screen &screen, Base::ScreenChange change)
 				{
-					emuViewController.onScreenChange(app, screen, change);
+					viewController().onScreenChange(ctx, screen, change);
 				});
 
-			Input::setOnDevicesEnumerated(
-				[&emuViewController]()
+			ctx.setOnInputDevicesEnumerated(
+				[this, ctx]()
 				{
 					logMsg("input devs enumerated");
-					updateInputDevices();
-					emuViewController.setPhysicalControlsPresent(Input::keyInputIsPresent());
-					emuViewController.updateAutoOnScreenControlVisible();
+					updateInputDevices(ctx);
+					viewController().setPhysicalControlsPresent(ctx.keyInputIsPresent());
+					viewController().updateAutoOnScreenControlVisible();
 				});
 
-			Input::setOnDeviceChange(
-				[&emuViewController](const Input::Device &dev, Input::Device::Change change)
+			ctx.setOnInputDeviceChange(
+				[this, ctx](const Input::Device &dev, Input::DeviceChange change)
 				{
 					logMsg("got input dev change");
 
-					updateInputDevices();
-					emuViewController.setPhysicalControlsPresent(Input::keyInputIsPresent());
-					emuViewController.updateAutoOnScreenControlVisible();
+					updateInputDevices(ctx);
+					viewController().setPhysicalControlsPresent(ctx.keyInputIsPresent());
+					viewController().updateAutoOnScreenControlVisible();
 
 					if(optionNotifyInputDeviceChange && (change.added() || change.removed()))
 					{
-						EmuApp::printfMessage(2, 0, "%s #%d %s", dev.name(), dev.enumId() + 1, change.added() ? "connected" : "disconnected");
+						printfMessage(2, 0, "%s #%d %s", dev.name(), dev.enumId() + 1, change.added() ? "connected" : "disconnected");
 					}
 					else if(change.hadConnectError())
 					{
-						EmuApp::printfMessage(2, 1, "%s had a connection error", dev.name());
+						printfMessage(2, 1, "%s had a connection error", dev.name());
 					}
 
-					emuViewController.onInputDevicesChanged();
+					viewController().onInputDevicesChanged();
 				});
 
-			app.setOnFreeCaches(
-				[&emuViewController](Base::ApplicationContext app, bool running)
+			ctx.setOnFreeCaches(
+				[this](Base::ApplicationContext, bool running)
 				{
-					View::defaultFace.freeCaches();
-					View::defaultBoldFace.freeCaches();
+					viewManager.defaultFace().freeCaches();
+					viewManager.defaultBoldFace().freeCaches();
 					if(running)
-						emuViewController.prepareDraw();
+						viewController().prepareDraw();
 				});
 
 			if(auto launchPathStr = EmuSystem::gamePathString();
 				strlen(launchPathStr.data()))
 			{
 				EmuSystem::setInitialLoadPath("");
-				emuViewControllerPtr->handleOpenFileCommand(launchPathStr.data());
+				viewController().handleOpenFileCommand(launchPathStr.data());
 			}
 
 			win.show();
@@ -480,7 +508,7 @@ Gfx::Viewport makeViewport(const Base::Window &win)
 		return Gfx::Viewport::makeFromWindow(win);
 }
 
-void onMainMenuItemOptionChanged()
+void EmuApp::dispatchOnMainMenuItemOptionChanged()
 {
 	onMainMenuOptionChanged_.callSafe();
 }
@@ -490,11 +518,11 @@ void EmuApp::setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func)
 	onMainMenuOptionChanged_ = func;
 }
 
-void launchSystem(bool tryAutoState, bool addToRecent)
+void launchSystem(EmuApp &app, bool tryAutoState, bool addToRecent)
 {
 	if(tryAutoState)
 	{
-		EmuApp::loadAutoState();
+		app.loadAutoState();
 		if(!EmuSystem::gameIsRunning())
 		{
 			logErr("game was closed while trying to load auto-state");
@@ -503,46 +531,46 @@ void launchSystem(bool tryAutoState, bool addToRecent)
 	}
 	if(addToRecent)
 		addRecentGame();
-	emuViewController().showEmulation();
+	app.viewController().showEmulation();
 }
 
-void onSelectFileFromPicker(const char* name, Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams)
+void onSelectFileFromPicker(EmuApp &app, const char* name, Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams)
 {
-	EmuApp::createSystemWithMedia({}, name, "", e, params, attachParams,
-		[](Input::Event e)
+	app.createSystemWithMedia({}, name, "", e, params, attachParams,
+		[&app](Input::Event e)
 		{
-			EmuApp::launchSystemWithResumePrompt(e, true);
+			app.launchSystemWithResumePrompt(e, true);
 		});
 }
 
-void runBenchmarkOneShot()
+void runBenchmarkOneShot(EmuApp &app, EmuVideo &emuVideo)
 {
 	logMsg("starting benchmark");
 	IG::FloatSeconds time = EmuSystem::benchmark(emuVideo);
-	emuViewController().closeSystem(false);
+	app.viewController().closeSystem(false);
 	logMsg("done in: %f", time.count());
-	EmuApp::printfMessage(2, 0, "%.2f fps", double(180.)/time.count());
+	app.printfMessage(2, 0, "%.2f fps", double(180.)/time.count());
 }
 
 void EmuApp::showEmuation()
 {
 	if(EmuSystem::gameIsRunning())
 	{
-		emuViewController().showEmulation();
+		viewController().showEmulation();
 	}
 }
 
 void EmuApp::launchSystemWithResumePrompt(Input::Event e, bool addToRecent)
 {
-	if(!emuViewController().showAutoStateConfirm(e, addToRecent))
+	if(!viewController().showAutoStateConfirm(e, addToRecent))
 	{
-		::launchSystem(true, addToRecent);
+		::launchSystem(*this, true, addToRecent);
 	}
 }
 
 void EmuApp::launchSystem(Input::Event e, bool tryAutoState, bool addToRecent)
 {
-	::launchSystem(tryAutoState, addToRecent);
+	::launchSystem(*this, tryAutoState, addToRecent);
 }
 
 bool EmuApp::hasArchiveExtension(const char *name)
@@ -556,7 +584,7 @@ void EmuApp::pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::
 	const char *initialContent, CollectTextInputView::OnTextDelegate onText)
 {
 	pushAndShowModalView(std::make_unique<CollectTextInputView>(attach, msgText, initialContent,
-		getCollectTextCloseAsset(attach.renderer()), onText), e);
+		collectTextCloseAsset(attach.renderer()), onText), e);
 }
 
 void EmuApp::pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event e, const char *label,
@@ -567,35 +595,41 @@ void EmuApp::pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event 
 
 void EmuApp::pushAndShowModalView(std::unique_ptr<View> v, Input::Event e)
 {
-	emuViewController().pushAndShowModal(std::move(v), e, false);
+	viewController().pushAndShowModal(std::move(v), e, false);
+}
+
+void EmuApp::pushAndShowModalView(std::unique_ptr<View> v)
+{
+	auto e = v->appContext().defaultInputEvent();
+	pushAndShowModalView(std::move(v), e);
 }
 
 void EmuApp::popModalViews()
 {
-	emuViewController().popModalViews();
+	viewController().popModalViews();
 }
 
 void EmuApp::popMenuToRoot()
 {
-	emuViewController().popToRoot();
+	viewController().popToRoot();
 }
 
 void EmuApp::reloadGame(EmuSystemCreateParams params)
 {
 	if(!EmuSystem::gameIsRunning())
 		return;
-	emuViewController().popToSystemActionsMenu();
+	viewController().popToSystemActionsMenu();
 	FS::PathString gamePath;
 	string_copy(gamePath, EmuSystem::fullGamePath());
 	emuSystemTask.pause();
 	EmuSystem::Error err{};
-	EmuSystem::createWithMedia(emuViewController().appContext(), {}, gamePath.data(), "", err, params,
+	EmuSystem::createWithMedia(viewController().appContext(), {}, gamePath.data(), "", err, params,
 		[](int pos, int max, const char *label){ return true; });
 	if(!err)
 	{
 		EmuSystem::prepareAudioVideo(emuAudio, emuVideo);
-		emuViewController().onSystemCreated();
-		emuViewController().showEmulation();
+		viewController().onSystemCreated();
+		viewController().showEmulation();
 	}
 }
 
@@ -606,19 +640,19 @@ void EmuApp::promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Ev
 	auto ynAlertView = std::make_unique<YesNoAlertView>(attach,
 		"This option takes effect next time the system starts. Restart it now?");
 	ynAlertView->setOnYes(
-		[=]()
+		[this, params]()
 		{
 			reloadGame(params);
 		});
-	emuViewController().pushAndShowModal(std::move(ynAlertView), e, false);
+	viewController().pushAndShowModal(std::move(ynAlertView), e, false);
 }
 
-void EmuApp::printfMessage(uint secs, bool error, const char *format, ...)
+void EmuApp::printfMessage(unsigned secs, bool error, const char *format, ...)
 {
 	va_list args;
 	va_start(args, format);
 	auto vaEnd = IG::scopeGuard([&](){ va_end(args); });
-	emuViewController().popupMessageView().vprintf(secs, error, format, args);
+	viewController().popupMessageView().vprintf(secs, error, format, args);
 }
 
 void EmuApp::postMessage(const char *msg)
@@ -631,9 +665,9 @@ void EmuApp::postMessage(bool error, const char *msg)
 	postMessage(3, error, msg);
 }
 
-void EmuApp::postMessage(uint secs, bool error, const char *msg)
+void EmuApp::postMessage(unsigned secs, bool error, const char *msg)
 {
-	emuViewController().popupMessageView().post(msg, secs, error);
+	viewController().popupMessageView().post(msg, secs, error);
 }
 
 void EmuApp::postErrorMessage(const char *msg)
@@ -641,25 +675,25 @@ void EmuApp::postErrorMessage(const char *msg)
 	postMessage(true, msg);
 }
 
-void EmuApp::postErrorMessage(uint secs, const char *msg)
+void EmuApp::postErrorMessage(unsigned secs, const char *msg)
 {
 	postMessage(secs, true, msg);
 }
 
 void EmuApp::unpostMessage()
 {
-	emuViewController().popupMessageView().clear();
+	viewController().popupMessageView().clear();
 }
 
 void EmuApp::printScreenshotResult(int num, bool success)
 {
 	if(num == -1)
 	{
-		EmuApp::postErrorMessage("Too many screenshots");
+		postErrorMessage("Too many screenshots");
 	}
 	else
 	{
-		EmuApp::printfMessage(2, !success, "%s%d",
+		printfMessage(2, !success, "%s%d",
 			success ? "Wrote screenshot #" : "Error writing screenshot #", num);
 	}
 }
@@ -673,7 +707,7 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 	{
 		return;
 	}
-	emuViewController().closeSystem();
+	viewController().closeSystem();
 	auto loadProgressView = std::make_unique<EmuLoadProgressView>(attachParams, e, onComplete);
 	auto &msgPort = loadProgressView->messagePort();
 	pushAndShowModalView(std::move(loadProgressView), e);
@@ -750,7 +784,7 @@ EmuSystem::Error EmuApp::saveState(const char *path)
 	//fixFilePermissions(path);
 	syncEmulationThread();
 	logMsg("saving state %s", path);
-	return EmuSystem::saveState(path);
+	return EmuSystem::saveState(*this, path);
 }
 
 EmuSystem::Error EmuApp::saveStateWithSlot(int slot)
@@ -772,7 +806,7 @@ EmuSystem::Error EmuApp::loadState(const char *path)
 	//fixFilePermissions(path);
 	syncEmulationThread();
 	logMsg("loading state %s", path);
-	return EmuSystem::loadState(path);
+	return EmuSystem::loadState(*this, path);
 }
 
 EmuSystem::Error EmuApp::loadStateWithSlot(int slot)
@@ -800,9 +834,11 @@ FS::PathString EmuApp::mediaSearchPath()
 	return lastLoadPath;
 }
 
-void EmuApp::setMediaSearchPath(FS::PathString path)
+void EmuApp::setMediaSearchPath(std::optional<FS::PathString> opt)
 {
-	lastLoadPath = path;
+	if(!opt)
+		return;
+	lastLoadPath = *opt;
 }
 
 FS::PathString EmuApp::firmwareSearchPath()
@@ -826,34 +862,46 @@ void EmuApp::setFirmwareSearchPath(const char *path)
 	return nullptr;
 }
 
-void EmuApp::addTurboInputEvent(uint action)
+void EmuApp::addTurboInputEvent(unsigned action)
 {
 	turboActions.addEvent(action);
 }
 
-void EmuApp::removeTurboInputEvent(uint action)
+void EmuApp::removeTurboInputEvent(unsigned action)
 {
 	turboActions.removeEvent(action);
 }
 
-FS::PathString EmuApp::assetPath(Base::ApplicationContext app)
+void EmuApp::runTurboInputEvents()
 {
-	return app.assetPath();
+	assert(EmuSystem::gameIsRunning());
+	turboActions.update(this);
 }
 
-FS::PathString EmuApp::libPath(Base::ApplicationContext app)
+void EmuApp::resetInput()
 {
-	return app.libPath();
+	turboActions = {};
+	viewController().setFastForwardActive(false);
 }
 
-FS::PathString EmuApp::supportPath(Base::ApplicationContext app)
+FS::PathString EmuApp::assetPath(Base::ApplicationContext ctx)
 {
-	return app.supportPath();
+	return ctx.assetPath();
 }
 
-AssetIO EmuApp::openAppAssetIO(Base::ApplicationContext app, const char *name, IO::AccessHint access)
+FS::PathString EmuApp::libPath(Base::ApplicationContext ctx)
 {
-	return app.openAsset(name, access);
+	return ctx.libPath();
+}
+
+FS::PathString EmuApp::supportPath(Base::ApplicationContext ctx)
+{
+	return ctx.supportPath();
+}
+
+AssetIO EmuApp::openAppAssetIO(Base::ApplicationContext ctx, const char *name, IO::AccessHint access)
+{
+	return ctx.openAsset(name, access);
 }
 
 static FS::PathString sessionConfigPath()
@@ -872,7 +920,7 @@ void EmuApp::deleteSessionOptions()
 	{
 		return;
 	}
-	EmuSystem::resetSessionOptions();
+	EmuSystem::resetSessionOptions(*this);
 	EmuSystem::sessionOptionsSet = false;
 	FS::remove(sessionConfigPath());
 }
@@ -907,7 +955,7 @@ void EmuApp::saveSessionOptions()
 
 void EmuApp::loadSessionOptions()
 {
-	if(!EmuSystem::resetSessionOptions())
+	if(!EmuSystem::resetSessionOptions(*this))
 		return;
 	auto configFilePath = sessionConfigPath();
 	FileIO configFile;
@@ -925,17 +973,31 @@ void EmuApp::loadSessionOptions()
 				{
 					if(!EmuSystem::readSessionConfig(io, key, size))
 					{
-						logMsg("skipping unknown key %u", (uint)key);
+						logMsg("skipping unknown key %u", (unsigned)key);
 					}
 				}
 			}
 		});
-	EmuSystem::onSessionOptionsLoaded();
+	EmuSystem::onSessionOptionsLoaded(*this);
 }
 
 void EmuApp::syncEmulationThread()
 {
 	emuSystemTask.pause();
+}
+
+void EmuApp::cancelAutoSaveStateTimer()
+{
+	autoSaveStateTimer.cancel();
+}
+
+void EmuApp::startAutoSaveStateTimer()
+{
+	if(optionAutoSaveState > 1)
+	{
+		IG::Minutes mins{optionAutoSaveState.val};
+		autoSaveStateTimer.run(mins, mins);
+	}
 }
 
 WindowData &windowData(const Base::Window &win)
@@ -945,23 +1007,67 @@ WindowData &windowData(const Base::Window &win)
 	return *data;
 }
 
-VController &defaultVController()
+VController &EmuApp::defaultVController()
 {
 	return vController;
+}
+
+void EmuApp::configFrameTime()
+{
+	EmuSystem::configFrameTime(emuAudio.format().rate);
+}
+
+void EmuApp::skipFrames(EmuSystemTask *task, uint32_t frames, EmuAudio *audio)
+{
+	assert(EmuSystem::gameIsRunning());
+	iterateTimes(frames, i)
+	{
+		runTurboInputEvents();
+		EmuSystem::runFrame(task, nullptr, audio);
+	}
+}
+
+bool EmuApp::skipForwardFrames(EmuSystemTask *task, uint32_t frames)
+{
+	iterateTimes(frames, i)
+	{
+		skipFrames(task, 1, nullptr);
+		if(!EmuSystem::shouldFastForward())
+		{
+			logMsg("skip-forward ended early after %u frame(s)", i);
+			return false;
+		}
+	}
+	return true;
+}
+
+void EmuApp::buildKeyInputMapping()
+{
+	keyMapping.buildAll(inputDevConf, appContext().inputDevices());
+}
+
+const KeyMapping &EmuApp::keyInputMapping()
+{
+	return keyMapping;
+}
+
+std::vector<InputDeviceConfig> &EmuApp::inputDeviceConfigs()
+{
+	return inputDevConf;
+}
+
+EmuApp &EmuApp::get(Base::ApplicationContext ctx)
+{
+	return static_cast<EmuApp&>(ctx.application());
 }
 
 namespace Base
 {
 
-void ApplicationContext::onInit(ApplicationContext app, int argc, char** argv)
+void ApplicationContext::onInit(ApplicationInitParams initParams)
 {
-	if(auto err = EmuSystem::onInit(app);
-		err)
-	{
-		app.exitWithErrorMessagePrintf(-1, "%s", err->what());
-		return;
-	}
-	mainInitCommon(app, argc, argv);
+	Gfx::Error rendererErr;
+	initApplication<EmuApp>(initParams, *this, rendererErr);
 }
 
 }

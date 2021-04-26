@@ -25,9 +25,9 @@
 #include <system_error>
 #include <imagine/util/string.h>
 
-static uint oldStateSizeAfterZ80Regs()
+static unsigned oldStateSizeAfterZ80Regs()
 {
-	uint size = 0;
+	unsigned size = 0;
   #ifndef NO_SYSTEM_PBC
   if (system_hw == SYSTEM_PBC)
   {
@@ -53,9 +53,9 @@ static uint oldStateSizeAfterZ80Regs()
 	return size;
 }
 
-static uint oldStateSizeAfterVDP(int exVersion, bool is64Bit)
+static unsigned oldStateSizeAfterVDP(int exVersion, bool is64Bit)
 {
-	uint size = 0;
+	unsigned size = 0;
 
 	// Sound state
 	#ifndef NO_SYSTEM_PBC
@@ -101,7 +101,7 @@ EmuSystem::Error state_load(const unsigned char *buffer)
 	auto state = std::make_unique<unsigned char[]>(STATE_SIZE);
 
   /* buffer size */
-  uint bufferptr = 0;
+  unsigned bufferptr = 0;
 
   /* uncompress savestate */
   uint32 inbytes32;
@@ -133,7 +133,7 @@ EmuSystem::Error state_load(const unsigned char *buffer)
     return EmuSystem::makeError("Version too old");
   }
 
-  uint exVersion = (version[15] >= 0x32) ? version[15] - 0x31 : 0;
+  unsigned exVersion = (version[15] >= 0x32) ? version[15] - 0x31 : 0;
   if(exVersion)
   {
   	logMsg("state extra version: %d", exVersion);
@@ -192,7 +192,7 @@ EmuSystem::Error state_load(const unsigned char *buffer)
   bufferptr += vdp_context_load(&state[bufferptr]);
 
   // SOUND
-  uint ptrSize = 0;
+  unsigned ptrSize = 0;
   if(exVersion < 2)
   {
   	// Old save states include pointer members and padding with different

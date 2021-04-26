@@ -7,8 +7,8 @@
 
 #define READ_FONT_DATA(basemask) \
 { \
-      uint fnt = *(uint32a*)(sCD.gate + 0x4c); \
-      uint col0 = (fnt >> 8) & 0x0f, col1 = (fnt >> 12) & 0x0f;   \
+      unsigned fnt = *(uint32a*)(sCD.gate + 0x4c); \
+      unsigned col0 = (fnt >> 8) & 0x0f, col1 = (fnt >> 12) & 0x0f;   \
       if (fnt & (basemask << 0)) d  = col1      ; else d  = col0;       \
       if (fnt & (basemask << 1)) d |= col1 <<  4; else d |= col0 <<  4; \
       if (fnt & (basemask << 2)) d |= col1 <<  8; else d |= col0 <<  8; \
@@ -21,11 +21,11 @@ extern uint8_t comFlagsSync[2];
 extern uint8_t comSync[0x20];
 extern bool doingSync;
 extern uint8_t comWriteTarget;
-extern uint comFlagsPoll[2];
-extern uint comPoll[0x20];
+extern unsigned comFlagsPoll[2];
+extern unsigned comPoll[0x20];
 extern M68KCPU mm68k;
 
-static void endSyncSubCpu(uint target)
+static void endSyncSubCpu(unsigned target)
 {
 	assert(extraCpuSync);
 	if(doingSync && comWriteTarget == target)
@@ -50,7 +50,7 @@ static void endSyncSubCpu()
 	}
 }
 
-static uint subGateRegRead16(uint a)
+static unsigned subGateRegRead16(unsigned a)
 {
 	switch(a)
 	{
@@ -58,7 +58,7 @@ static uint subGateRegRead16(uint a)
 			return ((sCD.gate[0]&3)<<8) | 1; // ver = 0, not in reset state
 		case 2:
 		{
-			uint d = (sCD.gate[2]<<8) | (sCD.gate[3]&0x1f);
+			unsigned d = (sCD.gate[2]<<8) | (sCD.gate[3]&0x1f);
 			// TODO check for polling
 			return d;
 		}
@@ -76,7 +76,7 @@ static uint subGateRegRead16(uint a)
 			return Read_CDC_Host(1); // Gens returns 0 here on byte reads
 		case 0xC:
 		{
-			uint d = sCD.stopwatchTimer >> 16;
+			unsigned d = sCD.stopwatchTimer >> 16;
 			logMsg("S stopwatch timer read (%04x)", d);
 			return d;
 		}
@@ -87,25 +87,25 @@ static uint subGateRegRead16(uint a)
 			return 0; // no busy bit
 		case 0x50: // font data (check: Lunar 2, Silpheed)
 		{
-			uint d;
+			unsigned d;
 			READ_FONT_DATA(0x00100000);
 			return d;
 		}
 		case 0x52:
 		{
-			uint d;
+			unsigned d;
 			READ_FONT_DATA(0x00010000);
 			return d;
 		}
 		case 0x54:
 		{
-			uint d;
+			unsigned d;
 			READ_FONT_DATA(0x10000000);
 			return d;
 		}
 		case 0x56:
 		{
-			uint d;
+			unsigned d;
 			READ_FONT_DATA(0x01000000);
 			return d;
 		}
@@ -117,7 +117,7 @@ static uint subGateRegRead16(uint a)
 		default:
 		{
 			//logMsg("GATE sub-CPU read16 %08X", a);
-			uint d = (sCD.gate[a]<<8) | sCD.gate[a+1];
+			unsigned d = (sCD.gate[a]<<8) | sCD.gate[a+1];
 			if(extraCpuSync)
 			{
 				switch(a)
@@ -161,7 +161,7 @@ static uint subGateRegRead16(uint a)
 	}
 }
 
-uint subGateRead8(uint address)
+unsigned subGateRead8(unsigned address)
 {
 	if((address&0xfffe00) == 0xff8000)
 	{
@@ -169,7 +169,7 @@ uint subGateRead8(uint address)
 		//logMsg("s68k_regs r8: [%02x] @ %06x", a, SekPcS68k);
 		if (address >= 0x0e && address < 0x30)
 		{
-			uint d = sCD.gate[address];
+			unsigned d = sCD.gate[address];
 			if(extraCpuSync)
 			{
 				switch(address)
@@ -220,7 +220,7 @@ uint subGateRead8(uint address)
 		else
 		{
 			//logMsg("read s68 gate 8 %X", address);
-			uint d = subGateRegRead16(address&~1);
+			unsigned d = subGateRegRead16(address&~1);
 			if ((address&1)==0) d>>=8;
 			return d;
 		}
@@ -234,7 +234,7 @@ uint subGateRead8(uint address)
 		else if (address >= 0x20)
 		{
 			address &= 0x1e;
-			uint data = sCD.pcm.ch[address>>2].addr >> PCM_STEP_SHIFT;
+			unsigned data = sCD.pcm.ch[address>>2].addr >> PCM_STEP_SHIFT;
 			if (address & 2) data >>= 8;
 			return data;
 		}
@@ -243,7 +243,7 @@ uint subGateRead8(uint address)
 	return 0;
 }
 
-uint subGateRead16(uint address)
+unsigned subGateRead16(unsigned address)
 {
 	//logMsg("sub gate read16 %08X (%08X)", address, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 
@@ -258,7 +258,7 @@ uint subGateRead16(uint address)
 	else if((address&0xff8000)==0xff0000)
 	{
 		address &= 0x7fff;
-		uint data = 0;
+		unsigned data = 0;
 		if (address >= 0x2000)
 			data = sCD.pcmMem.bank[sCD.pcm.bank][(address>>1)&0xfff];
 		else if (address >= 0x20) {
@@ -273,7 +273,7 @@ uint subGateRead16(uint address)
 	return 0;
 }
 
-static void writeSComFlags(uint data)
+static void writeSComFlags(unsigned data)
 {
 	if(extraCpuSync)
 	{
@@ -291,11 +291,11 @@ static void writeSComFlags(uint data)
 		endSyncSubCpu(1);
 }
 
-void subGateWrite8(uint address, uint data)
+void subGateWrite8(unsigned address, unsigned data)
 {
 	if(((address >> 8) & 0xFF) == 0x80)
 	{
-		uint subAddr = address & 0x1ff;
+		unsigned subAddr = address & 0x1ff;
 		switch(subAddr)
 		{
 			bcase 0x0:
@@ -408,7 +408,7 @@ void subGateWrite8(uint address, uint data)
 			bcase 0x37:
 			{
 				logMsg("CCD control: %02x", data);
-				uint d_old = sCD.gate[0x37];
+				unsigned d_old = sCD.gate[0x37];
 				sCD.gate[0x37] = data&7;
 				if ((data&4) && !(d_old&4))
 				{
@@ -456,11 +456,11 @@ void subGateWrite8(uint address, uint data)
 	}
 }
 
-void subGateWrite16(uint address, uint data)
+void subGateWrite16(unsigned address, unsigned data)
 {
 	if(((address >> 8) & 0xFF) == 0x80)
 	{
-		uint subAddr = address & 0x1ff;
+		unsigned subAddr = address & 0x1ff;
 		switch(subAddr)
 		{
 			bcase 0x58 ... 0x67:
@@ -496,17 +496,17 @@ void subGateWrite16(uint address, uint data)
 
 // PRG
 
-void subPrgWriteProtectCheck8(uint address, uint data)
+void subPrgWriteProtectCheck8(unsigned address, unsigned data)
 {
-	if(address >= uint(sCD.gate[2]<<8))
+	if(address >= unsigned(sCD.gate[2]<<8))
 		WRITE_BYTE(sCD.prg.b, address, data);
 	else
 		logMsg("write protected");
 }
 
-void subPrgWriteProtectCheck16(uint address, uint data)
+void subPrgWriteProtectCheck16(unsigned address, unsigned data)
 {
-	if(address >= uint(sCD.gate[2]<<8))
+	if(address >= unsigned(sCD.gate[2]<<8))
 		*(uint16a*)(sCD.prg.b + address) = data;
 	else
 		logMsg("write protected");
@@ -514,7 +514,7 @@ void subPrgWriteProtectCheck16(uint address, uint data)
 
 // WORD
 
-static void decode_write8(uint a, uint8_t d, int r3)
+static void decode_write8(unsigned a, uint8_t d, int r3)
 {
 	//logMsg("decode write 8");
 	uint8_t *pd = sCD.word.ram1M[(r3 & 1)^1] + (((a>>1)^1)&0x1ffff);
@@ -538,7 +538,7 @@ static void decode_write8(uint a, uint8_t d, int r3)
 }
 
 
-static void decode_write16(uint a, uint16 d, int r3)
+static void decode_write16(unsigned a, uint16 d, int r3)
 {
 	//logMsg("decode write 16");
 	uint8_t *pd = sCD.word.ram1M[(r3 & 1)^1] + (((a>>1)^1)&0x1ffff);
@@ -564,34 +564,34 @@ static void decode_write16(uint a, uint16 d, int r3)
 	}
 }
 
-uint subReadWordDecoded8(uint address)
+unsigned subReadWordDecoded8(unsigned address)
 {
 	logMsg("Sub read8 decoded %08X", address);
 	address&=0xffffff;
-	uint bank = (sCD.gate[3]&1)^1;
-	uint d = READ_BYTE(sCD.word.ram1M[bank],(address>>1)&0x1ffff);
+	unsigned bank = (sCD.gate[3]&1)^1;
+	unsigned d = READ_BYTE(sCD.word.ram1M[bank],(address>>1)&0x1ffff);
 	if (address&1) d &= 0x0f;
 		else d >>= 4;
 	return d;
 }
 
-uint subReadWordDecoded16(uint address)
+unsigned subReadWordDecoded16(unsigned address)
 {
 	logMsg("Sub read16 decoded %08X", address);
 	address&=0xfffffe;
-	uint bank = (sCD.gate[3]&1)^1;
-	uint d = sCD.word.ram1M[bank][((address>>1)^1)&0x1ffff];
+	unsigned bank = (sCD.gate[3]&1)^1;
+	unsigned d = sCD.word.ram1M[bank][((address>>1)^1)&0x1ffff];
 	d |= d << 4; d &= ~0xf0;
 	return d;
 }
 
-void subWriteWordDecoded8(uint address, uint data)
+void subWriteWordDecoded8(unsigned address, unsigned data)
 {
 	logMsg("Sub write8 decoded %08X = %X", address, data);
 	decode_write8(address, data, sCD.gate[3]);
 }
 
-void subWriteWordDecoded16(uint address, uint data)
+void subWriteWordDecoded16(unsigned address, unsigned data)
 {
 	logMsg("Sub write16 decoded %08X = %X", address, data);
 	decode_write16(address, data, sCD.gate[3]);
@@ -599,61 +599,61 @@ void subWriteWordDecoded16(uint address, uint data)
 
 // BRAM
 
-uint bramRead8(uint address)
+unsigned bramRead8(unsigned address)
 {
-	uint a = (address>>1)&0x1fff;
-	uint d = bram[a];
+	unsigned a = (address>>1)&0x1fff;
+	unsigned d = bram[a];
 	//logMsg("BRAM read8 %X = %X", address, d);
 	return d;
 }
 
-uint bramRead16(uint address)
+unsigned bramRead16(unsigned address)
 {
 	// TODO: test if BRAM is ever accessed in 16-bits
 	logWarn("bram read16");
-	uint a = (address>>1)&0x1fff;
-	uint d = bram[a++];
+	unsigned a = (address>>1)&0x1fff;
+	unsigned d = bram[a++];
 	d|= bram[a] << 8;
 	logMsg("BRAM read16 %X = %X", address, d);
 	return d;
 }
 
-void bramWrite8(uint address, uint data)
+void bramWrite8(unsigned address, unsigned data)
 {
 	logMsg("BRAM write8 %X = %X", address, data);
-	uint a = (address>>1)&0x1fff;
+	unsigned a = (address>>1)&0x1fff;
 	bram[a] = data;
 }
 
-void bramWrite16(uint address, uint data)
+void bramWrite16(unsigned address, unsigned data)
 {
 	// TODO: test if BRAM is ever accessed in 16-bits
 	logMsg("BRAM write16 %X = %X", address, data);
-	uint a = (address>>1)&0x1fff;
+	unsigned a = (address>>1)&0x1fff;
 	bram[a++] = data;
 	bram[a] = data >> 8;
 }
 
 // Undefined
 
-uint subUndefRead8(uint address)
+unsigned subUndefRead8(unsigned address)
 {
 	logWarn("UNDEF read8 %08X (%08X)", address, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 	return 0;
 }
 
-uint subUndefRead16(uint address)
+unsigned subUndefRead16(unsigned address)
 {
 	logWarn("UNDEF read16 %08X (%08X)", address, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 	return 0;
 }
 
-void subUndefWrite8(uint address, uint data)
+void subUndefWrite8(unsigned address, unsigned data)
 {
 	logWarn("UNDEF write8 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 }
 
-void subUndefWrite16(uint address, uint data)
+void subUndefWrite16(unsigned address, unsigned data)
 {
 	logWarn("UNDEF write16 %08X = %02X (%08X)", address, data, m68k_get_reg (sCD.cpu, M68K_REG_PC));
 }

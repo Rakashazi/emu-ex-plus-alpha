@@ -315,7 +315,7 @@ IG::ErrorCode GLTexture::init(RendererTask &r, TextureConfig config)
 
 void GLTexture::deinit()
 {
-	if(!texName_ || !rTask || !*rTask)
+	if(!texName_)
 		return;
 	logMsg("deinit texture:0x%X", texName_);
 	rTask->run(
@@ -504,7 +504,7 @@ void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uin
 	{
 		// must copy to buffer without extra pitch pixels
 		logDMsg("texture:%u needs temporary buffer to copy pixmap with width:%d pitch:%d", texName_, pixmap.w(), pixmap.pitchPixels());
-		IG::WindowRect lockRect{0, 0, pixmap.size().x, pixmap.size().y};
+		IG::WindowRect lockRect{{}, pixmap.size()};
 		lockRect += destPos;
 		auto lockBuff = lock(level, lockRect);
 		if(unlikely(!lockBuff))
@@ -535,7 +535,7 @@ void Texture::clear(uint8_t level)
 
 LockedTextureBuffer Texture::lock(uint8_t level, uint32_t bufferFlags)
 {
-	return lock(level, {0, 0, size(level).x, size(level).y}, bufferFlags);
+	return lock(level, {{}, size(level)}, bufferFlags);
 }
 
 LockedTextureBuffer Texture::lock(uint8_t level, IG::WindowRect rect, uint32_t bufferFlags)
@@ -926,7 +926,7 @@ IG::ErrorCode PixmapTexture::setFormat(IG::PixmapDesc desc, uint8_t levels, cons
 
 GTexCRect PixmapTexture::uvBounds() const
 {
-	return {0, 0, uv.x, uv.y};
+	return {{}, uv};
 }
 
 IG::PixmapDesc PixmapTexture::usedPixmapDesc() const

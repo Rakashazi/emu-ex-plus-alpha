@@ -309,7 +309,7 @@ void rom_bootHacks(void)
 		frameskip_active = 1;
 		iterateTimes(3, i)
 		{
-			uint gotVBL = 0;
+			unsigned gotVBL = 0;
 			while(!gotVBL)
 			{
 				gotVBL = updateTimers<0>(TLCS900h_interpret());

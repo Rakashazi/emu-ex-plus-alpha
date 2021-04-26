@@ -48,11 +48,11 @@ extern void m68040_fpu_op1(void);
 /* ======================================================================== */
 
 #if M68K_EMULATE_TRACE
-uint m68ki_tracing = 0;
+unsigned m68ki_tracing = 0;
 #endif /* M68K_EMULATE_TRACE */
 
 #if M68K_EMULATE_FC
-uint m68ki_address_space;
+unsigned m68ki_address_space;
 #endif /* M68K_EMULATE_FC */
 
 #if M68K_LOG_ENABLE
@@ -84,9 +84,9 @@ jmp_buf m68ki_aerr_trap;
 int emulate_address_error = 0;
 #endif /* M68K_EMULATE_ADDRESS_ERROR */
 
-uint    m68ki_aerr_address;
-uint    m68ki_aerr_write_mode;
-uint    m68ki_aerr_fc;
+unsigned    m68ki_aerr_address;
+unsigned    m68ki_aerr_write_mode;
+unsigned    m68ki_aerr_fc;
 
 /* Used by shift & rotate instructions */
 const uint8_t m68ki_shift_8_table[65] =
@@ -109,7 +109,7 @@ const uint16_t m68ki_shift_16_table[65] =
   0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
   0xffff, 0xffff
 };
-const uint m68ki_shift_32_table[65] =
+const unsigned m68ki_shift_32_table[65] =
 {
   0x00000000, 0x80000000, 0xc0000000, 0xe0000000, 0xf0000000, 0xf8000000,
   0xfc000000, 0xfe000000, 0xff000000, 0xff800000, 0xffc00000, 0xffe00000,
@@ -497,7 +497,7 @@ static int default_tas_instr_callback(M68KCPU &m68ki_cpu)
 
 /* Called when the program counter changed by a large value */
 //static unsigned int default_pc_changed_callback_data;
-static void default_pc_changed_callback(M68KCPU &m68ki_cpu, uint oldPC, uint newPC)
+static void default_pc_changed_callback(M68KCPU &m68ki_cpu, unsigned oldPC, unsigned newPC)
 {
   //default_pc_changed_callback_data = newPC;
 }
@@ -690,7 +690,7 @@ void m68k_set_tas_instr_callback(M68KCPU &m68ki_cpu, int  (*callback)(M68KCPU &m
   CALLBACK_TAS_INSTR = callback ? callback : default_tas_instr_callback;
 }*/
 
-void m68k_set_pc_changed_callback(M68KCPU &m68ki_cpu, void  (*callback)(M68KCPU &m68ki_cpu, uint oldPC, uint newPC))
+void m68k_set_pc_changed_callback(M68KCPU &m68ki_cpu, void  (*callback)(M68KCPU &m68ki_cpu, unsigned oldPC, unsigned newPC))
 {
 #if M68K_MONITOR_PC == OPT_ON
   CALLBACK_PC_CHANGED = callback ? callback : default_pc_changed_callback;
@@ -857,7 +857,7 @@ INLINE int m68k_execute(void)
 #if 0
 void m68k_set_irq(M68KCPU &m68ki_cpu, unsigned int int_level)
 {
-  uint old_level = CPU_INT_LEVEL;
+  unsigned old_level = CPU_INT_LEVEL;
   CPU_INT_LEVEL = int_level << 8;
 
   /* A transition from < 7 to 7 always interrupts (NMI) */
@@ -878,13 +878,13 @@ extern void error(char *format, ...);
 
 #include "m68kops.c"
 
-void M68KCPU::updateIRQ(uint mask)
+void M68KCPU::updateIRQ(unsigned mask)
 {
 	int_level |= (mask << 8);
 	m68ki_check_interrupts(*this);
 }
 
-void M68KCPU::setIRQ(uint mask)
+void M68KCPU::setIRQ(unsigned mask)
 {
 	int_level = mask << 8;
 	m68ki_check_interrupts(*this);
@@ -990,7 +990,7 @@ void m68k_end_timeslice(void)
 void m68k_init(M68KCPU &m68ki_cpu)
 {
   #ifdef BUILD_OP_TABLE
-  static uint emulation_initialized = 0;
+  static unsigned emulation_initialized = 0;
 
   /* The first call to this function initializes the opcode handler jump table */
   if(!emulation_initialized)

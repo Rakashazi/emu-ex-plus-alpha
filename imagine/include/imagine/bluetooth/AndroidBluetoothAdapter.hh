@@ -56,7 +56,7 @@ private:
 class AndroidBluetoothSocket : public BluetoothSocket
 {
 public:
-	AndroidBluetoothSocket(Base::ApplicationContext app):app{app} {}
+	AndroidBluetoothSocket(Base::ApplicationContext ctx):ctx{ctx} {}
 	IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) final;
 	IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
@@ -68,7 +68,7 @@ public:
 
 private:
 	jobject socket{}, outStream{};
-	Base::ApplicationContext app{};
+	Base::ApplicationContext ctx{};
 	sem_t connectSem;
 	Base::FDEventSource fdSrc;
 	int nativeFd = -1;

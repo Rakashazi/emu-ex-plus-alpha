@@ -159,13 +159,6 @@ std::optional<EGLConfig> EGLContextBase::chooseConfig(EGLDisplay display, int re
 		auto eglAttr = glConfigAttrsToEGLAttrs(renderableType, attr);
 		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
 	}
-	if(!configs && attr.pixelFormat() != Window::defaultPixelFormat(attr.appContext()))
-	{
-		logErr("no EGL configs found, retrying with default window format");
-		attr.setPixelFormat(Window::defaultPixelFormat(attr.appContext()));
-		auto eglAttr = glConfigAttrsToEGLAttrs(renderableType, attr);
-		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
-	}
 	if(!configs)
 	{
 		logErr("no EGL configs found, retrying with no color bits set");
@@ -372,31 +365,31 @@ NativeGLContext GLContext::nativeObject()
 
 // GLDisplay
 
-std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault()
+std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(Base::NativeDisplayConnection ctx)
 {
-	auto display = getDefault();
+	auto display = getDefault(ctx);
 	auto ec = initDisplay(display.display);
 	return {ec, display};
 }
 
-std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(GL::API api)
+std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(Base::NativeDisplayConnection ctx, GL::API api)
 {
 	if(!bindAPI(api))
 	{
 		logErr("error binding requested API");
 		return {{EINVAL}, {}};
 	}
-	return makeDefault();
+	return makeDefault(ctx);
 }
 
-GLDisplay GLDisplay::getDefault(GL::API api)
+GLDisplay GLDisplay::getDefault(Base::NativeDisplayConnection ctx, GL::API api)
 {
 	if(!bindAPI(api))
 	{
 		logErr("error binding requested API");
 		return {};
 	}
-	return getDefault();
+	return getDefault(ctx);
 }
 
 static void printFeatures(bool supportsSurfaceless, bool supportsNoConfig, bool supportsNoError, bool supportsTripleBufferSurfaces)

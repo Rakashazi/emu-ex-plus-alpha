@@ -2652,7 +2652,7 @@ void render_bg_m5_im2_vs(int line, int width)
   uint32 w = (reg[18] >> 7) & 1;
 
   /* Test against current line */
-  if (w == ((uint)line >= a))
+  if (w == ((unsigned)line >= a))
   {
     /* Window takes up entire line */
     a = 0;
@@ -3794,7 +3794,7 @@ void remap_line(int line, IG::Pixmap pix)
     line = (line << 1) + odd_frame;
   }
 
-  if(unlikely((uint)line >= pix.h() || (uint)bitmap.viewport.w != pix.w()))
+  if(unlikely((unsigned)line >= pix.h() || (unsigned)bitmap.viewport.w != pix.w()))
 		return;
 
   /* Pixel line buffer */

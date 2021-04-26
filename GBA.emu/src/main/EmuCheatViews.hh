@@ -21,7 +21,7 @@
 namespace EmuCheats
 {
 
-static const uint MAX = 100;
+static const unsigned MAX = 100;
 
 }
 
@@ -49,11 +49,11 @@ private:
 class EmuEditCheatView : public BaseEditCheatView
 {
 public:
-	EmuEditCheatView(ViewAttachParams attach, uint cheatIdx, RefreshCheatsDelegate onCheatListChanged_);
+	EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, RefreshCheatsDelegate onCheatListChanged_);
 
 private:
 	DualTextMenuItem code{};
-	uint idx = 0;
+	unsigned idx = 0;
 
 	const char *cheatNameString() const final;
 	void renamed(const char *str) final;

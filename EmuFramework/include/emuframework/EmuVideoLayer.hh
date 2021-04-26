@@ -27,12 +27,12 @@ class VController;
 class EmuVideoLayer
 {
 public:
-	EmuVideoLayer(EmuVideo &video, bool useLinearFilter);
+	EmuVideoLayer(EmuVideo &video);
 	void place(const IG::WindowRect &viewportRect, const Gfx::ProjectionPlane &projP, EmuInputView *inputView);
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP);
-	void setOverlay(uint effect);
+	void setOverlay(unsigned effect);
 	void setOverlayIntensity(Gfx::GC intensity);
-	void setEffect(uint effect, IG::PixelFormatID fmt);
+	void setEffect(unsigned effect, IG::PixelFormatID fmt);
 	void setEffectFormat(IG::PixelFormatID fmt);
 	void setLinearFilter(bool on);
 	void resetImage();

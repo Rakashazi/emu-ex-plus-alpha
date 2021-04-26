@@ -26,10 +26,10 @@ extern "C"
 	extern char **environ;
 }
 
-void fixFilePermissions(Base::ApplicationContext app, const char *path)
+void fixFilePermissions(Base::ApplicationContext ctx, const char *path)
 {
 	#if defined CONFIG_BASE_IOS
-	if(!app.isSystemApp())
+	if(!ctx.isSystemApp())
 		return;
 	// try to fix permissions if using jailbreak environment
 	if(FS::access(path, FS::acc::w) == 0)
@@ -39,7 +39,7 @@ void fixFilePermissions(Base::ApplicationContext app, const char *path)
 	else
 		return;
 
-	auto execPath = FS::makePathStringPrintf("%s/fixMobilePermission", EmuApp::assetPath(app).data());
+	auto execPath = FS::makePathStringPrintf("%s/fixMobilePermission", ctx.assetPath().data());
 	//logMsg("executing %s", execPath);
 	auto fixMobilePermissionStr = FS::makeFileString("fixMobilePermission");
 	auto pathStr = FS::makePathString(path);

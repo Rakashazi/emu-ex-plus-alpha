@@ -15,17 +15,17 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/base/EventLoop.hh>
-#include <imagine/base/Error.hh>
-#include <X11/Xlib.h>
+#include <imagine/config/defs.hh>
 
 namespace Base
 {
 
-class ApplicationContext;
-
-Display *initX11(ApplicationContext, EventLoop);
-FDEventSource makeAttachedX11EventSource(ApplicationContext, Display *, EventLoop);
-void runX11Events(ApplicationContext, Display *);
+class FrameTimer
+{
+public:
+	virtual ~FrameTimer();
+	virtual void scheduleVSync() = 0;
+	virtual void cancel() = 0;
+};
 
 }

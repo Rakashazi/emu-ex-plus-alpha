@@ -41,17 +41,17 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "I/II";
 const char *EmuSystem::inputCenterBtnName = "Select/Run";
-const uint EmuSystem::inputFaceBtns = 6;
-const uint EmuSystem::inputCenterBtns = 2;
+const unsigned EmuSystem::inputFaceBtns = 6;
+const unsigned EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
-const uint EmuSystem::maxPlayers = 5;
-uint playerBit = 13;
+const unsigned EmuSystem::maxPlayers = 5;
+unsigned playerBit = 13;
 
-void updateVControllerMapping(uint player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
 	using namespace IG;
-	uint playerMask = player << playerBit;
+	unsigned playerMask = player << playerBit;
 	map[SysVController::F_ELEM] = bit(0) | playerMask;
 	map[SysVController::F_ELEM+1] = bit(1) | playerMask;
 	map[SysVController::F_ELEM+2] = bit(8) | playerMask;
@@ -72,12 +72,12 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 	map[SysVController::D_ELEM+8] = bit(6) | bit(5) | playerMask;
 }
 
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
+unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	assert(input >= pceKeyIdxUp);
-	uint player = (input - pceKeyIdxUp) / EmuControls::gamepadKeys;
-	uint playerMask = player << playerBit;
+	unsigned player = (input - pceKeyIdxUp) / EmuControls::gamepadKeys;
+	unsigned playerMask = player << playerBit;
 	input -= EmuControls::gamepadKeys * player;
 	using namespace IG;
 	switch(input)
@@ -105,11 +105,11 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint state, uint emuKey)
+void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
 {
-	uint player = emuKey >> playerBit;
+	auto player = emuKey >> playerBit;
 	assert(player < maxPlayers);
-	inputBuff[player] = IG::setOrClearBits(inputBuff[player], (uint16)emuKey, state == Input::PUSHED);
+	inputBuff[player] = IG::setOrClearBits(inputBuff[player], (uint16)emuKey, action == Input::Action::PUSHED);
 }
 
 void EmuSystem::clearInputBuffers(EmuInputView &)

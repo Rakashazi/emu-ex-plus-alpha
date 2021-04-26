@@ -48,7 +48,7 @@ static bool loadedAAudioLib()
 	return AAudio_createStreamBuilder;
 }
 
-static void loadAAudioLib(Base::ApplicationContext app)
+static void loadAAudioLib(Base::ApplicationContext ctx)
 {
 	if(loadedAAudioLib())
 		return;
@@ -76,7 +76,7 @@ static void loadAAudioLib(Base::ApplicationContext app)
 	Base::loadSymbol(AAudioStream_requestStop, lib, "AAudioStream_requestStop");
 	Base::loadSymbol(AAudioStream_getState, lib, "AAudioStream_getState");
 	Base::loadSymbol(AAudioStream_waitForStateChange, lib, "AAudioStream_waitForStateChange");
-	if(app.androidSDK() >= 28)
+	if(ctx.androidSDK() >= 28)
 	{
 		Base::loadSymbol(AAudioStreamBuilder_setUsage, lib, "AAudioStreamBuilder_setUsage");
 	}
@@ -125,9 +125,9 @@ static const char *streamStateStr(aaudio_stream_state_t state)
 	}
 }
 
-AAudioOutputStream::AAudioOutputStream(Base::ApplicationContext app)
+AAudioOutputStream::AAudioOutputStream(Base::ApplicationContext ctx)
 {
-	loadAAudioLib(app);
+	loadAAudioLib(ctx);
 	AAudio_createStreamBuilder(&builder);
 	disconnectEvent.attach(
 		[this]()

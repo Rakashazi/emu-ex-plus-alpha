@@ -24,11 +24,18 @@
 namespace Base
 {
 
+class ApplicationContext;
+
 class XScreen
 {
 public:
+	struct InitParams
+	{
+		void *xScreen;
+	};
+
 	constexpr XScreen() {}
-	XScreen(void *xScreen);
+	XScreen(ApplicationContext, InitParams);
 	std::pair<float, float> mmSize() const;
 	void *nativeObject() const;
 	bool operator ==(XScreen const &rhs) const;

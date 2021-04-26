@@ -32,6 +32,8 @@
 #include <limits.h>
 #include <imagine/logger/logger.h>
 
+using uint = unsigned;
+
 #ifdef BUILD_OP_TABLE
 	extern unsigned char m68ki_cycles[0x10000];
 #endif

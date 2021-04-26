@@ -24,19 +24,23 @@
 namespace Gfx
 {
 
-GLTask::GLTask() {}
+GLTask::GLTask(Base::ApplicationContext ctx):
+	GLTask{ctx, nullptr}
+{}
 
-GLTask::GLTask(const char *debugLabel):
+GLTask::GLTask(Base::ApplicationContext ctx, const char *debugLabel):
+	onExit{ctx},
 	commandPort{debugLabel}
 {}
 
-Error GLTask::makeGLContext(GLTaskConfig config, Base::ApplicationContext app)
+Error GLTask::makeGLContext(GLTaskConfig config)
 {
 	deinit();
 	thread = IG::makeThreadSync(
 		[this, &config](auto &sem)
 		{
-			auto glDpy = Base::GLDisplay::getDefault(glAPI);
+			auto glDpy = config.display;
+			glDpy.bindAPI(glAPI);
 			context = makeGLContext(glDpy, config.bufferConfig);
 			if(unlikely(!context))
 			{
@@ -102,12 +106,8 @@ Error GLTask::makeGLContext(GLTaskConfig config, Base::ApplicationContext app)
 							glFinish();
 						}, true);
 				}
-				else
-				{
-					deinit();
-				}
 				return true;
-			}, app, Base::RENDERER_TASK_ON_EXIT_PRIORITY
+			}, appContext(), Base::RENDERER_TASK_ON_EXIT_PRIORITY
 		};
 	return {};
 }
@@ -143,7 +143,7 @@ void GLTask::deinit()
 	if(!context)
 		return;
 	commandPort.send({Command::EXIT});
-	onExit = {};
+	onExit.reset();
 	thread.join(); // GL implementation may assign thread destructor so must join() to make sure it completes
 }
 

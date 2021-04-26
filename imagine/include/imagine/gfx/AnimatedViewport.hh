@@ -18,6 +18,7 @@
 #include <imagine/gfx/Viewport.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/util/Interpolator.hh>
+#include <array>
 
 namespace Gfx
 {
@@ -35,7 +36,7 @@ public:
 	Gfx::Viewport viewport() const;
 
 protected:
-	IG::InterpolatorValue<int, IG::FrameTime, IG::InterpolatorType::EASEINOUTQUAD> animator[4]{};
+	std::array<IG::InterpolatorValue<int, IG::FrameTime, IG::InterpolatorType::EASEINOUTQUAD>, 4> animator{};
 	Base::OnFrameDelegate animate{};
 	Base::Window *win{};
 };

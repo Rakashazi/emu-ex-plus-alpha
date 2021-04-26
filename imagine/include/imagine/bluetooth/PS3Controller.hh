@@ -27,9 +27,9 @@ class PS3Controller : public BluetoothInputDevice, public Input::Device
 public:
 	static std::vector<PS3Controller*> devList;
 
-	PS3Controller(Base::ApplicationContext app, BluetoothAddr addr): BluetoothInputDevice{app},
+	PS3Controller(Base::ApplicationContext ctx, BluetoothAddr addr): BluetoothInputDevice{ctx},
 		Device{0, Input::Map::PS3PAD, Input::Device::TYPE_BIT_GAMEPAD, "PS3 Controller"},
-		ctlSock{app}, intSock{app},
+		ctlSock{ctx}, intSock{ctx},
 		addr{addr}
 	{}
 	IG::ErrorCode open(BluetoothAdapter &adapter) final;

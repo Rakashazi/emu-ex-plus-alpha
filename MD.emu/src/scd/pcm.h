@@ -2,7 +2,7 @@
 
 #include <genplus-config.h>
 
-static const uint PCM_STEP_SHIFT = 11;
+static const unsigned PCM_STEP_SHIFT = 11;
 
 void pcm_write(unsigned int a, unsigned int d);
 void scd_pcm_setRate(int rate);

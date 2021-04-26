@@ -146,7 +146,7 @@ class CustomVideoOptionView : public VideoOptionView
 {
 	BoolMenuItem cropNormalBorders
 	{
-		"Crop Normal Borders",
+		"Crop Normal Borders", &defaultFace(),
 		(bool)optionCropNormalBorders,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -160,15 +160,15 @@ class CustomVideoOptionView : public VideoOptionView
 
 	TextMenuItem borderModeItem[4]
 	{
-		{"Normal", [](){ optionBorderMode = VICII_NORMAL_BORDERS; setBorderMode(VICII_NORMAL_BORDERS); }},
-		{"Full", [](){ optionBorderMode = VICII_FULL_BORDERS; setBorderMode(VICII_FULL_BORDERS); }},
-		{"Debug", [](){ optionBorderMode = VICII_DEBUG_BORDERS; setBorderMode(VICII_DEBUG_BORDERS); }},
-		{"None", [](){ optionBorderMode = VICII_NO_BORDERS; setBorderMode(VICII_NO_BORDERS); }},
+		{"Normal", &defaultFace(), [](){ optionBorderMode = VICII_NORMAL_BORDERS; setBorderMode(VICII_NORMAL_BORDERS); }},
+		{"Full", &defaultFace(), [](){ optionBorderMode = VICII_FULL_BORDERS; setBorderMode(VICII_FULL_BORDERS); }},
+		{"Debug", &defaultFace(), [](){ optionBorderMode = VICII_DEBUG_BORDERS; setBorderMode(VICII_DEBUG_BORDERS); }},
+		{"None", &defaultFace(), [](){ optionBorderMode = VICII_NO_BORDERS; setBorderMode(VICII_NO_BORDERS); }},
 	};
 
 	MultiChoiceMenuItem borderMode
 	{
-		"Borders",
+		"Borders", &defaultFace(),
 		optionBorderMode >= std::size(borderModeItem) ? VICII_NORMAL_BORDERS : (int)optionBorderMode,
 		borderModeItem
 	};
@@ -187,18 +187,18 @@ class CustomAudioOptionView : public AudioOptionView
 {
 	TextMenuItem sidEngineItem[2]
 	{
-		{"FastSID", [](){ setSidEngine_(SID_ENGINE_FASTSID); }},
-		{"ReSID", [](){ setSidEngine_(SID_ENGINE_RESID); }},
+		{"FastSID", &defaultFace(), [](){ setSidEngine_(SID_ENGINE_FASTSID); }},
+		{"ReSID", &defaultFace(), [](){ setSidEngine_(SID_ENGINE_RESID); }},
 	};
 
 	MultiChoiceMenuItem sidEngine
 	{
-		"SID Engine",
+		"SID Engine", &defaultFace(),
 		[this]()
 		{
 			int engine = intResource("SidEngine");
 			logMsg("current SID engine: %d", engine);
-			if((uint)engine >= std::size(sidEngineItem))
+			if((unsigned)engine >= std::size(sidEngineItem))
 			{
 				return SID_ENGINE_FASTSID;
 			}
@@ -209,15 +209,15 @@ class CustomAudioOptionView : public AudioOptionView
 
 	TextMenuItem reSidSamplingItem[4]
 	{
-		{"Fast", [](){ setReSidSampling_(SID_RESID_SAMPLING_FAST); }},
-		{"Interpolation", [](){ setReSidSampling_(SID_RESID_SAMPLING_INTERPOLATION); }},
-		{"Resampling", [](){ setReSidSampling_(SID_RESID_SAMPLING_RESAMPLING); }},
-		{"Fast Resampling", [](){ setReSidSampling_(SID_RESID_SAMPLING_FAST_RESAMPLING); }},
+		{"Fast", &defaultFace(), [](){ setReSidSampling_(SID_RESID_SAMPLING_FAST); }},
+		{"Interpolation", &defaultFace(), [](){ setReSidSampling_(SID_RESID_SAMPLING_INTERPOLATION); }},
+		{"Resampling", &defaultFace(), [](){ setReSidSampling_(SID_RESID_SAMPLING_RESAMPLING); }},
+		{"Fast Resampling", &defaultFace(), [](){ setReSidSampling_(SID_RESID_SAMPLING_FAST_RESAMPLING); }},
 	};
 
 	MultiChoiceMenuItem reSidSampling
 	{
-		"ReSID Sampling",
+		"ReSID Sampling", &defaultFace(),
 		optionReSidSampling,
 		reSidSamplingItem
 	};
@@ -247,177 +247,177 @@ class CustomSystemOptionView : public SystemOptionView
 {
 	TextHeadingMenuItem defaultsHeading
 	{
-		"Default Boot Options"
+		"Default Boot Options", &defaultBoldFace()
 	};
 
 	TextMenuItem defaultC64ModelItem[14]
 	{
-		{c64ModelStr[0], [](){ setDefaultC64Model(0); }},
-		{c64ModelStr[1], [](){ setDefaultC64Model(1); }},
-		{c64ModelStr[2], [](){ setDefaultC64Model(2); }},
-		{c64ModelStr[3], [](){ setDefaultC64Model(3); }},
-		{c64ModelStr[4], [](){ setDefaultC64Model(4); }},
-		{c64ModelStr[5], [](){ setDefaultC64Model(5); }},
-		{c64ModelStr[6], [](){ setDefaultC64Model(6); }},
-		{c64ModelStr[7], [](){ setDefaultC64Model(7); }},
-		{c64ModelStr[8], [](){ setDefaultC64Model(8); }},
-		{c64ModelStr[9], [](){ setDefaultC64Model(9); }},
-		{c64ModelStr[10], [](){ setDefaultC64Model(10); }},
-		{c64ModelStr[11], [](){ setDefaultC64Model(11); }},
-		{c64ModelStr[12], [](){ setDefaultC64Model(12); }},
-		{c64ModelStr[13], [](){ setDefaultC64Model(13); }},
+		{c64ModelStr[0], &defaultFace(), [](){ setDefaultC64Model(0); }},
+		{c64ModelStr[1], &defaultFace(), [](){ setDefaultC64Model(1); }},
+		{c64ModelStr[2], &defaultFace(), [](){ setDefaultC64Model(2); }},
+		{c64ModelStr[3], &defaultFace(), [](){ setDefaultC64Model(3); }},
+		{c64ModelStr[4], &defaultFace(), [](){ setDefaultC64Model(4); }},
+		{c64ModelStr[5], &defaultFace(), [](){ setDefaultC64Model(5); }},
+		{c64ModelStr[6], &defaultFace(), [](){ setDefaultC64Model(6); }},
+		{c64ModelStr[7], &defaultFace(), [](){ setDefaultC64Model(7); }},
+		{c64ModelStr[8], &defaultFace(), [](){ setDefaultC64Model(8); }},
+		{c64ModelStr[9], &defaultFace(), [](){ setDefaultC64Model(9); }},
+		{c64ModelStr[10], &defaultFace(), [](){ setDefaultC64Model(10); }},
+		{c64ModelStr[11], &defaultFace(), [](){ setDefaultC64Model(11); }},
+		{c64ModelStr[12], &defaultFace(), [](){ setDefaultC64Model(12); }},
+		{c64ModelStr[13], &defaultFace(), [](){ setDefaultC64Model(13); }},
 	};
 
 	MultiChoiceMenuItem defaultC64Model
 	{
-		"C64 Model",
+		"C64 Model", &defaultFace(),
 		optionC64Model,
 		defaultC64ModelItem
 	};
 
 	TextMenuItem defaultDTVModelItem[5]
 	{
-		{dtvModelStr[0], [](){ setDefaultDTVModel(0); }},
-		{dtvModelStr[1], [](){ setDefaultDTVModel(1); }},
-		{dtvModelStr[2], [](){ setDefaultDTVModel(2); }},
-		{dtvModelStr[3], [](){ setDefaultDTVModel(3); }},
-		{dtvModelStr[4], [](){ setDefaultDTVModel(4); }},
+		{dtvModelStr[0], &defaultFace(), [](){ setDefaultDTVModel(0); }},
+		{dtvModelStr[1], &defaultFace(), [](){ setDefaultDTVModel(1); }},
+		{dtvModelStr[2], &defaultFace(), [](){ setDefaultDTVModel(2); }},
+		{dtvModelStr[3], &defaultFace(), [](){ setDefaultDTVModel(3); }},
+		{dtvModelStr[4], &defaultFace(), [](){ setDefaultDTVModel(4); }},
 	};
 
 	MultiChoiceMenuItem defaultDTVModel
 	{
-		"DTV Model",
+		"DTV Model", &defaultFace(),
 		optionDTVModel,
 		defaultDTVModelItem
 	};
 
 	TextMenuItem defaultC128ModelItem[4]
 	{
-		{c128ModelStr[0], [](){ setDefaultC128Model(0); }},
-		{c128ModelStr[1], [](){ setDefaultC128Model(1); }},
-		{c128ModelStr[2], [](){ setDefaultC128Model(2); }},
-		{c128ModelStr[3], [](){ setDefaultC128Model(3); }},
+		{c128ModelStr[0], &defaultFace(), [](){ setDefaultC128Model(0); }},
+		{c128ModelStr[1], &defaultFace(), [](){ setDefaultC128Model(1); }},
+		{c128ModelStr[2], &defaultFace(), [](){ setDefaultC128Model(2); }},
+		{c128ModelStr[3], &defaultFace(), [](){ setDefaultC128Model(3); }},
 	};
 
 	MultiChoiceMenuItem defaultC128Model
 	{
-		"C128 Model",
+		"C128 Model", &defaultFace(),
 		optionC128Model,
 		defaultC128ModelItem
 	};
 
 	TextMenuItem defaultSuperCPUModelItem[11]
 	{
-		{superCPUModelStr[0], [](){ setDefaultSuperCPUModel(0); }},
-		{superCPUModelStr[1], [](){ setDefaultSuperCPUModel(1); }},
-		{superCPUModelStr[2], [](){ setDefaultSuperCPUModel(2); }},
-		{superCPUModelStr[3], [](){ setDefaultSuperCPUModel(3); }},
-		{superCPUModelStr[4], [](){ setDefaultSuperCPUModel(4); }},
-		{superCPUModelStr[5], [](){ setDefaultSuperCPUModel(5); }},
-		{superCPUModelStr[6], [](){ setDefaultSuperCPUModel(6); }},
-		{superCPUModelStr[7], [](){ setDefaultSuperCPUModel(7); }},
-		{superCPUModelStr[8], [](){ setDefaultSuperCPUModel(8); }},
-		{superCPUModelStr[9], [](){ setDefaultSuperCPUModel(9); }},
-		{superCPUModelStr[10], [](){ setDefaultSuperCPUModel(10); }},
+		{superCPUModelStr[0], &defaultFace(), [](){ setDefaultSuperCPUModel(0); }},
+		{superCPUModelStr[1], &defaultFace(), [](){ setDefaultSuperCPUModel(1); }},
+		{superCPUModelStr[2], &defaultFace(), [](){ setDefaultSuperCPUModel(2); }},
+		{superCPUModelStr[3], &defaultFace(), [](){ setDefaultSuperCPUModel(3); }},
+		{superCPUModelStr[4], &defaultFace(), [](){ setDefaultSuperCPUModel(4); }},
+		{superCPUModelStr[5], &defaultFace(), [](){ setDefaultSuperCPUModel(5); }},
+		{superCPUModelStr[6], &defaultFace(), [](){ setDefaultSuperCPUModel(6); }},
+		{superCPUModelStr[7], &defaultFace(), [](){ setDefaultSuperCPUModel(7); }},
+		{superCPUModelStr[8], &defaultFace(), [](){ setDefaultSuperCPUModel(8); }},
+		{superCPUModelStr[9], &defaultFace(), [](){ setDefaultSuperCPUModel(9); }},
+		{superCPUModelStr[10], &defaultFace(), [](){ setDefaultSuperCPUModel(10); }},
 	};
 
 	MultiChoiceMenuItem defaultSuperCPUModel
 	{
-		"C64 SuperCPU Model",
+		"C64 SuperCPU Model", &defaultFace(),
 		optionSuperCPUModel,
 		defaultSuperCPUModelItem
 	};
 
 	TextMenuItem defaultCBM2ModelItem[9]
 	{
-		{cbm2ModelStr[0], [](){ setDefaultCBM2Model(2); }},
-		{cbm2ModelStr[1], [](){ setDefaultCBM2Model(3); }},
-		{cbm2ModelStr[2], [](){ setDefaultCBM2Model(4); }},
-		{cbm2ModelStr[3], [](){ setDefaultCBM2Model(5); }},
-		{cbm2ModelStr[4], [](){ setDefaultCBM2Model(6); }},
-		{cbm2ModelStr[5], [](){ setDefaultCBM2Model(7); }},
-		{cbm2ModelStr[6], [](){ setDefaultCBM2Model(8); }},
-		{cbm2ModelStr[7], [](){ setDefaultCBM2Model(9); }},
-		{cbm2ModelStr[8], [](){ setDefaultCBM2Model(10); }},
+		{cbm2ModelStr[0], &defaultFace(), [](){ setDefaultCBM2Model(2); }},
+		{cbm2ModelStr[1], &defaultFace(), [](){ setDefaultCBM2Model(3); }},
+		{cbm2ModelStr[2], &defaultFace(), [](){ setDefaultCBM2Model(4); }},
+		{cbm2ModelStr[3], &defaultFace(), [](){ setDefaultCBM2Model(5); }},
+		{cbm2ModelStr[4], &defaultFace(), [](){ setDefaultCBM2Model(6); }},
+		{cbm2ModelStr[5], &defaultFace(), [](){ setDefaultCBM2Model(7); }},
+		{cbm2ModelStr[6], &defaultFace(), [](){ setDefaultCBM2Model(8); }},
+		{cbm2ModelStr[7], &defaultFace(), [](){ setDefaultCBM2Model(9); }},
+		{cbm2ModelStr[8], &defaultFace(), [](){ setDefaultCBM2Model(10); }},
 	};
 
 	MultiChoiceMenuItem defaultCBM2Model
 	{
-		"CBM-II 6x0 Model",
+		"CBM-II 6x0 Model", &defaultFace(),
 		optionCBM2Model - 2,
 		defaultCBM2ModelItem
 	};
 
 	TextMenuItem defaultCBM5x0ModelItem[2]
 	{
-		{cbm5x0ModelStr[0], [](){ setDefaultCBM5x0Model(0); }},
-		{cbm5x0ModelStr[1], [](){ setDefaultCBM5x0Model(1); }},
+		{cbm5x0ModelStr[0], &defaultFace(), [](){ setDefaultCBM5x0Model(0); }},
+		{cbm5x0ModelStr[1], &defaultFace(), [](){ setDefaultCBM5x0Model(1); }},
 	};
 
 	MultiChoiceMenuItem defaultCBM5x0Model
 	{
-		"CBM-II 5x0 Model",
+		"CBM-II 5x0 Model", &defaultFace(),
 		optionCBM5x0Model,
 		defaultCBM5x0ModelItem
 	};
 
 	TextMenuItem defaultPETModelItem[12]
 	{
-		{petModelStr[0], [](){ setDefaultPETModel(0); }},
-		{petModelStr[1], [](){ setDefaultPETModel(1); }},
-		{petModelStr[2], [](){ setDefaultPETModel(2); }},
-		{petModelStr[3], [](){ setDefaultPETModel(3); }},
-		{petModelStr[4], [](){ setDefaultPETModel(4); }},
-		{petModelStr[5], [](){ setDefaultPETModel(5); }},
-		{petModelStr[6], [](){ setDefaultPETModel(6); }},
-		{petModelStr[7], [](){ setDefaultPETModel(7); }},
-		{petModelStr[8], [](){ setDefaultPETModel(8); }},
-		{petModelStr[9], [](){ setDefaultPETModel(9); }},
-		{petModelStr[10], [](){ setDefaultPETModel(10); }},
-		{petModelStr[11], [](){ setDefaultPETModel(11); }},
+		{petModelStr[0], &defaultFace(), [](){ setDefaultPETModel(0); }},
+		{petModelStr[1], &defaultFace(), [](){ setDefaultPETModel(1); }},
+		{petModelStr[2], &defaultFace(), [](){ setDefaultPETModel(2); }},
+		{petModelStr[3], &defaultFace(), [](){ setDefaultPETModel(3); }},
+		{petModelStr[4], &defaultFace(), [](){ setDefaultPETModel(4); }},
+		{petModelStr[5], &defaultFace(), [](){ setDefaultPETModel(5); }},
+		{petModelStr[6], &defaultFace(), [](){ setDefaultPETModel(6); }},
+		{petModelStr[7], &defaultFace(), [](){ setDefaultPETModel(7); }},
+		{petModelStr[8], &defaultFace(), [](){ setDefaultPETModel(8); }},
+		{petModelStr[9], &defaultFace(), [](){ setDefaultPETModel(9); }},
+		{petModelStr[10], &defaultFace(), [](){ setDefaultPETModel(10); }},
+		{petModelStr[11], &defaultFace(), [](){ setDefaultPETModel(11); }},
 	};
 
 	MultiChoiceMenuItem defaultPetModel
 	{
-		"PET Model",
+		"PET Model", &defaultFace(),
 		optionPETModel,
 		defaultPETModelItem
 	};
 
 	TextMenuItem defaultPlus4ModelItem[6]
 	{
-		{plus4ModelStr[0], [](){ setDefaultPlus4Model(0); }},
-		{plus4ModelStr[1], [](){ setDefaultPlus4Model(1); }},
-		{plus4ModelStr[2], [](){ setDefaultPlus4Model(2); }},
-		{plus4ModelStr[3], [](){ setDefaultPlus4Model(3); }},
-		{plus4ModelStr[4], [](){ setDefaultPlus4Model(4); }},
-		{plus4ModelStr[5], [](){ setDefaultPlus4Model(5); }},
+		{plus4ModelStr[0], &defaultFace(), [](){ setDefaultPlus4Model(0); }},
+		{plus4ModelStr[1], &defaultFace(), [](){ setDefaultPlus4Model(1); }},
+		{plus4ModelStr[2], &defaultFace(), [](){ setDefaultPlus4Model(2); }},
+		{plus4ModelStr[3], &defaultFace(), [](){ setDefaultPlus4Model(3); }},
+		{plus4ModelStr[4], &defaultFace(), [](){ setDefaultPlus4Model(4); }},
+		{plus4ModelStr[5], &defaultFace(), [](){ setDefaultPlus4Model(5); }},
 	};
 
 	MultiChoiceMenuItem defaultPlus4Model
 	{
-		"Plus/4 Model",
+		"Plus/4 Model", &defaultFace(),
 		optionPlus4Model,
 		defaultPlus4ModelItem
 	};
 
 	TextMenuItem defaultVIC20ModelItem[3]
 	{
-		{vic20ModelStr[0], [](){ setDefaultVIC20Model(0); }},
-		{vic20ModelStr[1], [](){ setDefaultVIC20Model(1); }},
-		{vic20ModelStr[2], [](){ setDefaultVIC20Model(2); }},
+		{vic20ModelStr[0], &defaultFace(), [](){ setDefaultVIC20Model(0); }},
+		{vic20ModelStr[1], &defaultFace(), [](){ setDefaultVIC20Model(1); }},
+		{vic20ModelStr[2], &defaultFace(), [](){ setDefaultVIC20Model(2); }},
 	};
 
 	MultiChoiceMenuItem defaultVIC20Model
 	{
-		"VIC-20 Model",
+		"VIC-20 Model", &defaultFace(),
 		optionVIC20Model,
 		defaultVIC20ModelItem
 	};
 
 	TextMenuItem systemFilePath
 	{
-		nullptr,
+		nullptr, &defaultFace(),
 		[this](Input::Event e)
 		{
 			auto view = makeFirmwarePathMenu("VICE System File Path", true, 1);
@@ -444,9 +444,9 @@ class CustomSystemOptionView : public SystemOptionView
 		if(!strlen(path))
 		{
 			if(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
-				EmuApp::printfMessage(5, false, "Using default paths:\n%s\n%s\n%s", EmuApp::assetPath(appContext()).data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
+				app().printfMessage(5, false, "Using default paths:\n%s\n%s\n%s", EmuApp::assetPath(appContext()).data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
 			else
-				EmuApp::printfMessage(4, false, "Using default path:\n%s/C64.emu", appContext().sharedStoragePath().data());
+				app().printfMessage(4, false, "Using default path:\n%s/C64.emu", appContext().sharedStoragePath().data());
 		}
 	}
 
@@ -474,7 +474,7 @@ public:
 	}
 };
 
-class DatasetteControlsView : public TableView
+class DatasetteControlsView : public TableView, public EmuAppHelper<DatasetteControlsView>
 {
 public:
 	public:
@@ -490,81 +490,81 @@ public:
 private:
 	TextMenuItem stop
 	{
-		"Stop",
+		"Stop", &defaultFace(),
 		[this]()
 		{
 			plugin.datasette_control(DATASETTE_CONTROL_STOP);
-			EmuApp::showEmuation();
+			app().showEmuation();
 		}
 	};
 
 	TextMenuItem start
 	{
-		"Start",
-		[]()
+		"Start", &defaultFace(),
+		[this]()
 		{
 			plugin.datasette_control(DATASETTE_CONTROL_START);
-			EmuApp::showEmuation();
+			app().showEmuation();
 		}
 	};
 
 	TextMenuItem forward
 	{
-		"Forward",
-		[]()
+		"Forward", &defaultFace(),
+		[this]()
 		{
 			plugin.datasette_control(DATASETTE_CONTROL_FORWARD);
-			EmuApp::showEmuation();
+			app().showEmuation();
 		}
 	};
 
 	TextMenuItem rewind
 	{
-		"Rewind",
-		[]()
+		"Rewind", &defaultFace(),
+		[this]()
 		{
 			plugin.datasette_control(DATASETTE_CONTROL_REWIND);
-			EmuApp::showEmuation();
+			app().showEmuation();
 		}
 	};
 
 	TextMenuItem record
 	{
-		"Record",
-		[]()
+		"Record", &defaultFace(),
+		[this]()
 		{
 			plugin.datasette_control(DATASETTE_CONTROL_RECORD);
-			EmuApp::showEmuation();
+			app().showEmuation();
 		}
 	};
 
 	TextMenuItem reset
 	{
-		"Reset",
+		"Reset", &defaultFace(),
 		[this](TextMenuItem &, View &view, Input::Event)
 		{
 			plugin.datasette_control(DATASETTE_CONTROL_RESET);
 			updateTapeCounter();
 			view.place();
-			EmuApp::postMessage("Tape reset");
+			app().postMessage("Tape reset");
 		}
 	};
 
 	TextMenuItem resetCounter
 	{
-		"Reset Counter",
+		"Reset Counter", &defaultFace(),
 		[this](TextMenuItem &, View &view, Input::Event)
 		{
 			plugin.datasette_control(DATASETTE_CONTROL_RESET_COUNTER);
 			updateTapeCounter();
 			view.place();
-			EmuApp::postMessage("Tape counter reset");
+			app().postMessage("Tape counter reset");
 		}
 	};
 
 	TextMenuItem tapeCounter
 	{
-		nullptr, nullptr
+		nullptr, &defaultFace(), nullptr
 	};
 
 	std::array<MenuItem*, 8> menuItem
@@ -591,7 +591,7 @@ private:
 	}
 };
 
-class C64IOControlView : public TableView
+class C64IOControlView : public TableView, public EmuAppHelper<C64IOControlView>
 {
 private:
 	void updateTapeText()
@@ -610,7 +610,7 @@ public:
 
 	void addTapeFilePickerView(Input::Event e, bool dismissPreviousView)
 	{
-		EmuApp::pushAndShowModalView(
+		app().pushAndShowModalView(
 			EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(), hasC64TapeExtension,
 			[this, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -628,7 +628,7 @@ public:
 private:
 	TextMenuItem tapeSlot
 	{
-		nullptr,
+		nullptr, &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(!item.active())
@@ -660,7 +660,7 @@ private:
 
 	TextMenuItem datasetteControls
 	{
-		"Datasette Controls",
+		"Datasette Controls", &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(!item.active())
@@ -684,7 +684,7 @@ public:
 
 	void addCartFilePickerView(Input::Event e, bool dismissPreviousView)
 	{
-		EmuApp::pushAndShowModalView(
+		app().pushAndShowModalView(
 			EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(), hasC64CartExtension,
 			[this, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -702,7 +702,7 @@ public:
 private:
 	TextMenuItem romSlot
 	{
-		nullptr,
+		nullptr, &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto cartFilename = plugin.cartridge_get_file_name(plugin.cart_getid_slotmain());
@@ -744,7 +744,7 @@ private:
 
 	void addDiskFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
-		EmuApp::pushAndShowModalView(
+		app().pushAndShowModalView(
 			EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(), hasC64DiskExtension,
 			[this, slot, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -790,18 +790,18 @@ public:
 private:
 	TextMenuItem diskSlot[4]
 	{
-		{nullptr, [this](Input::Event e) { onSelectDisk(e, 0); }},
-		{nullptr, [this](Input::Event e) { onSelectDisk(e, 1); }},
-		{nullptr, [this](Input::Event e) { onSelectDisk(e, 2); }},
-		{nullptr, [this](Input::Event e) { onSelectDisk(e, 3); }},
+		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 0); }},
+		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 1); }},
+		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 2); }},
+		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 3); }},
 	};
 
-	bool setDriveType(bool isActive, uint slot, int type)
+	bool setDriveType(bool isActive, unsigned slot, int type)
 	{
 		assumeExpr(slot < 4);
 		if(!isActive)
 		{
-			EmuApp::printfMessage(3, true, "Cannot use on %s", VicePlugin::systemName(currSystem));
+			app().printfMessage(3, true, "Cannot use on %s", VicePlugin::systemName(currSystem));
 			return false;
 		}
 		plugin.resources_set_int(driveResName[slot], type);
@@ -809,80 +809,80 @@ private:
 		return true;
 	}
 
-	uint currDriveTypeSlot = 0;
+	unsigned currDriveTypeSlot = 0;
 
 	TextMenuItem driveTypeItem[18]
 	{
 		{
-			driveTypeStr(DRIVE_TYPE_NONE),
+			driveTypeStr(DRIVE_TYPE_NONE), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_NONE); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_1540),
+			driveTypeStr(DRIVE_TYPE_1540), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1540); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_1541),
+			driveTypeStr(DRIVE_TYPE_1541), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1541); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_1541II),
+			driveTypeStr(DRIVE_TYPE_1541II), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1541II); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_1551),
+			driveTypeStr(DRIVE_TYPE_1551), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1551); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_1570),
+			driveTypeStr(DRIVE_TYPE_1570), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1570); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_1571),
+			driveTypeStr(DRIVE_TYPE_1571), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1571); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_1571CR),
+			driveTypeStr(DRIVE_TYPE_1571CR), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1571CR); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_1581),
+			driveTypeStr(DRIVE_TYPE_1581), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1581); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_2000),
+			driveTypeStr(DRIVE_TYPE_2000), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_2000); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_4000),
+			driveTypeStr(DRIVE_TYPE_4000), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_4000); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_2031),
+			driveTypeStr(DRIVE_TYPE_2031), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_2031); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_2040),
+			driveTypeStr(DRIVE_TYPE_2040), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_2040); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_3040),
+			driveTypeStr(DRIVE_TYPE_3040), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_3040); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_4040),
+			driveTypeStr(DRIVE_TYPE_4040), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_4040); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_1001),
+			driveTypeStr(DRIVE_TYPE_1001), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_1001); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_8050),
+			driveTypeStr(DRIVE_TYPE_8050), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_8050); },
 		},
 		{
-			driveTypeStr(DRIVE_TYPE_8250),
+			driveTypeStr(DRIVE_TYPE_8250), &defaultFace(),
 			[this](TextMenuItem &item, View &, Input::Event){ return setDriveType(item.active(), currDriveTypeSlot, DRIVE_TYPE_8250); },
 		}
 	};
@@ -915,7 +915,7 @@ private:
 
 	MultiChoiceMenuItem drive8Type
 	{
-		"Drive 8 Type",
+		"Drive 8 Type", &defaultFace(),
 		driveTypeMenuIdx(intResource(driveResName[0])),
 		driveTypeItem,
 		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
@@ -931,7 +931,7 @@ private:
 
 	MultiChoiceMenuItem drive9Type
 	{
-		"Drive 9 Type",
+		"Drive 9 Type", &defaultFace(),
 		driveTypeMenuIdx(intResource(driveResName[1])),
 		driveTypeItem,
 		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
@@ -947,7 +947,7 @@ private:
 
 	MultiChoiceMenuItem drive10Type
 	{
-		"Drive 10 Type",
+		"Drive 10 Type", &defaultFace(),
 		driveTypeMenuIdx(intResource(driveResName[2])),
 		driveTypeItem,
 		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
@@ -963,7 +963,7 @@ private:
 
 	MultiChoiceMenuItem drive11Type
 	{
-		"Drive 11 Type",
+		"Drive 11 Type", &defaultFace(),
 		driveTypeMenuIdx(intResource(driveResName[3])),
 		driveTypeItem,
 		[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
@@ -977,7 +977,7 @@ private:
 		}
 	};
 
-	TextHeadingMenuItem mediaOptions{"Media Options"};
+	TextHeadingMenuItem mediaOptions{"Media Options", &defaultBoldFace()};
 
 	StaticArrayList<MenuItem*, 12> item{};
 
@@ -1021,7 +1021,7 @@ class Vic20MemoryExpansionsView : public TableView
 
 	BoolMenuItem block0
 	{
-		"Block 0 (3KB @ $0400-$0FFF)",
+		"Block 0 (3KB @ $0400-$0FFF)", &defaultFace(),
 		(bool)intResource("RamBlock0"),
 		[this](BoolMenuItem &item)
 		{
@@ -1031,7 +1031,7 @@ class Vic20MemoryExpansionsView : public TableView
 
 	BoolMenuItem block1
 	{
-		"Block 1 (8KB @ $2000-$3FFF)",
+		"Block 1 (8KB @ $2000-$3FFF)", &defaultFace(),
 		(bool)intResource("RamBlock1"),
 		[this](BoolMenuItem &item)
 		{
@@ -1041,7 +1041,7 @@ class Vic20MemoryExpansionsView : public TableView
 
 	BoolMenuItem block2
 	{
-		"Block 2 (8KB @ $4000-$5FFF)",
+		"Block 2 (8KB @ $4000-$5FFF)", &defaultFace(),
 		(bool)intResource("RamBlock2"),
 		[this](BoolMenuItem &item)
 		{
@@ -1051,7 +1051,7 @@ class Vic20MemoryExpansionsView : public TableView
 
 	BoolMenuItem block3
 	{
-		"Block 3 (8KB @ $6000-$7FFF)",
+		"Block 3 (8KB @ $6000-$7FFF)", &defaultFace(),
 		(bool)intResource("RamBlock3"),
 		[this](BoolMenuItem &item)
 		{
@@ -1061,7 +1061,7 @@ class Vic20MemoryExpansionsView : public TableView
 
 	BoolMenuItem block5
 	{
-		"Block 5 (8KB @ $A000-$BFFF)",
+		"Block 5 (8KB @ $A000-$BFFF)", &defaultFace(),
 		(bool)intResource("RamBlock5"),
 		[this](BoolMenuItem &item)
 		{
@@ -1089,13 +1089,13 @@ public:
 	{}
 };
 
-class MachineOptionView : public TableView
+class MachineOptionView : public TableView, public EmuAppHelper<MachineOptionView>
 {
 	std::vector<TextMenuItem> modelItem{};
 
 	MultiChoiceMenuItem model
 	{
-		"Model",
+		"Model", &defaultFace(),
 		[]()
 		{
 			auto modelVal = sysModel();
@@ -1111,7 +1111,7 @@ class MachineOptionView : public TableView
 
 	TextMenuItem vic20MemExpansions
 	{
-		"Memory Expansions",
+		"Memory Expansions", &defaultFace(),
 		[this](Input::Event e)
 		{
 			pushAndShow(makeView<Vic20MemoryExpansionsView>(), e);
@@ -1120,7 +1120,7 @@ class MachineOptionView : public TableView
 
 	BoolMenuItem autostartWarp
 	{
-		"Autostart Fast-forward",
+		"Autostart Fast-forward", &defaultFace(),
 		(bool)optionAutostartWarp,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -1132,7 +1132,7 @@ class MachineOptionView : public TableView
 
 	BoolMenuItem autostartTDE
 	{
-		"Autostart Handles TDE",
+		"Autostart Handles TDE", &defaultFace(),
 		(bool)optionAutostartTDE,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -1144,7 +1144,7 @@ class MachineOptionView : public TableView
 
 	BoolMenuItem autostartBasicLoad
 	{
-		"Autostart Basic Load (Omit ',1')",
+		"Autostart Basic Load (Omit ',1')", &defaultFace(),
 		(bool)optionAutostartBasicLoad,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -1156,7 +1156,7 @@ class MachineOptionView : public TableView
 
 	BoolMenuItem trueDriveEmu
 	{
-		"True Drive Emulation (TDE)",
+		"True Drive Emulation (TDE)", &defaultFace(),
 		(bool)optionDriveTrueEmulation,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -1165,14 +1165,14 @@ class MachineOptionView : public TableView
 			setDriveTrueEmulation(optionDriveTrueEmulation);
 			if(!optionDriveTrueEmulation && !optionVirtualDeviceTraps)
 			{
-				EmuApp::postMessage("Enable Virtual Device Traps to use disks without TDE");
+				app().postMessage("Enable Virtual Device Traps to use disks without TDE");
 			}
 		}
 	};
 
 	BoolMenuItem virtualDeviceTraps
 	{
-		"Virtual Device Traps",
+		"Virtual Device Traps", &defaultFace(),
 		(bool)optionVirtualDeviceTraps,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -1198,7 +1198,7 @@ public:
 		iterateTimes(plugin.models, i)
 		{
 			int val = baseVal + i;
-			modelItem.emplace_back(plugin.modelStr[i],
+			modelItem.emplace_back(plugin.modelStr[i], &defaultFace(),
 				[val]()
 				{
 					EmuSystem::sessionOptionSet();
@@ -1223,7 +1223,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 {
 	TextMenuItem c64IOControl
 	{
-		"Media Control",
+		"Media Control", &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(!item.active())
@@ -1234,7 +1234,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 
 	TextMenuItem options
 	{
-		"Machine Options",
+		"Machine Options", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())
@@ -1246,7 +1246,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 
 	TextMenuItem quickSettings
 	{
-		"Apply Quick Settings & Restart",
+		"Apply Quick Settings & Restart", &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(!item.active())
@@ -1259,7 +1259,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 					optionVirtualDeviceTraps = 0;
 					optionDriveTrueEmulation = 1;
 					optionModel = defaultNTSCModel[currSystem];
-					EmuApp::reloadGame();
+					app().reloadGame();
 				});
 			multiChoiceView->appendItem("NTSC",
 				[this]()
@@ -1268,7 +1268,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 					optionVirtualDeviceTraps = 1;
 					optionDriveTrueEmulation = 0;
 					optionModel = defaultNTSCModel[currSystem];
-					EmuApp::reloadGame();
+					app().reloadGame();
 				});
 			multiChoiceView->appendItem("PAL w/ True Drive Emu",
 				[this]()
@@ -1277,7 +1277,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 					optionVirtualDeviceTraps = 0;
 					optionDriveTrueEmulation = 1;
 					optionModel = defaultPALModel[currSystem];
-					EmuApp::reloadGame();
+					app().reloadGame();
 				});
 			multiChoiceView->appendItem("PAL",
 				[this]()
@@ -1286,7 +1286,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 					optionVirtualDeviceTraps = 1;
 					optionDriveTrueEmulation = 0;
 					optionModel = defaultPALModel[currSystem];
-					EmuApp::reloadGame();
+					app().reloadGame();
 				});
 			pushAndShow(std::move(multiChoiceView), e);
 		}
@@ -1294,7 +1294,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 
 	BoolMenuItem swapJoystickPorts
 	{
-		"Swap Joystick Ports",
+		"Swap Joystick Ports", &defaultFace(),
 		(bool)optionSwapJoystickPorts,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -1305,7 +1305,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 
 	BoolMenuItem warpMode
 	{
-		"Warp Mode",
+		"Warp Mode", &defaultFace(),
 		(bool)*plugin.warp_mode_enabled,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -1315,7 +1315,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 
 	BoolMenuItem autostartOnLaunch
 	{
-		"Autostart On Launch",
+		"Autostart On Launch", &defaultFace(),
 		(bool)optionAutostartOnLaunch,
 		[this](BoolMenuItem &item)
 		{
@@ -1355,7 +1355,7 @@ class CustomMainMenuView : public EmuMainMenuView
 {
 	TextMenuItem system
 	{
-		nullptr,
+		nullptr, &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>(item, VicePlugin::SYSTEMS);
@@ -1372,7 +1372,7 @@ class CustomMainMenuView : public EmuMainMenuView
 								appContext().exit();
 							});
 						view.dismiss(false);
-						EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
+						app().pushAndShowModalView(std::move(ynAlertView), e);
 					});
 			}
 			pushAndShow(std::move(multiChoiceView), e);
@@ -1384,21 +1384,21 @@ class CustomMainMenuView : public EmuMainMenuView
 
 	TextMenuItem startWithBlankDisk
 	{
-		"Start System With Blank Disk",
+		"Start System With Blank Disk", &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, "Input Disk Name", "",
+			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input Disk Name", "",
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
 						if(!strlen(str))
 						{
-							EmuApp::postMessage(true, "Name can't be blank");
+							app().postMessage(true, "Name can't be blank");
 							return 1;
 						}
 						string_copy(newDiskName, str);
-						auto fPicker = EmuFilePicker::makeForMediaCreation(attachParams(), Input::defaultEvent());
+						auto fPicker = EmuFilePicker::makeForMediaCreation(attachParams());
 						fPicker->setOnClose(
 							[this](FSPicker &picker, Input::Event e)
 							{
@@ -1407,7 +1407,7 @@ class CustomMainMenuView : public EmuMainMenuView
 								if(e.isDefaultCancelButton())
 								{
 									// picker was cancelled
-									EmuApp::unpostMessage();
+									app().unpostMessage();
 									return;
 								}
 								if(FS::exists(newDiskPath))
@@ -1419,14 +1419,14 @@ class CustomMainMenuView : public EmuMainMenuView
 										{
 											createDiskAndLaunch(newDiskPath.data(), newDiskName.data(), e);
 										});
-									EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
+									app().pushAndShowModalView(std::move(ynAlertView), e);
 									return;
 								}
 								createDiskAndLaunch(newDiskPath.data(), newDiskName.data(), e);
 							});
 						view.dismiss(false);
-						EmuApp::pushAndShowModalView(std::move(fPicker), Input::defaultEvent());
-						EmuApp::postMessage("Set directory to save disk");
+						app().pushAndShowModalView(std::move(fPicker));
+						app().postMessage("Set directory to save disk");
 					}
 					else
 					{
@@ -1443,19 +1443,19 @@ class CustomMainMenuView : public EmuMainMenuView
 			FS::makeFileStringPrintf("%s,dsk", diskName).data(),
 			DISK_IMAGE_TYPE_D64) == -1)
 		{
-			EmuApp::postMessage(true, "Error creating disk image");
+			app().postMessage(true, "Error creating disk image");
 			return;
 		}
-		EmuApp::createSystemWithMedia({}, diskPath, "", e, {SYSTEM_FLAG_NO_AUTOSTART}, attachParams(),
-			[](Input::Event e)
+		app().createSystemWithMedia({}, diskPath, "", e, {SYSTEM_FLAG_NO_AUTOSTART}, attachParams(),
+			[this](Input::Event e)
 			{
-				EmuApp::launchSystem(e, false, true);
+				app().launchSystem(e, false, true);
 			});
 	};
 
 	TextMenuItem loadNoAutostart
 	{
-		"Load Game (No Autostart)",
+		"Load Game (No Autostart)", &defaultFace(),
 		[this](Input::Event e)
 		{
 			pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e, false, {SYSTEM_FLAG_NO_AUTOSTART}), e, false);
@@ -1477,7 +1477,7 @@ public:
 	CustomMainMenuView(ViewAttachParams attach): EmuMainMenuView{attach, true}
 	{
 		reloadItems();
-		EmuApp::setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
+		app().setOnMainMenuItemOptionChanged([this](){ reloadItems(); });
 	}
 };
 

@@ -8,7 +8,7 @@
 
 namespace EmuControls
 {
-extern const uint gamepadKeys;
+extern const unsigned gamepadKeys;
 }
 
 #ifdef SNES9X_VERSION_1_4
@@ -27,7 +27,7 @@ extern Byte1Option optionSuperFXClockMultiplier;
 extern Byte1Option optionAudioDSPInterpolation;
 #endif
 extern int snesInputPort;
-extern uint doubleClickFrames, rightClickFrames;
+extern unsigned doubleClickFrames, rightClickFrames;
 
 #ifndef SNES9X_VERSION_1_4
 static const int SNES_AUTO_INPUT = -1;
@@ -43,10 +43,10 @@ void setupSNESInput();
 void setSuperFXSpeedMultiplier(unsigned val);
 
 #ifndef SNES9X_VERSION_1_4
-uint16 *S9xGetJoypadBits(uint idx);
-uint8 *S9xGetMouseBits(uint idx);
-uint8 *S9xGetMouseDeltaBits(uint idx);
-int16 *S9xGetMousePosBits(uint idx);
+uint16 *S9xGetJoypadBits(unsigned idx);
+uint8 *S9xGetMouseBits(unsigned idx);
+uint8 *S9xGetMouseDeltaBits(unsigned idx);
+int16 *S9xGetMousePosBits(unsigned idx);
 int16 *S9xGetSuperscopePosBits();
 uint8 *S9xGetSuperscopeBits();
 CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons);

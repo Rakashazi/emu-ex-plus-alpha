@@ -14,7 +14,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/input/Input.hh>
-#include "private.hh"
+#include <imagine/input/Device.hh>
+#include <imagine/base/Application.hh>
 
 namespace Input
 {
@@ -24,7 +25,7 @@ uint32_t Event::deviceID() const
 	return devId;
 }
 
-const char *Event::mapName()
+const char *Event::mapName() const
 {
 	return mapName(map());
 }
@@ -44,14 +45,19 @@ int Event::pointerID() const
 	return pointerID_;
 }
 
-uint32_t Event::state() const
+Action Event::state() const
 {
 	return state_;
 }
 
+void Event::setKeyFlags(uint8_t flags)
+{
+	keyFlags = flags;
+}
+
 bool Event::stateIsPointer() const
 {
-	return state() == MOVED || state() == EXIT_VIEW || state() == ENTER_VIEW;
+	return state() == Action::MOVED || state() == Action::EXIT_VIEW || state() == Action::ENTER_VIEW;
 }
 
 bool Event::isPointer() const
@@ -61,7 +67,7 @@ bool Event::isPointer() const
 
 bool Event::isRelativePointer() const
 {
-	return Config::Input::RELATIVE_MOTION_DEVICES && state() == MOVED_RELATIVE;
+	return Config::Input::RELATIVE_MOTION_DEVICES && state() == Action::MOVED_RELATIVE;
 }
 
 bool Event::isTouch() const
@@ -112,13 +118,8 @@ bool Event::isDefaultConfirmButton(uint32_t swapped) const
 			#ifdef CONFIG_BASE_ANDROID
 			|| button == Keycode::CENTER
 			#endif
-			|| (swapped ? isDefaultCancelButton(0) : (button == Keycode::GAME_A || button == Keycode::GAME_1));
+			|| ((swapped && isGamepad()) ? isDefaultCancelButton(0) : (button == Keycode::GAME_A || button == Keycode::GAME_1));
 	}
-}
-
-bool Event::isDefaultConfirmButton() const
-{
-	return isDefaultConfirmButton(swappedGamepadConfirm_);
 }
 
 bool Event::isDefaultCancelButton(uint32_t swapped) const
@@ -155,13 +156,18 @@ bool Event::isDefaultCancelButton(uint32_t swapped) const
 				#endif
 			}
 			return button == Input::Keycode::ESCAPE || button == Input::Keycode::BACK
-				|| (swapped ? isDefaultConfirmButton(0) : (button == Input::Keycode::GAME_B || button == Input::Keycode::GAME_2));
+				|| ((swapped && isGamepad()) ? isDefaultConfirmButton(0) : (button == Input::Keycode::GAME_B || button == Input::Keycode::GAME_2));
 	}
+}
+
+bool Event::isDefaultConfirmButton() const
+{
+	return isDefaultConfirmButton(hasSwappedConfirmKeys());
 }
 
 bool Event::isDefaultCancelButton() const
 {
-	return isDefaultCancelButton(swappedGamepadConfirm_);
+	return isDefaultCancelButton(hasSwappedConfirmKeys());
 }
 
 bool Event::isDefaultLeftButton() const
@@ -362,7 +368,7 @@ void Event::setX11RawKey(Key key)
 
 bool Event::pushed() const
 {
-	return state() == PUSHED;
+	return state() == Action::PUSHED;
 }
 
 bool Event::pushed(Key key) const
@@ -377,7 +383,7 @@ bool Event::pushedKey(Key sysKey) const
 
 bool Event::released() const
 {
-	return state() == RELEASED;
+	return state() == Action::RELEASED;
 }
 
 bool Event::released(Key key) const
@@ -392,7 +398,7 @@ bool Event::releasedKey(Key sysKey) const
 
 bool Event::canceled() const
 {
-	return state() == CANCELED;
+	return state() == Action::CANCELED;
 }
 
 bool Event::isOff() const
@@ -402,7 +408,7 @@ bool Event::isOff() const
 
 bool Event::moved() const
 {
-	return state() == MOVED;
+	return state() == Action::MOVED;
 }
 
 bool Event::isShiftPushed() const
@@ -451,18 +457,18 @@ bool Event::isSystemFunction() const
 	#endif
 }
 
-const char *Event::actionToStr(int action)
+const char *Event::actionToStr(Action action)
 {
 	switch(action)
 	{
 		default:
-		case UNUSED: return "Unknown";
-		case RELEASED: return "Released";
-		case PUSHED: return "Pushed";
-		case MOVED: return "Moved";
-		case MOVED_RELATIVE: return "Moved Relative";
-		case EXIT_VIEW: return "Left View";
-		case ENTER_VIEW: return "Entered View";
+		case Action::UNUSED: return "Unknown";
+		case Action::RELEASED: return "Released";
+		case Action::PUSHED: return "Pushed";
+		case Action::MOVED: return "Moved";
+		case Action::MOVED_RELATIVE: return "Moved Relative";
+		case Action::EXIT_VIEW: return "Left View";
+		case Action::ENTER_VIEW: return "Entered View";
 	}
 }
 
@@ -474,6 +480,11 @@ Time Event::time() const
 const Device *Event::device() const
 {
 	return device_;
+}
+
+bool Event::hasSwappedConfirmKeys() const
+{
+	return keyFlags; // currently there is only a single flag
 }
 
 }

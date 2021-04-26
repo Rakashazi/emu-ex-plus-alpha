@@ -37,14 +37,14 @@ void DoGunLatch (int, int);
 
 const char *EmuSystem::inputFaceBtnName = "A/B/X/Y";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
-const uint EmuSystem::inputFaceBtns = 6;
-const uint EmuSystem::inputCenterBtns = 2;
+const unsigned EmuSystem::inputFaceBtns = 6;
+const unsigned EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = true;
 const bool EmuSystem::inputHasRevBtnLayout = false;
-const uint EmuSystem::maxPlayers = 5;
+const unsigned EmuSystem::maxPlayers = 5;
 static int snesPointerX = 0, snesPointerY = 0, snesPointerBtns = 0, snesMouseClick = 0;
 static int snesMouseX = 0, snesMouseY = 0;
-uint doubleClickFrames, rightClickFrames;
+unsigned doubleClickFrames, rightClickFrames;
 static Input::SingleDragTracker dragTracker{};
 static bool dragWithButton = false; // true to start next mouse drag with a button held
 #ifndef SNES9X_VERSION_1_4
@@ -95,7 +95,7 @@ CLINK bool8 S9xReadSuperScopePosition(int &x, int &y, uint32 &buttons)
 }
 
 #ifdef SNES9X_VERSION_1_4
-static uint16 *S9xGetJoypadBits(uint idx)
+static uint16 *S9xGetJoypadBits(unsigned idx)
 {
 	return &joypadData[idx];
 }
@@ -118,9 +118,9 @@ static bool usingMouse() { return IPPU.Controller == SNES_MOUSE_SWAPPED; }
 static bool usingGun() { return IPPU.Controller == SNES_SUPERSCOPE; }
 #endif
 
-void updateVControllerMapping(uint player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
-	uint playerMask = player << 29;
+	unsigned playerMask = player << 29;
 	map[SysVController::F_ELEM] = SNES_A_MASK | playerMask;
 	map[SysVController::F_ELEM+1] = SNES_B_MASK | playerMask;
 	map[SysVController::F_ELEM+2] = SNES_X_MASK | playerMask;
@@ -141,12 +141,12 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 	map[SysVController::D_ELEM+8] = SNES_DOWN_MASK | SNES_RIGHT_MASK | playerMask;
 }
 
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
+unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	assert(input >= s9xKeyIdxUp);
-	uint player = (input - s9xKeyIdxUp) / EmuControls::gamepadKeys;
-	uint playerMask = player << 29;
+	unsigned player = (input - s9xKeyIdxUp) / EmuControls::gamepadKeys;
+	unsigned playerMask = player << 29;
 	input -= EmuControls::gamepadKeys * player;
 	switch(input)
 	{
@@ -175,17 +175,17 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint state, uint emuKey)
+void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
 {
-	uint player = emuKey >> 29; // player is encoded in upper 3 bits of input code
+	auto player = emuKey >> 29; // player is encoded in upper 3 bits of input code
 	assert(player < maxPlayers);
 	auto &padData = *S9xGetJoypadBits(player);
-	padData = IG::setOrClearBits(padData, (uint16)(emuKey & 0xFFFF), state == Input::PUSHED);
+	padData = IG::setOrClearBits(padData, (uint16)(emuKey & 0xFFFF), action == Input::Action::PUSHED);
 }
 
 void EmuSystem::clearInputBuffers(EmuInputView &view)
 {
-	iterateTimes((uint)maxPlayers, p)
+	iterateTimes((unsigned)maxPlayers, p)
 	{
 		*S9xGetJoypadBits(p) = 0;
 	}

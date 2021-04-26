@@ -27,13 +27,23 @@ namespace Base
 
 class ApplicationContext;
 
-enum SurfaceRotation : int;
+enum SurfaceRotation : uint8_t;
 
 class AndroidScreen
 {
 public:
+	struct InitParams
+	{
+		JNIEnv *env;
+		jobject aDisplay;
+		jobject metrics;
+		int id;
+		float refreshRate;
+		SurfaceRotation rotation;
+	};
+
 	constexpr AndroidScreen() {}
-	AndroidScreen(JNIEnv *, ApplicationContext, jobject aDisplay, int id, float refreshRate, SurfaceRotation, jobject metrics);
+	AndroidScreen(ApplicationContext, InitParams);
 	~AndroidScreen();
 	std::pair<float, float> dpi() const;
 	float densityDPI() const;

@@ -288,10 +288,10 @@ Font Font::makeSystem(Base::ApplicationContext)
 	#endif
 }
 
-Font Font::makeBoldSystem(Base::ApplicationContext app)
+Font Font::makeBoldSystem(Base::ApplicationContext ctx)
 {
 	#ifdef CONFIG_PACKAGE_FONTCONFIG
-	Font font = makeSystem(app);
+	Font font = makeSystem(ctx);
 	font.isBold = true;
 	return font;
 	#else
@@ -299,9 +299,9 @@ Font Font::makeBoldSystem(Base::ApplicationContext app)
 	#endif
 }
 
-Font Font::makeFromAsset(Base::ApplicationContext app, const char *name, const char *appName)
+Font Font::makeFromAsset(Base::ApplicationContext ctx, const char *name, const char *appName)
 {
-	return {app.openAsset(name, IO::AccessHint::ALL, appName).makeGeneric()};
+	return {ctx.openAsset(name, IO::AccessHint::ALL, appName).makeGeneric()};
 }
 
 FreetypeFont::FreetypeFont(FreetypeFont &&o)

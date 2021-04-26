@@ -15,7 +15,6 @@
 
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
-#include "private.hh"
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/logger/logger.h>
 
@@ -28,7 +27,7 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 		{
 			return 1 + cheat.size();
 		},
-		[this](const TableView &, uint idx) -> MenuItem&
+		[this](const TableView &, unsigned idx) -> MenuItem&
 		{
 			if(idx == 0)
 				return edit;
@@ -38,10 +37,10 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 	},
 	edit
 	{
-		"Add/Edit",
+		"Add/Edit", &defaultFace(),
 		[this](Input::Event e)
 		{
-			auto editCheatsView = makeEmuView(attachParams(), EmuApp::ViewID::EDIT_CHEATS);
+			auto editCheatsView = EmuApp::makeView(attachParams(), EmuApp::ViewID::EDIT_CHEATS);
 			static_cast<BaseEditCheatListView*>(editCheatsView.get())->setOnCheatListChanged(
 				[this]()
 				{
@@ -91,11 +90,11 @@ BaseEditCheatView::BaseEditCheatView(const char *viewName, ViewAttachParams atta
 	},
 	name
 	{
-		cheatName,
+		cheatName, &defaultFace(),
 		[this](Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input description", cheatNameString(),
-				[this](auto str)
+			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input description", cheatNameString(),
+				[this](EmuApp &, auto str)
 				{
 					logMsg("setting cheat name %s", str);
 					name.compile(str, renderer(), projP);
@@ -108,7 +107,7 @@ BaseEditCheatView::BaseEditCheatView(const char *viewName, ViewAttachParams atta
 	},
 	remove
 	{
-		"Delete Cheat",
+		"Delete Cheat", &defaultFace(),
 		removed
 	},
 	onCheatListChanged_{onCheatListChanged_}

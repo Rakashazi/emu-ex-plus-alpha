@@ -25,14 +25,14 @@ class ConsoleOptionView : public TableView
 {
 	TextMenuItem rtcItem[3]
 	{
-		{"Auto", [](){ setRTCEmulation(RTC_EMU_AUTO); }},
-		{"Off", [](){ setRTCEmulation(RTC_EMU_OFF); }},
-		{"On", [](){ setRTCEmulation(RTC_EMU_ON); }},
+		{"Auto", &defaultFace(), [](){ setRTCEmulation(RTC_EMU_AUTO); }},
+		{"Off", &defaultFace(), [](){ setRTCEmulation(RTC_EMU_OFF); }},
+		{"On", &defaultFace(), [](){ setRTCEmulation(RTC_EMU_ON); }},
 	};
 
 	MultiChoiceMenuItem rtc
 	{
-		"RTC Emulation",
+		"RTC Emulation", &defaultFace(),
 		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == 0)
@@ -46,7 +46,7 @@ class ConsoleOptionView : public TableView
 		rtcItem
 	};
 
-	static void setRTCEmulation(uint val)
+	static void setRTCEmulation(unsigned val)
 	{
 		EmuSystem::sessionOptionSet();
 		optionRtcEmulation = val;
@@ -73,7 +73,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 {
 	TextMenuItem options
 	{
-		"Console Options",
+		"Console Options", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())

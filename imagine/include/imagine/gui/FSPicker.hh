@@ -37,7 +37,7 @@ public:
 	static constexpr bool needsUpDirControl = true;
 
 	FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes,
-			FilterFunc filter = {}, bool singleDir = false, Gfx::GlyphTextureSet *face = &View::defaultFace);
+			FilterFunc filter = {}, bool singleDir = false, Gfx::GlyphTextureSet *face = {});
 	void place() override;
 	bool inputEvent(Input::Event e) override;
 	void prepareDraw() override;
@@ -109,4 +109,5 @@ protected:
 	void changeDirByInput(const char *path, FS::RootPathInfo rootInfo, bool forcePathChange, Input::Event e);
 	bool isAtRoot() const;
 	void pushFileLocationsView(Input::Event e);
+	Gfx::GlyphTextureSet &face();
 };

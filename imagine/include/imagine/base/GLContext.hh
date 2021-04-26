@@ -30,7 +30,6 @@
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/base/Error.hh>
 #include <imagine/base/glDefs.hh>
-#include <imagine/base/ApplicationContext.hh>
 #include <optional>
 #include <compare>
 
@@ -43,45 +42,42 @@ class GLDisplay;
 class GLBufferConfigAttributes
 {
 public:
-	constexpr GLBufferConfigAttributes(ApplicationContext app):app{app} {}
+	constexpr GLBufferConfigAttributes(IG::PixelFormat pixelFormat = {}):pixelFormat_{pixelFormat} {}
 
-	void setPixelFormat(IG::PixelFormat pixelFormat_)
+	constexpr void setPixelFormat(IG::PixelFormat pixelFormat_)
 	{
 		this->pixelFormat_ = pixelFormat_;
 	}
 
-	IG::PixelFormat pixelFormat() const;
+	constexpr IG::PixelFormat pixelFormat() const
+	{
+		return pixelFormat_;
+	}
 
-	void setUseDepth(bool useDepth_)
+	constexpr void setUseDepth(bool useDepth_)
 	{
 		this->useDepth_ = useDepth_;
 	}
 
-	bool useDepth() const
+	constexpr bool useDepth() const
 	{
 		return useDepth_;
 	}
 
-	void setUseStencil(bool useStencil_)
+	constexpr void setUseStencil(bool useStencil_)
 	{
 		this->useStencil_ = useStencil_;
 	}
 
-	bool useStencil() const
+	constexpr bool useStencil() const
 	{
 		return useStencil_;
 	}
 
-	ApplicationContext appContext() const
-	{
-		return app;
-	}
-
 private:
-	ApplicationContext app;
-	IG::PixelFormat pixelFormat_;
-	bool useDepth_ = false;
-	bool useStencil_ = false;
+	IG::PixelFormat pixelFormat_{};
+	bool useDepth_{};
+	bool useStencil_{};
 };
 
 class GLContextAttributes
@@ -155,10 +151,10 @@ public:
 	using GLDisplayImpl::GLDisplayImpl;
 
 	constexpr GLDisplay() {}
-	static std::pair<IG::ErrorCode, GLDisplay> makeDefault();
-	static std::pair<IG::ErrorCode, GLDisplay> makeDefault(GL::API api);
-	static GLDisplay getDefault();
-	static GLDisplay getDefault(GL::API api);
+	static std::pair<IG::ErrorCode, GLDisplay> makeDefault(NativeDisplayConnection);
+	static std::pair<IG::ErrorCode, GLDisplay> makeDefault(NativeDisplayConnection, GL::API api);
+	static GLDisplay getDefault(NativeDisplayConnection);
+	static GLDisplay getDefault(NativeDisplayConnection, GL::API api);
 	explicit operator bool() const;
 	bool operator ==(GLDisplay const &rhs) const;
 	bool deinit();
@@ -178,7 +174,7 @@ public:
 	explicit operator bool() const;
 	bool operator ==(GLContext const &rhs) const;
 	void deinit(GLDisplay display);
-	static std::optional<GLBufferConfig> makeBufferConfig(GLDisplay display, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion = 0);
+	static std::optional<GLBufferConfig> makeBufferConfig(GLDisplay, ApplicationContext, GLBufferConfigAttributes, GL::API, unsigned majorVersion = 0);
 	static GLContext current(GLDisplay display);
 	static bool hasCurrentDrawable(GLDisplay display, GLDrawable drawable);
 	static bool hasCurrentDrawable(GLDisplay display);

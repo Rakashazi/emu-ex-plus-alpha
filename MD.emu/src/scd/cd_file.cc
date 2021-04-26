@@ -39,7 +39,7 @@ int Load_ISO(Mednafen::CDAccess *cd)
 	_scd_track *Tracks = sCD.TOC.Tracks;
 	CDUtility::TOC toc;
 	cd->Read_TOC(&toc);
-	uint currLBA = 0;
+	unsigned currLBA = 0;
 	sCD.cddaLBA = 0;
 	sCD.cddaDataLeftover = 0;
 	iterateTimes(99, i)
@@ -90,7 +90,7 @@ static void readCddaLBA(void *dest, int lba)
 	cdImage->Read_Sector((uint8*)dest, lba, 2352);
 }
 
-int readCDDA(void *dest, uint size)
+int readCDDA(void *dest, unsigned size)
 {
 	if(!sCD.gate[0x36] && sCD.Status_CDD == 0x0100/*sCD.Cur_Track > 1 /*sCD.audioTrack && sCD.Status_CDD == 0x0100*/)
 	{
@@ -102,7 +102,7 @@ int readCDDA(void *dest, uint size)
 			//logMsg("reading %d frames of left-over CDDA", cddaDataLeftover);
 			int32 cddaSector[588];
 			cdImage->Read_Sector((uint8*)cddaSector, sCD.cddaLBA, 2352);
-			uint copySize = std::min((uint)sCD.cddaDataLeftover, sizeToWrite);
+			unsigned copySize = std::min((unsigned)sCD.cddaDataLeftover, sizeToWrite);
 			memcpy(cddaBuffPos, cddaSector + (588-sCD.cddaDataLeftover), copySize*4);
 			sCD.cddaDataLeftover -= copySize;
 			if(!sCD.cddaDataLeftover)

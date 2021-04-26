@@ -52,9 +52,9 @@ public:
 	using OnTextDelegate = DelegateFunc<uint32_t (CollectTextInputView &view, const char *str)>;
 
 	CollectTextInputView(ViewAttachParams attach, const char *msgText, const char *initialContent,
-		Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = &View::defaultFace);
+		Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = {});
 	CollectTextInputView(ViewAttachParams attach, const char *msgText,
-		Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = &View::defaultFace):
+		Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = {}):
 		CollectTextInputView(attach, msgText, "", closeRes, onText, face) {}
 	~CollectTextInputView() override;
 	void place() override;

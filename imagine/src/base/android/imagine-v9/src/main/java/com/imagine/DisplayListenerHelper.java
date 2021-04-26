@@ -26,7 +26,7 @@ final class DisplayListenerHelper
 {
 	private static final String logTag = "DisplayListenerHelper";
 	private DisplayManager displayManager;
-	private long nativeActivityAddr;
+	private long nativeUserData;
 	private native void displayAdd(long nActivityAddr, int id, Display dpy, float refreshRate, DisplayMetrics metrics);
 	private native void displayChange(long nActivityAddr,int id, float refreshRate);
 	private native void displayRemove(long nActivityAddr,int id);
@@ -43,7 +43,7 @@ final class DisplayListenerHelper
 				//Log.i(logTag, "skipped adding display with id: " + deviceId);
 				return;
 			}
-			displayAdd(nativeActivityAddr, deviceId, dpy, dpy.getRefreshRate(), displayMetrics(dpy));
+			displayAdd(nativeUserData, deviceId, dpy, dpy.getRefreshRate(), displayMetrics(dpy));
 		}
 
 		@Override public void onDisplayChanged(int deviceId)
@@ -57,30 +57,30 @@ final class DisplayListenerHelper
 				//Log.i(logTag, "skipped changed display with id: " + deviceId);
 				return;
 			}
-			displayChange(nativeActivityAddr, deviceId, dpy.getRefreshRate());
+			displayChange(nativeUserData, deviceId, dpy.getRefreshRate());
 		}
 
 		@Override public void onDisplayRemoved(int deviceId)
 		{
 			//Log.i(logTag, "removed id: " + deviceId);
-			displayRemove(nativeActivityAddr, deviceId);
+			displayRemove(nativeUserData, deviceId);
 		}
 	}
 	Listener listener = new Listener();
 	
-	DisplayListenerHelper(Activity act, long nativeActivityAddr)
+	DisplayListenerHelper(Activity act, long nativeUserData)
 	{
 		//Log.i(logTag, "registering input device listener");
 		displayManager = (DisplayManager)act.getSystemService(Context.DISPLAY_SERVICE);
-		this.nativeActivityAddr = nativeActivityAddr;
+		this.nativeUserData = nativeUserData;
 	}
 
-	static void enumPresentationDisplays(BaseActivity act, long nativeActivityAddr)
+	static void enumPresentationDisplays(BaseActivity act, long nativeUserData)
 	{
 		DisplayManager displayManager = (DisplayManager)act.getSystemService(Context.DISPLAY_SERVICE);
 		for(Display dpy : displayManager.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION))
 		{
-			act.displayEnumerated(nativeActivityAddr, dpy, dpy.getDisplayId(), dpy.getRefreshRate(),
+			act.displayEnumerated(nativeUserData, dpy, dpy.getDisplayId(), dpy.getRefreshRate(),
 				Surface.ROTATION_0, displayMetrics(dpy));
 		}
 	}

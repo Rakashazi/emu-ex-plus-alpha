@@ -39,26 +39,20 @@ bool writeScreenshot(Base::ApplicationContext, IG::Pixmap vidPix, const char *fn
 #include <imagine/util/jni.hh>
 
 // TODO: make png writer module in imagine
-namespace Base
-{
-
-extern jclass jBaseActivityCls;
-
-}
-
-bool writeScreenshot(Base::ApplicationContext app, IG::Pixmap vidPix, const char *fname)
+bool writeScreenshot(Base::ApplicationContext ctx, IG::Pixmap vidPix, const char *fname)
 {
 	static JavaInstMethod<jobject(jint, jint, jint)> jMakeBitmap;
 	static JavaInstMethod<jboolean(jobject, jobject)> jWritePNG;
 	using namespace Base;
-	auto env = app.thisThreadJniEnv();
+	auto env = ctx.thisThreadJniEnv();
+	auto baseActivityCls = ctx.baseActivityClass();
 	if(!jMakeBitmap)
 	{
-		jMakeBitmap.setup(env, jBaseActivityCls, "makeBitmap", "(III)Landroid/graphics/Bitmap;");
-		jWritePNG.setup(env, jBaseActivityCls, "writePNG", "(Landroid/graphics/Bitmap;Ljava/lang/String;)Z");
+		jMakeBitmap.setup(env, baseActivityCls, "makeBitmap", "(III)Landroid/graphics/Bitmap;");
+		jWritePNG.setup(env, baseActivityCls, "writePNG", "(Landroid/graphics/Bitmap;Ljava/lang/String;)Z");
 	}
 	auto aFormat = vidPix.format().id() == PIXEL_RGB565 ? ANDROID_BITMAP_FORMAT_RGB_565 : ANDROID_BITMAP_FORMAT_RGBA_8888;
-	auto bitmap = jMakeBitmap(env, app.baseActivityObject(), vidPix.w(), vidPix.h(), aFormat);
+	auto bitmap = jMakeBitmap(env, ctx.baseActivityObject(), vidPix.w(), vidPix.h(), aFormat);
 	if(!bitmap)
 	{
 		logErr("error allocating bitmap");
@@ -69,7 +63,7 @@ bool writeScreenshot(Base::ApplicationContext app, IG::Pixmap vidPix, const char
 	Base::makePixmapView(env, bitmap, buffer, vidPix.format()).write(vidPix, {});
 	AndroidBitmap_unlockPixels(env, bitmap);
 	auto nameJStr = env->NewStringUTF(fname);
-	auto writeOK = jWritePNG(env, app.baseActivityObject(), bitmap, nameJStr);
+	auto writeOK = jWritePNG(env, ctx.baseActivityObject(), bitmap, nameJStr);
 	env->DeleteLocalRef(nameJStr);
 	env->DeleteLocalRef(bitmap);
 	if(!writeOK)
@@ -154,7 +148,7 @@ bool writeScreenshot(Base::ApplicationContext, IG::Pixmap vidPix, const char *fn
 
 int sprintScreenshotFilename(FS::PathString &str)
 {
-	const uint maxNum = 999;
+	const unsigned maxNum = 999;
 	int num = -1;
 	iterateTimes(maxNum, i)
 	{

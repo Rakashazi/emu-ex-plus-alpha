@@ -3758,22 +3758,22 @@ void MovieSetMacsRifle (int i, uint8 in[5])
 	macsrifle.buttons = *ptr;
 }
 
-uint16 *S9xGetJoypadBits(uint idx)
+uint16 *S9xGetJoypadBits(unsigned idx)
 {
 	return &joypad[idx].buttons;
 }
 
-uint8 *S9xGetMouseBits(uint idx)
+uint8 *S9xGetMouseBits(unsigned idx)
 {
 	return &mouse[idx].buttons;
 }
 
-uint8 *S9xGetMouseDeltaBits(uint idx)
+uint8 *S9xGetMouseDeltaBits(unsigned idx)
 {
 	return &mouse[idx].delta_x;
 }
 
-int16 *S9xGetMousePosBits(uint idx)
+int16 *S9xGetMousePosBits(unsigned idx)
 {
 	return &mouse[idx].cur_x;
 }

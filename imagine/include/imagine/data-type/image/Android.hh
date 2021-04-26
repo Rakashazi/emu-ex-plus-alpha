@@ -26,8 +26,8 @@
 class BitmapFactoryImage
 {
 public:
-	constexpr BitmapFactoryImage(Base::ApplicationContext app):
-		app{app}
+	constexpr BitmapFactoryImage(Base::ApplicationContext ctx):
+		ctx{ctx}
 	{}
 	std::error_code load(const char *name);
 	std::error_code loadAsset(const char *name);
@@ -39,19 +39,19 @@ public:
 	uint32_t height();
 	IG::PixelFormat pixelFormat() const;
 	explicit operator bool() const;
-	constexpr Base::ApplicationContext appContext() const { return app; }
+	constexpr Base::ApplicationContext appContext() const { return ctx; }
 
 protected:
 	jobject bitmap{};
-	Base::ApplicationContext app{};
+	Base::ApplicationContext ctx{};
 	AndroidBitmapInfo info{};
 };
 
 class PngFile final: public GfxImageSource
 {
 public:
-	constexpr PngFile(Base::ApplicationContext app):
-		png{app}
+	constexpr PngFile(Base::ApplicationContext ctx):
+		png{ctx}
 	{}
 	~PngFile();
 	std::error_code load(const char *name);

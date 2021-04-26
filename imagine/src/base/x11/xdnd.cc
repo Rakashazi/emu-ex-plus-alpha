@@ -13,16 +13,13 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/base/Application.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/utility.h>
 #include <imagine/util/preprocessor/enum.h>
 #include "xdnd.hh"
 #include <imagine/logger/logger.h>
-
-using namespace IG;
-
-bool dndInit = false;
 
 enum
 {
@@ -68,6 +65,24 @@ ENUM(xdndAtomStr, 11,
 static Atom xdndAtom[std::size(xdndAtomStr)];
 static constexpr Atom currentDNDVersion = 5;
 
+namespace Base
+{
+
+void XApplication::enableXdnd(::Window win)
+{
+	if(!dndInit)
+	{
+		logMsg("setting up Xdnd");
+		registerXdndAtoms(dpy);
+		dndInit = true;
+	}
+	logMsg("enabling Xdnd on window");
+	XChangeProperty(dpy, win, xdndAtom[XdndAware], XA_ATOM, 32, PropModeReplace,
+		(unsigned char*)&currentDNDVersion, 1);
+}
+
+}
+
 void registerXdndAtoms(Display *dpy)
 {
 	uint32_t atoms = std::size(xdndAtomStr);
@@ -81,19 +96,6 @@ void registerXdndAtoms(Display *dpy)
 	{
 		logWarn("error making XDND atoms, drag & drop may not function");
 	}
-}
-
-void enableXdnd(Display *dpy, ::Window win)
-{
-	if(!dndInit)
-	{
-		logMsg("setting up Xdnd");
-		registerXdndAtoms(dpy);
-		dndInit = 1;
-	}
-	logMsg("enabling Xdnd on window");
-	XChangeProperty(dpy, win, xdndAtom[XdndAware], XA_ATOM, 32, PropModeReplace,
-		(unsigned char*)&currentDNDVersion, 1);
 }
 
 void disableXdnd(Display *dpy, ::Window win)
@@ -133,7 +135,7 @@ void sendDNDFinished(Display *dpy, ::Window win, ::Window srcWin, Atom action)
 		xEvent.xclient.format = 32;
 
 		xEvent.xclient.data.l[ dndMsgFinishedWindow ] = win;
-		xEvent.xclient.data.l[ dndMsgFinishedFlags ]  = bit(0);
+		xEvent.xclient.data.l[ dndMsgFinishedFlags ]  = IG::bit(0);
 		xEvent.xclient.data.l[ dndMsgFinishedAction ]  = action;
 
 		XSendEvent(dpy, srcWin, 0, 0, &xEvent);
@@ -141,7 +143,7 @@ void sendDNDFinished(Display *dpy, ::Window win, ::Window srcWin, Atom action)
 	}
 }
 
-void receiveDrop(Display *dpy, ::Window win, Time time)
+void receiveDrop(Display *dpy, ::Window win, ::Time time)
 {
 	XConvertSelection(dpy, xdndAtom[XdndSelection], XA_STRING, xdndAtom[iSelectionProperty], win, time);
 }

@@ -31,6 +31,7 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobe
 uint32 frameskip_active = 0;
 static const int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
+static EmuApp *emuAppPtr{};
 static EmuSystemTask *emuSysTask{};
 static EmuVideo *emuVideo{};
 static IG::Pixmap srcPix{{{ngpResX, ngpResY}, pixFmt}, cfb};
@@ -120,9 +121,9 @@ void EmuSystem::closeSystem()
 
 static bool romLoad(IO &io)
 {
-	const uint maxRomSize = 0x400000;
+	const unsigned maxRomSize = 0x400000;
 	auto data = (uint8_t*)calloc(maxRomSize, 1);
-	uint readSize = io.read(data, maxRomSize);
+	unsigned readSize = io.read(data, maxRomSize);
 	if(readSize > 0)
 	{
 		logMsg("read 0x%X byte rom", readSize);
@@ -165,7 +166,7 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 
 void system_sound_chipreset(void)
 {
-	EmuSystem::configFrameTime();
+	emuAppPtr->configFrameTime();
 }
 
 void system_VBL(void)
@@ -279,8 +280,9 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
+EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
 {
+	emuAppPtr = &EmuApp::get(ctx);
 	gfx_buildMonoConvMap();
 	gfx_buildColorConvMap();
 	system_colour = COLOURMODE_AUTO;

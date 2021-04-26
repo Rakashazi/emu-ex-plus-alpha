@@ -35,7 +35,7 @@ class Viewport
 {
 public:
 	constexpr Viewport() {}
-	IG::WindowRect realBounds() const { return Base::orientationIsSideways(softOrientation_) ? IG::WindowRect{rect.y, rect.x, rect.y2, rect.x2} : rect; }
+	IG::WindowRect realBounds() const { return Base::orientationIsSideways(softOrientation_) ? rect.makeInverted() : rect; }
 	IG::WindowRect bounds() const { return rect; }
 	int realWidth() const { return Base::orientationIsSideways(softOrientation_) ? h : w; }
 	int realHeight() const { return Base::orientationIsSideways(softOrientation_) ? w : h; }

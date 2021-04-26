@@ -21,7 +21,7 @@ class CustomSystemOptionView : public SystemOptionView
 {
 	BoolMenuItem ngpLanguage
 	{
-		"NGP Language",
+		"NGP Language", &defaultFace(),
 		language_english,
 		"Japanese", "English",
 		[this](BoolMenuItem &item, View &, Input::Event e)

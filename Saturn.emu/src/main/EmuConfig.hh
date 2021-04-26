@@ -3,6 +3,6 @@
 namespace EmuControls
 {
 
-static const uint gamepadKeys = 23;
+static const unsigned gamepadKeys = 23;
 
 }

@@ -14,7 +14,7 @@ typedef struct
 	int b7;
 } intblock;
 
-static void memcpy32(int *dest, int *src, uint count)
+static void memcpy32(int *dest, int *src, unsigned count)
 {
 	intblock *bd = (intblock *) dest, *bs = (intblock *) src;
 
@@ -26,7 +26,7 @@ static void memcpy32(int *dest, int *src, uint count)
 		*dest++ = *src++;
 }
 
-static void memcpy16(unsigned short *dest, unsigned short *src, uint count)
+static void memcpy16(unsigned short *dest, unsigned short *src, unsigned count)
 {
 	if ((((uintptr_t)dest | (uintptr_t)src) & 3) == 0)
 	{
@@ -43,7 +43,7 @@ static void memcpy16(unsigned short *dest, unsigned short *src, uint count)
 }
 
 
-static void memcpy16bswap(unsigned short *dest, void *src, uint count)
+static void memcpy16bswap(unsigned short *dest, void *src, unsigned count)
 {
 	uint8_t *src_ = (uint8_t*)src;
 

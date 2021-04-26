@@ -128,9 +128,9 @@ Font Font::makeSystem(Base::ApplicationContext)
 	return {};
 }
 
-Font Font::makeBoldSystem(Base::ApplicationContext app)
+Font Font::makeBoldSystem(Base::ApplicationContext ctx)
 {
-	Font font = makeSystem(app);
+	Font font = makeSystem(ctx);
 	font.isBold = true;
 	return font;
 }

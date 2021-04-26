@@ -254,7 +254,7 @@ int sound_context_save(uint8 *state)
   return bufferptr;
 }
 
-int sound_context_load(uint8 *state, char *version, bool hasExcessYM2612Data, uint ptrSize)
+int sound_context_load(uint8 *state, char *version, bool hasExcessYM2612Data, unsigned ptrSize)
 {
   int bufferptr = 0;
 

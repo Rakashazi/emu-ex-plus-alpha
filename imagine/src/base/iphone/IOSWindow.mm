@@ -17,7 +17,6 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "IOSWindow"
 #import "MainApp.hh"
 #import <QuartzCore/QuartzCore.h>
-#include "../common/windowPrivate.hh"
 #include "private.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Screen.hh>
@@ -93,14 +92,14 @@ bool Window::requestOrientationChange(Orientation o)
 }
 #endif
 
-bool Window::systemAnimatesRotation()
+bool ApplicationContext::systemAnimatesWindowRotation() const
 {
 	return Config::SYSTEM_ROTATES_WINDOWS;
 }
 
-Window *deviceWindow(ApplicationContext app)
+Window *deviceWindow(ApplicationContext ctx)
 {
-	return app.window(0);
+	return ctx.window(0);
 }
 
 IG::PixelFormat Window::defaultPixelFormat(ApplicationContext)
@@ -168,11 +167,11 @@ IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 	return {(size.x / (float)dpi) * 25.4f, (size.y / (float)dpi) * 25.4f};
 }
 
-Window::Window(ApplicationContext app, WindowConfig config, InitDelegate):
-	IOSWindow{app, config}
+Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
+	IOSWindow{ctx, config}
 {
 	#ifdef CONFIG_BASE_MULTI_SCREEN
-	this->screen_ = &config.screen(app);
+	this->screen_ = &config.screen(ctx);
 	#endif
 	CGRect rect = screen()->uiScreen().bounds;
 	// Create a full-screen window
@@ -186,7 +185,7 @@ Window::Window(ApplicationContext app, WindowConfig config, InitDelegate):
 	validO = defaultValidOrientationMask();
 	#endif
 	updateWindowSizeAndContentRect(*this, rect.size.width * pointScale, rect.size.height * pointScale, sharedApp);
-	if(*screen() != app.mainScreen())
+	if(*screen() != ctx.mainScreen())
 	{
 		uiWin().screen = screen()->uiScreen();
 	}
@@ -224,11 +223,11 @@ bool Window::operator ==(Window const &rhs) const
 	return uiWin_ == rhs.uiWin_;
 }
 
-Window *windowForUIWindow(ApplicationContext app, UIWindow *uiWin)
+Window *windowForUIWindow(ApplicationContext ctx, UIWindow *uiWin)
 {
-	iterateTimes(app.windows(), i)
+	iterateTimes(ctx.windows(), i)
 	{
-		auto w = app.window(i);
+		auto w = ctx.window(i);
 		if(w->uiWin() == uiWin)
 			return w;
 	}

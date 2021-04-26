@@ -64,13 +64,14 @@ static int machineIndex(std::vector<FS::FileString> &name, FS::FileString search
 	}
 }
 
-void installFirmwareFiles(Base::ApplicationContext app)
+void installFirmwareFiles(Base::ApplicationContext ctx)
 {
+	auto &app = EmuApp::get(ctx);
 	std::error_code ec{};
 	FS::create_directory(machineBasePath, ec);
 	if(ec && ec.value() != (int)std::errc::file_exists)
 	{
-		EmuApp::printfMessage(4, 1, "Can't create directory:\n%s", machineBasePath.data());
+		app.printfMessage(4, 1, "Can't create directory:\n%s", machineBasePath.data());
 		return;
 	}
 
@@ -87,7 +88,7 @@ void installFirmwareFiles(Base::ApplicationContext app)
 		FS::create_directory(pathTemp, ec);
 		if(ec && ec.value() != (int)std::errc::file_exists)
 		{
-			EmuApp::printfMessage(4, 1, "Can't create directory:\n%s", pathTemp.data());
+			app.printfMessage(4, 1, "Can't create directory:\n%s", pathTemp.data());
 			return;
 		}
 	}
@@ -109,10 +110,10 @@ void installFirmwareFiles(Base::ApplicationContext app)
 
 	for(auto &e : srcPath)
 	{
-		auto src = EmuApp::openAppAssetIO(app, e, IO::AccessHint::ALL);
+		auto src = EmuApp::openAppAssetIO(ctx, e, IO::AccessHint::ALL);
 		if(!src)
 		{
-			EmuApp::printfMessage(4, 1, "Can't open source file:\n %s", e);
+			app.printfMessage(4, 1, "Can't open source file:\n %s", e);
 			return;
 		}
 		auto e_i = &e - srcPath;
@@ -120,13 +121,13 @@ void installFirmwareFiles(Base::ApplicationContext app)
 				machineBasePath.data(), destDir[e_i], strstr(e, "config") ? "config.ini" : e);
 		if(FileUtils::writeToPath(pathTemp.data(), src) == -1)
 		{
-			EmuApp::printfMessage(4, 1, "Can't write file:\n%s", e);
+			app.printfMessage(4, 1, "Can't write file:\n%s", e);
 			return;
 		}
 	}
 
 	setDefaultMachineName("MSX2 - C-BIOS");
-	EmuApp::postMessage("Installation OK");
+	app.postMessage("Installation OK");
 }
 
 class CustomSystemOptionView : public SystemOptionView
@@ -137,7 +138,7 @@ private:
 
 	MultiChoiceMenuItem msxMachine
 	{
-		"Default Machine Type",
+		"Default Machine Type", &defaultFace(),
 		[](int idx, Gfx::Text &t)
 		{
 			if(idx == -1)
@@ -153,7 +154,7 @@ private:
 		{
 			if(!msxMachineItem.size())
 			{
-				EmuApp::printfMessage(4, 1, "Place machine directory in:\n%s", machineBasePath.data());
+				app().printfMessage(4, 1, "Place machine directory in:\n%s", machineBasePath.data());
 				return;
 			}
 			item.defaultOnSelect(view, e);
@@ -166,7 +167,7 @@ private:
 		msxMachineName = machinesNames(machineBasePath.data());
 		for(const auto &name : msxMachineName)
 		{
-			msxMachineItem.emplace_back(name.data(),
+			msxMachineItem.emplace_back(name.data(), &defaultFace(),
 			[name = name.data()](Input::Event)
 			{
 				setDefaultMachineName(name);
@@ -178,7 +179,7 @@ private:
 
 	TextMenuItem installCBIOS
 	{
-		"Install MSX C-BIOS",
+		"Install MSX C-BIOS", &defaultFace(),
 		[this](Input::Event e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>(
@@ -188,13 +189,13 @@ private:
 				{
 					installFirmwareFiles(appContext());
 				});
-			EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
+			app().pushAndShowModalView(std::move(ynAlertView), e);
 		}
 	};
 
 	BoolMenuItem skipFdcAccess
 	{
-		"Fast-forward Disk IO",
+		"Fast-forward Disk IO", &defaultFace(),
 		(bool)optionSkipFdcAccess,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -209,7 +210,7 @@ private:
 
 	TextMenuItem machineFilePath
 	{
-		nullptr,
+		nullptr, &defaultFace(),
 		[this](Input::Event e)
 		{
 			pushAndShowFirmwarePathMenu("System/BIOS Path", e);
@@ -225,7 +226,7 @@ private:
 		msxMachine.compile(renderer(), projP);
 		if(!strlen(path))
 		{
-			EmuApp::printfMessage(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? EmuApp::assetPath(appContext()).data() : appContext().sharedStoragePath().data());
+			app().printfMessage(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? EmuApp::assetPath(appContext()).data() : appContext().sharedStoragePath().data());
 		}
 	}
 
@@ -250,7 +251,7 @@ class MsxMediaFilePicker
 public:
 	enum { ROM, DISK, TAPE };
 
-	static EmuSystem::NameFilterFunc fsFilter(uint type)
+	static EmuSystem::NameFilterFunc fsFilter(unsigned type)
 	{
 		EmuSystem::NameFilterFunc filter = hasMSXROMExtension;
 		if(type == DISK)
@@ -263,7 +264,7 @@ public:
 
 static const char *insertEjectDiskMenuStr[] {"Insert File", "Eject"};
 
-class MsxIOControlView : public TableView
+class MsxIOControlView : public TableView, public EmuAppHelper<MsxIOControlView>
 {
 public:
 	static const char *hdSlotPrefix[4];
@@ -298,7 +299,7 @@ public:
 			{
 				auto id = diskGetHdDriveId(slot / 2, slot % 2);
 				logMsg("inserting hard drive id %d", id);
-				if(insertDisk(name, id))
+				if(insertDisk(app(), name, id))
 				{
 					onHDMediaChange(name, slot);
 					if(dismissPreviousView)
@@ -306,7 +307,7 @@ public:
 				}
 				picker.dismiss();
 			});
-		EmuApp::pushAndShowModalView(std::move(fPicker), e);
+		app().pushAndShowModalView(std::move(fPicker), e);
 	}
 
 	void onSelectHD(TextMenuItem &item, Input::Event e, uint8_t slot)
@@ -338,10 +339,10 @@ public:
 
 	TextMenuItem hdSlot[4]
 	{
-		{nullptr, [this](TextMenuItem &item, View &, Input::Event e) { onSelectHD(item, e, 0); }},
-		{nullptr, [this](TextMenuItem &item, View &, Input::Event e) { onSelectHD(item, e, 1); }},
-		{nullptr, [this](TextMenuItem &item, View &, Input::Event e) { onSelectHD(item, e, 2); }},
-		{nullptr, [this](TextMenuItem &item, View &, Input::Event e) { onSelectHD(item, e, 3); }}
+		{nullptr, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 0); }},
+		{nullptr, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 1); }},
+		{nullptr, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 2); }},
+		{nullptr, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 3); }}
 	};
 
 	static const char *romSlotPrefix[2];
@@ -365,7 +366,7 @@ public:
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM),
 			[this, slot, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
-				if(insertROM(name, slot))
+				if(insertROM(app(), name, slot))
 				{
 					onROMMediaChange(name, slot);
 					if(dismissPreviousView)
@@ -373,7 +374,7 @@ public:
 				}
 				picker.dismiss();
 			});
-		EmuApp::pushAndShowModalView(std::move(fPicker), e);
+		app().pushAndShowModalView(std::move(fPicker), e);
 	}
 
 	void onSelectROM(Input::Event e, uint8_t slot)
@@ -411,7 +412,7 @@ public:
 			{
 				if(!boardChangeCartridge(slot, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 				{
-					EmuApp::postMessage(true, "Error loading Sunrise IDE device");
+					app().postMessage(true, "Error loading Sunrise IDE device");
 				}
 				else
 					onROMMediaChange("Sunrise IDE", slot);
@@ -422,8 +423,8 @@ public:
 
 	TextMenuItem romSlot[2]
 	{
-		{nullptr, [this](Input::Event e) { onSelectROM(e, 0); }},
-		{nullptr, [this](Input::Event e) { onSelectROM(e, 1); }}
+		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectROM(e, 0); }},
+		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectROM(e, 1); }}
 	};
 
 	static const char *diskSlotPrefix[2];
@@ -447,7 +448,7 @@ public:
 			[this, slot, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
 				logMsg("inserting disk in slot %d", slot);
-				if(insertDisk(name, slot))
+				if(insertDisk(app(), name, slot))
 				{
 					onDiskMediaChange(name, slot);
 					if(dismissPreviousView)
@@ -455,7 +456,7 @@ public:
 				}
 				picker.dismiss();
 			});
-		EmuApp::pushAndShowModalView(std::move(fPicker), e);
+		app().pushAndShowModalView(std::move(fPicker), e);
 	}
 
 	void onSelectDisk(Input::Event e, uint8_t slot)
@@ -486,8 +487,8 @@ public:
 
 	TextMenuItem diskSlot[2]
 	{
-		{nullptr, [this](Input::Event e) { onSelectDisk(e, 0); }},
-		{nullptr, [this](Input::Event e) { onSelectDisk(e, 1); }}
+		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 0); }},
+		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 1); }}
 	};
 
 	StaticArrayList<MenuItem*, 9> item{};
@@ -502,7 +503,7 @@ public:
 			{
 				return item.size();
 			},
-			[this](const TableView &, uint idx) -> MenuItem&
+			[this](const TableView &, unsigned idx) -> MenuItem&
 			{
 				return *item[idx];
 			}
@@ -538,7 +539,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 private:
 	TextMenuItem msxIOControl
 	{
-		"ROM/Disk Control",
+		"ROM/Disk Control", &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(item.active())
@@ -547,7 +548,7 @@ private:
 			}
 			else if(EmuSystem::gameIsRunning() && activeBoardType != BOARD_MSX)
 			{
-				EmuApp::postMessage(2, false, "Only used in MSX mode");
+				app().postMessage(2, false, "Only used in MSX mode");
 			}
 		}
 	};
@@ -557,7 +558,7 @@ private:
 
 	MultiChoiceMenuItem msxMachine
 	{
-		"Machine Type",
+		"Machine Type", &defaultFace(),
 		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == -1)
@@ -585,17 +586,17 @@ private:
 		msxMachineName = machinesNames(machineBasePath.data());
 		for(const auto &name : msxMachineName)
 		{
-			msxMachineItem.emplace_back(name.data(),
+			msxMachineItem.emplace_back(name.data(), &defaultFace(),
 			[this, name = name.data()](Input::Event e)
 			{
 				auto ynAlertView = makeView<YesNoAlertView>("Change machine type and reset emulation?");
 				ynAlertView->setOnYes(
 					[this, name]()
 					{
-						if(auto err = setCurrentMachineName(name);
+						if(auto err = setCurrentMachineName(app(), name);
 							err)
 						{
-							EmuApp::printfMessage(3, true, "%s", err->what());
+							app().printfMessage(3, true, "%s", err->what());
 							return;
 						}
 						auto machineName = currentMachineName();
@@ -604,7 +605,7 @@ private:
 						EmuSystem::sessionOptionSet();
 						dismissPrevious();
 					});
-				EmuApp::pushAndShowModalView(std::move(ynAlertView), e);
+				app().pushAndShowModalView(std::move(ynAlertView), e);
 				return false;
 			});
 		}
@@ -645,7 +646,7 @@ static const MixerAudioType channelType[]
 	MIXER_CHANNEL_PCM,
 };
 
-class SoundMixerView : public TableView
+class SoundMixerView : public TableView, public EmuAppHelper<SoundMixerView>
 {
 public:
 	SoundMixerView(ViewAttachParams attach):
@@ -662,20 +663,20 @@ protected:
 
 	std::array<TextHeadingMenuItem, CHANNEL_TYPES> heading
 	{
-		"PSG",
-		"SCC",
-		"MSX-MUSIC",
-		"MSX-AUDIO",
-		"MoonSound",
-		"Yamaha SFG",
-		"PCM",
+		TextHeadingMenuItem{"PSG", &defaultBoldFace()},
+		TextHeadingMenuItem{"SCC", &defaultBoldFace()},
+		TextHeadingMenuItem{"MSX-MUSIC", &defaultBoldFace()},
+		TextHeadingMenuItem{"MSX-AUDIO", &defaultBoldFace()},
+		TextHeadingMenuItem{"MoonSound", &defaultBoldFace()},
+		TextHeadingMenuItem{"Yamaha SFG", &defaultBoldFace()},
+		TextHeadingMenuItem{"PCM", &defaultBoldFace()}
 	};
 
 	BoolMenuItem makeEnableChannel(MixerAudioType type)
 	{
 		return
 		{
-			"Output",
+			"Output", &defaultFace(),
 			(bool)mixerEnableOption(type),
 			[this, type](BoolMenuItem &item, View &, Input::Event)
 			{
@@ -701,16 +702,16 @@ protected:
 	{
 		return
 		{
-			TextMenuItem{"Default Value",
+			TextMenuItem{"Default Value", &defaultFace(),
 				[this, type]()
 				{
 					setMixerVolumeOption(type, -1);
 				}},
-			TextMenuItem{"Custom Value",
+			TextMenuItem{"Custom Value", &defaultFace(),
 				[this, type = (uint8_t)type, idx](Input::Event e)
 				{
-					EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
-						[this, type, idx](auto val)
+					app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
+						[this, type, idx](EmuApp &app, auto val)
 						{
 							if(val >= 0 && val <= 100)
 							{
@@ -721,7 +722,7 @@ protected:
 							}
 							else
 							{
-								EmuApp::postErrorMessage("Value not in range");
+								app.postErrorMessage("Value not in range");
 								return false;
 							}
 						});
@@ -746,7 +747,7 @@ protected:
 	{
 		return
 		{
-			"Volume",
+			"Volume", &defaultFace(),
 			[this, type](uint32_t idx, Gfx::Text &t)
 			{
 				t.setString(string_makePrintf<5>("%u%%", mixerVolumeOption(type)).data());
@@ -772,16 +773,16 @@ protected:
 	{
 		return
 		{
-			TextMenuItem{"Default Value",
+			TextMenuItem{"Default Value", &defaultFace(),
 				[this, type]()
 				{
 					setMixerPanOption(type, -1);
 				}},
-			TextMenuItem{"Custom Value",
+			TextMenuItem{"Custom Value", &defaultFace(),
 				[this, type = (uint8_t)type, idx](Input::Event e)
 				{
-					EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
-						[this, type, idx](auto val)
+					app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
+						[this, type, idx](EmuApp &app, auto val)
 						{
 							if(val >= 0 && val <= 100)
 							{
@@ -792,7 +793,7 @@ protected:
 							}
 							else
 							{
-								EmuApp::postErrorMessage("Value not in range");
+								app.postErrorMessage("Value not in range");
 								return false;
 							}
 						});
@@ -817,7 +818,7 @@ protected:
 	{
 		return
 		{
-			"Pan",
+			"Pan", &defaultFace(),
 			[this, type](uint32_t idx, Gfx::Text &t)
 			{
 				t.setString(string_makePrintf<5>("%u%%", mixerPanOption(type)).data());
@@ -884,7 +885,7 @@ public:
 protected:
 	TextMenuItem mixer
 	{
-		"Sound Mixer",
+		"Sound Mixer", &defaultFace(),
 		[this](Input::Event e)
 		{
 			pushAndShow(makeView<SoundMixerView>(), e);

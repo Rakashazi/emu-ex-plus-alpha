@@ -33,10 +33,10 @@ static bool isValidRootEndChar(char c)
 }
 
 FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes,
-	FilterFunc filter,  bool singleDir, Gfx::GlyphTextureSet *face):
+	FilterFunc filter,  bool singleDir, Gfx::GlyphTextureSet *face_):
 	View{attach},
 	filter{filter},
-	msgText{face},
+	msgText{face_ ? face_ : &defaultFace()},
 	singleDir{singleDir}
 {
 	const Gfx::LGradientStopDesc fsNavViewGrad[]
@@ -49,7 +49,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 	};
 	auto nav = makeView<BasicNavView>
 		(
-			face,
+			&face(),
 			singleDir ? nullptr : backRes,
 			closeRes
 		);
@@ -74,7 +74,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 			}
 		});
 	controller.setNavView(std::move(nav));
-	controller.push(makeView<TableView>(text), Input::defaultEvent());
+	controller.push(makeView<TableView>(text));
 }
 
 void FSPicker::place()
@@ -228,7 +228,7 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 		{
 			if(entry.isDir)
 			{
-				text.emplace_back(entry.name.data(), &View::defaultBoldFace,
+				text.emplace_back(entry.name.data(), &face(),
 					[this, idx](Input::Event e)
 					{
 						assert(!singleDir);
@@ -239,7 +239,7 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 			}
 			else
 			{
-				text.emplace_back(entry.name.data(),
+				text.emplace_back(entry.name.data(), &face(),
 					[this, idx](Input::Event e)
 					{
 						onSelectFile_.callCopy(*this, dir[idx].name.data(), e);
@@ -291,7 +291,7 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 
 std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::RootPathInfo rootInfo)
 {
-	return setPath(path, forcePathChange, rootInfo, Input::defaultEvent());
+	return setPath(path, forcePathChange, rootInfo, appContext().defaultInputEvent());
 }
 
 FS::PathString FSPicker::path() const
@@ -366,7 +366,7 @@ void FSPicker::pushFileLocationsView(Input::Event e)
 						view.dismiss();
 						return false;
 					}
-					changeDirByInput(str, appContext().nearestRootPath(str), false, Input::defaultEvent());
+					changeDirByInput(str, appContext().nearestRootPath(str), false, appContext().defaultInputEvent());
 					dismissPrevious();
 					view.dismiss();
 					return false;
@@ -374,4 +374,9 @@ void FSPicker::pushFileLocationsView(Input::Event e)
 			pushAndShow(std::move(textInputView), e);
 		});
 	pushAndShow(std::move(view), e);
+}
+
+Gfx::GlyphTextureSet &FSPicker::face()
+{
+	return *msgText.face();
 }

@@ -538,14 +538,14 @@ static void neogeo_gfx_decrypt(running_machine *machine, int extra_xor)
 {
 	UINT8 *buf;
 	UINT8 *rom;
-	uint rpos;
-	const uint rom_size = memory_region_length(machine, "sprites");
+	unsigned rpos;
+	const unsigned rom_size = memory_region_length(machine, "sprites");
 
 	buf = alloc_array_or_die(UINT8, rom_size);
 
 	rom = memory_region(machine, "sprites");
-	const uint pbarUpdateCount = 20;
-	const uint pbarSteps = (rom_size/4)/pbarUpdateCount;
+	const unsigned pbarUpdateCount = 20;
+	const unsigned pbarSteps = (rom_size/4)/pbarUpdateCount;
 	gn_init_pbar(PBAR_ACTION_DECRYPT, rom_size/2);
 	// Data xor
 	for (rpos = 0;rpos < rom_size/4;rpos++)

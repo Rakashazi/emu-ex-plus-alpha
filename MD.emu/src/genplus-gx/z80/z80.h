@@ -48,7 +48,7 @@ typedef struct
 class Z80CPU : public Z80_Regs
 {
 public:
-	uint cycleCount;
+	unsigned cycleCount;
 	unsigned char *readmap[64];
 	unsigned char *writemap[64];
 
@@ -60,11 +60,11 @@ public:
 	void init();
 	void reset();
 	void exit();
-	void run(uint cycles) __attribute__((hot));
-	void burn(uint cycles);
-	void setNmiLine(uint state);
+	void run(unsigned cycles) __attribute__((hot));
+	void burn(unsigned cycles);
+	void setNmiLine(unsigned state);
 
-	void setIRQ(uint state)
+	void setIRQ(unsigned state)
 	{
 		logMsg("set Z80 IRQ state 0x%X", state);
 		irq_state = state;

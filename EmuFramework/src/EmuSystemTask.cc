@@ -16,11 +16,13 @@
 #define LOGTAG "EmuSystemTask"
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuVideo.hh>
-#include "EmuSystemTask.hh"
-#include "private.hh"
-#include "privateInput.hh"
+#include <emuframework/EmuSystemTask.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
+
+EmuSystemTask::EmuSystemTask(EmuApp &app):
+	appPtr{&app}
+{}
 
 void EmuSystemTask::start()
 {
@@ -43,7 +45,7 @@ void EmuSystemTask::start()
 					}
 					bcase Reply::TOOK_SCREENSHOT:
 					{
-						EmuApp::printScreenshotResult(msg.args.screenshot.num, msg.args.screenshot.success);
+						app().printScreenshotResult(msg.args.screenshot.num, msg.args.screenshot.success);
 					}
 					bdefault:
 					{
@@ -71,9 +73,10 @@ void EmuSystemTask::start()
 								auto *video = msg.args.run.video;
 								auto *audio = msg.args.run.audio;
 								//logMsg("running %d frame(s)", frames);
+								auto &emuApp = app();
 								if(unlikely(msg.args.run.skipForward))
 								{
-									if(EmuSystem::skipForwardFrames(this, frames - 1))
+									if(emuApp.skipForwardFrames(this, frames - 1))
 									{
 										// don't write any audio while skip is in progress
 										audio = nullptr;
@@ -81,14 +84,14 @@ void EmuSystemTask::start()
 									else
 									{
 										// restore normal speed when skip ends
-										EmuSystem::setSpeedMultiplier(1);
+										EmuSystem::setSpeedMultiplier(*audio, 1);
 									}
 								}
 								else
 								{
-									EmuSystem::skipFrames(this, frames - 1, audio);
+									emuApp.skipFrames(this, frames - 1, audio);
 								}
-								turboActions.update();
+								emuApp.runTurboInputEvents();
 								EmuSystem::runFrame(this, video, audio);
 							}
 							bcase Command::PAUSE:
@@ -161,4 +164,9 @@ void EmuSystemTask::sendFrameFinishedReply(EmuVideo &video)
 void EmuSystemTask::sendScreenshotReply(int num, bool success)
 {
 	replyPort.send({Reply::TOOK_SCREENSHOT, num, success});
+}
+
+EmuApp &EmuSystemTask::app() const
+{
+	return *appPtr;
 }

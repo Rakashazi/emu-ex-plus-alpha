@@ -50,7 +50,7 @@ IG::ErrorCode HardwareSingleBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc
 	logMsg("allocated buffer:%p size:%dx%d format:%s pitch:%d",
 		buffer.nativeObject(), desc.w(), desc.h(), desc.format().name(), buffer.pitch());
 	pitchBytes = buffer.pitch() * desc.format().bytesPerPixel();
-	auto dpy = renderer().glDpy;
+	auto dpy = renderer().glDisplay();
 	auto eglImg = makeAndroidNativeBufferEGLImage(dpy, buffer.eglClientBuffer());
 	if(unlikely(!eglImg))
 	{
@@ -95,7 +95,7 @@ HardwareBufferStorage<Buffer>::HardwareBufferStorage(RendererTask &r, TextureCon
 template<class Buffer>
 IG::ErrorCode HardwareBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler)
 {
-	auto dpy = renderer().glDpy;
+	auto dpy = renderer().glDisplay();
 	for(auto &[buff, eglImg, pitchBytes] : bufferInfo)
 	{
 		buff = {desc, allocateUsage};

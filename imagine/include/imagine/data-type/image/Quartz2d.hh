@@ -25,8 +25,8 @@
 class Quartz2dImage
 {
 public:
-	constexpr Quartz2dImage(Base::ApplicationContext app):
-		app{app}
+	constexpr Quartz2dImage(Base::ApplicationContext ctx):
+		ctx{ctx}
 	{}
 	std::error_code load(const char *name);
 	std::errc readImage(IG::Pixmap dest);
@@ -38,18 +38,18 @@ public:
 	uint32_t height();
 	const IG::PixelFormat pixelFormat();
 	explicit operator bool() const;
-	constexpr Base::ApplicationContext appContext() const { return app; }
+	constexpr Base::ApplicationContext appContext() const { return ctx; }
 
 protected:
 	CGImageRef img = nullptr;
-	Base::ApplicationContext app{};
+	Base::ApplicationContext ctx{};
 };
 
 class PngFile final: public GfxImageSource
 {
 public:
-	constexpr PngFile(Base::ApplicationContext app):
-		png{app}
+	constexpr PngFile(Base::ApplicationContext ctx):
+		png{ctx}
 	{}
 	~PngFile();
 	std::error_code load(const char *name);

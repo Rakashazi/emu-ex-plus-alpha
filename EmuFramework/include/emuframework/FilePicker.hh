@@ -15,10 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/FSPicker.hh>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuAppHelper.hh>
+#include <imagine/gui/FSPicker.hh>
 
-class EmuFilePicker : public FSPicker
+class EmuFilePicker : public FSPicker, public EmuAppHelper<EmuFilePicker>
 {
 public:
 	EmuFilePicker(ViewAttachParams attach, const char *startingPath, bool pickingDir,
@@ -29,6 +30,7 @@ public:
 	static std::unique_ptr<EmuFilePicker> makeForMediaChange(ViewAttachParams attach, Input::Event e, const char *path,
 		EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate onSelect);
 	static std::unique_ptr<EmuFilePicker> makeForMediaCreation(ViewAttachParams attach, Input::Event e, bool singleDir = false);
+	static std::unique_ptr<EmuFilePicker> makeForMediaCreation(ViewAttachParams attach, bool singleDir = false);
 	bool inputEvent(Input::Event e) final;
 	void setIncludeArchives(bool on);
 };

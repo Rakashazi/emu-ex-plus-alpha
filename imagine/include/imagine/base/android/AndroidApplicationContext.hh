@@ -26,6 +26,8 @@ struct AAssetManager;
 namespace Base
 {
 
+class Application;
+
 using AndroidPropString = std::array<char, 92>;
 
 enum class SustainedPerformanceType
@@ -35,22 +37,29 @@ enum class SustainedPerformanceType
 	NOOP
 };
 
+enum SurfaceRotation : uint8_t;
+
 class AndroidApplicationContext
 {
 public:
 	constexpr AndroidApplicationContext() {}
 	constexpr AndroidApplicationContext(ANativeActivity *act):act{act} {}
 	constexpr ANativeActivity *aNativeActivityPtr() const { return act; }
+	void setApplicationPtr(Application*);
+	Application &application() const;
 	JNIEnv *mainThreadJniEnv() const;
 	JNIEnv *thisThreadJniEnv() const;
 	int32_t androidSDK() const;
 	jobject baseActivityObject() const;
+	jclass baseActivityClass() const;
 	AAssetManager *aAssetManager() const;
 	AndroidPropString androidBuildDevice() const;
 	SustainedPerformanceType sustainedPerformanceModeType() const;
 	void setSustainedPerformanceMode(bool on);
 	bool apkSignatureIsConsistent() const;
-	bool packageIsInstalled(const char *name);
+	bool packageIsInstalled(const char *name) const;
+
+	// Input system functions
 	void enumInputDevices();
 	void initMogaInputSystem(bool notify);
 	void deinitMogaInputSystem();

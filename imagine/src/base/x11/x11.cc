@@ -17,11 +17,9 @@
 #include <imagine/input/Input.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/util/string.h>
-#include "../common/windowPrivate.hh"
-#include "../common/basePrivate.hh"
-#include "x11.hh"
-#include "internal.hh"
 #include "xdnd.hh"
 #include "xlibutils.h"
 
@@ -31,27 +29,29 @@
 namespace Base
 {
 
-Display *xDisplay{};
-
-static GSourceFuncs x11SourceFuncs
+XApplication::XApplication(ApplicationInitParams initParams):
+	LinuxApplication{initParams}
 {
-	[](GSource *, gint *timeout)
-	{
-		*timeout = -1;
-		return (gboolean)XPending(xDisplay);
-	},
-	[](GSource *)
-	{
-		return (gboolean)XPending(xDisplay);
-	},
-	[](GSource *, GSourceFunc, gpointer)
-	{
-		//logMsg("events for X fd");
-		runX11Events({}, xDisplay); // TODO: Supply an ApplicationContext object
-		return (gboolean)TRUE;
-	},
-	nullptr
-};
+	xEventSrc = makeXDisplayConnection(initParams.eventLoop);
+}
+
+XApplication::~XApplication()
+{
+	deinitWindows();
+	deinitInputSystem();
+	logMsg("closing X display");
+	XCloseDisplay(dpy);
+}
+
+void XApplicationContext::setApplicationPtr(Application *appPtr_)
+{
+	appPtr = appPtr_;
+}
+
+Application &XApplicationContext::application() const
+{
+	return *static_cast<Application*>(appPtr);
+}
 
 // TODO: move into generic header after testing
 static void fileURLToPath(char *url)
@@ -92,36 +92,18 @@ static void fileURLToPath(char *url)
 	url[destPos] = '\0';
 }
 
-static void ewmhFullscreen(Display *dpy, ::Window win, int action)
+Window *XApplication::windowForXWindow(::Window xWin) const
 {
-	assert(action == _NET_WM_STATE_REMOVE || action == _NET_WM_STATE_ADD || action == _NET_WM_STATE_TOGGLE);
-
-	XEvent xev{};
-	xev.xclient.type = ClientMessage;
-	xev.xclient.send_event = True;
-	xev.xclient.message_type = XInternAtom(dpy, "_NET_WM_STATE", False);
-	xev.xclient.window = win;
-	xev.xclient.format = 32;
-	xev.xclient.data.l[0] = action;
-	xev.xclient.data.l[1] = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
-
-	// TODO: test if DefaultRootWindow(dpy) works on other screens
-	XWindowAttributes attr;
-	XGetWindowAttributes(dpy, win, &attr);
-	if(!XSendEvent(dpy, attr.root, False,
-		SubstructureRedirectMask | SubstructureNotifyMask, &xev))
+	iterateTimes(windows(), i)
 	{
-		logWarn("couldn't send root window NET_WM_STATE message");
+		auto w = window(i);
+		if(w->nativeObject() == xWin)
+			return w;
 	}
+	return nullptr;
 }
 
-void toggleFullScreen(Display *dpy, ::Window xWin)
-{
-	logMsg("toggle fullscreen");
-	ewmhFullscreen(dpy, xWin, _NET_WM_STATE_TOGGLE);
-}
-
-static int eventHandler(ApplicationContext app, Display *dpy, XEvent &event)
+bool XApplication::eventHandler(XEvent event)
 {
 	//logMsg("got event type %s (%d)", xEventTypeToString(event.type), event.type);
 
@@ -129,21 +111,21 @@ static int eventHandler(ApplicationContext app, Display *dpy, XEvent &event)
 	{
 		bcase Expose:
 		{
-			auto &win = *windowForXWindow(app, event.xexpose.window);
+			auto &win = *windowForXWindow(event.xexpose.window);
 			if (event.xexpose.count == 0)
 				win.postDraw();
 		}
 		bcase ConfigureNotify:
 		{
 			//logMsg("ConfigureNotify");
-			auto &win = *windowForXWindow(app, event.xconfigure.window);
+			auto &win = *windowForXWindow(event.xconfigure.window);
 			if(event.xconfigure.width == win.width() && event.xconfigure.height == win.height())
 				break;
 			win.updateSize({event.xconfigure.width, event.xconfigure.height});
 		}
 		bcase ClientMessage:
 		{
-			auto &win = *windowForXWindow(app, event.xclient.window);
+			auto &win = *windowForXWindow(event.xclient.window);
 			auto type = event.xclient.message_type;
 			char *clientMsgName = XGetAtomName(dpy, type);
 			//logDMsg("got client msg %s", clientMsgName);
@@ -175,7 +157,7 @@ static int eventHandler(ApplicationContext app, Display *dpy, XEvent &event)
 			logMsg("SelectionNotify");
 			if(Config::Base::XDND && event.xselection.property != None)
 			{
-				auto &win = *windowForXWindow(app, event.xselection.requestor);
+				auto &win = *windowForXWindow(event.xselection.requestor);
 				int format;
 				unsigned long numItems;
 				unsigned long bytesAfter;
@@ -202,7 +184,7 @@ static int eventHandler(ApplicationContext app, Display *dpy, XEvent &event)
 		}
 		bcase GenericEvent:
 		{
-			Input::handleXI2GenericEvent(app, dpy, event);
+			handleXI2GenericEvent(event);
 		}
 		bdefault:
 		{
@@ -211,73 +193,113 @@ static int eventHandler(ApplicationContext app, Display *dpy, XEvent &event)
 		break;
 	}
 
-	return 1;
+	return true;
 }
 
-void runX11Events(ApplicationContext app, Display *dpy)
+void XApplication::runX11Events(_XDisplay *dpy)
 {
 	while(XPending(dpy))
 	{
 		XEvent event;
 		XNextEvent(dpy, &event);
-		eventHandler(app, dpy, event);
+		eventHandler(event);
 	}
 }
 
-void initXScreens(ApplicationContext app, Display *dpy)
+void XApplication::runX11Events()
+{
+	runX11Events(dpy);
+}
+
+::Display *XApplication::xDisplay() const
+{
+	return dpy;
+}
+
+NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const
+{
+	return (NativeDisplayConnection)application().xDisplay();
+}
+
+void XApplication::setWindowCursor(::Window xWin, bool on)
+{
+	auto cursor = on ? normalCursor : blankCursor;
+	XDefineCursor(dpy, xWin, cursor);
+}
+
+void initXScreens(ApplicationContext ctx, Display *dpy)
 {
 	auto defaultScreenIdx = DefaultScreen(dpy);
-	app.addScreen(std::make_unique<Screen>(ScreenOfDisplay(dpy, defaultScreenIdx)), false);
+	ctx.application().addScreen(ctx, std::make_unique<Screen>(ctx, Screen::InitParams{ScreenOfDisplay(dpy, defaultScreenIdx)}), false).setActive(true);
 	if constexpr(Config::BASE_MULTI_SCREEN)
 	{
 		iterateTimes(ScreenCount(dpy), i)
 		{
 			if((int)i == defaultScreenIdx)
 				continue;
-			app.addScreen(std::make_unique<Screen>(ScreenOfDisplay(dpy, i)), false);
+			ctx.application().addScreen(ctx, std::make_unique<Screen>(ScreenOfDisplay(dpy, i)), false).setActive(true);
 		}
 	}
 }
 
-Display *initX11(ApplicationContext app, EventLoop loop)
+FDEventSource XApplication::makeXDisplayConnection(EventLoop loop)
 {
 	XInitThreads();
-	auto dpy = XOpenDisplay(0);
-	if(!dpy)
+	auto xDisplay = XOpenDisplay(0);
+	if(!xDisplay)
 	{
 		logErr("couldn't open display");
 		return {};
 	}
-	xDisplay = dpy;
-	initXScreens(app, dpy);
-	initFrameTimer(loop, app.mainScreen());
-	Input::init(dpy);
-	app.addOnExit(
-		[dpy](ApplicationContext, bool backgrounded)
-		{
-			if(!backgrounded)
-			{
-				Base::deinitWindows();
-				Input::deinit(dpy);
-				logMsg("closing X display");
-				XCloseDisplay(dpy);
-			}
-			return true;
-		}, 10000);
-	return dpy;
-}
+	dpy = xDisplay;
+	ApplicationContext appCtx{*this};
+	initXScreens(appCtx, xDisplay);
+	initFrameTimer(loop, appCtx.mainScreen());
+	initInputSystem();
 
-FDEventSource makeAttachedX11EventSource(ApplicationContext app, Display *dpy, EventLoop loop)
-{
-	FDEventSource x11Src{"XServer", ConnectionNumber(dpy)};
-	x11Src.attach(loop, nullptr, &x11SourceFuncs);
+	struct XGlibSource : public GSource
+	{
+		::Display *xDisplay{};
+		XApplication *appPtr{};
+	};
+
+	static GSourceFuncs x11SourceFuncs
+	{
+		[](GSource *src, gint *timeout)
+		{
+			*timeout = -1;
+			auto xDisplay = static_cast<XGlibSource*>(src)->xDisplay;
+			return (gboolean)XPending(xDisplay);
+		},
+		[](GSource *src)
+		{
+			auto xDisplay = static_cast<XGlibSource*>(src)->xDisplay;
+			return (gboolean)XPending(xDisplay);
+		},
+		[](GSource *src, GSourceFunc, gpointer)
+		{
+			//logMsg("events for X fd");
+			auto &xGlibSrc = *static_cast<XGlibSource*>(src);
+			xGlibSrc.appPtr->runX11Events(xGlibSrc.xDisplay);
+			return (gboolean)TRUE;
+		},
+		nullptr
+	};
+
+	FDEventSource x11Src{"XServer", ConnectionNumber(xDisplay)};
+	auto source = (XGlibSource*)g_source_new(&x11SourceFuncs, sizeof(XGlibSource));
+	source->xDisplay = xDisplay;
+	source->appPtr = this;
+	x11Src.attach(loop, source);
 	return x11Src;
 }
 
 void ApplicationContext::setSysUIStyle(uint32_t flags) {}
 
-bool hasTranslucentSysUI() { return false; }
+bool ApplicationContext::hasTranslucentSysUI() const { return false; }
 
-bool hasHardwareNavButtons() { return false; }
+bool ApplicationContext::hasHardwareNavButtons() const { return false; }
+
+bool ApplicationContext::systemAnimatesWindowRotation() const { return false; }
 
 }

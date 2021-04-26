@@ -16,20 +16,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/Timer.hh>
+#include <imagine/base/FrameTimer.hh>
 #include <imagine/time/Time.hh>
 
 namespace Base
 {
 
 class Screen;
-
-class FrameTimer
-{
-public:
-	virtual ~FrameTimer();
-	virtual void scheduleVSync() = 0;
-	virtual void cancel() = 0;
-};
 
 class SimpleFrameTimer final: public FrameTimer
 {

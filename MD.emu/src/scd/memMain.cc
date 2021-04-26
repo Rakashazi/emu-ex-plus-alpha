@@ -8,10 +8,10 @@ uint8_t comFlagsSync[2] = { 0 };
 uint8_t comSync[0x20] = { 0 };
 bool doingSync = 0;
 uint8_t comWriteTarget = 0;
-uint comFlagsPoll[2] = { 0 };
-uint comPoll[0x20] = { 0 };
+unsigned comFlagsPoll[2] = { 0 };
+unsigned comPoll[0x20] = { 0 };
 
-static void syncSubCpu(int cycles, uint target)
+static void syncSubCpu(int cycles, unsigned target)
 {
 	assert(extraCpuSync);
 	doingSync = 1;
@@ -22,17 +22,17 @@ static void syncSubCpu(int cycles, uint target)
 	doingSync = 0;
 }
 
-uint mainGateRead8(uint address)
+unsigned mainGateRead8(unsigned address)
 {
 	//logMsg("GATE read8 %08X (%08X)", address, m68k_get_reg (mm68k, M68K_REG_PC));
 	if(((address >> 8) & 0xFF) == 0x20)
 	{
-		uint subAddr = address & 0x3f;
+		unsigned subAddr = address & 0x3f;
 		switch(subAddr)
 		{
 		bcase 0:
 		{
-			uint d = ((sCD.gate[0x33]<<13)&0x8000) >> 8;//sCD.gate[0x33]&0x4;
+			unsigned d = ((sCD.gate[0x33]<<13)&0x8000) >> 8;//sCD.gate[0x33]&0x4;
 			//logMsg("read irq 0x%X", d);
 			return d;
 		}
@@ -43,7 +43,7 @@ uint mainGateRead8(uint address)
 		bcase 3: //logMsg("read word mem mode");
 		{
 			//scd_runSubCpu(mm68k.cycleCount);
-			uint d = sCD.gate[3]&0xc7;
+			unsigned d = sCD.gate[3]&0xc7;
 			// the DMNA delay must only be visible on s68k side (Lunar2, Silpheed)
 			if(sCD.delayedDMNA)
 			{
@@ -119,12 +119,12 @@ uint mainGateRead8(uint address)
 		return ctrl_io_read_byte(address);
 }
 
-uint mainGateRead16(uint address)
+unsigned mainGateRead16(unsigned address)
 {
 	if(((address >> 8) & 0xFF) == 0x20)
 	{
 		//logMsg("GATE read16 %08X (%08X)", address, m68k_get_reg (mm68k, M68K_REG_PC));
-		uint subAddr = address & 0x3f;
+		unsigned subAddr = address & 0x3f;
 		switch(subAddr)
 		{
 			bcase 0:
@@ -132,7 +132,7 @@ uint mainGateRead16(uint address)
 			bcase 2:
 			{
 				//scd_runSubCpu(mm68k.cycleCount);
-				uint d = (sCD.gate[subAddr]<<8) | (sCD.gate[subAddr+1]&0xc7);
+				unsigned d = (sCD.gate[subAddr]<<8) | (sCD.gate[subAddr+1]&0xc7);
 				// the DMNA delay must only be visible on s68k side (Lunar2, Silpheed)
 				if(sCD.delayedDMNA) { d &= ~1; d |= 2; }
 				return d;
@@ -151,7 +151,7 @@ uint mainGateRead16(uint address)
 				return 0;
 			bcase 0xc:
 			{
-				uint d = sCD.stopwatchTimer >> 16;
+				unsigned d = sCD.stopwatchTimer >> 16;
 				logMsg("M stopwatch timer read (%04x)", d);
 				return d;
 			}
@@ -181,7 +181,7 @@ uint mainGateRead16(uint address)
 					}
 					comSync[subAddr-0x10] = comSync[subAddr-0xf] = 0;
 				}
-				uint data = (sCD.gate[subAddr]<<8) | sCD.gate[subAddr+1];
+				unsigned data = (sCD.gate[subAddr]<<8) | sCD.gate[subAddr+1];
 				return data;
 			}
 			bdefault:
@@ -193,7 +193,7 @@ uint mainGateRead16(uint address)
 		return ctrl_io_read_word(address);
 }
 
-static void writeMComFlags(uint data)
+static void writeMComFlags(unsigned data)
 {
 	if(extraCpuSync)
 	{
@@ -217,11 +217,11 @@ static void writeMComFlags(uint data)
 }
 
 
-void mainGateWrite8(uint address, uint data)
+void mainGateWrite8(unsigned address, unsigned data)
 {
 	if(((address >> 8) & 0xFF) == 0x20)
 	{
-		uint subAddr = address & 0x3f;
+		unsigned subAddr = address & 0x3f;
 		switch(subAddr)
 		{
 			bcase 0: //logMsg("write irq");
@@ -250,9 +250,9 @@ void mainGateWrite8(uint address, uint data)
 				sCD.gate[0x2] = data;
 			bcase 3: //logMsg("m write mem mode %d", data);
 			{
-				uint dold = sCD.gate[0x3]&0x1f;
+				unsigned dold = sCD.gate[0x3]&0x1f;
 				data &= 0xc2;
-				uint newBank = (data>>6)&3, oldBank = (sCD.gate[0x3]>>6)&3;
+				unsigned newBank = (data>>6)&3, oldBank = (sCD.gate[0x3]>>6)&3;
 				if (oldBank != newBank)
 				{
 					logMsg("prg bank: %i -> %i", oldBank, newBank);
@@ -314,11 +314,11 @@ void mainGateWrite8(uint address, uint data)
 		ctrl_io_write_byte(address, data);
 }
 
-void mainGateWrite16(uint address, uint data)
+void mainGateWrite16(unsigned address, unsigned data)
 {
 	if(((address >> 8) & 0xFF) == 0x20)
 	{
-		uint a = address & 0xfffffe;
+		unsigned a = address & 0xfffffe;
 		switch(a)
 		{
 			bcase 0xe:
@@ -363,71 +363,71 @@ void mainGateWrite16(uint address, uint data)
 
 // WORD
 
-uint mainReadWordDecoded8(uint address)
+unsigned mainReadWordDecoded8(unsigned address)
 {
 	logMsg("Main read8 decoded %08X", address);
 	address&=0xffffff;
-	uint bank = sCD.gate[3]&1;
+	unsigned bank = sCD.gate[3]&1;
 	address = (address&3) | (cell_map(address >> 2) << 2); // cell arranged
 	return READ_BYTE(sCD.word.ram1M[bank],address);
 }
 
-uint mainReadWordDecoded16(uint address)
+unsigned mainReadWordDecoded16(unsigned address)
 {
 	logMsg("Main read16 decoded %08X", address);
 	address&=0xfffffe;
-	uint bank = sCD.gate[3]&1;
+	unsigned bank = sCD.gate[3]&1;
 	address = (address&2) | (cell_map(address >> 2) << 2); // cell arranged
 	return *(uint16 *)(sCD.word.ram1M[bank]+address);
 }
 
-void mainWriteWordDecoded8(uint address, uint data)
+void mainWriteWordDecoded8(unsigned address, unsigned data)
 {
 	logMsg("Main write8 decoded %08X = %X", address, data);
 	address&=0xffffff;
-	uint bank = sCD.gate[3]&1;
+	unsigned bank = sCD.gate[3]&1;
 	address = (address&3) | (cell_map(address >> 2) << 2); // cell arranged
 	WRITE_BYTE(sCD.word.ram1M[bank],address,data);
 }
 
-void mainWriteWordDecoded16(uint address, uint data)
+void mainWriteWordDecoded16(unsigned address, unsigned data)
 {
 	logMsg("Main write16 decoded %08X = %X", address, data);
 	address&=0xfffffe;
-	uint bank = sCD.gate[3]&1;
+	unsigned bank = sCD.gate[3]&1;
 	address = (address&2) | (cell_map(address >> 2) << 2); // cell arranged
 	*(uint16 *)(sCD.word.ram1M[bank]+address) = data;
 }
 
 // SRAM cart
 
-uint sramCartRead8(uint address)
+unsigned sramCartRead8(unsigned address)
 {
 	return READ_BYTE(sram.sram, (address & 0x1ffff) >> 1);
 }
 
-uint sramCartRead16(uint address)
+unsigned sramCartRead16(unsigned address)
 {
 	return *(uint16 *)(sram.sram + ((address & 0x1ffff) >> 1));
 }
 
-void sramCartWrite8(uint address, uint data)
+void sramCartWrite8(unsigned address, unsigned data)
 {
 	WRITE_BYTE(sram.sram, (address & 0x1ffff) >> 1, data);
 }
 
-void sramCartWrite16(uint address, uint data)
+void sramCartWrite16(unsigned address, unsigned data)
 {
 	*(uint16 *)(sram.sram + ((address & 0x1ffff) >> 1)) = data;
 }
 
 // SRAM write protect register
 
-uint bcramRegRead8(uint address)
+unsigned bcramRegRead8(unsigned address)
 {
 	if (address == 0x7fffff)
 	{
-		uint d = sCD.bcramReg;
+		unsigned d = sCD.bcramReg;
 		logMsg("BCRAM Reg read8 %X = %X", address, d);
 		return d;
 	}
@@ -438,7 +438,7 @@ uint bcramRegRead8(uint address)
 	}
 }
 
-void bcramRegWrite8(uint address, uint data)
+void bcramRegWrite8(unsigned address, unsigned data)
 {
 	if (address == 0x7fffff)
 	{
@@ -454,7 +454,7 @@ void bcramRegWrite8(uint address, uint data)
 
 // SRAM cart size register
 
-uint sramCartRegRead8(uint address)
+unsigned sramCartRegRead8(unsigned address)
 {
 	//logMsg("SRAM read8 %X", address);
 	if(address==0x400001)
@@ -465,7 +465,7 @@ uint sramCartRegRead8(uint address)
 	return 0;//m68k_read_bus_8(address);
 }
 
-uint sramCartRegRead16(uint address)
+unsigned sramCartRegRead16(unsigned address)
 {
 	//logMsg("SRAM read16 %X", address);
 	if(address==0x400000)
@@ -478,7 +478,7 @@ uint sramCartRegRead16(uint address)
 
 // Memory map update funcs
 
-void updateMainCpuPrgMap(SegaCD &sCD, uint newBank)
+void updateMainCpuPrgMap(SegaCD &sCD, unsigned newBank)
 {
 	if((sCD.busreq & 3) != 1)
 	{
@@ -508,11 +508,11 @@ void updateMainCpuPrgMap(SegaCD &sCD, uint newBank)
 
 void updateMainCpuPrgMap(SegaCD &sCD)
 {
-	uint newBank = (sCD.gate[3]>>6)&3;
+	unsigned newBank = (sCD.gate[3]>>6)&3;
 	updateMainCpuPrgMap(sCD, newBank);
 }
 
-void updateCpuWordMap(SegaCD &sCD, uint modeReg)
+void updateCpuWordMap(SegaCD &sCD, unsigned modeReg)
 {
 	if(modeReg&4)
 	{
@@ -593,7 +593,7 @@ void updateCpuWordMap(SegaCD &sCD)
 	updateCpuWordMap(sCD, sCD.gate[3]);
 }
 
-void updateMainCpuSramMap(SegaCD &sCD, uint bcramReg)
+void updateMainCpuSramMap(SegaCD &sCD, unsigned bcramReg)
 {
 	if(bcramReg&1)
 	{

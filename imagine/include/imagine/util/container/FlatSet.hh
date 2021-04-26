@@ -33,7 +33,7 @@ public:
 	using value_type = T;
 	using size_type = typename VectorType::size_type;
 	using iterator = typename VectorType::iterator;
-	using const_iterator = typename VectorType::iterator;
+	using const_iterator = typename VectorType::const_iterator;
 	using reverse_iterator = typename VectorType::reverse_iterator;
 	using const_reverse_iterator = typename VectorType::const_reverse_iterator;
 

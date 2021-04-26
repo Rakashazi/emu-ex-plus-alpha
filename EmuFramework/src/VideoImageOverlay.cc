@@ -50,7 +50,7 @@ alignas(8) static uint8_t crtPixmapBuff[] =
 #undef CONV_COL
 
 //#define CONV_COL(r,g,b) ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
-#define CONV_COL(r,g,b) uint((r << 24) | (g << 16) | (b << 8) | 127)
+#define CONV_COL(r,g,b) unsigned((r << 24) | (g << 16) | (b << 8) | 127)
 alignas(8) static uint32_t crtRgbPixmapBuff[] =
 {
 		CONV_COL(0xcc,0,0x32), CONV_COL(0xff,0,0), CONV_COL(0xcb,0x33,0), CONV_COL(0x98,0x66,0), CONV_COL(0x65,0x99,0), CONV_COL(0x32,0xcc,0), CONV_COL(0,0xff,0), CONV_COL(0,0xcb,0x33), CONV_COL(0,0x98,0x66), CONV_COL(0,0x65,0x99), CONV_COL(0,0x32,0xcc), CONV_COL(0,0,0xff), CONV_COL(0x33,0,0xcb), CONV_COL(0x66,0,0x98), CONV_COL(0x99,0,0x65), CONV_COL(0xcb,0,0x33),
@@ -93,7 +93,7 @@ void VideoImageOverlay::setIntensity(Gfx::GC i)
 	intensity = i;
 }
 
-void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
+void VideoImageOverlay::place(const Gfx::Sprite &disp, unsigned lines)
 {
 	if(!spr.image())
 		return;
@@ -104,15 +104,15 @@ void VideoImageOverlay::place(const Gfx::Sprite &disp, uint lines)
 	switch(effect)
 	{
 		bcase SCANLINES:
-			spr.setImg({&img, {0., 0., 1.0, (Gfx::GTexC)lines}});
+			spr.setImg({&img, {{}, {1.0, (Gfx::GTexC)lines}}});
 		bcase SCANLINES_2:
-			spr.setImg({&img, {0., 0., 1.0, lines*2._gtexc}});
+			spr.setImg({&img, {{}, {1.0, lines*2._gtexc}}});
 		bcase CRT:
-			spr.setImg({&img, {0., 0., width/2._gtexc, lines/2._gtexc}});
+			spr.setImg({&img, {{}, {width/2._gtexc, lines/2._gtexc}}});
 		bcase CRT_RGB:
-			spr.setImg({&img, {0., 0., width/2._gtexc, (Gfx::GTexC)lines}});
+			spr.setImg({&img, {{}, {width/2._gtexc, (Gfx::GTexC)lines}}});
 		bcase CRT_RGB_2:
-			spr.setImg({&img, {0., 0., width/2._gtexc, lines*2._gtexc}});
+			spr.setImg({&img, {{}, {width/2._gtexc, lines*2._gtexc}}});
 	}
 }
 

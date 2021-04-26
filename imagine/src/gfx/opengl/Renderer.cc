@@ -25,74 +25,75 @@
 namespace Gfx
 {
 
-Renderer::Renderer(RendererConfig config, Base::ApplicationContext app, Base::Window *initialWindow, Error &err)
+Renderer::Renderer(Base::ApplicationContext ctx, Error &err):
+	GLRenderer{ctx}
 {
-	auto pixelFormat = config.pixelFormat();
-	if(pixelFormat == PIXEL_FMT_NONE)
-		pixelFormat = Base::Window::defaultPixelFormat(app);
+	auto [ec, dpy] = Base::GLDisplay::makeDefault(ctx.nativeDisplayConnection(), glAPI);
+	if(ec)
 	{
-		auto [ec, dpy] = Base::GLDisplay::makeDefault(glAPI);
-		if(ec)
-		{
-			err = std::runtime_error("error creating GL display connection");
-			return;
-		}
-		glDpy = dpy;
+		err = std::runtime_error("error creating GL display connection");
+		return;
 	}
+	dpy.logInfo();
+	glDpy = dpy;
+}
+
+GLRenderer::GLRenderer(Base::ApplicationContext ctx):
+	mainTask{ctx, "Main GL Context Messages", *static_cast<Renderer*>(this)},
+	releaseShaderCompilerEvent{"GLRenderer::releaseShaderCompilerEvent"}
+{}
+
+Error Renderer::setPixelFormat(IG::PixelFormat format)
+{
+	auto ctx = appContext();
+	if(format == PIXEL_FMT_NONE)
+		format = Base::Window::defaultPixelFormat(ctx);
+	auto bufferConfig = makeGLBufferConfig(ctx, format);
+	if(unlikely(!bufferConfig))
 	{
-		auto bufferConfig = makeGLBufferConfig(app, pixelFormat);
-		if(unlikely(!bufferConfig))
-		{
-			err = std::runtime_error("error finding a GL configuration");
-			return;
-		}
-		gfxBufferConfig = *bufferConfig;
+		return std::runtime_error("error finding a GL configuration");
 	}
-	glDpy.logInfo();
+	gfxBufferConfig = *bufferConfig;
+	return {};
+}
+
+Error Renderer::initMainTask(Base::Window *initialWindow, IG::PixelFormat format)
+{
+	if(auto err = setPixelFormat(format);
+		unlikely(err))
+	{
+		return err;
+	}
+	if(mainTask.glContext())
+	{
+		return {};
+	}
 	Drawable initialDrawable{};
 	if(initialWindow)
 	{
 		if(!attachWindow(*initialWindow))
 		{
-			err = std::runtime_error("error creating window surface");
-			return;
+			return std::runtime_error("error creating window surface");
 		}
 		initialDrawable = (Drawable)winData(*initialWindow).drawableHolder;
 	}
 	constexpr int DRAW_THREAD_PRIORITY = -4;
 	GLTaskConfig conf
 	{
+		.display = glDisplay(),
 		.bufferConfig = gfxBufferConfig,
 		.initialDrawable = initialDrawable,
 		.threadPriority = DRAW_THREAD_PRIORITY,
 	};
-	err = mainTask.makeGLContext(conf, app);
-	if(unlikely(err))
+	if(auto err = mainTask.makeGLContext(conf);
+		unlikely(err))
 	{
-		return;
+		return err;
 	}
 	mainTask.setDrawAsyncMode(maxSwapChainImages() < 3 ? DrawAsyncMode::PRESENT : DrawAsyncMode::NONE);
-	addEventHandlers(app, mainTask);
+	addEventHandlers(appContext(), mainTask);
 	configureRenderer();
-}
-
-Renderer::Renderer(Base::ApplicationContext app, Base::Window *initialWindow, Error &err):
-	Renderer({Base::Window::defaultPixelFormat(app)}, app, initialWindow, err)
-{}
-
-GLRenderer::GLRenderer():
-	mainTask{"Main GL Context Messages", *static_cast<Renderer*>(this)},
-	releaseShaderCompilerEvent{"GLRenderer::releaseShaderCompilerEvent"}
-{}
-
-GLRenderer::~GLRenderer()
-{
-	deinit();
-}
-
-void GLRenderer::deinit()
-{
-	glDpy.deinit();
+	return {};
 }
 
 bool Renderer::attachWindow(Base::Window &win)
@@ -104,8 +105,8 @@ bool Renderer::attachWindow(Base::Window &win)
 	}
 	logMsg("attaching window:%p", &win);
 	win.setFormat(nativeWindowFormat());
-	auto &rData = win.makeRendererData<GLRendererWindowData>();
-	rData.drawableHolder.makeDrawable(glDpy, win, gfxBufferConfig);
+	auto &rData = win.makeRendererData<GLRendererWindowData>(win.appContext());
+	rData.drawableHolder.makeDrawable(glDisplay(), win, gfxBufferConfig);
 	if(unlikely(!rData.drawableHolder))
 	{
 		return false;
@@ -125,7 +126,7 @@ bool Renderer::attachWindow(Base::Window &win)
 					}
 				});
 		}
-		else if(Config::SYSTEM_ROTATES_WINDOWS && !Base::Window::systemAnimatesRotation())
+		else if(Config::SYSTEM_ROTATES_WINDOWS && !win.appContext().systemAnimatesWindowRotation())
 		{
 			win.appContext().setOnSystemOrientationChanged(
 				[this, &win](Base::ApplicationContext, Base::Orientation oldO, Base::Orientation newO) // TODO: parameters need proper type definitions in API
@@ -155,7 +156,7 @@ void Renderer::detachWindow(Base::Window &win)
 		{
 			win.appContext().setOnDeviceOrientationChanged({});
 		}
-		else if(Config::SYSTEM_ROTATES_WINDOWS && !Base::Window::systemAnimatesRotation())
+		else if(Config::SYSTEM_ROTATES_WINDOWS && !win.appContext().systemAnimatesWindowRotation())
 		{
 			win.appContext().setOnSystemOrientationChanged({});
 		}
@@ -218,7 +219,7 @@ ClipRect Renderer::makeClipRect(const Base::Window &win, IG::WindowRect rect)
 		//x += win.viewport.rect.x;
 		y = win.height() - (y + h /*+ win.viewport.rect.y*/);
 	}
-	return {x, y, w, h};
+	return {{x, y}, {w, h}};
 }
 
 bool Renderer::supportsSyncFences() const
@@ -232,11 +233,11 @@ void Renderer::setPresentationTime(Base::Window &win, IG::FrameTime time) const
 	if(!support.eglPresentationTimeANDROID)
 		return;
 	auto drawable = (Drawable)winData(win).drawableHolder;
-	bool success = support.eglPresentationTimeANDROID(glDpy, drawable, time.count());
+	bool success = support.eglPresentationTimeANDROID(glDisplay(), drawable, time.count());
 	if(Config::DEBUG_BUILD && !success)
 	{
 		logErr("error:%s in eglPresentationTimeANDROID(%p, %llu)",
-			glDpy.errorString(eglGetError()), (EGLSurface)drawable, (unsigned long long)time.count());
+			glDisplay().errorString(eglGetError()), (EGLSurface)drawable, (unsigned long long)time.count());
 	}
 	#endif
 }
@@ -259,6 +260,28 @@ GLRendererWindowData &winData(Base::Window &win)
 {
 	assumeExpr(win.rendererData<GLRendererWindowData>());
 	return *win.rendererData<GLRendererWindowData>();
+}
+
+Base::GLDisplay GLRenderer::glDisplay() const
+{
+	return glDpy;
+}
+
+GLDisplayHolder::~GLDisplayHolder()
+{
+	dpy.deinit();
+}
+
+GLDisplayHolder::GLDisplayHolder(GLDisplayHolder &&o)
+{
+	*this = std::move(o);
+}
+
+GLDisplayHolder &GLDisplayHolder::operator=(GLDisplayHolder &&o)
+{
+	dpy.deinit();
+	dpy = std::exchange(o.dpy, {});
+	return *this;
 }
 
 }

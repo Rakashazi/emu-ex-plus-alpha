@@ -15,11 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/EmuInputView.hh>
+#include <emuframework/EmuView.hh>
+#include <emuframework/EmuAppHelper.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/gui/ViewStack.hh>
 #include <imagine/gui/ToastView.hh>
-#include <emuframework/EmuInputView.hh>
-#include <emuframework/EmuView.hh>
 
 namespace Base
 {
@@ -34,6 +35,7 @@ class Event;
 
 class EmuSystemTask;
 class EmuViewController;
+class EmuAudio;
 struct WindowData;
 
 class EmuMenuViewStack : public ViewStack
@@ -41,20 +43,22 @@ class EmuMenuViewStack : public ViewStack
 public:
 	EmuMenuViewStack(EmuViewController &);
 	bool inputEvent(Input::Event e) final;
+	constexpr EmuViewController &viewController() { return *emuViewControllerPtr; }
 
 protected:
 	EmuViewController *emuViewControllerPtr;
 };
 
-class EmuViewController final: public ViewController
+class EmuViewController final: public ViewController, public EmuAppHelper<EmuViewController>
 {
 public:
-	EmuViewController() {}
+	EmuViewController();
 	EmuViewController(ViewAttachParams,
-		VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystemTask &systemTask);
+		VController &, EmuVideoLayer &, EmuSystemTask &, EmuAudio &);
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal = false) final;
 	using ViewController::pushAndShow;
 	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView);
+	void pushAndShowModal(std::unique_ptr<View> v, bool needsNavView);
 	void pop() final;
 	void popTo(View &v) final;
 	void dismissView(View &v, bool refreshLayout) final;
@@ -67,7 +71,7 @@ public:
 	void placeElements();
 	void setEmuViewOnExtraWindow(bool on, Base::Screen &screen);
 	void startMainViewportAnimation();
-	void updateEmuAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames);
+	void updateEmuAudioStats(unsigned underruns, unsigned overruns, unsigned callbacks, double avgCallbackFrames, unsigned frames);
 	void clearEmuAudioStats();
 	void closeSystem(bool allowAutosaveState = true);
 	void popToSystemActionsMenu();
@@ -88,12 +92,14 @@ public:
 	EmuInputView &inputView();
 	ToastView &popupMessageView();
 	EmuVideoLayer &videoLayer() const;
+	EmuAudio &emuAudio() const;
 	void onScreenChange(Base::ApplicationContext, Base::Screen &, Base::ScreenChange);
 	void handleOpenFileCommand(const char *path);
 	void setOnScreenControls(bool on);
 	void updateAutoOnScreenControlVisible();
 	void setPhysicalControlsPresent(bool present);
 	void setFastForwardActive(bool active);
+	bool isMenuDismissKey(Input::Event);
 	Base::ApplicationContext appContext() const;
 
 protected:
@@ -106,14 +112,16 @@ protected:
 	Base::OnFrameDelegate onFrameUpdate{};
 	Gfx::RendererTask *rendererTask_{};
 	EmuSystemTask *systemTask{};
+	EmuAudio *emuAudioPtr{};
+	EmuApp *appPtr{};
 	Base::OnExit onExit{};
-	bool showingEmulation = false;
-	bool physicalControlsPresent = false;
+	bool showingEmulation{};
+	bool physicalControlsPresent{};
 	Base::Window::FrameTimeSource winFrameTimeSrc{};
-	uint8_t targetFastForwardSpeed = 0;
+	uint8_t targetFastForwardSpeed{};
 
 	void initViews(ViewAttachParams attach);
-	void onFocusChange(uint in);
+	void onFocusChange(bool in);
 	Base::OnFrameDelegate makeOnFrameDelayed(uint8_t delay);
 	void addOnFrameDelegate(Base::OnFrameDelegate onFrame);
 	void addOnFrameDelayed();

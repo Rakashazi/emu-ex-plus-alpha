@@ -35,22 +35,22 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 		{"8:7", 8, 7},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 
-void EmuSystem::onSessionOptionsLoaded()
+void EmuSystem::onSessionOptionsLoaded(EmuApp &app)
 {
-	EmuControls::setActiveFaceButtons(option6BtnPad ? 6 : 2);
+	app.setActiveFaceButtons(option6BtnPad ? 6 : 2);
 }
 
-bool EmuSystem::resetSessionOptions()
+bool EmuSystem::resetSessionOptions(EmuApp &app)
 {
 	optionArcadeCard.reset();
 	option6BtnPad.reset();
-	onSessionOptionsLoaded();
+	onSessionOptionsLoaded(app);
 	return true;
 }
 
-bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{
@@ -67,7 +67,7 @@ void EmuSystem::writeSessionConfig(IO &io)
 	option6BtnPad.writeWithKeyIfNotDefault(io);
 }
 
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{

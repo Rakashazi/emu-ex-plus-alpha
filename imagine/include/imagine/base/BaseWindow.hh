@@ -22,13 +22,14 @@
 #include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/typeTraits.hh>
+#include <imagine/util/NonCopyable.hh>
 #include <atomic>
 #include <memory>
 
 namespace Base
 {
 
-class BaseWindow
+class BaseWindow : private NonCopyable
 {
 public:
 	using SurfaceChange = WindowSurfaceChange;
@@ -54,7 +55,7 @@ protected:
 		DRAW		// Drawing in progress, return to READY phase when finished
 	};
 
-	Base::OnExit onExit{};
+	Base::OnExit onExit;
 	SurfaceChangeDelegate onSurfaceChange{};
 	DrawDelegate onDraw{};
 	InputEventDelegate onInputEvent{};

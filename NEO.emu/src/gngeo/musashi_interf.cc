@@ -423,74 +423,74 @@ CLINK void cpu_68k_mkstate(gzFile gzf,int mode)
 
 // debug hooks
 
-const char *m68KAddrToStr(M68KCPU &cpu, uint addr)
+const char *m68KAddrToStr(M68KCPU &cpu, unsigned addr)
 {
-	uint idx = (addr>>16)&0xff;
+	unsigned idx = (addr>>16)&0xff;
 	return "";
 }
 
-static bool isVerboseCPUWrite(M68KCPU &cpu, uint addr)
+static bool isVerboseCPUWrite(M68KCPU &cpu, unsigned addr)
 {
-	uint idx = (addr>>16)&0xff;
+	unsigned idx = (addr>>16)&0xff;
 	return false;
 }
 
-static bool isVerboseCPURead(M68KCPU &cpu, uint addr)
+static bool isVerboseCPURead(M68KCPU &cpu, unsigned addr)
 {
-	uint idx = (addr>>16)&0xff;
+	unsigned idx = (addr>>16)&0xff;
 	return false;
 }
 
-void m68k_read_immediate_16_hook(M68KCPU &cpu, uint addr)
+void m68k_read_immediate_16_hook(M68KCPU &cpu, unsigned addr)
 {
-	uint mapIdx = ((addr)>>16)&0xff;
+	unsigned mapIdx = ((addr)>>16)&0xff;
 	if(isVerboseCPURead(cpu, addr))
 		logMsg("read im 16: %s:0x%X, real %p+0x%X", m68KAddrToStr(cpu, addr), addr, cpu.memory_map[mapIdx].base, addr & 0xffff);
 }
 
-void m68k_read_immediate_32_hook(M68KCPU &cpu, uint addr)
+void m68k_read_immediate_32_hook(M68KCPU &cpu, unsigned addr)
 {
 
 }
 
-void m68k_read_pcrelative_8_hook(M68KCPU &cpu, uint addr)
+void m68k_read_pcrelative_8_hook(M68KCPU &cpu, unsigned addr)
 {
-	uint mapIdx = ((addr)>>16)&0xff;
+	unsigned mapIdx = ((addr)>>16)&0xff;
 	if(isVerboseCPURead(cpu, addr))
 		logMsg("read rel 8: %s:0x%X, real %p+0x%X", m68KAddrToStr(cpu, addr), addr, cpu.memory_map[mapIdx].base, addr & 0xffff);
 }
 
-void m68ki_read_8_hook(M68KCPU &cpu, uint address, const _m68k_memory_map *map)
+void m68ki_read_8_hook(M68KCPU &cpu, unsigned address, const _m68k_memory_map *map)
 {
 	if(isVerboseCPURead(cpu, address))
 	  logMsg("read 8: %s:0x%X, real %p+0x%X", m68KAddrToStr(cpu, address), address, map->base, address & 0xffff);
 }
 
-void m68ki_read_16_hook(M68KCPU &cpu, uint address, const _m68k_memory_map *map)
+void m68ki_read_16_hook(M68KCPU &cpu, unsigned address, const _m68k_memory_map *map)
 {
 	if(isVerboseCPURead(cpu, address))
 		logMsg("read 16: %s:0x%X, real %p+0x%X", m68KAddrToStr(cpu, address), address, map->base, address & 0xffff);
 }
 
-void m68ki_read_32_hook(M68KCPU &cpu, uint address, const _m68k_memory_map *map)
+void m68ki_read_32_hook(M68KCPU &cpu, unsigned address, const _m68k_memory_map *map)
 {
 	if(isVerboseCPURead(cpu, address))
  		logMsg("read 32: %s:0x%X, real %p+0x%X", m68KAddrToStr(cpu, address), address, map->base, address & 0xffff);
 }
 
-void m68ki_write_8_hook(M68KCPU &cpu, uint address, const _m68k_memory_map *map, uint value)
+void m68ki_write_8_hook(M68KCPU &cpu, unsigned address, const _m68k_memory_map *map, unsigned value)
 {
 	if(isVerboseCPUWrite(cpu, address))
  		logMsg("write 8: %s:0x%X with 0x%X, real %p+0x%X", m68KAddrToStr(cpu, address), address, value, map->base, address & 0xffff);
 }
 
-void m68ki_write_16_hook(M68KCPU &cpu, uint address, const _m68k_memory_map *map, uint value)
+void m68ki_write_16_hook(M68KCPU &cpu, unsigned address, const _m68k_memory_map *map, unsigned value)
 {
 	if(isVerboseCPUWrite(cpu, address))
 		logMsg("write 16: %s:0x%X with 0x%X, real %p+0x%X", m68KAddrToStr(cpu, address), address, value, map->base, address & 0xffff);
 }
 
-void m68ki_write_32_hook(M68KCPU &cpu, uint address, const _m68k_memory_map *map, uint value)
+void m68ki_write_32_hook(M68KCPU &cpu, unsigned address, const _m68k_memory_map *map, unsigned value)
 {
 	if(isVerboseCPUWrite(cpu, address))
 	  logMsg("write 32: %s:0x%X with 0x%X, real %p+0x%X", m68KAddrToStr(cpu, address), address, value, map->base, address & 0xffff);

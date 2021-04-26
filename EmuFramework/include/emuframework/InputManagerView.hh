@@ -15,12 +15,13 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/EmuAppHelper.hh>
+#include <emuframework/EmuInput.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/input/config.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <emuframework/EmuInput.hh>
 #include <vector>
 #include <array>
 
@@ -41,7 +42,7 @@ private:
 	Gfx::Text text{};
 };
 
-class InputManagerView final: public TableView
+class InputManagerView final: public TableView, public EmuAppHelper<InputManagerView>
 {
 public:
 	using DeviceNameString = std::array<char, MAX_INPUT_DEVICE_NAME_SIZE>;
@@ -67,7 +68,7 @@ private:
 	void loadItems();
 };
 
-class InputManagerOptionsView : public TableView
+class InputManagerOptionsView : public TableView, public EmuAppHelper<InputManagerOptionsView>
 {
 public:
 	InputManagerOptionsView(ViewAttachParams attach, EmuInputView *emuInputView);
@@ -100,7 +101,7 @@ private:
 	EmuInputView *emuInputView{};
 };
 
-class InputManagerDeviceView : public TableView
+class InputManagerDeviceView : public TableView, public EmuAppHelper<InputManagerDeviceView>
 {
 public:
 	InputManagerDeviceView(NameString name, ViewAttachParams attach, InputManagerView &rootIMView, InputDeviceConfig &devConf);
@@ -125,7 +126,7 @@ private:
 	TextMenuItem inputCategory[EmuControls::MAX_CATEGORIES]{};
 	StaticArrayList<MenuItem*, EmuControls::MAX_CATEGORIES + 11> item{};
 	InputDeviceConfig *devConf{};
-	uint inputCategories = 0;
+	unsigned inputCategories = 0;
 
 	void confirmICadeMode(Input::Event e);
 	void loadItems();

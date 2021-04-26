@@ -23,7 +23,7 @@ extern "C"
 	#include <blueMSX/VideoChips/FrameBuffer.h>
 }
 
-/*static const uint msxMaxResX = (256) * 2, msxResY = 224,
+/*static const unsigned msxMaxResX = (256) * 2, msxResY = 224,
 	msxMaxFrameBuffResX = (272) * 2, msxMaxFrameBuffResY = 240;
 static int msxResX = msxMaxResX/2;*/
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;

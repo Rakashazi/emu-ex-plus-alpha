@@ -24,6 +24,8 @@
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/base/ApplicationContext.hh>
 
+class ViewAttachParams;
+
 enum TestID
 {
 	TEST_CLEAR,
@@ -84,11 +86,11 @@ public:
 	virtual void frameUpdateTest(Gfx::RendererTask &rendererTask, Base::Screen &screen, IG::FrameTime frameTime) = 0;
 	virtual void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) = 0;
 	virtual void presentedTest(Gfx::RendererCommands &cmds) {}
-	void init(Base::ApplicationContext, Gfx::Renderer &, IG::WP pixmapSize, Gfx::TextureBufferMode);
+	void init(Base::ApplicationContext, Gfx::Renderer &, Gfx::GlyphTextureSet &face, IG::WP pixmapSize, Gfx::TextureBufferMode);
 	void place(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP, const Gfx::GCRect &testRect);
 	void frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Base::FrameParams frameParams);
 	void prepareDraw(Gfx::Renderer &r);
-	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds);
+	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, Gfx::GC xIndent);
 	void finish(Gfx::RendererTask &task, IG::FrameTime frameTime);
 	void setCPUFreqText(const char *str);
 	void setCPUUseText(const char *str);
@@ -103,7 +105,7 @@ protected:
 	std::array<char, 256> skippedFrameStr{};
 	std::array<char, 256> statsStr{};
 	Gfx::ProjectionPlane projP;
-	uint lostFrameProcessTime = 0;
+	unsigned lostFrameProcessTime = 0;
 
 	void placeCPUStatsText(Gfx::Renderer &r);
 	void placeFrameStatsText(Gfx::Renderer &r);
@@ -147,5 +149,4 @@ public:
 	void drawTest(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds) override;
 };
 
-TestFramework *startTest(Base::Window &win, Gfx::Renderer &r, const TestParams &t);
 const char *testIDToStr(TestID id);

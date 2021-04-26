@@ -62,7 +62,7 @@ public:
 	bool attach(PollEventDelegate callback, uint32_t events = POLLEV_IN);
 	bool attach(EventLoop loop, PollEventDelegate callback, uint32_t events = POLLEV_IN);
 	#if defined CONFIG_BASE_GLIB
-	bool attach(EventLoop loop, PollEventDelegate callback, GSourceFuncs *funcs, uint32_t events = POLLEV_IN);
+	bool attach(EventLoop, GSource *, uint32_t events = POLLEV_IN);
 	#endif
 	void detach();
 	void setEvents(uint32_t events);

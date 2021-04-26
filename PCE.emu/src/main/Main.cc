@@ -33,7 +33,7 @@ FS::PathString sysCardPath{};
 static std::vector<CDInterface *> CDInterfaces;
 using Pixel = uint16;
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
-static const uint vidBufferX = 512, vidBufferY = 242;
+static const unsigned vidBufferX = 512, vidBufferY = 242;
 alignas(8) static Pixel pixBuff[vidBufferX*vidBufferY]{};
 static IG::Pixmap mSurfacePix{{{vidBufferX, vidBufferY}, pixFmt}, pixBuff};
 std::array<uint16, 5> inputBuff{}; // 5 gamepad buffers
@@ -84,9 +84,9 @@ const char *EmuSystem::systemName()
 	return "PC Engine (TurboGrafx-16)";
 }
 
-EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)
+EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
 {
-	EmuControls::setActiveFaceButtons(2);
+	EmuApp::get(ctx).setActiveFaceButtons(2);
 	return {};
 }
 
@@ -154,7 +154,7 @@ static void writeCDMD5()
 	memcpy(emuSys->MD5, LayoutMD5, 16);
 }
 
-uint EmuSystem::multiresVideoBaseX() { return 512; }
+unsigned EmuSystem::multiresVideoBaseX() { return 512; }
 
 EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
@@ -377,7 +377,7 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 
 void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
-	uint maxFrames = 48000/54;
+	unsigned maxFrames = 48000/54;
 	int16 audioBuff[maxFrames*2];
 	EmulateSpecStruct espec{};
 	if(audio)
@@ -400,7 +400,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 	emuSys->Emulate(&espec);
 	if(audio)
 	{
-		assert((uint)espec.SoundBufSize <= audio->format().bytesToFrames(sizeof(audioBuff)));
+		assert((unsigned)espec.SoundBufSize <= audio->format().bytesToFrames(sizeof(audioBuff)));
 		audio->writeFrames((uint8_t*)audioBuff, espec.SoundBufSize);
 	}
 }

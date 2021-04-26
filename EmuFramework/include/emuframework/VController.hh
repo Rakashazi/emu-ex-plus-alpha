@@ -14,11 +14,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #pragma once
+#include <emuframework/EmuAppHelper.hh>
+#include <emuframework/EmuSystem.hh>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/PixmapTexture.hh>
-#include <emuframework/EmuSystem.hh>
 
 class VController;
+class EmuApp;
 struct WindowData;
 
 namespace Base
@@ -27,16 +29,21 @@ class Window;
 class ApplicationContext;
 }
 
+namespace Gfx
+{
+class GlyphTextureSet;
+}
+
 struct VControllerLayoutPosition
 {
 	enum { OFF = 0, SHOWN = 1, HIDDEN = 2 };
 	_2DOrigin origin{LT2DO};
-	uint state = OFF;
+	unsigned state = OFF;
 	IG::Point2D<int> pos{};
 
 	constexpr VControllerLayoutPosition() {}
 	constexpr VControllerLayoutPosition(_2DOrigin origin, IG::Point2D<int> pos): origin(origin), pos(pos) {}
-	constexpr VControllerLayoutPosition(_2DOrigin origin, IG::Point2D<int> pos, uint state): origin(origin), state(state), pos(pos) {}
+	constexpr VControllerLayoutPosition(_2DOrigin origin, IG::Point2D<int> pos, unsigned state): origin(origin), state(state), pos(pos) {}
 };
 
 class VControllerDPad
@@ -49,15 +56,15 @@ public:
 	int getInput(IG::WP c) const;
 	IG::WindowRect bounds() const;
 	void setPos(IG::Point2D<int> pos, const WindowData &winData);
-	void setSize(Gfx::Renderer &r, uint sizeInPixels, const WindowData &winData);
+	void setSize(Gfx::Renderer &r, unsigned sizeInPixels, const WindowData &winData);
 	void setDeadzone(Gfx::Renderer &r, int newDeadzone, const WindowData &winData);
 	void setDiagonalSensitivity(Gfx::Renderer &r, float newDiagonalSensitivity, const WindowData &winData);
-	uint state() const { return state_; }
-	void setState(uint state) { state_ = state; }
+	unsigned state() const { return state_; }
+	void setState(unsigned state) { state_ = state; }
 
 protected:
 	Gfx::Sprite spr{};
-	uint state_ = 1;
+	unsigned state_ = 1;
 	Gfx::GCRect padBase{};
 	IG::WindowRect padBaseArea{}, padArea{};
 	int deadzone = 0;
@@ -73,11 +80,11 @@ protected:
 class VControllerKeyboard
 {
 public:
-	static constexpr uint VKEY_COLS = 20;
-	static constexpr uint KEY_ROWS = 4;
-	static constexpr uint KEY_COLS = VKEY_COLS/2;
-	using KeyTable = std::array<std::array<uint, VKEY_COLS>, KEY_ROWS>;
-	using KbMap = std::array<uint, KEY_ROWS * KEY_COLS>;
+	static constexpr unsigned VKEY_COLS = 20;
+	static constexpr unsigned KEY_ROWS = 4;
+	static constexpr unsigned KEY_COLS = VKEY_COLS/2;
+	using KeyTable = std::array<std::array<unsigned, VKEY_COLS>, KEY_ROWS>;
+	using KbMap = std::array<unsigned, KEY_ROWS * KEY_COLS>;
 
 	constexpr VControllerKeyboard() {}
 	void updateImg(Gfx::Renderer &r);
@@ -85,13 +92,13 @@ public:
 	void place(Gfx::GC btnSize, Gfx::GC yOffset, const WindowData &winData);
 	void draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane &projP) const;
 	int getInput(IG::WP c) const;
-	int translateInput(uint idx) const;
+	int translateInput(unsigned idx) const;
 	bool keyInput(VController &v, Gfx::Renderer &r, Input::Event e);
-	void selectKey(uint x, uint y);
+	void selectKey(unsigned x, unsigned y);
 	void selectKeyRel(int x, int y);
 	void unselectKey();
 	void extendKeySelection();
-	uint currentKey() const;
+	unsigned currentKey() const;
 	int mode() const { return mode_; }
 	void setMode(Gfx::Renderer &r, int mode);
 	void applyMap(KbMap map);
@@ -100,9 +107,9 @@ public:
 protected:
 	Gfx::Sprite spr{};
 	IG::WindowRect bound{};
-	uint keyXSize = 0, keyYSize = 0;
-	uint mode_ = 0;
-	IG::WindowRect selected{-1, -1, -1, -1};
+	unsigned keyXSize = 0, keyYSize = 0;
+	unsigned mode_ = 0;
+	IG::WindowRect selected{{-1, -1}, {-1, -1}};
 	Gfx::GTexC texXEnd = 0;
 	KeyTable table{};
 };
@@ -110,22 +117,22 @@ protected:
 class VControllerGamepad
 {
 public:
-	static constexpr uint MAX_CENTER_BTNS = 2;
-	static constexpr uint MAX_FACE_BTNS = 8;
+	static constexpr unsigned MAX_CENTER_BTNS = 2;
+	static constexpr unsigned MAX_FACE_BTNS = 8;
 
-	constexpr VControllerGamepad(uint faceButtons): activeFaceBtns{faceButtons} {}
+	constexpr VControllerGamepad(unsigned faceButtons): activeFaceBtns{faceButtons} {}
 	void setBoundingAreaVisible(Gfx::Renderer &r, bool on, const WindowData &winData);
 	bool boundingAreaVisible() const;
 	void setImg(Gfx::Renderer &r, Gfx::Texture &pics);
-	uint rowsForButtons(uint activeButtons);
-	void setBaseBtnSize(Gfx::Renderer &r, uint sizeInPixels, const WindowData &winData);
+	unsigned rowsForButtons(unsigned activeButtons);
+	void setBaseBtnSize(Gfx::Renderer &r, unsigned sizeInPixels, const WindowData &winData);
 	IG::WindowRect centerBtnBounds() const;
 	void setCenterBtnPos(IG::Point2D<int> pos, const WindowData &winData);
 	IG::WindowRect lTriggerBounds() const;
 	void setLTriggerPos(IG::Point2D<int> pos, const WindowData &winData);
 	IG::WindowRect rTriggerBounds() const;
 	void setRTriggerPos(IG::Point2D<int> pos, const WindowData &winData);
-	void layoutBtnRows(uint a[], uint btns, uint rows, IG::Point2D<int> pos, const WindowData &winData);
+	void layoutBtnRows(unsigned a[], unsigned btns, unsigned rows, IG::Point2D<int> pos, const WindowData &winData);
 	IG::WindowRect faceBtnBounds() const;
 	void setFaceBtnPos(IG::Point2D<int> pos, const WindowData &winData);
 	std::array<int, 2> getCenterBtnInput(IG::WP pos) const;
@@ -144,16 +151,16 @@ public:
 	void setExtraXSize(Gfx::GC mm) { btnExtraXSize = mm; }
 	void setExtraYSize(Gfx::GC mm) { btnExtraYSize = mm; }
 	void setExtraYSizeMultiRow(Gfx::GC mm) { btnExtraYSizeMultiRow = mm; }
-	void setFaceButtonsState(uint state) { faceBtnsState = state; }
-	void setCenterButtonsState(uint state) { centerBtnsState = state; }
-	void setLTriggerState(uint state) { lTriggerState_ = state; }
-	void setRTriggerState(uint state) { rTriggerState_ = state; }
-	uint faceButtonsState() const { return faceBtnsState; }
-	uint centerButtonsState() const { return centerBtnsState; }
-	uint lTriggerState() const { return lTriggerState_; }
-	uint rTriggerState() const { return rTriggerState_; }
+	void setFaceButtonsState(unsigned state) { faceBtnsState = state; }
+	void setCenterButtonsState(unsigned state) { centerBtnsState = state; }
+	void setLTriggerState(unsigned state) { lTriggerState_ = state; }
+	void setRTriggerState(unsigned state) { rTriggerState_ = state; }
+	unsigned faceButtonsState() const { return faceBtnsState; }
+	unsigned centerButtonsState() const { return centerBtnsState; }
+	unsigned lTriggerState() const { return lTriggerState_; }
+	unsigned rTriggerState() const { return rTriggerState_; }
 	void setTriggersInline(bool on) { triggersInline_ = on; }
-	void setActiveFaceButtons(uint num) { activeFaceBtns = num; }
+	void setActiveFaceButtons(unsigned num) { activeFaceBtns = num; }
 	bool triggersInline() const { return triggersInline_; }
 
 private:
@@ -161,10 +168,10 @@ private:
 	Gfx::GC btnExtraXSize = 0.001, btnExtraYSize = 0.001, btnExtraYSizeMultiRow = 0.001;
 	int btnSpacePixels = 0, btnStaggerPixels = 0, btnRowShiftPixels = 0;
 	Gfx::GC btnSpace = 0, btnStagger = 0, btnRowShift = 0;//, btnAreaXOffset = 0;
-	uint faceBtnsState = 1;
-	uint centerBtnsState = 1;
-	uint lTriggerState_ = 1;
-	uint rTriggerState_ = 1;
+	unsigned faceBtnsState = 1;
+	unsigned centerBtnsState = 1;
+	unsigned lTriggerState_ = 1;
+	unsigned rTriggerState_ = 1;
 	IG::WindowRect centerBtnBound[MAX_CENTER_BTNS]{};
 	IG::WindowRect centerBtnsBound{};
 	IG::WindowRect faceBtnBound[MAX_FACE_BTNS]{};
@@ -173,17 +180,17 @@ private:
 	Gfx::Sprite circleBtnSpr[MAX_FACE_BTNS]{};
 	Gfx::GC btnSize = 0;
 	int btnSizePixels = 0;
-	uint activeFaceBtns = 0;
+	unsigned activeFaceBtns = 0;
 	bool triggersInline_ = false;
 	bool showBoundingArea = false;
 };
 
-class VController
+class VController : public EmuAppHelper<VController>
 {
 public:
 	static constexpr int C_ELEM = 0, F_ELEM = 8, D_ELEM = 32;
-	static constexpr uint TURBO_BIT = IG::bit(31), ACTION_MASK = 0x7FFFFFFF;
-	using Map = std::array<uint, D_ELEM+9>;
+	static constexpr unsigned TURBO_BIT = IG::bit(31), ACTION_MASK = 0x7FFFFFFF;
+	using Map = std::array<unsigned, D_ELEM+9>;
 	using KbMap = VControllerKeyboard::KbMap;
 	using VControllerLayoutPositionArr = std::array<std::array<VControllerLayoutPosition, 7>, 2>;
 
@@ -196,7 +203,9 @@ public:
 	Gfx::GC yMMSize(Gfx::GC mm) const;
 	int xMMSizeToPixel(const Base::Window &win, Gfx::GC mm) const;
 	int yMMSizeToPixel(const Base::Window &win, Gfx::GC mm) const;
-	void updateMapping(uint player);
+	void setInputPlayer(uint8_t player);
+	uint8_t inputPlayer() const;
+	void updateMapping();
 	void updateKeyboardMapping();
 	bool hasTriggers() const;
 	void setImg(Gfx::Texture &pics);
@@ -204,9 +213,9 @@ public:
 	bool boundingAreaVisible() const;
 	void setMenuBtnPos(IG::Point2D<int> pos);
 	void setFFBtnPos(IG::Point2D<int> pos);
-	void inputAction(uint action, uint vBtn);
+	void inputAction(Input::Action action, unsigned vBtn);
 	void resetInput(bool init = 0);
-	void init(float alpha, uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP);
+	void init(float alpha, unsigned gamepadBtnSizeInPixels, unsigned uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP);
 	void place();
 	void toggleKeyboard();
 	void applyInput(Input::Event e);
@@ -216,17 +225,19 @@ public:
 	int numElements() const;
 	IG::WindowRect bounds(int elemIdx) const;
 	void setPos(int elemIdx, IG::Point2D<int> pos);
-	void setState(int elemIdx, uint state);
-	uint state(int elemIdx) const;
-	void setBaseBtnSize(uint gamepadBtnSizeInPixels, uint uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP);
+	void setState(int elemIdx, unsigned state);
+	unsigned state(int elemIdx) const;
+	void setBaseBtnSize(unsigned gamepadBtnSizeInPixels, unsigned uiBtnSizeInPixels, const Gfx::ProjectionPlane &projP);
 	bool isInKeyboardMode() const;
 	void setMenuImage(Gfx::TextureSpan img);
 	void setFastForwardImage(Gfx::TextureSpan img);
 	void setKeyboardImage(Gfx::TextureSpan img);
 	bool menuHitTest(IG::WP pos);
 	bool fastForwardHitTest(IG::WP pos);
-	void setUsesScaledCoordinates(bool on);
-	bool usesScaledCoordinates();
+	void resetUsesScaledCoordinates();
+	void setUsesScaledCoordinates(std::optional<bool>);
+	bool usesScaledCoordinates() const;
+	std::optional<bool> usesScaledCoordinatesOption() const;
 	void setAlpha(float val);
 	VControllerGamepad &gamePad();
 	void setRenderer(Gfx::Renderer &renderer);
@@ -239,45 +250,52 @@ public:
 	bool layoutPositionChanged() const { return layoutPosChanged; };
 	void setLayoutPositionChanged(bool changed = true) { layoutPosChanged = changed; }
 	Base::ApplicationContext appContext() const;
-
+	const Gfx::GlyphTextureSet &face() const;
+	void setFace(const Gfx::GlyphTextureSet &face);
 
 private:
 	Gfx::Renderer *renderer_{};
 	const Base::Window *win{};
 	const WindowData *winData{};
+	const Gfx::GlyphTextureSet *facePtr{};
 
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	VControllerGamepad gp;
 	#endif
 	VControllerKeyboard kb{};
-
-	#ifdef CONFIG_EMUFRAMEWORK_USE_SCALED_COORDINATES
-	bool useScaledCoordinates = true;
-	#else
-	static constexpr bool useScaledCoordinates = false;
-	#endif
-
-	bool layoutPosChanged = false;
-	float alpha = 0;
-	VControllerLayoutPositionArr layoutPos;
+	float alpha{};
+	static constexpr bool useScaledCoordinatesDefault = true;
+	static constexpr bool useScaledCoordinatesIsMutable = Config::EmuFramework::USE_SCALED_COORDINATES;
+	IG_enableMemberIf(useScaledCoordinatesIsMutable, bool, useScaledCoordinates){useScaledCoordinatesDefault};
+	uint8_t inputPlayer_{};
+	bool layoutPosChanged{};
+	VControllerLayoutPositionArr layoutPos{};
 
 	// menu button
 	Gfx::Sprite menuBtnSpr{};
 	IG::WindowRect menuBound{};
-	uint menuBtnState = 1;
+	unsigned menuBtnState = 1;
 
 	// fast-forward button
 	Gfx::Sprite ffBtnSpr{};
 	IG::WindowRect ffBound{};
-	uint ffBtnState = 1;
+	unsigned ffBtnState = 1;
 
 	std::array<std::array<int, 2>, Config::Input::MAX_POINTERS> ptrElem{};
 	Map map{};
-	uint kbMode = 0;
+	unsigned kbMode = 0;
 
 	std::array<int, 2> findElementUnderPos(Input::Event e);
 };
 
+static constexpr unsigned VCTRL_LAYOUT_DPAD_IDX = 0,
+	VCTRL_LAYOUT_CENTER_BTN_IDX = 1,
+	VCTRL_LAYOUT_FACE_BTN_GAMEPAD_IDX = 2,
+	VCTRL_LAYOUT_MENU_IDX = 3,
+	VCTRL_LAYOUT_FF_IDX = 4,
+	VCTRL_LAYOUT_L_IDX = 5,
+	VCTRL_LAYOUT_R_IDX = 6;
+
 using SysVController = VController;
-void updateVControllerMapping(uint player, SysVController::Map &map);
-SysVController::KbMap updateVControllerKeyboardMapping(uint mode);
+void updateVControllerMapping(unsigned player, SysVController::Map &map);
+SysVController::KbMap updateVControllerKeyboardMapping(unsigned mode);

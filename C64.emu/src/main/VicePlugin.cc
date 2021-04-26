@@ -56,7 +56,7 @@ constexpr const char *libName[]
 
 struct PluginConfig
 {
-	uint models;
+	unsigned models;
 	const char **modelStr;
 	const char *getModelFuncName;
 	const char *setModelFuncName;

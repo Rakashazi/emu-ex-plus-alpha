@@ -22,14 +22,8 @@ MenuItem::~MenuItem() {}
 
 BaseTextMenuItem::BaseTextMenuItem() {}
 
-BaseTextMenuItem::BaseTextMenuItem(const char *str): t{str, &View::defaultFace} {}
-
 BaseTextMenuItem::BaseTextMenuItem(const char *str, Gfx::GlyphTextureSet *face): t{str, face} {}
 
-BaseTextMenuItem::BaseTextMenuItem(const char *str, bool isSelectable):
-	MenuItem(isSelectable),
-	t{str, &View::defaultFace}
-{}
 BaseTextMenuItem::BaseTextMenuItem(const char *str, bool isSelectable, Gfx::GlyphTextureSet *face):
 	MenuItem(isSelectable),
 	t{str, face}
@@ -41,7 +35,7 @@ void BaseTextMenuItem::prepareDraw(Gfx::Renderer &r)
 }
 
 void BaseTextMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-	_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+	Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
 	if(!active_)
 	{
@@ -56,7 +50,7 @@ void BaseTextMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC y
 	if(align.isXCentered())
 		xPos += xSize/2;
 	else
-		xPos += TableView::globalXIndent;
+		xPos += xIndent;
 	t.draw(cmds, xPos, yPos, align, projP);
 }
 
@@ -107,11 +101,6 @@ bool BaseTextMenuItem::active()
 
 TextMenuItem::TextMenuItem() {}
 
-TextMenuItem::TextMenuItem(const char *str, SelectDelegate selectDel):
-	BaseTextMenuItem{str},
-	selectD{selectDel}
-{}
-
 TextMenuItem::TextMenuItem(const char *str, Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
 	BaseTextMenuItem{str, face},
 	selectD{selectDel}
@@ -135,15 +124,16 @@ TextMenuItem::SelectDelegate TextMenuItem::onSelect() const
 
 TextHeadingMenuItem::TextHeadingMenuItem() {}
 
-TextHeadingMenuItem::TextHeadingMenuItem(const char *str): BaseTextMenuItem{str, false, &View::defaultBoldFace} {}
+TextHeadingMenuItem::TextHeadingMenuItem(const char *str, Gfx::GlyphTextureSet *face):
+	BaseTextMenuItem{str, false, face} {}
 
 bool TextHeadingMenuItem::select(View &parent, Input::Event e) { return true; };
 
 BaseDualTextMenuItem::BaseDualTextMenuItem() {}
 
-BaseDualTextMenuItem::BaseDualTextMenuItem(const char *str, const char *str2):
-	BaseTextMenuItem{str},
-	t2{str2, &View::defaultFace}
+BaseDualTextMenuItem::BaseDualTextMenuItem(const char *str, const char *str2, Gfx::GlyphTextureSet *face):
+	BaseTextMenuItem{str, face},
+	t2{str2, face}
 {}
 
 void BaseDualTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
@@ -164,18 +154,18 @@ void BaseDualTextMenuItem::prepareDraw(Gfx::Renderer &r)
 }
 
 void BaseDualTextMenuItem::draw2ndText(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-	_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+	Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
 	cmds.setCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
 	cmds.setColor(color);
-	t2.draw(cmds, (xPos + xSize) - TableView::globalXIndent, yPos, RC2DO, projP);
+	t2.draw(cmds, (xPos + xSize) - xIndent, yPos, RC2DO, projP);
 }
 
 void BaseDualTextMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-	_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+	Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
-	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP, color);
-	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP, color);
+	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
+	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
 }
 
 void BaseDualTextMenuItem::set2ndName(const char *name)
@@ -185,10 +175,12 @@ void BaseDualTextMenuItem::set2ndName(const char *name)
 
 DualTextMenuItem::DualTextMenuItem() {}
 
-DualTextMenuItem::DualTextMenuItem(const char *str, const char *str2): BaseDualTextMenuItem{str, str2} {}
+DualTextMenuItem::DualTextMenuItem(const char *str, const char *str2, Gfx::GlyphTextureSet *face):
+	BaseDualTextMenuItem{str, str2, face} {}
 
-DualTextMenuItem::DualTextMenuItem(const char *str, const char *str2, SelectDelegate selectDel):
-	BaseDualTextMenuItem{str, str2},
+DualTextMenuItem::DualTextMenuItem(const char *str, const char *str2,
+	Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
+	BaseDualTextMenuItem{str, str2, face},
 	selectD{selectDel}
 {}
 
@@ -206,14 +198,15 @@ void DualTextMenuItem::setOnSelect(SelectDelegate onSelect)
 
 BoolMenuItem::BoolMenuItem() {}
 
-BoolMenuItem::BoolMenuItem(const char *str, bool val, SelectDelegate selectDel):
-	BaseDualTextMenuItem{str, val ? "On" : "Off"},
+BoolMenuItem::BoolMenuItem(const char *str, Gfx::GlyphTextureSet *face, bool val, SelectDelegate selectDel):
+	BaseDualTextMenuItem{str, val ? "On" : "Off", face},
 	selectD{selectDel},
 	on{val}
 {}
 
-BoolMenuItem::BoolMenuItem(const char *str, bool val, const char *offStr, const char *onStr, SelectDelegate selectDel):
-	BaseDualTextMenuItem{str, val ? onStr : offStr},
+BoolMenuItem::BoolMenuItem(const char *str, Gfx::GlyphTextureSet *face, bool val, const char *offStr,
+	const char *onStr, SelectDelegate selectDel):
+	BaseDualTextMenuItem{str, val ? onStr : offStr, face},
 	selectD{selectDel},
 	offStr{offStr},
 	onStr{onStr},
@@ -269,9 +262,9 @@ bool BoolMenuItem::flipBoolValue()
 }
 
 void BoolMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-	_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+	Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
-	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP, color);
+	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
 	Gfx::Color color2;
 	if(!onOffStyle) // custom strings
 		color2 = Gfx::color(0.f, .8f, 1.f);
@@ -279,7 +272,7 @@ void BoolMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos,
 		color2 = Gfx::color(.27f, 1.f, .27f);
 	else
 		color2 = Gfx::color(1.f, .27f, .27f);
-	draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP, color2);
+	draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color2);
 }
 
 void BoolMenuItem::setOnSelect(SelectDelegate onSelect)
@@ -317,20 +310,21 @@ public:
 		}
 	}
 
-	void drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect) const final
+	void drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect, Gfx::GC xIndent) const final
 	{
-		item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), TableView::align, projP, menuTextColor((int)i == activeItem));
+		item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, TableView::align, projP, menuTextColor((int)i == activeItem));
 	}
 };
 
 MultiChoiceMenuItem::MultiChoiceMenuItem() {}
 
-MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr,
+MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, Gfx::GlyphTextureSet *face, SetDisplayStringDelegate onDisplayStr,
 	int selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel):
 	BaseDualTextMenuItem
 	{
 		str,
-		nullptr
+		nullptr,
+		face
 	},
 	selectD
 	{
@@ -346,28 +340,31 @@ MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, SetDisplayStringDelega
 	selected_{selected}
 {}
 
-MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, int selected,
+MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str,
+	Gfx::GlyphTextureSet *face, int selected,
 	ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel):
-	MultiChoiceMenuItem{str, SetDisplayStringDelegate{}, selected, items, item, selectDel}
+	MultiChoiceMenuItem{str, face, SetDisplayStringDelegate{}, selected, items, item, selectDel}
 {}
 
-MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, SetDisplayStringDelegate onDisplayStr,
+MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str,
+	Gfx::GlyphTextureSet *face, SetDisplayStringDelegate onDisplayStr,
 	int selected, ItemsDelegate items, ItemDelegate item):
-	MultiChoiceMenuItem{str, onDisplayStr, selected, items, item, {}}
+	MultiChoiceMenuItem{str, face, onDisplayStr, selected, items, item, {}}
 {}
 
-MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, int selected,
+MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str,
+	Gfx::GlyphTextureSet *face, int selected,
 	ItemsDelegate items, ItemDelegate item):
-	MultiChoiceMenuItem{str, SetDisplayStringDelegate{}, selected, items, item, {}}
+	MultiChoiceMenuItem{str, face, SetDisplayStringDelegate{}, selected, items, item, {}}
 {}
 
 void MultiChoiceMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
-	_2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
+	Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
 {
-	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, align, projP, color);
+	BaseTextMenuItem::draw(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
 	//auto color2 = Gfx::color(0.f, 1.f, 1.f); // aqua
 	auto color2 = Gfx::color(0.f, .8f, 1.f);
-	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, align, projP, color2);
+	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color2);
 }
 
 void MultiChoiceMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)

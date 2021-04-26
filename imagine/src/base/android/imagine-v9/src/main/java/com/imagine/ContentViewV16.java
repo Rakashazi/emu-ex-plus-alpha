@@ -25,9 +25,9 @@ import android.util.Log;
 // so use fitSystemWindows to get the area not overlapping the system windows
 final class ContentViewV16 extends ContentViewV16Base
 {
-	public ContentViewV16(Context context, long windowAddr)
+	public ContentViewV16(Context context, long nativeUserData)
 	{
-		super(context, windowAddr);
+		super(context, nativeUserData);
 	}
 	
 	@Override protected boolean fitSystemWindows(Rect insets)
@@ -51,11 +51,11 @@ final class ContentViewV16 extends ContentViewV16Base
 			newContentRect.right -= insets.right;
 			newContentRect.bottom -= insets.bottom;
 		}
-		if(windowAddr != 0 && (!contentRect.equals(newContentRect) || newWindowWidth != windowWidth || newWindowHeight != windowHeight))
+		if(nativeUserData != 0 && (!contentRect.equals(newContentRect) || newWindowWidth != windowWidth || newWindowHeight != windowHeight))
 		{
 			//Log.i(logTag, "content rect: " + contentRect.left + "," + contentRect.top + " " + contentRect.right + "," + contentRect.bottom
 			//		+ " -> " + newContentRect.left + "," + newContentRect.top + " " + newContentRect.right + "," + newContentRect.bottom);
-			BaseActivity.onContentRectChanged(windowAddr,
+			BaseActivity.onContentRectChanged(nativeUserData,
 				newContentRect.left, newContentRect.top, newContentRect.right, newContentRect.bottom,
 				newWindowWidth, newWindowHeight);
 			contentRect.set(newContentRect);

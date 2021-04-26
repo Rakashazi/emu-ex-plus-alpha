@@ -45,7 +45,7 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
-const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
+const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx)
 {
 	static const BundledGameInfo info[]
 	{
@@ -96,7 +96,7 @@ uint_least32_t gbcToRgb32(unsigned const bgr15)
 
 void applyGBPalette()
 {
-	uint idx = optionGBPal;
+	unsigned idx = optionGBPal;
 	assert(idx < std::size(gbPal));
 	bool useBuiltin = optionUseBuiltinGBPalette && gameBuiltinPalette;
 	if(useBuiltin)
@@ -235,7 +235,7 @@ static size_t runUntilVideoFrame(gambatte::uint_least32_t *videoBuf, std::ptrdif
 		{
 			constexpr size_t buffSize = (snd.size() / (2097152./48000.) + 1); // TODO: std::ceil() is constexpr with GCC but not Clang yet
 			std::array<uint32_t, buffSize> destBuff;
-			uint destFrames = resampler->resample((short*)destBuff.data(), (const short*)snd.data(), samples);
+			unsigned destFrames = resampler->resample((short*)destBuff.data(), (const short*)snd.data(), samples);
 			assumeExpr(destFrames <= destBuff.size());
 			audio->writeFrames(destBuff.data(), destFrames);
 		}

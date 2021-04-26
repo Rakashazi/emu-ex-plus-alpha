@@ -44,6 +44,7 @@
 #define EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 #endif
 
-#ifdef __ANDROID__
-#define CONFIG_EMUFRAMEWORK_USE_SCALED_COORDINATES
-#endif
+namespace Config::EmuFramework
+{
+	static constexpr bool USE_SCALED_COORDINATES = Config::envIsAndroid;
+}

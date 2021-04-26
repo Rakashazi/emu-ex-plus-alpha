@@ -14,20 +14,17 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "FrameTimer"
-#include <imagine/logger/logger.h>
-#include "internal.hh"
 #include "../linux/DRMFrameTimer.hh"
 #include "../linux/FBDevFrameTimer.hh"
 #include "../common/SimpleFrameTimer.hh"
+#include <imagine/base/Application.hh>
+#include <imagine/logger/logger.h>
 #include <memory>
 
 namespace Base
 {
 
-std::unique_ptr<FrameTimer> frameTimer{};
-static bool usingSimpleFrameTimer = false;
-
-void initFrameTimer(EventLoop loop, Screen &screen)
+void XApplication::initFrameTimer(EventLoop loop, Screen &screen)
 {
 	{
 		auto timer = std::make_unique<DRMFrameTimer>(loop, screen);
@@ -52,24 +49,19 @@ void initFrameTimer(EventLoop loop, Screen &screen)
 	usingSimpleFrameTimer = true;
 }
 
-void deinitFrameTimer()
-{
-	frameTimer.reset();
-}
-
-void frameTimerScheduleVSync()
+void XApplication::frameTimerScheduleVSync()
 {
 	assumeExpr(frameTimer);
 	frameTimer->scheduleVSync();
 }
 
-void frameTimerCancel()
+void XApplication::frameTimerCancel()
 {
 	assumeExpr(frameTimer);
 	frameTimer->cancel();
 }
 
-bool frameTimeIsSimulated()
+bool XApplication::frameTimeIsSimulated() const
 {
 	return usingSimpleFrameTimer;
 }

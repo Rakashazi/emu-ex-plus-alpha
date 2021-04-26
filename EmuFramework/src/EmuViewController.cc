@@ -14,7 +14,9 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "EmuViewController"
+#include <emuframework/EmuViewController.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuAppHelper.hh>
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuVideoLayer.hh>
@@ -24,11 +26,8 @@
 #include <emuframework/FilePicker.hh>
 #include "EmuOptions.hh"
 #include "private.hh"
-#include "privateInput.hh"
 #include "configFile.hh"
-#include "EmuSystemTask.hh"
 #include "EmuTiming.hh"
-#include "EmuViewController.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/gfx/Renderer.hh>
@@ -37,7 +36,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/ToastView.hh>
 
-class AutoStateConfirmAlertView : public YesNoAlertView
+class AutoStateConfirmAlertView : public YesNoAlertView, public EmuAppHelper<AutoStateConfirmAlertView>
 {
 public:
 	AutoStateConfirmAlertView(ViewAttachParams attach, const char *dateStr, bool addToRecent):
@@ -49,11 +48,11 @@ public:
 			"Restart Game",
 			[this, addToRecent]()
 			{
-				launchSystem(true, addToRecent);
+				launchSystem(app(), true, addToRecent);
 			},
 			[this, addToRecent]()
 			{
-				launchSystem(false, addToRecent);
+				launchSystem(app(), false, addToRecent);
 			}
 		}
 	{
@@ -61,26 +60,31 @@ public:
 	}
 };
 
+EmuViewController::EmuViewController() {}
+
 EmuViewController::EmuViewController(ViewAttachParams viewAttach,
-	VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystemTask &systemTask):
+	VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystemTask &systemTask,
+	EmuAudio &emuAudio):
 	emuView{viewAttach, &videoLayer},
 	emuInputView{viewAttach, vCtrl, videoLayer},
 	popup{viewAttach},
 	rendererTask_{&viewAttach.rendererTask()},
 	systemTask{&systemTask},
+	emuAudioPtr{&emuAudio},
+	appPtr{&EmuApp::get(viewAttach.appContext())},
 	onExit
 	{
-		[this](Base::ApplicationContext app, bool backgrounded)
+		[this](Base::ApplicationContext ctx, bool backgrounded)
 		{
 			if(backgrounded)
 			{
 				showUI();
-				if(optionShowOnSecondScreen && app.screens() > 1)
+				if(optionShowOnSecondScreen && ctx.screens() > 1)
 				{
-					setEmuViewOnExtraWindow(false, *app.screen(1));
+					setEmuViewOnExtraWindow(false, *ctx.screen(1));
 				}
 				viewStack.top().onHide();
-				app.addOnResume(
+				ctx.addOnResume(
 					[this](Base::ApplicationContext, bool focused)
 					{
 						configureSecondaryScreens();
@@ -104,7 +108,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 		}, viewAttach.appContext(), -10
 	}
 {
-	emuInputView.setController(this, Input::defaultEvent());
+	emuInputView.setController(this);
 	if constexpr(Config::envIsAndroid)
 	{
 		emuInputView.setConsumeUnboundGamepadKeys(optionConsumeUnboundGamepadKeys);
@@ -118,7 +122,7 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 		});
 
 	win.setOnFocusChange(
-		[this](Base::Window &win, uint in)
+		[this](Base::Window &win, bool in)
 		{
 			windowData(win).focused = in;
 			onFocusChange(in);
@@ -193,11 +197,11 @@ bool EmuMenuViewStack::inputEvent(Input::Event e)
 			if(EmuSystem::gameIsRunning() ||
 					(!EmuSystem::gameIsRunning() && !shouldExitFromViewRootWithoutPrompt(e)))
 			{
-				EmuApp::showExitAlert(top().attachParams(), e);
+				viewController().app().showExitAlert(top().attachParams(), e);
 			}
 			else
 			{
-				emuViewControllerPtr->appContext().exit();
+				viewController().appContext().exit();
 			}
 		}
 		else
@@ -206,11 +210,11 @@ bool EmuMenuViewStack::inputEvent(Input::Event e)
 		}
 		return true;
 	}
-	if(e.pushed() && isMenuDismissKey(e, *emuViewControllerPtr) && !hasModalView())
+	if(e.pushed() && viewController().isMenuDismissKey(e) && !hasModalView())
 	{
 		if(EmuSystem::gameIsRunning())
 		{
-			emuViewControllerPtr->showEmulation();
+			viewController().showEmulation();
 		}
 		return true;
 	}
@@ -220,6 +224,7 @@ bool EmuMenuViewStack::inputEvent(Input::Event e)
 void EmuViewController::initViews(ViewAttachParams viewAttach)
 {
 	auto &winData = windowData(viewAttach.window());
+	auto &face = viewAttach.viewManager().defaultFace();
 	winData.hasEmuView = true;
 	winData.hasPopup = true;
 	if(!Base::Screen::supportsTimestamps(appContext()) && (!Config::envIsLinux || viewAttach.window().screen()->frameRate() < 100.))
@@ -235,21 +240,22 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 		{
 			bool skipForward = false;
 			bool fastForwarding = false;
+			auto &audio = emuAudio();
 			if(unlikely(EmuSystem::shouldFastForward()))
 			{
 				// for skipping loading on disk-based computers
 				fastForwarding = true;
 				skipForward = true;
-				EmuSystem::setSpeedMultiplier(8);
+				EmuSystem::setSpeedMultiplier(audio, 8);
 			}
 			else if(unlikely(targetFastForwardSpeed > 1))
 			{
 				fastForwarding = true;
-				EmuSystem::setSpeedMultiplier(targetFastForwardSpeed);
+				EmuSystem::setSpeedMultiplier(audio, targetFastForwardSpeed);
 			}
 			else
 			{
-				EmuSystem::setSpeedMultiplier(1);
+				EmuSystem::setSpeedMultiplier(audio, 1);
 			}
 			auto frameInfo = EmuSystem::advanceFramesWithTime(params.timestamp());
 			if(!frameInfo.advanced)
@@ -260,9 +266,9 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			{
 				frameInfo.advanced = currentFrameInterval();
 			}
-			constexpr uint maxFrameSkip = 8;
+			constexpr unsigned maxFrameSkip = 8;
 			uint32_t framesToEmulate = std::min(frameInfo.advanced, maxFrameSkip);
-			EmuAudio *audioPtr = emuAudio ? &emuAudio : nullptr;
+			EmuAudio *audioPtr = audio ? &audio : nullptr;
 			systemTask->runFrame(&videoLayer().emuVideo(), audioPtr, framesToEmulate, skipForward);
 			r.setPresentationTime(emuWindow(), params.presentTime());
 			/*logMsg("frame present time:%.4f next display frame:%.4f",
@@ -271,14 +277,14 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			return false;
 		};
 
-	popup.setFace(View::defaultFace);
+	popup.setFace(face);
 	{
 		auto viewNav = std::make_unique<BasicNavView>
 		(
 			viewAttach,
-			&View::defaultFace,
-			&getAsset(emuView.renderer(), ASSET_ARROW),
-			&getAsset(emuView.renderer(), ASSET_GAME_ICON)
+			&face,
+			&app().asset(emuView.renderer(), EmuApp::AssetID::ARROW),
+			&app().asset(emuView.renderer(), EmuApp::AssetID::GAME_ICON)
 		);
 		viewNav->rotateLeftBtn = true;
 		viewNav->setOnPushLeftBtn(
@@ -295,16 +301,16 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 				}
 			});
 		viewNav->showRightBtn(false);
-		viewStack.setShowNavViewBackButton(View::needsBackControl);
-		EmuApp::onCustomizeNavView(*viewNav);
+		viewStack.setShowNavViewBackButton(viewAttach.viewManager().needsBackControl());
+		appPtr->onCustomizeNavView(*viewNav);
 		viewStack.setNavView(std::move(viewNav));
 	}
 	viewStack.showNavView(optionTitleBar);
 	emuView.setLayoutInputView(&inputView());
 	placeElements();
-	auto mainMenu = makeEmuView(viewAttach, EmuApp::ViewID::MAIN_MENU);
-	static_cast<EmuMainMenuView*>(mainMenu.get())->setAudioVideo(emuAudio, videoLayer());
-	pushAndShow(std::move(mainMenu), Input::defaultEvent());
+	auto mainMenu = EmuApp::makeView(viewAttach, EmuApp::ViewID::MAIN_MENU);
+	static_cast<EmuMainMenuView*>(mainMenu.get())->setAudioVideo(emuAudio(), videoLayer());
+	pushAndShow(std::move(mainMenu));
 	applyFrameRates();
 	videoLayer().emuVideo().setOnFrameFinished(
 		[this](EmuVideo &)
@@ -321,12 +327,12 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			videoLayer.resetImage();
 			#endif
 			videoLayer.setOverlay(optionOverlayEffect);
-			if((uint)optionImageZoom > 100)
+			if((unsigned)optionImageZoom > 100)
 			{
 				placeEmuViews();
 			}
 		});
-	setPhysicalControlsPresent(Input::keyInputIsPresent());
+	setPhysicalControlsPresent(viewAttach.appContext().keyInputIsPresent());
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	if((int)optionTouchCtrl == 2)
 		updateAutoOnScreenControlVisible();
@@ -410,8 +416,8 @@ void EmuViewController::moveEmuViewToWindow(Base::Window &win)
 void EmuViewController::configureAppForEmulation(bool running)
 {
 	appContext().setIdleDisplayPowerSave(running ? (bool)optionIdleDisplayPowerSave : true);
-	applyOSNavStyle(appContext(), running);
-	Input::setHintKeyRepeat(!running);
+	app().applyOSNavStyle(appContext(), running);
+	appContext().setHintKeyRepeat(!running);
 }
 
 void EmuViewController::configureWindowForEmulation(Base::Window &win, bool running)
@@ -434,7 +440,7 @@ void EmuViewController::showEmulation()
 	configureWindowForEmulation(emuView.window(), true);
 	if(emuView.window() != emuInputView.window())
 		emuInputView.postDraw();
-	commonInitInput(*this);
+	app().resetInput();
 	popup.clear();
 	emuInputView.resetInput();
 	startEmulation();
@@ -490,35 +496,35 @@ void EmuViewController::placeElements()
 		popup.place();
 	}
 	auto &winData = mainWindowData();
-	TableView::setDefaultXIndent(inputView().window(), winData.projection.plane());
+	emuView.manager().setTableXIndentToDefault(inputView().window(), winData.projection.plane());
 	placeEmuViews();
 	viewStack.place(winData.viewport().bounds(), winData.projection.plane());
 }
 
-static bool hasExtraWindow(Base::ApplicationContext app)
+static bool hasExtraWindow(Base::ApplicationContext ctx)
 {
-	return app.windows() == 2;
+	return ctx.windows() == 2;
 }
 
-static void dismissExtraWindow(Base::ApplicationContext app)
+static void dismissExtraWindow(Base::ApplicationContext ctx)
 {
-	if(!hasExtraWindow(app))
+	if(!hasExtraWindow(ctx))
 		return;
-	app.window(1)->dismiss();
+	ctx.window(1)->dismiss();
 }
 
-static bool extraWindowIsFocused(Base::ApplicationContext app)
+static bool extraWindowIsFocused(Base::ApplicationContext ctx)
 {
-	if(!hasExtraWindow(app))
+	if(!hasExtraWindow(ctx))
 		return false;
-	return windowData(*app.window(1)).focused;
+	return windowData(*ctx.window(1)).focused;
 }
 
-static Base::Screen *extraWindowScreen(Base::ApplicationContext app)
+static Base::Screen *extraWindowScreen(Base::ApplicationContext ctx)
 {
-	if(!hasExtraWindow(app))
+	if(!hasExtraWindow(ctx))
 		return nullptr;
-	return app.window(1)->screen();
+	return ctx.window(1)->screen();
 }
 
 void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
@@ -591,7 +597,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 					});
 
 				win.setOnFocusChange(
-					[this](Base::Window &win, uint in)
+					[this](Base::Window &win, bool in)
 					{
 						windowData(win).focused = in;
 						onFocusChange(in);
@@ -669,7 +675,7 @@ void EmuViewController::updateWindowViewport(Base::Window &win, Base::Window::Su
 	}
 }
 
-void EmuViewController::updateEmuAudioStats(uint underruns, uint overruns, uint callbacks, double avgCallbackFrames, uint frames)
+void EmuViewController::updateEmuAudioStats(unsigned underruns, unsigned overruns, unsigned callbacks, double avgCallbackFrames, unsigned frames)
 {
 	emuView.updateAudioStats(underruns, overruns, callbacks, avgCallbackFrames, frames);
 }
@@ -745,18 +751,18 @@ void EmuViewController::moveOnFrame(Base::Window &from, Base::Window &to)
 
 void EmuViewController::startEmulation()
 {
-	setCPUNeedsLowLatency(appContext(), true);
+	app().setCPUNeedsLowLatency(appContext(), true);
 	systemTask->start();
-	EmuSystem::start();
+	EmuSystem::start(*appPtr);
 	videoLayer().setBrightness(1.f);
 	addOnFrameDelayed();
 }
 
 void EmuViewController::pauseEmulation()
 {
-	setCPUNeedsLowLatency(appContext(), false);
+	app().setCPUNeedsLowLatency(appContext(), false);
 	systemTask->pause();
-	EmuSystem::pause();
+	EmuSystem::pause(*appPtr);
 	videoLayer().setBrightness(showingEmulation ? .75f : .25f);
 	setFastForwardActive(false);
 	emuWindow().setDrawEventPriority();
@@ -767,7 +773,7 @@ void EmuViewController::closeSystem(bool allowAutosaveState)
 {
 	showUI();
 	systemTask->stop();
-	EmuSystem::closeRuntimeSystem(allowAutosaveState);
+	EmuSystem::closeRuntimeSystem(*appPtr, allowAutosaveState);
 	viewStack.navView()->showRightBtn(false);
 	if(int idx = viewStack.viewIdx("System Actions");
 		idx > 0)
@@ -810,6 +816,12 @@ Gfx::RendererTask &EmuViewController::rendererTask() const
 void EmuViewController::pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView)
 {
 	pushAndShow(std::move(v), e, needsNavView, true);
+}
+
+void EmuViewController::pushAndShowModal(std::unique_ptr<View> v, bool needsNavView)
+{
+	auto e = v->appContext().defaultInputEvent();
+	pushAndShowModal(std::move(v), e, needsNavView);
 }
 
 bool EmuViewController::hasModalView() const
@@ -873,7 +885,7 @@ void EmuViewController::showSystemActionsView(ViewAttachParams attach, Input::Ev
 	showUI();
 	if(!viewStack.contains("System Actions"))
 	{
-		viewStack.pushAndShow(makeEmuView(attach, EmuApp::ViewID::SYSTEM_ACTIONS), e);
+		viewStack.pushAndShow(EmuApp::makeView(attach, EmuApp::ViewID::SYSTEM_ACTIONS), e);
 	}
 }
 
@@ -905,12 +917,17 @@ EmuVideoLayer &EmuViewController::videoLayer() const
 	return *emuView.videoLayer();
 }
 
-void EmuViewController::onScreenChange(Base::ApplicationContext app, Base::Screen &screen, Base::ScreenChange change)
+EmuAudio &EmuViewController::emuAudio() const
+{
+	return *emuAudioPtr;
+}
+
+void EmuViewController::onScreenChange(Base::ApplicationContext ctx, Base::Screen &screen, Base::ScreenChange change)
 {
 	if(change.added())
 	{
 		logMsg("screen added");
-		if(optionShowOnSecondScreen && app.screens() > 1)
+		if(optionShowOnSecondScreen && ctx.screens() > 1)
 			setEmuViewOnExtraWindow(true, screen);
 	}
 	else if(change.removed())
@@ -929,11 +946,14 @@ void EmuViewController::handleOpenFileCommand(const char *path)
 		logMsg("changing to dir %s from external command", path);
 		showUI(false);
 		popToRoot();
-		EmuApp::setMediaSearchPath(FS::makePathString(path));
-		pushAndShow(EmuFilePicker::makeForLoading(viewStack.top().attachParams(), Input::defaultEvent()), Input::defaultEvent(), false);
+		appPtr->setMediaSearchPath(FS::makePathString(path));
+		pushAndShow(
+			EmuFilePicker::makeForLoading(viewStack.top().attachParams(), appContext().defaultInputEvent()),
+			appContext().defaultInputEvent(),
+			false);
 		return;
 	}
-	if(type != FS::file_type::regular || (!EmuApp::hasArchiveExtension(path) && !EmuSystem::defaultFsFilter(path)))
+	if(type != FS::file_type::regular || (!appPtr->hasArchiveExtension(path) && !EmuSystem::defaultFsFilter(path)))
 	{
 		logMsg("unrecognized file type");
 		return;
@@ -941,10 +961,10 @@ void EmuViewController::handleOpenFileCommand(const char *path)
 	logMsg("opening file %s from external command", path);
 	showUI();
 	popToRoot();
-	onSelectFileFromPicker(path, Input::Event{}, {}, viewStack.top().attachParams());
+	onSelectFileFromPicker(*appPtr, path, Input::Event{}, {}, viewStack.top().attachParams());
 }
 
-void EmuViewController::onFocusChange(uint in)
+void EmuViewController::onFocusChange(bool in)
 {
 	if(showingEmulation)
 	{
@@ -974,7 +994,7 @@ void EmuViewController::setOnScreenControls(bool on)
 void EmuViewController::updateAutoOnScreenControlVisible()
 {
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	if((uint)optionTouchCtrl == 2)
+	if((unsigned)optionTouchCtrl == 2)
 	{
 		if(emuInputView.touchControlsAreOn() && physicalControlsPresent)
 		{
@@ -1012,9 +1032,9 @@ Base::Window &EmuViewController::mainWindow() const
 void EmuViewController::setFastForwardActive(bool active)
 {
 	targetFastForwardSpeed = active ? optionFastForwardSpeed.val : 0;
-	emuAudio.setAddSoundBuffersOnUnderrun(active ? optionAddSoundBuffersOnUnderrun.val : false);
+	emuAudio().setAddSoundBuffersOnUnderrun(active ? optionAddSoundBuffersOnUnderrun.val : false);
 	auto soundVolume = (active && !soundDuringFastForwardIsEnabled()) ? 0 : optionSoundVolume.val;
-	emuAudio.setVolume(soundVolume);
+	emuAudio().setVolume(soundVolume);
 }
 
 void EmuViewController::setWindowFrameClockSource(Base::Window::FrameTimeSource src)
@@ -1038,4 +1058,18 @@ void EmuViewController::configureSecondaryScreens()
 Base::ApplicationContext EmuViewController::appContext() const
 {
 	return emuWindow().appContext();
+}
+
+bool EmuViewController::isMenuDismissKey(Input::Event e)
+{
+	using namespace Input;
+	Key dismissKey = Keycode::MENU;
+	Key dismissKey2 = Keycode::GAME_Y;
+	if(Config::MACHINE_IS_PANDORA && e.device()->subtype() == Device::SUBTYPE_PANDORA_HANDHELD)
+	{
+		if(hasModalView()) // make sure not performing text input
+			return false;
+		dismissKey = Keycode::SPACE;
+	}
+	return e.key() == dismissKey || e.key() == dismissKey2;
 }

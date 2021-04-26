@@ -22,7 +22,7 @@ extern "C"
 	#include <blueMSX/Input/InputEvent.h>
 }
 
-static const uint msxKeyboardKeys = 92;
+static const unsigned msxKeyboardKeys = 92;
 
 enum
 {
@@ -85,12 +85,12 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Space/KB";
-const uint EmuSystem::inputFaceBtns = 2;
-const uint EmuSystem::inputCenterBtns = 2;
+const unsigned EmuSystem::inputFaceBtns = 2;
+const unsigned EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
 bool EmuSystem::inputHasKeyboard = true;
-const uint EmuSystem::maxPlayers = 2;
+const unsigned EmuSystem::maxPlayers = 2;
 extern Machine *machine;
 
 static SysVController::KbMap kbToEventMap
@@ -109,7 +109,7 @@ static SysVController::KbMap kbToEventMap2
 	EC_NONE, EC_NONE, EC_NONE, EC_SPACE, EC_SPACE, EC_SPACE, EC_SPACE, EC_PERIOD, EC_PERIOD, EC_RETURN
 };
 
-void setupVKeyboardMap(uint boardType)
+void setupVKeyboardMap(EmuApp &app, unsigned boardType)
 {
 	if(boardType != BOARD_COLECO)
 	{
@@ -117,19 +117,19 @@ void setupVKeyboardMap(uint boardType)
 			kbToEventMap2[10 + i] = EC_1 + i;
 		kbToEventMap2[23] = EC_3 | (EC_LSHIFT << 8);
 	}
-	EmuControls::updateKeyboardMapping();
+	app.updateKeyboardMapping();
 }
 
-SysVController::KbMap updateVControllerKeyboardMapping(uint mode)
+SysVController::KbMap updateVControllerKeyboardMapping(unsigned mode)
 {
 	return mode ? kbToEventMap2 : kbToEventMap;
 }
 
-void updateVControllerMapping(uint player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
 	if(machine && machine->board.type == BOARD_COLECO)
 	{
-		uint playerShift = player ? 12 : 0;
+		unsigned playerShift = player ? 12 : 0;
 		iterateTimes(9, i) // 1 - 9
 			kbToEventMap2[10 + i] = EC_COLECO1_1 + i + playerShift;
 		kbToEventMap2[19] = EC_COLECO1_0 + playerShift;
@@ -142,10 +142,10 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 																	: EC_SPACE;
 	map[SysVController::C_ELEM+1] = EC_KEYCOUNT;
 
-	uint up = player ? EC_JOY2_UP : EC_JOY1_UP;
-	uint down = player ? EC_JOY2_DOWN : EC_JOY1_DOWN;
-	uint left = player ? EC_JOY2_LEFT : EC_JOY1_LEFT;
-	uint right = player ? EC_JOY2_RIGHT : EC_JOY1_RIGHT;
+	unsigned up = player ? EC_JOY2_UP : EC_JOY1_UP;
+	unsigned down = player ? EC_JOY2_DOWN : EC_JOY1_DOWN;
+	unsigned left = player ? EC_JOY2_LEFT : EC_JOY1_LEFT;
+	unsigned right = player ? EC_JOY2_RIGHT : EC_JOY1_RIGHT;
 	map[SysVController::D_ELEM] = up | (left << 8);
 	map[SysVController::D_ELEM+1] = up;
 	map[SysVController::D_ELEM+2] = up | (right << 8);
@@ -156,7 +156,7 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 	map[SysVController::D_ELEM+8] = down | (right << 8);
 }
 
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
+unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	switch(input)
@@ -200,22 +200,22 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint state, uint emuKey)
+void EmuSystem::handleInputAction(EmuApp *appPtr, Input::Action action, unsigned emuKey)
 {
-	uint event1 = emuKey & 0xFF;
+	auto event1 = emuKey & 0xFF;
 	if(event1 == EC_KEYCOUNT)
 	{
-		if(state == Input::PUSHED)
-			EmuControls::toggleKeyboard();
+		if(appPtr && action == Input::Action::PUSHED)
+			appPtr->toggleKeyboard();
 	}
 	else
 	{
 		assert(event1 < EC_KEYCOUNT);
-		eventMap[event1] = state == Input::PUSHED;
-		uint event2 = emuKey >> 8;
+		eventMap[event1] = action == Input::Action::PUSHED;
+		auto event2 = emuKey >> 8;
 		if(event2) // extra event for diagonals
 		{
-			eventMap[event2] = state == Input::PUSHED;
+			eventMap[event2] = action == Input::Action::PUSHED;
 		}
 	}
 }

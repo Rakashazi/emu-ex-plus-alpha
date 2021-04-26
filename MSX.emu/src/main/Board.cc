@@ -190,7 +190,7 @@ void boardTimerDestroy(BoardTimer* timer)
 
 void boardTimerAdd(BoardTimer* timer, UInt32 timeout)
 {
-	const uint TEST_TIME = 0x7fffffff;
+	const unsigned TEST_TIME = 0x7fffffff;
     UInt32 currentTime = boardSystemTime();
     BoardTimer* refTimer;
     BoardTimer* next = timer->next;
@@ -262,7 +262,7 @@ int boardGetVideoAutodetect()
 
 void boardTimerCheckTimeout(void* dummy)
 {
-	const uint MAX_TIME = (2 * 1368 * 313);
+	const unsigned MAX_TIME = (2 * 1368 * 313);
     UInt32 currentTime = boardSystemTime();
     timerList->timeout = currentTime + MAX_TIME;
 

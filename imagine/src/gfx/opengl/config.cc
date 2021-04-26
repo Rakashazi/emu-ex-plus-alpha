@@ -689,13 +689,13 @@ void Renderer::setWindowValidOrientations(Base::Window &win, Base::Orientation v
 	updateSensorStateForWindowOrientations(win);
 }
 
-void GLRenderer::addEventHandlers(Base::ApplicationContext app, RendererTask &task)
+void GLRenderer::addEventHandlers(Base::ApplicationContext ctx, RendererTask &task)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	releaseShaderCompilerEvent.attach(
-		[&task, app]()
+		[&task, ctx]()
 		{
-			if(!app.isRunning())
+			if(!ctx.isRunning())
 				return;
 			logMsg("automatically releasing shader compiler");
 			task.releaseShaderCompiler();
@@ -707,30 +707,29 @@ void GLRenderer::addEventHandlers(Base::ApplicationContext app, RendererTask &ta
 
 Base::NativeWindowFormat Renderer::nativeWindowFormat() const
 {
-	return gfxBufferConfig.windowFormat(glDpy);
+	return gfxBufferConfig.windowFormat(appContext(), glDisplay());
 }
 
-std::optional<Base::GLBufferConfig> GLRenderer::makeGLBufferConfig(Base::ApplicationContext app, IG::PixelFormat pixelFormat)
+std::optional<Base::GLBufferConfig> GLRenderer::makeGLBufferConfig(Base::ApplicationContext ctx, IG::PixelFormat pixelFormat)
 {
 	if(!pixelFormat)
-		pixelFormat = Base::Window::defaultPixelFormat(app);
-	Base::GLBufferConfigAttributes glBuffAttr{app};
-	glBuffAttr.setPixelFormat(pixelFormat);
-	auto dpy = glDpy;
+		pixelFormat = Base::Window::defaultPixelFormat(ctx);
+	Base::GLBufferConfigAttributes glBuffAttr{pixelFormat};
+	auto dpy = glDisplay();
 	if constexpr(Config::Gfx::OPENGL_ES >= 2)
 	{
-		if(auto config = Base::GLContext::makeBufferConfig(dpy, glBuffAttr, glAPI, 3);
+		if(auto config = Base::GLContext::makeBufferConfig(dpy, ctx, glBuffAttr, glAPI, 3);
 			config)
 		{
 			return config;
 		}
 		// fall back to OpenGL ES 2.0
-		return Base::GLContext::makeBufferConfig(dpy, glBuffAttr, glAPI, 2);
+		return Base::GLContext::makeBufferConfig(dpy, ctx, glBuffAttr, glAPI, 2);
 	}
 	else
 	{
 		// OpenGL ES 1.0 or full OpenGL
-		return Base::GLContext::makeBufferConfig(dpy, glBuffAttr, glAPI);
+		return Base::GLContext::makeBufferConfig(dpy, ctx, glBuffAttr, glAPI);
 	}
 }
 

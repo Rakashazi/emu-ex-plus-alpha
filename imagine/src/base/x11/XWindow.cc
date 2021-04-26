@@ -14,14 +14,15 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "Window"
-#include "../common/windowPrivate.hh"
-#include "internal.hh"
-#include "xlibutils.h"
-#include "xdnd.hh"
 #include <imagine/base/Screen.hh>
+#include <imagine/base/Window.hh>
+#include <imagine/base/Application.hh>
+#include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
+#include "xlibutils.h"
+#include "xdnd.hh"
 #include <X11/Xutil.h>
 
 namespace Base
@@ -37,9 +38,9 @@ void Window::setAcceptDnd(bool on)
 	if(!Config::Base::XDND)
 		return;
 	if(on)
-		enableXdnd((Display*)dpy, xWin);
+		application().enableXdnd(xWin);
 	else
-		disableXdnd((Display*)dpy, xWin);
+		disableXdnd(dpy, xWin);
 }
 
 void Window::setTitle(const char *name)
@@ -51,7 +52,7 @@ void Window::setTitle(const char *name)
 	char *tempNameArr[1] {tempName};
 	if(XStringListToTextProperty(tempNameArr, 1, &nameProp))
 	{
-		XSetWMName((Display*)dpy, xWin, &nameProp);
+		XSetWMName(dpy, xWin, &nameProp);
 		XFree(nameProp.value);
 	}
 	else
@@ -78,17 +79,6 @@ IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 	return {xMM * ((float)size.x/(float)s.width()), yMM * ((float)size.y/(float)s.height())};
 }
 
-Window *windowForXWindow(ApplicationContext app, ::Window xWin)
-{
-	iterateTimes(app.windows(), i)
-	{
-		auto w = app.window(i);
-		if(w->nativeObject() == xWin)
-			return w;
-	}
-	return nullptr;
-}
-
 static IG::WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig &config, ::Window rootWindow)
 {
 	IG::WindowRect workAreaRect;
@@ -106,12 +96,12 @@ static IG::WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig 
 			logWarn("error getting desktop work area, using root window size");
 			XWindowAttributes attr;
 			XGetWindowAttributes(dpy, rootWindow, &attr);
-			workAreaRect = {0, 0, attr.width, attr.height};
+			workAreaRect = {{}, {attr.width, attr.height}};
 		}
 		else
 		{
 			logMsg("work area: %ld:%ld:%ld:%ld", workArea[0], workArea[1], workArea[2], workArea[3]);
-			workAreaRect = {(int)workArea[0], (int)workArea[1], (int)workArea[2], (int)workArea[3]};
+			workAreaRect = {{(int)workArea[0], (int)workArea[1]}, {(int)workArea[2], (int)workArea[3]}};
 			XFree(workArea);
 		}
 	}
@@ -166,15 +156,15 @@ static IG::WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig 
 	return winRect;
 }
 
-Window::Window(ApplicationContext app, WindowConfig config, InitDelegate):
-	XWindow{app, config}
+Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
+	XWindow{ctx, config}
 {
-	auto &screen = *app.screen(0);
+	auto &screen = *ctx.screen(0);
 	this->screen_ = &screen;
 	auto xScreen = (::Screen*)screen.nativeObject();
 	auto rootWindow = RootWindowOfScreen(xScreen);
 	auto dpy = DisplayOfScreen(xScreen);
-	auto winRect = Config::MACHINE_IS_PANDORA ? IG::WindowRect{0, 0, 800, 480} :
+	auto winRect = Config::MACHINE_IS_PANDORA ? IG::WindowRect{{}, {800, 480}} :
 		makeWindowRectWithConfig(dpy, config, rootWindow);
 	updateSize({winRect.xSize(), winRect.ySize()});
 	{
@@ -198,7 +188,7 @@ Window::Window(ApplicationContext app, WindowConfig config, InitDelegate):
 		colormap = attr.colormap;
 	}
 	logMsg("made window with XID %d, drawable depth %d", (int)xWin, xDrawableDepth(dpy, xWin));
-	Input::initPerWindowData(dpy, xWin);
+	ctx.application().initPerWindowInputData(xWin);
 	if(Config::MACHINE_IS_PANDORA)
 	{
 		auto wmState = XInternAtom(dpy, "_NET_WM_STATE", False);
@@ -230,24 +220,19 @@ XWindow::~XWindow()
 	if(xWin != None)
 	{
 		logMsg("destroying window with ID %d", (int)xWin);
-		XDestroyWindow((Display*)dpy, xWin);
+		XDestroyWindow(dpy, xWin);
 	}
 	if(colormap != None)
 	{
-		XFreeColormap((Display*)dpy, colormap);
+		XFreeColormap(dpy, colormap);
 	}
 }
 
 void Window::show()
 {
 	assert(xWin != None);
-	XMapRaised((Display*)dpy, xWin);
+	XMapRaised(dpy, xWin);
 	postDraw();
-}
-
-bool Window::systemAnimatesRotation()
-{
-	return false;
 }
 
 NativeWindow Window::nativeObject() const
@@ -278,6 +263,51 @@ bool Window::operator ==(Window const &rhs) const
 XWindow::operator bool() const
 {
 	return xWin != 0L;
+}
+
+void Window::setCursorVisible(bool on)
+{
+	if constexpr(Config::MACHINE_IS_PANDORA)
+	{
+		if(on)
+			XFixesShowCursor(dpy, xWin);
+		else
+			XFixesHideCursor(dpy, xWin);
+	}
+	else
+	{
+		application().setWindowCursor(xWin, on);
+	}
+}
+
+static void ewmhFullscreen(Display *dpy, ::Window win, int action)
+{
+	assert(action == _NET_WM_STATE_REMOVE || action == _NET_WM_STATE_ADD || action == _NET_WM_STATE_TOGGLE);
+	XEvent xev
+	{
+		.xclient =
+		{
+			.type = ClientMessage,
+			.send_event = True,
+			.window = win,
+			.message_type = XInternAtom(dpy, "_NET_WM_STATE", False),
+			.format = 32,
+			.data =	{	.l{action, (long)XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False)}	}
+		}
+	};
+	XWindowAttributes attr;
+	XGetWindowAttributes(dpy, win, &attr);
+	if(!XSendEvent(dpy, attr.root, False,
+		SubstructureRedirectMask | SubstructureNotifyMask, &xev))
+	{
+		logWarn("couldn't send root window NET_WM_STATE message");
+	}
+}
+
+void XWindow::toggleFullScreen()
+{
+	logMsg("toggling fullscreen");
+	ewmhFullscreen(dpy, xWin, _NET_WM_STATE_TOGGLE);
 }
 
 }

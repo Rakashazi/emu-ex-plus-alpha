@@ -22,8 +22,30 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <string>
 
+namespace Base
+{
+class ApplicationContext;
+}
+
 namespace Input
 {
+
+enum class DeviceAction: uint8_t { ADDED, REMOVED, CHANGED, SHOWN, HIDDEN, CONNECT_ERROR };
+
+class DeviceChange
+{
+public:
+	constexpr DeviceChange(DeviceAction action): action(action) {}
+	constexpr bool added() const { return action == DeviceAction::ADDED; }
+	constexpr bool removed() const { return action == DeviceAction::REMOVED; }
+	constexpr bool changed() const { return action == DeviceAction::CHANGED; }
+	constexpr bool shown() const { return action == DeviceAction::SHOWN; }
+	constexpr bool hidden() const { return action == DeviceAction::HIDDEN; }
+	constexpr bool hadConnectError() const { return action == DeviceAction::CONNECT_ERROR; }
+
+protected:
+	DeviceAction action;
+};
 
 class Device
 {
@@ -65,20 +87,6 @@ public:
 		AXIS_BITS_STICK_1 = AXIS_BIT_X | AXIS_BIT_Y,
 		AXIS_BITS_STICK_2 = AXIS_BIT_Z | AXIS_BIT_RZ,
 		AXIS_BITS_HAT = AXIS_BIT_HAT_X | AXIS_BIT_HAT_Y;
-
-	struct Change
-	{
-		uint32_t state;
-		enum { ADDED, REMOVED, CHANGED, SHOWN, HIDDEN, CONNECT_ERROR };
-
-		constexpr Change(uint32_t state): state(state) {}
-		bool added() const { return state == ADDED; }
-		bool removed() const { return state == REMOVED; }
-		bool changed() const { return state == CHANGED; }
-		bool shown() const { return state == SHOWN; }
-		bool hidden() const { return state == HIDDEN; }
-		bool hadConnectError() const { return state == CONNECT_ERROR; }
-	};
 
 	Device() {}
 	Device(uint32_t devId, Map map, uint32_t type, const char *name):
@@ -136,7 +144,7 @@ public:
 	//bool isDisconnectable() { return 0; }
 	//void disconnect() { }
 
-	static bool anyTypeBitsPresent(uint32_t typeBits);
+	static bool anyTypeBitsPresent(Base::ApplicationContext, uint32_t typeBits);
 
 protected:
 	std::string name_{""};
@@ -147,15 +155,5 @@ public:
 	uint32_t subtype_ = 0;
 	uint32_t idx = 0;
 };
-
-using DeviceChangeDelegate = DelegateFunc<void (const Device &dev, Device::Change change)>;
-
-// Called when a known input device addition/removal/change occurs
-void setOnDeviceChange(DeviceChangeDelegate del);
-
-using DevicesEnumeratedDelegate = DelegateFunc<void ()>;
-
-// Called when the device list is rebuilt, all devices should be re-checked
-void setOnDevicesEnumerated(DevicesEnumeratedDelegate del);
 
 }

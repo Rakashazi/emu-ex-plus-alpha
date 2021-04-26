@@ -409,28 +409,28 @@ static void saveSnapshotTrap(uint16_t, void *data)
 		snapData->hasError = false;
 }
 
-EmuSystem::Error EmuSystem::saveState(const char *path)
+EmuSystem::Error EmuSystem::saveState(EmuApp &app, const char *path)
 {
 	SnapshotTrapData data;
 	data.pathStr = path;
 	plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
-	skipFrames(nullptr, 1, nullptr); // execute cpu trap
+	app.skipFrames(nullptr, 1, nullptr); // execute cpu trap
 	return data.hasError ? makeFileWriteError() : Error{};
 }
 
-EmuSystem::Error EmuSystem::loadState(const char *path)
+EmuSystem::Error EmuSystem::loadState(EmuApp &app, const char *path)
 {
 	plugin.resources_set_int("WarpMode", 0);
 	SnapshotTrapData data;
 	data.pathStr = path;
-	skipFrames(nullptr, 1, nullptr); // run extra frame in case C64 was just started
+	app.skipFrames(nullptr, 1, nullptr); // run extra frame in case C64 was just started
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
-	skipFrames(nullptr, 1, nullptr); // execute cpu trap, snapshot load may cause reboot from a C64 model change
+	app.skipFrames(nullptr, 1, nullptr); // execute cpu trap, snapshot load may cause reboot from a C64 model change
 	if(data.hasError)
 		return makeFileReadError();
 	// reload snapshot in case last load caused a reboot
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
-	skipFrames(nullptr, 1, nullptr); // execute cpu trap
+	app.skipFrames(nullptr, 1, nullptr); // execute cpu trap
 	bool hasError = data.hasError;
 	return hasError ? makeFileReadError() : Error{};
 }
@@ -484,7 +484,7 @@ static EmuSystem::Error c64FirmwareError(Base::ApplicationContext app)
 		#endif
 }
 
-static bool initC64()
+static bool initC64(EmuApp &app)
 {
 	if(c64IsInit)
 		return true;
@@ -500,7 +500,7 @@ static bool initC64()
   	return false;
 	}
 	c64IsInit = true;
-	updateKeyMappingArray();
+	updateKeyMappingArray(app);
 	return true;
 }
 
@@ -556,11 +556,11 @@ static FS::FileString vic20ExtraCartName(const char *baseCartName, const char *s
 	return {};
 }
 
-EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext app, IO &, EmuSystemCreateParams params, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams params, OnLoadProgressDelegate)
 {
-	if(!initC64())
+	if(!initC64(EmuApp::get(ctx)))
 	{
-		return c64FirmwareError(app);
+		return c64FirmwareError(ctx);
 	}
 	applyInitialOptionResources();
 	bool shouldAutostart = !(params.systemFlags & SYSTEM_FLAG_NO_AUTOSTART) && optionAutostartOnLaunch;
@@ -570,7 +570,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext app, IO &, EmuSyst
 		if(string_hasDotExtension(fullGamePath(), "prg"))
 		{
 			// needed to store AutostartPrgDisk.d64
-			makeDefaultBaseSavePath(app);
+			makeDefaultBaseSavePath(ctx);
 		}
 		if(plugin.autostart_autodetect(fullGamePath(), nullptr, 0, AUTOSTART_MODE_RUN) != 0)
 		{
@@ -675,7 +675,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 {
 	sysFilePath[0] = firmwareBasePath;
-	EmuControls::updateKeyboardMapping();
+	updateKeyboardMapping();
 	setSysModel(optionDefaultModel(currSystem));
 	plugin.resources_set_string("AutostartPrgDiskImage",
 		FS::makePathStringPrintf("%s/AutostartPrgDisk.d64", EmuSystem::baseDefaultGameSavePath(attach.appContext()).data()).data());

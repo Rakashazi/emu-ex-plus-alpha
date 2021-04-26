@@ -35,9 +35,9 @@
 namespace IG::Audio
 {
 
-std::unique_ptr<OutputStream> makeOutputStream(Base::ApplicationContext app, Api api)
+std::unique_ptr<OutputStream> makeOutputStream(Base::ApplicationContext ctx, Api api)
 {
-	api = makeValidAPI(app, api);
+	api = makeValidAPI(ctx, api);
 	switch(api)
 	{
 		#ifdef CONFIG_AUDIO_PULSEAUDIO
@@ -47,8 +47,8 @@ std::unique_ptr<OutputStream> makeOutputStream(Base::ApplicationContext app, Api
 		case Api::ALSA: return std::make_unique<ALSAOutputStream>();
 		#endif
 		#ifdef __ANDROID__
-		case Api::OPENSL_ES: return std::make_unique<OpenSLESOutputStream>(app);
-		case Api::AAUDIO: return std::make_unique<AAudioOutputStream>(app);
+		case Api::OPENSL_ES: return std::make_unique<OpenSLESOutputStream>(ctx);
+		case Api::AAUDIO: return std::make_unique<AAudioOutputStream>(ctx);
 		#endif
 		#ifdef __APPLE__
 		case Api::COREAUDIO: return std::make_unique<CAOutputStream>();
@@ -59,9 +59,9 @@ std::unique_ptr<OutputStream> makeOutputStream(Base::ApplicationContext app, Api
 	}
 }
 
-OutputStreamConfig makeNativeOutputStreamConfig(Base::ApplicationContext app)
+OutputStreamConfig makeNativeOutputStreamConfig(Base::ApplicationContext ctx)
 {
-	return {AudioManager::nativeFormat(app)};
+	return {AudioManager::nativeFormat(ctx)};
 }
 
 OutputStream::~OutputStream() {}

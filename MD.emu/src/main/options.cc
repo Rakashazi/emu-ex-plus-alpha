@@ -33,7 +33,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 		{"4:3 (Original)", 4, 3},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 Byte1Option optionBigEndianSram{CFGKEY_BIG_ENDIAN_SRAM, 0};
 Byte1Option optionSmsFM{CFGKEY_SMS_FM, 1};
 Byte1Option option6BtnPad{CFGKEY_6_BTN_PAD, 0};
@@ -60,15 +60,15 @@ EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)
 	return {};
 }
 
-void EmuSystem::onSessionOptionsLoaded()
+void EmuSystem::onSessionOptionsLoaded(EmuApp &app)
 {
 	config.region_detect = optionRegion;
 	mdInputPortDev[0] = optionInputPort1;
 	mdInputPortDev[1] = optionInputPort2;
-	setupMDInput();
+	setupMDInput(app);
 }
 
-bool EmuSystem::resetSessionOptions()
+bool EmuSystem::resetSessionOptions(EmuApp &app)
 {
 	option6BtnPad.reset();
 	optionRegion.reset();
@@ -76,11 +76,11 @@ bool EmuSystem::resetSessionOptions()
 	optionInputPort1.reset();
 	optionInputPort2.reset();
 	optionMultiTap.reset();
-	onSessionOptionsLoaded();
+	onSessionOptionsLoaded(app);
 	return true;
 }
 
-bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{
@@ -105,7 +105,7 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionMultiTap.writeWithKeyIfNotDefault(io);
 }
 
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{

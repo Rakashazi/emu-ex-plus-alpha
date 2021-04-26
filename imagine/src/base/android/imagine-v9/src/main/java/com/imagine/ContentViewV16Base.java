@@ -24,19 +24,19 @@ import android.util.Log;
 class ContentViewV16Base extends View
 {
 	protected static final String logTag = "ContentView";
-	protected long windowAddr;
+	protected long nativeUserData;
 	protected Rect contentRect = new Rect();
 	protected Rect newContentRect = new Rect();
 	protected int windowWidth, windowHeight;
 
-	public ContentViewV16Base(Context context, long windowAddr)
+	public ContentViewV16Base(Context context, long nativeUserData)
 	{
 		super(context);
-		this.windowAddr = windowAddr;
+		this.nativeUserData = nativeUserData;
 	}
 
-	void resetWindowAddr()
+	void resetNativeUserData()
 	{
-		windowAddr = 0;
+		nativeUserData = 0;
 	}
 }

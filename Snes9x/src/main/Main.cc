@@ -23,8 +23,8 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobe
 static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static EmuSystemTask *emuSysTask{};
 static EmuVideo *emuVideo{};
-static const uint heightChangeFrameDelay = 4;
-static uint heightChangeFrames = heightChangeFrameDelay;
+static const unsigned heightChangeFrameDelay = 4;
+static unsigned heightChangeFrames = heightChangeFrameDelay;
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
@@ -40,7 +40,7 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
-const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
+const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx)
 {
 	static const BundledGameInfo info[]
 	{
@@ -172,8 +172,8 @@ void EmuSystem::closeSystem()
 }
 
 bool EmuSystem::vidSysIsPAL() { return Settings.PAL; }
-uint EmuSystem::multiresVideoBaseX() { return 256; }
-uint EmuSystem::multiresVideoBaseY() { return 239; }
+unsigned EmuSystem::multiresVideoBaseX() { return 256; }
+unsigned EmuSystem::multiresVideoBaseY() { return 239; }
 
 EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {

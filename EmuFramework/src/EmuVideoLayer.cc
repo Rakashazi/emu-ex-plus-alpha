@@ -17,7 +17,7 @@
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuVideo.hh>
-#include "privateInput.hh"
+#include <emuframework/VController.hh>
 #include "EmuOptions.hh"
 #include <imagine/util/math/Point2D.hh>
 #include <imagine/base/Window.hh>
@@ -26,11 +26,9 @@
 #include <imagine/logger/logger.h>
 #include <algorithm>
 
-EmuVideoLayer::EmuVideoLayer(EmuVideo &video, bool useLinearFilter):
+EmuVideoLayer::EmuVideoLayer(EmuVideo &video):
 	video{video}
-{
-	setLinearFilter(useLinearFilter);
-}
+{}
 
 void EmuVideoLayer::resetImage()
 {
@@ -58,10 +56,10 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 	{
 		float viewportAspectRatio = viewportRect.xSize()/(float)viewportRect.ySize();
 		// compute the video rectangle in pixel coordinates
-		if(((uint)optionImageZoom == optionImageZoomIntegerOnly || (uint)optionImageZoom == optionImageZoomIntegerOnlyY)
+		if(((unsigned)optionImageZoom == optionImageZoomIntegerOnly || (unsigned)optionImageZoom == optionImageZoomIntegerOnlyY)
 			&& video.size().x)
 		{
-			uint gameX = video.size().x, gameY = video.size().y;
+			unsigned gameX = video.size().x, gameY = video.size().y;
 
 			// Halve pixel sizes if image has mixed low/high-res content so scaling is based on lower res,
 			// this prevents jumping between two screen sizes in games like Seiken Densetsu 3 on SNES
@@ -92,7 +90,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 				gameAR = Gfx::GC(gameX) / Gfx::GC(gameY);
 			}
 
-			uint scaleFactor;
+			unsigned scaleFactor;
 			if(gameAR > viewportAspectRatio)//Gfx::proj.aspectRatio)
 			{
 				scaleFactor = std::max(1U, viewportRect.xSize() / gameX);
@@ -112,11 +110,11 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		}
 
 		// compute the video rectangle in world coordinates for sub-pixel placement
-		if((uint)optionImageZoom <= 100 || (uint)optionImageZoom == optionImageZoomIntegerOnlyY)
+		if((unsigned)optionImageZoom <= 100 || (unsigned)optionImageZoom == optionImageZoomIntegerOnlyY)
 		{
 			auto aR = optionAspectRatio.val;
 
-			if((uint)optionImageZoom == optionImageZoomIntegerOnlyY)
+			if((unsigned)optionImageZoom == optionImageZoomIntegerOnlyY)
 			{
 				// get width from previously calculated pixel height
 				Gfx::GC width = projP.unprojectYSize(gameRect_.ySize()) * (Gfx::GC)aR;
@@ -143,11 +141,11 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 
 		// determine whether to generate the final coordinates from pixels or world units
 		bool getXCoordinateFromPixels = 0, getYCoordinateFromPixels = 0;
-		if((uint)optionImageZoom == optionImageZoomIntegerOnlyY)
+		if((unsigned)optionImageZoom == optionImageZoomIntegerOnlyY)
 		{
 			getYCoordinateFromPixels = 1;
 		}
-		else if((uint)optionImageZoom == optionImageZoomIntegerOnly)
+		else if((unsigned)optionImageZoom == optionImageZoomIntegerOnly)
 		{
 			getXCoordinateFromPixels = getYCoordinateFromPixels = 1;
 		}
@@ -260,7 +258,7 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 	vidImgOverlay.draw(cmds);
 }
 
-void EmuVideoLayer::setOverlay(uint effect)
+void EmuVideoLayer::setOverlay(unsigned effect)
 {
 	vidImgOverlay.setEffect(video.renderer(), effect);
 	placeOverlay();
@@ -303,7 +301,7 @@ void EmuVideoLayer::compileDefaultPrograms()
 	disp.compileDefaultProgramOneShot(Gfx::IMG_MODE_MODULATE);
 }
 
-void EmuVideoLayer::setEffect(uint effect, IG::PixelFormatID fmt)
+void EmuVideoLayer::setEffect(unsigned effect, IG::PixelFormatID fmt)
 {
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	assert(video.image());

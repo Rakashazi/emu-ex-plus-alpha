@@ -27,14 +27,14 @@ RecentGameView::RecentGameView(ViewAttachParams attach, RecentGameList &list):
 		{
 			return 1 + recentGame.size();
 		},
-		[this](const TableView &, uint idx) -> MenuItem&
+		[this](const TableView &, unsigned idx) -> MenuItem&
 		{
 			return idx < recentGame.size() ? recentGame[idx] : clear;
 		}
 	},
 	clear
 	{
-		"Clear List",
+		"Clear List", &defaultFace(),
 		[this](Input::Event e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>("Really clear the list?");
@@ -52,13 +52,13 @@ RecentGameView::RecentGameView(ViewAttachParams attach, RecentGameList &list):
 	recentGame.reserve(list.size());
 	for(auto &entry : list)
 	{
-		recentGame.emplace_back(entry.name.data(),
+		recentGame.emplace_back(entry.name.data(), &defaultFace(),
 			[this, &entry](Input::Event e)
 			{
-				EmuApp::createSystemWithMedia({}, entry.path.data(), "", e, {}, attachParams(),
-					[](Input::Event e)
+				app().createSystemWithMedia({}, entry.path.data(), "", e, {}, attachParams(),
+					[this](Input::Event e)
 					{
-						EmuApp::launchSystemWithResumePrompt(e, false);
+						app().launchSystemWithResumePrompt(e, false);
 					});
 			});
 		recentGame.back().setActive(FS::exists(entry.path.data()));

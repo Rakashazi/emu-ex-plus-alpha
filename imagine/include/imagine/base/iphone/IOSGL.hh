@@ -62,7 +62,7 @@ struct GLBufferConfig
 {
 	bool useRGB565 = false;
 
-	Base::NativeWindowFormat windowFormat(GLDisplay display) const;
+	Base::NativeWindowFormat windowFormat(ApplicationContext, GLDisplay display) const;
 	bool maySupportGLES(GLDisplay, unsigned majorVersion) const;
 };
 

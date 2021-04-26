@@ -299,8 +299,8 @@ static inline void state_handling(int save,int load) {
 
 void main_frame(void *emuTaskPtr, void *emuVideoPtr) {
 	const int skip_this_frame = !emuVideoPtr;
-	uint m68k_overclk = 0;
-	uint z80_overclk = 0;
+	unsigned m68k_overclk = 0;
+	unsigned z80_overclk = 0;
 	#ifdef USE_MUSASHI
 	const Uint32 baseTimeslice = 250000;
 	#else

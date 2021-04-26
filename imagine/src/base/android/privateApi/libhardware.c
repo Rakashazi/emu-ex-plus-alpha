@@ -1,5 +1,4 @@
 #include <imagine/util/builtins.h>
-#include <imagine/config/imagineTypes.h>
 #include <imagine/logger/logger.h>
 #include <assert.h>
 #include <dlfcn.h>

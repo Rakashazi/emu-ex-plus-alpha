@@ -94,27 +94,6 @@ class AudioSettings;
 class MediaFactory
 {
   public:
-    static unique_ptr<OSystem> createOSystem()
-    {
-    #if defined(BSPF_UNIX)
-      #if defined(RETRON77)
-        return make_unique<OSystemR77>();
-      #else
-        return make_unique<OSystemUNIX>();
-      #endif
-    #elif defined(BSPF_WINDOWS)
-      return make_unique<OSystemWINDOWS>();
-    #elif defined(BSPF_MACOS)
-      return make_unique<OSystemMACOS>();
-    #elif defined(EMU_EX_PLATFORM)
-      return make_unique<OSystem>();
-    #elif defined(__LIB_RETRO__)
-      return make_unique<OSystemLIBRETRO>();
-    #else
-      #error Unsupported platform for OSystem!
-    #endif
-    }
-
     static unique_ptr<Settings> createSettings()
     {
     #ifdef RETRON77
@@ -144,7 +123,7 @@ class MediaFactory
     #elif defined(SDL_SUPPORT)
       return make_unique<FrameBufferSDL2>(osystem);
     #elif defined(EMU_EX_PLATFORM)
-      return make_unique<FrameBuffer>();
+      return make_unique<FrameBuffer>(osystem);
     #else
       #error Unsupported platform for FrameBuffer!
     #endif

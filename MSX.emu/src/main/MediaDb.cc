@@ -49,8 +49,8 @@ extern "C" {
 
 struct RomDBInfo
 {
-	uint digest[5];
-	uint romType;
+	unsigned digest[5];
+	unsigned romType;
 };
 
 static const RomDBInfo romDB[] =

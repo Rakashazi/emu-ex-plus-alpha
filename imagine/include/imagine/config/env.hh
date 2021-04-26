@@ -16,13 +16,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/build.h>
-#include <imagine/config/imagineTypes.h>
 #if defined __APPLE__
 #include <TargetConditionals.h>
 #endif
 #ifdef __ANDROID__
 #include <android/api-level.h>
 #endif
+#include <cstdint>
 
 namespace Config
 {

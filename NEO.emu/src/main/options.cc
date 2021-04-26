@@ -46,7 +46,7 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[]
 		{"4:3 (Original)", 4, 3},
 		EMU_SYSTEM_DEFAULT_ASPECT_RATIO_INFO_INIT
 };
-const uint EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
+const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 bool EmuApp::autoSaveStateDefault = false;
 Byte1Option optionListAllGames{CFGKEY_LIST_ALL_GAMES, 0};
 Byte1Option optionBIOSType{CFGKEY_BIOS_TYPE, SYS_UNIBIOS, 0, systemEnumIsValid};
@@ -87,14 +87,14 @@ EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)
 	return {};
 }
 
-bool EmuSystem::resetSessionOptions()
+bool EmuSystem::resetSessionOptions(EmuApp &)
 {
 	optionTimerInt.reset();
 	setTimerIntOption();
 	return true;
 }
 
-bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{
@@ -109,7 +109,7 @@ void EmuSystem::writeSessionConfig(IO &io)
 	optionTimerInt.writeWithKeyIfNotDefault(io);
 }
 
-bool EmuSystem::readConfig(IO &io, uint key, uint readSize)
+bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 {
 	switch(key)
 	{

@@ -1590,7 +1590,7 @@ void CPUUpdateRender(GBASys &gba)
   	static const GBALCD::RenderLineFunc all[8] =
 			{ mode0RenderLineAll, mode1RenderLineAll, mode2RenderLineAll, mode3RenderLineAll, mode4RenderLineAll, mode5RenderLineAll,
 			blankLine };
-  	uint mode = gba.mem.ioMem.DISPCNT & 7;
+  	unsigned mode = gba.mem.ioMem.DISPCNT & 7;
   	gba.lcd.renderLine = ((!gba.lcd.fxOn && !gba.lcd.windowOn && !(gba.lcd.layerEnable & 0x8000)) || cpuDisableSfx) ? norm[mode] :
   			(gba.lcd.fxOn && !gba.lcd.windowOn && !(gba.lcd.layerEnable & 0x8000)) ? noWin[mode] :
   			all[mode];

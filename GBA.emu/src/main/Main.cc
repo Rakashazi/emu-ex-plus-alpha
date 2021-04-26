@@ -47,7 +47,7 @@ EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
-const BundledGameInfo &EmuSystem::bundledGameInfo(uint idx)
+const BundledGameInfo &EmuSystem::bundledGameInfo(unsigned idx)
 {
 	static const BundledGameInfo info[]
 	{

@@ -15,11 +15,12 @@
 
 #define LOGTAG "Window"
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
-#include "windowPrivate.hh"
 
 namespace Base
 {
@@ -34,10 +35,10 @@ static auto defaultOnInputEvent = [](Window &, Input::Event ){ return false; };
 static auto defaultOnDismissRequest = [](Window &win){ win.appContext().exit(); };
 static auto defaultOnDismiss = [](Window &){};
 
-BaseWindow::BaseWindow(ApplicationContext app, WindowConfig config):
+BaseWindow::BaseWindow(ApplicationContext ctx, WindowConfig config):
 	onExit
 	{
-		[this](ApplicationContext app, bool backgrounded)
+		[this](ApplicationContext ctx, bool backgrounded)
 		{
 			auto &win = *static_cast<Window*>(this);
 			auto savedDrawEventPriority = win.setDrawEventPriority(MAX_DRAW_EVENT_PRIORITY);
@@ -45,7 +46,7 @@ BaseWindow::BaseWindow(ApplicationContext app, WindowConfig config):
 			drawEvent.detach();
 			if(backgrounded)
 			{
-				app.addOnResume(
+				ctx.addOnResume(
 					[this, savedDrawEventPriority](ApplicationContext, bool)
 					{
 						auto &win = *static_cast<Window*>(this);
@@ -61,7 +62,7 @@ BaseWindow::BaseWindow(ApplicationContext app, WindowConfig config):
 				win.resetRendererData();
 			}
 			return true;
-		}, app, WINDOW_ON_EXIT_PRIORITY},
+		}, ctx, WINDOW_ON_EXIT_PRIORITY},
 	onSurfaceChange{config.onSurfaceChange() ? config.onSurfaceChange() : defaultOnSurfaceChange},
 	onDraw{config.onDraw() ? config.onDraw() : defaultOnDraw},
 	onInputEvent{config.onInputEvent() ? config.onInputEvent() : defaultOnInputEvent},
@@ -69,7 +70,7 @@ BaseWindow::BaseWindow(ApplicationContext app, WindowConfig config):
 	onDragDrop{config.onDragDrop() ? config.onDragDrop() : defaultOnDragDrop},
 	onDismissRequest{config.onDismissRequest() ? config.onDismissRequest() : defaultOnDismissRequest},
 	onDismiss{config.onDismiss() ? config.onDismiss() : defaultOnDismiss},
-	validSoftOrientations_{app.defaultSystemOrientations()}
+	validSoftOrientations_{ctx.defaultSystemOrientations()}
 {
 	attachDrawEvent();
 }
@@ -155,10 +156,10 @@ void Window::setOnDismiss(DismissDelegate del)
 	BaseWindow::setOnDismiss(del);
 }
 
-static Window::FrameTimeSource frameClock(ApplicationContext app, Window::FrameTimeSource clock)
+static Window::FrameTimeSource frameClock(ApplicationContext ctx, Window::FrameTimeSource clock)
 {
 	if(clock == Window::FrameTimeSource::AUTO)
-		return Base::Screen::supportsTimestamps(app) ? Window::FrameTimeSource::SCREEN : Window::FrameTimeSource::RENDERER;
+		return Base::Screen::supportsTimestamps(ctx) ? Window::FrameTimeSource::SCREEN : Window::FrameTimeSource::RENDERER;
 	return clock;
 }
 
@@ -295,6 +296,13 @@ void Window::setNeedsCustomViewportResize(bool needsResize)
 bool Window::dispatchInputEvent(Input::Event event)
 {
 	return onInputEvent.callCopy(*this, event);
+}
+
+bool Window::dispatchRepeatableKeyInputEvent(Input::Event event)
+{
+	assert(event.isKey());
+	application().startKeyRepeatTimer(event);
+	return dispatchInputEvent(event);
 }
 
 void Window::dispatchFocusChange(bool in)
@@ -478,7 +486,6 @@ bool Window::requestOrientationChange(Orientation o)
 		postDraw();
 		if(isMainWindow())
 			appContext().setSystemOrientation(o);
-		Input::configureInputForOrientation(*this);
 		return true;
 	}
 	return false;
@@ -499,7 +506,7 @@ void Window::dismiss()
 {
 	onDismiss(*this);
 	drawEvent.detach();
-	moveOutWindow(*this);
+	application().moveOutWindow(*this);
 }
 
 int Window::realWidth() const { return orientationIsSideways(softOrientation()) ? height() : width(); }
@@ -605,17 +612,42 @@ IG::Point2D<float> BaseWindow::smmPixelScaler() const
 
 IG::WindowRect Window::bounds() const
 {
-	return {0, 0, width(), height()};
+	return {{}, size()};
 }
 
-Screen &WindowConfig::screen(ApplicationContext app) const
+IG::Point2D<int> Window::transformInputPos(IG::Point2D<int> srcPos) const
 {
-	return screen_ ? *screen_ : *app.screen(0);
+	enum class PointerMode {NORMAL, INVERT};
+	const auto xPointerTransform = softOrientation() == VIEW_ROTATE_0 || softOrientation() == VIEW_ROTATE_90 ? PointerMode::NORMAL : PointerMode::INVERT;
+	const auto yPointerTransform = softOrientation() == VIEW_ROTATE_0 || softOrientation() == VIEW_ROTATE_270 ? PointerMode::NORMAL : PointerMode::INVERT;
+	const auto pointerAxis = softOrientation() == VIEW_ROTATE_0 || softOrientation() == VIEW_ROTATE_180 ? PointerMode::NORMAL : PointerMode::INVERT;
+
+	IG::Point2D<int> pos;
+	// x,y axis is swapped first
+	pos.x = pointerAxis == PointerMode::INVERT ? srcPos.y : srcPos.x;
+	pos.y = pointerAxis == PointerMode::INVERT ? srcPos.x : srcPos.y;
+
+	// then coordinates are inverted
+	if(xPointerTransform == PointerMode::INVERT)
+		pos.x = width() - pos.x;
+	if(yPointerTransform == PointerMode::INVERT)
+		pos.y = height() - pos.y;
+	return pos;
+}
+
+Screen &WindowConfig::screen(ApplicationContext ctx) const
+{
+	return screen_ ? *screen_ : *ctx.screen(0);
 }
 
 ApplicationContext Window::appContext() const
 {
 	return onExit.appContext();
+}
+
+Application &Window::application() const
+{
+	return appContext().application();
 }
 
 }

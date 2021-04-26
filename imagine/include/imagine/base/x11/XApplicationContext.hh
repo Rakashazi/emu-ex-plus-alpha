@@ -20,9 +20,19 @@
 namespace Base
 {
 
+class XApplication;
+class Application;
+
 class XApplicationContext
 {
+public:
+	constexpr XApplicationContext() {}
+	constexpr XApplicationContext(XApplication &app):appPtr{&app} {}
+	void setApplicationPtr(Application*);
+	Application &application() const;
 
+protected:
+	XApplication *appPtr{};
 };
 
 using ApplicationContextImpl = XApplicationContext;

@@ -38,14 +38,6 @@
 namespace Base
 {
 
-const char copyright[] = "Imagine is Copyright 2010-2021 Robert Broglia";
-
-void engineInit()
-{
-	logDMsg("%s", copyright);
-	logDMsg("compiled on %s %s", __DATE__, __TIME__);
-}
-
 const char *orientationToStr(Orientation o)
 {
 	switch(o)
@@ -76,13 +68,6 @@ FDEventSource::FDEventSource(const char *debugLabel, int fd, EventLoop loop, Pol
 bool FDEventSource::attach(PollEventDelegate callback, uint32_t events)
 {
 	return attach({}, callback, events);
-}
-
-IG::PixelFormat GLBufferConfigAttributes::pixelFormat() const
-{
-	if(!pixelFormat_)
-		return Window::defaultPixelFormat(app);
-	return pixelFormat_;
 }
 
 SharedLibraryRef openSharedLibrary(const char *name, unsigned flags)

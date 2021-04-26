@@ -25,9 +25,9 @@ extern void YM2612Write(unsigned int a, unsigned int v);
 extern unsigned int YM2612Read(void);
 extern unsigned char *YM2612GetContextPtr(void);
 extern unsigned int YM2612GetContextSize(void);
-extern int YM2612Restore(unsigned char *state, bool hasExcessData, uint ptrSize);
+extern int YM2612Restore(unsigned char *state, bool hasExcessData, unsigned ptrSize);
 extern void YM2612RestoreContext(unsigned char *buffer);
-extern int YM2612LoadContext(unsigned char *state, bool hasExcessData, uint ptrSize);
+extern int YM2612LoadContext(unsigned char *state, bool hasExcessData, unsigned ptrSize);
 extern int YM2612SaveContext(unsigned char *state);
 
 #endif /* _YM2612_ */

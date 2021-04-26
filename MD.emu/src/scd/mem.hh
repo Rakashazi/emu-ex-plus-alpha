@@ -7,71 +7,71 @@ static const bool extraCpuSync = 0;
 
 // Gate Array (and PCM for sub-CPU)
 
-uint mainGateRead8(uint address);
-uint mainGateRead16(uint address);
-void mainGateWrite8(uint address, uint data);
-void mainGateWrite16(uint address, uint data);
-uint subGateRead8(uint address);
-uint subGateRead16(uint address);
-void subGateWrite8(uint address, uint data);
-void subGateWrite16(uint address, uint data);
+unsigned mainGateRead8(unsigned address);
+unsigned mainGateRead16(unsigned address);
+void mainGateWrite8(unsigned address, unsigned data);
+void mainGateWrite16(unsigned address, unsigned data);
+unsigned subGateRead8(unsigned address);
+unsigned subGateRead16(unsigned address);
+void subGateWrite8(unsigned address, unsigned data);
+void subGateWrite16(unsigned address, unsigned data);
 
 // PRG
 
-void subPrgWriteProtectCheck8(uint address, uint data);
-void subPrgWriteProtectCheck16(uint address, uint data);
+void subPrgWriteProtectCheck8(unsigned address, unsigned data);
+void subPrgWriteProtectCheck16(unsigned address, unsigned data);
 
 // WORD
 
-uint mainReadWordDecoded8(uint address);
-uint mainReadWordDecoded16(uint address);
-void mainWriteWordDecoded8(uint address, uint data);
-void mainWriteWordDecoded16(uint address, uint data);
-uint subReadWordDecoded8(uint address);
-uint subReadWordDecoded16(uint address);
-void subWriteWordDecoded8(uint address, uint data);
-void subWriteWordDecoded16(uint address, uint data);
+unsigned mainReadWordDecoded8(unsigned address);
+unsigned mainReadWordDecoded16(unsigned address);
+void mainWriteWordDecoded8(unsigned address, unsigned data);
+void mainWriteWordDecoded16(unsigned address, unsigned data);
+unsigned subReadWordDecoded8(unsigned address);
+unsigned subReadWordDecoded16(unsigned address);
+void subWriteWordDecoded8(unsigned address, unsigned data);
+void subWriteWordDecoded16(unsigned address, unsigned data);
 
 // SRAM cart
 
-uint sramCartRead8(uint address);
-uint sramCartRead16(uint address);
-void sramCartWrite8(uint address, uint data);
-void sramCartWrite16(uint address, uint data);
+unsigned sramCartRead8(unsigned address);
+unsigned sramCartRead16(unsigned address);
+void sramCartWrite8(unsigned address, unsigned data);
+void sramCartWrite16(unsigned address, unsigned data);
 
 // SRAM write protect register
 
-uint bcramRegRead8(uint address);
-void bcramRegWrite8(uint address, uint data);
+unsigned bcramRegRead8(unsigned address);
+void bcramRegWrite8(unsigned address, unsigned data);
 
 // SRAM cart size register handlers
 
-uint sramCartRegRead8(uint address);
-uint sramCartRegRead16(uint address);
+unsigned sramCartRegRead8(unsigned address);
+unsigned sramCartRegRead16(unsigned address);
 
 // BRAM
 
-uint bramRead8(uint address);
-uint bramRead16(uint address);
-void bramWrite8(uint address, uint data);
-void bramWrite16(uint address, uint data);
+unsigned bramRead8(unsigned address);
+unsigned bramRead16(unsigned address);
+void bramWrite8(unsigned address, unsigned data);
+void bramWrite16(unsigned address, unsigned data);
 
 // Unused/Undefined
 
-uint nullRead8(uint address);
-uint nullRead16(uint address);
-uint subUndefRead8(uint address);
-uint subUndefRead16(uint address);
-void subUndefWrite8(uint address, uint data);
-void subUndefWrite16(uint address, uint data);
+unsigned nullRead8(unsigned address);
+unsigned nullRead16(unsigned address);
+unsigned subUndefRead8(unsigned address);
+unsigned subUndefRead16(unsigned address);
+void subUndefWrite8(unsigned address, unsigned data);
+void subUndefWrite16(unsigned address, unsigned data);
 
 // Memory map update funcs
 
 void updateMainCpuPrgMap(SegaCD &sCD); // use bank from gate register
-void updateMainCpuPrgMap(SegaCD &sCD, uint newBank);
+void updateMainCpuPrgMap(SegaCD &sCD, unsigned newBank);
 
 void updateCpuWordMap(SegaCD &sCD); // use mode from gate register
-void updateCpuWordMap(SegaCD &sCD, uint modeReg);
+void updateCpuWordMap(SegaCD &sCD, unsigned modeReg);
 
 void updateMainCpuSramMap(SegaCD &sCD);
-void updateMainCpuSramMap(SegaCD &sCD, uint bcramReg);
+void updateMainCpuSramMap(SegaCD &sCD, unsigned bcramReg);

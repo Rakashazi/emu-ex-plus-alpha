@@ -21,9 +21,7 @@
 #include <emuframework/FileUtils.hh>
 #include <emuframework/FilePicker.hh>
 #include "private.hh"
-#include "privateInput.hh"
 #include "EmuTiming.hh"
-#include "EmuViewController.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/util/utility.h>
@@ -42,17 +40,6 @@ FS::FileString EmuSystem::gameName_{};
 FS::FileString EmuSystem::fullGameName_{};
 FS::FileString EmuSystem::originalGameName_{};
 int EmuSystem::saveStateSlot = 0;
-Base::Timer EmuSystem::autoSaveStateTimer
-{
-	"EmuSystem::autoSaveStateTimer",
-	[]()
-	{
-		logMsg("running auto-save state timer");
-		EmuApp::syncEmulationThread();
-		EmuApp::saveAutoState();
-		return true;
-	}
-};
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
 [[gnu::weak]] bool EmuSystem::inputHasShortBtnTexture = false;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
@@ -78,20 +65,6 @@ static IG::Microseconds makeWantedAudioLatencyUSecs(uint8_t buffers)
 	return buffers * std::chrono::duration_cast<IG::Microseconds>(EmuSystem::frameTime());
 }
 
-void EmuSystem::cancelAutoSaveStateTimer()
-{
-	autoSaveStateTimer.cancel();
-}
-
-void EmuSystem::startAutoSaveStateTimer()
-{
-	if(optionAutoSaveState > 1)
-	{
-		IG::Minutes mins{optionAutoSaveState.val};
-		autoSaveStateTimer.run(mins, mins);
-	}
-}
-
 bool EmuSystem::stateExists(int slot)
 {
 	auto saveStr = sprintStateFilename(slot);
@@ -108,13 +81,13 @@ EmuFrameTimeInfo EmuSystem::advanceFramesWithTime(Base::FrameTime time)
 	return emuTiming.advanceFramesWithTime(time);
 }
 
-void EmuSystem::setSpeedMultiplier(uint8_t speed)
+void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, uint8_t speed)
 {
 	emuTiming.setSpeedMultiplier(speed);
 	emuAudio.setSpeedMultiplier(speed);
 }
 
-void EmuSystem::setupGamePaths(Base::ApplicationContext app, const char *filePath)
+void EmuSystem::setupGamePaths(Base::ApplicationContext ctx, const char *filePath)
 {
 	if(FS::exists(filePath))
 	{
@@ -130,7 +103,7 @@ void EmuSystem::setupGamePaths(Base::ApplicationContext app, const char *filePat
 		{
 			strcpy(gamePath_.data(), realPath); // destination is always large enough
 			logMsg("set game directory: %s", gamePath_.data());
-			fixFilePermissions(app, gamePath_);
+			fixFilePermissions(ctx, gamePath_);
 		}
 	}
 
@@ -146,43 +119,43 @@ void EmuSystem::setupGamePaths(Base::ApplicationContext app, const char *filePat
 	gameName_ = FS::makeFileStringWithoutDotExtension(gameName_);
 	logMsg("set game name: %s", gameName_.data());
 
-	setupGameSavePath(app);
+	setupGameSavePath(ctx);
 }
 
-void EmuSystem::setupGameSavePath(Base::ApplicationContext app)
+void EmuSystem::setupGameSavePath(Base::ApplicationContext ctx)
 {
 	if(!strlen(gameName_.data()))
 		return;
 	if(strlen(savePath_.data()))
 	{
 		if(string_equal(savePath_.data(), optionSavePathDefaultToken))
-			setGameSavePath(app, defaultSavePath(app));
+			setGameSavePath(ctx, defaultSavePath(ctx));
 		else
-			setGameSavePath(app, savePath_.data());
+			setGameSavePath(ctx, savePath_.data());
 	}
 	else
 	{
-		setGameSavePath(app, gamePath_.data());
+		setGameSavePath(ctx, gamePath_.data());
 	}
 }
 
-FS::PathString EmuSystem::baseSavePath(Base::ApplicationContext app)
+FS::PathString EmuSystem::baseSavePath(Base::ApplicationContext ctx)
 {
 	if(strlen(savePath_.data()) && !string_equal(savePath_.data(), optionSavePathDefaultToken))
 	{
 		return savePath_;
 	}
-	return FS::makePathStringPrintf("%s/Game Data/%s", app.sharedStoragePath().data(), shortSystemName());
+	return FS::makePathStringPrintf("%s/Game Data/%s", ctx.sharedStoragePath().data(), shortSystemName());
 }
 
-static bool hasWriteAccessToDir(Base::ApplicationContext app, const char *path)
+static bool hasWriteAccessToDir(Base::ApplicationContext ctx, const char *path)
 {
 	auto hasAccess = FS::access(path, FS::acc::w);
 	#ifdef CONFIG_BASE_ANDROID
 	// on Android 4.4 also test file creation since
 	// access() can still claim an SD card is writable
 	// even though parts are locked-down by the OS
-	if(app.androidSDK() >= 19)
+	if(ctx.androidSDK() >= 19)
 	{
 		auto testFilePath = FS::makePathStringPrintf("%s/.safe-to-delete-me", path);
 		FileIO testFile;
@@ -200,7 +173,7 @@ static bool hasWriteAccessToDir(Base::ApplicationContext app, const char *path)
 	return hasAccess;
 }
 
-void EmuSystem::setGameSavePath(Base::ApplicationContext app, const char *path)
+void EmuSystem::setGameSavePath(Base::ApplicationContext ctx, const char *path)
 {
 	if(!strlen(gameName_.data()))
 		return;
@@ -208,8 +181,8 @@ void EmuSystem::setGameSavePath(Base::ApplicationContext app, const char *path)
 	// check if the path is writable
 	if(path && strlen(path))
 	{
-		fixFilePermissions(app, path);
-		if(optionCheckSavePathWriteAccess && !hasWriteAccessToDir(app, path))
+		fixFilePermissions(ctx, path);
+		if(optionCheckSavePathWriteAccess && !hasWriteAccessToDir(ctx, path))
 		{
 			reportNoWriteAccess = true;
 		}
@@ -221,18 +194,18 @@ void EmuSystem::setGameSavePath(Base::ApplicationContext app, const char *path)
 		}
 	}
 	// fallback to a default path
-	logMsg("set game save path to default: %s", defaultSavePath(app));
-	string_copy(gameSavePath_, defaultSavePath(app));
-	fixFilePermissions(app, gameSavePath_);
+	logMsg("set game save path to default: %s", defaultSavePath(ctx));
+	string_copy(gameSavePath_, defaultSavePath(ctx));
+	fixFilePermissions(ctx, gameSavePath_);
 	if(reportNoWriteAccess)
 	{
 		logWarn("Save path lacks write access, using default:\n%s", gameSavePath_.data());
 	}
 }
 
-FS::PathString EmuSystem::makeDefaultBaseSavePath(Base::ApplicationContext app)
+FS::PathString EmuSystem::makeDefaultBaseSavePath(Base::ApplicationContext ctx)
 {
-	FS::PathString pathTemp = app.sharedStoragePath();
+	FS::PathString pathTemp = ctx.sharedStoragePath();
 	string_cat(pathTemp, "/Game Data");
 	FS::create_directory(pathTemp);
 	string_cat(pathTemp, "/");
@@ -241,10 +214,10 @@ FS::PathString EmuSystem::makeDefaultBaseSavePath(Base::ApplicationContext app)
 	return pathTemp;
 }
 
-void EmuSystem::makeDefaultSavePath(Base::ApplicationContext app)
+void EmuSystem::makeDefaultSavePath(Base::ApplicationContext ctx)
 {
 	assert(strlen(gameName_.data()));
-	auto pathTemp = makeDefaultBaseSavePath(app);
+	auto pathTemp = makeDefaultBaseSavePath(ctx);
 	string_cat(pathTemp, "/");
 	string_cat(pathTemp, gameName_.data());
 	FS::create_directory(pathTemp);
@@ -266,35 +239,35 @@ const char *EmuSystem::savePath()
 	return gameSavePath_.data();
 }
 
-const char *EmuSystem::defaultSavePath(Base::ApplicationContext app)
+const char *EmuSystem::defaultSavePath(Base::ApplicationContext ctx)
 {
 	assert(strlen(gameName_.data()));
 	if(!strlen(defaultSavePath_.data()))
 	{
-		string_printf(defaultSavePath_, "%s/Game Data/%s/%s", app.sharedStoragePath().data(), shortSystemName(), gameName_.data());
+		string_printf(defaultSavePath_, "%s/Game Data/%s/%s", ctx.sharedStoragePath().data(), shortSystemName(), gameName_.data());
 		logMsg("game default save path: %s", defaultSavePath_.data());
 	}
 	if(!FS::exists(defaultSavePath_.data()))
-		makeDefaultSavePath(app);
+		makeDefaultSavePath(ctx);
 	return defaultSavePath_.data();
 }
 
-FS::PathString EmuSystem::baseDefaultGameSavePath(Base::ApplicationContext app)
+FS::PathString EmuSystem::baseDefaultGameSavePath(Base::ApplicationContext ctx)
 {
-	return FS::makePathStringPrintf("%s/Game Data/%s", app.sharedStoragePath().data(), shortSystemName());
+	return FS::makePathStringPrintf("%s/Game Data/%s", ctx.sharedStoragePath().data(), shortSystemName());
 }
 
-void EmuSystem::closeRuntimeSystem(bool allowAutosaveState)
+void EmuSystem::closeRuntimeSystem(EmuApp &app, bool allowAutosaveState)
 {
 	if(gameIsRunning())
 	{
-		emuAudio.flush();
+		app.audio().flush();
 		if(allowAutosaveState)
-			EmuApp::saveAutoState();
-		EmuApp::saveSessionOptions();
+			app.saveAutoState();
+		app.saveSessionOptions();
 		logMsg("closing game %s", gameName_.data());
 		closeSystem();
-		cancelAutoSaveStateTimer();
+		app.cancelAutoSaveStateTimer();
 		state = State::OFF;
 	}
 	clearGamePaths();
@@ -310,21 +283,21 @@ void EmuSystem::resetFrameTime()
 	emuTiming.reset();
 }
 
-void EmuSystem::pause()
+void EmuSystem::pause(EmuApp &app)
 {
 	if(isActive())
 		state = State::PAUSED;
-	emuAudio.stop();
-	cancelAutoSaveStateTimer();
+	app.audio().stop();
+	app.cancelAutoSaveStateTimer();
 }
 
-void EmuSystem::start()
+void EmuSystem::start(EmuApp &app)
 {
 	state = State::ACTIVE;
-	clearInputBuffers(emuViewController().inputView());
+	clearInputBuffers(app.viewController().inputView());
 	resetFrameTime();
-	emuAudio.start(makeWantedAudioLatencyUSecs(optionSoundBuffers), makeWantedAudioLatencyUSecs(1));
-	startAutoSaveStateTimer();
+	app.audio().start(makeWantedAudioLatencyUSecs(optionSoundBuffers), makeWantedAudioLatencyUSecs(1));
+	app.startAutoSaveStateTimer();
 }
 
 IG::Time EmuSystem::benchmark(EmuVideo &video)
@@ -338,30 +311,6 @@ IG::Time EmuSystem::benchmark(EmuVideo &video)
 	return after-now;
 }
 
-void EmuSystem::skipFrames(EmuSystemTask *task, uint32_t frames, EmuAudio *audio)
-{
-	assumeExpr(gameIsRunning());
-	iterateTimes(frames, i)
-	{
-		turboActions.update();
-		runFrame(task, nullptr, audio);
-	}
-}
-
-bool EmuSystem::skipForwardFrames(EmuSystemTask *task, uint32_t frames)
-{
-	iterateTimes(frames, i)
-	{
-		EmuSystem::skipFrames(task, 1, nullptr);
-		if(!EmuSystem::shouldFastForward())
-		{
-			logMsg("skip-forward ended early after %u frame(s)", i);
-			return false;
-		}
-	}
-	return true;
-}
-
 void EmuSystem::configFrameTime(uint32_t rate)
 {
 	auto fTime = frameTime();
@@ -372,12 +321,7 @@ void EmuSystem::configFrameTime(uint32_t rate)
 	emuTiming.setFrameTime(fTime);
 }
 
-void EmuSystem::configFrameTime()
-{
-	configFrameTime(emuAudio.format().rate);
-}
-
-void EmuSystem::configAudioPlayback(uint32_t rate)
+void EmuSystem::configAudioPlayback(EmuAudio &emuAudio, uint32_t rate)
 {
 	configFrameTime(rate);
 	emuAudio.setRate(rate);
@@ -458,7 +402,7 @@ bool EmuSystem::setFrameTime(VideoSystem system, IG::FloatSeconds time)
 void EmuSystem::prepareAudioVideo(EmuAudio &audio, EmuVideo &video)
 {
 	onPrepareAudio(audio);
-	configAudioPlayback(optionSoundRate);
+	configAudioPlayback(audio, optionSoundRate);
 	prepareVideo(video);
 }
 
@@ -468,28 +412,29 @@ void EmuSystem::prepareVideo(EmuVideo &video)
 	video.clear();
 }
 
-static void closeAndSetupNew(Base::ApplicationContext app, const char *path)
+static void closeAndSetupNew(Base::ApplicationContext ctx, const char *path)
 {
-	EmuSystem::closeRuntimeSystem(true);
-	EmuSystem::setupGamePaths(app, path);
-	EmuApp::loadSessionOptions();
+	auto &app = EmuApp::get(ctx);
+	EmuSystem::closeRuntimeSystem(app, true);
+	EmuSystem::setupGamePaths(ctx, path);
+	app.loadSessionOptions();
 }
 
-void EmuSystem::createWithMedia(Base::ApplicationContext app, GenericIO io, const char *path, const char *name, Error &err, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::createWithMedia(Base::ApplicationContext ctx, GenericIO io, const char *path, const char *name, Error &err, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	if(io)
-		err = loadGameFromFile(app, std::move(io), name, params, onLoadProgress);
+		err = loadGameFromFile(ctx, std::move(io), name, params, onLoadProgress);
 	else
-		err = loadGameFromPath(app, path, params, onLoadProgress);
+		err = loadGameFromPath(ctx, path, params, onLoadProgress);
 }
 
-EmuSystem::Error EmuSystem::loadGameFromPath(Base::ApplicationContext app, const char *pathStr, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+EmuSystem::Error EmuSystem::loadGameFromPath(Base::ApplicationContext ctx, const char *pathStr, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	auto path = willLoadGameFromPath(FS::makePathString(pathStr));
 	if(!handlesGenericIO)
 	{
-		closeAndSetupNew(app, path.data());
-		auto err = loadGame(app, GenericIO{}, params, onLoadProgress);
+		closeAndSetupNew(ctx, path.data());
+		auto err = loadGame(ctx, GenericIO{}, params, onLoadProgress);
 		if(err)
 		{
 			clearGamePaths();
@@ -503,10 +448,10 @@ EmuSystem::Error EmuSystem::loadGameFromPath(Base::ApplicationContext app, const
 	{
 		return makeError("Error opening file: %s", ec.message().c_str());
 	}
-	return loadGameFromFile(app, io.makeGeneric(), path.data(), params, onLoadProgress);
+	return loadGameFromFile(ctx, io.makeGeneric(), path.data(), params, onLoadProgress);
 }
 
-EmuSystem::Error EmuSystem::loadGameFromFile(Base::ApplicationContext app, GenericIO file, const char *name, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+EmuSystem::Error EmuSystem::loadGameFromFile(Base::ApplicationContext ctx, GenericIO file, const char *name, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	Error err;
 	if(EmuApp::hasArchiveExtension(name))
@@ -539,14 +484,14 @@ EmuSystem::Error EmuSystem::loadGameFromFile(Base::ApplicationContext app, Gener
 			//EmuApp::postErrorMessage("No recognized file extensions in archive");
 			return makeError("No recognized file extensions in archive");
 		}
-		closeAndSetupNew(app, name);
+		closeAndSetupNew(ctx, name);
 		originalGameName_ = originalName;
-		err = EmuSystem::loadGame(app, io, params, onLoadProgress);
+		err = EmuSystem::loadGame(ctx, io, params, onLoadProgress);
 	}
 	else
 	{
-		closeAndSetupNew(app, name);
-		err = EmuSystem::loadGame(app, file, params, onLoadProgress);
+		closeAndSetupNew(ctx, name);
+		err = EmuSystem::loadGame(ctx, file, params, onLoadProgress);
 	}
 	if(err)
 	{
@@ -658,9 +603,9 @@ void EmuSystem::sessionOptionSet()
 
 [[gnu::weak]] void EmuSystem::savePathChanged() {}
 
-[[gnu::weak]] uint EmuSystem::multiresVideoBaseX() { return 0; }
+[[gnu::weak]] unsigned EmuSystem::multiresVideoBaseX() { return 0; }
 
-[[gnu::weak]] uint EmuSystem::multiresVideoBaseY() { return 0; }
+[[gnu::weak]] unsigned EmuSystem::multiresVideoBaseY() { return 0; }
 
 [[gnu::weak]] bool EmuSystem::vidSysIsPAL() { return false; }
 
@@ -681,18 +626,33 @@ void EmuSystem::sessionOptionSet()
 
 [[gnu::weak]] void EmuSystem::writeConfig(IO &io) {}
 
-[[gnu::weak]] bool EmuSystem::readConfig(IO &io, uint key, uint readSize) { return false; }
+[[gnu::weak]] bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize) { return false; }
 
-[[gnu::weak]] bool EmuSystem::resetSessionOptions() { return false; }
+[[gnu::weak]] bool EmuSystem::resetSessionOptions(EmuApp &) { return false; }
 
-[[gnu::weak]] void EmuSystem::onSessionOptionsLoaded() {}
+[[gnu::weak]] void EmuSystem::onSessionOptionsLoaded(EmuApp &) {}
 
 [[gnu::weak]] void EmuSystem::writeSessionConfig(IO &io) {}
 
-[[gnu::weak]] bool EmuSystem::readSessionConfig(IO &io, uint key, uint readSize) { return false; }
+[[gnu::weak]] bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize) { return false; }
 
 [[gnu::weak]] EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext, IO &io, EmuSystemCreateParams params,
 	EmuSystem::OnLoadProgressDelegate onLoadProgress)
 {
 	return loadGame(io, params, onLoadProgress);
+}
+
+[[gnu::weak]] void EmuSystem::reset(EmuApp &, ResetMode mode)
+{
+	reset(mode);
+}
+
+[[gnu::weak]] EmuSystem::Error EmuSystem::loadState(EmuApp &, const char *path)
+{
+	return loadState(path);
+}
+
+[[gnu::weak]] EmuSystem::Error EmuSystem::saveState(EmuApp &, const char *path)
+{
+	return saveState(path);
 }

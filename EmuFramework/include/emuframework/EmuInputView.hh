@@ -15,13 +15,15 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/View.hh>
 
 class VController;
+class EmuApp;
 class EmuVideoLayer;
 class EmuViewController;
 
-class EmuInputView : public View
+class EmuInputView : public View, public EmuAppHelper<EmuInputView>
 {
 public:
 	EmuInputView();
@@ -37,12 +39,11 @@ public:
 	VController *activeVController() const { return vController; }
 
 private:
-	VController *vController;
-	EmuVideoLayer *videoLayer;
-	bool touchControlsOn = false;
-	bool ffToggleActive = false;
+	VController *vController{};
+	EmuVideoLayer *videoLayer{};
+	bool touchControlsOn{};
+	bool ffToggleActive{};
 	IG_enableMemberIf(Config::envIsAndroid, bool, consumeUnboundGamepadKeys){};
 
 	void updateFastforward();
-	EmuViewController &emuViewController();
 };

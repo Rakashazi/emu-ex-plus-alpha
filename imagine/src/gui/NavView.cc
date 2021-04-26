@@ -178,8 +178,8 @@ bool NavView::hasButtons() const
 BasicNavView::BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes):
 	NavView{attach, face}
 {
-	leftSpr = {{-.5, -.5, .5, .5}};
-	rightSpr = {{-.5, -.5, .5, .5}};
+	leftSpr = {{{-.5, -.5}, {.5, .5}}};
+	rightSpr = {{{-.5, -.5}, {.5, .5}}};
 	bool compiled = false;
 	if(backRes)
 	{
@@ -237,16 +237,17 @@ void BasicNavView::draw(Gfx::RendererCommands &cmds)
 	}
 	else
 	{
-		if(text.width() > projP.unprojectXSize(textRect) - TableView::globalXIndent*2)
+		auto xIndent = manager().tableXIndent();
+		if(text.width() > projP.unprojectXSize(textRect) - xIndent*2)
 		{
 			cmds.setClipRect(renderer().makeClipRect(window(), textRect));
 			cmds.setClipTest(true);
-			text.draw(cmds, projP.alignToPixel(projP.unProjectRect(textRect).pos(RC2DO) - GP{TableView::globalXIndent, 0}), RC2DO, projP);
+			text.draw(cmds, projP.alignToPixel(projP.unProjectRect(textRect).pos(RC2DO) - GP{xIndent, 0}), RC2DO, projP);
 			cmds.setClipTest(false);
 		}
 		else
 		{
-			text.draw(cmds, projP.alignToPixel(projP.unProjectRect(textRect).pos(LC2DO) + GP{TableView::globalXIndent, 0}), LC2DO, projP);
+			text.draw(cmds, projP.alignToPixel(projP.unProjectRect(textRect).pos(LC2DO) + GP{xIndent, 0}), LC2DO, projP);
 		}
 	}
 	if(control[0].isActive)
@@ -280,13 +281,13 @@ void BasicNavView::place()
 	if(leftSpr.image())
 	{
 		auto rect = projP.unProjectRect(control[0].rect);
-		Gfx::GCRect scaledRect{-rect.xSize() / 3_gc, -rect.ySize() / 3_gc, rect.xSize() / 3_gc, rect.ySize() / 3_gc};
+		Gfx::GCRect scaledRect{-rect.size() / 3_gc, rect.size() / 3_gc};
 		leftSpr.setPos(scaledRect);
 	}
 	if(rightSpr.image())
 	{
 		auto rect = projP.unProjectRect(control[2].rect);
-		Gfx::GCRect scaledRect{-rect.xSize() / 3_gc, -rect.ySize() / 3_gc, rect.xSize() / 3_gc, rect.ySize() / 3_gc};
+		Gfx::GCRect scaledRect{-rect.size() / 3_gc, rect.size() / 3_gc};
 		rightSpr.setPos(scaledRect);
 	}
 	bg.setPos(gradientStops.get(), bg.stops(), projP.unProjectRect(viewRect_));

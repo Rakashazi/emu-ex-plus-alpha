@@ -15,9 +15,9 @@
 
 #define LOGTAG "EGL"
 #include <imagine/base/GLContext.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
-#include "internal.hh"
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <X11/Xutil.h>
@@ -27,12 +27,12 @@ namespace Base
 
 // GLDisplay
 
-GLDisplay GLDisplay::getDefault()
+GLDisplay GLDisplay::getDefault(NativeDisplayConnection nativeDpy)
 {
 	#if defined CONFIG_MACHINE_PANDORA
 	return {eglGetDisplay(EGL_DEFAULT_DISPLAY)};
 	#else
-	return {eglGetPlatformDisplay(EGL_PLATFORM_X11_EXT, xDisplay, nullptr)};
+	return {eglGetPlatformDisplay(EGL_PLATFORM_X11_EXT, nativeDpy, nullptr)};
 	#endif
 }
 
@@ -64,7 +64,7 @@ void GLContext::setCurrent(GLDisplay display, GLContext context, GLDrawable win)
 	setCurrentContext(display, context.context, win);
 }
 
-std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion)
+std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, ApplicationContext, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion)
 {
 	auto renderableType = GLDisplay::makeRenderableType(api, majorVersion);
 	return chooseConfig(display, renderableType, attr);
@@ -80,7 +80,7 @@ void GLContext::present(GLDisplay display, GLDrawable win, GLContext cachedCurre
 	present(display, win);
 }
 
-Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay display) const
+Base::NativeWindowFormat GLBufferConfig::windowFormat(ApplicationContext ctx, GLDisplay display) const
 {
 	if(Config::MACHINE_IS_PANDORA)
 		return nullptr;
@@ -90,7 +90,7 @@ Base::NativeWindowFormat GLBufferConfig::windowFormat(GLDisplay display) const
 	XVisualInfo viTemplate{};
 	viTemplate.visualid = nativeID;
 	int visuals;
-	auto viPtr = XGetVisualInfo(xDisplay, VisualIDMask, &viTemplate, &visuals);
+	auto viPtr = XGetVisualInfo(ctx.application().xDisplay(), VisualIDMask, &viTemplate, &visuals);
 	if(!viPtr)
 	{
 		logErr("unable to find matching X Visual");

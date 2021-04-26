@@ -15,12 +15,12 @@
 
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuAppHelper.hh>
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/VideoImageEffect.hh>
 #include "EmuOptions.hh"
 #include "private.hh"
-#include "EmuViewController.hh"
 #include <imagine/base/Screen.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
@@ -30,7 +30,7 @@
 
 using namespace IG;
 
-class DetectFrameRateView final: public View
+class DetectFrameRateView final: public View, public EmuAppHelper<DetectFrameRateView>
 {
 public:
 	using DetectFrameRateDelegate = DelegateFunc<void (IG::FloatSeconds frameTime)>;
@@ -39,16 +39,16 @@ public:
 	Base::FrameTime totalFrameTime{};
 	Base::FrameTime lastFrameTimestamp{};
 	Gfx::Text fpsText;
-	uint allTotalFrames = 0;
-	uint callbacks = 0;
+	unsigned allTotalFrames = 0;
+	unsigned callbacks = 0;
 	std::vector<Base::FrameTime> frameTimeSample{};
 	bool useRenderTaskTime = false;
 
 	DetectFrameRateView(ViewAttachParams attach): View(attach),
-		fpsText{nullptr, &View::defaultFace}
+		fpsText{nullptr, &defaultFace()}
 	{
-		View::defaultFace.precacheAlphaNum(attach.renderer());
-		View::defaultFace.precache(attach.renderer(), ".");
+		defaultFace().precacheAlphaNum(attach.renderer());
+		defaultFace().precache(attach.renderer(), ".");
 		fpsText.setString("Preparing to detect frame rate...");
 		useRenderTaskTime = !screen()->supportsTimestamps(appContext());
 		frameTimeSample.reserve(std::round(screen()->frameRate() * 2.));
@@ -57,7 +57,7 @@ public:
 	~DetectFrameRateView() final
 	{
 		window().setIntendedFrameRate(0.);
-		setCPUNeedsLowLatency(appContext(), false);
+		app().setCPUNeedsLowLatency(appContext(), false);
 		window().removeOnFrame(detectFrameRate);
 	}
 
@@ -88,7 +88,7 @@ public:
 
 	bool runFrameTimeDetection(Base::FrameTime timestampDiff, double slack)
 	{
-		const uint framesToTime = frameTimeSample.capacity() * 10;
+		const unsigned framesToTime = frameTimeSample.capacity() * 10;
 		allTotalFrames++;
 		frameTimeSample.emplace_back(timestampDiff);
 		if(frameTimeSample.size() == frameTimeSample.capacity())
@@ -158,7 +158,7 @@ public:
 		detectFrameRate =
 			[this](IG::FrameParams params)
 			{
-				const uint callbacksToSkip = 10;
+				const unsigned callbacksToSkip = 10;
 				callbacks++;
 				if(callbacks < callbacksToSkip)
 				{
@@ -169,7 +169,7 @@ public:
 				return runFrameTimeDetection(params.timestamp() - std::exchange(lastFrameTimestamp, params.timestamp()), 0.00175);
 			};
 		window().addOnFrame(detectFrameRate);
-		setCPUNeedsLowLatency(appContext(), true);
+		app().setCPUNeedsLowLatency(appContext(), true);
 	}
 };
 
@@ -194,42 +194,42 @@ static void setFrameInterval(int interval)
 #endif
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-static void setImgEffect(uint val, EmuVideoLayer &layer)
+void VideoOptionView::setImgEffect(unsigned val)
 {
 	optionImgEffect = val;
-	if(layer.emuVideo().image())
+	if(videoLayer->emuVideo().image())
 	{
-		layer.setEffect(val, optionImageEffectPixelFormatValue());
-		emuViewController().postDrawToEmuWindows();
+		videoLayer->setEffect(val, optionImageEffectPixelFormatValue());
+		app().viewController().postDrawToEmuWindows();
 	}
 }
 #endif
 
-static void setOverlayEffect(uint val, EmuVideoLayer &layer)
+void VideoOptionView::setOverlayEffect(unsigned val)
 {
 	optionOverlayEffect = val;
-	layer.setOverlay(val);
-	emuViewController().postDrawToEmuWindows();
+	videoLayer->setOverlay(val);
+	app().viewController().postDrawToEmuWindows();
 }
 
 #ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-static void setImgEffectPixelFormat(PixelFormatID format, EmuVideoLayer &layer)
+void VideoOptionView::setImgEffectPixelFormat(PixelFormatID format)
 {
 	optionImageEffectPixelFormat = format;
-	layer.setEffectFormat(format);
-	emuViewController().postDrawToEmuWindows();
+	videoLayer->setEffectFormat(format);
+	app().viewController().postDrawToEmuWindows();
 }
 #endif
 
 #ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-static const char *autoWindowPixelFormatStr(Base::ApplicationContext app)
+static const char *autoWindowPixelFormatStr(Base::ApplicationContext ctx)
 {
-	return Base::Window::defaultPixelFormat(app) == PIXEL_RGB565 ? "RGB565" : "RGBA8888";
+	return Base::Window::defaultPixelFormat(ctx) == PIXEL_RGB565 ? "RGB565" : "RGBA8888";
 }
 
-static void setWindowPixelFormat(PixelFormatID format)
+void VideoOptionView::setWindowPixelFormat(PixelFormatID format)
 {
-	EmuApp::postMessage("Restart app for option to take effect");
+	app().postMessage("Restart app for option to take effect");
 	optionWindowPixelFormat = format;
 }
 #endif
@@ -256,28 +256,28 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	TableView{"Video Options", attach, item},
 	textureBufferMode
 	{
-		"GPU Copy Mode",
+		"GPU Copy Mode", &defaultFace(),
 		0,
 		textureBufferModeItem
 	},
 	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 	frameIntervalItem
 	{
-		{"Full", [this]() { setFrameInterval(1); }},
-		{"1/2", [this]() { setFrameInterval(2); }},
-		{"1/3", [this]() { setFrameInterval(3); }},
-		{"1/4", [this]() { setFrameInterval(4); }},
+		{"Full", &defaultFace(), [this]() { setFrameInterval(1); }},
+		{"1/2", &defaultFace(), [this]() { setFrameInterval(2); }},
+		{"1/3", &defaultFace(), [this]() { setFrameInterval(3); }},
+		{"1/4", &defaultFace(), [this]() { setFrameInterval(4); }},
 	},
 	frameInterval
 	{
-		"Target Frame Rate",
+		"Target Frame Rate", &defaultFace(),
 		optionFrameInterval - 1,
 		frameIntervalItem
 	},
 	#endif
 	dropLateFrames
 	{
-		"Skip Late Frames",
+		"Skip Late Frames", &defaultFace(),
 		(bool)optionSkipLateFrames,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -286,7 +286,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	frameRate
 	{
-		nullptr,
+		nullptr, &defaultFace(),
 		[this](Input::Event e)
 		{
 			pushAndShowFrameRateSelectMenu(EmuSystem::VIDSYS_NATIVE_NTSC, e);
@@ -295,7 +295,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	frameRatePAL
 	{
-		nullptr,
+		nullptr, &defaultFace(),
 		[this](Input::Event e)
 		{
 			pushAndShowFrameRateSelectMenu(EmuSystem::VIDSYS_PAL, e);
@@ -304,7 +304,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	aspectRatio
 	{
-		"Aspect Ratio",
+		"Aspect Ratio", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
 			if(idx == EmuSystem::aspectRatioInfos)
@@ -319,16 +319,16 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	zoomItem
 	{
-		{"100%", [this]() { setZoom(100); }},
-		{"90%", [this]() { setZoom(90); }},
-		{"80%", [this]() { setZoom(80); }},
-		{"Integer-only", [this]() { setZoom(optionImageZoomIntegerOnly); }},
-		{"Integer-only (Height)", [this]() { setZoom(optionImageZoomIntegerOnlyY); }},
-		{"Custom Value",
+		{"100%", &defaultFace(), [this]() { setZoom(100); }},
+		{"90%", &defaultFace(), [this]() { setZoom(90); }},
+		{"80%", &defaultFace(), [this]() { setZoom(80); }},
+		{"Integer-only", &defaultFace(), [this]() { setZoom(optionImageZoomIntegerOnly); }},
+		{"Integer-only (Height)", &defaultFace(), [this]() { setZoom(optionImageZoomIntegerOnlyY); }},
+		{"Custom Value", &defaultFace(),
 			[this](Input::Event e)
 			{
-				EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 10 to 100", "",
-					[this](auto val)
+				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 10 to 100", "",
+					[this](EmuApp &app, auto val)
 					{
 						if(optionImageZoom.isValidVal(val))
 						{
@@ -339,7 +339,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						}
 						else
 						{
-							EmuApp::postErrorMessage("Value not in range");
+							app.postErrorMessage("Value not in range");
 							return false;
 						}
 					});
@@ -349,7 +349,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	zoom
 	{
-		"Content Zoom",
+		"Content Zoom", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
 			if(optionImageZoom <= 100)
@@ -375,14 +375,14 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	viewportZoomItem
 	{
-		{"100%", [this]() { setViewportZoom(100); }},
-		{"95%", [this]() { setViewportZoom(95); }},
-		{"90%", [this]() { setViewportZoom(90); }},
-		{"Custom Value",
+		{"100%", &defaultFace(), [this]() { setViewportZoom(100); }},
+		{"95%", &defaultFace(), [this]() { setViewportZoom(95); }},
+		{"90%", &defaultFace(), [this]() { setViewportZoom(90); }},
+		{"Custom Value", &defaultFace(),
 			[this](Input::Event e)
 			{
-				EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 50 to 100", "",
-					[this](auto val)
+				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 50 to 100", "",
+					[this](EmuApp &app, auto val)
 					{
 						if(optionViewportZoom.isValidVal(val))
 						{
@@ -393,7 +393,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						}
 						else
 						{
-							EmuApp::postErrorMessage("Value not in range");
+							app.postErrorMessage("Value not in range");
 							return false;
 						}
 					});
@@ -403,7 +403,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	viewportZoom
 	{
-		"App Zoom",
+		"App Zoom", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
 			t.setString(string_makePrintf<5>("%u%%", optionViewportZoom.val).data());
@@ -423,27 +423,27 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	imgFilter
 	{
-		"Image Interpolation",
+		"Image Interpolation", &defaultFace(),
 		(bool)optionImgFilter,
 		"None", "Linear",
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionImgFilter.val = item.flipBoolValue(*this);
 			videoLayer->setLinearFilter(optionImgFilter);
-			emuViewController().postDrawToEmuWindows();
+			app().viewController().postDrawToEmuWindows();
 		}
 	},
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	imgEffectItem
 	{
-		{"Off", [this]() { setImgEffect(0, *videoLayer); }},
-		{"hq2x", [this]() { setImgEffect(VideoImageEffect::HQ2X, *videoLayer); }},
-		{"Scale2x", [this]() { setImgEffect(VideoImageEffect::SCALE2X, *videoLayer); }},
-		{"Prescale 2x", [this]() { setImgEffect(VideoImageEffect::PRESCALE2X, *videoLayer); }}
+		{"Off", &defaultFace(), [this]() { setImgEffect(0); }},
+		{"hq2x", &defaultFace(), [this]() { setImgEffect(VideoImageEffect::HQ2X); }},
+		{"Scale2x", &defaultFace(), [this]() { setImgEffect(VideoImageEffect::SCALE2X); }},
+		{"Prescale 2x", &defaultFace(), [this]() { setImgEffect(VideoImageEffect::PRESCALE2X); }}
 	},
 	imgEffect
 	{
-		"Image Effect",
+		"Image Effect", &defaultFace(),
 		[]()
 		{
 			switch(optionImgEffect)
@@ -459,16 +459,16 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	#endif
 	overlayEffectItem
 	{
-		{"Off", [this]() { setOverlayEffect(0, *videoLayer); }},
-		{"Scanlines", [this]() { setOverlayEffect(VideoImageOverlay::SCANLINES, *videoLayer); }},
-		{"Scanlines 2x", [this]() { setOverlayEffect(VideoImageOverlay::SCANLINES_2, *videoLayer); }},
-		{"CRT Mask", [this]() { setOverlayEffect(VideoImageOverlay::CRT, *videoLayer); }},
-		{"CRT", [this]() { setOverlayEffect(VideoImageOverlay::CRT_RGB, *videoLayer); }},
-		{"CRT 2x", [this]() { setOverlayEffect(VideoImageOverlay::CRT_RGB_2, *videoLayer); }}
+		{"Off", &defaultFace(), [this]() { setOverlayEffect(0); }},
+		{"Scanlines", &defaultFace(), [this]() { setOverlayEffect(VideoImageOverlay::SCANLINES); }},
+		{"Scanlines 2x", &defaultFace(), [this]() { setOverlayEffect(VideoImageOverlay::SCANLINES_2); }},
+		{"CRT Mask", &defaultFace(), [this]() { setOverlayEffect(VideoImageOverlay::CRT); }},
+		{"CRT", &defaultFace(), [this]() { setOverlayEffect(VideoImageOverlay::CRT_RGB); }},
+		{"CRT 2x", &defaultFace(), [this]() { setOverlayEffect(VideoImageOverlay::CRT_RGB_2); }}
 	},
 	overlayEffect
 	{
-		"Overlay Effect",
+		"Overlay Effect", &defaultFace(),
 		[]()
 		{
 			switch(optionOverlayEffect)
@@ -485,15 +485,15 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	overlayEffectLevelItem
 	{
-		{"100%", [this]() { setOverlayEffectLevel(100); }},
-		{"75%", [this]() { setOverlayEffectLevel(75); }},
-		{"50%", [this]() { setOverlayEffectLevel(50); }},
-		{"25%", [this]() { setOverlayEffectLevel(25); }},
-		{"Custom Value",
+		{"100%", &defaultFace(), [this]() { setOverlayEffectLevel(100); }},
+		{"75%", &defaultFace(), [this]() { setOverlayEffectLevel(75); }},
+		{"50%", &defaultFace(), [this]() { setOverlayEffectLevel(50); }},
+		{"25%", &defaultFace(), [this]() { setOverlayEffectLevel(25); }},
+		{"Custom Value", &defaultFace(),
 			[this](Input::Event e)
 			{
-				EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 10 to 100", "",
-					[this](auto val)
+				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 10 to 100", "",
+					[this](EmuApp &app, auto val)
 					{
 						if(optionOverlayEffectLevel.isValidVal(val))
 						{
@@ -504,7 +504,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 						}
 						else
 						{
-							EmuApp::postErrorMessage("Value not in range");
+							app.postErrorMessage("Value not in range");
 							return false;
 						}
 					});
@@ -514,7 +514,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	overlayEffectLevel
 	{
-		"Overlay Effect Level",
+		"Overlay Effect Level", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
 			t.setString(string_makePrintf<5>("%u%%", optionOverlayEffectLevel.val).data());
@@ -536,13 +536,13 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	imgEffectPixelFormatItem
 	{
-		{"Auto (Match render format as needed)", [this]() { setImgEffectPixelFormat(PIXEL_NONE, *videoLayer); }},
-		{"RGB565", [this]() { setImgEffectPixelFormat(PIXEL_RGB565, *videoLayer); }},
-		{"RGBA8888", [this]() { setImgEffectPixelFormat(PIXEL_RGBA8888, *videoLayer);}},
+		{"Auto (Match render format as needed)", &defaultFace(), [this]() { setImgEffectPixelFormat(PIXEL_NONE); }},
+		{"RGB565", &defaultFace(), [this]() { setImgEffectPixelFormat(PIXEL_RGB565); }},
+		{"RGBA8888", &defaultFace(), [this]() { setImgEffectPixelFormat(PIXEL_RGBA8888);}},
 	},
 	imgEffectPixelFormat
 	{
-		"Effect Color Format",
+		"Effect Color Format", &defaultFace(),
 		[](int idx, Gfx::Text &t)
 		{
 			if(idx == 0)
@@ -568,15 +568,15 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	windowPixelFormatItem
 	{
-		{"Auto", [this]() { setWindowPixelFormat(PIXEL_NONE); }},
-		{"RGB565", [this]() { setWindowPixelFormat(PIXEL_RGB565); }},
-		{"RGB888", [this]() { setWindowPixelFormat(PIXEL_RGB888); }},
-		{"RGBX8888", [this]() { setWindowPixelFormat(PIXEL_RGBX8888); }},
-		{"RGBA8888", [this]() { setWindowPixelFormat(PIXEL_RGBA8888); }},
+		{"Auto", &defaultFace(), [this]() { setWindowPixelFormat(PIXEL_NONE); }},
+		{"RGB565", &defaultFace(), [this]() { setWindowPixelFormat(PIXEL_RGB565); }},
+		{"RGB888", &defaultFace(), [this]() { setWindowPixelFormat(PIXEL_RGB888); }},
+		{"RGBX8888", &defaultFace(), [this]() { setWindowPixelFormat(PIXEL_RGBX8888); }},
+		{"RGBA8888", &defaultFace(), [this]() { setWindowPixelFormat(PIXEL_RGBA8888); }},
 	},
 	windowPixelFormat
 	{
-		"Display Color Format",
+		"Display Color Format", &defaultFace(),
 		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == 0)
@@ -604,37 +604,37 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	secondDisplay
 	{
-		"2nd Window (for testing only)",
+		"2nd Window (for testing only)", &defaultFace(),
 		false,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
-			emuViewController().setEmuViewOnExtraWindow(item.flipBoolValue(*this), *appContext().screen(0));
+			app().viewController().setEmuViewOnExtraWindow(item.flipBoolValue(*this), *appContext().screen(0));
 		}
 	},
 	#endif
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_MULTI_SCREEN
 	showOnSecondScreen
 	{
-		"External Screen",
+		"External Screen", &defaultFace(),
 		(bool)optionShowOnSecondScreen,
 		"OS Managed", "Game Content",
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionShowOnSecondScreen = item.flipBoolValue(*this);
 			if(appContext().screens() > 1)
-				emuViewController().setEmuViewOnExtraWindow(optionShowOnSecondScreen, *appContext().screen(1));
+				app().viewController().setEmuViewOnExtraWindow(optionShowOnSecondScreen, *appContext().screen(1));
 		}
 	},
 	#endif
 	imageBuffersItem
 	{
-		{"Auto", [this]() { setImageBuffers(0, *videoLayer); }},
-		{"1 (Syncs GPU each frame, less input lag)", [this]() { setImageBuffers(1, *videoLayer); }},
-		{"2 (More stable, may add 1 frame of lag)", [this]() { setImageBuffers(2, *videoLayer); }},
+		{"Auto", &defaultFace(), [this]() { setImageBuffers(0, *videoLayer); }},
+		{"1 (Syncs GPU each frame, less input lag)", &defaultFace(), [this]() { setImageBuffers(1, *videoLayer); }},
+		{"2 (More stable, may add 1 frame of lag)", &defaultFace(), [this]() { setImageBuffers(2, *videoLayer); }},
 	},
 	imageBuffers
 	{
-		"Image Buffers",
+		"Image Buffers", &defaultFace(),
 		[this](int idx, Gfx::Text &t)
 		{
 			t.setString(videoLayer->imageBuffers() == 1 ? "1" : "2");
@@ -651,25 +651,25 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		}(),
 		imageBuffersItem
 	},
-	visualsHeading{"Visuals"},
-	screenShapeHeading{"Screen Shape"},
-	advancedHeading{"Advanced"},
-	systemSpecificHeading{"System-specific"}
+	visualsHeading{"Visuals", &defaultBoldFace()},
+	screenShapeHeading{"Screen Shape", &defaultBoldFace()},
+	advancedHeading{"Advanced", &defaultBoldFace()},
+	systemSpecificHeading{"System-specific", &defaultBoldFace()}
 {
 	iterateTimes(EmuSystem::aspectRatioInfos, i)
 	{
-		aspectRatioItem.emplace_back(EmuSystem::aspectRatioInfo[i].name,
+		aspectRatioItem.emplace_back(EmuSystem::aspectRatioInfo[i].name, &defaultFace(),
 			[this, i]()
 			{
 				setAspectRatio((double)EmuSystem::aspectRatioInfo[i]);
 			});
 	}
-	aspectRatioItem.emplace_back("Custom Value",
+	aspectRatioItem.emplace_back("Custom Value", &defaultFace(),
 		[this](Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectValueInputView<std::pair<double, double>>(attachParams(), e,
+			app().pushAndShowNewCollectValueInputView<std::pair<double, double>>(attachParams(), e,
 				"Input decimal or fraction", "",
-				[this](auto val)
+				[this](EmuApp &app, auto val)
 				{
 					double ratio = val.first / val.second;
 					if(optionAspectRatio.isValidVal(ratio))
@@ -689,7 +689,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 					}
 					else
 					{
-						EmuApp::postErrorMessage("Value not in range");
+						app.postErrorMessage("Value not in range");
 						return false;
 					}
 				});
@@ -700,7 +700,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		aspectRatio.setSelected(idx, *this);
 	}
-	textureBufferModeItem.emplace_back("Auto (Set optimal mode)",
+	textureBufferModeItem.emplace_back("Auto (Set optimal mode)", &defaultFace(),
 		[this](View &view)
 		{
 			optionTextureBufferMode = 0;
@@ -712,7 +712,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		});
 	for(auto desc: renderer().textureBufferModes())
 	{
-		textureBufferModeItem.emplace_back(desc.name,
+		textureBufferModeItem.emplace_back(desc.name, &defaultFace(),
 			[this, mode = desc.mode]()
 			{
 				optionTextureBufferMode = (uint8_t)mode;
@@ -785,11 +785,11 @@ bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::Float
 	auto wantedTime = time;
 	if(!time.count())
 	{
-		wantedTime = emuViewController().emuWindowScreen()->frameTime();
+		wantedTime = app().viewController().emuWindowScreen()->frameTime();
 	}
 	if(!EmuSystem::setFrameTime(vidSys, wantedTime))
 	{
-		EmuApp::printfMessage(4, true, "%.2fHz not in valid range", 1. / wantedTime.count());
+		app().printfMessage(4, true, "%.2fHz not in valid range", 1. / wantedTime.count());
 		return false;
 	}
 	EmuSystem::configFrameTime(optionSoundRate);
@@ -814,18 +814,18 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 	multiChoiceView->appendItem("Set with screen's reported rate",
 		[this, vidSys](View &view, Input::Event e)
 		{
-			if(!emuViewController().emuWindowScreen()->frameRateIsReliable())
+			if(!app().viewController().emuWindowScreen()->frameRateIsReliable())
 			{
 				#ifdef __ANDROID__
 				if(appContext().androidSDK() <= 10)
 				{
-					EmuApp::postErrorMessage("Many Android 2.3 devices mis-report their refresh rate, "
+					app().postErrorMessage("Many Android 2.3 devices mis-report their refresh rate, "
 						"using the detected or default rate may give better results");
 				}
 				else
 				#endif
 				{
-					EmuApp::postErrorMessage("Reported rate potentially unreliable, "
+					app().postErrorMessage("Reported rate potentially unreliable, "
 						"using the detected or default rate may give better results");
 				}
 			}
@@ -841,9 +841,9 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 	multiChoiceView->appendItem("Set custom rate",
 		[this, vidSys](Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectValueInputView<std::pair<double, double>>(attachParams(), e,
+			app().pushAndShowNewCollectValueInputView<std::pair<double, double>>(attachParams(), e,
 				"Input decimal or fraction", "",
-				[this, vidSys](auto val)
+				[this, vidSys](EmuApp &, auto val)
 				{
 					if(onFrameTimeChange(vidSys, IG::FloatSeconds{val.second / val.first}))
 					{
@@ -871,7 +871,7 @@ void VideoOptionView::pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidS
 						}
 						else
 						{
-							EmuApp::postErrorMessage("Detected rate too unstable to use");
+							app().postErrorMessage("Detected rate too unstable to use");
 						}
 					};
 				pushAndShowModal(std::move(frView), e);
@@ -884,30 +884,30 @@ void VideoOptionView::setZoom(uint8_t val)
 {
 	optionImageZoom = val;
 	logMsg("set image zoom: %d", int(optionImageZoom));
-	emuViewController().placeEmuViews();
-	emuViewController().postDrawToEmuWindows();
+	app().viewController().placeEmuViews();
+	app().viewController().postDrawToEmuWindows();
 }
 
 void VideoOptionView::setViewportZoom(uint8_t val)
 {
 	optionViewportZoom = val;
 	logMsg("set viewport zoom: %d", int(optionViewportZoom));
-	emuViewController().startMainViewportAnimation();
+	app().viewController().startMainViewportAnimation();
 }
 
 void VideoOptionView::setOverlayEffectLevel(uint8_t val)
 {
 	optionOverlayEffectLevel = val;
 	videoLayer->setOverlayIntensity(val/100.);
-	emuViewController().postDrawToEmuWindows();
+	app().viewController().postDrawToEmuWindows();
 }
 
 void VideoOptionView::setAspectRatio(double val)
 {
 	optionAspectRatio = val;
 	logMsg("set aspect ratio: %.2f", val);
-	emuViewController().placeEmuViews();
-	emuViewController().postDrawToEmuWindows();
+	app().viewController().placeEmuViews();
+	app().viewController().postDrawToEmuWindows();
 }
 
 unsigned VideoOptionView::idxOfBufferMode(Gfx::TextureBufferMode mode)

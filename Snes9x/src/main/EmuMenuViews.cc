@@ -24,16 +24,16 @@ class CustomAudioOptionView : public AudioOptionView
 
 	TextMenuItem dspInterpolationItem[5]
 	{
-		{"None", [this](){ setDSPInterpolation(0); }},
-		{"Linear", [this](){ setDSPInterpolation(1); }},
-		{"Gaussian", [this](){ setDSPInterpolation(2); }},
-		{"Cubic", [this](){ setDSPInterpolation(3); }},
-		{"Sinc", [this](){ setDSPInterpolation(4); }},
+		{"None", &defaultFace(), [this](){ setDSPInterpolation(0); }},
+		{"Linear", &defaultFace(), [this](){ setDSPInterpolation(1); }},
+		{"Gaussian", &defaultFace(), [this](){ setDSPInterpolation(2); }},
+		{"Cubic", &defaultFace(), [this](){ setDSPInterpolation(3); }},
+		{"Sinc", &defaultFace(), [this](){ setDSPInterpolation(4); }},
 	};
 
 	MultiChoiceMenuItem dspInterpolation
 	{
-		"DSP Interpolation",
+		"DSP Interpolation", &defaultFace(),
 		optionAudioDSPInterpolation,
 		dspInterpolationItem
 	};
@@ -47,11 +47,11 @@ public:
 };
 #endif
 
-class ConsoleOptionView : public TableView
+class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
 {
 	BoolMenuItem multitap
 	{
-		"5-Player Adapter",
+		"5-Player Adapter", &defaultFace(),
 		(bool)optionMultitap,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -64,16 +64,16 @@ class ConsoleOptionView : public TableView
 	TextMenuItem inputPortsItem[HAS_NSRT ? 4 : 3]
 	{
 		#ifndef SNES9X_VERSION_1_4
-		{"Auto (NSRT)", []() { setInputPorts(SNES_AUTO_INPUT); }},
+		{"Auto (NSRT)", &defaultFace(), []() { setInputPorts(SNES_AUTO_INPUT); }},
 		#endif
-		{"Gamepads", []() { setInputPorts(SNES_JOYPAD); }},
-		{"Superscope", []() { setInputPorts(SNES_SUPERSCOPE); }},
-		{"Mouse", []() { setInputPorts(SNES_MOUSE_SWAPPED); }},
+		{"Gamepads", &defaultFace(), []() { setInputPorts(SNES_JOYPAD); }},
+		{"Superscope", &defaultFace(), []() { setInputPorts(SNES_SUPERSCOPE); }},
+		{"Mouse", &defaultFace(), []() { setInputPorts(SNES_MOUSE_SWAPPED); }},
 	};
 
 	MultiChoiceMenuItem inputPorts
 	{
-		"Input Ports",
+		"Input Ports", &defaultFace(),
 		[]()
 		{
 			constexpr int SNES_JOYPAD_MENU_IDX = HAS_NSRT ? 1 : 0;
@@ -100,15 +100,15 @@ class ConsoleOptionView : public TableView
 
 	TextMenuItem videoSystemItem[4]
 	{
-		{"Auto", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(0, e); }},
-		{"NTSC", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(1, e); }},
-		{"PAL", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(2, e); }},
-		{"NTSC + PAL Spoof", [this](TextMenuItem &, View &, Input::Event e){ setVideoSystem(3, e); }},
+		{"Auto", &defaultFace(), [this](Input::Event e){ setVideoSystem(0, e); }},
+		{"NTSC", &defaultFace(), [this](Input::Event e){ setVideoSystem(1, e); }},
+		{"PAL", &defaultFace(), [this](Input::Event e){ setVideoSystem(2, e); }},
+		{"NTSC + PAL Spoof", &defaultFace(), [this](Input::Event e){ setVideoSystem(3, e); }},
 	};
 
 	MultiChoiceMenuItem videoSystem
 	{
-		"Video System",
+		"Video System", &defaultFace(),
 		optionVideoSystem,
 		videoSystemItem
 	};
@@ -117,15 +117,15 @@ class ConsoleOptionView : public TableView
 	{
 		EmuSystem::sessionOptionSet();
 		optionVideoSystem = val;
-		EmuApp::promptSystemReloadDueToSetOption(attachParams(), e);
+		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
 	#ifndef SNES9X_VERSION_1_4
-	TextHeadingMenuItem emulationHacks{"Emulation Hacks"};
+	TextHeadingMenuItem emulationHacks{"Emulation Hacks", &defaultBoldFace()};
 
 	BoolMenuItem blockInvalidVRAMAccess
 	{
-		"Allow Invalid VRAM Access",
+		"Allow Invalid VRAM Access", &defaultFace(),
 		(bool)!optionBlockInvalidVRAMAccess,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -137,7 +137,7 @@ class ConsoleOptionView : public TableView
 
 	BoolMenuItem separateEchoBuffer
 	{
-		"Separate Echo Buffer From Ram",
+		"Separate Echo Buffer From Ram", &defaultFace(),
 		(bool)optionSeparateEchoBuffer,
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
@@ -156,12 +156,12 @@ class ConsoleOptionView : public TableView
 
 	TextMenuItem superFXClockItem[2]
 	{
-		{"100%", [this]() { setSuperFXClock(100); }},
-		{"Custom Value",
+		{"100%", &defaultFace(), [this]() { setSuperFXClock(100); }},
+		{"Custom Value", &defaultFace(),
 			[this](Input::Event e)
 			{
-				EmuApp::pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 5 to 250", "",
-					[this](auto val)
+				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 5 to 250", "",
+					[this](EmuApp &app, auto val)
 					{
 						if(optionSuperFXClockMultiplier.isValidVal(val))
 						{
@@ -172,7 +172,7 @@ class ConsoleOptionView : public TableView
 						}
 						else
 						{
-							EmuApp::postErrorMessage("Value not in range");
+							app.postErrorMessage("Value not in range");
 							return false;
 						}
 					});
@@ -183,7 +183,7 @@ class ConsoleOptionView : public TableView
 
 	MultiChoiceMenuItem superFXClock
 	{
-		"SuperFX Clock Multiplier",
+		"SuperFX Clock Multiplier", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
 			t.setString(string_makePrintf<5>("%u%%", optionSuperFXClockMultiplier.val).data());
@@ -229,7 +229,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 private:
 	TextMenuItem options
 	{
-		"Console Options",
+		"Console Options", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning())

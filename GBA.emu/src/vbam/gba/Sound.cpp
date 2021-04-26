@@ -87,7 +87,7 @@ public:
 	constexpr GbaSound() { }
 #endif
 
-	uint  soundSampleRate    = 44100;
+	unsigned  soundSampleRate    = 44100;
 	bool  soundInterpolation = false;
 	//bool  soundPaused        = true;
 	float soundFiltering     = 0.5f;
@@ -367,9 +367,9 @@ static void end_frame( blip_time_t time )
 void flush_samples(Multi_Buffer * buffer, EmuAudio *audio)
 {
 	// Write one video frame worth of audio
-	uint samples = buffer->samples_avail();
+	unsigned samples = buffer->samples_avail();
 	u16 soundFinalWave[1800];
-	samples = std::min(samples, uint(sizeof soundFinalWave / 2));
+	samples = std::min(samples, unsigned(sizeof soundFinalWave / 2));
 	buffer->read_samples( (blip_sample_t*) soundFinalWave, samples );
 	if(likely(audio))
 		systemOnWriteDataToSoundBuffer(audio, soundFinalWave, samples*2);
@@ -542,12 +542,12 @@ void soundSetThrottle(unsigned short throttle)
 	soundDriver->setThrottle(throttle);*/
 }
 
-uint soundGetSampleRate()
+unsigned soundGetSampleRate()
 {
 	return soundSampleRate;
 }
 
-void soundSetSampleRate(GBASys &gba, uint sampleRate)
+void soundSetSampleRate(GBASys &gba, unsigned sampleRate)
 {
 	if ( soundSampleRate != sampleRate )
 	{

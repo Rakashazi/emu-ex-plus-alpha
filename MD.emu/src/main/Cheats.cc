@@ -66,7 +66,7 @@ static bool strIs16BitCode(const char *str)
 }
 
 // Decode cheat string into address/data components (derived from Genesis Plus GX function)
-uint decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &originalData)
+unsigned decodeCheat(const char *string, uint32 &address, uint16 &data, uint16 &originalData)
 {
 	static const char arvalidchars[] = "0123456789ABCDEF";
 
@@ -529,7 +529,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 		{
 			return 3;
 		},
-		[this](const TableView &, uint idx) -> MenuItem&
+		[this](const TableView &, unsigned idx) -> MenuItem&
 		{
 			switch(idx)
 			{
@@ -553,17 +553,18 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 	{
 		"Code",
 		cheat_.code,
+		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code,
-				[this](auto str)
+			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code,
+				[this](EmuApp &, auto str)
 				{
 					string_copy(cheat->code, str);
 					string_toUpper(cheat->code);
 					if(!decodeCheat(cheat->code, cheat->address, cheat->data, cheat->origData))
 					{
 						cheat->code[0]= 0;
-						EmuApp::postMessage(true, "Invalid code");
+						app().postMessage(true, "Invalid code");
 						postDraw();
 						return false;
 					}
@@ -592,14 +593,14 @@ void EmuEditCheatView::renamed(const char *str)
 
 void EmuEditCheatListView::loadCheatItems()
 {
-	uint cheats = cheatList.size();
+	unsigned cheats = cheatList.size();
 	cheat.clear();
 	cheat.reserve(cheats);
 	auto it = cheatList.begin();
 	iterateTimes(cheats, c)
 	{
 		auto &thisCheat = *it;
-		cheat.emplace_back(thisCheat.name,
+		cheat.emplace_back(thisCheat.name, &defaultFace(),
 			[this, c](TextMenuItem &, View &, Input::Event e)
 			{
 				pushAndShow(makeView<EmuEditCheatView>(cheatList[c], [this](){ onCheatListChanged(); }), e);
@@ -616,7 +617,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		{
 			return 1 + cheat.size();
 		},
-		[this](const TableView &, uint idx) -> MenuItem&
+		[this](const TableView &, unsigned idx) -> MenuItem&
 		{
 			switch(idx)
 			{
@@ -627,17 +628,17 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 	},
 	addCode
 	{
-		"Add Game Genie / Action Replay Code",
+		"Add Game Genie / Action Replay Code", &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
-			EmuApp::pushAndShowNewCollectTextInputView(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, "",
+			app().pushAndShowNewCollectTextInputView(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, "",
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
 					{
 						if(cheatList.isFull())
 						{
-							EmuApp::postMessage(true, "Cheat list is full");
+							app().postMessage(true, "Cheat list is full");
 							view.dismiss();
 							return 0;
 						}
@@ -646,7 +647,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						string_toUpper(c.code);
 						if(!decodeCheat(c.code, c.address, c.data, c.origData))
 						{
-							EmuApp::postMessage(true, "Invalid code");
+							app().postMessage(true, "Invalid code");
 							return 1;
 						}
 						string_copy(c.name, "Unnamed Cheat");
@@ -656,7 +657,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						updateCheats();
 						onCheatListChanged();
 						view.dismiss();
-						EmuApp::pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
+						app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
 							[this](CollectTextInputView &view, const char *str)
 							{
 								if(str)
@@ -691,14 +692,14 @@ EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
 
 void EmuCheatsView::loadCheatItems()
 {
-	uint cheats = cheatList.size();
+	unsigned cheats = cheatList.size();
 	cheat.clear();
 	cheat.reserve(cheats);
 	auto it = cheatList.begin();
 	iterateTimes(cheats, cIdx)
 	{
 		auto &thisCheat = *it;
-		cheat.emplace_back(thisCheat.name, thisCheat.isOn(),
+		cheat.emplace_back(thisCheat.name, &defaultFace(), thisCheat.isOn(),
 			[this, cIdx](BoolMenuItem &item, View &, Input::Event e)
 			{
 				item.flipBoolValue(*this);

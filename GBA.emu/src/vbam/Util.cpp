@@ -558,14 +558,14 @@ void utilGBAFindSave(const u8 *data, const int size)
   flashSetSize(flashSize);
 }
 
-uint makeColor(uint mapIdx, uint rShift, uint gShift, uint bShift)
+unsigned makeColor(unsigned mapIdx, unsigned rShift, unsigned gShift, unsigned bShift)
 {
 	return ((mapIdx & 0x1f) << rShift) |
 			(((mapIdx & 0x3e0) >> 5) << gShift) |
 			(((mapIdx & 0x7c00) >> 10) << bShift);
 }
 
-uint makeRGB565Color(uint mapIdx)
+unsigned makeRGB565Color(unsigned mapIdx)
 {
 	return makeColor(mapIdx, 11, 6, 0);
 }

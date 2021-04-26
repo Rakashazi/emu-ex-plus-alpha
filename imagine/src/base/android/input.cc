@@ -16,39 +16,24 @@
 #define LOGTAG "Input"
 #include <android/api-level.h>
 #include <imagine/time/Time.hh>
+#include <imagine/base/Application.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
-#include "internal.hh"
 #include "android.hh"
-#include "../../input/private.hh"
-#include "AndroidInputDevice.hh"
+#include "input.hh"
+#include <android/input.h>
 
 namespace Base
 {
-class ApplicationContext;
-}
 
-namespace Input
-{
-
-struct TouchState
-{
-	constexpr TouchState() {}
-	int id = -1;
-	bool isTouching = false;
-};
-using TouchStateArray = std::array<TouchState, Config::Input::MAX_POINTERS>;
-
-void (*processInput)(Base::ApplicationContext, AInputQueue *) = processInputWithHasEvents;
-static const int AINPUT_SOURCE_JOYSTICK = 0x01000010;
-static const int AINPUT_SOURCE_CLASS_JOYSTICK = 0x00000010;
-static int mostRecentKeyEventDevID = -1;
-static TouchStateArray m{};
+static constexpr int AINPUT_SOURCE_JOYSTICK = 0x01000010;
+static constexpr int AINPUT_SOURCE_CLASS_JOYSTICK = 0x00000010;
 static const char* aInputSourceToStr(uint32_t source);
 
-static AndroidInputDevice *deviceForInputId(Base::ApplicationContext app, int id)
+static Input::AndroidInputDevice *deviceForInputId(Base::ApplicationContext ctx, Base::AndroidInputDeviceContainer &sysInputDev, int id)
 {
-	if(app.androidSDK() < 12)
+	if(ctx.androidSDK() < 12)
 	{
 		// no multi-input device support
 		assumeExpr(sysInputDev.size());
@@ -73,8 +58,10 @@ static Time makeTimeFromKeyEvent(AInputEvent *event)
 	return IG::Nanoseconds(AKeyEvent_getEventTime(event));
 }
 
-static void mapKeycodesForSpecialDevices(const Device &dev, int32_t &keyCode, int32_t &metaState, Source &src, AInputEvent *event)
+static void mapKeycodesForSpecialDevices(const Input::Device &dev, int32_t &keyCode, int32_t &metaState,
+	Input::Source &src, AInputEvent *event)
 {
+	using namespace Input;
 	switch(dev.subtype())
 	{
 		bcase Device::SUBTYPE_XPERIA_PLAY:
@@ -141,21 +128,22 @@ static bool isFromSource(int src, int srcTest)
 	return (src & srcTest) == srcTest;
 }
 
-static void dispatchTouch(uint32_t idx, uint32_t action, TouchState &p, IG::Point2D<int> pos, Time time,
-	bool isMouse, const Device *device, Base::Window &win)
+static void dispatchTouch(uint32_t idx, Input::Action action, TouchState &p, IG::Point2D<int> pos, Time time,
+	bool isMouse, const Input::Device *device, Base::Window &win)
 {
 	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
-	uint32_t metaState = action == Input::RELEASED ? 0 : IG::bit(Pointer::LBUTTON);
-	auto src = isMouse ? Source::MOUSE : Source::TOUCHSCREEN;
-	win.dispatchInputEvent(Event{idx, Map::POINTER, Pointer::LBUTTON, metaState, action, pos.x, pos.y, (int)idx, src, time, device});
+	uint32_t metaState = action == Input::Action::RELEASED ? 0 : IG::bit(Input::Pointer::LBUTTON);
+	auto src = isMouse ? Input::Source::MOUSE : Input::Source::TOUCHSCREEN;
+	win.dispatchInputEvent(Input::Event{idx, Input::Map::POINTER, Input::Pointer::LBUTTON,
+		metaState, action, pos.x, pos.y, (int)idx, src, time, device});
 }
 
 static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int pid, Time time, bool isMouse,
-	const Device *device, Base::Window &win)
+	const Input::Device *device, Base::Window &win)
 {
 	//logMsg("%s action: %s from id %d @ %d,%d @ time %llu",
 	//	isMouse ? "mouse" : "touch", androidEventEnumToStr(action), pid, x, y, (unsigned long long)time.nSecs());
-	auto pos = transformInputPos(win, {x, y});
+	auto pos = win.transformInputPos({x, y});
 	switch(action)
 	{
 		case AMOTION_EVENT_ACTION_DOWN:
@@ -167,7 +155,7 @@ static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int 
 				{
 					p.id = pid;
 					p.isTouching = true;
-					dispatchTouch(i, PUSHED, p, pos, time, isMouse, device, win);
+					dispatchTouch(i, Input::Action::PUSHED, p, pos, time, isMouse, device, win);
 					break;
 				}
 				i++;
@@ -181,7 +169,7 @@ static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int 
 					//logMsg("touch up for %d from gesture end", p_i);
 					p.id = -1;
 					p.isTouching = false;
-					auto touchAction = action == AMOTION_EVENT_ACTION_UP ? RELEASED : CANCELED;
+					auto touchAction = action == AMOTION_EVENT_ACTION_UP ? Input::Action::RELEASED : Input::Action::CANCELED;
 					dispatchTouch(i, touchAction, p, {x, y}, time, isMouse, device, win);
 				}
 				i++;
@@ -194,7 +182,7 @@ static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int 
 				{
 					p.id = -1;
 					p.isTouching = false;
-					dispatchTouch(i, RELEASED, p, pos, time, isMouse, device, win);
+					dispatchTouch(i, Input::Action::RELEASED, p, pos, time, isMouse, device, win);
 					break;
 				}
 				i++;
@@ -206,7 +194,7 @@ static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int 
 			{
 				if(p.id == pid)
 				{
-					dispatchTouch(i, MOVED, p, pos, time, isMouse, device, win);
+					dispatchTouch(i, Input::Action::MOVED, p, pos, time, isMouse, device, win);
 					break;
 				}
 				i++;
@@ -223,8 +211,9 @@ static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int 
 	return 1;
 }
 
-static bool processInputEvent(AInputEvent* event, Base::Window &win)
+bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win)
 {
+	using namespace Input;
 	auto type = AInputEvent_getType(event);
 	switch(type)
 	{
@@ -237,7 +226,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 			{
 				case AINPUT_SOURCE_CLASS_POINTER:
 				{
-					auto dev = deviceForInputId(win.appContext(), AInputEvent_getDeviceId(event));
+					auto dev = deviceForInputId(win.appContext(), sysInputDev, AInputEvent_getDeviceId(event));
 					if(unlikely(!dev))
 					{
 						if(Config::DEBUG_BUILD)
@@ -284,21 +273,21 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 					auto y = AMotionEvent_getY(event, 0);
 					auto time = makeTimeFromMotionEvent(event);
 					int iX = x * 1000., iY = y * 1000.;
-					auto pos = transformInputPos(win, {iX, iY});
+					auto pos = win.transformInputPos({iX, iY});
 					//logMsg("trackball ev %s %f %f", androidEventEnumToStr(action), x, y);
 					auto src = Source::KEYBOARD;
 					if(eventAction == AMOTION_EVENT_ACTION_MOVE)
-						win.dispatchInputEvent({0, Map::REL_POINTER, 0, 0, MOVED_RELATIVE, pos.x, pos.y, 0, Source::NAVIGATION, time, nullptr});
+						win.dispatchInputEvent({0, Map::REL_POINTER, 0, 0, Action::MOVED_RELATIVE, pos.x, pos.y, 0, Source::NAVIGATION, time, nullptr});
 					else
 					{
 						Key key = Keycode::ENTER;
-						win.dispatchInputEvent({0, Map::REL_POINTER, key, key, eventAction == AMOTION_EVENT_ACTION_DOWN ? PUSHED : RELEASED, 0, 0, Source::KEYBOARD, time, nullptr});
+						win.dispatchInputEvent({0, Map::REL_POINTER, key, key, eventAction == AMOTION_EVENT_ACTION_DOWN ? Action::PUSHED : Action::RELEASED, 0, 0, Source::KEYBOARD, time, nullptr});
 					}
 					return true;
 				}
 				case AINPUT_SOURCE_CLASS_JOYSTICK:
 				{
-					auto dev = deviceForInputId(win.appContext(), AInputEvent_getDeviceId(event));
+					auto dev = deviceForInputId(win.appContext(), sysInputDev, AInputEvent_getDeviceId(event));
 					if(unlikely(!dev))
 					{
 						if(Config::DEBUG_BUILD)
@@ -366,7 +355,7 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 				repeatCount = 0;
 			}
 			mostRecentKeyEventDevID = devID;
-			const AndroidInputDevice *dev = deviceForInputId(win.appContext(), devID);
+			const AndroidInputDevice *dev = deviceForInputId(win.appContext(), sysInputDev, devID);
 			if(unlikely(!dev))
 			{
 				if(virtualDev)
@@ -389,12 +378,12 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 			uint32_t shiftState = metaState & AMETA_SHIFT_ON;
 			auto time = makeTimeFromKeyEvent(event);
 			assert((uint32_t)keyCode < Keycode::COUNT);
-			uint32_t action = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? RELEASED : PUSHED;
+			auto action = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? Action::RELEASED : Action::PUSHED;
 			if(!dev->iCadeMode() || (dev->iCadeMode() && !processICadeKey(keyCode, action, time, *dev, win)))
 			{
 				cancelKeyRepeatTimer();
 				Key key = keyCode & 0x1ff;
-				return win.dispatchInputEvent({dev->enumId(), Map::SYSTEM, key, key, action, shiftState, repeatCount, eventSource, time, dev});
+				return dispatchKeyInputEvent({dev->enumId(), Map::SYSTEM, key, key, action, shiftState, repeatCount, eventSource, time, dev}, win);
 			}
 			return true;
 		}
@@ -403,10 +392,10 @@ static bool processInputEvent(AInputEvent* event, Base::Window &win)
 	return false;
 }
 
-static void processInputCommon(Base::ApplicationContext app, AInputQueue *inputQueue, AInputEvent* event)
+void AndroidApplication::processInputCommon(AInputQueue *inputQueue, AInputEvent* event)
 {
 	//logMsg("input event start");
-	if(unlikely(!Base::deviceWindow(app)))
+	if(unlikely(!deviceWindow()))
 	{
 		logMsg("ignoring input with uninitialized window");
 		AInputQueue_finishEvent(inputQueue, event, 0);
@@ -417,9 +406,14 @@ static void processInputCommon(Base::ApplicationContext app, AInputQueue *inputQ
 		//logMsg("input event used by pre-dispatch");
 		return;
 	}
-	auto handled = processInputEvent(event, *Base::deviceWindow(app));
+	auto handled = processInputEvent(event, *deviceWindow());
 	AInputQueue_finishEvent(inputQueue, event, handled);
 	//logMsg("input event end: %s", handled ? "handled" : "not handled");
+}
+
+void AndroidApplication::processInput(AInputQueue *queue)
+{
+	(this->*processInput_)(queue);
 }
 
 // Use on Android 4.1+ to fix a possible ANR where the OS
@@ -430,13 +424,13 @@ static void processInputCommon(Base::ApplicationContext app, AInputQueue *inputQ
 // it returns an error instead of using AInputQueue_hasEvents
 // and no warnings are printed to logcat unlike earlier
 // Android versions
-void processInputWithGetEvent(Base::ApplicationContext app, AInputQueue *inputQueue)
+void AndroidApplication::processInputWithGetEvent(AInputQueue *inputQueue)
 {
 	int events = 0;
 	AInputEvent* event = nullptr;
 	while(AInputQueue_getEvent(inputQueue, &event) >= 0)
 	{
-		processInputCommon(app, inputQueue, event);
+		processInputCommon(inputQueue, event);
 		events++;
 	}
 	if(events > 1)
@@ -445,7 +439,7 @@ void processInputWithGetEvent(Base::ApplicationContext app, AInputQueue *inputQu
 	}
 }
 
-void processInputWithHasEvents(Base::ApplicationContext app, AInputQueue *inputQueue)
+void AndroidApplication::processInputWithHasEvents(AInputQueue *inputQueue)
 {
 	int events = 0;
 	int32_t hasEventsRet = 0;
@@ -459,7 +453,7 @@ void processInputWithHasEvents(Base::ApplicationContext app, AInputQueue *inputQ
 			//logWarn("error getting input event from queue");
 			break;
 		}
-		processInputCommon(app, inputQueue, event);
+		processInputCommon(inputQueue, event);
 		events++;
 	} while((hasEventsRet = AInputQueue_hasEvents(inputQueue)) == 1);
 	if(events > 1)
@@ -489,11 +483,17 @@ static const char* aInputSourceToStr(uint32_t source)
 	}
 }
 
-void flushSystemEvents(Base::ApplicationContext app)
+void ApplicationContext::flushSystemInputEvents()
 {
-	if(AInputQueue_hasEvents(Base::inputQueue))
+	application().flushSystemInputEvents();
+}
+
+void AndroidApplication::flushSystemInputEvents()
+{
+	auto queue = inputQueue;
+	if(AInputQueue_hasEvents(queue))
 	{
-		processInput(app, Base::inputQueue);
+		processInput(queue);
 	}
 }
 

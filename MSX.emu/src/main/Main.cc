@@ -134,7 +134,7 @@ const char *EmuSystem::systemName()
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMSXExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMSXExtension;
 
-static EmuSystem::Error insertMedia()
+static EmuSystem::Error insertMedia(EmuApp &app)
 {
 	iterateTimes(2, i)
 	{
@@ -153,7 +153,7 @@ static EmuSystem::Error insertMedia()
 				if(!strlen(cartName[i].data()))
 					continue;
 				logMsg("loading ROM %s", cartName[i].data());
-				if(!insertROM(cartName[i].data(), i))
+				if(!insertROM(app, cartName[i].data(), i))
 				{
 					return EmuSystem::makeError("Error loading ROM%d:\n%s", i, cartName[i].data());
 				}
@@ -166,7 +166,7 @@ static EmuSystem::Error insertMedia()
 		if(!strlen(diskName[i].data()))
 			continue;
 		logMsg("loading Disk %s", diskName[i].data());
-		if(!insertDisk(diskName[i].data(), i))
+		if(!insertDisk(app, diskName[i].data(), i))
 		{
 			return EmuSystem::makeError("Error loading Disk%d:\n%s", i, diskName[i].data());
 		}
@@ -177,7 +177,7 @@ static EmuSystem::Error insertMedia()
 		if(!strlen(hdName[i].data()))
 			continue;
 		logMsg("loading HD %s", hdName[i].data());
-		if(!insertDisk(hdName[i].data(), diskGetHdDriveId(i / 2, i % 2)))
+		if(!insertDisk(app, hdName[i].data(), diskGetHdDriveId(i / 2, i % 2)))
 		{
 			return EmuSystem::makeError("Error loading Disk%d:\n%s", i, hdName[i].data());
 		}
@@ -249,7 +249,7 @@ static const char *boardTypeToStr(BoardType type)
 	}
 }
 
-static bool createBoard()
+static bool createBoard(EmuApp &app)
 {
 	// TODO: 50hz mode
 	assert(machine);
@@ -265,14 +265,14 @@ static bool createBoard()
 			joystickPortSetType(0, JOYSTICK_PORT_JOYSTICK);
 			joystickPortSetType(1, JOYSTICK_PORT_JOYSTICK);
 			activeBoardType = BOARD_MSX;
-			setupVKeyboardMap(BOARD_MSX);
+			setupVKeyboardMap(app, BOARD_MSX);
 			return msxCreate(machine, VDP_SYNC_60HZ, &boardInfo);
 		case BOARD_COLECO:
 			logMsg("creating Coleco");
 			joystickPortSetType(0, JOYSTICK_PORT_COLECOJOYSTICK);
 			joystickPortSetType(1, JOYSTICK_PORT_COLECOJOYSTICK);
 			activeBoardType = BOARD_COLECO;
-			setupVKeyboardMap(BOARD_COLECO);
+			setupVKeyboardMap(app, BOARD_COLECO);
 			return colecoCreate(machine, VDP_SYNC_60HZ, &boardInfo);
 		default:
 			logErr("error: unknown board type 0x%X", machine->board.type);
@@ -280,10 +280,10 @@ static bool createBoard()
 	}
 }
 
-static bool createBoardFromLoadGame()
+static bool createBoardFromLoadGame(EmuApp &app)
 {
 	destroyBoard(false);
-	if(!createBoard())
+	if(!createBoard(app))
 	{
 		boardInfo = {};
 		return false;
@@ -334,7 +334,7 @@ const char *currentMachineName()
 	return machine->name;
 }
 
-EmuSystem::Error setCurrentMachineName(const char *machineName, bool insertMediaFiles)
+EmuSystem::Error setCurrentMachineName(EmuApp &app, const char *machineName, bool insertMediaFiles)
 {
 	if(machine && string_equal(machine->name, machineName))
 	{
@@ -345,12 +345,12 @@ EmuSystem::Error setCurrentMachineName(const char *machineName, bool insertMedia
 	{
 		return makeMachineInitError(machineName);
 	}
-	if(!createBoardFromLoadGame())
+	if(!createBoardFromLoadGame(app))
 	{
 		return EmuSystem::makeError("Error initializing %s", machine->name);
 	}
 	if(insertMediaFiles)
-		return insertMedia();
+		return insertMedia(app);
 	else
 		return {};
 }
@@ -399,7 +399,7 @@ static FS::FileString getFirstMediaFilenameInArchive(const char *zipPath)
 	return getFirstFilenameInArchive(zipPath, hasMSXExtension);
 }
 
-bool insertROM(const char *name, uint slot)
+bool insertROM(EmuApp &app, const char *name, unsigned slot)
 {
 	assert(strlen(EmuSystem::gamePath()));
 	auto path = FS::makePathString(EmuSystem::gamePath(), name);
@@ -409,20 +409,20 @@ bool insertROM(const char *name, uint slot)
 		fileInZipName = getFirstROMFilenameInArchive(path.data());
 		if(!strlen(fileInZipName.data()))
 		{
-			EmuApp::postMessage(true, "No ROM found in archive:%s", path.data());
+			app.postMessage(true, "No ROM found in archive:%s", path.data());
 			return false;
 		}
 		logMsg("found:%s in archive:%s", fileInZipName.data(), path.data());
 	}
 	if(!boardChangeCartridge(slot, ROM_UNKNOWN, path.data(), strlen(fileInZipName.data()) ? fileInZipName.data() : nullptr))
 	{
-		EmuApp::postMessage(true, "Error loading ROM");
+		app.postMessage(true, "Error loading ROM");
 		return false;
 	}
 	return true;
 }
 
-bool insertDisk(const char *name, uint slot)
+bool insertDisk(EmuApp &app, const char *name, unsigned slot)
 {
 	assert(strlen(EmuSystem::gamePath()));
 	auto path = FS::makePathString(EmuSystem::gamePath(), name);
@@ -432,35 +432,35 @@ bool insertDisk(const char *name, uint slot)
 		fileInZipName = getFirstDiskFilenameInArchive(path.data());
 		if(!strlen(fileInZipName.data()))
 		{
-			EmuApp::postMessage(true, "No disk found in archive:%s", path.data());
+			app.postMessage(true, "No disk found in archive:%s", path.data());
 			return false;
 		}
 		logMsg("found:%s in archive:%s", fileInZipName.data(), path.data());
 	}
 	if(!diskChange(slot, path.data(), strlen(fileInZipName.data()) ? fileInZipName.data() : nullptr))
 	{
-		EmuApp::postMessage(true, "Error loading Disk");
+		app.postMessage(true, "Error loading Disk");
 		return false;
 	}
 	return true;
 }
 
-void EmuSystem::reset(ResetMode mode)
+void EmuSystem::reset(EmuApp &app, ResetMode mode)
 {
 	assert(gameIsRunning());
 	fdcActive = 0;
 	if(mode == RESET_HARD)
 	{
 		boardInfo.destroy();
-		if(!createBoard())
+		if(!createBoard(app))
 		{
-			EmuApp::postMessage(true, "Error during MSX reset");
-			EmuApp::exitGame(false);
+			app.postMessage(true, "Error during MSX reset");
+			app.exitGame(false);
 		}
-		if(auto err = insertMedia();
+		if(auto err = insertMedia(app);
 			err)
 		{
-			EmuApp::printfMessage(3, true, "%s", err->what());
+			app.printfMessage(3, true, "%s", err->what());
 		}
 	}
 	else
@@ -538,7 +538,7 @@ static FS::FileString saveStateGetFileString(SaveState* state, const char* tagNa
 	return name;
 }
 
-static EmuSystem::Error loadBlueMSXState(const char *filename)
+static EmuSystem::Error loadBlueMSXState(EmuApp &app, const char *filename)
 {
 	logMsg("loading state %s", filename);
 
@@ -564,11 +564,11 @@ static EmuSystem::Error loadBlueMSXState(const char *filename)
 	machineLoadState(machine);
 
 	// from this point on, errors are fatal and require the existing game to close
-	if(!createBoardFromLoadGame())
+	if(!createBoardFromLoadGame(app))
 	{
 		saveStateDestroy();
 		auto err = EmuSystem::makeError("Can't initialize machine:%s from save-state", machine->name);
-		EmuApp::exitGame(false);
+		app.exitGame(false);
 		return err;
 	}
 
@@ -586,10 +586,10 @@ static EmuSystem::Error loadBlueMSXState(const char *filename)
 	hdName[3] = saveStateGetFileString(state, "diskName11");
 	saveStateClose(state);
 
-	if(auto err = insertMedia();
+	if(auto err = insertMedia(app);
 		err)
 	{
-		EmuApp::exitGame(false);
+		app.exitGame(false);
 		return err;
 	}
 
@@ -599,9 +599,9 @@ static EmuSystem::Error loadBlueMSXState(const char *filename)
 	return {};
 }
 
-EmuSystem::Error EmuSystem::loadState(const char *path)
+EmuSystem::Error EmuSystem::loadState(EmuApp &app, const char *path)
 {
-	return loadBlueMSXState(path);
+	return loadBlueMSXState(app, path);
 }
 
 void EmuSystem::saveBackupMem()
@@ -617,7 +617,7 @@ void EmuSystem::closeSystem()
 	destroyMachine();
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	// configure media loading
 	auto mediaPath = fullGamePath();
@@ -650,9 +650,10 @@ EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgress
 	}
 
 	// create machine
+	auto &app = EmuApp::get(ctx);
 	if(strlen(optionMachineName.val)) // try machine from session config first
 	{
-		if(auto err = setCurrentMachineName(optionMachineName.val, false);
+		if(auto err = setCurrentMachineName(app, optionMachineName.val, false);
 		err)
 		{
 			destroyMachine();
@@ -661,7 +662,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgress
 	auto destroyMachineOnReturn = IG::scopeGuard([](){ destroyMachine(); });
 	if(!strlen(currentMachineName()))
 	{
-		if(auto err = setCurrentMachineName(optionDefaultMachineName.val, false);
+		if(auto err = setCurrentMachineName(app, optionDefaultMachineName.val, false);
 			err)
 		{
 			return err;
@@ -713,7 +714,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgress
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
 	assumeExpr(rate == 44100);// TODO: not all sound chips handle non-44100Hz sample rate
-	uint mixRate = std::round(rate * (59.924 * frameTime.count()));
+	unsigned mixRate = std::round(rate * (59.924 * frameTime.count()));
 	mixerSetSampleRate(mixer, mixRate);
 	logMsg("set mixer rate %d", (int)mixerGetSampleRate(mixer));
 }

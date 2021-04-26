@@ -60,7 +60,18 @@ public:
 	std::pair<T, ssize_t> read(std::error_code *ecOut = nullptr)
 	{
 		T obj;
-		auto size = static_cast<IO*>(this)->read(&obj, sizeof(T), ecOut);
+		ssize_t size;
+		if constexpr(std::is_same_v<T, bool>)
+		{
+			// special case to convert value to a valid bool
+			uint8_t tmpObj;
+			size = static_cast<IO*>(this)->read(&tmpObj, sizeof(T), ecOut);
+			obj = tmpObj;
+		}
+		else
+		{
+			size = static_cast<IO*>(this)->read(&obj, sizeof(T), ecOut);
+		}
 		if(size == -1)
 			return {{}, size};
 		return {obj, size};

@@ -15,12 +15,13 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include "Recent.hh"
 #include <vector>
 
-class RecentGameView : public TableView
+class RecentGameView : public TableView, public EmuAppHelper<RecentGameView>
 {
 public:
 	RecentGameView(ViewAttachParams attach, RecentGameList &list);

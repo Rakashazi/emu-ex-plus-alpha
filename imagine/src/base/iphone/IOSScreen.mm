@@ -62,8 +62,9 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 namespace Base
 {
 
-IOSScreen::IOSScreen(UIScreen *screen)
+IOSScreen::IOSScreen(ApplicationContext, InitParams initParams)
 {
+	UIScreen *screen = (__bridge UIScreen*)initParams.uiScreen;
 	logMsg("init screen %p", screen);
 	auto currMode = screen.currentMode;
 	if(currMode.size.width == 1600 && currMode.size.height == 900)

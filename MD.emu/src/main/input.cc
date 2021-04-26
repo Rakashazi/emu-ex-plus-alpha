@@ -48,16 +48,16 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "A/B/C";
 const char *EmuSystem::inputCenterBtnName = "Mode/Start";
-const uint EmuSystem::inputFaceBtns = 6;
-const uint EmuSystem::inputCenterBtns = 2;
+const unsigned EmuSystem::inputFaceBtns = 6;
+const unsigned EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = true;
-const uint EmuSystem::maxPlayers = 4;
-uint playerIdxMap[4]{};
+const unsigned EmuSystem::maxPlayers = 4;
+unsigned playerIdxMap[4]{};
 
-void updateVControllerMapping(uint player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
-	uint playerMask = player << 30;
+	unsigned playerMask = player << 30;
 	map[SysVController::F_ELEM] = INPUT_A | playerMask;
 	map[SysVController::F_ELEM+1] = INPUT_B | playerMask;
 	map[SysVController::F_ELEM+2] = INPUT_C | playerMask;
@@ -78,12 +78,12 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 	map[SysVController::D_ELEM+8] = INPUT_DOWN | INPUT_RIGHT | playerMask;
 }
 
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
+unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	assert(input >= mdKeyIdxUp);
-	uint player = (input - mdKeyIdxUp) / EmuControls::gamepadKeys;
-	uint playerMask = player << 30;
+	unsigned player = (input - mdKeyIdxUp) / EmuControls::gamepadKeys;
+	unsigned playerMask = player << 30;
 	input -= EmuControls::gamepadKeys * player;
 	switch(input)
 	{
@@ -114,12 +114,12 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint state, uint emuKey)
+void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
 {
-	uint player = emuKey >> 30; // player is encoded in upper 2 bits of input code
+	auto player = emuKey >> 30; // player is encoded in upper 2 bits of input code
 	assert(player <= 4);
 	uint16 &padData = input.pad[playerIdxMap[player]];
-	padData = IG::setOrClearBits(padData, (uint16)emuKey, state == Input::PUSHED);
+	padData = IG::setOrClearBits(padData, (uint16)emuKey, action == Input::Action::PUSHED);
 }
 
 bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)

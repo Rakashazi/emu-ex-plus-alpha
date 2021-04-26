@@ -18,6 +18,7 @@ class Settings;
 class Sound;
 class VideoDialog;
 class EmuAudio;
+class EmuApp;
 
 #include <stella/common/bspf.hxx>
 #include <stella/common/StateManager.hxx>
@@ -34,7 +35,7 @@ class OSystem
 	friend class EventHandler;
 
 public:
-	OSystem();
+	OSystem(EmuApp &);
 	EventHandler& eventHandler() const;
 	FrameBuffer& frameBuffer() const;
 	Sound& sound() const;
@@ -73,7 +74,10 @@ public:
 
 	void resetFps() {}
 
+	EmuApp &app();
+
 protected:
+	EmuApp *appPtr{};
 	std::unique_ptr<Console> myConsole{};
 	std::unique_ptr<StateManager> myStateManager{};
 	std::unique_ptr<Random> myRandom{};

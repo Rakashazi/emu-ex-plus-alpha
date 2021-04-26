@@ -25,6 +25,8 @@
 #include <dlfcn.h>
 #include <imagine/logger/logger.h>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
+#include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/input/Input.hh>
@@ -33,41 +35,52 @@
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
-#include "../common/windowPrivate.hh"
-#include "../common/basePrivate.hh"
 #include "android.hh"
-#include "internal.hh"
 
 namespace Base
 {
 
 static JavaVM* jVM{};
-static pthread_key_t jEnvKey{};
-static JavaInstMethod<void()> jRecycle{};
-
-// activity
-jclass jBaseActivityCls{};
-static bool aHasFocus = true;
-static JavaInstMethod<void(jint)> jSetUIVisibility{};
-static JavaInstMethod<jobject()> jNewFontRenderer{};
-JavaInstMethod<void(jint)> jSetRequestedOrientation{};
-static JavaInstMethod<jint()> jMainDisplayRotation{};
-static bool osAnimatesRotation = false;
-SurfaceRotation osRotation{};
-static SystemOrientationChangedDelegate onSystemOrientationChanged{};
-static bool hasPermanentMenuKey = true;
-static bool keepScreenOn = false;
-static Timer userActivityCallback{"userActivityCallback"};
-static uint32_t uiVisibilityFlags = SYS_UI_STYLE_NO_FLAGS;
-AInputQueue *inputQueue{};
 static void *mainLibHandle{};
-static bool unloadNativeLibOnDestroy = false;
+static constexpr bool unloadNativeLibOnDestroy = false;
 static NoopThread noopThread{};
 static pid_t mainThreadId{};
 
-// window
-JavaInstMethod<void(jint, jint)> jSetWinFlags{};
-JavaInstMethod<jint()> jWinFlags{};
+static void setNativeActivityCallbacks(ANativeActivity *nActivity);
+
+AndroidApplication::AndroidApplication(ApplicationInitParams initParams)
+{
+	ApplicationContext ctx{initParams.nActivity};
+	auto env = ctx.mainThreadJniEnv();
+	auto baseActivity = ctx.baseActivityObject();
+	auto androidSDK = ctx.androidSDK();
+	jBaseActivityCls = (jclass)env->NewGlobalRef(env->GetObjectClass(baseActivity));
+	processInput_ = androidSDK >= 12 ? &AndroidApplication::processInputWithGetEvent : &AndroidApplication::processInputWithHasEvents;
+	logger_setLogDirectoryPrefix(sharedStoragePath(env).data());
+	initActivity(env, baseActivity, androidSDK);
+	setNativeActivityCallbacks(initParams.nActivity);
+	logMsg("SDK API Level:%d", androidSDK);
+	initScreens(env, baseActivity, androidSDK, initParams.nActivity);
+	initFrameTimer(env, baseActivity, androidSDK, mainScreen());
+	initInput(env, baseActivity, androidSDK);
+	{
+		auto aConfig = AConfiguration_new();
+		auto freeConfig = IG::scopeGuard([&](){ AConfiguration_delete(aConfig); });
+		AConfiguration_fromAssetManager(aConfig, ctx.aAssetManager());
+		initInputConfig(aConfig);
+	}
+}
+
+void AndroidApplicationContext::setApplicationPtr(Application *appPtr)
+{
+	act->instance = appPtr;
+}
+
+Application &AndroidApplicationContext::application() const
+{
+	assert(act->instance);
+	return *static_cast<Application*>(act->instance);
+}
 
 IG::PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat)
 {
@@ -106,7 +119,7 @@ IG::Pixmap makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFo
 	return {{{(int)info.width, (int)info.height}, format}, pixels, {info.stride, IG::Pixmap::BYTE_UNITS}};
 }
 
-void recycleBitmap(JNIEnv *env, jobject bitmap)
+void AndroidApplication::recycleBitmap(JNIEnv *env, jobject bitmap)
 {
 	if(unlikely(!jRecycle))
 	{
@@ -118,48 +131,54 @@ void recycleBitmap(JNIEnv *env, jobject bitmap)
 void ApplicationContext::exit(int returnVal)
 {
 	// TODO: return exit value as activity result
-	setExitingActivityState();
+	application().setExitingActivityState();
 	auto env = thisThreadJniEnv();
-	JavaInstMethod<void()> jFinish{env, jBaseActivityCls, "finish", "()V"};
+	JavaInstMethod<void()> jFinish{env, baseActivityClass(), "finish", "()V"};
 	jFinish(env, baseActivityObject());
 }
 
-FS::PathString ApplicationContext::assetPath(const char *) { return {}; }
+FS::PathString ApplicationContext::assetPath(const char *) const { return {}; }
 
-FS::PathString ApplicationContext::supportPath(const char *)
+FS::PathString ApplicationContext::supportPath(const char *) const
 {
 	if(androidSDK() < 11) // bug in pre-3.0 Android causes paths in ANativeActivity to be null
 	{
 		//logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
 		auto env = thisThreadJniEnv();
-		JavaInstMethod<jobject()> filesDir{env, jBaseActivityCls, "filesDir", "()Ljava/lang/String;"};
+		JavaInstMethod<jobject()> filesDir{env, baseActivityClass(), "filesDir", "()Ljava/lang/String;"};
 		return javaStringCopy<FS::PathString>(env, (jstring)filesDir(env, baseActivityObject()));
 	}
 	else
 		return FS::makePathString(act->internalDataPath);
 }
 
-FS::PathString ApplicationContext::cachePath(const char *)
+FS::PathString ApplicationContext::cachePath(const char *) const
 {
 	auto env = thisThreadJniEnv();
-	JavaClassMethod<jobject()> cacheDir{env, jBaseActivityCls, "cacheDir", "()Ljava/lang/String;"};
-	return javaStringCopy<FS::PathString>(env, (jstring)cacheDir(env, jBaseActivityCls));
+	auto baseActivityCls = baseActivityClass();
+	JavaClassMethod<jobject()> cacheDir{env, baseActivityCls, "cacheDir", "()Ljava/lang/String;"};
+	return javaStringCopy<FS::PathString>(env, (jstring)cacheDir(env, baseActivityCls));
 }
 
-FS::PathString ApplicationContext::sharedStoragePath()
+FS::PathString ApplicationContext::sharedStoragePath() const
 {
-	auto env = thisThreadJniEnv();
-	JavaClassMethod<jobject()> extStorageDir{env, jBaseActivityCls, "extStorageDir", "()Ljava/lang/String;"};
-	return javaStringCopy<FS::PathString>(env, (jstring)extStorageDir(env, jBaseActivityCls));
+	return application().sharedStoragePath(thisThreadJniEnv());
 }
 
-FS::PathLocation ApplicationContext::sharedStoragePathLocation()
+FS::PathString AndroidApplication::sharedStoragePath(JNIEnv *env) const
+{
+	auto baseActivityCls = baseActivityClass();
+	JavaClassMethod<jobject()> extStorageDir{env, baseActivityCls, "extStorageDir", "()Ljava/lang/String;"};
+	return javaStringCopy<FS::PathString>(env, (jstring)extStorageDir(env, baseActivityCls));
+}
+
+FS::PathLocation ApplicationContext::sharedStoragePathLocation() const
 {
 	auto path = sharedStoragePath();
 	return {path, FS::makeFileString("Storage Media"), {FS::makeFileString("Media"), strlen(path.data())}};
 }
 
-std::vector<FS::PathLocation> ApplicationContext::rootFileLocations()
+std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const
 {
 	if(androidSDK() < 14)
 	{
@@ -182,7 +201,7 @@ std::vector<FS::PathLocation> ApplicationContext::rootFileLocations()
 		std::vector<FS::PathLocation> rootLocation{sharedStoragePathLocation()};
 		logMsg("enumerating storage volumes");
 		auto env = thisThreadJniEnv();
-		JavaInstMethod<jobject()> jNewStorageManagerHelper{env, Base::jBaseActivityCls, "storageManagerHelper", "()Lcom/imagine/StorageManagerHelper;"};
+		JavaInstMethod<jobject()> jNewStorageManagerHelper{env, baseActivityClass(), "storageManagerHelper", "()Lcom/imagine/StorageManagerHelper;"};
 		auto storageManagerHelper = jNewStorageManagerHelper(env, baseActivityObject());
 		auto storageManagerHelperCls = env->GetObjectClass(storageManagerHelper);
 		JNINativeMethod method[]
@@ -207,22 +226,22 @@ std::vector<FS::PathLocation> ApplicationContext::rootFileLocations()
 	}
 }
 
-FS::PathString ApplicationContext::libPath(const char *)
+FS::PathString ApplicationContext::libPath(const char *) const
 {
 	if(androidSDK() < 24)
 	{
 		auto env = thisThreadJniEnv();
-		JavaInstMethod<jobject()> libDir{env, jBaseActivityCls, "libDir", "()Ljava/lang/String;"};
+		JavaInstMethod<jobject()> libDir{env, baseActivityClass(), "libDir", "()Ljava/lang/String;"};
 		return javaStringCopy<FS::PathString>(env, (jstring)libDir(env, baseActivityObject()));
 	}
 	return {};
 }
 
-static FS::PathString mainSOPath(ApplicationContext app)
+static FS::PathString mainSOPath(ApplicationContext ctx)
 {
-	if(app.androidSDK() < 24)
+	if(ctx.androidSDK() < 24)
 	{
-		return FS::makePathStringPrintf("%s/libmain.so", app.libPath(nullptr).data());
+		return FS::makePathStringPrintf("%s/libmain.so", ctx.libPath(nullptr).data());
 	}
 	return FS::makePathString("libmain.so");
 }
@@ -252,7 +271,7 @@ bool ApplicationContext::requestPermission(Permission p)
 	auto permissionJStr = permissionToJString(env, p);
 	if(!permissionJStr)
 		return false;
-	JavaInstMethod<jboolean(jobject)> requestPermission{env, jBaseActivityCls, "requestPermission", "(Ljava/lang/String;)Z"};
+	JavaInstMethod<jboolean(jobject)> requestPermission{env, baseActivityClass(), "requestPermission", "(Ljava/lang/String;)Z"};
 	return requestPermission(env, baseActivityObject(), permissionJStr);
 }
 
@@ -267,14 +286,29 @@ jobject AndroidApplicationContext::baseActivityObject() const
 	return act->clazz;
 }
 
+jclass AndroidApplication::baseActivityClass() const
+{
+	return jBaseActivityCls;
+}
+
+jclass AndroidApplicationContext::baseActivityClass() const
+{
+	return application().baseActivityClass();
+}
+
 AAssetManager *AndroidApplicationContext::aAssetManager() const
 {
 	return act->assetManager;
 }
 
-bool ApplicationContext::hasHardwareNavButtons() const
+bool AndroidApplication::hasHardwareNavButtons() const
 {
 	return hasPermanentMenuKey;
+}
+
+bool ApplicationContext::hasHardwareNavButtons() const
+{
+	return application().hasHardwareNavButtons();
 }
 
 int32_t AndroidApplicationContext::androidSDK() const
@@ -287,14 +321,24 @@ int32_t AndroidApplicationContext::androidSDK() const
 	#endif
 }
 
-void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)
+void AndroidApplication::setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)
 {
 	onSystemOrientationChanged = del;
 }
 
-bool Window::systemAnimatesRotation()
+bool AndroidApplication::systemAnimatesWindowRotation() const
 {
 	return osAnimatesRotation;
+}
+
+void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)
+{
+	application().setOnSystemOrientationChanged(del);
+}
+
+bool ApplicationContext::systemAnimatesWindowRotation() const
+{
+	return application().systemAnimatesWindowRotation();
 }
 
 Orientation ApplicationContext::defaultSystemOrientations() const
@@ -302,14 +346,31 @@ Orientation ApplicationContext::defaultSystemOrientations() const
 	return VIEW_ROTATE_ALL;
 }
 
-jobject newFontRenderer(JNIEnv *env, jobject baseActivity)
+void AndroidApplication::setRequestedOrientation(JNIEnv *env, jobject baseActivity, int orientation)
 {
-	return jNewFontRenderer(env, baseActivity);
+	jSetRequestedOrientation(env, baseActivity, orientation);
 }
 
-static void initConfig(AConfiguration* config)
+SurfaceRotation AndroidApplication::currentRotation() const
 {
-	Input::initInputConfig(config);
+	return osRotation;
+}
+
+void AndroidApplication::setCurrentRotation(ApplicationContext ctx, SurfaceRotation rotation, bool notify)
+{
+	auto oldRotation = std::exchange(osRotation, rotation);
+	if(notify && onSystemOrientationChanged)
+		onSystemOrientationChanged(ctx, oldRotation, rotation);
+}
+
+SurfaceRotation AndroidApplication::mainDisplayRotation(JNIEnv *env, jobject baseActivity) const
+{
+	return (SurfaceRotation)jMainDisplayRotation(env, baseActivity);
+}
+
+jobject AndroidApplication::makeFontRenderer(JNIEnv *env, jobject baseActivity)
+{
+	return jNewFontRenderer(env, baseActivity);
 }
 
 uint32_t toAHardwareBufferFormat(IG::PixelFormatID format)
@@ -325,92 +386,91 @@ uint32_t toAHardwareBufferFormat(IG::PixelFormatID format)
 	}
 }
 
-static void activityInit(ApplicationContext app, JNIEnv* env, jobject activity)
+void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, int32_t androidSDK)
 {
-	// BaseActivity members
-	{
-		jBaseActivityCls = (jclass)env->NewGlobalRef(env->GetObjectClass(activity));
-		jSetRequestedOrientation = {env, jBaseActivityCls, "setRequestedOrientation", "(I)V"};
-		jMainDisplayRotation = {env, jBaseActivityCls, "mainDisplayRotation", "()I"};
-		#ifdef CONFIG_RESOURCE_FONT_ANDROID
-		jNewFontRenderer.setup(env, jBaseActivityCls, "newFontRenderer", "()Lcom/imagine/FontRenderer;");
-		#endif
+	pthread_key_create(&jEnvKey,
+		[](void *)
 		{
-			JNINativeMethod method[]
+			if(!jVM)
+				return;
+			if(Config::DEBUG_BUILD)
 			{
-				{
-					"onContentRectChanged", "(JIIIIII)V",
-					(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jint, jint, jint, jint, jint))
-					([](JNIEnv* env, jobject thiz, jlong windowAddr, jint x, jint y, jint x2, jint y2, jint winWidth, jint winHeight)
-					{
-						assumeExpr(windowAddr);
-						auto win = (Window*)windowAddr;
-						win->setContentRect({x, y, x2, y2}, {winWidth, winHeight});
-					})
-				}
-			};
-			env->RegisterNatives(jBaseActivityCls, method, std::size(method));
-		}
-		logger_init(app);
-		if(Config::DEBUG_BUILD)
-		{
-			logMsg("internal storage path: %s", app.supportPath({}).data());
-			logMsg("external storage path: %s", app.sharedStoragePath().data());
-		}
-		engineInit();
-		logMsg("SDK API Level:%d", app.androidSDK());
-
-		if(app.androidSDK() >= 11)
-			osAnimatesRotation = true;
-		else
-		{
-			JavaClassMethod<jboolean()> jAnimatesRotation{env, jBaseActivityCls, "gbAnimatesRotation", "()Z"};
-			osAnimatesRotation = jAnimatesRotation(env, jBaseActivityCls);
-		}
-		if(!osAnimatesRotation)
-		{
-			logMsg("app handles rotation animations");
-		}
-
-		if(app.androidSDK() >= 14)
-		{
-			JavaInstMethod<jboolean()> jHasPermanentMenuKey{env, jBaseActivityCls, "hasPermanentMenuKey", "()Z"};
-			Base::hasPermanentMenuKey = jHasPermanentMenuKey(env, activity);
-			if(Base::hasPermanentMenuKey)
-			{
-				logMsg("device has hardware nav/menu keys");
+				logDMsg("detaching JNI thread:0x%lx", IG::thisThreadID<long>());
 			}
-		}
-		else
-			Base::hasPermanentMenuKey = 1;
+			jVM->DetachCurrentThread();
+		});
+	pthread_setspecific(jEnvKey, env);
 
-		if(unloadNativeLibOnDestroy)
+	// BaseActivity JNI functions
+	jSetRequestedOrientation = {env, jBaseActivityCls, "setRequestedOrientation", "(I)V"};
+	jMainDisplayRotation = {env, jBaseActivityCls, "mainDisplayRotation", "()I"};
+	#ifdef CONFIG_RESOURCE_FONT_ANDROID
+	jNewFontRenderer.setup(env, jBaseActivityCls, "newFontRenderer", "()Lcom/imagine/FontRenderer;");
+	#endif
+	{
+		JNINativeMethod method[]
 		{
-			auto soPath = mainSOPath(app);
-			#if __ANDROID_API__ >= 21
-			mainLibHandle = dlopen(soPath.data(), RTLD_LAZY | RTLD_NOLOAD);
-			#else
-			mainLibHandle = dlopen(soPath.data(), RTLD_LAZY);
-			dlclose(mainLibHandle);
-			#endif
-			if(!mainLibHandle)
-				logWarn("unable to get native lib handle");
-		}
+			{
+				"onContentRectChanged", "(JIIIIII)V",
+				(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jint, jint, jint, jint, jint))
+				([](JNIEnv* env, jobject thiz, jlong windowAddr, jint x, jint y, jint x2, jint y2, jint winWidth, jint winHeight)
+				{
+					assumeExpr(windowAddr);
+					auto win = (Window*)windowAddr;
+					win->setContentRect({{x, y}, {x2, y2}}, {winWidth, winHeight});
+				})
+			}
+		};
+		env->RegisterNatives(jBaseActivityCls, method, std::size(method));
 	}
 
-	initScreens(app, env, activity, jBaseActivityCls);
-	initFrameTimer(app, app.mainScreen());
+	if(androidSDK >= 11)
+		osAnimatesRotation = true;
+	else
+	{
+		JavaClassMethod<jboolean()> jAnimatesRotation{env, jBaseActivityCls, "gbAnimatesRotation", "()Z"};
+		osAnimatesRotation = jAnimatesRotation(env, jBaseActivityCls);
+	}
+	if(!osAnimatesRotation)
+	{
+		logMsg("app handles rotation animations");
+	}
+
+	if(androidSDK >= 14)
+	{
+		JavaInstMethod<jboolean()> jHasPermanentMenuKey{env, jBaseActivityCls, "hasPermanentMenuKey", "()Z"};
+		hasPermanentMenuKey = jHasPermanentMenuKey(env, baseActivity);
+		if(hasPermanentMenuKey)
+		{
+			logMsg("device has hardware nav/menu keys");
+		}
+	}
+	else
+		hasPermanentMenuKey = 1;
+
+	/*if(unloadNativeLibOnDestroy)
+	{
+		auto soPath = mainSOPath(appCtx);
+		#if __ANDROID_API__ >= 21
+		mainLibHandle = dlopen(soPath.data(), RTLD_LAZY | RTLD_NOLOAD);
+		#else
+		mainLibHandle = dlopen(soPath.data(), RTLD_LAZY);
+		dlclose(mainLibHandle);
+		#endif
+		if(!mainLibHandle)
+			logWarn("unable to get native lib handle");
+	}*/
 
 	jSetWinFlags.setup(env, jBaseActivityCls, "setWinFlags", "(II)V");
 	jWinFlags.setup(env, jBaseActivityCls, "winFlags", "()I");
 
-	if(app.androidSDK() >= 11)
+	if(androidSDK >= 11)
 	{
 		jSetUIVisibility.setup(env, jBaseActivityCls, "setUIVisibility", "(I)V");
 	}
 }
 
-JNIEnv* AndroidApplicationContext::thisThreadJniEnv() const
+JNIEnv* AndroidApplication::thisThreadJniEnv() const
 {
 	auto env = (JNIEnv*)pthread_getspecific(jEnvKey);
 	if(unlikely(!env))
@@ -427,16 +487,19 @@ JNIEnv* AndroidApplicationContext::thisThreadJniEnv() const
 		}
 		pthread_setspecific(jEnvKey, env);
 	}
-	assumeExpr(env);
 	return env;
 }
 
-void ApplicationContext::setIdleDisplayPowerSave(bool on)
+JNIEnv* AndroidApplicationContext::thisThreadJniEnv() const
 {
-	auto env = mainThreadJniEnv();
-	auto baseActivity = baseActivityObject();
+	return application().thisThreadJniEnv();
+}
+
+void AndroidApplication::setIdleDisplayPowerSave(JNIEnv *env, jobject baseActivity, bool on)
+{
 	jint keepOn = !on;
-	auto keepsScreenOn = userActivityCallback.isArmed() ? false : (bool)(jWinFlags(env, baseActivity) & AWINDOW_FLAG_KEEP_SCREEN_ON);
+	auto keepsScreenOn = userActivityCallback.isArmed() ?
+		false : (bool)(jWinFlags(env, baseActivity) & AWINDOW_FLAG_KEEP_SCREEN_ON);
 	if(keepOn != keepsScreenOn)
 	{
 		logMsg("keep screen on: %d", keepOn);
@@ -445,28 +508,36 @@ void ApplicationContext::setIdleDisplayPowerSave(bool on)
 	keepScreenOn = keepOn; // cache value for endIdleByUserActivity()
 }
 
-void ApplicationContext::endIdleByUserActivity()
+void ApplicationContext::setIdleDisplayPowerSave(bool on)
+{
+	application().setIdleDisplayPowerSave(mainThreadJniEnv(), baseActivityObject(), on);
+}
+
+void AndroidApplication::endIdleByUserActivity(ApplicationContext ctx)
 {
 	if(!keepScreenOn)
 	{
 		//logMsg("signaling user activity to the OS");
-		auto env = mainThreadJniEnv();
-		auto baseActivity = baseActivityObject();
 		// quickly toggle KEEP_SCREEN_ON flag to brighten screen,
 		// waiting about 20ms before toggling it back off triggers the screen to brighten if it was already dim
-		jSetWinFlags(env, baseActivity, AWINDOW_FLAG_KEEP_SCREEN_ON, AWINDOW_FLAG_KEEP_SCREEN_ON);
+		jSetWinFlags(ctx.mainThreadJniEnv(), ctx.baseActivityObject(), AWINDOW_FLAG_KEEP_SCREEN_ON, AWINDOW_FLAG_KEEP_SCREEN_ON);
 		userActivityCallback.runIn(IG::Milliseconds(20), {},
-			[env, baseActivity]()
+			[this, ctx]()
 			{
 				if(!keepScreenOn)
 				{
-					jSetWinFlags(env, baseActivity, 0, AWINDOW_FLAG_KEEP_SCREEN_ON);
+					jSetWinFlags(ctx.mainThreadJniEnv(), ctx.baseActivityObject(), 0, AWINDOW_FLAG_KEEP_SCREEN_ON);
 				}
 			});
 	}
 }
 
-static void setStatusBarHidden(JNIEnv *env, jobject baseActivity, bool hidden)
+void ApplicationContext::endIdleByUserActivity()
+{
+	application().endIdleByUserActivity(*this);
+}
+
+void AndroidApplication::setStatusBarHidden(JNIEnv *env, jobject baseActivity, bool hidden)
 {
 	auto statusBarIsHidden = (bool)(jWinFlags(env, baseActivity) & AWINDOW_FLAG_FULLSCREEN);
 	if(hidden != statusBarIsHidden)
@@ -476,7 +547,7 @@ static void setStatusBarHidden(JNIEnv *env, jobject baseActivity, bool hidden)
 	}
 }
 
-void ApplicationContext::setSysUIStyle(uint32_t flags)
+void AndroidApplication::setSysUIStyle(JNIEnv *env, jobject baseActivity, int32_t androidSDK, uint32_t flags)
 {
 	// Flags mapped directly to SYSTEM_UI_FLAG_*
 	// SYS_UI_STYLE_DIM_NAV -> SYSTEM_UI_FLAG_LOW_PROFILE (0)
@@ -484,12 +555,10 @@ void ApplicationContext::setSysUIStyle(uint32_t flags)
 	// SYS_UI_STYLE_HIDE_STATUS -> SYSTEM_UI_FLAG_FULLSCREEN (2)
 	// SYS_UI_STYLE_NO_FLAGS -> SYSTEM_UI_FLAG_VISIBLE (no bits set)
 
-	auto env = mainThreadJniEnv();
-	auto baseActivity = baseActivityObject();
 	// always handle status bar hiding via full-screen window flag
 	// even on SDK level >= 11 so our custom view has the correct insets
 	setStatusBarHidden(env, baseActivity, flags & SYS_UI_STYLE_HIDE_STATUS);
-	if(androidSDK() >= 11)
+	if(androidSDK >= 11)
 	{
 		constexpr uint32_t SYSTEM_UI_FLAG_IMMERSIVE_STICKY = 0x1000;
 		// Add SYSTEM_UI_FLAG_IMMERSIVE_STICKY for use with Android 4.4+ if flags contain OS_NAV_STYLE_HIDDEN
@@ -501,9 +570,19 @@ void ApplicationContext::setSysUIStyle(uint32_t flags)
 	}
 }
 
+void ApplicationContext::setSysUIStyle(uint32_t flags)
+{
+	return application().setSysUIStyle(mainThreadJniEnv(), baseActivityObject(), androidSDK(), flags);
+}
+
 bool ApplicationContext::hasTranslucentSysUI() const
 {
 	return androidSDK() >= 19;
+}
+
+bool AndroidApplication::hasFocus() const
+{
+	return aHasFocus;
 }
 
 SustainedPerformanceType AndroidApplicationContext::sustainedPerformanceModeType() const
@@ -528,7 +607,7 @@ void AndroidApplicationContext::setSustainedPerformanceMode(bool on)
 		{
 			logMsg("set sustained performance mode:%s", on ? "on" : "off");
 			auto env = mainThreadJniEnv();
-			JavaInstMethod<void(jboolean)> jSetSustainedPerformanceMode{env, jBaseActivityCls, "setSustainedPerformanceMode", "(Z)V"};
+			JavaInstMethod<void(jboolean)> jSetSustainedPerformanceMode{env, baseActivityClass(), "setSustainedPerformanceMode", "(Z)V"};
 			jSetSustainedPerformanceMode(env, baseActivityObject(), on);
 			return;
 		}
@@ -536,12 +615,12 @@ void AndroidApplicationContext::setSustainedPerformanceMode(bool on)
 		{
 			if(!Config::MACHINE_IS_GENERIC_ARMV7)
 				return;
-			auto &app = *static_cast<ApplicationContext*>(this);
-			if(on && app.isRunning())
+			auto &ctx = *static_cast<ApplicationContext*>(this);
+			if(on && ctx.isRunning())
 			{
 				if(noopThread)
 					return;
-				app.addOnExit(
+				ctx.addOnExit(
 					[](ApplicationContext, bool)
 					{
 						noopThread.stop();
@@ -560,13 +639,58 @@ void AndroidApplicationContext::setSustainedPerformanceMode(bool on)
 	}
 }
 
-static void setNativeActivityCallbacks(ANativeActivity* activity)
+Window *AndroidApplication::deviceWindow() const
 {
-	activity->callbacks->onDestroy =
-		[](ANativeActivity *activity)
+	return window(0);
+}
+
+NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const { return {}; }
+
+void AndroidApplication::onWindowFocusChanged(ApplicationContext ctx, int focused)
+{
+	aHasFocus = focused;
+	logMsg("focus change:%d", focused);
+	if(focused && ctx.androidSDK() >= 11)
+	{
+		// re-apply UI visibility flags
+		jSetUIVisibility(ctx.mainThreadJniEnv(), ctx.baseActivityObject(), uiVisibilityFlags);
+	}
+	iterateTimes(windows(), i)
+	{
+		window(i)->dispatchFocusChange(focused);
+	}
+	if(!focused)
+		deinitKeyRepeatTimer();
+}
+
+void AndroidApplication::onInputQueueCreated(ApplicationContext ctx, AInputQueue *queue)
+{
+	assert(!inputQueue);
+	inputQueue = queue;
+	logMsg("made & attached input queue");
+	AInputQueue_attachLooper(queue, EventLoop::forThread().nativeObject(), ALOOPER_POLL_CALLBACK,
+		[](int, int, void *data)
 		{
-			ApplicationContext app{activity};
-			removePostedNotifications(app);
+			auto &app = *((AndroidApplication*)data);
+			app.processInput(app.inputQueue);
+			return 1;
+		}, this);
+}
+
+void AndroidApplication::onInputQueueDestroyed(AInputQueue *queue)
+{
+	logMsg("input queue destroyed");
+	inputQueue = {};
+	AInputQueue_detachLooper(queue);
+}
+
+static void setNativeActivityCallbacks(ANativeActivity *nActivity)
+{
+	nActivity->callbacks->onDestroy =
+		[](ANativeActivity *nActivity)
+		{
+			ApplicationContext ctx{nActivity};
+			ctx.application().removePostedNotifications(ctx.mainThreadJniEnv(), ctx.baseActivityObject());
 			jVM = {}; // clear VM pointer to let Android framework detach main thread
 			if(mainLibHandle)
 			{
@@ -576,158 +700,145 @@ static void setNativeActivityCallbacks(ANativeActivity* activity)
 			else
 			{
 				logMsg("exiting process");
+				delete static_cast<BaseApplication*>(nActivity->instance);
 				::exit(0);
 			}
 		};
-	activity->callbacks->onStart =
-		[](ANativeActivity *activity)
+	nActivity->callbacks->onStart =
+		[](ANativeActivity *nActivity)
 		{
-			ApplicationContext app{activity};
+			ApplicationContext ctx{nActivity};
+			auto &app = ctx.application();
 			logMsg("app started");
 			app.setActiveForAllScreens(true);
-			if(app.androidSDK() >= 11)
+			if(ctx.androidSDK() >= 11)
 			{
-				setRunningActivityState();
-				app.dispatchOnResume(aHasFocus);
+				app.setRunningActivityState();
+				app.dispatchOnResume(ctx, app.hasFocus());
 			}
 		};
-	activity->callbacks->onResume =
-		[](ANativeActivity *activity)
+	nActivity->callbacks->onResume =
+		[](ANativeActivity *nActivity)
 		{
-			ApplicationContext app{activity};
+			ApplicationContext ctx{nActivity};
+			auto &app = ctx.application();
 			logMsg("app resumed");
-			if(app.androidSDK() < 11)
+			if(ctx.androidSDK() < 11)
 			{
-				setRunningActivityState();
-				app.dispatchOnResume(aHasFocus);
+				app.setRunningActivityState();
+				app.dispatchOnResume(ctx, app.hasFocus());
 			}
-			handleIntent(activity);
+			app.handleIntent(ctx);
 		};
-	//activity->callbacks->onSaveInstanceState = nullptr; // unused
-	activity->callbacks->onPause =
-		[](ANativeActivity *activity)
+	//nActivity->callbacks->onSaveInstanceState = nullptr; // unused
+	nActivity->callbacks->onPause =
+		[](ANativeActivity *nActivity)
 		{
-			ApplicationContext app{activity};
-			if(app.androidSDK() < 11)
+			ApplicationContext ctx{nActivity};
+			auto &app = ctx.application();
+			if(ctx.androidSDK() < 11)
 			{
-				setPausedActivityState();
-				logMsg("app %s", appIsPaused() ? "paused" : "exiting");
+				app.setPausedActivityState();
+				logMsg("app %s", app.isPaused() ? "paused" : "exiting");
 				// App is killable in Android 2.3, run exit handler to save volatile data
-				app.dispatchOnExit(appIsPaused());
+				app.dispatchOnExit(ctx, app.isPaused());
 			}
 			else
 				logMsg("app paused");
-			Input::deinitKeyRepeatTimer();
+			app.deinitKeyRepeatTimer();
 		};
-	activity->callbacks->onStop =
-		[](ANativeActivity *activity)
+	nActivity->callbacks->onStop =
+		[](ANativeActivity *nActivity)
 		{
-			ApplicationContext app{activity};
-			if(app.androidSDK() >= 11)
+			ApplicationContext ctx{nActivity};
+			auto &app = ctx.application();
+			if(ctx.androidSDK() >= 11)
 			{
-				setPausedActivityState();
-				logMsg("app %s", appIsPaused() ? "stopped" : "exiting");
-				app.dispatchOnExit(appIsPaused());
+				app.setPausedActivityState();
+				logMsg("app %s", app.isPaused() ? "stopped" : "exiting");
+				app.dispatchOnExit(ctx, app.isPaused());
 			}
 			else
 				logMsg("app stopped");
 			app.setActiveForAllScreens(false);
 		};
-	activity->callbacks->onConfigurationChanged =
-		[](ANativeActivity *activity)
+	nActivity->callbacks->onConfigurationChanged =
+		[](ANativeActivity *nActivity)
 		{
+			ApplicationContext ctx{nActivity};
+			auto &app = ctx.application();
 			auto aConfig = AConfiguration_new();
 			auto freeConfig = IG::scopeGuard([&](){ AConfiguration_delete(aConfig); });
-			AConfiguration_fromAssetManager(aConfig, activity->assetManager);
-			auto rotation = (SurfaceRotation)jMainDisplayRotation(activity->env, activity->clazz);
-			if(rotation != osRotation)
+			AConfiguration_fromAssetManager(aConfig, nActivity->assetManager);
+			auto rotation = app.mainDisplayRotation(nActivity->env, nActivity->clazz);
+			if(rotation != app.currentRotation())
 			{
 				logMsg("changed OS orientation");
-				auto oldRotation = osRotation;
-				osRotation = rotation;
-				if(onSystemOrientationChanged)
-					onSystemOrientationChanged({activity}, oldRotation, rotation);
+				app.setCurrentRotation(ctx, rotation, true);
 			}
-			Input::changeInputConfig(aConfig);
+			app.updateInputConfig(aConfig);
 		};
-	activity->callbacks->onLowMemory =
-		[](ANativeActivity *activity)
+	nActivity->callbacks->onLowMemory =
+		[](ANativeActivity *nActivity)
 		{
-			ApplicationContext app{activity};
-			app.dispatchOnFreeCaches(app.isRunning());
+			ApplicationContext ctx{nActivity};
+			ctx.dispatchOnFreeCaches(ctx.isRunning());
 		};
-	activity->callbacks->onWindowFocusChanged =
-		[](ANativeActivity *activity, int focused)
+	nActivity->callbacks->onWindowFocusChanged =
+		[](ANativeActivity *nActivity, int focused)
 		{
-			ApplicationContext app{activity};
-			aHasFocus = focused;
-			logMsg("focus change: %d", focused);
-			if(focused && app.androidSDK() >= 11)
-			{
-				// re-apply UI visibility flags
-				jSetUIVisibility(activity->env, activity->clazz, uiVisibilityFlags);
-			}
-			iterateTimes(app.windows(), i)
-			{
-				app.window(i)->dispatchFocusChange(focused);
-			}
-			if(!focused)
-				Input::deinitKeyRepeatTimer();
+			ApplicationContext ctx{nActivity};
+			ctx.application().onWindowFocusChanged(ctx, focused);
 		};
-	activity->callbacks->onNativeWindowCreated =
-		[](ANativeActivity *activity, ANativeWindow *nWin)
+	nActivity->callbacks->onNativeWindowCreated =
+		[](ANativeActivity *nActivity, ANativeWindow *nWin)
 		{
-			ApplicationContext app{activity};
-			if(unlikely(!deviceWindow(app)))
+			ApplicationContext ctx{nActivity};
+			auto deviceWindow = ctx.application().deviceWindow();
+			if(unlikely(!deviceWindow))
 				return;
-			deviceWindow(app)->setNativeWindow(app, nWin);
+			deviceWindow->setNativeWindow(ctx, nWin);
 		};
-	activity->callbacks->onNativeWindowDestroyed =
-		[](ANativeActivity *activity, ANativeWindow *)
+	nActivity->callbacks->onNativeWindowDestroyed =
+		[](ANativeActivity *nActivity, ANativeWindow *)
 		{
-			ApplicationContext app{activity};
-			if(unlikely(!deviceWindow(app)))
+			ApplicationContext ctx{nActivity};
+			auto deviceWindow = ctx.application().deviceWindow();
+			if(unlikely(!deviceWindow))
 				return;
-			deviceWindow(app)->setNativeWindow(activity, nullptr);
+			deviceWindow->setNativeWindow(nActivity, nullptr);
 		};
 	// Note: Surface resizing handled by ContentView callback
-	//activity->callbacks->onNativeWindowResized = nullptr;
-	activity->callbacks->onNativeWindowRedrawNeeded =
-		[](ANativeActivity *activity, ANativeWindow *)
+	//nActivity->callbacks->onNativeWindowResized = nullptr;
+	nActivity->callbacks->onNativeWindowRedrawNeeded =
+		[](ANativeActivity *nActivity, ANativeWindow *)
 		{
-			ApplicationContext app{activity};
-			if(unlikely(!deviceWindow(app)))
+			ApplicationContext ctx{nActivity};
+			auto deviceWindow = ctx.application().deviceWindow();
+			if(unlikely(!deviceWindow))
 				return;
-			androidWindowNeedsRedraw(*deviceWindow(app), true);
+			deviceWindow->systemRequestsRedraw(true);
 		};
-	activity->callbacks->onInputQueueCreated =
-		[](ANativeActivity *activity, AInputQueue *queue)
+	nActivity->callbacks->onInputQueueCreated =
+		[](ANativeActivity *nActivity, AInputQueue *queue)
 		{
-			inputQueue = queue;
-			logMsg("made & attached input queue");
-			AInputQueue_attachLooper(queue, EventLoop::forThread().nativeObject(), ALOOPER_POLL_CALLBACK,
-				[](int, int, void* data)
-				{
-					ApplicationContext app{(ANativeActivity*)data};
-					Input::processInput(app, inputQueue);
-					return 1;
-				}, activity);
+			ApplicationContext ctx{nActivity};
+			ctx.application().onInputQueueCreated(ctx, queue);
 		};
-	activity->callbacks->onInputQueueDestroyed =
-		[](ANativeActivity *, AInputQueue *queue)
+	nActivity->callbacks->onInputQueueDestroyed =
+		[](ANativeActivity *nActivity, AInputQueue *queue)
 		{
-			logMsg("input queue destroyed");
-			inputQueue = nullptr;
-			AInputQueue_detachLooper(queue);
+			ApplicationContext ctx{nActivity};
+			ctx.application().onInputQueueDestroyed(queue);
 		};
 	// Note: Content rectangle handled by ContentView callback
 	// for correct handling of system window insets
-	//activity->callbacks->onContentRectChanged = nullptr;
+	//nActivity->callbacks->onContentRectChanged = nullptr;
 }
 
 }
 
-CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* savedState, size_t savedStateSize)
+CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity *nActivity, void* savedState, size_t savedStateSize)
 {
 	using namespace Base;
 	if(Config::DEBUG_BUILD)
@@ -735,32 +846,15 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity* activity, void* sa
 		mainThreadId = gettid();
 		logMsg("called ANativeActivity_onCreate, thread ID %d", mainThreadId);
 	}
-	jVM = activity->vm;
-	ApplicationContext app{activity};
-	pthread_key_create(&jEnvKey,
-		[](void *)
-		{
-			if(!jVM)
-				return;
-			if(Config::DEBUG_BUILD)
-			{
-				logDMsg("detaching JNI thread:0x%lx", IG::thisThreadID<long>());
-			}
-			jVM->DetachCurrentThread();
-		});
-	pthread_setspecific(jEnvKey, activity->env);
-	activityInit(app, activity->env, activity->clazz);
-	setNativeActivityCallbacks(activity);
-	Input::init(app, activity->env);
+	jVM = nActivity->vm;
+	ApplicationInitParams initParams{nActivity};
+	ApplicationContext ctx{nActivity};
+	ctx.onInit(initParams);
+	if(Config::DEBUG_BUILD)
 	{
-		auto aConfig = AConfiguration_new();
-		auto freeConfig = IG::scopeGuard([&](){ AConfiguration_delete(aConfig); });
-		AConfiguration_fromAssetManager(aConfig, activity->assetManager);
-		initConfig(aConfig);
-	}
-	ApplicationContext::onInit(app, 0, nullptr);
-	if(Config::DEBUG_BUILD && !app.windows())
-	{
-		logWarn("didn't create a window");
+		logMsg("internal storage path: %s", ctx.supportPath({}).data());
+		logMsg("external storage path: %s", ctx.sharedStoragePath().data());
+		if(!ctx.windows())
+			logWarn("didn't create a window");
 	}
 }

@@ -185,23 +185,37 @@ struct GLCommonSamplers
 	TextureSampler nearestMipRepeat{};
 };
 
+class GLDisplayHolder
+{
+public:
+	constexpr GLDisplayHolder() {}
+	constexpr GLDisplayHolder(Base::GLDisplay dpy):dpy{dpy} {}
+	~GLDisplayHolder();
+	GLDisplayHolder(GLDisplayHolder &&);
+	GLDisplayHolder &operator=(GLDisplayHolder &&);
+	constexpr operator Base::GLDisplay() const { return dpy; }
+
+protected:
+	Base::GLDisplay dpy{};
+};
+
 class GLRenderer
 {
 public:
 	DrawContextSupport support{};
+	GLDisplayHolder glDpy{};
 	RendererTask mainTask;
-	Base::GLDisplay glDpy{};
 	Base::GLBufferConfig gfxBufferConfig{};
 	GLCommonPrograms commonProgram{};
 	GLCommonSamplers commonSampler{};
 	Base::CustomEvent releaseShaderCompilerEvent{Base::CustomEvent::NullInit{}};
 	IG_enableMemberIf(Config::Gfx::OPENGL_SHADER_PIPELINE, GLuint, defaultVShader){};
 
-	GLRenderer();
-	~GLRenderer();
+	GLRenderer(Base::ApplicationContext);
 	void setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat);
 	TextureSampler &commonTextureSampler(CommonTextureSampler sampler);
 	void useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat);
+	Base::GLDisplay glDisplay() const;
 
 protected:
 	void addEventHandlers(Base::ApplicationContext, RendererTask &);
@@ -228,7 +242,6 @@ protected:
 	void checkExtensionString(const char *extStr, bool &useFBOFuncs);
 	void checkFullExtensionString(const char *fullExtStr);
 	const Program &commonProgramRef(CommonProgram program) const;
-	void deinit();
 };
 
 using RendererImpl = GLRenderer;

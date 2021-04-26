@@ -14,7 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "LoggerStdio"
-#include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
@@ -35,54 +34,39 @@ uint8_t loggerVerbosity = loggerMaxVerbosity;
 static FILE *logExternalFile{};
 static bool logEnabled = Config::DEBUG_BUILD; // default logging off in release builds
 
-static FS::PathString externalLogDir(Base::ApplicationContext app)
+static FS::PathString externalLogEnablePath(const char *dirStr)
 {
-	FS::PathString prefix{"."};
-	if(Config::envIsIOS)
-		prefix = FS::makePathString("/var/mobile");
-	else if(Config::envIsAndroid)
-		prefix = app.sharedStoragePath();
-	return prefix;
+	return FS::makePathStringPrintf("%s/imagine_enable_log_file", dirStr);
 }
 
-static FS::PathString externalLogEnablePath(Base::ApplicationContext app)
+static FS::PathString externalLogPath(const char *dirStr)
 {
-	return FS::makePathStringPrintf("%s/imagine_enable_log_file", externalLogDir(app).data());
+	return FS::makePathStringPrintf("%s/imagine_log.txt", dirStr);
 }
 
-static FS::PathString externalLogPath(Base::ApplicationContext app)
+static bool shouldLogToExternalFile(const char *dirStr)
 {
-	return FS::makePathStringPrintf("%s/imagine_log.txt", externalLogDir(app).data());
+	return FS::exists(externalLogEnablePath(dirStr));
 }
 
-static bool shouldLogToExternalFile(Base::ApplicationContext app)
-{
-	return FS::exists(externalLogEnablePath(app));
-}
-
-void logger_init(Base::ApplicationContext app)
+void logger_setLogDirectoryPrefix(const char *dirStr)
 {
 	if(!logEnabled)
 		return;
 	#if defined __APPLE__ && (defined __i386__ || defined __x86_64__)
 	asl_add_log_file(nullptr, STDERR_FILENO); // output to stderr
 	#endif
-	if(shouldLogToExternalFile(app) && !logExternalFile)
+	if(shouldLogToExternalFile(dirStr) && !logExternalFile)
 	{
-		auto path = externalLogPath(app);
+		auto path = externalLogPath(dirStr);
 		logMsg("external log file: %s", path.data());
 		logExternalFile = fopen(path.data(), "wb");
 	}
-	//logMsg("init logger");
 }
 
-void logger_setEnabled(Base::ApplicationContext app, bool enable)
+void logger_setEnabled(bool enable)
 {
 	logEnabled = enable;
-	if(enable)
-	{
-		logger_init(app);
-	}
 }
 
 bool logger_isEnabled()

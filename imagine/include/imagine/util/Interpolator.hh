@@ -208,7 +208,7 @@ public:
 	}
 
 protected:
-	T val;
+	T val{};
 	using Interpolator<T, Time, INTERPOLATOR_TYPE>::startTime;
 	using Interpolator<T, Time, INTERPOLATOR_TYPE>::destTime;
 	using Interpolator<T, Time, INTERPOLATOR_TYPE>::type;

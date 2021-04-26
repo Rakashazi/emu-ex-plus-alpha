@@ -33,7 +33,7 @@ class SpriteBase : public BaseRect
 {
 public:
 	constexpr SpriteBase():
-		BaseRect{{}, GTexCRect{0, 0, 1, 1}}
+		BaseRect{{}, GTexCRect{{}, {1., 1.}}}
 	{}
 
 	constexpr SpriteBase(GCRect pos, TextureSpan span = {}):

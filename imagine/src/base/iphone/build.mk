@@ -7,7 +7,7 @@ include $(imagineSrcDir)/util/fdUtils.mk
 
 configDefs += CONFIG_BASE_IOS
 
-LDLIBS += -framework UIKit -framework QuartzCore -framework Foundation -framework CoreFoundation -framework CoreGraphics -fobjc-link-runtime
+LDLIBS += -framework UIKit -framework QuartzCore -framework Foundation -framework CoreFoundation -framework CoreGraphics
 
 ifdef iosMsgUI
  configDefs += IPHONE_MSG_COMPOSE

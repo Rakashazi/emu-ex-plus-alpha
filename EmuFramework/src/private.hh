@@ -16,12 +16,10 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/AnimatedViewport.hh>
-#include <emuframework/EmuApp.hh>
+#include <imagine/gfx/ProjectionPlane.hh>
 #include <emuframework/EmuSystem.hh>
 #include "Recent.hh"
 #include <memory>
-
-enum AssetID { ASSET_ARROW, ASSET_CLOSE, ASSET_ACCEPT, ASSET_GAME_ICON, ASSET_MENU, ASSET_FAST_FORWARD };
 
 namespace Base
 {
@@ -33,6 +31,7 @@ namespace Input
 class Event;
 }
 
+class ViewAttachParams;
 class EmuSystemTask;
 class EmuViewController;
 class EmuVideo;
@@ -48,28 +47,15 @@ struct WindowData
 	bool focused = true;
 };
 
-extern DelegateFunc<void ()> onUpdateInputDevices;
-extern FS::PathString lastLoadPath;
-extern EmuVideo emuVideo;
-extern EmuAudio emuAudio;
 extern RecentGameList recentGameList;
 static constexpr const char *strftimeFormat = "%x  %r";
 
-EmuViewController &emuViewController();
-void loadConfigFile(Base::ApplicationContext);
-void saveConfigFile(Base::ApplicationContext);
 void addRecentGame(const char *fullPath, const char *name);
-bool isMenuDismissKey(Input::Event e, EmuViewController &emuViewController);
-void applyOSNavStyle(Base::ApplicationContext, bool inGame);
 const char *appViewTitle();
 bool hasGooglePlayStoreFeatures();
-void setCPUNeedsLowLatency(Base::ApplicationContext, bool needed);
-void onMainMenuItemOptionChanged();
-void runBenchmarkOneShot();
-void onSelectFileFromPicker(const char* name, Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams);
-void launchSystem(bool tryAutoState, bool addToRecent);
-Gfx::PixmapTexture &getAsset(Gfx::Renderer &, AssetID);
-std::unique_ptr<View> makeEmuView(ViewAttachParams attach, EmuApp::ViewID id);
+void runBenchmarkOneShot(EmuApp &, EmuVideo &);
+void onSelectFileFromPicker(EmuApp &, const char* name, Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams);
+void launchSystem(EmuApp &, bool tryAutoState, bool addToRecent);
 Gfx::Viewport makeViewport(const Base::Window &win);
 Gfx::Projection updateProjection(Gfx::Viewport viewport);
 WindowData &windowData(const Base::Window &win);

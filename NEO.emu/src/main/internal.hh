@@ -9,7 +9,7 @@ extern "C"
 
 namespace EmuControls
 {
-static const uint joystickKeys = 19;
+static const unsigned joystickKeys = 19;
 }
 
 extern Byte1Option optionListAllGames;

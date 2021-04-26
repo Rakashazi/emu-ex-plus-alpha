@@ -37,14 +37,14 @@ enum
 
 const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
-const uint EmuSystem::inputFaceBtns = 2;
-const uint EmuSystem::inputCenterBtns = 2;
+const unsigned EmuSystem::inputFaceBtns = 2;
+const unsigned EmuSystem::inputCenterBtns = 2;
 const bool EmuSystem::inputHasTriggerBtns = false;
 const bool EmuSystem::inputHasRevBtnLayout = false;
-const uint EmuSystem::maxPlayers = 1;
+const unsigned EmuSystem::maxPlayers = 1;
 GbcInput gbcInput{};
 
-void updateVControllerMapping(uint player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
 	using namespace gambatte;
 	map[SysVController::F_ELEM] = InputGetter::A;
@@ -63,7 +63,7 @@ void updateVControllerMapping(uint player, SysVController::Map &map)
 	map[SysVController::D_ELEM+8] = InputGetter::DOWN | InputGetter::RIGHT;
 }
 
-uint EmuSystem::translateInputAction(uint input, bool &turbo)
+unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	using namespace gambatte;
 	turbo = 0;
@@ -88,9 +88,9 @@ uint EmuSystem::translateInputAction(uint input, bool &turbo)
 	return 0;
 }
 
-void EmuSystem::handleInputAction(uint state, uint emuKey)
+void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKey)
 {
-	gbcInput.bits = IG::setOrClearBits(gbcInput.bits, emuKey, state == Input::PUSHED);
+	gbcInput.bits = IG::setOrClearBits(gbcInput.bits, emuKey, action == Input::Action::PUSHED);
 }
 
 void EmuSystem::clearInputBuffers(EmuInputView &)

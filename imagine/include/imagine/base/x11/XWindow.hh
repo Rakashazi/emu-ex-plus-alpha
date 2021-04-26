@@ -20,6 +20,8 @@
 #include <utility>
 #include <compare>
 
+struct _XDisplay;
+
 namespace Base
 {
 
@@ -33,9 +35,10 @@ public:
 	~XWindow();
 	std::pair<unsigned long, unsigned long> xdndData() const;
 	explicit operator bool() const;
+	void toggleFullScreen();
 
 protected:
-	void *dpy{};
+	_XDisplay *dpy{};
 	unsigned long xWin{};
 	unsigned long draggerXWin{};
 	unsigned long dragAction{};

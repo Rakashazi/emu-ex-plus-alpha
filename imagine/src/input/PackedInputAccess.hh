@@ -1,12 +1,6 @@
 #pragma once
 
 #include <imagine/input/Input.hh>
-#include <imagine/input/Device.hh>
-
-namespace Base
-{
-class Window;
-}
 
 namespace Input
 {
@@ -29,12 +23,5 @@ struct PackedInputAccess
 		return -1; // no state change
 	}
 };
-
-extern std::vector<Device*> devList;
-extern DeviceChangeDelegate onDeviceChange;
-extern DevicesEnumeratedDelegate onDevicesEnumerated;
-extern bool swappedGamepadConfirm_;
-
-bool processICadeKey(Key k, uint32_t action, Time time, const Device &dev, Base::Window &win);
 
 }

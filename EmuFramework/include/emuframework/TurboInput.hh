@@ -17,24 +17,26 @@
 
 #include <array>
 
+class EmuApp;
+
 struct TurboInput
 {
 	struct Action
 	{
 		constexpr Action() {}
-		uint action = 0;
+		unsigned action = 0;
 
-		bool operator ==(uint rhs) const
+		bool operator ==(unsigned rhs) const
 		{
 			return action == rhs;
 		}
 	};
 
 	std::array<Action, 5> activeAction{};
-	uint clock = 0;
+	unsigned clock = 0;
 
 	constexpr TurboInput() {}
-	void addEvent(uint action);
-	void removeEvent(uint action);
-	void update();
+	void addEvent(unsigned action);
+	void removeEvent(unsigned action);
+	void update(EmuApp *);
 };

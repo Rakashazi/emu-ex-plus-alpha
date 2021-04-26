@@ -16,9 +16,10 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
+#include <emuframework/EmuAppHelper.hh>
 #include <imagine/base/MessagePort.hh>
 
-class EmuLoadProgressView : public View
+class EmuLoadProgressView : public View, public EmuAppHelper<EmuLoadProgressView>
 {
 public:
 	using MessagePortType = Base::MessagePort<EmuSystem::LoadProgressMessage>;
@@ -35,7 +36,7 @@ public:
 private:
 	MessagePortType msgPort{"EmuLoadProgressView"};
 	EmuApp::CreateSystemCompleteDelegate onComplete{};
-	Gfx::Text text{"Loading...", &View::defaultFace};
+	Gfx::Text text;
 	Input::Event originalEvent{};
 	int pos = 0, max = 0;
 };
