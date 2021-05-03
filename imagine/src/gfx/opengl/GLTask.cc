@@ -42,7 +42,7 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 			auto glDpy = config.display;
 			glDpy.bindAPI(glAPI);
 			context = makeGLContext(glDpy, config.bufferConfig);
-			if(unlikely(!context))
+			if(!context) [[unlikely]]
 			{
 				sem.notify();
 				return;
@@ -56,11 +56,12 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 					{
 						switch(msg.command)
 						{
-							bcase Command::RUN_FUNC:
+							case Command::RUN_FUNC:
 							{
 								msg.args.run.func(glDpy, msg.semPtr);
+								break;
 							}
-							bcase Command::EXIT:
+							case Command::EXIT:
 							{
 								Base::GLContext::setCurrent(glDpy, {}, {});
 								logMsg("exiting GL context:%p thread", context.nativeObject());
@@ -69,7 +70,7 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 								Base::EventLoop::forThread().stop();
 								return false;
 							}
-							bdefault:
+							default:
 							{
 								logWarn("unknown ThreadCommandMessage value:%d", (int)msg.command);
 							}
@@ -84,7 +85,7 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 			eventLoop.run(context);
 			commandPort.detach();
 		});
-	if(unlikely(!context))
+	if(!context) [[unlikely]]
 	{
 		return std::runtime_error("error creating GL context");
 	}

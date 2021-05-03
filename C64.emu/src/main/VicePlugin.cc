@@ -495,7 +495,8 @@ VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath)
 			std::size(cbm2ModelStr),
 			cbm2ModelStr,
 			"cbm2model_get",
-			"cbm2model_set"
+			"cbm2model_set",
+			{}
 		},
 		// CBM-II 5x0
 		{
@@ -510,7 +511,8 @@ VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath)
 			std::size(petModelStr),
 			petModelStr,
 			"petmodel_get",
-			"petmodel_set"
+			"petmodel_set",
+			{}
 		},
 		// PLUS4
 		{

@@ -18,7 +18,6 @@
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include <imagine/bluetooth/BluetoothAdapter.hh>
-#include <imagine/audio/AudioManager.hh>
 #include <imagine/audio/defs.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
@@ -111,9 +110,6 @@ extern Byte1Option optionSound;
 extern Byte1Option optionSoundVolume;
 extern Byte1Option optionSoundBuffers;
 extern Byte1Option optionAddSoundBuffersOnUnderrun;
-#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
-extern Byte1Option optionAudioSoloMix;
-#endif
 #ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 extern Byte1Option optionAudioAPI;
 #endif
@@ -214,7 +210,6 @@ extern Byte1Option optionShowBundledGames;
 // Common options handled per-emulator backend
 extern PathOption optionFirmwarePath;
 
-void initOptions(Base::ApplicationContext);
 void setupFont(ViewManager &manager, Gfx::Renderer &r, Base::Window &win);
 bool soundIsEnabled();
 void setSoundEnabled(bool on);

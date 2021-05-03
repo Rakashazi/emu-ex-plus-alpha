@@ -10,36 +10,21 @@
 class GLKitMat4
 {
 public:
+	template <class T>
 	class RowRef
 	{
 	public:
-		constexpr RowRef(float &v0, float &v1, float &v2, float &v3):
+		constexpr RowRef(T &v0, T &v1, T &v2, T &v3):
 			v{&v0, &v1, &v2, &v3}
 		{}
 
-		float &operator [](unsigned int i)
+		T &operator [](unsigned i)
 		{
 			return *v[i];
 		}
 
 	private:
-		float *v[4];
-	};
-
-	class ConstRowRef
-	{
-	public:
-		constexpr ConstRowRef(const float &v0, const float &v1, const float &v2, const float &v3):
-			v{&v0, &v1, &v2, &v3}
-		{}
-
-		const float &operator [](unsigned int i) const
-		{
-			return *v[i];
-		}
-
-	private:
-		const float *v[4];
+		T *v[4];
 	};
 
 	constexpr GLKitMat4() {}
@@ -64,13 +49,13 @@ public:
 	GLKitVec3 unproject(IG::Rect2<int> viewport, GLKitVec3 win, GLKitMat4 inverse) const;
 	bool operator ==(GLKitMat4 const &rhs) const;
 
-	RowRef operator[](int i)
+	RowRef<float> operator[](int i)
 	{
 		i *= 4; // convert to row start
 		return {m.m[i], m.m[i+1], m.m[i+2], m.m[i+3]};
 	}
 
-	constexpr ConstRowRef operator[](int i) const
+	constexpr RowRef<const float> operator[](int i) const
 	{
 		i *= 4; // convert to row start
 		return {m.m[i], m.m[i+1], m.m[i+2], m.m[i+3]};

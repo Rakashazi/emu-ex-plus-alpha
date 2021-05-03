@@ -36,6 +36,13 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 	FilterFunc filter,  bool singleDir, Gfx::GlyphTextureSet *face_):
 	View{attach},
 	filter{filter},
+	onClose_
+	{
+		[](FSPicker &picker, Input::Event e)
+		{
+			picker.dismiss();
+		}
+	},
 	msgText{face_ ? face_ : &defaultFace()},
 	singleDir{singleDir}
 {
@@ -292,6 +299,24 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::RootPathInfo rootInfo)
 {
 	return setPath(path, forcePathChange, rootInfo, appContext().defaultInputEvent());
+}
+
+std::error_code FSPicker::setPath(FS::PathString path, bool forcePathChange, FS::RootPathInfo rootInfo, Input::Event e)
+{
+	return setPath(path.data(), forcePathChange, rootInfo, e);
+}
+
+std::error_code FSPicker::setPath(FS::PathString path, bool forcePathChange, FS::RootPathInfo rootInfo)
+{
+	return setPath(path.data(), forcePathChange, rootInfo);
+}
+std::error_code FSPicker::setPath(FS::PathLocation location, bool forcePathChange)
+{
+	return setPath(location.path, forcePathChange, location.root);
+}
+std::error_code FSPicker::setPath(FS::PathLocation location, bool forcePathChange, Input::Event e)
+{
+	return setPath(location.path, forcePathChange, location.root, e);
 }
 
 FS::PathString FSPicker::path() const

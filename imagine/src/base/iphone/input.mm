@@ -19,15 +19,59 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <dlfcn.h>
 #include <imagine/base/Application.hh>
 #include <imagine/input/Input.hh>
+#include <imagine/input/TextField.hh>
 #include <imagine/input/Device.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
-#import "MainApp.hh"
+#include <imagine/util/string.h>
 #include "../../input/apple/AppleGameDevice.hh"
 #include "ios.hh"
 
 @interface UIEvent ()
 - (NSInteger*)_gsEvent;
+@end
+
+@interface IGAppTextField : NSObject <UITextFieldDelegate>
+@property (nonatomic, retain) UITextField *uiTextField;
+@property (nonatomic) Input::TextFieldDelegate textDelegate;
+-(id)initWithTextField:(UITextField*)field textDelegate:(Input::TextFieldDelegate)del;
+@end
+
+@implementation IGAppTextField
+
+@synthesize uiTextField;
+@synthesize textDelegate;
+
+-(id)initWithTextField:(UITextField*)field textDelegate:(Input::TextFieldDelegate)del
+{
+	self = [super init];
+	uiTextField = field;
+	textDelegate = del;
+	return self;
+}
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField
+{
+	logMsg("pushed return");
+	[textField resignFirstResponder];
+	return YES;
+}
+
+- (void)textFieldDidEndEditing:(UITextField *)textField
+{
+	logMsg("editing ended");
+	auto delegate = std::exchange(textDelegate, {});
+	char text[256];
+	string_copy(text, [textField.text UTF8String]);
+	[textField removeFromSuperview];
+	uiTextField = nil;
+	if(delegate)
+	{
+		logMsg("running text entry callback");
+		delegate(text);
+	}
+}
+
 @end
 
 namespace Input
@@ -65,8 +109,6 @@ static bool hardwareKBAttached = false;
 
 using GSEventIsHardwareKeyboardAttachedProto = BOOL(*)();
 static GSEventIsHardwareKeyboardAttachedProto GSEventIsHardwareKeyboardAttached{};
-
-#if defined IPHONE_VKEYBOARD
 
 static CGAffineTransform makeTransformForOrientation(Base::Orientation orientation)
 {
@@ -128,67 +170,56 @@ static void setupTextView(Base::ApplicationContext ctx, UITextField *vkbdField, 
 	#endif
 	vkbdField.font = [UIFont systemFontOfSize:24.0];
 	vkbdField.text = text;
-	vkbdField.delegate = Base::mainApp;
 	//[ vkbdField setEnabled: YES ];
 	if(!Config::SYSTEM_ROTATES_WINDOWS)
 		vkbdField.transform = makeTransformForOrientation(deviceWindow(ctx)->softOrientation());
 	logMsg("init vkeyboard");
 }
 
-uint32_t startSysTextInput(Base::ApplicationContext ctx, InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels)
+UIKitTextField::UIKitTextField(Base::ApplicationContext ctx, TextFieldDelegate del, const char *initialText, const char *promptText, int fontSizePixels):
+	ctx{ctx}
 {
-	using namespace Base;
+	auto uiTextField = [[UITextField alloc] initWithFrame: toCGRect(*deviceWindow(ctx), textRect)];
+	setupTextView(ctx, uiTextField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding]);
+	auto appTextField = [[IGAppTextField alloc] initWithTextField:uiTextField textDelegate:del];
+	uiTextField.delegate = appTextField;
+	textField_ = (void*)CFBridgingRetain(appTextField);
+	[deviceWindow(ctx)->uiWin().rootViewController.view addSubview: uiTextField];
 	logMsg("starting system text input");
-	vKeyboardTextDelegate = callback;
-	if(!vkbdField)
-	{
-		vkbdField = [[UITextField alloc] initWithFrame: toCGRect(*deviceWindow(ctx), textRect)];
-		setupTextView(ctx, vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
-		[deviceWindow(ctx)->uiWin().rootViewController.view addSubview: vkbdField];
-	}
-	else
-	{
-		vkbdField.frame = toCGRect(*deviceWindow(ctx), textRect);
-		setupTextView(ctx, vkbdField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding /*NSASCIIStringEncoding*/]);
-	}
-
-	[vkbdField becomeFirstResponder];
-	return 0;
+	[uiTextField becomeFirstResponder];
 }
 
-void placeSysTextInput(Base::ApplicationContext ctx, IG::WindowRect rect)
+UIKitTextField::~UIKitTextField()
 {
-	using namespace Base;
+	CFRelease(textField_);
+}
+
+void TextField::place(IG::WindowRect rect)
+{
 	textRect = rect;
-	if(vkbdField)
-	{
-		vkbdField.frame = toCGRect(*deviceWindow(ctx), textRect);
-		/*#ifdef CONFIG_GFX_SOFT_ORIENTATION
-		vkbdField.transform = makeTransformForOrientation(deviceWindow().softOrientation());
-		#endif*/
-	}
+	if(!textField().uiTextField)
+		return;
+	textField().uiTextField.frame = toCGRect(*deviceWindow(ctx), textRect);
 }
 
-IG::WindowRect sysTextInputRect(Base::ApplicationContext) { return textRect; }
+IG::WindowRect TextField::windowRect() const { return textRect; }
 
-void cancelSysTextInput(Base::ApplicationContext)
+void TextField::cancel()
 {
-	if(!vkbdField)
+	if(!textField().uiTextField)
 		return;
 	logMsg("canceled system text input");
-	vKeyboardTextDelegate = {};
-	[vkbdField resignFirstResponder];
+	textField().textDelegate = {};
+	[textField().uiTextField resignFirstResponder];
 }
 
-void finishSysTextInput(Base::ApplicationContext)
+void TextField::finish()
 {
-	if(!vkbdField)
+	if(!textField().uiTextField)
 		return;
 	logMsg("finished system text input");
-	[vkbdField resignFirstResponder];
+	[textField().uiTextField resignFirstResponder];
 }
-
-#endif
 
 bool Device::anyTypeBitsPresent(Base::ApplicationContext ctx, uint32_t typeBits)
 {
@@ -254,12 +285,5 @@ void init(Base::ApplicationContext ctx)
 	initAppleGameControllers(ctx);
 	#endif
 }
-
-}
-
-namespace Base
-{
-
-void ApplicationContext::flushSystemInputEvents() {}
 
 }

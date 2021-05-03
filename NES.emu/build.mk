@@ -19,7 +19,7 @@ CPPFLAGS += -I$(projectPath)/src \
 -DFRAMESKIP \
 -I$(projectPath)/src/fceu
 
-CXXFLAGS_WARN += -Wno-register
+CXXFLAGS_WARN += -Wno-register -Wno-sign-compare -Wno-missing-field-initializers -Wno-switch -Wno-bitwise-op-parentheses
 
 ifneq ($(config_compiler), clang)
  CXXFLAGS_WARN += -Wno-volatile

@@ -16,29 +16,30 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/audio/Format.hh>
+#include <imagine/gfx/defs.hh>
+#include <imagine/gfx/ProjectionPlane.hh>
+#include <imagine/gfx/Mat4.hh>
 
-namespace Base
+namespace Gfx
 {
-class ApplicationContext;
-}
 
-namespace IG::AudioManager
+class Projection
 {
-	namespace Config
+public:
+	constexpr Projection() {}
+
+	Projection(Viewport viewport, Mat4 matrix)
 	{
-	#if defined __ANDROID__ || (defined __APPLE__ && TARGET_OS_IPHONE)
-	#define CONFIG_AUDIO_MANAGER_SOLO_MIX
-	#endif
+		mat = matrix;
+		plane_ = ProjectionPlane::makeWithMatrix(viewport, matrix);
 	}
 
-Audio::SampleFormat nativeSampleFormat(Base::ApplicationContext);
-uint32_t nativeRate(Base::ApplicationContext);
-Audio::Format nativeFormat(Base::ApplicationContext);
-void setSoloMix(Base::ApplicationContext, bool newSoloMix);
-bool soloMix(Base::ApplicationContext);
-void setMusicVolumeControlHint(Base::ApplicationContext);
-void startSession(Base::ApplicationContext);
-void endSession(Base::ApplicationContext);
+	constexpr Mat4 matrix() const { return mat; };
+	constexpr ProjectionPlane plane() const { return plane_; };
+
+protected:
+	Mat4 mat;
+	ProjectionPlane plane_;
+};
 
 }

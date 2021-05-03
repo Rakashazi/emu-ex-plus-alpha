@@ -47,7 +47,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			setSoundEnabled(item.flipBoolValue(*this));
 			if(item.boolValue())
-				audio->open(appContext(), audioOutputAPI());
+				audio->open(audioOutputAPI());
 			else
 				audio->close();
 		}
@@ -148,18 +148,15 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		0,
 		audioRateItem
 	}
-	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
 	,audioSoloMix
 	{
 		"Mix With Other Apps", &defaultFace(),
-		!optionAudioSoloMix,
+		!app().audioManager().soloMix(),
 		[this](BoolMenuItem &item, Input::Event e)
 		{
-			optionAudioSoloMix = !item.flipBoolValue(*this);
-			IG::AudioManager::setSoloMix(appContext(), optionAudioSoloMix);
+			app().audioManager().setSoloMix(!item.flipBoolValue(*this));
 		}
 	}
-	#endif
 	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 	,api
 	{
@@ -173,21 +170,21 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	apiItem.emplace_back("Auto", &defaultFace(),
 		[this](View &view)
 		{
-			auto app = appContext();
+			auto &audioManager = app().audioManager();
 			optionAudioAPI = 0;
-			auto defaultApi = IG::Audio::makeValidAPI(app);
-			audio->open(app, defaultApi);
-			api.setSelected(idxOfAPI(defaultApi, IG::Audio::audioAPIs(app)));
+			auto defaultApi = audioManager.makeValidAPI();
+			audio->open(defaultApi);
+			api.setSelected(idxOfAPI(defaultApi, audioManager.audioAPIs()));
 			view.dismiss();
 			return false;
 		});
-	for(auto desc: IG::Audio::audioAPIs(appContext()))
+	for(auto desc: app().audioManager().audioAPIs())
 	{
 		apiItem.emplace_back(desc.name, &defaultFace(),
 			[this, api = desc.api]()
 			{
 				optionAudioAPI = (uint8_t)api;
-				audio->open(appContext(), api);
+				audio->open(api);
 			});
 	}
 	#endif
@@ -223,16 +220,17 @@ void AudioOptionView::loadStockItems()
 	}
 	item.emplace_back(&soundBuffers);
 	item.emplace_back(&addSoundBuffersOnUnderrun);
-	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
-	item.emplace_back(&audioSoloMix);
-	#endif
+	if constexpr(IG::Audio::Manager::HAS_SOLO_MIX)
+	{
+		item.emplace_back(&audioSoloMix);
+	}
 	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-	auto app = appContext();
-	if(auto apiVec = IG::Audio::audioAPIs(app);
+	auto &audioManager = app().audioManager();
+	if(auto apiVec = audioManager.audioAPIs();
 		apiVec.size() > 1)
 	{
 		item.emplace_back(&api);
-		api.setSelected(idxOfAPI(IG::Audio::makeValidAPI(app, audioOutputAPI()), std::move(apiVec)));
+		api.setSelected(idxOfAPI(audioManager.makeValidAPI(audioOutputAPI()), std::move(apiVec)));
 	}
 	#endif
 }

@@ -17,6 +17,7 @@
 #include "../android.hh"
 #include "GraphicBuffer.hh"
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 
 namespace Base
@@ -81,7 +82,7 @@ GraphicBuffer::GraphicBuffer(IG::PixmapDesc desc, uint32_t usage):
 GraphicBuffer::GraphicBuffer(uint32_t w, uint32_t h, uint32_t f, uint32_t reqUsage):
 	GraphicBuffer()
 {
-	if(unlikely(!hasBufferMapper()))
+	if(!hasBufferMapper()) [[unlikely]]
 		return;
 	if(auto err = allocDev->alloc(allocDev, w, h, f, reqUsage, &handle, &stride);
 		err)
@@ -132,8 +133,8 @@ bool GraphicBuffer::lock(uint32_t usage, IG::WindowRect rect, void **vaddr)
 {
 	if(Config::DEBUG_BUILD)
 	{
-		if(unlikely((rect.x < 0 || rect.x2 > (int)width ||
-			rect.y < 0 || rect.y2 > (int)height)))
+		if((rect.x < 0 || rect.x2 > (int)width ||
+			rect.y < 0 || rect.y2 > (int)height)) [[unlikely]]
 		{
 			bug_unreachable("locking pixels:[%d:%d:%d:%d] outside of buffer:%d,%d",
 				rect.x, rect.y, rect.x2, rect.y2, width, height);

@@ -3794,7 +3794,7 @@ void remap_line(int line, IG::Pixmap pix)
     line = (line << 1) + odd_frame;
   }
 
-  if(unlikely((unsigned)line >= pix.h() || (unsigned)bitmap.viewport.w != pix.w()))
+  if((unsigned)line >= pix.h() || (unsigned)bitmap.viewport.w != pix.w()) [[unlikely]]
 		return;
 
   /* Pixel line buffer */

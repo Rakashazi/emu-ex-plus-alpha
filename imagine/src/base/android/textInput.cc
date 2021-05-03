@@ -14,115 +14,122 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "TextInput"
-#include <imagine/input/Input.hh>
+#include <imagine/input/TextField.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
-#include "android.hh"
 
 namespace Input
 {
 
-static InputTextDelegate vKeyboardTextDelegate;
-static IG::WindowRect textRect{{8, 200}, {8+304, 200+48}};
-static JavaInstMethod<void(jstring, jstring, jint, jint, jint, jint, jint, jlong)> jStartSysTextInput;
-static JavaInstMethod<void(jboolean)> jFinishSysTextInput;
-static JavaInstMethod<void(jint, jint, jint, jint)> jPlaceSysTextInput;
-static
-void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jlong userData, jstring jStr, jboolean processText, jboolean isDoingDismiss);
+static JNI::InstMethod<jobject(jstring, jstring, jint, jint, jint, jint, jint, jlong)> jNewTextEntry{};
+static JNI::InstMethod<void(jboolean)> jFinishTextInput{};
+static JNI::InstMethod<void(jint, jint, jint, jint)> jPlaceTextInput{};
 
-static void setupTextInputJni(JNIEnv* env, jclass baseActivityClass)
+static void setupBaseActivityJni(JNIEnv* env, jobject baseActivity)
 {
-	using namespace Base;
-	if(!jStartSysTextInput)
-	{
-		logMsg("setting up text input JNI");
-		jStartSysTextInput.setup(env, baseActivityClass, "startSysTextInput", "(Ljava/lang/String;Ljava/lang/String;IIIIIJ)V");
-		jFinishSysTextInput.setup(env, baseActivityClass, "finishSysTextInput", "(Z)V");
-		jPlaceSysTextInput.setup(env, baseActivityClass, "placeSysTextInput", "(IIII)V");
-
-		static JNINativeMethod activityMethods[] =
-		{
-			{"sysTextInputEnded", "(JLjava/lang/String;ZZ)V", (void *)&textInputEnded}
-		};
-		env->RegisterNatives(baseActivityClass, activityMethods, std::size(activityMethods));
-	}
+	if(jNewTextEntry) [[likely]]
+		return;
+	jNewTextEntry = {env, baseActivity, "newTextEntry", "(Ljava/lang/String;Ljava/lang/String;IIIIIJ)Lcom/imagine/TextEntry;"};
 }
 
-uint32_t startSysTextInput(Base::ApplicationContext ctx, InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels)
+AndroidTextField::AndroidTextField(Base::ApplicationContext ctx, TextFieldDelegate del, const char *initialText, const char *promptText, int fontSizePixels):
+	ctx{ctx},
+	textDelegate{del}
 {
-	using namespace Base;
 	auto env = ctx.mainThreadJniEnv();
 	auto &app = ctx.application();
-	setupTextInputJni(env, app.baseActivityClass());
-	logMsg("starting system text input");
 	app.setEventsUseOSInputMethod(true);
-	vKeyboardTextDelegate = callback;
-	jStartSysTextInput(env, ctx.baseActivityObject(), env->NewStringUTF(initialText), env->NewStringUTF(promptText),
-		textRect.x, textRect.y, textRect.xSize(), textRect.ySize(), fontSizePixels, (jlong)&app);
-	return 0;
+	auto baseActivity = ctx.baseActivityObject();
+	setupBaseActivityJni(env, baseActivity);
+	logMsg("starting system text input");
+	jTextEntry = {env, jNewTextEntry(env, baseActivity, env->NewStringUTF(initialText), env->NewStringUTF(promptText),
+		textRect.x, textRect.y, textRect.xSize(), textRect.ySize(), fontSizePixels, (jlong)this)};
+	setupTextEntryJni(env, jTextEntry);
 }
 
-void cancelSysTextInput(Base::ApplicationContext ctx)
+AndroidTextField::~AndroidTextField()
 {
-	using namespace Base;
-	auto env = ctx.mainThreadJniEnv();
-	setupTextInputJni(env, ctx.baseActivityClass());
-	vKeyboardTextDelegate = {};
-	jFinishSysTextInput(env, ctx.baseActivityObject(), 1);
+	ctx.application().setEventsUseOSInputMethod(false);
+	static_cast<TextField*>(this)->cancel();
 }
 
-void finishSysTextInput(Base::ApplicationContext ctx)
+void AndroidTextField::setupTextEntryJni(JNIEnv* env, jobject textEntry)
 {
-	using namespace Base;
-	auto env = ctx.mainThreadJniEnv();
-	setupTextInputJni(env, ctx.baseActivityClass());
-	jFinishSysTextInput(env, ctx.baseActivityObject(), 0);
+	if(jFinishTextInput) [[likely]]
+		return;
+	logMsg("setting up text input JNI");
+	auto textEntryClass = env->GetObjectClass(textEntry);
+	jFinishTextInput = {env, textEntryClass, "finish", "(Z)V"};
+	jPlaceTextInput = {env, textEntryClass, "place", "(IIII)V"};
+	JNINativeMethod methods[] =
+	{
+		{
+			"textInputEnded", "(JLjava/lang/String;ZZ)V",
+			(void*)+[](JNIEnv* env, jobject thiz, jlong nUserData, jstring jStr, jboolean processText, jboolean isDoingDismiss)
+			{
+				if(!processText)
+				{
+					return;
+				}
+				auto &this_ = *((AndroidTextField*)nUserData);
+				auto delegate = std::exchange(this_.textDelegate, {});
+				if(delegate)
+				{
+					if(jStr)
+					{
+						const char *str = env->GetStringUTFChars(jStr, nullptr);
+						logMsg("running text entry callback with text: %s", str);
+						delegate(str);
+						env->ReleaseStringUTFChars(jStr, str);
+					}
+					else
+					{
+						logMsg("canceled text entry callback");
+						delegate(nullptr);
+					}
+				}
+				else
+				{
+					logMsg("text entry has no callback");
+				}
+			}
+		}
+	};
+	env->RegisterNatives(textEntryClass, methods, std::size(methods));
 }
 
-void placeSysTextInput(Base::ApplicationContext ctx, IG::WindowRect rect)
+void TextField::cancel()
 {
-	using namespace Base;
+	if(!jTextEntry)
+		return;
+	textDelegate = {};
 	auto env = ctx.mainThreadJniEnv();
-	setupTextInputJni(env, ctx.baseActivityClass());
+	jFinishTextInput(env, jTextEntry, 1);
+	jTextEntry.reset();
+}
+
+void TextField::finish()
+{
+	if(!jTextEntry)
+		return;
+	auto env = ctx.mainThreadJniEnv();
+	jFinishTextInput(env, jTextEntry, 0);
+	jTextEntry.reset();
+}
+
+void TextField::place(IG::WindowRect rect)
+{
+	if(!jTextEntry)
+		return;
 	textRect = rect;
 	logMsg("placing text edit box at %d,%d with size %d,%d", rect.x, rect.y, rect.xSize(), rect.ySize());
-	jPlaceSysTextInput(env, ctx.baseActivityObject(), rect.x, rect.y, rect.xSize(), rect.ySize());
+	jPlaceTextInput(ctx.mainThreadJniEnv(), jTextEntry, rect.x, rect.y, rect.xSize(), rect.ySize());
 }
 
-IG::WindowRect sysTextInputRect(Base::ApplicationContext)
+IG::WindowRect TextField::windowRect() const
 {
 	return textRect;
-}
-
-static void JNICALL textInputEnded(JNIEnv* env, jobject thiz, jlong nUserData, jstring jStr, jboolean processText, jboolean isDoingDismiss)
-{
-	if(!processText)
-	{
-		return;
-	}
-	auto &app = *((Base::AndroidApplication*)nUserData);
-	app.setEventsUseOSInputMethod(false);
-	auto delegate = std::exchange(vKeyboardTextDelegate, {});
-	if(delegate)
-	{
-		if(jStr)
-		{
-			const char *str = env->GetStringUTFChars(jStr, nullptr);
-			logMsg("running text entry callback with text: %s", str);
-			delegate(str);
-			env->ReleaseStringUTFChars(jStr, str);
-		}
-		else
-		{
-			logMsg("canceled text entry callback");
-			delegate(nullptr);
-		}
-	}
-	else
-	{
-		logMsg("text entry has no callback");
-	}
 }
 
 }

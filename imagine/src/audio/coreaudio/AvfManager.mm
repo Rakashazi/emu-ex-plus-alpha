@@ -14,10 +14,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #import <AVFoundation/AVFoundation.h>
-#include <imagine/audio/AudioManager.hh>
+#include <imagine/audio/Manager.hh>
 #include <imagine/audio/defs.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
-#include "../base/iphone/ios.hh"
 
 static void handleEndInterruption()
 {
@@ -40,49 +40,44 @@ static void handleEndInterruption()
 @end
 #endif
 
-namespace IG::AudioManager
+namespace IG::Audio
 {
+	
+AvfManager::AvfManager(Base::ApplicationContext ctx_) {}
 
-static bool soloMix_ = true;
-static bool sessionActive = false;
-#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 60000
-static id sessionInterruptionObserver = nil;
-#endif
-
-Audio::SampleFormat nativeSampleFormat(Base::ApplicationContext)
+SampleFormat Manager::nativeSampleFormat() const
 {
-	return Audio::SampleFormats::f32;
+	return SampleFormats::f32;
 }
 
-uint32_t nativeRate(Base::ApplicationContext)
+uint32_t Manager::nativeRate() const
 {
 	return 44100;
 }
 
-Audio::Format nativeFormat(Base::ApplicationContext ctx)
+Format Manager::nativeFormat() const
 {
-	return {nativeRate(ctx), nativeSampleFormat(ctx), 2};
+	return {nativeRate(), nativeSampleFormat(), 2};
 }
 
-void setSoloMix(Base::ApplicationContext, bool newSoloMix)
+void Manager::setSoloMix(std::optional<bool> opt)
 {
-	if(soloMix_ != newSoloMix)
-	{
-		logMsg("setting solo mix: %d", newSoloMix);
-		soloMix_ = newSoloMix;
-		auto category = newSoloMix ? AVAudioSessionCategorySoloAmbient : AVAudioSessionCategoryAmbient;
-		[[AVAudioSession sharedInstance] setCategory:category error:nil];
-	}
+	if(!opt || soloMix_ == *opt)
+		return;
+	logMsg("setting solo mix:%s", *opt ? "on" : "off");
+	soloMix_ = *opt;
+	auto category = *opt ? AVAudioSessionCategorySoloAmbient : AVAudioSessionCategoryAmbient;
+	[[AVAudioSession sharedInstance] setCategory:category error:nil];
 }
 
-bool soloMix()
+bool Manager::soloMix() const
 {
 	return soloMix_;
 }
 
-void setMusicVolumeControlHint(Base::ApplicationContext) {}
+void Manager::setMusicVolumeControlHint() {}
 
-void startSession(Base::ApplicationContext)
+void Manager::startSession()
 {
 	if(sessionActive)
 		return;
@@ -109,7 +104,7 @@ void startSession(Base::ApplicationContext)
 	sessionActive = true;
 }
 
-void endSession(Base::ApplicationContext)
+void Manager::endSession()
 {
 	if(!sessionActive)
 		return;
@@ -128,17 +123,12 @@ void endSession(Base::ApplicationContext)
 	sessionActive = false;
 }
 
-}
-
-namespace IG::Audio
-{
-
-std::vector<ApiDesc> audioAPIs(Base::ApplicationContext)
+std::vector<ApiDesc> Manager::audioAPIs() const
 {
 	return {{"Core Audio", Api::COREAUDIO}};
 }
 
-Api makeValidAPI(Base::ApplicationContext, Api api)
+Api Manager::makeValidAPI(Api api) const
 {
 	return Api::COREAUDIO;
 }

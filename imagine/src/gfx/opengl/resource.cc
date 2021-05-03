@@ -48,7 +48,8 @@ TextureSampler Renderer::makeTextureSampler(TextureSamplerConfig config)
 	return {task(), config};
 }
 
-TextureSampler &GLRenderer::commonTextureSampler(CommonTextureSampler sampler)
+template <class CommonSamplers>
+static auto &commonTextureSampler(CommonSamplers &commonSampler, CommonTextureSampler sampler)
 {
 	switch(sampler)
 	{
@@ -60,6 +61,13 @@ TextureSampler &GLRenderer::commonTextureSampler(CommonTextureSampler sampler)
 		case CommonTextureSampler::REPEAT: return commonSampler.repeat;
 		case CommonTextureSampler::NEAREST_MIP_REPEAT: return commonSampler.nearestMipRepeat;
 	}
+}
+
+const TextureSampler &Renderer::commonTextureSampler(CommonTextureSampler sampler) const
+{
+	auto &samplerObj = Gfx::commonTextureSampler(commonSampler, sampler);
+	assert(samplerObj);
+	return samplerObj;
 }
 
 static TextureSamplerConfig commonTextureSamplerConfig(CommonTextureSampler sampler)
@@ -96,12 +104,12 @@ static TextureSamplerConfig commonTextureSamplerConfig(CommonTextureSampler samp
 	}
 }
 
-TextureSampler &Renderer::makeCommonTextureSampler(CommonTextureSampler sampler)
+const TextureSampler &Renderer::makeCommonTextureSampler(CommonTextureSampler sampler)
 {
-	auto &commonSampler = commonTextureSampler(sampler);
-	if(!commonSampler)
-		commonSampler = makeTextureSampler(commonTextureSamplerConfig(sampler));
-	return commonSampler;
+	auto &samplerObj = Gfx::commonTextureSampler(commonSampler, sampler);
+	if(!samplerObj)
+		samplerObj = makeTextureSampler(commonTextureSamplerConfig(sampler));
+	return samplerObj;
 }
 
 }

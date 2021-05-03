@@ -30,6 +30,11 @@
 class View;
 class TableView;
 
+namespace Input
+{
+class Event;
+}
+
 class MenuItem
 {
 public:

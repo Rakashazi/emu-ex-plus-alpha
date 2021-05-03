@@ -21,7 +21,7 @@ CPPFLAGS += \
 -DSNES9X_VERSION_1_4
 # -DNO_INLINE_SET_GET
 
-CXXFLAGS_WARN += -Wno-register
+CXXFLAGS_WARN += -Wno-register -Wno-implicit-fallthrough
 
 snes9xSrc := \
 c4.cpp \

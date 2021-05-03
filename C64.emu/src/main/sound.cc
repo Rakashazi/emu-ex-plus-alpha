@@ -33,7 +33,7 @@ static int soundInit(const char *param, int *speed,
 static int soundWrite(int16_t *pbuf, size_t nr)
 {
 	//logMsg("sound write %zd", nr);
-	if(likely(audioPtr))
+	if(audioPtr) [[likely]]
 		audioPtr->writeFrames(pbuf, nr);
 	return 0;
 }

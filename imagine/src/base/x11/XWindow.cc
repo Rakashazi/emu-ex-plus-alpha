@@ -288,7 +288,9 @@ static void ewmhFullscreen(Display *dpy, ::Window win, int action)
 		.xclient =
 		{
 			.type = ClientMessage,
+			.serial = 0,
 			.send_event = True,
+			.display = {},
 			.window = win,
 			.message_type = XInternAtom(dpy, "_NET_WM_STATE", False),
 			.format = 32,

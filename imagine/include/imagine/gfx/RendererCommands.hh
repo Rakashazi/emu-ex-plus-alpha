@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/SyncFence.hh>
-#include <imagine/gfx/Mat4.hh>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/GLRendererCommands.hh>
@@ -30,6 +29,7 @@ namespace Gfx
 class Renderer;
 class Program;
 class Texture;
+class Mat4;
 
 enum class Primitive
 {

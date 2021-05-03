@@ -371,7 +371,7 @@ void flush_samples(Multi_Buffer * buffer, EmuAudio *audio)
 	u16 soundFinalWave[1800];
 	samples = std::min(samples, unsigned(sizeof soundFinalWave / 2));
 	buffer->read_samples( (blip_sample_t*) soundFinalWave, samples );
-	if(likely(audio))
+	if(audio) [[likely]]
 		systemOnWriteDataToSoundBuffer(audio, soundFinalWave, samples*2);
 	//if(soundPaused)
 	//	soundResume();

@@ -67,7 +67,7 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 #endif
 {
 	assumeExpr(emuVideo);
-	if(unlikely(height == 239 && emuVideo->size().y == 224 && heightChangeFrames))
+	if(height == 239 && emuVideo->size().y == 224 && heightChangeFrames) [[unlikely]]
 	{
 		// ignore rapid 224 -> 239 -> 224 height changes
 		//logMsg("skipped height change");
@@ -227,7 +227,7 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 
 static void mixSamples(uint32_t samples, EmuAudio *audio)
 {
-	if(unlikely(!samples))
+	if(!samples) [[unlikely]]
 		return;
 	assumeExpr(samples % 2 == 0);
 	int16_t audioBuff[samples];
@@ -241,7 +241,7 @@ static void mixSamples(uint32_t samples, EmuAudio *audio)
 
 void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
-	if(unlikely(snesActiveInputPort != SNES_JOYPAD))
+	if(snesActiveInputPort != SNES_JOYPAD)
 	{
 		if(doubleClickFrames)
 			doubleClickFrames--;

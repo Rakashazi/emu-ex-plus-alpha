@@ -15,8 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/jni.hh>
 #include <imagine/pixmap/PixelFormat.hh>
+#include <jni.h>
 
 namespace Base
 {
@@ -56,12 +56,5 @@ static bool surfaceRotationIsStraight(SurfaceRotation o)
 {
 	return o == SURFACE_ROTATION_0 || o == SURFACE_ROTATION_180;
 }
-
-}
-
-namespace IG::AudioManager
-{
-
-uint32_t nativeOutputFramesPerBuffer(Base::ApplicationContext);
 
 }

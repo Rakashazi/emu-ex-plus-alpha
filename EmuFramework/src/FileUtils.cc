@@ -14,7 +14,6 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/FileUtils.hh>
-#include "private.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #if defined CONFIG_BASE_IOS

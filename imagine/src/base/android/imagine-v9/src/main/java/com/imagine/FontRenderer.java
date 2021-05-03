@@ -76,7 +76,7 @@ final class FontRenderer
 		glyphData(idx, paint, metricsAddr, false);
 	}
 
-	static Paint makePaint(int size, boolean isBold)
+	Paint makePaint(int size, boolean isBold)
 	{
 		Paint p = new Paint();
 		if(isBold)

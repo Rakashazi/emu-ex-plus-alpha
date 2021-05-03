@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/input/Input.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/input/VelocityTracker.hh>
 #include <imagine/util/rectangle2.h>

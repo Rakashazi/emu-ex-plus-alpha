@@ -29,7 +29,7 @@
 #define VICE_ALARM_H
 
 #include "types.h"
-#include <imagine/util/utility.h>
+#include <imagine/util/likely.h>
 
 #define ALARM_CONTEXT_MAX_PENDING_ALARMS 0x100
 

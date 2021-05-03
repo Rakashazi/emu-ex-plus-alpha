@@ -16,8 +16,8 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/InputManagerView.hh>
-#include "private.hh"
 #include "privateInput.hh"
+#include "WindowData.hh"
 #include "EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/algorithm.h>
@@ -63,15 +63,15 @@ void EmuApp::initVControls()
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 	vController.init((int)optionTouchCtrlAlpha / 255.0, vControllerPixelSize(vController, win), vController.face().nominalHeight()*1.75, winData.projection.plane());
 	#else
-	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(win, 8.5)), View::defaultFace.nominalHeight()*1.75, winData.projection.plane());
+	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(win, 8.5)), vController.face().nominalHeight()*1.75, winData.projection.plane());
 	#endif
 
 	if(!vController.layoutPositionChanged()) // setup default positions if not provided in config file
 		resetVControllerPositions(vController);
 	vController.setInputPlayer(0);
 	app.updateVControlImg(vController);
-	vController.setMenuImage(app.asset(r, EmuApp::AssetID::MENU));
-	vController.setFastForwardImage(app.asset(r, EmuApp::AssetID::FAST_FORWARD));
+	vController.setMenuImage(app.asset(EmuApp::AssetID::MENU));
+	vController.setFastForwardImage(app.asset(EmuApp::AssetID::FAST_FORWARD));
 }
 
 void resetVControllerPositions(VController &vController)
@@ -581,7 +581,7 @@ void KeyMapping::buildAll(const std::vector<InputDeviceConfig> &inputDevConf, co
 		{
 			totalKeys += Input::Event::mapNumKeys(e->map());
 		}
-		if(unlikely(!totalKeys))
+		if(!totalKeys) [[unlikely]]
 		{
 			logMsg("no keys in mapping");
 			inputDevActionTablePtr[0] = nullptr;
@@ -715,7 +715,7 @@ void setupVControllerVars(VController &vController)
 	vController.setBaseBtnSize(vControllerPixelSize(vController, win), vController.face().nominalHeight()*1.75, winData.projection.plane());
 	vController.setBoundingAreaVisible(optionTouchCtrlBoundingBoxes);
 	#else
-	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(win, 8.5)), View::defaultFace.nominalHeight()*1.75, winData.projection.plane());
+	vController.init((int)optionTouchCtrlAlpha / 255.0, IG::makeEvenRoundedUp(vController.xMMSizeToPixel(win, 8.5)), vController.face().nominalHeight()*1.75, winData.projection.plane());
 	#endif
 
 	auto &layoutPos = vController.layoutPosition()[winData.viewport().isPortrait() ? 1 : 0];
@@ -731,15 +731,14 @@ void setupVControllerVars(VController &vController)
 
 void EmuApp::updateVControlImg(VController &vController)
 {
-	auto &r = vController.renderer();
 	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	{
-		vController.setImg(asset(r, AssetID::GAMEPAD_OVERLAY));
+		vController.setImg(asset(AssetID::GAMEPAD_OVERLAY));
 	}
 	#endif
 	if(EmuSystem::inputHasKeyboard)
 	{
-		vController.setKeyboardImage(asset(r, AssetID::KEYBOARD_OVERLAY));
+		vController.setKeyboardImage(asset(AssetID::KEYBOARD_OVERLAY));
 	}
 }
 

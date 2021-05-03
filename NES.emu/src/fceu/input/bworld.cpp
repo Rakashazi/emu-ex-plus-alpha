@@ -42,6 +42,7 @@ static uint8 Read(int w, uint8 ret)
 	   }
 	   else
 	    seq=1;
+     break;
    default: break;
   }
  }

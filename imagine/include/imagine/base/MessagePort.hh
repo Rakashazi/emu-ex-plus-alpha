@@ -20,6 +20,7 @@
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/util/typeTraits.hh>
 #include <utility>
+#include <cstring>
 
 namespace Base
 {
@@ -142,19 +143,31 @@ public:
 		if(awaitReply)
 		{
 			IG::Semaphore sem{0};
+			return send(msg, &sem);
+		}
+		else
+		{
+			return send(msg);
+		}
+	}
+
+	bool send(MsgType msg, IG::Semaphore *semPtr)
+	{
+		if(semPtr)
+		{
 			if constexpr(std::is_invocable_v<decltype(&MsgType::setReplySemaphore), MsgType, IG::Semaphore*>)
 			{
-				msg.setReplySemaphore(&sem);
+				msg.setReplySemaphore(semPtr);
 			}
 			else
 			{
 				static_assert(IG::dependentFalseValue<MsgType>, "Called send() overload with MsgType missing setReplySemaphore()");
 			}
-			if(unlikely(pipe.sink().write(msg) == -1))
+			if(pipe.sink().write(msg) == -1) [[unlikely]]
 			{
 				return false;
 			}
-			sem.wait();
+			semPtr->wait();
 			return true;
 		}
 		else

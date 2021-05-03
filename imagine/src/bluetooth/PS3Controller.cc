@@ -216,7 +216,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 	if(size)
 		logger_printf(0, "\n");*/
 
-	if(unlikely(!didSetLEDs))
+	if(!didSetLEDs) [[unlikely]]
 	{
 		setLEDs(player);
 		didSetLEDs = true;
@@ -224,7 +224,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 
 	switch(packet[0])
 	{
-		bcase 0xA1:
+		case 0xA1:
 		{
 			auto time = IG::steadyClockTimestamp();
 			const uint8_t *digitalBtnData = &packet[3];

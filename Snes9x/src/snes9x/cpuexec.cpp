@@ -4,7 +4,6 @@
    For further information, consult the LICENSE file in the root directory.
 \*****************************************************************************/
 
-#include <imagine/util/utility.h>
 #include "snes9x.h"
 #include "memmap.h"
 #include "cpuops.h"
@@ -132,7 +131,7 @@ void S9xMainLoop2 (void)
 		}
 	#endif
 
-		if (unlikely(CPU.Flags & SCAN_KEYS_FLAG))
+		if (CPU.Flags & SCAN_KEYS_FLAG) [[unlikely]]
 		{
 			#ifdef DEBUGGER
 			if (!(CPU.Flags & FRAME_ADVANCE_FLAG))

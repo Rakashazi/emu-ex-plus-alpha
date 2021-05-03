@@ -893,10 +893,13 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 		item.emplace_back(&vibrate);
 	}
 	item.emplace_back(&showOnTouch);
-	if constexpr(Config::EmuFramework::USE_SCALED_COORDINATES)
+	[this](auto &useScaledCoordinates)
 	{
-		item.emplace_back(&useScaledCoordinates);
-	}
+		if constexpr(Config::EmuFramework::USE_SCALED_COORDINATES)
+		{
+			item.emplace_back(&useScaledCoordinates);
+		}
+	}(useScaledCoordinates);
 	#else
 	item.emplace_back(&otherHeading);
 	#endif // CONFIG_VCONTROLS_GAMEPAD

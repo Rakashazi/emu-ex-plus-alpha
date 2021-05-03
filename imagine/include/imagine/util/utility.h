@@ -4,13 +4,9 @@
 #include <utility>
 #endif
 #include <assert.h>
-#include <imagine/util/builtins.h>
 
 #define bcase break; case
 #define bdefault break; default
-
-#define likely(E) __builtin_expect(!!(E), 1)
-#define unlikely(E) __builtin_expect(!!(E), 0)
 
 #define PP_STRINGIFY(A) #A
 #define PP_STRINGIFY_EXP(A) PP_STRINGIFY(A)
@@ -26,9 +22,6 @@ CLINK void bug_doExit(const char *msg, ...)  __attribute__ ((format (printf, 1, 
 #define assumeExpr(E) assert(E)
 #define bug_unreachable(msg, ...) bug_doExit("bug: " msg " @" __FILE__ ", line:%d , func:%s", ## __VA_ARGS__, __LINE__, __PRETTY_FUNCTION__)
 #endif
-
-// logical xor
-#define lxor(a, b) ( !(a) != !(b) )
 
 #ifdef __cplusplus
 namespace IG

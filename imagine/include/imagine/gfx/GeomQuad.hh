@@ -2,7 +2,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/gfx/Vertex.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/edge.h>
@@ -11,6 +10,7 @@ namespace Gfx
 {
 
 class RendererCommands;
+class ProjectionPlane;
 
 template<class Vtx>
 static constexpr std::array<Vtx, 4> mapQuadUV(std::array<Vtx, 4> v, GTexCRect rect)

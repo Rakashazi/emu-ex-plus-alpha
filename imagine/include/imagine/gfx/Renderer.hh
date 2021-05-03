@@ -98,8 +98,10 @@ public:
 	std::vector<TextureBufferModeDesc> textureBufferModes();
 	TextureBufferMode makeValidTextureBufferMode(TextureBufferMode mode = {});
 	TextureSampler makeTextureSampler(TextureSamplerConfig config);
-	TextureSampler &makeCommonTextureSampler(CommonTextureSampler sampler);
-	TextureSampler &make(CommonTextureSampler sampler) { return makeCommonTextureSampler(sampler); }
+	const TextureSampler &makeCommonTextureSampler(CommonTextureSampler sampler);
+	const TextureSampler &make(CommonTextureSampler sampler) { return makeCommonTextureSampler(sampler); }
+	const TextureSampler &commonTextureSampler(CommonTextureSampler sampler) const;
+	const TextureSampler &get(CommonTextureSampler sampler) const { return commonTextureSampler(sampler); }
 
 	void setCorrectnessChecks(bool on);
 };

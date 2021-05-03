@@ -120,7 +120,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 		#endif
 		auto &emuApp = app();
 		auto &keyMapping = emuApp.keyInputMapping();
-		if(unlikely(!keyMapping))
+		if(!keyMapping) [[unlikely]]
 			return false;
 		assumeExpr(e.device());
 		const KeyMapping::ActionGroup &actionMap = keyMapping.inputDevActionTablePtr[e.device()->idx][e.mapKey()];

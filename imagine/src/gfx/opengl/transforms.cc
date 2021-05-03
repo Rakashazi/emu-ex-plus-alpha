@@ -24,7 +24,7 @@
 namespace Gfx
 {
 
-void GLRenderer::setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat)
+void GLRenderer::setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat) const
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(support.useFixedFunctionPipeline)
@@ -97,7 +97,7 @@ void RendererCommands::loadTransform(Mat4 mat)
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	modelMat = mat;
-	if(likely(currProgram.glProgram()))
+	if(currProgram.glProgram()) [[likely]]
 	{
 		auto mvpMat = projectionMat.mult(mat);
 		glUniformMatrix4fv(currProgram.modelViewProjectionUniform(), 1, GL_FALSE, &mvpMat[0][0]);

@@ -15,14 +15,13 @@
 
 #define LOGTAG "OpenSL"
 #include <imagine/audio/opensl/OpenSLESOutputStream.hh>
-#include <imagine/base/ApplicationContext.hh>
+#include <imagine/audio/Manager.hh>
 #include <imagine/logger/logger.h>
-#include "../../base/android/android.hh"
 
 namespace IG::Audio
 {
 
-OpenSLESOutputStream::OpenSLESOutputStream(Base::ApplicationContext ctx)
+OpenSLESOutputStream::OpenSLESOutputStream(const Manager &manager)
 {
 	// engine object
 	SLObjectItf slE;
@@ -50,11 +49,11 @@ OpenSLESOutputStream::OpenSLESOutputStream(Base::ApplicationContext ctx)
 	}
 	this->slE = slE;
 	this->outMix = outMix;
-	bufferFrames = AudioManager::nativeOutputFramesPerBuffer(ctx);
-	supportsFloatFormat = ctx.androidSDK() >= 21;
+	bufferFrames = manager.nativeOutputFramesPerBuffer();
+	supportsFloatFormat = manager.hasFloatFormat();
 	// must create queue with 2 buffers on Android <= 4.2
 	// to get low-latency path, even though we only queue 1
-	outputBuffers = ctx.androidSDK() >= 18 ? 1 : 2;
+	outputBuffers = manager.defaultOutputBuffers();
 }
 
 OpenSLESOutputStream::~OpenSLESOutputStream()
@@ -73,7 +72,7 @@ IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 		logWarn("stream already open");
 		return {};
 	}
-	if(unlikely(!*this))
+	if(!*this) [[unlikely]]
 	{
 		return {EINVAL};
 	}
@@ -99,7 +98,7 @@ IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 		};
 		audioSrc.pFormat = &slFormatEx;
 	}
-	else if(unlikely(format.sample.isFloat()))
+	else if(format.sample.isFloat()) [[unlikely]]
 	{
 		logErr("floating-point samples need API level 21+");
 		return {EINVAL};
@@ -112,7 +111,7 @@ IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 	SLresult result = (*slE)->GetInterface(slE, SL_IID_ENGINE, &slI);
 	assert(result == SL_RESULT_SUCCESS);
 	result = (*slI)->CreateAudioPlayer(slI, &player, &audioSrc, &sink, std::size(ids), ids, req);
-	if(unlikely(result != SL_RESULT_SUCCESS))
+	if(result != SL_RESULT_SUCCESS) [[unlikely]]
 	{
 		logErr("CreateAudioPlayer returned 0x%X", (uint32_t)result);
 		player = nullptr;
@@ -141,7 +140,7 @@ IG::ErrorCode OpenSLESOutputStream::open(OutputStreamConfig config)
 
 void OpenSLESOutputStream::play()
 {
-	if(unlikely(!player))
+	if(!player) [[unlikely]]
 		return;
 	if(SLresult result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PLAYING);
 		result == SL_RESULT_SUCCESS)
@@ -162,7 +161,7 @@ void OpenSLESOutputStream::play()
 
 void OpenSLESOutputStream::pause()
 {
-	if(unlikely(!player) || !isPlaying_)
+	if(!player || !isPlaying_) [[unlikely]]
 		return;
 	logMsg("pausing playback");
 	if(SLresult result = (*playerI)->SetPlayState(playerI, SL_PLAYSTATE_PAUSED);
@@ -188,7 +187,7 @@ void OpenSLESOutputStream::close()
 
 void OpenSLESOutputStream::flush()
 {
-	if(unlikely(!isOpen()))
+	if(!isOpen())
 		return;
 	logMsg("clearing queued samples");
 	pause();

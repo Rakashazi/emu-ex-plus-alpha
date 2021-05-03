@@ -59,41 +59,6 @@ public:
 		void setReplySemaphore(IG::Semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 
-	enum class Reply: uint8_t
-	{
-		UNSET,
-		VIDEO_FORMAT_CHANGED,
-		FRAME_FINISHED,
-		TOOK_SCREENSHOT,
-	};
-
-	struct ReplyMessage
-	{
-		union Args
-		{
-			struct VideoFormatArgs
-			{
-				EmuVideo *videoAddr;
-			} videoFormat;
-			struct ScreenshotArgs
-			{
-				int num;
-				bool success;
-			} screenshot;
-		} args{};
-		Reply reply{Reply::UNSET};
-
-		constexpr ReplyMessage() {}
-		constexpr ReplyMessage(Reply reply, EmuVideo &video):
-			args{&video}, reply{reply} {}
-		constexpr ReplyMessage(Reply reply, int num, bool success):
-			reply{reply}
-		{
-			args.screenshot = {num, success};
-		}
-		explicit operator bool() const { return reply != Reply::UNSET; }
-	};
-
 	EmuSystemTask(EmuApp &);
 	void start();
 	void pause();
@@ -107,6 +72,5 @@ public:
 private:
 	EmuApp *appPtr{};
 	Base::MessagePort<CommandMessage> commandPort{"EmuSystemTask Command"};
-	Base::MessagePort<ReplyMessage> replyPort{"EmuSystemTask Reply"};
 	bool started = false;
 };

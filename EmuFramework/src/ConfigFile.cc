@@ -200,9 +200,6 @@ static OptionBase *cfgFileOption[] =
 	#endif
 	&optionSoundBuffers,
 	&optionAddSoundBuffersOnUnderrun,
-	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
-	&optionAudioSoloMix,
-	#endif
 	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 	&optionAudioAPI,
 	#endif
@@ -234,6 +231,7 @@ void EmuApp::saveConfigFile(IO &io)
 	writeOptionValue(io, CFGKEY_BACK_NAVIGATION, viewManager.needsBackControlOption());
 	writeOptionValue(io, CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES, vController.usesScaledCoordinatesOption());
 	writeOptionValue(io, CFGKEY_SWAPPED_GAMEPAD_CONFIM, swappedConfirmKeysOption());
+	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audioManager().soloMixOption());
 
 	if(customKeyConfig.size())
 	{
@@ -509,9 +507,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				bcase CFGKEY_SOUND_BUFFERS: optionSoundBuffers.readFromIO(io, size);
 				bcase CFGKEY_SOUND_VOLUME: optionSoundVolume.readFromIO(io, size);
 				bcase CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN: optionAddSoundBuffersOnUnderrun.readFromIO(io, size);
-				#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
-				bcase CFGKEY_AUDIO_SOLO_MIX: optionAudioSoloMix.readFromIO(io, size);
-				#endif
+				bcase CFGKEY_AUDIO_SOLO_MIX: audioManager().setSoloMix(readOptionValue<bool>(io, size));
 				#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 				bcase CFGKEY_AUDIO_API: optionAudioAPI.readFromIO(io, size);
 				#endif

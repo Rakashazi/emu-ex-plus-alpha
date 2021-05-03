@@ -25,10 +25,9 @@
 namespace IG
 {
 
-static JavaInstMethod<jobject(jint, jobject, jlong)> jBitmap{};
-static JavaInstMethod<void(jint, jobject, jlong)> jMetrics{};
-static JavaClassMethod<jobject(jint, jboolean)> jMakePaint{};
-static jclass jFontRendererCls{};
+static JNI::InstMethod<jobject(jint, jobject, jlong)> jBitmap{};
+static JNI::InstMethod<void(jint, jobject, jlong)> jMetrics{};
+static JNI::InstMethod<jobject(jint, jboolean)> jMakePaint{};
 static jobject renderer{};
 
 static const char *androidBitmapResultToStr(int result)
@@ -48,11 +47,10 @@ static void setupResourceFontAndroidJni(JNIEnv *env, jobject renderer)
 	if(jBitmap)
 		return; // already setup
 	//logMsg("setting up JNI methods");
-	jFontRendererCls = env->GetObjectClass(renderer);
-	jFontRendererCls = (jclass)env->NewGlobalRef(jFontRendererCls);
-	jBitmap.setup(env, jFontRendererCls, "bitmap", "(ILandroid/graphics/Paint;J)Landroid/graphics/Bitmap;");
-	jMetrics.setup(env, jFontRendererCls, "metrics", "(ILandroid/graphics/Paint;J)V");
-	jMakePaint.setup(env, jFontRendererCls, "makePaint", "(IZ)Landroid/graphics/Paint;");
+	auto jFontRendererCls = env->GetObjectClass(renderer);
+	jBitmap = {env, jFontRendererCls, "bitmap", "(ILandroid/graphics/Paint;J)Landroid/graphics/Bitmap;"};
+	jMetrics = {env, jFontRendererCls, "metrics", "(ILandroid/graphics/Paint;J)V"};
+	jMakePaint = {env, jFontRendererCls, "makePaint", "(IZ)Landroid/graphics/Paint;"};
 	JNINativeMethod method[]
 	{
 		{
@@ -79,7 +77,7 @@ Font Font::makeSystem(Base::ApplicationContext ctx)
 {
 	auto env = ctx.mainThreadJniEnv();
 	Font font{ctx};
-	if(unlikely(!renderer))
+	if(!renderer) [[unlikely]]
 	{
 		logMsg("making renderer");
 		renderer = ctx.application().makeFontRenderer(env, ctx.baseActivityObject());
@@ -144,7 +142,7 @@ GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)
 FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 {
 	auto env = ctx.thisThreadJniEnv();
-	auto paint = jMakePaint(env, jFontRendererCls, settings.pixelHeight(), isBold);
+	auto paint = jMakePaint(env, renderer, settings.pixelHeight(), isBold);
 	if(!paint)
 	{
 		ec = std::errc::invalid_argument;
@@ -152,38 +150,12 @@ FontSize Font::makeSize(FontSettings settings, std::errc &ec)
 	}
 	logMsg("allocated new size %dpx @ 0x%p", settings.pixelHeight(), paint);
 	ec = {};
-	return {ctx, env->NewGlobalRef(paint)};
+	return {{env, paint}};
 }
 
-AndroidFontSize::AndroidFontSize(Base::ApplicationContext ctx, jobject paint):
-	paint_{paint},
-	ctx{ctx}
+AndroidFontSize::AndroidFontSize(JNI::UniqueGlobalRef paint):
+	paint_{std::move(paint)}
 {}
-
-AndroidFontSize::AndroidFontSize(AndroidFontSize &&o)
-{
-	*this = std::move(o);
-}
-
-AndroidFontSize &AndroidFontSize::operator=(AndroidFontSize &&o)
-{
-	deinit();
-	paint_ = std::exchange(o.paint_, {});
-	ctx = o.ctx;
-	return *this;
-}
-
-AndroidFontSize::~AndroidFontSize()
-{
-	deinit();
-}
-
-void AndroidFontSize::deinit()
-{
-	if(!paint_)
-		return;
-	ctx.thisThreadJniEnv()->DeleteGlobalRef(paint_);
-}
 
 AndroidGlyphImage::AndroidGlyphImage(Base::ApplicationContext ctx, IG::Pixmap pixmap, jobject bitmap):
 	pixmap_{pixmap},

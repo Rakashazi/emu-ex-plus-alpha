@@ -111,8 +111,6 @@ void LinuxApplication::setIdleDisplayPowerSave(bool wantsAllowScreenSaver)
 {
 	if(allowScreenSaver == wantsAllowScreenSaver)
 		return;
-	if(!initDBus())
-		return;
 	if(wantsAllowScreenSaver && screenSaverCookie)
 	{
 		g_dbus_connection_call(gbus,
@@ -153,8 +151,6 @@ void LinuxApplication::endIdleByUserActivity()
 {
 	if(!allowScreenSaver)
 		return;
-	if(!initDBus())
-		return;
 	g_dbus_connection_call(gbus,
 		"org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver",
 		"SimulateUserActivity", nullptr,
@@ -168,8 +164,6 @@ void LinuxApplication::endIdleByUserActivity()
 
 bool LinuxApplication::registerInstance(ApplicationInitParams initParams, const char *name)
 {
-	if(!initDBus())
-		return false;
 	if(!uniqueInstanceRunning(gbus, name))
 	{
 		// no running intance
@@ -203,13 +197,19 @@ bool LinuxApplication::registerInstance(ApplicationInitParams initParams, const 
 void LinuxApplication::setAcceptIPC(bool on, const char *name)
 {
 	assert(on);
-	if(!initDBus())
-		return;
 	// listen to openPath events
 	if(!openPathSub)
 	{
 		openPathSub = setOpenPathListener(*this, gbus, name);
 	}
 }
+
+void ApplicationContext::setIdleDisplayPowerSave(bool on) { application().setIdleDisplayPowerSave(on); }
+
+void ApplicationContext::endIdleByUserActivity() { application().endIdleByUserActivity(); }
+
+bool ApplicationContext::registerInstance(ApplicationInitParams initParams, const char *name) { return application().registerInstance(initParams, name); }
+
+void ApplicationContext::setAcceptIPC(bool on, const char *name) { application().setAcceptIPC(on, name); }
 
 }

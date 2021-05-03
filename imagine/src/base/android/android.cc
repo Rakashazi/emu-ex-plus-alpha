@@ -48,21 +48,27 @@ static pid_t mainThreadId{};
 
 static void setNativeActivityCallbacks(ANativeActivity *nActivity);
 
-AndroidApplication::AndroidApplication(ApplicationInitParams initParams)
+AndroidApplication::AndroidApplication(ApplicationInitParams initParams):
+	BaseApplication{initParams.nActivity}
 {
 	ApplicationContext ctx{initParams.nActivity};
 	auto env = ctx.mainThreadJniEnv();
 	auto baseActivity = ctx.baseActivityObject();
 	auto androidSDK = ctx.androidSDK();
-	jBaseActivityCls = (jclass)env->NewGlobalRef(env->GetObjectClass(baseActivity));
-	processInput_ = androidSDK >= 12 ? &AndroidApplication::processInputWithGetEvent : &AndroidApplication::processInputWithHasEvents;
-	logger_setLogDirectoryPrefix(sharedStoragePath(env).data());
-	initActivity(env, baseActivity, androidSDK);
+	auto baseActivityClass = (jclass)env->GetObjectClass(baseActivity);
+	if(Config::DEBUG_BUILD)
+	{
+		auto extPath = sharedStoragePath(env, baseActivityClass);
+		logger_setLogDirectoryPrefix(extPath.data());
+		logMsg("SDK API Level:%d", androidSDK);
+		logMsg("internal storage path: %s", ctx.supportPath({}).data());
+		logMsg("external storage path: %s", extPath.data());
+	}
+	initActivity(env, baseActivity, baseActivityClass, androidSDK);
 	setNativeActivityCallbacks(initParams.nActivity);
-	logMsg("SDK API Level:%d", androidSDK);
-	initScreens(env, baseActivity, androidSDK, initParams.nActivity);
-	initFrameTimer(env, baseActivity, androidSDK, mainScreen());
-	initInput(env, baseActivity, androidSDK);
+	initScreens(env, baseActivity, baseActivityClass, androidSDK, initParams.nActivity);
+	initFrameTimer(env, baseActivity, baseActivityClass, androidSDK, mainScreen());
+	initInput(env, baseActivity, baseActivityClass, androidSDK);
 	{
 		auto aConfig = AConfiguration_new();
 		auto freeConfig = IG::scopeGuard([&](){ AConfiguration_delete(aConfig); });
@@ -105,7 +111,7 @@ IG::Pixmap makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFo
 {
 	AndroidBitmapInfo info;
 	auto res = AndroidBitmap_getInfo(env, bitmap, &info);
-	if(unlikely(res != ANDROID_BITMAP_RESULT_SUCCESS))
+	if(res != ANDROID_BITMAP_RESULT_SUCCESS) [[unlikely]]
 	{
 		logMsg("error getting bitmap info");
 		return {};
@@ -121,10 +127,6 @@ IG::Pixmap makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFo
 
 void AndroidApplication::recycleBitmap(JNIEnv *env, jobject bitmap)
 {
-	if(unlikely(!jRecycle))
-	{
-		jRecycle.setup(env, env->GetObjectClass(bitmap), "recycle", "()V");
-	}
 	jRecycle(env, bitmap);
 }
 
@@ -133,8 +135,9 @@ void ApplicationContext::exit(int returnVal)
 	// TODO: return exit value as activity result
 	application().setExitingActivityState();
 	auto env = thisThreadJniEnv();
-	JavaInstMethod<void()> jFinish{env, baseActivityClass(), "finish", "()V"};
-	jFinish(env, baseActivityObject());
+	auto baseActivity = baseActivityObject();
+	JNI::InstMethod<void()> jFinish{env, baseActivity, "finish", "()V"};
+	jFinish(env, baseActivity);
 }
 
 FS::PathString ApplicationContext::assetPath(const char *) const { return {}; }
@@ -145,8 +148,9 @@ FS::PathString ApplicationContext::supportPath(const char *) const
 	{
 		//logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
 		auto env = thisThreadJniEnv();
-		JavaInstMethod<jobject()> filesDir{env, baseActivityClass(), "filesDir", "()Ljava/lang/String;"};
-		return javaStringCopy<FS::PathString>(env, (jstring)filesDir(env, baseActivityObject()));
+		auto baseActivity = baseActivityObject();
+		JNI::InstMethod<jobject()> filesDir{env, baseActivity, "filesDir", "()Ljava/lang/String;"};
+		return JNI::stringCopy<FS::PathString>(env, (jstring)filesDir(env, baseActivity));
 	}
 	else
 		return FS::makePathString(act->internalDataPath);
@@ -155,21 +159,21 @@ FS::PathString ApplicationContext::supportPath(const char *) const
 FS::PathString ApplicationContext::cachePath(const char *) const
 {
 	auto env = thisThreadJniEnv();
-	auto baseActivityCls = baseActivityClass();
-	JavaClassMethod<jobject()> cacheDir{env, baseActivityCls, "cacheDir", "()Ljava/lang/String;"};
-	return javaStringCopy<FS::PathString>(env, (jstring)cacheDir(env, baseActivityCls));
+	auto baseActivityCls = (jclass)env->GetObjectClass(baseActivityObject());
+	JNI::ClassMethod<jobject()> cacheDir{env, baseActivityCls, "cacheDir", "()Ljava/lang/String;"};
+	return JNI::stringCopy<FS::PathString>(env, (jstring)cacheDir(env, baseActivityCls));
 }
 
 FS::PathString ApplicationContext::sharedStoragePath() const
 {
-	return application().sharedStoragePath(thisThreadJniEnv());
+	auto env = thisThreadJniEnv();
+	return application().sharedStoragePath(env, env->GetObjectClass(baseActivityObject()));
 }
 
-FS::PathString AndroidApplication::sharedStoragePath(JNIEnv *env) const
+FS::PathString AndroidApplication::sharedStoragePath(JNIEnv *env, jclass baseActivityClass) const
 {
-	auto baseActivityCls = baseActivityClass();
-	JavaClassMethod<jobject()> extStorageDir{env, baseActivityCls, "extStorageDir", "()Ljava/lang/String;"};
-	return javaStringCopy<FS::PathString>(env, (jstring)extStorageDir(env, baseActivityCls));
+	JNI::ClassMethod<jobject()> extStorageDir{env, baseActivityClass, "extStorageDir", "()Ljava/lang/String;"};
+	return JNI::stringCopy<FS::PathString>(env, (jstring)extStorageDir(env, baseActivityClass));
 }
 
 FS::PathLocation ApplicationContext::sharedStoragePathLocation() const
@@ -201,8 +205,9 @@ std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const
 		std::vector<FS::PathLocation> rootLocation{sharedStoragePathLocation()};
 		logMsg("enumerating storage volumes");
 		auto env = thisThreadJniEnv();
-		JavaInstMethod<jobject()> jNewStorageManagerHelper{env, baseActivityClass(), "storageManagerHelper", "()Lcom/imagine/StorageManagerHelper;"};
-		auto storageManagerHelper = jNewStorageManagerHelper(env, baseActivityObject());
+		auto baseActivity = baseActivityObject();
+		JNI::InstMethod<jobject()> jNewStorageManagerHelper{env, baseActivity, "storageManagerHelper", "()Lcom/imagine/StorageManagerHelper;"};
+		auto storageManagerHelper = jNewStorageManagerHelper(env, baseActivity);
 		auto storageManagerHelperCls = env->GetObjectClass(storageManagerHelper);
 		JNINativeMethod method[]
 		{
@@ -212,15 +217,15 @@ std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const
 				([](JNIEnv* env, jobject thiz, jlong userData, jstring jName, jstring jPath)
 				{
 					auto rootLocation = (std::vector<FS::PathLocation>*)userData;
-					auto path = javaStringCopy<FS::PathString>(env, jPath);
-					auto name = javaStringCopy<FS::FileString>(env, jName);
+					auto path = JNI::stringCopy<FS::PathString>(env, jPath);
+					auto name = JNI::stringCopy<FS::FileString>(env, jName);
 					logMsg("volume:%s with path:%s", name.data(), path.data());
 					rootLocation->emplace_back(path, name, FS::RootPathInfo{name, strlen(path.data())});
 				})
 			},
 		};
 		env->RegisterNatives(storageManagerHelperCls, method, std::size(method));
-		JavaClassMethod<void(jobject, jlong)> jEnumVolumes{env, storageManagerHelperCls, "enumVolumes", "(Landroid/app/Activity;J)V"};
+		JNI::ClassMethod<void(jobject, jlong)> jEnumVolumes{env, storageManagerHelperCls, "enumVolumes", "(Landroid/app/Activity;J)V"};
 		jEnumVolumes(env, storageManagerHelperCls, baseActivityObject(), (jlong)&rootLocation);
 		return rootLocation;
 	}
@@ -231,8 +236,9 @@ FS::PathString ApplicationContext::libPath(const char *) const
 	if(androidSDK() < 24)
 	{
 		auto env = thisThreadJniEnv();
-		JavaInstMethod<jobject()> libDir{env, baseActivityClass(), "libDir", "()Ljava/lang/String;"};
-		return javaStringCopy<FS::PathString>(env, (jstring)libDir(env, baseActivityObject()));
+		auto baseActivity = baseActivityObject();
+		JNI::InstMethod<jobject()> libDir{env, baseActivity, "libDir", "()Ljava/lang/String;"};
+		return JNI::stringCopy<FS::PathString>(env, (jstring)libDir(env, baseActivity));
 	}
 	return {};
 }
@@ -271,8 +277,9 @@ bool ApplicationContext::requestPermission(Permission p)
 	auto permissionJStr = permissionToJString(env, p);
 	if(!permissionJStr)
 		return false;
-	JavaInstMethod<jboolean(jobject)> requestPermission{env, baseActivityClass(), "requestPermission", "(Ljava/lang/String;)Z"};
-	return requestPermission(env, baseActivityObject(), permissionJStr);
+	auto baseActivity = baseActivityObject();
+	JNI::InstMethod<jboolean(jobject)> requestPermission{env, baseActivity, "requestPermission", "(Ljava/lang/String;)Z"};
+	return requestPermission(env, baseActivity, permissionJStr);
 }
 
 JNIEnv *AndroidApplicationContext::mainThreadJniEnv() const
@@ -284,16 +291,6 @@ JNIEnv *AndroidApplicationContext::mainThreadJniEnv() const
 jobject AndroidApplicationContext::baseActivityObject() const
 {
 	return act->clazz;
-}
-
-jclass AndroidApplication::baseActivityClass() const
-{
-	return jBaseActivityCls;
-}
-
-jclass AndroidApplicationContext::baseActivityClass() const
-{
-	return application().baseActivityClass();
 }
 
 AAssetManager *AndroidApplicationContext::aAssetManager() const
@@ -341,11 +338,6 @@ bool ApplicationContext::systemAnimatesWindowRotation() const
 	return application().systemAnimatesWindowRotation();
 }
 
-Orientation ApplicationContext::defaultSystemOrientations() const
-{
-	return VIEW_ROTATE_ALL;
-}
-
 void AndroidApplication::setRequestedOrientation(JNIEnv *env, jobject baseActivity, int orientation)
 {
 	jSetRequestedOrientation(env, baseActivity, orientation);
@@ -386,7 +378,7 @@ uint32_t toAHardwareBufferFormat(IG::PixelFormatID format)
 	}
 }
 
-void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, int32_t androidSDK)
+void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK)
 {
 	pthread_key_create(&jEnvKey,
 		[](void *)
@@ -402,10 +394,10 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, int32_t
 	pthread_setspecific(jEnvKey, env);
 
 	// BaseActivity JNI functions
-	jSetRequestedOrientation = {env, jBaseActivityCls, "setRequestedOrientation", "(I)V"};
-	jMainDisplayRotation = {env, jBaseActivityCls, "mainDisplayRotation", "()I"};
+	jSetRequestedOrientation = {env, baseActivityClass, "setRequestedOrientation", "(I)V"};
+	jMainDisplayRotation = {env, baseActivityClass, "mainDisplayRotation", "()I"};
 	#ifdef CONFIG_RESOURCE_FONT_ANDROID
-	jNewFontRenderer.setup(env, jBaseActivityCls, "newFontRenderer", "()Lcom/imagine/FontRenderer;");
+	jNewFontRenderer = {env, baseActivityClass, "newFontRenderer", "()Lcom/imagine/FontRenderer;"};
 	#endif
 	{
 		JNINativeMethod method[]
@@ -421,15 +413,15 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, int32_t
 				})
 			}
 		};
-		env->RegisterNatives(jBaseActivityCls, method, std::size(method));
+		env->RegisterNatives(baseActivityClass, method, std::size(method));
 	}
 
 	if(androidSDK >= 11)
 		osAnimatesRotation = true;
 	else
 	{
-		JavaClassMethod<jboolean()> jAnimatesRotation{env, jBaseActivityCls, "gbAnimatesRotation", "()Z"};
-		osAnimatesRotation = jAnimatesRotation(env, jBaseActivityCls);
+		JNI::ClassMethod<jboolean()> jAnimatesRotation{env, baseActivityClass, "gbAnimatesRotation", "()Z"};
+		osAnimatesRotation = jAnimatesRotation(env, baseActivityClass);
 	}
 	if(!osAnimatesRotation)
 	{
@@ -438,7 +430,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, int32_t
 
 	if(androidSDK >= 14)
 	{
-		JavaInstMethod<jboolean()> jHasPermanentMenuKey{env, jBaseActivityCls, "hasPermanentMenuKey", "()Z"};
+		JNI::InstMethod<jboolean()> jHasPermanentMenuKey{env, baseActivityClass, "hasPermanentMenuKey", "()Z"};
 		hasPermanentMenuKey = jHasPermanentMenuKey(env, baseActivity);
 		if(hasPermanentMenuKey)
 		{
@@ -461,19 +453,21 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, int32_t
 			logWarn("unable to get native lib handle");
 	}*/
 
-	jSetWinFlags.setup(env, jBaseActivityCls, "setWinFlags", "(II)V");
-	jWinFlags.setup(env, jBaseActivityCls, "winFlags", "()I");
+	jSetWinFlags = {env, baseActivityClass, "setWinFlags", "(II)V"};
+	jWinFlags = {env, baseActivityClass, "winFlags", "()I"};
 
 	if(androidSDK >= 11)
 	{
-		jSetUIVisibility.setup(env, jBaseActivityCls, "setUIVisibility", "(I)V");
+		jSetUIVisibility = {env, baseActivityClass, "setUIVisibility", "(I)V"};
 	}
+
+	jRecycle = {env, env->FindClass("android/graphics/Bitmap"), "recycle", "()V"};
 }
 
 JNIEnv* AndroidApplication::thisThreadJniEnv() const
 {
 	auto env = (JNIEnv*)pthread_getspecific(jEnvKey);
-	if(unlikely(!env))
+	if(!env) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD)
 		{
@@ -607,8 +601,9 @@ void AndroidApplicationContext::setSustainedPerformanceMode(bool on)
 		{
 			logMsg("set sustained performance mode:%s", on ? "on" : "off");
 			auto env = mainThreadJniEnv();
-			JavaInstMethod<void(jboolean)> jSetSustainedPerformanceMode{env, baseActivityClass(), "setSustainedPerformanceMode", "(Z)V"};
-			jSetSustainedPerformanceMode(env, baseActivityObject(), on);
+			auto baseActivity = baseActivityObject();
+			JNI::InstMethod<void(jboolean)> jSetSustainedPerformanceMode{env, baseActivity, "setSustainedPerformanceMode", "(Z)V"};
+			jSetSustainedPerformanceMode(env, baseActivity, on);
 			return;
 		}
 		case SustainedPerformanceType::NOOP:
@@ -643,8 +638,6 @@ Window *AndroidApplication::deviceWindow() const
 {
 	return window(0);
 }
-
-NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const { return {}; }
 
 void AndroidApplication::onWindowFocusChanged(ApplicationContext ctx, int focused)
 {
@@ -795,7 +788,7 @@ static void setNativeActivityCallbacks(ANativeActivity *nActivity)
 		{
 			ApplicationContext ctx{nActivity};
 			auto deviceWindow = ctx.application().deviceWindow();
-			if(unlikely(!deviceWindow))
+			if(!deviceWindow) [[unlikely]]
 				return;
 			deviceWindow->setNativeWindow(ctx, nWin);
 		};
@@ -804,7 +797,7 @@ static void setNativeActivityCallbacks(ANativeActivity *nActivity)
 		{
 			ApplicationContext ctx{nActivity};
 			auto deviceWindow = ctx.application().deviceWindow();
-			if(unlikely(!deviceWindow))
+			if(!deviceWindow) [[unlikely]]
 				return;
 			deviceWindow->setNativeWindow(nActivity, nullptr);
 		};
@@ -815,7 +808,7 @@ static void setNativeActivityCallbacks(ANativeActivity *nActivity)
 		{
 			ApplicationContext ctx{nActivity};
 			auto deviceWindow = ctx.application().deviceWindow();
-			if(unlikely(!deviceWindow))
+			if(!deviceWindow) [[unlikely]]
 				return;
 			deviceWindow->systemRequestsRedraw(true);
 		};
@@ -852,8 +845,6 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity *nActivity, void* s
 	ctx.onInit(initParams);
 	if(Config::DEBUG_BUILD)
 	{
-		logMsg("internal storage path: %s", ctx.supportPath({}).data());
-		logMsg("external storage path: %s", ctx.sharedStoragePath().data());
 		if(!ctx.windows())
 			logWarn("didn't create a window");
 	}

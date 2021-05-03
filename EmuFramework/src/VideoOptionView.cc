@@ -492,7 +492,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{"Custom Value", &defaultFace(),
 			[this](Input::Event e)
 			{
-				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 10 to 100", "",
+				app().pushAndShowNewCollectValueInputView<int>(attachParams(), e, "Input 0 to 100", "",
 					[this](EmuApp &app, auto val)
 					{
 						if(optionOverlayEffectLevel.isValidVal(val))

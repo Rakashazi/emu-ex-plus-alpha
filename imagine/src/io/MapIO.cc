@@ -39,7 +39,7 @@ ssize_t MapIO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code
 	return readAtAddr(buff, bytes, data + offset, ecOut);
 }
 
-const char *MapIO::mmapConst()
+const uint8_t *MapIO::mmapConst()
 {
 	return data;
 }
@@ -61,7 +61,7 @@ off_t MapIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 			*ecOut = {EINVAL, std::system_category()};
 		return -1;
 	}
-	auto newPos = (const char*)transformOffsetToAbsolute(mode, offset, (off_t)data, off_t(dataEnd()), (off_t)currPos);
+	auto newPos = (const uint8_t*)transformOffsetToAbsolute(mode, offset, (off_t)data, off_t(dataEnd()), (off_t)currPos);
 	if(newPos < data || newPos > dataEnd())
 	{
 		logErr("illegal seek position");
@@ -123,7 +123,7 @@ void MapIO::advise(off_t offset, size_t bytes, Advice advice)
 void MapIO::setData(const void *dataPtr, size_t size)
 {
 	logMsg("setting data @ %p with size %llu", dataPtr, (unsigned long long)size);
-	data = currPos = (char*)dataPtr;
+	data = currPos = (const uint8_t*)dataPtr;
 	dataSize = size;
 }
 
@@ -133,12 +133,12 @@ void MapIO::resetData()
 	dataSize = 0;
 }
 
-const char *MapIO::dataEnd()
+const uint8_t *MapIO::dataEnd()
 {
 	return data + dataSize;
 }
 
-ssize_t MapIO::readAtAddr(void* buff, size_t bytes, const char *addr, std::error_code *ecOut)
+ssize_t MapIO::readAtAddr(void* buff, size_t bytes, const uint8_t *addr, std::error_code *ecOut)
 {
 	if(addr >= dataEnd())
 	{
@@ -153,7 +153,7 @@ ssize_t MapIO::readAtAddr(void* buff, size_t bytes, const char *addr, std::error
 	}
 
 	size_t bytesToRead;
-	const char *posToReadTo = addr + bytes;
+	const uint8_t *posToReadTo = addr + bytes;
 	if(posToReadTo > dataEnd())
 	{
 		bytesToRead = dataEnd() - addr;

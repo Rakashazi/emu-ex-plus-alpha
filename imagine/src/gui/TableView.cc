@@ -130,7 +130,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 				vRect.emplace_back(makeColVertArray(projP.unProjectRect(rect), color));
 			}
 			y += yCellSize;
-			if(unlikely(vRect.size() == vRect.maxSize()))
+			if(vRect.size() == vRect.maxSize()) [[unlikely]]
 				break;
 		}
 		if(vRect.size())

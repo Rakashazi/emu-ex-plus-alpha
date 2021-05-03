@@ -45,7 +45,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	private static final String logTag = "BaseActivity";
 	static native void onContentRectChanged(long nativeUserData,
 		int left, int top, int right, int bottom, int windowWidth, int windowHeight);
-	native void displayEnumerated(long nActivityAddr, Display dpy, int id, float refreshRate, int rotation, DisplayMetrics metrics);
+	native static void displayEnumerated(long nativeUserData, Display dpy, int id,
+			float refreshRate, int rotation, DisplayMetrics metrics);
+	native static void inputDeviceEnumerated(long nativeUserData,
+			int devID, InputDevice dev, String name, int src, int kbType,
+			int jsAxisBits, boolean isPowerButton);
 	private static final Method setSystemUiVisibility =
 		android.os.Build.VERSION.SDK_INT >= 11 ? Util.getMethod(View.class, "setSystemUiVisibility", new Class[] { int.class }) : null;
 	private static final int commonUILayoutFlags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
@@ -127,6 +131,14 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		if(android.os.Build.VERSION.SDK_INT >= 17)
 		{
 			DisplayListenerHelper.enumPresentationDisplays(this, nativeUserData);
+		}
+	}
+
+	void enumInputDevices(long nativeUserData)
+	{
+		if(android.os.Build.VERSION.SDK_INT >= 12)
+		{
+			InputDeviceHelper.enumInputDevices(this, nativeUserData);
 		}
 	}
 
@@ -389,49 +401,25 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		removeNotification();
 		super.onDestroy();
 	}
-	
-	static native void sysTextInputEnded(long nativeUserData, String text, boolean processText, boolean isDoingDismiss);
-	
-	static void endSysTextInput(long nativeUserData, String text, boolean processText, boolean isDoingDismiss)
-	{
-		sysTextInputEnded(nativeUserData, text, processText, isDoingDismiss);
-	}
-	
-	void startSysTextInput(final String initialText, final String promptText,
+
+	TextEntry newTextEntry(final String initialText, final String promptText,
 		int x, int y, int width, int height, int fontSize, long nativeUserData)
 	{
-		TextEntry.startSysTextInput(this, initialText, promptText, x, y, width, height, fontSize, nativeUserData);
+		return new TextEntry(this, initialText, promptText, x, y, width, height, fontSize, nativeUserData);
 	}
-	
-	void finishSysTextInput(final boolean canceled)
-	{
-		TextEntry.finishSysTextInput(canceled);
-	}
-	
-	void placeSysTextInput(final int x, final int y, final int width, final int height)
-	{
-		TextEntry.placeSysTextInput(x, y, width, height);
-	}
-	
+
 	FontRenderer newFontRenderer()
 	{
 		return new FontRenderer();
 	}
-	
+
 	ChoreographerHelper newChoreographerHelper(long timerAddr)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 16)
 			return null;
 		return new ChoreographerHelper(timerAddr);
 	}
-	
-	InputDeviceHelper inputDeviceHelper()
-	{
-		if(android.os.Build.VERSION.SDK_INT < 12)
-			return null;
-		return new InputDeviceHelper();
-	}
-	
+
 	InputDeviceListenerHelper inputDeviceListenerHelper(long nativeUserData)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 16)

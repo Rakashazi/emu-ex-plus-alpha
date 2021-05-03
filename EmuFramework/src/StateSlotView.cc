@@ -14,6 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/StateSlotView.hh>
+#include <emuframework/EmuSystem.hh>
 #include "private.hh"
 #include <imagine/logger/logger.h>
 

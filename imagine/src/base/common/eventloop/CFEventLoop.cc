@@ -57,7 +57,7 @@ CFFDEventSource::CFFDEventSource(const char *debugLabel, int fd):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
 	info{std::make_unique<CFFDEventSourceInfo>()}
 {
-	CFFileDescriptorContext ctx{0, info.get()};
+	CFFileDescriptorContext ctx{.info = info.get()};
 	info->fdRef = CFFileDescriptorCreate(kCFAllocatorDefault, fd, false,
 		eventCallback, &ctx);
 }

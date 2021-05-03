@@ -47,7 +47,7 @@ static void *allocVMem(size_t size, bool shared)
 	}
 	int flags = (shared ? MAP_SHARED : MAP_PRIVATE) | MAP_ANONYMOUS;
 	void *buff = mmap(nullptr, size, PROT_READ | PROT_WRITE, flags, -1, 0);
-	if(unlikely(buff == MAP_FAILED))
+	if(buff == MAP_FAILED) [[unlikely]]
 	{
 		logErr("error in mmap");
 		return nullptr;
@@ -79,13 +79,13 @@ void *allocMirroredBuffer(size_t size)
 {
 	// allocate enough pages for the buffer + the mirrored pages
 	char *buff = (char*)allocVMem(size * 2, true);
-	if(unlikely(!buff))
+	if(!buff) [[unlikely]]
 	{
 		return nullptr;
 	}
 	// pass 0 to old_size to create a mirror of the buffer in the 2nd half of the mapping
 	auto mirror = mremap(buff, 0, size, MREMAP_MAYMOVE | MREMAP_FIXED, buff + size);
-	if(unlikely(mirror == MAP_FAILED))
+	if(mirror == MAP_FAILED) [[unlikely]]
 	{
 		logErr("error in mremap");
 		freeMirroredBuffer(buff, size);

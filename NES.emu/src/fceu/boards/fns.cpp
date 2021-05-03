@@ -100,8 +100,8 @@ static DECLFW(MMC1_write) {
 		//		FCEU_printf("MMC1 REG%d:%02x\n", n, Buffer);
 		BufferShift = Buffer = 0;
 		switch (n) {
-		case 0: MMC1MIRROR(); // break;
-		case 1: // break;
+		case 0: MMC1MIRROR(); [[fallthrough]]; // break;
+		case 1: [[fallthrough]]; // break;
 //		case 2: MMC1CHR(); break;
 		case 3: MMC1PRG(); break;
 		}

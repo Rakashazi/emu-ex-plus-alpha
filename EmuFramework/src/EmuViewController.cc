@@ -26,6 +26,7 @@
 #include <emuframework/FilePicker.hh>
 #include "EmuOptions.hh"
 #include "private.hh"
+#include "WindowData.hh"
 #include "configFile.hh"
 #include "EmuTiming.hh"
 #include <imagine/base/ApplicationContext.hh>
@@ -156,14 +157,13 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 		[this](Base::Window &win, Base::Window::DrawParams params)
 		{
 			auto &winData = windowData(win);
-			rendererTask().draw(win, params, {}, winData.viewport(), winData.projection.matrix(),
+			return rendererTask().draw(win, params, {}, winData.viewport(), winData.projection.matrix(),
 				[this](Base::Window &win, Gfx::RendererCommands &cmds)
 				{
 					auto &winData = windowData(win);
 					cmds.clear();
 					drawMainWindow(win, cmds, winData.hasEmuView, winData.hasPopup);
 				});
-			return false;
 		});
 
 	initViews(viewAttach);
@@ -241,14 +241,14 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			bool skipForward = false;
 			bool fastForwarding = false;
 			auto &audio = emuAudio();
-			if(unlikely(EmuSystem::shouldFastForward()))
+			if(EmuSystem::shouldFastForward()) [[unlikely]]
 			{
 				// for skipping loading on disk-based computers
 				fastForwarding = true;
 				skipForward = true;
 				EmuSystem::setSpeedMultiplier(audio, 8);
 			}
-			else if(unlikely(targetFastForwardSpeed > 1))
+			else if(targetFastForwardSpeed > 1) [[unlikely]]
 			{
 				fastForwarding = true;
 				EmuSystem::setSpeedMultiplier(audio, targetFastForwardSpeed);
@@ -283,8 +283,8 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 		(
 			viewAttach,
 			&face,
-			&app().asset(emuView.renderer(), EmuApp::AssetID::ARROW),
-			&app().asset(emuView.renderer(), EmuApp::AssetID::GAME_ICON)
+			&app().asset(EmuApp::AssetID::ARROW),
+			&app().asset(EmuApp::AssetID::GAME_ICON)
 		);
 		viewNav->rotateLeftBtn = true;
 		viewNav->setOnPushLeftBtn(
@@ -572,7 +572,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 					[this](Base::Window &win, Base::Window::DrawParams params)
 					{
 						auto &winData = windowData(win);
-						rendererTask().draw(win, params, {}, winData.viewport(), winData.projection.matrix(),
+						return rendererTask().draw(win, params, {}, winData.viewport(), winData.projection.matrix(),
 							[this, &winData](Base::Window &win, Gfx::RendererCommands &cmds)
 							{
 								cmds.clear();
@@ -583,13 +583,12 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 								}
 								cmds.present();
 							});
-						return false;
 					});
 
 				win.setOnInputEvent(
 					[this](Base::Window &win, Input::Event e)
 					{
-						if(likely(EmuSystem::isActive()) && e.isKey())
+						if(EmuSystem::isActive() && e.isKey())
 						{
 							return emuInputView.inputEvent(e);
 						}

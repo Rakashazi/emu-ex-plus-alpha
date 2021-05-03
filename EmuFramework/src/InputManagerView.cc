@@ -17,7 +17,6 @@
 #include <emuframework/ButtonConfigView.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuOptions.hh"
-#include "private.hh"
 #include "privateInput.hh"
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/TextTableView.hh>
@@ -489,10 +488,13 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	item.emplace_back(&mogaInputSystem);
 	#endif
 	item.emplace_back(&altGamepadConfirm);
-	if constexpr(Config::envIsAndroid)
+	[this](auto &consumeUnboundGamepadKeys)
 	{
-		item.emplace_back(&consumeUnboundGamepadKeys);
-	}
+		if constexpr(Config::envIsAndroid)
+		{
+			item.emplace_back(&consumeUnboundGamepadKeys);
+		}
+	}(consumeUnboundGamepadKeys);
 	#if 0
 	if(Input::hasTrackball())
 	{

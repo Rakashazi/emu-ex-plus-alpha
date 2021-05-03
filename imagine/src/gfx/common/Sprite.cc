@@ -15,6 +15,7 @@
 
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/Texture.hh>
 #include <imagine/logger/logger.h>
 
 namespace Gfx
@@ -45,7 +46,7 @@ void SpriteBase<BaseRect>::setUVBounds(GTexCRect uvBounds)
 template<class BaseRect>
 void SpriteBase<BaseRect>::draw(RendererCommands &cmds) const
 {
-	if(likely(img))
+	if(img) [[likely]]
 	{
 		cmds.setTexture(*img);
 		BaseRect::draw(cmds);

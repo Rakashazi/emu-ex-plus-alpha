@@ -21,10 +21,16 @@ using FileIO = PosixFileIO;
 
 #ifdef __ANDROID__
 #include <imagine/io/AAssetIO.hh>
-using AssetIO = AAssetIO;
+using AssetIOImpl = AAssetIO;
 #else
-using AssetIO = FileIO;
+using AssetIOImpl = FileIO;
 #endif
+
+class AssetIO final: public AssetIOImpl
+{
+public:
+	using AssetIOImpl::AssetIOImpl;
+};
 
 namespace FileUtils
 {

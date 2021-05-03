@@ -16,39 +16,51 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <memory>
+#include <span>
+#include <cstdint>
 
 namespace IG
 {
 
 template<class T>
-class BaseBufferView
+class BufferView
 {
 public:
-	BaseBufferView() {}
-	BaseBufferView(T *data, size_t size, void(*deleter)(T*)):
+	constexpr BufferView() {}
+	constexpr BufferView(T *data, size_t size, void(*deleter)(T*)):
 		data_{data, deleter}, size_{size} {}
 
-	T *data()
+	constexpr operator std::span<T>() const
+	{
+		return span();
+	}
+
+	constexpr std::span<T> span() const
+	{
+		return {data_.get(), size_};
+	}
+
+	constexpr T *data() const
 	{
 		return data_.get();
 	}
 
-	size_t size() const
+	constexpr size_t size() const
 	{
 		return size_;
 	}
 
-	explicit operator bool() const
+	constexpr explicit operator bool() const
 	{
 		return data_.get();
 	}
 
 protected:
 	std::unique_ptr<T[], void(*)(T*)> data_{nullptr, [](T*){}};
-	size_t size_ = 0;
+	size_t size_{};
 };
 
-using BufferView = BaseBufferView<char>;
-using ConstBufferView = BaseBufferView<const char>;
+using ByteBufferView = BufferView<uint8_t>;
+using ConstByteBufferView = BufferView<const uint8_t>;
 
 }

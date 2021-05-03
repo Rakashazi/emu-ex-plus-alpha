@@ -16,12 +16,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/io/IO.hh>
 #include <imagine/font/Font.hh>
 #include <imagine/gfx/PixmapTexture.hh>
 #include <imagine/util/container/VMemArray.hh>
 #include <system_error>
 #include <memory>
+
+class GenericIO;
 
 namespace Gfx
 {

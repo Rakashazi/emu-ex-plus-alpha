@@ -19,6 +19,9 @@
 #include <iterator>
 #include <utility>
 
+namespace IG
+{
+
 template <class T, class COMPARE = std::less<T>>
 class FlatSet
 {
@@ -134,3 +137,5 @@ public:
 		return i;
 	}
 };
+
+}

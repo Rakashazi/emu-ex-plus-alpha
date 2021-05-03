@@ -32,7 +32,7 @@ HardwareSingleBufferStorage<Buffer>::HardwareSingleBufferStorage(RendererTask &r
 {
 	config = baseInit(r, config);
 	auto err = setFormat(config.pixmapDesc(), config.compatSampler());
-	if(unlikely(err && errorPtr))
+	if(err && errorPtr) [[unlikely]]
 	{
 		*errorPtr = err;
 	}
@@ -52,7 +52,7 @@ IG::ErrorCode HardwareSingleBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc
 	pitchBytes = buffer.pitch() * desc.format().bytesPerPixel();
 	auto dpy = renderer().glDisplay();
 	auto eglImg = makeAndroidNativeBufferEGLImage(dpy, buffer.eglClientBuffer());
-	if(unlikely(!eglImg))
+	if(!eglImg) [[unlikely]]
 	{
 		logErr("error creating EGL image");
 		return {EINVAL};
@@ -66,7 +66,7 @@ template<class Buffer>
 LockedTextureBuffer HardwareSingleBufferStorage<Buffer>::lock(uint32_t bufferFlags)
 {
 	void *data{};
-	if(unlikely(!buffer.lock(lockUsage, &data)))
+	if(!buffer.lock(lockUsage, &data)) [[unlikely]]
 	{
 		logErr("error locking");
 		return {};
@@ -86,7 +86,7 @@ HardwareBufferStorage<Buffer>::HardwareBufferStorage(RendererTask &r, TextureCon
 {
 	config = baseInit(r, config);
 	auto err = setFormat(config.pixmapDesc(), config.compatSampler());
-	if(unlikely(err && errorPtr))
+	if(err && errorPtr) [[unlikely]]
 	{
 		*errorPtr = err;
 	}
@@ -108,7 +108,7 @@ IG::ErrorCode HardwareBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc, cons
 			buff.nativeObject(), desc.w(), desc.h(), desc.format().name(), buff.pitch());
 		pitchBytes = buff.pitch() * desc.format().bytesPerPixel();
 		eglImg.reset(makeAndroidNativeBufferEGLImage(dpy, buff.eglClientBuffer()));
-		if(unlikely(!eglImg))
+		if(!eglImg) [[unlikely]]
 		{
 			logErr("error creating EGL image");
 			return {EINVAL};
@@ -123,7 +123,7 @@ LockedTextureBuffer HardwareBufferStorage<Buffer>::lock(uint32_t bufferFlags)
 {
 	void *data{};
 	auto &[buff, eglImg, pitchBytes] = bufferInfo[bufferIdx];
-	if(unlikely(!buff.lock(lockUsage, &data)))
+	if(!buff.lock(lockUsage, &data)) [[unlikely]]
 	{
 		logErr("error locking");
 		return {};

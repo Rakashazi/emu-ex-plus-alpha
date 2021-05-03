@@ -59,7 +59,7 @@ void CFTimer::callbackInCFAbsoluteTime(CFAbsoluteTime absTime, CFTimeInterval re
 		deinit();
 	}
 	bool createdTimer = false;
-	if(unlikely(!timer))
+	if(!timer) [[unlikely]]
 	{
 		CFRunLoopTimerContext context{};
 		context.info = info.get();

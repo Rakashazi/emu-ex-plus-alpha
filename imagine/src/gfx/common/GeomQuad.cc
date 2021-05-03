@@ -15,6 +15,7 @@
 
 #include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/ProjectionPlane.hh>
 
 namespace Gfx
 {

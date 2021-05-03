@@ -36,6 +36,7 @@ union _XEvent;
 namespace Base
 {
 class LinuxApplication;
+class ApplicationContext;
 }
 
 namespace Input
@@ -77,6 +78,7 @@ namespace Base
 struct ApplicationInitParams
 {
 	EventLoop eventLoop;
+	ApplicationContext *ctxPtr;
 	int argc;
 	char **argv;
 

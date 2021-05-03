@@ -5,7 +5,8 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 viceSrcPath := $(projectPath)/src/vice
 
-CFLAGS_LANG += -Werror-implicit-function-declaration
+CFLAGS_LANG += -Werror=implicit-function-declaration
+CFLAGS_WARN += -Wno-implicit-fallthrough -Wno-sign-compare
 
 ifeq ($(ENV),android)
  LDLIBS += -ldl

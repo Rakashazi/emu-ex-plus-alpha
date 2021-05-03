@@ -21,34 +21,38 @@
 #include <cstring>
 
 template <class T, size_t SIZE>
-struct StaticStorageBase
+class StaticStorageBase
 {
-	constexpr StaticStorageBase() {}
-	T arr[SIZE]{};
-	T *storage() { return arr; }
-	const T *storage() const { return arr; }
+public:
 	constexpr size_t maxSize() const { return SIZE; }
+
+protected:
+	T arr[SIZE];
+
+	constexpr StaticStorageBase() {}
+	constexpr T *storage() { return arr; }
+	constexpr const T *storage() const { return arr; }
 };
 
 template <class T>
-struct PointerStorageBase
+class PointerStorageBase
 {
-	constexpr PointerStorageBase() {}
-	T *arr{};
-	T *storage() { return arr; }
-	const T *storage() const { return arr; }
+public:
+	constexpr size_t maxSize() const { return size; }
 
-	size_t size = 0;
-	void setStorage(T *s, size_t size) { arr = s; this->size = size;}
-	size_t maxSize() const { return size; }
+protected:
+	T *arr{};
+	size_t size{};
+
+	constexpr PointerStorageBase() {}
+	constexpr T *storage() { return arr; }
+	constexpr const T *storage() const { return arr; }
+	constexpr void setStorage(T *s, size_t size) { arr = s; this->size = size;}
 };
 
 template<class T, class STORAGE_BASE>
 class ArrayListBase : public STORAGE_BASE
 {
-private:
-	size_t size_ = 0;
-
 public:
 	using STORAGE_BASE::storage;
 	using value_type = T;
@@ -61,72 +65,72 @@ public:
 	constexpr ArrayListBase() {}
 
 	// Iterators (STL API)
-	iterator begin() { return data(); }
-	iterator end() { return data() + size(); }
-	const_iterator begin() const { return data(); }
-	const_iterator end() const { return data() + size(); }
-	const_iterator cbegin() const { return begin(); }
-	const_iterator cend() const { return end(); }
-	reverse_iterator rbegin() { return reverse_iterator(end()); }
-	reverse_iterator rend() { return reverse_iterator(begin()); }
-	const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
-	const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
-	const_reverse_iterator crbegin() const { return rbegin(); }
-	const_reverse_iterator crend() const { return rend(); }
+	constexpr iterator begin() { return data(); }
+	constexpr iterator end() { return data() + size(); }
+	constexpr const_iterator begin() const { return data(); }
+	constexpr const_iterator end() const { return data() + size(); }
+	constexpr const_iterator cbegin() const { return begin(); }
+	constexpr const_iterator cend() const { return end(); }
+	constexpr reverse_iterator rbegin() { return reverse_iterator(end()); }
+	constexpr reverse_iterator rend() { return reverse_iterator(begin()); }
+	constexpr const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
+	constexpr const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
+	constexpr const_reverse_iterator crbegin() const { return rbegin(); }
+	constexpr const_reverse_iterator crend() const { return rend(); }
 
 	// Capacity (STL API)
-	size_t size() const { return size_; }
-	bool empty() const { return !size(); };
-	size_t capacity() const { return STORAGE_BASE::maxSize(); }
-	size_t max_size() const { return STORAGE_BASE::maxSize(); }
+	constexpr size_t size() const { return size_; }
+	constexpr bool empty() const { return !size(); };
+	constexpr size_t capacity() const { return STORAGE_BASE::maxSize(); }
+	constexpr size_t max_size() const { return STORAGE_BASE::maxSize(); }
 
-	void resize(size_t size)
+	constexpr void resize(size_t size)
 	{
 		assert(size <= max_size());
 		size_= size;
 	}
 
 	// Capacity
-	bool isFull() const
+	constexpr bool isFull() const
 	{
 		return !freeSpace();
 	}
 
-	size_t freeSpace() const
+	constexpr size_t freeSpace() const
 	{
 		return capacity() - size();
 	}
 
 	// Element Access (STL API)
-	T &front() { return at(0);	}
-	T &back() { return at(size()-1);	}
+	constexpr T &front() { return at(0);	}
+	constexpr T &back() { return at(size()-1);	}
 
-	T &at(size_t idx)
+	constexpr T &at(size_t idx)
 	{
 		assert(idx < size());
 		return (*this)[idx];
 	}
 
-	T *data() { return storage(); }
-	const T *data() const { return storage(); }
+	constexpr T *data() { return storage(); }
+	constexpr const T *data() const { return storage(); }
 
-	T& operator[] (int idx) { return data()[idx]; }
-	const T& operator[] (int idx) const { return data()[idx]; }
+	constexpr T& operator[] (int idx) { return data()[idx]; }
+	constexpr const T& operator[] (int idx) const { return data()[idx]; }
 
 	// Modifiers (STL API)
-	void clear()
+	constexpr void clear()
 	{
 		//logMsg("removing all array list items (%d)", size_);
 		size_ = 0;
 	}
 
-	void pop_back()
+	constexpr void pop_back()
 	{
 		assert(size_);
 		size_--;
 	}
 
-	void push_back(const T &d)
+	constexpr void push_back(const T &d)
 	{
 		assert(size_ < max_size());
 		data()[size_] = d;
@@ -134,7 +138,7 @@ public:
 	}
 
 	template <class... ARGS>
-	T &emplace_back(ARGS&&... args)
+	constexpr T &emplace_back(ARGS&&... args)
 	{
 		assert(size_ < max_size());
 		auto newAddr = &data()[size_];
@@ -143,7 +147,7 @@ public:
 		return *newAddr;
 	}
 
-	iterator insert(const_iterator position, const T& val)
+	constexpr iterator insert(const_iterator position, const T& val)
 	{
 		// TODO: re-write using std::move
 		uintptr_t idx = position - data();
@@ -158,7 +162,7 @@ public:
 		return &data()[idx];
 	}
 
-	iterator erase(iterator position)
+	constexpr iterator erase(iterator position)
 	{
 		if(position + 1 != end())
 			std::move(position + 1, end(), position);
@@ -166,7 +170,7 @@ public:
 		return position;
 	}
 
-	iterator erase(iterator first, iterator last)
+	constexpr iterator erase(iterator first, iterator last)
 	{
 		if(first != last)
 		{
@@ -176,6 +180,9 @@ public:
 		}
 		return first;
 	}
+
+private:
+	size_t size_{};
 };
 
 template<class T, size_t SIZE>

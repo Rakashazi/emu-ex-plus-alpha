@@ -43,17 +43,17 @@ struct asocket
 
 static AndroidBluetoothAdapter defaultAndroidAdapter;
 
-static JavaInstMethod<jint(jobject)> jStartScan;
-static JavaInstMethod<jint(jbyteArray, jint, jint)> jInRead;
-static JavaInstMethod<jint()> jGetFd;
-static JavaInstMethod<jint(jobject)> jState;
-static JavaInstMethod<jobject()> jDefaultAdapter;
-static JavaInstMethod<jobject(jobject, jstring, jint, jboolean)> jOpenSocket;
-static JavaInstMethod<jobject()> jBtSocketInputStream, jBtSocketOutputStream;
-static JavaInstMethod<void()> jBtSocketClose;
-static JavaInstMethod<void(jbyteArray, jint, jint)> jOutWrite;
-static JavaInstMethod<void(jobject)> jCancelScan;
-static JavaInstMethod<void()> jTurnOn;
+static JNI::InstMethod<jint(jobject)> jStartScan;
+static JNI::InstMethod<jint(jbyteArray, jint, jint)> jInRead;
+static JNI::InstMethod<jint()> jGetFd;
+static JNI::InstMethod<jint(jobject)> jState;
+static JNI::InstMethod<jobject()> jDefaultAdapter;
+static JNI::InstMethod<jobject(jobject, jstring, jint, jboolean)> jOpenSocket;
+static JNI::InstMethod<jobject()> jBtSocketInputStream, jBtSocketOutputStream;
+static JNI::InstMethod<void()> jBtSocketClose;
+static JNI::InstMethod<void(jbyteArray, jint, jint)> jOutWrite;
+static JNI::InstMethod<void(jobject)> jCancelScan;
+static JNI::InstMethod<void()> jTurnOn;
 static jfieldID fdDataId{};
 
 void AndroidBluetoothAdapter::sendSocketStatusMessage(const SocketStatusMessage &msg)
@@ -156,27 +156,27 @@ bool AndroidBluetoothAdapter::openDefault(Base::ApplicationContext ctx)
 	if(!jDefaultAdapter)
 	{
 		logMsg("JNI setup");
-		auto baseActivityCls = ctx.baseActivityClass();
-		jDefaultAdapter.setup(env, baseActivityCls, "btDefaultAdapter", "()Landroid/bluetooth/BluetoothAdapter;");
-		jStartScan.setup(env, baseActivityCls, "btStartScan", "(Landroid/bluetooth/BluetoothAdapter;)I");
-		jCancelScan.setup(env, baseActivityCls, "btCancelScan", "(Landroid/bluetooth/BluetoothAdapter;)V");
-		jOpenSocket.setup(env, baseActivityCls, "btOpenSocket", "(Landroid/bluetooth/BluetoothAdapter;Ljava/lang/String;IZ)Landroid/bluetooth/BluetoothSocket;");
-		jState.setup(env, baseActivityCls, "btState", "(Landroid/bluetooth/BluetoothAdapter;)I");
-		jTurnOn.setup(env, baseActivityCls, "btTurnOn", "()V");
+		auto baseActivityCls = (jclass)env->GetObjectClass(ctx.baseActivityObject());
+		jDefaultAdapter = {env, baseActivityCls, "btDefaultAdapter", "()Landroid/bluetooth/BluetoothAdapter;"};
+		jStartScan = {env, baseActivityCls, "btStartScan", "(Landroid/bluetooth/BluetoothAdapter;)I"};
+		jCancelScan = {env, baseActivityCls, "btCancelScan", "(Landroid/bluetooth/BluetoothAdapter;)V"};
+		jOpenSocket = {env, baseActivityCls, "btOpenSocket", "(Landroid/bluetooth/BluetoothAdapter;Ljava/lang/String;IZ)Landroid/bluetooth/BluetoothSocket;"};
+		jState = {env, baseActivityCls, "btState", "(Landroid/bluetooth/BluetoothAdapter;)I"};
+		jTurnOn = {env, baseActivityCls, "btTurnOn", "()V"};
 
 		jclass jBluetoothSocketCls = env->FindClass("android/bluetooth/BluetoothSocket");
 		assert(jBluetoothSocketCls);
-		jBtSocketClose.setup(env, jBluetoothSocketCls, "close", "()V");
-		jBtSocketInputStream.setup(env, jBluetoothSocketCls, "getInputStream", "()Ljava/io/InputStream;");
-		jBtSocketOutputStream.setup(env, jBluetoothSocketCls, "getOutputStream", "()Ljava/io/OutputStream;");
+		jBtSocketClose = {env, jBluetoothSocketCls, "close", "()V"};
+		jBtSocketInputStream = {env, jBluetoothSocketCls, "getInputStream", "()Ljava/io/InputStream;"};
+		jBtSocketOutputStream = {env, jBluetoothSocketCls, "getOutputStream", "()Ljava/io/OutputStream;"};
 
 		jclass jInputStreamCls = env->FindClass("java/io/InputStream");
 		assert(jInputStreamCls);
-		jInRead.setup(env, jInputStreamCls, "read", "([BII)I");
+		jInRead = {env, jInputStreamCls, "read", "([BII)I"};
 
 		jclass jOutputStreamCls = env->FindClass("java/io/OutputStream");
 		assert(jOutputStreamCls);
-		jOutWrite.setup(env, jOutputStreamCls, "write", "([BII)V");
+		jOutWrite = {env, jOutputStreamCls, "write", "([BII)V"};
 
 		if(ctx.androidSDK() < 17)
 		{
@@ -196,7 +196,7 @@ bool AndroidBluetoothAdapter::openDefault(Base::ApplicationContext ctx)
 			{
 				auto parcelFileDescriptorCls = env->FindClass("android/os/ParcelFileDescriptor");
 				assert(parcelFileDescriptorCls);
-				jGetFd.setup(env, parcelFileDescriptorCls, "getFd", "()I");
+				jGetFd = {env, parcelFileDescriptorCls, "getFd", "()I"};
 			}
 			else
 			{
@@ -379,7 +379,7 @@ int AndroidBluetoothSocket::readPendingData(int events)
 		while(fd_bytesReadable(nativeFd))
 		{
 			auto len = read(nativeFd, buff, sizeof buff);
-			if(unlikely(len <= 0))
+			if(len <= 0) [[unlikely]]
 			{
 				logMsg("error %d reading packet from socket %d", len == -1 ? errno : 0, nativeFd);
 				onStatusD(*this, STATUS_READ_ERROR);
@@ -474,7 +474,7 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 					{
 						int16_t len = jInRead(env, jInput, jData, 0, 48);
 						//logMsg("read %d bytes", (int)len);
-						if(unlikely(len <= 0 || env->ExceptionCheck()))
+						if(len <= 0 || env->ExceptionCheck()) [[unlikely]]
 						{
 							if(isClosing)
 								logMsg("input stream %p closing", jInput);

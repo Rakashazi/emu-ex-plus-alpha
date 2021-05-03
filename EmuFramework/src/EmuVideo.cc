@@ -121,7 +121,7 @@ void EmuVideo::postFrameFinished(EmuSystemTask *task)
 
 void EmuVideo::finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff)
 {
-	if(unlikely(screenshotNextFrame))
+	if(screenshotNextFrame) [[unlikely]]
 	{
 		doScreenshot(task, texBuff.pixmap());
 	}
@@ -131,7 +131,7 @@ void EmuVideo::finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff
 
 void EmuVideo::finishFrame(EmuSystemTask *task, IG::Pixmap pix)
 {
-	if(unlikely(screenshotNextFrame))
+	if(screenshotNextFrame) [[unlikely]]
 	{
 		doScreenshot(task, pix);
 	}

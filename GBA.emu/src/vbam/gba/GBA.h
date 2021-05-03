@@ -10,6 +10,7 @@
 #include <imagine/util/mayAliasInt.h>
 #include <imagine/logger/logger.h>
 #include <imagine/io/IO.hh>
+#include <array>
 
 #define SAVE_GAME_VERSION_1 1
 #define SAVE_GAME_VERSION_2 2
@@ -346,7 +347,7 @@ struct GBALCD
 	}
 };
 
-typedef union {
+union reg_pair {
   struct {
 #ifdef WORDS_BIGENDIAN
     u8 B3;
@@ -370,11 +371,11 @@ typedef union {
 #endif
   } W;
 #ifdef WORDS_BIGENDIAN
-  volatile u32 I;
+  volatile u32 I{};
 #else
-	u32 I;
+	u32 I{};
 #endif
-} reg_pair;
+};
 
 #define R13_IRQ  18
 #define R14_IRQ  19
@@ -460,7 +461,7 @@ struct ARM7TDMI
 {
 	constexpr ARM7TDMI(GBASys *gba): gba(gba) { }
 
-	reg_pair reg[45] {{{0}}};
+	std::array<reg_pair, 45> reg{};
 	u32 armNextPC = 0;
 	int armMode = 0x1f;
 	int cpuNextEvent = 0;
@@ -473,7 +474,7 @@ struct ARM7TDMI
 #endif
 #ifdef VBAM_USE_CPU_PREFETCH
 private:
-	u32 cpuPrefetch[2] {0};
+	u32 cpuPrefetch[2]{};
 #endif
 public:
 	u32 busPrefetchCount = 0;
@@ -508,7 +509,7 @@ public:
 	  { 0, 0, 2, 0, 0, 0, 0, 0, 2, 2, 4, 4, 8, 8, 4, 0 };
 	unsigned memoryWaitSeq32[16] =
 	  { 0, 0, 5, 0, 0, 1, 1, 0, 5, 5, 9, 9, 17, 17, 4, 0 };
-	memoryMap map[256];
+	memoryMap map[256]{};
 
 	static bool calcNFlag(u32 result)
 	{
@@ -685,7 +686,7 @@ public:
 
 	void reset(GBAMem::IoMem &ioMem, bool cpuIsMultiBoot, bool useBios, bool skipBios)
 	{
-		memset(&reg[0], 0, sizeof(reg));
+		reg = {};
 
 		ioMem.IE       = 0x0000;
 		ioMem.IF       = 0x0000;

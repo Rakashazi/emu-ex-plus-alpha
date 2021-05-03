@@ -15,7 +15,7 @@
 
 #define LOGTAG "AAudio"
 #include <imagine/audio/android/AAudioOutputStream.hh>
-#include <imagine/base/ApplicationContext.hh>
+#include <imagine/audio/Manager.hh>
 #include <imagine/base/sharedLibrary.hh>
 #include <imagine/logger/logger.h>
 #include <aaudio/AAudio.h>
@@ -48,7 +48,7 @@ static bool loadedAAudioLib()
 	return AAudio_createStreamBuilder;
 }
 
-static void loadAAudioLib(Base::ApplicationContext ctx)
+static void loadAAudioLib(const Manager &manager)
 {
 	if(loadedAAudioLib())
 		return;
@@ -76,7 +76,7 @@ static void loadAAudioLib(Base::ApplicationContext ctx)
 	Base::loadSymbol(AAudioStream_requestStop, lib, "AAudioStream_requestStop");
 	Base::loadSymbol(AAudioStream_getState, lib, "AAudioStream_getState");
 	Base::loadSymbol(AAudioStream_waitForStateChange, lib, "AAudioStream_waitForStateChange");
-	if(ctx.androidSDK() >= 28)
+	if(manager.hasStreamUsage())
 	{
 		Base::loadSymbol(AAudioStreamBuilder_setUsage, lib, "AAudioStreamBuilder_setUsage");
 	}
@@ -125,9 +125,9 @@ static const char *streamStateStr(aaudio_stream_state_t state)
 	}
 }
 
-AAudioOutputStream::AAudioOutputStream(Base::ApplicationContext ctx)
+AAudioOutputStream::AAudioOutputStream(const Manager &manager)
 {
-	loadAAudioLib(ctx);
+	loadAAudioLib(manager);
 	AAudio_createStreamBuilder(&builder);
 	disconnectEvent.attach(
 		[this]()
@@ -184,7 +184,7 @@ IG::ErrorCode AAudioOutputStream::open(OutputStreamConfig config)
 
 void AAudioOutputStream::play()
 {
-	if(unlikely(!stream))
+	if(!stream) [[unlikely]]
 		return;
 	isPlaying_ = true;
 	AAudioStream_requestStart(stream);
@@ -192,7 +192,7 @@ void AAudioOutputStream::play()
 
 void AAudioOutputStream::pause()
 {
-	if(unlikely(!stream))
+	if(!stream) [[unlikely]]
 		return;
 	isPlaying_ = false;
 	AAudioStream_requestPause(stream);
@@ -217,7 +217,7 @@ static void waitUntilState(AAudioStream *stream, aaudio_stream_state_t wantedSta
 
 void AAudioOutputStream::close()
 {
-	if(unlikely(!stream))
+	if(!stream) [[unlikely]]
 		return;
 	logMsg("closing stream:%p", stream);
 	isPlaying_ = false;
@@ -235,7 +235,7 @@ void AAudioOutputStream::close()
 
 void AAudioOutputStream::flush()
 {
-	if(unlikely(!stream))
+	if(!stream) [[unlikely]]
 		return;
 	isPlaying_ = false;
 	AAudioStream_requestFlush(stream);

@@ -16,7 +16,6 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuOptions.hh"
-#include "private.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
 

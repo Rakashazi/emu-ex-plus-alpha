@@ -56,6 +56,8 @@ public:
 	void postDraw(uint8_t priority = 0);
 	void unpostDraw();
 	void postFrameReady();
+	void postDrawToMainThread(uint8_t priority = 0);
+	void postFrameReadyToMainThread();
 	uint8_t setDrawEventPriority(uint8_t = 0);
 	uint8_t drawEventPriority() const;
 	void drawNow(bool needsSync = false);

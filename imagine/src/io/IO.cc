@@ -25,7 +25,7 @@ template class IOUtils<GenericIO>;
 
 IO::~IO() {}
 
-const char *IO::mmapConst() { return nullptr; };
+const uint8_t *IO::mmapConst() { return nullptr; };
 
 std::error_code IO::truncate(off_t offset) { return {ENOSYS, std::system_category()}; };
 
@@ -148,7 +148,7 @@ ssize_t GenericIO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_
 	return io->readAtPos(buff, bytes, offset, ecOut);
 }
 
-const char *GenericIO::mmapConst()
+const uint8_t *GenericIO::mmapConst()
 {
 	return io ? io->mmapConst() : nullptr;
 }

@@ -17,7 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/Mat4.hh>
 #include <imagine/gfx/Viewport.hh>
 #include <imagine/util/rectangle2.h>
 
@@ -25,6 +24,7 @@ namespace Gfx
 {
 
 class RendererCommands;
+class Mat4;
 
 class ProjectionPlane
 {
@@ -78,25 +78,6 @@ private:
 	#ifdef __ANDROID__
 	GC smmToXScale = 0, smmToYScale = 0;
 	#endif
-};
-
-class Projection
-{
-public:
-	constexpr Projection() {}
-
-	Projection(Viewport viewport, Mat4 matrix)
-	{
-		mat = matrix;
-		plane_ = ProjectionPlane::makeWithMatrix(viewport, matrix);
-	}
-
-	constexpr Mat4 matrix() const { return mat; };
-	constexpr ProjectionPlane plane() const { return plane_; };
-
-protected:
-	Mat4 mat;
-	ProjectionPlane plane_;
 };
 
 }

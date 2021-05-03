@@ -3408,7 +3408,7 @@ void CPULoop(GBASys &gba, EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
             CPUCompareVCOUNT(cpu);
 
           } else {
-            if(video)
+            if(video) [[likely]]
             {
             	/*if(trackOAM)
             	{
@@ -3462,7 +3462,7 @@ void CPULoop(GBASys &gba, EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 				#endif
               }*/
             }
-            if(ioMem.VCOUNT == 159 && likely(video))
+            if(ioMem.VCOUNT == 159 && video)
             {
             	systemDrawScreen(task, *video);
             }

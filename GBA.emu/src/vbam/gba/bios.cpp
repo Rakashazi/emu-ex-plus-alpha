@@ -44,7 +44,7 @@ static const s16 sineTable[256] = {
 
 void BIOS_ArcTan(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("ArcTan: %08x (VCOUNT=%2d)\n",
@@ -74,7 +74,7 @@ void BIOS_ArcTan(ARM7TDMI &cpu)
 
 void BIOS_ArcTan2(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("ArcTan2: %08x,%08x (VCOUNT=%2d)\n",
@@ -122,7 +122,7 @@ void BIOS_ArcTan2(ARM7TDMI &cpu)
 
 void BIOS_BitUnPack(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("BitUnPack: %08x,%08x,%08x (VCOUNT=%2d)\n",
@@ -190,7 +190,7 @@ void BIOS_GetBiosChecksum(ARM7TDMI &cpu)
 
 void BIOS_BgAffineSet(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("BgAffineSet: %08x,%08x,%08x (VCOUNT=%2d)\n",
@@ -249,7 +249,7 @@ void BIOS_BgAffineSet(ARM7TDMI &cpu)
 
 void BIOS_CpuSet(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("CpuSet: 0x%08x,0x%08x,0x%08x (VCOUNT=%d)\n", reg[0].I, reg[1].I,
@@ -312,7 +312,7 @@ void BIOS_CpuSet(ARM7TDMI &cpu)
 
 void BIOS_CpuFastSet(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("CpuFastSet: 0x%08x,0x%08x,0x%08x (VCOUNT=%d)\n", reg[0].I, reg[1].I,
@@ -361,7 +361,7 @@ void BIOS_CpuFastSet(ARM7TDMI &cpu)
 
 void BIOS_Diff8bitUnFilterWram(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("Diff8bitUnFilterWram: 0x%08x,0x%08x (VCOUNT=%d)\n", reg[0].I,
@@ -395,7 +395,7 @@ void BIOS_Diff8bitUnFilterWram(ARM7TDMI &cpu)
 
 void BIOS_Diff8bitUnFilterVram(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("Diff8bitUnFilterVram: 0x%08x,0x%08x (VCOUNT=%d)\n", reg[0].I,
@@ -439,7 +439,7 @@ void BIOS_Diff8bitUnFilterVram(ARM7TDMI &cpu)
 
 void BIOS_Diff16bitUnFilter(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("Diff16bitUnFilter: 0x%08x,0x%08x (VCOUNT=%d)\n", reg[0].I,
@@ -477,7 +477,7 @@ void BIOS_Diff16bitUnFilter(ARM7TDMI &cpu)
 
 void BIOS_Div(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("Div: 0x%08x,0x%08x (VCOUNT=%d)\n",
@@ -508,7 +508,7 @@ void BIOS_Div(ARM7TDMI &cpu)
 
 void BIOS_DivARM(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("DivARM: 0x%08x, (VCOUNT=%d)\n",
@@ -525,7 +525,7 @@ void BIOS_DivARM(ARM7TDMI &cpu)
 
 void BIOS_HuffUnComp(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("HuffUnComp: 0x%08x,0x%08x (VCOUNT=%d)\n",
@@ -672,7 +672,7 @@ void BIOS_HuffUnComp(ARM7TDMI &cpu)
 
 void BIOS_LZ77UnCompVram(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("LZ77UnCompVram: 0x%08x,0x%08x (VCOUNT=%d)\n",
@@ -764,7 +764,7 @@ void BIOS_LZ77UnCompVram(ARM7TDMI &cpu)
 
 void BIOS_LZ77UnCompWram(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("LZ77UnCompWram: 0x%08x,0x%08x (VCOUNT=%d)\n", reg[0].I, reg[1].I,
@@ -822,7 +822,7 @@ void BIOS_LZ77UnCompWram(ARM7TDMI &cpu)
 
 void BIOS_ObjAffineSet(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("ObjAffineSet: 0x%08x,0x%08x,0x%08x,0x%08x (VCOUNT=%d)\n",
@@ -945,7 +945,7 @@ void BIOS_RegisterRamReset(ARM7TDMI &cpu, u32 flags)
 
 void BIOS_RegisterRamReset(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("RegisterRamReset: 0x%08x (VCOUNT=%d)\n",
@@ -959,7 +959,7 @@ void BIOS_RegisterRamReset(ARM7TDMI &cpu)
 
 void BIOS_RLUnCompVram(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("RLUnCompVram: 0x%08x,0x%08x (VCOUNT=%d)\n",
@@ -1029,7 +1029,7 @@ void BIOS_RLUnCompVram(ARM7TDMI &cpu)
 
 void BIOS_RLUnCompWram(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("RLUnCompWram: 0x%08x,0x%08x (VCOUNT=%d)\n",
@@ -1114,7 +1114,7 @@ void BIOS_SoftReset(ARM7TDMI &cpu)
 
 void BIOS_Sqrt(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("Sqrt: %08x (VCOUNT=%2d)\n",
@@ -1133,7 +1133,7 @@ void BIOS_Sqrt(ARM7TDMI &cpu)
 
 void BIOS_MidiKey2Freq(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("MidiKey2Freq: WaveData=%08x mk=%08x fp=%08x\n",
@@ -1158,7 +1158,7 @@ void BIOS_MidiKey2Freq(ARM7TDMI &cpu)
 
 void BIOS_SndDriverJmpTableCopy(ARM7TDMI &cpu)
 {
-	reg_pair (&reg)[45] = cpu.reg;
+	auto &reg = cpu.reg;
 #ifdef GBA_LOGGING
   if(systemVerbose & VERBOSE_SWI) {
     log("SndDriverJmpTableCopy: dest=%08x\n",

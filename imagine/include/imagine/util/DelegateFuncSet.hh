@@ -92,5 +92,5 @@ protected:
 			[&](auto &e) { return e.del == del; });
 	}
 
-	FlatMultiSet<DelegateEntry> delegate{};
+	IG::FlatMultiSet<DelegateEntry> delegate{};
 };

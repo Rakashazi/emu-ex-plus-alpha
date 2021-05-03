@@ -49,7 +49,7 @@ Error Renderer::setPixelFormat(IG::PixelFormat format)
 	if(format == PIXEL_FMT_NONE)
 		format = Base::Window::defaultPixelFormat(ctx);
 	auto bufferConfig = makeGLBufferConfig(ctx, format);
-	if(unlikely(!bufferConfig))
+	if(!bufferConfig) [[unlikely]]
 	{
 		return std::runtime_error("error finding a GL configuration");
 	}
@@ -60,7 +60,7 @@ Error Renderer::setPixelFormat(IG::PixelFormat format)
 Error Renderer::initMainTask(Base::Window *initialWindow, IG::PixelFormat format)
 {
 	if(auto err = setPixelFormat(format);
-		unlikely(err))
+		err) [[unlikely]]
 	{
 		return err;
 	}
@@ -86,7 +86,7 @@ Error Renderer::initMainTask(Base::Window *initialWindow, IG::PixelFormat format
 		.threadPriority = DRAW_THREAD_PRIORITY,
 	};
 	if(auto err = mainTask.makeGLContext(conf);
-		unlikely(err))
+		err) [[unlikely]]
 	{
 		return err;
 	}
@@ -98,7 +98,7 @@ Error Renderer::initMainTask(Base::Window *initialWindow, IG::PixelFormat format
 
 bool Renderer::attachWindow(Base::Window &win)
 {
-	if(unlikely(!win.hasSurface()))
+	if(!win.hasSurface()) [[unlikely]]
 	{
 		logMsg("can't attach uninitialized window");
 		return false;
@@ -107,7 +107,7 @@ bool Renderer::attachWindow(Base::Window &win)
 	win.setFormat(nativeWindowFormat());
 	auto &rData = win.makeRendererData<GLRendererWindowData>(win.appContext());
 	rData.drawableHolder.makeDrawable(glDisplay(), win, gfxBufferConfig);
-	if(unlikely(!rData.drawableHolder))
+	if(!rData.drawableHolder) [[unlikely]]
 	{
 		return false;
 	}

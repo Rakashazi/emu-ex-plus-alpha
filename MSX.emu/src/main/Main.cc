@@ -738,7 +738,7 @@ static void commitUnchangedVideoFrame()
 void RefreshScreen(int screenMode)
 {
 	//logMsg("called RefreshScreen");
-	if(likely(emuVideo))
+	if(emuVideo) [[likely]]
 	{
 		emuVideo->startFrameWithFormat(emuSysTask, frameBufferPixmap());
 		emuVideo = {};

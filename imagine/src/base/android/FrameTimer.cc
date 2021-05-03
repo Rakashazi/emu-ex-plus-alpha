@@ -34,8 +34,7 @@ namespace Base
 class ChoreographerFrameTimer final : public FrameTimer
 {
 public:
-	ChoreographerFrameTimer(AndroidApplication &, JNIEnv *, jobject baseActivity);
-	~ChoreographerFrameTimer() final;
+	ChoreographerFrameTimer(AndroidApplication &, JNIEnv *, jobject baseActivity, jclass baseActivityClass);
 	void scheduleVSync() final;
 	void cancel() final;
 	void unsetRequested() { requested = false; }
@@ -44,9 +43,8 @@ public:
 
 protected:
 	AndroidApplication *app{};
-	JNIEnv *jEnv{};
-	JavaInstMethod<void()> jPostFrame{}, jUnpostFrame{};
-	jobject frameHelper{};
+	JNI::InstMethod<void()> jPostFrame{}, jUnpostFrame{};
+	JNI::UniqueGlobalRef frameHelper{};
 	bool requested = false;
 };
 
@@ -54,7 +52,6 @@ class AChoreographerFrameTimer final : public FrameTimer
 {
 public:
 	AChoreographerFrameTimer(AndroidApplication &);
-	~AChoreographerFrameTimer() final {};
 	void scheduleVSync() final;
 	void cancel() final;
 	void unsetRequested() { requested = false; }
@@ -86,16 +83,14 @@ static void doOnFrame(T *timerObjPtr, int64_t frameTimeNanos)
 	}
 }
 
-ChoreographerFrameTimer::ChoreographerFrameTimer(AndroidApplication &app, JNIEnv *env, jobject baseActivity):
-	app{&app}, jEnv{env}
+ChoreographerFrameTimer::ChoreographerFrameTimer(AndroidApplication &app, JNIEnv *env, jobject baseActivity, jclass baseActivityClass):
+	app{&app}
 {
-	JavaInstMethod<jobject(jlong)> jNewChoreographerHelper{env, app.baseActivityClass(), "newChoreographerHelper", "(J)Lcom/imagine/ChoreographerHelper;"};
-	frameHelper = jNewChoreographerHelper(env, baseActivity, (jlong)this);
-	assert(frameHelper);
-	frameHelper = env->NewGlobalRef(frameHelper);
+	JNI::InstMethod<jobject(jlong)> jNewChoreographerHelper{env, baseActivityClass, "newChoreographerHelper", "(J)Lcom/imagine/ChoreographerHelper;"};
+	frameHelper = {env, jNewChoreographerHelper(env, baseActivity, (jlong)this)};
 	auto choreographerHelperCls = env->GetObjectClass(frameHelper);
-	jPostFrame.setup(env, choreographerHelperCls, "postFrame", "()V");
-	jUnpostFrame.setup(env, choreographerHelperCls, "unpostFrame", "()V");
+	jPostFrame = {env, choreographerHelperCls, "postFrame", "()V"};
+	jUnpostFrame = {env, choreographerHelperCls, "unpostFrame", "()V"};
 	JNINativeMethod method[]
 	{
 		{
@@ -111,21 +106,13 @@ ChoreographerFrameTimer::ChoreographerFrameTimer(AndroidApplication &app, JNIEnv
 	env->RegisterNatives(choreographerHelperCls, method, std::size(method));
 }
 
-ChoreographerFrameTimer::~ChoreographerFrameTimer()
-{
-	if(frameHelper)
-	{
-		jEnv->DeleteGlobalRef(frameHelper);
-	}
-}
-
 void ChoreographerFrameTimer::scheduleVSync()
 {
 	assert(frameHelper);
 	if(requested)
 		return;
 	requested = true;
-	jPostFrame(jEnv, frameHelper);
+	jPostFrame(frameHelper.jniEnv(), frameHelper);
 }
 
 void ChoreographerFrameTimer::cancel()
@@ -134,7 +121,7 @@ void ChoreographerFrameTimer::cancel()
 	if(!requested)
 		return;
 	requested = false;
-	jUnpostFrame(jEnv, frameHelper);
+	jUnpostFrame(frameHelper.jniEnv(), frameHelper);
 }
 
 AChoreographerFrameTimer::AChoreographerFrameTimer(AndroidApplication &app):
@@ -169,7 +156,7 @@ void AChoreographerFrameTimer::cancel()
 	requested = false;
 }
 
-void AndroidApplication::initFrameTimer(JNIEnv *env, jobject baseActivity, int32_t androidSDK, Screen &screen)
+void AndroidApplication::initFrameTimer(JNIEnv *env, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK, Screen &screen)
 {
 	if(androidSDK < 16)
 	{
@@ -181,7 +168,7 @@ void AndroidApplication::initFrameTimer(JNIEnv *env, jobject baseActivity, int32
 		// Always use on 32-bit systems due to NDK API issue
 		// that prevents 64-bit timestamp resolution
 		logMsg("using Java Choreographer");
-		frameTimer_ = std::make_unique<ChoreographerFrameTimer>(*this, env, baseActivity);
+		frameTimer_ = std::make_unique<ChoreographerFrameTimer>(*this, env, baseActivity, baseActivityClass);
 	}
 	else
 	{

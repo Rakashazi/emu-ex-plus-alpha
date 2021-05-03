@@ -62,16 +62,21 @@ bool FDEventSource::attach(EventLoop loop, PollEventDelegate callback_, uint32_t
 {
 	static GSourceFuncs fdSourceFuncs
 	{
-		nullptr,
-		nullptr,
-		[](GSource *source, GSourceFunc, gpointer userData)
+		.prepare{},
+		.check{},
+		.dispatch
 		{
-			auto s = (GlibSource*)source;
-			auto pollFD = (GPollFD*)userData;
-			//logMsg("events for source:%p in thread 0x%llx", source, (long long)IG::this_thread::get_id());
-			return (gboolean)s->callback(pollFD->fd, g_source_query_unix_fd(source, pollFD));
+			[](GSource *source, GSourceFunc, gpointer userData)
+			{
+				auto s = (GlibSource*)source;
+				auto pollFD = (GPollFD*)userData;
+				//logMsg("events for source:%p in thread 0x%llx", source, (long long)IG::this_thread::get_id());
+				return (gboolean)s->callback(pollFD->fd, g_source_query_unix_fd(source, pollFD));
+			}
 		},
-		nullptr
+		.finalize{},
+		.closure_callback{},
+		.closure_marshal{},
 	};
 	auto source = (GlibSource*)g_source_new(&fdSourceFuncs, sizeof(GlibSource));
 	source->callback = callback_;

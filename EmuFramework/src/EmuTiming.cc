@@ -20,7 +20,7 @@
 
 EmuFrameTimeInfo EmuTiming::advanceFramesWithTime(IG::FrameTime time)
 {
-	if(unlikely(!startFrameTime.count()))
+	if(!startFrameTime.count()) [[unlikely]]
 	{
 		// first frame
 		startFrameTime = time;

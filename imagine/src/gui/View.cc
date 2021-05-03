@@ -250,7 +250,7 @@ void View::setViewRect( Gfx::ProjectionPlane projP)
 
 void View::postDraw()
 {
-	if(likely(win))
+	if(win) [[likely]]
 		win->postDraw();
 }
 

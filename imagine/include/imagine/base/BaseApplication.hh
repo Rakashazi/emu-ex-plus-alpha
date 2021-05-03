@@ -20,6 +20,7 @@
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Timer.hh>
+#include <imagine/base/MessagePort.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/NonCopyable.hh>
@@ -47,7 +48,7 @@ struct CommandArgs
 class BaseApplication : private NonCopyable
 {
 public:
-	BaseApplication();
+	BaseApplication(ApplicationContext);
 	virtual ~BaseApplication();
 	ActivityState activityState() const;
 	void setPausedActivityState();
@@ -112,6 +113,12 @@ public:
 	bool processICadeKey(Input::Key, Input::Action, Input::Time, const Input::Device &, Base::Window &);
 
 protected:
+	struct CommandMessage
+	{
+		MainThreadMessageDelegate del{};
+		constexpr explicit operator bool() const { return (bool)del; }
+	};
+
 	InterProcessMessageDelegate onInterProcessMessage_;
 	DelegateFuncSet<ResumeDelegate> onResume_;
 	FreeCachesDelegate onFreeCaches_;
@@ -121,6 +128,7 @@ protected:
 	InputDevicesEnumeratedDelegate onInputDevicesEnumerated{};
 	std::vector<std::unique_ptr<Window>> window_{};
 	std::vector<std::unique_ptr<Screen>> screen_{};
+	MessagePort<CommandMessage> commandPort{"Main thread messages"};
 	InputDeviceContainer inputDev{};
 	std::optional<Base::Timer> keyRepeatTimer{};
 	Input::Event keyRepeatEvent{};

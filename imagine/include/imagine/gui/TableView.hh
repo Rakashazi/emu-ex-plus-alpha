@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/gui/ScrollView.hh>
 #include <iterator>
 

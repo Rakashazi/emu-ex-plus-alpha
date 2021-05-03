@@ -490,13 +490,13 @@ void doFullTilesUnrolledDmg(PPUPriv &p, int const xend, uint_least32_t *const db
 					if (!(attrib & attr_bgpriority)) {
 						int const bpp = tile_bpp, m = tile_bpp_mask;
 						switch (n) {
-						case 8: if (spword >> 7 * bpp    ) { d[7] = spPalette[spword >> 7 * bpp    ]; } // fall through
-						case 7: if (spword >> 6 * bpp & m) { d[6] = spPalette[spword >> 6 * bpp & m]; } // fall through
-						case 6: if (spword >> 5 * bpp & m) { d[5] = spPalette[spword >> 5 * bpp & m]; } // fall through
-						case 5: if (spword >> 4 * bpp & m) { d[4] = spPalette[spword >> 4 * bpp & m]; } // fall through
-						case 4: if (spword >> 3 * bpp & m) { d[3] = spPalette[spword >> 3 * bpp & m]; } // fall through
-						case 3: if (spword >> 2 * bpp & m) { d[2] = spPalette[spword >> 2 * bpp & m]; } // fall through
-						case 2: if (spword >> 1 * bpp & m) { d[1] = spPalette[spword >> 1 * bpp & m]; } // fall through
+						case 8: if (spword >> 7 * bpp    ) { d[7] = spPalette[spword >> 7 * bpp    ]; } [[fallthrough]];
+						case 7: if (spword >> 6 * bpp & m) { d[6] = spPalette[spword >> 6 * bpp & m]; } [[fallthrough]];
+						case 6: if (spword >> 5 * bpp & m) { d[5] = spPalette[spword >> 5 * bpp & m]; } [[fallthrough]];
+						case 5: if (spword >> 4 * bpp & m) { d[4] = spPalette[spword >> 4 * bpp & m]; } [[fallthrough]];
+						case 4: if (spword >> 3 * bpp & m) { d[3] = spPalette[spword >> 3 * bpp & m]; } [[fallthrough]];
+						case 3: if (spword >> 2 * bpp & m) { d[2] = spPalette[spword >> 2 * bpp & m]; } [[fallthrough]];
+						case 2: if (spword >> 1 * bpp & m) { d[1] = spPalette[spword >> 1 * bpp & m]; } [[fallthrough]];
 						case 1: if (spword            & m) { d[0] = spPalette[spword            & m]; }
 						}
 
@@ -689,31 +689,31 @@ void doFullTilesUnrolledCgb(PPUPriv &p, int const xend, uint_least32_t *const db
 						case 8: if ((spword >> 7 * tile_bpp) && id < idt[7]) {
 						        	idt[7] = id;
 						        	  d[7] = spPalette[spword >> 7 * tile_bpp];
-						        } // fall through
+						        } [[fallthrough]];
 						case 7: if ((spword >> 6 * tile_bpp & tile_bpp_mask) && id < idt[6]) {
 						        	idt[6] = id;
 						        	  d[6] = spPalette[spword >> 6 * tile_bpp & tile_bpp_mask];
-						        } // fall through
+						        } [[fallthrough]];
 						case 6: if ((spword >> 5 * tile_bpp & tile_bpp_mask) && id < idt[5]) {
 						        	idt[5] = id;
 						        	  d[5] = spPalette[spword >> 5 * tile_bpp & tile_bpp_mask];
-						        } // fall through
+						        } [[fallthrough]];
 						case 5: if ((spword >> 4 * tile_bpp & tile_bpp_mask) && id < idt[4]) {
 						        	idt[4] = id;
 						        	  d[4] = spPalette[spword >> 4 * tile_bpp & tile_bpp_mask];
-						        } // fall through
+						        } [[fallthrough]];
 						case 4: if ((spword >> 3 * tile_bpp & tile_bpp_mask) && id < idt[3]) {
 						        	idt[3] = id;
 						        	  d[3] = spPalette[spword >> 3 * tile_bpp & tile_bpp_mask];
-						        } // fall through
+						        } [[fallthrough]];
 						case 3: if ((spword >> 2 * tile_bpp & tile_bpp_mask) && id < idt[2]) {
 						        	idt[2] = id;
 						        	  d[2] = spPalette[spword >> 2 * tile_bpp & tile_bpp_mask];
-						        } // fall through
+						        } [[fallthrough]];
 						case 2: if ((spword >> 1 * tile_bpp & tile_bpp_mask) && id < idt[1]) {
 						        	idt[1] = id;
 						        	  d[1] = spPalette[spword >> 1 * tile_bpp & tile_bpp_mask];
-						        } // fall through
+						        } [[fallthrough]];
 						case 1: if ((spword & tile_bpp_mask) && id < idt[0]) {
 						        	idt[0] = id;
 						        	  d[0] = spPalette[spword & tile_bpp_mask];

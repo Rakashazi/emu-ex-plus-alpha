@@ -87,7 +87,7 @@ static GC xSizeOfChar(Renderer &r, GlyphTextureSet *face_, int c, GC spaceX, con
 
 void Text::makeGlyphs(Renderer &r)
 {
-	if(unlikely(!face_ || !stringSize()))
+	if(!hasText()) [[unlikely]]
 		return;
 	for(auto c : textStr)
 	{
@@ -97,7 +97,7 @@ void Text::makeGlyphs(Renderer &r)
 
 bool Text::compile(Renderer &r, ProjectionPlane projP)
 {
-	if(unlikely(!face_ || !stringSize()))
+	if(!hasText()) [[unlikely]]
 		return false;
 	//logMsg("compiling text %s", str);
 
@@ -192,7 +192,7 @@ bool Text::compile(Renderer &r, ProjectionPlane projP)
 void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, ProjectionPlane projP) const
 {
 	using namespace Gfx;
-	if(unlikely(!face_ || !stringSize()))
+	if(!hasText()) [[unlikely]]
 		return;
 	//logMsg("drawing with origin: %s,%s", o.toString(o.x), o.toString(o.y));
 	cmds.setBlendMode(BLEND_MODE_ALPHA);
@@ -237,7 +237,11 @@ void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, Projectio
 		//logMsg("line %d, %d chars", l, charsToDraw);
 		drawSpan(cmds, xPos, yPos, projP, (TextStringView)textStr, vArr);
 	}
+}
 
+void Text::draw(RendererCommands &cmds, GP p, _2DOrigin o, ProjectionPlane projP) const
+{
+	draw(cmds, p.x, p.y, o, projP);
 }
 
 void Text::drawSpan(RendererCommands &cmds, GC xPos, GC yPos, ProjectionPlane projP, TextStringView strView, std::array<TexVertex, 4> &vArr) const
@@ -333,6 +337,11 @@ bool Text::isVisible() const
 TextStringView Text::stringView() const
 {
 	return textStr;
+}
+
+bool Text::hasText() const
+{
+	return face_ && stringSize();
 }
 
 }

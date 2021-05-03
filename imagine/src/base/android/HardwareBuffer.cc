@@ -34,7 +34,7 @@ static EGLClientBuffer (EGLAPIENTRYP eglGetNativeClientBufferANDROID)(const stru
 
 static void loadAHardwareBufferSymbols()
 {
-	if(unlikely(!AHardwareBuffer_allocate))
+	if(!AHardwareBuffer_allocate) [[unlikely]]
 	{
 		logMsg("loading AHardwareBuffer functions");
 		Base::loadSymbol(AHardwareBuffer_allocate, {}, "AHardwareBuffer_allocate");
@@ -59,9 +59,9 @@ HardwareBuffer::HardwareBuffer(uint32_t w, uint32_t h, uint32_t format, uint32_t
 	HardwareBuffer()
 {
 	assumeExpr(AHardwareBuffer_allocate);
-	AHardwareBuffer_Desc hardwareDesc{w, h, 1, format, usage};
+	AHardwareBuffer_Desc hardwareDesc{.width = w, .height = h, .layers = 1, .format = format, .usage = usage};
 	AHardwareBuffer *newBuff;
-	if(unlikely(AHardwareBuffer_allocate(&hardwareDesc, &newBuff) != 0))
+	if(AHardwareBuffer_allocate(&hardwareDesc, &newBuff) != 0) [[unlikely]]
 	{
 		logErr("error allocating AHardwareBuffer");
 		return;
@@ -74,7 +74,7 @@ HardwareBuffer::HardwareBuffer(uint32_t w, uint32_t h, uint32_t format, uint32_t
 
 bool HardwareBuffer::lock(uint32_t usage, void **vaddr)
 {
-	if(unlikely(AHardwareBuffer_lock(buff.get(), usage, -1, nullptr, vaddr) != 0))
+	if(AHardwareBuffer_lock(buff.get(), usage, -1, nullptr, vaddr) != 0) [[unlikely]]
 	{
 		logErr("error locking");
 		return false;
@@ -88,15 +88,15 @@ bool HardwareBuffer::lock(uint32_t usage, IG::WindowRect rect, void **vaddr)
 	{
 		AHardwareBuffer_Desc desc;
 		AHardwareBuffer_describe(buff.get(), &desc);
-		if(unlikely((rect.x < 0 || rect.x2 > (int)desc.width ||
-			rect.y < 0 || rect.y2 > (int)desc.height)))
+		if((rect.x < 0 || rect.x2 > (int)desc.width ||
+			rect.y < 0 || rect.y2 > (int)desc.height)) [[unlikely]]
 		{
 			bug_unreachable("locking pixels:[%d:%d:%d:%d] outside of buffer:%d,%d",
 				rect.x, rect.y, rect.x2, rect.y2, desc.width, desc.height);
 		}
 	}
 	ARect aRect{.left = rect.x, .top = rect.y, .right = rect.x2, .bottom = rect.y2};
-	if(unlikely(AHardwareBuffer_lock(buff.get(), usage, -1, &aRect, vaddr) != 0))
+	if(AHardwareBuffer_lock(buff.get(), usage, -1, &aRect, vaddr) != 0) [[unlikely]]
 	{
 		logErr("error locking");
 		return false;

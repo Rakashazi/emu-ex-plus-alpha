@@ -36,9 +36,9 @@ public:
 		return v.v[i];
 	}
 
-	constexpr float x() { return v.x; }
-	constexpr float y() { return v.y; }
-	constexpr float z() { return v.z; }
+	constexpr float x() const { return v.x; }
+	constexpr float y() const { return v.y; }
+	constexpr float z() const { return v.z; }
 
 protected:
 	GLKVector3 v{};

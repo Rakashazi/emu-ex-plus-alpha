@@ -15,10 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gfx/AnimatedViewport.hh>
-#include <imagine/gfx/ProjectionPlane.hh>
 #include <emuframework/EmuSystem.hh>
 #include "Recent.hh"
+#include <imagine/pixmap/PixelFormat.hh>
 #include <memory>
 
 namespace Base
@@ -31,21 +30,17 @@ namespace Input
 class Event;
 }
 
+namespace Gfx
+{
+class Viewport;
+class Projection;
+}
+
 class ViewAttachParams;
 class EmuSystemTask;
 class EmuViewController;
 class EmuVideo;
 class EmuAudio;
-
-struct WindowData
-{
-	Gfx::Viewport viewport() const { return projection.plane().viewport(); }
-	Gfx::Projection projection{};
-	Gfx::AnimatedViewport animatedViewport{};
-	bool hasEmuView = false;
-	bool hasPopup = false;
-	bool focused = true;
-};
 
 extern RecentGameList recentGameList;
 static constexpr const char *strftimeFormat = "%x  %r";
@@ -58,7 +53,6 @@ void onSelectFileFromPicker(EmuApp &, const char* name, Input::Event e, EmuSyste
 void launchSystem(EmuApp &, bool tryAutoState, bool addToRecent);
 Gfx::Viewport makeViewport(const Base::Window &win);
 Gfx::Projection updateProjection(Gfx::Viewport viewport);
-WindowData &windowData(const Base::Window &win);
 uint8_t currentFrameInterval();
 IG::PixelFormatID optionImageEffectPixelFormatValue();
 

@@ -25,6 +25,7 @@
 
 namespace IG::Audio
 {
+
 using OnSamplesNeededDelegate = DelegateFunc<bool(void *buff, unsigned frames)>;
 
 class OutputStreamConfig
@@ -35,37 +36,37 @@ public:
 		format_{format}, onSamplesNeeded_{onSamplesNeeded}
 		{}
 
-	Format format() const
+	constexpr Format format() const
 	{
 		return format_;
 	}
 
-	void setOnSamplesNeeded(OnSamplesNeededDelegate del)
+	constexpr void setOnSamplesNeeded(OnSamplesNeededDelegate del)
 	{
 		onSamplesNeeded_ = del;
 	}
 
-	OnSamplesNeededDelegate onSamplesNeeded() const
+	constexpr OnSamplesNeededDelegate onSamplesNeeded() const
 	{
 		return onSamplesNeeded_;
 	}
 
-	void setWantedLatencyHint(IG::Microseconds uSecs)
+	constexpr void setWantedLatencyHint(IG::Microseconds uSecs)
 	{
 		wantedLatency = uSecs;
 	}
 
-	IG::Microseconds wantedLatencyHint() const
+	constexpr IG::Microseconds wantedLatencyHint() const
 	{
 		return wantedLatency;
 	}
 
-	void setStartPlaying(bool on)
+	constexpr void setStartPlaying(bool on)
 	{
 		startPlaying_ = on;
 	}
 
-	bool startPlaying()
+	constexpr bool startPlaying()
 	{
 		return startPlaying_;
 	}
@@ -89,8 +90,5 @@ public:
 	virtual bool isOpen() = 0;
 	virtual bool isPlaying() = 0;
 };
-
-OutputStreamConfig makeNativeOutputStreamConfig(Base::ApplicationContext);
-std::unique_ptr<OutputStream> makeOutputStream(Base::ApplicationContext, Api api = Api::DEFAULT);
 
 }

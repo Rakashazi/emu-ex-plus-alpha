@@ -23,10 +23,10 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/InputManagerView.hh>
 #include <emuframework/BundledGamesView.hh>
-#include "private.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 
 class ResetAlertView : public BaseAlertView, public EmuAppHelper<ResetAlertView>

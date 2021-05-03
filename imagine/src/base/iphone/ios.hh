@@ -23,9 +23,6 @@ namespace Base
 
 namespace Input
 {
-	extern UITextField *vkbdField;
-	extern Input::InputTextDelegate vKeyboardTextDelegate;
-	extern IG::WindowRect textRect;
 	static constexpr int GSEVENTKEY_KEYCODE_IOS7 = 17;
 	static constexpr int GSEVENTKEY_KEYCODE_64_BIT = 13;
 	extern int GSEVENTKEY_KEYCODE;

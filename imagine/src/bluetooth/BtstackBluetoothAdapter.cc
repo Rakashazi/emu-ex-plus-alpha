@@ -28,7 +28,7 @@ struct BtstackCmd
 {
 	enum { NOOP, CREATE_L2CAP, CREATE_RFCOMM, INQUIRY, REMOTE_NAME_REQ, WRITE_AUTH_ENABLE,
 		L2CAP_REGISTER_SERVICE, L2CAP_ACCEPT_CONNECTION };
-	uint32_t cmd;
+	uint32_t cmd{};
 	union
 	{
 		struct
@@ -60,6 +60,9 @@ struct BtstackCmd
 			uint16_t localCh;
 		} l2capAcceptConnectionData;
 	};
+
+	constexpr BtstackCmd() {};
+	constexpr BtstackCmd(uint32_t cmd):cmd{cmd} {};
 
 	bool exec()
 	{
@@ -115,7 +118,7 @@ struct BtstackCmd
 
 	static BtstackCmd l2capCreateChannel(BluetoothAddr address, uint32_t channel)
 	{
-		BtstackCmd cmd = { CREATE_L2CAP };
+		BtstackCmd cmd{CREATE_L2CAP};
 		cmd.createChannelData.address = address;
 		cmd.createChannelData.channel = channel;
 		return cmd;
@@ -123,7 +126,7 @@ struct BtstackCmd
 
 	static BtstackCmd rfcommCreateChannel(BluetoothAddr address, uint32_t channel)
 	{
-		BtstackCmd cmd = { CREATE_RFCOMM };
+		BtstackCmd cmd{CREATE_RFCOMM};
 		cmd.createChannelData.address = address;
 		cmd.createChannelData.channel = channel;
 		return cmd;
@@ -131,14 +134,14 @@ struct BtstackCmd
 
 	static BtstackCmd inquiry(uint32_t length)
 	{
-		BtstackCmd cmd = { INQUIRY };
+		BtstackCmd cmd{INQUIRY};
 		cmd.inquiryData.length = length;
 		return cmd;
 	}
 
 	static BtstackCmd remoteNameRequest(BluetoothAddr address, uint8_t pageScanRepetitionMode, uint16_t clockOffset)
 	{
-		BtstackCmd cmd = { REMOTE_NAME_REQ };
+		BtstackCmd cmd{REMOTE_NAME_REQ};
 		cmd.remoteNameRequestData.address = address;
 		cmd.remoteNameRequestData.pageScanRepetitionMode = pageScanRepetitionMode;
 		cmd.remoteNameRequestData.clockOffset = clockOffset;
@@ -147,14 +150,14 @@ struct BtstackCmd
 
 	static BtstackCmd writeAuthenticationEnable(uint32_t on)
 	{
-		BtstackCmd cmd = { WRITE_AUTH_ENABLE };
+		BtstackCmd cmd{WRITE_AUTH_ENABLE};
 		cmd.writeAuthEnableData.on = on;
 		return cmd;
 	}
 
 	static BtstackCmd l2capRegisterService(uint16_t psm, uint16_t mtu)
 	{
-		BtstackCmd cmd = { L2CAP_REGISTER_SERVICE };
+		BtstackCmd cmd{L2CAP_REGISTER_SERVICE};
 		cmd.l2capRegisterServiceData.psm = psm;
 		cmd.l2capRegisterServiceData.mtu = mtu;
 		return cmd;
@@ -162,14 +165,14 @@ struct BtstackCmd
 
 	static BtstackCmd l2capAcceptConnection(uint16_t localCh)
 	{
-		BtstackCmd cmd = { L2CAP_ACCEPT_CONNECTION };
+		BtstackCmd cmd{L2CAP_ACCEPT_CONNECTION};
 		cmd.l2capAcceptConnectionData.localCh = localCh;
 		return cmd;
 	}
 };
 
-static StaticArrayList<BtstackCmd, 8> pendingCmdList;
-static BtstackCmd activeCmd = { BtstackCmd::NOOP };
+static StaticArrayList<BtstackCmd, 8> pendingCmdList{};
+static BtstackCmd activeCmd{BtstackCmd::NOOP};
 
 bool BtstackBluetoothAdapter::cmdActive = 0;
 
@@ -468,6 +471,7 @@ void BtstackBluetoothAdapter::packetHandler(uint8_t packet_type, uint16_t channe
 						logMsg("ignoring cached name");
 						break;
 					}
+					[[fallthrough]];
 				case HCI_EVENT_REMOTE_NAME_REQUEST_COMPLETE:
 				{
 					//logMsg("got HCI_EVENT_REMOTE_NAME_REQUEST_COMPLETE ch %d", (int)channel);

@@ -409,7 +409,7 @@ void FCEUPPU_FrameReady(EmuSystemTask *task, EmuVideo *video, uint8 *buf)
 	{
 		return;
 	}
-	if(unlikely(!buf))
+	if(!buf) [[unlikely]]
 	{
 		video->startUnchangedFrame(task);
 		return;

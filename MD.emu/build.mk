@@ -10,6 +10,8 @@ CPPFLAGS += -DSUPPORT_16BPP_RENDER \
 -DNO_SYSTEM_PICO
 # -DNO_SVP -DNO_SYSTEM_PBC
 
+CFLAGS_WARN += -Wno-missing-field-initializers
+
 # Genesis Plus includes
 CPPFLAGS += -I$(projectPath)/src \
 -I$(projectPath)/src/$(gplusPath) \

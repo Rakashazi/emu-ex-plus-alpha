@@ -29,9 +29,9 @@
 namespace Base
 {
 
-static JavaInstMethod<jobject(jobject, jlong, jlong)> jPresentation{};
-static JavaInstMethod<void()> jPresentationDeinit{};
-static JavaInstMethod<void(jint)> jSetWinFormat{};
+static JNI::InstMethod<jobject(jobject, jlong, jlong)> jPresentation{};
+static JNI::InstMethod<void()> jPresentationDeinit{};
+static JNI::InstMethod<void(jint)> jSetWinFormat{};
 static int32_t (*ANativeWindow_setFrameRate)(ANativeWindow* window, float frameRate, int8_t compatibility){};
 
 static void initPresentationJNI(JNIEnv* env, jobject presentation)
@@ -40,7 +40,7 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 		return; // already init
 	logMsg("Setting up Presentation JNI functions");
 	auto cls = env->GetObjectClass(presentation);
-	jPresentationDeinit.setup(env, cls, "deinit", "()V");
+	jPresentationDeinit = {env, cls, "deinit", "()V"};
 	JNINativeMethod method[] =
 	{
 		{
@@ -106,18 +106,21 @@ bool Window::setValidOrientations(Orientation oMask)
 {
 	using namespace Base;
 	logMsg("requested orientation change to %s", Base::orientationToStr(oMask));
-	int toSet = -1;
-	switch(oMask)
-	{
-		bdefault: toSet = -1; // SCREEN_ORIENTATION_UNSPECIFIED
-		bcase VIEW_ROTATE_0: toSet = 1; // SCREEN_ORIENTATION_PORTRAIT
-		bcase VIEW_ROTATE_90: toSet = 0; // SCREEN_ORIENTATION_LANDSCAPE
-		bcase VIEW_ROTATE_180: toSet = 9; // SCREEN_ORIENTATION_REVERSE_PORTRAIT
-		bcase VIEW_ROTATE_270: toSet = 8; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
-		bcase VIEW_ROTATE_90 | VIEW_ROTATE_270: toSet = 6; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-		bcase VIEW_ROTATE_0 | VIEW_ROTATE_180: toSet = 7; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
-		bcase VIEW_ROTATE_ALL: toSet = 10; // SCREEN_ORIENTATION_FULL_SENSOR
-	}
+	auto maskToOrientation = [](Orientation oMask)
+		{
+			switch(oMask)
+			{
+				default: return -1; // SCREEN_ORIENTATION_UNSPECIFIED
+				case VIEW_ROTATE_0: return 1; // SCREEN_ORIENTATION_PORTRAIT
+				case VIEW_ROTATE_90: return 0; // SCREEN_ORIENTATION_LANDSCAPE
+				case VIEW_ROTATE_180: return 9; // SCREEN_ORIENTATION_REVERSE_PORTRAIT
+				case VIEW_ROTATE_270: return 8; // SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+				case VIEW_ROTATE_90 | VIEW_ROTATE_270: return 6; // SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+				case VIEW_ROTATE_0 | VIEW_ROTATE_180: return 7; // SCREEN_ORIENTATION_SENSOR_PORTRAIT
+				case VIEW_ROTATE_ALL: return 10; // SCREEN_ORIENTATION_FULL_SENSOR
+			}
+		};
+	int toSet = maskToOrientation(oMask);
 	application().setRequestedOrientation(appContext().mainThreadJniEnv(), appContext().baseActivityObject(), toSet);
 	return true;
 }
@@ -139,25 +142,25 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate onInit_
 	auto &screen = config.screen(ctx);
 	this->screen_ = &screen;
 	auto env = ctx.mainThreadJniEnv();
+	auto baseActivity = ctx.baseActivityObject();
 	if(ctx.windows() > 0)
 	{
 		assert(&screen != ctx.screen(0));
 		if(!jPresentation)
-			jPresentation = {env, ctx.baseActivityClass(), "presentation", "(Landroid/view/Display;JJ)Lcom/imagine/PresentationHelper;"};
-		jWin = env->NewGlobalRef(jPresentation(env, ctx.baseActivityObject(), screen.displayObject(),
-			(jlong)ctx.aNativeActivityPtr(), (jlong)this));
+			jPresentation = {env, baseActivity, "presentation", "(Landroid/view/Display;JJ)Lcom/imagine/PresentationHelper;"};
+		jWin = {env, jPresentation(env, baseActivity, screen.displayObject(),
+			(jlong)ctx.aNativeActivityPtr(), (jlong)this)};
 		initPresentationJNI(env, jWin);
 		type = Type::PRESENTATION;
-		logMsg("made presentation window:%p", jWin);
+		logMsg("made presentation window:%p", (jobject)jWin);
 	}
 	else
 	{
-		JavaInstMethod<jobject(jlong)> jSetMainContentView(env, ctx.baseActivityClass(), "setMainContentView", "(J)Landroid/view/Window;");
-		jWin = env->NewGlobalRef(jSetMainContentView(env, ctx.baseActivityObject(), (jlong)this));
+		JNI::InstMethod<jobject(jlong)> jSetMainContentView(env, baseActivity, "setMainContentView", "(J)Landroid/view/Window;");
+		jWin = {env, jSetMainContentView(env, baseActivity, (jlong)this)};
 		type = Type::MAIN;
-		logMsg("made device window:%p", jWin);
-		jclass jWindowCls = env->GetObjectClass(jWin);
-		jSetWinFormat = {env, jWindowCls, "setFormat", "(I)V"};
+		logMsg("made device window:%p", (jobject)jWin);
+		jSetWinFormat = {env, (jobject)jWin, "setFormat", "(I)V"};
 	}
 	if(config.format())
 	{
@@ -174,13 +177,11 @@ AndroidWindow::~AndroidWindow()
 {
 	if(jWin)
 	{
-		auto env = onExit.appContext().mainThreadJniEnv();
 		if(type == Type::PRESENTATION)
 		{
-			logMsg("dismissing presentation window:%p", jWin);
-			jPresentationDeinit(env, jWin);
+			logMsg("dismissing presentation window:%p", (jobject)jWin);
+			jPresentationDeinit(jWin.jniEnv(), jWin);
 		}
-		env->DeleteGlobalRef(jWin);
 	}
 	if(nWin)
 	{
@@ -267,9 +268,9 @@ void Window::setIntendedFrameRate(double rate)
 {
 	if(appContext().androidSDK() < 30)
 		return;
-	if(unlikely(!nWin))
+	if(!nWin) [[unlikely]]
 		return;
-	if(unlikely(!ANativeWindow_setFrameRate))
+	if(!ANativeWindow_setFrameRate) [[unlikely]]
 	{
 		auto lib = Base::openSharedLibrary("libnativewindow.so");
 		Base::loadSymbol(ANativeWindow_setFrameRate, lib, "ANativeWindow_setFrameRate");
@@ -290,8 +291,7 @@ void Window::setFormat(NativeWindowFormat fmt)
 		auto env = appContext().mainThreadJniEnv();
 		if(Config::DEBUG_BUILD)
 		{
-			jclass jWindowCls = env->GetObjectClass(jWin);
-			JavaInstMethod<jobject()> jWinAttrs{env, jWindowCls, "getAttributes", "()Landroid/view/WindowManager$LayoutParams;"};
+			JNI::InstMethod<jobject()> jWinAttrs{env, (jobject)jWin, "getAttributes", "()Landroid/view/WindowManager$LayoutParams;"};
 			auto attrs = jWinAttrs(env, jWin);
 			jclass jLayoutParamsCls = env->GetObjectClass(attrs);
 			auto jFormat = env->GetFieldID(jLayoutParamsCls, "format", "I");

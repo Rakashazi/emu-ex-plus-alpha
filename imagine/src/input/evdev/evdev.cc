@@ -242,7 +242,7 @@ void EvdevInputDevice::addPollEvent(Base::LinuxApplication &app)
 	fdSrc = {"EvdevInputDevice", fd, {},
 		[this, &app](int fd, int pollEvents)
 		{
-			if(unlikely(pollEvents & Base::POLLEV_ERR))
+			if(pollEvents & Base::POLLEV_ERR) [[unlikely]]
 			{
 				logMsg("error %d in input fd %d (%s)", errno, fd, name());
 				removeFromSystem(app, fd);

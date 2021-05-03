@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/ApplicationContext.hh>
-#include <jni.h>
+#include <imagine/util/jni.hh>
 
 namespace IG
 {
@@ -53,17 +53,11 @@ class AndroidFontSize
 {
 public:
 	constexpr AndroidFontSize() {}
-	AndroidFontSize(Base::ApplicationContext, jobject paint);
-	AndroidFontSize(AndroidFontSize &&o);
-	AndroidFontSize &operator=(AndroidFontSize &&o);
-	~AndroidFontSize();
+	AndroidFontSize(JNI::UniqueGlobalRef paint);
 	jobject paint() const { return paint_; }
 
 protected:
-	jobject paint_{};
-	Base::ApplicationContext ctx{};
-
-	void deinit();
+	JNI::UniqueGlobalRef paint_{};
 };
 
 using GlyphImageImpl = AndroidGlyphImage;

@@ -36,7 +36,7 @@ public:
 	constexpr MapIO() {}
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) override;
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut) override;
-	const char *mmapConst() override;
+	const uint8_t *mmapConst() override;
 	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) override;
 	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut) override;
 	size_t size() override;
@@ -47,12 +47,12 @@ public:
 	#endif
 
 protected:
-	const char *data{};
-	const char *currPos{};
+	const uint8_t *data{};
+	const uint8_t *currPos{};
 	size_t dataSize = 0;
 
 	void setData(const void* buff, size_t size);
 	void resetData();
-	const char *dataEnd();
-	ssize_t readAtAddr(void* buff, size_t bytes, const char *readPos, std::error_code *ecOut);
+	const uint8_t *dataEnd();
+	ssize_t readAtAddr(void* buff, size_t bytes, const uint8_t *readPos, std::error_code *ecOut);
 };

@@ -229,7 +229,7 @@ static IG::ErrorCode loadImageSource(Texture &texture, GfxImageSource &img, bool
 	else
 	{
 		auto lockBuff = texture.lock(0);
-		if(unlikely(!lockBuff))
+		if(!lockBuff) [[unlikely]]
 			return {ENOMEM};
 		//logDMsg("writing image source into texture pixel buffer");
 		img.write(lockBuff.pixmap());
@@ -258,7 +258,7 @@ Texture::Texture(RendererTask &r, TextureConfig config, IG::ErrorCode *errorPtr)
 	GLTexture{r}
 {
 	IG::ErrorCode err = init(r, config);
-	if(unlikely(err && errorPtr))
+	if(err && errorPtr) [[unlikely]]
 	{
 		*errorPtr = err;
 	}
@@ -268,9 +268,9 @@ Texture::Texture(RendererTask &r, GfxImageSource &img, const TextureSampler *com
 	GLTexture{r}
 {
 	IG::ErrorCode err;
-	auto setError = IG::scopeGuard([&](){ if(unlikely(err && errorPtr)) { *errorPtr = err; } });
+	auto setError = IG::scopeGuard([&](){ if(err && errorPtr) [[unlikely]] { *errorPtr = err; } });
 	if(err = init(r, configWithLoadedImagePixmap(img.pixmapView(), makeMipmaps, compatSampler));
-		unlikely(err))
+		err) [[unlikely]]
 	{
 		return;
 	}
@@ -348,7 +348,7 @@ GLenum GLTexture::target() const
 
 bool Texture::generateMipmaps()
 {
-	if(unlikely(!texName_))
+	if(!texName_) [[unlikely]]
 	{
 		logErr("called generateMipmaps() on uninitialized texture");
 		return false;
@@ -455,7 +455,7 @@ void GLTexture::bindTex(RendererCommands &cmds) const
 void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uint8_t assumeAlign, uint32_t writeFlags)
 {
 	//logDMsg("writing pixmap %dx%d to pos %dx%d", pixmap.x, pixmap.y, destPos.x, destPos.y);
-	if(unlikely(!texName_))
+	if(!texName_) [[unlikely]]
 	{
 		logErr("called writeAligned() on uninitialized texture");
 		return;
@@ -507,7 +507,7 @@ void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uin
 		IG::WindowRect lockRect{{}, pixmap.size()};
 		lockRect += destPos;
 		auto lockBuff = lock(level, lockRect);
-		if(unlikely(!lockBuff))
+		if(!lockBuff) [[unlikely]]
 		{
 			logErr("error getting buffer for writeAligned()");
 			return;
@@ -525,7 +525,7 @@ void Texture::write(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t c
 void Texture::clear(uint8_t level)
 {
 	auto lockBuff = lock(level, BUFFER_FLAG_CLEARED);
-	if(unlikely(!lockBuff))
+	if(!lockBuff) [[unlikely]]
 	{
 		logErr("error getting buffer for clear()");
 		return;
@@ -540,7 +540,7 @@ LockedTextureBuffer Texture::lock(uint8_t level, uint32_t bufferFlags)
 
 LockedTextureBuffer Texture::lock(uint8_t level, IG::WindowRect rect, uint32_t bufferFlags)
 {
-	if(unlikely(!texName_))
+	if(!texName_) [[unlikely]]
 	{
 		logErr("called lock() on uninitialized texture");
 		return {};
@@ -553,7 +553,7 @@ LockedTextureBuffer Texture::lock(uint8_t level, IG::WindowRect rect, uint32_t b
 		data = (char*)std::calloc(1, bufferBytes);
 	else
 		data = (char*)std::malloc(bufferBytes);
-	if(unlikely(!data))
+	if(!data) [[unlikely]]
 	{
 		logErr("failed allocating %u bytes for pixel buffer", bufferBytes);
 		return {};
@@ -564,7 +564,7 @@ LockedTextureBuffer Texture::lock(uint8_t level, IG::WindowRect rect, uint32_t b
 
 void Texture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 {
-	if(unlikely(!lockBuff))
+	if(!lockBuff) [[unlikely]]
 		return;
 	if(lockBuff.pbo())
 	{
@@ -701,6 +701,11 @@ void Texture::useDefaultProgram(RendererCommands &cmds, uint32_t mode, const Mat
 	renderer().useCommonProgram(cmds, commonProgramForMode(type_, mode), modelMat);
 }
 
+void Texture::useDefaultProgram(RendererCommands &cmds, uint32_t mode, Mat4 modelMat) const
+{
+	useDefaultProgram(cmds, mode, &modelMat);
+}
+
 Texture::operator bool() const
 {
 	return texName();
@@ -818,7 +823,7 @@ void GLTexture::initWithEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc, Sample
 			{
 				auto texName = texName_;
 				bool madeTexName = false;
-				if(unlikely(!texName)) // texture storage is mutable, only need to make name once
+				if(!texName) [[unlikely]] // texture storage is mutable, only need to make name once
 				{
 					glGenTextures(1, &texName);
 					texName_ = texName;
@@ -873,7 +878,7 @@ PixmapTexture::PixmapTexture(RendererTask &r, TextureConfig config, IG::ErrorCod
 	GLPixmapTexture{r}
 {
 	IG::ErrorCode err = GLPixmapTexture::init(r, config);
-	if(unlikely(err && errorPtr))
+	if(err && errorPtr) [[unlikely]]
 	{
 		*errorPtr = err;
 	}
@@ -883,11 +888,11 @@ PixmapTexture::PixmapTexture(RendererTask &r, GfxImageSource &img, const Texture
 	GLPixmapTexture{r}
 {
 	IG::ErrorCode err;
-	auto setError = IG::scopeGuard([&](){ if(unlikely(err && errorPtr)) { *errorPtr = err; } });
+	auto setError = IG::scopeGuard([&](){ if(err && errorPtr) [[unlikely]] { *errorPtr = err; } });
 	if(img)
 	{
 		if(err = GLPixmapTexture::init(r, configWithLoadedImagePixmap(img.pixmapView(), makeMipmaps, compatSampler));
-			unlikely(err))
+			err) [[unlikely]]
 		{
 			return;
 		}
@@ -903,7 +908,7 @@ IG::ErrorCode GLPixmapTexture::init(RendererTask &r, TextureConfig config)
 {
 	config = baseInit(r, config);
 	if(auto err = static_cast<PixmapTexture*>(this)->setFormat(config.pixmapDesc(), config.levels(), config.compatSampler());
-		unlikely(err))
+		err) [[unlikely]]
 	{
 		return err;
 	}
@@ -914,7 +919,7 @@ IG::ErrorCode PixmapTexture::setFormat(IG::PixmapDesc desc, uint8_t levels, cons
 {
 	IG::PixmapDesc fullPixDesc = renderer().support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
 	if(auto err = Texture::setFormat(fullPixDesc, levels, compatSampler);
-		unlikely(err))
+		err) [[unlikely]]
 	{
 		return err;
 	}

@@ -22,10 +22,20 @@ namespace Base
 
 const char copyright[] = "Imagine is Copyright 2010-2021 Robert Broglia";
 
-BaseApplication::BaseApplication()
+BaseApplication::BaseApplication(ApplicationContext ctx)
 {
 	logDMsg("%s", copyright);
 	logDMsg("compiled on %s %s", __DATE__, __TIME__);
+
+	commandPort.attach({},
+		[ctx](auto msgs)
+		{
+			for(auto msg : msgs)
+			{
+				msg.del(ctx);
+			}
+			return true;
+		});
 }
 
 BaseApplication::~BaseApplication() {}
@@ -52,7 +62,7 @@ unsigned BaseApplication::windows() const
 
 Window *BaseApplication::window(unsigned idx) const
 {
-	if(unlikely(idx >= window_.size()))
+	if(idx >= window_.size()) [[unlikely]]
 		return nullptr;
 	return window_[idx].get();
 }
@@ -244,6 +254,26 @@ void BaseApplication::dispatchOnFreeCaches(ApplicationContext ctx, bool running)
 void BaseApplication::dispatchOnExit(ApplicationContext ctx, bool backgrounded)
 {
 	onExit_.runAll([&](ExitDelegate del){ return del(ctx, backgrounded); }, true);
+}
+
+[[gnu::weak]] void ApplicationContext::setIdleDisplayPowerSave(bool on) {}
+
+[[gnu::weak]] void ApplicationContext::endIdleByUserActivity() {}
+
+[[gnu::weak]] bool ApplicationContext::registerInstance(ApplicationInitParams, const char *) { return false; }
+
+[[gnu::weak]] void ApplicationContext::setAcceptIPC(bool on, const char *) {}
+
+void Application::runOnMainThread(MainThreadMessageDelegate del)
+{
+	if(!del) [[unlikely]]
+		return;
+	commandPort.send({del});
+}
+
+void Application::flushMainThreadMessages()
+{
+	commandPort.dispatchMessages();
 }
 
 }

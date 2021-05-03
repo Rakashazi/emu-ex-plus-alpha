@@ -216,7 +216,7 @@ void ArchiveEntry::moveIO(ArchiveIO io)
 
 bool ArchiveEntry::readNextEntry()
 {
-	if(unlikely(!arch))
+	if(!arch) [[unlikely]]
 		return false;
 	auto ret = archive_read_next_header(arch.get(), &ptr);
 	if(ret == ARCHIVE_EOF)
@@ -245,7 +245,7 @@ bool ArchiveEntry::hasEntry() const
 
 void ArchiveEntry::rewind()
 {
-	if(unlikely(!arch))
+	if(!arch) [[unlikely]]
 		return;
 	logMsg("rewinding archive:%p", arch.get());
 	// take the existing IO, rewind, and re-use it

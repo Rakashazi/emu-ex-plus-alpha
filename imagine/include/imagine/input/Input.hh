@@ -17,11 +17,9 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/DelegateFunc.hh>
 #include <imagine/input/config.hh>
 #include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/input/inputDefs.hh>
-#include <vector>
 
 namespace Base
 {
@@ -131,14 +129,6 @@ protected:
 	Source src{};
 	uint8_t keyFlags{};
 };
-
-// OS text input support
-typedef DelegateFunc<void (const char *str)> InputTextDelegate;
-uint32_t startSysTextInput(Base::ApplicationContext, InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels);
-void cancelSysTextInput(Base::ApplicationContext);
-void finishSysTextInput(Base::ApplicationContext);
-void placeSysTextInput(Base::ApplicationContext, IG::WindowRect rect);
-IG::WindowRect sysTextInputRect(Base::ApplicationContext);
 
 const char *sourceStr(Source);
 Map validateMap(uint8_t mapValue);

@@ -140,7 +140,7 @@ void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKe
 {
 	unsigned player = emuKey >> 8;
 	auto key = emuKey & 0xFF;
-	if(unlikely(GameInfo->type==GIT_VSUNI)) // TODO: make coin insert separate key
+	if(GameInfo->type==GIT_VSUNI) // TODO: make coin insert separate key
 	{
 		if(action == Input::Action::PUSHED && key == IG::bit(3))
 			FCEUI_VSUniCoin();

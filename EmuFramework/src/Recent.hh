@@ -17,7 +17,6 @@
 
 #include <imagine/fs/FS.hh>
 #include <imagine/util/string.h>
-#include <imagine/input/Input.hh>
 #include <imagine/util/container/ArrayList.hh>
 
 class TextMenuItem;

@@ -20,7 +20,6 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
-#include "android.hh"
 #include "input.hh"
 #include <android/input.h>
 
@@ -40,7 +39,7 @@ static Input::AndroidInputDevice *deviceForInputId(Base::ApplicationContext ctx,
 		return sysInputDev.front().get();
 	}
 	auto existingIt = std::find_if(sysInputDev.cbegin(), sysInputDev.cend(),
-		[=](const auto &e) { return e->osId == id; });
+		[=](const auto &e) { return e->systemId() == id; });
 	if(existingIt == sysInputDev.end())
 	{
 		return nullptr;
@@ -227,7 +226,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 				case AINPUT_SOURCE_CLASS_POINTER:
 				{
 					auto dev = deviceForInputId(win.appContext(), sysInputDev, AInputEvent_getDeviceId(event));
-					if(unlikely(!dev))
+					if(!dev) [[unlikely]]
 					{
 						if(Config::DEBUG_BUILD)
 							logWarn("discarding pointer input from unknown device ID: %d", AInputEvent_getDeviceId(event));
@@ -288,7 +287,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 				case AINPUT_SOURCE_CLASS_JOYSTICK:
 				{
 					auto dev = deviceForInputId(win.appContext(), sysInputDev, AInputEvent_getDeviceId(event));
-					if(unlikely(!dev))
+					if(!dev) [[unlikely]]
 					{
 						if(Config::DEBUG_BUILD)
 							logWarn("discarding joystick input from unknown device ID: %d", AInputEvent_getDeviceId(event));
@@ -299,7 +298,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 					auto time = makeTimeFromMotionEvent(event);
 					if(hasGetAxisValue())
 					{
-						for(auto &axis : dev->axis)
+						for(auto &axis : dev->jsAxes())
 						{
 							auto pos = AMotionEvent_getAxisValue(event, axis.id, 0);
 							//logMsg("axis %d with value: %f", axis.id, (double)pos);
@@ -309,10 +308,10 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 					else
 					{
 						// no getAxisValue, can only use 2 axis values (X and Y)
-						iterateTimes(std::min((uint32_t)dev->axis.size(), 2u), i)
+						iterateTimes(std::min((uint32_t)dev->jsAxes().size(), 2u), i)
 						{
 							auto pos = i ? AMotionEvent_getY(event, 0) : AMotionEvent_getX(event, 0);
-							dev->axis[i].keyEmu.dispatch(pos, enumID, Map::SYSTEM, time, *dev, win);
+							dev->jsAxes()[i].keyEmu.dispatch(pos, enumID, Map::SYSTEM, time, *dev, win);
 						}
 					}
 					return true;
@@ -356,7 +355,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 			}
 			mostRecentKeyEventDevID = devID;
 			const AndroidInputDevice *dev = deviceForInputId(win.appContext(), sysInputDev, devID);
-			if(unlikely(!dev))
+			if(!dev) [[unlikely]]
 			{
 				if(virtualDev)
 				{
@@ -371,7 +370,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 			}
 			auto metaState = AKeyEvent_getMetaState(event);
 			mapKeycodesForSpecialDevices(*dev, keyCode, metaState, eventSource, event);
-			if(unlikely(!keyCode)) // ignore "unknown" key codes
+			if(!keyCode) [[unlikely]] // ignore "unknown" key codes
 			{
 				return false;
 			}
@@ -395,13 +394,13 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 void AndroidApplication::processInputCommon(AInputQueue *inputQueue, AInputEvent* event)
 {
 	//logMsg("input event start");
-	if(unlikely(!deviceWindow()))
+	if(!deviceWindow()) [[unlikely]]
 	{
 		logMsg("ignoring input with uninitialized window");
 		AInputQueue_finishEvent(inputQueue, event, 0);
 		return;
 	}
-	if(unlikely(eventsUseOSInputMethod() && AInputQueue_preDispatchEvent(inputQueue, event)))
+	if(eventsUseOSInputMethod() && AInputQueue_preDispatchEvent(inputQueue, event))
 	{
 		//logMsg("input event used by pre-dispatch");
 		return;

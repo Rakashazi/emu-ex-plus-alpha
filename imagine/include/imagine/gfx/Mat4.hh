@@ -23,7 +23,7 @@
 
 namespace Gfx
 {
-using Mat4 = GLMMat4;
+using Mat4Impl = GLMMat4;
 }
 
 #elif defined CONFIG_GFX_MATH_GLKIT
@@ -32,7 +32,19 @@ using Mat4 = GLMMat4;
 
 namespace Gfx
 {
-using Mat4 = GLKitMat4;
+using Mat4Impl = GLKitMat4;
 }
 
 #endif
+
+namespace Gfx
+{
+
+class Mat4 : public Mat4Impl
+{
+public:
+	using Mat4Impl::Mat4Impl;
+	constexpr Mat4(Mat4Impl m): Mat4Impl{m} {}
+};
+
+}

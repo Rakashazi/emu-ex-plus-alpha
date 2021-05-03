@@ -218,7 +218,7 @@ bool Window::setNeedsDraw(bool needsDraw)
 {
 	if(needsDraw)
 	{
-		if(unlikely(!hasSurface()))
+		if(!hasSurface()) [[unlikely]]
 		{
 			drawNeeded = false;
 			return false;
@@ -264,6 +264,20 @@ void Window::postFrameReady()
 	drawPhase = DrawPhase::READY;
 	if(onFrame.size())
 		drawEvent.notify();
+}
+
+void Window::postDrawToMainThread(uint8_t priority)
+{
+	appContext().runOnMainThread(
+		[this, priority](ApplicationContext)
+		{
+			postDraw(priority);
+		});
+}
+
+void Window::postFrameReadyToMainThread()
+{
+	postFrameReady();
 }
 
 uint8_t Window::setDrawEventPriority(uint8_t priority)
@@ -364,7 +378,7 @@ void Window::draw(bool needsSync)
 {
 	DrawParams params;
 	params.needsSync_ = needsSync;
-	if(unlikely(surfaceChange.flags))
+	if(surfaceChange.flags) [[unlikely]]
 	{
 		assert(!surfaceChange.destroyed());
 		dispatchSurfaceChange();

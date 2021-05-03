@@ -89,7 +89,6 @@
 #include "TLCS900h_interpret.h"
 #include "Z80_interface.h"
 #include "dma.h"
-#include <imagine/util/utility.h>
 #include <imagine/logger/logger.h>
 #include <assert.h>
 
@@ -386,7 +385,7 @@ template <bool runZ80InHInt>
 unsigned int updateTimers(uint32 cputicks)
 {
 #ifndef NEOPOP_DEBUG
-	if(!runZ80InHInt && likely(Z80ACTIVE))
+	if(!runZ80InHInt && Z80ACTIVE)
 	{
 		//system_message("z80 cycles %d", Z80_regs.ICount);
 		Z80_regs.ICount += (float)cputicks * .75;
@@ -463,7 +462,7 @@ unsigned int updateTimers(uint32 cputicks)
 		}
 
 #ifndef NEOPOP_DEBUG
-		if(runZ80InHInt && likely(Z80ACTIVE))
+		if(runZ80InHInt && Z80ACTIVE)
 		{
 			//system_message("z80 cycles left %d", Z80_regs.ICount);
 			//ExecZ80Cycles(&Z80_regs);

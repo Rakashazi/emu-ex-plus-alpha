@@ -23,37 +23,37 @@ namespace Base
 {
 
 static jclass jSurfaceCls{}, jSurfaceTextureCls{};
-static JavaInstMethod<void(jobject)> jSurface{};
-static JavaInstMethod<void()> jSurfaceRelease{};
-static JavaInstMethod<void(jint)> jSurfaceTexture{};
-static JavaInstMethod<void(jint, jboolean)> jSurfaceTexture2{};
-static JavaInstMethod<void()> jUpdateTexImage{};
-static JavaInstMethod<void()> jReleaseTexImage{};
-static JavaInstMethod<void()> jSurfaceTextureRelease{};
+static JNI::InstMethod<void(jobject)> jSurface{};
+static JNI::InstMethod<void()> jSurfaceRelease{};
+static JNI::InstMethod<void(jint)> jSurfaceTexture{};
+static JNI::InstMethod<void(jint, jboolean)> jSurfaceTexture2{};
+static JNI::InstMethod<void()> jUpdateTexImage{};
+static JNI::InstMethod<void()> jReleaseTexImage{};
+static JNI::InstMethod<void()> jSurfaceTextureRelease{};
 
 static void initSurfaceTextureJNI(ApplicationContext ctx, JNIEnv *env)
 {
 	assert(ctx.androidSDK() >= 14);
-	if(likely(jSurfaceTextureCls))
+	if(jSurfaceTextureCls) [[likely]]
 		return;
 	jSurfaceTextureCls = (jclass)env->NewGlobalRef(env->FindClass("android/graphics/SurfaceTexture"));
-	jSurfaceTexture.setup(env, jSurfaceTextureCls, "<init>", "(I)V");
+	jSurfaceTexture = {env, jSurfaceTextureCls, "<init>", "(I)V"};
 	if(ctx.androidSDK() >= 19)
 	{
-		jSurfaceTexture2.setup(env, jSurfaceTextureCls, "<init>", "(IZ)V");
-		jReleaseTexImage.setup(env, jSurfaceTextureCls, "releaseTexImage", "()V");
+		jSurfaceTexture2 = {env, jSurfaceTextureCls, "<init>", "(IZ)V"};
+		jReleaseTexImage = {env, jSurfaceTextureCls, "releaseTexImage", "()V"};
 	}
-	jUpdateTexImage.setup(env, jSurfaceTextureCls, "updateTexImage", "()V");
-	jSurfaceTextureRelease.setup(env, jSurfaceTextureCls, "release", "()V");
+	jUpdateTexImage = {env, jSurfaceTextureCls, "updateTexImage", "()V"};
+	jSurfaceTextureRelease = {env, jSurfaceTextureCls, "release", "()V"};
 }
 
 static void initSurfaceJNI(JNIEnv *env)
 {
-	if(likely(jSurfaceCls))
+	if(jSurfaceCls) [[likely]]
 		return;
 	jSurfaceCls = (jclass)env->NewGlobalRef(env->FindClass("android/view/Surface"));
-	jSurface.setup(env, jSurfaceCls, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
-	jSurfaceRelease.setup(env, jSurfaceCls, "release", "()V");
+	jSurface = {env, jSurfaceCls, "<init>", "(Landroid/graphics/SurfaceTexture;)V"};
+	jSurfaceRelease = {env, jSurfaceCls, "release", "()V"};
 }
 
 jobject makeSurfaceTexture(ApplicationContext ctx, JNIEnv *env, jint texName)
@@ -78,7 +78,7 @@ bool releaseSurfaceTextureImage(JNIEnv *env, jobject surfaceTexture)
 {
 	assumeExpr(jReleaseTexImage);
 	jReleaseTexImage(env, surfaceTexture);
-	if(unlikely(env->ExceptionCheck()))
+	if(env->ExceptionCheck()) [[unlikely]]
 	{
 		logErr("exception in releaseTexImage()");
 		env->ExceptionClear();

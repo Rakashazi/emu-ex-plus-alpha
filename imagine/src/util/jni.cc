@@ -17,6 +17,9 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/utility.h>
 
+namespace JNI
+{
+
 jmethodID getJNIStaticMethodID(JNIEnv *env, jclass cls, const char *fName, const char *sig)
 {
 	if(!cls)
@@ -167,4 +170,39 @@ template<>
 jdouble callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args)
 {
 	return env->CallStaticDoubleMethodV(cls, method, args);
+}
+
+UniqueGlobalRef::UniqueGlobalRef(JNIEnv *env_, jobject obj_):
+	env{env_}
+{
+	assert(obj_);
+	obj = env_->NewGlobalRef(obj_);
+	assert(obj);
+}
+
+UniqueGlobalRef::UniqueGlobalRef(UniqueGlobalRef &&o)
+{
+	*this = std::move(o);
+}
+
+UniqueGlobalRef &UniqueGlobalRef::operator=(UniqueGlobalRef &&o)
+{
+	reset();
+	env = o.env;
+	obj = std::exchange(o.obj, {});
+	return *this;
+}
+
+UniqueGlobalRef::~UniqueGlobalRef()
+{
+	reset();
+}
+
+void UniqueGlobalRef::reset()
+{
+	if(!obj)
+		return;
+	env->DeleteGlobalRef(std::exchange(obj, {}));
+}
+
 }

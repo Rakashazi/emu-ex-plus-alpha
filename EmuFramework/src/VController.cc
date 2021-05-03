@@ -17,8 +17,8 @@
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuOptions.hh"
-#include "private.hh"
 #include "privateInput.hh"
+#include "WindowData.hh"
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/math/space.hh>
@@ -1124,7 +1124,7 @@ void VController::draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool
 void VController::draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool activeFF, bool showHidden, float alpha)
 {
 	using namespace Gfx;
-	if(unlikely(alpha == 0.))
+	if(alpha == 0.f) [[unlikely]]
 		return;
 	cmds.setBlendMode(BLEND_MODE_ALPHA);
 	cmds.setColor(1., 1., 1., alpha);
@@ -1183,9 +1183,9 @@ IG::WindowRect VController::bounds(int elemIdx) const
 	#else
 	switch(elemIdx)
 	{
-		case 0: return {0,0,0,0};
-		case 1: return {0,0,0,0};
-		case 2: return {0,0,0,0};
+		case 0: return {};
+		case 1: return {};
+		case 2: return {};
 		case 3: return menuBound;
 		case 4: return ffBound;
 		default: bug_unreachable("elemIdx == %d", elemIdx); return {};

@@ -184,6 +184,7 @@ class Window;
 class WindowConfig;
 class ApplicationContext;
 
+using MainThreadMessageDelegate = DelegateFunc<void(ApplicationContext)>;
 using InterProcessMessageDelegate = DelegateFunc<void (ApplicationContext, const char *filename)>;
 using ResumeDelegate = DelegateFunc<bool (ApplicationContext, bool focused)>;
 using FreeCachesDelegate = DelegateFunc<void (ApplicationContext, bool running)>;

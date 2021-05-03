@@ -19,8 +19,7 @@
 #include <emuframework/EmuAppHelper.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/audio/AudioManager.hh>
-#include <imagine/audio/defs.hh>
+#include <imagine/audio/Manager.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <memory>
 
@@ -127,9 +126,7 @@ protected:
 	BoolMenuItem addSoundBuffersOnUnderrun;
 	StaticArrayList<TextMenuItem, 5> audioRateItem{};
 	MultiChoiceMenuItem audioRate;
-	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
-	BoolMenuItem audioSoloMix;
-	#endif
+	IG_enableMemberIf(IG::Audio::Manager::HAS_SOLO_MIX, BoolMenuItem, audioSoloMix){};
 	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 	StaticArrayList<TextMenuItem, MAX_APIS + 1> apiItem{};
 	MultiChoiceMenuItem api;

@@ -17,8 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/Mat4.hh>
-#include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/GeomQuad.hh>
 #include <imagine/gfx/Vertex.hh>
@@ -26,7 +24,9 @@
 namespace Gfx
 {
 
+class Texture;
 class RendererCommands;
+class Mat4;
 
 template<class BaseRect>
 class SpriteBase : public BaseRect

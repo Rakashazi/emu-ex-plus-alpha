@@ -31,7 +31,7 @@ void *allocVMem(size_t size)
 		logErr("size:%lu is not a multiple of page size", (unsigned long)size);
 	}
 	vm_address_t addr;
-	if(unlikely(vm_allocate(mach_task_self(), &addr, size, VM_FLAGS_ANYWHERE) != KERN_SUCCESS))
+	if(vm_allocate(mach_task_self(), &addr, size, VM_FLAGS_ANYWHERE) != KERN_SUCCESS) [[unlikely]]
 	{
 		logErr("error in vm_allocate");
 		return nullptr;
@@ -58,7 +58,7 @@ void *allocMirroredBuffer(size_t size)
 {
 	// allocate enough pages for the buffer + the mirrored pages
 	vm_address_t addr = (vm_address_t)allocVMem(size * 2);
-	if(unlikely(!addr))
+	if(!addr) [[unlikely]]
 	{
 		return nullptr;
 	}

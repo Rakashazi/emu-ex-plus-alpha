@@ -20,7 +20,6 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/algorithm.h>
-#include "android.hh"
 #include "input.hh"
 #include <android/configuration.h>
 #include <sys/inotify.h>
@@ -77,13 +76,14 @@ static const char *inputDeviceKeyboardTypeToStr(int type)
 	return "Unknown";
 }
 
-AndroidInputDevice::AndroidInputDevice(int osId, uint32_t typeBits, const char *name):
+AndroidInputDevice::AndroidInputDevice(int osId, uint32_t typeBits, const char *name, uint32_t axisBits):
 	Device{0, Map::SYSTEM, typeBits, name},
-	osId{osId}
+	osId{osId},
+	axisBits{axisBits}
 {}
 
 AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumId,
-	int osId, int src, const char *name, int kbType, int jsAxisBits, bool isPowerButton):
+	int osId, int src, const char *name, int kbType, uint32_t jsAxisBits, bool isPowerButton):
 	Device{enumId, Map::SYSTEM, Device::TYPE_BIT_KEY_MISC, name},
 	osId{osId}
 {
@@ -249,6 +249,11 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumI
 	}
 }
 
+void AndroidInputDevice::setJoystickAxisAsDpadBitsDefault(uint32_t axisMask)
+{
+	joystickAxisAsDpadBitsDefault_ = axisMask;
+}
+
 void AndroidInputDevice::setJoystickAxisAsDpadBits(uint32_t axisMask)
 {
 	if(!axis.size() || joystickAxisAsDpadBits_ == axisMask)
@@ -380,7 +385,7 @@ static uint32_t nextEnumID(const char *name, int devID, const Base::AndroidInput
 	{
 		if(!string_equal(e->name(), name))
 			continue;
-		if(e->osId == devID) // device already has an enumID
+		if(e->systemId() == devID) // device already has an enumID
 			return e->enumId();
 		if(e->enumId() == enumID)
 			enumID++;
@@ -391,7 +396,7 @@ static uint32_t nextEnumID(const char *name, int devID, const Base::AndroidInput
 bool hasGetAxisValue()
 {
 	#ifdef ANDROID_COMPAT_API
-	return likely(AMotionEvent_getAxisValueFunc);
+	return AMotionEvent_getAxisValueFunc;
 	#else
 	return true;
 	#endif
@@ -407,8 +412,9 @@ static bool isXperiaPlayDeviceStr(const char *str)
 	return strstr(str, "R800") || string_equal(str, "zeus");
 }
 
-void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, int32_t androidSDK)
+void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK)
 {
+	processInput_ = androidSDK >= 12 ? &AndroidApplication::processInputWithGetEvent : &AndroidApplication::processInputWithHasEvents;
 	if(androidSDK >= 12)
 	{
 		#ifdef ANDROID_COMPAT_API
@@ -419,23 +425,18 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, int32_t an
 		}
 		#endif
 
-		auto inputDeviceCls = env->FindClass("android/view/InputDevice");
-		JavaInstMethod<jobject()> jInputDeviceHelper{env, jBaseActivityCls, "inputDeviceHelper", "()Lcom/imagine/InputDeviceHelper;"};
-		auto inputDeviceHelper = jInputDeviceHelper(env, baseActivity);
-		assert(inputDeviceHelper);
-		inputDeviceHelperCls = (jclass)env->NewGlobalRef(env->GetObjectClass(inputDeviceHelper));
-		jEnumInputDevices.setup(env, inputDeviceHelperCls, "enumInputDevices", "(J)V");
+		jEnumInputDevices = {env, baseActivityClass, "enumInputDevices", "(J)V"};
 		JNINativeMethod method[]
 		{
 			{
-				"deviceEnumerated", "(JILandroid/view/InputDevice;Ljava/lang/String;IIIZ)V",
-				(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jobject, jstring, jint, jint, jint, jboolean))
-				([](JNIEnv* env, jobject thiz, jlong nUserData, jint devID, jobject jDev, jstring jName, jint src, jint kbType, jint jsAxisBits, jboolean isPowerButton)
+				"inputDeviceEnumerated", "(JILandroid/view/InputDevice;Ljava/lang/String;IIIZ)V",
+				(void*)
+				+[](JNIEnv* env, jobject, jlong nUserData, jint devID, jobject jDev, jstring jName, jint src, jint kbType, jint jsAxisBits, jboolean isPowerButton)
 				{
 					auto &app = *((AndroidApplication*)nUserData);
 					const char *name = env->GetStringUTFChars(jName, nullptr);
 					Input::AndroidInputDevice sysDev{env, jDev, Input::nextEnumID(name, devID, app.sysInputDev), devID, src,
-						name, kbType, jsAxisBits, (bool)isPowerButton};
+						name, kbType, (uint32_t)jsAxisBits, (bool)isPowerButton};
 					env->ReleaseStringUTFChars(jName, name);
 					auto devPtr = app.addInputDevice(sysDev, false, false);
 					// check for special device IDs
@@ -448,22 +449,20 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, int32_t an
 						// built-in keyboard is always id 0 according to Android docs
 						app.builtinKeyboardDev = devPtr;
 					}
-				})
+				}
 			},
 		};
-		env->RegisterNatives(inputDeviceHelperCls, method, std::size(method));
+		env->RegisterNatives(baseActivityClass, method, std::size(method));
 
 		// device change notifications
 		if(androidSDK >= 16)
 		{
 			logMsg("setting up input notifications");
-			JavaInstMethod<jobject(jlong)> jInputDeviceListenerHelper{env, jBaseActivityCls, "inputDeviceListenerHelper", "(J)Lcom/imagine/InputDeviceListenerHelper;"};
-			inputDeviceListenerHelper = jInputDeviceListenerHelper(env, baseActivity, (jlong)this);
-			assert(inputDeviceListenerHelper);
+			JNI::InstMethod<jobject(jlong)> jInputDeviceListenerHelper{env, baseActivityClass, "inputDeviceListenerHelper", "(J)Lcom/imagine/InputDeviceListenerHelper;"};
+			inputDeviceListenerHelper = {env, jInputDeviceListenerHelper(env, baseActivity, (jlong)this)};
 			auto inputDeviceListenerHelperCls = env->GetObjectClass(inputDeviceListenerHelper);
-			inputDeviceListenerHelper = env->NewGlobalRef(inputDeviceListenerHelper);
-			jRegister.setup(env, inputDeviceListenerHelperCls, "register", "()V");
-			jUnregister.setup(env, inputDeviceListenerHelperCls, "unregister", "()V");
+			jRegister = {env, inputDeviceListenerHelperCls, "register", "()V"};
+			jUnregister = {env, inputDeviceListenerHelperCls, "unregister", "()V"};
 			JNINativeMethod method[]
 			{
 				{
@@ -481,7 +480,7 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, int32_t an
 						{
 							const char *name = env->GetStringUTFChars(jName, nullptr);
 							Input::AndroidInputDevice sysDev{env, jDev, Input::nextEnumID(name, devID, app.sysInputDev), devID,
-								src, name, kbType, jsAxisBits, false};
+								src, name, kbType, (uint32_t)jsAxisBits, false};
 							env->ReleaseStringUTFChars(jName, name);
 							app.addInputDevice(sysDev, change == Input::DEVICE_CHANGED, true);
 						}
@@ -489,9 +488,9 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, int32_t an
 				}
 			};
 			env->RegisterNatives(inputDeviceListenerHelperCls, method, std::size(method));
-			addOnResume([this, env](Base::ApplicationContext, bool)
+			addOnResume([this, env](Base::ApplicationContext ctx, bool)
 				{
-					enumInputDevices(env, true);
+					enumInputDevices(env, ctx.baseActivityObject(), true);
 					logMsg("registering input device listener");
 					jRegister(env, inputDeviceListenerHelper);
 					return true;
@@ -533,14 +532,14 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, int32_t an
 				{
 					logErr("couldn't add inotify fd to looper");
 				}
-				addOnResume([this, env](Base::ApplicationContext, bool)
+				addOnResume([this, env](Base::ApplicationContext ctx, bool)
 					{
 						inputRescanCallback.emplace("inputRescanCallback",
-							[this, env]()
+							[this, ctx]()
 							{
-								enumInputDevices(env, true);
+								IG::copySelf(ctx).enumInputDevices();
 							});
-						enumInputDevices(env, true);
+						enumInputDevices(env, ctx.baseActivityObject(), true);
 						if(inputDevNotifyFd != -1 && watch == -1)
 						{
 							logMsg("registering inotify input device listener");
@@ -572,7 +571,7 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, int32_t an
 		auto genericKeyDev = Input::makeGenericKeyDevice();
 		if(Config::MACHINE_IS_GENERIC_ARMV7)
 		{
-			auto buildDevice = androidBuildDevice(env);
+			auto buildDevice = androidBuildDevice(env, baseActivityClass);
 			if(isXperiaPlayDeviceStr(buildDevice.data()))
 			{
 				logMsg("detected Xperia Play gamepad");
@@ -618,10 +617,10 @@ void AndroidApplication::updateInputConfig(AConfiguration *config)
 
 void AndroidApplicationContext::enumInputDevices()
 {
-	application().enumInputDevices(mainThreadJniEnv(), true);
+	application().enumInputDevices(mainThreadJniEnv(), baseActivityObject(), true);
 }
 
-void AndroidApplication::enumInputDevices(JNIEnv* env, bool notify)
+void AndroidApplication::enumInputDevices(JNIEnv* env, jobject baseActivity, bool notify)
 {
 	logMsg("doing input device scan");
 	while(sysInputDev.size())
@@ -629,7 +628,7 @@ void AndroidApplication::enumInputDevices(JNIEnv* env, bool notify)
 		removeSystemInputDevice(*sysInputDev.back());
 		sysInputDev.pop_back();
 	}
-	jEnumInputDevices(env, inputDeviceHelperCls, (jlong)this);
+	jEnumInputDevices(env, baseActivity, (jlong)this);
 	if(!virtualDev)
 	{
 		logMsg("no \"Virtual\" device id found, adding one");
@@ -690,9 +689,9 @@ bool AndroidApplication::eventsUseOSInputMethod() const
 
 Input::AndroidInputDevice *AndroidApplication::addInputDevice(Input::AndroidInputDevice dev, bool updateExisting, bool notify)
 {
-	int id = dev.osId;
+	int id = dev.systemId();
 	auto existingIt = std::find_if(sysInputDev.cbegin(), sysInputDev.cend(),
-		[=](const auto &e) { return e->osId == id; });
+		[=](const auto &e) { return e->systemId() == id; });
 	if(existingIt == sysInputDev.end())
 	{
 		auto &devPtr = sysInputDev.emplace_back(std::make_unique<Input::AndroidInputDevice>(std::move(dev)));
@@ -721,7 +720,7 @@ Input::AndroidInputDevice *AndroidApplication::addInputDevice(Input::AndroidInpu
 
 bool AndroidApplication::removeInputDevice(int id, bool notify)
 {
-	if(auto removedDev = IG::moveOutIf(sysInputDev, [&](const auto &e){ return e->osId == id; });
+	if(auto removedDev = IG::moveOutIf(sysInputDev, [&](const auto &e){ return e->systemId() == id; });
 		removedDev)
 	{
 		logMsg("removed device id:%d from list", id);

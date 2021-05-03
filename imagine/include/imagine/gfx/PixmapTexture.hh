@@ -18,13 +18,17 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureConfig.hh>
-#include <imagine/pixmap/Pixmap.hh>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/GLPixmapTexture.hh>
 #endif
 
 class GfxImageSource;
+
+namespace IG
+{
+class PixmapDesc;
+}
 
 namespace Gfx
 {

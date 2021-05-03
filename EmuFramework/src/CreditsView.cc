@@ -17,6 +17,7 @@
 #include <emuframework/CreditsView.hh>
 #include "private.hh"
 #include <imagine/base/Window.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/int.hh>
 

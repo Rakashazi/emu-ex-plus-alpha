@@ -123,8 +123,8 @@ public:
 			case PIXEL_ARGB8888: return PIXEL_DESC_ARGB8888;
 			case PIXEL_ABGR8888: return PIXEL_DESC_ABGR8888;
 			case PIXEL_RGBX8888: return PIXEL_DESC_RGBX8888;
-			case PIXEL_NONE: ;
-			case PIXEL_END: ;
+			case PIXEL_NONE: break;
+			case PIXEL_END: break;
 		}
 		return PIXEL_DESC_NONE;
 	}

@@ -134,6 +134,26 @@ IG::WindowRect TextEntry::bgRect() const
 CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *msgText, const char *initialContent,
 	Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face):
 	View{attach},
+	textField
+	{
+		attach.appContext(),
+		[this](const char *str)
+		{
+			if(!str)
+			{
+				logMsg("text collection canceled by external source");
+				dismiss();
+				return;
+			}
+			if(onTextD(*this, str))
+			{
+				logMsg("text collection canceled by text delegate");
+				dismiss();
+			}
+		},
+		initialContent, msgText,
+		face ? face->fontSettings().pixelHeight() : attach.viewManager().defaultFace().fontSettings().pixelHeight()
+	},
 	textEntry
 	{
 		initialContent,
@@ -153,33 +173,13 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *
 	}
 	#endif
 	message = {msgText, face};
-	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	textEntry.setAcceptingInput(true);
-	#else
-	Input::startSysTextInput(appContext(),
-		[this](const char *str)
+	[](auto &textEntry)
+	{
+		if constexpr(!Config::Input::SYSTEM_COLLECTS_TEXT)
 		{
-			if(!str)
-			{
-				logMsg("text collection canceled by external source");
-				dismiss();
-				return;
-			}
-			if(onTextD(*this, str))
-			{
-				logMsg("text collection canceled by text delegate");
-				dismiss();
-			}
-		},
-		initialContent, msgText, face->fontSettings().pixelHeight());
-	#endif
-}
-
-CollectTextInputView::~CollectTextInputView()
-{
-	#ifdef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	Input::cancelSysTextInput(appContext());
-	#endif
+			textEntry.setAcceptingInput(true);
+		}
+	}(textEntry);
 }
 
 void CollectTextInputView::place()
@@ -195,16 +195,22 @@ void CollectTextInputView::place()
 	#endif
 	message.setMaxLineSize(projP.width() * 0.95);
 	message.compile(renderer(), projP);
-	IG::WindowRect textRect;
-	int xSize = viewRect().xSize() * 0.95;
-	int ySize = face.nominalHeight() * (Config::envIsAndroid ? 2. : 1.5);
-	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	textRect.setPosRel(viewRect().pos(C2DO), {xSize, ySize}, C2DO);
-	textEntry.place(renderer(), textRect, projP);
-	#else
-	textRect.setPosRel(viewRect().pos(C2DO) - IG::WP{0, (int)viewRect().ySize()/4}, {xSize, ySize}, C2DO);
-	Input::placeSysTextInput(appContext(), textRect);
-	#endif
+	[&](auto &textEntry)
+	{
+		IG::WindowRect textRect;
+		int xSize = viewRect().xSize() * 0.95;
+		int ySize = face.nominalHeight() * (Config::envIsAndroid ? 2. : 1.5);
+		if constexpr(!Config::Input::SYSTEM_COLLECTS_TEXT)
+		{
+			textRect.setPosRel(viewRect().pos(C2DO), {xSize, ySize}, C2DO);
+			textEntry.place(renderer(), textRect, projP);
+		}
+		else
+		{
+			textRect.setPosRel(viewRect().pos(C2DO) - IG::WP{0, (int)viewRect().ySize()/4}, {xSize, ySize}, C2DO);
+			textField.place(textRect);
+		}
+	}(textEntry);
 }
 
 bool CollectTextInputView::inputEvent(Input::Event e)
@@ -217,28 +223,39 @@ bool CollectTextInputView::inputEvent(Input::Event e)
 			return true;
 		}
 	}
-	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	bool acceptingInput = textEntry.isAcceptingInput();
-	bool handled = textEntry.inputEvent(*this, e);
-	if(!textEntry.isAcceptingInput() && acceptingInput)
-	{
-		logMsg("calling on-text delegate");
-		if(onTextD.callCopy(*this, textEntry.textStr()))
+	return [&](auto &textEntry)
 		{
-			textEntry.setAcceptingInput(1);
-		}
-	}
-	return handled;
-	#endif
-	return false;
+			if constexpr(!Config::Input::SYSTEM_COLLECTS_TEXT)
+			{
+				bool acceptingInput = textEntry.isAcceptingInput();
+				bool handled = textEntry.inputEvent(*this, e);
+				if(!textEntry.isAcceptingInput() && acceptingInput)
+				{
+					logMsg("calling on-text delegate");
+					if(onTextD.callCopy(*this, textEntry.textStr()))
+					{
+						textEntry.setAcceptingInput(1);
+					}
+				}
+				return handled;
+			}
+			else
+			{
+				return false;
+			}
+		}(textEntry);
 }
 
 void CollectTextInputView::prepareDraw()
 {
 	message.makeGlyphs(renderer());
-	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	textEntry.prepareDraw(renderer());
-	#endif
+	[this](auto &textEntry)
+	{
+		if constexpr(!Config::Input::SYSTEM_COLLECTS_TEXT)
+		{
+			textEntry.prepareDraw(renderer());
+		}
+	}(textEntry);
 }
 
 void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
@@ -254,17 +271,23 @@ void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 		cancelSpr.draw(cmds);
 	}
 	#endif
-	#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-	cmds.setColor(0.25);
-	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
-	GeomRect::draw(cmds, textEntry.bgRect(), projP);
-	cmds.set(ColorName::WHITE);
-	textEntry.draw(cmds);
-	cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
-	message.draw(cmds, 0, projP.unprojectY(textEntry.bgRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
-	#else
-	cmds.set(ColorName::WHITE);
-	cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
-	message.draw(cmds, 0, projP.unprojectY(Input::sysTextInputRect(appContext()).pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
-	#endif
+	[&](auto &textEntry)
+	{
+		if constexpr(!Config::Input::SYSTEM_COLLECTS_TEXT)
+		{
+			cmds.setColor(0.25);
+			cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
+			GeomRect::draw(cmds, textEntry.bgRect(), projP);
+			cmds.set(ColorName::WHITE);
+			textEntry.draw(cmds);
+			cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
+			message.draw(cmds, 0, projP.unprojectY(textEntry.bgRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
+		}
+		else
+		{
+			cmds.set(ColorName::WHITE);
+			cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
+			message.draw(cmds, 0, projP.unprojectY(textField.windowRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
+		}
+	}(textEntry);
 }

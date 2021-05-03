@@ -34,6 +34,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Timer.hh>
+#include <imagine/audio/Manager.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/util/typeTraits.hh>
 #include <cstring>
@@ -152,7 +153,7 @@ public:
 	void updateKeyboardMapping();
 	void toggleKeyboard();
 	void updateVControllerMapping();
-	Gfx::PixmapTexture &asset(Gfx::Renderer &, AssetID) const;
+	Gfx::PixmapTexture &asset(AssetID) const;
 	void updateVControlImg(VController &);
 	void updateInputDevices(Base::ApplicationContext);
 	void setOnUpdateInputDevices(DelegateFunc<void ()>);
@@ -165,6 +166,7 @@ public:
 	void buildKeyInputMapping();
 	const KeyMapping &keyInputMapping();
 	std::vector<InputDeviceConfig> &inputDeviceConfigs();
+	IG::Audio::Manager &audioManager();
 	Base::ApplicationContext appContext() const;
 	static EmuApp &get(Base::ApplicationContext);
 
@@ -250,9 +252,10 @@ public:
 	}
 
 protected:
-	Gfx::Renderer renderer;
+	mutable Gfx::Renderer renderer;
 	ViewManager viewManager{};
-	EmuAudio emuAudio{};
+	IG::Audio::Manager audioManager_;
+	EmuAudio emuAudio;
 	EmuVideo emuVideo{};
 	EmuVideoLayer emuVideoLayer;
 	EmuSystemTask emuSystemTask;
@@ -296,8 +299,9 @@ protected:
 
 	void mainInitCommon(Base::ApplicationInitParams, Base::ApplicationContext);
 	void initVControls();
-	Gfx::PixmapTexture *collectTextCloseAsset(Gfx::Renderer &) const;
+	Gfx::PixmapTexture *collectTextCloseAsset() const;
 	ConfigParams loadConfigFile(Base::ApplicationContext);
 	void saveConfigFile(Base::ApplicationContext);
 	void saveConfigFile(IO &);
+	void initOptions(Base::ApplicationContext);
 };

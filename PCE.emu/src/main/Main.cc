@@ -216,7 +216,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 
 void EmuSystem::onPrepareVideo(EmuVideo &video)
 {
-	if(unlikely(!video.image()))
+	if(!video.image()) [[unlikely]]
 	{
 		logMsg("doing initial video setup for emulator");
 		EmulateSpecStruct espec;
@@ -385,7 +385,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 		espec.SoundBuf = audioBuff;
 		espec.SoundBufMaxSize = maxFrames;
 		const bool using263Lines = vce.CR & 0x04;
-		if(unlikely(prevUsing263Lines != using263Lines))
+		if(prevUsing263Lines != using263Lines) [[unlikely]]
 		{
 			configFrameTime(audio->format().rate);
 		}

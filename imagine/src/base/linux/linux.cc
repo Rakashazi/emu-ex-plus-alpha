@@ -29,9 +29,13 @@ namespace Base
 
 constexpr mode_t defaultDirMode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
 
-LinuxApplication::LinuxApplication(ApplicationInitParams initParams)
+LinuxApplication::LinuxApplication(ApplicationInitParams initParams):
+	BaseApplication{*initParams.ctxPtr}
 {
 	setAppPath(FS::makeAppPathFromLaunchCommand(initParams.argv[0]));
+	#ifdef CONFIG_BASE_DBUS
+	initDBus();
+	#endif
 	#ifdef CONFIG_INPUT_EVDEV
 	initEvdev(initParams.eventLoop);
 	#endif
@@ -151,64 +155,6 @@ FS::PathString ApplicationContext::libPath(const char *) const
 	return application().appPath();
 }
 
-void ApplicationContext::setDeviceOrientationChangeSensor(bool on) {}
-
-void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate del) {}
-
-void ApplicationContext::setSystemOrientation(Orientation o) {}
-
-Orientation ApplicationContext::defaultSystemOrientations() const
-{
-	return VIEW_ROTATE_ALL;
-}
-
-void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del) {}
-
-bool ApplicationContext::usesPermission(Permission p) const
-{
-	return false;
-}
-
-bool ApplicationContext::requestPermission(Permission p)
-{
-	return false;
-}
-
-#ifndef CONFIG_BASE_DBUS
-void LinuxApplication::setIdleDisplayPowerSave(bool on) {}
-
-void LinuxApplication::endIdleByUserActivity() {}
-
-bool LinuxApplication::registerInstance(int argc, char** argv, const char *) { return false; }
-
-void LinuxApplication::setAcceptIPC(bool on, const char *) {}
-#endif
-
-void ApplicationContext::setIdleDisplayPowerSave(bool on) { application().setIdleDisplayPowerSave(on); }
-
-void ApplicationContext::endIdleByUserActivity() { application().endIdleByUserActivity(); }
-
-bool ApplicationContext::registerInstance(ApplicationInitParams initParams, const char *name) { return application().registerInstance(initParams, name); }
-
-void ApplicationContext::setAcceptIPC(bool on, const char *name) { application().setAcceptIPC(on, name); }
-
-void ApplicationContext::addNotification(const char *onShow, const char *title, const char *message) {}
-
-void ApplicationContext::addLauncherIcon(const char *name, const char *path) {}
-
-bool ApplicationContext::hasVibrator() { return false; }
-
-void ApplicationContext::vibrate(IG::Milliseconds ms) {}
-
-void ApplicationContext::exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
-{
-	std::array<char, 512> msg{};
-	auto result = vsnprintf(msg.data(), msg.size(), format, args);
-	auto cmd = string_makePrintf<1024>("zenity --warning --title='Exited with error' --text='%s'", msg.data());
-	auto cmdResult = system(cmd.data());
-	::exit(exitVal);
-}
-
 FS::PathString LinuxApplication::appPath() const
 {
 	return appPath_;
@@ -219,14 +165,23 @@ void LinuxApplication::setAppPath(FS::PathString path)
 	appPath_ = path;
 }
 
+void ApplicationContext::exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
+{
+	std::array<char, 512> msg{};
+	auto result = vsnprintf(msg.data(), msg.size(), format, args);
+	auto cmd = string_makePrintf<1024>("zenity --warning --title='Exited with error' --text='%s'", msg.data());
+	auto cmdResult = system(cmd.data());
+	::exit(exitVal);
+}
+
 }
 
 int main(int argc, char** argv)
 {
 	logger_setLogDirectoryPrefix(".");
 	auto eventLoop = Base::EventLoop::makeForThread();
-	Base::ApplicationInitParams initParams{eventLoop, argc, argv};
 	Base::ApplicationContext ctx{};
+	Base::ApplicationInitParams initParams{eventLoop, &ctx, argc, argv};
 	ctx.onInit(initParams);
 	ctx.application().setRunningActivityState();
 	ctx.dispatchOnResume(true);

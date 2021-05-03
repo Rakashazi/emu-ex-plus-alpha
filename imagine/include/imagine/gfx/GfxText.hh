@@ -17,7 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/util/2DOrigin.h>
 #include <vector>
 #include <limits>
@@ -29,6 +28,7 @@ class Renderer;
 class RendererCommands;
 class GlyphTextureSet;
 class TexVertex;
+class ProjectionPlane;
 
 class Text
 {
@@ -47,10 +47,7 @@ public:
 	void makeGlyphs(Renderer &r);
 	bool compile(Renderer &r, ProjectionPlane projP);
 	void draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, ProjectionPlane projP) const;
-	void draw(RendererCommands &cmds, GP p, _2DOrigin o, ProjectionPlane projP) const
-	{
-		draw(cmds, p.x, p.y, o, projP);
-	}
+	void draw(RendererCommands &cmds, GP p, _2DOrigin o, ProjectionPlane projP) const;
 	void setMaxLineSize(GC size);
 	void setMaxLines(uint16_t lines);
 	GC width() const;
@@ -87,6 +84,7 @@ protected:
 	uint16_t maxLines = NO_MAX_LINES;
 
 	void drawSpan(RendererCommands &cmds, GC xPos, GC yPos, ProjectionPlane projP, TextStringView strView, std::array<TexVertex, 4> &vArr) const;
+	bool hasText() const;
 };
 
 }

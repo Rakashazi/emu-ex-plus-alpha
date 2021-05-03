@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/base/baseDefs.hh>
-#include <jni.h>
+#include <imagine/util/jni.hh>
 #include <utility>
 #include <compare>
 
@@ -44,7 +44,6 @@ public:
 
 	constexpr AndroidScreen() {}
 	AndroidScreen(ApplicationContext, InitParams);
-	~AndroidScreen();
 	std::pair<float, float> dpi() const;
 	float densityDPI() const;
 	jobject displayObject() const;
@@ -59,8 +58,7 @@ public:
 	}
 
 protected:
-	JNIEnv *mainThreadJniEnv{};
-	jobject aDisplay{};
+	JNI::UniqueGlobalRef aDisplay{};
 	IG::FloatSeconds frameTime_{};
 	float xDPI{}, yDPI{};
 	float densityDPI_{};

@@ -120,7 +120,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 		logMsg("audio already open");
 		return {};
 	}
-	if(unlikely(!context))
+	if(!context) [[unlikely]]
 	{
 		return {EINVAL};
 	}
@@ -219,7 +219,7 @@ IG::ErrorCode PAOutputStream::open(OutputStreamConfig config)
 
 void PAOutputStream::play()
 {
-	if(unlikely(!isOpen()))
+	if(!isOpen()) [[unlikely]]
 		return;
 	lockMainLoop();
 	pa_stream_cork(stream, 0, nullptr, nullptr);
@@ -230,7 +230,7 @@ void PAOutputStream::play()
 
 void PAOutputStream::pause()
 {
-	if(unlikely(!isOpen()))
+	if(!isOpen()) [[unlikely]]
 		return;
 	logMsg("pausing playback");
 	lockMainLoop();
@@ -257,7 +257,7 @@ void PAOutputStream::close()
 
 void PAOutputStream::flush()
 {
-	if(unlikely(!isOpen()))
+	if(!isOpen()) [[unlikely]]
 		return;
 	logMsg("clearing queued samples");
 	lockMainLoop();

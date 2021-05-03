@@ -23,7 +23,6 @@
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/typeTraits.hh>
 #include <imagine/util/NonCopyable.hh>
-#include <atomic>
 #include <memory>
 
 namespace Base
@@ -74,8 +73,8 @@ protected:
 	 // size in millimeter scaled by OS
 	IG_enableMemberIf(Config::envIsAndroid, IG::Point2D<float>, winSizeSMM){};
 	IG_enableMemberIf(Config::envIsAndroid, IG::Point2D<float>, smmToPixelScaler){};
-	std::atomic_bool drawNeeded = false;
-	std::atomic<DrawPhase> drawPhase{DrawPhase::READY};
+	bool drawNeeded{};
+	DrawPhase drawPhase{DrawPhase::READY};
 	uint8_t drawEventPriority_{};
 	// all windows need an initial onSurfaceChange call
 	SurfaceChange surfaceChange{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};

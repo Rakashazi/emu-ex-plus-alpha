@@ -24,10 +24,12 @@
 namespace IG::Audio
 {
 
+class Manager;
+
 class OpenSLESOutputStream : public OutputStream
 {
 public:
-	OpenSLESOutputStream(Base::ApplicationContext);
+	OpenSLESOutputStream(const Manager &);
 	~OpenSLESOutputStream();
 	IG::ErrorCode open(OutputStreamConfig config) final;
 	void play() final;

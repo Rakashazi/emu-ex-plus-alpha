@@ -129,7 +129,7 @@ private:
 		if(!size)
 			return;
 		data_ = allocVMemObjects<T>(size);
-		if(unlikely(!data_))
+		if(!data_) [[unlikely]]
 			return;
 		size_= size;
 	}

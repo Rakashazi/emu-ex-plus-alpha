@@ -20,7 +20,6 @@
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/FileUtils.hh>
 #include <emuframework/FilePicker.hh>
-#include "private.hh"
 #include "EmuTiming.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/ArchiveFS.hh>

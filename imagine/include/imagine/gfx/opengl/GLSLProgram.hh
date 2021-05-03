@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include "glIncludes.h"
 #include "defs.hh"
-#include <imagine/gfx/Mat4.hh>
 
 namespace Gfx
 {

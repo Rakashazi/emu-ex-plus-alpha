@@ -76,7 +76,7 @@ DirectoryEntryImpl::DirectoryEntryImpl(const char *path, std::error_code *ecPtr)
 
 bool DirectoryEntryImpl::readNextDir()
 {
-	if(unlikely(!dir))
+	if(!dir) [[unlikely]]
 		return false;
 	errno = 0;
 	// clear cached types

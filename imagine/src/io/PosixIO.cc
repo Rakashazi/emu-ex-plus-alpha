@@ -138,7 +138,7 @@ off_t PosixIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 {
 	assumeExpr(isSeekModeValid(mode));
 	auto newPos = lseek(fd_, offset, mode);
-	if(unlikely(newPos == -1))
+	if(newPos == -1) [[unlikely]]
 	{
 		logErr("seek to offset %lld failed", (long long)offset);
 		if(ecOut)

@@ -37,7 +37,7 @@ static std::optional<T> readOptionValue(IO &io, unsigned bytesToRead)
 		return {};
 	}
 	auto [val, size] = io.read<T>();
-	if(unlikely(size == -1))
+	if(size == -1) [[unlikely]]
 	{
 		logErr("error reading %u byte option", bytesToRead);
 		return {};
@@ -57,7 +57,7 @@ static std::optional<T> readStringOptionValue(IO &io, unsigned bytesToRead)
 	}
 	T val{};
 	auto size = io.read(val.data(), bytesToRead);
-	if(unlikely(size == -1))
+	if(size == -1) [[unlikely]]
 	{
 		logErr("error reading %u byte string option", bytesToRead);
 		return {};

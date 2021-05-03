@@ -18,7 +18,6 @@
 #include <imagine/base/Application.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
-#include "android.hh"
 #include "input.hh"
 #include <android/input.h>
 #include <memory>
@@ -40,9 +39,9 @@ public:
 	AndroidInputDevice *mogaDevice() const { return mogaDev; }
 
 private:
-	jobject mogaHelper{};
-	JavaInstMethod<jint(jint)> jMOGAGetState{};
-	JavaInstMethod<void()> jMOGAOnPause{}, jMOGAOnResume{}, jMOGAExit{};
+	JNI::UniqueGlobalRef mogaHelper{};
+	JNI::InstMethod<jint(jint)> jMOGAGetState{};
+	JNI::InstMethod<void()> jMOGAOnPause{}, jMOGAOnResume{}, jMOGAExit{};
 	AndroidInputDevice *mogaDev{};
 	Base::OnExit onExit;
 	bool exiting = false;
@@ -80,16 +79,16 @@ MogaSystem::MogaSystem(Base::ApplicationContext ctx, JNIEnv *env, bool notify):
 		}, ctx, Base::INPUT_DEVICE_ON_EXIT_PRIORITY
 	}
 {
-	JavaInstMethod<jobject(jlong)> jNewMOGAHelper{env, ctx.baseActivityClass(), "mogaHelper", "(J)Lcom/imagine/MOGAHelper;"};
-	mogaHelper = jNewMOGAHelper(env, ctx.baseActivityObject(), (jlong)this);
+	auto baseActivity = ctx.baseActivityObject();
+	JNI::InstMethod<jobject(jlong)> jNewMOGAHelper{env, baseActivity, "mogaHelper", "(J)Lcom/imagine/MOGAHelper;"};
+	auto newMogaHelper = jNewMOGAHelper(env, baseActivity, (jlong)this);
 	if(env->ExceptionCheck())
 	{
 		env->ExceptionClear();
-		mogaHelper = nullptr;
 		logErr("error creating MOGA helper object");
 		return;
 	}
-	mogaHelper = env->NewGlobalRef(mogaHelper);
+	mogaHelper = {env, newMogaHelper};
 	initMOGAJNIAndDevice(env, mogaHelper);
 	logMsg("init MOGA input system");
 	onResumeMOGA(env, notify);
@@ -100,17 +99,15 @@ MogaSystem::~MogaSystem()
 	if(!mogaHelper)
 		return;
 	logMsg("deinit MOGA input system");
-	auto env = appContext().mainThreadJniEnv();
-	jMOGAExit(env, mogaHelper);
-	env->DeleteGlobalRef(mogaHelper);
+	jMOGAExit(mogaHelper.jniEnv(), mogaHelper);
 	appContext().application().removeInputDevice(0, !exiting);
 }
 
 AndroidInputDevice MogaSystem::makeMOGADevice(const char *name)
 {
-	AndroidInputDevice dev{0, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK, name};
+	AndroidInputDevice dev{0, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK, name,
+		Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2};
 	dev.subtype_ = Device::SUBTYPE_GENERIC_GAMEPAD;
-	dev.axisBits = Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
 	// set joystick axes
 	{
 		const uint8_t stickAxes[] { AXIS_X, AXIS_Y, AXIS_Z, AXIS_RZ };
@@ -118,7 +115,7 @@ AndroidInputDevice MogaSystem::makeMOGADevice(const char *name)
 		{
 			//logMsg("joystick axis: %d", axisId);
 			auto size = 2.0f;
-			dev.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f + size/4.f, 1.f - size/4.f,
+			dev.jsAxes().emplace_back(axisId, (AxisKeyEmu<float>){-1.f + size/4.f, 1.f - size/4.f,
 				Key(axisToKeycode(axisId)+1), axisToKeycode(axisId), Key(axisToKeycode(axisId)+1), axisToKeycode(axisId)});
 		}
 	}
@@ -129,11 +126,11 @@ AndroidInputDevice MogaSystem::makeMOGADevice(const char *name)
 		{
 			//logMsg("trigger axis: %d", axisId);
 			// use unreachable lowLimit value so only highLimit is used
-			dev.axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 0.25f,
+			dev.jsAxes().emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 0.25f,
 				0, axisToKeycode(axisId), 0, axisToKeycode(axisId)});
 		}
 	}
-	dev.joystickAxisAsDpadBitsDefault_ = Device::AXIS_BITS_STICK_1;
+	dev.setJoystickAxisAsDpadBitsDefault(Device::AXIS_BITS_STICK_1);
 	dev.setJoystickAxisAsDpadBits(Device::AXIS_BITS_STICK_1);
 	return dev;
 }
@@ -163,10 +160,10 @@ void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 {
 	logMsg("init MOGA JNI");
 	auto mogaHelperCls = env->GetObjectClass(mogaHelper);
-	jMOGAGetState.setup(env, mogaHelperCls, "getState", "(I)I");
-	jMOGAOnPause.setup(env, mogaHelperCls, "onPause", "()V");
-	jMOGAOnResume.setup(env, mogaHelperCls, "onResume", "()V");
-	jMOGAExit.setup(env, mogaHelperCls, "exit", "()V");
+	jMOGAGetState = {env, mogaHelperCls, "getState", "(I)I"};
+	jMOGAOnPause = {env, mogaHelperCls, "onPause", "()V"};
+	jMOGAOnResume = {env, mogaHelperCls, "onResume", "()V"};
+	jMOGAExit = {env, mogaHelperCls, "exit", "()V"};
 	JNINativeMethod method[]
 	{
 		{
@@ -198,12 +195,13 @@ void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 				auto time = IG::Nanoseconds(timestamp);
 				logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)timestamp);
 				auto &win = ctx.mainWindow();
-				mogaDev.axis[0].keyEmu.dispatch(x, 0, Map::SYSTEM, time, mogaDev, win);
-				mogaDev.axis[1].keyEmu.dispatch(y, 0, Map::SYSTEM, time, mogaDev, win);
-				mogaDev.axis[2].keyEmu.dispatch(z, 0, Map::SYSTEM, time, mogaDev, win);
-				mogaDev.axis[3].keyEmu.dispatch(rz, 0, Map::SYSTEM, time, mogaDev, win);
-				mogaDev.axis[4].keyEmu.dispatch(lTrigger, 0, Map::SYSTEM, time, mogaDev, win);
-				mogaDev.axis[5].keyEmu.dispatch(rTrigger, 0, Map::SYSTEM, time, mogaDev, win);
+				auto &axis = mogaDev.jsAxes();
+				axis[0].keyEmu.dispatch(x, 0, Map::SYSTEM, time, mogaDev, win);
+				axis[1].keyEmu.dispatch(y, 0, Map::SYSTEM, time, mogaDev, win);
+				axis[2].keyEmu.dispatch(z, 0, Map::SYSTEM, time, mogaDev, win);
+				axis[3].keyEmu.dispatch(rz, 0, Map::SYSTEM, time, mogaDev, win);
+				axis[4].keyEmu.dispatch(lTrigger, 0, Map::SYSTEM, time, mogaDev, win);
+				axis[5].keyEmu.dispatch(rTrigger, 0, Map::SYSTEM, time, mogaDev, win);
 			})
 		},
 		{

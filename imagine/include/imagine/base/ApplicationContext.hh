@@ -28,9 +28,11 @@
 #include <imagine/util/bitset.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/fs/FSDefs.hh>
-#include <imagine/io/FileIO.hh>
+#include <imagine/io/IO.hh>
 #include <vector>
 #include <optional>
+
+class AssetIO;
 
 namespace Input
 {
@@ -79,6 +81,8 @@ public:
 	}
 
 	Application &application() const;
+	void runOnMainThread(MainThreadMessageDelegate);
+	void flushMainThreadMessages();
 
 	Window *makeWindow(WindowConfig, WindowInitDelegate);
 	unsigned windows() const;

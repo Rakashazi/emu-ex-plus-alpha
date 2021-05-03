@@ -51,7 +51,6 @@ public:
 	JNIEnv *thisThreadJniEnv() const;
 	int32_t androidSDK() const;
 	jobject baseActivityObject() const;
-	jclass baseActivityClass() const;
 	AAssetManager *aAssetManager() const;
 	AndroidPropString androidBuildDevice() const;
 	SustainedPerformanceType sustainedPerformanceModeType() const;

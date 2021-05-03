@@ -67,10 +67,6 @@ Byte1Option optionSoundBuffers(CFGKEY_SOUND_BUFFERS,
 	4, 0, optionIsValidWithMinMax<2, 8, uint8_t>);
 Byte1Option optionAddSoundBuffersOnUnderrun(CFGKEY_ADD_SOUND_BUFFERS_ON_UNDERRUN, 1, 0);
 
-#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
-Byte1Option optionAudioSoloMix(CFGKEY_AUDIO_SOLO_MIX, 1);
-#endif
-
 #ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 Byte1Option optionAudioAPI(CFGKEY_AUDIO_API, 0);
 #endif
@@ -261,9 +257,9 @@ Byte1Option optionShowBundledGames(CFGKEY_SHOW_BUNDLED_GAMES, 1);
 
 [[gnu::weak]] PathOption optionFirmwarePath(0, nullptr, 0, nullptr);
 
-void initOptions(Base::ApplicationContext ctx)
+void EmuApp::initOptions(Base::ApplicationContext ctx)
 {
-	optionSoundRate.initDefault(IG::AudioManager::nativeRate(ctx));
+	optionSoundRate.initDefault(audioManager().nativeRate());
 
 	#ifdef CONFIG_BASE_IOS
 	if(ctx.deviceIsIPad())

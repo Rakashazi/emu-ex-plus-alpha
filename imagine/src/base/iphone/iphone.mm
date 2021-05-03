@@ -27,7 +27,6 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/fs/FS.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/coreFoundation.h>
-#include <imagine/util/string.h>
 #include "ios.hh"
 
 #import <UIKit/UIKit.h>
@@ -50,9 +49,6 @@ namespace Base
 namespace Input
 {
 	int GSEVENTKEY_KEYCODE = sizeof(NSInteger) == 8 ? GSEVENTKEY_KEYCODE_64_BIT : 15;
-	UITextField *vkbdField{};
-	InputTextDelegate vKeyboardTextDelegate;
-	IG::WindowRect textRect{{8, 200}, {8+304, 200+48}};
 }
 
 namespace Base
@@ -96,7 +92,8 @@ static Screen &setupUIScreen(ApplicationContext ctx, UIScreen *screen, bool setO
 	return ctx.application().addScreen(ctx, std::move(s), true);
 }
 
-IOSApplication::IOSApplication(ApplicationInitParams initParams)
+IOSApplication::IOSApplication(ApplicationInitParams initParams):
+	BaseApplication{(__bridge UIApplication*)initParams.uiAppPtr}
 {
 	ApplicationContext ctx{(__bridge UIApplication*)initParams.uiAppPtr};
 	if(Config::DEBUG_BUILD)
@@ -179,49 +176,6 @@ IOSApplication::IOSApplication(ApplicationInitParams initParams)
 
 @implementation MainApp
 
-#if defined IPHONE_VKEYBOARD
-/*- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text
-{
-	if (textView.text.length >= 127 && range.length == 0)
-	{
-		logMsg("not changing text");
-		return NO;
-	}
-	return YES;
-}
-
-- (void)textViewDidEndEditing:(UITextView *)textView
-{
-	logMsg("editing ended");
-	Input::finishSysTextInput();
-}*/
-
-- (BOOL)textFieldShouldReturn:(UITextField *)textField
-{
-	logMsg("pushed return");
-	[textField resignFirstResponder];
-	return YES;
-}
-
-- (void)textFieldDidEndEditing:(UITextField *)textField
-{
-	using namespace Input;
-	logMsg("editing ended");
-	//inVKeyboard = 0;
-	auto delegate = std::exchange(vKeyboardTextDelegate, {});
-	char text[256];
-	string_copy(text, [textField.text UTF8String]);
-	[textField removeFromSuperview];
-	vkbdField = nil;
-	if(delegate)
-	{
-		logMsg("running text entry callback");
-		delegate(text);
-	}
-}
-
-#endif
-
 #if 0
 - (void)keyboardWasShown:(NSNotification *)notification
 {
@@ -268,7 +222,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 	using namespace Base;
 	mainApp = self;
 	auto uiApp = [UIApplication sharedApplication];
-	ApplicationInitParams initParams{(__bridge void*)uiApp};
+	ApplicationInitParams initParams{.uiAppPtr = (__bridge void*)uiApp};
 	ApplicationContext ctx{uiApp};
 	ctx.onInit(initParams);
 	if(!ctx.windows())
@@ -456,12 +410,12 @@ void ApplicationContext::setSystemOrientation(Orientation o)
 {
 	logMsg("setting system orientation %s", orientationToStr(o));
 	using namespace Input;
-	if(vKeyboardTextDelegate) // TODO: allow orientation change without aborting text input
+	/*if(vKeyboardTextDelegate) // TODO: allow orientation change without aborting text input
 	{
 		logMsg("aborting active text input");
 		vKeyboardTextDelegate(nullptr);
 		vKeyboardTextDelegate = {};
-	}
+	}*/
 	[uiApp() setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:YES];
 	if(deviceWindow(uiApp()))
 	{
@@ -606,28 +560,6 @@ bool hasAtLeastIOS8()
 			kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_8_0;
 }
 
-bool ApplicationContext::usesPermission(Permission p) const
-{
-	return false;
-}
-
-bool ApplicationContext::requestPermission(Permission p)
-{
-	return false;
-}
-
-bool ApplicationContext::registerInstance(ApplicationInitParams, const char *) { return false; }
-
-void ApplicationContext::setAcceptIPC(bool on, const char *) {}
-
-void ApplicationContext::addNotification(const char *onShow, const char *title, const char *message) {}
-
-void ApplicationContext::addLauncherIcon(const char *name, const char *path) {}
-
-bool ApplicationContext::hasVibrator() { return false; }
-
-void ApplicationContext::vibrate(IG::Milliseconds ms) {}
-
 void ApplicationContext::exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
 {
 	std::array<char, 512> msg{};
@@ -635,8 +567,6 @@ void ApplicationContext::exitWithErrorMessageVPrintf(int exitVal, const char *fo
 	logErr("%s", msg.data());
 	::exit(exitVal);
 }
-
-NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const { return {}; }
 
 #ifdef CONFIG_BASE_IOS_SETUID
 

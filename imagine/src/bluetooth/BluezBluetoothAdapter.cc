@@ -397,7 +397,7 @@ int BluezBluetoothSocket::readPendingData(int events)
 		{
 			//auto len = read(fd, buff, IG::min((size_t)bytesToRead, sizeof buff));
 			auto len = read(fd, buff, sizeof buff);
-			if(unlikely(len <= 0))
+			if(len <= 0) [[unlikely]]
 			{
 				logMsg("error %d reading packet from socket %d", len == -1 ? errno : 0, fd);
 				onStatusD(*this, STATUS_READ_ERROR);

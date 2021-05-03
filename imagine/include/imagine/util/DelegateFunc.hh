@@ -65,7 +65,7 @@ public:
 
 	constexpr R operator()(Args... args) const
 	{
-		assumeExpr(exec);
+		assert(exec);
 		return exec(store, args...);
 	}
 

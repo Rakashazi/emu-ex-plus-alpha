@@ -69,12 +69,12 @@ PixmapBufferTexture::PixmapBufferTexture(RendererTask &r, TextureConfig config, 
 {
 	mode = r.renderer().makeValidTextureBufferMode(mode);
 	IG::ErrorCode err = init(r, config, mode, singleBuffer);
-	if(unlikely(err && mode != TextureBufferMode::SYSTEM_MEMORY))
+	if(err && mode != TextureBufferMode::SYSTEM_MEMORY) [[unlikely]]
 	{
 		logErr("falling back to system memory");
 		err = init(r, config, TextureBufferMode::SYSTEM_MEMORY, singleBuffer);
 	}
-	if(unlikely(err && errorPtr))
+	if(err && errorPtr) [[unlikely]]
 	{
 		*errorPtr = err;
 	}
@@ -97,7 +97,7 @@ IG::ErrorCode GLPixmapBufferTexture::init(RendererTask &r, TextureConfig config,
 	}
 }
 
-static bool hasPersistentBufferMapping(Renderer &r)
+static bool hasPersistentBufferMapping(const Renderer &r)
 {
 	return r.support.hasImmutableBufferStorage();
 }
@@ -143,7 +143,7 @@ IG::ErrorCode GLPixmapBufferTexture::initWithSurfaceTexture(RendererTask &r, Tex
 
 IG::ErrorCode PixmapBufferTexture::setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler)
 {
-	if(unlikely(!directTex))
+	if(!directTex) [[unlikely]]
 		return {EINVAL};
 	if(Config::DEBUG_BUILD && directTex->pixmapDesc() == desc)
 		logWarn("resizing with same dimensions %dx%d, should optimize caller code", desc.w(), desc.h());
@@ -164,7 +164,7 @@ void PixmapBufferTexture::write(IG::Pixmap pixmap, uint32_t writeFlags)
 void PixmapBufferTexture::clear()
 {
 	auto lockBuff = lock(Texture::BUFFER_FLAG_CLEARED);
-	if(unlikely(!lockBuff))
+	if(!lockBuff) [[unlikely]]
 	{
 		logErr("error getting buffer for clear()");
 		return;
@@ -180,28 +180,28 @@ LockedTextureBuffer PixmapBufferTexture::lock(uint32_t bufferFlags)
 
 void PixmapBufferTexture::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 {
-	if(unlikely(!lockBuff))
+	if(!lockBuff) [[unlikely]]
 		return;
 	directTex->unlock(lockBuff, writeFlags);
 }
 
 IG::WP PixmapBufferTexture::size() const
 {
-	if(unlikely(!directTex))
+	if(!directTex) [[unlikely]]
 		return {};
 	return directTex->size(0);
 }
 
 IG::PixmapDesc PixmapBufferTexture::pixmapDesc() const
 {
-	if(unlikely(!directTex))
+	if(!directTex) [[unlikely]]
 		return {};
 	return directTex->pixmapDesc();
 }
 
 IG::PixmapDesc PixmapBufferTexture::usedPixmapDesc() const
 {
-	if(unlikely(!directTex))
+	if(!directTex) [[unlikely]]
 		return {};
 	return directTex->usedPixmapDesc();
 }
@@ -229,7 +229,7 @@ Renderer &PixmapBufferTexture::renderer() const
 
 PixmapBufferTexture::operator TextureSpan() const
 {
-	if(unlikely(!directTex))
+	if(!directTex) [[unlikely]]
 		return {};
 	return (TextureSpan)*directTex;
 }
@@ -259,7 +259,7 @@ GLTextureStorage::GLTextureStorage(RendererTask &r, TextureConfig config, bool u
 {
 	initPixelBuffer(config.pixmapDesc(), usePBO, singleBuffer);
 	auto err = GLPixmapTexture::init(r, config);
-	if(unlikely(err && errorPtr))
+	if(err && errorPtr) [[unlikely]]
 	{
 		*errorPtr = err;
 	}
@@ -311,7 +311,7 @@ void GLTextureStorage::initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool si
 					GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
 				bufferPtr = (char*)r.support.glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, fullBufferBytes,
 					GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_FLUSH_EXPLICIT_BIT);
-				if(unlikely(!bufferPtr))
+				if(!bufferPtr) [[unlikely]]
 				{
 					logErr("PBO:%u mapping failed", newPbo);
 					ctx.notifySemaphore();
@@ -391,7 +391,7 @@ void GLTextureStorage::unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags)
 
 void GLTextureStorage::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags)
 {
-	if(unlikely(!texName()))
+	if(!texName()) [[unlikely]]
 	{
 		logErr("called writeAligned() on uninitialized texture");
 		return;
@@ -404,7 +404,7 @@ void GLTextureStorage::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint
 	{
 		assumeExpr(pixmap.format() == pixmapDesc().format());
 		auto lockBuff = lock();
-		if(unlikely(!lockBuff))
+		if(!lockBuff) [[unlikely]]
 		{
 			return;
 		}
@@ -511,14 +511,14 @@ void TextureBufferStorage::setCompatTextureSampler(const TextureSampler &compatS
 
 void TextureBufferStorage::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags)
 {
-	if(unlikely(!texName()))
+	if(!texName()) [[unlikely]]
 	{
 		logErr("called writeAligned() on uninitialized texture");
 		return;
 	}
 	assumeExpr(pixmap.format() == pixmapDesc().format());
 	auto lockBuff = lock();
-	if(unlikely(!lockBuff))
+	if(!lockBuff) [[unlikely]]
 	{
 		return;
 	}

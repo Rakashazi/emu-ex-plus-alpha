@@ -22,11 +22,9 @@
 #include <imagine/util/jni.hh>
 #include <imagine/logger/logger.h>
 
-using namespace IG;
-
 static jclass jBitmapFactory{};
-static JavaClassMethod<jobject(jstring)> jDecodeFile{};
-static JavaInstMethod<jobject(jstring)> jDecodeAsset{};
+static JNI::ClassMethod<jobject(jstring)> jDecodeFile{};
+static JNI::InstMethod<jobject(jstring)> jDecodeAsset{};
 
 uint32_t BitmapFactoryImage::width()
 {
@@ -43,7 +41,7 @@ bool BitmapFactoryImage::isGrayscale()
 	return info.format == ANDROID_BITMAP_FORMAT_A_8;
 }
 
-PixelFormat BitmapFactoryImage::pixelFormat() const
+IG::PixelFormat BitmapFactoryImage::pixelFormat() const
 {
 	return Base::makePixelFormatFromAndroidFormat(info.format);
 }
@@ -55,7 +53,7 @@ std::error_code BitmapFactoryImage::load(const char *name)
 	if(!jBitmapFactory)
 	{
 		jBitmapFactory = (jclass)env->NewGlobalRef(env->FindClass("android/graphics/BitmapFactory"));
-		jDecodeFile.setup(env, jBitmapFactory, "decodeFile", "(Ljava/lang/String;)Landroid/graphics/Bitmap;");
+		jDecodeFile = {env, jBitmapFactory, "decodeFile", "(Ljava/lang/String;)Landroid/graphics/Bitmap;"};
 	}
 	auto nameJStr = env->NewStringUTF(name);
 	bitmap = jDecodeFile(env, jBitmapFactory, nameJStr);
@@ -66,7 +64,6 @@ std::error_code BitmapFactoryImage::load(const char *name)
 		return {EINVAL, std::system_category()};
 	}
 	AndroidBitmap_getInfo(env, bitmap, &info);
-	bitmap = env->NewGlobalRef(bitmap);
 	return {};
 }
 
@@ -75,13 +72,13 @@ std::error_code BitmapFactoryImage::loadAsset(const char *name)
 	freeImageData();
 	logMsg("loading PNG asset: %s", name);
 	auto env = ctx.thisThreadJniEnv();
-	using namespace Base;
-	if(!jDecodeAsset)
+	auto baseActivity = ctx.baseActivityObject();
+	if(!jDecodeAsset) [[unlikely]]
 	{
-		jDecodeAsset.setup(env, ctx.baseActivityClass(), "bitmapDecodeAsset", "(Ljava/lang/String;)Landroid/graphics/Bitmap;");
+		jDecodeAsset = {env, baseActivity, "bitmapDecodeAsset", "(Ljava/lang/String;)Landroid/graphics/Bitmap;"};
 	}
 	auto nameJStr = env->NewStringUTF(name);
-	bitmap = jDecodeAsset(env, ctx.baseActivityObject(), nameJStr);
+	bitmap = jDecodeAsset(env, baseActivity, nameJStr);
 	env->DeleteLocalRef(nameJStr);
 	if(!bitmap)
 	{
@@ -90,7 +87,6 @@ std::error_code BitmapFactoryImage::loadAsset(const char *name)
 	}
 	AndroidBitmap_getInfo(env, bitmap, &info);
 	//logMsg("%d %d %d", info.width, info.height, info.stride);
-	bitmap = env->NewGlobalRef(bitmap);
 	return {};
 }
 
@@ -117,7 +113,7 @@ void BitmapFactoryImage::freeImageData()
 	{
 		auto env = ctx.thisThreadJniEnv();
 		ctx.application().recycleBitmap(env, bitmap);
-		env->DeleteGlobalRef(std::exchange(bitmap, {}));
+		env->DeleteLocalRef(std::exchange(bitmap, {}));
 	}
 }
 

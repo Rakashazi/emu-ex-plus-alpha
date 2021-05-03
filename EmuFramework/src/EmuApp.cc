@@ -23,6 +23,7 @@
 #include <emuframework/FileUtils.hh>
 #include "private.hh"
 #include "privateInput.hh"
+#include "WindowData.hh"
 #include "configFile.hh"
 #include "EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>
@@ -40,6 +41,8 @@
 EmuApp::EmuApp(Base::ApplicationInitParams initParams, Base::ApplicationContext &ctx, Gfx::Error &rendererErr):
 	Application{initParams},
 	renderer{ctx, rendererErr},
+	audioManager_{ctx},
+	emuAudio{audioManager_},
 	emuVideoLayer{emuVideo},
 	emuSystemTask{*this},
 	vController{EmuSystem::inputFaceBtns},
@@ -131,27 +134,27 @@ static constexpr const char *assetFilename[]
 
 static_assert(std::size(assetFilename) == (unsigned)EmuApp::AssetID::END);
 
-Gfx::PixmapTexture &EmuApp::asset(Gfx::Renderer &r, AssetID assetID) const
+Gfx::PixmapTexture &EmuApp::asset(AssetID assetID) const
 {
 	assumeExpr(assetID < AssetID::END);
 	auto assetIdx = (unsigned)assetID;
 	auto &res = assetBuffImg[assetIdx];
 	if(!res)
 	{
-		PngFile png{r.appContext()};
+		PngFile png{renderer.appContext()};
 		if(auto ec = png.loadAsset(assetFilename[assetIdx]);
 			ec)
 		{
 			logErr("couldn't load %s", assetFilename[assetIdx]);
 		}
-		res = r.makePixmapTexture(png, &r.make(View::imageCommonTextureSampler));
+		res = renderer.makePixmapTexture(png, &renderer.get(View::imageCommonTextureSampler));
 	}
 	return res;
 }
 
-Gfx::PixmapTexture *EmuApp::collectTextCloseAsset(Gfx::Renderer &r) const
+Gfx::PixmapTexture *EmuApp::collectTextCloseAsset() const
 {
-	return Config::envIsAndroid ? nullptr : &asset(r, AssetID::CLOSE);
+	return Config::envIsAndroid ? nullptr : &asset(AssetID::CLOSE);
 }
 
 EmuViewController &EmuApp::viewController()
@@ -190,6 +193,11 @@ void EmuApp::applyOSNavStyle(Base::ApplicationContext ctx, bool inGame)
 	if(optionHideStatusBar > (inGame ? 0 : 1))
 		flags |= Base::SYS_UI_STYLE_HIDE_STATUS;
 	ctx.setSysUIStyle(flags);
+}
+
+IG::Audio::Manager &EmuApp::audioManager()
+{
+	return audioManager_;
 }
 
 Base::ApplicationContext EmuApp::appContext() const
@@ -295,10 +303,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 	auto launchGame = parseCommandArgs(initParams.commandArgs());
 	if(launchGame)
 		EmuSystem::setInitialLoadPath(launchGame);
-	Base::AudioManager::setMusicVolumeControlHint(ctx);
-	#ifdef CONFIG_AUDIO_MANAGER_SOLO_MIX
-	Base::AudioManager::setSoloMix(ctx, optionAudioSoloMix);
-	#endif
+	audioManager().setMusicVolumeControlHint();
 	if(optionSoundRate > optionSoundRate.defaultVal)
 		optionSoundRate.reset();
 	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
@@ -307,9 +312,9 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 	ctx.addOnResume(
 		[this](Base::ApplicationContext ctx, bool focused)
 		{
-			Base::AudioManager::startSession(ctx);
+			audioManager().startSession();
 			if(soundIsEnabled())
-				emuAudio.open(ctx, audioOutputAPI());
+				emuAudio.open(audioOutputAPI());
 			if(!keyMapping)
 				keyMapping.buildAll(inputDevConf, ctx.inputDevices());
 			return true;
@@ -328,7 +333,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 				}
 			}
 			emuAudio.close();
-			Base::AudioManager::endSession(ctx);
+			audioManager().endSession();
 
 			saveConfigFile(ctx);
 
@@ -584,7 +589,7 @@ void EmuApp::pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::
 	const char *initialContent, CollectTextInputView::OnTextDelegate onText)
 {
 	pushAndShowModalView(std::make_unique<CollectTextInputView>(attach, msgText, initialContent,
-		collectTextCloseAsset(attach.renderer()), onText), e);
+		collectTextCloseAsset(), onText), e);
 }
 
 void EmuApp::pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event e, const char *label,

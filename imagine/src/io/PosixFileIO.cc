@@ -105,7 +105,7 @@ ssize_t PosixFileIO::readAtPos(void *buff, size_t bytes, off_t offset, std::erro
 	return std::visit([&](auto &&io){ return io.readAtPos(buff, bytes, offset, ecOut); }, ioImpl);
 }
 
-const char *PosixFileIO::mmapConst()
+const uint8_t *PosixFileIO::mmapConst()
 {
 	return std::visit([&](auto &&io){ return io.mmapConst(); }, ioImpl);
 }

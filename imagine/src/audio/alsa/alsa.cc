@@ -60,17 +60,17 @@ static bool recoverPCM(snd_pcm_t *handle)
 	//logMsg("state:%d", state);
 	switch(state)
 	{
-		bcase SND_PCM_STATE_XRUN:
+		case SND_PCM_STATE_XRUN:
 			logMsg("recovering from xrun");
 			snd_pcm_recover(handle, -EPIPE, 0);
 			return true;
-		bcase SND_PCM_STATE_SUSPENDED:
+		case SND_PCM_STATE_SUSPENDED:
 			logMsg("resuming PCM");
 			snd_pcm_resume(handle);
 			return true;
-		bcase SND_PCM_STATE_PREPARED:
+		case SND_PCM_STATE_PREPARED:
 			return true;
-		bcase SND_PCM_STATE_SETUP:
+		case SND_PCM_STATE_SETUP:
 			return true;
 	}
 	return false;
@@ -237,27 +237,31 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 
 void ALSAOutputStream::play()
 {
-	if(unlikely(!isOpen()))
+	if(!isOpen()) [[unlikely]]
 		return;
-	int state = snd_pcm_state(pcmHnd);
 	//logMsg("pcm state: %s", alsaPcmStateToString(state));
-	switch(state)
-	{
-		bcase SND_PCM_STATE_PREPARED:
-			logMsg("starting PCM");
-			snd_pcm_start(pcmHnd);
-		bcase SND_PCM_STATE_PAUSED:
-			logMsg("unpausing PCM");
-			snd_pcm_pause(pcmHnd, 0);
-		bcase SND_PCM_STATE_SUSPENDED:
-			logMsg("resuming PCM");
-			snd_pcm_resume(pcmHnd);
-	}
+	auto playFromState = [](snd_pcm_t *pcmHnd, int state)
+		{
+			switch(state)
+			{
+				case SND_PCM_STATE_PREPARED:
+					logMsg("starting PCM");
+					return snd_pcm_start(pcmHnd);
+				case SND_PCM_STATE_PAUSED:
+					logMsg("unpausing PCM");
+					return snd_pcm_pause(pcmHnd, 0);
+				case SND_PCM_STATE_SUSPENDED:
+					logMsg("resuming PCM");
+					return snd_pcm_resume(pcmHnd);
+			}
+			return 0;
+		};
+	playFromState(pcmHnd, snd_pcm_state(pcmHnd));
 }
 
 void ALSAOutputStream::pause()
 {
-	if(unlikely(!isOpen()))
+	if(!isOpen()) [[unlikely]]
 		return;
 	logMsg("pausing playback");
 	snd_pcm_pause(pcmHnd, 1);
@@ -265,7 +269,7 @@ void ALSAOutputStream::pause()
 
 void ALSAOutputStream::close()
 {
-	if(unlikely(!isOpen()))
+	if(!isOpen()) [[unlikely]]
 		return;
 	logDMsg("closing pcm");
 	quitFlag = true;
@@ -276,7 +280,7 @@ void ALSAOutputStream::close()
 
 void ALSAOutputStream::flush()
 {
-	if(unlikely(!isOpen()))
+	if(!isOpen()) [[unlikely]]
 		return;
 	logMsg("clearing queued samples");
 	snd_pcm_drop(pcmHnd);

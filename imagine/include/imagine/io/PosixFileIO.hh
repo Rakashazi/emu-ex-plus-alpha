@@ -60,7 +60,7 @@ public:
 	static BufferMapIO makePosixMapIO(IO::AccessHint access, int fd);
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut);
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut);
-	const char *mmapConst();
+	const uint8_t *mmapConst();
 	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut);
 	std::error_code truncate(off_t offset);
 	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut);

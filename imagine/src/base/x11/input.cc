@@ -310,7 +310,7 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 	XGenericEventCookie *cookie = &event.xcookie;
 	auto &ievent = *((XIDeviceEvent*)cookie->data);
 	// XI_HierarchyChanged isn't window-specific
-	if(unlikely(ievent.evtype == XI_HierarchyChanged))
+	if(ievent.evtype == XI_HierarchyChanged)
 	{
 		//logMsg("input device hierarchy changed");
 		auto &ev = *((XIHierarchyEvent*)cookie->data);
@@ -339,7 +339,7 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 	}
 	// others events are for specific windows
 	auto destWin = windowForXWindow(ievent.event);
-	if(unlikely(!destWin))
+	if(!destWin) [[unlikely]]
 	{
 		//logWarn("ignored event for unknown window");
 		return true;

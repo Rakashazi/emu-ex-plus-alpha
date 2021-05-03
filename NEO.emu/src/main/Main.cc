@@ -353,7 +353,7 @@ CLINK void screen_update(void *emuTaskPtr, void *emuVideoPtr)
 {
 	auto task = (EmuSystemTask*)emuTaskPtr;
 	auto emuVideo = (EmuVideo*)emuVideoPtr;
-	if(likely(emuVideo))
+	if(emuVideo) [[likely]]
 	{
 		//logMsg("screen render");
 		emuVideo->startFrame(task, srcPix);

@@ -345,7 +345,7 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 {
 	using namespace Input;
 	auto packet = (const uint8_t*)packetPtr;
-	if(unlikely(packet[0] != 0xa1))
+	if(packet[0] != 0xa1) [[unlikely]]
 	{
 		logWarn("Unknown report in Wiimote packet");
 		return 1;

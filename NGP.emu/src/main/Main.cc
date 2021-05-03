@@ -171,7 +171,7 @@ void system_sound_chipreset(void)
 
 void system_VBL(void)
 {
-	if(likely(emuVideo))
+	if(emuVideo) [[likely]]
 	{
 		emuVideo->startFrame(emuSysTask, srcPix);
 		emuVideo = {};

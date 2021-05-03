@@ -56,7 +56,7 @@ GLuint *GLStateCache::getBindTextureState(GLenum target)
 void GLStateCache::bindTexture(GLenum target, GLuint texture)
 {
 	GLuint *state = getBindTextureState(target);
-	if(unlikely(!state))
+	if(!state) [[unlikely]]
 	{
 		runGLCheckedVerbose([&]()
 		{
@@ -136,7 +136,7 @@ int8_t *GLStateCache::getCap(GLenum cap)
 void GLStateCache::enable(GLenum cap)
 {
 	auto state = getCap(cap);
-	if(unlikely(!state))
+	if(!state) [[unlikely]]
 	{
 		// unmanaged cap
 		logDMsg("glEnable unmanaged %d", (int)cap);
@@ -172,7 +172,7 @@ void GLStateCache::enable(GLenum cap)
 void GLStateCache::disable(GLenum cap)
 {
 	auto state = getCap(cap);
-	if(unlikely(!state))
+	if(!state) [[unlikely]]
 	{
 		// unmanaged cap
 		logDMsg("glDisable unmanaged %d", (int)cap);
@@ -208,7 +208,7 @@ void GLStateCache::disable(GLenum cap)
 GLboolean GLStateCache::isEnabled(GLenum cap)
 {
 	auto state = getCap(cap);
-	if(unlikely(!state))
+	if(!state) [[unlikely]]
 	{
 		// unmanaged cap
 		logDMsg("glIsEnabled unmanaged %d", (int)cap);
@@ -234,7 +234,7 @@ int8_t *GLStateCache::getClientCap(GLenum cap)
 void GLStateCache::enableClientState(GLenum cap)
 {
 	auto state = getClientCap(cap);
-	if(unlikely(!state))
+	if(!state) [[unlikely]]
 	{
 		// unmanaged cap
 		logDMsg("glEnableClientState unmanaged %d", (int)cap);
@@ -269,7 +269,7 @@ void GLStateCache::enableClientState(GLenum cap)
 void GLStateCache::disableClientState(GLenum cap)
 {
 	auto state = getClientCap(cap);
-	if(unlikely(!state))
+	if(!state) [[unlikely]]
 	{
 		// unmanaged cap
 		logDMsg("glDisableClientState unmanaged %d", (int)cap);

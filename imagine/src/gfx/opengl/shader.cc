@@ -471,7 +471,7 @@ bool Renderer::commonProgramIsCompiled(CommonProgram program) const
 	return (bool)commonProgramRef(program);
 }
 
-void GLRenderer::useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat)
+void GLRenderer::useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat) const
 {
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(cmds.renderer().support.useFixedFunctionPipeline)

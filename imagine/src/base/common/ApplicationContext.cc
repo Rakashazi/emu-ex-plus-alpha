@@ -18,7 +18,9 @@
 #include <imagine/base/Application.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include <cstring>
 
@@ -28,6 +30,16 @@ namespace Base
 Application &ApplicationContext::application() const
 {
 	return ApplicationContextImpl::application();
+}
+
+void ApplicationContext::runOnMainThread(MainThreadMessageDelegate del)
+{
+	application().runOnMainThread(del);
+}
+
+void ApplicationContext::flushMainThreadMessages()
+{
+	application().flushMainThreadMessages();
 }
 
 Window *ApplicationContext::makeWindow(WindowConfig config, WindowInitDelegate onInit)
@@ -259,6 +271,38 @@ void ApplicationContext::exitWithErrorMessagePrintf(int exitVal, const char *for
 	exitWithErrorMessageVPrintf(exitVal, format, args);
 }
 
+[[gnu::weak]] void ApplicationContext::setSysUIStyle(uint32_t flags) {}
+
+[[gnu::weak]] bool ApplicationContext::hasTranslucentSysUI() const { return false; }
+
+[[gnu::weak]] bool ApplicationContext::hasHardwareNavButtons() const { return false; }
+
+[[gnu::weak]] bool ApplicationContext::systemAnimatesWindowRotation() const { return Config::SYSTEM_ROTATES_WINDOWS; }
+
+[[gnu::weak]] void ApplicationContext::setDeviceOrientationChangeSensor(bool) {}
+
+[[gnu::weak]] void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedDelegate) {}
+
+[[gnu::weak]] void ApplicationContext::setSystemOrientation(Orientation) {}
+
+[[gnu::weak]] Orientation ApplicationContext::defaultSystemOrientations() const { return VIEW_ROTATE_ALL; }
+
+[[gnu::weak]] void ApplicationContext::setOnSystemOrientationChanged(SystemOrientationChangedDelegate) {}
+
+[[gnu::weak]] bool ApplicationContext::usesPermission(Permission) const { return false; }
+
+[[gnu::weak]] bool ApplicationContext::requestPermission(Permission) { return false; }
+
+[[gnu::weak]] void ApplicationContext::addNotification(const char *onShow, const char *title, const char *message) {}
+
+[[gnu::weak]] void ApplicationContext::addLauncherIcon(const char *name, const char *path) {}
+
+[[gnu::weak]] bool ApplicationContext::hasVibrator() { return false; }
+
+[[gnu::weak]] void ApplicationContext::vibrate(IG::Milliseconds) {}
+
+[[gnu::weak]] NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const { return {}; }
+
 OnExit::OnExit(ResumeDelegate del, ApplicationContext ctx, int priority): del{del}, ctx{ctx}
 {
 	ctx.addOnExit(del, priority);
@@ -271,8 +315,7 @@ OnExit::OnExit(OnExit &&o)
 
 OnExit &OnExit::operator=(OnExit &&o)
 {
-	if(del)
-		ctx.removeOnExit(del);
+	reset();
 	del = std::exchange(o.del, {});
 	ctx = o.ctx;
 	return *this;
@@ -280,13 +323,14 @@ OnExit &OnExit::operator=(OnExit &&o)
 
 OnExit::~OnExit()
 {
-	if(del)
-		ctx.removeOnExit(del);
+	reset();
 }
 
 void OnExit::reset()
 {
-	del = {};
+	if(!del)
+		return;
+	ctx.removeOnExit(std::exchange(del, {}));
 }
 
 ApplicationContext OnExit::appContext() const

@@ -6,13 +6,9 @@ CFLAGS_OPTIMIZE_MISC_RELEASE_DEFAULT ?= -fomit-frame-pointer -fno-stack-protecto
 CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT ?= -Ofast
 CFLAGS_OPTIMIZE_RELEASE_DEFAULT ?= $(CFLAGS_OPTIMIZE_LEVEL_RELEASE_DEFAULT) $(CFLAGS_OPTIMIZE_MISC_RELEASE_DEFAULT)
 CFLAGS_CODEGEN += -pipe -fvisibility=hidden
-CFLAGS_LANG = -std=gnu99 -fno-common
-CXXFLAGS_LANG = -std=gnu++2a $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) \
+CFLAGS_LANG = -fno-common
+CXXFLAGS_LANG = -std=gnu++20 $(if $(cxxRTTI),,-fno-rtti) $(if $(cxxExceptions),,-fno-exceptions) \
 $(if $(cxxThreadSafeStatics),,-fno-threadsafe-statics)
-
-ifeq ($(ENV), android) # exceptions off by default on Android if using toolchain patches
- CXXFLAGS_LANG += $(if $(cxxExceptions),-fexceptions,)
-endif
 
 ifeq ($(ENV), ios)
  ifeq ($(SUBARCH), armv7)
@@ -22,7 +18,7 @@ endif
 
 # setup warnings
 
-CFLAGS_WARN ?= -Wall -Wextra -Werror=return-type -Wno-comment -Wno-missing-field-initializers -Wno-unused -Wno-unused-parameter
+CFLAGS_WARN ?= -Wall -Wextra -Werror=return-type -Werror=implicit-fallthrough -Wno-comment -Wno-unused -Wno-unused-parameter
 CFLAGS_WARN += $(CFLAGS_WARN_EXTRA)
 CXXFLAGS_WARN ?= $(CFLAGS_WARN) -Woverloaded-virtual
 

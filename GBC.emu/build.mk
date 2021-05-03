@@ -10,6 +10,8 @@ CPPFLAGS += -DHAVE_STDINT_H \
 -I$(projectPath)/src/common \
 -iquote $(projectPath)/src/libgambatte/src
 
+CXXFLAGS_WARN += -Wno-deprecated-anon-enum-enum-conversion -Wno-deprecated-enum-enum-conversion -Wno-deprecated-enum-float-conversion
+
 libgambatteSrc := src/cpu.cpp \
 src/gambatte.cpp \
 src/initstate.cpp \

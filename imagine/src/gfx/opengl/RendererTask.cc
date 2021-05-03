@@ -39,7 +39,7 @@ GLRendererTask::GLRendererTask(Base::ApplicationContext ctx, const char *debugLa
 void GLRendererTask::initVBOs()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
-	if(likely(streamVBO[0]))
+	if(streamVBO[0]) [[likely]]
 		return;
 	logMsg("making stream VBO");
 	glGenBuffers(streamVBO.size(), streamVBO.data());
@@ -61,7 +61,7 @@ GLuint GLRendererTask::getVBO()
 void GLRendererTask::initVAO()
 {
 	#ifndef CONFIG_GFX_OPENGL_ES
-	if(likely(streamVAO))
+	if(streamVAO) [[likely]]
 		return;
 	logMsg("making stream VAO");
 	glGenVertexArrays(1, &streamVAO);
@@ -86,7 +86,7 @@ void GLRendererTask::initDefaultFramebuffer()
 GLuint GLRendererTask::bindFramebuffer(Texture &tex)
 {
 	assert(tex);
-	if(unlikely(!fbo))
+	if(!fbo) [[unlikely]]
 	{
 		glGenFramebuffers(1, &fbo);
 		logMsg("init FBO:0x%X", fbo);
@@ -111,9 +111,9 @@ Renderer &RendererTask::renderer() const
 	return *r;
 }
 
-void GLRendererTask::doPreDraw(Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params)
+void GLRendererTask::doPreDraw(Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params) const
 {
-	if(unlikely(!context))
+	if(!context) [[unlikely]]
 	{
 		logWarn("draw() called without context");
 		return;
@@ -124,7 +124,7 @@ void GLRendererTask::doPreDraw(Base::Window &win, Base::WindowDrawParams winPara
 	{
 		params.setAsyncMode(autoDrawAsyncMode);
 	}
-	if(unlikely(winParams.needsSync()))
+	if(winParams.needsSync()) [[unlikely]]
 	{
 		params.setAsyncMode(DrawAsyncMode::NONE);
 	}
@@ -203,7 +203,7 @@ void GLRendererTask::verifyCurrentContext(Base::GLDisplay glDpy) const
 	if(!Config::DEBUG_BUILD)
 		return;
 	auto currentCtx = Base::GLContext::current(glDpy);
-	if(unlikely(glContext() != currentCtx))
+	if(glContext() != currentCtx) [[unlikely]]
 	{
 		bug_unreachable("expected GL context:%p but current is:%p", glContext().nativeObject(), currentCtx.nativeObject());
 	}
@@ -330,11 +330,12 @@ void RendererTask::setDebugOutput(bool on)
 }
 
 RendererCommands GLRendererTask::makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
-	Base::Window &win, Viewport viewport, Mat4 projMat)
+	bool notifyWindowAfterPresent, Base::Window &win, Viewport viewport, Mat4 projMat)
 {
 	initDefaultFramebuffer();
 	auto &drawableHolder = winData(win).drawableHolder;
-	RendererCommands cmds{*static_cast<RendererTask*>(this), &win, drawableHolder, taskCtx.glDisplay(),
+	RendererCommands cmds{*static_cast<RendererTask*>(this),
+		notifyWindowAfterPresent ? &win : nullptr, drawableHolder, taskCtx.glDisplay(),
 		manageSemaphore ? taskCtx.semaphorePtr() : nullptr};
 	cmds.setViewport(viewport);
 	cmds.setProjectionMatrix(projMat);

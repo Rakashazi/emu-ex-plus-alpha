@@ -47,7 +47,7 @@ void startCanvasRunningFrame()
 CLINK LVISIBLE int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped);
 int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped)
 {
-	if(likely(runningFrame))
+	if(runningFrame) [[likely]]
 	{
 		//logMsg("vsync_do_vsync signaling main thread");
 		runningFrame = false;

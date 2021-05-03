@@ -28,33 +28,6 @@ void EmuSystemTask::start()
 {
 	if(started)
 		return;
-	replyPort.attach(
-		[this](auto msgs)
-		{
-			for(auto msg : msgs)
-			{
-				switch(msg.reply)
-				{
-					bcase Reply::VIDEO_FORMAT_CHANGED:
-					{
-						msg.args.videoFormat.videoAddr->dispatchFormatChanged();
-					}
-					bcase Reply::FRAME_FINISHED:
-					{
-						msg.args.videoFormat.videoAddr->dispatchFrameFinished();
-					}
-					bcase Reply::TOOK_SCREENSHOT:
-					{
-						app().printScreenshotResult(msg.args.screenshot.num, msg.args.screenshot.success);
-					}
-					bdefault:
-					{
-						logErr("unknown reply message:%d", (int)msg.reply);
-					}
-				}
-			}
-			return true;
-		});
 	IG::makeDetachedThreadSync(
 		[this](auto &sem)
 		{
@@ -74,7 +47,7 @@ void EmuSystemTask::start()
 								auto *audio = msg.args.run.audio;
 								//logMsg("running %d frame(s)", frames);
 								auto &emuApp = app();
-								if(unlikely(msg.args.run.skipForward))
+								if(msg.args.run.skipForward) [[unlikely]]
 								{
 									if(emuApp.skipForwardFrames(this, frames - 1))
 									{
@@ -131,7 +104,7 @@ void EmuSystemTask::pause()
 	if(!started)
 		return;
 	commandPort.send({Command::PAUSE}, true);
-	replyPort.dispatchMessages();
+	app().flushMainThreadMessages();
 }
 
 void EmuSystemTask::stop()
@@ -139,31 +112,42 @@ void EmuSystemTask::stop()
 	if(!started)
 		return;
 	commandPort.send({Command::EXIT}, true);
-	replyPort.clear();
-	replyPort.detach();
+	app().flushMainThreadMessages();
 }
 
 void EmuSystemTask::runFrame(EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward)
 {
 	assumeExpr(frames);
-	if(unlikely(!started))
+	if(!started) [[unlikely]]
 		return;
 	commandPort.send({Command::RUN_FRAME, video, audio, frames, skipForward});
 }
 
 void EmuSystemTask::sendVideoFormatChangedReply(EmuVideo &video)
 {
-	replyPort.send({Reply::VIDEO_FORMAT_CHANGED, video});
+	app().runOnMainThread(
+		[&video](Base::ApplicationContext)
+		{
+			video.dispatchFormatChanged();
+		});
 }
 
 void EmuSystemTask::sendFrameFinishedReply(EmuVideo &video)
 {
-	replyPort.send({Reply::FRAME_FINISHED, video});
+	app().runOnMainThread(
+		[&video](Base::ApplicationContext)
+		{
+			video.dispatchFrameFinished();
+		});
 }
 
 void EmuSystemTask::sendScreenshotReply(int num, bool success)
 {
-	replyPort.send({Reply::TOOK_SCREENSHOT, num, success});
+	app().runOnMainThread(
+		[=](Base::ApplicationContext ctx)
+		{
+			EmuApp::get(ctx).printScreenshotResult(num, success);
+		});
 }
 
 EmuApp &EmuSystemTask::app() const

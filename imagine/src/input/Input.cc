@@ -121,24 +121,6 @@ uint32_t Event::mapNumKeys(Map map)
 	}
 }
 
-#ifndef CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
-uint32_t startSysTextInput(InputTextDelegate callback, const char *initialText, const char *promptText, uint32_t fontSizePixels)
-{
-	return 0;
-}
-
-void cancelSysTextInput() {}
-
-void finishSysTextInput() {}
-
-void placeSysTextInput(IG::WindowRect rect) {}
-
-IG::WindowRect sysTextInputRect()
-{
-	return {};
-}
-#endif
-
 const char *sourceStr(Source src)
 {
 	switch(src)
@@ -195,13 +177,13 @@ void BaseApplication::startKeyRepeatTimer(Input::Event event)
 	//logMsg("starting key repeat");
 	keyRepeatEvent = event;
 	keyRepeatEvent.setRepeatCount(1);
-	if(unlikely(!keyRepeatTimer))
+	if(!keyRepeatTimer) [[unlikely]]
 	{
 		keyRepeatTimer.emplace("keyRepeatTimer",
 			[this]()
 			{
 				//logMsg("repeating key event");
-				if(likely(keyRepeatEvent.pushed()))
+				if(keyRepeatEvent.pushed()) [[likely]]
 					dispatchKeyInputEvent(keyRepeatEvent);
 				return true;
 			});
@@ -347,6 +329,8 @@ void ApplicationContext::flushInternalInputEvents()
 {
 	// TODO
 }
+
+[[gnu::weak]] void ApplicationContext::flushSystemInputEvents() {}
 
 bool BaseApplication::processICadeKey(Input::Key key, Input::Action action, Input::Time time, const Input::Device &dev, Window &win)
 {

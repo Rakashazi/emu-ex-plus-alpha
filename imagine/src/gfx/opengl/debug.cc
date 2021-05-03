@@ -108,7 +108,7 @@ void DrawContextSupport::setGLDebugOutput(bool on)
 	}
 	else
 	{
-		if(unlikely(!glDebugMessageCallback))
+		if(!glDebugMessageCallback) [[unlikely]]
 		{
 			auto glDebugMessageCallbackStr =
 					Config::Gfx::OPENGL_ES ? "glDebugMessageCallbackKHR" : "glDebugMessageCallback";

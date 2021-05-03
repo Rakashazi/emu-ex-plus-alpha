@@ -26,15 +26,15 @@ namespace IG::Audio
 CAOutputStream::CAOutputStream()
 {
 	logMsg("setting up playback audio unit");
-	AudioComponentDescription defaultOutputDescription =
+	AudioComponentDescription defaultOutputDescription
 	{
-		kAudioUnitType_Output,
+		.componentType = kAudioUnitType_Output,
 		#if TARGET_OS_IPHONE
-		kAudioUnitSubType_RemoteIO,
+		.componentSubType = kAudioUnitSubType_RemoteIO,
 		#else
-		kAudioUnitSubType_DefaultOutput,
+		.componentSubType = kAudioUnitSubType_DefaultOutput,
 		#endif
-		kAudioUnitManufacturer_Apple
+		.componentManufacturer = kAudioUnitManufacturer_Apple,
 	};
 	AudioComponent defaultOutput = AudioComponentFindNext(nullptr, &defaultOutputDescription);
 	assert(defaultOutput);
@@ -109,7 +109,7 @@ IG::ErrorCode CAOutputStream::open(OutputStreamConfig config)
 
 void CAOutputStream::play()
 {
-	if(unlikely(!isOpen() || isPlaying_))
+	if(!isOpen() || isPlaying_) [[unlikely]]
 		return;
 	if(auto err = AudioOutputUnitStart(outputUnit);
 		err)
@@ -122,7 +122,7 @@ void CAOutputStream::play()
 
 void CAOutputStream::pause()
 {
-	if(unlikely(!isOpen()))
+	if(!isOpen()) [[unlikely]]
 		return;
 	AudioOutputUnitStop(outputUnit);
 	isPlaying_ = false;
@@ -144,7 +144,7 @@ void CAOutputStream::close()
 
 void CAOutputStream::flush()
 {
-	if(unlikely(!isOpen()))
+	if(!isOpen()) [[unlikely]]
 		return;
 	// TODO
 	pause();

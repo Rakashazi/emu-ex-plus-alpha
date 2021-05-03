@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseWindow.hh>
 #include <imagine/util/rectangle2.h>
-#include <jni.h>
+#include <imagine/util/jni.hh>
 #include <compare>
 
 struct ANativeWindow;
@@ -52,7 +52,7 @@ protected:
 		NONE, MAIN, PRESENTATION
 	};
 	ANativeWindow *nWin{};
-	jobject jWin{};
+	JNI::UniqueGlobalRef jWin{};
 	InitDelegate onInit{};
 	int32_t pixelFormat = 0;
 	IG::WindowRect contentRect; // active window content

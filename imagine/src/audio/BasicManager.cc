@@ -13,43 +13,38 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/audio/AudioManager.hh>
+#include <imagine/audio/Manager.hh>
 #include <imagine/audio/defs.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 
-namespace IG::AudioManager
+namespace IG::Audio
 {
 
-Audio::SampleFormat nativeSampleFormat(Base::ApplicationContext)
+SampleFormat Manager::nativeSampleFormat() const
 {
-	return Audio::SampleFormats::f32;
+	return SampleFormats::f32;
 }
 
-uint32_t nativeRate(Base::ApplicationContext)
+uint32_t Manager::nativeRate() const
 {
 	return ::Config::MACHINE_IS_PANDORA ? 44100 : 48000;
 }
 
-Audio::Format nativeFormat(Base::ApplicationContext ctx)
+Format Manager::nativeFormat() const
 {
-	return {nativeRate(ctx), nativeSampleFormat(ctx), 2};
+	return {nativeRate(), nativeSampleFormat(), 2};
 }
 
-void setSoloMix(Base::ApplicationContext, bool newSoloMix) {}
+void Manager::setSoloMix(std::optional<bool>) {}
 
-bool soloMix(Base::ApplicationContext) { return false; }
+bool Manager::soloMix() const { return false; }
 
-void setMusicVolumeControlHint(Base::ApplicationContext) {}
+void Manager::setMusicVolumeControlHint() {}
 
-void startSession(Base::ApplicationContext) {}
+void Manager::startSession() {}
 
-void endSession(Base::ApplicationContext) {}
-
-}
-
-namespace IG::Audio
-{
+void Manager::endSession() {}
 
 static constexpr ApiDesc apiDesc[]
 {
@@ -61,12 +56,12 @@ static constexpr ApiDesc apiDesc[]
 	#endif
 };
 
-std::vector<ApiDesc> audioAPIs(Base::ApplicationContext)
+std::vector<ApiDesc> Manager::audioAPIs() const
 {
 	return {apiDesc, apiDesc + std::size(apiDesc)};
 }
 
-Api makeValidAPI(Base::ApplicationContext, Api api)
+Api Manager::makeValidAPI(Api api) const
 {
 	for(auto desc: apiDesc)
 	{

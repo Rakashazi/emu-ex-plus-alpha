@@ -212,9 +212,8 @@ public:
 	IG_enableMemberIf(Config::Gfx::OPENGL_SHADER_PIPELINE, GLuint, defaultVShader){};
 
 	GLRenderer(Base::ApplicationContext);
-	void setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat);
-	TextureSampler &commonTextureSampler(CommonTextureSampler sampler);
-	void useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat);
+	void setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat) const;
+	void useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat) const;
 	Base::GLDisplay glDisplay() const;
 
 protected:

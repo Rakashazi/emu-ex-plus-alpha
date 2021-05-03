@@ -108,23 +108,23 @@ ssize_t IOUtils<IO>::send(IO &output, off_t *srcOffset, size_t bytes, std::error
 }
 
 template <class IO>
-IG::ConstBufferView IOUtils<IO>::constBufferView()
+IG::ConstByteBufferView IOUtils<IO>::constBufferView()
 {
 	auto size = static_cast<IO*>(this)->size();
 	auto mmapData = static_cast<IO*>(this)->mmapConst();
 	if(mmapData)
 	{
-		return IG::ConstBufferView(mmapData, size, [](const char*){});
+		return IG::ConstByteBufferView{mmapData, size, [](const uint8_t*){}};
 	}
 	else
 	{
 		seekS(0);
-		auto buff = new char[size];
+		auto buff = new uint8_t[size];
 		if(static_cast<IO*>(this)->read(buff, size) != (ssize_t)size)
 		{
 			delete[] buff;
 			return {};
 		}
-		return IG::ConstBufferView(buff, size, [](const char *ptr){ delete[] ptr; });
+		return IG::ConstByteBufferView{buff, size, [](const uint8_t *ptr){ delete[] ptr; }};
 	}
 }

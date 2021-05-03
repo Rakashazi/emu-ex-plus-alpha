@@ -20,6 +20,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/Projection.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Screen.hh>
@@ -183,7 +184,7 @@ void FrameRateTestApplication::setPickerHandlers(Base::Window &win)
 		[&task = renderer.task()](Base::Window &win, Base::Window::DrawParams params)
 		{
 			auto &winData = windowData(win);
-			task.draw(win, params, {}, winData.proj.plane().viewport(), winData.proj.matrix(),
+			return task.draw(win, params, {}, winData.proj.plane().viewport(), winData.proj.matrix(),
 				[&picker = winData.picker](Base::Window &win, Gfx::RendererCommands &cmds)
 				{
 					cmds.clear();
@@ -191,7 +192,6 @@ void FrameRateTestApplication::setPickerHandlers(Base::Window &win)
 					cmds.setClipTest(false);
 					cmds.present();
 				});
-			return false;
 		});
 }
 
@@ -228,7 +228,7 @@ void FrameRateTestApplication::setActiveTestHandlers(Base::Window &win)
 		{
 			auto &winData = windowData(win);
 			auto xIndent = viewManager.tableXIndent();
-			task.draw(win, params, {}, winData.proj.plane().viewport(), winData.proj.matrix(),
+			return task.draw(win, params, {}, winData.proj.plane().viewport(), winData.proj.matrix(),
 				[rect = winData.testRectWin, &activeTest = windowData(win).activeTest, xIndent]
 				(Base::Window &win, Gfx::RendererCommands &cmds)
 				{
@@ -237,7 +237,6 @@ void FrameRateTestApplication::setActiveTestHandlers(Base::Window &win)
 					activeTest->presentFence = cmds.clientWaitSyncReset(activeTest->presentFence);
 					cmds.present();
 				});
-			return false;
 		});
 }
 

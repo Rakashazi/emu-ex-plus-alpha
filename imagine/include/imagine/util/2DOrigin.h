@@ -282,6 +282,11 @@ public:
 		//logMsg("converting 0x%X 0x%X to 0x%X", x, y, x | (y << 3));
 		return x | (y << 3);
 	}
+
+	static int lxor(int a, int b)
+	{
+		return !a != !b;
+	}
 };
 
 // cartesian origin shortcuts sorted clockwise

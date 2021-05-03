@@ -50,10 +50,10 @@ std::error_code AAssetIO::open(Base::ApplicationContext ctx, const char *name, A
 	}
 	switch(access)
 	{
-		bdefault:
-		bcase IO::AccessHint::SEQUENTIAL:	advise(0, 0, IO::Advice::SEQUENTIAL);
-		bcase IO::AccessHint::RANDOM:	advise(0, 0, IO::Advice::RANDOM);
-		bcase IO::AccessHint::ALL:	advise(0, 0, IO::Advice::WILLNEED);
+		case IO::AccessHint::NORMAL: break;
+		case IO::AccessHint::SEQUENTIAL: advise(0, 0, IO::Advice::SEQUENTIAL); break;
+		case IO::AccessHint::RANDOM: advise(0, 0, IO::Advice::RANDOM); break;
+		case IO::AccessHint::ALL: advise(0, 0, IO::Advice::WILLNEED); break;
 	}
 	return {};
 }
@@ -72,7 +72,7 @@ ssize_t AAssetIO::read(void *buff, size_t bytes, std::error_code *ecOut)
 	return bytesRead;
 }
 
-const char *AAssetIO::mmapConst()
+const uint8_t *AAssetIO::mmapConst()
 {
 	if(makeMapIO())
 		return mapIO.mmapConst();

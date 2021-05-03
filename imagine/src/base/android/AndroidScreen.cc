@@ -28,27 +28,24 @@
 namespace Base
 {
 
-static JavaInstMethod<jobject()> jGetSupportedRefreshRates{};
-static JavaInstMethod<void(jboolean)> jSetListener{};
-static JavaInstMethod<void(jlong)> jEnumDisplays{};
+static JNI::InstMethod<jobject()> jGetSupportedRefreshRates{};
+static JNI::InstMethod<void(jboolean)> jSetListener{};
+static JNI::InstMethod<void(jlong)> jEnumDisplays{};
 
-void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, int32_t androidSDK, ANativeActivity *nActivity)
+void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK, ANativeActivity *nActivity)
 {
 	assert(!jEnumDisplays);
-	auto baseActivityClass = jBaseActivityCls;
 	if(androidSDK >= 17)
 	{
-		JavaInstMethod<jobject(jlong)> jDisplayListenerHelper{env, baseActivityClass, "displayListenerHelper", "(J)Lcom/imagine/DisplayListenerHelper;"};
-		auto displayListenerHelper = jDisplayListenerHelper(env, baseActivity, (jlong)nActivity);
-		assert(displayListenerHelper);
-		displayListenerHelper = env->NewGlobalRef(displayListenerHelper);
+		JNI::InstMethod<jobject(jlong)> jDisplayListenerHelper{env, baseActivityClass, "displayListenerHelper", "(J)Lcom/imagine/DisplayListenerHelper;"};
+		displayListenerHelper = {env, jDisplayListenerHelper(env, baseActivity, (jlong)nActivity)};
 		auto displayListenerHelperCls = env->GetObjectClass(displayListenerHelper);
 		JNINativeMethod method[]
 		{
 			{
 				"displayAdd", "(JILandroid/view/Display;FLandroid/util/DisplayMetrics;)V",
-				(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jobject, jfloat, jobject))
-				([](JNIEnv* env, jobject thiz, jlong nActivityAddr, jint id, jobject disp, jfloat refreshRate, jobject metrics)
+				(void*)
+				+[](JNIEnv* env, jobject thiz, jlong nActivityAddr, jint id, jobject disp, jfloat refreshRate, jobject metrics)
 				{
 					ApplicationContext ctx{(ANativeActivity*)nActivityAddr};
 					auto &app = ctx.application();
@@ -59,12 +56,12 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, int32_t 
 					}
 					app.addScreen(ctx, std::make_unique<Screen>(ctx,
 						Screen::InitParams{env, disp, metrics, id, refreshRate, SURFACE_ROTATION_0}), true);
-				})
+				}
 			},
 			{
 				"displayChange", "(JIF)V",
-				(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jfloat))
-				([](JNIEnv* env, jobject thiz, jlong nActivityAddr, jint id, jfloat refreshRate)
+				(void*)
+				+[](JNIEnv* env, jobject thiz, jlong nActivityAddr, jint id, jfloat refreshRate)
 				{
 					ApplicationContext ctx{(ANativeActivity*)nActivityAddr};
 					auto &app = ctx.application();
@@ -75,31 +72,31 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, int32_t 
 						return;
 					}
 					screen->updateRefreshRate(refreshRate);
-				})
+				}
 			},
 			{
 				"displayRemove", "(JI)V",
-				(void*)(void (*)(JNIEnv*, jobject, jlong, jint))
-				([](JNIEnv* env, jobject thiz, jlong nActivityAddr, jint id)
+				(void*)
+				+[](JNIEnv* env, jobject thiz, jlong nActivityAddr, jint id)
 				{
 					ApplicationContext ctx{(ANativeActivity*)nActivityAddr};
 					auto &app = ctx.application();
 					logMsg("screen id:%d removed", id);
 					app.removeScreen(ctx, id, true);
-				})
+				}
 			}
 		};
 		env->RegisterNatives(displayListenerHelperCls, method, std::size(method));
 		jSetListener = {env, displayListenerHelperCls, "setListener", "(Z)V"};
 		jSetListener(env, displayListenerHelper, true);
-		addOnExit([env, displayListenerHelper](ApplicationContext ctx, bool backgrounded)
+		addOnExit([env, &displayListenerHelper = displayListenerHelper](ApplicationContext ctx, bool backgrounded)
 		{
 			ctx.application().removeSecondaryScreens();
 			logMsg("unregistering display listener");
 			jSetListener(env, displayListenerHelper, false);
 			if(backgrounded)
 			{
-				ctx.addOnResume([env, displayListenerHelper](ApplicationContext ctx, bool)
+				ctx.addOnResume([env, &displayListenerHelper](ApplicationContext ctx, bool)
 				{
 					logMsg("registering display listener");
 					jSetListener(env, displayListenerHelper, true);
@@ -114,8 +111,8 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, int32_t 
 	{
 		{
 			"displayEnumerated", "(JLandroid/view/Display;IFILandroid/util/DisplayMetrics;)V",
-			(void*)(void (*)(JNIEnv*, jobject, jlong, jobject, jint, jfloat, jint, jobject))
-			([](JNIEnv* env, jobject thiz, jlong nActivityAddr, jobject disp, jint id, jfloat refreshRate, jint rotation, jobject metrics)
+			(void*)
+			+[](JNIEnv* env, jobject, jlong nActivityAddr, jobject disp, jint id, jfloat refreshRate, jint rotation, jobject metrics)
 			{
 				ApplicationContext ctx{(ANativeActivity*)nActivityAddr};
 				auto &app = ctx.application();
@@ -131,7 +128,7 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, int32_t 
 					// already in list, update existing
 					screen->updateRefreshRate(refreshRate);
 				}
-			})
+			}
 		},
 	};
 	env->RegisterNatives(baseActivityClass, method, std::size(method));
@@ -144,8 +141,7 @@ AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params)
 	auto [env, aDisplay, metrics, id, refreshRate, rotation] = params;
 	assumeExpr(aDisplay);
 	assumeExpr(metrics);
-	mainThreadJniEnv = env;
-	this->aDisplay = env->NewGlobalRef(aDisplay);
+	this->aDisplay = {env, aDisplay};
 	bool isStraightRotation = true;
 	if(id == 0)
 	{
@@ -250,11 +246,6 @@ AndroidScreen::operator bool() const
 	return aDisplay;
 }
 
-AndroidScreen::~AndroidScreen()
-{
-	mainThreadJniEnv->DeleteGlobalRef(aDisplay);
-}
-
 int Screen::width()
 {
 	return width_;
@@ -332,10 +323,9 @@ std::vector<double> Screen::supportedFrameRates(ApplicationContext ctx)
 		rateVec.emplace_back(frameRate());
 	}
 	auto env = ctx.mainThreadJniEnv();
-	if(unlikely(!jGetSupportedRefreshRates))
+	if(!jGetSupportedRefreshRates) [[unlikely]]
 	{
-		jclass jDisplayCls = env->GetObjectClass(aDisplay);
-		jGetSupportedRefreshRates.setup(env, jDisplayCls, "getSupportedRefreshRates", "()[F");
+		jGetSupportedRefreshRates = {env, (jobject)aDisplay, "getSupportedRefreshRates", "()[F"};
 	}
 	auto jRates = (jfloatArray)jGetSupportedRefreshRates(env, aDisplay);
 	auto rate = env->GetFloatArrayElements(jRates, 0);

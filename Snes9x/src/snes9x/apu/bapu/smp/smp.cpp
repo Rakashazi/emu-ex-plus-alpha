@@ -4,7 +4,6 @@
 char tmp[1024];
 #endif
 
-#include <imagine/util/utility.h>
 #include "../snes/snes.hpp"
 
 #define SMP_CPP
@@ -23,7 +22,7 @@ SMP smp;
 #include "timing.cpp"
 
 void SMP::enter() {
-  while(likely(clock < 0)) op_step();
+  while(clock < 0) [[likely]] op_step();
 }
 
 void SMP::power() {

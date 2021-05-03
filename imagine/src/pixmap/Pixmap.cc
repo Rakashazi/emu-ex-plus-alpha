@@ -156,31 +156,31 @@ void Pixmap::writeConverted(Pixmap pixmap)
 	auto srcFormatID = pixmap.format().id();
 	switch(format().id())
 	{
-		bcase PIXEL_RGBX8888:
+		case PIXEL_RGBX8888:
 			switch(srcFormatID)
 			{
-				bcase PIXEL_RGB888: convertRGB888ToRGBX8888(*this, pixmap);
-				bcase PIXEL_RGB565: convertRGB565ToRGBX8888(*this, pixmap);
-				bdefault: invalidFormatConversion(*this, pixmap);
+				case PIXEL_RGB888: return convertRGB888ToRGBX8888(*this, pixmap);
+				case PIXEL_RGB565: return convertRGB565ToRGBX8888(*this, pixmap);
+				default: return invalidFormatConversion(*this, pixmap);
 			}
-		bcase PIXEL_RGB888:
+		case PIXEL_RGB888:
 			switch(srcFormatID)
 			{
-				bcase PIXEL_RGBX8888: convertRGBX8888ToRGB888(*this, pixmap);
-				bcase PIXEL_RGBA8888: convertRGBX8888ToRGB888(*this, pixmap);
-				bcase PIXEL_RGB565: convertRGB565ToRGB888(*this, pixmap);
-				bdefault: invalidFormatConversion(*this, pixmap);
+				case PIXEL_RGBX8888: return convertRGBX8888ToRGB888(*this, pixmap);
+				case PIXEL_RGBA8888: return convertRGBX8888ToRGB888(*this, pixmap);
+				case PIXEL_RGB565: return convertRGB565ToRGB888(*this, pixmap);
+				default: return invalidFormatConversion(*this, pixmap);
 			}
-		bcase PIXEL_RGB565:
+		case PIXEL_RGB565:
 			switch(srcFormatID)
 			{
-				bcase PIXEL_RGB888: convertRGB888ToRGB565(*this, pixmap);
-				bcase PIXEL_RGBX8888: convertRGBX8888ToRGB565(*this, pixmap);
-				bcase PIXEL_RGBA8888: convertRGBX8888ToRGB565(*this, pixmap);
-				bdefault: invalidFormatConversion(*this, pixmap);
+				case PIXEL_RGB888: return convertRGB888ToRGB565(*this, pixmap);
+				case PIXEL_RGBX8888: return convertRGBX8888ToRGB565(*this, pixmap);
+				case PIXEL_RGBA8888: return convertRGBX8888ToRGB565(*this, pixmap);
+				default: return invalidFormatConversion(*this, pixmap);
 			}
-		bdefault:
-			invalidFormatConversion(*this, pixmap);
+		default:
+			return invalidFormatConversion(*this, pixmap);
 	}
 }
 

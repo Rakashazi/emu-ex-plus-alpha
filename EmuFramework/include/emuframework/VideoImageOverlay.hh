@@ -16,6 +16,12 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/GfxSprite.hh>
+#include <imagine/gfx/Texture.hh>
+
+namespace Gfx
+{
+class Renderer;
+}
 
 class VideoImageOverlay
 {

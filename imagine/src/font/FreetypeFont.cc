@@ -15,6 +15,7 @@
 
 #define LOGTAG "FreetypeFont"
 #include <imagine/font/Font.hh>
+#include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
@@ -212,7 +213,7 @@ std::errc FreetypeFaceData::openFont(GenericIO file)
 {
 	if(!file)
 		return std::errc::invalid_argument;
-	if(unlikely(!library))
+	if(!library) [[unlikely]]
 	{
 		auto error = FT_Init_FreeType(&library);
 		if(error)

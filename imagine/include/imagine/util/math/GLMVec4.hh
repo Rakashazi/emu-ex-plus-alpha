@@ -35,10 +35,10 @@ public:
 		return v[i];
 	}
 
-	constexpr float x() { return v.x; }
-	constexpr float y() { return v.y; }
-	constexpr float z() { return v.z; }
-	constexpr float w() { return v.w; }
+	constexpr float x() const { return v.x; }
+	constexpr float y() const { return v.y; }
+	constexpr float z() const { return v.z; }
+	constexpr float w() const { return v.w; }
 
 protected:
 	glm::vec4 v{};

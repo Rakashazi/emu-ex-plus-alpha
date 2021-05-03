@@ -18,7 +18,6 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
-#include "android.hh"
 
 namespace Base
 {
@@ -26,9 +25,9 @@ namespace Base
 void AndroidApplication::addNotification(JNIEnv *env, jobject baseActivity, const char *onShow, const char *title, const char *message)
 {
 	logMsg("adding notificaion icon");
-	if(unlikely(!jAddNotification))
+	if(!jAddNotification) [[unlikely]]
 	{
-		jAddNotification.setup(env, jBaseActivityCls, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+		jAddNotification = {env, baseActivity, "addNotification", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"};
 	}
 	jAddNotification(env, baseActivity, env->NewStringUTF(onShow), env->NewStringUTF(title), env->NewStringUTF(message));
 }
@@ -44,7 +43,7 @@ void AndroidApplication::removePostedNotifications(JNIEnv *env, jobject baseActi
 	// and remove the posted notification
 	if(!jAddNotification)
 		return;
-	JavaInstMethod<void()> jRemoveNotification{env, jBaseActivityCls, "removeNotification", "()V"};
+	JNI::InstMethod<void()> jRemoveNotification{env, baseActivity, "removeNotification", "()V"};
 	jRemoveNotification(env, baseActivity);
 }
 
@@ -52,8 +51,9 @@ void ApplicationContext::addLauncherIcon(const char *name, const char *path)
 {
 	logMsg("adding launcher icon: %s, for path: %s", name, path);
 	auto env = mainThreadJniEnv();
-	JavaInstMethod<void(jstring, jstring)> jAddViewShortcut{env, baseActivityClass(), "addViewShortcut", "(Ljava/lang/String;Ljava/lang/String;)V"};
-	jAddViewShortcut(env, baseActivityObject(), env->NewStringUTF(name), env->NewStringUTF(path));
+	auto baseActivity = baseActivityObject();
+	JNI::InstMethod<void(jstring, jstring)> jAddViewShortcut{env, baseActivity, "addViewShortcut", "(Ljava/lang/String;Ljava/lang/String;)V"};
+	jAddViewShortcut(env, baseActivity, env->NewStringUTF(name), env->NewStringUTF(path));
 }
 
 void AndroidApplication::handleIntent(ApplicationContext ctx)
@@ -63,7 +63,7 @@ void AndroidApplication::handleIntent(ApplicationContext ctx)
 	auto env = ctx.mainThreadJniEnv();
 	auto baseActivity = ctx.baseActivityObject();
 	// check for view intents
-	JavaInstMethod<jobject()> jIntentDataPath{env, jBaseActivityCls, "intentDataPath", "()Ljava/lang/String;"};
+	JNI::InstMethod<jobject()> jIntentDataPath{env, baseActivity, "intentDataPath", "()Ljava/lang/String;"};
 	jstring intentDataPathJStr = (jstring)jIntentDataPath(env, baseActivity);
 	if(intentDataPathJStr)
 	{
@@ -77,12 +77,9 @@ void AndroidApplication::handleIntent(ApplicationContext ctx)
 void ApplicationContext::openURL(const char *url) const
 {
 	auto env = mainThreadJniEnv();
-	JavaInstMethod<void(jstring)> jOpenURL{env, baseActivityClass(), "openURL", "(Ljava/lang/String;)V"};
-	jOpenURL(env, baseActivityObject(), env->NewStringUTF(url));
+	auto baseActivity = baseActivityObject();
+	JNI::InstMethod<void(jstring)> jOpenURL{env, baseActivity, "openURL", "(Ljava/lang/String;)V"};
+	jOpenURL(env, baseActivity, env->NewStringUTF(url));
 }
-
-bool ApplicationContext::registerInstance(ApplicationInitParams, const char *) { return false; }
-
-void ApplicationContext::setAcceptIPC(bool on, const char *) {}
 
 }

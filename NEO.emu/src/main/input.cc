@@ -98,7 +98,7 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 {
 	turbo = 0;
 	using namespace NGKey;
-	if(unlikely(input == neogeoKeyIdxTestSwitch))
+	if(input == neogeoKeyIdxTestSwitch) [[unlikely]]
 	{
 		return SERVICE_EMU_INPUT;
 	}

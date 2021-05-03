@@ -54,7 +54,7 @@ public:
 	bool rewind();
 	off_t tell(std::error_code *ecOut = nullptr);
 	ssize_t send(IO &output, off_t *srcOffset, size_t bytes, std::error_code *ecOut = nullptr);
-	IG::ConstBufferView constBufferView();
+	IG::ConstByteBufferView constBufferView();
 
 	template <class T>
 	std::pair<T, ssize_t> read(std::error_code *ecOut = nullptr)
@@ -128,7 +128,7 @@ public:
 	// reading
 	virtual ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) = 0;
 	virtual ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut);
-	virtual const char *mmapConst();
+	virtual const uint8_t *mmapConst();
 
 	// writing
 	virtual ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) = 0;
@@ -172,7 +172,7 @@ public:
 
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut);
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut);
-	const char *mmapConst();
+	const uint8_t *mmapConst();
 	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut);
 	std::error_code truncate(off_t offset);
 	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut);

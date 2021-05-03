@@ -41,18 +41,19 @@ bool writeScreenshot(Base::ApplicationContext, IG::Pixmap vidPix, const char *fn
 // TODO: make png writer module in imagine
 bool writeScreenshot(Base::ApplicationContext ctx, IG::Pixmap vidPix, const char *fname)
 {
-	static JavaInstMethod<jobject(jint, jint, jint)> jMakeBitmap;
-	static JavaInstMethod<jboolean(jobject, jobject)> jWritePNG;
+	static JNI::InstMethod<jobject(jint, jint, jint)> jMakeBitmap;
+	static JNI::InstMethod<jboolean(jobject, jobject)> jWritePNG;
 	using namespace Base;
 	auto env = ctx.thisThreadJniEnv();
-	auto baseActivityCls = ctx.baseActivityClass();
+	auto baseActivity = ctx.baseActivityObject();
 	if(!jMakeBitmap)
 	{
-		jMakeBitmap.setup(env, baseActivityCls, "makeBitmap", "(III)Landroid/graphics/Bitmap;");
-		jWritePNG.setup(env, baseActivityCls, "writePNG", "(Landroid/graphics/Bitmap;Ljava/lang/String;)Z");
+		auto baseActivityCls = env->GetObjectClass(baseActivity);
+		jMakeBitmap = {env, baseActivityCls, "makeBitmap", "(III)Landroid/graphics/Bitmap;"};
+		jWritePNG = {env, baseActivityCls, "writePNG", "(Landroid/graphics/Bitmap;Ljava/lang/String;)Z"};
 	}
 	auto aFormat = vidPix.format().id() == PIXEL_RGB565 ? ANDROID_BITMAP_FORMAT_RGB_565 : ANDROID_BITMAP_FORMAT_RGBA_8888;
-	auto bitmap = jMakeBitmap(env, ctx.baseActivityObject(), vidPix.w(), vidPix.h(), aFormat);
+	auto bitmap = jMakeBitmap(env, baseActivity, vidPix.w(), vidPix.h(), aFormat);
 	if(!bitmap)
 	{
 		logErr("error allocating bitmap");
@@ -63,7 +64,7 @@ bool writeScreenshot(Base::ApplicationContext ctx, IG::Pixmap vidPix, const char
 	Base::makePixmapView(env, bitmap, buffer, vidPix.format()).write(vidPix, {});
 	AndroidBitmap_unlockPixels(env, bitmap);
 	auto nameJStr = env->NewStringUTF(fname);
-	auto writeOK = jWritePNG(env, ctx.baseActivityObject(), bitmap, nameJStr);
+	auto writeOK = jWritePNG(env, baseActivity, bitmap, nameJStr);
 	env->DeleteLocalRef(nameJStr);
 	env->DeleteLocalRef(bitmap);
 	if(!writeOK)

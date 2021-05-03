@@ -23,11 +23,51 @@
 #include "xdnd.hh"
 #include "xlibutils.h"
 
-#define ASCII_LF 0xA
-#define ASCII_CR 0xD
+static constexpr char ASCII_LF = 0xA;
+static constexpr char ASCII_CR = 0xD;
 
 namespace Base
 {
+
+struct XGlibSource : public GSource
+{
+	::Display *xDisplay{};
+	XApplication *appPtr{};
+};
+
+static GSourceFuncs x11SourceFuncs
+{
+	.prepare
+	{
+		[](GSource *src, gint *timeout)
+		{
+			*timeout = -1;
+			auto xDisplay = static_cast<XGlibSource*>(src)->xDisplay;
+			return (gboolean)XPending(xDisplay);
+		}
+	},
+	.check
+	{
+		[](GSource *src)
+		{
+			auto xDisplay = static_cast<XGlibSource*>(src)->xDisplay;
+			return (gboolean)XPending(xDisplay);
+		}
+	},
+	.dispatch
+	{
+		[](GSource *src, GSourceFunc, gpointer)
+		{
+			//logMsg("events for X fd");
+			auto &xGlibSrc = *static_cast<XGlibSource*>(src);
+			xGlibSrc.appPtr->runX11Events(xGlibSrc.xDisplay);
+			return (gboolean)TRUE;
+		}
+	},
+	.finalize{},
+	.closure_callback{},
+	.closure_marshal{},
+};
 
 XApplication::XApplication(ApplicationInitParams initParams):
 	LinuxApplication{initParams}
@@ -256,36 +296,6 @@ FDEventSource XApplication::makeXDisplayConnection(EventLoop loop)
 	initXScreens(appCtx, xDisplay);
 	initFrameTimer(loop, appCtx.mainScreen());
 	initInputSystem();
-
-	struct XGlibSource : public GSource
-	{
-		::Display *xDisplay{};
-		XApplication *appPtr{};
-	};
-
-	static GSourceFuncs x11SourceFuncs
-	{
-		[](GSource *src, gint *timeout)
-		{
-			*timeout = -1;
-			auto xDisplay = static_cast<XGlibSource*>(src)->xDisplay;
-			return (gboolean)XPending(xDisplay);
-		},
-		[](GSource *src)
-		{
-			auto xDisplay = static_cast<XGlibSource*>(src)->xDisplay;
-			return (gboolean)XPending(xDisplay);
-		},
-		[](GSource *src, GSourceFunc, gpointer)
-		{
-			//logMsg("events for X fd");
-			auto &xGlibSrc = *static_cast<XGlibSource*>(src);
-			xGlibSrc.appPtr->runX11Events(xGlibSrc.xDisplay);
-			return (gboolean)TRUE;
-		},
-		nullptr
-	};
-
 	FDEventSource x11Src{"XServer", ConnectionNumber(xDisplay)};
 	auto source = (XGlibSource*)g_source_new(&x11SourceFuncs, sizeof(XGlibSource));
 	source->xDisplay = xDisplay;
@@ -293,13 +303,5 @@ FDEventSource XApplication::makeXDisplayConnection(EventLoop loop)
 	x11Src.attach(loop, source);
 	return x11Src;
 }
-
-void ApplicationContext::setSysUIStyle(uint32_t flags) {}
-
-bool ApplicationContext::hasTranslucentSysUI() const { return false; }
-
-bool ApplicationContext::hasHardwareNavButtons() const { return false; }
-
-bool ApplicationContext::systemAnimatesWindowRotation() const { return false; }
 
 }

@@ -664,6 +664,7 @@ static inline void CPUWriteMemory(ARM7TDMI &cpu, u32 address, u32 value)
       (*cpuSaveGameFunc)(address, (u8)value);
       break;
     }
+    break;
     // default
   default:
 unwritable:
@@ -921,6 +922,7 @@ static inline void CPUWriteByte(ARM7TDMI &cpu, u32 address, u8 b)
       (*cpuSaveGameFunc)(address, b);
       break;
     }
+    break;
     // default
   default:
 unwritable:

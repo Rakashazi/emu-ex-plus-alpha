@@ -120,7 +120,7 @@ static GlyphRenderData makeGlyphRenderData(int idx, FontSize &fontSize, bool kee
 
 Font Font::makeSystem(Base::ApplicationContext)
 {
-	if(unlikely(!textColor))
+	if(!textColor) [[unlikely]]
 	{
 		const CGFloat component[]{1., 1.};
 		textColor = CGColorCreate(Base::grayColorSpace, component);

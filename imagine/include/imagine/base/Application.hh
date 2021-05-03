@@ -32,6 +32,8 @@ class Application : public ApplicationImpl
 {
 public:
 	using ApplicationImpl::ApplicationImpl;
+	void runOnMainThread(MainThreadMessageDelegate);
+	void flushMainThreadMessages();
 };
 
 }

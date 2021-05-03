@@ -33,13 +33,13 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 	auto setErrorPtr = IG::scopeGuard(
 		[&]()
 		{
-			if(unlikely(err && errorPtr))
+			if(err && errorPtr) [[unlikely]]
 			{
 				*errorPtr = err;
 			}
 		});
 	config = baseInit(r, config);
-	if(unlikely(!renderer().support.hasExternalEGLImages))
+	if(!renderer().support.hasExternalEGLImages) [[unlikely]]
 	{
 		logErr("can't init without OES_EGL_image_external extension");
 		err = {ENOTSUP};
@@ -59,14 +59,14 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 				surfaceTex = makeSurfaceTexture(renderer().appContext(), env, texName_, false);
 				singleBuffered = false;
 			}
-			if(unlikely(!surfaceTex))
+			if(!surfaceTex) [[unlikely]]
 				return;
 			updateSurfaceTextureImage(env, surfaceTex); // set the initial display & context
 			this->surfaceTex = env->NewGlobalRef(surfaceTex);
 			ctx.notifySemaphore();
 			setSamplerParamsInGL(renderer(), samplerParams, GL_TEXTURE_EXTERNAL_OES);
 		});
-	if(unlikely(!surfaceTex))
+	if(!surfaceTex) [[unlikely]]
 	{
 		logErr("SurfaceTexture ctor failed");
 		err = {EINVAL};
@@ -76,7 +76,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 		singleBuffered ? " " : " buffered ", texName_);
 	auto env = r.appContext().mainThreadJniEnv();
 	auto localSurface = makeSurface(env, surfaceTex);
-	if(unlikely(!localSurface))
+	if(!localSurface) [[unlikely]]
 	{
 		logErr("Surface ctor failed");
 		err = {EINVAL};
@@ -85,7 +85,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 	}
 	surface = env->NewGlobalRef(localSurface);
 	nativeWin = ANativeWindow_fromSurface(env, localSurface);
-	if(unlikely(!nativeWin))
+	if(!nativeWin) [[unlikely]]
 	{
 		logErr("ANativeWindow_fromSurface failed");
 		err = {EINVAL};
@@ -143,12 +143,12 @@ IG::ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, const Textur
 {
 	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
 	int winFormat = Base::toAHardwareBufferFormat(desc.format());
-	if(unlikely(!winFormat))
+	if(!winFormat) [[unlikely]]
 	{
 		logErr("pixel format not usable");
 		return {EINVAL};
 	}
-	if(unlikely(ANativeWindow_setBuffersGeometry(nativeWin, desc.w(), desc.h(), winFormat) < 0))
+	if(ANativeWindow_setBuffersGeometry(nativeWin, desc.w(), desc.h(), winFormat) < 0) [[unlikely]]
 	{
 		logErr("ANativeWindow_setBuffersGeometry failed");
 		return {EINVAL};
@@ -161,7 +161,7 @@ IG::ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, const Textur
 LockedTextureBuffer SurfaceTextureStorage::lock(uint32_t bufferFlags)
 {
 	using namespace Base;
-	if(unlikely(!nativeWin))
+	if(!nativeWin) [[unlikely]]
 	{
 		logErr("called lock when uninitialized");
 		return {};
@@ -198,7 +198,7 @@ LockedTextureBuffer SurfaceTextureStorage::lock(uint32_t bufferFlags)
 void SurfaceTextureStorage::unlock(LockedTextureBuffer, uint32_t)
 {
 	using namespace Base;
-	if(unlikely(!nativeWin))
+	if(!nativeWin) [[unlikely]]
 	{
 		logErr("called unlock when uninitialized");
 		return;

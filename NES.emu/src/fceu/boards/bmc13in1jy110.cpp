@@ -40,12 +40,12 @@ static void Sync(void) {
 		setprg32(0x8000, bank_value & 7); break;
 	case 1:
 		setprg16(0x8000, ((8 + (bank_value & 7)) >> 1) + prgb[1]);
-		setprg16(0xC000, (bank_value & 7) >> 1);
+		setprg16(0xC000, (bank_value & 7) >> 1); [[fallthrough]];
 	case 4:
 		setprg32(0x8000, 8 + (bank_value & 7)); break;
 	case 5:
 		setprg16(0x8000, ((8 + (bank_value & 7)) >> 1) + prgb[1]);
-		setprg16(0xC000, ((8 + (bank_value & 7)) >> 1) + prgb[3]);
+		setprg16(0xC000, ((8 + (bank_value & 7)) >> 1) + prgb[3]); [[fallthrough]];
 	case 2:
 		setprg8(0x8000, prgb[0] >> 2);
 		setprg8(0xa000, prgb[1]);
@@ -69,7 +69,7 @@ static DECLFW(BMC13in1JY110Write) {
 	case 0x8002:
 	case 0x8003: prgb[A & 3] = V; break;
 	case 0xD000: bank_mode = V; break;
-	case 0xD001: setmirror(V & 3);
+	case 0xD001: setmirror(V & 3); [[fallthrough]];
 	case 0xD002: break;
 	case 0xD003: bank_value = V; break;
 	}

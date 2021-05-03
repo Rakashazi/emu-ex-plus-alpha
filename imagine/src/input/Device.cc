@@ -346,18 +346,22 @@ const char *Device::keyName(Key k) const
 		default: return "";
 		case Map::SYSTEM:
 		{
-			const char *name = nullptr;
-			switch(subtype())
-			{
-				#ifdef CONFIG_BASE_ANDROID
-				bcase Device::SUBTYPE_XPERIA_PLAY: name = xperiaPlayButtonName(k);
-				bcase Device::SUBTYPE_OUYA_CONTROLLER: name = ouyaButtonName(k);
-				bcase Device::SUBTYPE_PS3_CONTROLLER: name = ps3SysButtonName(k);
-				#endif
-				#ifdef CONFIG_MACHINE_PANDORA
-				bcase Device::SUBTYPE_PANDORA_HANDHELD: name = openPandoraButtonName(k);
-				#endif
-			}
+			auto subtypeButtonName = [](uint32_t subtype, Key k) -> const char *
+				{
+					switch(subtype)
+					{
+						#ifdef CONFIG_BASE_ANDROID
+						case Device::SUBTYPE_XPERIA_PLAY: return xperiaPlayButtonName(k);
+						case Device::SUBTYPE_OUYA_CONTROLLER: return ouyaButtonName(k);
+						case Device::SUBTYPE_PS3_CONTROLLER: return ps3SysButtonName(k);
+						#endif
+						#ifdef CONFIG_MACHINE_PANDORA
+						case Device::SUBTYPE_PANDORA_HANDHELD: return openPandoraButtonName(k);
+						#endif
+					}
+					return {};
+				};
+			const char *name = subtypeButtonName(subtype(), k);
 			if(!name)
 				return keyButtonName(k);
 			return name;

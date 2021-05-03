@@ -21,6 +21,10 @@
 #include <assert.h>
 #include <cstddef>
 #include <iterator>
+#include <type_traits>
+
+namespace JNI
+{
 
 jmethodID getJNIStaticMethodID(JNIEnv *env, jclass cls, const char *fName, const char *sig);
 jmethodID getJNIMethodID(JNIEnv *env, jclass cls, const char *fName, const char *sig);
@@ -31,24 +35,34 @@ R callJNIStaticMethodV(JNIEnv *env, jmethodID method, jclass cls, va_list args);
 template<typename R>
 R callJNIMethodV(JNIEnv *env, jmethodID method, jobject obj, va_list args);
 
-template <typename T> class JavaClassMethod {};
+template <typename T> class ClassMethod {};
 
 template <typename R, typename ...ARGS>
-class JavaClassMethod<R(ARGS...)>
+class ClassMethod<R(ARGS...)>
 {
 public:
 	jmethodID method{};
 
-	constexpr JavaClassMethod() {}
+	constexpr ClassMethod() {}
 
-	JavaClassMethod(JNIEnv *env, jclass cls, const char *fName, const char *sig)
+	template <class JavaObject>
+	ClassMethod(JNIEnv *env, JavaObject obj, const char *fName, const char *sig)
 	{
-		setup(env, cls, fName, sig);
+		setMethod(env, obj, fName, sig);
 	}
 
-	bool setup(JNIEnv *env, jclass cls, const char *fName, const char *sig)
+	template <class JavaObject>
+	bool setMethod(JNIEnv *env, JavaObject obj, const char *fName, const char *sig)
 	{
-		method = getJNIStaticMethodID(env, cls, fName, sig);
+		if constexpr(std::is_same_v<JavaObject, jclass>)
+		{
+			method = getJNIStaticMethodID(env, obj, fName, sig);
+		}
+		else
+		{
+			static_assert(std::is_same_v<JavaObject, jobject>, "object type must be a jclass or jobject");
+			method = getJNIStaticMethodID(env, (jclass)env->GetObjectClass(obj), fName, sig);
+		}
 		if(!method)
 		{
 			return false;
@@ -77,24 +91,34 @@ private:
 	}
 };
 
-template <typename T> class JavaInstMethod {};
+template <typename T> class InstMethod {};
 
 template <typename R, typename ...ARGS>
-class JavaInstMethod<R(ARGS...)>
+class InstMethod<R(ARGS...)>
 {
 public:
 	jmethodID method{};
 
-	constexpr JavaInstMethod() {}
+	constexpr InstMethod() {}
 
-	JavaInstMethod(JNIEnv *env, jclass cls, const char *fName, const char *sig)
+	template <class JavaObject>
+	InstMethod(JNIEnv *env, JavaObject obj, const char *fName, const char *sig)
 	{
-		setup(env, cls, fName, sig);
+		setMethod(env, obj, fName, sig);
 	}
 
-	bool setup(JNIEnv *env, jclass cls, const char *fName, const char *sig)
+	template <class JavaObject>
+	bool setMethod(JNIEnv *env, JavaObject obj, const char *fName, const char *sig)
 	{
-		method = getJNIMethodID(env, cls, fName, sig);
+		if constexpr(std::is_same_v<JavaObject, jclass>)
+		{
+			method = getJNIMethodID(env, obj, fName, sig);
+		}
+		else
+		{
+			static_assert(std::is_same_v<JavaObject, jobject>, "object type must be a jclass or jobject");
+			method = getJNIMethodID(env, (jclass)env->GetObjectClass(obj), fName, sig);
+		}
 		if(!method)
 		{
 			return false;
@@ -123,23 +147,38 @@ private:
 	}
 };
 
-class JObject
+class UniqueGlobalRef
 {
-protected:
-	jobject o{};
-
-	constexpr JObject() {};
-	constexpr JObject(jobject o): o(o) {};
-
 public:
-	operator jobject() const
+	constexpr UniqueGlobalRef() {};
+	UniqueGlobalRef(JNIEnv *env, jobject o);
+	UniqueGlobalRef(UniqueGlobalRef &&);
+	UniqueGlobalRef &operator=(UniqueGlobalRef &&);
+	~UniqueGlobalRef();
+	void reset();
+
+	constexpr operator jobject() const
 	{
-		return o;
+		return obj;
 	}
+
+	constexpr explicit operator jclass() const
+	{
+		return (jclass)obj;
+	}
+
+	constexpr JNIEnv *jniEnv() const
+	{
+		return env;
+	}
+
+protected:
+	JNIEnv *env;
+	jobject obj{};
 };
 
 template <size_t S>
-static void javaStringCopy(JNIEnv *env, std::array<char, S> &dest, jstring jstr)
+static void stringCopy(JNIEnv *env, std::array<char, S> &dest, jstring jstr)
 {
 	auto utfChars = env->GetStringUTFChars(jstr, nullptr);
 	if(!utfChars)
@@ -151,7 +190,7 @@ static void javaStringCopy(JNIEnv *env, std::array<char, S> &dest, jstring jstr)
 }
 
 template <class CONTAINER>
-static CONTAINER javaStringCopy(JNIEnv *env, jstring jstr)
+static CONTAINER stringCopy(JNIEnv *env, jstring jstr)
 {
 	auto utfChars = env->GetStringUTFChars(jstr, nullptr);
 	if(!utfChars)
@@ -162,4 +201,6 @@ static CONTAINER javaStringCopy(JNIEnv *env, jstring jstr)
 	string_copy(c, utfChars);
 	env->ReleaseStringUTFChars(jstr, utfChars);
 	return c;
+}
+
 }

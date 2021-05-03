@@ -19,6 +19,7 @@
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/input/config.hh>
+#include <imagine/input/TextField.hh>
 #include <imagine/util/typeTraits.hh>
 #include <array>
 
@@ -56,7 +57,6 @@ public:
 	CollectTextInputView(ViewAttachParams attach, const char *msgText,
 		Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = {}):
 		CollectTextInputView(attach, msgText, "", closeRes, onText, face) {}
-	~CollectTextInputView() override;
 	void place() override;
 	bool inputEvent(Input::Event e) override;
 	void prepareDraw() override;
@@ -67,6 +67,7 @@ protected:
 	// TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
 	IG_enableMemberIf(!Config::envIsAndroid, Gfx::Sprite, cancelSpr){};
 	Gfx::Text message{};
+	[[no_unique_address]] Input::TextField textField;
 	IG_enableMemberIf(!Config::Input::SYSTEM_COLLECTS_TEXT, TextEntry, textEntry);
 	OnTextDelegate onTextD{};
 };

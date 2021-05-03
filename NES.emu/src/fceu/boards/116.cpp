@@ -249,9 +249,9 @@ static DECLFW(UNLSL12Write) {
 				mmc1_regs[n] = mmc1_buffer;
 				mmc1_buffer = mmc1_shift = 0;
 				switch (n) {
-				case 0: SyncMIR();
-				case 2: SyncCHR();
-				case 3:
+				case 0: SyncMIR(); [[fallthrough]];
+				case 2: SyncCHR(); [[fallthrough]];
+				case 3: [[fallthrough]];
 				case 1: SyncPRG();
 				}
 			}

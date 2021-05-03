@@ -13,6 +13,8 @@ main/EmuMenuViews.cc
 CPPFLAGS += -I$(projectPath)/src \
 -DHAVE_CONFIG_H
 
+CFLAGS_WARN += -Wno-sign-compare
+
 GEO := gngeo
 
 SRC += $(GEO)/mamez80/z80.c \

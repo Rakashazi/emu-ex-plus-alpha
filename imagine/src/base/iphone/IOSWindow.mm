@@ -92,11 +92,6 @@ bool Window::requestOrientationChange(Orientation o)
 }
 #endif
 
-bool ApplicationContext::systemAnimatesWindowRotation() const
-{
-	return Config::SYSTEM_ROTATES_WINDOWS;
-}
-
 Window *deviceWindow(ApplicationContext ctx)
 {
 	return ctx.window(0);

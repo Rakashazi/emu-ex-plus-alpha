@@ -38,10 +38,26 @@ namespace Input
 class AndroidInputDevice : public Input::Device
 {
 public:
-	int osId = 0;
-	uint32_t joystickAxisAsDpadBits_ = 0, joystickAxisAsDpadBitsDefault_ = 0;
-	uint32_t axisBits = 0;
-	bool iCadeMode_ = false;
+	AndroidInputDevice(int osId, uint32_t typeBits, const char *name, uint32_t axisBits = 0);
+	AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumId, int osId, int src,
+		const char *name, int kbType, uint32_t axisBits, bool isPowerButton);
+	bool operator ==(AndroidInputDevice const& rhs) const;
+	void setTypeBits(int bits);
+	void setJoystickAxisAsDpadBitsDefault(uint32_t axisMask);
+	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
+	uint32_t joystickAxisAsDpadBits() final;
+	uint32_t joystickAxisAsDpadBitsDefault() final;
+	uint32_t joystickAxisBits() final;
+	void setICadeMode(bool on) final;
+	bool iCadeMode() const final;
+	int systemId() const { return osId; }
+	auto &jsAxes() { return axis; }
+
+protected:
+	int osId{};
+	uint32_t joystickAxisAsDpadBits_{}, joystickAxisAsDpadBitsDefault_{};
+	uint32_t axisBits{};
+	bool iCadeMode_{};
 	//static constexpr uint32_t MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
 	static constexpr uint32_t MAX_AXES = 10;
 	//static_assert(MAX_STICK_AXES <= MAX_AXES, "MAX_AXES must be large enough to hold MAX_STICK_AXES");
@@ -53,19 +69,7 @@ public:
 		uint8_t id{};
 		AxisKeyEmu<float> keyEmu{};
 	};
-	StaticArrayList<Axis, MAX_AXES> axis;
-
-	AndroidInputDevice(int osId, uint32_t typeBits, const char *name);
-	AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumId, int osId, int src,
-		const char *name, int kbType, int axisBits, bool isPowerButton);
-	bool operator ==(AndroidInputDevice const& rhs) const;
-	void setTypeBits(int bits);
-	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
-	uint32_t joystickAxisAsDpadBits() final;
-	uint32_t joystickAxisAsDpadBitsDefault() final;
-	uint32_t joystickAxisBits() final;
-	void setICadeMode(bool on) final;
-	bool iCadeMode() const final;
+	StaticArrayList<Axis, MAX_AXES> axis{};
 };
 
 }
@@ -103,14 +107,13 @@ public:
 	AndroidApplication(ApplicationInitParams);
 	void onWindowFocusChanged(ApplicationContext, int focused);
 	JNIEnv* thisThreadJniEnv() const;
-	jclass baseActivityClass() const;
 	bool hasHardwareNavButtons() const;
 	void recycleBitmap(JNIEnv *, jobject bitmap);
 	jobject makeFontRenderer(JNIEnv *, jobject baseActivity);
 	void setStatusBarHidden(JNIEnv *, jobject baseActivity, bool hidden);
-	AndroidPropString androidBuildDevice(JNIEnv *env) const;
+	AndroidPropString androidBuildDevice(JNIEnv *env, jclass baseActivityClass) const;
 	Window *deviceWindow() const;
-	FS::PathString sharedStoragePath(JNIEnv *) const;
+	FS::PathString sharedStoragePath(JNIEnv *, jclass baseActivityClass) const;
 	void setRequestedOrientation(JNIEnv *, jobject baseActivity, int orientation);
 	SurfaceRotation currentRotation() const;
 	void setCurrentRotation(ApplicationContext, SurfaceRotation, bool notify = false);
@@ -137,23 +140,22 @@ public:
 	bool eventsUseOSInputMethod() const;
 	Input::AndroidInputDevice *addInputDevice(Input::AndroidInputDevice, bool updateExisting, bool notify);
 	bool removeInputDevice(int id, bool notify);
-	void enumInputDevices(JNIEnv *, bool notify);
+	void enumInputDevices(JNIEnv *, jobject baseActivity, bool notify);
 	bool processInputEvent(AInputEvent*, Window &);
 	bool hasTrackball() const;
 	void flushSystemInputEvents();
 
 private:
-	jclass jBaseActivityCls{};
-	jclass inputDeviceHelperCls{};
-	JavaInstMethod<void()> jRecycle{};
-	JavaInstMethod<void(jint)> jSetUIVisibility{};
-	JavaInstMethod<jobject()> jNewFontRenderer{};
-	JavaInstMethod<void(jint)> jSetRequestedOrientation{};
-	JavaInstMethod<jint()> jMainDisplayRotation{};
-	JavaInstMethod<void(jint, jint)> jSetWinFlags{};
-	JavaInstMethod<jint()> jWinFlags{};
-	JavaInstMethod<void(jstring, jstring, jstring)> jAddNotification{};
-	JavaClassMethod<void(jlong)> jEnumInputDevices{};
+	JNI::UniqueGlobalRef displayListenerHelper{};
+	JNI::InstMethod<void()> jRecycle{};
+	JNI::InstMethod<void(jint)> jSetUIVisibility{};
+	JNI::InstMethod<jobject()> jNewFontRenderer{};
+	JNI::InstMethod<void(jint)> jSetRequestedOrientation{};
+	JNI::InstMethod<jint()> jMainDisplayRotation{};
+	JNI::InstMethod<void(jint, jint)> jSetWinFlags{};
+	JNI::InstMethod<jint()> jWinFlags{};
+	JNI::InstMethod<void(jstring, jstring, jstring)> jAddNotification{};
+	JNI::InstMethod<void(jlong)> jEnumInputDevices{};
 	SystemOrientationChangedDelegate onSystemOrientationChanged{};
 	Timer userActivityCallback{"userActivityCallback"};
 	void (AndroidApplication::*processInput_)(AInputQueue *);
@@ -177,9 +179,9 @@ private:
 	bool sendInputToIME{};
 
 	// InputDeviceListener-based device changes
-	jobject inputDeviceListenerHelper{};
-	JavaInstMethod<void()> jRegister{};
-	JavaInstMethod<void()> jUnregister{};
+	JNI::UniqueGlobalRef inputDeviceListenerHelper{};
+	JNI::InstMethod<void()> jRegister{};
+	JNI::InstMethod<void()> jUnregister{};
 
 	// inotify-based device changes
 	std::optional<Base::Timer> inputRescanCallback{};
@@ -187,11 +189,11 @@ private:
 	int watch = -1;
 
 	void setHardKeyboardState(int hardKeyboardState);
-	void initActivity(JNIEnv *, jobject baseActivity, int32_t androidSDK);
-	void initInput(JNIEnv *, jobject baseActivity, int32_t androidSDK);
+	void initActivity(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
+	void initInput(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
 	void initInputConfig(AConfiguration *config);
-	void initFrameTimer(JNIEnv *, jobject baseActivity, int32_t androidSDK, Screen &screen);
-	void initScreens(JNIEnv *, jobject baseActivity, int32_t androidSDK, ANativeActivity *);
+	void initFrameTimer(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK, Screen &screen);
+	void initScreens(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK, ANativeActivity *);
 	void processInput(AInputQueue *);
 	void processInputWithGetEvent(AInputQueue *);
 	void processInputWithHasEvents(AInputQueue *);

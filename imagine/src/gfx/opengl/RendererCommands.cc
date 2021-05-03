@@ -121,7 +121,7 @@ void GLRendererCommands::notifyPresentComplete()
 {
 	if(winPtr)
 	{
-		winPtr->postFrameReady();
+		winPtr->postFrameReadyToMainThread();
 	}
 }
 
