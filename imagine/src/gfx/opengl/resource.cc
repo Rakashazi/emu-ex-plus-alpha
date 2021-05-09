@@ -53,7 +53,7 @@ static auto &commonTextureSampler(CommonSamplers &commonSampler, CommonTextureSa
 {
 	switch(sampler)
 	{
-		default: bug_unreachable("sampler:%d", (int)sampler); [[fallthrough]];
+		default: bug_unreachable("sampler:%d", (int)sampler); return commonSampler.clamp;
 		case CommonTextureSampler::CLAMP: return commonSampler.clamp;
 		case CommonTextureSampler::NEAREST_MIP_CLAMP: return commonSampler.nearestMipClamp;
 		case CommonTextureSampler::NO_MIP_CLAMP: return commonSampler.noMipClamp;
@@ -75,7 +75,7 @@ static TextureSamplerConfig commonTextureSamplerConfig(CommonTextureSampler samp
 	TextureSamplerConfig conf;
 	switch(sampler)
 	{
-		default: bug_unreachable("sampler:%d", (int)sampler); [[fallthrough]];
+		default: bug_unreachable("sampler:%d", (int)sampler); return conf;
 		case CommonTextureSampler::CLAMP:
 			conf.setDebugLabel("CommonClamp");
 			return conf;

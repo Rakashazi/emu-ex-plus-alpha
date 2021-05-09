@@ -42,7 +42,7 @@ public:
 			{
 				switch(idx)
 				{
-					default: bug_unreachable("idx == %d", idx); [[fallthrough]];
+					default: bug_unreachable("idx == %d", idx); return soft;
 					case 0: return soft;
 					case 1: return hard;
 					case 2: return cancel;
