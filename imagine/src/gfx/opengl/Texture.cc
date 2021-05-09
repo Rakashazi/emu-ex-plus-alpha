@@ -95,13 +95,7 @@ static GLenum makeGLDataType(IG::PixelFormatID format)
 		#if !defined CONFIG_GFX_OPENGL_ES
 			return GL_UNSIGNED_INT_8_8_8_8_REV;
 		#endif
-		case PIXEL_ARGB8888:
-		case PIXEL_ABGR8888:
-		#if !defined CONFIG_GFX_OPENGL_ES
-			return GL_UNSIGNED_INT_8_8_8_8;
-		#endif
 		case PIXEL_RGB888:
-		case PIXEL_BGR888:
 		case PIXEL_I8:
 		case PIXEL_IA88:
 		case PIXEL_A8:
@@ -112,12 +106,6 @@ static GLenum makeGLDataType(IG::PixelFormatID format)
 			return GL_UNSIGNED_SHORT_5_5_5_1;
 		case PIXEL_RGBA4444:
 			return GL_UNSIGNED_SHORT_4_4_4_4;
-		#if !defined CONFIG_GFX_OPENGL_ES
-		case PIXEL_ABGR4444:
-			return GL_UNSIGNED_SHORT_4_4_4_4_REV;
-		case PIXEL_ABGR1555:
-			return GL_UNSIGNED_SHORT_1_5_5_5_REV;
-		#endif
 		default: bug_unreachable("format == %d", format); return 0;
 	}
 }
@@ -136,21 +124,12 @@ static GLenum makeGLFormat(const Renderer &r, IG::PixelFormatID format)
 		case PIXEL_RGB565:
 			return GL_RGB;
 		case PIXEL_RGBA8888:
-		case PIXEL_ARGB8888:
 		case PIXEL_RGBA5551:
 		case PIXEL_RGBA4444:
 			return GL_RGBA;
-		#if !defined CONFIG_GFX_OPENGL_ES
-		case PIXEL_BGR888:
-			assert(r.support.hasBGRPixels);
-			return GL_BGR;
-		case PIXEL_ABGR8888:
 		case PIXEL_BGRA8888:
-		case PIXEL_ABGR4444:
-		case PIXEL_ABGR1555:
 			assert(r.support.hasBGRPixels);
 			return GL_BGRA;
-		#endif
 		default: bug_unreachable("format == %d", format); return 0;
 	}
 }
@@ -162,29 +141,22 @@ static int makeGLESInternalFormat(const Renderer &r, IG::PixelFormatID format)
 	else return makeGLFormat(r, format); // OpenGL ES manual states internalformat always equals format
 }
 
-static int makeGLSizedInternalFormat(const Renderer &r, IG::PixelFormatID format)
+static int makeGLSizedInternalFormat(const Renderer &r, IG::PixelFormatID format, bool isSrgb)
 {
 	switch(format)
 	{
 		case PIXEL_BGRA8888:
-		case PIXEL_ARGB8888:
-		case PIXEL_ABGR8888:
 		case PIXEL_RGBA8888:
-			return GL_RGBA8;
-		case PIXEL_RGB888:
-		case PIXEL_BGR888:
-			return GL_RGB8;
+			return isSrgb ? GL_SRGB8_ALPHA8 : GL_RGBA8;
 		case PIXEL_RGB565:
 			#if defined CONFIG_GFX_OPENGL_ES
 			return GL_RGB565;
 			#else
 			return GL_RGB5;
 			#endif
-		case PIXEL_ABGR1555:
 		case PIXEL_RGBA5551:
 			return GL_RGB5_A1;
 		case PIXEL_RGBA4444:
-		case PIXEL_ABGR4444:
 			return GL_RGBA4;
 		case PIXEL_I8:
 			return r.support.luminanceInternalFormat;
@@ -196,10 +168,10 @@ static int makeGLSizedInternalFormat(const Renderer &r, IG::PixelFormatID format
 	}
 }
 
-static int makeGLInternalFormat(const Renderer &r, PixelFormatID format)
+static int makeGLInternalFormat(const Renderer &r, PixelFormatID format, bool isSrgb)
 {
 	return Config::Gfx::OPENGL_ES ? makeGLESInternalFormat(r, format)
-		: makeGLSizedInternalFormat(r, format);
+		: makeGLSizedInternalFormat(r, format, isSrgb);
 }
 
 static TextureType typeForPixelFormat(PixelFormatID format)
@@ -310,7 +282,7 @@ TextureConfig GLTexture::baseInit(RendererTask &r, TextureConfig config)
 IG::ErrorCode GLTexture::init(RendererTask &r, TextureConfig config)
 {
 	config = baseInit(r, config);
-	return static_cast<Texture*>(this)->setFormat(config.pixmapDesc(), config.levels(), config.compatSampler());
+	return static_cast<Texture*>(this)->setFormat(config.pixmapDesc(), config.levels(), config.colorSpace(), config.compatSampler());
 }
 
 void GLTexture::deinit()
@@ -371,7 +343,7 @@ uint8_t Texture::levels() const
 	return levels_;
 }
 
-IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, const TextureSampler *compatSampler)
+IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
 	if(renderer().support.textureSizeSupport.supportsMipmaps(desc.w(), desc.h()))
 	{
@@ -385,6 +357,7 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, const Text
 	SamplerParams samplerParams = compatSampler ? compatSampler->samplerParams() : SamplerParams{};
 	if(renderer().support.hasImmutableTexStorage)
 	{
+		bool isSrgb = colorSpace == ColorSpace::SRGB && (desc.format() == IG::PIXEL_RGBA8888 || desc.format() == IG::PIXEL_BGRA8888);
 		task().runSync(
 			[=, &r = std::as_const(renderer()), &texName_ = texName_](GLTask::TaskContext ctx)
 			{
@@ -392,7 +365,7 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, const Text
 				texName_ = texName;
 				ctx.notifySemaphore();
 				glBindTexture(GL_TEXTURE_2D, texName);
-				auto internalFormat = makeGLSizedInternalFormat(r, desc.format());
+				auto internalFormat = makeGLSizedInternalFormat(r, desc.format(), isSrgb);
 				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s",
 					texName, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat));
 				runGLChecked(
@@ -420,7 +393,7 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, const Text
 				glBindTexture(GL_TEXTURE_2D, texName);
 				auto format = makeGLFormat(r, desc.format());
 				auto dataType = makeGLDataType(desc.format());
-				auto internalFormat = makeGLInternalFormat(r, desc.format());
+				auto internalFormat = makeGLInternalFormat(r, desc.format(), false);
 				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s image format:%s:%s",
 					texName, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
 				uint32_t w = desc.w(), h = desc.h();
@@ -907,7 +880,7 @@ PixmapTexture::PixmapTexture(RendererTask &r, GfxImageSource &img, const Texture
 IG::ErrorCode GLPixmapTexture::init(RendererTask &r, TextureConfig config)
 {
 	config = baseInit(r, config);
-	if(auto err = static_cast<PixmapTexture*>(this)->setFormat(config.pixmapDesc(), config.levels(), config.compatSampler());
+	if(auto err = static_cast<PixmapTexture*>(this)->setFormat(config.pixmapDesc(), config.levels(), config.colorSpace(), config.compatSampler());
 		err) [[unlikely]]
 	{
 		return err;
@@ -915,10 +888,10 @@ IG::ErrorCode GLPixmapTexture::init(RendererTask &r, TextureConfig config)
 	return {};
 }
 
-IG::ErrorCode PixmapTexture::setFormat(IG::PixmapDesc desc, uint8_t levels, const TextureSampler *compatSampler)
+IG::ErrorCode PixmapTexture::setFormat(IG::PixmapDesc desc, uint8_t levels, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
 	IG::PixmapDesc fullPixDesc = renderer().support.textureSizeSupport.makePixmapDescWithSupportedSize(desc);
-	if(auto err = Texture::setFormat(fullPixDesc, levels, compatSampler);
+	if(auto err = Texture::setFormat(fullPixDesc, levels, colorSpace, compatSampler);
 		err) [[unlikely]]
 	{
 		return err;
@@ -969,7 +942,7 @@ void GLPixmapTexture::initWithEGLImage(IG::WP usedSize, EGLImageKHR eglImg, IG::
 
 IG::PixmapDesc TextureSizeSupport::makePixmapDescWithSupportedSize(IG::PixmapDesc desc) const
 {
-	return {makeSupportedSize(desc.size()), desc.format()};
+	return desc.makeNewSize(makeSupportedSize(desc.size()));
 }
 
 IG::WP TextureSizeSupport::makeSupportedSize(IG::WP size) const

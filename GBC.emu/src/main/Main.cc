@@ -259,7 +259,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 		totalSamples += runUntilVideoFrame(frameBuffer, gambatte::lcd_hres, audio,
 			[task, video]()
 			{
-				if(video->image().pixmapDesc().format() == IG::PIXEL_RGBA8888)
+				if(video->image().pixmapDesc().format() != IG::PIXEL_RGB565)
 				{
 					video->startFrame(task, frameBufferPix);
 				}

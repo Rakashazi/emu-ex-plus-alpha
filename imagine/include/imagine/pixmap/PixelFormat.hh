@@ -6,24 +6,20 @@
 namespace IG
 {
 
-enum PixelFormatID : uint16_t
+enum PixelFormatID : uint8_t
 {
 	PIXEL_NONE = 0,
+	PIXEL_RGBA8888,
+	PIXEL_RGBX8888,
+	PIXEL_BGRA8888,
+	PIXEL_RGB565,
+	PIXEL_RGBA5551,
+	PIXEL_RGBA4444,
 	PIXEL_I8,
 	PIXEL_A8,
 	PIXEL_IA88,
-	PIXEL_RGB565,
-	PIXEL_RGBA5551,
-	PIXEL_ABGR1555,
-	PIXEL_RGBA4444,
-	PIXEL_ABGR4444,
 	PIXEL_RGB888,
-	PIXEL_BGR888,
-	PIXEL_RGBA8888,
-	PIXEL_BGRA8888,
-	PIXEL_ARGB8888,
 	PIXEL_ABGR8888,
-	PIXEL_RGBX8888,
 	PIXEL_END,
 	PIXEL_MAX = PIXEL_END - 1
 };
@@ -34,15 +30,11 @@ static constexpr PixelDesc PIXEL_DESC_A8  			{0, 0, 0, 8, 0, 	0, 	0, 	0, 	1, "A8
 static constexpr PixelDesc PIXEL_DESC_IA88  		{8, 0, 0, 8, 8, 	0, 	0, 	0, 	2, "IA88"};
 static constexpr PixelDesc PIXEL_DESC_RGB565  	{5, 6, 5, 0, 11,	5, 	0, 	0, 	2, "RGB565"};
 static constexpr PixelDesc PIXEL_DESC_RGBA5551 	{5, 5, 5, 1, 11,	6, 	1, 	0, 	2, "RGBA5551"};
-static constexpr PixelDesc PIXEL_DESC_ABGR1555 	{5, 5, 5, 1, 0, 	5, 	10, 15,	2, "ABGR1555"};
 static constexpr PixelDesc PIXEL_DESC_RGBA4444 	{4, 4, 4, 4, 12,	8, 	4, 	0, 	2, "RGBA4444"};
-static constexpr PixelDesc PIXEL_DESC_ABGR4444 	{4, 4, 4, 4, 0, 	4, 	8, 	12, 2, "ABGR4444"};
 static constexpr PixelDesc PIXEL_DESC_RGB888 		{8, 8, 8, 0, 16,	8, 	0, 	0, 	3, "RGB888"};
-static constexpr PixelDesc PIXEL_DESC_BGR888 		{8, 8, 8, 0, 0, 	8, 	16, 0, 	3, "BGR888"};
 static constexpr PixelDesc PIXEL_DESC_RGBA8888 	{8, 8, 8, 8, 24,	16, 8, 	0, 	4, "RGBA8888"};
 static constexpr PixelDesc PIXEL_DESC_BGRA8888 	{8, 8, 8, 8, 8, 	16, 24, 0, 	4, "BGRA8888"};
-static constexpr PixelDesc PIXEL_DESC_ARGB8888 	{8, 8, 8, 8, 16,	8, 	0, 	24, 4, "ARGB8888"};
-static constexpr PixelDesc PIXEL_DESC_ABGR8888 	{8, 8, 8, 8, 0,		8, 	16, 24, 4, "ABGR8888"};
+static constexpr PixelDesc PIXEL_DESC_ABGR8888  {8, 8, 8, 8, 0,   8,  16, 24, 4, "ABGR8888"};
 static constexpr PixelDesc PIXEL_DESC_RGBX8888 	{8, 8, 8, 0, 24,	16, 8, 	0, 	4, "RGBX8888"};
 
 class PixelFormat
@@ -113,14 +105,10 @@ public:
 			case PIXEL_IA88: return PIXEL_DESC_IA88;
 			case PIXEL_RGB565: return PIXEL_DESC_RGB565;
 			case PIXEL_RGBA5551: return PIXEL_DESC_RGBA5551;
-			case PIXEL_ABGR1555: return PIXEL_DESC_ABGR1555;
 			case PIXEL_RGBA4444: return PIXEL_DESC_RGBA4444;
-			case PIXEL_ABGR4444: return PIXEL_DESC_ABGR4444;
 			case PIXEL_RGB888: return PIXEL_DESC_RGB888;
-			case PIXEL_BGR888: return PIXEL_DESC_BGR888;
 			case PIXEL_RGBA8888: return PIXEL_DESC_RGBA8888;
 			case PIXEL_BGRA8888: return PIXEL_DESC_BGRA8888;
-			case PIXEL_ARGB8888: return PIXEL_DESC_ARGB8888;
 			case PIXEL_ABGR8888: return PIXEL_DESC_ABGR8888;
 			case PIXEL_RGBX8888: return PIXEL_DESC_RGBX8888;
 			case PIXEL_NONE: break;
@@ -136,14 +124,10 @@ static constexpr PixelFormat PIXEL_FMT_A8{PIXEL_A8};
 static constexpr PixelFormat PIXEL_FMT_IA88{PIXEL_IA88};
 static constexpr PixelFormat PIXEL_FMT_RGB565{PIXEL_RGB565};
 static constexpr PixelFormat PIXEL_FMT_RGBA5551{PIXEL_RGBA5551};
-static constexpr PixelFormat PIXEL_FMT_ABGR1555{PIXEL_ABGR1555};
 static constexpr PixelFormat PIXEL_FMT_RGBA4444{PIXEL_RGBA4444};
-static constexpr PixelFormat PIXEL_FMT_ABGR4444{PIXEL_ABGR4444};
 static constexpr PixelFormat PIXEL_FMT_RGB888{PIXEL_RGB888};
-static constexpr PixelFormat PIXEL_FMT_BGR888{PIXEL_BGR888};
 static constexpr PixelFormat PIXEL_FMT_RGBA8888{PIXEL_RGBA8888};
 static constexpr PixelFormat PIXEL_FMT_BGRA8888{PIXEL_BGRA8888};
-static constexpr PixelFormat PIXEL_FMT_ARGB8888{PIXEL_ARGB8888};
 static constexpr PixelFormat PIXEL_FMT_ABGR8888{PIXEL_ABGR8888};
 static constexpr PixelFormat PIXEL_FMT_RGBX8888{PIXEL_RGBX8888};
 

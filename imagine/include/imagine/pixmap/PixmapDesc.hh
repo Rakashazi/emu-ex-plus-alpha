@@ -27,16 +27,19 @@ class PixmapDesc
 {
 public:
 	constexpr PixmapDesc() {}
-	constexpr PixmapDesc(WP size, PixelFormat format): w_{(uint32_t)size.x}, h_{(uint32_t)size.y}, format_(format) {}
-	constexpr uint32_t w() const { return w_; }
-	constexpr uint32_t h() const { return h_; }
-	constexpr WP size() const { return {(int)w(), (int)h()}; }
+	constexpr PixmapDesc(WP size, PixelFormat format):
+		size_{size}, format_(format)
+	{}
+	constexpr unsigned w() const { return size().x; }
+	constexpr unsigned h() const { return size().y; }
+	constexpr WP size() const { return size_; }
 	constexpr PixelFormat format() const { return format_; }
 	constexpr size_t pixelBytes() const { return format().pixelBytes(w() * h()); }
+	constexpr PixmapDesc makeNewSize(WP newSize) const { return {newSize, format_}; }
 	constexpr bool operator ==(const PixmapDesc &rhs) const = default;
 
 protected:
-	uint32_t w_ = 0, h_ = 0;
+	WP size_{};
 	PixelFormat format_{};
 };
 

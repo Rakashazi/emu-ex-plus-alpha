@@ -59,9 +59,6 @@ class RendererCommands : public RendererCommandsImpl
 {
 public:
 	using RendererCommandsImpl::RendererCommandsImpl;
-	RendererCommands(RendererCommands &&o);
-	RendererCommands &operator=(RendererCommands &&o);
-	~RendererCommands();
 	void present();
 	void setRenderTarget(Texture &t);
 	void setDefaultRenderTarget();
@@ -86,6 +83,7 @@ public:
 	void setImgMode(uint32_t mode);
 	void setDither(bool on);
 	bool dither();
+	void setSrgbFramebufferWrite(bool on);
 	void setVisibleGeomFace(uint32_t sides);
 	void setClipTest(bool on);
 	void setClipRect(ClipRect b);

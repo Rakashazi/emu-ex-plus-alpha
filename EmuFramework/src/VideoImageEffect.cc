@@ -130,7 +130,7 @@ void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r, const Gfx::Text
 	if(!renderTarget_)
 		renderTarget_ = r.makeTexture({renderPix, &compatTexSampler});
 	else
-		renderTarget_.setFormat(renderPix, 1, &compatTexSampler);
+		renderTarget_.setFormat(renderPix, 1, {}, &compatTexSampler);
 	r.make(Gfx::CommonTextureSampler::NO_LINEAR_NO_MIP_CLAMP);
 }
 

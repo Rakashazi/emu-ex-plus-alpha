@@ -47,6 +47,14 @@
 #define GL_BLUE 0x1905
 #endif
 
+#ifndef GL_SRGB8_ALPHA8
+#define GL_SRGB8_ALPHA8 0x8C43
+#endif
+
+#ifndef GL_FRAMEBUFFER_SRGB
+#define GL_FRAMEBUFFER_SRGB 0x8DB9
+#endif
+
 namespace Gfx
 {
 extern bool checkGLErrors;
@@ -94,6 +102,7 @@ static const char *glImageFormatToString(int format)
 	switch(format)
 	{
 		case GL_RGBA8: return "RGBA8";
+		case GL_SRGB8_ALPHA8: return "SRGB8A8";
 		case GL_RGB8: return "RGB8";
 		case GL_RGB5_A1: return "RGB5_A1";
 		#if defined CONFIG_GFX_OPENGL_ES

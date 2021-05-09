@@ -39,7 +39,6 @@ SRC += gfx/common/AnimatedViewport.cc \
  gfx/common/Sprite.cc \
  gfx/opengl/config.cc \
  gfx/opengl/debug.cc \
- gfx/opengl/DrawableHolder.cc \
  gfx/opengl/geometry.cc \
  gfx/opengl/GLStateCache.cc \
  gfx/opengl/GLTask.cc \

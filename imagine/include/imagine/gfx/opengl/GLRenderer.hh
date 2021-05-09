@@ -132,20 +132,21 @@ public:
 	GLenum bgrInternalFormat = GL_BGRA;
 	TextureSizeSupport textureSizeSupport{};
 	//bool hasMemoryBarrier = false;
-	bool hasBGRPixels = false;
-	bool hasVBOFuncs = false;
-	bool hasTextureSwizzle = false;
+	bool hasBGRPixels{};
+	bool hasVBOFuncs{};
+	bool hasTextureSwizzle{};
 	bool hasUnpackRowLength = !Config::Gfx::OPENGL_ES;
 	bool hasSamplerObjects = !Config::Gfx::OPENGL_ES;
-	bool hasImmutableTexStorage = false;
-	bool hasPBOFuncs = false;
+	bool hasImmutableTexStorage{};
+	bool hasPBOFuncs{};
 	bool useLegacyGLSL = Config::Gfx::OPENGL_ES;
 	IG_enableMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, hasDebugOutput){};
 	IG_enableMemberIf(!Config::Gfx::OPENGL_ES, bool, hasBufferStorage){};
 	IG_enableMemberIf(Config::envIsAndroid, bool, hasEGLImages){};
 	IG_enableMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, bool, hasExternalEGLImages){};
 	IG_enableMemberIf(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE, bool, useFixedFunctionPipeline){true};
-	bool isConfigured = false;
+	bool hasSrgbWriteControl{};
+	bool isConfigured{};
 
 	bool hasDrawReadBuffers() const;
 	bool hasSyncFences() const;
@@ -185,36 +186,22 @@ struct GLCommonSamplers
 	TextureSampler nearestMipRepeat{};
 };
 
-class GLDisplayHolder
-{
-public:
-	constexpr GLDisplayHolder() {}
-	constexpr GLDisplayHolder(Base::GLDisplay dpy):dpy{dpy} {}
-	~GLDisplayHolder();
-	GLDisplayHolder(GLDisplayHolder &&);
-	GLDisplayHolder &operator=(GLDisplayHolder &&);
-	constexpr operator Base::GLDisplay() const { return dpy; }
-
-protected:
-	Base::GLDisplay dpy{};
-};
-
 class GLRenderer
 {
 public:
 	DrawContextSupport support{};
-	GLDisplayHolder glDpy{};
+	[[no_unique_address]] Base::GLManager glManager;
 	RendererTask mainTask;
-	Base::GLBufferConfig gfxBufferConfig{};
 	GLCommonPrograms commonProgram{};
 	GLCommonSamplers commonSampler{};
 	Base::CustomEvent releaseShaderCompilerEvent{Base::CustomEvent::NullInit{}};
 	IG_enableMemberIf(Config::Gfx::OPENGL_SHADER_PIPELINE, GLuint, defaultVShader){};
 
-	GLRenderer(Base::ApplicationContext);
+	GLRenderer(Base::ApplicationContext, Error &err);
 	void setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat) const;
 	void useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat) const;
 	Base::GLDisplay glDisplay() const;
+	bool makeWindowDrawable(RendererTask &task, Base::Window &, Base::GLBufferConfig, Base::GLColorSpace);
 
 protected:
 	void addEventHandlers(Base::ApplicationContext, RendererTask &);
@@ -241,6 +228,8 @@ protected:
 	void checkExtensionString(const char *extStr, bool &useFBOFuncs);
 	void checkFullExtensionString(const char *fullExtStr);
 	const Program &commonProgramRef(CommonProgram program) const;
+	bool attachWindow(Base::Window &, Base::GLBufferConfig, Base::GLColorSpace);
+	Base::NativeWindowFormat nativeWindowFormat(Base::GLBufferConfig) const;
 };
 
 using RendererImpl = GLRenderer;

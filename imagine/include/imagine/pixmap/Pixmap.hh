@@ -33,7 +33,7 @@ public:
 	class PitchInit
 	{
 	public:
-		uint32_t val;
+		unsigned val;
 		PitchUnits units;
 
 		constexpr PitchInit(uint32_t pitchVal, PitchUnits units):
@@ -103,7 +103,7 @@ public:
 		//logDMsg("sub-pixmap with pos:%dx%d size:%dx%d", pos.x, pos.y, size.x, size.y);
 		assumeExpr(pos.x >= 0 && pos.y >= 0);
 		assumeExpr(pos.x + size.x <= (int)w() && pos.y + size.y <= (int)h());
-		return Pixmap{{size, format()}, pixel(pos), {pitchBytes(), BYTE_UNITS}};
+		return Pixmap{makeNewSize(size), pixel(pos), {pitchBytes(), BYTE_UNITS}};
 	}
 
 	void write(Pixmap pixmap);

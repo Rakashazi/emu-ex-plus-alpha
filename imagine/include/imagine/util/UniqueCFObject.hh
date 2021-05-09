@@ -15,27 +15,25 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
+#include <memory>
 
-#ifdef CONFIG_GFX_OPENGL
-#include <imagine/gfx/opengl/GLDrawableHolder.hh>
-#endif
-
-#include <imagine/base/baseDefs.hh>
-
-namespace Gfx
+namespace IG
 {
 
-class RendererTask;
+void releaseCFObject(void *);
 
-class DrawableHolder : public DrawableHolderImpl
+template <class T>
+struct CFDeleter
 {
-public:
-	using DrawableHolderImpl::DrawableHolderImpl;
-	DrawableHolder(DrawableHolder &&o);
-	DrawableHolder &operator=(DrawableHolder &&o);
-	operator Drawable() const;
-	explicit operator bool() const;
+	void operator()(T *ptr) const
+	{
+		releaseCFObject(ptr);
+	}
 };
+
+// simple wrapper for a Core Foundation object with a unique_ptr
+
+template <class T>
+using UniqueCFObject = std::unique_ptr<T, CFDeleter<T>>;
 
 }

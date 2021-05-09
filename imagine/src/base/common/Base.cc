@@ -13,27 +13,27 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#if defined __unix__ || defined __APPLE__
-#include <unistd.h>
-#include <sys/resource.h>
-#endif
-#ifndef __ANDROID__
-#include <execinfo.h>
-#endif
 #include <imagine/base/EventLoop.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/sharedLibrary.hh>
-#include <imagine/util/system/pagesize.h>
-#ifdef __ANDROID__
-#include <android/log.h>
-#endif
-#include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
 #include <imagine/data-type/image/GfxImageSource.hh>
+#include <imagine/logger/logger.h>
 #include <cstdlib>
 #include <cstring>
 #include <dlfcn.h>
+#if defined __unix__ || defined __APPLE__
+#include <unistd.h>
+#endif
+#ifdef __linux__
+#include <sys/resource.h>
+#endif
+#ifdef __ANDROID__
+#include <android/log.h>
+#else
+#include <execinfo.h>
+#endif
 
 namespace Base
 {
@@ -91,6 +91,16 @@ void *loadSymbol(SharedLibraryRef lib, const char *name)
 	if(!lib)
 		lib = RTLD_DEFAULT;
 	return dlsym(lib, name);
+}
+
+GLContext GLManager::makeContext(GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec)
+{
+	return makeContext(attr, config, {}, ec);
+}
+
+void GLManager::resetCurrentContext() const
+{
+	display().resetCurrentContext();
 }
 
 }

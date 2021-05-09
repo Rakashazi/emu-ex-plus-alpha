@@ -28,7 +28,7 @@ class HardwareSingleBufferStorage final: public TextureBufferStorage
 {
 public:
 	HardwareSingleBufferStorage(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler) final;
+	IG::ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler) final;
 	LockedTextureBuffer lock(uint32_t bufferFlags) final;
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
 
@@ -42,7 +42,7 @@ class HardwareBufferStorage final: public TextureBufferStorage
 {
 public:
 	HardwareBufferStorage(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler) final;
+	IG::ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler) final;
 	LockedTextureBuffer lock(uint32_t bufferFlags) final;
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
 

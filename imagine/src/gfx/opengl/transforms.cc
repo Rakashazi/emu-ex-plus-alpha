@@ -72,7 +72,7 @@ void Renderer::animateProjectionMatrixRotation(Base::Window &win, Angle srcAngle
 
 void RendererCommands::setTransformTarget(TransformTargetEnum target)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 		glcMatrixMode(target == TARGET_TEXTURE ? GL_TEXTURE : GL_MODELVIEW);
@@ -87,7 +87,7 @@ void RendererCommands::setTransformTarget(TransformTargetEnum target)
 
 void RendererCommands::loadTransform(Mat4 mat)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{

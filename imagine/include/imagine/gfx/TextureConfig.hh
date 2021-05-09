@@ -32,58 +32,63 @@ public:
 		compatSampler_{compatSampler}, pixmapDesc_{pixDesc}
 	{}
 
-	void setLevels(uint8_t levels)
+	constexpr void setLevels(uint8_t levels)
 	{
 		levels_ = levels;
 	}
 
-	void setAllLevels()
+	constexpr void setAllLevels()
 	{
 		levels_ = 0;
 	}
 
-	uint8_t levels()
+	constexpr uint8_t levels() const
 	{
 		return levels_;
 	}
 
-	void setWillGenerateMipmaps(bool on)
+	constexpr void setWillGenerateMipmaps(bool on)
 	{
 		genMipmaps = on;
 		if(on)
 			setAllLevels();
 	}
 
-	bool willGenerateMipmaps() const
+	constexpr bool willGenerateMipmaps() const
 	{
 		return genMipmaps;
 	}
 
-	void setPixmapDesc(IG::PixmapDesc pixDesc)
+	constexpr void setPixmapDesc(IG::PixmapDesc pixDesc)
 	{
 		pixmapDesc_ = pixDesc;
 	}
 
-	IG::PixmapDesc pixmapDesc() const
+	constexpr IG::PixmapDesc pixmapDesc() const
 	{
 		return pixmapDesc_;
 	}
 
-	void setCompatSampler(const TextureSampler *sampler)
+	constexpr void setCompatSampler(const TextureSampler *sampler)
 	{
 		compatSampler_ = sampler;
 	}
 
-	const TextureSampler *compatSampler() const
+	constexpr const TextureSampler *compatSampler() const
 	{
 		return compatSampler_;
 	}
 
+	constexpr void setColorSpace(ColorSpace c) { colorSpace_ = c; }
+
+	constexpr ColorSpace colorSpace() const { return colorSpace_; }
+
 private:
 	const TextureSampler *compatSampler_{};
-	IG::PixmapDesc pixmapDesc_;
-	uint8_t levels_ = 1;
-	bool genMipmaps = false;
+	IG::PixmapDesc pixmapDesc_{};
+	uint8_t levels_{1};
+	bool genMipmaps{};
+	ColorSpace colorSpace_{};
 };
 
 }

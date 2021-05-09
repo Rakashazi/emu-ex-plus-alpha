@@ -35,6 +35,8 @@ public:
 	void setEffect(unsigned effect, IG::PixelFormatID fmt);
 	void setEffectFormat(IG::PixelFormatID fmt);
 	void setLinearFilter(bool on);
+	void setSrgbColorSpaceOutput(bool on);
+	bool srgbColorSpaceOutput() const;
 	void resetImage();
 	void setBrightness(float b);
 	void setTextureBufferMode(Gfx::TextureBufferMode mode);

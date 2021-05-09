@@ -50,6 +50,16 @@ struct TextureBufferModeDesc
 
 	constexpr TextureBufferModeDesc() {}
 	constexpr TextureBufferModeDesc(const char *name, TextureBufferMode mode):name{name}, mode{mode} {}
+	constexpr bool operator ==(TextureBufferMode mode_) const { return mode == mode_; }
+
+};
+
+struct BufferFormatDesc
+{
+	const char *name;
+	IG::PixelFormat format;
+
+	constexpr bool operator ==(IG::PixelFormat format_) const { return format == format_; }
 };
 
 class Renderer : public RendererImpl
@@ -62,9 +72,8 @@ public:
 	const RendererTask &task() const;
 	RendererTask &task();
 	Base::ApplicationContext appContext() const;
-	Error initMainTask(Base::Window *initialWindow, IG::PixelFormat format = PIXEL_FMT_NONE);
-	Error setPixelFormat(IG::PixelFormat);
-	bool attachWindow(Base::Window &);
+	Error initMainTask(Base::Window *initialWindow, IG::PixelFormat f = PIXEL_FMT_NONE, ColorSpace c = {});
+	bool attachWindow(Base::Window &, ColorSpace c = {});
 	void detachWindow(Base::Window &);
 	Base::NativeWindowFormat nativeWindowFormat() const;
 	void setWindowValidOrientations(Base::Window &win, Base::Orientation validO);
@@ -73,6 +82,8 @@ public:
 	bool supportsSyncFences() const;
 	void setPresentationTime(Base::Window &, IG::FrameTime time) const;
 	unsigned maxSwapChainImages() const;
+	void setCorrectnessChecks(bool on);
+	std::vector<BufferFormatDesc> supportedBufferFormats() const;
 
 	// shaders
 
@@ -103,7 +114,11 @@ public:
 	const TextureSampler &commonTextureSampler(CommonTextureSampler sampler) const;
 	const TextureSampler &get(CommonTextureSampler sampler) const { return commonTextureSampler(sampler); }
 
-	void setCorrectnessChecks(bool on);
+	// color space control
+
+	bool setColorSpace(Base::Window &, ColorSpace c = {});
+	bool supportsColorSpace() const;
+	bool hasSrgbColorSpaceWriteControl() const;
 };
 
 }

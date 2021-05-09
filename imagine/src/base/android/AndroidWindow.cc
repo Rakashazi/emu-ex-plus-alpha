@@ -233,9 +233,9 @@ void AndroidWindow::setNativeWindow(ApplicationContext ctx, ANativeWindow *nWind
 	static_cast<Window*>(this)->surfaceChange.addCreated();
 	if(Config::DEBUG_BUILD)
 	{
-		logMsg("created window with format visual ID:%d (current:%d)", pixelFormat, ANativeWindow_getFormat(nWindow));
+		logMsg("created window with format visual ID:%d (current:%d)", nPixelFormat, ANativeWindow_getFormat(nWindow));
 	}
-	if(pixelFormat)
+	if(nPixelFormat)
 	{
 		if(ctx.androidSDK() < 11 && this == ctx.application().deviceWindow())
 		{
@@ -248,9 +248,9 @@ void AndroidWindow::setNativeWindow(ApplicationContext ctx, ANativeWindow *nWind
 				logMsg("setting window format to %d (current %d) after surface creation",
 					nativePixelFormat(), ANativeWindow_getFormat(nWin));
 			}
-			jSetWinFormat(ctx.mainThreadJniEnv(), jWin, pixelFormat);
+			jSetWinFormat(ctx.mainThreadJniEnv(), jWin, nPixelFormat);
 		}
-		ANativeWindow_setBuffersGeometry(nWindow, 0, 0, pixelFormat);
+		ANativeWindow_setBuffersGeometry(nWindow, 0, 0, nPixelFormat);
 	}
 	if(onInit)
 	{
@@ -283,7 +283,7 @@ void Window::setIntendedFrameRate(double rate)
 
 void Window::setFormat(NativeWindowFormat fmt)
 {
-	pixelFormat = fmt;
+	nPixelFormat = fmt;
 	if(appContext().androidSDK() < 11 && this == application().deviceWindow())
 	{
 		// In testing with CM7 on a Droid, not setting window format to match
@@ -308,9 +308,19 @@ void Window::setFormat(NativeWindowFormat fmt)
 	}
 }
 
+void Window::setFormat(IG::PixelFormat fmt)
+{
+	setFormat(toAHardwareBufferFormat(fmt));
+}
+
+IG::PixelFormat Window::pixelFormat() const
+{
+	return makePixelFormatFromAndroidFormat(nPixelFormat);
+}
+
 int AndroidWindow::nativePixelFormat()
 {
-	return pixelFormat;
+	return nPixelFormat;
 }
 
 void AndroidWindow::systemRequestsRedraw(bool sync)
@@ -357,5 +367,10 @@ void AndroidWindow::setContentRect(const IG::WindowRect &rect, const IG::Point2D
 void Window::setTitle(const char *name) {}
 
 void Window::setAcceptDnd(bool on) {}
+
+void WindowConfig::setFormat(IG::PixelFormat fmt)
+{
+	setFormat(toAHardwareBufferFormat(fmt));
+}
 
 }

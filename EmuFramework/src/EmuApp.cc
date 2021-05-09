@@ -366,11 +366,13 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 
 	Base::WindowConfig winConf{};
 	winConf.setTitle(ctx.applicationName);
+	winConf.setFormat(windowPixelFormat());
 
 	ctx.makeWindow(winConf,
 		[this, appConfig](Base::ApplicationContext ctx, Base::Window &win)
 		{
-			if(auto err = renderer.initMainTask(&win, windowPixelFormat());
+			auto colorSpace = emuVideo.srgbColorSpaceOutput() ? Gfx::ColorSpace::SRGB : Gfx::ColorSpace::LINEAR;
+			if(auto err = renderer.initMainTask(&win, {}, colorSpace);
 				err)
 			{
 				ctx.exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
@@ -391,6 +393,8 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 			emuVideo.setRendererTask(renderer.task());
 			emuVideo.setTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val);
 			emuVideo.setImageBuffers(optionVideoImageBuffers);
+			if(!renderer.hasSrgbColorSpaceWriteControl())
+				emuVideo.setSrgbColorSpaceOutput(false);
 			emuVideoLayer.setLinearFilter(optionImgFilter);
 			emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
 

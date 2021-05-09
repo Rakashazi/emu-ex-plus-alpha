@@ -22,72 +22,41 @@
 namespace Base
 {
 
-// GLDisplay
-
-GLDisplay GLDisplay::getDefault(Base::NativeDisplayConnection)
+GLDisplay GLManager::getDefaultDisplay(Base::NativeDisplayConnection) const
 {
 	return {eglGetDisplay(EGL_DEFAULT_DISPLAY)};
 }
 
-bool GLDisplay::bindAPI(GL::API api)
+bool GLManager::bindAPI(GL::API api)
 {
 	return api == GL::API::OPENGL_ES;
 }
 
-// GLContext
-
-std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, ApplicationContext ctx, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion)
+std::optional<GLBufferConfig> GLManager::makeBufferConfig(Base::ApplicationContext ctx, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion) const
 {
 	if(majorVersion > 2 && ctx.androidSDK() < 18)
 	{
 		// need at least Android 4.3 to use ES 3 attributes
 		return {};
 	}
-	auto renderableType = GLDisplay::makeRenderableType(GL::API::OPENGL_ES, majorVersion);
-	return chooseConfig(display, renderableType, attr);
+	auto renderableType = makeRenderableType(GL::API::OPENGL_ES, majorVersion);
+	return chooseConfig(display(), renderableType, attr);
 }
 
-GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec):
-	EGLContextBase{display, attr, config, EGL_NO_CONTEXT, ec}
-{}
-
-GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, IG::ErrorCode &ec):
-	EGLContextBase{display, attr, config, shareContext.nativeObject(), ec}
-{}
-
-void GLContext::deinit(GLDisplay display)
-{
-	EGLContextBase::deinit(display);
-}
-
-void GLContext::setCurrent(GLDisplay display, GLContext c, GLDrawable win)
-{
-	setCurrentContext(display, c.context, win);
-}
-
-void GLContext::present(GLDisplay display, GLDrawable win)
-{
-	EGLContextBase::swapBuffers(display, win);
-}
-
-void GLContext::present(GLDisplay display, GLDrawable win, GLContext cachedCurrentContext)
-{
-	present(display, win);
-}
-
-Base::NativeWindowFormat EGLBufferConfig::windowFormat(Base::ApplicationContext, GLDisplay display) const
+Base::NativeWindowFormat GLManager::nativeWindowFormat(Base::ApplicationContext, GLBufferConfig glConfig) const
 {
 	EGLint nId;
-	eglGetConfigAttrib(display, glConfig, EGL_NATIVE_VISUAL_ID, &nId);
+	auto dpy = display();
+	eglGetConfigAttrib(dpy, glConfig, EGL_NATIVE_VISUAL_ID, &nId);
 	if(!nId)
 	{
 		nId = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
 		EGLint alphaSize;
-		eglGetConfigAttrib(display, glConfig, EGL_ALPHA_SIZE, &alphaSize);
+		eglGetConfigAttrib(dpy, glConfig, EGL_ALPHA_SIZE, &alphaSize);
 		if(!alphaSize)
 			nId = AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM;
 		EGLint redSize;
-		eglGetConfigAttrib(display, glConfig, EGL_RED_SIZE, &redSize);
+		eglGetConfigAttrib(dpy, glConfig, EGL_RED_SIZE, &redSize);
 		if(redSize < 8)
 			nId = AHARDWAREBUFFER_FORMAT_R5G6B5_UNORM;
 		//logWarn("config didn't provide a native format id, guessing %d", nId);
@@ -95,4 +64,17 @@ Base::NativeWindowFormat EGLBufferConfig::windowFormat(Base::ApplicationContext,
 	return nId;
 }
 
+bool GLManager::hasBufferFormat(GLBufferConfigAttributes attrs) const
+{
+	switch(attrs.pixelFormat().id())
+	{
+		default:
+			bug_unreachable("format id == %d", attrs.pixelFormat().id());
+			return false;
+		case PIXEL_NONE:
+		case PIXEL_RGB565:
+		case PIXEL_RGBA8888:
+		case PIXEL_RGBX8888: return true;
+	}
+}
 }

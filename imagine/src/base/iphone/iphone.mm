@@ -51,6 +51,18 @@ namespace Input
 	int GSEVENTKEY_KEYCODE = sizeof(NSInteger) == 8 ? GSEVENTKEY_KEYCODE_64_BIT : 15;
 }
 
+namespace IG
+{
+
+void releaseCFObject(void *ptr)
+{
+	if(!ptr)
+		return;
+	CFRelease(ptr);
+}
+
+}
+
 namespace Base
 {
 

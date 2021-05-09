@@ -1,7 +1,6 @@
 #pragma once
 #include <imagine/gfx/defs.hh>
 #include <imagine/base/GLContext.hh>
-#include "../common/DrawableHolder.hh"
 #include <imagine/util/Interpolator.hh>
 
 namespace Base
@@ -15,9 +14,10 @@ namespace Gfx
 
 struct GLRendererWindowData
 {
-	constexpr GLRendererWindowData(Base::ApplicationContext ctx):drawableHolder{ctx} {}
-	Gfx::DrawableHolder drawableHolder;
+	constexpr GLRendererWindowData() {}
+	Base::GLDrawable drawable{};
 	InterpolatorValue<Angle, IG::FrameTime, InterpolatorType::EASEOUTQUAD> projAngleM{};
+	Base::GLColorSpace colorSpace{};
 };
 
 GLRendererWindowData &winData(Base::Window &win);

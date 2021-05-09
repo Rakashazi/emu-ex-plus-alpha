@@ -21,6 +21,7 @@
 namespace Base
 {
 
+using GLManagerImpl = EGLManager;
 using GLDisplayImpl = EGLDisplayConnection;
 using GLDrawableImpl = EGLDrawable;
 using GLContextImpl = EGLContextBase;

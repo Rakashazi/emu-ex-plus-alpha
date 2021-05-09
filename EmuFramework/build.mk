@@ -62,6 +62,8 @@ pkgDescription := Emulator App Framework
 pkgVersion := $(metadata_version)
 LDLIBS := -l$(libName) $(LDLIBS)
 
+CFLAGS_WARN += -Werror=implicit-fallthrough
+
 include $(IMAGINE_PATH)/make/package/imagine.mk
 include $(IMAGINE_PATH)/make/package/stdc++.mk
 

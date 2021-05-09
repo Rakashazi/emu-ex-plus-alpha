@@ -76,9 +76,9 @@ public:
 
 protected:
 	RendererTask *rTask{};
-	TextureRef texName_ = 0;
-	IG::PixmapDesc pixDesc;
-	uint8_t levels_ = 0;
+	TextureRef texName_{};
+	IG::PixmapDesc pixDesc{};
+	uint8_t levels_{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	TextureType type_ = TextureType::UNSET;
 	#else
@@ -89,13 +89,13 @@ protected:
 	TextureConfig baseInit(RendererTask &r, TextureConfig config);
 	void deinit();
 	bool canUseMipmaps(const Renderer &r) const;
-	void updateFormatInfo(IG::PixmapDesc desc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
+	void updateFormatInfo(IG::PixmapDesc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
 	static void setSwizzleForFormatInGL(const Renderer &r, IG::PixelFormatID format, GLuint tex);
 	static void setSamplerParamsInGL(const Renderer &r, SamplerParams params, GLenum target = GL_TEXTURE_2D);
 	void updateLevelsForMipmapGeneration();
 	GLenum target() const;
 	#ifdef __ANDROID__
-	void initWithEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc, SamplerParams samplerParams, bool isMutable);
+	void initWithEGLImage(EGLImageKHR, IG::PixmapDesc, SamplerParams, bool isMutable);
 	void updateWithEGLImage(EGLImageKHR eglImg);
 	#endif
 };

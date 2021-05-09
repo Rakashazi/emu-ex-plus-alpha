@@ -38,6 +38,7 @@ namespace Base
 
 class Window;
 class GLDisplay;
+class ApplicationContext;
 
 class GLBufferConfigAttributes
 {
@@ -83,66 +84,105 @@ private:
 class GLContextAttributes
 {
 public:
-	void setMajorVersion(uint32_t majorVer)
+	constexpr GLContextAttributes() {}
+
+	constexpr GLContextAttributes(uint32_t majorVer, uint32_t minorVer, GL::API api)
+	{
+		setMajorVersion(majorVer);
+		setMinorVersion(minorVer);
+		setOpenGLESAPI(api == GL::API::OPENGL_ES);
+	}
+
+	constexpr void setMajorVersion(uint32_t majorVer)
 	{
 		if(!majorVer)
 			majorVer = 1;
 		this->majorVer = majorVer;
 	}
 
-	uint32_t majorVersion() const
+	constexpr uint32_t majorVersion() const
 	{
 		return majorVer;
 	}
 
-	void setMinorVersion(uint32_t minorVer)
+	constexpr void setMinorVersion(uint32_t minorVer)
 	{
 		this->minorVer = minorVer;
 	}
 
-	uint32_t minorVersion() const
+	constexpr uint32_t minorVersion() const
 	{
 		return minorVer;
 	}
 
-	void setOpenGLESAPI(bool glesAPI)
+	constexpr void setOpenGLESAPI(bool glesAPI)
 	{
 		this->glesAPI = glesAPI;
 	}
 
-	bool openGLESAPI() const
+	constexpr bool openGLESAPI() const
 	{
 		return glesAPI;
 	}
 
-	void setDebug(bool debug)
+	constexpr void setDebug(bool debug)
 	{
 		debug_ = debug;
 	}
 
-	bool debug() const
+	constexpr bool debug() const
 	{
 		return debug_;
 	}
 
+	constexpr void setNoError(bool noError)
+	{
+		noError_ = noError;
+	}
+
+	constexpr bool noError() const
+	{
+		return noError_;
+	}
+
 private:
-	uint32_t majorVer = 1;
-	uint32_t minorVer = 0;
-	bool glesAPI = false;
-	bool debug_ = false;
+	uint32_t majorVer{1};
+	uint32_t minorVer{};
+	bool glesAPI{};
+	bool debug_{};
+	bool noError_{};
 };
 
-class GLDrawable : public GLDrawableImpl
+enum class GLColorSpace : uint8_t
+{
+	LINEAR,
+	SRGB
+};
+
+class GLDrawableAttributes
 {
 public:
-	using GLDrawableImpl::GLDrawableImpl;
+	constexpr GLDrawableAttributes() {}
+	constexpr GLDrawableAttributes(GLBufferConfig config):bufferConfig_{config} {}
 
-	constexpr GLDrawable() {}
-	bool destroy(GLDisplay display);
-	void freeCaches();
-	void restoreCaches();
-	explicit operator bool() const;
-	bool operator ==(GLDrawable const &rhs) const;
+	constexpr void setColorSpace(GLColorSpace c)
+	{
+		colorSpace_ = c;
+	}
+
+	constexpr GLColorSpace colorSpace() const
+	{
+		return colorSpace_;
+	}
+
+	constexpr GLBufferConfig bufferConfig() const
+	{
+		return bufferConfig_;
+	}
+
+private:
+	GLBufferConfig bufferConfig_{};
+	GLColorSpace colorSpace_{};
 };
 
 class GLDisplay : public GLDisplayImpl
@@ -151,16 +191,19 @@ public:
 	using GLDisplayImpl::GLDisplayImpl;
 
 	constexpr GLDisplay() {}
-	static std::pair<IG::ErrorCode, GLDisplay> makeDefault(NativeDisplayConnection);
-	static std::pair<IG::ErrorCode, GLDisplay> makeDefault(NativeDisplayConnection, GL::API api);
-	static GLDisplay getDefault(NativeDisplayConnection);
-	static GLDisplay getDefault(NativeDisplayConnection, GL::API api);
-	explicit operator bool() const;
-	bool operator ==(GLDisplay const &rhs) const;
-	bool deinit();
-	std::pair<IG::ErrorCode, GLDrawable> makeDrawable(Window &win, GLBufferConfig config) const;
-	void logInfo() const;
-	static bool bindAPI(GL::API api);
+	constexpr bool operator ==(GLDisplay const&) const = default;
+	void resetCurrentContext() const;
+};
+
+class GLDrawable : public GLDrawableImpl
+{
+public:
+	using GLDrawableImpl::GLDrawableImpl;
+
+	constexpr GLDrawable() {}
+	bool operator ==(GLDrawable const&) const = default;
+	operator NativeGLDrawable() const { return GLDrawableImpl::operator NativeGLDrawable(); }
+	GLDisplay display() const;
 };
 
 class GLContext : public GLContextImpl
@@ -169,23 +212,39 @@ public:
 	using GLContextImpl::GLContextImpl;
 
 	constexpr GLContext() {}
-	GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec);
-	GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, IG::ErrorCode &ec);
-	explicit operator bool() const;
-	bool operator ==(GLContext const &rhs) const;
-	void deinit(GLDisplay display);
-	static std::optional<GLBufferConfig> makeBufferConfig(GLDisplay, ApplicationContext, GLBufferConfigAttributes, GL::API, unsigned majorVersion = 0);
-	static GLContext current(GLDisplay display);
-	static bool hasCurrentDrawable(GLDisplay display, GLDrawable drawable);
-	static bool hasCurrentDrawable(GLDisplay display);
+	bool operator ==(GLContext const&) const = default;
+	operator NativeGLContext() const { return GLContextImpl::operator NativeGLContext(); }
+	GLDisplay display() const;
+	void setCurrentContext(NativeGLDrawable) const;
+	void setCurrentDrawable(NativeGLDrawable) const;
+	void present(NativeGLDrawable) const;
+};
+
+class GLManager : public GLManagerImpl
+{
+public:
+	using GLManagerImpl::GLManagerImpl;
+
+	GLManager(NativeDisplayConnection);
+	GLManager(NativeDisplayConnection, GL::API);
+	GLDisplay display() const;
+	GLDisplay getDefaultDisplay(NativeDisplayConnection) const;
+	std::optional<GLBufferConfig> makeBufferConfig(Base::ApplicationContext, GLBufferConfigAttributes, GL::API, unsigned majorVersion = 0) const;
+	Base::NativeWindowFormat nativeWindowFormat(Base::ApplicationContext, GLBufferConfig) const;
+	GLContext makeContext(GLContextAttributes, GLBufferConfig, NativeGLContext shareContext, IG::ErrorCode &);
+	GLContext makeContext(GLContextAttributes, GLBufferConfig, IG::ErrorCode &);
+	static NativeGLContext currentContext();
+	void resetCurrentContext() const;
+	GLDrawable makeDrawable(Window &, GLDrawableAttributes, IG::ErrorCode &) const;
+	static bool hasCurrentDrawable(NativeGLDrawable);
+	static bool hasCurrentDrawable();
 	static void *procAddress(const char *funcName);
-	static void setCurrent(GLDisplay display, GLContext context, GLDrawable drawable);
-	static void setDrawable(GLDisplay display, GLDrawable drawable);
-	static void setDrawable(GLDisplay display, GLDrawable drawable, GLContext cachedCurrentContext);
-	static void present(GLDisplay display, GLDrawable drawable);
-	static void present(GLDisplay display, GLDrawable drawable, GLContext cachedCurrentContext);
-	static bool supportsNoConfig();
-	NativeGLContext nativeObject();
+	static bool bindAPI(GL::API api);
+	bool hasBufferFormat(GLBufferConfigAttributes) const;
+	bool hasNoErrorContextAttribute() const;
+	bool hasNoConfigContext() const;
+	bool hasSrgbColorSpace() const;
+	void logInfo() const;
 
 	template<class T>
 	static bool loadSymbol(T &symPtr, const char *name)

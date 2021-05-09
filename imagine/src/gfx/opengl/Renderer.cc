@@ -26,62 +26,55 @@ namespace Gfx
 {
 
 Renderer::Renderer(Base::ApplicationContext ctx, Error &err):
-	GLRenderer{ctx}
-{
-	auto [ec, dpy] = Base::GLDisplay::makeDefault(ctx.nativeDisplayConnection(), glAPI);
-	if(ec)
-	{
-		err = std::runtime_error("error creating GL display connection");
-		return;
-	}
-	dpy.logInfo();
-	glDpy = dpy;
-}
-
-GLRenderer::GLRenderer(Base::ApplicationContext ctx):
-	mainTask{ctx, "Main GL Context Messages", *static_cast<Renderer*>(this)},
-	releaseShaderCompilerEvent{"GLRenderer::releaseShaderCompilerEvent"}
+	GLRenderer{ctx, err}
 {}
 
-Error Renderer::setPixelFormat(IG::PixelFormat format)
+GLRenderer::GLRenderer(Base::ApplicationContext ctx, Error &err):
+	glManager{ctx.nativeDisplayConnection(), glAPI},
+	mainTask{ctx, "Main GL Context Messages", *static_cast<Renderer*>(this)},
+	releaseShaderCompilerEvent{"GLRenderer::releaseShaderCompilerEvent"}
 {
+	if(!glManager)
+	{
+		err = std::runtime_error("error getting GL display");
+		return;
+	}
+	glManager.logInfo();
+}
+
+Error Renderer::initMainTask(Base::Window *initialWindow, IG::PixelFormat format, ColorSpace colorSpace)
+{
+	if(mainTask.glContext())
+	{
+		return {};
+	}
 	auto ctx = appContext();
 	if(format == PIXEL_FMT_NONE)
-		format = Base::Window::defaultPixelFormat(ctx);
+	{
+		if(initialWindow)
+			format = initialWindow->pixelFormat();
+		else
+			format = Base::Window::defaultPixelFormat(ctx);
+	}
 	auto bufferConfig = makeGLBufferConfig(ctx, format);
 	if(!bufferConfig) [[unlikely]]
 	{
 		return std::runtime_error("error finding a GL configuration");
 	}
-	gfxBufferConfig = *bufferConfig;
-	return {};
-}
-
-Error Renderer::initMainTask(Base::Window *initialWindow, IG::PixelFormat format)
-{
-	if(auto err = setPixelFormat(format);
-		err) [[unlikely]]
-	{
-		return err;
-	}
-	if(mainTask.glContext())
-	{
-		return {};
-	}
 	Drawable initialDrawable{};
 	if(initialWindow)
 	{
-		if(!attachWindow(*initialWindow))
+		if(!GLRenderer::attachWindow(*initialWindow, *bufferConfig, (Base::GLColorSpace)colorSpace))
 		{
 			return std::runtime_error("error creating window surface");
 		}
-		initialDrawable = (Drawable)winData(*initialWindow).drawableHolder;
+		initialDrawable = (Drawable)winData(*initialWindow).drawable;
 	}
 	constexpr int DRAW_THREAD_PRIORITY = -4;
 	GLTaskConfig conf
 	{
-		.display = glDisplay(),
-		.bufferConfig = gfxBufferConfig,
+		.glManagerPtr = &glManager,
+		.bufferConfig = *bufferConfig,
 		.initialDrawable = initialDrawable,
 		.threadPriority = DRAW_THREAD_PRIORITY,
 	};
@@ -91,12 +84,17 @@ Error Renderer::initMainTask(Base::Window *initialWindow, IG::PixelFormat format
 		return err;
 	}
 	mainTask.setDrawAsyncMode(maxSwapChainImages() < 3 ? DrawAsyncMode::PRESENT : DrawAsyncMode::NONE);
-	addEventHandlers(appContext(), mainTask);
+	addEventHandlers(ctx, mainTask);
 	configureRenderer();
 	return {};
 }
 
-bool Renderer::attachWindow(Base::Window &win)
+Base::NativeWindowFormat GLRenderer::nativeWindowFormat(Base::GLBufferConfig bufferConfig) const
+{
+	return glManager.nativeWindowFormat(mainTask.appContext(), bufferConfig);
+}
+
+bool GLRenderer::attachWindow(Base::Window &win, Base::GLBufferConfig bufferConfig, Base::GLColorSpace colorSpace)
 {
 	if(!win.hasSurface()) [[unlikely]]
 	{
@@ -104,10 +102,8 @@ bool Renderer::attachWindow(Base::Window &win)
 		return false;
 	}
 	logMsg("attaching window:%p", &win);
-	win.setFormat(nativeWindowFormat());
-	auto &rData = win.makeRendererData<GLRendererWindowData>(win.appContext());
-	rData.drawableHolder.makeDrawable(glDisplay(), win, gfxBufferConfig);
-	if(!rData.drawableHolder) [[unlikely]]
+	auto &rData = win.makeRendererData<GLRendererWindowData>();
+	if(!makeWindowDrawable(mainTask, win, bufferConfig, colorSpace)) [[unlikely]]
 	{
 		return false;
 	}
@@ -122,7 +118,7 @@ bool Renderer::attachWindow(Base::Window &win)
 					auto oldWinO = win.softOrientation();
 					if(win.requestOrientationChange(newO))
 					{
-						animateProjectionMatrixRotation(win, orientationToGC(oldWinO), orientationToGC(newO));
+						static_cast<Renderer*>(this)->animateProjectionMatrixRotation(win, orientationToGC(oldWinO), orientationToGC(newO));
 					}
 				});
 		}
@@ -140,11 +136,37 @@ bool Renderer::attachWindow(Base::Window &win)
 					};
 					auto rotAngle = orientationDiffTable[oldO][newO];
 					logMsg("animating from %d degrees", (int)angleToDegree(rotAngle));
-					animateProjectionMatrixRotation(win, rotAngle, 0.);
+					static_cast<Renderer*>(this)->animateProjectionMatrixRotation(win, rotAngle, 0.);
 				});
 		}
 	}
 	return true;
+}
+
+bool GLRenderer::makeWindowDrawable(RendererTask &task, Base::Window &win, Base::GLBufferConfig bufferConfig, Base::GLColorSpace colorSpace)
+{
+	auto &rData = winData(win);
+	rData.colorSpace = colorSpace;
+	task.destroyDrawable(rData.drawable);
+	Base::GLDrawableAttributes attr{bufferConfig};
+	attr.setColorSpace(colorSpace);
+	IG::ErrorCode ec{};
+	rData.drawable = glManager.makeDrawable(win, attr, ec);
+	if(ec) [[unlikely]]
+	{
+		return false;
+	}
+	return true;
+}
+
+bool Renderer::attachWindow(Base::Window &win, ColorSpace colorSpace)
+{
+	return GLRenderer::attachWindow(win, mainTask.glBufferConfig(), (Base::GLColorSpace)colorSpace);
+}
+
+bool Renderer::setColorSpace(Base::Window &win, ColorSpace colorSpace)
+{
+	return GLRenderer::makeWindowDrawable(mainTask, win, mainTask.glBufferConfig(), (Base::GLColorSpace)colorSpace);
 }
 
 void Renderer::detachWindow(Base::Window &win)
@@ -232,12 +254,12 @@ void Renderer::setPresentationTime(Base::Window &win, IG::FrameTime time) const
 	#ifdef __ANDROID__
 	if(!support.eglPresentationTimeANDROID)
 		return;
-	auto drawable = (Drawable)winData(win).drawableHolder;
+	auto drawable = (Drawable)winData(win).drawable;
 	bool success = support.eglPresentationTimeANDROID(glDisplay(), drawable, time.count());
 	if(Config::DEBUG_BUILD && !success)
 	{
 		logErr("error:%s in eglPresentationTimeANDROID(%p, %llu)",
-			glDisplay().errorString(eglGetError()), (EGLSurface)drawable, (unsigned long long)time.count());
+			Base::GLManager::errorString(eglGetError()), (EGLSurface)drawable, (unsigned long long)time.count());
 	}
 	#endif
 }
@@ -249,6 +271,16 @@ unsigned Renderer::maxSwapChainImages() const
 		return 2;
 	#endif
 	return 3; // assume triple-buffering by default
+}
+
+bool Renderer::supportsColorSpace() const
+{
+	return glManager.hasSrgbColorSpace();
+}
+
+bool Renderer::hasSrgbColorSpaceWriteControl() const
+{
+	return support.hasSrgbWriteControl;
 }
 
 Base::ApplicationContext Renderer::appContext() const
@@ -264,24 +296,27 @@ GLRendererWindowData &winData(Base::Window &win)
 
 Base::GLDisplay GLRenderer::glDisplay() const
 {
-	return glDpy;
+	return glManager.display();
 }
 
-GLDisplayHolder::~GLDisplayHolder()
+std::vector<BufferFormatDesc> Renderer::supportedBufferFormats() const
 {
-	dpy.deinit();
-}
-
-GLDisplayHolder::GLDisplayHolder(GLDisplayHolder &&o)
-{
-	*this = std::move(o);
-}
-
-GLDisplayHolder &GLDisplayHolder::operator=(GLDisplayHolder &&o)
-{
-	dpy.deinit();
-	dpy = std::exchange(o.dpy, {});
-	return *this;
+	std::vector<BufferFormatDesc> formats{};
+	formats.reserve(3);
+	static constexpr BufferFormatDesc testFormats[]
+	{
+		{"RGBA8888", PIXEL_RGBA8888},
+		{"RGBX8888", PIXEL_RGBX8888},
+		{"RGB565", PIXEL_RGB565},
+	};
+	for(auto testFormat : testFormats)
+	{
+		if(glManager.hasBufferFormat(testFormat.format))
+		{
+			formats.emplace_back(testFormat);
+		}
+	}
+	return formats;
 }
 
 }

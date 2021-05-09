@@ -42,7 +42,7 @@ public:
 	using PixmapTextureImpl::PixmapTextureImpl;
 	PixmapTexture(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr = nullptr);
 	PixmapTexture(RendererTask &, GfxImageSource &img, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, uint8_t levels, const TextureSampler *compatSampler = {});
+	IG::ErrorCode setFormat(IG::PixmapDesc desc, uint8_t levels, ColorSpace c = {}, const TextureSampler *compatSampler = {});
 	GTexCRect uvBounds() const;
 	IG::PixmapDesc usedPixmapDesc() const;
 	operator TextureSpan() const;

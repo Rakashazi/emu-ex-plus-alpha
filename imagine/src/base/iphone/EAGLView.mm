@@ -56,7 +56,7 @@ EAGLViewDeleteRenderbufferDelegate deleteRenderbuffer{};
 
 static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffer)
 {
-	assert(Base::GLContext::current({}));
+	assert([EAGLContext currentContext]);
 	glBindRenderbuffer(GL_RENDERBUFFER, colorRenderbuffer);
 	runGLChecked([&]()
 	{

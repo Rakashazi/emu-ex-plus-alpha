@@ -54,6 +54,11 @@ void Pixmap::write(Pixmap pixmap, WP destPos)
 	subView(destPos, size() - destPos).write(pixmap);
 }
 
+static void invalidFormatConversion(Pixmap dest, Pixmap src)
+{
+	logErr("unimplemented conversion:%s -> %s", src.format().name(), dest.format().name());
+}
+
 static void convertRGB888ToRGBX8888(Pixmap dest, Pixmap src)
 {
 	dest.writeTransformedDirect<ByteArray<3>, uint32_t>(
@@ -73,9 +78,9 @@ static void convertRGB565ToRGBX8888(Pixmap dest, Pixmap src)
 			unsigned b = p       & 0x1F;
 			unsigned g = p >>  5 & 0x3F;
 			unsigned r = p >> 11 & 0x1F;
-			return ((r * 255 + 15) / 31) << 16 |
+			return ((b * 255 + 15) / 31) << 16 |
 					((g * 255 + 31) / 63) << 8 |
-					((b * 255 + 15) / 31);
+					((r * 255 + 15) / 31);
 		}, src);
 }
 
@@ -141,11 +146,6 @@ static void convertRGBX8888ToRGB565(Pixmap dest, Pixmap src)
 		}, src);
 }
 
-static void invalidFormatConversion(Pixmap dest, Pixmap src)
-{
-	logErr("unimplemented conversion:%s -> %s", src.format().name(), dest.format().name());
-}
-
 void Pixmap::writeConverted(Pixmap pixmap)
 {
 	if(format() == pixmap.format())
@@ -157,6 +157,7 @@ void Pixmap::writeConverted(Pixmap pixmap)
 	switch(format().id())
 	{
 		case PIXEL_RGBX8888:
+		case PIXEL_RGBA8888:
 			switch(srcFormatID)
 			{
 				case PIXEL_RGB888: return convertRGB888ToRGBX8888(*this, pixmap);
@@ -166,7 +167,7 @@ void Pixmap::writeConverted(Pixmap pixmap)
 		case PIXEL_RGB888:
 			switch(srcFormatID)
 			{
-				case PIXEL_RGBX8888: return convertRGBX8888ToRGB888(*this, pixmap);
+				case PIXEL_RGBX8888:
 				case PIXEL_RGBA8888: return convertRGBX8888ToRGB888(*this, pixmap);
 				case PIXEL_RGB565: return convertRGB565ToRGB888(*this, pixmap);
 				default: return invalidFormatConversion(*this, pixmap);
@@ -175,7 +176,7 @@ void Pixmap::writeConverted(Pixmap pixmap)
 			switch(srcFormatID)
 			{
 				case PIXEL_RGB888: return convertRGB888ToRGB565(*this, pixmap);
-				case PIXEL_RGBX8888: return convertRGBX8888ToRGB565(*this, pixmap);
+				case PIXEL_RGBX8888:
 				case PIXEL_RGBA8888: return convertRGBX8888ToRGB565(*this, pixmap);
 				default: return invalidFormatConversion(*this, pixmap);
 			}
@@ -226,7 +227,7 @@ MemPixmap::operator bool() const
 
 Pixmap MemPixmap::view() const
 {
-	return Pixmap{{size(), format()}, buffer.get()};
+	return Pixmap{static_cast<PixmapDesc>(*this), buffer.get()};
 }
 
 Pixmap MemPixmap::subView(WP pos, WP size) const

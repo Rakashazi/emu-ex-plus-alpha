@@ -120,6 +120,10 @@ static void printFeatures(DrawContextSupport support)
 			featuresStr.append(" [Sync Fences]");
 		}
 	}
+	if(support.hasSrgbWriteControl)
+	{
+		featuresStr.append(" [SRGB FB Write Control]");
+	}
 	#ifdef __ANDROID__
 	if(support.eglPresentationTimeANDROID)
 	{
@@ -139,12 +143,15 @@ static void printFeatures(DrawContextSupport support)
 }
 
 #ifdef __ANDROID__
-EGLImageKHR makeAndroidNativeBufferEGLImage(EGLDisplay dpy, EGLClientBuffer clientBuff)
+EGLImageKHR makeAndroidNativeBufferEGLImage(EGLDisplay dpy, EGLClientBuffer clientBuff, bool srgb)
 {
-	const EGLint eglImgAttrs[]
+	EGLint eglImgAttrs[]
 	{
-		EGL_IMAGE_PRESERVED_KHR, EGL_TRUE,
-		EGL_NONE, EGL_NONE
+		EGL_IMAGE_PRESERVED_KHR,
+		EGL_TRUE,
+		srgb ? EGL_GL_COLORSPACE : EGL_NONE,
+		srgb ? EGL_GL_COLORSPACE_SRGB : EGL_NONE,
+		EGL_NONE
 	};
 	return eglCreateImageKHR(dpy, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
 		clientBuff, eglImgAttrs);
@@ -198,7 +205,7 @@ void GLRenderer::setupImmutableTexStorage(bool extSuffix)
 	support.hasImmutableTexStorage = true;
 	#ifdef CONFIG_GFX_OPENGL_ES
 	const char *procName = extSuffix ? "glTexStorage2DEXT" : "glTexStorage2D";
-	support.glTexStorage2D = (typeof(support.glTexStorage2D))Base::GLContext::procAddress(procName);
+	support.glTexStorage2D = (typeof(support.glTexStorage2D))glManager.procAddress(procName);
 	#endif
 }
 
@@ -218,10 +225,10 @@ void GLRenderer::setupSamplerObjects()
 		return;
 	support.hasSamplerObjects = true;
 	#ifdef CONFIG_GFX_OPENGL_ES
-	support.glGenSamplers = (typeof(support.glGenSamplers))Base::GLContext::procAddress("glGenSamplers");
-	support.glDeleteSamplers = (typeof(support.glDeleteSamplers))Base::GLContext::procAddress("glDeleteSamplers");
-	support.glBindSampler = (typeof(support.glBindSampler))Base::GLContext::procAddress("glBindSampler");
-	support.glSamplerParameteri = (typeof(support.glSamplerParameteri))Base::GLContext::procAddress("glSamplerParameteri");
+	support.glGenSamplers = (typeof(support.glGenSamplers))glManager.procAddress("glGenSamplers");
+	support.glDeleteSamplers = (typeof(support.glDeleteSamplers))glManager.procAddress("glDeleteSamplers");
+	support.glBindSampler = (typeof(support.glBindSampler))glManager.procAddress("glBindSampler");
+	support.glSamplerParameteri = (typeof(support.glSamplerParameteri))glManager.procAddress("glSamplerParameteri");
 	#endif
 }
 
@@ -233,8 +240,8 @@ void GLRenderer::setupPBO()
 void GLRenderer::setupSpecifyDrawReadBuffers()
 {
 	#ifdef CONFIG_GFX_OPENGL_ES
-	//support.glDrawBuffers = (typeof(support.glDrawBuffers))Base::GLContext::procAddress("glDrawBuffers");
-	//support.glReadBuffer = (typeof(support.glReadBuffer))Base::GLContext::procAddress("glReadBuffer");
+	//support.glDrawBuffers = (typeof(support.glDrawBuffers))glManager.procAddress("glDrawBuffers");
+	//support.glReadBuffer = (typeof(support.glReadBuffer))glManager.procAddress("glReadBuffer");
 	#endif
 }
 
@@ -286,11 +293,11 @@ void GLRenderer::setupUnmapBufferFunc()
 		{
 			if constexpr((bool)Config::Gfx::OPENGL_ES)
 			{
-				support.glUnmapBuffer = (typeof(support.glUnmapBuffer))Base::GLContext::procAddress("glUnmapBufferOES");
+				support.glUnmapBuffer = (typeof(support.glUnmapBuffer))glManager.procAddress("glUnmapBufferOES");
 			}
 			else
 			{
-				support.glUnmapBuffer = (typeof(support.glUnmapBuffer))Base::GLContext::procAddress("glUnmapBuffer");
+				support.glUnmapBuffer = (typeof(support.glUnmapBuffer))glManager.procAddress("glUnmapBuffer");
 			}
 		}
 	}
@@ -302,7 +309,7 @@ void GLRenderer::setupImmutableBufferStorage()
 	if(support.hasImmutableBufferStorage())
 		return;
 	#ifdef CONFIG_GFX_OPENGL_ES
-	support.glBufferStorage = (typeof(support.glBufferStorage))Base::GLContext::procAddress("glBufferStorageEXT");
+	support.glBufferStorage = (typeof(support.glBufferStorage))glManager.procAddress("glBufferStorageEXT");
 	#else
 	support.hasBufferStorage = true;
 	#endif
@@ -313,7 +320,7 @@ void GLRenderer::setupMemoryBarrier()
 	/*if(support.hasMemoryBarriers())
 		return;
 	#ifdef CONFIG_GFX_OPENGL_ES
-	support.glMemoryBarrier = (typeof(support.glMemoryBarrier))Base::GLContext::procAddress("glMemoryBarrier");
+	support.glMemoryBarrier = (typeof(support.glMemoryBarrier))glManager.procAddress("glMemoryBarrier");
 	#else
 	support.hasMemoryBarrier = true;
 	#endif*/
@@ -324,7 +331,7 @@ void GLRenderer::setupPresentationTime(const char *eglExtenstionStr)
 	#ifdef __ANDROID__
 	if(strstr(eglExtenstionStr, "EGL_ANDROID_presentation_time"))
 	{
-		Base::GLContext::loadSymbol(support.eglPresentationTimeANDROID, "eglPresentationTimeANDROID");
+		glManager.loadSymbol(support.eglPresentationTimeANDROID, "eglPresentationTimeANDROID");
 	}
 	#endif
 }
@@ -405,7 +412,7 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	else if(Config::Gfx::OPENGL_ES >= 2 &&
 		string_equal(extStr, "GL_EXT_EGL_image_storage"))
 	{
-		support.glEGLImageTargetTexStorageEXT = (typeof(support.glEGLImageTargetTexStorageEXT))Base::GLContext::procAddress("glEGLImageTargetTexStorageEXT");
+		support.glEGLImageTargetTexStorageEXT = (typeof(support.glEGLImageTargetTexStorageEXT))glManager.procAddress("glEGLImageTargetTexStorageEXT");
 	}
 	#endif
 	else if(Config::Gfx::OPENGL_ES >= 2 && string_equal(extStr, "GL_NV_pixel_buffer_object"))
@@ -415,16 +422,16 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	else if(Config::Gfx::OPENGL_ES >= 2 && string_equal(extStr, "GL_NV_map_buffer_range"))
 	{
 		if(!support.glMapBufferRange)
-			support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeNV");
+			support.glMapBufferRange = (typeof(support.glMapBufferRange))glManager.procAddress("glMapBufferRangeNV");
 		setupUnmapBufferFunc();
 	}
 	else if(string_equal(extStr, "GL_EXT_map_buffer_range"))
 	{
 		if(!support.glMapBufferRange)
-			support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRangeEXT");
+			support.glMapBufferRange = (typeof(support.glMapBufferRange))glManager.procAddress("glMapBufferRangeEXT");
 		// Only using ES 3.0 version currently
 		//if(!support.glFlushMappedBufferRange)
-		//	support.glFlushMappedBufferRange = (typeof(support.glFlushMappedBufferRange))Base::GLContext::procAddress("glFlushMappedBufferRangeEXT");
+		//	support.glFlushMappedBufferRange = (typeof(support.glFlushMappedBufferRange))glManager.procAddress("glFlushMappedBufferRangeEXT");
 		setupUnmapBufferFunc();
 	}
 	else if(Config::Gfx::OPENGL_ES >= 2 && string_equal(extStr, "GL_EXT_buffer_storage"))
@@ -435,6 +442,10 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	{
 		// handled in *_map_buffer_range currently
 	}*/
+	else if(Config::Gfx::OPENGL_ES >= 2 && string_equal(extStr, "GL_EXT_sRGB_write_control"))
+	{
+		support.hasSrgbWriteControl = true;
+	}
 	#endif
 	#ifndef CONFIG_GFX_OPENGL_ES
 	/*else if(string_equal(extStr, "GL_EXT_texture_filter_anisotropic"))
@@ -567,6 +578,7 @@ void Renderer::configureRenderer()
 					setupSamplerObjects();
 				}
 				setupFBOFuncs(useFBOFuncs);
+				support.hasSrgbWriteControl = true;
 			}
 			if(glVer >= 32 && !Config::Base::GL_PLATFORM_EGL)
 			{
@@ -614,9 +626,9 @@ void Renderer::configureRenderer()
 				setupFBOFuncs(useFBOFuncs);
 				if(glVer >= 30)
 				{
-					support.glMapBufferRange = (typeof(support.glMapBufferRange))Base::GLContext::procAddress("glMapBufferRange");
-					support.glUnmapBuffer = (typeof(support.glUnmapBuffer))Base::GLContext::procAddress("glUnmapBuffer");
-					support.glFlushMappedBufferRange = (typeof(support.glFlushMappedBufferRange))Base::GLContext::procAddress("glFlushMappedBufferRange");
+					support.glMapBufferRange = (typeof(support.glMapBufferRange))glManager.procAddress("glMapBufferRange");
+					support.glUnmapBuffer = (typeof(support.glUnmapBuffer))glManager.procAddress("glUnmapBuffer");
+					support.glFlushMappedBufferRange = (typeof(support.glFlushMappedBufferRange))glManager.procAddress("glFlushMappedBufferRange");
 					setupImmutableTexStorage(false);
 					setupTextureSwizzle();
 					setupRGFormats();
@@ -705,31 +717,25 @@ void GLRenderer::addEventHandlers(Base::ApplicationContext ctx, RendererTask &ta
 		task.setIOSDrawableDelegates();
 }
 
-Base::NativeWindowFormat Renderer::nativeWindowFormat() const
-{
-	return gfxBufferConfig.windowFormat(appContext(), glDisplay());
-}
-
 std::optional<Base::GLBufferConfig> GLRenderer::makeGLBufferConfig(Base::ApplicationContext ctx, IG::PixelFormat pixelFormat)
 {
 	if(!pixelFormat)
 		pixelFormat = Base::Window::defaultPixelFormat(ctx);
 	Base::GLBufferConfigAttributes glBuffAttr{pixelFormat};
-	auto dpy = glDisplay();
 	if constexpr(Config::Gfx::OPENGL_ES >= 2)
 	{
-		if(auto config = Base::GLContext::makeBufferConfig(dpy, ctx, glBuffAttr, glAPI, 3);
+		if(auto config = glManager.makeBufferConfig(ctx, glBuffAttr, glAPI, 3);
 			config)
 		{
 			return config;
 		}
 		// fall back to OpenGL ES 2.0
-		return Base::GLContext::makeBufferConfig(dpy, ctx, glBuffAttr, glAPI, 2);
+		return glManager.makeBufferConfig(ctx, glBuffAttr, glAPI, 2);
 	}
 	else
 	{
 		// OpenGL ES 1.0 or full OpenGL
-		return Base::GLContext::makeBufferConfig(dpy, ctx, glBuffAttr, glAPI);
+		return glManager.makeBufferConfig(ctx, glBuffAttr, glAPI);
 	}
 }
 

@@ -12,9 +12,9 @@ class PixelDesc
 {
 public:
 	const char *name_{};
-	const uint8_t rBits = 0, gBits = 0, bBits = 0, aBits = 0;
-	const uint8_t rShift = 0, gShift = 0, bShift = 0, aShift = 0;
-	const uint8_t bytesPerPixel_ = 0;
+	const uint8_t rBits{}, gBits{}, bBits{}, aBits{};
+	const uint8_t rShift{}, gShift{}, bShift{}, aShift{};
+	const uint8_t bytesPerPixel_{};
 
 	constexpr PixelDesc(uint8_t rBits, uint8_t gBits, uint8_t bBits, uint8_t aBits,
 		uint8_t rShift, uint8_t gShift, uint8_t bShift, uint8_t aShift,

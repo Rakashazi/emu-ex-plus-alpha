@@ -22,21 +22,28 @@
 #include <EGL/eglext.h>
 #include <X11/Xutil.h>
 
+#ifndef EGL_PLATFORM_X11_EXT
+#define EGL_PLATFORM_X11_EXT 0x31D5
+#endif
+
 namespace Base
 {
 
-// GLDisplay
+static constexpr bool HAS_EGL_PLATFORM = Config::envIsLinux && !Config::MACHINE_IS_PANDORA;
 
-GLDisplay GLDisplay::getDefault(NativeDisplayConnection nativeDpy)
+GLDisplay GLManager::getDefaultDisplay(NativeDisplayConnection nativeDpy) const
 {
-	#if defined CONFIG_MACHINE_PANDORA
-	return {eglGetDisplay(EGL_DEFAULT_DISPLAY)};
-	#else
-	return {eglGetPlatformDisplay(EGL_PLATFORM_X11_EXT, nativeDpy, nullptr)};
-	#endif
+	if constexpr(HAS_EGL_PLATFORM)
+	{
+		return {eglGetPlatformDisplay(EGL_PLATFORM_X11_EXT, nativeDpy, nullptr)};
+	}
+	else
+	{
+		return {eglGetDisplay(EGL_DEFAULT_DISPLAY)};
+	}
 }
 
-bool GLDisplay::bindAPI(GL::API api)
+bool GLManager::bindAPI(GL::API api)
 {
 	if(api == GL::API::OPENGL_ES)
 		return eglBindAPI(EGL_OPENGL_ES_API);
@@ -44,49 +51,19 @@ bool GLDisplay::bindAPI(GL::API api)
 		return eglBindAPI(EGL_OPENGL_API);
 }
 
-// GLContext
-
-GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec):
-	EGLContextBase{display, attr, config, EGL_NO_CONTEXT, ec}
-{}
-
-GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, IG::ErrorCode &ec):
-	EGLContextBase{display, attr, config, shareContext.nativeObject(), ec}
-{}
-
-void GLContext::deinit(GLDisplay display)
+std::optional<GLBufferConfig> GLManager::makeBufferConfig(Base::ApplicationContext, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion) const
 {
-	EGLContextBase::deinit(display);
+	auto renderableType = makeRenderableType(api, majorVersion);
+	return chooseConfig(display(), renderableType, attr);
 }
 
-void GLContext::setCurrent(GLDisplay display, GLContext context, GLDrawable win)
-{
-	setCurrentContext(display, context.context, win);
-}
-
-std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay display, ApplicationContext, GLBufferConfigAttributes attr, GL::API api, unsigned majorVersion)
-{
-	auto renderableType = GLDisplay::makeRenderableType(api, majorVersion);
-	return chooseConfig(display, renderableType, attr);
-}
-
-void GLContext::present(GLDisplay display, GLDrawable win)
-{
-	EGLContextBase::swapBuffers(display, win);
-}
-
-void GLContext::present(GLDisplay display, GLDrawable win, GLContext cachedCurrentContext)
-{
-	present(display, win);
-}
-
-Base::NativeWindowFormat GLBufferConfig::windowFormat(ApplicationContext ctx, GLDisplay display) const
+Base::NativeWindowFormat GLManager::nativeWindowFormat(Base::ApplicationContext ctx, GLBufferConfig glConfig) const
 {
 	if(Config::MACHINE_IS_PANDORA)
 		return nullptr;
 	// get matching x visual
 	EGLint nativeID;
-	eglGetConfigAttrib(display, glConfig, EGL_NATIVE_VISUAL_ID, &nativeID);
+	eglGetConfigAttrib(display(), glConfig, EGL_NATIVE_VISUAL_ID, &nativeID);
 	XVisualInfo viTemplate{};
 	viTemplate.visualid = nativeID;
 	int visuals;
@@ -99,6 +76,41 @@ Base::NativeWindowFormat GLBufferConfig::windowFormat(ApplicationContext ctx, GL
 	auto visual = viPtr->visual;
 	XFree(viPtr);
 	return visual;
+}
+
+bool GLManager::hasBufferFormat(GLBufferConfigAttributes attrs) const
+{
+	if(attrs.pixelFormat().id() == PIXEL_NONE)
+		return true;
+	auto dpy = display();
+	auto configOpt = chooseConfig(dpy, 0, attrs, false);
+	if(!configOpt)
+		return false;
+	// verify the returned config is a match
+	auto eglConfigInt =
+		[](EGLDisplay dpy, EGLConfig config, EGLint attr)
+		{
+			EGLint val;
+			eglGetConfigAttrib(dpy, config, attr, &val);
+			return val;
+		};
+	switch(attrs.pixelFormat().id())
+	{
+		default:
+			bug_unreachable("format id == %d", attrs.pixelFormat().id());
+			return false;
+		case PIXEL_RGB565: return
+			eglConfigInt(dpy, *configOpt, EGL_BUFFER_SIZE) == 16 &&
+			eglConfigInt(dpy, *configOpt, EGL_RED_SIZE) == 5;
+		case PIXEL_RGBX8888: return
+			eglConfigInt(dpy, *configOpt, EGL_BUFFER_SIZE) == 32 &&
+			eglConfigInt(dpy, *configOpt, EGL_RED_SIZE) == 8 &&
+			!eglConfigInt(dpy, *configOpt, EGL_ALPHA_SIZE);
+		case PIXEL_RGBA8888: return
+			eglConfigInt(dpy, *configOpt, EGL_BUFFER_SIZE) == 32 &&
+			eglConfigInt(dpy, *configOpt, EGL_RED_SIZE) == 8 &&
+			eglConfigInt(dpy, *configOpt, EGL_ALPHA_SIZE) == 8;
+	}
 }
 
 }

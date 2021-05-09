@@ -93,7 +93,7 @@ SurfaceTextureStorage::SurfaceTextureStorage(RendererTask &r, TextureConfig conf
 		return;
 	}
 	logMsg("native window:%p from Surface:%p%s", nativeWin, localSurface, singleBuffered ? " (single-buffered)" : "");
-	err = setFormat(config.pixmapDesc(), config.compatSampler());
+	err = setFormat(config.pixmapDesc(), config.colorSpace(), config.compatSampler());
 }
 
 SurfaceTextureStorage::SurfaceTextureStorage(SurfaceTextureStorage &&o)
@@ -139,7 +139,7 @@ void SurfaceTextureStorage::deinit()
 	}
 }
 
-IG::ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, const TextureSampler *)
+IG::ErrorCode SurfaceTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *)
 {
 	logMsg("setting size:%dx%d format:%s", desc.w(), desc.h(), desc.format().name());
 	int winFormat = Base::toAHardwareBufferFormat(desc.format());

@@ -232,6 +232,7 @@ void VideoOptionView::setWindowPixelFormat(PixelFormatID format)
 	app().postMessage("Restart app for option to take effect");
 	optionWindowPixelFormat = format;
 }
+
 #endif
 
 static void setImageBuffers(unsigned buffers, EmuVideoLayer &layer)
@@ -566,14 +567,6 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	#endif
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-	windowPixelFormatItem
-	{
-		{"Auto", &defaultFace(), [this]() { setWindowPixelFormat(PIXEL_NONE); }},
-		{"RGB565", &defaultFace(), [this]() { setWindowPixelFormat(PIXEL_RGB565); }},
-		{"RGB888", &defaultFace(), [this]() { setWindowPixelFormat(PIXEL_RGB888); }},
-		{"RGBX8888", &defaultFace(), [this]() { setWindowPixelFormat(PIXEL_RGBX8888); }},
-		{"RGBA8888", &defaultFace(), [this]() { setWindowPixelFormat(PIXEL_RGBA8888); }},
-	},
 	windowPixelFormat
 	{
 		"Display Color Format", &defaultFace(),
@@ -587,20 +580,25 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			else
 				return false;
 		},
-		[]()
-		{
-			switch(optionWindowPixelFormat.val)
-			{
-				default: return 0;
-				case PIXEL_RGB565: return 1;
-				case PIXEL_RGB888: return 2;
-				case PIXEL_RGBX8888: return 3;
-				case PIXEL_RGBA8888: return 4;
-			}
-		}(),
+		0,
 		windowPixelFormatItem
 	},
 	#endif
+	srgbColorSpaceOutput
+	{
+		"SRGB Color Space", &defaultFace(),
+		false,
+		[this](BoolMenuItem &item, Input::Event e)
+		{
+			auto on = item.flipBoolValue(*this);
+			auto colorSpace = on ? Gfx::ColorSpace::SRGB : Gfx::ColorSpace::LINEAR;
+			videoLayer->setSrgbColorSpaceOutput(on);
+			iterateTimes(appContext().windows(), i)
+			{
+				renderer().setColorSpace(*appContext().window(i), colorSpace);
+			}
+		}
+	},
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	secondDisplay
 	{
@@ -656,6 +654,21 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	advancedHeading{"Advanced", &defaultBoldFace()},
 	systemSpecificHeading{"System-specific", &defaultBoldFace()}
 {
+	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+	windowPixelFormatItem.emplace_back("Auto", &defaultFace(),
+		[this](View &view)
+		{
+			setWindowPixelFormat(PIXEL_NONE);
+		});
+	for(auto desc: renderer().supportedBufferFormats())
+	{
+		windowPixelFormatItem.emplace_back(desc.name, &defaultFace(),
+			[this, format = desc.format.id()]()
+			{
+				setWindowPixelFormat(format);
+			});
+	}
+	#endif
 	iterateTimes(EmuSystem::aspectRatioInfos, i)
 	{
 		aspectRatioItem.emplace_back(EmuSystem::aspectRatioInfo[i].name, &defaultFace(),
@@ -706,7 +719,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			optionTextureBufferMode = 0;
 			auto defaultMode = renderer().makeValidTextureBufferMode();
 			videoLayer->setTextureBufferMode(defaultMode);
-			textureBufferMode.setSelected(idxOfBufferMode(defaultMode));
+			textureBufferMode.setSelected(IG::findIndex(renderer().textureBufferModes(), defaultMode) + 1);
 			view.dismiss();
 			return false;
 		});
@@ -754,14 +767,23 @@ void VideoOptionView::loadStockItems()
 	item.emplace_back(&aspectRatio);
 	item.emplace_back(&advancedHeading);
 	item.emplace_back(&textureBufferMode);
-	textureBufferMode.setSelected(
-		idxOfBufferMode(renderer().makeValidTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val)));
+	textureBufferMode.setSelected(IG::findIndex(renderer().textureBufferModes(),
+		renderer().makeValidTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val)) + 1);
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	item.emplace_back(&imgEffectPixelFormat);
 	#endif
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-	item.emplace_back(&windowPixelFormat);
+	if(windowPixelFormatItem.size() > 2)
+	{
+		item.emplace_back(&windowPixelFormat);
+		windowPixelFormat.setSelected(IG::findIndex(renderer().supportedBufferFormats(),
+			(IG::PixelFormatID)optionWindowPixelFormat.val) + 1);
+	}
 	#endif
+	if(renderer().hasSrgbColorSpaceWriteControl())
+	{
+		item.emplace_back(&srgbColorSpaceOutput);
+	}
 	if(!optionVideoImageBuffers.isConst)
 		item.emplace_back(&imageBuffers);
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
@@ -778,6 +800,7 @@ void VideoOptionView::loadStockItems()
 void VideoOptionView::setEmuVideoLayer(EmuVideoLayer &videoLayer_)
 {
 	videoLayer = &videoLayer_;
+	srgbColorSpaceOutput.setBoolValue(videoLayer_.srgbColorSpaceOutput());
 }
 
 bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::FloatSeconds time)
@@ -908,18 +931,4 @@ void VideoOptionView::setAspectRatio(double val)
 	logMsg("set aspect ratio: %.2f", val);
 	app().viewController().placeEmuViews();
 	app().viewController().postDrawToEmuWindows();
-}
-
-unsigned VideoOptionView::idxOfBufferMode(Gfx::TextureBufferMode mode)
-{
-	for(unsigned idx = 0; auto desc: renderer().textureBufferModes())
-	{
-		if(desc.mode == mode)
-		{
-			assert(idx + 1 < std::size(textureBufferModeItem));
-			return idx + 1;
-		}
-		idx++;
-	}
-	return 0;
 }

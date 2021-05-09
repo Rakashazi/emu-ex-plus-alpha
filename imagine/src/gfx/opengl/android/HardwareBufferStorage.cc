@@ -31,7 +31,7 @@ HardwareSingleBufferStorage<Buffer>::HardwareSingleBufferStorage(RendererTask &r
 	TextureBufferStorage{r}
 {
 	config = baseInit(r, config);
-	auto err = setFormat(config.pixmapDesc(), config.compatSampler());
+	auto err = setFormat(config.pixmapDesc(), config.colorSpace(), config.compatSampler());
 	if(err && errorPtr) [[unlikely]]
 	{
 		*errorPtr = err;
@@ -39,7 +39,7 @@ HardwareSingleBufferStorage<Buffer>::HardwareSingleBufferStorage(RendererTask &r
 }
 
 template<class Buffer>
-IG::ErrorCode HardwareSingleBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler)
+IG::ErrorCode HardwareSingleBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
 	buffer = {desc, allocateUsage};
 	if(!buffer)
@@ -51,7 +51,7 @@ IG::ErrorCode HardwareSingleBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc
 		buffer.nativeObject(), desc.w(), desc.h(), desc.format().name(), buffer.pitch());
 	pitchBytes = buffer.pitch() * desc.format().bytesPerPixel();
 	auto dpy = renderer().glDisplay();
-	auto eglImg = makeAndroidNativeBufferEGLImage(dpy, buffer.eglClientBuffer());
+	auto eglImg = makeAndroidNativeBufferEGLImage(dpy, buffer.eglClientBuffer(), colorSpace == ColorSpace::SRGB);
 	if(!eglImg) [[unlikely]]
 	{
 		logErr("error creating EGL image");
@@ -85,7 +85,7 @@ HardwareBufferStorage<Buffer>::HardwareBufferStorage(RendererTask &r, TextureCon
 	TextureBufferStorage{r}
 {
 	config = baseInit(r, config);
-	auto err = setFormat(config.pixmapDesc(), config.compatSampler());
+	auto err = setFormat(config.pixmapDesc(), config.colorSpace(), config.compatSampler());
 	if(err && errorPtr) [[unlikely]]
 	{
 		*errorPtr = err;
@@ -93,7 +93,7 @@ HardwareBufferStorage<Buffer>::HardwareBufferStorage(RendererTask &r, TextureCon
 }
 
 template<class Buffer>
-IG::ErrorCode HardwareBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler)
+IG::ErrorCode HardwareBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
 	auto dpy = renderer().glDisplay();
 	for(auto &[buff, eglImg, pitchBytes] : bufferInfo)
@@ -107,7 +107,7 @@ IG::ErrorCode HardwareBufferStorage<Buffer>::setFormat(IG::PixmapDesc desc, cons
 		logMsg("allocated buffer:%p size:%dx%d format:%s pitch:%d",
 			buff.nativeObject(), desc.w(), desc.h(), desc.format().name(), buff.pitch());
 		pitchBytes = buff.pitch() * desc.format().bytesPerPixel();
-		eglImg.reset(makeAndroidNativeBufferEGLImage(dpy, buff.eglClientBuffer()));
+		eglImg.reset(makeAndroidNativeBufferEGLImage(dpy, buff.eglClientBuffer(), colorSpace == ColorSpace::SRGB));
 		if(!eglImg) [[unlikely]]
 		{
 			logErr("error creating EGL image");

@@ -35,9 +35,9 @@ public:
 protected:
 	IG::ErrorCode init(RendererTask &rTask, TextureConfig config);
 	void updateUsedPixmapSize(IG::WP usedSize, IG::WP fullSize);
-	void updateFormatInfo(IG::WP usedSize, IG::PixmapDesc desc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
+	void updateFormatInfo(IG::WP usedSize, IG::PixmapDesc, uint8_t levels, GLenum target = GL_TEXTURE_2D);
 	#ifdef __ANDROID__
-	void initWithEGLImage(IG::WP usedSize, EGLImageKHR eglImg, IG::PixmapDesc desc, SamplerParams samplerParams, bool isMutable);
+	void initWithEGLImage(IG::WP usedSize, EGLImageKHR, IG::PixmapDesc, SamplerParams, bool isMutable);
 	#endif
 
 	GTexCPoint uv{};

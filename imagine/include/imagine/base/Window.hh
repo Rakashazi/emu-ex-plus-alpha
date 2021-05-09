@@ -66,6 +66,8 @@ public:
 	NativeWindow nativeObject() const;
 	void setIntendedFrameRate(double rate);
 	void setFormat(NativeWindowFormat);
+	void setFormat(IG::PixelFormat);
+	IG::PixelFormat pixelFormat() const;
 	bool operator ==(Window const &rhs) const;
 	bool addOnFrame(Base::OnFrameDelegate del, FrameTimeSource src = {}, int priority = 0);
 	bool removeOnFrame(Base::OnFrameDelegate del, FrameTimeSource src = {});

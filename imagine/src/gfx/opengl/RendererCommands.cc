@@ -29,32 +29,13 @@ namespace Gfx
 
 static constexpr bool useGLCache = true;
 
-GLRendererCommands::GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, Drawable drawable, Base::GLDisplay glDpy,
-		IG::Semaphore *drawCompleteSemPtr):
+GLRendererCommands::GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, Drawable drawable,
+	Base::GLDisplay glDpy, const Base::GLContext &glCtx, IG::Semaphore *drawCompleteSemPtr):
 	rTask{&rTask}, r{&rTask.renderer()}, drawCompleteSemPtr{drawCompleteSemPtr},
-	winPtr{winPtr}, glDpy{glDpy}, drawable{drawable}
+	winPtr{winPtr}, glDpy{glDpy}, glContextPtr{&glCtx}, drawable{drawable}
 {
 	assumeExpr(drawable);
 	setCurrentDrawable(drawable);
-}
-
-RendererCommands::RendererCommands(RendererCommands &&o)
-{
-	*this = std::move(o);
-}
-
-RendererCommands &RendererCommands::operator=(RendererCommands &&o)
-{
-	RendererCommandsImpl::operator=(o);
-	o.rTask = {};
-	o.r = {};
-	o.drawableWasPresented = {};
-	return *this;
-}
-
-RendererCommands::~RendererCommands()
-{
-	assert(drawableWasPresented);
 }
 
 void GLRendererCommands::discardTemporaryData() {}
@@ -70,21 +51,21 @@ void GLRendererCommands::bindGLArrayBuffer(GLuint vbo)
 
 void GLRendererCommands::setCurrentDrawable(Drawable drawable)
 {
-	auto glCtx = rTask->glContext();
+	auto &glCtx = glContext();
 	assert(glCtx);
-	assert(glCtx == Base::GLContext::current(glDpy));
-	if(rTask->handleDrawableReset() || !Base::GLContext::hasCurrentDrawable(glDpy, drawable))
+	assert(Base::GLManager::currentContext() == glCtx);
+	if(rTask->handleDrawableReset() || !Base::GLManager::hasCurrentDrawable(drawable))
 	{
-		glCtx.setDrawable(glDpy, drawable, glCtx);
+		glCtx.setCurrentDrawable(drawable);
 	}
 }
 
 void GLRendererCommands::present(Drawable win)
 {
 	auto swapTime = IG::timeFuncDebug(
-		[&, this]()
+		[&]()
 		{
-			rTask->glContext().present(glDpy, win, rTask->glContext());
+			glContext().present(win);
 		});
 	// check if buffer swap blocks even though triple-buffering is used
 	if(winPtr && r->maxSwapChainImages() > 2 && swapTime > winPtr->screen()->frameTime())
@@ -95,8 +76,7 @@ void GLRendererCommands::present(Drawable win)
 
 void GLRendererCommands::doPresent()
 {
-	assert(!drawableWasPresented);
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	if(Config::envIsAndroid && r->support.hasSamplerObjects)
 	{
 		// reset sampler object at the end of frame, fixes blank screen
@@ -105,7 +85,6 @@ void GLRendererCommands::doPresent()
 	}
 	discardTemporaryData();
 	present(drawable);
-	drawableWasPresented = true;
 	notifyPresentComplete();
 }
 
@@ -140,7 +119,7 @@ void RendererCommands::bindTempVertexBuffer()
 
 void RendererCommands::flush()
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	glFlush();
 }
 
@@ -154,7 +133,7 @@ SyncFence RendererCommands::addSyncFence()
 {
 	if(!renderer().support.hasSyncFences())
 		return {}; // no-op
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	return renderer().support.fenceSync(glDpy);
 }
 
@@ -162,7 +141,7 @@ void RendererCommands::deleteSyncFence(SyncFence fence)
 {
 	if(!fence.sync)
 		return;
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	assert(renderer().support.hasSyncFences());
 	renderer().support.deleteSync(glDpy, fence.sync);
 }
@@ -171,7 +150,7 @@ void RendererCommands::clientWaitSync(SyncFence fence, int flags, std::chrono::n
 {
 	if(!fence.sync)
 		return;
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	auto &r = renderer();
 	assert(r.support.hasSyncFences());
 	//logDMsg("waiting on sync:%p flush:%s timeout:0%llX", fence.sync, flags & 1 ? "yes" : "no", (unsigned long long)timeout);
@@ -181,7 +160,7 @@ void RendererCommands::clientWaitSync(SyncFence fence, int flags, std::chrono::n
 
 SyncFence RendererCommands::clientWaitSyncReset(SyncFence oldFence, int flags, std::chrono::nanoseconds timeout)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	clientWaitSync(oldFence, flags, timeout);
 	return addSyncFence();
 }
@@ -190,7 +169,7 @@ void RendererCommands::waitSync(SyncFence fence)
 {
 	if(!fence.sync)
 		return;
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	auto &r = renderer();
 	assert(r.support.hasSyncFences());
 	r.support.waitSync(glDpy, fence.sync);
@@ -199,7 +178,7 @@ void RendererCommands::waitSync(SyncFence fence)
 
 void RendererCommands::setRenderTarget(Texture &texture)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	auto id = rTask->bindFramebuffer(texture);
 	if(Config::DEBUG_BUILD && glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
@@ -209,7 +188,7 @@ void RendererCommands::setRenderTarget(Texture &texture)
 
 void RendererCommands::setDefaultRenderTarget()
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	glBindFramebuffer(GL_FRAMEBUFFER, rTask->defaultFBO());
 }
 
@@ -220,7 +199,7 @@ Renderer &RendererCommands::renderer() const
 
 void RendererCommands::setBlend(bool on)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	if(on)
 		glcEnable(GL_BLEND);
 	else
@@ -229,13 +208,13 @@ void RendererCommands::setBlend(bool on)
 
 void RendererCommands::setBlendFunc(BlendFunc s, BlendFunc d)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	glcBlendFunc((GLenum)s, (GLenum)d);
 }
 
 void RendererCommands::setBlendMode(uint32_t mode)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	switch(mode)
 	{
 		bcase BLEND_MODE_OFF:
@@ -252,7 +231,7 @@ void RendererCommands::setBlendMode(uint32_t mode)
 
 void RendererCommands::setBlendEquation(uint32_t mode)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	#if !defined CONFIG_GFX_OPENGL_ES \
 		|| (defined CONFIG_BASE_IOS || defined __ANDROID__)
 	glcBlendEquation(mode == BLEND_EQ_ADD ? GL_FUNC_ADD :
@@ -264,7 +243,7 @@ void RendererCommands::setBlendEquation(uint32_t mode)
 
 void RendererCommands::setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{
@@ -281,7 +260,7 @@ void RendererCommands::setImgBlendColor(ColorComp r, ColorComp g, ColorComp b, C
 
 void RendererCommands::setZTest(bool on)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	if(on)
 	{
 		glcEnable(GL_DEPTH_TEST);
@@ -294,7 +273,7 @@ void RendererCommands::setZTest(bool on)
 
 void RendererCommands::setZBlend(bool on)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	//	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	//	if(support.useFixedFunctionPipeline)
 	//	{
@@ -325,7 +304,7 @@ void RendererCommands::setZBlend(bool on)
 
 void RendererCommands::setZBlendColor(ColorComp r, ColorComp g, ColorComp b)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{
@@ -341,13 +320,13 @@ void RendererCommands::setZBlendColor(ColorComp r, ColorComp g, ColorComp b)
 
 void RendererCommands::clear()
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
 void RendererCommands::setClearColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	//GLfloat c[4] = {r, g, b, a};
 	//logMsg("setting clear color %f %f %f %f", (float)r, (float)g, (float)b, (float)a);
 	glClearColor(r, g, b, a);
@@ -355,7 +334,7 @@ void RendererCommands::setClearColor(ColorComp r, ColorComp g, ColorComp b, Colo
 
 void RendererCommands::setColor(Color c)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	auto [r, g, b, a] = c;
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
@@ -381,7 +360,7 @@ void RendererCommands::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp
 
 Color RendererCommands::color() const
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{
@@ -394,7 +373,7 @@ Color RendererCommands::color() const
 
 void RendererCommands::setImgMode(uint32_t mode)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	if(renderer().support.useFixedFunctionPipeline)
 	{
@@ -413,7 +392,7 @@ void RendererCommands::setImgMode(uint32_t mode)
 
 void RendererCommands::setDither(bool on)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	if(on)
 		glcEnable(GL_DITHER);
 	else
@@ -425,13 +404,22 @@ void RendererCommands::setDither(bool on)
 
 bool RendererCommands::dither()
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	return glcIsEnabled(GL_DITHER);
+}
+
+void RendererCommands::setSrgbFramebufferWrite(bool on)
+{
+	rTask->verifyCurrentContext();
+	if(on)
+		glEnable(GL_FRAMEBUFFER_SRGB);
+	else
+		glDisable(GL_FRAMEBUFFER_SRGB);
 }
 
 void RendererCommands::setVisibleGeomFace(uint32_t sides)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	if(sides == BOTH_FACES)
 	{
 		glcDisable(GL_CULL_FACE);
@@ -450,7 +438,7 @@ void RendererCommands::setVisibleGeomFace(uint32_t sides)
 
 void RendererCommands::setClipTest(bool on)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	if(on)
 		glcEnable(GL_SCISSOR_TEST);
 	else
@@ -459,14 +447,14 @@ void RendererCommands::setClipTest(bool on)
 
 void RendererCommands::setClipRect(ClipRect r)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	//logMsg("setting Scissor %d,%d size %d,%d", r.x, r.y, r.x2, r.y2);
 	glScissor(r.x, r.y, r.x2, r.y2);
 }
 
 void RendererCommands::setTexture(const Texture &t)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	if(renderer().support.hasSamplerObjects && !currSamplerName)
 	{
 		logWarn("set texture without setting a sampler first");
@@ -478,7 +466,7 @@ void RendererCommands::setTextureSampler(const TextureSampler &sampler)
 {
 	if(!renderer().support.hasSamplerObjects)
 		return;
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	if(currSamplerName != sampler.name())
 	{
 		//logMsg("binding sampler object:0x%X (%s)", (int)sampler.name(), sampler.label());
@@ -496,7 +484,7 @@ void RendererCommands::setCommonTextureSampler(CommonTextureSampler sampler)
 
 void RendererCommands::setViewport(Viewport v)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	auto inGLFormat = v.inGLFormat();
 	//logMsg("set GL viewport %d:%d:%d:%d", inGLFormat.x, inGLFormat.y, inGLFormat.x2, inGLFormat.y2);
 	assert(inGLFormat.x2 && inGLFormat.y2);
@@ -542,7 +530,7 @@ void RendererCommands::setProgram(const Program &program)
 
 void RendererCommands::setProgram(const Program &program, Mat4 modelMat)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	if(currProgram != program)
 	{
 		glUseProgram(program.glProgram());
@@ -571,7 +559,7 @@ void RendererCommands::setCommonProgram(CommonProgram program, Mat4 modelMat)
 
 void RendererCommands::setCommonProgram(CommonProgram program, const Mat4 *modelMat)
 {
-	rTask->verifyCurrentContext(glDpy);
+	rTask->verifyCurrentContext();
 	renderer().useCommonProgram(*this, program, modelMat);
 }
 
@@ -624,5 +612,10 @@ void GLRendererCommands::glcColor4f(GLfloat red, GLfloat green, GLfloat blue, GL
 	}
 }
 #endif
+
+const Base::GLContext &GLRendererCommands::glContext() const
+{
+	return *glContextPtr;
+}
 
 }

@@ -65,14 +65,14 @@ void FrameBuffer::setTIAPalette(const PaletteArray& palette)
 		uint8_t g = (palette[i] >> 8) & 0xff;
 		uint8_t b = palette[i] & 0xff;
 		tiaColorMap16[i] = IG::PIXEL_DESC_RGB565.build(r >> 3, g >> 2, b >> 3, 0);
-		tiaColorMap32[i] = IG::PIXEL_DESC_ARGB8888.build((int)r, (int)g, (int)b, 0);
+		tiaColorMap32[i] = IG::PIXEL_DESC_BGRA8888.build((int)r, (int)g, (int)b, 0);
 	}
 }
 
 uInt32 FrameBuffer::getRGBPhosphor(const uInt32 c, const uInt32 p) const
 {
   #define TO_RGB(color, red, green, blue) \
-    const uInt8 red = color >> 16; const uInt8 green = color >> 8; const uInt8 blue = color;
+    const uInt8 red = color >> 24; const uInt8 green = color >> 16; const uInt8 blue = color >> 8;
 
   TO_RGB(c, rc, gc, bc);
   TO_RGB(p, rp, gp, bp);

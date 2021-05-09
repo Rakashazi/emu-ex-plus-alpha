@@ -43,17 +43,19 @@ void EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTask *task)
 {
 	if(formatIsEqual(desc))
 	{
-		return; // no change to format
+		return; // no change to size/format
 	}
+	colorSpace_ = useSrgbColorSpace && desc.format() == IG::PIXEL_RGBA8888 ? Gfx::ColorSpace::SRGB : Gfx::ColorSpace::LINEAR;
 	if(!vidImg)
 	{
 		Gfx::TextureConfig conf{desc, texSampler};
+		conf.setColorSpace(colorSpace_);
 		vidImg = renderer().makePixmapBufferTexture(conf, bufferMode, singleBuffer);
 		vidImg.clear();
 	}
 	else
 	{
-		vidImg.setFormat(desc, texSampler);
+		vidImg.setFormat(desc, colorSpace_, texSampler);
 	}
 	logMsg("resized to:%dx%d", desc.w(), desc.h());
 	if(task)
@@ -297,4 +299,28 @@ void EmuVideo::setCompatTextureSampler(const Gfx::TextureSampler &compatTexSampl
 	if(!vidImg)
 		return;
 	vidImg.setCompatTextureSampler(compatTexSampler);
+}
+
+void EmuVideo::setSrgbColorSpaceOutput(std::optional<bool> opt)
+{
+	if(!opt)
+		return;
+	useSrgbColorSpace = *opt;
+}
+
+bool EmuVideo::srgbColorSpaceOutput() const
+{
+	return useSrgbColorSpace;
+}
+
+std::optional<bool> EmuVideo::srgbColorSpaceOutputOption() const
+{
+	if(useSrgbColorSpace)
+		return true;
+	return {};
+}
+
+bool EmuVideo::isSrgbFormat() const
+{
+	return colorSpace_ == Gfx::ColorSpace::SRGB;
 }

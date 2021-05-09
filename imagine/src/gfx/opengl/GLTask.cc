@@ -39,18 +39,18 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 	thread = IG::makeThreadSync(
 		[this, &config](auto &sem)
 		{
-			auto glDpy = config.display;
-			glDpy.bindAPI(glAPI);
-			context = makeGLContext(glDpy, config.bufferConfig);
+			auto &glManager = *config.glManagerPtr;
+			glManager.bindAPI(glAPI);
+			context = makeGLContext(glManager, config.bufferConfig);
 			if(!context) [[unlikely]]
 			{
 				sem.notify();
 				return;
 			}
-			context.setCurrent(glDpy, context, config.initialDrawable);
+			context.setCurrentContext(config.initialDrawable);
 			auto eventLoop = Base::EventLoop::makeForThread();
 			commandPort.attach(eventLoop,
-				[this, glDpy](auto msgs)
+				[this, glDpy = context.display()](auto msgs)
 				{
 					for(auto msg : msgs)
 					{
@@ -63,9 +63,8 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 							}
 							case Command::EXIT:
 							{
-								Base::GLContext::setCurrent(glDpy, {}, {});
-								logMsg("exiting GL context:%p thread", context.nativeObject());
-								context.deinit(glDpy);
+								glDpy.resetCurrentContext();
+								logMsg("exiting GL context:%p thread", (Base::NativeGLContext)context);
 								context = {};
 								Base::EventLoop::forThread().stop();
 								return false;
@@ -78,7 +77,7 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 					}
 					return true;
 				});
-			logMsg("starting GL context:%p thread event loop", context.nativeObject());
+			logMsg("starting GL context:%p thread event loop", (Base::NativeGLContext)context);
 			if(config.threadPriority)
 				Base::setThisThreadPriority(config.threadPriority);
 			sem.notify();
@@ -89,6 +88,7 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 	{
 		return std::runtime_error("error creating GL context");
 	}
+	bufferConfig = config.bufferConfig;
 	onExit =
 		{
 			[this](Base::ApplicationContext, bool backgrounded)
@@ -96,11 +96,11 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 				if(backgrounded)
 				{
 					run(
-						[glContext = context](TaskContext ctx)
+						[&glContext = context](TaskContext ctx)
 						{
 							// unset the drawable and finish all commands before entering background
-							if(glContext.hasCurrentDrawable(ctx.glDisplay()))
-								glContext.setDrawable(ctx.glDisplay(), {}, glContext);
+							if(Base::GLManager::hasCurrentDrawable())
+								glContext.setCurrentDrawable({});
 							#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 							glReleaseShaderCompiler();
 							#endif
@@ -124,7 +124,12 @@ void GLTask::runFunc(FuncDelegate del, bool awaitReply)
 	commandPort.send({Command::RUN_FUNC, del}, awaitReply);
 }
 
-Base::GLContext GLTask::glContext() const
+Base::GLBufferConfig GLTask::glBufferConfig() const
+{
+	return bufferConfig;
+}
+
+const Base::GLContext &GLTask::glContext() const
 {
 	return context;
 }
@@ -161,56 +166,51 @@ void GLTask::TaskContext::markSemaphoreNotified()
 	*semaphoreNeedsNotifyPtr = false;
 }
 
-static Base::GLContextAttributes makeGLContextAttributes(uint32_t majorVersion, uint32_t minorVersion)
+static Base::GLContextAttributes makeGLContextAttributes(unsigned majorVersion, unsigned minorVersion)
 {
-	Base::GLContextAttributes glAttr;
+	Base::GLContextAttributes glAttr{majorVersion, minorVersion, glAPI};
 	if(Config::DEBUG_BUILD)
 		glAttr.setDebug(true);
-	glAttr.setMajorVersion(majorVersion);
-	#ifdef CONFIG_GFX_OPENGL_ES
-	glAttr.setOpenGLESAPI(true);
-	#else
-	glAttr.setMinorVersion(minorVersion);
-	#endif
+	else
+		glAttr.setNoError(true);
 	return glAttr;
 }
 
-static Base::GLContext makeVersionedGLContext(Base::GLDisplay dpy, Base::GLBufferConfig config,
+static Base::GLContext makeVersionedGLContext(Base::GLManager &mgr, Base::GLBufferConfig config,
 	unsigned majorVersion, unsigned minorVersion)
 {
 	auto glAttr = makeGLContextAttributes(majorVersion, minorVersion);
 	IG::ErrorCode ec{};
-	Base::GLContext glCtx{dpy, glAttr, config, ec};
-	return glCtx;
+	return mgr.makeContext(glAttr, config, ec);
 }
 
-Base::GLContext GLTask::makeGLContext(Base::GLDisplay dpy, Base::GLBufferConfig bufferConf)
+Base::GLContext GLTask::makeGLContext(Base::GLManager &mgr, Base::GLBufferConfig bufferConf)
 {
 	if constexpr((bool)Config::Gfx::OPENGL_ES)
 	{
 		if constexpr(Config::Gfx::OPENGL_ES == 1)
 		{
-			return makeVersionedGLContext(dpy, bufferConf, 1, 0);
+			return makeVersionedGLContext(mgr, bufferConf, 1, 0);
 		}
 		else
 		{
-			if(bufferConf.maySupportGLES(dpy, 3))
+			if(bufferConf.maySupportGLES(mgr.display(), 3))
 			{
-				auto ctx = makeVersionedGLContext(dpy, bufferConf, 3, 0);
+				auto ctx = makeVersionedGLContext(mgr, bufferConf, 3, 0);
 				if(ctx)
 				{
 					return ctx;
 				}
 			}
 			// fall back to OpenGL ES 2.0
-			return makeVersionedGLContext(dpy, bufferConf, 2, 0);
+			return makeVersionedGLContext(mgr, bufferConf, 2, 0);
 		}
 	}
 	else
 	{
 		if(Config::Gfx::OPENGL_SHADER_PIPELINE)
 		{
-			auto ctx = makeVersionedGLContext(dpy, bufferConf, 3, 3);
+			auto ctx = makeVersionedGLContext(mgr, bufferConf, 3, 3);
 			if(ctx)
 			{
 				return ctx;
@@ -219,7 +219,7 @@ Base::GLContext GLTask::makeGLContext(Base::GLDisplay dpy, Base::GLBufferConfig 
 		if(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE)
 		{
 			// fall back to OpenGL 1.3
-			return makeVersionedGLContext(dpy, bufferConf, 1, 3);
+			return makeVersionedGLContext(mgr, bufferConf, 1, 3);
 		}
 	}
 	return {};

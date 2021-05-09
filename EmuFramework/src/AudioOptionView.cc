@@ -174,7 +174,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			optionAudioAPI = 0;
 			auto defaultApi = audioManager.makeValidAPI();
 			audio->open(defaultApi);
-			api.setSelected(idxOfAPI(defaultApi, audioManager.audioAPIs()));
+			api.setSelected(IG::findIndex(audioManager.audioAPIs(), defaultApi) + 1);
 			view.dismiss();
 			return false;
 		});
@@ -225,12 +225,11 @@ void AudioOptionView::loadStockItems()
 		item.emplace_back(&audioSoloMix);
 	}
 	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-	auto &audioManager = app().audioManager();
-	if(auto apiVec = audioManager.audioAPIs();
-		apiVec.size() > 1)
+	if(apiItem.size() > 2)
 	{
 		item.emplace_back(&api);
-		api.setSelected(idxOfAPI(audioManager.makeValidAPI(audioOutputAPI()), std::move(apiVec)));
+		auto &audioManager = app().audioManager();
+		api.setSelected(IG::findIndex(audioManager.audioAPIs(), audioManager.makeValidAPI(audioOutputAPI())) + 1);
 	}
 	#endif
 }
@@ -250,19 +249,3 @@ void AudioOptionView::updateAudioRateItem()
 		bcase 48000: audioRate.setSelected(4);
 	}
 }
-
-#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
-unsigned AudioOptionView::idxOfAPI(IG::Audio::Api api, std::vector<IG::Audio::ApiDesc> apiVec)
-{
-	for(unsigned idx = 0; auto desc: apiVec)
-	{
-		if(desc.api == api)
-		{
-			assert(idx + 1 < std::size(apiItem));
-			return idx + 1;
-		}
-		idx++;
-	}
-	return 0;
-}
-#endif

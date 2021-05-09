@@ -18,7 +18,7 @@ endif
 
 # setup warnings
 
-CFLAGS_WARN ?= -Wall -Wextra -Werror=return-type -Werror=implicit-fallthrough -Wno-comment -Wno-unused -Wno-unused-parameter
+CFLAGS_WARN ?= -Wall -Wextra -Werror=return-type -Wno-comment -Wno-unused -Wno-unused-parameter
 CFLAGS_WARN += $(CFLAGS_WARN_EXTRA)
 CXXFLAGS_WARN ?= $(CFLAGS_WARN) -Woverloaded-virtual
 

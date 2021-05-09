@@ -5,7 +5,7 @@ include $(imagineSrcDir)/base/Base.mk
 include $(imagineSrcDir)/input/build.mk
 include $(imagineSrcDir)/util/fdUtils.mk
 
-LDLIBS += -lpthread
+LDLIBS += -lpthread -ldl
 
 SRC += base/linux/linux.cc \
  base/linux/DRMFrameTimer.cc \

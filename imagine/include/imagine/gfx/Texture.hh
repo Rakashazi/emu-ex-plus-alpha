@@ -63,7 +63,7 @@ public:
 	bool canUseMipmaps() const;
 	bool generateMipmaps();
 	uint8_t levels() const;
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, uint8_t levels, const TextureSampler *compatSampler = {});
+	IG::ErrorCode setFormat(IG::PixmapDesc, uint8_t levels, ColorSpace c = {}, const TextureSampler *compatSampler = {});
 	void write(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uint32_t writeFlags = 0);
 	void writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
 	void clear(uint8_t level);

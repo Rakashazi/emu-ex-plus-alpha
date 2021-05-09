@@ -35,10 +35,10 @@ void GLRenderer::setupFenceSync()
 	#if !defined CONFIG_BASE_GL_PLATFORM_EGL && defined CONFIG_GFX_OPENGL_ES
 	if(support.hasSyncFences())
 		return;
-	Base::GLContext::loadSymbol(support.glFenceSync, "glFenceSync");
-	Base::GLContext::loadSymbol(support.glDeleteSync, "glDeleteSync");
-	Base::GLContext::loadSymbol(support.glClientWaitSync, "glClientWaitSync");
-	//Base::GLContext::loadSymbol(support.glWaitSync, "glWaitSync");
+	glManager.loadSymbol(support.glFenceSync, "glFenceSync");
+	glManager.loadSymbol(support.glDeleteSync, "glDeleteSync");
+	glManager.loadSymbol(support.glClientWaitSync, "glClientWaitSync");
+	//glManager.loadSymbol(support.glWaitSync, "glWaitSync");
 	#endif
 }
 
@@ -47,10 +47,10 @@ void GLRenderer::setupAppleFenceSync()
 	#if !defined CONFIG_BASE_GL_PLATFORM_EGL && defined CONFIG_GFX_OPENGL_ES
 	if(support.hasSyncFences())
 		return;
-	Base::GLContext::loadSymbol(support.glFenceSync, "glFenceSyncAPPLE");
-	Base::GLContext::loadSymbol(support.glDeleteSync, "glDeleteSyncAPPLE");
-	Base::GLContext::loadSymbol(support.glClientWaitSync, "glClientWaitSyncAPPLE");
-	//Base::GLContext::loadSymbol(support.glWaitSync, "glWaitSyncAPPLE");
+	glManager.loadSymbol(support.glFenceSync, "glFenceSyncAPPLE");
+	glManager.loadSymbol(support.glDeleteSync, "glDeleteSyncAPPLE");
+	glManager.loadSymbol(support.glClientWaitSync, "glClientWaitSyncAPPLE");
+	//glManager.loadSymbol(support.glWaitSync, "glWaitSyncAPPLE");
 	#endif
 }
 
@@ -64,12 +64,12 @@ void GLRenderer::setupEglFenceSync(const char *eglExtenstionStr)
 	// check for fence sync via EGL extensions
 	if(strstr(eglExtenstionStr, "EGL_KHR_fence_sync"))
 	{
-		Base::GLContext::loadSymbol(support.eglCreateSync, "eglCreateSyncKHR");
-		Base::GLContext::loadSymbol(support.eglDestroySync, "eglDestroySyncKHR");
-		Base::GLContext::loadSymbol(support.eglClientWaitSync, "eglClientWaitSyncKHR");
+		glManager.loadSymbol(support.eglCreateSync, "eglCreateSyncKHR");
+		glManager.loadSymbol(support.eglDestroySync, "eglDestroySyncKHR");
+		glManager.loadSymbol(support.eglClientWaitSync, "eglClientWaitSyncKHR");
 		/*if(strstr(eglExtenstionStr, "EGL_KHR_wait_sync"))
 		{
-			Base::GLContext::loadSymbol(support.eglWaitSync, "eglWaitSyncKHR");
+			glManager.loadSymbol(support.eglWaitSync, "eglWaitSyncKHR");
 		}*/
 	}
 	#endif
@@ -137,7 +137,7 @@ void DrawContextSupport::deleteSync(Base::GLDisplay dpy, GLsync sync)
 	if(bool success = eglDestroySync(dpy, sync);
 		Config::DEBUG_BUILD && !success)
 	{
-		logErr("error:%s in eglDestroySync(%p, %p)", dpy.errorString(eglGetError()), (EGLDisplay)dpy, sync);
+		logErr("error:%s in eglDestroySync(%p, %p)", Base::GLManager::errorString(eglGetError()), (EGLDisplay)dpy, sync);
 	}
 	#else
 	glDeleteSync(sync);
@@ -151,7 +151,7 @@ GLenum DrawContextSupport::clientWaitSync(Base::GLDisplay dpy, GLsync sync, GLbi
 		Config::DEBUG_BUILD && !status)
 	{
 		logErr("error:%s in eglClientWaitSync(%p, %p, 0x%X, %llu)",
-			dpy.errorString(eglGetError()), (EGLDisplay)dpy, sync, flags, (unsigned long long)timeout);
+			Base::GLManager::errorString(eglGetError()), (EGLDisplay)dpy, sync, flags, (unsigned long long)timeout);
 		return status;
 	}
 	else

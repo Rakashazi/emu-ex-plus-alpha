@@ -75,10 +75,11 @@ protected:
 	TextMenuItem imgEffectPixelFormatItem[3];
 	MultiChoiceMenuItem imgEffectPixelFormat;
 	#endif
-	#if defined EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-	TextMenuItem windowPixelFormatItem[5];
+	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+	StaticArrayList<TextMenuItem, 4> windowPixelFormatItem{};
 	MultiChoiceMenuItem windowPixelFormat;
 	#endif
+	BoolMenuItem srgbColorSpaceOutput;
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	BoolMenuItem secondDisplay;
 	#endif
@@ -91,7 +92,7 @@ protected:
 	TextHeadingMenuItem screenShapeHeading;
 	TextHeadingMenuItem advancedHeading;
 	TextHeadingMenuItem systemSpecificHeading;
-	StaticArrayList<MenuItem*, 28> item{};
+	StaticArrayList<MenuItem*, 29> item{};
 
 	void pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, Input::Event e);
 	bool onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::FloatSeconds time);
@@ -103,7 +104,6 @@ protected:
 	void setOverlayEffect(unsigned val);
 	void setImgEffectPixelFormat(Base::PixelFormatID format);
 	void setWindowPixelFormat(Base::PixelFormatID format);
-	unsigned idxOfBufferMode(Gfx::TextureBufferMode mode);
 };
 
 class AudioOptionView : public TableView, public EmuAppHelper<AudioOptionView>

@@ -18,6 +18,7 @@
 #include <emuframework/EmuAppHelper.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/gfx/SyncFence.hh>
+#include <optional>
 
 namespace Base
 {
@@ -77,6 +78,10 @@ public:
 	bool setImageBuffers(unsigned num);
 	unsigned imageBuffers() const;
 	void setCompatTextureSampler(const Gfx::TextureSampler &);
+	void setSrgbColorSpaceOutput(std::optional<bool>);
+	bool srgbColorSpaceOutput() const;
+	std::optional<bool> srgbColorSpaceOutputOption() const;
+	bool isSrgbFormat() const;
 
 protected:
 	Gfx::RendererTask *rTask{};
@@ -86,9 +91,11 @@ protected:
 	FrameFinishedDelegate onFrameFinished{};
 	FormatChangedDelegate onFormatChanged{};
 	Gfx::TextureBufferMode bufferMode{};
-	bool screenshotNextFrame = false;
-	bool singleBuffer = false;
-	bool needsFence = false;
+	bool screenshotNextFrame{};
+	bool singleBuffer{};
+	bool needsFence{};
+	bool useSrgbColorSpace{};
+	Gfx::ColorSpace colorSpace_{};
 
 	void doScreenshot(EmuSystemTask *task, IG::Pixmap pix);
 	void postFrameFinished(EmuSystemTask *task);

@@ -22,85 +22,27 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
-#include "private.hh"
 
 namespace Base
 {
 
 // GLDisplay
 
-std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(NativeDisplayConnection)
+void GLDisplay::resetCurrentContext() const
 {
-	return {};
-}
-
-std::pair<IG::ErrorCode, GLDisplay> GLDisplay::makeDefault(NativeDisplayConnection, GL::API api)
-{
-	if(!bindAPI(api))
-	{
-		logErr("error binding requested API");
-		return {{EINVAL}, {}};
-	}
-	return {};
-}
-
-GLDisplay GLDisplay::getDefault(NativeDisplayConnection)
-{
-	return {};
-}
-
-GLDisplay GLDisplay::getDefault(NativeDisplayConnection, GL::API api)
-{
-	if(!bindAPI(api))
-	{
-		logErr("error binding requested API");
-		return {};
-	}
-	return {};
-}
-
-GLDisplay::operator bool() const
-{
-	return true;
-}
-
-bool GLDisplay::operator ==(GLDisplay const &rhs) const
-{
-	return true;
-}
-
-void GLDisplay::logInfo() const {}
-
-bool GLDisplay::bindAPI(GL::API api)
-{
-	return api == GL::API::OPENGL_ES;
-}
-
-bool GLDisplay::deinit()
-{
-	return true;
-}
-
-std::pair<IG::ErrorCode, GLDrawable> GLDisplay::makeDrawable(Window &win, GLBufferConfig config) const
-{
-	CGRect rect = win.screen()->uiScreen().bounds;
-	// Create the OpenGL ES view and add it to the Window
-	auto glView = [[EAGLView alloc] initWithFrame:rect];
-	if(config.useRGB565)
-	{
-		[glView setDrawableColorFormat:kEAGLColorFormatRGB565];
-	}
-	if(*win.screen() == win.appContext().mainScreen())
-	{
-		glView.multipleTouchEnabled = YES;
-	}
-	win.uiWin().rootViewController.view = glView;
-	return {{}, {(void*)CFBridgingRetain(glView)}};
+	[EAGLContext setCurrentContext:nil];
 }
 
 // GLDrawable
 
-void GLDrawable::freeCaches()
+EAGLViewDrawable::EAGLViewDrawable(void *glView): glView_{glView} {}
+
+GLDisplay GLDrawable::display() const
+{
+	return {};
+}
+
+/*void GLDrawable::freeCaches()
 {
 	if(glView_)
 	{
@@ -114,41 +56,7 @@ void GLDrawable::restoreCaches()
 	{
 		[glView() layoutSubviews];
 	}
-}
-
-GLDrawable::operator bool() const
-{
-	return glView_;
-}
-
-bool GLDrawable::operator ==(GLDrawable const &rhs) const
-{
-	return glView_ == rhs.glView_;
-}
-
-bool GLDrawable::destroy(GLDisplay display)
-{
-	if(glViewPtr())
-	{
-		CFRelease(glViewPtr());
-		glView_ = {};
-	}
-	return true;
-}
-
-bool GLContext::hasCurrentDrawable(GLDisplay display, GLDrawable drawable)
-{
-	GLint renderBuffer = 0;
-	glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &renderBuffer);
-	return drawable.glView().colorRenderbuffer == (GLuint)renderBuffer;
-}
-
-bool GLContext::hasCurrentDrawable(GLDisplay display)
-{
-	GLint renderBuffer = 0;
-	glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &renderBuffer);
-	return renderBuffer;
-}
+}*/
 
 // GLContext
 
@@ -165,11 +73,12 @@ static EAGLRenderingAPI majorVersionToAPI(uint32_t version)
 	}
 }
 
-GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, GLContext shareContext, IG::ErrorCode &ec)
+IOSGLContext::IOSGLContext(GLContextAttributes attr, NativeGLContext shareContext_, IG::ErrorCode &ec)
 {
 	assert(attr.openGLESAPI());
 	EAGLRenderingAPI api = majorVersionToAPI(attr.majorVersion());
-	EAGLSharegroup *sharegroup = [shareContext.context() sharegroup];
+	auto shareContext = (__bridge EAGLContext*)shareContext_;
+	EAGLSharegroup *sharegroup = [shareContext sharegroup];
 	logMsg("making context with version: %d.%d sharegroup:%p", attr.majorVersion(), attr.minorVersion(), sharegroup);
 	EAGLContext *newContext = [[EAGLContext alloc] initWithAPI:api sharegroup:sharegroup];
 	if(!newContext)
@@ -178,15 +87,97 @@ GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig
 		ec = {EINVAL};
 		return;
 	}
-	context_ = (void*)CFBridgingRetain(newContext);
-	ec = {};
+	context_.reset((NativeGLContext)CFBridgingRetain(newContext));
 }
 
-GLContext::GLContext(GLDisplay display, GLContextAttributes attr, GLBufferConfig config, IG::ErrorCode &ec):
-	GLContext{display, attr, config, {}, ec}
-{}
+GLDisplay GLContext::display() const
+{
+	return {};
+}
 
-std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay, ApplicationContext, GLBufferConfigAttributes attr, GL::API, unsigned)
+void GLContext::setCurrentContext(NativeGLDrawable drawable) const
+{
+	auto success = [EAGLContext setCurrentContext:context()];
+	assert(success);
+	setCurrentDrawable(drawable);
+}
+
+void GLContext::setCurrentDrawable(NativeGLDrawable drawable) const
+{
+	if(!drawable)
+		return;
+	logMsg("setting view:%p current", drawable);
+	auto glView = (__bridge EAGLView*)drawable;
+	[glView bindDrawable];
+}
+
+void GLContext::present(NativeGLDrawable) const
+{
+	[context() presentRenderbuffer:GL_RENDERBUFFER];
+}
+
+// GLManager
+
+GLManager::GLManager(Base::NativeDisplayConnection ctx, GL::API api)
+{
+	if(!bindAPI(api))
+	{
+		logErr("error binding requested API");
+	}
+}
+
+GLContext GLManager::makeContext(GLContextAttributes attr, GLBufferConfig, NativeGLContext shareContext, IG::ErrorCode &ec)
+{
+	return GLContext{attr, shareContext, ec};
+}
+
+GLDisplay GLManager::getDefaultDisplay(NativeDisplayConnection) const
+{
+	return {};
+}
+
+void GLManager::logInfo() const {}
+
+bool GLManager::bindAPI(GL::API api)
+{
+	return api == GL::API::OPENGL_ES;
+}
+
+GLDrawable GLManager::makeDrawable(Window &win, GLDrawableAttributes config, IG::ErrorCode &) const
+{
+	CGRect rect = win.screen()->uiScreen().bounds;
+	// Create the OpenGL ES view and add it to the Window
+	auto glView = [[EAGLView alloc] initWithFrame:rect];
+	if(config.bufferConfig().useRGB565)
+	{
+		[glView setDrawableColorFormat:kEAGLColorFormatRGB565];
+	}
+	if(*win.screen() == win.appContext().mainScreen())
+	{
+		glView.multipleTouchEnabled = YES;
+	}
+	win.uiWin().rootViewController.view = glView;
+	return {(NativeGLDrawable)CFBridgingRetain(glView)};
+}
+
+bool GLManager::hasCurrentDrawable(NativeGLDrawable drawable)
+{
+	auto glView = (__bridge EAGLView*)drawable;
+	GLint renderBuffer = 0;
+	glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &renderBuffer);
+	return glView.colorRenderbuffer == (GLuint)renderBuffer;
+}
+
+bool GLManager::hasCurrentDrawable()
+{
+	GLint renderBuffer = 0;
+	glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &renderBuffer);
+	return renderBuffer;
+}
+
+GLDisplay GLManager::display() const { return {}; }
+
+std::optional<GLBufferConfig> GLManager::makeBufferConfig(Base::ApplicationContext, GLBufferConfigAttributes attr, GL::API, unsigned) const
 {
 	GLBufferConfig conf;
 	if(attr.pixelFormat() == PIXEL_RGB565)
@@ -196,97 +187,41 @@ std::optional<GLBufferConfig> GLContext::makeBufferConfig(GLDisplay, Application
 	return conf;
 }
 
-void GLContext::setCurrent(GLDisplay, GLContext c, GLDrawable win)
+NativeGLContext GLManager::currentContext()
 {
-	if(c.context())
-	{
-		auto success = [EAGLContext setCurrentContext:c.context()];
-		assert(success);	
-		setDrawable({}, win);
-	}
-	else
-	{
-		auto success = [EAGLContext setCurrentContext:nil];
-		assert(success);
-		assert(!win);
-	}
+	return (__bridge void*)[EAGLContext currentContext];
 }
 
-void GLContext::setDrawable(GLDisplay, GLDrawable win)
-{
-	if(win)
-	{
-		logMsg("setting view:%p current", win.glView());
-		[win.glView() bindDrawable];
-	}
-}
-
-void GLContext::setDrawable(GLDisplay, GLDrawable win, GLContext cachedCurrentContext)
-{
-	setDrawable({}, win);
-}
-
-GLContext GLContext::current(GLDisplay)
-{
-	GLContext c;
-	c.context_ = (__bridge void*)[EAGLContext currentContext];
-	return c;
-}
-
-void GLContext::present(GLDisplay, GLDrawable win)
-{
-	present({}, win, current({}));
-}
-
-void GLContext::present(GLDisplay, GLDrawable win, GLContext cachedCurrentContext)
-{
-	[cachedCurrentContext.context() presentRenderbuffer:GL_RENDERBUFFER];
-}
-
-GLContext::operator bool() const
-{
-	return context_;
-}
-
-bool GLContext::operator ==(GLContext const &rhs) const
-{
-	return context_ == rhs.context_;
-}
-
-void GLContext::deinit(GLDisplay)
-{
-	if(context_)
-	{
-		if(context() == [EAGLContext currentContext])
-		{
-			logMsg("deinit current context:%p", context_);
-			[EAGLContext setCurrentContext:nil];
-		}
-		else
-		{
-			logMsg("deinit context:%p", context_);
-		}
-		CFRelease(context_);
-		context_ = nil;
-	}
-}
-
-void *GLContext::procAddress(const char *funcName)
+void *GLManager::procAddress(const char *funcName)
 {
 	return dlsym(RTLD_DEFAULT, funcName);
 }
 
-bool GLContext::supportsNoConfig()
+bool GLManager::hasBufferFormat(GLBufferConfigAttributes attrs) const
+{
+	switch(attrs.pixelFormat().id())
+	{
+		default:
+			bug_unreachable("format id == %d", attrs.pixelFormat().id());
+			return false;
+		case PIXEL_NONE:
+		case PIXEL_RGB565:
+		case PIXEL_RGBA8888: return true;
+		case PIXEL_RGBX8888: return false;
+	}
+}
+
+bool GLManager::hasNoErrorContextAttribute() const
+{
+	return false;
+}
+
+bool GLManager::hasNoConfigContext() const
 {
 	return true;
 }
 
-NativeGLContext GLContext::nativeObject()
-{
-	return context_;
-}
-
-Base::NativeWindowFormat GLBufferConfig::windowFormat(Base::ApplicationContext, GLDisplay) const
+Base::NativeWindowFormat GLManager::nativeWindowFormat(Base::ApplicationContext, GLBufferConfig) const
 {
 	return {};
 }

@@ -57,6 +57,8 @@ ifdef libNameExt
  CPPFLAGS += -DIMAGINE_CONFIG_H=$(configFilename)
 endif
 
+CFLAGS_WARN += -Werror=implicit-fallthrough
+
 include $(IMAGINE_PATH)/make/imagineStaticLibTarget.mk
 
 install : config main

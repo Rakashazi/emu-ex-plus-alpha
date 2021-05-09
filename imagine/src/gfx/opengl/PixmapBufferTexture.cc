@@ -141,13 +141,13 @@ IG::ErrorCode GLPixmapBufferTexture::initWithSurfaceTexture(RendererTask &r, Tex
 }
 #endif
 
-IG::ErrorCode PixmapBufferTexture::setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler)
+IG::ErrorCode PixmapBufferTexture::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
 	if(!directTex) [[unlikely]]
 		return {EINVAL};
 	if(Config::DEBUG_BUILD && directTex->pixmapDesc() == desc)
 		logWarn("resizing with same dimensions %dx%d, should optimize caller code", desc.w(), desc.h());
-	return directTex->setFormat(desc, compatSampler);
+	return directTex->setFormat(desc, colorSpace, compatSampler);
 }
 
 void PixmapBufferTexture::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags)
@@ -367,10 +367,10 @@ bool GLTextureStorage::isSingleBuffered() const
 	return bufferIdx == SINGLE_BUFFER_VALUE;
 }
 
-IG::ErrorCode GLTextureStorage::setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler)
+IG::ErrorCode GLTextureStorage::setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
 	initPixelBuffer(desc, pbo, isSingleBuffered());
-	return PixmapTexture::setFormat(desc, 1, compatSampler);
+	return PixmapTexture::setFormat(desc, 1, colorSpace, compatSampler);
 }
 
 LockedTextureBuffer GLTextureStorage::lock(uint32_t bufferFlags)
@@ -402,7 +402,6 @@ void GLTextureStorage::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint
 	}
 	else
 	{
-		assumeExpr(pixmap.format() == pixmapDesc().format());
 		auto lockBuff = lock();
 		if(!lockBuff) [[unlikely]]
 		{
@@ -516,7 +515,6 @@ void TextureBufferStorage::writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, 
 		logErr("called writeAligned() on uninitialized texture");
 		return;
 	}
-	assumeExpr(pixmap.format() == pixmapDesc().format());
 	auto lockBuff = lock();
 	if(!lockBuff) [[unlikely]]
 	{

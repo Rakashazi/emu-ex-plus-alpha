@@ -40,11 +40,15 @@
 #define CONFIG_INPUT_ICADE
 #endif
 
-#if defined CONFIG_BASE_X11 || defined __ANDROID__ || defined CONFIG_BASE_IOS
-#define EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-#endif
 
 namespace Config::EmuFramework
 {
-	static constexpr bool USE_SCALED_COORDINATES = Config::envIsAndroid;
+
+static constexpr bool USE_SCALED_COORDINATES = Config::envIsAndroid;
+
+#if defined CONFIG_BASE_X11 || defined __ANDROID__ || defined CONFIG_BASE_IOS
+#define EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
+#endif
+static constexpr bool HAS_MULTIPLE_WINDOW_PIXEL_FORMATS = Config::envIsLinux || Config::envIsAndroid || Config::envIsIOS;
+
 }

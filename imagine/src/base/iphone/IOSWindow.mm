@@ -245,7 +245,16 @@ NativeWindow Window::nativeObject() const
 
 void Window::setFormat(NativeWindowFormat) {}
 
+void Window::setFormat(IG::PixelFormat) {}
+
+IG::PixelFormat Window::pixelFormat() const
+{
+	return IG::PIXEL_FMT_RGBA8888;
+}
+
 void Window::setIntendedFrameRate(double rate) {}
+
+void WindowConfig::setFormat(IG::PixelFormat) {}
 
 }
 

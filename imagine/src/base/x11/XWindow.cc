@@ -250,6 +250,16 @@ void Window::setIntendedFrameRate(double rate)
 
 void Window::setFormat(NativeWindowFormat fmt) {}
 
+void Window::setFormat(IG::PixelFormat) {}
+
+IG::PixelFormat Window::pixelFormat() const
+{
+	auto xScreen = (::Screen*)screen()->nativeObject();
+	if(DefaultDepthOfScreen(xScreen) == 16)
+		return IG::PIXEL_FMT_RGB565;
+	return IG::PIXEL_FMT_RGBA8888;
+}
+
 std::pair<unsigned long, unsigned long> XWindow::xdndData() const
 {
 	return {draggerXWin, dragAction};
@@ -311,5 +321,7 @@ void XWindow::toggleFullScreen()
 	logMsg("toggling fullscreen");
 	ewmhFullscreen(dpy, xWin, _NET_WM_STATE_TOGGLE);
 }
+
+void WindowConfig::setFormat(IG::PixelFormat) {}
 
 }

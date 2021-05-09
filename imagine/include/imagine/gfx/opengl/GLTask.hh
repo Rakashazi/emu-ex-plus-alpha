@@ -36,7 +36,7 @@ class GLRendererTask;
 
 struct GLTaskConfig
 {
-	Base::GLDisplay display;
+	Base::GLManager *glManagerPtr{};
 	Base::GLBufferConfig bufferConfig{};
 	Drawable initialDrawable{};
 	int threadPriority{};
@@ -58,7 +58,7 @@ public:
 		constexpr IG::Semaphore *semaphorePtr() const { return semPtr; }
 
 	protected:
-		Base::GLDisplay glDpy{};
+		[[no_unique_address]] Base::GLDisplay glDpy{};
 		IG::Semaphore *semPtr{};
 		bool *semaphoreNeedsNotifyPtr{};
 	};
@@ -98,7 +98,8 @@ public:
 	~GLTask();
 	Error makeGLContext(GLTaskConfig);
 	void runFunc(FuncDelegate del, bool awaitReply);
-	Base::GLContext glContext() const;
+	Base::GLBufferConfig glBufferConfig() const;
+	const Base::GLContext &glContext() const;
 	Base::ApplicationContext appContext() const;
 	explicit operator bool() const;
 
@@ -139,10 +140,11 @@ public:
 protected:
 	std::thread thread{};
 	Base::GLContext context{};
+	Base::GLBufferConfig bufferConfig{};
 	Base::OnExit onExit;
 	Base::MessagePort<CommandMessage> commandPort{Base::MessagePort<CommandMessage>::NullInit{}};
 
-	Base::GLContext makeGLContext(Base::GLDisplay dpy, Base::GLBufferConfig bufferConf);
+	Base::GLContext makeGLContext(Base::GLManager &, Base::GLBufferConfig bufferConf);
 	void deinit();
 };
 

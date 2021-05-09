@@ -18,6 +18,10 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/iphone/config.h>
 #include <imagine/base/iphone/IOSWindow.hh>
+#include <imagine/base/Error.hh>
+#include <imagine/util/UniqueCFObject.hh>
+#include <compare>
+#include <type_traits>
 
 #ifdef __OBJC__
 #import <OpenGLES/EAGL.h>
@@ -28,47 +32,69 @@ namespace Base
 {
 
 class GLDisplay;
+class GLContext;
+class GLContextAttributes;
 
-class GLDisplayImpl {};
+class GLManagerImpl
+{
+public:
+	explicit constexpr operator bool() const { return true; }
+	constexpr bool operator ==(GLManagerImpl const&) const = default;
+};
+
+class GLDisplayImpl
+{
+public:
+	explicit constexpr operator bool() const { return true; }
+	constexpr bool operator ==(GLDisplayImpl const&) const = default;
+};
+
+using NativeGLContext = void *; // EAGLContext in ObjC
 
 class IOSGLContext
 {
 public:
 	constexpr IOSGLContext() {}
+	IOSGLContext(GLContextAttributes, NativeGLContext shareContext, IG::ErrorCode &);
+	operator NativeGLContext() const { return context_.get(); }
 	#ifdef __OBJC__
-	EAGLContext *context() { return (__bridge EAGLContext*)context_; }
+	EAGLContext *context() const { return (__bridge EAGLContext*)context_.get(); }
 	#endif
+	bool operator ==(IOSGLContext const&) const = default;
+	explicit operator bool() const { return (bool)context_; }
 
 protected:
-	void *context_{}; // EAGLContext in ObjC
+	UniqueCFObject<std::remove_pointer_t<NativeGLContext>> context_{};
 };
+
+using NativeGLDrawable = void *; // EAGLView in ObjC
 
 class EAGLViewDrawable
 {
 public:
 	constexpr EAGLViewDrawable() {}
-	constexpr EAGLViewDrawable(void *glView): glView_{glView} {}
+	EAGLViewDrawable(NativeGLDrawable glView);
+	operator NativeGLDrawable() const { return glView_.get(); }
 	#ifdef __OBJC__
-	EAGLView *glView() { return (__bridge EAGLView*)glView_; }
+	EAGLView *glView() const { return (__bridge EAGLView*)glView_.get(); }
 	#endif
-	void *glViewPtr() { return glView_; }
-	explicit constexpr operator bool() const { return glView_; };
+	bool operator ==(EAGLViewDrawable const&) const = default;
+	explicit operator bool() const { return (bool)glView_; };
 
 protected:
-	void *glView_{}; // EAGLView in ObjC
+	UniqueCFObject<std::remove_pointer_t<NativeGLDrawable>> glView_{};
 };
 
 struct GLBufferConfig
 {
 	bool useRGB565 = false;
 
-	Base::NativeWindowFormat windowFormat(ApplicationContext, GLDisplay display) const;
+	Base::NativeWindowFormat windowFormat(Base::ApplicationContext, GLDisplay display) const;
 	bool maySupportGLES(GLDisplay, unsigned majorVersion) const;
 };
 
 using GLDrawableImpl = EAGLViewDrawable;
 using GLContextImpl = IOSGLContext;
-using NativeGLContext = void *; // EAGLContext in ObjC
 using EAGLViewMakeRenderbufferDelegate = DelegateFunc<IG::Point2D<int>(void *, unsigned int &, unsigned int &)>;
 using EAGLViewDeleteRenderbufferDelegate = DelegateFunc<void(unsigned int colorRenderbuffer, unsigned int depthRenderbuffer)>;
 

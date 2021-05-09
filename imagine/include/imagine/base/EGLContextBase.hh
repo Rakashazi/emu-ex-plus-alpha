@@ -25,15 +25,20 @@
 #include <imagine/base/glDefs.hh>
 #include <EGL/egl.h>
 #include <optional>
+#include <memory>
+#include <type_traits>
+#include <compare>
 
 namespace Base
 {
 
-class ApplicationContext;
 class GLDisplay;
 class GLDrawable;
 class GLContextAttributes;
 class GLBufferConfigAttributes;
+
+using NativeGLDrawable = EGLSurface;
+using NativeGLContext = EGLContext;
 
 struct EGLBufferConfig
 {
@@ -43,7 +48,8 @@ struct EGLBufferConfig
 	constexpr EGLBufferConfig(EGLConfig eglConfig):
 		glConfig{eglConfig} {}
 
-	Base::NativeWindowFormat windowFormat(ApplicationContext, GLDisplay) const;
+	constexpr operator EGLConfig() const { return glConfig; }
+	constexpr bool operator ==(EGLBufferConfig const&) const = default;
 	EGLint renderableTypeBits(GLDisplay display) const;
 	bool maySupportGLES(GLDisplay display, unsigned majorVersion) const;
 };
@@ -54,10 +60,9 @@ public:
 	constexpr EGLDisplayConnection() {}
 	constexpr EGLDisplayConnection(EGLDisplay display): display{display} {}
 	constexpr operator EGLDisplay() const { return display; }
-	static IG::ErrorCode initDisplay(EGLDisplay display);
+	constexpr bool operator ==(EGLDisplayConnection const&) const = default;
+	explicit constexpr operator bool() const { return display != EGL_NO_DISPLAY; }
 	const char *queryExtensions();
-	static const char *errorString(EGLint error);
-	static int makeRenderableType(GL::API, unsigned majorVersion);
 
 protected:
 	EGLDisplay display{EGL_NO_DISPLAY};
@@ -67,28 +72,86 @@ class EGLDrawable
 {
 public:
 	constexpr EGLDrawable() {}
-	constexpr EGLDrawable(EGLSurface surface): surface{surface} {}
-	constexpr operator EGLSurface() const { return surface; }
+	EGLDrawable(EGLDisplay, Window &, EGLConfig, const EGLint *surfaceAttr, IG::ErrorCode &);
+	operator EGLSurface() const { return surface.get(); }
+	bool operator ==(EGLDrawable const&) const = default;
+	explicit operator bool() const { return (bool)surface; }
 
 protected:
-	EGLSurface surface{EGL_NO_SURFACE};
+	struct EGLSurfaceDeleter
+	{
+		EGLDisplay dpy;
+
+		void operator()(EGLSurface ptr) const
+		{
+			destroySurface(dpy, ptr);
+		}
+		constexpr bool operator ==(EGLSurfaceDeleter const&) const = default;
+	};
+	using UniqueEGLSurface = std::unique_ptr<std::remove_pointer_t<EGLSurface>, EGLSurfaceDeleter>;
+
+	UniqueEGLSurface surface{};
+
+	static void destroySurface(EGLDisplay, EGLSurface);
 };
 
 class EGLContextBase
 {
 public:
 	constexpr EGLContextBase() {}
-	EGLContextBase(EGLDisplay display, GLContextAttributes attr, EGLBufferConfig config, EGLContext shareContext, IG::ErrorCode &ec);
-	static void swapBuffers(EGLDisplay display, GLDrawable win);
+	EGLContextBase(EGLDisplay, GLContextAttributes, EGLConfig, EGLContext shareContext, bool savePBuffConfig, IG::ErrorCode &);
+	operator EGLContext() const { return context.get(); }
+	bool operator ==(EGLContextBase const&) const = default;
+	explicit operator bool() const { return (bool)context; }
 
 protected:
-	EGLContext context{EGL_NO_CONTEXT};
+	struct EGLContextDeleter
+	{
+		EGLDisplay dpy;
 
-	void deinit(EGLDisplay display);
-	static std::optional<EGLConfig> chooseConfig(EGLDisplay display, int renderableType, GLBufferConfigAttributes attr);
-	static void setCurrentContext(EGLDisplay display, EGLContext context, GLDrawable win);
+		void operator()(EGLContext ptr) const
+		{
+			destroyContext(dpy, ptr);
+		}
+		constexpr bool operator ==(EGLContextDeleter const&) const = default;
+	};
+	using UniqueEGLContext = std::unique_ptr<std::remove_pointer_t<EGLContext>, EGLContextDeleter>;
+
+	UniqueEGLContext context{};
+	std::optional<EGLConfig> dummyPbuffConfig{};
+
+	static void destroyContext(EGLDisplay, EGLContext);
 };
 
-using NativeGLContext = EGLContext;
+class EGLManager
+{
+public:
+	constexpr EGLManager() {}
+	static const char *errorString(EGLint error);
+	static int makeRenderableType(GL::API, unsigned majorVersion);
+	explicit operator bool() const { return (bool)dpy; }
+
+protected:
+	struct EGLDisplayDeleter
+	{
+		void operator()(EGLDisplay ptr) const
+		{
+			terminateEGL(ptr);
+		}
+	};
+	using UniqueEGLDisplay = std::unique_ptr<std::remove_pointer_t<EGLDisplay>, EGLDisplayDeleter>;
+
+	UniqueEGLDisplay dpy{};
+	bool supportsSurfaceless{};
+	bool supportsNoConfig{};
+	bool supportsNoError{};
+	bool supportsSrgbColorSpace{};
+	IG_enableMemberIf(Config::envIsLinux, bool, supportsTripleBufferSurfaces){};
+
+	IG::ErrorCode initDisplay(EGLDisplay);
+	static std::optional<EGLConfig> chooseConfig(GLDisplay, int renderableType, GLBufferConfigAttributes, bool allowFallback = true);
+	void logFeatures() const;
+	static void terminateEGL(EGLDisplay);
+};
 
 }

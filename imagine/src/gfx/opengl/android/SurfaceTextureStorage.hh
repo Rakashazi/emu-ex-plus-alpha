@@ -32,7 +32,7 @@ public:
 	SurfaceTextureStorage(SurfaceTextureStorage &&o);
 	SurfaceTextureStorage &operator=(SurfaceTextureStorage &&o);
 	~SurfaceTextureStorage() final;
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler) final;
+	IG::ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace colorSpace, const TextureSampler *compatSampler) final;
 	LockedTextureBuffer lock(uint32_t bufferFlags) final;
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags) final;
 	void setCompatTextureSampler(const TextureSampler &compatSampler) final;

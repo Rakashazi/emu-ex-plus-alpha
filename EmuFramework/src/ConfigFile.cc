@@ -232,6 +232,7 @@ void EmuApp::saveConfigFile(IO &io)
 	writeOptionValue(io, CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES, vController.usesScaledCoordinatesOption());
 	writeOptionValue(io, CFGKEY_SWAPPED_GAMEPAD_CONFIM, swappedConfirmKeysOption());
 	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audioManager().soloMixOption());
+	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, emuVideo.srgbColorSpaceOutputOption());
 
 	if(customKeyConfig.size())
 	{
@@ -521,6 +522,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 				bcase CFGKEY_WINDOW_PIXEL_FORMAT: optionWindowPixelFormat.readFromIO(io, size);
 				#endif
+				bcase CFGKEY_VIDEO_COLOR_SPACE: emuVideo.setSrgbColorSpaceOutput(readOptionValue<bool>(io, size));
 				bcase CFGKEY_INPUT_KEY_CONFIGS:
 				{
 					if(!readKeyConfig(io, size))

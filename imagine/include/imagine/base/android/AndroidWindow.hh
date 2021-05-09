@@ -51,11 +51,12 @@ protected:
 	{
 		NONE, MAIN, PRESENTATION
 	};
+
 	ANativeWindow *nWin{};
 	JNI::UniqueGlobalRef jWin{};
 	InitDelegate onInit{};
-	int32_t pixelFormat = 0;
-	IG::WindowRect contentRect; // active window content
+	int32_t nPixelFormat{};
+	IG::WindowRect contentRect{}; // active window content
 	Type type{};
 };
 

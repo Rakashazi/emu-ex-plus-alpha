@@ -32,7 +32,7 @@ public:
 	virtual ~TextureBufferStorage() = 0;
 	TextureBufferStorage &operator=(TextureBufferStorage &&o) = default;
 	LockedTextureBuffer makeLockedBuffer(void *data, uint32_t pitchBytes, uint32_t bufferFlags);
-	virtual IG::ErrorCode setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler) = 0;
+	virtual IG::ErrorCode setFormat(IG::PixmapDesc, ColorSpace, const TextureSampler *compatSampler) = 0;
 	virtual void writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags = 0);
 	virtual LockedTextureBuffer lock(uint32_t bufferFlags = 0) = 0;
 	virtual void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0) = 0;
@@ -71,7 +71,7 @@ public:
 	~GLTextureStorage() final;
 	GLTextureStorage(GLTextureStorage &&o);
 	GLTextureStorage &operator=(GLTextureStorage &&o);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler) final;
+	IG::ErrorCode setFormat(IG::PixmapDesc, ColorSpace, const TextureSampler *compatSampler) final;
 	void writeAligned(IG::Pixmap pixmap, uint8_t assumeAlign, uint32_t writeFlags = 0) final;
 	LockedTextureBuffer lock(uint32_t bufferFlags = 0) final;
 	void unlock(LockedTextureBuffer lockBuff, uint32_t writeFlags = 0) final;

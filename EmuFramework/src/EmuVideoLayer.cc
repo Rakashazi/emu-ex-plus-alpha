@@ -252,8 +252,13 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 	{
 		disp.setCommonProgram(cmds, replaceMode ? IMG_MODE_REPLACE : IMG_MODE_MODULATE, projP.makeTranslate());
 	}
+	bool srgbFrameBufferWrite = video.isSrgbFormat();
 	cmds.setTextureSampler(*texSampler);
+	if(srgbFrameBufferWrite)
+		cmds.setSrgbFramebufferWrite(true);
 	disp.draw(cmds);
+	if(srgbFrameBufferWrite)
+		cmds.setSrgbFramebufferWrite(false);
 	video.addFence(cmds);
 	vidImgOverlay.draw(cmds);
 }
@@ -324,6 +329,17 @@ void EmuVideoLayer::setLinearFilter(bool on)
 	{
 		video.setCompatTextureSampler(*texSampler);
 	}
+}
+
+void EmuVideoLayer::setSrgbColorSpaceOutput(bool on)
+{
+	video.setSrgbColorSpaceOutput(on);
+	video.resetImage();
+}
+
+bool EmuVideoLayer::srgbColorSpaceOutput() const
+{
+	return video.srgbColorSpaceOutput();
 }
 
 void EmuVideoLayer::setBrightness(float b)

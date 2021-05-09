@@ -39,7 +39,7 @@ public:
 
 	using PixmapBufferTextureImpl::PixmapBufferTextureImpl;
 	PixmapBufferTexture(RendererTask &, TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false, IG::ErrorCode *errorPtr = nullptr);
-	IG::ErrorCode setFormat(IG::PixmapDesc desc, const TextureSampler *compatSampler = {});
+	IG::ErrorCode setFormat(IG::PixmapDesc desc, ColorSpace c = {}, const TextureSampler *compatSampler = {});
 	void write(IG::Pixmap pixmap, uint32_t writeFlags = 0);
 	void writeAligned(IG::Pixmap pixmap, uint8_t assumedDataAlignment, uint32_t writeFlags = 0);
 	void clear();

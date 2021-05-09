@@ -20,7 +20,8 @@
 #endif
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 1996-2011 the\nSnes9x Team\nwww.snes9x.com";
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
+static constexpr auto srcPixFmt = IG::PIXEL_FMT_RGB565;
+static constexpr auto destPixFmt = IG::PIXEL_FMT_RGBA8888;
 static EmuSystemTask *emuSysTask{};
 static EmuVideo *emuVideo{};
 static const unsigned heightChangeFrameDelay = 4;
@@ -78,8 +79,18 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 	{
 		heightChangeFrames = heightChangeFrameDelay;
 	}
-	IG::Pixmap srcPix = {{{width, height}, pixFmt}, GFX.Screen};
-	emuVideo->startFrameWithFormat(emuSysTask, srcPix);
+	IG::Pixmap srcPix = {{{width, height}, srcPixFmt}, GFX.Screen};
+	if(destPixFmt == IG::PIXEL_RGB565)
+	{
+		emuVideo->startFrameWithFormat(emuSysTask, srcPix);
+	}
+	else
+	{
+		auto img = emuVideo->startFrameWithFormat(emuSysTask, {srcPix.size(), IG::PIXEL_RGBA8888});
+		assumeExpr(img.pixmap().format().id() ==  IG::PIXEL_RGBA8888);
+		img.pixmap().writeConverted(srcPix);
+		img.endFrame();
+	}
 	#ifndef SNES9X_VERSION_1_4
 	memset(GFX.ZBuffer, 0, GFX.ScreenSize);
 	memset(GFX.SubZBuffer, 0, GFX.ScreenSize);

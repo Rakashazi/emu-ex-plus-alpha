@@ -86,7 +86,7 @@ public:
 	template <class T>
 	ssize_t write(T &&obj, std::error_code *ecOut = nullptr)
 	{
-		using DecayT = typename std::decay<T>::type;
+		using DecayT = typename std::decay_t<T>;
 		if constexpr(std::is_pointer_v<DecayT>)
 		{
 			static_assert(IG::dependentFalseValue<DecayT>, "attempting to write a pointer with no size parameter");

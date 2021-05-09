@@ -15,9 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-#include <imagine/base/baseDefs.hh>
-
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XWindow.hh>
 #elif defined CONFIG_BASE_ANDROID
@@ -27,6 +24,13 @@
 #elif defined CONFIG_BASE_MACOSX
 #include <imagine/base/osx/CocoaWindow.hh>
 #endif
+
+#include <imagine/base/baseDefs.hh>
+
+namespace IG
+{
+class PixelFormat;
+}
 
 namespace Base
 {
@@ -95,6 +99,8 @@ public:
 	{
 		this->fmt = fmt;
 	}
+
+	void setFormat(IG::PixelFormat);
 
 	NativeWindowFormat format() const
 	{
