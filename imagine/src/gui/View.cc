@@ -201,15 +201,6 @@ void View::dismissPrevious()
 	}
 }
 
-//bool View::compileGfxPrograms(Gfx::Renderer &r)
-//{
-//	r.make(imageCommonTextureSampler);
-//	auto compiled = r.makeCommonProgram(Gfx::CommonProgram::NO_TEX);
-//	// for text
-//	compiled |= r.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
-//	return compiled;
-//}
-
 Gfx::GlyphTextureSet &View::defaultFace()
 {
 	return manager().defaultFace();

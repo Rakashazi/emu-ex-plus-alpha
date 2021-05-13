@@ -151,6 +151,8 @@ public:
 	std::vector<FS::PathLocation> rootFileLocations() const;
 	FS::RootPathInfo nearestRootPath(const char *path) const;
 	AssetIO openAsset(const char *name, IO::AccessHint access, const char *appName = applicationName) const;
+	bool hasSystemPathPicker() const;
+	void showSystemPathPicker(SystemPathPickerDelegate);
 
 	// OS UI management (status & navigation bar)
 	void setSysUIStyle(uint32_t flags);

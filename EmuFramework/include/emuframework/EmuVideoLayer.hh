@@ -60,6 +60,7 @@ private:
 	IG::WindowRect gameRect_{};
 	Gfx::GCRect gameRectG{};
 	float brightness = 1.f;
+	float brightnessSrgb = 1.f;
 
 	void compileDefaultPrograms();
 	void placeEffect();

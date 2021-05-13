@@ -32,7 +32,6 @@
 #include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/thread/Thread.hh>
-#include <imagine/util/fd-utils.h>
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
 #include "android.hh"
@@ -404,14 +403,69 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 		{
 			{
 				"onContentRectChanged", "(JIIIIII)V",
-				(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jint, jint, jint, jint, jint))
-				([](JNIEnv* env, jobject thiz, jlong windowAddr, jint x, jint y, jint x2, jint y2, jint winWidth, jint winHeight)
+				(void*)
+				+[](JNIEnv* env, jobject thiz, jlong windowAddr, jint x, jint y, jint x2, jint y2, jint winWidth, jint winHeight)
 				{
 					assumeExpr(windowAddr);
 					auto win = (Window*)windowAddr;
 					win->setContentRect({{x, y}, {x2, y2}}, {winWidth, winHeight});
-				})
-			}
+				}
+			},
+			{
+				"displayEnumerated", "(JLandroid/view/Display;IFILandroid/util/DisplayMetrics;)V",
+				(void*)
+				+[](JNIEnv* env, jobject, jlong nActivityAddr, jobject disp, jint id, jfloat refreshRate, jint rotation, jobject metrics)
+				{
+					ApplicationContext ctx{(ANativeActivity*)nActivityAddr};
+					auto &app = ctx.application();
+					auto screen = app.findScreen(id);
+					if(!screen)
+					{
+						app.addScreen(ctx, std::make_unique<Screen>(ctx,
+							Screen::InitParams{env, disp, metrics, id, refreshRate, (SurfaceRotation)rotation}), false);
+						return;
+					}
+					else
+					{
+						// already in list, update existing
+						screen->updateRefreshRate(refreshRate);
+					}
+				}
+			},
+			{
+				"inputDeviceEnumerated", "(JILandroid/view/InputDevice;Ljava/lang/String;IIIZ)V",
+				(void*)
+				+[](JNIEnv* env, jobject, jlong nUserData, jint devID, jobject jDev, jstring jName, jint src, jint kbType, jint jsAxisBits, jboolean isPowerButton)
+				{
+					auto &app = *((AndroidApplication*)nUserData);
+					const char *name = env->GetStringUTFChars(jName, nullptr);
+					Input::AndroidInputDevice sysDev{env, jDev, app.nextInputDeviceEnumId(name, devID), devID, src,
+						name, kbType, (uint32_t)jsAxisBits, (bool)isPowerButton};
+					env->ReleaseStringUTFChars(jName, name);
+					auto devPtr = app.addInputDevice(sysDev, false, false);
+					// check for special device IDs
+					if(devID == -1)
+					{
+						app.virtualDev = devPtr;
+					}
+					else if(devID == 0)
+					{
+						// built-in keyboard is always id 0 according to Android docs
+						app.builtinKeyboardDev = devPtr;
+					}
+				}
+			},
+			{
+				"documentTreeOpened", "(JLjava/lang/String;)V",
+				(void*)
+				+[](JNIEnv* env, jobject, jlong nUserData, jstring jPath)
+				{
+					auto &app = *((AndroidApplication*)nUserData);
+					auto path = env->GetStringUTFChars(jPath, nullptr);
+					app.onSystemPathPicker(path);
+					env->ReleaseStringUTFChars(jPath, path);
+				}
+			},
 		};
 		env->RegisterNatives(baseActivityClass, method, std::size(method));
 	}

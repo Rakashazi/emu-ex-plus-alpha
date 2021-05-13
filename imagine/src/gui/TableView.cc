@@ -68,7 +68,7 @@ void TableView::prepareDraw()
 	if(!cells_)
 		return;
 	int startYCell = std::min(scrollOffset() / yCellSize, cells_);
-	int endYCell = IG::clamp(startYCell + visibleCells, 0, cells_);
+	int endYCell = std::clamp(startYCell + visibleCells, 0, cells_);
 	if(startYCell < 0)
 	{
 		// skip non-existent cells
@@ -89,7 +89,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 	auto y = viewRect().yPos(LT2DO);
 	auto x = viewRect().xPos(LT2DO);
 	int startYCell = std::min(scrollOffset() / yCellSize, cells_);
-	int endYCell = IG::clamp(startYCell + visibleCells, 0, cells_);
+	int endYCell = std::clamp(startYCell + visibleCells, 0, cells_);
 	if(startYCell < 0)
 	{
 		// skip non-existent cells
@@ -468,7 +468,7 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 			if(selected == -1)
 				selected = cells_ - 1;
 			else
-				selected = clamp(selected - visibleCells, 0, cells_ - 1);
+				selected = std::clamp(selected - visibleCells, 0, cells_ - 1);
 			logMsg("selected %d", selected);
 			postDraw();
 			movedSelected = true;
@@ -479,7 +479,7 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 			if(selected == -1)
 				selected = 0;
 			else
-				selected = clamp(selected + visibleCells, 0, cells_ - 1);
+				selected = std::clamp(selected + visibleCells, 0, cells_ - 1);
 			logMsg("selected %d", selected);
 			postDraw();
 			movedSelected = true;

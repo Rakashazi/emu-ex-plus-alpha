@@ -15,26 +15,42 @@
 
 package com.imagine;
 
-import android.widget.*;
-import android.app.*;
-import android.content.*;
-import android.content.DialogInterface.*;
-import android.view.inputmethod.*;
-import android.graphics.drawable.*;
-import android.view.View.*;
-import android.os.*;
-import android.view.*;
-import android.graphics.*;
-import android.util.*;
-import android.hardware.*;
-import android.media.*;
-import android.net.*;
-import android.content.res.*;
+import android.widget.TextView;
+import android.widget.PopupWindow;
+import android.app.NativeActivity;
+import android.content.Intent;
+import android.content.Context;
+import android.graphics.drawable.Icon;
+import android.os.Vibrator;
+import android.os.Bundle;
+import android.os.Environment;
+import android.os.Build;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewConfiguration;
+import android.view.Window;
+import android.view.WindowManager;
+import android.view.Display;
+import android.view.InputDevice;
+import android.view.Gravity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.PixelFormat;
+import android.util.DisplayMetrics;
+import android.media.AudioManager;
+import android.net.Uri;
+import android.content.res.AssetManager;
 import android.view.inputmethod.InputMethodManager;
-import android.bluetooth.*;
-import android.content.pm.*;
-import java.lang.reflect.*;
-import java.io.*;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothSocket;
+import android.content.pm.Signature;
+import android.content.pm.PackageManager;
+import android.content.pm.ShortcutManager;
+import android.content.pm.ShortcutInfo;
+import java.lang.reflect.Method;
+import java.lang.reflect.InvocationTargetException;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 
@@ -45,16 +61,20 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	private static final String logTag = "BaseActivity";
 	static native void onContentRectChanged(long nativeUserData,
 		int left, int top, int right, int bottom, int windowWidth, int windowHeight);
-	native static void displayEnumerated(long nativeUserData, Display dpy, int id,
-			float refreshRate, int rotation, DisplayMetrics metrics);
-	native static void inputDeviceEnumerated(long nativeUserData,
-			int devID, InputDevice dev, String name, int src, int kbType,
-			int jsAxisBits, boolean isPowerButton);
+	static native void displayEnumerated(long nativeUserData, Display dpy, int id,
+		float refreshRate, int rotation, DisplayMetrics metrics);
+	static native void inputDeviceEnumerated(long nativeUserData,
+		int devID, InputDevice dev, String name, int src, int kbType,
+		int jsAxisBits, boolean isPowerButton);
+	static native void documentTreeOpened(long nativeUserData, String path);
 	private static final Method setSystemUiVisibility =
 		android.os.Build.VERSION.SDK_INT >= 11 ? Util.getMethod(View.class, "setSystemUiVisibility", new Class[] { int.class }) : null;
 	private static final int commonUILayoutFlags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
 		| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
 	private Display defaultDpy;
+	private long activityResultNativeUserData;
+	private static final int REQUEST_OPEN_DOCUMENT_TREE = 1;
+	private static final int REQUEST_BT_ON = 2;
 
 	boolean hasPermanentMenuKey()
 	{
@@ -301,19 +321,26 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return adapter.getState();
 	}
 	
-	private static final int REQUEST_BT_ON = 1;
-	
 	void btTurnOn()
 	{
 		Intent btOn = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 		startActivityForResult(btOn, REQUEST_BT_ON);
 	}
 	
-	@Override protected void onActivityResult(int requestCode, int resultCode, Intent data)
+	@Override protected void onActivityResult(int requestCode, int resultCode, Intent intent)
 	{
 		if(requestCode == REQUEST_BT_ON)
 		{
 			onBTOn(resultCode == RESULT_OK);
+		}
+		else if(android.os.Build.VERSION.SDK_INT >= 30 && requestCode == REQUEST_OPEN_DOCUMENT_TREE &&
+			resultCode == RESULT_OK && intent != null)
+		{
+			final String path = StorageManagerHelper.pathFromOpenDocumentTreeResult(this, intent);
+			if(path != null)
+			{
+				documentTreeOpened(activityResultNativeUserData, path);
+			}
 		}
 	}
 	
@@ -541,5 +568,14 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		{
 			startActivity(intent);
 		}
+	}
+
+	void openDocumentTree(long nativeUserData)
+	{
+		if(android.os.Build.VERSION.SDK_INT < 30)
+			return;
+		activityResultNativeUserData = nativeUserData;
+		Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+		startActivityForResult(intent, REQUEST_OPEN_DOCUMENT_TREE);
 	}
 }

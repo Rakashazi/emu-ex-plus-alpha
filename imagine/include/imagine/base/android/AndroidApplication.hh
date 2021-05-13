@@ -128,6 +128,7 @@ public:
 	void addNotification(JNIEnv *, jobject baseActivity, const char *onShow, const char *title, const char *message);
 	void removePostedNotifications(JNIEnv *, jobject baseActivity);
 	void handleIntent(ApplicationContext);
+	void openDocumentTreeIntent(JNIEnv *, jobject baseActivity, SystemPathPickerDelegate);
 
 	// Input system functions
 	void onInputQueueCreated(ApplicationContext, AInputQueue *);
@@ -156,6 +157,7 @@ private:
 	JNI::InstMethod<jint()> jWinFlags{};
 	JNI::InstMethod<void(jstring, jstring, jstring)> jAddNotification{};
 	JNI::InstMethod<void(jlong)> jEnumInputDevices{};
+	SystemPathPickerDelegate onSystemPathPicker{};
 	SystemOrientationChangedDelegate onSystemOrientationChanged{};
 	Timer userActivityCallback{"userActivityCallback"};
 	void (AndroidApplication::*processInput_)(AInputQueue *);
@@ -198,6 +200,7 @@ private:
 	void processInputWithGetEvent(AInputQueue *);
 	void processInputWithHasEvents(AInputQueue *);
 	void processInputCommon(AInputQueue *inputQueue, AInputEvent* event);
+	uint32_t nextInputDeviceEnumId(const char *name, int devID);
 };
 
 using ApplicationImpl = AndroidApplication;

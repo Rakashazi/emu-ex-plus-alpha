@@ -107,31 +107,6 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, jclass b
 			return true;
 		}, Base::SCREEN_ON_EXIT_PRIORITY);
 	}
-	JNINativeMethod method[]
-	{
-		{
-			"displayEnumerated", "(JLandroid/view/Display;IFILandroid/util/DisplayMetrics;)V",
-			(void*)
-			+[](JNIEnv* env, jobject, jlong nActivityAddr, jobject disp, jint id, jfloat refreshRate, jint rotation, jobject metrics)
-			{
-				ApplicationContext ctx{(ANativeActivity*)nActivityAddr};
-				auto &app = ctx.application();
-				auto screen = app.findScreen(id);
-				if(!screen)
-				{
-					app.addScreen(ctx, std::make_unique<Screen>(ctx,
-						Screen::InitParams{env, disp, metrics, id, refreshRate, (SurfaceRotation)rotation}), false);
-					return;
-				}
-				else
-				{
-					// already in list, update existing
-					screen->updateRefreshRate(refreshRate);
-				}
-			}
-		},
-	};
-	env->RegisterNatives(baseActivityClass, method, std::size(method));
 	jEnumDisplays = {env, baseActivityClass, "enumDisplays", "(J)V"};
 	jEnumDisplays(env, baseActivity, (jlong)nActivity);
 }

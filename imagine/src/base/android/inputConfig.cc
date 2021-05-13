@@ -18,7 +18,6 @@
 #include <imagine/base/sharedLibrary.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/fd-utils.h>
 #include <imagine/util/algorithm.h>
 #include "input.hh"
 #include <android/configuration.h>
@@ -377,22 +376,6 @@ bool Device::anyTypeBitsPresent(Base::ApplicationContext ctx, uint32_t typeBits)
 	return false;
 }
 
-static uint32_t nextEnumID(const char *name, int devID, const Base::AndroidInputDeviceContainer &sysInputDev)
-{
-	uint32_t enumID = 0;
-	// find the next available ID number for devices with this name, starting from 0
-	for(auto &e : sysInputDev)
-	{
-		if(!string_equal(e->name(), name))
-			continue;
-		if(e->systemId() == devID) // device already has an enumID
-			return e->enumId();
-		if(e->enumId() == enumID)
-			enumID++;
-	}
-	return enumID;
-}
-
 bool hasGetAxisValue()
 {
 	#ifdef ANDROID_COMPAT_API
@@ -426,33 +409,6 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass bas
 		#endif
 
 		jEnumInputDevices = {env, baseActivityClass, "enumInputDevices", "(J)V"};
-		JNINativeMethod method[]
-		{
-			{
-				"inputDeviceEnumerated", "(JILandroid/view/InputDevice;Ljava/lang/String;IIIZ)V",
-				(void*)
-				+[](JNIEnv* env, jobject, jlong nUserData, jint devID, jobject jDev, jstring jName, jint src, jint kbType, jint jsAxisBits, jboolean isPowerButton)
-				{
-					auto &app = *((AndroidApplication*)nUserData);
-					const char *name = env->GetStringUTFChars(jName, nullptr);
-					Input::AndroidInputDevice sysDev{env, jDev, Input::nextEnumID(name, devID, app.sysInputDev), devID, src,
-						name, kbType, (uint32_t)jsAxisBits, (bool)isPowerButton};
-					env->ReleaseStringUTFChars(jName, name);
-					auto devPtr = app.addInputDevice(sysDev, false, false);
-					// check for special device IDs
-					if(devID == -1)
-					{
-						app.virtualDev = devPtr;
-					}
-					else if(devID == 0)
-					{
-						// built-in keyboard is always id 0 according to Android docs
-						app.builtinKeyboardDev = devPtr;
-					}
-				}
-			},
-		};
-		env->RegisterNatives(baseActivityClass, method, std::size(method));
 
 		// device change notifications
 		if(androidSDK >= 16)
@@ -479,7 +435,7 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass bas
 						else // add or update existing
 						{
 							const char *name = env->GetStringUTFChars(jName, nullptr);
-							Input::AndroidInputDevice sysDev{env, jDev, Input::nextEnumID(name, devID, app.sysInputDev), devID,
+							Input::AndroidInputDevice sysDev{env, jDev, app.nextInputDeviceEnumId(name, devID), devID,
 								src, name, kbType, (uint32_t)jsAxisBits, false};
 							env->ReleaseStringUTFChars(jName, name);
 							app.addInputDevice(sysDev, change == Input::DEVICE_CHANGED, true);
@@ -729,6 +685,22 @@ bool AndroidApplication::removeInputDevice(int id, bool notify)
 	}
 	logMsg("device id:%d not in list", id);
 	return false;
+}
+
+uint32_t AndroidApplication::nextInputDeviceEnumId(const char *name, int devID)
+{
+	uint32_t enumID = 0;
+	// find the next available ID number for devices with this name, starting from 0
+	for(auto &e : sysInputDev)
+	{
+		if(!string_equal(e->name(), name))
+			continue;
+		if(e->systemId() == devID) // device already has an enumID
+			return e->enumId();
+		if(e->enumId() == enumID)
+			enumID++;
+	}
+	return enumID;
 }
 
 }

@@ -15,7 +15,6 @@
 
 #define LOGTAG "Window"
 #include "android.hh"
-#include <imagine/util/fd-utils.h>
 #include <imagine/logger/logger.h>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>

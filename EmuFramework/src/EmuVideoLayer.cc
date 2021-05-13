@@ -228,7 +228,8 @@ void EmuVideoLayer::draw(Gfx::RendererCommands &cmds, const Gfx::ProjectionPlane
 	bool replaceMode = true;
 	if(brightness != 1.f)
 	{
-		cmds.setColor(brightness, brightness, brightness);
+		auto c = video.isSrgbFormat() ? brightnessSrgb : brightness;
+		cmds.setColor(c, c, c);
 		replaceMode = false;
 	}
 	cmds.setBlendMode(0);
@@ -345,6 +346,7 @@ bool EmuVideoLayer::srgbColorSpaceOutput() const
 void EmuVideoLayer::setBrightness(float b)
 {
 	brightness = b;
+	brightnessSrgb = std::pow(b, 2.2f);
 }
 
 void EmuVideoLayer::setTextureBufferMode(Gfx::TextureBufferMode mode)

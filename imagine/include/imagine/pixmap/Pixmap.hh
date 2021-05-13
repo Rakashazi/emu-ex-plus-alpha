@@ -116,8 +116,9 @@ public:
 	template <class Func>
 	static constexpr bool checkTransformFunc()
 	{
-		constexpr bool isValid = !std::is_void_v<FunctionTraitsR<Func>>
-			&& functionTraitsArity<Func> == 1;
+		using FuncTraits = FunctionTraits<Func>;
+		constexpr bool isValid = !std::is_void_v<typename FuncTraits::Result>
+			&& FuncTraits::arity == 1;
 		static_assert(isValid, "Transform function must take 1 argument and return a value");
 		return isValid;
 	}

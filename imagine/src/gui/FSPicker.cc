@@ -362,7 +362,8 @@ bool FSPicker::isAtRoot() const
 void FSPicker::pushFileLocationsView(Input::Event e)
 {
 	rootLocation = appContext().rootFileLocations();
-	auto view = makeViewWithName<TextTableView>("File Locations", rootLocation.size() + 2);
+	int customItems = appContext().hasSystemPathPicker() ? 3 : 2;
+	auto view = makeViewWithName<TextTableView>("File Locations", rootLocation.size() + customItems);
 	for(auto &loc : rootLocation)
 	{
 		view->appendItem(loc.description.data(),
@@ -398,6 +399,19 @@ void FSPicker::pushFileLocationsView(Input::Event e)
 				});
 			pushAndShow(std::move(textInputView), e);
 		});
+	if(appContext().hasSystemPathPicker())
+	{
+		view->appendItem("OS Path Picker",
+			[this](View &view, Input::Event e)
+			{
+				appContext().showSystemPathPicker(
+					[this, &view](const char *path)
+					{
+						changeDirByInput(path, appContext().nearestRootPath(path), false, appContext().defaultInputEvent());
+						view.dismiss();
+					});
+			});
+	}
 	pushAndShow(std::move(view), e);
 }
 

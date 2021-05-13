@@ -211,6 +211,10 @@ AssetIO ApplicationContext::openAsset(const char *name, IO::AccessHint access, c
 	return io;
 }
 
+[[gnu::weak]] bool ApplicationContext::hasSystemPathPicker() const { return false; }
+
+[[gnu::weak]] void ApplicationContext::showSystemPathPicker(SystemPathPickerDelegate) {}
+
 Orientation ApplicationContext::validateOrientationMask(Orientation oMask) const
 {
 	if(!(oMask & VIEW_ROTATE_ALL))

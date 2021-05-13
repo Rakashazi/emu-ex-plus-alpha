@@ -82,4 +82,18 @@ void ApplicationContext::openURL(const char *url) const
 	jOpenURL(env, baseActivity, env->NewStringUTF(url));
 }
 
+void AndroidApplication::openDocumentTreeIntent(JNIEnv *env, jobject baseActivity, SystemPathPickerDelegate del)
+{
+	onSystemPathPicker = del;
+	JNI::InstMethod<void(jlong)> jOpenDocumentTree{env, env->GetObjectClass(baseActivity), "openDocumentTree", "(J)V"};
+	jOpenDocumentTree(env, baseActivity, (jlong)this);
+}
+
+bool ApplicationContext::hasSystemPathPicker() const { return androidSDK() >= 30; }
+
+void ApplicationContext::showSystemPathPicker(SystemPathPickerDelegate del)
+{
+	application().openDocumentTreeIntent(mainThreadJniEnv(), baseActivityObject(), del);
+}
+
 }

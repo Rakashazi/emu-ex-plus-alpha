@@ -180,7 +180,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 		auto prevOffset = offset;
 		auto vel = window().heightSMMInPixels(10.0);
 		offset += e.mapKey() == Input::Pointer::WHEEL_UP ? -vel : vel;
-		offset = IG::clamp(offset, 0, offsetMax);
+		offset = std::clamp(offset, 0, offsetMax);
 		if(offset != prevOffset)
 			postDraw();
 		return true;
@@ -214,7 +214,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 				if(scrollWholeArea_)
 				{
 					offset = IG::scalePointRange((Gfx::GC)e.pos().y, (Gfx::GC)viewFrame.y, (Gfx::GC)viewFrame.y + (Gfx::GC)viewFrame.ySize(), (Gfx::GC)0, (Gfx::GC)offsetMax);
-					offset = IG::clamp(offset, 0, offsetMax);
+					offset = std::clamp(offset, 0, offsetMax);
 				}
 				else
 				{
@@ -258,7 +258,7 @@ void ScrollView::setScrollOffset(int o)
 {
 	dragTracker.finish();
 	stopScrollAnimation();
-	offset = IG::clamp(o, 0, offsetMax);
+	offset = std::clamp(o, 0, offsetMax);
 }
 
 int ScrollView::scrollOffset() const

@@ -192,6 +192,7 @@ using ExitDelegate = DelegateFunc<bool (ApplicationContext, bool backgrounded)>;
 using DeviceOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Orientation newOrientation)>;
 using SystemOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Orientation oldOrientation, Orientation newOrientation)>;
 using ScreenChangeDelegate = DelegateFunc<void (ApplicationContext, Screen &s, ScreenChange)>;
+using SystemPathPickerDelegate = DelegateFunc<void(const char *path)>;
 
 using InputDeviceChangeDelegate = DelegateFunc<void (const Input::Device &dev, Input::DeviceChange)>;
 using InputDevicesEnumeratedDelegate = DelegateFunc<void ()>;

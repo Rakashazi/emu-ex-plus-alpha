@@ -6,7 +6,6 @@
 #include <cctype>
 #include <cstdarg>
 #include <system_error>
-#include <iterator>
 #include <string>
 #else
 #include <string.h>

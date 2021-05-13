@@ -17,7 +17,6 @@
 
 #include <imagine/util/utility.h>
 #include <cmath>
-#include <algorithm>
 #include <type_traits>
 
 namespace IG
@@ -73,12 +72,6 @@ template <class T>
 static constexpr T sign(T num)
 {
 	return num >= (T)0 ? (T)1 : (T)-1;
-}
-
-template <class T>
-static constexpr T clamp(T val, T low, T high)
-{
-	return std::min(std::max(val, low), high);
 }
 
 template<class IntType, class FloatType = float>
