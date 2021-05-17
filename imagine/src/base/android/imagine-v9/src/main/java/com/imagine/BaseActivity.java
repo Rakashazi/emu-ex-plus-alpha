@@ -440,7 +440,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return new FontRenderer();
 	}
 
-	ChoreographerHelper newChoreographerHelper(long timerAddr)
+	ChoreographerHelper choreographerHelper(long timerAddr)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 16)
 			return null;

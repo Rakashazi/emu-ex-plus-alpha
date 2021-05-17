@@ -18,7 +18,8 @@
 #include <imagine/time/Time.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
-#include "FBDevFrameTimer.hh"
+#include <imagine/base/linux/FBDevFrameTimer.hh>
+#include <imagine/util/UniqueFileDescriptor.hh>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -28,29 +29,25 @@
 namespace Base
 {
 
-FBDevFrameTimer::FBDevFrameTimer(EventLoop loop, Screen &screen)
+static UniqueFileDescriptor openDevice()
 {
 	const char *fbDevPath = "/dev/fb0";
 	logMsg("opening device path:%s", fbDevPath);
-	int fbdev = open(fbDevPath, O_RDWR | O_CLOEXEC);
+	return open(fbDevPath, O_RDWR | O_CLOEXEC);
+}
+
+FBDevFrameTimer::FBDevFrameTimer(Screen &screen, EventLoop loop)
+{
+	auto fbdev = openDevice();
 	if(fbdev == -1)
 	{
 		logErr("error opening device:%s", std::system_category().message(errno).c_str());
-		return;
-	}
-	// test ioctl FBIO_WAITFORVSYNC
-	if(int arg = 0, res = ioctl(fbdev, FBIO_WAITFORVSYNC, &arg);
-		res == -1)
-	{
-		logErr("error in ioctl FBIO_WAITFORVSYNC, cannot use frame timer");
-		close(fbdev);
 		return;
 	}
 	int fd = eventfd(0, 0);
 	if(fd == -1)
 	{
 		logErr("error creating eventfd");
-		close(fbdev);
 		return;
 	}
 	sem_init(&sem, 0, 0);
@@ -72,7 +69,7 @@ FBDevFrameTimer::FBDevFrameTimer(EventLoop loop, Screen &screen)
 			return true;
 		}};
 	IG::makeDetachedThread(
-		[this, fd, fbdev]()
+		[this, fd, fbdev = fbdev.release()]()
 		{
 			//logMsg("ready to wait for vsync");
 			for(;;)
@@ -119,6 +116,24 @@ void FBDevFrameTimer::scheduleVSync()
 void FBDevFrameTimer::cancel()
 {
 	cancelled = true;
+}
+
+bool FBDevFrameTimer::testSupport()
+{
+	auto fbdev = openDevice();
+	if(fbdev == -1)
+	{
+		logErr("error opening device:%s", std::system_category().message(errno).c_str());
+		return false;
+	}
+	// test ioctl FBIO_WAITFORVSYNC
+	if(int arg = 0, res = ioctl(fbdev, FBIO_WAITFORVSYNC, &arg);
+		res == -1)
+	{
+		logErr("error in ioctl FBIO_WAITFORVSYNC, cannot use frame timer");
+		return false;
+	}
+	return true;
 }
 
 }

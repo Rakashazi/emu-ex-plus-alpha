@@ -60,8 +60,7 @@ public:
 
 	void addWindow(std::unique_ptr<Window>);
 	std::unique_ptr<Window> moveOutWindow(Window &win);
-	unsigned windows() const;
-	Window *window(unsigned idx) const;
+	const WindowContainter &windows() const;
 	Window &mainWindow() const;
 
 	bool addOnResume(ResumeDelegate, int priority);
@@ -81,8 +80,7 @@ public:
 	Screen &addScreen(ApplicationContext, std::unique_ptr<Screen>, bool notify);
 	Screen *findScreen(ScreenId) const;
 	std::unique_ptr<Screen> removeScreen(ApplicationContext, ScreenId, bool notify);
-	unsigned screens() const;
-	Screen *screen(unsigned idx) const;
+	const ScreenContainter &screens() const;
 	Screen &mainScreen() const;
 	bool screensArePosted() const;
 	void setActiveForAllScreens(bool active);
@@ -126,8 +124,8 @@ protected:
 	ScreenChangeDelegate onScreenChange_;
 	InputDeviceChangeDelegate onInputDeviceChange{};
 	InputDevicesEnumeratedDelegate onInputDevicesEnumerated{};
-	std::vector<std::unique_ptr<Window>> window_{};
-	std::vector<std::unique_ptr<Screen>> screen_{};
+	WindowContainter window_{};
+	ScreenContainter screen_{};
 	MessagePort<CommandMessage> commandPort{"Main thread messages"};
 	InputDeviceContainer inputDev{};
 	std::optional<Base::Timer> keyRepeatTimer{};

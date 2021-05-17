@@ -17,31 +17,34 @@
 
 #include <imagine/base/FrameTimer.hh>
 #include <imagine/base/EventLoop.hh>
-#include <imagine/time/Time.hh>
+#include <semaphore.h>
 
 namespace Base
 {
 
 class Screen;
 
-class DRMFrameTimer : public FrameTimer
+class FBDevFrameTimer : public FrameTimerI
 {
 public:
-	DRMFrameTimer(EventLoop loop, Screen &screen);
-	~DRMFrameTimer() final;
+	constexpr FBDevFrameTimer() {}
+	FBDevFrameTimer(Screen &screen, EventLoop loop = {});
+	~FBDevFrameTimer() final;
 	void scheduleVSync() final;
 	void cancel() final;
+	static bool testSupport();
 
 	explicit operator bool() const
 	{
 		return fdSrc.fd() >= 0;
 	}
 
-protected:
-	Base::FDEventSource fdSrc;
-	IG::Time timestamp{};
-	bool requested = false;
-	bool cancelled = false;
+private:
+	Base::FDEventSource fdSrc{};
+	sem_t sem{};
+	bool requested{};
+	bool cancelled{};
+	bool quiting{};
 };
 
 }

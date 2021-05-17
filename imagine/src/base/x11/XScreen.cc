@@ -26,7 +26,8 @@
 namespace Base
 {
 
-XScreen::XScreen(ApplicationContext ctx, InitParams params)
+XScreen::XScreen(ApplicationContext ctx, InitParams params):
+	frameTimer{ctx.application().makeFrameTimer(*static_cast<Screen*>(this))}
 {
 	::Screen *xScreen = (::Screen*)params.xScreen;
 	assert(xScreen);
@@ -71,6 +72,7 @@ XScreen::XScreen(ApplicationContext ctx, InitParams params)
 		XRRFreeScreenResources(screenRes);
 		assert(frameTime_.count());
 	}
+	frameTimer.setFrameTime(frameTime_);
 	logMsg("screen:%p %dx%d (%dx%dmm) %.2fHz", xScreen,
 		WidthOfScreen(xScreen), HeightOfScreen(xScreen), (int)xMM, (int)yMM,
 		1./ frameTime_.count());
@@ -96,12 +98,12 @@ XScreen::operator bool() const
 	return xScreen;
 }
 
-int Screen::width()
+int Screen::width() const
 {
 	return WidthOfScreen((::Screen*)xScreen);
 }
 
-int Screen::height()
+int Screen::height() const
 {
 	return HeightOfScreen((::Screen*)xScreen);
 }
@@ -123,7 +125,7 @@ bool Screen::frameRateIsReliable() const
 
 void Screen::setFrameRate(double rate)
 {
-	if(Config::MACHINE_IS_PANDORA)
+	if constexpr(Config::MACHINE_IS_PANDORA)
 	{
 		if(rate == DISPLAY_RATE_DEFAULT)
 			rate = 60;
@@ -141,25 +143,23 @@ void Screen::setFrameRate(double rate)
 			return;
 		}
 		frameTime_ = IG::FloatSeconds(1. / rate);
+		frameTimer.setFrameTime(frameTime_);
+	}
+	else
+	{
+		auto time = rate ? IG::FloatSeconds(1. / rate) : frameTime();
+		frameTimer.setFrameTime(time);
 	}
 }
 
-void Screen::postFrame()
+void Screen::postFrameTimer()
 {
-	if(framePosted)
-		return;
-	//logMsg("posting frame");
-	framePosted = true;
-	ctx.application().frameTimerScheduleVSync();
+	frameTimer.scheduleVSync();
 }
 
-void Screen::unpostFrame()
+void Screen::unpostFrameTimer()
 {
-	if(!framePosted)
-		return;
-	//logMsg("un-posting frame");
-	framePosted = false;
-	ctx.application().frameTimerCancel();
+	frameTimer.cancel();
 }
 
 void Screen::setFrameInterval(int interval)
@@ -174,12 +174,12 @@ bool Screen::supportsFrameInterval()
 	return false;
 }
 
-bool Screen::supportsTimestamps(ApplicationContext ctx)
+bool Screen::supportsTimestamps() const
 {
-	return !ctx.application().frameTimeIsSimulated();
+	return !std::holds_alternative<SimpleFrameTimer>(frameTimer);
 }
 
-std::vector<double> Screen::supportedFrameRates(ApplicationContext)
+std::vector<double> Screen::supportedFrameRates(ApplicationContext) const
 {
 	// TODO
 	std::vector<double> rateVec;

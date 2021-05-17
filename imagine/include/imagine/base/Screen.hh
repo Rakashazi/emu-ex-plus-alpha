@@ -44,24 +44,22 @@ public:
   static constexpr double DISPLAY_RATE_DEFAULT = 0;
 
 	Screen(ApplicationContext, InitParams);
-	// Called when a screen addition/removal/change occurs
-	int width();
-	int height();
-	bool isPosted();
-	bool addOnFrame(OnFrameDelegate del, int priority = 0);
-	bool removeOnFrame(OnFrameDelegate del);
-	bool containsOnFrame(OnFrameDelegate del);
-	uint32_t onFrameDelegates();
-	bool runningOnFrameDelegates();
+	int width() const;
+	int height() const;
+	bool isPosted() const;
+	bool addOnFrame(OnFrameDelegate, int priority = 0);
+	bool removeOnFrame(OnFrameDelegate);
+	bool containsOnFrame(OnFrameDelegate) const;
+	uint32_t onFrameDelegates() const;
 	FrameParams makeFrameParams(FrameTime timestamp) const;
 	bool frameRateIsReliable() const;
 	double frameRate() const;
 	FloatSeconds frameTime() const;
 	void setFrameRate(double rate);
-	std::vector<double> supportedFrameRates(ApplicationContext);
+	std::vector<double> supportedFrameRates(ApplicationContext) const;
 	void setFrameInterval(int interval);
 	static bool supportsFrameInterval();
-	static bool supportsTimestamps(ApplicationContext);
+	bool supportsTimestamps() const;
 	void frameUpdate(FrameTime timestamp);
 	void setActive(bool active);
 
@@ -69,12 +67,13 @@ private:
 	DelegateFuncSet<OnFrameDelegate> onFrameDelegate{};
 	ApplicationContext ctx;
 	bool framePosted{};
-	bool inFrameHandler{};
 	bool isActive{};
 
 	void runOnFrameDelegates(FrameTime timestamp);
 	void postFrame();
 	void unpostFrame();
+	void postFrameTimer();
+	void unpostFrameTimer();
 };
 
 }

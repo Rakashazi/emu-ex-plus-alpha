@@ -156,16 +156,16 @@ void Window::setOnDismiss(DismissDelegate del)
 	BaseWindow::setOnDismiss(del);
 }
 
-static Window::FrameTimeSource frameClock(ApplicationContext ctx, Window::FrameTimeSource clock)
+static Window::FrameTimeSource frameClock(const Screen &screen, Window::FrameTimeSource clock)
 {
 	if(clock == Window::FrameTimeSource::AUTO)
-		return Base::Screen::supportsTimestamps(ctx) ? Window::FrameTimeSource::SCREEN : Window::FrameTimeSource::RENDERER;
+		return screen.supportsTimestamps() ? Window::FrameTimeSource::SCREEN : Window::FrameTimeSource::RENDERER;
 	return clock;
 }
 
 bool Window::addOnFrame(Base::OnFrameDelegate del, FrameTimeSource clock, int priority)
 {
-	clock = frameClock(appContext(), clock);
+	clock = frameClock(*screen(), clock);
 	if(clock == FrameTimeSource::SCREEN)
 	{
 		return screen()->addOnFrame(del);
@@ -180,7 +180,7 @@ bool Window::addOnFrame(Base::OnFrameDelegate del, FrameTimeSource clock, int pr
 
 bool Window::removeOnFrame(Base::OnFrameDelegate del, FrameTimeSource clock)
 {
-	clock = frameClock(appContext(), clock);
+	clock = frameClock(*screen(), clock);
 	if(clock == FrameTimeSource::SCREEN)
 	{
 		return screen()->removeOnFrame(del);
@@ -651,7 +651,7 @@ IG::Point2D<int> Window::transformInputPos(IG::Point2D<int> srcPos) const
 
 Screen &WindowConfig::screen(ApplicationContext ctx) const
 {
-	return screen_ ? *screen_ : *ctx.screen(0);
+	return screen_ ? *screen_ : ctx.mainScreen();
 }
 
 ApplicationContext Window::appContext() const

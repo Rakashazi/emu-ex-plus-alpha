@@ -176,7 +176,7 @@ IOSApplication::IOSApplication(ApplicationInitParams initParams):
 	}
 	for(UIScreen *screen in [UIScreen screens])
 	{
-		setupUIScreen(ctx, screen, screens());
+		setupUIScreen(ctx, screen, screens().size());
 	}
 	#else
 	mainScreen().init([UIScreen mainScreen]);
@@ -237,7 +237,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 	ApplicationInitParams initParams{.uiAppPtr = (__bridge void*)uiApp};
 	ApplicationContext ctx{uiApp};
 	ctx.onInit(initParams);
-	if(!ctx.windows())
+	if(!ctx.windows().size())
 		logWarn("didn't create a window");
 	logMsg("exiting didFinishLaunchingWithOptions");
 	return YES;
@@ -247,9 +247,9 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	logMsg("resign active");
 	Base::ApplicationContext ctx{application};
-	iterateTimes(ctx.windows(), i)
+	for(auto &w : ctx.windows())
 	{
-		ctx.window(i)->dispatchFocusChange(false);
+		w->dispatchFocusChange(false);
 	}
 	ctx.application().deinitKeyRepeatTimer();
 }
@@ -258,9 +258,9 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 {
 	logMsg("became active");
 	Base::ApplicationContext ctx{application};
-	iterateTimes(ctx.windows(), i)
+	for(auto &w : ctx.windows())
 	{
-		ctx.window(i)->dispatchFocusChange(true);
+		w->dispatchFocusChange(true);
 	}
 }
 
@@ -290,9 +290,9 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 	Base::ApplicationContext ctx{application};
 	ctx.application().setRunningActivityState();
 	ctx.application().setActiveForAllScreens(true);
-	iterateTimes(ctx.windows(), i)
+	for(auto &w : ctx.windows())
 	{
-		ctx.window(i)->postDraw();
+		w->postDraw();
 	}
 	ctx.dispatchOnResume(true);
 }

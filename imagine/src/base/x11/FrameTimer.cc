@@ -14,9 +14,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "FrameTimer"
-#include "../linux/DRMFrameTimer.hh"
-#include "../linux/FBDevFrameTimer.hh"
-#include "../common/SimpleFrameTimer.hh"
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <memory>
@@ -24,46 +21,30 @@
 namespace Base
 {
 
-void XApplication::initFrameTimer(EventLoop loop, Screen &screen)
+FrameTimer XApplication::makeFrameTimer(Screen &screen)
 {
+	switch(supportedFrameTimer)
 	{
-		auto timer = std::make_unique<DRMFrameTimer>(loop, screen);
-		if(*timer)
-		{
-			logMsg("using DRM frame timer");
-			frameTimer = std::move(timer);
-			return;
-		}
+		default: return FrameTimer{std::in_place_type<SimpleFrameTimer>, screen};
+		case SupportedFrameTimer::DRM: return FrameTimer{std::in_place_type<DRMFrameTimer>, screen};
+		case SupportedFrameTimer::FBDEV: return FrameTimer{std::in_place_type<FBDevFrameTimer>, screen};
 	}
+}
+
+SupportedFrameTimer XApplication::testFrameTimers()
+{
+	if(DRMFrameTimer::testSupport())
 	{
-		auto timer = std::make_unique<FBDevFrameTimer>(loop, screen);
-		if(*timer)
-		{
-			logMsg("using FBDev frame timer");
-			frameTimer = std::move(timer);
-			return;
-		}
+		logMsg("using DRM frame timer");
+		return SupportedFrameTimer::DRM;
+	}
+	if(FBDevFrameTimer::testSupport())
+	{
+		logMsg("using FBDev frame timer");
+		return SupportedFrameTimer::FBDEV;
 	}
 	logMsg("using simple frame timer");
-	frameTimer = std::make_unique<SimpleFrameTimer>(loop, screen);
-	usingSimpleFrameTimer = true;
-}
-
-void XApplication::frameTimerScheduleVSync()
-{
-	assumeExpr(frameTimer);
-	frameTimer->scheduleVSync();
-}
-
-void XApplication::frameTimerCancel()
-{
-	assumeExpr(frameTimer);
-	frameTimer->cancel();
-}
-
-bool XApplication::frameTimeIsSimulated() const
-{
-	return usingSimpleFrameTimer;
+	return SupportedFrameTimer::SIMPLE;
 }
 
 }

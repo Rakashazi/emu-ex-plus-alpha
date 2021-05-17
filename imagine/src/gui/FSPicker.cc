@@ -259,7 +259,8 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 	{
 		// no entires, show a message instead
 		if(ec)
-			msgText.setString(string_makePrintf<48>("Can't open directory:\n%s", ec.message().c_str()).data());
+			msgText.setString(string_makePrintf<96>("Can't open directory:\n%s\nPick a path from the top bar",
+				ec.message().c_str()).data());
 		else
 			msgText.setString("Empty Directory");
 	}

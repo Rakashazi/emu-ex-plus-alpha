@@ -30,9 +30,15 @@ namespace Base
 
 class Screen;
 class Window;
+class FrameTimer;
 class FDEventSource;
 class XIDeviceInfo;
 class XkbDescRec;
+
+enum class SupportedFrameTimer : uint8_t
+{
+	SIMPLE, DRM, FBDEV
+};
 
 struct XInputDevice : public Input::Device
 {
@@ -53,9 +59,7 @@ public:
 	~XApplication();
 	FDEventSource makeXDisplayConnection(EventLoop);
 	::_XDisplay *xDisplay() const;
-	void frameTimerScheduleVSync();
-	void frameTimerCancel();
-	bool frameTimeIsSimulated() const;
+	FrameTimer makeFrameTimer(Screen &);
 	void initPerWindowInputData(unsigned long xWin);
 	void runX11Events(_XDisplay *);
 	void runX11Events();
@@ -66,8 +70,7 @@ public:
 private:
 	::_XDisplay *dpy{};
 	FDEventSource xEventSrc{};
-	std::unique_ptr<FrameTimer> frameTimer{};
-	bool usingSimpleFrameTimer{};
+	SupportedFrameTimer supportedFrameTimer{};
 	bool dndInit{};
 
 	// Input state
@@ -81,7 +84,6 @@ private:
 	int xPointerMapping[Config::Input::MAX_POINTERS]{};
 
 	void initXInput2();
-	void initFrameTimer(EventLoop, Screen &);
 	bool eventHandler(_XEvent);
 	Window *windowForXWindow(unsigned long xWin) const;
 	void initInputSystem();
@@ -91,6 +93,7 @@ private:
 	void removeXInputDevice(int xDeviceId);
 	const Input::Device *deviceForInputId(int osId) const;
 	int devIdToPointer(int id) const;
+	static SupportedFrameTimer testFrameTimers();
 };
 
 using ApplicationImpl = XApplication;

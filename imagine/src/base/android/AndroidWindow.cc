@@ -142,9 +142,9 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate onInit_
 	this->screen_ = &screen;
 	auto env = ctx.mainThreadJniEnv();
 	auto baseActivity = ctx.baseActivityObject();
-	if(ctx.windows() > 0)
+	if(ctx.windows().size())
 	{
-		assert(&screen != ctx.screen(0));
+		assert(screen != ctx.mainScreen());
 		if(!jPresentation)
 			jPresentation = {env, baseActivity, "presentation", "(Landroid/view/Display;JJ)Lcom/imagine/PresentationHelper;"};
 		jWin = {env, jPresentation(env, baseActivity, screen.displayObject(),
@@ -266,7 +266,10 @@ NativeWindow Window::nativeObject() const
 void Window::setIntendedFrameRate(double rate)
 {
 	if(appContext().androidSDK() < 30)
+	{
+		screen()->setFrameRate(rate);
 		return;
+	}
 	if(!nWin) [[unlikely]]
 		return;
 	if(!ANativeWindow_setFrameRate) [[unlikely]]

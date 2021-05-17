@@ -80,9 +80,9 @@ EmuViewController::EmuViewController(ViewAttachParams viewAttach,
 			if(backgrounded)
 			{
 				showUI();
-				if(optionShowOnSecondScreen && ctx.screens() > 1)
+				if(optionShowOnSecondScreen && ctx.screens().size() > 1)
 				{
-					setEmuViewOnExtraWindow(false, *ctx.screen(1));
+					setEmuViewOnExtraWindow(false, *ctx.screens()[1]);
 				}
 				viewStack.top().onHide();
 				ctx.addOnResume(
@@ -225,9 +225,10 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 {
 	auto &winData = windowData(viewAttach.window());
 	auto &face = viewAttach.viewManager().defaultFace();
+	auto &screen = *viewAttach.window().screen();
 	winData.hasEmuView = true;
 	winData.hasPopup = true;
-	if(!Base::Screen::supportsTimestamps(appContext()) && (!Config::envIsLinux || viewAttach.window().screen()->frameRate() < 100.))
+	if(!screen.supportsTimestamps() && (!Config::envIsLinux || screen.frameRate() < 100.))
 	{
 		setWindowFrameClockSource(Base::Window::FrameTimeSource::RENDERER);
 	}
@@ -503,28 +504,28 @@ void EmuViewController::placeElements()
 
 static bool hasExtraWindow(Base::ApplicationContext ctx)
 {
-	return ctx.windows() == 2;
+	return ctx.windows().size() == 2;
 }
 
 static void dismissExtraWindow(Base::ApplicationContext ctx)
 {
 	if(!hasExtraWindow(ctx))
 		return;
-	ctx.window(1)->dismiss();
+	ctx.windows()[1]->dismiss();
 }
 
 static bool extraWindowIsFocused(Base::ApplicationContext ctx)
 {
 	if(!hasExtraWindow(ctx))
 		return false;
-	return windowData(*ctx.window(1)).focused;
+	return windowData(*ctx.windows()[1]).focused;
 }
 
 static Base::Screen *extraWindowScreen(Base::ApplicationContext ctx)
 {
 	if(!hasExtraWindow(ctx))
 		return nullptr;
-	return ctx.window(1)->screen();
+	return ctx.windows()[1]->screen();
 }
 
 void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
@@ -926,7 +927,7 @@ void EmuViewController::onScreenChange(Base::ApplicationContext ctx, Base::Scree
 	if(change.added())
 	{
 		logMsg("screen added");
-		if(optionShowOnSecondScreen && ctx.screens() > 1)
+		if(optionShowOnSecondScreen && ctx.screens().size() > 1)
 			setEmuViewOnExtraWindow(true, screen);
 	}
 	else if(change.removed())
@@ -1048,9 +1049,9 @@ bool EmuViewController::useRendererTime() const
 
 void EmuViewController::configureSecondaryScreens()
 {
-	if(optionShowOnSecondScreen && appContext().screens() > 1)
+	if(optionShowOnSecondScreen && appContext().screens().size() > 1)
 	{
-		setEmuViewOnExtraWindow(true, *appContext().screen(1));
+		setEmuViewOnExtraWindow(true, *appContext().screens()[1]);
 	}
 }
 

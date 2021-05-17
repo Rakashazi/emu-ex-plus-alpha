@@ -16,7 +16,8 @@
 #define LOGTAG "DRMFrameTimer"
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
-#include "DRMFrameTimer.hh"
+#include <imagine/base/linux/DRMFrameTimer.hh>
+#include <imagine/util/UniqueFileDescriptor.hh>
 #include <xf86drm.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -25,32 +26,24 @@
 namespace Base
 {
 
-DRMFrameTimer::DRMFrameTimer(EventLoop loop, Screen &screen)
+static UniqueFileDescriptor openDevice()
 {
 	const char *drmCardPath = getenv("KMSDEVICE");
 	if(!drmCardPath)
 		drmCardPath = "/dev/dri/card0";
 	logMsg("opening device path:%s", drmCardPath);
-	int fd = open(drmCardPath, O_RDWR | O_CLOEXEC, 0);
+	return open(drmCardPath, O_RDWR | O_CLOEXEC, 0);
+}
+
+DRMFrameTimer::DRMFrameTimer(Screen &screen, EventLoop loop)
+{
+	auto fd = openDevice();
 	if(fd == -1)
 	{
 		logErr("error opening device:%s", std::system_category().message(errno).c_str());
 		return;
 	}
-	// test drmWaitVBlank
-	{
-		drmVBlank vbl{};
-		vbl.request.type = (drmVBlankSeqType)(DRM_VBLANK_RELATIVE);
-		vbl.request.sequence = 1;
-		if(int err = drmWaitVBlank(fd, &vbl);
-			err)
-		{
-			logErr("error in drmWaitVBlank:%s, cannot use frame timer", std::system_category().message(errno).c_str());
-			close(fd);
-			return;
-		}
-	}
-	fdSrc = {"DRMFrameTimer", fd, loop,
+	fdSrc = {"DRMFrameTimer", fd.release(), loop,
 		[this, &screen](int fd, int event)
 		{
 			requested = false;
@@ -108,6 +101,29 @@ void DRMFrameTimer::scheduleVSync()
 void DRMFrameTimer::cancel()
 {
 	cancelled = true;
+}
+
+bool DRMFrameTimer::testSupport()
+{
+	int fd = openDevice();
+	if(fd == -1)
+	{
+		logErr("error opening device:%s", std::system_category().message(errno).c_str());
+		return false;
+	}
+	// test drmWaitVBlank
+	{
+		drmVBlank vbl{};
+		vbl.request.type = (drmVBlankSeqType)(DRM_VBLANK_RELATIVE);
+		vbl.request.sequence = 1;
+		if(int err = drmWaitVBlank(fd, &vbl);
+			err)
+		{
+			logErr("error in drmWaitVBlank:%s, cannot use frame timer", std::system_category().message(errno).c_str());
+			return false;
+		}
+	}
+	return true;
 }
 
 }

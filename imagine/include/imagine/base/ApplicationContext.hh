@@ -85,13 +85,11 @@ public:
 	void flushMainThreadMessages();
 
 	Window *makeWindow(WindowConfig, WindowInitDelegate);
-	unsigned windows() const;
-	Window *window(unsigned idx) const;
+	const WindowContainter &windows() const;
 	Window &mainWindow();
 	bool systemAnimatesWindowRotation() const;
 
-	unsigned screens() const;
-	Screen *screen(unsigned idx) const;
+	const ScreenContainter &screens() const;
 	Screen &mainScreen();
 
 	NativeDisplayConnection nativeDisplayConnection() const;

@@ -55,22 +55,15 @@ void BaseApplication::deinitWindows()
 	window_.clear();
 }
 
-unsigned BaseApplication::windows() const
+const WindowContainter &BaseApplication::windows() const
 {
-	return window_.size();
-}
-
-Window *BaseApplication::window(unsigned idx) const
-{
-	if(idx >= window_.size()) [[unlikely]]
-		return nullptr;
-	return window_[idx].get();
+	return window_;
 }
 
 Window &BaseApplication::mainWindow() const
 {
-	assert(windows());
-	return *window(0);
+	assert(windows().size());
+	return *windows()[0];
 }
 
 Screen &BaseApplication::addScreen(ApplicationContext ctx, std::unique_ptr<Screen> ptr, bool notify)
@@ -111,21 +104,14 @@ void BaseApplication::removeSecondaryScreens()
 	}
 }
 
-unsigned BaseApplication::screens() const
+const ScreenContainter &BaseApplication::screens() const
 {
-	return screen_.size();
-}
-
-Screen *BaseApplication::screen(unsigned idx) const
-{
-	if(idx >= screen_.size())
-		return nullptr;
-	return screen_[idx].get();
+	return screen_;
 }
 
 Screen &BaseApplication::mainScreen() const
 {
-	return *screen(0);
+	return *screens()[0];
 }
 
 bool BaseApplication::screensArePosted() const

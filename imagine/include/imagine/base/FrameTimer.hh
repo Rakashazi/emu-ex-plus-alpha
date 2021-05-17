@@ -16,16 +16,46 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/time/Time.hh>
+#include <variant>
 
 namespace Base
 {
 
-class FrameTimer
+class FrameTimerI
 {
 public:
-	virtual ~FrameTimer();
+	virtual ~FrameTimerI();
 	virtual void scheduleVSync() = 0;
-	virtual void cancel() = 0;
+	virtual void cancel();
+	virtual void setFrameTime(IG::FloatSeconds rate);
+};
+
+template <class VariantBase>
+class FrameTimerVariantWrapper : public VariantBase
+{
+public:
+	using VariantBase::VariantBase;
+
+	constexpr VariantBase &asVariant()
+	{
+		return static_cast<VariantBase&>(*this);
+	}
+
+	constexpr void scheduleVSync()
+	{
+		std::visit([](auto &&e){ e.scheduleVSync(); }, asVariant());
+	}
+
+	constexpr void cancel()
+	{
+		std::visit([](auto &&e){ e.cancel(); }, asVariant());
+	}
+
+	constexpr void setFrameTime(IG::FloatSeconds rate)
+	{
+		std::visit([&](auto &&e){ e.setFrameTime(rate); }, asVariant());
+	}
 };
 
 }

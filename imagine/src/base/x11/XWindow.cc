@@ -159,7 +159,7 @@ static IG::WindowRect makeWindowRectWithConfig(Display *dpy, const WindowConfig 
 Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
 	XWindow{ctx, config}
 {
-	auto &screen = *ctx.screen(0);
+	auto &screen = ctx.mainScreen();
 	this->screen_ = &screen;
 	auto xScreen = (::Screen*)screen.nativeObject();
 	auto rootWindow = RootWindowOfScreen(xScreen);
@@ -242,10 +242,7 @@ NativeWindow Window::nativeObject() const
 
 void Window::setIntendedFrameRate(double rate)
 {
-	if(rate)
-		screen()->setFrameRate(rate);
-	else
-		screen()->setFrameRate(60.);
+	screen()->setFrameRate(rate);
 }
 
 void Window::setFormat(NativeWindowFormat fmt) {}

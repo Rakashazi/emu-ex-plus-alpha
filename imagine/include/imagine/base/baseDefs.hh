@@ -20,6 +20,7 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/bitset.hh>
 #include <vector>
+#include <memory>
 
 namespace Config
 {
@@ -177,12 +178,14 @@ struct ScreenChange
 	bool removed() const { return state == REMOVED; }
 };
 
-using InputDeviceContainer = std::vector<Input::Device*>;
-
 class Screen;
 class Window;
 class WindowConfig;
 class ApplicationContext;
+
+using WindowContainter = std::vector<std::unique_ptr<Window>>;
+using ScreenContainter = std::vector<std::unique_ptr<Screen>>;
+using InputDeviceContainer = std::vector<Input::Device*>;
 
 using MainThreadMessageDelegate = DelegateFunc<void(ApplicationContext)>;
 using InterProcessMessageDelegate = DelegateFunc<void (ApplicationContext, const char *filename)>;

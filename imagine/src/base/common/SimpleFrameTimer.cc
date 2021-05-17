@@ -13,18 +13,22 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#define LOGTAG "FrameTimer"
+#define LOGTAG "SimpleFrameTimer"
+#include <imagine/base/SimpleFrameTimer.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
-#include "SimpleFrameTimer.hh"
 
 namespace Base
 {
 
-FrameTimer::~FrameTimer() {}
+FrameTimerI::~FrameTimerI() {}
 
-SimpleFrameTimer::SimpleFrameTimer(EventLoop loop, Screen &screen):
+void FrameTimerI::cancel() {}
+
+void FrameTimerI::setFrameTime(IG::FloatSeconds rate) {}
+
+SimpleFrameTimer::SimpleFrameTimer(Screen &screen, EventLoop loop):
 	timer
 	{
 		"SimpleFrameTimer",
@@ -52,10 +56,7 @@ SimpleFrameTimer::SimpleFrameTimer(EventLoop loop, Screen &screen):
 	eventLoop{loop}
 {
 	assumeExpr(screen.frameTime().count());
-	interval = std::chrono::duration_cast<IG::Nanoseconds>(screen.frameTime());
 }
-
-SimpleFrameTimer::~SimpleFrameTimer() {}
 
 void SimpleFrameTimer::scheduleVSync()
 {
@@ -69,13 +70,24 @@ void SimpleFrameTimer::scheduleVSync()
 	{
 		return;
 	}
-	timer.runIn(IG::Nanoseconds(1), interval);
+	assert(interval.count());
+	timer.runIn(IG::Nanoseconds(1), interval, eventLoop);
 }
 
 void SimpleFrameTimer::cancel()
 {
 	requested = false;
 	keepTimer = false;
+}
+
+void SimpleFrameTimer::setFrameTime(IG::FloatSeconds time)
+{
+	logMsg("set frame rate:%.2f", 1. / time.count());
+	interval = std::chrono::duration_cast<IG::Nanoseconds>(time);
+	if(timer.isArmed())
+	{
+		timer.runIn(IG::Nanoseconds(1), interval, eventLoop);
+	}
 }
 
 }

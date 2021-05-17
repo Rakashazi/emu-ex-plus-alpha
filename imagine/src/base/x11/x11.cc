@@ -70,7 +70,8 @@ static GSourceFuncs x11SourceFuncs
 };
 
 XApplication::XApplication(ApplicationInitParams initParams):
-	LinuxApplication{initParams}
+	LinuxApplication{initParams},
+	supportedFrameTimer{testFrameTimers()}
 {
 	xEventSrc = makeXDisplayConnection(initParams.eventLoop);
 }
@@ -134,11 +135,10 @@ static void fileURLToPath(char *url)
 
 Window *XApplication::windowForXWindow(::Window xWin) const
 {
-	iterateTimes(windows(), i)
+	for(auto &w : windows())
 	{
-		auto w = window(i);
 		if(w->nativeObject() == xWin)
-			return w;
+			return w.get();
 	}
 	return nullptr;
 }
@@ -294,7 +294,6 @@ FDEventSource XApplication::makeXDisplayConnection(EventLoop loop)
 	dpy = xDisplay;
 	ApplicationContext appCtx{*this};
 	initXScreens(appCtx, xDisplay);
-	initFrameTimer(loop, appCtx.mainScreen());
 	initInputSystem();
 	FDEventSource x11Src{"XServer", ConnectionNumber(xDisplay)};
 	auto source = (XGlibSource*)g_source_new(&x11SourceFuncs, sizeof(XGlibSource));

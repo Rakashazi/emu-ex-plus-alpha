@@ -18,9 +18,12 @@
 #include <imagine/config/defs.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/base/baseDefs.hh>
+#include <imagine/base/SimpleFrameTimer.hh>
+#include <imagine/base/android/Choreographer.hh>
 #include <imagine/util/jni.hh>
 #include <utility>
 #include <compare>
+#include <memory>
 
 namespace Base
 {
@@ -28,6 +31,14 @@ namespace Base
 class ApplicationContext;
 
 enum SurfaceRotation : uint8_t;
+
+using FrameTimerVariant = std::variant<NativeChoreographerFrameTimer, JavaChoreographerFrameTimer, SimpleFrameTimer>;
+
+class FrameTimer : public FrameTimerVariantWrapper<FrameTimerVariant>
+{
+public:
+	using FrameTimerVariantWrapper::FrameTimerVariantWrapper;
+};
 
 class AndroidScreen
 {
@@ -42,7 +53,6 @@ public:
 		SurfaceRotation rotation;
 	};
 
-	constexpr AndroidScreen() {}
 	AndroidScreen(ApplicationContext, InitParams);
 	std::pair<float, float> dpi() const;
 	float densityDPI() const;
@@ -59,6 +69,7 @@ public:
 
 protected:
 	JNI::UniqueGlobalRef aDisplay{};
+	FrameTimer frameTimer;
 	IG::FloatSeconds frameTime_{};
 	float xDPI{}, yDPI{};
 	float densityDPI_{};

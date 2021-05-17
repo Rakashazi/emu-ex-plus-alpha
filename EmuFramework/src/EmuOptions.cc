@@ -332,7 +332,7 @@ void EmuApp::initOptions(Base::ApplicationContext ctx)
 	}
 	#endif
 
-	if(!ctx.screen(0)->frameRateIsReliable())
+	if(!ctx.mainScreen().frameRateIsReliable())
 	{
 		optionFrameRate.initDefault(60);
 	}

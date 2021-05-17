@@ -23,12 +23,11 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
 #include "android.hh"
-#include "../common/SimpleFrameTimer.hh"
+#include <imagine/base/SimpleFrameTimer.hh>
 
 namespace Base
 {
 
-static JNI::InstMethod<jobject()> jGetSupportedRefreshRates{};
 static JNI::InstMethod<void(jboolean)> jSetListener{};
 static JNI::InstMethod<void(jlong)> jEnumDisplays{};
 
@@ -111,7 +110,8 @@ void AndroidApplication::initScreens(JNIEnv *env, jobject baseActivity, jclass b
 	jEnumDisplays(env, baseActivity, (jlong)nActivity);
 }
 
-AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params)
+AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
+	frameTimer{ctx.application().makeFrameTimer(*static_cast<Screen*>(this))}
 {
 	auto [env, aDisplay, metrics, id, refreshRate, rotation] = params;
 	assumeExpr(aDisplay);
@@ -143,6 +143,7 @@ AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params)
 		else
 			reliableRefreshRate = false;
 	}
+	frameTimer.setFrameTime(static_cast<Screen*>(this)->frameTime());
 
 	// DisplayMetrics
 	jclass jDisplayMetricsCls = env->GetObjectClass(metrics);
@@ -221,12 +222,12 @@ AndroidScreen::operator bool() const
 	return aDisplay;
 }
 
-int Screen::width()
+int Screen::width() const
 {
 	return width_;
 }
 
-int Screen::height()
+int Screen::height() const
 {
 	return height_;
 }
@@ -246,25 +247,14 @@ bool Screen::frameRateIsReliable() const
 	return reliableRefreshRate;
 }
 
-void Screen::postFrame()
+void Screen::postFrameTimer()
 {
-	if(!isActive)
-	{
-		//logMsg("can't post frame when app isn't running");
-		return;
-	}
-	if(framePosted)
-		return;
-	//logMsg("posting frame");
-	framePosted = true;
-	ctx.application().frameTimer()->scheduleVSync();
+	frameTimer.scheduleVSync();
 }
 
-void Screen::unpostFrame()
+void Screen::unpostFrameTimer()
 {
-	if(!framePosted)
-		return;
-	framePosted = false;
+	frameTimer.cancel();
 }
 
 void Screen::setFrameInterval(int interval)
@@ -279,17 +269,18 @@ bool Screen::supportsFrameInterval()
 	return false;
 }
 
-bool Screen::supportsTimestamps(ApplicationContext ctx)
+bool Screen::supportsTimestamps() const
 {
-	return ctx.androidSDK() >= 16;
+		return !std::holds_alternative<SimpleFrameTimer>(frameTimer);
 }
 
 void Screen::setFrameRate(double rate)
 {
-	// unsupported
+	auto time = rate ? IG::FloatSeconds(1. / rate) : frameTime();
+	frameTimer.setFrameTime(time);
 }
 
-std::vector<double> Screen::supportedFrameRates(ApplicationContext ctx)
+std::vector<double> Screen::supportedFrameRates(ApplicationContext ctx) const
 {
 	std::vector<double> rateVec;
 	if(ctx.androidSDK() < 21)
@@ -298,10 +289,7 @@ std::vector<double> Screen::supportedFrameRates(ApplicationContext ctx)
 		rateVec.emplace_back(frameRate());
 	}
 	auto env = ctx.mainThreadJniEnv();
-	if(!jGetSupportedRefreshRates) [[unlikely]]
-	{
-		jGetSupportedRefreshRates = {env, (jobject)aDisplay, "getSupportedRefreshRates", "()[F"};
-	}
+	JNI::InstMethod<jobject()> jGetSupportedRefreshRates{env, (jobject)aDisplay, "getSupportedRefreshRates", "()[F"};
 	auto jRates = (jfloatArray)jGetSupportedRefreshRates(env, aDisplay);
 	auto rate = env->GetFloatArrayElements(jRates, 0);
 	auto rates = env->GetArrayLength(jRates);

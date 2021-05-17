@@ -44,7 +44,7 @@ void ApplicationContext::flushMainThreadMessages()
 
 Window *ApplicationContext::makeWindow(WindowConfig config, WindowInitDelegate onInit)
 {
-	if(!Config::BASE_MULTI_WINDOW && windows())
+	if(!Config::BASE_MULTI_WINDOW && windows().size())
 	{
 		bug_unreachable("no multi-window support");
 	}
@@ -60,14 +60,9 @@ Window *ApplicationContext::makeWindow(WindowConfig config, WindowInitDelegate o
 	return ptr;
 }
 
-unsigned ApplicationContext::windows() const
+const WindowContainter &ApplicationContext::windows() const
 {
 	return application().windows();
-}
-
-Window *ApplicationContext::window(unsigned idx) const
-{
-	return application().window(idx);
 }
 
 Window &ApplicationContext::mainWindow()
@@ -75,14 +70,9 @@ Window &ApplicationContext::mainWindow()
 	return application().mainWindow();
 }
 
-unsigned ApplicationContext::screens() const
+const ScreenContainter &ApplicationContext::screens() const
 {
 	return application().screens();
-}
-
-Screen *ApplicationContext::screen(unsigned idx) const
-{
-	return application().screen(idx);
 }
 
 Screen &ApplicationContext::mainScreen()

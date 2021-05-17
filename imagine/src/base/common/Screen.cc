@@ -46,7 +46,7 @@ bool Screen::removeOnFrame(OnFrameDelegate del)
 	return removed;
 }
 
-bool Screen::containsOnFrame(OnFrameDelegate del)
+bool Screen::containsOnFrame(OnFrameDelegate del) const
 {
 	return onFrameDelegate.contains(del);
 }
@@ -65,17 +65,12 @@ void Screen::runOnFrameDelegates(FrameTime timestamp)
 	}
 }
 
-uint32_t Screen::onFrameDelegates()
+uint32_t Screen::onFrameDelegates() const
 {
 	return onFrameDelegate.size();
 }
 
-bool Screen::runningOnFrameDelegates()
-{
-	return inFrameHandler;
-}
-
-bool Screen::isPosted()
+bool Screen::isPosted() const
 {
 	return framePosted;
 }
@@ -85,9 +80,7 @@ void Screen::frameUpdate(FrameTime timestamp)
 	assert(timestamp.count());
 	assert(isActive);
 	framePosted = false;
-	inFrameHandler = true;
 	runOnFrameDelegates(timestamp);
-	inFrameHandler = false;
 	//logMsg("%s", isPosted() ? "drawing next frame" : "stopping at this frame");
 }
 
@@ -112,5 +105,28 @@ FrameParams Screen::makeFrameParams(FrameTime timestamp) const
 {
 	return {timestamp, frameTime()};
 }
+
+void Screen::postFrame()
+{
+	if(!isActive) [[unlikely]]
+	{
+		logMsg("skipped posting inactive screen:%p", this);
+		return;
+	}
+	if(framePosted)
+		return;
+	//logMsg("posting frame");
+	framePosted = true;
+	postFrameTimer();
+}
+
+void Screen::unpostFrame()
+{
+	if(!framePosted)
+		return;
+	framePosted = false;
+	unpostFrameTimer();
+}
+
 
 }

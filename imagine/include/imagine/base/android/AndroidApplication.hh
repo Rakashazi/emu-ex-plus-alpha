@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/BaseApplication.hh>
 #include <imagine/base/Timer.hh>
-#include <imagine/base/FrameTimer.hh>
+#include <imagine/base/android/Choreographer.hh>
 #include <imagine/input/Device.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/fs/FSDefs.hh>
@@ -78,6 +78,7 @@ namespace Base
 {
 
 class ApplicationContext;
+class FrameTimer;
 
 using AndroidPropString = std::array<char, 92>;
 
@@ -120,7 +121,6 @@ public:
 	SurfaceRotation mainDisplayRotation(JNIEnv *, jobject baseActivity) const;
 	void setOnSystemOrientationChanged(SystemOrientationChangedDelegate del);
 	bool systemAnimatesWindowRotation() const;
-	FrameTimer *frameTimer() const;
 	void setIdleDisplayPowerSave(JNIEnv *, jobject baseActivity, bool on);
 	void endIdleByUserActivity(ApplicationContext);
 	void setSysUIStyle(JNIEnv *, jobject baseActivity, int32_t androidSDK, uint32_t flags);
@@ -129,6 +129,7 @@ public:
 	void removePostedNotifications(JNIEnv *, jobject baseActivity);
 	void handleIntent(ApplicationContext);
 	void openDocumentTreeIntent(JNIEnv *, jobject baseActivity, SystemPathPickerDelegate);
+	FrameTimer makeFrameTimer(Screen &);
 
 	// Input system functions
 	void onInputQueueCreated(ApplicationContext, AInputQueue *);
@@ -165,7 +166,7 @@ private:
 	AndroidInputDeviceContainer sysInputDev{};
 	const Input::AndroidInputDevice *builtinKeyboardDev{};
 	const Input::AndroidInputDevice *virtualDev{};
-	std::unique_ptr<FrameTimer> frameTimer_{};
+	Choreographer choreographer{};
 	pthread_key_t jEnvKey{};
 	uint32_t uiVisibilityFlags{};
 	int aHardKeyboardState{};
@@ -194,7 +195,7 @@ private:
 	void initActivity(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
 	void initInput(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
 	void initInputConfig(AConfiguration *config);
-	void initFrameTimer(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK, Screen &screen);
+	void initChoreographer(const ScreenContainter &, JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
 	void initScreens(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK, ANativeActivity *);
 	void processInput(AInputQueue *);
 	void processInputWithGetEvent(AInputQueue *);

@@ -24,13 +24,14 @@ namespace Base
 
 class Screen;
 
-class SimpleFrameTimer final: public FrameTimer
+class SimpleFrameTimer final: public FrameTimerI
 {
 public:
-	SimpleFrameTimer(EventLoop loop, Screen &screen);
-	~SimpleFrameTimer() final;
+	constexpr SimpleFrameTimer() {}
+	SimpleFrameTimer(Screen &screen, EventLoop loop = {});
 	void scheduleVSync() final;
 	void cancel() final;
+	void setFrameTime(IG::FloatSeconds rate) final;
 
 	explicit operator bool() const
 	{
@@ -38,9 +39,9 @@ public:
 	}
 
 protected:
-	Timer timer;
-	EventLoop eventLoop{};
+	Timer timer{Timer::NullInit{}};
 	IG::Nanoseconds interval{};
+	EventLoop eventLoop{};
 	bool requested{};
 	bool keepTimer{};
 };

@@ -50,7 +50,7 @@ public:
 		defaultFace().precacheAlphaNum(attach.renderer());
 		defaultFace().precache(attach.renderer(), ".");
 		fpsText.setString("Preparing to detect frame rate...");
-		useRenderTaskTime = !screen()->supportsTimestamps(appContext());
+		useRenderTaskTime = !screen()->supportsTimestamps();
 		frameTimeSample.reserve(std::round(screen()->frameRate() * 2.));
 	}
 
@@ -593,9 +593,9 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			auto on = item.flipBoolValue(*this);
 			auto colorSpace = on ? Gfx::ColorSpace::SRGB : Gfx::ColorSpace::LINEAR;
 			videoLayer->setSrgbColorSpaceOutput(on);
-			iterateTimes(appContext().windows(), i)
+			for(auto &w : appContext().windows())
 			{
-				renderer().setColorSpace(*appContext().window(i), colorSpace);
+				renderer().setColorSpace(*w, colorSpace);
 			}
 		}
 	},
@@ -606,7 +606,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		false,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
-			app().viewController().setEmuViewOnExtraWindow(item.flipBoolValue(*this), *appContext().screen(0));
+			app().viewController().setEmuViewOnExtraWindow(item.flipBoolValue(*this), appContext().mainScreen());
 		}
 	},
 	#endif
@@ -619,8 +619,8 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionShowOnSecondScreen = item.flipBoolValue(*this);
-			if(appContext().screens() > 1)
-				app().viewController().setEmuViewOnExtraWindow(optionShowOnSecondScreen, *appContext().screen(1));
+			if(appContext().screens().size() > 1)
+				app().viewController().setEmuViewOnExtraWindow(optionShowOnSecondScreen, *appContext().screens()[1]);
 		}
 	},
 	#endif

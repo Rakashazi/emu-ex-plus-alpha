@@ -65,8 +65,8 @@ AndroidApplication::AndroidApplication(ApplicationInitParams initParams):
 	}
 	initActivity(env, baseActivity, baseActivityClass, androidSDK);
 	setNativeActivityCallbacks(initParams.nActivity);
+	initChoreographer(screens(), env, baseActivity, baseActivityClass, androidSDK);
 	initScreens(env, baseActivity, baseActivityClass, androidSDK, initParams.nActivity);
-	initFrameTimer(env, baseActivity, baseActivityClass, androidSDK, mainScreen());
 	initInput(env, baseActivity, baseActivityClass, androidSDK);
 	{
 		auto aConfig = AConfiguration_new();
@@ -99,7 +99,7 @@ IG::PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat)
 		default:
 		{
 			if(androidFormat == ANDROID_BITMAP_FORMAT_NONE)
-				logWarn("format wasn't provided");
+				return {};
 			else
 				logErr("unhandled format");
 			return PIXEL_FMT_RGBA8888;
@@ -690,7 +690,9 @@ void AndroidApplicationContext::setSustainedPerformanceMode(bool on)
 
 Window *AndroidApplication::deviceWindow() const
 {
-	return window(0);
+	if(windows().size()) [[likely]]
+		return windows()[0].get();
+	return nullptr;
 }
 
 void AndroidApplication::onWindowFocusChanged(ApplicationContext ctx, int focused)
@@ -702,9 +704,9 @@ void AndroidApplication::onWindowFocusChanged(ApplicationContext ctx, int focuse
 		// re-apply UI visibility flags
 		jSetUIVisibility(ctx.mainThreadJniEnv(), ctx.baseActivityObject(), uiVisibilityFlags);
 	}
-	iterateTimes(windows(), i)
+	for(auto &w : windows())
 	{
-		window(i)->dispatchFocusChange(focused);
+		w->dispatchFocusChange(focused);
 	}
 	if(!focused)
 		deinitKeyRepeatTimer();
@@ -899,7 +901,7 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity *nActivity, void* s
 	ctx.onInit(initParams);
 	if(Config::DEBUG_BUILD)
 	{
-		if(!ctx.windows())
+		if(!ctx.windows().size())
 			logWarn("didn't create a window");
 	}
 }

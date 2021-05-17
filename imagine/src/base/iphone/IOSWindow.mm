@@ -94,7 +94,9 @@ bool Window::requestOrientationChange(Orientation o)
 
 Window *deviceWindow(ApplicationContext ctx)
 {
-	return ctx.window(0);
+	if(ctx.windows().size()) [[likely]]
+		return ctx.windows()[0].get();
+	return nullptr;
 }
 
 IG::PixelFormat Window::defaultPixelFormat(ApplicationContext)
@@ -220,11 +222,10 @@ bool Window::operator ==(Window const &rhs) const
 
 Window *windowForUIWindow(ApplicationContext ctx, UIWindow *uiWin)
 {
-	iterateTimes(ctx.windows(), i)
+	for(auto &w : ctx.windows())
 	{
-		auto w = ctx.window(i);
 		if(w->uiWin() == uiWin)
-			return w;
+			return w.get();
 	}
 	return nullptr;
 }

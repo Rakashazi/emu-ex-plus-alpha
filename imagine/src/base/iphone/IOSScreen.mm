@@ -43,17 +43,17 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 	return self;
 }
 
-- (void)onFrame
+- (void)onFrame:(CADisplayLink *)displayLink
 {
 	auto &screen = *screen_;
-	auto timestamp = IG::FloatSeconds(screen.displayLink().timestamp);
+	auto timestamp = IG::FloatSeconds(displayLink.timestamp);
 	//logMsg("screen: %p, frame time stamp: %f, duration: %f",
 	//	screen.uiScreen(), (double)timestamp, (double)screen.displayLink().duration);*/
 	screen.frameUpdate(timestamp);
 	if(!screen.isPosted())
 	{
 		//logMsg("stopping screen updates");
-		screen.displayLink().paused = YES;
+		displayLink.paused = YES;
 	}
 }
 
@@ -135,17 +135,17 @@ bool Screen::supportsFrameInterval()
 	return true;
 }
 
-bool Screen::supportsTimestamps(ApplicationContext)
+bool Screen::supportsTimestamps() const
 {
 	return true;
 }
 
-int Screen::width()
+int Screen::width() const
 {
 	return uiScreen().bounds.size.width;
 }
 
-int Screen::height()
+int Screen::height() const
 {
 	return uiScreen().bounds.size.height;
 }
@@ -165,27 +165,14 @@ bool Screen::frameRateIsReliable() const
 	return true;
 }
 
-void Screen::postFrame()
+void Screen::postFrameTimer()
 {
-	if(!isActive)
-	{
-		logMsg("can't post screen update when app isn't running");
-		return;
-	}
-	if(!framePosted)
-	{
-		framePosted = true;
-		displayLink().paused = NO; 
-	}
+	displayLink().paused = NO;
 }
 
-void Screen::unpostFrame()
+void Screen::unpostFrameTimer()
 {
-	if(framePosted)
-	{
-		framePosted = false;
-		displayLink().paused = YES;
-	}
+	displayLink().paused = YES;
 }
 
 void Screen::setFrameRate(double rate)
@@ -193,7 +180,7 @@ void Screen::setFrameRate(double rate)
 	// unsupported
 }
 
-std::vector<double> Screen::supportedFrameRates(ApplicationContext)
+std::vector<double> Screen::supportedFrameRates(ApplicationContext) const
 {
 	// TODO
 	std::vector<double> rateVec;
