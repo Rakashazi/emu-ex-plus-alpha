@@ -137,7 +137,7 @@ protected:
 	void drawMainWindow(Base::Window &win, Gfx::RendererCommands &cmds, bool hasEmuView, bool hasPopup);
 	void movePopupToWindow(Base::Window &win);
 	void moveEmuViewToWindow(Base::Window &win);
-	void applyFrameRates();
+	void applyFrameRates(bool updateFrameTime = true);
 	bool allWindowsAreFocused() const;
 	WindowData &mainWindowData() const;
 	Base::Window &mainWindow() const;

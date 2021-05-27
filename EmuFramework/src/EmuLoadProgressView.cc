@@ -51,7 +51,6 @@ EmuLoadProgressView::EmuLoadProgressView(ViewAttachParams attach, Input::Event e
 						auto originalEvent = this->originalEvent;
 						auto &app = this->app();
 						app.popModalViews();
-						EmuSystem::prepareAudioVideo(app.audio(), app.video());
 						app.viewController().onSystemCreated();
 						onComplete(originalEvent);
 						return;

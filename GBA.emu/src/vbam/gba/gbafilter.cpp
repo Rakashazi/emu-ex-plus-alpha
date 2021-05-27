@@ -2,11 +2,6 @@
 
 #include <math.h>
 
-extern int systemColorDepth;
-extern int systemRedShift;
-extern int systemGreenShift;
-extern int systemBlueShift;
-
 static const unsigned char curve[32] = { 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0e, 0x10, 0x12,
 										 0x14, 0x16, 0x18, 0x1c, 0x20, 0x28, 0x30, 0x38,
 										 0x40, 0x48, 0x50, 0x58, 0x60, 0x68, 0x70, 0x80,
@@ -24,7 +19,7 @@ inline void swap(short & a, short & b)
 	b = temp;
 }
 
-void gbafilter_pal(u16 * buf, int count)
+void gbafilter_pal(u16 * buf, int count, int systemRedShift, int systemGreenShift, int systemBlueShift)
 {
 	short temp[3 * 3], s;
 	unsigned pix;
@@ -87,7 +82,7 @@ void gbafilter_pal(u16 * buf, int count)
 	}
 }
 
-void gbafilter_pal32(u32 * buf, int count)
+void gbafilter_pal32(u32 * buf, int count, int systemRedShift, int systemGreenShift, int systemBlueShift)
 {
 	short temp[3 * 3], s;
 	unsigned pix;
@@ -156,7 +151,7 @@ void gbafilter_pal32(u32 * buf, int count)
 
 // for palette mode to work with the three spoony filters in 32bpp depth
 
-void gbafilter_pad(u8 * buf, int count)
+void gbafilter_pad(u8 * buf, int count, int systemColorDepth, int systemRedShift, int systemGreenShift, int systemBlueShift)
 {
 	union
 	{

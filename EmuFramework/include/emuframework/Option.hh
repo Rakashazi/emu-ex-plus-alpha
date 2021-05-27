@@ -28,8 +28,8 @@ template<class T> struct isOptional : public std::false_type {};
 template<class T>
 struct isOptional<std::optional<T>> : public std::true_type {};
 
-template <class T>
-static std::optional<T> readOptionValue(IO &io, unsigned bytesToRead)
+template <class T, class Validator = std::nullptr_t>
+static std::optional<T> readOptionValue(IO &io, unsigned bytesToRead, Validator &&isValid = nullptr)
 {
 	if(bytesToRead != sizeof(T))
 	{
@@ -41,6 +41,11 @@ static std::optional<T> readOptionValue(IO &io, unsigned bytesToRead)
 	{
 		logErr("error reading %u byte option", bytesToRead);
 		return {};
+	}
+	if constexpr(!std::is_null_pointer_v<Validator>)
+	{
+		if(!isValid(val))
+			return {};
 	}
 	return val;
 }

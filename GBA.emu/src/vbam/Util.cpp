@@ -558,44 +558,32 @@ void utilGBAFindSave(const u8 *data, const int size)
   flashSetSize(flashSize);
 }
 
-unsigned makeColor(unsigned mapIdx, unsigned rShift, unsigned gShift, unsigned bShift)
+static unsigned makeColor(unsigned mapIdx, unsigned rShift, unsigned gShift, unsigned bShift)
 {
 	return ((mapIdx & 0x1f) << rShift) |
 			(((mapIdx & 0x3e0) >> 5) << gShift) |
 			(((mapIdx & 0x7c00) >> 10) << bShift);
 }
 
-unsigned makeRGB565Color(unsigned mapIdx)
+void utilUpdateSystemColorMaps(int colorDepth, int redShift, int greenShift, int blueShift, bool lcd)
 {
-	return makeColor(mapIdx, 11, 6, 0);
-}
-
-void utilUpdateSystemColorMaps(bool lcd)
-{
-  switch(systemColorDepth) {
-#ifdef SUPPORT_PIX_16BIT
+  switch(colorDepth) {
   case 16:
     {
       for(int i = 0; i < 0x10000; i++) {
-        systemColorMap.map16[i] = makeRGB565Color(i);
+        systemColorMap.map16[i] = makeColor(i, redShift, greenShift, blueShift);
       }
-      if (lcd) gbafilter_pal(systemColorMap.map16, 0x10000);
+      if (lcd) gbafilter_pal(systemColorMap.map16, 0x10000, redShift, greenShift, blueShift);
     }
     break;
-#endif
-#ifdef SUPPORT_PIX_32BIT
-  case 24:
   case 32:
     {
       for(int i = 0; i < 0x10000; i++) {
-        systemColorMap.map32[i] = ((i & 0x1f) << systemRedShift) |
-          (((i & 0x3e0) >> 5) << systemGreenShift) |
-          (((i & 0x7c00) >> 10) << systemBlueShift);
+        systemColorMap.map32[i] = makeColor(i, redShift, greenShift, blueShift);
       }
-      if (lcd) gbafilter_pal32(systemColorMap.map32, 0x10000);
+      if (lcd) gbafilter_pal32(systemColorMap.map32, 0x10000, redShift, greenShift, blueShift);
     }
     break;
-#endif
   }
 }
 

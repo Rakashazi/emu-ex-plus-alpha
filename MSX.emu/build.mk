@@ -9,8 +9,7 @@ CFLAGS_WARN += -Wno-sign-compare -Wno-switch -Wno-implicit-fallthrough
 
 BMSX := blueMSX
 
-CPPFLAGS += -DNO_FRAMEBUFFER \
--DLSB_FIRST \
+CPPFLAGS += -DLSB_FIRST \
 -DNO_ASM \
 -DNO_EMBEDDED_SAMPLES \
 -I$(projectPath)/src/$(BMSX)

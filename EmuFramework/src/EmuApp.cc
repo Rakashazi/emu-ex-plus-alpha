@@ -238,33 +238,63 @@ static const char *parseCommandArgs(Base::CommandArgs arg)
 	return launchGame;
 }
 
-IG::PixelFormat windowPixelFormat()
+IG::PixelFormat windowPixelFormat(Base::ApplicationContext ctx)
 {
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	return (IG::PixelFormatID)optionWindowPixelFormat.val;
 	#else
-	return Base::Window::defaultPixelFormat();
+	return ctx.defaultWindowPixelFormat();
 	#endif
 }
 
-IG::PixelFormat EmuApp::defaultRenderPixelFormat(Base::ApplicationContext ctx)
+void EmuApp::setRenderPixelFormat(std::optional<IG::PixelFormat> fmtOpt)
 {
-	auto fmt = windowPixelFormat();
-	if(fmt == IG::PIXEL_NONE)
+	if(!fmtOpt)
+		return;
+	renderPixelFmt = *fmtOpt;
+	applyRenderPixelFormat();
+}
+
+IG::PixelFormat EmuApp::renderPixelFormat() const
+{
+	return renderPixelFmt;
+}
+
+std::optional<IG::PixelFormat> EmuApp::renderPixelFormatOption() const
+{
+	if(renderPixelFmt)
+		return renderPixelFmt;
+	return {};
+}
+
+void EmuApp::applyRenderPixelFormat()
+{
+	if(!emuVideo.hasRendererTask())
+		return;
+	auto fmt = renderPixelFormat();
+	if(!fmt)
+		fmt = windowPixelFormat(appContext());
+	if(!fmt)
+		fmt = appContext().defaultWindowPixelFormat();
+	logMsg("setting requested render pixel format:%s", fmt.name());
+	emuVideo.setRequestedPixelFormat(fmt);
+	if(EmuSystem::onRequestedVideoFormatChange(emuVideo))
 	{
-		fmt = Base::Window::defaultPixelFormat(ctx);
+		renderSystemFramebuffer(emuVideo);
 	}
-	return fmt;
+}
+
+void EmuApp::renderSystemFramebuffer(EmuVideo &video)
+{
+	if(!EmuSystem::gameIsRunning())
+		return;
+	logMsg("updating video with current framebuffer content");
+	EmuSystem::renderFramebuffer(video);
 }
 
 static bool supportsVideoImageBuffersOption(const Gfx::Renderer &r)
 {
 	return r.supportsSyncFences() && r.maxSwapChainImages() > 2;
-}
-
-void EmuApp::resetVideo()
-{
-	EmuSystem::prepareVideo(emuVideo);
 }
 
 EmuAudio &EmuApp::audio()
@@ -366,7 +396,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 
 	Base::WindowConfig winConf{};
 	winConf.setTitle(ctx.applicationName);
-	winConf.setFormat(windowPixelFormat());
+	winConf.setFormat(windowPixelFormat(ctx));
 
 	ctx.makeWindow(winConf,
 		[this, appConfig](Base::ApplicationContext ctx, Base::Window &win)
@@ -393,7 +423,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 			emuVideo.setRendererTask(renderer.task());
 			emuVideo.setTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val);
 			emuVideo.setImageBuffers(optionVideoImageBuffers);
-			if(!renderer.hasSrgbColorSpaceWriteControl())
+			if(!renderer.hasSrgbColorSpaceWriteControl() || win.pixelFormat() == IG::PIXEL_RGB565)
 				emuVideo.setSrgbColorSpaceOutput(false);
 			emuVideoLayer.setLinearFilter(optionImgFilter);
 			emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
@@ -415,6 +445,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 			initVControls();
 			ViewAttachParams viewAttach{viewManager, win, renderer.task()};
 			emuViewController.emplace(viewAttach, vController, emuVideoLayer, emuSystemTask, emuAudio);
+			applyRenderPixelFormat();
 
 			#if defined CONFIG_BASE_ANDROID
 			if(!ctx.apkSignatureIsConsistent())
@@ -636,7 +667,6 @@ void EmuApp::reloadGame(EmuSystemCreateParams params)
 		[](int pos, int max, const char *label){ return true; });
 	if(!err)
 	{
-		EmuSystem::prepareAudioVideo(emuAudio, emuVideo);
 		viewController().onSystemCreated();
 		viewController().showEmulation();
 	}

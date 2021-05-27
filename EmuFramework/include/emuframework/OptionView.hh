@@ -88,11 +88,13 @@ protected:
 	#endif
 	TextMenuItem imageBuffersItem[3];
 	MultiChoiceMenuItem imageBuffers;
+	TextMenuItem renderPixelFormatItem[3];
+	MultiChoiceMenuItem renderPixelFormat;
 	TextHeadingMenuItem visualsHeading;
 	TextHeadingMenuItem screenShapeHeading;
 	TextHeadingMenuItem advancedHeading;
 	TextHeadingMenuItem systemSpecificHeading;
-	StaticArrayList<MenuItem*, 29> item{};
+	StaticArrayList<MenuItem*, 30> item{};
 
 	void pushAndShowFrameRateSelectMenu(EmuSystem::VideoSystem vidSys, Input::Event e);
 	bool onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::FloatSeconds time);
@@ -102,8 +104,10 @@ protected:
 	void setAspectRatio(double val);
 	void setImgEffect(unsigned val);
 	void setOverlayEffect(unsigned val);
-	void setImgEffectPixelFormat(Base::PixelFormatID format);
-	void setWindowPixelFormat(Base::PixelFormatID format);
+	void setRenderPixelFormat(IG::PixelFormatID);
+	void setImgEffectPixelFormat(IG::PixelFormatID);
+	void setWindowPixelFormat(IG::PixelFormatID);
+	EmuVideo &emuVideo() const;
 };
 
 class AudioOptionView : public TableView, public EmuAppHelper<AudioOptionView>

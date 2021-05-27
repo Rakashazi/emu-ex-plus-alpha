@@ -31,6 +31,7 @@
 #include "DebugDeviceManager.h"
 #include "SaveState.h"
 #include "Language.h"
+#include "FrameBuffer.h"
 #include <stdlib.h>
 #include <string.h>
 

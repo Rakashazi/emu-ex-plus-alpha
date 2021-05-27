@@ -35,6 +35,11 @@ class Event;
 enum class Action : uint8_t;
 }
 
+namespace IG
+{
+class PixelFormat;
+}
+
 class IO;
 class GenericIO;
 class EmuInputView;
@@ -202,9 +207,10 @@ public:
 	static Error loadGameFromPath(Base::ApplicationContext, const char *path, EmuSystemCreateParams, OnLoadProgressDelegate);
 	static Error loadGameFromFile(Base::ApplicationContext, GenericIO, const char *name, EmuSystemCreateParams, OnLoadProgressDelegate);
 	[[gnu::hot]] static void runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio);
+	static void renderFramebuffer(EmuVideo &);
 	static bool shouldFastForward();
-	static void onPrepareAudio(EmuAudio &audio);
-	static void onPrepareVideo(EmuVideo &video);
+	static void onPrepareAudio(EmuAudio &);
+	static bool onRequestedVideoFormatChange(EmuVideo &);
 	static bool vidSysIsPAL();
 	static uint32_t updateAudioFramesPerVideoFrame();
 	static double frameRate();
@@ -239,8 +245,7 @@ public:
 	static IG::Time benchmark(EmuVideo &video);
 	static bool gameIsRunning();
 	static void resetFrameTime();
-	static void prepareAudioVideo(EmuAudio &audio, EmuVideo &video);
-	static void prepareVideo(EmuVideo &video);
+	static void prepareAudio(EmuAudio &audio);
 	static void pause(EmuApp &);
 	static void start(EmuApp &);
 	static void closeSystem();

@@ -51,10 +51,6 @@ Base::NativeWindowFormat GLManager::nativeWindowFormat(Base::ApplicationContext,
 	if(!nId)
 	{
 		nId = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
-		EGLint alphaSize;
-		eglGetConfigAttrib(dpy, glConfig, EGL_ALPHA_SIZE, &alphaSize);
-		if(!alphaSize)
-			nId = AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM;
 		EGLint redSize;
 		eglGetConfigAttrib(dpy, glConfig, EGL_RED_SIZE, &redSize);
 		if(redSize < 8)
@@ -73,8 +69,7 @@ bool GLManager::hasBufferFormat(GLBufferConfigAttributes attrs) const
 			return false;
 		case PIXEL_NONE:
 		case PIXEL_RGB565:
-		case PIXEL_RGBA8888:
-		case PIXEL_RGBX8888: return true;
+		case PIXEL_RGBA8888: return true;
 	}
 }
 }

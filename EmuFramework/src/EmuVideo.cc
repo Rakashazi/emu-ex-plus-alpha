@@ -24,7 +24,10 @@
 
 void EmuVideo::resetImage()
 {
+	if(!vidImg)
+		return;
 	setFormat(deleteImage());
+	app().renderSystemFramebuffer(*this);
 }
 
 IG::PixmapDesc EmuVideo::deleteImage()
@@ -39,11 +42,16 @@ void EmuVideo::setRendererTask(Gfx::RendererTask &rTask_)
 	rTask = &rTask_;
 }
 
-void EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTask *task)
+bool EmuVideo::hasRendererTask() const
+{
+	return rTask;
+}
+
+bool EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTask *task)
 {
 	if(formatIsEqual(desc))
 	{
-		return; // no change to size/format
+		return false; // no change to size/format
 	}
 	colorSpace_ = useSrgbColorSpace && desc.format() == IG::PIXEL_RGBA8888 ? Gfx::ColorSpace::SRGB : Gfx::ColorSpace::LINEAR;
 	if(!vidImg)
@@ -51,7 +59,6 @@ void EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTask *task)
 		Gfx::TextureConfig conf{desc, texSampler};
 		conf.setColorSpace(colorSpace_);
 		vidImg = renderer().makePixmapBufferTexture(conf, bufferMode, singleBuffer);
-		vidImg.clear();
 	}
 	else
 	{
@@ -66,6 +73,7 @@ void EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTask *task)
 	{
 		dispatchFormatChanged();
 	}
+	return true;
 }
 
 void EmuVideo::dispatchFormatChanged()
@@ -100,6 +108,23 @@ void EmuVideo::startFrameWithFormat(EmuSystemTask *task, IG::Pixmap pix)
 {
 	setFormat(pix, task);
 	startFrame(task, pix);
+}
+
+void EmuVideo::startFrameWithAltFormat(EmuSystemTask *task, IG::Pixmap pix)
+{
+	auto destFmt = requestedPixelFormat();
+	if(pix.format() == destFmt)
+	{
+		startFrameWithFormat(task, pix);
+	}
+	else
+	{
+		auto img = startFrameWithFormat(task, {pix.size(), destFmt});
+		assumeExpr(img.pixmap().format() == destFmt);
+		assumeExpr(img.pixmap().size() == pix.size());
+		img.pixmap().writeConverted(pix);
+		img.endFrame();
+	}
 }
 
 void EmuVideo::startUnchangedFrame(EmuSystemTask *task)
@@ -216,8 +241,6 @@ Base::ApplicationContext EmuVideo::appContext() const
 	return rTask->appContext();
 }
 
-EmuVideoImage::EmuVideoImage() {}
-
 EmuVideoImage::EmuVideoImage(EmuSystemTask *task, EmuVideo &vid, Gfx::LockedTextureBuffer texBuff):
 	task{task}, emuVideo{&vid}, texBuff{texBuff} {}
 
@@ -323,4 +346,16 @@ std::optional<bool> EmuVideo::srgbColorSpaceOutputOption() const
 bool EmuVideo::isSrgbFormat() const
 {
 	return colorSpace_ == Gfx::ColorSpace::SRGB;
+}
+
+void EmuVideo::setRequestedPixelFormat(IG::PixelFormat fmt)
+{
+	assert(fmt);
+	requestedFmt = fmt;
+}
+
+IG::PixelFormat EmuVideo::requestedPixelFormat() const
+{
+	assumeExpr(requestedFmt);
+	return requestedFmt;
 }

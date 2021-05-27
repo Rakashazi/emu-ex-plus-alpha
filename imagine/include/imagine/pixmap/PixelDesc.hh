@@ -4,6 +4,7 @@
 #include <imagine/util/bitset.hh>
 #include <imagine/util/math/math.hh>
 #include <type_traits>
+#include <bit>
 
 namespace IG
 {
@@ -12,9 +13,11 @@ class PixelDesc
 {
 public:
 	const char *name_{};
-	const uint8_t rBits{}, gBits{}, bBits{}, aBits{};
-	const uint8_t rShift{}, gShift{}, bShift{}, aShift{};
-	const uint8_t bytesPerPixel_{};
+	uint8_t rBits{}, gBits{}, bBits{}, aBits{};
+	uint8_t rShift{}, gShift{}, bShift{}, aShift{};
+	uint8_t bytesPerPixel_{};
+
+	constexpr PixelDesc() {}
 
 	constexpr PixelDesc(uint8_t rBits, uint8_t gBits, uint8_t bBits, uint8_t aBits,
 		uint8_t rShift, uint8_t gShift, uint8_t bShift, uint8_t aShift,
@@ -92,6 +95,25 @@ public:
 	constexpr bool isBGROrder() const
 	{
 		return bShift > rShift;
+	}
+
+	constexpr PixelDesc reversed() const
+	{
+		return {rBits, gBits, bBits, aBits,
+			aShift, bShift, gShift, rShift, // reverse bit shift values
+			bytesPerPixel_, name_};
+	}
+
+	constexpr PixelDesc nativeOrder() const
+	{
+		if constexpr(std::endian::native == std::endian::little)
+		{
+			return reversed();
+		}
+		else
+		{
+			return *this;
+		}
 	}
 };
 

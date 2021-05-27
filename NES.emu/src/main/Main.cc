@@ -42,10 +42,14 @@ bool EmuSystem::hasResetModes = true;
 unsigned fceuCheats = 0;
 ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
 unsigned autoDetectedRegion = 0;
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
+static IG::PixelFormat pixFmt{};
 const char *fceuReturnedError = {};
 static PalArray defaultPal{};
-static uint16 nativeCol[256]{};
+union
+{
+	uint16_t col16[256];
+	uint32_t col32[256];
+} nativeCol;
 static const unsigned nesPixX = 256, nesPixY = 240, nesVisiblePixY = 224;
 static uint8 XBufData[256 * 256 + 16]{};
 // Separate front & back buffers not needed for our video implementation
@@ -169,8 +173,14 @@ void EmuSystem::closeSystem()
 
 void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b)
 {
-	// RGB565
-	nativeCol[index] = pixFmt.desc().build(r >> 3, g >> 2, b >> 3, 0);
+	if(pixFmt == IG::PIXEL_RGB565)
+	{
+		nativeCol.col16[index] = pixFmt.desc().build(r >> 3, g >> 2, b >> 3, 0);
+	}
+	else // RGBA8888
+	{
+		nativeCol.col32[index] = pixFmt.desc().nativeOrder().build(r, g, b, (uint8)0);
+	}
 	//logMsg("set palette %d %X", index, nativeCol[index]);
 }
 
@@ -370,9 +380,15 @@ void EmuSystem::onPrepareAudio(EmuAudio &audio)
 	audio.setStereo(false);
 }
 
-void EmuSystem::onPrepareVideo(EmuVideo &video)
+bool EmuSystem::onRequestedVideoFormatChange(EmuVideo &video)
 {
-	video.setFormat({{nesPixX, nesVisiblePixY}, pixFmt});
+	auto requestedFmt = video.requestedPixelFormat();
+	if(pixFmt == requestedFmt)
+		return false;
+	pixFmt = requestedFmt;
+	FCEU_ResetPalette();
+	video.setFormat({{nesPixX, nesVisiblePixY}, requestedFmt});
+	return true;
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
@@ -403,6 +419,25 @@ void emulateSound(EmuAudio *audio)
 	}
 }
 
+static void renderVideo(EmuSystemTask *task, EmuVideo &video, uint8 *buf)
+{
+	auto img = video.startFrame(task);
+	auto pix = img.pixmap();
+	IG::Pixmap ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};
+	auto ppuPixRegion = ppuPix.subView({0, 8}, {256, 224});
+	assumeExpr(pix.size() == ppuPixRegion.size());
+	if(pix.format() == IG::PIXEL_RGB565)
+	{
+		pix.writeTransformed([](uint8 p){ return nativeCol.col16[p]; }, ppuPixRegion);
+	}
+	else
+	{
+		assumeExpr(pix.format().bytesPerPixel() == 4);
+		pix.writeTransformed([](uint8 p){ return nativeCol.col32[p]; }, ppuPixRegion);
+	}
+	img.endFrame();
+}
+
 void FCEUPPU_FrameReady(EmuSystemTask *task, EmuVideo *video, uint8 *buf)
 {
 	if(!video)
@@ -414,18 +449,18 @@ void FCEUPPU_FrameReady(EmuSystemTask *task, EmuVideo *video, uint8 *buf)
 		video->startUnchangedFrame(task);
 		return;
 	}
-	auto img = video->startFrame(task);
-	auto pix = img.pixmap();
-	IG::Pixmap ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};
-	auto ppuPixRegion = ppuPix.subView({0, 8}, {256, 224});
-	pix.writeTransformed([](uint8 p){ return nativeCol[p]; }, ppuPixRegion);
-	img.endFrame();
+	renderVideo(task, *video, buf);
 }
 
 void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	bool skip = !video && !optionCompatibleFrameskip;
 	FCEUI_Emulate(task, video, skip, audio);
+}
+
+void EmuSystem::renderFramebuffer(EmuVideo &video)
+{
+	renderVideo({}, video, XBuf);
 }
 
 void EmuSystem::savePathChanged()
@@ -447,7 +482,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
+EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
 {
 	backupSavestates = 0;
 	if(!FCEUI_Initialize())

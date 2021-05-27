@@ -32,19 +32,20 @@ void Pixmap::write(Pixmap pixmap)
 	{
 		// whole block
 		//logDMsg("copying whole block");
-		memcpy(data_, pixmap.data_, pixmap.pixelBytes());
+		memcpy(data_, pixmap.data_, pixmap.unpaddedBytes());
 	}
 	else
 	{
 		// line at a time
 		auto srcData = pixmap.data();
 		auto destData = data();
+		auto destPitch = pitch;
 		uint32_t lineBytes = format().pixelBytes(pixmap.w());
 		iterateTimes(pixmap.h(), i)
 		{
 			memcpy(destData, srcData, lineBytes);
 			srcData += pixmap.pitch;
-			destData += pitch;
+			destData += destPitch;
 		}
 	}
 }
@@ -156,7 +157,6 @@ void Pixmap::writeConverted(Pixmap pixmap)
 	auto srcFormatID = pixmap.format().id();
 	switch(format().id())
 	{
-		case PIXEL_RGBX8888:
 		case PIXEL_RGBA8888:
 			switch(srcFormatID)
 			{
@@ -167,7 +167,6 @@ void Pixmap::writeConverted(Pixmap pixmap)
 		case PIXEL_RGB888:
 			switch(srcFormatID)
 			{
-				case PIXEL_RGBX8888:
 				case PIXEL_RGBA8888: return convertRGBX8888ToRGB888(*this, pixmap);
 				case PIXEL_RGB565: return convertRGB565ToRGB888(*this, pixmap);
 				default: return invalidFormatConversion(*this, pixmap);
@@ -176,7 +175,6 @@ void Pixmap::writeConverted(Pixmap pixmap)
 			switch(srcFormatID)
 			{
 				case PIXEL_RGB888: return convertRGB888ToRGB565(*this, pixmap);
-				case PIXEL_RGBX8888:
 				case PIXEL_RGBA8888: return convertRGBX8888ToRGB565(*this, pixmap);
 				default: return invalidFormatConversion(*this, pixmap);
 			}
@@ -215,7 +213,7 @@ void Pixmap::clear()
 
 MemPixmap::MemPixmap(PixmapDesc desc):
 	PixmapDesc{desc},
-	buffer{new uint8_t[desc.format().pixelBytes(desc.w() * desc.h())]}
+	buffer{new uint8_t[desc.bytes()]}
 {
 	//logDMsg("allocated memory pixmap data:%p", data);
 }

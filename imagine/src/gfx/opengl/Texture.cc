@@ -61,6 +61,14 @@ using namespace IG;
 #define GL_TEXTURE_EXTERNAL_OES 0x8D65
 #endif
 
+#ifndef GL_UNSIGNED_INT_8_8_8_8_REV
+#define GL_UNSIGNED_INT_8_8_8_8_REV 0x8367
+#endif
+
+#ifndef GL_RGB5
+#define GL_RGB5 0x8050
+#endif
+
 namespace Gfx
 {
 
@@ -92,9 +100,10 @@ static GLenum makeGLDataType(IG::PixelFormatID format)
 	{
 		case PIXEL_RGBA8888:
 		case PIXEL_BGRA8888:
-		#if !defined CONFIG_GFX_OPENGL_ES
-			return GL_UNSIGNED_INT_8_8_8_8_REV;
-		#endif
+			if constexpr(!Config::Gfx::OPENGL_ES)
+			{
+				return GL_UNSIGNED_INT_8_8_8_8_REV;
+			} [[fallthrough]];
 		case PIXEL_RGB888:
 		case PIXEL_I8:
 		case PIXEL_IA88:
@@ -149,11 +158,7 @@ static int makeGLSizedInternalFormat(const Renderer &r, IG::PixelFormatID format
 		case PIXEL_RGBA8888:
 			return isSrgb ? GL_SRGB8_ALPHA8 : GL_RGBA8;
 		case PIXEL_RGB565:
-			#if defined CONFIG_GFX_OPENGL_ES
-			return GL_RGB565;
-			#else
-			return GL_RGB5;
-			#endif
+			return Config::Gfx::OPENGL_ES ? GL_RGB565 : GL_RGB5;
 		case PIXEL_RGBA5551:
 			return GL_RGB5_A1;
 		case PIXEL_RGBA4444:
@@ -345,6 +350,8 @@ uint8_t Texture::levels() const
 
 IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, ColorSpace colorSpace, const TextureSampler *compatSampler)
 {
+	assumeExpr(desc.w());
+	assumeExpr(desc.h());
 	if(renderer().support.textureSizeSupport.supportsMipmaps(desc.w(), desc.h()))
 	{
 		if(!levels)
@@ -436,7 +443,7 @@ void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uin
 	auto &r = renderer();
 	assumeExpr(destPos.x + pixmap.w() <= (uint32_t)size(level).x);
 	assumeExpr(destPos.y + pixmap.h() <= (uint32_t)size(level).y);
-	assumeExpr(pixmap.format() == pixDesc.format());
+	assumeExpr(pixmap.format().bytesPerPixel() == pixDesc.format().bytesPerPixel());
 	if(!assumeAlign)
 		assumeAlign = unpackAlignForAddrAndPitch(pixmap.data(), pixmap.pitchBytes());
 	if((uintptr_t)pixmap.data() % (uintptr_t)assumeAlign != 0)
@@ -485,6 +492,7 @@ void Texture::writeAligned(uint8_t level, IG::Pixmap pixmap, IG::WP destPos, uin
 			logErr("error getting buffer for writeAligned()");
 			return;
 		}
+		assumeExpr(pixmap.format().bytesPerPixel() == lockBuff.pixmap().format().bytesPerPixel());
 		lockBuff.pixmap().write(pixmap);
 		unlock(lockBuff, writeFlags);
 	}

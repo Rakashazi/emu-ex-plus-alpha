@@ -73,15 +73,6 @@ static EGLAttrList glConfigAttrsToEGLAttrs(int renderableType, GLBufferConfigAtt
 			list.push_back(8);
 			list.push_back(EGL_BLUE_SIZE);
 			list.push_back(8);
-		bcase PIXEL_RGBX8888:
-			list.push_back(EGL_RED_SIZE);
-			list.push_back(8);
-			list.push_back(EGL_GREEN_SIZE);
-			list.push_back(8);
-			list.push_back(EGL_BLUE_SIZE);
-			list.push_back(8);
-			list.push_back(EGL_BUFFER_SIZE);
-			list.push_back(32);
 		bcase PIXEL_RGBA8888:
 			list.push_back(EGL_RED_SIZE);
 			list.push_back(8);
@@ -482,8 +473,24 @@ int EGLManager::makeRenderableType(GL::API api, unsigned majorVersion)
 	}
 }
 
+static bool supportsColorSpace(GLDisplay dpy, GLBufferConfig conf, GLColorSpace colorSpace)
+{
+	switch(colorSpace)
+	{
+		case GLColorSpace::LINEAR: return true;
+		case GLColorSpace::SRGB:
+		{
+				EGLint redSize;
+				eglGetConfigAttrib(dpy, conf, EGL_RED_SIZE, &redSize);
+				return redSize >= 8;
+		}
+	}
+	return false;
+}
+
 GLDrawable GLManager::makeDrawable(Window &win, GLDrawableAttributes attr, IG::ErrorCode &ec) const
 {
+	auto dpy = display();
 	EGLSurfaceAttrList attrList{};
 	if(Config::envIsLinux && supportsTripleBufferSurfaces)
 	{
@@ -491,14 +498,15 @@ GLDrawable GLManager::makeDrawable(Window &win, GLDrawableAttributes attr, IG::E
 		attrList.push_back(EGL_RENDER_BUFFER);
 		attrList.push_back(EGL_TRIPLE_BUFFER_NV);
 	}
-	bool useSrgbColorSpace = attr.colorSpace() == GLColorSpace::SRGB && hasSrgbColorSpace();
+	bool useSrgbColorSpace = attr.colorSpace() == GLColorSpace::SRGB && hasSrgbColorSpace() &&
+		supportsColorSpace(dpy, attr.bufferConfig(), GLColorSpace::SRGB);
 	if(useSrgbColorSpace)
 	{
 		attrList.push_back(EGL_GL_COLORSPACE);
 		attrList.push_back(EGL_GL_COLORSPACE_SRGB);
 	}
 	attrList.push_back(EGL_NONE);
-	GLDrawable drawable{display(), win, attr.bufferConfig(), attrList.data(), ec};
+	GLDrawable drawable{dpy, win, attr.bufferConfig(), attrList.data(), ec};
 	if(ec)
 	{
 		return {};

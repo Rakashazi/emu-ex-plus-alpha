@@ -720,7 +720,7 @@ void GLRenderer::addEventHandlers(Base::ApplicationContext ctx, RendererTask &ta
 std::optional<Base::GLBufferConfig> GLRenderer::makeGLBufferConfig(Base::ApplicationContext ctx, IG::PixelFormat pixelFormat)
 {
 	if(!pixelFormat)
-		pixelFormat = Base::Window::defaultPixelFormat(ctx);
+		pixelFormat = ctx.defaultWindowPixelFormat();
 	Base::GLBufferConfigAttributes glBuffAttr{pixelFormat};
 	if constexpr(Config::Gfx::OPENGL_ES >= 2)
 	{

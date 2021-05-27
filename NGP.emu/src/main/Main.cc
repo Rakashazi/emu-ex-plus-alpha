@@ -29,12 +29,11 @@
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
 uint32 frameskip_active = 0;
-static const int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
+static constexpr int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
 static EmuApp *emuAppPtr{};
 static EmuSystemTask *emuSysTask{};
 static EmuVideo *emuVideo{};
-static IG::Pixmap srcPix{{{ngpResX, ngpResY}, pixFmt}, cfb};
+static constexpr IG::Pixmap srcPix{{{ngpResX, ngpResY}, IG::PIXEL_FMT_RGB565}, cfb};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](const char *name)
@@ -153,9 +152,9 @@ void EmuSystem::onPrepareAudio(EmuAudio &audio)
 	audio.setStereo(false);
 }
 
-void EmuSystem::onPrepareVideo(EmuVideo &video)
+bool EmuSystem::onRequestedVideoFormatChange(EmuVideo &video)
 {
-	video.setFormat({{ngpResX, ngpResY}, pixFmt});
+	return video.setFormat({{ngpResX, ngpResY}, video.requestedPixelFormat()});
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
@@ -173,10 +172,15 @@ void system_VBL(void)
 {
 	if(emuVideo) [[likely]]
 	{
-		emuVideo->startFrame(emuSysTask, srcPix);
+		emuVideo->startFrameWithAltFormat(emuSysTask, srcPix);
 		emuVideo = {};
 		emuSysTask = {};
 	}
+}
+
+void EmuSystem::renderFramebuffer(EmuVideo &video)
+{
+	video.startFrameWithAltFormat({}, srcPix);
 }
 
 void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)

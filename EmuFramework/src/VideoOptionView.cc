@@ -197,7 +197,7 @@ static void setFrameInterval(int interval)
 void VideoOptionView::setImgEffect(unsigned val)
 {
 	optionImgEffect = val;
-	if(videoLayer->emuVideo().image())
+	if(emuVideo().image())
 	{
 		videoLayer->setEffect(val, optionImageEffectPixelFormatValue());
 		app().viewController().postDrawToEmuWindows();
@@ -221,10 +221,16 @@ void VideoOptionView::setImgEffectPixelFormat(PixelFormatID format)
 }
 #endif
 
+void VideoOptionView::setRenderPixelFormat(PixelFormatID format)
+{
+	app().setRenderPixelFormat(format);
+	imgEffectPixelFormat.updateDisplayString();
+}
+
 #ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 static const char *autoWindowPixelFormatStr(Base::ApplicationContext ctx)
 {
-	return Base::Window::defaultPixelFormat(ctx) == PIXEL_RGB565 ? "RGB565" : "RGBA8888";
+	return ctx.defaultWindowPixelFormat() == PIXEL_RGB565 ? "RGB565" : "RGBA8888";
 }
 
 void VideoOptionView::setWindowPixelFormat(PixelFormatID format)
@@ -232,7 +238,6 @@ void VideoOptionView::setWindowPixelFormat(PixelFormatID format)
 	app().postMessage("Restart app for option to take effect");
 	optionWindowPixelFormat = format;
 }
-
 #endif
 
 static void setImageBuffers(unsigned buffers, EmuVideoLayer &layer)
@@ -537,18 +542,18 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	imgEffectPixelFormatItem
 	{
-		{"Auto (Match render format as needed)", &defaultFace(), [this]() { setImgEffectPixelFormat(PIXEL_NONE); }},
-		{"RGB565", &defaultFace(), [this]() { setImgEffectPixelFormat(PIXEL_RGB565); }},
+		{"Auto (Match render format)", &defaultFace(), [this]() { setImgEffectPixelFormat(PIXEL_NONE); }},
 		{"RGBA8888", &defaultFace(), [this]() { setImgEffectPixelFormat(PIXEL_RGBA8888);}},
+		{"RGB565", &defaultFace(), [this]() { setImgEffectPixelFormat(PIXEL_RGB565); }},
 	},
 	imgEffectPixelFormat
 	{
 		"Effect Color Format", &defaultFace(),
-		[](int idx, Gfx::Text &t)
+		[this](int idx, Gfx::Text &t)
 		{
 			if(idx == 0)
 			{
-				t.setString("Auto");
+				t.setString(emuVideo().requestedPixelFormat().name());
 				return true;
 			}
 			else
@@ -559,8 +564,8 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			switch(optionImageEffectPixelFormat.val)
 			{
 				default: return 0;
-				case PIXEL_RGB565: return 1;
-				case PIXEL_RGBA8888: return 2;
+				case PIXEL_RGBA8888: return 1;
+				case PIXEL_RGB565: return 2;
 			}
 		}(),
 		imgEffectPixelFormatItem
@@ -648,6 +653,35 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 			}
 		}(),
 		imageBuffersItem
+	},
+	renderPixelFormatItem
+	{
+		{"Auto (Match display format)", &defaultFace(), [this]() { setRenderPixelFormat(IG::PIXEL_NONE); }},
+		{"RGBA8888", &defaultFace(), [this]() { setRenderPixelFormat(IG::PIXEL_RGBA8888); }},
+		{"RGB565", &defaultFace(), [this]() { setRenderPixelFormat(IG::PIXEL_RGB565); }},
+	},
+	renderPixelFormat
+	{
+		"Render Color Format", &defaultFace(),
+		[this](int idx, Gfx::Text &t)
+		{
+			if(idx == 0)
+			{
+				t.setString(emuVideo().requestedPixelFormat().name());
+				return true;
+			}
+			return false;
+		},
+		[this]()
+		{
+			switch(app().renderPixelFormat())
+			{
+				default: return 0;
+				case IG::PIXEL_RGBA8888: return 1;
+				case IG::PIXEL_RGB565: return 2;
+			}
+		}(),
+		renderPixelFormatItem
 	},
 	visualsHeading{"Visuals", &defaultBoldFace()},
 	screenShapeHeading{"Screen Shape", &defaultBoldFace()},
@@ -769,9 +803,6 @@ void VideoOptionView::loadStockItems()
 	item.emplace_back(&textureBufferMode);
 	textureBufferMode.setSelected(IG::findIndex(renderer().textureBufferModes(),
 		renderer().makeValidTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val)) + 1);
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	item.emplace_back(&imgEffectPixelFormat);
-	#endif
 	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	if(windowPixelFormatItem.size() > 2)
 	{
@@ -780,7 +811,11 @@ void VideoOptionView::loadStockItems()
 			(IG::PixelFormatID)optionWindowPixelFormat.val) + 1);
 	}
 	#endif
-	if(renderer().hasSrgbColorSpaceWriteControl())
+	item.emplace_back(&renderPixelFormat);
+	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
+	item.emplace_back(&imgEffectPixelFormat);
+	#endif
+	if(renderer().hasSrgbColorSpaceWriteControl() && window().pixelFormat() != IG::PIXEL_RGB565)
 	{
 		item.emplace_back(&srgbColorSpaceOutput);
 	}
@@ -931,4 +966,9 @@ void VideoOptionView::setAspectRatio(double val)
 	logMsg("set aspect ratio: %.2f", val);
 	app().viewController().placeEmuViews();
 	app().viewController().postDrawToEmuWindows();
+}
+
+EmuVideo &VideoOptionView::emuVideo() const
+{
+	return videoLayer->emuVideo();
 }

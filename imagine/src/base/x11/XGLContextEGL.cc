@@ -102,10 +102,6 @@ bool GLManager::hasBufferFormat(GLBufferConfigAttributes attrs) const
 		case PIXEL_RGB565: return
 			eglConfigInt(dpy, *configOpt, EGL_BUFFER_SIZE) == 16 &&
 			eglConfigInt(dpy, *configOpt, EGL_RED_SIZE) == 5;
-		case PIXEL_RGBX8888: return
-			eglConfigInt(dpy, *configOpt, EGL_BUFFER_SIZE) == 32 &&
-			eglConfigInt(dpy, *configOpt, EGL_RED_SIZE) == 8 &&
-			!eglConfigInt(dpy, *configOpt, EGL_ALPHA_SIZE);
 		case PIXEL_RGBA8888: return
 			eglConfigInt(dpy, *configOpt, EGL_BUFFER_SIZE) == 32 &&
 			eglConfigInt(dpy, *configOpt, EGL_RED_SIZE) == 8 &&

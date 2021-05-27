@@ -34,7 +34,6 @@ static uint8_t activeResampler = 1;
 static uint32_t totalFrames = 0;
 static uint64_t totalSamples = 0;
 alignas(8) static uint_least32_t frameBuffer[gambatte::lcd_hres * gambatte::lcd_vres];
-static const IG::Pixmap frameBufferPix{{{gambatte::lcd_hres, gambatte::lcd_vres}, IG::PIXEL_RGBA8888}, frameBuffer};
 static const GBPalette *gameBuiltinPalette{};
 bool EmuSystem::hasCheats = true;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
@@ -194,14 +193,9 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 	return {};
 }
 
-void EmuSystem::onPrepareVideo(EmuVideo &video)
+bool EmuSystem::onRequestedVideoFormatChange(EmuVideo &video)
 {
-	auto fmt = (IG::PixelFormatID)optionRenderPixelFormat.val;
-	if(fmt == IG::PIXEL_NONE)
-	{
-		fmt = EmuApp::defaultRenderPixelFormat(video.appContext());
-	}
-	video.setFormat({{gambatte::lcd_hres, gambatte::lcd_vres}, fmt});
+	return video.setFormat({{gambatte::lcd_hres, gambatte::lcd_vres}, video.requestedPixelFormat()});
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
@@ -243,6 +237,12 @@ static size_t runUntilVideoFrame(gambatte::uint_least32_t *videoBuf, std::ptrdif
 	return samplesEmulated;
 }
 
+static void renderVideo(EmuSystemTask *task, EmuVideo &video)
+{
+	IG::Pixmap frameBufferPix{{{gambatte::lcd_hres, gambatte::lcd_vres}, IG::PIXEL_RGBA8888}, frameBuffer};
+	video.startFrameWithAltFormat(task, frameBufferPix);
+}
+
 void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	auto incFrameCountOnReturn = IG::scopeGuard([](){ totalFrames++; });
@@ -259,25 +259,18 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 		totalSamples += runUntilVideoFrame(frameBuffer, gambatte::lcd_hres, audio,
 			[task, video]()
 			{
-				if(video->image().pixmapDesc().format() != IG::PIXEL_RGB565)
-				{
-					video->startFrame(task, frameBufferPix);
-				}
-				else
-				{
-					// convert RGBA8888 to RGB565, for older GPUs with slow texture uploads
-					auto img = video->startFrame(task);
-					assumeExpr(img.pixmap().format().id() ==  IG::PIXEL_RGB565);
-					assumeExpr(frameBufferPix.format().id() ==  IG::PIXEL_RGBA8888);
-					img.pixmap().writeConverted(frameBufferPix);
-					img.endFrame();
-				}
+				renderVideo(task, *video);
 			});
 	}
 	else
 	{
 		totalSamples += runUntilVideoFrame(nullptr, gambatte::lcd_hres, audio, {});
 	}
+}
+
+void EmuSystem::renderFramebuffer(EmuVideo &video)
+{
+	renderVideo({}, video);
 }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)

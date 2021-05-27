@@ -73,6 +73,7 @@ FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3]{};
 VicePlugin plugin{};
 ViceSystem currSystem = VICE_SYSTEM_C64;
 Base::ApplicationContext appContext{};
+IG::PixelFormat pixFmt{};
 
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
@@ -136,8 +137,8 @@ static bool sysIsPal()
 		case MACHINE_SYNC_PAL:
 		case MACHINE_SYNC_PALN:
 			return true;
+		default: return false;
 	}
-	return false;
 }
 
 static void setModel(int model)
@@ -642,6 +643,11 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 	audioPtr = {};
 }
 
+void EmuSystem::renderFramebuffer(EmuVideo &video)
+{
+	video.startFrameWithFormat({}, canvasSrcPix);
+}
+
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
 	logMsg("set audio rate %d", rate);
@@ -675,6 +681,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 {
 	sysFilePath[0] = firmwareBasePath;
+	plugin.init();
 	updateKeyboardMapping();
 	setSysModel(optionDefaultModel(currSystem));
 	plugin.resources_set_string("AutostartPrgDiskImage",
@@ -686,7 +693,20 @@ void EmuSystem::onPrepareAudio(EmuAudio &audio)
 	audio.setStereo(false);
 }
 
-EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext app)
+bool EmuSystem::onRequestedVideoFormatChange(EmuVideo &video)
+{
+	auto fmt = video.requestedPixelFormat();
+	if(pixFmt == fmt)
+		return false;
+	pixFmt = fmt;
+	if(activeCanvas)
+	{
+		updateCanvasPixelFormat(activeCanvas);
+	}
+	return true;
+}
+
+EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
 {
 	IG::makeDetachedThread(
 		[]()
@@ -695,17 +715,17 @@ EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext app)
 			logMsg("starting maincpu_mainloop()");
 			plugin.maincpu_mainloop();
 		});
-	appContext = app; // saved for sysfile_* functions
+	appContext = ctx; // saved for sysfile_* functions
 
 	#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-	sysFilePath[1] = EmuApp::assetPath(app);
-	sysFilePath[2] = FS::makePathStringPrintf("%s/C64.emu.zip", EmuApp::assetPath(app).data());
+	sysFilePath[1] = EmuApp::assetPath(ctx);
+	sysFilePath[2] = FS::makePathStringPrintf("%s/C64.emu.zip", EmuApp::assetPath(ctx).data());
 	sysFilePath[3] = {"~/.local/share/C64.emu"};
 	sysFilePath[4] = {"/usr/share/games/vice"};
 	#else
 	{
-		sysFilePath[1] = FS::makePathStringPrintf("%s/C64.emu", app.sharedStoragePath().data());
-		sysFilePath[2] = FS::makePathStringPrintf("%s/C64.emu.zip", app.sharedStoragePath().data());
+		sysFilePath[1] = FS::makePathStringPrintf("%s/C64.emu", ctx.sharedStoragePath().data());
+		sysFilePath[2] = FS::makePathStringPrintf("%s/C64.emu.zip", ctx.sharedStoragePath().data());
 	}
 	#endif
 

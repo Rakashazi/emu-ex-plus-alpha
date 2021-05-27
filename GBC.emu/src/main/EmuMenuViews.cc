@@ -95,43 +95,6 @@ class CustomVideoOptionView : public VideoOptionView
 		}
 	};
 
-	void setRenderFormat(IG::PixelFormatID fmt)
-	{
-		optionRenderPixelFormat = fmt;
-		app().resetVideo();
-	}
-
-	TextMenuItem renderPixelFormatItem[3]
-	{
-		{"Auto (Match display format as needed)", &defaultFace(), [this]() { setRenderFormat(IG::PIXEL_NONE); }},
-		{"RGB565", &defaultFace(), [this]() { setRenderFormat(IG::PIXEL_RGB565); }},
-		{"RGBA8888", &defaultFace(), [this]() { setRenderFormat(IG::PIXEL_RGBA8888); }},
-	};
-
-	MultiChoiceMenuItem renderPixelFormat
-	{
-		"Render Color Format", &defaultFace(),
-		[](int idx, Gfx::Text &t)
-		{
-			if(idx == 0)
-			{
-				t.setString("Auto");
-				return true;
-			}
-			return false;
-		},
-		[]()
-		{
-			switch(optionRenderPixelFormat.val)
-			{
-				default: return 0;
-				case IG::PIXEL_RGB565: return 1;
-				case IG::PIXEL_RGBA8888: return 2;
-			}
-		}(),
-		renderPixelFormatItem
-	};
-
 public:
 	CustomVideoOptionView(ViewAttachParams attach): VideoOptionView{attach, true}
 	{
@@ -139,7 +102,6 @@ public:
 		item.emplace_back(&systemSpecificHeading);
 		item.emplace_back(&gbPalette);
 		item.emplace_back(&fullSaturation);
-		item.emplace_back(&renderPixelFormat);
 	}
 };
 

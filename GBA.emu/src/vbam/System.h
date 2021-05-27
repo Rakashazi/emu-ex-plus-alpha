@@ -84,22 +84,13 @@ extern void winlog(const char *,...);
 extern void (*dbgOutput)(const char *s, u32 addr);
 extern void (*dbgSignal)(int sig,int number);
 
-#define SUPPORT_PIX_16BIT
 union SystemColorMap
 {
-#ifdef SUPPORT_PIX_32BIT
 	u32 map32[0x10000];
-#endif
-#ifdef SUPPORT_PIX_16BIT
 	u16 map16[0x10000];
-#endif
 };
 extern SystemColorMap systemColorMap;
 extern u16 systemGbPalette[24];
-extern int systemRedShift;
-extern int systemGreenShift;
-extern int systemBlueShift;
-extern int systemColorDepth;
 extern int systemDebug;
 static const int systemVerbose = 0;
 extern int systemSaveUpdateCounter;

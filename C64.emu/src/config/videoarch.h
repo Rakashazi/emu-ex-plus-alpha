@@ -1,9 +1,8 @@
 #pragma once
 
 #include "vice.h"
-#ifdef __cplusplus
-#include <imagine/pixmap/MemPixmap.hh>
-#endif
+#include <stdint.h>
+#include <stdbool.h>
 
 struct video_canvas_s
 {
@@ -13,13 +12,13 @@ struct video_canvas_s
 	struct geometry_s *geometry;
 	struct palette_s *palette;
 	struct video_draw_buffer_callback_s *video_draw_buffer_callback;
-	#ifdef __cplusplus
-	IG::MemPixmap *pixmap;
-	#else
-	void *pixmap;
-	#endif
-	unsigned int initialized;
-	unsigned int created;
-	char skipFrame;
+	uint8_t *pixmapData;
+	int w;
+	int h;
+	bool initialized;
+	bool created;
+	bool skipFrame;
+	uint8_t pixelFormat;
+	int8_t bpp;
 };
 typedef struct video_canvas_s video_canvas_t;

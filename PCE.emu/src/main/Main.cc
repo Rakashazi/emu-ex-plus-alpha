@@ -31,11 +31,9 @@
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nMednafen Team\nmednafen.sourceforge.net";
 FS::PathString sysCardPath{};
 static std::vector<CDInterface *> CDInterfaces;
-using Pixel = uint16;
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 static const unsigned vidBufferX = 512, vidBufferY = 242;
-alignas(8) static Pixel pixBuff[vidBufferX*vidBufferY]{};
-static IG::Pixmap mSurfacePix{{{vidBufferX, vidBufferY}, pixFmt}, pixBuff};
+alignas(8) static uint32_t pixBuff[vidBufferX*vidBufferY]{};
+static IG::Pixmap mSurfacePix;
 std::array<uint16, 5> inputBuff{}; // 5 gamepad buffers
 static bool prevUsing263Lines = false;
 
@@ -214,16 +212,17 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 	return {};
 }
 
-void EmuSystem::onPrepareVideo(EmuVideo &video)
+bool EmuSystem::onRequestedVideoFormatChange(EmuVideo &video)
 {
-	if(!video.image()) [[unlikely]]
-	{
-		logMsg("doing initial video setup for emulator");
-		EmulateSpecStruct espec;
-		auto mSurface = pixmapToMDFNSurface(mSurfacePix);
-		espec.surface = &mSurface;
-		PCE_Fast::applyVideoFormat(&espec);
-	}
+	auto fmt = video.requestedPixelFormat();
+	if(fmt == mSurfacePix.format())
+		return false;
+	mSurfacePix = {{{vidBufferX, vidBufferY}, fmt}, pixBuff};
+	EmulateSpecStruct espec;
+	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
+	espec.surface = &mSurface;
+	PCE_Fast::applyVideoFormat(&espec);
+	return true;
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
@@ -241,6 +240,90 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 
 namespace Mednafen
 {
+
+template <class Pixel>
+static void renderMultiresOutput(EmulateSpecStruct spec, IG::Pixmap srcPix, int multiResOutputWidth)
+{
+	int pixHeight = spec.DisplayRect.h;
+	auto img = spec.video->startFrameWithFormat(spec.task, {{multiResOutputWidth, pixHeight}, srcPix.format()});
+	auto destPixAddr = (Pixel*)img.pixmap().data();
+	auto lineWidth = spec.LineWidths + spec.DisplayRect.y;
+	if(multiResOutputWidth == 1024)
+	{
+		// scale 256x4, 341x3 + 1x4, 512x2
+		iterateTimes(pixHeight, h)
+		{
+			auto srcPixAddr = (Pixel*)srcPix.pixel({0,(int)h});
+			int width = lineWidth[h];
+			switch(width)
+			{
+				bdefault:
+					bug_unreachable("width == %d", width);
+				bcase 256:
+				{
+					iterateTimes(256, w)
+					{
+						*destPixAddr++ = *srcPixAddr;
+						*destPixAddr++ = *srcPixAddr;
+						*destPixAddr++ = *srcPixAddr;
+						*destPixAddr++ = *srcPixAddr++;
+					}
+				}
+				bcase 341:
+				{
+					iterateTimes(340, w)
+					{
+						*destPixAddr++ = *srcPixAddr;
+						*destPixAddr++ = *srcPixAddr;
+						*destPixAddr++ = *srcPixAddr++;
+					}
+					*destPixAddr++ = *srcPixAddr;
+					*destPixAddr++ = *srcPixAddr;
+					*destPixAddr++ = *srcPixAddr;
+					*destPixAddr++ = *srcPixAddr++;
+				}
+				bcase 512:
+				{
+					iterateTimes(512, w)
+					{
+						*destPixAddr++ = *srcPixAddr;
+						*destPixAddr++ = *srcPixAddr++;
+					}
+				}
+			}
+			destPixAddr += img.pixmap().paddingPixels();
+		}
+	}
+	else // 512 width
+	{
+		iterateTimes(pixHeight, h)
+		{
+			auto srcPixAddr = (Pixel*)srcPix.pixel({0,(int)h});
+			int width = lineWidth[h];
+			switch(width)
+			{
+				bdefault:
+					bug_unreachable("width == %d", width);
+				bcase 256:
+				{
+					iterateTimes(256, w)
+					{
+						*destPixAddr++ = *srcPixAddr;
+						*destPixAddr++ = *srcPixAddr++;
+					}
+				}
+				bcase 512:
+				{
+					memcpy(destPixAddr, srcPixAddr, 512 * sizeof(Pixel));
+					destPixAddr += 512;
+					srcPixAddr += 512;
+				}
+			}
+			destPixAddr += img.pixmap().paddingPixels();
+		}
+	}
+	img.endFrame();
+}
 
 void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 {
@@ -285,91 +368,16 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 	IG::Pixmap srcPix = mSurfacePix.subView(
 		{spec.DisplayRect.x, spec.DisplayRect.y},
 		{pixWidth, pixHeight});
-	auto &video = *espec->video;
 	if(multiResOutputWidth)
 	{
-		auto img = video.startFrameWithFormat(espec->task, {{multiResOutputWidth, pixHeight}, pixFmt});
-		auto destPixAddr = (Pixel*)img.pixmap().pixel({0,0});
-		auto lineWidth = spec.LineWidths + spec.DisplayRect.y;
-		if(multiResOutputWidth == 1024)
-		{
-			// scale 256x4, 341x3 + 1x4, 512x2
-			iterateTimes(pixHeight, h)
-			{
-				auto srcPixAddr = (Pixel*)srcPix.pixel({0,(int)h});
-				int width = lineWidth[h];
-				switch(width)
-				{
-					bdefault:
-						bug_unreachable("width == %d", width);
-					bcase 256:
-					{
-						iterateTimes(256, w)
-						{
-							*destPixAddr++ = *srcPixAddr;
-							*destPixAddr++ = *srcPixAddr;
-							*destPixAddr++ = *srcPixAddr;
-							*destPixAddr++ = *srcPixAddr++;
-						}
-					}
-					bcase 341:
-					{
-						iterateTimes(340, w)
-						{
-							*destPixAddr++ = *srcPixAddr;
-							*destPixAddr++ = *srcPixAddr;
-							*destPixAddr++ = *srcPixAddr++;
-						}
-						*destPixAddr++ = *srcPixAddr;
-						*destPixAddr++ = *srcPixAddr;
-						*destPixAddr++ = *srcPixAddr;
-						*destPixAddr++ = *srcPixAddr++;
-					}
-					bcase 512:
-					{
-						iterateTimes(512, w)
-						{
-							*destPixAddr++ = *srcPixAddr;
-							*destPixAddr++ = *srcPixAddr++;
-						}
-					}
-				}
-				destPixAddr += img.pixmap().paddingPixels();
-			}
-		}
-		else // 512 width
-		{
-			iterateTimes(pixHeight, h)
-			{
-				auto srcPixAddr = (Pixel*)srcPix.pixel({0,(int)h});
-				int width = lineWidth[h];
-				switch(width)
-				{
-					bdefault:
-						bug_unreachable("width == %d", width);
-					bcase 256:
-					{
-						iterateTimes(256, w)
-						{
-							*destPixAddr++ = *srcPixAddr;
-							*destPixAddr++ = *srcPixAddr++;
-						}
-					}
-					bcase 512:
-					{
-						memcpy(destPixAddr, srcPixAddr, 512 * sizeof(Pixel));
-						destPixAddr += 512;
-						srcPixAddr += 512;
-					}
-				}
-				destPixAddr += img.pixmap().paddingPixels();
-			}
-		}
-		img.endFrame();
+		if(srcPix.format() == IG::PIXEL_RGB565)
+			renderMultiresOutput<uint16_t>(spec, srcPix, multiResOutputWidth);
+		else
+			renderMultiresOutput<uint32_t>(spec, srcPix, multiResOutputWidth);
 	}
 	else
 	{
-		video.startFrameWithFormat(espec->task, srcPix);
+		spec.video->startFrameWithFormat(espec->task, srcPix);
 	}
 }
 

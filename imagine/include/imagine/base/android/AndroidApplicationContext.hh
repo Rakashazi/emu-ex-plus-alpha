@@ -16,12 +16,17 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/pixmap/Pixmap.hh>
 #include <jni.h>
 #include <array>
 
 struct ANativeActivity;
 struct AAssetManager;
+
+namespace IG
+{
+class PixelFormat;
+class Pixmap;
+}
 
 namespace Base
 {
@@ -70,7 +75,7 @@ protected:
 };
 
 IG::PixelFormat makePixelFormatFromAndroidFormat(int32_t androidFormat);
-IG::Pixmap makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFormat format = IG::PIXEL_FMT_NONE);
+IG::Pixmap makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFormat format);
 
 
 using ApplicationContextImpl = AndroidApplicationContext;

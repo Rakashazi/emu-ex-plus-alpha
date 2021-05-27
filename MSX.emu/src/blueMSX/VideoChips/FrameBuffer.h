@@ -106,6 +106,10 @@ void frameBufferSetBlendFrames(int blendFrames);
 #define BKMODE_TRANSPARENT 0x0001
 #define videoGetColor(R, G, B) \
 		((((int)(R) >> 3) << 11) | (((int)(G) >> 3) << 6) | (((int)(B) >> 3) << 1))
+#elif defined(VIDEO_COLOR_TYPE_RGBA8888)
+#define BKMODE_TRANSPARENT 0x0000
+#define videoGetColor(R, G, B) \
+		(((int)(R) << 16) | ((int)(G) << 8) | ((int)(B) << 0))
 #else // default is ARGB1555
 #define BKMODE_TRANSPARENT 0x8000
 #define videoGetColor(R, G, B) \

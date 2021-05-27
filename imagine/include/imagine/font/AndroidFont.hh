@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/jni.hh>
 
 namespace IG

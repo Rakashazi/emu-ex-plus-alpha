@@ -28,7 +28,7 @@
 namespace Base
 {
 
-PixelFormat Window::defaultPixelFormat(ApplicationContext)
+IG::PixelFormat ApplicationContext::defaultWindowPixelFormat() const
 {
 	return Config::MACHINE_IS_PANDORA ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
 }

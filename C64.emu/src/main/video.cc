@@ -68,18 +68,38 @@ void vsyncarch_refresh_frequency_changed(double rate)
 	EmuApp::get(appContext).configFrameTime();
 }
 
+static IG::Pixmap makePixmapView(const struct video_canvas_s *c)
+{
+	return {{{c->w, c->h}, (IG::PixelFormatID)c->pixelFormat}, c->pixmapData};
+}
+
+static IG::Pixmap releasePixmapView(struct video_canvas_s *c)
+{
+	auto pix = makePixmapView(c);
+	c->pixmapData = {};
+	return pix;
+}
+
+static IG::PixelDesc pixelDesc(IG::PixelFormat fmt)
+{
+	return fmt == IG::PIXEL_FMT_RGBA8888 ? fmt.desc().nativeOrder() : fmt.desc();
+}
+
 void video_arch_canvas_init(struct video_canvas_s *c)
 {
 	logMsg("created canvas with size %d,%d", c->draw_buffer->canvas_width, c->draw_buffer->canvas_height);
 	c->video_draw_buffer_callback = nullptr;
+	c->bpp = pixelDesc(pixFmt).bitsPerPixel();
+	assert(c->bpp == 16 || c->bpp == 32);
 	activeCanvas = c;
 }
 
 int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
 {
+	const auto pDesc = pixelDesc(pixFmt);
 	iterateTimes(256, i)
 	{
-		plugin.video_render_setrawrgb(i, pixFmt.desc().build(i/255., 0., 0., 0.), pixFmt.desc().build(0., i/255., 0., 0.), pixFmt.desc().build(0., 0., i/255., 0.));
+		plugin.video_render_setrawrgb(i, pDesc.build(i/255., 0., 0., 0.), pDesc.build(0., i/255., 0., 0.), pDesc.build(0., 0., i/255., 0.));
 	}
 	plugin.video_render_initraw(c->videoconfig);
 
@@ -88,9 +108,9 @@ int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
 		c->palette = palette;
 		iterateTimes(palette->num_entries, i)
 		{
-			auto col = pixFmt.desc().build(palette->entries[i].red/255., palette->entries[i].green/255., palette->entries[i].blue/255., 0.);
-			logMsg("set color %d to %X", i, col);
-			plugin.video_render_setphysicalcolor(c->videoconfig, i, col, pixFmt.bitsPerPixel());
+			auto col = pDesc.build(palette->entries[i].red/255., palette->entries[i].green/255., palette->entries[i].blue/255., 0.);
+			logMsg("set color %d to %X (%d bpp)", i, col, c->bpp);
+			plugin.video_render_setphysicalcolor(c->videoconfig, i, col, c->bpp);
 		}
 	}
 
@@ -103,18 +123,18 @@ void video_canvas_refresh(struct video_canvas_s *c, unsigned int xs, unsigned in
 	w *= c->videoconfig->scalex;
 	yi *= c->videoconfig->scaley;
 	h *= c->videoconfig->scaley;
-	auto pixView = c->pixmap->view();
+	auto pixView = makePixmapView(c);
 
 	w = std::min(w, pixView.w());
 	h = std::min(h, pixView.h());
 
-	plugin.video_canvas_render(c, (uint8_t*)pixView.pixel({}), w, h, xs, ys, xi, yi, pixView.pitchBytes(), pixFmt.bitsPerPixel());
+	plugin.video_canvas_render(c, (uint8_t*)pixView.data(), w, h, xs, ys, xi, yi, pixView.pitchBytes(), c->bpp);
 }
 
 void resetCanvasSourcePixmap(struct video_canvas_s *c)
 {
-	unsigned canvasW = c->pixmap->w();
-	unsigned canvasH = c->pixmap->h();
+	unsigned canvasW = c->w;
+	unsigned canvasH = c->h;
 	if(optionCropNormalBorders && (canvasH == 247 || canvasH == 272))
 	{
 		logMsg("cropping borders");
@@ -131,12 +151,38 @@ void resetCanvasSourcePixmap(struct video_canvas_s *c)
 		}
 		int width = 320+(xBorderSize*2 - startX*2);
 		int widthPadding = startX*2;
-		canvasSrcPix = c->pixmap->subView({startX, startY}, {width, height});
+		canvasSrcPix = makePixmapView(c).subView({startX, startY}, {width, height});
 	}
 	else
 	{
-		canvasSrcPix = c->pixmap->view();
+		canvasSrcPix = makePixmapView(c);
 	}
+}
+
+static void updateCanvasMemPixmap(struct video_canvas_s *c, int x, int y)
+{
+	IG::PixmapDesc desc{{x, y}, pixFmt};
+	c->w = x;
+	c->h = y;
+	c->pixelFormat = pixFmt;
+	delete[] c->pixmapData;
+	logMsg("allocating pixmap:%dx%d format:%d bytes:%d", x, y, (int)pixFmt, (int)desc.bytes());
+	c->pixmapData = new uint8_t[desc.bytes()];
+	resetCanvasSourcePixmap(c);
+}
+
+void updateCanvasPixelFormat(struct video_canvas_s *c)
+{
+	c->bpp = pixelDesc(pixFmt).bitsPerPixel();
+	assert(c->bpp == 16 || c->bpp == 32);
+	if(!c->pixmapData || c->pixelFormat == pixFmt)
+		return;
+	auto oldPixmap = releasePixmapView(c);
+	updateCanvasMemPixmap(c, c->w, c->h);
+	if(oldPixmap.data())
+		makePixmapView(c).writeConverted(oldPixmap);
+	delete[] oldPixmap.data();
+	video_canvas_set_palette(c, c->palette);
 }
 
 void video_canvas_resize(struct video_canvas_s *c, char resize_canvas)
@@ -146,9 +192,7 @@ void video_canvas_resize(struct video_canvas_s *c, char resize_canvas)
 	x *= c->videoconfig->scalex;
 	y *= c->videoconfig->scaley;
 	logMsg("resized canvas to %d,%d, renderer %d", x, y, c->videoconfig->rendermode);
-	delete c->pixmap;
-	c->pixmap = new IG::MemPixmap{{{x, y}, pixFmt}};
-	resetCanvasSourcePixmap(c);
+	updateCanvasMemPixmap(c, x, y);
 }
 
 video_canvas_t *video_canvas_create(video_canvas_t *c, unsigned int *width, unsigned int *height, int mapped)
@@ -160,6 +204,6 @@ video_canvas_t *video_canvas_create(video_canvas_t *c, unsigned int *width, unsi
 void video_canvas_destroy(struct video_canvas_s *c)
 {
 	logMsg("canvas destroy:0x%p", c);
-	delete c->pixmap;
-	c->pixmap = nullptr;
+	delete[] c->pixmapData;
+	releasePixmapView(c);
 }

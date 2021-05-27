@@ -445,24 +445,21 @@ static __inline__ void WRITE_LONG(void *address, uint32 data)
     } \
   }
 
-/* Pixel conversion macros */
-/* 4-bit color channels are either compressed to 2/3-bit or dithered to 5/6/8-bit equivalents */
-/* 3:3:2 RGB */
-#if defined(SUPPORT_8BPP_RENDER)
-#define MAKE_PIXEL(r,g,b)  (((r) >> 1) << 5 | ((g) >> 1) << 2 | (b) >> 2)
+/* Pixel conversion */
 
-/* 5:5:5 RGB */
-#elif defined(SUPPORT_15BPP_RENDER)
-#define MAKE_PIXEL(r,g,b) ((r) << 11 | ((r) >> 3) << 10 | (g) << 6 | ((g) >> 3) << 5 | (b) << 1 | (b) >> 3)
+using Pixel = std::conditional_t<RENDER_BPP == 32, uint32_t, uint16_t>;
 
-/* 5:6:5 RGB */
-#elif defined(SUPPORT_16BPP_RENDER)
-#define MAKE_PIXEL(r,g,b) ((r) << 12 | ((r) >> 3) << 11 | (g) << 7 | ((g) >> 2) << 5 | (b) << 1 | (b) >> 3)
-
-/* 8:8:8 RGB */
-#elif defined(SUPPORT_32BPP_RENDER)
-#define MAKE_PIXEL(r,g,b) ((r) << 20 | (r) << 16 | (g) << 12 | (g)  << 8 | (b) << 4 | (b))
-#endif
+static Pixel MAKE_PIXEL(int r, int g, int b)
+{
+	if constexpr(RENDER_BPP == 32)
+	{
+		return IG::PIXEL_DESC_RGBA8888.nativeOrder().build(r << 4 | r, g << 4 | g, b << 4 | b, 0);
+	}
+	else
+	{
+		return IG::PIXEL_DESC_RGB565.build(r << 1 | (r >> 3), g << 2 | (g >> 2), b << 1 | (b >> 3), 0);
+	}
+}
 
 /* Window & Plane A clipping */
 static struct clip_t
@@ -494,30 +491,9 @@ static uint32 bp_lut[0x10000];
 /* Layer priority pixel look-up tables */
 static uint8 lut[LUT_MAX][LUT_SIZE];
 
-/* 8-bit pixel color mapping */
-#if defined(SUPPORT_8BPP_RENDER)
-static uint8 pixel[0x100];
-static uint8 pixel_lut[3][0x200];
-static uint8 pixel_lut_m4[0x40];
-
-/* 15-bit pixel color mapping */
-#elif defined(SUPPORT_15BPP_RENDER)
-static uint16 pixel[0x100];
-static uint16 pixel_lut[3][0x200];
-static uint16 pixel_lut_m4[0x40];
-
-/* 16-bit pixel color mapping */
-#elif defined(SUPPORT_16BPP_RENDER)
-static uint16 pixel[0x100];
-static uint16 pixel_lut[3][0x200];
-static uint16 pixel_lut_m4[0x40];
-
-/* 32-bit pixel color mapping */
-#elif defined(SUPPORT_32BPP_RENDER)
-static uint32 pixel[0x100];
-static uint32 pixel_lut[3][0x200];
-static uint32 pixel_lut_m4[0x40];
-#endif
+static Pixel pixel[0x100];
+static Pixel pixel_lut[3][0x200];
+static Pixel pixel_lut_m4[0x40];
 
 /* Background & Sprite line buffers */
 static uint8 linebuf[2][0x200];
@@ -3794,19 +3770,9 @@ void remap_line(int line, IG::Pixmap pix)
     line = (line << 1) + odd_frame;
   }
 
-  if((unsigned)line >= pix.h() || (unsigned)bitmap.viewport.w != pix.w()) [[unlikely]]
-		return;
-
   /* Pixel line buffer */
   uint8 *src = &linebuf[0][0x20 - x_offset];
-
-  #if defined(SUPPORT_8BPP_RENDER)
-    uint8 *dst = (uint8*)pix.pixel({0, line});
-	#elif defined(SUPPORT_32BPP_RENDER)
-		uint32 *dst = (uint32*)pix.pixel({0, line});
-	#else
-		uint16 *dst = (uint16*)pix.pixel({0, line});
-	#endif
+	auto *dst = (Pixel*)pix.pixel({0, line});
 	do
 	{
 		*dst++ = pixel[*src++];

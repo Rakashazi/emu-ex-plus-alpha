@@ -65,6 +65,8 @@ typedef signed   int     Int32;
 
 // Define color stuff
 
+#define PIXEL_WIDTH 16
+
 #if PIXEL_WIDTH==32
 
 #define COLSHIFT_R  16
@@ -76,18 +78,9 @@ typedef signed   int     Int32;
 
 typedef UInt32 Pixel;
 
+#define VIDEO_COLOR_TYPE_RGBA8888
+
 #elif PIXEL_WIDTH==8
-
-#define COLSHIFT_R  10
-#define COLMASK_R   0x1f
-#define COLSHIFT_G  5
-#define COLMASK_G   0x1f
-#define COLSHIFT_B  0
-#define COLMASK_B   0x1f
-
-typedef UInt8 Pixel;
-
-#else
 
 #define COLSHIFT_R  5
 #define COLMASK_R   0x07
@@ -96,7 +89,20 @@ typedef UInt8 Pixel;
 #define COLSHIFT_B  0
 #define COLMASK_B   0x07
 
+typedef UInt8 Pixel;
+
+#else
+
+#define COLSHIFT_R  11
+#define COLMASK_R   0x1f
+#define COLSHIFT_G  5
+#define COLMASK_G   0x3f
+#define COLSHIFT_B  0
+#define COLMASK_B   0x1f
+
 typedef UInt16 Pixel;
+
+#define VIDEO_COLOR_TYPE_RGB565
 
 #endif
 

@@ -232,7 +232,7 @@ CLINK void YuiSwapBuffers()
 		int height, width;
 		VIDCore->GetGlSize(&width, &height);
 		IG::Pixmap srcPix = {{{width, height}, pixFmt}, dispbuffer};
-		emuVideo->startFrameWithFormat(emuSysTask, srcPix);
+		emuVideo->startFrameWithAltFormat(emuSysTask, srcPix);
 		emuVideo = {};
 		emuSysTask = {};
 	}

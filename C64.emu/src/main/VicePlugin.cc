@@ -78,6 +78,14 @@ static void loadSymbolCheck(T &symPtr, Base::SharedLibraryRef lib, const char *n
 		logErr("symbol:%s missing from plugin", name);
 }
 
+void VicePlugin::init()
+{
+	assert(libHandle);
+	int (*vice_init)();
+	loadSymbolCheck(vice_init, libHandle, "vice_init");
+	vice_init();
+}
+
 void VicePlugin::deinit()
 {
 	if(libHandle)
@@ -547,9 +555,6 @@ VicePlugin loadVicePlugin(ViceSystem system, const char *libBasePath)
 	plugin.borderModeStr = conf.borderModeStr;
 	//logMsg("getModel() address:%p", plugin.model_get_);
 	//logMsg("setModel() address:%p", plugin.model_set_);
-	int (*vice_init)();
-	loadSymbolCheck(vice_init, lib, "vice_init");
-	vice_init();
 	plugin.libHandle = lib;
 	return plugin;
 }

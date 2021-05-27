@@ -93,6 +93,11 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 	//logMsg("frame end");
 }
 
+void EmuSystem::renderFramebuffer(EmuVideo &video)
+{
+	video.startFrameWithAltFormat({}, framebufferPixmap());
+}
+
 bool EmuSystem::vidSysIsPAL() { return vdp_pal; }
 
 void EmuSystem::reset(ResetMode mode)

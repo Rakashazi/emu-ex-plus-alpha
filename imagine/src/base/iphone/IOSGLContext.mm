@@ -207,7 +207,6 @@ bool GLManager::hasBufferFormat(GLBufferConfigAttributes attrs) const
 		case PIXEL_NONE:
 		case PIXEL_RGB565:
 		case PIXEL_RGBA8888: return true;
-		case PIXEL_RGBX8888: return false;
 	}
 }
 

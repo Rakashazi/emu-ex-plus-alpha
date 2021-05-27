@@ -56,11 +56,6 @@ BaseWindow::BaseWindow(ApplicationContext ctx, WindowConfig config):
 					}, WINDOW_ON_RESUME_PRIORITY
 				);
 			}
-			else
-			{
-				win.resetAppData();
-				win.resetRendererData();
-			}
 			return true;
 		}, ctx, WINDOW_ON_EXIT_PRIORITY},
 	onSurfaceChange{config.onSurfaceChange() ? config.onSurfaceChange() : defaultOnSurfaceChange},

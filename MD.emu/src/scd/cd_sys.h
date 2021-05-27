@@ -10,7 +10,6 @@
 #pragma once
 
 #include "cd_file.h"
-#include <imagine/io/IO.hh>
 
 #define INT_TO_BCDB(c)										\
 ((c) > 99)?(0x99):((((c) / 10) << 4) + ((c) % 10));

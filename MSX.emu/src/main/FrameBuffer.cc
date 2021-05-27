@@ -23,14 +23,7 @@ extern "C"
 	#include <blueMSX/VideoChips/FrameBuffer.h>
 }
 
-/*static const unsigned msxMaxResX = (256) * 2, msxResY = 224,
-	msxMaxFrameBuffResX = (272) * 2, msxMaxFrameBuffResY = 240;
-static int msxResX = msxMaxResX/2;*/
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
-//static uint16_t screenBuff[msxMaxFrameBuffResX*msxMaxFrameBuffResY] __attribute__ ((aligned (8))) {0};
-//static char *srcPixData = (char*)&screenBuff[8 * msxResX];
-//static IG::Pixmap srcPix{{{msxResX, msxResY}, pixFmt}, srcPixData};
-//static bool doubleWidthFrame = false;
+static constexpr auto pixFmt = PIXEL_WIDTH == 16 ? IG::PIXEL_FMT_RGB565 : IG::PIXEL_FMT_RGBA8888;
 
 class FrameBufferImpl
 {
@@ -84,6 +77,7 @@ public:
 
 	IG::Pixmap pixmap() const
 	{
+		assumeExpr(pix.format() == pixFmt);
 		return pix;
 	}
 
@@ -99,7 +93,7 @@ public:
 	}
 
 protected:
-	IG::Pixmap pix{};
+	IG::Pixmap pix{{{}, pixFmt}, {}};
 	int maxWidth = 1;
 	int lines = 1;
 	int currentLine = 0;
@@ -107,7 +101,7 @@ protected:
 
 	void updatePixmapSize()
 	{
-		pix = {makePixmapDesc(), pix.pixel({})};
+		pix = {makePixmapDesc(), pix.data()};
 	}
 };
 
@@ -123,7 +117,7 @@ FrameBufferData* frameBufferDataCreate(int maxWidth, int maxHeight, int defaultH
 {
 	logMsg("created data with max size:%dx%d zoom:%d", maxWidth, maxHeight, defaultHorizZoom);
 	fb.setMaxWidth(maxWidth);
-	return (FrameBufferData*)malloc(maxWidth * 2 * maxHeight * sizeof(uint16_t));
+	return (FrameBufferData*)malloc(maxWidth * 2 * maxHeight * sizeof(Pixel));
 }
 
 void frameBufferDataDestroy(FrameBufferData* frameData)

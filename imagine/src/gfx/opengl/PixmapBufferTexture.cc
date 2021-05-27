@@ -289,7 +289,7 @@ void GLTextureStorage::initPixelBuffer(IG::PixmapDesc desc, bool usePBO, bool si
 {
 	if(singleBuffer)
 		bufferIdx = SINGLE_BUFFER_VALUE;
-	const unsigned bufferBytes = desc.pixelBytes();
+	const unsigned bufferBytes = desc.bytes();
 	auto &r = renderer();
 	if(usePBO)
 	{

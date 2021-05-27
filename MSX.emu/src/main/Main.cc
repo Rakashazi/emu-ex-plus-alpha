@@ -735,12 +735,17 @@ static void commitUnchangedVideoFrame()
 	}
 }
 
+void EmuSystem::renderFramebuffer(EmuVideo &video)
+{
+	video.startFrameWithAltFormat({}, frameBufferPixmap());
+}
+
 void RefreshScreen(int screenMode)
 {
 	//logMsg("called RefreshScreen");
 	if(emuVideo) [[likely]]
 	{
-		emuVideo->startFrameWithFormat(emuSysTask, frameBufferPixmap());
+		emuVideo->startFrameWithAltFormat(emuSysTask, frameBufferPixmap());
 		emuVideo = {};
 		emuSysTask = {};
 	}

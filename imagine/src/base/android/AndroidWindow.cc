@@ -30,7 +30,6 @@ namespace Base
 
 static JNI::InstMethod<jobject(jobject, jlong, jlong)> jPresentation{};
 static JNI::InstMethod<void()> jPresentationDeinit{};
-static JNI::InstMethod<void(jint)> jSetWinFormat{};
 static int32_t (*ANativeWindow_setFrameRate)(ANativeWindow* window, float frameRate, int8_t compatibility){};
 
 static void initPresentationJNI(JNIEnv* env, jobject presentation)
@@ -130,9 +129,9 @@ bool Window::requestOrientationChange(Orientation o)
 	return false;
 }
 
-PixelFormat Window::defaultPixelFormat(ApplicationContext ctx)
+IG::PixelFormat ApplicationContext::defaultWindowPixelFormat() const
 {
-	return ((Config::ARM_ARCH && Config::ARM_ARCH < 7) || ctx.androidSDK() < 11) ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
+	return ((Config::ARM_ARCH && Config::ARM_ARCH < 7) || androidSDK() < 11) ? PIXEL_FMT_RGB565 : PIXEL_FMT_RGBA8888;
 }
 
 Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate onInit_):
@@ -159,12 +158,8 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate onInit_
 		jWin = {env, jSetMainContentView(env, baseActivity, (jlong)this)};
 		type = Type::MAIN;
 		logMsg("made device window:%p", (jobject)jWin);
-		jSetWinFormat = {env, (jobject)jWin, "setFormat", "(I)V"};
 	}
-	if(config.format())
-	{
-		setFormat(config.format());
-	}
+	nPixelFormat = config.format() ? config.format() : toAHardwareBufferFormat(ctx.defaultWindowPixelFormat());
 	// default to screen's size
 	updateSize({screen.width(), screen.height()});
 	contentRect.x2 = width();
@@ -221,39 +216,20 @@ AndroidWindow::operator bool() const
 
 void AndroidWindow::setNativeWindow(ApplicationContext ctx, ANativeWindow *nWindow)
 {
+	auto &thisWindow = *static_cast<Window*>(this);
 	if(nWin)
 	{
 		nWin = nullptr;
-		static_cast<Window*>(this)->dispatchSurfaceDestroyed();
+		thisWindow.dispatchSurfaceDestroyed();
 	}
 	if(!nWindow)
 		return;
 	nWin = nWindow;
-	static_cast<Window*>(this)->surfaceChange.addCreated();
-	if(Config::DEBUG_BUILD)
-	{
-		logMsg("created window with format visual ID:%d (current:%d)", nPixelFormat, ANativeWindow_getFormat(nWindow));
-	}
-	if(nPixelFormat)
-	{
-		if(ctx.androidSDK() < 11 && this == ctx.application().deviceWindow())
-		{
-			// In testing with CM7 on a Droid, the surface is re-created in RGBA8888 upon
-			// resuming the app no matter what format was used in ANativeWindow_setBuffersGeometry().
-			// Explicitly setting the format here seems to fix the problem (Android driver bug?).
-			// In case of a mismatch, the surface is usually destroyed & re-created by the OS after this callback.
-			if(Config::DEBUG_BUILD)
-			{
-				logMsg("setting window format to %d (current %d) after surface creation",
-					nativePixelFormat(), ANativeWindow_getFormat(nWin));
-			}
-			jSetWinFormat(ctx.mainThreadJniEnv(), jWin, nPixelFormat);
-		}
-		ANativeWindow_setBuffersGeometry(nWindow, 0, 0, nPixelFormat);
-	}
+	thisWindow.surfaceChange.addCreated();
+	thisWindow.setFormat(nPixelFormat);
 	if(onInit)
 	{
-		onInit(ctx, *static_cast<Window*>(this));
+		onInit(ctx, thisWindow);
 		onInit = {};
 	}
 }
@@ -286,7 +262,9 @@ void Window::setIntendedFrameRate(double rate)
 void Window::setFormat(NativeWindowFormat fmt)
 {
 	nPixelFormat = fmt;
-	if(appContext().androidSDK() < 11 && this == application().deviceWindow())
+	if(!nWin)
+		return;
+	if(appContext().androidSDK() < 11)
 	{
 		// In testing with CM7 on a Droid, not setting window format to match
 		// what's used in ANativeWindow_setBuffersGeometry() may cause performance issues
@@ -298,16 +276,16 @@ void Window::setFormat(NativeWindowFormat fmt)
 			jclass jLayoutParamsCls = env->GetObjectClass(attrs);
 			auto jFormat = env->GetFieldID(jLayoutParamsCls, "format", "I");
 			auto currFmt = env->GetIntField(attrs, jFormat);
-			logMsg("setting window format:%d (current:%d)", fmt, currFmt);
+			logMsg("setting window format:%s -> %s",
+				aHardwareBufferFormatStr(currFmt), aHardwareBufferFormatStr(fmt));
 		}
+		JNI::InstMethod<void(jint)> jSetWinFormat{env, (jobject)jWin, "setFormat", "(I)V"};
 		jSetWinFormat(env, jWin, fmt);
 	}
-	if(nWin)
-	{
-		if(Config::DEBUG_BUILD)
-			logMsg("set window format visual ID:%d (current:%d)", fmt, ANativeWindow_getFormat(nWin));
-		ANativeWindow_setBuffersGeometry(nWin, 0, 0, fmt);
-	}
+	if(Config::DEBUG_BUILD)
+		logMsg("setting window buffer format:%s -> %s",
+			aHardwareBufferFormatStr(ANativeWindow_getFormat(nWin)), aHardwareBufferFormatStr(fmt));
+	ANativeWindow_setBuffersGeometry(nWin, 0, 0, fmt);
 }
 
 void Window::setFormat(IG::PixelFormat fmt)

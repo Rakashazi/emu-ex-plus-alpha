@@ -83,6 +83,11 @@ public:
 		return pitchBytes() * h();
 	}
 
+	constexpr size_t unpaddedBytes() const
+	{
+		return PixmapDesc::bytes();
+	}
+
 	constexpr bool isPadded() const
 	{
 		return w() != pitchPixels();
@@ -188,6 +193,7 @@ protected:
 		}
 		else
 		{
+			auto destPitchPixels = pitchPixels();
 			iterateTimes(pixmap.h(), h)
 			{
 				auto destLineData = destData;
@@ -198,7 +204,7 @@ protected:
 						return func(srcPixel);
 					});
 				srcData += pixmap.pitchPixels();
-				destData += pitchPixels();
+				destData += destPitchPixels;
 			}
 		}
 	}

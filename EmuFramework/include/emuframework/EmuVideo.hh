@@ -28,16 +28,16 @@ class ApplicationContext;
 class EmuVideo;
 class EmuSystemTask;
 
-class EmuVideoImage
+class [[nodiscard]] EmuVideoImage
 {
 public:
-	EmuVideoImage();
+	constexpr EmuVideoImage() {}
 	EmuVideoImage(EmuSystemTask *task, EmuVideo &vid, Gfx::LockedTextureBuffer texBuff);
 	IG::Pixmap pixmap() const;
 	explicit operator bool() const;
 	void endFrame();
 
-private:
+protected:
 	EmuSystemTask *task{};
 	EmuVideo *emuVideo{};
 	Gfx::LockedTextureBuffer texBuff{};
@@ -50,8 +50,9 @@ public:
 	using FormatChangedDelegate = DelegateFunc<void (EmuVideo &)>;
 
 	constexpr EmuVideo() {}
-	void setRendererTask(Gfx::RendererTask &rTask);
-	void setFormat(IG::PixmapDesc desc, EmuSystemTask *task = {});
+	void setRendererTask(Gfx::RendererTask &);
+	bool hasRendererTask() const;
+	bool setFormat(IG::PixmapDesc desc, EmuSystemTask *task = {});
 	void dispatchFormatChanged();
 	void resetImage();
 	IG::PixmapDesc deleteImage();
@@ -59,6 +60,7 @@ public:
 	void startFrame(EmuSystemTask *task, IG::Pixmap pix);
 	EmuVideoImage startFrameWithFormat(EmuSystemTask *task, IG::PixmapDesc desc);
 	void startFrameWithFormat(EmuSystemTask *task, IG::Pixmap pix);
+	void startFrameWithAltFormat(EmuSystemTask *task, IG::Pixmap pix);
 	void startUnchangedFrame(EmuSystemTask *task);
 	void finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff);
 	void finishFrame(EmuSystemTask *task, IG::Pixmap pix);
@@ -82,6 +84,8 @@ public:
 	bool srgbColorSpaceOutput() const;
 	std::optional<bool> srgbColorSpaceOutputOption() const;
 	bool isSrgbFormat() const;
+	void setRequestedPixelFormat(IG::PixelFormat);
+	IG::PixelFormat requestedPixelFormat() const;
 
 protected:
 	Gfx::RendererTask *rTask{};
@@ -90,6 +94,7 @@ protected:
 	Gfx::PixmapBufferTexture vidImg{};
 	FrameFinishedDelegate onFrameFinished{};
 	FormatChangedDelegate onFormatChanged{};
+	IG::PixelFormat requestedFmt{};
 	Gfx::TextureBufferMode bufferMode{};
 	bool screenshotNextFrame{};
 	bool singleBuffer{};

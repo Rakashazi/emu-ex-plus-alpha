@@ -462,3 +462,8 @@ void MultiChoiceMenuItem::defaultOnSelect(View &view, Input::Event e)
 {
 	view.pushAndShow(makeTableView(view.attachParams()), e);
 }
+
+void MultiChoiceMenuItem::updateDisplayString()
+{
+	setDisplayString(selected_);
+}

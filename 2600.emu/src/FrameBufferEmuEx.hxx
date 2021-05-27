@@ -6,13 +6,17 @@
 #include <stella/emucore/tia/TIAConstants.hxx>
 #include <stella/emucore/FrameBufferConstants.hxx>
 #include <stella/emucore/EventHandlerConstants.hxx>
-#include <imagine/pixmap/Pixmap.hh>
 #include <array>
 
 class Console;
 class OSystem;
 class TIA;
 class EmuApp;
+
+namespace IG
+{
+class Pixmap;
+}
 
 class FrameBuffer
 {
@@ -42,18 +46,11 @@ public:
 			return os;
 		}
 	};
-	EmuApp *appPtr{};
-	uInt16 tiaColorMap16[256]{};
-	uInt32 tiaColorMap32[256]{};
-	uInt8 myPhosphorPalette[256][256]{};
-	std::array<uInt8, 160 * TIAConstants::frameBufferHeight> prevFramebuffer{};
-	Common::Rect myImageRect{};
-	float myPhosphorPercent = 0.80f;
-	bool myUsePhosphor = false;
 
 	FrameBuffer(OSystem& osystem);
 
-	void render(IG::Pixmap pix, TIA &tia);
+	void render16(IG::Pixmap pix, TIA &tia);
+	void render32(IG::Pixmap pix, TIA &tia);
 
 	FrameBuffer &tiaSurface() { return *this; }
 
@@ -82,11 +79,26 @@ public:
 
 	uInt8 getPhosphor(const uInt8 c1, uInt8 c2) const;
 
-	uInt32 getRGBPhosphor(const uInt32 c, const uInt32 p) const;
+	uInt16 getRGBPhosphor16(const uInt32 c, const uInt32 p) const;
+	uInt32 getRGBPhosphor32(const uInt32 c, const uInt32 p) const;
 
 	void clear() {}
 
 	void updateSurfaceSettings() {}
 
 	const Common::Rect& imageRect() const { return myImageRect; }
+
+private:
+	EmuApp *appPtr{};
+	uInt16 tiaColorMap16[256]{};
+	uInt32 tiaColorMap32[256]{};
+	uInt8 myPhosphorPalette[256][256]{};
+	std::array<uInt8, 160 * TIAConstants::frameBufferHeight> prevFramebuffer{};
+	Common::Rect myImageRect{};
+	float myPhosphorPercent = 0.80f;
+	bool myUsePhosphor = false;
+
+	std::array<uInt8, 3> getRGBPhosphorTriple(uInt32 c, uInt32 p) const;
+	template <int outputBits>
+	void render(IG::Pixmap pix, TIA &tia);
 };

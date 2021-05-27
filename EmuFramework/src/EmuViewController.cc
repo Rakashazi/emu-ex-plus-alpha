@@ -312,7 +312,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	auto mainMenu = EmuApp::makeView(viewAttach, EmuApp::ViewID::MAIN_MENU);
 	static_cast<EmuMainMenuView*>(mainMenu.get())->setAudioVideo(emuAudio(), videoLayer());
 	pushAndShow(std::move(mainMenu));
-	applyFrameRates();
+	applyFrameRates(false);
 	videoLayer().emuVideo().setOnFrameFinished(
 		[this](EmuVideo &)
 		{
@@ -690,13 +690,14 @@ bool EmuViewController::allWindowsAreFocused() const
 	return mainWindowData().focused && (!hasExtraWindow(appContext()) || extraWindowIsFocused(appContext()));
 }
 
-void EmuViewController::applyFrameRates()
+void EmuViewController::applyFrameRates(bool updateFrameTime)
 {
 	EmuSystem::setFrameTime(EmuSystem::VIDSYS_NATIVE_NTSC,
 		optionFrameRate.val ? IG::FloatSeconds(optionFrameRate.val) : emuView.window().screen()->frameTime());
 	EmuSystem::setFrameTime(EmuSystem::VIDSYS_PAL,
 		optionFrameRatePAL.val ? IG::FloatSeconds(optionFrameRatePAL.val) : emuView.window().screen()->frameTime());
-	EmuSystem::configFrameTime(optionSoundRate);
+	if(updateFrameTime)
+		EmuSystem::configFrameTime(optionSoundRate);
 }
 
 Base::OnFrameDelegate EmuViewController::makeOnFrameDelayed(uint8_t delay)
@@ -899,6 +900,7 @@ void EmuViewController::onInputDevicesChanged()
 
 void EmuViewController::onSystemCreated()
 {
+	EmuSystem::prepareAudio(emuAudio());
 	viewStack.navView()->showRightBtn(true);
 }
 

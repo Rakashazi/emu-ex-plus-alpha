@@ -34,7 +34,6 @@ extern Byte1Option optionGBPal;
 extern Byte1Option optionUseBuiltinGBPalette;
 extern Byte1Option optionReportAsGba;
 extern Byte1Option optionAudioResampler;
-extern Byte1Option optionRenderPixelFormat;
 extern gambatte::GB gbEmu;
 extern GbcInput gbcInput;
 

@@ -62,7 +62,6 @@ public:
 	uint8_t drawEventPriority() const;
 	void drawNow(bool needsSync = false);
 	Screen *screen() const;
-	static PixelFormat defaultPixelFormat(ApplicationContext);
 	NativeWindow nativeObject() const;
 	void setIntendedFrameRate(double rate);
 	void setFormat(NativeWindowFormat);

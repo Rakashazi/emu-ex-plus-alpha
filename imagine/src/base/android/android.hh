@@ -44,7 +44,8 @@ void releaseSurfaceTexture(JNIEnv *env, jobject surfaceTexture);
 jobject makeSurface(JNIEnv *env, jobject surfaceTexture);
 void releaseSurface(JNIEnv *env, jobject surface);
 
-uint32_t toAHardwareBufferFormat(IG::PixelFormatID format);
+uint32_t toAHardwareBufferFormat(IG::PixelFormatID);
+const char *aHardwareBufferFormatStr(uint32_t format);
 
 enum SurfaceRotation : uint8_t
 {

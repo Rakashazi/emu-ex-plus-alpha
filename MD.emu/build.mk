@@ -5,9 +5,8 @@ include $(IMAGINE_PATH)/make/imagineAppBase.mk
 
 gplusPath := genplus-gx
 
-CPPFLAGS += -DSUPPORT_16BPP_RENDER \
--DLSB_FIRST \
--DNO_SYSTEM_PICO
+CPPFLAGS += -DLSB_FIRST \
+ -DNO_SYSTEM_PICO
 # -DNO_SVP -DNO_SYSTEM_PBC
 
 CFLAGS_WARN += -Wno-missing-field-initializers

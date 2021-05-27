@@ -28,6 +28,7 @@
 #include "VideoManager.h"
 #include "ArchNotifications.h"
 #include "SaveState.h"
+#include "FrameBuffer.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

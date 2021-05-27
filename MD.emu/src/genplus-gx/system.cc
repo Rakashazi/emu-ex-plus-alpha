@@ -49,7 +49,6 @@ static void system_frame_sms(EmuSystemTask *task, EmuVideo *emuVideo);
 static int pause_b;
 static EQSTATE eq;
 static int32 llp,rrp;
-static constexpr auto pixFmt = IG::PIXEL_FMT_RGB565;
 
 /****************************************************************
  * Audio subsystem
@@ -431,6 +430,8 @@ static void system_frame_md(EmuSystemTask *task, EmuVideo *emuVideo)
     bitmap.viewport.w = 256 + ((reg[12] & 0x01) << 6);
   }
 
+  auto pixmap = framebufferPixmap();
+
   /* clear VBLANK, DMA, FIFO FULL & field flags */
   status &= 0xFEE5;
 
@@ -489,13 +490,6 @@ static void system_frame_md(EmuSystemTask *task, EmuVideo *emuVideo)
   /* update line cycle count */
   mcycles_vdp += MCYCLES_PER_LINE;
 
-  EmuVideoImage img{};
-  if(!do_skip)
-  {
-  	img = emuVideo->startFrameWithFormat(task, {{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
-  	gPixmap = img.pixmap();
-  }
-
   /* Active Display */
   do
   {
@@ -532,7 +526,7 @@ static void system_frame_md(EmuSystemTask *task, EmuVideo *emuVideo)
     /* render scanline */
     if (!do_skip)
     {
-      render_line(line, img.pixmap());
+      render_line(line, pixmap);
     }
 
     /* run 68k & Z80 */
@@ -564,10 +558,9 @@ static void system_frame_md(EmuSystemTask *task, EmuVideo *emuVideo)
   }
   while (++line < bitmap.viewport.h);
 
-  if(img)
+  if(!do_skip)
   {
-  	img.endFrame();
-  	gPixmap = {};
+  	emuVideo->startFrameWithAltFormat(task, pixmap);
   }
 
   /* end of active display */
@@ -827,6 +820,8 @@ static void system_frame_sms(EmuSystemTask *task, EmuVideo *emuVideo)
     bitmap.viewport.w = 256 + ((reg[12] & 0x01) << 6);
   }
 
+  auto pixmap = framebufferPixmap();
+
   /* Detect pause button input */
   if (input.pad[0] & INPUT_START)
   {
@@ -886,12 +881,6 @@ static void system_frame_sms(EmuSystemTask *task, EmuVideo *emuVideo)
   /* latch Vertical Scroll register */
   vscroll = reg[0x09];
 
-  EmuVideoImage img{};
-  if(!do_skip)
-  {
-  	img = emuVideo->startFrameWithFormat(task, {{bitmap.viewport.w, bitmap.viewport.h}, pixFmt});
-  }
-
   /* Active Display */
   do
   {
@@ -910,7 +899,7 @@ static void system_frame_sms(EmuSystemTask *task, EmuVideo *emuVideo)
       /* render scanline */
       if (!do_skip)
       {
-        render_line(line, img.pixmap());
+        render_line(line, pixmap);
       }
     }
 
@@ -948,8 +937,10 @@ static void system_frame_sms(EmuSystemTask *task, EmuVideo *emuVideo)
   }
   while (++line < bitmap.viewport.h);
 
-  if(img)
-  	img.endFrame();
+  if(!do_skip)
+  {
+  	emuVideo->startFrameWithAltFormat(task, pixmap);
+  }
 
   /* end of active display */
   v_counter = line;

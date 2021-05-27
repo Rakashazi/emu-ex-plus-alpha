@@ -260,6 +260,7 @@ void EmuSystem::closeRuntimeSystem(EmuApp &app, bool allowAutosaveState)
 {
 	if(gameIsRunning())
 	{
+		app.video().clear();
 		app.audio().flush();
 		if(allowAutosaveState)
 			app.saveAutoState();
@@ -398,17 +399,10 @@ bool EmuSystem::setFrameTime(VideoSystem system, IG::FloatSeconds time)
 	return path;
 }
 
-void EmuSystem::prepareAudioVideo(EmuAudio &audio, EmuVideo &video)
+void EmuSystem::prepareAudio(EmuAudio &audio)
 {
 	onPrepareAudio(audio);
 	configAudioPlayback(audio, optionSoundRate);
-	prepareVideo(video);
-}
-
-void EmuSystem::prepareVideo(EmuVideo &video)
-{
-	onPrepareVideo(video);
-	video.clear();
 }
 
 static void closeAndSetupNew(Base::ApplicationContext ctx, const char *path)
@@ -612,9 +606,9 @@ void EmuSystem::sessionOptionSet()
 
 [[gnu::weak]] bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect) { return false; }
 
-[[gnu::weak]] void EmuSystem::onPrepareAudio(EmuAudio &audio) {}
+[[gnu::weak]] void EmuSystem::onPrepareAudio(EmuAudio &) {}
 
-[[gnu::weak]] void EmuSystem::onPrepareVideo(EmuVideo &video) {}
+[[gnu::weak]] bool EmuSystem::onRequestedVideoFormatChange(EmuVideo &) { return false; }
 
 [[gnu::weak]] FS::FileString EmuSystem::fullGameNameForPath(Base::ApplicationContext, const char *path)
 {
@@ -654,4 +648,9 @@ void EmuSystem::sessionOptionSet()
 [[gnu::weak]] EmuSystem::Error EmuSystem::saveState(EmuApp &, const char *path)
 {
 	return saveState(path);
+}
+
+[[gnu::weak]] void EmuSystem::renderFramebuffer(EmuVideo &video)
+{
+	video.clear();
 }

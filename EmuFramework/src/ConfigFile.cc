@@ -25,6 +25,17 @@
 static constexpr unsigned KEY_CONFIGS_HARD_LIMIT = 256;
 static constexpr unsigned INPUT_DEVICE_CONFIGS_HARD_LIMIT = 256;
 
+static bool renderPixelFormatIsValid(IG::PixelFormat val)
+{
+	switch((IG::PixelFormatID)val)
+	{
+		case IG::PIXEL_RGB565:
+		case IG::PIXEL_RGBA8888:
+			return true;
+		default: return false;
+	}
+}
+
 static bool readKeyConfig(IO &io, uint16_t &size)
 {
 	auto confs = io.get<uint8_t>(); // TODO: unused currently, use to pre-allocate memory for configs
@@ -233,6 +244,7 @@ void EmuApp::saveConfigFile(IO &io)
 	writeOptionValue(io, CFGKEY_SWAPPED_GAMEPAD_CONFIM, swappedConfirmKeysOption());
 	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audioManager().soloMixOption());
 	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, emuVideo.srgbColorSpaceOutputOption());
+	writeOptionValue(io, CFGKEY_RENDER_PIXEL_FORMAT, renderPixelFormatOption());
 
 	if(customKeyConfig.size())
 	{
@@ -467,6 +479,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				bcase CFGKEY_IMAGE_EFFECT: optionImgEffect.readFromIO(io, size);
 				bcase CFGKEY_IMAGE_EFFECT_PIXEL_FORMAT: optionImageEffectPixelFormat.readFromIO(io, size);
 				#endif
+				bcase CFGKEY_RENDER_PIXEL_FORMAT: setRenderPixelFormat(readOptionValue<IG::PixelFormat>(io, size, renderPixelFormatIsValid));
 				bcase CFGKEY_VIDEO_IMAGE_BUFFERS: optionVideoImageBuffers.readFromIO(io, size);
 				bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);
 				bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);

@@ -67,6 +67,7 @@ class Renderer : public RendererImpl
 public:
 	using RendererImpl::RendererImpl;
 	Renderer(Base::ApplicationContext, Error &errOut);
+	~Renderer();
 	void configureRenderer();
 	bool isConfigured() const;
 	const RendererTask &task() const;

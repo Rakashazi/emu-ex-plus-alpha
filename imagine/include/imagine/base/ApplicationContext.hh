@@ -34,6 +34,11 @@
 
 class AssetIO;
 
+namespace IG
+{
+class PixelFormat;
+}
+
 namespace Input
 {
 class Event;
@@ -88,6 +93,7 @@ public:
 	const WindowContainter &windows() const;
 	Window &mainWindow();
 	bool systemAnimatesWindowRotation() const;
+	IG::PixelFormat defaultWindowPixelFormat() const;
 
 	const ScreenContainter &screens() const;
 	Screen &mainScreen();

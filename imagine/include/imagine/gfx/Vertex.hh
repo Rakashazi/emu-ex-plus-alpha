@@ -23,7 +23,7 @@ namespace Gfx
 
 class RendererCommands;
 
-static constexpr auto VertexColorPixelFormat = IG::PIXEL_DESC_ABGR8888;
+static constexpr auto VertexColorPixelFormat = IG::PIXEL_DESC_RGBA8888.nativeOrder();
 
 class VertexInfo
 {

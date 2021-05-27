@@ -141,8 +141,6 @@ public:
 	static bool hasSavedSessionOptions();
 	void deleteSessionOptions();
 	void syncEmulationThread();
-	static IG::PixelFormat defaultRenderPixelFormat(Base::ApplicationContext);
-	void resetVideo();
 	EmuAudio &audio();
 	EmuVideo &video();
 	EmuViewController &viewController();
@@ -167,6 +165,9 @@ public:
 	const KeyMapping &keyInputMapping();
 	std::vector<InputDeviceConfig> &inputDeviceConfigs();
 	IG::Audio::Manager &audioManager();
+	void setRenderPixelFormat(std::optional<IG::PixelFormat>);
+	IG::PixelFormat renderPixelFormat() const;
+	void renderSystemFramebuffer(EmuVideo &);
 	Base::ApplicationContext appContext() const;
 	static EmuApp &get(Base::ApplicationContext);
 
@@ -271,6 +272,7 @@ protected:
 	KeyMapping keyMapping{};
 	TurboInput turboActions{};
 	FS::PathString lastLoadPath{};
+	IG::PixelFormat renderPixelFmt{};
 
 	class ConfigParams
 	{
@@ -304,4 +306,6 @@ protected:
 	void saveConfigFile(Base::ApplicationContext);
 	void saveConfigFile(IO &);
 	void initOptions(Base::ApplicationContext);
+	std::optional<IG::PixelFormat> renderPixelFormatOption() const;
+	void applyRenderPixelFormat();
 };

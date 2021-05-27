@@ -1201,7 +1201,7 @@ static void initPalette(VDP* vdp)
     }
 
     for (i = 0; i < 256; i++) {
-        vdp->paletteFixed[i] = videoGetColor(255 * ((i >> 2) & 7) / 7, 
+        vdp->paletteFixed[i] = videoGetColor(255 * ((i >> 2) & 7) / 7,
                                            255 * ((i >> 5) & 7) / 7, 
                                            255 * ((i & 3) == 3 ? 7 : 2 * (i & 3)) / 7);
     }
@@ -1517,7 +1517,7 @@ static void loadState(VDP* vdp)
 
     for (index = 0; index < sizeof(vdp->palette) / sizeof(vdp->palette[0]); index++) {
         sprintf(tag, "vdp->palette%d", index);
-        vdp->palette[index] = (UInt16)saveStateGet(state, tag, 0);
+        vdp->palette[index] = saveStateGet(state, tag, 0);
     }
 
     saveStateGetBuffer(state, "vram", vdp->vram, 0x4000 * vdp->vramPages);

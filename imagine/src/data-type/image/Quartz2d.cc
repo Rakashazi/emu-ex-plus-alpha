@@ -44,7 +44,7 @@ const IG::PixelFormat Quartz2dImage::pixelFormat()
 	if(isGrayscale())
 		return IG::PIXEL_FMT_I8;
 	else
-		return hasAlphaChannel() ? IG::PIXEL_FMT_RGBA8888 : IG::PIXEL_FMT_RGB888;
+		return IG::PIXEL_FMT_RGBA8888;
 }
 
 std::error_code Quartz2dImage::load(const char *name)
@@ -79,7 +79,7 @@ std::errc Quartz2dImage::readImage(IG::Pixmap dest)
 	int height = this->height();
 	int width = this->width();
 	auto colorSpace = isGrayscale() ? Base::grayColorSpace : Base::rgbColorSpace;
-	auto bitmapInfo = hasAlphaChannel() ? kCGImageAlphaPremultipliedLast : kCGImageAlphaNone;
+	auto bitmapInfo = isGrayscale() ? kCGImageAlphaNone : kCGImageAlphaPremultipliedLast;
 	auto context = CGBitmapContextCreate(dest.data(), width, height, 8, dest.pitchBytes(), colorSpace, bitmapInfo);
 	CGContextSetBlendMode(context, kCGBlendModeCopy);
 	CGContextDrawImage(context, CGRectMake(0.0, 0.0, (CGFloat)width, (CGFloat)height), img);

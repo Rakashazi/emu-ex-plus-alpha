@@ -149,6 +149,21 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	osystem->setFrameTime(frameTime.count(), rate);
 }
 
+static void renderVideo(EmuSystemTask *task, EmuVideo &video, FrameBuffer &fb, TIA &tia)
+{
+	auto fmt = video.requestedPixelFormat();
+	auto img = video.startFrameWithFormat(task, {{(int)tia.width(), (int)tia.height()}, fmt});
+	if(fmt == IG::PIXEL_RGB565)
+	{
+		fb.render16(img.pixmap(), tia);
+	}
+	else
+	{
+		fb.render32(img.pixmap(), tia);
+	}
+	img.endFrame();
+}
+
 void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 {
 	auto os = osystem.get();
@@ -162,11 +177,16 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 	tia.renderToFrameBuffer();
 	if(video)
 	{
-		auto img = video->startFrameWithFormat(task, {{(int)tia.width(), (int)tia.height()}, IG::PIXEL_FMT_RGB565});
-		os->frameBuffer().render(img.pixmap(), tia);
-		img.endFrame();
+		renderVideo(task, *video, os->frameBuffer(), tia);
 	}
 	os->processAudio(audio);
+}
+
+void EmuSystem::renderFramebuffer(EmuVideo &video)
+{
+	auto &tia = osystem->console().tia();
+	auto &fb = osystem->frameBuffer();
+	renderVideo({}, video, fb, tia);
 }
 
 void EmuSystem::reset(ResetMode mode)

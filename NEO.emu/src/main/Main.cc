@@ -89,7 +89,7 @@ static GN_Surface sdlSurf;
 static FS::PathString datafilePath{};
 static const int FBResX = 352;
 // start image on y 16, x 24, size 304x224, 48 pixel padding on the right
-static IG::Pixmap srcPix{{{304, 224}, pixFmt}, (char*)screenBuff + (16*FBResX*2) + (24*2), {FBResX, IG::Pixmap::PIXEL_UNITS}};
+static constexpr IG::Pixmap srcPix{{{304, 224}, pixFmt}, screenBuff + (16*FBResX) + (24), {FBResX, IG::Pixmap::PIXEL_UNITS}};
 static EmuSystem::OnLoadProgressDelegate onLoadProgress{};
 
 CLINK void main_frame(void *emuTaskPtr, void *emuVideoPtr);
@@ -334,11 +334,6 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext app, IO &, EmuSyst
 	return {};
 }
 
-void EmuSystem::onPrepareVideo(EmuVideo &video)
-{
-	video.setFormat(srcPix);
-}
-
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 {
 	conf.sample_rate = std::round(rate * ((60./1.001) * frameTime.count()));
@@ -349,6 +344,11 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	}
 }
 
+void EmuSystem::renderFramebuffer(EmuVideo &video)
+{
+	video.startFrameWithAltFormat({}, srcPix);
+}
+
 CLINK void screen_update(void *emuTaskPtr, void *emuVideoPtr)
 {
 	auto task = (EmuSystemTask*)emuTaskPtr;
@@ -356,7 +356,7 @@ CLINK void screen_update(void *emuTaskPtr, void *emuVideoPtr)
 	if(emuVideo) [[likely]]
 	{
 		//logMsg("screen render");
-		emuVideo->startFrame(task, srcPix);
+		emuVideo->startFrameWithAltFormat(task, srcPix);
 	}
 	else
 	{

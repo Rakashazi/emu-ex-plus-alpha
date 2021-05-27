@@ -29,6 +29,14 @@ Renderer::Renderer(Base::ApplicationContext ctx, Error &err):
 	GLRenderer{ctx, err}
 {}
 
+Renderer::~Renderer()
+{
+	for(auto &w : appContext().windows())
+	{
+		detachWindow(*w);
+	}
+}
+
 GLRenderer::GLRenderer(Base::ApplicationContext ctx, Error &err):
 	glManager{ctx.nativeDisplayConnection(), glAPI},
 	mainTask{ctx, "Main GL Context Messages", *static_cast<Renderer*>(this)},
@@ -54,7 +62,7 @@ Error Renderer::initMainTask(Base::Window *initialWindow, IG::PixelFormat format
 		if(initialWindow)
 			format = initialWindow->pixelFormat();
 		else
-			format = Base::Window::defaultPixelFormat(ctx);
+			format = ctx.defaultWindowPixelFormat();
 	}
 	auto bufferConfig = makeGLBufferConfig(ctx, format);
 	if(!bufferConfig) [[unlikely]]
@@ -302,11 +310,10 @@ Base::GLDisplay GLRenderer::glDisplay() const
 std::vector<BufferFormatDesc> Renderer::supportedBufferFormats() const
 {
 	std::vector<BufferFormatDesc> formats{};
-	formats.reserve(3);
+	formats.reserve(2);
 	static constexpr BufferFormatDesc testFormats[]
 	{
 		{"RGBA8888", PIXEL_RGBA8888},
-		{"RGBX8888", PIXEL_RGBX8888},
 		{"RGB565", PIXEL_RGB565},
 	};
 	for(auto testFormat : testFormats)

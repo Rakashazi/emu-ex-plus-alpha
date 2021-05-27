@@ -47,8 +47,6 @@ import android.content.pm.Signature;
 import android.content.pm.PackageManager;
 import android.content.pm.ShortcutManager;
 import android.content.pm.ShortcutInfo;
-import java.lang.reflect.Method;
-import java.lang.reflect.InvocationTargetException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import android.support.v4.content.ContextCompat;
@@ -67,8 +65,6 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		int devID, InputDevice dev, String name, int src, int kbType,
 		int jsAxisBits, boolean isPowerButton);
 	static native void documentTreeOpened(long nativeUserData, String path);
-	private static final Method setSystemUiVisibility =
-		android.os.Build.VERSION.SDK_INT >= 11 ? Util.getMethod(View.class, "setSystemUiVisibility", new Class[] { int.class }) : null;
 	private static final int commonUILayoutFlags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
 		| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
 	private Display defaultDpy;
@@ -78,30 +74,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 
 	boolean hasPermanentMenuKey()
 	{
-		if(android.os.Build.VERSION.SDK_INT < 14) return true;
-		boolean hasKey = true;
-		try
+		if(android.os.Build.VERSION.SDK_INT >= 14)
 		{
-			Method hasPermanentMenuKeyFunc = ViewConfiguration.class.getMethod("hasPermanentMenuKey");
-			ViewConfiguration viewConf = ViewConfiguration.get(this);
-			try
-			{
-				hasKey = (Boolean)hasPermanentMenuKeyFunc.invoke(viewConf);
-			}
-			catch (IllegalAccessException ie)
-			{
-				//Log.i(logTag, "IllegalAccessException calling hasPermanentMenuKeyFunc");
-			}
-			catch (InvocationTargetException ite)
-			{
-				//Log.i(logTag, "InvocationTargetException calling hasPermanentMenuKeyFunc");
-			}
+			return ViewConfiguration.get(this).hasPermanentMenuKey();
 		}
-		catch (NoSuchMethodException nsme)
-		{
-			//Log.i(logTag, "hasPermanentMenuKeyFunc not present even though SDK >= 14"); // should never happen
-		}
-		return hasKey;
+		return true;
 	}
 		
 	int sigHash()
@@ -189,26 +166,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		if(hasVibrator && android.os.Build.VERSION.SDK_INT >= 11)
 		{
 			// check if a vibrator is really present
-			try
-			{
-				Method hasVibratorFunc = Vibrator.class.getMethod("hasVibrator");
-				try
-				{
-					hasVibrator = (Boolean)hasVibratorFunc.invoke(vibrator);
-				}
-				catch (IllegalAccessException ie)
-				{
-					//Log.i(logTag, "IllegalAccessException calling hasVibratorFunc");
-				}
-				catch (InvocationTargetException ite)
-				{
-					//Log.i(logTag, "InvocationTargetException calling hasVibratorFunc");
-				}
-			}
-			catch (NoSuchMethodException nsme)
-			{
-				//Log.i(logTag, "hasVibratorFunc not present even though SDK >= 11"); // should never happen
-			}
+			hasVibrator = vibrator.hasVibrator();
 		}
 		return hasVibrator ? vibrator : null;
 	}
@@ -225,11 +183,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	void setUIVisibility(int mode)
 	{
-		if(setSystemUiVisibility == null)
-		{
-			return;
-		}
-		try
+		if(android.os.Build.VERSION.SDK_INT >= 11)
 		{
 			int flags = mode | commonUILayoutFlags;
 			if((android.os.Build.VERSION.SDK_INT == 16 || android.os.Build.VERSION.SDK_INT == 17)
@@ -239,15 +193,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 				//Log.i(logTag, "using stable layout");
 				flags |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
 			}
-			setSystemUiVisibility.invoke(getWindow().getDecorView(), flags);
-		}
-		catch (IllegalAccessException ie)
-		{
-			//Log.i(logTag, "IllegalAccessException calling setSystemUiVisibility");
-		}
-		catch (InvocationTargetException ite)
-		{
-			//Log.i(logTag, "InvocationTargetException calling setSystemUiVisibility");
+			getWindow().getDecorView().setSystemUiVisibility(flags);
 		}
 	}
 

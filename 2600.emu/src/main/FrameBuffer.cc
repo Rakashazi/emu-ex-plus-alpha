@@ -65,15 +65,15 @@ void FrameBuffer::setTIAPalette(const PaletteArray& palette)
 		uint8_t g = (palette[i] >> 8) & 0xff;
 		uint8_t b = palette[i] & 0xff;
 		tiaColorMap16[i] = IG::PIXEL_DESC_RGB565.build(r >> 3, g >> 2, b >> 3, 0);
-		tiaColorMap32[i] = IG::PIXEL_DESC_BGRA8888.build((int)r, (int)g, (int)b, 0);
+		tiaColorMap32[i] = IG::PIXEL_DESC_RGBA8888.nativeOrder().build((int)r, (int)g, (int)b, 0);
 	}
 }
 
-uInt32 FrameBuffer::getRGBPhosphor(const uInt32 c, const uInt32 p) const
-{
-  #define TO_RGB(color, red, green, blue) \
-    const uInt8 red = color >> 24; const uInt8 green = color >> 16; const uInt8 blue = color >> 8;
+#define TO_RGB(color, red, green, blue) \
+	const uInt8 red = color >> 16; const uInt8 green = color >> 8; const uInt8 blue = color >> 0;
 
+std::array<uInt8, 3> FrameBuffer::getRGBPhosphorTriple(uInt32 c, uInt32 p) const
+{
   TO_RGB(c, rc, gc, bc);
   TO_RGB(p, rp, gp, bp);
 
@@ -81,26 +81,66 @@ uInt32 FrameBuffer::getRGBPhosphor(const uInt32 c, const uInt32 p) const
   const uInt8 rn = myPhosphorPalette[rc][rp];
   const uInt8 gn = myPhosphorPalette[gc][gp];
   const uInt8 bn = myPhosphorPalette[bc][bp];
+  return {rn, gn, bn};
+}
 
+uInt16 FrameBuffer::getRGBPhosphor16(const uInt32 c, const uInt32 p) const
+{
+  auto [rn, gn, bn] = getRGBPhosphorTriple(c, p);
   return IG::PIXEL_DESC_RGB565.build(rn >> 3, gn >> 2, bn >> 3, 0);
 }
 
+uInt32 FrameBuffer::getRGBPhosphor32(const uInt32 c, const uInt32 p) const
+{
+  auto [rn, gn, bn] = getRGBPhosphorTriple(c, p);
+  return IG::PIXEL_DESC_RGBA8888.nativeOrder().build(rn, gn, bn, (uInt8)0);
+}
+
+template <int outputBits>
 void FrameBuffer::render(IG::Pixmap pix, TIA &tia)
 {
-	assumeExpr(pix.w() == tia.width());
-	assumeExpr(pix.h() == tia.height());
 	IG::Pixmap framePix{{{(int)tia.width(), (int)tia.height()}, IG::PIXEL_I8}, tia.frameBuffer()};
+	assumeExpr(pix.size() == framePix.size());
+	assumeExpr(pix.format().bytesPerPixel() == outputBits / 8);
+	assumeExpr(framePix.format().bytesPerPixel() == 1);
 	if(myUsePhosphor)
 	{
 		uint8_t* prevFrame = prevFramebuffer.data();
 		pix.writeTransformed([this, &prevFrame](uint8_t p)
 			{
-				return getRGBPhosphor(tiaColorMap32[p], tiaColorMap32[*prevFrame++]);
+				if constexpr(outputBits == 16)
+				{
+					return getRGBPhosphor16(tiaColorMap32[p], tiaColorMap32[*prevFrame++]);
+				}
+				else
+				{
+					return getRGBPhosphor32(tiaColorMap32[p], tiaColorMap32[*prevFrame++]);
+				}
 			}, framePix);
 		memcpy(prevFramebuffer.data(), tia.frameBuffer(), sizeof(prevFramebuffer));
 	}
 	else
 	{
-		pix.writeTransformed([this](uint8_t p){ return tiaColorMap16[p]; }, framePix);
+		pix.writeTransformed([this](uint8_t p)
+			{
+				if constexpr(outputBits == 16)
+				{
+					return tiaColorMap16[p];
+				}
+				else
+				{
+					return tiaColorMap32[p];
+				}
+			}, framePix);
 	}
+}
+
+void FrameBuffer::render16(IG::Pixmap pix, TIA &tia)
+{
+	render<16>(pix, tia);
+}
+
+void FrameBuffer::render32(IG::Pixmap pix, TIA &tia)
+{
+	render<32>(pix, tia);
 }

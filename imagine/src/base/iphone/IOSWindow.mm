@@ -99,7 +99,7 @@ Window *deviceWindow(ApplicationContext ctx)
 	return nullptr;
 }
 
-IG::PixelFormat Window::defaultPixelFormat(ApplicationContext)
+IG::PixelFormat ApplicationContext::defaultWindowPixelFormat() const
 {
 	return Config::MACHINE_IS_GENERIC_ARMV6 ? PIXEL_RGB565 : PIXEL_RGBA8888;
 }

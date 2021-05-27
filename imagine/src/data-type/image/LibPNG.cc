@@ -92,7 +92,7 @@ PixelFormat Png::pixelFormat()
 	if(grayscale)
 		return alpha ? PIXEL_FMT_IA88 : PIXEL_FMT_I8;
 	else
-		return alpha ? PIXEL_FMT_RGBA8888 : PIXEL_FMT_RGB888;
+		return PIXEL_FMT_RGBA8888;
 }
 
 static png_voidp png_memAlloc(png_structp png_ptr, png_size_t size)
@@ -233,7 +233,14 @@ void Png::setTransforms(IG::PixelFormat outFormat, png_infop transInfo)
 		png_set_strip_16(png);
 	}
 	#endif
-	
+
+	if((!hasAlphaChannel() && png_get_color_type(png, info) == PNG_COLOR_TYPE_RGB)
+			|| (!hasAlphaChannel() && outFormat.desc().aBits ))
+	{
+		logMsg("adding alpha channel");
+			png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
+	}
+
 	if(supportUncommonConv)
 	{
 		if((png_get_color_type(png, info) == PNG_COLOR_TYPE_GRAY || png_get_color_type(png, info) == PNG_COLOR_TYPE_GRAY_ALPHA) &&
@@ -250,12 +257,6 @@ void Png::setTransforms(IG::PixelFormat outFormat, png_infop transInfo)
 				logMsg("removing alpha channel");
 				png_set_strip_alpha(png);
 			}
-		}
-		else if((!hasAlphaChannel() && png_get_color_type(png, info) == PNG_COLOR_TYPE_RGB)
-			|| (!hasAlphaChannel() && outFormat.desc().aBits ))
-		{
-			logMsg("adding alpha channel");
-				png_set_filler(png, 0xFF, PNG_FILLER_AFTER);
 		}
 
 		if(outFormat.desc().aBits && outFormat.desc().aShift != 0)

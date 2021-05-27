@@ -92,6 +92,7 @@ struct VicePlugin
 	void (*video_render_initraw_)(struct video_render_config_s *videoconfig){};
 	int (*vdrive_internal_create_format_disk_image_)(const char *filename, const char *diskname, unsigned int type);
 
+	void init();
 	void deinit();
 	static bool hasSystemLib(ViceSystem system, const char *libBasePath);
 	static const char *systemName(ViceSystem system);

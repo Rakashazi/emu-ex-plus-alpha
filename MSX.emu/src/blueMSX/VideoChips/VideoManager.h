@@ -29,7 +29,8 @@
 #define VIDEO_MANAGER_H
 
 #include "MsxTypes.h"
-#include "FrameBuffer.h"
+
+typedef struct FrameBufferData FrameBufferData;
 
 typedef struct {
     void (*enable)(void*);

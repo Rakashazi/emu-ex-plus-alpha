@@ -326,6 +326,7 @@ public:
 	void setOnSelect(SelectDelegate onSelect);
 	std::unique_ptr<TableView> makeTableView(ViewAttachParams attach);
 	void defaultOnSelect(View &view, Input::Event e);
+	void updateDisplayString();
 
 protected:
 	SelectDelegate selectD{};
