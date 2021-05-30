@@ -141,7 +141,7 @@ void RendererTask::updateDrawableForSurfaceChange(Base::Window &win, Base::Windo
 	}
 	else if(!drawable)
 	{
-		r->makeWindowDrawable(*this, win, glBufferConfig(), winData(win).colorSpace);
+		r->makeWindowDrawable(*this, win, winData(win).bufferConfig, winData(win).colorSpace);
 	}
 	if(change.reset())
 	{

@@ -185,13 +185,15 @@ class CustomVideoOptionView : public VideoOptionView
 	static constexpr const char *wavebeamPalPath = "Wavebeam.pal";
 	static constexpr const char *classicPalPath = "Classic (FBX).pal";
 
-	static void setPalette(Base::ApplicationContext app, const char *palPath)
+	static void setPalette(Base::ApplicationContext ctx, const char *palPath)
 	{
 		if(palPath)
 			string_copy(defaultPalettePath, palPath);
 		else
 			defaultPalettePath = {};
-		setDefaultPalette(app, palPath);
+		setDefaultPalette(ctx, palPath);
+		auto &app = EmuApp::get(ctx);
+		app.renderSystemFramebuffer(app.video());
 	}
 
 	constexpr uint32_t defaultPaletteCustomFileIdx()

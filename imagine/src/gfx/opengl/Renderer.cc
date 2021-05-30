@@ -50,21 +50,14 @@ GLRenderer::GLRenderer(Base::ApplicationContext ctx, Error &err):
 	glManager.logInfo();
 }
 
-Error Renderer::initMainTask(Base::Window *initialWindow, IG::PixelFormat format, ColorSpace colorSpace)
+Error Renderer::initMainTask(Base::Window *initialWindow, DrawableConfig drawableConfig)
 {
 	if(mainTask.glContext())
 	{
 		return {};
 	}
 	auto ctx = appContext();
-	if(format == PIXEL_FMT_NONE)
-	{
-		if(initialWindow)
-			format = initialWindow->pixelFormat();
-		else
-			format = ctx.defaultWindowPixelFormat();
-	}
-	auto bufferConfig = makeGLBufferConfig(ctx, format);
+	auto bufferConfig = makeGLBufferConfig(ctx, drawableConfig.pixelFormat, initialWindow);
 	if(!bufferConfig) [[unlikely]]
 	{
 		return std::runtime_error("error finding a GL configuration");
@@ -72,7 +65,7 @@ Error Renderer::initMainTask(Base::Window *initialWindow, IG::PixelFormat format
 	Drawable initialDrawable{};
 	if(initialWindow)
 	{
-		if(!GLRenderer::attachWindow(*initialWindow, *bufferConfig, (Base::GLColorSpace)colorSpace))
+		if(!GLRenderer::attachWindow(*initialWindow, *bufferConfig, (Base::GLColorSpace)drawableConfig.colorSpace))
 		{
 			return std::runtime_error("error creating window surface");
 		}
@@ -154,6 +147,7 @@ bool GLRenderer::attachWindow(Base::Window &win, Base::GLBufferConfig bufferConf
 bool GLRenderer::makeWindowDrawable(RendererTask &task, Base::Window &win, Base::GLBufferConfig bufferConfig, Base::GLColorSpace colorSpace)
 {
 	auto &rData = winData(win);
+	rData.bufferConfig = bufferConfig;
 	rData.colorSpace = colorSpace;
 	task.destroyDrawable(rData.drawable);
 	Base::GLDrawableAttributes attr{bufferConfig};
@@ -167,14 +161,19 @@ bool GLRenderer::makeWindowDrawable(RendererTask &task, Base::Window &win, Base:
 	return true;
 }
 
-bool Renderer::attachWindow(Base::Window &win, ColorSpace colorSpace)
+bool Renderer::attachWindow(Base::Window &win, DrawableConfig drawableConfig)
 {
-	return GLRenderer::attachWindow(win, mainTask.glBufferConfig(), (Base::GLColorSpace)colorSpace);
-}
-
-bool Renderer::setColorSpace(Base::Window &win, ColorSpace colorSpace)
-{
-	return GLRenderer::makeWindowDrawable(mainTask, win, mainTask.glBufferConfig(), (Base::GLColorSpace)colorSpace);
+	Base::GLBufferConfig bufferConfig = mainTask.glBufferConfig();
+	if(canRenderToMultiplePixelFormats())
+	{
+		auto bufferConfigOpt = makeGLBufferConfig(appContext(), drawableConfig.pixelFormat, &win);
+		if(!bufferConfigOpt) [[unlikely]]
+		{
+			return false;
+		}
+		bufferConfig = *bufferConfigOpt;
+	}
+	return GLRenderer::attachWindow(win, bufferConfig, (Base::GLColorSpace)drawableConfig.colorSpace);
 }
 
 void Renderer::detachWindow(Base::Window &win)
@@ -191,6 +190,31 @@ void Renderer::detachWindow(Base::Window &win)
 			win.appContext().setOnSystemOrientationChanged({});
 		}
 	}
+}
+
+bool Renderer::setDrawableConfig(Base::Window &win, DrawableConfig config)
+{
+	auto bufferConfig = makeGLBufferConfig(appContext(), config.pixelFormat, &win);
+	if(!bufferConfig) [[unlikely]]
+	{
+		return false;
+	}
+	if(winData(win).bufferConfig == *bufferConfig && winData(win).colorSpace == (Base::GLColorSpace)config.colorSpace)
+	{
+		return true;
+	}
+	if(mainTask.glBufferConfig() != *bufferConfig && !canRenderToMultiplePixelFormats())
+	{
+		// context only supports config it was created with
+		return false;
+	}
+	win.setFormat(config.pixelFormat);
+	return makeWindowDrawable(mainTask, win, *bufferConfig, (Base::GLColorSpace)config.colorSpace);
+}
+
+bool Renderer::canRenderToMultiplePixelFormats() const
+{
+	return glManager.hasNoConfigContext();
 }
 
 void Renderer::releaseShaderCompiler()
@@ -307,20 +331,30 @@ Base::GLDisplay GLRenderer::glDisplay() const
 	return glManager.display();
 }
 
-std::vector<BufferFormatDesc> Renderer::supportedBufferFormats() const
+std::vector<DrawableConfigDesc> Renderer::supportedDrawableConfigs() const
 {
-	std::vector<BufferFormatDesc> formats{};
-	formats.reserve(2);
-	static constexpr BufferFormatDesc testFormats[]
+	std::vector<DrawableConfigDesc> formats{};
+	formats.reserve(3);
+	static constexpr DrawableConfigDesc testDescs[]
 	{
-		{"RGBA8888", PIXEL_RGBA8888},
-		{"RGB565", PIXEL_RGB565},
-	};
-	for(auto testFormat : testFormats)
-	{
-		if(glManager.hasBufferFormat(testFormat.format))
 		{
-			formats.emplace_back(testFormat);
+			.name = "RGBA8888",
+			.config{ .pixelFormat = PIXEL_RGBA8888, .colorSpace{} }
+		},
+		{
+			.name = "RGBA8888:sRGB",
+			.config{ .pixelFormat = PIXEL_RGBA8888, .colorSpace = ColorSpace::SRGB }
+		},
+		{
+			.name = "RGB565",
+			.config{ .pixelFormat = PIXEL_RGB565, .colorSpace{} }
+		},
+	};
+	for(auto desc : testDescs)
+	{
+		if(glManager.hasDrawableConfig(desc.config.pixelFormat, (Base::GLColorSpace)desc.config.colorSpace))
+		{
+			formats.emplace_back(desc);
 		}
 	}
 	return formats;

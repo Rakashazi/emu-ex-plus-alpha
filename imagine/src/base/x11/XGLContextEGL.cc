@@ -78,7 +78,7 @@ Base::NativeWindowFormat GLManager::nativeWindowFormat(Base::ApplicationContext 
 	return visual;
 }
 
-bool GLManager::hasBufferFormat(GLBufferConfigAttributes attrs) const
+bool GLManager::hasBufferConfig(GLBufferConfigAttributes attrs) const
 {
 	if(attrs.pixelFormat().id() == PIXEL_NONE)
 		return true;

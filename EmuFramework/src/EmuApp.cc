@@ -238,13 +238,35 @@ static const char *parseCommandArgs(Base::CommandArgs arg)
 	return launchGame;
 }
 
-IG::PixelFormat windowPixelFormat(Base::ApplicationContext ctx)
+bool EmuApp::setWindowDrawableConfig(Gfx::DrawableConfig conf)
 {
-	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-	return (IG::PixelFormatID)optionWindowPixelFormat.val;
-	#else
-	return ctx.defaultWindowPixelFormat();
-	#endif
+	windowDrawableConf = conf;
+	for(auto &w : appContext().windows())
+	{
+		if(!renderer.setDrawableConfig(*w, conf))
+			return false;
+	}
+	emuVideoLayer.setSrgbColorSpaceOutput(conf.colorSpace == Gfx::ColorSpace::SRGB);
+	return true;
+}
+
+Gfx::DrawableConfig EmuApp::windowDrawableConfig() const
+{
+	return windowDrawableConf;
+}
+
+std::optional<IG::PixelFormat> EmuApp::windowDrawablePixelFormatOption() const
+{
+	if(windowDrawableConf.pixelFormat)
+		return windowDrawableConf.pixelFormat;
+	return {};
+}
+
+std::optional<Gfx::ColorSpace> EmuApp::windowDrawableColorSpaceOption() const
+{
+	if(windowDrawableConf.colorSpace != Gfx::ColorSpace{})
+		return windowDrawableConf.colorSpace;
+	return {};
 }
 
 void EmuApp::setRenderPixelFormat(std::optional<IG::PixelFormat> fmtOpt)
@@ -273,7 +295,7 @@ void EmuApp::applyRenderPixelFormat()
 		return;
 	auto fmt = renderPixelFormat();
 	if(!fmt)
-		fmt = windowPixelFormat(appContext());
+		fmt = windowDrawableConfig().pixelFormat;
 	if(!fmt)
 		fmt = appContext().defaultWindowPixelFormat();
 	logMsg("setting requested render pixel format:%s", fmt.name());
@@ -336,6 +358,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 	audioManager().setMusicVolumeControlHint();
 	if(optionSoundRate > optionSoundRate.defaultVal)
 		optionSoundRate.reset();
+	emuAudio.setRate(optionSoundRate);
 	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
 	applyOSNavStyle(ctx, false);
 
@@ -394,15 +417,17 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 		ctx.initMogaInputSystem(false);
 	#endif
 
+	if(!renderer.supportsColorSpace())
+		windowDrawableConf.colorSpace = {};
+	emuVideo.setSrgbColorSpaceOutput(windowDrawableConf.colorSpace == Gfx::ColorSpace::SRGB);
+
 	Base::WindowConfig winConf{};
 	winConf.setTitle(ctx.applicationName);
-	winConf.setFormat(windowPixelFormat(ctx));
-
+	winConf.setFormat(windowDrawableConf.pixelFormat);
 	ctx.makeWindow(winConf,
 		[this, appConfig](Base::ApplicationContext ctx, Base::Window &win)
 		{
-			auto colorSpace = emuVideo.srgbColorSpaceOutput() ? Gfx::ColorSpace::SRGB : Gfx::ColorSpace::LINEAR;
-			if(auto err = renderer.initMainTask(&win, {}, colorSpace);
+			if(auto err = renderer.initMainTask(&win, windowDrawableConfig());
 				err)
 			{
 				ctx.exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
@@ -423,8 +448,6 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 			emuVideo.setRendererTask(renderer.task());
 			emuVideo.setTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val);
 			emuVideo.setImageBuffers(optionVideoImageBuffers);
-			if(!renderer.hasSrgbColorSpaceWriteControl() || win.pixelFormat() == IG::PIXEL_RGB565)
-				emuVideo.setSrgbColorSpaceOutput(false);
 			emuVideoLayer.setLinearFilter(optionImgFilter);
 			emuVideoLayer.setOverlayIntensity(optionOverlayEffectLevel/100.);
 

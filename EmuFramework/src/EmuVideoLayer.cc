@@ -338,11 +338,6 @@ void EmuVideoLayer::setSrgbColorSpaceOutput(bool on)
 	video.resetImage();
 }
 
-bool EmuVideoLayer::srgbColorSpaceOutput() const
-{
-	return video.srgbColorSpaceOutput();
-}
-
 void EmuVideoLayer::setBrightness(float b)
 {
 	brightness = b;

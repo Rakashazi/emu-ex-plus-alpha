@@ -204,7 +204,7 @@ static void setDefaultPalette(IO &io)
 	FCEU_setDefaultPalettePtr(defaultPal.data());
 }
 
-void setDefaultPalette(Base::ApplicationContext app, const char *palPath)
+void setDefaultPalette(Base::ApplicationContext ctx, const char *palPath)
 {
 	if(!palPath || !strlen(palPath))
 	{
@@ -215,7 +215,7 @@ void setDefaultPalette(Base::ApplicationContext app, const char *palPath)
 	if(palPath[0] != '/')
 	{
 		// load as asset
-		auto io = EmuApp::openAppAssetIO(app, FS::makePathStringPrintf("palette/%s", palPath), IO::AccessHint::ALL);
+		auto io = ctx.openAsset(FS::makePathStringPrintf("palette/%s", palPath).data(), IO::AccessHint::ALL);
 		if(!io)
 			return;
 		setDefaultPalette(io);

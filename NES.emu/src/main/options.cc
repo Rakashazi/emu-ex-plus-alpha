@@ -46,11 +46,11 @@ FS::PathString defaultPalettePath{};
 PathOption optionDefaultPalettePath{CFGKEY_DEFAULT_PALETTE_PATH, defaultPalettePath, ""};
 Byte1Option optionCompatibleFrameskip{CFGKEY_COMPATIBLE_FRAMESKIP, 0};
 
-EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext app)
+EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
 {
 	FCEUI_SetSoundQuality(optionSoundQuality);
 	FCEUI_DisableSpriteLimitation(!optionSpriteLimit);
-	setDefaultPalette(app, defaultPalettePath.data());
+	setDefaultPalette(ctx, defaultPalettePath.data());
 	return {};
 }
 

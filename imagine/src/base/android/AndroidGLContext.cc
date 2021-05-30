@@ -60,7 +60,7 @@ Base::NativeWindowFormat GLManager::nativeWindowFormat(Base::ApplicationContext,
 	return nId;
 }
 
-bool GLManager::hasBufferFormat(GLBufferConfigAttributes attrs) const
+bool GLManager::hasBufferConfig(GLBufferConfigAttributes attrs) const
 {
 	switch(attrs.pixelFormat().id())
 	{
@@ -72,4 +72,5 @@ bool GLManager::hasBufferFormat(GLBufferConfigAttributes attrs) const
 		case PIXEL_RGBA8888: return true;
 	}
 }
+
 }

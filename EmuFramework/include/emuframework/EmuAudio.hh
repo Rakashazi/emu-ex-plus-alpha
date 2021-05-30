@@ -62,7 +62,7 @@ protected:
 	IG::Time lastUnderrunTime{};
 	uint32_t targetBufferFillBytes = 0;
 	uint32_t bufferIncrementBytes = 0;
-	uint32_t rate{44100};
+	uint32_t rate{};
 	float volume = 1.0;
 	std::atomic<AudioWriteState> audioWriteState = AudioWriteState::BUFFER;
 	bool addSoundBuffersOnUnderrun = false;

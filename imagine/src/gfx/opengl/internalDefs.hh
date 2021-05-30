@@ -16,6 +16,7 @@ struct GLRendererWindowData
 {
 	constexpr GLRendererWindowData() {}
 	Base::GLDrawable drawable{};
+	Base::GLBufferConfig bufferConfig{};
 	InterpolatorValue<Angle, IG::FrameTime, InterpolatorType::EASEOUTQUAD> projAngleM{};
 	Base::GLColorSpace colorSpace{};
 };

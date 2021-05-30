@@ -197,9 +197,6 @@ extern Byte1Option optionTextureBufferMode;
 extern Byte1Option optionSustainedPerformanceMode;
 #endif
 
-#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-extern Byte1Option optionWindowPixelFormat;
-#endif
 extern Byte1Option optionVideoImageBuffers;
 
 static const char *optionSavePathDefaultToken = ":DEFAULT:";

@@ -178,14 +178,19 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 			view.dismiss();
 			return false;
 		});
-	for(auto desc: app().audioManager().audioAPIs())
 	{
-		apiItem.emplace_back(desc.name, &defaultFace(),
-			[this, api = desc.api]()
-			{
-				optionAudioAPI = (uint8_t)api;
-				audio->open(api);
-			});
+		auto &audioManager = app().audioManager();
+		auto descs = audioManager.audioAPIs();
+		for(auto desc: descs)
+		{
+			apiItem.emplace_back(desc.name, &defaultFace(),
+				[this, api = desc.api]()
+				{
+					optionAudioAPI = (uint8_t)api;
+					audio->open(api);
+				});
+		}
+		api.setSelected(IG::findIndex(descs, audioManager.makeValidAPI(audioOutputAPI())) + 1);
 	}
 	#endif
 	if(!customMenu)
@@ -228,8 +233,6 @@ void AudioOptionView::loadStockItems()
 	if(apiItem.size() > 2)
 	{
 		item.emplace_back(&api);
-		auto &audioManager = app().audioManager();
-		api.setSelected(IG::findIndex(audioManager.audioAPIs(), audioManager.makeValidAPI(audioOutputAPI())) + 1);
 	}
 	#endif
 }

@@ -25,15 +25,25 @@
 static constexpr unsigned KEY_CONFIGS_HARD_LIMIT = 256;
 static constexpr unsigned INPUT_DEVICE_CONFIGS_HARD_LIMIT = 256;
 
-static bool renderPixelFormatIsValid(IG::PixelFormat val)
+static bool windowPixelFormatIsValid(uint8_t val)
 {
-	switch((IG::PixelFormatID)val)
+	switch(val)
 	{
 		case IG::PIXEL_RGB565:
 		case IG::PIXEL_RGBA8888:
 			return true;
 		default: return false;
 	}
+}
+
+static bool renderPixelFormatIsValid(IG::PixelFormat val)
+{
+	return windowPixelFormatIsValid(val);
+}
+
+static bool colorSpaceIsValid(Gfx::ColorSpace val)
+{
+	return val == Gfx::ColorSpace::SRGB;
 }
 
 static bool readKeyConfig(IO &io, uint16_t &size)
@@ -214,9 +224,6 @@ static OptionBase *cfgFileOption[] =
 	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 	&optionAudioAPI,
 	#endif
-	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-	&optionWindowPixelFormat,
-	#endif
 	&optionShowBundledGames,
 	&optionCheckSavePathWriteAccess
 };
@@ -243,7 +250,8 @@ void EmuApp::saveConfigFile(IO &io)
 	writeOptionValue(io, CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES, vController.usesScaledCoordinatesOption());
 	writeOptionValue(io, CFGKEY_SWAPPED_GAMEPAD_CONFIM, swappedConfirmKeysOption());
 	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audioManager().soloMixOption());
-	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, emuVideo.srgbColorSpaceOutputOption());
+	writeOptionValue(io, CFGKEY_WINDOW_PIXEL_FORMAT, windowDrawablePixelFormatOption());
+	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, windowDrawableColorSpaceOption());
 	writeOptionValue(io, CFGKEY_RENDER_PIXEL_FORMAT, renderPixelFormatOption());
 
 	if(customKeyConfig.size())
@@ -425,6 +433,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 		return {};
 	}
 	ConfigParams appConfig{};
+	Gfx::DrawableConfig pendingWindowDrawableConf{};
 	readConfigKeys(configFile,
 		[&](uint16_t key, uint16_t size, IO &io)
 		{
@@ -532,10 +541,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 					if(EmuSystem::hasBundledGames)
 						optionShowBundledGames.readFromIO(io, size);
 				}
-				#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-				bcase CFGKEY_WINDOW_PIXEL_FORMAT: optionWindowPixelFormat.readFromIO(io, size);
-				#endif
-				bcase CFGKEY_VIDEO_COLOR_SPACE: emuVideo.setSrgbColorSpaceOutput(readOptionValue<bool>(io, size));
+				bcase CFGKEY_WINDOW_PIXEL_FORMAT: pendingWindowDrawableConf.pixelFormat = readOptionValue<IG::PixelFormat>(io, size, windowPixelFormatIsValid).value_or(IG::PixelFormat{});
+				bcase CFGKEY_VIDEO_COLOR_SPACE: pendingWindowDrawableConf.colorSpace = readOptionValue<Gfx::ColorSpace>(io, size, colorSpaceIsValid).value_or(Gfx::ColorSpace{});
 				bcase CFGKEY_INPUT_KEY_CONFIGS:
 				{
 					if(!readKeyConfig(io, size))
@@ -671,6 +678,12 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				}
 			}
 		});
+
+	// apply any pending read options
+	if(pendingWindowDrawableConf.colorSpace != Gfx::ColorSpace{} && pendingWindowDrawableConf.pixelFormat != IG::PIXEL_RGBA8888)
+		pendingWindowDrawableConf.colorSpace = {};
+	windowDrawableConf = pendingWindowDrawableConf;
+
 	return appConfig;
 }
 

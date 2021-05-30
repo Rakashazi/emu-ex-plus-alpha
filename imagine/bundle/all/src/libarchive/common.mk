@@ -15,13 +15,6 @@ installIncludeDir := $(installDir)/include
 pkgCFlags := $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config liblzma --cflags)
 pkgLibs := $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config liblzma --libs)
 
-ifeq (,$(shell which autoreconf-2.69))
- $(warning "autoreconf-2.69 not found, please make sure the system autoconf is 2.69 for libarchive")
- AUTORECONF := autoreconf
-else
- AUTORECONF := autoreconf-2.69
-endif
-
 all : $(outputLibFile)
 
 install : $(outputLibFile)
@@ -42,9 +35,10 @@ $(libarchiveSrcDir)/configure : | $(libarchiveSrcArchive)
 	tar -mxJf $| -C $(libarchiveSrcDir)/..
 	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.2.0-entry-crc32.patch # adds ability to read file CRCs per entry
 	patch -d $(libarchiveSrcDir) -p1 < libarchive-3.2.1-force-utf8-charset.patch # don't rely on nl_langinfo due to possibly unset locale and Android issues
+	patch -d $(libarchiveSrcDir) -p1 < libarchive-autoconf-2.70.patch # fix configure errors on autoconf 2.70+
 	cp $(libarchiveSrcDir)/contrib/android/include/android_lf.h $(libarchiveSrcDir)/libarchive/
 	cp ../gnuconfig/config.* $(libarchiveSrcDir)/build/autoconf/
-	$(AUTORECONF) -vfi $(libarchiveSrcDir)
+	autoreconf -vfi $(libarchiveSrcDir)
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libarchive..."

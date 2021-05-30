@@ -111,6 +111,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <math.h>
+#include <assert.h>
 
 #include "mvs.h"
 #include "../state.h"
@@ -2822,6 +2823,7 @@ void YM2610Init(int clock, int rate,
 	YM2610.OPN.ST.IRQ_Handler   = IRQHandler;
 	/* SSG */
 	SSG.step = ((double)SSG_STEP * rate * 8) / clock;
+	assert(SSG.step >= 2); // lower value will cause infinite loops
 	/* ADPCM-A */
 	pcmbufA = (u8 *)pcmroma;
 	pcmsizeA = pcmsizea;
@@ -2838,6 +2840,7 @@ void YM2610ChangeSamplerate(int rate) {
 	int i;
 	YM2610.OPN.ST.rate = rate;
 	SSG.step = ((double)SSG_STEP * rate * 8) / YM2610.OPN.ST.clock;
+	assert(SSG.step >= 2); // lower value will cause infinite loops
 	OPNSetPres(&YM2610.OPN, 6*24, 6*24, 4*2); /* OPN 1/6, SSG 1/4 */
 	for (i = 0; i < 6; i++) {
 		YM2610.adpcma[i].step = (u32) ((double) (1 << ADPCM_SHIFT) * ((double) YM2610.OPN.ST.freqbase) / 3.0);

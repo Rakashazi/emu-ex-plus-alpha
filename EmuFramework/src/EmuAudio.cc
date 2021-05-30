@@ -320,7 +320,10 @@ void EmuAudio::setRate(uint32_t newRate)
 {
 	if(rate == newRate)
 		return;
-	logMsg("rate changed:%u -> %u", rate, newRate);
+	if(rate)
+		logMsg("set rate:%u -> %u", rate, newRate);
+	else
+		logMsg("set rate:%u", newRate);
 	rate = newRate;
 	stop();
 }
@@ -359,6 +362,7 @@ void EmuAudio::setVolume(uint8_t vol)
 
 IG::Audio::Format EmuAudio::format() const
 {
+	assumeExpr(rate);
 	return {rate, EmuSystem::audioSampleFormat, channels};
 }
 

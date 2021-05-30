@@ -15,20 +15,11 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/base/x11/XApplication.hh>
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
-namespace Config
+namespace Base
 {
-	namespace Base
-	{
-	static constexpr bool XDND = !Config::MACHINE_IS_PANDORA;
-	}
+void handleXDNDEvent(Display *dpy, XApplication::XdndAtoms xdndAtom, const XClientMessageEvent &e, ::Window win, ::Window &draggerWin, Atom &dragAction);
 }
-
-void registerXdndAtoms(Display *dpy);
-void disableXdnd(Display *dpy, ::Window win);
-void sendDNDStatus(Display *dpy, ::Window win, ::Window srcWin, int willAcceptDrop, Atom action);
-void sendDNDFinished(Display *dpy, ::Window win, ::Window srcWin, Atom action);
-void receiveDrop(Display *dpy, ::Window win, ::Time time);
-void handleXDNDEvent(Display *dpy, const XClientMessageEvent &e, ::Window win, ::Window &draggerWin, Atom &dragAction);

@@ -25,6 +25,14 @@
 struct _XDisplay;
 union _XEvent;
 
+namespace Config
+{
+	namespace Base
+	{
+	static constexpr bool XDND = !Config::MACHINE_IS_PANDORA;
+	}
+}
+
 namespace Base
 {
 
@@ -55,6 +63,8 @@ struct XInputDevice : public Input::Device
 class XApplication : public LinuxApplication
 {
 public:
+	using XdndAtoms = std::array<unsigned long, 11>;
+
 	XApplication(ApplicationInitParams);
 	~XApplication();
 	FDEventSource makeXDisplayConnection(EventLoop);
@@ -63,7 +73,7 @@ public:
 	void initPerWindowInputData(unsigned long xWin);
 	void runX11Events(_XDisplay *);
 	void runX11Events();
-	void enableXdnd(unsigned long xWin);
+	void setXdnd(unsigned long win, bool on);
 	Input::EventKeyString inputKeyString(Input::Key rawKey, uint32_t modifiers) const;
 	void setWindowCursor(unsigned long xWin, bool on);
 
@@ -71,7 +81,7 @@ private:
 	::_XDisplay *dpy{};
 	FDEventSource xEventSrc{};
 	SupportedFrameTimer supportedFrameTimer{};
-	bool dndInit{};
+	XdndAtoms xdndAtom{};
 
 	// Input state
 	std::vector<std::unique_ptr<XInputDevice>> xDevice{};
@@ -94,6 +104,9 @@ private:
 	const Input::Device *deviceForInputId(int osId) const;
 	int devIdToPointer(int id) const;
 	static SupportedFrameTimer testFrameTimers();
+	bool initXdnd();
+	bool xdndIsInit() const;
+	void sendDNDFinished(unsigned long win, unsigned long srcWin, unsigned long action);
 };
 
 using ApplicationImpl = XApplication;

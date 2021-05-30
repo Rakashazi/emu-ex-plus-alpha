@@ -240,7 +240,8 @@ public:
 	static bool hasCurrentDrawable();
 	static void *procAddress(const char *funcName);
 	static bool bindAPI(GL::API api);
-	bool hasBufferFormat(GLBufferConfigAttributes) const;
+	bool hasBufferConfig(GLBufferConfigAttributes) const;
+	bool hasDrawableConfig(GLBufferConfigAttributes, GLColorSpace) const;
 	bool hasNoErrorContextAttribute() const;
 	bool hasNoConfigContext() const;
 	bool hasSrgbColorSpace() const;

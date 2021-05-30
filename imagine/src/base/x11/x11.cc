@@ -181,10 +181,10 @@ bool XApplication::eventHandler(XEvent event)
 					logMsg("unknown WM_PROTOCOLS message");
 				}
 			}
-			else if(Config::Base::XDND && dndInit)
+			else if(Config::Base::XDND && xdndIsInit())
 			{
 				auto [draggerXWin, dragAction] = win.xdndData();
-				handleXDNDEvent(dpy, event.xclient, win.nativeObject(), draggerXWin, dragAction);
+				handleXDNDEvent(dpy, xdndAtom, event.xclient, win.nativeObject(), draggerXWin, dragAction);
 			}
 			XFree(clientMsgName);
 		}
@@ -207,7 +207,7 @@ bool XApplication::eventHandler(XEvent event)
 				logMsg("property read %lu items, in %d format, %lu bytes left", numItems, format, bytesAfter);
 				logMsg("property is %s", prop);
 				auto [draggerXWin, dragAction] = win.xdndData();
-				sendDNDFinished(dpy, win.nativeObject(), draggerXWin, dragAction);
+				sendDNDFinished(win.nativeObject(), draggerXWin, dragAction);
 				auto filename = (char*)prop;
 				fileURLToPath(filename);
 				win.dispatchDragDrop(filename);

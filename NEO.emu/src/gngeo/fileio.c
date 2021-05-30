@@ -275,8 +275,6 @@ bool load_game_config(char *rom_name) {
 	return true;
 }
 
-extern char romerror[1024];
-
 int init_game(void *contextPtr, char *rom_name, char romerror[1024]) {
 	//logMsg("AAA Blitter %s effect %s\n",CF_STR(cf_get_item_by_name("blitter")),CF_STR(cf_get_item_by_name("effect")));
 

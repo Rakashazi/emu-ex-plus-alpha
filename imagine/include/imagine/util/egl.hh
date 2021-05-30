@@ -26,6 +26,9 @@
 #ifndef EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR
 #define EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR 0x00000001
 #endif
+#ifndef EGL_OPENGL_ES3_BIT
+#define EGL_OPENGL_ES3_BIT 0x0040
+#endif
 
 static const char* eglSurfaceTypeToStr(EGLint type)
 {
@@ -44,23 +47,26 @@ static const char* eglSurfaceTypeToStr(EGLint type)
 
 static const char* eglRenderableTypeToStr(EGLint type)
 {
-	switch(type & 0xF)
+	switch(type & 0x4F)
 	{
 		case EGL_OPENGL_BIT: return "GL";
 		case EGL_OPENGL_ES_BIT: return "ES";
 		case EGL_OPENGL_ES2_BIT: return "ES2";
+		case EGL_OPENGL_ES3_BIT: return "ES3";
 		case EGL_OPENVG_BIT: return "VG";
 		case EGL_OPENGL_BIT|EGL_OPENGL_ES_BIT: return "GL|ES";
-		case EGL_OPENGL_BIT|EGL_OPENGL_ES2_BIT: return "GL|ES2";
+		case EGL_OPENGL_BIT|EGL_OPENGL_ES2_BIT|EGL_OPENGL_ES3_BIT: return "GL|ES2|ES3";
 		case EGL_OPENGL_BIT|EGL_OPENVG_BIT: return "GL|VG";
 		case EGL_OPENGL_ES_BIT|EGL_OPENGL_ES2_BIT: return "ES|ES2";
+		case EGL_OPENGL_ES_BIT|EGL_OPENGL_ES2_BIT|EGL_OPENGL_ES3_BIT: return "ES|ES2|ES3";
 		case EGL_OPENGL_ES_BIT|EGL_OPENVG_BIT: return "ES|VG";
-		case EGL_OPENGL_ES2_BIT|EGL_OPENVG_BIT: return "ES2|VG";
 		case EGL_OPENGL_BIT|EGL_OPENGL_ES_BIT|EGL_OPENGL_ES2_BIT: return "GL|ES|ES2";
+		case EGL_OPENGL_BIT|EGL_OPENGL_ES_BIT|EGL_OPENGL_ES2_BIT|EGL_OPENGL_ES3_BIT: return "GL|ES|ES2|ES3";
 		case EGL_OPENGL_BIT|EGL_OPENGL_ES_BIT|EGL_OPENVG_BIT: return "GL|ES|VG";
-		case EGL_OPENGL_BIT|EGL_OPENGL_ES2_BIT|EGL_OPENVG_BIT: return "GL|ES2|VG";
 		case EGL_OPENGL_ES_BIT|EGL_OPENGL_ES2_BIT|EGL_OPENVG_BIT: return "ES|ES2|VG";
+		case EGL_OPENGL_ES_BIT|EGL_OPENGL_ES2_BIT|EGL_OPENGL_ES3_BIT|EGL_OPENVG_BIT: return "ES|ES2|ES3|VG";
 		case EGL_OPENGL_BIT|EGL_OPENGL_ES_BIT|EGL_OPENGL_ES2_BIT|EGL_OPENVG_BIT: return "GL|ES|ES2|VG";
+		case EGL_OPENGL_BIT|EGL_OPENGL_ES_BIT|EGL_OPENGL_ES2_BIT|EGL_OPENGL_ES3_BIT|EGL_OPENVG_BIT: return "GL|ES|ES2|ES3|VG";
 	}
 	return "unknown";
 }
@@ -78,8 +84,9 @@ static const char* eglConfigCaveatToStr(EGLint cav)
 
 static void printEGLConf(EGLDisplay display, EGLConfig config)
 {
-	EGLint buffSize, redSize, greenSize, blueSize, alphaSize, cav, depthSize, stencilSize, nID, nRend,
+	EGLint id, buffSize, redSize, greenSize, blueSize, alphaSize, cav, depthSize, stencilSize, nID, nRend,
 		sType, minSwap, maxSwap, sampleBuff, renderType;
+	eglGetConfigAttrib(display, config, EGL_CONFIG_ID, &id);
 	eglGetConfigAttrib(display, config, EGL_BUFFER_SIZE, &buffSize);
 	eglGetConfigAttrib(display, config, EGL_RED_SIZE, &redSize);
 	eglGetConfigAttrib(display, config, EGL_GREEN_SIZE, &greenSize);
@@ -95,8 +102,8 @@ static void printEGLConf(EGLDisplay display, EGLConfig config)
 	eglGetConfigAttrib(display, config, EGL_MIN_SWAP_INTERVAL, &minSwap);
 	eglGetConfigAttrib(display, config, EGL_MAX_SWAP_INTERVAL, &maxSwap);
 	eglGetConfigAttrib(display, config, EGL_SAMPLE_BUFFERS, &sampleBuff);
-	logMsg("config %d %d:%d:%d:%d cav:%s(0x%X) d:%d sten:%d nid:%d nrend:%d stype:%s(0x%X) rtype:%s(0x%X) sampleBuff:%d swap:%d-%d",
-			buffSize, redSize, greenSize, blueSize, alphaSize,
+	logMsg("config:0x%X %d:%d:%d:%d (%d) cav:%s(0x%X) d:%d sten:%d nid:%d nrend:%d stype:%s(0x%X) rtype:%s(0x%X) sampleBuff:%d swap:%d-%d",
+			id, redSize, greenSize, blueSize, alphaSize, buffSize,
 			eglConfigCaveatToStr(cav), cav, depthSize, stencilSize,
 			nID, nRend,eglSurfaceTypeToStr(sType), sType,
 			eglRenderableTypeToStr(renderType), renderType, sampleBuff,

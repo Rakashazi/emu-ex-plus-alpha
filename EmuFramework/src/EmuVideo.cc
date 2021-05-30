@@ -324,23 +324,13 @@ void EmuVideo::setCompatTextureSampler(const Gfx::TextureSampler &compatTexSampl
 	vidImg.setCompatTextureSampler(compatTexSampler);
 }
 
-void EmuVideo::setSrgbColorSpaceOutput(std::optional<bool> opt)
+void EmuVideo::setSrgbColorSpaceOutput(bool on)
 {
-	if(!opt)
-		return;
-	useSrgbColorSpace = *opt;
-}
-
-bool EmuVideo::srgbColorSpaceOutput() const
-{
-	return useSrgbColorSpace;
-}
-
-std::optional<bool> EmuVideo::srgbColorSpaceOutputOption() const
-{
-	if(useSrgbColorSpace)
-		return true;
-	return {};
+	if(on)
+	{
+		logMsg("enabling sRGB textures");
+	}
+	useSrgbColorSpace = on;
 }
 
 bool EmuVideo::isSrgbFormat() const

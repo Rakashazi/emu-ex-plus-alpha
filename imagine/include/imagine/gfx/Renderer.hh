@@ -54,12 +54,19 @@ struct TextureBufferModeDesc
 
 };
 
-struct BufferFormatDesc
+struct DrawableConfig
+{
+	IG::PixelFormat pixelFormat;
+	ColorSpace colorSpace;
+	constexpr bool operator ==(const DrawableConfig&) const = default;
+};
+
+struct DrawableConfigDesc
 {
 	const char *name;
-	IG::PixelFormat format;
+	DrawableConfig config;
 
-	constexpr bool operator ==(IG::PixelFormat format_) const { return format == format_; }
+	constexpr bool operator ==(const DrawableConfig &c) const { return config == c; }
 };
 
 class Renderer : public RendererImpl
@@ -73,9 +80,11 @@ public:
 	const RendererTask &task() const;
 	RendererTask &task();
 	Base::ApplicationContext appContext() const;
-	Error initMainTask(Base::Window *initialWindow, IG::PixelFormat f = PIXEL_FMT_NONE, ColorSpace c = {});
-	bool attachWindow(Base::Window &, ColorSpace c = {});
+	Error initMainTask(Base::Window *initialWindow, DrawableConfig c = {});
+	bool attachWindow(Base::Window &, DrawableConfig c = {});
 	void detachWindow(Base::Window &);
+	bool setDrawableConfig(Base::Window &, DrawableConfig);
+	bool canRenderToMultiplePixelFormats() const;
 	Base::NativeWindowFormat nativeWindowFormat() const;
 	void setWindowValidOrientations(Base::Window &win, Base::Orientation validO);
 	void animateProjectionMatrixRotation(Base::Window &win, Angle srcAngle, Angle destAngle);
@@ -84,7 +93,7 @@ public:
 	void setPresentationTime(Base::Window &, IG::FrameTime time) const;
 	unsigned maxSwapChainImages() const;
 	void setCorrectnessChecks(bool on);
-	std::vector<BufferFormatDesc> supportedBufferFormats() const;
+	std::vector<DrawableConfigDesc> supportedDrawableConfigs() const;
 
 	// shaders
 
@@ -117,7 +126,6 @@ public:
 
 	// color space control
 
-	bool setColorSpace(Base::Window &, ColorSpace c = {});
 	bool supportsColorSpace() const;
 	bool hasSrgbColorSpaceWriteControl() const;
 };

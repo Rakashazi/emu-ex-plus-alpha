@@ -717,10 +717,15 @@ void GLRenderer::addEventHandlers(Base::ApplicationContext ctx, RendererTask &ta
 		task.setIOSDrawableDelegates();
 }
 
-std::optional<Base::GLBufferConfig> GLRenderer::makeGLBufferConfig(Base::ApplicationContext ctx, IG::PixelFormat pixelFormat)
+std::optional<Base::GLBufferConfig> GLRenderer::makeGLBufferConfig(Base::ApplicationContext ctx, IG::PixelFormat pixelFormat, const Base::Window *winPtr)
 {
 	if(!pixelFormat)
-		pixelFormat = ctx.defaultWindowPixelFormat();
+	{
+		if(winPtr)
+			pixelFormat = winPtr->pixelFormat();
+		else
+			pixelFormat = ctx.defaultWindowPixelFormat();
+	}
 	Base::GLBufferConfigAttributes glBuffAttr{pixelFormat};
 	if constexpr(Config::Gfx::OPENGL_ES >= 2)
 	{

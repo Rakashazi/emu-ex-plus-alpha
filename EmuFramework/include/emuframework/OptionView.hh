@@ -27,6 +27,11 @@ class EmuVideoLayer;
 class EmuAudio;
 class TextTableView;
 
+namespace Gfx
+{
+struct DrawableConfig;
+}
+
 class OptionCategoryView : public TableView, public EmuAppHelper<OptionCategoryView>
 {
 public:
@@ -75,11 +80,8 @@ protected:
 	TextMenuItem imgEffectPixelFormatItem[3];
 	MultiChoiceMenuItem imgEffectPixelFormat;
 	#endif
-	#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
 	StaticArrayList<TextMenuItem, 4> windowPixelFormatItem{};
 	MultiChoiceMenuItem windowPixelFormat;
-	#endif
-	BoolMenuItem srgbColorSpaceOutput;
 	#if defined CONFIG_BASE_MULTI_WINDOW && defined CONFIG_BASE_X11
 	BoolMenuItem secondDisplay;
 	#endif
@@ -106,7 +108,7 @@ protected:
 	void setOverlayEffect(unsigned val);
 	void setRenderPixelFormat(IG::PixelFormatID);
 	void setImgEffectPixelFormat(IG::PixelFormatID);
-	void setWindowPixelFormat(IG::PixelFormatID);
+	void setWindowDrawableConfig(Gfx::DrawableConfig);
 	EmuVideo &emuVideo() const;
 };
 

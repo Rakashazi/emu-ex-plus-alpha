@@ -197,7 +197,7 @@ void *GLManager::procAddress(const char *funcName)
 	return dlsym(RTLD_DEFAULT, funcName);
 }
 
-bool GLManager::hasBufferFormat(GLBufferConfigAttributes attrs) const
+bool GLManager::hasBufferConfig(GLBufferConfigAttributes attrs) const
 {
 	switch(attrs.pixelFormat().id())
 	{
@@ -208,6 +208,13 @@ bool GLManager::hasBufferFormat(GLBufferConfigAttributes attrs) const
 		case PIXEL_RGB565:
 		case PIXEL_RGBA8888: return true;
 	}
+}
+
+bool GLManager::hasDrawableConfig(GLBufferConfigAttributes attrs, GLColorSpace colorSpace) const
+{
+	if(colorSpace != GLColorSpace::LINEAR)
+		return false;
+	return hasBufferConfig(attrs);
 }
 
 bool GLManager::hasNoErrorContextAttribute() const

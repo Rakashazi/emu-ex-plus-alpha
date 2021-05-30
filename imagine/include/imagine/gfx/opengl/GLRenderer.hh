@@ -205,7 +205,7 @@ public:
 
 protected:
 	void addEventHandlers(Base::ApplicationContext, RendererTask &);
-	std::optional<Base::GLBufferConfig> makeGLBufferConfig(Base::ApplicationContext, IG::PixelFormat);
+	std::optional<Base::GLBufferConfig> makeGLBufferConfig(Base::ApplicationContext, IG::PixelFormat, const Base::Window * = {});
 	void setCurrentDrawable(Base::GLDisplay, Base::GLContext, Drawable);
 	void setupNonPow2Textures();
 	void setupNonPow2MipmapTextures();

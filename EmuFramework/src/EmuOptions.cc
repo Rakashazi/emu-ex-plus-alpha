@@ -232,22 +232,6 @@ Byte1Option optionTextureBufferMode{CFGKEY_TEXTURE_BUFFER_MODE, 0};
 Byte1Option optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 0};
 #endif
 
-#ifdef EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION
-bool windowPixelFormatIsValid(uint8_t val)
-{
-	switch(val)
-	{
-		case IG::PIXEL_NONE:
-		case IG::PIXEL_RGB565:
-		case IG::PIXEL_RGBA8888:
-			return true;
-	}
-	return false;
-}
-
-Byte1Option optionWindowPixelFormat(CFGKEY_WINDOW_PIXEL_FORMAT, IG::PIXEL_NONE, 0, windowPixelFormatIsValid);
-#endif
-
 PathOption optionSavePath(CFGKEY_SAVE_PATH, EmuSystem::savePath_, "");
 Byte1Option optionCheckSavePathWriteAccess{CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS, 1};
 

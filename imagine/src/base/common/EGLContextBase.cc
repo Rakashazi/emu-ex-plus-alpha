@@ -414,11 +414,12 @@ IG::ErrorCode EGLManager::initDisplay(EGLDisplay display)
 
 GLContext GLManager::makeContext(GLContextAttributes attr, GLBufferConfig config, NativeGLContext shareContext, IG::ErrorCode &ec)
 {
-	EGLConfig glConfig = hasNoConfigContext() ? EGL_NO_CONFIG_KHR : config.glConfig;
+	if(hasNoConfigContext())
+		config = EGL_NO_CONFIG_KHR;
 	if(!hasNoErrorContextAttribute())
 		attr.setNoError(false);
 	logMsg("making context with version: %d.%d config:0x%llX share context:%p",
-		attr.majorVersion(), attr.minorVersion(), (long long)glConfig, shareContext);
+		attr.majorVersion(), attr.minorVersion(), (long long)(EGLConfig)config, shareContext);
 	// Ignore surfaceless context support when using GL versions below 3.0 due to possible driver issues,
 	// such as on Tegra 3 GPUs
 	bool savePBuffConfig = attr.majorVersion() <= 2 || !supportsSurfaceless;
@@ -514,6 +515,16 @@ GLDrawable GLManager::makeDrawable(Window &win, GLDrawableAttributes attr, IG::E
 	logMsg("made surface:%p %s", (EGLSurface)drawable,
 		useSrgbColorSpace ? "(SRGB color space)" : "");
 	return drawable;
+}
+
+bool GLManager::hasDrawableConfig(GLBufferConfigAttributes attrs, GLColorSpace colorSpace) const
+{
+	if(!hasBufferConfig(attrs))
+		return false;
+	if(colorSpace == GLColorSpace::LINEAR)
+		return true;
+	// SRGB Color Space
+	return hasSrgbColorSpace() && attrs.pixelFormat() != IG::PIXEL_RGB565;
 }
 
 bool GLManager::hasNoErrorContextAttribute() const

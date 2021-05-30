@@ -91,6 +91,7 @@ struct GLBufferConfig
 
 	Base::NativeWindowFormat windowFormat(Base::ApplicationContext, GLDisplay display) const;
 	bool maySupportGLES(GLDisplay, unsigned majorVersion) const;
+	constexpr bool operator ==(GLBufferConfig const&) const = default;
 };
 
 using GLDrawableImpl = EAGLViewDrawable;

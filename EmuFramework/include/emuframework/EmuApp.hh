@@ -165,6 +165,8 @@ public:
 	const KeyMapping &keyInputMapping();
 	std::vector<InputDeviceConfig> &inputDeviceConfigs();
 	IG::Audio::Manager &audioManager();
+	bool setWindowDrawableConfig(Gfx::DrawableConfig);
+	Gfx::DrawableConfig windowDrawableConfig() const;
 	void setRenderPixelFormat(std::optional<IG::PixelFormat>);
 	IG::PixelFormat renderPixelFormat() const;
 	void renderSystemFramebuffer(EmuVideo &);
@@ -272,6 +274,7 @@ protected:
 	KeyMapping keyMapping{};
 	TurboInput turboActions{};
 	FS::PathString lastLoadPath{};
+	Gfx::DrawableConfig windowDrawableConf{};
 	IG::PixelFormat renderPixelFmt{};
 
 	class ConfigParams
@@ -297,6 +300,7 @@ protected:
 
 	protected:
 		uint8_t flags{};
+		Gfx::DrawableConfig windowDrawableConf{};
 	};
 
 	void mainInitCommon(Base::ApplicationInitParams, Base::ApplicationContext);
@@ -308,4 +312,6 @@ protected:
 	void initOptions(Base::ApplicationContext);
 	std::optional<IG::PixelFormat> renderPixelFormatOption() const;
 	void applyRenderPixelFormat();
+	std::optional<IG::PixelFormat> windowDrawablePixelFormatOption() const;
+	std::optional<Gfx::ColorSpace> windowDrawableColorSpaceOption() const;
 };

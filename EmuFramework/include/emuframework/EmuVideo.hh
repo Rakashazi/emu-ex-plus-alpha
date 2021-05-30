@@ -80,9 +80,7 @@ public:
 	bool setImageBuffers(unsigned num);
 	unsigned imageBuffers() const;
 	void setCompatTextureSampler(const Gfx::TextureSampler &);
-	void setSrgbColorSpaceOutput(std::optional<bool>);
-	bool srgbColorSpaceOutput() const;
-	std::optional<bool> srgbColorSpaceOutputOption() const;
+	void setSrgbColorSpaceOutput(bool);
 	bool isSrgbFormat() const;
 	void setRequestedPixelFormat(IG::PixelFormat);
 	IG::PixelFormat requestedPixelFormat() const;

@@ -22,7 +22,7 @@
 #include <imagine/util/algorithm.h>
 #include <imagine/util/string.h>
 #include "xlibutils.h"
-#include "xdnd.hh"
+#include <X11/Xatom.h>
 #include <X11/Xutil.h>
 
 namespace Base
@@ -37,10 +37,7 @@ void Window::setAcceptDnd(bool on)
 {
 	if(!Config::Base::XDND)
 		return;
-	if(on)
-		application().enableXdnd(xWin);
-	else
-		disableXdnd(dpy, xWin);
+	application().setXdnd(xWin, on);
 }
 
 void Window::setTitle(const char *name)
