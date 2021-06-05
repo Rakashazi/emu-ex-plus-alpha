@@ -59,14 +59,25 @@ uint8_t FrameBuffer::getPhosphor(uInt8 c1, uInt8 c2) const
 void FrameBuffer::setTIAPalette(const PaletteArray& palette)
 {
 	logMsg("setTIAPalette");
+	auto desc32 = format == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
 	iterateTimes(256, i)
 	{
 		uint8_t r = (palette[i] >> 16) & 0xff;
 		uint8_t g = (palette[i] >> 8) & 0xff;
 		uint8_t b = palette[i] & 0xff;
 		tiaColorMap16[i] = IG::PIXEL_DESC_RGB565.build(r >> 3, g >> 2, b >> 3, 0);
-		tiaColorMap32[i] = IG::PIXEL_DESC_RGBA8888.nativeOrder().build((int)r, (int)g, (int)b, 0);
+		tiaColorMap32[i] = desc32.build((int)r, (int)g, (int)b, 0);
 	}
+}
+
+void FrameBuffer::setPixelFormat(IG::PixelFormat fmt)
+{
+	format = fmt;
+}
+
+IG::PixelFormat FrameBuffer::pixelFormat() const
+{
+	return format;
 }
 
 #define TO_RGB(color, red, green, blue) \
@@ -97,7 +108,7 @@ uInt32 FrameBuffer::getRGBPhosphor32(const uInt32 c, const uInt32 p) const
 }
 
 template <int outputBits>
-void FrameBuffer::render(IG::Pixmap pix, TIA &tia)
+void FrameBuffer::renderOutput(IG::Pixmap pix, TIA &tia)
 {
 	IG::Pixmap framePix{{{(int)tia.width(), (int)tia.height()}, IG::PIXEL_I8}, tia.frameBuffer()};
 	assumeExpr(pix.size() == framePix.size());
@@ -135,12 +146,14 @@ void FrameBuffer::render(IG::Pixmap pix, TIA &tia)
 	}
 }
 
-void FrameBuffer::render16(IG::Pixmap pix, TIA &tia)
+void FrameBuffer::render(IG::Pixmap pix, TIA &tia)
 {
-	render<16>(pix, tia);
-}
-
-void FrameBuffer::render32(IG::Pixmap pix, TIA &tia)
-{
-	render<32>(pix, tia);
+	if(format == IG::PIXEL_RGB565)
+	{
+		renderOutput<16>(pix, tia);
+	}
+	else
+	{
+		renderOutput<32>(pix, tia);
+	}
 }

@@ -16,11 +16,18 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/pixmap/Pixmap.hh>
-#include <imagine/data-type/image/GfxImageSource.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <CoreGraphics/CGImage.h>
 #include <system_error>
+
+namespace IG
+{
+class PixelFormat;
+class Pixmap;
+}
+
+namespace IG::Data
+{
 
 class Quartz2dImage
 {
@@ -28,9 +35,9 @@ public:
 	constexpr Quartz2dImage(Base::ApplicationContext ctx):
 		ctx{ctx}
 	{}
+	~Quartz2dImage();
 	std::error_code load(const char *name);
 	std::errc readImage(IG::Pixmap dest);
-	static void writeImage(IG::Pixmap pix, const char *name);
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	void freeImageData();
@@ -41,24 +48,18 @@ public:
 	constexpr Base::ApplicationContext appContext() const { return ctx; }
 
 protected:
-	CGImageRef img = nullptr;
+	CGImageRef img{};
 	Base::ApplicationContext ctx{};
 };
 
-class PngFile final: public GfxImageSource
+using PixmapReaderImpl = Quartz2dImage;
+
+class Quartz2dImageWriter
 {
 public:
-	constexpr PngFile(Base::ApplicationContext ctx):
-		png{ctx}
-	{}
-	~PngFile();
-	std::error_code load(const char *name);
-	std::error_code loadAsset(const char *name, const char *appName = Base::ApplicationContext::applicationName);
-	void deinit();
-	std::errc write(IG::Pixmap dest) final;
-	IG::Pixmap pixmapView() final;
-	explicit operator bool() const final;
-
-protected:
-	Quartz2dImage png;
+	constexpr Quartz2dImageWriter(Base::ApplicationContext) {}
 };
+
+using PixmapWriterImpl = Quartz2dImageWriter;
+
+}

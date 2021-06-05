@@ -360,4 +360,20 @@ std::vector<DrawableConfigDesc> Renderer::supportedDrawableConfigs() const
 	return formats;
 }
 
+bool Renderer::hasBgraFormat(TextureBufferMode mode) const
+{
+	if constexpr(Config::envIsAndroid)
+	{
+		if(mode == TextureBufferMode::ANDROID_HARDWARE_BUFFER || mode == TextureBufferMode::ANDROID_SURFACE_TEXTURE)
+			return false;
+	}
+	if(!support.hasBGRPixels)
+		return false;
+	if(Config::Gfx::OPENGL_ES && support.hasImmutableTexStorage)
+	{
+		return false;
+	}
+	return true;
+}
+
 }

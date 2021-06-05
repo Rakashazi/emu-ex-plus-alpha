@@ -608,7 +608,7 @@ void EmuSystem::sessionOptionSet()
 
 [[gnu::weak]] void EmuSystem::onPrepareAudio(EmuAudio &) {}
 
-[[gnu::weak]] bool EmuSystem::onRequestedVideoFormatChange(EmuVideo &) { return false; }
+[[gnu::weak]] void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat) {}
 
 [[gnu::weak]] FS::FileString EmuSystem::fullGameNameForPath(Base::ApplicationContext, const char *path)
 {

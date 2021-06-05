@@ -15,14 +15,24 @@
 
 #define LOGTAG "LibPNG"
 
-#include <imagine/data-type/image/LibPNG.hh>
+#include <imagine/data-type/image/PixmapReader.hh>
+#include <imagine/data-type/image/PixmapWriter.hh>
 #include <imagine/io/FileIO.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/pixmap/Pixmap.hh>
+#include <imagine/pixmap/MemPixmap.hh>
 #include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 
+#define PNG_SKIP_SETJMP_CHECK
+#include <png.h>
+
 // this must be in the range 1 to 8
 #define INITIAL_HEADER_READ_BYTES 8
+
+namespace IG::Data
+{
 
 bool Png::supportUncommonConv = 0;
 
@@ -347,32 +357,32 @@ std::errc Png::readImage(IG::Pixmap dest)
 	return {};
 }
 
-Png::operator bool() const
+PixmapReader::operator bool() const
 {
 	return info;
 }
 
-PngFile::~PngFile()
+Png::~Png()
 {
-	deinit();
+	freeImageData();
 }
 
-std::errc PngFile::write(IG::Pixmap dest)
+std::errc PixmapReader::write(IG::Pixmap dest)
 {
-	return(png.readImage(dest));
+	return(readImage(dest));
 }
 
-IG::Pixmap PngFile::pixmapView()
+IG::Pixmap PixmapReader::pixmapView()
 {
-	return {{{(int)png.width(), (int)png.height()}, png.pixelFormat()}, {}};
+	return {{{(int)width(), (int)height()}, pixelFormat()}, {}};
 }
 
-std::error_code PngFile::load(GenericIO io)
+std::error_code PixmapReader::load(GenericIO io)
 {
-	deinit();
+	reset();
 	if(!io)
 		return {EINVAL, std::system_category()};
-	auto ec = png.readHeader(std::move(io));
+	auto ec = readHeader(std::move(io));
 	if(ec)
 	{
 		logErr("error reading header");
@@ -381,9 +391,9 @@ std::error_code PngFile::load(GenericIO io)
 	return {};
 }
 
-std::error_code PngFile::load(const char *name)
+std::error_code PixmapReader::load(const char *name)
 {
-	deinit();
+	reset();
 	if(!string_hasDotExtension(name, "png"))
 	{
 		logErr("suffix doesn't match PNG image");
@@ -398,17 +408,82 @@ std::error_code PngFile::load(const char *name)
 	return load(io.makeGeneric());
 }
 
-std::error_code PngFile::loadAsset(const char *name, const char *appName)
+std::error_code PixmapReader::loadAsset(const char *name, const char *appName)
 {
-	return load(png.appContext().openAsset(name, IO::AccessHint::ALL, appName).makeGeneric());
+	return load(appContext().openAsset(name, IO::AccessHint::ALL, appName).makeGeneric());
 }
 
-void PngFile::deinit()
+void PixmapReader::reset()
 {
-	png.freeImageData();
+	freeImageData();
 }
 
-PngFile::operator bool() const
+#if PNG_LIBPNG_VER < 10500
+using png_const_bytep = png_bytep;
+#endif
+
+bool PixmapWriter::writeToFile(IG::Pixmap pix, const char *path)
 {
-	return (bool)png;
+	FileIO fp;
+	fp.create(path);
+	if(!fp)
+	{
+		return false;
+	}
+	png_structp pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	if(!pngPtr)
+	{
+		FS::remove(path);
+		return false;
+	}
+	png_infop infoPtr = png_create_info_struct(pngPtr);
+	if(!infoPtr)
+	{
+		png_destroy_write_struct(&pngPtr, (png_infopp)NULL);
+		FS::remove(path);
+		return false;
+	}
+	if(setjmp(png_jmpbuf(pngPtr)))
+	{
+		png_destroy_write_struct(&pngPtr, &infoPtr);
+		FS::remove(path);
+		return false;
+	}
+	png_set_write_fn(pngPtr, &fp,
+		[](png_structp pngPtr, png_bytep data, png_size_t length)
+		{
+			auto &io = *(IO*)png_get_io_ptr(pngPtr);
+			if(io.write(data, length) != (ssize_t)length)
+			{
+				logErr("error writing png file");
+				//png_error(pngPtr, "Write Error");
+			}
+		},
+		[](png_structp pngPtr)
+		{
+			logMsg("called png_ioFlush");
+		});
+	png_set_IHDR(pngPtr, infoPtr, pix.w(), pix.h(), 8,
+		PNG_COLOR_TYPE_RGB,
+		PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
+		PNG_FILTER_TYPE_DEFAULT);
+	png_write_info(pngPtr, infoPtr);
+	{
+		IG::MemPixmap tempMemPix{{pix.size(), IG::PIXEL_FMT_RGB888}};
+		auto tempPix = tempMemPix.view();
+		tempPix.writeConverted(pix);
+		uint32_t rowBytes = png_get_rowbytes(pngPtr, infoPtr);
+		assert(rowBytes == tempPix.pitchBytes());
+		auto rowData = (png_const_bytep)tempPix.data();
+		iterateTimes(tempPix.h(), i)
+		{
+			png_write_row(pngPtr, rowData);
+			rowData += tempPix.pitchBytes();
+		}
+	}
+	png_write_end(pngPtr, infoPtr);
+	png_destroy_write_struct(&pngPtr, &infoPtr);
+	return true;
+}
+
 }

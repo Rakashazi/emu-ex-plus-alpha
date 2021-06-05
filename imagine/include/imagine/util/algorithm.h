@@ -116,6 +116,13 @@ static typename C::value_type moveOutIf(C &c, UnaryPredicate pred)
 	}
 }
 
+template<typename InputIt, class Size, typename OutputIt, typename UnaryOperation>
+OutputIt transformN(InputIt first, Size count,
+	OutputIt result, UnaryOperation unary_op)
+{
+	return std::transform(first, first + count, result, unary_op);
+}
+
 // wrapper functions for iterators to non-overlapping memory regions
 // to improve compiler optimization opportunities
 template<typename InputIt, typename OutputIt, typename UnaryOperation>

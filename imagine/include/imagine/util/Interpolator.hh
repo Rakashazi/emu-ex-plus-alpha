@@ -15,8 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <chrono>
 #include <imagine/util/typeTraits.hh>
+#include <chrono>
+#include <cmath>
 
 namespace IG
 {

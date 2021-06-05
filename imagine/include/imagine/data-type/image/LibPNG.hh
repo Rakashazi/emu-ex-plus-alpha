@@ -16,14 +16,21 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/pixmap/Pixmap.hh>
-#include <imagine/data-type/image/GfxImageSource.hh>
-#include <imagine/io/IO.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <system_error>
 
-#define PNG_SKIP_SETJMP_CHECK
-#include <png.h>
+struct png_struct_def;
+struct png_info_def;
+class GenericIO;
+
+namespace IG
+{
+class PixelFormat;
+class Pixmap;
+}
+
+namespace IG::Data
+{
 
 class Png
 {
@@ -31,6 +38,7 @@ public:
 	constexpr Png(Base::ApplicationContext ctx):
 		ctx{ctx}
 	{}
+	~Png();
 	std::error_code readHeader(GenericIO io);
 	std::errc readImage(IG::Pixmap dest);
 	bool hasAlphaChannel();
@@ -39,33 +47,24 @@ public:
 	uint32_t width();
 	uint32_t height();
 	IG::PixelFormat pixelFormat();
-	explicit operator bool() const;
 	constexpr Base::ApplicationContext appContext() const { return ctx; }
 
 protected:
-	png_structp png{};
-	png_infop info{};
-	//png_infop end;
+	png_struct_def *png{};
+	png_info_def *info{};
 	Base::ApplicationContext ctx{};
-	void setTransforms(IG::PixelFormat outFormat, png_infop transInfo);
+	void setTransforms(IG::PixelFormat outFormat, png_info_def *transInfo);
 	static bool supportUncommonConv;
 };
 
-class PngFile final: public GfxImageSource
+using PixmapReaderImpl = Png;
+
+class PngWriter
 {
 public:
-	constexpr PngFile(Base::ApplicationContext ctx):
-		png{ctx}
-	{}
-	~PngFile();
-	std::error_code load(GenericIO io);
-	std::error_code load(const char *name);
-	std::error_code loadAsset(const char *name, const char *appName = Base::ApplicationContext::applicationName);
-	void deinit();
-	std::errc write(IG::Pixmap dest) final;
-	IG::Pixmap pixmapView() final;
-	explicit operator bool() const final;
-
-protected:
-	Png png;
+	constexpr PngWriter(Base::ApplicationContext) {}
 };
+
+using PixmapWriterImpl = PngWriter;
+
+}

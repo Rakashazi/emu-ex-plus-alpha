@@ -430,7 +430,7 @@ static void system_frame_md(EmuSystemTask *task, EmuVideo *emuVideo)
     bitmap.viewport.w = 256 + ((reg[12] & 0x01) << 6);
   }
 
-  auto pixmap = framebufferPixmap();
+  auto pixmap = framebufferRenderFormatPixmap();
 
   /* clear VBLANK, DMA, FIFO FULL & field flags */
   status &= 0xFEE5;
@@ -820,7 +820,7 @@ static void system_frame_sms(EmuSystemTask *task, EmuVideo *emuVideo)
     bitmap.viewport.w = 256 + ((reg[12] & 0x01) << 6);
   }
 
-  auto pixmap = framebufferPixmap();
+  auto pixmap = framebufferRenderFormatPixmap();
 
   /* Detect pause button input */
   if (input.pad[0] & INPUT_START)

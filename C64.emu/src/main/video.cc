@@ -27,6 +27,7 @@ extern "C"
 	#include "sound.h"
 	#include "vsync.h"
 	#include "vsyncapi.h"
+	#include "viewport.h"
 }
 
 struct video_canvas_s *activeCanvas{};
@@ -68,35 +69,43 @@ void vsyncarch_refresh_frequency_changed(double rate)
 	EmuApp::get(appContext).configFrameTime();
 }
 
-static IG::Pixmap makePixmapView(const struct video_canvas_s *c)
+static bool isValidPixelFormat(IG::PixelFormat fmt)
 {
-	return {{{c->w, c->h}, (IG::PixelFormatID)c->pixelFormat}, c->pixmapData};
+	return fmt == IG::PIXEL_FMT_RGB565 || fmt == IG::PIXEL_FMT_RGBA8888 || fmt == IG::PIXEL_FMT_BGRA8888;
 }
 
-static IG::Pixmap releasePixmapView(struct video_canvas_s *c)
+static IG::Pixmap makePixmapView(const struct video_canvas_s *c)
 {
-	auto pix = makePixmapView(c);
-	c->pixmapData = {};
-	return pix;
+	IG::PixelFormat fmt{(IG::PixelFormatID)c->pixelFormat};
+	assumeExpr(isValidPixelFormat(fmt));
+	return {{{c->w, c->h}, fmt}, c->pixmapData};
 }
 
 static IG::PixelDesc pixelDesc(IG::PixelFormat fmt)
 {
-	return fmt == IG::PIXEL_FMT_RGBA8888 ? fmt.desc().nativeOrder() : fmt.desc();
+	assumeExpr(isValidPixelFormat(fmt));
+	return fmt == IG::PIXEL_FMT_RGB565 ? fmt.desc() : fmt.desc().nativeOrder();
+}
+
+static void updateInternalPixelFormat(struct video_canvas_s *c, IG::PixelFormat fmt)
+{
+	assumeExpr(isValidPixelFormat(pixFmt));
+	c->pixelFormat = fmt;
+	c->bpp = pixelDesc(fmt).bitsPerPixel();
 }
 
 void video_arch_canvas_init(struct video_canvas_s *c)
 {
 	logMsg("created canvas with size %d,%d", c->draw_buffer->canvas_width, c->draw_buffer->canvas_height);
 	c->video_draw_buffer_callback = nullptr;
-	c->bpp = pixelDesc(pixFmt).bitsPerPixel();
-	assert(c->bpp == 16 || c->bpp == 32);
+	updateInternalPixelFormat(c, pixFmt);
 	activeCanvas = c;
 }
 
 int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
 {
-	const auto pDesc = pixelDesc(pixFmt);
+	IG::PixelFormat fmt{(IG::PixelFormatID)c->pixelFormat};
+	const auto pDesc = pixelDesc(fmt);
 	iterateTimes(256, i)
 	{
 		plugin.video_render_setrawrgb(i, pDesc.build(i/255., 0., 0., 0.), pDesc.build(0., i/255., 0., 0.), pDesc.build(0., 0., i/255., 0.));
@@ -161,28 +170,42 @@ void resetCanvasSourcePixmap(struct video_canvas_s *c)
 
 static void updateCanvasMemPixmap(struct video_canvas_s *c, int x, int y)
 {
-	IG::PixmapDesc desc{{x, y}, pixFmt};
+	IG::PixelFormat fmt{(IG::PixelFormatID)c->pixelFormat};
+	assumeExpr(isValidPixelFormat(fmt));
+	IG::PixmapDesc desc{{x, y}, fmt};
 	c->w = x;
 	c->h = y;
-	c->pixelFormat = pixFmt;
 	delete[] c->pixmapData;
-	logMsg("allocating pixmap:%dx%d format:%d bytes:%d", x, y, (int)pixFmt, (int)desc.bytes());
+	logMsg("allocating pixmap:%dx%d format:%s bytes:%d", x, y, fmt.name(), (int)desc.bytes());
 	c->pixmapData = new uint8_t[desc.bytes()];
 	resetCanvasSourcePixmap(c);
 }
 
-void updateCanvasPixelFormat(struct video_canvas_s *c)
+static void refreshFullCanvas(video_canvas_t *canvas)
 {
-	c->bpp = pixelDesc(pixFmt).bitsPerPixel();
-	assert(c->bpp == 16 || c->bpp == 32);
-	if(!c->pixmapData || c->pixelFormat == pixFmt)
-		return;
-	auto oldPixmap = releasePixmapView(c);
+	auto viewport = canvas->viewport;
+	auto geometry = canvas->geometry;
+	video_canvas_refresh(canvas,
+		viewport->first_x + geometry->extra_offscreen_border_left,
+		viewport->first_line,
+		viewport->x_offset,
+		viewport->y_offset,
+		std::min(canvas->draw_buffer->canvas_width, geometry->screen_size.width - viewport->first_x),
+		std::min(canvas->draw_buffer->canvas_height, viewport->last_line - viewport->first_line + 1));
+}
+
+bool updateCanvasPixelFormat(struct video_canvas_s *c, IG::PixelFormat fmt)
+{
+	assumeExpr(isValidPixelFormat(fmt));
+	if(c->pixelFormat == fmt)
+		return false;
+	updateInternalPixelFormat(c, fmt);
+	if(!c->pixmapData)
+		return false;
 	updateCanvasMemPixmap(c, c->w, c->h);
-	if(oldPixmap.data())
-		makePixmapView(c).writeConverted(oldPixmap);
-	delete[] oldPixmap.data();
 	video_canvas_set_palette(c, c->palette);
+	refreshFullCanvas(c);
+	return true;
 }
 
 void video_canvas_resize(struct video_canvas_s *c, char resize_canvas)
@@ -205,5 +228,5 @@ void video_canvas_destroy(struct video_canvas_s *c)
 {
 	logMsg("canvas destroy:0x%p", c);
 	delete[] c->pixmapData;
-	releasePixmapView(c);
+	c->pixmapData = {};
 }

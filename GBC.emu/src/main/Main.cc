@@ -34,6 +34,8 @@ static uint8_t activeResampler = 1;
 static uint32_t totalFrames = 0;
 static uint64_t totalSamples = 0;
 alignas(8) static uint_least32_t frameBuffer[gambatte::lcd_hres * gambatte::lcd_vres];
+static constexpr IG::WP lcdSize{gambatte::lcd_hres, gambatte::lcd_vres};
+static bool useBgrOrder{};
 static const GBPalette *gameBuiltinPalette{};
 bool EmuSystem::hasCheats = true;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
@@ -69,7 +71,8 @@ static uint_least32_t makeOutputColor(uint_least32_t rgb888)
 	unsigned b = rgb888       & 0xFF;
 	unsigned g = rgb888 >>  8 & 0xFF;
 	unsigned r = rgb888 >> 16 & 0xFF;
-	return 0xFF << 24 | b << 16 | g << 8 | r;
+	auto desc = useBgrOrder ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
+	return desc.build(r, g, b, 0u);
 }
 
 uint_least32_t gbcToRgb32(unsigned const bgr15)
@@ -77,20 +80,21 @@ uint_least32_t gbcToRgb32(unsigned const bgr15)
 	unsigned r = bgr15       & 0x1F;
 	unsigned g = bgr15 >>  5 & 0x1F;
 	unsigned b = bgr15 >> 10 & 0x1F;
-	uint_least32_t color;
+	unsigned outR, outG, outB;
 	if(optionFullGbcSaturation)
 	{
-		color = ((r * 255 + 15) / 31) << 16 |
-			((g * 255 + 15) / 31) << 8 |
-			((b * 255 + 15) / 31);
+		outR = (r * 255 + 15) / 31;
+		outG = (g * 255 + 15) / 31;
+		outB = (b * 255 + 15) / 31;
 	}
 	else
 	{
-		color = ((r * 13 + g * 2 + b) >> 1) << 16
-		| (g * 3 + b) << 9
-		| (r * 3 + g * 2 + b * 11) >> 1;
+		outR = (r * 13 + g * 2 + b) >> 1;
+		outG = (g * 3 + b) << 1;
+		outB = (r * 3 + g * 2 + b * 11) >> 1;
 	}
-	return makeOutputColor(color);
+	auto desc = useBgrOrder ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
+	return desc.build(outR, outG, outB, 0u);
 }
 
 void applyGBPalette()
@@ -193,9 +197,22 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 	return {};
 }
 
-bool EmuSystem::onRequestedVideoFormatChange(EmuVideo &video)
+void EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
-	return video.setFormat({{gambatte::lcd_hres, gambatte::lcd_vres}, video.requestedPixelFormat()});
+	if(!video.setFormat({lcdSize, fmt}))
+		return;
+	auto isBgrOrder = fmt == IG::PIXEL_BGRA8888;
+	if(isBgrOrder != useBgrOrder)
+	{
+		useBgrOrder = isBgrOrder;
+		IG::Pixmap frameBufferPix{{lcdSize, IG::PIXEL_RGBA8888}, frameBuffer};
+		frameBufferPix.transformInPlace(
+			[](uint32_t srcPixel) // swap red/blue values
+			{
+				return (srcPixel & 0xFF000000) | ((srcPixel & 0xFF0000) >> 16) | (srcPixel & 0x00FF00) | ((srcPixel & 0x0000FF) << 16);
+			});
+	}
+	gbEmu.refreshPalettes();
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
@@ -239,7 +256,8 @@ static size_t runUntilVideoFrame(gambatte::uint_least32_t *videoBuf, std::ptrdif
 
 static void renderVideo(EmuSystemTask *task, EmuVideo &video)
 {
-	IG::Pixmap frameBufferPix{{{gambatte::lcd_hres, gambatte::lcd_vres}, IG::PIXEL_RGBA8888}, frameBuffer};
+	auto fmt = video.renderPixelFormat() == IG::PIXEL_FMT_BGRA8888 ? IG::PIXEL_FMT_BGRA8888 : IG::PIXEL_FMT_RGBA8888;
+	IG::Pixmap frameBufferPix{{lcdSize, fmt}, frameBuffer};
 	video.startFrameWithAltFormat(task, frameBufferPix);
 }
 

@@ -16,7 +16,6 @@
 #define LOGTAG "EmuVideo"
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuApp.hh>
-#include <emuframework/Screenshot.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/RendererCommands.hh>
@@ -47,13 +46,25 @@ bool EmuVideo::hasRendererTask() const
 	return rTask;
 }
 
+static bool isValidRenderFormat(IG::PixelFormat fmt)
+{
+	return fmt == IG::PIXEL_FMT_RGBA8888 ||
+		fmt == IG::PIXEL_FMT_BGRA8888 ||
+		fmt == IG::PIXEL_FMT_RGB565;
+}
+
+static bool formatSupportsSrgb(IG::PixelFormat fmt)
+{
+	return fmt == IG::PIXEL_BGRA8888 || fmt == IG::PIXEL_RGBA8888;
+}
+
 bool EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTask *task)
 {
 	if(formatIsEqual(desc))
 	{
 		return false; // no change to size/format
 	}
-	colorSpace_ = useSrgbColorSpace && desc.format() == IG::PIXEL_RGBA8888 ? Gfx::ColorSpace::SRGB : Gfx::ColorSpace::LINEAR;
+	colorSpace_ = useSrgbColorSpace && formatSupportsSrgb(desc.format()) ? Gfx::ColorSpace::SRGB : Gfx::ColorSpace::LINEAR;
 	if(!vidImg)
 	{
 		Gfx::TextureConfig conf{desc, texSampler};
@@ -112,7 +123,8 @@ void EmuVideo::startFrameWithFormat(EmuSystemTask *task, IG::Pixmap pix)
 
 void EmuVideo::startFrameWithAltFormat(EmuSystemTask *task, IG::Pixmap pix)
 {
-	auto destFmt = requestedPixelFormat();
+	auto destFmt = renderPixelFormat();
+	assumeExpr(isValidRenderFormat(pix.format()));
 	if(pix.format() == destFmt)
 	{
 		startFrameWithFormat(task, pix);
@@ -190,8 +202,7 @@ void EmuVideo::takeGameScreenshot()
 void EmuVideo::doScreenshot(EmuSystemTask *task, IG::Pixmap pix)
 {
 	screenshotNextFrame = false;
-	FS::PathString path;
-	int screenshotNum = sprintScreenshotFilename(path);
+	auto [screenshotNum, path] = app().makeNextScreenshotFilename();
 	if(screenshotNum == -1)
 	{
 		if(task)
@@ -205,7 +216,7 @@ void EmuVideo::doScreenshot(EmuSystemTask *task, IG::Pixmap pix)
 	}
 	else
 	{
-		auto success = writeScreenshot(renderer().appContext(), pix, path.data());
+		auto success = app().writeScreenshot(pix, path.data());
 		if(task)
 		{
 			task->sendScreenshotReply(screenshotNum, success);
@@ -293,6 +304,10 @@ bool EmuVideo::setTextureBufferMode(Gfx::TextureBufferMode mode)
 	mode = renderer().makeValidTextureBufferMode(mode);
 	bool modeChanged = bufferMode != mode;
 	bufferMode = mode;
+	if(renderFmt == IG::PIXEL_RGBA8888 || renderFmt == IG::PIXEL_BGRA8888)
+	{
+		setRenderPixelFormat(IG::PIXEL_RGBA8888); // re-apply format for possible RGB/BGR change
+	}
 	return modeChanged && vidImg;
 }
 
@@ -338,14 +353,24 @@ bool EmuVideo::isSrgbFormat() const
 	return colorSpace_ == Gfx::ColorSpace::SRGB;
 }
 
-void EmuVideo::setRequestedPixelFormat(IG::PixelFormat fmt)
+void EmuVideo::setRenderPixelFormat(IG::PixelFormat fmt)
 {
 	assert(fmt);
-	requestedFmt = fmt;
+	assert(bufferMode != Gfx::TextureBufferMode::DEFAULT);
+	if(fmt == IG::PIXEL_RGBA8888 && renderer().hasBgraFormat(bufferMode))
+	{
+		fmt = IG::PIXEL_BGRA8888;
+	}
+	renderFmt = fmt;
 }
 
-IG::PixelFormat EmuVideo::requestedPixelFormat() const
+IG::PixelFormat EmuVideo::renderPixelFormat() const
 {
-	assumeExpr(requestedFmt);
-	return requestedFmt;
+	assumeExpr(isValidRenderFormat(renderFmt));
+	return renderFmt;
+}
+
+IG::PixelFormat EmuVideo::internalRenderPixelFormat() const
+{
+	return renderPixelFormat() == IG::PIXEL_BGRA8888 ? IG::PIXEL_FMT_RGBA8888 : renderPixelFormat();
 }

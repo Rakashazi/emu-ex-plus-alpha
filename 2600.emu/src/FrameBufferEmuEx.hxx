@@ -6,6 +6,7 @@
 #include <stella/emucore/tia/TIAConstants.hxx>
 #include <stella/emucore/FrameBufferConstants.hxx>
 #include <stella/emucore/EventHandlerConstants.hxx>
+#include <imagine/pixmap/PixelFormat.hh>
 #include <array>
 
 class Console;
@@ -49,8 +50,7 @@ public:
 
 	FrameBuffer(OSystem& osystem);
 
-	void render16(IG::Pixmap pix, TIA &tia);
-	void render32(IG::Pixmap pix, TIA &tia);
+	void render(IG::Pixmap pix, TIA &tia);
 
 	FrameBuffer &tiaSurface() { return *this; }
 
@@ -67,6 +67,9 @@ public:
 	void showFrameStats(bool enable) {}
 
 	void setTIAPalette(const PaletteArray& rgb_palette);
+
+	void setPixelFormat(IG::PixelFormat);
+	IG::PixelFormat pixelFormat() const;
 
 	void showMessage(const string& message,
 										int position = 0,
@@ -96,9 +99,10 @@ private:
 	std::array<uInt8, 160 * TIAConstants::frameBufferHeight> prevFramebuffer{};
 	Common::Rect myImageRect{};
 	float myPhosphorPercent = 0.80f;
-	bool myUsePhosphor = false;
+	bool myUsePhosphor{};
+	IG::PixelFormat format;
 
 	std::array<uInt8, 3> getRGBPhosphorTriple(uInt32 c, uInt32 p) const;
 	template <int outputBits>
-	void render(IG::Pixmap pix, TIA &tia);
+	void renderOutput(IG::Pixmap pix, TIA &tia);
 };

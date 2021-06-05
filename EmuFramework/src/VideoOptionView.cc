@@ -558,7 +558,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			if(idx == 0)
 			{
-				t.setString(emuVideo().requestedPixelFormat().name());
+				t.setString(emuVideo().internalRenderPixelFormat().name());
 				return true;
 			}
 			else
@@ -655,7 +655,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			if(idx == 0)
 			{
-				t.setString(emuVideo().requestedPixelFormat().name());
+				t.setString(emuVideo().internalRenderPixelFormat().name());
 				return true;
 			}
 			return false;

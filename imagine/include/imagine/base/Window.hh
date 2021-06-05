@@ -164,7 +164,8 @@ public:
 	void dispatchDismissRequest();
 	void dispatchOnDraw(bool needsSync = false);
 	void dispatchOnFrame();
-	void dispatchSurfaceChange();
+	void dispatchSurfaceCreated();
+	void dispatchSurfaceChanged();
 	void dispatchSurfaceDestroyed();
 
 private:

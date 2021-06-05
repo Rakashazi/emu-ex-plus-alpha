@@ -292,14 +292,7 @@ void Window::drawNow(bool needsSync)
 
 void Window::setNeedsCustomViewportResize(bool needsResize)
 {
-	if(needsResize)
-	{
-		surfaceChange.addCustomViewportResized();
-	}
-	else
-	{
-		surfaceChange.removeCustomViewportResized();
-	}
+	surfaceChangeFlags = setOrClearBits(surfaceChangeFlags, SurfaceChange::CUSTOM_VIEWPORT_RESIZED, needsResize);
 }
 
 bool Window::dispatchInputEvent(Input::Event event)
@@ -329,16 +322,21 @@ void Window::dispatchDismissRequest()
 	onDismissRequest.callCopy(*this);
 }
 
-void Window::dispatchSurfaceChange()
+void Window::dispatchSurfaceCreated()
 {
-	onSurfaceChange.callCopy(*this, std::exchange(surfaceChange, {}));
+	onSurfaceChange.callCopy(*this, {SurfaceChange::Action::CREATED});
+}
+
+void Window::dispatchSurfaceChanged()
+{
+	onSurfaceChange.callCopy(*this, {SurfaceChange::Action::CHANGED, std::exchange(surfaceChangeFlags, {})});
 }
 
 void Window::dispatchSurfaceDestroyed()
 {
+	surfaceChangeFlags = 0;
 	unpostDraw();
-	surfaceChange.addDestroyed();
-	dispatchSurfaceChange();
+	onSurfaceChange.callCopy(*this, {SurfaceChange::Action::DESTROYED});
 }
 
 void Window::dispatchOnDraw(bool needsSync)
@@ -373,10 +371,9 @@ void Window::draw(bool needsSync)
 {
 	DrawParams params;
 	params.needsSync_ = needsSync;
-	if(surfaceChange.flags) [[unlikely]]
+	if(surfaceChangeFlags) [[unlikely]]
 	{
-		assert(!surfaceChange.destroyed());
-		dispatchSurfaceChange();
+		dispatchSurfaceChanged();
 		params.wasResized_ = true;
 	}
 	drawNeeded = false;
@@ -405,7 +402,7 @@ bool Window::updateSize(IG::Point2D<int> surfaceSize)
 	{
 		updatePhysicalSize(pixelSizeAsMM({realWidth(), realHeight()}));
 	}
-	surfaceChange.addSurfaceResized();
+	surfaceChangeFlags |= SurfaceChange::SURFACE_RESIZED;
 	return true;
 }
 

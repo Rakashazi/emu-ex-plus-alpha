@@ -15,12 +15,17 @@
 
 #define LOGTAG "BitmapFactory"
 
-#include <imagine/data-type/image/Android.hh>
+#include <imagine/data-type/image/PixmapReader.hh>
+#include <imagine/data-type/image/PixmapWriter.hh>
 #include "../../base/android/android.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
+#include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/jni.hh>
 #include <imagine/logger/logger.h>
+
+namespace IG::Data
+{
 
 static jclass jBitmapFactory{};
 static JNI::ClassMethod<jobject(jstring)> jDecodeFile{};
@@ -46,7 +51,7 @@ IG::PixelFormat BitmapFactoryImage::pixelFormat() const
 	return Base::makePixelFormatFromAndroidFormat(info.format);
 }
 
-std::error_code BitmapFactoryImage::load(const char *name)
+std::error_code PixmapReader::load(const char *name)
 {
 	freeImageData();
 	auto env = ctx.thisThreadJniEnv();
@@ -67,7 +72,7 @@ std::error_code BitmapFactoryImage::load(const char *name)
 	return {};
 }
 
-std::error_code BitmapFactoryImage::loadAsset(const char *name)
+std::error_code PixmapReader::loadAsset(const char *name, const char *)
 {
 	freeImageData();
 	logMsg("loading PNG asset: %s", name);
@@ -117,44 +122,65 @@ void BitmapFactoryImage::freeImageData()
 	}
 }
 
-BitmapFactoryImage::operator bool() const
+PixmapReader::operator bool() const
 {
 	return (bool)bitmap;
 }
 
-PngFile::~PngFile()
+BitmapFactoryImage::~BitmapFactoryImage()
 {
-	deinit();
+	freeImageData();
 }
 
-std::errc PngFile::write(IG::Pixmap dest)
+std::errc PixmapReader::write(IG::Pixmap dest)
 {
-	return(png.readImage(dest));
+	return(readImage(dest));
 }
 
-IG::Pixmap PngFile::pixmapView()
+IG::Pixmap PixmapReader::pixmapView()
 {
-	return {{{(int)png.width(), (int)png.height()}, png.pixelFormat()}, {}};
+	return {{{(int)width(), (int)height()}, pixelFormat()}, {}};
 }
 
-std::error_code PngFile::load(const char *name)
+void PixmapReader::reset()
 {
-	deinit();
-	return png.load(name);
+	freeImageData();
 }
 
-std::error_code PngFile::loadAsset(const char *name, const char *appName)
+BitmapWriter::BitmapWriter(Base::ApplicationContext ctx):
+	ctx{ctx}
 {
-	deinit();
-	return png.loadAsset(name);
+	auto env = ctx.mainThreadJniEnv();
+	auto baseActivity = ctx.baseActivityObject();
+	auto baseActivityCls = env->GetObjectClass(baseActivity);
+	jMakeBitmap = {env, baseActivityCls, "makeBitmap", "(III)Landroid/graphics/Bitmap;"};
+	jWritePNG = {env, baseActivityCls, "writePNG", "(Landroid/graphics/Bitmap;Ljava/lang/String;)Z"};
 }
 
-void PngFile::deinit()
+bool PixmapWriter::writeToFile(IG::Pixmap pix, const char *path)
 {
-	png.freeImageData();
+	using namespace Base;
+	auto env = ctx.thisThreadJniEnv();
+	auto baseActivity = ctx.baseActivityObject();
+	auto aFormat = pix.format().id() == PIXEL_RGB565 ? ANDROID_BITMAP_FORMAT_RGB_565 : ANDROID_BITMAP_FORMAT_RGBA_8888;
+	auto bitmap = jMakeBitmap(env, baseActivity, pix.w(), pix.h(), aFormat);
+	if(!bitmap)
+	{
+		logErr("error allocating bitmap");
+		return false;
+	}
+	void *buffer;
+	AndroidBitmap_lockPixels(env, bitmap, &buffer);
+	Base::makePixmapView(env, bitmap, buffer, pix.format()).writeConverted(pix, {});
+	AndroidBitmap_unlockPixels(env, bitmap);
+	auto pathJStr = env->NewStringUTF(path);
+	auto writeOK = jWritePNG(env, baseActivity, bitmap, pathJStr);
+	if(!writeOK)
+	{
+		logErr("error writing PNG");
+		return false;
+	}
+	return true;
 }
 
-PngFile::operator bool() const
-{
-	return (bool)png;
 }

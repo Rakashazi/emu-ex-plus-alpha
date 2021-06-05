@@ -54,7 +54,7 @@ void GLRendererCommands::setCurrentDrawable(Drawable drawable)
 	auto &glCtx = glContext();
 	assert(glCtx);
 	assert(Base::GLManager::currentContext() == glCtx);
-	if(rTask->handleDrawableReset() || !Base::GLManager::hasCurrentDrawable(drawable))
+	if(!Base::GLManager::hasCurrentDrawable(drawable))
 	{
 		glCtx.setCurrentDrawable(drawable);
 	}

@@ -15,12 +15,19 @@
 
 static_assert(__has_feature(objc_arc), "This file requires ARC");
 #define LOGTAG "QuartzPNG"
-#include <imagine/data-type/image/Quartz2d.hh>
+#include <imagine/data-type/image/PixmapWriter.hh>
+#include <imagine/pixmap/MemPixmap.hh>
 #include "../../base/iphone/private.hh"
 #import <UIKit/UIImage.h>
 
-void Quartz2dImage::writeImage(const IG::Pixmap pix, const char *name)
+namespace IG::Data
 {
+
+bool PixmapWriter::writeToFile(IG::Pixmap srcPix, const char *path)
+{
+	IG::MemPixmap tempMemPix{{srcPix.size(), IG::PIXEL_FMT_RGB888}};
+	auto pix = tempMemPix.view();
+	pix.writeConverted(srcPix);
 	auto provider = CGDataProviderCreateWithData(nullptr, pix.data(), pix.bytes(), nullptr);
 	int bitsPerComponent = 8;
 	CGBitmapInfo bitmapInfo = kCGImageAlphaNone;
@@ -31,7 +38,9 @@ void Quartz2dImage::writeImage(const IG::Pixmap pix, const char *name)
 	{
 		UIImage *uiImage = [UIImage imageWithCGImage:imageRef];
 		CGImageRelease(imageRef);
-		auto pathStr = [[NSString alloc] initWithBytesNoCopy:(void*)name length:strlen(name) encoding:NSUTF8StringEncoding freeWhenDone:false];
-		[UIImagePNGRepresentation(uiImage) writeToFile:pathStr atomically:YES];
+		auto pathStr = [[NSString alloc] initWithBytesNoCopy:(void*)path length:strlen(path) encoding:NSUTF8StringEncoding freeWhenDone:false];
+		return [UIImagePNGRepresentation(uiImage) writeToFile:pathStr atomically:YES];
 	}
+}
+
 }

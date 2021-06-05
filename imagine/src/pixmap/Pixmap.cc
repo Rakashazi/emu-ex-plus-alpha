@@ -60,17 +60,25 @@ static void invalidFormatConversion(Pixmap dest, Pixmap src)
 	logErr("unimplemented conversion:%s -> %s", src.format().name(), dest.format().name());
 }
 
+template <bool BGR_SWAP = false>
 static void convertRGB888ToRGBX8888(Pixmap dest, Pixmap src)
 {
 	dest.writeTransformedDirect<ByteArray<3>, uint32_t>(
 		[](auto p)
 		{
+			if constexpr(BGR_SWAP) { std::swap(p[0], p[2]); }
 			return p[0] << 16 |
 					p[1] << 8 |
 					p[2];
 		}, src);
 }
 
+static void convertRGB888ToBGRX8888(Pixmap dest, Pixmap src)
+{
+	convertRGB888ToRGBX8888<true>(dest, src);
+}
+
+template <bool BGR_SWAP = false>
 static void convertRGB565ToRGBX8888(Pixmap dest, Pixmap src)
 {
 	dest.writeTransformed(
@@ -79,12 +87,19 @@ static void convertRGB565ToRGBX8888(Pixmap dest, Pixmap src)
 			unsigned b = p       & 0x1F;
 			unsigned g = p >>  5 & 0x3F;
 			unsigned r = p >> 11 & 0x1F;
+			if constexpr(BGR_SWAP) { std::swap(r, b); }
 			return ((b * 255 + 15) / 31) << 16 |
 					((g * 255 + 31) / 63) << 8 |
 					((r * 255 + 15) / 31);
 		}, src);
 }
 
+static void convertRGB565ToBGRX8888(Pixmap dest, Pixmap src)
+{
+	return convertRGB565ToRGBX8888<true>(dest, src);
+}
+
+template <bool BGR_SWAP = false>
 static void convertRGBX8888ToRGB888(Pixmap dest, Pixmap src)
 {
 	dest.writeTransformedDirect<uint32_t, ByteArray<3>>(
@@ -93,6 +108,7 @@ static void convertRGBX8888ToRGB888(Pixmap dest, Pixmap src)
 			unsigned r = p       & 0xFF;
 			unsigned g = p >>  8 & 0xFF;
 			unsigned b = p >> 16 & 0xFF;
+			if constexpr(BGR_SWAP) { std::swap(r, b); }
 			return ByteArray<3>
 				{
 					(uint8_t)r,
@@ -100,6 +116,11 @@ static void convertRGBX8888ToRGB888(Pixmap dest, Pixmap src)
 					(uint8_t)b
 				};
 		}, src);
+}
+
+static void convertBGRX8888ToRGB888(Pixmap dest, Pixmap src)
+{
+	convertRGBX8888ToRGB888<true>(dest, src);
 }
 
 static void convertRGB565ToRGB888(Pixmap dest, Pixmap src)
@@ -133,6 +154,7 @@ static void convertRGB888ToRGB565(Pixmap dest, Pixmap src)
 		}, src);
 }
 
+template <bool BGR_SWAP = false>
 static void convertRGBX8888ToRGB565(Pixmap dest, Pixmap src)
 {
 	dest.writeTransformed(
@@ -141,10 +163,25 @@ static void convertRGBX8888ToRGB565(Pixmap dest, Pixmap src)
 			unsigned r = p       & 0xFF;
 			unsigned g = p >>  8 & 0xFF;
 			unsigned b = p >> 16 & 0xFF;
+			if constexpr(BGR_SWAP) { std::swap(r, b); }
 			return ((r * (31 * 2) + 255) / (255 * 2)) << 11 |
 					((g * 63 + 127) / 255) << 5 |
 					((b * 31 + 127) / 255);
 		}, src);
+}
+
+static void convertRGBA8888ToBGRA8888(Pixmap dest, Pixmap src)
+{
+	dest.writeTransformed(
+		[](uint32_t p)
+		{
+			return (p & 0xFF000000) | ((p & 0xFF0000) >> 16) | (p & 0x00FF00) | ((p & 0x0000FF) << 16);
+		}, src);
+}
+
+static void convertBGRX8888ToRGB565(Pixmap dest, Pixmap src)
+{
+	return convertRGBX8888ToRGB565<true>(dest, src);
 }
 
 void Pixmap::writeConverted(Pixmap pixmap)
@@ -160,13 +197,23 @@ void Pixmap::writeConverted(Pixmap pixmap)
 		case PIXEL_RGBA8888:
 			switch(srcFormatID)
 			{
-				case PIXEL_RGB888: return convertRGB888ToRGBX8888(*this, pixmap);
+				case PIXEL_BGRA8888: return convertRGBA8888ToBGRA8888(*this, pixmap);
 				case PIXEL_RGB565: return convertRGB565ToRGBX8888(*this, pixmap);
+				case PIXEL_RGB888: return convertRGB888ToRGBX8888(*this, pixmap);
+				default: return invalidFormatConversion(*this, pixmap);
+			}
+		case PIXEL_BGRA8888:
+			switch(srcFormatID)
+			{
+				case PIXEL_RGBA8888: return convertRGBA8888ToBGRA8888(*this, pixmap);
+				case PIXEL_RGB565: return convertRGB565ToBGRX8888(*this, pixmap);
+				case PIXEL_RGB888: return convertRGB888ToBGRX8888(*this, pixmap);
 				default: return invalidFormatConversion(*this, pixmap);
 			}
 		case PIXEL_RGB888:
 			switch(srcFormatID)
 			{
+				case PIXEL_BGRA8888: return convertBGRX8888ToRGB888(*this, pixmap);
 				case PIXEL_RGBA8888: return convertRGBX8888ToRGB888(*this, pixmap);
 				case PIXEL_RGB565: return convertRGB565ToRGB888(*this, pixmap);
 				default: return invalidFormatConversion(*this, pixmap);
@@ -174,8 +221,9 @@ void Pixmap::writeConverted(Pixmap pixmap)
 		case PIXEL_RGB565:
 			switch(srcFormatID)
 			{
-				case PIXEL_RGB888: return convertRGB888ToRGB565(*this, pixmap);
 				case PIXEL_RGBA8888: return convertRGBX8888ToRGB565(*this, pixmap);
+				case PIXEL_BGRA8888: return convertBGRX8888ToRGB565(*this, pixmap);
+				case PIXEL_RGB888: return convertRGB888ToRGB565(*this, pixmap);
 				default: return invalidFormatConversion(*this, pixmap);
 			}
 		default:

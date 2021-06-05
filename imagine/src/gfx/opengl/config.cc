@@ -68,10 +68,7 @@ static void printFeatures(DrawContextSupport support)
 	#ifdef CONFIG_GFX_OPENGL_ES
 	if(support.hasBGRPixels)
 	{
-		if(support.bgrInternalFormat == GL_RGBA)
-			featuresStr.append(" [BGR Formats (Apple)]");
-		else
-			featuresStr.append(" [BGR Formats]");
+		featuresStr.append(" [BGRA Format]");
 	}
 	#endif
 	if(support.hasTextureSwizzle)
@@ -176,12 +173,10 @@ void GLRenderer::setupNonPow2MipmapRepeatTextures()
 	support.textureSizeSupport.nonPow2CanRepeat = true;
 }
 
-#ifdef CONFIG_GFX_OPENGL_ES
 void GLRenderer::setupBGRPixelSupport()
 {
 	support.hasBGRPixels = true;
 }
-#endif
 
 void GLRenderer::setupFBOFuncs(bool &useFBOFuncs)
 {
@@ -376,12 +371,8 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	{
 		support.hasUnpackRowLength = true;
 	}
-	else if(string_equal(extStr, "GL_APPLE_texture_format_BGRA8888"))
-	{
-		support.bgrInternalFormat = GL_RGBA;
-		setupBGRPixelSupport();
-	}
-	else if(string_equal(extStr, "GL_EXT_texture_format_BGRA8888"))
+	else if((!Config::envIsIOS && string_equal(extStr, "GL_EXT_texture_format_BGRA8888"))
+			|| (Config::envIsIOS && string_equal(extStr, "GL_APPLE_texture_format_BGRA8888")))
 	{
 		setupBGRPixelSupport();
 	}

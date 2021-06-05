@@ -32,7 +32,7 @@
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gui/ToastView.hh>
 #include <imagine/gui/AlertView.hh>
-#include <imagine/data-type/image/sys.hh>
+#include <imagine/data-type/image/PixmapReader.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/thread/Thread.hh>
@@ -58,7 +58,8 @@ EmuApp::EmuApp(Base::ApplicationInitParams initParams, Base::ApplicationContext 
 		}
 	},
 	inputDevConf{},
-	lastLoadPath{ctx.sharedStoragePath()}
+	lastLoadPath{ctx.sharedStoragePath()},
+	pixmapWriter{ctx}
 {
 	if(rendererErr)
 	{
@@ -141,13 +142,13 @@ Gfx::PixmapTexture &EmuApp::asset(AssetID assetID) const
 	auto &res = assetBuffImg[assetIdx];
 	if(!res)
 	{
-		PngFile png{renderer.appContext()};
-		if(auto ec = png.loadAsset(assetFilename[assetIdx]);
+		IG::Data::PixmapReader pixReader{renderer.appContext()};
+		if(auto ec = pixReader.loadAsset(assetFilename[assetIdx]);
 			ec)
 		{
 			logErr("couldn't load %s", assetFilename[assetIdx]);
 		}
-		res = renderer.makePixmapTexture(png, &renderer.get(View::imageCommonTextureSampler));
+		res = renderer.makePixmapTexture(pixReader, &renderer.get(View::imageCommonTextureSampler));
 	}
 	return res;
 }
@@ -298,18 +299,20 @@ void EmuApp::applyRenderPixelFormat()
 		fmt = windowDrawableConfig().pixelFormat;
 	if(!fmt)
 		fmt = appContext().defaultWindowPixelFormat();
-	logMsg("setting requested render pixel format:%s", fmt.name());
-	emuVideo.setRequestedPixelFormat(fmt);
-	if(EmuSystem::onRequestedVideoFormatChange(emuVideo))
-	{
-		renderSystemFramebuffer(emuVideo);
-	}
+	emuVideo.setRenderPixelFormat(fmt);
+	fmt = emuVideo.renderPixelFormat();
+	logMsg("setting render pixel format:%s", fmt.name());
+	EmuSystem::onVideoRenderFormatChange(emuVideo, fmt);
+	renderSystemFramebuffer(emuVideo);
 }
 
 void EmuApp::renderSystemFramebuffer(EmuVideo &video)
 {
 	if(!EmuSystem::gameIsRunning())
+	{
+		video.clear();
 		return;
+	}
 	logMsg("updating video with current framebuffer content");
 	EmuSystem::renderFramebuffer(video);
 }
@@ -1116,6 +1119,27 @@ const KeyMapping &EmuApp::keyInputMapping()
 std::vector<InputDeviceConfig> &EmuApp::inputDeviceConfigs()
 {
 	return inputDevConf;
+}
+
+bool EmuApp::writeScreenshot(IG::Pixmap pix, const char *path)
+{
+	return pixmapWriter.writeToFile(pix, path);
+}
+
+std::pair<int, FS::PathString> EmuApp::makeNextScreenshotFilename()
+{
+	constexpr int maxNum = 999;
+	iterateTimes(maxNum, i)
+	{
+		auto str = FS::makePathStringPrintf("%s/%s.%.3d.png", EmuSystem::savePath(), EmuSystem::gameName().data(), i);
+		if(!FS::exists(str))
+		{
+			logMsg("screenshot %d", i);
+			return {i, str};
+		}
+	}
+	logMsg("no screenshot filenames left");
+	return {-1, {}};
 }
 
 EmuApp &EmuApp::get(Base::ApplicationContext ctx)

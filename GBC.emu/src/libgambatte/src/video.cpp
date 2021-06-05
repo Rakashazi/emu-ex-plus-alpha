@@ -242,7 +242,7 @@ void LCD::updateScreen(bool const blanklcd, unsigned long const cycleCounter) {
 	update(cycleCounter);
 
 	if (blanklcd && ppu_.frameBuf().fb()) {
-		unsigned long color = ppu_.cgb() ? gbcToRgb32(0xFFFF) : dmgColorsRgb32_[0][0];
+		unsigned long color = ppu_.cgb() ? 0xFFFFFFFF : dmgColorsRgb32_[0][0];
 		clear(ppu_.frameBuf().fb(), color, ppu_.frameBuf().pitch());
 	}
 

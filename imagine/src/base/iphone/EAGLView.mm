@@ -165,7 +165,6 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 	assumeExpr(Base::makeRenderbuffer);
 	auto size = Base::makeRenderbuffer((__bridge void*)self.layer, _colorRenderbuffer, _depthRenderbuffer);
 	auto &win = *Base::windowForUIWindow({[UIApplication sharedApplication]}, self.window);
-	win.resetSurface();
 	updateWindowSizeAndContentRect(win, size.x, size.y, Base::sharedApp);
 	win.postDraw();
 	//logMsg("exiting layoutSubviews");

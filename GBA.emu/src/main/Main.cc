@@ -39,6 +39,7 @@ bool detectedRtcGame = 0;
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
 bool EmuSystem::hasBundledGames = true;
 bool EmuSystem::hasCheats = true;
+static constexpr IG::WP lcdSize{240, 160};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
 	[](const char *name)
@@ -171,17 +172,17 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 	return {};
 }
 
-bool EmuSystem::onRequestedVideoFormatChange(EmuVideo &video)
+void EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
-	auto fmt = video.requestedPixelFormat();
-	if(!video.setFormat({{240, 160}, fmt}))
-		return false;
+	if(!video.setFormat({lcdSize, fmt}))
+		return;
 	logMsg("updating system color maps");
-	if(fmt == IG::PIXEL_FMT_RGB565)
+	if(fmt == IG::PIXEL_RGB565)
 		utilUpdateSystemColorMaps(16, 11, 6, 0);
+	else if(fmt == IG::PIXEL_BGRA8888)
+		utilUpdateSystemColorMaps(32, 19, 11, 3);
 	else
 		utilUpdateSystemColorMaps(32, 3, 11, 19);
-	return true;
 }
 
 void EmuSystem::renderFramebuffer(EmuVideo &video)
@@ -192,7 +193,7 @@ void EmuSystem::renderFramebuffer(EmuVideo &video)
 void systemDrawScreen(EmuSystemTask *task, EmuVideo &video)
 {
 	auto img = video.startFrame(task);
-	IG::Pixmap framePix{{{240, 160}, IG::PIXEL_RGB565}, gGba.lcd.pix};
+	IG::Pixmap framePix{{lcdSize, IG::PIXEL_RGB565}, gGba.lcd.pix};
 	assumeExpr(img.pixmap().size() == framePix.size());
 	if(img.pixmap().format() == IG::PIXEL_FMT_RGB565)
 	{

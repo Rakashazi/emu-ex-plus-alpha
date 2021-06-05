@@ -28,10 +28,9 @@ class CustomAudioOptionView : public AudioOptionView
 {
 	void setResampleQuality(AudioSettings::ResamplingQuality val)
 	{
-		auto os = osystem.get();
 		logMsg("set resampling quality:%d", (int)val);
 		optionAudioResampleQuality = (uint8_t)val;
-		os->setResampleQuality(val);
+		osystem->setResampleQuality(val);
 	}
 
 	TextMenuItem resampleQualityItem[3]

@@ -210,7 +210,7 @@ public:
 	static void renderFramebuffer(EmuVideo &);
 	static bool shouldFastForward();
 	static void onPrepareAudio(EmuAudio &);
-	static bool onRequestedVideoFormatChange(EmuVideo &);
+	static void onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat);
 	static bool vidSysIsPAL();
 	static uint32_t updateAudioFramesPerVideoFrame();
 	static double frameRate();
@@ -235,6 +235,7 @@ public:
 	}
 	static bool touchControlsApplicable();
 	static bool handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect);
+	static void setStartFrameTime(Base::FrameTime time);
 	static EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);
 	static void setSpeedMultiplier(EmuAudio &, uint8_t speed);
 	static void setupGamePaths(Base::ApplicationContext, const char *filePath);

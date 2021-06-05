@@ -179,7 +179,8 @@ void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b)
 	}
 	else // RGBA8888
 	{
-		nativeCol.col32[index] = pixFmt.desc().nativeOrder().build(r, g, b, (uint8)0);
+		auto desc = pixFmt == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
+		nativeCol.col32[index] = desc.build(r, g, b, (uint8)0);
 	}
 	//logMsg("set palette %d %X", index, nativeCol[index]);
 }
@@ -380,15 +381,13 @@ void EmuSystem::onPrepareAudio(EmuAudio &audio)
 	audio.setStereo(false);
 }
 
-bool EmuSystem::onRequestedVideoFormatChange(EmuVideo &video)
+void EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
-	auto requestedFmt = video.requestedPixelFormat();
-	if(pixFmt == requestedFmt)
-		return false;
-	pixFmt = requestedFmt;
+	if(pixFmt == fmt)
+		return;
+	pixFmt = fmt;
 	FCEU_ResetPalette();
-	video.setFormat({{nesPixX, nesVisiblePixY}, requestedFmt});
-	return true;
+	video.setFormat({{nesPixX, nesVisiblePixY}, fmt});
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)

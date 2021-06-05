@@ -152,9 +152,9 @@ void EmuSystem::onPrepareAudio(EmuAudio &audio)
 	audio.setStereo(false);
 }
 
-bool EmuSystem::onRequestedVideoFormatChange(EmuVideo &video)
+void EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
 {
-	return video.setFormat({{ngpResX, ngpResY}, video.requestedPixelFormat()});
+	video.setFormat({{ngpResX, ngpResY}, fmt});
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)

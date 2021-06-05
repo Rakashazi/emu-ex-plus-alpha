@@ -15,6 +15,7 @@
 
 #define LOGTAG "AnimatedViewport"
 #include <imagine/gfx/AnimatedViewport.hh>
+#include <imagine/gfx/Viewport.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>

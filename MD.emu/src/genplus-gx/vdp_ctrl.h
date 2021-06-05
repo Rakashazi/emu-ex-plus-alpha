@@ -170,5 +170,6 @@ extern void vdp_test_w(unsigned int data);
 #endif
 
 IG::Pixmap framebufferPixmap();
+IG::Pixmap framebufferRenderFormatPixmap();
 
 #endif /* _VDP_H_ */

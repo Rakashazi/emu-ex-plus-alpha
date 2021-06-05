@@ -42,6 +42,8 @@ static MDFN_Surface pixmapToMDFNSurface(IG::Pixmap pix)
 	MDFN_PixelFormat fmt;
 	switch(pix.format().id())
 	{
+		bcase IG::PIXEL_BGRA8888:
+			fmt = {MDFN_COLORSPACE_RGB, 16, 8, 0, 24};
 		bcase IG::PIXEL_RGBA8888:
 			fmt = {MDFN_COLORSPACE_RGB, 0, 8, 16, 24};
 		bcase IG::PIXEL_RGB565:
@@ -212,17 +214,15 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 	return {};
 }
 
-bool EmuSystem::onRequestedVideoFormatChange(EmuVideo &video)
+void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 {
-	auto fmt = video.requestedPixelFormat();
 	if(fmt == mSurfacePix.format())
-		return false;
+		return;
 	mSurfacePix = {{{vidBufferX, vidBufferY}, fmt}, pixBuff};
 	EmulateSpecStruct espec;
 	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
 	espec.surface = &mSurface;
 	PCE_Fast::applyVideoFormat(&espec);
-	return true;
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)

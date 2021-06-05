@@ -15,13 +15,19 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <jni.h>
 #include <imagine/config/defs.hh>
-#include <imagine/pixmap/Pixmap.hh>
-#include <imagine/data-type/image/GfxImageSource.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <android/bitmap.h>
+#include <imagine/util/jni.hh>
 #include <system_error>
+
+namespace IG
+{
+class PixelFormat;
+}
+
+namespace IG::Data
+{
 
 class BitmapFactoryImage
 {
@@ -29,8 +35,7 @@ public:
 	constexpr BitmapFactoryImage(Base::ApplicationContext ctx):
 		ctx{ctx}
 	{}
-	std::error_code load(const char *name);
-	std::error_code loadAsset(const char *name);
+	~BitmapFactoryImage();
 	std::errc readImage(IG::Pixmap dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();
@@ -38,7 +43,6 @@ public:
 	uint32_t width();
 	uint32_t height();
 	IG::PixelFormat pixelFormat() const;
-	explicit operator bool() const;
 	constexpr Base::ApplicationContext appContext() const { return ctx; }
 
 protected:
@@ -47,20 +51,19 @@ protected:
 	AndroidBitmapInfo info{};
 };
 
-class PngFile final: public GfxImageSource
+using PixmapReaderImpl = BitmapFactoryImage;
+
+class BitmapWriter
 {
 public:
-	constexpr PngFile(Base::ApplicationContext ctx):
-		png{ctx}
-	{}
-	~PngFile();
-	std::error_code load(const char *name);
-	std::error_code loadAsset(const char *name, const char *appName = Base::ApplicationContext::applicationName);
-	void deinit();
-	std::errc write(IG::Pixmap dest) final;
-	IG::Pixmap pixmapView() final;
-	explicit operator bool() const final;
+	BitmapWriter(Base::ApplicationContext);
 
 protected:
-	BitmapFactoryImage png;
+	Base::ApplicationContext ctx{};
+	JNI::InstMethod<jobject(jint, jint, jint)> jMakeBitmap;
+	JNI::InstMethod<jboolean(jobject, jobject)> jWritePNG;
 };
+
+using PixmapWriterImpl = BitmapWriter;
+
+}

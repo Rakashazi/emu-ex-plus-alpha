@@ -17,7 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
-#include <imagine/gfx/Viewport.hh>
 #include <imagine/gfx/PixmapTexture.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/pixmap/PixelFormat.hh>
@@ -94,6 +93,7 @@ public:
 	unsigned maxSwapChainImages() const;
 	void setCorrectnessChecks(bool on);
 	std::vector<DrawableConfigDesc> supportedDrawableConfigs() const;
+	bool hasBgraFormat(TextureBufferMode) const;
 
 	// shaders
 

@@ -129,10 +129,9 @@ public:
 	GLenum luminanceAlphaInternalFormat = GL_LUMINANCE8_ALPHA8;
 	GLenum alphaFormat = GL_ALPHA;
 	GLenum alphaInternalFormat = GL_ALPHA8;
-	GLenum bgrInternalFormat = GL_BGRA;
 	TextureSizeSupport textureSizeSupport{};
 	//bool hasMemoryBarrier = false;
-	bool hasBGRPixels{};
+	IG_enableMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, hasBGRPixels){};
 	bool hasVBOFuncs{};
 	bool hasTextureSwizzle{};
 	bool hasUnpackRowLength = !Config::Gfx::OPENGL_ES;

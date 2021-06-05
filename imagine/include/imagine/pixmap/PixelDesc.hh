@@ -100,7 +100,11 @@ public:
 	constexpr PixelDesc reversed() const
 	{
 		return {rBits, gBits, bBits, aBits,
-			aShift, bShift, gShift, rShift, // reverse bit shift values
+			// reverse bit shift values
+			(uint8_t)(bitsPerPixel() - rShift - rBits),
+			(uint8_t)(bitsPerPixel() - gShift - gBits),
+			(uint8_t)(bitsPerPixel() - bShift - bBits),
+			(uint8_t)(bitsPerPixel() - aShift - aBits),
 			bytesPerPixel_, name_};
 	}
 

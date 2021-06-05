@@ -2620,7 +2620,17 @@ static void vdp_dma_fill(unsigned int data, int length)
   while (--length);
 }
 
+static IG::Pixmap framebufferPixmap(IG::PixelFormat fmt)
+{
+	return {{{bitmap.viewport.w, bitmap.viewport.h}, fmt}, frameBufferData};
+}
+
 IG::Pixmap framebufferPixmap()
 {
-	return {{{bitmap.viewport.w, bitmap.viewport.h}, fbPixelFormat}, frameBufferData};
+	return framebufferPixmap(fbPixelFormat);
+}
+
+IG::Pixmap framebufferRenderFormatPixmap()
+{
+	return framebufferPixmap(framebufferRenderFormat());
 }

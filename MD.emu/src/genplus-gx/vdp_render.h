@@ -29,6 +29,7 @@
 namespace IG
 {
 class Pixmap;
+class PixelFormat;
 }
 
 static constexpr unsigned RENDER_BPP = 32;
@@ -62,6 +63,8 @@ extern void update_bg_pattern_cache_m4(int index);
 extern void update_bg_pattern_cache_m5(int index);
 extern void color_update_m4(int index, unsigned int data);
 extern void color_update_m5(int index, unsigned int data);
+void setFramebufferRenderFormat(IG::PixelFormat);
+IG::PixelFormat framebufferRenderFormat();
 
 /* Function pointers */
 extern void (*render_bg)(int line, int width);

@@ -286,7 +286,7 @@ static unsigned effectFormatToBits(IG::PixelFormatID format, EmuVideo &video)
 	{
 		format = video.image().pixmapDesc().format().id();
 	}
-	return format == IG::PIXEL_RGBA8888 ? 32 : 16;
+	return format == IG::PIXEL_RGB565 ? 16 : 32;
 }
 
 void EmuVideoLayer::setEffectFormat(IG::PixelFormatID fmt)

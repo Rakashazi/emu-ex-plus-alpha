@@ -82,8 +82,9 @@ public:
 	void setCompatTextureSampler(const Gfx::TextureSampler &);
 	void setSrgbColorSpaceOutput(bool);
 	bool isSrgbFormat() const;
-	void setRequestedPixelFormat(IG::PixelFormat);
-	IG::PixelFormat requestedPixelFormat() const;
+	void setRenderPixelFormat(IG::PixelFormat);
+	IG::PixelFormat renderPixelFormat() const;
+	IG::PixelFormat internalRenderPixelFormat() const;
 
 protected:
 	Gfx::RendererTask *rTask{};
@@ -92,7 +93,7 @@ protected:
 	Gfx::PixmapBufferTexture vidImg{};
 	FrameFinishedDelegate onFrameFinished{};
 	FormatChangedDelegate onFormatChanged{};
-	IG::PixelFormat requestedFmt{};
+	IG::PixelFormat renderFmt{};
 	Gfx::TextureBufferMode bufferMode{};
 	bool screenshotNextFrame{};
 	bool singleBuffer{};

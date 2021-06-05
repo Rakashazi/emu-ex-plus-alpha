@@ -3,6 +3,7 @@
 #include <stella/emucore/Props.hxx>
 #include <stella/emucore/Control.hxx>
 #include <emuframework/Option.hh>
+#include <optional>
 
 class OSystem;
 class Console;
@@ -17,7 +18,7 @@ extern Byte1Option optionInputPort1;
 extern Byte1Option optionPaddleDigitalSensitivity;
 extern Properties defaultGameProps;
 extern bool p1DiffB, p2DiffB, vcsColor;
-extern std::unique_ptr<OSystem> osystem;
+extern std::optional<OSystem> osystem;
 extern Controller::Type autoDetectedInput1;
 
 const char *optionVideoSystemToStr();

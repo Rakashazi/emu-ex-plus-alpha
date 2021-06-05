@@ -148,7 +148,7 @@ void IOSWindow::updateContentRect(int width, int height, uint32_t softOrientatio
 	{
 		logMsg("using full window size for content rect %d,%d", contentRect.x2, contentRect.y2);
 	}
-	surfaceChange.addContentRectResized();
+	surfaceChangeFlags |= WindowSurfaceChange::CONTENT_RECT_RESIZED;
 }
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
@@ -228,11 +228,6 @@ Window *windowForUIWindow(ApplicationContext ctx, UIWindow *uiWin)
 			return w.get();
 	}
 	return nullptr;
-}
-
-void IOSWindow::resetSurface()
-{
-	surfaceChange.addReset();
 }
 
 void Window::setTitle(const char *name) {}

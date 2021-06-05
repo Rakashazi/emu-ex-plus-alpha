@@ -143,14 +143,14 @@ static GLenum makeGLFormat(const Renderer &r, IG::PixelFormatID format)
 	}
 }
 
-static int makeGLESInternalFormat(const Renderer &r, IG::PixelFormatID format)
+static GLenum makeGLESInternalFormat(const Renderer &r, IG::PixelFormatID format)
 {
-	if(format == PIXEL_BGRA8888) // Apple's BGRA extension loosens the internalformat match requirement
-		return r.support.bgrInternalFormat;
-	else return makeGLFormat(r, format); // OpenGL ES manual states internalformat always equals format
+	if(Config::envIsIOS && format == PIXEL_BGRA8888) // Apple's BGRA extension loosens the internalformat match requirement
+		return GL_RGBA;
+	return makeGLFormat(r, format); // OpenGL ES manual states internalformat always equals format
 }
 
-static int makeGLSizedInternalFormat(const Renderer &r, IG::PixelFormatID format, bool isSrgb)
+static GLenum makeGLSizedInternalFormat(const Renderer &r, IG::PixelFormatID format, bool isSrgb)
 {
 	switch(format)
 	{
@@ -373,8 +373,9 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, ColorSpace
 				ctx.notifySemaphore();
 				glBindTexture(GL_TEXTURE_2D, texName);
 				auto internalFormat = makeGLSizedInternalFormat(r, desc.format(), isSrgb);
-				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s",
-					texName, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat));
+				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s %s",
+					texName, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat),
+					desc.format() == IG::PIXEL_BGRA8888 ? "write format:BGRA" : "");
 				runGLChecked(
 					[&]()
 					{
@@ -401,8 +402,10 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, ColorSpace
 				auto format = makeGLFormat(r, desc.format());
 				auto dataType = makeGLDataType(desc.format());
 				auto internalFormat = makeGLInternalFormat(r, desc.format(), false);
-				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s image format:%s:%s",
-					texName, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat), glImageFormatToString(format), glDataTypeToString(dataType));
+				logMsg("texture:0x%X storage size:%dx%d levels:%d internal format:%s image format:%s:%s %s",
+					texName, desc.w(), desc.h(), levels, glImageFormatToString(internalFormat),
+					glImageFormatToString(format), glDataTypeToString(dataType),
+					desc.format() == IG::PIXEL_BGRA8888 && internalFormat != GL_BGRA ? "write format:BGRA" : "");
 				uint32_t w = desc.w(), h = desc.h();
 				iterateTimes(levels, i)
 				{

@@ -36,6 +36,7 @@
 #include <imagine/base/Timer.hh>
 #include <imagine/audio/Manager.hh>
 #include <imagine/gfx/Renderer.hh>
+#include <imagine/data-type/image/PixmapWriter.hh>
 #include <imagine/util/typeTraits.hh>
 #include <cstring>
 #include <optional>
@@ -170,6 +171,8 @@ public:
 	void setRenderPixelFormat(std::optional<IG::PixelFormat>);
 	IG::PixelFormat renderPixelFormat() const;
 	void renderSystemFramebuffer(EmuVideo &);
+	bool writeScreenshot(IG::Pixmap, const char *path);
+	std::pair<int, FS::PathString> makeNextScreenshotFilename();
 	Base::ApplicationContext appContext() const;
 	static EmuApp &get(Base::ApplicationContext);
 
@@ -274,6 +277,7 @@ protected:
 	KeyMapping keyMapping{};
 	TurboInput turboActions{};
 	FS::PathString lastLoadPath{};
+	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;
 	Gfx::DrawableConfig windowDrawableConf{};
 	IG::PixelFormat renderPixelFmt{};
 

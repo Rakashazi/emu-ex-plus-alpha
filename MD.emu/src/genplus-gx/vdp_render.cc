@@ -448,12 +448,14 @@ static __inline__ void WRITE_LONG(void *address, uint32 data)
 /* Pixel conversion */
 
 using Pixel = std::conditional_t<RENDER_BPP == 32, uint32_t, uint16_t>;
+static IG::PixelFormat fbRenderFormat{RENDER_BPP == 32 ? IG::PIXEL_RGBA8888 : IG::PIXEL_RGB565};
 
 static Pixel MAKE_PIXEL(int r, int g, int b)
 {
 	if constexpr(RENDER_BPP == 32)
 	{
-		return IG::PIXEL_DESC_RGBA8888.nativeOrder().build(r << 4 | r, g << 4 | g, b << 4 | b, 0);
+		auto desc = fbRenderFormat == IG::PIXEL_BGRA8888 ? IG::PIXEL_DESC_BGRA8888.nativeOrder() : IG::PIXEL_DESC_RGBA8888.nativeOrder();
+		return desc.build(r << 4 | r, g << 4 | g, b << 4 | b, 0);
 	}
 	else
 	{
@@ -3778,4 +3780,30 @@ void remap_line(int line, IG::Pixmap pix)
 		*dst++ = pixel[*src++];
 	}
 	while (--width);
+}
+
+static bool isValidPixelFormat(IG::PixelFormat fmt)
+{
+	if constexpr(RENDER_BPP == 32)
+	{
+		return fmt == IG::PIXEL_RGBA8888 || fmt == IG::PIXEL_BGRA8888;
+	}
+	else
+	{
+		return fmt == IG::PIXEL_RGB565;
+	}
+}
+
+void setFramebufferRenderFormat(IG::PixelFormat fmt)
+{
+	if(!isValidPixelFormat(fmt))
+		return;
+	fbRenderFormat = fmt;
+	palette_init();
+}
+
+IG::PixelFormat framebufferRenderFormat()
+{
+	assumeExpr(isValidPixelFormat(fbRenderFormat));
+	return fbRenderFormat;
 }

@@ -129,6 +129,50 @@ public:
 	}
 
 	template <class Func>
+	void transformInPlace(Func func)
+	{
+		if constexpr(!checkTransformFunc<Func>())
+		{
+			return;
+		}
+		switch(format().bytesPerPixel())
+		{
+			case 1: return transformInPlace2<uint8_t>(func);
+			case 2: return transformInPlace2<uint16_t>(func);
+			case 4: return transformInPlace2<uint32_t>(func);
+		}
+	}
+
+	template <class Data, class Func>
+	void transformInPlace2(Func func)
+	{
+		auto data = (Data*)data_;
+		if(!isPadded())
+		{
+			IG::transformN(data, w() * h(), data,
+				[=](Data pixel)
+				{
+					return func(pixel);
+				});
+		}
+		else
+		{
+			auto dataPitchPixels = pitchPixels();
+			auto width = w();
+			iterateTimes(h(), y)
+			{
+				auto lineData = data;
+				IG::transformN(lineData, width, lineData,
+					[=](Data pixel)
+					{
+						return func(pixel);
+					});
+				data += dataPitchPixels;
+			}
+		}
+	}
+
+	template <class Func>
 	void writeTransformed(Func func, Pixmap pixmap)
 	{
 		if constexpr(!checkTransformFunc<Func>())

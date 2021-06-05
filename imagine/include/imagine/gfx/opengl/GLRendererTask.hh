@@ -52,7 +52,6 @@ public:
 	void initDefaultFramebuffer();
 	GLuint defaultFBO() const { return defaultFB; }
 	GLuint bindFramebuffer(Texture &tex);
-	bool handleDrawableReset();
 	void runInitialCommandsInGL(TaskContext ctx, DrawContextSupport &support);
 	void setRenderer(Renderer *r);
 	void setDrawAsyncMode(DrawAsyncMode);
@@ -95,7 +94,6 @@ protected:
 	#endif
 	IG_enableMemberIf(Config::Gfx::GLDRAWABLE_NEEDS_FRAMEBUFFER, GLuint, defaultFB){};
 	GLuint fbo = 0;
-	bool resetDrawable = false;
 	DrawAsyncMode autoDrawAsyncMode = DrawAsyncMode::NONE;
 	IG_enableMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, debugEnabled){};
 

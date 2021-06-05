@@ -201,7 +201,7 @@ bool Window::hasSurface() const
 void AndroidWindow::updateContentRect(const IG::WindowRect &rect)
 {
 	contentRect = rect;
-	surfaceChange.addContentRectResized();
+	surfaceChangeFlags |= WindowSurfaceChange::CONTENT_RECT_RESIZED;
 }
 
 bool Window::operator ==(Window const &rhs) const
@@ -225,12 +225,15 @@ void AndroidWindow::setNativeWindow(ApplicationContext ctx, ANativeWindow *nWind
 	if(!nWindow)
 		return;
 	nWin = nWindow;
-	thisWindow.surfaceChange.addCreated();
 	thisWindow.setFormat(nPixelFormat);
 	if(onInit)
 	{
 		onInit(ctx, thisWindow);
 		onInit = {};
+	}
+	else
+	{
+		thisWindow.dispatchSurfaceCreated();
 	}
 }
 
@@ -333,14 +336,7 @@ void AndroidWindow::setContentRect(const IG::WindowRect &rect, const IG::Point2D
 		rect.x, rect.y, rect.x2, rect.y2, winSize.x, winSize.y);
 	updateContentRect(rect);
 	auto &win = *static_cast<Window*>(this);
-	if(win.updateSize(winSize))
-	{
-		// If the surface changed size, make sure
-		// it's set again with eglMakeCurrent to avoid
-		// the context possibly rendering to it with
-		// the old size, as occurs on Intel HD Graphics
-		surfaceChange.addReset();
-	}
+	win.updateSize(winSize);
 	win.postDraw();
 }
 

@@ -15,14 +15,18 @@
 
 #define LOGTAG "QuartzPNG"
 
-#include <imagine/data-type/image/Quartz2d.hh>
-#include <assert.h>
+#include <imagine/data-type/image/PixmapReader.hh>
+#include <imagine/pixmap/Pixmap.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/FS.hh>
 #include "../../base/iphone/private.hh"
 #include <CoreGraphics/CGBitmapContext.h>
 #include <CoreGraphics/CGContext.h>
+#include <assert.h>
+
+namespace IG::Data
+{
 
 uint32_t Quartz2dImage::width()
 {
@@ -96,43 +100,34 @@ void Quartz2dImage::freeImageData()
 	}
 }
 
-Quartz2dImage::operator bool() const
+PixmapReader::operator bool() const
 {
 	return (bool)img;
 }
 
-PngFile::~PngFile()
+Quartz2dImage::~Quartz2dImage()
 {
-	deinit();
+	freeImageData();
 }
 
-std::errc PngFile::write(IG::Pixmap dest)
+std::errc PixmapReader::write(IG::Pixmap dest)
 {
-	return(png.readImage(dest));
+	return(readImage(dest));
 }
 
-IG::Pixmap PngFile::pixmapView()
+IG::Pixmap PixmapReader::pixmapView()
 {
-	return {{{(int)png.width(), (int)png.height()}, png.pixelFormat()}, {}};
+	return {{{(int)width(), (int)height()}, pixelFormat()}, {}};
 }
 
-std::error_code PngFile::load(const char *name)
+std::error_code PixmapReader::loadAsset(const char *name, const char *appName)
 {
-	deinit();
-	return png.load(name);
+	return load(FS::makePathStringPrintf("%s/%s", appContext().assetPath(appName).data(), name).data());
 }
 
-std::error_code PngFile::loadAsset(const char *name, const char *appName)
+void PixmapReader::reset()
 {
-	return load(FS::makePathStringPrintf("%s/%s", png.appContext().assetPath(appName).data(), name).data());
+	freeImageData();
 }
 
-void PngFile::deinit()
-{
-	png.freeImageData();
-}
-
-PngFile::operator bool() const
-{
-	return (bool)png;
 }

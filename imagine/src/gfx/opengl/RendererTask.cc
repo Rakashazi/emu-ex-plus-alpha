@@ -135,17 +135,26 @@ RendererTask::operator bool() const
 void RendererTask::updateDrawableForSurfaceChange(Base::Window &win, Base::WindowSurfaceChange change)
 {
 	auto &drawable = winData(win).drawable;
-	if(change.destroyed())
+	switch(change.action())
 	{
-		destroyDrawable(drawable);
-	}
-	else if(!drawable)
-	{
-		r->makeWindowDrawable(*this, win, winData(win).bufferConfig, winData(win).colorSpace);
-	}
-	if(change.reset())
-	{
-		resetDrawable = true;
+		case Base::WindowSurfaceChange::Action::CREATED:
+			r->makeWindowDrawable(*this, win, winData(win).bufferConfig, winData(win).colorSpace);
+			return;
+		case Base::WindowSurfaceChange::Action::CHANGED:
+			if(change.surfaceResized())
+			{
+				run(
+					[this, drawable = (Drawable)drawable](TaskContext ctx)
+					{
+						// reset the drawable if it's currently in use
+						if(Base::GLManager::hasCurrentDrawable(drawable))
+							context.setCurrentDrawable(drawable);
+					});
+			}
+			return;
+		case Base::WindowSurfaceChange::Action::DESTROYED:
+			destroyDrawable(drawable);
+			return;
 	}
 }
 
@@ -161,16 +170,6 @@ void GLRendererTask::destroyDrawable(Base::GLDrawable &drawable)
 				context.setCurrentDrawable({});
 		}, true);
 	drawable = {};
-}
-
-bool GLRendererTask::handleDrawableReset()
-{
-	if(resetDrawable)
-	{
-		resetDrawable = false;
-		return true;
-	}
-	return false;
 }
 
 void GLRendererTask::runInitialCommandsInGL(TaskContext ctx, DrawContextSupport &support)

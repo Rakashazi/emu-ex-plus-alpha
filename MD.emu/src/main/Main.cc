@@ -28,6 +28,7 @@
 #include "state.h"
 #include "sound.h"
 #include "vdp_ctrl.h"
+#include "vdp_render.h"
 #include "genesis.h"
 #include "genplus-config.h"
 #ifndef NO_SCD
@@ -95,7 +96,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 
 void EmuSystem::renderFramebuffer(EmuVideo &video)
 {
-	video.startFrameWithAltFormat({}, framebufferPixmap());
+	video.startFrameWithAltFormat({}, framebufferRenderFormatPixmap());
 }
 
 bool EmuSystem::vidSysIsPAL() { return vdp_pal; }
@@ -519,6 +520,11 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	if(gameIsRunning())
 		sound_restore();
 	logMsg("md sound buffer size %d", snd.buffer_size);
+}
+
+void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
+{
+	setFramebufferRenderFormat(fmt);
 }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)

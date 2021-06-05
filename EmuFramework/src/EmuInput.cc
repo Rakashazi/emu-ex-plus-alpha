@@ -22,7 +22,6 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
-#include <imagine/data-type/image/sys.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <cstdlib>
 

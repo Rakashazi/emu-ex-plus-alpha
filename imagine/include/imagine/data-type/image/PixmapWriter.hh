@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/build.h>
+#include <imagine/config/defs.hh>
 
 #ifdef CONFIG_DATA_TYPE_IMAGE_LIBPNG
 #include <imagine/data-type/image/LibPNG.hh>
@@ -28,3 +28,25 @@
 #ifdef CONFIG_DATA_TYPE_IMAGE_ANDROID
 #include <imagine/data-type/image/Android.hh>
 #endif
+
+namespace Base
+{
+class ApplicationContext;
+}
+
+namespace IG
+{
+class Pixmap;
+}
+
+namespace IG::Data
+{
+
+class PixmapWriter final: public PixmapWriterImpl
+{
+public:
+	using PixmapWriterImpl::PixmapWriterImpl;
+	bool writeToFile(IG::Pixmap, const char *path);
+};
+
+}

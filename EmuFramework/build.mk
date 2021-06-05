@@ -31,7 +31,6 @@ GUIOptionView.cc \
 InputManagerView.cc \
 Recent.cc \
 RecentGameView.cc \
-Screenshot.cc \
 StateSlotView.cc \
 SystemOptionView.cc \
 VideoImageEffect.cc \

@@ -125,37 +125,41 @@ static constexpr int RENDERER_TASK_ON_RESUME_PRIORITY = -RENDERER_TASK_ON_EXIT_P
 static constexpr int APP_ON_RESUME_PRIORITY = 0;
 
 // Window/Screen helper classes
+
 struct WindowSurfaceChange
 {
-	uint8_t flags = 0;
+	enum class Action : uint8_t
+	{
+		CREATED, CHANGED, DESTROYED
+	};
+
 	static constexpr uint8_t SURFACE_RESIZED = IG::bit(0),
 		CONTENT_RECT_RESIZED = IG::bit(1),
-		CUSTOM_VIEWPORT_RESIZED = IG::bit(2),
-		SURFACE_CREATED = IG::bit(3),
-		SURFACE_DESTORYED = IG::bit(4),
-		SURFACE_RESET = IG::bit(5);
+		CUSTOM_VIEWPORT_RESIZED = IG::bit(2);
 	static constexpr uint8_t RESIZE_BITS =
 		SURFACE_RESIZED | CONTENT_RECT_RESIZED | CUSTOM_VIEWPORT_RESIZED;
 
-	constexpr WindowSurfaceChange() {}
-	constexpr WindowSurfaceChange(uint8_t flags): flags{flags} {}
-	bool resized() const
+	constexpr WindowSurfaceChange(Action action, uint8_t flags = 0):
+		action_{action}, flags{flags}
+	{}
+
+	constexpr Action action() const
 	{
-		return flags & RESIZE_BITS;
+		return action_;
 	}
-	bool surfaceResized() const { return flags & SURFACE_RESIZED; }
-	bool contentRectResized() const { return flags & CONTENT_RECT_RESIZED; }
-	bool customViewportResized() const { return flags & CUSTOM_VIEWPORT_RESIZED; }
-	bool created() const { return flags & SURFACE_CREATED; }
-	bool destroyed() const { return flags & SURFACE_DESTORYED; }
-	bool reset() const { return flags & SURFACE_RESET; }
-	void addSurfaceResized() { flags |= SURFACE_RESIZED; }
-	void addContentRectResized() { flags |= CONTENT_RECT_RESIZED; }
-	void addCustomViewportResized() { flags |= CUSTOM_VIEWPORT_RESIZED; }
-	void addCreated() { flags |= SURFACE_CREATED; }
-	void addDestroyed() { flags = SURFACE_DESTORYED; } // clears all other flags
-	void addReset() { flags |= SURFACE_RESET; }
-	void removeCustomViewportResized() { flags = clearBits(flags, CUSTOM_VIEWPORT_RESIZED); }
+
+	constexpr bool resized() const
+	{
+		return action() == Action::CHANGED;
+	}
+
+	constexpr bool surfaceResized() const { return flags & SURFACE_RESIZED; }
+	constexpr bool contentRectResized() const { return flags & CONTENT_RECT_RESIZED; }
+	constexpr bool customViewportResized() const { return flags & CUSTOM_VIEWPORT_RESIZED; }
+
+protected:
+	Action action_{};
+	uint8_t flags{};
 };
 
 struct WindowDrawParams
