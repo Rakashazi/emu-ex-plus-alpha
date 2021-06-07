@@ -65,7 +65,8 @@ FBDevFrameTimer::FBDevFrameTimer(Screen &screen, EventLoop loop)
 				return true; // frame request was cancelled
 			}
 			assert(screen.isPosted());
-			screen.frameUpdate(IG::Nanoseconds(timestamp));
+			if(screen.frameUpdate(IG::Nanoseconds(timestamp)))
+				scheduleVSync();
 			return true;
 		}};
 	IG::makeDetachedThread(

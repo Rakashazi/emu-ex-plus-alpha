@@ -69,14 +69,23 @@ void AndroidApplication::initChoreographer(const ScreenContainter &screens, JNIE
 	}
 }
 
-static void updatePostedScreens(FrameTime timestamp, const ScreenContainter &screens)
+static void updatePostedScreens(auto &choreographer, FrameTime timestamp, const ScreenContainter &screens)
 {
+	bool didUpdate{};
 	for(auto &s : screens)
 	{
 		if(s->isPosted())
 		{
-			s->frameUpdate(timestamp);
+			didUpdate |= s->frameUpdate(timestamp);
 		}
+	}
+	if(didUpdate)
+	{
+		choreographer.scheduleVSync();
+	}
+	else
+	{
+		//logMsg("stopping screen updates");
 	}
 }
 
@@ -96,7 +105,7 @@ JavaChoreographer::JavaChoreographer(const ScreenContainter &screens, JNIEnv *en
 			{
 				auto &inst = *((JavaChoreographer*)userData);
 				inst.requested = false;
-				updatePostedScreens(FrameTime{frameTimeNanos}, *inst.screensPtr);
+				updatePostedScreens(inst, FrameTime{frameTimeNanos}, *inst.screensPtr);
 			}
 		}
 	};
@@ -136,7 +145,7 @@ void NativeChoreographer::scheduleVSync()
 		{
 			auto &inst = *((NativeChoreographer*)userData);
 			inst.requested = false;
-			updatePostedScreens(FrameTime{frameTimeNanos}, *inst.screensPtr);
+			updatePostedScreens(inst, FrameTime{frameTimeNanos}, *inst.screensPtr);
 		}, this);
 }
 

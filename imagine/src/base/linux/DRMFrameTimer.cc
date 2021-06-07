@@ -69,7 +69,8 @@ DRMFrameTimer::DRMFrameTimer(Screen &screen, EventLoop loop)
 			}
 			if(screen.isPosted())
 			{
-				screen.frameUpdate(timestamp);
+				if(screen.frameUpdate(timestamp))
+					scheduleVSync();
 			}
 			return 1;
 		}};

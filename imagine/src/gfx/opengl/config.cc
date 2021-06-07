@@ -119,7 +119,7 @@ static void printFeatures(DrawContextSupport support)
 	}
 	if(support.hasSrgbWriteControl)
 	{
-		featuresStr.append(" [SRGB FB Write Control]");
+		featuresStr.append(" [sRGB FB Write Control]");
 	}
 	#ifdef __ANDROID__
 	if(support.eglPresentationTimeANDROID)

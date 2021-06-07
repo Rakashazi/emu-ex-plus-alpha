@@ -60,14 +60,14 @@ public:
 	void setFrameInterval(int interval);
 	static bool supportsFrameInterval();
 	bool supportsTimestamps() const;
-	void frameUpdate(FrameTime timestamp);
+	bool frameUpdate(FrameTime timestamp);
 	void setActive(bool active);
 
 private:
 	DelegateFuncSet<OnFrameDelegate> onFrameDelegate{};
 	ApplicationContext ctx;
 	bool framePosted{};
-	bool isActive{};
+	bool isActive{true};
 
 	void runOnFrameDelegates(FrameTime timestamp);
 	void postFrame();

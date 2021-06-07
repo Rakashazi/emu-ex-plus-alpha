@@ -47,10 +47,9 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 {
 	auto &screen = *screen_;
 	auto timestamp = IG::FloatSeconds(displayLink.timestamp);
-	//logMsg("screen: %p, frame time stamp: %f, duration: %f",
-	//	screen.uiScreen(), (double)timestamp, (double)screen.displayLink().duration);*/
-	screen.frameUpdate(timestamp);
-	if(!screen.isPosted())
+	//logMsg("screen:%p, frame time stamp:%f, duration:%f",
+	//	screen.uiScreen(), timestamp.count(), (double)screen.displayLink().duration);
+	if(!screen.frameUpdate(timestamp))
 	{
 		//logMsg("stopping screen updates");
 		displayLink.paused = YES;
@@ -98,7 +97,7 @@ IOSScreen::IOSScreen(ApplicationContext, InitParams initParams)
 	}
 	uiScreen_ = (void*)CFBridgingRetain(screen);
 	displayLink_ = (void*)CFBridgingRetain([screen displayLinkWithTarget:[[DisplayLinkHelper alloc] initWithScreen:(Screen*)this]
-	                                       selector:@selector(onFrame)]);
+	                                       selector:@selector(onFrame:)]);
 	displayLink().paused = YES;
 
 	if(hasAtLeastIOS5())

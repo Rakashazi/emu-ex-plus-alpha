@@ -108,6 +108,7 @@ IOSApplication::IOSApplication(ApplicationInitParams initParams):
 	BaseApplication{(__bridge UIApplication*)initParams.uiAppPtr}
 {
 	ApplicationContext ctx{(__bridge UIApplication*)initParams.uiAppPtr};
+	auto sharedApp = ctx.uiApp();
 	if(Config::DEBUG_BUILD)
 	{
 		//logMsg("in didFinishLaunchingWithOptions(), UUID %s", [[[UIDevice currentDevice] uniqueIdentifier] cStringUsingEncoding: NSASCIIStringEncoding]);
@@ -334,20 +335,14 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 namespace Base
 {
 
-void updateWindowSizeAndContentRect(Window &win, int width, int height, UIApplication *sharedApp)
-{
-	win.updateSize({width, height});
-	win.updateContentRect(win.width(), win.height(), win.softOrientation(), sharedApp);
-}
-
 static void setStatusBarHidden(ApplicationContext ctx, bool hidden)
 {
 	logMsg("setting status bar hidden: %d", (int)hidden);
 	[ctx.uiApp() setStatusBarHidden: (hidden ? YES : NO) withAnimation: UIStatusBarAnimationFade];
-	if(deviceWindow(ctx))
+	if(ctx.deviceWindow())
 	{
-		auto &win = *deviceWindow(ctx);
-		win.updateContentRect(win.width(), win.height(), win.softOrientation(), sharedApp);
+		auto &win = *ctx.deviceWindow();
+		win.updateContentRect(win.width(), win.height(), win.softOrientation());
 		win.postDraw();
 	}
 }
@@ -421,18 +416,12 @@ void ApplicationContext::setOnDeviceOrientationChanged(DeviceOrientationChangedD
 void ApplicationContext::setSystemOrientation(Orientation o)
 {
 	logMsg("setting system orientation %s", orientationToStr(o));
-	using namespace Input;
-	/*if(vKeyboardTextDelegate) // TODO: allow orientation change without aborting text input
+	auto sharedApp = uiApp();
+	[sharedApp setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:YES];
+	if(deviceWindow())
 	{
-		logMsg("aborting active text input");
-		vKeyboardTextDelegate(nullptr);
-		vKeyboardTextDelegate = {};
-	}*/
-	[uiApp() setStatusBarOrientation:gfxOrientationToUIInterfaceOrientation(o) animated:YES];
-	if(deviceWindow(uiApp()))
-	{
-		auto &win = *deviceWindow(uiApp());
-		win.updateContentRect(win.width(), win.height(), win.softOrientation(), sharedApp);
+		auto &win = *deviceWindow();
+		win.updateContentRect(win.width(), win.height(), win.softOrientation());
 		win.postDraw();
 	}
 }

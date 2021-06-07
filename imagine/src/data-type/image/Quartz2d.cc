@@ -51,7 +51,7 @@ const IG::PixelFormat Quartz2dImage::pixelFormat()
 		return IG::PIXEL_FMT_RGBA8888;
 }
 
-std::error_code Quartz2dImage::load(const char *name)
+std::error_code PixmapReader::load(const char *name)
 {
 	freeImageData();
 	CGDataProviderRef dataProvider = CGDataProviderCreateWithFilename(name);

@@ -227,6 +227,11 @@ bool GLManager::hasNoConfigContext() const
 	return true;
 }
 
+bool GLManager::hasSrgbColorSpace() const
+{
+	return false;
+}
+
 Base::NativeWindowFormat GLManager::nativeWindowFormat(Base::ApplicationContext, GLBufferConfig) const
 {
 	return {};

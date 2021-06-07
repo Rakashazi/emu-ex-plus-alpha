@@ -43,29 +43,9 @@ void EmuSystemTask::start()
 							{
 								auto frames = msg.args.run.frames;
 								assumeExpr(frames);
-								auto *video = msg.args.run.video;
-								auto *audio = msg.args.run.audio;
 								//logMsg("running %d frame(s)", frames);
-								auto &emuApp = app();
-								if(msg.args.run.skipForward) [[unlikely]]
-								{
-									if(emuApp.skipForwardFrames(this, frames - 1))
-									{
-										// don't write any audio while skip is in progress
-										audio = nullptr;
-									}
-									else
-									{
-										// restore normal speed when skip ends
-										EmuSystem::setSpeedMultiplier(*audio, 1);
-									}
-								}
-								else
-								{
-									emuApp.skipFrames(this, frames - 1, audio);
-								}
-								emuApp.runTurboInputEvents();
-								EmuSystem::runFrame(this, video, audio);
+								app().runFrames(this, msg.args.run.video, msg.args.run.audio,
+									frames, msg.args.run.skipForward);
 							}
 							bcase Command::PAUSE:
 							{

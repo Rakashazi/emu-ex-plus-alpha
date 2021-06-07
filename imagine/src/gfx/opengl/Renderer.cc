@@ -84,7 +84,6 @@ Error Renderer::initMainTask(Base::Window *initialWindow, DrawableConfig drawabl
 	{
 		return err;
 	}
-	mainTask.setDrawAsyncMode(maxSwapChainImages() < 3 ? DrawAsyncMode::PRESENT : DrawAsyncMode::NONE);
 	addEventHandlers(ctx, mainTask);
 	configureRenderer();
 	return {};

@@ -54,7 +54,6 @@ public:
 	GLuint bindFramebuffer(Texture &tex);
 	void runInitialCommandsInGL(TaskContext ctx, DrawContextSupport &support);
 	void setRenderer(Renderer *r);
-	void setDrawAsyncMode(DrawAsyncMode);
 	void verifyCurrentContext() const;
 	void destroyDrawable(Base::GLDrawable &drawable);
 	RendererCommands makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
@@ -94,7 +93,6 @@ protected:
 	#endif
 	IG_enableMemberIf(Config::Gfx::GLDRAWABLE_NEEDS_FRAMEBUFFER, GLuint, defaultFB){};
 	GLuint fbo = 0;
-	DrawAsyncMode autoDrawAsyncMode = DrawAsyncMode::NONE;
 	IG_enableMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, debugEnabled){};
 
 	void doPreDraw(Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params) const;

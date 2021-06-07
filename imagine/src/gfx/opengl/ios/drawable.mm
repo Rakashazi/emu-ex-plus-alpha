@@ -60,6 +60,8 @@ IG::Point2D<int> GLRendererTask::makeIOSDrawableRenderbuffer(void *layer, GLuint
 
 void GLRendererTask::deleteIOSDrawableRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffer)
 {
+	if(!colorRenderbuffer)
+		return;
 	runSync(
 		[colorRenderbuffer, depthRenderbuffer]()
 		{

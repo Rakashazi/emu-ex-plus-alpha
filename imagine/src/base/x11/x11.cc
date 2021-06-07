@@ -270,14 +270,14 @@ void XApplication::setWindowCursor(::Window xWin, bool on)
 void initXScreens(ApplicationContext ctx, Display *dpy)
 {
 	auto defaultScreenIdx = DefaultScreen(dpy);
-	ctx.application().addScreen(ctx, std::make_unique<Screen>(ctx, Screen::InitParams{ScreenOfDisplay(dpy, defaultScreenIdx)}), false).setActive(true);
+	ctx.application().addScreen(ctx, std::make_unique<Screen>(ctx, Screen::InitParams{ScreenOfDisplay(dpy, defaultScreenIdx)}), false);
 	if constexpr(Config::BASE_MULTI_SCREEN)
 	{
 		iterateTimes(ScreenCount(dpy), i)
 		{
 			if((int)i == defaultScreenIdx)
 				continue;
-			ctx.application().addScreen(ctx, std::make_unique<Screen>(ScreenOfDisplay(dpy, i)), false).setActive(true);
+			ctx.application().addScreen(ctx, std::make_unique<Screen>(ScreenOfDisplay(dpy, i)), false);
 		}
 	}
 }

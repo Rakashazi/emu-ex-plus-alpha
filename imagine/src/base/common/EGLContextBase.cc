@@ -381,7 +381,7 @@ void EGLManager::logFeatures() const
 	}
 	if(supportsSrgbColorSpace)
 	{
-		featuresStr.append(" [SRGB Color Space]");
+		featuresStr.append(" [sRGB Color Space]");
 	}
 
 	if(featuresStr.empty())
@@ -523,7 +523,7 @@ bool GLManager::hasDrawableConfig(GLBufferConfigAttributes attrs, GLColorSpace c
 		return false;
 	if(colorSpace == GLColorSpace::LINEAR)
 		return true;
-	// SRGB Color Space
+	// sRGB Color Space
 	return hasSrgbColorSpace() && attrs.pixelFormat() != IG::PIXEL_RGB565;
 }
 

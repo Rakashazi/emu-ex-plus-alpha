@@ -39,8 +39,3 @@
 #endif
 > {}
 @end
-
-namespace Base
-{
-void updateWindowSizeAndContentRect(Base::Window &win, int width, int height, UIApplication *sharedApp);
-}

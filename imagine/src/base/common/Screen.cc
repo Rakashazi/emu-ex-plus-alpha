@@ -75,13 +75,16 @@ bool Screen::isPosted() const
 	return framePosted;
 }
 
-void Screen::frameUpdate(FrameTime timestamp)
+bool Screen::frameUpdate(FrameTime timestamp)
 {
 	assert(timestamp.count());
 	assert(isActive);
 	framePosted = false;
+	if(!onFrameDelegate.size())
+		return false;
 	runOnFrameDelegates(timestamp);
 	//logMsg("%s", isPosted() ? "drawing next frame" : "stopping at this frame");
+	return true;
 }
 
 void Screen::setActive(bool active)

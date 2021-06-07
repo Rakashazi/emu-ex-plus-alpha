@@ -18,6 +18,7 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import "MainApp.hh"
 #import <QuartzCore/QuartzCore.h>
 #include "private.hh"
+#include <imagine/base/Application.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
@@ -71,7 +72,7 @@ bool Window::setValidOrientations(Orientation oMask)
 		validO |= UIInterfaceOrientationMaskPortraitUpsideDown;
 	if(oMask & VIEW_ROTATE_270)
 		validO |= UIInterfaceOrientationMaskLandscapeRight;
-	auto currO = [sharedApp statusBarOrientation];
+	auto currO = [uiApp() statusBarOrientation];
 	logMsg("set valid orientation mask 0x%X, current orientation: %s", validO, uiInterfaceOrientationToStr(currO));
 	if(!(validO & (1 << currO)))
 	{
@@ -92,11 +93,16 @@ bool Window::requestOrientationChange(Orientation o)
 }
 #endif
 
-Window *deviceWindow(ApplicationContext ctx)
+Window *IOSApplication::deviceWindow() const
 {
-	if(ctx.windows().size()) [[likely]]
-		return ctx.windows()[0].get();
+	if(windows().size()) [[likely]]
+		return windows()[0].get();
 	return nullptr;
+}
+
+Window *IOSApplicationContext::deviceWindow() const
+{
+	return application().deviceWindow();
 }
 
 IG::PixelFormat ApplicationContext::defaultWindowPixelFormat() const
@@ -114,12 +120,13 @@ IG::WindowRect Window::contentBounds() const
 	return contentRect;
 }
 
-void IOSWindow::updateContentRect(int width, int height, uint32_t softOrientation, UIApplication *sharedApp_)
+void IOSWindow::updateContentRect(int width, int height, uint32_t softOrientation)
 {
 	contentRect.x = contentRect.y = 0;
 	contentRect.x2 = width;
 	contentRect.y2 = height;
-	bool hasStatusBar = deviceWindow({sharedApp_})->uiWin_ == uiWin_ && !sharedApp.statusBarHidden;
+	auto sharedApp = uiApp();
+	bool hasStatusBar = isDeviceWindow() && !sharedApp.statusBarHidden;
 	//logMsg("has status bar %d", hasStatusBar);
 	if(hasStatusBar)
 	{
@@ -136,9 +143,7 @@ void IOSWindow::updateContentRect(int width, int height, uint32_t softOrientatio
 		}
 		else
 		{
-			auto statusBarO = [sharedApp statusBarOrientation];
-			bool isSideways = statusBarO == UIInterfaceOrientationLandscapeLeft || statusBarO == UIInterfaceOrientationLandscapeRight;
-			statusBarHeight = (isSideways ? sharedApp.statusBarFrame.size.width : sharedApp.statusBarFrame.size.height) * pointScale;
+			statusBarHeight = sharedApp.statusBarFrame.size.height * pointScale;
 			contentRect.y = statusBarHeight;
 		}
 		logMsg("adjusted content rect to %d:%d:%d:%d for status bar height %d",
@@ -181,7 +186,7 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
 	#ifndef CONFIG_GFX_SOFT_ORIENTATION
 	validO = defaultValidOrientationMask();
 	#endif
-	updateWindowSizeAndContentRect(*this, rect.size.width * pointScale, rect.size.height * pointScale, sharedApp);
+	updateWindowSizeAndContentRect(rect.size.width * pointScale, rect.size.height * pointScale);
 	if(*screen() != ctx.mainScreen())
 	{
 		uiWin().screen = screen()->uiScreen();
@@ -208,7 +213,7 @@ IOSWindow::~IOSWindow()
 void Window::show()
 {
 	logMsg("showing window");
-	if(this == deviceWindow(appContext()))
+	if(isDeviceWindow())
 		[uiWin() makeKeyAndVisible];
 	else
 		uiWin().hidden = NO;
@@ -242,6 +247,24 @@ NativeWindow Window::nativeObject() const
 void Window::setFormat(NativeWindowFormat) {}
 
 void Window::setFormat(IG::PixelFormat) {}
+
+void IOSWindow::updateWindowSizeAndContentRect(int width, int height)
+{
+	auto &asWindow = *static_cast<Window*>(this);
+	asWindow.updateSize({width, height});
+	asWindow.updateContentRect(asWindow.width(), asWindow.height(), asWindow.softOrientation());
+}
+
+bool IOSWindow::isDeviceWindow() const
+{
+	auto deviceWinPtr = static_cast<const Window*>(this)->appContext().deviceWindow();
+	return !deviceWinPtr || deviceWinPtr->uiWin_ == uiWin_;
+}
+
+UIApplication *IOSWindow::uiApp() const
+{
+	return static_cast<const Window*>(this)->appContext().uiApp();
+}
 
 IG::PixelFormat Window::pixelFormat() const
 {
@@ -280,14 +303,11 @@ void WindowConfig::setFormat(IG::PixelFormat) {}
 
 #else
 
-- (BOOL)shouldAutorotate
+/*- (BOOL)shouldAutorotate
 {
 	//logMsg("reporting if should autorotate");
-	if(self.view.window == Base::deviceWindow({[UIApplication sharedApplication]})->uiWin())
-		return YES;
-	else
-		return NO;
-}
+	return YES;
+}*/
 
 // for iOS 6 and up
 - (NSUInteger)supportedInterfaceOrientations

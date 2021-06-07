@@ -10,12 +10,9 @@ namespace Base
 {
 	class ApplicationContext;
 
-	extern UIApplication *sharedApp;
 	extern MainApp *mainApp;
-	extern CADisplayLink *displayLink;
 	extern bool isIPad;
 	Window *windowForUIWindow(ApplicationContext, UIWindow *);
-	Window *deviceWindow(ApplicationContext);
 	bool hasAtLeastIOS5();
 	bool hasAtLeastIOS7();
 	bool hasAtLeastIOS8();

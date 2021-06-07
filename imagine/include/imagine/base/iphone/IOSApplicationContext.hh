@@ -24,6 +24,7 @@ namespace Base
 {
 
 class Application;
+class Window;
 
 class IOSApplicationContext
 {
@@ -37,6 +38,7 @@ public:
 	Application &application() const;
 	bool deviceIsIPad() const;
 	bool isSystemApp() const;
+	Window *deviceWindow() const;
 
 protected:
 	void *uiAppPtr{};

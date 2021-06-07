@@ -1082,6 +1082,29 @@ void EmuApp::configFrameTime()
 	EmuSystem::configFrameTime(emuAudio.format().rate);
 }
 
+void EmuApp::runFrames(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio, int frames, bool skipForward)
+{
+	if(skipForward) [[unlikely]]
+	{
+		if(skipForwardFrames(task, frames - 1))
+		{
+			// don't write any audio while skip is in progress
+			audio = nullptr;
+		}
+		else
+		{
+			// restore normal speed when skip ends
+			EmuSystem::setSpeedMultiplier(*audio, 1);
+		}
+	}
+	else
+	{
+		skipFrames(task, frames - 1, audio);
+	}
+	runTurboInputEvents();
+	EmuSystem::runFrame(task, video, audio);
+}
+
 void EmuApp::skipFrames(EmuSystemTask *task, uint32_t frames, EmuAudio *audio)
 {
 	assert(EmuSystem::gameIsRunning());

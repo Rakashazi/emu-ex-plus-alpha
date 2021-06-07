@@ -21,6 +21,8 @@
 namespace Base
 {
 
+class Window;
+
 struct ApplicationInitParams
 {
 	void *uiAppPtr;
@@ -37,6 +39,7 @@ class IOSApplication : public BaseApplication
 {
 public:
 	IOSApplication(ApplicationInitParams);
+	Window *deviceWindow() const;
 };
 
 using ApplicationImpl = IOSApplication;

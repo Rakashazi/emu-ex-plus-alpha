@@ -172,25 +172,27 @@ static void setupTextView(Base::ApplicationContext ctx, UITextField *vkbdField, 
 	vkbdField.text = text;
 	//[ vkbdField setEnabled: YES ];
 	if(!Config::SYSTEM_ROTATES_WINDOWS)
-		vkbdField.transform = makeTransformForOrientation(deviceWindow(ctx)->softOrientation());
+		vkbdField.transform = makeTransformForOrientation(ctx.deviceWindow()->softOrientation());
 	logMsg("init vkeyboard");
 }
 
 UIKitTextField::UIKitTextField(Base::ApplicationContext ctx, TextFieldDelegate del, const char *initialText, const char *promptText, int fontSizePixels):
 	ctx{ctx}
 {
-	auto uiTextField = [[UITextField alloc] initWithFrame: toCGRect(*deviceWindow(ctx), textRect)];
+	auto uiTextField = [[UITextField alloc] initWithFrame: toCGRect(*ctx.deviceWindow(), textRect)];
 	setupTextView(ctx, uiTextField, [NSString stringWithCString:initialText encoding: NSUTF8StringEncoding]);
 	auto appTextField = [[IGAppTextField alloc] initWithTextField:uiTextField textDelegate:del];
 	uiTextField.delegate = appTextField;
 	textField_ = (void*)CFBridgingRetain(appTextField);
-	[deviceWindow(ctx)->uiWin().rootViewController.view addSubview: uiTextField];
+	[ctx.deviceWindow()->uiWin().rootViewController.view addSubview: uiTextField];
 	logMsg("starting system text input");
 	[uiTextField becomeFirstResponder];
 }
 
 UIKitTextField::~UIKitTextField()
 {
+	textField().textDelegate = {};
+	[textField().uiTextField resignFirstResponder];
 	CFRelease(textField_);
 }
 
@@ -199,7 +201,7 @@ void TextField::place(IG::WindowRect rect)
 	textRect = rect;
 	if(!textField().uiTextField)
 		return;
-	textField().uiTextField.frame = toCGRect(*deviceWindow(ctx), textRect);
+	textField().uiTextField.frame = toCGRect(*ctx.deviceWindow(), textRect);
 }
 
 IG::WindowRect TextField::windowRect() const { return textRect; }
@@ -248,7 +250,7 @@ void handleKeyEvent(Base::ApplicationContext ctx, UIEvent *event)
 	auto time = IG::FloatSeconds((double)[event timestamp]);
 	auto &app = ctx.application();
 	if(!keyDev.iCadeMode()
-		|| (keyDev.iCadeMode() && !app.processICadeKey(key, action, time, keyDev, *Base::deviceWindow(ctx))))
+		|| (keyDev.iCadeMode() && !app.processICadeKey(key, action, time, keyDev, *ctx.deviceWindow())))
 	{
 		auto src = keyDev.iCadeMode() ? Input::Source::GAMEPAD : Input::Source::KEYBOARD;
 		app.dispatchKeyInputEvent({0, Map::SYSTEM, key, key, action, 0, 0, src, time, &keyDev});
