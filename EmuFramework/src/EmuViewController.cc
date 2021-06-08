@@ -313,12 +313,6 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 	static_cast<EmuMainMenuView*>(mainMenu.get())->setAudioVideo(emuAudio(), videoLayer());
 	pushAndShow(std::move(mainMenu));
 	applyFrameRates(false);
-	videoLayer().emuVideo().setOnFrameFinished(
-		[this](EmuVideo &)
-		{
-			addOnFrame();
-			emuWindow().drawNow();
-		});
 	videoLayer().emuVideo().setOnFormatChanged(
 		[this, &videoLayer = videoLayer()](EmuVideo &)
 		{
@@ -752,6 +746,12 @@ void EmuViewController::moveOnFrame(Base::Window &from, Base::Window &to)
 
 void EmuViewController::startEmulation()
 {
+	videoLayer().emuVideo().setOnFrameFinished(
+		[this](EmuVideo &)
+		{
+			addOnFrame();
+			emuWindow().drawNow();
+		});
 	app().setCPUNeedsLowLatency(appContext(), true);
 	systemTask->start();
 	EmuSystem::start(*appPtr);
@@ -762,6 +762,7 @@ void EmuViewController::startEmulation()
 void EmuViewController::pauseEmulation()
 {
 	app().setCPUNeedsLowLatency(appContext(), false);
+	videoLayer().emuVideo().setOnFrameFinished([](EmuVideo &){});
 	systemTask->pause();
 	EmuSystem::pause(*appPtr);
 	videoLayer().setBrightness(showingEmulation ? .75f : .25f);

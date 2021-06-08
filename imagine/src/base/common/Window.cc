@@ -257,7 +257,7 @@ void Window::unpostDraw()
 void Window::postFrameReady()
 {
 	drawPhase = DrawPhase::READY;
-	if(onFrame.size())
+	if(onFrame.size() || needsDraw())
 		drawEvent.notify();
 }
 
@@ -325,6 +325,7 @@ void Window::dispatchDismissRequest()
 void Window::dispatchSurfaceCreated()
 {
 	onSurfaceChange.callCopy(*this, {SurfaceChange::Action::CREATED});
+	surfaceChangeFlags |= SurfaceChange::SURFACE_RESIZED;
 }
 
 void Window::dispatchSurfaceChanged()
