@@ -885,6 +885,9 @@ ifeq ($(ENV),android)
  pluginLDFlags += -llog $(targetDir)/$(targetFile)
 endif
 
+# needed to prevent miscompile when building with -Ofast
+%/resid/dac.o : CFLAGS_OPTIMIZE += -fno-finite-math-only
+
 c64_obj := $(addprefix $(objDir)/,$(c64_src:.c=.o))
 c64_obj := $(c64_obj:.cc=.o)
 c64_module := $(targetDir)/libc64$(loadableModuleExt)
