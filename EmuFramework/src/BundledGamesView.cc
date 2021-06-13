@@ -41,7 +41,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	game[0] = {info.displayName, &defaultFace(),
 		[this, &info](Input::Event e)
 		{
-			auto file = app().openAppAssetIO(appContext(), info.assetName, IO::AccessHint::ALL);
+			auto file = appContext().openAsset(info.assetName, IO::AccessHint::ALL);
 			if(!file)
 			{
 				logErr("error opening bundled game asset: %s", info.assetName);

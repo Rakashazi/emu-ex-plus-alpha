@@ -172,6 +172,13 @@ struct WindowDrawParams
 	bool needsSync() const { return needsSync_; }
 };
 
+enum class WindowFrameTimeSource : uint8_t
+{
+	AUTO,
+	SCREEN,
+	RENDERER,
+};
+
 struct ScreenChange
 {
 	uint32_t state;
@@ -187,8 +194,8 @@ class Window;
 class WindowConfig;
 class ApplicationContext;
 
-using WindowContainter = std::vector<std::unique_ptr<Window>>;
-using ScreenContainter = std::vector<std::unique_ptr<Screen>>;
+using WindowContainer = std::vector<std::unique_ptr<Window>>;
+using ScreenContainer = std::vector<std::unique_ptr<Screen>>;
 using InputDeviceContainer = std::vector<Input::Device*>;
 
 using MainThreadMessageDelegate = DelegateFunc<void(ApplicationContext)>;

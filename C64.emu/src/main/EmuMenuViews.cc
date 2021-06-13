@@ -13,9 +13,6 @@
 	You should have received a copy of the GNU General Public License
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/TextEntry.hh>
-#include <imagine/gui/TextTableView.hh>
-#include <imagine/gui/AlertView.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
@@ -23,6 +20,10 @@
 #include <emuframework/FilePicker.hh>
 #include "internal.hh"
 #include "VicePlugin.hh"
+#include <imagine/gui/TextEntry.hh>
+#include <imagine/gui/TextTableView.hh>
+#include <imagine/gui/AlertView.hh>
+#include <imagine/fs/FS.hh>
 
 extern "C"
 {
@@ -444,7 +445,7 @@ class CustomSystemOptionView : public SystemOptionView
 		if(!strlen(path))
 		{
 			if(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
-				app().printfMessage(5, false, "Using default paths:\n%s\n%s\n%s", EmuApp::assetPath(appContext()).data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
+				app().printfMessage(5, false, "Using default paths:\n%s\n%s\n%s", appContext().assetPath().data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
 			else
 				app().printfMessage(4, false, "Using default path:\n%s/C64.emu", appContext().sharedStoragePath().data());
 		}

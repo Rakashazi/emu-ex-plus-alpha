@@ -19,6 +19,7 @@
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/fs/FS.hh>
 #include <gambatte.h>
 #include <libgambatte/src/video/lcddef.h>
 #include <resample/resampler.h>

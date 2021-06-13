@@ -18,9 +18,15 @@
 #include <imagine/config/defs.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <CoreFoundation/CFBase.h>
+#include <CoreGraphics/CGColor.h>
 #ifdef __OBJC__
 #import <UIKit/UIFont.h>
 #endif
+
+namespace Base
+{
+class ApplicationContext;
+}
 
 namespace IG
 {
@@ -29,7 +35,8 @@ class UIKitGlyphImage
 {
 public:
 	constexpr UIKitGlyphImage() {}
-	UIKitGlyphImage(IG::Pixmap pixmap, void *pixData);
+	constexpr UIKitGlyphImage(IG::Pixmap pixmap, void *pixData):
+		pixmap_{pixmap}, pixData_{pixData} {}
 	UIKitGlyphImage(UIKitGlyphImage &&o);
 	UIKitGlyphImage &operator=(UIKitGlyphImage &&o);
 	~UIKitGlyphImage();
@@ -37,16 +44,20 @@ public:
 protected:
 	IG::Pixmap pixmap_{};
 	void *pixData_{};
+
+	void deinit();
 };
 
 class UIKitFont
 {
 public:
 	constexpr UIKitFont() {}
-	UIKitFont(UIKitFont &&o);
-	UIKitFont &operator=(UIKitFont &&o);
+	constexpr UIKitFont(CGColorSpaceRef grayColorSpace, CGColorRef textColor, bool isBold = false):
+		grayColorSpace{grayColorSpace}, textColor{textColor}, isBold{isBold} {}
 
 protected:
+	CGColorSpaceRef grayColorSpace{};
+	CGColorRef textColor{};
 	bool isBold{};
 };
 
@@ -54,7 +65,7 @@ class UIKitFontSize
 {
 public:
 	constexpr UIKitFontSize() {}
-	UIKitFontSize(void *font);
+	constexpr UIKitFontSize(void *font): font_{font} {}
 	UIKitFontSize(UIKitFontSize &&o);
 	UIKitFontSize &operator=(UIKitFontSize &&o);
 	~UIKitFontSize();
@@ -68,8 +79,20 @@ protected:
 	void deinit();
 };
 
+class UIKitFontFontManager
+{
+public:
+	UIKitFontFontManager(Base::ApplicationContext);
+	~UIKitFontFontManager();
+
+protected:
+	CGColorSpaceRef grayColorSpace{}; // owner
+	CGColorRef textColor{}; // owner
+};
+
 using GlyphImageImpl = UIKitGlyphImage;
 using FontImpl = UIKitFont;
 using FontSize = UIKitFontSize;
+using FontManagerImpl = UIKitFontFontManager;
 
 }

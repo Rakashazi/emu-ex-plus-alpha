@@ -22,6 +22,7 @@
 #include <imagine/util/bitset.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include "internal.hh"
+#include <imagine/fs/FS.hh>
 
 extern "C"
 {

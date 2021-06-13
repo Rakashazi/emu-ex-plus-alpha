@@ -13,11 +13,12 @@
 	You should have received a copy of the GNU General Public License
 	along with GBA.emu.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/gui/TextEntry.hh>
-#include <imagine/util/string.h>
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
+#include <imagine/fs/FS.hh>
+#include <imagine/gui/TextEntry.hh>
+#include <imagine/util/string.h>
 #include <gba/Cheats.h>
 static bool cheatsModified = false;
 

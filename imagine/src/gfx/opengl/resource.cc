@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gfx/Renderer.hh>
+#include <imagine/data-type/image/PixmapSource.hh>
 
 namespace Gfx
 {
@@ -23,7 +24,7 @@ Texture Renderer::makeTexture(TextureConfig config)
 	return {task(), config};
 }
 
-Texture Renderer::makeTexture(GfxImageSource &img, const TextureSampler *compatSampler, bool makeMipmaps)
+Texture Renderer::makeTexture(IG::Data::PixmapSource img, const TextureSampler *compatSampler, bool makeMipmaps)
 {
 	return {task(), img, compatSampler, makeMipmaps};
 }
@@ -33,7 +34,7 @@ PixmapTexture Renderer::makePixmapTexture(TextureConfig config)
 	return {task(), config};
 }
 
-PixmapTexture Renderer::makePixmapTexture(GfxImageSource &img, const TextureSampler *compatSampler, bool makeMipmaps)
+PixmapTexture Renderer::makePixmapTexture(IG::Data::PixmapSource img, const TextureSampler *compatSampler, bool makeMipmaps)
 {
 	return {task(), img, compatSampler, makeMipmaps};
 }

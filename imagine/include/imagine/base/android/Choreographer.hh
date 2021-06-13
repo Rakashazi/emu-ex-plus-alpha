@@ -28,7 +28,7 @@ class NativeChoreographer
 {
 public:
 	constexpr NativeChoreographer() {}
-	NativeChoreographer(const ScreenContainter &);
+	NativeChoreographer(const ScreenContainer &);
 	void scheduleVSync();
 	explicit constexpr operator bool() const { return choreographer; }
 
@@ -36,7 +36,7 @@ protected:
 	using AChoreographerFrameCallback = void (*)(long frameTimeNanos, void* data);
 	using PostFrameCallbackFunc = void (*)(AChoreographer*, AChoreographerFrameCallback, void* data);
 
-	const ScreenContainter *screensPtr{};
+	const ScreenContainer *screensPtr{};
 	AChoreographer *choreographer{};
 	PostFrameCallbackFunc postFrameCallback{};
 	bool requested{};
@@ -46,12 +46,12 @@ class JavaChoreographer
 {
 public:
 	constexpr JavaChoreographer() {}
-	JavaChoreographer(const ScreenContainter &, JNIEnv *, jobject baseActivity, jclass baseActivityClass);
+	JavaChoreographer(const ScreenContainer &, JNIEnv *, jobject baseActivity, jclass baseActivityClass);
 	void scheduleVSync();
 	explicit constexpr operator bool() const { return frameHelper; }
 
 protected:
-	const ScreenContainter *screensPtr{};
+	const ScreenContainer *screensPtr{};
 	JNI::UniqueGlobalRef frameHelper{};
 	JNI::InstMethod<void()> jPostFrame{};
 	bool requested{};

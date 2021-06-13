@@ -22,6 +22,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include "internal.hh"
+#include <imagine/fs/FS.hh>
 
 // TODO: remove when namespace code is complete
 #ifdef __APPLE__

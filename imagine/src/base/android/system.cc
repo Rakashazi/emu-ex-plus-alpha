@@ -17,6 +17,7 @@
 #include <sys/resource.h>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
+#include <imagine/base/VibrationManager.hh>
 #include <imagine/base/Timer.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
@@ -63,37 +64,30 @@ bool AndroidApplicationContext::packageIsInstalled(const char *name) const
 	return jPackageIsInstalled(env, baseActivity, env->NewStringUTF(name));
 }
 
-static void initVibration(JNIEnv* env, jobject baseActivity)
+AndroidVibrationManager::AndroidVibrationManager(ApplicationContext ctx)
 {
-	if(vibrationSystemIsInit) [[likely]]
+	auto env = ctx.mainThreadJniEnv();
+	auto baseActivity = ctx.baseActivityObject();
+	JNI::InstMethod<jobject()> jSysVibrator{env, baseActivity, "systemVibrator", "()Landroid/os/Vibrator;"};
+	auto sysVibrator = jSysVibrator(env, baseActivity);
+	if(!sysVibrator)
 		return;
-	{
-		JNI::InstMethod<jobject()> jSysVibrator{env, baseActivity, "systemVibrator", "()Landroid/os/Vibrator;"};
-		vibrator = jSysVibrator(env, baseActivity);
-	}
-	vibrationSystemIsInit = true;
-	if(!vibrator)
-		return;
-	logMsg("Vibrator present");
-	vibrator = env->NewGlobalRef(vibrator);
-	auto vibratorCls = env->FindClass("android/os/Vibrator");
-	jVibrate = {env, vibratorCls, "vibrate", "(J)V"};
+	logMsg("vibrator present");
+	vibrator = {env, sysVibrator};
+	jVibrate = {env, env->FindClass("android/os/Vibrator"), "vibrate", "(J)V"};
 }
 
-bool ApplicationContext::hasVibrator()
+bool VibrationManager::hasVibrator() const
 {
-	initVibration(mainThreadJniEnv(), baseActivityObject());
 	return vibrator;
 }
 
-void ApplicationContext::vibrate(IG::Milliseconds ms)
+void VibrationManager::vibrate(IG::Milliseconds ms)
 {
-	auto env = mainThreadJniEnv();
-	initVibration(env, baseActivityObject());
 	if(!vibrator) [[unlikely]]
 		return;
 	//logDMsg("vibrating for %u ms", ms.count());
-	jVibrate(env, vibrator, (jlong)ms.count());
+	jVibrate(vibrator.jniEnv(), vibrator, (jlong)ms.count());
 }
 
 void setDeviceOrientationChangedSensor(bool)

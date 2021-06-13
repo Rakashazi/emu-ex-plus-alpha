@@ -54,6 +54,7 @@ static WindowData &windowData(const Base::Window &win)
 FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams initParams,
 	Base::ApplicationContext &ctx, Gfx::Error &rendererErr):
 	Application{initParams},
+	fontManager{ctx},
 	renderer{ctx, rendererErr}
 {
 	if(rendererErr)
@@ -75,7 +76,7 @@ FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams i
 				return;
 			}
 			viewManager = {renderer};
-			auto defaultFace = Gfx::GlyphTextureSet::makeSystem(renderer, win.heightSMMInPixels(3.5));
+			Gfx::GlyphTextureSet defaultFace{renderer, fontManager.makeSystem(), win.heightSMMInPixels(3.5)};
 			defaultFace.precacheAlphaNum(renderer);
 			defaultFace.precache(renderer, ":.%()");
 			viewManager.setDefaultFace(std::move(defaultFace));

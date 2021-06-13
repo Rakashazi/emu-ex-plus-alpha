@@ -351,20 +351,16 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	mogaInputSystem
 	{
 		"MOGA Controller Support", &defaultFace(),
-		(bool)optionMOGAInputSystem,
+		app().mogaManagerIsActive(),
 		[this](BoolMenuItem &item, Input::Event e)
 		{
-			if(!optionMOGAInputSystem && !appContext().packageIsInstalled("com.bda.pivot.mogapgp"))
+			if(!app().mogaManagerIsActive() && !appContext().packageIsInstalled("com.bda.pivot.mogapgp"))
 			{
 				app().postMessage(8, "Install the MOGA Pivot app from Google Play to use your MOGA Pocket. "
 					"For MOGA Pro or newer, set switch to mode B and pair in the Android Bluetooth settings app instead.");
 				return;
 			}
-			optionMOGAInputSystem = item.flipBoolValue(*this);
-			if(optionMOGAInputSystem)
-				appContext().initMogaInputSystem(true);
-			else
-				appContext().deinitMogaInputSystem();
+			app().setMogaManagerActive(item.flipBoolValue(*this), true);
 		}
 	},
 	#endif

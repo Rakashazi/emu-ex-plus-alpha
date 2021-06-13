@@ -18,11 +18,10 @@
 #include <emuframework/EmuAppInlines.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
-#include <imagine/base/Pipe.hh>
-#include <imagine/thread/Thread.hh>
-#include <imagine/fs/ArchiveFS.hh>
-#include <imagine/util/ScopeGuard.hh>
 #include "internal.hh"
+#include <imagine/fs/ArchiveFS.hh>
+#include <imagine/fs/FS.hh>
+#include <imagine/util/ScopeGuard.hh>
 
 extern "C"
 {
@@ -417,7 +416,7 @@ EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
 	strcpy(rompathConfItem.data.dt_str.str, ".");
 	if(!Config::envIsAndroid)
 	{
-		string_printf(datafilePath, "%s/gngeo_data.zip", EmuApp::assetPath(ctx).data());
+		string_printf(datafilePath, "%s/gngeo_data.zip", ctx.assetPath().data());
 	}
 	return {};
 }

@@ -32,7 +32,7 @@ public:
 			attach,
 			label,
 			[&item](const ::TableView &) { return std::size(item); },
-			[&item](const ::TableView &, uint32_t idx) -> MenuItem& { return ::TableView::derefMenuItem(std::data(item)[idx]); }
+			[&item](const ::TableView &, uint32_t idx) -> MenuItem& { return IG::deref(std::data(item)[idx]); }
 		} {}
 	void place() override;
 	bool inputEvent(Input::Event e) override;

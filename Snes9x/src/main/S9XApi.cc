@@ -51,11 +51,6 @@ void S9xPrintfError(const char* msg, ...)
 
 #ifndef SNES9X_VERSION_1_4
 
-bool8 S9xContinueUpdate(int width, int height)
-{
-	return (TRUE);
-}
-
 void S9xHandlePortCommand(s9xcommand_t cmd, int16 data1, int16 data2) {}
 
 bool8 S9xOpenSoundDevice()

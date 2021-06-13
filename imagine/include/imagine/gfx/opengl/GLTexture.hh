@@ -25,8 +25,6 @@
 #include <EGL/eglext.h>
 #endif
 
-class GfxImageSource;
-
 namespace Gfx
 {
 

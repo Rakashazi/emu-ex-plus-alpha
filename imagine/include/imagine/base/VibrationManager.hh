@@ -15,20 +15,33 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <system_error>
+#include <imagine/config/defs.hh>
 
-namespace IG
+#if defined __ANDROID__
+#include <imagine/base/android/AndroidVibrationManager.hh>
+#else
+namespace Base
 {
-class Pixmap;
-}
 
-class GfxImageSource
+struct VibrationManagerImpl
+{
+	constexpr VibrationManagerImpl(ApplicationContext) {}
+};
+
+}
+#endif
+
+#include <imagine/time/Time.hh>
+
+namespace Base
+{
+
+class VibrationManager : public VibrationManagerImpl
 {
 public:
-	constexpr GfxImageSource() {}
-	virtual ~GfxImageSource();
-	virtual std::errc write(IG::Pixmap dest) = 0;
-	virtual IG::Pixmap pixmapView() = 0;
-	virtual void freePixmap();
-	virtual explicit operator bool() const = 0;
+	using VibrationManagerImpl::VibrationManagerImpl;
+	bool hasVibrator() const;
+	void vibrate(IG::Milliseconds ms);
 };
+
+}

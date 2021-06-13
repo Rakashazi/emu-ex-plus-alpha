@@ -316,3 +316,13 @@ void BasicNavView::showRightBtn(bool show)
 			selected = -1;
 	}
 }
+
+void BasicNavView::setCenterTitle(bool on)
+{
+	centerTitle = on;
+}
+
+void BasicNavView::setRotateLeftButton(bool on)
+{
+	rotateLeftBtn = on;
+}

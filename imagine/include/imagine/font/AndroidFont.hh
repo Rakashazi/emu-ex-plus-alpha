@@ -16,38 +16,47 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/ApplicationContext.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/jni.hh>
+#include <utility>
+
+namespace Base
+{
+class ApplicationContext;
+class Application;
+}
 
 namespace IG
 {
+
+class FontManager;
+struct GlyphMetrics;
 
 class AndroidGlyphImage
 {
 public:
 	constexpr AndroidGlyphImage() {}
-	AndroidGlyphImage(Base::ApplicationContext, IG::Pixmap pixmap, jobject bitmap);
-	AndroidGlyphImage(AndroidGlyphImage &&o);
-	AndroidGlyphImage &operator=(AndroidGlyphImage &&o);
-	~AndroidGlyphImage();
+	AndroidGlyphImage(JNI::LockedLocalBitmap, IG::Pixmap);
 
 protected:
+	JNI::LockedLocalBitmap lockedBitmap{};
 	IG::Pixmap pixmap_{};
-	jobject aBitmap{};
-	Base::ApplicationContext ctx{};
 };
 
 class AndroidFont
 {
 public:
-	constexpr AndroidFont(Base::ApplicationContext ctx):
-		ctx{ctx}
+	constexpr AndroidFont() {}
+	constexpr AndroidFont(const FontManager &manager, bool isBold = false):
+		managerPtr{&manager},
+		isBold{isBold}
 	{}
 
 protected:
-	Base::ApplicationContext ctx{};
+	const FontManager *managerPtr{};
 	bool isBold{};
+
+	constexpr const FontManager &manager() const { return *managerPtr; }
 };
 
 class AndroidFontSize
@@ -61,8 +70,28 @@ protected:
 	JNI::UniqueGlobalRef paint_{};
 };
 
+class AndroidFontManager
+{
+public:
+	AndroidFontManager(Base::ApplicationContext);
+	std::pair<jobject, GlyphMetrics> makeBitmap(JNIEnv*, int idx, AndroidFontSize &) const;
+	GlyphMetrics makeMetrics(JNIEnv*, int idx, AndroidFontSize &) const;
+	jobject makePaint(JNIEnv*, int pixelHeight, bool isBold) const;
+	constexpr Base::Application &app() const { return *appPtr; }
+	constexpr JNI::InstMethod<void()> recycleBitmapMethod() const { return jRecycleBitmap; }
+
+protected:
+	Base::Application *appPtr{};
+	JNI::UniqueGlobalRef renderer{};
+	JNI::InstMethod<jobject(jint, jobject, jlong)> jBitmap{};
+	JNI::InstMethod<void(jint, jobject, jlong)> jMetrics{};
+	JNI::InstMethod<jobject(jint, jboolean)> jMakePaint{};
+	JNI::InstMethod<void()> jRecycleBitmap{};
+};
+
 using GlyphImageImpl = AndroidGlyphImage;
 using FontImpl = AndroidFont;
 using FontSize = AndroidFontSize;
+using FontManagerImpl = AndroidFontManager;
 
 }

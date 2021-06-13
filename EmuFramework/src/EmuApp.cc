@@ -32,7 +32,7 @@
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gui/ToastView.hh>
 #include <imagine/gui/AlertView.hh>
-#include <imagine/data-type/image/PixmapReader.hh>
+#include <imagine/data-type/image/PixmapSource.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/thread/Thread.hh>
@@ -40,6 +40,7 @@
 
 EmuApp::EmuApp(Base::ApplicationInitParams initParams, Base::ApplicationContext &ctx, Gfx::Error &rendererErr):
 	Application{initParams},
+	fontManager{ctx},
 	renderer{ctx, rendererErr},
 	audioManager_{ctx},
 	emuAudio{audioManager_},
@@ -59,7 +60,9 @@ EmuApp::EmuApp(Base::ApplicationInitParams initParams, Base::ApplicationContext 
 	},
 	inputDevConf{},
 	lastLoadPath{ctx.sharedStoragePath()},
-	pixmapWriter{ctx}
+	pixmapReader{ctx},
+	pixmapWriter{ctx},
+	vibrationManager_{ctx}
 {
 	if(rendererErr)
 	{
@@ -142,13 +145,13 @@ Gfx::PixmapTexture &EmuApp::asset(AssetID assetID) const
 	auto &res = assetBuffImg[assetIdx];
 	if(!res)
 	{
-		IG::Data::PixmapReader pixReader{renderer.appContext()};
-		if(auto ec = pixReader.loadAsset(assetFilename[assetIdx]);
-			ec)
+		auto img = pixmapReader.loadAsset(assetFilename[assetIdx]);
+		if(!img)
 		{
 			logErr("couldn't load %s", assetFilename[assetIdx]);
+			return res;
 		}
-		res = renderer.makePixmapTexture(pixReader, &renderer.get(View::imageCommonTextureSampler));
+		res = renderer.makePixmapTexture(img, &renderer.get(View::imageCommonTextureSampler));
 	}
 	return res;
 }
@@ -415,11 +418,6 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 		logMsg("requested external storage write permissions");
 	}
 
-	#ifdef CONFIG_INPUT_ANDROID_MOGA
-	if(optionMOGAInputSystem)
-		ctx.initMogaInputSystem(false);
-	#endif
-
 	if(!renderer.supportsColorSpace())
 		windowDrawableConf.colorSpace = {};
 	emuVideo.setSrgbColorSpaceOutput(windowDrawableConf.colorSpace == Gfx::ColorSpace::SRGB);
@@ -456,8 +454,8 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 
 			viewManager = {renderer};
 			viewManager.setNeedsBackControl(appConfig.backNavigation());
-			viewManager.setDefaultFace(Gfx::GlyphTextureSet::makeSystem(renderer, IG::FontSettings{}));
-			viewManager.setDefaultBoldFace(Gfx::GlyphTextureSet::makeBoldSystem(renderer, IG::FontSettings{}));
+			viewManager.setDefaultFace({renderer, fontManager.makeSystem(), IG::FontSettings{}});
+			viewManager.setDefaultBoldFace({renderer, fontManager.makeBoldSystem(), IG::FontSettings{}});
 			vController.setFace(viewManager.defaultFace());
 
 			win.makeAppData<WindowData>();
@@ -949,26 +947,6 @@ void EmuApp::resetInput()
 	viewController().setFastForwardActive(false);
 }
 
-FS::PathString EmuApp::assetPath(Base::ApplicationContext ctx)
-{
-	return ctx.assetPath();
-}
-
-FS::PathString EmuApp::libPath(Base::ApplicationContext ctx)
-{
-	return ctx.libPath();
-}
-
-FS::PathString EmuApp::supportPath(Base::ApplicationContext ctx)
-{
-	return ctx.supportPath();
-}
-
-AssetIO EmuApp::openAppAssetIO(Base::ApplicationContext ctx, const char *name, IO::AccessHint access)
-{
-	return ctx.openAsset(name, access);
-}
-
 static FS::PathString sessionConfigPath()
 {
 	return FS::makePathStringPrintf("%s/%s.config", EmuSystem::savePath(), EmuSystem::gameName().data());
@@ -1164,6 +1142,21 @@ std::pair<int, FS::PathString> EmuApp::makeNextScreenshotFilename()
 	logMsg("no screenshot filenames left");
 	return {-1, {}};
 }
+
+#ifdef CONFIG_INPUT_ANDROID_MOGA
+bool EmuApp::mogaManagerIsActive() const
+{
+	return (bool)mogaManagerPtr;
+}
+
+void EmuApp::setMogaManagerActive(bool on, bool notify)
+{
+	if(on)
+		mogaManagerPtr = std::make_unique<Input::MogaManager>(appContext(), notify);
+	else
+		mogaManagerPtr.reset();
+}
+#endif
 
 EmuApp &EmuApp::get(Base::ApplicationContext ctx)
 {

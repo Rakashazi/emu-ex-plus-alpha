@@ -15,6 +15,7 @@
 
 #define LOGTAG "ResFont"
 #include <imagine/font/Font.hh>
+#include <imagine/data-type/image/PixmapSource.hh>
 
 namespace IG
 {
@@ -47,6 +48,11 @@ void FontSettings::setPixelHeight(int h)
 int Font::minUsablePixels() const
 {
 	return 16;
+}
+
+GlyphImage::operator IG::Data::PixmapSource()
+{
+	return {pixmap()};
 }
 
 }

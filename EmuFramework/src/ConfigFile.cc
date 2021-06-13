@@ -190,9 +190,6 @@ static OptionBase *cfgFileOption[] =
 	#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 	&optionNotifyInputDeviceChange,
 	#endif
-	#ifdef CONFIG_INPUT_ANDROID_MOGA
-	&optionMOGAInputSystem,
-	#endif
 	#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 	&optionFrameInterval,
 	#endif
@@ -253,6 +250,10 @@ void EmuApp::saveConfigFile(IO &io)
 	writeOptionValue(io, CFGKEY_WINDOW_PIXEL_FORMAT, windowDrawablePixelFormatOption());
 	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, windowDrawableColorSpaceOption());
 	writeOptionValue(io, CFGKEY_RENDER_PIXEL_FORMAT, renderPixelFormatOption());
+	#ifdef CONFIG_INPUT_ANDROID_MOGA
+	if(mogaManagerPtr)
+		writeOptionValue(io, CFGKEY_MOGA_INPUT_SYSTEM, true);
+	#endif
 
 	if(customKeyConfig.size())
 	{
@@ -511,7 +512,11 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				bcase CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE: optionNotifyInputDeviceChange.readFromIO(io, size);
 				#endif
 				#ifdef CONFIG_INPUT_ANDROID_MOGA
-				bcase CFGKEY_MOGA_INPUT_SYSTEM: optionMOGAInputSystem.readFromIO(io, size);
+				bcase CFGKEY_MOGA_INPUT_SYSTEM:
+					if(readOptionValue<bool>(io, size).value_or(false))
+					{
+						setMogaManagerActive(true, false);
+					}
 				#endif
 				bcase CFGKEY_TEXTURE_BUFFER_MODE: optionTextureBufferMode.readFromIO(io, size);
 				#if defined __ANDROID__

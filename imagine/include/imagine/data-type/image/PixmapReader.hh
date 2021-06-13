@@ -29,7 +29,7 @@
 #include <imagine/data-type/image/Android.hh>
 #endif
 
-#include <imagine/data-type/image/GfxImageSource.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <system_error>
 
 class GenericIO;
@@ -47,20 +47,25 @@ class Pixmap;
 namespace IG::Data
 {
 
-class PixmapReader final: public PixmapReaderImpl, public GfxImageSource
+class PixmapSource;
+
+class PixmapImage: public PixmapImageImpl
 {
 public:
-	constexpr PixmapReader(Base::ApplicationContext ctx):
-		PixmapReaderImpl{ctx}
-	{}
+	using PixmapImageImpl::PixmapImageImpl;
+	std::errc write(IG::Pixmap dest);
+	IG::Pixmap pixmapView();
+	explicit operator bool() const;
+	operator PixmapSource();
+};
 
-	std::error_code load(GenericIO io);
-	std::error_code load(const char *name);
-	std::error_code loadAsset(const char *name, const char *appName = Base::ApplicationContext::applicationName);
-	std::errc write(IG::Pixmap dest) final;
-	IG::Pixmap pixmapView() final;
-	void reset();
-	explicit operator bool() const final;
+class PixmapReader final: public PixmapReaderImpl
+{
+public:
+	using PixmapReaderImpl::PixmapReaderImpl;
+	PixmapImage load(GenericIO io) const;
+	PixmapImage load(const char *name) const;
+	PixmapImage loadAsset(const char *name, const char *appName = Base::ApplicationContext::applicationName) const;
 };
 
 }

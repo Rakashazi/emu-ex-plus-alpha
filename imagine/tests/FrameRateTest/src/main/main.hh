@@ -31,6 +31,7 @@ public:
 	TestFramework *startTest(Base::Window &, const TestParams &t);
 
 private:
+	IG::FontManager fontManager;
 	Gfx::Renderer renderer;
 	ViewManager viewManager{};
 	#ifdef __ANDROID__

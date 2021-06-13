@@ -20,7 +20,6 @@
 #include <imagine/gfx/PixmapTexture.hh>
 #include <imagine/util/container/VMemArray.hh>
 #include <system_error>
-#include <memory>
 
 class GenericIO;
 
@@ -37,7 +36,7 @@ struct GlyphEntry
 	IG::GlyphMetrics metrics{};
 
 	constexpr GlyphEntry() {}
-	const Gfx::PixmapTexture &glyph() const { return glyph_; }
+	constexpr const Gfx::PixmapTexture &glyph() const { return glyph_; }
 };
 
 class GlyphTextureSet
@@ -46,12 +45,7 @@ public:
 	static constexpr bool supportsUnicode = Config::UNICODE_CHARS;
 
 	constexpr GlyphTextureSet() {}
-	GlyphTextureSet(Renderer &r, std::unique_ptr<IG::Font> font, IG::FontSettings set);
-	GlyphTextureSet(Renderer &r, const char *path, IG::FontSettings set);
-	GlyphTextureSet(Renderer &r, GenericIO io, IG::FontSettings set);
-	static GlyphTextureSet makeSystem(Renderer &r, IG::FontSettings set);
-	static GlyphTextureSet makeBoldSystem(Renderer &r, IG::FontSettings set);
-	static GlyphTextureSet makeFromAsset(Renderer &, const char *name, IG::FontSettings, const char *appName = Base::ApplicationContext::applicationName);
+	GlyphTextureSet(Renderer &, IG::Font, IG::FontSettings);
 	IG::FontSettings fontSettings() const;
 	bool setFontSettings(Renderer &r, IG::FontSettings set);
 	unsigned precache(Renderer &r, const char *string);
@@ -65,7 +59,7 @@ public:
 	void freeCaches() { freeCaches(~0); }
 
 private:
-	std::unique_ptr<IG::Font> font{};
+	IG::Font font{};
 	IG::VMemArray<GlyphEntry> glyphTable{};
 	IG::FontSettings settings{};
 	IG::FontSize faceSize{};

@@ -287,7 +287,7 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			&app().asset(EmuApp::AssetID::ARROW),
 			&app().asset(EmuApp::AssetID::GAME_ICON)
 		);
-		viewNav->rotateLeftBtn = true;
+		viewNav->setRotateLeftButton(true);
 		viewNav->setOnPushLeftBtn(
 			[this](Input::Event)
 			{

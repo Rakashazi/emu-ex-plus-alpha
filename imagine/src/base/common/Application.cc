@@ -55,7 +55,7 @@ void BaseApplication::deinitWindows()
 	window_.clear();
 }
 
-const WindowContainter &BaseApplication::windows() const
+const WindowContainer &BaseApplication::windows() const
 {
 	return window_;
 }
@@ -104,7 +104,7 @@ void BaseApplication::removeSecondaryScreens()
 	}
 }
 
-const ScreenContainter &BaseApplication::screens() const
+const ScreenContainer &BaseApplication::screens() const
 {
 	return screen_;
 }

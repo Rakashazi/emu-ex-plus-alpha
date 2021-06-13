@@ -18,7 +18,6 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/sharedLibrary.hh>
 #include <imagine/time/Time.hh>
-#include <imagine/data-type/image/GfxImageSource.hh>
 #include <imagine/logger/logger.h>
 #include <cstdlib>
 #include <cstring>
@@ -158,8 +157,6 @@ int thisThreadPriority()
 }
 
 }
-
-GfxImageSource::~GfxImageSource() {}
 
 #if defined(__has_feature)
 	#if __has_feature(address_sanitizer) && defined CONFIG_BASE_CUSTOM_NEW_DELETE

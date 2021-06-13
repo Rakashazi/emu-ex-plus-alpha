@@ -16,13 +16,15 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/MessagePort.hh>
-#include <imagine/base/CustomEvent.hh>
-#include <imagine/thread/Semaphore.hh>
-#include <imagine/pixmap/PixmapDesc.hh>
 
 class EmuVideo;
 class EmuAudio;
 class EmuApp;
+
+namespace IG
+{
+class Semaphore;
+}
 
 class EmuSystemTask
 {

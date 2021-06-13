@@ -50,6 +50,19 @@ using UseTypeIf = std::conditional_t<CONDITION, T, EmptyType<T, Tag>>;
 	struct name ## EmptyTag{}; \
 	[[no_unique_address]] IG::UseTypeIf<(c), t, name ## EmptyTag> name
 
+template <class T>
+static auto &deref(T &obj)
+{
+	if constexpr(std::is_pointer_v<T>)
+	{
+		return *obj;
+	}
+	else
+	{
+		return obj;
+	}
+}
+
 }
 
 #define static_assertIsStandardLayout(type) static_assert(std::is_standard_layout_v<type>, #type " isn't standard-layout")

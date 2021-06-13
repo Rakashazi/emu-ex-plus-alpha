@@ -16,7 +16,6 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/time/Time.hh>
 #include <imagine/base/Error.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/rectangle2.h>

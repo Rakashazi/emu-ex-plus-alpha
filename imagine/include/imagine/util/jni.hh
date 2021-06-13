@@ -203,4 +203,24 @@ static CONTAINER stringCopy(JNIEnv *env, jstring jstr)
 	return c;
 }
 
+class LockedLocalBitmap
+{
+public:
+	constexpr LockedLocalBitmap() {}
+	constexpr LockedLocalBitmap(JNIEnv *env, jobject bitmap, JNI::InstMethod<void()> recycle):
+		env{env}, bitmap{bitmap}, jRecycle{recycle} {}
+	LockedLocalBitmap(LockedLocalBitmap &&o);
+	LockedLocalBitmap &operator=(LockedLocalBitmap &&o);
+	~LockedLocalBitmap();
+	constexpr operator jobject() const { return bitmap; }
+	explicit constexpr operator bool() const { return bitmap; }
+
+protected:
+	JNIEnv *env{};
+	jobject bitmap{};
+	JNI::InstMethod<void()> jRecycle{};
+
+	void deinit();
+};
+
 }

@@ -126,11 +126,6 @@ IG::Pixmap makePixmapView(JNIEnv *env, jobject bitmap, void *pixels, IG::PixelFo
 	return {{{(int)info.width, (int)info.height}, format}, pixels, {info.stride, IG::Pixmap::BYTE_UNITS}};
 }
 
-void AndroidApplication::recycleBitmap(JNIEnv *env, jobject bitmap)
-{
-	jRecycle(env, bitmap);
-}
-
 void ApplicationContext::exit(int returnVal)
 {
 	// TODO: return exit value as activity result

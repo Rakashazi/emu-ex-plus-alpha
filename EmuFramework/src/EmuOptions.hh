@@ -131,9 +131,6 @@ extern Byte1Option optionFastForwardSpeed;
 #ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 extern Byte1Option optionNotifyInputDeviceChange;
 #endif
-#ifdef CONFIG_INPUT_ANDROID_MOGA
-extern Byte1Option optionMOGAInputSystem;
-#endif
 
 #ifdef CONFIG_BLUETOOTH
 extern Byte1Option optionKeepBluetoothActive;

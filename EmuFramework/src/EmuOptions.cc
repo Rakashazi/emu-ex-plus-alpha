@@ -99,9 +99,6 @@ Byte1Option optionFastForwardSpeed(CFGKEY_FAST_FORWARD_SPEED, 4, 0, optionIsVali
 #ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 Byte1Option optionNotifyInputDeviceChange(CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE, Config::Input::DEVICE_HOTSWAP, !Config::Input::DEVICE_HOTSWAP);
 #endif
-#ifdef CONFIG_INPUT_ANDROID_MOGA
-Byte1Option optionMOGAInputSystem(CFGKEY_MOGA_INPUT_SYSTEM, 0, 0);
-#endif
 
 #ifdef CONFIG_BLUETOOTH
 Byte1Option optionKeepBluetoothActive(CFGKEY_KEEP_BLUETOOTH_ACTIVE, 0, !Config::BASE_CAN_BACKGROUND_APP);
@@ -247,14 +244,6 @@ void EmuApp::initOptions(Base::ApplicationContext ctx)
 		optionFontSize.initDefault(5000);
 	#endif
 
-	#ifdef CONFIG_INPUT_ANDROID_MOGA
-	if(ctx.packageIsInstalled("com.bda.pivot.mogapgp"))
-	{
-		logMsg("MOGA Pivot ctx is present");
-		optionMOGAInputSystem.initDefault(1);
-	}
-	#endif
-
 	#ifdef CONFIG_BASE_ANDROID
 	if(ctx.hasHardwareNavButtons())
 	{
@@ -278,9 +267,9 @@ void EmuApp::initOptions(Base::ApplicationContext ctx)
 		optionNotifyInputDeviceChange.isConst = 1;
 		#endif
 	}
-	if(!ctx.hasVibrator())
+	if(!vibrationManager().hasVibrator())
 	{
-		optionVibrateOnPush.isConst = 1;
+		optionVibrateOnPush.isConst = true;
 	}
 	if(ctx.androidSDK() < 17)
 	{

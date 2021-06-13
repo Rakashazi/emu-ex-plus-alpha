@@ -59,7 +59,7 @@ public:
 			std::move(name),
 			attach,
 			[&item](const TableView &) { return std::size(item); },
-			[&item](const TableView &, uint32_t idx) -> MenuItem& { return derefMenuItem(std::data(item)[idx]); }
+			[&item](const TableView &, uint32_t idx) -> MenuItem& { return IG::deref(std::data(item)[idx]); }
 		} {}
 	template <class Container>
 	TableView(const char *name, ViewAttachParams attach, Container &item):
@@ -81,14 +81,6 @@ public:
 	IG::WP cellSize() const;
 	void highlightCell(int idx);
 	void setAlign(_2DOrigin align);
-	static MenuItem& derefMenuItem(MenuItem *item)
-	{
-		return *item;
-	}
-	static MenuItem& derefMenuItem(MenuItem &item)
-	{
-		return item;
-	}
 
 protected:
 	ItemsDelegate items{};

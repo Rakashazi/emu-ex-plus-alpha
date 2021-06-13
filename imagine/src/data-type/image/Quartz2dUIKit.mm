@@ -23,16 +23,18 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 namespace IG::Data
 {
 
-bool PixmapWriter::writeToFile(IG::Pixmap srcPix, const char *path)
+bool PixmapWriter::writeToFile(IG::Pixmap srcPix, const char *path) const
 {
 	IG::MemPixmap tempMemPix{{srcPix.size(), IG::PIXEL_FMT_RGB888}};
 	auto pix = tempMemPix.view();
 	pix.writeConverted(srcPix);
 	auto provider = CGDataProviderCreateWithData(nullptr, pix.data(), pix.bytes(), nullptr);
 	int bitsPerComponent = 8;
+	auto colorSpace = CGColorSpaceCreateDeviceRGB();
 	CGBitmapInfo bitmapInfo = kCGImageAlphaNone;
-	auto imageRef = CGImageCreate(pix.w(), pix.h(), bitsPerComponent, pix.format().bitsPerPixel(), pix.pitchBytes(), Base::grayColorSpace, bitmapInfo,
+	auto imageRef = CGImageCreate(pix.w(), pix.h(), bitsPerComponent, pix.format().bitsPerPixel(), pix.pitchBytes(), colorSpace, bitmapInfo,
 		provider, nullptr, NO, kCGRenderingIntentDefault);
+	CGColorSpaceRelease(colorSpace);
 	CGDataProviderRelease(provider);
 	@autoreleasepool
 	{

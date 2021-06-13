@@ -17,9 +17,10 @@
 #include <array>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
+#include "internal.hh"
 #include <imagine/io/api/stdio.hh>
 #include <imagine/fs/ArchiveFS.hh>
-#include "internal.hh"
+#include <imagine/fs/FS.hh>
 
 extern "C"
 {
@@ -121,12 +122,12 @@ static ArchiveIO archiveIOForSysFile(const char *archivePath, const char *sysFil
 	return {};
 }
 
-static AssetIO assetIOForSysFile(Base::ApplicationContext app, const char *sysFileName, char **complete_path_return)
+static AssetIO assetIOForSysFile(Base::ApplicationContext ctx, const char *sysFileName, char **complete_path_return)
 {
 	for(const auto &subDir : sysFileDirs)
 	{
 		auto fullPath = FS::makePathStringPrintf("%s/%s", subDir, sysFileName);
-		auto file = EmuApp::openAppAssetIO(app, fullPath, IO::AccessHint::ALL);
+		auto file = ctx.openAsset(fullPath.data(), IO::AccessHint::ALL);
 		if(!file)
 			continue;
 		if(complete_path_return)
@@ -281,5 +282,5 @@ CLINK int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize
 
 CLINK char *archdep_default_rtc_file_name(void)
 {
-	return strdup(FS::makePathString(EmuApp::supportPath(appContext).data(), "vice.rtc").data());
+	return strdup(FS::makePathString(appContext.supportPath().data(), "vice.rtc").data());
 }

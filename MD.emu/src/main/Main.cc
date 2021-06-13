@@ -36,6 +36,7 @@
 #endif
 #include <fileio/fileio.h>
 #include "Cheats.hh"
+#include <imagine/fs/FS.hh>
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 bool EmuSystem::hasCheats = true;

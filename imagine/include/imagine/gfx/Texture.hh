@@ -26,7 +26,10 @@
 
 #include <utility>
 
-class GfxImageSource;
+namespace IG::Data
+{
+class PixmapSource;
+}
 
 namespace Gfx
 {
@@ -55,8 +58,8 @@ public:
 	static constexpr uint32_t BUFFER_FLAG_CLEARED = IG::bit(0);
 
 	using TextureImpl::TextureImpl;
-	Texture(RendererTask &, TextureConfig config, IG::ErrorCode *errorPtr = nullptr);
-	Texture(RendererTask &, GfxImageSource &img, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
+	Texture(RendererTask &, TextureConfig, IG::ErrorCode *errorPtr = nullptr);
+	Texture(RendererTask &, IG::Data::PixmapSource, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr = nullptr);
 	Texture(Texture &&o);
 	Texture &operator=(Texture &&o);
 	static uint8_t bestAlignment(IG::Pixmap pixmap);

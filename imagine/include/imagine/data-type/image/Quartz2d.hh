@@ -19,6 +19,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <CoreGraphics/CGImage.h>
 #include <system_error>
+#include <memory>
 
 namespace IG
 {
@@ -32,27 +33,46 @@ namespace IG::Data
 class Quartz2dImage
 {
 public:
-	constexpr Quartz2dImage(Base::ApplicationContext ctx):
-		ctx{ctx}
-	{}
-	~Quartz2dImage();
-	std::error_code load(const char *name);
+	Quartz2dImage(const char *path);
 	std::errc readImage(IG::Pixmap dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();
-	void freeImageData();
 	uint32_t width();
 	uint32_t height();
 	const IG::PixelFormat pixelFormat();
 	explicit operator bool() const;
-	constexpr Base::ApplicationContext appContext() const { return ctx; }
 
 protected:
-	CGImageRef img{};
-	Base::ApplicationContext ctx{};
+	static void releaseCGImage(CGImageRef);
+
+	struct CGImageDeleter
+	{
+		void operator()(CGImageRef ptr) const
+		{
+			releaseCGImage(ptr);
+		}
+	};
+
+	using UniqueCGImage = std::unique_ptr<std::remove_pointer_t<CGImageRef>, CGImageDeleter>;
+	UniqueCGImage img{};
 };
 
-using PixmapReaderImpl = Quartz2dImage;
+using PixmapImageImpl = Quartz2dImage;
+
+class Quartz2dImageReader
+{
+public:
+	constexpr Quartz2dImageReader(Base::ApplicationContext ctx):
+		ctx{ctx}
+	{}
+
+protected:
+	Base::ApplicationContext ctx{};
+
+	constexpr Base::ApplicationContext appContext() const { return ctx; }
+};
+
+using PixmapReaderImpl = Quartz2dImageReader;
 
 class Quartz2dImageWriter
 {

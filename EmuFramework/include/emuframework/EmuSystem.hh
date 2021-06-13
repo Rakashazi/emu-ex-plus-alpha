@@ -15,14 +15,18 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/fs/FS.hh>
+#include <imagine/fs/FSDefs.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/audio/SampleFormat.hh>
 #include <imagine/util/rectangle2.h>
 #include <emuframework/config.hh>
 #include <optional>
-#include <stdexcept>
+
+namespace std
+{
+class runtime_error;
+}
 
 namespace Base
 {

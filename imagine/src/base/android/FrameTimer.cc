@@ -51,7 +51,7 @@ FrameTimer AndroidApplication::makeFrameTimer(Screen &screen)
 	}
 }
 
-void AndroidApplication::initChoreographer(const ScreenContainter &screens, JNIEnv *env, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK)
+void AndroidApplication::initChoreographer(const ScreenContainer &screens, JNIEnv *env, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK)
 {
 	if(androidSDK < 16)
 	{
@@ -69,7 +69,7 @@ void AndroidApplication::initChoreographer(const ScreenContainter &screens, JNIE
 	}
 }
 
-static void updatePostedScreens(auto &choreographer, FrameTime timestamp, const ScreenContainter &screens)
+static void updatePostedScreens(auto &choreographer, FrameTime timestamp, const ScreenContainer &screens)
 {
 	bool didUpdate{};
 	for(auto &s : screens)
@@ -89,7 +89,7 @@ static void updatePostedScreens(auto &choreographer, FrameTime timestamp, const 
 	}
 }
 
-JavaChoreographer::JavaChoreographer(const ScreenContainter &screens, JNIEnv *env, jobject baseActivity, jclass baseActivityClass):
+JavaChoreographer::JavaChoreographer(const ScreenContainer &screens, JNIEnv *env, jobject baseActivity, jclass baseActivityClass):
 	screensPtr{&screens}
 {
 	JNI::InstMethod<jobject(jlong)> jChoreographerHelper{env, baseActivityClass, "choreographerHelper", "(J)Lcom/imagine/ChoreographerHelper;"};
@@ -122,7 +122,7 @@ void JavaChoreographer::scheduleVSync()
 	jPostFrame(frameHelper.jniEnv(), frameHelper);
 }
 
-NativeChoreographer::NativeChoreographer(const ScreenContainter &screens):
+NativeChoreographer::NativeChoreographer(const ScreenContainer &screens):
 	screensPtr{&screens}
 {
 	AChoreographer* (*getInstance)(){};

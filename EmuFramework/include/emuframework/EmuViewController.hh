@@ -18,7 +18,6 @@
 #include <emuframework/EmuInputView.hh>
 #include <emuframework/EmuView.hh>
 #include <emuframework/EmuAppHelper.hh>
-#include <imagine/base/Window.hh>
 #include <imagine/gui/ViewStack.hh>
 #include <imagine/gui/ToastView.hh>
 
@@ -26,6 +25,7 @@ namespace Base
 {
 class AppContext;
 class Screen;
+class Window;
 }
 
 namespace Input
@@ -117,7 +117,7 @@ protected:
 	Base::OnExit onExit{};
 	bool showingEmulation{};
 	bool physicalControlsPresent{};
-	Base::Window::FrameTimeSource winFrameTimeSrc{};
+	Base::WindowFrameTimeSource winFrameTimeSrc{};
 	uint8_t targetFastForwardSpeed{};
 
 	void initViews(ViewAttachParams attach);
@@ -133,7 +133,7 @@ protected:
 	void configureAppForEmulation(bool running);
 	void configureWindowForEmulation(Base::Window &win, bool running);
 	void startViewportAnimation(Base::Window &win);
-	void updateWindowViewport(Base::Window &win, Base::Window::SurfaceChange change);
+	void updateWindowViewport(Base::Window &win, Base::WindowSurfaceChange change);
 	void drawMainWindow(Base::Window &win, Gfx::RendererCommands &cmds, bool hasEmuView, bool hasPopup);
 	void movePopupToWindow(Base::Window &win);
 	void moveEmuViewToWindow(Base::Window &win);
@@ -141,7 +141,7 @@ protected:
 	bool allWindowsAreFocused() const;
 	WindowData &mainWindowData() const;
 	Base::Window &mainWindow() const;
-	void setWindowFrameClockSource(Base::Window::FrameTimeSource);
+	void setWindowFrameClockSource(Base::WindowFrameTimeSource);
 	bool useRendererTime() const;
 	void configureSecondaryScreens();
 };

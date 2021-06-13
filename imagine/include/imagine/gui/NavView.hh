@@ -51,14 +51,14 @@ public:
 protected:
 	struct Control
 	{
-		IG::WindowRect rect{};
 		OnPushDelegate onPush{};
+		IG::WindowRect rect{};
 		bool isActive = false;
 	};
 	static constexpr int controls = 3;
 	std::array<Control, controls> control{};
-	Gfx::Text text{};
 	int selected = -1;
+	Gfx::Text text{};
 
 	bool selectNextLeftButton();
 	bool selectNextRightButton();
@@ -67,9 +67,6 @@ protected:
 class BasicNavView : public NavView
 {
 public:
-	bool centerTitle = true;
-	bool rotateLeftBtn = false;
-
 	BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::TextureSpan leftRes, Gfx::TextureSpan rightRes);
 	void setBackImage(Gfx::TextureSpan img);
 	void setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint32_t gradStops);
@@ -84,9 +81,13 @@ public:
 	void place() override;
 	void showLeftBtn(bool show) override;
 	void showRightBtn(bool show) override;
+	void setCenterTitle(bool on);
+	void setRotateLeftButton(bool on);
 
 protected:
+	std::unique_ptr<Gfx::LGradientStopDesc[]> gradientStops{};
 	Gfx::Sprite leftSpr{}, rightSpr{};
 	Gfx::LGradient bg{};
-	std::unique_ptr<Gfx::LGradientStopDesc[]> gradientStops{};
+	bool centerTitle = true;
+	bool rotateLeftBtn{};
 };

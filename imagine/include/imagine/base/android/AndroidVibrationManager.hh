@@ -15,38 +15,23 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-
-#ifdef CONFIG_DATA_TYPE_IMAGE_LIBPNG
-#include <imagine/data-type/image/LibPNG.hh>
-#endif
-
-#ifdef CONFIG_DATA_TYPE_IMAGE_QUARTZ2D
-#include <imagine/data-type/image/Quartz2d.hh>
-#endif
-
-#ifdef CONFIG_DATA_TYPE_IMAGE_ANDROID
-#include <imagine/data-type/image/Android.hh>
-#endif
+#include <imagine/util/jni.hh>
 
 namespace Base
 {
+
 class ApplicationContext;
-}
 
-namespace IG
-{
-class Pixmap;
-}
-
-namespace IG::Data
-{
-
-class PixmapWriter final: public PixmapWriterImpl
+class AndroidVibrationManager
 {
 public:
-	using PixmapWriterImpl::PixmapWriterImpl;
-	bool writeToFile(IG::Pixmap, const char *path) const;
+	AndroidVibrationManager(ApplicationContext);
+
+protected:
+	JNI::UniqueGlobalRef vibrator{};
+	JNI::InstMethod<void(jlong)> jVibrate{};
 };
+
+using VibrationManagerImpl = AndroidVibrationManager;
 
 }

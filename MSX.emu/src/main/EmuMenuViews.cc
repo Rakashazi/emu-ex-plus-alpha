@@ -19,6 +19,7 @@
 #include <emuframework/FilePicker.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextTableView.hh>
+#include <imagine/fs/FS.hh>
 #include "internal.hh"
 
 extern "C"
@@ -110,7 +111,7 @@ void installFirmwareFiles(Base::ApplicationContext ctx)
 
 	for(auto &e : srcPath)
 	{
-		auto src = EmuApp::openAppAssetIO(ctx, e, IO::AccessHint::ALL);
+		auto src = ctx.openAsset(e, IO::AccessHint::ALL);
 		if(!src)
 		{
 			app.printfMessage(4, 1, "Can't open source file:\n %s", e);
@@ -226,7 +227,8 @@ private:
 		msxMachine.compile(renderer(), projP);
 		if(!strlen(path))
 		{
-			app().printfMessage(4, false, "Using default path:\n%s/MSX.emu", (Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? EmuApp::assetPath(appContext()).data() : appContext().sharedStoragePath().data());
+			app().printfMessage(4, false, "Using default path:\n%s/MSX.emu",
+				(Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? appContext().assetPath().data() : appContext().sharedStoragePath().data());
 		}
 	}
 

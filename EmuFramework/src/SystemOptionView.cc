@@ -19,6 +19,7 @@
 #include "EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/TextTableView.hh>
+#include <imagine/fs/FS.hh>
 
 static FS::PathString savePathStrToDescStr(char *savePathStr)
 {

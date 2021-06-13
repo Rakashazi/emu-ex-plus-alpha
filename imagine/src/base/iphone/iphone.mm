@@ -69,7 +69,6 @@ namespace Base
 Application *appPtr{};
 bool isIPad = false;
 static bool isRunningAsSystemApp = false;
-CGColorSpaceRef grayColorSpace{}, rgbColorSpace{};
 UIApplication *sharedApp{};
 static const char *docPath{};
 static FS::PathString appPath{};
@@ -640,9 +639,6 @@ int main(int argc, char *argv[])
 		dlopen("/Library/MobileSubstrate/DynamicLibraries/Backgrounder.dylib", RTLD_LAZY | RTLD_GLOBAL);
 	}
 	#endif
-
-	Base::grayColorSpace = CGColorSpaceCreateDeviceGray();
-	Base::rgbColorSpace = CGColorSpaceCreateDeviceRGB();
 
 	@autoreleasepool
 	{

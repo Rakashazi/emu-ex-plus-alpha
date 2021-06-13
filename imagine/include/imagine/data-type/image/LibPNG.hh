@@ -32,13 +32,14 @@ class Pixmap;
 namespace IG::Data
 {
 
-class Png
+class PngImage
 {
 public:
-	constexpr Png(Base::ApplicationContext ctx):
-		ctx{ctx}
-	{}
-	~Png();
+	constexpr PngImage() {}
+	PngImage(GenericIO io);
+	PngImage(PngImage &&o);
+	PngImage &operator=(PngImage &&o);
+	~PngImage();
 	std::error_code readHeader(GenericIO io);
 	std::errc readImage(IG::Pixmap dest);
 	bool hasAlphaChannel();
@@ -47,17 +48,30 @@ public:
 	uint32_t width();
 	uint32_t height();
 	IG::PixelFormat pixelFormat();
-	constexpr Base::ApplicationContext appContext() const { return ctx; }
 
 protected:
 	png_struct_def *png{};
 	png_info_def *info{};
-	Base::ApplicationContext ctx{};
 	void setTransforms(IG::PixelFormat outFormat, png_info_def *transInfo);
 	static bool supportUncommonConv;
 };
 
-using PixmapReaderImpl = Png;
+using PixmapImageImpl = PngImage;
+
+class PngReader
+{
+public:
+	constexpr PngReader(Base::ApplicationContext ctx):
+		ctx{ctx}
+	{}
+
+protected:
+	Base::ApplicationContext ctx{};
+
+	constexpr Base::ApplicationContext appContext() const { return ctx; }
+};
+
+using PixmapReaderImpl = PngReader;
 
 class PngWriter
 {

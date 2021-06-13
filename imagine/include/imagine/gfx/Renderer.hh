@@ -27,7 +27,10 @@
 
 #include <vector>
 
-class GfxImageSource;
+namespace IG::Data
+{
+class PixmapSource;
+}
 
 namespace Base
 {
@@ -111,10 +114,10 @@ public:
 
 	// resources
 
-	Texture makeTexture(TextureConfig config);
-	Texture makeTexture(GfxImageSource &img, const TextureSampler *compatSampler = {}, bool makeMipmaps = true);
-	PixmapTexture makePixmapTexture(TextureConfig config);
-	PixmapTexture makePixmapTexture(GfxImageSource &img, const TextureSampler *compatSampler = {}, bool makeMipmaps = true);
+	Texture makeTexture(TextureConfig);
+	Texture makeTexture(IG::Data::PixmapSource, const TextureSampler *compatSampler = {}, bool makeMipmaps = true);
+	PixmapTexture makePixmapTexture(TextureConfig);
+	PixmapTexture makePixmapTexture(IG::Data::PixmapSource, const TextureSampler *compatSampler = {}, bool makeMipmaps = true);
 	PixmapBufferTexture makePixmapBufferTexture(TextureConfig config, TextureBufferMode mode = {}, bool singleBuffer = false);
 	std::vector<TextureBufferModeDesc> textureBufferModes();
 	TextureBufferMode makeValidTextureBufferMode(TextureBufferMode mode = {});

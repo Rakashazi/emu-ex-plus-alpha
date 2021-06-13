@@ -14,13 +14,12 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "MOGAInput"
-#include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
+#include <imagine/input/android/MogaManager.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
 #include "input.hh"
 #include <android/input.h>
-#include <memory>
 
 namespace Input
 {
@@ -29,35 +28,10 @@ static const int ACTION_VERSION_MOGAPRO = 1;
 static const int STATE_CONNECTION = 1;
 static const int STATE_SELECTED_VERSION = 4;
 
-class MogaSystem
-{
-public:
-	MogaSystem(Base::ApplicationContext, JNIEnv *, bool notify);
-	~MogaSystem();
-	void updateMOGAState(JNIEnv *env, bool connected, bool notify);
-	explicit operator bool() const { return mogaHelper; }
-	AndroidInputDevice *mogaDevice() const { return mogaDev; }
-
-private:
-	JNI::UniqueGlobalRef mogaHelper{};
-	JNI::InstMethod<jint(jint)> jMOGAGetState{};
-	JNI::InstMethod<void()> jMOGAOnPause{}, jMOGAOnResume{}, jMOGAExit{};
-	AndroidInputDevice *mogaDev{};
-	Base::OnExit onExit;
-	bool exiting = false;
-
-	static AndroidInputDevice makeMOGADevice(const char *name);
-	void initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper);
-	void onResumeMOGA(JNIEnv *env, bool notify);
-	Base::ApplicationContext appContext() const;
-};
-
-static std::unique_ptr<MogaSystem> mogaSystem{};
-
-MogaSystem::MogaSystem(Base::ApplicationContext ctx, JNIEnv *env, bool notify):
+MogaManager::MogaManager(Base::ApplicationContext ctx, bool notify):
 	onExit
 	{
-		[this, env](Base::ApplicationContext ctx, bool backgrounded)
+		[this, env = ctx.mainThreadJniEnv()](Base::ApplicationContext ctx, bool backgrounded)
 		{
 			if(backgrounded)
 			{
@@ -70,15 +44,11 @@ MogaSystem::MogaSystem(Base::ApplicationContext ctx, JNIEnv *env, bool notify):
 					}, Base::INPUT_DEVICE_ON_RESUME_PRIORITY
 				);
 			}
-			else
-			{
-				exiting = true;
-				mogaSystem.reset();
-			}
 			return true;
 		}, ctx, Base::INPUT_DEVICE_ON_EXIT_PRIORITY
 	}
 {
+	auto env = ctx.mainThreadJniEnv();
 	auto baseActivity = ctx.baseActivityObject();
 	JNI::InstMethod<jobject(jlong)> jNewMOGAHelper{env, baseActivity, "mogaHelper", "(J)Lcom/imagine/MOGAHelper;"};
 	auto newMogaHelper = jNewMOGAHelper(env, baseActivity, (jlong)this);
@@ -94,16 +64,16 @@ MogaSystem::MogaSystem(Base::ApplicationContext ctx, JNIEnv *env, bool notify):
 	onResumeMOGA(env, notify);
 }
 
-MogaSystem::~MogaSystem()
+MogaManager::~MogaManager()
 {
 	if(!mogaHelper)
 		return;
 	logMsg("deinit MOGA input system");
 	jMOGAExit(mogaHelper.jniEnv(), mogaHelper);
-	appContext().application().removeInputDevice(0, !exiting);
+	appContext().application().removeInputDevice(0, false);
 }
 
-AndroidInputDevice MogaSystem::makeMOGADevice(const char *name)
+AndroidInputDevice MogaManager::makeMOGADevice(const char *name)
 {
 	AndroidInputDevice dev{0, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK, name,
 		Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2};
@@ -135,7 +105,7 @@ AndroidInputDevice MogaSystem::makeMOGADevice(const char *name)
 	return dev;
 }
 
-void MogaSystem::updateMOGAState(JNIEnv *env, bool connected, bool notify)
+void MogaManager::updateMOGAState(JNIEnv *env, bool connected, bool notify)
 {
 	bool mogaConnected = mogaDev;
 	if(connected != mogaConnected)
@@ -156,7 +126,7 @@ void MogaSystem::updateMOGAState(JNIEnv *env, bool connected, bool notify)
 	}
 }
 
-void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
+void MogaManager::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 {
 	logMsg("init MOGA JNI");
 	auto mogaHelperCls = env->GetObjectClass(mogaHelper);
@@ -169,11 +139,11 @@ void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 		{
 			"keyEvent", "(JIIJ)V",
 			(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jint, jlong))
-			([](JNIEnv* env, jobject thiz, jlong mogaSystemPtr, jint action, jint keyCode, jlong timestamp)
+			([](JNIEnv* env, jobject thiz, jlong mogaManagerPtr, jint action, jint keyCode, jlong timestamp)
 			{
-				auto &mogaSystem = *((MogaSystem*)mogaSystemPtr);
-				auto &mogaDev = *mogaSystem.mogaDevice();
-				auto ctx = mogaSystem.appContext();
+				auto &mogaManager = *((MogaManager*)mogaManagerPtr);
+				auto &mogaDev = *mogaManager.mogaDev;
+				auto ctx = mogaManager.appContext();
 				//logMsg("MOGA key event: %d %d %d", action, keyCode, (int)time);
 				assert((uint32_t)keyCode < Keycode::COUNT);
 				ctx.endIdleByUserActivity();
@@ -186,11 +156,11 @@ void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 		{
 			"motionEvent", "(JFFFFFFJ)V",
 			(void*)(void (*)(JNIEnv*, jobject, jlong, jfloat, jfloat, jfloat, jfloat, jfloat, jfloat, jlong))
-			([](JNIEnv* env, jobject thiz, jlong mogaSystemPtr, jfloat x, jfloat y, jfloat z, jfloat rz, jfloat lTrigger, jfloat rTrigger, jlong timestamp)
+			([](JNIEnv* env, jobject thiz, jlong mogaManagerPtr, jfloat x, jfloat y, jfloat z, jfloat rz, jfloat lTrigger, jfloat rTrigger, jlong timestamp)
 			{
-				auto &mogaSystem = *((MogaSystem*)mogaSystemPtr);
-				auto &mogaDev = *mogaSystem.mogaDevice();
-				auto ctx = mogaSystem.appContext();
+				auto &mogaManager = *((MogaManager*)mogaManagerPtr);
+				auto &mogaDev = *mogaManager.mogaDev;
+				auto ctx = mogaManager.appContext();
 				ctx.endIdleByUserActivity();
 				auto time = IG::Nanoseconds(timestamp);
 				logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)timestamp);
@@ -207,13 +177,13 @@ void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 		{
 			"stateEvent", "(JII)V",
 			(void*)(void (*)(JNIEnv*, jobject, jlong, jint, jint))
-			([](JNIEnv* env, jobject thiz, jlong mogaSystemPtr, jint state, jint action)
+			([](JNIEnv* env, jobject thiz, jlong mogaManagerPtr, jint state, jint action)
 			{
 				logMsg("MOGA state event: %d %d", state, action);
 				if(state == STATE_CONNECTION)
 				{
-					auto &mogaSystem = *((MogaSystem*)mogaSystemPtr);
-					mogaSystem.updateMOGAState(env, action, true); // "action" maps directly to boolean type
+					auto &mogaManager = *((MogaManager*)mogaManagerPtr);
+					mogaManager.updateMOGAState(env, action, true); // "action" maps directly to boolean type
 				}
 			})
 		}
@@ -221,46 +191,17 @@ void MogaSystem::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 	env->RegisterNatives(mogaHelperCls, method, std::size(method));
 }
 
-void MogaSystem::onResumeMOGA(JNIEnv *env, bool notify)
+void MogaManager::onResumeMOGA(JNIEnv *env, bool notify)
 {
 	jMOGAOnResume(env, mogaHelper);
 	bool isConnected = jMOGAGetState(env, mogaHelper, STATE_CONNECTION);
-	logMsg("checked MOGA connection state: %s", isConnected ? "yes" : "no");
+	logMsg("checked MOGA connection state:%s", isConnected ? "yes" : "no");
 	updateMOGAState(env, isConnected, notify);
 }
 
-Base::ApplicationContext MogaSystem::appContext() const
+Base::ApplicationContext MogaManager::appContext() const
 {
 	return onExit.appContext();
-}
-
-}
-
-namespace Base
-{
-
-using namespace Input;
-
-void AndroidApplicationContext::initMogaInputSystem(bool notify)
-{
-	auto env = mainThreadJniEnv();
-	if(mogaSystem)
-		return;
-	mogaSystem = std::make_unique<MogaSystem>(*static_cast<ApplicationContext*>(this), env, notify);
-	if(!(*mogaSystem))
-	{
-		mogaSystem.reset();
-	}
-}
-
-void AndroidApplicationContext::deinitMogaInputSystem()
-{
-	mogaSystem.reset();
-}
-
-bool AndroidApplicationContext::mogaInputSystemIsActive() const
-{
-	return (bool)mogaSystem;
 }
 
 }

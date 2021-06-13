@@ -39,6 +39,7 @@
 #include <emuframework/EmuInput.hh>
 #undef Debugger
 #include "internal.hh"
+#include <imagine/fs/FS.hh>
 
 static constexpr uint MAX_ROM_SIZE = 512 * 1024;
 std::optional<OSystem> osystem{};

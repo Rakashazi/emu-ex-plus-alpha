@@ -17,9 +17,10 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/FilePicker.hh>
-#include <imagine/gui/AlertView.hh>
 #include "EmuCheatViews.hh"
 #include "internal.hh"
+#include <imagine/gui/AlertView.hh>
+#include <imagine/fs/FS.hh>
 #include <fceu/fds.h>
 #include <fceu/sound.h>
 #include <fceu/fceu.h>

@@ -61,7 +61,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 			closeRes
 		);
 	nav->setBackgroundGradient(fsNavViewGrad);
-	nav->centerTitle = false;
+	nav->setCenterTitle(false);
 	nav->setOnPushLeftBtn(
 		[this](Input::Event e)
 		{

@@ -16,6 +16,7 @@
 #define LOGTAG "AppContext"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
+#include <imagine/base/VibrationManager.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/io/FileIO.hh>
@@ -60,7 +61,7 @@ Window *ApplicationContext::makeWindow(WindowConfig config, WindowInitDelegate o
 	return ptr;
 }
 
-const WindowContainter &ApplicationContext::windows() const
+const WindowContainer &ApplicationContext::windows() const
 {
 	return application().windows();
 }
@@ -70,7 +71,7 @@ Window &ApplicationContext::mainWindow()
 	return application().mainWindow();
 }
 
-const ScreenContainter &ApplicationContext::screens() const
+const ScreenContainer &ApplicationContext::screens() const
 {
 	return application().screens();
 }
@@ -291,9 +292,9 @@ void ApplicationContext::exitWithErrorMessagePrintf(int exitVal, const char *for
 
 [[gnu::weak]] void ApplicationContext::addLauncherIcon(const char *name, const char *path) {}
 
-[[gnu::weak]] bool ApplicationContext::hasVibrator() { return false; }
+[[gnu::weak]] bool VibrationManager::hasVibrator() const { return false; }
 
-[[gnu::weak]] void ApplicationContext::vibrate(IG::Milliseconds) {}
+[[gnu::weak]] void VibrationManager::vibrate(IG::Milliseconds) {}
 
 [[gnu::weak]] NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const { return {}; }
 

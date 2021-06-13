@@ -65,9 +65,6 @@ public:
 
 	// Input system functions
 	void enumInputDevices();
-	void initMogaInputSystem(bool notify);
-	void deinitMogaInputSystem();
-	bool mogaInputSystemIsActive() const;
 	bool hasTrackball() const;
 
 protected:

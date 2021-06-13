@@ -22,7 +22,7 @@
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/bit.hh>
-#include <imagine/data-type/image/GfxImageSource.hh>
+#include <imagine/data-type/image/PixmapSource.hh>
 #include "utils.hh"
 #include <cstdlib>
 #include <algorithm>
@@ -194,7 +194,7 @@ static TextureConfig configWithLoadedImagePixmap(IG::PixmapDesc desc, bool makeM
 	return config;
 }
 
-static IG::ErrorCode loadImageSource(Texture &texture, GfxImageSource &img, bool makeMipmaps)
+static IG::ErrorCode loadImageSource(Texture &texture, IG::Data::PixmapSource img, bool makeMipmaps)
 {
 	auto imgPix = img.pixmapView();
 	uint32_t writeFlags = makeMipmaps ? Texture::WRITE_FLAG_MAKE_MIPMAPS : 0;
@@ -210,7 +210,6 @@ static IG::ErrorCode loadImageSource(Texture &texture, GfxImageSource &img, bool
 			return {ENOMEM};
 		//logDMsg("writing image source into texture pixel buffer");
 		img.write(lockBuff.pixmap());
-		img.freePixmap();
 		texture.unlock(lockBuff, writeFlags);
 	}
 	return {};
@@ -241,7 +240,7 @@ Texture::Texture(RendererTask &r, TextureConfig config, IG::ErrorCode *errorPtr)
 	}
 }
 
-Texture::Texture(RendererTask &r, GfxImageSource &img, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr):
+Texture::Texture(RendererTask &r, IG::Data::PixmapSource img, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr):
 	GLTexture{r}
 {
 	IG::ErrorCode err;
@@ -868,24 +867,17 @@ PixmapTexture::PixmapTexture(RendererTask &r, TextureConfig config, IG::ErrorCod
 	}
 }
 
-PixmapTexture::PixmapTexture(RendererTask &r, GfxImageSource &img, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr):
+PixmapTexture::PixmapTexture(RendererTask &r, IG::Data::PixmapSource img, const TextureSampler *compatSampler, bool makeMipmaps, IG::ErrorCode *errorPtr):
 	GLPixmapTexture{r}
 {
 	IG::ErrorCode err;
 	auto setError = IG::scopeGuard([&](){ if(err && errorPtr) [[unlikely]] { *errorPtr = err; } });
-	if(img)
+	if(err = GLPixmapTexture::init(r, configWithLoadedImagePixmap(img.pixmapView(), makeMipmaps, compatSampler));
+		err) [[unlikely]]
 	{
-		if(err = GLPixmapTexture::init(r, configWithLoadedImagePixmap(img.pixmapView(), makeMipmaps, compatSampler));
-			err) [[unlikely]]
-		{
-			return;
-		}
-		err = loadImageSource(*this, img, makeMipmaps);
+		return;
 	}
-	else
-	{
-		err = GLPixmapTexture::init(r, {{{1, 1}, Base::PIXEL_FMT_A8}});
-	}
+	err = loadImageSource(*this, img, makeMipmaps);
 }
 
 IG::ErrorCode GLPixmapTexture::init(RendererTask &r, TextureConfig config)

@@ -17,6 +17,7 @@
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuMainMenuView.hh>
 #include "internal.hh"
+#include <imagine/fs/FS.hh>
 
 static constexpr unsigned MAX_SH2_CORES = 4;
 

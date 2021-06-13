@@ -20,6 +20,7 @@
 #include <emuframework/EmuVideo.hh>
 #include "internal.hh"
 #include "EmuFileIO.hh"
+#include <imagine/fs/FS.hh>
 #include <fceu/driver.h>
 #include <fceu/state.h>
 #include <fceu/fceu.h>

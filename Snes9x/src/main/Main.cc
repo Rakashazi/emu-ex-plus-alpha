@@ -4,6 +4,7 @@
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
 #include "internal.hh"
+#include <imagine/fs/FS.hh>
 
 #include <snes9x.h>
 #include <memmap.h>
@@ -88,8 +89,15 @@ bool8 S9xDeinitUpdate(int width, int height, bool8)
 	memset(GFX.ZBuffer, 0, GFX.ScreenSize);
 	memset(GFX.SubZBuffer, 0, GFX.ScreenSize);
 	#endif
-	return 1;
+	return true;
 }
+
+#ifndef SNES9X_VERSION_1_4
+bool8 S9xContinueUpdate(int width, int height)
+{
+	return S9xDeinitUpdate(width, height);
+}
+#endif
 
 void EmuSystem::renderFramebuffer(EmuVideo &video)
 {

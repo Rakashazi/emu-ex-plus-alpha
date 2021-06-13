@@ -19,6 +19,7 @@
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
 #include "internal.hh"
+#include <imagine/fs/FS.hh>
 
 extern "C"
 {

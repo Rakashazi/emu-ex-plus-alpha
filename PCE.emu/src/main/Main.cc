@@ -21,6 +21,7 @@
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuAppInlines.hh>
 #include "internal.hh"
+#include <imagine/fs/FS.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/huc.h>

@@ -109,7 +109,7 @@ public:
 	void onWindowFocusChanged(ApplicationContext, int focused);
 	JNIEnv* thisThreadJniEnv() const;
 	bool hasHardwareNavButtons() const;
-	void recycleBitmap(JNIEnv *, jobject bitmap);
+	constexpr JNI::InstMethod<void()> recycleBitmapMethod() const { return jRecycle; }
 	jobject makeFontRenderer(JNIEnv *, jobject baseActivity);
 	void setStatusBarHidden(JNIEnv *, jobject baseActivity, bool hidden);
 	AndroidPropString androidBuildDevice(JNIEnv *env, jclass baseActivityClass) const;
@@ -195,7 +195,7 @@ private:
 	void initActivity(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
 	void initInput(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
 	void initInputConfig(AConfiguration *config);
-	void initChoreographer(const ScreenContainter &, JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
+	void initChoreographer(const ScreenContainer &, JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
 	void initScreens(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK, ANativeActivity *);
 	void processInput(AInputQueue *);
 	void processInputWithGetEvent(AInputQueue *);

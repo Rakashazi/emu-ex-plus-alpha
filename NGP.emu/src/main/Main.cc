@@ -24,6 +24,7 @@
 #include <emuframework/EmuAppInlines.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 

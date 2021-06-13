@@ -26,6 +26,9 @@
 #include <emuframework/VController.hh>
 #include <emuframework/TurboInput.hh>
 #include <imagine/input/Input.hh>
+#ifdef CONFIG_INPUT_ANDROID_MOGA
+#include <imagine/input/android/MogaManager.hh>
+#endif
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/NavView.hh>
@@ -34,9 +37,12 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Timer.hh>
+#include <imagine/base/VibrationManager.hh>
 #include <imagine/audio/Manager.hh>
 #include <imagine/gfx/Renderer.hh>
+#include <imagine/data-type/image/PixmapReader.hh>
 #include <imagine/data-type/image/PixmapWriter.hh>
+#include <imagine/font/Font.hh>
 #include <imagine/util/typeTraits.hh>
 #include <cstring>
 #include <optional>
@@ -133,10 +139,6 @@ public:
 	void removeTurboInputEvent(unsigned action);
 	void runTurboInputEvents();
 	void resetInput();
-	static FS::PathString assetPath(Base::ApplicationContext);
-	static FS::PathString libPath(Base::ApplicationContext);
-	static FS::PathString supportPath(Base::ApplicationContext);
-	static AssetIO openAppAssetIO(Base::ApplicationContext, const char *name, IO::AccessHint access);
 	static void saveSessionOptions();
 	void loadSessionOptions();
 	static bool hasSavedSessionOptions();
@@ -174,6 +176,9 @@ public:
 	void renderSystemFramebuffer(EmuVideo &);
 	bool writeScreenshot(IG::Pixmap, const char *path);
 	std::pair<int, FS::PathString> makeNextScreenshotFilename();
+	bool mogaManagerIsActive() const;
+	void setMogaManagerActive(bool on, bool notify);
+	constexpr Base::VibrationManager &vibrationManager() { return vibrationManager_; }
 	Base::ApplicationContext appContext() const;
 	static EmuApp &get(Base::ApplicationContext);
 
@@ -252,13 +257,8 @@ public:
 			TextMenuItem::makeSelectDelegate(std::forward<Func2>(onNo)));
 	}
 
-	template <size_t S>
-	static AssetIO openAppAssetIO(Base::ApplicationContext app, std::array<char, S> name, IO::AccessHint access)
-	{
-		return openAppAssetIO(app, name.data(), access);
-	}
-
 protected:
+	IG::FontManager fontManager;
 	mutable Gfx::Renderer renderer;
 	ViewManager viewManager{};
 	IG::Audio::Manager audioManager_;
@@ -278,7 +278,12 @@ protected:
 	KeyMapping keyMapping{};
 	TurboInput turboActions{};
 	FS::PathString lastLoadPath{};
+	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
 	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;
+	[[no_unique_address]] Base::VibrationManager vibrationManager_;
+	#ifdef CONFIG_INPUT_ANDROID_MOGA
+	std::unique_ptr<Input::MogaManager> mogaManagerPtr{};
+	#endif
 	Gfx::DrawableConfig windowDrawableConf{};
 	IG::PixelFormat renderPixelFmt{};
 

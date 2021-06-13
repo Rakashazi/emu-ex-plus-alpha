@@ -17,151 +17,104 @@
 
 #include <imagine/data-type/image/PixmapReader.hh>
 #include <imagine/data-type/image/PixmapWriter.hh>
+#include <imagine/data-type/image/PixmapSource.hh>
 #include "../../base/android/android.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/jni.hh>
 #include <imagine/logger/logger.h>
+#include <android/bitmap.h>
 
 namespace IG::Data
 {
 
-static jclass jBitmapFactory{};
-static JNI::ClassMethod<jobject(jstring)> jDecodeFile{};
-static JNI::InstMethod<jobject(jstring)> jDecodeAsset{};
-
-uint32_t BitmapFactoryImage::width()
+BitmapFactoryReader::BitmapFactoryReader(Base::ApplicationContext ctx):
+	appPtr{&ctx.application()},
+	baseActivity{ctx.baseActivityObject()},
+	jRecycleBitmap{ctx.application().recycleBitmapMethod()}
 {
-	return info.width;
+	auto env = ctx.mainThreadJniEnv();
+	jBitmapFactory = {env, env->FindClass("android/graphics/BitmapFactory")};
+	jDecodeFile = {env, (jclass)jBitmapFactory, "decodeFile", "(Ljava/lang/String;)Landroid/graphics/Bitmap;"};
+	jDecodeAsset = {env, baseActivity, "bitmapDecodeAsset", "(Ljava/lang/String;)Landroid/graphics/Bitmap;"};
 }
 
-uint32_t BitmapFactoryImage::height()
+static PixmapImage makePixmapImage(JNIEnv *env, jobject bitmap, JNI::InstMethod<void()> recycle)
 {
-	return info.height;
-}
-
-bool BitmapFactoryImage::isGrayscale()
-{
-	return info.format == ANDROID_BITMAP_FORMAT_A_8;
-}
-
-IG::PixelFormat BitmapFactoryImage::pixelFormat() const
-{
-	return Base::makePixelFormatFromAndroidFormat(info.format);
-}
-
-std::error_code PixmapReader::load(const char *name)
-{
-	freeImageData();
-	auto env = ctx.thisThreadJniEnv();
-	if(!jBitmapFactory)
-	{
-		jBitmapFactory = (jclass)env->NewGlobalRef(env->FindClass("android/graphics/BitmapFactory"));
-		jDecodeFile = {env, jBitmapFactory, "decodeFile", "(Ljava/lang/String;)Landroid/graphics/Bitmap;"};
-	}
-	auto nameJStr = env->NewStringUTF(name);
-	bitmap = jDecodeFile(env, jBitmapFactory, nameJStr);
-	env->DeleteLocalRef(nameJStr);
-	if(!bitmap)
-	{
-		logErr("couldn't decode file: %s", name);
-		return {EINVAL, std::system_category()};
-	}
-	AndroidBitmap_getInfo(env, bitmap, &info);
-	return {};
-}
-
-std::error_code PixmapReader::loadAsset(const char *name, const char *)
-{
-	freeImageData();
-	logMsg("loading PNG asset: %s", name);
-	auto env = ctx.thisThreadJniEnv();
-	auto baseActivity = ctx.baseActivityObject();
-	if(!jDecodeAsset) [[unlikely]]
-	{
-		jDecodeAsset = {env, baseActivity, "bitmapDecodeAsset", "(Ljava/lang/String;)Landroid/graphics/Bitmap;"};
-	}
-	auto nameJStr = env->NewStringUTF(name);
-	bitmap = jDecodeAsset(env, baseActivity, nameJStr);
-	env->DeleteLocalRef(nameJStr);
-	if(!bitmap)
-	{
-		logErr("couldn't decode file: %s", name);
-		return {EINVAL, std::system_category()};
-	}
-	AndroidBitmap_getInfo(env, bitmap, &info);
-	//logMsg("%d %d %d", info.width, info.height, info.stride);
-	return {};
-}
-
-bool BitmapFactoryImage::hasAlphaChannel()
-{
-	return info.format == ANDROID_BITMAP_FORMAT_RGBA_8888 || info.format == ANDROID_BITMAP_FORMAT_RGBA_4444;
-}
-
-std::errc BitmapFactoryImage::readImage(IG::Pixmap dest)
-{
-	assumeExpr(dest.format() == pixelFormat());
-	auto env = ctx.thisThreadJniEnv();
 	void *buff;
 	AndroidBitmap_lockPixels(env, bitmap, &buff);
-	IG::Pixmap src{{{(int)info.width, (int)info.height}, pixelFormat()}, buff, {info.stride, IG::Pixmap::BYTE_UNITS}};
-	dest.write(src, {});
-	AndroidBitmap_unlockPixels(env, bitmap);
+	auto pix = Base::makePixmapView(env, bitmap, buff, {});
+	return PixmapImage{{env, bitmap, recycle}, pix};
+}
+
+PixmapImage PixmapReader::load(const char *name) const
+{
+	auto env = app().thisThreadJniEnv();
+	auto nameJStr = env->NewStringUTF(name);
+	auto bitmap = jDecodeFile(env, (jclass)jBitmapFactory, nameJStr);
+	env->DeleteLocalRef(nameJStr);
+	if(!bitmap)
+	{
+		logErr("couldn't decode file:%s", name);
+		return {};
+	}
+	return makePixmapImage(env, bitmap, jRecycleBitmap);
+}
+
+PixmapImage PixmapReader::loadAsset(const char *name, const char *) const
+{
+	logMsg("loading asset: %s", name);
+	auto env = app().thisThreadJniEnv();
+	auto nameJStr = env->NewStringUTF(name);
+	auto bitmap = jDecodeAsset(env, baseActivity, nameJStr);
+	env->DeleteLocalRef(nameJStr);
+	if(!bitmap)
+	{
+		logErr("couldn't decode asset:%s", name);
+		return {};
+	}
+	return makePixmapImage(env, bitmap, jRecycleBitmap);
+}
+
+BitmapFactoryImage::BitmapFactoryImage(JNI::LockedLocalBitmap lockedBitmap, Pixmap pix):
+	lockedBitmap{std::move(lockedBitmap)}, pixmap_{pix} {}
+
+PixmapImage::operator bool() const
+{
+	return (bool)lockedBitmap;
+}
+
+std::errc PixmapImage::write(Pixmap dest)
+{
+	assumeExpr(dest.format() == pixmap_.format());
+	dest.write(pixmap_, {});
 	return {};
 }
 
-void BitmapFactoryImage::freeImageData()
+Pixmap PixmapImage::pixmapView()
 {
-	if(bitmap)
-	{
-		auto env = ctx.thisThreadJniEnv();
-		ctx.application().recycleBitmap(env, bitmap);
-		env->DeleteLocalRef(std::exchange(bitmap, {}));
-	}
+	return pixmap_;
 }
 
-PixmapReader::operator bool() const
+PixmapImage::operator PixmapSource()
 {
-	return (bool)bitmap;
-}
-
-BitmapFactoryImage::~BitmapFactoryImage()
-{
-	freeImageData();
-}
-
-std::errc PixmapReader::write(IG::Pixmap dest)
-{
-	return(readImage(dest));
-}
-
-IG::Pixmap PixmapReader::pixmapView()
-{
-	return {{{(int)width(), (int)height()}, pixelFormat()}, {}};
-}
-
-void PixmapReader::reset()
-{
-	freeImageData();
+	return {pixmapView()};
 }
 
 BitmapWriter::BitmapWriter(Base::ApplicationContext ctx):
-	ctx{ctx}
+	appPtr{&ctx.application()},
+	baseActivity{ctx.baseActivityObject()}
 {
 	auto env = ctx.mainThreadJniEnv();
-	auto baseActivity = ctx.baseActivityObject();
 	auto baseActivityCls = env->GetObjectClass(baseActivity);
 	jMakeBitmap = {env, baseActivityCls, "makeBitmap", "(III)Landroid/graphics/Bitmap;"};
 	jWritePNG = {env, baseActivityCls, "writePNG", "(Landroid/graphics/Bitmap;Ljava/lang/String;)Z"};
 }
 
-bool PixmapWriter::writeToFile(IG::Pixmap pix, const char *path)
+bool PixmapWriter::writeToFile(Pixmap pix, const char *path) const
 {
-	using namespace Base;
-	auto env = ctx.thisThreadJniEnv();
-	auto baseActivity = ctx.baseActivityObject();
+	auto env = app().thisThreadJniEnv();
 	auto aFormat = pix.format().id() == PIXEL_RGB565 ? ANDROID_BITMAP_FORMAT_RGB_565 : ANDROID_BITMAP_FORMAT_RGBA_8888;
 	auto bitmap = jMakeBitmap(env, baseActivity, pix.w(), pix.h(), aFormat);
 	if(!bitmap)

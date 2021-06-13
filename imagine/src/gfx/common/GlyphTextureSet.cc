@@ -18,12 +18,9 @@
 #include <imagine/util/bitset.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/GlyphTextureSet.hh>
-#include <imagine/io/FileIO.hh>
-#include <imagine/data-type/image/GfxImageSource.hh>
+#include <imagine/data-type/image/PixmapSource.hh>
 #include <imagine/logger/logger.h>
 #include <cstdlib>
-
-void GfxImageSource::freePixmap() {}
 
 namespace Gfx
 {
@@ -44,45 +41,6 @@ static constexpr uint32_t unicodeBmpUsedChars = unicodeBmpChars - unicodeBmpPriv
 static constexpr uint32_t glyphTableEntries = GlyphTextureSet::supportsUnicode ? unicodeBmpUsedChars : numDrawableAsciiChars;
 
 static std::errc mapCharToTable(uint32_t c, uint32_t &tableIdx);
-
-class GfxGlyphImage : public GfxImageSource
-{
-public:
-	GfxGlyphImage(IG::GlyphImage glyphBuff): lockBuff{std::move(glyphBuff)} {}
-
-	std::errc write(IG::Pixmap out) final
-	{
-		auto src = lockBuff.pixmap();
-		//logDMsg("copying char %dx%d, pitch %d to dest %dx%d, pitch %d", src.x, src.y, src.pitch, out.x, out.y, out.pitch);
-		assert(src.w() != 0 && src.h() != 0 && src.data());
-		if(Config::envIsAndroid && !src.pitchBytes()) // Hack for JXD S7300B which returns y = x, and pitch = 0
-		{
-			logWarn("invalid pitch returned for char bitmap");
-			src = {{out.size(), out.format()}, src.data(), {out.pitchBytes(), IG::Pixmap::BYTE_UNITS}};
-		}
-		out.write(src, {});
-		return {};
-	}
-
-	IG::Pixmap pixmapView() final
-	{
-		assert((bool)*this);
-		return lockBuff.pixmap();
-	}
-
-	void freePixmap() final
-	{
-		lockBuff.unlock();
-	}
-
-	explicit operator bool() const final
-	{
-		return (bool)lockBuff;
-	}
-
-protected:
-	IG::GlyphImage lockBuff{};
-};
 
 static int charIsDrawableAscii(int c)
 {
@@ -142,15 +100,7 @@ void GlyphTextureSet::freeCaches(uint32_t purgeBits)
 	}
 }
 
-GlyphTextureSet::GlyphTextureSet(Renderer &r, const char *path, IG::FontSettings set):
-	GlyphTextureSet(r, std::make_unique<IG::Font>(path), set)
-{}
-
-GlyphTextureSet::GlyphTextureSet(Renderer &r, GenericIO io, IG::FontSettings set):
-	GlyphTextureSet(r, std::make_unique<IG::Font>(std::move(io)), set)
-{}
-
-GlyphTextureSet::GlyphTextureSet(Renderer &r, std::unique_ptr<IG::Font> font, IG::FontSettings set):
+GlyphTextureSet::GlyphTextureSet(Renderer &r, IG::Font font, IG::FontSettings set):
 	font{std::move(font)}
 {
 	glyphTable.resize(glyphTableEntries);
@@ -163,22 +113,6 @@ GlyphTextureSet::GlyphTextureSet(Renderer &r, std::unique_ptr<IG::Font> font, IG
 	{
 		setFontSettings(r, set);
 	}
-}
-
-GlyphTextureSet GlyphTextureSet::makeSystem(Renderer &r, IG::FontSettings set)
-{
-	return {r, std::make_unique<IG::Font>(IG::Font::makeSystem(r.appContext())), set};
-}
-
-GlyphTextureSet GlyphTextureSet::makeBoldSystem(Renderer &r, IG::FontSettings set)
-{
-	return {r, std::make_unique<IG::Font>(IG::Font::makeBoldSystem(r.appContext())), set};
-}
-
-GlyphTextureSet GlyphTextureSet::makeFromAsset(Renderer &r,
-	const char *name, IG::FontSettings set, const char *appName)
-{
-	return {r, r.appContext().openAsset(name, IO::AccessHint::ALL, appName).makeGeneric(), set};
 }
 
 uint32_t GlyphTextureSet::nominalHeight() const
@@ -204,16 +138,16 @@ IG::FontSettings GlyphTextureSet::fontSettings() const
 
 bool GlyphTextureSet::setFontSettings(Renderer &r, IG::FontSettings set)
 {
-	if(set.pixelWidth() < font->minUsablePixels())
-		set.setPixelWidth(font->minUsablePixels());
-	if(set.pixelHeight() < font->minUsablePixels())
-		set.setPixelHeight(font->minUsablePixels());
+	if(set.pixelWidth() < font.minUsablePixels())
+		set.setPixelWidth(font.minUsablePixels());
+	if(set.pixelHeight() < font.minUsablePixels())
+		set.setPixelHeight(font.minUsablePixels());
 	if(set == settings)
 		return false;
 	resetGlyphTable();
 	settings = set;
 	std::errc ec{};
-	faceSize = font->makeSize(settings, ec);
+	faceSize = font.makeSize(settings, ec);
 	calcNominalHeight(r);
 	return true;
 }
@@ -228,7 +162,7 @@ std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 	}
 	// make sure applySize() has been called on the font object first
 	std::errc ec{};
-	auto res = font->glyph(c, faceSize, ec);
+	auto res = font.glyph(c, faceSize, ec);
 	if((bool)ec)
 	{
 		// mark failed attempt
@@ -237,8 +171,7 @@ std::errc GlyphTextureSet::cacheChar(Renderer &r, int c, int tableIdx)
 	}
 	//logMsg("setting up table entry %d", tableIdx);
 	glyphTable[tableIdx].metrics = res.metrics;
-	auto img = GfxGlyphImage(std::move(res.image));
-	glyphTable[tableIdx].glyph_ = r.makePixmapTexture(img, &r.make(glyphCommonTextureSampler), false);
+	glyphTable[tableIdx].glyph_ = r.makePixmapTexture(res.image, &r.make(glyphCommonTextureSampler), false);
 	usedGlyphTableBits |= IG::bit((c >> 11) & 0x1F); // use upper 5 BMP plane bits to map in range 0-31
 	//logMsg("used table bits 0x%X", usedGlyphTableBits);
 	return {};

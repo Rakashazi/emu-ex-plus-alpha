@@ -35,6 +35,11 @@ class GenericIO;
 namespace IG
 {
 
+namespace Data
+{
+class PixmapSource;
+}
+
 class Pixmap;
 
 class GlyphImage: public GlyphImageImpl
@@ -42,8 +47,8 @@ class GlyphImage: public GlyphImageImpl
 public:
 	using GlyphImageImpl::GlyphImageImpl;
 	IG::Pixmap pixmap();
-	void unlock();
 	explicit operator bool() const;
+	operator IG::Data::PixmapSource();
 };
 
 class Font : public FontImpl
@@ -56,16 +61,23 @@ public:
 	};
 
 	using FontImpl::FontImpl;
-	Font(GenericIO io);
-	Font(const char *name);
-	static Font makeSystem(Base::ApplicationContext);
-	static Font makeBoldSystem(Base::ApplicationContext);
-	static Font makeFromAsset(Base::ApplicationContext, const char *name, const char *appName = Base::ApplicationContext::applicationName);
 	operator bool() const;
 	int minUsablePixels() const;
 	Glyph glyph(int idx, FontSize &size, std::errc &ec);
 	GlyphMetrics metrics(int idx, FontSize &size, std::errc &ec);
 	FontSize makeSize(FontSettings settings, std::errc &ec);
 };
+
+class FontManager : public FontManagerImpl
+{
+public:
+	using FontManagerImpl::FontManagerImpl;
+	Font makeFromFile(GenericIO io) const;
+	Font makeFromFile(const char *name) const;
+	Font makeSystem() const;
+	Font makeBoldSystem() const;
+	Font makeFromAsset(const char *name, const char *appName = Base::ApplicationContext::applicationName) const;
+};
+
 
 }

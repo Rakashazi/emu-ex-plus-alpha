@@ -15,38 +15,28 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-
-#ifdef CONFIG_DATA_TYPE_IMAGE_LIBPNG
-#include <imagine/data-type/image/LibPNG.hh>
-#endif
-
-#ifdef CONFIG_DATA_TYPE_IMAGE_QUARTZ2D
-#include <imagine/data-type/image/Quartz2d.hh>
-#endif
-
-#ifdef CONFIG_DATA_TYPE_IMAGE_ANDROID
-#include <imagine/data-type/image/Android.hh>
-#endif
-
-namespace Base
-{
-class ApplicationContext;
-}
-
-namespace IG
-{
-class Pixmap;
-}
+#include <imagine/pixmap/Pixmap.hh>
+#include <imagine/util/DelegateFunc.hh>
+#include <system_error>
 
 namespace IG::Data
 {
 
-class PixmapWriter final: public PixmapWriterImpl
+class PixmapSource
 {
 public:
-	using PixmapWriterImpl::PixmapWriterImpl;
-	bool writeToFile(IG::Pixmap, const char *path) const;
+	using WriteDelegate = DelegateFunc<std::errc(IG::Pixmap dest)>;
+
+	constexpr PixmapSource() {}
+	constexpr PixmapSource(IG::Pixmap pix):pix{pix} {}
+	constexpr PixmapSource(WriteDelegate del, IG::Pixmap pix):
+		writeDel{del}, pix{pix} {}
+	constexpr std::errc write(IG::Pixmap dest) { return writeDel(dest); }
+	constexpr IG::Pixmap pixmapView() { return pix; }
+
+protected:
+	DelegateFunc<std::errc(IG::Pixmap dest)> writeDel{};
+	IG::Pixmap pix{};
 };
 
 }

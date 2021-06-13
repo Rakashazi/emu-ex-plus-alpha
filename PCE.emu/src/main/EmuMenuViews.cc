@@ -18,6 +18,7 @@
 #include <emuframework/EmuSystemActionsView.hh>
 #include <emuframework/EmuInput.hh>
 #include "internal.hh"
+#include <imagine/fs/FS.hh>
 
 class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
 {

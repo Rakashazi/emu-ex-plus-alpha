@@ -1101,7 +1101,7 @@ void VController::applyInput(Input::Event e)
 			inputAction(Input::Action::PUSHED, vBtn);
 			if(optionVibrateOnPush)
 			{
-				appContext().vibrate(IG::Milliseconds{32});
+				app().vibrationManager().vibrate(IG::Milliseconds{32});
 			}
 		}
 	}

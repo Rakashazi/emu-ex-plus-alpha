@@ -29,11 +29,7 @@
 #include FT_BITMAP_H
 #include FT_SIZES_H
 
-static FT_Library library{};
-
 #ifdef CONFIG_PACKAGE_FONTCONFIG
-static FcConfig *fcConf{};
-
 static FS::PathString fontPathWithPattern(FcPattern *pat)
 {
 	if(!FcConfigSubstitute(nullptr, pat, FcMatchPattern))
@@ -70,15 +66,6 @@ static FS::PathString fontPathWithPattern(FcPattern *pat)
 
 static FS::PathString fontPathContainingChar(int c, int weight)
 {
-	if(!fcConf)
-	{
-		fcConf = FcInitLoadConfigAndFonts();
-		if(!fcConf)
-		{
-			logErr("error initializing fontconfig");
-			return {};
-		}
-	}
 	logMsg("looking for font with char: %c", c);
 	auto pat = FcPatternCreate();
 	if(!pat)
@@ -104,19 +91,46 @@ static FS::PathString fontPathContainingChar(int c, int weight)
 	}
 	return path;
 }
-
-[[gnu::destructor]] static void finalizeFc()
-{
-	if(fcConf)
-	{
-		FcConfigDestroy(fcConf);
-		FcFini();
-	}
-}
 #endif
 
 namespace IG
 {
+
+FreetypeFontManager::FreetypeFontManager(Base::ApplicationContext ctx):
+	ctx{ctx}
+{
+	FT_Library ftLib;
+	auto error = FT_Init_FreeType(&ftLib);
+	if(error)
+	{
+		logErr("error in FT_Init_FreeType");
+		return;
+	}
+	library.reset(ftLib);
+	/*FT_Int major, minor, patch;
+	FT_Library_Version(library, &major, &minor, &patch);
+	logMsg("init freetype version %d.%d.%d", (int)major, (int)minor, (int)patch);*/
+	#ifdef CONFIG_PACKAGE_FONTCONFIG
+	auto fontConfig = FcInitLoadConfigAndFonts();
+	if(!fontConfig)
+	{
+		logErr("error in FcInitLoadConfigAndFonts");
+		return;
+	}
+	fcConf.reset(fontConfig);
+	#endif
+}
+
+void FreetypeFontManager::freeFtLibrary(FT_Library lib)
+{
+	FT_Done_FreeType(lib);
+}
+
+void FreetypeFontManager::freeFcConfig(_FcConfig *confPtr)
+{
+	FcConfigDestroy(confPtr);
+	FcFini();
+}
 
 static FT_Size makeFTSize(FT_Face face, int x, int y, std::errc &ec)
 {
@@ -149,7 +163,7 @@ static FT_Size makeFTSize(FT_Face face, int x, int y, std::errc &ec)
 	return size;
 }
 
-static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Face face, int c, bool keepPixData, std::errc &ec)
+static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Library library, FT_Face face, int c, bool keepPixData, std::errc &ec)
 {
 	auto idx = FT_Get_Char_Index(face, c);
 	if(!idx)
@@ -209,27 +223,16 @@ static FreetypeFont::GlyphRenderData makeGlyphRenderDataWithFace(FT_Face face, i
 	return {metrics, bitmap};
 }
 
-std::errc FreetypeFaceData::openFont(GenericIO file)
+FreetypeFaceData::FreetypeFaceData(FT_Library library, GenericIO file):
+	streamRecPtr{std::make_unique<FT_StreamRec>()}
 {
 	if(!file)
-		return std::errc::invalid_argument;
-	if(!library) [[unlikely]]
-	{
-		auto error = FT_Init_FreeType(&library);
-		if(error)
-		{
-			logErr("error in FT_Init_FreeType");
-			return std::errc::invalid_argument;
-		}
-		/*FT_Int major, minor, patch;
-		FT_Library_Version(library, &major, &minor, &patch);
-		logMsg("init freetype version %d.%d.%d", (int)major, (int)minor, (int)patch);*/
-	}
-	streamRec.size = file.size();
+		return;
+	streamRecPtr->size = file.size();
 	auto fileOffset =	file.tell();
-	streamRec.pos = fileOffset;
-	streamRec.descriptor.pointer = file.release();
-	streamRec.read = [](FT_Stream stream, unsigned long offset,
+	streamRecPtr->pos = file.tell();
+	streamRecPtr->descriptor.pointer = file.release();
+	streamRecPtr->read = [](FT_Stream stream, unsigned long offset,
 		unsigned char* buffer, unsigned long count) -> unsigned long
 		{
 			auto &io = *((IO*)stream->descriptor.pointer);
@@ -246,27 +249,28 @@ std::errc FreetypeFaceData::openFont(GenericIO file)
 		};
 	FT_Open_Args openS{};
 	openS.flags = FT_OPEN_STREAM;
-	openS.stream = &streamRec;
+	openS.stream = streamRecPtr.get();
 	auto error = FT_Open_Face(library, &openS, 0, &face);
 	if(error == FT_Err_Unknown_File_Format)
 	{
 		logErr("unknown font format");
-		return std::errc::invalid_argument;
+		return;
 	}
 	else if(error)
 	{
 		logErr("error occurred opening the font");
-		return std::errc::io_error;
+		return;
 	}
-	return {};
 }
 
-Font::Font(GenericIO io)
+FreetypeFont::FreetypeFont(FT_Library library, GenericIO io):
+	library{library}
 {
 	loadIntoNextSlot(std::move(io));
 }
 
-Font::Font(const char *name)
+FreetypeFont::FreetypeFont(FT_Library library, const char *name):
+	library{library}
 {
 	FileIO io;
 	io.open(name, IO::AccessHint::ALL);
@@ -278,31 +282,39 @@ Font::Font(const char *name)
 	loadIntoNextSlot(io.makeGeneric());
 }
 
-Font Font::makeSystem(Base::ApplicationContext)
+Font FontManager::makeFromFile(GenericIO io) const
+{
+	return {library.get(), std::move(io)};
+}
+
+Font FontManager::makeFromFile(const char *name) const
+{
+	return {library.get(), name};
+}
+
+Font FontManager::makeSystem() const
 {
 	#ifdef CONFIG_PACKAGE_FONTCONFIG
 	logMsg("locating system fonts with fontconfig");
 	// Let fontconfig handle loading specific fonts on-demand
-	return {};
+	return {library.get()};
 	#else
 	return makeFromAsset("Vera.ttf");
 	#endif
 }
 
-Font Font::makeBoldSystem(Base::ApplicationContext ctx)
+Font FontManager::makeBoldSystem() const
 {
 	#ifdef CONFIG_PACKAGE_FONTCONFIG
-	Font font = makeSystem(ctx);
-	font.isBold = true;
-	return font;
+	return {library.get(), false};
 	#else
 	return makeFromAsset("Vera.ttf");
 	#endif
 }
 
-Font Font::makeFromAsset(Base::ApplicationContext ctx, const char *name, const char *appName)
+Font FontManager::makeFromAsset(const char *name, const char *appName) const
 {
-	return {ctx.openAsset(name, IO::AccessHint::ALL, appName).makeGeneric()};
+	return {library.get(), ctx.openAsset(name, IO::AccessHint::ALL, appName).makeGeneric()};
 }
 
 FreetypeFont::FreetypeFont(FreetypeFont &&o)
@@ -313,6 +325,7 @@ FreetypeFont::FreetypeFont(FreetypeFont &&o)
 FreetypeFont &FreetypeFont::operator=(FreetypeFont &&o)
 {
 	deinit();
+	library = o.library;
 	f = std::exchange(o.f, {});
 	isBold = o.isBold;
 	return *this;
@@ -336,9 +349,9 @@ void FreetypeFont::deinit()
 		{
 			FT_Done_Face(e.face);
 		}
-		if(e.streamRec.descriptor.pointer)
+		if(e.streamRecPtr->descriptor.pointer)
 		{
-			delete (IO*)e.streamRec.descriptor.pointer;
+			delete (IO*)e.streamRecPtr->descriptor.pointer;
 		}
 	}
 }
@@ -347,12 +360,12 @@ std::errc FreetypeFont::loadIntoNextSlot(GenericIO io)
 {
 	if(f.isFull())
 		return std::errc::no_space_on_device;
-	auto ec = f.emplace_back().openFont(std::move(io));
-	if((bool)ec)
+	auto &data = f.emplace_back(library, std::move(io));
+	if(!data.face)
 	{
 		logErr("error reading font");
 		f.pop_back();
-		return ec;
+		return std::errc::invalid_argument;
 	}
 	return {};
 }
@@ -391,7 +404,7 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 			return {};
 		}
 		std::errc ec;
-		auto data = makeGlyphRenderDataWithFace(font.face, idx, keepPixData, ec);
+		auto data = makeGlyphRenderDataWithFace(library, font.face, idx, keepPixData, ec);
 		if((bool)ec)
 		{
 			logMsg("glyph 0x%X not found in slot %d", idx, i);
@@ -426,7 +439,7 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 		logErr("couldn't allocate font size");
 		return {};
 	}
-	auto data = makeGlyphRenderDataWithFace(font.face, idx, keepPixData, ec);
+	auto data = makeGlyphRenderDataWithFace(library, font.face, idx, keepPixData, ec);
 	if((bool)ec)
 	{
 		logMsg("glyph 0x%X still not found", idx);
@@ -446,7 +459,7 @@ Font::Glyph Font::glyph(int idx, FontSize &size, std::errc &ec)
 	{
 		return {};
 	}
-	return {{data.bitmap}, data.metrics};
+	return {{library, data.bitmap}, data.metrics};
 }
 
 GlyphMetrics Font::metrics(int idx, FontSize &size, std::errc &ec)
@@ -522,8 +535,6 @@ void FreetypeFontSize::deinit()
 	}
 }
 
-FreetypeGlyphImage::FreetypeGlyphImage(FT_Bitmap bitmap): bitmap{bitmap} {}
-
 FreetypeGlyphImage::FreetypeGlyphImage(FreetypeGlyphImage &&o)
 {
 	*this = std::move(o);
@@ -531,17 +542,18 @@ FreetypeGlyphImage::FreetypeGlyphImage(FreetypeGlyphImage &&o)
 
 FreetypeGlyphImage &FreetypeGlyphImage::operator=(FreetypeGlyphImage &&o)
 {
-	static_cast<GlyphImage*>(this)->unlock();
+	deinit();
+	library = o.library;
 	bitmap = std::exchange(o.bitmap, {});
 	return *this;
 }
 
 FreetypeGlyphImage::~FreetypeGlyphImage()
 {
-	static_cast<GlyphImage*>(this)->unlock();
+	deinit();
 }
 
-void GlyphImage::unlock()
+void FreetypeGlyphImage::deinit()
 {
 	if(bitmap.buffer)
 	{

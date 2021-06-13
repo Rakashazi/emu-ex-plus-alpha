@@ -17,9 +17,10 @@
 #include <emuframework/EmuAppHelper.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/EmuSystemActionsView.hh>
-#include <imagine/gui/AlertView.hh>
 #include "EmuCheatViews.hh"
 #include "internal.hh"
+#include <imagine/gui/AlertView.hh>
+#include <imagine/fs/FS.hh>
 #include "input.h"
 #include "io_ctrl.h"
 #include "vdp_ctrl.h"

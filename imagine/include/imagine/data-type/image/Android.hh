@@ -16,10 +16,15 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/base/ApplicationContext.hh>
-#include <android/bitmap.h>
+#include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/jni.hh>
 #include <system_error>
+
+namespace Base
+{
+class ApplicationContext;
+class Application;
+}
 
 namespace IG
 {
@@ -32,26 +37,33 @@ namespace IG::Data
 class BitmapFactoryImage
 {
 public:
-	constexpr BitmapFactoryImage(Base::ApplicationContext ctx):
-		ctx{ctx}
-	{}
-	~BitmapFactoryImage();
-	std::errc readImage(IG::Pixmap dest);
-	bool hasAlphaChannel();
-	bool isGrayscale();
-	void freeImageData();
-	uint32_t width();
-	uint32_t height();
-	IG::PixelFormat pixelFormat() const;
-	constexpr Base::ApplicationContext appContext() const { return ctx; }
+	constexpr BitmapFactoryImage() {}
+	BitmapFactoryImage(JNI::LockedLocalBitmap, Pixmap);
 
 protected:
-	jobject bitmap{};
-	Base::ApplicationContext ctx{};
-	AndroidBitmapInfo info{};
+	JNI::LockedLocalBitmap lockedBitmap{};
+	Pixmap pixmap_{};
 };
 
-using PixmapReaderImpl = BitmapFactoryImage;
+using PixmapImageImpl = BitmapFactoryImage;
+
+class BitmapFactoryReader
+{
+public:
+	BitmapFactoryReader(Base::ApplicationContext ctx);
+
+protected:
+	Base::Application *appPtr{};
+	jobject baseActivity{};
+	JNI::UniqueGlobalRef jBitmapFactory{};
+	JNI::ClassMethod<jobject(jstring)> jDecodeFile{};
+	JNI::InstMethod<jobject(jstring)> jDecodeAsset{};
+	JNI::InstMethod<void()> jRecycleBitmap{};
+
+	constexpr Base::Application &app() const { return *appPtr; }
+};
+
+using PixmapReaderImpl = BitmapFactoryReader;
 
 class BitmapWriter
 {
@@ -59,9 +71,12 @@ public:
 	BitmapWriter(Base::ApplicationContext);
 
 protected:
-	Base::ApplicationContext ctx{};
+	Base::Application *appPtr{};
+	jobject baseActivity{};
 	JNI::InstMethod<jobject(jint, jint, jint)> jMakeBitmap;
 	JNI::InstMethod<jboolean(jobject, jobject)> jWritePNG;
+
+	constexpr Base::Application &app() const { return *appPtr; }
 };
 
 using PixmapWriterImpl = BitmapWriter;

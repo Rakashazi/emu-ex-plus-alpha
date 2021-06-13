@@ -90,12 +90,12 @@ public:
 	void flushMainThreadMessages();
 
 	Window *makeWindow(WindowConfig, WindowInitDelegate);
-	const WindowContainter &windows() const;
+	const WindowContainer &windows() const;
 	Window &mainWindow();
 	bool systemAnimatesWindowRotation() const;
 	IG::PixelFormat defaultWindowPixelFormat() const;
 
-	const ScreenContainter &screens() const;
+	const ScreenContainer &screens() const;
 	Screen &mainScreen();
 
 	NativeDisplayConnection nativeDisplayConnection() const;
@@ -168,10 +168,6 @@ public:
 
 	// Sensors
 	void setDeviceOrientationChangeSensor(bool on);
-
-	// vibration support
-	bool hasVibrator();
-	void vibrate(IG::Milliseconds ms);
 
 	// Notification/Launcher icons
 	void addNotification(const char *onShow, const char *title, const char *message);

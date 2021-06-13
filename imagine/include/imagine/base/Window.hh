@@ -38,12 +38,7 @@ class Application;
 class Window : public WindowImpl
 {
 public:
-	enum class FrameTimeSource : uint8_t
-	{
-		AUTO,
-		SCREEN,
-		RENDERER,
-	};
+	using FrameTimeSource = WindowFrameTimeSource;
 
 	Window(ApplicationContext, WindowConfig, InitDelegate);
 	void show();

@@ -17,13 +17,20 @@
 
 #include <imagine/data-type/image/PixmapReader.hh>
 #include <imagine/data-type/image/PixmapWriter.hh>
+#include <imagine/data-type/image/PixmapSource.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/pixmap/MemPixmap.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
+
+#ifdef CONFIG_MACHINE_PANDORA
+// remap type name for libpng 1.2
+#define png_info_struct png_info_def
+#endif
 
 #define PNG_SKIP_SETJMP_CHECK
 #include <png.h>
@@ -31,12 +38,9 @@
 // this must be in the range 1 to 8
 #define INITIAL_HEADER_READ_BYTES 8
 
-namespace IG::Data
-{
-
-bool Png::supportUncommonConv = 0;
-
-using namespace IG;
+#if PNG_LIBPNG_VER < 10500
+using png_const_bytep = png_bytep;
+#endif
 
 #ifndef PNG_ERROR_TEXT_SUPPORTED
 
@@ -70,6 +74,13 @@ CLINK void PNGAPI png_chunk_warning(png_const_structrp png_ptr, png_const_charp 
 
 #endif
 
+namespace IG::Data
+{
+
+bool PngImage::supportUncommonConv = 0;
+
+using namespace IG;
+
 static void png_ioReader(png_structp pngPtr, png_bytep data, png_size_t length)
 {
 	auto &io = *(IO*)png_get_io_ptr(pngPtr);
@@ -80,22 +91,22 @@ static void png_ioReader(png_structp pngPtr, png_bytep data, png_size_t length)
 	}
 }
 
-uint32_t Png::width()
+uint32_t PngImage::width()
 {
 	return png_get_image_width(png, info);
 }
 
-uint32_t Png::height()
+uint32_t PngImage::height()
 {
 	return png_get_image_height(png, info);
 }
 
-bool Png::isGrayscale()
+bool PngImage::isGrayscale()
 {
 	return !(png_get_color_type(png, info) & PNG_COLOR_MASK_COLOR);
 }
 
-PixelFormat Png::pixelFormat()
+PixelFormat PngImage::pixelFormat()
 {
 	bool grayscale = isGrayscale();
 	bool alpha = hasAlphaChannel();
@@ -116,22 +127,24 @@ static void png_memFree(png_structp png_ptr, png_voidp ptr)
 	delete[] (uint8_t*)ptr;
 }
 
-std::error_code Png::readHeader(GenericIO io)
+PngImage::PngImage(GenericIO io)
 {
 	//logMsg("reading header from file handle @ %p",stream);
 	
 	//logMsg("initial reading to start at offset 0x%X", (int)stream->ftell);
 	
 	//log_mPrintf(LOG_MSG, "%d items %d size, %d", 10, 500, PNG_UINT_32_MAX/500);
+	if(!io)
+		return;
 	uint8_t header[INITIAL_HEADER_READ_BYTES];
 	if(io.read(&header, INITIAL_HEADER_READ_BYTES) != INITIAL_HEADER_READ_BYTES)
-		return {EIO, std::system_category()};
+		return;
 
 	int isPng = !png_sig_cmp(header, 0, INITIAL_HEADER_READ_BYTES);
 	if (!isPng)
 	{
 		logErr("error - not a png file");
-		return {EINVAL, std::system_category()};
+		return;
 	}
 
 	png = png_create_read_struct_2 (PNG_LIBPNG_VER_STRING,
@@ -140,7 +153,7 @@ std::error_code Png::readHeader(GenericIO io)
 	if (png == NULL)
 	{
 		logErr("error allocating png struct");
-		return {ENOMEM, std::system_category()};
+		return;
 	}
 
 	//log_mPrintf(LOG_MSG,"creating info struct");
@@ -150,28 +163,14 @@ std::error_code Png::readHeader(GenericIO io)
 		logErr("error allocating png info");
 		png_structpp pngStructpAddr = &png;
 		png_destroy_read_struct(pngStructpAddr, (png_infopp)NULL, (png_infopp)NULL);
-		return {ENOMEM, std::system_category()};
+		return;
 	}
-
-	/*log_mPrintf(LOG_MSG,"creating end info struct");
-	end = png_create_info_struct(png);
-	if (!end)
-	{
-		log_mPrintf(LOG_ERR,"error allocating png end info");
-		void * pngStructpAddr = &png;
-		void * pngInfopAddr = &info;
-		png_destroy_read_struct(pngStructpAddr, pngInfopAddr, (png_infopp)NULL);
-		return (OUT_OF_MEMORY);
-	}*/
 
 	if (setjmp(png_jmpbuf(png)))
 	{
-		logErr("error occured, jumped to setjmp");
-		png_structpp pngStructpAddr = &png;
-		png_infopp pngInfopAddr = &info;
-		//void * pngEndInfopAddr = &data->end;
-		png_destroy_read_struct(pngStructpAddr, pngInfopAddr, (png_infopp)NULL/*pngEndInfopAddr*/);
-		return {EIO, std::system_category()};
+		logErr("error occurred, jumped to setjmp");
+		freeImageData();
+		return;
 	}
 	
 	//init custom libpng io
@@ -182,12 +181,10 @@ std::error_code Png::readHeader(GenericIO io)
 	//log_mPrintf(LOG_MSG,"let libpng know we read %d bytes already", INITIAL_HEADER_READ_BYTES);
 	
 	png_read_info(png, info);
-	
 	//log_mPrintf(LOG_MSG,"finished reading header");
-	return {};
 }
 
-void Png::freeImageData()
+void PngImage::freeImageData()
 {
 	if(png)
 	{
@@ -197,22 +194,18 @@ void Png::freeImageData()
 		png_infopp pngInfopAddr = &info;
 		//void * pngEndInfopAddr = &data->end;
 		png_destroy_read_struct(pngStructpAddr, pngInfopAddr, (png_infopp)NULL/*pngEndInfopAddr*/);
+		assert(!png);
+		assert(!info);
 	}
 }
 
-bool Png::hasAlphaChannel()
+bool PngImage::hasAlphaChannel()
 {
 	return ( (png_get_color_type(png, info) & PNG_COLOR_MASK_ALPHA) ||
 				( png_get_valid(png, info, PNG_INFO_tRNS) ) ) ? 1 : 0;
 }
 
-// TODO: write a filter to convert pixels to 16-bits
-/*static void pngConvertBGR888ToXBGR1555(png_structp png_ptr, png_row_infop row_info, png_bytep data)
-{
-	
-}*/
-
-void Png::setTransforms(IG::PixelFormat outFormat, png_infop transInfo)
+void PngImage::setTransforms(IG::PixelFormat outFormat, png_infop transInfo)
 {
 	int addingAlphaChannel = 0;
 	
@@ -282,33 +275,26 @@ void Png::setTransforms(IG::PixelFormat outFormat, png_infop transInfo)
 		png_set_bgr(png);
 	}
 	
-	//if(outFormat == PIXEL_ABGR1555)
-	//{
-		//TODO: convert to 16-bits
-	//}
-	
 	png_read_update_info(png, info);
 }
 
-std::errc Png::readImage(IG::Pixmap dest)
+std::errc PngImage::readImage(IG::Pixmap dest)
 {
-	//logMsg("reading whole image to %p", buffer);
-	//log_mPrintf(LOG_MSG,"buffer has %d byte pitch", pitch);
-	
 	int height = this->height();
 	int width = this->width();
-	//int rowbytes = png_get_rowbytes(png, info);
-	//log_mPrintf(LOG_MSG,"width = %d, height = %d, rowbytes = %d", width, height, rowbytes);
 
 	png_infop transInfo = png_create_info_struct(png);
 	if (!transInfo)
 	{
 		logErr("error allocating png transform info");
-		png_structpp pngStructpAddr = &png;
-		png_infopp pngInfopAddr = &info;
-		png_destroy_read_struct(pngStructpAddr, pngInfopAddr, (png_infopp)NULL);
 		return std::errc::not_enough_memory;
 	}
+	IG::scopeGuard(
+		[&]()
+		{
+			png_infopp pngInfopAddr = &transInfo;
+			png_destroy_info_struct(png, pngInfopAddr);
+		});
 	setTransforms(dest.format(), transInfo);
 	
 	//log_mPrintf(LOG_MSG,"after transforms, rowbytes = %u", (uint32_t)png_get_rowbytes(data->png, data->info));
@@ -351,78 +337,74 @@ std::errc Png::readImage(IG::Pixmap dest)
 	
 	//log_mPrintf(LOG_MSG,"reading complete");
 	png_read_end(png, nullptr);
-
-	png_infopp pngInfopAddr = &transInfo;
-	png_destroy_info_struct(png, pngInfopAddr);
 	return {};
 }
 
-PixmapReader::operator bool() const
+PixmapImage::operator bool() const
 {
 	return info;
 }
 
-Png::~Png()
+PngImage::PngImage(PngImage &&o)
+{
+	*this = std::move(o);
+}
+
+PngImage &PngImage::operator=(PngImage &&o)
+{
+	freeImageData();
+	png = std::exchange(o.png, {});
+	info = std::exchange(o.info, {});
+	return *this;
+}
+
+PngImage::~PngImage()
 {
 	freeImageData();
 }
 
-std::errc PixmapReader::write(IG::Pixmap dest)
+std::errc PixmapImage::write(IG::Pixmap dest)
 {
 	return(readImage(dest));
 }
 
-IG::Pixmap PixmapReader::pixmapView()
+IG::Pixmap PixmapImage::pixmapView()
 {
 	return {{{(int)width(), (int)height()}, pixelFormat()}, {}};
 }
 
-std::error_code PixmapReader::load(GenericIO io)
+PixmapImage::operator PixmapSource()
 {
-	reset();
-	if(!io)
-		return {EINVAL, std::system_category()};
-	auto ec = readHeader(std::move(io));
-	if(ec)
-	{
-		logErr("error reading header");
-		return ec;
-	}
-	return {};
+	return {[this](IG::Pixmap dest){ return write(dest); }, pixmapView()};
 }
 
-std::error_code PixmapReader::load(const char *name)
+PixmapImage PixmapReader::load(GenericIO io) const
 {
-	reset();
+	return PixmapImage{std::move(io)};
+}
+
+PixmapImage PixmapReader::load(const char *name) const
+{
 	if(!string_hasDotExtension(name, "png"))
 	{
 		logErr("suffix doesn't match PNG image");
-		return {EINVAL, std::system_category()};
+		return {};
 	}
 	FileIO io;
 	auto ec = io.open(name, IO::AccessHint::ALL);
 	if(ec)
 	{
-		return ec;
+		return {};
 	}
 	return load(io.makeGeneric());
 }
 
-std::error_code PixmapReader::loadAsset(const char *name, const char *appName)
+PixmapImage PixmapReader::loadAsset(const char *name, const char *appName) const
 {
 	return load(appContext().openAsset(name, IO::AccessHint::ALL, appName).makeGeneric());
 }
 
-void PixmapReader::reset()
-{
-	freeImageData();
-}
-
-#if PNG_LIBPNG_VER < 10500
-using png_const_bytep = png_bytep;
-#endif
-
-bool PixmapWriter::writeToFile(IG::Pixmap pix, const char *path)
+bool PixmapWriter::writeToFile(IG::Pixmap pix, const char *path) const
 {
 	FileIO fp;
 	fp.create(path);

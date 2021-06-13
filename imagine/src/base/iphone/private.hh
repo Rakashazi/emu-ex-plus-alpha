@@ -25,7 +25,6 @@ namespace Base
 {
 
 class ApplicationContext;
-extern CGColorSpaceRef grayColorSpace, rgbColorSpace;
 
 }
 

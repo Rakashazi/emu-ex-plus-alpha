@@ -15,7 +15,7 @@
 
 #pragma once
 #include <emuframework/EmuAppHelper.hh>
-#include <emuframework/EmuSystem.hh>
+#include <imagine/input/Input.hh>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/PixmapTexture.hh>
 

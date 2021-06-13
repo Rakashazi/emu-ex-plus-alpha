@@ -26,6 +26,7 @@
 #include <array>
 
 struct InputDeviceConfig;
+class EmuInputView;
 
 class IdentInputDeviceView : public View
 {

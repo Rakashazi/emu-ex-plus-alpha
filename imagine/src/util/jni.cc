@@ -16,6 +16,7 @@
 #include <imagine/util/jni.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/utility.h>
+#include <android/bitmap.h>
 
 namespace JNI
 {
@@ -203,6 +204,34 @@ void UniqueGlobalRef::reset()
 	if(!obj)
 		return;
 	env->DeleteGlobalRef(std::exchange(obj, {}));
+}
+
+LockedLocalBitmap::LockedLocalBitmap(LockedLocalBitmap &&o)
+{
+	*this = std::move(o);
+}
+
+LockedLocalBitmap &LockedLocalBitmap::operator=(LockedLocalBitmap &&o)
+{
+	deinit();
+	env = o.env;
+	bitmap = std::exchange(o.bitmap, {});
+	jRecycle = o.jRecycle;
+	return *this;
+}
+
+LockedLocalBitmap::~LockedLocalBitmap()
+{
+	deinit();
+}
+
+void LockedLocalBitmap::deinit()
+{
+	if(!bitmap)
+		return;
+	AndroidBitmap_unlockPixels(env, bitmap);
+	jRecycle(env, bitmap);
+	env->DeleteLocalRef(std::exchange(bitmap, {}));
 }
 
 }

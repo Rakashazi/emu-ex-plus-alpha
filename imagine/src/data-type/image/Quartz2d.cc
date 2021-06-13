@@ -16,11 +16,11 @@
 #define LOGTAG "QuartzPNG"
 
 #include <imagine/data-type/image/PixmapReader.hh>
+#include <imagine/data-type/image/PixmapSource.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/FS.hh>
-#include "../../base/iphone/private.hh"
 #include <CoreGraphics/CGBitmapContext.h>
 #include <CoreGraphics/CGContext.h>
 #include <assert.h>
@@ -30,17 +30,17 @@ namespace IG::Data
 
 uint32_t Quartz2dImage::width()
 {
-	return CGImageGetWidth(img);
+	return CGImageGetWidth(img.get());
 }
 
 uint32_t Quartz2dImage::height()
 {
-	return CGImageGetHeight(img);
+	return CGImageGetHeight(img.get());
 }
 
 bool Quartz2dImage::isGrayscale()
 {
-	return CGImageGetBitsPerPixel(img) == 8;
+	return CGImageGetBitsPerPixel(img.get()) == 8;
 }
 
 const IG::PixelFormat Quartz2dImage::pixelFormat()
@@ -51,28 +51,27 @@ const IG::PixelFormat Quartz2dImage::pixelFormat()
 		return IG::PIXEL_FMT_RGBA8888;
 }
 
-std::error_code PixmapReader::load(const char *name)
+Quartz2dImage::Quartz2dImage(const char *name)
 {
-	freeImageData();
 	CGDataProviderRef dataProvider = CGDataProviderCreateWithFilename(name);
 	if(!dataProvider)
 	{
 		logErr("error opening file: %s", name);
-		return {EINVAL, std::system_category()};
+		return;
 	}
-	img = CGImageCreateWithPNGDataProvider(dataProvider, nullptr, 0, kCGRenderingIntentDefault);
+	auto imgRef = CGImageCreateWithPNGDataProvider(dataProvider, nullptr, 0, kCGRenderingIntentDefault);
 	CGDataProviderRelease(dataProvider);
-	if(!img)
+	if(!imgRef)
 	{
 		logErr("error creating CGImage from file: %s", name);
-		return {EINVAL, std::system_category()};
+		return;
 	}
-	return {};
+	img.reset(imgRef);
 }
 
 bool Quartz2dImage::hasAlphaChannel()
 {
-	auto info = CGImageGetAlphaInfo(img);
+	auto info = CGImageGetAlphaInfo(img.get());
 	return info == kCGImageAlphaPremultipliedLast || info == kCGImageAlphaPremultipliedFirst
 		|| info == kCGImageAlphaLast || info == kCGImageAlphaFirst;
 }
@@ -82,52 +81,44 @@ std::errc Quartz2dImage::readImage(IG::Pixmap dest)
 	assert(dest.format() == pixelFormat());
 	int height = this->height();
 	int width = this->width();
-	auto colorSpace = isGrayscale() ? Base::grayColorSpace : Base::rgbColorSpace;
+	auto colorSpace = isGrayscale() ? CGColorSpaceCreateDeviceGray() : CGColorSpaceCreateDeviceRGB();
 	auto bitmapInfo = isGrayscale() ? kCGImageAlphaNone : kCGImageAlphaPremultipliedLast;
 	auto context = CGBitmapContextCreate(dest.data(), width, height, 8, dest.pitchBytes(), colorSpace, bitmapInfo);
+	CGColorSpaceRelease(colorSpace);
 	CGContextSetBlendMode(context, kCGBlendModeCopy);
-	CGContextDrawImage(context, CGRectMake(0.0, 0.0, (CGFloat)width, (CGFloat)height), img);
+	CGContextDrawImage(context, CGRectMake(0.0, 0.0, (CGFloat)width, (CGFloat)height), img.get());
 	CGContextRelease(context);
 	return {};
 }
 
-void Quartz2dImage::freeImageData()
+void Quartz2dImage::releaseCGImage(CGImageRef ref)
 {
-	if(img)
-	{
-		CGImageRelease(img);
-		img = nullptr;
-	}
+	CGImageRelease(ref);
 }
 
-PixmapReader::operator bool() const
+PixmapImage::operator bool() const
 {
 	return (bool)img;
 }
 
-Quartz2dImage::~Quartz2dImage()
-{
-	freeImageData();
-}
-
-std::errc PixmapReader::write(IG::Pixmap dest)
+std::errc PixmapImage::write(IG::Pixmap dest)
 {
 	return(readImage(dest));
 }
 
-IG::Pixmap PixmapReader::pixmapView()
+IG::Pixmap PixmapImage::pixmapView()
 {
 	return {{{(int)width(), (int)height()}, pixelFormat()}, {}};
 }
 
-std::error_code PixmapReader::loadAsset(const char *name, const char *appName)
+PixmapImage::operator PixmapSource()
 {
-	return load(FS::makePathStringPrintf("%s/%s", appContext().assetPath(appName).data(), name).data());
+	return {[this](IG::Pixmap dest){ return write(dest); }, pixmapView()};
 }
 
-void PixmapReader::reset()
+PixmapImage PixmapReader::loadAsset(const char *name, const char *appName) const
 {
-	freeImageData();
+	return PixmapImage(FS::makePathStringPrintf("%s/%s", appContext().assetPath(appName).data(), name).data());
 }
 
 }

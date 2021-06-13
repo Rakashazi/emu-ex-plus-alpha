@@ -19,10 +19,11 @@
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuInput.hh>
 #include <emuframework/EmuAppInlines.hh>
+#include "internal.hh"
 #include <imagine/thread/Thread.hh>
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/gui/AlertView.hh>
-#include "internal.hh"
+#include <imagine/fs/FS.hh>
 #include <sys/time.h>
 
 extern "C"

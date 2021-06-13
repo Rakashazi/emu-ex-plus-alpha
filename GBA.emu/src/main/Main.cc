@@ -19,6 +19,7 @@
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
 #include "internal.hh"
+#include <imagine/fs/FS.hh>
 #include <vbam/gba/GBA.h>
 #include <vbam/gba/GBAGfx.h>
 #include <vbam/gba/Sound.h>
