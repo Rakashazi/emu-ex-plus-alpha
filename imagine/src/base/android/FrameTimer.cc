@@ -51,7 +51,7 @@ FrameTimer AndroidApplication::makeFrameTimer(Screen &screen)
 	}
 }
 
-void AndroidApplication::initChoreographer(const ScreenContainer &screens, JNIEnv *env, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK)
+void AndroidApplication::initChoreographer(JNIEnv *env, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK)
 {
 	if(androidSDK < 16)
 	{
@@ -61,18 +61,19 @@ void AndroidApplication::initChoreographer(const ScreenContainer &screens, JNIEn
 	{
 		// Always use on 32-bit systems due to NDK API issue
 		// that prevents 64-bit timestamp resolution
-		choreographer.emplace<JavaChoreographer>(screens, env, baseActivity, baseActivityClass);
+		choreographer.emplace<JavaChoreographer>(*this, env, baseActivity, baseActivityClass);
 	}
 	else
 	{
-		choreographer.emplace<NativeChoreographer>(screens);
+		choreographer.emplace<NativeChoreographer>(*this);
 	}
 }
 
-static void updatePostedScreens(auto &choreographer, FrameTime timestamp, const ScreenContainer &screens)
+static void updatePostedScreens(auto &choreographer, FrameTime timestamp, AndroidApplication &app)
 {
 	bool didUpdate{};
-	for(auto &s : screens)
+	app.flushSystemInputEvents();
+	for(auto &s : app.screens())
 	{
 		if(s->isPosted())
 		{
@@ -89,8 +90,8 @@ static void updatePostedScreens(auto &choreographer, FrameTime timestamp, const 
 	}
 }
 
-JavaChoreographer::JavaChoreographer(const ScreenContainer &screens, JNIEnv *env, jobject baseActivity, jclass baseActivityClass):
-	screensPtr{&screens}
+JavaChoreographer::JavaChoreographer(AndroidApplication &app, JNIEnv *env, jobject baseActivity, jclass baseActivityClass):
+	appPtr{&app}
 {
 	JNI::InstMethod<jobject(jlong)> jChoreographerHelper{env, baseActivityClass, "choreographerHelper", "(J)Lcom/imagine/ChoreographerHelper;"};
 	frameHelper = {env, jChoreographerHelper(env, baseActivity, (jlong)this)};
@@ -105,7 +106,7 @@ JavaChoreographer::JavaChoreographer(const ScreenContainer &screens, JNIEnv *env
 			{
 				auto &inst = *((JavaChoreographer*)userData);
 				inst.requested = false;
-				updatePostedScreens(inst, FrameTime{frameTimeNanos}, *inst.screensPtr);
+				updatePostedScreens(inst, FrameTime{frameTimeNanos}, *inst.appPtr);
 			}
 		}
 	};
@@ -122,8 +123,8 @@ void JavaChoreographer::scheduleVSync()
 	jPostFrame(frameHelper.jniEnv(), frameHelper);
 }
 
-NativeChoreographer::NativeChoreographer(const ScreenContainer &screens):
-	screensPtr{&screens}
+NativeChoreographer::NativeChoreographer(AndroidApplication &app):
+	appPtr{&app}
 {
 	AChoreographer* (*getInstance)(){};
 	Base::loadSymbol(getInstance, {}, "AChoreographer_getInstance");
@@ -145,7 +146,7 @@ void NativeChoreographer::scheduleVSync()
 		{
 			auto &inst = *((NativeChoreographer*)userData);
 			inst.requested = false;
-			updatePostedScreens(inst, FrameTime{frameTimeNanos}, *inst.screensPtr);
+			updatePostedScreens(inst, FrameTime{frameTimeNanos}, *inst.appPtr);
 		}, this);
 }
 

@@ -425,6 +425,11 @@ void ApplicationContext::flushSystemInputEvents()
 	application().runX11Events();
 }
 
+bool XApplication::hasPendingX11Events() const
+{
+	return XPending(dpy);
+}
+
 }
 
 namespace Input

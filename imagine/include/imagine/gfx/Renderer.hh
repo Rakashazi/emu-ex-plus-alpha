@@ -58,8 +58,8 @@ struct TextureBufferModeDesc
 
 struct DrawableConfig
 {
-	IG::PixelFormat pixelFormat;
-	ColorSpace colorSpace;
+	IG::PixelFormat pixelFormat{};
+	ColorSpace colorSpace{};
 	constexpr bool operator ==(const DrawableConfig&) const = default;
 };
 

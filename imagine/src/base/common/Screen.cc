@@ -15,6 +15,7 @@
 
 #define LOGTAG "Screen"
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/time/Time.hh>
@@ -27,7 +28,7 @@ namespace Base
 
 Screen::Screen(ApplicationContext ctx, InitParams params):
 	ScreenImpl{ctx, params},
-	ctx{ctx}
+	windowsPtr{&ctx.application().windows()}
 {}
 
 bool Screen::addOnFrame(OnFrameDelegate del, int priority)
@@ -83,7 +84,13 @@ bool Screen::frameUpdate(FrameTime timestamp)
 	if(!onFrameDelegate.size())
 		return false;
 	runOnFrameDelegates(timestamp);
-	//logMsg("%s", isPosted() ? "drawing next frame" : "stopping at this frame");
+	for(auto &w : *windowsPtr)
+	{
+		if(w->screen() == this)
+		{
+			w->dispatchOnDraw();
+		}
+	}
 	return true;
 }
 

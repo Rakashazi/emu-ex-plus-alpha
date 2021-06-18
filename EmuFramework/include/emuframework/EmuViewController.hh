@@ -54,7 +54,7 @@ class EmuViewController final: public ViewController, public EmuAppHelper<EmuVie
 public:
 	EmuViewController();
 	EmuViewController(ViewAttachParams,
-		VController &, EmuVideoLayer &, EmuSystemTask &, EmuAudio &);
+		VController &, EmuVideoLayer &, EmuSystemTask *, EmuAudio &);
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal = false) final;
 	using ViewController::pushAndShow;
 	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView);
@@ -100,6 +100,7 @@ public:
 	void setPhysicalControlsPresent(bool present);
 	void setFastForwardActive(bool active);
 	bool isMenuDismissKey(Input::Event);
+	void setSystemTask(EmuSystemTask *);
 	Base::ApplicationContext appContext() const;
 
 protected:
@@ -111,7 +112,7 @@ protected:
 	EmuMenuViewStack viewStack{*this};
 	Base::OnFrameDelegate onFrameUpdate{};
 	Gfx::RendererTask *rendererTask_{};
-	EmuSystemTask *systemTask{};
+	EmuSystemTask *systemTaskPtr{};
 	EmuAudio *emuAudioPtr{};
 	EmuApp *appPtr{};
 	Base::OnExit onExit{};

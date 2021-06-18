@@ -124,10 +124,9 @@ private:
 	BoolMenuItem joystickAxis2DPad{};
 	BoolMenuItem joystickAxisHatDPad{};
 	//TextMenuItem disconnect {"Disconnect"}; // TODO
-	TextMenuItem inputCategory[EmuControls::MAX_CATEGORIES]{};
+	StaticArrayList<TextMenuItem, EmuControls::MAX_CATEGORIES> inputCategory{};
 	StaticArrayList<MenuItem*, EmuControls::MAX_CATEGORIES + 11> item{};
 	InputDeviceConfig *devConf{};
-	unsigned inputCategories = 0;
 
 	void confirmICadeMode(Input::Event e);
 	void loadItems();

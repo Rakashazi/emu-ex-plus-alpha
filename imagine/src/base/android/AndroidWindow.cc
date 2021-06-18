@@ -28,7 +28,7 @@
 namespace Base
 {
 
-static JNI::InstMethod<jobject(jobject, jlong, jlong)> jPresentation{};
+static JNI::InstMethod<jobject(jobject, jlong)> jPresentation{};
 static JNI::InstMethod<void()> jPresentationDeinit{};
 static int32_t (*ANativeWindow_setFrameRate)(ANativeWindow* window, float frameRate, int8_t compatibility){};
 
@@ -42,42 +42,42 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 	JNINativeMethod method[] =
 	{
 		{
-			"onSurfaceCreated", "(JJLandroid/view/Surface;)V",
-			(void*)(void (*)(JNIEnv*, jobject, jlong, jlong, jobject))
-			([](JNIEnv* env, jobject thiz, jlong nActivityAddr, jlong windowAddr, jobject surface)
+			"onSurfaceCreated", "(JLandroid/view/Surface;)V",
+			(void*)
+			+[](JNIEnv* env, jobject thiz, jlong windowAddr, jobject surface)
 			{
 				auto nWin = ANativeWindow_fromSurface(env, surface);
 				auto &win = *((Window*)windowAddr);
-				win.setNativeWindow((ANativeActivity*)nActivityAddr, nWin);
-			})
+				win.setNativeWindow(win.appContext(), nWin);
+			}
 		},
 		{
-			"onSurfaceRedrawNeeded", "(JJ)V",
-			(void*)(void (*)(JNIEnv*, jobject, jlong, jlong))
-			([](JNIEnv* env, jobject thiz, jlong nActivityAddr, jlong windowAddr)
+			"onSurfaceRedrawNeeded", "(J)V",
+			(void*)
+			+[](JNIEnv* env, jobject thiz, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
 				win.systemRequestsRedraw(true);
-			})
+			}
 		},
 		{
-			"onSurfaceDestroyed", "(JJ)V",
-			(void*)(void (*)(JNIEnv*, jobject, jlong, jlong))
-			([](JNIEnv* env, jobject thiz, jlong nActivityAddr, jlong windowAddr)
+			"onSurfaceDestroyed", "(J)V",
+			(void*)
+			+[](JNIEnv* env, jobject thiz, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
 				ANativeWindow_release(win.nativeObject());
-				win.setNativeWindow((ANativeActivity*)nActivityAddr, nullptr);
-			})
+				win.setNativeWindow(win.appContext(), nullptr);
+			}
 		},
 		{
-			"onWindowDismiss", "(JJ)V",
-			(void*)(void (*)(JNIEnv*, jobject, jlong, jlong))
-			([](JNIEnv* env, jobject thiz, jlong nActivityAddr, jlong windowAddr)
+			"onWindowDismiss", "(J)V",
+			(void*)
+			+[](JNIEnv* env, jobject thiz, jlong windowAddr)
 			{
 				auto &win = *((Window*)windowAddr);
 				win.dismiss();
-			})
+			}
 		},
 	};
 	env->RegisterNatives(cls, method, std::size(method));
@@ -145,9 +145,8 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate onInit_
 	{
 		assert(screen != ctx.mainScreen());
 		if(!jPresentation)
-			jPresentation = {env, baseActivity, "presentation", "(Landroid/view/Display;JJ)Lcom/imagine/PresentationHelper;"};
-		jWin = {env, jPresentation(env, baseActivity, screen.displayObject(),
-			(jlong)ctx.aNativeActivityPtr(), (jlong)this)};
+			jPresentation = {env, baseActivity, "presentation", "(Landroid/view/Display;J)Lcom/imagine/PresentationHelper;"};
+		jWin = {env, jPresentation(env, baseActivity, screen.displayObject(), (jlong)this)};
 		initPresentationJNI(env, jWin);
 		type = Type::PRESENTATION;
 		logMsg("made presentation window:%p", (jobject)jWin);

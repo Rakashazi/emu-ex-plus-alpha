@@ -220,7 +220,7 @@ void FrameRateTestApplication::setActiveTestHandlers(Base::Window &win)
 			}
 			else
 			{
-				win.postDraw();
+				win.setNeedsDraw(true);
 				return true;
 			}
 		});

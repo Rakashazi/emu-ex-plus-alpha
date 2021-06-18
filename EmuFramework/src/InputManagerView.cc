@@ -781,27 +781,25 @@ InputManagerDeviceView::InputManagerDeviceView(NameString name, ViewAttachParams
 void InputManagerDeviceView::loadItems()
 {
 	item.clear();
+	inputCategory.clear();
 	if(EmuSystem::maxPlayers > 1)
 	{
 		item.emplace_back(&player);
 	}
 	item.emplace_back(&loadProfile);
-	inputCategories = 0;
-	iterateTimes(EmuControls::categories, c)
+	for(auto &cat : app().inputControlCategories())
 	{
-		auto &cat = EmuControls::category[c];
 		if(cat.isMultiplayer && devConf->player != InputDeviceConfig::PLAYER_MULTI)
 		{
 			//logMsg("skipping category %s (%d)", cat.name, (int)c_i);
 			continue;
 		}
-		inputCategory[c] = {cat.name, &defaultFace(),
-			[this, c](Input::Event e)
+		auto &catItem = inputCategory.emplace_back(cat.name, &defaultFace(),
+			[this, &cat](Input::Event e)
 			{
-				pushAndShow(makeView<ButtonConfigView>(rootIMView, &EmuControls::category[c], *this->devConf), e);
-			}};
-		item.emplace_back(&inputCategory[c]);
-		inputCategories++;
+				pushAndShow(makeView<ButtonConfigView>(rootIMView, &cat, *this->devConf), e);
+			});
+		item.emplace_back(&catItem);
 	}
 	item.emplace_back(&newProfile);
 	item.emplace_back(&renameProfile);

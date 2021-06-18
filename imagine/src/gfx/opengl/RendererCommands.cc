@@ -77,7 +77,7 @@ void GLRendererCommands::present(Drawable win)
 void GLRendererCommands::doPresent()
 {
 	rTask->verifyCurrentContext();
-	if(Config::envIsAndroid && r->support.hasSamplerObjects)
+	if(Config::envIsAndroid && Config::MACHINE_IS_GENERIC_X86 && r->support.hasSamplerObjects)
 	{
 		// reset sampler object at the end of frame, fixes blank screen
 		// on Android SDK emulator when using mipmaps

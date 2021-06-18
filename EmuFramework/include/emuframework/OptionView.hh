@@ -159,10 +159,11 @@ protected:
 	static constexpr unsigned MIN_FAST_FORWARD_SPEED = 2;
 	TextMenuItem fastForwardSpeedItem[6];
 	MultiChoiceMenuItem fastForwardSpeed;
+	BoolMenuItem runFramesInThread;
 	#if defined __ANDROID__
 	BoolMenuItem performanceMode;
 	#endif
-	StaticArrayList<MenuItem*, 24> item{};
+	StaticArrayList<MenuItem*, 25> item{};
 
 	void onSavePathChange(const char *path);
 	virtual void onFirmwarePathChange(const char *path, Input::Event e);

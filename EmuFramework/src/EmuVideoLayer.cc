@@ -348,14 +348,7 @@ void EmuVideoLayer::setTextureBufferMode(Gfx::TextureBufferMode mode)
 {
 	if(video.setTextureBufferMode(mode))
 	{
-		// texture may switch to external format so
-		// force effect shaders to re-compile
-		auto params = vidImgEffect.effectParams();
-		setEffect(0, IG::PIXEL_NONE);
 		video.resetImage();
-		#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-		setEffect(params.effectID, params.formatID);
-		#endif
 	}
 }
 

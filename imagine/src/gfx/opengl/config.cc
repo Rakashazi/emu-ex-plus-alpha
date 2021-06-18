@@ -717,7 +717,7 @@ std::optional<Base::GLBufferConfig> GLRenderer::makeGLBufferConfig(Base::Applica
 		else
 			pixelFormat = ctx.defaultWindowPixelFormat();
 	}
-	Base::GLBufferConfigAttributes glBuffAttr{pixelFormat};
+	Base::GLBufferConfigAttributes glBuffAttr{.pixelFormat = pixelFormat};
 	if constexpr(Config::Gfx::OPENGL_ES >= 2)
 	{
 		if(auto config = glManager.makeBufferConfig(ctx, glBuffAttr, glAPI, 3);

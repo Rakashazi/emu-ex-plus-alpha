@@ -21,11 +21,15 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 
-void EmuVideo::resetImage()
+void EmuVideo::resetImage(IG::PixelFormat newFmt)
 {
 	if(!vidImg)
 		return;
-	setFormat(deleteImage());
+	auto desc = deleteImage();
+	if(newFmt)
+		setFormat({desc.size(), newFmt});
+	else
+		setFormat(desc);
 	app().renderSystemFramebuffer(*this);
 }
 
@@ -302,13 +306,20 @@ void EmuVideo::updateNeedsFence()
 bool EmuVideo::setTextureBufferMode(Gfx::TextureBufferMode mode)
 {
 	mode = renderer().makeValidTextureBufferMode(mode);
-	bool modeChanged = bufferMode != mode;
+	if(bufferMode == mode)
+		return false;
 	bufferMode = mode;
 	if(renderFmt == IG::PIXEL_RGBA8888 || renderFmt == IG::PIXEL_BGRA8888)
 	{
 		setRenderPixelFormat(IG::PIXEL_RGBA8888); // re-apply format for possible RGB/BGR change
+		EmuSystem::onVideoRenderFormatChange(*this, renderFmt);
+		if(vidImg)
+		{
+			resetImage(renderFmt);
+			return false;
+		}
 	}
-	return modeChanged && vidImg;
+	return (bool)vidImg;
 }
 
 bool EmuVideo::setImageBuffers(unsigned num)

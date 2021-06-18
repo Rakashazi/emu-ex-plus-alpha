@@ -24,11 +24,13 @@ struct AChoreographer;
 namespace Base
 {
 
+class AndroidApplication;
+
 class NativeChoreographer
 {
 public:
 	constexpr NativeChoreographer() {}
-	NativeChoreographer(const ScreenContainer &);
+	NativeChoreographer(AndroidApplication &);
 	void scheduleVSync();
 	explicit constexpr operator bool() const { return choreographer; }
 
@@ -36,7 +38,7 @@ protected:
 	using AChoreographerFrameCallback = void (*)(long frameTimeNanos, void* data);
 	using PostFrameCallbackFunc = void (*)(AChoreographer*, AChoreographerFrameCallback, void* data);
 
-	const ScreenContainer *screensPtr{};
+	AndroidApplication *appPtr{};
 	AChoreographer *choreographer{};
 	PostFrameCallbackFunc postFrameCallback{};
 	bool requested{};
@@ -46,12 +48,12 @@ class JavaChoreographer
 {
 public:
 	constexpr JavaChoreographer() {}
-	JavaChoreographer(const ScreenContainer &, JNIEnv *, jobject baseActivity, jclass baseActivityClass);
+	JavaChoreographer(AndroidApplication &, JNIEnv *, jobject baseActivity, jclass baseActivityClass);
 	void scheduleVSync();
 	explicit constexpr operator bool() const { return frameHelper; }
 
 protected:
-	const ScreenContainer *screensPtr{};
+	AndroidApplication *appPtr{};
 	JNI::UniqueGlobalRef frameHelper{};
 	JNI::InstMethod<void()> jPostFrame{};
 	bool requested{};

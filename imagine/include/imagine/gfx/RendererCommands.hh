@@ -60,6 +60,8 @@ class RendererCommands : public RendererCommandsImpl
 public:
 	using RendererCommandsImpl::RendererCommandsImpl;
 	void present();
+	void presentAtTime(IG::FrameTime time);
+	void presentNow();
 	void setRenderTarget(Texture &t);
 	void setDefaultRenderTarget();
 	Renderer &renderer() const;

@@ -168,6 +168,11 @@ bool Window::addOnFrame(Base::OnFrameDelegate del, FrameTimeSource clock, int pr
 	else
 	{
 		bool added = onFrame.add(del, priority);
+		if(drawPhase == DrawPhase::UPDATE)
+		{
+			// trigger a draw so delegate runs at start of next frame
+			setNeedsDraw(true);
+		}
 		drawEvent.notify();
 		return added;
 	}
@@ -342,22 +347,18 @@ void Window::dispatchSurfaceDestroyed()
 
 void Window::dispatchOnDraw(bool needsSync)
 {
-	if(!needsDraw())
+	if(!needsDraw() || drawPhase == DrawPhase::DRAW)
 		return;
 	draw(needsSync);
 }
 
 void Window::dispatchOnFrame()
 {
-	if(drawPhase != DrawPhase::READY)
+	if(drawPhase != DrawPhase::READY || !onFrame.size())
 	{
 		return;
 	}
 	drawPhase = DrawPhase::UPDATE;
-	if(!onFrame.size())
-	{
-		return;
-	}
 	//logDMsg("running %u onFrame delegates", onFrame.size());
 	auto now = IG::steadyClockTimestamp();
 	FrameParams frameParams{now, screen()->frameTime()};

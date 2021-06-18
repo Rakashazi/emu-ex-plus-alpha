@@ -65,7 +65,7 @@ public:
 
 private:
 	DelegateFuncSet<OnFrameDelegate> onFrameDelegate{};
-	ApplicationContext ctx;
+	const WindowContainer *windowsPtr{};
 	bool framePosted{};
 	bool isActive{true};
 

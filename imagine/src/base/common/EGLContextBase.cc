@@ -44,7 +44,6 @@ namespace Base
 
 static constexpr bool HAS_DEBUG_CONTEXT = !Config::MACHINE_IS_PANDORA;
 static constexpr bool HAS_NATIVE_WINDOW_TYPE = !Config::MACHINE_IS_PANDORA;
-static constexpr bool HAS_RGB888_FORMAT = false; // no devices need this currently
 using EGLSurfaceAttrList = StaticArrayList<int, 8>;
 using EGLAttrList = StaticArrayList<int, 24>;
 using EGLContextAttrList = StaticArrayList<int, 16>;
@@ -55,24 +54,15 @@ static EGLAttrList glConfigAttrsToEGLAttrs(int renderableType, GLBufferConfigAtt
 	// don't accept slow configs
 	list.push_back(EGL_CONFIG_CAVEAT);
 	list.push_back(EGL_NONE);
-	switch(attr.pixelFormat().id())
+	switch(attr.pixelFormat.id())
 	{
 		bdefault:
-			bug_unreachable("format id == %d", attr.pixelFormat().id());
+			bug_unreachable("format id == %d", attr.pixelFormat.id());
 		bcase PIXEL_NONE:
 			// don't set any color bits
 		bcase PIXEL_RGB565:
 			list.push_back(EGL_BUFFER_SIZE);
 			list.push_back(16);
-		bcase PIXEL_RGB888:
-			if(!HAS_RGB888_FORMAT)
-				break;
-			list.push_back(EGL_RED_SIZE);
-			list.push_back(8);
-			list.push_back(EGL_GREEN_SIZE);
-			list.push_back(8);
-			list.push_back(EGL_BLUE_SIZE);
-			list.push_back(8);
 		bcase PIXEL_RGBA8888:
 			list.push_back(EGL_RED_SIZE);
 			list.push_back(8);
@@ -80,8 +70,18 @@ static EGLAttrList glConfigAttrsToEGLAttrs(int renderableType, GLBufferConfigAtt
 			list.push_back(8);
 			list.push_back(EGL_BLUE_SIZE);
 			list.push_back(8);
-			list.push_back(EGL_ALPHA_SIZE);
-			list.push_back(8);
+			if(attr.useAlpha)
+			{
+				list.push_back(EGL_ALPHA_SIZE);
+				list.push_back(8);
+				list.push_back(EGL_BUFFER_SIZE);
+				list.push_back(32);
+			}
+			else
+			{
+				list.push_back(EGL_BUFFER_SIZE);
+				list.push_back(24);
+			}
 	}
 	if(renderableType)
 	{
@@ -317,7 +317,7 @@ std::optional<EGLConfig> EGLManager::chooseConfig(GLDisplay display, int rendera
 	if(allowFallback && !configs)
 	{
 		logErr("no EGL configs found, retrying with no color bits set");
-		attr.setPixelFormat(IG::PIXEL_NONE);
+		attr.pixelFormat = {};
 		auto eglAttr = glConfigAttrsToEGLAttrs(renderableType, attr);
 		eglChooseConfig(display, &eglAttr[0], &config, 1, &configs);
 	}
@@ -524,7 +524,7 @@ bool GLManager::hasDrawableConfig(GLBufferConfigAttributes attrs, GLColorSpace c
 	if(colorSpace == GLColorSpace::LINEAR)
 		return true;
 	// sRGB Color Space
-	return hasSrgbColorSpace() && attrs.pixelFormat() != IG::PIXEL_RGB565;
+	return hasSrgbColorSpace() && attrs.pixelFormat != IG::PIXEL_RGB565;
 }
 
 bool GLManager::hasNoErrorContextAttribute() const

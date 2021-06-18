@@ -43,42 +43,10 @@ class ApplicationContext;
 class GLBufferConfigAttributes
 {
 public:
-	constexpr GLBufferConfigAttributes(IG::PixelFormat pixelFormat = {}):pixelFormat_{pixelFormat} {}
-
-	constexpr void setPixelFormat(IG::PixelFormat pixelFormat_)
-	{
-		this->pixelFormat_ = pixelFormat_;
-	}
-
-	constexpr IG::PixelFormat pixelFormat() const
-	{
-		return pixelFormat_;
-	}
-
-	constexpr void setUseDepth(bool useDepth_)
-	{
-		this->useDepth_ = useDepth_;
-	}
-
-	constexpr bool useDepth() const
-	{
-		return useDepth_;
-	}
-
-	constexpr void setUseStencil(bool useStencil_)
-	{
-		this->useStencil_ = useStencil_;
-	}
-
-	constexpr bool useStencil() const
-	{
-		return useStencil_;
-	}
-
-private:
-	IG::PixelFormat pixelFormat_{};
-	bool useDepth_{};
-	bool useStencil_{};
+	IG::PixelFormat pixelFormat{};
+	bool useAlpha{};
+	bool useDepth{};
+	bool useStencil{};
 };
 
 class GLContextAttributes

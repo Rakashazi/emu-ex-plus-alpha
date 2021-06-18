@@ -468,7 +468,8 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 			vController.setWindow(win);
 			initVControls();
 			ViewAttachParams viewAttach{viewManager, win, renderer.task()};
-			emuViewController.emplace(viewAttach, vController, emuVideoLayer, emuSystemTask, emuAudio);
+			emuViewController.emplace(viewAttach, vController, emuVideoLayer,
+				shouldRunFramesInThread() ? &emuSystemTask : nullptr, emuAudio);
 			applyRenderPixelFormat();
 
 			#if defined CONFIG_BASE_ANDROID
@@ -1157,6 +1158,26 @@ void EmuApp::setMogaManagerActive(bool on, bool notify)
 		mogaManagerPtr.reset();
 }
 #endif
+
+std::span<const KeyCategory> EmuApp::inputControlCategories() const
+{
+	return {EmuControls::category, EmuControls::categories};
+}
+
+bool EmuApp::shouldRunFramesInThread() const
+{
+	return runFramesInThread;
+}
+
+void EmuApp::setShouldRunFramesInThread(bool on)
+{
+	runFramesInThread = on;
+	if(!emuViewController)
+		return;
+	emuViewController->setSystemTask(on ? &emuSystemTask : nullptr);
+	if(!on)
+		emuSystemTask.stop();
+}
 
 EmuApp &EmuApp::get(Base::ApplicationContext ctx)
 {

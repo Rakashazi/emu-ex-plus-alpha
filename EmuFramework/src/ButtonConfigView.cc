@@ -206,11 +206,11 @@ void ButtonConfigView::BtnConfigMenuItem::draw(Gfx::RendererCommands &cmds, Gfx:
 	DualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, Gfx::color(Gfx::ColorName::YELLOW));
 }
 
-static std::pair<const KeyCategory *, unsigned> findCategoryAndKeyInConfig(Input::Key key, InputDeviceConfig &devConf, const KeyCategory *skipCat, int skipIdx_)
+static std::pair<const KeyCategory *, unsigned> findCategoryAndKeyInConfig(EmuApp &app, Input::Key key,
+	InputDeviceConfig &devConf, const KeyCategory *skipCat, int skipIdx_)
 {
-	iterateTimes(EmuControls::categories, c)
+	for(auto &cat : app.inputControlCategories())
 	{
-		auto &cat = EmuControls::category[c];
 		auto keyPtr = devConf.keyConf().key(cat);
 		int skipIdx = -1;
 		if(skipCat && skipCat == &cat)
@@ -343,12 +343,10 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 						auto mapKey = e.mapKey();
 						if(mapKey)
 						{
-							auto conflict = findCategoryAndKeyInConfig(mapKey, *devConf, cat, keyToSet);
-							auto conflictCat = std::get<const KeyCategory *>(conflict);
+							auto [conflictCat, conflictKey] = findCategoryAndKeyInConfig(app(), mapKey, *devConf, cat, keyToSet);
 							if(conflictCat)
 							{
 								// prompt to resolve key conflict
-								auto conflictKey = std::get<unsigned>(conflict);
 								auto alertView = makeView<KeyConflictAlertView>(
 									string_makePrintf<96>("Key \"%s\" already used for action \"%s\", unbind it before setting?",
 									devConf->dev->keyName(mapKey),

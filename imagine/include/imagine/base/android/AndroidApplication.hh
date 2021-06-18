@@ -146,6 +146,7 @@ public:
 	bool processInputEvent(AInputEvent*, Window &);
 	bool hasTrackball() const;
 	void flushSystemInputEvents();
+	bool hasPendingInputQueueEvents() const;
 
 private:
 	JNI::UniqueGlobalRef displayListenerHelper{};
@@ -195,7 +196,7 @@ private:
 	void initActivity(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
 	void initInput(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
 	void initInputConfig(AConfiguration *config);
-	void initChoreographer(const ScreenContainer &, JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
+	void initChoreographer(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK);
 	void initScreens(JNIEnv *, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK, ANativeActivity *);
 	void processInput(AInputQueue *);
 	void processInputWithGetEvent(AInputQueue *);

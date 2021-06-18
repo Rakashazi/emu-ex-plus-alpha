@@ -28,7 +28,7 @@ CreditsView::CreditsView(ViewAttachParams attach, const char *str):
 	{
 		[this](IG::FrameParams params)
 		{
-			postDraw();
+			window().setNeedsDraw(true);
 			return fade.update(params.timestamp());
 		}
 	}

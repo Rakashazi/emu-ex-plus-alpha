@@ -338,7 +338,7 @@ std::vector<DrawableConfigDesc> Renderer::supportedDrawableConfigs() const
 	{
 		{
 			.name = "RGBA8888",
-			.config{ .pixelFormat = PIXEL_RGBA8888, .colorSpace{} }
+			.config{ .pixelFormat = PIXEL_RGBA8888 }
 		},
 		{
 			.name = "RGBA8888:sRGB",
@@ -346,12 +346,12 @@ std::vector<DrawableConfigDesc> Renderer::supportedDrawableConfigs() const
 		},
 		{
 			.name = "RGB565",
-			.config{ .pixelFormat = PIXEL_RGB565, .colorSpace{} }
+			.config{ .pixelFormat = PIXEL_RGB565 }
 		},
 	};
 	for(auto desc : testDescs)
 	{
-		if(glManager.hasDrawableConfig(desc.config.pixelFormat, (Base::GLColorSpace)desc.config.colorSpace))
+		if(glManager.hasDrawableConfig({desc.config.pixelFormat}, (Base::GLColorSpace)desc.config.colorSpace))
 		{
 			formats.emplace_back(desc);
 		}

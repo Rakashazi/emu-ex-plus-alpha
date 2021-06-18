@@ -21,6 +21,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/input/config.hh>
+#include <imagine/util/ScopeGuard.hh>
 
 static constexpr unsigned KEY_CONFIGS_HARD_LIMIT = 256;
 static constexpr unsigned INPUT_DEVICE_CONFIGS_HARD_LIMIT = 256;
@@ -46,7 +47,7 @@ static bool colorSpaceIsValid(Gfx::ColorSpace val)
 	return val == Gfx::ColorSpace::SRGB;
 }
 
-static bool readKeyConfig(IO &io, uint16_t &size)
+static bool readKeyConfig(IO &io, uint16_t &size, std::span<const KeyCategory> categorySpan)
 {
 	auto confs = io.get<uint8_t>(); // TODO: unused currently, use to pre-allocate memory for configs
 	size--;
@@ -77,7 +78,7 @@ static bool readKeyConfig(IO &io, uint16_t &size)
 
 		auto categories = io.get<uint8_t>();
 		size--;
-		if(categories > EmuControls::categories)
+		if(categories > categorySpan.size())
 		{
 			return false;
 		}
@@ -89,7 +90,7 @@ static bool readKeyConfig(IO &io, uint16_t &size)
 
 			auto categoryIdx = io.get<uint8_t>();
 			size--;
-			if(categoryIdx >= EmuControls::categories)
+			if(categoryIdx >= categorySpan.size())
 			{
 				return false;
 			}
@@ -97,15 +98,15 @@ static bool readKeyConfig(IO &io, uint16_t &size)
 			{
 				return false;
 			}
-
+			auto &cat = categorySpan[categoryIdx];
 			auto catSize = io.get<uint16_t>();
 			size -= 2;
 			if(size < catSize)
 				return false;
 
-			if(catSize > EmuControls::category[categoryIdx].keys * sizeof(KeyConfig::Key))
+			if(catSize > cat.keys * sizeof(KeyConfig::Key))
 				return false;
-			auto key = keyConf.key(EmuControls::category[categoryIdx]);
+			auto key = keyConf.key(cat);
 			if(io.read(key, catSize) != catSize)
 				return false;
 			size -= catSize;
@@ -113,7 +114,7 @@ static bool readKeyConfig(IO &io, uint16_t &size)
 			// verify keys
 			{
 				const auto keyMax = Input::Event::mapNumKeys(keyConf.map);
-				iterateTimes(EmuControls::category[categoryIdx].keys, i)
+				iterateTimes(cat.keys, i)
 				{
 					if(key[i] >= keyMax)
 					{
@@ -250,6 +251,8 @@ void EmuApp::saveConfigFile(IO &io)
 	writeOptionValue(io, CFGKEY_WINDOW_PIXEL_FORMAT, windowDrawablePixelFormatOption());
 	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, windowDrawableColorSpaceOption());
 	writeOptionValue(io, CFGKEY_RENDER_PIXEL_FORMAT, renderPixelFormatOption());
+	if(shouldRunFramesInThread())
+		writeOptionValue(io, CFGKEY_RUN_FRAMES_IN_THREAD, true);
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	if(mogaManagerPtr)
 		writeOptionValue(io, CFGKEY_MOGA_INPUT_SYSTEM, true);
@@ -257,42 +260,42 @@ void EmuApp::saveConfigFile(IO &io)
 
 	if(customKeyConfig.size())
 	{
-		bool writeCategory[customKeyConfig.size()][EmuControls::categories];
+		auto categories = inputControlCategories();
+		bool writeCategory[customKeyConfig.size()][categories.size()];
 		uint8_t writeCategories[customKeyConfig.size()];
 		std::fill_n(writeCategories, customKeyConfig.size(), 0);
 		// compute total size
 		static_assert(sizeof(KeyConfig::name) <= 255, "key config name array is too large");
 		unsigned bytes = 2; // config key size
-		uint8_t configs = 0;
 		bytes += 1; // number of configs
-		for(auto &e : customKeyConfig)
+		for(uint8_t configs = 0; auto &e : customKeyConfig)
 		{
 			bytes += 1; // input map type
 			bytes += 1; // name string length
 			bytes += strlen(e.name); // name string
 			bytes += 1; // number of categories present
-			iterateTimes(EmuControls::categories, cat)
+			for(auto &cat : inputControlCategories())
 			{
-				bool write = 0;
-				const auto key = e.key(EmuControls::category[cat]);
-				iterateTimes(EmuControls::category[cat].keys, k)
+				bool write{};
+				const auto key = e.key(cat);
+				iterateTimes(cat.keys, k)
 				{
 					if(key[k]) // check if category has any keys defined
 					{
-						write = 1;
+						write = true;
 						break;
 					}
 				}
-				writeCategory[configs][cat] = write;
+				writeCategory[configs][std::distance(inputControlCategories().data(), &cat)] = write;
 				if(!write)
 				{
-					logMsg("category %d of key conf %s skipped", cat, e.name);
+					logMsg("category:%s of key conf:%s skipped", cat.name, e.name);
 					continue;
 				}
 				writeCategories[configs]++;
 				bytes += 1; // category index
 				bytes += 2; // category key array size
-				bytes += EmuControls::category[cat].keys * sizeof(KeyConfig::Key); // keys array
+				bytes += cat.keys * sizeof(KeyConfig::Key); // keys array
 			}
 			configs++;
 		}
@@ -305,8 +308,7 @@ void EmuApp::saveConfigFile(IO &io)
 		io.write(uint16_t(bytes));
 		io.write((uint16_t)CFGKEY_INPUT_KEY_CONFIGS);
 		io.write((uint8_t)customKeyConfig.size());
-		configs = 0;
-		for(auto &e : customKeyConfig)
+		for(uint8_t configs = 0; auto &e : customKeyConfig)
 		{
 			logMsg("writing config %s", e.name);
 			io.write(uint8_t(e.map));
@@ -314,14 +316,15 @@ void EmuApp::saveConfigFile(IO &io)
 			io.write(nameLen);
 			io.write(e.name, nameLen);
 			io.write(writeCategories[configs]);
-			iterateTimes(EmuControls::categories, cat)
+			for(auto &cat : inputControlCategories())
 			{
-				if(!writeCategory[configs][cat])
+				uint8_t catIdx = std::distance(inputControlCategories().data(), &cat);
+				if(!writeCategory[configs][catIdx])
 					continue;
-				io.write((uint8_t)cat);
-				uint16_t catSize = EmuControls::category[cat].keys * sizeof(KeyConfig::Key);
+				io.write((uint8_t)catIdx);
+				uint16_t catSize = cat.keys * sizeof(KeyConfig::Key);
 				io.write(catSize);
-				io.write(e.key(EmuControls::category[cat]), catSize);
+				io.write(e.key(cat), catSize);
 			}
 			configs++;
 		}
@@ -548,9 +551,10 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				}
 				bcase CFGKEY_WINDOW_PIXEL_FORMAT: pendingWindowDrawableConf.pixelFormat = readOptionValue<IG::PixelFormat>(io, size, windowPixelFormatIsValid).value_or(IG::PixelFormat{});
 				bcase CFGKEY_VIDEO_COLOR_SPACE: pendingWindowDrawableConf.colorSpace = readOptionValue<Gfx::ColorSpace>(io, size, colorSpaceIsValid).value_or(Gfx::ColorSpace{});
+				bcase CFGKEY_RUN_FRAMES_IN_THREAD: setShouldRunFramesInThread(readOptionValue<bool>(io, size).value_or(false));
 				bcase CFGKEY_INPUT_KEY_CONFIGS:
 				{
-					if(!readKeyConfig(io, size))
+					if(!readKeyConfig(io, size, inputControlCategories()))
 					{
 						logErr("error reading key configs from file");
 					}

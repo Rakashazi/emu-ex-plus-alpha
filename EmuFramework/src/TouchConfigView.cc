@@ -157,7 +157,7 @@ OnScreenInputPlaceView::OnScreenInputPlaceView(ViewAttachParams attach, VControl
 	{
 		[this](IG::FrameParams params)
 		{
-			postDraw();
+			window().setNeedsDraw(true);
 			//logMsg("updating fade");
 			return textFade.update(params.timestamp());
 		}

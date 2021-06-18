@@ -54,7 +54,7 @@ public:
 	bool hasRendererTask() const;
 	bool setFormat(IG::PixmapDesc desc, EmuSystemTask *task = {});
 	void dispatchFormatChanged();
-	void resetImage();
+	void resetImage(IG::PixelFormat newFmt = {});
 	IG::PixmapDesc deleteImage();
 	EmuVideoImage startFrame(EmuSystemTask *task);
 	void startFrame(EmuSystemTask *task, IG::Pixmap pix);

@@ -80,7 +80,7 @@ Base::NativeWindowFormat GLManager::nativeWindowFormat(Base::ApplicationContext 
 
 bool GLManager::hasBufferConfig(GLBufferConfigAttributes attrs) const
 {
-	if(attrs.pixelFormat().id() == PIXEL_NONE)
+	if(attrs.pixelFormat.id() == PIXEL_NONE)
 		return true;
 	auto dpy = display();
 	auto configOpt = chooseConfig(dpy, 0, attrs, false);
@@ -94,18 +94,17 @@ bool GLManager::hasBufferConfig(GLBufferConfigAttributes attrs) const
 			eglGetConfigAttrib(dpy, config, attr, &val);
 			return val;
 		};
-	switch(attrs.pixelFormat().id())
+	switch(attrs.pixelFormat.id())
 	{
 		default:
-			bug_unreachable("format id == %d", attrs.pixelFormat().id());
+			bug_unreachable("format id == %d", attrs.pixelFormat.id());
 			return false;
 		case PIXEL_RGB565: return
 			eglConfigInt(dpy, *configOpt, EGL_BUFFER_SIZE) == 16 &&
 			eglConfigInt(dpy, *configOpt, EGL_RED_SIZE) == 5;
 		case PIXEL_RGBA8888: return
-			eglConfigInt(dpy, *configOpt, EGL_BUFFER_SIZE) == 32 &&
-			eglConfigInt(dpy, *configOpt, EGL_RED_SIZE) == 8 &&
-			eglConfigInt(dpy, *configOpt, EGL_ALPHA_SIZE) == 8;
+			eglConfigInt(dpy, *configOpt, EGL_BUFFER_SIZE) >= 24 &&
+			eglConfigInt(dpy, *configOpt, EGL_RED_SIZE) == 8;
 	}
 }
 

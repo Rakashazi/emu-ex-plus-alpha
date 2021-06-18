@@ -180,7 +180,7 @@ GLDisplay GLManager::display() const { return {}; }
 std::optional<GLBufferConfig> GLManager::makeBufferConfig(Base::ApplicationContext, GLBufferConfigAttributes attr, GL::API, unsigned) const
 {
 	GLBufferConfig conf;
-	if(attr.pixelFormat() == PIXEL_RGB565)
+	if(attr.pixelFormat == PIXEL_RGB565)
 	{
 		conf.useRGB565 = true;
 	}
@@ -199,10 +199,10 @@ void *GLManager::procAddress(const char *funcName)
 
 bool GLManager::hasBufferConfig(GLBufferConfigAttributes attrs) const
 {
-	switch(attrs.pixelFormat().id())
+	switch(attrs.pixelFormat.id())
 	{
 		default:
-			bug_unreachable("format id == %d", attrs.pixelFormat().id());
+			bug_unreachable("format id == %d", attrs.pixelFormat.id());
 			return false;
 		case PIXEL_NONE:
 		case PIXEL_RGB565:

@@ -496,4 +496,9 @@ void AndroidApplication::flushSystemInputEvents()
 	}
 }
 
+bool AndroidApplication::hasPendingInputQueueEvents() const
+{
+	return AInputQueue_hasEvents(inputQueue);
+}
+
 }

@@ -66,7 +66,7 @@ AndroidApplication::AndroidApplication(ApplicationInitParams initParams):
 	}
 	initActivity(env, baseActivity, baseActivityClass, androidSDK);
 	setNativeActivityCallbacks(initParams.nActivity);
-	initChoreographer(screens(), env, baseActivity, baseActivityClass, androidSDK);
+	initChoreographer(env, baseActivity, baseActivityClass, androidSDK);
 	initScreens(env, baseActivity, baseActivityClass, androidSDK, initParams.nActivity);
 	initInput(env, baseActivity, baseActivityClass, androidSDK);
 	{

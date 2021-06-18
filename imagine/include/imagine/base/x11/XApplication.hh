@@ -73,6 +73,7 @@ public:
 	void initPerWindowInputData(unsigned long xWin);
 	void runX11Events(_XDisplay *);
 	void runX11Events();
+	bool hasPendingX11Events() const;
 	void setXdnd(unsigned long win, bool on);
 	Input::EventKeyString inputKeyString(Input::Key rawKey, uint32_t modifiers) const;
 	void setWindowCursor(unsigned long xWin, bool on);
