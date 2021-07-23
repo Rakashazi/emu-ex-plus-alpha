@@ -39,7 +39,7 @@ const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInf
 
 void EmuSystem::onSessionOptionsLoaded(EmuApp &app)
 {
-	app.setActiveFaceButtons(option6BtnPad ? 6 : 2);
+	set6ButtonPadEnabled(app, option6BtnPad);
 }
 
 bool EmuSystem::resetSessionOptions(EmuApp &app)

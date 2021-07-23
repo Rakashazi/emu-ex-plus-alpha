@@ -39,7 +39,10 @@ VideoOptionView.cc
 
 ifeq ($(emuFramework_onScreenControls), 1)
  SRC += TouchConfigView.cc \
- VController.cc
+ vcontrols/VController.cc \
+ vcontrols/VControllerButton.cc \
+ vcontrols/VControllerGamepad.cc \
+ vcontrols/VControllerKeyboard.cc
 endif
 
 libName := emuframework$(libNameExt)

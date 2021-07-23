@@ -129,8 +129,8 @@ public:
 	EmuSystem::Error saveStateWithSlot(int slot);
 	EmuSystem::Error loadState(const char *path);
 	EmuSystem::Error loadStateWithSlot(int slot);
-	static void setDefaultVControlsButtonSpacing(int spacing);
-	static void setDefaultVControlsButtonStagger(int stagger);
+	void setDefaultVControlsButtonSpacing(int spacing);
+	void setDefaultVControlsButtonStagger(int stagger);
 	FS::PathString mediaSearchPath();
 	void setMediaSearchPath(std::optional<FS::PathString>);
 	FS::PathString firmwareSearchPath();
@@ -151,12 +151,11 @@ public:
 	void cancelAutoSaveStateTimer();
 	void startAutoSaveStateTimer();
 	void configFrameTime();
-	void setActiveFaceButtons(unsigned btns);
+	void applyEnabledFaceButtons(std::span<const std::pair<int, bool>> applyEnableMap);
 	void updateKeyboardMapping();
 	void toggleKeyboard();
 	void updateVControllerMapping();
 	Gfx::PixmapTexture &asset(AssetID) const;
-	void updateVControlImg(VController &);
 	void updateInputDevices(Base::ApplicationContext);
 	void setOnUpdateInputDevices(DelegateFunc<void ()>);
 	SysVController &defaultVController();
@@ -319,7 +318,6 @@ protected:
 	};
 
 	void mainInitCommon(Base::ApplicationInitParams, Base::ApplicationContext);
-	void initVControls();
 	Gfx::PixmapTexture *collectTextCloseAsset() const;
 	ConfigParams loadConfigFile(Base::ApplicationContext);
 	void saveConfigFile(Base::ApplicationContext);

@@ -66,10 +66,10 @@ bool EmuSystem::hasSound = !(Config::envIsAndroid || Config::envIsIOS);
 int EmuSystem::forcedSoundRate = 44100;
 bool EmuSystem::constFrameRate = true;
 
-void EmuSystem::initOptions()
+void EmuSystem::initOptions(EmuApp &app)
 {
-	EmuApp::setDefaultVControlsButtonSpacing(100);
-	EmuApp::setDefaultVControlsButtonStagger(3);
+	app.setDefaultVControlsButtonSpacing(100);
+	app.setDefaultVControlsButtonStagger(3);
 }
 
 EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)

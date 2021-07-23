@@ -171,8 +171,6 @@ const char *EmuSystem::inputFaceBtnName = "JS Buttons";
 const char *EmuSystem::inputCenterBtnName = "F1/KB";
 const unsigned EmuSystem::inputFaceBtns = 2;
 const unsigned EmuSystem::inputCenterBtns = 2;
-const bool EmuSystem::inputHasTriggerBtns = false;
-const bool EmuSystem::inputHasRevBtnLayout = false;
 bool EmuSystem::inputHasKeyboard = true;
 const unsigned EmuSystem::maxPlayers = 2;
 

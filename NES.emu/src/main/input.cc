@@ -42,9 +42,8 @@ const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
 const unsigned EmuSystem::inputFaceBtns = 2;
 const unsigned EmuSystem::inputCenterBtns = 2;
-const bool EmuSystem::inputHasTriggerBtns = false;
-const bool EmuSystem::inputHasRevBtnLayout = false;
 const unsigned EmuSystem::maxPlayers = 4;
+std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0};
 static uint32 padData = 0;
 uint32 zapperData[3]{};
 bool usingZapper = false;
@@ -78,8 +77,8 @@ void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
 	using namespace IG;
 	unsigned playerMask = player << 8;
-	map[SysVController::F_ELEM] = bit(0) | playerMask;
-	map[SysVController::F_ELEM+1] = bit(1) | playerMask;
+	map[SysVController::F_ELEM] = bit(1) | playerMask;
+	map[SysVController::F_ELEM+1] = bit(0) | playerMask;
 
 	map[SysVController::C_ELEM] = bit(2) | playerMask;
 	map[SysVController::C_ELEM+1] = bit(3) | playerMask;

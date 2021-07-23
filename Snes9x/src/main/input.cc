@@ -35,13 +35,14 @@ enum
 
 void DoGunLatch (int, int);
 
-const char *EmuSystem::inputFaceBtnName = "A/B/X/Y";
+const char *EmuSystem::inputFaceBtnName = "A/B/X/Y/L/R";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
 const unsigned EmuSystem::inputFaceBtns = 6;
 const unsigned EmuSystem::inputCenterBtns = 2;
-const bool EmuSystem::inputHasTriggerBtns = true;
-const bool EmuSystem::inputHasRevBtnLayout = false;
+int EmuSystem::inputLTriggerIndex = 5;
+int EmuSystem::inputRTriggerIndex = 2;
 const unsigned EmuSystem::maxPlayers = 5;
+std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0, 5, 3, 2, 4};
 static int snesPointerX = 0, snesPointerY = 0, snesPointerBtns = 0, snesMouseClick = 0;
 static int snesMouseX = 0, snesMouseY = 0;
 unsigned doubleClickFrames, rightClickFrames;
@@ -121,12 +122,12 @@ static bool usingGun() { return IPPU.Controller == SNES_SUPERSCOPE; }
 void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
 	unsigned playerMask = player << 29;
-	map[SysVController::F_ELEM] = SNES_A_MASK | playerMask;
-	map[SysVController::F_ELEM+1] = SNES_B_MASK | playerMask;
-	map[SysVController::F_ELEM+2] = SNES_X_MASK | playerMask;
+	map[SysVController::F_ELEM] = SNES_B_MASK | playerMask;
+	map[SysVController::F_ELEM+1] = SNES_A_MASK | playerMask;
+	map[SysVController::F_ELEM+2] = SNES_TR_MASK | playerMask;
 	map[SysVController::F_ELEM+3] = SNES_Y_MASK | playerMask;
-	map[SysVController::F_ELEM+4] = SNES_TL_MASK | playerMask;
-	map[SysVController::F_ELEM+5] = SNES_TR_MASK | playerMask;
+	map[SysVController::F_ELEM+4] = SNES_X_MASK | playerMask;
+	map[SysVController::F_ELEM+5] = SNES_TL_MASK | playerMask;
 
 	map[SysVController::C_ELEM] = SNES_SELECT_MASK | playerMask;
 	map[SysVController::C_ELEM+1] = SNES_START_MASK | playerMask;

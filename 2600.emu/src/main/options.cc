@@ -60,9 +60,9 @@ static bool optionIsValidControllerType(uint8_t val)
 	}
 }
 
-void EmuSystem::initOptions()
+void EmuSystem::initOptions(EmuApp &app)
 {
-	EmuApp::setDefaultVControlsButtonStagger(5);
+	app.setDefaultVControlsButtonStagger(5);
 }
 
 bool EmuSystem::resetSessionOptions(EmuApp &app)

@@ -32,8 +32,6 @@ public:
 	void draw(Gfx::RendererCommands &cmds) final;
 	bool inputEvent(Input::Event e) final;
 	void resetInput();
-	void setTouchControlsOn(bool on);
-	bool touchControlsAreOn() const;
 	void setConsumeUnboundGamepadKeys(bool on);
 	bool shouldConsumeUnboundGamepadKeys() const;
 	VController *activeVController() const { return vController; }
@@ -41,7 +39,6 @@ public:
 private:
 	VController *vController{};
 	EmuVideoLayer *videoLayer{};
-	bool touchControlsOn{};
 	bool ffToggleActive{};
 	IG_enableMemberIf(Config::envIsAndroid, bool, consumeUnboundGamepadKeys){};
 

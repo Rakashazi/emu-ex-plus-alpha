@@ -29,9 +29,8 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
 			EmuSystem::sessionOptionSet();
-			bool on = item.flipBoolValue(*this);
-			option6BtnPad = on;
-			app().setActiveFaceButtons(on ? 6 : 2);
+			option6BtnPad = item.flipBoolValue(*this);
+			set6ButtonPadEnabled(app(), option6BtnPad);
 		}
 	};
 

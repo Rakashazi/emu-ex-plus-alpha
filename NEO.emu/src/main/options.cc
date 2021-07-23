@@ -74,10 +74,10 @@ void setTimerIntOption()
 	}
 }
 
-void EmuSystem::initOptions()
+void EmuSystem::initOptions(EmuApp &app)
 {
-	EmuApp::setDefaultVControlsButtonSpacing(100);
-	EmuApp::setDefaultVControlsButtonStagger(5);
+	app.setDefaultVControlsButtonSpacing(100);
+	app.setDefaultVControlsButtonStagger(5);
 }
 
 EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)

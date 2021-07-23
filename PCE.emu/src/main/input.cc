@@ -43,18 +43,17 @@ const char *EmuSystem::inputFaceBtnName = "I/II";
 const char *EmuSystem::inputCenterBtnName = "Select/Run";
 const unsigned EmuSystem::inputFaceBtns = 6;
 const unsigned EmuSystem::inputCenterBtns = 2;
-const bool EmuSystem::inputHasTriggerBtns = false;
-const bool EmuSystem::inputHasRevBtnLayout = false;
 const unsigned EmuSystem::maxPlayers = 5;
+std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{2, 1, 0, 3, 4, 5};
 unsigned playerBit = 13;
 
 void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
 	using namespace IG;
 	unsigned playerMask = player << playerBit;
-	map[SysVController::F_ELEM] = bit(0) | playerMask;
+	map[SysVController::F_ELEM] = bit(8) | playerMask;
 	map[SysVController::F_ELEM+1] = bit(1) | playerMask;
-	map[SysVController::F_ELEM+2] = bit(8) | playerMask;
+	map[SysVController::F_ELEM+2] = bit(0) | playerMask;
 	map[SysVController::F_ELEM+3] = bit(9) | playerMask;
 	map[SysVController::F_ELEM+4] = bit(10) | playerMask;
 	map[SysVController::F_ELEM+5] = bit(11) | playerMask;
@@ -120,4 +119,11 @@ void EmuSystem::clearInputBuffers(EmuInputView &)
 		iterateTimes(2, i)
 			inputBuff[i] = IG::bit(12);
 	}
+}
+
+void set6ButtonPadEnabled(EmuApp &app, bool on)
+{
+	static constexpr std::pair<int, bool> enable6Btn[]{{0, true}, {3, true}, {4, true}, {5, true}};
+	static constexpr std::pair<int, bool> disable6Btn[]{{0, false}, {3, false}, {4, false}, {5, false}};
+	app.applyEnabledFaceButtons(on ? enable6Btn : disable6Btn);
 }

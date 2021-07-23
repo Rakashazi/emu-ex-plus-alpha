@@ -80,8 +80,6 @@ Byte2Option optionFontSize(CFGKEY_FONT_Y_SIZE,
 	8000,
 	0, optionIsValidWithMinMax<2000, 10000, uint16_t>);
 
-Byte1Option optionVibrateOnPush(CFGKEY_TOUCH_CONTROL_VIRBRATE, 0, !Config::BASE_SUPPORTS_VIBRATOR);
-
 Byte1Option optionPauseUnfocused(CFGKEY_PAUSE_UNFOCUSED, 1,
 	!(Config::envIsLinux || Config::envIsAndroid));
 
@@ -148,47 +146,6 @@ Byte4s1Option optionMenuOrientation(CFGKEY_MENU_ORIENTATION,
 		(Config::envIsAndroid || Config::envIsIOS) ? Base::VIEW_ROTATE_AUTO : Base::VIEW_ROTATE_0,
 		false, optionOrientationIsValid);
 
-Byte1Option optionTouchCtrl(CFGKEY_TOUCH_CONTROL_DISPLAY,
-		Config::envIsLinux ? 0 : 2,
-		false, optionIsValidWithMax<2>);
-
-Byte1Option optionTouchCtrlAlpha(CFGKEY_TOUCH_CONTROL_ALPHA,
-		255 * .5,
-		false);
-
-Byte4s2Option optionTouchCtrlSize
-		(CFGKEY_TOUCH_CONTROL_SIZE,
-		850,
-		false, optionIsValidWithMinMax<300, 1500>);
-Byte4s2Option optionTouchDpadDeadzone
-		(CFGKEY_TOUCH_CONTROL_DPAD_DEADZONE,
-		135,
-		false, optionIsValidWithMax<160>);
-Byte4s2Option optionTouchDpadDiagonalSensitivity
-		(CFGKEY_TOUCH_CONTROL_DIAGONAL_SENSITIVITY,
-		1750,
-		false, optionIsValidWithMinMax<1000,2500>);
-Byte4s2Option optionTouchCtrlBtnSpace
-		(CFGKEY_TOUCH_CONTROL_FACE_BTN_SPACE,
-		200,
-		false, optionIsValidWithMax<400>);
-Byte4s2Option optionTouchCtrlBtnStagger
-		(CFGKEY_TOUCH_CONTROL_FACE_BTN_STAGGER,
-		1,
-		false, optionIsValidWithMax<5>);
-Byte1Option optionTouchCtrlTriggerBtnPos
-		(CFGKEY_TOUCH_CONTROL_TRIGGER_BTN_POS,
-		0, false);
-Byte4s2Option optionTouchCtrlExtraXBtnSize
-		(CFGKEY_TOUCH_CONTROL_EXTRA_X_BTN_SIZE,
-		200, false, optionIsValidWithMax<1000>);
-Byte4s2Option optionTouchCtrlExtraYBtnSize
-		(CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE,
-		1000, false, optionIsValidWithMax<1000>);
-Byte4s2Option optionTouchCtrlExtraYBtnSizeMultiRow
-		(CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE_MULTI_ROW,
-		200, false, optionIsValidWithMax<1000>);
-
 bool isValidOption2DO(_2DOrigin val)
 {
 	return val.isValid() && val != C2DO;
@@ -197,11 +154,6 @@ bool isValidOption2DOCenterBtn(_2DOrigin val)
 {
 	return val.isValid() && !val.onYCenter();
 }
-
-Byte1Option optionTouchCtrlBoundingBoxes(CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES, 0);
-Byte1Option optionTouchCtrlShowOnTouch(CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH, 1);
-
-OptionVControllerLayoutPosition optionVControllerLayoutPos;
 
 #if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 Byte1Option optionFrameInterval
@@ -267,10 +219,6 @@ void EmuApp::initOptions(Base::ApplicationContext ctx)
 		optionNotifyInputDeviceChange.isConst = 1;
 		#endif
 	}
-	if(!vibrationManager().hasVibrator())
-	{
-		optionVibrateOnPush.isConst = true;
-	}
 	if(ctx.androidSDK() < 17)
 	{
 		optionShowOnSecondScreen.isConst = true;
@@ -334,98 +282,7 @@ void EmuApp::initOptions(Base::ApplicationContext ctx)
 		optionFrameRate.isConst = true;
 	}
 
-	EmuSystem::initOptions();
-
-	bool defaultToLargeControls = false;
-	#ifdef CONFIG_BASE_IOS
-	if(ctx.deviceIsIPad())
-		defaultToLargeControls = true;
-	#endif
-	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-	if(defaultToLargeControls)
-		optionTouchCtrlSize.initDefault(1400);
-	#endif
-}
-
-bool OptionVControllerLayoutPosition::isDefault() const
-{
-	return !vController->layoutPositionChanged();
-}
-
-bool OptionVControllerLayoutPosition::writeToIO(IO &io)
-{
-	logMsg("writing vcontroller positions");
-	io.write(key);
-	for(auto &posArr : vController->layoutPosition())
-	{
-		for(auto &e : posArr)
-		{
-			io.write((uint8_t)e.origin);
-			io.write((uint8_t)e.state);
-			io.write((int32_t)e.pos.x);
-			io.write((int32_t)e.pos.y);
-		}
-	}
-	return 1;
-}
-
-static unsigned sizeofVControllerLayoutPositionEntry()
-{
-	return 1 + 1 + 4 + 4;
-}
-
-bool OptionVControllerLayoutPosition::readFromIO(IO &io, unsigned readSize_)
-{
-	int readSize = readSize_;
-
-	for(auto &posArr : vController->layoutPosition())
-	{
-		for(auto &e : posArr)
-		{
-			if(readSize < (int)sizeofVControllerLayoutPositionEntry())
-			{
-				logMsg("expected position data but only %d bytes left", readSize);
-				break;
-			}
-
-			_2DOrigin origin = _2DOrigin{(uint8_t)io.get<int8_t>()};
-			if(!origin.isValid())
-			{
-				logWarn("invalid v-controller origin from config file");
-			}
-			else
-				e.origin = origin;
-			unsigned state = io.get<int8_t>();
-			if(state > 2)
-			{
-				logWarn("invalid v-controller state from config file");
-			}
-			else
-				e.state = state;
-			e.pos.x = io.get<int32_t>();
-			e.pos.y = io.get<int32_t>();
-			vController->setLayoutPositionChanged();
-			readSize -= sizeofVControllerLayoutPositionEntry();
-		}
-	}
-
-	if(readSize)
-	{
-		logMsg("skipping excess %d bytes", readSize);
-	}
-
-	return 1;
-}
-
-unsigned OptionVControllerLayoutPosition::ioSize() const
-{
-	unsigned positions = std::size(vController->layoutPosition()[0]) * std::size(vController->layoutPosition());
-	return sizeof(key) + positions * sizeofVControllerLayoutPositionEntry();
-}
-
-void OptionVControllerLayoutPosition::setVController(VController &v)
-{
-	vController = &v;
+	EmuSystem::initOptions(*this);
 }
 
 void setupFont(ViewManager &manager, Gfx::Renderer &r, Base::Window &win)

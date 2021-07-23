@@ -167,22 +167,6 @@ static OptionBase *cfgFileOption[] =
 	&optionPauseUnfocused,
 	&optionGameOrientation,
 	&optionMenuOrientation,
-	&optionTouchCtrlAlpha,
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	&optionTouchCtrl,
-	&optionTouchCtrlSize,
-	&optionTouchDpadDeadzone,
-	&optionTouchCtrlBtnSpace,
-	&optionTouchCtrlBtnStagger,
-	&optionTouchCtrlTriggerBtnPos,
-	&optionTouchCtrlExtraXBtnSize,
-	&optionTouchCtrlExtraYBtnSize,
-	&optionTouchCtrlExtraYBtnSizeMultiRow,
-	&optionTouchDpadDiagonalSensitivity,
-	&optionTouchCtrlBoundingBoxes,
-	&optionTouchCtrlShowOnTouch,
-	#endif
-	&optionVControllerLayoutPos,
 	#ifdef __ANDROID__
 	&optionConsumeUnboundGamepadKeys,
 	#endif
@@ -197,7 +181,6 @@ static OptionBase *cfgFileOption[] =
 	&optionSkipLateFrames,
 	&optionFrameRate,
 	&optionFrameRatePAL,
-	&optionVibrateOnPush,
 	&optionRecentGames,
 	&optionNotificationIcon,
 	&optionTitleBar,
@@ -245,7 +228,6 @@ void EmuApp::saveConfigFile(IO &io)
 	}
 
 	writeOptionValue(io, CFGKEY_BACK_NAVIGATION, viewManager.needsBackControlOption());
-	writeOptionValue(io, CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES, vController.usesScaledCoordinatesOption());
 	writeOptionValue(io, CFGKEY_SWAPPED_GAMEPAD_CONFIM, swappedConfirmKeysOption());
 	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audioManager().soloMixOption());
 	writeOptionValue(io, CFGKEY_WINDOW_PIXEL_FORMAT, windowDrawablePixelFormatOption());
@@ -257,6 +239,7 @@ void EmuApp::saveConfigFile(IO &io)
 	if(mogaManagerPtr)
 		writeOptionValue(io, CFGKEY_MOGA_INPUT_SYSTEM, true);
 	#endif
+	vController.writeConfig(io);
 
 	if(customKeyConfig.size())
 	{
@@ -445,30 +428,18 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 			{
 				default:
 				{
-					if(!EmuSystem::readConfig(io, key, size))
+					if(EmuSystem::readConfig(io, key, size))
 					{
-						logMsg("skipping unknown key %u", (unsigned)key);
+						break;
 					}
+					if(vController.readConfig(io, key, size))
+					{
+						break;
+					}
+					logMsg("skipping unknown key %u", (unsigned)key);
 				}
 				bcase CFGKEY_SOUND: optionSound.readFromIO(io, size);
 				bcase CFGKEY_SOUND_RATE: optionSoundRate.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_ALPHA: optionTouchCtrlAlpha.readFromIO(io, size);
-				#ifdef CONFIG_VCONTROLS_GAMEPAD
-				bcase CFGKEY_TOUCH_CONTROL_DISPLAY: optionTouchCtrl.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_SIZE: optionTouchCtrlSize.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_FACE_BTN_SPACE: optionTouchCtrlBtnSpace.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_FACE_BTN_STAGGER: optionTouchCtrlBtnStagger.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_DPAD_DEADZONE: optionTouchDpadDeadzone.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_TRIGGER_BTN_POS: optionTouchCtrlTriggerBtnPos.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_DIAGONAL_SENSITIVITY: optionTouchDpadDiagonalSensitivity.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_EXTRA_X_BTN_SIZE: optionTouchCtrlExtraXBtnSize.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE: optionTouchCtrlExtraYBtnSize.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_EXTRA_Y_BTN_SIZE_MULTI_ROW: optionTouchCtrlExtraYBtnSizeMultiRow.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_BOUNDING_BOXES: optionTouchCtrlBoundingBoxes.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_SHOW_ON_TOUCH: optionTouchCtrlShowOnTouch.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_SCALED_COORDINATES: vController.setUsesScaledCoordinates(readOptionValue<bool>(io, size));
-				#endif
-				bcase CFGKEY_VCONTROLLER_LAYOUT_POS: optionVControllerLayoutPos.readFromIO(io, size);
 				bcase CFGKEY_AUTO_SAVE_STATE: optionAutoSaveState.readFromIO(io, size);
 				bcase CFGKEY_CONFIRM_AUTO_LOAD_STATE: optionConfirmAutoLoadState.readFromIO(io, size);
 				#if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
@@ -496,7 +467,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				bcase CFGKEY_VIDEO_IMAGE_BUFFERS: optionVideoImageBuffers.readFromIO(io, size);
 				bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);
 				bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);
-				bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: optionVibrateOnPush.readFromIO(io, size);
+				bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: vController.setVibrateOnTouchInput(readOptionValue<bool>(io, size));
 				bcase CFGKEY_RECENT_GAMES: optionRecentGames.readFromIO(ctx, io, size);
 				bcase CFGKEY_SWAPPED_GAMEPAD_CONFIM: setSwappedConfirmKeys(readOptionValue<bool>(io, size));
 				#ifdef __ANDROID__

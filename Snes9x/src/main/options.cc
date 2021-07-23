@@ -58,10 +58,10 @@ static void applyInputPortOption(int portVal)
 	}
 }
 
-void EmuSystem::initOptions()
+void EmuSystem::initOptions(EmuApp &app)
 {
-	EmuApp::setDefaultVControlsButtonSpacing(100);
-	EmuApp::setDefaultVControlsButtonStagger(5); // original SNES layout
+	app.setDefaultVControlsButtonSpacing(100);
+	app.setDefaultVControlsButtonStagger(5); // original SNES layout
 }
 
 EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)

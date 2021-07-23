@@ -112,18 +112,3 @@ static bool customKeyConfigsContainName(const char *name)
 	}
 	return 0;
 }
-
-VControllerLayoutPosition vControllerPixelToLayoutPos(IG::Point2D<int> pos, IG::Point2D<int> size, IG::WindowRect viewBounds);
-IG::Point2D<int> vControllerLayoutToPixelPos(VControllerLayoutPosition lPos, Gfx::Viewport viewport);
-void resetVControllerPositions(VController &);
-void resetVControllerOptions(VController &);
-void resetAllVControllerOptions(VController &, EmuViewController &emuViewController);
-
-namespace EmuControls
-{
-
-#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-void setupVControllerVars(VController &);
-#endif
-
-}

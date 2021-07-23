@@ -50,8 +50,6 @@ const char *EmuSystem::inputFaceBtnName = "A/B/C/D";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
 const unsigned EmuSystem::inputFaceBtns = 4;
 const unsigned EmuSystem::inputCenterBtns = 2;
-const bool EmuSystem::inputHasTriggerBtns = false;
-const bool EmuSystem::inputHasRevBtnLayout = false;
 const unsigned EmuSystem::maxPlayers = 2;
 
 namespace NGKey

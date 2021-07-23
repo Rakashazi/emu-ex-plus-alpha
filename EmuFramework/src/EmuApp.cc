@@ -46,7 +46,7 @@ EmuApp::EmuApp(Base::ApplicationInitParams initParams, Base::ApplicationContext 
 	emuAudio{audioManager_},
 	emuVideoLayer{emuVideo},
 	emuSystemTask{*this},
-	vController{EmuSystem::inputFaceBtns},
+	vController{ctx, (int)EmuSystem::inputFaceBtns, (int)EmuSystem::inputCenterBtns},
 	autoSaveStateTimer
 	{
 		"EmuApp::autoSaveStateTimer",
@@ -349,7 +349,6 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 			logMsg("got IPC path:%s", path);
 			EmuSystem::setInitialLoadPath(path);
 		});
-	optionVControllerLayoutPos.setVController(vController);
 	initOptions(ctx);
 	auto appConfig = loadConfigFile(ctx);
 	if(auto err = EmuSystem::onOptionsLoaded(ctx);
@@ -367,6 +366,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 	emuAudio.setRate(optionSoundRate);
 	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
 	applyOSNavStyle(ctx, false);
+	vController.setPhysicalControlsPresent(ctx.keyInputIsPresent());
 
 	ctx.addOnResume(
 		[this](Base::ApplicationContext ctx, bool focused)
@@ -445,7 +445,6 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 					optionTextureBufferMode.reset();
 				}
 			}
-			vController.setRenderer(renderer);
 			emuVideo.setRendererTask(renderer.task());
 			emuVideo.setTextureBufferMode((Gfx::TextureBufferMode)optionTextureBufferMode.val);
 			emuVideo.setImageBuffers(optionVideoImageBuffers);
@@ -456,7 +455,6 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 			viewManager.setNeedsBackControl(appConfig.backNavigation());
 			viewManager.setDefaultFace({renderer, fontManager.makeSystem(), IG::FontSettings{}});
 			viewManager.setDefaultBoldFace({renderer, fontManager.makeBoldSystem(), IG::FontSettings{}});
-			vController.setFace(viewManager.defaultFace());
 
 			win.makeAppData<WindowData>();
 			auto &winData = windowData(win);
@@ -465,8 +463,17 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 			win.setAcceptDnd(true);
 			renderer.setWindowValidOrientations(win, optionMenuOrientation);
 			updateInputDevices(ctx);
-			vController.setWindow(win);
-			initVControls();
+			vController.configure(win, renderer, viewManager.defaultFace());
+			vController.setMenuImage(asset(EmuApp::AssetID::MENU));
+			vController.setFastForwardImage(asset(EmuApp::AssetID::FAST_FORWARD));
+			if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
+			{
+				vController.setImg(asset(AssetID::GAMEPAD_OVERLAY));
+			}
+			if(EmuSystem::inputHasKeyboard)
+			{
+				vController.setKeyboardImage(asset(AssetID::KEYBOARD_OVERLAY));
+			}
 			ViewAttachParams viewAttach{viewManager, win, renderer.task()};
 			emuViewController.emplace(viewAttach, vController, emuVideoLayer,
 				shouldRunFramesInThread() ? &emuSystemTask : nullptr, emuAudio);
@@ -505,8 +512,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 				{
 					logMsg("input devs enumerated");
 					updateInputDevices(ctx);
-					viewController().setPhysicalControlsPresent(ctx.keyInputIsPresent());
-					viewController().updateAutoOnScreenControlVisible();
+					vController.setPhysicalControlsPresent(ctx.keyInputIsPresent());
 				});
 
 			ctx.setOnInputDeviceChange(
@@ -515,8 +521,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 					logMsg("got input dev change");
 
 					updateInputDevices(ctx);
-					viewController().setPhysicalControlsPresent(ctx.keyInputIsPresent());
-					viewController().updateAutoOnScreenControlVisible();
+					vController.setPhysicalControlsPresent(ctx.keyInputIsPresent());
 
 					if(optionNotifyInputDeviceChange && (change.added() || change.removed()))
 					{
@@ -560,7 +565,7 @@ Gfx::Viewport makeViewport(const Base::Window &win)
 	if((int)optionViewportZoom != 100)
 	{
 		auto viewRect = win.contentBounds();
-		IG::Point2D<int> viewCenter {(int)viewRect.xSize()/2, (int)viewRect.ySize()/2};
+		IG::WP viewCenter {(int)viewRect.xSize()/2, (int)viewRect.ySize()/2};
 		viewRect -= viewCenter;
 		viewRect.x = viewRect.x * optionViewportZoom/100.;
 		viewRect.y = viewRect.y * optionViewportZoom/100.;
@@ -881,16 +886,12 @@ EmuSystem::Error EmuApp::loadStateWithSlot(int slot)
 
 void EmuApp::setDefaultVControlsButtonSpacing(int spacing)
 {
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	optionTouchCtrlBtnSpace.initDefault(spacing);
-	#endif
+	vController.setDefaultButtonSpacing(spacing);
 }
 
 void EmuApp::setDefaultVControlsButtonStagger(int stagger)
 {
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	optionTouchCtrlBtnStagger.initDefault(stagger);
-	#endif
+	vController.setDefaultButtonStagger(stagger);
 }
 
 FS::PathString EmuApp::mediaSearchPath()

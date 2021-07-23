@@ -95,9 +95,6 @@ public:
 	EmuAudio &emuAudio() const;
 	void onScreenChange(Base::ApplicationContext, Base::Screen &, Base::ScreenChange);
 	void handleOpenFileCommand(const char *path);
-	void setOnScreenControls(bool on);
-	void updateAutoOnScreenControlVisible();
-	void setPhysicalControlsPresent(bool present);
 	void setFastForwardActive(bool active);
 	bool isMenuDismissKey(Input::Event);
 	void setSystemTask(EmuSystemTask *);
@@ -117,7 +114,6 @@ protected:
 	EmuApp *appPtr{};
 	Base::OnExit onExit{};
 	bool showingEmulation{};
-	bool physicalControlsPresent{};
 	Base::WindowFrameTimeSource winFrameTimeSrc{};
 	uint8_t targetFastForwardSpeed{};
 

@@ -87,10 +87,9 @@ const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Space/KB";
 const unsigned EmuSystem::inputFaceBtns = 2;
 const unsigned EmuSystem::inputCenterBtns = 2;
-const bool EmuSystem::inputHasTriggerBtns = false;
-const bool EmuSystem::inputHasRevBtnLayout = false;
 bool EmuSystem::inputHasKeyboard = true;
 const unsigned EmuSystem::maxPlayers = 2;
+std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0};
 extern Machine *machine;
 
 static SysVController::KbMap kbToEventMap

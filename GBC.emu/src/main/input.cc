@@ -39,16 +39,15 @@ const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
 const unsigned EmuSystem::inputFaceBtns = 2;
 const unsigned EmuSystem::inputCenterBtns = 2;
-const bool EmuSystem::inputHasTriggerBtns = false;
-const bool EmuSystem::inputHasRevBtnLayout = false;
 const unsigned EmuSystem::maxPlayers = 1;
+std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0};
 GbcInput gbcInput{};
 
 void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
 	using namespace gambatte;
-	map[SysVController::F_ELEM] = InputGetter::A;
-	map[SysVController::F_ELEM+1] = InputGetter::B;
+	map[SysVController::F_ELEM] = InputGetter::B;
+	map[SysVController::F_ELEM+1] = InputGetter::A;
 
 	map[SysVController::C_ELEM] = InputGetter::SELECT;
 	map[SysVController::C_ELEM+1] = InputGetter::START;

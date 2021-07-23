@@ -61,20 +61,20 @@ static auto find_if(C &&c, UnaryPredicate pred)
 }
 
 template <class C, class V>
-static int findIndex(C &&c, const V& val)
+static int findIndex(C &&c, const V& val, int notFound = -1)
 {
 	auto it = std::find(std::begin(c), std::end(c), val);
-	if(it == c.end())
-		return -1;
+	if(it == std::end(c))
+		return notFound;
 	return std::distance(std::begin(c), it);
 }
 
 template <class C, class UnaryPredicate>
-static int findIndexIf(C &&c, UnaryPredicate pred)
+static int findIndexIf(C &&c, UnaryPredicate pred, int notFound = -1)
 {
 	auto it = std::find_if(std::begin(c), std::end(c), pred);
-	if(it == c.end())
-		return -1;
+	if(it == std::end(c))
+		return notFound;
 	return std::distance(std::begin(c), it);
 }
 

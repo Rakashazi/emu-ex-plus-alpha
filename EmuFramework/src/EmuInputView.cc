@@ -34,14 +34,15 @@ EmuInputView::EmuInputView(ViewAttachParams attach, SysVController &vCtrl, EmuVi
 
 void EmuInputView::draw(Gfx::RendererCommands &cmds)
 {
+	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	cmds.loadTransform(projP.makeTranslate());
-	vController->draw(cmds, touchControlsOn && EmuSystem::touchControlsApplicable(), ffToggleActive);
+	vController->draw(cmds, EmuSystem::touchControlsApplicable(), ffToggleActive);
+	#endif
 }
 
 void EmuInputView::place()
 {
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-	EmuControls::setupVControllerVars(*vController);
 	vController->place();
 	#endif
 }
@@ -74,7 +75,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 			ffToggleActive ^= true;
 			updateFastforward();
 		}
-		else if((touchControlsOn && EmuSystem::touchControlsApplicable())
+		else if((vController->gamepadControlsVisible() && EmuSystem::touchControlsApplicable())
 			|| vController->isInKeyboardMode())
 		{
 			vController->applyInput(e);
@@ -84,17 +85,15 @@ bool EmuInputView::inputEvent(Input::Event e)
 		{
 			//logMsg("game consumed pointer input event");
 		}
-		#ifdef CONFIG_VCONTROLS_GAMEPAD
-		else if(!touchControlsOn && (unsigned)optionTouchCtrl == 2 && optionTouchCtrlShowOnTouch
+		else if(!vController->gamepadControlsVisible() && vController->shouldShowOnTouchInput()
 			&& !vController->isInKeyboardMode()
 			&& e.isTouch() && e.pushed()
 			)
 		{
 			logMsg("turning on on-screen controls from touch input");
-			touchControlsOn = true;
+			vController->setGamepadControlsVisible(true);
 			app().viewController().placeEmuViews();
 		}
-		#endif
 		return true;
 	}
 	#else
@@ -114,7 +113,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 	}
 	else
 	{
-		#ifdef CONFIG_VCONTROLS_GAMEPAD
+		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 		if(vController->keyInput(e))
 			return true;
 		#endif
@@ -290,16 +289,6 @@ bool EmuInputView::inputEvent(Input::Event e)
 		}
 		return didAction || (consumeUnboundGamepadKeys && e.isGamepad());
 	}
-}
-
-void EmuInputView::setTouchControlsOn(bool on)
-{
-	touchControlsOn = on;
-}
-
-bool EmuInputView::touchControlsAreOn() const
-{
-	return touchControlsOn;
 }
 
 void EmuInputView::setConsumeUnboundGamepadKeys(bool on)

@@ -49,9 +49,9 @@ PathOption optionCDBiosEurPath{CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath, ""};
 #endif
 Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<2>};
 
-void EmuSystem::initOptions()
+void EmuSystem::initOptions(EmuApp &app)
 {
-	EmuApp::setDefaultVControlsButtonSpacing(100);
+	app.setDefaultVControlsButtonSpacing(100);
 }
 
 EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)

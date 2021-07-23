@@ -269,9 +269,11 @@ static void setupSMSInput()
 
 void setupMDInput(EmuApp &app)
 {
+	static constexpr std::pair<int, bool> enable6Btn[]{{3, true}, {4, true}, {5, true}};
+	static constexpr std::pair<int, bool> disable6Btn[]{{3, false}, {4, false}, {5, false}};
 	if(!EmuSystem::gameIsRunning())
 	{
-		app.setActiveFaceButtons(option6BtnPad ? 6 : 3);
+		app.applyEnabledFaceButtons(option6BtnPad ? enable6Btn : disable6Btn);
 		return;
 	}
 
@@ -287,7 +289,7 @@ void setupMDInput(EmuApp &app)
 	{
 		setupSMSInput();
 		io_init();
-		app.setActiveFaceButtons(3);
+		app.applyEnabledFaceButtons(enable6Btn);
 		return;
 	}
 
@@ -327,7 +329,7 @@ void setupMDInput(EmuApp &app)
 	}
 
 	io_init();
-	app.setActiveFaceButtons(option6BtnPad ? 6 : 3);
+	app.applyEnabledFaceButtons(option6BtnPad ? enable6Btn : disable6Btn);
 }
 
 static unsigned detectISORegion(uint8 bootSector[0x800])

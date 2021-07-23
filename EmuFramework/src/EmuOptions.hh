@@ -92,19 +92,6 @@ struct OptionRecentGames : public OptionBase
 	unsigned ioSize() const override;
 };
 
-struct OptionVControllerLayoutPosition : public OptionBase
-{
-	const uint16_t key = CFGKEY_VCONTROLLER_LAYOUT_POS;
-	VController *vController{};
-
-	constexpr OptionVControllerLayoutPosition() {}
-	bool isDefault() const final;
-	bool writeToIO(IO &io) final;
-	bool readFromIO(IO &io, unsigned readSize_);
-	unsigned ioSize() const final;
-	void setVController(VController &);
-};
-
 extern Byte1Option optionAutoSaveState;
 extern Byte1Option optionConfirmAutoLoadState;
 extern Byte1Option optionSound;
@@ -116,7 +103,6 @@ extern Byte1Option optionAudioAPI;
 #endif
 extern Byte4Option optionSoundRate;
 extern Byte2Option optionFontSize;
-extern Byte1Option optionVibrateOnPush;
 extern Byte1Option optionPauseUnfocused;
 extern Byte1Option optionNotificationIcon;
 extern Byte1Option optionTitleBar;
@@ -156,23 +142,6 @@ extern Byte4Option optionRelPointerDecel;
 
 extern Byte4s1Option optionGameOrientation;
 extern Byte4s1Option optionMenuOrientation;
-
-#ifdef CONFIG_VCONTROLS_GAMEPAD
-extern Byte1Option optionTouchCtrl;
-extern Byte4s2Option optionTouchCtrlSize;
-extern Byte4s2Option optionTouchDpadDeadzone;
-extern Byte4s2Option optionTouchDpadDiagonalSensitivity;
-extern Byte4s2Option optionTouchCtrlBtnSpace;
-extern Byte4s2Option optionTouchCtrlBtnStagger;
-extern Byte1Option optionTouchCtrlTriggerBtnPos;
-extern Byte4s2Option optionTouchCtrlExtraXBtnSize;
-extern Byte4s2Option optionTouchCtrlExtraYBtnSize;
-extern Byte4s2Option optionTouchCtrlExtraYBtnSizeMultiRow;
-extern Byte1Option optionTouchCtrlBoundingBoxes;
-extern Byte1Option optionTouchCtrlShowOnTouch;
-#endif
-extern Byte1Option optionTouchCtrlAlpha;
-extern OptionVControllerLayoutPosition optionVControllerLayoutPos;
 
 #if defined CONFIG_BASE_SCREEN_FRAME_INTERVAL
 extern Byte1Option optionFrameInterval;

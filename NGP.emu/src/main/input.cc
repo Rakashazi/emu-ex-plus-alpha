@@ -38,8 +38,6 @@ const char *EmuSystem::inputFaceBtnName = "A/B";
 const char *EmuSystem::inputCenterBtnName = "Option";
 const unsigned EmuSystem::inputFaceBtns = 2;
 const unsigned EmuSystem::inputCenterBtns = 1;
-const bool EmuSystem::inputHasTriggerBtns = false;
-const bool EmuSystem::inputHasRevBtnLayout = true;
 const unsigned EmuSystem::maxPlayers = 1;
 
 static const unsigned ctrlUpBit = 0x01, ctrlDownBit = 0x02, ctrlLeftBit = 0x04, ctrlRightBit = 0x08,

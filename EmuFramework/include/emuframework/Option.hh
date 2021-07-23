@@ -70,6 +70,14 @@ static std::optional<T> readStringOptionValue(IO &io, unsigned bytesToRead)
 	return val;
 }
 
+static void writeOptionValueHeader(IO &io, uint16_t key, uint16_t optSize)
+{
+	optSize += sizeof key;
+	logMsg("writing option key:%u with size:%u", key, optSize);
+	io.write(optSize);
+	io.write(key);
+}
+
 template <class T>
 static void writeOptionValue(IO &io, uint16_t key, T &&val)
 {
@@ -81,10 +89,7 @@ static void writeOptionValue(IO &io, uint16_t key, T &&val)
 	}
 	else
 	{
-		uint16_t ioSize = sizeof(typeof(key)) + sizeof(T);
-		logMsg("writing option key:%u with size:%u", key, ioSize);
-		io.write(ioSize);
-		io.write(key);
+		writeOptionValueHeader(io, key, sizeof(T));
 		io.write(val);
 	}
 }
@@ -101,10 +106,7 @@ static void writeStringOptionValue(IO &io, uint16_t key, T &&val)
 	else
 	{
 		uint16_t stringLen = strlen(val.data());
-		uint16_t ioSize = sizeof(typeof(key)) + stringLen;
-		logMsg("writing string option key:%u with size:%u", key, ioSize);
-		io.write(ioSize);
-		io.write(key);
+		writeOptionValueHeader(io, key, stringLen);
 		io.write(val.data(), stringLen);
 	}
 }

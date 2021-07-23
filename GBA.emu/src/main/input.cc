@@ -40,13 +40,14 @@ enum
 	gbaKeyIdxRB,
 };
 
-const char *EmuSystem::inputFaceBtnName = "A/B";
+const char *EmuSystem::inputFaceBtnName = "A/B/L/R";
 const char *EmuSystem::inputCenterBtnName = "Select/Start";
 const unsigned EmuSystem::inputFaceBtns = 4;
 const unsigned EmuSystem::inputCenterBtns = 2;
-const bool EmuSystem::inputHasTriggerBtns = true;
-const bool EmuSystem::inputHasRevBtnLayout = false;
+int EmuSystem::inputLTriggerIndex = 2;
+int EmuSystem::inputRTriggerIndex = 3;
 const unsigned EmuSystem::maxPlayers = 1;
+std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0, 2, 3};
 
 namespace GbaKeyStatus
 {
@@ -59,36 +60,11 @@ static const unsigned A = bit(0), B = bit(1),
 
 }
 
-static unsigned ptrInputToSysButton(int input)
-{
-	using namespace GbaKeyStatus;
-	switch(input)
-	{
-		case SysVController::F_ELEM: return A;
-		case SysVController::F_ELEM+1: return B;
-		case SysVController::F_ELEM+2: return L;
-		case SysVController::F_ELEM+3: return R;
-
-		case SysVController::C_ELEM: return SELECT;
-		case SysVController::C_ELEM+1: return START;
-
-		case SysVController::D_ELEM: return UP | LEFT;
-		case SysVController::D_ELEM+1: return UP;
-		case SysVController::D_ELEM+2: return UP | RIGHT;
-		case SysVController::D_ELEM+3: return LEFT;
-		case SysVController::D_ELEM+5: return RIGHT;
-		case SysVController::D_ELEM+6: return DOWN | LEFT;
-		case SysVController::D_ELEM+7: return DOWN;
-		case SysVController::D_ELEM+8: return DOWN | RIGHT;
-		default: bug_unreachable("input == %d", input); return 0;
-	}
-}
-
 void updateVControllerMapping(unsigned player, SysVController::Map &map)
 {
 	using namespace GbaKeyStatus;
-	map[SysVController::F_ELEM] = A;
-	map[SysVController::F_ELEM+1] = B;
+	map[SysVController::F_ELEM] = B;
+	map[SysVController::F_ELEM+1] = A;
 	map[SysVController::F_ELEM+2] = L;
 	map[SysVController::F_ELEM+3] = R;
 

@@ -131,8 +131,8 @@ public:
 	static const char *inputCenterBtnName;
 	static const unsigned inputCenterBtns;
 	static const unsigned inputFaceBtns;
-	static const bool inputHasTriggerBtns;
-	static const bool inputHasRevBtnLayout;
+	static int inputLTriggerIndex;
+	static int inputRTriggerIndex;
 	static bool inputHasKeyboard;
 	static bool inputHasShortBtnTexture;
 	static bool hasBundledGames;
@@ -156,6 +156,9 @@ public:
 	static NameFilterFunc defaultBenchmarkFsFilter;
 	static const char *creditsViewStr;
 	static bool sessionOptionsSet;
+	static constexpr unsigned MAX_CENTER_BTNS = 2;
+	static constexpr unsigned MAX_FACE_BTNS = 8;
+	static std::array<int, MAX_FACE_BTNS> vControllerImageMap;
 
 	static Error onInit(Base::ApplicationContext);
 	static bool isActive() { return state == State::ACTIVE; }
@@ -194,7 +197,7 @@ public:
 	static void savePathChanged();
 	static void reset(ResetMode mode);
 	static void reset(EmuApp &, ResetMode mode);
-	static void initOptions();
+	static void initOptions(EmuApp &);
 	static Error onOptionsLoaded(Base::ApplicationContext);
 	static void writeConfig(IO &io);
 	static bool readConfig(IO &io, unsigned key, unsigned readSize);
@@ -239,6 +242,7 @@ public:
 	}
 	static bool touchControlsApplicable();
 	static bool handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect);
+	static bool inputHasTriggers();
 	static void setStartFrameTime(Base::FrameTime time);
 	static EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);
 	static void setSpeedMultiplier(EmuAudio &, uint8_t speed);

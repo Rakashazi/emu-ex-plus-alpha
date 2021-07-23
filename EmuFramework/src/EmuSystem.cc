@@ -41,6 +41,8 @@ FS::FileString EmuSystem::originalGameName_{};
 int EmuSystem::saveStateSlot = 0;
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
 [[gnu::weak]] bool EmuSystem::inputHasShortBtnTexture = false;
+[[gnu::weak]] int EmuSystem::inputLTriggerIndex = -1;
+[[gnu::weak]] int EmuSystem::inputRTriggerIndex = -1;
 [[gnu::weak]] bool EmuSystem::hasBundledGames = false;
 [[gnu::weak]] bool EmuSystem::hasPALVideoSystem = false;
 IG::FloatSeconds EmuSystem::frameTimeNative{1./60.};
@@ -58,6 +60,7 @@ double EmuSystem::audioFramesPerVideoFrameFloat = 0;
 double EmuSystem::currentAudioFramesPerVideoFrame = 0;
 uint32_t EmuSystem::audioFramesPerVideoFrame = 0;
 static EmuTiming emuTiming{};
+[[gnu::weak]] std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{0, 1, 2, 3, 4, 5, 6, 7};
 
 static IG::Microseconds makeWantedAudioLatencyUSecs(uint8_t buffers)
 {
@@ -586,9 +589,14 @@ void EmuSystem::sessionOptionSet()
 	sessionOptionsSet = true;
 }
 
+bool EmuSystem::inputHasTriggers()
+{
+	return inputLTriggerIndex != -1 && inputRTriggerIndex != -1;
+}
+
 [[gnu::weak]] EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext) { return {}; }
 
-[[gnu::weak]] void EmuSystem::initOptions() {}
+[[gnu::weak]] void EmuSystem::initOptions(EmuApp &) {}
 
 [[gnu::weak]] EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext) { return {}; }
 

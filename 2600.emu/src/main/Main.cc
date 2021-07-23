@@ -256,6 +256,5 @@ EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
 	osystem.emplace(app);
 	Paddles::setDigitalSensitivity(5);
 	Paddles::setMouseSensitivity(7);
-	app.setActiveFaceButtons(2);
 	return {};
 }

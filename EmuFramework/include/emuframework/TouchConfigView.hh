@@ -23,7 +23,7 @@
 
 class VController;
 
-class TouchConfigView : public TableView, public EmuAppHelper<TouchConfigView>
+class TouchConfigView final: public TableView, public EmuAppHelper<TouchConfigView>
 {
 public:
 	TouchConfigView(ViewAttachParams attach, VController &vController, const char *faceBtnName, const char *centerBtnName);
@@ -32,7 +32,6 @@ public:
 
 protected:
 	VController &vController;
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
 	TextMenuItem touchCtrlItem[3];
 	MultiChoiceMenuItem touchCtrl;
 	TextMenuItem pointerInputItem[5];
@@ -47,8 +46,6 @@ protected:
 	MultiChoiceMenuItem btnSpace;
 	TextMenuItem btnExtraXSizeItem[4];
 	MultiChoiceMenuItem btnExtraXSize;
-	TextMenuItem btnExtraYSizeMultiRowItem[4];
-	MultiChoiceMenuItem btnExtraYSizeMultiRow;
 	TextMenuItem btnExtraYSizeItem[4];
 	MultiChoiceMenuItem btnExtraYSize;
 	BoolMenuItem triggerPos;
@@ -60,19 +57,9 @@ protected:
 	MultiChoiceMenuItem faceBtnState;
 	TextMenuItem centerBtnStateItem[3];
 	MultiChoiceMenuItem centerBtnState;
-	TextMenuItem lTriggerStateItem[3];
-	MultiChoiceMenuItem lTriggerState;
-	TextMenuItem rTriggerStateItem[3];
-	MultiChoiceMenuItem rTriggerState;
-		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLLER_RESOLUTION_CHANGE
-		BoolMenuItem imageResolution;
-		#endif
 	BoolMenuItem boundingBoxes;
 	BoolMenuItem vibrate;
-	IG_enableMemberIf(Config::EmuFramework::USE_SCALED_COORDINATES,
-		BoolMenuItem, useScaledCoordinates);
 	BoolMenuItem showOnTouch;
-	#endif
 	TextMenuItem alphaItem[6];
 	MultiChoiceMenuItem alpha;
 	TextMenuItem btnPlace;

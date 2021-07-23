@@ -50,8 +50,6 @@ const char *EmuSystem::inputFaceBtnName = "A/B/C";
 const char *EmuSystem::inputCenterBtnName = "Mode/Start";
 const unsigned EmuSystem::inputFaceBtns = 6;
 const unsigned EmuSystem::inputCenterBtns = 2;
-const bool EmuSystem::inputHasTriggerBtns = false;
-const bool EmuSystem::inputHasRevBtnLayout = true;
 const unsigned EmuSystem::maxPlayers = 4;
 unsigned playerIdxMap[4]{};
 

@@ -49,8 +49,8 @@ const char *EmuSystem::inputFaceBtnName = "A-Z";
 const char *EmuSystem::inputCenterBtnName = "Start";
 const unsigned EmuSystem::inputFaceBtns = 8;
 const unsigned EmuSystem::inputCenterBtns = 1;
-const bool EmuSystem::inputHasTriggerBtns = true;
-const bool EmuSystem::inputHasRevBtnLayout = false;
+int EmuSystem::inputLTriggerIndex = 6;
+int EmuSystem::inputRTriggerIndex = 7;
 const unsigned EmuSystem::maxPlayers = 2;
 
 void updateVControllerMapping(unsigned player, SysVController::Map &map)

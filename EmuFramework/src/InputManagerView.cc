@@ -839,8 +839,7 @@ void InputManagerDeviceView::confirmICadeMode(Input::Event e)
 {
 	devConf->setICadeMode(iCadeMode.flipBoolValue(*this));
 	onShow();
-	app().viewController().setPhysicalControlsPresent(appContext().keyInputIsPresent());
-	app().viewController().updateAutoOnScreenControlVisible();
+	app().defaultVController().setPhysicalControlsPresent(appContext().keyInputIsPresent());
 	app().buildKeyInputMapping();
 }
 #endif

@@ -85,12 +85,6 @@ const char *EmuSystem::systemName()
 	return "PC Engine (TurboGrafx-16)";
 }
 
-EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
-{
-	EmuApp::get(ctx).setActiveFaceButtons(2);
-	return {};
-}
-
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasPCEWithCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasHuCardExtension;
 

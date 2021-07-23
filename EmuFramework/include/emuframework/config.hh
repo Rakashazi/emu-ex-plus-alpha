@@ -26,12 +26,6 @@
 #endif
 #define CREDITS_INFO_STRING "Built : " __DATE__ "\n" PLATFORM_INFO_STR "\n\n"
 
-#if defined __ANDROID__ || \
-	defined CONFIG_BASE_IOS || \
-	(defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA)
-#define CONFIG_VCONTROLS_GAMEPAD
-#endif
-
 #if defined CONFIG_INPUT_POINTING_DEVICES
 #define CONFIG_EMUFRAMEWORK_VCONTROLS
 #endif
@@ -44,7 +38,14 @@
 namespace Config::EmuFramework
 {
 
-static constexpr bool USE_SCALED_COORDINATES = Config::envIsAndroid;
+#if defined __ANDROID__ || \
+	defined CONFIG_BASE_IOS || \
+	(defined CONFIG_BASE_X11 && !defined CONFIG_MACHINE_PANDORA)
+#define CONFIG_VCONTROLS_GAMEPAD
+static constexpr bool VCONTROLS_GAMEPAD = true;
+#else
+static constexpr bool VCONTROLS_GAMEPAD = false;
+#endif
 
 #if defined CONFIG_BASE_X11 || defined __ANDROID__ || defined CONFIG_BASE_IOS
 #define EMU_FRAMEWORK_WINDOW_PIXEL_FORMAT_OPTION

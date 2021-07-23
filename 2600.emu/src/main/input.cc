@@ -63,8 +63,6 @@ const char *EmuSystem::inputFaceBtnName = "JS Buttons";
 const char *EmuSystem::inputCenterBtnName = "Select/Reset";
 const uint EmuSystem::inputFaceBtns = 4;
 const uint EmuSystem::inputCenterBtns = 2;
-const bool EmuSystem::inputHasTriggerBtns = false;
-const bool EmuSystem::inputHasRevBtnLayout = false;
 bool EmuSystem::inputHasShortBtnTexture = true;
 const uint EmuSystem::maxPlayers = 2;
 static std::array<Event::Type, 2> jsFireMap{Event::JoystickZeroFire, Event::JoystickOneFire};
@@ -227,7 +225,9 @@ void setControllerType(EmuApp &app, Console &console, Controller::Type type)
 	if(type == Controller::Type::Unknown)
 		type = autoDetectedInput1;
 	const bool extraButtons = type == Controller::Type::Genesis;
-	app.setActiveFaceButtons(extraButtons ? 4 : 2);
+	static constexpr std::pair<int, bool> enableExtraBtn[]{{2, true}, {3, true}};
+	static constexpr std::pair<int, bool> disableExtraBtn[]{{2, false}, {3, false}};
+	app.applyEnabledFaceButtons(extraButtons ? enableExtraBtn : disableExtraBtn);
 	updateJoytickMapping(app, type);
 	Controller &currentController = console.leftController();
 	if(currentController.type() == type)

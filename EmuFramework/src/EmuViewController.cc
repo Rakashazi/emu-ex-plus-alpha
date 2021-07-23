@@ -337,13 +337,6 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 				placeEmuViews();
 			}
 		});
-	setPhysicalControlsPresent(viewAttach.appContext().keyInputIsPresent());
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	if((int)optionTouchCtrl == 2)
-		updateAutoOnScreenControlVisible();
-	else
-		setOnScreenControls(optionTouchCtrl);
-	#endif
 }
 
 void EmuViewController::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal)
@@ -1002,40 +995,6 @@ void EmuViewController::onFocusChange(bool in)
 			postDrawToEmuWindows();
 		}
 	}
-}
-
-void EmuViewController::setOnScreenControls(bool on)
-{
-	emuInputView.setTouchControlsOn(on);
-	placeEmuViews();
-}
-
-void EmuViewController::updateAutoOnScreenControlVisible()
-{
-	#ifdef CONFIG_VCONTROLS_GAMEPAD
-	if((unsigned)optionTouchCtrl == 2)
-	{
-		if(emuInputView.touchControlsAreOn() && physicalControlsPresent)
-		{
-			logMsg("auto-turning off on-screen controls");
-			setOnScreenControls(0);
-		}
-		else if(!emuInputView.touchControlsAreOn() && !physicalControlsPresent)
-		{
-			logMsg("auto-turning on on-screen controls");
-			setOnScreenControls(1);
-		}
-	}
-	#endif
-}
-
-void EmuViewController::setPhysicalControlsPresent(bool present)
-{
-	if(present != physicalControlsPresent)
-	{
-		logMsg("Physical controls present:%s", present ? "y" : "n");
-	}
-	physicalControlsPresent = present;
 }
 
 WindowData &EmuViewController::mainWindowData() const
