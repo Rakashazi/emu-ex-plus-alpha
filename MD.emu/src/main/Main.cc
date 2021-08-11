@@ -289,7 +289,7 @@ void setupMDInput(EmuApp &app)
 	{
 		setupSMSInput();
 		io_init();
-		app.applyEnabledFaceButtons(enable6Btn);
+		app.applyEnabledFaceButtons(disable6Btn);
 		return;
 	}
 

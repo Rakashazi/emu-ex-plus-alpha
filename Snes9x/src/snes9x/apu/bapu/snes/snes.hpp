@@ -4,6 +4,7 @@
 #include "../../../snes9x.h"
 #include "../../resampler.h"
 #include "../../../msu1.h"
+#include "../dsp/blargg_common.h"
 
 #define debugvirtual
 

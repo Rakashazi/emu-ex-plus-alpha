@@ -16,9 +16,12 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <chrono>
+#include <cstdint>
 
 namespace Input
 {
+
+using PointerIdImpl = int32_t;
 
 using Time = std::chrono::nanoseconds;
 

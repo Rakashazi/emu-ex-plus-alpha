@@ -70,26 +70,26 @@ static const unsigned COIN1 = bit(0), COIN2 = bit(1), SERVICE = bit(2),
 
 }
 
-void updateVControllerMapping(unsigned player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, VController::Map &map)
 {
 	using namespace NGKey;
 	unsigned playerMask = player << 11;
-	map[SysVController::F_ELEM] = A | playerMask;
-	map[SysVController::F_ELEM+1] = B | playerMask;
-	map[SysVController::F_ELEM+2] = C | playerMask;
-	map[SysVController::F_ELEM+3] = D | playerMask;
+	map[VController::F_ELEM] = A | playerMask;
+	map[VController::F_ELEM+1] = B | playerMask;
+	map[VController::F_ELEM+2] = C | playerMask;
+	map[VController::F_ELEM+3] = D | playerMask;
 
-	map[SysVController::C_ELEM] = SELECT_COIN_EMU_INPUT | playerMask;
-	map[SysVController::C_ELEM+1] = START_EMU_INPUT | playerMask;
+	map[VController::C_ELEM] = SELECT_COIN_EMU_INPUT | playerMask;
+	map[VController::C_ELEM+1] = START_EMU_INPUT | playerMask;
 
-	map[SysVController::D_ELEM] = UP | LEFT | playerMask;
-	map[SysVController::D_ELEM+1] = UP | playerMask;
-	map[SysVController::D_ELEM+2] = UP | RIGHT | playerMask;
-	map[SysVController::D_ELEM+3] = LEFT | playerMask;
-	map[SysVController::D_ELEM+5] = RIGHT | playerMask;
-	map[SysVController::D_ELEM+6] = DOWN | LEFT | playerMask;
-	map[SysVController::D_ELEM+7] = DOWN | playerMask;
-	map[SysVController::D_ELEM+8] = DOWN | RIGHT | playerMask;
+	map[VController::D_ELEM] = UP | LEFT | playerMask;
+	map[VController::D_ELEM+1] = UP | playerMask;
+	map[VController::D_ELEM+2] = UP | RIGHT | playerMask;
+	map[VController::D_ELEM+3] = LEFT | playerMask;
+	map[VController::D_ELEM+5] = RIGHT | playerMask;
+	map[VController::D_ELEM+6] = DOWN | LEFT | playerMask;
+	map[VController::D_ELEM+7] = DOWN | playerMask;
+	map[VController::D_ELEM+8] = DOWN | RIGHT | playerMask;
 }
 
 unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)

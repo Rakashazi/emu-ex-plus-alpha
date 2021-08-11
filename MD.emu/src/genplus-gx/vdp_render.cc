@@ -44,7 +44,8 @@ extern sms_ntsc_t *sms_ntsc;
 // 32-bit type for VDP writes to prevent generating code
 // using instructions that assume 4-byte alignment.
 // Fixes SIGBUS issues on ARM targets.
-using uint32u [[gnu::aligned(2)]] = uint32;
+using uint32align1 [[gnu::aligned(1)]] = uint32;
+using uint32align2 [[gnu::aligned(2)]] = uint32;
 
 #ifdef ALIGN_LONG
 /* Or change the names if you depend on these from elsewhere.. */
@@ -330,63 +331,63 @@ static __inline__ void WRITE_LONG(void *address, uint32 data)
 #ifdef LSB_FIRST 
 #define DRAW_BG_COLUMN(ATTR, LINE, SRC_A, SRC_B) \
   GET_LSB_TILE(ATTR, LINE) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
   GET_MSB_TILE(ATTR, LINE) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B)
 #define DRAW_BG_COLUMN_IM2(ATTR, LINE, SRC_A, SRC_B) \
   GET_LSB_TILE_IM2(ATTR, LINE) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
   GET_MSB_TILE_IM2(ATTR, LINE) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B)
 #else
 #define DRAW_BG_COLUMN(ATTR, LINE, SRC_A, SRC_B) \
   GET_MSB_TILE(ATTR, LINE) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
   GET_LSB_TILE(ATTR, LINE) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B)
 #define DRAW_BG_COLUMN_IM2(ATTR, LINE, SRC_A, SRC_B) \
   GET_MSB_TILE_IM2(ATTR, LINE) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
   GET_LSB_TILE_IM2(ATTR, LINE) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[0] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B) \
-  SRC_A = *(uint32u *)(lb); \
+  SRC_A = *(uint32align2 *)(lb); \
   SRC_B = (src[1] | atex); \
   DRAW_BG_TILE(SRC_A, SRC_B)
 #endif
@@ -1315,14 +1316,14 @@ void render_bg_m4(int line, int width)
 {
   int column;
   uint16 *nt;
-  uint32 attr, atex, *src;
+  uint32 attr, atex;
 
   /* Horizontal scrolling */
   int index = ((reg[0] & 0x40) && (line < 0x10)) ? 0x100 : reg[0x08];
   int shift = index & 7;
 
   /* Background line buffer */
-  uint32 *dst = (uint32 *)&linebuf[0][0x20 + shift];
+  auto dst = (uint32 *)&linebuf[0][0x20 + shift];
 
   /* Pattern name table mask */
   uint16 nt_mask = ~0x3C00 ^ (reg[2] << 10);
@@ -1400,7 +1401,7 @@ void render_bg_m4(int line, int width)
     atex = atex_table[(attr >> 11) & 3];
 
     /* Cached pattern data line (4 bytes = 4 pixels at once) */
-    src = (uint32 *)&bg_pattern_cache[((attr & 0x7FF) << 6) | (v_line)];
+    auto src = (uint32 *)&bg_pattern_cache[((attr & 0x7FF) << 6) | (v_line)];
 
     /* Copy left & right half, adding the attribute bits in */
 #ifdef ALIGN_DWORD
@@ -1409,8 +1410,8 @@ void render_bg_m4(int line, int width)
     WRITE_LONG(dst, src[1] | atex);
     dst++;
 #else
-    *dst++ = (src[0] | atex);
-    *dst++ = (src[1] | atex);
+    *((uint32align1*)dst++) = (src[0] | atex);
+    *((uint32align1*)dst++) = (src[1] | atex);
 #endif
   }
 }
@@ -1420,7 +1421,7 @@ void render_bg_m5(int line, int width)
 {
   int column;
   uint32 atex, atbuf, *src;
-  uint32u *dst;
+  uint32align2 *dst;
 
   /* Common data */
   uint32 xscroll = vram.getL(hscb + ((line & hscroll_mask) << 2));
@@ -1566,7 +1567,7 @@ void render_bg_m5_vs(int line, int width)
 {
   int column;
   uint32 atex, atbuf, *src;
-  uint32u *dst;
+  uint32align2 *dst;
   uint32 v_line, *nt;
 
   /* Common data */
@@ -1754,7 +1755,7 @@ void render_bg_m5_im2(int line, int width)
 {
   int column;
   uint32 atex, atbuf, *src;
-  uint32u *dst;
+  uint32align2 *dst;
 
   /* Common data */
   uint32 xscroll      = vram.getL(hscb + ((line & hscroll_mask) << 2));
@@ -1905,7 +1906,7 @@ void render_bg_m5_im2_vs(int line, int width)
 {
   int column;
   uint32 atex, atbuf, *src;
-  uint32u *dst;
+  uint32align2 *dst;
   uint32 v_line, *nt;
 
   /* Common data */
@@ -2098,7 +2099,7 @@ void render_bg_m5(int line, int width)
 {
   int column, start, end;
   uint32 atex, atbuf, *src;
-  uint32u *dst;
+  uint32align2 *dst;
   uint32 shift, index, v_line, *nt;
 
   /* Scroll Planes common data */
@@ -2255,7 +2256,7 @@ void render_bg_m5_vs(int line, int width)
 {
   int column, start, end;
   uint32 atex, atbuf, *src;
-  uint32u *dst;
+  uint32align2 *dst;
   uint32 shift, index, v_line, *nt;
 
   /* Scroll Planes common data */
@@ -2450,7 +2451,7 @@ void render_bg_m5_im2(int line, int width)
 {
   int column, start, end;
   uint32 atex, atbuf, *src;
-  uint32u *dst;
+  uint32align2 *dst;
   uint32 shift, index, v_line, *nt;
 
   /* Scroll Planes common data */
@@ -2608,7 +2609,7 @@ void render_bg_m5_im2_vs(int line, int width)
 {
   int column, start, end;
   uint32 atex, atbuf, *src;
-  uint32u *dst;
+  uint32align2 *dst;
   uint32 shift, index, v_line, *nt;
 
   /* common data */

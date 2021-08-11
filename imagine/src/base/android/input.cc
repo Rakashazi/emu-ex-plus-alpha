@@ -97,20 +97,6 @@ static void mapKeycodesForSpecialDevices(const Input::Device &dev, int32_t &keyC
 	}
 }
 
-static const char *androidEventEnumToStr(uint32_t e)
-{
-	switch(e)
-	{
-		case AMOTION_EVENT_ACTION_DOWN: return "Down";
-		case AMOTION_EVENT_ACTION_UP: return "Up";
-		case AMOTION_EVENT_ACTION_MOVE: return "Move";
-		case AMOTION_EVENT_ACTION_CANCEL: return "Cancel";
-		case AMOTION_EVENT_ACTION_POINTER_DOWN: return "PDown";
-		case AMOTION_EVENT_ACTION_POINTER_UP: return "PUp";
-	}
-	return "Unknown";
-}
-
 static const char *keyEventActionStr(uint32_t action)
 {
 	switch(action)
@@ -127,87 +113,18 @@ static bool isFromSource(int src, int srcTest)
 	return (src & srcTest) == srcTest;
 }
 
-static void dispatchTouch(uint32_t idx, Input::Action action, TouchState &p, IG::Point2D<int> pos, Time time,
-	bool isMouse, const Input::Device *device, Base::Window &win)
+static Input::Action motionEventAction(uint32_t e)
 {
-	//logMsg("pointer: %d action: %s @ %d,%d", idx, eventActionToStr(action), pos.x, pos.y);
-	uint32_t metaState = action == Input::Action::RELEASED ? 0 : IG::bit(Input::Pointer::LBUTTON);
-	auto src = isMouse ? Input::Source::MOUSE : Input::Source::TOUCHSCREEN;
-	win.dispatchInputEvent(Input::Event{idx, Input::Map::POINTER, Input::Pointer::LBUTTON,
-		metaState, action, pos.x, pos.y, (int)idx, src, time, device});
-}
-
-static bool processTouchEvent(TouchStateArray &m, int action, int x, int y, int pid, Time time, bool isMouse,
-	const Input::Device *device, Base::Window &win)
-{
-	//logMsg("%s action: %s from id %d @ %d,%d @ time %llu",
-	//	isMouse ? "mouse" : "touch", androidEventEnumToStr(action), pid, x, y, (unsigned long long)time.nSecs());
-	auto pos = win.transformInputPos({x, y});
-	switch(action)
+	switch(e)
 	{
-		case AMOTION_EVENT_ACTION_DOWN:
 		case AMOTION_EVENT_ACTION_POINTER_DOWN:
-			//logMsg("touch down for %d", pid);
-			for(int i = 0; auto &p : m) // find a free touch element
-			{
-				if(p.id == -1)
-				{
-					p.id = pid;
-					p.isTouching = true;
-					dispatchTouch(i, Input::Action::PUSHED, p, pos, time, isMouse, device, win);
-					break;
-				}
-				i++;
-			}
-		bcase AMOTION_EVENT_ACTION_UP:
-		case AMOTION_EVENT_ACTION_CANCEL:
-			for(int i = 0; auto &p : m)
-			{
-				if(p.isTouching)
-				{
-					//logMsg("touch up for %d from gesture end", p_i);
-					p.id = -1;
-					p.isTouching = false;
-					auto touchAction = action == AMOTION_EVENT_ACTION_UP ? Input::Action::RELEASED : Input::Action::CANCELED;
-					dispatchTouch(i, touchAction, p, {x, y}, time, isMouse, device, win);
-				}
-				i++;
-			}
-		bcase AMOTION_EVENT_ACTION_POINTER_UP:
-			//logMsg("touch up for %d", pid);
-			for(int i = 0; auto &p : m) // find the touch element
-			{
-				if(p.id == pid)
-				{
-					p.id = -1;
-					p.isTouching = false;
-					dispatchTouch(i, Input::Action::RELEASED, p, pos, time, isMouse, device, win);
-					break;
-				}
-				i++;
-			}
-		bdefault:
-			// move event
-			//logMsg("event id %d", action);
-			for(int i = 0; auto &p : m) // find the touch element
-			{
-				if(p.id == pid)
-				{
-					dispatchTouch(i, Input::Action::MOVED, p, pos, time, isMouse, device, win);
-					break;
-				}
-				i++;
-			}
+		case AMOTION_EVENT_ACTION_DOWN: return Input::Action::PUSHED;
+		case AMOTION_EVENT_ACTION_POINTER_UP:
+		case AMOTION_EVENT_ACTION_UP: return Input::Action::RELEASED;
+		case AMOTION_EVENT_ACTION_CANCEL: return Input::Action::CANCELED;
+		case AMOTION_EVENT_ACTION_MOVE:
+		default: return Input::Action::MOVED;
 	}
-
-	/*logMsg("pointer state:");
-	for(auto &p : m)
-	{
-		if(p.id != -1)
-			logMsg("id: %d x: %d y: %d", p.id, p.dragState.x, p.dragState.y);
-	}*/
-
-	return 1;
 }
 
 bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win)
@@ -225,43 +142,35 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 			{
 				case AINPUT_SOURCE_CLASS_POINTER:
 				{
-					auto dev = deviceForInputId(win.appContext(), sysInputDev, AInputEvent_getDeviceId(event));
+					auto devId = AInputEvent_getDeviceId(event);
+					auto dev = deviceForInputId(win.appContext(), sysInputDev, devId);
 					if(!dev) [[unlikely]]
 					{
 						if(Config::DEBUG_BUILD)
-							logWarn("discarding pointer input from unknown device ID: %d", AInputEvent_getDeviceId(event));
+							logWarn("discarding pointer input from unknown device ID: %d", devId);
 						return false;
 					}
-					bool isMouse = isFromSource(source, AINPUT_SOURCE_MOUSE);
-					uint32_t action = eventAction & AMOTION_EVENT_ACTION_MASK;
-					if(action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL)
-					{
-						// touch gesture ended
-						processTouchEvent(m, action,
-								AMotionEvent_getX(event, 0),
-								AMotionEvent_getY(event, 0),
-								AMotionEvent_getPointerId(event, 0),
-								makeTimeFromMotionEvent(event), isMouse, dev, win);
-						return true;
-					}
+					auto src = isFromSource(source, AINPUT_SOURCE_MOUSE) ? Input::Source::MOUSE : Input::Source::TOUCHSCREEN;
+					auto action = motionEventAction(eventAction & AMOTION_EVENT_ACTION_MASK);
 					uint32_t actionPIdx = eventAction >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
-					int pointers = AMotionEvent_getPointerCount(event);
-					//logMsg("motion event action:%d source:%d pointers:%d:%d",
-					//	eventAction, source, pointers, actionPIdx);
+					auto pointers = AMotionEvent_getPointerCount(event);
+					assumeExpr(pointers >= 1);
+					//logMsg("motion event action:%s source:%d pointers:%d:%d",
+					//	Input::actionStr(action), source, (int)pointers, actionPIdx);
 					iterateTimes(pointers, i)
 					{
-						int pAction = action;
+						auto pAction = action;
 						// a pointer not performing the action just needs its position updated
 						if(actionPIdx != i)
 						{
 							//logMsg("non-action pointer idx %d", i);
-							pAction = AMOTION_EVENT_ACTION_MOVE;
+							pAction = Input::Action::MOVED;
 						}
-						processTouchEvent(m, pAction,
-							AMotionEvent_getX(event, i),
-							AMotionEvent_getY(event, i),
-							AMotionEvent_getPointerId(event, i),
-							makeTimeFromMotionEvent(event), isMouse, dev, win);
+						auto pos = win.transformInputPos({(int)AMotionEvent_getX(event, i), (int)AMotionEvent_getY(event, i)});
+						auto pId = AMotionEvent_getPointerId(event, i);
+						uint32_t metaState = pAction == Input::Action::RELEASED ? 0 : IG::bit(Input::Pointer::LBUTTON);
+						win.dispatchInputEvent(Input::Event{(uint32_t)devId, Input::Map::POINTER, Input::Pointer::LBUTTON,
+							metaState, pAction, pos.x, pos.y, pId, src, makeTimeFromMotionEvent(event), dev});
 					}
 					return true;
 				}

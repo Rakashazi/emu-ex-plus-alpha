@@ -90,9 +90,7 @@ private:
 	Input::Device *vkbDevice{};
 	unsigned long blankCursor{};
 	unsigned long normalCursor{};
-	unsigned numCursors{};
 	int xI2opcode{};
-	int xPointerMapping[Config::Input::MAX_POINTERS]{};
 
 	void initXInput2();
 	bool eventHandler(_XEvent);
@@ -103,7 +101,6 @@ private:
 	void addXInputDevice(XIDeviceInfo, bool notify, bool isPointingDevice);
 	void removeXInputDevice(int xDeviceId);
 	const Input::Device *deviceForInputId(int osId) const;
-	int devIdToPointer(int id) const;
 	static SupportedFrameTimer testFrameTimers();
 	bool initXdnd();
 	bool xdndIsInit() const;

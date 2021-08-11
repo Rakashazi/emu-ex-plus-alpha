@@ -57,18 +57,18 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		{
 			EmuSystem::sessionOptionSet();
 			optionMultitap = item.flipBoolValue(*this);
-			setupSNESInput();
+			setupSNESInput(app().defaultVController());
 		}
 	};
 
 	TextMenuItem inputPortsItem[HAS_NSRT ? 4 : 3]
 	{
 		#ifndef SNES9X_VERSION_1_4
-		{"Auto (NSRT)", &defaultFace(), []() { setInputPorts(SNES_AUTO_INPUT); }},
+		{"Auto (NSRT)", &defaultFace(), [this]() { setInputPorts(SNES_AUTO_INPUT, app().defaultVController()); }},
 		#endif
-		{"Gamepads", &defaultFace(), []() { setInputPorts(SNES_JOYPAD); }},
-		{"Superscope", &defaultFace(), []() { setInputPorts(SNES_SUPERSCOPE); }},
-		{"Mouse", &defaultFace(), []() { setInputPorts(SNES_MOUSE_SWAPPED); }},
+		{"Gamepads", &defaultFace(), [this]() { setInputPorts(SNES_JOYPAD, app().defaultVController()); }},
+		{"Superscope", &defaultFace(), [this]() { setInputPorts(SNES_SUPERSCOPE, app().defaultVController()); }},
+		{"Mouse", &defaultFace(), [this]() { setInputPorts(SNES_MOUSE_SWAPPED, app().defaultVController()); }},
 	};
 
 	MultiChoiceMenuItem inputPorts
@@ -90,12 +90,12 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		inputPortsItem
 	};
 
-	static void setInputPorts(int val)
+	static void setInputPorts(int val, VController &vCtrl)
 	{
 		EmuSystem::sessionOptionSet();
 		optionInputPort = val;
 		snesInputPort = val;
-		setupSNESInput();
+		setupSNESInput(vCtrl);
 	}
 
 	TextMenuItem videoSystemItem[4]

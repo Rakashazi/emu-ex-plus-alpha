@@ -54,9 +54,7 @@ VController::VController(Base::ApplicationContext ctx, int faceButtons, int cent
 	dpadDzone{DEFAULT_DPAD_DEADZONE},
 	dpadDiagonalSensitivity_{DEFAULT_DPAD_DIAGONAL_SENSITIVITY},
 	alpha{DEFAULT_ALPHA}
-{
-	std::fill(ptrElem.begin(), ptrElem.end(), std::array<int, 2>{-1, -1});
-}
+{}
 
 Gfx::GC VController::xMMSize(Gfx::GC mm) const
 {
@@ -156,15 +154,15 @@ void VController::inputAction(Input::Action action, unsigned vBtn)
 
 void VController::resetInput()
 {
-	for(auto &e : ptrElem)
+	for(auto &e : dragTracker.stateList())
 	{
-		for(auto &vBtn : e)
+		for(auto &vBtn : e.data)
 		{
 			if(vBtn != -1) // release old key, if any
 				inputAction(Input::Action::RELEASED, vBtn);
-			vBtn = -1;
 		}
 	}
+	dragTracker.reset();
 }
 
 void VController::place()
@@ -186,6 +184,7 @@ void VController::place()
 		setPos(i, layoutToPixelPos(layoutPos[i], winData.viewport()));
 		setState(i, layoutPos[i].state);
 	}
+	dragTracker.setDragStartPixels(window().widthMMInPixels(1.));
 }
 
 void VController::toggleKeyboard()
@@ -195,58 +194,27 @@ void VController::toggleKeyboard()
 	kbMode ^= true;
 }
 
-std::array<int, 2> VController::findElementUnderPos(Input::Event e)
+std::array<int, 2> VController::findGamepadElements(IG::WP pos)
 {
-	if(isInKeyboardMode())
-	{
-		if(e.pushed())
-		{
-			kb.unselectKey();
-		}
-		int kbIdx = kb.getInput(e.pos());
-		if(kbIdx == -1)
-			return {-1, -1};
-		if(kb.translateInput(kbIdx) == TOGGLE_KEYBOARD)
-		{
-			if(!e.pushed())
-				return {-1, -1};
-			logMsg("dismiss kb");
-			toggleKeyboard();
-		}
-		else if(kb.translateInput(kbIdx) == CHANGE_KEYBOARD_MODE)
-		{
-			if(!e.pushed())
-				return {-1, -1};
-			logMsg("switch kb mode");
-			kb.setMode(renderer(), kb.mode() ^ true);
-			resetInput();
-		}
-		else
-			 return {kbIdx, -1};
-		return {-1, -1};
-	}
-
 	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
 	{
 		{
-			auto elem = gp.centerButtons().buttonIndices(e.pos());
+			auto elem = gp.centerButtons().findButtonIndices(pos);
 			if(elem[0] != -1)
 			{
 				return {C_ELEM + elem[0], elem[1] != -1 ? C_ELEM + elem[1] : -1};
 			}
 		}
-
 		{
-			auto elem = gp.faceButtons().buttonIndices(e.pos());
+			auto elem = gp.faceButtons().findButtonIndices(pos);
 			if(elem[0] != -1)
 			{
 				return {F_ELEM + elem[0], elem[1] != -1 ? F_ELEM + elem[1] : -1};
 			}
 		}
-
 		if(gp.dPad().state() != VControllerState::OFF)
 		{
-			int elem = gp.dPad().getInput(e.pos());
+			int elem = gp.dPad().getInput(pos);
 			if(elem != -1)
 			{
 				return {D_ELEM + elem, -1};
@@ -256,41 +224,111 @@ std::array<int, 2> VController::findElementUnderPos(Input::Event e)
 	return {-1, -1};
 }
 
-void VController::applyInput(Input::Event e)
+int VController::keyboardKeyFromPointer(Input::Event e)
+{
+	assert(isInKeyboardMode());
+	if(e.pushed())
+	{
+		kb.unselectKey();
+	}
+	int kbIdx = kb.getInput(e.pos());
+	if(kbIdx == -1)
+		return -1;
+	if(kb.translateInput(kbIdx) == TOGGLE_KEYBOARD)
+	{
+		if(!e.pushed())
+			return -1;
+		logMsg("dismiss kb");
+		toggleKeyboard();
+	}
+	else if(kb.translateInput(kbIdx) == CHANGE_KEYBOARD_MODE)
+	{
+		if(!e.pushed())
+			return -1;
+		logMsg("switch kb mode");
+		kb.setMode(renderer(), kb.mode() ^ true);
+		resetInput();
+	}
+	else
+		 return kbIdx;
+	return -1;
+}
+
+bool VController::pointerInputEvent(Input::Event e, IG::WindowRect gameRect)
 {
 	assert(e.isPointer());
-	auto &currElem = ptrElem[e.deviceID()];
-	std::array<int, 2> elem{-1, -1};
-	if(e.isPointerPushed(Input::Pointer::LBUTTON)) // make sure the cursor isn't hovering
-		elem = findElementUnderPos(e);
-
-	//logMsg("under %d %d", elem[0], elem[1]);
-
-	// release old buttons
-	for(auto vBtn : currElem)
+	static constexpr std::array<int, 2> nullElems{-1, -1};
+	std::array<int, 2> newElems = nullElems;
+	if(isInKeyboardMode())
 	{
-		if(vBtn != -1 && !IG::contains(elem, vBtn))
+		newElems[0] = keyboardKeyFromPointer(e);
+	}
+	else
+	{
+		if(gamepadIsActive())
 		{
-			//logMsg("releasing %d", vBtn);
-			inputAction(Input::Action::RELEASED, vBtn);
+			newElems = findGamepadElements(e.pos());
 		}
 	}
-
-	// push new buttons
-	for(auto vBtn : elem)
-	{
-		if(vBtn != -1 && !IG::contains(currElem, vBtn))
+	bool elementsArePushed = newElems != nullElems;
+	auto applyInputActions =
+		[&](std::array<int, 2> prevElements, std::array<int, 2> currElements)
 		{
-			//logMsg("pushing %d", vBtn);
-			inputAction(Input::Action::PUSHED, vBtn);
-			if(vibrateOnTouchInput())
+			// release old buttons
+			for(auto vBtn : prevElements)
 			{
-				app().vibrationManager().vibrate(IG::Milliseconds{32});
+				if(vBtn != -1 && !IG::contains(currElements, vBtn))
+				{
+					//logMsg("releasing %d", vBtn);
+					inputAction(Input::Action::RELEASED, vBtn);
+				}
 			}
+			// push new buttons
+			for(auto vBtn : currElements)
+			{
+				if(vBtn != -1 && !IG::contains(prevElements, vBtn))
+				{
+					//logMsg("pushing %d", vBtn);
+					inputAction(Input::Action::PUSHED, vBtn);
+					if(vibrateOnTouchInput())
+					{
+						app().vibrationManager().vibrate(IG::Milliseconds{32});
+					}
+				}
+			}
+		};
+	dragTracker.inputEvent(e,
+		[&](Input::DragTrackerState dragState, auto &currElems)
+		{
+			applyInputActions(nullElems, newElems);
+			currElems = newElems;
+			if(!elementsArePushed)
+			{
+				elementsArePushed |= EmuSystem::onPointerInputStart(e, dragState, gameRect);
+			}
+		},
+		[&](Input::DragTrackerState dragState, Input::DragTrackerState prevDragState, auto &currElems)
+		{
+			applyInputActions(currElems, newElems);
+			currElems = newElems;
+			if(!elementsArePushed)
+			{
+				elementsArePushed |= EmuSystem::onPointerInputUpdate(e, dragState, prevDragState, gameRect);
+			}
+		},
+		[&](Input::DragTrackerState dragState, auto &currElems)
+		{
+			applyInputActions(currElems, nullElems);
+			elementsArePushed |= EmuSystem::onPointerInputEnd(e, dragState, gameRect);
+		});
+	 if(!elementsArePushed && !gamepadControlsVisible() && shouldShowOnTouchInput()
+			&& !isInKeyboardMode() && e.isTouch() && e.pushed()) [[unlikely]]
+		{
+			logMsg("turning on on-screen controls from touch input");
+			setGamepadControlsVisible(true);
+			app().viewController().placeEmuViews();
 		}
-	}
-
-	currElem = elem;
+	return elementsArePushed;
 }
 
 bool VController::keyInput(Input::Event e)
@@ -300,12 +338,12 @@ bool VController::keyInput(Input::Event e)
 	return kb.keyInput(*this, renderer(), e);
 }
 
-void VController::draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool activeFF, bool showHidden)
+void VController::draw(Gfx::RendererCommands &cmds, bool activeFF, bool showHidden)
 {
-	draw(cmds, emuSystemControls, activeFF, showHidden, alphaF);
+	draw(cmds, activeFF, showHidden, alphaF);
 }
 
-void VController::draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool activeFF, bool showHidden, float alpha)
+void VController::draw(Gfx::RendererCommands &cmds, bool activeFF, bool showHidden, float alpha)
 {
 	if(alpha == 0.f) [[unlikely]]
 		return;
@@ -315,7 +353,7 @@ void VController::draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool
 	cmds.setColor(whiteCol);
 	if(isInKeyboardMode())
 		kb.draw(cmds, projP);
-	else if(emuSystemControls && gamepadIsVisible)
+	else if(gamepadIsEnabled() && gamepadIsVisible)
 		gp.draw(cmds, showHidden, projP);
 	menuBtn.draw(cmds, whiteCol, showHidden);
 	Gfx::Color redCol{1., 0., 0., alpha};
@@ -480,7 +518,7 @@ void VController::updateKeyboardMapping()
 	kb.updateKeyboardMapping();
 }
 
-[[gnu::weak]] SysVController::KbMap updateVControllerKeyboardMapping(unsigned mode) { return {}; }
+[[gnu::weak]] VController::KbMap updateVControllerKeyboardMapping(unsigned mode) { return {}; }
 
 void VController::setMenuImage(Gfx::TextureSpan img)
 {
@@ -1025,4 +1063,9 @@ IG::WP VController::layoutToPixelPos(VControllerLayoutPosition lPos, Gfx::Viewpo
 bool VController::shouldDraw(VControllerState state, bool showHidden)
 {
 	return state == VControllerState::SHOWN || (showHidden && state != VControllerState::OFF);
+}
+
+bool VController::gamepadIsActive() const
+{
+	return gamepadIsEnabled() && gamepadControlsVisible();
 }

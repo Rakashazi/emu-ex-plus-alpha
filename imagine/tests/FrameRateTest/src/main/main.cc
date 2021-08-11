@@ -76,7 +76,7 @@ FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams i
 				return;
 			}
 			viewManager = {renderer};
-			Gfx::GlyphTextureSet defaultFace{renderer, fontManager.makeSystem(), win.heightSMMInPixels(3.5)};
+			Gfx::GlyphTextureSet defaultFace{renderer, fontManager.makeSystem(), win.heightScaledMMInPixels(3.5)};
 			defaultFace.precacheAlphaNum(renderer);
 			defaultFace.precache(renderer, ":.%()");
 			viewManager.setDefaultFace(std::move(defaultFace));

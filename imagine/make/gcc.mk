@@ -40,10 +40,6 @@ endif
 
 ifndef RELEASE
  CFLAGS_CODEGEN += -g
- # When using GCC 11.1 with -fsanitize=undefined and -O1/-Og, all lambdas will produce
- # spurious null `this` pointer warnings, add interprocedural optimzation flags to prevent this
- # TODO: remove when GCC bug is fixed
- CFLAGS_CODEGEN += -fipa-cp -fipa-sra
 endif
 
 ASMFLAGS += -O3

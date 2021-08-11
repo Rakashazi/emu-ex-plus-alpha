@@ -193,7 +193,7 @@ bool EmuSystem::vidSysIsPAL() { return Settings.PAL; }
 unsigned EmuSystem::multiresVideoBaseX() { return 256; }
 unsigned EmuSystem::multiresVideoBaseY() { return 239; }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto size = io.size();
 	if(size > CMemory::MAX_ROM_SIZE + 512)
@@ -221,7 +221,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 	{
 		return makeError("Error loading game");
 	}
-	setupSNESInput();
+	setupSNESInput(EmuApp::get(ctx).defaultVController());
 	auto saveStr = sprintSRAMFilename();
 	Memory.LoadSRAM(saveStr.data());
 	IPPU.RenderThisFrame = TRUE;

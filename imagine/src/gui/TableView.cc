@@ -108,8 +108,8 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 		StaticArrayList<std::array<VertexIndex, 6>, vRect.maxSize()> vRectIdx;
 		auto headingColor = VertexColorPixelFormat.build(.4, .4, .4, 1.);
 		auto regularColor = VertexColorPixelFormat.build(.2, .2, .2, 1.);
-		auto regularYSize = std::max(1, window().heightSMMInPixels(.2));
-		auto headingYSize = std::max(2, window().heightSMMInPixels(.4));
+		auto regularYSize = std::max(1, window().heightMMInPixels(.2));
+		auto headingYSize = std::max(2, window().heightMMInPixels(.4));
 		for(int i = startYCell; i < endYCell; i++)
 		{
 			if(i == selected)

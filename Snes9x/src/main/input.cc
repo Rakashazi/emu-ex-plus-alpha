@@ -46,7 +46,7 @@ std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0, 5
 static int snesPointerX = 0, snesPointerY = 0, snesPointerBtns = 0, snesMouseClick = 0;
 static int snesMouseX = 0, snesMouseY = 0;
 unsigned doubleClickFrames, rightClickFrames;
-static Input::SingleDragTracker dragTracker{};
+static Input::PointerId mousePointerId{Input::NULL_POINTER_ID};
 static bool dragWithButton = false; // true to start next mouse drag with a button held
 #ifndef SNES9X_VERSION_1_4
 int snesInputPort = SNES_AUTO_INPUT;
@@ -55,15 +55,6 @@ int snesActiveInputPort = SNES_JOYPAD;
 int snesInputPort = SNES_JOYPAD;
 static uint16 joypadData[5]{};
 #endif
-
-bool EmuSystem::touchControlsApplicable()
-{
-	#ifndef SNES9X_VERSION_1_4
-	return snesActiveInputPort == SNES_JOYPAD;
-	#else
-	return IPPU.Controller == SNES_JOYPAD || IPPU.Controller == SNES_MULTIPLAYER5;
-	#endif
-}
 
 CLINK bool8 S9xReadMousePosition(int which, int &x, int &y, uint32 &buttons)
 {
@@ -119,27 +110,27 @@ static bool usingMouse() { return IPPU.Controller == SNES_MOUSE_SWAPPED; }
 static bool usingGun() { return IPPU.Controller == SNES_SUPERSCOPE; }
 #endif
 
-void updateVControllerMapping(unsigned player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, VController::Map &map)
 {
 	unsigned playerMask = player << 29;
-	map[SysVController::F_ELEM] = SNES_B_MASK | playerMask;
-	map[SysVController::F_ELEM+1] = SNES_A_MASK | playerMask;
-	map[SysVController::F_ELEM+2] = SNES_TR_MASK | playerMask;
-	map[SysVController::F_ELEM+3] = SNES_Y_MASK | playerMask;
-	map[SysVController::F_ELEM+4] = SNES_X_MASK | playerMask;
-	map[SysVController::F_ELEM+5] = SNES_TL_MASK | playerMask;
+	map[VController::F_ELEM] = SNES_B_MASK | playerMask;
+	map[VController::F_ELEM+1] = SNES_A_MASK | playerMask;
+	map[VController::F_ELEM+2] = SNES_TR_MASK | playerMask;
+	map[VController::F_ELEM+3] = SNES_Y_MASK | playerMask;
+	map[VController::F_ELEM+4] = SNES_X_MASK | playerMask;
+	map[VController::F_ELEM+5] = SNES_TL_MASK | playerMask;
 
-	map[SysVController::C_ELEM] = SNES_SELECT_MASK | playerMask;
-	map[SysVController::C_ELEM+1] = SNES_START_MASK | playerMask;
+	map[VController::C_ELEM] = SNES_SELECT_MASK | playerMask;
+	map[VController::C_ELEM+1] = SNES_START_MASK | playerMask;
 
-	map[SysVController::D_ELEM] = SNES_UP_MASK | SNES_LEFT_MASK | playerMask;
-	map[SysVController::D_ELEM+1] = SNES_UP_MASK | playerMask;
-	map[SysVController::D_ELEM+2] = SNES_UP_MASK | SNES_RIGHT_MASK | playerMask;
-	map[SysVController::D_ELEM+3] = SNES_LEFT_MASK | playerMask;
-	map[SysVController::D_ELEM+5] = SNES_RIGHT_MASK | playerMask;
-	map[SysVController::D_ELEM+6] = SNES_DOWN_MASK | SNES_LEFT_MASK | playerMask;
-	map[SysVController::D_ELEM+7] = SNES_DOWN_MASK | playerMask;
-	map[SysVController::D_ELEM+8] = SNES_DOWN_MASK | SNES_RIGHT_MASK | playerMask;
+	map[VController::D_ELEM] = SNES_UP_MASK | SNES_LEFT_MASK | playerMask;
+	map[VController::D_ELEM+1] = SNES_UP_MASK | playerMask;
+	map[VController::D_ELEM+2] = SNES_UP_MASK | SNES_RIGHT_MASK | playerMask;
+	map[VController::D_ELEM+3] = SNES_LEFT_MASK | playerMask;
+	map[VController::D_ELEM+5] = SNES_RIGHT_MASK | playerMask;
+	map[VController::D_ELEM+6] = SNES_DOWN_MASK | SNES_LEFT_MASK | playerMask;
+	map[VController::D_ELEM+7] = SNES_DOWN_MASK | playerMask;
+	map[VController::D_ELEM+8] = SNES_DOWN_MASK | SNES_RIGHT_MASK | playerMask;
 }
 
 unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
@@ -193,12 +184,10 @@ void EmuSystem::clearInputBuffers(EmuInputView &view)
 	snesPointerBtns = 0;
 	doubleClickFrames = 0;
 	dragWithButton = false;
-	dragTracker.finish();
-	dragTracker.setXDragStartDistance(view.window().widthMMInPixels(1.));
-	dragTracker.setYDragStartDistance(view.window().heightMMInPixels(1.));
+	mousePointerId = Input::NULL_POINTER_ID;
 }
 
-void setupSNESInput()
+void setupSNESInput(VController &vCtrl)
 {
 	#ifndef SNES9X_VERSION_1_4
 	int inputSetup = snesInputPort;
@@ -300,6 +289,7 @@ void setupSNESInput()
 		}
 	}
 	snesActiveInputPort = inputSetup;
+	vCtrl.setGamepadIsEnabled(inputSetup == SNES_JOYPAD);
 	#else
 	Settings.MultiPlayer5Master = Settings.MultiPlayer5 = 0;
 	Settings.MouseMaster = Settings.Mouse = 0;
@@ -331,22 +321,17 @@ void setupSNESInput()
 			IPPU.Controller = SNES_JOYPAD;
 		}
 	}
+	vCtrl.setGamepadIsEnabled(IPPU.Controller == SNES_JOYPAD || IPPU.Controller == SNES_MULTIPLAYER5);
 	#endif
 }
 
-bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
+
+bool EmuSystem::onPointerInputStart(Input::Event e, Input::DragTrackerState, IG::WindowRect gameRect)
 {
 	switch(snesActiveInputPort)
 	{
 		case SNES_SUPERSCOPE:
 		{
-			if(e.released())
-			{
-				snesPointerBtns = 0;
-				#ifndef SNES9X_VERSION_1_4
-				*S9xGetSuperscopeBits() = 0;
-				#endif
-			}
 			if(gameRect.overlaps(e.pos()))
 			{
 				int xRel = e.pos().x - gameRect.x, yRel = e.pos().y - gameRect.y;
@@ -361,97 +346,123 @@ bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
 					#endif
 				}
 			}
-			else if(e.pushed())
+			else
 			{
 				snesPointerBtns = 2;
 				#ifndef SNES9X_VERSION_1_4
 				*S9xGetSuperscopeBits() = 0x40;
 				#endif
 			}
-
 			#ifndef SNES9X_VERSION_1_4
 			S9xGetSuperscopePosBits()[0] = snesPointerX;
 			S9xGetSuperscopePosBits()[1] = snesPointerY;
 			DoGunLatch(snesPointerX, snesPointerY);
 			#endif
-
 			return true;
 		}
-
 		case SNES_MOUSE_SWAPPED:
 		{
-			dragTracker.inputEvent(e,
-				[&](Input::DragTrackerState)
+			if(mousePointerId != Input::NULL_POINTER_ID)
+				return false;
+			mousePointerId = e.pointerId();
+			rightClickFrames = 15;
+			if(doubleClickFrames) // check if in double-click time window
+			{
+				dragWithButton = 1;
+			}
+			else
+			{
+				dragWithButton = 0;
+				doubleClickFrames = 15;
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
+bool EmuSystem::onPointerInputUpdate(Input::Event e, Input::DragTrackerState dragState,
+	Input::DragTrackerState prevDragState, IG::WindowRect gameRect)
+{
+	switch(snesActiveInputPort)
+	{
+		case SNES_MOUSE_SWAPPED:
+		{
+			if(e.pointerId() != mousePointerId || !dragState.isDragging())
+				return false;
+			if(!prevDragState.isDragging())
+			{
+				if(dragWithButton)
 				{
-					rightClickFrames = 15;
-					if(doubleClickFrames) // check if in double-click time window
+					snesMouseClick = 0;
+					if(!rightClickFrames)
 					{
-						dragWithButton = 1;
+						// in right-click time window
+						snesPointerBtns = 2;
+						logMsg("started drag with right-button");
 					}
 					else
 					{
-						dragWithButton = 0;
-						doubleClickFrames = 15;
+						snesPointerBtns = 1;
+						logMsg("started drag with left-button");
 					}
-				},
-				[&](Input::DragTrackerState state, Input::DragTrackerState prevState)
+				}
+				else
 				{
-					if(!state.isDragging())
-						return;
-					if(!prevState.isDragging())
-					{
-						if(dragWithButton)
-						{
-							snesMouseClick = 0;
-							if(!rightClickFrames)
-							{
-								// in right-click time window
-								snesPointerBtns = 2;
-								logMsg("started drag with right-button");
-							}
-							else
-							{
-								snesPointerBtns = 1;
-								logMsg("started drag with left-button");
-							}
-						}
-						else
-						{
-							logMsg("started drag");
-						}
-					}
-					else
-					{
-						auto relPos = state.pos() - prevState.pos();
-						snesPointerX += relPos.x;
-						snesPointerY += relPos.y;
-					}
-				},
-				[&](Input::DragTrackerState state)
-				{
-					if(state.isDragging())
-					{
-						logMsg("stopped drag");
-						snesPointerBtns = 0;
-					}
-					else
-					{
-						if(!rightClickFrames)
-						{
-							logMsg("right clicking mouse");
-							snesPointerBtns = 2;
-							doubleClickFrames = 15; // allow extra time for a right-click & drag
-						}
-						else
-						{
-							logMsg("left clicking mouse");
-							snesPointerBtns = 1;
-						}
-						snesMouseClick = 3;
-					}
-				});
+					logMsg("started drag");
+				}
+			}
+			else
+			{
+				auto relPos = dragState.pos() - prevDragState.pos();
+				snesPointerX += relPos.x;
+				snesPointerY += relPos.y;
+			}
 			snesMouseX = IG::scalePointRange((float)snesPointerX, (float)gameRect.xSize(), (float)256.);
 			snesMouseY = IG::scalePointRange((float)snesPointerY, (float)gameRect.ySize(), (float)224.);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool EmuSystem::onPointerInputEnd(Input::Event e, Input::DragTrackerState dragState, IG::WindowRect)
+{
+	switch(snesActiveInputPort)
+	{
+		case SNES_SUPERSCOPE:
+		{
+			snesPointerBtns = 0;
+			#ifndef SNES9X_VERSION_1_4
+			*S9xGetSuperscopeBits() = 0;
+			#endif
+			return true;
+		}
+		case SNES_MOUSE_SWAPPED:
+		{
+			if(e.pointerId() != mousePointerId)
+				return false;
+			mousePointerId = Input::NULL_POINTER_ID;
+			if(dragState.isDragging())
+			{
+				logMsg("stopped drag");
+				snesPointerBtns = 0;
+			}
+			else
+			{
+				if(!rightClickFrames)
+				{
+					logMsg("right clicking mouse");
+					snesPointerBtns = 2;
+					doubleClickFrames = 15; // allow extra time for a right-click & drag
+				}
+				else
+				{
+					logMsg("left clicking mouse");
+					snesPointerBtns = 1;
+				}
+				snesMouseClick = 3;
+			}
 			return true;
 		}
 	}

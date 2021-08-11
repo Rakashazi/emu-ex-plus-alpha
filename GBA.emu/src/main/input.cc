@@ -60,25 +60,25 @@ static const unsigned A = bit(0), B = bit(1),
 
 }
 
-void updateVControllerMapping(unsigned player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, VController::Map &map)
 {
 	using namespace GbaKeyStatus;
-	map[SysVController::F_ELEM] = B;
-	map[SysVController::F_ELEM+1] = A;
-	map[SysVController::F_ELEM+2] = L;
-	map[SysVController::F_ELEM+3] = R;
+	map[VController::F_ELEM] = B;
+	map[VController::F_ELEM+1] = A;
+	map[VController::F_ELEM+2] = L;
+	map[VController::F_ELEM+3] = R;
 
-	map[SysVController::C_ELEM] = SELECT;
-	map[SysVController::C_ELEM+1] = START;
+	map[VController::C_ELEM] = SELECT;
+	map[VController::C_ELEM+1] = START;
 
-	map[SysVController::D_ELEM] = UP | LEFT;
-	map[SysVController::D_ELEM+1] = UP;
-	map[SysVController::D_ELEM+2] = UP | RIGHT;
-	map[SysVController::D_ELEM+3] = LEFT;
-	map[SysVController::D_ELEM+5] = RIGHT;
-	map[SysVController::D_ELEM+6] = DOWN | LEFT;
-	map[SysVController::D_ELEM+7] = DOWN;
-	map[SysVController::D_ELEM+8] = DOWN | RIGHT;
+	map[VController::D_ELEM] = UP | LEFT;
+	map[VController::D_ELEM+1] = UP;
+	map[VController::D_ELEM+2] = UP | RIGHT;
+	map[VController::D_ELEM+3] = LEFT;
+	map[VController::D_ELEM+5] = RIGHT;
+	map[VController::D_ELEM+6] = DOWN | LEFT;
+	map[VController::D_ELEM+7] = DOWN;
+	map[VController::D_ELEM+8] = DOWN | RIGHT;
 }
 
 unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)

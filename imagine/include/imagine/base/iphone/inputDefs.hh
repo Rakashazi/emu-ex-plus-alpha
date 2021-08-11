@@ -24,6 +24,8 @@
 namespace Input
 {
 
+using PointerIdImpl = void*;
+
 using Time = std::chrono::duration<double>;
 
 using Key = uint16_t;

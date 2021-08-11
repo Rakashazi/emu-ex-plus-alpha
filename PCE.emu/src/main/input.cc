@@ -47,28 +47,28 @@ const unsigned EmuSystem::maxPlayers = 5;
 std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{2, 1, 0, 3, 4, 5};
 unsigned playerBit = 13;
 
-void updateVControllerMapping(unsigned player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, VController::Map &map)
 {
 	using namespace IG;
 	unsigned playerMask = player << playerBit;
-	map[SysVController::F_ELEM] = bit(8) | playerMask;
-	map[SysVController::F_ELEM+1] = bit(1) | playerMask;
-	map[SysVController::F_ELEM+2] = bit(0) | playerMask;
-	map[SysVController::F_ELEM+3] = bit(9) | playerMask;
-	map[SysVController::F_ELEM+4] = bit(10) | playerMask;
-	map[SysVController::F_ELEM+5] = bit(11) | playerMask;
+	map[VController::F_ELEM] = bit(8) | playerMask;
+	map[VController::F_ELEM+1] = bit(1) | playerMask;
+	map[VController::F_ELEM+2] = bit(0) | playerMask;
+	map[VController::F_ELEM+3] = bit(9) | playerMask;
+	map[VController::F_ELEM+4] = bit(10) | playerMask;
+	map[VController::F_ELEM+5] = bit(11) | playerMask;
 
-	map[SysVController::C_ELEM] = bit(2) | playerMask;
-	map[SysVController::C_ELEM+1] = bit(3) | playerMask;
+	map[VController::C_ELEM] = bit(2) | playerMask;
+	map[VController::C_ELEM+1] = bit(3) | playerMask;
 
-	map[SysVController::D_ELEM] = bit(4) | bit(7) | playerMask;
-	map[SysVController::D_ELEM+1] = bit(4) | playerMask;
-	map[SysVController::D_ELEM+2] = bit(4) | bit(5) | playerMask;
-	map[SysVController::D_ELEM+3] = bit(7) | playerMask;
-	map[SysVController::D_ELEM+5] = bit(5) | playerMask;
-	map[SysVController::D_ELEM+6] = bit(6) | bit(7) | playerMask;
-	map[SysVController::D_ELEM+7] = bit(6) | playerMask;
-	map[SysVController::D_ELEM+8] = bit(6) | bit(5) | playerMask;
+	map[VController::D_ELEM] = bit(4) | bit(7) | playerMask;
+	map[VController::D_ELEM+1] = bit(4) | playerMask;
+	map[VController::D_ELEM+2] = bit(4) | bit(5) | playerMask;
+	map[VController::D_ELEM+3] = bit(7) | playerMask;
+	map[VController::D_ELEM+5] = bit(5) | playerMask;
+	map[VController::D_ELEM+6] = bit(6) | bit(7) | playerMask;
+	map[VController::D_ELEM+7] = bit(6) | playerMask;
+	map[VController::D_ELEM+8] = bit(6) | bit(5) | playerMask;
 }
 
 unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)

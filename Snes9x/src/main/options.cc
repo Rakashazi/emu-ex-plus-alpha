@@ -49,12 +49,12 @@ void setSuperFXSpeedMultiplier(unsigned val)
 }
 #endif
 
-static void applyInputPortOption(int portVal)
+static void applyInputPortOption(int portVal, VController &vCtrl)
 {
 	snesInputPort = portVal;
 	if(EmuSystem::gameIsRunning())
 	{
-		setupSNESInput();
+		setupSNESInput(vCtrl);
 	}
 }
 
@@ -91,9 +91,9 @@ void EmuSystem::writeConfig(IO &io)
 	#endif
 }
 
-void EmuSystem::onSessionOptionsLoaded(EmuApp &)
+void EmuSystem::onSessionOptionsLoaded(EmuApp &app)
 {
-	applyInputPortOption(optionInputPort);
+	applyInputPortOption(optionInputPort, app.defaultVController());
 	#ifndef SNES9X_VERSION_1_4
 	PPU.BlockInvalidVRAMAccess = optionBlockInvalidVRAMAccess;
 	SNES::dsp.spc_dsp.separateEchoBuffer = optionSeparateEchoBuffer;
@@ -101,9 +101,9 @@ void EmuSystem::onSessionOptionsLoaded(EmuApp &)
 	#endif
 }
 
-bool EmuSystem::resetSessionOptions(EmuApp &)
+bool EmuSystem::resetSessionOptions(EmuApp &app)
 {
-	applyInputPortOption(optionInputPort.reset());
+	applyInputPortOption(optionInputPort.reset(), app.defaultVController());
 	optionMultitap.reset();
 	optionVideoSystem.reset();
 	#ifndef SNES9X_VERSION_1_4

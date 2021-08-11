@@ -102,4 +102,9 @@ std::array<TexVertex, 4> makeTexVertArray(GCRect pos, TextureSpan img)
 template class SpriteBase<TexRect>;
 template class SpriteBase<ColTexQuad>;
 
+TextureSpan::operator bool() const
+{
+	return tex && (bool)*tex;
+}
+
 }

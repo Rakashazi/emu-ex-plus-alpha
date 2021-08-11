@@ -86,15 +86,6 @@ enum SurfaceRotation : uint8_t;
 
 using AndroidInputDeviceContainer = std::vector<std::unique_ptr<Input::AndroidInputDevice>>;
 
-struct TouchState
-{
-	constexpr TouchState() {}
-	int8_t id{-1};
-	bool isTouching{false};
-};
-
-using TouchStateArray = std::array<TouchState, Config::Input::MAX_POINTERS>;
-
 struct ApplicationInitParams
 {
 	ANativeActivity *nActivity;
@@ -173,7 +164,6 @@ private:
 	int aHardKeyboardState{};
 	int aKeyboardType{};
 	int mostRecentKeyEventDevID{-1};
-	TouchStateArray m{};
 	SurfaceRotation osRotation{};
 	bool osAnimatesRotation{};
 	bool aHasFocus{true};

@@ -59,8 +59,6 @@ public:
 	IG::Point2D<GC> alignToPixel(IG::Point2D<GC> p) const;
 	GC xMMSize(GC mm) const;
 	GC yMMSize(GC mm) const;
-	GC xSMMSize(GC mm) const;
-	GC ySMMSize(GC mm) const;
 	Mat4 makeTranslate(IG::Point2D<float> p) const;
 	Mat4 makeTranslate() const;
 	void loadTranslate(Gfx::RendererCommands &cmds, GC x, GC y) const;
@@ -71,13 +69,10 @@ private:
 	Viewport viewport_;
 	GCRect rect;
 	GC w = 0, h = 0;
-		GC  focal = 0,
+	GC focal = 0,
 		xToPixScale = 0, yToPixScale = 0, // screen -> projection space at focal z
 		pixToXScale = 0, pixToYScale = 0, // projection -> screen space at focal z
 		mmToXScale = 0, mmToYScale = 0;   // MM of screen -> projection space at focal z
-	#ifdef __ANDROID__
-	GC smmToXScale = 0, smmToYScale = 0;
-	#endif
 };
 
 }

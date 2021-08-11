@@ -45,13 +45,6 @@ public:
 	float realAspectRatio() const { return (float)realWidth() / (float)realHeight(); }
 	float widthMM() const { return wMM; }
 	float heightMM() const { return hMM; }
-	#ifdef __ANDROID__
-	float widthSMM() const { return wSMM; }
-	float heightSMM() const { return hSMM; }
-	#else
-	float widthSMM() const { return widthMM(); }
-	float heightSMM() const { return heightMM(); }
-	#endif
 
 	bool isPortrait() const
 	{
@@ -91,9 +84,6 @@ private:
 	IG::WindowRect rect;
 	int w = 0, h = 0;
 	float wMM = 0, hMM = 0;
-	#ifdef __ANDROID__
-	float wSMM = 0, hSMM = 0;
-	#endif
 	IG::Rect2<int> relYFlipViewport;
 	IG_enableMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Base::Orientation,
 		Base::VIEW_ROTATE_0, softOrientation_){Base::VIEW_ROTATE_0};

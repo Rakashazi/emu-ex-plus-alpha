@@ -148,17 +148,6 @@ void XApplication::initXInput2()
 	}
 }
 
-int XApplication::devIdToPointer(int id) const
-{
-	iterateTimes(4, i)
-	{
-		if(id == xPointerMapping[i])
-			return i;
-	}
-	logWarn("warning: device id not present in pointer mapping");
-	return 0;
-}
-
 static bool isPowerButtonName(const char *name)
 {
 	return strstr(name, "Power Button")
@@ -171,11 +160,11 @@ void XApplication::addXInputDevice(XIDeviceInfo xDevInfo, bool notify, bool isPo
 	{
 		if(xDevInfo.deviceid == e->id)
 		{
-			logMsg("X key input device %d (%s) is already present", xDevInfo.deviceid, xDevInfo.name);
+			logMsg("X input device %d (%s) is already present", xDevInfo.deviceid, xDevInfo.name);
 			return;
 		}
 	}
-	logMsg("adding X key input device %d (%s) to device list", xDevInfo.deviceid, xDevInfo.name);
+	logMsg("adding X input device %d (%s) to device list", xDevInfo.deviceid, xDevInfo.name);
 	uint32_t devId = 0;
 	for(auto &e : systemInputDevices())
 	{
@@ -257,16 +246,11 @@ void XApplication::initInputSystem()
 		{
 			bcase XIMasterPointer:
 			{
-				logMsg("mapping X pointer %d (%s) as pointer %d", device[i].deviceid, device[i].name, numCursors);
-				xPointerMapping[numCursors] = device[i].deviceid;
-				numCursors++;
-				XIDeviceInfo d{device[i]};
-				addXInputDevice(d, false, true);
+				addXInputDevice({device[i]}, false, true);
 			}
 			bcase XISlaveKeyboard:
 			{
-				XIDeviceInfo d{device[i]};
-				addXInputDevice(d, false, false);
+				addXInputDevice({device[i]}, false, false);
 			}
 		}
 	}
@@ -347,7 +331,7 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 	auto &win = *destWin;
 	auto time = IG::Milliseconds(ievent.time); // X11 timestamps are in ms
 	auto updatePointer =
-		[this](Base::Window &win, uint32_t key, uint32_t btnState, int p, Input::Action action, int x, int y, Input::Time time, int sourceID)
+		[this](Base::Window &win, uint32_t key, uint32_t btnState, Input::PointerId p, Input::Action action, int x, int y, Input::Time time, int sourceID)
 		{
 			auto dev = deviceForInputId(sourceID);
 			auto pos = win.transformInputPos({x, y});
@@ -385,18 +369,18 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 	{
 		bcase XI_ButtonPress:
 			updatePointer(win, ievent.detail, makePointerButtonState(ievent.buttons),
-				devIdToPointer(ievent.deviceid), Input::Action::PUSHED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
+				ievent.deviceid, Input::Action::PUSHED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_ButtonRelease:
 			updatePointer(win, ievent.detail, makePointerButtonState(ievent.buttons),
-				devIdToPointer(ievent.deviceid), Input::Action::RELEASED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
+				ievent.deviceid, Input::Action::RELEASED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_Motion:
-			updatePointer(win, 0, makePointerButtonState(ievent.buttons), devIdToPointer(ievent.deviceid),
+			updatePointer(win, 0, makePointerButtonState(ievent.buttons), ievent.deviceid,
 				Input::Action::MOVED, ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_Enter:
-			updatePointer(win, 0, 0, devIdToPointer(ievent.deviceid), Input::Action::ENTER_VIEW,
+			updatePointer(win, 0, 0, ievent.deviceid, Input::Action::ENTER_VIEW,
 				ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_Leave:
-			updatePointer(win, 0, 0, devIdToPointer(ievent.deviceid), Input::Action::EXIT_VIEW,
+			updatePointer(win, 0, 0, ievent.deviceid, Input::Action::EXIT_VIEW,
 				ievent.event_x, ievent.event_y, time, ievent.sourceid);
 		bcase XI_FocusIn:
 			win.dispatchFocusChange(true);

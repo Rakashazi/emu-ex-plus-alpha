@@ -40,9 +40,9 @@ void Event::setMap(Map map)
 	map_ = map;
 }
 
-int Event::pointerID() const
+PointerId Event::pointerId() const
 {
-	return pointerID_;
+	return pointerId_;
 }
 
 Action Event::state() const

@@ -182,7 +182,7 @@ int VControllerButtonGroup::buttonsPerRow() const
 	return buttonsToLayout() / rows();
 }
 
-std::array<int, 2> VControllerButtonGroup::buttonIndices(IG::WP windowPos) const
+std::array<int, 2> VControllerButtonGroup::findButtonIndices(IG::WP windowPos) const
 {
 	std::array<int, 2> btnOut{-1, -1};
 	if(state() == VControllerState::OFF)

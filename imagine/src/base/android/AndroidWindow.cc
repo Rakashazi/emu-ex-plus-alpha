@@ -85,18 +85,15 @@ static void initPresentationJNI(JNIEnv* env, jobject presentation)
 
 IG::Point2D<float> Window::pixelSizeAsMM(IG::Point2D<int> size)
 {
-	auto osRotation = application().currentRotation();
-	auto [xDPI, yDPI] = screen()->dpi();
-	assert(xDPI && yDPI);
-	float xdpi = surfaceRotationIsStraight(osRotation) ? xDPI : yDPI;
-	float ydpi = surfaceRotationIsStraight(osRotation) ? yDPI : xDPI;
-	return {((float)size.x / xdpi) * 25.4f, ((float)size.y / ydpi) * 25.4f};
+	auto densityDPI = screen()->densityDPI();
+	assumeExpr(densityDPI > 0);
+	return {((float)size.x / densityDPI) * 25.4f, ((float)size.y / densityDPI) * 25.4f};
 }
 
-IG::Point2D<float> Window::pixelSizeAsSMM(IG::Point2D<int> size)
+IG::Point2D<float> Window::pixelSizeAsScaledMM(IG::Point2D<int> size)
 {
-	auto densityDPI = screen()->densityDPI();
-	assert(densityDPI);
+	auto densityDPI = screen()->scaledDensityDPI();
+	assumeExpr(densityDPI > 0);
 	return {((float)size.x / densityDPI) * 25.4f, ((float)size.y / densityDPI) * 25.4f};
 }
 

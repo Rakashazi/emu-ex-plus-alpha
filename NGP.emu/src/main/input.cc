@@ -43,21 +43,21 @@ const unsigned EmuSystem::maxPlayers = 1;
 static const unsigned ctrlUpBit = 0x01, ctrlDownBit = 0x02, ctrlLeftBit = 0x04, ctrlRightBit = 0x08,
 		ctrlABit = 0x10, ctrlBBit = 0x20, ctrlOptionBit = 0x40;
 
-void updateVControllerMapping(unsigned player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, VController::Map &map)
 {
-	map[SysVController::F_ELEM] = ctrlABit;
-	map[SysVController::F_ELEM+1] = ctrlBBit;
+	map[VController::F_ELEM] = ctrlABit;
+	map[VController::F_ELEM+1] = ctrlBBit;
 
-	map[SysVController::C_ELEM] = ctrlOptionBit;
+	map[VController::C_ELEM] = ctrlOptionBit;
 
-	map[SysVController::D_ELEM] = ctrlUpBit | ctrlLeftBit;
-	map[SysVController::D_ELEM+1] = ctrlUpBit;
-	map[SysVController::D_ELEM+2] = ctrlUpBit | ctrlRightBit;
-	map[SysVController::D_ELEM+3] = ctrlLeftBit;
-	map[SysVController::D_ELEM+5] = ctrlRightBit;
-	map[SysVController::D_ELEM+6] = ctrlDownBit | ctrlLeftBit;
-	map[SysVController::D_ELEM+7] = ctrlDownBit;
-	map[SysVController::D_ELEM+8] = ctrlDownBit | ctrlRightBit;
+	map[VController::D_ELEM] = ctrlUpBit | ctrlLeftBit;
+	map[VController::D_ELEM+1] = ctrlUpBit;
+	map[VController::D_ELEM+2] = ctrlUpBit | ctrlRightBit;
+	map[VController::D_ELEM+3] = ctrlLeftBit;
+	map[VController::D_ELEM+5] = ctrlRightBit;
+	map[VController::D_ELEM+6] = ctrlDownBit | ctrlLeftBit;
+	map[VController::D_ELEM+7] = ctrlDownBit;
+	map[VController::D_ELEM+8] = ctrlDownBit | ctrlRightBit;
 }
 
 unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)

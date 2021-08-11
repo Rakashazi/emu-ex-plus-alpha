@@ -23,6 +23,7 @@
 #include "EmuTiming.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/ArchiveFS.hh>
+#include <imagine/input/DragTracker.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ScopeGuard.hh>
@@ -610,9 +611,11 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] bool EmuSystem::vidSysIsPAL() { return false; }
 
-[[gnu::weak]] bool EmuSystem::touchControlsApplicable() { return true; }
+[[gnu::weak]] bool EmuSystem::onPointerInputStart(Input::Event, Input::DragTrackerState, IG::WindowRect) { return false; }
 
-[[gnu::weak]] bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect) { return false; }
+[[gnu::weak]] bool EmuSystem::onPointerInputUpdate(Input::Event, Input::DragTrackerState, Input::DragTrackerState, IG::WindowRect) { return false; }
+
+[[gnu::weak]] bool EmuSystem::onPointerInputEnd(Input::Event, Input::DragTrackerState, IG::WindowRect) { return false; }
 
 [[gnu::weak]] void EmuSystem::onPrepareAudio(EmuAudio &) {}
 

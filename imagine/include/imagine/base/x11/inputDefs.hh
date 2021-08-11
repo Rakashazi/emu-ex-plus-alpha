@@ -22,6 +22,8 @@
 namespace Input
 {
 
+using PointerIdImpl = int;
+
 // Note: only first 15-bits of XF86XK_* values are used
 // so they fit in 2 bytes and don't conflict with other keys
 

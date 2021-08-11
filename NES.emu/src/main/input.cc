@@ -73,24 +73,24 @@ void GetMouseData(uint32 (&d)[3])
 }
 
 #ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-void updateVControllerMapping(unsigned player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, VController::Map &map)
 {
 	using namespace IG;
 	unsigned playerMask = player << 8;
-	map[SysVController::F_ELEM] = bit(1) | playerMask;
-	map[SysVController::F_ELEM+1] = bit(0) | playerMask;
+	map[VController::F_ELEM] = bit(1) | playerMask;
+	map[VController::F_ELEM+1] = bit(0) | playerMask;
 
-	map[SysVController::C_ELEM] = bit(2) | playerMask;
-	map[SysVController::C_ELEM+1] = bit(3) | playerMask;
+	map[VController::C_ELEM] = bit(2) | playerMask;
+	map[VController::C_ELEM+1] = bit(3) | playerMask;
 
-	map[SysVController::D_ELEM] = bit(4) | bit(6) | playerMask;
-	map[SysVController::D_ELEM+1] = bit(4) | playerMask;
-	map[SysVController::D_ELEM+2] = bit(4) | bit(7) | playerMask;
-	map[SysVController::D_ELEM+3] = bit(6) | playerMask;
-	map[SysVController::D_ELEM+5] = bit(7) | playerMask;
-	map[SysVController::D_ELEM+6] = bit(5) | bit(6) | playerMask;
-	map[SysVController::D_ELEM+7] = bit(5) | playerMask;
-	map[SysVController::D_ELEM+8] = bit(5) | bit(7) | playerMask;
+	map[VController::D_ELEM] = bit(4) | bit(6) | playerMask;
+	map[VController::D_ELEM+1] = bit(4) | playerMask;
+	map[VController::D_ELEM+2] = bit(4) | bit(7) | playerMask;
+	map[VController::D_ELEM+3] = bit(6) | playerMask;
+	map[VController::D_ELEM+5] = bit(7) | playerMask;
+	map[VController::D_ELEM+6] = bit(5) | bit(6) | playerMask;
+	map[VController::D_ELEM+7] = bit(5) | playerMask;
+	map[VController::D_ELEM+8] = bit(5) | bit(7) | playerMask;
 }
 #endif
 
@@ -147,34 +147,35 @@ void EmuSystem::handleInputAction(EmuApp *, Input::Action action, unsigned emuKe
 	padData = IG::setOrClearBits(padData, key << playerInputShift(player), action == Input::Action::PUSHED);
 }
 
-bool EmuSystem::handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect)
+bool EmuSystem::onPointerInputStart(Input::Event e, Input::DragTrackerState, IG::WindowRect gameRect)
 {
 	if(!usingZapper)
 		return false;
-	if(e.pushed())
+	zapperData[2] = 0;
+	if(gameRect.overlaps(e.pos()))
 	{
-		zapperData[2] = 0;
-		if(gameRect.overlaps(e.pos()))
-		{
-			int xRel = e.pos().x - gameRect.x, yRel = e.pos().y - gameRect.y;
-			int xNes = IG::scalePointRange((float)xRel, (float)gameRect.xSize(), (float)256.);
-			int yNes = IG::scalePointRange((float)yRel, (float)gameRect.ySize(), (float)224.) + 8;
-			logMsg("zapper pushed @ %d,%d, on NES %d,%d", e.pos().x, e.pos().y, xNes, yNes);
-			zapperData[0] = xNes;
-			zapperData[1] = yNes;
-			zapperData[2] |= 0x1;
-		}
-		else // off-screen shot
-		{
-			zapperData[0] = 0;
-			zapperData[1] = 0;
-			zapperData[2] |= 0x2;
-		}
+		int xRel = e.pos().x - gameRect.x, yRel = e.pos().y - gameRect.y;
+		int xNes = IG::scalePointRange((float)xRel, (float)gameRect.xSize(), (float)256.);
+		int yNes = IG::scalePointRange((float)yRel, (float)gameRect.ySize(), (float)224.) + 8;
+		logMsg("zapper pushed @ %d,%d, on NES %d,%d", e.pos().x, e.pos().y, xNes, yNes);
+		zapperData[0] = xNes;
+		zapperData[1] = yNes;
+		zapperData[2] |= 0x1;
 	}
-	else if(e.released())
+	else // off-screen shot
 	{
-		zapperData[2] = 0;
+		zapperData[0] = 0;
+		zapperData[1] = 0;
+		zapperData[2] |= 0x2;
 	}
+	return true;
+}
+
+bool EmuSystem::onPointerInputEnd(Input::Event, Input::DragTrackerState, IG::WindowRect)
+{
+	if(!usingZapper)
+		return false;
+	zapperData[2] = 0;
 	return true;
 }
 

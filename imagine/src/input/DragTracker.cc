@@ -18,13 +18,13 @@
 namespace Input
 {
 
-void DragTrackerState::update(IG::WP pos)
+void DragTrackerState::update(IG::WP pos, int dragStartPixels)
 {
-	assert(isTracking_);
+	assert(isTracking());
 	pos_ = pos;
 	if(!isDragging_ &&
-		((uint32_t)std::abs(downPos_.x - pos.x) > xDragStart ||
-		(uint32_t)std::abs(downPos_.y - pos.y) > yDragStart))
+		(std::abs(downPos_.x - pos.x) > dragStartPixels ||
+		std::abs(downPos_.y - pos.y) > dragStartPixels))
 	{
 		isDragging_ = true;
 	}
@@ -33,17 +33,7 @@ void DragTrackerState::update(IG::WP pos)
 void DragTrackerState::finish()
 {
 	isDragging_ = false;
-	isTracking_ = false;
-}
-
-DragTrackerState DragTracker::state(int id) const
-{
-	auto s = std::find_if(state_.begin(), state_.end(), [id](const auto &s){ return s.id() == id; });
-	if(s == state_.end())
-	{
-		return {};
-	}
-	return *s;
+	id_ = NULL_POINTER_ID;
 }
 
 }

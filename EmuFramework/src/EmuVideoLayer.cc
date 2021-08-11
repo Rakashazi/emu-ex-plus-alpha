@@ -163,7 +163,7 @@ void EmuVideoLayer::place(const IG::WindowRect &viewportRect, const Gfx::Project
 		// adjust position
 		int layoutDirection = 0;
 		#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-		if(inputView && viewportAspectRatio < 1. && inputView->activeVController()->gamepadControlsVisible() && EmuSystem::touchControlsApplicable())
+		if(inputView && viewportAspectRatio < 1. && inputView->activeVController()->gamepadIsActive())
 		{
 			auto &vController = *inputView->activeVController();
 			auto padding = vController.bounds(3).ySize(); // adding menu button-sized padding

@@ -34,18 +34,6 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #endif
 #include "../../gfx/opengl/utils.hh"
 
-namespace Input
-{
-
-static struct TouchState
-{
-	constexpr TouchState() {}
-	UITouch *touch = nil;
-} m[Config::Input::MAX_POINTERS];
-static uint32_t numCursors = Config::Input::MAX_POINTERS;
-
-}
-
 namespace Base
 {
 
@@ -171,83 +159,39 @@ static void bindGLRenderbuffer(GLuint colorRenderbuffer, GLuint depthRenderbuffe
 	//logMsg("exiting layoutSubviews");
 }
 
-- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+static void dispatchTouches(NSSet *touches, EAGLView *view, Input::Action action)
 {
-	using namespace Base;
-	using namespace Input;
 	auto &win = *Base::ApplicationContext{[UIApplication sharedApplication]}.deviceWindow();
 	for(UITouch* touch in touches)
 	{
-		iterateTimes(std::size(m), i) // find a free touch element
-		{
-			if(Input::m[i].touch == nil)
-			{
-				auto &p = Input::m[i];
-				p.touch = touch;
-				CGPoint pos = [touch locationInView:self];
-				pos.x *= win.pointScale;
-				pos.y *= win.pointScale;
-				auto time = IG::FloatSeconds((double)[touch timestamp]);
-				auto transPos = win.transformInputPos({(int)pos.x, (int)pos.y});
-				win.dispatchInputEvent(Input::Event{i, Map::POINTER, Input::Pointer::LBUTTON, 1, Action::PUSHED, transPos.x, transPos.y, (int)i, Input::Source::TOUCHSCREEN, time, nullptr});
-				break;
-			}
-		}
+		CGPoint pos = [touch locationInView:view];
+		pos.x *= win.pointScale;
+		pos.y *= win.pointScale;
+		auto time = IG::FloatSeconds((double)[touch timestamp]);
+		auto transPos = win.transformInputPos({(int)pos.x, (int)pos.y});
+		win.dispatchInputEvent(Input::Event{0, Input::Map::POINTER, Input::Pointer::LBUTTON, 1, action,
+			transPos.x, transPos.y, (__bridge void*)touch, Input::Source::TOUCHSCREEN, time, nullptr});
 	}
+}
+
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+{
+	dispatchTouches(touches, self, Input::Action::PUSHED);
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	using namespace Base;
-	using namespace Input;
-	auto &win = *Base::ApplicationContext{[UIApplication sharedApplication]}.deviceWindow();
-	for(UITouch* touch in touches)
-	{
-		iterateTimes(std::size(m), i) // find the touch element
-		{
-			if(Input::m[i].touch == touch)
-			{
-				auto &p = Input::m[i];
-				CGPoint pos = [touch locationInView:self];
-				pos.x *= win.pointScale;
-				pos.y *= win.pointScale;
-				auto time = IG::FloatSeconds((double)[touch timestamp]);
-				auto transPos = win.transformInputPos({(int)pos.x, (int)pos.y});
-				win.dispatchInputEvent(Input::Event{i, Map::POINTER, Input::Pointer::LBUTTON, 1, Action::MOVED, transPos.x, transPos.y, (int)i, Input::Source::TOUCHSCREEN, time, nullptr});
-				break;
-			}
-		}
-	}
+	dispatchTouches(touches, self, Input::Action::MOVED);
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	using namespace Base;
-	using namespace Input;
-	auto &win = *Base::ApplicationContext{[UIApplication sharedApplication]}.deviceWindow();
-	for(UITouch* touch in touches)
-	{
-		iterateTimes(std::size(m), i) // find the touch element
-		{
-			if(Input::m[i].touch == touch)
-			{
-				auto &p = Input::m[i];
-				p.touch = nil;
-				CGPoint pos = [touch locationInView:self];
-				pos.x *= win.pointScale;
-				pos.y *= win.pointScale;
-				auto time = IG::FloatSeconds((double)[touch timestamp]);
-				auto transPos = win.transformInputPos({(int)pos.x, (int)pos.y});
-				win.dispatchInputEvent(Input::Event{i, Map::POINTER, Input::Pointer::LBUTTON, 0, Action::RELEASED, transPos.x, transPos.y, (int)i, Input::Source::TOUCHSCREEN, time, nullptr});
-				break;
-			}
-		}
-	}
+	dispatchTouches(touches, self, Input::Action::RELEASED);
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	[self touchesEnded:touches withEvent:event];
+	dispatchTouches(touches, self, Input::Action::CANCELED);
 }
 
 @end

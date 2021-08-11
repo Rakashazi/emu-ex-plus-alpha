@@ -289,8 +289,8 @@ void setupFont(ViewManager &manager, Gfx::Renderer &r, Base::Window &win)
 {
 	float size = optionFontSize / 1000.;
 	logMsg("setting up font size %f", (double)size);
-	manager.defaultFace().setFontSettings(r, IG::FontSettings(win.heightSMMInPixels(size)));
-	manager.defaultBoldFace().setFontSettings(r, IG::FontSettings(win.heightSMMInPixels(size)));
+	manager.defaultFace().setFontSettings(r, IG::FontSettings(win.heightScaledMMInPixels(size)));
+	manager.defaultBoldFace().setFontSettings(r, IG::FontSettings(win.heightScaledMMInPixels(size)));
 }
 
 bool OptionRecentGames::isDefault() const

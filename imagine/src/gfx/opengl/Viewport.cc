@@ -57,10 +57,6 @@ Viewport Viewport::makeFromRect(IG::WindowRect fullRect, IG::WindowRect fullReal
 	float hScaler = v.h / (float)fullRect.ySize();
 	v.wMM = 1;
 	v.hMM = 1;
-	#ifdef __ANDROID__
-	v.wSMM = 1;
-	v.hSMM = 1;
-	#endif
 	v.softOrientation_ = 0;
 	// glViewport() needs flipped Y and relative size
 	v.relYFlipViewport = {{v.realBounds().x, fullRealRect.ySize() - v.realBounds().y2}, {v.realWidth(), v.realHeight()}};
@@ -76,12 +72,8 @@ Viewport Viewport::makeFromWindow(const Base::Window &win, IG::WindowRect rect)
 	v.h = rect.ySize();
 	float wScaler = v.w / (float)win.width();
 	float hScaler = v.h / (float)win.height();
-	v.wMM = win.widthMM() * wScaler;
-	v.hMM = win.heightMM() * hScaler;
-	#ifdef __ANDROID__
-	v.wSMM = win.widthSMM() * wScaler;
-	v.hSMM = win.heightSMM() * hScaler;
-	#endif
+	v.wMM = win.sizeMM().x * wScaler;
+	v.hMM = win.sizeMM().y * hScaler;
 	v.softOrientation_ = win.softOrientation();
 	//logMsg("made viewport %d:%d:%d:%d from window %d:%d",
 	//	v.rect.x, v.rect.y, v.rect.x2, v.rect.y2,

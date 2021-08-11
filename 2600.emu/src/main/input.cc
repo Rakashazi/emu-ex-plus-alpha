@@ -82,28 +82,28 @@ void EmuSystem::clearInputBuffers(EmuInputView &)
 	ev.set(Event::ConsoleBlackWhite, !vcsColor);
 }
 
-void updateVControllerMapping(uint player, SysVController::Map &map)
+void updateVControllerMapping(uint player, VController::Map &map)
 {
 	uint playerShift = player ? 7 : 0;
-	map[SysVController::F_ELEM] = jsFireMap[player];
-	map[SysVController::F_ELEM+1] = jsFireMap[player] | SysVController::TURBO_BIT;
-	map[SysVController::F_ELEM+2] = Event::JoystickZeroFire5 + playerShift;
-	map[SysVController::F_ELEM+3] = (Event::JoystickZeroFire5 + playerShift) | SysVController::TURBO_BIT;
+	map[VController::F_ELEM] = jsFireMap[player];
+	map[VController::F_ELEM+1] = jsFireMap[player] | VController::TURBO_BIT;
+	map[VController::F_ELEM+2] = Event::JoystickZeroFire5 + playerShift;
+	map[VController::F_ELEM+3] = (Event::JoystickZeroFire5 + playerShift) | VController::TURBO_BIT;
 
-	map[SysVController::C_ELEM] = Event::ConsoleSelect;
-	map[SysVController::C_ELEM+1] = Event::ConsoleReset;
+	map[VController::C_ELEM] = Event::ConsoleSelect;
+	map[VController::C_ELEM+1] = Event::ConsoleReset;
 
-	map[SysVController::D_ELEM] = (((uint)Event::JoystickZeroUp) + playerShift)
+	map[VController::D_ELEM] = (((uint)Event::JoystickZeroUp) + playerShift)
 																| (((uint)Event::JoystickZeroLeft + playerShift) << 8);
-	map[SysVController::D_ELEM+1] = Event::JoystickZeroUp + playerShift; // up
-	map[SysVController::D_ELEM+2] = ((uint)Event::JoystickZeroUp  + playerShift)
+	map[VController::D_ELEM+1] = Event::JoystickZeroUp + playerShift; // up
+	map[VController::D_ELEM+2] = ((uint)Event::JoystickZeroUp  + playerShift)
 																	| (((uint)Event::JoystickZeroRight + playerShift) << 8);
-	map[SysVController::D_ELEM+3] = jsLeftMap[player]; // left
-	map[SysVController::D_ELEM+5] = jsRightMap[player]; // right
-	map[SysVController::D_ELEM+6] = ((uint)Event::JoystickZeroDown + playerShift)
+	map[VController::D_ELEM+3] = jsLeftMap[player]; // left
+	map[VController::D_ELEM+5] = jsRightMap[player]; // right
+	map[VController::D_ELEM+6] = ((uint)Event::JoystickZeroDown + playerShift)
 																	| (((uint)Event::JoystickZeroLeft + playerShift) << 8);
-	map[SysVController::D_ELEM+7] = Event::JoystickZeroDown + playerShift; // down
-	map[SysVController::D_ELEM+8] = ((uint)Event::JoystickZeroDown + playerShift)
+	map[VController::D_ELEM+7] = Event::JoystickZeroDown + playerShift; // down
+	map[VController::D_ELEM+8] = ((uint)Event::JoystickZeroDown + playerShift)
 																	| (((uint)Event::JoystickZeroRight + playerShift) << 8);
 }
 

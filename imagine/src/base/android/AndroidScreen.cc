@@ -147,43 +147,46 @@ AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
 
 	// DisplayMetrics
 	jclass jDisplayMetricsCls = env->GetObjectClass(metrics);
-	auto jXDPI = env->GetFieldID(jDisplayMetricsCls, "xdpi", "F");
-	auto jYDPI = env->GetFieldID(jDisplayMetricsCls, "ydpi", "F");
+	auto jDensity = env->GetFieldID(jDisplayMetricsCls, "density", "F");
 	auto jScaledDensity = env->GetFieldID(jDisplayMetricsCls, "scaledDensity", "F");
 	auto jWidthPixels = env->GetFieldID(jDisplayMetricsCls, "widthPixels", "I");
 	auto jHeightPixels = env->GetFieldID(jDisplayMetricsCls, "heightPixels", "I");
-	auto metricsXDPI = env->GetFloatField(metrics, jXDPI);
-	auto metricsYDPI = env->GetFloatField(metrics, jYDPI);
 	auto widthPixels = env->GetIntField(metrics, jWidthPixels);
 	auto heightPixels = env->GetIntField(metrics, jHeightPixels);
-	densityDPI_ = 160.*env->GetFloatField(metrics, jScaledDensity);
+	densityDPI_ = 160.*env->GetFloatField(metrics, jDensity);
 	assert(densityDPI_);
-	logMsg("screen with size %dx%d, DPI size %fx%f, scaled density DPI %f",
-		widthPixels, heightPixels, (double)metricsXDPI, (double)metricsYDPI, (double)densityDPI_);
+	scaledDensityDPI_ = 160.*env->GetFloatField(metrics, jScaledDensity);
+	assert(scaledDensityDPI_);
+	logMsg("screen with size %dx%d, density DPI:%f, scaled density DPI:%f",
+		widthPixels, heightPixels, (double)densityDPI_, (double)scaledDensityDPI_);
 	if(Config::DEBUG_BUILD)
 	{
-		auto jDensity = env->GetFieldID(jDisplayMetricsCls, "density", "F");
+		auto jXDPI = env->GetFieldID(jDisplayMetricsCls, "xdpi", "F");
+		auto jYDPI = env->GetFieldID(jDisplayMetricsCls, "ydpi", "F");
+		auto metricsXDPI = env->GetFloatField(metrics, jXDPI);
+		auto metricsYDPI = env->GetFloatField(metrics, jYDPI);
+		// DPI values are un-rotated from DisplayMetrics
+		if(!isStraightRotation)
+			std::swap(metricsXDPI, metricsYDPI);
 		auto jDensityDPI = env->GetFieldID(jDisplayMetricsCls, "densityDpi", "I");
-		logMsg("display density %f, densityDPI %d, %dx%d pixels, %.2fHz",
-			(double)env->GetFloatField(metrics, jDensity), env->GetIntField(metrics, jDensityDPI),
-			env->GetIntField(metrics, jWidthPixels), env->GetIntField(metrics, jHeightPixels),
+		logMsg("DPI:%fx%f, densityDPI:%d, refresh rate:%.2fHz",
+			metricsXDPI, metricsYDPI, env->GetIntField(metrics, jDensityDPI),
 			(double)refreshRate_);
 	}
-	// DPI values are un-rotated from DisplayMetrics
-	xDPI = isStraightRotation ? metricsXDPI : metricsYDPI;
-	yDPI = isStraightRotation ? metricsYDPI : metricsXDPI;
-	width_ = isStraightRotation ? widthPixels : heightPixels;
-	height_ = isStraightRotation ? heightPixels : widthPixels;
-}
-
-std::pair<float, float> AndroidScreen::dpi() const
-{
-	return {xDPI, yDPI};
+	if(!isStraightRotation)
+		std::swap(widthPixels, heightPixels);
+	width_ = widthPixels;
+	height_ = heightPixels;
 }
 
 float AndroidScreen::densityDPI() const
 {
 	return densityDPI_;
+}
+
+float AndroidScreen::scaledDensityDPI() const
+{
+	return scaledDensityDPI_;
 }
 
 jobject AndroidScreen::displayObject() const

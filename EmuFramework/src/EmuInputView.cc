@@ -27,7 +27,7 @@
 
 EmuInputView::EmuInputView() {}
 
-EmuInputView::EmuInputView(ViewAttachParams attach, SysVController &vCtrl, EmuVideoLayer &videoLayer)
+EmuInputView::EmuInputView(ViewAttachParams attach, VController &vCtrl, EmuVideoLayer &videoLayer)
 	: View(attach), vController{&vCtrl},
 		videoLayer{&videoLayer}
 {}
@@ -36,7 +36,7 @@ void EmuInputView::draw(Gfx::RendererCommands &cmds)
 {
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
 	cmds.loadTransform(projP.makeTranslate());
-	vController->draw(cmds, EmuSystem::touchControlsApplicable(), ffToggleActive);
+	vController->draw(cmds, ffToggleActive);
 	#endif
 }
 
@@ -75,24 +75,9 @@ bool EmuInputView::inputEvent(Input::Event e)
 			ffToggleActive ^= true;
 			updateFastforward();
 		}
-		else if((vController->gamepadControlsVisible() && EmuSystem::touchControlsApplicable())
-			|| vController->isInKeyboardMode())
+		else
 		{
-			vController->applyInput(e);
-			EmuSystem::handlePointerInputEvent(e, videoLayer->gameRect());
-		}
-		else if(EmuSystem::handlePointerInputEvent(e, videoLayer->gameRect()))
-		{
-			//logMsg("game consumed pointer input event");
-		}
-		else if(!vController->gamepadControlsVisible() && vController->shouldShowOnTouchInput()
-			&& !vController->isInKeyboardMode()
-			&& e.isTouch() && e.pushed()
-			)
-		{
-			logMsg("turning on on-screen controls from touch input");
-			vController->setGamepadControlsVisible(true);
-			app().viewController().placeEmuViews();
+			vController->pointerInputEvent(e, videoLayer->gameRect());
 		}
 		return true;
 	}

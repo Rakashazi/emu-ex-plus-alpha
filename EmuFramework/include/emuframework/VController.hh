@@ -17,6 +17,7 @@
 #include <emuframework/config.hh>
 #include <emuframework/EmuAppHelper.hh>
 #include <imagine/input/Input.hh>
+#include <imagine/input/DragTracker.hh>
 #include <imagine/gfx/GfxSprite.hh>
 #include <imagine/gfx/PixmapTexture.hh>
 #include <vector>
@@ -172,7 +173,7 @@ public:
 	int rows() const;
 	int buttonsToLayout() const;
 	int buttonsPerRow() const;
-	std::array<int, 2> buttonIndices(IG::WP windowPos) const;
+	std::array<int, 2> findButtonIndices(IG::WP windowPos) const;
 	void draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPlane projP, bool showHidden) const;
 
 protected:
@@ -250,10 +251,10 @@ public:
 	void resetInput();
 	void place();
 	void toggleKeyboard();
-	void applyInput(Input::Event e);
+	bool pointerInputEvent(Input::Event e, IG::WindowRect gameRect);
 	bool keyInput(Input::Event e);
-	void draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool activeFF, bool showHidden = false);
-	void draw(Gfx::RendererCommands &cmds, bool emuSystemControls, bool activeFF, bool showHidden, float alpha);
+	void draw(Gfx::RendererCommands &cmds, bool activeFF, bool showHidden = false);
+	void draw(Gfx::RendererCommands &cmds, bool activeFF, bool showHidden, float alpha);
 	int numElements() const;
 	IG::WindowRect bounds(int elemIdx) const;
 	void setPos(int elemIdx, IG::WP pos);
@@ -327,6 +328,9 @@ public:
 	void resetOptions();
 	void resetAllOptions();
 	static bool shouldDraw(VControllerState state, bool showHidden = false);
+	void setGamepadIsEnabled(bool on) { gamepadDisabled = !on; }
+	bool gamepadIsEnabled() const { return !gamepadDisabled; }
+	bool gamepadIsActive() const;
 
 private:
 	Gfx::Renderer *renderer_{};
@@ -339,7 +343,7 @@ private:
 	VControllerLayoutPositionArr layoutPos{};
 	VControllerButton menuBtn{};
 	VControllerButton ffBtn{};
-	std::array<std::array<int, 2>, Config::Input::MAX_POINTERS> ptrElem{};
+	Input::DragTracker<std::array<int, 2>> dragTracker{};
 	Map map{};
 	uint16_t defaultButtonSize{};
 	uint16_t btnSize{};
@@ -360,11 +364,13 @@ private:
 	bool layoutPosChanged{};
 	bool physicalControlsPresent{};
 	bool gamepadIsVisible{gamepadControlsVisibility_ != VControllerVisibility::OFF};
+	bool gamepadDisabled{};
 	bool kbMode{};
 	uint8_t alpha{};
 	IG_enableMemberIf(Config::BASE_SUPPORTS_VIBRATOR, bool, vibrateOnTouchInput_){};
 
-	std::array<int, 2> findElementUnderPos(Input::Event e);
+	std::array<int, 2> findGamepadElements(IG::WP pos);
+	int keyboardKeyFromPointer(Input::Event);
 	void applyButtonSize();
 };
 
@@ -376,6 +382,5 @@ static constexpr unsigned VCTRL_LAYOUT_DPAD_IDX = 0,
 	VCTRL_LAYOUT_L_IDX = 5,
 	VCTRL_LAYOUT_R_IDX = 6;
 
-using SysVController = VController;
-void updateVControllerMapping(unsigned player, SysVController::Map &map);
-SysVController::KbMap updateVControllerKeyboardMapping(unsigned mode);
+void updateVControllerMapping(unsigned player, VController::Map &map);
+VController::KbMap updateVControllerKeyboardMapping(unsigned mode);

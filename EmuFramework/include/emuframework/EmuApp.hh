@@ -158,7 +158,7 @@ public:
 	Gfx::PixmapTexture &asset(AssetID) const;
 	void updateInputDevices(Base::ApplicationContext);
 	void setOnUpdateInputDevices(DelegateFunc<void ()>);
-	SysVController &defaultVController();
+	VController &defaultVController();
 	static std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
 	void applyOSNavStyle(Base::ApplicationContext, bool inGame);
 	void setCPUNeedsLowLatency(Base::ApplicationContext, bool needed);
@@ -271,7 +271,7 @@ protected:
 	EmuSystemTask emuSystemTask;
 	mutable Gfx::PixmapTexture assetBuffImg[(unsigned)AssetID::END]{};
 	#ifdef CONFIG_EMUFRAMEWORK_VCONTROLS
-	SysVController vController;
+	VController vController;
 	#endif
 	std::optional<EmuViewController> emuViewController{};
 	Base::Timer autoSaveStateTimer;

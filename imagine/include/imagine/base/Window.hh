@@ -126,16 +126,12 @@ public:
 	IG::Point2D<int> size() const;
 	bool isPortrait() const;
 	bool isLandscape() const;
-	float widthMM() const;
-	float heightMM() const;
 	IG::Point2D<float> sizeMM() const;
-	float widthSMM() const;
-	float heightSMM() const;
-	IG::Point2D<float> sizeSMM() const;
+	IG::Point2D<float> sizeScaledMM() const;
 	int widthMMInPixels(float mm) const;
 	int heightMMInPixels(float mm) const;
-	int widthSMMInPixels(float mm) const;
-	int heightSMMInPixels(float mm) const;
+	int widthScaledMMInPixels(float mm) const;
+	int heightScaledMMInPixels(float mm) const;
 	IG::WindowRect bounds() const;
 	IG::Point2D<int> transformInputPos(IG::Point2D<int> srcPos) const;
 
@@ -165,7 +161,7 @@ public:
 
 private:
 	IG::Point2D<float> pixelSizeAsMM(IG::Point2D<int> size);
-	IG::Point2D<float> pixelSizeAsSMM(IG::Point2D<int> size);
+	IG::Point2D<float> pixelSizeAsScaledMM(IG::Point2D<int> size);
 	void draw(bool needsSync = false);
 };
 

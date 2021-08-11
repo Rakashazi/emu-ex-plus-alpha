@@ -53,28 +53,28 @@ int EmuSystem::inputLTriggerIndex = 6;
 int EmuSystem::inputRTriggerIndex = 7;
 const unsigned EmuSystem::maxPlayers = 2;
 
-void updateVControllerMapping(unsigned player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, VController::Map &map)
 {
 	unsigned playerOffset = player ? EmuControls::gamepadKeys : 0;
-	map[SysVController::F_ELEM] = ssKeyIdxA + playerOffset;
-	map[SysVController::F_ELEM+1] = ssKeyIdxB + playerOffset;
-	map[SysVController::F_ELEM+2] = ssKeyIdxC + playerOffset;
-	map[SysVController::F_ELEM+3] = ssKeyIdxX + playerOffset;
-	map[SysVController::F_ELEM+4] = ssKeyIdxY + playerOffset;
-	map[SysVController::F_ELEM+5] = ssKeyIdxZ + playerOffset;
-	map[SysVController::F_ELEM+6] = ssKeyIdxL + playerOffset;
-	map[SysVController::F_ELEM+7] = ssKeyIdxR + playerOffset;
+	map[VController::F_ELEM] = ssKeyIdxA + playerOffset;
+	map[VController::F_ELEM+1] = ssKeyIdxB + playerOffset;
+	map[VController::F_ELEM+2] = ssKeyIdxC + playerOffset;
+	map[VController::F_ELEM+3] = ssKeyIdxX + playerOffset;
+	map[VController::F_ELEM+4] = ssKeyIdxY + playerOffset;
+	map[VController::F_ELEM+5] = ssKeyIdxZ + playerOffset;
+	map[VController::F_ELEM+6] = ssKeyIdxL + playerOffset;
+	map[VController::F_ELEM+7] = ssKeyIdxR + playerOffset;
 
-	map[SysVController::C_ELEM] = ssKeyIdxStart + playerOffset;
+	map[VController::C_ELEM] = ssKeyIdxStart + playerOffset;
 
-	map[SysVController::D_ELEM] = ssKeyIdxLeftUp + playerOffset;
-	map[SysVController::D_ELEM+1] = ssKeyIdxUp + playerOffset;
-	map[SysVController::D_ELEM+2] = ssKeyIdxRightUp + playerOffset;
-	map[SysVController::D_ELEM+3] = ssKeyIdxLeft + playerOffset;
-	map[SysVController::D_ELEM+5] = ssKeyIdxRight + playerOffset;
-	map[SysVController::D_ELEM+6] = ssKeyIdxLeftDown + playerOffset;
-	map[SysVController::D_ELEM+7] = ssKeyIdxDown + playerOffset;
-	map[SysVController::D_ELEM+8] = ssKeyIdxRightDown + playerOffset;
+	map[VController::D_ELEM] = ssKeyIdxLeftUp + playerOffset;
+	map[VController::D_ELEM+1] = ssKeyIdxUp + playerOffset;
+	map[VController::D_ELEM+2] = ssKeyIdxRightUp + playerOffset;
+	map[VController::D_ELEM+3] = ssKeyIdxLeft + playerOffset;
+	map[VController::D_ELEM+5] = ssKeyIdxRight + playerOffset;
+	map[VController::D_ELEM+6] = ssKeyIdxLeftDown + playerOffset;
+	map[VController::D_ELEM+7] = ssKeyIdxDown + playerOffset;
+	map[VController::D_ELEM+8] = ssKeyIdxRightDown + playerOffset;
 }
 
 unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)

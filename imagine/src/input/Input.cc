@@ -125,7 +125,7 @@ const char *sourceStr(Source src)
 {
 	switch(src)
 	{
-		default: return "Unknown";
+		case Source::UNKNOWN: break;
 		case Source::KEYBOARD: return "Keyboard";
 		case Source::GAMEPAD: return "Gamepad";
 		case Source::MOUSE: return "Mouse";
@@ -133,6 +133,23 @@ const char *sourceStr(Source src)
 		case Source::NAVIGATION: return "Navigation";
 		case Source::JOYSTICK: return "Joystick";
 	}
+	return "Unknown";
+}
+
+const char *actionStr(Action act)
+{
+	switch(act)
+	{
+		case Action::UNUSED: return "Unused";
+		case Action::RELEASED: return "Released";
+		case Action::PUSHED: return "Pushed";
+		case Action::MOVED: return "Moved";
+		case Action::MOVED_RELATIVE: return "Moved Relative";
+		case Action::EXIT_VIEW: return "Exit View";
+		case Action::ENTER_VIEW: return "Enter View";
+		case Action::CANCELED: return "Canceled";
+	}
+	return "Unknown";
 }
 
 Map validateMap(uint8_t mapValue)

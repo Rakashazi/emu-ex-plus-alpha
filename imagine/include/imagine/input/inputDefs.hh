@@ -15,9 +15,10 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
+#include <imagine/input/config.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <array>
+#include <type_traits>
 
 namespace Input
 {
@@ -54,5 +55,18 @@ enum class Map : uint8_t
 using EventKeyString = std::array<char, 4>;
 
 using TextFieldDelegate = DelegateFunc<void (const char *str)>;
+
+using PointerId = PointerIdImpl;
+
+static constexpr PointerId NULL_POINTER_ID
+{
+	[]()
+	{
+		if constexpr(std::is_pointer_v<PointerId>)
+			return nullptr;
+		else
+			return -1;
+	}()
+};
 
 }

@@ -18,6 +18,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/algorithm.h>
 
 namespace Input
 {
@@ -26,43 +27,51 @@ class DragTrackerState
 {
 public:
 	constexpr DragTrackerState() {}
-	constexpr DragTrackerState(int id, IG::WP pos)
+	constexpr DragTrackerState(PointerId id, IG::WP pos)
 	{
 		start(id, pos);
 	}
 
-	void start(int id, IG::WP pos)
+	constexpr void start(PointerId id, IG::WP pos)
 	{
 		id_ = id;
 		downPos_ = pos_ = pos;
-		isTracking_ = true;
+		isDragging_ = false;
 	}
 
-	void update(IG::WP pos);
+	void update(IG::WP pos, int dragStartPixels);
 	void finish();
-	int id() const { return id_; }
-	IG::WP pos() const { return pos_; }
-	IG::WP downPos() const { return downPos_; }
-	IG::WP downPosDiff() const { return pos_ - downPos_; }
-	void setXDragStartDistance(uint32_t dist) { xDragStart = dist; }
-	void setYDragStartDistance(uint32_t dist) { yDragStart = dist; }
-	bool isDragging() const { return isDragging_; }
-	bool isTracking() const { return isTracking_; }
-	bool isTracking(int id) const { return isTracking_ && id_ == id; }
+	constexpr PointerId id() const { return id_; }
+	constexpr IG::WP pos() const { return pos_; }
+	constexpr IG::WP downPos() const { return downPos_; }
+	constexpr IG::WP downPosDiff() const { return pos_ - downPos_; }
+	constexpr bool isDragging() const { return isDragging_; }
+	constexpr bool isTracking() const { return id_ != NULL_POINTER_ID; }
+	constexpr bool isTracking(PointerId id) const { return id_ == id; }
 
 protected:
-	int id_{};
+	PointerId id_{NULL_POINTER_ID};
 	IG::WP pos_{};
 	IG::WP downPos_{};
-	uint32_t xDragStart{};
-	uint32_t yDragStart{};
 	bool isDragging_ = false;
-	bool isTracking_ = false;
 };
 
+struct EmptyUserData {};
+
+template <class UserData = EmptyUserData, size_t MAX_POINTERS = Config::Input::MAX_POINTERS>
 class DragTracker
 {
 public:
+	struct State
+	{
+		DragTrackerState dragState{};
+		[[no_unique_address]] UserData data{};
+
+		constexpr State() {}
+		constexpr State(DragTrackerState dragState, UserData data):
+			dragState{dragState}, data{data} {}
+	};
+
 	constexpr DragTracker() {}
 
 	template <class OnDown, class OnMove, class OnUp>
@@ -70,41 +79,41 @@ public:
 	{
 		if(!e.isPointer())
 			return false;
-		auto pID = e.pointerID();
+		auto pID = e.pointerId();
 		switch(e.state())
 		{
 			case Input::Action::PUSHED:
 			{
-				if(state_.isFull() || e.mapKey() != Input::Pointer::LBUTTON)
+				if(state_.isFull())
 					return false;
-				DragTrackerState startState{e.pointerID(), e.pos()};
-				state_.push_back(startState);
-				onDown(startState);
+				auto &startState = state_.emplace_back(DragTrackerState{pID, e.pos()}, UserData{});
+				onDown(startState.dragState, startState.data);
 				return false;
 			}
 			case Input::Action::MOVED:
 			{
-				auto s = std::find_if(state_.begin(), state_.end(), [pID](const auto &s){ return s.id() == pID; });
-				if(s == state_.end())
+				auto s = state(pID);
+				if(!s)
 					return false;
-				auto prevState = *s;
-				s->update(e.pos());
-				onMove(*s, prevState);
-				return s->isDragging();
+				auto &[dragState, userData] = *s;
+				auto prevDragState = dragState;
+				dragState.update(e.pos(), dragStartPixels);
+				onMove(dragState, prevDragState, userData);
+				return dragState.isDragging();
 			}
 			case Input::Action::RELEASED:
 			case Input::Action::CANCELED:
 			{
-				auto s = std::find_if(state_.begin(), state_.end(), [pID](const auto &s){ return s.id() == pID; });
-				if(s == state_.end())
+				auto s = state(pID);
+				if(!s)
 					return false;
-				auto finishState = *s;
+				auto [finishDragState, userData] = *s;
 				state_.erase(s);
-				auto prevState = finishState;
-				finishState.update(e.pos());
-				if(prevState.pos() != finishState.pos())
-					onMove(finishState, prevState);
-				onUp(finishState);
+				auto prevDragState = finishDragState;
+				finishDragState.update(e.pos(), dragStartPixels);
+				if(prevDragState.pos() != finishDragState.pos())
+					onMove(finishDragState, prevDragState, userData);
+				onUp(finishDragState, userData);
 				return false;
 			}
 			default:
@@ -112,68 +121,36 @@ public:
 		}
 	}
 
-	DragTrackerState state(int id) const;
-
-protected:
-	StaticArrayList<DragTrackerState, Config::Input::MAX_POINTERS> state_{};
-};
-
-class SingleDragTracker
-{
-public:
-	constexpr SingleDragTracker() {}
-
-	template <class OnDown, class OnMove, class OnUp>
-	bool inputEvent(Event e, OnDown onDown, OnMove onMove, OnUp onUp)
+	void reset()
 	{
-		if(!e.isPointer())
-			return false;
-		auto pID = e.pointerID();
-		switch(e.state())
-		{
-			case Input::Action::PUSHED:
-			{
-				if(state_.isTracking() || e.mapKey() != Input::Pointer::LBUTTON)
-					return false;
-				state_.start(pID, e.pos());
-				onDown(state_);
-				return false;
-			}
-			case Input::Action::MOVED:
-			{
-				if(!state_.isTracking(pID))
-					return false;
-				auto prevState = state_;
-				state_.update(e.pos());
-				onMove(state_, prevState);
-				return state_.isDragging();
-			}
-			case Input::Action::RELEASED:
-			case Input::Action::CANCELED:
-			{
-				if(!state_.isTracking(pID))
-					return false;
-				auto prevState = state_;
-				state_.update(e.pos());
-				if(prevState.pos() != state_.pos())
-					onMove(state_, prevState);
-				onUp(state_);
-				state_.finish();
-				return false;
-			}
-			default:
-				return false;
-		}
+		state_.clear();
 	}
 
-	DragTrackerState state() const { return state_; }
-	void finish() { state_.finish(); }
-	void setXDragStartDistance(uint32_t dist) { state_.setXDragStartDistance(dist); }
-	void setYDragStartDistance(uint32_t dist) { state_.setYDragStartDistance(dist); }
-	bool isDragging() const { return state_.isDragging(); }
+	auto &stateList()
+	{
+		return state_;
+	}
+
+	bool isDragging() const { return state_.size() && state_[0].dragState.isDragging(); }
+
+	void setDragStartPixels(int p) { dragStartPixels = p; }
 
 protected:
-	DragTrackerState state_{};
+	StaticArrayList<State, MAX_POINTERS> state_{};
+	int dragStartPixels{};
+
+	State *state(PointerId id)
+	{
+		auto s = IG::find_if(state_, [id](const auto &s){ return s.dragState.id() == id; });
+		if(s == state_.end())
+		{
+			return nullptr;
+		}
+		return s;
+	}
 };
+
+template <class UserData = EmptyUserData>
+using SingleDragTracker = DragTracker<UserData, 1>;
 
 }

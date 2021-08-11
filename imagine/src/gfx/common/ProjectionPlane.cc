@@ -50,10 +50,6 @@ void ProjectionPlane::updateMMSize(Viewport v)
 {
 	mmToXScale = w/(GC)v.widthMM();
 	mmToYScale = h/(GC)v.heightMM();
-	#ifdef __ANDROID__
-	smmToXScale = w/(GC)v.widthSMM();
-	smmToYScale = h/(GC)v.heightSMM();
-	#endif
 	//logMsg("projector to mm %fx%f", (double)mmToXScale, (double)mmToYScale);
 }
 
@@ -199,13 +195,5 @@ IG::Point2D<GC> ProjectionPlane::alignToPixel(IG::Point2D<GC> p) const
 
 GC ProjectionPlane::xMMSize(GC mm) const { return mm * mmToXScale; }
 GC ProjectionPlane::yMMSize(GC mm) const { return mm * mmToYScale; }
-
-#ifdef __ANDROID__
-GC ProjectionPlane::xSMMSize(GC mm) const { return mm * smmToXScale; }
-GC ProjectionPlane::ySMMSize(GC mm) const { return mm * smmToYScale; }
-#else
-GC ProjectionPlane::xSMMSize(GC mm) const { return xMMSize(mm); }
-GC ProjectionPlane::ySMMSize(GC mm) const { return yMMSize(mm); }
-#endif
 
 }

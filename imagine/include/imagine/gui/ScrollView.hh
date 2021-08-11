@@ -42,7 +42,7 @@ protected:
 	using VelocityTrackerType = Input::VelocityTracker<float, 1>;
 
 	Base::OnFrameDelegate animate;
-	Input::SingleDragTracker dragTracker{};
+	Input::SingleDragTracker<> dragTracker{};
 	VelocityTrackerType velTracker{}; // tracks y velocity as pixels/sec
 	IG::WindowRect scrollBarRect{};
 	IG::FrameTime lastFrameTimestamp{};

@@ -43,23 +43,23 @@ const unsigned EmuSystem::maxPlayers = 1;
 std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0};
 GbcInput gbcInput{};
 
-void updateVControllerMapping(unsigned player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, VController::Map &map)
 {
 	using namespace gambatte;
-	map[SysVController::F_ELEM] = InputGetter::B;
-	map[SysVController::F_ELEM+1] = InputGetter::A;
+	map[VController::F_ELEM] = InputGetter::B;
+	map[VController::F_ELEM+1] = InputGetter::A;
 
-	map[SysVController::C_ELEM] = InputGetter::SELECT;
-	map[SysVController::C_ELEM+1] = InputGetter::START;
+	map[VController::C_ELEM] = InputGetter::SELECT;
+	map[VController::C_ELEM+1] = InputGetter::START;
 
-	map[SysVController::D_ELEM] = InputGetter::UP | InputGetter::LEFT;
-	map[SysVController::D_ELEM+1] = InputGetter::UP;
-	map[SysVController::D_ELEM+2] = InputGetter::UP | InputGetter::RIGHT;
-	map[SysVController::D_ELEM+3] = InputGetter::LEFT;
-	map[SysVController::D_ELEM+5] = InputGetter::RIGHT;
-	map[SysVController::D_ELEM+6] = InputGetter::DOWN | InputGetter::LEFT;
-	map[SysVController::D_ELEM+7] = InputGetter::DOWN;
-	map[SysVController::D_ELEM+8] = InputGetter::DOWN | InputGetter::RIGHT;
+	map[VController::D_ELEM] = InputGetter::UP | InputGetter::LEFT;
+	map[VController::D_ELEM+1] = InputGetter::UP;
+	map[VController::D_ELEM+2] = InputGetter::UP | InputGetter::RIGHT;
+	map[VController::D_ELEM+3] = InputGetter::LEFT;
+	map[VController::D_ELEM+5] = InputGetter::RIGHT;
+	map[VController::D_ELEM+6] = InputGetter::DOWN | InputGetter::LEFT;
+	map[VController::D_ELEM+7] = InputGetter::DOWN;
+	map[VController::D_ELEM+8] = InputGetter::DOWN | InputGetter::RIGHT;
 }
 
 unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)

@@ -153,14 +153,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		app().promptSystemReloadDueToSetOption(attachParams(), e);
 	}
 
-	std::array<MenuItem*, 5> menuItem
-	{
-		&inputPorts,
-		&sixButtonPad,
-		&multitap,
-		&videoSystem,
-		&region
-	};
+	StaticArrayList<MenuItem*, 5> item{};
 
 public:
 	ConsoleOptionView(ViewAttachParams attach):
@@ -168,9 +161,18 @@ public:
 		{
 			"Console Options",
 			attach,
-			menuItem
+			item
 		}
-	{}
+	{
+		if(system_hw != SYSTEM_PBC)
+		{
+			item.emplace_back(&inputPorts);
+			item.emplace_back(&sixButtonPad);
+			item.emplace_back(&multitap);
+		}
+		item.emplace_back(&videoSystem);
+		item.emplace_back(&region);
+	}
 };
 
 class CustomSystemActionsView : public EmuSystemActionsView

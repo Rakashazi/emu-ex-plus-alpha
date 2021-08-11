@@ -17,7 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/input/config.hh>
 #include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/input/inputDefs.hh>
 
@@ -54,8 +53,8 @@ public:
 
 	constexpr Event() {}
 
-	constexpr Event(uint32_t devId, Map map, Key button, uint32_t metaState, Action state, int x, int y, int pointerID, Source src, Time time, const Device *device)
-		: device_{device}, time_{time}, devId{devId}, x{x}, y{y}, pointerID_{pointerID}, metaState{metaState}, button{button}, state_{state}, map_{map}, src{src} {}
+	constexpr Event(uint32_t devId, Map map, Key button, uint32_t metaState, Action state, int x, int y, PointerId pointerId, Source src, Time time, const Device *device)
+		: device_{device}, pointerId_{pointerId}, time_{time}, devId{devId}, x{x}, y{y}, metaState{metaState}, button{button}, state_{state}, map_{map}, src{src} {}
 
 	constexpr Event(uint32_t devId, Map map, Key button, Key sysKey, Action state, uint32_t metaState, int repeatCount, Source src, Time time, const Device *device)
 		: device_{device}, time_{time}, devId{devId}, metaState{metaState}, repeatCount{repeatCount}, button{button}, sysKey_{sysKey}, state_{state}, map_{map}, src{src} {}
@@ -66,7 +65,7 @@ public:
 	static uint32_t mapNumKeys(Map map);
 	Map map() const;
 	void setMap(Map map);
-	int pointerID() const;
+	PointerId pointerId() const;
 	Action state() const;
 	void setKeyFlags(uint8_t flags);
 	bool stateIsPointer() const;
@@ -114,10 +113,10 @@ public:
 
 protected:
 	const Device *device_{};
+	PointerId pointerId_{};
 	Time time_{};
 	uint32_t devId{};
 	int x{}, y{};
-	int pointerID_{};
 	uint32_t metaState{};
 	int repeatCount{};
 	Key button{}, sysKey_{};
@@ -131,6 +130,7 @@ protected:
 };
 
 const char *sourceStr(Source);
+const char *actionStr(Action);
 Map validateMap(uint8_t mapValue);
 
 }

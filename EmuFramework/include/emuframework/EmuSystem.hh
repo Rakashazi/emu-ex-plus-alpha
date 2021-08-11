@@ -36,6 +36,7 @@ class ApplicationContext;
 namespace Input
 {
 class Event;
+class DragTrackerState;
 enum class Action : uint8_t;
 }
 
@@ -240,8 +241,9 @@ public:
 		bool turbo;
 		return translateInputAction(input, turbo);
 	}
-	static bool touchControlsApplicable();
-	static bool handlePointerInputEvent(Input::Event e, IG::WindowRect gameRect);
+	static bool onPointerInputStart(Input::Event, Input::DragTrackerState, IG::WindowRect gameRect);
+	static bool onPointerInputUpdate(Input::Event, Input::DragTrackerState current, Input::DragTrackerState previous, IG::WindowRect gameRect);
+	static bool onPointerInputEnd(Input::Event, Input::DragTrackerState, IG::WindowRect gameRect);
 	static bool inputHasTriggers();
 	static void setStartFrameTime(Base::FrameTime time);
 	static EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);

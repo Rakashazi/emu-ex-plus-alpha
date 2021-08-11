@@ -145,9 +145,9 @@ public:
 	constexpr TextureSpan(const Texture *tex = {}, GTexCRect uv = {{}, {1., 1.}}):
 		tex{tex}, uv{uv}
 	{}
-	const Texture *texture() const { return tex; }
-	GTexCRect uvBounds() const { return uv; }
-	explicit operator bool() const { return tex; }
+	constexpr const Texture *texture() const { return tex; }
+	constexpr GTexCRect uvBounds() const { return uv; }
+	explicit operator bool() const;
 
 protected:
 	const Texture *tex;

@@ -117,9 +117,8 @@ static auto &layoutPosArr(VController &vController, Base::Window &win)
 
 class OnScreenInputPlaceView : public View, public EmuAppHelper<OnScreenInputPlaceView>
 {
-	struct DragState
+	struct DragData
 	{
-		constexpr DragState() {};
 		int elem{-1};
 		IG::WP startPos{};
 	};
@@ -129,8 +128,7 @@ class OnScreenInputPlaceView : public View, public EmuAppHelper<OnScreenInputPla
 	Base::Timer animationStartTimer{"OnScreenInputPlaceView::animationStartTimer"};
 	Base::OnFrameDelegate animate{};
 	IG::WindowRect exitBtnRect{};
-	DragState drag[Config::Input::MAX_POINTERS]{};
-	Input::DragTracker dragTracker{};
+	Input::DragTracker<DragData> dragTracker{};
 
 public:
 	OnScreenInputPlaceView(ViewAttachParams attach, VController &vController);
@@ -173,13 +171,9 @@ OnScreenInputPlaceView::~OnScreenInputPlaceView()
 
 void OnScreenInputPlaceView::place()
 {
-	for(auto &d : drag)
-	{
-		d.elem = -1;
-	}
-
+	dragTracker.reset();
 	auto exitBtnPos = viewRect().pos(C2DO);
-	int exitBtnSize = window().widthSMMInPixels(10.);
+	int exitBtnSize = window().widthMMInPixels(10.);
 	exitBtnRect = IG::makeWindowRectRel(exitBtnPos - IG::WP{exitBtnSize/2, exitBtnSize/2}, {exitBtnSize, exitBtnSize});
 	text.compile(renderer(), projP);
 }
@@ -199,9 +193,8 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 	{
 		animationStartTimer.dispatchEarly();
 	}
-	auto &d = drag[e.deviceID()];
 	dragTracker.inputEvent(e,
-		[&](Input::DragTrackerState)
+		[&](Input::DragTrackerState, DragData &d)
 		{
 			if(d.elem == -1)
 			{
@@ -209,9 +202,9 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 				{
 					if(vController.state(i) == VControllerState::OFF || !vController.bounds(i).contains(e.pos()))
 						continue;
-					for(auto &otherDrag : drag)
+					for(const auto &state : dragTracker.stateList())
 					{
-						if(otherDrag.elem == (int)i)
+						if(state.data.elem == (int)i)
 							continue; // element already grabbed
 					}
 					d.elem = i;
@@ -220,7 +213,7 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 				}
 			}
 		},
-		[&](Input::DragTrackerState state, Input::DragTrackerState)
+		[&](Input::DragTrackerState state, Input::DragTrackerState, DragData &d)
 		{
 			if(d.elem >= 0)
 			{
@@ -237,13 +230,9 @@ bool OnScreenInputPlaceView::inputEvent(Input::Event e)
 				postDraw();
 			}
 		},
-		[&](Input::DragTrackerState state)
+		[&](Input::DragTrackerState state, DragData &d)
 		{
-			if(d.elem >= 0)
-			{
-				d.elem = -1;
-			}
-			else if(exitBtnRect.overlaps(state.pos()) && exitBtnRect.overlaps(state.downPos()))
+			if(d.elem == -1 && exitBtnRect.overlaps(state.pos()) && exitBtnRect.overlaps(state.downPos()))
 			{
 				dismiss();
 			}
@@ -255,7 +244,7 @@ void OnScreenInputPlaceView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
 	projP.resetTransforms(cmds);
-	vController.draw(cmds, true, false, true, .75);
+	vController.draw(cmds, false, true, .75);
 	cmds.setColor(.5, .5, .5);
 	cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
 	Gfx::GC lineSize = projP.unprojectYSize(1);
@@ -331,7 +320,7 @@ static void setAlpha(VController &vController, uint8_t val)
 void TouchConfigView::draw(Gfx::RendererCommands &cmds)
 {
 	projP.resetTransforms(cmds);
-	vController.draw(cmds, true, false, true, .75);
+	vController.draw(cmds, false, true, .75);
 	TableView::draw(cmds);
 }
 

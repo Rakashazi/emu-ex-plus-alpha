@@ -126,8 +126,7 @@ void ScrollView::setContentSize(IG::WP size)
 {
 	IG::WP contentSize = {size.x, size.y};
 	overScrollVelScale = OVER_SCROLL_VEL_SCALE / screen()->frameRate();
-	dragTracker.setXDragStartDistance(-1);
-	dragTracker.setYDragStartDistance(std::max(1, Config::envIsAndroid ? window().heightSMMInPixels(1.5) : window().heightSMMInPixels(1.)));
+	dragTracker.setDragStartPixels(std::max(1, Config::envIsAndroid ? window().heightMMInPixels(1.5) : window().heightMMInPixels(1.)));
 	const auto viewFrame = viewRect();
 	offsetMax = std::max(0, contentSize.y - viewFrame.ySize());
 	if(isOverScrolled())
@@ -139,8 +138,8 @@ void ScrollView::setContentSize(IG::WP size)
 	else
 		allowScrollWholeArea_ = false;
 	contentIsBiggerThanView = contentSize.y > viewFrame.ySize();
-	auto scrollBarRightPadding = std::max(2, IG::makeEvenRoundedUp(window().widthSMMInPixels(.4)));
-	auto scrollBarWidth = std::max(2, IG::makeEvenRoundedUp(window().widthSMMInPixels(.3)));
+	auto scrollBarRightPadding = std::max(2, IG::makeEvenRoundedUp(window().widthMMInPixels(.4)));
+	auto scrollBarWidth = std::max(2, IG::makeEvenRoundedUp(window().widthMMInPixels(.3)));
 	scrollBarRect.x = (viewFrame.x2 - scrollBarRightPadding) - scrollBarWidth;
 	scrollBarRect.x2 = scrollBarRect.x + scrollBarWidth;
 	scrollBarRect.y = 0;
@@ -178,7 +177,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 		&& (e.pushed(Input::Pointer::WHEEL_UP) || e.pushed(Input::Pointer::WHEEL_DOWN)))
 	{
 		auto prevOffset = offset;
-		auto vel = window().heightSMMInPixels(10.0);
+		auto vel = window().heightMMInPixels(10.0);
 		offset += e.mapKey() == Input::Pointer::WHEEL_UP ? -vel : vel;
 		offset = std::clamp(offset, 0, offsetMax);
 		if(offset != prevOffset)
@@ -187,14 +186,14 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 	}
 	// click & drag scroll
 	bool isDragging = dragTracker.inputEvent(e,
-		[&](Input::DragTrackerState)
+		[&](Input::DragTrackerState, auto)
 		{
 			stopScrollAnimation();
 			velTracker = {std::chrono::duration_cast<VelocityTrackerType::TimeType>(e.time()), {(float)e.pos().y}};
 			scrollVel = 0;
 			onDragOffset = offset;
 			const auto viewFrame = viewRect();
-			if(allowScrollWholeArea_ && (e.pos().x > viewFrame.xSize() - window().widthSMMInPixels(7.5)))
+			if(allowScrollWholeArea_ && (e.pos().x > viewFrame.xSize() - window().widthMMInPixels(7.5)))
 			{
 				logMsg("will scroll all content");
 				scrollWholeArea_ = true;
@@ -204,7 +203,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 				scrollWholeArea_ = false;
 			}
 		},
-		[&](Input::DragTrackerState state, Input::DragTrackerState)
+		[&](Input::DragTrackerState state, Input::DragTrackerState, auto)
 		{
 			velTracker.update(std::chrono::duration_cast<VelocityTrackerType::TimeType>(e.time()), {(float)e.pos().y});
 			if(state.isDragging())
@@ -229,7 +228,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 					postDraw();
 			}
 		},
-		[&](Input::DragTrackerState state)
+		[&](Input::DragTrackerState state, auto)
 		{
 			if(state.isDragging() && !isOverScrolled())
 			{
@@ -256,7 +255,7 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 
 void ScrollView::setScrollOffset(int o)
 {
-	dragTracker.finish();
+	dragTracker.reset();
 	stopScrollAnimation();
 	offset = std::clamp(o, 0, offsetMax);
 }

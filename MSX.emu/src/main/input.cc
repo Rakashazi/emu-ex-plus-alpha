@@ -92,7 +92,7 @@ const unsigned EmuSystem::maxPlayers = 2;
 std::array<int, EmuSystem::MAX_FACE_BTNS> EmuSystem::vControllerImageMap{1, 0};
 extern Machine *machine;
 
-static SysVController::KbMap kbToEventMap
+static VController::KbMap kbToEventMap
 {
 	EC_Q, EC_W, EC_E, EC_R, EC_T, EC_Y, EC_U, EC_I, EC_O, EC_P,
 	EC_A, EC_S, EC_D, EC_F, EC_G, EC_H, EC_J, EC_K, EC_L, EC_NONE,
@@ -100,7 +100,7 @@ static SysVController::KbMap kbToEventMap
 	EC_NONE, EC_NONE, EC_NONE, EC_SPACE, EC_SPACE, EC_SPACE, EC_SPACE, EC_CTRL, EC_CTRL, EC_RETURN
 };
 
-static SysVController::KbMap kbToEventMap2
+static VController::KbMap kbToEventMap2
 {
 	EC_F1, EC_F1, EC_F2, EC_F2, EC_F3, EC_F3, EC_F4, EC_F4, EC_F5, EC_F5, // 0-9
 	EC_1, EC_2, EC_3, EC_4, EC_5, EC_6, EC_7, EC_8, EC_9, EC_0, // 10-19
@@ -119,12 +119,12 @@ void setupVKeyboardMap(EmuApp &app, unsigned boardType)
 	app.updateKeyboardMapping();
 }
 
-SysVController::KbMap updateVControllerKeyboardMapping(unsigned mode)
+VController::KbMap updateVControllerKeyboardMapping(unsigned mode)
 {
 	return mode ? kbToEventMap2 : kbToEventMap;
 }
 
-void updateVControllerMapping(unsigned player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, VController::Map &map)
 {
 	if(machine && machine->board.type == BOARD_COLECO)
 	{
@@ -134,25 +134,25 @@ void updateVControllerMapping(unsigned player, SysVController::Map &map)
 		kbToEventMap2[19] = EC_COLECO1_0 + playerShift;
 		kbToEventMap2[23] = EC_COLECO1_HASH + playerShift;
 	}
-	map[SysVController::F_ELEM] = player ? EC_JOY2_BUTTON2 : EC_JOY1_BUTTON2;
-	map[SysVController::F_ELEM+1] = player ? EC_JOY2_BUTTON1 : EC_JOY1_BUTTON1;
+	map[VController::F_ELEM] = player ? EC_JOY2_BUTTON2 : EC_JOY1_BUTTON2;
+	map[VController::F_ELEM+1] = player ? EC_JOY2_BUTTON1 : EC_JOY1_BUTTON1;
 
-	map[SysVController::C_ELEM] = activeBoardType == BOARD_COLECO ? (player ? EC_COLECO2_STAR : EC_COLECO1_STAR)
+	map[VController::C_ELEM] = activeBoardType == BOARD_COLECO ? (player ? EC_COLECO2_STAR : EC_COLECO1_STAR)
 																	: EC_SPACE;
-	map[SysVController::C_ELEM+1] = EC_KEYCOUNT;
+	map[VController::C_ELEM+1] = EC_KEYCOUNT;
 
 	unsigned up = player ? EC_JOY2_UP : EC_JOY1_UP;
 	unsigned down = player ? EC_JOY2_DOWN : EC_JOY1_DOWN;
 	unsigned left = player ? EC_JOY2_LEFT : EC_JOY1_LEFT;
 	unsigned right = player ? EC_JOY2_RIGHT : EC_JOY1_RIGHT;
-	map[SysVController::D_ELEM] = up | (left << 8);
-	map[SysVController::D_ELEM+1] = up;
-	map[SysVController::D_ELEM+2] = up | (right << 8);
-	map[SysVController::D_ELEM+3] = left;
-	map[SysVController::D_ELEM+5] = right;
-	map[SysVController::D_ELEM+6] = down | (left << 8);
-	map[SysVController::D_ELEM+7] = down;
-	map[SysVController::D_ELEM+8] = down | (right << 8);
+	map[VController::D_ELEM] = up | (left << 8);
+	map[VController::D_ELEM+1] = up;
+	map[VController::D_ELEM+2] = up | (right << 8);
+	map[VController::D_ELEM+3] = left;
+	map[VController::D_ELEM+5] = right;
+	map[VController::D_ELEM+6] = down | (left << 8);
+	map[VController::D_ELEM+7] = down;
+	map[VController::D_ELEM+8] = down | (right << 8);
 }
 
 unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)

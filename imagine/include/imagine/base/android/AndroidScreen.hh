@@ -54,8 +54,8 @@ public:
 	};
 
 	AndroidScreen(ApplicationContext, InitParams);
-	std::pair<float, float> dpi() const;
 	float densityDPI() const;
+	float scaledDensityDPI() const;
 	jobject displayObject() const;
 	int id() const;
 	void updateRefreshRate(float refreshRate);
@@ -71,8 +71,8 @@ protected:
 	JNI::UniqueGlobalRef aDisplay{};
 	FrameTimer frameTimer;
 	IG::FloatSeconds frameTime_{};
-	float xDPI{}, yDPI{};
 	float densityDPI_{};
+	float scaledDensityDPI_{};
 	float refreshRate_{};
 	int width_{}, height_{};
 	int id_{};

@@ -11,6 +11,8 @@ namespace EmuControls
 extern const unsigned gamepadKeys;
 }
 
+class VController;
+
 #ifdef SNES9X_VERSION_1_4
 static constexpr bool IS_SNES9X_VERSION_1_4 = true;
 #else
@@ -39,7 +41,7 @@ extern int snesActiveInputPort;
 static const int &snesActiveInputPort = snesInputPort;
 #endif
 
-void setupSNESInput();
+void setupSNESInput(VController &);
 void setSuperFXSpeedMultiplier(unsigned val);
 
 #ifndef SNES9X_VERSION_1_4

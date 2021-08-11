@@ -221,10 +221,10 @@ static constexpr uint32_t
 	KBEX_TOGGLE_VKEYBOARD = mkEXKeyCode(5);
 
 static std::array<uint32_t, KB_KEYS> c64KeyMap{};
-static SysVController::KbMap kbToEventMap{};
-static SysVController::KbMap kbToEventMapShifted{};
-static SysVController::KbMap kbToEventMap2{};
-static SysVController::KbMap kbToEventMap2Shifted{};
+static VController::KbMap kbToEventMap{};
+static VController::KbMap kbToEventMapShifted{};
+static VController::KbMap kbToEventMap2{};
+static VController::KbMap kbToEventMap2Shifted{};
 
 static bool isEmuKeyInKeyboardRange(uint32_t emuKey)
 {
@@ -237,28 +237,28 @@ static uint32_t keyboardCodeFromEmuKey(uint32_t emuKey)
 	return c64KeyMap[emuKey - c64KeyFirstKeyboardKey];
 }
 
-SysVController::KbMap updateVControllerKeyboardMapping(unsigned mode)
+VController::KbMap updateVControllerKeyboardMapping(unsigned mode)
 {
 	return mode ? (shiftLock ? kbToEventMap2Shifted : kbToEventMap2) : (shiftLock ? kbToEventMapShifted : kbToEventMap);
 }
 
-void updateVControllerMapping(unsigned player, SysVController::Map &map)
+void updateVControllerMapping(unsigned player, VController::Map &map)
 {
 	const unsigned p2Bit = player ? JS_P2_BIT : 0;
-	map[SysVController::F_ELEM] = JS_FIRE | p2Bit;
-	map[SysVController::F_ELEM+1] = JS_FIRE | p2Bit | SysVController::TURBO_BIT;
+	map[VController::F_ELEM] = JS_FIRE | p2Bit;
+	map[VController::F_ELEM+1] = JS_FIRE | p2Bit | VController::TURBO_BIT;
 
-	map[SysVController::C_ELEM] = keyboardCodeFromEmuKey(c64KeyF1);
-	map[SysVController::C_ELEM+1] = KBEX_TOGGLE_VKEYBOARD;
+	map[VController::C_ELEM] = keyboardCodeFromEmuKey(c64KeyF1);
+	map[VController::C_ELEM+1] = KBEX_TOGGLE_VKEYBOARD;
 
-	map[SysVController::D_ELEM] = JS_NW | p2Bit;
-	map[SysVController::D_ELEM+1] = JS_N | p2Bit;
-	map[SysVController::D_ELEM+2] = JS_NE | p2Bit;
-	map[SysVController::D_ELEM+3] = JS_W | p2Bit;
-	map[SysVController::D_ELEM+5] = JS_E | p2Bit;
-	map[SysVController::D_ELEM+6] = JS_SW | p2Bit;
-	map[SysVController::D_ELEM+7] = JS_S | p2Bit;
-	map[SysVController::D_ELEM+8] = JS_SE | p2Bit;
+	map[VController::D_ELEM] = JS_NW | p2Bit;
+	map[VController::D_ELEM+1] = JS_N | p2Bit;
+	map[VController::D_ELEM+2] = JS_NE | p2Bit;
+	map[VController::D_ELEM+3] = JS_W | p2Bit;
+	map[VController::D_ELEM+5] = JS_E | p2Bit;
+	map[VController::D_ELEM+6] = JS_SW | p2Bit;
+	map[VController::D_ELEM+7] = JS_S | p2Bit;
+	map[VController::D_ELEM+8] = JS_SE | p2Bit;
 }
 
 unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)

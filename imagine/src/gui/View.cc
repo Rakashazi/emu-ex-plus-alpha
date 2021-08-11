@@ -22,10 +22,6 @@
 #include <imagine/util/math/space.hh>
 #include <imagine/logger/logger.h>
 
-//Gfx::GlyphTextureSet View::defaultFace{};
-//Gfx::GlyphTextureSet View::defaultBoldFace{};
-//bool View::needsBackControl = needsBackControlDefault;
-
 Gfx::Renderer &ViewAttachParams::renderer() const
 {
 	return rendererTask().renderer();
@@ -121,17 +117,17 @@ Gfx::GC ViewManager::tableXIndent() const
 
 void ViewManager::setTableXIndentMM(float indentMM, Gfx::ProjectionPlane projP)
 {
-	auto indentGC = projP.xSMMSize(indentMM);
+	auto indentGC = projP.xMMSize(indentMM);
 	if(!IG::valIsWithinStretch(indentGC, tableXIndent(), 0.001f))
 	{
 		logDMsg("setting X indent:%.2fmm (%f as coordinate)", indentMM, indentGC);
 	}
-	tableXIndent_ = projP.xSMMSize(indentMM);
+	tableXIndent_ = projP.xMMSize(indentMM);
 }
 
 float ViewManager::defaultTableXIndentMM(const Base::Window &win)
 {
-	auto wMM = win.widthMM();
+	auto wMM = win.sizeMM().x;
 	return
 		wMM < 150. ? 1. :
 		wMM < 250. ? 2. :
