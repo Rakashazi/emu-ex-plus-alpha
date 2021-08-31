@@ -252,7 +252,7 @@ const KeyConfig defaultKeyProfile[] =
 		#if __ARM_ARCH == 7
 		{
 			Map::SYSTEM,
-			Device::SUBTYPE_XPERIA_PLAY,
+			DeviceSubtype::XPERIA_PLAY,
 			{"Xperia Play"},
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
@@ -274,8 +274,8 @@ const KeyConfig defaultKeyProfile[] =
 		},
 		{
 			Map::SYSTEM,
-			Device::SUBTYPE_MOTO_DROID_KEYBOARD,
-			"Droid/Milestone Keyboard",
+			DeviceSubtype::MOTO_DROID_KEYBOARD,
+			{"Droid/Milestone Keyboard"},
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
