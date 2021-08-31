@@ -20,6 +20,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include <optional>
 
@@ -147,6 +148,8 @@ const char *actionStr(Action act)
 		case Action::MOVED_RELATIVE: return "Moved Relative";
 		case Action::EXIT_VIEW: return "Exit View";
 		case Action::ENTER_VIEW: return "Enter View";
+		case Action::SCROLL_UP: return "Scroll Up";
+		case Action::SCROLL_DOWN: return "Scroll Up";
 		case Action::CANCELED: return "Canceled";
 	}
 	return "Unknown";
@@ -231,40 +234,79 @@ void BaseApplication::setAllowKeyRepeatTimer(bool on)
 	}
 }
 
-const std::vector<Input::Device*> &BaseApplication::systemInputDevices() const
+const InputDeviceContainer &BaseApplication::inputDevices() const
 {
 	return inputDev;
 }
 
-void BaseApplication::addSystemInputDevice(Input::Device &d, bool notify)
+Input::Device &BaseApplication::addInputDevice(std::unique_ptr<Input::Device> ptr, bool notify)
 {
-	d.idx = inputDev.size();
-	inputDev.emplace_back(&d);
+	ptr->setIndex(inputDev.size());
+	ptr->setEnumId(nextInputDeviceEnumId(ptr->name()));
+	auto &devPtr = inputDev.emplace_back(std::move(ptr));
 	if(notify)
 	{
-		dispatchInputDeviceChange(d, {Input::DeviceAction::ADDED});
+		dispatchInputDeviceChange(*devPtr, {Input::DeviceAction::ADDED});
 	}
+	return *devPtr;
 }
 
-void BaseApplication::removeSystemInputDevice(Input::Device &d, bool notify)
+void BaseApplication::removeInputDevice(Input::Device &d, bool notify)
 {
-	logMsg("removing device: %s,%d", d.name(), d.enumId());
+	removeInputDeviceIf([&](const auto &devPtr){ return devPtr.get() == &d; }, notify);
+}
+
+void BaseApplication::removeInputDevice(Input::Map map, int id, bool notify)
+{
+	removeInputDeviceIf([&](const auto &devPtr){ return devPtr->map() == map && devPtr->id() == id; }, notify);
+}
+
+void BaseApplication::removeInputDevices(Input::Map map, bool notify)
+{
+	while(auto removedDevice = IG::moveOutIf(inputDev, [&](const auto &iDev){ return iDev->map() == map; }))
+	{
+		if(notify)
+		{
+			dispatchInputDeviceChange(*removedDevice, {Input::DeviceAction::REMOVED});
+		}
+	}
+	indexSystemInputDevices();
+}
+
+void BaseApplication::removeInputDevice(InputDeviceContainer::iterator it, bool notify)
+{
+	if(it == inputDev.end()) [[unlikely]]
+		return;
+	auto removedDevPtr = std::move(*it);
+	inputDev.erase(it);
+	logMsg("removed input device:%s,%d", removedDevPtr->name(), removedDevPtr->enumId());
 	cancelKeyRepeatTimer();
-	IG::eraseFirst(inputDev, &d);
 	indexSystemInputDevices();
 	if(notify)
 	{
-		dispatchInputDeviceChange(d, {Input::DeviceAction::REMOVED});
+		dispatchInputDeviceChange(*removedDevPtr, {Input::DeviceAction::REMOVED});
 	}
+}
+
+uint8_t BaseApplication::nextInputDeviceEnumId(const char *name) const
+{
+	static constexpr uint8_t maxEnum = 64;
+	iterateTimes(maxEnum, i)
+	{
+		auto it = std::find_if(inputDev.begin(), inputDev.end(),
+			[&](auto &devPtr){ return string_equal(devPtr->name(), name) && devPtr->enumId() == i; });
+		if(it == inputDev.end())
+			return i;
+	}
+	return maxEnum;
 }
 
 void BaseApplication::indexSystemInputDevices()
 {
 	// re-number device indices
-	uint32_t i = 0;
-	for(auto &e : inputDev)
+	for(uint32_t i = 0; auto &e : inputDev)
 	{
-		e->idx = i;
+		e->setIndex(i);
 		i++;
 	}
 }
@@ -357,7 +399,7 @@ bool BaseApplication::processICadeKey(Input::Key key, Input::Action action, Inpu
 		if(action == Action::PUSHED)
 		{
 			//logMsg("pushed iCade keyboard key: %s", dev.keyName(key));
-			dispatchRepeatableKeyInputEvent({0, Map::ICADE, onKey, onKey, Action::PUSHED, 0, 0, Source::GAMEPAD, time, &dev}, win);
+			dispatchRepeatableKeyInputEvent({Map::ICADE, onKey, onKey, Action::PUSHED, 0, 0, Source::GAMEPAD, time, &dev}, win);
 		}
 		return true;
 	}
@@ -365,7 +407,7 @@ bool BaseApplication::processICadeKey(Input::Key key, Input::Action action, Inpu
 	{
 		if(action == Action::PUSHED)
 		{
-			dispatchRepeatableKeyInputEvent({0, Map::ICADE, offKey, offKey, Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev}, win);
+			dispatchRepeatableKeyInputEvent({Map::ICADE, offKey, offKey, Action::RELEASED, 0, 0, Source::GAMEPAD, time, &dev}, win);
 		}
 		return true;
 	}

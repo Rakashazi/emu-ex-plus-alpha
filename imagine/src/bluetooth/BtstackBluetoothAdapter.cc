@@ -823,8 +823,9 @@ void BtstackBluetoothAdapter::close()
 	}
 }
 
-BtstackBluetoothAdapter *BtstackBluetoothAdapter::defaultAdapter(Base::ApplicationContext)
+BtstackBluetoothAdapter *BtstackBluetoothAdapter::defaultAdapter(Base::ApplicationContext ctx)
 {
+	defaultBtstackAdapter.setAppContext(ctx);
 	if(defaultBtstackAdapter.openDefault())
 		return nullptr;
 	else
@@ -1033,6 +1034,11 @@ void BtstackBluetoothSocket::handleL2capChannelOpened(uint8_t packet_type, uint1
 		/*if(defaultBtstackAdapter.onScanStatus())
 			defaultBtstackAdapter.onScanStatus()(defaultBtstackAdapter, BluetoothAdapter::SOCKET_OPEN_FAILED, 0);*/
 	}
+}
+
+BtstackBluetoothSocket::~BtstackBluetoothSocket()
+{
+	close();
 }
 
 void BtstackBluetoothSocket::close()

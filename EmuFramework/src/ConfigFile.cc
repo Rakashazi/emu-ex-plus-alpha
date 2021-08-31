@@ -68,9 +68,9 @@ static bool readKeyConfig(IO &io, uint16_t &size, std::span<const KeyCategory> c
 		if(size < nameLen)
 			return false;
 
-		if(nameLen > sizeof(keyConf.name)-1)
+		if(nameLen > keyConf.name.size()-1)
 			return 0;
-		if(io.read(keyConf.name, nameLen) != nameLen)
+		if(io.read(keyConf.name.data(), nameLen) != nameLen)
 			return false;
 		size -= nameLen;
 		if(!size)
@@ -127,7 +127,7 @@ static bool readKeyConfig(IO &io, uint16_t &size, std::span<const KeyCategory> c
 			logMsg("read category %d", categoryIdx);
 		}
 
-		logMsg("read key config %s", keyConf.name);
+		logMsg("read key config %s", keyConf.name.data());
 		customKeyConfig.push_back(keyConf);
 
 		if(customKeyConfig.size() == KEY_CONFIGS_HARD_LIMIT)
@@ -255,7 +255,7 @@ void EmuApp::saveConfigFile(IO &io)
 		{
 			bytes += 1; // input map type
 			bytes += 1; // name string length
-			bytes += strlen(e.name); // name string
+			bytes += strlen(e.name.data()); // name string
 			bytes += 1; // number of categories present
 			for(auto &cat : inputControlCategories())
 			{
@@ -272,7 +272,7 @@ void EmuApp::saveConfigFile(IO &io)
 				writeCategory[configs][std::distance(inputControlCategories().data(), &cat)] = write;
 				if(!write)
 				{
-					logMsg("category:%s of key conf:%s skipped", cat.name, e.name);
+					logMsg("category:%s of key conf:%s skipped", cat.name, e.name.data());
 					continue;
 				}
 				writeCategories[configs]++;
@@ -293,11 +293,11 @@ void EmuApp::saveConfigFile(IO &io)
 		io.write((uint8_t)customKeyConfig.size());
 		for(uint8_t configs = 0; auto &e : customKeyConfig)
 		{
-			logMsg("writing config %s", e.name);
+			logMsg("writing config %s", e.name.data());
 			io.write(uint8_t(e.map));
-			uint8_t nameLen = strlen(e.name);
+			uint8_t nameLen = strlen(e.name.data());
 			io.write(nameLen);
-			io.write(e.name, nameLen);
+			io.write(e.name.data(), nameLen);
 			io.write(writeCategories[configs]);
 			for(auto &cat : inputControlCategories())
 			{
@@ -337,7 +337,7 @@ void EmuApp::saveConfigFile(IO &io)
 			if(e.keyConf)
 			{
 				bytes += 1; // name of key config string length
-				bytes += strlen(e.keyConf->name); // name of key config string
+				bytes += strlen(e.keyConf->name.data()); // name of key config string
 			}
 		}
 		if(bytes > 0xFFFF)
@@ -366,10 +366,10 @@ void EmuApp::saveConfigFile(IO &io)
 			io.write(keyConfMap);
 			if(keyConfMap)
 			{
-				logMsg("has key conf %s, map %d", e.keyConf->name, keyConfMap);
-				uint8_t keyConfNameLen = strlen(e.keyConf->name);
+				logMsg("has key conf %s, map %d", e.keyConf->name.data(), keyConfMap);
+				uint8_t keyConfNameLen = strlen(e.keyConf->name.data());
 				io.write(keyConfNameLen);
-				io.write(e.keyConf->name, keyConfNameLen);
+				io.write(e.keyConf->name.data(), keyConfNameLen);
 			}
 		}
 	}
@@ -617,7 +617,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 
 							for(auto &e : customKeyConfig)
 							{
-								if(e.map == keyConfMap && string_equal(e.name, keyConfName))
+								if(e.map == keyConfMap && string_equal(e.name.data(), keyConfName))
 								{
 									logMsg("found referenced custom key config %s while reading input device config", keyConfName);
 									devConf.keyConf = &e;
@@ -631,7 +631,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 								auto defaultConf = KeyConfig::defaultConfigsForInputMap(keyConfMap, defaultConfs);
 								iterateTimes(defaultConfs, c)
 								{
-									if(string_equal(defaultConf[c].name, keyConfName))
+									if(string_equal(defaultConf[c].name.data(), keyConfName))
 									{
 										logMsg("found referenced built-in key config %s while reading input device config", keyConfName);
 										devConf.keyConf = &defaultConf[c];

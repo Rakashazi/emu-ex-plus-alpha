@@ -41,6 +41,8 @@ enum class Action : uint8_t
 	MOVED_RELATIVE,
 	EXIT_VIEW,
 	ENTER_VIEW,
+	SCROLL_UP,
+	SCROLL_DOWN,
 	CANCELED
 };
 
@@ -53,13 +55,12 @@ public:
 
 	constexpr Event() {}
 
-	constexpr Event(uint32_t devId, Map map, Key button, uint32_t metaState, Action state, int x, int y, PointerId pointerId, Source src, Time time, const Device *device)
-		: device_{device}, pointerId_{pointerId}, time_{time}, devId{devId}, x{x}, y{y}, metaState{metaState}, button{button}, state_{state}, map_{map}, src{src} {}
+	constexpr Event(Map map, Key button, uint32_t metaState, Action state, int x, int y, PointerId pointerId, Source src, Time time, const Device *device)
+		: device_{device}, pointerId_{pointerId}, time_{time}, x{x}, y{y}, metaState{metaState}, button{button}, state_{state}, map_{map}, src{src} {}
 
-	constexpr Event(uint32_t devId, Map map, Key button, Key sysKey, Action state, uint32_t metaState, int repeatCount, Source src, Time time, const Device *device)
-		: device_{device}, time_{time}, devId{devId}, metaState{metaState}, repeatCount{repeatCount}, button{button}, sysKey_{sysKey}, state_{state}, map_{map}, src{src} {}
+	constexpr Event(Map map, Key button, Key sysKey, Action state, uint32_t metaState, int repeatCount, Source src, Time time, const Device *device)
+		: device_{device}, time_{time}, metaState{metaState}, repeatCount{repeatCount}, button{button}, sysKey_{sysKey}, state_{state}, map_{map}, src{src} {}
 
-	uint32_t deviceID() const;
 	static const char *mapName(Map map);
 	const char *mapName() const;
 	static uint32_t mapNumKeys(Map map);
@@ -103,7 +104,8 @@ public:
 	int repeated() const;
 	void setRepeatCount(int count);
 	IG::WP pos() const;
-	bool isPointerPushed(Key k) const;
+	bool pointerDown(Key btnMask) const;
+	int scrolledVertical() const;
 	bool isSystemFunction() const;
 	static const char *actionToStr(Action action);
 	KeyString keyString(Base::ApplicationContext) const;
@@ -115,7 +117,6 @@ protected:
 	const Device *device_{};
 	PointerId pointerId_{};
 	Time time_{};
-	uint32_t devId{};
 	int x{}, y{};
 	uint32_t metaState{};
 	int repeatCount{};

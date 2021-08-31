@@ -216,9 +216,9 @@ Orientation ApplicationContext::validateOrientationMask(Orientation oMask) const
 	return oMask;
 }
 
-const std::vector<Input::Device*> &ApplicationContext::inputDevices() const
+const InputDeviceContainer &ApplicationContext::inputDevices() const
 {
-	return application().systemInputDevices();
+	return application().inputDevices();
 }
 
 void ApplicationContext::setHintKeyRepeat(bool on)

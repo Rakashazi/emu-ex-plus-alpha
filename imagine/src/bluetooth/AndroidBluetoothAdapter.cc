@@ -609,6 +609,11 @@ IG::ErrorCode AndroidBluetoothSocket::openL2cap(BluetoothAdapter &adapter, Bluet
 	return openSocket(adapter, bdaddr, psm, 1);
 }
 
+AndroidBluetoothSocket::~AndroidBluetoothSocket()
+{
+	close();
+}
+
 void AndroidBluetoothSocket::close()
 {
 	if(isConnecting)

@@ -80,21 +80,23 @@ private:
 	void sendBTScanStatusDelegate(uint8_t type, uint8_t arg);
 };
 
-class BluezBluetoothSocket : public BluetoothSocket
+class BluezBluetoothSocket final: public BluetoothSocket
 {
 public:
+	BluezBluetoothSocket() {}
 	BluezBluetoothSocket(Base::ApplicationContext) {}
+	~BluezBluetoothSocket();
 	IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) final;
 	IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	IG::ErrorCode open(BluetoothAdapter &, BluetoothPendingSocket &) final;
 	#endif
-	void close() final;
+	void close();
 	IG::ErrorCode write(const void *data, size_t size) final;
 	int readPendingData(int events);
 
 private:
-	Base::FDEventSource fdSrc;
+	Base::FDEventSource fdSrc{};
 	int fd = -1;
 	void setupFDEvents(int events);
 };

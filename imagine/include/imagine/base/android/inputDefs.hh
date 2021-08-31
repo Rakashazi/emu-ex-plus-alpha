@@ -261,12 +261,10 @@ namespace Keycode = Android;
 	{
 	static constexpr Key
 	LBUTTON = 1,
-	MBUTTON = 2,
-	RBUTTON = 3,
-	WHEEL_UP = 4,
-	WHEEL_DOWN = 5,
+	MBUTTON = 4,
+	RBUTTON = 2,
 	DOWN_BUTTON = 8,
-	UP_BUTTON = 9; // TODO: add real mouse support
+	UP_BUTTON = 16;
 	};
 
 }

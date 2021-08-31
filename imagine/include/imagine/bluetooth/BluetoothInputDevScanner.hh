@@ -14,8 +14,8 @@ namespace Bluetooth
 bool scanForDevices(Base::ApplicationContext, BluetoothAdapter &, BluetoothAdapter::OnStatusDelegate);
 bool listenForDevices(Base::ApplicationContext, BluetoothAdapter &bta, const BluetoothAdapter::OnStatusDelegate &onScanStatus);
 void closeDevices(BluetoothAdapter *bta);
-void closeBT(BluetoothAdapter *&bta);
-uint32_t devsConnected();
+void closeBT(BluetoothAdapter *bta);
+uint32_t devsConnected(Base::ApplicationContext);
 uint32_t pendingDevs();
 void connectPendingDevs(BluetoothAdapter *bta);
 

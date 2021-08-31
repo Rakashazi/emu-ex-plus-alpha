@@ -17,25 +17,17 @@
 
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/input/Device.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/base/Error.hh>
-#include <vector>
 
-struct Zeemote : public BluetoothInputDevice, public Input::Device
+struct Zeemote : public BluetoothInputDevice
 {
 public:
 	static const uint8_t btClass[3];
-	static std::vector<Zeemote*> devList;
 
-	Zeemote(Base::ApplicationContext ctx, BluetoothAddr addr): BluetoothInputDevice{ctx},
-		Device{0, Input::Map::ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"},
-		sock{ctx},
-		addr{addr}
-	{}
+	Zeemote(Base::ApplicationContext ctx, BluetoothAddr addr);
 	IG::ErrorCode open(BluetoothAdapter &adapter) final;
 	void close();
-	void removeFromSystem() final;
 	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
 	bool dataHandler(const char *packet, size_t size);
 	const char *keyName(Input::Key k) const final;
@@ -60,13 +52,11 @@ private:
 			Input::Keycode::UP, Input::Keycode::DOWN
 		},  // Y Axis
 	};
-	uint32_t player;
 	BluetoothAddr addr;
 
 	static const uint32_t RID_VERSION = 0x03, RID_BTN_METADATA = 0x04, RID_CONFIG_DATA = 0x05,
 		RID_BTN_REPORT = 0x07, RID_8BA_2A_JS_REPORT = 0x08, RID_BATTERY_REPORT = 0x11;
 
-	static uint32_t findFreeDevId();
 	static const char *reportIDToStr(uint32_t id);
-	void processBtnReport(const uint8_t *btnData, Input::Time time, uint32_t player);
+	void processBtnReport(const uint8_t *btnData, Input::Time time);
 };

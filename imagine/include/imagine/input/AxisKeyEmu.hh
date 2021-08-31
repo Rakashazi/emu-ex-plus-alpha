@@ -64,7 +64,7 @@ struct AxisKeyEmu
 		return keys;
 	}
 
-	bool dispatch(Range pos, uint32_t id, Map map, Time time, const Device &dev, Base::Window &win)
+	bool dispatch(Range pos, Map map, Time time, const Device &dev, Base::Window &win)
 	{
 		auto updateKeys = update(pos);
 		auto src = Source::GAMEPAD;
@@ -74,11 +74,11 @@ struct AxisKeyEmu
 		}
 		if(updateKeys.released)
 		{
-			win.dispatchRepeatableKeyInputEvent(Event(id, map, updateKeys.released, updateKeys.sysReleased, Action::RELEASED, 0, 0, src, time, &dev));
+			win.dispatchRepeatableKeyInputEvent(Event(map, updateKeys.released, updateKeys.sysReleased, Action::RELEASED, 0, 0, src, time, &dev));
 		}
 		if(updateKeys.pushed)
 		{
-			Event event{id, map, updateKeys.pushed, updateKeys.sysPushed, Action::PUSHED, 0, 0, src, time, &dev};
+			Event event{map, updateKeys.pushed, updateKeys.sysPushed, Action::PUSHED, 0, 0, src, time, &dev};
 			win.dispatchRepeatableKeyInputEvent(event);
 		}
 		return true;

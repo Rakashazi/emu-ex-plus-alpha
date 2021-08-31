@@ -17,26 +17,17 @@
 
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/input/Device.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/base/Error.hh>
-#include <vector>
 
-class PS3Controller : public BluetoothInputDevice, public Input::Device
+class PS3Controller : public BluetoothInputDevice
 {
 public:
-	static std::vector<PS3Controller*> devList;
-
-	PS3Controller(Base::ApplicationContext ctx, BluetoothAddr addr): BluetoothInputDevice{ctx},
-		Device{0, Input::Map::PS3PAD, Input::Device::TYPE_BIT_GAMEPAD, "PS3 Controller"},
-		ctlSock{ctx}, intSock{ctx},
-		addr{addr}
-	{}
+	PS3Controller(Base::ApplicationContext, BluetoothAddr);
 	IG::ErrorCode open(BluetoothAdapter &adapter) final;
 	IG::ErrorCode open1Ctl(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
 	IG::ErrorCode open2Int(BluetoothAdapter &adapter, BluetoothPendingSocket &pending);
 	void close();
-	void removeFromSystem() final;
 	bool dataHandler(const char *data, size_t size);
 	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
 	void setLEDs(uint32_t player);
@@ -73,11 +64,9 @@ private:
 		}   // Right Y Axis
 	};
 	BluetoothSocketSys ctlSock, intSock;
-	uint32_t player = 0;
 	uint32_t joystickAxisAsDpadBits_;
 	BluetoothAddr addr;
 
-	static uint32_t findFreeDevId();
 	static uint8_t playerLEDs(uint32_t player);
 	void sendFeatureReport();
 };

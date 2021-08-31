@@ -115,8 +115,9 @@ void BluezBluetoothAdapter::close()
 	statusPipe.detach();
 }
 
-BluezBluetoothAdapter *BluezBluetoothAdapter::defaultAdapter(Base::ApplicationContext)
+BluezBluetoothAdapter *BluezBluetoothAdapter::defaultAdapter(Base::ApplicationContext ctx)
 {
+	defaultBluezAdapter.setAppContext(ctx);
 	if(defaultBluezAdapter.openDefault())
 		return &defaultBluezAdapter;
 	else
@@ -488,6 +489,11 @@ IG::ErrorCode BluezBluetoothSocket::openL2cap(BluetoothAdapter &, BluetoothAddr 
 	fd_setNonblock(fd, 0);
 	setupFDEvents(Base::POLLEV_OUT);
 	return {};
+}
+
+BluezBluetoothSocket::~BluezBluetoothSocket()
+{
+	close();
 }
 
 void BluezBluetoothSocket::close()

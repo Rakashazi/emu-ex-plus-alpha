@@ -21,7 +21,6 @@
 #include <emuframework/VController.hh>
 #endif
 #include <imagine/input/Input.hh>
-#include <imagine/input/Device.hh>
 #include <imagine/util/container/VMemArray.hh>
 
 namespace Input
@@ -53,12 +52,22 @@ struct KeyCategory
 
 struct KeyConfig
 {
-	Input::Map map;
-	unsigned devSubtype;
-	char name[MAX_KEY_CONFIG_NAME_SIZE];
+	using NameArray = std::array<char, MAX_KEY_CONFIG_NAME_SIZE>;
 	using Key = Input::Key;
 	using KeyArray = std::array<Key, MAX_KEY_CONFIG_KEYS>;
-	KeyArray key_;
+
+	Input::Map map{};
+	Input::DeviceSubtype devSubtype{};
+	NameArray name{};
+	KeyArray key_{};
+
+	constexpr KeyConfig() {}
+	constexpr KeyConfig(Input::Map map, Input::DeviceSubtype devSubtype, NameArray name, KeyArray key):
+		map{map}, devSubtype{devSubtype}, name{name}, key_{key}
+	{}
+	constexpr KeyConfig(Input::Map map, NameArray name, KeyArray key):
+		KeyConfig{map, {}, name, key}
+	{}
 
 	void unbindCategory(const KeyCategory &category);
 	bool operator ==(KeyConfig const& rhs) const;
@@ -132,11 +141,10 @@ void generic2PlayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsigned
 void genericMultiplayerTranspose(KeyConfig::KeyArray &key, unsigned player, unsigned startCategory);
 
 #ifdef __ANDROID__
-static constexpr KeyConfig KEY_CONFIG_ANDROID_NAV_KEYS =
+static constexpr KeyConfig KEY_CONFIG_ANDROID_NAV_KEYS
 {
 	Input::Map::SYSTEM,
-	0,
-	"Android Navigation Keys",
+	{"Android Navigation Keys"},
 	{
 		EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 

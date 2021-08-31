@@ -24,9 +24,10 @@
 namespace Input
 {
 
-static const int ACTION_VERSION_MOGAPRO = 1;
-static const int STATE_CONNECTION = 1;
-static const int STATE_SELECTED_VERSION = 4;
+static constexpr int ACTION_VERSION_MOGAPRO = 1;
+static constexpr int STATE_CONNECTION = 1;
+static constexpr int STATE_SELECTED_VERSION = 4;
+static constexpr int DEVICE_ID = -128; // arbitrary value to avoid collisions
 
 MogaManager::MogaManager(Base::ApplicationContext ctx, bool notify):
 	onExit
@@ -70,14 +71,14 @@ MogaManager::~MogaManager()
 		return;
 	logMsg("deinit MOGA input system");
 	jMOGAExit(mogaHelper.jniEnv(), mogaHelper);
-	appContext().application().removeInputDevice(0, false);
+	appContext().application().removeInputDevice(Input::Map::SYSTEM, DEVICE_ID, false);
 }
 
 AndroidInputDevice MogaManager::makeMOGADevice(const char *name)
 {
-	AndroidInputDevice dev{0, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK, name,
+	AndroidInputDevice dev{DEVICE_ID, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK, name,
 		Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2};
-	dev.subtype_ = Device::SUBTYPE_GENERIC_GAMEPAD;
+	dev.setSubtype(Device::Subtype::GENERIC_GAMEPAD);
 	// set joystick axes
 	{
 		const uint8_t stickAxes[] { AXIS_X, AXIS_Y, AXIS_Z, AXIS_RZ };
@@ -115,13 +116,13 @@ void MogaManager::updateMOGAState(JNIEnv *env, bool connected, bool notify)
 		{
 			logMsg("MOGA connected");
 			const char *name = jMOGAGetState(env, mogaHelper, STATE_SELECTED_VERSION) == ACTION_VERSION_MOGAPRO ? "MOGA Pro Controller" : "MOGA Controller";
-			mogaDev = app.addInputDevice(makeMOGADevice(name), false, notify);
+			mogaDev = app.addAndroidInputDevice(makeMOGADevice(name), notify);
 		}
 		else
 		{
 			logMsg("MOGA disconnected");
 			mogaDev = {};
-			app.removeInputDevice(0, notify);
+			app.removeInputDevice(Input::Map::SYSTEM, DEVICE_ID, notify);
 		}
 	}
 }
@@ -149,7 +150,7 @@ void MogaManager::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 				ctx.endIdleByUserActivity();
 				Key key = keyCode & 0x1ff;
 				auto time = IG::Nanoseconds(timestamp);
-				Event event{0, Map::SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &mogaDev};
+				Event event{Map::SYSTEM, key, key, (action == AKEY_EVENT_ACTION_DOWN) ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, &mogaDev};
 				ctx.application().dispatchRepeatableKeyInputEvent(event);
 			})
 		},
@@ -166,12 +167,12 @@ void MogaManager::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 				logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)timestamp);
 				auto &win = ctx.mainWindow();
 				auto &axis = mogaDev.jsAxes();
-				axis[0].keyEmu.dispatch(x, 0, Map::SYSTEM, time, mogaDev, win);
-				axis[1].keyEmu.dispatch(y, 0, Map::SYSTEM, time, mogaDev, win);
-				axis[2].keyEmu.dispatch(z, 0, Map::SYSTEM, time, mogaDev, win);
-				axis[3].keyEmu.dispatch(rz, 0, Map::SYSTEM, time, mogaDev, win);
-				axis[4].keyEmu.dispatch(lTrigger, 0, Map::SYSTEM, time, mogaDev, win);
-				axis[5].keyEmu.dispatch(rTrigger, 0, Map::SYSTEM, time, mogaDev, win);
+				axis[0].keyEmu.dispatch(x, Map::SYSTEM, time, mogaDev, win);
+				axis[1].keyEmu.dispatch(y, Map::SYSTEM, time, mogaDev, win);
+				axis[2].keyEmu.dispatch(z, Map::SYSTEM, time, mogaDev, win);
+				axis[3].keyEmu.dispatch(rz, Map::SYSTEM, time, mogaDev, win);
+				axis[4].keyEmu.dispatch(lTrigger, Map::SYSTEM, time, mogaDev, win);
+				axis[5].keyEmu.dispatch(rTrigger, Map::SYSTEM, time, mogaDev, win);
 			})
 		},
 		{

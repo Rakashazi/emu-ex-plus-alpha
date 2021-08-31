@@ -173,12 +173,11 @@ bool ScrollView::scrollInputEvent(Input::Event e)
 	if(!e.isPointer() || (!dragTracker.isDragging() && !pointIsInView(e.pos())))
 		return false;
 	// mouse wheel scroll
-	if(Config::Input::MOUSE_DEVICES && !dragTracker.isDragging()
-		&& (e.pushed(Input::Pointer::WHEEL_UP) || e.pushed(Input::Pointer::WHEEL_DOWN)))
+	if(Config::Input::MOUSE_DEVICES && !dragTracker.isDragging() && e.scrolledVertical())
 	{
 		auto prevOffset = offset;
 		auto vel = window().heightMMInPixels(10.0);
-		offset += e.mapKey() == Input::Pointer::WHEEL_UP ? -vel : vel;
+		offset += e.scrolledVertical() < 0 ? -vel : vel;
 		offset = std::clamp(offset, 0, offsetMax);
 		if(offset != prevOffset)
 			postDraw();

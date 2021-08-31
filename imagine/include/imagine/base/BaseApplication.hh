@@ -22,6 +22,7 @@
 #include <imagine/base/Timer.hh>
 #include <imagine/base/MessagePort.hh>
 #include <imagine/input/Input.hh>
+#include <imagine/input/Device.hh>
 #include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/NonCopyable.hh>
 #include <vector>
@@ -94,9 +95,17 @@ public:
 	void cancelKeyRepeatTimer();
 	void deinitKeyRepeatTimer();
 	void setAllowKeyRepeatTimer(bool on);
-	const InputDeviceContainer &systemInputDevices() const;
-	void addSystemInputDevice(Input::Device &d, bool notify = false);
-	void removeSystemInputDevice(Input::Device &d, bool notify = false);
+	const InputDeviceContainer &inputDevices() const;
+	Input::Device &addInputDevice(std::unique_ptr<Input::Device>, bool notify = false);
+	void removeInputDevice(Input::Device &, bool notify = false);
+	void removeInputDevice(Input::Map map, int id, bool notify = false);
+
+	void removeInputDeviceIf(auto unaryPredicate, bool notify)
+	{
+		removeInputDevice(std::find_if(inputDev.begin(), inputDev.end(), unaryPredicate), notify);
+	}
+
+	void removeInputDevices(Input::Map matchingMap, bool notify = false);
 	bool dispatchRepeatableKeyInputEvent(Input::Event, Window &);
 	bool dispatchRepeatableKeyInputEvent(Input::Event);
 	bool dispatchKeyInputEvent(Input::Event, Window &);
@@ -109,6 +118,7 @@ public:
 	void setSwappedConfirmKeys(std::optional<bool>);
 	uint8_t keyEventFlags() const;
 	bool processICadeKey(Input::Key, Input::Action, Input::Time, const Input::Device &, Base::Window &);
+	void bluetoothInputDeviceStatus(Input::Device &, int status);
 
 protected:
 	struct CommandMessage
@@ -136,7 +146,9 @@ protected:
 
 	void deinitWindows();
 	void removeSecondaryScreens();
+	uint8_t nextInputDeviceEnumId(const char *name) const;
 	void indexSystemInputDevices();
+	void removeInputDevice(InputDeviceContainer::iterator, bool notify = false);
 };
 
 }

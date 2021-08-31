@@ -20,11 +20,6 @@
 namespace Input
 {
 
-uint32_t Event::deviceID() const
-{
-	return devId;
-}
-
 const char *Event::mapName() const
 {
 	return mapName(map());
@@ -109,10 +104,11 @@ bool Event::isDefaultConfirmButton(uint32_t swapped) const
 			switch(device()->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
-				case Device::SUBTYPE_PANDORA_HANDHELD:
+				case Device::Subtype::PANDORA_HANDHELD:
 					return button == Input::Keycode::ENTER ||
 						(swapped ? isDefaultCancelButton(0) : button == Keycode::Pandora::X);
 				#endif
+				default: break;
 			}
 			return button == Keycode::ENTER
 			#ifdef CONFIG_BASE_ANDROID
@@ -149,11 +145,12 @@ bool Event::isDefaultCancelButton(uint32_t swapped) const
 			switch(device()->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
-				case Device::SUBTYPE_PANDORA_HANDHELD:
+				case Device::Subtype::PANDORA_HANDHELD:
 					// TODO: can't call isDefaultConfirmButton(0) since it doesn't check whether the source was
 					// a gamepad or keyboard
 					return swapped ? (button == Keycode::Pandora::X) : (button == Keycode::Pandora::B);
 				#endif
+				default: break;
 			}
 			return button == Input::Keycode::ESCAPE || button == Input::Keycode::BACK
 				|| ((swapped && isGamepad()) ? isDefaultConfirmButton(0) : (button == Input::Keycode::GAME_B || button == Input::Keycode::GAME_2));
@@ -309,9 +306,10 @@ bool Event::isDefaultPageUpButton() const
 			switch(device()->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
-				case Device::SUBTYPE_PANDORA_HANDHELD:
+				case Device::Subtype::PANDORA_HANDHELD:
 					return button == Keycode::Pandora::L;
 				#endif
+				default: break;
 			}
 			return button == Input::Keycode::PGUP
 				|| button == Input::Keycode::GAME_L1;
@@ -340,9 +338,10 @@ bool Event::isDefaultPageDownButton() const
 			switch(device()->subtype())
 			{
 				#ifdef CONFIG_MACHINE_PANDORA
-				case Device::SUBTYPE_PANDORA_HANDHELD:
+				case Device::Subtype::PANDORA_HANDHELD:
 					return button == Keycode::Pandora::R;
 				#endif
+				default: break;
 			}
 			return button == Input::Keycode::PGDOWN
 				|| button == Input::Keycode::GAME_R1;
@@ -431,13 +430,21 @@ IG::WP Event::pos() const
 	return {x, y};
 }
 
-bool Event::isPointerPushed(Key k) const
+bool Event::pointerDown(Key btnMask) const
 {
-	if(released() && button == k)
-		return false;
-	if(pushed(k))
-		return true;
-	return metaState & IG::bit(k);
+	assert(isPointer());
+	return !released() && button & btnMask;
+}
+
+int Event::scrolledVertical() const
+{
+	assert(isPointer());
+	switch(state())
+	{
+		case Action::SCROLL_UP: return -1;
+		case Action::SCROLL_DOWN: return 1;
+		default: return 0;
+	}
 }
 
 bool Event::isSystemFunction() const

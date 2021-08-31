@@ -20,6 +20,7 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/base/Error.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/input/Device.hh>
 #include <array>
 #include <compare>
 
@@ -100,12 +101,12 @@ class BluetoothSocket
 {
 public:
 	constexpr BluetoothSocket() {}
+	virtual ~BluetoothSocket();
 	virtual IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) = 0;
 	virtual IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) = 0;
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	virtual IG::ErrorCode open(BluetoothAdapter &, BluetoothPendingSocket &socket) = 0;
 	#endif
-	virtual void close() = 0;
 	virtual IG::ErrorCode write(const void *data, size_t size) = 0;
 	typedef DelegateFunc<bool (const char *data, size_t size)> OnDataDelegate;
 	OnDataDelegate &onData() { return onDataD; }
@@ -115,17 +116,15 @@ public:
 	enum { OPEN_USAGE_NONE = 0, OPEN_USAGE_READ_EVENTS };
 
 protected:
-	OnDataDelegate onDataD;
-	OnStatusDelegate onStatusD;
+	OnDataDelegate onDataD{};
+	OnStatusDelegate onStatusD{};
 };
 
-class BluetoothInputDevice
+class BluetoothInputDevice : public Input::Device
 {
 public:
-	constexpr BluetoothInputDevice(Base::ApplicationContext ctx):ctx{ctx} {}
-	virtual ~BluetoothInputDevice() {}
+	BluetoothInputDevice(Base::ApplicationContext, Input::Map, TypeBits, const char *name);
 	virtual IG::ErrorCode open(BluetoothAdapter &adapter) = 0;
-	virtual void removeFromSystem() = 0;
 
 protected:
 	Base::ApplicationContext ctx;

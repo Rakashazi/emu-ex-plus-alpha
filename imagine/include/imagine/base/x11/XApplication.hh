@@ -50,12 +50,11 @@ enum class SupportedFrameTimer : uint8_t
 
 struct XInputDevice : public Input::Device
 {
-	int id = -1;
 	bool iCadeMode_ = false;
 
 	XInputDevice();
-	XInputDevice(uint32_t typeBits, const char *name);
-	XInputDevice(XIDeviceInfo, int enumId, bool isPointingDevice, bool isPowerButton);
+	XInputDevice(TypeBits, const char *name);
+	XInputDevice(XIDeviceInfo, bool isPointingDevice, bool isPowerButton);
 	void setICadeMode(bool on) final;
 	bool iCadeMode() const final;
 };
@@ -85,7 +84,6 @@ private:
 	XdndAtoms xdndAtom{};
 
 	// Input state
-	std::vector<std::unique_ptr<XInputDevice>> xDevice{};
 	XkbDescRec *coreKeyboardDesc{};
 	Input::Device *vkbDevice{};
 	unsigned long blankCursor{};
@@ -99,7 +97,6 @@ private:
 	void deinitInputSystem();
 	bool handleXI2GenericEvent(_XEvent);
 	void addXInputDevice(XIDeviceInfo, bool notify, bool isPointingDevice);
-	void removeXInputDevice(int xDeviceId);
 	const Input::Device *deviceForInputId(int osId) const;
 	static SupportedFrameTimer testFrameTimers();
 	bool initXdnd();

@@ -135,7 +135,7 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 				app().unpostMessage();
 				auto &rootIMView = this->rootIMView;
 				popTo(rootIMView);
-				rootIMView.pushAndShowDeviceView(d->idx, e);
+				rootIMView.pushAndShowDeviceView(d->index(), e);
 			}
 			else
 			{

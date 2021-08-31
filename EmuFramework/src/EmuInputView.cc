@@ -107,7 +107,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 		if(!keyMapping) [[unlikely]]
 			return false;
 		assumeExpr(e.device());
-		const KeyMapping::ActionGroup &actionMap = keyMapping.inputDevActionTablePtr[e.device()->idx][e.mapKey()];
+		const KeyMapping::ActionGroup &actionMap = keyMapping.inputDevActionTablePtr[e.device()->index()][e.mapKey()];
 		//logMsg("player %d input %s", player, Input::buttonName(e.map, e.button));
 		bool didAction = false;
 		iterateTimes(KeyMapping::maxKeyActions, i)

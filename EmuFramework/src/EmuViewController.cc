@@ -1043,7 +1043,7 @@ bool EmuViewController::isMenuDismissKey(Input::Event e)
 	using namespace Input;
 	Key dismissKey = Keycode::MENU;
 	Key dismissKey2 = Keycode::GAME_Y;
-	if(Config::MACHINE_IS_PANDORA && e.device()->subtype() == Device::SUBTYPE_PANDORA_HANDHELD)
+	if(Config::MACHINE_IS_PANDORA && e.device()->subtype() == Device::Subtype::PANDORA_HANDHELD)
 	{
 		if(hasModalView()) // make sure not performing text input
 			return false;

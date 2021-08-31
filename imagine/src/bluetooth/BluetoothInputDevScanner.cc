@@ -18,12 +18,11 @@
 #include <imagine/bluetooth/Wiimote.hh>
 #include <imagine/bluetooth/Zeemote.hh>
 #include <imagine/bluetooth/IControlPad.hh>
+#include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/Timer.hh>
-#include "private.hh"
 
-std::vector<BluetoothInputDevice*> btInputDevList;
-std::vector<BluetoothInputDevice*> btInputDevPendingList;
+static std::vector<std::unique_ptr<BluetoothInputDevice>> btInputDevPendingList;
 
 #ifdef CONFIG_BLUETOOTH_SERVER
 #include <imagine/bluetooth/PS3Controller.hh>
@@ -47,10 +46,6 @@ static void removePendingDevs()
 {
 	if(btInputDevPendingList.size())
 		logMsg("removing %d devices in pending list", (int)btInputDevPendingList.size());
-	for(auto e : btInputDevPendingList)
-	{
-		delete e;
-	}
 	btInputDevPendingList.clear();
 }
 
@@ -86,7 +81,7 @@ bool listenForDevices(Base::ApplicationContext ctx, BluetoothAdapter &bta, const
 						if(!name)
 						{
 							onServerStatus(bta, BluetoothAdapter::SCAN_NAME_FAILED, 0);
-							pendingSocket.close();
+							pendingSocket = {};
 							return;
 						}
 						logMsg("name: %s", name);
@@ -178,33 +173,15 @@ bool scanForDevices(Base::ApplicationContext ctx, BluetoothAdapter &bta, Bluetoo
 				}
 				if(strstr(name, "Nintendo RVL-CNT-01"))
 				{
-					auto *dev = new Wiimote(ctx, addr);
-					if(!dev)
-					{
-						logErr("out of memory");
-						return;
-					}
-					btInputDevPendingList.push_back(dev);
+					btInputDevPendingList.emplace_back(std::make_unique<Wiimote>(ctx, addr));
 				}
 				else if(strstr(name, "iControlPad-"))
 				{
-					auto *dev = new IControlPad(ctx, addr);
-					if(!dev)
-					{
-						logErr("out of memory");
-						return;
-					}
-					btInputDevPendingList.push_back(dev);
+					btInputDevPendingList.emplace_back(std::make_unique<IControlPad>(ctx, addr));
 				}
 				else if(strstr(name, "Zeemote JS1"))
 				{
-					auto *dev = new Zeemote(ctx, addr);
-					if(!dev)
-					{
-						logErr("out of memory");
-						return;
-					}
-					btInputDevPendingList.push_back(dev);
+					btInputDevPendingList.emplace_back(std::make_unique<Zeemote>(ctx, addr));
 				}
 			}
 		);
@@ -217,10 +194,14 @@ void closeDevices(BluetoothAdapter *bta)
 	if(!bta)
 		return; // Bluetooth was never used
 	logMsg("closing all BT input devs");
-	while(btInputDevList.size())
-	{
-		btInputDevList.front()->removeFromSystem();
-	}
+	auto &app = bta->appContext().application();
+	app.removeInputDevices(Input::Map::WIIMOTE);
+	app.removeInputDevices(Input::Map::WII_CC);
+	app.removeInputDevices(Input::Map::ICONTROLPAD);
+	app.removeInputDevices(Input::Map::ZEEMOTE);
+	#ifdef CONFIG_BLUETOOTH_SERVER
+	app.removeInputDevices(Input::Map::PS3PAD);
+	#endif
 }
 
 uint32_t pendingDevs()
@@ -231,18 +212,13 @@ uint32_t pendingDevs()
 void connectPendingDevs(BluetoothAdapter *bta)
 {
 	logMsg("connecting to %d devices", (int)btInputDevPendingList.size());
-	for(auto e : btInputDevPendingList)
+	for(auto &e : btInputDevPendingList)
 	{
-		if(e->open(*bta))
-		{
-			delete e;
-		}
-		// e is added to btInputDevList
+		e->open(*bta);
 	}
-	btInputDevPendingList.clear();
 }
 
-void closeBT(BluetoothAdapter *&bta)
+void closeBT(BluetoothAdapter *bta)
 {
 	if(!bta)
 		return; // Bluetooth was never used
@@ -254,11 +230,59 @@ void closeBT(BluetoothAdapter *&bta)
 	removePendingDevs();
 	closeDevices(bta);
 	bta->close();
-	bta = nullptr;
 }
 
-uint32_t devsConnected()
+static bool isBluetoothDeviceInputMap(Input::Map map)
 {
-	return btInputDevList.size();
+	switch(map)
+	{
+		case Input::Map::WIIMOTE:
+		case Input::Map::WII_CC:
+		case Input::Map::ICONTROLPAD:
+		case Input::Map::ZEEMOTE:
+		#ifdef CONFIG_BLUETOOTH_SERVER
+		case Input::Map::PS3PAD:
+		#endif
+			return true;
+		default:
+			return false;
+	}
 }
+
+uint32_t devsConnected(Base::ApplicationContext ctx)
+{
+	auto &devs = ctx.inputDevices();
+	return std::count_if(devs.begin(), devs.end(), [](auto &devPtr){ return isBluetoothDeviceInputMap(devPtr->map()); });
+}
+
+}
+
+namespace Base
+{
+
+void BaseApplication::bluetoothInputDeviceStatus(Input::Device &dev, int status)
+{
+	switch(status)
+	{
+		case BluetoothSocket::STATUS_CONNECT_ERROR:
+			std::erase_if(btInputDevPendingList, [&](auto &devPtr){ return devPtr.get() == &dev; });
+			break;
+		case BluetoothSocket::STATUS_OPENED:
+		{
+			logMsg("back %p, param %p", btInputDevPendingList.back().get(), &dev);
+			auto devPtr = IG::moveOutIf(btInputDevPendingList, [&](auto &devPtr){ return devPtr.get() == &dev; });
+			logMsg("moving %p", devPtr.get());
+			if(devPtr)
+			{
+				addInputDevice(std::move(devPtr), true);
+			}
+			break;
+		}
+		case BluetoothSocket::STATUS_READ_ERROR:
+		case BluetoothSocket::STATUS_CLOSED:
+			removeInputDevice(dev, true);
+			break;
+	}
+}
+
 }

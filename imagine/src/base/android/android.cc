@@ -447,10 +447,10 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 				{
 					auto &app = *((AndroidApplication*)nUserData);
 					const char *name = env->GetStringUTFChars(jName, nullptr);
-					Input::AndroidInputDevice sysDev{env, jDev, app.nextInputDeviceEnumId(name, devID), devID, src,
+					Input::AndroidInputDevice sysDev{env, jDev, devID, src,
 						name, kbType, (uint32_t)jsAxisBits, (bool)isPowerButton};
 					env->ReleaseStringUTFChars(jName, name);
-					auto devPtr = app.addInputDevice(sysDev, false, false);
+					auto devPtr = app.updateAndroidInputDevice(std::move(sysDev), false);
 					// check for special device IDs
 					if(devID == -1)
 					{

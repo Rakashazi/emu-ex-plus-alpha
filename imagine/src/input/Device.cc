@@ -339,6 +339,23 @@ static const char *openPandoraButtonName(Key b)
 }
 #endif
 
+Device::Device() {}
+
+Device::Device(int id, Map map, uint8_t type, const char *name):
+	name_{name}, id_{id}, typeBits_{type}, map_{map} {}
+
+Device::~Device() {}
+
+bool Device::iCadeMode() const { return false; }
+
+void Device::setJoystickAxisAsDpadBits(uint32_t axisMask) {}
+
+uint32_t Device::joystickAxisAsDpadBits() { return 0; }
+
+uint32_t Device::joystickAxisAsDpadBitsDefault() { return 0; }
+
+uint32_t Device::joystickAxisBits() { return 0; }
+
 const char *Device::keyName(Key k) const
 {
 	switch(map())
@@ -346,20 +363,20 @@ const char *Device::keyName(Key k) const
 		default: return "";
 		case Map::SYSTEM:
 		{
-			auto subtypeButtonName = [](uint32_t subtype, Key k) -> const char *
+			auto subtypeButtonName = [](Subtype subtype, Key k) -> const char *
 				{
 					switch(subtype)
 					{
 						#ifdef CONFIG_BASE_ANDROID
-						case Device::SUBTYPE_XPERIA_PLAY: return xperiaPlayButtonName(k);
-						case Device::SUBTYPE_OUYA_CONTROLLER: return ouyaButtonName(k);
-						case Device::SUBTYPE_PS3_CONTROLLER: return ps3SysButtonName(k);
+						case Device::Subtype::XPERIA_PLAY: return xperiaPlayButtonName(k);
+						case Device::Subtype::OUYA_CONTROLLER: return ouyaButtonName(k);
+						case Device::Subtype::PS3_CONTROLLER: return ps3SysButtonName(k);
 						#endif
 						#ifdef CONFIG_MACHINE_PANDORA
-						case Device::SUBTYPE_PANDORA_HANDHELD: return openPandoraButtonName(k);
+						case Device::Subtype::PANDORA_HANDHELD: return openPandoraButtonName(k);
 						#endif
+						default: return {};
 					}
-					return {};
 				};
 			const char *name = subtypeButtonName(subtype(), k);
 			if(!name)
@@ -383,19 +400,14 @@ Map Device::map() const
 	return iCadeMode() ? Input::Map::ICADE : map_;
 }
 
-uint32_t Device::typeBits() const
+DeviceTypeBits Device::typeBits() const
 {
-	return iCadeMode() ? TYPE_BIT_GAMEPAD :	type_;
+	return iCadeMode() ? TYPE_BIT_GAMEPAD :	typeBits_;
 }
 
 void Device::setICadeMode(bool on)
 {
 	logWarn("setICadeMode called but unimplemented");
-}
-
-bool Device::operator ==(Device const& rhs) const
-{
-	return enumId() == rhs.enumId() && map_ == rhs.map_ && string_equal(name(), rhs.name());
 }
 
 }

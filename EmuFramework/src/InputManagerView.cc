@@ -70,7 +70,7 @@ void IdentInputDeviceView::draw(Gfx::RendererCommands &cmds)
 
 static void removeKeyConfFromAllDevices(const KeyConfig *conf)
 {
-	logMsg("removing saved key config %s from all devices", conf->name);
+	logMsg("removing saved key config %s from all devices", conf->name.data());
 	for(auto &e : savedInputDevList)
 	{
 		if(e.keyConf == conf)
@@ -145,7 +145,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 			for(unsigned i = 0; auto &e : customKeyConfig)
 			{
 				auto incIdx = IG::scopeGuard([&](){ i++; });
-				multiChoiceView->appendItem(e.name,
+				multiChoiceView->appendItem(e.name.data(),
 					[this, i](Input::Event e)
 					{
 						int deleteProfileIdx = i;
@@ -158,7 +158,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 								{
 									++it;
 								}
-								logMsg("deleting profile: %s", it->name);
+								logMsg("deleting profile: %s", it->name.data());
 								removeKeyConfFromAllDevices(&(*it));
 								customKeyConfig.erase(it);
 								app().buildKeyInputMapping();
@@ -199,7 +199,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 					auto dev = e.device();
 					if(dev)
 					{
-						auto imdMenu = makeViewWithName<InputManagerDeviceView>(inputDevName[dev->idx], *this, app().inputDeviceConfigs()[dev->idx]);
+						auto imdMenu = makeViewWithName<InputManagerDeviceView>(inputDevName[dev->index()], *this, app().inputDeviceConfigs()[dev->index()]);
 						pushAndShow(std::move(imdMenu), e);
 					}
 				};
@@ -537,11 +537,11 @@ public:
 		{
 			if(conf.map == dev.map())
 			{
-				if(string_equal(selectedName, conf.name))
+				if(string_equal(selectedName, conf.name.data()))
 				{
 					activeItem = textItem.size();
 				}
-				textItem.emplace_back(conf.name, &defaultFace(),
+				textItem.emplace_back(conf.name.data(), &defaultFace(),
 					[this, &conf](Input::Event e)
 					{
 						auto del = onProfileChange;
@@ -555,9 +555,9 @@ public:
 		iterateTimes(defaultConfs, c)
 		{
 			auto &conf = KeyConfig::defaultConfigsForDevice(dev)[c];
-			if(string_equal(selectedName, defaultConf[c].name))
+			if(string_equal(selectedName, defaultConf[c].name.data()))
 				activeItem = textItem.size();
-			textItem.emplace_back(defaultConf[c].name, &defaultFace(),
+			textItem.emplace_back(defaultConf[c].name.data(), &defaultFace(),
 				[this, &conf](Input::Event e)
 				{
 					auto del = onProfileChange;
@@ -609,11 +609,11 @@ InputManagerDeviceView::InputManagerDeviceView(NameString name, ViewAttachParams
 		nullptr, &defaultFace(),
 		[this](Input::Event e)
 		{
-			auto profileSelectMenu = makeView<ProfileSelectMenu>(*devConf->dev, devConf->keyConf().name);
+			auto profileSelectMenu = makeView<ProfileSelectMenu>(*devConf->dev, devConf->keyConf().name.data());
 			profileSelectMenu->onProfileChange =
 				[this](const KeyConfig &profile)
 				{
-					logMsg("set key profile %s", profile.name);
+					logMsg("set key profile %s", profile.name.data());
 					devConf->setKeyConf(profile);
 					onShow();
 					app().buildKeyInputMapping();
@@ -631,7 +631,7 @@ InputManagerDeviceView::InputManagerDeviceView(NameString name, ViewAttachParams
 				app().postMessage(2, "Can't rename a built-in profile");
 				return;
 			}
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", devConf->keyConf().name,
+			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", devConf->keyConf().name.data(),
 				[this](EmuApp &app, auto str)
 				{
 					if(customKeyConfigsContainName(str))
@@ -667,7 +667,7 @@ InputManagerDeviceView::InputManagerDeviceView(NameString name, ViewAttachParams
 								return false;
 							}
 							devConf->setKeyConfCopiedFromExisting(str);
-							logMsg("created new profile %s", devConf->keyConf().name);
+							logMsg("created new profile %s", devConf->keyConf().name.data());
 							onShow();
 							postDraw();
 							return true;
@@ -696,7 +696,7 @@ InputManagerDeviceView::InputManagerDeviceView(NameString name, ViewAttachParams
 						bug_unreachable("confirmed deletion of a read-only key config, should never happen");
 						return;
 					}
-					logMsg("deleting profile: %s", conf->name);
+					logMsg("deleting profile: %s", conf->name.data());
 					removeKeyConfFromAllDevices(conf);
 					customKeyConfig.remove(*conf);
 					app().buildKeyInputMapping();
@@ -772,7 +772,7 @@ InputManagerDeviceView::InputManagerDeviceView(NameString name, ViewAttachParams
 	},
 	devConf{&devConfRef}
 {
-	loadProfile.setName(string_makePrintf<128>("Profile: %s", devConf->keyConf().name).data());
+	loadProfile.setName(string_makePrintf<128>("Profile: %s", devConf->keyConf().name.data()).data());
 	renameProfile.setActive(devConf->mutableKeyConf());
 	deleteProfile.setActive(devConf->mutableKeyConf());
 	loadItems();
@@ -828,7 +828,7 @@ void InputManagerDeviceView::loadItems()
 void InputManagerDeviceView::onShow()
 {
 	TableView::onShow();
-	loadProfile.compile(string_makePrintf<128>("Profile: %s", devConf->keyConf().name).data(), renderer(), projP);
+	loadProfile.compile(string_makePrintf<128>("Profile: %s", devConf->keyConf().name.data()).data(), renderer(), projP);
 	bool keyConfIsMutable = devConf->mutableKeyConf();
 	renameProfile.setActive(keyConfIsMutable);
 	deleteProfile.setActive(keyConfIsMutable);

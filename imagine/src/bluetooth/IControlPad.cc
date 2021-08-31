@@ -21,13 +21,10 @@
 #include <imagine/util/bitset.hh>
 #include <imagine/util/algorithm.h>
 #include "../input/PackedInputAccess.hh"
-#include "private.hh"
 #include <algorithm>
 
 using namespace IG;
 using namespace Input;
-
-std::vector<IControlPad*> IControlPad::devList;
 
 static const PackedInputAccess iCPDataAccess[] =
 {
@@ -106,25 +103,15 @@ static const char *icpButtonName(Key b)
 	return "";
 }
 
+IControlPad::IControlPad(Base::ApplicationContext ctx, BluetoothAddr addr):
+	BluetoothInputDevice{ctx, Input::Map::ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"},
+	sock{ctx},
+	addr{addr}
+{}
+
 const char *IControlPad::keyName(Key k) const
 {
 	return icpButtonName(k);
-}
-
-uint32_t IControlPad::findFreeDevId()
-{
-	uint32_t id[5]{};
-	for(auto e : devList)
-	{
-		id[e->player] = 1;
-	}
-	for(auto &e : id)
-	{
-		if(e == 0)
-			return &e - id;
-	}
-	logMsg("too many devices");
-	return 0;
 }
 
 IG::ErrorCode IControlPad::open(BluetoothAdapter &adapter)
@@ -154,43 +141,26 @@ void IControlPad::close()
 	sock.close();
 }
 
-void IControlPad::removeFromSystem()
-{
-	close();
-	IG::eraseFirst(devList, this);
-	if(IG::eraseFirst(btInputDevList, this))
-	{
-		ctx.application().removeSystemInputDevice(*this, true);
-	}
-}
-
 uint32_t IControlPad::statusHandler(BluetoothSocket &sock, uint32_t status)
 {
 	if(status == BluetoothSocket::STATUS_OPENED)
 	{
 		logMsg("iCP opened successfully");
-		player = findFreeDevId();
-		devList.push_back(this);
-		btInputDevList.push_back(this);
+		ctx.application().bluetoothInputDeviceStatus(*this, status);
 		sock.write(setLEDPulseInverse, sizeof setLEDPulseInverse);
 		function = FUNC_SET_LED_MODE;
-		devId = player;
 		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
-		ctx.application().addSystemInputDevice(*this, true);
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("iCP connection error");
-		ctx.application().dispatchInputDeviceChange(*this, {Input::DeviceAction::CONNECT_ERROR});
-		close();
-		delete this;
+		ctx.application().bluetoothInputDeviceStatus(*this, status);
 	}
 	else if(status == BluetoothSocket::STATUS_READ_ERROR)
 	{
 		logErr("iCP read error, disconnecting");
-		removeFromSystem();
-		delete this;
+		ctx.application().bluetoothInputDeviceStatus(*this, status);
 	}
 	return 0;
 }
@@ -207,8 +177,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 			if(packet[size-bytesLeft] != RESP_OKAY)
 			{
 				logErr("error: iCP didn't respond with OK");
-				removeFromSystem();
-				delete this;
+				ctx.application().bluetoothInputDeviceStatus(*this, BluetoothSocket::STATUS_READ_ERROR);
 				return 0;
 			}
 			logMsg("got OK reply");
@@ -236,10 +205,10 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 				auto time = IG::steadyClockTimestamp();
 				iterateTimes(4, i)
 				{
-					if(axisKey[i].dispatch(inputBuffer[i], player, Input::Map::ICONTROLPAD, time, *this, ctx.mainWindow()))
+					if(axisKey[i].dispatch(inputBuffer[i], Input::Map::ICONTROLPAD, time, *this, ctx.mainWindow()))
 						ctx.endIdleByUserActivity();
 				}
-				processBtnReport(&inputBuffer[4], time, player);
+				processBtnReport(&inputBuffer[4], time);
 				inputBufferPos = 0;
 			}
 			bytesLeft -= processBytes;
@@ -250,7 +219,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 	return 1;
 }
 
-void IControlPad::processBtnReport(const char *btnData, Input::Time time, uint32_t player)
+void IControlPad::processBtnReport(const char *btnData, Input::Time time)
 {
 	using namespace Input;
 	for(auto e : iCPDataAccess)
@@ -261,7 +230,7 @@ void IControlPad::processBtnReport(const char *btnData, Input::Time time, uint32
 		{
 			//logMsg("%s %s @ iCP", e->name, newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			Event event{player, Map::ICONTROLPAD, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+			Event event{Map::ICONTROLPAD, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		}
 	}
@@ -285,7 +254,7 @@ void IControlPad::setJoystickAxisAsDpadBits(uint32_t axisMask)
 		return;
 
 	joystickAxisAsDpadBits_ = axisMask;
-	logMsg("mapping joystick axes for player: %d", player);
+	//logMsg("mapping joystick axes");
 	{
 		bool on = axisMask & Device::AXIS_BIT_X;
 		axisKey[0].lowKey = on ? Input::iControlPad::LEFT : Input::iControlPad::LNUB_LEFT;

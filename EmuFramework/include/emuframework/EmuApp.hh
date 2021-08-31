@@ -49,6 +49,7 @@
 #include <span>
 
 struct InputDeviceConfig;
+class BluetoothAdapter;
 
 class EmuApp : public Base::Application
 {
@@ -182,6 +183,8 @@ public:
 	void setMogaManagerActive(bool on, bool notify);
 	constexpr Base::VibrationManager &vibrationManager() { return vibrationManager_; }
 	std::span<const KeyCategory> inputControlCategories() const;
+	BluetoothAdapter *bluetoothAdapter();
+	void closeBluetoothConnections();
 	Base::ApplicationContext appContext() const;
 	static EmuApp &get(Base::ApplicationContext);
 
@@ -284,6 +287,9 @@ protected:
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
 	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;
 	[[no_unique_address]] Base::VibrationManager vibrationManager_;
+	#ifdef CONFIG_BLUETOOTH
+	BluetoothAdapter *bta{};
+	#endif
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	std::unique_ptr<Input::MogaManager> mogaManagerPtr{};
 	#endif

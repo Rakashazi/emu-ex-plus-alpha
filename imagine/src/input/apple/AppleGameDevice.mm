@@ -37,15 +37,15 @@ struct AppleGameDevice : public Device
 	uint32_t joystickAxisAsDpadBits_ = 0;
 	bool pushState[AppleGC::COUNT]{};
 	
-	AppleGameDevice(Base::ApplicationContext ctx, GCController *gcController, uint32_t enumId):
-		Device{enumId, Map::APPLE_GAME_CONTROLLER, TYPE_BIT_GAMEPAD, [gcController.vendorName UTF8String]},
+	AppleGameDevice(Base::ApplicationContext ctx, GCController *gcController):
+		Device{0, Map::APPLE_GAME_CONTROLLER, TYPE_BIT_GAMEPAD, [gcController.vendorName UTF8String]},
 		ctx{ctx}, gcController{gcController}
 	{
 		auto extGamepad = gcController.extendedGamepad;
 		if(extGamepad)
 		{
-			type_ |= TYPE_BIT_JOYSTICK;
-			subtype_ = SUBTYPE_APPLE_EXTENDED_GAMEPAD;
+			typeBits_ |= TYPE_BIT_JOYSTICK;
+			subtype_ = Subtype::APPLE_EXTENDED_GAMEPAD;
 			setJoystickAxisAsDpadBits(AXIS_BIT_X | AXIS_BIT_Y);
 			setGamepadBlocks(gcController, extGamepad);
 			setExtendedGamepadBlocks(gcController, extGamepad);
@@ -61,7 +61,7 @@ struct AppleGameDevice : public Device
 				this->handleKey(AppleGC::PAUSE, Keycode::MENU, true, false);
 				this->handleKey(AppleGC::PAUSE, Keycode::MENU, false, false);
 			};
-		logMsg("controller %d with vendor: %s", devId, name());
+		logMsg("controller vendor:%s", name());
 	}
 	
 	template <class T>
@@ -197,7 +197,7 @@ struct AppleGameDevice : public Device
 		auto time = IG::steadyClockTimestamp();
 		pushState[key] = pressed;
 		ctx.endIdleByUserActivity();
-		Event event{enumId(), Map::APPLE_GAME_CONTROLLER, key, sysKey, pressed ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+		Event event{Map::APPLE_GAME_CONTROLLER, key, sysKey, pressed ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 		if(repeatable)
 			ctx.application().dispatchRepeatableKeyInputEvent(event);
 		else
@@ -217,7 +217,7 @@ struct AppleGameDevice : public Device
 
 	uint32_t joystickAxisBits() final
 	{
-		return subtype_ == SUBTYPE_APPLE_EXTENDED_GAMEPAD ? (AXIS_BITS_STICK_1 | AXIS_BITS_STICK_2) : 0;
+		return subtype_ == Subtype::APPLE_EXTENDED_GAMEPAD ? (AXIS_BITS_STICK_1 | AXIS_BITS_STICK_2) : 0;
 	}
 
 	uint32_t joystickAxisAsDpadBitsDefault() final
@@ -236,67 +236,46 @@ struct AppleGameDevice : public Device
 	}
 };
 
-static std::vector<std::unique_ptr<AppleGameDevice>> gcList{};
-
-static uint32_t findFreeDevId()
+static AppleGameDevice *asAppleGameDevice(Input::Device &dev)
 {
-	uint32_t id[5]{};
-	for(auto &e : gcList)
-	{
-		if(e->enumId() < std::size(id))
-			id[e->enumId()] = 1;
-	}
-	for(const auto &e : id)
-	{
-		if(e == 0)
-			return &e - id;
-	}
-	logWarn("too many devices to enumerate");
-	return 0;
+	return dev.map() == Map::APPLE_GAME_CONTROLLER ? static_cast<AppleGameDevice*>(&dev) : nullptr;
 }
 
-static AppleGameDevice *deviceForGCController(GCController *controller)
+static AppleGameDevice *deviceForGCController(Base::Application &app, GCController *controller)
 {
-	for(auto &e : gcList)
+	for(auto &devPtr : app.inputDevices())
 	{
-		if(e->gcController == controller)
-			return e.get();
+		auto gameDevPtr = asAppleGameDevice(*devPtr);
+		if(gameDevPtr && gameDevPtr->gcController == controller)
+			return gameDevPtr;
 	}
 	return nullptr;
 }
 
-static bool devListContainsController(GCController *controller)
+static bool devListContainsController(Base::Application &app, GCController *controller)
 {
-	for(auto &e : gcList)
-	{
-		if(e->gcController == controller)
-			return true;
-	}
-	return false;
+	return deviceForGCController(app, controller);
 }
 
 static void addController(Base::ApplicationContext ctx, GCController *controller, bool notify)
 {
-	if(devListContainsController(controller))
+	if(devListContainsController(ctx.application(), controller))
 	{
 		logMsg("controller %p already in list", controller);
 		return;
 	}
 	logMsg("adding controller: %p", controller);
-	auto &gc = gcList.emplace_back(std::make_unique<AppleGameDevice>(ctx, controller, findFreeDevId()));
-	ctx.application().addSystemInputDevice(*gc, notify);
+	ctx.application().addInputDevice(std::make_unique<AppleGameDevice>(ctx, controller), notify);
 }
 
-static void removeController(Base::ApplicationContext ctx, GCController *controller)
+static void removeController(Base::Application &app, GCController *controller)
 {
-	if(auto removedDev = IG::moveOutIf(gcList, [&](std::unique_ptr<AppleGameDevice> &dev){ return dev->gcController == controller; });
-		removedDev)
-	{
-		logMsg("removing controller: %p", controller);
-		ctx.application().removeSystemInputDevice(*removedDev, true);
-		logMsg("name: %s", removedDev->name());
-		return;
-	}
+	app.removeInputDeviceIf(
+		[&](auto &devPtr)
+		{
+			auto gameDevPtr = asAppleGameDevice(*devPtr);
+			return gameDevPtr && gameDevPtr->gcController == controller;
+		}, true);
 }
 
 void initAppleGameControllers(Base::ApplicationContext ctx)
@@ -321,7 +300,7 @@ void initAppleGameControllers(Base::ApplicationContext ctx)
 		{
 			logMsg("game controller disconnected");
 			GCController *controller = note.object;
-			removeController(ctx, controller);
+			removeController(ctx.application(), controller);
 		}];
 	for(GCController *controller in [GCController controllers])
 	{

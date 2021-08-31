@@ -21,6 +21,7 @@
 #include <imagine/util/bitset.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <string>
+#include <compare>
 
 namespace Base
 {
@@ -50,22 +51,10 @@ protected:
 class Device
 {
 public:
-	static constexpr uint32_t
-		SUBTYPE_NONE = 0,
-		SUBTYPE_XPERIA_PLAY = 1,
-		SUBTYPE_PS3_CONTROLLER = 2,
-		SUBTYPE_MOTO_DROID_KEYBOARD = 3,
-		SUBTYPE_OUYA_CONTROLLER = 4,
-		SUBTYPE_PANDORA_HANDHELD = 5,
-		SUBTYPE_XBOX_360_CONTROLLER = 6,
-		SUBTYPE_NVIDIA_SHIELD = 7,
-		SUBTYPE_GENERIC_GAMEPAD = 8,
-		SUBTYPE_APPLE_EXTENDED_GAMEPAD = 9,
-		SUBTYPE_8BITDO_SF30_PRO = 10,
-		SUBTYPE_8BITDO_SN30_PRO_PLUS = 11,
-		SUBTYPE_8BITDO_M30_GAMEPAD = 12;
+	using Subtype = DeviceSubtype;
+	using TypeBits = DeviceTypeBits;
 
-	static constexpr uint32_t
+	static constexpr TypeBits
 		TYPE_BIT_KEY_MISC = IG::bit(0),
 		TYPE_BIT_KEYBOARD = IG::bit(1),
 		TYPE_BIT_GAMEPAD = IG::bit(2),
@@ -88,10 +77,9 @@ public:
 		AXIS_BITS_STICK_2 = AXIS_BIT_Z | AXIS_BIT_RZ,
 		AXIS_BITS_HAT = AXIS_BIT_HAT_X | AXIS_BIT_HAT_Y;
 
-	Device() {}
-	Device(uint32_t devId, Map map, uint32_t type, const char *name):
-		name_{name}, map_{map}, type_{type}, devId{devId} {}
-	virtual ~Device() {}
+	Device();
+	Device(int id, Map map, TypeBits, const char *name);
+	virtual ~Device();
 
 	bool hasKeyboard() const
 	{
@@ -123,20 +111,25 @@ public:
 		return typeBits() & TYPE_BIT_POWER_BUTTON;
 	}
 
-	uint32_t enumId() const { return devId; }
+	int id() const { return id_; }
+	uint8_t enumId() const { return enumId_; }
+	void setEnumId(uint8_t id) { enumId_ = id; }
 	const char *name() const { return name_.c_str(); }
 	Map map() const;
-	uint32_t typeBits() const;
-	uint32_t subtype() const { return subtype_; }
+	TypeBits typeBits() const;
+	Subtype subtype() const { return subtype_; }
+	void setSubtype(Subtype s) { subtype_ = s; }
+	void setIndex(uint8_t i) { idx = i; }
+	uint8_t index() const { return idx; }
 
-	bool operator ==(Device const& rhs) const;
+	bool operator ==(Device const& rhs) const = default;
 
 	virtual void setICadeMode(bool on);
-	virtual bool iCadeMode() const { return false; }
-	virtual void setJoystickAxisAsDpadBits(uint32_t axisMask) {}
-	virtual uint32_t joystickAxisAsDpadBits() { return 0; }
-	virtual uint32_t joystickAxisAsDpadBitsDefault() { return 0; }
-	virtual uint32_t joystickAxisBits() { return 0; }
+	virtual bool iCadeMode() const;
+	virtual void setJoystickAxisAsDpadBits(uint32_t axisMask);
+	virtual uint32_t joystickAxisAsDpadBits();
+	virtual uint32_t joystickAxisAsDpadBitsDefault();
+	virtual uint32_t joystickAxisBits();
 
 	virtual const char *keyName(Key k) const;
 
@@ -144,16 +137,16 @@ public:
 	//bool isDisconnectable() { return 0; }
 	//void disconnect() { }
 
-	static bool anyTypeBitsPresent(Base::ApplicationContext, uint32_t typeBits);
+	static bool anyTypeBitsPresent(Base::ApplicationContext, TypeBits);
 
 protected:
 	std::string name_{""};
+	int id_{};
+	uint8_t idx{};
+	TypeBits typeBits_{};
+	uint8_t enumId_{};
 	Map map_{Map::UNKNOWN};
-	uint32_t type_ = 0;
-	uint32_t devId = 0;
-public:
-	uint32_t subtype_ = 0;
-	uint32_t idx = 0;
+	Subtype subtype_{};
 };
 
 }

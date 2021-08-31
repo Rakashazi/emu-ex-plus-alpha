@@ -190,11 +190,9 @@ namespace Keycode = IOS;
 	static constexpr Key
 	LBUTTON = 1,
 	MBUTTON = 2,
-	RBUTTON = 3,
-	WHEEL_UP = 4,
-	WHEEL_DOWN = 5,
-	DOWN_BUTTON = 6,
-	UP_BUTTON = 7;
+	RBUTTON = 4,
+	DOWN_BUTTON = 8,
+	UP_BUTTON = 16;
 	};
 
 	namespace AppleGC

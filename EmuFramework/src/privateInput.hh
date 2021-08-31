@@ -107,7 +107,7 @@ static bool customKeyConfigsContainName(const char *name)
 {
 	for(auto &e : customKeyConfig)
 	{
-		if(string_equal(e.name, name))
+		if(string_equal(e.name.data(), name))
 			return 1;
 	}
 	return 0;

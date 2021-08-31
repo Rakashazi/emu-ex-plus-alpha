@@ -52,6 +52,23 @@ enum class Map : uint8_t
 	APPLE_GAME_CONTROLLER = 31
 };
 
+enum class DeviceSubtype : uint8_t
+{
+	NONE = 0,
+	XPERIA_PLAY = 1,
+	PS3_CONTROLLER = 2,
+	MOTO_DROID_KEYBOARD = 3,
+	OUYA_CONTROLLER = 4,
+	PANDORA_HANDHELD = 5,
+	XBOX_360_CONTROLLER = 6,
+	NVIDIA_SHIELD = 7,
+	GENERIC_GAMEPAD = 8,
+	APPLE_EXTENDED_GAMEPAD = 9,
+	_8BITDO_SF30_PRO = 10,
+	_8BITDO_SN30_PRO_PLUS = 11,
+	_8BITDO_M30_GAMEPAD = 12
+};
+
 using EventKeyString = std::array<char, 4>;
 
 using TextFieldDelegate = DelegateFunc<void (const char *str)>;
@@ -68,5 +85,7 @@ static constexpr PointerId NULL_POINTER_ID
 			return -1;
 	}()
 };
+
+using DeviceTypeBits = uint8_t;
 
 }

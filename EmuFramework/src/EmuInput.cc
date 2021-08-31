@@ -126,7 +126,7 @@ void EmuApp::updateInputDevices(Base::ApplicationContext ctx)
 	for(auto &e : ctx.inputDevices())
 	{
 		logMsg("input device %d: name: %s, id: %d, map: %d", i, e->name(), e->enumId(), (int)e->map());
-		inputDevConf.emplace_back(e);
+		inputDevConf.emplace_back(e.get());
 		for(auto &saved : savedInputDevList)
 		{
 			if(saved.matchesDevice(*e))
@@ -235,28 +235,30 @@ const KeyConfig *KeyConfig::defaultConfigsForDevice(const Input::Device &dev)
 
 // InputDeviceConfig
 
-template <size_t S>
-void uniqueCustomConfigName(char (&name)[S])
+static std::array<char, 16> uniqueCustomConfigName()
 {
 	iterateTimes(99, i) // Try up to "Custom 99"
 	{
-		string_printf(name, "Custom %d", i+1);
+		auto name = string_makePrintf<16>("Custom %d", i+1);
 		// Check if this name is free
-		logMsg("checking %s", name);
-		bool exists = 0;
+		logMsg("checking:%s", name.data());
+		bool exists{};
 		for(auto &e : customKeyConfig)
 		{
-			logMsg("against %s", e.name);
-			if(string_equal(e.name, name))
+			logMsg("against:%s", e.name.data());
+			if(string_equal(e.name.data(), name.data()))
 			{
-				exists = 1;
+				exists = true;
 				break;
 			}
 		}
 		if(!exists)
-			break;
+		{
+			logMsg("unique custom key config name: %s", name.data());
+			return name;
+		}
 	}
-	logMsg("unique custom key config name: %s", name);
+	return {};
 }
 
 void InputDeviceConfig::deleteConf()
@@ -348,10 +350,9 @@ KeyConfig *InputDeviceConfig::makeMutableKeyConf(EmuApp &app)
 	if(!conf)
 	{
 		logMsg("current config not mutable, creating one");
-		char name[96];
-		uniqueCustomConfigName(name);
-		conf = setKeyConfCopiedFromExisting(name);
-		app.printfMessage(3, false, "Automatically created profile: %s", conf->name);
+		auto name = uniqueCustomConfigName();
+		conf = setKeyConfCopiedFromExisting(name.data());
+		app.printfMessage(3, false, "Automatically created profile: %s", conf->name.data());
 	}
 	return conf;
 }
@@ -575,7 +576,7 @@ void TurboInput::removeEvent(unsigned action)
 
 bool KeyConfig::operator ==(KeyConfig const& rhs) const
 {
-	return string_equal(name, rhs.name);
+	return string_equal(name.data(), rhs.name.data());
 }
 
 KeyConfig::Key *KeyConfig::key(const KeyCategory &category)

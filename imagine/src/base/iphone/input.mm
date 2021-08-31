@@ -104,7 +104,7 @@ struct KeyboardDevice : public Device
 	}
 };
 
-static KeyboardDevice keyDev;
+static KeyboardDevice *keyDevPtr;
 static bool hardwareKBAttached = false;
 
 using GSEventIsHardwareKeyboardAttachedProto = BOOL(*)();
@@ -223,7 +223,7 @@ void TextField::finish()
 	[textField().uiTextField resignFirstResponder];
 }
 
-bool Device::anyTypeBitsPresent(Base::ApplicationContext ctx, uint32_t typeBits)
+bool Device::anyTypeBitsPresent(Base::ApplicationContext ctx, TypeBits typeBits)
 {
 	if((typeBits & TYPE_BIT_KEYBOARD) && hardwareKBAttached)
 		return true;
@@ -231,7 +231,7 @@ bool Device::anyTypeBitsPresent(Base::ApplicationContext ctx, uint32_t typeBits)
 	{
 		// A gamepad is present if iCade mode is in use on the iCade device (always first device)
 		// or the device list size is not 1 due to BTstack connections from other controllers
-		auto &devList = ctx.application().systemInputDevices();
+		auto &devList = ctx.application().inputDevices();
 		return (hardwareKBAttached && devList.front()->iCadeMode()) || devList.size() != 1;
 	}
 	return false;
@@ -249,11 +249,12 @@ void handleKeyEvent(Base::ApplicationContext ctx, UIEvent *event)
 	Key key = eventMem[GSEVENTKEY_KEYCODE] & 0xFF; // only using key codes up to 255
 	auto time = IG::FloatSeconds((double)[event timestamp]);
 	auto &app = ctx.application();
+	auto &keyDev = *keyDevPtr;
 	if(!keyDev.iCadeMode()
 		|| (keyDev.iCadeMode() && !app.processICadeKey(key, action, time, keyDev, *ctx.deviceWindow())))
 	{
 		auto src = keyDev.iCadeMode() ? Input::Source::GAMEPAD : Input::Source::KEYBOARD;
-		app.dispatchKeyInputEvent({0, Map::SYSTEM, key, key, action, 0, 0, src, time, &keyDev});
+		app.dispatchKeyInputEvent({Map::SYSTEM, key, key, action, 0, 0, src, time, &keyDev});
 	}
 }
 
@@ -264,7 +265,7 @@ Event::KeyString Event::keyString(Base::ApplicationContext) const
 
 void init(Base::ApplicationContext ctx)
 {
-	ctx.application().addSystemInputDevice(keyDev);
+	keyDevPtr = static_cast<KeyboardDevice*>(&ctx.application().addInputDevice(std::make_unique<KeyboardDevice>()));
 	GSEventIsHardwareKeyboardAttached = (GSEventIsHardwareKeyboardAttachedProto)dlsym(RTLD_DEFAULT, "GSEventIsHardwareKeyboardAttached");
 	if(GSEventIsHardwareKeyboardAttached)
 	{
@@ -278,7 +279,7 @@ void init(Base::ApplicationContext ctx)
 				logMsg("hardware keyboard %s", hardwareKBAttached ? "attached" : "detached");
 				DeviceAction change{hardwareKBAttached ? DeviceAction::SHOWN : DeviceAction::HIDDEN};
 				auto &app = *((Base::Application*)observer);
-				app.dispatchInputDeviceChange(keyDev, change);
+				app.dispatchInputDeviceChange(*keyDevPtr, change);
 			},
 			(__bridge CFStringRef)@"GSEventHardwareKeyboardAttached",
 			nullptr, CFNotificationSuspensionBehaviorCoalesce);

@@ -46,20 +46,17 @@ class EvdevInputDevice : public Device
 {
 public:
 	EvdevInputDevice();
-	EvdevInputDevice(int id, int fd, uint32_t type, const char *name);
-	void setEnumId(int id);
+	EvdevInputDevice(int id, int fd, TypeBits, const char *name);
+	~EvdevInputDevice();
 	void processInputEvents(Base::LinuxApplication &app, input_event *event, uint32_t events);
 	bool setupJoystickBits();
 	void addPollEvent(Base::LinuxApplication &app);
-	void close(Base::LinuxApplication &app);
 	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
 	uint32_t joystickAxisAsDpadBits() final;
 	int fileDesc() const;
-	int identifier() const;
 
 protected:
 	static constexpr unsigned AXIS_SIZE = 24;
-	int id{};
 	int fd{-1};
 	struct Axis
 	{
@@ -99,13 +96,9 @@ public:
 	void setAcceptIPC(bool on, const char *name);
 	FS::PathString appPath() const;
 	void setAppPath(FS::PathString);
-	#ifdef CONFIG_INPUT_EVDEV
-	std::vector<std::unique_ptr<Input::EvdevInputDevice>> &evInputDevices();
-	#endif
 
 protected:
 	#ifdef CONFIG_INPUT_EVDEV
-	std::vector<std::unique_ptr<Input::EvdevInputDevice>> evDevice{};
 	FDEventSource evdevSrc{};
 	#endif
 	#ifdef CONFIG_BASE_DBUS

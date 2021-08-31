@@ -21,11 +21,6 @@
 #include <imagine/util/bitset.hh>
 #include <imagine/util/algorithm.h>
 #include "../input/PackedInputAccess.hh"
-#include "private.hh"
-
-using namespace IG;
-
-std::vector<PS3Controller*> PS3Controller::devList;
 
 static constexpr uint32_t CELL_PAD_BTN_OFFSET_DIGITAL1 = 0, CELL_PAD_BTN_OFFSET_DIGITAL2 = 1;
 
@@ -51,7 +46,9 @@ static constexpr uint32_t CELL_PAD_BTN_OFFSET_DIGITAL1 = 0, CELL_PAD_BTN_OFFSET_
 
 #define CELL_PAD_CTRL_PS        (1 << 0)
 
+using namespace IG;
 using namespace Input;
+
 static const PackedInputAccess padDataAccess[] =
 {
 	{ CELL_PAD_BTN_OFFSET_DIGITAL1, CELL_PAD_CTRL_SELECT, PS3::SELECT, Keycode::GAME_SELECT },
@@ -110,6 +107,12 @@ static const char *ps3ButtonName(Input::Key k)
 	return "";
 }
 
+PS3Controller::PS3Controller(Base::ApplicationContext ctx, BluetoothAddr addr):
+	BluetoothInputDevice{ctx, Input::Map::PS3PAD, Input::Device::TYPE_BIT_GAMEPAD, "PS3 Controller"},
+	ctlSock{ctx}, intSock{ctx},
+	addr{addr}
+{}
+
 const char *PS3Controller::keyName(Input::Key k) const
 {
 	return ps3ButtonName(k);
@@ -164,27 +167,20 @@ uint32_t PS3Controller::statusHandler(BluetoothSocket &sock, uint32_t status)
 	else if(status == BluetoothSocket::STATUS_OPENED && &sock == (BluetoothSocket*)&intSock)
 	{
 		logMsg("PS3 controller opened successfully");
-		player = findFreeDevId();
-		devList.push_back(this);
-		btInputDevList.push_back(this);
+		ctx.application().bluetoothInputDeviceStatus(*this, status);
 		sendFeatureReport();
-		devId = player;
 		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
-		ctx.application().addSystemInputDevice(*this, true);
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("PS3 controller connection error");
-		ctx.application().dispatchInputDeviceChange(*this, {Input::DeviceAction::CONNECT_ERROR});
-		close();
-		delete this;
+		ctx.application().bluetoothInputDeviceStatus(*this, status);
 	}
 	else if(status == BluetoothSocket::STATUS_READ_ERROR)
 	{
 		logErr("PS3 controller read error, disconnecting");
-		removeFromSystem();
-		delete this;
+		ctx.application().bluetoothInputDeviceStatus(*this, status);
 	}
 	return 1;
 }
@@ -193,16 +189,6 @@ void PS3Controller::close()
 {
 	intSock.close();
 	ctlSock.close();
-}
-
-void PS3Controller::removeFromSystem()
-{
-	close();
-	IG::eraseFirst(devList, this);
-	if(IG::eraseFirst(btInputDevList, this))
-	{
-		ctx.application().removeSystemInputDevice(*this, true);
-	}
 }
 
 bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
@@ -215,10 +201,9 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 	}
 	if(size)
 		logger_printf(0, "\n");*/
-
 	if(!didSetLEDs) [[unlikely]]
 	{
-		setLEDs(player);
+		setLEDs(enumId());
 		didSetLEDs = true;
 	}
 
@@ -235,7 +220,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 				{
 					//logMsg("%s %s @ PS3 Pad %d", device->keyName(e.keyEvent), newState ? "pushed" : "released", player);
 					ctx.endIdleByUserActivity();
-					Event event{player, Map::PS3PAD, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+					Event event{Map::PS3PAD, e.keyEvent, e.sysKey, newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 					ctx.application().dispatchRepeatableKeyInputEvent(event);
 				}
 			}
@@ -245,7 +230,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 			//logMsg("left: %d,%d right: %d,%d", stickData[0], stickData[1], stickData[2], stickData[3]);
 			iterateTimes(4, i)
 			{
-				if(axisKey[i].dispatch(stickData[i], player, Map::PS3PAD, time, *this, ctx.mainWindow()))
+				if(axisKey[i].dispatch(stickData[i], Map::PS3PAD, time, *this, ctx.mainWindow()))
 					ctx.endIdleByUserActivity();
 			}
 		}
@@ -301,22 +286,6 @@ uint8_t PS3Controller::playerLEDs(uint32_t player)
 	}
 }
 
-uint32_t PS3Controller::findFreeDevId()
-{
-	uint32_t id[5]{};
-	for(auto e : devList)
-	{
-		id[e->player] = 1;
-	}
-	for(auto &e : id)
-	{
-		if(e == 0)
-			return &e - id;
-	}
-	logMsg("too many devices");
-	return 0;
-}
-
 uint32_t PS3Controller::joystickAxisBits()
 {
 	return Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
@@ -334,7 +303,7 @@ void PS3Controller::setJoystickAxisAsDpadBits(uint32_t axisMask)
 		return;
 
 	joystickAxisAsDpadBits_ = axisMask;
-	logMsg("mapping joystick axes for player: %d", player);
+	//logMsg("mapping joystick axes");
 	{
 		bool on = axisMask & Device::AXIS_BIT_X;
 		axisKey[0].lowKey = on ? Input::PS3::LEFT : Input::PS3::LSTICK_LEFT;

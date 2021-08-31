@@ -21,9 +21,6 @@
 #include <imagine/util/algorithm.h>
 #include <algorithm>
 #include "../input/PackedInputAccess.hh"
-#include "private.hh"
-
-std::vector<Zeemote*> Zeemote::devList;
 
 const uint8_t Zeemote::btClass[3] = { 0x84, 0x05, 0x00 };
 
@@ -52,25 +49,15 @@ static const char *zeemoteButtonName(Input::Key k)
 	return "";
 }
 
+Zeemote::Zeemote(Base::ApplicationContext ctx, BluetoothAddr addr):
+	BluetoothInputDevice{ctx, Input::Map::ZEEMOTE, Input::Device::TYPE_BIT_GAMEPAD, "Zeemote"},
+	sock{ctx},
+	addr{addr}
+{}
+
 const char *Zeemote::keyName(Input::Key k) const
 {
 	return zeemoteButtonName(k);
-}
-
-uint32_t Zeemote::findFreeDevId()
-{
-	uint32_t id[5]{};
-	for(auto e : devList)
-	{
-		id[e->player] = 1;
-	}
-	for(auto &e : id)
-	{
-		if(e == 0)
-			return &e - id;
-	}
-	logMsg("too many devices");
-	return 0;
 }
 
 IG::ErrorCode Zeemote::open(BluetoothAdapter &adapter)
@@ -103,40 +90,23 @@ void Zeemote::close()
 	sock.close();
 }
 
-void Zeemote::removeFromSystem()
-{
-	close();
-	IG::eraseFirst(devList, this);
-	if(IG::eraseFirst(btInputDevList, this))
-	{
-		ctx.application().removeSystemInputDevice(*this, true);
-	}
-}
-
 uint32_t Zeemote::statusHandler(BluetoothSocket &sock, uint32_t status)
 {
 	if(status == BluetoothSocket::STATUS_OPENED)
 	{
 		logMsg("Zeemote opened successfully");
-		player = findFreeDevId();
-		devList.push_back(this);
-		btInputDevList.push_back(this);
-		devId = player;
-		ctx.application().addSystemInputDevice(*this, true);
+		ctx.application().bluetoothInputDeviceStatus(*this, status);
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
 	{
 		logErr("Zeemote connection error");
-		ctx.application().dispatchInputDeviceChange(*this, {Input::DeviceAction::CONNECT_ERROR});
-		close();
-		delete this;
+		ctx.application().bluetoothInputDeviceStatus(*this, status);
 	}
 	else if(status == BluetoothSocket::STATUS_READ_ERROR)
 	{
 		logErr("Zeemote read error, disconnecting");
-		removeFromSystem();
-		delete this;
+		ctx.application().bluetoothInputDeviceStatus(*this, status);
 	}
 	return 0;
 }
@@ -159,8 +129,7 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 		if(packetSize > sizeof(inputBuffer))
 		{
 			logErr("can't handle packet, closing Zeemote");
-			removeFromSystem();
-			delete this;
+			ctx.application().bluetoothInputDeviceStatus(*this, BluetoothSocket::STATUS_READ_ERROR);
 			return 0;
 		}
 
@@ -179,14 +148,14 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 				{
 					const uint8_t *key = &inputBuffer[3];
 					logMsg("got button report %X %X %X %X %X %X", key[0], key[1], key[2], key[3], key[4], key[5]);
-					processBtnReport(key, time, player);
+					processBtnReport(key, time);
 				}
 				bcase RID_8BA_2A_JS_REPORT:
 					logMsg("got analog report %d %d", (int8_t)inputBuffer[4], (int8_t)inputBuffer[5]);
 					//processStickDataForButtonEmulation((int8_t*)&inputBuffer[4], player);
 					iterateTimes(2, i)
 					{
-						if(axisKey[i].dispatch(inputBuffer[4+i], player, Input::Map::ZEEMOTE, time, *this, ctx.mainWindow()))
+						if(axisKey[i].dispatch(inputBuffer[4+i], Input::Map::ZEEMOTE, time, *this, ctx.mainWindow()))
 							ctx.endIdleByUserActivity();
 					}
 			}
@@ -212,7 +181,7 @@ const char *Zeemote::reportIDToStr(uint32_t id)
 	return "Unknown";
 }
 
-void Zeemote::processBtnReport(const uint8_t *btnData, Input::Time time, uint32_t player)
+void Zeemote::processBtnReport(const uint8_t *btnData, Input::Time time)
 {
 	using namespace Input;
 	uint8_t btnPush[4] {0};
@@ -230,7 +199,7 @@ void Zeemote::processBtnReport(const uint8_t *btnData, Input::Time time, uint32_
 			uint32_t code = i + 1;
 			//logMsg("%s %s @ Zeemote", e->name, newState ? "pushed" : "released");
 			ctx.endIdleByUserActivity();
-			Event event{player, Map::ZEEMOTE, (Key)code, sysKeyMap[i], newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+			Event event{Map::ZEEMOTE, (Key)code, sysKeyMap[i], newState ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 			ctx.application().dispatchRepeatableKeyInputEvent( event);
 		}
 	}

@@ -34,22 +34,23 @@
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
-#ifdef CONFIG_BLUETOOTH
-extern BluetoothAdapter *bta;
-#endif
 
 #ifdef CONFIG_BLUETOOTH
 
-static bool initBTAdapter(Base::ApplicationContext ctx)
+BluetoothAdapter *EmuApp::bluetoothAdapter()
 {
 	if(bta)
 	{
-		return true;
+		return bta;
 	}
-
 	logMsg("initializing Bluetooth");
-	bta = BluetoothAdapter::defaultAdapter(ctx);
+	bta = BluetoothAdapter::defaultAdapter(appContext());
 	return bta;
+}
+
+void EmuApp::closeBluetoothConnections()
+{
+	Bluetooth::closeBT(std::exchange(bta, {}));
 }
 
 static void onScanStatus(EmuApp &app, unsigned status, int arg)
@@ -85,7 +86,7 @@ static void onScanStatus(EmuApp &app, unsigned status, int arg)
 				if(devs)
 				{
 					app.printfMessage(2, 0, "Connecting to %d device(s)...", devs);
-					Bluetooth::connectPendingDevs(bta);
+					Bluetooth::connectPendingDevs(app.bluetoothAdapter());
 				}
 				else
 				{
@@ -127,7 +128,7 @@ void EmuMainMenuView::onShow()
 	recentGames.setActive(recentGameList.size());
 	systemActions.setActive(EmuSystem::gameIsRunning());
 	#ifdef CONFIG_BLUETOOTH
-	bluetoothDisconnect.setActive(Bluetooth::devsConnected());
+	bluetoothDisconnect.setActive(Bluetooth::devsConnected(appContext()));
 	#endif
 }
 
@@ -245,19 +246,19 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Scan for Wiimotes/iCP/JS1", &defaultFace(),
 		[this](Input::Event e)
 		{
-			if(initBTAdapter(appContext()))
+			if(app().bluetoothAdapter())
 			{
-				if(Bluetooth::scanForDevices(appContext(), *bta,
+				if(Bluetooth::scanForDevices(appContext(), *app().bluetoothAdapter(),
 					[this](BluetoothAdapter &, unsigned status, int arg)
 					{
 						onScanStatus(app(), status, arg);
 					}))
 				{
-					app().postMessage(4, "Starting Scan...\n(see website for device-specific help)");
+					app().postMessage(4, false, "Starting Scan...\n(see website for device-specific help)");
 				}
 				else
 				{
-					app().postMessage(1, "Still scanning");
+					app().postMessage(1, false, "Still scanning");
 				}
 			}
 			else
@@ -272,14 +273,15 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Disconnect Bluetooth", &defaultFace(),
 		[this](Input::Event e)
 		{
-			if(Bluetooth::devsConnected())
+			auto devConnected = Bluetooth::devsConnected(appContext());
+			if(devConnected)
 			{
 				auto ynAlertView = makeView<YesNoAlertView>(
-					string_makePrintf<64>("Really disconnect %d Bluetooth device(s)?", Bluetooth::devsConnected()).data());
+					string_makePrintf<64>("Really disconnect %d Bluetooth device(s)?", devConnected).data());
 				ynAlertView->setOnYes(
-					[]()
+					[this]()
 					{
-						Bluetooth::closeBT(bta);
+						app().closeBluetoothConnections();
 					});
 				pushAndShowModal(std::move(ynAlertView), e);
 			}
@@ -292,10 +294,10 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 		"Scan for PS3 Controller", &defaultFace(),
 		[this](Input::Event e)
 		{
-			if(initBTAdapter(appContext()))
+			if(app().bluetoothAdapter())
 			{
 				app().postMessage(4, "Prepare to push the PS button");
-				auto startedScan = Bluetooth::listenForDevices(appContext(), *bta,
+				auto startedScan = Bluetooth::listenForDevices(appContext(), *app().bluetoothAdapter(),
 					[this](BluetoothAdapter &bta, unsigned status, int arg)
 					{
 						switch(status)

@@ -196,7 +196,7 @@ class ApplicationContext;
 
 using WindowContainer = std::vector<std::unique_ptr<Window>>;
 using ScreenContainer = std::vector<std::unique_ptr<Screen>>;
-using InputDeviceContainer = std::vector<Input::Device*>;
+using InputDeviceContainer = std::vector<std::unique_ptr<Input::Device>>;
 
 using MainThreadMessageDelegate = DelegateFunc<void(ApplicationContext)>;
 using InterProcessMessageDelegate = DelegateFunc<void (ApplicationContext, const char *filename)>;

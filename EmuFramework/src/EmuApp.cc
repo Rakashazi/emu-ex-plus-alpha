@@ -118,9 +118,6 @@ public:
 	}
 };
 
-#ifdef CONFIG_BLUETOOTH
-BluetoothAdapter *bta{};
-#endif
 [[gnu::weak]] bool EmuApp::hasIcon = true;
 [[gnu::weak]] bool EmuApp::autoSaveStateDefault = true;
 
@@ -398,7 +395,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 
 			#ifdef CONFIG_BLUETOOTH
 			if(bta && (!backgrounded || (backgrounded && !optionKeepBluetoothActive)))
-				Bluetooth::closeBT(bta);
+				closeBluetoothConnections();
 			#endif
 
 			ctx.dispatchOnFreeCaches(false);

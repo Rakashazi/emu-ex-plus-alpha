@@ -62,8 +62,7 @@ const KeyConfig defaultKeyProfile[] =
 	#endif
 	{
 		Map::SYSTEM,
-		0,
-		"PC Keyboard",
+		{"PC Keyboard"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_PROFILE_INIT,
 
@@ -85,8 +84,8 @@ const KeyConfig defaultKeyProfile[] =
 	#ifdef CONFIG_INPUT_GAMEPAD_DEVICES
 	{
 		Map::SYSTEM,
-		Device::SUBTYPE_GENERIC_GAMEPAD,
-		"Generic Gamepad",
+		DeviceSubtype::GENERIC_GAMEPAD,
+		{"Generic Gamepad"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_GENERIC_GAMEPAD_PROFILE_INIT,
 
@@ -104,31 +103,11 @@ const KeyConfig defaultKeyProfile[] =
 		}
 	},
 	#endif
-	#ifdef CONFIG_ENV_WEBOS
-	{
-		Map::SYSTEM,
-		0,
-		"WebOS Keyboard",
-		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_WEBOS_KB_PROFILE_INIT,
-
-			EMU_CONTROLS_WEBOS_KB_8WAY_DIRECTION_PROFILE_INIT,
-			Keycode::SPACE,
-			Keycode::ENTER,
-			Keycode::asciiKey(','),
-			Keycode::asciiKey('m'),
-			Keycode::asciiKey('l'),
-			Keycode::asciiKey('k'),
-			0,
-			0,
-		}
-	},
-	#endif
 	#ifdef CONFIG_BASE_ANDROID
 	{
 		Map::SYSTEM,
-		Device::SUBTYPE_PS3_CONTROLLER,
-		"PS3 Controller",
+		DeviceSubtype::PS3_CONTROLLER,
+		{"PS3 Controller"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_PS3_GAMEPAD_PROFILE_INIT,
 
@@ -147,8 +126,8 @@ const KeyConfig defaultKeyProfile[] =
 	},
 	{
 		Map::SYSTEM,
-		Device::SUBTYPE_OUYA_CONTROLLER,
-		"OUYA Controller",
+		DeviceSubtype::OUYA_CONTROLLER,
+		{"OUYA Controller"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_OUYA_PROFILE_INIT,
 
@@ -167,8 +146,8 @@ const KeyConfig defaultKeyProfile[] =
 	},
 	{
 		Map::SYSTEM,
-		Device::SUBTYPE_NVIDIA_SHIELD,
-		"NVidia Shield",
+		DeviceSubtype::NVIDIA_SHIELD,
+		{"NVidia Shield"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_NVIDIA_SHIELD_PROFILE_INIT,
 
@@ -187,8 +166,8 @@ const KeyConfig defaultKeyProfile[] =
 	},
 	{
 		Map::SYSTEM,
-		Device::SUBTYPE_8BITDO_SF30_PRO,
-		"8Bitdo SF30 Pro",
+		DeviceSubtype::_8BITDO_SF30_PRO,
+		{"8Bitdo SF30 Pro"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_SF30_PRO_PROFILE_INIT,
 
@@ -207,8 +186,8 @@ const KeyConfig defaultKeyProfile[] =
 	},
 	{
 		Map::SYSTEM,
-		Device::SUBTYPE_8BITDO_SN30_PRO_PLUS,
-		"8BitDo SN30 Pro+",
+		DeviceSubtype::_8BITDO_SN30_PRO_PLUS,
+		{"8BitDo SN30 Pro+"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_8BITDO_SN30_PRO_PLUS_PROFILE_INIT,
 
@@ -228,8 +207,8 @@ const KeyConfig defaultKeyProfile[] =
 		#if __ARM_ARCH == 7
 		{
 			Map::SYSTEM,
-			Device::SUBTYPE_XPERIA_PLAY,
-			"Xperia Play",
+			DeviceSubtype::XPERIA_PLAY,
+			{"Xperia Play"},
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
@@ -250,8 +229,8 @@ const KeyConfig defaultKeyProfile[] =
 		},
 		{
 			Map::SYSTEM,
-			Device::SUBTYPE_MOTO_DROID_KEYBOARD,
-			"Droid/Milestone Keyboard",
+			DeviceSubtype::MOTO_DROID_KEYBOARD,
+			{"Droid/Milestone Keyboard"},
 			{
 				EMU_CONTROLS_IN_GAME_ACTIONS_ANDROID_NAV_PROFILE_INIT,
 
@@ -275,8 +254,8 @@ const KeyConfig defaultKeyProfile[] =
 	#ifdef CONFIG_MACHINE_PANDORA
 	{
 		Map::SYSTEM,
-		Device::SUBTYPE_PANDORA_HANDHELD,
-		"Default Pandora",
+		DeviceSubtype::PANDORA_HANDHELD,
+		{"Default Pandora"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_PANDORA_ALT_PROFILE_INIT,
 
@@ -304,8 +283,7 @@ const KeyConfig defaultAppleGCProfile[] =
 {
 	{
 		Map::APPLE_GAME_CONTROLLER,
-		0,
-		"Default",
+		{"Default"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_APPLEGC_PROFILE_INIT,
 			AppleGC::UP,
@@ -333,8 +311,7 @@ const KeyConfig defaultWiimoteProfile[] =
 {
 	{
 		Map::WIIMOTE,
-		0,
-		"Default",
+		{"Default"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_WIIMOTE_PROFILE_INIT,
 
@@ -359,8 +336,7 @@ const KeyConfig defaultWiiCCProfile[] =
 {
 	{
 		Map::WII_CC,
-		0,
-		"Default",
+		{"Default"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_WII_CC_PROFILE_INIT,
 
@@ -387,8 +363,7 @@ const KeyConfig defaultIControlPadProfile[] =
 {
 	{
 		Map::ICONTROLPAD,
-		0,
-		"Default",
+		{"Default"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_ICP_NUBS_PROFILE_INIT,
 
@@ -415,8 +390,7 @@ const KeyConfig defaultICadeProfile[] =
 {
 	{
 		Map::ICADE,
-		0,
-		"Default",
+		{"Default"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
 
@@ -443,8 +417,7 @@ const KeyConfig defaultZeemoteProfile[] =
 {
 	{
 		Map::ZEEMOTE,
-		0,
-		"Default",
+		{"Default"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_UNBINDED_PROFILE_INIT,
 
@@ -467,8 +440,7 @@ const KeyConfig defaultPS3Profile[] =
 {
 	{
 		Map::PS3PAD,
-		0,
-		"Default",
+		{"Default"},
 		{
 			EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_PS3PAD_PROFILE_INIT,
 

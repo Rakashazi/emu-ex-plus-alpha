@@ -17,26 +17,17 @@
 
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/input/Device.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/base/Error.hh>
-#include <vector>
 
-struct IControlPad : public BluetoothInputDevice, public Input::Device
+struct IControlPad : public BluetoothInputDevice
 {
 public:
 	static const uint8_t btClass[3];
-	static std::vector<IControlPad*> devList;
 
-	IControlPad(Base::ApplicationContext ctx, BluetoothAddr addr): BluetoothInputDevice{ctx},
-		Device{0, Input::Map::ICONTROLPAD, Input::Device::TYPE_BIT_GAMEPAD, "iControlPad"},
-		sock{ctx},
-		addr{addr}
-	{}
-
+	IControlPad(Base::ApplicationContext, BluetoothAddr);
 	IG::ErrorCode open(BluetoothAdapter &adapter) final;
 	void close();
-	void removeFromSystem() final;
 	uint32_t joystickAxisBits() final;
 	uint32_t joystickAxisAsDpadBitsDefault() final;
 	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
@@ -56,7 +47,6 @@ private:
 	BluetoothSocketSys sock;
 	char inputBuffer[6]{};
 	uint32_t inputBufferPos = 0;
-	uint32_t player = 0;
 	int function = 0;
 	uint32_t joystickAxisAsDpadBits_;
 	char prevBtnData[2]{};
@@ -86,6 +76,5 @@ private:
 	static constexpr int nubDeadzone = 64;
 	BluetoothAddr addr;
 
-	static uint32_t findFreeDevId();
-	void processBtnReport(const char *btnData, Input::Time time, uint32_t player);
+	void processBtnReport(const char *btnData, Input::Time time);
 };

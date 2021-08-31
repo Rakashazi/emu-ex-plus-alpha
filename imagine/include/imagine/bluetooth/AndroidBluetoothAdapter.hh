@@ -53,24 +53,26 @@ private:
 	bool openDefault(Base::ApplicationContext);
 };
 
-class AndroidBluetoothSocket : public BluetoothSocket
+class AndroidBluetoothSocket final: public BluetoothSocket
 {
 public:
+	AndroidBluetoothSocket() {}
 	AndroidBluetoothSocket(Base::ApplicationContext ctx):ctx{ctx} {}
+	~AndroidBluetoothSocket();
 	IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) final;
 	IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) final;
 	#ifdef CONFIG_BLUETOOTH_SERVER
 	IG::ErrorCode open(BluetoothAdapter &, BluetoothPendingSocket &socket) final;
 	#endif
-	void close() final;
+	void close();
 	IG::ErrorCode write(const void *data, size_t size) final;
 	void onStatusDelegateMessage(int arg);
 
 private:
 	jobject socket{}, outStream{};
 	Base::ApplicationContext ctx{};
-	sem_t connectSem;
-	Base::FDEventSource fdSrc;
+	sem_t connectSem{};
+	Base::FDEventSource fdSrc{};
 	int nativeFd = -1;
 	uint32_t channel = 0;
 	bool isClosing = false;

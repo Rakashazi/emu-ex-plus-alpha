@@ -38,11 +38,11 @@ namespace Input
 class AndroidInputDevice : public Input::Device
 {
 public:
-	AndroidInputDevice(int osId, uint32_t typeBits, const char *name, uint32_t axisBits = 0);
-	AndroidInputDevice(JNIEnv* env, jobject aDev, uint32_t enumId, int osId, int src,
+	AndroidInputDevice(int osId, TypeBits, const char *name, uint32_t axisBits = 0);
+	AndroidInputDevice(JNIEnv* env, jobject aDev, int osId, int src,
 		const char *name, int kbType, uint32_t axisBits, bool isPowerButton);
 	bool operator ==(AndroidInputDevice const& rhs) const;
-	void setTypeBits(int bits);
+	void setTypeBits(TypeBits);
 	void setJoystickAxisAsDpadBitsDefault(uint32_t axisMask);
 	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
 	uint32_t joystickAxisAsDpadBits() final;
@@ -50,11 +50,10 @@ public:
 	uint32_t joystickAxisBits() final;
 	void setICadeMode(bool on) final;
 	bool iCadeMode() const final;
-	int systemId() const { return osId; }
 	auto &jsAxes() { return axis; }
+	void update(AndroidInputDevice);
 
 protected:
-	int osId{};
 	uint32_t joystickAxisAsDpadBits_{}, joystickAxisAsDpadBitsDefault_{};
 	uint32_t axisBits{};
 	bool iCadeMode_{};
@@ -83,8 +82,6 @@ class FrameTimer;
 using AndroidPropString = std::array<char, 92>;
 
 enum SurfaceRotation : uint8_t;
-
-using AndroidInputDeviceContainer = std::vector<std::unique_ptr<Input::AndroidInputDevice>>;
 
 struct ApplicationInitParams
 {
@@ -131,8 +128,9 @@ public:
 	bool hasXperiaPlayGamepad() const;
 	void setEventsUseOSInputMethod(bool on);
 	bool eventsUseOSInputMethod() const;
-	Input::AndroidInputDevice *addInputDevice(Input::AndroidInputDevice, bool updateExisting, bool notify);
-	bool removeInputDevice(int id, bool notify);
+	Input::AndroidInputDevice *addAndroidInputDevice(Input::AndroidInputDevice, bool notify);
+	Input::AndroidInputDevice *updateAndroidInputDevice(Input::AndroidInputDevice, bool notify);
+	Input::AndroidInputDevice *inputDeviceForId(int id) const;
 	void enumInputDevices(JNIEnv *, jobject baseActivity, bool notify);
 	bool processInputEvent(AInputEvent*, Window &);
 	bool hasTrackball() const;
@@ -155,7 +153,6 @@ private:
 	Timer userActivityCallback{"userActivityCallback"};
 	void (AndroidApplication::*processInput_)(AInputQueue *);
 	AInputQueue *inputQueue{};
-	AndroidInputDeviceContainer sysInputDev{};
 	const Input::AndroidInputDevice *builtinKeyboardDev{};
 	const Input::AndroidInputDevice *virtualDev{};
 	Choreographer choreographer{};
@@ -192,7 +189,6 @@ private:
 	void processInputWithGetEvent(AInputQueue *);
 	void processInputWithHasEvents(AInputQueue *);
 	void processInputCommon(AInputQueue *inputQueue, AInputEvent* event);
-	uint32_t nextInputDeviceEnumId(const char *name, int devID);
 };
 
 using ApplicationImpl = AndroidApplication;

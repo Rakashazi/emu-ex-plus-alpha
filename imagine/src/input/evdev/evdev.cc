@@ -113,8 +113,6 @@ static Key toSysKey(Key key)
 	return Evdev::JS3_YAXIS_POS;
 }*/
 
-static void removeFromSystem(Base::LinuxApplication &app, int fd);
-
 template <class T, size_t S>
 static constexpr bool isBitSetInArray(const T (&arr)[S], unsigned int bit)
 {
@@ -124,15 +122,19 @@ static constexpr bool isBitSetInArray(const T (&arr)[S], unsigned int bit)
 
 EvdevInputDevice::EvdevInputDevice() {}
 
-EvdevInputDevice::EvdevInputDevice(int id, int fd, uint32_t type, const char *name):
-	Device{0, Map::SYSTEM, type, name},
-	id{id}, fd{fd}
+EvdevInputDevice::EvdevInputDevice(int id, int fd, TypeBits typeBits, const char *name):
+	Device{id, Map::SYSTEM, typeBits, name},
+	fd{fd}
 {
 	if(setupJoystickBits())
-		type_ |= Device::TYPE_BIT_JOYSTICK;
+		typeBits_ |= Device::TYPE_BIT_JOYSTICK;
 }
 
-void EvdevInputDevice::setEnumId(int id) { devId = id; }
+EvdevInputDevice::~EvdevInputDevice()
+{
+	fdSrc.detach();
+	::close(fd);
+}
 
 void EvdevInputDevice::processInputEvents(Base::LinuxApplication &app, input_event *event, uint32_t events)
 {
@@ -147,7 +149,7 @@ void EvdevInputDevice::processInputEvents(Base::LinuxApplication &app, input_eve
 			{
 				//logMsg("got key event code:0x%X value:%d", ev.code, ev.value);
 				auto key = toSysKey(ev.code);
-				Event event{enumId(), Map::SYSTEM, key, key, ev.value ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
+				Event event{Map::SYSTEM, key, key, ev.value ? Action::PUSHED : Action::RELEASED, 0, 0, Source::GAMEPAD, time, this};
 				app.dispatchRepeatableKeyInputEvent(event);
 			}
 			bcase EV_ABS:
@@ -158,7 +160,7 @@ void EvdevInputDevice::processInputEvents(Base::LinuxApplication &app, input_eve
 					continue; // out of range or inactive
 				}
 				//logMsg("got abs event code 0x%X, value %d", ev.code, ev.value);
-				axis[ev.code].keyEmu.dispatch(ev.value, enumId(), Map::SYSTEM, time, *this, app.mainWindow());
+				axis[ev.code].keyEmu.dispatch(ev.value, Map::SYSTEM, time, *this, app.mainWindow());
 			}
 		}
 	}
@@ -245,7 +247,7 @@ void EvdevInputDevice::addPollEvent(Base::LinuxApplication &app)
 			if(pollEvents & Base::POLLEV_ERR) [[unlikely]]
 			{
 				logMsg("error %d in input fd %d (%s)", errno, fd, name());
-				removeFromSystem(app, fd);
+				app.removeInputDevice(*this, true);
 				return 0;
 			}
 			else
@@ -261,19 +263,12 @@ void EvdevInputDevice::addPollEvent(Base::LinuxApplication &app)
 				if(len == -1 && errno != EAGAIN)
 				{
 					logMsg("error %d reading from input fd %d (%s)", errno, fd, name());
-					removeFromSystem(app, fd);
+					app.removeInputDevice(*this, true);
 					return 0;
 				}
 			}
 			return 1;
 		}};
-}
-
-void EvdevInputDevice::close(Base::LinuxApplication &app)
-{
-	fdSrc.detach();
-	::close(fd);
-	app.removeSystemInputDevice(*this, true);
 }
 
 void EvdevInputDevice::setJoystickAxisAsDpadBits(uint32_t axisMask)
@@ -297,20 +292,6 @@ int EvdevInputDevice::fileDesc() const
 	return fd;
 }
 
-int EvdevInputDevice::identifier() const
-{
-	return id;
-}
-
-static void removeFromSystem(Base::LinuxApplication &app, int fd)
-{
-	if(auto removedDev = IG::moveOutIf(app.evInputDevices(), [&](std::unique_ptr<EvdevInputDevice> &dev){ return dev->fileDesc() == fd; });
-		removedDev)
-	{
-		removedDev->close(app);
-	}
-}
-
 static bool devIsGamepad(int fd)
 {
 	ulong keyBit[IG::divRoundUp(KEY_MAX, IG::bitSize<ulong>)] {0};
@@ -330,6 +311,11 @@ static bool devIsGamepad(int fd)
 	return false;
 }
 
+static bool isEvdevInputDevice(Input::Device &d)
+{
+	return d.map() == Input::Map::SYSTEM && (d.typeBits() & Input::Device::TYPE_BIT_GAMEPAD);
+}
+
 static bool processDevNode(Base::LinuxApplication &app, const char *path, int id, bool notify)
 {
 	if(access(path, R_OK) != 0)
@@ -338,11 +324,9 @@ static bool processDevNode(Base::LinuxApplication &app, const char *path, int id
 		return false;
 	}
 
-	auto &evDevice = app.evInputDevices();
-
-	for(const auto &e : evDevice)
+	for(const auto &e : app.inputDevices())
 	{
-		if(e->identifier() == id)
+		if(isEvdevInputDevice(*e) && e->id() == id)
 		{
 			logMsg("id %d is already present", id);
 			return false;
@@ -369,13 +353,13 @@ static bool processDevNode(Base::LinuxApplication &app, const char *path, int id
 		logWarn("unable to get device name");
 		string_copy(nameStr, "Unknown");
 	}
-	auto &evDev = evDevice.emplace_back(std::make_unique<EvdevInputDevice>(id, fd, Device::TYPE_BIT_GAMEPAD, nameStr.data()));
+	auto evDev = std::make_unique<EvdevInputDevice>(id, fd, Device::TYPE_BIT_GAMEPAD, nameStr.data());
 
 	fd_setNonblock(fd, 1);
 	evDev->addPollEvent(app);
 
 	uint32_t devId = 0;
-	for(auto &e : app.systemInputDevices())
+	for(auto &e : app.inputDevices())
 	{
 		if(e->map() != Map::SYSTEM)
 			continue;
@@ -383,7 +367,7 @@ static bool processDevNode(Base::LinuxApplication &app, const char *path, int id
 			devId++;
 	}
 	evDev->setEnumId(devId);
-	app.addSystemInputDevice(*evDev, notify);
+	app.addInputDevice(std::move(evDev), notify);
 
 	return true;
 }
@@ -472,11 +456,6 @@ void LinuxApplication::initEvdev(EventLoop loop)
 		logErr("can't open " DEV_NODE_PATH);
 		return;
 	}
-}
-
-std::vector<std::unique_ptr<Input::EvdevInputDevice>> &LinuxApplication::evInputDevices()
-{
-	return evDevice;
 }
 
 }
