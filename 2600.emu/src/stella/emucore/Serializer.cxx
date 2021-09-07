@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -23,7 +23,6 @@ using std::ios_base;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Serializer::Serializer(const string& filename, Mode m)
-  : myStream(nullptr)
 {
   if(m == Mode::ReadOnly)
   {
@@ -66,10 +65,8 @@ Serializer::Serializer(const string& filename, Mode m)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Serializer::Serializer()
-  : myStream(nullptr)
+  : myStream{make_unique<stringstream>(ios::in | ios::out | ios::binary)}
 {
-  myStream = make_unique<stringstream>(ios::in | ios::out | ios::binary);
-
   // For some reason, Windows and possibly macOS needs to store something in
   // the stream before it is used for the first time
   if(myStream)
@@ -91,6 +88,8 @@ void Serializer::rewind()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 size_t Serializer::size() const
 {
+  myStream->seekp(0, std::ios::end);
+
   return myStream->tellp();
 }
 

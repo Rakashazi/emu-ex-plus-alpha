@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,7 +22,6 @@
 #include <set>
 
 #include "bspf.hxx"
-#include "StellaKeys.hxx"
 
 /**
   @author  Stephen Anthony, Christian Speckner, Thomas Jentzsch
@@ -44,9 +43,9 @@ class Event
       ConsoleSelect, ConsoleReset,
 
       JoystickZeroUp, JoystickZeroDown, JoystickZeroLeft, JoystickZeroRight,
-        JoystickZeroFire, JoystickZeroFire5, JoystickZeroFire9,
+      JoystickZeroFire, JoystickZeroFire5, JoystickZeroFire9,
       JoystickOneUp, JoystickOneDown, JoystickOneLeft, JoystickOneRight,
-        JoystickOneFire, JoystickOneFire5, JoystickOneFire9,
+      JoystickOneFire, JoystickOneFire5, JoystickOneFire9,
 
       PaddleZeroDecrease, PaddleZeroIncrease, PaddleZeroAnalog, PaddleZeroFire,
       PaddleOneDecrease, PaddleOneIncrease, PaddleOneAnalog, PaddleOneFire,
@@ -84,7 +83,7 @@ class Event
       UISelect, UINavPrev, UINavNext, UIOK, UICancel, UIPrevDir,
       UITabPrev, UITabNext,
 
-      HandleMouseControl, ToggleGrabMouse,
+      NextMouseControl, ToggleGrabMouse,
       MouseAxisXMove, MouseAxisYMove, MouseAxisXValue, MouseAxisYValue,
       MouseButtonLeftValue, MouseButtonRightValue,
 
@@ -92,6 +91,7 @@ class Event
       TogglePauseMode, StartPauseMode,
       OptionsMenuMode, CmdMenuMode, DebuggerMode, ExitMode,
       TakeSnapshot, ToggleContSnapshots, ToggleContSnapshotsFrame,
+      ToggleTurbo,
 
       NextState, PreviousState, LoadState, SaveState,
       SaveAllStates, LoadAllStates,
@@ -100,12 +100,15 @@ class Event
       Unwind1Menu, Unwind10Menu, UnwindAllMenu,
       RewindPause, UnwindPause,
 
-      FormatDecrease, FormatIncrease, TogglePalette, ToggleColorLoss,
+      FormatDecrease, FormatIncrease, PaletteDecrease, PaletteIncrease, ToggleColorLoss,
+      PreviousPaletteAttribute, NextPaletteAttribute,
+      PaletteAttributeDecrease, PaletteAttributeIncrease,
       ToggleFullScreen, VidmodeDecrease, VidmodeIncrease,
-      VCenterDecrease, VCenterIncrease, ScanlineAdjustDecrease, ScanlineAdjustIncrease,
+      VCenterDecrease, VCenterIncrease, VSizeAdjustDecrease, VSizeAdjustIncrease,
       OverscanDecrease, OverscanIncrease,
 
       VidmodeStd, VidmodeRGB, VidmodeSVideo, VidModeComposite, VidModeBad, VidModeCustom,
+      PreviousVideoMode, NextVideoMode,
       PreviousAttribute, NextAttribute, DecreaseAttribute, IncreaseAttribute,
       ScanlinesDecrease, ScanlinesIncrease,
       PhosphorDecrease, PhosphorIncrease, TogglePhosphor, ToggleInter, ToggleJitter,
@@ -118,9 +121,54 @@ class Event
       ToggleCollisions, ToggleBits, ToggleFixedColors,
 
       ToggleFrameStats, ToggleSAPortOrder, ExitGame,
+      SettingDecrease, SettingIncrease, PreviousSetting, NextSetting,
+      ToggleAdaptRefresh, PreviousMultiCartRom,
+      // add new (after Version 4) events from here to avoid that user remapped events get overwritten
+      PreviousSettingGroup, NextSettingGroup,
+      TogglePlayBackMode,
+      DecreaseAutoFire, IncreaseAutoFire,
+      DecreaseSpeed, IncreaseSpeed,
 
-      // add new events from here to avoid that user remapped events get overwritten
+      JoystickTwoUp, JoystickTwoDown, JoystickTwoLeft, JoystickTwoRight,
+      JoystickTwoFire,
+      JoystickThreeUp, JoystickThreeDown, JoystickThreeLeft, JoystickThreeRight,
+      JoystickThreeFire,
 
+      ToggleCorrectAspectRatio,
+
+      MoveLeftChar, MoveRightChar, MoveLeftWord, MoveRightWord,
+      MoveHome, MoveEnd,
+      SelectLeftChar, SelectRightChar, SelectLeftWord, SelectRightWord,
+      SelectHome, SelectEnd, SelectAll,
+      Delete, DeleteLeftWord, DeleteRightWord, DeleteHome, DeleteEnd, Backspace,
+      Cut, Copy, Paste, Undo, Redo,
+      AbortEdit, EndEdit,
+
+      HighScoresMenuMode,
+      // Input settings
+      DecreaseDeadzone, IncreaseDeadzone,
+      DecAnalogSense, IncAnalogSense,
+      DecDejtterAveraging, IncDejtterAveraging,
+      DecDejtterReaction, IncDejtterReaction,
+      DecDigitalSense, IncDigitalSense,
+      ToggleFourDirections, ToggleKeyCombos,
+      PrevMouseAsController, NextMouseAsController,
+      DecMousePaddleSense, IncMousePaddleSense,
+      DecMouseTrackballSense, IncMouseTrackballSense,
+      DecreaseDrivingSense, IncreaseDrivingSense,
+      PreviousCursorVisbility, NextCursorVisbility,
+      // GameInfoDialog/Controllers
+      PreviousLeftPort, NextLeftPort,
+      PreviousRightPort, NextRightPort,
+      ToggleSwapPorts, ToggleSwapPaddles,
+      DecreasePaddleCenterX, IncreasePaddleCenterX,
+      DecreasePaddleCenterY, IncreasePaddleCenterY,
+      PreviousMouseControl,
+      DecreaseMouseAxesRange, IncreaseMouseAxesRange,
+
+      SALeftAxis0Value, SALeftAxis1Value, SARightAxis0Value, SARightAxis1Value,
+      PaddleFourFire, PaddleFiveFire, PaddleSixFire, PaddleSevenFire,
+      UIHelp,
       LastType
     };
 
@@ -129,12 +177,13 @@ class Event
     {
       Menu, Emulation,
       Misc, AudioVideo, States, Console, Joystick, Paddles, Keyboard,
+      Devices,
       Debug, Combo,
       LastGroup
     };
 
     // Event list version, update only if the id of existing(!) event types changed
-    static constexpr Int32 VERSION = 3;
+    static constexpr Int32 VERSION = 5;
 
     using EventSet = std::set<Event::Type>;
 
@@ -211,9 +260,20 @@ static const Event::EventSet LeftJoystickEvents = {
   Event::JoystickZeroFire, Event::JoystickZeroFire5, Event::JoystickZeroFire9,
 };
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+static const Event::EventSet Left2JoystickEvents = {
+  Event::JoystickTwoUp, Event::JoystickTwoDown, Event::JoystickTwoLeft, Event::JoystickTwoRight,
+  Event::JoystickTwoFire
+};
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 static const Event::EventSet RightJoystickEvents = {
   Event::JoystickOneUp, Event::JoystickOneDown, Event::JoystickOneLeft, Event::JoystickOneRight,
-  Event::JoystickOneFire, Event::JoystickOneFire5, Event::JoystickOneFire9
+  Event::JoystickOneFire, Event::JoystickOneFire5, Event::JoystickOneFire9,
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+static const Event::EventSet Right2JoystickEvents = {
+  Event::JoystickThreeUp, Event::JoystickThreeDown, Event::JoystickThreeLeft, Event::JoystickThreeRight,
+  Event::JoystickThreeFire
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -221,11 +281,21 @@ static const Event::EventSet LeftPaddlesEvents = {
   Event::PaddleZeroDecrease, Event::PaddleZeroIncrease, Event::PaddleZeroAnalog, Event::PaddleZeroFire,
   Event::PaddleOneDecrease, Event::PaddleOneIncrease, Event::PaddleOneAnalog, Event::PaddleOneFire,
 };
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+static const Event::EventSet Left2PaddlesEvents = {
+  // Only fire buttons supported by QuadTari
+  Event::PaddleFourFire, Event::PaddleFiveFire
+};
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 static const Event::EventSet RightPaddlesEvents = {
   Event::PaddleTwoDecrease, Event::PaddleTwoIncrease, Event::PaddleTwoAnalog, Event::PaddleTwoFire,
   Event::PaddleThreeDecrease, Event::PaddleThreeIncrease, Event::PaddleThreeAnalog, Event::PaddleThreeFire,
+};
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+static const Event::EventSet Right2PaddlesEvents = {
+  // Only fire buttons supported by QuadTari
+  Event::PaddleSixFire, Event::PaddleSevenFire
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

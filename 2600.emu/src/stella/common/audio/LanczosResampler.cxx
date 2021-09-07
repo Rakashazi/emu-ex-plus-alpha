@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -69,12 +69,12 @@ LanczosResampler::LanczosResampler(
   // formatFrom.sampleRate / formatTo.sampleRate = M / N
   //
   // -> we find N from fully reducing the fraction.
-  myPrecomputedKernelCount(reducedDenominator(formatFrom.sampleRate, formatTo.sampleRate)),
-  myKernelSize(2 * kernelParameter),
-  myKernelParameter(kernelParameter),
-  myHighPassL(HIGH_PASS_CUT_OFF, float(formatFrom.sampleRate)),
-  myHighPassR(HIGH_PASS_CUT_OFF, float(formatFrom.sampleRate)),
-  myHighPass(HIGH_PASS_CUT_OFF, float(formatFrom.sampleRate))
+  myPrecomputedKernelCount{reducedDenominator(formatFrom.sampleRate, formatTo.sampleRate)},
+  myKernelSize{2 * kernelParameter},
+  myKernelParameter{kernelParameter},
+  myHighPassL{HIGH_PASS_CUT_OFF, float(formatFrom.sampleRate)},
+  myHighPassR{HIGH_PASS_CUT_OFF, float(formatFrom.sampleRate)},
+  myHighPass{HIGH_PASS_CUT_OFF, float(formatFrom.sampleRate)}
 {
   myPrecomputedKernels = make_unique<float[]>(myPrecomputedKernelCount * myKernelSize);
 

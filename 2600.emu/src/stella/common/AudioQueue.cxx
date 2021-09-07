@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,10 +22,10 @@ using std::lock_guard;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AudioQueue::AudioQueue(uInt32 fragmentSize, uInt32 capacity, bool isStereo)
-  : myFragmentSize(fragmentSize),
-    myIsStereo(isStereo),
-    myFragmentQueue(capacity),
-    myAllFragments(capacity + 2)
+  : myFragmentSize{fragmentSize},
+    myIsStereo{isStereo},
+    myFragmentQueue{capacity},
+    myAllFragments{capacity + 2}
 {
   const uInt8 sampleSize = myIsStereo ? 2 : 1;
 
@@ -48,7 +48,7 @@ uInt32 AudioQueue::capacity() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt32 AudioQueue::size()
+uInt32 AudioQueue::size() const
 {
   lock_guard<mutex> guard(myMutex);
 

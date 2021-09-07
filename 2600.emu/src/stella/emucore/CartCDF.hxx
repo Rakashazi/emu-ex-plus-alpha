@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,23 +19,38 @@
 #define CARTRIDGE_CDF_HXX
 
 class System;
-class Thumbulator;
 
 #include "bspf.hxx"
+#include "Thumbulator.hxx"
 #include "Cart.hxx"
 
 /**
-  Cartridge class used for CDF.
+  Cartridge class used for CDF/CDFJ/CDFJ+.
 
-  There are seven 4K program banks, a 4K Display Data RAM,
-  1K C Variable and Stack, and the CDF chip.
-  CDF chip access is mapped to $1000 - $103F (both read and write).
-  Program banks are accessible by read/write to $1FF5 - $1FFB.
+  CDFJ bankswitching for Atari games using ARM/C code.
+  There are two variants supported:
+  1) CDF/CDFJ - initial scheme with 32K ROM and 8K RAM
+  2) CDFJ+ - support for larger ROM sizes (64/128/256/512K) and RAM sizes (16/32K)
 
-  FIXME: THIS NEEDS TO BE UPDATED
+  Features:
+  32 fast fetchers
+  2 fast jump queues
+  1 parameter queue
+  3 channel digital audio/1 channel sampled sound
+  7 banks (4K) of atari code
+  4K display data (16K and 32K available with CDFJ+)
 
-  @authors: Darrell Spice Jr, Chris Walton, Fred Quimby,
-            Stephen Anthony, Bradford W. Mott
+  Note that for CDFJ+, the same driver is used for all RAM/RAM combinations.
+  It is left to the programmer to ensure that only the available RAM/ROM on the target device is used.
+
+  Bankswitching Note:
+  CDF/CDFJ uses $FFF5 through $FFFB (initial bank 6)
+  CDFJ+ uses $FFF4 through $FFFA (initial bank 0)
+
+  The letters CDFJ stand for Chris, Darrell, Fred, and John.
+
+  @authors: Darrell Spice Jr, Chris Walton, Fred Quimby, John Champeau
+            Thomas Jentzsch, Stephen Anthony, Bradford W. Mott
 */
 class CartridgeCDF : public Cartridge
 {
@@ -48,7 +63,8 @@ class CartridgeCDF : public Cartridge
     enum class CDFSubtype {
       CDF0,
       CDF1,
-      CDFJ
+      CDFJ,
+      CDFJplus
     };
 
   public:
@@ -62,7 +78,7 @@ class CartridgeCDF : public Cartridge
     */
     CartridgeCDF(const ByteBuffer& image, size_t size, const string& md5,
                  const Settings& settings);
-    virtual ~CartridgeCDF() = default;
+    ~CartridgeCDF() override = default;
 
   public:
     /**
@@ -90,9 +106,12 @@ class CartridgeCDF : public Cartridge
     /**
       Install pages for the specified bank in the system.
 
-     @param bank The bank that should be installed in the system
+      @param bank     The bank that should be installed in the system
+      @param segment  The segment the bank should be using
+
+      @return  true, if bank has changed
     */
-    bool bank(uInt16 bank) override;
+    bool bank(uInt16 bank, uInt16 segment = 0) override;
 
     /**
       Get the current bank.
@@ -104,7 +123,7 @@ class CartridgeCDF : public Cartridge
     /**
       Query the number of banks supported by the cartridge.
     */
-    uInt16 bankCount() const override;
+    uInt16 romBankCount() const override;
 
     /**
       Patch the cartridge ROM.
@@ -119,9 +138,9 @@ class CartridgeCDF : public Cartridge
       Access the internal ROM image for this cartridge.
 
       @param size  Set to the size of the internal ROM image data
-      @return  A pointer to the internal ROM image data
+      @return  A reference to the internal ROM image data
     */
-    const uInt8* getImage(size_t& size) const override;
+    const ByteBuffer& getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -150,6 +169,35 @@ class CartridgeCDF : public Cartridge
       Used for Thumbulator to pass values back to the cartridge
     */
     uInt32 thumbCallback(uInt8 function, uInt32 value1, uInt32 value2) override;
+
+    /**
+      Query the internal RAM size of the cart.
+
+      @return The internal RAM size
+    */
+    uInt32 internalRamSize() const override { return uInt32(myRAM.size()); }
+
+    /**
+      Read a byte from cart internal RAM.
+
+      @return The value of the interal RAM byte
+    */
+    uInt8 internalRamGetValue(uInt16 addr) const override;
+
+    /**
+      Set if we are using CDFJ+ bankswitching
+     */
+    bool isCDFJplus() const;
+
+    /**
+      Size of SRAM (RAM) area in cart
+     */
+    uInt32 ramSize() const;
+
+    /**
+      Size of Flash memory (ROM) area in cart
+     */
+    uInt32 romSize() const;
 
 #ifdef DEBUGGER_SUPPORT
     /**
@@ -181,6 +229,13 @@ class CartridgeCDF : public Cartridge
 
   private:
     /**
+      Checks if startup bank randomization is enabled.  For this scheme,
+      randomization is not supported, since the ARM code is always in a
+      pre-defined bank, and we *must* start from there.
+    */
+    bool randomStartBank() const override { return false; }
+
+    /**
       Sets the initial state of the DPC pointers and RAM
     */
     void setInitialState();
@@ -200,7 +255,6 @@ class CartridgeCDF : public Cartridge
     void setDatastreamPointer(uInt8 index, uInt32 value);
 
     uInt32 getDatastreamIncrement(uInt8 index) const;
-    void setDatastreamIncrement(uInt8 index, uInt32 value);
 
     uInt8 readFromDatastream(uInt8 index);
 
@@ -209,24 +263,33 @@ class CartridgeCDF : public Cartridge
     uInt32 getSample();
     void setupVersion();
 
-  private:
-    // The 32K ROM image of the cartridge
-    std::array<uInt8, 32_KB> myImage;
+    // Get number of memory accesses of last ARM run.
+    const Thumbulator::Stats& stats() const { return myThumbEmulator->stats(); }
 
-    // Pointer to the 28K program ROM image of the cartridge
+  private:
+    // The ROM image of the cartridge
+    ByteBuffer myImage{nullptr};
+
+    // The size of the ROM image
+    size_t mySize{0};
+
+    // Pointer to the program ROM image of the cartridge
     uInt8* myProgramImage{nullptr};
 
-    // Pointer to the 4K display ROM image of the cartridge
+    // Pointer to the display ROM image of the cartridge
     uInt8* myDisplayImage{nullptr};
 
-    // Pointer to the 2K CDF driver image in RAM
-    uInt8* myBusDriverImage{nullptr};
+    // Pointer to the driver image in RAM
+    uInt8* myDriverImage{nullptr};
 
-    // The CDF 8k RAM image, used as:
-    //   $0000 - 2K CDF driver
+    // The CDFJ 8K RAM image, used as:
+    //   $0000 - 2K Driver
     //   $0800 - 4K Display Data
     //   $1800 - 2K C Variable & Stack
-    std::array<uInt8, 8_KB> myCDFRAM;
+    // For CDFJ+, used as:
+    //   $0000 - 2K Driver
+    //   $0800 - Display Data, C Variables & Stack
+    std::array<uInt8, 32_KB> myRAM;
 
     // Pointer to the Thumb ARM emulator object
     unique_ptr<Thumbulator> myThumbEmulator;

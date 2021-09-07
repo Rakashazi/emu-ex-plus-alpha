@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,7 +22,7 @@ namespace Common {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 string Base::toString(int value, Common::Base::Fmt outputBase)
 {
-  static char vToS_buf[32];  // NOLINT - One place where C-style is acceptable
+  static char vToS_buf[32];  // NOLINT : One place where C-style is acceptable
 
   if(outputBase == Base::Fmt::_DEFAULT)
     outputBase = myDefaultBase;

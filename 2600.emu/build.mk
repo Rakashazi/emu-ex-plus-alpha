@@ -20,6 +20,7 @@ Cart0840.cxx \
 Cart2K.cxx \
 Cart3E.cxx \
 Cart3EPlus.cxx \
+Cart3EX.cxx \
 Cart3F.cxx \
 Cart4A50.cxx \
 Cart4K.cxx \
@@ -32,9 +33,8 @@ CartCDF.cxx \
 CartCM.cxx \
 CartCTY.cxx \
 CartCV.cxx \
-CartCVPlus.cxx \
 Cart.cxx \
-CartDASH.cxx \
+CartCreator.cxx \
 CartDetector.cxx \
 CartDF.cxx \
 CartDFSC.cxx \
@@ -45,6 +45,7 @@ CartE78K.cxx \
 CartE7.cxx \
 CartEF.cxx \
 CartEFSC.cxx \
+CartEnhanced.cxx \
 CartF0.cxx \
 CartF4.cxx \
 CartF4SC.cxx \
@@ -59,6 +60,7 @@ CartFE.cxx \
 CartMDM.cxx \
 CartMNetwork.cxx \
 CartSB.cxx \
+CartTVBoy.cxx \
 CartUA.cxx \
 CartWD.cxx \
 CartX07.cxx \
@@ -81,15 +83,18 @@ MD5.cxx \
 MindLink.cxx \
 MT24LC256.cxx \
 Paddles.cxx \
+PlusROM.cxx \
 PointingDevice.cxx \
 Props.cxx \
 PropsSet.cxx \
+QuadTari.cxx \
 SaveKey.cxx \
 Serializer.cxx \
 Settings.cxx \
 Switches.cxx \
 System.cxx \
 Thumbulator.cxx \
+tia/AnalogReadout.cxx \
 tia/Audio.cxx \
 tia/AudioChannel.cxx \
 tia/Background.cxx \
@@ -119,6 +124,7 @@ main/FSNodeEmuEx.cc \
 stella/common/AudioQueue.cxx \
 stella/common/AudioSettings.cxx \
 stella/common/Base.cxx \
+stella/common/PaletteHandler.cxx \
 stella/common/RewindManager.cxx \
 stella/common/StateManager.cxx \
 stella/common/TimerManager.cxx \
@@ -126,6 +132,7 @@ stella/common/audio/ConvolutionBuffer.cxx \
 stella/common/audio/HighPass.cxx \
 stella/common/audio/LanczosResampler.cxx \
 stella/common/audio/SimpleResampler.cxx \
+stella/common/repository/CompositeKeyValueRepository.cxx \
 $(addprefix $(stellaPath)/,$(stellaSrc))
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk

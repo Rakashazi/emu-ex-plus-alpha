@@ -6,6 +6,8 @@
 #include <stella/emucore/tia/TIAConstants.hxx>
 #include <stella/emucore/FrameBufferConstants.hxx>
 #include <stella/emucore/EventHandlerConstants.hxx>
+#include <stella/common/PaletteHandler.hxx>
+#include <stella/common/VideoModeHandler.hxx>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <array>
 
@@ -58,8 +60,9 @@ public:
 	Common::Size desktopSize() const { return Common::Size{1024, 1024}; }
 
 	// no-op, EmuFramework manages window
-	FBInitStatus createDisplay(const string& title, uInt32 width, uInt32 height, bool honourHiDPI = true)
+	FBInitStatus createDisplay(const string& title, BufferType, Common::Size, bool honourHiDPI = true)
 	{
+		myPaletteHandler.setPalette();
 		return FBInitStatus::Success;
 	}
 
@@ -71,10 +74,12 @@ public:
 	void setPixelFormat(IG::PixelFormat);
 	IG::PixelFormat pixelFormat() const;
 
-	void showMessage(const string& message,
-										int position = 0,
-										bool force = false,
-										uInt32 color = 0);
+	void showTextMessage(const string& message,
+		MessagePosition position = MessagePosition::BottomCenter,
+		bool force = false);
+
+	void showGaugeMessage(const string& message, const string& valueText,
+		float value, float minValue = 0.F, float maxValue = 100.F) {}
 
 	void enablePhosphor(bool enable, int blend = -1);
 
@@ -91,8 +96,11 @@ public:
 
 	const Common::Rect& imageRect() const { return myImageRect; }
 
+	PaletteHandler& paletteHandler() { return myPaletteHandler; }
+
 private:
 	EmuApp *appPtr{};
+	PaletteHandler myPaletteHandler;
 	uInt16 tiaColorMap16[256]{};
 	uInt32 tiaColorMap32[256]{};
 	uInt8 myPhosphorPalette[256][256]{};

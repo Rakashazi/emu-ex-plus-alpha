@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -38,7 +38,7 @@ class PhosphorHandler
 
       @return  Averaged value of the two RGB colors
     */
-    static inline uInt32 getPixel(const uInt32 c, const uInt32 p)
+    static constexpr uInt32 getPixel(const uInt32 c, const uInt32 p)
     {
       // Mix current calculated frame with previous displayed frame
       const uInt8 rc = static_cast<uInt8>(c >> 16),

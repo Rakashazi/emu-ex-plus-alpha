@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,7 +20,6 @@
 
 #include "bspf.hxx"
 #include "DelayQueue.hxx"
-#include "DelayQueueMember.hxx"
 #include "DelayQueueIterator.hxx"
 
 template<unsigned length, unsigned capacity>

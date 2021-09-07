@@ -9,7 +9,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,8 +22,10 @@
 #include "ControllerDetector.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Controller::Type ControllerDetector::detectType(const uInt8* image, size_t size,
-    const Controller::Type type, const Controller::Jack port, const Settings& settings)
+Controller::Type ControllerDetector::detectType(
+    const ByteBuffer& image, size_t size,
+    const Controller::Type type, const Controller::Jack port,
+    const Settings& settings)
 {
   if(type == Controller::Type::Unknown || settings.getBool("rominfo"))
   {
@@ -43,7 +45,7 @@ Controller::Type ControllerDetector::detectType(const uInt8* image, size_t size,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-string ControllerDetector::detectName(const uInt8* image, size_t size,
+string ControllerDetector::detectName(const ByteBuffer& image, size_t size,
     const Controller::Type controller, const Controller::Jack port,
     const Settings& settings)
 {
@@ -51,7 +53,8 @@ string ControllerDetector::detectName(const uInt8* image, size_t size,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Controller::Type ControllerDetector::autodetectPort(const uInt8* image, size_t size,
+Controller::Type ControllerDetector::autodetectPort(
+    const ByteBuffer& image, size_t size,
     Controller::Jack port, const Settings& settings)
 {
   // default type joystick
@@ -59,12 +62,14 @@ Controller::Type ControllerDetector::autodetectPort(const uInt8* image, size_t s
 
   if(isProbablySaveKey(image, size, port))
     type = Controller::Type::SaveKey;
+  else if(isProbablyQuadTari(image, size, port))
+    type = Controller::Type::QuadTari;
   else if(usesJoystickButton(image, size, port))
   {
     if(isProbablyTrakBall(image, size))
       type = Controller::Type::TrakBall;
     else if(isProbablyAtariMouse(image, size))
-      type = Controller::Type::AmigaMouse;
+      type = Controller::Type::AtariMouse;
     else if(isProbablyAmigaMouse(image, size))
       type = Controller::Type::AmigaMouse;
     else if(usesKeyboard(image, size, port))
@@ -88,7 +93,7 @@ Controller::Type ControllerDetector::autodetectPort(const uInt8* image, size_t s
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool ControllerDetector::searchForBytes(const uInt8* image, size_t imagesize,
+bool ControllerDetector::searchForBytes(const ByteBuffer& image, size_t imagesize,
                                         const uInt8* signature, uInt32 sigsize)
 {
   if (imagesize >= sigsize)
@@ -112,13 +117,13 @@ bool ControllerDetector::searchForBytes(const uInt8* image, size_t imagesize,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool ControllerDetector::usesJoystickButton(const uInt8* image, size_t size,
+bool ControllerDetector::usesJoystickButton(const ByteBuffer& image, size_t size,
                                             Controller::Jack port)
 {
   if(port == Controller::Jack::Left)
   {
     // check for INPT4 access
-    const int NUM_SIGS_0 = 23;
+    const int NUM_SIGS_0 = 24;
     const int SIG_SIZE_0 = 3;
     uInt8 signature_0[NUM_SIGS_0][SIG_SIZE_0] = {
       { 0x24, 0x0c, 0x10 }, // bit INPT4; bpl (joystick games only)
@@ -136,6 +141,7 @@ bool ControllerDetector::usesJoystickButton(const uInt8* image, size_t size,
       { 0xb4, 0x0c, 0x30 }, // ldy INPT4|$30,x; bmi (joystick games only)
       { 0xa5, 0x3c, 0x2a }, // ldy INPT4|$30; rol (joystick games only)
       { 0xa6, 0x3c, 0x8e }, // ldx INPT4|$30; stx (joystick games only)
+      { 0xa6, 0x0c, 0x8e }, // ldx INPT4; stx (joystick games only)
       { 0xa4, 0x3c, 0x8c }, // ldy INPT4; sty (joystick games only, Scramble)
       { 0xa5, 0x0c, 0x8d }, // lda INPT4; sta (joystick games only, Super Cobra Arcade)
       { 0xa4, 0x0c, 0x30 }, // ldy INPT4|; bmi (only Game of Concentration)
@@ -242,7 +248,7 @@ bool ControllerDetector::usesJoystickButton(const uInt8* image, size_t size,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool ControllerDetector::usesKeyboard(const uInt8* image, size_t size,
+bool ControllerDetector::usesKeyboard(const ByteBuffer& image, size_t size,
                                       Controller::Jack port)
 {
   if(port == Controller::Jack::Left)
@@ -314,13 +320,14 @@ bool ControllerDetector::usesKeyboard(const uInt8* image, size_t size,
   else if(port == Controller::Jack::Right)
   {
     // check for INPT2 *AND* INPT3 access
-    const int NUM_SIGS_0_0 = 5;
+    const int NUM_SIGS_0_0 = 6;
     const int SIG_SIZE_0_0 = 3;
     uInt8 signature_0_0[NUM_SIGS_0_0][SIG_SIZE_0_0] = {
       { 0x24, 0x3a, 0x30 }, // bit INPT2|$30; bmi
       { 0xa5, 0x3a, 0x10 }, // lda INPT2|$30; bpl
       { 0xa4, 0x3a, 0x30 }, // ldy INPT2|$30; bmi
       { 0x24, 0x0a, 0x30 }, // bit INPT2; bmi
+      { 0x24, 0x0a, 0x10 }, // bit INPT2; bpl
       { 0xa6, 0x0a, 0x30 }  // ldx INPT2; bmi
     };
     const int NUM_SIGS_0_2 = 1;
@@ -329,13 +336,14 @@ bool ControllerDetector::usesKeyboard(const uInt8* image, size_t size,
       { 0xb5, 0x38, 0x29, 0x80, 0xd0 }  // lda INPT2,x; and #80; bne
     };
 
-    const int NUM_SIGS_1_0 = 5;
+    const int NUM_SIGS_1_0 = 6;
     const int SIG_SIZE_1_0 = 3;
     uInt8 signature_1_0[NUM_SIGS_1_0][SIG_SIZE_1_0] = {
       { 0x24, 0x3b, 0x30 }, // bit INPT3|$30; bmi
       { 0xa5, 0x3b, 0x10 }, // lda INPT3|$30; bpl
       { 0xa4, 0x3b, 0x30 }, // ldy INPT3|$30; bmi
       { 0x24, 0x0b, 0x30 }, // bit INPT3; bmi
+      { 0x24, 0x0b, 0x10 }, // bit INPT3; bpl
       { 0xa6, 0x0b, 0x30 }  // ldx INPT3; bmi
     };
     const int NUM_SIGS_1_2 = 1;
@@ -381,13 +389,13 @@ bool ControllerDetector::usesKeyboard(const uInt8* image, size_t size,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool ControllerDetector::usesGenesisButton(const uInt8* image, size_t size,
+bool ControllerDetector::usesGenesisButton(const ByteBuffer& image, size_t size,
                                            Controller::Jack port)
 {
   if(port == Controller::Jack::Left)
   {
     // check for INPT1 access
-    const int NUM_SIGS_0 = 18;
+    const int NUM_SIGS_0 = 19;
     const int SIG_SIZE_0 = 3;
     uInt8 signature_0[NUM_SIGS_0][SIG_SIZE_0] = {
       { 0x24, 0x09, 0x10 }, // bit INPT1; bpl (Genesis only)
@@ -403,6 +411,7 @@ bool ControllerDetector::usesGenesisButton(const uInt8* image, size_t size,
       { 0xa4, 0x39, 0x30 }, // ldy INPT1|$30; bmi (keyboard ROMS too)
       { 0xa5, 0x39, 0x6a }, // lda INPT1|$30; ror (Genesis only)
       { 0xa6, 0x39, 0x8e }, // ldx INPT1|$30; stx (Genesis only)
+      { 0xa6, 0x09, 0x8e }, // ldx INPT1; stx (Genesis only)
       { 0xa4, 0x39, 0x8c }, // ldy INPT1|$30; sty (Genesis only, Scramble)
       { 0xa5, 0x09, 0x8d }, // lda INPT1; sta (Genesis only, Super Cobra Arcade)
       { 0xa5, 0x09, 0x29 }, // lda INPT1; and (Genesis only)
@@ -438,7 +447,7 @@ bool ControllerDetector::usesGenesisButton(const uInt8* image, size_t size,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool ControllerDetector::usesPaddle(const uInt8* image, size_t size,
+bool ControllerDetector::usesPaddle(const ByteBuffer& image, size_t size,
                                     Controller::Jack port, const Settings& settings)
 {
   if(port == Controller::Jack::Left)
@@ -547,7 +556,7 @@ bool ControllerDetector::usesPaddle(const uInt8* image, size_t size,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool ControllerDetector::isProbablyTrakBall(const uInt8* image, size_t size)
+bool ControllerDetector::isProbablyTrakBall(const ByteBuffer& image, size_t size)
 {
   // check for TrakBall tables
   const int NUM_SIGS = 3;
@@ -566,7 +575,7 @@ bool ControllerDetector::isProbablyTrakBall(const uInt8* image, size_t size)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool ControllerDetector::isProbablyAtariMouse(const uInt8* image, size_t size)
+bool ControllerDetector::isProbablyAtariMouse(const ByteBuffer& image, size_t size)
 {
   // check for Atari Mouse tables
   const int NUM_SIGS = 3;
@@ -585,7 +594,7 @@ bool ControllerDetector::isProbablyAtariMouse(const uInt8* image, size_t size)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool ControllerDetector::isProbablyAmigaMouse(const uInt8* image, size_t size)
+bool ControllerDetector::isProbablyAmigaMouse(const ByteBuffer& image, size_t size)
 {
   // check for Amiga Mouse tables
   const int NUM_SIGS = 4;
@@ -605,7 +614,7 @@ bool ControllerDetector::isProbablyAmigaMouse(const uInt8* image, size_t size)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool ControllerDetector::isProbablySaveKey(const uInt8* image, size_t size,
+bool ControllerDetector::isProbablySaveKey(const ByteBuffer& image, size_t size,
                                            Controller::Jack port)
 {
   // check for known SaveKey code, only supports right port
@@ -650,7 +659,7 @@ bool ControllerDetector::isProbablySaveKey(const uInt8* image, size_t size,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool ControllerDetector::isProbablyLightGun(const uInt8* image, size_t size,
+bool ControllerDetector::isProbablyLightGun(const ByteBuffer& image, size_t size,
                                             Controller::Jack port)
 {
   if (port == Controller::Jack::Left)
@@ -683,6 +692,39 @@ bool ControllerDetector::isProbablyLightGun(const uInt8* image, size_t size,
       if (searchForBytes(image, size, signature[i], SIG_SIZE))
         return true;
   }
+  return false;
+}
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool ControllerDetector::isProbablyQuadTari(const ByteBuffer& image, size_t size,
+                                            Controller::Jack port)
+{
+  {
+    const int NUM_SIGS = 2;
+    const int SIG_SIZE = 8;
+    uInt8 signatureBoth[NUM_SIGS][SIG_SIZE] = {
+      { 0x1B, 0x1F, 0x0B, 0x0E, 0x1E, 0x0B, 0x1C, 0x13 },
+      { 'Q', 'U', 'A', 'D', 'T', 'A', 'R', 'I' }
+    }; // "QUADTARI"
+
+    for(uInt32 i = 0; i < NUM_SIGS; ++i)
+      if(searchForBytes(image, size, signatureBoth[i], SIG_SIZE))
+        return true;
+  }
+
+  if(port == Controller::Jack::Left)
+  {
+    const int SIG_SIZE = 5;
+    uInt8 signature[SIG_SIZE] = { 'Q', 'U', 'A', 'D', 'L' };
+
+    return searchForBytes(image, size, signature, SIG_SIZE);
+  }
+  else if(port == Controller::Jack::Right)
+  {
+    const int SIG_SIZE = 5;
+    uInt8 signature[SIG_SIZE] = { 'Q', 'U', 'A', 'D', 'R' };
+
+    return searchForBytes(image, size, signature, SIG_SIZE);
+  }
   return false;
 }

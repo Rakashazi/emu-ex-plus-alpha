@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -33,20 +33,17 @@
 #ifdef GUI_SUPPORT
   #include "Menu.hxx"
   #include "CommandMenu.hxx"
+  #include "HighScoresMenu.hxx"
   #include "MessageMenu.hxx"
   #include "Launcher.hxx"
   #include "TimeMachine.hxx"
   #include "Widget.hxx"
 #endif
-#ifdef SQLITE_SUPPORT
-  #include "KeyValueRepositorySqlite.hxx"
-  #include "SettingsDb.hxx"
-#endif
 
 #include "FSNode.hxx"
 #include "MD5.hxx"
 #include "Cart.hxx"
-#include "CartDetector.hxx"
+#include "CartCreator.hxx"
 #include "FrameBuffer.hxx"
 #include "TIASurface.hxx"
 #include "TIAConstants.hxx"
@@ -58,13 +55,16 @@
 #include "Random.hxx"
 #include "StateManager.hxx"
 #include "TimerManager.hxx"
+#ifdef GUI_SUPPORT
+#include "HighScoresManager.hxx"
+#endif
 #include "Version.hxx"
 #include "TIA.hxx"
 #include "DispatchResult.hxx"
 #include "EmulationWorker.hxx"
 #include "AudioSettings.hxx"
 #include "repository/KeyValueRepositoryNoop.hxx"
-#include "repository/KeyValueRepositoryConfigfile.hxx"
+#include "repository/CompositeKeyValueRepositoryNoop.hxx"
 #include "M6532.hxx"
 
 #include "OSystem.hxx"
@@ -113,39 +113,42 @@ OSystem::~OSystem()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool OSystem::create()
+bool OSystem::initialize(const Settings::Options& options)
 {
+  loadConfig(options);
+
   ostringstream buf;
   buf << "Stella " << STELLA_VERSION << endl
       << "  Features: " << myFeatures << endl
       << "  " << myBuildInfo << endl << endl
       << "Base directory:     '"
-      << FilesystemNode(myBaseDir).getShortPath() << "'" << endl
+      << myBaseDir.getShortPath() << "'" << endl
       << "State directory:    '"
-      << FilesystemNode(myStateDir).getShortPath() << "'" << endl
+      << myStateDir.getShortPath() << "'" << endl
       << "NVRam directory:    '"
-      << FilesystemNode(myNVRamDir).getShortPath() << "'" << endl;
-
-  if(!myConfigFile.empty())
-    buf << "Configuration file: '"
-        << FilesystemNode(myConfigFile).getShortPath() << "'" << endl;
-
-  buf << "Game properties:    '"
-      << FilesystemNode(myPropertiesFile).getShortPath() << "'" << endl
+      << myNVRamDir.getShortPath() << "'" << endl
+      << "Persistence:        '"
+      << describePresistence() << "'" << endl
       << "Cheat file:         '"
-      << FilesystemNode(myCheatFile).getShortPath() << "'" << endl
+      << myCheatFile.getShortPath() << "'" << endl
       << "Palette file:       '"
-      << FilesystemNode(myPaletteFile).getShortPath() << "'" << endl;
+      << myPaletteFile.getShortPath() << "'" << endl;
   Logger::info(buf.str());
 
   // NOTE: The framebuffer MUST be created before any other object!!!
   // Get relevant information about the video hardware
   // This must be done before any graphics context is created, since
   // it may be needed to initialize the size of graphical objects
-  try        { myFrameBuffer = MediaFactory::createVideo(*this); }
-  catch(...) { return false; }
-  if(!myFrameBuffer->initialize())
+  try
+  {
+    myFrameBuffer = make_unique<FrameBuffer>(*this);
+    myFrameBuffer->initialize();
+  }
+  catch(const runtime_error& e)
+  {
+    Logger::error(e.what());
     return false;
+  }
 
   // Create the event handler for the system
   myEventHandler = MediaFactory::createEventHandler(*this);
@@ -153,6 +156,7 @@ bool OSystem::create()
 
   myStateManager = make_unique<StateManager>(*this);
   myTimerManager = make_unique<TimerManager>();
+
   myAudioSettings = make_unique<AudioSettings>(*mySettings);
 
   // Create the sound object; the sound subsystem isn't actually
@@ -172,9 +176,13 @@ bool OSystem::create()
   // Create various subsystems (menu and launcher GUI objects, etc)
   myMenu = make_unique<Menu>(*this);
   myCommandMenu = make_unique<CommandMenu>(*this);
+  myHighScoresManager = make_unique<HighScoresManager>(*this);
+  myHighScoresMenu = make_unique<HighScoresMenu>(*this);
   myMessageMenu = make_unique<MessageMenu>(*this);
   myTimeMachine = make_unique<TimeMachine>(*this);
   myLauncher = make_unique<Launcher>(*this);
+
+  myHighScoresManager->setRepository(getHighscoreRepository());
 #endif
 
 #ifdef PNG_SUPPORT
@@ -182,7 +190,14 @@ bool OSystem::create()
   myPNGLib = make_unique<PNGLibrary>(*this);
 #endif
 
-  myPropSet->load(myPropertiesFile);
+  // Detect serial port for AtariVox-USB
+  // If a previously set port is defined, use it;
+  // otherwise use the first one found (if any)
+  const string& avoxport = mySettings->getString("avoxport");
+  const StringList ports = MediaFactory::createSerialPort()->portNames();
+
+  if(avoxport.empty() && ports.size() > 0)
+    mySettings->setValue("avoxport", ports[0]);
 
   return true;
 }
@@ -192,37 +207,33 @@ void OSystem::loadConfig(const Settings::Options& options)
 {
   // Get base directory and config file from derived class
   // It will decide whether it can override its default location
-  getBaseDirAndConfig(myBaseDir, myConfigFile,
-      myDefaultSaveDir, myDefaultLoadDir,
-      ourOverrideBaseDirWithApp, ourOverrideBaseDir);
+  string baseDir, homeDir;
+  getBaseDirectories(baseDir, homeDir,
+                     ourOverrideBaseDirWithApp, ourOverrideBaseDir);
 
   // Get fully-qualified pathnames, and make directories when needed
-  FilesystemNode node(myBaseDir);
-  if(!node.isDirectory())
-    node.makeDir();
-  myBaseDir = node.getPath();
-  if(!myConfigFile.empty())
-    myConfigFile = FilesystemNode(myConfigFile).getPath();
+  myBaseDir = FilesystemNode(baseDir);
+  if(!myBaseDir.isDirectory())
+    myBaseDir.makeDir();
 
-  FilesystemNode save(myDefaultSaveDir);
-  if(!save.isDirectory())
-    save.makeDir();
-  myDefaultSaveDir = save.getShortPath();
+  myHomeDir = FilesystemNode(homeDir);
+  if(!myHomeDir.isDirectory())
+    myHomeDir.makeDir();
 
-  FilesystemNode load(myDefaultLoadDir);
-  if(!load.isDirectory())
-    load.makeDir();
-  myDefaultLoadDir = load.getShortPath();
+  initPersistence(myBaseDir);
 
-#ifdef SQLITE_SUPPORT
-  mySettingsDb = make_shared<SettingsDb>(myBaseDir, "settings");
-  if(!mySettingsDb->initialize())
-    mySettingsDb.reset();
-#endif
-
-  mySettings->setRepository(createSettingsRepository());
+  mySettings->setRepository(getSettingsRepository());
+  myPropSet->setRepository(getPropertyRepository());
 
   mySettings->load(options);
+
+  // userDir is NOT affected by '-baseDir'and '-basedirinapp' params
+  string userDir = mySettings->getString("userdir");
+  if(userDir.empty())
+    userDir = homeDir;
+  myUserDir = FilesystemNode(userDir);
+  if(!myUserDir.isDirectory())
+    myUserDir.makeDir();
 
   Logger::instance().setLogParameters(mySettings->getInt("loglevel"),
                                       mySettings->getBool("logtoconsole"));
@@ -236,89 +247,104 @@ void OSystem::loadConfig(const Settings::Options& options)
 void OSystem::saveConfig()
 {
   // Ask all subsystems to save their settings
-  if(myFrameBuffer)
+  if(myFrameBuffer && mySettings)
+    myFrameBuffer->saveConfig(settings());
+
+  if(mySettings)
   {
-    // Save the last windowed position and display on system shutdown
-    myFrameBuffer->updateWindowedPos();
-    settings().setValue("display", myFrameBuffer->getCurrentDisplayIndex());
-
-    Logger::debug("Saving TV effects options ...");
-    myFrameBuffer->tiaSurface().ntsc().saveConfig(settings());
+    Logger::debug("Saving config options ...");
+    mySettings->save();
   }
-
-  Logger::debug("Saving config options ...");
-  mySettings->save();
-
-  if(myPropSet && myPropSet->save(myPropertiesFile))
-    Logger::debug("Saving properties set ...");
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void OSystem::setConfigPaths()
 {
   // Make sure all required directories actually exist
-  auto buildDirIfRequired = [](string& path, const string& pathToBuild)
+  auto buildDirIfRequired = [](FilesystemNode& path,
+                               const FilesystemNode& initialPath,
+                               const string& pathToAppend = EmptyString)
   {
-    FilesystemNode node(pathToBuild);
-    if(!node.isDirectory())
-      node.makeDir();
-
-    path = node.getPath();
+    path = initialPath;
+    if(pathToAppend != EmptyString)
+      path /= pathToAppend;
+    if(!path.isDirectory())
+      path.makeDir();
   };
 
-  buildDirIfRequired(myStateDir, myBaseDir + "state");
-  buildDirIfRequired(myNVRamDir, myBaseDir + "nvram");
-
-#ifdef PNG_SUPPORT
-  mySnapshotSaveDir = mySettings->getString("snapsavedir");
-  if(mySnapshotSaveDir == "") mySnapshotSaveDir = defaultSaveDir();
-  buildDirIfRequired(mySnapshotSaveDir, mySnapshotSaveDir);
-
-  mySnapshotLoadDir = mySettings->getString("snaploaddir");
-  if(mySnapshotLoadDir == "") mySnapshotLoadDir = defaultLoadDir();
-  buildDirIfRequired(mySnapshotLoadDir, mySnapshotLoadDir);
+  buildDirIfRequired(myStateDir, myBaseDir, "state");
+  buildDirIfRequired(myNVRamDir, myBaseDir, "nvram");
+#ifdef DEBUGGER_SUPPORT
+  buildDirIfRequired(myCfgDir, myBaseDir, "cfg");
 #endif
 
-  myCheatFile = FilesystemNode(myBaseDir + "stella.cht").getPath();
-  myPaletteFile = FilesystemNode(myBaseDir + "stella.pal").getPath();
-  myPropertiesFile = FilesystemNode(myBaseDir + "stella.pro").getPath();
+#ifdef PNG_SUPPORT
+  const string& ssSaveDir = mySettings->getString("snapsavedir");
+  if(ssSaveDir == EmptyString)
+    mySnapshotSaveDir = userDir();
+  else
+    mySnapshotSaveDir = FilesystemNode(ssSaveDir);
+  if(!mySnapshotSaveDir.isDirectory())
+    mySnapshotSaveDir.makeDir();
+
+  const string& ssLoadDir = mySettings->getString("snaploaddir");
+  if(ssLoadDir == EmptyString)
+    mySnapshotLoadDir = userDir();
+  else
+    mySnapshotLoadDir = FilesystemNode(ssLoadDir);
+  if(!mySnapshotLoadDir.isDirectory())
+    mySnapshotLoadDir.makeDir();
+#endif
+
+  myCheatFile = myBaseDir;  myCheatFile /= "stella.cht";
+  myPaletteFile = myBaseDir;  myPaletteFile /= "stella.pal";
 
 #if 0
   // Debug code
-  auto dbgPath = [](const string& desc, const string& location)
+  auto dbgPath = [](const string& desc, const FilesystemNode& location)
   {
     cerr << desc << ": " << location << endl;
   };
   dbgPath("base dir  ", myBaseDir);
   dbgPath("state dir ", myStateDir);
   dbgPath("nvram dir ", myNVRamDir);
+  dbgPath("cfg dir   ", myCfgDir);
   dbgPath("ssave dir ", mySnapshotSaveDir);
   dbgPath("sload dir ", mySnapshotLoadDir);
   dbgPath("cheat file", myCheatFile);
   dbgPath("pal file  ", myPaletteFile);
-  dbgPath("pro file  ", myPropertiesFile);
-  dbgPath("INI file  ", myConfigFile);
 #endif
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void OSystem::setUserDir(const string& path)
+{
+  mySettings->setValue("userdir", path);
+
+  myUserDir = FilesystemNode(path);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool OSystem::checkUserPalette(bool outputError) const
 {
-  const string& palette = paletteFile();
-  ifstream in(palette, std::ios::binary);
-  if (!in)
-    return false;
-
-  // Make sure the contains enough data for the NTSC, PAL and SECAM palettes
-  // This means 128 colours each for NTSC and PAL, at 3 bytes per pixel
-  // and 8 colours for SECAM at 3 bytes per pixel
-  in.seekg(0, std::ios::end);
-  std::streampos length = in.tellg();
-  in.seekg(0, std::ios::beg);
-  if (length < 128 * 3 * 2 + 8 * 3)
+  try
   {
-    if (outputError)
-      cerr << "ERROR: invalid palette file " << palette << endl;
+    ByteBuffer palette;
+    size_t size = paletteFile().read(palette);
+
+    // Make sure the contains enough data for the NTSC, PAL and SECAM palettes
+    // This means 128 colours each for NTSC and PAL, at 3 bytes per pixel
+    // and 8 colours for SECAM at 3 bytes per pixel
+    if(size != 128 * 3 * 2 + 8 * 3)
+    {
+      if(outputError)
+        cerr << "ERROR: invalid palette file " << paletteFile() << endl;
+
+      return false;
+    }
+  }
+  catch(...)
+  {
     return false;
   }
   return true;
@@ -338,6 +364,7 @@ FBInitStatus OSystem::createFrameBuffer()
     case EventHandlerState::CMDMENU:
     case EventHandlerState::TIMEMACHINE:
   #endif
+    case EventHandlerState::PLAYBACK:
       if((fbstatus = myConsole->initializeVideo()) != FBInitStatus::Success)
         return fbstatus;
       break;
@@ -393,7 +420,7 @@ string OSystem::createConsole(const FilesystemNode& rom, const string& md5sum,
     // Each time a new console is loaded, we simulate a cart removal
     // Some carts need knowledge of this, as they behave differently
     // based on how many power-cycles they've been through since plugged in
-    mySettings->setValue("romloadcount", 0);
+    mySettings->setValue("romloadcount", -1); // we move to the next game initially
   }
 
   // Create an instance of the 2600 game console
@@ -408,7 +435,7 @@ string OSystem::createConsole(const FilesystemNode& rom, const string& md5sum,
   }
   catch(const runtime_error& e)
   {
-    buf << "ERROR: Couldn't create console (" << e.what() << ")";
+    buf << "ERROR: " << e.what();
     Logger::error(buf.str());
     return buf.str();
   }
@@ -434,8 +461,8 @@ string OSystem::createConsole(const FilesystemNode& rom, const string& md5sum,
     myConsole->initializeAudio();
 
     string saveOnExit = settings().getString("saveonexit");
-    bool activeTM = settings().getBool(
-      settings().getBool("dev.settings") ? "dev.timemachine" : "plr.timemachine");
+    bool devSettings = settings().getBool("dev.settings");
+    bool activeTM = settings().getBool(devSettings ? "dev.timemachine" : "plr.timemachine");
 
     if (saveOnExit == "all" && activeTM)
       myEventHandler->handleEvent(Event::LoadAllStates);
@@ -444,14 +471,17 @@ string OSystem::createConsole(const FilesystemNode& rom, const string& md5sum,
     {
       const string& id = myConsole->cartridge().multiCartID();
       if(id == "")
-        myFrameBuffer->showMessage("New console created");
+        myFrameBuffer->showTextMessage("New console created");
       else
-        myFrameBuffer->showMessage("Multicart " +
+        myFrameBuffer->showTextMessage("Multicart " +
           myConsole->cartridge().detectedType() + ", loading ROM" + id);
     }
     buf << "Game console created:" << endl
-        << "  ROM file: " << myRomFile.getShortPath() << endl << endl
-        << getROMInfo(*myConsole);
+        << "  ROM file: " << myRomFile.getShortPath() << endl;
+    FilesystemNode propsFile(myRomFile.getPathWithExt(".pro"));
+    if(propsFile.exists())
+      buf << "  PRO file: " << propsFile.getShortPath() << endl;
+    buf << endl << getROMInfo(*myConsole);
     Logger::info(buf.str());
 
     myFrameBuffer->setCursorState();
@@ -463,13 +493,27 @@ string OSystem::createConsole(const FilesystemNode& rom, const string& md5sum,
       if(mySettings->getBool("debug"))
         myEventHandler->enterDebugMode();
     #endif
+
+    if(!showmessage &&
+       settings().getBool(devSettings ? "dev.detectedinfo" : "plr.detectedinfo"))
+    {
+      ostringstream msg;
+
+      msg << myConsole->leftController().name() << "/" << myConsole->rightController().name()
+        << " - " << myConsole->cartridge().detectedType()
+        << " - " << myConsole->getFormatString();
+      myFrameBuffer->showTextMessage(msg.str());
+    }
   }
+
   return EmptyString;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool OSystem::reloadConsole()
+bool OSystem::reloadConsole(bool nextrom)
 {
+  mySettings->setValue("romloadprev", !nextrom);
+
   return createConsole(myRomFile, myRomMD5, false) == EmptyString;
 }
 
@@ -563,7 +607,7 @@ unique_ptr<Console> OSystem::openConsole(const FilesystemNode& romfile, string& 
     string cartmd5 = md5;
     const string& type = props.get(PropType::Cart_Type);
     unique_ptr<Cartridge> cart =
-      CartDetector::create(romfile, image, size, cartmd5, type, *mySettings);
+      CartCreator::create(romfile, image, size, cartmd5, type, *mySettings);
 
     // Some properties may not have a name set; we can't leave it blank
     if(props.get(PropType::Cart_Name) == EmptyString)
@@ -584,11 +628,23 @@ unique_ptr<Console> OSystem::openConsole(const FilesystemNode& romfile, string& 
 
     CMDLINE_PROPS_UPDATE("sp", PropType::Console_SwapPorts);
     CMDLINE_PROPS_UPDATE("lc", PropType::Controller_Left);
+    CMDLINE_PROPS_UPDATE("lq1", PropType::Controller_Left1);
+    CMDLINE_PROPS_UPDATE("lq2", PropType::Controller_Left2);
     CMDLINE_PROPS_UPDATE("rc", PropType::Controller_Right);
-    const string& s = mySettings->getString("bc");
-    if(s != "") {
-      props.set(PropType::Controller_Left, s);
-      props.set(PropType::Controller_Right, s);
+    CMDLINE_PROPS_UPDATE("rq1", PropType::Controller_Right1);
+    CMDLINE_PROPS_UPDATE("rq2", PropType::Controller_Right2);
+    const string& bc = mySettings->getString("bc");
+    if(bc != "") {
+      props.set(PropType::Controller_Left, bc);
+      props.set(PropType::Controller_Right, bc);
+    }
+    const string& aq = mySettings->getString("aq");
+    if(aq != "")
+    {
+      props.set(PropType::Controller_Left1, aq);
+      props.set(PropType::Controller_Left2, aq);
+      props.set(PropType::Controller_Right1, aq);
+      props.set(PropType::Controller_Right2, aq);
     }
     CMDLINE_PROPS_UPDATE("cp", PropType::Controller_SwapPaddles);
     CMDLINE_PROPS_UPDATE("ma", PropType::Controller_MouseAxis);
@@ -600,6 +656,8 @@ unique_ptr<Console> OSystem::openConsole(const FilesystemNode& romfile, string& 
     CMDLINE_PROPS_UPDATE("vcenter", PropType::Display_VCenter);
     CMDLINE_PROPS_UPDATE("pp", PropType::Display_Phosphor);
     CMDLINE_PROPS_UPDATE("ppblend", PropType::Display_PPBlend);
+    CMDLINE_PROPS_UPDATE("pxcenter", PropType::Controller_PaddlesXCenter);
+    CMDLINE_PROPS_UPDATE("pycenter", PropType::Controller_PaddlesYCenter);
 
     // Finally, create the cart with the correct properties
     if(cart)
@@ -640,11 +698,8 @@ ByteBuffer OSystem::openROM(const FilesystemNode& rom, string& md5, size_t& size
   if(md5 == "")
     md5 = MD5::hash(image, size);
 
-  // Some games may not have a name, since there may not
-  // be an entry in stella.pro.  In that case, we use the rom name
-  // and reinsert the properties object
-  Properties props;
-  myPropSet->getMD5WithInsert(rom, md5, props);
+  // Make sure to load a per-ROM properties entry, if one exists
+  myPropSet->loadPerROM(rom, md5);
 
   return image;
 }
@@ -668,7 +723,7 @@ string OSystem::getROMInfo(const Console& console)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 float OSystem::frameRate() const
 {
-  return myConsole ? myConsole->getFramerate() : 0;
+  return myConsole ? myConsole->currentFrameRate() : 0;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -677,7 +732,7 @@ double OSystem::dispatchEmulation(EmulationWorker& emulationWorker)
   if (!myConsole) return 0.;
 
   TIA& tia(myConsole->tia());
-  EmulationTiming& timing(myConsole->emulationTiming());
+  const EmulationTiming& timing = myConsole->emulationTiming();
   DispatchResult dispatchResult;
 
   // Check whether we have a frame pending for rendering...
@@ -689,8 +744,8 @@ double OSystem::dispatchEmulation(EmulationWorker& emulationWorker)
     tia.renderToFrameBuffer();
   }
 
-  // Start emulation on a dedicated thread. It will do its own scheduling to sync 6507 and real time
-  // and will run until we stop the worker.
+  // Start emulation on a dedicated thread. It will do its own scheduling to
+  // sync 6507 and real time and will run until we stop the worker.
   emulationWorker.start(
     timing.cyclesPerSecond(),
     timing.maxCyclesPerTimeslice(),
@@ -699,8 +754,8 @@ double OSystem::dispatchEmulation(EmulationWorker& emulationWorker)
     &tia
   );
 
-  // Render the frame. This may block, but emulation will continue to run on the worker, so the
-  // audio pipeline is kept fed :)
+  // Render the frame. This may block, but emulation will continue to run on
+  // the worker, so the audio pipeline is kept fed :)
   if (framePending) myFrameBuffer->updateInEmulationMode(myFpsMeter.fps());
 
   // Stop the worker and wait until it has finished
@@ -716,7 +771,8 @@ double OSystem::dispatchEmulation(EmulationWorker& emulationWorker)
        myDebugger->start(
           dispatchResult.getMessage(),
           dispatchResult.getAddress(),
-          dispatchResult.wasReadTrap()
+          dispatchResult.wasReadTrap(),
+          dispatchResult.getToolTip()
         );
       #endif
 
@@ -735,11 +791,13 @@ double OSystem::dispatchEmulation(EmulationWorker& emulationWorker)
   }
 
   // Handle frying
-  if (dispatchResult.getStatus() == DispatchResult::Status::ok && myEventHandler->frying())
+  if (dispatchResult.getStatus() == DispatchResult::Status::ok &&
+      myEventHandler->frying())
     myConsole->fry();
 
   // Return the 6507 time used in seconds
-  return static_cast<double>(totalCycles) / static_cast<double>(timing.cyclesPerSecond());
+  return static_cast<double>(totalCycles) /
+      static_cast<double>(timing.cyclesPerSecond());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -769,7 +827,15 @@ void OSystem::mainLoop()
     if (myEventHandler->state() == EventHandlerState::EMULATION)
       // Dispatch emulation and render frame (if applicable)
       timesliceSeconds = dispatchEmulation(emulationWorker);
-    else {
+    else if(myEventHandler->state() == EventHandlerState::PLAYBACK)
+    {
+      // Playback at emulation speed
+      timesliceSeconds = static_cast<double>(myConsole->tia().scanlinesLastFrame() * 76) /
+        static_cast<double>(myConsole->emulationTiming().cyclesPerSecond());
+      myFrameBuffer->update();
+    }
+    else
+    {
       // Render the GUI with 60 Hz in all other modes
       timesliceSeconds = 1. / 60.;
       myFrameBuffer->update();
@@ -803,21 +869,6 @@ void OSystem::mainLoop()
 
   myCheatManager->saveCheatDatabase();
 #endif
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-shared_ptr<KeyValueRepository> OSystem::createSettingsRepository()
-{
-  #ifdef SQLITE_SUPPORT
-    return mySettingsDb
-      ? shared_ptr<KeyValueRepository>(mySettingsDb, &mySettingsDb->settingsRepository())
-      : make_shared<KeyValueRepositoryNoop>();
-  #else
-    if (myConfigFile.empty())
-      return make_shared<KeyValueRepositoryNoop>();
-
-    return make_shared<KeyValueRepositoryConfigfile>(myConfigFile);
-  #endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -8,7 +8,7 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -29,11 +29,11 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 System::System(Random& random, M6502& m6502, M6532& m6532,
                TIA& mTIA, Cartridge& mCart)
-  : myRandom(random),
-    myM6502(m6502),
-    myM6532(m6532),
-    myTIA(mTIA),
-    myCart(mCart)
+  : myRandom{random},
+    myM6502{m6502},
+    myM6532{m6532},
+    myTIA{mTIA},
+    myCart{mCart}
 {
   // Initialize page access table
   PageAccess access(&myNullDevice, System::PageAccessType::READ);
@@ -99,16 +99,24 @@ void System::clearDirtyPages()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 System::peek(uInt16 addr, uInt8 flags)
+uInt8 System::peek(uInt16 addr, Device::AccessFlags flags)
 {
   const PageAccess& access = getPageAccess(addr);
 
 #ifdef DEBUGGER_SUPPORT
   // Set access type
-  if(access.codeAccessBase)
-    *(access.codeAccessBase + (addr & PAGE_MASK)) |= flags;
+  if(access.romAccessBase)
+    *(access.romAccessBase + (addr & PAGE_MASK)) |= (flags | (addr & Device::HADDR));
   else
     access.device->setAccessFlags(addr, flags);
+  // Increase access counter
+  if(flags != Device::NONE)
+  {
+    if(access.romPeekCounter)
+      *(access.romPeekCounter + (addr & PAGE_MASK)) += 1;
+    else
+      access.device->increaseAccessCounter(addr);
+  }
 #endif
 
   // See if this page uses direct accessing or not
@@ -127,17 +135,25 @@ uInt8 System::peek(uInt16 addr, uInt8 flags)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void System::poke(uInt16 addr, uInt8 value, uInt8 flags)
+void System::poke(uInt16 addr, uInt8 value, Device::AccessFlags flags)
 {
   uInt16 page = (addr & ADDRESS_MASK) >> PAGE_SHIFT;
   const PageAccess& access = myPageAccessTable[page];
 
 #ifdef DEBUGGER_SUPPORT
   // Set access type
-  if (access.codeAccessBase)
-    *(access.codeAccessBase + (addr & PAGE_MASK)) |= flags;
+  if(access.romAccessBase)
+    *(access.romAccessBase + (addr & PAGE_MASK)) |= (flags | (addr & Device::HADDR));
   else
     access.device->setAccessFlags(addr, flags);
+  // Increase access counter
+  if(flags != Device::NONE)
+  {
+    if(access.romPokeCounter)
+      *(access.romPokeCounter + (addr & PAGE_MASK)) += 1;
+    else
+      access.device->increaseAccessCounter(addr, true);
+  }
 #endif
 
   // See if this page uses direct accessing or not
@@ -159,33 +175,54 @@ void System::poke(uInt16 addr, uInt8 value, uInt8 flags)
     myDataBusState = value;
 }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 System::getAccessFlags(uInt16 addr) const
-{
 #ifdef DEBUGGER_SUPPORT
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Device::AccessFlags System::getAccessFlags(uInt16 addr) const
+{
   const PageAccess& access = getPageAccess(addr);
 
-  if(access.codeAccessBase)
-    return *(access.codeAccessBase + (addr & PAGE_MASK));
+  if(access.romAccessBase)
+    return *(access.romAccessBase + (addr & PAGE_MASK));
   else
     return access.device->getAccessFlags(addr);
-#else
-  return 0;
-#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void System::setAccessFlags(uInt16 addr, uInt8 flags)
+void System::setAccessFlags(uInt16 addr, Device::AccessFlags flags)
 {
-#ifdef DEBUGGER_SUPPORT
   const PageAccess& access = getPageAccess(addr);
 
-  if(access.codeAccessBase)
-    *(access.codeAccessBase + (addr & PAGE_MASK)) |= flags;
+  if(access.romAccessBase)
+    *(access.romAccessBase + (addr & PAGE_MASK)) |= (flags | (addr & Device::HADDR));
   else
     access.device->setAccessFlags(addr, flags);
-#endif
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void System::increaseAccessCounter(uInt16 addr, bool isWrite)
+{
+  const PageAccess& access = getPageAccess(addr);
+
+
+  if(isWrite)
+  {
+    if(access.romPokeCounter)
+    {
+      *(access.romPokeCounter + (addr & PAGE_MASK)) += 1;
+      return;
+    }
+  }
+  else
+  {
+    if(access.romPeekCounter)
+    {
+      *(access.romPeekCounter + (addr & PAGE_MASK)) += 1;
+      return;
+    }
+  }
+  access.device->increaseAccessCounter(addr, isWrite);
+}
+#endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool System::save(Serializer& out) const

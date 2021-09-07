@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -33,6 +33,19 @@ enum class FBInitStatus {
   FailComplete,
   FailTooLarge,
   FailNotSupported
+};
+
+enum class BufferType {
+  None,
+  Launcher,
+  Emulator,
+  Debugger
+};
+
+enum class ScalingInterpolation {
+  none,
+  sharp,
+  blur
 };
 
 // Positions for onscreen/overlaid messages
@@ -96,9 +109,7 @@ static constexpr ColorId
   kColorInfo = 287,
   kColorTitleBar = 288,
   kColorTitleText = 289,
-  kColorTitleBarLo = 290,
-  kColorTitleTextLo = 291,
-  kNumColors = 292,
+  kNumColors = 290,
   kNone = 0  // placeholder to represent default/no color
 ;
 

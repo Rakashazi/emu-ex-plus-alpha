@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -38,7 +38,7 @@
 #include "Player.hxx"
 #include "Ball.hxx"
 #include "LatchedInput.hxx"
-#include "PaddleReader.hxx"
+#include "AnalogReadout.hxx"
 #include "DelayQueueIterator.hxx"
 #include "Control.hxx"
 #include "System.hxx"
@@ -117,7 +117,7 @@ class TIA : public Device
     */
     TIA(ConsoleIO& console, const ConsoleTimingProvider& timingProvider,
         Settings& settings);
-    virtual ~TIA() = default;
+    ~TIA() override = default;
 
   public:
     /**
@@ -322,6 +322,7 @@ class TIA : public Device
     */
     uInt64 cycles() const { return uInt64(mySystem->cycles()); }
 
+  #ifdef DEBUGGER_SUPPORT
     /**
       Answers the frame count from the start of the emulation.
     */
@@ -333,6 +334,21 @@ class TIA : public Device
     uInt32 frameCycles() const {
       return uInt32(mySystem->cycles() - myCyclesAtFrameStart);
     }
+
+    /**
+      Answers the system cycles used by WSYNC from the start of the current frame.
+    */
+    uInt32 frameWSyncCycles() const {
+      return uInt32(myFrameWsyncCycles);
+    }
+  #endif // DEBUGGER_SUPPORT
+
+    /**
+     * Get the CPU cycles since the last dump ports change.
+     *
+     * @return  The number of CPU cycles since the last dump ports change
+    */
+    Int64 dumpPortsCycles();
 
     /**
       Answers whether the TIA is currently in being rendered
@@ -356,23 +372,25 @@ class TIA : public Device
       disabling a graphical object also disables its collisions.
 
       @param mode  1/0 indicates on/off, and values greater than 1 mean
-                   flip the bit from its current state
+                   2 means flip the bit from its current state
+                   and values greater than 2 mean return current state
 
       @return  Whether the bit was enabled or disabled
     */
     bool toggleBit(TIABit b, uInt8 mode = 2);
-    bool toggleBits();
+    bool toggleBits(bool toggle = true);
 
     /**
       Enables/disable/toggle the specified (or all) TIA bit collision(s).
 
-      @param mode  1/0 indicates on/off, and values greater than 1 mean
-                   flip the collision from its current state
+      @param mode  1/0 indicates on/off,
+                   2 means flip the collision from its current state
+                   and values greater than 2 mean return current state
 
       @return  Whether the collision was enabled or disabled
     */
     bool toggleCollision(TIABit b, uInt8 mode = 2);
-    bool toggleCollisions();
+    bool toggleCollisions(bool toggle = true);
 
     /**
       Enables/disable/toggle/query 'fixed debug colors' mode.
@@ -432,6 +450,13 @@ class TIA : public Device
       @param delayed   Wether to enable delayed playfield colors
     */
     void setPFColorDelay(bool delayed);
+
+    /**
+      Enables/disables delayed background colors.
+
+      @param delayed   Wether to enable delayed background colors
+    */
+    void setBKColorDelay(bool delayed);
 
     /**
       Enables/disables delayed player swapping.
@@ -529,6 +554,15 @@ class TIA : public Device
      * Run and forward TIA emulation to the current system clock.
      */
     void updateEmulation();
+
+  #ifdef DEBUGGER_SUPPORT
+    /**
+      Query the access counters
+
+      @return  The access counters as comma separated string
+    */
+    string getAccessCounters() const override;
+  #endif // DEBUGGER_SUPPORT
 
   private:
     /**
@@ -629,9 +663,9 @@ class TIA : public Device
     void delayedWrite(uInt8 address, uInt8 value);
 
     /**
-     * Update all paddle readout circuits to the current controller state.
+     * Update analog readout circuit to the current controller state.
      */
-    void updatePaddle(uInt8 idx);
+    void updateAnalogReadout(uInt8 idx);
 
     /**
      * Get the target counter value during a RESx. This essentially depends on
@@ -677,22 +711,36 @@ class TIA : public Device
      */
     void applyDeveloperSettings();
 
+    /**
+     * Updates the dump ports state with the time of change.
+     *
+     * @param value  The value to be stored at VBLANK
+    */
+    void updateDumpPorts(uInt8 value);
+
   #ifdef DEBUGGER_SUPPORT
-    void createAccessBase();
+    void createAccessArrays();
 
     /**
-     * Query the given address type for the associated disassembly flags.
+     * Query the given address type for the associated access flags.
      *
      * @param address  The address to query
      */
-    uInt8 getAccessFlags(uInt16 address) const override;
+    Device::AccessFlags getAccessFlags(uInt16 address) const override;
     /**
-     * Change the given address to use the given disassembly flags.
+     * Change the given address to use the given access flags.
      *
      * @param address  The address to modify
-     * @param flags    A bitfield of DisasmType directives for the given address
+     * @param flags    A bitfield of AccessType directives for the given address
      */
-    void setAccessFlags(uInt16 address, uInt8 flags) override;
+    void setAccessFlags(uInt16 address, Device::AccessFlags flags) override;
+
+    /**
+      Increase the given address's access counter
+
+      @param address The address to modify
+    */
+    void increaseAccessCounter(uInt16 address, bool isWrite) override;
   #endif // DEBUGGER_SUPPORT
 
   private:
@@ -722,6 +770,7 @@ class TIA : public Device
     */
     uInt8 myPFBitsDelay{0};
     uInt8 myPFColorDelay{0};
+    uInt8 myBKColorDelay{0};
     uInt8 myPlSwapDelay{0};
     uInt8 myBlSwapDelay{0};
 
@@ -747,7 +796,7 @@ class TIA : public Device
     /**
      * The paddle readout circuits.
      */
-    std::array<PaddleReader, 4> myPaddleReaders;
+    std::array<AnalogReadout, 4> myAnalogReadouts;
 
     /**
      * Circuits for the "latched inputs".
@@ -869,6 +918,16 @@ class TIA : public Device
     uInt64 myTimestamp{0};
 
     /**
+     * The number of CPU clocks since the last dump ports state change.
+     */
+    uInt64 myDumpPortsCycles{0};
+
+    /**
+     * The current dump ports state.
+    */
+    bool myArePortsDumped{false};
+
+    /**
      * The "shadow registers" track the last written register value for the
      * debugger.
      */
@@ -884,10 +943,17 @@ class TIA : public Device
 
     std::array<uInt32, 16> myColorCounts;
 
+  #ifdef DEBUGGER_SUPPORT
     /**
      * System cycles at the end of the previous frame / beginning of next frame.
      */
     uInt64 myCyclesAtFrameStart{0};
+
+    /**
+     * System cycles used by WSYNC during current frame.
+     */
+    uInt64 myFrameWsyncCycles{0};
+  #endif // DEBUGGER_SUPPORT
 
     /**
      * The frame manager can change during our lifetime, so we buffer those two.
@@ -896,12 +962,17 @@ class TIA : public Device
     uInt8 myJitterFactor{0};
 
     static constexpr uInt16
-      TIA_SIZE = 0x40, TIA_MASK = TIA_SIZE - 1, TIA_READ_MASK = 0x0f, TIA_BIT = 0x080, TIA_DELAY = 2;
+      TIA_SIZE = 0x40, TIA_MASK = TIA_SIZE - 1,
+      TIA_READ_SIZE = 0x10, TIA_READ_MASK = TIA_READ_SIZE - 1,
+      TIA_BIT = 0x080, TIA_DELAY = 2 * 2;
 
   #ifdef DEBUGGER_SUPPORT
     // The arrays containing information about every byte of TIA
     // indicating whether and how (RW) it is used.
-    std::array<uInt8, TIA_SIZE> myAccessBase;
+    std::array<Device::AccessFlags, TIA_SIZE> myAccessBase;
+    // The arrays containing information about every byte of TIA
+    // indicating how often it is accessed (read and write).
+    std::array<Device::AccessCounter, TIA_SIZE + TIA_READ_SIZE> myAccessCounter;
 
     // The array used to skip the first two TIA access trackings
     std::array<uInt8, TIA_SIZE> myAccessDelay;

@@ -8,7 +8,7 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -3770,9 +3770,9 @@ case 0x40:
 }
 {
   peek(0x0100 + SP++, DISASM_NONE);
-  PS(peek(0x0100 + SP++, DISASM_NONE));
-  PC = peek(0x0100 + SP++, DISASM_NONE);
-  PC |= (uInt16(peek(0x0100 + SP, DISASM_NONE)) << 8);
+  PS(peek(0x0100 + SP++, DISASM_DATA));
+  PC = peek(0x0100 + SP++, DISASM_DATA);
+  PC |= (uInt16(peek(0x0100 + SP, DISASM_DATA)) << 8);
 }
 break;
 
@@ -3784,8 +3784,8 @@ case 0x60:
 }
 {
   peek(0x0100 + SP++, DISASM_NONE);
-  PC = peek(0x0100 + SP++, DISASM_NONE);
-  PC |= (uInt16(peek(0x0100 + SP, DISASM_NONE)) << 8);
+  PC = peek(0x0100 + SP++, DISASM_DATA);
+  PC |= (uInt16(peek(0x0100 + SP, DISASM_DATA)) << 8);
   peek(PC++, DISASM_NONE);
 }
 break;

@@ -8,7 +8,7 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,9 +20,9 @@
 
 class System;
 
-#include "Console.hxx"
-#include "Serializable.hxx"
 #include "bspf.hxx"
+#include "ConsoleTiming.hxx"
+#include "Serializable.hxx"
 
 /**
   Abstract base class for devices which can be attached to a 6502
@@ -33,8 +33,41 @@ class System;
 class Device : public Serializable
 {
   public:
+    enum AccessType {
+      NONE        = 0,
+      REFERENCED  = 1 << 0, /* 0x01, code somewhere in the program references it,
+                               i.e. LDA $F372 referenced $F372 */
+      VALID_ENTRY = 1 << 1, /* 0x02, addresses that can have a label placed in front of it.
+                               A good counterexample would be "FF00: LDA $FE00"; $FF01
+                               would be in the middle of a multi-byte instruction, and
+                               therefore cannot be labelled. */
+
+      // The following correspond to specific types that can be set within the
+      // debugger, or specified in a Distella cfg file, and are listed in order
+      // of increasing hierarchy
+      //
+      ROW   = 1 << 2,  // 0x004, all other addresses
+      DATA  = 1 << 3,  // 0x008, addresses loaded into registers other than GRPx / PFx / COLUxx, AUDxx
+      AUD   = 1 << 4,  // 0x010, addresses loaded into audio registers
+      BCOL  = 1 << 5,  // 0x020, addresses loaded into COLUBK register
+      PCOL  = 1 << 6,  // 0x040, addresses loaded into COLUPF register
+      COL   = 1 << 7,  // 0x080, addresses loaded into COLUPx registers
+      PGFX  = 1 << 8,  // 0x100, addresses loaded into PFx registers
+      GFX   = 1 << 9,  // 0x200, addresses loaded into GRPx registers
+      TCODE = 1 << 10, // 0x400, (tentative) disassemble-able code segments
+      CODE  = 1 << 11, // 0x800, disassemble-able code segments
+      // special bits for address
+      HADDR = 1 << 13 | 1 << 14 | 1 << 15, // 0xe000, // highest 3 address bits
+      // special type for poke()
+      WRITE = TCODE    // 0x200, address written to
+    };
+    using AccessFlags = uInt16;
+
+    using AccessCounter = uInt32;
+
+  public:
     Device() = default;
-    virtual ~Device() = default;
+    ~Device() override = default;
 
   public:
     /**
@@ -97,20 +130,36 @@ class Device : public Serializable
     */
     virtual bool poke(uInt16 address, uInt8 value) { return false; }
 
+  #ifdef DEBUGGER_SUPPORT
     /**
-      Query the given address for its disassembly flags
+      Query the given address for its access flags
 
       @param address The address to modify
     */
-    virtual uInt8 getAccessFlags(uInt16 address) const { return 0; }
+    virtual AccessFlags getAccessFlags(uInt16 address) const { return AccessType::NONE; }
 
     /**
-      Change the given address type to use the given disassembly flags
+      Change the given address type to use the given access flags
 
       @param address The address to modify
-      @param flags   A bitfield of DisasmType directives for the given address
+      @param flags   A bitfield of AccessType directives for the given address
     */
-    virtual void setAccessFlags(uInt16 address, uInt8 flags) { }
+    virtual void setAccessFlags(uInt16 address, AccessFlags flags) { }
+
+    /**
+      Increase the given address's access counter
+
+      @param address The address to modify
+    */
+    virtual void increaseAccessCounter(uInt16 address, bool isWrite = false) { }
+
+    /**
+      Query the access counters
+
+      @return  The access counters as comma separated string
+    */
+    virtual string getAccessCounters() const { return ""; }
+  #endif
 
   protected:
     /// Pointer to the system the device is installed in or the null pointer

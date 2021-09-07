@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -23,30 +23,31 @@
 #include "Console.hxx"
 #include "TIA.hxx"
 #include "PNGLibrary.hxx"
+#include "PaletteHandler.hxx"
 #include "TIASurface.hxx"
 
 namespace {
-  FrameBuffer::ScalingInterpolation interpolationModeFromSettings(const Settings& settings)
+  ScalingInterpolation interpolationModeFromSettings(const Settings& settings)
   {
 #ifdef RETRON77
   // Witv TV / and or scanline interpolation, the image has a height of ~480px. THe R77 runs at 720p, so there
   // is no benefit from QIS in y-direction. In addition, QIS on the R77 has performance issues if TV effects are
   // enabled.
   return settings.getBool("tia.inter") || settings.getInt("tv.filter") != 0
-    ? FrameBuffer::ScalingInterpolation::blur
-    : FrameBuffer::ScalingInterpolation::sharp;
+    ? ScalingInterpolation::blur
+    : ScalingInterpolation::sharp;
 #else
     return settings.getBool("tia.inter") ?
-      FrameBuffer::ScalingInterpolation::blur :
-      FrameBuffer::ScalingInterpolation::sharp;
+      ScalingInterpolation::blur :
+      ScalingInterpolation::sharp;
 #endif
   }
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 TIASurface::TIASurface(OSystem& system)
-  : myOSystem(system),
-    myFB(system.frameBuffer())
+  : myOSystem{system},
+    myFB{system.frameBuffer()}
 {
   // Load NTSC filter settings
   myNTSCFilter.loadConfig(myOSystem.settings());
@@ -55,7 +56,9 @@ TIASurface::TIASurface(OSystem& system)
   myTiaSurface = myFB.allocateSurface(
     AtariNTSC::outWidth(TIAConstants::frameBufferWidth),
     TIAConstants::frameBufferHeight,
-    interpolationModeFromSettings(myOSystem.settings())
+    !correctAspect()
+      ? ScalingInterpolation::none
+      : interpolationModeFromSettings(myOSystem.settings())
   );
 
   // Generate scanline data, and a pre-defined scanline surface
@@ -72,22 +75,43 @@ TIASurface::TIASurface(OSystem& system)
   myBaseTiaSurface = myFB.allocateSurface(TIAConstants::frameBufferWidth*2,
                                           TIAConstants::frameBufferHeight);
 
+  // Create shading surface
+  uInt32 data = 0xff000000;
+
+  myShadeSurface = myFB.allocateSurface(1, 1, ScalingInterpolation::sharp, &data);
+
+  FBSurface::Attributes& attr = myShadeSurface->attributes();
+
+  attr.blending = true;
+  attr.blendalpha = 35; // darken stopped emulation by 35%
+  myShadeSurface->applyAttributes();
+
   myRGBFramebuffer.fill(0);
 
   // Enable/disable threading in the NTSC TV effects renderer
   myNTSCFilter.enableThreading(myOSystem.settings().getBool("threads"));
+
+  myPaletteHandler = make_unique<PaletteHandler>(myOSystem);
+  myPaletteHandler->loadConfig(myOSystem.settings());
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+TIASurface::~TIASurface()
+{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TIASurface::initialize(const Console& console,
-                            const FrameBuffer::VideoMode& mode)
+                            const VideoModeHandler::Mode& mode)
 {
   myTIA = &(console.tia());
 
-  myTiaSurface->setDstPos(mode.image.x(), mode.image.y());
-  myTiaSurface->setDstSize(mode.image.w(), mode.image.h());
-  mySLineSurface->setDstPos(mode.image.x(), mode.image.y());
-  mySLineSurface->setDstSize(mode.image.w(), mode.image.h());
+  myTiaSurface->setDstPos(mode.imageR.x(), mode.imageR.y());
+  myTiaSurface->setDstSize(mode.imageR.w(), mode.imageR.h());
+  mySLineSurface->setDstPos(mode.imageR.x(), mode.imageR.y());
+  mySLineSurface->setDstSize(mode.imageR.w(), mode.imageR.h());
+
+  myPaletteHandler->setPalette();
 
   // Phosphor mode can be enabled either globally or per-ROM
   int p_blend = 0;
@@ -137,36 +161,22 @@ const FBSurface& TIASurface::baseSurface(Common::Rect& rect) const
   uInt32 tiaw = myTIA->width(), width = tiaw * 2, height = myTIA->height();
   rect.setBounds(0, 0, width, height);
 
-  // Get Blargg buffer and width
-  uInt32 *blarggBuf, blarggPitch;
-  myTiaSurface->basePtr(blarggBuf, blarggPitch);
-  double blarggXFactor = double(blarggPitch) / width;
-  bool useBlargg = ntscEnabled();
-
   // Fill the surface with pixels from the TIA, scaled 2x horizontally
   uInt32 *buf_ptr, pitch;
   myBaseTiaSurface->basePtr(buf_ptr, pitch);
 
   for(uInt32 y = 0; y < height; ++y)
-  {
     for(uInt32 x = 0; x < width; ++x)
-    {
-      if (useBlargg)
-        *buf_ptr++ = blarggBuf[y * blarggPitch + uInt32(nearbyint(x * blarggXFactor))];
-      else
         *buf_ptr++ = myPalette[*(myTIA->frameBuffer() + y * tiaw + x / 2)];
-    }
-  }
 
   return *myBaseTiaSurface;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt32 TIASurface::mapIndexedPixel(uInt8 indexedColor, uInt8 shift)
+uInt32 TIASurface::mapIndexedPixel(uInt8 indexedColor, uInt8 shift) const
 {
   return myPalette[indexedColor | shift];
 }
-
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TIASurface::setNTSC(NTSCFilter::Preset preset, bool show)
@@ -185,29 +195,91 @@ void TIASurface::setNTSC(NTSCFilter::Preset preset, bool show)
   }
   myOSystem.settings().setValue("tv.filter", int(preset));
 
-  if(show) myFB.showMessage(buf.str());
+  if(show) myFB.showTextMessage(buf.str());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void TIASurface::setScanlineIntensity(int amount)
+void TIASurface::changeNTSC(int direction)
+{
+  constexpr NTSCFilter::Preset PRESETS[] = {
+    NTSCFilter::Preset::OFF, NTSCFilter::Preset::RGB, NTSCFilter::Preset::SVIDEO,
+    NTSCFilter::Preset::COMPOSITE, NTSCFilter::Preset::BAD, NTSCFilter::Preset::CUSTOM
+  };
+  int preset = myOSystem.settings().getInt("tv.filter");
+
+  if(direction == +1)
+  {
+    if(preset == int(NTSCFilter::Preset::CUSTOM))
+      preset = int(NTSCFilter::Preset::OFF);
+    else
+      preset++;
+  }
+  else if (direction == -1)
+  {
+    if(preset == int(NTSCFilter::Preset::OFF))
+      preset = int(NTSCFilter::Preset::CUSTOM);
+    else
+      preset--;
+  }
+  setNTSC(PRESETS[preset], true);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void TIASurface::setNTSCAdjustable(int direction)
+{
+  string text, valueText;
+  Int32 value;
+
+  setNTSC(NTSCFilter::Preset::CUSTOM);
+  ntsc().selectAdjustable(direction, text, valueText, value);
+  myOSystem.frameBuffer().showGaugeMessage(text, valueText, value);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void TIASurface::changeNTSCAdjustable(int adjustable, int direction)
+{
+  string text, valueText;
+  Int32 newValue;
+
+  setNTSC(NTSCFilter::Preset::CUSTOM);
+  ntsc().changeAdjustable(adjustable, direction, text, valueText, newValue);
+  myOSystem.frameBuffer().showGaugeMessage(text, valueText, newValue);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void TIASurface::changeCurrentNTSCAdjustable(int direction)
+{
+  string text, valueText;
+  Int32 newValue;
+
+  setNTSC(NTSCFilter::Preset::CUSTOM);
+  ntsc().changeCurrentAdjustable(direction, text, valueText, newValue);
+  myOSystem.frameBuffer().showGaugeMessage(text, valueText, newValue);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void TIASurface::setScanlineIntensity(int direction)
 {
   ostringstream buf;
-  uInt32 intensity = enableScanlines(amount);
-  buf << "Scanline intensity at " << intensity  << "%";
-  myOSystem.settings().setValue("tv.scanlines", intensity);
+  uInt32 intensity = enableScanlines(direction * 2);
 
-  myFB.showMessage(buf.str());
+  myOSystem.settings().setValue("tv.scanlines", intensity);
+  enableNTSC(ntscEnabled());
+
+  if(intensity)
+    buf << intensity << "%";
+  else
+    buf << "Off";
+  myFB.showGaugeMessage("Scanline intensity", buf.str(), intensity);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt32 TIASurface::enableScanlines(int relative, int absolute)
+uInt32 TIASurface::enableScanlines(int change)
 {
   FBSurface::Attributes& attr = mySLineSurface->attributes();
-  if(relative == 0)  attr.blendalpha = absolute;
-  else               attr.blendalpha += relative;
-  attr.blendalpha = std::max(0, Int32(attr.blendalpha));
-  attr.blendalpha = std::min(100U, attr.blendalpha);
 
+  attr.blendalpha += change;
+  attr.blendalpha = BSPF::clamp(Int32(attr.blendalpha), 0, 100);
   mySLineSurface->applyAttributes();
 
   return attr.blendalpha;
@@ -252,8 +324,8 @@ void TIASurface::enableNTSC(bool enable)
 string TIASurface::effectsInfo() const
 {
   const FBSurface::Attributes& attr = mySLineSurface->attributes();
-
   ostringstream buf;
+
   switch(myFilter)
   {
     case Filter::Normal:
@@ -266,12 +338,12 @@ string TIASurface::effectsInfo() const
       buf << myNTSCFilter.getPreset() << ", scanlines=" << attr.blendalpha;
       break;
     case Filter::BlarggPhosphor:
-      buf << myNTSCFilter.getPreset() << ", phosphor, scanlines="
-          << attr.blendalpha;
+      buf << myNTSCFilter.getPreset() << ", phosphor, scanlines=" << attr.blendalpha;
       break;
   }
 
   buf << ", inter=" << (myOSystem.settings().getBool("tia.inter") ? "enabled" : "disabled");
+  buf << ", aspect correction=" << (correctAspect() ? "enabled" : "disabled");
 
   return buf.str();
 }
@@ -300,7 +372,7 @@ inline uInt32 TIASurface::averageBuffers(uInt32 bufOfs)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void TIASurface::render()
+void TIASurface::render(bool shade)
 {
   uInt32 width = myTIA->width(), height = myTIA->height();
 
@@ -377,6 +449,12 @@ void TIASurface::render()
   if(myScanlinesEnabled)
     mySLineSurface->render();
 
+  if(shade)
+  {
+    myShadeSurface->setDstRect(myTiaSurface->dstRect());
+    myShadeSurface->render();
+  }
+
   if(mySaveSnapFlag)
   {
     mySaveSnapFlag = false;
@@ -450,8 +528,25 @@ void TIASurface::renderForSnapshot()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TIASurface::updateSurfaceSettings()
 {
-  myTiaSurface->setScalingInterpolation(interpolationModeFromSettings(myOSystem.settings()));
+  myTiaSurface->setScalingInterpolation(
+      interpolationModeFromSettings(myOSystem.settings())
+  );
   mySLineSurface->setScalingInterpolation(
       interpolationModeFromSettings(myOSystem.settings())
   );
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool TIASurface::correctAspect() const
+{
+  return myOSystem.settings().getBool("tia.correct_aspect");
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void TIASurface::resetSurfaces()
+{
+  myTiaSurface->reload();
+  mySLineSurface->reload();
+  myBaseTiaSurface->reload();
+  myShadeSurface->reload();
 }

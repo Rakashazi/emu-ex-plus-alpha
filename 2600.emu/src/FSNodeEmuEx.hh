@@ -36,7 +36,6 @@ public:
 	bool rename(const string& newfile) final;
 	bool getChildren(AbstractFSList& list, ListMode mode) const final;
 	AbstractFSNodePtr getParent() const final;
-	size_t read(ByteBuffer& image) const final;
 
 protected:
 	string name{};

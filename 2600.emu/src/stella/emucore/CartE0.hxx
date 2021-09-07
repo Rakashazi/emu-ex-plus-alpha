@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -21,7 +21,7 @@
 class System;
 
 #include "bspf.hxx"
-#include "Cart.hxx"
+#include "CartEnhanced.hxx"
 #ifdef DEBUGGER_SUPPORT
   #include "CartE0Widget.hxx"
 #endif
@@ -29,19 +29,19 @@ class System;
 /**
   This is the cartridge class for Parker Brothers' 8K games.  In
   this bankswitching scheme the 2600's 4K cartridge address space
-  is broken into four 1K segments.  The desired 1K slice of the
+  is broken into four 1K segments.  The desired 1K bank of the
   ROM is selected by accessing $1FE0 to $1FE7 for the first 1K.
-  $1FE8 to $1FEF selects the slice for the second 1K, and $1FF0 to
-  $1FF7 selects the slice for the third 1K.  The last 1K segment
+  $1FE8 to $1FEF selects the bank for the second 1K, and $1FF0 to
+  $1FF7 selects the bank for the third 1K.  The last 1K segment
   always points to the last 1K of the ROM image.
 
   Because of the complexity of this scheme, the cart reports having
   only one actual bank, in which pieces of it can be swapped out in
   many different ways.
 
-  @author  Bradford W. Mott
+  @author  Bradford W. Mott, Thomas Jentzsch
 */
-class CartridgeE0 : public Cartridge
+class CartridgeE0 : public CartridgeEnhanced
 {
   friend class CartridgeE0Widget;
 
@@ -53,70 +53,17 @@ class CartridgeE0 : public Cartridge
       @param size      The size of the ROM image
       @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
+      @param bsSize    The size specified by the bankswitching scheme
     */
     CartridgeE0(const ByteBuffer& image, size_t size, const string& md5,
-                const Settings& settings);
-    virtual ~CartridgeE0() = default;
+                const Settings& settings, size_t bsSize = 8_KB);
+    ~CartridgeE0() override = default;
 
   public:
     /**
       Reset device to its power-on state
     */
     void reset() override;
-
-    /**
-      Install cartridge in the specified system.  Invoked by the system
-      when the cartridge is attached to it.
-
-      @param system The system the device should install itself in
-    */
-    void install(System& system) override;
-
-
-    /**
-      Get the current bank.
-
-      @param address The address to use when querying the bank
-    */
-    uInt16 getBank(uInt16 address = 0) const override;
-
-    /**
-      Query the number of banks supported by the cartridge.
-    */
-    uInt16 bankCount() const override;
-
-    /**
-      Patch the cartridge ROM.
-
-      @param address  The ROM address to patch
-      @param value    The value to place into the address
-      @return    Success or failure of the patch operation
-    */
-    bool patch(uInt16 address, uInt8 value) override;
-
-    /**
-      Access the internal ROM image for this cartridge.
-
-      @param size  Set to the size of the internal ROM image data
-      @return  A pointer to the internal ROM image data
-    */
-    const uInt8* getImage(size_t& size) const override;
-
-    /**
-      Save the current state of this cart to the given Serializer.
-
-      @param out  The Serializer object to use
-      @return  False on any errors, else true
-    */
-    bool save(Serializer& out) const override;
-
-    /**
-      Load the current state of this cart from the given Serializer.
-
-      @param in  The Serializer object to use
-      @return  False on any errors, else true
-    */
-    bool load(Serializer& in) override;
 
     /**
       Get a descriptor for the device name (used in error checking).
@@ -137,51 +84,14 @@ class CartridgeE0 : public Cartridge
     }
   #endif
 
-  public:
-    /**
-      Get the byte at the specified address.
+  private:
+    bool checkSwitchBank(uInt16 address, uInt8 = 0) override;
 
-      @return The byte at the specified address
-    */
-    uInt8 peek(uInt16 address) override;
-
-    /**
-      Change the byte at the specified address to the given value
-
-      @param address The address where the value should be stored
-      @param value The value to be stored at the address
-      @return  True if the poke changed the device address space, else false
-    */
-    bool poke(uInt16 address, uInt8 value) override;
+    uInt16 hotspot() const override { return 0x1FE0; }
 
   private:
-    /**
-      Install the specified slice for segment zero
-
-      @param slice The slice to map into the segment
-    */
-    void segmentZero(uInt16 slice);
-
-    /**
-      Install the specified slice for segment one
-
-      @param slice The slice to map into the segment
-    */
-    void segmentOne(uInt16 slice);
-
-    /**
-      Install the specified slice for segment two
-
-      @param slice The slice to map into the segment
-    */
-    void segmentTwo(uInt16 slice);
-
-  private:
-    // The 8K ROM image of the cartridge
-    std::array<uInt8, 8_KB> myImage;
-
-    // Indicates the slice mapped into each of the four segments
-    std::array<uInt16, 4> myCurrentSlice;
+    // log(ROM bank segment size) / log(2)
+    static constexpr uInt16 BANK_SHIFT = 10; // = 1K = 0x0400
 
   private:
     // Following constructors and assignment operators not supported

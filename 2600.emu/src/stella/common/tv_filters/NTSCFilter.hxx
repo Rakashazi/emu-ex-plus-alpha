@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -47,12 +47,19 @@ class NTSCFilter
       BAD,
       CUSTOM
     };
+    enum class Adjustables {
+      SHARPNESS,
+      RESOLUTION,
+      ARTIFACTS,
+      FRINGING,
+      BLEEDING,
+      NUM_ADJUSTABLES
+    };
 
     /* Normally used in conjunction with custom mode, contains all
        aspects currently adjustable in NTSC TV emulation. */
     struct Adjustable {
-      uInt32 hue, saturation, contrast, brightness, gamma,
-             sharpness, resolution, artifacts, fringing, bleed;
+      uInt32 sharpness{0}, resolution{0}, artifacts{0}, fringing{0}, bleed{0};
     };
 
   public:
@@ -78,7 +85,7 @@ class NTSCFilter
     // Set custom adjustables to given values
     // Values will be scaled to 0 - 100 range, independent of how
     // they're actually stored internally
-    void setCustomAdjustables(Adjustable& adjustable);
+    void setCustomAdjustables(const Adjustable& adjustable);
 
     // The following methods cycle through each custom adjustable
     // They are used in conjunction with the increase/decrease
@@ -86,10 +93,12 @@ class NTSCFilter
     // Changes are made this way since otherwise 20 key-combinations
     // would be needed to dynamically change each setting, and now
     // only 4 combinations are necessary
-    string setNextAdjustable();
-    string setPreviousAdjustable();
-    string increaseAdjustable();
-    string decreaseAdjustable();
+    void selectAdjustable(int direction,
+                          string& text, string& valueText, Int32& value);
+    void changeAdjustable(int adjustable, int direction,
+                          string& text, string& valueText, Int32& newValue);
+    void changeCurrentAdjustable(int direction,
+                                 string& text, string& valueText, Int32& newValue);
 
     // Load and save NTSC-related settings
     void loadConfig(const Settings& settings);
@@ -139,7 +148,7 @@ class NTSCFilter
       float* value{nullptr};
     };
     uInt32 myCurrentAdjustable{0};
-    static const std::array<AdjustableTag, 10> ourCustomAdjustables;
+    static const std::array<AdjustableTag, 5> ourCustomAdjustables;
 
   private:
     // Following constructors and assignment operators not supported

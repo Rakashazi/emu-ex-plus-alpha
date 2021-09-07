@@ -15,7 +15,7 @@
 
 #define LOGTAG "main"
 #include <stella/emucore/Cart.hxx>
-#include <stella/emucore/CartDetector.hxx>
+#include <stella/emucore/CartCreator.hxx>
 #include <stella/emucore/Props.hxx>
 #include <stella/emucore/MD5.hxx>
 #include <stella/emucore/Sound.hxx>
@@ -122,7 +122,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSy
 	FilesystemNode fsNode{gamePath()};
 	auto &settings = os.settings();
 	settings.setValue("romloadcount", 0);
-	auto cartridge = CartDetector::create(fsNode, image, size, md5, romType, settings);
+	auto cartridge = CartCreator::create(fsNode, image, size, md5, romType, settings);
 	if((int)optionTVPhosphor != TV_PHOSPHOR_AUTO)
 	{
 		props.set(PropType::Display_Phosphor, optionTVPhosphor ? "YES" : "NO");
@@ -246,7 +246,7 @@ void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	osystem->frameBuffer().setPixelFormat(fmt);
 	if(osystem->hasConsole())
 	{
-		osystem->console().setPalette(osystem->settings().getString("palette"));
+		osystem->frameBuffer().paletteHandler().setPalette(osystem->settings().getString("palette"));
 	}
 }
 

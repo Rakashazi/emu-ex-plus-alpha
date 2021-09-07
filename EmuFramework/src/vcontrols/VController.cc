@@ -198,21 +198,20 @@ std::array<int, 2> VController::findGamepadElements(IG::WP pos)
 {
 	if constexpr(Config::EmuFramework::VCONTROLS_GAMEPAD)
 	{
+		if(gamepadButtonsAreEnabled())
 		{
-			auto elem = gp.centerButtons().findButtonIndices(pos);
-			if(elem[0] != -1)
+			if(auto elem = gp.centerButtons().findButtonIndices(pos);
+				elem[0] != -1)
 			{
 				return {C_ELEM + elem[0], elem[1] != -1 ? C_ELEM + elem[1] : -1};
 			}
-		}
-		{
-			auto elem = gp.faceButtons().findButtonIndices(pos);
-			if(elem[0] != -1)
+			if(auto elem = gp.faceButtons().findButtonIndices(pos);
+				elem[0] != -1)
 			{
 				return {F_ELEM + elem[0], elem[1] != -1 ? F_ELEM + elem[1] : -1};
 			}
 		}
-		if(gp.dPad().state() != VControllerState::OFF)
+		if(gamepadDPadIsEnabled() && gp.dPad().state() != VControllerState::OFF)
 		{
 			int elem = gp.dPad().getInput(pos);
 			if(elem != -1)
@@ -353,8 +352,13 @@ void VController::draw(Gfx::RendererCommands &cmds, bool activeFF, bool showHidd
 	cmds.setColor(whiteCol);
 	if(isInKeyboardMode())
 		kb.draw(cmds, projP);
-	else if(gamepadIsEnabled() && gamepadIsVisible)
-		gp.draw(cmds, showHidden, projP);
+	else if(gamepadIsVisible)
+	{
+		if(gamepadDPadIsEnabled())
+			gp.drawDPads(cmds, showHidden, projP);
+		if(gamepadButtonsAreEnabled())
+			gp.drawButtons(cmds, showHidden, projP);
+	}
 	menuBtn.draw(cmds, whiteCol, showHidden);
 	Gfx::Color redCol{1., 0., 0., alpha};
 	ffBtn.draw(cmds, activeFF ? redCol : whiteCol, showHidden);

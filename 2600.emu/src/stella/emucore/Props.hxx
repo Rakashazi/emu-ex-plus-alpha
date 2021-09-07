@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,6 +18,7 @@
 #ifndef PROPERTIES_HXX
 #define PROPERTIES_HXX
 
+#include "repository/KeyValueRepository.hxx"
 #include "bspf.hxx"
 
 enum class PropType : uInt8 {
@@ -35,13 +36,20 @@ enum class PropType : uInt8 {
   Console_TVType,
   Console_SwapPorts,
   Controller_Left,
+  Controller_Left1,
+  Controller_Left2,
   Controller_Right,
+  Controller_Right1,
+  Controller_Right2,
   Controller_SwapPaddles,
+  Controller_PaddlesXCenter,
+  Controller_PaddlesYCenter,
   Controller_MouseAxis,
   Display_Format,
   Display_VCenter,
   Display_Phosphor,
   Display_PPBlend,
+  Cart_Highscore,
   NumTypes
 };
 
@@ -74,6 +82,10 @@ class Properties
     Properties(const Properties& properties);
 
   public:
+    void load(KeyValueRepository& repo);
+
+    bool save(KeyValueRepository& repo) const;
+
     /**
       Get the value assigned to the specified key.  If the key does
       not exist then the empty string is returned.
@@ -95,22 +107,6 @@ class Properties
     void set(PropType key, const string& value);
 
     /**
-      Load properties from the specified input stream
-
-      @param is  The input stream to use
-      @param p   The Properties object to write to
-    */
-    friend istream& operator>>(istream& is, Properties& p);
-
-    /**
-      Save properties to the specified output stream
-
-      @param os  The output stream to use
-      @param p   The Properties object to read from
-    */
-    friend ostream& operator<<(ostream& os, const Properties& p);
-
-    /**
       Print the attributes of this properties object
     */
     void print() const;
@@ -119,6 +115,13 @@ class Properties
       Resets all properties to their defaults
     */
     void setDefaults();
+
+    /**
+      Resets the property of the given key to its default
+
+      @param key      The key of the property to set
+    */
+    void reset(PropType key);
 
     /**
       Overloaded equality operator(s)
@@ -154,24 +157,6 @@ class Properties
       @param properties The properties object to copy myself from
     */
     void copy(const Properties& properties);
-
-    /**
-      Read the next quoted string from the specified input stream
-      and returns it.
-
-      @param in The input stream to use
-      @return The string inside the quotes
-    */
-    static string readQuotedString(istream& in);
-
-    /**
-      Write the specified string to the given output stream as a
-      quoted string.
-
-      @param out The output stream to use
-      @param s The string to output
-    */
-    static void writeQuotedString(ostream& out, const string& s);
 
     /**
       Get the property type associated with the named property

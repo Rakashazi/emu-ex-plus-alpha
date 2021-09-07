@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -45,7 +45,7 @@ class System;
 class CartridgeDPCPlus : public Cartridge
 {
   friend class CartridgeDPCPlusWidget;
-	friend class CartridgeRamDPCPlusWidget;
+  friend class CartridgeRamDPCPlusWidget;
 
   public:
     /**
@@ -58,7 +58,7 @@ class CartridgeDPCPlus : public Cartridge
     */
     CartridgeDPCPlus(const ByteBuffer& image, size_t size, const string& md5,
                      const Settings& settings);
-    virtual ~CartridgeDPCPlus() = default;
+    ~CartridgeDPCPlus() override = default;
 
   public:
     /**
@@ -86,9 +86,12 @@ class CartridgeDPCPlus : public Cartridge
     /**
       Install pages for the specified bank in the system.
 
-      @param bank The bank that should be installed in the system
+      @param bank     The bank that should be installed in the system
+      @param segment  The segment the bank should be using
+
+      @return  true, if bank has changed
     */
-    bool bank(uInt16 bank) override;
+    bool bank(uInt16 bank, uInt16 segment = 0) override;
 
     /**
       Get the current bank.
@@ -100,7 +103,7 @@ class CartridgeDPCPlus : public Cartridge
     /**
       Query the number of banks supported by the cartridge.
     */
-    uInt16 bankCount() const override;
+    uInt16 romBankCount() const override;
 
     /**
       Patch the cartridge ROM.
@@ -115,9 +118,9 @@ class CartridgeDPCPlus : public Cartridge
       Access the internal ROM image for this cartridge.
 
       @param size  Set to the size of the internal ROM image data
-      @return  A pointer to the internal ROM image data
+      @return  A reference to the internal ROM image data
     */
-    const uInt8* getImage(size_t& size) const override;
+    const ByteBuffer& getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -141,6 +144,21 @@ class CartridgeDPCPlus : public Cartridge
       @return The name of the object
     */
     string name() const override { return "CartridgeDPC+"; }
+
+    /**
+      Query the internal RAM size of the cart.
+
+      @return The internal RAM size
+    */
+    uInt32 internalRamSize() const override { return uInt32(myDPCRAM.size()); }
+
+    /**
+      Read a byte from cart internal RAM.
+
+      @return The value of the interal RAM byte
+    */
+    uInt8 internalRamGetValue(uInt16 addr) const override;
+
 
   #ifdef DEBUGGER_SUPPORT
     /**
@@ -173,6 +191,13 @@ class CartridgeDPCPlus : public Cartridge
 
   private:
     /**
+      Checks if startup bank randomization is enabled.  For this scheme,
+      randomization is not supported, since the ARM code is always in a
+      pre-defined bank, and we *must* start from there.
+    */
+    bool randomStartBank() const override { return false; }
+
+    /**
       Sets the initial state of the DPC pointers and RAM
     */
     void setInitialState();
@@ -198,9 +223,12 @@ class CartridgeDPCPlus : public Cartridge
     */
     void callFunction(uInt8 value);
 
+    // Get number of memory accesses of last ARM run.
+    const Thumbulator::Stats& stats() const { return myThumbEmulator->stats(); }
+
   private:
     // The ROM image and size
-    std::array<uInt8, 32_KB> myImage;
+    ByteBuffer myImage;
     size_t mySize{0};
 
     // Pointer to the 24K program ROM image of the cartridge

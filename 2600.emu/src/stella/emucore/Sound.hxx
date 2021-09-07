@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -88,19 +88,36 @@ class Sound
     /**
       Adjusts the volume of the sound device based on the given direction.
 
-      @param direction  Increase or decrease the current volume by a predefined
-                        amount based on the direction (1 = increase, -1 =decrease)
+      @param direction  +1 indicates increase, -1 indicates decrease.
     */
-    virtual void adjustVolume(Int8 direction) = 0;
+    virtual void adjustVolume(int direction = 1) = 0;
 
     /**
       This method is called to provide information about the sound device.
     */
     virtual string about() const = 0;
 
+    /**
+      Get the supported devices for the audio hardware.
+
+      @return  An array of supported devices
+    */
+    const VariantList& supportedDevices() const {return myDevices;}
+
+  protected:
+    /**
+      This method is called to query the audio devices.
+
+      @param devices  List of device names
+    */
+    virtual void queryHardware(VariantList& devices) = 0;
+
   protected:
     // The OSystem for this sound object
     OSystem& myOSystem;
+
+    // Supported device
+    VariantList myDevices;
 
   private:
     // Following constructors and assignment operators not supported

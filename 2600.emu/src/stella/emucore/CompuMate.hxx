@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,11 +18,12 @@
 #ifndef COMPUMATE_HXX
 #define COMPUMATE_HXX
 
+class Console;
+class Event;
+class System;
+
 #include "bspf.hxx"
-#include "CartCM.hxx"
 #include "Control.hxx"
-#include "Event.hxx"
-#include "Console.hxx"
 
 /**
   Handler for SpectraVideo CompuMate bankswitched games.
@@ -51,7 +52,6 @@ class CompuMate
       @param system   The system using this controller
     */
     CompuMate(const Console& console, const Event& event, const System& system);
-    virtual ~CompuMate() = default;  // Controllers are deleted outside this class
 
     /**
       Return the left and right CompuMate controllers
@@ -86,8 +86,8 @@ class CompuMate
         CMControl(class CompuMate& handler, Controller::Jack jack, const Event& event,
                   const System& system)
           : Controller(jack, event, system, Controller::Type::CompuMate),
-            myHandler(handler) { }
-        virtual ~CMControl() = default;
+            myHandler{handler} { }
+        ~CMControl() override = default;
 
       public:
         /**

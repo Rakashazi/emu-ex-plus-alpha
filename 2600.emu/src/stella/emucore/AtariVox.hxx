@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,10 +19,11 @@
 #define ATARIVOX_HXX
 
 class OSystem;
+class SerialPort;
+class FilesystemNode;
 
 #include "Control.hxx"
 #include "SaveKey.hxx"
-#include "SerialPort.hxx"
 
 /**
   Richard Hutchinson's AtariVox "controller": A speech synthesizer and
@@ -31,7 +32,7 @@ class OSystem;
   This code owes a great debt to Alex Herbert's AtariVox documentation and
   driver code.
 
-  @author  B. Watson
+  @author  B. Watson, Stephen Anthony
 */
 class AtariVox : public SaveKey
 {
@@ -47,9 +48,9 @@ class AtariVox : public SaveKey
       @param callback   Called to pass messages back to the parent controller
     */
     AtariVox(Jack jack, const Event& event, const System& system,
-             const string& portname, const string& eepromfile,
+             const string& portname, const FilesystemNode& eepromfile,
              const onMessageCallback& callback);
-    virtual ~AtariVox() = default;
+    ~AtariVox() override;
 
   public:
     using Controller::read;
@@ -79,13 +80,20 @@ class AtariVox : public SaveKey
     void update() override { }
 
     /**
+      Returns the name of this controller.
+    */
+    string name() const override { return "AtariVox"; }
+
+    /**
       Notification method invoked by the system after its reset method has
       been called.  It may be necessary to override this method for
       controllers that need to know a reset has occurred.
     */
     void reset() override;
 
-    string about(bool swappedPorts) const override { return Controller::about(swappedPorts) + myAboutString; }
+    string about(bool swappedPorts) const override {
+      return Controller::about(swappedPorts) + myAboutString;
+    }
 
   private:
    void clockDataIn(bool value);
@@ -110,6 +118,13 @@ class AtariVox : public SaveKey
     // driver code sends data at 62 CPU cycles per bit, which is
     // "close enough".
     uInt64 myLastDataWriteCycle{0};
+
+    // When using software flow control, assume the device starts in READY mode
+    bool myReadyStateSoftFlow{true};
+
+    // Some USB-Serial adaptors send the CTS signal inverted; we detect
+    // that when opening the port, and flip the signal when necessary
+    bool myCTSFlip{false};
 
     // Holds information concerning serial port usage
     string myAboutString;

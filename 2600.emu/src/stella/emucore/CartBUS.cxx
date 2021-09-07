@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -43,32 +43,37 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CartridgeBUS::CartridgeBUS(const ByteBuffer& image, size_t size,
                            const string& md5, const Settings& settings)
-  : Cartridge(settings, md5)
+  : Cartridge(settings, md5),
+    myImage{make_unique<uInt8[]>(32_KB)}
 {
   // Copy the ROM image into my buffer
-  std::copy_n(image.get(), std::min(myImage.size(), size), myImage.begin());
+  std::copy_n(image.get(), std::min(32_KB, size), myImage.get());
 
   // Even though the ROM is 32K, only 28K is accessible to the 6507
-  createCodeAccessBase(28_KB);
+  createRomAccessArrays(28_KB);
 
   // Pointer to the program ROM (28K @ 0 byte offset)
   // which starts after the 2K BUS Driver and 2K C Code
-  myProgramImage = myImage.data() + 4_KB;
+  myProgramImage = myImage.get() + 4_KB;
 
   // Pointer to BUS driver in RAM
-  myBusDriverImage = myBUSRAM.data();
+  myDriverImage = myRAM.data();
 
   // Pointer to the display RAM
-  myDisplayImage = myBUSRAM.data() + DSRAM;
+  myDisplayImage = myRAM.data() + DSRAM;
 
   // Create Thumbulator ARM emulator
   bool devSettings = settings.getBool("dev.settings");
   myThumbEmulator = make_unique<Thumbulator>(
-    reinterpret_cast<uInt16*>(myImage.data()),
-    reinterpret_cast<uInt16*>(myBUSRAM.data()),
-    static_cast<uInt32>(myImage.size()),
-    devSettings ? settings.getBool("dev.thumb.trapfatal") : false, Thumbulator::ConfigureFor::BUS, this
-  );
+    reinterpret_cast<uInt16*>(myImage.get()),
+    reinterpret_cast<uInt16*>(myRAM.data()),
+    static_cast<uInt32>(32_KB),
+    0x00000800,
+    0x00000808,
+    0x40001FDC,
+    devSettings ? settings.getBool("dev.thumb.trapfatal") : false,
+    Thumbulator::ConfigureFor::BUS,
+    this);
 
   setInitialState();
 }
@@ -76,7 +81,7 @@ CartridgeBUS::CartridgeBUS(const ByteBuffer& image, size_t size,
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeBUS::reset()
 {
-  initializeRAM(myBUSRAM.data() + 2_KB, 6_KB);
+  initializeRAM(myRAM.data() + 2_KB, 6_KB);
 
   // BUS always starts in bank 6
   initializeStartBank(6);
@@ -95,7 +100,7 @@ void CartridgeBUS::reset()
 void CartridgeBUS::setInitialState()
 {
   // Copy initial BUS driver to Harmony RAM
-  std::copy_n(myImage.begin(), 2_KB, myBusDriverImage);
+  std::copy_n(myImage.get(), 2_KB, myDriverImage);
 
   myMusicWaveformSize.fill(27);
 
@@ -254,7 +259,7 @@ uInt8 CartridgeBUS::peek(uInt16 address)
           if (sampleaddress < 0x8000)
             peekvalue = myImage[sampleaddress];
           else if (sampleaddress >= 0x40000000 && sampleaddress < 0x40002000) // check for RAM
-            peekvalue = myBUSRAM[sampleaddress - 0x40000000];
+            peekvalue = myRAM[sampleaddress - 0x40000000];
           else
             peekvalue = 0;
 
@@ -429,7 +434,7 @@ bool CartridgeBUS::poke(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeBUS::bank(uInt16 bank)
+bool CartridgeBUS::bank(uInt16 bank, uInt16)
 {
   if(bankLocked()) return false;
 
@@ -442,7 +447,9 @@ bool CartridgeBUS::bank(uInt16 bank)
   // Map Program ROM image into the system
   for(uInt16 addr = 0x1040; addr < 0x2000; addr += System::PAGE_SIZE)
   {
-    access.codeAccessBase = &myCodeAccessBase[myBankOffset + (addr & 0x0FFF)];
+    access.romAccessBase = &myRomAccessBase[myBankOffset + (addr & 0x0FFF)];
+    access.romPeekCounter = &myRomAccessCounter[myBankOffset + (addr & 0x0FFF)];
+    access.romPokeCounter = &myRomAccessCounter[myBankOffset + (addr & 0x0FFF) + 28_KB];
     mySystem->setPageAccess(addr, access);
   }
   return myBankChanged = true;
@@ -455,7 +462,7 @@ uInt16 CartridgeBUS::getBank(uInt16) const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeBUS::bankCount() const
+uInt16 CartridgeBUS::romBankCount() const
 {
   return 7;
 }
@@ -476,10 +483,10 @@ bool CartridgeBUS::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeBUS::getImage(size_t& size) const
+const ByteBuffer& CartridgeBUS::getImage(size_t& size) const
 {
-  size = myImage.size();
-  return myImage.data();
+  size = 32_KB;
+  return myImage;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -542,6 +549,15 @@ uInt32 CartridgeBUS::thumbCallback(uInt8 function, uInt32 value1, uInt32 value2)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt8 CartridgeBUS::internalRamGetValue(uInt16 addr) const
+{
+  if(addr < internalRamSize())
+    return myRAM[addr];
+  else
+    return 0;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool CartridgeBUS::save(Serializer& out) const
 {
   try
@@ -550,7 +566,7 @@ bool CartridgeBUS::save(Serializer& out) const
     out.putShort(myBankOffset);
 
     // Harmony RAM
-    out.putByteArray(myBUSRAM.data(), myBUSRAM.size());
+    out.putByteArray(myRAM.data(), myRAM.size());
 
     // Addresses for bus override logic
     out.putShort(myBusOverdriveAddress);
@@ -591,7 +607,7 @@ bool CartridgeBUS::load(Serializer& in)
     myBankOffset = in.getShort();
 
     // Harmony RAM
-    in.getByteArray(myBUSRAM.data(), myBUSRAM.size());
+    in.getByteArray(myRAM.data(), myRAM.size());
 
     // Addresses for bus override logic
     myBusOverdriveAddress = in.getShort();
@@ -631,40 +647,40 @@ uInt32 CartridgeBUS::getDatastreamPointer(uInt8 index) const
 {
 //  index &= 0x0f;
 
-  return myBUSRAM[DSxPTR + index*4 + 0]        +  // low byte
-        (myBUSRAM[DSxPTR + index*4 + 1] << 8)  +
-        (myBUSRAM[DSxPTR + index*4 + 2] << 16) +
-        (myBUSRAM[DSxPTR + index*4 + 3] << 24) ;  // high byte
+  return myRAM[DSxPTR + index*4 + 0]        +  // low byte
+        (myRAM[DSxPTR + index*4 + 1] << 8)  +
+        (myRAM[DSxPTR + index*4 + 2] << 16) +
+        (myRAM[DSxPTR + index*4 + 3] << 24) ;  // high byte
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeBUS::setDatastreamPointer(uInt8 index, uInt32 value)
 {
 //  index &= 0x0f;
-  myBUSRAM[DSxPTR + index*4 + 0] = value & 0xff;          // low byte
-  myBUSRAM[DSxPTR + index*4 + 1] = (value >> 8) & 0xff;
-  myBUSRAM[DSxPTR + index*4 + 2] = (value >> 16) & 0xff;
-  myBUSRAM[DSxPTR + index*4 + 3] = (value >> 24) & 0xff;  // high byte
+  myRAM[DSxPTR + index*4 + 0] = value & 0xff;          // low byte
+  myRAM[DSxPTR + index*4 + 1] = (value >> 8) & 0xff;
+  myRAM[DSxPTR + index*4 + 2] = (value >> 16) & 0xff;
+  myRAM[DSxPTR + index*4 + 3] = (value >> 24) & 0xff;  // high byte
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt32 CartridgeBUS::getDatastreamIncrement(uInt8 index) const
 {
 //  index &= 0x0f;
-  return myBUSRAM[DSxINC + index*4 + 0]        +   // low byte
-        (myBUSRAM[DSxINC + index*4 + 1] << 8)  +
-        (myBUSRAM[DSxINC + index*4 + 2] << 16) +
-        (myBUSRAM[DSxINC + index*4 + 3] << 24) ;   // high byte
+  return myRAM[DSxINC + index*4 + 0]        +   // low byte
+        (myRAM[DSxINC + index*4 + 1] << 8)  +
+        (myRAM[DSxINC + index*4 + 2] << 16) +
+        (myRAM[DSxINC + index*4 + 3] << 24) ;   // high byte
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt32 CartridgeBUS::getAddressMap(uInt8 index) const
 {
   //  index &= 0x0f;
-  return myBUSRAM[DSMAPS + index*4 + 0]        +   // low byte
-        (myBUSRAM[DSMAPS + index*4 + 1] << 8)  +
-        (myBUSRAM[DSMAPS + index*4 + 2] << 16) +
-        (myBUSRAM[DSMAPS + index*4 + 3] << 24) ;   // high byte
+  return myRAM[DSMAPS + index*4 + 0]        +   // low byte
+        (myRAM[DSMAPS + index*4 + 1] << 8)  +
+        (myRAM[DSMAPS + index*4 + 2] << 16) +
+        (myRAM[DSMAPS + index*4 + 3] << 24) ;   // high byte
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -684,10 +700,10 @@ uInt32 CartridgeBUS::getWaveform(uInt8 index) const
 
   uInt32 result;
 
-  result = myBUSRAM[WAVEFORM + index*4 + 0]        +  // low byte
-          (myBUSRAM[WAVEFORM + index*4 + 1] << 8)  +
-          (myBUSRAM[WAVEFORM + index*4 + 2] << 16) +
-          (myBUSRAM[WAVEFORM + index*4 + 3] << 24);   // high byte
+  result = myRAM[WAVEFORM + index*4 + 0]        +  // low byte
+          (myRAM[WAVEFORM + index*4 + 1] << 8)  +
+          (myRAM[WAVEFORM + index*4 + 2] << 16) +
+          (myRAM[WAVEFORM + index*4 + 3] << 24);   // high byte
 
   result -= 0x40000800;
 
@@ -702,10 +718,10 @@ uInt32 CartridgeBUS::getSample()
 {
   uInt32 result;
 
-  result = myBUSRAM[WAVEFORM + 0]        +  // low byte
-          (myBUSRAM[WAVEFORM + 1] << 8)  +
-          (myBUSRAM[WAVEFORM + 2] << 16) +
-          (myBUSRAM[WAVEFORM + 3] << 24);   // high byte
+  result = myRAM[WAVEFORM + 0]        +  // low byte
+          (myRAM[WAVEFORM + 1] << 8)  +
+          (myRAM[WAVEFORM + 2] << 16) +
+          (myRAM[WAVEFORM + 3] << 24);   // high byte
 
   return result;
 }
@@ -720,10 +736,10 @@ uInt32 CartridgeBUS::getWaveformSize(uInt8 index) const
 void CartridgeBUS::setAddressMap(uInt8 index, uInt32 value)
 {
   //  index &= 0x0f;
-  myBUSRAM[DSMAPS + index*4 + 0] = value & 0xff;          // low byte
-  myBUSRAM[DSMAPS + index*4 + 1] = (value >> 8) & 0xff;
-  myBUSRAM[DSMAPS + index*4 + 2] = (value >> 16) & 0xff;
-  myBUSRAM[DSMAPS + index*4 + 3] = (value >> 24) & 0xff;  // high byte
+  myRAM[DSMAPS + index*4 + 0] = value & 0xff;          // low byte
+  myRAM[DSMAPS + index*4 + 1] = (value >> 8) & 0xff;
+  myRAM[DSMAPS + index*4 + 2] = (value >> 16) & 0xff;
+  myRAM[DSMAPS + index*4 + 3] = (value >> 24) & 0xff;  // high byte
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

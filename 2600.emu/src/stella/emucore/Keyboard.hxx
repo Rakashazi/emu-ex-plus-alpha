@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -19,8 +19,8 @@
 #define KEYBOARD_HXX
 
 #include "bspf.hxx"
-#include "Control.hxx"
 #include "Event.hxx"
+#include "Control.hxx"
 
 /**
   The standard Atari 2600 keyboard controller
@@ -38,7 +38,7 @@ class Keyboard : public Controller
       @param system The system using this controller
     */
     Keyboard(Jack jack, const Event& event, const System& system);
-    virtual ~Keyboard() = default;
+    ~Keyboard() override = default;
 
   public:
     /**
@@ -63,6 +63,16 @@ class Keyboard : public Controller
     string name() const override { return "Keyboard"; }
 
   private:
+    enum class ColumnState {
+      vcc, gnd, notConnected
+    };
+
+  private:
+    ColumnState processColumn(const Event::Type buttons[]);
+
+    AnalogReadout::Connection columnStateToAnalogSignal(ColumnState state) const;
+
+  private:
     // Pre-compute the events we care about based on given port
     // This will eliminate test for left or right port in update()
     Event::Type myOneEvent, myTwoEvent, myThreeEvent,
@@ -70,7 +80,7 @@ class Keyboard : public Controller
                 mySevenEvent, myEightEvent, myNineEvent,
                 myStarEvent, myZeroEvent, myPoundEvent;
 
-    static constexpr Int32 MIN_RESISTANCE = 5600;
+    static constexpr Int32 INTERNAL_RESISTANCE = 4700;
 
   private:
     // Following constructors and assignment operators not supported

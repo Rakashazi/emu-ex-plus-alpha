@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,15 +20,20 @@
 
 class Cartridge;
 class Properties;
+class FilesystemNode;
 class CartDebugWidget;
 class CartRamWidget;
 class GuiObject;
+class Settings;
+
+#include <functional>
 
 #include "bspf.hxx"
 #include "Device.hxx"
-#include "Settings.hxx"
 #ifdef DEBUGGER_SUPPORT
-  #include "Font.hxx"
+  namespace GUI {
+    class Font;
+  }
 #endif
 
 /**
@@ -44,6 +49,9 @@ class Cartridge : public Device
   public:
     using StartBankFromPropsFunc = std::function<int()>;
 
+    // Maximum size of a ROM cart that Stella can support
+    static constexpr size_t maxSize() { return 512_KB; }
+
   public:
     /**
       Create a new cartridge
@@ -52,7 +60,7 @@ class Cartridge : public Device
       @param md5       The md5sum of the cart image
     */
     Cartridge(const Settings& settings, const string& md5);
-    virtual ~Cartridge() = default;
+    ~Cartridge() override = default;
 
     /**
       Set/query some information about this cartridge.
@@ -65,9 +73,9 @@ class Cartridge : public Device
     /**
       Save the internal (patched) ROM image.
 
-      @param out  The output file stream to save the image
+      @param out  The output file to save the image
     */
-    bool saveROM(ofstream& out) const;
+    bool saveROM(const FilesystemNode& out) const;
 
     /**
       Lock/unlock bankswitching capability.  The debugger will lock
@@ -106,13 +114,27 @@ class Cartridge : public Device
     */
     virtual bool bankChanged();
 
+    /**
+      Query the internal RAM size of the cart.
+
+      @return The internal RAM size
+    */
+    virtual uInt32 internalRamSize() const { return 0; }
+
+    /**
+      Read a byte from cart internal RAM.
+
+      @return The value of the interal RAM byte
+    */
+    virtual uInt8 internalRamGetValue(uInt16 addr) const { return 0; }
+
   #ifdef DEBUGGER_SUPPORT
     /**
       To be called at the start of each instruction.
       Clears information about all accesses to cart RAM.
     */
     void clearAllRAMAccesses() {
-      myRAMAccesses.clear();
+      myRamReadAccesses.clear();
       myRamWriteAccess = 0;
     }
 
@@ -124,7 +146,7 @@ class Cartridge : public Device
       @return  Address of illegal access if one occurred, else 0
     */
     uInt16 getIllegalRAMReadAccess() const {
-      return myRAMAccesses.size() > 0 ? myRAMAccesses[0] : 0;
+      return myRamReadAccesses.size() > 0 ? myRamReadAccesses[0] : 0;
     }
 
     /**
@@ -135,6 +157,21 @@ class Cartridge : public Device
       @return  Address of illegal access if one occurred, else 0
     */
     uInt16 getIllegalRAMWriteAccess() const { return myRamWriteAccess; }
+
+    /**
+      Query the access counters
+
+      @return  The access counters as comma separated string
+    */
+    string getAccessCounters() const override;
+
+    /**
+      Determine the bank's origin
+
+      @param bank  The bank to query
+      @return  The origin of the bank
+    */
+    uInt16 bankOrigin(uInt16 bank) const;
   #endif
 
   public:
@@ -149,8 +186,13 @@ class Cartridge : public Device
       scheme defines banks in a standard format (ie, 0 for first bank,
       1 for second, etc).  Carts which will handle their own bankswitching
       completely or non-bankswitched carts can ignore this method.
+
+      @param bank     The bank that should be installed in the system
+      @param segment  The segment the bank should be using
+
+      @return  true, if bank has changed
     */
-    virtual bool bank(uInt16) { return false; }
+    virtual bool bank(uInt16 bank, uInt16 segment = 0) { return false; }
 
     /**
       Get the current bank for the provided address. Carts which have only
@@ -163,7 +205,7 @@ class Cartridge : public Device
     virtual uInt16 getBank(uInt16 address = 0) const { return 0; }
 
     /**
-      Query the number of 'banks' supported by the cartridge.  Note that
+      Query the number of ROM 'banks' supported by the cartridge.  Note that
       this information is cart-specific, where each cart basically defines
       what a 'bank' is.
 
@@ -172,10 +214,25 @@ class Cartridge : public Device
       cases where ROMs have 2K blocks in some preset area, the bankCount
       is the number of such blocks.  Finally, in some esoteric schemes,
       the number of ways that the addressing can change (multiple ROM and
-      RAM slices at multiple access points) is so complicated that the
+      RAM segments at multiple access points) is so complicated that the
       cart will report having only one 'virtual' bank.
     */
-    virtual uInt16 bankCount() const { return 1; }
+    virtual uInt16 romBankCount() const { return 1; }
+
+    /**
+      Query the number of RAM 'banks' supported by the cartridge.  Note that
+      this information is cart-specific, where each cart basically defines
+      what a 'bank' is.
+    */
+    virtual uInt16 ramBankCount() const { return 0; }
+
+    /**
+      Get the size of a bank.
+
+      @param bank  The bank to get the size for
+      @return  The bank's size
+    */
+    virtual uInt16 bankSize(uInt16 bank = 0) const;
 
     /**
       Patch the cartridge ROM.
@@ -190,9 +247,9 @@ class Cartridge : public Device
       Access the internal ROM image for this cartridge.
 
       @param size  Set to the size of the internal ROM image data
-      @return  A pointer to the internal ROM image data
+      @return  A reference to the internal ROM image data
     */
-    virtual const uInt8* getImage(size_t& size) const = 0;
+    virtual const ByteBuffer& getImage(size_t& size) const = 0;
 
     /**
       Get a descriptor for the cart name.
@@ -273,7 +330,7 @@ class Cartridge : public Device
 
       @param size  The size of the code-access array to create
     */
-    void createCodeAccessBase(size_t size);
+    void createRomAccessArrays(size_t size);
 
     /**
       Fill the given RAM array with (possibly random) data.
@@ -311,7 +368,7 @@ class Cartridge : public Device
 
       @return  Whether the startup bank(s) should be randomized
     */
-    bool randomStartBank() const;
+    virtual bool randomStartBank() const;
 
   protected:
     // Settings class for the application
@@ -321,11 +378,19 @@ class Cartridge : public Device
     bool myBankChanged{true};
 
     // The array containing information about every byte of ROM indicating
-    // whether it is used as code.
-    ByteBuffer myCodeAccessBase;
+    // whether it is used as code, data, graphics etc.
+    std::unique_ptr<Device::AccessFlags[]> myRomAccessBase;
+
+    // The array containing information about every byte of ROM indicating
+    // how often it is accessed.
+    std::unique_ptr<Device::AccessCounter[]> myRomAccessCounter;
+
 
     // Contains address of illegal RAM write access or 0
     uInt16 myRamWriteAccess{0};
+
+    // Total size of ROM access area (might include RAM too)
+    uInt32 myAccessSize;
 
   private:
     // The startup bank to use (where to look for the reset vector address)
@@ -347,8 +412,10 @@ class Cartridge : public Device
     // Used when we want the 'Cartridge.StartBank' ROM property
     StartBankFromPropsFunc myStartBankFromPropsFunc;
 
-    // Contains
-    ShortArray myRAMAccesses;
+    // Used to answer whether an access in the last instruction cycle
+    // generated an illegal read RAM access. Contains address of illegal
+    // access.
+    ShortArray myRamReadAccesses;
 
     // Following constructors and assignment operators not supported
     Cartridge() = delete;

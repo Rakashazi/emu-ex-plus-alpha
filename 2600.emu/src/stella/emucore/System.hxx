@@ -8,7 +8,7 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,11 +18,10 @@
 #ifndef SYSTEM_HXX
 #define SYSTEM_HXX
 
-class Device;
 class M6502;
 class M6532;
 class TIA;
-class NullDevice;
+class Cartridge;
 
 #include "bspf.hxx"
 #include "Device.hxx"
@@ -51,7 +50,7 @@ class System : public Serializable
     */
     System(Random& random, M6502& m6502, M6532& m6532,
            TIA& mTIA, Cartridge& mCart);
-    virtual ~System() = default;
+    ~System() override = default;
 
     // Mask to apply to an address before accessing memory
     static constexpr uInt16 ADDRESS_MASK = (1 << 13) - 1;
@@ -170,28 +169,6 @@ class System : public Serializable
     uInt8 getDataBusState() const { return myDataBusState; }
 
     /**
-      Get the current state of the data bus in the system, taking into
-      account that certain bits are in Z-state (undriven).  In those
-      cases, the bits are floating, but will usually be the same as the
-      last data bus value (the 'usually' is emulated by randomly driving
-      certain bits high).
-
-      However, some CMOS EPROM chips always drive Z-state bits high.
-      This is emulated by hmask, which specifies to push a specific
-      Z-state bit high.
-
-      @param zmask  The bits which are in Z-state
-      @param hmask  The bits which should always be driven high
-      @return  The data bus state
-    */
-    uInt8 getDataBusState(uInt8 zmask, uInt8 hmask = 0x00) const
-    {
-      // For the pins that are floating, randomly decide which are high or low
-      // Otherwise, they're specifically driven high
-      return (myDataBusState | (randGenerator().next() | hmask)) & zmask;
-    }
-
-    /**
       Get the byte at the specified address.  No masking of the
       address occurs before it's sent to the device mapped at
       the address.
@@ -202,7 +179,7 @@ class System : public Serializable
 
       @return The byte at the specified address
     */
-    uInt8 peek(uInt16 address, uInt8 flags = 0);
+    uInt8 peek(uInt16 address, Device::AccessFlags flags = Device::NONE);
 
     /**
       Change the byte at the specified address to the given value.
@@ -217,7 +194,7 @@ class System : public Serializable
       @param address  The address where the value should be stored
       @param value    The value to be stored at the address
     */
-    void poke(uInt16 address, uInt8 value, uInt8 flags = 0);
+    void poke(uInt16 address, uInt8 value, Device::AccessFlags flags = Device::NONE);
 
     /**
       Lock/unlock the data bus. When the bus is locked, peek() and
@@ -231,13 +208,22 @@ class System : public Serializable
     void lockDataBus()   { myDataBusLocked = true;  }
     void unlockDataBus() { myDataBusLocked = false; }
 
+  #ifdef DEBUGGER_SUPPORT
     /**
-      Access and modify the disassembly type flags for the given
+      Access and modify the access type flags for the given
       address.  Note that while any flag can be used, the disassembly
-      only really acts on CODE/GFX/PGFX/DATA/ROW.
+      only really acts on CODE/GFX/PGFX/COL/PCOL/BCOL/AUD/DATA/ROW.
     */
-    uInt8 getAccessFlags(uInt16 address) const;
-    void setAccessFlags(uInt16 address, uInt8 flags);
+    Device::AccessFlags getAccessFlags(uInt16 address) const;
+    void setAccessFlags(uInt16 address, Device::AccessFlags flags);
+
+    /**
+      Increase the given address's access counter
+
+      @param address The address to modify
+    */
+    void increaseAccessCounter(uInt16 address, bool isWrite);
+  #endif
 
   public:
     /**
@@ -271,13 +257,27 @@ class System : public Serializable
       uInt8* directPokeBase{nullptr};
 
       /**
-        Pointer to a lookup table for marking an address as CODE.  A CODE
-        section is defined as any address that appears in the program
+        Pointer to a lookup table for marking an address as CODE, DATA, GFX,
+        COL etc.
+        A CODE section is defined as any address that appears in the program
         counter.  Currently, this is used by the debugger/disassembler to
         conclusively determine if a section of address space is CODE, even
         if the disassembler failed to mark it as such.
+        A DATA, GFX, COL etc. section is defined as any ROM address from which
+        data is read. This is used by the debugger/disassembler to format
+        address sections accordingly.
       */
-      uInt8* codeAccessBase{nullptr};
+      Device::AccessFlags* romAccessBase{nullptr};
+
+      /**
+        TODO
+      */
+      Device::AccessCounter* romPeekCounter{nullptr};
+
+      /**
+        TODO
+      */
+      Device::AccessCounter* romPokeCounter{nullptr};
 
       /**
         Pointer to the device associated with this page or to the system's
@@ -293,7 +293,7 @@ class System : public Serializable
 
       // Constructors
       PageAccess() = default;
-      PageAccess(Device* dev, PageAccessType access) : device(dev), type(access) { }
+      PageAccess(Device* dev, PageAccessType access) : device{dev}, type{access} { }
     };
 
     /**

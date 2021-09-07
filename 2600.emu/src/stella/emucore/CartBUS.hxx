@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -25,6 +25,7 @@ class Thumbulator;
 #endif
 
 #include "bspf.hxx"
+#include "Thumbulator.hxx"
 #include "Cart.hxx"
 
 /**
@@ -34,7 +35,7 @@ class Thumbulator;
   IN A FUTURE RELEASE.
 
   There are seven 4K program banks, a 4K Display Data RAM,
-  1K C Varaible and Stack, and the BUS chip.
+  1K C Variable and Stack, and the BUS chip.
   BUS chip access is mapped to $1000 - $103F.
 
   @authors: Darrell Spice Jr, Chris Walton, Fred Quimby,
@@ -56,7 +57,7 @@ class CartridgeBUS : public Cartridge
     */
     CartridgeBUS(const ByteBuffer& image, size_t size, const string& md5,
                  const Settings& settings);
-    virtual ~CartridgeBUS() = default;
+    ~CartridgeBUS() override = default;
 
   public:
     /**
@@ -84,9 +85,12 @@ class CartridgeBUS : public Cartridge
     /**
       Install pages for the specified bank in the system.
 
-      @param bank The bank that should be installed in the system
+      @param bank     The bank that should be installed in the system
+      @param segment  The segment the bank should be using
+
+      @return  true, if bank has changed
     */
-    bool bank(uInt16 bank) override;
+    bool bank(uInt16 bank, uInt16 segment = 0) override;
 
     /**
       Get the current bank.
@@ -98,7 +102,7 @@ class CartridgeBUS : public Cartridge
     /**
       Query the number of banks supported by the cartridge.
     */
-    uInt16 bankCount() const override;
+    uInt16 romBankCount() const override;
 
     /**
       Patch the cartridge ROM.
@@ -113,9 +117,9 @@ class CartridgeBUS : public Cartridge
       Access the internal ROM image for this cartridge.
 
       @param size  Set to the size of the internal ROM image data
-      @return  A pointer to the internal ROM image data
+      @return  A reference to the internal ROM image data
     */
-    const uInt8* getImage(size_t& size) const override;
+    const ByteBuffer& getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -146,6 +150,20 @@ class CartridgeBUS : public Cartridge
    Used for Thumbulator to pass values back to the cartridge
    */
   uInt32 thumbCallback(uInt8 function, uInt32 value1, uInt32 value2) override;
+
+  /**
+    Query the internal RAM size of the cart.
+
+    @return The internal RAM size
+  */
+  uInt32 internalRamSize() const override { return uInt32(myRAM.size()); }
+
+  /**
+    Read a byte from cart internal RAM.
+
+    @return The value of the interal RAM byte
+  */
+  uInt8 internalRamGetValue(uInt16 addr) const override;
 
 
   #ifdef DEBUGGER_SUPPORT
@@ -179,6 +197,13 @@ class CartridgeBUS : public Cartridge
 
   private:
     /**
+      Checks if startup bank randomization is enabled.  For this scheme,
+      randomization is not supported, since the ARM code is always in a
+      pre-defined bank, and we *must* start from there.
+    */
+    bool randomStartBank() const override { return false; }
+
+    /**
       Sets the initial state of the DPC pointers and RAM
     */
     void setInitialState();
@@ -198,7 +223,6 @@ class CartridgeBUS : public Cartridge
     void setDatastreamPointer(uInt8 index, uInt32 value);
 
     uInt32 getDatastreamIncrement(uInt8 index) const;
-    void setDatastreamIncrement(uInt8 index, uInt32 value);
 
     uInt32 getAddressMap(uInt8 index) const;
     void setAddressMap(uInt8 index, uInt32 value);
@@ -209,9 +233,12 @@ class CartridgeBUS : public Cartridge
     uInt32 getWaveformSize(uInt8 index) const;
     uInt32 getSample();
 
+    // Get number of memory accesses of last ARM run.
+    const Thumbulator::Stats& stats() const { return myThumbEmulator->stats(); }
+
   private:
     // The 32K ROM image of the cartridge
-    std::array<uInt8, 32_KB> myImage;
+    ByteBuffer myImage;
 
     // Pointer to the 28K program ROM image of the cartridge
     uInt8* myProgramImage{nullptr};
@@ -220,13 +247,13 @@ class CartridgeBUS : public Cartridge
     uInt8* myDisplayImage{nullptr};
 
     // Pointer to the 2K BUS driver image in RAM
-    uInt8* myBusDriverImage{nullptr};
+    uInt8* myDriverImage{nullptr};
 
     // The BUS 8k RAM image, used as:
     //   $0000 - 2K BUS driver
     //   $0800 - 4K Display Data
     //   $1800 - 2K C Variable & Stack
-    std::array<uInt8, 8_KB> myBUSRAM;
+    std::array<uInt8, 8_KB> myRAM;
 
     // Pointer to the Thumb ARM emulator object
     unique_ptr<Thumbulator> myThumbEmulator;

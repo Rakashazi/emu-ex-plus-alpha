@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,18 +22,29 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AtariVox::AtariVox(Jack jack, const Event& event, const System& system,
-                   const string& portname, const string& eepromfile,
+                   const string& portname, const FilesystemNode& eepromfile,
                    const onMessageCallback& callback)
-  : SaveKey(jack, event, system, eepromfile, callback, Controller::Type::AtariVox)
+  : SaveKey(jack, event, system, eepromfile, callback, Controller::Type::AtariVox),
+    mySerialPort{MediaFactory::createSerialPort()}
 {
-  mySerialPort = MediaFactory::createSerialPort();
   if(mySerialPort->openPort(portname))
-    myAboutString = " (using serial port \'" + portname + "\')";
+  {
+    myCTSFlip = !mySerialPort->isCTS();
+    if(myCTSFlip)
+      myAboutString = " (serial port \'" + portname + "\', inverted CTS)";
+    else
+      myAboutString = " (serial port \'" + portname + "\')";
+  }
   else
     myAboutString = " (invalid serial port \'" + portname + "\')";
 
   setPin(DigitalPin::Three, true);
   setPin(DigitalPin::Four, true);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+AtariVox::~AtariVox()
+{
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -45,9 +56,27 @@ bool AtariVox::read(DigitalPin pin)
   switch(pin)
   {
     // Pin 2: SpeakJet READY
+    //        READY signal is sent directly to pin 2
     case DigitalPin::Two:
-      // For now, we just assume the device is always ready
-      return setPin(pin, true);
+    {
+      // Some USB-serial adaptors support only CTS, others support only
+      // software flow control
+      // So we check the state of both then AND the results, on the
+      // assumption that if a mode isn't supported, then it reads as TRUE
+      // and doesn't change the boolean result
+      // Thus the logic is:
+      //   READY_SIGNAL = READY_STATE_CTS && READY_STATE_FLOW
+      // Note that we also have to take inverted CTS into account
+
+      // When using software flow control, only update on a state change
+      uInt8 flowCtrl = 0;
+      if(mySerialPort->readByte(flowCtrl))
+        myReadyStateSoftFlow = flowCtrl == 0x11;  // XON
+
+      // Now combine the results of CTS and'ed with flow control
+      return setPin(pin,
+          (mySerialPort->isCTS() ^ myCTSFlip) && myReadyStateSoftFlow);
+    }
 
     default:
       return SaveKey::read(pin);

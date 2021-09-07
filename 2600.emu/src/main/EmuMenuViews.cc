@@ -218,6 +218,30 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		}
 	}
 
+	TextMenuItem aPaddleRegionItem[4]
+	{
+		{"Off", &defaultFace(), [this]() { setAPaddleRegion(PaddleRegionMode::OFF); }},
+		{"Left Half", &defaultFace(), [this]() { setAPaddleRegion(PaddleRegionMode::LEFT); }},
+		{"Right Half", &defaultFace(), [this]() { setAPaddleRegion(PaddleRegionMode::RIGHT); }},
+		{"Full", &defaultFace(), [this]() { setAPaddleRegion(PaddleRegionMode::FULL); }},
+	};
+
+	MultiChoiceMenuItem aPaddleRegion
+	{
+		"Analog Paddle Region", &defaultFace(),
+		[]()
+		{
+			return std::min((int)optionPaddleAnalogRegion, 3);
+		}(),
+		aPaddleRegionItem
+	};
+
+	void setAPaddleRegion(PaddleRegionMode val)
+	{
+		EmuSystem::sessionOptionSet();
+		updatePaddlesRegionMode(app(), val);
+	}
+
 	TextMenuItem dPaddleSensitivityItem[2]
 	{
 		{"Default", &defaultFace(), [this]() { setDPaddleSensitivity(1); }},
@@ -271,11 +295,12 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		Paddles::setDigitalSensitivity(optionPaddleDigitalSensitivity);
 	}
 
-	std::array<MenuItem*, 4> menuItem
+	std::array<MenuItem*, 5> menuItem
 	{
 		&tvPhosphor,
 		&videoSystem,
 		&inputPorts,
+		&aPaddleRegion,
 		&dPaddleSensitivity,
 	};
 

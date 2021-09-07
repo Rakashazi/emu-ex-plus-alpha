@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -21,7 +21,7 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Missile::Missile(uInt32 collisionMask)
-  : myCollisionMaskDisabled(collisionMask)
+  : myCollisionMaskDisabled{collisionMask}
 {
 }
 
@@ -43,7 +43,6 @@ void Missile::reset()
   myColor = myObjectColor = myDebugColor = 0;
   myDebugEnabled = false;
   collision = myCollisionMaskDisabled;
-  myIsEnabled = false;
   myInvertedPhaseClock = false;
   myUseInvertedPhaseClock = false;
 }

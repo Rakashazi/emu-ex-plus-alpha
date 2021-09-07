@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // This file is derived from the RSA Data Security, Inc. MD5 Message-Digest
@@ -304,6 +304,13 @@ static void Decode(uInt32* output, const uInt8* input, uInt32 len)
   for (i = 0, j = 0; j < len; ++i, j += 4)
     output[i] = (uInt32(input[j])) | ((uInt32(input[j+1])) << 8) |
     ((uInt32(input[j+2])) << 16) | ((uInt32(input[j+3])) << 24);
+}
+
+string hash(const string& buffer)
+{
+  std::vector<uint8_t> vec(buffer.begin(), buffer.end());
+
+  return hash(vec.data(), vec.size());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

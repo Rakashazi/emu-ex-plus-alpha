@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -21,7 +21,7 @@
 class System;
 
 #include "bspf.hxx"
-#include "Cart.hxx"
+#include "CartEnhanced.hxx"
 #ifdef DEBUGGER_SUPPORT
   #include "Cart2KWidget.hxx"
 #endif
@@ -33,9 +33,9 @@ class System;
   data repeats in intervals based on the size of the ROM (which will
   always be a power of 2).
 
-  @author  Stephen Anthony
+  @author  Stephen Anthony, Thomas Jentzsch
 */
-class Cartridge2K : public Cartridge
+class Cartridge2K : public CartridgeEnhanced
 {
   friend class Cartridge2KWidget;
 
@@ -47,58 +47,13 @@ class Cartridge2K : public Cartridge
       @param size      The size of the ROM image (<= 2048 bytes)
       @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
+      @param bsSize    The size specified by the bankswitching scheme
     */
     Cartridge2K(const ByteBuffer& image, size_t size, const string& md5,
-                const Settings& settings);
-    virtual ~Cartridge2K() = default;
+                const Settings& settings, size_t bsSize = 2_KB);
+    ~Cartridge2K() override = default;
 
   public:
-    /**
-      Reset cartridge to its power-on state
-    */
-    void reset() override;
-
-    /**
-      Install cartridge in the specified system.  Invoked by the system
-      when the cartridge is attached to it.
-
-      @param system The system the device should install itself in
-    */
-    void install(System& system) override;
-
-    /**
-      Patch the cartridge ROM.
-
-      @param address  The ROM address to patch
-      @param value    The value to place into the address
-      @return    Success or failure of the patch operation
-    */
-    bool patch(uInt16 address, uInt8 value) override;
-
-    /**
-      Access the internal ROM image for this cartridge.
-
-      @param size  Set to the size of the internal ROM image data
-      @return  A pointer to the internal ROM image data
-    */
-    const uInt8* getImage(size_t& size) const override;
-
-    /**
-      Save the current state of this cart to the given Serializer.
-
-      @param out  The Serializer object to use
-      @return  False on any errors, else true
-    */
-    bool save(Serializer& out) const override;
-
-    /**
-      Load the current state of this cart from the given Serializer.
-
-      @param in  The Serializer object to use
-      @return  False on any errors, else true
-    */
-    bool load(Serializer& in) override;
-
     /**
       Get a descriptor for the device name (used in error checking).
 
@@ -118,22 +73,8 @@ class Cartridge2K : public Cartridge
     }
   #endif
 
-    /**
-      Get the byte at the specified address.
-
-      @return The byte at the specified address
-    */
-    uInt8 peek(uInt16 address) override { return myImage[address & myMask]; }
-
   private:
-    // Pointer to a dynamically allocated ROM image of the cartridge
-    ByteBuffer myImage;
-
-    // Size of the ROM image
-    size_t mySize{0};
-
-    // Mask to use for mirroring
-    uInt16 myMask{0};
+    bool checkSwitchBank(uInt16 address, uInt8 value = 0) override { return false; }
 
   private:
     // Following constructors and assignment operators not supported

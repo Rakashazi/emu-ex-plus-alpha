@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -21,7 +21,7 @@
 class System;
 
 #include "bspf.hxx"
-#include "Cart.hxx"
+#include "CartEnhanced.hxx"
 #ifdef DEBUGGER_SUPPORT
   #include "CartWDWidget.hxx"
 #endif
@@ -30,8 +30,8 @@ class System;
   This is the cartridge class for a "Wickstead Design" prototype cart.
   The ROM has 64 bytes of RAM.
   In this bankswitching scheme the 2600's 4K cartridge address space
-  is broken into four 1K segments.  The desired arrangement of 1K slices
-  is selected by accessing $30 - $3F of TIA address space.  The slices
+  is broken into four 1K segments.  The desired arrangement of 1K banks
+  is selected by accessing $30 - $3F of TIA address space.  The banks
   are mapped into all 4 segments at once as follows:
 
     $0030, $0038: 0,0,1,3
@@ -45,15 +45,15 @@ class System;
     $0037, $003F: 6,0,5,1
 
 
-  In the uppermost (third) segment, the byte at $3FC is overwritten by 0.
+  (Removed: In the uppermost (third) segment, the byte at $3FC is overwritten by 0.)
 
   The 64 bytes of RAM are accessible at $1000 - $103F (read port) and
   $1040 - $107F (write port).  Because the RAM takes 128 bytes of address
   space, the range $1000 - $107F of segment 0 ROM will never be available.
 
-  @author  Stephen Anthony
+  @author  Stephen Anthony, Thomas Jentzsch
 */
-class CartridgeWD : public Cartridge
+class CartridgeWD : public CartridgeEnhanced
 {
   friend class CartridgeWDWidget;
 
@@ -65,10 +65,11 @@ class CartridgeWD : public Cartridge
       @param size      The size of the ROM image
       @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
+      @param bsSize    The size specified by the bankswitching scheme
     */
     CartridgeWD(const ByteBuffer& image, size_t size, const string& md5,
-                const Settings& settings);
-    virtual ~CartridgeWD() = default;
+                const Settings& settings, size_t bsSize = 8_KB);
+    ~CartridgeWD() override = default;
 
   public:
     /**
@@ -89,7 +90,7 @@ class CartridgeWD : public Cartridge
 
       @param bank The bank that should be installed in the system
     */
-    bool bank(uInt16 bank) override;
+    bool bank(uInt16 bank, uInt16 = 0) override;
 
     /**
       Get the current bank.
@@ -97,28 +98,6 @@ class CartridgeWD : public Cartridge
       @param address The address to use when querying the bank
     */
     uInt16 getBank(uInt16 address = 0) const override;
-
-    /**
-      Query the number of banks supported by the cartridge.
-    */
-    uInt16 bankCount() const override;
-
-    /**
-      Patch the cartridge ROM.
-
-      @param address  The ROM address to patch
-      @param value    The value to place into the address
-      @return    Success or failure of the patch operation
-    */
-    bool patch(uInt16 address, uInt8 value) override;
-
-    /**
-      Access the internal ROM image for this cartridge.
-
-      @param size  Set to the size of the internal ROM image data
-      @return  A pointer to the internal ROM image data
-    */
-    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -173,51 +152,11 @@ class CartridgeWD : public Cartridge
     bool poke(uInt16 address, uInt8 value) override;
 
   private:
-    /**
-      Install the specified slice for segment zero.
+    bool checkSwitchBank(uInt16, uInt8 = 0) override { return false; }
 
-      @param slice  The slice to map into the segment
-    */
-    void segmentZero(uInt8 slice);
-
-    /**
-      Install the specified slice for segment one.
-
-      @param slice  The slice to map into the segment
-    */
-    void segmentOne(uInt8 slice);
-
-    /**
-      Install the specified slice for segment two.
-
-      @param slice  The slice to map into the segment
-    */
-    void segmentTwo(uInt8 slice);
-
-    /**
-      Install the specified slice for segment three.
-      Note that this method also takes care of setting one byte to 0.
-
-      @param slice      The slice to map into the segment
-    */
-    void segmentThree(uInt8 slice);
+    uInt16 hotspot() const override { return 0x0030; }
 
   private:
-    // The 8K ROM image of the cartridge
-    std::array<uInt8, 8_KB> myImage;
-
-    // Indicates the actual size of the ROM image (either 8K or 8K + 3)
-    size_t mySize{0};
-
-    // The 64 bytes RAM of the cartridge
-    std::array<uInt8, 64> myRAM;
-
-    // The 1K ROM mirror of segment 3 (sometimes contains extra 3 bytes)
-    std::array<uInt8, 1_KB> mySegment3;
-
-    // Indicates the offset for each of the four segments
-    std::array<uInt16, 4> myOffset;
-
     // Indicates the cycle at which a bankswitch was initiated
     uInt64 myCyclesAtBankswitchInit{0};
 
@@ -229,9 +168,19 @@ class CartridgeWD : public Cartridge
 
     // The arrangement of banks to use on each hotspot read
     struct BankOrg {
-      uInt8 zero, one, two, three;
+      uInt8 zero{0}, one{0}, two{0}, three{0};
     };
     static const std::array<BankOrg, 8> ourBankOrg;
+
+  private:
+    // log(ROM bank segment size) / log(2)
+    static constexpr uInt16 BANK_SHIFT = 10; // = 1K = 0x0400
+
+    // RAM size
+    static constexpr size_t RAM_SIZE = 0x40;
+
+    // Write port for extra RAM is at low address by default
+    static constexpr bool RAM_HIGH_WP = true;
 
   private:
     // Following constructors and assignment operators not supported

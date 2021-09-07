@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -25,7 +25,8 @@ enum class ConsoleTiming
 {
   ntsc,  // console with CPU running at 1.193182 MHz, NTSC colours
   pal,   // console with CPU running at 1.182298 MHz, PAL colours
-  secam  // console with CPU running at 1.187500 MHz, SECAM colours
+  secam, // console with CPU running at 1.187500 MHz, SECAM colours
+  numTimings
 };
 
 #endif // CONSOLE_TIMING_HXX

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,12 +18,8 @@
 #ifndef CARTRIDGE_DETECTOR_HXX
 #define CARTRIDGE_DETECTOR_HXX
 
-class Cartridge;
-class Properties;
-
 #include "Bankswitch.hxx"
 #include "bspf.hxx"
-#include "Settings.hxx"
 
 /**
   Auto-detect cart type based on various attributes (file size, signatures,
@@ -35,21 +31,6 @@ class CartDetector
 {
   public:
     /**
-      Create a new cartridge object allocated on the heap.  The
-      type of cartridge created depends on the properties object.
-
-      @param image    A pointer to the ROM image
-      @param size     The size of the ROM image
-      @param md5      The md5sum for the given ROM image (can be updated)
-      @param dtype    The detected bankswitch type of the ROM image
-      @param settings The settings container
-      @return   Pointer to the new cartridge object allocated on the heap
-    */
-    static unique_ptr<Cartridge> create(const FilesystemNode& file,
-                 const ByteBuffer& image, size_t size, string& md5,
-                 const string& dtype, Settings& settings);
-
-    /**
       Try to auto-detect the bankswitching type of the cartridge
 
       @param image  A pointer to the ROM image
@@ -60,40 +41,6 @@ class CartDetector
     static Bankswitch::Type autodetectType(const ByteBuffer& image, size_t size);
 
   private:
-    /**
-      Create a cartridge from a multi-cart image pointer; internally this
-      takes a slice of the ROM image ues that for the cartridge.
-
-      @param image    A pointer to the complete ROM image
-      @param size     The size of the ROM image slice
-      @param numroms  The number of ROMs in the multicart
-      @param md5      The md5sum for the slice of the ROM image
-      @param type     The detected type of the slice of the ROM image
-      @param id       The ID for the slice of the ROM image
-      @param settings The settings container
-
-      @return  Pointer to the new cartridge object allocated on the heap
-    */
-    static unique_ptr<Cartridge>
-      createFromMultiCart(const ByteBuffer& image, size_t& size,
-        uInt32 numroms, string& md5, Bankswitch::Type type, string& id,
-        Settings& settings);
-
-    /**
-      Create a cartridge from the entire image pointer.
-
-      @param image    A pointer to the complete ROM image
-      @param size     The size of the ROM image
-      @param type     The bankswitch type of the ROM image
-      @param md5      The md5sum for the ROM image
-      @param settings The settings container
-
-      @return  Pointer to the new cartridge object allocated on the heap
-    */
-    static unique_ptr<Cartridge>
-      createFromImage(const ByteBuffer& image, size_t size, Bankswitch::Type type,
-                      const string& md5, Settings& settings);
-
     /**
       Search the image for the specified byte signature
 
@@ -107,7 +54,14 @@ class CartDetector
     */
     static bool searchForBytes(const uInt8* image, size_t imagesize,
                                const uInt8* signature, uInt32 sigsize,
-                               uInt32 minhits);
+                               uInt32 minhits = 1);
+
+    static bool searchForBytes(const ByteBuffer& image, size_t imagesize,
+                               const uInt8* signature, uInt32 sigsize,
+                               uInt32 minhits = 1)
+    {
+      return searchForBytes(image.get(), imagesize, signature, sigsize, minhits);
+    }
 
     /**
       Returns true if the image is probably a SuperChip (128 bytes RAM)
@@ -129,6 +83,11 @@ class CartDetector
       Returns true if the image is probably a 3E bankswitching cartridge
     */
     static bool isProbably3E(const ByteBuffer& image, size_t size);
+
+    /**
+    Returns true if the image is probably a 3EX bankswitching cartridge
+    */
+    static bool isProbably3EX(const ByteBuffer& image, size_t size);
 
     /**
       Returns true if the image is probably a 3E+ bankswitching cartridge
@@ -174,16 +133,6 @@ class CartDetector
       Returns true if the image is probably a CV bankswitching cartridge
     */
     static bool isProbablyCV(const ByteBuffer& image, size_t size);
-
-    /**
-      Returns true if the image is probably a CV+ bankswitching cartridge
-    */
-    static bool isProbablyCVPlus(const ByteBuffer& image, size_t size);
-
-    /**
-      Returns true if the image is probably a DASH bankswitching cartridge
-    */
-    static bool isProbablyDASH(const ByteBuffer& image, size_t size);
 
     /**
       Returns true if the image is probably a DF/DFSC bankswitching cartridge
@@ -244,6 +193,11 @@ class CartDetector
       Returns true if the image is probably a SB bankswitching cartridge
     */
     static bool isProbablySB(const ByteBuffer& image, size_t size);
+
+    /**
+      Returns true if the image is probably a TV Boy bankswitching cartridge
+    */
+    static bool isProbablyTVBoy(const ByteBuffer& image, size_t size);
 
     /**
       Returns true if the image is probably a UA bankswitching cartridge

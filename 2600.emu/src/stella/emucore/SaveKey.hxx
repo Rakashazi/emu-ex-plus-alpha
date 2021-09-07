@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,6 +20,7 @@
 
 class MT24LC256;
 class OSystem;
+class FilesystemNode;
 
 #include "Control.hxx"
 
@@ -45,8 +46,8 @@ class SaveKey : public Controller
       @param callback   Called to pass messages back to the parent controller
     */
     SaveKey(Jack jack, const Event& event, const System& system,
-            const string& eepromfile, const onMessageCallback& callback);
-    virtual ~SaveKey();
+            const FilesystemNode& eepromfile, const onMessageCallback& callback);
+    ~SaveKey() override;
 
   protected:
     /**
@@ -54,7 +55,8 @@ class SaveKey : public Controller
       that inherit from SaveKey (currently, AtariVox)
     */
     SaveKey(Jack jack, const Event& event, const System& system,
-            const string& eepromfile, const onMessageCallback& callback, Type type);
+            const FilesystemNode& eepromfile,
+            const onMessageCallback& callback, Type type);
 
   public:
     using Controller::read;

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -17,6 +17,7 @@
 
 #include "TIA.hxx"
 #include "M6502.hxx"
+#include "M6532.hxx"
 #include "Control.hxx"
 #include "Paddles.hxx"
 #include "DelayQueueIteratorImpl.hxx"
@@ -24,10 +25,7 @@
 #include "frame-manager/FrameManager.hxx"
 #include "AudioQueue.hxx"
 #include "DispatchResult.hxx"
-
-#ifdef DEBUGGER_SUPPORT
-  #include "CartDebug.hxx"
-#endif
+#include "Base.hxx"
 
 enum CollisionMask: uInt32 {
   player0   = 0b0111110000000000,
@@ -68,15 +66,15 @@ static constexpr uInt8 resxLateHblankThreshold = TIAConstants::H_CYCLES - 3;
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 TIA::TIA(ConsoleIO& console, const ConsoleTimingProvider& timingProvider,
          Settings& settings)
-  : myConsole(console),
-    myTimingProvider(timingProvider),
-    mySettings(settings),
-    myPlayfield(~CollisionMask::playfield & 0x7FFF),
-    myMissile0(~CollisionMask::missile0 & 0x7FFF),
-    myMissile1(~CollisionMask::missile1 & 0x7FFF),
-    myPlayer0(~CollisionMask::player0 & 0x7FFF),
-    myPlayer1(~CollisionMask::player1 & 0x7FFF),
-    myBall(~CollisionMask::ball & 0x7FFF)
+  : myConsole{console},
+    myTimingProvider{timingProvider},
+    mySettings{settings},
+    myPlayfield{~CollisionMask::playfield & 0x7FFF},
+    myMissile0{~CollisionMask::missile0 & 0x7FFF},
+    myMissile1{~CollisionMask::missile1 & 0x7FFF},
+    myPlayer0{~CollisionMask::player0 & 0x7FFF},
+    myPlayer1{~CollisionMask::player1 & 0x7FFF},
+    myBall{~CollisionMask::ball & 0x7FFF}
 {
   myBackground.setTIA(this);
   myPlayfield.setTIA(this);
@@ -160,12 +158,15 @@ void TIA::initialize()
   myAudio.reset();
 
   myTimestamp = 0;
-  for (PaddleReader& paddleReader : myPaddleReaders)
-    paddleReader.reset(myTimestamp);
+  for (AnalogReadout& analogReadout : myAnalogReadouts)
+    analogReadout.reset(myTimestamp);
 
   myDelayQueue.reset();
 
+#ifdef DEBUGGER_SUPPORT
   myCyclesAtFrameStart = 0;
+  myFrameWsyncCycles = 0;
+#endif
 
   if (myFrameManager)
     myFrameManager->reset();
@@ -187,7 +188,7 @@ void TIA::initialize()
   enableFixedColors(mySettings.getBool(devSettings ? "dev.debugcolors" : "plr.debugcolors"));
 
 #ifdef DEBUGGER_SUPPORT
-  createAccessBase();
+  createAccessArrays();
 #endif // DEBUGGER_SUPPORT
 }
 
@@ -245,8 +246,8 @@ bool TIA::save(Serializer& out) const
     if(!myBall.save(out))       return false;
     if(!myAudio.save(out))      return false;
 
-    for (const PaddleReader& paddleReader : myPaddleReaders)
-      if(!paddleReader.save(out)) return false;
+    for (const AnalogReadout& analogReadout : myAnalogReadouts)
+      if(!analogReadout.save(out)) return false;
 
     if(!myInput0.save(out)) return false;
     if(!myInput1.save(out)) return false;
@@ -281,13 +282,17 @@ bool TIA::save(Serializer& out) const
 
     out.putByteArray(myShadowRegisters.data(), myShadowRegisters.size());
 
+  #ifdef DEBUGGER_SUPPORT
     out.putLong(myCyclesAtFrameStart);
+    out.putLong(myFrameWsyncCycles);
+  #endif
 
     out.putInt(myFrameBufferScanlines);
     out.putInt(myFrontBufferScanlines);
 
     out.putByte(myPFBitsDelay);
     out.putByte(myPFColorDelay);
+    out.putByte(myBKColorDelay);
     out.putByte(myPlSwapDelay);
   }
   catch(...)
@@ -316,8 +321,8 @@ bool TIA::load(Serializer& in)
     if(!myBall.load(in))       return false;
     if(!myAudio.load(in))       return false;
 
-    for (PaddleReader& paddleReader : myPaddleReaders)
-      if(!paddleReader.load(in)) return false;
+    for (AnalogReadout& analogReadout : myAnalogReadouts)
+      if(!analogReadout.load(in)) return false;
 
     if(!myInput0.load(in)) return false;
     if(!myInput1.load(in)) return false;
@@ -352,13 +357,17 @@ bool TIA::load(Serializer& in)
 
     in.getByteArray(myShadowRegisters.data(), myShadowRegisters.size());
 
+  #ifdef DEBUGGER_SUPPORT
     myCyclesAtFrameStart = in.getLong();
+    myFrameWsyncCycles = in.getLong();
+  #endif
 
     myFrameBufferScanlines = in.getInt();
     myFrontBufferScanlines = in.getInt();
 
     myPFBitsDelay = in.getByte();
     myPFColorDelay = in.getByte();
+    myBKColorDelay = in.getByte();
     myPlSwapDelay = in.getByte();
 
     // Re-apply dev settings
@@ -382,11 +391,11 @@ void TIA::bindToControllers()
 
       switch (pin) {
         case Controller::AnalogPin::Five:
-          updatePaddle(1);
+          updateAnalogReadout(1);
           break;
 
         case Controller::AnalogPin::Nine:
-          updatePaddle(0);
+          updateAnalogReadout(0);
           break;
       }
     }
@@ -398,18 +407,18 @@ void TIA::bindToControllers()
 
       switch (pin) {
         case Controller::AnalogPin::Five:
-          updatePaddle(3);
+          updateAnalogReadout(3);
           break;
 
         case Controller::AnalogPin::Nine:
-          updatePaddle(2);
+          updateAnalogReadout(2);
           break;
       }
     }
   );
 
   for (uInt8 i = 0; i < 4; ++i)
-    updatePaddle(i);
+    updateAnalogReadout(i);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -417,85 +426,81 @@ uInt8 TIA::peek(uInt16 address)
 {
   updateEmulation();
 
-  // If pins are undriven, we start with the last databus value
-  // Otherwise, there is some randomness injected into the mix
-  // In either case, we start out with D7 and D6 disabled (the only
-  // valid bits in a TIA read), and selectively enable them
-  uInt8 lastDataBusValue =
-    !myTIAPinsDriven ? mySystem->getDataBusState() : mySystem->getDataBusState(0xFF);
-
-  uInt8 result;
+  // Start with all bits disabled
+  // In some cases both D7 and D6 are used; in other cases only D7 is used
+  uInt8 result = 0b0000000;
 
   switch (address & 0x0F) {
     case CXM0P:
-      result = collCXM0P();
+      result = collCXM0P() & 0b11000000;
       break;
 
     case CXM1P:
-      result = collCXM1P();
+      result = collCXM1P() & 0b11000000;
       break;
 
     case CXP0FB:
-      result = collCXP0FB();
+      result = collCXP0FB() & 0b11000000;
       break;
 
     case CXP1FB:
-      result = collCXP1FB();
+      result = collCXP1FB() & 0b11000000;
       break;
 
     case CXM0FB:
-      result = collCXM0FB();
+      result = collCXM0FB() & 0b11000000;
       break;
 
     case CXM1FB:
-      result = collCXM1FB();
+      result = collCXM1FB() & 0b11000000;
       break;
 
     case CXPPMM:
-      result = collCXPPMM();
+      result = collCXPPMM() & 0b11000000;
       break;
 
     case CXBLPF:
-      result = collCXBLPF();
+      result = collCXBLPF() & 0b10000000;
       break;
 
     case INPT0:
-      updatePaddle(0);
-      result = myPaddleReaders[0].inpt(myTimestamp) | (lastDataBusValue & 0x40);
+      updateAnalogReadout(0);
+      result = myAnalogReadouts[0].inpt(myTimestamp) & 0b10000000;
       break;
 
     case INPT1:
-      updatePaddle(1);
-      result = myPaddleReaders[1].inpt(myTimestamp) | (lastDataBusValue & 0x40);
+      updateAnalogReadout(1);
+      result = myAnalogReadouts[1].inpt(myTimestamp) & 0b10000000;
       break;
 
     case INPT2:
-      updatePaddle(2);
-      result = myPaddleReaders[2].inpt(myTimestamp) | (lastDataBusValue & 0x40);
+      updateAnalogReadout(2);
+      result = myAnalogReadouts[2].inpt(myTimestamp) & 0b10000000;
       break;
 
     case INPT3:
-      updatePaddle(3);
-      result = myPaddleReaders[3].inpt(myTimestamp) | (lastDataBusValue & 0x40);
+      updateAnalogReadout(3);
+      result = myAnalogReadouts[3].inpt(myTimestamp) & 0b10000000;
       break;
 
     case INPT4:
-      result =
-        myInput0.inpt(!myConsole.leftController().read(Controller::DigitalPin::Six)) |
-        (lastDataBusValue & 0x40);
+      result = myInput0.inpt(!myConsole.leftController().read(Controller::DigitalPin::Six))
+          & 0b10000000;
       break;
 
     case INPT5:
-      result =
-        myInput1.inpt(!myConsole.rightController().read(Controller::DigitalPin::Six)) |
-        (lastDataBusValue & 0x40);
+      result = myInput1.inpt(!myConsole.rightController().read(Controller::DigitalPin::Six))
+          & 0b10000000;
       break;
 
     default:
-      result = 0;
+      break;
   }
 
-  return (result & 0xC0) | (lastDataBusValue & 0x3F);
+  // Bits D5 .. D0 are floating
+  // The options are either to use the last databus value, or use random data
+  return result | ((!myTIAPinsDriven ? mySystem->getDataBusState() :
+    mySystem->randGenerator().next()) & 0b00111111);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -526,68 +531,137 @@ bool TIA::poke(uInt16 address, uInt8 value)
       myInput0.vblank(value);
       myInput1.vblank(value);
 
-      for (PaddleReader& paddleReader : myPaddleReaders)
-        paddleReader.vblank(value, myTimestamp);
+      for (AnalogReadout& analogReadout : myAnalogReadouts)
+        analogReadout.vblank(value, myTimestamp);
+      updateDumpPorts(value);
 
       myDelayQueue.push(VBLANK, value, Delay::vblank);
 
       break;
 
     case AUDV0:
+    {
       myAudio.channel0().audv(value);
       myShadowRegisters[address] = value;
+    #ifdef DEBUGGER_SUPPORT
+      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      if(dataAddr)
+        mySystem->setAccessFlags(dataAddr, Device::AUD);
+    #endif
       break;
+    }
 
     case AUDV1:
+    {
       myAudio.channel1().audv(value);
       myShadowRegisters[address] = value;
+    #ifdef DEBUGGER_SUPPORT
+      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      if(dataAddr)
+        mySystem->setAccessFlags(dataAddr, Device::AUD);
+    #endif
       break;
+    }
 
     case AUDF0:
+    {
       myAudio.channel0().audf(value);
       myShadowRegisters[address] = value;
+    #ifdef DEBUGGER_SUPPORT
+      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      if(dataAddr)
+        mySystem->setAccessFlags(dataAddr, Device::AUD);
+    #endif
       break;
+    }
 
     case AUDF1:
+    {
       myAudio.channel1().audf(value);
       myShadowRegisters[address] = value;
+    #ifdef DEBUGGER_SUPPORT
+      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      if(dataAddr)
+        mySystem->setAccessFlags(dataAddr, Device::AUD);
+    #endif
       break;
+    }
 
     case AUDC0:
+    {
       myAudio.channel0().audc(value);
       myShadowRegisters[address] = value;
+    #ifdef DEBUGGER_SUPPORT
+      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      if(dataAddr)
+        mySystem->setAccessFlags(dataAddr, Device::AUD);
+    #endif
       break;
+    }
 
     case AUDC1:
+    {
       myAudio.channel1().audc(value);
       myShadowRegisters[address] = value;
+    #ifdef DEBUGGER_SUPPORT
+      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      if(dataAddr)
+        mySystem->setAccessFlags(dataAddr, Device::AUD);
+    #endif
       break;
+    }
 
     case HMOVE:
       myDelayQueue.push(HMOVE, value, Delay::hmove);
       break;
 
     case COLUBK:
+    {
       value &= 0xFE;
-      myBackground.setColor(value);
-      myShadowRegisters[address] = value;
+      if(myBKColorDelay)
+        myDelayQueue.push(COLUBK, value, 1);
+      else
+      {
+        myBackground.setColor(value);
+        myShadowRegisters[address] = value;
+      }
+    #ifdef DEBUGGER_SUPPORT
+      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      if(dataAddr)
+        mySystem->setAccessFlags(dataAddr, Device::BCOL);
+    #endif
       break;
+    }
 
     case COLUP0:
+    {
       value &= 0xFE;
       myPlayfield.setColorP0(value);
       myMissile0.setColor(value);
       myPlayer0.setColor(value);
       myShadowRegisters[address] = value;
+    #ifdef DEBUGGER_SUPPORT
+      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      if(dataAddr)
+        mySystem->setAccessFlags(dataAddr, Device::COL);
+    #endif
       break;
+    }
 
     case COLUP1:
+    {
       value &= 0xFE;
       myPlayfield.setColorP1(value);
       myMissile1.setColor(value);
       myPlayer1.setColor(value);
       myShadowRegisters[address] = value;
+    #ifdef DEBUGGER_SUPPORT
+      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      if(dataAddr)
+        mySystem->setAccessFlags(dataAddr, Device::COL);
+    #endif
       break;
+    }
 
     case CTRLPF:
       flushLineCache();
@@ -599,9 +673,10 @@ bool TIA::poke(uInt16 address, uInt8 value)
       break;
 
     case COLUPF:
+    {
       flushLineCache();
       value &= 0xFE;
-      if (myPFColorDelay)
+      if(myPFColorDelay)
         myDelayQueue.push(COLUPF, value, 1);
       else
       {
@@ -609,7 +684,13 @@ bool TIA::poke(uInt16 address, uInt8 value)
         myBall.setColor(value);
         myShadowRegisters[address] = value;
       }
+    #ifdef DEBUGGER_SUPPORT
+      uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
+      if(dataAddr)
+        mySystem->setAccessFlags(dataAddr, Device::PCOL);
+    #endif
       break;
+    }
 
     case PF0:
     {
@@ -617,7 +698,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
     #ifdef DEBUGGER_SUPPORT
       uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
-        mySystem->setAccessFlags(dataAddr, CartDebug::PGFX);
+        mySystem->setAccessFlags(dataAddr, Device::PGFX);
     #endif
       break;
     }
@@ -628,7 +709,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
     #ifdef DEBUGGER_SUPPORT
       uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
-        mySystem->setAccessFlags(dataAddr, CartDebug::PGFX);
+        mySystem->setAccessFlags(dataAddr, Device::PGFX);
     #endif
       break;
     }
@@ -639,7 +720,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
     #ifdef DEBUGGER_SUPPORT
       uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
-        mySystem->setAccessFlags(dataAddr, CartDebug::PGFX);
+        mySystem->setAccessFlags(dataAddr, Device::PGFX);
     #endif
       break;
     }
@@ -707,7 +788,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
     #ifdef DEBUGGER_SUPPORT
       uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
-        mySystem->setAccessFlags(dataAddr, CartDebug::GFX);
+        mySystem->setAccessFlags(dataAddr, Device::GFX);
     #endif
       break;
     }
@@ -720,7 +801,7 @@ bool TIA::poke(uInt16 address, uInt8 value)
     #ifdef DEBUGGER_SUPPORT
       uInt16 dataAddr = mySystem->m6502().lastDataAddressForPoke();
       if(dataAddr)
-        mySystem->setAccessFlags(dataAddr, CartDebug::GFX);
+        mySystem->setAccessFlags(dataAddr, Device::GFX);
     #endif
       break;
     }
@@ -855,6 +936,9 @@ void TIA::applyDeveloperSettings()
     setPFColorDelay(custom
                     ? mySettings.getBool("dev.tia.delaypfcolor")
                     : BSPF::equalsIgnoreCase("quickstep", mySettings.getString("dev.tia.type")));
+    setBKColorDelay(custom
+                    ? mySettings.getBool("dev.tia.delaybkcolor")
+                    : BSPF::equalsIgnoreCase("indy500", mySettings.getString("dev.tia.type")));
     setPlSwapDelay(custom
                    ? mySettings.getBool("dev.tia.delayplswap")
                    : BSPF::equalsIgnoreCase("heman", mySettings.getString("dev.tia.type")));
@@ -867,6 +951,7 @@ void TIA::applyDeveloperSettings()
     setBlInvertedPhaseClock(false);
     setPFBitsDelay(false);
     setPFColorDelay(false);
+    setBKColorDelay(false);
     setPlSwapDelay(false);
     setBlSwapDelay(false);
   }
@@ -966,8 +1051,12 @@ bool TIA::toggleBit(TIABit b, uInt8 mode)
       mask = b;
       break;
 
-    default:
+    case 2:
       mask = (~mySpriteEnabledBits & b);
+      break;
+
+    default:
+      mask = (mySpriteEnabledBits & b);
       break;
   }
 
@@ -984,9 +1073,11 @@ bool TIA::toggleBit(TIABit b, uInt8 mode)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool TIA::toggleBits()
+bool TIA::toggleBits(bool toggle)
 {
-  toggleBit(TIABit(0xFF), mySpriteEnabledBits > 0 ? 0 : 1);
+  toggleBit(TIABit(0xFF), toggle
+                          ? mySpriteEnabledBits > 0 ? 0 : 1
+                          : mySpriteEnabledBits);
 
   return mySpriteEnabledBits;
 }
@@ -1005,8 +1096,12 @@ bool TIA::toggleCollision(TIABit b, uInt8 mode)
       mask = b;
       break;
 
-    default:
+    case 2:
       mask = (~myCollisionsEnabledBits & b);
+      break;
+
+    default:
+      mask = (myCollisionsEnabledBits & b);
       break;
   }
 
@@ -1023,9 +1118,11 @@ bool TIA::toggleCollision(TIABit b, uInt8 mode)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool TIA::toggleCollisions()
+bool TIA::toggleCollisions(bool toggle)
 {
-  toggleCollision(TIABit(0xFF), myCollisionsEnabledBits > 0 ? 0 : 1);
+  toggleCollision(TIABit(0xFF), toggle
+                                ? myCollisionsEnabledBits > 0 ? 0 : 1
+                                : myCollisionsEnabledBits);
 
   return myCollisionsEnabledBits;
 }
@@ -1144,6 +1241,9 @@ bool TIA::toggleJitter(uInt8 mode)
       myEnableJitter = !myEnableJitter;
       break;
 
+    case 3:
+      break;
+
     default:
       throw runtime_error("invalid argument for toggleJitter");
   }
@@ -1214,6 +1314,10 @@ void TIA::updateEmulation()
 void TIA::onFrameStart()
 {
   myXAtRenderingStart = 0;
+#ifdef DEBUGGER_SUPPORT
+  myFrameWsyncCycles = 0;
+  mySystem->m6532().resetTimReadCylces();
+#endif
 
   // Check for colour-loss emulation
   if (myColorLossEnabled)
@@ -1239,7 +1343,9 @@ void TIA::onFrameStart()
 void TIA::onFrameComplete()
 {
   mySystem->m6502().stop();
+#ifdef DEBUGGER_SUPPORT
   myCyclesAtFrameStart = mySystem->cycles();
+#endif
 
   if (myXAtRenderingStart > 0)
     std::fill_n(myBackBuffer.begin(), myXAtRenderingStart, 0);
@@ -1261,6 +1367,9 @@ void TIA::onHalt()
 {
   mySubClock += (TIAConstants::H_CLOCKS - myHctr) % TIAConstants::H_CLOCKS;
   mySystem->incrementCycles(mySubClock / TIAConstants::CYCLE_CLOCKS);
+#ifdef DEBUGGER_SUPPORT
+  myFrameWsyncCycles += 3 + mySubClock / TIAConstants::CYCLE_CLOCKS;
+#endif
   mySubClock %= TIAConstants::CYCLE_CLOCKS;
 }
 
@@ -1531,6 +1640,12 @@ void TIA::setPFColorDelay(bool delayed)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void TIA::setBKColorDelay(bool delayed)
+{
+  myBKColorDelay = delayed ? 1 : 0;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void TIA::setPlSwapDelay(bool delayed)
 {
   myPlSwapDelay = delayed ? Delay::shufflePlayer + 1 : Delay::shufflePlayer;
@@ -1603,6 +1718,10 @@ void TIA::delayedWrite(uInt8 address, uInt8 value)
 
     case PF2:
       myPlayfield.pf2(value);
+      break;
+
+    case COLUBK:
+      myBackground.setColor(value);
       break;
 
     case COLUPF:
@@ -1685,32 +1804,32 @@ void TIA::delayedWrite(uInt8 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void TIA::updatePaddle(uInt8 idx)
+void TIA::updateAnalogReadout(uInt8 idx)
 {
-  Int32 resistance;
+  AnalogReadout::Connection connection;
   switch (idx) {
     case 0:
-      resistance = myConsole.leftController().read(Controller::AnalogPin::Nine);
+      connection = myConsole.leftController().read(Controller::AnalogPin::Nine);
       break;
 
     case 1:
-      resistance = myConsole.leftController().read(Controller::AnalogPin::Five);
+      connection = myConsole.leftController().read(Controller::AnalogPin::Five);
       break;
 
     case 2:
-      resistance = myConsole.rightController().read(Controller::AnalogPin::Nine);
+      connection = myConsole.rightController().read(Controller::AnalogPin::Nine);
       break;
 
     case 3:
-      resistance = myConsole.rightController().read(Controller::AnalogPin::Five);
+      connection = myConsole.rightController().read(Controller::AnalogPin::Five);
       break;
 
     default:
-      throw runtime_error("invalid paddle index");
+      throw runtime_error("invalid analog input");
   }
 
-  myPaddleReaders[idx].update(
-    (resistance == Controller::MAX_RESISTANCE) ? -1 : (double(resistance) / Paddles::MAX_RESISTANCE),
+  myAnalogReadouts[idx].update(
+    connection,
     myTimestamp,
     myTimingProvider()
   );
@@ -1882,26 +2001,45 @@ void TIA::toggleCollBLPF()
   myCollisionMask ^= (CollisionMask::ball & CollisionMask::playfield);
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void TIA::updateDumpPorts(uInt8 value)
+{
+  bool newIsDumped = value & 0x80;
+
+  if(myArePortsDumped != newIsDumped)
+  {
+    myArePortsDumped = newIsDumped;
+    myDumpPortsCycles = mySystem->cycles();
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Int64 TIA::dumpPortsCycles()
+{
+  return mySystem->cycles() - myDumpPortsCycles;
+}
+
 #ifdef DEBUGGER_SUPPORT
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void TIA::createAccessBase()
+void TIA::createAccessArrays()
 {
-  myAccessBase.fill(CartDebug::NONE);
+  myAccessBase.fill(Device::NONE);
+  myAccessCounter.fill(0);
   myAccessDelay.fill(TIA_DELAY);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 TIA::getAccessFlags(uInt16 address) const
+Device::AccessFlags TIA::getAccessFlags(uInt16 address) const
 {
   return myAccessBase[address & TIA_MASK];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void TIA::setAccessFlags(uInt16 address, uInt8 flags)
+void TIA::setAccessFlags(uInt16 address, Device::AccessFlags flags)
 {
   // ignore none flag
-  if (flags != CartDebug::NONE) {
-    if (flags == CartDebug::WRITE) {
+  if (flags != Device::NONE) {
+    if (flags == Device::WRITE) {
       // the first two write accesses are assumed as initialization
       if (myAccessDelay[address & TIA_MASK])
         myAccessDelay[address & TIA_MASK]--;
@@ -1910,5 +2048,39 @@ void TIA::setAccessFlags(uInt16 address, uInt8 flags)
     } else
       myAccessBase[address & TIA_READ_MASK] |= flags;
   }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void TIA::increaseAccessCounter(uInt16 address, bool isWrite)
+{
+  if(isWrite)
+  {
+    // the first two write accesses are assumed as initialization
+    if(myAccessDelay[address & TIA_MASK])
+      myAccessDelay[address & TIA_MASK]--;
+    else
+      myAccessCounter[address & TIA_MASK]++;
+  }
+  else
+    myAccessCounter[TIA_SIZE + (address & TIA_READ_MASK)]++;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string TIA::getAccessCounters() const
+{
+  ostringstream out;
+
+  out << "TIA reads:\n";
+  for(uInt16 addr = 0x00; addr < TIA_READ_SIZE; ++addr)
+    out << Common::Base::HEX4 << addr << ","
+    << Common::Base::toString(myAccessCounter[TIA_SIZE + addr], Common::Base::Fmt::_10_8) << ", ";
+  out << "\n";
+  out << "TIA writes:\n";
+  for(uInt16 addr = 0x00; addr < TIA_SIZE; ++addr)
+    out << Common::Base::HEX4 << addr << ","
+    << Common::Base::toString(myAccessCounter[addr], Common::Base::Fmt::_10_8) << ", ";
+  out << "\n";
+
+  return out.str();
 }
 #endif // DEBUGGER_SUPPORT

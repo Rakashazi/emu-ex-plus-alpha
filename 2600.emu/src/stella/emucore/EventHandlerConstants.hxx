@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,10 +22,12 @@
 enum class EventHandlerState {
   EMULATION,
   TIMEMACHINE,
+  PLAYBACK,
   PAUSE,
   LAUNCHER,
   OPTIONSMENU,
   CMDMENU,
+  HIGHSCORESMENU,
   MESSAGEMENU,
   DEBUGGER,
   NONE
@@ -73,8 +75,6 @@ enum JoyHatMask {
   EVENT_HATCENTER_M = 1<<4
 };
 
-static const int NUM_PORTS = 2;
-
 enum class EventMode {
   kEmulationMode, // active mapping used for emulation
   kMenuMode,      // mapping used for dialogs
@@ -83,6 +83,7 @@ enum class EventMode {
   kKeypadMode,
   kCompuMateMode, // cannot be remapped
   kCommonMode,    // mapping common between controllers
+  kEditMode,      // mapping used in editable widgets
   kNumModes
 };
 

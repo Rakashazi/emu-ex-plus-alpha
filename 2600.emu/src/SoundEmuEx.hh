@@ -41,8 +41,9 @@ public:
 	bool mute(bool state) final;
 	bool toggleMute() final;
 	void setVolume(uInt32 percent) final;
-	void adjustVolume(Int8 direction) final;
+	void adjustVolume(int direction) final;
 	string about() const final;
+	void queryHardware(VariantList& devices) final;
 
 private:
 	shared_ptr<AudioQueue> audioQueue{};

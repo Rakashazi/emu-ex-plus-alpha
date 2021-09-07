@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -23,10 +23,10 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Controller::Controller(Jack jack, const Event& event, const System& system,
                        Type type)
-  : myJack(jack),
-    myEvent(event),
-    mySystem(system),
-    myType(type)
+  : myJack{jack},
+    myEvent{event},
+    mySystem{system},
+    myType{type}
 {
 }
 
@@ -48,7 +48,7 @@ bool Controller::read(DigitalPin pin)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Int32 Controller::read(AnalogPin pin)
+AnalogReadout::Connection Controller::read(AnalogPin pin)
 {
   return getPin(pin);
 }
@@ -66,8 +66,8 @@ bool Controller::save(Serializer& out) const
     out.putBool(getPin(DigitalPin::Six));
 
     // Output the analog pins
-    out.putInt(getPin(AnalogPin::Five));
-    out.putInt(getPin(AnalogPin::Nine));
+    getPin(AnalogPin::Five).save(out);
+    getPin(AnalogPin::Nine).save(out);
   }
   catch(...)
   {
@@ -90,8 +90,8 @@ bool Controller::load(Serializer& in)
     setPin(DigitalPin::Six,   in.getBool());
 
     // Input the analog pins
-    setPin(AnalogPin::Five, in.getInt());
-    setPin(AnalogPin::Nine, in.getInt());
+    getPin(AnalogPin::Five).load(in);
+    getPin(AnalogPin::Nine).load(in);
   }
   catch(...)
   {
@@ -110,7 +110,7 @@ string Controller::getName(const Type type)
     "AmigaMouse", "AtariMouse", "AtariVox", "BoosterGrip", "CompuMate",
     "Driving", "Sega Genesis", "Joystick", "Keyboard", "KidVid", "MindLink",
     "Paddles", "Paddles_IAxis", "Paddles_IAxDr", "SaveKey", "TrakBall",
-    "Lightgun"
+    "Lightgun", "QuadTari"
   };
 
   return NAMES[int(type)];
@@ -125,7 +125,7 @@ string Controller::getPropName(const Type type)
     "AMIGAMOUSE", "ATARIMOUSE", "ATARIVOX", "BOOSTERGRIP", "COMPUMATE",
     "DRIVING", "GENESIS", "JOYSTICK", "KEYBOARD", "KIDVID", "MINDLINK",
     "PADDLES", "PADDLES_IAXIS", "PADDLES_IAXDR", "SAVEKEY", "TRAKBALL",
-    "LIGHTGUN"
+    "LIGHTGUN", "QUADTARI"
   };
 
   return PROP_NAMES[int(type)];
@@ -147,3 +147,14 @@ Controller::Type Controller::getType(const string& propName)
 
   return Type::Unknown;
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Controller::setAutoFireRate(int rate, bool isNTSC)
+{
+  rate = BSPF::clamp(rate, 0, isNTSC ? 30 : 25);
+  AUTO_FIRE_RATE = 32 * 1024 * rate / (isNTSC ? 60 : 50);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int Controller::AUTO_FIRE_RATE = 0;
+

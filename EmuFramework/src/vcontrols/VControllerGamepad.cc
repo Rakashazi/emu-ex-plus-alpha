@@ -235,14 +235,24 @@ void VControllerGamepad::setFaceButtonSize(Gfx::Renderer &r, IG::WP sizeInPixels
 	faceBtns.setButtonSize(sizeInPixels, extraSizePixels);
 }
 
-void VControllerGamepad::draw(Gfx::RendererCommands &cmds, bool showHidden, Gfx::ProjectionPlane projP) const
+void VControllerGamepad::drawDPads(Gfx::RendererCommands &cmds, bool showHidden, Gfx::ProjectionPlane) const
 {
 	if(VController::shouldDraw(dp.state(), showHidden))
 	{
 		dp.draw(cmds);
 	}
+}
+
+void VControllerGamepad::drawButtons(Gfx::RendererCommands &cmds, bool showHidden, Gfx::ProjectionPlane projP) const
+{
 	faceBtns.draw(cmds, projP, showHidden);
 	centerBtns.draw(cmds, projP, showHidden);
+}
+
+void VControllerGamepad::draw(Gfx::RendererCommands &cmds, bool showHidden, Gfx::ProjectionPlane projP) const
+{
+	drawDPads(cmds, showHidden, projP);
+	drawButtons(cmds, showHidden, projP);
 }
 
 void VControllerGamepad::setSpacingPixels(int space)

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -20,7 +20,7 @@
 
 #include "KeyValueRepository.hxx"
 
-class KeyValueRepositoryNoop : public KeyValueRepository
+class KeyValueRepositoryNoop : public KeyValueRepositoryAtomic
 {
   public:
 
@@ -28,9 +28,15 @@ class KeyValueRepositoryNoop : public KeyValueRepository
       return std::map<string, Variant>();
     }
 
-    void save(const std::map<string, Variant>& values) override {}
+    bool has(const string& key) override { return false; }
 
-    void save(const string& key, const Variant& value) override {}
+    bool get(const string& key, Variant& value) override { return false; }
+
+    bool save(const std::map<string, Variant>& values) override { return false; }
+
+    bool save(const string& key, const Variant& value) override { return false; }
+
+    void remove(const string& key) override {}
 };
 
 #endif // KEY_VALUE_REPOSITORY_NOOP_HXX

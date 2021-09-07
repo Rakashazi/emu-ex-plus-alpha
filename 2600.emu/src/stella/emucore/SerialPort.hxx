@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -43,7 +43,6 @@ class SerialPort
 
     /**
       Read a byte from the serial port.
-      NOTE: This is for potential future use; no class currently uses this.
 
       @param data  Destination for the byte read from the port
       @return  True if a byte was read, else false
@@ -57,6 +56,21 @@ class SerialPort
       @return  True if a byte was written, else false
     */
     virtual bool writeByte(uInt8 data) { return false; }
+
+    /**
+      Test for 'Clear To Send' enabled.  By default, assume it's always
+      OK to send more data.
+
+      @return  True if CTS signal enabled, else false
+    */
+    virtual bool isCTS() { return true; }
+
+    /**
+      Get all valid serial ports detected on this system.
+
+      @return  The (possibly empty) list of detected serial ports
+    */
+    virtual StringList portNames() { return StringList{}; }
 
   private:
     // Following constructors and assignment operators not supported

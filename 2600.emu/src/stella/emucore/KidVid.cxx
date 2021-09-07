@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -24,7 +24,7 @@
 KidVid::KidVid(Jack jack, const Event& event, const System& system,
                const string& romMd5)
   : Controller(jack, event, system, Controller::Type::KidVid),
-    myEnabled(myJack == Jack::Right)
+    myEnabled{myJack == Jack::Right}
 {
   // Right now, there are only two games that use the KidVid
   if(romMd5 == "ee6665683ebdb539e89ba620981cb0f6")

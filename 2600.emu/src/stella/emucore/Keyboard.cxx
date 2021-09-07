@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -54,44 +54,50 @@ Keyboard::Keyboard(Jack jack, const Event& event, const System& system)
   }
 }
 
+Keyboard::ColumnState Keyboard::processColumn(const Event::Type buttons[]) {
+  constexpr DigitalPin signals[] =
+    {DigitalPin::One, DigitalPin::Two, DigitalPin::Three, DigitalPin::Four};
+
+  for (uInt8 i = 0; i < 4; i++)
+    if (myEvent.get(buttons[i]) && !getPin(signals[i])) return ColumnState::gnd;
+
+  for (uInt8 i = 0; i < 4; i++)
+    if (myEvent.get(buttons[i]) && getPin(signals[i])) return ColumnState::vcc;
+
+  return ColumnState::notConnected;
+}
+
+AnalogReadout::Connection Keyboard::columnStateToAnalogSignal(ColumnState state) const {
+  switch (state) {
+    case ColumnState::gnd:
+      return AnalogReadout::connectToGround();
+
+    case ColumnState::vcc:
+       return AnalogReadout::connectToVcc();
+
+    case ColumnState::notConnected:
+      return AnalogReadout::connectToVcc(INTERNAL_RESISTANCE);
+
+    default:
+      throw runtime_error("unreachable");
+  }
+}
+
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void Keyboard::write(DigitalPin pin, bool value)
 {
   setPin(pin, value);
 
-  // Set defaults
-  setPin(DigitalPin::Six, true);
-  Int32 resistanceFive = MIN_RESISTANCE;
-  Int32 resistanceNine = MIN_RESISTANCE;
+  const Event::Type col0[] = {myOneEvent, myFourEvent, mySevenEvent, myStarEvent};
+  const Event::Type col1[] = {myTwoEvent, myFiveEvent, myEightEvent, myZeroEvent};
+  const Event::Type col2[] = {myThreeEvent, mySixEvent, myNineEvent, myPoundEvent};
 
-  // Now scan the rows and columns
-  if(!getPin(DigitalPin::Four))
-  {
-    setPin(DigitalPin::Six, myEvent.get(myPoundEvent) == 0);
-    if(myEvent.get(myZeroEvent) != 0) resistanceFive = MAX_RESISTANCE;
-    if(myEvent.get(myStarEvent) != 0) resistanceNine = MAX_RESISTANCE;
-  }
-  if(!getPin(DigitalPin::Three))
-  {
-    setPin(DigitalPin::Six, myEvent.get(myNineEvent) == 0);
-    if(myEvent.get(myEightEvent) != 0) resistanceFive = MAX_RESISTANCE;
-    if(myEvent.get(mySevenEvent) != 0) resistanceNine = MAX_RESISTANCE;
-  }
-  if(!getPin(DigitalPin::Two))
-  {
-    setPin(DigitalPin::Six, myEvent.get(mySixEvent) == 0);
-    if(myEvent.get(myFiveEvent) != 0) resistanceFive = MAX_RESISTANCE;
-    if(myEvent.get(myFourEvent) != 0) resistanceNine = MAX_RESISTANCE;
-  }
-  if(!getPin(DigitalPin::One))
-  {
-    setPin(DigitalPin::Six, myEvent.get(myThreeEvent) == 0);
-    if(myEvent.get(myTwoEvent) != 0) resistanceFive = MAX_RESISTANCE;
-    if(myEvent.get(myOneEvent) != 0) resistanceNine = MAX_RESISTANCE;
-  }
+  ColumnState stateCol0 = processColumn(col0);
+  ColumnState stateCol1 = processColumn(col1);
+  ColumnState stateCol2 = processColumn(col2);
 
-  if(resistanceFive != read(AnalogPin::Five))
-    setPin(AnalogPin::Five, resistanceFive);
-  if(resistanceNine != read(AnalogPin::Nine))
-    setPin(AnalogPin::Nine, resistanceNine);
+  setPin(DigitalPin::Six, stateCol2 == ColumnState::gnd ? 0 : 1);
+  setPin(AnalogPin::Five, columnStateToAnalogSignal(stateCol1));
+  setPin(AnalogPin::Nine, columnStateToAnalogSignal(stateCol0));
 }

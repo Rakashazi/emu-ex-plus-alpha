@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -39,13 +39,11 @@ class SimpleResampler : public Resampler
     bool myIsUnderrun{true};
 
   private:
-
     SimpleResampler() = delete;
     SimpleResampler(const SimpleResampler&) = delete;
     SimpleResampler(SimpleResampler&&) = delete;
     SimpleResampler& operator=(const SimpleResampler&) = delete;
     SimpleResampler& operator=(const SimpleResampler&&) = delete;
-
 };
 
 #endif // SIMPLE_RESAMPLER_HXX

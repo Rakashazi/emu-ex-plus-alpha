@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,7 +18,6 @@
 #ifndef POINTING_DEVICE_HXX
 #define POINTING_DEVICE_HXX
 
-class Controller;
 class Event;
 
 #include "Control.hxx"
@@ -38,7 +37,11 @@ class PointingDevice : public Controller
     PointingDevice(Jack jack, const Event& event,
                    const System& system, Controller::Type type,
                    float sensitivity);
-    virtual ~PointingDevice() = default;
+    ~PointingDevice() override = default;
+
+  public:
+    static constexpr int MIN_SENSE = 1;
+    static constexpr int MAX_SENSE = 20;
 
   public:
     using Controller::read;

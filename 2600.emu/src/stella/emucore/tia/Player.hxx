@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,11 +18,11 @@
 #ifndef TIA_PLAYER
 #define TIA_PLAYER
 
+class TIA;
+
 #include "bspf.hxx"
 #include "Serializable.hxx"
 #include "TIAConstants.hxx"
-
-class TIA;
 
 class Player : public Serializable
 {

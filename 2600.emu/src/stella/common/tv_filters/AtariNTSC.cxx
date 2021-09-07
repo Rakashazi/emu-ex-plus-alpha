@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -57,9 +57,9 @@ void AtariNTSC::generateKernels()
   const uInt8* ptr = myRGBPalette.data();
   for(size_t entry = 0; entry < myRGBPalette.size() / 3; ++entry)
   {
-    float r = myImpl.to_float[*ptr++],
-          g = myImpl.to_float[*ptr++],
-          b = myImpl.to_float[*ptr++];
+    float r = (*ptr++) / 255.F * rgb_unit + rgb_offset,
+          g = (*ptr++) / 255.F * rgb_unit + rgb_offset,
+          b = (*ptr++) / 255.F * rgb_unit + rgb_offset;
     float y, i, q;  RGB_TO_YIQ( r, g, b, y, i, q );
 
     // Generate kernel
@@ -319,9 +319,6 @@ void AtariNTSC::renderWithPhosphorThread(const uInt8* atari_in, const uInt32 in_
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void AtariNTSC::init(init_t& impl, const Setup& setup)
 {
-  impl.brightness = setup.brightness * (0.5F * rgb_unit) + rgb_offset;
-  impl.contrast   = setup.contrast   * (0.5F * rgb_unit) + rgb_unit;
-
   impl.artifacts = setup.artifacts;
   if ( impl.artifacts > 0 )
     impl.artifacts *= artifacts_max - artifacts_mid;
@@ -334,26 +331,8 @@ void AtariNTSC::init(init_t& impl, const Setup& setup)
 
   initFilters(impl, setup);
 
-  /* generate gamma table */
-  if (true)  /* was (gamma_size > 1) */
-  {
-    float const to_float = 1.F / (gamma_size - 1/*(gamma_size > 1)*/);
-    float const gamma = 1.1333F - setup.gamma * 0.5F;
-    /* match common PC's 2.2 gamma to TV's 2.65 gamma */
-    int i;
-    for ( i = 0; i < gamma_size; i++ )
-      impl.to_float [i] =
-          powf( i * to_float, gamma ) * impl.contrast + impl.brightness;
-  }
-
   /* setup decoder matricies */
   {
-    float hue = setup.hue * BSPF::PI_f + BSPF::PI_f / 180 * ext_decoder_hue;
-    float sat = setup.saturation + 1;
-    hue += BSPF::PI_f / 180 * (std_decoder_hue - ext_decoder_hue);
-
-    float s = sinf( hue ) * sat;
-    float c = cosf( hue ) * sat;
     float* out = impl.to_rgb.data();
     int n;
 
@@ -366,8 +345,8 @@ void AtariNTSC::init(init_t& impl, const Setup& setup)
       {
         float i = *in++;
         float q = *in++;
-        *out++ = i * c - q * s;
-        *out++ = i * s + q * c;
+        *out++ = i;
+        *out++ = q;
       }
       while ( --n2 );
     #if 0  // burst_count is always 0
@@ -544,16 +523,16 @@ void AtariNTSC::genKernel(init_t& impl, float y, float i, float q, uInt32* out)
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 const AtariNTSC::Setup AtariNTSC::TV_Composite = {
-  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.15F, 0.0F, 0.0F, 0.0F
+  0.0F, 0.15F, 0.0F, 0.0F, 0.0F
 };
 const AtariNTSC::Setup AtariNTSC::TV_SVideo = {
-  0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.45F, -1.0F, -1.0F, 0.0F
+  0.0F, 0.45F, -1.0F, -1.0F, 0.0F
 };
 const AtariNTSC::Setup AtariNTSC::TV_RGB = {
-  0.0F, 0.0F, 0.0F, 0.0F, 0.2F, 0.0F, 0.70F, -1.0F, -1.0F, -1.0F
+  0.2F, 0.70F, -1.0F, -1.0F, -1.0F
 };
 const AtariNTSC::Setup AtariNTSC::TV_Bad = {
-  0.1F, -0.3F, 0.3F, 0.25F, 0.2F, 0.0F, 0.1F, 0.5F, 0.5F, 0.5F
+  0.2F, 0.1F, 0.5F, 0.5F, 0.5F
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

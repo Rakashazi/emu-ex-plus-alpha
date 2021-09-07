@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,7 +18,7 @@
 #ifndef STATE_MANAGER_HXX
 #define STATE_MANAGER_HXX
 
-#define STATE_HEADER "06010000state"
+#define STATE_HEADER "06050300state"
 
 class OSystem;
 class RewindManager;
@@ -115,8 +115,10 @@ class StateManager
 
     /**
       Switches to the next higher or lower state slot (circular queue style).
+
+      @param direction  +1 indicates increase, -1 indicates decrease.
     */
-    void changeState(int direction);
+    void changeState(int direction = +1);
 
     /**
       Toggles auto slot mode.

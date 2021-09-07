@@ -2,6 +2,8 @@
 
 // TODO: redirect into imagine logger system
 
+#include <string>
+
 class Logger {
 
   public:
@@ -23,13 +25,13 @@ class Logger {
     	return l;
     };
 
-    static void log(const string& message, Level level) {}
+    static void log(const std::string& message, Level level) {}
 
-    static void error(const string& message) {}
+    static void error(const std::string& message) {}
 
-    static void info(const string& message) {}
+    static void info(const std::string& message) {}
 
-    static void debug(const string& message) {}
+    static void debug(const std::string& message) {}
 
     void setLogParameters(int logLevel, bool logToConsole) {}
     void setLogParameters(Level logLevel, bool logToConsole) {}

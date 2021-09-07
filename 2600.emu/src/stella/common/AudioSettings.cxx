@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -43,8 +43,7 @@ namespace {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 AudioSettings::AudioSettings(Settings& settings)
-  : mySettings(settings),
-    myIsPersistent(true)
+  : mySettings{settings}
 {
   setPreset(normalizedPreset(mySettings.getInt(SETTING_PRESET)));
 }
@@ -152,6 +151,12 @@ uInt32 AudioSettings::volume() const
 {
   // 0 is a valid value -> keep it
   return lboundInt(mySettings.getInt(SETTING_VOLUME), 0);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+uInt32 AudioSettings::device() const
+{
+  return mySettings.getInt(SETTING_DEVICE);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -283,6 +288,14 @@ void AudioSettings::setVolume(uInt32 volume)
 
   mySettings.setValue(SETTING_VOLUME, volume);
   normalize(mySettings);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void AudioSettings::setDevice(uInt32 device)
+{
+  if(!myIsPersistent) return;
+
+  mySettings.setValue(SETTING_DEVICE, device);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

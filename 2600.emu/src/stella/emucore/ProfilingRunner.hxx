@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,10 +18,9 @@
 #ifndef PROFILING_RUNNER
 #define PROFILING_RUNNER
 
-class Control;
-class Switches;
-
 #include "bspf.hxx"
+#include "Control.hxx"
+#include "Switches.hxx"
 #include "Settings.hxx"
 #include "ConsoleIO.hxx"
 #include "Props.hxx"
@@ -41,13 +40,13 @@ class ProfilingRunner {
     };
 
     struct IO: public ConsoleIO {
-        Controller& leftController() const override { return *myLeftControl; }
-        Controller& rightController() const override { return *myRightControl; }
-        Switches& switches() const override { return *mySwitches; }
+      Controller& leftController() const override { return *myLeftControl; }
+      Controller& rightController() const override { return *myRightControl; }
+      Switches& switches() const override { return *mySwitches; }
 
-        unique_ptr<Controller> myLeftControl;
-        unique_ptr<Controller> myRightControl;
-        unique_ptr<Switches> mySwitches;
+      unique_ptr<Controller> myLeftControl;
+      unique_ptr<Controller> myRightControl;
+      unique_ptr<Switches> mySwitches;
     };
 
   private:

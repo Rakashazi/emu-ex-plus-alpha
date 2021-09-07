@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,26 +22,16 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CartridgeX07::CartridgeX07(const ByteBuffer& image, size_t size,
-                           const string& md5, const Settings& settings)
-  : Cartridge(settings, md5)
+                           const string& md5, const Settings& settings,
+                           size_t bsSize)
+  : CartridgeEnhanced(image, size, md5, settings, bsSize)
 {
-  // Copy the ROM image into my buffer
-  std::copy_n(image.get(), std::min(myImage.size(), size), myImage.begin());
-  createCodeAccessBase(myImage.size());
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeX07::reset()
-{
-  // Upon reset we switch to the startup bank
-  initializeStartBank(0);
-  bank(startBank());
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CartridgeX07::install(System& system)
 {
-  mySystem = &system;
+  CartridgeEnhanced::install(system);
 
   // Set the page accessing methods for the hot spots
   // The hotspots use almost all addresses below 0x1000, so we simply grab them
@@ -49,31 +39,42 @@ void CartridgeX07::install(System& system)
   System::PageAccess access(this, System::PageAccessType::READWRITE);
   for(uInt16 addr = 0x00; addr < 0x1000; addr += System::PAGE_SIZE)
     mySystem->setPageAccess(addr, access);
+}
 
-  // Install pages for the startup bank
-  bank(startBank());
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool CartridgeX07::checkSwitchBank(uInt16 address, uInt8)
+{
+  // Switch banks if necessary
+  if((address & 0x180f) == 0x080d)
+  {
+    bank((address & 0xf0) >> 4);
+    return true;
+  }
+  else if((address & 0x1880) == 0)
+  {
+    if((getBank() & 0xe) == 0xe)
+    {
+      bank(((address & 0x40) >> 6) | 0xe);
+      return true;
+    }
+  }
+
+  return false;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt8 CartridgeX07::peek(uInt16 address)
 {
-  uInt8 value = 0;
-
+  uInt8 value = 0; // JTZ: is this correct?
   // Check for RAM or TIA mirroring
   uInt16 lowAddress = address & 0x3ff;
+
   if(lowAddress & 0x80)
     value = mySystem->m6532().peek(address);
   else if(!(lowAddress & 0x200))
     value = mySystem->tia().peek(address);
 
-  // Switch banks if necessary
-  if((address & 0x180f) == 0x080d)
-    bank((address & 0xf0) >> 4);
-  else if((address & 0x1880) == 0)
-  {
-    if((myCurrentBank & 0xe) == 0xe)
-      bank(((address & 0x40) >> 6) | (myCurrentBank & 0xe));
-  }
+  checkSwitchBank(address);
 
   return value;
 }
@@ -83,101 +84,13 @@ bool CartridgeX07::poke(uInt16 address, uInt8 value)
 {
   // Check for RAM or TIA mirroring
   uInt16 lowAddress = address & 0x3ff;
+
   if(lowAddress & 0x80)
     mySystem->m6532().poke(address, value);
   else if(!(lowAddress & 0x200))
     mySystem->tia().poke(address, value);
 
-  // Switch banks if necessary
-  if((address & 0x180f) == 0x080d)
-    bank((address & 0xf0) >> 4);
-  else if((address & 0x1880) == 0)
-  {
-    if((myCurrentBank & 0xe) == 0xe)
-      bank(((address & 0x40) >> 6) | (myCurrentBank & 0xe));
-  }
+  checkSwitchBank(address);
+
   return false;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeX07::bank(uInt16 bank)
-{
-  if(bankLocked()) return false;
-
-  // Remember what bank we're in
-  myCurrentBank = (bank & 0x0f);
-  uInt32 offset = myCurrentBank << 12;
-
-  // Setup the page access methods for the current bank
-  System::PageAccess access(this, System::PageAccessType::READ);
-
-  // Map ROM image into the system
-  for(uInt16 addr = 0x1000; addr < 0x2000; addr += System::PAGE_SIZE)
-  {
-    access.directPeekBase = &myImage[offset + (addr & 0x0FFF)];
-    access.codeAccessBase = &myCodeAccessBase[offset + (addr & 0x0FFF)];
-    mySystem->setPageAccess(addr, access);
-  }
-  return myBankChanged = true;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeX07::getBank(uInt16) const
-{
-  return myCurrentBank;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeX07::bankCount() const
-{
-  return 16;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeX07::patch(uInt16 address, uInt8 value)
-{
-  myImage[(myCurrentBank << 12) + (address & 0x0FFF)] = value;
-  return myBankChanged = true;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeX07::getImage(size_t& size) const
-{
-  size = myImage.size();
-  return myImage.data();
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeX07::save(Serializer& out) const
-{
-  try
-  {
-    out.putShort(myCurrentBank);
-  }
-  catch(...)
-  {
-    cerr << "ERROR: CartridgeX07::save" << endl;
-    return false;
-  }
-
-  return true;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeX07::load(Serializer& in)
-{
-  try
-  {
-    myCurrentBank = in.getShort();
-  }
-  catch(...)
-  {
-    cerr << "ERROR: CartridgeX07::load" << endl;
-    return false;
-  }
-
-  // Remember what bank we were in
-  bank(myCurrentBank);
-
-  return true;
 }

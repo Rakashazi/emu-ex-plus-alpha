@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,7 +22,7 @@
 CartridgeMNetwork::CartridgeMNetwork(const ByteBuffer& image, size_t size,
                                      const string& md5, const Settings& settings)
   : Cartridge(settings, md5),
-    mySize(size)
+    mySize{size}
 {
 }
 
@@ -34,9 +34,9 @@ void CartridgeMNetwork::initialize(const ByteBuffer& image, size_t size)
 
   // Copy the ROM image into my buffer
   std::copy_n(image.get(), std::min<size_t>(romSize(), size), myImage.get());
-  createCodeAccessBase(romSize() + myRAM.size());
+  createRomAccessArrays(romSize() + myRAM.size());
 
-  myRAMSlice = bankCount() - 1;
+  myRAMBank = romBankCount() - 1;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -70,7 +70,9 @@ void CartridgeMNetwork::setAccess(uInt16 addrFrom, uInt16 size,
       access.directPeekBase = &directData[directOffset + (addr & addrMask)];
     else if(type == System::PageAccessType::WRITE)  // all RAM writes mapped to ::poke()
       access.directPokeBase = nullptr;
-    access.codeAccessBase = &myCodeAccessBase[codeOffset + (addr & addrMask)];
+    access.romAccessBase = &myRomAccessBase[codeOffset + (addr & addrMask)];
+    access.romPeekCounter = &myRomAccessCounter[codeOffset + (addr & addrMask)];
+    access.romPokeCounter = &myRomAccessCounter[codeOffset + (addr & addrMask) + myAccessSize];
     mySystem->setPageAccess(addr, access);
   }
 }
@@ -86,16 +88,18 @@ void CartridgeMNetwork::install(System& system)
   for(uInt16 addr = (0x1FE0 & ~System::PAGE_MASK); addr < 0x2000;
       addr += System::PAGE_SIZE)
   {
-    access.codeAccessBase = &myCodeAccessBase[0x1fc0];
+    access.romAccessBase = &myRomAccessBase[0x1fc0];
+    access.romPeekCounter = &myRomAccessCounter[0x1fc0];
+    access.romPokeCounter = &myRomAccessCounter[0x1fc0 + myAccessSize];
     mySystem->setPageAccess(addr, access);
   }
   /*setAccess(0x1FE0 & ~System::PAGE_MASK, System::PAGE_SIZE,
             0, nullptr, 0x1fc0, System::PA_NONE, 0x1fc0);*/
 
-  // Setup the second segment to always point to the last ROM slice
+  // Setup the second segment to always point to the last ROM bank
   setAccess(0x1A00, 0x1FE0U & (~System::PAGE_MASK - 0x1A00),
-            myRAMSlice * BANK_SIZE, myImage.get(), myRAMSlice * BANK_SIZE, System::PageAccessType::READ, BANK_SIZE - 1);
-  myCurrentSlice[1] = myRAMSlice;
+            myRAMBank * BANK_SIZE, myImage.get(), myRAMBank * BANK_SIZE, System::PageAccessType::READ, BANK_SIZE - 1);
+  myCurrentBank[1] = myRAMBank;
 
   // Install some default banks for the RAM and first segment
   bankRAM(0);
@@ -111,7 +115,7 @@ uInt8 CartridgeMNetwork::peek(uInt16 address)
   // Switch banks if necessary
   checkSwitchBank(address);
 
-  if((myCurrentSlice[0] == myRAMSlice) && (address < BANK_SIZE / 2))
+  if((myCurrentBank[0] == myRAMBank) && (address < BANK_SIZE / 2))
   {
     // Reading from the 1K write port @ $1000 triggers an unwanted write
     return peekRAM(myRAM[address & (BANK_SIZE / 2 - 1)], peekAddress);
@@ -122,7 +126,7 @@ uInt8 CartridgeMNetwork::peek(uInt16 address)
     return peekRAM(myRAM[0x0400 + (myCurrentRAM << 8) + (address & 0x00FF)], peekAddress);
   }
   else
-    return myImage[(myCurrentSlice[address >> 11] << 11) + (address & (BANK_SIZE - 1))];
+    return myImage[(myCurrentBank[address >> 11] << 11) + (address & (BANK_SIZE - 1))];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -135,15 +139,44 @@ bool CartridgeMNetwork::poke(uInt16 address, uInt8 value)
   checkSwitchBank(address);
 
   // All RAM writes are mapped here
-  if((myCurrentSlice[0] == myRAMSlice) && (address < BANK_SIZE / 2))
+  if((myCurrentBank[0] == myRAMBank) && (address < BANK_SIZE / 2))
   {
-    pokeRAM(myRAM[address & (BANK_SIZE / 2 - 1)], pokeAddress, value);
-    return true;
+    // RAM banks
+    if(!(address & 0x0400))
+    {
+      pokeRAM(myRAM[address & (BANK_SIZE / 2 - 1)], pokeAddress, value);
+      return true;
+    }
+    else
+    {
+      // Writing to the read port should be ignored, but trigger a break if option enabled
+      uInt8 dummy;
+
+      pokeRAM(dummy, pokeAddress, value);
+      myRamWriteAccess = pokeAddress;
+      return false;
+    }
   }
-  else if((address >= 0x0800) && (address <= 0x08FF))
+  else
   {
-    pokeRAM(myRAM[0x0400 + (myCurrentRAM << 8) + (address & 0x00FF)], pokeAddress, value);
-    return true;
+    // fixed 256 bytes of RAM
+    if((address >= 0x0800) && (address <= 0x09FF))
+    {
+      if(!(address & 0x100))
+      {
+        pokeRAM(myRAM[0x0400 + (myCurrentRAM << 8) + (address & 0x00FF)], pokeAddress, value);
+        return true;
+      }
+      else
+      {
+        // Writing to the read port should be ignored, but trigger a break if option enabled
+        uInt8 dummy;
+
+        pokeRAM(dummy, pokeAddress, value);
+        myRamWriteAccess = pokeAddress;
+        return false;
+      }
+    }
   }
 
   return false;
@@ -156,7 +189,7 @@ void CartridgeMNetwork::bankRAM(uInt16 bank)
 
   // Remember what bank we're in
   myCurrentRAM = bank;
-  uInt16 offset = bank << 8; // * RAM_SLICE_SIZE (256)
+  uInt16 offset = bank << 8; // * RAM_BANK_SIZE (256)
 
   // Setup the page access methods for the current bank
   // Set the page accessing method for the 256 bytes of RAM reading pages
@@ -168,26 +201,26 @@ void CartridgeMNetwork::bankRAM(uInt16 bank)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeMNetwork::bank(uInt16 slice)
+bool CartridgeMNetwork::bank(uInt16 bank, uInt16)
 {
   if(bankLocked()) return false;
 
   // Remember what bank we're in
-  myCurrentSlice[0] = slice;
+  myCurrentBank[0] = bank;
 
   // Setup the page access methods for the current bank
-  if(slice != myRAMSlice)
+  if(bank != myRAMBank)
   {
-    uInt16 offset = slice << 11; // * BANK_SIZE (2048)
+    uInt16 offset = bank << 11; // * BANK_SIZE (2048)
 
     // Map ROM image into first segment
     setAccess(0x1000, BANK_SIZE, offset, myImage.get(), offset, System::PageAccessType::READ);
   }
   else
   {
-    // Set the page accessing method for the 1K slice of RAM writing pages
+    // Set the page accessing method for the 1K bank of RAM writing pages
     setAccess(0x1000,                 BANK_SIZE / 2, 0, myRAM.data(), romSize(), System::PageAccessType::WRITE);
-    // Set the page accessing method for the 1K slice of RAM reading pages
+    // Set the page accessing method for the 1K bank of RAM reading pages
     setAccess(0x1000 + BANK_SIZE / 2, BANK_SIZE / 2, 0, myRAM.data(), romSize(), System::PageAccessType::READ);
   }
   return myBankChanged = true;
@@ -196,7 +229,7 @@ bool CartridgeMNetwork::bank(uInt16 slice)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 CartridgeMNetwork::getBank(uInt16 address) const
 {
-  return myCurrentSlice[(address & 0xFFF) >> 11]; // 2K slices
+  return myCurrentBank[(address & 0xFFF) >> 11]; // 2K segments
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -206,7 +239,7 @@ bool CartridgeMNetwork::patch(uInt16 address, uInt8 value)
 
   if(address < 0x0800)
   {
-    if(myCurrentSlice[0] == myRAMSlice)
+    if(myCurrentBank[0] == myRAMBank)
     {
       // Normally, a write to the read port won't do anything
       // However, the patch command is special in that ignores such
@@ -214,7 +247,7 @@ bool CartridgeMNetwork::patch(uInt16 address, uInt8 value)
       myRAM[address & 0x03FF] = value;
     }
     else
-      myImage[(myCurrentSlice[0] << 11) + (address & (BANK_SIZE-1))] = value;
+      myImage[(myCurrentBank[0] << 11) + (address & (BANK_SIZE-1))] = value;
   }
   else if(address < 0x0900)
   {
@@ -224,16 +257,16 @@ bool CartridgeMNetwork::patch(uInt16 address, uInt8 value)
     myRAM[0x0400 + (myCurrentRAM << 8) + (address & 0x00FF)] = value;
   }
   else
-    myImage[(myCurrentSlice[address >> 11] << 11) + (address & (BANK_SIZE-1))] = value;
+    myImage[(myCurrentBank[address >> 11] << 11) + (address & (BANK_SIZE-1))] = value;
 
   return myBankChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeMNetwork::getImage(size_t& size) const
+const ByteBuffer& CartridgeMNetwork::getImage(size_t& size) const
 {
-  size = bankCount() * BANK_SIZE;
-  return myImage.get();
+  size = romBankCount() * BANK_SIZE;
+  return myImage;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -241,7 +274,7 @@ bool CartridgeMNetwork::save(Serializer& out) const
 {
   try
   {
-    out.putShortArray(myCurrentSlice.data(), myCurrentSlice.size());
+    out.putShortArray(myCurrentBank.data(), myCurrentBank.size());
     out.putShort(myCurrentRAM);
     out.putByteArray(myRAM.data(), myRAM.size());
   }
@@ -259,7 +292,7 @@ bool CartridgeMNetwork::load(Serializer& in)
 {
   try
   {
-    in.getShortArray(myCurrentSlice.data(), myCurrentSlice.size());
+    in.getShortArray(myCurrentBank.data(), myCurrentBank.size());
     myCurrentRAM = in.getShort();
     in.getByteArray(myRAM.data(), myRAM.size());
   }
@@ -271,13 +304,13 @@ bool CartridgeMNetwork::load(Serializer& in)
 
   // Set up the previously used banks for the RAM and segment
   bankRAM(myCurrentRAM);
-  bank(myCurrentSlice[0]);
+  bank(myCurrentBank[0]);
 
   return true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeMNetwork::bankCount() const
+uInt16 CartridgeMNetwork::romBankCount() const
 {
   return uInt16(mySize >> 11);
 }
@@ -285,5 +318,5 @@ uInt16 CartridgeMNetwork::bankCount() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 uInt16 CartridgeMNetwork::romSize() const
 {
-  return bankCount() * BANK_SIZE;
+  return romBankCount() * BANK_SIZE;
 }

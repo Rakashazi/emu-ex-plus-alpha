@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -25,8 +25,9 @@ class System;
 
 #include <functional>
 
-#include "Serializable.hxx"
 #include "bspf.hxx"
+#include "Serializable.hxx"
+#include "AnalogReadout.hxx"
 
 /**
   A controller is a device that plugs into either the left or right
@@ -73,7 +74,7 @@ class Controller : public Serializable
     /**
       Enumeration of the controller jacks
     */
-    enum class Jack { Left = 0, Right = 1 };
+    enum class Jack { Left = 0, Right = 1, Left2 = 2, Right2 = 3 };
 
     /**
       Enumeration of the digital pins of a controller port
@@ -94,7 +95,7 @@ class Controller : public Serializable
       AmigaMouse, AtariMouse, AtariVox, BoosterGrip, CompuMate,
       Driving, Genesis, Joystick, Keyboard, KidVid, MindLink,
       Paddles, PaddlesIAxis, PaddlesIAxDr, SaveKey, TrakBall,
-      Lightgun,
+      Lightgun, QuadTari,
       LastType
     };
 
@@ -119,7 +120,7 @@ class Controller : public Serializable
     */
     Controller(Jack jack, const Event& event, const System& system,
                Type type);
-    virtual ~Controller() = default;
+    ~Controller() override = default;
 
     /**
       Returns the jack that this controller is plugged into.
@@ -154,7 +155,7 @@ class Controller : public Serializable
       @param pin The pin of the controller jack to read
       @return The resistance at the specified pin
     */
-    virtual Int32 read(AnalogPin pin);
+    virtual AnalogReadout::Connection read(AnalogPin pin);
 
     /**
       Write the given value to the specified digital pin for this
@@ -178,12 +179,12 @@ class Controller : public Serializable
       Update the entire digital and analog pin state according to the
       events currently set.
     */
-    virtual void update() = 0;
+    virtual void update() { }
 
     /**
       Returns the name of this controller.
     */
-    virtual string name() const = 0;
+    virtual string name() const { return ""; }
 
     /**
       Answers whether the controller is intrinsically an analog controller.
@@ -272,12 +273,13 @@ class Controller : public Serializable
     */
     static Type getType(const string& propName);
 
-  public:
-    /// Constant which represents maximum resistance for analog pins
-    static constexpr Int32 MAX_RESISTANCE = 0x7FFFFFFF;
+    /**
+      Sets the auto fire rate. 0 disables auto fire.
 
-    /// Constant which represents minimum resistance for analog pins
-    static constexpr Int32 MIN_RESISTANCE = 0x00000000;
+      @param rate   Auto fire rate (0..30/25) in Hz
+      @param isNTSC NTSC or PAL frame rate
+    */
+    static void setAutoFireRate(int rate, bool isNTSC = true);
 
   protected:
     /**
@@ -290,12 +292,12 @@ class Controller : public Serializable
     inline bool getPin(DigitalPin pin) const {
       return myDigitalPinState[static_cast<int>(pin)];
     }
-    inline void setPin(AnalogPin pin, Int32 value) {
+    inline void setPin(AnalogPin pin, AnalogReadout::Connection value) {
       myAnalogPinValue[static_cast<int>(pin)] = value;
       if(myOnAnalogPinUpdateCallback)
         myOnAnalogPinUpdateCallback(pin);
     }
-    inline Int32 getPin(AnalogPin pin) const {
+    inline AnalogReadout::Connection getPin(AnalogPin pin) const {
       return myAnalogPinValue[static_cast<int>(pin)];
     }
     inline void resetDigitalPins() {
@@ -306,8 +308,46 @@ class Controller : public Serializable
       setPin(DigitalPin::Six,   true);
     }
     inline void resetAnalogPins() {
-      setPin(AnalogPin::Five, MAX_RESISTANCE);
-      setPin(AnalogPin::Nine, MAX_RESISTANCE);
+      setPin(AnalogPin::Five, AnalogReadout::disconnect());
+      setPin(AnalogPin::Nine, AnalogReadout::disconnect());
+    }
+
+    /**
+      Checks for the next auto fire event.
+
+      @param pressed  True if the fire button is current pressed
+      @return  The result of the auto fire event check
+    */
+    inline bool getAutoFireState(bool pressed)
+    {
+      if(AUTO_FIRE_RATE && pressed)
+      {
+        myFireDelay -= AUTO_FIRE_RATE;
+        if(myFireDelay <= 0)
+          myFireDelay += 32 * 1024;
+        return myFireDelay > 16 * 1024;
+      }
+      myFireDelay = 0;
+      return pressed;
+    }
+
+    /**
+      Checks for the next auto fire event for paddle 1.
+
+      @param pressed  True if the fire button is current pressed
+      @return  The result of the auto fire event check
+    */
+    inline bool getAutoFireStateP1(bool pressed)
+    {
+      if(AUTO_FIRE_RATE && pressed)
+      {
+        myFireDelayP1 -= AUTO_FIRE_RATE;
+        if(myFireDelayP1 <= 0)
+          myFireDelayP1 += 32 * 1024;
+        return myFireDelayP1 > 16 * 1024;
+      }
+      myFireDelayP1 = 0;
+      return pressed;
     }
 
   protected:
@@ -326,12 +366,20 @@ class Controller : public Serializable
     /// The callback that is dispatched whenver an analog pin has changed
     onAnalogPinUpdateCallback myOnAnalogPinUpdateCallback{nullptr};
 
+    /// Defines the speed of the auto fire
+    static int AUTO_FIRE_RATE;
+
+    /// Delay[frames] until the next fire event
+    int myFireDelay{0};
+    int myFireDelayP1{0}; // required for paddles only
+
   private:
     /// The boolean value on each digital pin
     std::array<bool, 5> myDigitalPinState{true, true, true, true, true};
 
     /// The analog value on each analog pin
-    std::array<Int32, 2> myAnalogPinValue{MAX_RESISTANCE, MAX_RESISTANCE};
+    std::array<AnalogReadout::Connection, 2>
+      myAnalogPinValue{AnalogReadout::disconnect(), AnalogReadout::disconnect()};
 
   private:
     // Following constructors and assignment operators not supported

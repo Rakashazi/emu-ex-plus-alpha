@@ -14,7 +14,6 @@ class Menu;
 class SoundEmuEx;
 class Properties;
 class Random;
-class Settings;
 class Sound;
 class VideoDialog;
 class EmuAudio;
@@ -29,6 +28,7 @@ class EmuApp;
 #include <stella/emucore/FSNode.hxx>
 #include <stella/emucore/FrameBufferConstants.hxx>
 #include <stella/emucore/EventHandlerConstants.hxx>
+#include <stella/emucore/Settings.hxx>
 
 class OSystem
 {
@@ -62,13 +62,11 @@ public:
 	CheatManager& cheat() const { return *myCheatManager; }
 	#endif
 
-	string stateDir() const;
-	string nvramDir() const;
-
-	string configFile() const { return ""; }
+	FilesystemNode stateDir() const;
+	FilesystemNode nvramDir() const;
 
 	bool checkUserPalette(bool outputError = false) const { return false; }
-	string paletteFile() const { return ""; }
+	FilesystemNode paletteFile() const { return FilesystemNode{""}; }
 
 	const FilesystemNode& romFile() const { return myRomFile; };
 

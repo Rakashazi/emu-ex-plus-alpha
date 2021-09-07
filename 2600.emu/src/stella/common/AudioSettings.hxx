@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -48,6 +48,7 @@ class AudioSettings
     static constexpr const char* SETTING_RESAMPLING_QUALITY  = "audio.resampling_quality";
     static constexpr const char* SETTING_STEREO              = "audio.stereo";
     static constexpr const char* SETTING_VOLUME              = "audio.volume";
+    static constexpr const char* SETTING_DEVICE              = "audio.device";
     static constexpr const char* SETTING_ENABLED             = "audio.enabled";
     static constexpr const char* SETTING_DPC_PITCH           = "audio.dpc_pitch";
 
@@ -59,6 +60,7 @@ class AudioSettings
     static constexpr ResamplingQuality DEFAULT_RESAMPLING_QUALITY   = ResamplingQuality::lanczos_2;
     static constexpr bool DEFAULT_STEREO                            = false;
     static constexpr uInt32 DEFAULT_VOLUME                          = 80;
+    static constexpr uInt32 DEFAULT_DEVICE                          = 0;
     static constexpr bool DEFAULT_ENABLED                           = true;
     static constexpr uInt32 DEFAULT_DPC_PITCH                       = 20000;
 
@@ -87,6 +89,8 @@ class AudioSettings
 
     uInt32 volume() const;
 
+    uInt32 device() const;
+
     bool enabled() const;
 
     uInt32 dpcPitch() const;
@@ -109,6 +113,8 @@ class AudioSettings
 
     void setVolume(uInt32 volume);
 
+    void setDevice(uInt32 device);
+
     void setEnabled(bool isEnabled);
 
     void setPersistent(bool isPersistent);
@@ -123,15 +129,15 @@ class AudioSettings
 
     Settings& mySettings;
 
-    Preset myPreset;
+    Preset myPreset{Preset::custom};
 
-    uInt32 myPresetSampleRate;
-    uInt32 myPresetFragmentSize;
-    uInt32 myPresetBufferSize;
-    uInt32 myPresetHeadroom;
-    ResamplingQuality myPresetResamplingQuality;
+    uInt32 myPresetSampleRate{0};
+    uInt32 myPresetFragmentSize{0};
+    uInt32 myPresetBufferSize{0};
+    uInt32 myPresetHeadroom{0};
+    ResamplingQuality myPresetResamplingQuality{ResamplingQuality::nearestNeightbour};
 
-    bool myIsPersistent;
+    bool myIsPersistent{true};
 };
 
 #endif // AUDIO_PARAMTERS_HXX

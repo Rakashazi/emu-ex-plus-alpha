@@ -21,6 +21,7 @@
 #include <emuframework/EmuInput.hh>
 #undef Debugger
 #include "internal.hh"
+#include <imagine/util/math/space.hh>
 
 enum
 {
@@ -220,6 +221,24 @@ void EmuSystem::handleInputAction(EmuApp *app, Input::Action action, uint emuKey
 	}
 }
 
+static void updateDPadForPaddles(EmuApp &app, Console &console, PaddleRegionMode mode)
+{
+	if(console.leftController().type() == Controller::Type::Paddles)
+	{
+		app.defaultVController().setGamepadDPadIsEnabled(mode == PaddleRegionMode::OFF);
+	}
+	else
+	{
+		app.defaultVController().setGamepadDPadIsEnabled(true);
+	}
+}
+
+void updatePaddlesRegionMode(EmuApp &app, PaddleRegionMode mode)
+{
+	optionPaddleAnalogRegion = (uint8_t)mode;
+	updateDPadForPaddles(app, osystem->console(), mode);
+}
+
 void setControllerType(EmuApp &app, Console &console, Controller::Type type)
 {
 	if(type == Controller::Type::Unknown)
@@ -228,6 +247,7 @@ void setControllerType(EmuApp &app, Console &console, Controller::Type type)
 	static constexpr std::pair<int, bool> enableExtraBtn[]{{2, true}, {3, true}};
 	static constexpr std::pair<int, bool> disableExtraBtn[]{{2, false}, {3, false}};
 	app.applyEnabledFaceButtons(extraButtons ? enableExtraBtn : disableExtraBtn);
+	updateDPadForPaddles(app, console, (PaddleRegionMode)optionPaddleAnalogRegion.val);
 	updateJoytickMapping(app, type);
 	Controller &currentController = console.leftController();
 	if(currentController.type() == type)
@@ -271,5 +291,37 @@ const char *controllerTypeStr(Controller::Type type)
 		case Controller::Type::Keyboard: return "Keyboard";
 		case Controller::Type::Paddles: return "Paddles";
 		default: return "Auto";
+	}
+}
+
+bool EmuSystem::onPointerInputUpdate(Input::Event, Input::DragTrackerState dragState,
+	Input::DragTrackerState, IG::WindowRect)
+{
+	switch(osystem->console().leftController().type())
+	{
+		case Controller::Type::Paddles:
+		{
+			auto regionMode = (PaddleRegionMode)optionPaddleAnalogRegion.val;
+			if(regionMode == PaddleRegionMode::OFF || !dragState.isDragging())
+				return false;
+			auto &app = osystem->app();
+			int regionXStart = 0;
+			int regionXEnd = app.viewController().inputView().viewRect().size().x;
+			if(regionMode == PaddleRegionMode::LEFT)
+			{
+				regionXEnd /= 2;
+			}
+			else if(regionMode == PaddleRegionMode::RIGHT)
+			{
+				regionXStart = regionXEnd / 2;
+			}
+			auto pos = IG::scalePointRange((float)dragState.pos().x, (float)regionXStart, (float)regionXEnd, 0.f, 32767.f);
+			auto evType = app.defaultVController().inputPlayer() == 0 ? Event::PaddleZeroAnalog : Event::PaddleOneAnalog;
+			osystem->eventHandler().event().set(evType, pos);
+			//logMsg("set paddle position:%d", pos);
+			return true;
+		}
+		default:
+			return false;
 	}
 }

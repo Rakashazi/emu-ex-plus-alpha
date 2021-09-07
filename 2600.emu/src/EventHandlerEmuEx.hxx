@@ -7,6 +7,7 @@
 #include <stella/emucore/Control.hxx>
 
 class OSystem;
+class Properties;
 
 class EventHandler
 {
@@ -31,6 +32,7 @@ public:
 	void defineJoyControllerMappings(const Controller::Type type, Controller::Jack port) {}
 	void enableEmulationJoyMappings() {}
 	void setMouseControllerMode(const string& enable) {}
+	void defineKeyControllerMappings(const Controller::Type, Controller::Jack, const Properties&) {}
 
 private:
 	Event myEvent{};

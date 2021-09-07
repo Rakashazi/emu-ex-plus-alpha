@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -86,16 +86,26 @@ void Audio::phase1()
   uInt8 sample0 = myChannel0.phase1();
   uInt8 sample1 = myChannel1.phase1();
 
-  if (!myAudioQueue) return;
+  addSample(sample0, sample1);
+#ifdef GUI_SUPPORT
+  mySamples.push_back(sample0 | (sample1 << 4));
+#endif
+}
 
-  if (myAudioQueue->isStereo()) {
-    myCurrentFragment[2*mySampleIndex] = myMixingTableIndividual[sample0];
-    myCurrentFragment[2*mySampleIndex + 1] = myMixingTableIndividual[sample1];
-  } else {
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Audio::addSample(uInt8 sample0, uInt8 sample1)
+{
+  if(!myAudioQueue) return;
+
+  if(myAudioQueue->isStereo()) {
+    myCurrentFragment[2 * mySampleIndex] = myMixingTableIndividual[sample0];
+    myCurrentFragment[2 * mySampleIndex + 1] = myMixingTableIndividual[sample1];
+  }
+  else {
     myCurrentFragment[mySampleIndex] = myMixingTableSum[sample0 + sample1];
   }
 
-  if (++mySampleIndex == myAudioQueue->fragmentSize()) {
+  if(++mySampleIndex == myAudioQueue->fragmentSize()) {
     mySampleIndex = 0;
     myCurrentFragment = myAudioQueue->enqueue(myCurrentFragment);
   }
@@ -125,6 +135,16 @@ bool Audio::save(Serializer& out) const
 
     if (!myChannel0.save(out)) return false;
     if (!myChannel1.save(out)) return false;
+  #ifdef GUI_SUPPORT
+    out.putLong(uInt64(mySamples.size()));
+    out.putByteArray(mySamples.data(), mySamples.size());
+
+    // TODO: check if this improves sound of playback for larger state gaps
+    //out.putInt(mySampleIndex);
+    //out.putShortArray((uInt16*)myCurrentFragment, myAudioQueue->fragmentSize());
+
+    mySamples.clear();
+  #endif
   }
   catch(...)
   {
@@ -144,6 +164,24 @@ bool Audio::load(Serializer& in)
 
     if (!myChannel0.load(in)) return false;
     if (!myChannel1.load(in)) return false;
+  #ifdef GUI_SUPPORT
+    uInt64 sampleSize = in.getLong();
+    unique_ptr<uInt8[]> samples = make_unique<uInt8[]>(sampleSize);
+    in.getByteArray(samples.get(), sampleSize);
+
+    //mySampleIndex = in.getInt();
+    //in.getShortArray((uInt16*)myCurrentFragment, myAudioQueue->fragmentSize());
+
+    // Feed all loaded samples into the audio queue
+    for(size_t i = 0; i < sampleSize; i++)
+    {
+      uInt8 sample = samples[i];
+      uInt8 sample0 = sample & 0x0f;
+      uInt8 sample1 = sample >> 4;
+
+      addSample(sample0, sample1);
+    }
+  #endif
   }
   catch(...)
   {

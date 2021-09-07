@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -44,8 +44,8 @@ struct Point
     if(c != 'x')
       x = y = 0;
   }
-  bool operator==(const Point & p) const { return x == p.x && y == p.y; }
-  bool operator!=(const Point & p) const { return x != p.x || y != p.y; }
+  bool operator==(const Point& p) const { return x == p.x && y == p.y; }
+  bool operator!=(const Point& p) const { return !(*this == p);        }
 
   friend ostream& operator<<(ostream& os, const Point& p) {
     os << p.x << "x" << p.y;
@@ -69,12 +69,17 @@ struct Size
   }
   bool valid() const { return w > 0 && h > 0; }
 
+  void clamp(uInt32 lower_w, uInt32 upper_w, uInt32 lower_h, uInt32 upper_h) {
+    w = BSPF::clamp(w, lower_w, upper_w);
+    h = BSPF::clamp(h, lower_h, upper_h);
+  }
+
   bool operator==(const Size& s) const { return w == s.w && h == s.h; }
-  bool operator!=(const Size& s) const { return w != s.w || h != s.h; }
-  bool operator<(const Size& s)  const { return w < s.w && h < s.h;   }
-  bool operator<=(const Size& s) const { return w <= s.w && h <= s.h; }
-  bool operator>(const Size& s)  const { return w > s.w && h > s.h;   }
-  bool operator>=(const Size& s) const { return w >= s.w && h >= s.h; }
+  bool operator< (const Size& s) const { return w <  s.w && h <  s.h; }
+  bool operator> (const Size& s) const { return w >  s.w || h >  s.h; }
+  bool operator!=(const Size& s) const { return !(*this == s); }
+  bool operator<=(const Size& s) const { return !(*this >  s); }
+  bool operator>=(const Size& s) const { return !(*this <  s); }
 
   friend ostream& operator<<(ostream& os, const Size& s) {
     os << s.w << "x" << s.h;
@@ -111,7 +116,8 @@ struct Rect
     Rect() {}
     explicit Rect(const Size& s) : bottom(s.h), right(s.w) { assert(valid()); }
     Rect(uInt32 w, uInt32 h) : bottom(h), right(w) { assert(valid()); }
-    Rect(const Point& p, uInt32 w, uInt32 h) : top(p.y), left(p.x), bottom(h), right(w) { assert(valid()); }
+    Rect(const Point& p, uInt32 w, uInt32 h)
+      : top(p.y), left(p.x), bottom(p.y + h), right(p.x + w) { assert(valid()); }
     Rect(uInt32 x1, uInt32 y1, uInt32 x2, uInt32 y2) : top(y1), left(x1), bottom(y2), right(x2) { assert(valid()); }
 
     uInt32 x() const { return left; }
@@ -168,6 +174,11 @@ struct Rect
 
       return r.left != x || r.top != y;
     }
+
+    bool operator==(const Rect& r) const {
+      return top == r.top && left == r.left && bottom == r.bottom && right == r.right;
+    }
+    bool operator!=(const Rect& r) const { return !(*this == r); }
 
     friend ostream& operator<<(ostream& os, const Rect& r) {
       os << r.point() << "," << r.size();

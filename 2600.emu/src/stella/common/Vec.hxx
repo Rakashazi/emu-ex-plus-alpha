@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,19 +22,19 @@
 
 namespace Vec {
 
-template<class T>
+template<typename T>
 void append(vector<T>& dst, const vector<T>& src)
 {
   dst.insert(dst.cend(), src.cbegin(), src.cend());
 }
 
-template<class T>
+template<typename T>
 void insertAt(vector<T>& dst, uInt32 idx, const T& element)
 {
   dst.insert(dst.cbegin()+idx, element);
 }
 
-template<class T>
+template<typename T>
 void removeAt(vector<T>& dst, uInt32 idx)
 {
   dst.erase(dst.cbegin()+idx);

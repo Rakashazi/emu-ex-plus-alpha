@@ -112,7 +112,7 @@ void SoundEmuEx::setResampleQuality(AudioSettings::ResamplingQuality quality)
 
 void SoundEmuEx::processAudio(OSystem &osystem, EmuAudio *audio)
 {
-	auto videoFrameRate = osystem.console().getFramerate();
+	auto videoFrameRate = osystem.console().currentFrameRate();
 	if(configuredVideoFrameRate != videoFrameRate &&
 		(videoFrameRate >= 50.0 && videoFrameRate <= 60.0))
 	{
@@ -146,6 +146,8 @@ bool SoundEmuEx::toggleMute() { return false; }
 
 void SoundEmuEx::setVolume(uInt32 percent) {}
 
-void SoundEmuEx::adjustVolume(Int8 direction) {}
+void SoundEmuEx::adjustVolume(int direction) {}
 
 string SoundEmuEx::about() const { return ""; }
+
+void SoundEmuEx::queryHardware(VariantList& devices) {}

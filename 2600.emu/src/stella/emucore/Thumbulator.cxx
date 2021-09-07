@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -53,17 +53,21 @@ using Common::Base;
 #endif
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Thumbulator::Thumbulator(const uInt16* rom_ptr, uInt16* ram_ptr, uInt16 rom_size,
+Thumbulator::Thumbulator(const uInt16* rom_ptr, uInt16* ram_ptr, uInt32 rom_size,
+                         const uInt32 c_base, const uInt32 c_start, const uInt32 c_stack,
                          bool traponfatal, Thumbulator::ConfigureFor configurefor,
                          Cartridge* cartridge)
-  : rom(rom_ptr),
-    romSize(rom_size),
-    decodedRom(make_unique<Op[]>(romSize / 2)),  // NOLINT
-    ram(ram_ptr),
-    configuration(configurefor),
-    myCartridge(cartridge)
+  : rom{rom_ptr},
+    romSize{rom_size},
+    cBase{c_base},
+    cStart{c_start},
+    cStack{c_stack},
+    decodedRom{make_unique<Op[]>(romSize / 2)},  // NOLINT
+    ram{ram_ptr},
+    configuration{configurefor},
+    myCartridge{cartridge}
 {
-  for(uInt16 i = 0; i < romSize / 2; ++i)
+  for(uInt32 i = 0; i < romSize / 2; ++i)
     decodedRom[i] = decodeInstructionWord(CONV_RAMROM(rom[i]));
 
   setConsoleTiming(ConsoleTiming::ntsc);
@@ -108,6 +112,7 @@ void Thumbulator::setConsoleTiming(ConsoleTiming timing)
     case ConsoleTiming::ntsc:   timing_factor = NTSC;   break;
     case ConsoleTiming::secam:  timing_factor = SECAM;  break;
     case ConsoleTiming::pal:    timing_factor = PAL;    break;
+    default:  break;  // satisfy compiler
   }
 }
 
@@ -153,11 +158,13 @@ inline int Thumbulator::fatalError(const char* opcode, uInt32 v1, uInt32 v2,
 void Thumbulator::dump_counters()
 {
   cout << endl << endl
-       << "instructions " << instructions << endl
-       << "fetches      " << fetches << endl
-       << "reads        " << reads << endl
-       << "writes       " << writes << endl
-       << "memcycles    " << (fetches+reads+writes) << endl;
+       << "instructions " << instructions << endl;
+#ifndef NO_THUMB_STATS
+  cout << "fetches      " << _stats.fetches << endl
+       << "reads        " << _stats.reads << endl
+       << "writes       " << _stats.writes << endl
+       << "memcycles    " << (_stats.fetches + _stats.reads + _stats.writes) << endl;
+#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -181,7 +188,7 @@ void Thumbulator::dump_regs()
 uInt32 Thumbulator::fetch16(uInt32 addr)
 {
 #ifndef NO_THUMB_STATS
-  ++fetches;
+  ++_stats.fetches;
 #endif
 
 #ifndef UNSAFE_OPTIMIZATIONS
@@ -216,7 +223,7 @@ uInt32 Thumbulator::fetch16(uInt32 addr)
 void Thumbulator::write16(uInt32 addr, uInt32 data)
 {
 #ifndef UNSAFE_OPTIMIZATIONS
-  if((addr > 0x40001fff) && (addr < 0x50000000))
+  if((addr > 0x40007fff) && (addr < 0x50000000))
     fatalError("write16", addr, "abort - out of range");
 
   if (isProtected(addr)) fatalError("write16", addr, "to driver area");
@@ -225,7 +232,7 @@ void Thumbulator::write16(uInt32 addr, uInt32 data)
     fatalError("write16", addr, "abort - misaligned");
 #endif
 #ifndef NO_THUMB_STATS
-  ++writes;
+  ++_stats.writes;
 #endif
 
   DO_DBUG(statusMsg << "write16(" << Base::HEX8 << addr << "," << Base::HEX8 << data << ")" << endl);
@@ -375,6 +382,7 @@ bool Thumbulator::isProtected(uInt32 addr)
       return  (addr < 0x0800) && (addr > 0x0028) && !((addr >= 0x00a0) && (addr < (0x00a0 + 284)));
 
     case ConfigureFor::CDFJ:
+    case ConfigureFor::CDFJplus:
       return  (addr < 0x0800) && (addr > 0x0028) && !((addr >= 0x0098) && (addr < (0x0098 + 292)));
 
     case ConfigureFor::BUS:
@@ -390,15 +398,15 @@ uInt32 Thumbulator::read16(uInt32 addr)
 {
   uInt32 data;
 #ifndef UNSAFE_OPTIMIZATIONS
-  if((addr > 0x40001fff) && (addr < 0x50000000))
+  if((addr > 0x40007fff) && (addr < 0x50000000))
     fatalError("read16", addr, "abort - out of range");
-  else if((addr > 0x7fff) && (addr < 0x10000000))
+  else if((addr > 0x0007ffff) && (addr < 0x10000000))
     fatalError("read16", addr, "abort - out of range");
   if(addr & 1)
     fatalError("read16", addr, "abort - misaligned");
 #endif
 #ifndef NO_THUMB_STATS
-  ++reads;
+  ++_stats.reads;
 #endif
 
   switch(addr & 0xF0000000)
@@ -1423,6 +1431,7 @@ int Thumbulator::execute()
 
           case ConfigureFor::CDF1:
           case ConfigureFor::CDFJ:
+          case ConfigureFor::CDFJplus:
             // this subroutine interface is used in the CDF driver,
             // it starts at address 0x00000750
             // _SetNote:
@@ -2520,25 +2529,10 @@ int Thumbulator::execute()
 int Thumbulator::reset()
 {
   reg_norm.fill(0);
-  reg_norm[13] = 0x40001FB4;
 
-  switch(configuration)
-  {
-    // future 2K Harmony/Melody drivers will most likely use these settings
-    case ConfigureFor::BUS:
-    case ConfigureFor::CDF:
-    case ConfigureFor::CDF1:
-    case ConfigureFor::CDFJ:
-      reg_norm[14] = 0x00000800; // Link Register
-      reg_norm[15] = 0x0000080B; // Program Counter
-      break;
-
-    // future 3K Harmony/Melody drivers will most likely use these settings
-    case ConfigureFor::DPCplus:
-      reg_norm[14] = 0x00000C00; // Link Register
-      reg_norm[15] = 0x00000C0B; // Program Counter
-      break;
-  }
+  reg_norm[13] = cStack;              // SP
+  reg_norm[14] = cBase;               // LR
+  reg_norm[15] = (cStart + 2) | 1;    // PC (+2 for pipeline, lower bit for THUMB)
 
   cpsr = mamcr = 0;
   handler_mode = false;
@@ -2554,7 +2548,7 @@ int Thumbulator::reset()
   statusMsg.str("");
 #endif
 #ifndef NO_THUMB_STATS
-  fetches = reads = writes = 0;
+  _stats.fetches = _stats.reads = _stats.writes = 0;
 #endif
 
   return 0;

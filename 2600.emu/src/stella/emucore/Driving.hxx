@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -33,12 +33,17 @@ class Driving : public Controller
       Create a new Indy 500 driving controller plugged into
       the specified jack
 
-      @param jack   The jack the controller is plugged into
-      @param event  The event object to use for events
-      @param system The system using this controller
+      @param jack    The jack the controller is plugged into
+      @param event   The event object to use for events
+      @param system  The system using this controller
+      @param altmap  If true, use alternative mapping
     */
-    Driving(Jack jack, const Event& event, const System& system);
-    virtual ~Driving() = default;
+    Driving(Jack jack, const Event& event, const System& system, bool altmap = false);
+    ~Driving() override = default;
+
+  public:
+    static constexpr int MIN_SENSE = 1;
+    static constexpr int MAX_SENSE = 20;
 
   public:
     /**
@@ -76,9 +81,18 @@ class Driving : public Controller
     bool setMouseControl(
       Controller::Type xtype, int xid, Controller::Type ytype, int yid) override;
 
+    /**
+      Sets the sensitivity for digital emulation of driving controlle movement
+      using a keyboard.
+
+      @param sensitivity  Value from 1 to 20, with larger values causing
+                          more movement (10 represents the baseline)
+    */
+    static void setSensitivity(int sensitivity);
+
   private:
     // Counter to iterate through the gray codes
-    uInt32 myCounter{0};
+    Int32 myCounter{0};
 
     // Index into the gray code table
     uInt32 myGrayIndex{0};
@@ -97,6 +111,39 @@ class Driving : public Controller
 
     // Controllers to emulate in 'specific' mouse axis mode
     int myControlIDX{-1}, myControlIDY{-1};
+
+    // User-defined sensitivity; adjustable since end-users may prefer different
+    // speeds
+    static float SENSITIVITY;
+
+  private:
+    /**
+      Update the button pin states.
+    */
+    void updateButtons();
+
+    /**
+      Update the button states from the mouse button events currently set.
+    */
+    void updateMouseButtons(bool& firePressed);
+
+    /**
+      Update the axes pin states according to the keyboard
+      or joystick hats & buttons events currently set.
+    */
+    void updateDigitalAxes();
+
+    /**
+      Update the axes pin states according to the Stelladaptor axes value
+      events currently set.
+    */
+    void updateStelladaptorAxes();
+
+    /**
+      Update the axes pin states according to mouse events currently set.
+    */
+    void updateMouseAxes();
+
 
   private:
     // Following constructors and assignment operators not supported

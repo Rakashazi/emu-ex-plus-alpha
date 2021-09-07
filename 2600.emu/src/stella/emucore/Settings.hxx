@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -115,20 +115,6 @@ class Settings
     */
     void setPermanent(const string& key, const Variant& value);
     void setTemporary(const string& key, const Variant& value);
-
-    // Trim leading and following whitespace from a string
-    static string trim(const string& str)
-    {
-      string::size_type first = str.find_first_not_of(' ');
-      return (first == string::npos) ? EmptyString :
-              str.substr(first, str.find_last_not_of(' ')-first+1);
-    }
-
-    // FIXME - Rework so that these aren't needed; hence no commenting added
-    const Options& getPermanentSettings() const
-      { return myPermanentSettings; }
-    const Options& getTemporarySettings() const
-      { return myTemporarySettings; }
 
   private:
     /**

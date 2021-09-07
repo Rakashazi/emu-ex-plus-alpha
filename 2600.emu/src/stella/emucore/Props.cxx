@@ -8,17 +8,18 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //============================================================================
 
-#include <sstream>
+#include <map>
 
-#include "bspf.hxx"
 #include "Props.hxx"
+#include "Variant.hxx"
+#include "bspf.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Properties::Properties()
@@ -30,6 +31,33 @@ Properties::Properties()
 Properties::Properties(const Properties& properties)
 {
   copy(properties);
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Properties::load(KeyValueRepository& repo)
+{
+  setDefaults();
+
+  const auto props = repo.load();
+
+  for (const auto& [key, value]: props)
+    set(getPropType(key), value.toString());
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+bool Properties::save(KeyValueRepository& repo) const
+{
+  std::map<string, Variant> props;
+
+  for (size_t i = 0; i < static_cast<size_t>(PropType::NumTypes); i++) {
+    if (myProperties[i] == ourDefaultProperties[i]) {
+      if (repo.atomic()) repo.atomic()->remove(ourPropertyNames[i]);
+    } else {
+      props[ourPropertyNames[i]] = myProperties[i];
+    }
+  }
+
+  return repo.save(props);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -51,7 +79,11 @@ void Properties::set(PropType key, const string& value)
       case PropType::Console_TVType:
       case PropType::Console_SwapPorts:
       case PropType::Controller_Left:
+      case PropType::Controller_Left1:
+      case PropType::Controller_Left2:
       case PropType::Controller_Right:
+      case PropType::Controller_Right1:
+      case PropType::Controller_Right2:
       case PropType::Controller_SwapPaddles:
       case PropType::Controller_MouseAxis:
       case PropType::Display_Format:
@@ -73,120 +105,6 @@ void Properties::set(PropType key, const string& value)
         break;
     }
   }
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-istream& operator>>(istream& is, Properties& p)
-{
-  p.setDefaults();
-
-  // Loop reading properties
-  string key, value;
-  for(;;)
-  {
-    // Get the key associated with this property
-    key = p.readQuotedString(is);
-
-    // Make sure the stream is still okay
-    if(!is)
-      return is;
-
-    // A null key signifies the end of the property list
-    if(key == "")
-      break;
-
-    // Get the value associated with this property
-    value = p.readQuotedString(is);
-
-    // Make sure the stream is still okay
-    if(!is)
-      return is;
-
-    // Set the property
-    PropType type = Properties::getPropType(key);
-    p.set(type, value);
-  }
-
-  return is;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-ostream& operator<<(ostream& os, const Properties& p)
-{
-  // Write out each of the key and value pairs
-  bool changed = false;
-  for(size_t i = 0; i < static_cast<size_t>(PropType::NumTypes); ++i)
-  {
-    // Try to save some space by only saving the items that differ from default
-    if(p.myProperties[i] != Properties::ourDefaultProperties[i])
-    {
-      p.writeQuotedString(os, Properties::ourPropertyNames[i]);
-      os.put(' ');
-      p.writeQuotedString(os, p.myProperties[i]);
-      os.put('\n');
-      changed = true;
-    }
-  }
-
-  if(changed)
-  {
-    // Put a trailing null string so we know when to stop reading
-    p.writeQuotedString(os, "");
-    os.put('\n');
-    os.put('\n');
-  }
-
-  return os;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-string Properties::readQuotedString(istream& in)
-{
-  // Read characters until we see a quote
-  char c;
-  while(in.get(c))
-    if(c == '"')
-      break;
-
-  // Read characters until we see the close quote
-  string s;
-  while(in.get(c))
-  {
-    if((c == '\\') && (in.peek() == '"'))
-      in.get(c);
-    else if((c == '\\') && (in.peek() == '\\'))
-      in.get(c);
-    else if(c == '"')
-      break;
-    else if(c == '\r')
-      continue;
-
-    s += c;
-  }
-
-  return s;
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void Properties::writeQuotedString(ostream& out, const string& s)
-{
-  out.put('"');
-  for(uInt32 i = 0; i < s.length(); ++i)
-  {
-    if(s[i] == '\\')
-    {
-      out.put('\\');
-      out.put('\\');
-    }
-    else if(s[i] == '\"')
-    {
-      out.put('\\');
-      out.put('"');
-    }
-    else
-      out.put(s[i]);
-  }
-  out.put('"');
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -249,14 +167,29 @@ void Properties::print() const
        << get(PropType::Console_TVType)         << "|"
        << get(PropType::Console_SwapPorts)      << "|"
        << get(PropType::Controller_Left)        << "|"
+       << get(PropType::Controller_Left1)       << "|"
+       << get(PropType::Controller_Left2)       << "|"
        << get(PropType::Controller_Right)       << "|"
+       << get(PropType::Controller_Right1)      << "|"
+       << get(PropType::Controller_Right2)     << "|"
        << get(PropType::Controller_SwapPaddles) << "|"
+       << get(PropType::Controller_PaddlesXCenter) << "|"
+       << get(PropType::Controller_PaddlesYCenter) << "|"
        << get(PropType::Controller_MouseAxis)   << "|"
        << get(PropType::Display_Format)         << "|"
        << get(PropType::Display_VCenter)        << "|"
        << get(PropType::Display_Phosphor)       << "|"
-       << get(PropType::Display_PPBlend)
+       << get(PropType::Display_PPBlend)        << "|"
+       << get(PropType::Cart_Highscore)
        << endl;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void Properties::reset(PropType key)
+{
+  size_t pos = static_cast<size_t>(key);
+
+  myProperties[pos] = ourDefaultProperties[pos];
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -294,13 +227,20 @@ void Properties::printHeader()
        << "Console_TVType|"
        << "Console_SwapPorts|"
        << "Controller_Left|"
+       << "Controller_Left1|"
+       << "Controller_Left2|"
        << "Controller_Right|"
+       << "Controller_Right1|"
+       << "Controller_Right2|"
        << "Controller_SwapPaddles|"
+       << "Controller_PaddlesXCenter|"
+       << "Controller_PaddlesYCenter|"
        << "Controller_MouseAxis|"
        << "Display_Format|"
        << "Display_VCenter|"
        << "Display_Phosphor|"
-       << "Display_PPBlend"
+       << "Display_PPBlend|"
+       << "Cart_Highscore"
        << endl;
 }
 
@@ -321,13 +261,20 @@ std::array<string, Properties::NUM_PROPS> Properties::ourDefaultProperties =
   "COLOR",  // Console.TVType
   "NO",     // Console.SwapPorts
   "AUTO",   // Controller.Left
+  "",       // Controller.Left1
+  "",       // Controller.Left2
   "AUTO",   // Controller.Right
+  "",       // Controller.Right1
+  "",       // Controller.Right2
   "NO",     // Controller.SwapPaddles
+  "0",      // Controller.PaddlesXCenter
+  "0",      // Controller.PaddlesYCenter
   "AUTO",   // Controller.MouseAxis
   "AUTO",   // Display.Format
   "0",      // Display.VCenter
   "NO",     // Display.Phosphor
-  "0"       // Display.PPBlend
+  "0",      // Display.PPBlend
+  ""        // Cart.Highscore
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -347,11 +294,18 @@ std::array<string, Properties::NUM_PROPS> Properties::ourPropertyNames =
   "Console.TVType",
   "Console.SwapPorts",
   "Controller.Left",
+  "Controller.Left1",
+  "Controller.Left2",
   "Controller.Right",
+  "Controller.Right1",
+  "Controller.Right2",
   "Controller.SwapPaddles",
+  "Controller.PaddlesXCenter",
+  "Controller.PaddlesYCenter",
   "Controller.MouseAxis",
   "Display.Format",
   "Display.VCenter",
   "Display.Phosphor",
-  "Display.PPBlend"
+  "Display.PPBlend",
+  "Cart.Highscore"
 };

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -43,27 +43,31 @@
 */
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-MT24LC256::MT24LC256(const string& filename, const System& system,
+MT24LC256::MT24LC256(const FilesystemNode& eepromfile, const System& system,
                      const Controller::onMessageCallback& callback)
-  : mySystem(system),
-    myCallback(callback),
-    myDataFile(filename)
+  : mySystem{system},
+    myCallback{callback},
+    myDataFile{eepromfile}
 {
   // Load the data from an external file (if it exists)
-  ifstream in(myDataFile, std::ios_base::binary);
-  if(in.is_open())
+  bool fileValid = false;
+  try
   {
-    // Get length of file; it must be 32768
-    in.seekg(0, std::ios::end);
-    if(uInt32(in.tellg()) == FLASH_SIZE)
-    {
-      in.seekg(0, std::ios::beg);
-      in.read(reinterpret_cast<char*>(myData.data()), myData.size());
-      myDataFileExists = true;
-    }
+    // A valid file must be 32768 bytes; otherwise we create a new one
+    if(myDataFile.read(myData) == FLASH_SIZE)
+      fileValid = true;
   }
-  else
-    myDataFileExists = false;
+  catch(...)
+  {
+    fileValid = false;
+  }
+
+  if(!fileValid)
+  {
+    myData = make_unique<uInt8[]>(FLASH_SIZE);
+    std::fill_n(myData.get(), FLASH_SIZE, INITIAL_VALUE);
+    myDataChanged = true;
+   }
 
   // Then initialize the I2C state
   jpee_init();
@@ -75,11 +79,10 @@ MT24LC256::MT24LC256(const string& filename, const System& system,
 MT24LC256::~MT24LC256()
 {
   // Save EEPROM data to external file only when necessary
-  if(!myDataFileExists || myDataChanged)
+  if(myDataChanged)
   {
-    ofstream out(myDataFile, std::ios_base::binary);
-    if(out.is_open())
-      out.write(reinterpret_cast<char*>(myData.data()), myData.size());
+    try { myDataFile.write(myData, FLASH_SIZE); }
+    catch(...) { }
   }
 }
 
@@ -136,24 +139,18 @@ void MT24LC256::systemReset()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void MT24LC256::eraseAll()
 {
-  // Work around a bug in XCode 11.2 with -O0 and -O1
-  const uInt8 initialValue = INITIAL_VALUE;
-
-  myData.fill(initialValue);
+  std::fill_n(myData.get(), FLASH_SIZE, INITIAL_VALUE);
   myDataChanged = true;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void MT24LC256::eraseCurrent()
 {
-  // Work around a bug in XCode 11.2 with -O0 and -O1
-  const uInt8 initialValue = INITIAL_VALUE;
-
   for(uInt32 page = 0; page < PAGE_NUM; ++page)
   {
     if(myPageHit[page])
     {
-      std::fill_n(myData.begin() + page * PAGE_SIZE, PAGE_SIZE, initialValue);
+      std::fill_n(myData.get() + page * PAGE_SIZE, PAGE_SIZE, INITIAL_VALUE);
       myDataChanged = true;
     }
   }
@@ -171,9 +168,6 @@ bool MT24LC256::isPageUsed(uInt32 page) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void MT24LC256::jpee_init()
 {
-  // Work around a bug in XCode 11.2 with -O0 and -O1
-  const uInt8 initialValue = INITIAL_VALUE;
-
   jpee_sdat = 1;
   jpee_address = 0;
   jpee_state=0;
@@ -181,8 +175,6 @@ void MT24LC256::jpee_init()
   jpee_pagemask = PAGE_SIZE - 1;
   jpee_smallmode = 0;
   jpee_logmode = -1;
-  if(!myDataFileExists)
-    myData.fill(initialValue);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

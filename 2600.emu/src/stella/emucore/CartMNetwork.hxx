@@ -9,7 +9,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -51,7 +51,7 @@
   here by accessing 1FE8 to 1FEB.
 
   This cart reports having 8 banks; 1 for each of the possible 7
-  slices in the lower 2K area, and the last for RAM in the lower
+  bank in the lower 2K area, and the last for RAM in the lower
   2K area."
 
   There are 8K, 12K and 16K variations, with or without RAM.
@@ -75,7 +75,7 @@ class CartridgeMNetwork : public Cartridge
     */
     CartridgeMNetwork(const ByteBuffer& image, size_t size, const string& md5,
                       const Settings& settings);
-    virtual ~CartridgeMNetwork() = default;
+    ~CartridgeMNetwork() override = default;
 
   public:
     /**
@@ -94,9 +94,12 @@ class CartridgeMNetwork : public Cartridge
     /**
       Install pages for the specified bank in the system.
 
-      @param bank The bank that should be installed in the system
+      @param bank     The bank that should be installed in the system
+      @param segment  The segment the bank should be using
+
+      @return  true, if bank has changed
     */
-    bool bank(uInt16 bank) override;
+    bool bank(uInt16 bank, uInt16 segment = 0) override;
 
     /**
       Get the current bank.
@@ -106,9 +109,9 @@ class CartridgeMNetwork : public Cartridge
     uInt16 getBank(uInt16 address = 0) const override;
 
     /**
-    Query the number of banks supported by the cartridge.
+      Query the number of banks supported by the cartridge.
     */
-    uInt16 bankCount() const override;
+    uInt16 romBankCount() const override;
 
     /**
       Patch the cartridge ROM.
@@ -123,9 +126,9 @@ class CartridgeMNetwork : public Cartridge
       Access the internal ROM image for this cartridge.
 
       @param size  Set to the size of the internal ROM image data
-      @return  A pointer to the internal ROM image data
+      @return  A reference to the internal ROM image data
     */
-    const uInt8* getImage(size_t& size) const override;
+    const ByteBuffer& getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -179,7 +182,7 @@ class CartridgeMNetwork : public Cartridge
   private:
     // Size of RAM in the cart
     static constexpr uInt32 RAM_SIZE = 0x800; // 1K + 4 * 256B = 2K
-    // Number of slices with 4K address space
+    // Number of segment within the 4K address space
     static constexpr uInt32 NUM_SEGMENTS = 2;
 
     /**
@@ -198,8 +201,6 @@ class CartridgeMNetwork : public Cartridge
   private:
     // Pointer to a dynamically allocated ROM image of the cartridge
     ByteBuffer myImage;
-    // The 16K ROM image of the cartridge (works for E78K too)
-    //uInt8 myImage[BANK_SIZE * 8];
 
     // Size of the ROM image
     size_t mySize{0};
@@ -207,14 +208,14 @@ class CartridgeMNetwork : public Cartridge
     // The 2K of RAM
     std::array<uInt8, RAM_SIZE> myRAM;
 
-    // Indicates which slice is in the segment
-    std::array<uInt16, NUM_SEGMENTS> myCurrentSlice;
+    // Indicates which bank is in the segment
+    std::array<uInt16, NUM_SEGMENTS> myCurrentBank;
 
     // Indicates which 256 byte bank of RAM is being used
     uInt16 myCurrentRAM{0};
 
-    // The number of the RAM slice (== bankCount() - 1)
-    uInt32 myRAMSlice{0};
+    // The number of the RAM bank (== bankCount() - 1)
+    uInt32 myRAMBank{0};
 
   private:
     // Following constructors and assignment operators not supported

@@ -112,14 +112,14 @@ void OSystem::processAudio(EmuAudio *audio)
 	mySound->processAudio(*this, audio);
 }
 
-std::string OSystem::stateDir() const
+FilesystemNode OSystem::stateDir() const
 {
-	return EmuSystem::savePath();
+	return FilesystemNode{EmuSystem::savePath()};
 }
 
-std::string OSystem::nvramDir() const
+FilesystemNode OSystem::nvramDir() const
 {
-	return EmuSystem::savePath();
+	return FilesystemNode{EmuSystem::savePath()};
 }
 
 EmuApp &OSystem::app()

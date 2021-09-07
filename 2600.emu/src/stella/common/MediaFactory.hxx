@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -53,10 +53,10 @@
 
 #if defined(__LIB_RETRO__)
   #include "EventHandlerLIBRETRO.hxx"
-  #include "FrameBufferLIBRETRO.hxx"
+  #include "FBBackendLIBRETRO.hxx"
 #elif defined(SDL_SUPPORT)
   #include "EventHandlerSDL2.hxx"
-  #include "FrameBufferSDL2.hxx"
+  #include "FBBackendSDL2.hxx"
 #elif defined(EMU_EX_PLATFORM)
   #include "EventHandlerEmuEx.hxx"
   #include "FrameBufferEmuEx.hxx"
@@ -116,19 +116,6 @@ class MediaFactory
     #endif
     }
 
-    static unique_ptr<FrameBuffer> createVideo(OSystem& osystem)
-    {
-    #if defined(__LIB_RETRO__)
-      return make_unique<FrameBufferLIBRETRO>(osystem);
-    #elif defined(SDL_SUPPORT)
-      return make_unique<FrameBufferSDL2>(osystem);
-    #elif defined(EMU_EX_PLATFORM)
-      return make_unique<FrameBuffer>(osystem);
-    #else
-      #error Unsupported platform for FrameBuffer!
-    #endif
-    }
-
     static unique_ptr<Sound> createAudio(OSystem& osystem, AudioSettings& audioSettings)
     {
     #if defined(SOUND_SUPPORT)
@@ -172,6 +159,15 @@ class MediaFactory
       return SDLVersion();
     #else
       return "Custom backend";
+    #endif
+    }
+
+    static bool openURL(const string& url)
+    {
+    #if defined(SDL_SUPPORT)
+      return SDLOpenURL(url);
+    #else
+      return false;
     #endif
     }
 

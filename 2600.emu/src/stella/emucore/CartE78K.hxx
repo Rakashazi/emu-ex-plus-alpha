@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -43,7 +43,7 @@ class CartridgeE78K : public CartridgeMNetwork
     */
     CartridgeE78K(const ByteBuffer& image, size_t size, const string& md5,
                   const Settings& settings);
-    virtual ~CartridgeE78K() = default;
+    ~CartridgeE78K() override = default;
 
   public:
     /**

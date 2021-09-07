@@ -203,6 +203,8 @@ public:
 	void setFaceButtonSize(Gfx::Renderer &, IG::WP sizeInPixels, IG::WP extraSizePixels, Gfx::ProjectionPlane);
 	void setBoundingAreaVisible(Gfx::Renderer &r, bool on, Gfx::ProjectionPlane);
 	void setImg(Gfx::Renderer &r, Gfx::Texture &pics);
+	void drawDPads(Gfx::RendererCommands &cmds, bool showHidden, Gfx::ProjectionPlane) const;
+	void drawButtons(Gfx::RendererCommands &cmds, bool showHidden, Gfx::ProjectionPlane) const;
 	void draw(Gfx::RendererCommands &cmds, bool showHidden, Gfx::ProjectionPlane) const;
 	void setSpacingPixels(int);
 	void setStaggerType(int);
@@ -328,11 +330,19 @@ public:
 	void resetOptions();
 	void resetAllOptions();
 	static bool shouldDraw(VControllerState state, bool showHidden = false);
-	void setGamepadIsEnabled(bool on) { gamepadDisabled = !on; }
-	bool gamepadIsEnabled() const { return !gamepadDisabled; }
+	void setGamepadIsEnabled(bool on) { gamepadDisabledFlags = on ? 0 : GAMEPAD_BITS; }
+	void setGamepadDPadIsEnabled(bool on) { gamepadDisabledFlags = IG::setOrClearBits(gamepadDisabledFlags, GAMEPAD_DPAD_BIT, !on); }
+	void setGamepadButtonsAreEnabled(bool on) { gamepadDisabledFlags = IG::setOrClearBits(gamepadDisabledFlags, GAMEPAD_BUTTONS_BIT, !on); }
+	bool gamepadIsEnabled() const { return gamepadDisabledFlags != GAMEPAD_BITS; }
+	bool gamepadDPadIsEnabled() const { return !(gamepadDisabledFlags & GAMEPAD_DPAD_BIT); }
+	bool gamepadButtonsAreEnabled() const { return !(gamepadDisabledFlags & GAMEPAD_BUTTONS_BIT); }
 	bool gamepadIsActive() const;
 
 private:
+	static constexpr uint8_t GAMEPAD_DPAD_BIT = IG::bit(0);
+	static constexpr uint8_t GAMEPAD_BUTTONS_BIT = IG::bit(1);
+	static constexpr uint8_t GAMEPAD_BITS = GAMEPAD_DPAD_BIT | GAMEPAD_BUTTONS_BIT;
+
 	Gfx::Renderer *renderer_{};
 	const Base::Window *win{};
 	const WindowData *winData{};
@@ -364,7 +374,7 @@ private:
 	bool layoutPosChanged{};
 	bool physicalControlsPresent{};
 	bool gamepadIsVisible{gamepadControlsVisibility_ != VControllerVisibility::OFF};
-	bool gamepadDisabled{};
+	uint8_t gamepadDisabledFlags{};
 	bool kbMode{};
 	uint8_t alpha{};
 	IG_enableMemberIf(Config::BASE_SUPPORTS_VIBRATOR, bool, vibrateOnTouchInput_){};

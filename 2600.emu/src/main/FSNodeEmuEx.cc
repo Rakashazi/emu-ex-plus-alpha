@@ -91,10 +91,3 @@ AbstractFSNodePtr FilesystemNodeEmuEx::getParent() const
 {
 	return nullptr;
 }
-
-size_t FilesystemNodeEmuEx::read(ByteBuffer& image) const
-{
-	logErr("read() unimplemented");
-	assert(0);
-	return 0;
-}

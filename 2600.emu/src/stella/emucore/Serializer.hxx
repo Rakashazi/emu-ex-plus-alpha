@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -49,7 +49,7 @@ class Serializer
       The valid() method must immediately be called to verify the stream
       was correctly initialized.
     */
-    Serializer(const string& filename, Mode m = Mode::ReadWrite);
+    explicit Serializer(const string& filename, Mode m = Mode::ReadWrite);
     Serializer();
 
   public:

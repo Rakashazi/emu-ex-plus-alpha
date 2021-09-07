@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -21,16 +21,14 @@
 #include "Settings.hxx"
 #include "Switches.hxx"
 #include "System.hxx"
-#ifdef DEBUGGER_SUPPORT
-  #include "CartDebug.hxx"
-#endif
+#include "Base.hxx"
 
 #include "M6532.hxx"
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 M6532::M6532(const ConsoleIO& console, const Settings& settings)
-  : myConsole(console),
-    mySettings(settings)
+  : myConsole{console},
+    mySettings{settings}
 {
 }
 
@@ -61,7 +59,6 @@ void M6532::reset()
   myTimer = mySystem->randGenerator().next() & 0xff;
   myDivider = 1024;
   mySubTimer = 0;
-  myTimerWrapped = false;
   myWrappedThisCycle = false;
 
   mySetTimerCycle = myLastCycle = 0;
@@ -123,16 +120,16 @@ void M6532::updateEmulation()
   myWrappedThisCycle = false;
   mySubTimer = (cycles + mySubTimer) % myDivider;
 
-  if(!myTimerWrapped)
+  if ((myInterruptFlag & TimerBit) == 0)
   {
     uInt32 timerTicks = (cycles + subTimer) / myDivider;
 
     if(timerTicks > myTimer)
     {
       cycles -= ((myTimer + 1) * myDivider - subTimer);
+
       myWrappedThisCycle = cycles == 0;
       myTimer = 0xFF;
-      myTimerWrapped = true;
       myInterruptFlag |= TimerBit;
     }
     else
@@ -142,10 +139,16 @@ void M6532::updateEmulation()
     }
   }
 
-  if(myTimerWrapped)
+  if((myInterruptFlag & TimerBit) != 0) {
     myTimer = (myTimer - cycles) & 0xFF;
+    myWrappedThisCycle = myTimer == 0xFF;
+  }
 
   myLastCycle = mySystem->cycles();
+
+#ifdef DEBUGGER_SUPPORT
+  myTimWrappedOnRead = myTimWrappedOnWrite = false;
+#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -221,7 +224,10 @@ uInt8 M6532::peek(uInt16 addr)
     {
       // Timer Flag is always cleared when accessing INTIM
       if (!myWrappedThisCycle) myInterruptFlag &= ~TimerBit;
-      myTimerWrapped = false;
+  #ifdef DEBUGGER_SUPPORT
+      myTimWrappedOnRead = myWrappedThisCycle;
+      myTimReadCycles += 7;
+  #endif
       return myTimer;
     }
 
@@ -231,6 +237,9 @@ uInt8 M6532::peek(uInt16 addr)
       // PA7 Flag is always cleared after accessing TIMINT
       uInt8 result = myInterruptFlag;
       myInterruptFlag &= ~PA7Bit;
+    #ifdef DEBUGGER_SUPPORT
+      myTimReadCycles += 7;
+    #endif
       return result;
     }
 
@@ -314,10 +323,12 @@ void M6532::setTimerRegister(uInt8 value, uInt8 interval)
 
   myTimer = value;
   mySubTimer = myDivider - 1;
-  myTimerWrapped = false;
 
   // Interrupt timer flag is cleared (and invalid) when writing to the timer
-  myInterruptFlag &= ~TimerBit;
+  if (!myWrappedThisCycle) myInterruptFlag &= ~TimerBit;
+#ifdef DEBUGGER_SUPPORT
+  myTimWrappedOnWrite = myWrappedThisCycle;
+#endif
 
   mySetTimerCycle = mySystem->cycles();
 }
@@ -366,10 +377,12 @@ bool M6532::save(Serializer& out) const
     out.putInt(myTimer);
     out.putInt(mySubTimer);
     out.putInt(myDivider);
-    out.putBool(myTimerWrapped);
     out.putBool(myWrappedThisCycle);
     out.putLong(myLastCycle);
     out.putLong(mySetTimerCycle);
+  #ifdef DEBUGGER_SUPPORT
+    out.putInt(myTimReadCycles);
+  #endif
 
     out.putByte(myDDRA);
     out.putByte(myDDRB);
@@ -399,10 +412,12 @@ bool M6532::load(Serializer& in)
     myTimer = in.getInt();
     mySubTimer = in.getInt();
     myDivider = in.getInt();
-    myTimerWrapped = in.getBool();
     myWrappedThisCycle = in.getBool();
     myLastCycle = in.getLong();
     mySetTimerCycle = in.getLong();
+  #ifdef DEBUGGER_SUPPORT
+    myTimReadCycles = in.getInt();
+  #endif
 
     myDDRA = in.getByte();
     myDDRB = in.getByte();
@@ -448,7 +463,7 @@ Int32 M6532::intimClocks()
   // INTIM value, it will give the current number of clocks between one
   // INTIM value and the next
 
-  return myTimerWrapped ? 1 : (myDivider - mySubTimer);
+  return ((myInterruptFlag & TimerBit) != 0) ? 1 : (myDivider - mySubTimer);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -460,14 +475,17 @@ uInt32 M6532::timerClocks() const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void M6532::createAccessBases()
 {
-  myRAMAccessBase.fill(CartDebug::NONE);
-  myStackAccessBase.fill(CartDebug::NONE);
-  myIOAccessBase.fill(CartDebug::NONE);
+  myRAMAccessBase.fill(Device::NONE);
+  myStackAccessBase.fill(Device::NONE);
+  myIOAccessBase.fill(Device::NONE);
+  myRAMAccessCounter.fill(0);
+  myStackAccessCounter.fill(0);
+  myIOAccessCounter.fill(0);
   myZPAccessDelay.fill(ZP_DELAY);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt8 M6532::getAccessFlags(uInt16 address) const
+Device::AccessFlags M6532::getAccessFlags(uInt16 address) const
 {
   if (address & IO_BIT)
     return myIOAccessBase[address & IO_MASK];
@@ -478,10 +496,10 @@ uInt8 M6532::getAccessFlags(uInt16 address) const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void M6532::setAccessFlags(uInt16 address, uInt8 flags)
+void M6532::setAccessFlags(uInt16 address, Device::AccessFlags flags)
 {
   // ignore none flag
-  if (flags != CartDebug::NONE) {
+  if (flags != Device::NONE) {
     if (address & IO_BIT)
       myIOAccessBase[address & IO_MASK] |= flags;
     else {
@@ -495,4 +513,63 @@ void M6532::setAccessFlags(uInt16 address, uInt8 flags)
     }
   }
 }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+void M6532::increaseAccessCounter(uInt16 address, bool isWrite)
+{
+  if (address & IO_BIT)
+    myIOAccessCounter[(isWrite ? IO_SIZE : 0) + (address & IO_MASK)]++;
+  else {
+    // the first access, either by direct RAM or stack access is assumed as initialization
+    if (myZPAccessDelay[address & RAM_MASK])
+      myZPAccessDelay[address & RAM_MASK]--;
+    else if (address & STACK_BIT)
+      myStackAccessCounter[(isWrite ? STACK_SIZE : 0) + (address & STACK_MASK)]++;
+    else
+      myRAMAccessCounter[(isWrite ? RAM_SIZE : 0) + (address & RAM_MASK)]++;
+  }
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+string M6532::getAccessCounters() const
+{
+  ostringstream out;
+
+  out << "RAM reads:\n";
+  for(uInt16 addr = 0x00; addr < RAM_SIZE; ++addr)
+    out << Common::Base::HEX4 << (addr | 0x80) << ","
+    << Common::Base::toString(myRAMAccessCounter[addr], Common::Base::Fmt::_10_8) << ", ";
+  out << "\n";
+  out << "RAM writes:\n";
+  for(uInt16 addr = 0x00; addr < RAM_SIZE; ++addr)
+    out << Common::Base::HEX4 << (addr | 0x80) << ","
+    << Common::Base::toString(myRAMAccessCounter[RAM_SIZE + addr], Common::Base::Fmt::_10_8) << ", ";
+  out << "\n";
+
+
+  out << "Stack reads:\n";
+  for(uInt16 addr = 0x00; addr < STACK_SIZE; ++addr)
+    out << Common::Base::HEX4 << (addr | 0x180) << ","
+    << Common::Base::toString(myStackAccessCounter[addr], Common::Base::Fmt::_10_8) << ", ";
+  out << "\n";
+  out << "Stack writes:\n";
+  for(uInt16 addr = 0x00; addr < STACK_SIZE; ++addr)
+    out << Common::Base::HEX4 << (addr | 0x180) << ","
+    << Common::Base::toString(myStackAccessCounter[STACK_SIZE + addr], Common::Base::Fmt::_10_8) << ", ";
+  out << "\n";
+
+  out << "IO reads:\n";
+  for(uInt16 addr = 0x00; addr < IO_SIZE; ++addr)
+    out << Common::Base::HEX4 << (addr | 0x280) << ","
+    << Common::Base::toString(myIOAccessCounter[addr], Common::Base::Fmt::_10_8) << ", ";
+  out << "\n";
+  out << "IO writes:\n";
+  for(uInt16 addr = 0x00; addr < IO_SIZE; ++addr)
+    out << Common::Base::HEX4 << (addr | 0x280) << ","
+    << Common::Base::toString(myIOAccessCounter[IO_SIZE + addr], Common::Base::Fmt::_10_8) << ", ";
+  out << "\n";
+
+  return out.str();
+}
+
 #endif // DEBUGGER_SUPPORT

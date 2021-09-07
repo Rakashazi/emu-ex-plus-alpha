@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -21,7 +21,7 @@
 class System;
 
 #include "bspf.hxx"
-#include "Cart.hxx"
+#include "CartEnhanced.hxx"
 #ifdef DEBUGGER_SUPPORT
   #include "Cart4KWidget.hxx"
 #endif
@@ -30,9 +30,9 @@ class System;
   This is the standard Atari 4K cartridge.  These cartridges are
   not bankswitched.
 
-  @author  Bradford W. Mott
+  @author  Bradford W. Mott, Thomas Jentzsch
 */
-class Cartridge4K : public Cartridge
+class Cartridge4K : public CartridgeEnhanced
 {
   friend class Cartridge4KWidget;
 
@@ -44,58 +44,13 @@ class Cartridge4K : public Cartridge
       @param size      The size of the ROM image
       @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
+      @param bsSize    The size specified by the bankswitching scheme
     */
     Cartridge4K(const ByteBuffer& image, size_t size, const string& md5,
-                const Settings& settings);
-    virtual ~Cartridge4K() = default;
+                const Settings& settings, size_t bsSize = 4_KB);
+    ~Cartridge4K() override = default;
 
   public:
-    /**
-      Reset cartridge to its power-on state
-    */
-    void reset() override;
-
-    /**
-      Install cartridge in the specified system.  Invoked by the system
-      when the cartridge is attached to it.
-
-      @param system The system the device should install itself in
-    */
-    void install(System& system) override;
-
-    /**
-      Patch the cartridge ROM.
-
-      @param address  The ROM address to patch
-      @param value    The value to place into the address
-      @return    Success or failure of the patch operation
-    */
-    bool patch(uInt16 address, uInt8 value) override;
-
-    /**
-      Access the internal ROM image for this cartridge.
-
-      @param size  Set to the size of the internal ROM image data
-      @return  A pointer to the internal ROM image data
-    */
-    const uInt8* getImage(size_t& size) const override;
-
-    /**
-      Save the current state of this cart to the given Serializer.
-
-      @param out  The Serializer object to use
-      @return  False on any errors, else true
-    */
-    bool save(Serializer& out) const override { return true; }
-
-    /**
-      Load the current state of this cart from the given Serializer.
-
-      @param in  The Serializer object to use
-      @return  False on any errors, else true
-    */
-    bool load(Serializer& in) override { return true; }
-
     /**
       Get a descriptor for the device name (used in error checking).
 
@@ -115,16 +70,8 @@ class Cartridge4K : public Cartridge
     }
   #endif
 
-    /**
-      Get the byte at the specified address.
-
-      @return The byte at the specified address
-    */
-    uInt8 peek(uInt16 address) override { return myImage[address & 0x0FFF]; }
-
   private:
-    // The 4K ROM image for the cartridge
-    std::array<uInt8, 4_KB> myImage;
+    bool checkSwitchBank(uInt16 address, uInt8 value = 0) override { return false; }
 
   private:
     // Following constructors and assignment operators not supported

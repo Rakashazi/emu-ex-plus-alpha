@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -21,6 +21,7 @@
 class System;
 
 #include "Control.hxx"
+#include "FSNode.hxx"
 #include "bspf.hxx"
 
 /**
@@ -36,19 +37,19 @@ class MT24LC256
     /**
       Create a new 24LC256 with its data stored in the given file
 
-      @param filename  Data file containing the EEPROM data
-      @param system    The system using the controller of this device
-      @param callback  Called to pass messages back to the parent controller
+      @param eepromfile Data file containing the EEPROM data
+      @param system     The system using the controller of this device
+      @param callback   Called to pass messages back to the parent controller
     */
-    MT24LC256(const string& filename, const System& system,
+    MT24LC256(const FilesystemNode& eepromfile, const System& system,
               const Controller::onMessageCallback& callback);
     ~MT24LC256();
 
   public:
     // Sizes of the EEPROM
-    static constexpr uInt32 FLASH_SIZE = 32_KB;
-    static constexpr uInt32 PAGE_SIZE = 64;
-    static constexpr uInt32 PAGE_NUM = FLASH_SIZE / PAGE_SIZE;
+    static constexpr size_t FLASH_SIZE = 32_KB;
+    static constexpr size_t PAGE_SIZE = 64;
+    static constexpr size_t PAGE_NUM = FLASH_SIZE / PAGE_SIZE;
 
     // Initial state value of flash EEPROM
     static constexpr uInt8 INITIAL_VALUE = 0xff;
@@ -92,7 +93,7 @@ class MT24LC256
     Controller::onMessageCallback myCallback;
 
     // The EEPROM data
-    std::array<uInt8, FLASH_SIZE> myData;
+    ByteBuffer myData;
 
     // Track which pages are used
     std::array<bool, PAGE_NUM> myPageHit;
@@ -110,10 +111,7 @@ class MT24LC256
     uInt64 myCyclesWhenSDASet{0}, myCyclesWhenSCLSet{0};
 
     // The file containing the EEPROM data
-    string myDataFile;
-
-    // Indicates if a valid EEPROM data file exists/was successfully loaded
-    bool myDataFileExists{false};
+    FilesystemNode myDataFile;
 
     // Indicates if the EEPROM has changed since class invocation
     bool myDataChanged{false};

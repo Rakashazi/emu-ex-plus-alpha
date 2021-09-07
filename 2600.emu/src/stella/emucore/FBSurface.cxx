@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -184,10 +184,10 @@ void FBSurface::drawChar(const GUI::Font& font, uInt8 chr,
   }
   else
   {
-    bbw = desc.bbx[chr].w;
-    bbh = desc.bbx[chr].h;
-    bbx = desc.bbx[chr].x;
-    bby = desc.bbx[chr].y;
+    bbw = desc.bbx[chr].w;  // NOLINT
+    bbh = desc.bbx[chr].h;  // NOLINT
+    bbx = desc.bbx[chr].x;  // NOLINT
+    bby = desc.bbx[chr].y;  // NOLINT
   }
 
   uInt32 cx = tx + bbx;
@@ -296,27 +296,47 @@ void FBSurface::frameRect(uInt32 x, uInt32 y, uInt32 w, uInt32 h,
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void FBSurface::wrapString(const string& inStr, int pos, string& leftStr, string& rightStr) const
+void FBSurface::splitString(const GUI::Font& font, const string& s, int w,
+                            string& left, string& right) const
 {
-  for(int i = pos; i > 0; --i)
+#ifdef GUI_SUPPORT
+  uInt32 pos;
+  int w2 = 0;
+  bool split = false;
+
+  // SLOW algorithm to find the acceptable length. But it is good enough for now.
+  for(pos = 0; pos < s.size(); ++pos)
   {
-    if(isWhiteSpace(inStr[i]))
+    int charWidth = font.getCharWidth(s[pos]);
+    if(w2 + charWidth > w || s[pos] == '\n')
     {
-      leftStr = inStr.substr(0, i);
-      if(inStr[i] == ' ') // skip leading space after line break
-        i++;
-      rightStr = inStr.substr(i);
-      return;
+      split = true;
+      break;
     }
+    w2 += charWidth;
   }
-  leftStr = inStr.substr(0, pos);
-  rightStr = inStr.substr(pos);
+
+  if(split)
+    for(int i = pos; i > 0; --i)
+    {
+      if(isWhiteSpace(s[i]))
+      {
+        left = s.substr(0, i);
+        if(s[i] == ' ' || s[pos] == '\n') // skip leading space after line break
+          i++;
+        right = s.substr(i);
+        return;
+      }
+    }
+  left = s.substr(0, pos);
+  right = s.substr(pos);
+#endif
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool FBSurface::isWhiteSpace(const char s) const
 {
-  const string WHITESPACES = " ,.;:+-";
+  const string WHITESPACES = " ,.;:+-*/\\'([\n";
 
   for(size_t i = 0; i < WHITESPACES.length(); ++i)
     if(s == WHITESPACES[i])
@@ -331,37 +351,30 @@ int FBSurface::drawString(const GUI::Font& font, const string& s,
   ColorId color, TextAlign align,
   int deltax, bool useEllipsis, ColorId shadowColor)
 {
-  int lines = 1;
+  int lines = 0;
 
 #ifdef GUI_SUPPORT
   string inStr = s;
 
   // draw multiline string
-  while (font.getStringWidth(inStr) > w && h >= font.getFontHeight() * 2)
+  //while (font.getStringWidth(inStr) > w && h >= font.getFontHeight() * 2)
+  while(inStr.length() && h >= font.getFontHeight() * 2)
   {
     // String is too wide.
-    uInt32 i;
     string leftStr, rightStr;
-    int w2 = 0;
 
-    // SLOW algorithm to find the acceptable length. But it is good enough for now.
-    for(i = 0; i < inStr.size(); ++i)
-    {
-      int charWidth = font.getCharWidth(inStr[i]);
-      if(w2 + charWidth > w)
-        break;
-
-      w2 += charWidth;
-      //str += inStr[i];
-    }
-    wrapString(inStr, i, leftStr, rightStr);
+    splitString(font, inStr, w, leftStr, rightStr);
     drawString(font, leftStr, x, y, w, color, align, deltax, false, shadowColor);
     h -= font.getFontHeight();
     y += font.getFontHeight();
     inStr = rightStr;
     lines++;
   }
-  drawString(font, inStr, x, y, w, color, align, deltax, useEllipsis, shadowColor);
+  if(inStr.length())
+  {
+    drawString(font, inStr, x, y, w, color, align, deltax, useEllipsis, shadowColor);
+    lines++;
+  }
 #endif
   return lines;
 }

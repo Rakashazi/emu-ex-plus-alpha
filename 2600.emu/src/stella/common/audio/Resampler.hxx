@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -51,12 +51,11 @@ class Resampler {
   public:
 
     Resampler(Format formatFrom, Format formatTo,
-              const NextFragmentCallback& nextFragmentCallback) :
-      myFormatFrom(formatFrom),
-      myFormatTo(formatTo),
-      myNextFragmentCallback(nextFragmentCallback),
-      myUnderrunLogger("audio buffer underrun", Logger::Level::INFO)
-    {}
+              const NextFragmentCallback& nextFragmentCallback)
+      : myFormatFrom{formatFrom},
+        myFormatTo{formatTo},
+        myNextFragmentCallback{nextFragmentCallback},
+        myUnderrunLogger{"audio buffer underrun", Logger::Level::INFO} { }
 
     virtual void fillFragment(float* fragment, uInt32 length) = 0;
 

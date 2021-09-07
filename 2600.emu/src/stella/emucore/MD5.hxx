@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -24,30 +24,37 @@ class FilesystemNode;
 
 namespace MD5 {
 
-/**
-  Get the MD5 Message-Digest of the specified message with the
-  given length.  The digest consists of 32 hexadecimal digits.
+  /**
+    Get the MD5 Message-Digest of the specified message with the
+    given length.  The digest consists of 32 hexadecimal digits.
 
-  Note that currently, the length is truncated internally to
-  32 bits, until the MD5 routines are rewritten for 64-bit.
-  Based on the size of data we currently use, this may never
-  actually happen.
+    Note that currently, the length is truncated internally to
+    32 bits, until the MD5 routines are rewritten for 64-bit.
+    Based on the size of data we currently use, this may never
+    actually happen.
 
-  @param buffer The message to compute the digest of
-  @param length The length of the message
-  @return The message-digest
-*/
-string hash(const ByteBuffer& buffer, size_t length);
-string hash(const uInt8* buffer, size_t length);
+    @param buffer The message to compute the digest of
+    @param length The length of the message
+    @return The message-digest
+  */
+  string hash(const ByteBuffer& buffer, size_t length);
+  string hash(const uInt8* buffer, size_t length);
+  /**
+    Dito.
 
-/**
-  Get the MD5 Message-Digest of the file contained in 'node'.
-  The digest consists of 32 hexadecimal digits.
+    @param buffer The message to compute the digest of
+    @return The message - digest
+  */
+  string hash(const string& buffer);
 
-  @param node The file node to compute the digest of
-  @return The message-digest
-*/
-string hash(const FilesystemNode& node);
+  /**
+    Get the MD5 Message-Digest of the file contained in 'node'.
+    The digest consists of 32 hexadecimal digits.
+
+    @param node The file node to compute the digest of
+    @return The message-digest
+  */
+  string hash(const FilesystemNode& node);
 
 }  // Namespace MD5
 

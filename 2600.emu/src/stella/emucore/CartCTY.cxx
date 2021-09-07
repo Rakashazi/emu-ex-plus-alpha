@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -24,18 +24,19 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CartridgeCTY::CartridgeCTY(const ByteBuffer& image, size_t size,
                            const string& md5, const Settings& settings)
-  : Cartridge(settings, md5)
+  : Cartridge(settings, md5),
+    myImage{make_unique<uInt8[]>(32_KB)}
 {
   // Copy the ROM image into my buffer
-  std::copy_n(image.get(), std::min(myImage.size(), size), myImage.begin());
-  createCodeAccessBase(myImage.size());
+  std::copy_n(image.get(), std::min(32_KB, size), myImage.get());
+  createRomAccessArrays(32_KB);
 
   // Default to no tune data in case user is utilizing an old ROM
   myTuneData.fill(0);
 
   // Extract tune data if it exists
-  if(size > myImage.size())
-    std::copy_n(image.get() + myImage.size(), size - myImage.size(), myTuneData.begin());
+  if(size > 32_KB)
+    std::copy_n(image.get() + 32_KB, size - 32_KB, myTuneData.begin());
 
   // Point to the first tune
   myFrequencyImage = myTuneData.data();
@@ -229,7 +230,7 @@ bool CartridgeCTY::poke(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeCTY::bank(uInt16 bank)
+bool CartridgeCTY::bank(uInt16 bank, uInt16)
 {
   if(bankLocked()) return false;
 
@@ -240,7 +241,9 @@ bool CartridgeCTY::bank(uInt16 bank)
   System::PageAccess access(this, System::PageAccessType::READ);
   for(uInt16 addr = 0x1080; addr < 0x2000; addr += System::PAGE_SIZE)
   {
-    access.codeAccessBase = &myCodeAccessBase[myBankOffset + (addr & 0x0FFF)];
+    access.romAccessBase = &myRomAccessBase[myBankOffset + (addr & 0x0FFF)];
+    access.romPeekCounter = &myRomAccessCounter[myBankOffset + (addr & 0x0FFF)];
+    access.romPokeCounter = &myRomAccessCounter[myBankOffset + (addr & 0x0FFF) + myAccessSize];
     mySystem->setPageAccess(addr, access);
   }
   return myBankChanged = true;
@@ -253,7 +256,7 @@ uInt16 CartridgeCTY::getBank(uInt16) const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeCTY::bankCount() const
+uInt16 CartridgeCTY::romBankCount() const
 {
   return 8;
 }
@@ -277,10 +280,10 @@ bool CartridgeCTY::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeCTY::getImage(size_t& size) const
+const ByteBuffer& CartridgeCTY::getImage(size_t& size) const
 {
-  size = myImage.size();
-  return myImage.data();
+  size = 32_KB;
+  return myImage;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,10 +18,7 @@
 #ifndef CARTRIDGE_DPC_HXX
 #define CARTRIDGE_DPC_HXX
 
-class System;
-
-#include "bspf.hxx"
-#include "Cart.hxx"
+#include "CartF8.hxx"
 #ifdef DEBUGGER_SUPPORT
   #include "CartDPCWidget.hxx"
 #endif
@@ -35,9 +32,9 @@ class System;
   For complete details on the DPC chip see David P. Crane's United States
   Patent Number 4,644,495.
 
-  @author  Bradford W. Mott
+  @author  Bradford W. Mott, Thomas Jentzsch
 */
-class CartridgeDPC : public Cartridge
+class CartridgeDPC : public CartridgeF8
 {
   friend class CartridgeDPCWidget;
 
@@ -49,17 +46,13 @@ class CartridgeDPC : public Cartridge
       @param size      The size of the ROM image
       @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
+      @param bsSize    The size specified by the bankswitching scheme
     */
     CartridgeDPC(const ByteBuffer& image, size_t size, const string& md5,
-                 const Settings& settings);
-    virtual ~CartridgeDPC() = default;
+                 const Settings& settings, size_t bsSize = 10_KB);
+    ~CartridgeDPC() override = default;
 
   public:
-    /**
-      Reset device to its power-on state
-    */
-    void reset() override;
-
     /**
       Install cartridge in the specified system.  Invoked by the system
       when the cartridge is attached to it.
@@ -69,23 +62,9 @@ class CartridgeDPC : public Cartridge
     void install(System& system) override;
 
     /**
-      Install pages for the specified bank in the system.
-
-      @param bank The bank that should be installed in the system
+    Reset device to its power-on state
     */
-    bool bank(uInt16 bank) override;
-
-    /**
-      Get the current bank.
-
-      @param address The address to use when querying the bank
-    */
-    uInt16 getBank(uInt16 address = 0) const override;
-
-    /**
-      Query the number of banks supported by the cartridge.
-    */
-    uInt16 bankCount() const override;
+    void reset() override;
 
     /**
       Patch the cartridge ROM.
@@ -95,14 +74,6 @@ class CartridgeDPC : public Cartridge
       @return    Success or failure of the patch operation
     */
     bool patch(uInt16 address, uInt8 value) override;
-
-    /**
-      Access the internal ROM image for this cartridge.
-
-      @param size  Set to the size of the internal ROM image data
-      @return  A pointer to the internal ROM image data
-    */
-    const uInt8* getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -127,6 +98,11 @@ class CartridgeDPC : public Cartridge
     */
     string name() const override { return "CartridgeDPC"; }
 
+    /**
+      Change the DPC audio pitch
+
+      @param pitch  The new pitch value
+    */
     void setDpcPitch(double pitch) { myDpcPitch = pitch; }
 
   #ifdef DEBUGGER_SUPPORT
@@ -171,15 +147,6 @@ class CartridgeDPC : public Cartridge
     void updateMusicModeDataFetchers();
 
   private:
-    // The ROM image
-    std::array<uInt8, 8_KB + 2_KB + 256> myImage;
-
-    // (Actual) Size of the ROM image
-    size_t mySize{0};
-
-    // Pointer to the 8K program ROM image of the cartridge
-    uInt8* myProgramImage{nullptr};
-
     // Pointer to the 2K display ROM image of the cartridge
     uInt8* myDisplayImage{nullptr};
 
@@ -206,9 +173,6 @@ class CartridgeDPC : public Cartridge
 
     // Fractional DPC music OSC clocks unused during the last update
     double myFractionalClocks{0.0};
-
-    // Indicates the offset into the ROM image (aligns to current bank)
-    uInt16 myBankOffset{0};
 
     // DPC pitch
     double myDpcPitch{0.0};

@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -21,7 +21,7 @@
 class System;
 
 #include "bspf.hxx"
-#include "Cart.hxx"
+#include "CartEnhanced.hxx"
 #ifdef DEBUGGER_SUPPORT
   #include "Cart3EWidget.hxx"
 #endif
@@ -47,10 +47,8 @@ class System;
   by storing its value into $3F. To map RAM in the first 2K segment
   instead, store the RAM bank number into $3E.
 
-  This implementation of 3E bankswitching numbers the ROM banks 0 to
-  255, and the RAM banks 256 to 287. This is done because the public
-  bankswitching interface requires us to use one bank number, not one
-  bank number plus the knowledge of whether it's RAM or ROM.
+  This implementation of 3E bankswitching numbers the RAM banks (up to 32)
+  after the ROM banks (up to 256).
 
   All 32K of potential RAM is available to a game using this class, even
   though real cartridges might not have the full 32K: We have no way to
@@ -58,31 +56,29 @@ class System;
   may add a stella.pro property for this), but for now it shouldn't cause
   any problems. (Famous last words...)
 
-  @author  B. Watson
+  @author  B. Watson, Thomas Jentzsch
 */
 
-class Cartridge3E : public Cartridge
+class Cartridge3E : public CartridgeEnhanced
 {
   friend class Cartridge3EWidget;
 
   public:
     /**
-      Create a new cartridge using the specified image and size
+      Create a new cartridge using the specified image and size.
 
       @param image     Pointer to the ROM image
       @param size      The size of the ROM image
       @param md5       The md5sum of the ROM image
       @param settings  A reference to the various settings (read-only)
+      @param bsSize    The size specified by the bankswitching scheme
+                       (where 0 means variable-sized ROM)
     */
     Cartridge3E(const ByteBuffer& image, size_t size, const string& md5,
-                const Settings& settings);
-    virtual ~Cartridge3E() = default;
+                const Settings& settings, size_t bsSize = 0);
+    ~Cartridge3E() override = default;
 
   public:
-    /**
-      Reset device to its power-on state
-    */
-    void reset() override;
 
     /**
       Install cartridge in the specified system.  Invoked by the system
@@ -91,58 +87,6 @@ class Cartridge3E : public Cartridge
       @param system The system the device should install itself in
     */
     void install(System& system) override;
-
-    /**
-      Install pages for the specified bank in the system.
-
-      @param bank The bank that should be installed in the system
-    */
-    bool bank(uInt16 bank) override;
-
-    /**
-      Get the current bank.
-
-      @param address The address to use when querying the bank
-    */
-    uInt16 getBank(uInt16 address = 0) const override;
-
-    /**
-      Query the number of banks supported by the cartridge.
-    */
-    uInt16 bankCount() const override;
-
-    /**
-      Patch the cartridge ROM.
-
-      @param address  The ROM address to patch
-      @param value    The value to place into the address
-      @return    Success or failure of the patch operation
-    */
-    bool patch(uInt16 address, uInt8 value) override;
-
-    /**
-      Access the internal ROM image for this cartridge.
-
-      @param size  Set to the size of the internal ROM image data
-      @return  A pointer to the internal ROM image data
-    */
-    const uInt8* getImage(size_t& size) const override;
-
-    /**
-      Save the current state of this cart to the given Serializer.
-
-      @param out  The Serializer object to use
-      @return  False on any errors, else true
-    */
-    bool save(Serializer& out) const override;
-
-    /**
-      Load the current state of this cart from the given Serializer.
-
-      @param in  The Serializer object to use
-      @return  False on any errors, else true
-    */
-    bool load(Serializer& in) override;
 
     /**
       Get a descriptor for the device name (used in error checking).
@@ -181,17 +125,20 @@ class Cartridge3E : public Cartridge
     bool poke(uInt16 address, uInt8 value) override;
 
   private:
-    // Pointer to a dynamically allocated ROM image of the cartridge
-    ByteBuffer myImage;
+    bool checkSwitchBank(uInt16 address, uInt8 value) override;
 
-    // RAM contents. For now every ROM gets all 32K of potential RAM
-    std::array<uInt8, 32_KB> myRAM;
+  protected:
+    // log(ROM bank segment size) / log(2)
+    static constexpr uInt16 BANK_SHIFT = 11; // = 2K = 0x0800
 
-    // Size of the ROM image
-    size_t mySize{0};
+    // The number of RAM banks
+    static constexpr uInt16 RAM_BANKS = 32;
 
-    // Indicates which bank is currently active for the first segment
-    uInt16 myCurrentBank{0};
+    // RAM size
+    static constexpr size_t RAM_SIZE = RAM_BANKS << (BANK_SHIFT - 1); // = 32K = 0x8000;
+
+    // Write port for extra RAM is at high address
+    static constexpr bool RAM_HIGH_WP = true;
 
   private:
     // Following constructors and assignment operators not supported

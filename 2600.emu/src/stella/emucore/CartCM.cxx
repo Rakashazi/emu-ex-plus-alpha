@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -23,11 +23,12 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CartridgeCM::CartridgeCM(const ByteBuffer& image, size_t size,
                          const string& md5, const Settings& settings)
-  : Cartridge(settings, md5)
+  : Cartridge(settings, md5),
+    myImage{make_unique<uInt8[]>(16_KB)}
 {
   // Copy the ROM image into my buffer
-  std::copy_n(image.get(), std::min(myImage.size(), size), myImage.begin());
-  createCodeAccessBase(myImage.size());
+  std::copy_n(image.get(), std::min(16_KB, size), myImage.get());
+  createRomAccessArrays(16_KB);
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -98,7 +99,7 @@ uInt8 CartridgeCM::column() const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-bool CartridgeCM::bank(uInt16 bank)
+bool CartridgeCM::bank(uInt16 bank, uInt16)
 {
   if(bankLocked()) return false;
 
@@ -119,7 +120,9 @@ bool CartridgeCM::bank(uInt16 bank)
   for(uInt16 addr = 0x1000; addr < 0x1800; addr += System::PAGE_SIZE)
   {
     access.directPeekBase = &myImage[myBankOffset + (addr & 0x0FFF)];
-    access.codeAccessBase = &myCodeAccessBase[myBankOffset + (addr & 0x0FFF)];
+    access.romAccessBase = &myRomAccessBase[myBankOffset + (addr & 0x0FFF)];
+    access.romPeekCounter = &myRomAccessCounter[myBankOffset + (addr & 0x0FFF)];
+    access.romPokeCounter = &myRomAccessCounter[myBankOffset + (addr & 0x0FFF) + myAccessSize];
     mySystem->setPageAccess(addr, access);
   }
 
@@ -131,12 +134,16 @@ bool CartridgeCM::bank(uInt16 bank)
     if(mySWCHA & 0x10)
     {
       access.directPeekBase = &myImage[myBankOffset + (addr & 0x0FFF)];
-      access.codeAccessBase = &myCodeAccessBase[myBankOffset + (addr & 0x0FFF)];
+      access.romAccessBase = &myRomAccessBase[myBankOffset + (addr & 0x0FFF)];
+      access.romPeekCounter = &myRomAccessCounter[myBankOffset + (addr & 0x0FFF)];
+      access.romPokeCounter = &myRomAccessCounter[myBankOffset + (addr & 0x0FFF) + myAccessSize];
     }
     else
     {
       access.directPeekBase = &myRAM[addr & 0x7FF];
-      access.codeAccessBase = &myCodeAccessBase[myBankOffset + (addr & 0x07FF)];
+      access.romAccessBase = &myRomAccessBase[myBankOffset + (addr & 0x07FF)];
+      access.romPeekCounter = &myRomAccessCounter[myBankOffset + (addr & 0x07FF)];
+      access.romPokeCounter = &myRomAccessCounter[myBankOffset + (addr & 0x07FF) + myAccessSize];
     }
 
     if((mySWCHA & 0x30) == 0x20)
@@ -157,7 +164,7 @@ uInt16 CartridgeCM::getBank(uInt16) const
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-uInt16 CartridgeCM::bankCount() const
+uInt16 CartridgeCM::romBankCount() const
 {
   // We report 4 banks (of ROM), even though RAM can overlap the upper 2K
   // of cart address space at some times
@@ -178,10 +185,10 @@ bool CartridgeCM::patch(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-const uInt8* CartridgeCM::getImage(size_t& size) const
+const ByteBuffer& CartridgeCM::getImage(size_t& size) const
 {
-  size = myImage.size();
-  return myImage.data();
+  size = 16_KB;
+  return myImage;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

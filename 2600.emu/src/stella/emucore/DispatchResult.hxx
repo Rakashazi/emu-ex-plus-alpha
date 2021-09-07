@@ -8,7 +8,7 @@
 // MM     MM 66  66 55  55 00  00 22
 // MM     MM  6666   5555   0000  222222
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -37,12 +37,14 @@ class DispatchResult
 
     bool wasReadTrap() const { assertStatus(Status::debugger); return myWasReadTrap; }
 
+    const string& getToolTip() const { assertStatus(Status::debugger, Status::fatal); return myToolTip; }
+
     bool isSuccess() const;
 
     void setOk(uInt64 cycles);
 
-    void setDebugger(uInt64 cycles, const string& message = "", int address = -1,
-                     bool wasReadTrap = true);
+    void setDebugger(uInt64 cycles, const string& message = "",
+                     const string& tooltip = "", int address = -1, bool wasReadTrap = true);
 
     void setFatal(uInt64 cycles);
 
@@ -55,7 +57,7 @@ class DispatchResult
       if (myStatus != status) throw runtime_error("invalid status for operation");
     }
 
-    template<class ...Ts> void assertStatus(Status status, Ts... more) const
+    template<typename ...Ts> void assertStatus(Status status, Ts... more) const
     {
       if (myStatus == status) return;
 
@@ -73,6 +75,8 @@ class DispatchResult
     int myAddress{0};
 
     bool myWasReadTrap{false};
+
+    string myToolTip;
 };
 
 #endif // DISPATCH_RESULT_HXX

@@ -23,10 +23,12 @@
 #include <imagine/logger/logger.h>
 
 FrameBuffer::FrameBuffer(OSystem& osystem):
-	appPtr{&osystem.app()}
-{}
+	appPtr{&osystem.app()}, myPaletteHandler{osystem}
+{
+	myPaletteHandler.loadConfig(osystem.settings());
+}
 
-void FrameBuffer::showMessage(const string& message, int position, bool force, uInt32 color)
+void FrameBuffer::showTextMessage(const string& message, MessagePosition, bool)
 {
 	appPtr->printfMessage(3, false, "%s", message.c_str());
 }

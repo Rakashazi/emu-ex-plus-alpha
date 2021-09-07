@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,8 +22,8 @@ class Event;
 class Properties;
 class Settings;
 
-#include "Serializable.hxx"
 #include "bspf.hxx"
+#include "Serializable.hxx"
 
 /**
   This class represents the console switches of the game console.
@@ -47,7 +47,7 @@ class Switches : public Serializable
       @param settings The settings used by the system
     */
     Switches(const Event& event, const Properties& props, const Settings& settings);
-    virtual ~Switches() = default;
+    ~Switches() override = default;
 
   public:
     /**

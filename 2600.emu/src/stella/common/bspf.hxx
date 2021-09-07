@@ -8,7 +8,7 @@
 //  BB  BB  SS  SS  PP      FF
 //  BBBBB    SSSS   PP      FF
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -43,9 +43,11 @@ using uInt64 = uint64_t;
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <sstream>
 #include <cstring>
 #include <cctype>
@@ -59,12 +61,11 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using std::string;
+using std::string_view;
 using std::istream;
 using std::ostream;
 using std::fstream;
 using std::iostream;
-using std::ifstream;
-using std::ofstream;
 using std::ostringstream;
 using std::istringstream;
 using std::stringstream;
@@ -84,11 +85,22 @@ using ByteArray = std::vector<uInt8>;
 using ShortArray = std::vector<uInt16>;
 using StringList = std::vector<std::string>;
 using ByteBuffer = std::unique_ptr<uInt8[]>;  // NOLINT
+using DWordBuffer = std::unique_ptr<uInt32[]>;  // NOLINT
+
+using AdjustFunction = std::function<void(int)>;
 
 // We use KB a lot; let's make a literal for it
-constexpr uInt32 operator "" _KB(unsigned long long size)
+constexpr size_t operator "" _KB(unsigned long long size)
 {
-   return static_cast<uInt32>(size * 1024);
+   return static_cast<size_t>(size * 1024);
+}
+
+// Output contents of a vector
+template<typename T>
+std::ostream& operator<< (std::ostream& out, const std::vector<T>& v) {
+  for(const auto& elem: v)
+    out << elem << " ";
+  return out;
 }
 
 static const string EmptyString("");
@@ -96,6 +108,12 @@ static const string EmptyString("");
 // This is defined by some systems, but Stella has other uses for it
 #undef PAGE_SIZE
 #undef PAGE_MASK
+
+// Adaptable refresh is currently not available on MacOS
+// In the future, this may expand to other systems
+#if !defined(BSPF_MACOS)
+  #define ADAPTABLE_REFRESH_SUPPORT
+#endif
 
 namespace BSPF
 {
@@ -118,19 +136,44 @@ namespace BSPF
     static const string ARCH = "NOARCH";
   #endif
 
+  // Get next power of two greater than or equal to the given value
+  inline size_t nextPowerOfTwo(size_t size) {
+    if(size < 2) return 1;
+    size_t power2 = 1;
+    while(power2 < size)
+      power2 <<= 1;
+    return power2;
+  }
+
+  // Get next multiple of the given value
+  // Note that this only works when multiple is a power of two
+  inline size_t nextMultipleOf(size_t size, size_t multiple) {
+    return (size + multiple - 1) & ~(multiple - 1);
+  }
+
   // Make 2D-arrays using std::array less verbose
-  template<class T, size_t ROW, size_t COL>
+  template<typename T, size_t ROW, size_t COL>
   using array2D = std::array<std::array<T, COL>, ROW>;
 
   // Combines 'max' and 'min', and clamps value to the upper/lower value
   // if it is outside the specified range
-  template<class T> inline T clamp(T val, T lower, T upper)
+  template<typename T> inline T clamp(T val, T lower, T upper)
   {
     return (val < lower) ? lower : (val > upper) ? upper : val;
   }
-  template<class T> inline void clamp(T& val, T lower, T upper, T setVal)
+  template<typename T> inline void clamp(T& val, T lower, T upper, T setVal)
   {
     if(val < lower || val > upper)  val = setVal;
+  }
+  template<typename T> inline T clampw(T val, T lower, T upper)
+  {
+    return (val < lower) ? upper : (val > upper) ? lower : val;
+  }
+
+  // Test whether a container contains the given value
+  template<typename Container>
+  bool contains(const Container& c, typename Container::const_reference elem) {
+    return std::find(c.cbegin(), c.cend(), elem) != c.end();
   }
 
   // Convert string to given case
@@ -152,51 +195,54 @@ namespace BSPF
     catch(...) { return defaultValue; }
   }
 
-  // Compare two strings, ignoring case
-  inline int compareIgnoreCase(const string& s1, const string& s2)
+  // Convert string with base 16 to integer, using default value on any error
+  inline int stringToIntBase16(const string& s, const int defaultValue = 0)
   {
-  #if (defined BSPF_WINDOWS || defined __WIN32__) && !defined __GNUG__
-    return _stricmp(s1.c_str(), s2.c_str());
-  #else
-    return strcasecmp(s1.c_str(), s2.c_str());
-  #endif
-  }
-  inline int compareIgnoreCase(const char* s1, const char* s2)
-  {
-  #if (defined BSPF_WINDOWS || defined __WIN32__) && !defined __GNUG__
-    return _stricmp(s1, s2);
-  #else
-    return strcasecmp(s1, s2);
-  #endif
+    try        { return std::stoi(s, nullptr, 16); }
+    catch(...) { return defaultValue; }
   }
 
-  // Test whether the first string starts with the second one (case insensitive)
-  inline bool startsWithIgnoreCase(const string& s1, const string& s2)
+  // Compare two strings (case insensitive)
+  // Return negative, zero, positive result for <,==,> respectively
+  static constexpr int compareIgnoreCase(string_view s1, string_view s2)
   {
-  #if (defined BSPF_WINDOWS || defined __WIN32__) && !defined __GNUG__
-    return _strnicmp(s1.c_str(), s2.c_str(), s2.length()) == 0;
-  #else
-    return strncasecmp(s1.c_str(), s2.c_str(), s2.length()) == 0;
-  #endif
-  }
-  inline bool startsWithIgnoreCase(const char* s1, const char* s2)
-  {
-  #if (defined BSPF_WINDOWS || defined __WIN32__) && !defined __GNUG__
-    return _strnicmp(s1, s2, strlen(s2)) == 0;
-  #else
-    return strncasecmp(s1, s2, strlen(s2)) == 0;
-  #endif
+    // Only compare up to the length of the shorter string
+    const auto maxsize = std::min(s1.size(), s2.size());
+    for(size_t i = 0; i < maxsize; ++i)
+      if(toupper(s1[i]) != toupper(s2[i]))
+        return toupper(s1[i]) - toupper(s2[i]);
+
+    // Otherwise the length of the string takes priority
+    return static_cast<int>(s1.size() - s2.size());
   }
 
   // Test whether two strings are equal (case insensitive)
-  inline bool equalsIgnoreCase(const string& s1, const string& s2)
+  inline constexpr bool equalsIgnoreCase(string_view s1, string_view s2)
   {
-    return compareIgnoreCase(s1, s2) == 0;
+    return s1.size() == s2.size() ? (compareIgnoreCase(s1, s2) == 0) : false;
+  }
+
+  // Test whether the first string starts with the second one (case insensitive)
+  inline constexpr bool startsWithIgnoreCase(string_view s1, string_view s2)
+  {
+    if(s1.size() >= s2.size())
+      return compareIgnoreCase(s1.substr(0, s2.size()), s2) == 0;
+
+    return false;
+  }
+
+  // Test whether the first string ends with the second one (case insensitive)
+  inline constexpr bool endsWithIgnoreCase(string_view s1, string_view s2)
+  {
+    if(s1.size() >= s2.size())
+      return compareIgnoreCase(s1.substr(s1.size() - s2.size()), s2) == 0;
+
+    return false;
   }
 
   // Find location (if any) of the second string within the first,
   // starting from 'startpos' in the first string
-  inline size_t findIgnoreCase(const string& s1, const string& s2, size_t startpos = 0)
+  static size_t findIgnoreCase(string_view s1, string_view s2, size_t startpos = 0)
   {
     auto pos = std::search(s1.cbegin()+startpos, s1.cend(),
       s2.cbegin(), s2.cend(), [](char ch1, char ch2) {
@@ -205,19 +251,8 @@ namespace BSPF
     return pos == s1.cend() ? string::npos : pos - (s1.cbegin()+startpos);
   }
 
-  // Test whether the first string ends with the second one (case insensitive)
-  inline bool endsWithIgnoreCase(const string& s1, const string& s2)
-  {
-    if(s1.length() >= s2.length())
-    {
-      const char* end = s1.c_str() + s1.length() - s2.length();
-      return compareIgnoreCase(end, s2.c_str()) == 0;
-    }
-    return false;
-  }
-
   // Test whether the first string contains the second one (case insensitive)
-  inline bool containsIgnoreCase(const string& s1, const string& s2)
+  inline bool containsIgnoreCase(string_view s1, string_view s2)
   {
     return findIgnoreCase(s1, s2) != string::npos;
   }
@@ -225,14 +260,14 @@ namespace BSPF
   // Test whether the first string matches the second one (case insensitive)
   // - the first character must match
   // - the following characters must appear in the order of the first string
-  inline bool matches(const string& s1, const string& s2)
+  inline bool matches(string_view s1, string_view s2)
   {
-    if(BSPF::startsWithIgnoreCase(s1, s2.substr(0, 1)))
+    if(startsWithIgnoreCase(s1, s2.substr(0, 1)))
     {
       size_t pos = 1;
       for(uInt32 j = 1; j < s2.size(); ++j)
       {
-        size_t found = BSPF::findIgnoreCase(s1, s2.substr(j, 1), pos);
+        size_t found = findIgnoreCase(s1, s2.substr(j, 1), pos);
         if(found == string::npos)
           return false;
         pos += found + 1;
@@ -240,6 +275,27 @@ namespace BSPF
       return true;
     }
     return false;
+  }
+
+  // Modify 'str', replacing all occurrences of 'from' with 'to'
+  inline void replaceAll(string& str, const string& from, const string& to)
+  {
+    if(from.empty()) return;
+    size_t start_pos = 0;
+    while((start_pos = str.find(from, start_pos)) != string::npos)
+    {
+      str.replace(start_pos, from.length(), to);
+      start_pos += to.length(); // In case 'to' contains 'from',
+                                // like replacing 'x' with 'yx'
+    }
+  }
+
+  // Trim leading and trailing whitespace from a string
+  inline string trim(const string& str)
+  {
+    string::size_type first = str.find_first_not_of(' ');
+    return (first == string::npos) ? EmptyString :
+            str.substr(first, str.find_last_not_of(' ')-first+1);
   }
 
   // C++11 way to get local time
@@ -279,6 +335,17 @@ namespace BSPF
       return EmptyString;
     }
   #endif
+  }
+
+  inline bool isWhiteSpace(const char s)
+  {
+    const string WHITESPACES = " ,.;:+-*&/\\'";
+
+    for(size_t i = 0; i < WHITESPACES.length(); ++i)
+      if(s == WHITESPACES[i])
+        return true;
+
+    return false;
   }
 } // namespace BSPF
 

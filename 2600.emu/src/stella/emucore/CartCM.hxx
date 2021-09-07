@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -122,7 +122,7 @@ class CartridgeCM : public Cartridge
     */
     CartridgeCM(const ByteBuffer& image, size_t size, const string& md5,
                 const Settings& settings);
-    virtual ~CartridgeCM() = default;
+    ~CartridgeCM() override = default;
 
   public:
     /**
@@ -141,9 +141,12 @@ class CartridgeCM : public Cartridge
     /**
       Install pages for the specified bank in the system.
 
-      @param bank The bank that should be installed in the system
+      @param bank     The bank that should be installed in the system
+      @param segment  The segment the bank should be using
+
+      @return  true, if bank has changed
     */
-    bool bank(uInt16 bank) override;
+    bool bank(uInt16 bank, uInt16 segment = 0) override;
 
     /**
       Get the current bank.
@@ -155,7 +158,7 @@ class CartridgeCM : public Cartridge
     /**
       Query the number of banks supported by the cartridge.
     */
-    uInt16 bankCount() const override;
+    uInt16 romBankCount() const override;
 
     /**
       Patch the cartridge ROM.
@@ -170,9 +173,9 @@ class CartridgeCM : public Cartridge
       Access the internal ROM image for this cartridge.
 
       @param size  Set to the size of the internal ROM image data
-      @return  A pointer to the internal ROM image data
+      @return  A reference to the internal ROM image data
     */
-    const uInt8* getImage(size_t& size) const override;
+    const ByteBuffer& getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -229,7 +232,7 @@ class CartridgeCM : public Cartridge
     /**
       Inform the cartridge about the parent CompuMate controller
     */
-    void setCompuMate(shared_ptr<CompuMate>& cmate) { myCompuMate = cmate; }
+    void setCompuMate(const shared_ptr<CompuMate>& cmate) { myCompuMate = cmate; }
 
     /**
       Get the current keyboard column
@@ -243,7 +246,7 @@ class CartridgeCM : public Cartridge
     shared_ptr<CompuMate> myCompuMate;
 
     // The 16K ROM image of the cartridge
-    std::array<uInt8, 16_KB> myImage;
+    ByteBuffer myImage;
 
     // The 2K of RAM
     std::array<uInt8, 2_KB> myRAM;
@@ -254,7 +257,7 @@ class CartridgeCM : public Cartridge
     // Indicates the offset into the ROM image (aligns to current bank)
     uInt16 myBankOffset{0};
 
-private:
+  private:
     // Following constructors and assignment operators not supported
     CartridgeCM() = delete;
     CartridgeCM(const CartridgeCM&) = delete;

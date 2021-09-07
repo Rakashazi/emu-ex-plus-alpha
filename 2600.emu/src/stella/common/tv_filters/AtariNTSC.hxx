@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -57,14 +57,9 @@ class AtariNTSC
     struct Setup
     {
       // Basic parameters
-      float hue{0.F};        // -1 = -180 degrees     +1 = +180 degrees
-      float saturation{0.F}; // -1 = grayscale (0.0)  +1 = oversaturated colors (2.0)
-      float contrast{0.F};   // -1 = dark (0.5)       +1 = light (1.5)
-      float brightness{0.F}; // -1 = dark (0.5)       +1 = light (1.5)
       float sharpness{0.F};  // edge contrast enhancement/blurring
 
       // Advanced parameters
-      float gamma{0.F};      // -1 = dark (1.5)       +1 = light (0.5)
       float resolution{0.F}; // image resolution
       float artifacts{0.F};  // artifacts caused by color changes
       float fringing{0.F};   // color artifacts caused by brightness changes
@@ -127,7 +122,6 @@ class AtariNTSC
       burst_size  = entry_size / burst_count,
       kernel_half = 16,
       kernel_size = kernel_half * 2 + 1,
-      gamma_size  = 256,
 
       rgb_builder = ((1 << 21) | (1 << 11) | (1 << 1)),
       rgb_kernel_size = burst_size / alignment_count,
@@ -162,16 +156,12 @@ class AtariNTSC
     struct init_t
     {
       std::array<float, burst_count * 6> to_rgb{0.F};
-      std::array<float, gamma_size> to_float{0.F};
-      float contrast{0.F};
-      float brightness{0.F};
       float artifacts{0.F};
       float fringing{0.F};
       std::array<float, rescale_out * kernel_size * 2> kernel{0.F};
 
       init_t() {
         to_rgb.fill(0.0);
-        to_float.fill(0.0);
         kernel.fill(0.0);
       }
     };
@@ -220,7 +210,7 @@ class AtariNTSC
     }
 
     // Common ntsc macros
-    static inline constexpr void ATARI_NTSC_CLAMP( uInt32& io, uInt32 shift ) {
+    static constexpr void ATARI_NTSC_CLAMP( uInt32& io, uInt32 shift ) {
       uInt32 sub = io >> (9-(shift)) & atari_ntsc_clamp_mask;
       uInt32 clamp = atari_ntsc_clamp_add - sub;
       io |= clamp;
@@ -228,31 +218,31 @@ class AtariNTSC
       io &= clamp;
     }
 
-    static inline constexpr void RGB_TO_YIQ(float r, float g, float b,
+    static constexpr void RGB_TO_YIQ(float r, float g, float b,
         float& y, float& i, float& q) {
       y = r * 0.299F + g * 0.587F + b * 0.114F;
       i = r * 0.595716F - g * 0.274453F - b * 0.321263F;
       q = r * 0.211456F - g * 0.522591F + b * 0.311135F;
     }
-    static inline constexpr void YIQ_TO_RGB(float y, float i, float q,
+    static constexpr void YIQ_TO_RGB(float y, float i, float q,
         const float* to_rgb, int& ir, int& ig, int& ib) {
       ir = static_cast<int>(y + to_rgb[0] * i + to_rgb[1] * q);
       ig = static_cast<int>(y + to_rgb[2] * i + to_rgb[3] * q);
       ib = static_cast<int>(y + to_rgb[4] * i + to_rgb[5] * q);
     }
 
-    static inline constexpr uInt32 PACK_RGB( int r, int g, int b ) {
+    static constexpr uInt32 PACK_RGB( int r, int g, int b ) {
       return r << 21 | g << 11 | b << 1;
     }
 
     // Converted from C-style macros; I don't even pretend to understand the logic here :)
-    static inline constexpr int PIXEL_OFFSET1( int ntsc, int scaled ) {
+    static constexpr int PIXEL_OFFSET1( int ntsc, int scaled ) {
       return (kernel_size / 2 + ((ntsc) - (scaled) / rescale_out * rescale_in) +
         ((((scaled) + rescale_out * 10) % rescale_out) != 0) +
         (rescale_out - (((scaled) + rescale_out * 10) % rescale_out)) % rescale_out +
         (kernel_size * 2 * (((scaled) + rescale_out * 10) % rescale_out)));
     }
-    static inline constexpr int PIXEL_OFFSET2( int ntsc ) {
+    static constexpr int PIXEL_OFFSET2( int ntsc ) {
       return 1.0F - (((ntsc) + 100) & 2);
     }
 

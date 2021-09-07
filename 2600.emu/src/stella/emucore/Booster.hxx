@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -18,8 +18,7 @@
 #ifndef BOOSTERGRIP_HXX
 #define BOOSTERGRIP_HXX
 
-#include "Control.hxx"
-#include "Event.hxx"
+#include "Joystick.hxx"
 
 /**
   The standard Atari 2600 joystick controller fitted with the
@@ -28,7 +27,7 @@
 
   @author  Bradford W. Mott
 */
-class BoosterGrip : public Controller
+class BoosterGrip : public Joystick
 {
   public:
     /**
@@ -39,48 +38,24 @@ class BoosterGrip : public Controller
       @param system The system using this controller
     */
     BoosterGrip(Jack jack, const Event& event, const System& system);
-    virtual ~BoosterGrip() = default;
+    ~BoosterGrip() override = default;
 
   public:
-    /**
-      Update the entire digital and analog pin state according to the
-      events currently set.
-    */
-    void update() override;
-
     /**
       Returns the name of this controller.
     */
     string name() const override { return "BoosterGrip"; }
 
+  private:
     /**
-      Determines how this controller will treat values received from the
-      X/Y axis and left/right buttons of the mouse.  Since not all controllers
-      use the mouse the same way (or at all), it's up to the specific class to
-      decide how to use this data.
-
-      In the current implementation, the left button is tied to the X axis,
-      and the right one tied to the Y axis.
-
-      @param xtype  The controller to use for x-axis data
-      @param xid    The controller ID to use for x-axis data (-1 for no id)
-      @param ytype  The controller to use for y-axis data
-      @param yid    The controller ID to use for y-axis data (-1 for no id)
-
-      @return  Whether the controller supports using the mouse
+      Update the button pin states.
     */
-    bool setMouseControl(
-      Controller::Type xtype, int xid, Controller::Type ytype, int yid) override;
+    void updateButtons() override;
 
   private:
     // Pre-compute the events we care about based on given port
     // This will eliminate test for left or right port in update()
-    Event::Type myUpEvent, myDownEvent, myLeftEvent, myRightEvent,
-                myFireEvent, myBoosterEvent, myTriggerEvent,
-                myXAxisValue, myYAxisValue;
-
-    // Controller to emulate in normal mouse axis mode
-    int myControlID{-1};
+    Event::Type myBoosterEvent, myTriggerEvent;
 
   private:
     // Following constructors and assignment operators not supported

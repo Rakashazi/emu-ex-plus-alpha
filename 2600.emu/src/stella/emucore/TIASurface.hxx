@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -22,6 +22,7 @@ class TIA;
 class Console;
 class OSystem;
 class FBSurface;
+class PaletteHandler;
 
 #include <thread>
 
@@ -48,11 +49,12 @@ class TIASurface
       Creates a new TIASurface object
     */
     explicit TIASurface(OSystem& system);
+    virtual ~TIASurface();
 
     /**
       Set the TIA object, which is needed for actually rendering the TIA image.
     */
-    void initialize(const Console& console, const FrameBuffer::VideoMode& mode);
+    void initialize(const Console& console, const VideoModeHandler::Mode& mode);
 
     /**
       Set the palette for TIA rendering.  This currently consists of two
@@ -65,17 +67,27 @@ class TIASurface
       @param rgb_palette  The RGB components of the palette, needed for
                           calculating a phosphor palette
     */
-    void setPalette(const PaletteArray& tia_palette, const PaletteArray& rgb_palette);
+    void setPalette(const PaletteArray& tia_palette,
+                    const PaletteArray& rgb_palette);
 
     /**
-      Get the TIA base surface for use in saving to a PNG image.
+      Get a TIA surface that has no post-processing whatsoever.  This is
+      currently used to save PNG image in the so-called '1x mode'.
+
+      @param rect   Specifies the area in which the surface data is valid
     */
     const FBSurface& baseSurface(Common::Rect& rect) const;
 
     /**
-      Use the palette to map a single indexed pixel color. This is used by the TIA output widget.
+      Get a underlying FBSurface that the TIA is being rendered into.
+    */
+    const FBSurface& tiaSurface() const { return *myTiaSurface; }
+
+    /**
+      Use the palette to map a single indexed pixel color. This is used by the
+      TIA output widget.
      */
-    uInt32 mapIndexedPixel(uInt8 indexedColor, uInt8 shift = 0);
+    uInt32 mapIndexedPixel(uInt8 indexedColor, uInt8 shift = 0) const;
 
     /**
       Get the NTSCFilter object associated with the framebuffer
@@ -88,19 +100,53 @@ class TIASurface
     void setNTSC(NTSCFilter::Preset preset, bool show = true);
 
     /**
-      Increase/decrease current scanline intensity by given relative amount.
+      Switch to next/previous NTSC filtering effect.
+
+      @param direction  +1 indicates increase, -1 indicates decrease.
     */
-    void setScanlineIntensity(int relative);
+    void changeNTSC(int direction = +1);
+
+    /**
+      Switch to next/previous NTSC filtering adjustable.
+
+      @param direction  +1 indicates increase, -1 indicates decrease.
+    */
+    void setNTSCAdjustable(int direction = +1);
+
+    /**
+      Increase/decrease given NTSC filtering adjustable.
+
+      @param adjustable  The adjustable to change
+      @param direction   +1 indicates increase, -1 indicates decrease.
+    */
+    void changeNTSCAdjustable(int adjustable, int direction);
+
+    /**
+      Increase/decrease current NTSC filtering adjustable.
+
+      @param direction  +1 indicates increase, -1 indicates decrease.
+    */
+    void changeCurrentNTSCAdjustable(int direction = +1);
+
+    /**
+      Retrieve palette handler.
+    */
+    PaletteHandler& paletteHandler() const { return *myPaletteHandler; }
+
+    /**
+      Increase/decrease current scanline intensity by given relative amount.
+
+      @param direction  +1 indicates increase, -1 indicates decrease.
+    */
+    void setScanlineIntensity(int direction = +1);
 
     /**
       Change scanline intensity and interpolation.
 
-      @param relative  If non-zero, change current intensity by
-                       'relative' amount, otherwise set to 'absolute'
+      @param change  change current intensity by 'change'
       @return  New current intensity
     */
-    uInt32 enableScanlines(int relative, int absolute = 50);
-    void enableScanlineInterpolation(bool enable);
+    uInt32 enableScanlines(int change);
 
     /**
       Enable/disable/query phosphor effect.
@@ -118,7 +164,7 @@ class TIASurface
     /**
       This method should be called to draw the TIA image(s) to the screen.
     */
-    void render();
+    void render(bool shade = false);
 
     /**
       This method prepares the current frame for taking a snapshot.
@@ -137,19 +183,21 @@ class TIASurface
      */
     void updateSurfaceSettings();
 
+    /**
+      Issue a 'reload' to each surface.
+    */
+    void resetSurfaces();
+
   private:
     /**
       Average current calculated buffer's pixel with previous calculated buffer's pixel (50:50).
     */
     uInt32 averageBuffers(uInt32 bufOfs);
 
+    // Is plain video mode enabled?
+    bool correctAspect() const;
+
   private:
-    OSystem& myOSystem;
-    FrameBuffer& myFB;
-    TIA* myTIA{nullptr};
-
-    shared_ptr<FBSurface> myTiaSurface, mySLineSurface, myBaseTiaSurface;
-
     // Enumeration created such that phosphor off/on is in LSB,
     // and Blargg off/on is in MSB
     enum class Filter: uInt8 {
@@ -159,6 +207,13 @@ class TIASurface
       BlarggPhosphor = 0x11
     };
     Filter myFilter{Filter::Normal};
+
+  private:
+    OSystem& myOSystem;
+    FrameBuffer& myFB;
+    TIA* myTIA{nullptr};
+
+    unique_ptr<FBSurface> myTiaSurface, mySLineSurface, myBaseTiaSurface, myShadeSurface;
 
     // NTSC object to use in TIA rendering mode
     NTSCFilter myNTSCFilter;
@@ -182,6 +237,9 @@ class TIASurface
 
     // Flag for saving a snapshot
     bool mySaveSnapFlag{false};
+
+    // The palette handler
+    unique_ptr<PaletteHandler> myPaletteHandler;
 
   private:
     // Following constructors and assignment operators not supported

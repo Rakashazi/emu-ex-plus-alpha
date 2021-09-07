@@ -8,7 +8,7 @@
 //  SS  SS   tt   ee      ll   ll  aa  aa
 //   SSSS     ttt  eeeee llll llll  aaaaa
 //
-// Copyright (c) 1995-2020 by Bradford W. Mott, Stephen Anthony
+// Copyright (c) 1995-2021 by Bradford W. Mott, Stephen Anthony
 // and the Stella Team
 //
 // See the file "License.txt" for information on usage and redistribution of
@@ -67,7 +67,7 @@ class Cartridge4A50 : public Cartridge
     */
     Cartridge4A50(const ByteBuffer& image, size_t size, const string& md5,
                   const Settings& settings);
-    virtual ~Cartridge4A50() = default;
+    ~Cartridge4A50() override = default;
 
   public:
     /**
@@ -96,9 +96,9 @@ class Cartridge4A50 : public Cartridge
       Access the internal ROM image for this cartridge.
 
       @param size  Set to the size of the internal ROM image data
-      @return  A pointer to the internal ROM image data
+      @return  A reference to the internal ROM image data
     */
-    const uInt8* getImage(size_t& size) const override;
+    const ByteBuffer& getImage(size_t& size) const override;
 
     /**
       Save the current state of this cart to the given Serializer.
@@ -153,20 +153,21 @@ class Cartridge4A50 : public Cartridge
     bool poke(uInt16 address, uInt8 value) override;
 
   private:
+  #ifdef DEBUGGER_SUPPORT
     /**
-      Query the given address type for the associated disassembly flags.
+      Query the given address type for the associated access flags.
 
       @param address  The address to query
     */
-    uInt8 getAccessFlags(uInt16 address) const override;
+    Device::AccessFlags getAccessFlags(uInt16 address) const override;
     /**
-      Change the given address to use the given disassembly flags.
+      Change the given address to use the given access flags.
 
       @param address  The address to modify
-      @param flags    A bitfield of DisasmType directives for the given address
+      @param flags    A bitfield of AccessType directives for the given address
     */
-    void setAccessFlags(uInt16 address, uInt8 flags) override;
-
+    void setAccessFlags(uInt16 address, Device::AccessFlags flags) override;
+  #endif
     /**
       Check all possible hotspots
     */
@@ -219,7 +220,7 @@ class Cartridge4A50 : public Cartridge
 
   private:
     // The 128K ROM image of the cartridge
-    std::array<uInt8, 128_KB> myImage;
+    ByteBuffer myImage;
 
     // The 32K of RAM on the cartridge
     std::array<uInt8, 32_KB> myRAM;
