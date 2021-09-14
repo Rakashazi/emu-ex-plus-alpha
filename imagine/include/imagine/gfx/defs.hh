@@ -20,10 +20,9 @@
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
+#include <imagine/util/concepts.hh>
 #include <optional>
 #include <stdexcept>
-#include <string>
-#include <string_view>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/gfx-globals.hh>
@@ -74,8 +73,10 @@ static GCRect makeGCRectRel(GP p, GP size)
 	return GCRect::makeRel(p, size);
 }
 
-template <class T>
-static GTexC pixelToTexC(T pixel, T total) { return (GTexC)pixel / (GTexC)total; }
+static GTexC pixelToTexC(IG::integral auto pixel, IG::integral auto total)
+{
+	return (GTexC)pixel / (GTexC)total;
+}
 
 enum WrapMode
 {
@@ -135,9 +136,6 @@ enum class CommonTextureSampler
 	REPEAT,
 	NEAREST_MIP_REPEAT
 };
-
-using TextString = std::u16string;
-using TextStringView = std::u16string_view;
 
 class TextureSpan
 {

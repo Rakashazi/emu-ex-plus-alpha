@@ -38,8 +38,6 @@ BaseApplication::BaseApplication(ApplicationContext ctx)
 		});
 }
 
-BaseApplication::~BaseApplication() {}
-
 void BaseApplication::addWindow(std::unique_ptr<Window> winPtr)
 {
 	window_.emplace_back(std::move(winPtr));
@@ -240,6 +238,16 @@ void BaseApplication::dispatchOnFreeCaches(ApplicationContext ctx, bool running)
 void BaseApplication::dispatchOnExit(ApplicationContext ctx, bool backgrounded)
 {
 	onExit_.runAll([&](ExitDelegate del){ return del(ctx, backgrounded); }, true);
+	if(!backgrounded)
+	{
+		// destroy app window data since it was allocated by the app subclass
+		// for logical destructor ordering
+		for(auto &win : window_)
+		{
+			win->resetAppData();
+			win->resetRendererData();
+		}
+	}
 }
 
 [[gnu::weak]] void ApplicationContext::setIdleDisplayPowerSave(bool on) {}

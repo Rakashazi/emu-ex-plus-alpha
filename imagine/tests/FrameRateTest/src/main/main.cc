@@ -25,7 +25,7 @@
 #include <imagine/base/Application.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include "tests.hh"
 #include "TestPicker.hh"
 #include "cpuUtils.hh"
@@ -57,9 +57,9 @@ FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams i
 	fontManager{ctx},
 	renderer{ctx, rendererErr}
 {
-	if(rendererErr)
+	if(rendererErr) [[unlikely]]
 	{
-		ctx.exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", rendererErr->what());
+		ctx.exitWithMessage(-1, fmt::format("Error creating renderer: {}", rendererErr->what()).data());
 		return;
 	}
 
@@ -70,9 +70,9 @@ FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams i
 		[this](Base::ApplicationContext ctx, Base::Window &win)
 		{
 			if(auto err = renderer.initMainTask(&win);
-				err)
+				err) [[unlikely]]
 			{
-				ctx.exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
+				ctx.exitWithMessage(-1, fmt::format("Error creating renderer: {}", err->what()).data());
 				return;
 			}
 			viewManager = {renderer};
@@ -86,9 +86,9 @@ FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams i
 			IG::WP pixmapSize{256, 256};
 			for(auto desc: renderer.textureBufferModes())
 			{
-				testDesc.emplace_back(TEST_DRAW, string_makePrintf<64>("Draw RGB565 %ux%u (%s)", pixmapSize.x, pixmapSize.y, desc.name).data(),
+				testDesc.emplace_back(TEST_DRAW, fmt::format("Draw RGB565 {}x{} ({})", pixmapSize.x, pixmapSize.y, desc.name),
 					pixmapSize, desc.mode);
-				testDesc.emplace_back(TEST_WRITE, string_makePrintf<64>("Write RGB565 %ux%u (%s)", pixmapSize.x, pixmapSize.y, desc.name).data(),
+				testDesc.emplace_back(TEST_WRITE, fmt::format("Write RGB565 {}x{} ({})", pixmapSize.x, pixmapSize.y, desc.name),
 					pixmapSize, desc.mode);
 			}
 			auto &picker = winData.picker;

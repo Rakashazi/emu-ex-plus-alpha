@@ -15,46 +15,15 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <assert.h>
+#include <cassert>
 #include <cstddef>
 #include <iterator>
 #include <cstring>
 
-template <class T, size_t SIZE>
-class StaticStorageBase
+template<class T, size_t SIZE>
+class StaticArrayList
 {
 public:
-	constexpr size_t maxSize() const { return SIZE; }
-
-protected:
-	T arr[SIZE];
-
-	constexpr StaticStorageBase() {}
-	constexpr T *storage() { return arr; }
-	constexpr const T *storage() const { return arr; }
-};
-
-template <class T>
-class PointerStorageBase
-{
-public:
-	constexpr size_t maxSize() const { return size; }
-
-protected:
-	T *arr{};
-	size_t size{};
-
-	constexpr PointerStorageBase() {}
-	constexpr T *storage() { return arr; }
-	constexpr const T *storage() const { return arr; }
-	constexpr void setStorage(T *s, size_t size) { arr = s; this->size = size;}
-};
-
-template<class T, class STORAGE_BASE>
-class ArrayListBase : public STORAGE_BASE
-{
-public:
-	using STORAGE_BASE::storage;
 	using value_type = T;
 	using size_type = size_t;
 	using iterator = T*;
@@ -62,7 +31,7 @@ public:
 	using reverse_iterator = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-	constexpr ArrayListBase() {}
+	constexpr StaticArrayList() {}
 
 	// Iterators (STL API)
 	constexpr iterator begin() { return data(); }
@@ -81,8 +50,8 @@ public:
 	// Capacity (STL API)
 	constexpr size_t size() const { return size_; }
 	constexpr bool empty() const { return !size(); };
-	constexpr size_t capacity() const { return STORAGE_BASE::maxSize(); }
-	constexpr size_t max_size() const { return STORAGE_BASE::maxSize(); }
+	constexpr size_t capacity() const { return SIZE; }
+	constexpr size_t max_size() const { return SIZE; }
 
 	constexpr void resize(size_t size)
 	{
@@ -137,12 +106,11 @@ public:
 		size_++;
 	}
 
-	template <class... ARGS>
-	constexpr T &emplace_back(ARGS&&... args)
+	constexpr T &emplace_back(auto &&... args)
 	{
 		assert(size_ < max_size());
 		auto newAddr = &data()[size_];
-		new(newAddr) T(std::forward<ARGS>(args)...);
+		new(newAddr) T(std::forward<decltype(args)>(args)...);
 		size_++;
 		return *newAddr;
 	}
@@ -183,10 +151,11 @@ public:
 
 private:
 	size_t size_{};
-};
+	T arr[SIZE];
 
-template<class T, size_t SIZE>
-using StaticArrayList = ArrayListBase<T, StaticStorageBase<T, SIZE> >;
+	constexpr T *storage() { return arr; }
+	constexpr const T *storage() const { return arr; }
+};
 
 namespace IG
 {

@@ -24,6 +24,7 @@
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 #include <sys/time.h>
 
 extern "C"
@@ -381,7 +382,7 @@ void EmuSystem::reset(ResetMode mode)
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.%c.vsf", statePath, gameName, saveSlotChar(slot));
+	return IG::formatToPathString("{}/{}.{}.vsf", statePath, gameName, saveSlotChar(slot));
 }
 
 struct SnapshotTrapData
@@ -477,12 +478,13 @@ static const char *mainROMFilename(ViceSystem system)
 
 static EmuSystem::Error c64FirmwareError(Base::ApplicationContext app)
 {
-	return EmuSystem::makeError("System files missing, place C64, DRIVES, & PRINTER directories from VICE"
+	return EmuSystem::makeError(
+		fmt::format("System files missing, place C64, DRIVES, & PRINTER directories from VICE"
 		" in a path below, or set a custom path in options:\n"
 		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-		"%s\n%s\n%s", EmuApp::assetPath(app).data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
+		"{}\n{}\n{}", EmuApp::assetPath(app).data(), "~/.local/share/C64.emu", "/usr/share/games/vice"));
 		#else
-		"%s/C64.emu", app.sharedStoragePath().data());
+		"{}/C64.emu", app.sharedStoragePath().data()));
 		#endif
 }
 
@@ -550,7 +552,7 @@ static FS::FileString vic20ExtraCartName(const char *baseCartName, const char *s
 		if(suffixChar == baseCartName[addrSuffixOffset])
 			continue; // skip original filename
 		cartName[addrSuffixOffset] = suffixChar;
-		if(FS::exists(FS::makePathStringPrintf("%s/%s", searchPath, cartName.data())))
+		if(FS::exists(IG::formatToPathString("{}/{}", searchPath, cartName.data())))
 		{
 			return cartName;
 		}
@@ -611,7 +613,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 				{
 					logMsg("loading extra cart image:%s", fullGamePath());
 					if(plugin.cartridge_attach_image(systemCartType(currSystem),
-						FS::makePathStringPrintf("%s/%s", gamePath(), extraCartFilename.data()).data()) != 0)
+						IG::formatToPathString("{}/{}", gamePath(), extraCartFilename.data()).data()) != 0)
 					{
 						return EmuSystem::makeFileReadError();
 					}
@@ -686,7 +688,7 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 	updateKeyboardMapping();
 	setSysModel(optionDefaultModel(currSystem));
 	plugin.resources_set_string("AutostartPrgDiskImage",
-		FS::makePathStringPrintf("%s/AutostartPrgDisk.d64", EmuSystem::baseDefaultGameSavePath(attach.appContext()).data()).data());
+		IG::formatToPathString("{}/AutostartPrgDisk.d64", EmuSystem::baseDefaultGameSavePath(attach.appContext()).data()).data());
 }
 
 void EmuSystem::onPrepareAudio(EmuAudio &audio)
@@ -716,13 +718,13 @@ EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
 
 	#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
 	sysFilePath[1] = EmuApp::assetPath(ctx);
-	sysFilePath[2] = FS::makePathStringPrintf("%s/C64.emu.zip", EmuApp::assetPath(ctx).data());
+	sysFilePath[2] = IG::formatToPathString("{}/C64.emu.zip", EmuApp::assetPath(ctx).data());
 	sysFilePath[3] = {"~/.local/share/C64.emu"};
 	sysFilePath[4] = {"/usr/share/games/vice"};
 	#else
 	{
-		sysFilePath[1] = FS::makePathStringPrintf("%s/C64.emu", ctx.sharedStoragePath().data());
-		sysFilePath[2] = FS::makePathStringPrintf("%s/C64.emu.zip", ctx.sharedStoragePath().data());
+		sysFilePath[1] = IG::formatToPathString("{}/C64.emu", ctx.sharedStoragePath().data());
+		sysFilePath[2] = IG::formatToPathString("{}/C64.emu.zip", ctx.sharedStoragePath().data());
 	}
 	#endif
 

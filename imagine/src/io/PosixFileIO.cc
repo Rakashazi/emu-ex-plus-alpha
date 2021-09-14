@@ -32,7 +32,7 @@ PosixFileIO::operator IO&() { return getIO(ioImpl); }
 
 GenericIO PosixFileIO::makeGeneric()
 {
-	return std::visit([](auto &&io) { return GenericIO{io}; }, ioImpl);
+	return std::visit([](auto &&io) { return GenericIO{std::move(io)}; }, ioImpl);
 }
 
 std::error_code PosixFileIO::open(const char *path, IO::AccessHint access, uint32_t mode)

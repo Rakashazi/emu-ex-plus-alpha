@@ -17,6 +17,7 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAudio.hh>
 #include "EmuOptions.hh"
+#include <imagine/util/format.hh>
 
 static void setAudioRate(uint32_t rate, EmuAudio &audio)
 {
@@ -94,7 +95,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 		"Volume", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(string_makePrintf<5>("%u%%", optionSoundVolume.val).data());
+			t.setString(fmt::format("{}%", optionSoundVolume.val));
 			return true;
 		},
 		[]()
@@ -123,14 +124,7 @@ AudioOptionView::AudioOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"Buffer Size In Frames", &defaultFace(),
 		(int)optionSoundBuffers - 2,
-		[this](const MultiChoiceMenuItem &) -> int
-		{
-			return std::size(soundBuffersItem);
-		},
-		[this](const MultiChoiceMenuItem &, unsigned idx) -> TextMenuItem&
-		{
-			return soundBuffersItem[idx];
-		}
+		soundBuffersItem
 	},
 	addSoundBuffersOnUnderrun
 	{

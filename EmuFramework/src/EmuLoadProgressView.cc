@@ -103,9 +103,9 @@ void EmuLoadProgressView::setPos(int val)
 	pos = val;
 }
 
-void EmuLoadProgressView::setLabel(const char *labelStr)
+void EmuLoadProgressView::setLabel(IG::utf16String label)
 {
-	text.setString(labelStr);
+	text.setString(std::move(label));
 }
 
 void EmuLoadProgressView::place()

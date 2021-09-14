@@ -30,7 +30,7 @@ FrameBuffer::FrameBuffer(OSystem& osystem):
 
 void FrameBuffer::showTextMessage(const string& message, MessagePosition, bool)
 {
-	appPtr->printfMessage(3, false, "%s", message.c_str());
+	appPtr->postMessage(3, false, message.c_str());
 }
 
 void FrameBuffer::enablePhosphor(bool enable, int blend)

@@ -21,6 +21,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/math/int.hh>
+#include <imagine/util/string.h>
 #include <string>
 
 ToastView::ToastView() {}
@@ -50,7 +51,7 @@ void ToastView::clear()
 	{
 		unpostTimer.cancel();
 		waitForDrawFinished();
-		text.setString(nullptr);
+		text.setString({});
 	}
 }
 
@@ -67,71 +68,31 @@ void ToastView::place()
 	msgFrame = projP.unProjectRect(viewFrame);
 }
 
+void ToastView::post(IG::utf16String msg, int secs, bool error)
+{
+	text.setString(std::move(msg));
+	place();
+	this->error = error;
+	postContent(secs);
+}
+
+void ToastView::postError(IG::utf16String msg, int secs)
+{
+	post(std::move(msg), secs, true);
+}
+
 void ToastView::unpost()
 {
 	logMsg("unposting");
 	waitForDrawFinished();
-	text.setString(nullptr);
+	text.setString({});
 	postDraw();
-}
-
-void ToastView::contentUpdated(bool error)
-{
-	place();
-	this->error = error;
 }
 
 void ToastView::postContent(int secs)
 {
 	postDraw();
 	unpostTimer.runIn(IG::Seconds{secs});
-}
-
-void ToastView::post(const char *msg, int secs, bool error)
-{
-	{
-		waitForDrawFinished();
-		text.setString(msg);
-		logMsg("posting string:%s", msg);
-		contentUpdated(error);
-	}
-	postContent(secs);
-}
-
-void ToastView::postError(const char *msg, int secs)
-{
-	post(msg, secs, true);
-}
-
-void ToastView::post(const char *prefix, const std::system_error &err, int secs)
-{
-	printf(secs, true, "%s%s", prefix, err.what());
-}
-
-void ToastView::post(const char *prefix, std::error_code ec, int secs)
-{
-	printf(secs, true, "%s%s", prefix, ec.message().c_str());
-}
-
-void ToastView::printf(uint32_t secs, bool error, const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	auto vaEnd = IG::scopeGuard([&](){ va_end(args); });
-	vprintf(secs, error, format, args);
-}
-
-void ToastView::vprintf(uint32_t secs, bool error, const char *format, va_list args)
-{
-	{
-		waitForDrawFinished();
-		std::array<char, 1024> str{};
-		auto result = vsnprintf(str.data(), str.size(), format, args);
-		text.setString(str.data());
-		logMsg("posting formatted string:%s", str.data());
-		contentUpdated(error);
-	}
-	postContent(secs);
 }
 
 void ToastView::prepareDraw()

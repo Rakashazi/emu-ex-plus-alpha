@@ -19,6 +19,7 @@
 #include <emuframework/EmuInput.hh>
 #include "internal.hh"
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 
 class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionView>
 {
@@ -87,7 +88,7 @@ class CustomSystemOptionView : public SystemOptionView
 {
 	TextMenuItem sysCardPath
 	{
-		nullptr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("System Card", &::sysCardPath,
@@ -101,9 +102,9 @@ class CustomSystemOptionView : public SystemOptionView
 		}
 	};
 
-	static std::array<char, 256> makeBiosMenuEntryStr()
+	static std::string makeBiosMenuEntryStr()
 	{
-		return string_makePrintf<256>("System Card: %s", strlen(::sysCardPath.data()) ? FS::basename(::sysCardPath).data() : "None set");
+		return fmt::format("System Card: {}", strlen(::sysCardPath.data()) ? FS::basename(::sysCardPath).data() : "None set");
 	}
 
 public:

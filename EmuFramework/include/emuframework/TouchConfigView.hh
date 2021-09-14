@@ -26,7 +26,7 @@ class VController;
 class TouchConfigView final: public TableView, public EmuAppHelper<TouchConfigView>
 {
 public:
-	TouchConfigView(ViewAttachParams attach, VController &vController, const char *faceBtnName, const char *centerBtnName);
+	TouchConfigView(ViewAttachParams attach, VController &vController, IG::utf16String faceBtnName, IG::utf16String centerBtnName);
 	void place() final;
 	void draw(Gfx::RendererCommands &cmds) final;
 

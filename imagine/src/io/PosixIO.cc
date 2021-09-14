@@ -27,7 +27,7 @@ using namespace IG;
 
 GenericIO PosixIO::makeGeneric()
 {
-	return GenericIO{*this};
+	return GenericIO{std::move(*this)};
 }
 
 std::error_code PosixIO::open(const char *path, uint32_t mode)

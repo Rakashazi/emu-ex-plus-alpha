@@ -30,6 +30,7 @@
 #include "screen.h"
 #include "frame_skip.h"
 #include "transpack.h"
+#include <imagine/logger/logger.h>
 
 extern int neogeo_fix_bank_type;
 unsigned int neogeo_frame_counter;

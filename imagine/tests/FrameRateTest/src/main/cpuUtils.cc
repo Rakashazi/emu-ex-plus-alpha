@@ -18,7 +18,7 @@
 #include <cstdio>
 #include "tests.hh"
 #include <imagine/io/FileIO.hh>
-#include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 
 struct CPUTime
@@ -114,7 +114,7 @@ void updateCPULoad(TestFramework &test)
 		double virtualDelta = newTime.virt - cpuTime.virt;
 		double totalDelta = newTime.total - cpuTime.total;
 		double usagePercent = (niceDelta + userDelta + systemAllDelta + stealDelta + virtualDelta) / totalDelta * (double)100.0;
-		string_printf(useStr, "%.2f%%", usagePercent);
+		IG::formatTo(useStr, "{:.2f}%", usagePercent);
 	}
 	cpuTime = newTime;
 	test.setCPUUseText(useStr);

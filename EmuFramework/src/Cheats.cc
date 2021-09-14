@@ -27,7 +27,7 @@ BaseCheatsView::BaseCheatsView(ViewAttachParams attach):
 		{
 			return 1 + cheat.size();
 		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
+		[this](const TableView &, size_t idx) -> MenuItem&
 		{
 			if(idx == 0)
 				return edit;
@@ -78,19 +78,19 @@ void BaseEditCheatListView::onCheatListChanged()
 	onCheatListChanged_.callSafe();
 }
 
-BaseEditCheatView::BaseEditCheatView(const char *viewName, ViewAttachParams attach, const char *cheatName,
+BaseEditCheatView::BaseEditCheatView(IG::utf16String viewName, ViewAttachParams attach, IG::utf16String cheatName,
 	TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed,
 	RefreshCheatsDelegate onCheatListChanged_):
 	TableView
 	{
-		viewName,
+		std::move(viewName),
 		attach,
 		items,
 		item
 	},
 	name
 	{
-		cheatName, &defaultFace(),
+		std::move(cheatName), &defaultFace(),
 		[this](Input::Event e)
 		{
 			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input description", cheatNameString(),

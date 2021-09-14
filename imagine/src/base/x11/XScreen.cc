@@ -19,7 +19,7 @@
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <X11/extensions/Xrandr.h>
 #include <cmath>
 
@@ -135,7 +135,7 @@ void Screen::setFrameRate(double rate)
 			logWarn("tried to set unsupported frame rate: %f", rate);
 			return;
 		}
-		auto cmd = string_makePrintf<64>("sudo /usr/pandora/scripts/op_lcdrate.sh %u", (unsigned int)rate);
+		auto cmd = fmt::format("sudo /usr/pandora/scripts/op_lcdrate.sh {}", (unsigned int)rate);
 		int err = system(cmd.data());
 		if(err)
 		{

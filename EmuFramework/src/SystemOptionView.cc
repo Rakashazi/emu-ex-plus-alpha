@@ -20,6 +20,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 
 static FS::PathString savePathStrToDescStr(char *savePathStr)
 {
@@ -40,7 +41,7 @@ static FS::PathString savePathStrToDescStr(char *savePathStr)
 	return desc;
 }
 
-BiosSelectMenu::BiosSelectMenu(NameString name, ViewAttachParams attach, FS::PathString *biosPathStr_, BiosChangeDelegate onBiosChange_,
+BiosSelectMenu::BiosSelectMenu(IG::utf16String name, ViewAttachParams attach, FS::PathString *biosPathStr_, BiosChangeDelegate onBiosChange_,
 	EmuSystem::NameFilterFunc fsFilter_):
 	TableView
 	{
@@ -50,7 +51,7 @@ BiosSelectMenu::BiosSelectMenu(NameString name, ViewAttachParams attach, FS::Pat
 		{
 			return 2;
 		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
+		[this](const TableView &, size_t idx) -> MenuItem&
 		{
 			switch(idx)
 			{
@@ -101,9 +102,9 @@ static void setAutoSaveState(unsigned val)
 	logMsg("set auto-savestate %d", optionAutoSaveState.val);
 }
 
-static std::array<char, 256> makePathMenuEntryStr(PathOption optionSavePath)
+static auto makePathMenuEntryStr(PathOption optionSavePath)
 {
-	return string_makePrintf<256>("Save Path: %s", savePathStrToDescStr(optionSavePath).data());
+	return fmt::format("Save Path: {}", savePathStrToDescStr(optionSavePath).data());
 }
 
 SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
@@ -150,7 +151,7 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	savePath
 	{
-		nullptr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](TextMenuItem &, View &view, Input::Event e)
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>("Save Path", 3);
@@ -269,7 +270,7 @@ void SystemOptionView::onSavePathChange(const char *path)
 	if(string_equal(path, optionSavePathDefaultToken))
 	{
 		auto defaultPath = EmuSystem::baseDefaultGameSavePath(appContext());
-		app().printfMessage(4, false, "Default Save Path:\n%s", defaultPath.data());
+		app().postMessage(4, false, fmt::format("Default Save Path:\n{}", defaultPath.data()));
 	}
 	savePath.compile(makePathMenuEntryStr(optionSavePath).data(), renderer(), projP);
 	EmuSystem::setupGameSavePath(appContext());
@@ -278,10 +279,10 @@ void SystemOptionView::onSavePathChange(const char *path)
 
 void SystemOptionView::onFirmwarePathChange(const char *path, Input::Event e) {}
 
-std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(const char *name, bool allowFiles, unsigned extraItemsHint)
+std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16String name, bool allowFiles, unsigned extraItemsHint)
 {
 	unsigned items = (allowFiles ? 3 : 2) + extraItemsHint;
-	auto multiChoiceView = std::make_unique<TextTableView>(name, attachParams(), items);
+	auto multiChoiceView = std::make_unique<TextTableView>(std::move(name), attachParams(), items);
 	multiChoiceView->appendItem("Set Custom Path",
 		[this](Input::Event e)
 		{
@@ -331,13 +332,13 @@ std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(const char
 	return multiChoiceView;
 }
 
-void SystemOptionView::pushAndShowFirmwarePathMenu(const char *name, Input::Event e, bool allowFiles)
+void SystemOptionView::pushAndShowFirmwarePathMenu(IG::utf16String name, Input::Event e, bool allowFiles)
 {
-	pushAndShow(makeFirmwarePathMenu(name, allowFiles), e);
+	pushAndShow(makeFirmwarePathMenu(std::move(name), allowFiles), e);
 }
 
-void SystemOptionView::pushAndShowFirmwareFilePathMenu(const char *name, Input::Event e)
+void SystemOptionView::pushAndShowFirmwareFilePathMenu(IG::utf16String name, Input::Event e)
 {
-	pushAndShowFirmwarePathMenu(name, e, true);
+	pushAndShowFirmwarePathMenu(std::move(name), e, true);
 }
 

@@ -31,7 +31,6 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/util/DelegateFuncSet.hh>
-#include <imagine/util/typeTraits.hh>
 #include <vector>
 
 namespace Base

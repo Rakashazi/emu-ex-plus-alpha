@@ -36,7 +36,7 @@ static constexpr float OVER_SCROLL_VEL_SCALE = .2 * 60.;
 
 ScrollView::ScrollView(ViewAttachParams attach): ScrollView{{}, attach} {}
 
-ScrollView::ScrollView(NameString name, ViewAttachParams attach):
+ScrollView::ScrollView(IG::utf16String name, ViewAttachParams attach):
 	View{std::move(name), attach},
 	animate
 	{

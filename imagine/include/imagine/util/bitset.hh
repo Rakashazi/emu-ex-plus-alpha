@@ -1,7 +1,22 @@
 #pragma once
 
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+#include <imagine/util/concepts.hh>
 #include <limits>
-#include <type_traits>
 
 namespace IG
 {
@@ -9,59 +24,50 @@ namespace IG
 template <class T>
 static constexpr unsigned bitSize = std::numeric_limits<T>::digits;
 
-template <class T = unsigned>
+template <class T = unsigned> requires unsigned_integral<T>
 constexpr static T bit(unsigned bitIdx)
 {
-	static_assert(std::is_unsigned_v<T>, "expected unsigned type");
 	return (T)1 << bitIdx;
 }
 
-template <class T = unsigned>
+template <class T = unsigned> requires unsigned_integral<T>
 constexpr static T bits(unsigned numBits)
 {
-	static_assert(std::is_unsigned_v<T>, "expected unsigned type");
 	return std::numeric_limits<T>::max() >> (bitSize<T> - numBits);
 }
 
-template <class T>
-constexpr static T setBits(T x, T mask)
+constexpr static auto setBits(integral auto x, integral auto mask)
 {
 	return x | mask; // OR mask to set
 }
 
-template <class T>
-constexpr static T clearBits(T x, T mask)
+constexpr static auto clearBits(integral auto x, integral auto mask)
 {
 	return x & ~mask; // AND with the NOT of mask to unset
 }
 
-template <class T>
-constexpr static T setOrClearBits(T x, T mask, bool condition)
+constexpr static auto setOrClearBits(integral auto x, integral auto mask, bool condition)
 {
 	return condition ? setBits(x, mask) : clearBits(x, mask);
 }
 
-template <class T>
-constexpr static T flipBits(T x, T mask)
+constexpr static auto flipBits(integral auto x, integral auto mask)
 {
 	return x ^ mask; // XOR mask to flip
 }
 
-template <class T>
-constexpr static T updateBits(T x, T mask, T updateMask)
+constexpr static auto updateBits(integral auto x, integral auto mask, integral auto updateMask)
 {
 	return setBits(clearBits(x, updateMask), mask);
 }
 
-template <class T>
-static T swapBits(T x, T range1, T range2, unsigned int rangeSize)
+constexpr static auto swapBits(integral auto x, integral auto range1, integral auto range2, unsigned int rangeSize)
 {
-	T t = ((x >> range1) ^ (x >> range2)) & ((1 << rangeSize) - 1); // XOR temporary
+	auto t = ((x >> range1) ^ (x >> range2)) & ((1 << rangeSize) - 1); // XOR temporary
 	return x ^ ((t << range1) | (t << range2));
 }
 
-template <class T>
-constexpr static bool isBitMaskSet(T x, T mask)
+constexpr static bool isBitMaskSet(integral auto x, integral auto mask)
 {
 	return (x & mask) == mask; //AND mask, if the result equals mask, all bits match
 }

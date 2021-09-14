@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/typeTraits.hh>
-#include <chrono>
+#include <imagine/time/Time.hh>
 #include <cmath>
 
 namespace IG
@@ -163,17 +163,19 @@ class InterpolatorValue : public Interpolator<T, Time, INTERPOLATOR_TYPE>
 {
 public:
 	struct AbsoluteTimeInit{};
+	using InterpolatorBase = Interpolator<T, Time, INTERPOLATOR_TYPE>;
 
 	constexpr InterpolatorValue() {}
 
-	template<class Time1, class Time2>
-	constexpr InterpolatorValue(T start, T dest, InterpolatorType type, Time1 startTime, Time2 duration):
+	constexpr InterpolatorValue(T start, T dest, InterpolatorType type,
+		IG::ChronoDuration auto startTime, IG::ChronoDuration auto duration):
 		InterpolatorValue{start, dest, type, startTime, startTime + duration, AbsoluteTimeInit{}}
 	{}
 
-	template<class Time1, class Time2>
-	constexpr InterpolatorValue(T start, T dest, InterpolatorType type, Time1 startTime, Time2 destTime, struct AbsoluteTimeInit):
-		Interpolator<T, Time, INTERPOLATOR_TYPE>{start, dest, type,
+	constexpr InterpolatorValue(T start, T dest, InterpolatorType type,
+		IG::ChronoDuration auto startTime, IG::ChronoDuration auto destTime,
+		struct AbsoluteTimeInit):
+		InterpolatorBase{start, dest, type,
 			std::chrono::duration_cast<Time>(startTime),
 			std::chrono::duration_cast<Time>(destTime)},
 		val{start}
@@ -190,7 +192,7 @@ public:
 
 	bool update(Time time)
 	{
-		return Interpolator<T, Time, INTERPOLATOR_TYPE>::update(time, val);
+		return InterpolatorBase::update(time, val);
 	}
 
 	operator T() const
@@ -210,12 +212,12 @@ public:
 
 protected:
 	T val{};
-	using Interpolator<T, Time, INTERPOLATOR_TYPE>::startTime;
-	using Interpolator<T, Time, INTERPOLATOR_TYPE>::destTime;
-	using Interpolator<T, Time, INTERPOLATOR_TYPE>::type;
-	using Interpolator<T, Time, INTERPOLATOR_TYPE>::startVal;
-	using Interpolator<T, Time, INTERPOLATOR_TYPE>::destVal;
-	using Interpolator<T, Time, INTERPOLATOR_TYPE>::duration;
+	using InterpolatorBase::startTime;
+	using InterpolatorBase::destTime;
+	using InterpolatorBase::type;
+	using InterpolatorBase::startVal;
+	using InterpolatorBase::destVal;
+	using InterpolatorBase::duration;
 };
 
 }

@@ -34,12 +34,9 @@
 #define Debugger DebuggerMac
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAppInlines.hh>
-#include <emuframework/EmuAudio.hh>
-#include <emuframework/EmuVideo.hh>
-#include <emuframework/EmuInput.hh>
 #undef Debugger
 #include "internal.hh"
-#include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 
 static constexpr uint MAX_ROM_SIZE = 512 * 1024;
 std::optional<OSystem> osystem{};
@@ -79,7 +76,7 @@ const char *EmuSystem::systemName()
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *savePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.0%c.sta", savePath, gameName, saveSlotChar(slot));
+	return IG::formatToPathString("{}/{}.0{}.sta", savePath, gameName, saveSlotChar(slot));
 }
 
 void EmuSystem::closeSystem()

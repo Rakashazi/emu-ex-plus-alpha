@@ -31,7 +31,7 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 		{
 			return 1;
 		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
+		[this](const TableView &, size_t idx) -> MenuItem&
 		{
 			return game[0];
 		}

@@ -18,7 +18,7 @@
 #include <imagine/util/string/basename.h>
 #include <imagine/util/utility.h>
 #include <imagine/util/utf.hh>
-#include <assert.h>
+#include <cassert>
 #include <system_error>
 #include <cstdint>
 
@@ -163,11 +163,13 @@ std::errc string_convertCharCode(const char** sourceStart, uint32_t &c)
 	}
 }
 
-std::u16string string_makeUTF16(const char *str)
+std::u16string string_makeUTF16(std::string_view strView)
 {
+	if(!strView.size())
+		return {};
 	std::u16string u16String{};
 	unsigned utf16Len = 0;
-	const char *s = str;
+	const char *s = strView.data();
 	uint32_t c = 0;
 	while(!(bool)string_convertCharCode(&s, c))
 	{
@@ -176,7 +178,7 @@ std::u16string string_makeUTF16(const char *str)
 		utf16Len++;
 	}
 	u16String.reserve(utf16Len);
-	s = str;
+	s = strView.data();
 	while(!(bool)string_convertCharCode(&s, c))
 	{
 		if(c > UINT16_MAX)

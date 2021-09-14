@@ -23,7 +23,7 @@
 #include "shared.h"
 #include <imagine/logger/logger.h>
 #include <system_error>
-#include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 
 static unsigned oldStateSizeAfterZ80Regs()
 {
@@ -114,7 +114,7 @@ EmuSystem::Error state_load(const unsigned char *buffer)
 		if(result != Z_OK)
 		{
 			//logErr("error %d in uncompress loading state", result);
-			return EmuSystem::makeError("Error %d during uncompress", result);
+			return EmuSystem::makeError(fmt::format("Error {} during uncompress", result));
 		}
   }
 
@@ -289,7 +289,7 @@ EmuSystem::Error state_load(const unsigned char *buffer)
 	if(bufferptr != outbytes)
 	{
 		system_reset();
-		return EmuSystem::makeError("Expected %d size state but got %d", bufferptr, (int)outbytes);
+		return EmuSystem::makeError(fmt::format("Expected {} size state but got {}", bufferptr, (int)outbytes));
 	}
 
   return {};

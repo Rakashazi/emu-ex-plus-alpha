@@ -30,38 +30,16 @@ namespace Gfx
 
 Text::Text() {}
 
-Text::Text(GlyphTextureSet *face): Text{nullptr, face}
+Text::Text(GlyphTextureSet *face): Text{{}, face}
 {}
 
-Text::Text(const char *str, GlyphTextureSet *face): face_{face}
-{
-	setString(str);
-}
+Text::Text(IG::utf16String str, GlyphTextureSet *face):
+	textStr{std::move(str)}, face_{face}
+{}
 
-Text::Text(TextString str, GlyphTextureSet *face): face_{face}
+void Text::setString(IG::utf16String str)
 {
-	setString(std::move(str));
-}
-
-void Text::setString(const char *str)
-{
-	if(!str)
-	{
-		textStr.clear();
-		textStr.shrink_to_fit();
-		return;
-	}
-	textStr = string_makeUTF16(str);
-}
-
-void Text::setString(const Text &o)
-{
-	textStr = o.textStr;
-}
-
-void Text::setString(TextString v)
-{
-	textStr = std::move(v);
+	textStr = std::move(str);
 }
 
 void Text::setFace(GlyphTextureSet *face_)
@@ -224,7 +202,7 @@ void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, Projectio
 			uint32_t charsToDraw = span.chars;
 			xPos = startingXPos(xLineSize);
 			//logMsg("line %d, %d chars", l, charsToDraw);
-			drawSpan(cmds, xPos, yPos, projP, TextStringView{s, charsToDraw}, vArr);
+			drawSpan(cmds, xPos, yPos, projP, std::u16string_view{s, charsToDraw}, vArr);
 			s += charsToDraw;
 			yPos -= nominalHeight_;
 			yPos = projP.alignYToPixel(yPos);
@@ -235,7 +213,7 @@ void Text::draw(RendererCommands &cmds, GC xPos, GC yPos, _2DOrigin o, Projectio
 		GC xLineSize = xSize;
 		xPos = startingXPos(xLineSize);
 		//logMsg("line %d, %d chars", l, charsToDraw);
-		drawSpan(cmds, xPos, yPos, projP, (TextStringView)textStr, vArr);
+		drawSpan(cmds, xPos, yPos, projP, std::u16string_view{textStr}, vArr);
 	}
 }
 
@@ -244,7 +222,7 @@ void Text::draw(RendererCommands &cmds, GP p, _2DOrigin o, ProjectionPlane projP
 	draw(cmds, p.x, p.y, o, projP);
 }
 
-void Text::drawSpan(RendererCommands &cmds, GC xPos, GC yPos, ProjectionPlane projP, TextStringView strView, std::array<TexVertex, 4> &vArr) const
+void Text::drawSpan(RendererCommands &cmds, GC xPos, GC yPos, ProjectionPlane projP, std::u16string_view strView, std::array<TexVertex, 4> &vArr) const
 {
 	auto xViewLimit = projP.wHalf();
 	for(auto c : strView)
@@ -334,7 +312,7 @@ bool Text::isVisible() const
 	return stringSize();
 }
 
-TextStringView Text::stringView() const
+std::u16string_view Text::stringView() const
 {
 	return textStr;
 }

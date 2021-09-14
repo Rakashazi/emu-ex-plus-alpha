@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/builtins.h>
+#include <imagine/util/utility.h>
 #include <stdint.h>
 
 BEGIN_C_DECLS

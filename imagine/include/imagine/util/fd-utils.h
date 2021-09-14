@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/util/builtins.h>
+#include <imagine/util/utility.h>
 #include <unistd.h>
 
 CLINK ssize_t fd_writeAll(int filedes, const void *buffer, size_t size);

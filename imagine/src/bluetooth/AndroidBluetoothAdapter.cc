@@ -364,7 +364,7 @@ jobject AndroidBluetoothAdapter::openSocket(JNIEnv *env, const char *addrStr, in
 	return jOpenSocket(env, appContext().baseActivityObject(), adapter, env->NewStringUTF(addrStr), channel, isL2cap ? 1 : 0);
 }
 
-int AndroidBluetoothSocket::readPendingData(int events)
+bool AndroidBluetoothSocket::readPendingData(int events)
 {
 	if(events & Base::POLLEV_ERR)
 	{
@@ -551,7 +551,7 @@ static int nativeFdForSocket(JNIEnv *env, jobject btSocket)
 
 IG::ErrorCode AndroidBluetoothSocket::openSocket(BluetoothAdapter &adapter, BluetoothAddr bdaddr, uint32_t channel, bool l2cap)
 {
-	ba2str(bdaddr, addrStr);
+	addrStr = ba2str(bdaddr);
 	this->channel = channel;
 	isL2cap = l2cap;
 	sem_init(&connectSem, 0, 0);
@@ -568,7 +568,7 @@ IG::ErrorCode AndroidBluetoothSocket::openSocket(BluetoothAdapter &adapter, Blue
 				isConnecting = false;
 				return;
 			}
-			socket = adapter.openSocket(env, addrStr, this->channel, isL2cap);
+			socket = adapter.openSocket(env, addrStr.data(), this->channel, isL2cap);
 			if(socket)
 			{
 				logMsg("opened Bluetooth socket %p", socket);

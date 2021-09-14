@@ -67,14 +67,12 @@ public:
 		return framesToTime(bytesToFrames(bytes));
 	}
 
-	template<class T>
-	constexpr uint32_t timeToFrames(T time) const
+	constexpr uint32_t timeToFrames(IG::ChronoDuration auto time) const
 	{
 		return std::ceil(std::chrono::duration_cast<IG::FloatSeconds>(time).count() * rate);
 	}
 
-	template<class T>
-	constexpr uint32_t timeToBytes(T time) const
+	constexpr uint32_t timeToBytes(IG::ChronoDuration auto time) const
 	{
 		return framesToBytes(timeToFrames(time));
 	}

@@ -387,7 +387,7 @@ IG::ErrorCode Texture::setFormat(IG::PixmapDesc desc, uint8_t levels, ColorSpace
 	else
 	{
 		bool remakeTexName = levels != levels_; // make new texture name whenever number of levels changes
-		task().run(
+		task().GLTask::run(
 			[=, &r = std::as_const(renderer()), &texName_ = texName_, currTexName = texName_](GLTask::TaskContext ctx)
 			{
 				auto texName = currTexName; // a copy of texName_ is passed by value for the async case to avoid accessing this->texName_
@@ -833,7 +833,7 @@ void GLTexture::initWithEGLImage(EGLImageKHR eglImg, IG::PixmapDesc desc, Sample
 
 void GLTexture::updateWithEGLImage(EGLImageKHR eglImg)
 {
-	rTask->run(
+	rTask->GLTask::run(
 		[=, texName = texName_](GLTask::TaskContext ctx)
 		{
 			glBindTexture(GL_TEXTURE_2D, texName);

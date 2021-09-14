@@ -29,11 +29,7 @@ TableView::TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate 
 	ScrollView{attach}, items{items}, item{item}
 {}
 
-TableView::TableView(NameString name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
-	ScrollView{std::move(name), attach}, items{items}, item{item}
-{}
-
-uint32_t TableView::cells() const
+size_t TableView::cells() const
 {
 	return items(*this);
 }
@@ -64,17 +60,17 @@ void TableView::prepareDraw()
 {
 	if(!yCellSize)
 		return;
-	auto cells_ = items(*this);
+	int cells_ = items(*this);
 	if(!cells_)
 		return;
 	int startYCell = std::min(scrollOffset() / yCellSize, cells_);
-	int endYCell = std::clamp(startYCell + visibleCells, 0, cells_);
+	size_t endYCell = std::clamp(startYCell + visibleCells, 0, cells_);
 	if(startYCell < 0)
 	{
 		// skip non-existent cells
 		startYCell = 0;
 	}
-	for(int i = startYCell; i < endYCell; i++)
+	for(size_t i = startYCell; i < endYCell; i++)
 	{
 		item(*this, i).prepareDraw(renderer());
 	}
@@ -82,14 +78,14 @@ void TableView::prepareDraw()
 
 void TableView::draw(Gfx::RendererCommands &cmds)
 {
-	auto cells_ = items(*this);
+	int cells_ = items(*this);
 	if(!cells_)
 		return;
 	using namespace Gfx;
 	auto y = viewRect().yPos(LT2DO);
 	auto x = viewRect().xPos(LT2DO);
 	int startYCell = std::min(scrollOffset() / yCellSize, cells_);
-	int endYCell = std::clamp(startYCell + visibleCells, 0, cells_);
+	size_t endYCell = std::clamp(startYCell + visibleCells, 0, cells_);
 	if(startYCell < 0)
 	{
 		// skip non-existent cells
@@ -105,14 +101,14 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 	int selectedCellY = INT_MAX;
 	{
 		StaticArrayList<std::array<ColVertex, 4>, 80> vRect;
-		StaticArrayList<std::array<VertexIndex, 6>, vRect.maxSize()> vRectIdx;
+		StaticArrayList<std::array<VertexIndex, 6>, vRect.capacity()> vRectIdx;
 		auto headingColor = VertexColorPixelFormat.build(.4, .4, .4, 1.);
 		auto regularColor = VertexColorPixelFormat.build(.2, .2, .2, 1.);
 		auto regularYSize = std::max(1, window().heightMMInPixels(.2));
 		auto headingYSize = std::max(2, window().heightMMInPixels(.4));
-		for(int i = startYCell; i < endYCell; i++)
+		for(size_t i = startYCell; i < endYCell; i++)
 		{
-			if(i == selected)
+			if((int)i == selected)
 			{
 				selectedCellY = y;
 			}
@@ -130,7 +126,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 				vRect.emplace_back(makeColVertArray(projP.unProjectRect(rect), color));
 			}
 			y += yCellSize;
-			if(vRect.size() == vRect.maxSize()) [[unlikely]]
+			if(vRect.size() == vRect.capacity()) [[unlikely]]
 				break;
 		}
 		if(vRect.size())
@@ -159,7 +155,7 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 	// draw elements
 	y = yStart;
 	auto xIndent = manager().tableXIndent();
-	for(int i = startYCell; i < endYCell; i++)
+	for(size_t i = startYCell; i < endYCell; i++)
 	{
 		auto rect = IG::makeWindowRectRel({x, y}, {viewRect().xSize(), yCellSize});
 		drawElement(cmds, i, item(*this, i), projP.unProjectRect(rect), xIndent);
@@ -270,7 +266,7 @@ void TableView::clearSelection()
 void TableView::setYCellSize(int s)
 {
 	yCellSize = s;
-	ScrollView::setContentSize({viewRect().xSize(), items(*this) * s});
+	ScrollView::setContentSize({viewRect().xSize(), (int)items(*this) * s});
 }
 
 IG::WindowRect TableView::focusRect()
@@ -314,7 +310,7 @@ int TableView::prevSelectableElement(int start, int items)
 bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 {
 	using namespace IG;
-	auto cells_ = items(*this);
+	int cells_ = items(*this);
 	if(!cells_)
 	{
 		if(e.pushed() && e.isDefaultUpButton() && moveFocusToNextView(e, CT2DO))
@@ -489,12 +485,12 @@ bool TableView::handleTableInput(Input::Event e, bool &movedSelected)
 	return false;
 }
 
-void TableView::drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect, Gfx::GC xIndent) const
+void TableView::drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, Gfx::GC xIndent) const
 {
 	item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, align, projP, Gfx::color(Gfx::ColorName::WHITE));
 }
 
-void TableView::onSelectElement(Input::Event e, uint32_t i, MenuItem &item)
+void TableView::onSelectElement(Input::Event e, size_t i, MenuItem &item)
 {
 	if(selectElementDel)
 		selectElementDel(e, i, item);

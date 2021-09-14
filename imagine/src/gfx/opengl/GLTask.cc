@@ -14,12 +14,12 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "GLTask"
-#include <assert.h>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/opengl/GLRendererTask.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
 #include "internalDefs.hh"
+#include <cassert>
 
 namespace Gfx
 {

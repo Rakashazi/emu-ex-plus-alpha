@@ -18,14 +18,15 @@
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/container/FlatSet.hh>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/concepts.hh>
 
-template <typename FUNC>
+template <class Delegate>
 class DelegateFuncSet
 {
 public:
 	constexpr DelegateFuncSet() {}
 
-	bool add(FUNC del, int priority = 0)
+	bool add(Delegate del, int priority = 0)
 	{
 		if(contains(del))
 			return false;
@@ -33,7 +34,7 @@ public:
 		return true;
 	}
 
-	bool remove(FUNC del)
+	bool remove(Delegate del)
 	{
 		auto it = find(del, delegate);
 		if(it == delegate.end())
@@ -42,7 +43,7 @@ public:
 		return true;
 	}
 
-	bool contains(FUNC del) const
+	bool contains(Delegate del) const
 	{
 		return find(del, delegate) != delegate.end();
 	}
@@ -52,8 +53,7 @@ public:
 		return delegate.size();
 	}
 
-	template <typename Exec>
-	void runAll(Exec exec, bool skipRemovedDelegates = false)
+	void runAll(IG::Callable<bool, Delegate> auto &&exec, bool skipRemovedDelegates = false)
 	{
 		if(!size())
 			return;
@@ -75,18 +75,18 @@ public:
 protected:
 	struct DelegateEntry
 	{
-		FUNC del{};
+		Delegate del{};
 		int priority = 0;
 
 		constexpr DelegateEntry() {}
-		constexpr DelegateEntry(FUNC del, int priority):
+		constexpr DelegateEntry(Delegate del, int priority):
 			del{del}, priority{priority} {}
 		bool operator==(const DelegateEntry &rhs) const { return del == rhs.del; }
 		bool operator<(const DelegateEntry &rhs) const { return priority < rhs.priority; }
 	};
 
 	template <class Container>
-	static auto find(FUNC del, Container &delegate)
+	static auto find(Delegate del, Container &delegate)
 	{
 		return std::find_if(delegate.begin(), delegate.end(),
 			[&](auto &e) { return e.del == del; });

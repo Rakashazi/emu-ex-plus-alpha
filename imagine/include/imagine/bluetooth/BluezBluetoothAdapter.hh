@@ -93,7 +93,7 @@ public:
 	#endif
 	void close();
 	IG::ErrorCode write(const void *data, size_t size) final;
-	int readPendingData(int events);
+	bool readPendingData(int events);
 
 private:
 	Base::FDEventSource fdSrc{};

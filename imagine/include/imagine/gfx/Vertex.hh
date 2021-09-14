@@ -37,13 +37,16 @@ public:
 	static void bindAttribs(RendererCommands &cmds, const Vtx *v);
 };
 
-class Vertex : public VertexInfo
+template <class T>
+concept Vertex = IG::derived_from<T, VertexInfo>;
+
+class Vertex2D : public VertexInfo
 {
 public:
 	VertexPos x{}, y{};
 
-	constexpr Vertex() {};
-	constexpr Vertex(VertexPos x, VertexPos y):
+	constexpr Vertex2D() {};
+	constexpr Vertex2D(VertexPos x, VertexPos y):
 		x{x}, y{y} {}
 	static constexpr uint32_t ID = 1;
 };

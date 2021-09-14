@@ -21,6 +21,7 @@
 #include "internal.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 #include "input.h"
 #include "io_ctrl.h"
 #include "vdp_ctrl.h"
@@ -275,7 +276,7 @@ class CustomSystemOptionView : public SystemOptionView
 		{{}, &defaultFace(), [this](Input::Event e){ cdBiosPathHandler(e, REGION_EUROPE); }}
 	};
 
-	static std::array<char, 256> makeBiosMenuEntryStr(int region)
+	static auto makeBiosMenuEntryStr(int region)
 	{
 		const char *path = "";
 		switch(region)
@@ -285,7 +286,7 @@ class CustomSystemOptionView : public SystemOptionView
 			bcase REGION_EUROPE: path = cdBiosEurPath.data();
 		}
 		const char *regionStr = biosHeadingStr[regionCodeToIdx(region)];
-		return string_makePrintf<256>("%s: %s", regionStr, strlen(path) ? FS::basename(path).data() : "None set");
+		return fmt::format("{}: {}", regionStr, strlen(path) ? FS::basename(path).data() : "None set");
 	}
 
 	void cdBiosPathHandler(Input::Event e, int region)
@@ -295,8 +296,7 @@ class CustomSystemOptionView : public SystemOptionView
 			{
 				auto idx = regionCodeToIdx(region);
 				logMsg("set bios at idx %d to %s", idx, regionCodeToStrBuffer(region).data());
-				cdBiosPath[idx].setName(makeBiosMenuEntryStr(region).data());
-				cdBiosPath[idx].compile(renderer(), projP);
+				cdBiosPath[idx].compile(makeBiosMenuEntryStr(region).data(), renderer(), projP);
 			},
 			hasMDExtension);
 		pushAndShow(std::move(biosSelectMenu), e);

@@ -21,6 +21,20 @@
 namespace Base
 {
 
-using CallbackDelegate = DelegateFunc<bool ()>;
+class CallbackDelegate : public DelegateFunc<bool ()>
+{
+public:
+	using DelegateFunc2::DelegateFunc2;
+
+	constexpr CallbackDelegate(IG::Callable<void> auto &&f):
+		DelegateFunc2
+		{
+			[=]()
+			{
+				f();
+				return false;
+			}
+		} {}
+};
 
 }

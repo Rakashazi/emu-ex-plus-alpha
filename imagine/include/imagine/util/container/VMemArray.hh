@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/vmem/memory.hh>
-#include <assert.h>
+#include <cassert>
 #include <cstddef>
 #include <iterator>
 

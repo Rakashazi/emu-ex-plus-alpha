@@ -21,6 +21,7 @@
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/format.hh>
 #include "internal.hh"
 #include <imagine/fs/FS.hh>
 
@@ -83,14 +84,14 @@ FS::PathString makeMachineBasePath(Base::ApplicationContext app, FS::PathString 
 	if(!strlen(customPath.data()))
 	{
 		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-		string_printf(outPath, "%s/MSX.emu", EmuApp::assetPath(app).data());
+		IG::formatTo(outPath, "{}/MSX.emu", EmuApp::assetPath(app).data());
 		#else
-		string_printf(outPath, "%s/MSX.emu", app.sharedStoragePath().data());
+		IG::formatTo(outPath, "{}/MSX.emu", app.sharedStoragePath().data());
 		#endif
 	}
 	else
 	{
-		string_printf(outPath, "%s", customPath.data());
+		IG::formatTo(outPath, "{}", customPath.data());
 	}
 	logMsg("set machine file path: %s", outPath.data());
 	return outPath;
@@ -156,7 +157,7 @@ static EmuSystem::Error insertMedia(EmuApp &app)
 				logMsg("loading ROM %s", cartName[i].data());
 				if(!insertROM(app, cartName[i].data(), i))
 				{
-					return EmuSystem::makeError("Error loading ROM%d:\n%s", i, cartName[i].data());
+					return EmuSystem::makeError(fmt::format("Error loading ROM{}:\n{}", i, cartName[i].data()));
 				}
 			}
 		}
@@ -169,7 +170,7 @@ static EmuSystem::Error insertMedia(EmuApp &app)
 		logMsg("loading Disk %s", diskName[i].data());
 		if(!insertDisk(app, diskName[i].data(), i))
 		{
-			return EmuSystem::makeError("Error loading Disk%d:\n%s", i, diskName[i].data());
+			return EmuSystem::makeError(fmt::format("Error loading Disk{}:\n{}", i, diskName[i].data()));
 		}
 	}
 
@@ -180,7 +181,7 @@ static EmuSystem::Error insertMedia(EmuApp &app)
 		logMsg("loading HD %s", hdName[i].data());
 		if(!insertDisk(app, hdName[i].data(), diskGetHdDriveId(i / 2, i % 2)))
 		{
-			return EmuSystem::makeError("Error loading Disk%d:\n%s", i, hdName[i].data());
+			return EmuSystem::makeError(fmt::format("Error loading Disk{}:\n{}", i, hdName[i].data()));
 		}
 	}
 	return {};
@@ -296,7 +297,8 @@ static bool createBoardFromLoadGame(EmuApp &app)
 
 static EmuSystem::Error makeMachineInitError(const char *machineName)
 {
-	return EmuSystem::makeError("Error loading machine files for\n\"%s\",\nmake sure they are in:\n%s", machineName, machineBasePath.data());
+	return EmuSystem::makeError(fmt::format("Error loading machine files for\n\"{}\",\nmake sure they are in:\n{}",
+		machineName, machineBasePath.data()));
 }
 
 static bool initMachine(const char *machineName)
@@ -348,7 +350,7 @@ EmuSystem::Error setCurrentMachineName(EmuApp &app, const char *machineName, boo
 	}
 	if(!createBoardFromLoadGame(app))
 	{
-		return EmuSystem::makeError("Error initializing %s", machine->name);
+		return EmuSystem::makeError(fmt::format("Error initializing {}", machine->name));
 	}
 	if(insertMediaFiles)
 		return insertMedia(app);
@@ -461,7 +463,7 @@ void EmuSystem::reset(EmuApp &app, ResetMode mode)
 		if(auto err = insertMedia(app);
 			err)
 		{
-			app.printfMessage(3, true, "%s", err->what());
+			app.postMessage(3, true, err->what());
 		}
 	}
 	else
@@ -472,7 +474,7 @@ void EmuSystem::reset(EmuApp &app, ResetMode mode)
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.0%c.sta", statePath, gameName, saveSlotCharUpper(slot));
+	return IG::formatToPathString("{}/{}.0{}.sta", statePath, gameName, saveSlotCharUpper(slot));
 }
 
 static EmuSystem::Error saveBlueMSXState(const char *filename)
@@ -568,7 +570,7 @@ static EmuSystem::Error loadBlueMSXState(EmuApp &app, const char *filename)
 	if(!createBoardFromLoadGame(app))
 	{
 		saveStateDestroy();
-		auto err = EmuSystem::makeError("Can't initialize machine:%s from save-state", machine->name);
+		auto err = EmuSystem::makeError(fmt::format("Can't initialize machine:{} from save-state", machine->name));
 		app.exitGame(false);
 		return err;
 	}

@@ -19,6 +19,7 @@
 #include "emu.h"
 #include "timer.h"
 //#include "streams.h"
+#include <imagine/logger/logger.h>
 
 #ifdef USE_STARSCREAM
 static int m68k_flag=0x1;

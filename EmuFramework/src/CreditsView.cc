@@ -21,9 +21,9 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/int.hh>
 
-CreditsView::CreditsView(ViewAttachParams attach, const char *str):
+CreditsView::CreditsView(ViewAttachParams attach, IG::utf16String str):
 	View{appViewTitle(), attach},
-	text{str, &defaultFace()},
+	text{std::move(str), &defaultFace()},
 	animate
 	{
 		[this](IG::FrameParams params)

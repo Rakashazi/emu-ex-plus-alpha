@@ -1,6 +1,6 @@
 #pragma once
 
-#include <imagine/util/builtins.h>
+#include <imagine/util/utility.h>
 
 BEGIN_C_DECLS
 

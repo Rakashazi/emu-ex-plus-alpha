@@ -14,12 +14,12 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "GLRenderer"
-#include <assert.h>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <imagine/fs/FS.hh>
 #include "internalDefs.hh"
 #include "utils.hh"
@@ -28,6 +28,7 @@
 #include "android/egl.hh"
 #endif
 #include <string>
+#include <cassert>
 
 namespace Gfx
 {
@@ -53,7 +54,7 @@ static void printFeatures(DrawContextSupport support)
 	featuresStr.reserve(256);
 
 	featuresStr.append(" [Texture Size:");
-	featuresStr.append(string_makePrintf<8>("%u", support.textureSizeSupport.maxXSize).data());
+	featuresStr.append(fmt::format("{}", support.textureSizeSupport.maxXSize));
 	featuresStr.append("]");
 	if(support.textureSizeSupport.nonPow2)
 	{

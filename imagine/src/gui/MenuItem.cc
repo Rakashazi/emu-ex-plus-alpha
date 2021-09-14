@@ -18,16 +18,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 
-MenuItem::~MenuItem() {}
-
 BaseTextMenuItem::BaseTextMenuItem() {}
-
-BaseTextMenuItem::BaseTextMenuItem(const char *str, Gfx::GlyphTextureSet *face): t{str, face} {}
-
-BaseTextMenuItem::BaseTextMenuItem(const char *str, bool isSelectable, Gfx::GlyphTextureSet *face):
-	MenuItem(isSelectable),
-	t{str, face}
-{}
 
 void BaseTextMenuItem::prepareDraw(Gfx::Renderer &r)
 {
@@ -59,10 +50,19 @@ void BaseTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &pro
 	t.compile(r, projP);
 }
 
-void BaseTextMenuItem::compile(const char *str, Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
+void BaseTextMenuItem::compile(IG::utf16String name, Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 {
-	t.setString(str);
+	t.setString(std::move(name));
 	compile(r, projP);
+}
+
+void BaseTextMenuItem::setName(IG::utf16String name, Gfx::GlyphTextureSet *face)
+{
+	t.setString(std::move(name));
+	if(face)
+	{
+		t.setFace(face);
+	}
 }
 
 int BaseTextMenuItem::ySize()
@@ -73,15 +73,6 @@ int BaseTextMenuItem::ySize()
 Gfx::GC BaseTextMenuItem::xSize()
 {
 	return t.width();
-}
-
-void BaseTextMenuItem::setName(const char *name, Gfx::GlyphTextureSet *face)
-{
-	t.setString(name);
-	if(face)
-	{
-		t.setFace(face);
-	}
 }
 
 const Gfx::Text &BaseTextMenuItem::text() const
@@ -101,11 +92,6 @@ bool BaseTextMenuItem::active()
 
 TextMenuItem::TextMenuItem() {}
 
-TextMenuItem::TextMenuItem(const char *str, Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
-	BaseTextMenuItem{str, face},
-	selectD{selectDel}
-{}
-
 bool TextMenuItem::select(View &parent, Input::Event e)
 {
 	//logMsg("calling delegate");
@@ -124,17 +110,9 @@ TextMenuItem::SelectDelegate TextMenuItem::onSelect() const
 
 TextHeadingMenuItem::TextHeadingMenuItem() {}
 
-TextHeadingMenuItem::TextHeadingMenuItem(const char *str, Gfx::GlyphTextureSet *face):
-	BaseTextMenuItem{str, false, face} {}
-
 bool TextHeadingMenuItem::select(View &parent, Input::Event e) { return true; };
 
 BaseDualTextMenuItem::BaseDualTextMenuItem() {}
-
-BaseDualTextMenuItem::BaseDualTextMenuItem(const char *str, const char *str2, Gfx::GlyphTextureSet *face):
-	BaseTextMenuItem{str, face},
-	t2{str2, face}
-{}
 
 void BaseDualTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 {
@@ -168,21 +146,7 @@ void BaseDualTextMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::
 	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
 }
 
-void BaseDualTextMenuItem::set2ndName(const char *name)
-{
-	t2.setString(name);
-}
-
 DualTextMenuItem::DualTextMenuItem() {}
-
-DualTextMenuItem::DualTextMenuItem(const char *str, const char *str2, Gfx::GlyphTextureSet *face):
-	BaseDualTextMenuItem{str, str2, face} {}
-
-DualTextMenuItem::DualTextMenuItem(const char *str, const char *str2,
-	Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
-	BaseDualTextMenuItem{str, str2, face},
-	selectD{selectDel}
-{}
 
 bool DualTextMenuItem::select(View &parent, Input::Event e)
 {
@@ -197,22 +161,6 @@ void DualTextMenuItem::setOnSelect(SelectDelegate onSelect)
 }
 
 BoolMenuItem::BoolMenuItem() {}
-
-BoolMenuItem::BoolMenuItem(const char *str, Gfx::GlyphTextureSet *face, bool val, SelectDelegate selectDel):
-	BaseDualTextMenuItem{str, val ? "On" : "Off", face},
-	selectD{selectDel},
-	on{val}
-{}
-
-BoolMenuItem::BoolMenuItem(const char *str, Gfx::GlyphTextureSet *face, bool val, const char *offStr,
-	const char *onStr, SelectDelegate selectDel):
-	BaseDualTextMenuItem{str, val ? onStr : offStr, face},
-	selectD{selectDel},
-	offStr{offStr},
-	onStr{onStr},
-	on{val},
-	onOffStyle{false}
-{}
 
 bool BoolMenuItem::select(View &parent, Input::Event e)
 {
@@ -286,13 +234,13 @@ public:
 	int activeItem;
 	MultiChoiceMenuItem &src;
 
-	MenuItemTableView(NameString name, ViewAttachParams attach, int active, ItemsDelegate items, ItemDelegate item, MultiChoiceMenuItem &src):
+	MenuItemTableView(IG::utf16String name, ViewAttachParams attach, int active, ItemsDelegate items, ItemDelegate item, MultiChoiceMenuItem &src):
 		TableView{std::move(name), attach, items, item},
 		activeItem{active},
 		src{src}
 	{
 		setOnSelectElement(
-			[this](Input::Event e, uint32_t i, MenuItem &item)
+			[this](Input::Event e, int i, MenuItem &item)
 			{
 				if(item.select(*this, e))
 				{
@@ -310,53 +258,13 @@ public:
 		}
 	}
 
-	void drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect, Gfx::GC xIndent) const final
+	void drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, Gfx::GC xIndent) const final
 	{
 		item.draw(cmds, rect.x, rect.pos(C2DO).y, rect.xSize(), rect.ySize(), xIndent, TableView::align, projP, menuTextColor((int)i == activeItem));
 	}
 };
 
 MultiChoiceMenuItem::MultiChoiceMenuItem() {}
-
-MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str, Gfx::GlyphTextureSet *face, SetDisplayStringDelegate onDisplayStr,
-	int selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel):
-	BaseDualTextMenuItem
-	{
-		str,
-		nullptr,
-		face
-	},
-	selectD
-	{
-		selectDel ? selectDel :
-			[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
-			{
-				item.defaultOnSelect(view, e);
-			}
-	},
-	items_{items},
-	item_{item},
-	onSetDisplayString{onDisplayStr},
-	selected_{selected}
-{}
-
-MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str,
-	Gfx::GlyphTextureSet *face, int selected,
-	ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel):
-	MultiChoiceMenuItem{str, face, SetDisplayStringDelegate{}, selected, items, item, selectDel}
-{}
-
-MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str,
-	Gfx::GlyphTextureSet *face, SetDisplayStringDelegate onDisplayStr,
-	int selected, ItemsDelegate items, ItemDelegate item):
-	MultiChoiceMenuItem{str, face, onDisplayStr, selected, items, item, {}}
-{}
-
-MultiChoiceMenuItem::MultiChoiceMenuItem(const char *str,
-	Gfx::GlyphTextureSet *face, int selected,
-	ItemsDelegate items, ItemDelegate item):
-	MultiChoiceMenuItem{str, face, SetDisplayStringDelegate{}, selected, items, item, {}}
-{}
 
 void MultiChoiceMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
 	Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const
@@ -378,7 +286,7 @@ int MultiChoiceMenuItem::selected() const
 	return selected_;
 }
 
-uint32_t MultiChoiceMenuItem::items() const
+size_t MultiChoiceMenuItem::items() const
 {
 	return items_(*this);
 }
@@ -399,19 +307,19 @@ bool MultiChoiceMenuItem::setSelected(int idx)
 	return selectChanged;
 }
 
-void MultiChoiceMenuItem::setDisplayString(int idx)
+void MultiChoiceMenuItem::setDisplayString(size_t idx)
 {
 	if(onSetDisplayString.callSafe(idx, t2))
 	{
 		return;
 	}
-	else if((uint32_t)idx < items_(*this))
+	else if(idx < items_(*this))
 	{
-		t2.setString(item_(*this, idx).text());
+		t2.setString(std::u16string{item_(*this, idx).text().stringView()});
 	}
 	else
 	{
-		t2.setString(nullptr);
+		t2.setString({});
 	}
 }
 
@@ -443,14 +351,14 @@ std::unique_ptr<TableView> MultiChoiceMenuItem::makeTableView(ViewAttachParams a
 {
 	return std::make_unique<MenuItemTableView>
 	(
-		View::NameString{t.stringView()},
+		std::u16string{t.stringView()},
 		attach,
-		(uint32_t)selected_ < items_(*this) ? selected_ : -1,
+		selected_ < (bool)items_(*this) ? selected_ : -1,
 		[this](const TableView &)
 		{
 			return items_(*this);
 		},
-		[this](const TableView &, uint32_t idx) -> MenuItem&
+		[this](const TableView &, size_t idx) -> MenuItem&
 		{
 			return item_(*this, idx);
 		},

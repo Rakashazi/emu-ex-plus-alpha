@@ -19,6 +19,7 @@
 #include <imagine/input/DragTracker.hh>
 #include <imagine/input/VelocityTracker.hh>
 #include <imagine/util/rectangle2.h>
+#include <imagine/util/string.h>
 #include <imagine/gui/View.hh>
 
 namespace Gfx
@@ -30,7 +31,7 @@ class ScrollView : public View
 {
 public:
 	ScrollView(ViewAttachParams attach);
-	ScrollView(NameString name, ViewAttachParams attach);
+	ScrollView(IG::utf16String name, ViewAttachParams attach);
 	~ScrollView();
 	void onShow() override;
 	void onHide() override;

@@ -560,11 +560,9 @@ bool hasAtLeastIOS8()
 			kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_8_0;
 }
 
-void ApplicationContext::exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
+void ApplicationContext::exitWithMessage(int exitVal, const char *msg)
 {
-	std::array<char, 512> msg{};
-	auto result = vsnprintf(msg.data(), msg.size(), format, args);
-	logErr("%s", msg.data());
+	logErr("%s", msg);
 	::exit(exitVal);
 }
 

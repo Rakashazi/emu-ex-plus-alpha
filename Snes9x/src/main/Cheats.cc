@@ -5,6 +5,7 @@
 #include <emuframework/EmuApp.hh>
 #include "EmuCheatViews.hh"
 #include <cheats.h>
+#include <imagine/util/format.hh>
 
 void checkAndEnableGlobalCheats()
 {
@@ -216,7 +217,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	addr
 	{
 		"Address",
-		nullptr,
+		{},
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -251,7 +252,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	value
 	{
 		"Value",
-		nullptr,
+		{},
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -289,7 +290,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		#else
 		"Saved Value",
 		#endif
-		nullptr,
+		{},
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -345,15 +346,15 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	auto value = cheatValue(idx);
 	auto [saved, savedVal] = cheatConditionalValue(idx);
 	logMsg("got cheat with addr 0x%.6x val 0x%.2x saved val 0x%.2x", address, value, savedVal);
-	string_printf(addrStr, "%x", address);
+	IG::formatTo(addrStr, "{:x}", address);
 	addr.set2ndName(addrStr);
-	string_printf(valueStr, "%x", value);
+	IG::formatTo(valueStr, "{:x}", value);
 	this->value.set2ndName(valueStr);
 	if(!saved)
 		savedStr[0] = 0;
 	else
 	{
-		string_printf(savedStr, "%x", savedVal);
+		IG::formatTo(savedStr, "{:x}", savedVal);
 		this->saved.set2ndName(savedStr);
 	}
 }
@@ -391,7 +392,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		{
 			return 1 + cheat.size();
 		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
+		[this](const TableView &, size_t idx) -> MenuItem&
 		{
 			switch(idx)
 			{
@@ -419,7 +420,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						if(!addCheat(str))
 						{
 							app().postMessage(true, "Invalid format");
-							return 1;
+							return true;
 						}
 						auto idx = numCheats() - 1;
 						setCheatName(idx, "Unnamed Cheat");
@@ -439,14 +440,14 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 								{
 									view.dismiss();
 								}
-								return 0;
+								return false;
 							});
 					}
 					else
 					{
 						view.dismiss();
 					}
-					return 0;
+					return false;
 				});
 		}
 	}

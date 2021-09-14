@@ -16,6 +16,7 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuApp.hh>
 #include "internal.hh"
+#include <imagine/util/format.hh>
 
 extern "C"
 {
@@ -100,7 +101,7 @@ EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
 	plugin = loadVicePlugin(currSystem, ctx.libPath().data());
 	if(!plugin)
 	{
-		return makeError("Error loading plugin for system %s", VicePlugin::systemName(currSystem));
+		return makeError(fmt::format("Error loading plugin for system {}", VicePlugin::systemName(currSystem)));
 	}
 	return {};
 }

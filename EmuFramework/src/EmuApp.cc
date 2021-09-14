@@ -35,6 +35,7 @@
 #include <imagine/data-type/image/PixmapSource.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/format.hh>
 #include <imagine/thread/Thread.hh>
 #include <cmath>
 
@@ -64,15 +65,15 @@ EmuApp::EmuApp(Base::ApplicationInitParams initParams, Base::ApplicationContext 
 	pixmapWriter{ctx},
 	vibrationManager_{ctx}
 {
-	if(rendererErr)
+	if(rendererErr) [[unlikely]]
 	{
-		ctx.exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", rendererErr->what());
+		ctx.exitWithMessage(-1, fmt::format("Error creating renderer: {}", rendererErr->what()).c_str());
 		return;
 	}
 	if(auto err = EmuSystem::onInit(ctx);
-		err)
+		err) [[unlikely]]
 	{
-		ctx.exitWithErrorMessagePrintf(-1, "%s", err->what());
+		ctx.exitWithMessage(-1, err->what());
 		return;
 	}
 	mainInitCommon(initParams, ctx);
@@ -349,9 +350,9 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 	initOptions(ctx);
 	auto appConfig = loadConfigFile(ctx);
 	if(auto err = EmuSystem::onOptionsLoaded(ctx);
-		err)
+		err) [[unlikely]]
 	{
-		ctx.exitWithErrorMessagePrintf(-1, "%s", err->what());
+		ctx.exitWithMessage(-1, err->what());
 		return;
 	}
 	auto launchGame = parseCommandArgs(initParams.commandArgs());
@@ -384,7 +385,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 				suspendEmulation(*this);
 				if(optionNotificationIcon)
 				{
-					auto title = string_makePrintf<64>("%s was suspended", ctx.applicationName);
+					auto title = fmt::format("{} was suspended", ctx.applicationName);
 					ctx.addNotification(title.data(), title.data(), EmuSystem::fullGameName().data());
 				}
 			}
@@ -426,9 +427,9 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 		[this, appConfig](Base::ApplicationContext ctx, Base::Window &win)
 		{
 			if(auto err = renderer.initMainTask(&win, windowDrawableConfig());
-				err)
+				err) [[unlikely]]
 			{
-				ctx.exitWithErrorMessagePrintf(-1, "Error creating renderer: %s", err->what());
+				ctx.exitWithMessage(-1, fmt::format("Error creating renderer: {}", err->what()).c_str());
 				return;
 			}
 			if(!supportsVideoImageBuffersOption(renderer))
@@ -522,11 +523,11 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 
 					if(optionNotifyInputDeviceChange && (change.added() || change.removed()))
 					{
-						printfMessage(2, 0, "%s #%d %s", dev.name(), dev.enumId() + 1, change.added() ? "connected" : "disconnected");
+						postMessage(2, 0, fmt::format("{} #{} {}", dev.name(), dev.enumId() + 1, change.added() ? "connected" : "disconnected"));
 					}
 					else if(change.hadConnectError())
 					{
-						printfMessage(2, 1, "%s had a connection error", dev.name());
+						postMessage(2, 1, fmt::format("{} had a connection error", dev.name()));
 					}
 
 					viewController().onInputDevicesChanged();
@@ -616,7 +617,7 @@ void runBenchmarkOneShot(EmuApp &app, EmuVideo &emuVideo)
 	IG::FloatSeconds time = EmuSystem::benchmark(emuVideo);
 	app.viewController().closeSystem(false);
 	logMsg("done in: %f", time.count());
-	app.printfMessage(2, 0, "%.2f fps", double(180.)/time.count());
+	app.postMessage(2, 0, fmt::format("{:.2f} fps", double(180.)/time.count()));
 }
 
 void EmuApp::showEmuation()
@@ -713,39 +714,6 @@ void EmuApp::promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Ev
 	viewController().pushAndShowModal(std::move(ynAlertView), e, false);
 }
 
-void EmuApp::printfMessage(unsigned secs, bool error, const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	auto vaEnd = IG::scopeGuard([&](){ va_end(args); });
-	viewController().popupMessageView().vprintf(secs, error, format, args);
-}
-
-void EmuApp::postMessage(const char *msg)
-{
-	postMessage(false, msg);
-}
-
-void EmuApp::postMessage(bool error, const char *msg)
-{
-	postMessage(3, error, msg);
-}
-
-void EmuApp::postMessage(unsigned secs, bool error, const char *msg)
-{
-	viewController().popupMessageView().post(msg, secs, error);
-}
-
-void EmuApp::postErrorMessage(const char *msg)
-{
-	postMessage(true, msg);
-}
-
-void EmuApp::postErrorMessage(unsigned secs, const char *msg)
-{
-	postMessage(secs, true, msg);
-}
-
 void EmuApp::unpostMessage()
 {
 	viewController().popupMessageView().clear();
@@ -759,8 +727,8 @@ void EmuApp::printScreenshotResult(int num, bool success)
 	}
 	else
 	{
-		printfMessage(2, !success, "%s%d",
-			success ? "Wrote screenshot #" : "Error writing screenshot #", num);
+		postMessage(2, !success, fmt::format("{}{}",
+			success ? "Wrote screenshot #" : "Error writing screenshot #", num));
 	}
 }
 
@@ -948,7 +916,7 @@ void EmuApp::resetInput()
 
 static FS::PathString sessionConfigPath()
 {
-	return FS::makePathStringPrintf("%s/%s.config", EmuSystem::savePath(), EmuSystem::gameName().data());
+	return IG::formatToPathString("{}/{}.config", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
 bool EmuApp::hasSavedSessionOptions()
@@ -1131,7 +1099,7 @@ std::pair<int, FS::PathString> EmuApp::makeNextScreenshotFilename()
 	constexpr int maxNum = 999;
 	iterateTimes(maxNum, i)
 	{
-		auto str = FS::makePathStringPrintf("%s/%s.%.3d.png", EmuSystem::savePath(), EmuSystem::gameName().data(), i);
+		auto str = IG::formatToPathString("{}/{}.{:03d}.png", EmuSystem::savePath(), EmuSystem::gameName().data(), i);
 		if(!FS::exists(str))
 		{
 			logMsg("screenshot %d", i);
@@ -1175,6 +1143,14 @@ void EmuApp::setShouldRunFramesInThread(bool on)
 	emuViewController->setSystemTask(on ? &emuSystemTask : nullptr);
 	if(!on)
 		emuSystemTask.stop();
+}
+
+std::array<char, 64> formatDateAndTime(std::tm time)
+{
+	std::array<char, 64> str{};
+	static constexpr const char *strftimeFormat = "%x  %r";
+	std::strftime(str.data(), str.size(), strftimeFormat, &time);
+	return str;
 }
 
 EmuApp &EmuApp::get(Base::ApplicationContext ctx)

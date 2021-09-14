@@ -37,8 +37,7 @@ public:
 	void setOnPushLeftBtn(OnPushDelegate del);
 	void setOnPushRightBtn(OnPushDelegate del);
 	void setOnPushMiddleBtn(OnPushDelegate del);
-	void setTitle(NameString title);
-	void setTitle(NameStringView title);
+	void setTitle(IG::utf16String title) { text.setString(std::move(title)); }
 	void prepareDraw() override;
 	void place() override;
 	bool inputEvent(Input::Event e) override;
@@ -69,7 +68,7 @@ class BasicNavView : public NavView
 public:
 	BasicNavView(ViewAttachParams attach, Gfx::GlyphTextureSet *face, Gfx::TextureSpan leftRes, Gfx::TextureSpan rightRes);
 	void setBackImage(Gfx::TextureSpan img);
-	void setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint32_t gradStops);
+	void setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, int gradStops);
 
 	template <size_t S>
 	void setBackgroundGradient(const Gfx::LGradientStopDesc (&gradStop)[S])

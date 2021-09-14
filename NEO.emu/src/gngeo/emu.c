@@ -54,6 +54,7 @@
 #endif
 #include "menu.h"
 #include "event.h"
+#include <imagine/logger/logger.h>
 
 void setup_misc_patch(char *name) {
 

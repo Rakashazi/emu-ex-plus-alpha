@@ -72,10 +72,10 @@ public:
 	Application &application() const;
 	void setCursorVisible(bool);
 
-	template <class T, class... Args>
-	T &makeAppData(Args&&... args)
+	template <class T>
+	T &makeAppData(auto &&... args)
 	{
-		appDataPtr = std::make_shared<T>(std::forward<Args>(args)...);
+		appDataPtr = std::make_shared<T>(std::forward<decltype(args)>(args)...);
 		return *appData<T>();
 	}
 
@@ -85,10 +85,10 @@ public:
 		return static_cast<T*>(appDataPtr.get());
 	}
 
-	template <class T, class... Args>
-	T &makeRendererData(Args&&... args)
+	template <class T>
+	T &makeRendererData(auto &&... args)
 	{
-		rendererDataPtr = std::make_shared<T>(std::forward<Args>(args)...);
+		rendererDataPtr = std::make_shared<T>(std::forward<decltype(args)>(args)...);
 		return *rendererData<T>();
 	}
 

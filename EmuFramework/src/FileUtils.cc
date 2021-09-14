@@ -15,6 +15,7 @@
 
 #include <emuframework/FileUtils.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #if defined CONFIG_BASE_IOS
 #include <spawn.h>
@@ -38,7 +39,7 @@ void fixFilePermissions(Base::ApplicationContext ctx, const char *path)
 	else
 		return;
 
-	auto execPath = FS::makePathStringPrintf("%s/fixMobilePermission", ctx.assetPath().data());
+	auto execPath = IG::formatToPathString("{}/fixMobilePermission", ctx.assetPath().data());
 	//logMsg("executing %s", execPath);
 	auto fixMobilePermissionStr = FS::makeFileString("fixMobilePermission");
 	auto pathStr = FS::makePathString(path);

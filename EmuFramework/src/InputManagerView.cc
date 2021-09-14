@@ -24,6 +24,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/format.hh>
 
 static const char *confirmDeleteDeviceSettingsStr = "Delete device settings from the configuration file? Any key profiles in use are kept";
 static const char *confirmDeleteProfileStr = "Delete profile from the configuration file? Devices using it will revert to their default profile";
@@ -183,7 +184,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 				if(e->map() == Input::Map::SYSTEM || e->map() == Input::Map::ICADE)
 					devices++;
 			}
-			app().printfMessage(2, false, "%d OS devices present", devices);
+			app().postMessage(2, false, fmt::format("{} OS devices present", devices));
 		}
 	},
 	#endif
@@ -288,12 +289,12 @@ void InputManagerView::pushAndShowDeviceView(unsigned idx, Input::Event e)
 	pushAndShow(makeViewWithName<InputManagerDeviceView>(inputDevName[idx], *this, app().inputDeviceConfigs()[idx]), e);
 }
 
-InputManagerView::DeviceNameString InputManagerView::makeDeviceName(const char *name, unsigned id)
+std::string InputManagerView::makeDeviceName(const char *name, unsigned id)
 {
 	char idStr[sizeof(" #00")] = "";
 	if(id)
-		string_printf(idStr, " #%u", id + 1);
-	return string_makePrintf<sizeof(InputManagerView::DeviceNameString)>("%s%s", name, idStr);
+		IG::formatTo(idStr, " #{}", id + 1);
+	return fmt::format("{}{}", name, idStr);
 }
 
 #ifdef CONFIG_BLUETOOTH_SCAN_SECS
@@ -579,7 +580,7 @@ static unsigned playerConfToMenuIdx(unsigned player)
 	}
 }
 
-InputManagerDeviceView::InputManagerDeviceView(NameString name, ViewAttachParams attach, InputManagerView &rootIMView_, InputDeviceConfig &devConfRef):
+InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachParams attach, InputManagerView &rootIMView_, InputDeviceConfig &devConfRef):
 	TableView{std::move(name), attach, item},
 	rootIMView{rootIMView_},
 	playerItem
@@ -595,18 +596,18 @@ InputManagerDeviceView::InputManagerDeviceView(NameString name, ViewAttachParams
 	{
 		"Player", &defaultFace(),
 		(int)playerConfToMenuIdx(devConfRef.player),
-		[](const MultiChoiceMenuItem &) -> unsigned
+		[](const MultiChoiceMenuItem &)
 		{
 			return EmuSystem::maxPlayers+1;
 		},
-		[this](const MultiChoiceMenuItem &, unsigned idx) -> TextMenuItem&
+		[this](const MultiChoiceMenuItem &, size_t idx) -> TextMenuItem&
 		{
 			return playerItem[idx];
 		}
 	},
 	loadProfile
 	{
-		nullptr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](Input::Event e)
 		{
 			auto profileSelectMenu = makeView<ProfileSelectMenu>(*devConf->dev, devConf->keyConf().name.data());
@@ -772,7 +773,7 @@ InputManagerDeviceView::InputManagerDeviceView(NameString name, ViewAttachParams
 	},
 	devConf{&devConfRef}
 {
-	loadProfile.setName(string_makePrintf<128>("Profile: %s", devConf->keyConf().name.data()).data());
+	loadProfile.setName(fmt::format("Profile: {}", devConf->keyConf().name.data()).data());
 	renameProfile.setActive(devConf->mutableKeyConf());
 	deleteProfile.setActive(devConf->mutableKeyConf());
 	loadItems();
@@ -828,7 +829,7 @@ void InputManagerDeviceView::loadItems()
 void InputManagerDeviceView::onShow()
 {
 	TableView::onShow();
-	loadProfile.compile(string_makePrintf<128>("Profile: %s", devConf->keyConf().name.data()).data(), renderer(), projP);
+	loadProfile.compile(fmt::format("Profile: {}", devConf->keyConf().name.data()).data(), renderer(), projP);
 	bool keyConfIsMutable = devConf->mutableKeyConf();
 	renameProfile.setActive(keyConfIsMutable);
 	deleteProfile.setActive(keyConfIsMutable);

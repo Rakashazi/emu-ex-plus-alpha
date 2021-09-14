@@ -78,8 +78,8 @@ private:
 	bool isClosing = false;
 	bool isL2cap = false;
 	bool isConnecting = false;
-	char addrStr[18]{};
+	BluetoothAddrString addrStr{};
 
 	IG::ErrorCode openSocket(BluetoothAdapter &, BluetoothAddr, uint32_t channel, bool l2cap);
-	int readPendingData(int events);
+	bool readPendingData(int events);
 };

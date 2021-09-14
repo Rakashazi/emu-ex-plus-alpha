@@ -142,19 +142,11 @@ void ViewManager::setTableXIndentToDefault(const Base::Window &win, Gfx::Project
 View::View() {}
 
 View::View(ViewAttachParams attach):
-	View{{}, attach}
-{}
+	View{{}, attach} {}
 
-View::View(NameString name, ViewAttachParams attach):
+View::View(IG::utf16String name, ViewAttachParams attach):
 	win(&attach.window()), rendererTask_{&attach.rendererTask()},
-	manager_{&attach.viewManager()}, nameStr{std::move(name)}
-{}
-
-View::View(const char *name, ViewAttachParams attach):
-	View{makeNameString(name), attach}
-{}
-
-View::~View() {}
+	manager_{&attach.viewManager()}, nameStr{std::move(name)} {}
 
 void View::pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal)
 {
@@ -279,39 +271,19 @@ Base::ApplicationContext View::appContext() const
 	return window().appContext();
 }
 
-View::NameStringView View::name() const
+std::u16string_view View::name() const
 {
 	return nameStr;
 }
 
-void View::setName(const char *str)
-{
-	if(!str)
-	{
-		nameStr.clear();
-		nameStr.shrink_to_fit();
-		return;
-	}
-	nameStr = makeNameString(str);
-}
-
-void View::setName(NameString name)
+void View::setName(IG::utf16String name)
 {
 	nameStr = std::move(name);
 }
 
-View::NameString View::makeNameString(const char *name)
+std::u16string_view View::nameStringView(const BaseTextMenuItem &item)
 {
-	if(!name)
-	{
-		return {};
-	}
-	return string_makeUTF16(name);
-}
-
-View::NameString View::makeNameString(const BaseTextMenuItem &item)
-{
-	return NameString{item.text().stringView()};
+	return item.text().stringView();
 }
 
 void View::show()

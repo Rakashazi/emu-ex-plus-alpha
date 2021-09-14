@@ -20,7 +20,7 @@
 #include <imagine/base/EventLoop.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/ScopeGuard.hh>
-#include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <sys/stat.h>
 #include <cstring>
 
@@ -59,7 +59,7 @@ void ApplicationContext::exit(int returnVal)
 void ApplicationContext::openURL(const char *url) const
 {
 	logMsg("opening url:%s", url);
-	auto ret = system(FS::makePathStringPrintf("xdg-open %s", url).data());
+	auto ret = system(IG::formatToPathString("xdg-open {}", url).data());
 }
 
 FS::PathString ApplicationContext::assetPath(const char *) const
@@ -79,7 +79,7 @@ FS::PathString ApplicationContext::supportPath(const char *appName) const
 	else if(auto home = getenv("HOME");
 		home)
 	{
-		auto path = FS::makePathStringPrintf("%s/.local/share/%s", home, appName);
+		auto path = IG::formatToPathString("{}/.local/share/{}", home, appName);
 		g_mkdir_with_parents(path.data(), defaultDirMode);
 		return path;
 	}
@@ -99,7 +99,7 @@ FS::PathString ApplicationContext::cachePath(const char *appName) const
 	else if(auto home = getenv("HOME");
 		home)
 	{
-		auto path = FS::makePathStringPrintf("%s/.cache/%s", home, appName);
+		auto path = IG::formatToPathString("{}/.cache/{}", home, appName);
 		g_mkdir_with_parents(path.data(), defaultDirMode);
 		return path;
 	}
@@ -165,11 +165,9 @@ void LinuxApplication::setAppPath(FS::PathString path)
 	appPath_ = path;
 }
 
-void ApplicationContext::exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
+void ApplicationContext::exitWithMessage(int exitVal, const char *msg)
 {
-	std::array<char, 512> msg{};
-	auto result = vsnprintf(msg.data(), msg.size(), format, args);
-	auto cmd = string_makePrintf<1024>("zenity --warning --title='Exited with error' --text='%s'", msg.data());
+	auto cmd = fmt::format("zenity --warning --title='Exited with error' --text='{}'", msg);
 	auto cmdResult = system(cmd.data());
 	::exit(exitVal);
 }

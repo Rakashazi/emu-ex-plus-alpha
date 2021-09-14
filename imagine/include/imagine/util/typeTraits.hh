@@ -1,13 +1,28 @@
 #pragma once
 
-#include <type_traits>
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+#include <imagine/util/concepts.hh>
 
 namespace IG
 {
 
-template<typename T> struct dependentFalse : std::false_type {};
+template<class T> struct dependentFalse : std::false_type {};
 
-template <typename T>
+template <class T>
 inline constexpr bool dependentFalseValue = dependentFalse<T>::value;
 
 template <class T, T VALUE, class Tag = bool>
@@ -50,18 +65,9 @@ using UseTypeIf = std::conditional_t<CONDITION, T, EmptyType<T, Tag>>;
 	struct name ## EmptyTag{}; \
 	[[no_unique_address]] IG::UseTypeIf<(c), t, name ## EmptyTag> name
 
-template <class T>
-static auto &deref(T &obj)
-{
-	if constexpr(std::is_pointer_v<T>)
-	{
-		return *obj;
-	}
-	else
-	{
-		return obj;
-	}
-}
+static auto &deref(IG::Pointer auto &obj) { return *obj; }
+
+static auto &deref(IG::NotPointer auto &obj) { return obj; }
 
 }
 

@@ -190,10 +190,6 @@ static void rename(PathString oldPath, PathString newPath, std::error_code &resu
 	rename(oldPath.data(), newPath.data(), result);
 }
 
-[[gnu::format(printf, 1, 2)]]
-FileString makeFileStringPrintf(const char *format, ...);
-[[gnu::format(printf, 1, 2)]]
-PathString makePathStringPrintf(const char *format, ...);
 FileString makeFileString(const char *str);
 FileString makeFileStringWithoutDotExtension(const char *str);
 

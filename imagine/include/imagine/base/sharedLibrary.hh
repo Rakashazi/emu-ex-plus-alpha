@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/bitset.hh>
-#include <type_traits>
+#include <imagine/util/concepts.hh>
 
 namespace Base
 {
@@ -28,11 +28,9 @@ SharedLibraryRef openSharedLibrary(const char *name, unsigned flags = 0);
 void closeSharedLibrary(SharedLibraryRef lib);
 void *loadSymbol(SharedLibraryRef lib, const char *name);
 
-template<class T>
-static bool loadSymbol(T &symPtr, SharedLibraryRef lib, const char *name)
+static bool loadSymbol(IG::Pointer auto &symPtr, SharedLibraryRef lib, const char *name)
 {
-	static_assert(std::is_pointer_v<T>, "called loadSymbol() without pointer type");
-	symPtr = (T)loadSymbol(lib, name);
+	symPtr = reinterpret_cast<std::remove_reference_t<decltype(symPtr)>>(loadSymbol(lib, name));
 	return symPtr;
 }
 

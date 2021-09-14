@@ -18,6 +18,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/utility.h>
 #include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #ifdef __APPLE__
 #include <imagine/util/string/apple.h>
 #endif
@@ -143,7 +144,7 @@ file_type DirectoryEntryImpl::symlink_type() const
 
 PathStringImpl DirectoryEntryImpl::path() const
 {
-	return makePathStringPrintf("%s/%s", basePath.data(), name());
+	return IG::formatToPathString("{}/{}", basePath.data(), name());
 }
 
 void DirectoryEntryImpl::close()

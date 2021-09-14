@@ -17,7 +17,7 @@
 
 #include <imagine/util/utility.h>
 #include <imagine/util/math/math.hh>
-#include <assert.h>
+#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>

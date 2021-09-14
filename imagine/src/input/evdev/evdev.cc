@@ -23,6 +23,7 @@
 #include <imagine/util/math/int.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
@@ -248,7 +249,7 @@ void EvdevInputDevice::addPollEvent(Base::LinuxApplication &app)
 			{
 				logMsg("error %d in input fd %d (%s)", errno, fd, name());
 				app.removeInputDevice(*this, true);
-				return 0;
+				return false;
 			}
 			else
 			{
@@ -264,10 +265,10 @@ void EvdevInputDevice::addPollEvent(Base::LinuxApplication &app)
 				{
 					logMsg("error %d reading from input fd %d (%s)", errno, fd, name());
 					app.removeInputDevice(*this, true);
-					return 0;
+					return false;
 				}
 			}
-			return 1;
+			return true;
 		}};
 }
 
@@ -380,7 +381,7 @@ static bool processDevNodeName(const char *name, FS::PathString &path, uint32_t 
 		//logWarn("couldn't extract numeric part of node name: %s", name);
 		return false;
 	}
-	string_printf(path, DEV_NODE_PATH "/%s", name);
+	IG::formatTo(path, DEV_NODE_PATH "/{}", name);
 	return true;
 }
 
@@ -429,7 +430,7 @@ void LinuxApplication::initEvdev(EventLoop loop)
 							}
 						} while(len);
 					}
-					return 1;
+					return true;
 				}};
 		}
 		else

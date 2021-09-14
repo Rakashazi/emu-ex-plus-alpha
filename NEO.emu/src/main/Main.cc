@@ -22,6 +22,7 @@
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/format.hh>
 
 extern "C"
 {
@@ -126,7 +127,7 @@ void EmuSystem::reset(ResetMode mode)
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.0%c.sta", statePath, gameName, saveSlotCharUpper(slot));
+	return IG::formatToPathString("{}/{}.0{}.sta", statePath, gameName, saveSlotCharUpper(slot));
 }
 
 EmuSystem::Error EmuSystem::saveState(const char *path)
@@ -235,7 +236,7 @@ static auto openGngeoDataIO(Base::ApplicationContext ctx, const char *filename)
 
 CLINK ROM_DEF *res_load_drv(void *contextPtr, const char *name)
 {
-	auto drvFilename = string_makePrintf<32>(DATAFILE_PREFIX "rom/%s.drv", name);
+	auto drvFilename = fmt::format(DATAFILE_PREFIX "rom/{}.drv", name);
 	auto io = openGngeoDataIO(*((Base::ApplicationContext*)contextPtr), drvFilename.data());
 	if(!io)
 	{
@@ -289,15 +290,14 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 	}
 	auto freeDrv = IG::scopeGuard([&](){ free(drv); });
 	logMsg("rom set %s, %s", drv->name, drv->longname);
-	FS::PathString gnoFilename{};
-	string_printf(gnoFilename, "%s/%s.gno", EmuSystem::savePath(), drv->name);
-	if(optionCreateAndUseCache && FS::exists(gnoFilename))
+	auto gnoFilename = fmt::format("{}/{}.gno", EmuSystem::savePath(), drv->name);
+	if(optionCreateAndUseCache && FS::exists(gnoFilename.data()))
 	{
 		logMsg("loading .gno file");
 		char errorStr[1024];
 		if(!init_game(&ctx, gnoFilename.data(), errorStr))
 		{
-			return makeError("%s", errorStr);
+			return makeError(errorStr);
 		}
 	}
 	else
@@ -305,10 +305,10 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 		char errorStr[1024];
 		if(!init_game(&ctx, drv->name, errorStr))
 		{
-			return makeError("%s", errorStr);
+			return makeError(errorStr);
 		}
 
-		if(optionCreateAndUseCache && !FS::exists(gnoFilename))
+		if(optionCreateAndUseCache && !FS::exists(gnoFilename.data()))
 		{
 			logMsg("%s doesn't exist, creating", gnoFilename.data());
 			#ifdef USE_GENERATOR68K
@@ -416,7 +416,7 @@ EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
 	strcpy(rompathConfItem.data.dt_str.str, ".");
 	if(!Config::envIsAndroid)
 	{
-		string_printf(datafilePath, "%s/gngeo_data.zip", ctx.assetPath().data());
+		IG::formatTo(datafilePath, "{}/gngeo_data.zip", ctx.assetPath().data());
 	}
 	return {};
 }

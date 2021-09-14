@@ -132,14 +132,12 @@ void NoopThread::stop()
 	runFlagAddr = {};
 }
 
-void ApplicationContext::exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args)
+void ApplicationContext::exitWithMessage(int exitVal, const char *msg)
 {
-	std::array<char, 512> msg{};
-	auto result = vsnprintf(msg.data(), msg.size(), format, args);
 	auto env = mainThreadJniEnv();
 	auto baseActivity = baseActivityObject();
 	JNI::InstMethod<void(jstring)> jMakeErrorPopup{env, baseActivity, "makeErrorPopup", "(Ljava/lang/String;)V"};
-	jMakeErrorPopup(env, baseActivity, env->NewStringUTF(msg.data()));
+	jMakeErrorPopup(env, baseActivity, env->NewStringUTF(msg));
 	auto exitTimer = new Timer{"exitTimer", [=]() { ::exit(exitVal); }};
 	exitTimer->runIn(IG::Seconds{3});
 }

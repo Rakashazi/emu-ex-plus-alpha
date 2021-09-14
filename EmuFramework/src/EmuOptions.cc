@@ -25,6 +25,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Window.hh>
+#include <imagine/util/format.hh>
 
 template<class T>
 bool optionFrameTimeIsValid(T val)
@@ -223,7 +224,7 @@ void EmuApp::initOptions(Base::ApplicationContext ctx)
 	{
 		optionShowOnSecondScreen.isConst = true;
 	}
-	else if(FS::exists(FS::makePathStringPrintf("%s/emuex_disable_presentation_displays", ctx.sharedStoragePath().data())))
+	else if(FS::exists(IG::formatToPathString("{}/emuex_disable_presentation_displays", ctx.sharedStoragePath().data())))
 	{
 		logMsg("force-disabling presentation display support");
 		optionShowOnSecondScreen.initDefault(false);

@@ -13,7 +13,7 @@ class RendererCommands;
 class ProjectionPlane;
 
 template<class Vtx>
-static constexpr std::array<Vtx, 4> mapQuadUV(std::array<Vtx, 4> v, GTexCRect rect)
+static constexpr auto mapQuadUV(std::array<Vtx, 4> v, GTexCRect rect)
 {
 	v[0].u = rect.x;  v[0].v = rect.y2; //BL
 	v[1].u = rect.x;  v[1].v = rect.y;  //TL
@@ -38,7 +38,7 @@ static constexpr std::array<Vtx, 4> mapQuadPos(std::array<Vtx, 4> v, GCRect rect
 	return mapQuadPos(v, {rect.x, rect.y}, {rect.x, rect.y2}, {rect.x2, rect.y2}, {rect.x2, rect.y});
 }
 
-template<class Vtx>
+template<class Vtx> requires Vertex<Vtx>
 class QuadGeneric
 {
 public:
@@ -105,12 +105,12 @@ protected:
 	std::array<Vtx, 4> v{};
 };
 
-using Quad = QuadGeneric<Vertex>;
+using Quad = QuadGeneric<Vertex2D>;
 using TexQuad = QuadGeneric<TexVertex>;
 using ColQuad = QuadGeneric<ColVertex>;
 using ColTexQuad = QuadGeneric<ColTexVertex>;
 
-std::array<Vertex, 4> makeVertArray(GCRect pos);
+std::array<Vertex2D, 4> makeVertArray(GCRect pos);
 std::array<ColVertex, 4> makeColVertArray(GCRect pos, VertexColor col);
 std::array<VertexIndex, 6> makeRectIndexArray(VertexIndex baseIdx);
 

@@ -7,7 +7,6 @@
 #include "gfx_cd.h"
 #include "InstructionCycleTableSCD.hh"
 #include <mednafen/cdrom/CDAccess.h>
-#include <imagine/util/builtins.h>
 
 struct SegaCD
 {

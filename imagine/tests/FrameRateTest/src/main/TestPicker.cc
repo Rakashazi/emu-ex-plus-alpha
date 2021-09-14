@@ -16,7 +16,7 @@
 #include "TestPicker.hh"
 #include "main.hh"
 #include <imagine/util/algorithm.h>
-#include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 
@@ -70,7 +70,7 @@ void TestPicker::setTests(const TestDesc *testDesc, unsigned tests)
 							diff.count());
 						auto &entry = testEntry[i];
 						auto fps = double(test.frames-1) / diff.count();
-						entry.set2ndName(string_makePrintf<9>("%.2f", fps).data());
+						entry.set2ndName(fmt::format("{:.2f}", fps).data());
 						entry.redText = test.droppedFrames;
 					};
 			});

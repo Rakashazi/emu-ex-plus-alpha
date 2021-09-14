@@ -9,6 +9,7 @@
 #include "EmuCheatViews.hh"
 #include "internal.hh"
 #include <snes9x.h>
+#include <imagine/util/format.hh>
 
 static constexpr bool HAS_NSRT = !IS_SNES9X_VERSION_1_4;
 
@@ -186,7 +187,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		"SuperFX Clock Multiplier", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(string_makePrintf<5>("%u%%", optionSuperFXClockMultiplier.val).data());
+			t.setString(fmt::format("{}%", optionSuperFXClockMultiplier.val));
 			return true;
 		},
 		[]()

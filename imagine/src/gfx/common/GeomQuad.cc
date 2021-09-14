@@ -56,20 +56,20 @@ static void setColorAlpha(std::array<Vtx, 4> &v, ColorComp a, uint32_t edges)
 	if(edges & EDGE_BR) setColor(v, VertexColorPixelFormat.r(v[2].color), VertexColorPixelFormat.g(v[2].color), VertexColorPixelFormat.b(v[2].color), a, EDGE_BR);
 }
 
-template<class Vtx>
+template<class Vtx> requires Vertex<Vtx>
 void QuadGeneric<Vtx>::setPos(IG::WindowRect b, ProjectionPlane proj)
 {
 	setPos(proj.unProjectRect(b));
 }
 
-template<class Vtx>
+template<class Vtx> requires Vertex<Vtx>
 void QuadGeneric<Vtx>::setPosRel(GC x, GC y, GC xSize, GC ySize)
 {
 	setPos({{x, y}, {x+xSize, y+ySize}});
 }
 
 
-template<class Vtx>
+template<class Vtx> requires Vertex<Vtx>
 void QuadGeneric<Vtx>::draw(RendererCommands &cmds) const
 {
 	cmds.bindTempVertexBuffer();
@@ -78,25 +78,25 @@ void QuadGeneric<Vtx>::draw(RendererCommands &cmds) const
 	cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
 }
 
-template<class Vtx>
+template<class Vtx> requires Vertex<Vtx>
 void QuadGeneric<Vtx>::draw(RendererCommands &cmds, IG::WindowRect b, ProjectionPlane proj)
 {
 	draw(cmds, proj.unProjectRect(b));
 }
 
-template<class Vtx>
+template<class Vtx> requires Vertex<Vtx>
 void QuadGeneric<Vtx>::draw(RendererCommands &cmds, GCRect d)
 {
 	QuadGeneric<Vtx> rect{d};
 	rect.draw(cmds);
 }
 
-template class QuadGeneric<Vertex>;
+template class QuadGeneric<Vertex2D>;
 template class QuadGeneric<ColVertex>;
 template class QuadGeneric<TexVertex>;
 template class QuadGeneric<ColTexVertex>;
 
-template<class Vtx>
+template<class Vtx> requires Vertex<Vtx>
 void QuadGeneric<Vtx>::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges)
 {
 	if constexpr(!Vtx::hasColor)
@@ -109,7 +109,7 @@ void QuadGeneric<Vtx>::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp
 	}
 }
 
-template<class Vtx>
+template<class Vtx> requires Vertex<Vtx>
 void QuadGeneric<Vtx>::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32_t edges)
 {
 	if constexpr(!Vtx::hasColor)
@@ -122,7 +122,7 @@ void QuadGeneric<Vtx>::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32
 	}
 }
 
-template<class Vtx>
+template<class Vtx> requires Vertex<Vtx>
 void QuadGeneric<Vtx>::setColorAlpha(ColorComp a, uint32_t edges)
 {
 	if constexpr(!Vtx::hasColor)
@@ -135,9 +135,9 @@ void QuadGeneric<Vtx>::setColorAlpha(ColorComp a, uint32_t edges)
 	}
 }
 
-std::array<Vertex, 4> makeVertArray(GCRect pos)
+std::array<Vertex2D, 4> makeVertArray(GCRect pos)
 {
-	std::array<Vertex, 4> arr{};
+	std::array<Vertex2D, 4> arr{};
 	return mapQuadPos(arr, pos);
 }
 
@@ -172,7 +172,7 @@ void drawQuads(RendererCommands &cmds, std::array<Vtx, 4> *quad, uint32_t quads,
 	cmds.drawPrimitiveElements(Primitive::TRIANGLE, quadIdx[0].data(), quadIdxs * 6);
 }
 
-template void drawQuads<Vertex>(RendererCommands &cmds, std::array<Vertex, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs);
+template void drawQuads<Vertex2D>(RendererCommands &cmds, std::array<Vertex2D, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs);
 template void drawQuads<ColVertex>(RendererCommands &cmds, std::array<ColVertex, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs);
 template void drawQuads<TexVertex>(RendererCommands &cmds, std::array<TexVertex, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs);
 template void drawQuads<ColTexVertex>(RendererCommands &cmds, std::array<ColTexVertex, 4> *quad, uint32_t quads, std::array<VertexIndex, 6> *quadIdx, uint32_t quadIdxs);

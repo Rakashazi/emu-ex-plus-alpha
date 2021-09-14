@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "memory.h"
+#include <imagine/logger/logger.h>
 
 /* TODO: finish it ...... */
 

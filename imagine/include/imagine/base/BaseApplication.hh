@@ -24,7 +24,6 @@
 #include <imagine/input/Input.hh>
 #include <imagine/input/Device.hh>
 #include <imagine/util/DelegateFuncSet.hh>
-#include <imagine/util/NonCopyable.hh>
 #include <vector>
 #include <memory>
 #include <optional>
@@ -46,11 +45,12 @@ struct CommandArgs
 	char **v{};
 };
 
-class BaseApplication : private NonCopyable
+class BaseApplication
 {
 public:
 	BaseApplication(ApplicationContext);
-	virtual ~BaseApplication();
+	virtual ~BaseApplication() = default;
+	BaseApplication &operator=(BaseApplication &&) = delete;
 	ActivityState activityState() const;
 	void setPausedActivityState();
 	void setRunningActivityState();

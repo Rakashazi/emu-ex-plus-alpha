@@ -138,7 +138,7 @@ void RendererTask::updateDrawableForSurfaceChange(Base::Window &win, Base::Windo
 		case Base::WindowSurfaceChange::Action::CHANGED:
 			if(change.surfaceResized())
 			{
-				run(
+				GLTask::run(
 					[this, drawable = (Drawable)drawable](TaskContext ctx)
 					{
 						// reset the drawable if it's currently in use
@@ -157,7 +157,7 @@ void GLRendererTask::destroyDrawable(Base::GLDrawable &drawable)
 {
 	if(!drawable)
 		return;
-	run(
+	GLTask::run(
 		[this, drawable = (Drawable)drawable](TaskContext ctx)
 		{
 			// unset the drawable if it's currently in use
@@ -233,7 +233,7 @@ void RendererTask::deleteSyncFence(SyncFence fence)
 	}
 	else
 	{
-		run(
+		GLTask::run(
 			[&support = r->support, sync = fence.sync](TaskContext ctx)
 			{
 				support.deleteSync(ctx.glDisplay(), sync);
@@ -277,7 +277,7 @@ void RendererTask::waitSync(SyncFence fence)
 	if(!fence.sync)
 		return;
 	assumeExpr(r->support.hasSyncFences());
-	run(
+	GLTask::run(
 		[&support = r->support, sync = fence.sync](TaskContext ctx)
 		{
 			support.waitSync(ctx.glDisplay(), sync);

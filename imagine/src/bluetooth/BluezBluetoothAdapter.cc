@@ -82,12 +82,12 @@ bool BluezBluetoothAdapter::openDefault()
 					if(size == -1)
 					{
 						logErr("error reading BT socket status message in pipe");
-						return 1;
+						return true;
 					}
 					logMsg("got bluetooth adapter status delegate message");
 					onScanStatus()(*this, msg.type, msg.arg);
 				}
-				return 1;
+				return true;
 			});
 	}
 
@@ -366,7 +366,7 @@ IG::ErrorCode BluezBluetoothSocket::open(BluetoothAdapter &, BluetoothPendingSoc
 	return {};
 }
 
-int BluezBluetoothSocket::readPendingData(int events)
+bool BluezBluetoothSocket::readPendingData(int events)
 {
 	if(events & Base::POLLEV_ERR)
 	{

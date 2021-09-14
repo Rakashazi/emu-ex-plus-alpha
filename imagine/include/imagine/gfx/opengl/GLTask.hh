@@ -19,8 +19,7 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/MessagePort.hh>
 #include <imagine/base/ApplicationContext.hh>
-#include <imagine/util/FunctionTraits.hh>
-#include <imagine/util/NonCopyable.hh>
+#include <imagine/util/concepts.hh>
 #include <thread>
 
 namespace IG
@@ -43,7 +42,7 @@ struct GLTaskConfig
 };
 
 // Wraps an OpenGL context in a thread + message port
-class GLTask : private NonCopyable
+class GLTask
 {
 public:
 	class TaskContext
@@ -96,6 +95,7 @@ public:
 	GLTask(Base::ApplicationContext);
 	GLTask(Base::ApplicationContext, const char *debugLabel);
 	~GLTask();
+	GLTask &operator=(GLTask &&) = delete;
 	Error makeGLContext(GLTaskConfig);
 	void runFunc(FuncDelegate del, bool awaitReply);
 	Base::GLBufferConfig glBufferConfig() const;
@@ -103,39 +103,35 @@ public:
 	Base::ApplicationContext appContext() const;
 	explicit operator bool() const;
 
-	template<class Func>
-	void run(Func &&del, bool awaitReply = false) { runFunc(wrapFuncDelegate(std::forward<Func>(del)), awaitReply); }
-
-	template<class Func>
-	void runSync(Func &&del) { run(std::forward<Func>(del), true); }
-
-	template<class Func>
-	static constexpr FuncDelegate wrapFuncDelegate(Func &&del)
+	void run(IG::invocable auto &&f, bool awaitReply = false)
 	{
-		return
+		runFunc(
+			[=](Base::GLDisplay, IG::Semaphore *semPtr)
+			{
+				f();
+				if(semPtr)
+				{
+					semPtr->notify();
+				}
+			}, awaitReply);
+	}
+
+	void run(IG::invocable<TaskContext> auto &&f, bool awaitReply = false)
+	{
+		runFunc(
 			[=](Base::GLDisplay glDpy, IG::Semaphore *semPtr)
 			{
-				constexpr auto args = IG::functionTraitsArity<Func>;
-				if constexpr(args == 0)
+				bool semaphoreNeedsNotify = semPtr;
+				TaskContext ctx{glDpy, semPtr, &semaphoreNeedsNotify};
+				f(ctx);
+				if(semaphoreNeedsNotify) // semaphore wasn't already notified in the delegate
 				{
-					del();
-					if(semPtr)
-					{
-						semPtr->notify();
-					}
+					semPtr->notify();
 				}
-				else
-				{
-					bool semaphoreNeedsNotify = semPtr;
-					TaskContext ctx{glDpy, semPtr, &semaphoreNeedsNotify};
-					del(ctx);
-					if(semaphoreNeedsNotify) // semaphore wasn't already notified in the delegate
-					{
-						semPtr->notify();
-					}
-				}
-			};
+			}, awaitReply);
 	}
+
+	void runSync(auto &&f) { run(std::forward<decltype(f)>(f), true); }
 
 protected:
 	std::thread thread{};

@@ -20,6 +20,7 @@
 #include <emuframework/EmuVideo.hh>
 #include "internal.hh"
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 
 extern "C"
 {
@@ -271,7 +272,7 @@ void EmuSystem::reset(ResetMode mode)
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.0%c.yss", statePath, gameName, saveSlotCharUpper(slot));
+	return IG::formatToPathString("{}/{}.0{}.yss", statePath, gameName, saveSlotCharUpper(slot));
 }
 
 EmuSystem::Error EmuSystem::saveState(const char *path)
@@ -312,7 +313,7 @@ void EmuSystem::closeSystem()
 
 EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	string_printf(bupPath, "%s/bkram.bin", savePath());
+	IG::formatTo(bupPath, "{}/bkram.bin", savePath());
 	if(YabauseInit(&yinit) != 0)
 	{
 		logErr("YabauseInit failed");

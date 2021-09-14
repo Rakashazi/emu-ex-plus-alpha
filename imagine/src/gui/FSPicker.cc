@@ -25,6 +25,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <string>
 
 static bool isValidRootEndChar(char c)
@@ -229,9 +230,9 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 	text.clear();
 	if(dir.size())
 	{
-		msgText.setString(nullptr);
+		msgText.setString({});
 		text.reserve(dir.size());
-		for(unsigned idx = 0; auto const &entry : dir)
+		for(int idx = 0; auto const &entry : dir)
 		{
 			if(entry.isDir)
 			{
@@ -259,8 +260,8 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 	{
 		// no entires, show a message instead
 		if(ec)
-			msgText.setString(string_makePrintf<96>("Can't open directory:\n%s\nPick a path from the top bar",
-				ec.message().c_str()).data());
+			msgText.setString(fmt::format("Can't open directory:\n{}\nPick a path from the top bar",
+				ec.message()));
 		else
 			msgText.setString("Empty Directory");
 	}
@@ -268,7 +269,7 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 		static_cast<TableView*>(&controller.top())->highlightCell(0);
 	else
 		static_cast<TableView*>(&controller.top())->resetScroll();
-	uint32_t pathLen = strlen(path);
+	auto pathLen = strlen(path);
 	// verify root info
 	if(rootInfo.length &&
 		(rootInfo.length > pathLen || !isValidRootEndChar(path[rootInfo.length]) || !strlen(rootInfo.name.data())))
@@ -281,7 +282,7 @@ std::error_code FSPicker::setPath(const char *path, bool forcePathChange, FS::Ro
 		logMsg("root info:%d:%s", (int)rootInfo.length, rootInfo.name.data());
 		root = rootInfo;
 		if(pathLen > rootInfo.length)
-			rootedPath = FS::makePathStringPrintf("%s%s", rootInfo.name.data(), &path[rootInfo.length]);
+			rootedPath = IG::formatToPathString("{}{}", rootInfo.name.data(), &path[rootInfo.length]);
 		else
 			rootedPath = FS::makePathString(rootInfo.name.data());
 	}

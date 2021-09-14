@@ -24,6 +24,7 @@
 #include <imagine/util/container/ArrayList.hh>
 #include <vector>
 #include <array>
+#include <string>
 
 struct InputDeviceConfig;
 class EmuInputView;
@@ -46,13 +47,11 @@ private:
 class InputManagerView final: public TableView, public EmuAppHelper<InputManagerView>
 {
 public:
-	using DeviceNameString = std::array<char, MAX_INPUT_DEVICE_NAME_SIZE>;
-
 	InputManagerView(ViewAttachParams attach);
 	~InputManagerView() final;
 	void onShow() final;
 	void pushAndShowDeviceView(unsigned idx, Input::Event e);
-	static DeviceNameString makeDeviceName(const char *name, unsigned id);
+	static std::string makeDeviceName(const char *name, unsigned id);
 
 private:
 	TextMenuItem deleteDeviceConfig{};
@@ -105,7 +104,7 @@ private:
 class InputManagerDeviceView : public TableView, public EmuAppHelper<InputManagerDeviceView>
 {
 public:
-	InputManagerDeviceView(NameString name, ViewAttachParams attach, InputManagerView &rootIMView, InputDeviceConfig &devConf);
+	InputManagerDeviceView(IG::utf16String name, ViewAttachParams attach, InputManagerView &rootIMView, InputDeviceConfig &devConf);
 	void setPlayer(int playerVal);
 	void onShow() final;
 

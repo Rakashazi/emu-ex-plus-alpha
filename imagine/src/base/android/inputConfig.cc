@@ -517,7 +517,7 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass bas
 						inputRescanCallback.emplace("inputRescanCallback",
 							[this, ctx]()
 							{
-								IG::copySelf(ctx).enumInputDevices();
+								ctx.enumInputDevices();
 							});
 						enumInputDevices(env, ctx.baseActivityObject(), true);
 						if(inputDevNotifyFd != -1 && watch == -1)
@@ -594,7 +594,7 @@ void AndroidApplication::updateInputConfig(AConfiguration *config)
 	setHardKeyboardState(hasXperiaPlayGamepad() ? navState : hardKeyboardState);
 }
 
-void AndroidApplicationContext::enumInputDevices()
+void AndroidApplicationContext::enumInputDevices() const
 {
 	application().enumInputDevices(mainThreadJniEnv(), baseActivityObject(), true);
 }

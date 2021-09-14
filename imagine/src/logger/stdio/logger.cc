@@ -16,7 +16,7 @@
 #define LOGTAG "LoggerStdio"
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <cstdio>
 
 #ifdef __ANDROID__
@@ -36,12 +36,12 @@ static bool logEnabled = Config::DEBUG_BUILD; // default logging off in release 
 
 static FS::PathString externalLogEnablePath(const char *dirStr)
 {
-	return FS::makePathStringPrintf("%s/imagine_enable_log_file", dirStr);
+	return IG::formatToPathString("{}/imagine_enable_log_file", dirStr);
 }
 
 static FS::PathString externalLogPath(const char *dirStr)
 {
-	return FS::makePathStringPrintf("%s/imagine_log.txt", dirStr);
+	return IG::formatToPathString("{}/imagine_log.txt", dirStr);
 }
 
 static bool shouldLogToExternalFile(const char *dirStr)

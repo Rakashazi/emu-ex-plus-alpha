@@ -1,7 +1,7 @@
 #pragma once
 
 #include <imagine/config/build.h>
-#include <imagine/util/builtins.h>
+#include <imagine/util/utility.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdbool.h>

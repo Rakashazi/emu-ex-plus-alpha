@@ -22,7 +22,7 @@
 class CreditsView : public View
 {
 public:
-	CreditsView(ViewAttachParams attach, const char *str);
+	CreditsView(ViewAttachParams attach, IG::utf16String str);
 	~CreditsView();
 	void prepareDraw() final;
 	void draw(Gfx::RendererCommands &cmds) final;

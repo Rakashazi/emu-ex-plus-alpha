@@ -16,9 +16,9 @@
 #define LOGTAG "RingBuffer"
 #include <imagine/vmem/RingBuffer.hh>
 #include <imagine/vmem/memory.hh>
-#include <imagine/util/utility.h>
 #include <imagine/logger/logger.h>
 #include <cstring>
+#include <utility>
 
 namespace IG
 {

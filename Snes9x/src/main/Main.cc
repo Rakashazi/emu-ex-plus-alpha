@@ -5,6 +5,7 @@
 #include <emuframework/EmuVideo.hh>
 #include "internal.hh"
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 
 #include <snes9x.h>
 #include <memmap.h>
@@ -126,19 +127,19 @@ void EmuSystem::reset(ResetMode mode)
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.0%c." FREEZE_EXT, statePath, gameName, saveSlotCharUpper(slot));
+	return IG::formatToPathString("{}/{}.0{}." FREEZE_EXT, statePath, gameName, saveSlotCharUpper(slot));
 }
 
 #undef FREEZE_EXT
 
 static FS::PathString sprintSRAMFilename()
 {
-	return FS::makePathStringPrintf("%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName().data());
+	return IG::formatToPathString("{}/{}.srm", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
 static FS::PathString sprintCheatsFilename()
 {
-	return FS::makePathStringPrintf("%s/%s.cht", EmuSystem::savePath(), EmuSystem::gameName().data());
+	return IG::formatToPathString("{}/{}.cht", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
 EmuSystem::Error EmuSystem::saveState(const char *path)

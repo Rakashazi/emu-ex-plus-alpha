@@ -50,7 +50,7 @@ DRMFrameTimer::DRMFrameTimer(Screen &screen, EventLoop loop)
 			if(cancelled)
 			{
 				cancelled = false;
-				return 1; // frame request was cancelled
+				return true; // frame request was cancelled
 			}
 			drmEventContext ctx{};
 			ctx.version = DRM_EVENT_CONTEXT_VERSION;
@@ -72,7 +72,7 @@ DRMFrameTimer::DRMFrameTimer(Screen &screen, EventLoop loop)
 				if(screen.frameUpdate(timestamp))
 					scheduleVSync();
 			}
-			return 1;
+			return true;
 		}};
 }
 

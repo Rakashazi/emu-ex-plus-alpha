@@ -16,6 +16,7 @@
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/EmuSystem.hh>
 #include "private.hh"
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 
 StateSlotView::StateSlotView(ViewAttachParams attach):
@@ -27,7 +28,7 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 		{
 			return stateSlots;
 		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
+		[this](const TableView &, size_t idx) -> MenuItem&
 		{
 			return stateSlot[idx];
 		}
@@ -41,22 +42,23 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 		{
 			auto saveStr = EmuSystem::sprintStateFilename(slot);
 			bool fileExists = FS::exists(saveStr);
-			std::array<char, 128> str;
-			if(fileExists)
-			{
-				auto mTime = FS::status(saveStr).lastWriteTimeLocal();
-				std::array<char, 64> dateStr{};
-				std::strftime(dateStr.data(), dateStr.size(), strftimeFormat, &mTime);
-				string_printf(str, "%s (%s)", stateNameStr(slot), dateStr.data());
-			}
-			else
-				string_printf(str, "%s", stateNameStr(slot));
-			stateSlot[idx] = {str.data(), &defaultFace(), nullptr};
+			auto str =
+				[&]()
+				{
+					if(fileExists)
+					{
+						auto dateStr = formatDateAndTime(FS::status(saveStr).lastWriteTimeLocal());
+						return fmt::format("{} ({})", stateNameStr(slot), dateStr.data());
+					}
+					else
+						return fmt::format("{}", stateNameStr(slot));
+				}();
+			stateSlot[idx] = {str, &defaultFace(), nullptr};
 			stateSlot[idx].setActive(fileExists);
 		}
 		else
 		{
-			stateSlot[idx] = {string_makePrintf<40>("%s", stateNameStr(slot)).data(), &defaultFace(), nullptr};
+			stateSlot[idx] = {fmt::format("{}", stateNameStr(slot)), &defaultFace(), nullptr};
 			stateSlot[idx].setActive(false);
 		}
 

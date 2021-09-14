@@ -47,6 +47,7 @@
 #include "transpack.h"
 #include "menu.h"
 #include "frame_skip.h"
+#include <imagine/logger/logger.h>
 
 #ifdef GP2X
 #include "ym2610-940/940shared.h"

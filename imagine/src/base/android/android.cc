@@ -35,6 +35,8 @@
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/format.hh>
 #include "android.hh"
 
 namespace Base
@@ -243,7 +245,7 @@ static FS::PathString mainSOPath(ApplicationContext ctx)
 {
 	if(ctx.androidSDK() < 24)
 	{
-		return FS::makePathStringPrintf("%s/libmain.so", ctx.libPath(nullptr).data());
+		return IG::formatToPathString("{}/libmain.so", ctx.libPath(nullptr).data());
 	}
 	return FS::makePathString("libmain.so");
 }

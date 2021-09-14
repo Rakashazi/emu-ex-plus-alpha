@@ -67,7 +67,7 @@ static const uint32_t firstByteMark[7] = { 0x00, 0x00, 0xC0, 0xE0, 0xF0, 0xF8, 0
  * definition of UTF-8 goes up to 4-byte sequences.
  */
 
-static bool isLegalUTF8(const uint8_t *source, int length) {
+constexpr static bool isLegalUTF8(const uint8_t *source, int length) {
 		uint8_t a;
     const uint8_t *srcptr = source+length;
     switch (length) {

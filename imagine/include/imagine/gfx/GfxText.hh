@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/util/2DOrigin.h>
+#include <imagine/util/string.h>
 #include <vector>
 #include <limits>
 
@@ -38,11 +39,8 @@ public:
 
 	Text();
 	Text(GlyphTextureSet *face);
-	Text(const char *str, GlyphTextureSet *face = nullptr);
-	Text(TextString str, GlyphTextureSet *face = nullptr);
-	void setString(const char *str);
-	void setString(const Text &o);
-	void setString(TextString v);
+	Text(IG::utf16String str, GlyphTextureSet *face = nullptr);
+	void setString(IG::utf16String);
 	void setFace(GlyphTextureSet *face);
 	void makeGlyphs(Renderer &r);
 	bool compile(Renderer &r, ProjectionPlane projP);
@@ -59,7 +57,7 @@ public:
 	uint16_t currentLines() const;
 	unsigned stringSize() const;
 	bool isVisible() const;
-	TextStringView stringView() const;
+	std::u16string_view stringView() const;
 
 protected:
 	struct LineSpan
@@ -71,7 +69,7 @@ protected:
 		uint32_t chars;
 	};
 
-	TextString textStr{};
+	std::u16string textStr{};
 	GlyphTextureSet *face_{};
 	std::vector<LineSpan> lineInfo{};
 	GC spaceSize = 0;
@@ -83,7 +81,7 @@ protected:
 	uint16_t lines = 0;
 	uint16_t maxLines = NO_MAX_LINES;
 
-	void drawSpan(RendererCommands &cmds, GC xPos, GC yPos, ProjectionPlane projP, TextStringView strView, std::array<TexVertex, 4> &vArr) const;
+	void drawSpan(RendererCommands &cmds, GC xPos, GC yPos, ProjectionPlane projP, std::u16string_view strView, std::array<TexVertex, 4> &vArr) const;
 	bool hasText() const;
 };
 

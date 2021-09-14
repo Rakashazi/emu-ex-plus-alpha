@@ -16,6 +16,7 @@
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
@@ -70,7 +71,7 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	auto filename = FS::makePathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName().data());
+	auto filename = IG::formatToPathString("{}/{}.gbcht", EmuSystem::savePath(), EmuSystem::gameName().data());
 
 	if(!cheatList.size())
 	{
@@ -105,7 +106,7 @@ void writeCheatFile()
 
 void readCheatFile()
 {
-	auto filename = FS::makePathStringPrintf("%s/%s.gbcht", EmuSystem::savePath(), EmuSystem::gameName().data());
+	auto filename = IG::formatToPathString("{}/{}.gbcht", EmuSystem::savePath(), EmuSystem::gameName().data());
 	FileIO file;
 	file.open(filename.data(), IO::AccessHint::ALL);
 	if(!file)
@@ -219,7 +220,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		{
 			return 1 + cheat.size();
 		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
+		[this](const TableView &, size_t idx) -> MenuItem&
 		{
 			switch(idx)
 			{
@@ -243,12 +244,12 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						{
 							app().postMessage(true, "Cheat list is full");
 							view.dismiss();
-							return 0;
+							return false;
 						}
 						if(!strIsGGCode(str) && !strIsGSCode(str))
 						{
 							app().postMessage(true, "Invalid format");
-							return 1;
+							return true;
 						}
 						GbcCheat c;
 						string_copy(c.code, str);
@@ -273,14 +274,14 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 								{
 									view.dismiss();
 								}
-								return 0;
+								return false;
 							});
 					}
 					else
 					{
 						view.dismiss();
 					}
-					return 0;
+					return false;
 				});
 		}
 	}

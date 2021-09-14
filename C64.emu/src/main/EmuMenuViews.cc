@@ -24,6 +24,7 @@
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 
 extern "C"
 {
@@ -418,7 +419,7 @@ class CustomSystemOptionView : public SystemOptionView
 
 	TextMenuItem systemFilePath
 	{
-		nullptr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](Input::Event e)
 		{
 			auto view = makeFirmwarePathMenu("VICE System File Path", true, 1);
@@ -445,15 +446,15 @@ class CustomSystemOptionView : public SystemOptionView
 		if(!strlen(path))
 		{
 			if(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
-				app().printfMessage(5, false, "Using default paths:\n%s\n%s\n%s", appContext().assetPath().data(), "~/.local/share/C64.emu", "/usr/share/games/vice");
+				app().postMessage(5, false, fmt::format("Using default paths:\n{}\n{}\n{}", appContext().assetPath().data(), "~/.local/share/C64.emu", "/usr/share/games/vice"));
 			else
-				app().printfMessage(4, false, "Using default path:\n%s/C64.emu", appContext().sharedStoragePath().data());
+				app().postMessage(4, false, fmt::format("Using default path:\n{}/C64.emu", appContext().sharedStoragePath().data()));
 		}
 	}
 
-	static std::array<char, 256> makeSysPathMenuEntryStr()
+	static std::string makeSysPathMenuEntryStr()
 	{
-		return string_makePrintf<256>("VICE System File Path: %s", strlen(firmwareBasePath.data()) ? FS::basename(firmwareBasePath).data() : "Default");
+		return fmt::format("VICE System File Path: {}", strlen(firmwareBasePath.data()) ? FS::basename(firmwareBasePath).data() : "Default");
 	}
 
 public:
@@ -565,7 +566,7 @@ private:
 
 	TextMenuItem tapeCounter
 	{
-		nullptr, &defaultFace(), nullptr
+		{}, &defaultFace(), nullptr
 	};
 
 	std::array<MenuItem*, 8> menuItem
@@ -582,7 +583,7 @@ private:
 
 	void updateTapeCounter()
 	{
-		tapeCounter.setName(string_makePrintf<20>("Tape Counter: %d", ::tapeCounter).data());
+		tapeCounter.setName(fmt::format("Tape Counter: {}", ::tapeCounter).data());
 	}
 
 	void onShow() final
@@ -598,7 +599,7 @@ private:
 	void updateTapeText()
 	{
 		auto name = plugin.tape_get_file_name();
-		tapeSlot.setName(string_makePrintf<1024>("Tape: %s", name ? FS::basename(name).data() : "").data());
+		tapeSlot.setName(fmt::format("Tape: {}", name ? FS::basename(name).data() : "").data());
 		datasetteControls.setActive(name);
 	}
 
@@ -629,7 +630,7 @@ public:
 private:
 	TextMenuItem tapeSlot
 	{
-		nullptr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(!item.active())
@@ -673,7 +674,7 @@ private:
 	void updateROMText()
 	{
 		auto name = plugin.cartridge_get_file_name(plugin.cart_getid_slotmain());
-		romSlot.setName(string_makePrintf<1024>("ROM: %s", name ? FS::basename(name).data() : "").data());
+		romSlot.setName(fmt::format("ROM: {}", name ? FS::basename(name).data() : "").data());
 	}
 
 public:
@@ -703,7 +704,7 @@ public:
 private:
 	TextMenuItem romSlot
 	{
-		nullptr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto cartFilename = plugin.cartridge_get_file_name(plugin.cart_getid_slotmain());
@@ -734,7 +735,7 @@ private:
 	void updateDiskText(int slot)
 	{
 		auto name = plugin.file_system_get_disk_name(slot+8);
-		diskSlot[slot].setName(string_makePrintf<1024>("%s: %s", driveMenuPrefix[slot], name ? FS::basename(name).data() : "").data());
+		diskSlot[slot].setName(fmt::format("{}: {}", driveMenuPrefix[slot], name ? FS::basename(name).data() : "").data());
 	}
 
 	void onDiskMediaChange(int slot)
@@ -791,10 +792,10 @@ public:
 private:
 	TextMenuItem diskSlot[4]
 	{
-		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 0); }},
-		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 1); }},
-		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 2); }},
-		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 3); }},
+		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 0); }},
+		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 1); }},
+		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 2); }},
+		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 3); }},
 	};
 
 	bool setDriveType(bool isActive, unsigned slot, int type)
@@ -802,7 +803,7 @@ private:
 		assumeExpr(slot < 4);
 		if(!isActive)
 		{
-			app().printfMessage(3, true, "Cannot use on %s", VicePlugin::systemName(currSystem));
+			app().postMessage(3, true, fmt::format("Cannot use on {}", VicePlugin::systemName(currSystem)));
 			return false;
 		}
 		plugin.resources_set_int(driveResName[slot], type);
@@ -1356,7 +1357,7 @@ class CustomMainMenuView : public EmuMainMenuView
 {
 	TextMenuItem system
 	{
-		nullptr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>(item, VicePlugin::SYSTEMS);
@@ -1396,14 +1397,14 @@ class CustomMainMenuView : public EmuMainMenuView
 						if(!strlen(str))
 						{
 							app().postMessage(true, "Name can't be blank");
-							return 1;
+							return true;
 						}
 						string_copy(newDiskName, str);
 						auto fPicker = EmuFilePicker::makeForMediaCreation(attachParams());
 						fPicker->setOnClose(
 							[this](FSPicker &picker, Input::Event e)
 							{
-								newDiskPath = FS::makePathStringPrintf("%s/%s.d64", picker.path().data(), newDiskName.data());
+								newDiskPath = IG::formatToPathString("{}/{}.d64", picker.path().data(), newDiskName.data());
 								picker.dismiss();
 								if(e.isDefaultCancelButton())
 								{
@@ -1433,7 +1434,7 @@ class CustomMainMenuView : public EmuMainMenuView
 					{
 						view.dismiss();
 					}
-					return 0;
+					return false;
 				});
 		}
 	};
@@ -1441,7 +1442,7 @@ class CustomMainMenuView : public EmuMainMenuView
 	void createDiskAndLaunch(const char *diskPath, const char *diskName, Input::Event e)
 	{
 		if(plugin.vdrive_internal_create_format_disk_image(diskPath,
-			FS::makeFileStringPrintf("%s,dsk", diskName).data(),
+			IG::formatToPathString("{},dsk", diskName).data(),
 			DISK_IMAGE_TYPE_D64) == -1)
 		{
 			app().postMessage(true, "Error creating disk image");
@@ -1469,7 +1470,7 @@ class CustomMainMenuView : public EmuMainMenuView
 		loadFileBrowserItems();
 		item.emplace_back(&loadNoAutostart);
 		item.emplace_back(&startWithBlankDisk);
-		system.setName(string_makePrintf<34>("System: %s", VicePlugin::systemName(currSystem)).data());
+		system.setName(fmt::format("System: {}", VicePlugin::systemName(currSystem)).data());
 		item.emplace_back(&system);
 		loadStandardItems();
 	}

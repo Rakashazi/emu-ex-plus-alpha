@@ -18,8 +18,8 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/util/string.h>
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 
 static const VideoImageEffect::EffectDesc
@@ -177,7 +177,7 @@ void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex, const Gfx::
 		{
 			// print error from original compile if fallback effect not found
 			auto &app = EmuApp::get(r.appContext());
-			app.printfMessage(3, true, "%s", err->code().value() == ENOENT ? err->what() : fallbackErr->what());
+			app.postMessage(3, true, err->code().value() == ENOENT ? err->what() : fallbackErr->what());
 			deinit(r);
 			return;
 		}
@@ -190,12 +190,12 @@ std::optional<std::system_error> VideoImageEffect::compileEffect(Gfx::Renderer &
 	auto &app = EmuApp::get(r.appContext());
 	{
 		auto file = r.appContext().openAsset(
-			FS::makePathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.vShaderFilename).data(),
+			IG::formatToPathString("shaders/{}{}", useFallback ? "fallback-" : "", desc.vShaderFilename).data(),
 			IO::AccessHint::ALL);
 		if(!file)
 		{
 			deinitProgram(r);
-			return std::system_error{{ENOENT, std::system_category()}, string_makePrintf<128>("Can't open file: %s", desc.vShaderFilename).data()};
+			return std::system_error{{ENOENT, std::system_category()}, fmt::format("Can't open file: {}", desc.vShaderFilename)};
 		}
 		auto fileSize = file.size();
 		char text[fileSize + 1];
@@ -214,13 +214,13 @@ std::optional<std::system_error> VideoImageEffect::compileEffect(Gfx::Renderer &
 	}
 	{
 		auto file = r.appContext().openAsset(
-			FS::makePathStringPrintf("shaders/%s%s", useFallback ? "fallback-" : "", desc.fShaderFilename).data(),
+			IG::formatToPathString("shaders/{}{}", useFallback ? "fallback-" : "", desc.fShaderFilename).data(),
 			IO::AccessHint::ALL);
 		if(!file)
 		{
 			deinitProgram(r);
 			r.autoReleaseShaderCompiler();
-			return std::system_error{{ENOENT, std::system_category()}, string_makePrintf<128>("Can't open file: %s", desc.fShaderFilename).data()};
+			return std::system_error{{ENOENT, std::system_category()}, fmt::format("Can't open file: {}", desc.fShaderFilename)};
 		}
 		auto fileSize = file.size();
 		char text[fileSize + 1];

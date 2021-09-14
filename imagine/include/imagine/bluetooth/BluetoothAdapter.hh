@@ -26,6 +26,8 @@
 
 class BluetoothPendingSocket;
 
+using BluetoothAddrString = std::array<char, 18>;
+
 struct BluetoothAddr
 {
 	constexpr BluetoothAddr() {}
@@ -101,7 +103,7 @@ class BluetoothSocket
 {
 public:
 	constexpr BluetoothSocket() {}
-	virtual ~BluetoothSocket();
+	virtual ~BluetoothSocket() = default;
 	virtual IG::ErrorCode openL2cap(BluetoothAdapter &, BluetoothAddr, uint32_t psm) = 0;
 	virtual IG::ErrorCode openRfcomm(BluetoothAdapter &, BluetoothAddr, uint32_t channel) = 0;
 	#ifdef CONFIG_BLUETOOTH_SERVER

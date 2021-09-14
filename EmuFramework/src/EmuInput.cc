@@ -22,6 +22,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/math/int.hh>
+#include <imagine/util/format.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <cstdlib>
 
@@ -239,7 +240,7 @@ static std::array<char, 16> uniqueCustomConfigName()
 {
 	iterateTimes(99, i) // Try up to "Custom 99"
 	{
-		auto name = string_makePrintf<16>("Custom %d", i+1);
+		auto name = IG::formatToArray<16>("Custom {}", i+1);
 		// Check if this name is free
 		logMsg("checking:%s", name.data());
 		bool exists{};
@@ -352,7 +353,7 @@ KeyConfig *InputDeviceConfig::makeMutableKeyConf(EmuApp &app)
 		logMsg("current config not mutable, creating one");
 		auto name = uniqueCustomConfigName();
 		conf = setKeyConfCopiedFromExisting(name.data());
-		app.printfMessage(3, false, "Automatically created profile: %s", conf->name.data());
+		app.postMessage(3, false, fmt::format("Automatically created profile: {}", conf->name.data()));
 	}
 	return conf;
 }

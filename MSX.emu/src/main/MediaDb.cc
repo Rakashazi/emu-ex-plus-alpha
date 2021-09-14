@@ -38,7 +38,6 @@ extern "C" {
 }
 
 #include <string.h>
-#include <imagine/util/builtins.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/logger/logger.h>
 // throw_exception.hpp, Boost 1.50

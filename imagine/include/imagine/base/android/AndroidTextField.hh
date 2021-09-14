@@ -18,17 +18,17 @@
 #include <imagine/input/inputDefs.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/NonCopyable.hh>
 #include <imagine/util/jni.hh>
 
 namespace Input
 {
 
-class AndroidTextField : private NonCopyable
+class AndroidTextField
 {
 public:
 	AndroidTextField(Base::ApplicationContext, TextFieldDelegate, const char *initialText, const char *promptText, int fontSizePixels);
 	~AndroidTextField();
+	AndroidTextField &operator=(AndroidTextField &&) = delete;
 
 protected:
 	Base::ApplicationContext ctx;

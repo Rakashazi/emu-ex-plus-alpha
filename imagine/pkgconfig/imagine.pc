@@ -8,4 +8,4 @@ Description: DESCRIPTION
 Version: VERSION
 Requires: REQUIRES
 Libs: -L${libdir} LIBS
-Cflags: CFLAGS -I${includedir}/imagine/override -I${includedir}
+Cflags: CFLAGS -I${includedir}

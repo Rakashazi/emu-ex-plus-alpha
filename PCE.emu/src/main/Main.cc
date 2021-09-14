@@ -23,6 +23,7 @@
 #include "internal.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/format.hh>
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/huc.h>
 #include <mednafen/pce_fast/vdc.h>
@@ -110,7 +111,7 @@ static char saveSlotCharPCE(int slot)
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.%s.nc%c", statePath, gameName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotCharPCE(slot));
+	return IG::formatToPathString("{}/{}.{}.nc{}", statePath, gameName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotCharPCE(slot));
 }
 
 void EmuSystem::closeSystem()
@@ -181,7 +182,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 		}
 		catch(std::exception &e)
 		{
-			return EmuSystem::makeError("%s", e.what());
+			return EmuSystem::makeError(e.what());
 		}
 	}
 	else
@@ -197,7 +198,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 		}
 		catch(std::exception &e)
 		{
-			return EmuSystem::makeError("%s", e.what());
+			return EmuSystem::makeError(e.what());
 		}
 	}
 	//logMsg("%d input ports", MDFNGameInfo->InputInfo->InputPorts);

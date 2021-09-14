@@ -74,8 +74,10 @@ public:
 
 	constexpr DragTracker() {}
 
-	template <class OnDown, class OnMove, class OnUp>
-	bool inputEvent(Event e, OnDown onDown, OnMove onMove, OnUp onUp)
+	bool inputEvent(Event e,
+		IG::invocable<DragTrackerState, UserData&> auto &&onDown,
+		IG::invocable<DragTrackerState, DragTrackerState, UserData&> auto &&onMove,
+		IG::invocable<DragTrackerState, UserData&> auto &&onUp)
 	{
 		if(!e.isPointer())
 			return false;

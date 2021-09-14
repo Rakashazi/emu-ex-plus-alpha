@@ -1,6 +1,7 @@
 #pragma once
 
 #include <imagine/bluetooth/BluetoothAdapter.hh>
+#include <imagine/util/format.hh>
 
 static void baswap(BluetoothAddr *dst, const BluetoothAddr *src)
 {
@@ -37,9 +38,9 @@ static int bachk(const char *str)
 	return 0;
 }
 
-static int ba2str(BluetoothAddr ba, char *str)
+static BluetoothAddrString ba2str(BluetoothAddr ba)
 {
-	return sprintf(str, "%2.2X:%2.2X:%2.2X:%2.2X:%2.2X:%2.2X",
+	return IG::formatToArray<sizeof(BluetoothAddrString)>("{:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
 		ba.data()[5], ba.data()[4], ba.data()[3], ba.data()[2], ba.data()[1], ba.data()[0]);
 }
 

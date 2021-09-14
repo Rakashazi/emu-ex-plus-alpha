@@ -22,13 +22,12 @@
 #include <imagine/util/DelegateFuncSet.hh>
 #include <imagine/util/Point2D.hh>
 #include <imagine/util/typeTraits.hh>
-#include <imagine/util/NonCopyable.hh>
 #include <memory>
 
 namespace Base
 {
 
-class BaseWindow : private NonCopyable
+class BaseWindow
 {
 public:
 	using SurfaceChange = WindowSurfaceChange;
@@ -45,6 +44,7 @@ public:
 	static constexpr bool shouldRunOnInitAfterAddingWindow = true;
 
 	BaseWindow(ApplicationContext, WindowConfig);
+	BaseWindow &operator=(BaseWindow &&) = delete;
 
 protected:
 	enum class DrawPhase : uint8_t

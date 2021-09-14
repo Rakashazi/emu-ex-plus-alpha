@@ -30,18 +30,12 @@ public:
 	void setFace(Gfx::GlyphTextureSet &face);
 	void clear();
 	void place() final;
+	void post(IG::utf16String msg, int secs, bool error);
+	void postError(IG::utf16String msg, int secs);
 	void unpost();
-	void post(const char *msg, int secs = 3, bool error = false);
-	void postError(const char *msg, int secs = 3);
-	void post(const char *prefix, const std::system_error &err, int secs = 3);
-	void post(const char *prefix, std::error_code ec, int secs = 3);
 	void prepareDraw() final;
 	void draw(Gfx::RendererCommands &cmds) final;
 	bool inputEvent(Input::Event event) final;
-
-	[[gnu::format(printf, 4, 5)]]
-	void printf(uint32_t secs, bool error, const char *format, ...);
-	void vprintf(uint32_t secs, bool error, const char *format, va_list args);
 
 private:
 	Gfx::Text text{};
@@ -49,6 +43,5 @@ private:
 	Gfx::GCRect msgFrame{};
 	bool error = false;
 
-	void contentUpdated(bool error);
 	void postContent(int secs);
 };

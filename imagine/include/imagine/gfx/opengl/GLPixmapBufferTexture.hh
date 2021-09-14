@@ -29,7 +29,7 @@ class TextureBufferStorage : public PixmapTexture
 public:
 	using PixmapTexture::PixmapTexture;
 	constexpr TextureBufferStorage() {}
-	virtual ~TextureBufferStorage() = 0;
+	virtual ~TextureBufferStorage() = default;
 	TextureBufferStorage &operator=(TextureBufferStorage &&o) = default;
 	LockedTextureBuffer makeLockedBuffer(void *data, uint32_t pitchBytes, uint32_t bufferFlags);
 	virtual IG::ErrorCode setFormat(IG::PixmapDesc, ColorSpace, const TextureSampler *compatSampler) = 0;

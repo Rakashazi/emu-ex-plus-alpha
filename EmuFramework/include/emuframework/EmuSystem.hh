@@ -22,6 +22,7 @@
 #include <imagine/util/rectangle2.h>
 #include <emuframework/config.hh>
 #include <optional>
+#include <string>
 
 namespace std
 {
@@ -261,8 +262,8 @@ public:
 	static void start(EmuApp &);
 	static void closeSystem();
 	static void closeRuntimeSystem(EmuApp &, bool allowAutosaveState = 1);
-	[[gnu::format(printf, 1, 2)]]
-	static Error makeError(const char *msg, ...);
+	static Error makeError(const char *msg);
+	static Error makeError(std::string msg);
 	static Error makeError(std::error_code ec);
 	static Error makeFileReadError();
 	static Error makeFileWriteError();

@@ -23,6 +23,7 @@
 #include <emuframework/EmuSystemActionsView.hh>
 #undef Debugger
 #include "internal.hh"
+#include <imagine/util/format.hh>
 
 class CustomAudioOptionView : public AudioOptionView
 {
@@ -274,7 +275,7 @@ class ConsoleOptionView : public TableView, public EmuAppHelper<ConsoleOptionVie
 		"Digital Paddle Sensitivity", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(string_makePrintf<4>("%u", optionPaddleDigitalSensitivity.val).data());
+			t.setString(fmt::format("{}", optionPaddleDigitalSensitivity.val));
 			return true;
 		},
 		[]()

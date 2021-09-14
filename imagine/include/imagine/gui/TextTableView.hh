@@ -23,21 +23,19 @@
 class TextTableView : public TableView
 {
 public:
-	TextTableView(ViewAttachParams attach, uint32_t itemsHint);
-	TextTableView(NameString name, ViewAttachParams attach, uint32_t itemsHint);
-	TextTableView(const char *name, ViewAttachParams attach, uint32_t itemsHint);
-	void appendItem(const char *name, TextMenuItem::SelectDelegate del);
-	void setItem(uint32_t idx, const char *name, TextMenuItem::SelectDelegate del);
-	TextMenuItem &item(uint32_t idx);
-	void setItems(uint32_t items);
-	void onAddedToController(ViewController *c, Input::Event e) override;
-	void drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect, Gfx::GC xIndent) const override;
-
-	template<class Func>
-	void appendItem(const char *name, Func &&func)
+	TextTableView(IG::utf16String name, ViewAttachParams attach, unsigned itemsHint):
+		TableView{std::move(name), attach, textItem}
 	{
-		appendItem(name, TextMenuItem::makeSelectDelegate(std::forward<Func>(func)));
+		textItem.reserve(itemsHint);
 	}
+
+	TextTableView(ViewAttachParams attach, unsigned itemsHint);
+	void appendItem(IG::utf16String name, TextMenuItem::SelectDelegate del);
+	void setItem(size_t idx, IG::utf16String name, TextMenuItem::SelectDelegate del);
+	TextMenuItem &item(size_t idx);
+	void setItems(size_t items);
+	void onAddedToController(ViewController *c, Input::Event e) override;
+	void drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, Gfx::GC xIndent) const override;
 
 protected:
 	std::vector<TextMenuItem> textItem{};

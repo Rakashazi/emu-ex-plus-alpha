@@ -25,6 +25,8 @@
 namespace Gfx
 {
 
+static_assert((uint8_t)TextureBufferMode::DEFAULT == 0, "TextureBufferMode::DEFAULT != 0");
+
 Renderer::Renderer(Base::ApplicationContext ctx, Error &err):
 	GLRenderer{ctx, err}
 {}

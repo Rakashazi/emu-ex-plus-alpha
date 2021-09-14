@@ -24,6 +24,7 @@
 #include "privateInput.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/util/format.hh>
 
 EmuInputView::EmuInputView() {}
 
@@ -156,7 +157,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 								if(auto err = app.saveStateWithSlot(EmuSystem::saveStateSlot);
 									err)
 								{
-									app.printfMessage(4, true, "Save State: %s", err->what());
+									app.postMessage(4, true, fmt::format("Save State: {}", err->what()));
 								}
 								else if(notify)
 								{
@@ -195,7 +196,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 						if(auto err = emuApp.loadStateWithSlot(EmuSystem::saveStateSlot);
 							err)
 						{
-							emuApp.printfMessage(4, true, "Load State: %s", err->what());
+							emuApp.postMessage(4, true, fmt::format("Load State: {}", err->what()));
 						}
 						return true;
 					}
@@ -206,7 +207,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 						EmuSystem::saveStateSlot--;
 						if(EmuSystem::saveStateSlot < -1)
 							EmuSystem::saveStateSlot = 9;
-						emuApp.printfMessage(1, false, "State Slot: %s", stateNameStr(EmuSystem::saveStateSlot));
+						emuApp.postMessage(1, false, fmt::format("State Slot: {}", stateNameStr(EmuSystem::saveStateSlot)));
 					}
 
 					bcase guiKeyIdxIncStateSlot:
@@ -216,7 +217,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 						EmuSystem::saveStateSlot++;
 						if(EmuSystem::saveStateSlot > 9)
 							EmuSystem::saveStateSlot = -1;
-						emuApp.printfMessage(1, false, "State Slot: %s", stateNameStr(EmuSystem::saveStateSlot));
+						emuApp.postMessage(1, false, fmt::format("State Slot: {}", stateNameStr(EmuSystem::saveStateSlot)));
 					}
 
 					bcase guiKeyIdxGameScreenshot:

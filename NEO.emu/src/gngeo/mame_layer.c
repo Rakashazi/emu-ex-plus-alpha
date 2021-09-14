@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include <imagine/logger/logger.h>
 
 /*
   fixed

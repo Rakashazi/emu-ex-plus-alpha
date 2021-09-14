@@ -23,8 +23,6 @@
 template class IOUtils<IO>;
 template class IOUtils<GenericIO>;
 
-IO::~IO() {}
-
 const uint8_t *IO::mmapConst() { return nullptr; };
 
 std::error_code IO::truncate(off_t offset) { return {ENOSYS, std::system_category()}; };

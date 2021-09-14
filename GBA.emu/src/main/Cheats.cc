@@ -19,6 +19,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <gba/Cheats.h>
 static bool cheatsModified = false;
 
@@ -122,7 +123,7 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 				else
 				{
 					app().postMessage(true, "Invalid format");
-					return 1;
+					return true;
 				}
 				cheatsModified = true;
 				cheatsDisable(gGba.cpu, cheatsNumber-1);
@@ -141,14 +142,14 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 						{
 							view.dismiss();
 						}
-						return 0;
+						return false;
 					});
 			}
 			else
 			{
 				view.dismiss();
 			}
-			return 0;
+			return false;
 		});
 }
 
@@ -160,7 +161,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		{
 			return 2 + cheat.size();
 		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
+		[this](const TableView &, size_t idx) -> MenuItem&
 		{
 			switch(idx)
 			{
@@ -221,7 +222,7 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	auto filename = FS::makePathStringPrintf("%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName().data());
+	auto filename = IG::formatToPathString("{}/{}.clt", EmuSystem::savePath(), EmuSystem::gameName().data());
 
 	if(!cheatsNumber)
 	{
@@ -236,7 +237,7 @@ void writeCheatFile()
 
 void readCheatFile()
 {
-	auto filename = FS::makePathStringPrintf("%s/%s.clt", EmuSystem::savePath(), EmuSystem::gameName().data());
+	auto filename = IG::formatToPathString("{}/{}.clt", EmuSystem::savePath(), EmuSystem::gameName().data());
 	if(cheatsLoadCheatList(filename.data()))
 	{
 		logMsg("loaded cheat file: %s", filename.data());

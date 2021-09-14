@@ -20,6 +20,7 @@
 #include "private.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/FSPicker.hh>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <string>
 
@@ -69,7 +70,7 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach,
 		setOnPathReadError(
 			[this, &app](FSPicker &, std::error_code ec)
 			{
-				app.printfMessage(4, true, "Can't open last saved directory: %s", ec.message().c_str());
+				app.postMessage(4, true, fmt::format("Can't open last saved directory: {}", ec.message()));
 			});
 		if(auto ec = setPath(startingPath, false, rootInfo, e);
 			!ec)
@@ -80,7 +81,7 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach,
 	setOnPathReadError(
 		[this, &app](FSPicker &, std::error_code ec)
 		{
-			app.printfMessage(3, true, "Can't open directory: %s", ec.message().c_str());
+			app.postMessage(3, true, fmt::format("Can't open directory: {}", ec.message()));
 		});
 	if(setDefaultPath)
 	{

@@ -17,8 +17,8 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/thread/Semaphore.hh>
+#include <imagine/util/concepts.hh>
 #include <thread>
-#include <type_traits>
 #include <utility>
 #include <pthread.h>
 
@@ -31,11 +31,10 @@ T thisThreadID()
 	return static_cast<T>(pthread_self());
 }
 
-template<class Func>
-static std::thread makeThreadSync(Func &&f)
+static std::thread makeThreadSync(IG::invocable<Semaphore&> auto &&f)
 {
 	Semaphore sem{0};
-	if constexpr(std::is_copy_constructible_v<Func>)
+	if constexpr(std::is_copy_constructible_v<decltype(f)>)
 	{
 		std::thread t
 		{
@@ -61,18 +60,16 @@ static std::thread makeThreadSync(Func &&f)
 	}
 }
 
-template<class Func>
-static void makeDetachedThread(Func &&f)
+static void makeDetachedThread(IG::invocable auto &&f)
 {
-	std::thread t{std::forward<Func>(f)};
+	std::thread t{std::forward<decltype(f)>(f)};
 	t.detach();
 }
 
-template<class Func>
-static void makeDetachedThreadSync(Func &&f)
+static void makeDetachedThreadSync(IG::invocable<Semaphore&> auto &&f)
 {
 	Semaphore sem{0};
-	if constexpr(std::is_copy_constructible_v<Func>)
+	if constexpr(std::is_copy_constructible_v<decltype(f)>)
 	{
 		std::thread t
 		{

@@ -59,22 +59,21 @@ public:
 	RendererCommands makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
 		bool notifyWindowAfterPresent, Base::Window &win, Viewport viewport, Mat4 projMat);
 
-	template<class Func>
-	void run(Func &&del, bool awaitReply = false) { GLTask::run(std::forward<Func>(del), awaitReply); }
+	void run(IG::invocable auto &&f, bool awaitReply = false) { GLTask::run(std::forward<decltype(f)>(f), awaitReply); }
 
-	template<class Func>
 	bool draw(Base::Window &win, Base::WindowDrawParams winParams, DrawParams params,
-		const Viewport &viewport, const Mat4 &projMat, Func &&del)
+		const Viewport &viewport, const Mat4 &projMat,
+		IG::invocable<Base::Window &, RendererCommands &> auto &&f)
 	{
 		doPreDraw(win, winParams, params);
 		assert(params.asyncMode() != DrawAsyncMode::AUTO); // doPreDraw() should set mode
 		bool manageSemaphore = params.asyncMode() == DrawAsyncMode::PRESENT;
 		bool notifyWindowAfterPresent = params.asyncMode() != DrawAsyncMode::NONE;
 		bool awaitReply = params.asyncMode() != DrawAsyncMode::FULL;
-		run([=, this, &win, &viewport, &projMat](TaskContext ctx)
+		GLTask::run([=, this, &win, &viewport, &projMat](TaskContext ctx)
 			{
 				auto cmds = makeRendererCommands(ctx, manageSemaphore, notifyWindowAfterPresent, win, viewport, projMat);
-				del(win, cmds);
+				f(win, cmds);
 			}, awaitReply);
 		return params.asyncMode() == DrawAsyncMode::NONE;
 	}

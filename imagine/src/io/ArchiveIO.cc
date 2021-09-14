@@ -260,7 +260,7 @@ ArchiveIO::ArchiveIO(ArchiveEntry entry):
 
 GenericIO ArchiveIO::makeGeneric()
 {
-	return GenericIO{*this};
+	return GenericIO{std::move(*this)};
 }
 
 ArchiveEntry ArchiveIO::releaseArchive()

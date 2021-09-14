@@ -81,7 +81,7 @@ protected:
 class OutputStream
 {
 public:
-	virtual ~OutputStream();
+	virtual ~OutputStream() = default;
 	virtual IG::ErrorCode open(OutputStreamConfig config) = 0;
 	virtual void play() = 0;
 	virtual void pause() = 0;

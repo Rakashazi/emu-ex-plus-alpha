@@ -19,6 +19,7 @@
 #include <imagine/base/EventLoop.hh>
 #include <imagine/io/PosixIO.hh>
 #include <imagine/util/typeTraits.hh>
+#include <imagine/util/concepts.hh>
 #include <array>
 #include <utility>
 
@@ -44,14 +45,12 @@ public:
 	bool isReadNonBlocking() const;
 	explicit operator bool() const;
 
-	template<class Func>
-	void attach(Func func)
+	void attach(auto &&f)
 	{
-		attach({}, std::forward<Func>(func));
+		attach({}, std::forward<decltype(f)>(f));
 	}
 
-	template<class Func>
-	void attach(EventLoop loop, Func func)
+	void attach(EventLoop loop, IG::Callable<bool, PosixIO&> auto &&f)
 	{
 		attach(loop,
 			PollEventDelegate
@@ -59,7 +58,7 @@ public:
 				[=](int fd, int)
 				{
 					PosixIO io{fd};
-					auto keep = func(io);
+					bool keep = f(io);
 					io.releaseFD();
 					return keep;
 				}

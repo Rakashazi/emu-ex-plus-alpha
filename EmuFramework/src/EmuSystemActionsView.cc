@@ -26,7 +26,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/base/ApplicationContext.hh>
-#include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 
 class ResetAlertView : public BaseAlertView, public EmuAppHelper<ResetAlertView>
@@ -38,11 +38,11 @@ public:
 			{
 				return 3;
 			},
-			[this](const TableView &, int idx) -> MenuItem&
+			[this](const TableView &, size_t idx) -> MenuItem&
 			{
 				switch(idx)
 				{
-					default: bug_unreachable("idx == %d", idx); return soft;
+					default: bug_unreachable("idx == %d", (int)idx); return soft;
 					case 0: return soft;
 					case 1: return hard;
 					case 2: return cancel;
@@ -77,9 +77,9 @@ protected:
 	TextMenuItem soft, hard, cancel;
 };
 
-static std::array<char, 16> makeStateSlotStr(int slot)
+static auto makeStateSlotStr(int slot)
 {
-	return string_makePrintf<16>("State Slot (%c)", EmuSystem::saveSlotChar(slot));
+	return fmt::format("State Slot ({})", EmuSystem::saveSlotChar(slot));
 }
 
 void EmuSystemActionsView::onShow()
@@ -170,7 +170,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 						if(auto err = app().loadStateWithSlot(EmuSystem::saveStateSlot);
 							err)
 						{
-							app().printfMessage(4, true, "Load State: %s", err->what());
+							app().postMessage(4, true, fmt::format("Load State: {}", err->what()));
 						}
 						else
 							app().viewController().showEmulation();
@@ -192,7 +192,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 						if(auto err = app.saveStateWithSlot(EmuSystem::saveStateSlot);
 							err)
 						{
-							app.printfMessage(4, true, "Save State: %s", err->what());
+							app.postMessage(4, true, fmt::format("Save State: {}", err->what()));
 						}
 						else
 							app.viewController().showEmulation();
@@ -216,7 +216,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 	},
 	stateSlot
 	{
-		nullptr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](Input::Event e)
 		{
 			pushAndShow(makeView<StateSlotView>(), e);
@@ -239,7 +239,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 					[this](EmuApp &app, auto str)
 					{
 						appContext().addLauncherIcon(str, EmuSystem::fullGamePath());
-						app.printfMessage(2, false, "Added shortcut:\n%s", str);
+						app.postMessage(2, false, fmt::format("Added shortcut:\n{}", str));
 						return true;
 					});
 			}
@@ -257,7 +257,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			if(!EmuSystem::gameIsRunning())
 				return;
-			auto ynAlertView = makeView<YesNoAlertView>(string_makePrintf<1024>("Save screenshot to %s ?", EmuSystem::savePath()).data());
+			auto ynAlertView = makeView<YesNoAlertView>(fmt::format("Save screenshot to {} ?", EmuSystem::savePath()).data());
 			ynAlertView->setOnYes(
 				[this]()
 				{

@@ -30,6 +30,7 @@
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/base/Error.hh>
 #include <imagine/base/glDefs.hh>
+#include <imagine/util/concepts.hh>
 #include <optional>
 #include <compare>
 
@@ -215,11 +216,9 @@ public:
 	bool hasSrgbColorSpace() const;
 	void logInfo() const;
 
-	template<class T>
-	static bool loadSymbol(T &symPtr, const char *name)
+	static bool loadSymbol(IG::Pointer auto &symPtr, const char *name)
 	{
-		static_assert(std::is_pointer_v<T>, "called loadSymbol() without pointer type");
-		symPtr = (T)procAddress(name);
+		symPtr = reinterpret_cast<std::remove_reference_t<decltype(symPtr)>>(procAddress(name));
 		return symPtr;
 	}
 };

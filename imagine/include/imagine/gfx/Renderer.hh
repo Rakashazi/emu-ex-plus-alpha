@@ -43,8 +43,6 @@ namespace Gfx
 class RendererTask;
 class Program;
 
-static_assert((uint8_t)TextureBufferMode::DEFAULT == 0, "TextureBufferMode::DEFAULT != 0");
-
 struct TextureBufferModeDesc
 {
 	const char *name = "";

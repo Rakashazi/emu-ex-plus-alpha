@@ -20,6 +20,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 #include "internal.hh"
 
 extern "C"
@@ -30,10 +31,10 @@ extern "C"
 static std::vector<FS::FileString> machinesNames(const char *basePath)
 {
 	std::vector<FS::FileString> machineName{};
-	auto machinePath = FS::makePathStringPrintf("%s/Machines", basePath);
+	auto machinePath = IG::formatToPathString("{}/Machines", basePath);
 	for(auto &entry : FS::directory_iterator{machinePath})
 	{
-		auto configPath = FS::makePathStringPrintf("%s/%s/config.ini", machinePath.data(), entry.name());
+		auto configPath = IG::formatToPathString("{}/{}/config.ini", machinePath.data(), entry.name());
 		if(!FS::exists(configPath))
 		{
 			//logMsg("%s doesn't exist", configPath.data());
@@ -72,7 +73,7 @@ void installFirmwareFiles(Base::ApplicationContext ctx)
 	FS::create_directory(machineBasePath, ec);
 	if(ec && ec.value() != (int)std::errc::file_exists)
 	{
-		app.printfMessage(4, 1, "Can't create directory:\n%s", machineBasePath.data());
+		app.postMessage(4, 1, fmt::format("Can't create directory:\n{}", machineBasePath.data()));
 		return;
 	}
 
@@ -84,12 +85,12 @@ void installFirmwareFiles(Base::ApplicationContext ctx)
 
 	for(auto e : dirsToCreate)
 	{
-		auto pathTemp = FS::makePathStringPrintf("%s/%s", machineBasePath.data(), e);
+		auto pathTemp = IG::formatToPathString("{}/{}", machineBasePath.data(), e);
 		std::error_code ec{};
 		FS::create_directory(pathTemp, ec);
 		if(ec && ec.value() != (int)std::errc::file_exists)
 		{
-			app.printfMessage(4, 1, "Can't create directory:\n%s", pathTemp.data());
+			app.postMessage(4, 1, fmt::format("Can't create directory:\n{}", pathTemp.data()));
 			return;
 		}
 	}
@@ -114,15 +115,15 @@ void installFirmwareFiles(Base::ApplicationContext ctx)
 		auto src = ctx.openAsset(e, IO::AccessHint::ALL);
 		if(!src)
 		{
-			app.printfMessage(4, 1, "Can't open source file:\n %s", e);
+			app.postMessage(4, 1, fmt::format("Can't open source file:\n{}", e));
 			return;
 		}
 		auto e_i = &e - srcPath;
-		auto pathTemp = FS::makePathStringPrintf("%s/Machines/%s/%s",
+		auto pathTemp = IG::formatToPathString("{}/Machines/{}/{}",
 				machineBasePath.data(), destDir[e_i], strstr(e, "config") ? "config.ini" : e);
 		if(FileUtils::writeToPath(pathTemp.data(), src) == -1)
 		{
-			app.printfMessage(4, 1, "Can't write file:\n%s", e);
+			app.postMessage(4, 1, fmt::format("Can't write file:\n{}", e));
 			return;
 		}
 	}
@@ -155,7 +156,7 @@ private:
 		{
 			if(!msxMachineItem.size())
 			{
-				app().printfMessage(4, 1, "Place machine directory in:\n%s", machineBasePath.data());
+				app().postMessage(4, 1, fmt::format("Place machine directory in:\n{}", machineBasePath.data()));
 				return;
 			}
 			item.defaultOnSelect(view, e);
@@ -184,7 +185,7 @@ private:
 		[this](Input::Event e)
 		{
 			auto ynAlertView = makeView<YesNoAlertView>(
-				string_makePrintf<512>("Install the C-BIOS BlueMSX machine files to: %s", machineBasePath.data()).data());
+				fmt::format("Install the C-BIOS BlueMSX machine files to: {}", machineBasePath.data()).data());
 			ynAlertView->setOnYes(
 				[this]()
 				{
@@ -204,14 +205,14 @@ private:
 		}
 	};
 
-	static std::array<char, 256> makeMachinePathMenuEntryStr()
+	static auto makeMachinePathMenuEntryStr()
 	{
-		return string_makePrintf<256>("System/BIOS Path: %s", strlen(machineCustomPath.data()) ? FS::basename(machineCustomPath).data() : "Default");
+		return fmt::format("System/BIOS Path: {}", strlen(machineCustomPath.data()) ? FS::basename(machineCustomPath).data() : "Default");
 	}
 
 	TextMenuItem machineFilePath
 	{
-		nullptr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](Input::Event e)
 		{
 			pushAndShowFirmwarePathMenu("System/BIOS Path", e);
@@ -227,8 +228,8 @@ private:
 		msxMachine.compile(renderer(), projP);
 		if(!strlen(path))
 		{
-			app().printfMessage(4, false, "Using default path:\n%s/MSX.emu",
-				(Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? appContext().assetPath().data() : appContext().sharedStoragePath().data());
+			app().postMessage(4, false, fmt::format("Using default path:\n{}/MSX.emu",
+				(Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? appContext().assetPath().data() : appContext().sharedStoragePath().data()));
 		}
 	}
 
@@ -273,7 +274,7 @@ public:
 
 	void updateHDText(int slot)
 	{
-		hdSlot[slot].setName(string_makePrintf<1024>("%s %s", hdSlotPrefix[slot], hdName[slot].data()).data());
+		hdSlot[slot].setName(fmt::format("{} {}", hdSlotPrefix[slot], hdName[slot].data()).data());
 	}
 
 	void updateHDStatusFromCartSlot(int cartSlot)
@@ -341,17 +342,17 @@ public:
 
 	TextMenuItem hdSlot[4]
 	{
-		{nullptr, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 0); }},
-		{nullptr, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 1); }},
-		{nullptr, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 2); }},
-		{nullptr, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 3); }}
+		{{}, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 0); }},
+		{{}, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 1); }},
+		{{}, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 2); }},
+		{{}, &defaultFace(), [this](TextMenuItem &item, Input::Event e) { onSelectHD(item, e, 3); }}
 	};
 
 	static const char *romSlotPrefix[2];
 
 	void updateROMText(int slot)
 	{
-		romSlot[slot].setName(string_makePrintf<1024>("%s %s", romSlotPrefix[slot], cartName[slot].data()).data());
+		romSlot[slot].setName(fmt::format("{} {}", romSlotPrefix[slot], cartName[slot].data()).data());
 	}
 
 	void onROMMediaChange(const char *name, int slot)
@@ -425,15 +426,15 @@ public:
 
 	TextMenuItem romSlot[2]
 	{
-		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectROM(e, 0); }},
-		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectROM(e, 1); }}
+		{{}, &defaultFace(), [this](Input::Event e) { onSelectROM(e, 0); }},
+		{{}, &defaultFace(), [this](Input::Event e) { onSelectROM(e, 1); }}
 	};
 
 	static const char *diskSlotPrefix[2];
 
 	void updateDiskText(int slot)
 	{
-		diskSlot[slot].setName(string_makePrintf<1024>("%s %s", diskSlotPrefix[slot], diskName[slot].data()).data());
+		diskSlot[slot].setName(fmt::format("{} {}", diskSlotPrefix[slot], diskName[slot].data()).data());
 	}
 
 	void onDiskMediaChange(const char *name, int slot)
@@ -489,8 +490,8 @@ public:
 
 	TextMenuItem diskSlot[2]
 	{
-		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 0); }},
-		{nullptr, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 1); }}
+		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 0); }},
+		{{}, &defaultFace(), [this](Input::Event e) { onSelectDisk(e, 1); }}
 	};
 
 	StaticArrayList<MenuItem*, 9> item{};
@@ -501,11 +502,11 @@ public:
 		{
 			"IO Control",
 			attach,
-			[this](const TableView &)
+			[this](const TableView &) -> int
 			{
 				return item.size();
 			},
-			[this](const TableView &, unsigned idx) -> MenuItem&
+			[this](const TableView &, int idx) -> MenuItem&
 			{
 				return *item[idx];
 			}
@@ -598,7 +599,7 @@ private:
 						if(auto err = setCurrentMachineName(app(), name);
 							err)
 						{
-							app().printfMessage(3, true, "%s", err->what());
+							app().postMessage(3, true, err->what());
 							return;
 						}
 						auto machineName = currentMachineName();
@@ -752,7 +753,7 @@ protected:
 			"Volume", &defaultFace(),
 			[this, type](uint32_t idx, Gfx::Text &t)
 			{
-				t.setString(string_makePrintf<5>("%u%%", mixerVolumeOption(type)).data());
+				t.setString(fmt::format("{}%", mixerVolumeOption(type)));
 				return true;
 			},
 			1,
@@ -823,7 +824,7 @@ protected:
 			"Pan", &defaultFace(),
 			[this, type](uint32_t idx, Gfx::Text &t)
 			{
-				t.setString(string_makePrintf<5>("%u%%", mixerPanOption(type)).data());
+				t.setString(fmt::format("{}%", mixerPanOption(type)));
 				return true;
 			},
 			1,

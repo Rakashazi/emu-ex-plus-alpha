@@ -6,7 +6,6 @@
 #include "../NLS.h"
 #include "Flash.h"
 #include <imagine/util/preprocessor/repeat.h>
-#include <imagine/util/builtins.h>
 #include <imagine/util/mayAliasInt.h>
 #include <imagine/logger/logger.h>
 #include <imagine/io/IO.hh>

@@ -60,7 +60,7 @@ struct TestDesc
 	TestParams params;
 	std::string name;
 
-	TestDesc(TestID test, const char *name, IG::WP pixmapSize = {},
+	TestDesc(TestID test, std::string name, IG::WP pixmapSize = {},
 		Gfx::TextureBufferMode bufferMode = {})
 		: params{test, pixmapSize, bufferMode}, name{name} {}
 };

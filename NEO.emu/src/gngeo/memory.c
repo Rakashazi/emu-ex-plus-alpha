@@ -25,6 +25,7 @@
 #include "memory.h"
 #include "pd4990a.h"
 #include "transpack.h"
+#include <imagine/logger/logger.h>
 
 #ifdef GP2X
 #include "ym2610-940/940shared.h"

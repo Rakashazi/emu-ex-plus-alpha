@@ -1,7 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include <imagine/util/builtins.h>
-#include <imagine/logger/logger.h>
 
 // SDL wrapper, renamed with GN prefix to avoid conflicts on WebOS, which includes some parts of SDL
 

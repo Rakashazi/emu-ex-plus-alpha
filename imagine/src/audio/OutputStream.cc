@@ -32,6 +32,8 @@
 	#endif
 #endif
 
+#include <imagine/util/utility.h>
+
 namespace IG::Audio
 {
 
@@ -63,7 +65,5 @@ OutputStreamConfig Manager::makeNativeOutputStreamConfig() const
 {
 	return {nativeFormat()};
 }
-
-OutputStream::~OutputStream() {}
 
 }

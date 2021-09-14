@@ -21,6 +21,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <imagine/util/utility.h>
 #ifdef CONFIG_USE_GNU_BASENAME
 #include <imagine/util/string/glibc.h>
@@ -29,26 +30,6 @@
 
 namespace FS
 {
-
-FileString makeFileStringPrintf(const char *format, ...)
-{
-	FileString path{};
-	va_list args;
-	va_start(args, format);
-	vsnprintf(path.data(), path.size(), format, args);
-	va_end(args);
-	return path;
-}
-
-PathString makePathStringPrintf(const char *format, ...)
-{
-	PathString path{};
-	va_list args;
-	va_start(args, format);
-	vsnprintf(path.data(), path.size(), format, args);
-	va_end(args);
-	return path;
-}
 
 FileString makeFileString(const char *str)
 {
@@ -77,7 +58,7 @@ PathString makePathString(const char *str)
 
 PathString makePathString(const char *dir, const char *file)
 {
-	return makePathStringPrintf("%s/%s", dir, file);
+	return IG::formatToPathString("{}/{}", dir, file);
 }
 
 PathString makeAppPathFromLaunchCommand(const char *launchCmd)
@@ -99,10 +80,6 @@ FileString basename(const char *path)
 	string_copy(name, gnu_basename(path));
 	#elif defined __ANDROID__
 	string_copy(name, ::posixBasenameImpl(path));
-	#elif defined _WIN32
-	char namePart[_MAX_FNAME], extPart[_MAX_EXT];
-	_splitpath(path, nullptr, nullptr, namePart, extPart);
-	string_printf(name, "%s%s", namePart, extPart);
 	#else
 	// standard version can modify input, and returns a pointer within it
 	// BSD version can modify input, but always returns its own allocated storage
@@ -117,10 +94,6 @@ PathString dirname(const char *path)
 	PathString dir;
 	#if defined __ANDROID__
 	string_copy(dir, ::posixDirnameImpl(path));
-	#elif defined _WIN32
-	char drivePart[_MAX_DRIVE], dirPart[_MAX_DIR];
-	_splitpath(path, drivePart, dirPart, nullptr, nullptr);
-	string_printf(dir, "%s%s", drivePart, dirPart);
 	#else
 	// standard version can modify input, and returns a pointer within it
 	// BSD version can modify input, but always returns its own allocated storage

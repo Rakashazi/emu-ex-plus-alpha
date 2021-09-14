@@ -24,6 +24,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/SyncFence.hh>
 #include <imagine/base/baseDefs.hh>
+#include <imagine/util/concepts.hh>
 #include <utility>
 
 namespace IG
@@ -45,22 +46,19 @@ public:
 	Renderer &renderer() const;
 	explicit operator bool() const;
 
-	// Run a delegate on the renderer thread with signature:
-	// void()
-	template<class Func>
-	void run(Func &&del, bool awaitReply = false)
+	// Run a delegate on the renderer thread
+	void run(IG::invocable auto &&f, bool awaitReply = false)
 	{
-		RendererTaskImpl::run(std::forward<Func>(del), awaitReply);
+		RendererTaskImpl::run(std::forward<decltype(f)>(f), awaitReply);
 	}
 
-	// Run a delegate for drawing on the renderer thread with signature:
-	// void(Base::Window &win, RendererCommands &cmds)
+	// Run a delegate for drawing on the renderer thread
 	// Returns true if the window's contents were presented synchronously
-	template<class Func>
 	bool draw(Base::Window &win, Base::WindowDrawParams winParams, DrawParams params,
-		const Viewport &viewport, const Mat4 &projMat, Func &&del)
+		const Viewport &viewport, const Mat4 &projMat,
+		IG::invocable<Base::Window &, RendererCommands &> auto &&f)
 	{
-		return RendererTaskImpl::draw(win, winParams, params, viewport, projMat, std::forward<Func>(del));
+		return RendererTaskImpl::draw(win, winParams, params, viewport, projMat, std::forward<decltype(f)>(f));
 	}
 
 	// synchronization

@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #ifdef __cplusplus
-#include <type_traits>
+#include <imagine/util/concepts.hh>
 #include <algorithm>
 #include <iterator>
 #endif
@@ -42,26 +42,27 @@ static bool equal_n(InputIterator1 first1, Size size, InputIterator2 first2)
 	return std::equal(first1, first1 + size, first2);
 }
 
-template <class C, class V>
-static void fill(C &c, V val)
+constexpr static auto emptyIteratorValue(Iterable auto &&c)
+{
+	return std::remove_cvref_t<decltype(*std::begin(c))>{};
+}
+
+static void fill(Iterable auto &c, auto val)
 {
 	std::fill(std::begin(c), std::end(c), val);
 }
 
-template <class C>
-static void fill(C &c)
+static void fill(Iterable auto &c)
 {
-	fill(c, std::decay_t<decltype(*std::data(c))>{});
+	fill(c, emptyIteratorValue(c));
 }
 
-template <class C, class UnaryPredicate>
-static auto find_if(C &&c, UnaryPredicate pred)
+static auto find_if(Iterable auto &&c, auto pred)
 {
 	return std::find_if(std::begin(c), std::end(c), pred);
 }
 
-template <class C, class V>
-static int findIndex(C &&c, const V& val, int notFound = -1)
+static int findIndex(Iterable auto &&c, const auto &val, int notFound = -1)
 {
 	auto it = std::find(std::begin(c), std::end(c), val);
 	if(it == std::end(c))
@@ -69,8 +70,7 @@ static int findIndex(C &&c, const V& val, int notFound = -1)
 	return std::distance(std::begin(c), it);
 }
 
-template <class C, class UnaryPredicate>
-static int findIndexIf(C &&c, UnaryPredicate pred, int notFound = -1)
+static int findIndexIf(Iterable auto &&c, auto pred, int notFound = -1)
 {
 	auto it = std::find_if(std::begin(c), std::end(c), pred);
 	if(it == std::end(c))
@@ -78,20 +78,17 @@ static int findIndexIf(C &&c, UnaryPredicate pred, int notFound = -1)
 	return std::distance(std::begin(c), it);
 }
 
-template <class C, class V>
-static bool contains(C &&c, const V& val)
+static bool contains(Iterable auto &&c, const auto &val)
 {
 	return std::find(std::begin(c), std::end(c), val) != c.end();
 }
 
-template <class C, class UnaryPredicate>
-static bool containsIf(C &&c, UnaryPredicate pred)
+static bool containsIf(Iterable auto &&c, auto pred)
 {
 	return std::find_if(std::begin(c), std::end(c), pred) != c.end();
 }
 
-template <class C, class T>
-static bool eraseFirst(C &c, const T &val)
+static bool eraseFirst(Iterable auto &c, const auto &val)
 {
 	auto it = std::find(c.begin(), c.end(), val);
 	if(it == c.end())
@@ -100,8 +97,7 @@ static bool eraseFirst(C &c, const T &val)
 	return true;
 }
 
-template <class C, class UnaryPredicate>
-static typename C::value_type moveOutIf(C &c, UnaryPredicate pred)
+static auto moveOutIf(Iterable auto &c, auto pred)
 {
 	if(auto it = std::find_if(c.begin(), c.end(), pred);
 		it != c.end())
@@ -112,7 +108,7 @@ static typename C::value_type moveOutIf(C &c, UnaryPredicate pred)
 	}
 	else
 	{
-		return {};
+		return emptyIteratorValue(c);
 	}
 }
 

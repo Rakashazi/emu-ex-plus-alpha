@@ -23,6 +23,7 @@
 #include <imagine/util/mayAliasInt.h>
 #include <imagine/util/ranges.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include "system.h"
 #include "z80.h"
@@ -389,7 +390,7 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	auto filename = FS::makePathStringPrintf("%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName().data());
+	auto filename = IG::formatToPathString("{}/{}.pat", EmuSystem::savePath(), EmuSystem::gameName().data());
 
 	if(!cheatList.size())
 	{
@@ -428,7 +429,7 @@ void writeCheatFile()
 
 void readCheatFile()
 {
-	auto filename = FS::makePathStringPrintf("%s/%s.pat", EmuSystem::savePath(), EmuSystem::gameName().data());
+	auto filename = IG::formatToPathString("{}/{}.pat", EmuSystem::savePath(), EmuSystem::gameName().data());
 	FileIO file;
 	file.open(filename.data(), IO::AccessHint::ALL);
 	if(!file)
@@ -618,7 +619,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		{
 			return 1 + cheat.size();
 		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
+		[this](const TableView &, size_t idx) -> MenuItem&
 		{
 			switch(idx)
 			{
@@ -641,7 +642,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						{
 							app().postMessage(true, "Cheat list is full");
 							view.dismiss();
-							return 0;
+							return false;
 						}
 						MdCheat c;
 						string_copy(c.code, str);
@@ -649,7 +650,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						if(!decodeCheat(c.code, c.address, c.data, c.origData))
 						{
 							app().postMessage(true, "Invalid code");
-							return 1;
+							return true;
 						}
 						string_copy(c.name, "Unnamed Cheat");
 						cheatList.push_back(c);
@@ -671,14 +672,14 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 								{
 									view.dismiss();
 								}
-								return 0;
+								return false;
 							});
 					}
 					else
 					{
 						view.dismiss();
 					}
-					return 0;
+					return false;
 				});
 		}
 	}

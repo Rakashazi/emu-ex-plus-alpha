@@ -22,9 +22,9 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 
-BaseAlertView::BaseAlertView(ViewAttachParams attach, const char *label, TableView::ItemsDelegate items, TableView::ItemDelegate item):
+BaseAlertView::BaseAlertView(ViewAttachParams attach, IG::utf16String label, TableView::ItemsDelegate items, TableView::ItemDelegate item):
 	View{attach},
-	text{label, &attach.viewManager().defaultFace()},
+	text{std::move(label), &attach.viewManager().defaultFace()},
 	menu
 	{
 		attach,
@@ -35,7 +35,7 @@ BaseAlertView::BaseAlertView(ViewAttachParams attach, const char *label, TableVi
 	menu.setAlign(C2DO);
 	menu.setScrollableIfNeeded(true);
 	menu.setOnSelectElement(
-		[this](Input::Event e, uint32_t i, MenuItem &item)
+		[this](Input::Event e, int i, MenuItem &item)
 		{
 			bool wasDismissed = false;
 			setOnDismiss(
@@ -121,36 +121,37 @@ void BaseAlertView::onAddedToController(ViewController *c, Input::Event e)
 	menu.setController(c, e);
 }
 
-void BaseAlertView::setLabel(const char *label)
+void BaseAlertView::setLabel(IG::utf16String label)
 {
-	text.setString(label);
+	text.setString(std::move(label));
 }
 
-AlertView::AlertView(ViewAttachParams attach, const char *label, uint32_t menuItems):
-	BaseAlertView{attach, label, item},
+AlertView::AlertView(ViewAttachParams attach, IG::utf16String label, unsigned menuItems):
+	BaseAlertView{attach, std::move(label), item},
 	item{menuItems}
 {}
 
-void AlertView::setItem(uint32_t idx, const char *name, TextMenuItem::SelectDelegate del)
+void AlertView::setItem(size_t idx, IG::utf16String name, TextMenuItem::SelectDelegate del)
 {
 	assert(idx < item.size());
-	item[idx].setName(name, &manager().defaultFace());
+	item[idx].setName(std::move(name), &manager().defaultFace());
 	item[idx].setOnSelect(del);
 }
 
-YesNoAlertView::YesNoAlertView(ViewAttachParams attach, const char *label, const char *yesStr, const char *noStr,
+YesNoAlertView::YesNoAlertView(ViewAttachParams attach, IG::utf16String label,
+	IG::utf16String yesStr, IG::utf16String noStr,
 	TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo):
-	BaseAlertView(attach, label,
-		[](const TableView &)
+	BaseAlertView(attach, std::move(label),
+		[](const TableView &) -> size_t
 		{
 			return 2;
 		},
-		[this](const TableView &, int idx) -> MenuItem&
+		[this](const TableView &, size_t idx) -> MenuItem&
 		{
 			return idx == 0 ? yes : no;
 		}),
-	yes{yesStr ? yesStr : "Yes", &defaultFace(), onYes ? onYes : makeDefaultSelectDelegate()},
-	no{noStr ? noStr : "No", &defaultFace(), onNo ? onNo : makeDefaultSelectDelegate()}
+	yes{yesStr.size() ? std::move(yesStr) : u"Yes", &defaultFace(), onYes ? onYes : makeDefaultSelectDelegate()},
+	no{noStr.size() ? std::move(noStr) : u"No", &defaultFace(), onNo ? onNo : makeDefaultSelectDelegate()}
 {}
 
 void YesNoAlertView::setOnYes(TextMenuItem::SelectDelegate del)
@@ -165,5 +166,5 @@ void YesNoAlertView::setOnNo(TextMenuItem::SelectDelegate del)
 
 TextMenuItem::SelectDelegate YesNoAlertView::makeDefaultSelectDelegate()
 {
-	return TextMenuItem::makeSelectDelegate([](){});
+	return [](){};
 }

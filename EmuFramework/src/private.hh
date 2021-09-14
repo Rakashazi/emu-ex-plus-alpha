@@ -19,6 +19,7 @@
 #include "Recent.hh"
 #include <imagine/pixmap/PixelFormat.hh>
 #include <memory>
+#include <ctime>
 
 namespace Base
 {
@@ -43,7 +44,6 @@ class EmuVideo;
 class EmuAudio;
 
 extern RecentGameList recentGameList;
-static constexpr const char *strftimeFormat = "%x  %r";
 
 void addRecentGame(const char *fullPath, const char *name);
 const char *appViewTitle();
@@ -55,6 +55,7 @@ Gfx::Viewport makeViewport(const Base::Window &win);
 Gfx::Projection updateProjection(Gfx::Viewport viewport);
 uint8_t currentFrameInterval();
 IG::PixelFormatID optionImageEffectPixelFormatValue();
+std::array<char, 64> formatDateAndTime(std::tm);
 
 static void addRecentGame()
 {

@@ -41,29 +41,26 @@ class MenuItem;
 class TableView : public ScrollView
 {
 public:
-	using ItemsDelegate = DelegateFunc<int (const TableView &view)>;
-	using ItemDelegate = DelegateFunc<MenuItem& (const TableView &view, uint32_t idx)>;
-	using SelectElementDelegate = DelegateFunc<void (Input::Event e, uint32_t i, MenuItem &item)>;
+	using ItemsDelegate = DelegateFunc<size_t (const TableView &view)>;
+	using ItemDelegate = DelegateFunc<MenuItem& (const TableView &view, size_t idx)>;
+	using SelectElementDelegate = DelegateFunc<void (Input::Event e, int i, MenuItem &item)>;
 
-	TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate item);
-	TableView(NameString name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item);
-	TableView(const char *name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
-		TableView{makeNameString(name), attach, items, item} {}
-	template <class Container>
-	TableView(ViewAttachParams attach, Container &item):
+	TableView(IG::utf16String name, ViewAttachParams attach, ItemsDelegate items, ItemDelegate item):
+		ScrollView{std::move(name), attach}, items{items}, item{item} {}
+
+	TableView(ViewAttachParams attach, IG::Container auto &item):
 		TableView{{}, attach, item} {}
-	template <class Container>
-	TableView(NameString name, ViewAttachParams attach, Container &item):
+
+	TableView(IG::utf16String name, ViewAttachParams attach, IG::Container auto &item):
 		TableView
 		{
 			std::move(name),
 			attach,
 			[&item](const TableView &) { return std::size(item); },
-			[&item](const TableView &, uint32_t idx) -> MenuItem& { return IG::deref(std::data(item)[idx]); }
+			[&item](const TableView &, size_t idx) -> MenuItem& { return IG::deref(std::data(item)[idx]); }
 		} {}
-	template <class Container>
-	TableView(const char *name, ViewAttachParams attach, Container &item):
-		TableView{makeNameString(name), attach, item} {}
+
+	TableView(ViewAttachParams attach, ItemsDelegate items, ItemDelegate item);
 	void prepareDraw() override;
 	void draw(Gfx::RendererCommands &cmds) override;
 	void place() override;
@@ -77,7 +74,7 @@ public:
 	void onAddedToController(ViewController *c, Input::Event e) override;
 	void setFocus(bool focused) override;
 	void setOnSelectElement(SelectElementDelegate del);
-	uint32_t cells() const;
+	size_t cells() const;
 	IG::WP cellSize() const;
 	void highlightCell(int idx);
 	void setAlign(_2DOrigin align);
@@ -96,10 +93,10 @@ protected:
 
 	void setYCellSize(int s);
 	IG::WindowRect focusRect();
-	void onSelectElement(Input::Event e, uint32_t i, MenuItem &item);
+	void onSelectElement(Input::Event e, size_t i, MenuItem &item);
 	bool elementIsSelectable(MenuItem &item);
 	int nextSelectableElement(int start, int items);
 	int prevSelectableElement(int start, int items);
 	bool handleTableInput(Input::Event e, bool &movedSelected);
-	virtual void drawElement(Gfx::RendererCommands &cmds, uint32_t i, MenuItem &item, Gfx::GCRect rect, Gfx::GC xIndent) const;
+	virtual void drawElement(Gfx::RendererCommands &cmds, size_t i, MenuItem &item, Gfx::GCRect rect, Gfx::GC xIndent) const;
 };

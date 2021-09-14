@@ -18,12 +18,15 @@
 #include <imagine/config/defs.hh>
 #include <imagine/pixmap/PixmapDesc.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/FunctionTraits.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/container/array.hh>
 
 namespace IG
 {
+
+template <class Func, class SrcData = unsigned>
+concept PixmapTransformFunc =
+		requires (Func &&f, SrcData data){ f(data); };
 
 // TODO: rename this class to PixmapView
 class Pixmap : public PixmapDesc
@@ -118,23 +121,8 @@ public:
 	void clear(WP pos, WP size);
 	void clear();
 
-	template <class Func>
-	static constexpr bool checkTransformFunc()
+	void transformInPlace(PixmapTransformFunc auto &&func)
 	{
-		using FuncTraits = FunctionTraits<Func>;
-		constexpr bool isValid = !std::is_void_v<typename FuncTraits::Result>
-			&& FuncTraits::arity == 1;
-		static_assert(isValid, "Transform function must take 1 argument and return a value");
-		return isValid;
-	}
-
-	template <class Func>
-	void transformInPlace(Func func)
-	{
-		if constexpr(!checkTransformFunc<Func>())
-		{
-			return;
-		}
 		switch(format().bytesPerPixel())
 		{
 			case 1: return transformInPlace2<uint8_t>(func);
@@ -143,8 +131,8 @@ public:
 		}
 	}
 
-	template <class Data, class Func>
-	void transformInPlace2(Func func)
+	template <class Data>
+	void transformInPlace2(PixmapTransformFunc<Data> auto &&func)
 	{
 		auto data = (Data*)data_;
 		if(!isPadded())
@@ -172,13 +160,8 @@ public:
 		}
 	}
 
-	template <class Func>
-	void writeTransformed(Func func, Pixmap pixmap)
+	void writeTransformed(PixmapTransformFunc auto &&func, Pixmap pixmap)
 	{
-		if constexpr(!checkTransformFunc<Func>())
-		{
-			return;
-		}
 		auto srcBytesPerPixel = pixmap.format().bytesPerPixel();
 		switch(format().bytesPerPixel())
 		{
@@ -206,14 +189,13 @@ public:
 		}
 	}
 
-	template <class Func>
-	void writeTransformed(Func func, Pixmap pixmap, WP destPos)
+	void writeTransformed(PixmapTransformFunc auto &&func, Pixmap pixmap, WP destPos)
 	{
 		subView(destPos, size() - destPos).writeTransformed(func, pixmap);
 	}
 
-	template <class Src, class Dest, class Func>
-	void writeTransformedDirect(Func func, Pixmap pixmap)
+	template <class Src, class Dest>
+	void writeTransformedDirect(PixmapTransformFunc<Src> auto &&func, Pixmap pixmap)
 	{
 		writeTransformed2<Src, Dest>(func, pixmap);
 	}
@@ -222,8 +204,8 @@ protected:
 	uint32_t pitch = 0; // in bytes
 	void *data_{};
 
-	template <class Src, class Dest, class Func>
-	void writeTransformed2(Func func, Pixmap pixmap)
+	template <class Src, class Dest>
+	void writeTransformed2(PixmapTransformFunc<Src> auto &&func, Pixmap pixmap)
 	{
 		auto srcData = (const Src*)pixmap.data_;
 		auto destData = (Dest*)data_;

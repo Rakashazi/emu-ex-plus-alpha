@@ -17,31 +17,25 @@
 
 #include <imagine/util/bit.hh>
 #include <imagine/util/utility.h>
+#include <imagine/util/concepts.hh>
 #include <cmath>
-#include <type_traits>
 
 namespace IG
 {
 
-template<class T>
-static T roundUpPowOf2(T x)
+static auto roundUpPowOf2(unsigned_integral auto x)
 {
-	static_assert(std::is_unsigned_v<T>, "expected unsigned parameter");
 	return 1 << fls(x - 1);
 }
 
-template<class T>
-static T roundDownPowOf2(T x)
+static auto roundDownPowOf2(unsigned_integral auto x)
 {
-	static_assert(std::is_unsigned_v<T>, "expected unsigned parameter");
 	return 1 << (fls(x) - 1);
 }
 
-template <typename T>
-static T pow(T base, T exp)
+constexpr static auto pow(integral auto base, integral auto exp)
 {
-	static_assert(std::is_integral_v<T>, "expected integral parameter");
-	T result = 1;
+	decltype(base) result = 1;
 	while(exp)
 	{
 		if(exp & 1) // exp % 2 == 1
@@ -54,76 +48,55 @@ static T pow(T base, T exp)
 	return result;
 }
 
-template<class T>
-constexpr static bool isEven(T x)
+constexpr static bool isEven(integral auto x)
 {
-	static_assert(std::is_integral_v<T>, "expected integral parameter");
 	return x % 2 == 0;
 }
 
-template<class T>
-constexpr static bool isOdd(T x)
+constexpr static bool isOdd(integral auto x)
 {
-	static_assert(std::is_integral_v<T>, "expected integral parameter");
 	return !isEven(x);
 }
 
-template<class T>
-constexpr static T makeEvenRoundedUp(T x)
+constexpr static auto makeEvenRoundedUp(integral auto x)
 {
-	static_assert(std::is_integral_v<T>, "expected integral parameter");
 	return isEven(x) ? x : x+1;
 }
 
-template<class T>
-constexpr static T makeEvenRoundedDown(T x)
+constexpr static auto makeEvenRoundedDown(integral auto x)
 {
-	static_assert(std::is_integral_v<T>, "expected integral parameter");
 	return isEven(x) ? x : x-1;
 }
 
-template <class T>
-static constexpr bool isPowerOf2(T x)
+static constexpr bool isPowerOf2(integral auto x)
 {
-	static_assert(std::is_integral_v<T>, "expected integral parameter");
 	return x && !( (x-1) & x );
 	// return ((x != 0) && ((x & (~x + 1)) == x)); // alternate method
 }
 
-template <class T>
-static T alignRoundedUp(T addr, unsigned int align)
+static auto alignRoundedUp(unsigned_integral auto addr, unsigned int align)
 {
-	static_assert(std::is_unsigned_v<T>, "expected unsigned parameter");
 	assumeExpr(isPowerOf2(align));
 	return (addr+(align-1)) & ~(align-1);
 }
 
 // divide integer rounding-upwards
-template<class T1, class T2>
-constexpr static auto divRoundUp(T1 x, T2 y)
+constexpr static auto divRoundUp(integral auto x, integral auto y)
 {
-	static_assert(std::is_integral_v<T1> && std::is_integral_v<T2>, "expected integral parameters");
 	return (x + (y - 1)) / y;
 }
 
 // divide rounding to closest integer
-template<class T>
-constexpr static T divRoundClosest(T x, T y)
+constexpr static auto divRoundClosest(unsigned_integral auto x, unsigned_integral auto y)
 {
-	if constexpr(std::is_unsigned_v<T>)
-	{
-		return (x > 0) ?
-			(x + (y / 2)) / y :
-			(x - (y / 2)) / y;
-	}
-	else if constexpr(std::is_floating_point_v<T>)
-	{
-		return std::round(x / y);
-	}
-	else
-	{
-		// error
-	}
+	return (x > 0) ?
+	 (x + (y / 2)) / y :
+	 (x - (y / 2)) / y;
+}
+
+constexpr static auto divRoundClosest(floating_point auto x, floating_point auto y)
+{
+	return std::round(x / y);
 }
 
 }

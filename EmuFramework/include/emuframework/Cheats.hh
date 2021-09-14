@@ -51,7 +51,7 @@ protected:
 class BaseEditCheatView : public TableView, public EmuAppHelper<BaseEditCheatView>
 {
 public:
-	BaseEditCheatView(const char *name, ViewAttachParams attach, const char *cheatName,
+	BaseEditCheatView(IG::utf16String name, ViewAttachParams attach, IG::utf16String cheatName,
 		TableView::ItemsDelegate items, TableView::ItemDelegate item, TextMenuItem::SelectDelegate removed,
 		RefreshCheatsDelegate onCheatListChanged);
 

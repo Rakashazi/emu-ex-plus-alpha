@@ -21,6 +21,7 @@
 #include "internal.hh"
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 #include <fceu/fds.h>
 #include <fceu/sound.h>
 #include <fceu/fceu.h>
@@ -303,7 +304,7 @@ class CustomSystemOptionView : public SystemOptionView
 {
 	TextMenuItem fdsBiosPath
 	{
-		nullptr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("Disk System BIOS", &::fdsBiosPath,
@@ -317,9 +318,9 @@ class CustomSystemOptionView : public SystemOptionView
 		}
 	};
 
-	static std::array<char, 256> makeBiosMenuEntryStr()
+	static std::string makeBiosMenuEntryStr()
 	{
-		return string_makePrintf<256>("Disk System BIOS: %s", strlen(::fdsBiosPath.data()) ? FS::basename(::fdsBiosPath).data() : "None set");
+		return fmt::format("Disk System BIOS: {}", strlen(::fdsBiosPath.data()) ? FS::basename(::fdsBiosPath).data() : "None set");
 	}
 
 public:
@@ -420,7 +421,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 private:
 	TextMenuItem fdsControl
 	{
-		nullptr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](TextMenuItem &item, View &, Input::Event e)
 		{
 			if(EmuSystem::gameIsRunning() && isFDS)

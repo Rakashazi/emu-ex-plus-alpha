@@ -42,8 +42,7 @@ public:
 	void stop();
 	explicit operator bool() const;
 
-	template <class T>
-	void run(const T &condition)
+	void run(const auto &condition)
 	{
 		while((bool)condition)
 		{

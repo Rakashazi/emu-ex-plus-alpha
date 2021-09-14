@@ -77,12 +77,12 @@ public:
 
 	// Initialize the main Application object with a user-defined class,
 	// must be called first in onInit() before using any other methods
-	template<class T, class... Args>
-	T &initApplication(Args&&... args)
+	template<class T>
+	T &initApplication(auto &&... args)
 	{
 		auto appStoragePtr = ::operator new(sizeof(T)); // allocate the storage
 		setApplicationPtr((Application*)appStoragePtr); // point the context to the storage
-		return *(new(appStoragePtr) T(std::forward<Args>(args)...)); // construct the application with the storage
+		return *(new(appStoragePtr) T(std::forward<decltype(args)>(args)...)); // construct the application with the storage
 	}
 
 	Application &application() const;
@@ -202,9 +202,7 @@ public:
 	// App exit
 	void exit(int returnVal);
 	void exit() { exit(0); }
-	[[gnu::format(printf, 3, 4)]]
-	void exitWithErrorMessagePrintf(int exitVal, const char *format, ...);
-	void exitWithErrorMessageVPrintf(int exitVal, const char *format, va_list args);
+	void exitWithMessage(int exitVal, const char *msg);
 };
 
 class OnExit

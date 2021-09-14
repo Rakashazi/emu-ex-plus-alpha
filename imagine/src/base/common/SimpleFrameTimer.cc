@@ -22,8 +22,6 @@
 namespace Base
 {
 
-FrameTimerI::~FrameTimerI() {}
-
 void FrameTimerI::cancel() {}
 
 void FrameTimerI::setFrameTime(IG::FloatSeconds rate) {}

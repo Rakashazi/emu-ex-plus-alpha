@@ -21,7 +21,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/Interpolator.hh>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <utility>
 
@@ -361,7 +361,8 @@ void TouchConfigView::refreshTouchConfigMenu()
 	showOnTouch.setBoolValue(vController.showOnTouchInput(), *this);
 }
 
-TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, const char *faceBtnName, const char *centerBtnName):
+TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
+	IG::utf16String faceBtnName, IG::utf16String centerBtnName):
 	TableView{"On-screen Input Setup", attach, item},
 	vController{vCtrl},
 	touchCtrlItem
@@ -388,11 +389,11 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 	{
 		"Virtual Gamepad Player", &defaultFace(),
 		(int)vCtrl.inputPlayer(),
-		[this](const MultiChoiceMenuItem &) -> int
+		[this](const MultiChoiceMenuItem &)
 		{
 			return EmuSystem::maxPlayers;
 		},
-		[this](const MultiChoiceMenuItem &, unsigned idx) -> TextMenuItem&
+		[this](const MultiChoiceMenuItem &, size_t idx) -> TextMenuItem&
 		{
 			return pointerInputItem[idx];
 		}
@@ -437,7 +438,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 		"Button Size", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(string_makePrintf<6>("%.2f", vController.buttonSize() / 100.).data());
+			t.setString(fmt::format("{:.2f}", vController.buttonSize() / 100.));
 			return true;
 		},
 		IG::findIndex(touchCtrlSizeMenuVal, (unsigned)vController.buttonSize(), std::size(sizeItem) - 1),
@@ -552,7 +553,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 	},
 	faceBtnState
 	{
-		faceBtnName, &defaultFace(),
+		std::move(faceBtnName), &defaultFace(),
 		(int)layoutPosArr(vController, window())[2].state,
 		faceBtnStateItem
 	},
@@ -564,7 +565,7 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 	},
 	centerBtnState
 	{
-		centerBtnName, &defaultFace(),
+		std::move(centerBtnName), &defaultFace(),
 		(int)layoutPosArr(vController, window())[1].state,
 		centerBtnStateItem
 	},
@@ -630,11 +631,11 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl, co
 	{
 		"Open Menu Button", &defaultFace(),
 		(int)layoutPosArr(vController, window())[3].state,
-		[](const MultiChoiceMenuItem &) -> int
+		[](const MultiChoiceMenuItem &)
 		{
 			return CAN_TURN_OFF_MENU_BTN ? 3 : 2; // iOS port doesn't use "off" value
 		},
-		[this](const MultiChoiceMenuItem &, unsigned idx) -> TextMenuItem&
+		[this](const MultiChoiceMenuItem &, size_t idx) -> TextMenuItem&
 		{
 			return menuStateItem[CAN_TURN_OFF_MENU_BTN ? idx : idx + 1];
 		}

@@ -34,6 +34,7 @@
 #include "gp2x.h"
 #include "ym2610-940/940shared.h"
 #endif
+#include <imagine/logger/logger.h>
 
 static int need_decrypt = 1;
 

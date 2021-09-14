@@ -30,7 +30,7 @@ const uint32_t TexVertex::textureOffset = offsetof(TexVertex, u);
 const uint32_t ColTexVertex::colorOffset = offsetof(ColTexVertex, color);
 const uint32_t ColTexVertex::textureOffset = offsetof(ColTexVertex, u);
 
-static_assertIsStandardLayout(Vertex);
+static_assertIsStandardLayout(Vertex2D);
 static_assertIsStandardLayout(ColVertex);
 static_assertIsStandardLayout(TexVertex);
 static_assertIsStandardLayout(ColTexVertex);
@@ -142,7 +142,7 @@ void VertexInfo::bindAttribs(RendererCommands &cmds, const Vtx *v)
 	#endif
 }
 
-template void VertexInfo::bindAttribs<Vertex>(RendererCommands &cmds, const Vertex *v);
+template void VertexInfo::bindAttribs<Vertex2D>(RendererCommands &cmds, const Vertex2D *v);
 template void VertexInfo::bindAttribs<ColVertex>(RendererCommands &cmds, const ColVertex *v);
 template void VertexInfo::bindAttribs<TexVertex>(RendererCommands &cmds, const TexVertex *v);
 template void VertexInfo::bindAttribs<ColTexVertex>(RendererCommands &cmds, const ColTexVertex *v);

@@ -25,7 +25,7 @@ namespace Base
 class FrameTimerI
 {
 public:
-	virtual ~FrameTimerI();
+	virtual ~FrameTimerI() = default;
 	virtual void scheduleVSync() = 0;
 	virtual void cancel();
 	virtual void setFrameTime(IG::FloatSeconds rate);

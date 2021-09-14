@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <chrono>
+#include <utility>
 #if defined __APPLE__
 #include <TargetConditionals.h>
 #endif
@@ -38,30 +39,36 @@ using FrameTime = Nanoseconds;
 
 using Time = Nanoseconds; // default time resolution
 
+template <class T>
+concept ChronoDuration =
+	requires
+	{
+		typename T::rep;
+		typename T::period;
+	};
+
 static Time steadyClockTimestamp()
 {
 	auto timePoint = std::chrono::steady_clock::now();
 	return Time{timePoint.time_since_epoch()};
 }
 
-template <class Func>
-static Time timeFunc(Func &&func)
+static Time timeFunc(auto &&func, auto &&... args)
 {
 	auto before = steadyClockTimestamp();
-	func();
+	func(std::forward<decltype(args)>(args)...);
 	auto after = steadyClockTimestamp();
 	return after - before;
 }
 
-template <class Func>
-static Time timeFuncDebug(Func &&func)
+static Time timeFuncDebug(auto &&func, auto &&... args)
 {
 	#ifdef NDEBUG
 	// execute directly without timing
-	func();
+	func(std::forward<decltype(args)>(args)...);
 	return {};
 	#else
-	return timeFunc(func);
+	return timeFunc(std::forward<decltype(func)>(func), std::forward<decltype(args)>(args)...);
 	#endif
 }
 

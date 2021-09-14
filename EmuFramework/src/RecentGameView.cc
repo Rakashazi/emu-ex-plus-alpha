@@ -27,7 +27,7 @@ RecentGameView::RecentGameView(ViewAttachParams attach, RecentGameList &list):
 		{
 			return 1 + recentGame.size();
 		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
+		[this](const TableView &, size_t idx) -> MenuItem&
 		{
 			return idx < recentGame.size() ? recentGame[idx] : clear;
 		}

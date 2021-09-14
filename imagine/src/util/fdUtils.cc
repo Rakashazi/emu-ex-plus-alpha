@@ -13,12 +13,13 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "fdUtils"
+#include <imagine/logger/logger.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <assert.h>
+#include <cassert>
 #include <algorithm>
-#include <imagine/logger/logger.h>
 #include <sys/ioctl.h>
 
 CLINK ssize_t fd_writeAll(int filedes, const void *buffer, size_t size)

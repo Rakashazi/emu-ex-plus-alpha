@@ -27,7 +27,7 @@ public:
 	EmuLoadProgressView(ViewAttachParams attach, Input::Event e, EmuApp::CreateSystemCompleteDelegate onComplete);
 	void setMax(int val);
 	void setPos(int val);
-	void setLabel(const char *str);
+	void setLabel(IG::utf16String label);
 	void place() final;
 	bool inputEvent(Input::Event e) final;
 	void draw(Gfx::RendererCommands &cmds) final;

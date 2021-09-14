@@ -21,6 +21,7 @@
 #include <imagine/io/api/stdio.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 
 extern "C"
 {
@@ -126,7 +127,7 @@ static AssetIO assetIOForSysFile(Base::ApplicationContext ctx, const char *sysFi
 {
 	for(const auto &subDir : sysFileDirs)
 	{
-		auto fullPath = FS::makePathStringPrintf("%s/%s", subDir, sysFileName);
+		auto fullPath = IG::formatToPathString("{}/{}", subDir, sysFileName);
 		auto file = ctx.openAsset(fullPath.data(), IO::AccessHint::ALL);
 		if(!file)
 			continue;
@@ -165,7 +166,7 @@ CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const ch
 		{
 			for(const auto &subDir : sysFileDirs)
 			{
-				auto fullPath = FS::makePathStringPrintf("%s/%s/%s", basePath.data(), subDir, name);
+				auto fullPath = IG::formatToPathString("{}/{}/{}", basePath.data(), subDir, name);
 				auto file = fopen(fullPath.data(), open_mode);
 				if(!file)
 					continue;
@@ -208,7 +209,7 @@ CLINK int sysfile_locate(const char *name, char **complete_path_return)
 		{
 			for(const auto &subDir : sysFileDirs)
 			{
-				auto fullPath = FS::makePathStringPrintf("%s/%s/%s", basePath.data(), subDir, name);
+				auto fullPath = IG::formatToPathString("{}/{}/{}", basePath.data(), subDir, name);
 				if(FS::exists(fullPath))
 				{
 					if(complete_path_return)
@@ -260,7 +261,7 @@ CLINK int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize
 		{
 			for(const auto &subDir : sysFileDirs)
 			{
-				auto fullPath = FS::makePathStringPrintf("%s/%s/%s", basePath.data(), subDir, name);
+				auto fullPath = IG::formatToPathString("{}/{}/{}", basePath.data(), subDir, name);
 				FileIO file;
 				file.open(fullPath.data(), IO::AccessHint::ALL);
 				if(!file)

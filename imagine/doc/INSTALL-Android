@@ -3,7 +3,7 @@ The following sections supplement the ones in the main INSTALL text for the Andr
 1. Tools and Environment Setup
 ==============================
 
-Download & install Android Studio 4.1. Define environment variables ANDROID_SDK_ROOT and/or ANDROID_HOME according to the Android Studio docs @ https://developer.android.com/studio/command-line/variables.html 
+Download & install Android Studio (stable channel). Define environment variables ANDROID_SDK_ROOT and/or ANDROID_HOME according to the Android Studio docs @ https://developer.android.com/studio/command-line/variables.html 
 
 If using MacOS X, install the gmake package from MacPorts and use it instead of the regular make command when building.
 
@@ -18,7 +18,7 @@ android_arch : Optional, default set by app
 2. Dependencies
 ===============
 
-Install the SDK platform for Android 10.0 (API 29), Android NDK Revision 22 (tested on 22.0.7026061), and the Android Support Library from Android Studio's SDK tools menu
+Install the SDK platform for Android 11.0 (API 30), Android NDK Revision 23 (tested on 23.0.7599858), and the Android Support Library from Android Studio's SDK tools menu
 
 3. Building
 ===========

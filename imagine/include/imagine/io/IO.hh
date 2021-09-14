@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/BufferView.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/concepts.hh>
 #include <memory>
 #include <utility>
 #include <system_error>
@@ -83,14 +83,9 @@ public:
 		return read<T>(nullptr).first;
 	}
 
-	template <class T>
+	template <class T> requires (!IG::Pointer<std::decay_t<T>>)
 	ssize_t write(T &&obj, std::error_code *ecOut = nullptr)
 	{
-		using DecayT = typename std::decay_t<T>;
-		if constexpr(std::is_pointer_v<DecayT>)
-		{
-			static_assert(IG::dependentFalseValue<DecayT>, "attempting to write a pointer with no size parameter");
-		}
 		return static_cast<IO*>(this)->write(&obj, sizeof(T), ecOut);
 	}
 };
@@ -98,17 +93,18 @@ public:
 class IO : public IOUtils<IO>, public IODefs
 {
 public:
-	using IOUtils<IO>::read;
-	using IOUtils<IO>::readAtPos;
-	using IOUtils<IO>::write;
-	using IOUtils<IO>::seek;
-	using IOUtils<IO>::seekS;
-	using IOUtils<IO>::seekE;
-	using IOUtils<IO>::seekC;
-	using IOUtils<IO>::tell;
-	using IOUtils<IO>::send;
-	using IOUtils<IO>::constBufferView;
-	using IOUtils<IO>::get;
+	using IOUtilsBase = IOUtils<IO>;
+	using IOUtilsBase::read;
+	using IOUtilsBase::readAtPos;
+	using IOUtilsBase::write;
+	using IOUtilsBase::seek;
+	using IOUtilsBase::seekS;
+	using IOUtilsBase::seekE;
+	using IOUtilsBase::seekC;
+	using IOUtilsBase::tell;
+	using IOUtilsBase::send;
+	using IOUtilsBase::constBufferView;
+	using IOUtilsBase::get;
 
 	// allow reading file, default if OPEN_WRITE isn't present
 	static constexpr uint32_t OPEN_READ = IG::bit(0);
@@ -123,7 +119,7 @@ public:
 	static constexpr uint32_t OPEN_FLAGS_BITS = 4;
 
 	constexpr IO() {}
-	virtual ~IO() = 0;
+	virtual ~IO() = default;
 
 	// reading
 	virtual ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) = 0;
@@ -149,21 +145,21 @@ public:
 class GenericIO : public IOUtils<GenericIO>
 {
 public:
-	using IOUtils<GenericIO>::read;
-	using IOUtils<GenericIO>::readAtPos;
-	using IOUtils<GenericIO>::write;
-	using IOUtils<GenericIO>::seek;
-	using IOUtils<GenericIO>::seekS;
-	using IOUtils<GenericIO>::seekE;
-	using IOUtils<GenericIO>::seekC;
-	using IOUtils<GenericIO>::tell;
-	using IOUtils<GenericIO>::send;
-	using IOUtils<GenericIO>::constBufferView;
-	using IOUtils<GenericIO>::get;
+	using IOUtilsBase = IOUtils<GenericIO>;
+	using IOUtilsBase::read;
+	using IOUtilsBase::readAtPos;
+	using IOUtilsBase::write;
+	using IOUtilsBase::seek;
+	using IOUtilsBase::seekS;
+	using IOUtilsBase::seekE;
+	using IOUtilsBase::seekC;
+	using IOUtilsBase::tell;
+	using IOUtilsBase::send;
+	using IOUtilsBase::constBufferView;
+	using IOUtilsBase::get;
 
 	constexpr GenericIO() {}
-	template<class T>
-	GenericIO(T &io): io{std::unique_ptr<IO>{new T(std::move(io))}} {}
+	GenericIO(IG::derived_from<IO> auto io): io{std::make_unique<decltype(io)>(std::move(io))} {}
 	GenericIO(std::unique_ptr<IO> io);
 	explicit operator IO*();
 	operator IO&();

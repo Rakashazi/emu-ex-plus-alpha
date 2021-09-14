@@ -18,7 +18,6 @@
 #include <imagine/input/inputDefs.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/NonCopyable.hh>
 
 #ifdef __OBJC__
 @class IGAppTextField;
@@ -27,11 +26,12 @@
 namespace Input
 {
 
-class UIKitTextField : private NonCopyable
+class UIKitTextField
 {
 public:
 	UIKitTextField(Base::ApplicationContext, TextFieldDelegate, const char *initialText, const char *promptText, int fontSizePixels);
 	~UIKitTextField();
+	UIKitTextField &operator=(UIKitTextField &&) = delete;
 
 protected:
 	Base::ApplicationContext ctx;

@@ -23,6 +23,7 @@
 #include <imagine/util/ScopeGuard.hh>
 #include "internal.hh"
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 
 extern "C"
 {
@@ -435,13 +436,13 @@ static const RomListEntry romlist[]
 static FS::PathString gameFilePath(EmuApp &app, const char *name)
 {
 	auto path = app.mediaSearchPath();
-	auto zipPath = FS::makePathStringPrintf("%s/%s.zip", path.data(), name);
+	auto zipPath = IG::formatToPathString("{}/{}.zip", path.data(), name);
 	if(FS::exists(zipPath))
 		return zipPath;
-	auto sZipPath = FS::makePathStringPrintf("%s/%s.7z", path.data(), name);
+	auto sZipPath = IG::formatToPathString("{}/{}.7z", path.data(), name);
 	if(FS::exists(sZipPath))
 		return sZipPath;
-	auto rarPath = FS::makePathStringPrintf("%s/%s.rar", path.data(), name);
+	auto rarPath = IG::formatToPathString("{}/{}.rar", path.data(), name);
 	if(FS::exists(rarPath))
 		return rarPath;
 	return {};
@@ -510,7 +511,7 @@ public:
 					}
 					else
 					{
-						app().printfMessage(3, 1, "%s not present", entry.name);
+						app().postMessage(3, 1, fmt::format("{} not present", entry.name));
 					}
 					return true;
 				});

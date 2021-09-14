@@ -27,6 +27,7 @@
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/format.hh>
 #include <algorithm>
 #include <cstring>
 
@@ -114,7 +115,7 @@ void EmuSystem::setupGamePaths(Base::ApplicationContext ctx, const char *filePat
 
 	if(strlen(gamePath_.data()))
 	{
-		string_printf(fullGamePath_, "%s/%s", gamePath_.data(), gameName_.data());
+		IG::formatTo(fullGamePath_, "{}/{}", gamePath_.data(), gameName_.data());
 		logMsg("set full game path: %s", fullGamePath_.data());
 	}
 
@@ -148,7 +149,7 @@ FS::PathString EmuSystem::baseSavePath(Base::ApplicationContext ctx)
 	{
 		return savePath_;
 	}
-	return FS::makePathStringPrintf("%s/Game Data/%s", ctx.sharedStoragePath().data(), shortSystemName());
+	return IG::formatToPathString("{}/Game Data/{}", ctx.sharedStoragePath().data(), shortSystemName());
 }
 
 static bool hasWriteAccessToDir(Base::ApplicationContext ctx, const char *path)
@@ -160,7 +161,7 @@ static bool hasWriteAccessToDir(Base::ApplicationContext ctx, const char *path)
 	// even though parts are locked-down by the OS
 	if(ctx.androidSDK() >= 19)
 	{
-		auto testFilePath = FS::makePathStringPrintf("%s/.safe-to-delete-me", path);
+		auto testFilePath = IG::formatToPathString("{}/.safe-to-delete-me", path);
 		FileIO testFile;
 		auto ec = testFile.create(testFilePath.data());
 		if(ec)
@@ -247,7 +248,7 @@ const char *EmuSystem::defaultSavePath(Base::ApplicationContext ctx)
 	assert(strlen(gameName_.data()));
 	if(!strlen(defaultSavePath_.data()))
 	{
-		string_printf(defaultSavePath_, "%s/Game Data/%s/%s", ctx.sharedStoragePath().data(), shortSystemName(), gameName_.data());
+		IG::formatTo(defaultSavePath_, "{}/Game Data/{}/{}", ctx.sharedStoragePath().data(), shortSystemName(), gameName_.data());
 		logMsg("game default save path: %s", defaultSavePath_.data());
 	}
 	if(!FS::exists(defaultSavePath_.data()))
@@ -257,7 +258,7 @@ const char *EmuSystem::defaultSavePath(Base::ApplicationContext ctx)
 
 FS::PathString EmuSystem::baseDefaultGameSavePath(Base::ApplicationContext ctx)
 {
-	return FS::makePathStringPrintf("%s/Game Data/%s", ctx.sharedStoragePath().data(), shortSystemName());
+	return IG::formatToPathString("{}/Game Data/{}", ctx.sharedStoragePath().data(), shortSystemName());
 }
 
 void EmuSystem::closeRuntimeSystem(EmuApp &app, bool allowAutosaveState)
@@ -431,7 +432,7 @@ EmuSystem::Error EmuSystem::loadGameFromPath(Base::ApplicationContext ctx, const
 	if(!handlesGenericIO)
 	{
 		closeAndSetupNew(ctx, path.data());
-		auto err = loadGame(ctx, GenericIO{}, params, onLoadProgress);
+		auto err = loadGame(ctx, FileIO{}, params, onLoadProgress);
 		if(err)
 		{
 			clearGamePaths();
@@ -443,7 +444,7 @@ EmuSystem::Error EmuSystem::loadGameFromPath(Base::ApplicationContext ctx, const
 	auto ec = io.open(path, IO::AccessHint::SEQUENTIAL);
 	if(ec)
 	{
-		return makeError("Error opening file: %s", ec.message().c_str());
+		return makeError(fmt::format("Error opening file: {}", ec.message()));
 	}
 	return loadGameFromFile(ctx, io.makeGeneric(), path.data(), params, onLoadProgress);
 }
@@ -473,12 +474,10 @@ EmuSystem::Error EmuSystem::loadGameFromFile(Base::ApplicationContext ctx, Gener
 		}
 		if(ec)
 		{
-			//EmuApp::printfMessage(3, true, "Error opening archive: %s", ec.message().c_str());
-			return makeError("Error opening archive: %s", ec.message().c_str());
+			return makeError(fmt::format("Error opening archive: {}", ec.message()));
 		}
 		if(!io)
 		{
-			//EmuApp::postErrorMessage("No recognized file extensions in archive");
 			return makeError("No recognized file extensions in archive");
 		}
 		closeAndSetupNew(ctx, name);
@@ -497,19 +496,19 @@ EmuSystem::Error EmuSystem::loadGameFromFile(Base::ApplicationContext ctx, Gener
 	return err;
 }
 
-EmuSystem::Error EmuSystem::makeError(const char *format, ...)
+EmuSystem::Error EmuSystem::makeError(const char *msg)
 {
-	va_list args;
-	va_start(args, format);
-	auto vaEnd = IG::scopeGuard([&](){ va_end(args); });
-	std::array<char, 1024> str{};
-	vsnprintf(str.data(), str.size(), format, args);
-	return std::runtime_error(str.data());
+	return std::runtime_error(msg);
+}
+
+EmuSystem::Error EmuSystem::makeError(std::string msg)
+{
+	return std::runtime_error(msg);
 }
 
 EmuSystem::Error EmuSystem::makeError(std::error_code ec)
 {
-	return std::runtime_error(ec.message().c_str());
+	return std::runtime_error(ec.message());
 }
 
 EmuSystem::Error EmuSystem::makeFileReadError()

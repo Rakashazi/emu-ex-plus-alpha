@@ -130,16 +130,6 @@ bool NavView::inputEvent(Input::Event e)
 	return false;
 }
 
-void NavView::setTitle(NameString title)
-{
-	text.setString(std::move(title));
-}
-
-void NavView::setTitle(NameStringView title)
-{
-	setTitle(NameString{title});
-}
-
 void NavView::prepareDraw()
 {
 	text.makeGlyphs(renderer());
@@ -205,7 +195,7 @@ void BasicNavView::setBackImage(Gfx::TextureSpan img)
 	control[0].isActive = leftSpr.image();
 }
 
-void BasicNavView::setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, uint32_t gradStops)
+void BasicNavView::setBackgroundGradient(const Gfx::LGradientStopDesc *gradStop, int gradStops)
 {
 	gradientStops = std::make_unique<Gfx::LGradientStopDesc[]>(gradStops);
 	memcpy(gradientStops.get(), gradStop, sizeof(Gfx::LGradientStopDesc) * gradStops);

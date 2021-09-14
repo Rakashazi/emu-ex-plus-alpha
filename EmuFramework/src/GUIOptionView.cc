@@ -18,6 +18,7 @@
 #include "EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gfx/Renderer.hh>
+#include <imagine/util/format.hh>
 
 static constexpr bool USE_MOBILE_ORIENTATION_NAMES = Config::envIsAndroid || Config::envIsIOS;
 static const char *landscapeName = USE_MOBILE_ORIENTATION_NAMES ? "Landscape" : "90 Left";
@@ -89,7 +90,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 		"Font Size", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(string_makePrintf<6>("%.2f", optionFontSize / 1000.).data());
+			t.setString(fmt::format("{:.2f}", optionFontSize / 1000.));
 			return true;
 		},
 		[]()

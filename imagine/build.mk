@@ -9,7 +9,6 @@ endif
 
 include $(IMAGINE_PATH)/make/imagineStaticLibBase.mk
 
-CPPFLAGS += -I$(projectPath)/include/imagine/override
 imagineSrcDir := $(projectPath)/src
 
 ifeq ($(SUBARCH),armv6)
@@ -35,6 +34,9 @@ include $(imagineSrcDir)/util/system/pagesize.mk
 include $(imagineSrcDir)/logger/system.mk
 include $(buildSysPath)/package/stdc++.mk
 SRC += util/string/generic.cc
+
+# fmtlib snapshot from Sept 12, 2021 (commit 04e3a79f762aa28bb43a5d58e95ed168389f0c7e)
+SRC += fmt/format.cc
 
 libName := imagine$(libNameExt)
 ifndef RELEASE

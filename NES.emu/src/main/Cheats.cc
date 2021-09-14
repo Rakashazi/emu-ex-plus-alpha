@@ -47,7 +47,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		{
 			return type ? 3 : 5;
 		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
+		[this](const TableView &, int idx) -> MenuItem&
 		{
 			if(type)
 			{
@@ -84,7 +84,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	addr
 	{
 		"Address",
-		nullptr,
+		{},
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -111,7 +111,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	value
 	{
 		"Value",
-		nullptr,
+		{},
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -138,7 +138,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	comp
 	{
 		"Compare",
-		nullptr,
+		{},
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -154,7 +154,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 							{
 								logMsg("val 0x%X too large", a);
 								app().postMessage(true, "Invalid input");
-								return 1;
+								return true;
 							}
 							string_copy(compStr, str);
 							comp.set2ndName(str);
@@ -162,21 +162,21 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 						else
 						{
 							compStr[0] = 0;
-							comp.set2ndName(nullptr);
+							comp.set2ndName({});
 						}
 						syncCheat();
 						comp.compile(renderer(), projP);
 						postDraw();
 					}
 					view.dismiss();
-					return 0;
+					return false;
 				});
 		}
 	},
 	ggCode
 	{
 		"GG Code",
-		nullptr,
+		{},
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
@@ -293,7 +293,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 		{
 			return 2 + cheat.size();
 		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
+		[this](const TableView &, size_t idx) -> MenuItem&
 		{
 			switch(idx)
 			{
@@ -316,20 +316,20 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						if(!isValidGGCodeLen(str))
 						{
 							app().postMessage(true, "Invalid, must be 6 or 8 digits");
-							return 1;
+							return true;
 						}
 						{
 							int a, v, c;
 							if(!FCEUI_DecodeGG(str, &a, &v, &c))
 							{
 								app().postMessage(true, "Invalid code");
-								return 1;
+								return true;
 							}
 							if(!FCEUI_AddCheat("Unnamed Cheat", a, v, c, 1))
 							{
 								app().postMessage(true, "Error adding cheat");
 								view.dismiss();
-								return 0;
+								return false;
 							}
 						}
 						fceuCheats++;
@@ -349,14 +349,14 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 								{
 									view.dismiss();
 								}
-								return 0;
+								return false;
 							});
 					}
 					else
 					{
 						view.dismiss();
 					}
-					return 0;
+					return false;
 				});
 		}
 	},
@@ -374,7 +374,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 						{
 							logErr("error adding new cheat");
 							view.dismiss();
-							return 0;
+							return false;
 						}
 						fceuCheats++;
 						FCEUI_ToggleCheat(fceuCheats-1);
@@ -388,7 +388,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 					{
 						view.dismiss();
 					}
-					return 0;
+					return false;
 				});
 		}
 	}

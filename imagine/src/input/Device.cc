@@ -344,8 +344,6 @@ Device::Device() {}
 Device::Device(int id, Map map, uint8_t type, const char *name):
 	name_{name}, id_{id}, typeBits_{type}, map_{map} {}
 
-Device::~Device() {}
-
 bool Device::iCadeMode() const { return false; }
 
 void Device::setJoystickAxisAsDpadBits(uint32_t axisMask) {}

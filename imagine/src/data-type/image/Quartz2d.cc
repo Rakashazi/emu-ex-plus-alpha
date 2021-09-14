@@ -21,9 +21,10 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 #include <CoreGraphics/CGBitmapContext.h>
 #include <CoreGraphics/CGContext.h>
-#include <assert.h>
+#include <cassert>
 
 namespace IG::Data
 {
@@ -118,7 +119,7 @@ PixmapImage::operator PixmapSource()
 
 PixmapImage PixmapReader::loadAsset(const char *name, const char *appName) const
 {
-	return PixmapImage(FS::makePathStringPrintf("%s/%s", appContext().assetPath(appName).data(), name).data());
+	return PixmapImage(IG::formatToPathString("{}/{}", appContext().assetPath(appName).data(), name).data());
 }
 
 }

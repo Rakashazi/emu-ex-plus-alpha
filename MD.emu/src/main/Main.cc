@@ -37,6 +37,7 @@
 #include <fileio/fileio.h>
 #include "Cheats.hh"
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 bool EmuSystem::hasCheats = true;
@@ -115,17 +116,17 @@ void EmuSystem::reset(ResetMode mode)
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.0%c.gp", statePath, gameName, saveSlotChar(slot));
+	return IG::formatToPathString("{}/{}.0{}.gp", statePath, gameName, saveSlotChar(slot));
 }
 
 static FS::PathString sprintSaveFilename()
 {
-	return FS::makePathStringPrintf("%s/%s.srm", EmuSystem::savePath(), EmuSystem::gameName().data());
+	return IG::formatToPathString("{}/{}.srm", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
 static FS::PathString sprintBRAMSaveFilename()
 {
-	return FS::makePathStringPrintf("%s/%s.brm", EmuSystem::savePath(), EmuSystem::gameName().data());
+	return IG::formatToPathString("{}/{}.brm", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
 static const unsigned maxSaveStateSize = STATE_SIZE+4;
@@ -379,7 +380,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSy
 		}
 		catch(std::exception &e)
 		{
-			return makeError("%s", e.what());
+			return makeError(e.what());
 		}
 
 		unsigned region = REGION_USA;
@@ -404,18 +405,18 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSy
 		if(!strlen(biosPath))
 		{
 			delete cd;
-			return makeError("Set a %s BIOS in the Options", biosName);
+			return makeError(fmt::format("Set a {} BIOS in the Options", biosName));
 		}
 		if(FileIO io;
 			!load_rom(io, biosPath, nullptr))
 		{
 			delete cd;
-			return makeError("Error loading BIOS: %s", biosPath);
+			return makeError(fmt::format("Error loading BIOS: {}", biosPath));
 		}
 		if(!sCD.isActive)
 		{
 			delete cd;
-			return makeError("Invalid BIOS: %s", biosPath);
+			return makeError(fmt::format("Invalid BIOS: {}", biosPath));
 		}
 	}
 	else

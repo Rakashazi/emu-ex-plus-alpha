@@ -17,6 +17,7 @@
 #include <mednafen/FileStream.h>
 #include <mednafen/MemoryStream.h>
 #include <mednafen/mednafen.h>
+#include <imagine/util/utility.h>
 
 namespace Mednafen
 {

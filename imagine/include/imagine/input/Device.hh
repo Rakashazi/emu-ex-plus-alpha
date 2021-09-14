@@ -79,7 +79,7 @@ public:
 
 	Device();
 	Device(int id, Map map, TypeBits, const char *name);
-	virtual ~Device();
+	virtual ~Device() = default;
 
 	bool hasKeyboard() const
 	{

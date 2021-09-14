@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/timerDefs.hh>
 #include <imagine/base/EventLoop.hh>
-#include <imagine/util/FunctionTraits.hh>
+#include <imagine/util/concepts.hh>
 
 #if defined __linux
 #include <imagine/base/timer/TimerFD.hh>
@@ -45,74 +45,31 @@ public:
 	bool isArmed();
 	explicit operator bool() const;
 
-	template<class Func>
-	Timer(Func &&c):
-		Timer{wrapCallbackDelegate(std::forward<Func>(c))}
-	{}
-
-	template<class Func>
-	Timer(const char *debugLabel, Func &&c):
-		Timer{debugLabel, wrapCallbackDelegate(std::forward<Func>(c))}
-	{}
-
-	template<class Func>
-	void setCallback(Func &&c)
-	{
-		setCallback(wrapCallbackDelegate(std::forward<Func>(c)));
-	}
-
-	template<class Time1, class Time2, class Func = CallbackDelegate>
-	void runIn(Time1 time, Time2 repeatTime, EventLoop loop = {}, Func &&c = nullptr)
+	void runIn(IG::ChronoDuration auto time,
+		IG::ChronoDuration auto repeatTime,
+		EventLoop loop = {}, CallbackDelegate f = {})
 	{
 		run(std::chrono::duration_cast<Time>(time),
-			std::chrono::duration_cast<Time>(repeatTime), false,
-			loop, wrapCallbackDelegate(std::forward<Func>(c)));
+			std::chrono::duration_cast<Time>(repeatTime), false, loop, f);
 	}
 
-	template<class Time1, class Time2, class Func = CallbackDelegate>
-	void runAt(Time1 time, Time2 repeatTime, EventLoop loop = {}, Func &&c = nullptr)
+	void runAt(IG::ChronoDuration auto time,
+		IG::ChronoDuration auto repeatTime,
+		EventLoop loop = {}, CallbackDelegate f = {})
 	{
 		run(std::chrono::duration_cast<Time>(time),
-			std::chrono::duration_cast<Time>(repeatTime), true,
-			loop, wrapCallbackDelegate(std::forward<Func>(c)));
+			std::chrono::duration_cast<Time>(repeatTime), true, loop, f);
 	}
 
 	// non-repeating timer
-	template<class Time1, class Func = CallbackDelegate>
-	void runIn(Time1 time, EventLoop loop = {}, Func &&c = nullptr)
+	void runIn(IG::ChronoDuration auto time, EventLoop loop = {}, CallbackDelegate f = {})
 	{
-		run(std::chrono::duration_cast<Time>(time), Time{}, false,
-			loop, wrapCallbackDelegate(std::forward<Func>(c)));
+		run(std::chrono::duration_cast<Time>(time), Time{}, false, loop, f);
 	}
 
-	template<class Time1, class Func = CallbackDelegate>
-	void runAt(Time1 time, EventLoop loop = {}, Func &&c = nullptr)
+	void runAt(IG::ChronoDuration auto time, EventLoop loop = {}, CallbackDelegate f = {})
 	{
-		run(std::chrono::duration_cast<Time>(time), Time{}, true,
-			loop, wrapCallbackDelegate(std::forward<Func>(c)));
-	}
-
-	template<class Func>
-	static CallbackDelegate wrapCallbackDelegate(Func &&func)
-	{
-		if constexpr(std::is_null_pointer_v<Func>)
-		{
-			return {};
-		}
-		constexpr auto returnsBool = std::is_same_v<bool, IG::FunctionTraitsR<Func>>;
-		if constexpr(returnsBool)
-		{
-			return func;
-		}
-		else
-		{
-			return
-				[=]()
-				{
-					func();
-					return false;
-				};
-		}
+		run(std::chrono::duration_cast<Time>(time), Time{}, true, loop, f);
 	}
 };
 

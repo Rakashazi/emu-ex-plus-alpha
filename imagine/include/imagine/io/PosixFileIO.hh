@@ -23,17 +23,18 @@
 class PosixFileIO : public IOUtils<PosixFileIO>
 {
 public:
-	using IOUtils<PosixFileIO>::read;
-	using IOUtils<PosixFileIO>::readAtPos;
-	using IOUtils<PosixFileIO>::write;
-	using IOUtils<PosixFileIO>::seek;
-	using IOUtils<PosixFileIO>::seekS;
-	using IOUtils<PosixFileIO>::seekE;
-	using IOUtils<PosixFileIO>::seekC;
-	using IOUtils<PosixFileIO>::tell;
-	using IOUtils<PosixFileIO>::send;
-	using IOUtils<PosixFileIO>::constBufferView;
-	using IOUtils<PosixFileIO>::get;
+	using IOUtilsBase = IOUtils<PosixFileIO>;
+	using IOUtilsBase::read;
+	using IOUtilsBase::readAtPos;
+	using IOUtilsBase::write;
+	using IOUtilsBase::seek;
+	using IOUtilsBase::seekS;
+	using IOUtilsBase::seekE;
+	using IOUtilsBase::seekC;
+	using IOUtilsBase::tell;
+	using IOUtilsBase::send;
+	using IOUtilsBase::constBufferView;
+	using IOUtilsBase::get;
 
 	constexpr PosixFileIO() {}
 	explicit operator IO*();

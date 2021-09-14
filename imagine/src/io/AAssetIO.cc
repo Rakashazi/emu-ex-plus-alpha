@@ -24,7 +24,7 @@
 
 GenericIO AAssetIO::makeGeneric()
 {
-	return GenericIO{*this};
+	return GenericIO{std::move(*this)};
 }
 
 static int accessHintToAAssetMode(IO::AccessHint advice)

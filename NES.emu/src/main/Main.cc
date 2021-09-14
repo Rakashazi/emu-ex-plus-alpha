@@ -21,6 +21,7 @@
 #include "internal.hh"
 #include "EmuFileIO.hh"
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 #include <fceu/driver.h>
 #include <fceu/state.h>
 #include <fceu/fceu.h>
@@ -133,7 +134,7 @@ static char saveSlotCharNES(int slot)
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.fc%c", statePath, gameName, saveSlotCharNES(slot));
+	return IG::formatToPathString("{}/{}.fc{}", statePath, gameName, saveSlotCharNES(slot));
 }
 
 EmuSystem::Error EmuSystem::saveState(const char *path)
@@ -217,7 +218,7 @@ void setDefaultPalette(Base::ApplicationContext ctx, const char *palPath)
 	if(palPath[0] != '/')
 	{
 		// load as asset
-		auto io = ctx.openAsset(FS::makePathStringPrintf("palette/%s", palPath).data(), IO::AccessHint::ALL);
+		auto io = ctx.openAsset(IG::formatToPathString("palette/{}", palPath).data(), IO::AccessHint::ALL);
 		if(!io)
 			return;
 		setDefaultPalette(io);
@@ -362,7 +363,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 	if(!FCEUI_LoadGameWithFile(file, originalGameFileName().data(), 0))
 	{
 		if(fceuReturnedError)
-			return EmuSystem::makeError("%s", fceuReturnedError);
+			return EmuSystem::makeError(fceuReturnedError);
 		else
 			return EmuSystem::makeError("Error loading game");
 	}

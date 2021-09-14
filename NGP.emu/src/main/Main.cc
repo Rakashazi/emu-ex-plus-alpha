@@ -26,6 +26,7 @@
 #include <emuframework/EmuVideo.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2004\nthe NeoPop Team\nwww.nih.at";
@@ -63,7 +64,7 @@ void EmuSystem::reset(ResetMode mode)
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.0%c.ngs", statePath, gameName, saveSlotCharUpper(slot));
+	return IG::formatToPathString("{}/{}.0{}.ngs", statePath, gameName, saveSlotCharUpper(slot));
 }
 
 EmuSystem::Error EmuSystem::saveState(const char *path)
@@ -89,7 +90,7 @@ bool system_io_state_read(const char* filename, uint8_t* buffer, uint32 bufferLe
 
 static FS::PathString sprintSaveFilename()
 {
-	return FS::makePathStringPrintf("%s/%s.ngf", EmuSystem::savePath(), EmuSystem::gameName().data());
+	return IG::formatToPathString("{}/{}.ngf", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
 bool system_io_flash_read(uint8_t* buffer, uint32_t len)

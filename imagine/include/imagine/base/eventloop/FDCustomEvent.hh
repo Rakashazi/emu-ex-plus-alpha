@@ -16,7 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/EventLoop.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/concepts.hh>
 #include <utility>
 
 namespace Base
@@ -35,14 +35,12 @@ public:
 	~FDCustomEvent();
 	void attach(EventLoop loop, PollEventDelegate del);
 
-	template<class Func>
-	void attach(Func func)
+	void attach(auto &&f)
 	{
-		attach({}, std::forward<Func>(func));
+		attach({}, std::forward<decltype(f)>(f));
 	}
 
-	template<class Func>
-	void attach(EventLoop loop, Func func)
+	void attach(EventLoop loop, IG::invocable auto &&f)
 	{
 		attach(loop,
 			PollEventDelegate
@@ -50,7 +48,7 @@ public:
 				[=](int fd, int)
 				{
 					if(shouldPerformCallback(fd))
-						func();
+						f();
 					return true;
 				}
 			});

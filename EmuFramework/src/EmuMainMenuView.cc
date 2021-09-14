@@ -30,6 +30,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/util/format.hh>
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
@@ -74,7 +75,7 @@ static void onScanStatus(EmuApp &app, unsigned status, int arg)
 			}
 			bcase BluetoothAdapter::SCAN_PROCESSING:
 			{
-				app.printfMessage(2, 0, "Checking %d device(s)...", arg);
+				app.postMessage(2, 0, fmt::format("Checking {} device(s)...", arg));
 			}
 			bcase BluetoothAdapter::SCAN_NAME_FAILED:
 			{
@@ -85,7 +86,7 @@ static void onScanStatus(EmuApp &app, unsigned status, int arg)
 				int devs = Bluetooth::pendingDevs();
 				if(devs)
 				{
-					app.printfMessage(2, 0, "Connecting to %d device(s)...", devs);
+					app.postMessage(2, 0, fmt::format("Connecting to {} device(s)...", devs));
 					Bluetooth::connectPendingDevs(app.bluetoothAdapter());
 				}
 				else
@@ -277,7 +278,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 			if(devConnected)
 			{
 				auto ynAlertView = makeView<YesNoAlertView>(
-					string_makePrintf<64>("Really disconnect %d Bluetooth device(s)?", devConnected).data());
+					fmt::format("Really disconnect {} Bluetooth device(s)?", devConnected).data());
 				ynAlertView->setOnYes(
 					[this]()
 					{
@@ -367,7 +368,7 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 		"Options",
 		attach,
 		[this](const TableView &) { return hasGooglePlayStoreFeatures() ? std::size(subConfig) : std::size(subConfig)-1; },
-		[this](const TableView &, unsigned idx) -> MenuItem& { return subConfig[idx]; }
+		[this](const TableView &, size_t idx) -> MenuItem& { return subConfig[idx]; }
 	},
 	subConfig
 	{
@@ -412,7 +413,7 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 			"Beta Testing Opt-in/out", &defaultFace(),
 			[this]()
 			{
-				appContext().openURL(string_makePrintf<96>("https://play.google.com/apps/testing/%s", appContext().applicationId).data());
+				appContext().openURL(fmt::format("https://play.google.com/apps/testing/{}", appContext().applicationId).data());
 			}
 		};
 	}

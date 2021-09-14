@@ -21,6 +21,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/math/int.hh>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 
 class KeyConflictAlertView : public AlertView
@@ -140,9 +141,9 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 			else
 			{
 				savedDev = d;
-				app().printfMessage(7, false,
-					"You pushed a key from device:\n%s\nPush another from it to open its config menu",
-					rootIMView.makeDeviceName(d->name(), d->enumId()).data());
+				app().postMessage(7, false,
+					fmt::format("You pushed a key from device:\n{}\nPush another from it to open its config menu",
+					rootIMView.makeDeviceName(d->name(), d->enumId())));
 				postDraw();
 			}
 			return true;
@@ -185,12 +186,10 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &cmds)
 
 void ButtonConfigSetView::onAddedToController(ViewController *, Input::Event e)
 {
-	std::array<char, 128> str{};
 	if(e.isPointer())
-		string_printf(str, "Push key to set:\n%s", actionStr.data());
+		text.setString(fmt::format("Push key to set:\n{}", actionStr.data()));
 	else
-		string_printf(str, "Push key to set:\n%s\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr.data());
-	text.setString(str.data());
+		text.setString(fmt::format("Push key to set:\n{}\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr.data()));
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(e.isPointer())
 	{
@@ -237,7 +236,7 @@ ButtonConfigView::KeyNameStr ButtonConfigView::makeKeyNameStr(Input::Key key, co
 	}
 	else
 	{
-		string_printf(str, "Key Code 0x%X", key);
+		IG::formatTo(str, "Key Code {:#X}", key);
 	}
 	return str;
 }
@@ -285,7 +284,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 		{
 			return 1 + cat->keys;
 		},
-		[this](const TableView &, unsigned idx) -> MenuItem&
+		[this](const TableView &, size_t idx) -> MenuItem&
 		{
 			if(idx == 0)
 				return reset;
@@ -348,7 +347,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 							{
 								// prompt to resolve key conflict
 								auto alertView = makeView<KeyConflictAlertView>(
-									string_makePrintf<96>("Key \"%s\" already used for action \"%s\", unbind it before setting?",
+									fmt::format("Key \"{}\" already used for action \"{}\", unbind it before setting?",
 									devConf->dev->keyName(mapKey),
 									conflictCat->keyName[conflictKey]).data());
 								alertView->ctx = {mapKey, keyToSet, conflictCat, conflictKey};

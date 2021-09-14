@@ -38,7 +38,7 @@ BufferMapIO &BufferMapIO::operator=(BufferMapIO &&o)
 
 GenericIO BufferMapIO::makeGeneric()
 {
-	return GenericIO{*this};
+	return GenericIO{std::move(*this)};
 }
 
 std::error_code BufferMapIO::open(const void *buff, size_t size, OnCloseDelegate onClose)

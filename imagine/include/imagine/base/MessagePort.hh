@@ -18,12 +18,17 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/Pipe.hh>
 #include <imagine/thread/Semaphore.hh>
-#include <imagine/util/typeTraits.hh>
+#include <imagine/util/concepts.hh>
+#include <imagine/util/utility.h>
 #include <utility>
 #include <cstring>
 
 namespace Base
 {
+
+template <class MsgType>
+concept ReplySemaphoreSettableMessage =
+	requires (MsgType msg, IG::Semaphore *sem){ msg.setReplySemaphore(sem); };
 
 template<class MsgType>
 class PipeMessagePort
@@ -79,8 +84,7 @@ public:
 			return io.get<T>();
 		}
 
-		template <class T>
-		bool getExtraData(T *obj, size_t size)
+		bool getExtraData(auto *obj, size_t size)
 		{
 			return io.read(obj, size) != -1;
 		}
@@ -102,29 +106,29 @@ public:
 
 	explicit constexpr PipeMessagePort(NullInit) {}
 
-	template<class Func>
-	void attach(Func &&func)
+	void attach(auto &&f)
 	{
-		attach(EventLoop::forThread(), std::forward<Func>(func));
+		attach(EventLoop::forThread(), std::forward<decltype(f)>(f));
 	}
 
-	template<class Func>
-	void attach(EventLoop loop, Func &&func)
+	void attach(EventLoop loop, IG::Callable<void, Messages> auto &&f)
 	{
 		pipe.attach(loop,
 			[=](auto &io) -> bool
 			{
 				Messages msg{io};
-				constexpr auto returnsVoid = std::is_same_v<void, decltype(func(msg))>;
-				if constexpr(returnsVoid)
-				{
-					func(msg);
-					return true;
-				}
-				else
-				{
-					return func(msg);
-				}
+				f(msg);
+				return true;
+			});
+	}
+
+	void attach(EventLoop loop, IG::Callable<bool, Messages> auto &&f)
+	{
+		pipe.attach(loop,
+			[=](auto &io) -> bool
+			{
+				Messages msg{io};
+				return f(msg);
 			});
 	}
 
@@ -151,18 +155,11 @@ public:
 		}
 	}
 
-	bool send(MsgType msg, IG::Semaphore *semPtr)
+	bool send(MsgType msg, IG::Semaphore *semPtr) requires ReplySemaphoreSettableMessage<MsgType>
 	{
 		if(semPtr)
 		{
-			if constexpr(std::is_invocable_v<decltype(&MsgType::setReplySemaphore), MsgType, IG::Semaphore*>)
-			{
-				msg.setReplySemaphore(semPtr);
-			}
-			else
-			{
-				static_assert(IG::dependentFalseValue<MsgType>, "Called send() overload with MsgType missing setReplySemaphore()");
-			}
+			msg.setReplySemaphore(semPtr);
 			if(pipe.sink().write(msg) == -1) [[unlikely]]
 			{
 				return false;
@@ -176,15 +173,13 @@ public:
 		}
 	}
 
-	template <class T>
-	bool sendWithExtraData(MsgType msg, T obj)
+	bool sendWithExtraData(MsgType msg, auto &&obj)
 	{
-		static_assert(MSG_SIZE + sizeof(T) < PIPE_BUF, "size of data too big for atomic writes");
-		return sendWithExtraData(msg, &obj, sizeof(T));
+		static_assert(MSG_SIZE + sizeof(obj) < PIPE_BUF, "size of data too big for atomic writes");
+		return sendWithExtraData(msg, &obj, sizeof(obj));
 	}
 
-	template <class T>
-	bool sendWithExtraData(MsgType msg, T *obj, uint32_t size)
+	bool sendWithExtraData(MsgType msg, auto *obj, uint32_t size)
 	{
 		const auto bufferSize = MSG_SIZE + size;
 		assumeExpr(bufferSize < PIPE_BUF);

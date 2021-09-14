@@ -22,6 +22,7 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/input/config.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/format.hh>
 
 static constexpr unsigned KEY_CONFIGS_HARD_LIMIT = 256;
 static constexpr unsigned INPUT_DEVICE_CONFIGS_HARD_LIMIT = 256;
@@ -382,11 +383,11 @@ void EmuApp::saveConfigFile(IO &io)
 
 EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 {
-	auto configFilePath = FS::makePathStringPrintf("%s/config", ctx.supportPath().data());
+	auto configFilePath = IG::formatToPathString("{}/config", ctx.supportPath().data());
 	// move config files from old locations
 	if(Config::envIsLinux)
 	{
-		auto oldConfigFilePath = FS::makePathStringPrintf("%s/config", ctx.assetPath().data());
+		auto oldConfigFilePath = IG::formatToPathString("{}/config", ctx.assetPath().data());
 		if(FS::exists(oldConfigFilePath))
 		{
 			logMsg("moving config file from app path to support path");
@@ -397,7 +398,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 	if(ctx.isSystemApp())
 	{
 		const char *oldConfigDir = "/User/Library/Preferences/explusalpha.com";
-		auto oldConfigFilePath = FS::makePathStringPrintf("%s/%s", oldConfigDir, EmuSystem::configFilename);
+		auto oldConfigFilePath = IG::formatToPathString("{}/{}", oldConfigDir, EmuSystem::configFilename);
 		if(FS::exists(oldConfigFilePath))
 		{
 			logMsg("moving config file from prefs path to support path");
@@ -669,7 +670,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 
 void EmuApp::saveConfigFile(Base::ApplicationContext ctx)
 {
-	auto configFilePath = FS::makePathStringPrintf("%s/config", ctx.supportPath().data());
+	auto configFilePath = IG::formatToPathString("{}/config", ctx.supportPath().data());
 	if(Config::envIsIOS)
 	{
 		fixFilePermissions(ctx, ctx.supportPath().data());

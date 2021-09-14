@@ -29,6 +29,7 @@
 #ifdef GP2X
 #include "ym2610-940/940shared.h"
 #endif
+#include <imagine/logger/logger.h>
 
 AudioTime timer_count = 0;
 //Uint32 timer_count;

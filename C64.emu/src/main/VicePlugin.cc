@@ -17,6 +17,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/utility.h>
+#include <imagine/util/format.hh>
 #include <emuframework/EmuApp.hh>
 #include "VicePlugin.hh"
 
@@ -66,7 +67,7 @@ struct PluginConfig
 static FS::PathString makePluginLibPath(const char *libName, const char *libBasePath)
 {
 	if(libBasePath && strlen(libBasePath))
-		return FS::makePathStringPrintf("%s/%s", libBasePath, libName);
+		return IG::formatToPathString("{}/{}", libBasePath, libName);
 	else
 		return FS::makePathString(libName);
 }

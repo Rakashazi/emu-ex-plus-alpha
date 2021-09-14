@@ -21,7 +21,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/util/ScopeGuard.hh>
-#include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <cstring>
 
@@ -197,7 +197,7 @@ AssetIO ApplicationContext::openAsset(const char *name, IO::AccessHint access, c
 	#ifdef __ANDROID__
 	io.open(*this, name, access);
 	#else
-	io.open(FS::makePathStringPrintf("%s/%s", assetPath(appName).data(), name).data(), access);
+	io.open(IG::formatToPathString("{}/{}", assetPath(appName).data(), name).data(), access);
 	#endif
 	return io;
 }
@@ -256,14 +256,6 @@ void ApplicationContext::setOnInputDeviceChange(InputDeviceChangeDelegate del)
 void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDelegate del)
 {
 	application().setOnInputDevicesEnumerated(del);
-}
-
-void ApplicationContext::exitWithErrorMessagePrintf(int exitVal, const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	auto vaEnd = IG::scopeGuard([&](){ va_end(args); });
-	exitWithErrorMessageVPrintf(exitVal, format, args);
 }
 
 [[gnu::weak]] void ApplicationContext::setSysUIStyle(uint32_t flags) {}

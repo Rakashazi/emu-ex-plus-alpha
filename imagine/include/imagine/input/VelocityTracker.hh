@@ -17,18 +17,17 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/concepts.hh>
 #include <chrono>
-#include <type_traits>
 #include <array>
 
 namespace Input
 {
 
-template <class T, uint32_t D>
+template <class T, uint32_t D> requires IG::floating_point<T>
 class IntegratingVelocityTracker
 {
 public:
-	static_assert(std::is_floating_point_v<T>, "IntegratingVelocityTracker needs floating point type");
 	using TimeType = std::chrono::nanoseconds;
 	using ValArray = std::array<T, D>;
 

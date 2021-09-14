@@ -18,6 +18,7 @@
 #include <emuframework/EmuMainMenuView.hh>
 #include "internal.hh"
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 
 static constexpr unsigned MAX_SH2_CORES = 4;
 
@@ -45,7 +46,7 @@ class CustomSystemOptionView : public SystemOptionView
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		string_printf(str, "BIOS: %s", strlen(::biosPath.data()) ? FS::basename(::biosPath).data() : "None set");
+		IG::formatTo(str, "BIOS: {}", strlen(::biosPath.data()) ? FS::basename(::biosPath).data() : "None set");
 	}
 
 	StaticArrayList<TextMenuItem, MAX_SH2_CORES> sh2CoreItem{};

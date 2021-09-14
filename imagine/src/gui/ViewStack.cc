@@ -130,7 +130,7 @@ void ViewStack::place()
 	customViewRect = viewRect;
 	if(navViewIsActive())
 	{
-		nav->setTitle(top().name());
+		nav->setTitle(std::u16string{top().name()});
 		auto navRect = IG::makeWindowRectRel(viewRect.pos(LT2DO), {viewRect.xSize(), IG::makeEvenRoundedUp(int(nav->titleFace()->nominalHeight()*(double)1.75))});
 		nav->setViewRect(navRect, projP);
 		nav->place();
@@ -270,7 +270,7 @@ void ViewStack::pop()
 		showNavLeftBtn();
 		if(view.size())
 		{
-			nav->setTitle(top().name());
+			nav->setTitle(std::u16string{top().name()});
 			if(navViewHasFocus)
 				top().setFocus(false);
 		}
@@ -317,7 +317,7 @@ void ViewStack::popTo(int idx)
 {
 	if(idx < 0)
 		return;
-	unsigned popToSize = idx + 1;
+	size_t popToSize = idx + 1;
 	while(view.size() > popToSize)
 		pop();
 	place();
@@ -337,9 +337,9 @@ View &ViewStack::top() const
 	return *view.back().v;
 }
 
-View &ViewStack::viewAtIdx(uint32_t idx) const
+View &ViewStack::viewAtIdx(int idx) const
 {
-	assumeExpr(idx < view.size());
+	assumeExpr((unsigned)idx < view.size());
 	return *view[idx].v;
 }
 
@@ -354,7 +354,7 @@ int ViewStack::viewIdx(View &v) const
 	return -1;
 }
 
-int ViewStack::viewIdx(View::NameStringView name) const
+int ViewStack::viewIdx(std::u16string_view name) const
 {
 	for(int i = 0; auto &viewEntry : view)
 	{
@@ -367,7 +367,7 @@ int ViewStack::viewIdx(View::NameStringView name) const
 
 int ViewStack::viewIdx(const char *name) const
 {
-	return viewIdx(View::makeNameString(name));
+	return viewIdx(string_makeUTF16(name));
 }
 
 bool ViewStack::contains(View &v) const
@@ -375,14 +375,14 @@ bool ViewStack::contains(View &v) const
 	return viewIdx(v) != -1;
 }
 
-bool ViewStack::contains(View::NameStringView name) const
+bool ViewStack::contains(std::u16string_view name) const
 {
 	return viewIdx(name) != -1;
 }
 
 bool ViewStack::contains(const char *name) const
 {
-	return contains(View::makeNameString(name));
+	return contains(string_makeUTF16(name));
 }
 
 void ViewStack::dismissView(View &v, bool refreshLayout)
@@ -408,12 +408,12 @@ void ViewStack::dismissView(int idx, bool refreshLayout)
 		logWarn("not dismissing root view");
 		return;
 	}
-	if(idx < 0 || (uint32_t)idx >= size())
+	if(idx < 0 || idx >= size())
 	{
 		logWarn("view dismiss index out of range:%d", idx);
 		return;
 	}
-	if((uint32_t)idx == size() - 1)
+	if(idx == size() - 1)
 	{
 		// topmost view case
 		if(refreshLayout)
@@ -454,7 +454,7 @@ void ViewStack::showNavLeftBtn()
 	}
 }
 
-uint32_t ViewStack::size() const
+int ViewStack::size() const
 {
 	return view.size();
 }

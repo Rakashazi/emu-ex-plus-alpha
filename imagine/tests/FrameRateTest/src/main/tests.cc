@@ -19,7 +19,7 @@
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
@@ -47,12 +47,12 @@ void TestFramework::init(Base::ApplicationContext app, Gfx::Renderer &r,
 
 void TestFramework::setCPUFreqText(const char *str)
 {
-	string_printf(cpuFreqStr, "CPU Frequency: %s", str);
+	IG::formatTo(cpuFreqStr, "CPU Frequency: {}", str);
 }
 
 void TestFramework::setCPUUseText(const char *str)
 {
-	string_printf(cpuUseStr, "CPU Load (System): %s", str);
+	IG::formatTo(cpuUseStr, "CPU Load (System): {}", str);
 }
 
 void TestFramework::placeCPUStatsText(Gfx::Renderer &r)
@@ -104,10 +104,10 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 		if(updatedCPUStats)
 		{
 			cpuStatsText.setString(
-				string_makePrintf<256>("%s%s%s",
+				fmt::format("{}{}{}",
 				strlen(cpuUseStr.data()) ? cpuUseStr.data() : "",
 				strlen(cpuUseStr.data()) && strlen(cpuFreqStr.data()) ? "\n" : "",
-				strlen(cpuFreqStr.data()) ? cpuFreqStr.data() : "").data()
+				strlen(cpuFreqStr.data()) ? cpuFreqStr.data() : "")
 			);
 			placeCPUStatsText(rTask.renderer());
 		}
@@ -128,7 +128,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 				lostFrameProcessTime = std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count();
 
 				droppedFrames++;
-				string_printf(skippedFrameStr, "Lost %u frame(s) taking %.3fs after %u continuous\nat time %.3fs",
+				IG::formatTo(skippedFrameStr, "Lost {} frame(s) taking {:.3f}s after {} continuous\nat time {:.3f}s",
 					elapsedScreenFrames - 1, IG::FloatSeconds(timestamp - lastFramePresentTime.timestamp).count(),
 					continuousFrames, IG::FloatSeconds(timestamp).count());
 				updatedFrameStats = true;
@@ -137,7 +137,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 		}
 		if(frames && frames % 4 == 0)
 		{
-			string_printf(statsStr, "Total Draw Time: %02lums (%02ums)\nTimestamp Diff: %02lums",
+			IG::formatTo(statsStr, "Total Draw Time: {:02}ms ({:02}ms)\nTimestamp Diff: {:02}ms",
 				(unsigned long)std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count(),
 				lostFrameProcessTime,
 				(unsigned long)std::chrono::duration_cast<IG::Milliseconds>(timestamp - lastFramePresentTime.timestamp).count());
@@ -146,10 +146,10 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 		if(updatedFrameStats)
 		{
 			frameStatsText.setString(
-				string_makePrintf<512>("%s%s%s",
+				fmt::format("{}{}{}",
 				strlen(skippedFrameStr.data()) ? skippedFrameStr.data() : "",
 				strlen(skippedFrameStr.data()) && strlen(statsStr.data()) ? "\n" : "",
-				strlen(statsStr.data()) ? statsStr.data() : "").data()
+				strlen(statsStr.data()) ? statsStr.data() : "")
 			);
 			placeFrameStatsText(rTask.renderer());
 		}
@@ -236,9 +236,9 @@ void DrawTest::initTest(Base::ApplicationContext app, Gfx::Renderer &r, IG::WP p
 	texConf.setCompatSampler(&r.make(Gfx::CommonTextureSampler::NO_MIP_CLAMP));
 	const bool canSingleBuffer = r.maxSwapChainImages() < 3 || r.supportsSyncFences();
 	texture = r.makePixmapBufferTexture(texConf, bufferMode, canSingleBuffer);
-	if(!texture)
+	if(!texture) [[unlikely]]
 	{
-		app.exitWithErrorMessagePrintf(-1, "Can't init test texture");
+		app.exitWithMessage(-1, "Can't init test texture");
 		return;
 	}
 	auto lockedBuff = texture.lock();

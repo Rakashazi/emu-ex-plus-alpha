@@ -20,7 +20,7 @@
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/util/DelegateFunc.hh>
-#include <imagine/util/NonCopyable.hh>
+#include <imagine/util/string.h>
 #include <utility>
 #include <memory>
 #include <optional>
@@ -47,10 +47,11 @@ class RendererTask;
 class View;
 class BaseTextMenuItem;
 
-class ViewController : private NonCopyable
+class ViewController
 {
 public:
 	constexpr ViewController() {}
+	ViewController &operator=(ViewController &&) = delete;
 	virtual void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal) = 0;
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e);
 	void pushAndShow(std::unique_ptr<View> v);
@@ -93,11 +94,9 @@ protected:
 		bool, needsBackControlDefault, needsBackControl_){needsBackControlDefault};
 };
 
-class View : private NonCopyable
+class View
 {
 public:
-	using NameString = Gfx::TextString;
-	using NameStringView = Gfx::TextStringView;
 	using DismissDelegate = DelegateFunc<bool (View &view)>;
 	static constexpr bool needsBackControlDefault = ViewManager::needsBackControlDefault;
 	static constexpr bool needsBackControlIsMutable = ViewManager::needsBackControlIsMutable;
@@ -105,10 +104,9 @@ public:
 
 	View();
 	View(ViewAttachParams attach);
-	View(NameString name, ViewAttachParams attach);
-	View(const char *name, ViewAttachParams attach);
-	virtual ~View();
-
+	View(IG::utf16String name, ViewAttachParams attach);
+	virtual ~View() = default;
+	View &operator=(View &&) = delete;
 	virtual void place() = 0;
 	virtual void prepareDraw();
 	virtual void draw(Gfx::RendererCommands &cmds) = 0;
@@ -129,11 +127,9 @@ public:
 	ViewAttachParams attachParams() const;
 	Base::Screen *screen() const;
 	Base::ApplicationContext appContext() const;
-	NameStringView name() const;
-	void setName(const char *name);
-	void setName(NameString name);
-	static NameString makeNameString(const char *name);
-	static NameString makeNameString(const BaseTextMenuItem &item);
+	std::u16string_view name() const;
+	void setName(IG::utf16String);
+	static std::u16string_view nameStringView(const BaseTextMenuItem &item);
 	Gfx::GlyphTextureSet &defaultFace();
 	Gfx::GlyphTextureSet &defaultBoldFace();
 	static Gfx::Color menuTextColor(bool isSelected);
@@ -155,28 +151,22 @@ public:
 	bool pointIsInView(IG::WP pos);
 	void waitForDrawFinished();
 
-	template<class T, class... Args>
-	std::unique_ptr<T> makeView(Args&&... args)
+	template<class T>
+	std::unique_ptr<T> makeView(auto &&... args)
 	{
-		return std::make_unique<T>(attachParams(), std::forward<Args>(args)...);
+		return std::make_unique<T>(attachParams(), std::forward<decltype(args)>(args)...);
 	}
 
-	template<class T, class... Args>
-	std::unique_ptr<T> makeViewWithName(NameString name, Args&&... args)
+	template<class T>
+	std::unique_ptr<T> makeViewWithName(IG::utf16String name, auto &&... args)
 	{
-		return std::make_unique<T>(std::move(name), attachParams(), std::forward<Args>(args)...);
+		return std::make_unique<T>(std::move(name), attachParams(), std::forward<decltype(args)>(args)...);
 	}
 
-	template<class T, class... Args>
-	std::unique_ptr<T> makeViewWithName(const char *name, Args&&... args)
+	template<class T>
+	std::unique_ptr<T> makeViewWithName(const BaseTextMenuItem &item, auto &&... args)
 	{
-		return std::make_unique<T>(makeNameString(name), attachParams(), std::forward<Args>(args)...);
-	}
-
-	template<class T, class... Args>
-	std::unique_ptr<T> makeViewWithName(const BaseTextMenuItem &item, Args&&... args)
-	{
-		return std::make_unique<T>(makeNameString(item), attachParams(), std::forward<Args>(args)...);
+		return std::make_unique<T>(nameStringView(item), attachParams(), std::forward<decltype(args)>(args)...);
 	}
 
 protected:
@@ -184,7 +174,7 @@ protected:
 	Gfx::RendererTask *rendererTask_{};
 	ViewManager *manager_{};
 	ViewController *controller_{};
-	NameString nameStr{};
+	std::u16string nameStr{};
 	DismissDelegate dismissDel{};
 	IG::WindowRect viewRect_{};
 	Gfx::ProjectionPlane projP{};

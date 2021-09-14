@@ -36,6 +36,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/ToastView.hh>
+#include <imagine/util/format.hh>
 
 class AutoStateConfirmAlertView : public YesNoAlertView, public EmuAppHelper<AutoStateConfirmAlertView>
 {
@@ -57,7 +58,7 @@ public:
 			}
 		}
 	{
-		setLabel(string_makePrintf<96>("Auto-save state exists from:\n%s", dateStr).data());
+		setLabel(fmt::format("Auto-save state exists from:\n{}", dateStr).data());
 	}
 };
 
@@ -470,10 +471,8 @@ bool EmuViewController::showAutoStateConfirm(Input::Event e, bool addToRecent)
 	auto saveStr = EmuSystem::sprintStateFilename(-1);
 	if(FS::exists(saveStr))
 	{
-		auto mTime = FS::status(saveStr).lastWriteTimeLocal();
-		char dateStr[64]{};
-		std::strftime(dateStr, sizeof(dateStr), strftimeFormat, &mTime);
-		pushAndShowModal(std::make_unique<AutoStateConfirmAlertView>(viewStack.top().attachParams(), dateStr, addToRecent), e, false);
+		auto dateStr = formatDateAndTime(FS::status(saveStr).lastWriteTimeLocal());
+		pushAndShowModal(std::make_unique<AutoStateConfirmAlertView>(viewStack.top().attachParams(), dateStr.data(), addToRecent), e, false);
 		return true;
 	}
 	return false;

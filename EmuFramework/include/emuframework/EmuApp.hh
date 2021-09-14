@@ -115,13 +115,6 @@ public:
 	static bool hasArchiveExtension(const char *name);
 	void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
 	void dispatchOnMainMenuItemOptionChanged();
-	[[gnu::format(printf, 4, 5)]]
-	void printfMessage(unsigned secs, bool error, const char *format, ...);
-	void postMessage(const char *msg);
-	void postMessage(bool error, const char *msg);
-	void postMessage(unsigned secs, bool error, const char *msg);
-	void postErrorMessage(const char *msg);
-	void postErrorMessage(unsigned secs, const char *msg);
 	void unpostMessage();
 	void printScreenshotResult(int num, bool success);
 	void saveAutoState();
@@ -188,9 +181,34 @@ public:
 	Base::ApplicationContext appContext() const;
 	static EmuApp &get(Base::ApplicationContext);
 
-	template<class T, class Func>
+	void postMessage(auto msg)
+	{
+		postMessage(false, std::move(msg));
+	}
+
+	void postMessage(bool error, auto msg)
+	{
+		postMessage(3, error, std::move(msg));
+	}
+
+	void postMessage(int secs, bool error, auto msg)
+	{
+		viewController().popupMessageView().post(std::move(msg), secs, error);
+	}
+
+	void postErrorMessage(auto msg)
+	{
+		postMessage(true, std::move(msg));
+	}
+
+	void postErrorMessage(int secs, auto msg)
+	{
+		postMessage(secs, true, std::move(msg));
+	}
+
+	template<class T>
 	void pushAndShowNewCollectValueInputView(ViewAttachParams attach, Input::Event e,
-	const char *msgText, const char *initialContent, Func &&collectedValueFunc)
+	const char *msgText, const char *initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
 	{
 		pushAndShowNewCollectTextInputView(attach, e, msgText, initialContent,
 			[collectedValueFunc](CollectTextInputView &view, const char *str)
@@ -251,16 +269,6 @@ public:
 					return false;
 				}
 			});
-	}
-
-	template<class Func1, class Func2>
-	void pushAndShowNewYesNoAlertView(ViewAttachParams attach, Input::Event e,
-		const char *label, const char *yesStr, const char *noStr,
-		Func1 &&onYes, Func2 &&onNo)
-	{
-		pushAndShowNewYesNoAlertView(attach, e, label, yesStr, noStr,
-			TextMenuItem::makeSelectDelegate(std::forward<Func1>(onYes)),
-			TextMenuItem::makeSelectDelegate(std::forward<Func2>(onNo)));
 	}
 
 protected:

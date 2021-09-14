@@ -19,6 +19,7 @@
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/format.hh>
 #include <imagine/fs/FS.hh>
 #include <gambatte.h>
 #include <libgambatte/src/video/lcddef.h>
@@ -130,7 +131,7 @@ void EmuSystem::reset(ResetMode mode)
 
 FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
 {
-	return FS::makePathStringPrintf("%s/%s.0%c.gqs", statePath, gameName, saveSlotCharUpper(slot));
+	return IG::formatToPathString("{}/{}.0{}.gqs", statePath, gameName, saveSlotCharUpper(slot));
 }
 
 EmuSystem::Error EmuSystem::saveState(const char *path)
@@ -184,7 +185,7 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 	if(auto result = gbEmu.load(buffView.data(), buffView.size(), gameFileName().data(), optionReportAsGba ? gbEmu.GBA_CGB : 0);
 		result != gambatte::LOADRES_OK)
 	{
-		return makeError("%s", gambatte::to_string(result).c_str());
+		return makeError(gambatte::to_string(result));
 	}
 	if(!gbEmu.isCgb())
 	{

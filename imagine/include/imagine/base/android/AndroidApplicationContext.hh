@@ -64,7 +64,7 @@ public:
 	bool packageIsInstalled(const char *name) const;
 
 	// Input system functions
-	void enumInputDevices();
+	void enumInputDevices() const;
 	bool hasTrackball() const;
 
 protected:

@@ -24,22 +24,21 @@
 class BaseAlertView : public View
 {
 public:
-	BaseAlertView(ViewAttachParams attach, const char *label, TableView::ItemsDelegate items, TableView::ItemDelegate item);
-	template <class Container>
-	BaseAlertView(ViewAttachParams attach, const char *label, Container &item):
+	BaseAlertView(ViewAttachParams attach, IG::utf16String label, TableView::ItemsDelegate items, TableView::ItemDelegate item);
+	BaseAlertView(ViewAttachParams attach, IG::utf16String label, IG::Container auto &item):
 		BaseAlertView
 		{
 			attach,
-			label,
+			std::move(label),
 			[&item](const ::TableView &) { return std::size(item); },
-			[&item](const ::TableView &, uint32_t idx) -> MenuItem& { return IG::deref(std::data(item)[idx]); }
+			[&item](const ::TableView &, size_t idx) -> MenuItem& { return IG::deref(std::data(item)[idx]); }
 		} {}
 	void place() override;
 	bool inputEvent(Input::Event e) override;
 	void prepareDraw() override;
 	void draw(Gfx::RendererCommands &cmds) override;
 	void onAddedToController(ViewController *c, Input::Event e) override;
-	void setLabel(const char *label);
+	void setLabel(IG::utf16String label);
 
 protected:
 	Gfx::GCRect labelFrame{};
@@ -50,13 +49,8 @@ protected:
 class AlertView : public BaseAlertView
 {
 public:
-	AlertView(ViewAttachParams attach, const char *label, uint32_t menuItems);
-	void setItem(uint32_t idx, const char *name, TextMenuItem::SelectDelegate del);
-	template<class Func>
-	void setItem(uint32_t idx, const char *name, Func &&func)
-	{
-		setItem(idx, name, TextMenuItem::makeSelectDelegate(std::forward<Func>(func)));
-	}
+	AlertView(ViewAttachParams attach, IG::utf16String label, unsigned menuItems);
+	void setItem(size_t idx, IG::utf16String name, TextMenuItem::SelectDelegate del);
 
 protected:
 	std::vector<TextMenuItem> item;
@@ -65,34 +59,13 @@ protected:
 class YesNoAlertView : public BaseAlertView
 {
 public:
-	YesNoAlertView(ViewAttachParams attach, const char *label, const char *yesStr, const char *noStr,
+	YesNoAlertView(ViewAttachParams attach, IG::utf16String label, IG::utf16String yesStr, IG::utf16String noStr,
 		TextMenuItem::SelectDelegate onYes, TextMenuItem::SelectDelegate onNo);
-	template<class Func1, class Func2>
-	YesNoAlertView(ViewAttachParams attach, const char *label, const char *yesStr, const char *noStr,
-		Func1 &&onYes, Func2 &&onNo):
-			YesNoAlertView
-			{
-				attach,
-				label,
-				yesStr,
-				noStr,
-				TextMenuItem::makeSelectDelegate(std::forward<Func1>(onYes)),
-				TextMenuItem::makeSelectDelegate(std::forward<Func2>(onNo))
-			} {}
-	YesNoAlertView(ViewAttachParams attach, const char *label, const char *yesStr = {}, const char *noStr = {}):
-		YesNoAlertView{attach, label, yesStr, noStr, {}, {}} {}
+	YesNoAlertView(ViewAttachParams attach, IG::utf16String label,
+		IG::utf16String yesStr = {}, IG::utf16String noStr = {}):
+		YesNoAlertView{attach, std::move(label), std::move(yesStr), std::move(noStr), {}, {}} {}
 	void setOnYes(TextMenuItem::SelectDelegate del);
-	template<class Func>
-	void setOnYes(Func &&func)
-	{
-		setOnYes(TextMenuItem::makeSelectDelegate(std::forward<Func>(func)));
-	}
 	void setOnNo(TextMenuItem::SelectDelegate del);
-	template<class Func>
-	void setOnNo(Func &&func)
-	{
-		setOnNo(TextMenuItem::makeSelectDelegate(std::forward<Func>(func)));
-	}
 
 protected:
 	TextMenuItem yes, no;

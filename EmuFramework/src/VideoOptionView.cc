@@ -27,6 +27,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextTableView.hh>
+#include <imagine/util/format.hh>
 
 using namespace IG;
 
@@ -45,7 +46,7 @@ public:
 	bool useRenderTaskTime = false;
 
 	DetectFrameRateView(ViewAttachParams attach): View(attach),
-		fpsText{nullptr, &defaultFace()}
+		fpsText{{}, &defaultFace()}
 	{
 		defaultFace().precacheAlphaNum(attach.renderer());
 		defaultFace().precache(attach.renderer(), ".");
@@ -118,9 +119,9 @@ public:
 				waitForDrawFinished();
 				std::array<char, 32> fpsStr{};
 				if(detectedFrameTime.count())
-					string_printf(fpsStr, "%.2ffps", 1. / detectedFrameTime.count());
+					IG::formatTo(fpsStr, "{:.2f}fps", 1. / detectedFrameTime.count());
 				else
-					string_printf(fpsStr, "0fps");
+					string_copy(fpsStr, "0fps");
 				fpsText.setString(fpsStr.data());
 				fpsText.compile(renderer(), projP);
 			}
@@ -173,15 +174,15 @@ public:
 	}
 };
 
-static std::array<char, 64> makeFrameRateStr()
+static auto makeFrameRateStr()
 {
-	return string_makePrintf<64>("Frame Rate: %.2fHz",
+	return fmt::format("Frame Rate: {:.2f}Hz",
 		EmuSystem::frameRate(EmuSystem::VIDSYS_NATIVE_NTSC));
 }
 
-static std::array<char, 64> makeFrameRatePALStr()
+static auto makeFrameRatePALStr()
 {
-	return string_makePrintf<64>("Frame Rate (PAL): %.2fHz",
+	return fmt::format("Frame Rate (PAL): {:.2f}Hz",
 		EmuSystem::frameRate(EmuSystem::VIDSYS_PAL));
 }
 
@@ -297,7 +298,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	frameRate
 	{
-		nullptr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](Input::Event e)
 		{
 			pushAndShowFrameRateSelectMenu(EmuSystem::VIDSYS_NATIVE_NTSC, e);
@@ -306,7 +307,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	frameRatePAL
 	{
-		nullptr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](Input::Event e)
 		{
 			pushAndShowFrameRateSelectMenu(EmuSystem::VIDSYS_PAL, e);
@@ -320,7 +321,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			if(idx == EmuSystem::aspectRatioInfos)
 			{
-				t.setString(string_makePrintf<6>("%.2f", optionAspectRatio.val).data());
+				t.setString(fmt::format("{:.2f}", optionAspectRatio.val));
 				return true;
 			}
 			return false;
@@ -365,7 +366,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		{
 			if(optionImageZoom <= 100)
 			{
-				t.setString(string_makePrintf<5>("%u%%", optionImageZoom.val).data());
+				t.setString(fmt::format("{}%", optionImageZoom.val));
 				return true;
 			}
 			return false;
@@ -417,7 +418,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"App Zoom", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(string_makePrintf<5>("%u%%", optionViewportZoom.val).data());
+			t.setString(fmt::format("{}%", optionViewportZoom.val));
 			return true;
 		},
 		[]()
@@ -528,7 +529,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 		"Overlay Effect Level", &defaultFace(),
 		[this](uint32_t idx, Gfx::Text &t)
 		{
-			t.setString(string_makePrintf<5>("%u%%", optionOverlayEffectLevel.val).data());
+			t.setString(fmt::format("{}%", optionOverlayEffectLevel.val));
 			return true;
 		},
 		[]()
@@ -830,15 +831,14 @@ bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::Float
 	}
 	if(!EmuSystem::setFrameTime(vidSys, wantedTime))
 	{
-		app().printfMessage(4, true, "%.2fHz not in valid range", 1. / wantedTime.count());
+		app().postMessage(4, true, fmt::format("{:.2f}Hz not in valid range", 1. / wantedTime.count()));
 		return false;
 	}
 	EmuSystem::configFrameTime(optionSoundRate);
 	if(vidSys == EmuSystem::VIDSYS_NATIVE_NTSC)
 	{
 		optionFrameRate = time.count();
-		frameRate.setName(makeFrameRateStr().data());
-		frameRate.compile(renderer(), projP);
+		frameRate.compile(makeFrameRateStr().data(), renderer(), projP);
 	}
 	else
 	{
