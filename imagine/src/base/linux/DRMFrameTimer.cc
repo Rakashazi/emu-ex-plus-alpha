@@ -17,7 +17,7 @@
 #include <imagine/base/Screen.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/linux/DRMFrameTimer.hh>
-#include <imagine/util/UniqueFileDescriptor.hh>
+#include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <xf86drm.h>
 #include <unistd.h>
 #include <fcntl.h>

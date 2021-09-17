@@ -163,16 +163,16 @@ public:
 struct GLCommonPrograms
 {
 	// color replacement
-	Program texReplace{};
-	Program texAlphaReplace{};
+	NativeProgramBundle texReplace{};
+	NativeProgramBundle texAlphaReplace{};
 	// color modulation
-	Program tex{};
-	Program texAlpha{};
+	NativeProgramBundle tex{};
+	NativeProgramBundle texAlpha{};
 	// no texture
-	Program noTex{};
+	NativeProgramBundle noTex{};
 	// external textures
-	IG_enableMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, Program, texExternalReplace){};
-	IG_enableMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, Program, texExternal){};
+	IG_enableMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, NativeProgramBundle, texExternalReplace){};
+	IG_enableMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, NativeProgramBundle, texExternal){};
 };
 
 struct GLCommonSamplers
@@ -194,7 +194,7 @@ public:
 	GLCommonPrograms commonProgram{};
 	GLCommonSamplers commonSampler{};
 	Base::CustomEvent releaseShaderCompilerEvent{Base::CustomEvent::NullInit{}};
-	IG_enableMemberIf(Config::Gfx::OPENGL_SHADER_PIPELINE, GLuint, defaultVShader){};
+	IG_enableMemberIf(Config::Gfx::OPENGL_SHADER_PIPELINE, GLuint, defaultVShader_){};
 
 	GLRenderer(Base::ApplicationContext, Error &err);
 	void setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat) const;
@@ -226,7 +226,7 @@ protected:
 	void setupPresentationTime(const char *eglExtenstionStr);
 	void checkExtensionString(const char *extStr, bool &useFBOFuncs);
 	void checkFullExtensionString(const char *fullExtStr);
-	const Program &commonProgramRef(CommonProgram program) const;
+	NativeProgramBundle commonProgramBundle(CommonProgram program) const;
 	bool attachWindow(Base::Window &, Base::GLBufferConfig, Base::GLColorSpace);
 	Base::NativeWindowFormat nativeWindowFormat(Base::GLBufferConfig) const;
 };

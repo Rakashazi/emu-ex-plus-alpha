@@ -38,7 +38,7 @@ static constexpr std::array<Vtx, 4> mapQuadPos(std::array<Vtx, 4> v, GCRect rect
 	return mapQuadPos(v, {rect.x, rect.y}, {rect.x, rect.y2}, {rect.x2, rect.y2}, {rect.x2, rect.y});
 }
 
-template<class Vtx> requires Vertex<Vtx>
+template<Vertex Vtx>
 class QuadGeneric
 {
 public:

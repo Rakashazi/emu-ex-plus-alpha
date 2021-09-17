@@ -76,6 +76,8 @@ public:
 		unsigned textureOffset, unsigned colorOffset, unsigned posOffset, bool hasTexture, bool hasColor);
 	void setupShaderVertexArrayPointers(const char *v, int numV, unsigned stride, unsigned id,
 		unsigned textureOffset, unsigned colorOffset, unsigned posOffset, bool hasTexture, bool hasColor);
+	void setProgram(NativeProgramBundle program, Mat4 modelMat);
+	void setProgram(NativeProgramBundle program, const Mat4 *modelMat);
 
 protected:
 	void setCurrentDrawable(Drawable win);
@@ -95,7 +97,7 @@ protected:
 	Viewport currViewport{};
 	GLuint currSamplerName{};
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	GLSLProgram currProgram{};
+	NativeProgramBundle currProgram{};
 	Mat4 modelMat{}, projectionMat{};
 	uint32_t currentVtxArrayPointerID = 0;
 	#endif

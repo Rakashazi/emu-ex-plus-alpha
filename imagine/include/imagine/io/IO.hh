@@ -83,10 +83,9 @@ public:
 		return read<T>(nullptr).first;
 	}
 
-	template <class T> requires (!IG::Pointer<std::decay_t<T>>)
-	ssize_t write(T &&obj, std::error_code *ecOut = nullptr)
+	ssize_t write(IG::NotPointerDecayable auto &&obj, std::error_code *ecOut = nullptr)
 	{
-		return static_cast<IO*>(this)->write(&obj, sizeof(T), ecOut);
+		return static_cast<IO*>(this)->write(&obj, sizeof(decltype(obj)), ecOut);
 	}
 };
 

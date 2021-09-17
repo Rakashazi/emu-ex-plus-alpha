@@ -20,6 +20,7 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
 
 static const VideoImageEffect::EffectDesc
@@ -41,7 +42,7 @@ static Gfx::Shader makeEffectVertexShader(Gfx::Renderer &r, const char *src)
 		posDefs,
 		src
 	};
-	return r.makeCompatShader(shaderSrc, std::size(shaderSrc), Gfx::ShaderType::VERTEX);
+	return r.makeCompatShader({shaderSrc, std::size(shaderSrc)}, Gfx::ShaderType::VERTEX);
 }
 
 static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, const char *src, bool isExternalTex)
@@ -60,13 +61,13 @@ static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, const char *src, b
 			"uniform lowp samplerExternalOES TEX;\n",
 			src
 		};
-		auto shader = r.makeCompatShader(shaderSrc, std::size(shaderSrc), Gfx::ShaderType::FRAGMENT);
+		auto shader = r.makeCompatShader({shaderSrc, std::size(shaderSrc)}, Gfx::ShaderType::FRAGMENT);
 		if(!shader)
 		{
 			// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
 			logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
 			shaderSrc[1] = "#define TEXTURE texture\n";
-			shader = r.makeCompatShader(shaderSrc, std::size(shaderSrc), Gfx::ShaderType::FRAGMENT);
+			shader = r.makeCompatShader({shaderSrc, std::size(shaderSrc)}, Gfx::ShaderType::FRAGMENT);
 		}
 		return shader;
 	}
@@ -79,7 +80,7 @@ static Gfx::Shader makeEffectFragmentShader(Gfx::Renderer &r, const char *src, b
 			"uniform sampler2D TEX;\n",
 			src
 		};
-		return r.makeCompatShader(shaderSrc, std::size(shaderSrc), Gfx::ShaderType::FRAGMENT);
+		return r.makeCompatShader({shaderSrc, std::size(shaderSrc)}, Gfx::ShaderType::FRAGMENT);
 	}
 }
 
@@ -103,22 +104,7 @@ void VideoImageEffect::deinit(Gfx::Renderer &r)
 	renderTarget_ = {};
 	renderTargetScale = {0, 0};
 	renderTargetImgSize = {0, 0};
-	deinitProgram(r);
-}
-
-void VideoImageEffect::deinitProgram(Gfx::Renderer &r)
-{
-	prog.deinit(r.task());
-	if(vShader)
-	{
-		r.deleteShader(vShader);
-		vShader = 0;
-	}
-	if(fShader)
-	{
-		r.deleteShader(fShader);
-		fShader = 0;
-	}
+	prog = {};
 }
 
 void VideoImageEffect::initRenderTargetTexture(Gfx::Renderer &r, const Gfx::TextureSampler &compatTexSampler)
@@ -185,71 +171,59 @@ void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex, const Gfx::
 	}
 }
 
+static std::unique_ptr<char[]> fileToBuffer(IO &io)
+{
+	auto fileSize = io.size();
+	auto text = std::make_unique<char[]>(fileSize + 1);
+	io.read(text.get(), fileSize);
+	text[fileSize] = 0;
+	io.close();
+	return text;
+}
+
 std::optional<std::system_error> VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback)
 {
 	auto &app = EmuApp::get(r.appContext());
+
+	auto vShaderFile = r.appContext().openAsset(
+		IG::formatToPathString("shaders/{}{}", useFallback ? "fallback-" : "", desc.vShaderFilename).data(),
+		IO::AccessHint::ALL);
+	if(!vShaderFile)
 	{
-		auto file = r.appContext().openAsset(
-			IG::formatToPathString("shaders/{}{}", useFallback ? "fallback-" : "", desc.vShaderFilename).data(),
-			IO::AccessHint::ALL);
-		if(!file)
-		{
-			deinitProgram(r);
-			return std::system_error{{ENOENT, std::system_category()}, fmt::format("Can't open file: {}", desc.vShaderFilename)};
-		}
-		auto fileSize = file.size();
-		char text[fileSize + 1];
-		file.read(text, fileSize);
-		text[fileSize] = 0;
-		file.close();
-		//logMsg("read source:\n%s", text);
-		logMsg("making vertex shader");
-		vShader = makeEffectVertexShader(r, text);
-		if(!vShader)
-		{
-			deinitProgram(r);
-			r.autoReleaseShaderCompiler();
-			return std::system_error{{EINVAL, std::system_category()}, "GPU rejected shader (vertex compile error)"};
-		}
+		return std::system_error{{ENOENT, std::system_category()}, fmt::format("Can't open file: {}", desc.vShaderFilename)};
 	}
+	auto releaseShaderCompiler = IG::scopeGuard([&](){ r.autoReleaseShaderCompiler(); });
+	logMsg("making vertex shader");
+	auto vShader = makeEffectVertexShader(r, fileToBuffer(vShaderFile).get());
+	if(!vShader)
 	{
-		auto file = r.appContext().openAsset(
-			IG::formatToPathString("shaders/{}{}", useFallback ? "fallback-" : "", desc.fShaderFilename).data(),
-			IO::AccessHint::ALL);
-		if(!file)
-		{
-			deinitProgram(r);
-			r.autoReleaseShaderCompiler();
-			return std::system_error{{ENOENT, std::system_category()}, fmt::format("Can't open file: {}", desc.fShaderFilename)};
-		}
-		auto fileSize = file.size();
-		char text[fileSize + 1];
-		file.read(text, fileSize);
-		text[fileSize] = 0;
-		file.close();
-		//logMsg("read source:\n%s", text);
-		logMsg("making fragment shader");
-		fShader = makeEffectFragmentShader(r, text, isExternalTex);
-		if(!fShader)
-		{
-			deinitProgram(r);
-			r.autoReleaseShaderCompiler();
-			return std::system_error{{EINVAL, std::system_category()}, "GPU rejected shader (fragment compile error)"};
-		}
+		return std::system_error{{EINVAL, std::system_category()}, "GPU rejected shader (vertex compile error)"};
 	}
+
+	auto fShaderFile = r.appContext().openAsset(
+		IG::formatToPathString("shaders/{}{}", useFallback ? "fallback-" : "", desc.fShaderFilename).data(),
+		IO::AccessHint::ALL);
+	if(!fShaderFile)
+	{
+		return std::system_error{{ENOENT, std::system_category()}, fmt::format("Can't open file: {}", desc.fShaderFilename)};
+	}
+	logMsg("making fragment shader");
+	auto fShader = makeEffectFragmentShader(r, fileToBuffer(fShaderFile).get(), isExternalTex);
+	if(!fShader)
+	{
+		return std::system_error{{EINVAL, std::system_category()}, "GPU rejected shader (fragment compile error)"};
+	}
+
 	logMsg("linking program");
-	prog.init(r.task(), vShader, fShader, false, true);
-	if(!prog.link(r.task()))
+	prog = {r.task(), vShader, fShader, false, true};
+	if(!prog)
 	{
-		deinitProgram(r);
-		r.autoReleaseShaderCompiler();
 		return std::system_error{{EINVAL, std::system_category()}, "GPU rejected shader (link error)"};
 	}
-	srcTexelDeltaU = prog.uniformLocation(r.task(), "srcTexelDelta");
-	srcTexelHalfDeltaU = prog.uniformLocation(r.task(), "srcTexelHalfDelta");
-	srcPixelsU = prog.uniformLocation(r.task(), "srcPixels");
+	srcTexelDeltaU = prog.uniformLocation("srcTexelDelta");
+	srcTexelHalfDeltaU = prog.uniformLocation("srcTexelHalfDelta");
+	srcPixelsU = prog.uniformLocation("srcPixels");
 	updateProgramUniforms(r);
-	r.autoReleaseShaderCompiler();
 	return {};
 }
 

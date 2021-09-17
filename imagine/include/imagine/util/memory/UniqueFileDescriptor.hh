@@ -15,23 +15,20 @@
 
 #pragma once
 
+#include <imagine/util/memory/UniqueResource.hh>
+#include <unistd.h>
+
 namespace IG
 {
 
-class UniqueFileDescriptor
+struct FileDescriptorDeleter
 {
-public:
-	constexpr UniqueFileDescriptor() {}
-	constexpr UniqueFileDescriptor(int fd):fd_{fd} {}
-	UniqueFileDescriptor(UniqueFileDescriptor &&o);
-	UniqueFileDescriptor &operator=(UniqueFileDescriptor &&o);
-	~UniqueFileDescriptor();
-	constexpr operator int() const { return fd_; }
-	int release();
-	void reset();
-
-protected:
-	int fd_ = -1;
+	void operator()(int fd) const
+	{
+		::close(fd);
+	}
 };
+
+using UniqueFileDescriptor = UniqueResource<int, FileDescriptorDeleter, -1>;
 
 }

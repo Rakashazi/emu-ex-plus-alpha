@@ -56,20 +56,20 @@ static void setColorAlpha(std::array<Vtx, 4> &v, ColorComp a, uint32_t edges)
 	if(edges & EDGE_BR) setColor(v, VertexColorPixelFormat.r(v[2].color), VertexColorPixelFormat.g(v[2].color), VertexColorPixelFormat.b(v[2].color), a, EDGE_BR);
 }
 
-template<class Vtx> requires Vertex<Vtx>
+template<Vertex Vtx>
 void QuadGeneric<Vtx>::setPos(IG::WindowRect b, ProjectionPlane proj)
 {
 	setPos(proj.unProjectRect(b));
 }
 
-template<class Vtx> requires Vertex<Vtx>
+template<Vertex Vtx>
 void QuadGeneric<Vtx>::setPosRel(GC x, GC y, GC xSize, GC ySize)
 {
 	setPos({{x, y}, {x+xSize, y+ySize}});
 }
 
 
-template<class Vtx> requires Vertex<Vtx>
+template<Vertex Vtx>
 void QuadGeneric<Vtx>::draw(RendererCommands &cmds) const
 {
 	cmds.bindTempVertexBuffer();
@@ -78,13 +78,13 @@ void QuadGeneric<Vtx>::draw(RendererCommands &cmds) const
 	cmds.drawPrimitives(Primitive::TRIANGLE_STRIP, 0, 4);
 }
 
-template<class Vtx> requires Vertex<Vtx>
+template<Vertex Vtx>
 void QuadGeneric<Vtx>::draw(RendererCommands &cmds, IG::WindowRect b, ProjectionPlane proj)
 {
 	draw(cmds, proj.unProjectRect(b));
 }
 
-template<class Vtx> requires Vertex<Vtx>
+template<Vertex Vtx>
 void QuadGeneric<Vtx>::draw(RendererCommands &cmds, GCRect d)
 {
 	QuadGeneric<Vtx> rect{d};
@@ -96,7 +96,7 @@ template class QuadGeneric<ColVertex>;
 template class QuadGeneric<TexVertex>;
 template class QuadGeneric<ColTexVertex>;
 
-template<class Vtx> requires Vertex<Vtx>
+template<Vertex Vtx>
 void QuadGeneric<Vtx>::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp a, uint32_t edges)
 {
 	if constexpr(!Vtx::hasColor)
@@ -109,7 +109,7 @@ void QuadGeneric<Vtx>::setColor(ColorComp r, ColorComp g, ColorComp b, ColorComp
 	}
 }
 
-template<class Vtx> requires Vertex<Vtx>
+template<Vertex Vtx>
 void QuadGeneric<Vtx>::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32_t edges)
 {
 	if constexpr(!Vtx::hasColor)
@@ -122,7 +122,7 @@ void QuadGeneric<Vtx>::setColorRGB(ColorComp r, ColorComp g, ColorComp b, uint32
 	}
 }
 
-template<class Vtx> requires Vertex<Vtx>
+template<Vertex Vtx>
 void QuadGeneric<Vtx>::setColorAlpha(ColorComp a, uint32_t edges)
 {
 	if constexpr(!Vtx::hasColor)

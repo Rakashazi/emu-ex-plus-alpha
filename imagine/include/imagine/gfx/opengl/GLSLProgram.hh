@@ -18,6 +18,9 @@
 #include <imagine/config/defs.hh>
 #include "glIncludes.h"
 #include "defs.hh"
+#include <imagine/util/memory/UniqueResource.hh>
+#include <utility>
+#include <compare>
 
 namespace Gfx
 {
@@ -25,23 +28,62 @@ namespace Gfx
 class RendererTask;
 class RendererCommands;
 
-using Shader = GLuint;
+// Shader
+
+using NativeShader = GLuint;
+
+void destroyGLShader(RendererTask &, NativeShader);
+
+struct GLShaderDeleter
+{
+	RendererTask *rTask{};
+
+	void operator()(NativeShader s) const
+	{
+		destroyGLShader(*rTask, s);
+	}
+};
+using UniqueGLShader = IG::UniqueResource<NativeShader, GLShaderDeleter>;
+
+using ShaderImpl = UniqueGLShader;
+
+// Program
+
+using NativeProgram = GLuint;
+
+void destroyGLProgram(RendererTask &, NativeProgram);
+
+struct GLProgramDeleter
+{
+	RendererTask *rTask{};
+
+	void operator()(NativeProgram p) const
+	{
+		destroyGLProgram(*rTask, p);
+	}
+};
+using UniqueGLProgram = IG::UniqueResource<NativeProgram, GLProgramDeleter>;
+
+struct NativeProgramBundle
+{
+	NativeProgram program{};
+	GLint mvpUniform = -1;
+};
 
 class GLSLProgram
 {
 public:
 	constexpr GLSLProgram() {}
-	GLint modelViewProjectionUniform() const;
-	GLuint glProgram() const;
-	bool operator ==(GLSLProgram const&) const;
+	constexpr GLint modelViewProjectionUniform() const { return mvpUniform; };
+	constexpr NativeProgram glProgram() const { return program_; }
+	constexpr bool operator ==(GLSLProgram const &rhs) const { return program_.get() == rhs.program_.get(); }
+	constexpr NativeProgramBundle programBundle() const { return {program_, mvpUniform}; }
+	constexpr NativeProgramBundle releaseProgramBundle() { return {program_.release(), mvpUniform}; }
+	constexpr RendererTask &task() { return *program_.get_deleter().rTask; }
 
 protected:
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	GLuint program_ = 0;
+	UniqueGLProgram program_{};
 	GLint mvpUniform = -1;
-
-	void initUniforms(RendererTask &);
-	#endif
 };
 
 using ProgramImpl = GLSLProgram;

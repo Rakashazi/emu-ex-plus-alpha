@@ -523,6 +523,25 @@ void RendererCommands::drawPrimitiveElements(Primitive mode, const VertexIndex *
 
 // shaders
 
+void GLRendererCommands::setProgram(NativeProgramBundle programBundle, Mat4 modelMat)
+{
+	rTask->verifyCurrentContext();
+	if(currProgram.program != programBundle.program)
+	{
+		currProgram = programBundle;
+		glUseProgram(programBundle.program);
+	}
+	static_cast<RendererCommands*>(this)->loadTransform(modelMat);
+}
+
+void GLRendererCommands::setProgram(NativeProgramBundle programBundle, const Mat4 *modelMatPtr)
+{
+	if(modelMatPtr)
+		setProgram(programBundle, *modelMatPtr);
+	else
+		setProgram(programBundle, modelMat);
+}
+
 void RendererCommands::setProgram(const Program &program)
 {
 	setProgram(program, modelMat);
@@ -530,13 +549,7 @@ void RendererCommands::setProgram(const Program &program)
 
 void RendererCommands::setProgram(const Program &program, Mat4 modelMat)
 {
-	rTask->verifyCurrentContext();
-	if(currProgram != program)
-	{
-		glUseProgram(program.glProgram());
-		currProgram = program;
-	}
-	loadTransform(modelMat);
+	GLRendererCommands::setProgram(program.programBundle(), modelMat);
 }
 
 void RendererCommands::setProgram(const Program &program, const Mat4 *modelMat)

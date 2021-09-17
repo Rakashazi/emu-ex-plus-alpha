@@ -19,7 +19,7 @@
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/base/linux/FBDevFrameTimer.hh>
-#include <imagine/util/UniqueFileDescriptor.hh>
+#include <imagine/util/memory/UniqueFileDescriptor.hh>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>

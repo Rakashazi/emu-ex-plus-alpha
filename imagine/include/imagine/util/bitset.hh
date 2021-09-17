@@ -24,13 +24,13 @@ namespace IG
 template <class T>
 static constexpr unsigned bitSize = std::numeric_limits<T>::digits;
 
-template <class T = unsigned> requires unsigned_integral<T>
+template <unsigned_integral T = unsigned>
 constexpr static T bit(unsigned bitIdx)
 {
 	return (T)1 << bitIdx;
 }
 
-template <class T = unsigned> requires unsigned_integral<T>
+template <unsigned_integral T = unsigned>
 constexpr static T bits(unsigned numBits)
 {
 	return std::numeric_limits<T>::max() >> (bitSize<T> - numBits);

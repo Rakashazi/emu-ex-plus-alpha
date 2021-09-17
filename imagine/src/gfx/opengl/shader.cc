@@ -152,46 +152,34 @@ static bool linkGLProgram(GLuint program)
 	return true;
 }
 
-bool Program::init(RendererTask &rTask, Shader vShader, Shader fShader, bool hasColor, bool hasTex)
+void destroyGLShader(RendererTask &rTask, NativeShader s)
 {
-	if(program_)
-		deinit(rTask);
-	rTask.runSync(
-		[this, vShader, fShader, hasColor, hasTex]()
+	if(!s)
+		return;
+	logMsg("deleting shader:%d", (int)s);
+	rTask.run(
+		[shader = s]()
 		{
-			program_ = makeGLProgram(vShader, fShader);
 			runGLChecked(
 				[&]()
 				{
-					glBindAttribLocation(program_, VATTR_POS, "pos");
-				}, "glBindAttribLocation(..., pos)");
-			if(hasColor)
-			{
-				runGLChecked(
-					[&]()
-					{
-						glBindAttribLocation(program_, VATTR_COLOR, "color");
-					}, "glBindAttribLocation(..., color)");
-			}
-			if(hasTex)
-			{
-				runGLChecked(
-					[&]()
-					{
-						glBindAttribLocation(program_, VATTR_TEX_UV, "texUV");
-					}, "glBindAttribLocation(..., texUV)");
-			}
+					glDeleteShader(shader);
+				}, "glDeleteShader()");
 		});
-	return program_;
 }
 
-void Program::deinit(RendererTask &rTask)
+Shader::operator bool() const
 {
-	if(!program_)
+	return get();
+}
+
+void destroyGLProgram(RendererTask &rTask, NativeProgram p)
+{
+	if(!p)
 		return;
-	logMsg("deleting program:%d", (int)program_);
+	logMsg("deleting program:%d", (int)p);
 	rTask.run(
-		[program = program_]()
+		[program = p]()
 		{
 			runGLChecked(
 				[&]()
@@ -199,72 +187,73 @@ void Program::deinit(RendererTask &rTask)
 					glDeleteProgram(program);
 				}, "glDeleteProgram()");
 		});
-	program_ = 0;
 }
 
-bool Program::link(RendererTask &rTask)
+Program::Program(RendererTask &rTask, NativeShader vShader, NativeShader fShader, bool hasColor, bool hasTex)
 {
-	bool success;
+	GLuint programOut{};
 	rTask.runSync(
-		[this, &success]()
+		[&programOut, &mvpUniform = mvpUniform, vShader, fShader, hasColor, hasTex]()
 		{
-			success = linkGLProgram(program_);
+			auto program = makeGLProgram(vShader, fShader);
+			if(!program) [[unlikely]]
+				return;
+			runGLChecked(
+				[&]()
+				{
+					glBindAttribLocation(program, VATTR_POS, "pos");
+				}, "glBindAttribLocation(..., pos)");
+			if(hasColor)
+			{
+				runGLChecked(
+					[&]()
+					{
+						glBindAttribLocation(program, VATTR_COLOR, "color");
+					}, "glBindAttribLocation(..., color)");
+			}
+			if(hasTex)
+			{
+				runGLChecked(
+					[&]()
+					{
+						glBindAttribLocation(program, VATTR_TEX_UV, "texUV");
+					}, "glBindAttribLocation(..., texUV)");
+			}
+			if(!linkGLProgram(program))
+			{
+				glDeleteProgram(program);
+				return;
+			}
+			glDetachShader(program, vShader);
+			glDetachShader(program, fShader);
+			runGLChecked([&]()
+			{
+				mvpUniform = glGetUniformLocation(program, "modelviewproj");
+			}, "glGetUniformLocation(modelviewproj)");
+			programOut = program;
 		});
-	if(!success)
-	{
-		deinit(rTask);
-		return false;
-	}
-	initUniforms(rTask);
-	return true;
-}
-
-GLint GLSLProgram::modelViewProjectionUniform() const
-{
-	return mvpUniform;
-}
-
-GLuint GLSLProgram::glProgram() const { return program_; }
-
-bool GLSLProgram::operator ==(GLSLProgram const &rhs) const
-{
-	return program_ == rhs.program_;
+	program_ = {programOut, {&rTask}};
+	if(programOut)
+		logMsg("made program:%d", programOut);
 }
 
 Program::operator bool() const
 {
-	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	return program_;
-	#else
-	return true;
-	#endif
+	return program_.get();
 }
 
-int Program::uniformLocation(RendererTask &rTask, const char *uniformName)
+int Program::uniformLocation(const char *uniformName)
 {
 	GLint loc;
-	rTask.runSync(
-		[this, &loc, uniformName]()
+	task().runSync(
+		[program = (GLuint)program_, &loc, uniformName]()
 		{
 			runGLChecked([&]()
 			{
-				loc = glGetUniformLocation(program_, uniformName);
+				loc = glGetUniformLocation(program, uniformName);
 			}, "glGetUniformLocation()");
 		});
 	return loc;
-}
-
-void GLSLProgram::initUniforms(RendererTask &rTask)
-{
-	assert(program_);
-	rTask.runSync(
-		[this]()
-		{
-			runGLChecked([&]()
-			{
-				mvpUniform = glGetUniformLocation(program_, "modelviewproj");
-			}, "glGetUniformLocation(modelviewproj)");
-		});
 }
 
 static void setGLProgram(GLuint program)
@@ -275,14 +264,14 @@ static void setGLProgram(GLuint program)
 	}, "glUseProgram()");
 }
 
-Shader Renderer::makeShader(const char **src, uint32_t srcCount, ShaderType type)
+static GLuint makeGLShader(RendererTask &rTask, std::span<const char *> srcs, ShaderType type)
 {
-	GLuint shader;
-	task().runSync(
-		[this, &shader, src, srcCount, type]()
+	GLuint shaderOut{};
+	rTask.runSync(
+		[&shaderOut, srcs, type]()
 		{
-			shader = glCreateShader((GLenum)type);
-			glShaderSource(shader, srcCount, src, nullptr);
+			auto shader = glCreateShader((GLenum)type);
+			glShaderSource(shader, srcs.size(), srcs.data(), nullptr);
 			glCompileShader(shader);
 			GLint success;
 			glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
@@ -298,28 +287,27 @@ Shader Renderer::makeShader(const char **src, uint32_t srcCount, ShaderType type
 				if(Config::DEBUG_BUILD)
 				{
 					logErr("failed shader source:");
-					iterateTimes(srcCount, i)
+					iterateTimes(srcs.size(), i)
 					{
 						logger_printfn(LOG_E, "[part %u]", i);
-						logger_printfn(LOG_E, "%s", src[i]);
+						logger_printfn(LOG_E, "%s", srcs[i]);
 					}
 				}
-				shader = 0;
+			}
+			else
+			{
+				shaderOut = shader;
 			}
 		});
-	return shader;
+	if(shaderOut)
+		logMsg("made shader:%d", shaderOut);
+	return shaderOut;
 }
 
-Shader Renderer::makeShader(const char *src, ShaderType type)
+static GLuint makeCompatGLShader(RendererTask &rTask, std::span<const char *> srcs, ShaderType type)
 {
-	const char *singleSrc[]{src};
-	return makeShader(singleSrc, 1, type);
-}
-
-Shader Renderer::makeCompatShader(const char **mainSrc, uint32_t mainSrcCount, ShaderType type)
-{
-	const uint32_t srcCount = mainSrcCount + 2;
-	const char *src[srcCount];
+	const uint32_t srcCount = srcs.size() + 2;
+	const char *compatSrcs[srcCount];
 	const char *version = Config::Gfx::OPENGL_ES ? "#version 300 es\n" : "#version 330\n";
 	const char legacyVertDefs[] // for GL ES 2.0
 	{
@@ -337,71 +325,100 @@ Shader Renderer::makeCompatShader(const char **mainSrc, uint32_t mainSrcCount, S
 	{
 		"#define FRAGCOLOR_DEF out mediump vec4 FRAGCOLOR;\n"
 	};
-	bool legacyGLSL = support.useLegacyGLSL;
-	src[0] = legacyGLSL ? "" : version;
+	bool legacyGLSL = rTask.renderer().support.useLegacyGLSL;
+	compatSrcs[0] = legacyGLSL ? "" : version;
 	if(type == ShaderType::VERTEX)
-		src[1] = legacyGLSL ? legacyVertDefs : "";
+		compatSrcs[1] = legacyGLSL ? legacyVertDefs : "";
 	else
-		src[1] = legacyGLSL ? legacyFragDefs : fragDefs;
-	memcpy(&src[2], &mainSrc[0], sizeof(const char *) * mainSrcCount);
-	return makeShader(src, srcCount, type);
+		compatSrcs[1] = legacyGLSL ? legacyFragDefs : fragDefs;
+	IG::copy_n_r(srcs.data(), srcs.size(), &compatSrcs[2]);
+	return makeGLShader(rTask, {compatSrcs, srcCount}, type);
+}
+
+static GLuint makeGLShader(RendererTask &rTask, std::span<const char *> srcs, ShaderType type, bool compatMode)
+{
+	if(compatMode)
+		return makeCompatGLShader(rTask, srcs, type);
+	else
+		return makeGLShader(rTask, srcs, type);
+}
+
+Shader::Shader(RendererTask &rTask, std::span<const char *> srcs, ShaderType type, bool compatMode):
+	UniqueGLShader{makeGLShader(rTask, srcs, type, compatMode), {&rTask}}
+{}
+
+Shader::Shader(RendererTask &rTask, const char *src, ShaderType type, bool compatMode):
+	Shader{rTask, {&src, 1}, type, compatMode} {}
+
+Shader Renderer::makeShader(std::span<const char *> srcs, ShaderType type)
+{
+	return {task(), srcs, type};
+}
+
+Shader Renderer::makeShader(const char *src, ShaderType type)
+{
+	return {task(), {&src, 1}, type};
+}
+
+Shader Renderer::makeCompatShader(std::span<const char *> srcs, ShaderType type)
+{
+	return {task(), srcs, type, true};
 }
 
 Shader Renderer::makeCompatShader(const char *src, ShaderType type)
 {
-	const char *singleSrc[]{src};
-	return makeCompatShader(singleSrc, 1, type);
+	return {task(), {&src, 1}, type, true};
 }
 
-Shader Renderer::makeDefaultVShader()
+NativeShader Renderer::defaultVShader()
 {
-	if(!defaultVShader)
-		defaultVShader = makeCompatShader(vShaderSrc, ShaderType::VERTEX);
-	return defaultVShader;
+	if(!defaultVShader_)
+		defaultVShader_ = makeCompatGLShader(task(), {&vShaderSrc, 1}, ShaderType::VERTEX);
+	return defaultVShader_;
 }
 
-static bool linkCommonProgram(RendererTask &rTask, Program &prog, const char **fragSrc, uint32_t fragSrcCount, bool hasTex)
+static bool linkCommonProgram(RendererTask &rTask, NativeProgramBundle &bundle, const char **fragSrc, uint32_t fragSrcCount, bool hasTex)
 {
 	assert(fragSrc);
-	auto vShader = rTask.renderer().makeDefaultVShader();
+	auto vShader = rTask.renderer().defaultVShader();
 	assert(vShader);
-	auto fShader = rTask.renderer().makeCompatShader(fragSrc, fragSrcCount, ShaderType::FRAGMENT);
+	Shader fShader{rTask, {fragSrc, fragSrcCount}, ShaderType::FRAGMENT, true};
 	if(!fShader)
 	{
 		return false;
 	}
-	prog.init(rTask, vShader, fShader, true, hasTex);
-	prog.link(rTask);
-	assert(prog.glProgram());
+	Program newProg{rTask, vShader, fShader, true, hasTex};
+	assert(newProg.glProgram());
+	bundle = newProg.releaseProgramBundle();
 	return true;
 }
 
-static bool linkCommonProgram(RendererTask &rTask, Program &prog, const char *fragSrc, bool hasTex, const char *progName)
+static bool linkCommonProgram(RendererTask &rTask, NativeProgramBundle &bundle, const char *fragSrc, bool hasTex, const char *progName)
 {
-	if(prog.glProgram())
+	if(bundle.program)
 		return false;
 	logMsg("making %s program", progName);
 	const char *singleSrc[]{fragSrc};
-	return linkCommonProgram(rTask, prog, singleSrc, 1, hasTex);
+	return linkCommonProgram(rTask, bundle, singleSrc, 1, hasTex);
 }
 
 #ifdef CONFIG_GFX_OPENGL_TEXTURE_TARGET_EXTERNAL
-static bool linkCommonExternalTextureProgram(RendererTask &rTask, Program &prog, const char *fragSrc, const char *progName)
+static bool linkCommonExternalTextureProgram(RendererTask &rTask, NativeProgramBundle &bundle, const char *fragSrc, const char *progName)
 {
 	assert(rTask.appContext().androidSDK() >= 14);
-	bool compiled = linkCommonProgram(rTask, prog, fragSrc, true, progName);
-	if(!prog.program())
+	bool compiled = linkCommonProgram(rTask, bundle, fragSrc, true, progName);
+	if(!bundle.program())
 	{
 		// Adreno 320 compiler missing texture2D for external textures with GLSL 3.0 ES
 		logWarn("retrying compile with Adreno GLSL 3.0 ES work-around");
 		const char *workaroundFragSrc[]{"#define texture2D texture\n", fragSrc};
-		return linkCommonProgram(rTask, prog, workaroundFragSrc, std::size(workaroundFragSrc), true);
+		return linkCommonProgram(rTask, bundle, workaroundFragSrc, std::size(workaroundFragSrc), true);
 	}
 	return compiled;
 }
 #endif
 
-const Program &GLRenderer::commonProgramRef(CommonProgram program) const
+NativeProgramBundle GLRenderer::commonProgramBundle(CommonProgram program) const
 {
 	switch(program)
 	{
@@ -468,7 +485,7 @@ bool Renderer::makeCommonProgram(CommonProgram program)
 
 bool Renderer::commonProgramIsCompiled(CommonProgram program) const
 {
-	return (bool)commonProgramRef(program);
+	return commonProgramBundle(program).program;
 }
 
 void GLRenderer::useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat) const
@@ -497,19 +514,8 @@ void GLRenderer::useCommonProgram(RendererCommands &cmds, CommonProgram program,
 	}
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_SHADER_PIPELINE
-	cmds.setProgram(commonProgramRef(program), modelMat);
+	cmds.GLRendererCommands::setProgram(commonProgramBundle(program), modelMat);
 	#endif
-}
-
-void Renderer::deleteShader(Shader shader)
-{
-	logMsg("deleting shader:%u", (uint32_t)shader);
-	assert(shader != defaultVShader);
-	task().run(
-		[shader]()
-		{
-			glDeleteShader(shader);
-		});
 }
 
 void Renderer::uniformF(Program &program, int uniformLocation, float v1, float v2)

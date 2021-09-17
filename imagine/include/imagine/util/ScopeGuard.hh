@@ -6,7 +6,7 @@
 namespace IG
 {
 
-template <class F> requires IG::invocable<F>
+template <IG::invocable F>
 class ScopeGuard
 {
 	F func;

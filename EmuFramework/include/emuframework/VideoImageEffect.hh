@@ -60,8 +60,6 @@ public:
 private:
 	Gfx::Texture renderTarget_{};
 	Gfx::Program prog{};
-	Gfx::Shader vShader{};
-	Gfx::Shader fShader{};
 	int srcTexelDeltaU{};
 	int srcTexelHalfDeltaU{};
 	int srcPixelsU{};
@@ -75,5 +73,4 @@ private:
 	void updateProgramUniforms(Gfx::Renderer &r);
 	void compile(Gfx::Renderer &r, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler);
 	std::optional<std::system_error> compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback);
-	void deinitProgram(Gfx::Renderer &r);
 };

@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/io/IO.hh>
-#include <imagine/util/UniqueFileDescriptor.hh>
+#include <imagine/util/memory/UniqueFileDescriptor.hh>
 
 class PosixIO final : public IO
 {

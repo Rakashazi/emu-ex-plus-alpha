@@ -21,19 +21,29 @@
 #include <imagine/gfx/opengl/GLSLProgram.hh>
 #endif
 
+#include <imagine/gfx/defs.hh>
+#include <span>
+
 namespace Gfx
 {
 
 class RendererTask;
 
+class Shader : public ShaderImpl
+{
+public:
+	using ShaderImpl::ShaderImpl;
+	Shader(RendererTask &, std::span<const char *>, ShaderType type, bool compatMode = false);
+	Shader(RendererTask &, const char *src, ShaderType type, bool compatMode = false);
+	explicit operator bool() const;
+};
+
 class Program : public ProgramImpl
 {
 public:
-	constexpr Program() {}
-	bool init(RendererTask &, Shader vShader, Shader fShader, bool hasColor, bool hasTex);
-	void deinit(RendererTask &);
-	bool link(RendererTask &);
-	int uniformLocation(RendererTask &, const char *uniformName);
+	using ProgramImpl::ProgramImpl;
+	Program(RendererTask &, NativeShader vShader, NativeShader fShader, bool hasColor, bool hasTex);
+	int uniformLocation(const char *uniformName);
 	explicit operator bool() const;
 };
 

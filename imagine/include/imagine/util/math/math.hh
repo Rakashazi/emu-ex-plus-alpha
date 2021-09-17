@@ -64,7 +64,7 @@ static constexpr auto sign(auto num)
 	return static_cast<decltype(num)>(num >= 0 ? 1 : -1);
 }
 
-template<class IntType, class FloatType = float> requires integral<IntType> && floating_point<FloatType>
+template<integral IntType, floating_point FloatType = float>
 constexpr static FloatType floatScaler(uint8_t bits)
 {
 	assumeExpr(bits <= 64);
@@ -79,14 +79,14 @@ constexpr static FloatType floatScaler(uint8_t bits)
 	}
 }
 
-template<class IntType> requires integral<IntType>
+template<integral IntType>
 constexpr static IntType clampFromFloat(floating_point auto x, uint8_t bits)
 {
 	const auto scale = floatScaler<IntType, decltype(x)>(bits);
 	return std::round(std::fmax(std::fmin(x * scale, scale - (decltype(x))1.), -scale));
 }
 
-template<class IntType> requires integral<IntType>
+template<integral IntType>
 constexpr static IntType clampFromFloat(floating_point auto x)
 {
 	const auto scale = floatScaler<IntType, decltype(x)>(sizeof(IntType) * 8);

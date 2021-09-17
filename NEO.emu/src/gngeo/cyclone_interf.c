@@ -33,6 +33,7 @@
 #include "debug.h"
 #include "video.h"
 #include "conf.h"
+#include <imagine/logger/logger.h>
 
 struct Cyclone MyCyclone;
 static int total_cycles;

@@ -26,6 +26,7 @@
 #endif
 
 #include <vector>
+#include <span>
 
 namespace IG::Data
 {
@@ -98,14 +99,13 @@ public:
 
 	// shaders
 
-	Shader makeShader(const char **src, uint32_t srcCount, ShaderType type);
+	Shader makeShader(std::span<const char *>, ShaderType type);
 	Shader makeShader(const char *src, ShaderType type);
-	Shader makeCompatShader(const char **src, uint32_t srcCount, ShaderType type);
+	Shader makeCompatShader(std::span<const char *>, ShaderType type);
 	Shader makeCompatShader(const char *src, ShaderType type);
-	Shader makeDefaultVShader();
+	NativeShader defaultVShader();
 	bool makeCommonProgram(CommonProgram);
 	bool commonProgramIsCompiled(CommonProgram program) const;
-	void deleteShader(Shader shader);
 	void uniformF(Program &program, int uniformLocation, float v1, float v2);
 	void releaseShaderCompiler();
 	void autoReleaseShaderCompiler();

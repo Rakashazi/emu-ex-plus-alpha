@@ -24,7 +24,7 @@
 namespace Input
 {
 
-template <class T, uint32_t D> requires IG::floating_point<T>
+template <IG::floating_point T, uint32_t D>
 class IntegratingVelocityTracker
 {
 public:

@@ -155,7 +155,7 @@ public:
 		}
 	}
 
-	bool send(MsgType msg, IG::Semaphore *semPtr) requires ReplySemaphoreSettableMessage<MsgType>
+	bool send(ReplySemaphoreSettableMessage auto msg, IG::Semaphore *semPtr)
 	{
 		if(semPtr)
 		{

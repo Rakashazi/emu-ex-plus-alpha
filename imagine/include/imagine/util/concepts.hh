@@ -78,6 +78,12 @@ template <class T>
 concept NotPointer = !Pointer<T>;
 
 template <class T>
+concept PointerDecayable = Pointer<std::decay_t<T>>;
+
+template <class T>
+concept NotPointerDecayable = !PointerDecayable<T>;
+
+template <class T>
 concept NullPointer = std::is_null_pointer_v<T>;
 
 template <class T>

@@ -19,7 +19,7 @@
 #include <imagine/base/iphone/config.h>
 #include <imagine/base/iphone/IOSWindow.hh>
 #include <imagine/base/Error.hh>
-#include <imagine/util/UniqueCFObject.hh>
+#include <imagine/util/memory/UniqueCFObject.hh>
 #include <compare>
 #include <type_traits>
 
