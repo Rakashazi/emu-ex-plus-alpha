@@ -1,9 +1,9 @@
 diff --git a/build.gradle b/build1.gradle
-index 829d2dc..a3c61f5 100644
+index 9d920e9..e9df219 100644
 --- a/build.gradle
 +++ b/build1.gradle
-@@ -47,19 +47,9 @@ android {
-         }
+@@ -26,22 +26,12 @@ android {
+         archivesBaseName = METADATA_PROJECT
      }
  
 -    // set code signing variables in ~/.gradle/gradle.properties
@@ -18,6 +18,9 @@ index 829d2dc..a3c61f5 100644
 -
      buildTypes {
          release {
+             shrinkResources true
+             minifyEnabled true
+             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard.cfg'
 -            signingConfig signingConfigs.release
 +            signingConfig signingConfigs.debug
          }

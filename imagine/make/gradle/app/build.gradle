@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.2.2'
+        classpath 'com.android.tools.build:gradle:7.0.2'
     }
 }
 
@@ -23,13 +23,25 @@ android {
     defaultConfig {
         minSdkVersion METADATA_MIN_SDK
         targetSdkVersion METADATA_TARGET_SDK
+        archivesBaseName = METADATA_PROJECT
+    }
+
+    // set code signing variables in ~/.gradle/gradle.properties
+    signingConfigs {
+        release {
+            storeFile file(ANDROID_KEY_STORE)
+            storePassword ANDROID_KEY_STORE_PASSWORD
+            keyAlias ANDROID_KEY_ALIAS
+            keyPassword ANDROID_KEY_PASSWORD
+        }
     }
 
     buildTypes {
         release {
-	        shrinkResources true
+            shrinkResources true
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard.cfg'
+            signingConfig signingConfigs.release
         }
     }
 
@@ -46,26 +58,6 @@ android {
             assets.srcDirs = ['assets']
         }
     }
-
-    // set code signing variables in ~/.gradle/gradle.properties
-    signingConfigs {
-        release {
-            storeFile file(ANDROID_KEY_STORE)
-            storePassword ANDROID_KEY_STORE_PASSWORD
-            keyAlias ANDROID_KEY_ALIAS
-            keyPassword ANDROID_KEY_PASSWORD
-        }
-    }
-
-    buildTypes {
-        release {
-            signingConfig signingConfigs.release
-        }
-    }
-
-    defaultConfig {
-		archivesBaseName = METADATA_PROJECT
-	}
 }
 
 dependencies {
