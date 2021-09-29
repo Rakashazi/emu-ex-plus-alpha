@@ -229,7 +229,7 @@ void delaep7x8_detach(void)
    ARRAY | ROML   |   0.0+  | 65536 BYTES of ROML data
  */
 
-static char snap_module_name[] = "CARTDELAEP7X8";
+static const char snap_module_name[] = "CARTDELAEP7X8";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   1
 

@@ -378,7 +378,6 @@ void petrom_checksum(void)
 {
     static uint16_t last_kernal = 0;
     static uint16_t last_editor = 0;
-    int delay;
 
     /* log_message(petrom_log, "editor checksum=%d, kernal checksum=%d",
                    (int) petres.editor_checksum,
@@ -389,11 +388,6 @@ void petrom_checksum(void)
 
     petres.rom_video = 0;
 
-    resources_get_int("AutostartDelay", &delay);
-    if (delay == 0) {
-        delay = 3; /* default */
-    }
-
     /* The length of the keyboard buffer might actually differ from 10 - in
        the 4032 and 8032 50Hz editor ROMs it is checked against different
        memory locations (0xe3 and 0x3eb) but by default (power-up) it's 10
@@ -402,35 +396,39 @@ void petrom_checksum(void)
         if (petres.kernal_checksum != last_kernal) {
             log_message(petrom_log, "Identified Kernal 4 ROM by checksum.");
         }
-        tape_init(&tapeinit4);
         if (petres.editor_checksum == PET_EDIT4B80_CHECKSUM) {
             if (petres.editor_checksum != last_editor) {
                 log_message(petrom_log, "Identified 80 columns editor by checksum.");
             }
             petres.rom_video = 80;
-            autostart_init((CLOCK)(delay * PET_PAL_RFSH_PER_SEC * PET_PAL_CYCLES_PER_RFSH), 0);
+            autostart_init(3, 0);
         } else
-        if (petres.editor_checksum == PET_EDIT4B40_CHECKSUM
-            || petres.editor_checksum == PET_EDIT4G40_CHECKSUM) {
+        if (petres.editor_checksum == PET_EDIT4G40_CHECKSUM
+            || petres.editor_checksum == PET_EDIT4B40_CHECKSUM1
+            || petres.editor_checksum == PET_EDIT4B40_CHECKSUM2) {
             if (petres.editor_checksum != last_editor) {
                 log_message(petrom_log, "Identified 40 columns editor by checksum.");
             }
             petres.rom_video = 40;
-            autostart_init((CLOCK)(delay * PET_PAL_RFSH_PER_SEC * PET_PAL_CYCLES_PER_RFSH), 0);
+            autostart_init(3, 0);
         }
+        petrom_keybuf_init();
+        tape_init(&tapeinit4);
     } else if (petres.kernal_checksum == PET_KERNAL2_CHECKSUM) {
         if (petres.kernal_checksum != last_kernal) {
             log_message(petrom_log, "Identified Kernal 2 ROM by checksum.");
         }
         petres.rom_video = 40;
-        autostart_init((CLOCK)(delay * PET_PAL_RFSH_PER_SEC * PET_PAL_CYCLES_PER_RFSH), 0);
+        autostart_init(3, 0);
+        petrom_keybuf_init();
         tape_init(&tapeinit2);
     } else if (petres.kernal_checksum == PET_KERNAL1_CHECKSUM) {
         if (petres.kernal_checksum != last_kernal) {
             log_message(petrom_log, "Identified Kernal 1 ROM by checksum.");
         }
         petres.rom_video = 40;
-        autostart_init((CLOCK)(delay * PET_PAL_RFSH_PER_SEC * PET_PAL_CYCLES_PER_RFSH), 0);
+        autostart_init(3, 0);
+        petrom_keybuf_init();
         tape_init(&tapeinit1);
     } else {
         log_warning(petrom_log, "Unknown PET ROM.");
@@ -634,10 +632,9 @@ int petrom_load_editor(void)
         return 0;
     }
 
-    /* De-initialize kbd-buf, autostart and tape stuff here before
+    /* De-initialize autostart and tape stuff here before
        reloading the ROM the traps are installed in.  */
     /* log_warning(pet_mem_log, "Deinstalling Traps"); */
-    kbdbuf_init(0, 0, 0, 0);
     autostart_init(0, 0);
     tape_deinstall();
 
@@ -820,8 +817,6 @@ int mem_load(void)
     if (petrom_load_editor() < 0) {
         return -1;
     }
-
-    petrom_keybuf_init();
 
     if (petrom_load_rom9() < 0) {
         return -1;

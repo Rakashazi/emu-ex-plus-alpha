@@ -72,6 +72,7 @@ extern int cart_resources_init(void);
 extern void cart_resources_shutdown(void);
 extern int cart_cmdline_options_init(void);
 
+extern int cart_can_get_file_name(int type);
 extern const char *cart_get_file_name(int type);
 extern int cart_is_slotmain(int type); /* returns 1 if cart of given type is in "Main Slot" */
 extern int cart_type_enabled(int type);

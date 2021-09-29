@@ -115,7 +115,7 @@ static io_source_t gmod2_io1_device = {
     CARTRIDGE_NAME_GMOD2,  /* name of the device */
     IO_DETACH_CART,        /* use cartridge ID to detach the device when involved in a read-collision */
     IO_DETACH_NO_RESOURCE, /* does not use a resource for detach */
-    0xde00, 0xdeff, 0xff,  /* range for the device, address is ignored, reg:$df00, mirrors:$de01-$deff */
+    0xde00, 0xdeff, 0xff,  /* range for the device, address is ignored, reg:$de00, mirrors:$de01-$deff */
     0,                     /* read validity is determined by the device upon a read */
     gmod2_io1_store,       /* store function */
     NULL,                  /* NO poke function */
@@ -510,8 +510,8 @@ void gmod2_detach(void)
 
 /* ---------------------------------------------------------------------*/
 
-static char snap_module_name[] = "CARTGMOD2";
-static char flash_snap_module_name[] = "FLASH040GMOD2";
+static const char snap_module_name[] = "CARTGMOD2";
+static const char flash_snap_module_name[] = "FLASH040GMOD2";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   2
 

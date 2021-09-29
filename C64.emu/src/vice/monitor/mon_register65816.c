@@ -51,21 +51,23 @@
  *       same with the other CPUs and finally move common code to mon_register.c
  */
 
-#define REG_LIST_65816_SIZE (13 + 1)
-static mon_reg_list_t mon_reg_list_65816[REG_LIST_65816_SIZE] = {
-    {     "PBR",   e_PBR,  8,                      0, 0, 0 },
-    {      "PC",    e_PC, 16,                      0, 0, 0 },
-    {       "A",     e_A,  8,                      0, 0, 0 },
-    {       "B",     e_B, 16,                      0, 0, 0 },
-    {       "X",     e_X, 16,                      0, 0, 0 },
-    {       "Y",     e_Y, 16,                      0, 0, 0 },
-    {      "SP",    e_SP, 16,                      0, 0, 0 },
-    {     "DPR",   e_DPR, 16,                      0, 0, 0 },
-    {     "DBR",   e_DBR,  8,                      0, 0, 0 },
-    {      "FL", e_FLAGS,  8,                      0, 0, 0 },
-    {"NV-BDIZC", e_FLAGS,  8,  MON_REGISTER_IS_FLAGS, 0, 0 },
-    {"NVMXDIZC", e_FLAGS,  8,  MON_REGISTER_IS_FLAGS, 0, 0 },
-    {       "E",  e_E,     1,                      0, 0, 0 },
+#define REG_LIST_65816_SIZE (15 + 1)
+static const mon_reg_list_t mon_reg_list_65816[REG_LIST_65816_SIZE] = {
+    {     "PBR",        e_PBR,  8,                      0, 0, 0 },
+    {      "PC",         e_PC, 16,                      0, 0, 0 },
+    {       "A",          e_A,  8,                      0, 0, 0 },
+    {       "B",          e_B, 16,                      0, 0, 0 },
+    {       "X",          e_X, 16,                      0, 0, 0 },
+    {       "Y",          e_Y, 16,                      0, 0, 0 },
+    {      "SP",         e_SP, 16,                      0, 0, 0 },
+    {     "DPR",        e_DPR, 16,                      0, 0, 0 },
+    {     "DBR",        e_DBR,  8,                      0, 0, 0 },
+    {      "FL",      e_FLAGS,  8,                      0, 0, 0 },
+    {"NV-BDIZC",      e_FLAGS,  8,  MON_REGISTER_IS_FLAGS, 0, 0 },
+    {"NVMXDIZC",      e_FLAGS,  8,  MON_REGISTER_IS_FLAGS, 0, 0 },
+    {       "E",          e_E,  1,                      0, 0, 0 },
+    {     "LIN", e_Rasterline, 16,                      0, 0, 0 },
+    {     "CYC",      e_Cycle, 16,                      0, 0, 0 },
     { NULL, -1,  0,  0, 0, 0 }
 };
 
@@ -82,34 +84,50 @@ static unsigned int mon_register_get_val(int mem, int reg_id)
     reg_ptr = mon_interfaces[mem]->cpu_65816_regs;
 
     switch(reg_id) {
-      case e_A:
-        return WDC65816_REGS_GET_A(reg_ptr);
-      case e_B:
-        return WDC65816_REGS_GET_B(reg_ptr);
-      case e_C:
-        return (WDC65816_REGS_GET_B(reg_ptr) << 8) | WDC65816_REGS_GET_A(reg_ptr);
-      case e_X:
-        return WDC65816_REGS_GET_X(reg_ptr);
-      case e_Y:
-        return WDC65816_REGS_GET_Y(reg_ptr);
-      case e_PC:
-        return WDC65816_REGS_GET_PC(reg_ptr);
-      case e_SP:
-        return WDC65816_REGS_GET_SP(reg_ptr);
-      case e_PBR:
-        return WDC65816_REGS_GET_PBR(reg_ptr);
-      case e_DBR:
-        return WDC65816_REGS_GET_DBR(reg_ptr);
-      case e_DPR:
-        return WDC65816_REGS_GET_DPR(reg_ptr);
-      case e_E:
-        return WDC65816_REGS_GET_EMUL(reg_ptr);
-      case e_FLAGS:
-          return WDC65816_REGS_GET_FLAGS(reg_ptr)
-              | WDC65816_REGS_GET_SIGN(reg_ptr)
-              | (WDC65816_REGS_GET_ZERO(reg_ptr) << 1);
-      default:
-        log_error(LOG_ERR, "Unknown register!");
+        case e_A:
+            return WDC65816_REGS_GET_A(reg_ptr);
+        case e_B:
+            return WDC65816_REGS_GET_B(reg_ptr);
+        case e_C:
+            return (WDC65816_REGS_GET_B(reg_ptr) << 8) | WDC65816_REGS_GET_A(reg_ptr);
+        case e_X:
+            return WDC65816_REGS_GET_X(reg_ptr);
+        case e_Y:
+            return WDC65816_REGS_GET_Y(reg_ptr);
+        case e_PC:
+            return WDC65816_REGS_GET_PC(reg_ptr);
+        case e_SP:
+            return WDC65816_REGS_GET_SP(reg_ptr);
+        case e_PBR:
+            return WDC65816_REGS_GET_PBR(reg_ptr);
+        case e_DBR:
+            return WDC65816_REGS_GET_DBR(reg_ptr);
+        case e_DPR:
+            return WDC65816_REGS_GET_DPR(reg_ptr);
+        case e_E:
+            return WDC65816_REGS_GET_EMUL(reg_ptr);
+        case e_FLAGS:
+            return WDC65816_REGS_GET_FLAGS(reg_ptr)
+                | WDC65816_REGS_GET_SIGN(reg_ptr)
+                | (WDC65816_REGS_GET_ZERO(reg_ptr) << 1);
+        case e_Rasterline:
+            {
+                unsigned int line, cycle;
+                int half_cycle;
+
+                mon_interfaces[e_comp_space]->get_line_cycle(&line, &cycle, &half_cycle);
+                return line;
+            }
+        case e_Cycle:
+            {
+                unsigned int line, cycle;
+                int half_cycle;
+
+                mon_interfaces[e_comp_space]->get_line_cycle(&line, &cycle, &half_cycle);
+                return cycle;
+            }
+        default:
+            log_error(LOG_ERR, "Unknown register!");
     }
     return 0;
 }
@@ -127,49 +145,49 @@ static void mon_register_set_val(int mem, int reg_id, uint16_t val)
     reg_ptr = mon_interfaces[mem]->cpu_65816_regs;
 
     switch(reg_id) {
-      case e_A:
-        WDC65816_REGS_SET_A(reg_ptr, (uint8_t)val);
-        break;
-      case e_B:
-        WDC65816_REGS_SET_B(reg_ptr, (uint8_t)val);
-        break;
-      case e_C:
-        WDC65816_REGS_SET_A(reg_ptr, (uint8_t)val);
-        WDC65816_REGS_SET_B(reg_ptr, (uint8_t)(val >> 8));
-        break;
-      case e_X:
-        WDC65816_REGS_SET_X(reg_ptr, (uint16_t)val);
-        break;
-      case e_Y:
-        WDC65816_REGS_SET_Y(reg_ptr, (uint16_t)val);
-        break;
-      case e_PC:
-        WDC65816_REGS_SET_PC(reg_ptr, val);
-        if (monitor_diskspace_dnr(mem) >= 0) {
-            mon_interfaces[mem]->set_bank_base(mon_interfaces[mem]->context);
-        }
-        break;
-      case e_SP:
-        WDC65816_REGS_SET_SP(reg_ptr, (uint16_t)val);
-        break;
-      case e_DPR:
-        WDC65816_REGS_SET_DPR(reg_ptr, (uint8_t)val);
-        break;
-      case e_PBR:
-        WDC65816_REGS_SET_PBR(reg_ptr, (uint8_t)val);
-        break;
-      case e_DBR:
-        WDC65816_REGS_SET_DBR(reg_ptr, (uint8_t)val);
-        break;
-      case e_FLAGS:
-        WDC65816_REGS_SET_STATUS(reg_ptr, (uint8_t)val);
-        break;
-      case e_E:
-        WDC65816_REGS_SET_EMUL(reg_ptr, (uint8_t)val);
-        break;
-      default:
-        log_error(LOG_ERR, "Unknown register!");
-        return;
+        case e_A:
+            WDC65816_REGS_SET_A(reg_ptr, (uint8_t)val);
+            break;
+        case e_B:
+            WDC65816_REGS_SET_B(reg_ptr, (uint8_t)val);
+            break;
+        case e_C:
+            WDC65816_REGS_SET_A(reg_ptr, (uint8_t)val);
+            WDC65816_REGS_SET_B(reg_ptr, (uint8_t)(val >> 8));
+            break;
+        case e_X:
+            WDC65816_REGS_SET_X(reg_ptr, (uint16_t)val);
+            break;
+        case e_Y:
+            WDC65816_REGS_SET_Y(reg_ptr, (uint16_t)val);
+            break;
+        case e_PC:
+            WDC65816_REGS_SET_PC(reg_ptr, val);
+            if (monitor_diskspace_dnr(mem) >= 0) {
+                mon_interfaces[mem]->set_bank_base(mon_interfaces[mem]->context);
+            }
+            break;
+        case e_SP:
+            WDC65816_REGS_SET_SP(reg_ptr, (uint16_t)val);
+            break;
+        case e_DPR:
+            WDC65816_REGS_SET_DPR(reg_ptr, (uint8_t)val);
+            break;
+        case e_PBR:
+            WDC65816_REGS_SET_PBR(reg_ptr, (uint8_t)val);
+            break;
+        case e_DBR:
+            WDC65816_REGS_SET_DBR(reg_ptr, (uint8_t)val);
+            break;
+        case e_FLAGS:
+            WDC65816_REGS_SET_STATUS(reg_ptr, (uint8_t)val);
+            break;
+        case e_E:
+            WDC65816_REGS_SET_EMUL(reg_ptr, (uint8_t)val);
+            break;
+        default:
+            log_error(LOG_ERR, "Unknown register!");
+            return;
     }
     force_array[mem] = 1;
 }

@@ -143,15 +143,15 @@ static int h256k_activate(int type)
     switch (type) {
         case 1:
             h256k_ram = lib_realloc((void *)h256k_ram, (size_t)0x30000);
-            log_message(h256k_log, "HANNES 256K expansion installed.");
+            log_message(h256k_log, "HANNES 256KiB expansion installed.");
             break;
         case 2:
             h256k_ram = lib_realloc((void *)h256k_ram, (size_t)0xf0000);
-            log_message(h256k_log, "HANNES 1024K expansion installed.");
+            log_message(h256k_log, "HANNES 1MiB expansion installed.");
             break;
         case 3:
             h256k_ram = lib_realloc((void *)h256k_ram, (size_t)0x3f0000);
-            log_message(h256k_log, "HANNES 4096K expansion installed.");
+            log_message(h256k_log, "HANNES 4MiB expansion installed.");
             break;
     }
     h256k_reset();

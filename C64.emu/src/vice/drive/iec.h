@@ -30,26 +30,26 @@
 #include "types.h"
 
 struct disk_image_s;
-struct drive_context_s;
+struct diskunit_context_s;
 struct snapshot_s;
 
 extern int iec_drive_resources_init(void);
 extern void iec_drive_resources_shutdown(void);
 extern int iec_drive_cmdline_options_init(void);
-extern void iec_drive_init(struct drive_context_s *drv);
-extern void iec_drive_shutdown(struct drive_context_s *drv);
-extern void iec_drive_reset(struct drive_context_s *drv);
-extern void iec_drive_mem_init(struct drive_context_s *drv, unsigned int type);
-extern void iec_drive_setup_context(struct drive_context_s *drv);
+extern void iec_drive_init(struct diskunit_context_s *drv);
+extern void iec_drive_shutdown(struct diskunit_context_s *drv);
+extern void iec_drive_reset(struct diskunit_context_s *drv);
+extern void iec_drive_mem_init(struct diskunit_context_s *drv, unsigned int type);
+extern void iec_drive_setup_context(struct diskunit_context_s *drv);
 extern void iec_drive_idling_method(unsigned int dnr);
 extern void iec_drive_rom_load(void);
 extern void iec_drive_rom_setup_image(unsigned int dnr);
 extern int iec_drive_rom_check_loaded(unsigned int type);
 extern void iec_drive_rom_do_checksum(unsigned int dnr);
-extern int iec_drive_snapshot_read(struct drive_context_s *ctxptr, struct snapshot_s *s);
-extern int iec_drive_snapshot_write(struct drive_context_s *ctxptr, struct snapshot_s *s);
-extern int iec_drive_image_attach(struct disk_image_s *image, unsigned int unit);
-extern int iec_drive_image_detach(struct disk_image_s *image, unsigned int unit);
-extern void iec_drive_port_default(struct drive_context_s *drv);
+extern int iec_drive_snapshot_read(struct diskunit_context_s *ctxptr, struct snapshot_s *s);
+extern int iec_drive_snapshot_write(struct diskunit_context_s *ctxptr, struct snapshot_s *s);
+extern int iec_drive_image_attach(struct disk_image_s *image, unsigned int unit, unsigned int drive);
+extern int iec_drive_image_detach(struct disk_image_s *image, unsigned int unit, unsigned int drive);
+extern void iec_drive_port_default(struct diskunit_context_s *drv);
 
 #endif

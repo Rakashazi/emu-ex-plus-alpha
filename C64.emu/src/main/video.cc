@@ -96,9 +96,8 @@ static void updateInternalPixelFormat(struct video_canvas_s *c, IG::PixelFormat 
 
 void video_arch_canvas_init(struct video_canvas_s *c)
 {
-	logMsg("created canvas with size %d,%d", c->draw_buffer->canvas_width, c->draw_buffer->canvas_height);
+	logMsg("init canvas:%p with size %d,%d", c, c->draw_buffer->canvas_width, c->draw_buffer->canvas_height);
 	c->video_draw_buffer_callback = nullptr;
-	updateInternalPixelFormat(c, pixFmt);
 	activeCanvas = c;
 }
 
@@ -128,6 +127,8 @@ int video_canvas_set_palette(video_canvas_t *c, struct palette_s *palette)
 
 void video_canvas_refresh(struct video_canvas_s *c, unsigned int xs, unsigned int ys, unsigned int xi, unsigned int yi, unsigned int w, unsigned int h)
 {
+	if(!c->created) [[unlikely]]
+		return;
 	xi *= c->videoconfig->scalex;
 	w *= c->videoconfig->scalex;
 	yi *= c->videoconfig->scaley;
@@ -215,18 +216,22 @@ void video_canvas_resize(struct video_canvas_s *c, char resize_canvas)
 	x *= c->videoconfig->scalex;
 	y *= c->videoconfig->scaley;
 	logMsg("resized canvas to %d,%d, renderer %d", x, y, c->videoconfig->rendermode);
+	updateInternalPixelFormat(c, pixFmt);
 	updateCanvasMemPixmap(c, x, y);
 }
 
 video_canvas_t *video_canvas_create(video_canvas_t *c, unsigned int *width, unsigned int *height, int mapped)
 {
-	logMsg("canvas create:0x%p renderer %d", c, c->videoconfig->rendermode);
+	logMsg("create canvas:0x%p renderer %d", c, c->videoconfig->rendermode);
+	c->created = true;
+	updateInternalPixelFormat(c, pixFmt);
 	return c;
 }
 
 void video_canvas_destroy(struct video_canvas_s *c)
 {
 	logMsg("canvas destroy:0x%p", c);
+	c->created = false;
 	delete[] c->pixmapData;
 	c->pixmapData = {};
 }

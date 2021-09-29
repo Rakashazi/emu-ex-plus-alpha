@@ -410,9 +410,14 @@ bool Event::moved() const
 	return state() == Action::MOVED;
 }
 
+uint32_t Event::metaKeyBits() const
+{
+	return metaState;
+}
+
 bool Event::isShiftPushed() const
 {
-	return metaState != 0;
+	return metaState & Meta::SHIFT;
 }
 
 int Event::repeated() const

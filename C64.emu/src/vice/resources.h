@@ -38,8 +38,8 @@ typedef enum resource_type_s {
 
 typedef enum resource_event_relevant_s {
     RES_EVENT_NO,
-    RES_EVENT_SAME,
-    RES_EVENT_STRICT
+    RES_EVENT_SAME,     /* guess: must be the same on server and client */
+    RES_EVENT_STRICT    /* guess: must be the exact event_strict_value */ 
 } resource_event_relevant_t;
 
 typedef void *resource_value_t;
@@ -152,7 +152,11 @@ extern int resources_get_string_sprintf(const char *name, const char **value_ret
 extern int resources_get_default_value(const char *name, void *value_return);
 extern resource_type_t resources_query_type(const char *name);
 extern int resources_save(const char *fname);
+/* load resources from a file, keep existing settings */
 extern int resources_load(const char *fname);
+/* restore settings to defaults, then load settings from a file. this is used
+   for actual settings (vicerc) */
+extern int resources_reset_and_load(const char *fname);
 extern int resources_dump(const char *fname);
 
 extern int resources_write_item_to_file(FILE *fp, const char *name);

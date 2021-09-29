@@ -412,7 +412,7 @@ int scpu64_snapshot_read_cpu_state(snapshot_module_t *m)
 
 #define CLK_INC(clock) scpu64_clock_inc(0)
 
-#define CPU_ADDITIONAL_RESET() (buffer_finish = maincpu_clk, buffer_finish_half = 0, maincpu_accu = 0, maincpu_diff = machine_get_cycles_per_second())
+#define CPU_ADDITIONAL_RESET() (buffer_finish = maincpu_clk, buffer_finish_half = 0, maincpu_accu = 0, maincpu_diff = (CLOCK)machine_get_cycles_per_second())
 
 #define FETCH_PARAM(addr) ((((int)(addr)) < bank_limit) ? (check_ba(), scpu64_clock_inc(0), bank_base[addr]) : LOAD_PBR(addr))
 #define FETCH_PARAM_DUMMY(addr) scpu64_clock_inc(0)

@@ -40,6 +40,8 @@ int fsdevice_convert_p00_enabled[4];
 int fsdevice_save_p00_enabled[4];
 int fsdevice_hide_cbm_files_enabled[4];
 char *fsdevice_dir[4] = { NULL, NULL, NULL, NULL };
+int fsdevice_allow_long_names;
+int fsdevice_overwrite_existing_files;
 
 
 static int set_fsdevice_convert_p00(int val, void *param)
@@ -69,6 +71,18 @@ static int set_fsdevice_hide_cbm_files(int val, void *param)
     }
 
     fsdevice_hide_cbm_files_enabled[vice_ptr_to_int(param) - 8] = val ? 1 : 0;
+    return 0;
+}
+
+static int set_fsdevice_allow_long_names(int val, void *param)
+{
+    fsdevice_allow_long_names = val ? 1 : 0;
+    return 0;
+}
+
+static int set_fsdevice_overwrite_existing_files(int val, void *param)
+{
+    fsdevice_overwrite_existing_files = val ? 1 : 0;
     return 0;
 }
 
@@ -123,6 +137,12 @@ static const resource_int_t resources_int[] = {
     { "FSDevice11HideCBMFiles", 0, RES_EVENT_NO, NULL,
       &fsdevice_hide_cbm_files_enabled[3],
       set_fsdevice_hide_cbm_files, (void *)11 },
+    { "FSDeviceLongNames", 0, RES_EVENT_NO, NULL,
+      &fsdevice_allow_long_names,
+      set_fsdevice_allow_long_names, NULL },
+    { "FSDeviceOverwrite", 0, RES_EVENT_NO, NULL,
+      &fsdevice_overwrite_existing_files,
+      set_fsdevice_overwrite_existing_files, NULL },
     RESOURCE_INT_LIST_END
 };
 

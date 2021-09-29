@@ -199,6 +199,7 @@ int vdrive_command_execute(vdrive_t *vdrive, const uint8_t *buf,
 
         case 'P': /* Position */
             status = vdrive_command_position(vdrive, p, length);
+            vdrive->last_code = CBMDOS_IPE_OK;
             break;
 
         case 'U': /* User */
@@ -301,7 +302,7 @@ static int vdrive_get_block_parameters(char *buf, int *p1, int *p2, int *p3,
             break;
         }
         /* Convert and skip over decimal number.  */
-        *p[ip] = strtol(bp, &bp, 10);
+        *p[ip] = (int)strtol(bp, &bp, 10);
     }
     endsign = *bp;
     if (isalnum((int)endsign) && (ip == 4)) {
@@ -901,7 +902,12 @@ int vdrive_command_validate(vdrive_t *vdrive)
 
     vdrive_bam_clear_all(vdrive);
 
-    for (t = 1; t <= vdrive->num_tracks; t++) {
+    t = 1;
+    /* D9090/60 has track 0 */
+    if (vdrive->image_format == VDRIVE_IMAGE_FORMAT_9000) {
+        t--;
+    }
+    for (; t <= vdrive->num_tracks; t++) {
         max_sector = vdrive_get_max_sectors(vdrive, t);
         for (s = 0; s < (unsigned int)max_sector; s++) {
             vdrive_bam_free_sector(vdrive, t, s);
@@ -909,8 +915,10 @@ int vdrive_command_validate(vdrive_t *vdrive)
     }
 
     /* First, map out the header (BAM) and the directory, themselves. */
-    status = vdrive_bam_allocate_chain(vdrive, vdrive->Bam_Track,
-                                       vdrive->Bam_Sector);
+    if (vdrive->image_format != VDRIVE_IMAGE_FORMAT_9000) {
+        status = vdrive_bam_allocate_chain(vdrive, vdrive->Bam_Track,
+                                           vdrive->Bam_Sector);
+    }
 
     if (status != CBMDOS_IPE_OK) {
         memcpy(vdrive->bam, oldbam, vdrive->bam_size);
@@ -930,6 +938,11 @@ int vdrive_command_validate(vdrive_t *vdrive)
             vdrive_bam_allocate_sector(vdrive, vdrive->Bam_Track, vdrive->Bam_Sector + 1);
             vdrive_bam_allocate_sector(vdrive, vdrive->Bam_Track, vdrive->Bam_Sector + 2);
             break;
+        case VDRIVE_IMAGE_FORMAT_8050:
+        case VDRIVE_IMAGE_FORMAT_8250:
+            /* BAM allocation above doesn't include track 39, sector 0 */
+            vdrive_bam_allocate_sector(vdrive, vdrive->Header_Track, vdrive->Header_Sector);
+            break;
         case VDRIVE_IMAGE_FORMAT_4000:
             /* Map the boot sector. */
             vdrive_bam_allocate_sector(vdrive, 1, 0);
@@ -938,6 +951,16 @@ int vdrive_command_validate(vdrive_t *vdrive)
             for (s = 2; s < 34; s++) {
                 vdrive_bam_allocate_sector(vdrive, 1, s);
             }
+            break;
+        case VDRIVE_IMAGE_FORMAT_9000:
+            /* The D9090/60 bam ends with 255/255 not 0/x */
+            vdrive_bam_allocate_chain_255(vdrive, vdrive->Bam_Track, vdrive->Bam_Sector);
+            /* BAM allocation above doesn't include header or dir */
+            /* header include dir */
+            vdrive_bam_allocate_chain(vdrive, vdrive->Header_Track, vdrive->Header_Sector);
+            /* Map the config sector and bad blocks sector */
+            vdrive_bam_allocate_sector(vdrive, 0, 0);
+            vdrive_bam_allocate_sector(vdrive, 0, 1);
             break;
     }
 
@@ -1079,20 +1102,19 @@ void vdrive_command_set_error(vdrive_t *vdrive, int code, unsigned int track,
                               unsigned int sector)
 {
     const char *message = "";
-    static int last_code = CBMDOS_IPE_OK;
     bufferinfo_t *p = &vdrive->buffers[15];
 
 #ifdef DEBUG_DRIVE
     log_debug("Set error channel: code =%d, last_code =%d, track =%u, "
-              "sector =%u.", code, last_code, track, sector);
+              "sector =%u.", code, vdrive->last_code, track, sector);
 #endif
 
     /* Set an error only once per command. */
-    if (code != CBMDOS_IPE_OK && last_code != CBMDOS_IPE_OK) {
+    if (code != CBMDOS_IPE_OK && vdrive->last_code != CBMDOS_IPE_OK) {
         return;
     }
 
-    last_code = code;
+    vdrive->last_code = code;
 
     if (code != CBMDOS_IPE_MEMORY_READ) {
         message = cbmdos_errortext(code);
@@ -1121,12 +1143,16 @@ int vdrive_command_memory_write(vdrive_t *vdrive, const uint8_t *buf, uint16_t a
 {
     unsigned int len = buf[0];
 
-    log_warning(vdrive_command_log,
-            "M-W %04x %u (+%u) (might need TDE)",
-            addr, len, length - 6);
     if (length < 6) {
+        log_warning(vdrive_command_log, 
+            "M-W %04x %u (command ends prematurely, got %u bytes) (might need TDE)", addr, len, length);
         return CBMDOS_IPE_SYNTAX;
     }
+    /* FIXME: is this correct? */
+    if (len == 0 || len > IP_MAX_COMMAND_LEN) {
+        len = IP_MAX_COMMAND_LEN;
+    }
+    log_warning(vdrive_command_log, "M-W %04x %u (+%u) (might need TDE)", addr, len, length - 6);
 
 #if 0
     /* data= buf[1+0 ... 1+34]; */
@@ -1138,6 +1164,11 @@ int vdrive_command_memory_write(vdrive_t *vdrive, const uint8_t *buf, uint16_t a
 /* FIXME: This function doesn't need buf or length. */
 int vdrive_command_memory_exec(vdrive_t *vdrive, const uint8_t *buf, uint16_t addr, unsigned int length)
 {
+    if (length < 5) {
+        log_warning(vdrive_command_log, 
+            "M-E %04x (command ends prematurely, got %u bytes) (needs TDE)", addr, length);
+        return CBMDOS_IPE_SYNTAX;
+    }
     log_warning(vdrive_command_log, "M-E %04x (+%u) (needs TDE)", addr, length - 5);
     return CBMDOS_IPE_OK;
 }
@@ -1149,16 +1180,21 @@ int vdrive_command_memory_read(vdrive_t *vdrive, const uint8_t *buf, uint16_t ad
 {
     unsigned int len = buf[0];
 
-    log_warning(vdrive_command_log, "M-R %04x %u (+%u) (might need TDE)",
-            addr, len, length - 6);
     if (length < 6) {
-        return CBMDOS_IPE_SYNTAX;
+        log_warning(vdrive_command_log, 
+            "M-R %04x %u (command ends prematurely, got %u bytes) (might need TDE)", addr, len, length);
+        if (length < 5) {
+            return CBMDOS_IPE_SYNTAX;
+        } else {
+            len = 1; /* when no length byte is present, the length is 1 */
+        }
+    } else {
+        log_warning(vdrive_command_log, "M-R %04x %u (+%u) (might need TDE)", addr, len, length - 6);
     }
 
-    if (len == 0 || len > IP_MAX_COMMAND_LEN) {
-        len = IP_MAX_COMMAND_LEN;
+    if (len == 0) {
+        len = 256;
     }
-
     memset(vdrive->mem_buf, 0, len);
 
     vdrive->mem_length = len;
@@ -1171,11 +1207,11 @@ int vdrive_command_time_read(struct vdrive_s *vdrive, const char format)
     bufferinfo_t *p = &vdrive->buffers[15];
     int status = CBMDOS_IPE_SYNTAX;
     char message[30] = { 0 };
-    int length;
+    size_t length;
     time_t timep;
     struct tm *ts;
-    
-    const char *days[7] = {
+
+    static const char * const days[7] = {
         "SUN.", "MON.", "TUES", "WED.", "THUR", "FRI.", "SAT."
     };
 
@@ -1194,7 +1230,7 @@ int vdrive_command_time_read(struct vdrive_s *vdrive, const char format)
             /* printf("returning: '%s'\n", message); */
             length = strlen(message);
             memcpy((char *)p->buffer, message, length);
-            p->length = length - 1;
+            p->length = (unsigned int)(length - 1U);
             p->bufptr = 0;
             p->readmode = CBMDOS_FAM_READ;
             status = CBMDOS_IPE_OK;

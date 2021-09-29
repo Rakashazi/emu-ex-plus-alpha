@@ -267,7 +267,7 @@ uint8_t ds1602_read_data_line(rtc_ds1602_t *context)
    STRING | device        | device name STRING
  */
 
-static char snap_module_name[] = "RTC_DS1602";
+static const char snap_module_name[] = "RTC_DS1602";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

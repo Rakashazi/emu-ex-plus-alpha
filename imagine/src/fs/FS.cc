@@ -64,7 +64,7 @@ PathString makePathString(const char *dir, const char *file)
 PathString makeAppPathFromLaunchCommand(const char *launchCmd)
 {
 	logMsg("app path from launch command:%s", launchCmd);
-	FS::PathString realPath;
+	FS::PathString realPath{};
 	if(!realpath(FS::dirname(launchCmd).data(), realPath.data()))
 	{
 		logErr("error in realpath()");
@@ -75,7 +75,7 @@ PathString makeAppPathFromLaunchCommand(const char *launchCmd)
 
 FileString basename(const char *path)
 {
-	FileString name;
+	FileString name{};
 	#ifdef CONFIG_USE_GNU_BASENAME
 	string_copy(name, gnu_basename(path));
 	#elif defined __ANDROID__
@@ -91,7 +91,7 @@ FileString basename(const char *path)
 
 PathString dirname(const char *path)
 {
-	PathString dir;
+	PathString dir{};
 	#if defined __ANDROID__
 	string_copy(dir, ::posixDirnameImpl(path));
 	#else

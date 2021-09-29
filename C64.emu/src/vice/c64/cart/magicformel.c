@@ -613,14 +613,14 @@ int magicformel_crt_attach(FILE *fd, uint8_t *rawcart)
     }
 
     if (cnt == 8) {
-        DBG(("MF: 64k ROM loaded.\n"));
+        DBG(("MF: 64KiB ROM loaded.\n"));
         hwversion = 0;
     } else if (cnt == 12) {
-        DBG(("MF: 64k+32k ROM loaded.\n"));
+        DBG(("MF: 64KiB+32KiB ROM loaded.\n"));
         hwversion = 1;
         memcpy(&rawcart[0x18000], &rawcart[0x10000], 0x8000);
     } else if (cnt == 16) {
-        DBG(("MF: 2*64k ROM loaded.\n"));
+        DBG(("MF: 2*64KiB ROM loaded.\n"));
         hwversion = 2;
     } else {
         return -1;
@@ -663,7 +663,7 @@ void magicformel_detach(void)
    BYTE  | CB2 state     | CB2 line state
  */
 
-static char snap_module_name[] = "CARTMF";
+static const char snap_module_name[] = "CARTMF";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

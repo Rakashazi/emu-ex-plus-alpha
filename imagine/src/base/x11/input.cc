@@ -338,9 +338,9 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 			}
 			auto dev = deviceForInputId(event.sourceid);
 			auto pos = win.transformInputPos({(int)event.event_x, (int)event.event_y});
-			bool isShiftPushed = event.mods.effective & ShiftMask;
 			Input::PointerId p = event.deviceid;
-			win.dispatchInputEvent(Input::Event{Input::Map::POINTER, (Input::Key)key, isShiftPushed, action, pos.x, pos.y, p, Input::Source::MOUSE, time, dev});
+			win.dispatchInputEvent(Input::Event{Input::Map::POINTER, (Input::Key)key, (uint32_t)event.mods.effective,
+				action, pos.x, pos.y, p, Input::Source::MOUSE, time, dev});
 		};
 	auto handleKeyEvent =
 		[this](Base::Window &win, XIDeviceEvent event, Input::Time time, bool pushed)
@@ -361,9 +361,9 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 				if(!dev->iCadeMode()
 					|| (dev->iCadeMode() && !processICadeKey(k, action, time, *dev, win)))
 				{
-					bool isShiftPushed = event.mods.effective & ShiftMask;
 					auto key = keysymToKey(k);
-					auto ev = Input::Event{Input::Map::SYSTEM, key, key, action, isShiftPushed, repeated, Input::Source::KEYBOARD, time, dev};
+					auto ev = Input::Event{Input::Map::SYSTEM, key, key, action, (uint32_t)event.mods.effective,
+						repeated, Input::Source::KEYBOARD, time, dev};
 					ev.setX11RawKey(event.detail);
 					dispatchKeyInputEvent(ev, win);
 				}

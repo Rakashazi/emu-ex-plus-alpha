@@ -93,7 +93,7 @@ static void iec_debug_ports(void)
         old_iecbus.drv_port = iecbus.drv_port;
     }
 
-    for (unit = 0; unit < 8 + DRIVE_NUM; unit++) {
+    for (unit = 0; unit < 8 + NUM_DISK_UNITS; unit++) {
         if ((old_iecbus.drv_bus[unit] != iecbus.drv_bus[unit]) || firstcall) {
             log_message(LOG_DEFAULT, "#%lu: drv_bus[ %2u] changed from $%02x to $%02x.", time_usec, unit, old_iecbus.drv_bus[unit], iecbus.drv_bus[unit]);
             old_iecbus.drv_bus[unit] = iecbus.drv_bus[unit];
@@ -128,7 +128,7 @@ void iec_update_ports(void)
     unsigned int unit;
 
     iecbus.cpu_port = iecbus.cpu_bus;
-    for (unit = 4; unit < 8 + DRIVE_NUM; unit++) {
+    for (unit = 4; unit < 8 + NUM_DISK_UNITS; unit++) {
         iecbus.cpu_port &= iecbus.drv_bus[unit];
     }
 

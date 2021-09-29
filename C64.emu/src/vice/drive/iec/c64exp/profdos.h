@@ -29,15 +29,15 @@
 
 #include "types.h"
 
-struct drive_context_s;
+struct diskunit_context_s;
 
 extern int profdos_cmdline_options_init(void);
 
-extern void profdos_init(struct drive_context_s *drv);
-extern void profdos_reset(struct drive_context_s *drv);
+extern void profdos_init(struct diskunit_context_s *drv);
+extern void profdos_reset(struct diskunit_context_s *drv);
 
 extern int profdos_load_1571(const char *name);
 
-extern void profdos_mem_init(struct drive_context_s *drv, unsigned int type);
+extern void profdos_mem_init(struct diskunit_context_s *drv, unsigned int type);
 
 #endif

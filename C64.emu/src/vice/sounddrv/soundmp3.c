@@ -34,8 +34,9 @@
 #include "archdep.h"
 #include "log.h"
 
-#define PCM_BUFFER_SIZE SOUND_CHANNELS_MAX * SOUND_BUFSIZE
-#define MP3_BUFFER_SIZE PCM_BUFFER_SIZE + (PCM_BUFFER_SIZE / 4) + 7200
+/* HACK: Massive fixed size buffer for now, as the sound.c buffer has been made dynamic in size there is no more constant to use here. */
+#define PCM_BUFFER_SIZE (SOUND_CHANNELS_MAX * 1024 * 1024)
+#define MP3_BUFFER_SIZE (PCM_BUFFER_SIZE + (PCM_BUFFER_SIZE / 4) + 7200)
 
 static FILE *mp3_fd = NULL;
 static int stereo = 0;
@@ -120,7 +121,8 @@ static sound_device_t mp3_device =
     NULL,
     NULL,
     0,
-    2
+    2,
+    false
 };
 
 int sound_init_mp3_device(void)

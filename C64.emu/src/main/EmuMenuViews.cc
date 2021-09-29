@@ -34,7 +34,7 @@ extern "C"
 	#include "sid/sid-resources.h"
 	#include "vicii.h"
 	#include "drive.h"
-	#include "datasette.h"
+	#include "datasette/datasette.h"
 	#include "c64model.h"
 	#include "c64dtvmodel.h"
 	#include "c128model.h"
@@ -734,7 +734,7 @@ private:
 
 	void updateDiskText(int slot)
 	{
-		auto name = plugin.file_system_get_disk_name(slot+8);
+		auto name = plugin.file_system_get_disk_name(slot+8, 0);
 		diskSlot[slot].setName(fmt::format("{}: {}", driveMenuPrefix[slot], name ? FS::basename(name).data() : "").data());
 	}
 
@@ -752,7 +752,7 @@ private:
 			{
 				auto path = picker.makePathString(name);
 				logMsg("inserting disk in unit %d", slot+8);
-				if(plugin.file_system_attach_disk(slot+8, path.data()) == 0)
+				if(plugin.file_system_attach_disk(slot+8, 0, path.data()) == 0)
 				{
 					onDiskMediaChange(slot);
 					if(dismissPreviousView)
@@ -765,7 +765,7 @@ private:
 public:
 	void onSelectDisk(Input::Event e, uint8_t slot)
 	{
-		auto name = plugin.file_system_get_disk_name(slot+8);
+		auto name = plugin.file_system_get_disk_name(slot+8, 0);
 		if(name && strlen(name))
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>("Disk Drive", std::size(insertEjectMenuStr));
@@ -777,7 +777,7 @@ public:
 			multiChoiceView->appendItem(insertEjectMenuStr[1],
 				[this, slot](View &view, Input::Event e)
 				{
-					plugin.file_system_detach_disk(slot+8);
+					plugin.file_system_detach_disk(slot+8, 0);
 					onDiskMediaChange(slot);
 					view.dismiss();
 				});
@@ -806,7 +806,7 @@ private:
 			app().postMessage(3, true, fmt::format("Cannot use on {}", VicePlugin::systemName(currSystem)));
 			return false;
 		}
-		plugin.resources_set_int(driveResName[slot], type);
+		setIntResource(driveResName[slot], type);
 		onDiskMediaChange(slot);
 		return true;
 	}
@@ -1018,7 +1018,7 @@ class Vic20MemoryExpansionsView : public TableView
 	void setRamBlock(const char *name, bool on)
 	{
 		EmuSystem::sessionOptionSet();
-		plugin.resources_set_int(name, on);
+		setIntResource(name, on);
 	}
 
 	BoolMenuItem block0
@@ -1184,7 +1184,25 @@ class MachineOptionView : public TableView, public EmuAppHelper<MachineOptionVie
 		}
 	};
 
-	StaticArrayList<MenuItem*, 7> menuItem{};
+	TextHeadingMenuItem videoHeader{videoChipStr(), &defaultFace()};
+
+	std::vector<std::string> paletteName{};
+	std::vector<TextMenuItem> paletteItem{};
+
+	MultiChoiceMenuItem palette
+	{
+		"Palette", &defaultFace(),
+		[this]()
+		{
+			if(!usingExternalPalette())
+				return 0;
+			else
+				return IG::findIndex(paletteName, externalPaletteName()) + 1;
+		}(),
+		paletteItem
+	};
+
+	StaticArrayList<MenuItem*, 9> menuItem{};
 
 public:
 	MachineOptionView(ViewAttachParams attach):
@@ -1193,7 +1211,8 @@ public:
 			"Machine Options",
 			attach,
 			menuItem
-		}
+		},
+		paletteName{systemFilesWithExtension("vpl")}
 	{
 		modelItem.reserve(plugin.models);
 		auto baseVal = currSystem == VICE_SYSTEM_CBM2 ? 2 : 0;
@@ -1218,6 +1237,25 @@ public:
 		menuItem.emplace_back(&autostartBasicLoad);
 		menuItem.emplace_back(&autostartWarp);
 		menuItem.emplace_back(&virtualDeviceTraps);
+		menuItem.emplace_back(&videoHeader);
+		paletteItem.emplace_back("Internal", &defaultFace(),
+			[](Input::Event)
+			{
+				EmuSystem::sessionOptionSet();
+				setPaletteResources({});
+				logMsg("set internal palette");
+			});
+		for(const auto &name : paletteName)
+		{
+			paletteItem.emplace_back(FS::makeFileStringWithoutDotExtension(name.data()).data(), &defaultFace(),
+				[name = name.data()](Input::Event)
+				{
+					EmuSystem::sessionOptionSet();
+					setPaletteResources(name);
+					logMsg("set palette:%s", name);
+				});
+		}
+		menuItem.emplace_back(&palette);
 	}
 };
 
@@ -1294,15 +1332,39 @@ class CustomSystemActionsView : public EmuSystemActionsView
 		}
 	};
 
-	BoolMenuItem swapJoystickPorts
+	TextMenuItem joystickModeItem[3]
 	{
-		"Swap Joystick Ports", &defaultFace(),
-		(bool)optionSwapJoystickPorts,
-		[this](BoolMenuItem &item, View &, Input::Event e)
 		{
-			EmuSystem::sessionOptionSet();
-			optionSwapJoystickPorts = item.flipBoolValue(*this);
-		}
+			"Normal", &defaultFace(),
+			[this]()
+			{
+				EmuSystem::sessionOptionSet();
+				setJoystickMode(JoystickMode::NORMAL);
+			},
+		},
+		{
+			"Swapped", &defaultFace(),
+			[this]()
+			{
+				EmuSystem::sessionOptionSet();
+				setJoystickMode(JoystickMode::SWAPPED);
+			},
+		},
+		{
+			"Keyboard Cursor", &defaultFace(),
+			[this]()
+			{
+				EmuSystem::sessionOptionSet();
+				setJoystickMode(JoystickMode::KEYBOARD);
+			},
+		},
+	};
+
+	MultiChoiceMenuItem joystickMode
+	{
+		"Joystick Mode", &defaultFace(),
+		(int)optionSwapJoystickPorts,
+		joystickModeItem
 	};
 
 	BoolMenuItem warpMode
@@ -1332,7 +1394,7 @@ class CustomSystemActionsView : public EmuSystemActionsView
 		item.emplace_back(&c64IOControl);
 		item.emplace_back(&options);
 		item.emplace_back(&quickSettings);
-		item.emplace_back(&swapJoystickPorts);
+		item.emplace_back(&joystickMode);
 		item.emplace_back(&warpMode);
 		item.emplace_back(&autostartOnLaunch);
 		loadStandardItems();
@@ -1381,8 +1443,8 @@ class CustomMainMenuView : public EmuMainMenuView
 		}
 	};
 
-	FS::FileString newDiskName;
-	FS::PathString newDiskPath;
+	FS::FileString newMediaName;
+	FS::PathString newMediaPath;
 
 	TextMenuItem startWithBlankDisk
 	{
@@ -1399,12 +1461,12 @@ class CustomMainMenuView : public EmuMainMenuView
 							app().postMessage(true, "Name can't be blank");
 							return true;
 						}
-						string_copy(newDiskName, str);
+						string_copy(newMediaName, str);
 						auto fPicker = EmuFilePicker::makeForMediaCreation(attachParams());
 						fPicker->setOnClose(
 							[this](FSPicker &picker, Input::Event e)
 							{
-								newDiskPath = IG::formatToPathString("{}/{}.d64", picker.path().data(), newDiskName.data());
+								newMediaPath = IG::formatToPathString("{}/{}.d64", picker.path().data(), newMediaName.data());
 								picker.dismiss();
 								if(e.isDefaultCancelButton())
 								{
@@ -1412,19 +1474,19 @@ class CustomMainMenuView : public EmuMainMenuView
 									app().unpostMessage();
 									return;
 								}
-								if(FS::exists(newDiskPath))
+								if(FS::exists(newMediaPath))
 								{
 									//EmuApp::printfMessage(3, true, "%s already exists");
 									auto ynAlertView = makeView<YesNoAlertView>("Disk image already exists, overwrite?");
 									ynAlertView->setOnYes(
 										[this](Input::Event e)
 										{
-											createDiskAndLaunch(newDiskPath.data(), newDiskName.data(), e);
+											createDiskAndLaunch(newMediaPath.data(), newMediaName.data(), e);
 										});
 									app().pushAndShowModalView(std::move(ynAlertView), e);
 									return;
 								}
-								createDiskAndLaunch(newDiskPath.data(), newDiskName.data(), e);
+								createDiskAndLaunch(newMediaPath.data(), newMediaName.data(), e);
 							});
 						view.dismiss(false);
 						app().pushAndShowModalView(std::move(fPicker));
@@ -1455,6 +1517,75 @@ class CustomMainMenuView : public EmuMainMenuView
 			});
 	};
 
+	TextMenuItem startWithBlankTape
+	{
+		"Start System With Blank Tape", &defaultFace(),
+		[this](TextMenuItem &item, View &, Input::Event e)
+		{
+			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input Tape Name", "",
+				[this](CollectTextInputView &view, const char *str)
+				{
+					if(str)
+					{
+						if(!strlen(str))
+						{
+							app().postMessage(true, "Name can't be blank");
+							return true;
+						}
+						string_copy(newMediaName, str);
+						auto fPicker = EmuFilePicker::makeForMediaCreation(attachParams());
+						fPicker->setOnClose(
+							[this](FSPicker &picker, Input::Event e)
+							{
+								newMediaPath = IG::formatToPathString("{}/{}.tap", picker.path().data(), newMediaName.data());
+								picker.dismiss();
+								if(e.isDefaultCancelButton())
+								{
+									// picker was cancelled
+									app().unpostMessage();
+									return;
+								}
+								if(FS::exists(newMediaPath))
+								{
+									//EmuApp::printfMessage(3, true, "%s already exists");
+									auto ynAlertView = makeView<YesNoAlertView>("Tape image already exists, overwrite?");
+									ynAlertView->setOnYes(
+										[this](Input::Event e)
+										{
+											createTapeAndLaunch(newMediaPath.data(), newMediaName.data(), e);
+										});
+									app().pushAndShowModalView(std::move(ynAlertView), e);
+									return;
+								}
+								createTapeAndLaunch(newMediaPath.data(), newMediaName.data(), e);
+							});
+						view.dismiss(false);
+						app().pushAndShowModalView(std::move(fPicker));
+						app().postMessage("Set directory to save disk");
+					}
+					else
+					{
+						view.dismiss();
+					}
+					return false;
+				});
+		}
+	};
+
+	void createTapeAndLaunch(const char *tapePath, const char *tapeName, Input::Event e)
+	{
+		if(plugin.cbmimage_create_image(tapePath, DISK_IMAGE_TYPE_TAP) < 0)
+		{
+			app().postMessage(true, "Error creating tape image");
+			return;
+		}
+		app().createSystemWithMedia({}, tapePath, "", e, {SYSTEM_FLAG_NO_AUTOSTART}, attachParams(),
+			[this](Input::Event e)
+			{
+				app().launchSystem(e, false, true);
+			});
+	};
+
 	TextMenuItem loadNoAutostart
 	{
 		"Load Game (No Autostart)", &defaultFace(),
@@ -1470,6 +1601,7 @@ class CustomMainMenuView : public EmuMainMenuView
 		loadFileBrowserItems();
 		item.emplace_back(&loadNoAutostart);
 		item.emplace_back(&startWithBlankDisk);
+		item.emplace_back(&startWithBlankTape);
 		system.setName(fmt::format("System: {}", VicePlugin::systemName(currSystem)).data());
 		item.emplace_back(&system);
 		loadStandardItems();

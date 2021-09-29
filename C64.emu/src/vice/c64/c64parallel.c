@@ -53,10 +53,10 @@
 
 #define PC_PORT_NUM             2
 
-static uint8_t parallel_cable_drive_value[DRIVE_NUM] = { 0xff, 0xff, 0xff, 0xff };
+static uint8_t parallel_cable_drive_value[NUM_DISK_UNITS] = { 0xff, 0xff, 0xff, 0xff };
 static uint8_t parallel_cable_cpu_value[PC_PORT_NUM] = { 0xff, 0xff };
 
-static int portmap[DRIVE_PC_NUM] = {
+static const int portmap[DRIVE_PC_NUM] = {
     PC_PORT_STANDARD, /* DRIVE_PC_NONE */
     PC_PORT_STANDARD, /* DRIVE_PC_STANDARD */
     PC_PORT_STANDARD, /* DRIVE_PC_DD3 */
@@ -71,9 +71,9 @@ static uint8_t parallel_cable_value(int type)
     port = portmap[type];
     val = parallel_cable_cpu_value[port];
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        if (drive_context[dnr]->drive->enable && drive_context[dnr]->drive->parallel_cable) {
-            if (portmap[drive_context[dnr]->drive->parallel_cable] == (int)port) {
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
+        if (diskunit_context[dnr]->enable && diskunit_context[dnr]->parallel_cable) {
+            if (portmap[diskunit_context[dnr]->parallel_cable] == (int)port) {
                 val &= parallel_cable_drive_value[dnr];
             }
         }
@@ -132,15 +132,15 @@ void parallel_cable_cpu_execute(int type)
 {
     unsigned int dnr;
     int port;
-    drive_t *drive;
 
     port = portmap[type];
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        drive = drive_context[dnr]->drive;
-        if (drive->enable && drive->parallel_cable) {
-            if (portmap[drive->parallel_cable] == port) {
-                drive_cpu_execute_one(drive_context[dnr], maincpu_clk);
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
+        diskunit_context_t *unit = diskunit_context[dnr];
+
+        if (unit->enable && unit->parallel_cable) {
+            if (portmap[unit->parallel_cable] == port) {
+                drive_cpu_execute_one(unit, maincpu_clk);
             }
         }
     }
@@ -179,26 +179,24 @@ void parallel_cable_cpu_pulse(int type)
 
     DBG(("PARCABLE (%d:%d) CPU Pulse", type, portmap[type]));
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        drive_t *drive;
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
+        diskunit_context_t *unit = diskunit_context[dnr];
 
-        drive = drive_context[dnr]->drive;
-
-        if (drive->enable && drive->parallel_cable) {
-            switch (drive->parallel_cable) {
+        if (unit->enable && unit->parallel_cable) {
+            switch (unit->parallel_cable) {
                 case DRIVE_PC_DD3:
-                    dd3_set_signal(drive_context[dnr]);
+                    dd3_set_signal(unit);
                     break;
                 case DRIVE_PC_FORMEL64:
-                    viacore_signal(drive_context[dnr]->via1d1541, VIA_SIG_CB1, VIA_SIG_FALL);
+                    viacore_signal(unit->via1d1541, VIA_SIG_CB1, VIA_SIG_FALL);
                     break;
                 default:
-                    if (drive->type == DRIVE_TYPE_1570 ||
-                        drive->type == DRIVE_TYPE_1571 ||
-                        drive->type == DRIVE_TYPE_1571CR) {
-                        ciacore_set_flag(drive_context[dnr]->cia1571);
+                    if (unit->type == DRIVE_TYPE_1570 ||
+                        unit->type == DRIVE_TYPE_1571 ||
+                        unit->type == DRIVE_TYPE_1571CR) {
+                        ciacore_set_flag(unit->cia1571);
                     } else {
-                        viacore_signal(drive_context[dnr]->via1d1541, VIA_SIG_CB1, VIA_SIG_FALL);
+                        viacore_signal(unit->via1d1541, VIA_SIG_CB1, VIA_SIG_FALL);
                     }
                     break;
             }

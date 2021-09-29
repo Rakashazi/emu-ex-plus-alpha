@@ -142,10 +142,12 @@
 #define NUM_BLOCKS_8050        2083     /* 2052 free */
 #define MAX_TRACKS_8050        77
 #define MAX_BLOCKS_8050        2083
-#define BAM_TRACK_8050         39
+#define HDR_TRACK_8050	       DIR_TRACK_8050	/* block w/disk name */
+#define HDR_SECTOR_8050	       0		/* block w/disk name */
+#define BAM_TRACK_8050         38
 #define BAM_SECTOR_8050        0
-#define BAM_NAME_8050          6        /* pos. of disk name in 1st BAM blk */
-#define BAM_ID_8050            24       /* pos. of disk id in 1st BAM blk */
+#define BAM_NAME_8050          6        /* pos. of disk name in header blk */
+#define BAM_ID_8050            24       /* pos. of disk id in header blk */
 #define DIR_TRACK_8050         39
 #define DIR_SECTOR_8050        1
 
@@ -153,12 +155,18 @@
 #define NUM_BLOCKS_8250        4166     /* 4133 free */
 #define MAX_TRACKS_8250        154
 #define MAX_BLOCKS_8250        4166
-#define BAM_TRACK_8250         39
-#define BAM_SECTOR_8250        0
-#define BAM_NAME_8250          6        /* pos. of disk name in 1st BAM blk */
-#define BAM_ID_8250            24       /* pos. of disk id in 1st BAM blk */
-#define DIR_TRACK_8250         39
-#define DIR_SECTOR_8250        1
+#define HDR_TRACK_8250         HDR_TRACK_8050
+#define HDR_SECTOR_8250        HDR_SECTOR_8050
+#define BAM_TRACK_8250         BAM_TRACK_8050
+#define BAM_SECTOR_8250        BAM_SECTOR_8050
+#define BAM_NAME_8250          BAM_NAME_8050 /* pos. of disk name in hdr blk */
+#define BAM_ID_8250            BAM_ID_8050   /* pos. of disk id in hdr blk */
+#define DIR_TRACK_8250         DIR_TRACK_8050
+#define DIR_SECTOR_8250        DIR_SECTOR_8050
+
+#define MAX_TRACKS_9000        152      /* for now */
+#define BAM_NAME_9000          6
+#define BAM_ID_9000            24
 
 #define NUM_TRACKS_1000        13
 #define NUM_BLOCKS_1000        3240
@@ -184,8 +192,5 @@
 #define BAM_SECTOR_4000        1
 #define BAM_NAME_4000          4
 #define BAM_ID_4000            22
-
-#define MAX_TRACKS_ANY         MAX_TRACKS_8250
-#define MAX_BLOCKS_ANY         MAX_BLOCKS_8250
 
 #endif

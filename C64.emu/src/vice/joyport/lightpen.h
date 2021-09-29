@@ -29,18 +29,25 @@
 #define VICE_LIGHTPEN_H
 
 #include "types.h"
+#include "joyport.h"
 
 extern int lightpen_resources_init(void);
 extern void lightpen_init(void);
 
 extern int lightpen_enabled;
-#define LIGHTPEN_TYPE_PEN_U       0
-#define LIGHTPEN_TYPE_PEN_L       1
-#define LIGHTPEN_TYPE_PEN_DATEL   2
-#define LIGHTPEN_TYPE_GUN_Y       3
-#define LIGHTPEN_TYPE_GUN_L       4
-#define LIGHTPEN_TYPE_INKWELL     5
-#define LIGHTPEN_TYPE_NUM         6
+
+enum {
+    LIGHTPEN_TYPE_PEN_U = 0,
+    LIGHTPEN_TYPE_PEN_L,
+    LIGHTPEN_TYPE_PEN_DATEL,
+    LIGHTPEN_TYPE_GUN_Y,
+    LIGHTPEN_TYPE_GUN_L,
+    LIGHTPEN_TYPE_INKWELL,
+#ifdef JOYPORT_EXPERIMENTAL_DEVICES
+    LIGHTPEN_TYPE_GUNSTICK,
+#endif
+    LIGHTPEN_TYPE_NUM
+};
 
 typedef CLOCK lightpen_timing_callback_t(int x, int y);
 typedef lightpen_timing_callback_t *lightpen_timing_callback_ptr_t;

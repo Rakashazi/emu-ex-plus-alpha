@@ -268,6 +268,9 @@ void output_graphics_shutdown(void)
     for (i = 0; i < 3; i++) {
         lib_free(output_gfx[i].filename);
         lib_free(output_gfx[i].line);
+        
+        output_gfx[i].filename = NULL;
+        output_gfx[i].line = NULL;
     }
 }
 

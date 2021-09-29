@@ -41,6 +41,7 @@
 #include "cx21.h"
 #include "cx85.h"
 #include "datasette.h"
+#include "datasette-sound.h"
 #include "debug.h"
 #include "diskimage.h"
 #include "drive-cmdline-options.h"
@@ -850,7 +851,7 @@ static void vic20_monitor_init(void)
 {
     unsigned int dnr;
     monitor_cpu_type_t asm6502, asmR65C02;
-    monitor_interface_t *drive_interface_init[DRIVE_NUM];
+    monitor_interface_t *drive_interface_init[NUM_DISK_UNITS];
     monitor_cpu_type_t *asmarray[3];
 
     asmarray[0] = &asm6502;
@@ -860,7 +861,7 @@ static void vic20_monitor_init(void)
     asm6502_init(&asm6502);
     asmR65C02_init(&asmR65C02);
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         drive_interface_init[dnr] = drive_cpu_monitor_interface_get(dnr);
     }
 
@@ -885,8 +886,6 @@ void machine_handle_pending_alarms(int num_write_cycles)
 /* VIC20-specific initialization.  */
 int machine_specific_init(void)
 {
-    int delay;
-
     vic20_log = log_open("VIC20");
 
     if (mem_load() < 0) {
@@ -928,11 +927,7 @@ int machine_specific_init(void)
     disk_image_init();
 
     /* Initialize autostart.  */
-    resources_get_int("AutostartDelay", &delay);
-    if (delay == 0) {
-        delay = 3; /* default */
-    }
-    autostart_init((CLOCK)(delay * VIC20_PAL_RFSH_PER_SEC * VIC20_PAL_CYCLES_PER_RFSH), 1);
+    autostart_init(3, 1);
 
     /* Pre-init VIC20-specific parts of the menus before vic_init()
        creates a canvas window with a menubar at the top. */
@@ -971,11 +966,13 @@ int machine_specific_init(void)
     userport_dac_sound_chip_init();
 
     drive_sound_init();
+    datasette_sound_init();
     video_sound_init();
 
     /* Initialize sound.  Notice that this does not really open the audio
        device yet.  */
-    sound_init(machine_timing.cycles_per_sec, machine_timing.cycles_per_rfsh);
+    sound_init((unsigned int)machine_timing.cycles_per_sec,
+               (unsigned int)machine_timing.cycles_per_rfsh);
     fmopl_set_machine_parameter(machine_timing.cycles_per_sec);
 
     /* Initialize keyboard buffer.  */
@@ -1165,7 +1162,7 @@ void machine_change_timing(int timeval, int border_mode)
 #ifdef HAVE_MOUSE
     neos_mouse_set_machine_parameter(machine_timing.cycles_per_sec);
 #endif
-    clk_guard_set_clk_base(maincpu_clk_guard, machine_timing.cycles_per_rfsh);
+    clk_guard_set_clk_base(maincpu_clk_guard, (CLOCK)machine_timing.cycles_per_rfsh);
 
     vic_change_timing(&machine_timing, border_mode);
 

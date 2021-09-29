@@ -229,7 +229,7 @@ void funplay_detach(void)
    Note: 0.0 is incompatible with 1.0+ snapshots.
  */
 
-static char snap_module_name[] = "CARTFUNPLAY";
+static const char snap_module_name[] = "CARTFUNPLAY";
 #define SNAP_MAJOR   1
 #define SNAP_MINOR   1
 

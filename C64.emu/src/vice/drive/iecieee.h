@@ -29,17 +29,17 @@
 
 #include "types.h"
 
-struct drive_context_s;
+struct diskunit_context_s;
 struct snapshot_s;
 
-extern void iecieee_drive_init(struct drive_context_s *drv);
-extern void iecieee_drive_shutdown(struct drive_context_s *drv);
-extern void iecieee_drive_reset(struct drive_context_s *drv);
-extern void iecieee_drive_setup_context(struct drive_context_s *drv);
+extern void iecieee_drive_init(struct diskunit_context_s *drv);
+extern void iecieee_drive_shutdown(struct diskunit_context_s *drv);
+extern void iecieee_drive_reset(struct diskunit_context_s *drv);
+extern void iecieee_drive_setup_context(struct diskunit_context_s *drv);
 
-extern int iecieee_drive_snapshot_read(struct drive_context_s *ctxptr,
+extern int iecieee_drive_snapshot_read(struct diskunit_context_s *ctxptr,
                                        struct snapshot_s *s);
-extern int iecieee_drive_snapshot_write(struct drive_context_s *ctxptr,
+extern int iecieee_drive_snapshot_write(struct diskunit_context_s *ctxptr,
                                         struct snapshot_s *s);
 #endif
 

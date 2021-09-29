@@ -383,7 +383,7 @@ void formel64_detach(void)
    BYTE  | CB2 state | CB2 line state
  */
 
-static char snap_module_name[] = "CARTF64";
+static const char snap_module_name[] = "CARTF64";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

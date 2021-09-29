@@ -112,10 +112,22 @@ static void memmap_mem_store(unsigned int addr, unsigned int value)
     (*_mem_write_tab_ptr[(addr) >> 8])((uint16_t)(addr), (uint8_t)(value));
 }
 
+static void memmap_mem_store_dummy(unsigned int addr, unsigned int value)
+{
+    memmap_mem_update(addr, 1);
+    (*_mem_write_tab_ptr_dummy[(addr) >> 8])((uint16_t)(addr), (uint8_t)(value));
+}
+
 static uint8_t memmap_mem_read(unsigned int addr)
 {
     memmap_mem_update(addr, 0);
     return (*_mem_read_tab_ptr[(addr) >> 8])((uint16_t)(addr));
+}
+
+static uint8_t memmap_mem_read_dummy(unsigned int addr)
+{
+    memmap_mem_update(addr, 0);
+    return (*_mem_read_tab_ptr_dummy[(addr) >> 8])((uint16_t)(addr));
 }
 
 #ifndef STORE
@@ -123,19 +135,51 @@ static uint8_t memmap_mem_read(unsigned int addr)
     memmap_mem_store(addr, value)
 #endif
 
+#ifndef STORE_DUMMY
+#define STORE_DUMMY(addr, value) \
+    memmap_mem_store_dummy(addr, value)
+#endif
+
 #ifndef LOAD
 #define LOAD(addr) \
     memmap_mem_read(addr)
 #endif
+
+#ifndef LOAD_DUMMY
+#define LOAD_DUMMY(addr) \
+    memmap_mem_read_dummy(addr)
+#endif
+    
+/* FIXME: vic20 does not really need BA */
+#ifndef LOAD_CHECK_BA_LOW
+#define LOAD_CHECK_BA_LOW(addr) \
+    memmap_mem_read(addr)
+#endif
+
+/* FIXME: vic20 does not really need BA */
+#ifndef LOAD_CHECK_BA_LOW_DUMMY
+#define LOAD_CHECK_BA_LOW_DUMMY(addr) \
+    memmap_mem_read_dummy(addr)
+#endif    
 
 #ifndef STORE_ZERO
 #define STORE_ZERO(addr, value) \
     memmap_mem_store((addr) & 0xff, value)
 #endif
 
+#ifndef STORE_ZERO_DUMMY
+#define STORE_ZERO_DUMMY(addr, value) \
+    memmap_mem_store_dummy((addr) & 0xff, value)
+#endif
+
 #ifndef LOAD_ZERO
 #define LOAD_ZERO(addr) \
     memmap_mem_read((addr) & 0xff)
+#endif
+
+#ifndef LOAD_ZERO_DUMMY
+#define LOAD_ZERO_DUMMY(addr) \
+    memmap_mem_read_dummy((addr) & 0xff)
 #endif
 
 #endif /* FEATURE_CPUMEMHISTORY */
@@ -145,14 +189,31 @@ static uint8_t memmap_mem_read(unsigned int addr)
     (*_mem_write_tab_ptr[(addr) >> 8])((uint16_t)(addr), (uint8_t)(value))
 #endif
 
+#ifndef STORE_DUMMY
+#define STORE_DUMMY(addr, value) \
+    (*_mem_write_tab_ptr_dummy[(addr) >> 8])((uint16_t)(addr), (uint8_t)(value))
+#endif
+    
 #ifndef LOAD
 #define LOAD(addr) \
     (*_mem_read_tab_ptr[(addr) >> 8])((uint16_t)(addr))
 #endif
 
+#ifndef LOAD_DUMMY
+#define LOAD_DUMMY(addr) \
+    (*_mem_read_tab_ptr_dummy[(addr) >> 8])((uint16_t)(addr))
+#endif
+
+/* FIXME: vic20 does not really need BA */
 #ifndef LOAD_CHECK_BA_LOW
 #define LOAD_CHECK_BA_LOW(addr) \
     (*_mem_read_tab_ptr[(addr) >> 8])((uint16_t)(addr))
+#endif
+
+/* FIXME: vic20 does not really need BA */
+#ifndef LOAD_CHECK_BA_LOW_DUMMY
+#define LOAD_CHECK_BA_LOW_DUMMY(addr) \
+    (*_mem_read_tab_ptr_dummy[(addr) >> 8])((uint16_t)(addr))
 #endif
 
 #ifndef STORE_ZERO
@@ -160,9 +221,19 @@ static uint8_t memmap_mem_read(unsigned int addr)
     (*_mem_write_tab_ptr[0])((uint16_t)(addr), (uint8_t)(value))
 #endif
 
+#ifndef STORE_ZERO_DUMMY
+#define STORE_ZERO_DUMMY(addr, value) \
+    (*_mem_write_tab_ptr_dummy[0])((uint16_t)(addr), (uint8_t)(value))
+#endif
+
 #ifndef LOAD_ZERO
 #define LOAD_ZERO(addr) \
     (*_mem_read_tab_ptr[0])((uint16_t)(addr))
+#endif
+
+#ifndef LOAD_ZERO_DUMMY
+#define LOAD_ZERO_DUMMY(addr) \
+    (*_mem_read_tab_ptr_dummy[0])((uint16_t)(addr))
 #endif
 
 #ifndef DMA_FUNC
@@ -248,8 +319,15 @@ monitor_interface_t *maincpu_monitor_interface_get(void)
     maincpu_monitor_interface->clk = &maincpu_clk;
 
     maincpu_monitor_interface->current_bank = 0;
+    maincpu_monitor_interface->current_bank_index = 0;
+
     maincpu_monitor_interface->mem_bank_list = mem_bank_list;
+    maincpu_monitor_interface->mem_bank_list_nos = mem_bank_list_nos;
+
     maincpu_monitor_interface->mem_bank_from_name = mem_bank_from_name;
+    maincpu_monitor_interface->mem_bank_index_from_bank = mem_bank_index_from_bank;
+    maincpu_monitor_interface->mem_bank_flags_from_bank = mem_bank_flags_from_bank;
+
     maincpu_monitor_interface->mem_bank_read = mem_bank_read;
     maincpu_monitor_interface->mem_bank_peek = mem_bank_peek;
     maincpu_monitor_interface->mem_bank_write = mem_bank_write;
@@ -374,14 +452,15 @@ inline static int interrupt_check_irq_delay(interrupt_cpu_status_t *cs,
 unsigned int reg_pc;
 #endif
 
-static uint8_t **o_bank_base;
-static int *o_bank_start;
-static int *o_bank_limit;
+static bool bank_base_ready = false;
+static uint8_t *bank_base;
+static int bank_start = 0;
+static int bank_limit = 0;
 
 void maincpu_resync_limits(void)
 {
-    if (o_bank_base) {
-        mem_mmu_translate(reg_pc, o_bank_base, o_bank_start, o_bank_limit);
+    if (bank_base_ready) {
+        mem_mmu_translate(reg_pc, &bank_base, &bank_start, &bank_limit);
     }
 }
 
@@ -400,13 +479,13 @@ void maincpu_mainloop(void)
     /* FIXME: this should really be uint16_t, but it breaks things (eg trap17.prg) */
     unsigned int reg_pc;
 #endif
-    uint8_t *bank_base;
-    int bank_start = 0;
-    int bank_limit = 0;
 
-    o_bank_base = &bank_base;
-    o_bank_start = &bank_start;
-    o_bank_limit = &bank_limit;
+    /*
+     * Enable maincpu_resync_limits functionality .. in the old code
+     * this is where the local stack var had its address copied to
+     * the global.
+     */
+    bank_base_ready = true;
 
     machine_trigger_reset(MACHINE_RESET_MODE_SOFT);
 

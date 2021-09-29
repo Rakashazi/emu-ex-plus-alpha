@@ -269,11 +269,18 @@ static int functionrom_load_internal(void)
         if (util_check_null_string(internal_function_rom_name)) {
             return 0;
         }
-
+        /* try 32k first */
         if (util_file_load(internal_function_rom_name, int_function_rom,
-                           INTERNAL_FUNCTION_ROM_SIZE,
-                           UTIL_FILE_LOAD_SKIP_ADDRESS | UTIL_FILE_LOAD_FILL) < 0) {
-            return -1;
+                           INTERNAL_FUNCTION_ROM_SIZE, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
+            /* try 16k */
+            if (util_file_load(internal_function_rom_name, int_function_rom,
+                            INTERNAL_FUNCTION_ROM_SIZE / 2, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
+                return -1;
+            } else {
+                /* create a mirror */
+                memcpy(&int_function_rom[INTERNAL_FUNCTION_ROM_SIZE / 2], 
+                    int_function_rom, INTERNAL_FUNCTION_ROM_SIZE / 2);
+            }
         }
     } else if (internal_function_rom_enabled == INT_FUNCTION_NONE) {
         memset(int_function_rom, 0, sizeof(int_function_rom));
@@ -288,11 +295,18 @@ static int functionrom_load_external(void)
         if (util_check_null_string(external_function_rom_name)) {
             return 0;
         }
-
+        /* try 32k first */
         if (util_file_load(external_function_rom_name, ext_function_rom,
-                           EXTERNAL_FUNCTION_ROM_SIZE,
-                           UTIL_FILE_LOAD_SKIP_ADDRESS | UTIL_FILE_LOAD_FILL) < 0) {
-            return -1;
+                           EXTERNAL_FUNCTION_ROM_SIZE, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
+            /* try 16k */
+            if (util_file_load(external_function_rom_name, ext_function_rom,
+                            EXTERNAL_FUNCTION_ROM_SIZE / 2, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
+                return -1;
+            } else {
+                /* create a mirror */
+                memcpy(&ext_function_rom[EXTERNAL_FUNCTION_ROM_SIZE / 2], 
+                    ext_function_rom, EXTERNAL_FUNCTION_ROM_SIZE / 2);
+            }
         }
     } else {
         memset(ext_function_rom, 0, sizeof(ext_function_rom));

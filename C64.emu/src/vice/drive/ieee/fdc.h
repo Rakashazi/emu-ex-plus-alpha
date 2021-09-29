@@ -30,7 +30,7 @@
 #include "types.h"
 
 struct disk_image_s;
-struct drive_context_s;
+struct diskunit_context_s;
 struct snapshot_s;
 
 /* FDC states */
@@ -57,13 +57,13 @@ struct snapshot_s;
 #define FDC_ERR_DRIVE   15
 #define FDC_ERR_DECODE  16
 
-extern void fdc_init(struct drive_context_s *drv);
+extern void fdc_init(struct diskunit_context_s *drv);
 extern void fdc_reset(unsigned int fnum, unsigned int enabled);
 
 extern int fdc_snapshot_read_module(struct snapshot_s *s, int drv);
 extern int fdc_snapshot_write_module(struct snapshot_s *s, int drv);
 
-extern int fdc_attach_image(struct disk_image_s *image, unsigned int unit);
-extern int fdc_detach_image(struct disk_image_s *image, unsigned int unit);
+extern int fdc_attach_image(struct disk_image_s *image, unsigned int unit, unsigned int drive);
+extern int fdc_detach_image(struct disk_image_s *image, unsigned int unit, unsigned int drive);
 
 #endif

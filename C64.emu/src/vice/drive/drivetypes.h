@@ -35,21 +35,21 @@
 
 /*
  *  The philosophy behind this approach is that only the drive module knows
- *  the exact layout of the drive_context_t structure. Therefore only include
+ *  the exact layout of the diskunit_context_t structure. Therefore only include
  *  drivetypes.h from source files within the drive module. All other modules
  *  only need to use pointers transparently, which only requires a forward
- *  declaration of struct drive_context_s (see below).
+ *  declaration of struct diskunit_context_s (see below).
  */
 
-struct drive_context_s;         /* forward declaration */
+struct diskunit_context_s;         /* forward declaration */
 struct monitor_interface_s;
 
 /* This defines the memory access for the drive CPU.  */
-typedef uint8_t drive_read_func_t (struct drive_context_s *, uint16_t);
+typedef uint8_t drive_read_func_t (struct diskunit_context_s *, uint16_t);
 typedef drive_read_func_t *drive_read_func_ptr_t;
-typedef void drive_store_func_t (struct drive_context_s *, uint16_t, uint8_t);
+typedef void drive_store_func_t (struct diskunit_context_s *, uint16_t, uint8_t);
 typedef drive_store_func_t *drive_store_func_ptr_t;
-typedef uint8_t drive_peek_func_t (struct drive_context_s *, uint16_t);
+typedef uint8_t drive_peek_func_t (struct diskunit_context_s *, uint16_t);
 typedef drive_peek_func_t *drive_peek_func_ptr_t;
 
 /*
@@ -116,6 +116,8 @@ typedef struct drivecpud_context_s {
     /* Pointers to the currently used memory read and write tables. */
     drive_read_func_ptr_t *read_func_ptr;
     drive_store_func_ptr_t *store_func_ptr;
+    drive_read_func_ptr_t *read_func_ptr_dummy;
+    drive_store_func_ptr_t *store_func_ptr_dummy;
     drive_peek_func_ptr_t *peek_func_ptr;
     uint8_t **read_base_tab_ptr;
     uint32_t *read_limit_tab_ptr;
@@ -143,18 +145,10 @@ typedef struct drivefunc_context_s {
     void (*parallel_set_nrfd)(uint8_t);
 } drivefunc_context_t;
 
-extern drivefunc_context_t drive_funcs[DRIVE_NUM];
+extern drivefunc_context_t drive_funcs[NUM_DISK_UNITS];
 
 /*
- * Helper macros for dual disk drives.
- */
-#define is_drive0(d)    (!is_drive1(d))
-#define is_drive1(d)    ((d) & 1)
-#define mk_drive0(d)    ((d) & ~1)
-#define mk_drive1(d)    ((d) | 1)
-
-/*
- * The context for an entire drive.
+ * The context for an entire disk unit (may have 1 or 2 drives).
  */
 
 struct cia_context_s;
@@ -163,11 +157,12 @@ struct tpi_context_s;
 struct via_context_s;
 struct pc8477_s;
 struct wd1770_s;
+struct cmdhd_context_s;
 
-typedef struct drive_context_s {
+typedef struct diskunit_context_s {
     int mynumber;         /* init to [0123] */
     CLOCK *clk_ptr;       /* shortcut to drive_clk[mynumber] */
-    struct drive_s *drive;
+    struct drive_s *drives[2];
 
     struct drivecpu_context_s *cpu;
     struct drivecpud_context_s *cpud;
@@ -183,6 +178,58 @@ typedef struct drive_context_s {
     struct tpi_context_s *tpid;
     struct pc8477_s *pc8477;
     struct wd1770_s *wd1770;
-} drive_context_t;
+    struct cmdhd_context_s *cmdhd;
+
+    /* Here is some data which used to be stored in drives[0]. */
+
+    /* Is this drive enabled for True Drive Emulation?  */
+    unsigned int enable;
+
+    /* What drive type we have to emulate?  */
+    unsigned int type;
+
+    /* Clock frequency of this disk unit in 1MHz units.  */
+    int clock_frequency;
+
+    /* What idling method?  (See `DRIVE_IDLE_*')  */
+    int idling_method;
+
+    /* Flag: What parallel cable do we emulate?  */
+    int parallel_cable;
+
+    /* Is the Professional DOS extension enabled?  */
+    int profdos;
+    /* Is the Supercard+ extension enabled? */
+    int supercard;
+    /* Is the StarDOS extension enabled? */
+    int stardos;
+
+    /* RTC context */
+    rtc_ds1216e_t *ds1216;
+
+    /* FD2000/4000 RTC save? */
+    int rtc_save;
+
+    /* Drive-specific logging goes here.  */
+    signed int log;
+
+    /* state of buttons on reset, if any */
+    int button;
+
+    /* Which RAM expansion is enabled?  */
+    int drive_ram2_enabled, drive_ram4_enabled, drive_ram6_enabled,
+        drive_ram8_enabled, drive_rama_enabled;
+
+    /* Current ROM image.  */
+    uint8_t rom[DRIVE_ROM_SIZE];
+
+    /* Current trap ROM image.  */
+    uint8_t trap_rom[DRIVE_ROM_SIZE];
+    int trap, trapcont;
+
+    /* Drive RAM */
+    uint8_t drive_ram[DRIVE_RAM_SIZE];
+
+} diskunit_context_t;
 
 #endif

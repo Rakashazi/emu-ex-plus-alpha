@@ -35,10 +35,11 @@ extern struct rawfile_info_s *rawfile_open(const char *file_name, const char *pa
 extern void rawfile_destroy(struct rawfile_info_s *info);
 extern unsigned int rawfile_write(struct rawfile_info_s *info, uint8_t *buf, unsigned int len);
 extern unsigned int rawfile_read(struct rawfile_info_s *info, uint8_t *buf, unsigned int len);
-extern int rawfile_seek_set(struct rawfile_info_s *info, int offset);
 extern unsigned int rawfile_ferror(struct rawfile_info_s *info);
 extern unsigned int rawfile_rename(const char *src_name, const char *dst_name, const char *path);
 extern unsigned int rawfile_remove(const char *src_name, const char *path);
 extern unsigned int rawfile_get_bytes_left(struct rawfile_info_s *info);
+extern unsigned int rawfile_seek(struct rawfile_info_s *info, off_t offset, int whence);
+extern unsigned int rawfile_tell(struct rawfile_info_s *info);
 
 #endif

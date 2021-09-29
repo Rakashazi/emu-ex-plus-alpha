@@ -267,4 +267,21 @@ namespace Keycode = Android;
 	UP_BUTTON = 16;
 	};
 
+	namespace Meta
+	{
+	static constexpr uint32_t
+	ALT = 0x2,
+	ALT_L = 0x10,
+	ALT_R = 0x20,
+	SHIFT = 0x1,
+	SHIFT_L = 0x40,
+	SHIFT_R = 0x80,
+	CTRL = 0x1000,
+	CTRL_L = 0x2000,
+	CTRL_R = 0x4000,
+	META = 0x10000,
+	META_L = 0x20000,
+	META_R = 0x40000,
+	CAPS_LOCK = 0x100000;
+	}
 }

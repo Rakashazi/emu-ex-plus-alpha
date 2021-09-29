@@ -102,10 +102,11 @@ int fsimage_dxx_write_half_track(disk_image_t *image, unsigned int half_track,
     }
     offset = sectors * 256;
 
+#ifdef HAVE_X64_IMAGE
     if (image->type == DISK_IMAGE_TYPE_X64) {
         offset += X64_HEADER_LENGTH;
     }
-
+#endif
     if (util_fpwrite(fsimage->fd, buffer, max_sector * 256, offset) < 0) {
         log_error(fsimage_dxx_log, "Error writing T:%u to disk image.",
                   track);
@@ -117,10 +118,11 @@ int fsimage_dxx_write_half_track(disk_image_t *image, unsigned int half_track,
         if (fsimage->error_info.dirty) {
             offset = fsimage->error_info.len * 256 + sectors;
 
+#ifdef HAVE_X64_IMAGE
             if (image->type == DISK_IMAGE_TYPE_X64) {
                 offset += X64_HEADER_LENGTH;
             }
-
+#endif
             fsimage->error_info.dirty = 0;
             if (error_info_created) {
                 res = util_fpwrite(fsimage->fd, fsimage->error_info.map,
@@ -146,7 +148,7 @@ int fsimage_dxx_write_half_track(disk_image_t *image, unsigned int half_track,
 int fsimage_read_dxx_image(const disk_image_t *image)
 {
     uint8_t buffer[256], *bam_id;
-    int gap;
+    int gap, headergap, synclen;
     unsigned int track, sector, track_size;
     gcr_header_t header;
     fdc_err_t rf;
@@ -194,7 +196,7 @@ int fsimage_read_dxx_image(const disk_image_t *image)
         if (track <= image->tracks) {
             /* get temp buffer */
             ptr = tempgcr = lib_malloc(track_size);
-            
+
             if (double_sided && track == 36) {
                 sectors = disk_image_check_sector(image, BAM_TRACK_1571 + 35, BAM_SECTOR_1571);
 
@@ -208,6 +210,8 @@ int fsimage_read_dxx_image(const disk_image_t *image)
             }
 
             gap = disk_image_gap_size(image->type, track);
+            headergap = disk_image_header_gap_size(image->type, track);
+            synclen = disk_image_sync_size(image->type, track);
 
             max_sector = disk_image_sector_per_track(image->type, track);
 
@@ -218,10 +222,11 @@ int fsimage_read_dxx_image(const disk_image_t *image)
                 sectors = disk_image_check_sector(image, track, sector);
                 offset = sectors * 256;
 
+#ifdef HAVE_X64_IMAGE
                 if (image->type == DISK_IMAGE_TYPE_X64) {
                     offset += X64_HEADER_LENGTH;
                 }
-
+#endif
                 if (sectors >= 0) {
                     rf = CBMDOS_FDC_ERR_DRIVE;
                     if (util_fpread(fsimage->fd, buffer, 256, offset) >= 0) {
@@ -230,12 +235,12 @@ int fsimage_read_dxx_image(const disk_image_t *image)
                         }
                     }
                     header.sector = sector;
-                    gcr_convert_sector_to_GCR(buffer, ptr, &header, 9, 5, rf);
+                    gcr_convert_sector_to_GCR(buffer, ptr, &header, headergap, synclen, rf);
                 }
 
-                ptr += SECTOR_GCR_SIZE_WITH_HEADER + 9 + gap + 5;
+                ptr += SECTOR_GCR_SIZE_WITH_HEADER + headergap + gap + (synclen * 2);
             }
-            
+
             ptr = image->gcr->tracks[half_track].data;
 #if 1
             memcpy(ptr, tempgcr, track_size);
@@ -294,10 +299,11 @@ int fsimage_dxx_read_sector(const disk_image_t *image, uint8_t *buf, const disk_
 
     offset = sectors * 256;
 
+#ifdef HAVE_X64_IMAGE
     if (image->type == DISK_IMAGE_TYPE_X64) {
         offset += X64_HEADER_LENGTH;
     }
-
+#endif
     if (image->gcr == NULL) {
         if (util_fpread(fsimage->fd, buf, 256, offset) < 0) {
             log_error(fsimage_dxx_log,
@@ -367,10 +373,11 @@ int fsimage_dxx_write_sector(disk_image_t *image, const uint8_t *buf, const disk
     }
     offset = sectors * 256;
 
+#ifdef HAVE_X64_IMAGE
     if (image->type == DISK_IMAGE_TYPE_X64) {
         offset += X64_HEADER_LENGTH;
     }
-
+#endif
     if (util_fpwrite(fsimage->fd, buf, 256, offset) < 0) {
         log_error(fsimage_dxx_log, "Error writing T:%u S:%u to disk image.",
                   dadr->track, dadr->sector);
@@ -384,10 +391,11 @@ int fsimage_dxx_write_sector(disk_image_t *image, const uint8_t *buf, const disk
         && (fsimage->error_info.map[sectors] != CBMDOS_FDC_ERR_OK)) {
         offset = fsimage->error_info.len * 256 + sectors;
 
+#ifdef HAVE_X64_IMAGE
         if (image->type == DISK_IMAGE_TYPE_X64) {
             offset += X64_HEADER_LENGTH;
         }
-
+#endif
         fsimage->error_info.map[sectors] = CBMDOS_FDC_ERR_OK;
         if (util_fpwrite(fsimage->fd, &fsimage->error_info.map[sectors], 1, offset) < 0) {
             log_error(fsimage_dxx_log,

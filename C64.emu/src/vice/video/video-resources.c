@@ -143,7 +143,6 @@ static int set_double_size_enabled(int value, void *param)
     if ((canvas->videoconfig->double_size_enabled != val
          || old_scalex != canvas->videoconfig->scalex
          || old_scaley != canvas->videoconfig->scaley)
-        && canvas->initialized
         && canvas->viewport->update_canvas > 0) {
         video_viewport_resize(canvas, 1);
     }
@@ -152,7 +151,7 @@ static int set_double_size_enabled(int value, void *param)
     return 0;
 }
 
-static const char *vname_chip_size[] = { "DoubleSize", NULL };
+static const char * const vname_chip_size[] = { "DoubleSize", NULL };
 
 static resource_int_t resources_chip_size[] =
 {
@@ -168,13 +167,12 @@ static int set_double_scan_enabled(int val, void *param)
     canvas->videoconfig->doublescan = val ? 1 : 0;
     canvas->videoconfig->color_tables.updated = 0;
 
-    if (canvas->initialized) {
-        video_canvas_refresh_all(canvas);
-    }
+    video_canvas_refresh_all(canvas);
+    
     return 0;
 }
 
-static const char *vname_chip_scan[] = { "DoubleScan", NULL };
+static const char * const vname_chip_scan[] = { "DoubleScan", NULL };
 
 static resource_int_t resources_chip_scan[] =
 {
@@ -200,13 +198,12 @@ static int set_hwscale_enabled(int val, void *param)
     canvas->videoconfig->hwscale = val ? 1 : 0;
     canvas->videoconfig->color_tables.updated = 0;
 
-    if (canvas->initialized) {
-        video_viewport_resize(canvas, 1);
-    }
+    video_viewport_resize(canvas, 1);
+    
     return 0;
 }
 
-static const char *vname_chip_hwscale[] = { "HwScale", NULL };
+static const char * const vname_chip_hwscale[] = { "HwScale", NULL };
 
 static resource_int_t resources_chip_hwscale[] =
 {
@@ -260,9 +257,8 @@ static int set_chip_rendermode(int val, void *param)
 
     lib_free(dsize);
 
-    if (canvas->initialized) {
-        video_canvas_refresh_all(canvas);
-    }
+    video_canvas_refresh_all(canvas);
+    
     return 0;
 }
 
@@ -284,20 +280,16 @@ static int set_fullscreen_enabled(int value, void *param)
 
     canvas->videoconfig->fullscreen_enabled = val;
 
-#if !defined(USE_SDLUI) && !defined(USE_SDLUI2)
-    if (canvas->initialized)
-#endif
-    {
-        if (val) {
-            r = (video_chip_cap->fullscreen.enable)(canvas, val);
-            (void) (video_chip_cap->fullscreen.statusbar)
-                (canvas, canvas->videoconfig->fullscreen_statusbar_enabled);
-        } else {
-            /* always show statusbar when coming back to window mode */
-            (void) (video_chip_cap->fullscreen.statusbar)(canvas, 1);
-            r = (video_chip_cap->fullscreen.enable)(canvas, val);
-        }
+    if (val) {
+        r = (video_chip_cap->fullscreen.enable)(canvas, val);
+        (void) (video_chip_cap->fullscreen.statusbar)
+            (canvas, canvas->videoconfig->fullscreen_statusbar_enabled);
+    } else {
+        /* always show statusbar when coming back to window mode */
+        (void) (video_chip_cap->fullscreen.statusbar)(canvas, 1);
+        r = (video_chip_cap->fullscreen.enable)(canvas, val);
     }
+    
     return r;
 }
 
@@ -354,7 +346,7 @@ static int set_fullscreen_device(const char *val, void *param)
     return (video_chip_cap->fullscreen.device)(canvas, val);
 }
 
-static const char *vname_chip_fullscreen[] = {
+static const char * const vname_chip_fullscreen[] = {
     "Fullscreen", "FullscreenStatusbar", "FullscreenDevice", NULL
 };
 
@@ -395,7 +387,7 @@ static int set_fullscreen_mode(int val, void *param)
     return (video_chip_cap->fullscreen.mode[device])(canvas, val);
 }
 
-static const char *vname_chip_fullscreen_mode[] = { "FullscreenMode", NULL };
+static const char * const vname_chip_fullscreen_mode[] = { "FullscreenMode", NULL };
 
 static resource_int_t resources_chip_fullscreen_mode[] =
 {
@@ -424,7 +416,7 @@ static int set_palette_file_name(const char *val, void *param)
     return 0;
 }
 
-static const char *vname_chip_palette[] = { "PaletteFile", "ExternalPalette", NULL };
+static const char * const vname_chip_palette[] = { "PaletteFile", "ExternalPalette", NULL };
 
 static resource_string_t resources_chip_palette_string[] =
 {
@@ -449,7 +441,7 @@ static int set_double_buffer_enabled(int val, void *param)
     return 0;
 }
 
-static const char *vname_chip_double_buffer[] = { "DoubleBuffer", NULL };
+static const char * const vname_chip_double_buffer[] = { "DoubleBuffer", NULL };
 
 static resource_int_t resources_chip_double_buffer[] =
 {
@@ -532,7 +524,7 @@ static int set_color_tint(int val, void *param)
     return 0;
 }
 
-static const char *vname_chip_colors[] = { "ColorSaturation", "ColorContrast", "ColorBrightness", "ColorGamma", "ColorTint", NULL };
+static const char * const vname_chip_colors[] = { "ColorSaturation", "ColorContrast", "ColorBrightness", "ColorGamma", "ColorTint", NULL };
 
 static resource_int_t resources_chip_colors[] =
 {
@@ -612,7 +604,7 @@ static int set_audioleak(int val, void *param)
     return 0;
 }
 
-static const char *vname_chip_crtemu[] = { "PALScanLineShade", "PALBlur", "PALOddLinePhase", "PALOddLineOffset", "AudioLeak", NULL };
+static const char * const vname_chip_crtemu[] = { "PALScanLineShade", "PALBlur", "PALOddLinePhase", "PALOddLineOffset", "AudioLeak", NULL };
 
 static resource_int_t resources_chip_crtemu[] =
 {

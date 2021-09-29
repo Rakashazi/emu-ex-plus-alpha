@@ -42,6 +42,7 @@
 #define VDRIVE_IMAGE_FORMAT_8250 4 /* Dual Disk Drive */
 #define VDRIVE_IMAGE_FORMAT_2040 5 /* Dual Disk Drive */
 #define VDRIVE_IMAGE_FORMAT_4000 6
+#define VDRIVE_IMAGE_FORMAT_9000 8
 
 #define BUFFER_NOT_IN_USE      0
 #define BUFFER_DIRECTORY_READ  1
@@ -66,11 +67,12 @@
 #define SERIAL_OK               0
 #define SERIAL_WRITE_TIMEOUT    1
 #define SERIAL_READ_TIMEOUT     2
-#define SERIAL_FILE_NOT_FOUND   64
+#define SERIAL_FILE_NOT_FOUND   64      /* EOF */
 #define SERIAL_NO_DEVICE        128
 
-#define SERIAL_ERROR            (2)
-#define SERIAL_EOF              (64)
+#define SERIAL_ERROR                    (2)
+#define SERIAL_EOF                      (0x40)
+#define SERIAL_DEVICE_NOT_PRESENT       (0x80)
 
 typedef struct bufferinfo_s {
     unsigned int mode;     /* Mode on this buffer */
@@ -118,7 +120,8 @@ typedef struct vdrive_s {
     /* Current image file */
     unsigned int mode;         /* Read/Write */
     unsigned int image_format; /* 1541/71/81 */
-    unsigned int unit;
+    unsigned int unit;	       /* IEC bus device number */
+    unsigned int drive;        /* Drive 0 or 1 (for dual drive units) */
 
     unsigned int Bam_Track;
     unsigned int Bam_Sector;
@@ -129,13 +132,17 @@ typedef struct vdrive_s {
     unsigned int Dir_Track;    /* First directory sector location */
     unsigned int Dir_Sector;
     unsigned int num_tracks;
+
+    unsigned int d90toggle;    /* D9090/60 new sector toggle */
+    int last_code;             /* for command channel status string */
+
     /* CBM partition first and last track (1581)
      * Part_Start is 1, Part_End = num_tracks if no partition is used
      */
     unsigned int Part_Start, Part_End;
 
     unsigned int bam_size;
-    uint8_t *bam;
+    uint8_t *bam;	/* Disk header blk (if any) followed by BAM blocks */
     bufferinfo_t buffers[16];
 
     /* Memory read command buffer.  */
@@ -181,12 +188,13 @@ typedef struct vdrive_s {
 /* ------------------------------------------------------------------------- */
 
 extern void vdrive_init(void);
-extern int vdrive_device_setup(vdrive_t *vdrive, unsigned int unit);
+extern int vdrive_device_setup(vdrive_t *vdrive, unsigned int unit, unsigned int drive);
 extern void vdrive_device_shutdown(vdrive_t *vdrive);
-extern int vdrive_attach_image(struct disk_image_s *image, unsigned int unit, vdrive_t *vdrive);
-extern void vdrive_detach_image(struct disk_image_s *image, unsigned int unit, vdrive_t *vdrive);
+extern int vdrive_attach_image(struct disk_image_s *image, unsigned int unit, unsigned int drive, vdrive_t *vdrive);
+extern void vdrive_detach_image(struct disk_image_s *image, unsigned int unit, unsigned int drive, vdrive_t *vdrive);
 extern void vdrive_close_all_channels(vdrive_t *vdrive);
 extern int vdrive_get_max_sectors(vdrive_t *vdrive, unsigned int track);
+extern int vdrive_get_max_sectors_per_head(vdrive_t *vdrive, unsigned int track);
 extern void vdrive_get_last_read(unsigned int *track, unsigned int *sector, uint8_t **buffer);
 extern void vdrive_set_last_read(unsigned int track, unsigned int sector, uint8_t *buffer);
 

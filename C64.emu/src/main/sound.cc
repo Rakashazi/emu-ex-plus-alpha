@@ -50,7 +50,8 @@ static sound_device_t soundDevice =
     nullptr,
     nullptr,
     0,
-    2
+    2,
+		true
 };
 
 CLINK int sound_init_dummy_device()

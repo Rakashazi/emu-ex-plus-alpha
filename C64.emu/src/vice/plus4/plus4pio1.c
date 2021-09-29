@@ -52,8 +52,8 @@ uint8_t pio1_read(uint16_t addr)
     ted_handle_pending_alarms(0);
 
     /* The functions below will gradually be removed as the functionality is added to the new userport system. */
-    if (drive_context[0]->drive->parallel_cable
-        || drive_context[1]->drive->parallel_cable) {
+    if (diskunit_context[0]->parallel_cable
+        || diskunit_context[1]->parallel_cable) {
         pio1_value = parallel_cable_cpu_read(DRIVE_PC_STANDARD, pio1_value);
     } else {
         pio1_value = pio1_data;
@@ -86,8 +86,8 @@ void pio1_store(uint16_t addr, uint8_t value)
     store_userport_pbx(pio1_outline);
 
     /* The functions below will gradually be removed as the functionality is added to the new userport system. */
-    if (drive_context[0]->drive->parallel_cable
-        || drive_context[1]->drive->parallel_cable) {
+    if (diskunit_context[0]->parallel_cable
+        || diskunit_context[1]->parallel_cable) {
         parallel_cable_cpu_write(DRIVE_PC_STANDARD, pio1_outline);
     }
 }
@@ -104,8 +104,8 @@ void pio1_set_tape_sense(int sense)
         pio1_outline &= ~4;
     }
 
-    if (drive_context[0]->drive->parallel_cable
-        || drive_context[1]->drive->parallel_cable) {
+    if (diskunit_context[0]->parallel_cable
+        || diskunit_context[1]->parallel_cable) {
         parallel_cable_cpu_write(DRIVE_PC_STANDARD, pio1_outline);
     }
 }

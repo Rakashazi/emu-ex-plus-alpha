@@ -212,6 +212,18 @@ Input::Keycode::GRAVE, \
 Input::Keycode::ESCAPE, \
 0
 
+#define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_ALT2_PROFILE_INIT \
+0, \
+Input::Keycode::MENU, \
+Input::Keycode::F9, \
+Input::Keycode::F12, \
+0, \
+0, \
+Input::Keycode::GRAVE, \
+0, \
+Input::Keycode::ESCAPE, \
+0
+
 #ifdef __ANDROID__
 #define EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_MINIMAL_PROFILE_INIT \
 0, \

@@ -40,7 +40,6 @@
 #include "monitor.h"
 #include "types.h"
 #include "vdc-mem.h"
-#include "vdc-resources.h"
 #include "vdc.h"
 #include "vdctypes.h"
 
@@ -70,7 +69,7 @@ static void vdc_write_data(void)
     /* Write data byte to update address. */
     vdc_ram_store(ptr & vdc.vdc_address_mask, vdc.regs[31]);
 #ifdef REG_DEBUG
-    log_message(vdc.log, "STORE %04x %02x", ptr & vdc.vdc_address_mask,
+    log_message(vdc.log, "STORE %04i %02x", ptr & vdc.vdc_address_mask,
                 vdc.regs[31]);
 #endif
     ptr += 1;
@@ -104,7 +103,7 @@ static void vdc_perform_fillcopy(void)
         vdc.regs[33] = ptr2 & 0xff;
     } else { /* FILL */
 #ifdef REG_DEBUG
-        log_message(vdc.log, "Fill mem %04x, len %03x, data %02x",
+        log_message(vdc.log, "Fill mem %04i, len %03i, data %02x",
                     ptr, blklen, vdc.regs[31]);
 #endif
         for (i = 0; i < blklen; i++) {
@@ -176,7 +175,7 @@ void vdc_store(uint16_t addr, uint8_t value)
         case 37:
             break;
         default:
-            log_message(vdc.log, "REG %02i VAL %02x CRL:%03i BH:%03i 0:%02X 1:%02X 2:%02X 3:%02X 4:%02X 5:%02X 6:%02X 7:%02X 8:%01X 9:%02X 12:%02X 13:%02X 20:%02X 21:%02X 22:%02X 23:%02X 24:%02X 25:%02X 26:%02X 27:%02X 34:%02X 35:%02X",
+            log_message(vdc.log, "REG %02i VAL %02x CRL:%03x BH:%03x 0:%02X 1:%02X 2:%02X 3:%02X 4:%02X 5:%02i 6:%02X 7:%02X 8:%01i 9:%02i 12:%02X 13:%02X 20:%02X 21:%02X 22:%02X 23:%02i 24:%02X 25:%02X 26:%02X 27:%02X 34:%02X 35:%02X",
                         vdc.update_reg, value,
                         vdc.raster.current_line, vdc.border_height,
                         vdc.regs[0], vdc.regs[1], vdc.regs[2], vdc.regs[3],
@@ -285,11 +284,9 @@ void vdc_store(uint16_t addr, uint8_t value)
                     vdc.bytes_per_char = 32;
                 }
             }
-            /* set the attribute offset to 3 if reg[9] = 0 to correctly (?)
-               emulate the 8x1 colour cell VDC trick (RFO FLI picture) */
-            if (vdc.regs[9] & 0x1f) {
-                vdc.attribute_offset = 0;
-            } else {
+            /* set the attribute offset to 3 if reg[9] transitions from 0 on the last row to
+               correctly (?) emulate the 8x1 colour cell VDC trick in RFOVDC FLI picture */
+            if (((oldval & 0x1fu) == 0) && (vdc.row_counter == (vdc.regs[6]-1))) {
                 vdc.attribute_offset = 3;
             }
 #ifdef REG_DEBUG
@@ -448,7 +445,8 @@ void vdc_store(uint16_t addr, uint8_t value)
 #endif
             break;
 
-        case 28:
+        case 28:                /* Character pattern address and memory type */
+            /* FIXME reg28 bit 4 sets RAM addressing. it does *not* show how much ram is installed */
             vdc.chargen_adr = ((vdc.regs[28] << 8) & 0xe000) & vdc.vdc_address_mask;
 #ifdef REG_DEBUG
             log_message(vdc.log, "Update chargen_adr: %x.", vdc.chargen_adr);
@@ -517,15 +515,6 @@ uint8_t vdc_read(uint16_t addr)
              /* Set the clock for when the vdc status will be clear after this operation */
             vdc_status_clear_clock = maincpu_clk + 37;
             return retval;
-        }
-
-        /* reg28 bit 4 is how much ram is installed. Technically this is only half-right as this bit is not set for 16k setups upgraded to 64k */
-        if (vdc.update_reg == 28) {
-            if (vdc.vdc_address_mask == 0xffff) {
-                return vdc.regs[28] | 0x1f;
-            } else {
-                return vdc.regs[28] | 0x0f;
-            }
         }
 
         /* reset light pen flag if either light pen position register is read */
@@ -663,19 +652,23 @@ int vdc_dump(void *context, uint16_t addr)
     mon_out(vdc.regs[24] & 0x40 ? ", Reverse" : "");
     mon_out(vdc.regs[8] & 0x03 ? ", Interlaced" : ", Non-Interlaced");
     if (vdc.regs[25] & 0x10) { /* double pixel mode aka 40column mode */
-        mon_out(", Double Pixel Mode");
-        mon_out("\nScreen Size    : %d x %d", vdc.regs[1], vdc.regs[6]);
-        mon_out("\nCharacter Size : %d x %d pixels (%d x %d visible)", vdc.regs[22] >> 4, vdc.regs[9] + 1, (vdc.regs[22] & 0x0f) + 1, (vdc.regs[23] & 0x1f) + 1);
-        mon_out("\nActive Pixels  : %d x %d", vdc.regs[1] * (vdc.regs[22] >> 4), vdc.regs[6] * (vdc.regs[9] + 1));
+        mon_out(", Pixel Double");
+        mon_out("\nScreen Size    : %d x %d chars", vdc.regs[1], vdc.regs[6]);
+        mon_out("\nCharacter Size : %d x %d pixels (%d x %d visible)", vdc.regs[22] >> 4, (vdc.regs[9] & 0x1f) + 1, (vdc.regs[22] & 0x0f) + 1, (vdc.regs[23] & 0x1f) + 1);
+        mon_out("\nActive Pixels  : %d x %d", vdc.regs[1] * (vdc.regs[22] >> 4), vdc.regs[6] * ((vdc.regs[9] & 0x1f) + 1));
+        mon_out("\nFrame inc. Sync: %d x %d @ %f fps", (vdc.regs[0] + 1) * (vdc.regs[22] >> 4), (vdc.regs[4] + 1) * ((vdc.regs[9] & 0x1f) + 1) + (vdc.regs[5] & 0x1f),
+                                    VDC_DOT_CLOCK / (2 * (vdc.regs[0] + 1) * (vdc.regs[22] >> 4) * ((vdc.regs[4] + 1) * ((vdc.regs[9] & 0x1f) + 1) + (vdc.regs[5] & 0x1f))));
     } else {
-        mon_out("\nScreen Size    : %d x %d", vdc.regs[1], vdc.regs[6]);
-        mon_out("\nCharacter Size : %d x %d pixels (%d x %d visible)", (vdc.regs[22] >> 4) + 1, vdc.regs[9] + 1, (vdc.regs[22] & 0x0f) + 1, (vdc.regs[23] & 0x1f) + 1);
-        mon_out("\nActive Pixels  : %d x %d", vdc.regs[1] * ((vdc.regs[22] >> 4) + 1), vdc.regs[6] * (vdc.regs[9] + 1));
+        mon_out("\nScreen Size    : %d x %d chars", vdc.regs[1], vdc.regs[6]);
+        mon_out("\nCharacter Size : %d x %d pixels (%d x %d visible)", (vdc.regs[22] >> 4) + 1, (vdc.regs[9] & 0x1f) + 1, (vdc.regs[22] & 0x0f) + 1, (vdc.regs[23] & 0x1f) + 1);
+        mon_out("\nActive Pixels  : %d x %d", vdc.regs[1] * ((vdc.regs[22] >> 4) + 1), vdc.regs[6] * ((vdc.regs[9] & 0x1f) + 1));
+        mon_out("\nFrame inc. Sync: %d x %d @ %f fps", (vdc.regs[0] + 1) * ((vdc.regs[22] >> 4) + 1), (vdc.regs[4] + 1) * ((vdc.regs[9] & 0x1f) + 1) + (vdc.regs[5] & 0x1f),
+                                    VDC_DOT_CLOCK / ((vdc.regs[0] + 1) * ((vdc.regs[22] >> 4) + 1) * ((vdc.regs[4] + 1) * ((vdc.regs[9] & 0x1f) + 1) + (vdc.regs[5] & 0x1f))));
     }
 
     location = ((vdc.regs[12] << 8) + vdc.regs[13]) & vdc.vdc_address_mask;
     if (vdc.regs[25] & 0x80 ) {
-        size = vdc.regs[1] * vdc.regs[6] * (vdc.regs[9] + 1);   /* bitmap size */
+        size = vdc.regs[1] * vdc.regs[6] * ((vdc.regs[9] & 0x1f) + 1);  /* bitmap size */
     } else {
         size = vdc.regs[1] * vdc.regs[6];   /* text mode size */
     }

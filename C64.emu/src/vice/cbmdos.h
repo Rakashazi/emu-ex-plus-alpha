@@ -75,7 +75,7 @@
 #define CBMDOS_IPE_PERMISSION              81  /* permission denied */
 
 /* CBM DOS File Types */
-#define CBMDOS_FT_DEL         0
+#define CBMDOS_FT_DEL         0       /* should match FILEIO_TYPE_xxx */
 #define CBMDOS_FT_SEQ         1
 #define CBMDOS_FT_PRG         2
 #define CBMDOS_FT_USR         3
@@ -125,6 +125,7 @@ struct cbmdos_cmd_parse_s {
     unsigned int filetype; /* output */
     unsigned int recordlength; /* output */
     int drive; /* output: drive number */
+    unsigned int atsign; /* @0:filename, detected in fsdevice_open() */
 };
 typedef struct cbmdos_cmd_parse_s cbmdos_cmd_parse_t;
 

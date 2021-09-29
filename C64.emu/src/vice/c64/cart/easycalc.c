@@ -183,7 +183,7 @@ static int easycalc_dump(void)
    ARRAY | ROMH | 16384 BYTES of ROMH data
  */
 
-static char snap_module_name[] = "CARTEASYCALC";
+static const char snap_module_name[] = "CARTEASYCALC";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

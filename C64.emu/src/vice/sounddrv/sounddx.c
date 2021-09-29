@@ -41,10 +41,8 @@
 #define _WIN32_DCOM
 #endif
 
-#if __GNUC__>2 || (__GNUC__==2 && __GNUC_MINOR__>=95)
 #include <windows.h>
 #include <mmsystem.h>
-#endif
 
 #define DIRECTSOUND_VERSION 0x0500
 #include <dsound.h>
@@ -63,6 +61,7 @@
 
 /* FIXME: each of the following should probably get moved to archdep */
 #if defined(USE_SDLUI) || defined(USE_SDLUI2)
+
 static HWND ui_get_main_hwnd(void)
 {
     SDL_SysWMinfo info;
@@ -71,27 +70,49 @@ static HWND ui_get_main_hwnd(void)
 
     return info.window;
 }
-#else
+
+#elif defined(USE_NATIVE_GTK3)
 
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkwin32.h>
+#include "ui.h"
 
 static HWND ui_get_main_hwnd(void)
 {
-#if 0
-    GdkWindow *gdk_window = gdk_screen_get_active_window (NULL);
+    GdkWindow *gdk_window = gtk_widget_get_window(ui_get_window_by_index(0));
     HWND hWnd = NULL;
-    printf("gdk_window = %p\n", gdk_window); /* always NULL/0 */
 
     if (gdk_window) {
         if (gdk_window_ensure_native(gdk_window)) {
             hWnd = gdk_win32_window_get_impl_hwnd(gdk_window);
         }
     }
+
+    /*
+     * We could fallback to the desktop window - but we shouldn't have to!
+     * DirectSound uses this window to figure out something to do with
+     * how the sound device should be shared among multiple applications.
+     * So I believe it's worth keeping the above in a state that works.
+     * Which means better to get the bug report that the DirectSound
+     * driver isn't working for someone.
+     */
+#if 0
+    if (!hWnd) {
+        hWnd = GetDesktopWindow();
+    }
 #endif
-    return GetActiveWindow();
+
+    return hWnd;
 }
+
+#else /* Headless UI */
+
+static HWND ui_get_main_hwnd(void)
+{
+    return GetDesktopWindow();
+}
+
 #endif
 
 /* ------------------------------------------------------------------------ */
@@ -304,8 +325,6 @@ static int dx_init(const char *param, int *speed, int *fragsize, int *fragnr,
 #ifdef HAVE_DSOUND_LIB
         result = DirectSoundCreate(NULL, &ds, NULL);
 #else
-        CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-
         result = CoCreateInstance(&CLSID_DirectSound, NULL, CLSCTX_INPROC_SERVER, &IID_IDirectSound, (PVOID*)&ds);
         if (result == S_OK) {
             result = IDirectSound_Initialize(ds, NULL);
@@ -315,13 +334,13 @@ static int dx_init(const char *param, int *speed, int *fragsize, int *fragnr,
             ui_error("Cannot initialize DirectSound:\n%s", ds_error(result));
             return -1;
         }
-
-        if (console_mode || video_disabled_mode) {
-            result = IDirectSound_SetCooperativeLevel(ds, GetForegroundWindow() ? GetForegroundWindow() : GetDesktopWindow(), DSSCL_EXCLUSIVE);
-        } else {
-            result = IDirectSound_SetCooperativeLevel(ds, ui_get_main_hwnd(), DSSCL_EXCLUSIVE);
-        }
         
+        if (console_mode || video_disabled_mode) {
+            result = IDirectSound_SetCooperativeLevel(ds, GetForegroundWindow() ? GetForegroundWindow() : GetDesktopWindow(), DSSCL_PRIORITY);
+        } else {
+            result = IDirectSound_SetCooperativeLevel(ds, ui_get_main_hwnd(), DSSCL_PRIORITY);
+        }
+
         if (result != DS_OK) {
             log_error(LOG_DEFAULT, "Cannot set cooperative level:\n%s", ds_error(result));
             return -1;
@@ -586,7 +605,8 @@ static sound_device_t dx_device =
     dx_suspend,
     dx_resume,
     0,
-    2           /* FIXME: should account for mono and stereo devices */
+    2,           /* FIXME: should account for mono and stereo devices */
+    true
 };
 
 int sound_init_dx_device(void)

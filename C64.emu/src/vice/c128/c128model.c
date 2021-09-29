@@ -82,7 +82,7 @@ struct model_s {
     int board;   /* 0: C128 FLAT, 1: C128 D */
 };
 
-static struct model_s c128models[] = {
+static const struct model_s c128models[] = {
     { MACHINE_SYNC_PAL,  OLD_CIA, OLD_SID, VDC_REVISION_1, VDC16K, BOARD_C128 }, /* PAL C128 flat */
     { MACHINE_SYNC_PAL,  OLD_CIA, OLD_SID, VDC_REVISION_1, VDC16K, BOARD_C128D }, /* PAL C128D */
     { MACHINE_SYNC_PAL,  NEW_CIA, NEW_SID, VDC_REVISION_2, VDC64K, BOARD_C128D }, /* PAL C128DCR */

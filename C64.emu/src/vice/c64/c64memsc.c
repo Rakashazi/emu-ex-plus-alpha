@@ -100,6 +100,8 @@ uint8_t *mem_chargen_rom_ptr;
 /* Pointers to the currently used memory read and write tables.  */
 read_func_ptr_t *_mem_read_tab_ptr;
 store_func_ptr_t *_mem_write_tab_ptr;
+read_func_ptr_t *_mem_read_tab_ptr_dummy;
+store_func_ptr_t *_mem_write_tab_ptr_dummy;
 static uint8_t **_mem_read_base_tab_ptr;
 static uint32_t *mem_read_limit_tab_ptr;
 
@@ -124,8 +126,12 @@ static int tape_sense = 0;
 static int tape_write_in = 0;
 static int tape_motor_in = 0;
 
-/* Current watchpoint state. 1 = watchpoints active, 0 = no watchpoints */
-static int watchpoints_active;
+/* Current watchpoint state. 
+          0 = no watchpoints
+    bit0; 1 = watchpoints active
+    bit1; 2 = watchpoints trigger on dummy accesses
+*/
+static int watchpoints_active = 0;
 
 /* ------------------------------------------------------------------------- */
 
@@ -155,20 +161,32 @@ static void store_watch(uint16_t addr, uint8_t value)
     mem_write_tab[mem_config][addr >> 8](addr, value);
 }
 
-static void mem_update_tap_ptrs(int flag)
+/* called by mem_pla_config_changed(), mem_toggle_watchpoints() */
+static void mem_update_tab_ptrs(int flag)
 {
     if (flag) {
         _mem_read_tab_ptr = mem_read_tab_watch;
         _mem_write_tab_ptr = mem_write_tab_watch;
+        if (flag > 1) {
+            /* enable watchpoints on dummy accesses */
+            _mem_read_tab_ptr_dummy = mem_read_tab_watch;
+            _mem_write_tab_ptr_dummy = mem_write_tab_watch;
+        } else {
+            _mem_read_tab_ptr_dummy = mem_read_tab[mem_config];
+            _mem_write_tab_ptr_dummy = mem_write_tab[mem_config];
+        }
     } else {
+        /* all watchpoints disabled */
         _mem_read_tab_ptr = mem_read_tab[mem_config];
         _mem_write_tab_ptr = mem_write_tab[mem_config];
+        _mem_read_tab_ptr_dummy = mem_read_tab[mem_config];
+        _mem_write_tab_ptr_dummy = mem_write_tab[mem_config];
     }
 }
 
 void mem_toggle_watchpoints(int flag, void *context)
 {
-    mem_update_tap_ptrs(flag);
+    mem_update_tab_ptrs(flag);
     watchpoints_active = flag;
 }
 
@@ -226,7 +244,7 @@ void mem_pla_config_changed(void)
 
     c64pla_config_changed(tape_sense, tape_write_in, tape_motor_in, 1, 0x17);
 
-    mem_update_tap_ptrs(watchpoints_active);
+    mem_update_tab_ptrs(watchpoints_active);
 
     _mem_read_base_tab_ptr = mem_read_base_tab[mem_config];
     mem_read_limit_tab_ptr = mem_read_limit_tab[mem_config];
@@ -1030,16 +1048,24 @@ static const char *banknames[] = {
     "rom",
     "io",
     "cart",
+    /* by convention, a "bank array" has a 2-hex-digit bank index appended */
     NULL
 };
 
-static const int banknums[] = { 1, 0, 1, 2, 3, 4 };
+static const int banknums[] = { 1, 0, 1, 2, 3, 4, -1 };
+static const int bankindex[] = { -1, -1, -1, -1, -1, -1, -1 };
+static const int bankflags[] = { 0, 0, 0, 0, 0, 0, -1 };
 
 const char **mem_bank_list(void)
 {
     return banknames;
 }
 
+const int *mem_bank_list_nos(void) {
+    return banknums;
+}
+
+/* return bank number for a given literal bank name */
 int mem_bank_from_name(const char *name)
 {
     int i = 0;
@@ -1047,6 +1073,33 @@ int mem_bank_from_name(const char *name)
     while (banknames[i]) {
         if (!strcmp(name, banknames[i])) {
             return banknums[i];
+        }
+        i++;
+    }
+    return -1;
+}
+
+/* return current index for a given bank */
+int mem_bank_index_from_bank(int bank)
+{
+    int i = 0;
+
+    while (banknums[i] > -1) {
+        if (banknums[i] == bank) {
+            return bankindex[i];
+        }
+        i++;
+    }
+    return -1;
+}
+
+int mem_bank_flags_from_bank(int bank)
+{
+    int i = 0;
+
+    while (banknums[i] > -1) {
+        if (banknums[i] == bank) {
+            return bankflags[i];
         }
         i++;
     }
@@ -1083,19 +1136,54 @@ uint8_t mem_bank_read(int bank, uint16_t addr, void *context)
     return mem_ram[addr];
 }
 
-/* used by monitor if sfx off */
+/* used by monitor if sfx off, and when disassembling/tracing. this function
+ * can NOT use the generic mem_read stuff, because that DOES have side effects,
+ * such as (re)triggering checkpoints in the monitor!
+ */
 uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
 {
     switch (bank) {
         case 0:                   /* current */
-            /* we must check for which bank is currently active, and only use peek_bank_io
-               when needed to avoid side effects */
+            /* we must check for which bank is currently active */
             if (c64meminit_io_config[mem_config]) {
                 if ((addr >= 0xd000) && (addr < 0xe000)) {
                     return peek_bank_io(addr);
                 }
             }
-            return mem_read(addr);
+            if (c64meminit_roml_config[mem_config]) {
+                if (addr >= 0x8000 && addr <= 0x9fff) {
+                    return cartridge_peek_mem(addr);
+                }
+            }
+            if (c64meminit_romh_config[mem_config]) {
+                unsigned int romhloc = c64meminit_romh_mapping[mem_config] << 8;
+                if (addr >= romhloc && addr <= (romhloc + 0x1fff)) {
+                    return cartridge_peek_mem(addr);
+                }
+            }
+            if (c64meminit_io_config[mem_config] == 2) {
+                /* ultimax mode */
+                if (addr >= 0x0000 && addr <= 0x0fff) {
+                    return mem_ram[addr];
+                }
+                return cartridge_peek_mem(addr);
+            }
+            if((mem_config == 3) || (mem_config == 7) ||
+               (mem_config == 11) || (mem_config == 15)) {
+                if (addr >= 0xa000 && addr <= 0xbfff) {
+                    return c64memrom_basic64_rom[addr & 0x1fff];
+                }
+            }
+            if((mem_config & 3) > 1) {
+                if (addr >= 0xe000) {
+                    return c64memrom_kernal64_rom[addr & 0x1fff];
+                }
+            }
+            if((mem_config & 3) && (mem_config != 0x19)) {
+                if ((addr >= 0xd000) && (addr < 0xdfff)) {
+                    return mem_chargen_rom[addr & 0x0fff];
+                }
+            }
             break;
         case 3:                   /* io */
             if (addr >= 0xd000 && addr < 0xe000) {
@@ -1104,8 +1192,21 @@ uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
             /* FALL THROUGH */
         case 4:                   /* cart */
             return cartridge_peek_mem(addr);
+        case 2:                   /* rom */
+            if (addr >= 0xa000 && addr <= 0xbfff) {
+                return c64memrom_basic64_rom[addr & 0x1fff];
+            }
+            if (addr >= 0xd000 && addr <= 0xdfff) {
+                return mem_chargen_rom[addr & 0x0fff];
+            }
+            if (addr >= 0xe000) {
+                return c64memrom_kernal64_rom[addr & 0x1fff];
+            }
+            /* FALL THROUGH */
+        case 1:                   /* ram */
+            break;
     }
-    return mem_bank_read(bank, addr, context);
+    return mem_ram[addr];
 }
 
 void mem_bank_write(int bank, uint16_t addr, uint8_t byte, void *context)
@@ -1177,10 +1278,10 @@ mem_ioreg_list_t *mem_ioreg_list_get(void *context)
 {
     mem_ioreg_list_t *mem_ioreg_list = NULL;
 
-    mon_ioreg_add_list(&mem_ioreg_list, "CIA1", 0xdc00, 0xdc0f, mem_dump_io, NULL);
-    mon_ioreg_add_list(&mem_ioreg_list, "CIA2", 0xdd00, 0xdd0f, mem_dump_io, NULL);
+    io_source_ioreg_add_list(&mem_ioreg_list);  /* VIC-II, SID first so it's in address order */
 
-    io_source_ioreg_add_list(&mem_ioreg_list);
+    mon_ioreg_add_list(&mem_ioreg_list, "CIA1", 0xdc00, 0xdc0f, mem_dump_io, NULL, IO_MIRROR_NONE);
+    mon_ioreg_add_list(&mem_ioreg_list, "CIA2", 0xdd00, 0xdd0f, mem_dump_io, NULL, IO_MIRROR_NONE);
 
     return mem_ioreg_list;
 }

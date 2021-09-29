@@ -267,7 +267,7 @@ int shortbus_digimax_enabled(void)
    BYTE  | voice 3    | voice 3 state
  */
 
-static char snap_module_name[] = "SHORTBUSDIGIMAX";
+static const char snap_module_name[] = "SHORTBUSDIGIMAX";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

@@ -98,7 +98,7 @@ char *fsdevice_get_path(unsigned int unit)
 void fsdevice_error(vdrive_t *vdrive, int code)
 {
     unsigned int dnr;
-    static int last_code[4];
+    static int last_code[FSDEVICE_DEVICE_MAX];
     const char *message;
     unsigned int trk = 0, sec = 0;
 
@@ -107,6 +107,10 @@ void fsdevice_error(vdrive_t *vdrive, int code)
     /* Only set an error once per command */
     if (code != CBMDOS_IPE_OK && last_code[dnr] != CBMDOS_IPE_OK
         && last_code[dnr] != CBMDOS_IPE_DOS_VERSION) {
+        return;
+    }
+
+    if (dnr >= FSDEVICE_DEVICE_MAX) {
         return;
     }
 
@@ -175,15 +179,15 @@ int fsdevice_error_get_byte(vdrive_t *vdrive, uint8_t *data)
     return rc;
 }
 
-int fsdevice_attach(unsigned int device, const char *name)
+int fsdevice_attach(unsigned int device, unsigned int drive, const char *name)
 {
     vdrive_t *vdrive;
 
-    vdrive = file_system_get_vdrive(device);
+    vdrive = file_system_get_vdrive(device, drive);
 
     if (machine_bus_device_attach(device, name, fsdevice_read, fsdevice_write,
                                   fsdevice_open, fsdevice_close,
-                                  fsdevice_flush, NULL)) {
+                                  fsdevice_flush, fsdevice_listen)) {
         return 1;
     }
 

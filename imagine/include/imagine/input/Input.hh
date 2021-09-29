@@ -100,6 +100,7 @@ public:
 	bool canceled() const;
 	bool isOff() const;
 	bool moved() const;
+	uint32_t metaKeyBits() const;
 	bool isShiftPushed() const;
 	int repeated() const;
 	void setRepeatCount(int count);

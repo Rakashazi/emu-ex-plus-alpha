@@ -27,8 +27,8 @@
 #ifndef VICE_MEMIEEE_H
 #define VICE_MEMIEEE_H
 
-struct drive_context_s;
+struct diskunit_context_s;
 
-extern void memieee_init(struct drive_context_s *drv, unsigned int type);
+extern void memieee_init(struct diskunit_context_s *drv, unsigned int type);
 
 #endif

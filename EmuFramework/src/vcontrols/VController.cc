@@ -192,6 +192,7 @@ void VController::toggleKeyboard()
 	logMsg("toggling keyboard");
 	resetInput();
 	kbMode ^= true;
+	EmuSystem::onVKeyboardShown(kb, kbMode);
 }
 
 std::array<int, 2> VController::findGamepadElements(IG::WP pos)

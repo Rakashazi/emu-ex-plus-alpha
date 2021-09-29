@@ -42,9 +42,9 @@ static void drive_clk_overflow_callback(CLOCK sub, void *data)
     drive_t *drive;
 
     dnr = vice_ptr_to_uint(data);
-    drive = drive_context[dnr]->drive;
+    drive = diskunit_context[dnr]->drives[0];
 
-    drive_context[dnr]->cpu->stop_clk -= sub;
+    diskunit_context[dnr]->cpu->stop_clk -= sub;
 
     rotation_overflow_callback(sub, dnr);
 
@@ -66,8 +66,8 @@ static void drive_clk_overflow_callback(CLOCK sub, void *data)
         drive->led_last_uiupdate_clk -= sub;
     }
 
-    alarm_context_time_warp(drive_context[dnr]->cpu->alarm_context, sub, -1);
-    interrupt_cpu_status_time_warp(drive_context[dnr]->cpu->int_status, sub,
+    alarm_context_time_warp(diskunit_context[dnr]->cpu->alarm_context, sub, -1);
+    interrupt_cpu_status_time_warp(diskunit_context[dnr]->cpu->int_status, sub,
                                    -1);
 }
 
@@ -75,8 +75,8 @@ void drive_overflow_init(void)
 {
     unsigned int dnr;
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        clk_guard_add_callback(drive_context[dnr]->cpu->clk_guard,
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
+        clk_guard_add_callback(diskunit_context[dnr]->cpu->clk_guard,
                                drive_clk_overflow_callback, uint_to_void_ptr(dnr));
     }
 }

@@ -48,6 +48,7 @@
 #endif
 
 #include "archdep.h"
+#include "cartridge.h"
 #include "ioutil.h"
 #include "lib.h"
 #include "log.h"
@@ -61,6 +62,12 @@
 #else
 #define DBG(x)
 #endif
+
+
+/** \brief  Initial size of the array holding resources
+ */
+#define NUM_ALLOCATED_RESOURCES_INIT    512
+
 
 typedef struct resource_ram_s {
     /* Resource name.  */
@@ -98,6 +105,7 @@ typedef struct resource_ram_s {
     int hash_next;
 } resource_ram_t;
 
+
 /* the type of the callback vector chain */
 typedef struct resource_callback_desc_s {
     resource_callback_func_t *func;
@@ -106,7 +114,8 @@ typedef struct resource_callback_desc_s {
 } resource_callback_desc_t;
 
 
-static unsigned int num_resources, num_allocated_resources;
+static unsigned int num_resources;
+static unsigned int num_allocated_resources;
 static resource_ram_t *resources;
 static char *machine_id = NULL;
 
@@ -282,7 +291,9 @@ int resources_register_int(const resource_int_t *r)
         dp->hash_next = hashTable[hashkey];
         hashTable[hashkey] = (int)(dp - resources);
 
-        num_resources++, sp++, dp++;
+        num_resources++;
+        sp++;
+        dp++;
     }
 
     return 0;
@@ -351,7 +362,7 @@ static void resources_free(void)
 }
 
 
-/** \brief  Shutown resources
+/** \brief  Shutdown resources
  */
 void resources_shutdown(void)
 {
@@ -440,12 +451,37 @@ static void resource_record_event(resource_ram_t *r,
 
 /* ------------------------------------------------------------------------- */
 
+
+/* Total resources registered per emu, using Gtk3 (2020-02-24)
+ *
+ * x128         509
+ * x64sc        471
+ * x64          469
+ * xscpu64      445
+ * xvic         364
+ * xplus4       321
+ * x64dtv       309
+ * xpet         300
+ * xcbm2        284
+ * xcbm5x0      272
+ * vsid         63
+ */
+
+
+/** \brief  Initialize resources module
+ *
+ * Allocated memory for resource objects and the hash table.
+ *
+ * \param[in]   machine machine name
+ *
+ * \return  0
+ */
 int resources_init(const char *machine)
 {
     unsigned int i;
 
     machine_id = lib_strdup(machine);
-    num_allocated_resources = 100;
+    num_allocated_resources = NUM_ALLOCATED_RESOURCES_INIT;
     num_resources = 0;
     resources = lib_malloc(num_allocated_resources * sizeof(resource_ram_t));
 
@@ -707,9 +743,22 @@ int resources_get_value(const char *name, void *value_return)
     return 0;
 }
 
+
+/** \brief  Get value for resource \a name and store in \a value_return
+ *
+ * If the resource is unknown, the return value is set to 0.
+ *
+ * \param[in]   name            resource name
+ * \param[out]  value_return    resource value target
+ *
+ * \return  0 on succes, -1 on failure
+ */
 int resources_get_int(const char *name, int *value_return)
 {
     resource_ram_t *r = lookup(name);
+
+    /* set some sane value */
+    *value_return = 0;
 
     if (r == NULL) {
         log_warning(LOG_DEFAULT,
@@ -730,9 +779,24 @@ int resources_get_int(const char *name, int *value_return)
     return 0;
 }
 
+
+/** \brief  Get string resource \a name and store in \a value_return
+ *
+ * If the resource \a name is unknown, \a value_return is set to NULL.
+ *
+ * \param[in]   name            resource name
+ * \param[out]  value_return    resource value target
+ *
+ * \return  0 on success, -1 on failure
+ */
 int resources_get_string(const char *name, const char **value_return)
 {
     resource_ram_t *r = lookup(name);
+
+    /* don't return an unitialized value, NULL is probably a good choice to
+     * trace bugs
+     */
+    *value_return = NULL;
 
     if (r == NULL) {
         log_warning(LOG_DEFAULT,
@@ -848,6 +912,14 @@ int resources_set_defaults(void)
 {
     unsigned int i;
 
+    /* the cartridge system uses internal state variables so the default cartridge
+       can be unset without changing the attached cartridge and/or attach another
+       cartridge without changing the default. to completely restore the default,
+       which is no default cartridge, and no currently attached cartridge, call
+       the respective functions of the cartridge system here */
+    cartridge_unset_default();
+    cartridge_detach_image(-1);
+
     for (i = 0; i < num_resources; i++) {
         switch (resources[i].type) {
             case RES_INTEGER:
@@ -886,6 +958,7 @@ int resources_set_event_safe(void)
                 if (resources[i].event_relevant == RES_EVENT_STRICT) {
                     if ((*resources[i].set_func_int)(vice_ptr_to_int(resources[i].event_strict_value),
                                                      resources[i].param) < 0) {
+                        log_error(LOG_DEFAULT, "failed to set event-safe resource value for '%s'\n", resources[i].name);
                         return -1;
                     }
                 }
@@ -894,6 +967,7 @@ int resources_set_event_safe(void)
                 if (resources[i].event_relevant == RES_EVENT_STRICT) {
                     if ((*resources[i].set_func_string)((const char *)(resources[i].event_strict_value),
                                                         resources[i].param) < 0) {
+                        log_error(LOG_DEFAULT, "failed to set event-safe resource value for '%s'\n", resources[i].name);
                         return -1;
                     }
                 }
@@ -1099,21 +1173,9 @@ int resources_load(const char *fname)
     int retval;
     int line_num;
     int err = 0;
-    char *default_name = NULL;
-
-    if (fname == NULL) {
-        if (vice_config_file == NULL) {
-            default_name = archdep_default_resource_file_name();
-        } else {
-            default_name = lib_strdup(vice_config_file);
-        }
-        fname = default_name;
-    }
 
     f = fopen(fname, MODE_READ_TEXT);
-
     if (f == NULL) {
-        lib_free(default_name);
         return RESERR_FILE_NOT_FOUND;
     }
 
@@ -1124,7 +1186,6 @@ int resources_load(const char *fname)
         char buf[1024];
 
         if (util_get_line(buf, 1024, f) < 0) {
-            lib_free(default_name);
             fclose(f);
             return RESERR_READ_ERROR;
         }
@@ -1154,7 +1215,6 @@ int resources_load(const char *fname)
     } while (retval != 0);
 
     fclose(f);
-    lib_free(default_name);
 
     if (resource_modified_callback != NULL) {
         resources_exec_callback_chain(resource_modified_callback, NULL);
@@ -1163,6 +1223,33 @@ int resources_load(const char *fname)
     return err ? RESERR_FILE_INVALID : 0;
 }
 
+/* Reset resources to defaults, then load the resources from file `fname'.  
+   If `fname' is NULL, load them from the default resource file.  */
+int resources_reset_and_load(const char *fname)
+{
+    char *default_name = NULL;
+    int res;
+    if (fname == NULL) {
+        if (vice_config_file == NULL) {
+            /* try the alternative name/location first */
+            default_name = archdep_default_portable_resource_file_name();
+            if (default_name != NULL) {
+                if (ioutil_access(default_name, IOUTIL_ACCESS_R_OK) != 0)  {
+                    /* if not found at alternative location, try the normal one */
+                    lib_free(default_name);
+                    default_name = archdep_default_resource_file_name();
+                }
+            }
+        } else {
+            default_name = lib_strdup(vice_config_file);
+        }
+        fname = default_name;
+    }
+    resources_set_defaults();
+    res = resources_load(fname);
+    lib_free(default_name);
+    return res;
+}
 
 static char *string_resource_item(int num, const char *delim)
 {
@@ -1251,8 +1338,16 @@ int resources_save(const char *fname)
     /* get name for config file */
     if (fname == NULL) {
         if (vice_config_file == NULL) {
-            /* get default filename. this also creates the .vice directory if not present */
-            default_name = archdep_default_resource_file_name();
+            /* try the alternative name/location first */
+            default_name = archdep_default_portable_resource_file_name();
+            if (default_name != NULL) {
+                if (ioutil_access(default_name, IOUTIL_ACCESS_R_OK) != 0) {
+                    /* if not found at alternative location, try the normal one
+                     this also creates the .vice directory if not present */
+                    lib_free(default_name);
+                    default_name = archdep_default_resource_file_name();
+                }
+            }
         } else {
             default_name = lib_strdup(vice_config_file);
         }
@@ -1291,6 +1386,7 @@ int resources_save(const char *fname)
         in_file = fopen(backup_name, MODE_READ_TEXT);
         if (!in_file) {
             lib_free(backup_name);
+            lib_free(default_name);
             return RESERR_READ_ERROR;
         }
     }

@@ -46,6 +46,7 @@ extern int acia_de_enabled;
 #define C64_KERNAL_MAX     -1   /* FIXME */
 #define C64_KERNAL_REV3SWE -1   /* FIXME */
 extern int kernal_revision;
+extern int kernal_revision_cmdline;
 
 extern int cia1_model;
 extern int cia2_model;

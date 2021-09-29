@@ -110,6 +110,8 @@ static int mem_read_limit_tab[0x101];
 
 read_func_ptr_t *_mem_read_tab_ptr;
 store_func_ptr_t *_mem_write_tab_ptr;
+read_func_ptr_t *_mem_read_tab_ptr_dummy;
+store_func_ptr_t *_mem_write_tab_ptr_dummy;
 static uint8_t **_mem_read_base_tab_ptr;
 static int *mem_read_limit_tab_ptr;
 
@@ -138,6 +140,13 @@ store_func_ptr_t *_mem6809_write_tab_ptr;
 static log_t pet_mem_log = LOG_ERR;
 
 static uint8_t last_access = 0;
+
+/* Current watchpoint state. 
+          0 = no watchpoints
+    bit0; 1 = watchpoints active
+    bit1; 2 = watchpoints trigger on dummy accesses
+*/
+static int watchpoints_active = 0;
 
 /* ------------------------------------------------------------------------- */
 
@@ -1061,7 +1070,7 @@ static void set_std_9tof(void)
     mem_read_limit_tab_ptr = mem_read_limit_tab;
 }
 
-void ramsel_changed()
+void ramsel_changed(void)
 {
     set_std_9tof();
     maincpu_resync_limits();
@@ -1075,19 +1084,41 @@ void get_mem_access_tables(read_func_ptr_t **read, store_func_ptr_t **write, uin
     *limit = mem_read_limit_tab;
 }
 
-void mem_toggle_watchpoints(int flag, void *context)
+/* called by mem_update_config(), mem_toggle_watchpoints() */
+static void mem_update_tab_ptrs(int flag)
 {
     if (flag) {
         _mem_read_tab_ptr = _mem_read_tab_watch;
         _mem_write_tab_ptr = _mem_write_tab_watch;
+        if (flag > 1) {
+            /* enable watchpoints on dummy accesses */
+            _mem_read_tab_ptr_dummy = _mem_read_tab_watch;
+            _mem_write_tab_ptr_dummy = _mem_write_tab_watch;
+        } else {
+            _mem_read_tab_ptr_dummy = _mem_read_tab;
+            _mem_write_tab_ptr_dummy = _mem_write_tab;
+        }
+    } else {
+        /* all watchpoints disabled */
+        _mem_read_tab_ptr = _mem_read_tab;
+        _mem_write_tab_ptr = _mem_write_tab;
+        _mem_read_tab_ptr_dummy = _mem_read_tab;
+        _mem_write_tab_ptr_dummy = _mem_write_tab;
+    }
+}
+
+void mem_toggle_watchpoints(int flag, void *context)
+{
+    if (flag) {
         _mem6809_read_tab_ptr = _mem6809_read_tab_watch;
         _mem6809_write_tab_ptr = _mem6809_write_tab_watch;
     } else {
-        _mem_read_tab_ptr = _mem_read_tab;
-        _mem_write_tab_ptr = _mem_write_tab;
         _mem6809_read_tab_ptr = _mem6809_read_tab;
         _mem6809_write_tab_ptr = _mem6809_write_tab;
     }
+
+    mem_update_tab_ptrs(flag);
+    watchpoints_active = flag;
 }
 
 /*
@@ -1380,7 +1411,7 @@ static void mem_initialize_memory_6809_flat(void)
     /* maincpu_resync_limits(); notyet: 6809 doesn't use bank_base yet. */
 }
 
-void mem_initialize_memory_6809()
+void mem_initialize_memory_6809(void)
 {
     if (spet_flat_mode) {
         mem_initialize_memory_6809_flat();
@@ -1456,6 +1487,8 @@ void mem_initialize_memory(void)
     ram_size = petres.ramSize * 1024;
     _mem_read_tab_ptr = _mem_read_tab;
     _mem_write_tab_ptr = _mem_write_tab;
+    _mem_read_tab_ptr_dummy = _mem_read_tab;
+    _mem_write_tab_ptr_dummy = _mem_write_tab;
 
     /* setup watchpoint tables */
     _mem_read_tab_watch[0] = zero_read_watch;
@@ -1511,14 +1544,10 @@ void mem_powerup(void)
     int i;
     ram_init(mem_ram, RAM_ARRAY);
     /*
-     * A more realistic initial memory is random.
-     * Especially on the screen, which is different memory in most
-     * models.
+     * Initial screen memory is random, which is physically different memory
+     * (and also faster) in most models.
      * (And it helps a bit with the colour option when a proper editor
      * ROM isn't installed)
-     *
-     * FIXME: use memory init pattern
-     *
      */
     for (i = 0; i < 0x1000; i++) {
         mem_ram[0x8000 + i] = (uint8_t)lib_unsigned_rand(0, 255);
@@ -1656,9 +1685,18 @@ static uint8_t peek_bank_io(uint16_t addr)
 }
 
 /* Exported banked memory access functions for the monitor.  */
+#define MAXBANKS (7)
 
-static const char *banknames[] = {
-    "default", "cpu", "ram", "rom", "io", "extram", "6809", NULL
+static const char *banknames[MAXBANKS + 1] = {
+    "default",
+    "cpu",
+    "ram",
+    "rom",
+    "io",
+    "extram",
+    "6809",
+    /* by convention, a "bank array" has a 2-hex-digit bank index appended */
+    NULL
 };
 
 enum {
@@ -1666,16 +1704,24 @@ enum {
     bank_cpu6809
 };
 
-static const int banknums[] = {
+static const int banknums[MAXBANKS + 1] = {
     bank_default, bank_cpu, bank_ram, bank_rom, bank_io, bank_extram,
-    bank_cpu6809,
+    bank_cpu6809, -1
 };
+
+static const int bankindex[MAXBANKS + 1] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+static const int bankflags[MAXBANKS + 1] = { 0, 0, 0, 0, 0, 0, 0, -1 };
 
 const char **mem_bank_list(void)
 {
     return banknames;
 }
 
+const int *mem_bank_list_nos(void) {
+    return banknums;
+}
+
+/* return bank number for a given literal bank name */
 int mem_bank_from_name(const char *name)
 {
     int i = 0;
@@ -1683,6 +1729,33 @@ int mem_bank_from_name(const char *name)
     while (banknames[i]) {
         if (!strcmp(name, banknames[i])) {
             return banknums[i];
+        }
+        i++;
+    }
+    return -1;
+}
+
+/* return current index for a given bank */
+int mem_bank_index_from_bank(int bank)
+{
+    int i = 0;
+
+    while (banknums[i] > -1) {
+        if (banknums[i] == bank) {
+            return bankindex[i];
+        }
+        i++;
+    }
+    return -1;
+}
+
+int mem_bank_flags_from_bank(int bank)
+{
+    int i = 0;
+
+    while (banknums[i] > -1) {
+        if (banknums[i] == bank) {
+            return bankflags[i];
         }
         i++;
     }
@@ -1850,24 +1923,24 @@ mem_ioreg_list_t *mem_ioreg_list_get(void *context)
     mem_ioreg_list_t *mem_ioreg_list = NULL;
 
     io_source_ioreg_add_list(&mem_ioreg_list);
-    mon_ioreg_add_list(&mem_ioreg_list, "PIA1", 0xe810, 0xe81f, mem_dump_io, NULL);
-    mon_ioreg_add_list(&mem_ioreg_list, "PIA2", 0xe820, 0xe82f, mem_dump_io, NULL);
-    mon_ioreg_add_list(&mem_ioreg_list, "VIA", 0xe840, 0xe84f, mem_dump_io, NULL);
+    mon_ioreg_add_list(&mem_ioreg_list, "PIA1", 0xe810, 0xe81f, mem_dump_io, NULL, IO_MIRROR_NONE);
+    mon_ioreg_add_list(&mem_ioreg_list, "PIA2", 0xe820, 0xe82f, mem_dump_io, NULL, IO_MIRROR_NONE);
+    mon_ioreg_add_list(&mem_ioreg_list, "VIA", 0xe840, 0xe84f, mem_dump_io, NULL, IO_MIRROR_NONE);
     if (petres.crtc) {
-        mon_ioreg_add_list(&mem_ioreg_list, "CRTC", 0xe880, 0xe881, mem_dump_io, NULL);
+        mon_ioreg_add_list(&mem_ioreg_list, "CRTC", 0xe880, 0xe881, mem_dump_io, NULL, IO_MIRROR_NONE);
     }
     if (pethre_enabled) {
-        mon_ioreg_add_list(&mem_ioreg_list, "HRE", 0xe888, 0xe888, mem_dump_io, NULL);
+        mon_ioreg_add_list(&mem_ioreg_list, "HRE", 0xe888, 0xe888, mem_dump_io, NULL, IO_MIRROR_NONE);
     }
     if (petres.map) {
-        mon_ioreg_add_list(&mem_ioreg_list, "8096", 0xfff0, 0xfff0, mem_dump_io, NULL);
+        mon_ioreg_add_list(&mem_ioreg_list, "8096", 0xfff0, 0xfff0, mem_dump_io, NULL, IO_MIRROR_NONE);
     }
     if (petres.superpet) {
-        mon_ioreg_add_list(&mem_ioreg_list, "6702", 0xefe0, 0xefe3, mem_dump_io, NULL);
-        mon_ioreg_add_list(&mem_ioreg_list, "ACIA", 0xeff0, 0xeff3, mem_dump_io, NULL);
-        mon_ioreg_add_list(&mem_ioreg_list, "Control", 0xeff8, 0xeff8, mem_dump_io, NULL);
-        mon_ioreg_add_list(&mem_ioreg_list, "Bank", 0xeffc, 0xeffc, mem_dump_io, NULL);
-        mon_ioreg_add_list(&mem_ioreg_list, "RAM/ROM", 0xeffe, 0xeffe, mem_dump_io, NULL);
+        mon_ioreg_add_list(&mem_ioreg_list, "6702", 0xefe0, 0xefe3, mem_dump_io, NULL, IO_MIRROR_NONE);
+        mon_ioreg_add_list(&mem_ioreg_list, "ACIA", 0xeff0, 0xeff3, mem_dump_io, NULL, IO_MIRROR_NONE);
+        mon_ioreg_add_list(&mem_ioreg_list, "Control", 0xeff8, 0xeff8, mem_dump_io, NULL, IO_MIRROR_NONE);
+        mon_ioreg_add_list(&mem_ioreg_list, "Bank", 0xeffc, 0xeffc, mem_dump_io, NULL, IO_MIRROR_NONE);
+        mon_ioreg_add_list(&mem_ioreg_list, "RAM/ROM", 0xeffe, 0xeffe, mem_dump_io, NULL, IO_MIRROR_NONE);
     }
 
     return mem_ioreg_list;
@@ -1911,11 +1984,13 @@ void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uin
     /* Cursor Blink enable: 1 = Flash Cursor, 0 = Cursor disabled, -1 = n/a */
     if (petres.kernal_checksum == PET_KERNAL1_CHECKSUM) {
         *blinking = mem_ram[0x224] ? 0 : 1;
+	*screen_addr = mem_ram[0xe0] + mem_ram[0xe1] * 256; /* Current Screen Line Address */
+	*cursor_column = mem_ram[0xe2];    /* Cursor Column on Current Line */
     } else {
         *blinking = mem_ram[0xa7] ? 0 : 1;
+	*screen_addr = mem_ram[0xc4] + mem_ram[0xc5] * 256; /* Current Screen Line Address */
+	*cursor_column = mem_ram[0xc6];    /* Cursor Column on Current Line */
     }
-    *screen_addr = mem_ram[0xc4] + mem_ram[0xc5] * 256; /* Current Screen Line Address */
-    *cursor_column = mem_ram[0xc6];    /* Cursor Column on Current Line */
     *line_length = petres.rom_video;   /* Physical Screen Line Length */
 }
 

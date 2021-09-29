@@ -61,7 +61,7 @@ int video_cmdline_options_init(void)
     return video_arch_cmdline_options_init();
 }
 
-static const char *cname_chip_size[] =
+static const char * const cname_chip_size[] =
 {
     "-", "dsize", "DoubleSize",
     "+", "dsize", "DoubleSize",
@@ -79,7 +79,7 @@ static cmdline_option_t cmdline_options_chip_size[] =
     CMDLINE_LIST_END
 };
 
-static const char *cname_chip_scan[] =
+static const char * const cname_chip_scan[] =
 {
     "-", "dscan", "DoubleScan",
     "+", "dscan", "DoubleScan",
@@ -97,7 +97,7 @@ static cmdline_option_t cmdline_options_chip_scan[] =
     CMDLINE_LIST_END
 };
 
-static const char *cname_chip_audioleak[] =
+static const char * const cname_chip_audioleak[] =
 {
     "-", "audioleak", "AudioLeak",
     "+", "audioleak", "AudioLeak",
@@ -115,7 +115,7 @@ static cmdline_option_t cmdline_options_chip_audioleak[] =
     CMDLINE_LIST_END
 };
 
-static const char *cname_chip_hwscale[] =
+static const char * const cname_chip_hwscale[] =
 {
     "-", "hwscale", "HwScale",
     "+", "hwscale", "HwScale",
@@ -133,7 +133,7 @@ static cmdline_option_t cmdline_options_chip_hwscale[] =
     CMDLINE_LIST_END
 };
 
-static const char *cname_chip_render_filter[] =
+static const char * const cname_chip_render_filter[] =
 {
     "-", "filter", "Filter",
     NULL
@@ -147,7 +147,7 @@ static cmdline_option_t cmdline_options_chip_render_filter[] =
     CMDLINE_LIST_END
 };
 
-static const char *cname_chip_internal_palette[] =
+static const char * const cname_chip_internal_palette[] =
 {
     "-", "intpal", "ExternalPalette",
     "-", "extpal", "ExternalPalette",
@@ -165,7 +165,7 @@ static cmdline_option_t cmdline_options_chip_internal_palette[] =
     CMDLINE_LIST_END
 };
 
-static const char *cname_chip_palette[] =
+static const char * const cname_chip_palette[] =
 {
     "-", "palette", "PaletteFile",
     NULL
@@ -179,7 +179,7 @@ static cmdline_option_t cmdline_options_chip_palette[] =
     CMDLINE_LIST_END
 };
 
-static const char *cname_chip_fullscreen[] =
+static const char * const cname_chip_fullscreen[] =
 {
 #if defined(USE_SDLUI) || defined(USE_SDLUI2)
     "-", "full", "Fullscreen",
@@ -205,7 +205,7 @@ static cmdline_option_t cmdline_options_chip_fullscreen[] =
     CMDLINE_LIST_END
 };
 
-static const char *cname_chip_fullscreen_mode[] =
+static const char * const cname_chip_fullscreen_mode[] =
 {
     "-", "fullmode", "FullscreenMode",
     NULL
@@ -219,7 +219,7 @@ static cmdline_option_t cmdline_options_chip_fullscreen_mode[] =
     CMDLINE_LIST_END
 };
 
-static const char *cname_chip_colors[] =
+static const char * const cname_chip_colors[] =
 {
     "-", "saturation", "ColorSaturation",
     "-", "contrast", "ColorContrast",
@@ -249,14 +249,14 @@ static cmdline_option_t cmdline_options_chip_colors[] =
     CMDLINE_LIST_END
 };
 
-static const char *cname_chip_crtemu_palntsc[] =
+static const char * const cname_chip_crtemu_palntsc[] =
 {
     "-", "oddlinesphase", "PALOddLinePhase",
     "-", "oddlinesoffset", "PALOddLineOffset",
     NULL
 };
 
-static const char *cname_chip_crtemu[] =
+static const char * const cname_chip_crtemu[] =
 {
     "-", "crtblur", "PALBlur",
     "-", "crtscanlineshade", "PALScanLineShade",

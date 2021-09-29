@@ -62,7 +62,7 @@ static const cbmdos_errortext_t cbmdos_error_messages[] =
     { 33, "SYNTAX ERROR" },
     { 34, "SYNTAX ERROR" },
     { 39, "FILE NOT FOUND" }, /* 2000/4000 */
-    { 50, "RECORD NOT RESENT" },
+    { 50, "RECORD NOT PRESENT" },
     { 51, "OVERFLOW IN RECORD" },
     { 52, "FILE TOO LARGE" },   /* 1581 */
     { 60, "WRITE FILE OPEN" },
@@ -86,7 +86,7 @@ static const cbmdos_errortext_t cbmdos_error_messages[] =
 /* types 0 - 6 are regular CBM file types. real drives return random garbage
  * from the ROM when type 7 appears in the directoy
  */
-static const char *cbmdos_ft[] = {
+static const char * const cbmdos_ft[] = {
     "DEL", "SEQ", "PRG", "USR", "REL", "CBM", "DIR", "???"
 };
 
@@ -176,7 +176,9 @@ unsigned int cbmdos_command_parse(cbmdos_cmd_parse_t *cmd_parse)
     log_debug("CBMDOS parse cmd: '%s' cmdlen: %d", cmd_parse->cmd, cmd_parse->cmdlength);
 #endif
 
+    cmd_parse->atsign = 0;
     cmd_parse->parsecmd = NULL;
+    cmd_parse->recordlength = 0;
     cmd_parse->readmode = (cmd_parse->secondary == 1)
                           ? CBMDOS_FAM_WRITE : CBMDOS_FAM_READ;
 
@@ -231,12 +233,6 @@ unsigned int cbmdos_command_parse(cbmdos_cmd_parse_t *cmd_parse)
     log_debug("CBMDOS parse pattern: '%s' drive:%d", p, cmd_parse->drive);
 #endif
 
-#if 0
-    if (cmd_parse->cmd[0] == '@' && p == cmd_parse->cmd) {
-        p++;
-    }
-#endif
-
     cmdlen = cmd_parse->cmdlength - (int)(p - cmd_parse->cmd);
     cmd_parse->parselength = 0;
 
@@ -279,20 +275,30 @@ unsigned int cbmdos_command_parse(cbmdos_cmd_parse_t *cmd_parse)
             case 'U':
                 cmd_parse->filetype = CBMDOS_FT_USR;
                 break;
+            case 'L'|0x80:
             case 'L':                   /* L,(#record length)  max 254 */
-                if (p[1] == ',') {
-                    cmd_parse->recordlength = p[2]; /* Changing RL causes error */
+                /*
+                 * Allow extra text between L and the comma,
+                 * like with other file types.
+                 */
+                {
+                    uint8_t *comma = memchr(p+1, ',', cmdlen);
+                    if (comma && p + cmdlen > comma + 1) {
+                        cmd_parse->recordlength = comma[1]; /* Changing RL causes error */
 
-                    /* Don't allow REL file record lengths less than 2 or
-                       greater than 254.  The 1541/71/81 lets you create a
-                       REL file of record length 0, but it locks up the CPU
-                       on the drive - nice. */
-                    if (cmd_parse->recordlength < 2 || cmd_parse->recordlength > 254) {
-                        return CBMDOS_IPE_OVERFLOW;
+#ifdef DEBUG_CBMDOS
+                        log_debug("L recordlength=%d", cmd_parse->recordlength);
+#endif
+                        /* Don't allow REL file record lengths less than 2 or
+                           greater than 254.  The 1541/71/81 lets you create a
+                           REL file of record length 0, but it locks up the CPU
+                           on the drive - nice. */
+                        if (cmd_parse->recordlength < 2 || cmd_parse->recordlength > 254) {
+                            return CBMDOS_IPE_OVERFLOW;
+                        }
+                        /* skip the rest */
+                        cmdlen = 0;
                     }
-                    /* skip the REL length */
-                    p += 3;
-                    cmdlen -= 3;
                 }
                 cmd_parse->filetype = CBMDOS_FT_REL;
                 break;

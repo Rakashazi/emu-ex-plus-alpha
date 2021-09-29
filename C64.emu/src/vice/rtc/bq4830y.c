@@ -453,7 +453,7 @@ uint8_t bq4830y_read(rtc_bq4830y_t *context, uint16_t address)
    STRING | device              | device name STRING
  */
 
-static char snap_module_name[] = "RTC_BQ4830Y";
+static const char snap_module_name[] = "RTC_BQ4830Y";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

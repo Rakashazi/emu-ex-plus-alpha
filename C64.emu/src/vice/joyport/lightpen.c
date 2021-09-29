@@ -42,36 +42,48 @@
 
 /* Control port <--> lightpen connections:
 
-   cport | lightpen up | I/O
-   -------------------------
-     1   | button      |  I
-     6   | trigger     |  I
+   cport | lightpen up         | I/O
+   ---------------------------------
+     1   | button              |  I
+     6   | light sensor        |  I
 
-   cport | lightpen left | I/O
-   ---------------------------
-     3   | button        |  I
-     6   | trigger       |  I
+   cport | lightpen left       | I/O
+   ---------------------------------
+     3   | button              |  I
+     6   | light sensor        |  I
 
-   cport | datel pen | I/O
-   -----------------------
-     3   | button    |  I
-     6   | trigger   |  I
+   cport | datel pen           | I/O
+   ---------------------------------
+     3   | button              |  I
+     6   | light sensor        |  I
 
    cport | magnum light phaser | I/O
    ---------------------------------
-     6   | trigger             |  I
+     6   | light sensor        |  I
      9   | button              |  I
 
-   cport | stack light rifle | I/O
-   -------------------------------
-     3   | button            |  I
-     6   | trigger           |  I
+   cport | stack light rifle   | I/O
+   ---------------------------------
+     3   | button              |  I
+     6   | light sensor        |  I
 
-   cport | inkwell lightpen | I/O
-   ------------------------------
-     3   | button 1         |  I
-     6   | trigger          |  I
-     9   | button 2         |  I
+   cport | inkwell lightpen    | I/O
+   ---------------------------------
+     3   | button 1            |  I
+     6   | light sensor        |  I
+     9   | button 2            |  I
+
+     not fully implemented:
+
+   cport | Gun Stick           | I/O
+   ---------------------------------
+     2   | light sensor        |  I
+     6   | button              |  I
+
+     This gun is somewhat weird, in that it uses pin 2 (down) for the light
+     sensor, and pin 6 (lp-trigger) for the trigger button. also the signal
+     on pin 2 is stretched a bit by the logic in the gun.
+
  */
 
 /* --------------------------------------------------------- */
@@ -114,20 +126,36 @@ struct lp_type_s {
 };
 typedef struct lp_type_s lp_type_t;
 
-/* note: xoffs=24; yoffs=0 gives "pixel perfect" match */
+/* note: xoffs=0; yoffs=0 gives "pixel perfect" match, use 
+ * testprogs/VICII/lpcoordinates to determine the offset.
+ */
+/* note: the following offset values should be tweaked against the original
+ *       software that came with the devices - we assume it handles them
+ *       correctly. it is problematic to compare against the actual lightpen/gun
+ *       today, because photo transistors/diodes degrade with age and become
+ *       "slower". also the optics are likely worn out/scratched, which only
+ *       generates more problems.
+ *
+ *       new software (and cracks) should introduce a calibration feature to
+ *       handle those problems.
+ */
 static const lp_type_t lp_type[LIGHTPEN_TYPE_NUM] = {
     /* Pen with button Up (e.g. Atari CX75) */
-    { PEN, 0x00, 0x01, 0, 0 },
+    { PEN, 0x01, 0x00, 0, 0 },
     /* Pen with button Left */
-    { PEN, 0x00, 0x04, 0, 0 },
+    { PEN, 0x04, 0x00, 0, 0 },
     /* Datel Pen */
-    { PEN, 0x00, 0x04, 20, -5 },
-    /* Magnum Light Phaser */
-    { GUN, 0x20, 0x00, 20, -10 },
+    { PEN, 0x04, 0x00, 20, -5 },
+    /* Magnum Light Phaser, Cheetah Defender */
+    { GUN, 0x20, 0x00, 30, -10 },   /* tweaked against "Blaze Out" and "3-D Action Pack" */
     /* Stack Light Rifle */
     { GUN, 0x04, 0x00, 20, 0 },
     /* Inkwell Lightpen */
-    { GUN, 0x04, 0x20, 20, 0 }
+    { GUN, 0x04, 0x20, 20, 0 },
+#ifdef JOYPORT_EXPERIMENTAL_DEVICES
+    /* Gun Stick */
+    { GUN, 0x12, 0x00, 0, 0 },
+#endif
 };
 
 typedef struct lp_id_s {
@@ -142,6 +170,9 @@ static lp_id_t lp_id[] = {
     { LIGHTPEN_TYPE_GUN_Y,     JOYPORT_ID_LIGHTGUN_Y },
     { LIGHTPEN_TYPE_GUN_L,     JOYPORT_ID_LIGHTGUN_L },
     { LIGHTPEN_TYPE_INKWELL,   JOYPORT_ID_LIGHTPEN_INKWELL },
+#ifdef JOYPORT_EXPERIMENTAL_DEVICES
+    { LIGHTPEN_TYPE_GUNSTICK,  JOYPORT_ID_LIGHTGUN_GUNSTICK },
+#endif
     { -1,                      -1 }
 };
 
@@ -199,6 +230,7 @@ static inline void lightpen_update_buttons(int buttons)
 {
     lightpen_buttons = buttons;
 
+    /* check potx/poty */
     lightpen_button_y = ((((lp_type[lightpen_type].button1 & 0x20) == 0x20) && (buttons & LP_HOST_BUTTON_1))
                          || (((lp_type[lightpen_type].button2 & 0x20) == 0x20) && (buttons & LP_HOST_BUTTON_2)))
                         ? 1 : 0;
@@ -207,8 +239,8 @@ static inline void lightpen_update_buttons(int buttons)
                          || (((lp_type[lightpen_type].button2 & 0x40) == 0x40) && (buttons & LP_HOST_BUTTON_2)))
                         ? 1 : 0;
 
-    lightpen_check_button_mask((uint8_t)(lp_type[lightpen_type].button1 & 0xf), buttons & LP_HOST_BUTTON_1);
-    lightpen_check_button_mask((uint8_t)(lp_type[lightpen_type].button2 & 0xf), buttons & LP_HOST_BUTTON_2);
+    lightpen_check_button_mask((uint8_t)(lp_type[lightpen_type].button1 & 0x1f), buttons & LP_HOST_BUTTON_1);
+    lightpen_check_button_mask((uint8_t)(lp_type[lightpen_type].button2 & 0x1f), buttons & LP_HOST_BUTTON_2);
 }
 
 /* --------------------------------------------------------- */
@@ -240,17 +272,17 @@ static uint8_t lightpen_digital_val(int port)
     return (uint8_t)~lightpen_value;
 }
 
-#if 0
-static uint8_t lightpen_read_button_y(void)
+static uint8_t lightpen_read_button_y(int port)
 {
     return (lightpen_enabled && lightpen_button_y) ? 0x00 : 0xff;
 }
-#endif
 
-static uint8_t lightpen_read_button_x(void)
+#if 0
+static uint8_t lightpen_read_button_x(int port)
 {
     return (lightpen_enabled && lightpen_button_x) ? 0x00 : 0xff;
 }
+#endif
 
 static joyport_t lightpen_u_joyport_device = {
     "Light Pen (up trigger)", /* name of the device */
@@ -302,8 +334,8 @@ static joyport_t magnum_light_phaser_joyport_device = {
     joyport_lightpen_enable, /* device enable function */
     lightpen_digital_val,    /* digital line read function */
     NULL,                    /* NO digital line store function */
-    lightpen_read_button_x,  /* pot-x read function */
-    NULL,                    /* NO pot-y read function */
+    NULL,                    /* NO pot-x read function */
+    lightpen_read_button_y,  /* pot-y read function */
     lightpen_write_snapshot, /* device write snapshot function */
     lightpen_read_snapshot   /* device read snapshot function */
 };
@@ -330,11 +362,27 @@ static joyport_t inkwell_lightpen_joyport_device = {
     joyport_lightpen_enable, /* device enable function */
     lightpen_digital_val,    /* digital line read function */
     NULL,                    /* NO digital line store function */
-    lightpen_read_button_x,  /* pot-x read function */
+    NULL,                    /* NO pot-x read function */
+    lightpen_read_button_y,  /* pot-y read function */
+    lightpen_write_snapshot, /* device write snapshot function */
+    lightpen_read_snapshot   /* device read snapshot function */
+};
+
+#ifdef JOYPORT_EXPERIMENTAL_DEVICES
+static joyport_t gun_stick_joyport_device = {
+    "Gun Stick",             /* name of the device */
+    JOYPORT_RES_ID_MOUSE,    /* device uses the mouse for input, only 1 mouse type device can be active at the same time */
+    JOYPORT_IS_LIGHTPEN,     /* device is a lightpen */
+    JOYPORT_POT_OPTIONAL,    /* device does NOT use the potentiometer lines */
+    joyport_lightpen_enable, /* device enable function */
+    lightpen_digital_val,    /* digital line read function */
+    NULL,                    /* NO digital line store function */
+    NULL,                    /* NO pot-x read function */
     NULL,                    /* NO pot-y read function */
     lightpen_write_snapshot, /* device write snapshot function */
     lightpen_read_snapshot   /* device read snapshot function */
 };
+#endif
 
 static int lightpen_joyport_register(void)
 {
@@ -353,6 +401,11 @@ static int lightpen_joyport_register(void)
     if (joyport_device_register(JOYPORT_ID_LIGHTGUN_L, &stack_light_rifle_joyport_device) < 0) {
         return -1;
     }
+#ifdef JOYPORT_EXPERIMENTAL_DEVICES
+    if (joyport_device_register(JOYPORT_ID_LIGHTGUN_GUNSTICK, &gun_stick_joyport_device) < 0) {
+        return -1;
+    }
+#endif
     return joyport_device_register(JOYPORT_ID_LIGHTPEN_INKWELL, &inkwell_lightpen_joyport_device);
 }
 

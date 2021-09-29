@@ -53,29 +53,33 @@
  *       same with the other CPUs and finally move common code to mon_register.c
  */
 
-#define REG_LIST_6510_SIZE (9 + 1)
-static mon_reg_list_t mon_reg_list_6510[REG_LIST_6510_SIZE] = {
-    {      "PC",    e_PC, 16,                      0, 0, 0 },
-    {       "A",     e_A,  8,                      0, 0, 0 },
-    {       "X",     e_X,  8,                      0, 0, 0 },
-    {       "Y",     e_Y,  8,                      0, 0, 0 },
-    {      "SP",    e_SP,  8,                      0, 0, 0 },
-    {      "00",      -1,  8, MON_REGISTER_IS_MEMORY, 0, 0 },
-    {      "01",      -1,  8, MON_REGISTER_IS_MEMORY, 1, 0 },
-    {      "FL", e_FLAGS,  8,                      0, 0, 0 },
-    {"NV-BDIZC", e_FLAGS,  8,  MON_REGISTER_IS_FLAGS, 0, 0 },
+#define REG_LIST_6510_SIZE (11 + 1)
+static const mon_reg_list_t mon_reg_list_6510[REG_LIST_6510_SIZE] = {
+    {      "PC",         e_PC, 16,                      0, 0, 0 },
+    {       "A",          e_A,  8,                      0, 0, 0 },
+    {       "X",          e_X,  8,                      0, 0, 0 },
+    {       "Y",          e_Y,  8,                      0, 0, 0 },
+    {      "SP",         e_SP,  8,                      0, 0, 0 },
+    {      "00",       e_Zero,  8, MON_REGISTER_IS_MEMORY, 0, 0 },
+    {      "01",        e_One,  8, MON_REGISTER_IS_MEMORY, 1, 0 },
+    {      "FL",      e_FLAGS,  8,                      0, 0, 0 },
+    {"NV-BDIZC",      e_FLAGS,  8,  MON_REGISTER_IS_FLAGS, 0, 0 },
+    {     "LIN", e_Rasterline, 16,                      0, 0, 0 },
+    {     "CYC",      e_Cycle, 16,                      0, 0, 0 },
     { NULL, -1,  0,  0, 0, 0 }
 };
 
-#define REG_LIST_6502_SIZE (7 + 1)
-static mon_reg_list_t mon_reg_list_6502[REG_LIST_6502_SIZE] = {
-    {      "PC",    e_PC, 16,                      0, 0, 0 },
-    {       "A",     e_A,  8,                      0, 0, 0 },
-    {       "X",     e_X,  8,                      0, 0, 0 },
-    {       "Y",     e_Y,  8,                      0, 0, 0 },
-    {      "SP",    e_SP,  8,                      0, 0, 0 },
-    {      "FL", e_FLAGS,  8,                      0, 0, 0 },
-    {"NV-BDIZC", e_FLAGS,  8,  MON_REGISTER_IS_FLAGS, 0, 0 },
+#define REG_LIST_6502_SIZE (9 + 1)
+static const mon_reg_list_t mon_reg_list_6502[REG_LIST_6502_SIZE] = {
+    {      "PC",         e_PC, 16,                      0, 0, 0 },
+    {       "A",          e_A,  8,                      0, 0, 0 },
+    {       "X",          e_X,  8,                      0, 0, 0 },
+    {       "Y",          e_Y,  8,                      0, 0, 0 },
+    {      "SP",         e_SP,  8,                      0, 0, 0 },
+    {      "FL",      e_FLAGS,  8,                      0, 0, 0 },
+    {"NV-BDIZC",      e_FLAGS,  8,  MON_REGISTER_IS_FLAGS, 0, 0 },
+    {     "LIN", e_Rasterline, 16,                      0, 0, 0 },
+    {     "CYC",      e_Cycle, 16,                      0, 0, 0 },
     { NULL, -1,  0,  0, 0, 0 }
 };
 
@@ -110,6 +114,22 @@ static unsigned int mon_register_get_val(int mem, int reg_id)
             return MOS6510_REGS_GET_FLAGS(reg_ptr)
                    | MOS6510_REGS_GET_SIGN(reg_ptr)
                    | (MOS6510_REGS_GET_ZERO(reg_ptr) << 1);
+        case e_Rasterline:
+            {
+                unsigned int line, cycle;
+                int half_cycle;
+
+                mon_interfaces[e_comp_space]->get_line_cycle(&line, &cycle, &half_cycle);
+                return line;
+            }
+        case e_Cycle:
+            {
+                unsigned int line, cycle;
+                int half_cycle;
+
+                mon_interfaces[e_comp_space]->get_line_cycle(&line, &cycle, &half_cycle);
+                return cycle;
+            }
         default:
             log_error(LOG_ERR, "Unknown register!");
     }
@@ -163,6 +183,7 @@ static void mon_register_print(int mem)
 {
     mos6510_regs_t *regs;
     int current_bank;
+    int sfxtmp;
 
     if (monitor_diskspace_dnr(mem) >= 0) {
         if (!check_drive_emu_level_ok(monitor_diskspace_dnr(mem) + 8)) {
@@ -190,6 +211,10 @@ static void mon_register_print(int mem)
         mon_interfaces[mem]->current_bank = 0;
     }
 
+    /* enable sidefx, else we'd read RAM for 00/01 */
+    sfxtmp = sidefx; 
+    sidefx = 1;
+    
     mon_out(".;%04x %02x %02x %02x %02x %02x %02x %d%d%c%d%d%d%d%d",
             addr_location(mon_register_get_val(mem, e_PC)),
             mon_register_get_val(mem, e_A),
@@ -207,6 +232,9 @@ static void mon_register_print(int mem)
             TEST(MOS6510_REGS_GET_ZERO(regs)),
             TEST(MOS6510_REGS_GET_CARRY(regs)));
 
+    /* restore original value of sidefx */
+    sidefx = sfxtmp;
+    
     mon_interfaces[mem]->current_bank = current_bank;
 
     if (mon_interfaces[mem]->get_line_cycle != NULL) {
@@ -278,10 +306,15 @@ static mon_reg_list_t *mon_register_list_get6502(int mem)
 
     do {
         if (regs->flags & MON_REGISTER_IS_MEMORY) {
+            /* enable sidefx, else we'd read RAM for 00/01 */
+            int sfxtmp = sidefx;
             int current_bank = mon_interfaces[mem]->current_bank;
+
+            sidefx = 1;
             mon_interfaces[mem]->current_bank = mon_interfaces[mem]->mem_bank_from_name("cpu");
             regs->val = (unsigned int)mon_get_mem_val(mem, (uint16_t)regs->extra);
             mon_interfaces[mem]->current_bank = current_bank;
+            sidefx = sfxtmp;
         } else if (regs->flags & MON_REGISTER_IS_FLAGS) {
             regs->val = (unsigned int)mon_register_get_val(mem, regs->id) | 0x20;
         } else {

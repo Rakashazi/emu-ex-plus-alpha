@@ -95,7 +95,7 @@
 static uint8_t currbank = 0;
 static uint8_t regval = 0;
 static uint8_t io1_mask = 0x3f;
-static unsigned int cart_size = 0;
+static uint32_t cart_size = 0;
 
 /* ---------------------------------------------------------------------*/
 static void ocean_io1_store(uint16_t addr, uint8_t value)
@@ -198,13 +198,13 @@ static int ocean_common_attach(void)
 /* ---------------------------------------------------------------------*/
 
 /* HACK: 32k isnt really a valid size, see above */
-int ocean_cart_sizes[] = { 0x80000, 0x40000, 0x20000, 0x08000, 0 };
+static const uint32_t ocean_cart_sizes[] = { 0x80000, 0x40000, 0x20000, 0x08000, 0 };
 
 int ocean_bin_attach(const char *filename, uint8_t *rawcart)
 {
     int rc = -1;
     int i;
-    size_t size;
+    uint32_t size;
     for (i = 0; (size = ocean_cart_sizes[i]) != 0; i++) {
         rc = util_file_load(filename, rawcart, size, UTIL_FILE_LOAD_SKIP_ADDRESS);
         if (rc == 0) {
@@ -223,7 +223,7 @@ int ocean_bin_attach(const char *filename, uint8_t *rawcart)
 
 int ocean_crt_attach(FILE *fd, uint8_t *rawcart)
 {
-    size_t rom_size;
+    uint32_t rom_size;
     crt_chip_header_t chip;
 
     rom_size = 0;
@@ -266,7 +266,7 @@ void ocean_detach(void)
    ARRAY | ROML      | 524288 BYTES of ROML data
  */
 
-static char snap_module_name[] = "CARTOCEAN";
+static const char snap_module_name[] = "CARTOCEAN";
 #define SNAP_MAJOR   1
 #define SNAP_MINOR   0
 
@@ -314,7 +314,7 @@ int ocean_snapshot_read_module(snapshot_t *s)
         || (SMR_B(m, &currbank) < 0)
         || (SMR_B(m, &io1_mask) < 0)
         || (SMR_B(m, &regval) < 0)
-        || (SMR_DW_UINT(m, &cart_size) < 0)
+        || (SMR_DW(m, &cart_size) < 0)
         || (SMR_BA(m, roml_banks, 0x2000 * 64) < 0)) {
         goto fail;
     }

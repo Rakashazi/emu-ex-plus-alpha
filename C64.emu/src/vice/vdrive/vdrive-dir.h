@@ -52,6 +52,8 @@
 #define SLOT_GEOS_HOUR        28
 #define SLOT_GEOS_MINUTE      29
 
+#define SLOT_SIZE             32
+
 struct vdrive_s;
 struct bufferinfo_s;
 

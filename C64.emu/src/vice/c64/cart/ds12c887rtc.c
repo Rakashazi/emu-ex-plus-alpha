@@ -399,7 +399,7 @@ int ds12c887rtc_cmdline_options_init(void)
    DWORD | base     | base address of the RTC
  */
 
-static char snap_module_name[] = "CARTDS12C887RTC";
+static const char snap_module_name[] = "CARTDS12C887RTC";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

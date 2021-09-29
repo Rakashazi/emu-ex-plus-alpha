@@ -37,6 +37,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef USE_VICE_THREAD
+#include <pthread.h>
+#endif
 
 #include "archdep.h"
 #include "cmdline.h"
@@ -53,12 +56,15 @@
 #include "machine.h"
 #include "maincpu.h"
 #include "main.h"
+#include "mainlock.h"
 #include "resources.h"
 #include "sysfile.h"
+#include "tick.h"
 #include "types.h"
 #include "uiapi.h"
 #include "version.h"
 #include "video.h"
+#include "vsyncapi.h"
 
 #ifdef USE_SVN_REVISION
 #include "svnversion.h"
@@ -70,12 +76,15 @@
 #define DBG(x)
 #endif
 
-#ifdef __OS2__
-const
-#endif
 int console_mode = 0;
 int video_disabled_mode = 0;
-static int init_done = 0;
+
+void main_loop_forever(void);
+
+#ifdef USE_VICE_THREAD
+void *vice_thread_main(void *);
+static pthread_t vice_thread;
+#endif
 
 
 /** \brief  Size of buffer used to write core team members' names to log/stdout
@@ -98,8 +107,7 @@ int main_program(int argc, char **argv)
     char term_tmp[TERM_TMP_SIZE];
     size_t name_len;
 
-
-    lib_init_rand();
+    lib_init();
 
     /* Check for some options at the beginning of the commandline before 
        initializing the user interface or loading the config file.
@@ -109,12 +117,10 @@ int main_program(int argc, char **argv)
     */
     DBG(("main:early cmdline(argc:%d)\n", argc));
     for (i = 1; i < argc; i++) {
-#ifndef __OS2__
         if ((!strcmp(argv[i], "-console")) || (!strcmp(argv[i], "--console"))) {
             console_mode = 1;
             video_disabled_mode = 1;
         } else
-#endif
         if ((!strcmp(argv[i], "-config")) || (!strcmp(argv[i], "--config"))) {
             if ((i + 1) < argc) {
                 vice_config_file = lib_strdup(argv[++i]);
@@ -144,18 +150,14 @@ int main_program(int argc, char **argv)
             ishelp = 1;
         }
     }
-    
+
     DBG(("main:archdep_init(argc:%d)\n", argc));
     if (archdep_init(&argc, argv) != 0) {
         archdep_startup_log_error("archdep_init failed.\n");
         return -1;
     }
 
-    if (archdep_vice_atexit(main_exit) != 0) {
-        archdep_startup_log_error("archdep_vice_atexit failed.\n");
-        return -1;
-    }
-
+    tick_init();
     maincpu_early_init();
     machine_setup_context();
     drive_setup_context();
@@ -186,7 +188,7 @@ int main_program(int argc, char **argv)
 
     if ((!ishelp) && (loadconfig)) {
         /* Load the user's default configuration file.  */
-        if (resources_load(NULL) < 0) {
+        if (resources_reset_and_load(NULL) < 0) {
             /* The resource file might contain errors, and thus certain
             resources might have been initialized anyway.  */
             if (resources_set_defaults() < 0) {
@@ -197,7 +199,18 @@ int main_program(int argc, char **argv)
     }
 
     if (log_init() < 0) {
-        archdep_startup_log_error("Cannot startup logging system.\n");
+        const char *logfile = NULL;
+
+        /* assuming LogFileName exists */
+        resources_get_string("LogFileName", &logfile);
+
+        if (logfile != NULL && *logfile != '\0') {
+            archdep_startup_log_error(
+                    "Cannot start logging system, failed to open '%s' for writing",
+                    logfile);
+        } else {
+            archdep_startup_log_error("Cannot startup logging system.\n");
+        }
     }
 
     DBG(("main:initcmdline_check_args(argc:%d)\n", argc));
@@ -272,20 +285,77 @@ int main_program(int argc, char **argv)
     if (initcmdline_check_psid() < 0) {
         return -1;
     }
-
+    
     if (init_main() < 0) {
         return -1;
     }
-
+    
     initcmdline_check_attach();
 
-    init_done = 1;
+#ifdef USE_VICE_THREAD
 
-    /* Let's go...  */
-    log_message(LOG_DEFAULT, "Main CPU: starting at ($FFFC).");
-    maincpu_mainloop();
+    if (pthread_create(&vice_thread, NULL, vice_thread_main, NULL)) {
+        log_error(LOG_DEFAULT, "Fatal: failed to launch main thread");
+        return 1;
+    }
 
-    log_error(LOG_DEFAULT, "perkele!");
+#else /* #ifdef USE_VICE_THREAD */
+
+    main_loop_forever();
+
+#endif /* #ifdef USE_VICE_THREAD */
 
     return 0;
 }
+
+void main_loop_forever(void)
+{
+    log_message(LOG_DEFAULT, "Main CPU: starting at ($FFFC).");
+
+    /* This doesn't return. The thread will directly exit when requested. */
+    maincpu_mainloop();
+
+    log_error(LOG_DEFAULT, "perkele! (THREAD)");
+}
+
+#ifdef USE_VICE_THREAD
+
+void vice_thread_shutdown(void)
+{
+    if (!vice_thread) {
+        /* We're exiting early in program life, such as when invoked with -help */
+        return;
+    }
+
+    if (pthread_equal(pthread_self(), vice_thread)) {
+        printf("FIXME! VICE thread is trying to shut itself down directly, this needs to be called from the ui thread for a correct shutdown!\n");
+        mainlock_initiate_shutdown();
+        return;
+    }
+
+    mainlock_obtain();
+    mainlock_initiate_shutdown();
+    mainlock_release();
+
+    pthread_join(vice_thread, NULL);
+
+    log_message(LOG_DEFAULT, "VICE thread has been joined.");
+}
+
+void *vice_thread_main(void *unused)
+{
+    archdep_thread_init();
+
+    mainlock_init();
+
+    main_loop_forever();
+
+    /*
+     * main_loop_forever() does not return, so we call archdep_thread_shutdown()
+     * in the mainlock system which manages a direct pthread based thread exit.
+     */
+
+    return NULL;
+}
+
+#endif /* #ifdef USE_VICE_THREAD */

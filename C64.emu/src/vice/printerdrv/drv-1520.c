@@ -114,7 +114,7 @@ static log_t drv1520_log = LOG_ERR;
 #define PIXEL_INDEX_WHITE       0
 #define PIXEL_INDEX_BLACK       1
 
-static uint8_t tochar[] = {
+static const uint8_t tochar[] = {
     OUTPUT_PIXEL_WHITE,         /* paper */
     OUTPUT_PIXEL_BLACK,         /* 1520 colour numbers: 0 - 3 */
     OUTPUT_PIXEL_BLUE,
@@ -404,7 +404,7 @@ static void draw(plot_t *mps, int from_x, int from_y, int to_x, int to_y)
 /*
  * Reverse-engineered drawing commands for the characters.
  */
-char *punct[32] = {
+static const char * const punct[32] = {
     /*   */ NULL,
     /* ! */ "66 d 8624 u 88 d 888886222224 u",
     /* " */ "988888 d 2 u 96 d 2",
@@ -439,7 +439,7 @@ char *punct[32] = {
     /* ? */ "88888 d 96632142 u 2 d 2"
 };
 /* typically 4 units wide, and 6 units high. */
-char *uppercase[32] = {
+static const char * const uppercase[32] = {
     /* @ */ "669 d 8884422266 98874412223666", /* anti-clockwise from inside */
     /* A */ "d 888899332222 u 888 d 4444",
     /* B */ "d 888888666321444 u 666 d 321444",
@@ -474,7 +474,7 @@ char *uppercase[32] = {
     /* <-*/ "66999 d 44444 333 u 777 d 999",
 };
 /* Typically 3 units wide and 4 high (plus ascenders / descenders). */
-char *lowercase[32] = {
+static const char * const lowercase[32] = {
     /* --*/ "888 d 666666",
     /* a */ "8888 d 66322147896323",
     /* b */ "888888 d 22222266988744",
@@ -509,7 +509,7 @@ char *lowercase[32] = {
     /* []*/ "d 8888886666622222244444",
 };
 
-int dir[20] = { /* delta-x, delta-y */
+static const int dir[20] = { /* delta-x, delta-y */
      0,  0,     /* 0 */
     -1, -1,     /* 1   7 8 9 */
      0, -1,     /* 2   4 5 6 */
@@ -527,7 +527,7 @@ int dir[20] = { /* delta-x, delta-y */
 #define SW              6       /* letter pitch */
 #define LH              6       /* letter height */
 
-static void draw_char(plot_t *mps, char *commands)
+static void draw_char(plot_t *mps, const char *commands)
 {
     int x = mps->cur_x;
     int y = mps->cur_y;
@@ -577,7 +577,7 @@ static void draw_char(plot_t *mps, char *commands)
 static void print_char_text(plot_t *mps, uint8_t c)
 {
     int underline = 0;
-    char **tab;
+    const char * const *tab;
 
     if (c == CR) {
         mps->cur_x = 0;

@@ -1,13 +1,11 @@
-
-/*! \file sid/sid.h */
+/** \file   sid.h
+ * \brief   MOS6581 (SID) emulation, hooks to actual implementation - header
+ *
+ * \author  Dag Lem <resid@nimrod.no>
+ * \author  Marco van den Heuvel <blackystardust68@yahoo.com>
+ */
 
 /*
- * sid.h - MOS6581 (SID) emulation, hooks to actual implementation.
- *
- * Written by
- *  Dag Lem <resid@nimrod.no>
- *  Marco van den Heuvel <blackystardust68@yahoo.com>
- *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -30,6 +28,8 @@
 
 #ifndef VICE_SID_ENGINE_H
 #define VICE_SID_ENGINE_H
+
+#include <stdbool.h>
 
 #include "types.h"
 #include "sound.h"
@@ -90,24 +90,78 @@ struct sid_snapshot_state_s;
 #define SIDTYPE_SIDDTV    1
 #define SIDTYPE_SIDCART   2
 
+
+/** \brief  Maximum number of SIDs supported by the emulation
+ *
+ * This differs from the number of SIDs actually possible per emu.
+ */
+#define SID_COUNT_MAX   8
+
+
+/** \brief  Maximum number of SIDs supported by the PSID file format
+ *
+ * VSID specific: this differs from the number of SIDs actually possible per
+ * emu, although it can easily be extended to support more SIDs, since the
+ * header has on offset to the tune data, so expanding the header is easy, but
+ * will probably break some SID tools.
+ */
+#define SID_COUNT_MAX_PSID  3
+
+
+#define SID_MACHINE_MAX_SID_C64     8
+#define SID_MACHINE_MAX_SID_C64DTV  1
+#define SID_MACHINE_MAX_SID_C128    8
+#define SID_MACHINE_MAX_SID_VIC20   0
+#define SID_MACHINE_MAX_SID_PLUS4   1
+#define SID_MACHINE_MAX_SID_CBM5x0  1
+#define SID_MACHINE_MAX_SID_CBM6x0  0
+#define SID_MACHINE_MAX_SID_PET     0
+/** \brief  This can be the same as C64 in emulation, but PSID currently only
+ *          manages 3 SIDs
+ */
+#define SID_MACHINE_MAX_SID_VSID    3
+
+
+
+
 extern void machine_sid2_enable(int val);
 
 extern uint8_t sid_read(uint16_t address);
 extern uint8_t sid2_read(uint16_t address);
 extern uint8_t sid3_read(uint16_t address);
 extern uint8_t sid4_read(uint16_t address);
+extern uint8_t sid5_read(uint16_t address);
+extern uint8_t sid6_read(uint16_t address);
+extern uint8_t sid7_read(uint16_t address);
+extern uint8_t sid8_read(uint16_t address);
+
 extern uint8_t sid_peek(uint16_t address);
 extern uint8_t sid2_peek(uint16_t address);
 extern uint8_t sid3_peek(uint16_t address);
 extern uint8_t sid4_peek(uint16_t address);
+extern uint8_t sid5_peek(uint16_t address);
+extern uint8_t sid6_peek(uint16_t address);
+extern uint8_t sid7_peek(uint16_t address);
+extern uint8_t sid8_peek(uint16_t address);
+
 extern void sid_store(uint16_t address, uint8_t byte);
 extern void sid2_store(uint16_t address, uint8_t byte);
 extern void sid3_store(uint16_t address, uint8_t byte);
 extern void sid4_store(uint16_t address, uint8_t byte);
+extern void sid5_store(uint16_t address, uint8_t byte);
+extern void sid6_store(uint16_t address, uint8_t byte);
+extern void sid7_store(uint16_t address, uint8_t byte);
+extern void sid8_store(uint16_t address, uint8_t byte);
+
 extern int sid_dump(void);
 extern int sid2_dump(void);
 extern int sid3_dump(void);
 extern int sid4_dump(void);
+extern int sid5_dump(void);
+extern int sid6_dump(void);
+extern int sid7_dump(void);
+extern int sid8_dump(void);
+
 extern void sid_reset(void);
 
 extern void sid_set_machine_parameter(long clock_rate);
@@ -142,6 +196,7 @@ struct sid_engine_model_s {
 };
 typedef struct sid_engine_model_s sid_engine_model_t;
 
+extern bool sid_sound_machine_set_engine_hooks(void);
 extern sound_t *sid_sound_machine_open(int chipno);
 extern int sid_sound_machine_init_vbr(sound_t *psid, int speed, int cycles_per_sec, int factor);
 extern int sid_sound_machine_init(sound_t *psid, int speed, int cycles_per_sec);
@@ -162,5 +217,8 @@ extern void sid_sound_chip_init(void);
 extern void sid_set_enable(int value);
 
 int sid_engine_get_max_sids(int engine);
+int sid_machine_get_max_sids(void);
+int sid_machine_engine_get_max_sids(int engine);
+int sid_machine_can_have_multiple_sids(void);
 
 #endif

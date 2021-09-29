@@ -46,6 +46,7 @@ enum
 	CFGKEY_VIRTUAL_DEVICE_TRAPS = 274, CFGKEY_RESID_SAMPLING = 275,
 	CFGKEY_MODEL = 276, CFGKEY_AUTOSTART_BASIC_LOAD = 277,
 	CFGKEY_VIC20_RAM_EXPANSIONS = 278, CFGKEY_AUTOSTART_ON_LOAD = 279,
+	CFGKEY_PALETTE_NAME = 280
 };
 
 const char *EmuSystem::configFilename = "C64Emu.config";
@@ -88,12 +89,71 @@ Byte1Option optionSidEngine(CFGKEY_SID_ENGINE, SID_ENGINE_RESID, false,
 	optionIsValidWithMax<1, uint8_t>);
 Byte1Option optionReSidSampling(CFGKEY_RESID_SAMPLING, SID_RESID_SAMPLING_INTERPOLATION, false,
 	optionIsValidWithMax<3, uint8_t>);
-Byte1Option optionSwapJoystickPorts(CFGKEY_SWAP_JOYSTICK_PORTS, 0);
+Byte1Option optionSwapJoystickPorts(CFGKEY_SWAP_JOYSTICK_PORTS, JoystickMode::NORMAL, false,
+	optionIsValidWithMax<JoystickMode::KEYBOARD>);
 PathOption optionFirmwarePath(CFGKEY_SYSTEM_FILE_PATH, firmwareBasePath, "");
 Byte1Option optionAutostartOnLaunch(CFGKEY_AUTOSTART_ON_LOAD, 1);
 
 // VIC-20 specific
 Byte1Option optionVic20RamExpansions(CFGKEY_VIC20_RAM_EXPANSIONS, 0);
+
+static std::array<char, 21> externalPaletteResStr{};
+static std::array<char, 17> paletteFileResStr{};
+
+int intResource(const char *name)
+{
+	int val{};
+	auto failed = plugin.resources_get_int(name, &val);
+	if(failed)
+	{
+		logErr("error getting int resource:%s", name);
+	}
+	return val;
+}
+
+void setIntResource(const char *name, int val)
+{
+	plugin.resources_set_int(name, val);
+}
+
+const char *stringResource(const char *name)
+{
+	const char *val{};
+	auto failed = plugin.resources_get_string(name, &val);
+	if(failed)
+	{
+		logErr("error getting string resource:%s", name);
+	}
+	return val;
+}
+
+void setStringResource(const char *name, const char *val)
+{
+	plugin.resources_set_string(name, val);
+}
+
+void setPaletteResources(const char *palName)
+{
+	if(palName && strlen(palName))
+	{
+		setStringResource(paletteFileResStr.data(), palName);
+		setIntResource(externalPaletteResStr.data(), 1);
+	}
+	else
+	{
+		setIntResource(externalPaletteResStr.data(), 0);
+	}
+}
+
+bool usingExternalPalette()
+{
+	return intResource(externalPaletteResStr.data());
+}
+
+const char *externalPaletteName()
+{
+	return stringResource(paletteFileResStr.data());
+}
 
 EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
 {
@@ -103,6 +163,8 @@ EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
 	{
 		return makeError(fmt::format("Error loading plugin for system {}", VicePlugin::systemName(currSystem)));
 	}
+	IG::formatTo(externalPaletteResStr, "{}ExternalPalette", videoChipStr());
+	IG::formatTo(paletteFileResStr, "{}PaletteFile", videoChipStr());
 	return {};
 }
 
@@ -126,6 +188,7 @@ bool EmuSystem::resetSessionOptions(EmuApp &app)
 	optionSwapJoystickPorts.reset();
 	optionAutostartOnLaunch.reset();
 	optionVic20RamExpansions.reset();
+	setPaletteResources({});
 	onSessionOptionsLoaded(app);
 	return true;
 }
@@ -149,6 +212,8 @@ bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 		bcase CFGKEY_SWAP_JOYSTICK_PORTS: optionSwapJoystickPorts.readFromIO(io, readSize);
 		bcase CFGKEY_AUTOSTART_ON_LOAD: optionAutostartOnLaunch.readFromIO(io, readSize);
 		bcase CFGKEY_VIC20_RAM_EXPANSIONS: optionVic20RamExpansions.readFromIO(io, readSize);
+		bcase CFGKEY_PALETTE_NAME:
+			setPaletteResources(readStringOptionValue<FS::FileString>(io, readSize).value_or(FS::FileString{}).data());
 	}
 	return 1;
 }
@@ -175,6 +240,10 @@ void EmuSystem::writeSessionConfig(IO &io)
 		blocks |= (intResource("RamBlock5") ? BLOCK_5 : 0);
 		optionVic20RamExpansions = blocks;
 		optionVic20RamExpansions.writeWithKeyIfNotDefault(io);
+	}
+	if(usingExternalPalette())
+	{
+		writeStringOptionValue(io, CFGKEY_PALETTE_NAME, externalPaletteName());
 	}
 }
 

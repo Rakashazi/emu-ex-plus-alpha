@@ -38,15 +38,15 @@
 
 static unsigned int sync_factor;
 
-static void drive_sync_cpu_set_factor(drive_context_t *drv,
+static void drive_sync_cpu_set_factor(diskunit_context_t *drv,
                                       unsigned int sf)
 {
     drv->cpud->sync_factor = sf;
 }
 
-void drivesync_factor(struct drive_context_s *drv)
+void drivesync_factor(struct diskunit_context_s *drv)
 {
-    drive_sync_cpu_set_factor(drv, drv->drive->clock_frequency
+    drive_sync_cpu_set_factor(drv, drv->clock_frequency
                               * sync_factor);
 }
 
@@ -56,34 +56,34 @@ void drive_set_machine_parameter(long cycles_per_sec)
 
     sync_factor = (unsigned int)floor(65536.0 * (1000000.0 / ((double)cycles_per_sec)));
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        drivesync_factor(drive_context[dnr]);
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
+        drivesync_factor(diskunit_context[dnr]);
     }
 }
 
-void drivesync_set_1571(int new_sync, struct drive_context_s *drv)
+void drivesync_set_1571(struct diskunit_context_s *drv, int new_sync) 
 {
     unsigned int dnr;
 
     dnr = drv->mynumber;
 
     if (rom_loaded) {
-        rotation_rotate_disk(drv->drive);
+        rotation_rotate_disk(drv->drives[0]);
         rotation_init(new_sync ? 1 : 0, dnr);
-        drv->drive->clock_frequency = (new_sync) ? 2 : 1;
+        drv->clock_frequency = (new_sync) ? 2 : 1;
         drivesync_factor(drv);
     }
 }
 
-void drivesync_set_4000(struct drive_context_s *drv, int new_sync)
+void drivesync_set_4000(struct diskunit_context_s *drv, int new_sync)
 {
-    if (rom_loaded && drv->drive->type == DRIVE_TYPE_4000) {
-        drv->drive->clock_frequency = (new_sync) ? 4 : 2;
+    if (rom_loaded && drv->type == DRIVE_TYPE_4000) {
+        drv->clock_frequency = (new_sync) ? 4 : 2;
         drivesync_factor(drv);
     }
 }
 
-void drivesync_clock_frequency(unsigned int type, drive_t *drive)
+void drivesync_clock_frequency(diskunit_context_t *unit, unsigned int type)
 {
     switch (type) {
         case DRIVE_TYPE_1540:
@@ -92,13 +92,14 @@ void drivesync_clock_frequency(unsigned int type, drive_t *drive)
         case DRIVE_TYPE_1570:
         case DRIVE_TYPE_1571:
         case DRIVE_TYPE_1571CR:
-            drive->clock_frequency = 1;
+            unit->clock_frequency = 1;
             break;
         case DRIVE_TYPE_1551:
         case DRIVE_TYPE_1581:
         case DRIVE_TYPE_2000:
         case DRIVE_TYPE_4000:
-            drive->clock_frequency = 2;
+        case DRIVE_TYPE_CMDHD:
+            unit->clock_frequency = 2;
             break;
         case DRIVE_TYPE_2031:
         case DRIVE_TYPE_2040:
@@ -107,9 +108,10 @@ void drivesync_clock_frequency(unsigned int type, drive_t *drive)
         case DRIVE_TYPE_1001:
         case DRIVE_TYPE_8050:
         case DRIVE_TYPE_8250:
-            drive->clock_frequency = 1;
+        case DRIVE_TYPE_9000:
+            unit->clock_frequency = 1;
             break;
         default:
-            drive->clock_frequency = 1;
+            unit->clock_frequency = 1;
     }
 }

@@ -373,7 +373,7 @@ static int set_pet_colour_bg(int val, void *param)
 }
 
 static const resource_string_t resources_string[] = {
-    { "ChargenName", "chargen", RES_EVENT_NO, NULL,
+    { "ChargenName", PET_CHARGEN_NAME, RES_EVENT_NO, NULL,
       &petres.chargenName, set_chargen_rom_name, NULL },
     { "KernalName", PET_KERNAL4NAME, RES_EVENT_NO, NULL,
       &petres.kernalName, set_kernal_rom_name, NULL },

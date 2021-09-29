@@ -50,7 +50,8 @@ int fsimage_read_p64_image(const disk_image_t *image)
 {
     TP64MemoryStream P64MemoryStreamInstance;
     PP64Image P64Image = (void*)image->p64;
-    int lSize, rc;
+    int rc;
+    size_t lSize;
     void *buffer;
 
     fsimage_t *fsimage;
@@ -68,7 +69,7 @@ int fsimage_read_p64_image(const disk_image_t *image)
     /*num_tracks = image->tracks;*/
 
     P64MemoryStreamCreate(&P64MemoryStreamInstance);
-    P64MemoryStreamWrite(&P64MemoryStreamInstance, buffer, lSize);
+    P64MemoryStreamWrite(&P64MemoryStreamInstance, buffer, (p64_uint32_t)lSize);
     P64MemoryStreamSeek(&P64MemoryStreamInstance, 0);
     if (P64ImageReadFromStream(P64Image, &P64MemoryStreamInstance)) {
         rc = 0;

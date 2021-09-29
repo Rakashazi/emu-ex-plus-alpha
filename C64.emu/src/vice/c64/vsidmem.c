@@ -91,6 +91,8 @@ uint8_t *mem_chargen_rom_ptr;
 /* Pointers to the currently used memory read and write tables.  */
 read_func_ptr_t *_mem_read_tab_ptr;
 store_func_ptr_t *_mem_write_tab_ptr;
+read_func_ptr_t *_mem_read_tab_ptr_dummy;
+store_func_ptr_t *_mem_write_tab_ptr_dummy;
 static uint8_t **_mem_read_base_tab_ptr;
 static uint32_t *mem_read_limit_tab_ptr;
 
@@ -112,8 +114,12 @@ static int mem_config;
 /* Tape sense status: 1 = some button pressed, 0 = no buttons pressed.  */
 static int tape_sense = 0;
 
-/* Current watchpoint state. 1 = watchpoints active, 0 = no watchpoints */
-static int watchpoints_active;
+/* Current watchpoint state. 
+          0 = no watchpoints
+    bit0; 1 = watchpoints active
+    bit1; 2 = watchpoints trigger on dummy accesses
+*/
+static int watchpoints_active = 0;
 
 /* ------------------------------------------------------------------------- */
 
@@ -143,15 +149,32 @@ static void store_watch(uint16_t addr, uint8_t value)
     mem_write_tab[vbank][mem_config][addr >> 8](addr, value);
 }
 
-void mem_toggle_watchpoints(int flag, void *context)
+/* called by mem_pla_config_changed(), mem_toggle_watchpoints() */
+static void mem_update_tab_ptrs(int flag)
 {
     if (flag) {
         _mem_read_tab_ptr = mem_read_tab_watch;
         _mem_write_tab_ptr = mem_write_tab_watch;
+        if (flag > 1) {
+            /* enable watchpoints on dummy accesses */
+            _mem_read_tab_ptr_dummy = mem_read_tab_watch;
+            _mem_write_tab_ptr_dummy = mem_write_tab_watch;
+        } else {
+            _mem_read_tab_ptr_dummy = mem_read_tab[mem_config];
+            _mem_write_tab_ptr_dummy = mem_write_tab[vbank][mem_config];
+        }
     } else {
+        /* all watchpoints disabled */
         _mem_read_tab_ptr = mem_read_tab[mem_config];
         _mem_write_tab_ptr = mem_write_tab[vbank][mem_config];
+        _mem_read_tab_ptr_dummy = mem_read_tab[mem_config];
+        _mem_write_tab_ptr_dummy = mem_write_tab[vbank][mem_config];
     }
+}
+
+void mem_toggle_watchpoints(int flag, void *context)
+{
+    mem_update_tab_ptrs(flag);
     watchpoints_active = flag;
 }
 
@@ -203,13 +226,7 @@ void mem_pla_config_changed(void)
 
     c64pla_config_changed(tape_sense, 0, 0, 1, 0x17);
 
-    if (watchpoints_active) {
-        _mem_read_tab_ptr = mem_read_tab_watch;
-        _mem_write_tab_ptr = mem_write_tab_watch;
-    } else {
-        _mem_read_tab_ptr = mem_read_tab[mem_config];
-        _mem_write_tab_ptr = mem_write_tab[vbank][mem_config];
-    }
+    mem_update_tab_ptrs(watchpoints_active);
 
     _mem_read_base_tab_ptr = mem_read_base_tab[mem_config];
     mem_read_limit_tab_ptr = mem_read_limit_tab[mem_config];
@@ -769,23 +786,32 @@ static uint8_t peek_bank_io(uint16_t addr)
 /* ------------------------------------------------------------------------- */
 
 /* Exported banked memory access functions for the monitor.  */
+#define MAXBANKS (5)
 
-static const char *banknames[] = {
+static const char *banknames[MAXBANKS + 1] = {
     "default",
     "cpu",
     "ram",
     "rom",
     "io",
+    /* by convention, a "bank array" has a 2-hex-digit bank index appended */
     NULL
 };
 
-static const int banknums[] = { 1, 0, 1, 2, 3 };
+static const int banknums[MAXBANKS + 1] = { 1, 0, 1, 2, 3, -1 };
+static const int bankindex[MAXBANKS + 1] = { -1, -1, -1, -1, -1, -1 };
+static const int bankflags[MAXBANKS + 1] = { 0, 0, 0, 0, 0, -1 };
 
 const char **mem_bank_list(void)
 {
     return banknames;
 }
 
+const int *mem_bank_list_nos(void) {
+    return banknums;
+}
+
+/* return bank number for a given literal bank name */
 int mem_bank_from_name(const char *name)
 {
     int i = 0;
@@ -793,6 +819,33 @@ int mem_bank_from_name(const char *name)
     while (banknames[i]) {
         if (!strcmp(name, banknames[i])) {
             return banknums[i];
+        }
+        i++;
+    }
+    return -1;
+}
+
+/* return current index for a given bank */
+int mem_bank_index_from_bank(int bank)
+{
+    int i = 0;
+
+    while (banknums[i] > -1) {
+        if (banknums[i] == bank) {
+            return bankindex[i];
+        }
+        i++;
+    }
+    return -1;
+}
+
+int mem_bank_flags_from_bank(int bank)
+{
+    int i = 0;
+
+    while (banknums[i] > -1) {
+        if (banknums[i] == bank) {
+            return bankflags[i];
         }
         i++;
     }
@@ -908,8 +961,8 @@ mem_ioreg_list_t *mem_ioreg_list_get(void *context)
 {
     mem_ioreg_list_t *mem_ioreg_list = NULL;
 
-    mon_ioreg_add_list(&mem_ioreg_list, "CIA1", 0xdc00, 0xdc0f, mem_dump_io, NULL);
-    mon_ioreg_add_list(&mem_ioreg_list, "CIA2", 0xdd00, 0xdd0f, mem_dump_io, NULL);
+    mon_ioreg_add_list(&mem_ioreg_list, "CIA1", 0xdc00, 0xdc0f, mem_dump_io, NULL, IO_MIRROR_NONE);
+    mon_ioreg_add_list(&mem_ioreg_list, "CIA2", 0xdd00, 0xdd0f, mem_dump_io, NULL, IO_MIRROR_NONE);
 
     return mem_ioreg_list;
 }

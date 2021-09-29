@@ -159,7 +159,7 @@ static const cmdline_option_t cbm2_cmdline_options[] =
       "<modelnumber>", "Specify CBM-II model to emulate. (610, 620, 620+, 710, 720, 720+)" },
     { "-ramsize", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "RamSize", NULL,
-      "<RAM size>", "Specify size of RAM (128/256/512/1024 kByte)" },
+      "<RAM size>", "Specify size of RAM (128/256/512/1024 KiB)" },
     CMDLINE_LIST_END
 };
 
@@ -170,7 +170,7 @@ static const cmdline_option_t cbm5x0_cmdline_options[] =
       "<modelnumber>", "Specify CBM-II model to emulate. (510)" },
     { "-ramsize", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "RamSize", NULL,
-      "<RAM size>", "Specify size of RAM (64/128/256/512/1024 kByte)" },
+      "<RAM size>", "Specify size of RAM (64/128/256/512/1024 KiB)" },
     CMDLINE_LIST_END
 };
 

@@ -53,6 +53,9 @@ enum t_memspace {
 };
 typedef enum t_memspace MEMSPACE;
 
+#define FIRST_SPACE e_comp_space
+#define LAST_SPACE e_disk11_space
+
 enum CPU_TYPE_s {
     CPU_6502,
     CPU_WDC65C02,
@@ -110,8 +113,21 @@ struct monitor_interface_s {
     CLOCK *clk;
 
     int current_bank;
+    int current_bank_index;
+
+    /* Returns the string bank identifiers in a NULL terminated list. */
     const char **(*mem_bank_list)(void);
+
+    /* Returns the numeric bank identifiers in a -1 terminated list.
+     * These correspond to the string identifiers so there could be
+     * repeats.
+     */
+    const int *(*mem_bank_list_nos)(void);
+
     int (*mem_bank_from_name)(const char *name);
+    int (*mem_bank_index_from_bank)(int bank);
+    int (*mem_bank_flags_from_bank)(int bank);
+
     uint8_t (*mem_bank_read)(int bank, uint16_t addr, void *context);
     uint8_t (*mem_bank_peek)(int bank, uint16_t addr, void *context);
     void (*mem_bank_write)(int bank, uint16_t addr, uint8_t byte, void *context);
@@ -120,7 +136,6 @@ struct monitor_interface_s {
     struct mem_ioreg_list_s *(*mem_ioreg_list_get)(void *context);
 
     /* Pointer to a function to disable/enable watchpoint checking.  */
-    /*monitor_toggle_func_t *toggle_watchpoints_func;*/
     void (*toggle_watchpoints_func)(int value, void *context);
 
     /* Update bank base (used for drives).  */
@@ -145,8 +160,13 @@ extern void monitor_init(monitor_interface_t * maincpu_interface,
 extern void monitor_shutdown(void);
 extern int monitor_cmdline_options_init(void);
 extern int monitor_resources_init(void);
+extern void monitor_resources_shutdown(void);
 void monitor_startup(MEMSPACE mem);
 extern void monitor_startup_trap(void);
+extern bool monitor_is_inside_monitor(void);
+
+extern void monitor_reset_hook(void);
+extern void monitor_vsync_hook(void);
 
 extern void monitor_abort(void);
 
@@ -175,6 +195,8 @@ extern int mon_out(const char *format, ...);
 
 /** Breakpoint interface.  */
 
+#define MONITOR_MAX_CHECKPOINTS 9
+
 /* Prototypes */
 extern int monitor_check_breakpoints(MEMSPACE mem, uint16_t addr);
 
@@ -188,7 +210,7 @@ extern const char *mon_disassemble_to_string(MEMSPACE, unsigned int addr, unsign
 /** Register interface.  */
 extern struct mon_reg_list_s *mon_register_list_get(int mem);
 extern void mon_ioreg_add_list(struct mem_ioreg_list_s **list, const char *name,
-                               int start, int end, void *dump, void *context);
+                               int start, int end, void *dump, void *context, int mirror_mode);
 
 /* Assembler initialization.  */
 extern void asm6502_init(struct monitor_cpu_type_s *monitor_cpu_type);
@@ -210,7 +232,7 @@ typedef struct monitor_cartridge_commands_s monitor_cartridge_commands_t;
 extern monitor_cartridge_commands_t mon_cart_cmd;
 
 /* CPU history/memmap prototypes */
-extern void monitor_cpuhistory_store(unsigned int addr, unsigned int op, unsigned int p1, unsigned int p2,
+extern void monitor_cpuhistory_store(uint32_t cycle, unsigned int addr, unsigned int op, unsigned int p1, unsigned int p2,
                                      uint8_t reg_a, uint8_t reg_x, uint8_t reg_y,
                                      uint8_t reg_sp, unsigned int reg_st);
 extern void monitor_cpuhistory_fix_p2(unsigned int p2);
@@ -233,16 +255,5 @@ extern uint8_t memmap_state;
 #define MEMMAP_STATE_INSTR      0x02
 #define MEMMAP_STATE_IGNORE     0x04
 #define MEMMAP_STATE_IN_MONITOR 0x08
-
-/* strtoul replacement for sunos4 */
-#if defined(sun) || defined(__sun)
-#  if !defined(__SVR4) && !defined(__svr4__)
-#    define strtoul(a, b, c) (unsigned long)strtol(a, b, c)
-#  endif
-#endif
-
-#ifndef HAVE_STPCPY
-char *stpcpy(char *dest, const char *src);
-#endif
 
 #endif

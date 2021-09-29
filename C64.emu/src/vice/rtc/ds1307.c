@@ -469,7 +469,7 @@ uint8_t ds1307_read_data_line(rtc_ds1307_t *context)
    STRING | device              | device name STRING
  */
 
-static char snap_module_name[] = "RTC_DS1307";
+static const char snap_module_name[] = "RTC_DS1307";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

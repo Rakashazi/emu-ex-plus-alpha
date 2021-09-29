@@ -43,13 +43,13 @@ extern void file_system_shutdown(void);
 extern int file_system_resources_init(void);
 extern int file_system_cmdline_options_init(void);
 
-extern const char *file_system_get_disk_name(unsigned int unit);
-extern int file_system_attach_disk(unsigned int unit, const char *filename);
-extern void file_system_detach_disk(int unit);
+extern const char *file_system_get_disk_name(unsigned int unit, unsigned int drive);
+extern int file_system_attach_disk(unsigned int unit, unsigned int drive, const char *filename);
+extern void file_system_detach_disk(unsigned int unit, unsigned int drive);
 extern void file_system_detach_disk_shutdown(void);
-extern struct vdrive_s *file_system_get_vdrive(unsigned int unit);
-extern int file_system_bam_get_disk_id(unsigned int unit, uint8_t *id);
-extern int file_system_bam_set_disk_id(unsigned int unit, uint8_t *id);
-extern void file_system_event_playback(unsigned int unit, const char *filename);
+extern struct vdrive_s *file_system_get_vdrive(unsigned int unit, unsigned int drive);
+extern int file_system_bam_get_disk_id(unsigned int unit, unsigned int drive, uint8_t *id);
+extern int file_system_bam_set_disk_id(unsigned int unit, unsigned int drive, uint8_t *id);
+extern void file_system_event_playback(unsigned int unit, unsigned int drive, const char *filename);
 
 #endif

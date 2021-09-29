@@ -49,22 +49,22 @@ typedef struct driveriot2_context_s {
 } driveriot2_context_t;
 
 
-void riot2_store(drive_context_t *ctxptr, uint16_t addr, uint8_t data)
+void riot2_store(diskunit_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
     riotcore_store(ctxptr->riot2, addr, data);
 }
 
-uint8_t riot2_read(drive_context_t *ctxptr, uint16_t addr)
+uint8_t riot2_read(diskunit_context_t *ctxptr, uint16_t addr)
 {
     return riotcore_read(ctxptr->riot2, addr);
 }
 
-uint8_t riot2_peek(drive_context_t *ctxptr, uint16_t addr)
+uint8_t riot2_peek(diskunit_context_t *ctxptr, uint16_t addr)
 {
     return riotcore_peek(ctxptr->riot2, addr);
 }
 
-int riot2_dump(drive_context_t *ctxptr, uint16_t addr)
+int riot2_dump(diskunit_context_t *ctxptr, uint16_t addr)
 {
     /* TODO: implement dump feature */
     /* riotcore_dump(ctxptr->riot2, addr); */
@@ -73,10 +73,10 @@ int riot2_dump(drive_context_t *ctxptr, uint16_t addr)
 
 static void set_irq(riot_context_t *riot_context, int fl, CLOCK clk)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
     driveriot2_context_t *riot2p;
 
-    dc = (drive_context_t *)(riot_context->context);
+    dc = (diskunit_context_t *)(riot_context->context);
     riot2p = (driveriot2_context_t *)(riot_context->prv);
 
     interrupt_set_irq(dc->cpu->int_status, (riot2p->int_num),
@@ -85,10 +85,10 @@ static void set_irq(riot_context_t *riot_context, int fl, CLOCK clk)
 
 static void restore_irq(riot_context_t *riot_context, int fl)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
     driveriot2_context_t *riot2p;
 
-    dc = (drive_context_t *)(riot_context->context);
+    dc = (diskunit_context_t *)(riot_context->context);
     riot2p = (driveriot2_context_t *)(riot_context->prv);
 
     interrupt_restore_irq(dc->cpu->int_status, riot2p->int_num,
@@ -97,10 +97,10 @@ static void restore_irq(riot_context_t *riot_context, int fl)
 
 static void set_handshake(riot_context_t *riot_context, uint8_t pa)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
     driveriot2_context_t *riot2p;
 
-    dc = (drive_context_t *)(riot_context->context);
+    dc = (diskunit_context_t *)(riot_context->context);
     riot2p = (driveriot2_context_t *)(riot_context->prv);
 
     /* IEEE handshake logic (named as in schematics):
@@ -123,13 +123,13 @@ static void set_handshake(riot_context_t *riot_context, uint8_t pa)
 
 void riot2_set_atn(riot_context_t *riot_context, int state)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
     driveriot2_context_t *riot2p;
 
-    dc = (drive_context_t *)(riot_context->context);
+    dc = (diskunit_context_t *)(riot_context->context);
     riot2p = (driveriot2_context_t *)(riot_context->prv);
 
-    if (drive_check_old(riot2p->drive->type)) {
+    if (drive_check_old(dc->type)) {
         if (riot2p->r_atn_active && !state) {
             riotcore_signal(riot_context, RIOT_SIG_PA7, RIOT_SIG_FALL);
         } else
@@ -144,9 +144,9 @@ void riot2_set_atn(riot_context_t *riot_context, int state)
 
 static void undump_pra(riot_context_t *riot_context, uint8_t byte)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
 
-    dc = (drive_context_t *)(riot_context->context);
+    dc = (diskunit_context_t *)(riot_context->context);
 
     /* bit 0 = atna */
     set_handshake(riot_context, byte);
@@ -156,9 +156,9 @@ static void undump_pra(riot_context_t *riot_context, uint8_t byte)
 
 static void store_pra(riot_context_t *riot_context, uint8_t byte)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
 
-    dc = (drive_context_t *)(riot_context->context);
+    dc = (diskunit_context_t *)(riot_context->context);
 
     /* bit 0 = atna */
     /* bit 1 = /daco */
@@ -183,10 +183,12 @@ static void undump_prb(riot_context_t *riot_context, uint8_t byte)
     /* 1001 only needs LED 0 and Error LED */
     riot2p->drive->led_status = (byte >> 4) & 0x03;
 
+/* TODO: drive 1
     if ((is_drive0(riot2p->number)) && (drive_check_dual(riot2p->drive->type))) {
-        drive_context[mk_drive1(riot2p->number)]->drive->led_status
+        diskunit_context[mk_drive1(riot2p->number)]->drive->led_status
             = ((byte & 8) ? 1 : 0) | ((byte & 32) ? 2 : 0);
     }
+*/
 
     if (riot2p->drive->led_status & 1) {
         riot2p->drive->led_active_ticks += *(riot_context->clk_ptr)
@@ -208,18 +210,20 @@ static void store_prb(riot_context_t *riot_context, uint8_t byte)
     /* 1001 only needs LED 0 and Error LED */
     riot2p->drive->led_status = (byte >> 4) & 0x03;
 
+/* TODO: drive 1
     if ((is_drive0(riot2p->number)) && (drive_check_dual(riot2p->drive->type))) {
-        drive_context[mk_drive1(riot2p->number)]->drive->led_status
+        diskunit_context[mk_drive1(riot2p->number)]->drive->led_status
             = ((byte & 8) ? 1 : 0) | ((byte & 32) ? 2 : 0);
     }
+*/
 }
 
 static void reset(riot_context_t *riot_context)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
     driveriot2_context_t *riot2p;
 
-    dc = (drive_context_t *)(riot_context->context);
+    dc = (diskunit_context_t *)(riot_context->context);
     riot2p = (driveriot2_context_t *)(riot_context->prv);
 
     riot2p->r_atn_active = 0;
@@ -271,13 +275,13 @@ static uint8_t read_prb(riot_context_t *riot_context)
            | ((riot_context->riot_io)[2] & (riot_context->riot_io)[3]);
 }
 
-void riot2_init(drive_context_t *ctxptr)
+void riot2_init(diskunit_context_t *ctxptr)
 {
     riotcore_init(ctxptr->riot2, ctxptr->cpu->alarm_context,
                   ctxptr->cpu->clk_guard, ctxptr->mynumber);
 }
 
-void riot2_setup_context(drive_context_t *ctxptr)
+void riot2_setup_context(diskunit_context_t *ctxptr)
 {
     riot_context_t *riot;
     driveriot2_context_t *riot2p;
@@ -299,7 +303,8 @@ void riot2_setup_context(drive_context_t *ctxptr)
 
     riot->myname = lib_msprintf("RIOT2D%d", ctxptr->mynumber);
 
-    riot2p->drive = ctxptr->drive;
+    /* TODO: drive 1 correct? */
+    riot2p->drive = ctxptr->drives[0];
     riot2p->r_atn_active = 0;
     riot2p->int_num = interrupt_cpu_status_int_new(ctxptr->cpu->int_status,
                                                    ctxptr->riot2->myname);

@@ -522,7 +522,7 @@ switch (context->state) {
    STRING | device              | device name STRING
  */
 
-static char snap_module_name[] = "RTC_PCF8583";
+static const char snap_module_name[] = "RTC_PCF8583";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

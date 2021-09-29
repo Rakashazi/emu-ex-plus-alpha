@@ -28,7 +28,9 @@
 #ifndef VICE_MAINCPU_H
 #define VICE_MAINCPU_H
 
+#include "mainlock.h"
 #include "types.h"
+#include "vsyncapi.h"
 
 /* Information about the last opcode executed by the main CPU.  */
 extern unsigned int last_opcode_info;

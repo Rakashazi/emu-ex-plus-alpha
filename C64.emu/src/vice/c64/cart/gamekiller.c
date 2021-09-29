@@ -227,7 +227,7 @@ void gamekiller_detach(void)
    ARRAY | ROMH    | 8192 BYTES of ROMH data
  */
 
-static char snap_module_name[] = "CARTGK";
+static const char snap_module_name[] = "CARTGK";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

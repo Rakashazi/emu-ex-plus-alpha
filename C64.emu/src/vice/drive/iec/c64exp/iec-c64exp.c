@@ -51,7 +51,7 @@ int iec_c64exp_cmdline_options_init(void)
     return c64exp_cmdline_options_init();
 }
 
-void iec_c64exp_init(struct drive_context_s *drv)
+void iec_c64exp_init(struct diskunit_context_s *drv)
 {
     dd3_init(drv);
     profdos_init(drv);
@@ -59,7 +59,7 @@ void iec_c64exp_init(struct drive_context_s *drv)
     supercard_init(drv);
 }
 
-void iec_c64exp_reset(struct drive_context_s *drv)
+void iec_c64exp_reset(struct diskunit_context_s *drv)
 {
     dd3_reset(drv);
     profdos_reset(drv);
@@ -67,7 +67,7 @@ void iec_c64exp_reset(struct drive_context_s *drv)
     supercard_reset(drv);
 }
 
-void iec_c64exp_mem_init(struct drive_context_s *drv, unsigned int type)
+void iec_c64exp_mem_init(struct diskunit_context_s *drv, unsigned int type)
 {
     dd3_mem_init(drv, type);
     profdos_mem_init(drv, type);

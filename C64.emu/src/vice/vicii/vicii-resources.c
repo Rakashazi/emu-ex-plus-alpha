@@ -40,15 +40,29 @@
 #include "vicii.h"
 #include "viciitypes.h"
 #include "video.h"
+#include "vsync.h"
 
 vicii_resources_t vicii_resources = { 0, 0, 0, 0, 0 };
 static video_chip_cap_t video_chip_cap;
 
+static int next_border_mode;
 
-static int set_border_mode(int val, void *param)
+static void on_vsync_set_border_mode(void *unused)
 {
     int sync;
 
+    if (resources_get_int("MachineVideoStandard", &sync) < 0) {
+        sync = MACHINE_SYNC_PAL;
+    }
+
+    if (vicii_resources.border_mode != next_border_mode) {
+        vicii_resources.border_mode = next_border_mode;
+        machine_change_timing(sync, vicii_resources.border_mode);
+    }
+}
+
+static int set_border_mode(int val, void *param)
+{
     switch (val) {
         case VICII_NORMAL_BORDERS:
         case VICII_FULL_BORDERS:
@@ -59,14 +73,9 @@ static int set_border_mode(int val, void *param)
             return -1;
     }
 
-    if (resources_get_int("MachineVideoStandard", &sync) < 0) {
-        sync = MACHINE_SYNC_PAL;
-    }
+    next_border_mode = val;
+    vsync_on_vsync_do(on_vsync_set_border_mode, NULL);
 
-    if (vicii_resources.border_mode != val) {
-        vicii_resources.border_mode = val;
-        machine_change_timing(sync, vicii_resources.border_mode);
-    }
     return 0;
 }
 
@@ -149,4 +158,9 @@ int vicii_resources_init(void)
     }
 
     return resources_register_int(resources_int);
+}
+
+void vicii_comply_with_video_standard(int machine_sync)
+{
+    /* dummy function */
 }

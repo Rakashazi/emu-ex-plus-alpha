@@ -141,9 +141,6 @@ static int mem_read_rom_snapshot_module(snapshot_t *s)
     /* enable traps again when necessary */
     resources_set_int("VirtualDevices", trapfl);
 
-    /* to get all the checkmarks right */
-    ui_update_menus();
-
     return 0;
 
 fail:
@@ -256,8 +253,6 @@ int c128_snapshot_read_module(snapshot_t *s)
     if (cartridge_snapshot_read_modules(s) < 0) {
         goto fail;
     }
-
-    ui_update_menus();
 
     return 0;
 

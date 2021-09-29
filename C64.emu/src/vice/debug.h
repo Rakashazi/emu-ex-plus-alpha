@@ -70,6 +70,8 @@ typedef struct debug_s {
 
     /*! If this is set, inputs and outputs to the IEC bus are output. */
     int iec;
+    /*! If this is set, inputs and outputs to the IEEE-488 bus are output. */
+    int ieee;
 #endif
     int do_core_dumps;
 } debug_t;

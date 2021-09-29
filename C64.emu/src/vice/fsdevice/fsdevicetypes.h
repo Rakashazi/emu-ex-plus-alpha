@@ -36,7 +36,7 @@
 #define FSDEVICE_SECTOR_MAX  32
 
 enum fsmode {
-    Write, Read, Append, Directory
+    Write, Read, Append, Directory, Relative
 };
 
 struct fileio_info_s;
@@ -53,12 +53,18 @@ struct bufinfo_s {
     int buflen;
     uint8_t *bufp;
     int eof;
-    int reclen;
     int type;
     uint8_t buffered;  /* Buffered Byte: Added to buffer reads to remove buffering from iec code */
     int isbuffered; /* TRUE is a byte exists in the buffer above */
     int iseof;      /* TRUE if an EOF is detected on a buffered read */
     char *dirmask;
+                    /* REL file support */
+    int reclen;
+    int num_records;
+    int current_record;                 /* 0-based */
+    int position_in_record;             /* 0-based */
+    int current_record_length;
+    int record_is_dirty;
 };
 typedef struct bufinfo_s bufinfo_t;
 

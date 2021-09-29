@@ -1,9 +1,10 @@
+/** \file   types.h
+ * \brief   Type definitions for VICE
+ *
+ * \author  Marco van den Heuvel <blackystardust68@yahoo.com>
+ */
+
 /*
- * types.h - Type definitions for VICE.
- *
- * Written by
- *  Marco van den Heuvel <blackystardust68@yahoo.com>
- *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -33,7 +34,10 @@
 #  include "vice_sdl.h"
 #endif
 
+#include <stdbool.h>
+
 #ifdef HAVE_INTTYPES_H
+/* FIXME: Doxygen can't find the C99 header */
 #  include <inttypes.h>
 #else
 #  ifdef HAVE_STDINT_H
@@ -58,6 +62,9 @@ typedef uint32_t CLOCK;
 #define int_to_void_ptr(x) ((void *)(long)(x))
 #define uint_to_void_ptr(x) ((void *)(unsigned long)(x))
 #endif
+
+typedef uint32_t uint32align1 __attribute__((aligned(1)));
+typedef uint32_t uint32align2 __attribute__((aligned(2)));
 
 #include <viceCommonAPI.h>
 

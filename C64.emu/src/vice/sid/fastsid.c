@@ -28,6 +28,8 @@
 
 #include "vice.h"
 
+#ifdef HAVE_FASTSID
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -231,14 +233,14 @@ struct sound_s {
 
 /* XXX: check these */
 /* table for internal ADSR counter step calculations */
-static uint16_t adrtable[16] =
+static const uint16_t adrtable[16] =
 {
     1, 4, 8, 12, 19, 28, 34, 40, 50, 125, 250, 400, 500, 1500, 2500, 4000
 };
 
 /* XXX: check these */
 /* table for pseudo-exponential ADSR calculations */
-static uint32_t exptable[6] =
+static const uint32_t exptable[6] =
 {
     0x30000000, 0x1c000000, 0x0e000000, 0x08000000, 0x04000000, 0x00000000
 };
@@ -1276,3 +1278,5 @@ void fastsid_state_write(struct sound_s *psid, struct sid_fastsid_snapshot_state
         psid->v[i].filtRef = (vreal_t)sid_state->v_filtRef[i];
     }
 }
+
+#endif

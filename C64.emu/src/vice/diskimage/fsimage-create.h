@@ -35,5 +35,6 @@
 extern void fsimage_create_init(void);
 
 extern int  fsimage_create(const char *name, unsigned int type);
+extern int  fsimage_create_dxm(const char *name, const char *diskname, unsigned int type);
 
 #endif

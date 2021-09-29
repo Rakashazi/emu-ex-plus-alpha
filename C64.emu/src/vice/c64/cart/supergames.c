@@ -206,7 +206,7 @@ void supergames_detach(void)
    ARRAY | ROMH        |   0.0+  | 32768 BYTES of ROMH data
  */
 
-static char snap_module_name[] = "CARTSUPERGAMES";
+static const char snap_module_name[] = "CARTSUPERGAMES";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   2
 

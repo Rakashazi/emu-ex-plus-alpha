@@ -1425,7 +1425,7 @@ int ata_snapshot_write_module(ata_drive_t *drv, snapshot_t *s)
     SMW_B(m, (uint8_t)drv->heads);
     SMW_B(m, (uint8_t)drv->sectors);
     SMW_DW(m, drv->pos);
-    SMW_DW(m, pos / drv->sector_size);
+    SMW_DW(m, (uint32_t)(pos / drv->sector_size));
     SMW_B(m, (uint8_t)drv->wcache);
     SMW_B(m, (uint8_t)drv->lookahead);
     SMW_B(m, (uint8_t)drv->busy);

@@ -96,6 +96,8 @@ void ted_change_timing(machine_timing_t *machine_timing, int bordermode)
         ted_set_geometry();
         raster_mode_change();
     }
+    /* this should go to ted_chip_model_init() incase we ever go that far */
+    ted_color_update_palette(ted.raster.canvas);
 }
 
 void ted_delay_oldclk(CLOCK num)
@@ -766,6 +768,8 @@ void ted_raster_draw_alarm_handler(CLOCK offset, void *data)
             ted.raster.blank_enabled = 1;
         }
     }
+
+    vsync_do_end_of_line();
 
     /* DO VSYNC if the raster_counter in the TED reached the VSYNC signal */
     /* Also do VSYNC if oversized screen reached a certain threashold, this will result in rolling screen just like on the real thing */

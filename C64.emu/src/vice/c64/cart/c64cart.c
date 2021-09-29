@@ -158,6 +158,11 @@ static cartridge_info_t cartlist[] = {
     { CARTRIDGE_NAME_ACTION_REPLAY3,      CARTRIDGE_ACTION_REPLAY3,      CARTRIDGE_GROUP_FREEZER },
     { CARTRIDGE_NAME_ACTION_REPLAY4,      CARTRIDGE_ACTION_REPLAY4,      CARTRIDGE_GROUP_FREEZER },
     { CARTRIDGE_NAME_ATOMIC_POWER,        CARTRIDGE_ATOMIC_POWER,        CARTRIDGE_GROUP_FREEZER },
+    { CARTRIDGE_NAME_BISPLUS,             CARTRIDGE_BISPLUS,             CARTRIDGE_GROUP_UTIL },
+    { CARTRIDGE_NAME_BLACKBOX3,           CARTRIDGE_BLACKBOX3,           CARTRIDGE_GROUP_UTIL },
+    { CARTRIDGE_NAME_BLACKBOX4,           CARTRIDGE_BLACKBOX4,           CARTRIDGE_GROUP_UTIL },
+    { CARTRIDGE_NAME_BLACKBOX8,           CARTRIDGE_BLACKBOX8,           CARTRIDGE_GROUP_UTIL },
+    { CARTRIDGE_NAME_BLACKBOX9,           CARTRIDGE_BLACKBOX9,           CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_CAPTURE,             CARTRIDGE_CAPTURE,             CARTRIDGE_GROUP_FREEZER },
     { CARTRIDGE_NAME_COMAL80,             CARTRIDGE_COMAL80,             CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_DELA_EP256,          CARTRIDGE_DELA_EP256,          CARTRIDGE_GROUP_UTIL },
@@ -179,11 +184,14 @@ static cartridge_info_t cartlist[] = {
     { CARTRIDGE_NAME_FUNPLAY,             CARTRIDGE_FUNPLAY,             CARTRIDGE_GROUP_GAME },
     { CARTRIDGE_NAME_GAME_KILLER,         CARTRIDGE_GAME_KILLER,         CARTRIDGE_GROUP_FREEZER },
     { CARTRIDGE_NAME_GMOD2,               CARTRIDGE_GMOD2,               CARTRIDGE_GROUP_GAME },
+    { CARTRIDGE_NAME_GMOD3,               CARTRIDGE_GMOD3,               CARTRIDGE_GROUP_GAME },
     { CARTRIDGE_NAME_GS,                  CARTRIDGE_GS,                  CARTRIDGE_GROUP_GAME },
+    { CARTRIDGE_NAME_HERO,                CARTRIDGE_HERO,                CARTRIDGE_GROUP_GAME },
     { CARTRIDGE_NAME_IDE64,               CARTRIDGE_IDE64,               CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_IEEE488,             CARTRIDGE_IEEE488,             CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_KCS_POWER,           CARTRIDGE_KCS_POWER,           CARTRIDGE_GROUP_FREEZER },
     { CARTRIDGE_NAME_KINGSOFT,            CARTRIDGE_KINGSOFT,            CARTRIDGE_GROUP_UTIL },
+    { CARTRIDGE_NAME_LT_KERNAL,           CARTRIDGE_LT_KERNAL,           CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_MACH5,               CARTRIDGE_MACH5,               CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_MAGIC_DESK,          CARTRIDGE_MAGIC_DESK,          CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_MAGIC_FORMEL,        CARTRIDGE_MAGIC_FORMEL,        CARTRIDGE_GROUP_FREEZER },
@@ -192,17 +200,21 @@ static cartridge_info_t cartlist[] = {
     { CARTRIDGE_NAME_MIKRO_ASSEMBLER,     CARTRIDGE_MIKRO_ASSEMBLER,     CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_MMC64,               CARTRIDGE_MMC64,               CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_MMC_REPLAY,          CARTRIDGE_MMC_REPLAY,          CARTRIDGE_GROUP_FREEZER },
+    { CARTRIDGE_NAME_MULTIMAX,            CARTRIDGE_MULTIMAX,            CARTRIDGE_GROUP_GAME },
     { CARTRIDGE_NAME_OCEAN,               CARTRIDGE_OCEAN,               CARTRIDGE_GROUP_GAME },
     { CARTRIDGE_NAME_P64,                 CARTRIDGE_P64,                 CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_PAGEFOX,             CARTRIDGE_PAGEFOX,             CARTRIDGE_GROUP_UTIL },
+    { CARTRIDGE_NAME_RAMLINK,             CARTRIDGE_RAMLINK,             CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_RETRO_REPLAY,        CARTRIDGE_RETRO_REPLAY,        CARTRIDGE_GROUP_FREEZER },
     { CARTRIDGE_NAME_REX,                 CARTRIDGE_REX,                 CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_REX_EP256,           CARTRIDGE_REX_EP256,           CARTRIDGE_GROUP_UTIL },
+    { CARTRIDGE_NAME_REX_RAMFLOPPY,       CARTRIDGE_REX_RAMFLOPPY,       CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_RGCD,                CARTRIDGE_RGCD,                CARTRIDGE_GROUP_GAME },
 #ifdef HAVE_RAWNET
     { CARTRIDGE_NAME_RRNETMK3,            CARTRIDGE_RRNETMK3,            CARTRIDGE_GROUP_UTIL },
 #endif
     { CARTRIDGE_NAME_ROSS,                CARTRIDGE_ROSS,                CARTRIDGE_GROUP_UTIL },
+    { CARTRIDGE_NAME_SDBOX,               CARTRIDGE_SDBOX,               CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_SILVERROCK_128,      CARTRIDGE_SILVERROCK_128,      CARTRIDGE_GROUP_GAME },
     { CARTRIDGE_NAME_SIMONS_BASIC,        CARTRIDGE_SIMONS_BASIC,        CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_SNAPSHOT64,          CARTRIDGE_SNAPSHOT64,          CARTRIDGE_GROUP_FREEZER },
@@ -215,6 +227,7 @@ static cartridge_info_t cartlist[] = {
     { CARTRIDGE_NAME_WARPSPEED,           CARTRIDGE_WARPSPEED,           CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_WESTERMANN,          CARTRIDGE_WESTERMANN,          CARTRIDGE_GROUP_UTIL },
     { CARTRIDGE_NAME_ZAXXON,              CARTRIDGE_ZAXXON,              CARTRIDGE_GROUP_GAME },
+    { CARTRIDGE_NAME_ZIPPCODE48,          CARTRIDGE_ZIPPCODE48,          CARTRIDGE_GROUP_UTIL },
 
     /* cartridges that have only RAM, these do not have a CRT ID */
     { CARTRIDGE_NAME_DQBB,                CARTRIDGE_DQBB,                CARTRIDGE_GROUP_RAMEX },
@@ -278,6 +291,11 @@ static int set_cartridge_type(int val, void *param)
         case CARTRIDGE_ACTION_REPLAY3:
         case CARTRIDGE_ACTION_REPLAY4:
         case CARTRIDGE_ATOMIC_POWER:
+        case CARTRIDGE_BISPLUS:
+        case CARTRIDGE_BLACKBOX3:
+        case CARTRIDGE_BLACKBOX4:
+        case CARTRIDGE_BLACKBOX8:
+        case CARTRIDGE_BLACKBOX9:
         case CARTRIDGE_CAPTURE:
         case CARTRIDGE_COMAL80:
         case CARTRIDGE_DELA_EP64:
@@ -300,7 +318,9 @@ static int set_cartridge_type(int val, void *param)
         case CARTRIDGE_FUNPLAY:
         case CARTRIDGE_GAME_KILLER:
         case CARTRIDGE_GMOD2:
+        case CARTRIDGE_GMOD3:
         case CARTRIDGE_GS:
+        case CARTRIDGE_HERO:
         case CARTRIDGE_IEEE488:
         case CARTRIDGE_IDE64:
         case CARTRIDGE_KINGSOFT:
@@ -313,15 +333,19 @@ static int set_cartridge_type(int val, void *param)
         case CARTRIDGE_MIKRO_ASSEMBLER:
         case CARTRIDGE_MMC64:
         case CARTRIDGE_MMC_REPLAY:
+        case CARTRIDGE_MULTIMAX:
         case CARTRIDGE_OCEAN:
         case CARTRIDGE_P64:
         case CARTRIDGE_PAGEFOX:
+        case CARTRIDGE_RAMLINK:
         case CARTRIDGE_RETRO_REPLAY:
         case CARTRIDGE_REX:
         case CARTRIDGE_REX_EP256:
+        case CARTRIDGE_REX_RAMFLOPPY:
         case CARTRIDGE_RGCD:
         case CARTRIDGE_RRNETMK3:
         case CARTRIDGE_ROSS:
+        case CARTRIDGE_SDBOX:
         case CARTRIDGE_SNAPSHOT64:
         case CARTRIDGE_SIMONS_BASIC:
         case CARTRIDGE_SILVERROCK_128:
@@ -505,7 +529,7 @@ int cart_getid_slotmain(void)
 */
 const char *cartridge_get_file_name(int type)
 {
-    if (cart_getid_slotmain() == type) {
+    if (cart_getid_slotmain() == type && !cart_can_get_file_name(type)) {
         return cartfile;
     }
     return cart_get_file_name(type);
@@ -837,7 +861,7 @@ static void cart_freeze_alarm_triggered(CLOCK offset, void *data)
 */
 void cartridge_trigger_freeze(void)
 {
-    int delay = lib_unsigned_rand(1, machine_get_cycles_per_frame());
+    int delay = lib_unsigned_rand(1, (unsigned int)machine_get_cycles_per_frame());
 
     cart_freeze_alarm_time = maincpu_clk + delay;
     alarm_set(cartridge_freeze_alarm, cart_freeze_alarm_time);

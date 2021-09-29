@@ -36,9 +36,12 @@
 #include "diskimage.h"
 #include "imagecontents.h"
 #include "lib.h"
+#include "machine-bus.h"
 #include "montypes.h"
 #include "mon_drive.h"
 #include "mon_util.h"
+#include "resources.h"
+#include "serial.h"
 #include "types.h"
 #include "uimon.h"
 #include "vdrive.h"
@@ -54,7 +57,8 @@ void mon_drive_block_cmd(int op, int track, int sector, MON_ADDR addr)
 
     mon_evaluate_default_addr(&addr);
 
-    vdrive = file_system_get_vdrive(8);
+    /* TODO: other units, drive 1? */
+    vdrive = file_system_get_vdrive(8, 0);
 
     if (!vdrive || vdrive->image == NULL) {
         mon_out("No disk attached\n");
@@ -124,33 +128,70 @@ void mon_drive_execute_disk_cmd(char *cmd)
     vdrive_t *vdrive;
 
     /* FIXME */
-    vdrive = file_system_get_vdrive(8);
+    vdrive = file_system_get_vdrive(8, 0);
 
     len = (unsigned int)strlen(cmd);
 
     vdrive_command_execute(vdrive, (uint8_t *)cmd, len);
 }
 
-void mon_drive_list(int drive_number)
+/* FIXME: this function should perhaps live elsewhere */
+/* check if a drive is associated with a filesystem/directory */
+int mon_drive_is_fsdevice(int drive_unit)
+{
+    int virtualdev = 0, truedrive = 0, iecdevice = 0 /* , fsdevice = 0 */;
+    /* FIXME: unsure if this check really works as advertised */
+    resources_get_int("VirtualDevices", &virtualdev);
+    resources_get_int("DriveTrueEmulation", &truedrive);
+    resources_get_int_sprintf("IECDevice%i", &iecdevice, drive_unit);
+    /* resources_get_int_sprintf("FileSystemDevice%i", &fsdevice, drive_unit); */
+    if ((virtualdev && !truedrive) || (!virtualdev && iecdevice)) {
+        if (machine_bus_device_type_get(drive_unit) == SERIAL_DEVICE_FS) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* FIXME: this function should perhaps live elsewhere */
+/* for a given drive unit, return the associated fsdevice directory, or NULL
+   if there is none */
+const char *mon_drive_get_fsdevice_path(int drive_unit)
+{
+    const char *fspath = NULL;
+    if (mon_drive_is_fsdevice(drive_unit)) {
+        resources_get_string_sprintf("FSDevice%iDir", &fspath, drive_unit);
+    }
+    return fspath;
+}
+
+void mon_drive_list(int drive_unit)
 {
     const char *name;
     image_contents_t *listing;
     vdrive_t *vdrive;
+    /* TODO: drive 1? */
+    unsigned int drive = 0;
+    const char *fspath = NULL;
 
-    if ((drive_number < 8) || (drive_number > 11)) {
-        drive_number = 8;
+    if ((drive_unit < 8) || (drive_unit > 11)) {
+        drive_unit = 8;
     }
 
-    vdrive = file_system_get_vdrive(drive_number);
+    vdrive = file_system_get_vdrive(drive_unit, drive);
 
     if (vdrive == NULL || vdrive->image == NULL) {
-        mon_out("Drive %i not ready.\n", drive_number);
+        if ((fspath = mon_drive_get_fsdevice_path(drive_unit))) {
+            mon_show_dir(fspath);
+            return;
+        }
+        mon_out("Drive %i not ready.\n", drive_unit);
         return;
     }
 
     name = disk_image_name_get(vdrive->image);
 
-    listing = diskcontents_read(name, drive_number);
+    listing = diskcontents_read(name, drive_unit, drive);
 
     if (listing != NULL) {
         char *string = image_contents_to_string(listing, 1);

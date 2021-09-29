@@ -33,9 +33,9 @@
 #include "rtc/ds1216e.h"
 #include "p64.h"
 
-/** \brief  Number of supported drives
+/** \brief  Number of supported disk units
  */
-#define DRIVE_NUM   4
+#define NUM_DISK_UNITS   4
 
 /** \brief  Minimum drive unit number
  */
@@ -43,17 +43,31 @@
 
 /** \brief  Maximum drive unit number
  */
-#define DRIVE_UNIT_MAX  (DRIVE_UNIT_MIN + DRIVE_NUM - 1)
+#define DRIVE_UNIT_MAX  (DRIVE_UNIT_MIN + NUM_DISK_UNITS - 1)
 
 /** \brief  Default drive unit number
  */
 #define DRIVE_UNIT_DEFAULT  DRIVE_UNIT_MIN
 
+/** \brief  Minimum drive number
+ */
+#define DRIVE_NUMBER_MIN  0
+
+/** \brief  Maximum drive number
+ */
+#define DRIVE_NUMBER_MAX  1
+
+#define NUM_DRIVES	2
+
+/** \brief  Default drive number
+ */
+#define DRIVE_NUMBER_DEFAULT  DRIVE_NUMBER_MIN
 
 #define MAX_PWM 1000
 
 #define DRIVE_ROM_SIZE 0x8000
-#define DRIVE_RAM_SIZE 0xc000
+/* Upped to 64K due to CMD HD */
+#define DRIVE_RAM_SIZE 0x10000
 
 /* Extended disk image handling.  */
 #define DRIVE_EXTEND_NEVER  0
@@ -125,7 +139,13 @@
 #define DRIVE_TYPE_8250     8250    /* DOS 2.7 dual floppy drive, 1M/disk */
 #define DRIVE_NAME_8250     "CBM 8250"
 
-#define DRIVE_TYPE_NUM    17
+#define DRIVE_TYPE_9000     9000    /* DOS 3.0 hard drive */
+#define DRIVE_NAME_9000     "CBM D9090/60"
+
+#define DRIVE_TYPE_CMDHD    4844    /* ASCII for HD */
+#define DRIVE_NAME_CMDHD    "CMD HD"
+
+#define DRIVE_TYPE_NUM    19
 
 /* max. half tracks */
 #define DRIVE_HALFTRACKS_1541   84
@@ -168,10 +188,17 @@ typedef struct drive_type_info_s {
 struct gcr_s;
 struct disk_image_s;
 
+/* TODO: more parts of that struct should go into diskunit_context_s.
+   candidates: clk, clock_frequency
+ */
 typedef struct drive_s {
-    unsigned int mynumber;
+    unsigned int unit;  /* 0 ... NUM_DISK_UNITS-1 */
+    unsigned int drive; /* DRIVE_NUMBER_MIN ... DRIVE_NUMBER_MAX */
 
-    /* Pointer to the drive clock.  */
+    /* Pointer to the containing diskunit_context */
+    struct diskunit_context_s *diskunit;
+
+    /* Pointer to the diskunit clock.  */
     CLOCK *clk;
 
     int led_status;
@@ -188,26 +215,8 @@ typedef struct drive_s {
     CLOCK stepper_last_change_clk;
     int stepper_new_position;
 
-    /* Is this drive enabled?  */
-    unsigned int enable;
-
-    /* What drive type we have to emulate?  */
-    unsigned int type;
-
     /* Disk side.  */
     unsigned int side;
-
-    /* What idling method?  (See `DRIVE_IDLE_*')  */
-    int idling_method;
-
-    /* FD2000/4000 RTC save? */
-    int rtc_save;
-
-    /* pointers for detecting dual drives and finding the other one */
-    /* (only needed as long as we abuse the odd devices for drive 1:) */
-    struct drive_s *drive0;
-    struct drive_s *drive1;
-    int trap, trapcont;
 
     /* Byte ready line.  */
     unsigned int byte_ready_level;
@@ -228,14 +237,14 @@ typedef struct drive_s {
     /* Offset of the R/W head on the current track (bytes).  */
     unsigned int GCR_head_offset;
 
-    /* Are we in read or write mode?  */
+    /* Are we in read or write mode? 0 is write, <>0 is read */
     int read_write_mode;
 
     /* Activates the byte ready line.  */
     int byte_ready_active;
-
-    /* Clock frequency of this drive in 1MHz units.  */
-    int clock_frequency;
+#define BRA_BYTE_READY  0x02    /* chosen for the bit in the VIA2 PCR register */
+#define BRA_MOTOR_ON    0x04    /* chosen for the bit in the VIA2 PB  register */
+#define BRA_LED         0x08
 
     /* Tick when the disk image was attached.  */
     CLOCK attach_clk;
@@ -300,15 +309,9 @@ typedef struct drive_s {
     /* What extension policy?  */
     int extend_image_policy;
 
-    /* Flag: What parallel cable do we emulate?  */
-    int parallel_cable;
-
     /* If the user does not want to extend the disk image and `ask mode' is
     selected this flag gets cleared.  */
     int ask_extend_disk_image;
-
-    /* Drive-specific logging goes here.  */
-    signed int log;
 
     /* Pointer to the attached disk image.  */
     struct disk_image_s *image;
@@ -318,47 +321,30 @@ typedef struct drive_s {
 
     PP64Image p64;
 
-    /* Which RAM expansion is enabled?  */
-    int drive_ram2_enabled, drive_ram4_enabled, drive_ram6_enabled,
-        drive_ram8_enabled, drive_rama_enabled;
-
-    /* Is the Professional DOS extension enabled?  */
-    int profdos;
-    /* Is the Supercard+ extension enabled? */
-    int supercard;
-    /* Is the StarDOS extension enabled? */
-    int stardos;
-
-    /* RTC context */
-    rtc_ds1216e_t *ds1216;
-
-    /* Current ROM image.  */
-    uint8_t rom[DRIVE_ROM_SIZE];
-
-    /* Current trap ROM image.  */
-    uint8_t trap_rom[DRIVE_ROM_SIZE];
-
-    /* Drive RAM */
-    uint8_t drive_ram[DRIVE_RAM_SIZE];
-
     /* rotations per minute (300rpm = 30000) */
     int rpm;
-    int rpm_wobble;
+
+    /* state of the wobble emulation */
+    float wobble_sin_count;
+    int wobble_factor;      /* calculated factor used in the rotation code */
+    int wobble_frequency;   /* from the resource */
+    int wobble_amplitude;   /* from the resource */
+
 } drive_t;
 
 
-extern CLOCK drive_clk[DRIVE_NUM];
+extern CLOCK diskunit_clk[NUM_DISK_UNITS];
 
 /* Drive context structure for low-level drive emulation.
    Full definition in drivetypes.h */
 #include "drivetypes.h"
-extern struct drive_context_s *drive_context[DRIVE_NUM];
+extern struct diskunit_context_s *diskunit_context[NUM_DISK_UNITS];
 
 extern int rom_loaded;
 
 extern int drive_init(void);
-extern int drive_enable(struct drive_context_s *drv);
-extern void drive_disable(struct drive_context_s *drv);
+extern int drive_enable(struct diskunit_context_s *drv);
+extern void drive_disable(struct diskunit_context_s *drv);
 extern void drive_move_head(int step, struct drive_s *drive);
 /* Don't use these pointers before the context is set up!  */
 extern struct monitor_interface_s *drive_cpu_monitor_interface_get(unsigned int dnr);
@@ -367,26 +353,26 @@ extern void drive_cpu_prevent_clk_overflow_all(CLOCK sub);
 extern void drive_cpu_trigger_reset(unsigned int dnr);
 extern void drive_reset(void);
 extern void drive_shutdown(void);
-extern void drive_cpu_execute_one(struct drive_context_s *drv, CLOCK clk_value);
+extern void drive_cpu_execute_one(struct diskunit_context_s *drv, CLOCK clk_value);
 extern void drive_cpu_execute_all(CLOCK clk_value);
-extern void drive_cpu_set_overflow(struct drive_context_s *drv);
+extern void drive_cpu_set_overflow(struct diskunit_context_s *drv);
 extern void drive_vsync_hook(void);
 extern int drive_get_disk_drive_type(int dnr);
-extern void drive_enable_update_ui(struct drive_context_s *drv);
+extern void drive_enable_update_ui(struct diskunit_context_s *drv);
 extern void drive_update_ui_status(void);
 extern void drive_gcr_data_writeback(struct drive_s *drive);
 extern void drive_gcr_data_writeback_all(void);
 extern void drive_set_active_led_color(unsigned int type, unsigned int dnr);
 extern int drive_set_disk_drive_type(unsigned int drive_type,
-                                     struct drive_context_s *drv);
+                                     struct diskunit_context_s *drv);
 
 extern void drive_set_half_track(int num, int side, drive_t *dptr);
 extern void drive_set_machine_parameter(long cycles_per_sec);
 extern void drive_set_disk_memory(uint8_t *id, unsigned int track,
                                   unsigned int sector,
-                                  struct drive_context_s *drv);
+                                  struct diskunit_context_s *drv);
 extern void drive_set_last_read(unsigned int track, unsigned int sector,
-                                uint8_t *buffer, struct drive_context_s *drv);
+                                uint8_t *buffer, struct diskunit_context_s *drv);
 
 extern int drive_check_type(unsigned int drive_type, unsigned int dnr);
 extern int drive_check_extend_policy(int drive_type);
@@ -406,8 +392,14 @@ extern int drive_check_rtc(int drive_type);
 extern int drive_check_iec(int drive_type);
 extern int drive_num_leds(unsigned int dnr);
 
+int drive_get_type_by_devnr(int devnr);
+int drive_is_dualdrive_by_devnr(int devnr);
+
 extern void drive_setup_context(void);
 
 extern int drive_resources_type_init(unsigned int default_type);
+
+extern int drive_has_buttons(unsigned int dnr);
+extern void drive_cpu_trigger_reset_button(unsigned int dnr, unsigned int button);
 
 #endif

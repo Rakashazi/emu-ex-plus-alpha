@@ -1290,7 +1290,7 @@ static int mmc64_common_attach(void)
 int mmc64_bin_save(const char *filename)
 {
     FILE *fd;
-    int ret;
+    size_t ret;
 
     if (filename == NULL) {
         return -1;
@@ -1303,7 +1303,7 @@ int mmc64_bin_save(const char *filename)
 
     ret = fwrite(mmc64_bios, 1, 0x2000 + mmc64_bios_offset, fd);
     fclose(fd);
-    if (ret != 0x2000 + mmc64_bios_offset) {
+    if (ret != (0x2000 + mmc64_bios_offset)) {
         return -1;
     }
     mmc64_bios_changed = 0;
@@ -1436,7 +1436,7 @@ int mmc64_disable(void)
    BYTE  | BIOS type         | BIOS type
  */
 
-static char snap_module_name[] = "CARTMMC64";
+static const char snap_module_name[] = "CARTMMC64";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

@@ -46,21 +46,21 @@ static char *stardos_name = NULL;
 
 static void set_drive_ram(unsigned int dnr)
 {
-    drive_t *drive = drive_context[dnr]->drive;
+    diskunit_context_t *unit = diskunit_context[dnr];
 
-    if (drive->type != DRIVE_TYPE_1570 && drive->type != DRIVE_TYPE_1571
-        && drive->type != DRIVE_TYPE_1571CR) {
+    if (unit->type != DRIVE_TYPE_1570 && unit->type != DRIVE_TYPE_1571
+        && unit->type != DRIVE_TYPE_1571CR) {
         return;
     }
 
-    drivemem_init(drive_context[dnr], drive->type);
+    drivemem_init(unit);
 
     return;
 }
 
 static int set_drive_parallel_cable(int val, void *param)
 {
-    drive_t *drive = drive_context[vice_ptr_to_uint(param)]->drive;
+    diskunit_context_t *unit = diskunit_context[vice_ptr_to_uint(param)];
 
     switch (val) {
         case DRIVE_PC_NONE:
@@ -72,7 +72,7 @@ static int set_drive_parallel_cable(int val, void *param)
             return -1;
     }
 
-    drive->parallel_cable = val;
+    unit->parallel_cable = val;
     set_drive_ram(vice_ptr_to_uint(param));
 
     return 0;
@@ -80,9 +80,9 @@ static int set_drive_parallel_cable(int val, void *param)
 
 static int set_drive_profdos(int val, void *param)
 {
-    drive_t *drive = drive_context[vice_ptr_to_uint(param)]->drive;
+    diskunit_context_t *unit = diskunit_context[vice_ptr_to_uint(param)];
 
-    drive->profdos = val ? 1 : 0;
+    unit->profdos = val ? 1 : 0;
     set_drive_ram(vice_ptr_to_uint(param));
 
     return 0;
@@ -99,9 +99,9 @@ static int set_profdos_1571_name(const char *val, void *param)
 
 static int set_drive_supercard(int val, void *param)
 {
-    drive_t *drive = drive_context[vice_ptr_to_uint(param)]->drive;
+    diskunit_context_t *unit = diskunit_context[vice_ptr_to_uint(param)];
 
-    drive->supercard = val ? 1 : 0;
+    unit->supercard = val ? 1 : 0;
     set_drive_ram(vice_ptr_to_uint(param));
 
     return 0;
@@ -118,9 +118,9 @@ static int set_supercard_name(const char *val, void *param)
 
 static int set_drive_stardos(int val, void *param)
 {
-    drive_t *drive = drive_context[vice_ptr_to_uint(param)]->drive;
+    diskunit_context_t *unit = diskunit_context[vice_ptr_to_uint(param)];
 
-    drive->stardos = val ? 1 : 0;
+    unit->stardos = val ? 1 : 0;
 
     return 0;
 }
@@ -160,22 +160,21 @@ static const resource_string_t resources_string[] =
 int c64exp_resources_init(void)
 {
     unsigned int dnr;
-    drive_t *drive;
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        drive = drive_context[dnr]->drive;
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
+        diskunit_context_t *unit = diskunit_context[dnr];
 
         res_drive[0].name = lib_msprintf("Drive%iParallelCable", dnr + 8);
-        res_drive[0].value_ptr = &(drive->parallel_cable);
+        res_drive[0].value_ptr = &(unit->parallel_cable);
         res_drive[0].param = uint_to_void_ptr(dnr);
         res_drive[1].name = lib_msprintf("Drive%iProfDOS", dnr + 8);
-        res_drive[1].value_ptr = &(drive->profdos);
+        res_drive[1].value_ptr = &(unit->profdos);
         res_drive[1].param = uint_to_void_ptr(dnr);
         res_drive[2].name = lib_msprintf("Drive%iSuperCard", dnr + 8);
-        res_drive[2].value_ptr = &(drive->supercard);
+        res_drive[2].value_ptr = &(unit->supercard);
         res_drive[2].param = uint_to_void_ptr(dnr);
         res_drive[3].name = lib_msprintf("Drive%iStarDos", dnr + 8);
-        res_drive[3].value_ptr = &(drive->stardos);
+        res_drive[3].value_ptr = &(unit->stardos);
         res_drive[3].param = uint_to_void_ptr(dnr);
 
         if (resources_register_int(res_drive) < 0) {

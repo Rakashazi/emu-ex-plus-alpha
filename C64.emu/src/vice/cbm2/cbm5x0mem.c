@@ -99,11 +99,21 @@ read_func_ptr_t *_mem_read_tab_ptr;
 read_func_ptr_t *_mem_read_ind_tab_ptr;
 store_func_ptr_t *_mem_write_tab_ptr;
 store_func_ptr_t *_mem_write_ind_tab_ptr;
+read_func_ptr_t *_mem_read_tab_ptr_dummy;
+read_func_ptr_t *_mem_read_ind_tab_ptr_dummy;
+store_func_ptr_t *_mem_write_tab_ptr_dummy;
+store_func_ptr_t *_mem_write_ind_tab_ptr_dummy;
 static uint8_t **_mem_read_base_tab_ptr;
 static int *mem_read_limit_tab_ptr;
 
 int cbm2_init_ok = 0;
 
+/* Current watchpoint state. 
+          0 = no watchpoints
+    bit0; 1 = watchpoints active
+    bit1; 2 = watchpoints trigger on dummy accesses
+*/
+static int watchpoints_active = 0;
 /* ------------------------------------------------------------------------- */
 
 /* state of tpi pc6/7 */
@@ -205,6 +215,8 @@ void cbm2mem_set_bank_exec(int val)
 
         _mem_read_tab_ptr = _mem_read_tab[cbm2mem_bank_exec];
         _mem_write_tab_ptr = _mem_write_tab[cbm2mem_bank_exec];
+        _mem_read_tab_ptr_dummy = _mem_read_tab[cbm2mem_bank_exec];
+        _mem_write_tab_ptr_dummy = _mem_write_tab[cbm2mem_bank_exec];
         _mem_read_base_tab_ptr = _mem_read_base_tab[cbm2mem_bank_exec];
         mem_read_limit_tab_ptr = mem_read_limit_tab[(cbm2mem_bank_exec < 15)
                                                     ? 0 : 1];
@@ -246,6 +258,8 @@ void cbm2mem_set_bank_ind(int val)
         cbm2mem_bank_ind = val;
         _mem_read_ind_tab_ptr = _mem_read_tab[cbm2mem_bank_ind];
         _mem_write_ind_tab_ptr = _mem_write_tab[cbm2mem_bank_ind];
+        _mem_read_ind_tab_ptr_dummy = _mem_read_tab[cbm2mem_bank_ind];
+        _mem_write_ind_tab_ptr_dummy = _mem_write_tab[cbm2mem_bank_ind];
         /* set all register mirror locations */
         for (i = 0; i < 16; i++) {
             mem_ram[(i << 16) + 1] = val;
@@ -578,16 +592,45 @@ static uint8_t read_io(uint16_t addr)
     return read_unused(addr);
 }
 
+/* called by mem_toggle_watchpoints() */
+static void mem_update_tab_ptrs(int flag)
+{
+    if (flag) {
+        _mem_read_tab_ptr = _mem_read_tab_watch;
+        _mem_write_tab_ptr = _mem_write_tab_watch;
+        _mem_read_ind_tab_ptr = _mem_read_ind_tab_watch;
+        _mem_write_ind_tab_ptr = _mem_write_ind_tab_watch;
+        if (flag > 1) {
+            /* enable watchpoints on dummy accesses */
+            _mem_read_tab_ptr_dummy = _mem_read_tab_watch;
+            _mem_write_tab_ptr_dummy = _mem_write_tab_watch;
+            _mem_read_ind_tab_ptr_dummy = _mem_read_ind_tab_watch;
+            _mem_write_ind_tab_ptr_dummy = _mem_write_ind_tab_watch;
+        } else {
+            _mem_read_tab_ptr_dummy = _mem_read_tab[cbm2mem_bank_exec];
+            _mem_write_tab_ptr_dummy = _mem_write_tab[cbm2mem_bank_exec];
+            _mem_read_ind_tab_ptr_dummy = _mem_read_tab[cbm2mem_bank_ind];
+            _mem_write_ind_tab_ptr_dummy = _mem_write_tab[cbm2mem_bank_ind];
+        }
+    } else {
+        /* all watchpoints disabled */
+        _mem_read_tab_ptr = _mem_read_tab[cbm2mem_bank_exec];
+        _mem_write_tab_ptr = _mem_write_tab[cbm2mem_bank_exec];
+        _mem_read_tab_ptr_dummy = _mem_read_tab[cbm2mem_bank_exec];
+        _mem_write_tab_ptr_dummy = _mem_write_tab[cbm2mem_bank_exec];
+        _mem_read_ind_tab_ptr = _mem_read_tab[cbm2mem_bank_ind];
+        _mem_write_ind_tab_ptr = _mem_write_tab[cbm2mem_bank_ind];
+        _mem_read_ind_tab_ptr_dummy = _mem_read_tab[cbm2mem_bank_ind];
+        _mem_write_ind_tab_ptr_dummy = _mem_write_tab[cbm2mem_bank_ind];
+    }
+}
 
 /* FIXME: TODO! */
 void mem_toggle_watchpoints(int flag, void *context)
 {
-    if (flag) {
-        _mem_read_tab_ptr = _mem_read_tab_watch;
-        _mem_read_ind_tab_ptr = _mem_read_ind_tab_watch;
-        _mem_write_tab_ptr = _mem_write_tab_watch;
-        _mem_write_ind_tab_ptr = _mem_write_ind_tab_watch;
-    } else {
+    mem_update_tab_ptrs(flag);
+    watchpoints_active = flag;
+    if (!flag) {
         cbm2mem_set_bank_exec(cbm2mem_bank_exec);
         cbm2mem_set_bank_ind(cbm2mem_bank_ind);
     }
@@ -979,15 +1022,37 @@ static uint8_t peek_bank_io(uint16_t addr)
 
 /* Exported banked memory access functions for the monitor.  */
 
-static const char *banknames[] = {
-    "default", "cpu", "ram0", "ram1", "ram2", "ram3",
-    "ram4", "ram5", "ram6", "ram7", "ram8", "ram9",
-    "ramA", "ramB", "ramC", "ramD", "ramE", "ramF",
-    "romio", "io", NULL
+#define MAXBANKS (2 + 16 + 2)
+
+static const char *banknames[MAXBANKS + 1] = {
+    "default", "cpu",
+    /* by convention, a "bank array" has a 2-hex-digit bank index prepended */
+    "ram00", "ram01", "ram02", "ram03", "ram04", "ram05", "ram06", "ram07",
+    "ram08", "ram09", "ram0a", "ram0b", "ram0c", "ram0d", "ram0e", "ram0f",
+    "romio", "io",
+    NULL
 };
 
-static const int banknums[] = {
-    17, 17, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 16
+static const int banknums[MAXBANKS + 1] = {
+    17, 17,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    16, 16,
+    -1
+};
+
+static const int bankindex[MAXBANKS + 1] = {
+    -1, -1,
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    -1, -1,
+    -1
+};
+
+static const int bankflags[MAXBANKS + 1] = {
+    0, 0,
+    MEM_BANK_ISARRAY | MEM_BANK_ISARRAYFIRST, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY,
+    MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY | MEM_BANK_ISARRAYLAST,
+    0, 0,
+    -1
 };
 
 const char **mem_bank_list(void)
@@ -995,6 +1060,11 @@ const char **mem_bank_list(void)
     return banknames;
 }
 
+const int *mem_bank_list_nos(void) {
+    return banknums;
+}
+
+/* return bank number for a given literal bank name */
 int mem_bank_from_name(const char *name)
 {
     int i = 0;
@@ -1002,6 +1072,33 @@ int mem_bank_from_name(const char *name)
     while (banknames[i]) {
         if (!strcmp(name, banknames[i])) {
             return banknums[i];
+        }
+        i++;
+    }
+    return -1;
+}
+
+/* return current index for a given bank */
+int mem_bank_index_from_bank(int bank)
+{
+    int i = 0;
+
+    while (banknums[i] > -1) {
+        if (banknums[i] == bank) {
+            return bankindex[i];
+        }
+        i++;
+    }
+    return -1;
+}
+
+int mem_bank_flags_from_bank(int bank)
+{
+    int i = 0;
+
+    while (banknums[i] > -1) {
+        if (banknums[i] == bank) {
+            return bankflags[i];
         }
         i++;
     }
@@ -1098,7 +1195,7 @@ void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uin
     *cursor_column = zero_read(0xcb);  /* Cursor Column on Current Line */
     *line_length = 40;                 /* Physical Screen Line Length */
 }
-    
+
 void mem_color_ram_to_snapshot(uint8_t *color_ram)
 {
     memcpy(color_ram, mem_color_ram, 0x400);

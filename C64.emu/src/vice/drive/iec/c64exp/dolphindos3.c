@@ -46,21 +46,21 @@
 #include "log.h"
 #include "mc6821core.h"
 
-static mc6821_state my6821[DRIVE_NUM];
+static mc6821_state my6821[NUM_DISK_UNITS];
 
 /*-----------------------------------------------------------------------*/
 /* MC6821 hooks */
 
 static void dd3_set_pa(mc6821_state *ctx)
 {
-    unsigned int dnr = (unsigned int)(((drive_context_t *)(ctx->p))->mynumber);
+    unsigned int dnr = (unsigned int)(((diskunit_context_t *)(ctx->p))->mynumber);
     parallel_cable_drive_write(DRIVE_PC_DD3, ctx->dataA, PARALLEL_WRITE, dnr);
     /* DBG(("DD3 (%d) 6821 PA WR %02x\n", dnr, ctx->dataA)); */
 }
 
 static uint8_t dd3_get_pa(mc6821_state *ctx)
 {
-    unsigned int dnr = (unsigned int)(((drive_context_t *)(ctx->p))->mynumber);
+    unsigned int dnr = (unsigned int)(((diskunit_context_t *)(ctx->p))->mynumber);
     uint8_t data;
     int hs = 0;
 
@@ -106,7 +106,7 @@ static void dd3_set_cb2(mc6821_state *ctx)
 
 /*-----------------------------------------------------------------------*/
 
-static void mc6821_store(drive_context_t *drv, uint16_t addr, uint8_t byte)
+static void mc6821_store(diskunit_context_t *drv, uint16_t addr, uint8_t byte)
 {
     int port, reg;
 
@@ -115,7 +115,7 @@ static void mc6821_store(drive_context_t *drv, uint16_t addr, uint8_t byte)
     mc6821core_store(&my6821[drv->mynumber], port /* rs1 */, reg /* rs0 */, byte);
 }
 
-static uint8_t mc6821_read(drive_context_t *drv, uint16_t addr)
+static uint8_t mc6821_read(diskunit_context_t *drv, uint16_t addr)
 {
     int port, reg;
 
@@ -124,7 +124,7 @@ static uint8_t mc6821_read(drive_context_t *drv, uint16_t addr)
     return mc6821core_read(&my6821[drv->mynumber], port /* rs1 */, reg /* rs0 */);
 }
 
-static uint8_t mc6821_peek(drive_context_t *drv, uint16_t addr)
+static uint8_t mc6821_peek(diskunit_context_t *drv, uint16_t addr)
 {
     int port, reg;
 
@@ -135,13 +135,13 @@ static uint8_t mc6821_peek(drive_context_t *drv, uint16_t addr)
 
 /*-----------------------------------------------------------------------*/
 
-void dd3_set_signal(drive_context_t *drv)
+void dd3_set_signal(diskunit_context_t *drv)
 {
 /*    DBG(("DD3 (%d) 6821 SIGNAL\n", dnr)); */
     mc6821core_set_signal(&my6821[drv->mynumber], MC6821_SIGNAL_CA1);
 }
 
-void dd3_init(drive_context_t *drv)
+void dd3_init(diskunit_context_t *drv)
 {
     my6821[drv->mynumber].p = (void*)drv;
     my6821[drv->mynumber].set_pa = dd3_set_pa;
@@ -152,16 +152,16 @@ void dd3_init(drive_context_t *drv)
     my6821[drv->mynumber].set_cb2 = dd3_set_cb2;
 }
 
-void dd3_reset(drive_context_t *drv)
+void dd3_reset(diskunit_context_t *drv)
 {
     mc6821core_reset(&my6821[drv->mynumber]);
 }
 
-void dd3_mem_init(struct drive_context_s *drv, unsigned int type)
+void dd3_mem_init(struct diskunit_context_s *drv, unsigned int type)
 {
     drivecpud_context_t *cpud = drv->cpud;
 
-    if (drv->drive->parallel_cable != DRIVE_PC_DD3) {
+    if (drv->parallel_cable != DRIVE_PC_DD3) {
         return;
     }
 

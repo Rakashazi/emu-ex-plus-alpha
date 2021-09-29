@@ -1,8 +1,8 @@
 /*
- * libm_math.h
+ * fsdevice-filename.h - File system device.
  *
  * Written by
- *  Marco van den Heuvel <blackystardust68@yahoo.com>
+ *  groepaz <groepaz@gmx.net>
  *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
@@ -24,11 +24,18 @@
  *
  */
 
-#ifndef VICE_LIBM_MATH_H
-#define VICE_LIBM_MATH_H
+#ifndef VICE_FSDEVICE_FILENAME_H
+#define VICE_FSDEVICE_FILENAME_H
 
-/* This is a placeholder to be filled in with actual prototypes
-   and defines once I come across a case where even the math.h
-   header is missing */
+
+#include "vdrive.h"
+
+extern int fsdevice_limit_createnamelength(vdrive_t *vdrive, char *name);
+
+extern int fsdevice_limit_namelength(vdrive_t *vdrive, uint8_t *name);
+extern int fsdevice_limit_namelength_ascii(vdrive_t *vdrive, char *name);
+
+extern char *fsdevice_expand_shortname(vdrive_t *vdrive, char *name);
+extern char *fsdevice_expand_shortname_ascii(vdrive_t *vdrive, char *name);
 
 #endif

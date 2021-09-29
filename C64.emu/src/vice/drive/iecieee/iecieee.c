@@ -34,19 +34,19 @@
 #include "viad.h"
 #include "drive-sound.h"
 
-void iecieee_drive_init(struct drive_context_s *drv)
+void iecieee_drive_init(struct diskunit_context_s *drv)
 {
     via2d_init(drv);
 }
 
-void iecieee_drive_shutdown(struct drive_context_s *drv)
+void iecieee_drive_shutdown(struct diskunit_context_s *drv)
 {
     viacore_shutdown(drv->via2);
 }
 
-void iecieee_drive_reset(struct drive_context_s *drv)
+void iecieee_drive_reset(struct diskunit_context_s *drv)
 {
-    switch (drv->drive->type) {
+    switch (drv->type) {
     case DRIVE_TYPE_1540:
     case DRIVE_TYPE_1541:
     case DRIVE_TYPE_1541II:
@@ -63,15 +63,15 @@ void iecieee_drive_reset(struct drive_context_s *drv)
     }
 }
 
-void iecieee_drive_setup_context(struct drive_context_s *drv)
+void iecieee_drive_setup_context(struct diskunit_context_s *drv)
 {
     via2d_setup_context(drv);
 }
 
-int iecieee_drive_snapshot_read(struct drive_context_s *ctxptr,
+int iecieee_drive_snapshot_read(struct diskunit_context_s *ctxptr,
                                 struct snapshot_s *s)
 {
-    switch (ctxptr->drive->type) {
+    switch (ctxptr->type) {
     case DRIVE_TYPE_1540:
     case DRIVE_TYPE_1541:
     case DRIVE_TYPE_1541II:
@@ -90,10 +90,10 @@ int iecieee_drive_snapshot_read(struct drive_context_s *ctxptr,
     return 0;
 }
 
-int iecieee_drive_snapshot_write(struct drive_context_s *ctxptr,
+int iecieee_drive_snapshot_write(struct diskunit_context_s *ctxptr,
                                  struct snapshot_s *s)
 {
-    switch (ctxptr->drive->type) {
+    switch (ctxptr->type) {
     case DRIVE_TYPE_1540:
     case DRIVE_TYPE_1541:
     case DRIVE_TYPE_1541II:

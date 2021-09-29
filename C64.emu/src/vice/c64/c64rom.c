@@ -41,6 +41,8 @@
 #include "sysfile.h"
 #include "types.h"
 
+int kernal_revision_cmdline = -1;
+
 static log_t c64rom_log = LOG_ERR;
 
 /* Flag: nonzero if the Kernal and BASIC ROMs have been loaded.  */
@@ -153,6 +155,17 @@ int c64rom_load_kernal(const char *rom_name, uint8_t *cartkernal)
         rev = id;
     }
     if (machine_class != VICE_MACHINE_C64DTV) {
+        /* patch kernal to revision given on cmdline */
+        if (kernal_revision_cmdline != -1) {
+            if (rev !=  C64_KERNAL_UNKNOWN) {
+                log_verbose("patching kernal revision:%d to revision: %d", rev, kernal_revision_cmdline);
+                if (patch_rom_idx(kernal_revision_cmdline) >= 0) {
+                    rev = kernal_revision_cmdline;
+                }
+            }
+            /* do this only once */
+            kernal_revision_cmdline = -1;
+        }
         resources_set_int("KernalRev", rev);
     }
     memcpy(c64memrom_kernal64_trap_rom, c64memrom_kernal64_rom, C64_KERNAL_ROM_SIZE);

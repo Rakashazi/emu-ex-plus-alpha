@@ -228,6 +228,9 @@ struct vdc_s {
     /* internal VDC counter so the vsync is the correct height (in rows) */
     unsigned int vsync_counter;
     
+    /* height of the vsync pulse in raster lines, this varies by video standard/video mode */
+    unsigned int vsync_height;
+
     /* Row counter used by drawing code. Separate from row_counter above because the drawing can be asynch with the main video signal */
     unsigned int draw_counter;
 
@@ -242,6 +245,20 @@ struct vdc_s {
 
     /* Light pen. */
     vdc_light_pen_t light_pen;
+
+    /* Size of vdc canvas, i.e. total visible screen area in pixels */
+    unsigned int canvas_width;
+    unsigned int canvas_height;
+
+    /* To compare if it changes since last frame */
+    unsigned int canvas_width_old;
+    unsigned int canvas_height_old;
+
+    /* Internal character and attribute buffers */
+    uint8_t scrnbuf[0x200];
+    unsigned int scrnbufdraw;
+    uint8_t attrbuf[0x200];
+    unsigned int attrbufdraw;
 };
 typedef struct vdc_s vdc_t;
 

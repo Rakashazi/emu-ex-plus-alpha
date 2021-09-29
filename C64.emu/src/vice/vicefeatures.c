@@ -34,11 +34,11 @@
 #include "vicefeatures.h"
 
 /* FIXME: define "UNIX" for all supported unixish OS */
-#if !defined(__OS2__) && !defined(BEOS_COMPILE) && !defined(AMIGA_SUPPORT) && !defined(WIN32)
-#define UNIX
+#if !defined(BEOS_COMPILE) && !defined(AMIGA_SUPPORT) && !defined(WIN32)
+# define UNIX
 #endif
 
-static feature_list_t featurelist[] = {
+static const feature_list_t featurelist[] = {
 #ifdef UNIX /* unix */
     { "BSD_JOYSTICK", "Enable support for BSD style joysticks.",
 #ifndef BSD_JOYSTICK
@@ -53,6 +53,13 @@ static feature_list_t featurelist[] = {
         0 },
 #else
         1 },
+#endif
+/* all */
+    { "HAVE_DEBUG_THREADS", "Enable thread debugging code",
+#ifdef HAVE_DEBUG_THREADS
+        1 },
+#else
+        0 },
 #endif
 /* (all) */
     { "FEATURE_CPUMEMHISTORY", "Use the memmap feature.",
@@ -88,14 +95,6 @@ static feature_list_t featurelist[] = {
 #if defined(MACOSX_SUPPORT) /* (osx) */
     { "HAVE_AUDIO_UNIT", "Enable AudioUnit support.",
 #ifndef HAVE_AUDIO_UNIT
-        0 },
-#else
-        1 },
-#endif
-#endif
-#ifdef UNIX /* (unix) */
-    { "HAVE_CAIRO", "Enable Cairo rendering support",
-#ifndef HAVE_CAIRO
         0 },
 #else
         1 },
@@ -227,14 +226,6 @@ static feature_list_t featurelist[] = {
         1 },
 #endif
 #endif
-#ifdef UNIX /* (unix) */
-    { "HAVE_LIBXPM", "Is libXpm available?",
-#ifndef HAVE_LIBXPM
-        0 },
-#else
-        1 },
-#endif
-#endif
 #if defined(UNIX) || defined(MACOSX_SUPPORT) || defined(WIN32) /* (unix/osx/windows) */
     { "HAVE_MIDI", "Enable MIDI emulation.",
 #ifndef HAVE_MIDI
@@ -302,13 +293,12 @@ static feature_list_t featurelist[] = {
         1 },
 #endif
 #endif
-#if defined(MACOSX_SUPPORT) || defined(WIN32) /* (osx/windows) */
-    { "HAVE_QUICKTIME", "Enable QuickTime support.",
-#ifndef HAVE_QUICKTIME
+/* (all) */
+    { "HAVE_FASTSID", "Enable FASTSID support.",
+#ifndef HAVE_FASTSID
         0 },
 #else
         1 },
-#endif
 #endif
 /* (all) */
     { "HAVE_RESID", "Enable ReSID support.",
@@ -400,6 +390,14 @@ static feature_list_t featurelist[] = {
 #else
         1 },
 #endif
+/* (all) */
+    { "HAVE_X64_IMAGE", "Support for X64 image files",
+#ifndef HAVE_X64_IMAGE
+      0 },
+#else
+      1 },
+#endif
+
 /* (all) */
     { "HAVE_ZLIB", "Can we use the ZLIB compression library?",
 #ifndef HAVE_ZLIB
@@ -541,26 +539,10 @@ static feature_list_t featurelist[] = {
         1 },
 #endif
 
-/* Gtk3UI OpenGL support */
-    { "HAVE_GTK3_OPENGL", "Enable OpenGL support in the Gtk3 UI.",
-#ifndef HAVE_GTK3_OPENGL
-        0 },
-#else
-        1 },
-#endif
-
-/* Gtk3UI OpenGL GLEW (openGL Extenstion Wrangler) library support */
-    { "HAVE_GTK3_GLEW", "Gtk3 OpenGL support uses GLEW (openGL Extension Wrangler).",
-#ifndef HAVE_GTK3_GLEW
-        0 },
-#else
-        1 },
-#endif
-
     { NULL, NULL, 0 }
 };
 
-feature_list_t *vice_get_feature_list(void)
+const feature_list_t *vice_get_feature_list(void)
 {
     return &featurelist[0];
 }

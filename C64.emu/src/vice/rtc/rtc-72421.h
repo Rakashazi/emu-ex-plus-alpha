@@ -38,6 +38,7 @@ typedef struct rtc_72421_s {
     time_t latch;
     time_t offset;
     time_t old_offset;
+    uint8_t control[3];
     char *device;
 } rtc_72421_t;
 

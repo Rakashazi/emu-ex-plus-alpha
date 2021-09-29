@@ -70,6 +70,8 @@ struct canvas_refresh_s {
 typedef struct canvas_refresh_s canvas_refresh_t;
 
 struct draw_buffer_s {
+    /* The real drawing buffer, with padding bytes on either side to workaround CRT and Scale2x bugs */
+    uint8_t *draw_buffer_padded_allocation;
     /* The memory buffer where the screen of the emulated machine is drawn. Palettized, 1 byte per pixel */
     uint8_t *draw_buffer;
     /* Width of draw_buffer in pixels */
@@ -228,6 +230,7 @@ extern struct video_canvas_s *video_canvas_create(struct video_canvas_s *canvas,
 extern void video_arch_canvas_init(struct video_canvas_s *canvas);
 extern void video_canvas_shutdown(struct video_canvas_s *canvas);
 extern struct video_canvas_s *video_canvas_init(void);
+extern void video_canvas_refresh_all_tracked(void);
 extern void video_canvas_refresh(struct video_canvas_s *canvas,
                                  unsigned int xs, unsigned int ys,
                                  unsigned int xi, unsigned int yi,

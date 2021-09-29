@@ -52,4 +52,6 @@ extern vicii_resources_t vicii_resources;
 
 extern int vicii_resources_init(void);
 
+extern void vicii_comply_with_video_standard(int machine_sync);
+
 #endif

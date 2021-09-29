@@ -5,9 +5,6 @@
  *  \author Jouko Valta <jopi@stekt.oulu.fi>
  *  \author Andre Fachat <fachat@physik.tu-chemnitz.de>
  *  \author Andreas Boose <viceteam@t-online.de>
- *
- *  \page cia CIA timer emulation
- *  \htmlinclude CIA-README.txt
  */
 
 /*

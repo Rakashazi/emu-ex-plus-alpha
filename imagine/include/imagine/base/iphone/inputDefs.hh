@@ -214,4 +214,22 @@ namespace Keycode = IOS;
 	static const uint32_t COUNT = 22;
 	}
 
+	namespace Meta
+	{
+		// TODO
+		static constexpr uint32_t
+		ALT = 0x1,
+		ALT_L = 0x1,
+		ALT_R = 0x1,
+		SHIFT = 0x1,
+		SHIFT_L = 0x1,
+		SHIFT_R = 0x1,
+		CTRL = 0x1,
+		CTRL_L = 0x1,
+		CTRL_R = 0x1,
+		META = 0x1,
+		META_L = 0x1,
+		META_R = 0x1,
+		CAPS_LOCK = 0x1;
+	}
 }

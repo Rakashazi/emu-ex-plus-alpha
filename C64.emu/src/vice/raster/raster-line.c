@@ -682,7 +682,7 @@ void raster_line_emulate(raster_t *raster)
         if (++raster->num_cached_lines == (1
                                            + raster->geometry->last_displayed_line
                                            - raster->geometry->first_displayed_line)) {
-            raster->dont_cache = 0;
+            raster->dont_cache = 1;
             raster->num_cached_lines = 0;
         }
 

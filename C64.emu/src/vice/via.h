@@ -127,8 +127,8 @@ typedef struct via_context_s {
 
     int enabled;
 
-    void *prv;
-    void *context;
+    void *prv;                /* typically drivevia1_context_t */
+    void *context;            /* typically diskunit_context_t */
 
     void (*undump_pra)(struct via_context_s *, uint8_t);
     void (*undump_prb)(struct via_context_s *, uint8_t);
@@ -147,6 +147,14 @@ typedef struct via_context_s {
     void (*set_ca2)(struct via_context_s *, int state);
     void (*set_cb2)(struct via_context_s *, int state);
     void (*reset)(struct via_context_s *);
+
+    /* HACK:  flag to indicate that the computer transferred data to the shift
+              register ("burstmode").
+       FIXME: this should be fixed properly and then removed
+
+       see bug #996, bug #1233
+    */
+    int burstmodehack;
 } via_context_t;
 
 

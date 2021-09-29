@@ -92,7 +92,7 @@ static int set_traps_enabled(int val, void *param)
     return 0;
 }
 
-static const resource_int_t resources_int[] = {
+static resource_int_t resources_int[] = {
     { "VirtualDevices", 0, RES_EVENT_SAME, NULL,
       &traps_enabled, set_traps_enabled, NULL },
     RESOURCE_INT_LIST_END
@@ -100,6 +100,15 @@ static const resource_int_t resources_int[] = {
 
 int traps_resources_init(void)
 {
+    /* the IEEE488 based machines do not use "device traps" (ROM patches), 
+       instead the virtual devices are actually interfaced to the IEEE bus.
+       this makes them much more reliably, which is why we can enable them
+       by default here. */
+    if ((machine_class == VICE_MACHINE_PET) ||
+        (machine_class == VICE_MACHINE_CBM5x0) ||
+        (machine_class == VICE_MACHINE_CBM6x0)) {
+        resources_int[0].factory_value = 1;
+    }
     return resources_register_int(resources_int);
 }
 

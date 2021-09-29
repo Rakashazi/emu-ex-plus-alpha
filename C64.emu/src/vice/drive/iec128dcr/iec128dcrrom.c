@@ -58,12 +58,12 @@ int iec128dcrrom_load_1571cr(void)
             DRIVE_TYPE_1571CR, NULL);
 }
 
-void iec128dcrrom_setup_image(drive_t *drive)
+void iec128dcrrom_setup_image(diskunit_context_t *unit)
 {
     if (rom_loaded) {
-        switch (drive->type) {
+        switch (unit->type) {
             case DRIVE_TYPE_1571CR:
-                memcpy(drive->rom, drive_rom1571cr, DRIVE_ROM1571CR_SIZE);
+                memcpy(unit->rom, drive_rom1571cr, DRIVE_ROM1571CR_SIZE);
                 break;
         }
     }

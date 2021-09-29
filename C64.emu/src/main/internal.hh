@@ -5,6 +5,8 @@
 #include <imagine/pixmap/Pixmap.hh>
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
+#include <vector>
+#include <string>
 
 class EmuAudio;
 
@@ -15,6 +17,13 @@ enum Vic20Ram : uint8_t
 	BLOCK_2 = 1 << 2,
 	BLOCK_3 = 1 << 3,
 	BLOCK_5 = 1 << 5
+};
+
+enum JoystickMode : uint8_t
+{
+	NORMAL = 0,
+	SWAPPED = 1,
+	KEYBOARD = 2,
 };
 
 static constexpr uint8_t SYSTEM_FLAG_NO_AUTOSTART = IG::bit(0);
@@ -56,6 +65,9 @@ extern Byte1Option optionAutostartOnLaunch;
 extern Byte1Option optionVic20RamExpansions;
 
 int intResource(const char *name);
+void setIntResource(const char *name, int val);
+const char *stringResource(const char *name);
+void setStringResource(const char *name, const char *val);
 void setBorderMode(int mode);
 void setSidEngine(int engine);
 void setReSidSampling(int sampling);
@@ -87,5 +99,10 @@ int optionDefaultModel(ViceSystem system);
 void resetCanvasSourcePixmap(struct video_canvas_s *c);
 bool updateCanvasPixelFormat(struct video_canvas_s *c, IG::PixelFormat);
 void applySessionOptions();
-void updateKeyMappingArray(EmuApp &);
 int systemCartType(ViceSystem system);
+std::vector<std::string> systemFilesWithExtension(const char *ext);
+const char *videoChipStr();
+void setPaletteResources(const char *palName);
+bool usingExternalPalette();
+const char *externalPaletteName();
+void setJoystickMode(JoystickMode);

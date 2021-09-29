@@ -30,7 +30,7 @@
 struct image_contents_s;
 
 extern struct image_contents_s *diskcontents_read(const char *file_name,
-                                                  unsigned int unit);
+                                                  unsigned int unit, unsigned int drive);
 extern struct image_contents_s *diskcontents_filesystem_read(const char *file_name);
 extern struct image_contents_s *diskcontents_read_unit8(const char *file_name);
 extern struct image_contents_s *diskcontents_read_unit9(const char *file_name);

@@ -70,6 +70,10 @@ typedef struct serial_s {
     int lastst[16];
 } serial_t;
 
+#define ISOPEN_CLOSED		0
+#define ISOPEN_AWAITING_NAME	1
+#define ISOPEN_OPEN		2
+
 extern int serial_init(const struct trap_s *trap_list);
 extern int serial_resources_init(void);
 extern int serial_cmdline_options_init(void);

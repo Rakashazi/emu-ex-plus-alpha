@@ -30,27 +30,27 @@
 
 #include "types.h"
 
-struct drive_context_s;
+struct diskunit_context_s;
 struct riot_context_s;
 
-extern void riot1_setup_context(struct drive_context_s *ctxptr);
-extern void riot2_setup_context(struct drive_context_s *ctxptr);
+extern void riot1_setup_context(struct diskunit_context_s *ctxptr);
+extern void riot2_setup_context(struct diskunit_context_s *ctxptr);
 
 extern void riot2_set_atn(struct riot_context_s *riot_context, int state);
 extern void riot1_set_atn(struct riot_context_s *riot_context, uint8_t state);
 
 extern void riot1_set_pardata(struct riot_context_s *riot_context);
 
-extern void riot1_init(struct drive_context_s *ctxptr);
-extern void riot1_store(struct drive_context_s *ctxptr, uint16_t addr, uint8_t byte);
-extern uint8_t riot1_read(struct drive_context_s *ctxptr, uint16_t addr);
-extern uint8_t riot1_peek(struct drive_context_s *ctxptr, uint16_t addr);
-extern int riot1_dump(struct drive_context_s *ctxptr, uint16_t addr);
+extern void riot1_init(struct diskunit_context_s *ctxptr);
+extern void riot1_store(struct diskunit_context_s *ctxptr, uint16_t addr, uint8_t byte);
+extern uint8_t riot1_read(struct diskunit_context_s *ctxptr, uint16_t addr);
+extern uint8_t riot1_peek(struct diskunit_context_s *ctxptr, uint16_t addr);
+extern int riot1_dump(struct diskunit_context_s *ctxptr, uint16_t addr);
 
-extern void riot2_init(struct drive_context_s *ctxptr);
-extern void riot2_store(struct drive_context_s *ctxptr, uint16_t addr, uint8_t byte);
-extern uint8_t riot2_read(struct drive_context_s *ctxptr, uint16_t addr);
-extern uint8_t riot2_peek(struct drive_context_s *ctxptr, uint16_t addr);
-extern int riot2_dump(struct drive_context_s *ctxptr, uint16_t addr);
+extern void riot2_init(struct diskunit_context_s *ctxptr);
+extern void riot2_store(struct diskunit_context_s *ctxptr, uint16_t addr, uint8_t byte);
+extern uint8_t riot2_read(struct diskunit_context_s *ctxptr, uint16_t addr);
+extern uint8_t riot2_peek(struct diskunit_context_s *ctxptr, uint16_t addr);
+extern int riot2_dump(struct diskunit_context_s *ctxptr, uint16_t addr);
 
 #endif

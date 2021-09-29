@@ -30,7 +30,9 @@
 #include "types.h"
 
 struct vdrive_s;
+struct bufinfo_s;
 
+extern void fsdevice_listen(struct vdrive_s *vdrive, unsigned int secondary);
 extern int fsdevice_write(struct vdrive_s *vdrive, uint8_t data,
                           unsigned int secondary);
 

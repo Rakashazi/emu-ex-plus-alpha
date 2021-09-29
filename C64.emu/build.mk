@@ -69,6 +69,9 @@ CPPFLAGS += \
 -I$(viceSrcPath)/drive/tcbm \
 -I$(viceSrcPath)/diag \
 -I$(viceSrcPath)/rs232drv \
+-I$(viceSrcPath)/datasette \
+-I$(viceSrcPath)/fsdevice \
+-I$(viceSrcPath)/arch \
 -DSTDC_HEADERS=1 \
 -DHAVE_SYS_TYPES_H=1 \
 -DHAVE_SYS_STAT_H=1 \
@@ -92,7 +95,6 @@ clipboard.c \
 cbmdos.c \
 cbmimage.c \
 crc32.c \
-datasette.c \
 debug.c \
 dma.c \
 event.c \
@@ -105,7 +107,6 @@ ioutil.c \
 kbdbuf.c \
 keyboard.c \
 lib.c \
-libm_math.c \
 machine-bus.c \
 machine.c \
 network.c \
@@ -119,10 +120,12 @@ romset.c \
 snapshot.c \
 socket.c \
 sound.c \
+tick.c \
 traps.c \
 util.c \
 vsync.c \
-zipcode.c
+zipcode.c \
+arch/shared/archdep_join_paths.c
 
 libc64cartsystem_a_SOURCES = \
 c64cart.c \
@@ -137,6 +140,11 @@ actionreplay3.c \
 actionreplay4.c \
 actionreplay.c \
 atomicpower.c \
+bisplus.c \
+blackbox3.c \
+blackbox4.c \
+blackbox8.c \
+blackbox9.c \
 c64-generic.c \
 c64-midi.c \
 c64tpi.c \
@@ -166,11 +174,14 @@ freezemachine.c \
 funplay.c \
 gamekiller.c \
 gmod2.c \
+gmod3.c \
 gs.c \
+hero.c \
 ide64.c \
 isepic.c \
 kcs.c \
 kingsoft.c \
+ltkernal.c \
 mach5.c \
 magicdesk.c \
 magicformel.c \
@@ -179,17 +190,21 @@ maxbasic.c \
 mikroass.c \
 mmcreplay.c \
 mmc64.c \
+multimax.c \
 ocean.c \
 prophet64.c \
 pagefox.c \
 ramcart.c \
+ramlink.c \
 retroreplay.c \
 reu.c \
 rexep256.c \
+rexramfloppy.c \
 rexutility.c \
 rgcd.c \
 ross.c \
 rrnetmk3.c \
+sdbox.c \
 shortbus.c \
 shortbus_digimax.c \
 silverrock128.c \
@@ -203,12 +218,10 @@ supersnapshot.c \
 supersnapshot4.c \
 warpspeed.c \
 westermann.c \
-zaxxon.c
+zaxxon.c \
+zippcode48.c
 
 libc64cart_a_SOURCES := $(addprefix c64/cart/,$(libc64cart_a_SOURCES))
-
-# don't include cpmcart.c for C128 due to conflicting Z80 regs definition
-libc128cart_a_SOURCES := $(libc64cart_a_SOURCES:c64/cart/cpmcart.c=) main/cpmcartStubs.c
 
 libc64commoncart_a_SOURCES = \
 c64acia1.c \
@@ -224,6 +237,8 @@ libcrtc_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrc
 libiecbus_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/iecbus/*)))
 
 libserial_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/serial/*)))
+
+libdatasette_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(viceSrcPath)/datasette/*)))
 
 libc64_a_SOURCES = \
 c64-cmdline-options.c \
@@ -633,7 +648,8 @@ $(base_sources)
 
 plugin_src = \
 $(pluginNoTape_src) \
-$(libtape_a_SOURCES)
+$(libtape_a_SOURCES) \
+$(libdatasette_a_SOURCES)
 
 c64_src = \
 $(plugin_src) \
@@ -689,6 +705,7 @@ $(libresid_a_SOURCES)
 
 scpu64_src = \
 $(pluginNoTape_src) \
+$(libdatasette_a_SOURCES) \
 $(libscpu64_a_SOURCES) \
 $(libc64cartsystem_a_SOURCES) \
 $(libc64cart_a_SOURCES) \
@@ -742,7 +759,7 @@ c128_src = \
 $(plugin_src) \
 $(libc128_a_SOURCES) \
 $(libc64cartsystem_a_SOURCES) \
-$(libc128cart_a_SOURCES) \
+$(libc64cart_a_SOURCES) \
 $(libc64commoncart_a_SOURCES) \
 $(libc64c128_a_SOURCES) \
 $(libdriveiec_a_SOURCES) \

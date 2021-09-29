@@ -44,7 +44,9 @@
 /* Number of tracks we emulate. 84 for 1541, 168 for 1571 */
 #define MAX_GCR_TRACKS 168
 
-#define SECTOR_GCR_SIZE_WITH_HEADER 340
+/* number of GCR bytes used for header and sector, not counting the SYNC bytes
+   nor the gaps */
+#define SECTOR_GCR_SIZE_WITH_HEADER 335
 
 typedef struct disk_track_s {
     uint8_t *data;

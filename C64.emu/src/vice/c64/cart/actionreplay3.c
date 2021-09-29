@@ -299,7 +299,7 @@ void actionreplay3_detach(void)
    ARRAY | ROML     | 16768 BYTES of ROML data
  */
 
-static char snap_module_name[] = "CARTAR3";
+static const char snap_module_name[] = "CARTAR3";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

@@ -54,11 +54,11 @@ static driver_select_t driver_select[NUM_DRIVER_SELECT];
 /* Pointer to registered printer driver.  */
 static driver_select_list_t *driver_select_list = NULL;
 
-static char *userprinter_names[] = { "ascii", "nl10", "raw", NULL };
+static const char * const userprinter_names[] = { "ascii", "nl10", "raw", NULL };
 
-static char *printer_names[] = { "ascii", "mps803", "nl10", "raw", NULL };
+static const char * const printer_names[] = { "ascii", "mps803", "nl10", "raw", NULL };
 
-static char *plotter_names[] = { "1520", "raw", NULL };
+static const char * const plotter_names[] = { "1520", "raw", NULL };
 
 static int userprinter_name_is_valid(const char *name)
 {
@@ -264,7 +264,8 @@ int driver_select_getc(unsigned int prnr, unsigned int secondary, uint8_t *b)
 int driver_select_flush(unsigned int prnr, unsigned int secondary)
 {
 #ifdef DEBUG_PRINTER
-    log_message(driver_select_log, "Flush device #%i secondary %i.", prnr + 4, secondary);
+    log_message(driver_select_log, "Flush device #%u secondary %u.",
+            prnr + 4, secondary);
 #endif
     return driver_select[prnr].drv_flush(prnr, secondary);
 }
@@ -273,7 +274,7 @@ int driver_select_flush(unsigned int prnr, unsigned int secondary)
 int driver_select_formfeed(unsigned int prnr)
 {
 #ifdef DEBUG_PRINTER
-    log_message(driver_select_log, "Formfeed device #%i", prnr + 4);
+    log_message(driver_select_log, "Formfeed device #%u", prnr + 4);
 #endif
     return driver_select[prnr].drv_formfeed(prnr);
 }

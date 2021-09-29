@@ -49,19 +49,21 @@
  *       same with the other CPUs and finally move common code to mon_register.c
  */
 
-#define REG_LIST_6809_SIZE (11 + 1)
-static mon_reg_list_t mon_reg_list_6809[REG_LIST_6809_SIZE] = {
-    {       "X",     e_X, 16,                     0, 0, 0 },
-    {       "Y",     e_Y, 16,                     0, 0, 0 },
-    {       "U",     e_U, 16,                     0, 0, 0 },
-    {       "S",    e_SP, 16,                     0, 0, 0 },
-    {      "PC",    e_PC, 16,                     0, 0, 0 },
-    {      "DP",    e_DP,  8,                     0, 0, 0 },
-    {      "CC", e_FLAGS,  8,                     0, 0, 0 },
-    {"EFHINZVC", e_FLAGS,  8, MON_REGISTER_IS_FLAGS, 0, 0 },
-    {       "A",     e_A,  8,                     0, 0, 0 },
-    {       "B",     e_B,  8,                     0, 0, 0 },
-    {       "D",     e_D, 16,                     0, 0, 0 },
+#define REG_LIST_6809_SIZE (13 + 1)
+static const mon_reg_list_t mon_reg_list_6809[REG_LIST_6809_SIZE] = {
+    {       "X",          e_X, 16,                      0, 0, 0 },
+    {       "Y",          e_Y, 16,                      0, 0, 0 },
+    {       "U",          e_U, 16,                      0, 0, 0 },
+    {       "S",         e_SP, 16,                      0, 0, 0 },
+    {      "PC",         e_PC, 16,                      0, 0, 0 },
+    {      "DP",         e_DP,  8,                      0, 0, 0 },
+    {      "CC",      e_FLAGS,  8,                      0, 0, 0 },
+    {"EFHINZVC",      e_FLAGS,  8,  MON_REGISTER_IS_FLAGS, 0, 0 },
+    {       "A",          e_A,  8,                      0, 0, 0 },
+    {       "B",          e_B,  8,                      0, 0, 0 },
+    {       "D",          e_D, 16,                      0, 0, 0 },
+    {     "LIN", e_Rasterline, 16,                      0, 0, 0 },
+    {     "CYC",      e_Cycle, 16,                      0, 0, 0 },
 #if 0
     /* 6309 specific registers, for future support */
     {       "E",     e_E,  8,                     0, 0, 0 },
@@ -107,6 +109,22 @@ static unsigned int mon_register_get_val(int mem, int reg_id)
             return H6809_REGS_GET_B(reg_ptr);
         case e_D:
             return H6809_REGS_GET_D(reg_ptr);
+        case e_Rasterline:
+            {
+                unsigned int line, cycle;
+                int half_cycle;
+
+                mon_interfaces[e_comp_space]->get_line_cycle(&line, &cycle, &half_cycle);
+                return line;
+            }
+        case e_Cycle:
+            {
+                unsigned int line, cycle;
+                int half_cycle;
+
+                mon_interfaces[e_comp_space]->get_line_cycle(&line, &cycle, &half_cycle);
+                return cycle;
+            }
 #if 0
         /* 6309 specific registers, for future support */
         case e_E:

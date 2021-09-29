@@ -4,9 +4,6 @@
  *  \brief IEC bus handling.
  *
  *  \author Andreas Boose <viceteam@t-online.de>
- *
- *  \page iecbus IEC bus handling
- *  \htmlinclude iec-bus.txt
  */
 
 /*

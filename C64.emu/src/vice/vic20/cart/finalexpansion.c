@@ -623,12 +623,12 @@ static int zfile_load(const char *filename, uint8_t *dest)
         tsize = (fsize + 0x0fff) & 0xfffff000;
         offs = 0x8000 - tsize;
         dest += offs;
-        log_message(fe_log, "Size less than 32kB.  Aligning as close as possible to the 32kB boundary in 4kB blocks. (0x%06X-0x%06X)", (unsigned int)offs, (unsigned int)(offs + tsize));
+        log_message(fe_log, "Size less than 32KiB.  Aligning as close as possible to the 32KiB boundary in 4KiB blocks. (0x%06X-0x%06X)", (unsigned int)offs, (unsigned int)(offs + tsize));
     } else if (fsize < (size_t)CART_ROM_SIZE) {
-        log_message(fe_log, "Size less than 512kB, padding.");
+        log_message(fe_log, "Size less than 512KiB, padding.");
     } else if (fsize > (size_t)CART_ROM_SIZE) {
         fsize = CART_ROM_SIZE;
-        log_message(fe_log, "Size larger than 512kB, truncating.");
+        log_message(fe_log, "Size larger than 512KiB, truncating.");
     }
     if (fread(dest, fsize, 1, fd) < 1) {
         log_message(fe_log, "Failed to read image `%s'!", filename);
@@ -685,7 +685,7 @@ void finalexpansion_detach(void)
        and cartridge wasn't from a snapshot */
     if (finalexpansion_writeback && !cartridge_is_from_snapshot) {
         if (flash_state.flash_dirty) {
-            int n;
+            long n;
             FILE *fd;
 
             n = 0;

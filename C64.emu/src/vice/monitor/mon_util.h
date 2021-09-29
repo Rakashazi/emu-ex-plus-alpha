@@ -36,6 +36,9 @@ extern char *mon_disassemble_with_label(MEMSPACE memspace, uint16_t loc, int hex
 extern char *mon_dump_with_label(MEMSPACE memspace, uint16_t loc, int hex, unsigned *label_p);
 extern void mon_set_command(struct console_s *console_log, char *command, void (*)(void));
 
+extern void mon_event_opened(void);
+extern void mon_event_closed(void);
+
 extern int mon_log_file_open(const char *name);
 extern void mon_log_file_close(void);
 

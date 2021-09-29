@@ -556,7 +556,7 @@ static int tape_image_attach_internal(unsigned int unit, const char *name)
             return -1;
     }
 
-    event_record_attach_image(unit, name, tape_image.read_only);
+    event_record_attach_image(unit, 0, name, tape_image.read_only);
 
     return 0;
 }

@@ -45,6 +45,11 @@
 #include "actionreplay3.h"
 #include "actionreplay4.h"
 #include "atomicpower.h"
+#include "bisplus.h"
+#include "blackbox3.h"
+#include "blackbox4.h"
+#include "blackbox8.h"
+#include "blackbox9.h"
 #include "c64-generic.h"
 #include "c64tpi.h"
 #include "comal80.h"
@@ -68,11 +73,14 @@
 #include "funplay.h"
 #include "gamekiller.h"
 #include "gmod2.h"
+#include "gmod3.h"
 #include "gs.h"
+#include "hero.h"
 #include "ide64.h"
 #include "isepic.h"
 #include "kcs.h"
 #include "kingsoft.h"
+#include "ltkernal.h"
 #include "mach5.h"
 #include "magicdesk.h"
 #include "magicformel.h"
@@ -81,15 +89,19 @@
 #include "mikroass.h"
 #include "mmc64.h"
 #include "mmcreplay.h"
+#include "multimax.h"
 #include "ocean.h"
 #include "pagefox.h"
 #include "prophet64.h"
+#include "ramlink.h"
 #include "retroreplay.h"
 #include "rexep256.h"
+#include "rexramfloppy.h"
 #include "rexutility.h"
 #include "rgcd.h"
 #include "rrnetmk3.h"
 #include "ross.h"
+#include "sdbox.h"
 #include "silverrock128.h"
 #include "simonsbasic.h"
 #include "stardos.h"
@@ -102,6 +114,7 @@
 #include "warpspeed.h"
 #include "westermann.h"
 #include "zaxxon.h"
+#include "zippcode48.h"
 #include "util.h"
 #undef CARTRIDGE_INCLUDE_PRIVATE_API
 
@@ -401,6 +414,21 @@ int crt_attach(const char *filename, uint8_t *rawcart)
         case CARTRIDGE_ATOMIC_POWER:
             rc = atomicpower_crt_attach(fd, rawcart);
             break;
+        case CARTRIDGE_BISPLUS:
+            rc = bisplus_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_BLACKBOX3:
+            rc = blackbox3_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_BLACKBOX4:
+            rc = blackbox4_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_BLACKBOX8:
+            rc = blackbox8_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_BLACKBOX9:
+            rc = blackbox9_crt_attach(fd, rawcart);
+            break;
         case CARTRIDGE_CAPTURE:
             rc = capture_crt_attach(fd, rawcart);
             break;
@@ -464,8 +492,14 @@ int crt_attach(const char *filename, uint8_t *rawcart)
         case CARTRIDGE_GMOD2:
             rc = gmod2_crt_attach(fd, rawcart, filename);
             break;
+        case CARTRIDGE_GMOD3:
+            rc = gmod3_crt_attach(fd, rawcart, filename);
+            break;
         case CARTRIDGE_GS:
             rc = gs_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_HERO:
+            rc = hero_crt_attach(fd, rawcart);
             break;
         case CARTRIDGE_IDE64:
             rc = ide64_crt_attach(fd, rawcart);
@@ -481,6 +515,9 @@ int crt_attach(const char *filename, uint8_t *rawcart)
             break;
         case CARTRIDGE_KINGSOFT:
             rc = kingsoft_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_LT_KERNAL:
+            rc = ltkernal_crt_attach(fd, rawcart);
             break;
         case CARTRIDGE_MACH5:
             rc = mach5_crt_attach(fd, rawcart);
@@ -506,6 +543,9 @@ int crt_attach(const char *filename, uint8_t *rawcart)
         case CARTRIDGE_MMC_REPLAY:
             rc = mmcreplay_crt_attach(fd, rawcart, filename);
             break;
+        case CARTRIDGE_MULTIMAX:
+            rc = multimax_crt_attach(fd, rawcart);
+            break;
         case CARTRIDGE_OCEAN:
             rc = ocean_crt_attach(fd, rawcart);
             break;
@@ -515,6 +555,9 @@ int crt_attach(const char *filename, uint8_t *rawcart)
         case CARTRIDGE_PAGEFOX:
             rc = pagefox_crt_attach(fd, rawcart);
             break;
+        case CARTRIDGE_RAMLINK:
+            rc = ramlink_crt_attach(fd, rawcart);
+            break;
         case CARTRIDGE_RETRO_REPLAY:
             rc = retroreplay_crt_attach(fd, rawcart, filename, header.subtype);
             break;
@@ -523,6 +566,9 @@ int crt_attach(const char *filename, uint8_t *rawcart)
             break;
         case CARTRIDGE_REX:
             rc = rex_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_REX_RAMFLOPPY:
+            rc = rexramfloppy_crt_attach(fd, rawcart);
             break;
         case CARTRIDGE_RGCD:
             rc = rgcd_crt_attach(fd, rawcart);
@@ -534,6 +580,9 @@ int crt_attach(const char *filename, uint8_t *rawcart)
 #endif
         case CARTRIDGE_ROSS:
             rc = ross_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_SDBOX:
+            rc = sdbox_crt_attach(fd, rawcart);
             break;
         case CARTRIDGE_SILVERROCK_128:
             rc = silverrock128_crt_attach(fd, rawcart);
@@ -570,6 +619,9 @@ int crt_attach(const char *filename, uint8_t *rawcart)
             break;
         case CARTRIDGE_ZAXXON:
             rc = zaxxon_crt_attach(fd, rawcart);
+            break;
+        case CARTRIDGE_ZIPPCODE48:
+            rc = zippcode48_crt_attach(fd, rawcart);
             break;
         default:
             archdep_startup_log_error("unknown CRT ID: %d\n", new_crttype);

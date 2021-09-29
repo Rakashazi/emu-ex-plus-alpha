@@ -64,20 +64,17 @@
 /* Sound defaults.  */
 #ifdef ANDROID_COMPILE
 #define SOUND_SAMPLE_RATE 22050
+#define SOUND_SAMPLE_BUFFER_SIZE 100
 #else
 #define SOUND_SAMPLE_RATE 44100
+#define SOUND_SAMPLE_BUFFER_SIZE 26
 #endif
 
 #define SOUND_CHANNELS_MAX 2
-#define SOUND_BUFSIZE 32768
-#define SOUND_SIDS_MAX 4
+#define SOUND_SIDS_MAX 8
 
-#ifdef __OS2__
-# define SOUND_SAMPLE_BUFFER_SIZE       400
-#endif
-#ifndef SOUND_SAMPLE_BUFFER_SIZE
-# define SOUND_SAMPLE_BUFFER_SIZE       100
-#endif
+#define SOUND_CHIPS_MAX 20
+
 
 /* largest value in the UIs. also used by VSID as default */
 #define SOUND_SAMPLE_MAX_BUFFER_SIZE    350
@@ -116,6 +113,8 @@ typedef struct sound_device_s {
     int need_attenuation;
     /* maximum amount of channels */
     int max_channels;
+    /* Can this device be relied on as the emulator timing source */
+    bool is_timing_source;
 } sound_device_t;
 
 static inline int16_t sound_audio_mix(int ch1, int ch2)
@@ -139,12 +138,6 @@ static inline int16_t sound_audio_mix(int ch1, int ch2)
     return (int16_t)-((-(ch1) + -(ch2)) - (-(ch1) * -(ch2) / 32768));
 }
 
-/* Sound adjustment types.  */
-#define SOUND_ADJUST_DEFAULT   -1
-#define SOUND_ADJUST_FLEXIBLE   0
-#define SOUND_ADJUST_ADJUSTING  1
-#define SOUND_ADJUST_EXACT      2
-
 /* Fragment sizes */
 #define SOUND_FRAGMENT_VERY_SMALL    0
 #define SOUND_FRAGMENT_SMALL         1
@@ -160,7 +153,7 @@ static inline int16_t sound_audio_mix(int ch1, int ch2)
 /* external functions for vice */
 extern void sound_init(unsigned int clock_rate, unsigned int ticks_per_frame);
 extern void sound_reset(void);
-extern double sound_flush(void);
+extern bool sound_flush(void);
 extern void sound_suspend(void);
 extern void sound_resume(void);
 extern int sound_open(void);

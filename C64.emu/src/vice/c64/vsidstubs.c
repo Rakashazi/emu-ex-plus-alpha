@@ -86,12 +86,12 @@ void c64_256k_cia_set_vbank(int ciabank)
     Drive related
 *******************************************************************************/
 
-int machine_drive_image_attach(struct disk_image_s *image, unsigned int unit)
+int machine_drive_image_attach(struct disk_image_s *image, unsigned int unit, unsigned int drive)
 {
     return -1;
 }
 
-int machine_drive_image_detach(struct disk_image_s *image, unsigned int unit)
+int machine_drive_image_detach(struct disk_image_s *image, unsigned int unit, unsigned int drive)
 {
     return -1;
 }
@@ -478,7 +478,7 @@ image_contents_t *tapecontents_read(const char *file_name)
     return NULL;
 }
 
-image_contents_t *diskcontents_read(const char *file_name, unsigned int unit)
+image_contents_t *diskcontents_read(const char *file_name, unsigned int unit, unsigned int drive)
 {
     return NULL;
 }
@@ -511,7 +511,9 @@ void fileio_close(fileio_info_t *info)
 {
 }
 
-fileio_info_t *fileio_open(const char *file_name, const char *path, unsigned int format, unsigned int command, unsigned int type)
+fileio_info_t *fileio_open(const char *file_name, const char *path,
+                                unsigned int format, unsigned int command,
+                                unsigned int type, int *reclenp)
 {
     return NULL;
 }
@@ -559,7 +561,7 @@ void fsdevice_shutdown(void)
 {
 }
 
-int fsdevice_attach(unsigned int device, const char *name)
+int fsdevice_attach(unsigned int device, unsigned int drive, const char *name)
 {
     return 0;
 }
@@ -568,6 +570,10 @@ void fsdevice_set_directory(char *filename, unsigned int unit)
 {
 }
 
+int fsdevice_limit_namelength(vdrive_t *vdrive, uint8_t *name)
+{
+    return 0;
+}
 
 /*******************************************************************************
     diskimage
@@ -622,6 +628,11 @@ int disk_image_fsimage_create(const char *name, unsigned int type)
     return 0;
 }
 
+int disk_image_fsimage_create_dxm(const char *name, const char *dname, unsigned int type)
+{
+    return 0;
+}
+
 int disk_image_write_sector(disk_image_t *image, const uint8_t *buf, const disk_addr_t *dadr)
 {
     return 0;
@@ -647,11 +658,11 @@ int disk_image_write_p64_image(const disk_image_t *image)
     return 0;
 }
 
-void disk_image_attach_log(const disk_image_t *image, signed int lognum, unsigned int unit)
+void disk_image_attach_log(const disk_image_t *image, signed int lognum, unsigned int unit, unsigned int drive)
 {
 }
 
-void disk_image_detach_log(const disk_image_t *image, signed int lognum, unsigned int unit)
+void disk_image_detach_log(const disk_image_t *image, signed int lognum, unsigned int unit, unsigned int drive)
 {
 }
 
@@ -746,7 +757,7 @@ uint8_t iecbus_device_read(void)
     drive
 *******************************************************************************/
 
-drive_context_t *drive_context[DRIVE_NUM];
+diskunit_context_t *diskunit_context[NUM_DISK_UNITS];
 
 void drive_setup_context(void)
 {
@@ -764,25 +775,25 @@ void drive_shutdown(void)
 {
 }
 
-int drive_image_detach(disk_image_t *image, unsigned int unit)
+int drive_image_detach(disk_image_t *image, unsigned int unit, unsigned int drive)
 {
     return 0;
 }
 
-int drive_image_attach(disk_image_t *image, unsigned int unit)
+int drive_image_attach(disk_image_t *image, unsigned int unit, unsigned int drive)
 {
     return 0;
 }
 
-void drive_set_last_read(unsigned int track, unsigned int sector, uint8_t *buffer, struct drive_context_s *drv)
+void drive_set_last_read(unsigned int track, unsigned int sector, uint8_t *buffer, struct diskunit_context_s *drv)
 {
 }
 
-void drive_set_disk_memory(uint8_t *id, unsigned int track, unsigned int sector, struct drive_context_s *drv)
+void drive_set_disk_memory(uint8_t *id, unsigned int track, unsigned int sector, struct diskunit_context_s *drv)
 {
 }
 
-void drive_cpu_execute_one(drive_context_t *drv, CLOCK clk_value)
+void drive_cpu_execute_one(diskunit_context_t *drv, CLOCK clk_value)
 {
 }
 
@@ -820,6 +831,16 @@ int drive_get_disk_drive_type(int dnr)
     return 0;
 }
 
+int drive_is_dualdrive_by_devnr(int devnr)
+{
+    return 0;
+}
+
+int drive_get_type_by_devnr(int devnr)
+{
+    return 0;
+}
+
 /*******************************************************************************
     vdrive
 *******************************************************************************/
@@ -828,7 +849,7 @@ void vdrive_init(void)
 {
 }
 
-int vdrive_device_setup(vdrive_t *vdrive, unsigned int unit)
+int vdrive_device_setup(vdrive_t *vdrive, unsigned int unit, unsigned int drive)
 {
     return 0;
 }
@@ -842,21 +863,21 @@ int vdrive_iec_attach(unsigned int unit, const char *name)
     return 0;
 }
 
-int vdrive_bam_get_disk_id(unsigned int unit, uint8_t *id)
+int vdrive_bam_get_disk_id(unsigned int unit, unsigned int drive, uint8_t *id)
 {
     return 0;
 }
 
-int vdrive_bam_set_disk_id(unsigned int unit, uint8_t *id)
+int vdrive_bam_set_disk_id(unsigned int unit, unsigned int drive, uint8_t *id)
 {
     return 0;
 }
 
-void vdrive_detach_image(disk_image_t *image, unsigned int unit, vdrive_t *vdrive)
+void vdrive_detach_image(disk_image_t *image, unsigned int unit, unsigned int drive, vdrive_t *vdrive)
 {
 }
 
-int vdrive_attach_image(disk_image_t *image, unsigned int unit, vdrive_t *vdrive)
+int vdrive_attach_image(disk_image_t *image, unsigned int unit, unsigned int drive, vdrive_t *vdrive)
 {
     return 0;
 }
@@ -958,3 +979,13 @@ kbdtype_info_t *machine_get_keyboard_info_list(void)
 {
     return NULL;
 }
+
+void drive_cpu_trigger_reset_button(unsigned int dnr, unsigned int button)
+{
+}
+
+int drive_has_buttons(unsigned int dnr)
+{
+    return 0;
+}
+

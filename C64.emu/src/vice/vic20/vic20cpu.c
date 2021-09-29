@@ -52,7 +52,7 @@ CLOCK maincpu_clk_limit = 0L;
 
 #define PUSH(val) (*_mem_write_tab_ptr[0x01])((uint16_t)(0x100 + (reg_sp--)), (uint8_t)(val))
 #define PULL()    (*_mem_read_tab_ptr[0x01])((uint16_t)(0x100 + (++reg_sp)))
-#define STACK_PEEK()  (*_mem_read_tab_ptr[0x01])((uint16_t)(0x100 + reg_sp))
+#define STACK_PEEK()  (*_mem_read_tab_ptr_dummy[0x01])((uint16_t)(0x100 + reg_sp))
 
 /* opcode_t etc */
 

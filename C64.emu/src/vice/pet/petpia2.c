@@ -122,13 +122,15 @@ static uint8_t read_pa(void)
 
     drive_cpu_execute_all(maincpu_clk);
 
-    if (parallel_debug) {
+#ifdef DEBUG
+    if (debug.ieee) {
         log_message(mypia_log,
                     "read pia2 port A %x, parallel_bus=%x, gives %x.",
                     mypia.port_a, parallel_bus,
                     (unsigned int)((parallel_bus & ~mypia.ddr_a)
                      | (mypia.port_a & mypia.ddr_a)));
     }
+#endif
 
     byte = (parallel_bus & ~mypia.ddr_a) | (mypia.port_a & mypia.ddr_a);
     return byte;

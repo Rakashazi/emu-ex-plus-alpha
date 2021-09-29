@@ -38,6 +38,16 @@
 #include "resources.h"
 #include "types.h"
 
+
+static const char *hack_desc[] = {
+    "None",
+    "256KiB CSORY",
+    "256KiB Hannes",
+    "1MiB Hannes",
+    "4MiB Hannes"
+};
+
+
 static int memory_hack = 0;
 
 static int set_memory_hack(int val, void *param)
@@ -130,6 +140,23 @@ static const resource_int_t resources_int[] = {
     RESOURCE_INT_LIST_END
 };
 
+
+/** \brief  Get description of \a hack
+ *
+ * \param[in]   hack    Plus4 hack ID
+ *
+ * \return  description of hack, to be used in UI or debug code
+ */
+const char *plus4_memory_hacks_desc(int hack)
+{
+    if (hack < 0 || hack >= (sizeof hack_desc / sizeof hack_desc[0])) {
+        return "Invalid";
+    }
+    return hack_desc[hack];
+}
+
+
+
 int plus4_memory_hacks_resources_init(void)
 {
     return resources_register_int(resources_int);
@@ -141,7 +168,7 @@ static const cmdline_option_t cmdline_options[] =
 {
     { "-memoryexphack", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "MemoryHack", NULL,
-      "<device>", "Set the 'memory expansion hack' device (0: None, 1: CSORY 256K, 2: HANNES 256K, 3: HANNES 1024K, 4: HANNES 4096K)" },
+      "<device>", "Set the 'memory expansion hack' device (0: None, 1: CSORY 256KiB, 2: HANNES 256KiB, 3: HANNES 1MiB, 4: HANNES 4MiB)" },
     CMDLINE_LIST_END
 };
 

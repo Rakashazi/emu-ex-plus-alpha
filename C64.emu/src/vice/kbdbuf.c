@@ -319,13 +319,22 @@ int kbdbuf_feed_runcmd(const char *string)
    This is (at least) called once per frame in vsync handler */
 void kbdbuf_flush(void)
 {
+    static bool prevent_recursion = false;
+    
     unsigned int i, n;
+    
+    /* memory write side effects can end up calling draw handler -> vsync end of line -> kbdbuf_flush infinitely */
+    if (prevent_recursion) {
+        return;
+    }
+    prevent_recursion = true;
 
     if ((!kbd_buf_enabled)
         || (num_pending == 0)
         || !kbdbuf_is_empty()
         || (maincpu_clk < kernal_init_cycles)
         || (kbdbuf_flush_alarm_time != 0)) {
+        prevent_recursion = false;
         return;
     }
     n = num_pending > buffer_size ? buffer_size : num_pending;
@@ -335,12 +344,16 @@ void kbdbuf_flush(void)
         /* use an alarm to randomly delay RETURN for up to one frame */
         if ((queue[head_idx] == 13) && (use_kbdbuf_flush_alarm == 1)) {
             /* we actually need to wait _at least_ one frame to not overrun the buffer */
-            kbdbuf_flush_alarm_time = maincpu_clk + machine_get_cycles_per_frame();
-            kbdbuf_flush_alarm_time += lib_unsigned_rand(1, machine_get_cycles_per_frame());
+            kbdbuf_flush_alarm_time = maincpu_clk + (CLOCK)machine_get_cycles_per_frame();
+            kbdbuf_flush_alarm_time += lib_unsigned_rand(1, (CLOCK)machine_get_cycles_per_frame());
             alarm_set(kbdbuf_flush_alarm, kbdbuf_flush_alarm_time);
+            
+            prevent_recursion = false;
             return;
         }
         tokbdbuffer(queue[head_idx]);
         removefromqueue();
     }
+    
+    prevent_recursion = false;
 }

@@ -30,5 +30,8 @@
 
 extern void c64meminit(unsigned int base);
 extern const unsigned int c64meminit_io_config[32];
+extern const unsigned int c64meminit_roml_config[32];
+extern const unsigned int c64meminit_romh_config[32];
+extern const unsigned int c64meminit_romh_mapping[32];
 
 #endif

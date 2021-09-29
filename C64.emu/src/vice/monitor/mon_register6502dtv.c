@@ -55,32 +55,34 @@
  *       same with the other CPUs and finally move common code to mon_register.c
  */
 
-#define REG_LIST_6510DTV_SIZE (24 + 1)
-static mon_reg_list_t mon_reg_list_6510dtv[REG_LIST_6510DTV_SIZE] = {
-    {      "PC",    e_PC, 16,                      0, 0, 0 },
-    {       "A",     e_A,  8,                      0, 0, 0 },
-    {       "X",     e_X,  8,                      0, 0, 0 },
-    {       "Y",     e_Y,  8,                      0, 0, 0 },
-    {      "SP",    e_SP,  8,                      0, 0, 0 },
-    {      "00",      -1,  8, MON_REGISTER_IS_MEMORY, 0, 0 },
-    {      "01",      -1,  8, MON_REGISTER_IS_MEMORY, 1, 0 },
-    {      "FL", e_FLAGS,  8,                      0, 0, 0 },
-    {"NV-BDIZC", e_FLAGS,  8,  MON_REGISTER_IS_FLAGS, 0, 0 },
-    {      "R3",    e_R3,  8,                      0, 0, 0 },
-    {      "R4",    e_R4,  8,                      0, 0, 0 },
-    {      "R5",    e_R5,  8,                      0, 0, 0 },
-    {      "R6",    e_R6,  8,                      0, 0, 0 },
-    {      "R7",    e_R7,  8,                      0, 0, 0 },
-    {      "R8",    e_R8,  8,                      0, 0, 0 },
-    {      "R9",    e_R9,  8,                      0, 0, 0 },
-    {     "R10",   e_R10,  8,                      0, 0, 0 },
-    {     "R11",   e_R11,  8,                      0, 0, 0 },
-    {     "R12",   e_R12,  8,                      0, 0, 0 },
-    {     "R13",   e_R13,  8,                      0, 0, 0 },
-    {     "R14",   e_R14,  8,                      0, 0, 0 },
-    {     "R15",   e_R15,  8,                      0, 0, 0 },
-    {     "ACM",   e_ACM,  8,                      0, 0, 0 },
-    {     "YXM",   e_YXM,  8,                      0, 0, 0 },
+#define REG_LIST_6510DTV_SIZE (26 + 1)
+static const mon_reg_list_t mon_reg_list_6510dtv[REG_LIST_6510DTV_SIZE] = {
+    {      "PC",         e_PC, 16,                      0, 0, 0 },
+    {       "A",          e_A,  8,                      0, 0, 0 },
+    {       "X",          e_X,  8,                      0, 0, 0 },
+    {       "Y",          e_Y,  8,                      0, 0, 0 },
+    {      "SP",         e_SP,  8,                      0, 0, 0 },
+    {      "00",       e_Zero,  8, MON_REGISTER_IS_MEMORY, 0, 0 },
+    {      "01",        e_One,  8, MON_REGISTER_IS_MEMORY, 1, 0 },
+    {      "FL",      e_FLAGS,  8,                      0, 0, 0 },
+    {"NV-BDIZC",      e_FLAGS,  8,  MON_REGISTER_IS_FLAGS, 0, 0 },
+    {      "R3",         e_R3,  8,                      0, 0, 0 },
+    {      "R4",         e_R4,  8,                      0, 0, 0 },
+    {      "R5",         e_R5,  8,                      0, 0, 0 },
+    {      "R6",         e_R6,  8,                      0, 0, 0 },
+    {      "R7",         e_R7,  8,                      0, 0, 0 },
+    {      "R8",         e_R8,  8,                      0, 0, 0 },
+    {      "R9",         e_R9,  8,                      0, 0, 0 },
+    {     "R10",        e_R10,  8,                      0, 0, 0 },
+    {     "R11",        e_R11,  8,                      0, 0, 0 },
+    {     "R12",        e_R12,  8,                      0, 0, 0 },
+    {     "R13",        e_R13,  8,                      0, 0, 0 },
+    {     "R14",        e_R14,  8,                      0, 0, 0 },
+    {     "R15",        e_R15,  8,                      0, 0, 0 },
+    {     "ACM",        e_ACM,  8,                      0, 0, 0 },
+    {     "YXM",        e_YXM,  8,                      0, 0, 0 },
+    {     "LIN", e_Rasterline, 16,                      0, 0, 0 },
+    {     "CYC",      e_Cycle, 16,                      0, 0, 0 },
     { NULL, -1,  0,  0, 0, 0 }
 };
 
@@ -141,6 +143,22 @@ static unsigned int mon_register_get_val(int mem, int reg_id)
             return MOS6510DTV_REGS_GET_ACM(reg_ptr);
         case e_YXM:
             return MOS6510DTV_REGS_GET_YXM(reg_ptr);
+        case e_Rasterline:
+            {
+                unsigned int line, cycle;
+                int half_cycle;
+
+                mon_interfaces[e_comp_space]->get_line_cycle(&line, &cycle, &half_cycle);
+                return line;
+            }
+        case e_Cycle:
+            {
+                unsigned int line, cycle;
+                int half_cycle;
+
+                mon_interfaces[e_comp_space]->get_line_cycle(&line, &cycle, &half_cycle);
+                return cycle;
+            }
         default:
             log_error(LOG_ERR, "Unknown register!");
     }

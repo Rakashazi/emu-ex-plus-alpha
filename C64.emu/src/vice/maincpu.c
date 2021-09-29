@@ -39,6 +39,7 @@
 #include "log.h"
 #include "machine.h"
 #include "maincpu.h"
+#include "mainlock.h"
 #include "mem.h"
 #include "monitor.h"
 #ifdef C64DTV
@@ -109,6 +110,26 @@
     memmap_mem_read((addr) & 0xff)
 #endif
 
+#ifndef STORE_DUMMY
+#define STORE_DUMMY(addr, value) \
+    memmap_mem_store_dummy(addr, value)
+#endif
+
+#ifndef LOAD_DUMMY
+#define LOAD_DUMMY(addr) \
+    memmap_mem_read_dummy(addr)
+#endif
+
+#ifndef STORE_ZERO_DUMMY
+#define STORE_ZERO_DUMMY(addr, value) \
+    memmap_mem_store_dummy((addr) & 0xff, value)
+#endif
+
+#ifndef LOAD_ZERO_DUMMY
+#define LOAD_ZERO_DUMMY(addr) \
+    memmap_mem_read_dummy((addr) & 0xff)
+#endif
+
 #endif /* C64DTV */
 #endif /* FEATURE_CPUMEMHISTORY */
 
@@ -133,11 +154,37 @@
 #endif
 
 #define LOAD_ADDR(addr) \
-    ((LOAD((addr) + 1) << 8) | LOAD(addr))
+    (LOAD(addr) | (LOAD((addr) + 1) << 8))
 
 #define LOAD_ZERO_ADDR(addr) \
-    ((LOAD_ZERO((addr) + 1) << 8) | LOAD_ZERO(addr))
+    (LOAD_ZERO(addr) | (LOAD_ZERO((addr) + 1) << 8))
 
+#ifndef STORE_DUMMY
+#define STORE_DUMMY(addr, value) \
+    (*_mem_write_tab_ptr_dummy[(addr) >> 8])((uint16_t)(addr), (uint8_t)(value))
+#endif
+
+#ifndef LOAD_DUMMY
+#define LOAD_DUMMY(addr) \
+    (*_mem_read_tab_ptr_dummy[(addr) >> 8])((uint16_t)(addr))
+#endif
+
+#ifndef STORE_ZERO_DUMMY
+#define STORE_ZERO_DUMMY(addr, value) \
+    (*_mem_write_tab_ptr_dummy[0])((uint16_t)(addr), (uint8_t)(value))
+#endif
+
+#ifndef LOAD_ZERO_DUMMY
+#define LOAD_ZERO_DUMMY(addr) \
+    (*_mem_read_tab_ptr_dummy[0])((uint16_t)(addr))
+#endif
+
+#define LOAD_ADDR_DUMMY(addr) \
+    (LOAD_DUMMY(addr) | (LOAD_DUMMY((addr) + 1) << 8))
+
+#define LOAD_ZERO_ADDR_DUMMY(addr) \
+    (LOAD_ZERO_DUMMY(addr) | (LOAD_ZERO_DUMMY((addr) + 1) << 8))
+    
 /* Those may be overridden by the machine stuff.  Probably we want them in
    the .def files, but if most of the machines do not use, we might keep it
    here and only override it where needed.  */
@@ -267,8 +314,15 @@ monitor_interface_t *maincpu_monitor_interface_get(void)
     maincpu_monitor_interface->clk = &maincpu_clk;
 
     maincpu_monitor_interface->current_bank = 0;
+    maincpu_monitor_interface->current_bank_index = 0;
+
     maincpu_monitor_interface->mem_bank_list = mem_bank_list;
+    maincpu_monitor_interface->mem_bank_list_nos = mem_bank_list_nos;
+
     maincpu_monitor_interface->mem_bank_from_name = mem_bank_from_name;
+    maincpu_monitor_interface->mem_bank_index_from_bank = mem_bank_index_from_bank;
+    maincpu_monitor_interface->mem_bank_flags_from_bank = mem_bank_flags_from_bank;
+
     maincpu_monitor_interface->mem_bank_read = mem_bank_read;
     maincpu_monitor_interface->mem_bank_peek = mem_bank_peek;
     maincpu_monitor_interface->mem_bank_write = mem_bank_write;
@@ -393,14 +447,15 @@ inline static int interrupt_check_irq_delay(interrupt_cpu_status_t *cs,
 unsigned int reg_pc;
 #endif
 
-static uint8_t **o_bank_base;
-static int *o_bank_start;
-static int *o_bank_limit;
+static bool bank_base_ready = false;
+static uint8_t *bank_base = NULL;
+static int bank_start = 0;
+static int bank_limit = 0;
 
 void maincpu_resync_limits(void)
 {
-    if (o_bank_base) {
-        mem_mmu_translate(reg_pc, o_bank_base, o_bank_start, o_bank_limit);
+    if (bank_base_ready) {
+        mem_mmu_translate(reg_pc, &bank_base, &bank_start, &bank_limit);
     }
 }
 
@@ -451,13 +506,13 @@ void maincpu_mainloop(void)
 #ifndef NEED_REG_PC
     unsigned int reg_pc;
 #endif
-    uint8_t *bank_base;
-    int bank_start = 0;
-    int bank_limit = 0;
 
-    o_bank_base = &bank_base;
-    o_bank_start = &bank_start;
-    o_bank_limit = &bank_limit;
+    /*
+     * Enable maincpu_resync_limits functionality .. in the old code
+     * this is where the local stack var had its address copied to
+     * the global.
+     */
+    bank_base_ready = true;
 
     machine_trigger_reset(MACHINE_RESET_MODE_SOFT);
 

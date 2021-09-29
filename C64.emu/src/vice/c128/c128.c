@@ -61,6 +61,7 @@
 #include "clkguard.h"
 #include "clockport-mp3at64.h"
 #include "datasette.h"
+#include "datasette-sound.h"
 #include "debug.h"
 #include "diskimage.h"
 #include "drive-cmdline-options.h"
@@ -369,7 +370,7 @@ static io_source_t vicii_d000_device = {
     "VIC-IIe",             /* name of the chip */
     IO_DETACH_NEVER,       /* chip is never involved in collisions, so no detach */
     IO_DETACH_NO_RESOURCE, /* does not use a resource for detach */
-    0xd000, 0xd0ff, 0x7f,  /* regs: $d000-$d03f, mirrors: $d040-$d0ff */
+    0xd000, 0xd0ff, 0x3f,  /* regs: $d000-$d03f, mirrors: $d040-$d0ff */
     1,                     /* read is always valid */
     vicii_store,           /* store function */
     NULL,                  /* NO poke function */
@@ -378,14 +379,15 @@ static io_source_t vicii_d000_device = {
     vicii_dump,            /* chip state information dump function */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_HIGH,          /* high priority, chip and mirrors never involved in collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_MASK         /* contains mirrors, defined by mask */
 };
 
 static io_source_t vicii_d100_device = {
     "VIC-IIe $D100-$D1FF mirrors", /* name of the chip */
     IO_DETACH_NEVER,               /* chip is never involved in collisions, so no detach */
     IO_DETACH_NO_RESOURCE,         /* does not use a resource for detach */
-    0xd100, 0xd1ff, 0x7f,          /* mirrors of $d000-$d03f */
+    0xd100, 0xd1ff, 0x3f,          /* mirrors of $d000-$d03f */
     1,                             /* read is always valid */
     vicii_store,                   /* store function */
     NULL,                          /* NO poke function */
@@ -394,14 +396,15 @@ static io_source_t vicii_d100_device = {
     vicii_dump,                    /* chip state information dump function */
     IO_CART_ID_NONE,               /* not a cartridge */
     IO_PRIO_HIGH,                  /* high priority, mirrors never involved in collisions */
-    0                              /* insertion order, gets filled in by the registration function */
+    0,                             /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_OTHER                /* this is a mirror of another registered device */
 };
 
 static io_source_t vicii_d200_device = {
     "VIC-IIe $D200-$D2FF mirrors", /* name of the chip */
     IO_DETACH_NEVER,               /* chip is never involved in collisions, so no detach */
     IO_DETACH_NO_RESOURCE,         /* does not use a resource for detach */
-    0xd200, 0xd2ff, 0x7f,          /* mirrors of $d000-$d03f */
+    0xd200, 0xd2ff, 0x3f,          /* mirrors of $d000-$d03f */
     1,                             /* read is always valid */
     vicii_store,                   /* store function */
     NULL,                          /* NO poke function */
@@ -410,14 +413,15 @@ static io_source_t vicii_d200_device = {
     vicii_dump,                    /* chip state information dump function */
     IO_CART_ID_NONE,               /* not a cartridge */
     IO_PRIO_HIGH,                  /* high priority, mirrors never involved in collisions */
-    0                              /* insertion order, gets filled in by the registration function */
+    0,                             /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_OTHER                /* this is a mirror of another registered device */
 };
 
 static io_source_t vicii_d300_device = {
     "VIC-IIe $D300-$D3FF mirrors", /* name of the chip */
     IO_DETACH_NEVER,               /* chip is never involved in collisions, so no detach */
     IO_DETACH_NO_RESOURCE,         /* does not use a resource for detach */
-    0xd300, 0xd3ff, 0x7f,          /* mirrors of $d000-$d03f */
+    0xd300, 0xd3ff, 0x3f,          /* mirrors of $d000-$d03f */
     1,                             /* read is always valid */
     vicii_store,                   /* store function */
     NULL,                          /* NO poke function */
@@ -426,7 +430,8 @@ static io_source_t vicii_d300_device = {
     vicii_dump,                    /* chip state information dump function */
     IO_CART_ID_NONE,               /* not a cartridge */
     IO_PRIO_HIGH,                  /* high priority, mirrors never involved in collisions */
-    0                              /* insertion order, gets filled in by the registration function */
+    0,                             /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_OTHER                /* this is a mirror of another registered device */
 };
 
 static io_source_t sid_d400_device = {
@@ -442,7 +447,8 @@ static io_source_t sid_d400_device = {
     sid_dump,              /* chip state information dump function */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_HIGH,          /* high priority, mirrors never involved in collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* this is not a mirror */
 };
 
 static io_source_t sid_d420_device = {
@@ -458,7 +464,8 @@ static io_source_t sid_d420_device = {
     sid_dump,              /* chip state information dump function */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_LOW,           /* low priority, chip never involved in collisions, this is to allow additional SID chips in the same range */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_OTHER        /* this is a mirror of another registered device */
 };
 
 static io_source_list_t *vicii_d000_list_item = NULL;
@@ -732,10 +739,12 @@ int machine_resources_init(void)
         init_resource_fail("tapeport");
         return -1;
     }
+#ifdef TAPEPORT_EXPERIMENTAL_DEVICES
     if (tape_diag_586220_harness_resources_init() < 0) {
         init_resource_fail("tape diag 586220 harness");
         return -1;
     }
+#endif
     if (cartridge_resources_init() < 0) {
         init_resource_fail("cartridge");
         return -1;
@@ -772,10 +781,12 @@ int machine_resources_init(void)
         init_resource_fail("userport 8bit stereo sampler");
         return -1;
     }
+#ifdef USERPORT_EXPERIMENTAL_DEVICES
     if (userport_diag_586220_harness_resources_init() < 0) {
         init_resource_fail("userport diag 586220 harness");
         return -1;
     }
+#endif
     if (cartio_resources_init() < 0) {
         init_resource_fail("cartio");
         return -1;
@@ -930,10 +941,12 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("tapeport");
         return -1;
     }
+#ifdef TAPEPORT_EXPERIMENTAL_DEVICES
     if (tape_diag_586220_harness_cmdline_options_init() < 0) {
         init_cmdline_options_fail("tape diag 586220 harness");
         return -1;
     }
+#endif
     if (datasette_cmdline_options_init() < 0) {
         init_cmdline_options_fail("datasette");
         return -1;
@@ -978,10 +991,12 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("userport 8bit stereo sampler");
         return -1;
     }
+#ifdef USERPORT_EXPERIMENTAL_DEVICES
     if (userport_diag_586220_harness_cmdline_options_init() < 0) {
         init_cmdline_options_fail("userport diag 586220 harness");
         return -1;
     }
+#endif
     if (cartio_cmdline_options_init() < 0) {
         init_cmdline_options_fail("cartio");
         return -1;
@@ -993,7 +1008,7 @@ static void c128_monitor_init(void)
 {
     unsigned int dnr;
     monitor_cpu_type_t asm6502, asmz80, asmR65C02;
-    monitor_interface_t *drive_interface_init[DRIVE_NUM];
+    monitor_interface_t *drive_interface_init[NUM_DISK_UNITS];
     monitor_cpu_type_t *asmarray[4];
 
     asmarray[0] = &asm6502;
@@ -1005,7 +1020,7 @@ static void c128_monitor_init(void)
     asmz80_init(&asmz80);
     asmR65C02_init(&asmR65C02);
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         drive_interface_init[dnr] = drive_cpu_monitor_interface_get(dnr);
     }
 
@@ -1024,8 +1039,6 @@ void machine_setup_context(void)
 /* C128-specific initialization.  */
 int machine_specific_init(void)
 {
-    int delay;
-
     c128_log = log_open("C128");
 
     if (mem_load() < 0) {
@@ -1073,12 +1086,8 @@ int machine_specific_init(void)
 
     disk_image_init();
 
-    /* Initialize autostart. FIXME: at least 0xa26 is only for 40 cols */
-    resources_get_int("AutostartDelay", &delay);
-    if (delay == 0) {
-        delay = 3; /* default */
-    }
-    autostart_init((CLOCK)(delay * C128_PAL_RFSH_PER_SEC * C128_PAL_CYCLES_PER_RFSH), 1);
+    /* Initialize autostart. */
+    autostart_init(3, 1);
 
     /* Pre-init C128-specific parts of the menus before vdc_init() and
        vicii_init() create canvas windows with menubars at the top. */
@@ -1122,11 +1131,13 @@ int machine_specific_init(void)
 #endif
 
     drive_sound_init();
+    datasette_sound_init();
     video_sound_init();
 
     /* Initialize sound.  Notice that this does not really open the audio
        device yet.  */
-    sound_init(machine_timing.cycles_per_sec, machine_timing.cycles_per_rfsh);
+    sound_init((unsigned int)machine_timing.cycles_per_sec,
+               (unsigned int)machine_timing.cycles_per_rfsh);
     fmopl_set_machine_parameter(machine_timing.cycles_per_sec);
 
     /* Initialize keyboard buffer.  */
@@ -1245,14 +1256,16 @@ void machine_kbdbuf_reset_c64(void)
     kbdbuf_reset(631, 198, 10, (CLOCK)(machine_timing.rfsh_per_sec * machine_timing.cycles_per_rfsh));
 }
 
+/* FIXME: check if this is really needed and remove eventually */
 void machine_autostart_reset_c128(void)
 {
-    autostart_reinit((CLOCK)(3 * machine_timing.rfsh_per_sec * machine_timing.cycles_per_rfsh), 1);
+    /* autostart_reinit(3, 1); */
 }
 
+/* FIXME: check if this is really needed and remove eventually */
 void machine_autostart_reset_c64(void)
 {
-    autostart_reinit((CLOCK)(3 * machine_timing.rfsh_per_sec * machine_timing.cycles_per_rfsh), 1);
+    /* autostart_reinit(3, 1); */
 }
  
 /* ------------------------------------------------------------------------- */
@@ -1336,12 +1349,16 @@ void machine_change_timing(int timeval, int border_mode)
 #ifdef HAVE_MOUSE
     neos_mouse_set_machine_parameter(machine_timing.cycles_per_sec);
 #endif
-    clk_guard_set_clk_base(maincpu_clk_guard, machine_timing.cycles_per_rfsh);
+    clk_guard_set_clk_base(maincpu_clk_guard, (CLOCK)machine_timing.cycles_per_rfsh);
 
     vicii_change_timing(&machine_timing, border_mode);
 
-    cia1_set_timing(machine_context.cia1, machine_timing.cycles_per_sec, machine_timing.power_freq);
-    cia2_set_timing(machine_context.cia2, machine_timing.cycles_per_sec, machine_timing.power_freq);
+    cia1_set_timing(machine_context.cia1,
+                    (int)machine_timing.cycles_per_sec,
+                    machine_timing.power_freq);
+    cia2_set_timing(machine_context.cia2,
+                    (int)machine_timing.cycles_per_sec,
+                    machine_timing.power_freq);
 
     fmopl_set_machine_parameter(machine_timing.cycles_per_sec);
 

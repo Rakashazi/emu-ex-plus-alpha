@@ -30,7 +30,7 @@
 #include "drivetypes.h"
 #include "types.h"
 
-struct drive_context_s;
+struct diskunit_context_s;
 struct drivecpud_context_s;
 struct mem_ioreg_list_s;
 
@@ -39,7 +39,7 @@ extern uint8_t drivemem_bank_read(int bank, uint16_t addr, void *context);
 extern uint8_t drivemem_bank_peek(int bank, uint16_t addr, void *context);
 extern void drivemem_bank_store(int bank, uint16_t addr, uint8_t value, void *context);
 extern void drivemem_bank_poke(int bank, uint16_t addr, uint8_t value, void *context);
-extern void drivemem_init(struct drive_context_s *drv, unsigned int type);
+extern void drivemem_init(struct diskunit_context_s *drv);
 extern void drivemem_set_func(struct drivecpud_context_s *cpud,
                               unsigned int start, unsigned int stop,
                               drive_read_func_t *read_func,

@@ -43,6 +43,7 @@
 #include "fliplist.h"
 #include "fsdevice.h"
 #include "gfxoutput.h"
+#include "initcmdline.h"
 #include "interrupt.h"
 #include "joy.h"
 #include "kbdbuf.h"
@@ -55,6 +56,7 @@
 #include "mem.h"
 #include "monitor.h"
 #include "monitor_network.h"
+#include "monitor_binary.h"
 #include "network.h"
 #include "printer.h"
 #include "resources.h"
@@ -85,7 +87,8 @@
 
 static int machine_init_was_called = 0;
 static int mem_initialized = 0;
-static int ignore_jam = 0;
+static bool is_jammed = false;
+static char *jam_reason = NULL;
 static int jam_action = MACHINE_JAM_ACTION_DIALOG;
 int machine_keymap_index;
 static char *ExitScreenshotName = NULL;
@@ -95,25 +98,43 @@ static char *ExitScreenshotName1 = NULL;
 
 unsigned int machine_jam(const char *format, ...)
 {
-    char *str;
     va_list ap;
     ui_jam_action_t ret = JAM_NONE;
 
-    if (ignore_jam > 0) {
+    /* always ignore subsequent JAMs. reset would clear the flag again, not
+     * setting it when going to the monitor would just repeatedly pop up the
+     * jam dialog (until reset)
+     */
+    if (is_jammed) {
         return JAM_NONE;
     }
 
+    is_jammed = true;
+
     va_start(ap, format);
-    str = lib_mvsprintf(format, ap);
+    if (jam_reason) {
+        lib_free(jam_reason);
+        jam_reason = NULL;
+    }
+    jam_reason = lib_mvsprintf(format, ap);
     va_end(ap);
 
-    log_message(LOG_DEFAULT, "*** %s", str);
+    log_message(LOG_DEFAULT, "*** %s", jam_reason);
+
+    vsync_suspend_speed_eval();
+    sound_suspend();
 
     if (jam_action == MACHINE_JAM_ACTION_DIALOG) {
-        if (monitor_is_remote()) {
-            ret = monitor_network_ui_jam_dialog(str);
+        if (monitor_is_remote() || monitor_is_binary()) {
+            if (monitor_is_remote()) {
+                ret = monitor_network_ui_jam_dialog(jam_reason);
+            }
+
+            if (monitor_is_binary()) {
+                ret = monitor_binary_ui_jam_dialog(jam_reason);
+            }
         } else if (!console_mode) {
-            ret = ui_jam_dialog(str);
+            ret = ui_jam_dialog(jam_reason);
         }
     } else if (jam_action == MACHINE_JAM_ACTION_QUIT) {
         archdep_vice_exit(EXIT_SUCCESS);
@@ -123,13 +144,6 @@ unsigned int machine_jam(const char *format, ...)
         };
         ret = actions[jam_action - 1];
     }
-    lib_free(str);
-
-    /* always ignore subsequent JAMs. reset would clear the flag again, not
-     * setting it when going to the monitor would just repeatedly pop up the
-     * jam dialog (until reset)
-     */
-    ignore_jam = 1;
 
     switch (ret) {
         case UI_JAM_RESET:
@@ -144,13 +158,27 @@ unsigned int machine_jam(const char *format, ...)
     return JAM_NONE;
 }
 
+bool machine_is_jammed(void)
+{
+    return is_jammed;
+}
+
+char *machine_jam_reason(void)
+{
+    return jam_reason;
+}
+
 static void machine_trigger_reset_internal(const unsigned int mode)
 {
-    ignore_jam = 0;
+    is_jammed = false;
+
+    if (jam_reason) {
+        lib_free(jam_reason);
+        jam_reason = NULL;
+    }
 
     switch (mode) {
         case MACHINE_RESET_MODE_HARD:
-            vsync_frame_counter = 0;
             mem_initialized = 0; /* force memory initialization */
             machine_specific_powerup();
         /* Fall through.  */
@@ -183,7 +211,12 @@ void machine_reset(void)
 {
     log_message(LOG_DEFAULT, "Main CPU: RESET.");
 
-    ignore_jam = 0;
+    is_jammed = false;
+
+    if (jam_reason) {
+        lib_free(jam_reason);
+        jam_reason = NULL;
+    }
 
     /* Do machine-specific initialization.  */
     if (!mem_initialized) {
@@ -199,7 +232,10 @@ void machine_reset(void)
 
     event_reset_ack();
 
-    vsync_suspend_speed_eval();
+    /* Give the monitor a chance to break immediately */
+    monitor_reset_hook();
+
+    vsync_reset_hook();
 }
 
 static void machine_maincpu_clk_overflow_callback(CLOCK sub, void *data)
@@ -249,6 +285,11 @@ static void machine_maincpu_shutdown(void)
 
     lib_free(maincpu_monitor_interface);
     maincpu_shutdown();
+
+    if (jam_reason) {
+        lib_free(jam_reason);
+        jam_reason = NULL;
+    }
 }
 
 static void screenshot_at_exit(void)
@@ -273,9 +314,28 @@ static void screenshot_at_exit(void)
 
 void machine_shutdown(void)
 {
+    int save_on_exit;
+
     if (!machine_init_was_called) {
         /* happens at the -help command line command*/
         return;
+    }
+    
+    /*
+     * Avoid SoundRecordDeviceName being written to vicerc when save-on-exit
+     * is enabled. If recording is/was active vicerc will contain some setting
+     * for this resource and display an error.
+     */
+    sound_stop_recording();
+
+    resources_get_int("SaveResourcesOnExit", &save_on_exit);
+    if (save_on_exit) {
+        /*
+         * FIXME: I tried moving this to resources_shutdown, but if you try to save
+         * resources after machine_specific_shutdown() is called then it crashes.
+         * That's a bit of a code smell to me. --dqh 2020-08-01
+         */
+        resources_save(NULL);
     }
 
     screenshot_at_exit();
@@ -310,6 +370,7 @@ void machine_shutdown(void)
     console_close_all();
 
     cmdline_shutdown();
+    initcmdline_shutdown();
 
     resources_shutdown();
 
@@ -345,10 +406,11 @@ void machine_shutdown(void)
     romset_resources_shutdown();
 #ifdef HAVE_NETWORK
     monitor_network_resources_shutdown();
+    monitor_binary_resources_shutdown();
 #endif
-    archdep_shutdown();
+    monitor_resources_shutdown();
 
-    lib_debug_check();
+    archdep_shutdown();
 }
 
 /* --------------------------------------------------------- */
@@ -404,7 +466,7 @@ static resource_string_t resources_string_c128[] = {
 };
 
 static const resource_int_t resources_int[] = {
-    { "JAMAction", MACHINE_JAM_ACTION_DIALOG, RES_EVENT_SAME, NULL,
+    { "JAMAction", MACHINE_JAM_ACTION_CONTINUE, RES_EVENT_SAME, NULL,
       &jam_action, set_jam_action, NULL },
     RESOURCE_INT_LIST_END
 };

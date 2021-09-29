@@ -1,18 +1,17 @@
+/** \file   fsdevice-open.c
+ * \brief   File system device
+ *
+ * \author  Andreas Boose <viceteam@t-online.de>
+ * \author  Teemu Rantanen <tvr@cs.hut.fi>
+ * \author  Jarkko Sonninen <sonninen@lut.fi>
+ * \author  Jouko Valta <jopi@stekt.oulu.fi>
+ * \author  Olaf Seibert <rhialto@mbfys.kun.nl>
+ * \author  Andre Fachat <a.fachat@physik.tu-chemnitz.de>
+ * \author  Ettore Perazzoli <ettore@comm2000.it>
+ * \author  pottendo <pottendo@gmx.net>
+ */
+
 /*
- * fsdevice-open.c - File system device.
- *
- * Written by
- *  Andreas Boose <viceteam@t-online.de>
- *
- * Based on old code by
- *  Teemu Rantanen <tvr@cs.hut.fi>
- *  Jarkko Sonninen <sonninen@lut.fi>
- *  Jouko Valta <jopi@stekt.oulu.fi>
- *  Olaf Seibert <rhialto@mbfys.kun.nl>
- *  Andre Fachat <a.fachat@physik.tu-chemnitz.de>
- *  Ettore Perazzoli <ettore@comm2000.it>
- *  pottendo <pottendo@gmx.net>
- *
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -35,7 +34,7 @@
 
 #include "vice.h"
 
-/* #define DEBUG_DRIVE */
+/* #define DEBUG_DRIVEOPEN */
 
 #include <ctype.h>
 #include <stdio.h>
@@ -46,18 +45,61 @@
 #include "cbmdos.h"
 #include "charset.h"
 #include "fileio.h"
+#include "fsdevice-filename.h"
 #include "fsdevice-open.h"
+#include "fsdevice-read.h"
 #include "fsdevice-resources.h"
 #include "fsdevice-write.h"
 #include "fsdevicetypes.h"
 #include "ioutil.h"
 #include "lib.h"
 #include "log.h"
+#include "resources.h"
 #include "tape.h"
 #include "vdrive-command.h"
 #include "vdrive.h"
 #include "util.h"
 
+#ifdef DEBUG_DRIVEOPEN
+#define DBG(x)  printf x
+#else
+#define DBG(x)
+#endif
+
+/* shorten the path shown in the disk header to 16 characters */
+static uint8_t *makeshortheader(uint8_t *p)
+{
+    int longnames = 0;
+    size_t n;
+    uint8_t *d;
+
+    if (resources_get_int("FSDeviceLongNames", &longnames) < 0) {
+        return p;
+    }
+    n = strlen((char*)p);
+    if (!longnames && (n > 16)) {
+        d = p + (n - 1);
+        /* scan backwards until path seperator */
+        while (d != p) {
+            if (*d == '/') { /* FIXME: use macro */
+                d++; n = 0;
+                /* copy last part to the beginning */
+                while (d) {
+                    p[n] = *d;
+                    n++;
+                    if (n == 16) {
+                        break;
+                    }
+                    d++;
+                }
+                p[n] = 0;
+                return p;
+            }
+            d--;
+        }
+    }
+    return p;
+}
 
 static int fsdevice_open_directory(vdrive_t *vdrive, unsigned int secondary,
                                    bufinfo_t *bufinfo,
@@ -131,6 +173,9 @@ static int fsdevice_open_directory(vdrive_t *vdrive, unsigned int secondary,
     strcpy((char *)p, bufinfo[secondary].dir); /* Dir name */
     charset_petconvstring((uint8_t *)p, 0);   /* ASCII name to PETSCII */
     i = 0;
+
+    makeshortheader(p);
+
     while (*p) {
         ++p;
         i++;
@@ -139,13 +184,21 @@ static int fsdevice_open_directory(vdrive_t *vdrive, unsigned int secondary,
         *p++ = ' ';
         i++;
     }
+
+    /* put the drive-unit and drive number into the "format id" */
     *p++ = '"';
     *p++ = ' ';
-    *p++ = 'V';
-    *p++ = 'I';
-    *p++ = 'C';
-    *p++ = 'E';
-    *p++ = ' ';
+    if (vdrive->drive < 10) {
+        *p++ = ' ';
+        *p++ = '#';
+        *p++ = '0' + vdrive->unit;
+    } else {
+        *p++ = '#';
+        *p++ = '1';
+        *p++ = '0' + (vdrive->unit - 10);
+    }
+    *p++ = ':';
+    *p++ = '0' + vdrive->drive;
     *p++ = 0;
 
     bufinfo[secondary].buflen = (int)(p - bufinfo[secondary].name);
@@ -162,9 +215,11 @@ static int fsdevice_open_file(vdrive_t *vdrive, unsigned int secondary,
                               cbmdos_cmd_parse_t *cmd_parse, char *rname)
 {
     char *comma;
+    char *newrname;
     tape_image_t *tape;
     unsigned int format = 0;
     fileio_info_t *finfo;
+    int fileio_command;
 
     if (fsdevice_convert_p00_enabled[(vdrive->unit) - 8]) {
         format |= FILEIO_FORMAT_P00;
@@ -195,14 +250,30 @@ static int fsdevice_open_file(vdrive_t *vdrive, unsigned int secondary,
 
     /* Open file for write mode access.  */
     if (bufinfo[secondary].mode == Write) {
+
         if (fsdevice_save_p00_enabled[vdrive->unit - 8]) {
             format = FILEIO_FORMAT_P00;
         } else {
             format = FILEIO_FORMAT_RAW;
         }
 
+        DBG(("fsdevice_open_file write '%s'\n", rname));
+        fsdevice_limit_createnamelength(vdrive, rname);
+        DBG(("fsdevice_open_file write limited: '%s'\n", rname));
+
+        if (cmd_parse->atsign) {
+            /* TODO: maybe rename to a backup name */
+            DBG(("fsdevice_open_file overwrite @'%s'\n", rname));
+            fileio_command = FILEIO_COMMAND_OVERWRITE;
+        } else if (fsdevice_overwrite_existing_files) {
+            fileio_command = FILEIO_COMMAND_OVERWRITE;
+        } else {
+            fileio_command = FILEIO_COMMAND_WRITE;
+        }
+
         finfo = fileio_open(rname, fsdevice_get_path(vdrive->unit), format,
-                            FILEIO_COMMAND_WRITE, bufinfo[secondary].type);
+                            fileio_command, bufinfo[secondary].type,
+                            &bufinfo[secondary].reclen);
 
         if (finfo != NULL) {
             bufinfo[secondary].fileio_info = finfo;
@@ -216,9 +287,14 @@ static int fsdevice_open_file(vdrive_t *vdrive, unsigned int secondary,
 
     if (bufinfo[secondary].mode == Append) {
         /* Open file for append mode access.  */
-        finfo = fileio_open(rname, fsdevice_get_path(vdrive->unit), format,
+        DBG(("fsdevice_open_file append '%s'\n", rname));
+        newrname = fsdevice_expand_shortname(vdrive, rname);
+        DBG(("fsdevice_open_file append expanded '%s'\n", newrname));
+        finfo = fileio_open(newrname, fsdevice_get_path(vdrive->unit), format,
                             FILEIO_COMMAND_APPEND_READ,
-                            bufinfo[secondary].type);
+                            bufinfo[secondary].type,
+                            &bufinfo[secondary].reclen);
+        lib_free(newrname);
 
         if (finfo != NULL) {
             bufinfo[secondary].fileio_info = finfo;
@@ -230,7 +306,7 @@ static int fsdevice_open_file(vdrive_t *vdrive, unsigned int secondary,
         }
     }
 
-    /* Open file for read mode access.  */
+    /* Open file for read or relative mode access.  */
     tape = bufinfo[secondary].tape;
     tape->name = util_concat(fsdevice_get_path(vdrive->unit),
                              FSDEV_DIR_SEP_STR, rname, NULL);
@@ -262,12 +338,29 @@ static int fsdevice_open_file(vdrive_t *vdrive, unsigned int secondary,
         return FLOPPY_COMMAND_OK;
     }
 
-    finfo = fileio_open(rname, fsdevice_get_path(vdrive->unit), format,
-                        FILEIO_COMMAND_READ, bufinfo[secondary].type);
+
+    DBG(("fsdevice_open_file read '%s'\n", rname));
+    newrname = fsdevice_expand_shortname(vdrive, rname);
+    DBG(("fsdevice_open_file read expanded '%s'\n", newrname));
+
+    fileio_command =
+        bufinfo[secondary].mode == Relative ? FILEIO_COMMAND_READ_WRITE
+                                            : FILEIO_COMMAND_READ;
+
+    finfo = fileio_open(newrname, fsdevice_get_path(vdrive->unit), format,
+                        fileio_command, bufinfo[secondary].type,
+                        &bufinfo[secondary].reclen);
+
+    lib_free(newrname);
 
     if (finfo != NULL) {
         bufinfo[secondary].fileio_info = finfo;
         fsdevice_error(vdrive, CBMDOS_IPE_OK);
+
+        if (bufinfo[secondary].mode == Relative) {
+            fsdevice_relative_switch_record(vdrive, &bufinfo[secondary], 0, 0);
+        }
+
         return FLOPPY_COMMAND_OK;
     }
 
@@ -293,9 +386,7 @@ int fsdevice_open(vdrive_t *vdrive, const uint8_t *name, unsigned int length,
     cbmdos_cmd_parse_t cmd_parse;
     bufinfo_t *bufinfo;
 
-#ifdef DEBUG_DRIVE
-    log_debug("fsdevice_open name:'%s'", name);
-#endif
+    DBG(("fsdevice_open name:'%s' (secondary:%u)\n", name, secondary));
 
     bufinfo = fsdevice_dev[vdrive->unit - 8].bufinfo;
 
@@ -309,10 +400,11 @@ int fsdevice_open(vdrive_t *vdrive, const uint8_t *name, unsigned int length,
         }
         return status;
     }
-
     cmd_parse.cmd = name;
     cmd_parse.cmdlength = length;
     cmd_parse.secondary = secondary;
+
+    DBG(("fsdevice_open cmd_parse '%s'\n", name));
 
     rc = cbmdos_command_parse(&cmd_parse);
     if (rc != SERIAL_OK) {
@@ -320,7 +412,19 @@ int fsdevice_open(vdrive_t *vdrive, const uint8_t *name, unsigned int length,
         goto out;
     }
 
+    /*
+       Check for '@0:filename' or '@:filename'. Must include a ':'.
+       (original filename starts with '@', but parsed version doesn't)
+       '@filename' will open a file starting with '@'!
+     */
+    if (length > 0 && name[0] == '@' &&
+          !(cmd_parse.parselength > 0 && cmd_parse.parsecmd[0] == '@')) {
+        cmd_parse.atsign = 1;
+    }
+
     bufinfo[secondary].type = cmd_parse.filetype;
+    bufinfo[secondary].reclen = cmd_parse.recordlength;
+    bufinfo[secondary].num_records = -1;
 
     rname = lib_malloc(ioutil_maxpathlen());
 
@@ -329,17 +433,24 @@ int fsdevice_open(vdrive_t *vdrive, const uint8_t *name, unsigned int length,
 
     /* CBM name to FSname */
     charset_petconvstring((uint8_t *)(cmd_parse.parsecmd), 1);
+    DBG(("fsdevice_open rname: %s\n", rname));
 
-    switch (cmd_parse.readmode) {
-        case CBMDOS_FAM_WRITE:
-            bufinfo[secondary].mode = Write;
-            break;
-        case CBMDOS_FAM_READ:
-            bufinfo[secondary].mode = Read;
-            break;
-        case CBMDOS_FAM_APPEND:
-            bufinfo[secondary].mode = Append;
-            break;
+    if (cmd_parse.filetype == CBMDOS_FT_REL) {
+        /* REL files override whatever rwmode has been inferred by
+         * parsecmd() */
+        bufinfo[secondary].mode = Relative;
+    } else {
+        switch (cmd_parse.readmode) {
+            case CBMDOS_FAM_WRITE:
+                bufinfo[secondary].mode = Write;
+                break;
+            case CBMDOS_FAM_READ:
+                bufinfo[secondary].mode = Read;
+                break;
+            case CBMDOS_FAM_APPEND:
+                bufinfo[secondary].mode = Append;
+                break;
+        }
     }
 
     /*

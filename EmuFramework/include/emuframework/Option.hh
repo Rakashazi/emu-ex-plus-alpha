@@ -18,53 +18,52 @@
 #include <imagine/io/IO.hh>
 #include <imagine/util/2DOrigin.h>
 #include <imagine/util/string.h>
+#include <imagine/util/concepts.hh>
 #include <imagine/logger/logger.h>
 #include <array>
 #include <optional>
 #include <cstring>
+#include <string_view>
 
-template<class T> struct isOptional : public std::false_type {};
-
-template<class T>
-struct isOptional<std::optional<T>> : public std::true_type {};
-
-template <class T, class Validator = std::nullptr_t>
-static std::optional<T> readOptionValue(IO &io, unsigned bytesToRead, Validator &&isValid = nullptr)
+template <class T>
+static std::optional<T> readOptionValue(IO &io, size_t bytesToRead, IG::Predicate<const T&> auto &&isValid)
 {
 	if(bytesToRead != sizeof(T))
 	{
-		logMsg("skipping %u byte option value, expected %u bytes", bytesToRead, (unsigned)sizeof(T));
+		logMsg("skipping %zu byte option value, expected %zu bytes", bytesToRead, sizeof(T));
 		return {};
 	}
 	auto [val, size] = io.read<T>();
 	if(size == -1) [[unlikely]]
 	{
-		logErr("error reading %u byte option", bytesToRead);
+		logErr("error reading %zu byte option", bytesToRead);
 		return {};
 	}
-	if constexpr(!std::is_null_pointer_v<Validator>)
-	{
-		if(!isValid(val))
-			return {};
-	}
+	if(!isValid(val))
+		return {};
 	return val;
 }
 
 template <class T>
-static std::optional<T> readStringOptionValue(IO &io, unsigned bytesToRead)
+static std::optional<T> readOptionValue(IO &io, size_t bytesToRead)
 {
-	static_assert(sizeof(T) != 0, "Destination type cannot have 0 size");
-	constexpr auto destStringSize = sizeof(T) - 1;
+	return readOptionValue<T>(io, bytesToRead, [](const T&){ return true; });
+}
+
+template <IG::Container T>
+static std::optional<T> readStringOptionValue(IO &io, size_t bytesToRead)
+{
+	T val{};
+	constexpr auto destStringSize = std::size(val) - 1;
 	if(bytesToRead > destStringSize)
 	{
-		logMsg("skipping %u byte string option value, too large for %u bytes", bytesToRead, (unsigned)destStringSize);
+		logMsg("skipping %zu byte string option value, too large for %zu bytes", bytesToRead, destStringSize);
 		return {};
 	}
-	T val{};
-	auto size = io.read(val.data(), bytesToRead);
+	auto size = io.read(std::data(val), bytesToRead);
 	if(size == -1) [[unlikely]]
 	{
-		logErr("error reading %u byte string option", bytesToRead);
+		logErr("error reading %zu byte string option", bytesToRead);
 		return {};
 	}
 	return val;
@@ -78,37 +77,31 @@ static void writeOptionValueHeader(IO &io, uint16_t key, uint16_t optSize)
 	io.write(key);
 }
 
-template <class T>
-static void writeOptionValue(IO &io, uint16_t key, T &&val)
+static void writeOptionValue(IO &io, uint16_t key, const auto &val)
 {
-	if constexpr(isOptional<T>::value)
-	{
-		if(!val)
-			return;
-		writeOptionValue(io, key, *val);
-	}
-	else
-	{
-		writeOptionValueHeader(io, key, sizeof(T));
-		io.write(val);
-	}
+	writeOptionValueHeader(io, key, sizeof(decltype(val)));
+	io.write(val);
 }
 
 template <class T>
-static void writeStringOptionValue(IO &io, uint16_t key, T &&val)
+static void writeOptionValue(IO &io, uint16_t key, const std::optional<T> &val)
 {
-	if constexpr(isOptional<T>::value)
-	{
-		if(!val)
-			return;
-		writeStringOptionValue(io, key, *val);
-	}
-	else
-	{
-		uint16_t stringLen = strlen(val.data());
-		writeOptionValueHeader(io, key, stringLen);
-		io.write(val.data(), stringLen);
-	}
+	if(!val)
+		return;
+	writeOptionValue(io, key, *val);
+}
+
+static void writeStringOptionValue(IO &io, uint16_t key, std::string_view view)
+{
+	if(!view.size())
+		return;
+	writeOptionValueHeader(io, key, view.size());
+	io.write(view.data(), view.size());
+}
+
+static void writeStringOptionValue(IO &io, uint16_t key, const IG::Container auto &c)
+{
+	writeStringOptionValue(io, key, std::string_view(c.data()));
 }
 
 struct OptionBase

@@ -4,10 +4,7 @@
  *  as published by the Free Software Foundation; either version
  *  2 of the License, or (at your option) any later version.
  *
- *  Copyright 1999-2005           Michael Klein <michael(dot)klein(at)
- *                                puffin(dot)lb(dot)shuttle(dot)de>
- *                                (Highly unlikely this 'protection' works these
- *                                days)
+ *  Copyright 1999-2005           Michael Klein <michael(dot)klein(at)puffin(dot)lb(dot)shuttle(dot)de>
  *  Copyright 2001-2005,2008-2009 Spiro Trikaliotis
  *  Copyright 2006,2011           Wolfgang Moser (http://d81.de)
  *  Copyright 2009,2012           Arnd Menge
@@ -53,10 +50,26 @@ extern "C" {
 
 
 #define CBMAPIDECL __cdecl /*!< On Windows, we need c-type function declarations */
-# define __u_char unsigned char /*!< __u_char as unsigned char */
 # define CBM_FILE HANDLE /*!< The "file descriptor" for an opened driver */
 # define CBM_FILE_INVALID INVALID_HANDLE_VALUE /*!< An invalid "file descriptor" (CBM_FILE) */
 
+#elif defined(__MSDOS__)
+
+  /* we have MS-DOS */
+
+#include <stdlib.h>
+
+# define EXTERN extern /*!< EXTERN is not defined on MS-DOS */
+# define CBMAPIDECL /*!< CBMAPIDECL is a dummy on MS-DOS */
+# define WINAPI /*!< WINAPI is a dummy on MS-DOS */
+# define CBM_FILE int /*!< The "file descriptor" for an opened driver */
+# define CBM_FILE_INVALID ((CBM_FILE)-1)
+
+extern int vdd_init(void);
+extern void vdd_uninit(void);
+extern int vdd_install_iohook(CBM_FILE f, int IoBaseAddress, int CableType);
+extern int vdd_uninstall_iohook(CBM_FILE f);
+extern void vdd_usleep(CBM_FILE f, unsigned int howlong);
 #else
 
   /* we have linux or Mac */
@@ -66,13 +79,7 @@ extern "C" {
  * below is changed back to int after the plugin/driver handle
  * mapping was implemented
  */
-#ifdef HAVE_STDINT_H
 #include <stdint.h>
-#else
-#ifndef _INTTYPES_H
-typedef int intptr_t;
-#endif
-#endif
 
 # define EXTERN extern /*!< EXTERN is not defined on Linux */
 # define CBMAPIDECL /*!< CBMAPIDECL is a dummy on Linux */
@@ -82,24 +89,6 @@ typedef int intptr_t;
 
 #ifndef UNREFERENCED_PARAMETER
 #define UNREFERENCED_PARAMETER(x)
-#endif
-
-/* On Macs and *BSD we need to define the __u_char */
-#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined (__DragonflyBSD__) || defined (__DragonFly__)
-typedef unsigned char __u_char;
-#endif
-
-#if defined(__CYGWIN32__) || defined(__CYGWIN__) || defined(__INTERIX) || defined(__svr4__) || defined(__sortix__)
-typedef unsigned char __u_char;
-#endif
-
-
-#if (defined(sun) || defined(__sun)) && !(defined(__SVR4) || defined(__svr4__))
-typedef unsigned char __u_char;
-#endif
-
-#ifdef __osf__
-typedef unsigned char __u_char;
 #endif
 
 #endif
@@ -132,7 +121,7 @@ enum cbm_device_type_e
     cbm_dt_cbm2040,      /*!< The device is a CBM-2040 DOS1 or 2   */
     cbm_dt_cbm2031,      /*!< The device is a CBM-2031 DOS2.6      */
     cbm_dt_cbm3040,      /*!< The device is a CBM-3040 DOS1 or 2   */
-    cbm_dt_cbm4040,      /*!< The device is a CBM-4040 DOS2        */ 
+    cbm_dt_cbm4040,      /*!< The device is a CBM-4040 DOS2        */
     cbm_dt_cbm4031,      /*!< The device is a CBM-4031 DOS2.6      */
     cbm_dt_cbm8050,      /*!< The device is a CBM-8050             */
     cbm_dt_cbm8250,      /*!< The device is a CBM-8250 or SFD-1001 */
@@ -158,11 +147,11 @@ EXTERN void CBMAPIDECL cbm_unlock(CBM_FILE f);
 EXTERN const char * CBMAPIDECL cbm_get_driver_name(int port);
 EXTERN const char * CBMAPIDECL cbm_get_driver_name_ex(char * adapter);
 
-EXTERN int CBMAPIDECL cbm_listen(CBM_FILE f, __u_char dev, __u_char secadr);
-EXTERN int CBMAPIDECL cbm_talk(CBM_FILE f, __u_char dev, __u_char secadr);
+EXTERN int CBMAPIDECL cbm_listen(CBM_FILE f, unsigned char dev, unsigned char secadr);
+EXTERN int CBMAPIDECL cbm_talk(CBM_FILE f, unsigned char dev, unsigned char secadr);
 
-EXTERN int CBMAPIDECL cbm_open(CBM_FILE f, __u_char dev, __u_char secadr, const void *fname, size_t len);
-EXTERN int CBMAPIDECL cbm_close(CBM_FILE f, __u_char dev, __u_char secadr);
+EXTERN int CBMAPIDECL cbm_open(CBM_FILE f, unsigned char dev, unsigned char secadr, const void *fname, size_t len);
+EXTERN int CBMAPIDECL cbm_close(CBM_FILE f, unsigned char dev, unsigned char secadr);
 
 EXTERN int CBMAPIDECL cbm_raw_read(CBM_FILE f, void *buf, size_t size);
 EXTERN int CBMAPIDECL cbm_raw_write(CBM_FILE f, const void *buf, size_t size);
@@ -175,8 +164,8 @@ EXTERN int CBMAPIDECL cbm_clear_eoi(CBM_FILE f);
 
 EXTERN int CBMAPIDECL cbm_reset(CBM_FILE f);
 
-EXTERN __u_char CBMAPIDECL cbm_pp_read(CBM_FILE f);
-EXTERN void CBMAPIDECL cbm_pp_write(CBM_FILE f, __u_char c);
+EXTERN unsigned char CBMAPIDECL cbm_pp_read(CBM_FILE f);
+EXTERN void CBMAPIDECL cbm_pp_write(CBM_FILE f, unsigned char c);
 
 EXTERN int CBMAPIDECL cbm_iec_poll(CBM_FILE f);
 EXTERN int CBMAPIDECL cbm_iec_get(CBM_FILE f, int line);
@@ -185,18 +174,20 @@ EXTERN void CBMAPIDECL cbm_iec_release(CBM_FILE f, int line);
 EXTERN void CBMAPIDECL cbm_iec_setrelease(CBM_FILE f, int set, int release);
 EXTERN int CBMAPIDECL cbm_iec_wait(CBM_FILE f, int line, int state);
 
-EXTERN int CBMAPIDECL cbm_upload(CBM_FILE f, __u_char dev, int adr, const void *prog, size_t size);
-EXTERN int CBMAPIDECL cbm_download(CBM_FILE f, __u_char dev, int adr, void *dbuf, size_t size);
+EXTERN int CBMAPIDECL cbm_upload(CBM_FILE f, unsigned char dev, int adr, const void *prog, size_t size);
+EXTERN int CBMAPIDECL cbm_download(CBM_FILE f, unsigned char dev, int adr, void *dbuf, size_t size);
 
-EXTERN int CBMAPIDECL cbm_device_status(CBM_FILE f, __u_char dev, void *buf, size_t bufsize);
-EXTERN int CBMAPIDECL cbm_exec_command(CBM_FILE f, __u_char dev, const void *cmd, size_t len);
+EXTERN int CBMAPIDECL cbm_device_status(CBM_FILE f, unsigned char dev, void *buf, size_t bufsize);
+EXTERN int CBMAPIDECL cbm_exec_command(CBM_FILE f, unsigned char dev, const void *cmd, size_t len);
 
-EXTERN int CBMAPIDECL cbm_identify(CBM_FILE f, __u_char drv,
+EXTERN int CBMAPIDECL cbm_identify(CBM_FILE f, unsigned char drv,
                                    enum cbm_device_type_e *t,
                                    const char **type_str);
 
+EXTERN unsigned int CBMAPIDECL cbm_determine_pport_address(enum cbm_device_type_e CbmDeviceType);
+
 EXTERN int CBMAPIDECL cbm_identify_xp1541(CBM_FILE HandleDevice,
-                                          __u_char DeviceAddress,
+                                          unsigned char DeviceAddress,
                                           enum cbm_device_type_e *CbmDeviceType,
                                           enum cbm_cable_type_e *CableType);
 
@@ -221,24 +212,24 @@ EXTERN int CBMAPIDECL cbm_iec_dbg_write(CBM_FILE HandleDevice, unsigned char Val
 
 /* functions specifically for parallel burst */
 
-EXTERN __u_char CBMAPIDECL cbm_parallel_burst_read(CBM_FILE f);
-EXTERN void CBMAPIDECL cbm_parallel_burst_write(CBM_FILE f, __u_char c);
-EXTERN int CBMAPIDECL cbm_parallel_burst_read_n(CBM_FILE HandleDevice, __u_char *Buffer, unsigned int Length);
-EXTERN int CBMAPIDECL cbm_parallel_burst_write_n(CBM_FILE HandleDevice, __u_char *Buffer, unsigned int Length);
-EXTERN int CBMAPIDECL  cbm_parallel_burst_read_track(CBM_FILE f, __u_char *buffer, unsigned int length);
-EXTERN int CBMAPIDECL  cbm_parallel_burst_read_track_var(CBM_FILE f, __u_char *buffer, unsigned int length);
-EXTERN int CBMAPIDECL cbm_parallel_burst_write_track(CBM_FILE f, __u_char *buffer, unsigned int length);
+EXTERN unsigned char CBMAPIDECL cbm_parallel_burst_read(CBM_FILE f);
+EXTERN void CBMAPIDECL cbm_parallel_burst_write(CBM_FILE f, unsigned char c);
+EXTERN int CBMAPIDECL cbm_parallel_burst_read_n(CBM_FILE HandleDevice, unsigned char *Buffer, unsigned int Length);
+EXTERN int CBMAPIDECL cbm_parallel_burst_write_n(CBM_FILE HandleDevice, unsigned char *Buffer, unsigned int Length);
+EXTERN int CBMAPIDECL  cbm_parallel_burst_read_track(CBM_FILE f, unsigned char *buffer, unsigned int length);
+EXTERN int CBMAPIDECL  cbm_parallel_burst_read_track_var(CBM_FILE f, unsigned char *buffer, unsigned int length);
+EXTERN int CBMAPIDECL cbm_parallel_burst_write_track(CBM_FILE f, unsigned char *buffer, unsigned int length);
 
 /* parallel burst functions end */
 
 /* functions specifically for srq nibbler */
 
-EXTERN __u_char CBMAPIDECL cbm_srq_burst_read(CBM_FILE f);
-EXTERN void CBMAPIDECL cbm_srq_burst_write(CBM_FILE f, __u_char c);
-EXTERN int CBMAPIDECL cbm_srq_burst_read_n(CBM_FILE HandleDevice, __u_char *Buffer, unsigned int Length);
-EXTERN int CBMAPIDECL cbm_srq_burst_write_n(CBM_FILE HandleDevice, __u_char *Buffer, unsigned int Length);
-EXTERN int CBMAPIDECL  cbm_srq_burst_read_track(CBM_FILE f, __u_char *buffer, unsigned int length);
-EXTERN int CBMAPIDECL cbm_srq_burst_write_track(CBM_FILE f, __u_char *buffer, unsigned int length);
+EXTERN unsigned char CBMAPIDECL cbm_srq_burst_read(CBM_FILE f);
+EXTERN void CBMAPIDECL cbm_srq_burst_write(CBM_FILE f, unsigned char c);
+EXTERN int CBMAPIDECL cbm_srq_burst_read_n(CBM_FILE HandleDevice, unsigned char *Buffer, unsigned int Length);
+EXTERN int CBMAPIDECL cbm_srq_burst_write_n(CBM_FILE HandleDevice, unsigned char *Buffer, unsigned int Length);
+EXTERN int CBMAPIDECL  cbm_srq_burst_read_track(CBM_FILE f, unsigned char *buffer, unsigned int length);
+EXTERN int CBMAPIDECL cbm_srq_burst_write_track(CBM_FILE f, unsigned char *buffer, unsigned int length);
 
 /* srq nibbler functions end */
 
@@ -249,13 +240,13 @@ EXTERN int CBMAPIDECL cbm_tap_prepare_write(CBM_FILE f, int *Status);
 EXTERN int CBMAPIDECL cbm_tap_get_sense(CBM_FILE f, int *Status);
 EXTERN int CBMAPIDECL cbm_tap_wait_for_stop_sense(CBM_FILE f, int *Status);
 EXTERN int CBMAPIDECL cbm_tap_wait_for_play_sense(CBM_FILE f, int *Status);
-EXTERN int CBMAPIDECL cbm_tap_start_capture(CBM_FILE f, __u_char *Buffer, unsigned int Buffer_Length, int *Status, int *BytesRead);
-EXTERN int CBMAPIDECL cbm_tap_start_write(CBM_FILE f, __u_char *Buffer, unsigned int Length, int *Status, int *BytesWritten);
+EXTERN int CBMAPIDECL cbm_tap_start_capture(CBM_FILE f, unsigned char *Buffer, unsigned int Buffer_Length, int *Status, int *BytesRead);
+EXTERN int CBMAPIDECL cbm_tap_start_write(CBM_FILE f, unsigned char *Buffer, unsigned int Length, int *Status, int *BytesWritten);
 EXTERN int CBMAPIDECL cbm_tap_motor_on(CBM_FILE f, int *Status);
 EXTERN int CBMAPIDECL cbm_tap_motor_off(CBM_FILE f, int *Status);
 EXTERN int CBMAPIDECL cbm_tap_get_ver(CBM_FILE f, int *Status);
-EXTERN int CBMAPIDECL cbm_tap_download_config(CBM_FILE f, __u_char *Buffer, unsigned int Buffer_Length, int *Status, int *BytesRead);
-EXTERN int CBMAPIDECL cbm_tap_upload_config(CBM_FILE f, __u_char *Buffer, unsigned int Length, int *Status, int *BytesWritten);
+EXTERN int CBMAPIDECL cbm_tap_download_config(CBM_FILE f, unsigned char *Buffer, unsigned int Buffer_Length, int *Status, int *BytesRead);
+EXTERN int CBMAPIDECL cbm_tap_upload_config(CBM_FILE f, unsigned char *Buffer, unsigned int Length, int *Status, int *BytesWritten);
 EXTERN int CBMAPIDECL cbm_tap_break(CBM_FILE f);
 
 /* tape capture functions end */

@@ -844,38 +844,23 @@ uint8_t cia_read_(cia_context_t *cia_context, uint16_t addr)
 
 uint8_t ciacore_peek(cia_context_t *cia_context, uint16_t addr)
 {
-    /* This code assumes that update_cia is a projector - called at
-     * the same cycle again it doesn't change anything. This way
-     * it does not matter if we call it from peek first in the monitor
-     * and probably the same cycle again when the CPU runs on...
-     */
     CLOCK rclk;
-    uint8_t byte;
+    /* uint8_t byte; */
 
     addr &= 0xf;
-
-    if (cia_context->pre_peek != NULL) {
-        (cia_context->pre_peek)();
-    }
 
     rclk = *(cia_context->clk_ptr) - READ_OFFSET;
 
     switch (addr) {
         case CIA_PRA:           /* port A */
-            /* WARNING: this pin reads the voltage of the output pins, not
-               the ORA value. Value read might be different from what is
-               expected due to excessive load. */
-            return (cia_context->read_ciapa)(cia_context);
+            return cia_context->c_cia[CIA_PRA] | ~(cia_context->c_cia[CIA_DDRA]);
+            /* return cia_context->last_read; */
             break;
         case CIA_PRB:           /* port B */
-            /* WARNING: this pin reads the voltage of the output pins, not
-               the ORA value. Value read might be different from what is
-               expected due to excessive load. */
-            byte = (cia_context->read_ciapb)(cia_context);
-            /* (cia_context->pulse_ciapc)(rclk); */
+            return cia_context->c_cia[CIA_PRB] | ~(cia_context->c_cia[CIA_DDRB]);
+            /* byte = (cia_context->read_ciapb)(cia_context);
             if ((cia_context->c_cia[CIA_CRA] | cia_context->c_cia[CIA_CRB]) & 0x02) {
                 if (cia_context->c_cia[CIA_CRA] & 0x02) {
-                    cia_update_ta(cia_context, rclk);
                     byte &= 0xbf;
                     if (((cia_context->c_cia[CIA_CRA] & 0x04) ? cia_context->tat
                          : ciat_is_underflow_clk(cia_context->ta, rclk))) {
@@ -883,7 +868,6 @@ uint8_t ciacore_peek(cia_context_t *cia_context, uint16_t addr)
                     }
                 }
                 if (cia_context->c_cia[CIA_CRB] & 0x02) {
-                    cia_update_tb(cia_context, rclk);
                     byte &= 0x7f;
                     if (((cia_context->c_cia[CIA_CRB] & 0x04) ? cia_context->tbt
                          : ciat_is_underflow_clk(cia_context->tb, rclk))) {
@@ -891,99 +875,48 @@ uint8_t ciacore_peek(cia_context_t *cia_context, uint16_t addr)
                     }
                 }
             }
-            return byte;
+            return byte; */
             break;
+
         /* Timers */
         case CIA_TAL:           /* timer A low */
-            cia_update_ta(cia_context, rclk);
             return ciat_read_timer(cia_context->ta, rclk) & 0xff;
             break;
 
         case CIA_TAH:           /* timer A high */
-            cia_update_ta(cia_context, rclk);
             return (ciat_read_timer(cia_context->ta, rclk) >> 8) & 0xff;
             break;
 
         case CIA_TBL:           /* timer B low */
-            cia_update_tb(cia_context, rclk);
             return ciat_read_timer(cia_context->tb, rclk) & 0xff;
             break;
 
         case CIA_TBH:           /* timer B high */
-            cia_update_tb(cia_context, rclk);
             return (ciat_read_timer(cia_context->tb, rclk) >> 8) & 0xff;
             break;
 
-        /*
-         * TOD clock is latched by reading Hours, and released
-         * upon reading Tenths of Seconds. The counter itself
-         * keeps ticking all the time.
-         * Also note that this latching is different from the input one.
-         */
         case CIA_TOD_TEN: /* Time Of Day clock 1/10 s */
         case CIA_TOD_SEC: /* Time Of Day clock sec */
         case CIA_TOD_MIN: /* Time Of Day clock min */
         case CIA_TOD_HR:  /* Time Of Day clock hour */
-            if (cia_context->todlatched) {
-                return cia_context->todlatch[addr - CIA_TOD_TEN];
-            }
-            return cia_context->c_cia[addr];
+            return cia_context->todlatch[addr - CIA_TOD_TEN];
+            break;
 
         case CIA_SDR:           /* Serial Port Shift Register */
-            (cia_context->read_sdr)(cia_context);
             return cia_context->c_cia[CIA_SDR];
             break;
 
         /* Interrupts */
 
         case CIA_ICR:           /* Interrupt Flag Register */
-            {
-                uint8_t t = 0;
+            return cia_context->irqflags;
+            break;
 
-                CIAT_LOGIN(("peek_icr: rclk=%d, rdi=%d", rclk, cia_context->rdi));
-
-                /* cia_context->rdi = rclk; */
-
-                cia_update_ta(cia_context, rclk);
-                cia_update_tb(cia_context, rclk);
-
-                /* read_ciaicr(); */
-
-#ifdef CIA_TIMER_DEBUG
-                if (cia_context->debugFlag) {
-                    log_message(cia_context->log,
-                                "cia read intfl: rclk=%d, alarm_ta=%d, alarm_tb=%d, ciaint=%02x",
-                                rclk, cia_tai, cia_tbi, (int)(cia_context->irqflags));
-                }
-#endif
-
-                ciat_set_alarm(cia_context->ta, rclk);
-                ciat_set_alarm(cia_context->tb, rclk);
-
-                CIAT_LOG(("peek_icr -> ta alarm at %d, tb at %d",
-                          ciat_alarm_clk(cia_context->ta),
-                          ciat_alarm_clk(cia_context->tb)));
-
-                t = cia_context->irqflags;
-
-                CIAT_LOG(("peek intfl gives ciaint=%02x -> %02x "
-                          "sr_bits=%d, rclk=%d",
-                          cia_context->irqflags, t, cia_context->sr_bits, rclk));
-/*
-            cia_context->irqflags = 0;
-            my_set_int(0, rclk + 1);
-*/
-                CIAT_LOGOUT((""));
-
-                return (t);
-            }
         case CIA_CRA:           /* Control Register A */
-            cia_update_ta(cia_context, rclk);
             return (cia_context->c_cia[CIA_CRA] & 0xfe) | ciat_is_running(cia_context->ta, rclk);
             break;
 
         case CIA_CRB:           /* Control Register B */
-            cia_update_tb(cia_context, rclk);
             return (cia_context->c_cia[CIA_CRB] & 0xfe) | ciat_is_running(cia_context->tb, rclk);
             break;
     }                           /* switch */

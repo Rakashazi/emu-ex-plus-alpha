@@ -86,6 +86,8 @@ void vic_change_timing(machine_timing_t *machine_timing, int border_mode)
         vic_set_geometry();
         raster_mode_change();
     }
+    /* this should go to vic_chip_model_init() incase we ever go that far */
+    vic_color_update_palette(vic.raster.canvas);
 }
 
 /* return pixel aspect ratio for current video mode
@@ -154,6 +156,8 @@ void vic_raster_draw_handler(void)
 {
     /* emulate the line */
     raster_line_emulate(&vic.raster);
+
+    vsync_do_end_of_line();
 
     /* handle start of frame */
     if (vic.raster.current_line == 0) {

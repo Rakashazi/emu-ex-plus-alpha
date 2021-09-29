@@ -37,27 +37,27 @@
 #define OPINFO_NUMBER(opinfo)                   \
     ((opinfo) & OPINFO_NUMBER_MSK)
 
-struct drive_context_s;
+struct diskunit_context_s;
 struct interrupt_cpu_status_s;
 struct monitor_interface_s;
 struct snapshot_s;
 
-extern void drivecpu_setup_context(struct drive_context_s *drv, int i);
+extern void drivecpu_setup_context(struct diskunit_context_s *drv, int i);
 
-extern void drivecpu_init(struct drive_context_s *drv, int type);
-extern void drivecpu_reset(struct drive_context_s *drv);
-extern void drivecpu_sleep(struct drive_context_s *drv);
-extern void drivecpu_wake_up(struct drive_context_s *drv);
-extern CLOCK drivecpu_prevent_clk_overflow(struct drive_context_s *drv, CLOCK sub);
-extern void drivecpu_shutdown(struct drive_context_s *drv);
-extern void drivecpu_reset_clk(struct drive_context_s *drv);
+extern void drivecpu_init(struct diskunit_context_s *drv, int type);
+extern void drivecpu_reset(struct diskunit_context_s *drv);
+extern void drivecpu_sleep(struct diskunit_context_s *drv);
+extern void drivecpu_wake_up(struct diskunit_context_s *drv);
+extern CLOCK drivecpu_prevent_clk_overflow(struct diskunit_context_s *drv, CLOCK sub);
+extern void drivecpu_shutdown(struct diskunit_context_s *drv);
+extern void drivecpu_reset_clk(struct diskunit_context_s *drv);
 extern void drivecpu_trigger_reset(unsigned int dnr);
-extern void drivecpu_set_overflow(struct drive_context_s *drv);
+extern void drivecpu_set_overflow(struct diskunit_context_s *drv);
 
-extern void drivecpu_execute(struct drive_context_s *drv, CLOCK clk_value);
-extern int drivecpu_snapshot_write_module(struct drive_context_s *drv,
+extern void drivecpu_execute(struct diskunit_context_s *drv, CLOCK clk_value);
+extern int drivecpu_snapshot_write_module(struct diskunit_context_s *drv,
                                           struct snapshot_s *s);
-extern int drivecpu_snapshot_read_module(struct drive_context_s *drv,
+extern int drivecpu_snapshot_read_module(struct diskunit_context_s *drv,
                                          struct snapshot_s *s);
 
 #endif

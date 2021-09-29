@@ -51,7 +51,7 @@ enum {
     BLOCK_5 = 1 << 5
 };
 
-static struct model_s vic20models[] = {
+static const struct model_s vic20models[] = {
     { MACHINE_SYNC_PAL,  NO_EXTRA_RAM},
     { MACHINE_SYNC_NTSC, NO_EXTRA_RAM},
     { MACHINE_SYNC_NTSC, BLOCK_1 | BLOCK_2}, /* SuperVIC */

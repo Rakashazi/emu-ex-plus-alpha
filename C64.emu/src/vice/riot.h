@@ -67,8 +67,8 @@ typedef struct riot_context_s {
 
     int enabled;
 
-    void *prv;
-    void *context;
+    void *prv;          /* Typically a driveriot2_context_t */
+    void *context;      /* Typically a diskunit_context_t */
 
     void (*undump_pra)(struct riot_context_s *, uint8_t);
     void (*undump_prb)(struct riot_context_s *, uint8_t);

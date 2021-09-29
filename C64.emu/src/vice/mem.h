@@ -39,6 +39,8 @@ typedef store_func_t *store_func_ptr_t;
 
 extern read_func_ptr_t *_mem_read_tab_ptr;
 extern store_func_ptr_t *_mem_write_tab_ptr;
+extern read_func_ptr_t *_mem_read_tab_ptr_dummy;
+extern store_func_ptr_t *_mem_write_tab_ptr_dummy;
 
 extern uint8_t mem_ram[];
 extern uint8_t *mem_page_zero;
@@ -81,11 +83,21 @@ extern store_func_t mem_store;
 
 /* Memory access functions for the monitor.  */
 extern const char **mem_bank_list(void);
+extern const int *mem_bank_list_nos(void);
+
 extern int mem_bank_from_name(const char *name);
+extern int mem_bank_index_from_bank(int bank);
+extern int mem_bank_flags_from_bank(int bank);
+
+#define MEM_BANK_ISARRAY        0x01    /* part of a bank group, eg "ram00, ram01 ..." */
+#define MEM_BANK_ISARRAYFIRST   0x02    /* first in a bank group, eg "ram00" */
+#define MEM_BANK_ISARRAYLAST    0x04    /* last in a bank group, eg "ramff" */
+
 extern uint8_t mem_bank_read(int bank, uint16_t addr, void *context);
 extern uint8_t mem_bank_peek(int bank, uint16_t addr, void *context);
 extern void mem_bank_write(int bank, uint16_t addr, uint8_t byte, void *context);
 extern void mem_bank_poke(int bank, uint16_t addr, uint8_t byte, void *context);
+
 extern void mem_get_screen_parameter(uint16_t *base, uint8_t *rows, uint8_t *columns, int *bank);
 extern void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uint8_t *line_length, int *blinking);
 
@@ -96,6 +108,7 @@ typedef struct mem_ioreg_list_s {
     unsigned int next;
     int (*dump)(void *context, uint16_t address);
     void *context;
+    int mirror_mode;
 } mem_ioreg_list_t;
 
 extern mem_ioreg_list_t *mem_ioreg_list_get(void *context);

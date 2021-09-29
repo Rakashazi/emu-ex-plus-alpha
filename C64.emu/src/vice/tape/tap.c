@@ -1087,7 +1087,7 @@ static int tap_determine_pilot_type(tap_t *tap)
 
 static int tap_find_pilot(tap_t *tap, int type)
 {
-    int i, countCBM, countTT, startCBM, startTT, minCBM;
+    long i, countCBM, countTT, startCBM, startTT, minCBM;
     int count;
     int data[256];
     long pos[257];
@@ -1114,12 +1114,12 @@ static int tap_find_pilot(tap_t *tap, int type)
 
     while ((countCBM < minCBM) && (countTT < PILOT_MIN_LENGTH_TT * 8)) {
 /*        count = fread(&data, 1, 256, tap->fd); */
-        int startpos = ftell(tap->fd);
-        int readlen = (int)fread(buffer, 1, 256, tap->fd);
+        long startpos = ftell(tap->fd);
+        long readlen = fread(buffer, 1, 256, tap->fd);
         uint32_t pulse_length = 0;
         int j = 0;
-        int needed;
-        int res;
+        long needed;
+        long res;
         for (i = 0; i < readlen; ) {
             pos[j] = startpos + i;
             if (buffer[i] == 0) {
@@ -1127,7 +1127,7 @@ static int tap_find_pilot(tap_t *tap, int type)
                     pulse_length = 256;
                     i++;
                 } else if ((tap->version == 1) || (tap->version == 2)) {
-                    int still_in_buffer = readlen - (i + 1);
+                    long still_in_buffer = readlen - (i + 1);
                     needed = 3 - still_in_buffer;
                     if (needed <= 0) {
                         pulse_length = ((buffer[i + 3] << 16) | (buffer[i + 2] << 8) | buffer[i + 1]) >> 3;
@@ -1136,7 +1136,7 @@ static int tap_find_pilot(tap_t *tap, int type)
                         /* There is not enough in the buffer
                            Read some more */
                         memcpy(buffer, buffer + i + 1, still_in_buffer);
-                        res = (int)fread(buffer + still_in_buffer, 1, needed, tap->fd);
+                        res = fread(buffer + still_in_buffer, 1, needed, tap->fd);
                         i = readlen;
                         if (res == 0) {
                             continue;
@@ -1154,14 +1154,14 @@ static int tap_find_pilot(tap_t *tap, int type)
                 uint32_t pulse_length2;
                 /*  Read one more byte if run out of buffer */
                 if (i == readlen) {
-                    readlen = (int)fread(buffer, 1, 1, tap->fd);
+                    readlen = fread(buffer, 1, 1, tap->fd);
                     if (readlen == 0) {
                         continue;
                     }
                     i = 0;
                 }
                 if (buffer[i] == 0) {
-                    int still_in_buffer = readlen - (i + 1);
+                    long still_in_buffer = readlen - (i + 1);
                     needed = 3 - still_in_buffer;
                     if (needed <= 0) {
                         pulse_length2 = ((buffer[i + 3] << 16) | (buffer[i + 2] << 8) | buffer[i + 1]) >> 3;
@@ -1283,10 +1283,12 @@ static int tap_find_header(tap_t *tap)
         if (type == PILOT_TYPE_CBM) {
             res = tap_cbm_read_header(tap);
             if (res < 0) {
-                int pos_advance;
+                int pulse;
                 fseek(tap->fd, fpos, SEEK_SET);
-                while (TAP_PULSE_SHORT(tap_get_pulse(tap, &pos_advance))) {
-                }
+                do {
+                    int pos_advance;
+                    pulse = tap_get_pulse(tap, &pos_advance);
+                } while (TAP_PULSE_SHORT(pulse));
             }
         } else if (type == PILOT_TYPE_TT) {
             res = tap_tt_read_header(tap);
@@ -1306,7 +1308,7 @@ static int tap_find_header(tap_t *tap)
 
             /* success.  Rewind to start of header and return. */
             fseek(tap->fd, fpos, SEEK_SET);
-            tap->current_file_seek_position = fpos;
+            tap->current_file_seek_position = (int)fpos;
             return type;
         }
     }

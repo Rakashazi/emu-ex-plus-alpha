@@ -299,6 +299,8 @@ void EmuSystem::pause(EmuApp &app)
 void EmuSystem::start(EmuApp &app)
 {
 	state = State::ACTIVE;
+	if(inputHasKeyboard)
+		app.defaultVController().keyboard().setShiftActive(false);
 	clearInputBuffers(app.viewController().inputView());
 	resetFrameTime();
 	app.audio().start(makeWantedAudioLatencyUSecs(optionSoundBuffers), makeWantedAudioLatencyUSecs(1));
@@ -664,3 +666,15 @@ bool EmuSystem::inputHasTriggers()
 {
 	video.clear();
 }
+
+[[gnu::weak]] void EmuSystem::handleInputAction(EmuApp *app, Input::Action state, unsigned emuKey)
+{
+	handleInputAction(app, state, emuKey, 0);
+}
+
+[[gnu::weak]] void EmuSystem::handleInputAction(EmuApp *app, Input::Action state, unsigned emuKey, uint32_t metaState)
+{
+	handleInputAction(app, state, emuKey);
+}
+
+[[gnu::weak]] void EmuSystem::onVKeyboardShown(VControllerKeyboard &, bool shown) {}

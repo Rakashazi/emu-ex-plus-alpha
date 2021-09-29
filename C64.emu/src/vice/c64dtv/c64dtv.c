@@ -414,8 +414,12 @@ int machine_resources_init(void)
     }
 #endif
 #ifdef HAVE_MOUSE
-    if (mouse_ps2_resources_init() < 0) {
+    if (mouse_resources_init() < 0) {
         init_resource_fail("mouse");
+        return -1;
+    }
+    if (mouse_ps2_resources_init() < 0) {
+        init_resource_fail("ps2mouse");
         return -1;
     }
 #endif
@@ -580,7 +584,7 @@ static void c64dtv_monitor_init(void)
 {
     unsigned int dnr;
     monitor_cpu_type_t asm6502dtv, asm6502, asmR65C02;
-    monitor_interface_t *drive_interface_init[DRIVE_NUM];
+    monitor_interface_t *drive_interface_init[NUM_DISK_UNITS];
     monitor_cpu_type_t *asmarray[4];
 
     asmarray[0] = &asm6502dtv;
@@ -592,7 +596,7 @@ static void c64dtv_monitor_init(void)
     asm6502_init(&asm6502);
     asmR65C02_init(&asmR65C02);
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         drive_interface_init[dnr] = drive_cpu_monitor_interface_get(dnr);
     }
 
@@ -611,8 +615,6 @@ void machine_setup_context(void)
 /* C64DTV-specific initialization.  */
 int machine_specific_init(void)
 {
-    int delay;
-
     c64_log = log_open("C64");
 
     if (mem_load() < 0) {
@@ -651,11 +653,7 @@ int machine_specific_init(void)
     disk_image_init();
 
     /* Initialize autostart.  */
-    resources_get_int("AutostartDelay", &delay);
-    if (delay == 0) {
-        delay = 3; /* default */
-    }
-    autostart_init((CLOCK)(delay * C64_PAL_RFSH_PER_SEC * C64_PAL_CYCLES_PER_RFSH), 1);
+    autostart_init(3, 1);
 
     /* Pre-init C64DTV-specific parts of the menus before vicii_init()
        creates a canvas window with a menubar at the top. */
@@ -688,7 +686,8 @@ int machine_specific_init(void)
 
     /* Initialize sound.  Notice that this does not really open the audio
        device yet.  */
-    sound_init(machine_timing.cycles_per_sec, machine_timing.cycles_per_rfsh);
+    sound_init((unsigned int)machine_timing.cycles_per_sec,
+               (unsigned int)machine_timing.cycles_per_rfsh);
 
     /* Initialize keyboard buffer.  */
     kbdbuf_init(631, 198, 10, (CLOCK)(machine_timing.rfsh_per_sec *                                 machine_timing.cycles_per_rfsh * KBDBUF_ALARM_DELAY));
@@ -858,11 +857,15 @@ void machine_change_timing(int timeval, int border_mode)
     drive_set_machine_parameter(machine_timing.cycles_per_sec);
     serial_iec_device_set_machine_parameter(machine_timing.cycles_per_sec);
     sid_set_machine_parameter(machine_timing.cycles_per_sec);
-    clk_guard_set_clk_base(maincpu_clk_guard, machine_timing.cycles_per_rfsh);
+    clk_guard_set_clk_base(maincpu_clk_guard, (CLOCK)machine_timing.cycles_per_rfsh);
 
     vicii_change_timing(&machine_timing, border_mode);
-    cia1_set_timing(machine_context.cia1, machine_timing.cycles_per_sec, machine_timing.power_freq);
-    cia2_set_timing(machine_context.cia2, machine_timing.cycles_per_sec, machine_timing.power_freq);
+    cia1_set_timing(machine_context.cia1,
+                    (int)machine_timing.cycles_per_sec,
+                    (int)machine_timing.power_freq);
+    cia2_set_timing(machine_context.cia2,
+                    (int)machine_timing.cycles_per_sec,
+                    (int)machine_timing.power_freq);
 
     machine_trigger_reset(MACHINE_RESET_MODE_HARD);
 }
@@ -1018,6 +1021,7 @@ static drive_type_info_t drive_type_info_list[] = {
     { DRIVE_NAME_1581, DRIVE_TYPE_1581 },
     { DRIVE_NAME_2000, DRIVE_TYPE_2000 },
     { DRIVE_NAME_4000, DRIVE_TYPE_4000 },
+    { DRIVE_NAME_CMDHD, DRIVE_TYPE_CMDHD },
     { NULL, -1 }
 };
 

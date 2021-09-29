@@ -66,7 +66,7 @@ static int joyport_waasoft_dongle_enable(int port, int value)
     return 0;
 }
 
-static uint8_t waasoft_dongle_read_poty(void)
+static uint8_t waasoft_dongle_read_poty(int port)
 {
     return waasoft_values[counter];
 }

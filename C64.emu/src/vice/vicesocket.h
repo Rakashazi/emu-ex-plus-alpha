@@ -50,6 +50,7 @@ int vice_network_send(vice_network_socket_t * sockfd, const void * buffer, size_
 int vice_network_receive(vice_network_socket_t * sockfd, void * buffer, size_t buffer_length, int flags);
 
 int vice_network_select_poll_one(vice_network_socket_t * readsockfd);
+int vice_network_select_multiple(vice_network_socket_t ** readsockfd);
 
 int vice_network_get_errorcode(void);
 

@@ -54,6 +54,7 @@ class EmuAudio;
 class EmuVideo;
 class EmuApp;
 struct EmuFrameTimeInfo;
+class VControllerKeyboard;
 
 struct AspectRatioInfo
 {
@@ -236,6 +237,7 @@ public:
 	static void configFrameTime(uint32_t rate);
 	static void clearInputBuffers(EmuInputView &view);
 	static void handleInputAction(EmuApp *, Input::Action state, unsigned emuKey);
+	static void handleInputAction(EmuApp *, Input::Action state, unsigned emuKey, uint32_t metaState);
 	static unsigned translateInputAction(unsigned input, bool &turbo);
 	static unsigned translateInputAction(unsigned input)
 	{
@@ -245,6 +247,7 @@ public:
 	static bool onPointerInputStart(Input::Event, Input::DragTrackerState, IG::WindowRect gameRect);
 	static bool onPointerInputUpdate(Input::Event, Input::DragTrackerState current, Input::DragTrackerState previous, IG::WindowRect gameRect);
 	static bool onPointerInputEnd(Input::Event, Input::DragTrackerState, IG::WindowRect gameRect);
+	static void onVKeyboardShown(VControllerKeyboard &, bool shown);
 	static bool inputHasTriggers();
 	static void setStartFrameTime(Base::FrameTime time);
 	static EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);

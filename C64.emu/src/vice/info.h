@@ -29,25 +29,15 @@
 #ifndef VICE_INFO_H
 #define VICE_INFO_H
 
-#ifdef WINMIPS
-extern const char *info_license_text[];
-extern const char *info_contrib_text[];
-#else
 extern const char info_license_text[];
 extern const char info_contrib_text[];
-#endif
-
 extern const char info_warranty_text[];
 
 #if defined(USE_SDLUI) || defined(USE_SDLUI2)
 
-#ifdef WINMIPS
-extern const char *info_license_text40[];
-#else
 extern const char info_license_text40[];
-#endif
-
 extern const char info_warranty_text40[];
+
 #endif
 
 typedef struct vice_team_s {

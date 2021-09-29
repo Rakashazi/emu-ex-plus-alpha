@@ -31,12 +31,6 @@
 #ifndef VICE_VICE_H
 #define VICE_VICE_H
 
-/* We use <config.h> instead of "config.h" so that a compilation using
-   -I. -I$srcdir will use ./config.h rather than $srcdir/config.h
-   (which it would do because vice.h was found in $srcdir).  Well,
-   actually automake barfs if the source directory was already
-   configured, so this should not be an issue anymore.  */
-
 #include <vice-config.h>
 
 /* ------------------------------------------------------------------------- */

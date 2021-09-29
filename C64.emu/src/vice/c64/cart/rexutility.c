@@ -172,7 +172,7 @@ void rex_detach(void)
    ARRAY | ROML   |   0.0+  | 524288 BYTES of ROML data
  */
 
-static char snap_module_name[] = "CARTREXUTIL";
+static const char snap_module_name[] = "CARTREXUTIL";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   1
 

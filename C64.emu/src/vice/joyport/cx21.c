@@ -174,7 +174,7 @@ static void cx21_store_dig(uint8_t val)
     port = (uint8_t)~val;
 }
 
-static uint8_t cx21_read_potx(void)
+static uint8_t cx21_read_potx(int joyport)
 {
     if (keys[KEYPAD_KEY_2]) {
         if (port & 1) {
@@ -203,7 +203,7 @@ static uint8_t cx21_read_potx(void)
     return 0xff;
 }
 
-static uint8_t cx21_read_poty(void)
+static uint8_t cx21_read_poty(int joyport)
 {
     if (keys[KEYPAD_KEY_1]) {
         if (port & 1) {

@@ -252,7 +252,8 @@ static sound_device_t alsa_device =
     alsa_suspend,
     alsa_resume,
     1,
-    2
+    2,
+    true
 };
 
 int sound_init_alsa_device(void)

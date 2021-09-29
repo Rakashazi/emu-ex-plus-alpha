@@ -44,7 +44,7 @@
 
 /** \brief  magic bytes found at the start of a possible T64 file
  */
-static const char *magic_headers[] = {
+static const char * const magic_headers[] = {
     "C64 tape image file",
     "C64S tape file",
     "C64S tape image file",
@@ -84,7 +84,7 @@ static uint32_t get_number(const uint8_t *p, unsigned int n)
  */
 static int check_magic(t64_header_t *hdr)
 {
-    const char **p;
+    const char * const *p;
 
     for (p = magic_headers; *p != NULL; p++) {
         if (memcmp(*p, hdr->magic, strlen(*p)) == 0) {
@@ -449,7 +449,7 @@ int t64_read(t64_t *t64, uint8_t *buf, size_t size)
     }
     t64->current_file_seek_position += (int)amount;
 
-    return amount;
+    return (int)amount;
 }
 
 

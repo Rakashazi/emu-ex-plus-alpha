@@ -288,7 +288,6 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 			{
 				return false;
 			}
-			uint32_t shiftState = metaState & AMETA_SHIFT_ON;
 			auto time = makeTimeFromKeyEvent(event);
 			assert((uint32_t)keyCode < Keycode::COUNT);
 			auto action = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_UP ? Action::RELEASED : Action::PUSHED;
@@ -296,7 +295,8 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 			{
 				cancelKeyRepeatTimer();
 				Key key = keyCode & 0x1ff;
-				return dispatchKeyInputEvent({Map::SYSTEM, key, key, action, shiftState, repeatCount, eventSource, time, dev}, win);
+				return dispatchKeyInputEvent({Map::SYSTEM, key, key, action, (uint32_t)metaState,
+					repeatCount, eventSource, time, dev}, win);
 			}
 			return true;
 		}

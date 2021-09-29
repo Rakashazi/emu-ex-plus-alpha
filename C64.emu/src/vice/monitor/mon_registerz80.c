@@ -49,35 +49,37 @@
  *       same with the other CPUs and finally move common code to mon_register.c
  */
 
-#define REG_LIST_Z80_SIZE (27 + 1)
-static mon_reg_list_t mon_reg_list_z80[REG_LIST_Z80_SIZE] = {
-    {       "PC",    e_PC, 16,                     0, 0, 0 },
-    {        "A",     e_A,  8,                     0, 0, 0 },
-    {       "AF",    e_AF, 16,                     0, 0, 0 },
-    {        "B",     e_B,  8,                     0, 0, 0 },
-    {        "C",     e_C,  8,                     0, 0, 0 },
-    {       "BC",    e_BC, 16,                     0, 0, 0 },
-    {        "D",     e_D,  8,                     0, 0, 0 },
-    {        "E",     e_E,  8,                     0, 0, 0 },
-    {       "DE",    e_DE, 16,                     0, 0, 0 },
-    {        "H",     e_H,  8,                     0, 0, 0 },
-    {        "L",     e_L,  8,                     0, 0, 0 },
-    {       "HL",    e_HL, 16,                     0, 0, 0 },
-    {      "IXH",   e_IXH,  8,                     0, 0, 0 },
-    {      "IXL",   e_IXL,  8,                     0, 0, 0 },
-    {      "IX",     e_IX, 16,                     0, 0, 0 },
-    {      "IYH",   e_IYH,  8,                     0, 0, 0 },
-    {      "IYL",   e_IYL,  8,                     0, 0, 0 },
-    {       "IY",    e_IY, 16,                     0, 0, 0 },
-    {       "SP",    e_SP, 16,                     0, 0, 0 },
-    {        "I",     e_I,  8,                     0, 0, 0 },
-    {        "R",     e_R,  8,                     0, 0, 0 },
-    {      "AF'",   e_AF2, 16,                     0, 0, 0 },
-    {      "BC'",   e_BC2, 16,                     0, 0, 0 },
-    {      "DE'",   e_DE2, 16,                     0, 0, 0 },
-    {      "HL'",   e_HL2, 16,                     0, 0, 0 },
-    {      "FL",  e_FLAGS,  8,                     0, 0, 0 },
-    { "SZIH-P-C", e_FLAGS,  8, MON_REGISTER_IS_FLAGS, 0, 0 },
+#define REG_LIST_Z80_SIZE (29 + 1)
+static const mon_reg_list_t mon_reg_list_z80[REG_LIST_Z80_SIZE] = {
+    {       "PC",        e_PC, 16,                      0, 0, 0 },
+    {        "A",         e_A,  8,                      0, 0, 0 },
+    {       "AF",        e_AF, 16,                      0, 0, 0 },
+    {        "B",         e_B,  8,                      0, 0, 0 },
+    {        "C",         e_C,  8,                      0, 0, 0 },
+    {       "BC",        e_BC, 16,                      0, 0, 0 },
+    {        "D",         e_D,  8,                      0, 0, 0 },
+    {        "E",         e_E,  8,                      0, 0, 0 },
+    {       "DE",        e_DE, 16,                      0, 0, 0 },
+    {        "H",         e_H,  8,                      0, 0, 0 },
+    {        "L",         e_L,  8,                      0, 0, 0 },
+    {       "HL",        e_HL, 16,                      0, 0, 0 },
+    {      "IXH",       e_IXH,  8,                      0, 0, 0 },
+    {      "IXL",       e_IXL,  8,                      0, 0, 0 },
+    {      "IX",         e_IX, 16,                      0, 0, 0 },
+    {      "IYH",       e_IYH,  8,                      0, 0, 0 },
+    {      "IYL",       e_IYL,  8,                      0, 0, 0 },
+    {       "IY",        e_IY, 16,                      0, 0, 0 },
+    {       "SP",        e_SP, 16,                      0, 0, 0 },
+    {        "I",         e_I,  8,                      0, 0, 0 },
+    {        "R",         e_R,  8,                      0, 0, 0 },
+    {      "AF'",       e_AF2, 16,                      0, 0, 0 },
+    {      "BC'",       e_BC2, 16,                      0, 0, 0 },
+    {      "DE'",       e_DE2, 16,                      0, 0, 0 },
+    {      "HL'",       e_HL2, 16,                      0, 0, 0 },
+    {      "FL",      e_FLAGS,  8,                      0, 0, 0 },
+    { "SZIH-P-C",     e_FLAGS,  8,  MON_REGISTER_IS_FLAGS, 0, 0 },
+    {     "LIN", e_Rasterline, 16,                      0, 0, 0 },
+    {     "CYC",      e_Cycle, 16,                      0, 0, 0 },
     { NULL, -1,  0,  0, 0, 0 }
 };
 
@@ -146,6 +148,22 @@ static unsigned int mon_register_get_val(int mem, int reg_id)
             return Z80_REGS_GET_DE2(reg_ptr);
         case e_HL2:
             return Z80_REGS_GET_HL2(reg_ptr);
+        case e_Rasterline:
+            {
+                unsigned int line, cycle;
+                int half_cycle;
+
+                mon_interfaces[mem]->get_line_cycle(&line, &cycle, &half_cycle);
+                return line;
+            }
+        case e_Cycle:
+            {
+                unsigned int line, cycle;
+                int half_cycle;
+
+                mon_interfaces[mem]->get_line_cycle(&line, &cycle, &half_cycle);
+                return cycle;
+            }
         default:
             log_error(LOG_ERR, "Unknown register!");
     }

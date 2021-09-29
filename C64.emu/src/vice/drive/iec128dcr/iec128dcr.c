@@ -48,24 +48,24 @@ int iec128dcr_drive_cmdline_options_init(void)
     return iec128dcr_cmdline_options_init();
 }
 
-void iec128dcr_drive_init(struct drive_context_s *drv)
+void iec128dcr_drive_init(struct diskunit_context_s *drv)
 {
     iec128dcrrom_init();
 }
 
-void iec128dcr_drive_reset(struct drive_context_s *drv)
+void iec128dcr_drive_reset(struct diskunit_context_s *drv)
 {
 }
 
-void iec128dcr_drive_mem_init(struct drive_context_s *drv, unsigned int type)
+void iec128dcr_drive_mem_init(struct diskunit_context_s *drv, unsigned int type)
 {
 }
 
-void iec128dcr_drive_setup_context(struct drive_context_s *drv)
+void iec128dcr_drive_setup_context(struct diskunit_context_s *drv)
 {
 }
 
-void iec128dcr_drive_shutdown(struct drive_context_s *drv)
+void iec128dcr_drive_shutdown(struct diskunit_context_s *drv)
 {
 }
 
@@ -76,7 +76,7 @@ void iec128dcr_drive_rom_load(void)
 
 void iec128dcr_drive_rom_setup_image(unsigned int dnr)
 {
-    iec128dcrrom_setup_image(drive_context[dnr]->drive);
+    iec128dcrrom_setup_image(diskunit_context[dnr]);
 }
 
 int iec128dcr_drive_rom_check_loaded(unsigned int type)

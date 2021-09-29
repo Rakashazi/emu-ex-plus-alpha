@@ -1654,13 +1654,13 @@
         if (((int)reg_pc) < bank_limit) {
             memmap_mem_read(reg_pc);
         }
-#endif
         if (p0 == 0x20) {
-            monitor_cpuhistory_store(reg_pc, p0, p1, LOAD(reg_pc + 2), reg_a, reg_x, reg_y, reg_sp, LOCAL_STATUS());
+            monitor_cpuhistory_store(maincpu_clk, reg_pc, p0, p1, LOAD(reg_pc + 2), reg_a, reg_x, reg_y, reg_sp, LOCAL_STATUS());
         } else {
-            monitor_cpuhistory_store(reg_pc, p0, p1, p2 >> 8, reg_a, reg_x, reg_y, reg_sp, LOCAL_STATUS());
+            monitor_cpuhistory_store(maincpu_clk, reg_pc, p0, p1, p2 >> 8, reg_a, reg_x, reg_y, reg_sp, LOCAL_STATUS());
         }
         memmap_state &= ~(MEMMAP_STATE_INSTR | MEMMAP_STATE_OPCODE);
+#endif
 #endif
 
 #ifdef DEBUG

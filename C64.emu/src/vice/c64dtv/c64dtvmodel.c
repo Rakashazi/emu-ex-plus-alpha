@@ -35,6 +35,7 @@
 #include "c64dtvmodel.h"
 #include "machine.h"
 #include "resources.h"
+#include "sid.h"
 #include "types.h"
 
 struct model_s {
@@ -76,7 +77,7 @@ Rev 3: (used in Hummer and the next productions runs of PAL C64 DTV's)
   Same features of Rev 2 with blitter bug fixed.
 */
 
-static struct model_s dtvmodels[] = {
+static const struct model_s dtvmodels[] = {
     { MACHINE_SYNC_PAL,  REV_2, IS_DTV    }, /* DTV v2 (pal) */
     { MACHINE_SYNC_NTSC, REV_2, IS_DTV    }, /* DTV v2 (ntsc) */
     { MACHINE_SYNC_PAL,  REV_3, IS_DTV    }, /* DTV v3 (pal) */
@@ -91,9 +92,9 @@ static int dtvmodel_get_temp(int video, int asic, int hummeradc, int sid)
 
     for (i = 0; i < DTVMODEL_NUM; ++i) {
         if ((dtvmodels[i].video == video)
-            && (dtvmodels[i].asic == asic)
-            && (dtvmodels[i].hummeradc == hummeradc)
-            && (sid == 4)   /* FIX */) {
+                && (dtvmodels[i].asic == asic)
+                && (dtvmodels[i].hummeradc == hummeradc)
+                && (sid == SID_MODEL_DTVSID)) {
             return i;
         }
     }

@@ -73,6 +73,17 @@ void VControllerKeyboard::draw(Gfx::RendererCommands &cmds, Gfx::ProjectionPlane
 		rect.y2 = rect.y + keyYSize;
 		Gfx::GeomRect::draw(cmds, rect, projP);
 	}
+	if(shiftIsActive() && mode_ == 0)
+	{
+		cmds.setColor(.2, .71, .9, 1./2.);
+		cmds.setCommonProgram(Gfx::CommonProgram::NO_TEX, projP.makeTranslate());
+		IG::WindowRect rect{};
+		rect.x = bound.x + (shiftRect.x * keyXSize);
+		rect.x2 = bound.x + ((shiftRect.x2 + 1) * keyXSize);
+		rect.y = bound.y + (shiftRect.y * keyYSize);
+		rect.y2 = rect.y + keyYSize;
+		Gfx::GeomRect::draw(cmds, rect, projP);
+	}
 }
 
 int VControllerKeyboard::getInput(IG::WP c) const
@@ -83,7 +94,7 @@ int VControllerKeyboard::getInput(IG::WP c) const
 	unsigned row = std::min(relY/keyYSize, 3u);
 	unsigned col = std::min(relX/keyXSize, 19u);
 	unsigned idx = col + (row * VKEY_COLS);
-	logMsg("pointer %d,%d key @ %d,%d, idx %d", relX, relY, row, col, idx);
+	//logMsg("pointer %d,%d key @ %d,%d, idx %d", relX, relY, row, col, idx);
 	return idx;
 }
 
@@ -99,7 +110,7 @@ bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, Input::Even
 	{
 		if(e.pushed() && (e.isDefaultConfirmButton() || e.isDefaultDirectionButton()))
 		{
-			selectKey(0, 3);
+			selected = selectKey(0, 3);
 			return true;
 		}
 		else
@@ -162,14 +173,14 @@ bool VControllerKeyboard::keyInput(VController &v, Gfx::Renderer &r, Input::Even
 	return false;
 }
 
-void VControllerKeyboard::selectKey(unsigned x, unsigned y)
+IG::WindowRect VControllerKeyboard::selectKey(unsigned x, unsigned y)
 {
 	if(x >= VKEY_COLS || y >= KEY_ROWS)
 	{
 		logErr("selected key:%dx%d out of range", x, y);
+		return {{-1, -1}, {-1, -1}};
 	}
-	selected = {{(int)x, (int)y}, {(int)x, (int)y}};
-	extendKeySelection();
+	return extendKeySelection({{(int)x, (int)y}, {(int)x, (int)y}});
 }
 
 void VControllerKeyboard::selectKeyRel(int x, int y)
@@ -189,8 +200,8 @@ void VControllerKeyboard::selectKeyRel(int x, int y)
 		selected.y = selected.y2 = IG::wrapMinMax(selected.y2 + y, 0, (int)KEY_ROWS);
 		selected.x2 = selected.x;
 	}
-	extendKeySelection();
-	if(!currentKey())
+	selected = extendKeySelection(selected);
+	if(!currentKey(selected.x, selected.y))
 	{
 		logMsg("skipping blank key index");
 		selectKeyRel(x, y);
@@ -202,9 +213,9 @@ void VControllerKeyboard::unselectKey()
 	selected = {{-1, -1}, {-1, -1}};
 }
 
-void VControllerKeyboard::extendKeySelection()
+IG::WindowRect VControllerKeyboard::extendKeySelection(IG::WindowRect selected)
 {
-	auto key = currentKey();
+	auto key = currentKey(selected.x, selected.y);
 	iterateTimes(selected.x, i)
 	{
 		if(table[selected.y][selected.x - 1] == key)
@@ -220,11 +231,17 @@ void VControllerKeyboard::extendKeySelection()
 			break;
 	}
 	logMsg("extended selection to:%d:%d", selected.x, selected.x2);
+	return selected;
+}
+
+unsigned VControllerKeyboard::currentKey(int x, int y) const
+{
+	return table[y][x];
 }
 
 unsigned VControllerKeyboard::currentKey() const
 {
-	return table[selected.y][selected.x];
+	return currentKey(selected.x, selected.y);
 }
 
 void VControllerKeyboard::setMode(Gfx::Renderer &r, int mode)
@@ -312,4 +329,27 @@ void VControllerKeyboard::updateKeyboardMapping()
 {
 	auto map = updateVControllerKeyboardMapping(mode());
 	applyMap(map);
+}
+
+void VControllerKeyboard::setShiftActive(bool on)
+{
+	if(on)
+	{
+		shiftRect = selectKey(0, 2);
+	}
+	else
+	{
+		shiftRect = {{-1, -1}, {-1, -1}};
+	}
+}
+
+bool VControllerKeyboard::toggleShiftActive()
+{
+	setShiftActive(shiftIsActive() ^ 1);
+	return shiftIsActive();
+}
+
+bool VControllerKeyboard::shiftIsActive() const
+{
+	return shiftRect.x != -1;
 }

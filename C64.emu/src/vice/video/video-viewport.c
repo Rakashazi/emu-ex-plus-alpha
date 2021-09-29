@@ -59,10 +59,6 @@ void video_viewport_resize(video_canvas_t *canvas, char resize_canvas)
     int y_offset;
     int small_x_border, small_y_border;
 
-    if (canvas->initialized == 0) {
-        return;
-    }
-
     geometry = canvas->geometry;
     viewport = canvas->viewport;
 

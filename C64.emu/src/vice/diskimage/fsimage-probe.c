@@ -38,6 +38,7 @@
 #include "fsimage.h"
 #include "lib.h"
 #include "log.h"
+#include "machine-drive.h"
 #include "types.h"
 #include "util.h"
 #include "x64.h"
@@ -133,7 +134,7 @@ static int disk_image_check_for_d64(disk_image_t *image)
 
     if (checkimage_errorinfo) {
         fsimage->error_info.map = lib_calloc(1, checkimage_blocks);
-        fsimage->error_info.len = checkimage_blocks;
+        fsimage->error_info.len = (int)checkimage_blocks;
         if (util_fpread(fsimage->fd, fsimage->error_info.map, checkimage_blocks, 256 * checkimage_blocks) < 0) {
             return 0;
         }
@@ -403,6 +404,7 @@ static int disk_image_check_for_d82(disk_image_t *image)
     return 1;
 }
 
+#ifdef HAVE_X64_IMAGE
 static int disk_image_check_for_x64(disk_image_t *image)
 {
     uint8_t header[X64_HEADER_LENGTH];
@@ -434,6 +436,7 @@ static int disk_image_check_for_x64(disk_image_t *image)
     disk_image_check_log(image, "X64");
     return 1;
 }
+#endif
 
 static int disk_image_check_for_gcr(disk_image_t *image)
 {
@@ -667,6 +670,110 @@ static int disk_image_check_for_d4m(disk_image_t *image)
     return 1;
 }
 
+static int disk_image_check_for_dhd(disk_image_t *image)
+{
+    unsigned int blk = 0;
+    uint8_t sector[512];
+    fsimage_t *fsimage;
+    uint32_t pos;
+    unsigned char hdmagic[16] = {0x43, 0x4d, 0x44, 0x20, 0x48, 0x44, 0x20, 0x20,
+        0x8d, 0x03, 0x88, 0x8e, 0x02, 0x88, 0xea, 0x60};
+
+    fsimage = image->media.fsimage;
+    image->tracks = 65535;
+
+    blk = (unsigned int)util_file_length(fsimage->fd);
+
+    /* only allow blank images to be attached if the CMDHD rom is loaded */
+    if (blk == 0) {
+        if (!machine_drive_rom_check_loaded(DISK_IMAGE_TYPE_DHD)) {
+            goto good;
+        }
+        log_error(disk_image_probe_log,
+                  "Sorry, you can't attach an empty DHD image unless " \
+                  "the CMDHD boot ROM is loaded.");
+        return 0;
+    }
+
+    /* next make sure the file is a multiple of 512 bytes and greater than
+       equal 73728 bytes (which is the smallest possible running DHD image */
+    if ((blk % 512 != 0) || ( blk < 73728 )) {
+        return 0;
+    }
+
+    /* if the CMDHD rom is loaded, allow it regardless */
+    if (!machine_drive_rom_check_loaded(DISK_IMAGE_TYPE_DHD)) {
+        goto good;
+    }
+
+    /* at this point, make sure the image is good for vdrive */
+
+    /* look for configuration block */
+    rewind(fsimage->fd);
+    /* start at LBA 2 or 1024 */
+    pos = 1024;
+
+    while ( pos < blk ) {
+        if (fseek(fsimage->fd, pos, SEEK_SET)) {
+            /* hit the end of file */
+            break;
+        }
+        if (fread(sector, 512, 1, fsimage->fd) != 1) {
+            /* hit the end of file */
+            break;
+        }
+        /* otherwise check the cmd sig */
+        if ( memcmp(&(sector[0x1f0]), hdmagic, 16) == 0 ) {
+            goto good;
+        }
+        /* try next 128 sectors of 64 KiB bytes */
+        pos += 65536;
+    }
+    /* hit the end of file */
+
+    /* no good */
+    return 0;
+
+good:
+    /* image is allowed */
+    image->type = DISK_IMAGE_TYPE_DHD;
+    image->max_half_tracks = 0;
+
+    disk_image_check_log(image, "DHD");
+    return 1;
+}
+
+static int disk_image_check_for_d90(disk_image_t *image)
+{
+    unsigned int blk = 0;
+    fsimage_t *fsimage;
+
+    fsimage = image->media.fsimage;
+
+    /* get file size */
+    blk = (unsigned int)util_file_length(fsimage->fd);
+
+    /* only allow true D9090/D9060 image sizes right now */
+    if (blk == D9060_FILE_SIZE) {
+        /* D9060 has 4 heads */
+        image->sectors = 4 * 32;
+    } else if (blk == D9090_FILE_SIZE) {
+        /* D9090 has 6 heads */
+        image->sectors = 6 * 32;
+    } else {
+        return 0;
+    }
+
+    /* set max track, for now; it starts at 0 */
+    image->tracks = 152;
+
+    /* image is allowed */
+    image->type = DISK_IMAGE_TYPE_D90;
+    image->max_half_tracks = 0;
+
+    disk_image_check_log(image, "D90");
+    return 1;
+}
 
 int fsimage_probe(disk_image_t *image)
 {
@@ -694,9 +801,11 @@ int fsimage_probe(disk_image_t *image)
     if (disk_image_check_for_gcr(image)) {
         return 0;
     }
+#ifdef HAVE_X64_IMAGE
     if (disk_image_check_for_x64(image)) {
         return 0;
     }
+#endif
     if (disk_image_check_for_d1m(image)) {
         return 0;
     }
@@ -704,6 +813,12 @@ int fsimage_probe(disk_image_t *image)
         return 0;
     }
     if (disk_image_check_for_d4m(image)) {
+        return 0;
+    }
+    if (disk_image_check_for_d90(image)) {
+        return 0;
+    }
+    if (disk_image_check_for_dhd(image)) {
         return 0;
     }
 

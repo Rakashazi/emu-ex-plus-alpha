@@ -532,7 +532,7 @@ static const cmdline_option_t cmdline_options[] =
       NULL, "Disable the RAM Expansion Unit" },
     { "-reusize", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "REUsize", NULL,
-      "<size in KB>", "Size of the RAM expansion unit. (128/256/512/1024/2048/4096/8192/16384)" },
+      "<size in KiB>", "Size of the RAM expansion unit. (128/256/512/1024/2048/4096/8192/16384)" },
     { "-reuimage", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "REUfilename", NULL,
       "<Name>", "Specify name of REU image" },
@@ -624,7 +624,7 @@ static int reu_activate(void)
 
     old_reu_ram_size = reu_size;
 
-    log_message(reu_log, "%uKB unit installed.", reu_size >> 10);
+    log_message(reu_log, "%uKiB unit installed.", reu_size >> 10);
 
     if (!util_check_null_string(reu_filename)) {
         if (util_file_load(reu_filename, reu_ram, (size_t)reu_size, UTIL_FILE_LOAD_RAW) < 0) {
@@ -692,7 +692,7 @@ int reu_disable(void)
 int reu_bin_attach(const char *filename, uint8_t *rawcart)
 {
     FILE *fd;
-    int size;
+    size_t size;
 
     fd = fopen(filename, MODE_READ);
     if (fd == NULL) {
@@ -701,7 +701,7 @@ int reu_bin_attach(const char *filename, uint8_t *rawcart)
     size = util_file_length(fd);
     fclose(fd);
 
-    if (set_reu_size(size / 1024, NULL) < 0) {
+    if (set_reu_size((uint32_t)size / 1024, NULL) < 0) {
         return -1;
     }
 
@@ -1482,7 +1482,7 @@ void reu_dma_start(void)
    ARRAY | RAM       | 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608 or 16777216 BYTES of RAM data
  */
 
-static char snap_module_name[] = "REU1764"; /*!< the name of the module for the snapshot */
+static const char snap_module_name[] = "REU1764"; /*!< the name of the module for the snapshot */
 #define SNAP_MAJOR 0 /*!< version number for this module, major number */
 #define SNAP_MINOR 0 /*!< version number for this module, minor number */
 

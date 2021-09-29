@@ -239,10 +239,11 @@ static sound_device_t sun_device =
     NULL,
     1,
 #if !defined(__NetBSD__)
-    1
+    1,
 #else
-    2
+    2,
 #endif
+    false
 };
 
 int sound_init_sun_device(void)

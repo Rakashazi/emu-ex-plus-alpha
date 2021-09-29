@@ -276,7 +276,7 @@ void final_v3_detach(void)
    Note: in 0.0 ROML and ROMH data was always 32768 BYTES.
  */
 
-static char snap_module_name[] = "CARTFC3";
+static const char snap_module_name[] = "CARTFC3";
 #define SNAP_MAJOR   1
 #define SNAP_MINOR   2
 

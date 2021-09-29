@@ -50,22 +50,22 @@ typedef struct drivecia1581_context_s {
 } drivecia1581_context_t;
 
 
-void cia1581_store(drive_context_t *ctxptr, uint16_t addr, uint8_t data)
+void cia1581_store(diskunit_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
     ciacore_store(ctxptr->cia1581, addr, data);
 }
 
-uint8_t cia1581_read(drive_context_t *ctxptr, uint16_t addr)
+uint8_t cia1581_read(diskunit_context_t *ctxptr, uint16_t addr)
 {
     return ciacore_read(ctxptr->cia1581, addr);
 }
 
-uint8_t cia1581_peek(drive_context_t *ctxptr, uint16_t addr)
+uint8_t cia1581_peek(diskunit_context_t *ctxptr, uint16_t addr)
 {
     return ciacore_peek(ctxptr->cia1581, addr);
 }
 
-int cia1581_dump(drive_context_t *ctxptr, uint16_t addr)
+int cia1581_dump(diskunit_context_t *ctxptr, uint16_t addr)
 {
     ciacore_dump(ctxptr->cia1581);
     return 0;
@@ -73,9 +73,9 @@ int cia1581_dump(drive_context_t *ctxptr, uint16_t addr)
 
 static void cia_set_int_clk(cia_context_t *cia_context, int value, CLOCK clk)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
 
-    dc = (drive_context_t *)(cia_context->context);
+    dc = (diskunit_context_t *)(cia_context->context);
 
     interrupt_set_irq(dc->cpu->int_status, cia_context->int_num,
                       value, clk);
@@ -83,9 +83,9 @@ static void cia_set_int_clk(cia_context_t *cia_context, int value, CLOCK clk)
 
 static void cia_restore_int(cia_context_t *cia_context, int value)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
 
-    dc = (drive_context_t *)(cia_context->context);
+    dc = (diskunit_context_t *)(cia_context->context);
 
     interrupt_restore_irq(dc->cpu->int_status, (int)(cia_context->int_num), value);
 }
@@ -127,10 +127,10 @@ static void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t b)
 static void store_ciapa(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 {
     drivecia1581_context_t *cia1581p;
-    drive_context_t *drive;
+    diskunit_context_t *drive;
 
     cia1581p = (drivecia1581_context_t *)(cia_context->prv);
-    drive = (drive_context_t *)(cia_context->context);
+    drive = (diskunit_context_t *)(cia_context->context);
 
     wd1770_set_side(drive->wd1770, (byte & 0x01) ? 0 : 1);
     wd1770_set_motor(drive->wd1770, (byte & 0x04) ? 0 : 1);
@@ -164,7 +164,7 @@ static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
                                     | cia1581p->iecbus->cpu_bus) << 3) & 0x80)));
 
             cia1581p->iecbus->cpu_port = cia1581p->iecbus->cpu_bus;
-            for (unit = 4; unit < 8 + DRIVE_NUM; unit++) {
+            for (unit = 4; unit < 8 + NUM_DISK_UNITS; unit++) {
                 cia1581p->iecbus->cpu_port
                     &= cia1581p->iecbus->drv_bus[unit];
             }
@@ -183,12 +183,12 @@ static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 
 static uint8_t read_ciapa(cia_context_t *cia_context)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
     drivecia1581_context_t *cia1581p;
     uint8_t tmp;
 
     cia1581p = (drivecia1581_context_t *)(cia_context->prv);
-    dc = (drive_context_t *)(cia_context->context);
+    dc = (diskunit_context_t *)(cia_context->context);
 
     tmp = (uint8_t)(8 * (cia1581p->number));
 
@@ -238,13 +238,13 @@ static void store_sdr(cia_context_t *cia_context, uint8_t byte)
     iec_fast_drive_write(byte, cia1581p->number);
 }
 
-void cia1581_init(drive_context_t *ctxptr)
+void cia1581_init(diskunit_context_t *ctxptr)
 {
     ciacore_init(ctxptr->cia1581, ctxptr->cpu->alarm_context,
                  ctxptr->cpu->int_status, ctxptr->cpu->clk_guard);
 }
 
-void cia1581_setup_context(drive_context_t *ctxptr)
+void cia1581_setup_context(diskunit_context_t *ctxptr)
 {
     drivecia1581_context_t *cia1581p;
     cia_context_t *cia;
@@ -270,7 +270,7 @@ void cia1581_setup_context(drive_context_t *ctxptr)
     cia->irq_line = IK_IRQ;
     cia->myname = lib_msprintf("CIA1581D%d", ctxptr->mynumber);
 
-    cia1581p->drive = ctxptr->drive;
+    cia1581p->drive = ctxptr->drives[0];
     cia1581p->iecbus = iecbus_drive_port();
 
     cia->undump_ciapa = undump_ciapa;

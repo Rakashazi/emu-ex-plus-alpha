@@ -286,23 +286,23 @@ void VicePlugin::datasette_control(int command)
 		datasette_control_(command);
 }
 
-int VicePlugin::file_system_attach_disk(unsigned int unit, const char *filename)
+int VicePlugin::file_system_attach_disk(unsigned int unit, unsigned int drive, const char *filename)
 {
 	if(file_system_attach_disk_)
-		return file_system_attach_disk_(unit, filename);
+		return file_system_attach_disk_(unit, drive, filename);
 	return -1;
 }
 
-void VicePlugin::file_system_detach_disk(int unit)
+void VicePlugin::file_system_detach_disk(unsigned int unit, unsigned int drive)
 {
 	if(file_system_detach_disk_)
-		file_system_detach_disk_(unit);
+		file_system_detach_disk_(unit, drive);
 }
 
-const char *VicePlugin::file_system_get_disk_name(unsigned int unit)
+const char *VicePlugin::file_system_get_disk_name(unsigned int unit, unsigned int drive)
 {
 	if(file_system_get_disk_name_)
-		return file_system_get_disk_name_(unit);
+		return file_system_get_disk_name_(unit, drive);
 	return "";
 }
 
@@ -365,13 +365,30 @@ int VicePlugin::vdrive_internal_create_format_disk_image(const char *filename, c
 	return -1;
 }
 
+int VicePlugin::cbmimage_create_image(const char *name, unsigned int type)
+{
+	return cbmimage_create_image_(name, type);
+}
+
+void VicePlugin::keyboard_key_pressed(signed long key, int mod)
+{
+	keyboard_key_pressed_(key, mod);
+}
+
+void VicePlugin::keyboard_key_released(signed long key, int mod)
+{
+	keyboard_key_released_(key, mod);
+}
+
+void VicePlugin::keyboard_key_clear(void)
+{
+	keyboard_key_clear_();
+}
+
 VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 {
 	VicePlugin plugin{};
-	loadSymbolCheck(plugin.keyarr, lib, "keyarr");
-	loadSymbolCheck(plugin.rev_keyarr, lib, "rev_keyarr");
 	loadSymbolCheck(plugin.joystick_value, lib, "joystick_value");
-	loadSymbolCheck(plugin.keyconvmap, lib, "keyconvmap");
 	loadSymbolCheck(plugin.warp_mode_enabled, lib, "warp_mode_enabled");
 	loadSymbolCheck(plugin.resources_get_string_, lib, "resources_get_string");
 	loadSymbolCheck(plugin.resources_set_string_, lib, "resources_set_string");
@@ -452,6 +469,10 @@ VicePlugin commonVicePlugin(void *lib, ViceSystem system)
 	loadSymbolCheck(plugin.video_render_setrawrgb_, lib, "video_render_setrawrgb");
 	loadSymbolCheck(plugin.video_render_initraw_, lib, "video_render_initraw");
 	loadSymbolCheck(plugin.vdrive_internal_create_format_disk_image_, lib, "vdrive_internal_create_format_disk_image");
+	loadSymbolCheck(plugin.cbmimage_create_image_, lib, "cbmimage_create_image");
+	loadSymbolCheck(plugin.keyboard_key_pressed_, lib, "keyboard_key_pressed");
+	loadSymbolCheck(plugin.keyboard_key_released_, lib, "keyboard_key_released");
+	loadSymbolCheck(plugin.keyboard_key_clear_, lib, "keyboard_key_clear");
 	return plugin;
 }
 

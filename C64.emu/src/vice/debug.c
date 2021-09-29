@@ -74,6 +74,13 @@ static int set_iec_traceflg(int val, void *param)
     return 0;
 }
 
+static int set_ieee_traceflg(int val, void *param)
+{
+    debug.ieee = val ? 1 : 0;
+
+    return 0;
+}
+
 static int set_drive_traceflg(int val, void *param)
 {
     debug.drivecpu_traceflg[vice_ptr_to_uint(param)] = val ? 1 : 0;
@@ -118,6 +125,8 @@ static const resource_int_t resources_int[] = {
       &debug.maincpu_traceflg, set_maincpu_traceflg, NULL },
     { "IEC_TRACE", 0, RES_EVENT_NO, NULL,
       &debug.iec, set_iec_traceflg, NULL },
+    { "IEEE_TRACE", 0, RES_EVENT_NO, NULL,
+      &debug.ieee, set_ieee_traceflg, NULL },
     { "Drive0CPU_TRACE", 0, RES_EVENT_NO, NULL,
       &debug.drivecpu_traceflg[0], set_drive_traceflg, (void *)0 },
     { "Drive1CPU_TRACE", 0, RES_EVENT_NO, NULL,
@@ -154,6 +163,12 @@ static const cmdline_option_t cmdline_options[] =
     { "+trace_iec", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "IEC_TRACE", (resource_value_t)0,
       NULL, "Do not trace IEC bus activity" },
+    { "-trace_ieee", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "IEEE_TRACE", (resource_value_t)1,
+      NULL, "Trace IEEE-488 bus activity" },
+    { "+trace_ieee", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "IEEE_TRACE", (resource_value_t)0,
+      NULL, "Do not trace IEEE-488 bus activity" },
     { "-trace_drive0", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "Drive0CPU_TRACE", (resource_value_t)1,
       NULL, "Trace the drive0 CPU" },
@@ -440,7 +455,7 @@ static void debug_open_new_file(void)
 
     debug_file = fopen(filename, MODE_READ_TEXT);
     if (debug_file != NULL) {
-        debug_buffer_size = fread(debug_buffer, sizeof(char), DEBUG_HISTORY_MAXFILESIZE, debug_file);
+        debug_buffer_size = (int)fread(debug_buffer, sizeof(char), DEBUG_HISTORY_MAXFILESIZE, debug_file);
         debug_buffer_ptr = 0;
         debug_file_current++;
     } else {

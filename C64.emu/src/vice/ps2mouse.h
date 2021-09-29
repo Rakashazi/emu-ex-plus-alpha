@@ -46,6 +46,6 @@ extern int mouse_ps2_cmdline_options_init(void);
 extern void mouse_ps2_init(void);
 extern void mouse_ps2_shutdown(void);
 
-extern int _mouse_ps2_enable;
+extern int _mouse_enabled;
 
 #endif

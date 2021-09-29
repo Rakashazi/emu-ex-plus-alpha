@@ -31,5 +31,6 @@ extern int fsdevice_convert_p00_enabled[4];
 extern int fsdevice_save_p00_enabled[4];
 extern int fsdevice_hide_cbm_files_enabled[4];
 extern char *fsdevice_dir[4];
+extern int fsdevice_overwrite_existing_files;
 
 #endif

@@ -35,11 +35,12 @@
 #include "iecdrive.h"
 #include "maincpu.h"
 #include "types.h"
+#include "drive/iec/cmdhd.h"
 
 
 /* Fast IEC for C64 with burst mod */
 
-static int fast_drive_direction[DRIVE_NUM];
+static int fast_drive_direction[NUM_DISK_UNITS];
 int burst_mod;
 
 int set_burst_mod(int mode, void *param)
@@ -61,32 +62,35 @@ void c64fastiec_init(void)
 {
     unsigned int dnr;
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         fast_drive_direction[dnr] = 1;
     }
 }
 
 void c64fastiec_fast_cpu_write(uint8_t data)
 {
-    drive_t *drive;
     unsigned int dnr;
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        drive = drive_context[dnr]->drive;
-        if (drive->enable) {
-            drive_cpu_execute_one(drive_context[dnr], maincpu_clk);
-            switch (drive->type) {
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
+        diskunit_context_t *unit = diskunit_context[dnr];
+
+        if (unit->enable) {
+            drive_cpu_execute_one(unit, maincpu_clk);
+            switch (unit->type) {
                 case DRIVE_TYPE_1570:
                 case DRIVE_TYPE_1571:
                 case DRIVE_TYPE_1571CR:
-                    ciacore_set_sdr(drive_context[dnr]->cia1571, data);
+                    ciacore_set_sdr(unit->cia1571, data);
                     break;
                 case DRIVE_TYPE_1581:
-                    ciacore_set_sdr(drive_context[dnr]->cia1581, data);
+                    ciacore_set_sdr(unit->cia1581, data);
                     break;
                 case DRIVE_TYPE_2000:
                 case DRIVE_TYPE_4000:
-                    viacore_set_sr(drive_context[dnr]->via4000, data);
+                    viacore_set_sr(unit->via4000, data);
+                    break;
+                case DRIVE_TYPE_CMDHD:
+                    viacore_set_sr(unit->cmdhd->via10, data);
                     break;
             }
         }

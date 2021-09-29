@@ -36,9 +36,11 @@
 #include "autostart.h"
 #include "cartridge.h"
 #include "charset.h"
+#include "lib.h"
 #include "machine.h"
 #include "mem.h"
 #include "montypes.h"
+#include "mon_drive.h"
 #include "mon_file.h"
 #include "mon_util.h"
 #include "tape.h"
@@ -56,20 +58,24 @@ static vdrive_t *vdrive;
 /* we require an EOF buffer to support CBM EOFs. */
 static int mon_file_read_eof[4][16];
 
-static int mon_file_open(const char *filename, unsigned int secondary,
+static int mon_file_open(const char *filename,
+                         unsigned int secondary, /* 0: load, 1: save */
                          int device)
 {
     char pname[17];
     const char *s;
     int i;
 
+    /* TODO: drive 1 */
+    unsigned int drive = 0;
+    const char *fspath = NULL;
+    char *fullpath;
+
+    fp = NULL;
+
     switch (device) {
         case 0:
-            if (secondary == 0) {
-                fp = fopen(filename, MODE_READ);
-            } else {
-                fp = fopen(filename, MODE_WRITE);
-            }
+            fp = fopen(filename, (secondary == 0) ? MODE_READ : MODE_WRITE);
             if (fp == NULL) {
                 return -1;
             }
@@ -78,10 +84,20 @@ static int mon_file_open(const char *filename, unsigned int secondary,
         case 9:
         case 10:
         case 11:
-            vdrive = file_system_get_vdrive((unsigned int)device);
-            if (vdrive == NULL) {
+            vdrive = file_system_get_vdrive((unsigned int)device, drive);
+            if (vdrive == NULL || vdrive->image == NULL) {
+                /* if vdrive did not succeed, try fsdevice */
+                if ((fspath = mon_drive_get_fsdevice_path(device))) {
+                    fullpath = archdep_join_paths(fspath, filename, NULL);
+                    fp = fopen(fullpath, (secondary == 0) ? MODE_READ : MODE_WRITE);
+                    lib_free(fullpath);
+                    if (fp != NULL) {
+                        return 0;
+                    }
+                }
                 return -1;
             }
+
             /* convert filename to petscii */
             s = filename;
             for (i = 0; (i < 16) && (*s); ++i) {
@@ -106,65 +122,47 @@ static int mon_file_open(const char *filename, unsigned int secondary,
 
 static int mon_file_read(uint8_t *data, unsigned int secondary, int device)
 {
-    switch (device) {
-        case 0:
-            if (fread((char *)data, 1, 1, fp) < 1) {
-                return -1;
-            }
-            break;
-        case 8:
-        case 9:
-        case 10:
-        case 11:
-            /* Return EOF if we hit a CBM EOF on the last read. */
-            if (mon_file_read_eof[device - 8][secondary]) {
-                *data = 0xc7;
-                return -1;
-            }
-            /* Set next EOF based on CBM EOF. */
-            mon_file_read_eof[device - 8][secondary] =
-                vdrive_iec_read(vdrive, data, secondary);
-            break;
+    if (fp) {
+        if (fread((char *)data, 1, 1, fp) < 1) {
+            return -1;
+        }
+    } else if (device >= 8) {
+        /* Return EOF if we hit a CBM EOF on the last read. */
+        if (mon_file_read_eof[device - 8][secondary]) {
+            *data = 0xc7;
+            return -1;
+        }
+        /* Set next EOF based on CBM EOF. */
+        mon_file_read_eof[device - 8][secondary] =
+            vdrive_iec_read(vdrive, data, secondary);
     }
     return 0;
 }
 
 static int mon_file_write(uint8_t data, unsigned int secondary, int device)
 {
-    switch (device) {
-        case 0:
-            if (fwrite((char *)&data, 1, 1, fp) < 1) {
-                return -1;
-            }
-            break;
-        case 8:
-        case 9:
-        case 10:
-        case 11:
-            if (vdrive_iec_write(vdrive, data, secondary) != SERIAL_OK) {
-                return -1;
-            }
-            break;
+    if (fp) {
+        if (fwrite((char *)&data, 1, 1, fp) < 1) {
+            return -1;
+        }
+    } else if (device >= 8) {
+        if (vdrive_iec_write(vdrive, data, secondary) != SERIAL_OK) {
+            return -1;
+        }
     }
     return 0;
 }
 
 static int mon_file_close(unsigned int secondary, int device)
 {
-    switch (device) {
-        case 0:
-            if (fclose(fp) != 0) {
-                return -1;
-            }
-            break;
-        case 8:
-        case 9:
-        case 10:
-        case 11:
-            if (vdrive_iec_close(vdrive, secondary) != SERIAL_OK) {
-                return -1;
-            }
-            break;
+    if (fp) {
+        if (fclose(fp) != 0) {
+            return -1;
+        }
+    } else if (device >= 8) {
+        if (vdrive_iec_close(vdrive, secondary) != SERIAL_OK) {
+            return -1;
+        }
     }
     return 0;
 }
@@ -197,7 +195,7 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
     if (!mon_is_valid_addr(start_addr)) {   /* No Load address given */
         if (is_bload == TRUE) {
             /* when loading plain binary, load addr is required */
-            mon_out("No LOAD address given.\n");
+            mon_out("Invalid LOAD address given.\n");
             mon_file_close(0, device);
             return;
         }
@@ -216,8 +214,7 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
         mem = addr_memspace(start_addr);
     }
 
-    mon_out("Loading %s", filename);
-    mon_out(" from %04X\n", adr);
+    mon_out("Loading %s from %04X ", filename, adr);
 
     if (machine_class == VICE_MACHINE_C64DTV) {
         origbank = curbank;
@@ -239,17 +236,16 @@ void mon_file_load(const char *filename, int device, MON_ADDR start_addr,
             if (curbank > mem_bank_from_name("ram1f")) {
                 curbank = mem_bank_from_name("ram00");
             }
-            mon_out("Crossing 64k boundary.\n");
+            mon_out("Crossing 64KiB boundary.\n");
         }
         ch++;
-    }
-    while (1);
+    } while (1);
 
     if (machine_class == VICE_MACHINE_C64DTV) {
         curbank = origbank;
     }
 
-    mon_out("to %04X (%x bytes)\n", ADDR_LIMIT(adr + ch), (unsigned int)ch);
+    mon_out("to %04X (%04X bytes)\n", ADDR_LIMIT((adr + ch) - 1), (unsigned int)ch);
 
     /* set end of load addresses like kernal load if
      * 1. loading .prg file
@@ -317,13 +313,89 @@ void mon_file_save(const char *filename, int device, MON_ADDR start_addr,
     mon_file_close(1, device);
 }
 
-/* Where is the implementation?  */
-void mon_file_verify(const char *filename, int device, MON_ADDR start_addr)
+void mon_file_verify(const char *filename, int device, MON_ADDR start_addr, bool is_bverify)
 {
-    mon_evaluate_default_addr(&start_addr);
+    uint16_t adr, load_addr = 0;
+    uint8_t b1 = 0, b2 = 0;
+    int ch = 0;
+    MEMSPACE mem;
+    int origbank = 0;
+    int diffcount = 0;
 
-    mon_out("Verify file %s at address $%04x\n",
-            filename, addr_location(start_addr));
+    if (mon_file_open(filename, 0, device) < 0) {
+        mon_out("Cannot open %s.\n", filename);
+        return;
+    }
+
+    /* if loading a .prg file, read/skip the start address */
+    if (is_bverify == FALSE) {
+        mon_file_read(&b1, 0, device);
+        mon_file_read(&b2, 0, device);
+        load_addr = (uint8_t)b1 | ((uint8_t)b2 << 8);
+    }
+
+    mon_evaluate_default_addr(&start_addr); /* get target addr given in monitor */
+
+    if (!mon_is_valid_addr(start_addr)) {   /* No Load address given */
+        if (is_bverify == TRUE) {
+            /* when loading plain binary, load addr is required */
+            mon_out("Invalid VERIFY address given.\n");
+            mon_file_close(0, device);
+            return;
+        }
+
+        start_addr = new_addr(e_default_space, load_addr);
+        mon_evaluate_default_addr(&start_addr);
+    }
+    adr = addr_location(start_addr);
+    mem = addr_memspace(start_addr);
+
+    mon_out("Verifying %s from %04X ", filename, adr);
+
+    if (machine_class == VICE_MACHINE_C64DTV) {
+        origbank = curbank;
+    }
+
+    do {
+        uint8_t load_byte, mem_byte;
+
+        if (mon_file_read(&load_byte, 0, device) < 0) {
+            break;
+        }
+        mem_byte = mon_get_mem_val(mem, ADDR_LIMIT(adr + ch));
+        if (load_byte != mem_byte) {
+            if (diffcount == 0) {
+                mon_out("\naddr:mem file\n");
+            }
+            mon_out("%04x: ", ADDR_LIMIT(adr + ch));
+            mon_out("%02x %02x", mem_byte, load_byte);
+            mon_out("\n");
+            diffcount++;
+        }
+
+        /* Hack to be able to read large .prgs for x64dtv */
+        if ((machine_class == VICE_MACHINE_C64DTV) &&
+            (ADDR_LIMIT(adr + ch) == 0xffff) &&
+            ((curbank >= mem_bank_from_name("ram00")) && (curbank <= mem_bank_from_name("ram1f")))) {
+            curbank++;
+            if (curbank > mem_bank_from_name("ram1f")) {
+                curbank = mem_bank_from_name("ram00");
+            }
+            mon_out("Crossing 64KiB boundary.\n");
+        }
+        ch++;
+    } while (1);
+
+    if (machine_class == VICE_MACHINE_C64DTV) {
+        curbank = origbank;
+    }
+
+    mon_out("to %04X (%04X bytes)\n", ADDR_LIMIT((adr + ch) - 1), (unsigned int)ch);
+    if (diffcount > 0) {
+        mon_out("%d byte(s) different\n", diffcount);
+    }
+
+    mon_file_close(0, device);
 }
 
 
@@ -341,7 +413,8 @@ void mon_attach(const char *filename, int device)
         case 9:
         case 10:
         case 11:
-            if (file_system_attach_disk(device, filename)) {
+            /* TODO: drive 1? */
+            if (file_system_attach_disk(device, 0, filename)) {
                 mon_out("Failed.\n");
             }
             break;
@@ -374,7 +447,8 @@ void mon_detach(int device)
         case 9:
         case 10:
         case 11:
-            file_system_detach_disk(device);
+            /* TODO: drive 1? */
+            file_system_detach_disk(device, 0);
             break;
         case 32:
             if (mon_cart_cmd.cartridge_detach_image != NULL) {
@@ -389,16 +463,20 @@ void mon_detach(int device)
     }
 }
 
-void mon_autostart(const char *image_name,
+int mon_autostart(const char *image_name,
                    int file_index,
                    int run)
 {
+    int result = 0;
+
     mon_out("auto%s %s #%d\n", run ? "starting" : "loading",
             image_name, file_index);
-    autostart_autodetect_opt_prgname(image_name, file_index,
+    result = autostart_autodetect_opt_prgname(image_name, file_index,
                                      run ? AUTOSTART_MODE_RUN : AUTOSTART_MODE_LOAD);
 
     /* leave monitor but return after autostart */
     autostart_trigger_monitor(1);
     exit_mon = 1;
+
+    return result;
 }

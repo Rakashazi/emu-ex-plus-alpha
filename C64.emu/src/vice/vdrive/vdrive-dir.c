@@ -71,6 +71,7 @@ static int vdrive_dir_get_interleave(unsigned int type)
         case VDRIVE_IMAGE_FORMAT_1571:
         case VDRIVE_IMAGE_FORMAT_8050:
         case VDRIVE_IMAGE_FORMAT_8250:
+        case VDRIVE_IMAGE_FORMAT_9000:
             return 3;
         case VDRIVE_IMAGE_FORMAT_1581:
         case VDRIVE_IMAGE_FORMAT_4000:
@@ -128,8 +129,9 @@ void vdrive_dir_free_chain(vdrive_t *vdrive, int t, int s)
 /* Tries to allocate the given track/sector and link it */
 /* to the current directory sector of vdrive.           */
 /* Returns NULL if the allocation failed.               */
-static uint8_t *find_next_directory_sector(vdrive_dir_context_t *dir, unsigned int track,
-                                        unsigned int sector)
+static uint8_t *find_next_directory_sector(vdrive_dir_context_t *dir,
+                                           unsigned int track,
+                                           unsigned int sector)
 {
     vdrive_t *vdrive = dir->vdrive;
 
@@ -138,7 +140,7 @@ static uint8_t *find_next_directory_sector(vdrive_dir_context_t *dir, unsigned i
         dir->buffer[1] = sector;
         vdrive_write_sector(vdrive, dir->buffer, dir->track, dir->sector);
 #ifdef DEBUG_DRIVE
-        log_debug("Found (%d %d) TR = %d SE = %d.",
+        log_debug("Found (%u %u) TR = %u SE = %u.",
                   track, sector, dir->track, dir->sector);
 #endif
         dir->slot = 0;
@@ -226,7 +228,7 @@ void vdrive_dir_find_first_slot(vdrive_t *vdrive, const char *name,
     dir->buffer[1] = vdrive->Dir_Sector;
 
 #ifdef DEBUG_DRIVE
-    log_debug("DIR: vdrive_dir_find_first_slot (curr t:%d/s:%d dir t:%d/s:%d)",
+    log_debug("DIR: vdrive_dir_find_first_slot (curr t:%u/s:%u dir t:%u/s:%u)",
               dir->track, dir->sector, vdrive->Dir_Track, vdrive->Dir_Sector);
 #endif
 }
@@ -237,7 +239,8 @@ uint8_t *vdrive_dir_find_next_slot(vdrive_dir_context_t *dir)
     vdrive_t *vdrive = dir->vdrive;
 
 #ifdef DEBUG_DRIVE
-    log_debug("DIR: vdrive_dir_find_next_slot start (t:%d/s:%d) #%d", dir->track, dir->sector, dir->slot);
+    log_debug("DIR: vdrive_dir_find_next_slot start (t:%u/s:%u) #%u",
+            dir->track, dir->sector, dir->slot);
 #endif
     /*
      * Loop all directory blocks starting from track 18, sector 1 (1541).
@@ -276,27 +279,65 @@ uint8_t *vdrive_dir_find_next_slot(vdrive_dir_context_t *dir)
     } while (1);
 
 #ifdef DEBUG_DRIVE
-    log_debug("DIR: vdrive_dir_find_next_slot (t:%d/s:%d) #%d", dir->track, dir->sector, dir->slot);
+    log_debug("DIR: vdrive_dir_find_next_slot (t:%u/s:%u) #%u",
+            dir->track, dir->sector, dir->slot);
 #endif
 
     /*
      * If length < 0, create new directory-entry if possible
      */
     if (dir->find_length < 0) {
-        int i, sector;
+        int i, h, h2;
         uint8_t *dirbuf;
+        unsigned int t, sector, max_sector, max_sector_all;
 
-        sector = dir->sector + vdrive_dir_get_interleave(vdrive->image_format);
-
-        for (i = 0; i < vdrive_get_max_sectors(vdrive, dir->track); i++) {
-            dirbuf = find_next_directory_sector(dir, dir->track, sector);
+        max_sector =  vdrive_get_max_sectors_per_head(vdrive, dir->track);
+        max_sector_all = vdrive_get_max_sectors(vdrive, dir->track);
+        h = (dir->sector / max_sector) * max_sector;
+        sector = dir->sector % max_sector;
+        sector += vdrive_dir_get_interleave(vdrive->image_format);
+        if (sector >= max_sector) {
+            sector -= max_sector;
+            if (sector != 0) {
+                sector--;
+            }
+        }
+        /* go through all groups, 1 round for most CBM drives */
+        for (h2 = 0; h2 < max_sector_all; h2 += max_sector) {
+            for (i = 0; i < max_sector; i++) {
+                dirbuf = find_next_directory_sector(dir, dir->track, sector + h);
+                if (dirbuf != NULL) {
+                    return dirbuf;
+                }
+                sector++;
+                if (sector >= max_sector) {
+                    sector = 0;
+                }
+            }
+            /* for D9090/60 only move on to next track if we scanned all
+                the sector groups */
+            h += max_sector;
+            if (h >= max_sector_all) {
+                h = 0;
+            }
+        }
+        /* D9090/60 can go beyond the directory track and use any space */
+        if (vdrive->image_format == VDRIVE_IMAGE_FORMAT_9000) {
+            /* restore inputs */
+            t = dir->track;
+            sector = dir->sector;
+            /* look for a free sector */
+            if (vdrive_bam_alloc_next_free_sector_interleave(vdrive, &t, &sector,
+                vdrive_dir_get_interleave(vdrive->image_format))) {
+                return NULL;
+            }
+            /* unallocate it as find_next_directory_sector allocates it */
+            vdrive_bam_free_sector(vdrive, t, sector);
+            /* allocate and fill it */
+            dirbuf = find_next_directory_sector(dir, t, sector);
+            /* it should never be NULL, but check anyways */
             if (dirbuf != NULL) {
                 return dirbuf;
-            }
-
-            sector++;
-            if (sector >= vdrive_get_max_sectors(vdrive, dir->track)) {
-                sector = 0;
             }
         }
     }

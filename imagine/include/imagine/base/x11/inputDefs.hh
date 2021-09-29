@@ -232,4 +232,21 @@ namespace Keycode = X;
 	UP_BUTTON = 256;
 	}
 
+	namespace Meta
+	{
+	static constexpr uint32_t
+	ALT = 0x8,
+	ALT_L = 0x8,
+	ALT_R = 0x8,
+	SHIFT = 0x1,
+	SHIFT_L = 0x1,
+	SHIFT_R = 0x1,
+	CTRL = 0x4,
+	CTRL_L = 0x4,
+	CTRL_R = 0x4,
+	META = 0x40,
+	META_L = 0x40,
+	META_R = 0x40,
+	CAPS_LOCK = 0x2;
+	}
 }

@@ -63,6 +63,7 @@
 #include "cx21.h"
 #include "cx85.h"
 #include "datasette.h"
+#include "datasette-sound.h"
 #include "debug.h"
 #include "diskimage.h"
 #include "drive-cmdline-options.h"
@@ -240,7 +241,8 @@ static io_source_t vicii_d000_device = {
     vicii_dump,            /* chip state information dump function */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_HIGH,          /* high priority, chip and mirrors never involved in collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_MASK         /* contains mirrors, defined by mask */
 };
 
 /* The following I/O range is only used when +60K or +256K memory hacks are not active.
@@ -259,7 +261,8 @@ static io_source_t vicii_d100_device = {
     vicii_dump,                   /* chip state information dump function */ 
     IO_CART_ID_NONE,              /* not a cartridge */
     IO_PRIO_HIGH,                 /* high priority, mirrors never involved in collisions */
-    0                             /* insertion order, gets filled in by the registration function */
+    0,                            /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_OTHER               /* this is a mirror of another registered device */
 };
 
 /* The following I/O range is only used when +60K or +256K memory hacks are not active.
@@ -278,7 +281,8 @@ static io_source_t vicii_d200_device = {
     vicii_dump,                   /* chip state information dump function */ 
     IO_CART_ID_NONE,              /* not a cartridge */
     IO_PRIO_HIGH,                 /* high priority, mirrors never involved in collisions */
-    0                             /* insertion order, gets filled in by the registration function */
+    0,                            /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_OTHER               /* this is a mirror of another registered device */
 };
 
 /* The following I/O range is only used when +60K or +256K memory hacks are not active.
@@ -297,7 +301,8 @@ static io_source_t vicii_d300_device = {
     vicii_dump,                   /* chip state information dump function */ 
     IO_CART_ID_NONE,              /* not a cartridge */
     IO_PRIO_HIGH,                 /* high priority, mirrors never involved in collisions */
-    0                             /* insertion order, gets filled in by the registration function */
+    0,                            /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_OTHER               /* this is a mirror of another registered device */
 };
 
 static io_source_t sid_d400_device = {
@@ -313,7 +318,8 @@ static io_source_t sid_d400_device = {
     sid_dump,              /* chip state information dump function */
     IO_CART_ID_NONE,       /* not a cartridge */
     IO_PRIO_HIGH,          /* high priority, chip never involved in collisions */
-    0                      /* insertion order, gets filled in by the registration function */
+    0,                     /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_NONE         /* this is not a mirror */
 };
 
 static io_source_t sid_d420_device = {
@@ -329,7 +335,8 @@ static io_source_t sid_d420_device = {
     sid_dump,                  /* chip state information dump function */
     IO_CART_ID_NONE,           /* not a cartridge */
     IO_PRIO_LOW,               /* low priority, chip never involved in collisions, this is to allow additional SID chips in the same range */
-    0                          /* insertion order, gets filled in by the registration function */
+    0,                         /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_OTHER            /* this is a mirror of another registered device */
 };
 
 static io_source_t sid_d500_device = {
@@ -345,7 +352,8 @@ static io_source_t sid_d500_device = {
     sid_dump,                  /* chip state information dump function */
     IO_CART_ID_NONE,           /* not a cartridge */
     IO_PRIO_LOW,               /* low priority, chip never involved in collisions, this is to allow additional SID chips in the same range */
-    0                          /* insertion order, gets filled in by the registration function */
+    0,                         /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_OTHER            /* this is a mirror of another registered device */
 };
 
 static io_source_t sid_d600_device = {
@@ -361,7 +369,8 @@ static io_source_t sid_d600_device = {
     sid_dump,                  /* chip state information dump function */
     IO_CART_ID_NONE,           /* not a cartridge */
     IO_PRIO_LOW,               /* low priority, chip never involved in collisions, this is to allow additional SID chips in the same range */
-    0                          /* insertion order, gets filled in by the registration function */
+    0,                         /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_OTHER            /* this is a mirror of another registered device */
 };
 
 static io_source_t sid_d700_device = {
@@ -377,7 +386,8 @@ static io_source_t sid_d700_device = {
     sid_dump,                  /* chip state information dump function */
     IO_CART_ID_NONE,           /* not a cartridge */
     IO_PRIO_LOW,               /* low priority, chip never involved in collisions, this is to allow additional SID chips in the same range */
-    0                          /* insertion order, gets filled in by the registration function */
+    0,                         /* insertion order, gets filled in by the registration function */
+    IO_MIRROR_OTHER            /* this is a mirror of another registered device */
 };
 
 static io_source_list_t *vicii_d000_list_item = NULL;
@@ -701,10 +711,12 @@ int machine_resources_init(void)
         init_resource_fail("tapeport");
         return -1;
     }
+#ifdef TAPEPORT_EXPERIMENTAL_DEVICES
     if (tape_diag_586220_harness_resources_init() < 0) {
         init_resource_fail("tape diag 586220 harness");
         return -1;
     }
+#endif
     if (c64_glue_resources_init() < 0) {
         init_resource_fail("c64 glue");
         return -1;
@@ -737,10 +749,12 @@ int machine_resources_init(void)
         init_resource_fail("userport 8bit stereo sampler");
         return -1;
     }
+#ifdef USERPORT_EXPERIMENTAL_DEVICES
     if (userport_diag_586220_harness_resources_init() < 0) {
         init_resource_fail("userport diag 586220 harness");
         return -1;
     }
+#endif
     if (cartio_resources_init() < 0) {
         init_resource_fail("cartio");
         return -1;
@@ -909,10 +923,12 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("tapeport");
         return -1;
     }
+#ifdef TAPEPORT_EXPERIMENTAL_DEVICES
     if (tape_diag_586220_harness_cmdline_options_init() < 0) {
         init_cmdline_options_fail("tape diag 586220 harness");
         return -1;
     }
+#endif
     if (datasette_cmdline_options_init() < 0) {
         init_cmdline_options_fail("datasette");
         return -1;
@@ -949,10 +965,12 @@ int machine_cmdline_options_init(void)
         init_cmdline_options_fail("userport 8bit stereo sampler");
         return -1;
     }
+#ifdef USERPORT_EXPERIMENTAL_DEVICES
     if (userport_diag_586220_harness_cmdline_options_init() < 0) {
         init_cmdline_options_fail("userport diag 586220 harness");
         return -1;
     }
+#endif
     if (cartio_cmdline_options_init() < 0) {
         init_cmdline_options_fail("cartio");
         return -1;
@@ -968,7 +986,7 @@ static void c64_monitor_init(void)
 {
     unsigned int dnr;
     monitor_cpu_type_t asm6502, asmR65C02, asmz80;
-    monitor_interface_t *drive_interface_init[DRIVE_NUM];
+    monitor_interface_t *drive_interface_init[NUM_DISK_UNITS];
     monitor_cpu_type_t *asmarray[4];
     int i = 0;
 
@@ -981,7 +999,7 @@ static void c64_monitor_init(void)
     asmR65C02_init(&asmR65C02);
     asmz80_init(&asmz80);
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         drive_interface_init[dnr] = drive_cpu_monitor_interface_get(dnr);
     }
 
@@ -1000,8 +1018,6 @@ void machine_setup_context(void)
 /* C64-specific initialization.  */
 int machine_specific_init(void)
 {
-    int delay;
-
     c64_log = log_open("C64");
 
     if (mem_load() < 0) {
@@ -1039,13 +1055,8 @@ int machine_specific_init(void)
 
     disk_image_init();
 
-    resources_get_int("AutostartDelay", &delay);
-    if (delay == 0) {
-        delay = 3; /* default */
-    }
-
     /* Initialize autostart.  */
-    autostart_init((CLOCK)(delay * C64_PAL_RFSH_PER_SEC * C64_PAL_CYCLES_PER_RFSH), 1);
+    autostart_init(3, 1);
 
     /* Pre-init C64-specific parts of the menus before vicii_init()
        creates a canvas window with a menubar at the top. */
@@ -1088,11 +1099,12 @@ int machine_specific_init(void)
 #endif
 
     drive_sound_init();
+    datasette_sound_init();
     video_sound_init();
 
     /* Initialize sound.  Notice that this does not really open the audio
        device yet.  */
-    sound_init(machine_timing.cycles_per_sec, machine_timing.cycles_per_rfsh);
+    sound_init((int)machine_timing.cycles_per_sec, (int)machine_timing.cycles_per_rfsh);
 
     /* Initialize keyboard buffer.  */
     kbdbuf_init(631, 198, 10,
@@ -1326,12 +1338,16 @@ void machine_change_timing(int timeval, int border_mode)
 #ifdef HAVE_MOUSE
     neos_mouse_set_machine_parameter(machine_timing.cycles_per_sec);
 #endif
-    clk_guard_set_clk_base(maincpu_clk_guard, machine_timing.cycles_per_rfsh);
+    clk_guard_set_clk_base(maincpu_clk_guard, (CLOCK)machine_timing.cycles_per_rfsh);
 
     vicii_change_timing(&machine_timing, border_mode);
 
-    cia1_set_timing(machine_context.cia1, machine_timing.cycles_per_sec, machine_timing.power_freq);
-    cia2_set_timing(machine_context.cia2, machine_timing.cycles_per_sec, machine_timing.power_freq);
+    cia1_set_timing(machine_context.cia1,
+                    (int)machine_timing.cycles_per_sec,
+                    machine_timing.power_freq);
+    cia2_set_timing(machine_context.cia2,
+                    (int)machine_timing.cycles_per_sec,
+                    machine_timing.power_freq);
 
     fmopl_set_machine_parameter(machine_timing.cycles_per_sec);
 
@@ -1430,15 +1446,19 @@ static int get_cart_emulation_state(void)
     return value;
 }
 
+/* returns TRUE if in RAM, FALSE if in cartridge ROM or IO */
 static int check_cart_range(unsigned int addr)
 {
     if (get_cart_emulation_state() == CARTRIDGE_NONE) {
         return 1;
     }
-
-    return (!(addr >= 0x8000 && addr < 0xa000));
+    /* check ROML, ROMH as well as IO1 and IO2 */
+    /* FIXME: ideally we should check this accurately per cartridge type, and
+              take the actual active mapping into account */
+    return (!(addr >= 0x8000 && addr < 0xa000) && !(addr >= 0xde00 && addr < 0xe000) );
 }
 
+/* returns TRUE if in RAM */
 int machine_addr_in_ram(unsigned int addr)
 {
     return ((addr < 0xe000 && !(addr >= 0xa000 && addr < 0xc000)) && check_cart_range(addr));
@@ -1497,6 +1517,7 @@ static drive_type_info_t drive_type_info_list[] = {
     { DRIVE_NAME_1581, DRIVE_TYPE_1581 },
     { DRIVE_NAME_2000, DRIVE_TYPE_2000 },
     { DRIVE_NAME_4000, DRIVE_TYPE_4000 },
+    { DRIVE_NAME_CMDHD, DRIVE_TYPE_CMDHD },
     { DRIVE_NAME_2031, DRIVE_TYPE_2031 },
     { DRIVE_NAME_2040, DRIVE_TYPE_2040 },
     { DRIVE_NAME_3040, DRIVE_TYPE_3040 },
@@ -1504,6 +1525,7 @@ static drive_type_info_t drive_type_info_list[] = {
     { DRIVE_NAME_1001, DRIVE_TYPE_1001 },
     { DRIVE_NAME_8050, DRIVE_TYPE_8050 },
     { DRIVE_NAME_8250, DRIVE_TYPE_8250 },
+    { DRIVE_NAME_9000, DRIVE_TYPE_9000 },
     { NULL, -1 }
 };
 

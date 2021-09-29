@@ -29,15 +29,15 @@
 
 #include "types.h"
 
-struct drive_context_s;
+struct diskunit_context_s;
 
 extern int supercard_cmdline_options_init(void);
 
-extern void supercard_init(struct drive_context_s *drv);
-extern void supercard_reset(struct drive_context_s *drv);
+extern void supercard_init(struct diskunit_context_s *drv);
+extern void supercard_reset(struct diskunit_context_s *drv);
 
 extern int supercard_load(const char *name);
 
-extern void supercard_mem_init(struct drive_context_s *drv, unsigned int type);
+extern void supercard_mem_init(struct diskunit_context_s *drv, unsigned int type);
 
 #endif

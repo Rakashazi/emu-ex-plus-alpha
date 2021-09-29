@@ -45,7 +45,7 @@
 
 
 /* Unused bits in VIC-II registers: these are always 1 when read.  */
-static int unused_bits_in_registers[0x40] =
+static const uint8_t unused_bits_in_registers[0x40] =
 {
     0x00 /* $D000 */, 0x00 /* $D001 */, 0x00 /* $D002 */, 0x00 /* $D003 */,
     0x00 /* $D004 */, 0x00 /* $D005 */, 0x00 /* $D006 */, 0x00 /* $D007 */,

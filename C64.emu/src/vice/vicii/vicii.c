@@ -159,6 +159,8 @@ void vicii_change_timing(machine_timing_t *machine_timing, int border_mode)
         vicii_set_geometry();
         raster_mode_change();
     }
+    /* this should go to vicii_chip_model_init() incase we ever go that far */
+    vicii_color_update_palette(vicii.raster.canvas);
 }
 
 static CLOCK old_maincpu_clk = 0;
@@ -1243,6 +1245,8 @@ void vicii_raster_draw_alarm_handler(CLOCK offset, void *data)
         }
     }
 #endif
+
+    vsync_do_end_of_line();
 
     if (vicii.raster.current_line == 0) {
         /* no vsync here for NTSC  */

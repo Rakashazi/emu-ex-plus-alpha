@@ -1,5 +1,6 @@
 #pragma once
 
+void joystick(void);
 int joy_arch_init(void);
 static int joystick_init_cmdline_options(void) { return 0; }
 static int joystick_arch_init_resources(void) { return 0; }
@@ -19,3 +20,5 @@ void joystick_close();
 #define JOYDEV_DIGITAL_1 11
 #define JOYDEV_USB_0     12
 #define JOYDEV_USB_1     13
+
+#define JOYSTICK_KEYSET_NUM_KEYS     11 /* 4 directions, 4 diagonals, 3 fire */

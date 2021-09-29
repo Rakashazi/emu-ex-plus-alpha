@@ -794,7 +794,7 @@ void isepic_detach(void)
    ARRAY | RAM     | 2048 BYTES of RAM data
  */
 
-static char snap_module_name[] = "CARTISEPIC";
+static const char snap_module_name[] = "CARTISEPIC";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

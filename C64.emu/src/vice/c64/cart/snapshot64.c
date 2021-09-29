@@ -228,7 +228,7 @@ void snapshot64_detach(void)
    ARRAY | ROML       | 4096 BYTES of ROML data
  */
 
-static char snap_module_name[] = "CARTSNAP64";
+static const char snap_module_name[] = "CARTSNAP64";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

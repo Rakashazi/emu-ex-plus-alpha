@@ -444,7 +444,9 @@ static const uint8_t SZP[256] = {
 
 /* ------------------------------------------------------------------------- */
 
-z80_regs_t z80_regs;
+/* FIXME: src/c64/carts/cpmcart.c defines z80_regs too */
+
+/* extern z80_regs_t z80_regs; */
 
 static void import_registers(void)
 {

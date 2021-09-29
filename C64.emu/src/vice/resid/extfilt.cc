@@ -32,14 +32,14 @@ ExternalFilter::ExternalFilter()
   reset();
   enable_filter(true);
 
-  // Low-pass:  R = 10 kOhm, C = 1000 pF; w0l = 1/RC = 1/(1e4*1e-9) = 100 000
-  // High-pass: R =  1 kOhm, C =   10 uF; w0h = 1/RC = 1/(1e3*1e-5) =     100
+  // Low-pass:  R = 10 kOhm, C = 1000 pF; w0l = dt/(dt+RC) = 1e-6/(1e-6+1e4*1e-9) = 0.091
+  // High-pass: R =  1 kOhm, C =   10 uF; w0h = dt/(dt+RC) = 1e-6/(1e-6+1e3*1e-5) = 0.0000999
 
   // Assume a 1MHz clock.
   // Cutoff frequency accuracy (4 bits) is traded off for filter signal
   // accuracy (27 bits). This is crucial since w0lp and w0hp are so far apart.
-  w0lp_1_s7 = int(100000*1.0e-6*(1 << 7) + 0.5);
-  w0hp_1_s17 = int(100*1.0e-6*(1 << 17) + 0.5);
+  w0lp_1_s7 = int(1e-6/(1e-6+1e4*1e-9)*(1 << 7) + 0.5);
+  w0hp_1_s17 = int(1e-6/(1e-6+1e3*1e-5)*(1 << 17) + 0.5);
 }
 
 

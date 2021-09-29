@@ -29,16 +29,16 @@
 
 #include "types.h"
 
-struct drive_context_s;
+struct diskunit_context_s;
 
 extern int iec128dcr_drive_resources_init(void);
 extern void iec128dcr_drive_resources_shutdown(void);
 extern int iec128dcr_drive_cmdline_options_init(void);
-extern void iec128dcr_drive_init(struct drive_context_s *drv);
-extern void iec128dcr_drive_shutdown(struct drive_context_s *drv);
-extern void iec128dcr_drive_reset(struct drive_context_s *drv);
-extern void iec128dcr_drive_mem_init(struct drive_context_s *drv, unsigned int type);
-extern void iec128dcr_drive_setup_context(struct drive_context_s *drv);
+extern void iec128dcr_drive_init(struct diskunit_context_s *drv);
+extern void iec128dcr_drive_shutdown(struct diskunit_context_s *drv);
+extern void iec128dcr_drive_reset(struct diskunit_context_s *drv);
+extern void iec128dcr_drive_mem_init(struct diskunit_context_s *drv, unsigned int type);
+extern void iec128dcr_drive_setup_context(struct diskunit_context_s *drv);
 extern void iec128dcr_drive_rom_load(void);
 extern void iec128dcr_drive_rom_setup_image(unsigned int dnr);
 extern int iec128dcr_drive_rom_check_loaded(unsigned int type);

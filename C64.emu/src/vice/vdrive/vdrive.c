@@ -88,6 +88,9 @@ void vdrive_init(void)
 
     FIXME: find out the *exact* behaviour of the various drives and implement
            this function accordingly.
+           - did this for 41/71/81/1001/9090 but not REL (rmusced)
+           - data sector should be allocated before directory entry is made
+           -  or else dir slots will have T/S of 0/0 for new files on full disks
     FIXME: REL files do not use this logic yet (vdrive-rel.c)
     FIXME: ideally this logic should allocate memory from a common drive memory
            array, which then can be used properly for M-R too
@@ -122,11 +125,18 @@ void vdrive_free_buffer(bufferinfo_t *p)
 
 /* ------------------------------------------------------------------------- */
 
-int vdrive_device_setup(vdrive_t *vdrive, unsigned int unit)
+int vdrive_device_setup(vdrive_t *vdrive, unsigned int unit, unsigned int drive)
 {
     unsigned int i;
 
+    /* Check if the vdrive_t teleports to another unit. Should never happen. */
+    if (vdrive->unit && vdrive->unit != unit) {
+        log_error(vdrive_log, "**** vdrive_device_setup: vdrive changes from %u:%u to %u:%u!",
+                vdrive->unit, vdrive->drive, unit, drive);
+    }
+
     vdrive->unit = unit;
+    vdrive->drive = drive;
 
     /* init buffers */
     for (i = 0; i < 15; i++) {
@@ -138,6 +148,9 @@ int vdrive_device_setup(vdrive_t *vdrive, unsigned int unit)
     /* init command channel */
     vdrive_alloc_buffer(&(vdrive->buffers[15]), BUFFER_COMMAND_CHANNEL);
     vdrive_command_set_error(vdrive, CBMDOS_IPE_DOS_VERSION, 0, 0);
+
+    vdrive->d90toggle = 0;
+    vdrive->last_code = CBMDOS_IPE_OK;
 
     return 0;
 }
@@ -204,12 +217,27 @@ int vdrive_get_max_sectors(vdrive_t *vdrive, unsigned int track)
             }
         case VDRIVE_IMAGE_FORMAT_4000:
             return 256;
+        case VDRIVE_IMAGE_FORMAT_9000:
+            return vdrive->image->sectors;
         default:
             log_message(vdrive_log,
                         "Unknown disk type %u.  Cannot calculate max sectors",
                         vdrive->image_format);
     }
     return -1;
+}
+
+/*
+    get number of sectors per head for given track (for D9090/60)
+ */
+int vdrive_get_max_sectors_per_head(vdrive_t *vdrive, unsigned int track)
+{
+    switch (vdrive->image_format) {
+        case VDRIVE_IMAGE_FORMAT_9000:
+            return 32;
+        default:
+            return vdrive_get_max_sectors(vdrive, track);
+    }
 }
 
 /* ------------------------------------------------------------------------- */
@@ -219,13 +247,21 @@ int vdrive_get_max_sectors(vdrive_t *vdrive, unsigned int track)
  */
 
 void vdrive_detach_image(disk_image_t *image, unsigned int unit,
-                         vdrive_t *vdrive)
+                         unsigned int drive, vdrive_t *vdrive)
 {
     if (image == NULL) {
         return;
     }
+    /*
+     * TODO: This doesn't really need the parameters unit and drive,
+     * since they are remembered in the vdrive. For now, check the consistency.
+     */
+    if (vdrive->unit != unit || vdrive->drive != drive) {
+        log_error(vdrive_log, "**** vdrive_detach_image: vdrive->unit %u:%u != unit %u:%u",
+                vdrive->unit, vdrive->drive, unit, drive);
+    }
 
-    disk_image_detach_log(image, vdrive_log, unit);
+    disk_image_detach_log(image, vdrive_log, unit, drive);
     vdrive_close_all_channels(vdrive);
     lib_free(vdrive->bam);
     vdrive->bam = NULL;
@@ -233,11 +269,20 @@ void vdrive_detach_image(disk_image_t *image, unsigned int unit,
 }
 
 int vdrive_attach_image(disk_image_t *image, unsigned int unit,
-                        vdrive_t *vdrive)
+                        unsigned int drive, vdrive_t *vdrive)
 {
+    /*
+     * TODO: This doesn't really need the parameters unit and drive,
+     * since they are remembered in the vdrive.
+     */
+    if (vdrive->unit != unit || vdrive->drive != drive) {
+        log_error(vdrive_log, "**** vdrive_attach_image: vdrive->unit %u:%u != unit %u:%u",
+                vdrive->unit, vdrive->drive, unit, drive);
+    }
     vdrive->unit = unit;
+    vdrive->drive = drive;
 
-    disk_image_attach_log(image, vdrive_log, unit);
+    disk_image_attach_log(image, vdrive_log, unit, drive);
 
     switch (image->type) {
         case DISK_IMAGE_TYPE_D64:
@@ -292,12 +337,14 @@ int vdrive_attach_image(disk_image_t *image, unsigned int unit,
                 vdrive->bam_size = 0x100;
             }
             break;
+#ifdef HAVE_X64_IMAGE
         case DISK_IMAGE_TYPE_X64:
             /* FIXME: x64 format can be any drive! */
             vdrive->image_format = VDRIVE_IMAGE_FORMAT_1541;
             vdrive->num_tracks = image->tracks;
             vdrive->bam_size = 0x100;
             break;
+#endif
         case DISK_IMAGE_TYPE_D1M:
         case DISK_IMAGE_TYPE_D2M:
         case DISK_IMAGE_TYPE_D4M:
@@ -305,16 +352,34 @@ int vdrive_attach_image(disk_image_t *image, unsigned int unit,
             vdrive->num_tracks = image->tracks - 1;
             vdrive->bam_size = 0x2100;
             break;
+        case DISK_IMAGE_TYPE_D90:
+            {
+                uint32_t tmp;
+
+                vdrive->image_format = VDRIVE_IMAGE_FORMAT_9000;
+                vdrive->num_tracks = image->tracks;
+                /* D9090/60 has track 0, include it below */
+                tmp = ((image->tracks + 1) * image->sectors * 5);
+                vdrive->bam_size = tmp / (32 * 240) + 1;
+                tmp = tmp % (32 * 240);
+                if (tmp) {
+                    vdrive->bam_size++;
+                }
+                vdrive->bam_size *= 0x100;
+                break;
+            }
         default:
             return -1;
     }
-    DBG(("vdrive_attach_image image type:%d vdrive format:%d num_tracks:%d bam_size:%d",
+    DBG(("vdrive_attach_image image type:%u vdrive format:%u num_tracks:%u bam_size:%u",
          image->type, vdrive->image_format, vdrive->num_tracks, vdrive->bam_size));
+
+    /* Need an image associated for D9090/60 and vdrive_set_disk_geometry */
+    vdrive->image = image;
 
     /* Initialise format constants */
     vdrive_set_disk_geometry(vdrive);
 
-    vdrive->image = image;
     vdrive->bam = lib_malloc(vdrive->bam_size);
 
     if (vdrive_bam_read_bam(vdrive)) {
@@ -376,8 +441,8 @@ void vdrive_set_disk_geometry(vdrive_t *vdrive)
         case VDRIVE_IMAGE_FORMAT_8050:
             vdrive->Bam_Track = BAM_TRACK_8050;
             vdrive->Bam_Sector = BAM_SECTOR_8050;
-            vdrive->Header_Track = BAM_TRACK_8050;
-            vdrive->Header_Sector = BAM_SECTOR_8050;
+            vdrive->Header_Track = HDR_TRACK_8050;
+            vdrive->Header_Sector = HDR_SECTOR_8050;
             vdrive->bam_name = BAM_NAME_8050;
             vdrive->bam_id = BAM_ID_8050;
             vdrive->Dir_Track = DIR_TRACK_8050;
@@ -386,8 +451,8 @@ void vdrive_set_disk_geometry(vdrive_t *vdrive)
         case VDRIVE_IMAGE_FORMAT_8250:
             vdrive->Bam_Track = BAM_TRACK_8250;
             vdrive->Bam_Sector = BAM_SECTOR_8250;
-            vdrive->Header_Track = BAM_TRACK_8250;
-            vdrive->Header_Sector = BAM_SECTOR_8250;
+            vdrive->Header_Track = HDR_TRACK_8250;
+            vdrive->Header_Sector = HDR_SECTOR_8250;
             vdrive->bam_name = BAM_NAME_8250;
             vdrive->bam_id = BAM_ID_8250;
             vdrive->Dir_Track = DIR_TRACK_8250;
@@ -403,6 +468,38 @@ void vdrive_set_disk_geometry(vdrive_t *vdrive)
             vdrive->Dir_Track = DIR_TRACK_4000;
             vdrive->Dir_Sector = DIR_SECTOR_4000;
             break;
+        case VDRIVE_IMAGE_FORMAT_9000:
+            {
+                uint8_t tmp[256];
+                unsigned int i;
+
+                i = vdrive->num_tracks / 2;
+
+                /* information is in track 0, sector 0 */
+                vdrive_read_sector(vdrive, tmp, 0, 0);
+                vdrive->Bam_Track = tmp[8];
+                vdrive->Bam_Sector = tmp[9];
+                vdrive->Header_Track = tmp[6];
+                vdrive->Header_Sector = tmp[7];
+                vdrive->bam_name = BAM_NAME_9000;
+                vdrive->bam_id = BAM_ID_9000;
+                vdrive->Dir_Track = tmp[4];
+                vdrive->Dir_Sector = tmp[5];
+                /* lets try to honor it, but empty images will cause problems */
+                if (vdrive->Dir_Track != i
+                    || vdrive->Header_Track != i
+                    || vdrive->Bam_Track != 1
+                    || vdrive->Dir_Sector != 10
+                    || vdrive->Header_Sector != 20 ) {
+                    vdrive->Bam_Track = 1;
+                    vdrive->Bam_Sector = 0;
+                    vdrive->Header_Track = i;
+                    vdrive->Header_Sector = 20;
+                    vdrive->Dir_Track = i;
+                    vdrive->Dir_Sector = 10;
+                }
+                break;
+            }
         default:
             log_error(vdrive_log,
                       "Unknown disk type %u.  Cannot set disk geometry.",

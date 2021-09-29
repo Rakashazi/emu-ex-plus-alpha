@@ -53,13 +53,13 @@ struct model_s {
     int video;   /* machine video timing */
     int hasvicii;
     int ramsize;
-    char *basicname;
-    char *chargenname;
-    char *kernalname;
+    const char *basicname;
+    const char *chargenname;
+    const char *kernalname;
     int line; /* 0=7x0 (50 Hz), 1=6x0 60Hz, 2=6x0 50Hz */
 };
 
-static struct model_s cbm2models[] = {
+static const struct model_s cbm2models[] = {
     { MACHINE_SYNC_PAL,  HAS_VICII,  64, CBM2_BASIC500, CBM2_CHARGEN500, CBM2_KERNAL500, LINE_6x0_50HZ  }, /* 510 */
     { MACHINE_SYNC_NTSC, HAS_VICII,  64, CBM2_BASIC500, CBM2_CHARGEN500, CBM2_KERNAL500, LINE_6x0_60HZ  }, /* 510 */
     { MACHINE_SYNC_PAL,  HAS_CRTC,  128, CBM2_BASIC128, CBM2_CHARGEN600, CBM2_KERNAL,    LINE_6x0_50HZ  }, /* 610 */

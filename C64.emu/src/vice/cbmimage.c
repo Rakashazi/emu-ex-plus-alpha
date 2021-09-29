@@ -56,3 +56,15 @@ int cbmimage_create_image(const char *name, unsigned int type)
     return disk_image_fsimage_create(name, type);
 }
 
+/** \brief  Create a disk or tape image file
+ *
+ * \param[in]   name    name of/path to image
+ * \param[in]   dname   disk name and id
+ * \param[in]   type    disk/tape image type enumerator
+ *
+ * \return  0 on success, < 0 on failure
+ */
+int cbmimage_create_dxm_image(const char *name, const char *dname, unsigned int type)
+{
+    return disk_image_fsimage_create_dxm(name, dname, type);
+}

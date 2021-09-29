@@ -37,21 +37,21 @@
 
 static void set_drive_ram(unsigned int dnr)
 {
-    drive_t *drive = drive_context[dnr]->drive;
+    diskunit_context_t *unit = diskunit_context[dnr];
 
-    if (drive->type != DRIVE_TYPE_1570 && drive->type != DRIVE_TYPE_1571
-        && drive->type != DRIVE_TYPE_1571CR) {
+    if (unit->type != DRIVE_TYPE_1570 && unit->type != DRIVE_TYPE_1571
+        && unit->type != DRIVE_TYPE_1571CR) {
         return;
     }
 
-    drivemem_init(drive_context[dnr], drive->type);
+    drivemem_init(unit);
 
     return;
 }
 
 static int set_drive_parallel_cable(int val, void *param)
 {
-    drive_t *drive = drive_context[vice_ptr_to_uint(param)]->drive;
+    diskunit_context_t *unit = diskunit_context[vice_ptr_to_uint(param)];
 
     switch (val) {
         case DRIVE_PC_NONE:
@@ -61,7 +61,7 @@ static int set_drive_parallel_cable(int val, void *param)
             return -1;
     }
 
-    drive->parallel_cable = val;
+    unit->parallel_cable = val;
     set_drive_ram(vice_ptr_to_uint(param));
 
     return 0;
@@ -76,13 +76,10 @@ static resource_int_t res_drive[] = {
 int plus4exp_resources_init(void)
 {
     unsigned int dnr;
-    drive_t *drive;
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        drive = drive_context[dnr]->drive;
-
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         res_drive[0].name = lib_msprintf("Drive%iParallelCable", dnr + 8);
-        res_drive[0].value_ptr = &(drive->parallel_cable);
+        res_drive[0].value_ptr = &(diskunit_context[dnr]->parallel_cable);
         res_drive[0].param = uint_to_void_ptr(dnr);
 
         if (resources_register_int(res_drive) < 0) {

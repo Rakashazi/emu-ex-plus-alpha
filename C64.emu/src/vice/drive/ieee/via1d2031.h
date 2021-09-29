@@ -30,15 +30,15 @@
 
 #include "types.h"
 
-struct drive_context_s;
+struct diskunit_context_s;
 struct via_context_s;
 
-extern void via1d2031_setup_context(struct drive_context_s *ctxptr);
+extern void via1d2031_setup_context(struct diskunit_context_s *ctxptr);
 
-extern void via1d2031_init(struct drive_context_s *ctxptr);
-extern void via1d2031_store(struct drive_context_s *ctxptr, uint16_t addr, uint8_t byte);
-extern uint8_t via1d2031_read(struct drive_context_s *ctxptr, uint16_t addr);
-extern uint8_t via1d2031_peek(struct drive_context_s *ctxptr, uint16_t addr);
+extern void via1d2031_init(struct diskunit_context_s *ctxptr);
+extern void via1d2031_store(struct diskunit_context_s *ctxptr, uint16_t addr, uint8_t byte);
+extern uint8_t via1d2031_read(struct diskunit_context_s *ctxptr, uint16_t addr);
+extern uint8_t via1d2031_peek(struct diskunit_context_s *ctxptr, uint16_t addr);
 
 extern void via1d2031_set_atn(struct via_context_s *via_context, int state);
 

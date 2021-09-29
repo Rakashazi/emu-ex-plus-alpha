@@ -1423,10 +1423,10 @@ static const signed char nosound[1] = { 0 };
 static sound_chip_t drive_sound;
 
 static uint16_t drive_sound_offset;
-static const signed char *step[DRIVE_NUM];
-static const signed char *motor[DRIVE_NUM];
-static int stepvol[DRIVE_NUM];
-static int motorvol[DRIVE_NUM];
+static const signed char *step[NUM_DISK_UNITS];
+static const signed char *motor[NUM_DISK_UNITS];
+static int stepvol[NUM_DISK_UNITS];
+static int motorvol[NUM_DISK_UNITS];
 
 static int cycles_per_sec = 1000000;
 static int sample_rate = 22050;
@@ -1442,7 +1442,7 @@ static int drive_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, 
     int m, s;
 
     for (i = 0; i < nr; i++) {
-        for (j = 0; j < DRIVE_NUM; j++) {
+        for (j = 0; j < NUM_DISK_UNITS; j++) {
             m = (((*motor[j]) * motorvol[j]) * drive_sound_emulation_volume) >> 8;
             s = (((*step[j]) * stepvol[j]) * drive_sound_emulation_volume) >> 8;
             switch (soc) {
@@ -1463,7 +1463,7 @@ static int drive_sound_machine_calculate_samples(sound_t **psid, int16_t *pbuf, 
         while (div >= sample_rate) {
             div -= sample_rate;
             nos = 1;
-            for (j = 0; j < DRIVE_NUM; j++) {
+            for (j = 0; j < NUM_DISK_UNITS; j++) {
                 motor[j]++;
                 if (motor[j] == &spinup[sizeof(spinup)]) {
                     motor[j] = hum;
@@ -1575,7 +1575,7 @@ void drive_sound_head(int track, int dir, int unit)
 void drive_sound_stop(void)
 {
     int i;
-    for (i = 0; i < DRIVE_NUM; i++) {
+    for (i = 0; i < NUM_DISK_UNITS; i++) {
         motor[i] = nosound;
         step[i] = nosound;
         stepvol[i] = 0;
@@ -1588,7 +1588,7 @@ void drive_sound_init(void)
     int i;
     drive_sound_stop();
     drive_sound_offset = sound_chip_register(&drive_sound);
-    for (i = 0; i < DRIVE_NUM; i++) {
+    for (i = 0; i < NUM_DISK_UNITS; i++) {
         motorvol[i] = 10;
     }
 }

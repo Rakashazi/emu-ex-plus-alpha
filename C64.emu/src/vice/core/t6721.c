@@ -55,7 +55,7 @@
 
 /* #define T6721DEBUG */
 
-#define WRITEWAVFILE 0 /* write "test.wav" containing all generated output */
+#define WRITEWAVFILE 1 /* write "test.wav" containing all generated output */
 
 #ifdef T6721DEBUG
 #define DBG(x) DBG_STATUS(); printf x;
@@ -245,7 +245,7 @@ static int wav_create_file(const char *filename)
         return 1;
     }
 
-    archdep_vice_atexit(wav_close_file);
+    atexit(wav_close_file);
     return write_header();
 }
 
@@ -353,7 +353,7 @@ static int16_t output_update_sample(t6721_state *t6721)
     return this;
 }
 
-static int framestretch[0x10] =
+static const int framestretch[0x10] =
 {
     100, /* 0 : 1,0  */
      70, /* 1 : 0,7  (1.4% faster) */

@@ -47,6 +47,11 @@ static bool containsSysFileDirName(FS::FileString path)
 	return false;
 }
 
+static bool containsEmuSysFileDirName(FS::FileString path)
+{
+	return string_equal(path.data(), sysFileDirs[0]);
+}
+
 static int loadSysFile(IO &file, const char *name, uint8_t *dest, int minsize, int maxsize)
 {
 	//logMsg("loading system file: %s", complete_path);
@@ -139,6 +144,50 @@ static AssetIO assetIOForSysFile(Base::ApplicationContext ctx, const char *sysFi
 		return file;
 	}
 	return {};
+}
+
+std::vector<std::string> systemFilesWithExtension(const char *ext)
+{
+	logMsg("looking for system files with extension:%s", ext);
+	std::vector<std::string> filenames{};
+	for(const auto &basePath : sysFilePath)
+	{
+		if(!strlen(basePath.data()) || !FS::exists(basePath))
+			continue;
+		if(EmuApp::hasArchiveExtension(basePath.data()))
+		{
+			for(auto &entry : FS::ArchiveIterator{basePath})
+			{
+				if(entry.type() == FS::file_type::directory)
+				{
+					continue;
+				}
+				auto name = entry.name();
+				if(!containsEmuSysFileDirName(FS::basename(FS::dirname(name).data())))
+					continue;
+				if(string_hasDotExtension(FS::basename(name).data(), ext))
+				{
+					logMsg("archive file entry:%s", name);
+					filenames.emplace_back(FS::basename(name).data());
+				}
+			}
+		}
+		else
+		{
+			auto fullPath = IG::formatToPathString("{}/{}", basePath.data(), sysFileDirs[0]);
+			for(auto &entry : FS::directory_iterator{fullPath})
+			{
+				auto name = entry.name();
+				if(string_hasDotExtension(FS::basename(name).data(), ext))
+				{
+					logMsg("archive file entry:%s", name);
+					filenames.emplace_back(name);
+				}
+			}
+		}
+	}
+	std::sort(filenames.begin(), filenames.end());
+	return filenames;
 }
 
 CLINK int sysfile_init(const char *emu_id)

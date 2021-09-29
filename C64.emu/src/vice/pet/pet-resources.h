@@ -35,7 +35,7 @@
     - chicklet keyboard (original PET 2001)
     - graphics keyboard with the 20 key numpad (PET 2001-N)
 
-      "Graphics"
+      "Graphics (us)"
 
     - business keyboard (PET 2001-B)
 
@@ -43,22 +43,24 @@
       keyboard including an changed Exxx-EPROM (editor) with other keyboard
       mappings and some changeable keyboard caps with the right characters on it.
 
-      "Business (us)"
       "Business (uk)"
+      "Business (us)"
       "Business (de)"
       "Business (jp)"
+      
+      also see http://www.6502.org/users/andre/petindex/keyboards.html
 */
 
-#define KBD_TYPE_BUSINESS_US    0
-#define KBD_TYPE_BUSINESS_UK    1
+#define KBD_TYPE_BUSINESS_UK    0
+#define KBD_TYPE_BUSINESS_US    1
 #define KBD_TYPE_BUSINESS_DE    2
 #define KBD_TYPE_BUSINESS_JP    3
 #define KBD_TYPE_GRAPHICS_US    4
 #define KBD_TYPE_LAST           4
 #define KBD_TYPE_NUM            5
 
-#define KBD_TYPE_STR_BUSINESS_US    "buus"
 #define KBD_TYPE_STR_BUSINESS_UK    "buuk"
+#define KBD_TYPE_STR_BUSINESS_US    "buus"
 #define KBD_TYPE_STR_BUSINESS_DE    "bude"
 #define KBD_TYPE_STR_BUSINESS_JP    "bujp"
 #define KBD_TYPE_STR_GRAPHICS_US    "grus"

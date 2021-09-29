@@ -114,6 +114,12 @@ static char *kernal64_rom_name = NULL;
 /* Flag: Do we enable the emulation of banks 2 and 3 of ram? */
 int c128_full_banks;
 
+
+/* Hide the VDC window (Gtk only)
+ */
+static int c128_hide_vdc;
+
+
 /* Flag: Emulate new CIA */
 int cia1_model = CIA_MODEL_6526A;
 int cia2_model = CIA_MODEL_6526A;
@@ -515,6 +521,19 @@ static int set_sync_factor(int val, void *param)
     return 0;
 }
 
+/** \brief  Resource setter for the 'C128HideVDC' resource
+ *
+ * \param[in]   val     new value for the resource (bool)
+ * \param[in]   param   extra data (unused)
+ */
+static int set_c128_hide_vdc(int val, void *param)
+{
+    c128_hide_vdc = val ? 1 : 0;
+    return 0;
+}
+
+
+
 static const resource_string_t resources_string[] = {
     { "ChargenIntName", "chargen", RES_EVENT_NO, NULL,
       &chargen_int_rom_name, set_chargen_int_rom_name, NULL },
@@ -566,14 +585,24 @@ static const resource_int_t resources_int[] = {
       &cia1_model, set_cia1_model, NULL },
     { "CIA2Model", CIA_MODEL_6526A, RES_EVENT_SAME, NULL,
       &cia2_model, set_cia2_model, NULL },
-    { "SidStereoAddressStart", 0xde00, RES_EVENT_SAME, NULL,
-      (int *)&sid_stereo_address_start, sid_set_sid_stereo_address, NULL },
-    { "SidTripleAddressStart", 0xdf00, RES_EVENT_SAME, NULL,
-      (int *)&sid_triple_address_start, sid_set_sid_triple_address, NULL },
-    { "SidQuadAddressStart", 0xdf80, RES_EVENT_SAME, NULL,
-      (int *)&sid_quad_address_start, sid_set_sid_quad_address, NULL },
+    { "Sid2AddressStart", 0xde00, RES_EVENT_SAME, NULL,
+      (int *)&sid2_address_start, sid_set_sid2_address, NULL },
+    { "Sid3AddressStart", 0xdf00, RES_EVENT_SAME, NULL,
+      (int *)&sid3_address_start, sid_set_sid3_address, NULL },
+    { "Sid4AddressStart", 0xdf80, RES_EVENT_SAME, NULL,
+      (int *)&sid4_address_start, sid_set_sid4_address, NULL },
+    { "Sid5AddressStart", 0xde80, RES_EVENT_SAME, NULL,
+      (int *)&sid5_address_start, sid_set_sid5_address, NULL },
+    { "Sid6AddressStart", 0xdf40, RES_EVENT_SAME, NULL,
+      (int *)&sid6_address_start, sid_set_sid6_address, NULL },
+    { "Sid7AddressStart", 0xde40, RES_EVENT_SAME, NULL,
+      (int *)&sid7_address_start, sid_set_sid7_address, NULL },
+    { "Sid8AddressStart", 0xdfc0, RES_EVENT_SAME, NULL,
+      (int *)&sid8_address_start, sid_set_sid8_address, NULL },
     { "C128FullBanks", 0, RES_EVENT_NO, NULL,
       (int *)&c128_full_banks, set_c128_full_banks, NULL },
+    { "C128HideVDC", 0, RES_EVENT_NO, NULL,
+        &c128_hide_vdc, set_c128_hide_vdc, NULL },
     RESOURCE_INT_LIST_END
 };
 

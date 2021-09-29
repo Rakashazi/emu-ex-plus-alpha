@@ -151,6 +151,7 @@ static int event_image_append(const char *filename, char **mapped_name, int appe
 
 
 void event_record_attach_in_list(event_list_state_t *list, unsigned int unit,
+                                 unsigned int drive,
                                  const char *filename, unsigned int read_only)
 {
     char *event_data;
@@ -171,10 +172,11 @@ void event_record_attach_in_list(event_list_state_t *list, unsigned int unit,
 
     event_data = lib_malloc(size);
     event_data[0] = unit;
-    event_data[1] = read_only;
+    event_data[1] = drive;
+    event_data[2] = read_only;
 
     if (event_image_include) {
-        strcpy(&event_data[2], filename);
+        strcpy(&event_data[3], filename);
         if (event_image_append(filename, NULL, 0) == 1) {
             FILE *fd;
             size_t file_len = 0;
@@ -198,12 +200,12 @@ void event_record_attach_in_list(event_list_state_t *list, unsigned int unit,
     } else {
         uint32_t crc = crc32_file(filename);
 
-        strcpy(&event_data[2], "");
+        strcpy(&event_data[3], "");
 
         /* store crc32 in little-endian format */
         crc32_to_le(((uint8_t *)event_data + 3), crc);
 
-        strcpy(&event_data[3 + CRC32_SIZE], strfile);
+        strcpy(&event_data[4 + CRC32_SIZE], strfile);
     }
 
     lib_free(strdir);
@@ -214,20 +216,20 @@ void event_record_attach_in_list(event_list_state_t *list, unsigned int unit,
     list->current = list->current->next;
 }
 
-void event_record_attach_image(unsigned int unit, const char *filename,
+void event_record_attach_image(unsigned int unit, unsigned int drive, const char *filename,
                                unsigned int read_only)
 {
     if (record_active == 0) {
         return;
     }
 
-    event_record_attach_in_list(event_list, unit, filename, read_only);
+    event_record_attach_in_list(event_list, unit, drive, filename, read_only);
 }
 
 
 static void event_playback_attach_image(void *data, unsigned int size)
 {
-    unsigned int unit, read_only;
+    unsigned int unit, drive, read_only;
     char *orig_filename, *filename = NULL;
     size_t file_len;
     uint32_t crc_to_attach;
@@ -236,16 +238,17 @@ static void event_playback_attach_image(void *data, unsigned int size)
     uint8_t crc_snap[CRC32_SIZE];   /* CRC32 of file in the snapshot */
 
     unit = (unsigned int)((char*)data)[0];
-    read_only = (unsigned int)((char*)data)[1];
-    orig_filename = &((char*)data)[2];
+    drive = (unsigned int)((char*)data)[1];
+    read_only = (unsigned int)((char*)data)[2];
+    orig_filename = &((char*)data)[3];
 
     if (*orig_filename == 0) {
         /* no image attached */
-        orig_filename = (char *) data + 3 + CRC32_SIZE;
+        orig_filename = (char *) data + 4 + CRC32_SIZE;
 
         if (event_image_append(orig_filename, &filename, 0) != 0) {
 #if 0
-            crc_to_attach = *(uint32_t *)(((char *)data) + 3);
+            crc_to_attach = *(uint32_t *)(((char *)data) + 4);
 #endif
             /* looks weird, but crc_to_attach is used in messages */
             crc_to_attach = crc32_from_le((const uint8_t *)data + 3);
@@ -256,7 +259,7 @@ static void event_playback_attach_image(void *data, unsigned int size)
 
                 filename = ui_get_file(
                         "Please attach image %s (CRC32 checksum 0x" PRIu32 ")",
-                        (char *) data + 3 + sizeof(uint32_t), crc_to_attach);
+                        (char *) data + 4 + sizeof(uint32_t), crc_to_attach);
                 if (filename == NULL) {
                     break;
                 }
@@ -277,7 +280,7 @@ static void event_playback_attach_image(void *data, unsigned int size)
             event_image_append(orig_filename, &filename, 1);
         }
     } else {
-        file_len = size - strlen(orig_filename) - 3;
+        file_len = size - strlen(orig_filename) - 4;
 
         if (file_len > 0) {
             FILE *fd;
@@ -289,7 +292,7 @@ static void event_playback_attach_image(void *data, unsigned int size)
                 goto error;
             }
 
-            if (fwrite((char*)data + strlen(orig_filename) + 3, file_len, 1, fd) != 1) {
+            if (fwrite((char*)data + strlen(orig_filename) + 4, file_len, 1, fd) != 1) {
                 ui_error("Cannot write image file %s", filename);
                 goto error;
             }
@@ -309,7 +312,7 @@ static void event_playback_attach_image(void *data, unsigned int size)
         tape_image_event_playback(unit, filename);
     } else {
         resources_set_int_sprintf("AttachDevice%dReadonly", read_only, unit);
-        file_system_event_playback(unit, filename);
+        file_system_event_playback(unit, drive, filename);
     }
 
 error:
@@ -395,7 +398,7 @@ static void event_alarm_handler(CLOCK offset, void *data)
     /* when recording set a timestamp */
     if (record_active) {
         ui_display_event_time(current_timestamp++, 0);
-        next_timestamp_clk = next_timestamp_clk + machine_get_cycles_per_second();
+        next_timestamp_clk = next_timestamp_clk + (CLOCK)machine_get_cycles_per_second();
         alarm_set(event_alarm, next_timestamp_clk);
         return;
     }
@@ -433,7 +436,8 @@ static void event_alarm_handler(CLOCK offset, void *data)
                 if (unit == 1) {
                     tape_image_event_playback(unit, filename);
                 } else {
-                    file_system_event_playback(unit, filename);
+                    /* TODO: drive 1? */
+                    file_system_event_playback(unit, 0, filename);
                 }
             }
             break;
@@ -504,7 +508,8 @@ void event_playback_event_list(event_list_state_t *list)
                     if (unit == 1) {
                         tape_image_event_playback(1, NULL);
                     } else {
-                        file_system_event_playback(unit, NULL);
+                        /* TODO: drive 1? */
+                        file_system_event_playback(unit, 0, NULL);
                     }
                     break;
                 }
@@ -594,7 +599,7 @@ static void warp_end_list(void)
 
     while (curr->type != EVENT_LIST_END) {
         if (curr->type == EVENT_ATTACHIMAGE) {
-            event_image_append(&((char*)curr->data)[2], NULL, 0);
+            event_image_append(&((char*)curr->data)[3], NULL, 0);
         }
 
         curr = curr->next;

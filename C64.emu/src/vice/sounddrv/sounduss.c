@@ -270,7 +270,8 @@ static sound_device_t uss_device =
     uss_suspend,
     NULL,
     1,
-    2           /* FIXME */
+    2,           /* FIXME */
+    false
 };
 
 int sound_init_uss_device(void)

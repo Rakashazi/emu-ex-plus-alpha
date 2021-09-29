@@ -175,6 +175,12 @@ static const cmdline_option_t cmdline_options[] =
     { "+c128fullbanks", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "C128FullBanks", (void *)0,
       NULL, "Disable RAM banks 2 and 3" },
+    { "-hidevdcwindow", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "C128HideVDC", (void *)1,
+      NULL, "Hide the VDC window" },
+    { "+hidevdcwindow", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "C128HideVDC", (void *)0,
+      NULL, "Do not hide the VDC window" },
     CMDLINE_LIST_END
 };
 

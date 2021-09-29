@@ -75,14 +75,14 @@ const unsigned int c64meminit_io_config[32] = {
 uint8_t vsid_io_read(uint16_t addr)
 {
     if (sid_stereo >= 1
-        && addr >= sid_stereo_address_start
-        && addr < sid_stereo_address_end) {
+        && addr >= sid2_address_start
+        && addr < sid2_address_end) {
         return sid_read(addr);
     }
 
     if (sid_stereo >= 2
-        && addr >= sid_triple_address_start
-        && addr < sid_triple_address_end) {
+        && addr >= sid3_address_start
+        && addr < sid3_address_end) {
         return sid_read(addr);
     }
 
@@ -92,14 +92,14 @@ uint8_t vsid_io_read(uint16_t addr)
 void vsid_io_store(uint16_t addr, uint8_t val)
 {
     if (sid_stereo >= 1
-        && addr >= sid_stereo_address_start
-        && addr < sid_stereo_address_end) {
+        && addr >= sid2_address_start
+        && addr < sid2_address_end) {
         sid_store(addr, val);
     }
 
     if (sid_stereo >= 2
-        && addr >= sid_triple_address_start
-        && addr < sid_triple_address_end) {
+        && addr >= sid3_address_start
+        && addr < sid3_address_end) {
         sid_store(addr, val);
     }
 }

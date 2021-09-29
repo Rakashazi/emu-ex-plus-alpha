@@ -430,7 +430,9 @@ static void set_acia_ticks(void)
     /*
      * set the baud rate of the physical device
      */
-    rs232drv_set_bps(acia.fd, (unsigned int)get_acia_bps());
+    if (acia.fd >= 0) {
+        rs232drv_set_bps(acia.fd, (unsigned int)get_acia_bps());
+    }
 }
 
 /*! \internal \brief Change the emulation mode for this ACIA
@@ -553,10 +555,14 @@ static void clk_overflow_callback(CLOCK sub, void *var)
 */
 static int acia_get_status(void)
 {
-    enum rs232handshake_in modem_status = rs232drv_get_status(acia.fd);
+    enum rs232handshake_in modem_status = RS232_HSI_DCD | RS232_HSI_DSR;
 #ifdef LOG_MODEM_STATUS
     static int oldstatus = -1;
 #endif
+    
+    if (acia.fd >= 0) {
+        modem_status = rs232drv_get_status(acia.fd);
+    }    
     acia.status &= ~(ACIA_SR_BITS_DCD | ACIA_SR_BITS_DSR);
 #if 0
     /*
@@ -649,7 +655,9 @@ static void acia_set_handshake_lines(void)
     }
 #endif     
     /* set the RTS and the DTR status */
-    rs232drv_set_status(acia.fd, acia.rs232_status_lines);
+    if (acia.fd >= 0) {
+        rs232drv_set_status(acia.fd, acia.rs232_status_lines);
+    }
 }
 
 /*! \brief initialize the ACIA */
@@ -673,7 +681,9 @@ void myacia_reset(void)
     DEBUG_LOG_MESSAGE((acia.log, "reset_myacia"));
 
     acia.rs232_status_lines = 0;
-    rs232drv_set_status(acia.fd, acia.rs232_status_lines);
+    if (acia.fd >= 0) {
+        rs232drv_set_status(acia.fd, acia.rs232_status_lines);
+    }
 
     acia.cmd = ACIA_CMD_DEFAULT_AFTER_HW_RESET;
     acia.ctrl = ACIA_CTRL_DEFAULT_AFTER_HW_RESET;

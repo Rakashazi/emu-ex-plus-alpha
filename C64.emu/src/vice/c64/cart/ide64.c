@@ -398,7 +398,7 @@ static void detect_ide64_image(struct drive_s *drive)
 {
     FILE *file;
     unsigned char header[24];
-    int res;
+    size_t res;
     char *ext;
     ata_drive_geometry_t *geometry = &drive->detected;
 
@@ -477,7 +477,7 @@ static void detect_ide64_image(struct drive_s *drive)
             geometry->cylinders = 0;
             geometry->heads = 0;
             geometry->sectors = 0;
-            geometry->size = size / ((drive->type == ATA_DRIVE_CD) ? 2048 : 512);
+            geometry->size = (int)(size / ((drive->type == ATA_DRIVE_CD) ? 2048 : 512));
         }
     }
 
@@ -1491,7 +1491,7 @@ void ide64_config_init(void)
 
     for (i = 0; i < 4; i++) {
         drive = &drives[i];
-        ata_update_timing(drive->drv, machine_get_cycles_per_second());
+        ata_update_timing(drive->drv, (CLOCK)machine_get_cycles_per_second());
         if (drive->update_needed) {
             drive->update_needed = 0;
             detect_ide64_image(drive);
@@ -1573,8 +1573,21 @@ static int ide64_common_attach(uint8_t *rawcart, int detect)
 
 int ide64_bin_attach(const char *filename, uint8_t *rawcart)
 {
-    if (util_file_load(filename, rawcart, 0x80000, UTIL_FILE_LOAD_SKIP_ADDRESS | UTIL_FILE_LOAD_FILL) < 0) {
+    size_t len;
+    FILE *fd;
+
+    fd = fopen(filename, MODE_READ);
+    if (fd == NULL) {
         return -1;
+    }
+    len = util_file_length(fd);
+    fclose(fd);
+
+    /* we accept 64k, 128k and full 512k images */
+    if (len == 0x10000 || len == 0x20000 || len == 0x80000) {
+        if (util_file_load(filename, rawcart, len, UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
+            return -1;
+        }
     }
 
     return ide64_common_attach(rawcart, 1);
@@ -1619,7 +1632,7 @@ static int ide64_idebus_dump(void)
 
 static int ide64_io_dump(void)
 {
-    const char *configs[4] = {
+    static const char * const configs[4] = {
         "8k", "16k", "stnd", "open"
     };
     mon_out("Version: %d, Mode: %s, ", settings_version >= IDE64_VERSION_4_1 ? 4 : 3, (kill_port & 1) ? "Disabled" : "Enabled");
@@ -1650,7 +1663,7 @@ static int ide64_rtc_dump(void)
    WORD  | out d030  | output state of $d030 register
  */
 
-static char snap_module_name[] = "CARTIDE";
+static const char snap_module_name[] = "CARTIDE";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

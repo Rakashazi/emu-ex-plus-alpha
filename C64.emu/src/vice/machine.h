@@ -150,13 +150,25 @@ extern int machine_autodetect_psid(const char *name);
 extern void machine_play_psid(int tune);
 
 /* Check the base address for the second sid chip.  */
-extern int machine_sid2_check_range(unsigned int sid2_adr);
+extern int machine_sid2_check_range(unsigned int sid_adr);
 
 /* Check the base address for the third sid chip.  */
-extern int machine_sid3_check_range(unsigned int sid3_adr);
+extern int machine_sid3_check_range(unsigned int sid_adr);
 
 /* Check the base address for the fourth sid chip.  */
-extern int machine_sid4_check_range(unsigned int sid4_adr);
+extern int machine_sid4_check_range(unsigned int sid_adr);
+
+/* Check the base address for the fifth sid chip.  */
+extern int machine_sid5_check_range(unsigned int sid_adr);
+
+/* Check the base address for the sixth sid chip.  */
+extern int machine_sid6_check_range(unsigned int sid_adr);
+
+/* Check the base address for the seventh sid chip.  */
+extern int machine_sid7_check_range(unsigned int sid_adr);
+
+/* Check the base address for the eighth sid chip.  */
+extern int machine_sid8_check_range(unsigned int sid_adr);
 
 /* Change the timing parameters of the maching (for example PAL/NTSC).  */
 extern void machine_change_timing(int timeval, int border_mode);
@@ -174,7 +186,9 @@ extern int machine_canvas_async_refresh(struct canvas_refresh_s *ref,
 #define JAM_RESET      1
 #define JAM_HARD_RESET 2
 #define JAM_MONITOR    3
-unsigned int machine_jam(const char *format, ...);
+extern unsigned int machine_jam(const char *format, ...);
+extern bool machine_is_jammed(void);
+extern char *machine_jam_reason(void);
 
 /* Update memory pointers if memory mapping has changed. */
 extern void machine_update_memory_ptrs(void);

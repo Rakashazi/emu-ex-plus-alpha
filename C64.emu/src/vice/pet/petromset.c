@@ -32,7 +32,7 @@
 #include "romset.h"
 
 
-const char *machine_romset_resources_list[] = {
+static const char * const machine_romset_resources_list[] = {
     "ChargenName",
     "KernalName",
     "EditorName",
@@ -45,6 +45,7 @@ const char *machine_romset_resources_list[] = {
     "DosName3040",
     "DosName4040",
     "DosName1001",
+    "DosName9000",
     "H6809RomAName",
     "H6809RomBName",
     "H6809RomCName",

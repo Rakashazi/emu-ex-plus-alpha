@@ -172,8 +172,7 @@ static int ps2mouse_handle_command(uint8_t value)
 
         case PS2_CMD_SET_REMOTE_MODE:
 #ifdef HAVE_MOUSE
-            ps2mouse_lastx = mousedrv_get_x();
-            ps2mouse_lasty = mousedrv_get_y();
+            mouse_get_int16(&ps2mouse_lastx, &ps2mouse_lasty);
 #endif
             return (ps2mouse_queue_put(PS2_REPLY_OK));
             break;
@@ -181,8 +180,7 @@ static int ps2mouse_handle_command(uint8_t value)
         case PS2_CMD_READ_DATA:
             new_buttons = ps2mouse_buttons;
 #ifdef HAVE_MOUSE
-            new_x = (int16_t)mousedrv_get_x();
-            new_y = (int16_t)mousedrv_get_y();
+            mouse_get_int16(&new_x, &new_y);
             diff_x = (new_x - ps2mouse_lastx);
             if (diff_x < 0) {
                 new_buttons |= PS2_MDATA_XS;
@@ -450,7 +448,6 @@ void ps2mouse_reset(void)
 /* ------------------------------------------------------------------------- */
 
 int ps2mouse_enabled = 0;
-int _mouse_ps2_enable = 0;
 
 static int set_ps2mouse_enable(int val, void *param)
 {
@@ -459,18 +456,9 @@ static int set_ps2mouse_enable(int val, void *param)
     return 0;
 }
 
-static int set_mouse_enabled(int val, void *param)
-{
-    _mouse_ps2_enable = val ? 1 : 0;
-    mousedrv_mouse_changed();
-    return 0;
-}
-
 static const resource_int_t resources_int[] = {
     { "ps2mouse", 0, RES_EVENT_SAME, NULL,
       &ps2mouse_enabled, set_ps2mouse_enable, NULL },
-    { "Mouse", 0, RES_EVENT_SAME, NULL,
-      &_mouse_ps2_enable, set_mouse_enabled, NULL },
     RESOURCE_INT_LIST_END
 };
 

@@ -106,11 +106,11 @@ int roml_bank = 0, romh_bank = 0, export_ram = 0;
 /* ---------------------------------------------------------------------*/
 
 static const export_resource_t export_res_8kb = {
-    "Generic 8KB", 1, 0, NULL, NULL, CARTRIDGE_GENERIC_8KB
+    "Generic 8KiB", 1, 0, NULL, NULL, CARTRIDGE_GENERIC_8KB
 };
 
 static const export_resource_t export_res_16kb = {
-    "Generic 16KB", 1, 1, NULL, NULL, CARTRIDGE_GENERIC_16KB
+    "Generic 16KiB", 1, 1, NULL, NULL, CARTRIDGE_GENERIC_16KB
 };
 
 static export_resource_t export_res_ultimax = {
@@ -193,13 +193,13 @@ static int generic_common_attach(int mode)
 {
     switch (mode) {
         case CARTRIDGE_GENERIC_8KB:
-            DBG(("generic: attach 8kb\n"));
+            DBG(("generic: attach 8KiB\n"));
             if (export_add(&export_res_8kb) < 0) {
                 return -1;
             }
             break;
         case CARTRIDGE_GENERIC_16KB:
-            DBG(("generic: attach 16kb\n"));
+            DBG(("generic: attach 16KiB\n"));
             if (export_add(&export_res_16kb) < 0) {
                 return -1;
             }
@@ -301,13 +301,13 @@ int generic_crt_attach(FILE *fd, uint8_t *rawcart)
 
 void generic_8kb_detach(void)
 {
-    DBG(("generic: detach 8kb\n"));
+    DBG(("generic: detach 8KiB\n"));
     export_remove(&export_res_8kb);
 }
 
 void generic_16kb_detach(void)
 {
-    DBG(("generic: detach 16kb\n"));
+    DBG(("generic: detach 16KiB\n"));
     export_remove(&export_res_16kb);
 }
 

@@ -38,7 +38,6 @@
 
 #define UTIL_FILE_LOAD_RAW          0
 #define UTIL_FILE_LOAD_SKIP_ADDRESS 1
-#define UTIL_FILE_LOAD_FILL         2
 
 #define util_arraysize(_x) (sizeof(_x) / sizeof(_x[0]))
 
@@ -100,30 +99,5 @@ extern char util_tolower(char c);
 extern char util_toupper(char c);
 
 extern char *util_gen_hex_address_list(int start, int stop, int step);
-
-#ifndef HAVE_STRCASECMP
-extern int strcasecmp(const char *s1, const char *s2);
-#endif
-
-#ifndef HAVE_STRNCASECMP
-extern int strncasecmp(const char *s1, const char *s2, size_t n);
-#endif
-
-#ifndef HAVE_STRTOK_R
-extern char *strtok_r(char *s, const char *delim, char **last);
-#endif
-
-#ifndef HAVE_STRTOUL
-unsigned long strtoul(const char *nptr, char **endptr, int base);
-#endif
-
-#ifndef HAVE_VSNPRINTF
-int vsnprintf(char *text, size_t maxlen, const char *ftm, va_list ap);
-#endif
-
-#ifndef HAVE_SNPRINTF
-int snprintf(char *text, size_t maxlen, const char *fmt, ...);
-#endif
-
 
 #endif

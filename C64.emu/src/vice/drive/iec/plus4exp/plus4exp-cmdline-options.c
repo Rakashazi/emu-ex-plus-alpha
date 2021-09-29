@@ -45,7 +45,7 @@ int plus4exp_cmdline_options_init(void)
 {
     unsigned int dnr, i;
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         cmd_drive[0].name = lib_msprintf("-parallel%i", dnr + 8);
         cmd_drive[0].resource_name
             = lib_msprintf("Drive%iParallelCable", dnr + 8);

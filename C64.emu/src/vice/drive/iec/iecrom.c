@@ -60,6 +60,7 @@ static uint8_t drive_rom1581[DRIVE_ROM1581_SIZE];
 
 static uint8_t drive_rom2000[DRIVE_ROM2000_SIZE];
 static uint8_t drive_rom4000[DRIVE_ROM4000_SIZE];
+static uint8_t drive_romCMDHD[DRIVE_ROMCMDHD_SIZE];
 
 /* If nonzero, the ROM image has been loaded.  */
 static unsigned int rom1540_loaded = 0;
@@ -70,6 +71,7 @@ static unsigned int rom1571_loaded = 0;
 static unsigned int rom1581_loaded = 0;
 static unsigned int rom2000_loaded = 0;
 static unsigned int rom4000_loaded = 0;
+static unsigned int romCMDHD_loaded = 0;
 
 static unsigned int drive_rom1540_size;
 static unsigned int drive_rom1541_size;
@@ -146,60 +148,70 @@ int iecrom_load_4000(void)
             DRIVE_ROM4000_SIZE, DRIVE_ROM4000_SIZE, "4000", DRIVE_TYPE_4000, NULL);
 }
 
-void iecrom_setup_image(drive_t *drive)
+int iecrom_load_CMDHD(void)
+{
+    return driverom_load("DosNameCMDHD", drive_romCMDHD, &romCMDHD_loaded,
+            DRIVE_ROMCMDHD_SIZE, DRIVE_ROMCMDHD_SIZE, "CMDHD", DRIVE_TYPE_CMDHD, NULL);
+}
+
+void iecrom_setup_image(diskunit_context_t *unit)
 {
     if (rom_loaded) {
-        switch (drive->type) {
+
+        switch (unit->type) {
             case DRIVE_TYPE_1540:
                 if (drive_rom1540_size <= DRIVE_ROM1540_SIZE) {
-                    memcpy(drive->rom, &drive_rom1540[DRIVE_ROM1540_SIZE],
+                    memcpy(unit->rom, &drive_rom1540[DRIVE_ROM1540_SIZE],
                            DRIVE_ROM1540_SIZE);
-                    memcpy(&(drive->rom[DRIVE_ROM1540_SIZE]),
+                    memcpy(&(unit->rom[DRIVE_ROM1540_SIZE]),
                            &drive_rom1540[DRIVE_ROM1540_SIZE],
                            DRIVE_ROM1540_SIZE);
                 } else {
-                    memcpy(drive->rom, drive_rom1540,
+                    memcpy(unit->rom, drive_rom1540,
                            DRIVE_ROM1540_SIZE_EXPANDED);
                 }
                 break;
             case DRIVE_TYPE_1541:
                 if (drive_rom1541_size <= DRIVE_ROM1541_SIZE) {
-                    memcpy(drive->rom, &drive_rom1541[DRIVE_ROM1541_SIZE],
+                    memcpy(unit->rom, &drive_rom1541[DRIVE_ROM1541_SIZE],
                            DRIVE_ROM1541_SIZE);
-                    memcpy(&(drive->rom[DRIVE_ROM1541_SIZE]),
+                    memcpy(&(unit->rom[DRIVE_ROM1541_SIZE]),
                            &drive_rom1541[DRIVE_ROM1541_SIZE],
                            DRIVE_ROM1541_SIZE);
                 } else {
-                    memcpy(drive->rom, drive_rom1541,
+                    memcpy(unit->rom, drive_rom1541,
                            DRIVE_ROM1541_SIZE_EXPANDED);
                 }
                 break;
             case DRIVE_TYPE_1541II:
                 if (drive_rom1541ii_size <= DRIVE_ROM1541II_SIZE) {
-                    memcpy(drive->rom, &drive_rom1541ii[DRIVE_ROM1541II_SIZE],
+                    memcpy(unit->rom, &drive_rom1541ii[DRIVE_ROM1541II_SIZE],
                            DRIVE_ROM1541II_SIZE);
-                    memcpy(&(drive->rom[DRIVE_ROM1541II_SIZE]),
+                    memcpy(&(unit->rom[DRIVE_ROM1541II_SIZE]),
                            &drive_rom1541ii[DRIVE_ROM1541II_SIZE],
                            DRIVE_ROM1541II_SIZE);
                 } else {
-                    memcpy(drive->rom, drive_rom1541ii,
+                    memcpy(unit->rom, drive_rom1541ii,
                            DRIVE_ROM1541II_SIZE_EXPANDED);
                 }
                 break;
             case DRIVE_TYPE_1570:
-                memcpy(drive->rom, drive_rom1570, DRIVE_ROM1570_SIZE);
+                memcpy(unit->rom, drive_rom1570, DRIVE_ROM1570_SIZE);
                 break;
             case DRIVE_TYPE_1571:
-                memcpy(drive->rom, drive_rom1571, DRIVE_ROM1571_SIZE);
+                memcpy(unit->rom, drive_rom1571, DRIVE_ROM1571_SIZE);
                 break;
             case DRIVE_TYPE_1581:
-                memcpy(drive->rom, drive_rom1581, DRIVE_ROM1581_SIZE);
+                memcpy(unit->rom, drive_rom1581, DRIVE_ROM1581_SIZE);
                 break;
             case DRIVE_TYPE_2000:
-                memcpy(drive->rom, drive_rom2000, DRIVE_ROM2000_SIZE);
+                memcpy(unit->rom, drive_rom2000, DRIVE_ROM2000_SIZE);
                 break;
             case DRIVE_TYPE_4000:
-                memcpy(drive->rom, drive_rom4000, DRIVE_ROM4000_SIZE);
+                memcpy(unit->rom, drive_rom4000, DRIVE_ROM4000_SIZE);
+                break;
+            case DRIVE_TYPE_CMDHD:
+                memcpy(unit->rom, drive_romCMDHD, DRIVE_ROMCMDHD_SIZE);
                 break;
             default:
                 /* NOP */
@@ -253,10 +265,15 @@ int iecrom_check_loaded(unsigned int type)
                 return -1;
             }
             break;
+        case DRIVE_TYPE_CMDHD:
+            if (romCMDHD_loaded < 1 && rom_loaded) {
+                return -1;
+            }
+            break;
         case DRIVE_TYPE_ANY:
             if ((!rom1540_loaded && !rom1541_loaded && !rom1541ii_loaded && !rom1570_loaded
                  && !rom1571_loaded && !rom1581_loaded && !rom2000_loaded)
-                && !rom4000_loaded && rom_loaded) {
+                && !rom4000_loaded && !romCMDHD_loaded && rom_loaded) {
                 return -1;
             }
             break;
@@ -267,9 +284,9 @@ int iecrom_check_loaded(unsigned int type)
     return 0;
 }
 
-void iecrom_do_checksum(drive_t *drive)
+void iecrom_do_checksum(diskunit_context_t *unit)
 {
-    if (drive->type == DRIVE_TYPE_1541) {
+    if (unit->type == DRIVE_TYPE_1541) {
         iecrom_do_1541_checksum();
     }
 }

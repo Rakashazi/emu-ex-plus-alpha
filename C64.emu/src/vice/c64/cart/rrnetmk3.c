@@ -405,7 +405,7 @@ static int rrnetmk3_common_attach(void)
 int rrnetmk3_bin_save(const char *filename)
 {
     FILE *fd;
-    int ret;
+    size_t ret;
 
     if (filename == NULL) {
         return -1;
@@ -418,7 +418,7 @@ int rrnetmk3_bin_save(const char *filename)
 
     ret = fwrite(rrnetmk3_bios, 1, 0x2000 + rrnetmk3_bios_offset, fd);
     fclose(fd);
-    if (ret != 0x2000 + rrnetmk3_bios_offset) {
+    if (ret != (0x2000 + rrnetmk3_bios_offset)) {
         return -1;
     }
     rrnetmk3_bios_changed = 0;

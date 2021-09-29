@@ -51,7 +51,7 @@ static void remove_6809_prefix(int *prefix, uint8_t *opc)
     }
 }
 
-static char *get_6309_bitwise_reg(uint8_t val)
+static const char *get_6309_bitwise_reg(uint8_t val)
 {
     switch (val & 0xc0) {
         case 0x00:
@@ -64,17 +64,17 @@ static char *get_6309_bitwise_reg(uint8_t val)
     return "?";
 }
 
-static char *reg6809[] = {
+static const char * const reg6809[] = {
     "D", "X", "Y", "U", "S", "PC", "?R6", "?R7",
     "A", "B", "CC", "DP", "?RC", "?RD", "?RE", "?RF"
 };
 
-static char *reg6309[] = {
+static const char * const reg6309[] = {
     "D", "X", "Y", "U", "S", "PC", "W", "V",
     "A", "B", "CC", "DP", "0", "0", "E", "F"
 };
 
-char index_reg6809[] = { 'X', 'Y', 'U', 'S' };
+const char index_reg6809[] = { 'X', 'Y', 'U', 'S' };
 
 static const char *mon_disassemble_to_string_internal(MEMSPACE memspace,
                                                       unsigned int addr, uint8_t opc[5],
@@ -1372,12 +1372,12 @@ static const char* mon_disassemble_instr_interal(unsigned *opc_size, MON_ADDR ad
     mem = addr_memspace(addr);
     loc = addr_location(addr);
 
-    opc[0] = mon_get_mem_val(mem, loc);
-    opc[1] = mon_get_mem_val(mem, (uint16_t)(loc + 1));
-    opc[2] = mon_get_mem_val(mem, (uint16_t)(loc + 2));
-    opc[3] = mon_get_mem_val(mem, (uint16_t)(loc + 3));
-    opc[4] = mon_get_mem_val(mem, (uint16_t)(loc + 4));
-
+    opc[0] = mon_get_mem_val_nosfx(mem, loc);
+    opc[1] = mon_get_mem_val_nosfx(mem, (uint16_t)(loc + 1));
+    opc[2] = mon_get_mem_val_nosfx(mem, (uint16_t)(loc + 2));
+    opc[3] = mon_get_mem_val_nosfx(mem, (uint16_t)(loc + 3));
+    opc[4] = mon_get_mem_val_nosfx(mem, (uint16_t)(loc + 4));
+    
     dis_inst = mon_disassemble_to_string_internal(mem, loc, opc, hex_mode, opc_size, monitor_cpu_for_memspace[mem]);
 
     sprintf(buff, ".%s:%04x  %s", mon_memspace_string[mem], loc, dis_inst);
@@ -1489,7 +1489,7 @@ void mon_disassemble_lines(MON_ADDR start_addr, MON_ADDR end_addr)
         int line_count; /* Number of lines printed by disassembly */
         bytes = mon_disassemble_instr(dot_addr[mem], &line_count);
         i += bytes;
-        mon_inc_addr_location(&(dot_addr[mem]), bytes);
+        mon_inc_addr_location(&(dot_addr[mem]), (unsigned int)bytes);
         if (mon_stop_output != 0) {
             break;
         }

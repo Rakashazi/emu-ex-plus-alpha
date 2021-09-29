@@ -29,15 +29,23 @@
 
 #include "types.h"
 
-#define MEMORY_HACK_NONE     0
-#define MEMORY_HACK_C256K    1
-#define MEMORY_HACK_H256K    2
-#define MEMORY_HACK_H1024K   3
-#define MEMORY_HACK_H4096K   4
+/** \brief  Different types of memory expansion hack for the Plus4/C16
+ */
+typedef enum plus4_memhack_e {
+    MEMORY_HACK_NONE,   /**< no memory hack*/
+    MEMORY_HACK_C256K,  /**< 256KB CSORY */
+    MEMORY_HACK_H256K,  /**< 256KB Hannes */
+    MEMORY_HACK_H1024K, /**< 1024KB Hannes */
+    MEMORY_HACK_H4096K  /**< 4096KB Hannes */
+} plus4_memhack_t;
+
+
 
 extern int plus4_memory_hacks_ram_inject(uint16_t addr, uint8_t value);
 
 extern int plus4_memory_hacks_resources_init(void);
 extern int plus4_memory_hacks_cmdline_options_init(void);
+
+extern const char *plus4_memory_hacks_desc(int hack);
 
 #endif

@@ -39,9 +39,6 @@
 
 #include "types.h"
 
-/* debug variable - set to 1 to generate output */
-extern int parallel_debug;
-
 /* to switch on/off IEEE488 filesystem engine */
 extern void parallel_bus_enable(int enable);
 

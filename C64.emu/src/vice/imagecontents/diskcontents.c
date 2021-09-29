@@ -42,7 +42,7 @@
 #include "vdrive-internal.h"
 
 
-image_contents_t *diskcontents_read(const char *file_name, unsigned int unit)
+image_contents_t *diskcontents_read(const char *file_name, unsigned int unit, unsigned int drive)
 {
     switch (machine_bus_device_type_get(unit)) {
         default:
@@ -50,7 +50,7 @@ image_contents_t *diskcontents_read(const char *file_name, unsigned int unit)
         case SERIAL_DEVICE_REAL:
             return machine_diskcontents_bus_read(unit);
         case SERIAL_DEVICE_RAW:
-            return diskcontents_block_read(file_system_get_vdrive(unit));
+            return diskcontents_block_read(file_system_get_vdrive(unit, drive));
     }
 }
 
@@ -61,20 +61,21 @@ image_contents_t *diskcontents_filesystem_read(const char *file_name)
 
 image_contents_t *diskcontents_read_unit8(const char *file_name)
 {
-    return diskcontents_read(file_name, 8);
+    /* TODO: drive 1 */
+    return diskcontents_read(file_name, 8, 0);
 }
 
 image_contents_t *diskcontents_read_unit9(const char *file_name)
 {
-    return diskcontents_read(file_name, 9);
+    return diskcontents_read(file_name, 9, 0);
 }
 
 image_contents_t *diskcontents_read_unit10(const char *file_name)
 {
-    return diskcontents_read(file_name, 10);
+    return diskcontents_read(file_name, 10, 0);
 }
 
 image_contents_t *diskcontents_read_unit11(const char *file_name)
 {
-    return diskcontents_read(file_name, 11);
+    return diskcontents_read(file_name, 11, 0);
 }

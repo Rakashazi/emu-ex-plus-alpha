@@ -57,6 +57,7 @@
 #include "interrupt.h"
 #include "lib.h"
 #include "log.h"
+#include "monitor.h"
 #include "rotation.h"
 #include "types.h"
 #include "via.h"
@@ -76,14 +77,14 @@ static void set_ca2(via_context_t *via_context, int state)
     drive_t *drv;
     via2p = (drivevia2_context_t *)(via_context->prv);
     drv = via2p->drive;
-    curr = ((drv->byte_ready_active >> 1) & 1);
+    curr = ((drv->byte_ready_active >> 1) & 1); /* selects BRA_BYTE_READY */
     if (state != curr) {
         DBG(("VIA2: set_ca2 (%d to %d) (byte rdy)", curr, state));
         rotation_rotate_disk(drv);
         drv->byte_ready_active &= ~(1 << 1);
         drv->byte_ready_active |= state << 1;
         if (drv->byte_ready_edge) {
-           drive_context_t *dc = (drive_context_t *)(via_context->context);
+           diskunit_context_t *dc = (diskunit_context_t *)(via_context->context);
            drive_cpu_set_overflow(dc);
            drv->byte_ready_edge = 0;
         }
@@ -112,40 +113,51 @@ static void set_cb2(via_context_t *via_context, int state)
 static void set_int(via_context_t *via_context, unsigned int int_num,
                     int value, CLOCK rclk)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
 
-    dc = (drive_context_t *)(via_context->context);
+    dc = (diskunit_context_t *)(via_context->context);
 
     interrupt_set_irq(dc->cpu->int_status, int_num, value, rclk);
 }
 
 static void restore_int(via_context_t *via_context, unsigned int int_num, int value)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
 
-    dc = (drive_context_t *)(via_context->context);
+    dc = (diskunit_context_t *)(via_context->context);
 
     interrupt_restore_irq(dc->cpu->int_status, int_num, value);
 }
 
-void via2d_store(drive_context_t *ctxptr, uint16_t addr, uint8_t data)
+void via2d_store(diskunit_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
     viacore_store(ctxptr->via2, addr, data);
 }
 
-uint8_t via2d_read(drive_context_t *ctxptr, uint16_t addr)
+uint8_t via2d_read(diskunit_context_t *ctxptr, uint16_t addr)
 {
     return viacore_read(ctxptr->via2, addr);
 }
 
-uint8_t via2d_peek(drive_context_t *ctxptr, uint16_t addr)
+uint8_t via2d_peek(diskunit_context_t *ctxptr, uint16_t addr)
 {
     return viacore_peek(ctxptr->via2, addr);
 }
 
-int via2d_dump(drive_context_t *ctxptr, uint16_t addr)
+int via2d_dump(diskunit_context_t *ctxptr, uint16_t addr)
 {
+    const int speeds[4] = {250000, 266667, 285714, 307692};
+    drivevia2_context_t *via2p = (drivevia2_context_t *)(ctxptr->via2->prv);
+    drive_t *drv = via2p->drive;
+    int track_number = drv->current_half_track;
+    int zone = (ctxptr->via2->via[VIA_PRB] >> 5) & 3;
+
     viacore_dump(ctxptr->via2);
+    mon_out("\nHead is on track: %d.%d (%s at %dbps, speed zone %d)\n", 
+            track_number / 2, (track_number & 1) * 5,
+            ((ctxptr->via2->via[VIA_PCR] & 0xe0) == 0xe0) ? "reading" : "writing",
+            speeds[zone], zone
+           );
     return 0;
 }
 
@@ -159,7 +171,9 @@ void via2d_update_pcr(int pcrval, drive_t *dptr)
     int bra = dptr->byte_ready_active;
     rotation_rotate_disk(dptr);
     dptr->read_write_mode = pcrval & 0x20;
-    dptr->byte_ready_active = (bra & ~0x02) | (pcrval & 0x02);
+    DBG(("via2d.c: via2d_update_pcr: drv->read_write_mode = %x", drv->read_write_mode))
+#define PCR_BYTE_READY    BRA_BYTE_READY    /* 0x02 */
+    dptr->byte_ready_active = (bra & ~BRA_BYTE_READY) | (pcrval & PCR_BYTE_READY);
 }
 
 static void store_pra(via_context_t *via_context, uint8_t byte, uint8_t oldpa_value,
@@ -305,15 +319,16 @@ static void store_prb(via_context_t *via_context, uint8_t byte, uint8_t poldpb,
     if ((poldpb ^ byte) & 0x60) {   /* Zone bits */
         rotation_speed_zone_set((byte >> 5) & 0x3, via2p->number);
     }
-    if ((poldpb ^ byte) & 0x04) {   /* Motor on/off */
+#define PB_MOTOR_ON     BRA_MOTOR_ON
+    if ((poldpb ^ byte) & PB_MOTOR_ON) {   /* Motor on/off */
         drive_sound_update((byte & 4) ? DRIVE_SOUND_MOTOR_ON : DRIVE_SOUND_MOTOR_OFF, via2p->number);
         bra = drv->byte_ready_active;
-        drv->byte_ready_active = (bra & ~0x04) | (byte & 0x04);
-        if ((byte & 0x04) != 0) {
+        drv->byte_ready_active = (bra & ~BRA_MOTOR_ON) | (byte & BRA_MOTOR_ON);
+        if ((byte & BRA_MOTOR_ON) != 0) {
             rotation_begins(drv);
         } else {
             if (drv->byte_ready_edge) {
-               drive_context_t *dc = (drive_context_t *)(via_context->context);
+               diskunit_context_t *dc = (diskunit_context_t *)(via_context->context);
                drive_cpu_set_overflow(dc);
                drv->byte_ready_edge = 0;
             }
@@ -343,10 +358,10 @@ static void undump_prb(via_context_t *via_context, uint8_t byte)
 
     via2p = (drivevia2_context_t *)(via_context->prv);
 
-    via2p->drive->led_status = (byte & 8) ? 1 : 0;
-    rotation_speed_zone_set((byte >> 5) & 0x3, via2p->number);
+    via2p->drive->led_status = (byte & 0x08) ? 1 : 0;
+    rotation_speed_zone_set((byte >> 5) & 0x03, via2p->number);
     via2p->drive->byte_ready_active
-        = (via2p->drive->byte_ready_active & ~0x04) | (byte & 0x04);
+        = (via2p->drive->byte_ready_active & ~BRA_MOTOR_ON) | (byte & BRA_MOTOR_ON);
 }
 
 static uint8_t store_pcr(via_context_t *via_context, uint8_t byte, uint16_t addr)
@@ -415,6 +430,7 @@ static void reset(via_context_t *via_context)
 
 static uint8_t read_pra(via_context_t *via_context, uint16_t addr)
 {
+    /* GCR data port */
     uint8_t byte;
     drivevia2_context_t *via2p;
 
@@ -427,7 +443,10 @@ static uint8_t read_pra(via_context_t *via_context, uint16_t addr)
 
     byte = ((via2p->drive->GCR_read & ~(via_context->via[VIA_DDRA]))
            | (via_context->via[VIA_PRA] & via_context->via[VIA_DDRA]));
-
+#if 0
+    printf("(%u)%02x", via2p->drive->GCR_head_offset/8, via2p->drive->GCR_read);
+    if (byte != via2p->drive->GCR_read) printf("[%02x]", byte);
+#endif
     via2p->drive->byte_ready_level = 0;
 
     return byte;
@@ -457,13 +476,13 @@ static uint8_t read_prb(via_context_t *via_context)
     return byte;
 }
 
-void via2d_init(drive_context_t *ctxptr)
+void via2d_init(diskunit_context_t *ctxptr)
 {
     viacore_init(ctxptr->via2, ctxptr->cpu->alarm_context,
                  ctxptr->cpu->int_status, ctxptr->cpu->clk_guard);
 }
 
-void via2d_setup_context(drive_context_t *ctxptr)
+void via2d_setup_context(diskunit_context_t *ctxptr)
 {
     drivevia2_context_t *via2p;
     via_context_t *via;
@@ -476,7 +495,7 @@ void via2d_setup_context(drive_context_t *ctxptr)
 
     via2p = (drivevia2_context_t *)(via->prv);
     via2p->number = ctxptr->mynumber;
-    via2p->drive = ctxptr->drive;
+    via2p->drive = ctxptr->drives[0];
 
     via->context = (void *)ctxptr;
 

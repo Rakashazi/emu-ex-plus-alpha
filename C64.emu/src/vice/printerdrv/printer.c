@@ -110,15 +110,19 @@ void printer_reset(void)
 
 void printer_shutdown(void)
 {
-    output_graphics_shutdown();
-    output_select_shutdown();
     drv_mps803_shutdown();
     drv_nl10_shutdown();
     drv_1520_shutdown();
     driver_select_shutdown();
     machine_printer_shutdown();
+    output_graphics_shutdown();
+    output_select_shutdown();
 }
 
+/** \brief  Send formfeed to printer
+ *
+ * \param[in]   prnr    device number (4-7)
+ */
 void printer_formfeed(unsigned int prnr)
 {
     driver_select_formfeed(prnr);

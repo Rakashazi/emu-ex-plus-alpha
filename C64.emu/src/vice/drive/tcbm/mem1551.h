@@ -27,8 +27,8 @@
 #ifndef VICE_MEM1551_H
 #define VICE_MEM1551_H
 
-struct drive_context_s;
+struct diskunit_context_s;
 
-extern void mem1551_init(struct drive_context_s *drv, unsigned int type);
+extern void mem1551_init(struct diskunit_context_s *drv, unsigned int type);
 
 #endif

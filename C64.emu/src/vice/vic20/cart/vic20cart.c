@@ -153,6 +153,7 @@ static int set_cartridge_type(int val, void *param)
         case CARTRIDGE_VIC20_16KB_2000:
         case CARTRIDGE_VIC20_16KB_4000:
         case CARTRIDGE_VIC20_16KB_6000:
+        case CARTRIDGE_VIC20_32KB_2000:
             break;
         default:
             return -1;
@@ -265,19 +266,19 @@ static const cmdline_option_t cmdline_options[] =
       NULL, "Do not reset machine if a cartridge is attached or detached" },
     { "-cart2", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_16KB_2000, NULL, NULL,
-      "<Name>", "Specify 4/8/16K extension ROM name at $2000" },
+      "<Name>", "Specify 4/8/16KiB extension ROM name at $2000" },
     { "-cart4", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_16KB_4000, NULL, NULL,
-      "<Name>", "Specify 4/8/16K extension ROM name at $4000" },
+      "<Name>", "Specify 4/8/16KiB extension ROM name at $4000" },
     { "-cart6", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_16KB_6000, NULL, NULL,
-      "<Name>", "Specify 4/8/16K extension ROM name at $6000" },
+      "<Name>", "Specify 4/8/16KiB extension ROM name at $6000" },
     { "-cartA", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_8KB_A000, NULL, NULL,
-      "<Name>", "Specify 4/8K extension ROM name at $A000" },
+      "<Name>", "Specify 4/8KiB extension ROM name at $A000" },
     { "-cartB", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_4KB_B000, NULL, NULL,
-      "<Name>", "Specify 4K extension ROM name at $B000" },
+      "<Name>", "Specify 4KiB extension ROM name at $B000" },
     { "-cartbb", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       attach_cartridge_cmdline, (void *)CARTRIDGE_VIC20_BEHRBONZ, NULL, NULL,
       "<Name>", "Specify Behr Bonz extension ROM name" },

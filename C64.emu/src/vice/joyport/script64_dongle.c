@@ -60,12 +60,12 @@ static int joyport_script64_dongle_enable(int port, int value)
     return 0;
 }
 
-static uint8_t script64_dongle_read_potx(void)
+static uint8_t script64_dongle_read_potx(int port)
 {
     return POTX_RETURN;
 }
 
-static uint8_t script64_dongle_read_poty(void)
+static uint8_t script64_dongle_read_poty(int port)
 {
     return POTY_RETURN;
 }

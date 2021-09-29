@@ -1118,7 +1118,7 @@ static uint8_t sfx_soundexpander_piano_read(uint16_t addr)
    DBL   | freqbase              |   0.0+  | freqbase
  */
 
-static char snap_module_name[] = "CARTSFXSE";
+static const char snap_module_name[] = "CARTSFXSE";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   1
 

@@ -49,6 +49,11 @@
 #include "video.h"
 #include "viewport.h"
 
+#define TRACKED_CANVAS_MAX 2
+
+/** \brief Used to enable video_canvas_refresh_all_tracked() */
+static video_canvas_t *tracked_canvas[TRACKED_CANVAS_MAX];
+
 /* Temporary! */
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -57,6 +62,7 @@
 /* called from raster/raster-resources.c:raster_resources_chip_init */
 video_canvas_t *video_canvas_init(void)
 {
+    int i;
     video_canvas_t *canvas;
 
     canvas = lib_calloc(1, sizeof(video_canvas_t));
@@ -70,12 +76,33 @@ video_canvas_t *video_canvas_init(void)
 
     video_arch_canvas_init(canvas);
 
+    for (i = 0; i < TRACKED_CANVAS_MAX; i++) {
+        if (!tracked_canvas[i]) {
+            tracked_canvas[i] = canvas;
+            break;
+        }
+    }
+
+    if (i == TRACKED_CANVAS_MAX) {
+        log_error(LOG_ERR, "Creating more than expected video_canvas_t, monitor will not refresh this canvas after each command");
+    }
+
     return canvas;
 }
 
 void video_canvas_shutdown(video_canvas_t *canvas)
 {
+    int i;
+
     if (canvas != NULL) {
+        /* Remove canvas from tracking */
+        for (i = 0; i < TRACKED_CANVAS_MAX; i++) {
+            if (tracked_canvas[i] == canvas) {
+                tracked_canvas[i] = NULL;
+                break;
+            }
+        }
+
         lib_free(canvas->videoconfig);
         lib_free(canvas->draw_buffer);
         video_viewport_title_free(canvas->viewport);
@@ -109,6 +136,22 @@ void video_canvas_render(video_canvas_t *canvas, uint8_t *trg, int width,
                       trg, width, height, xs, ys, xt, yt,
                       canvas->draw_buffer->draw_buffer_width, pitcht, depth,
                       viewport);
+}
+
+/** \brief Force refresh all tracked canvases.
+ * 
+ * Added to enable visible updates each time the monitor
+ * prompts for input.
+ */
+void video_canvas_refresh_all_tracked(void)
+{
+    int i;
+    
+    for (i = 0; i < TRACKED_CANVAS_MAX; i++) {
+        if (tracked_canvas[i]) {
+            video_canvas_refresh_all(tracked_canvas[i]);
+        }
+    }
 }
 
 void video_canvas_refresh_all(video_canvas_t *canvas)
@@ -158,9 +201,11 @@ int video_canvas_palette_set(struct video_canvas_s *canvas,
         video_color_palette_free(old_palette);
     }
 
-    if (canvas->created) {
-        video_canvas_refresh_all(canvas);
-    }
+#if 0 /* WTF this was causing each frame to be rendered twice */
+   if (canvas->created) {
+       video_canvas_refresh_all(canvas);
+   }
+#endif
 
     return 0;
 }

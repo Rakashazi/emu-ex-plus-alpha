@@ -88,7 +88,6 @@ static void io_source_detach(io_source_detach_t *source)
             resources_set_int(source->det_name, 0);
             break;
     }
-    ui_update_menus();
 }
 
 /*
@@ -549,21 +548,27 @@ void io_source_ioreg_add_list(struct mem_ioreg_list_s **mem_ioreg_list)
     current = vic20io0_head.next;
 
     while (current) {
-        mon_ioreg_add_list(mem_ioreg_list, current->device->name, current->device->start_address, current->device->start_address + decodemask(current->device->address_mask), current->device->dump, NULL);
+        mon_ioreg_add_list(mem_ioreg_list, current->device->name, current->device->start_address,
+                           current->device->start_address + decodemask(current->device->address_mask),
+                           current->device->dump, NULL, current->device->mirror_mode);
         current = current->next;
     }
 
     current = vic20io2_head.next;
 
     while (current) {
-        mon_ioreg_add_list(mem_ioreg_list, current->device->name, current->device->start_address, current->device->start_address + decodemask(current->device->address_mask), current->device->dump, NULL);
+        mon_ioreg_add_list(mem_ioreg_list, current->device->name, current->device->start_address,
+                           current->device->start_address + decodemask(current->device->address_mask),
+                           current->device->dump, NULL, current->device->mirror_mode);
         current = current->next;
     }
 
     current = vic20io3_head.next;
 
     while (current) {
-        mon_ioreg_add_list(mem_ioreg_list, current->device->name, current->device->start_address, current->device->start_address + decodemask(current->device->address_mask), current->device->dump, NULL);
+        mon_ioreg_add_list(mem_ioreg_list, current->device->name, current->device->start_address,
+                           current->device->start_address + decodemask(current->device->address_mask),
+                           current->device->dump, NULL, current->device->mirror_mode);
         current = current->next;
     }
 }

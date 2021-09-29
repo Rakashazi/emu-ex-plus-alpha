@@ -331,7 +331,7 @@ int digimax_cmdline_options_init(void)
    BYTE  | voice 3    | voice 3 data
  */
 
-static char snap_module_name[] = "CARTDIGIMAX";
+static const char snap_module_name[] = "CARTDIGIMAX";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

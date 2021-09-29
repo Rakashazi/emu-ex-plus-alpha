@@ -21,7 +21,7 @@ namespace EmuControls
 
 const unsigned categories = 4;
 static const unsigned gamepadKeys = 11;
-static const unsigned kbKeys = 74;
+static const unsigned kbKeys = 88;
 const unsigned systemTotalKeys = gameActionKeys + gamepadKeys*2 + kbKeys;
 
 void transposeKeysForPlayer(KeyConfig::KeyArray &key, unsigned player)
@@ -57,20 +57,20 @@ static const char *keyboardName[kbKeys] =
 	"F7",
 	"F8",
 
-	"Left Arrow",
-	"1  !",
-	"2  \"",
-	"3  #",
-	"4  $",
-	"5  %",
-	"6  &",
-	"7  '",
-	"8  (",
-	"9  )",
+	"←",
+	"1 ⇧!",
+	"2 ⇧@",
+	"3 ⇧#",
+	"4 ⇧$",
+	"5 ⇧%",
+	"6",
+	"7 ⇧&",
+	"8 ⇧(",
+	"9 ⇧)",
 	"0",
 	"+",
-	"-",
-	"Pound",
+	"- ⇧←",
+	"£",
 	"Clr Home",
 	"Inst Del",
 
@@ -87,7 +87,7 @@ static const char *keyboardName[kbKeys] =
 	"P",
 	"@",
 	"*",
-	"Up Arrow",
+	"↑",
 	"Restore",
 
 	"Run Stop",
@@ -101,8 +101,8 @@ static const char *keyboardName[kbKeys] =
 	"J",
 	"K",
 	"L",
-	":  (",
-	";  )",
+	":",
+	"; ⇧:",
 	"=",
 	"Return",
 
@@ -115,9 +115,9 @@ static const char *keyboardName[kbKeys] =
 	"B",
 	"N",
 	"M",
-	",  <",
-	".  >",
-	"/  ?",
+	", ⇧<",
+	". ⇧>",
+	"/ ⇧?",
 	"Right Shift",
 	"Up",
 	"Right",
@@ -125,7 +125,22 @@ static const char *keyboardName[kbKeys] =
 	"Left",
 
 	"Space",
-	"Ctrl Lock"
+
+	"Ctrl Lock",
+	"!",
+	"\"",
+	"#",
+	"$",
+	"%",
+	"&",
+	"(",
+	")",
+	"[",
+	"]",
+	"<",
+	">",
+	"?",
+	"' ⇧\"",
 };
 
 static const unsigned gamepadKeyOffset = gameActionKeys;
@@ -147,9 +162,9 @@ const KeyConfig defaultKeyProfile[] =
 	#endif
 	{
 		Map::SYSTEM,
-		{"PC Keyboard (w/ Joystick Keys)"},
+		{"PC Keyboard"},
 		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_ALT_PROFILE_INIT,
+			EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_ALT2_PROFILE_INIT,
 
 			// JS 1
 			Keycode::UP,
@@ -157,8 +172,8 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::DOWN,
 			Keycode::LEFT,
 			0, 0, 0, 0,
-			Keycode::Z,
-			Keycode::X,
+			Keycode::LALT,
+			0,
 			Keycode::F10,
 
 			// JS 2
@@ -187,13 +202,13 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::_8,
 			Keycode::_9,
 			Keycode::_0,
-			Keycode::MINUS, // +
-			Keycode::EQUALS,
-			0, // Pound
+			0, // +
+			Keycode::MINUS,
+			Keycode::BACKSLASH, // Pound
 			Keycode::HOME,
 			Keycode::BACK_SPACE,
 
-			Keycode::TAB,
+			Keycode::LCTRL,
 			Keycode::Q,
 			Keycode::W,
 			Keycode::E,
@@ -206,11 +221,11 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::P,
 			0, // @
 			0, // *
-			Keycode::BACKSLASH, // Up Arrow
+			Keycode::PGDOWN, // Up Arrow
 			Keycode::END, // Restore
 
-			Keycode::PGUP, // Run/Stop
-			0, // Shift/Lock
+			Keycode::PAUSE, // Run/Stop
+			Keycode::CAPS, // Shift/Lock
 			Keycode::A,
 			Keycode::S,
 			Keycode::D,
@@ -219,16 +234,16 @@ const KeyConfig defaultKeyProfile[] =
 			Keycode::H,
 			Keycode::J,
 			Keycode::K,
-			0, // l
-			Keycode::SEMICOLON, // :
-			Keycode::APOSTROPHE, // ;
-			0,
+			Keycode::L, // l
+			0, // :
+			Keycode::SEMICOLON, // ;
+			Keycode::EQUALS, // =
 			Keycode::ENTER,
 
-			Keycode::LSUPER,
+			Keycode::TAB,
 			Keycode::LSHIFT,
-			0, // z
-			0, // x
+			Keycode::Z, // z
+			Keycode::X, // x
 			Keycode::C,
 			Keycode::V,
 			Keycode::B,
@@ -244,100 +259,22 @@ const KeyConfig defaultKeyProfile[] =
 			0, // left
 
 			Keycode::SPACE,
-		}
-	},
-	{
-		Map::SYSTEM,
-		{"PC Keyboard"},
-		{
-			EMU_CONTROLS_IN_GAME_ACTIONS_GENERIC_KB_MINIMAL_PROFILE_INIT,
 
-			// JS 1
-			PP_ZERO_LIST(11)
-
-			// JS 2
-			PP_ZERO_LIST(11)
-
-			// KB
-			Keycode::RSUPER,
-
-			Keycode::F1,
-			Keycode::F2,
-			Keycode::F3,
-			Keycode::F4,
-			Keycode::F5,
-			Keycode::F6,
-			Keycode::F7,
-			Keycode::F8,
-
-			Keycode::GRAVE, // Left Arrow
-			Keycode::_1,
-			Keycode::_2,
-			Keycode::_3,
-			Keycode::_4,
-			Keycode::_5,
-			Keycode::_6,
-			Keycode::_7,
-			Keycode::_8,
-			Keycode::_9,
-			Keycode::_0,
-			Keycode::MINUS, // +
-			Keycode::EQUALS, // -
-			0, // Pound
-			Keycode::HOME,
-			Keycode::BACK_SPACE,
-
-			Keycode::TAB,
-			Keycode::Q,
-			Keycode::W,
-			Keycode::E,
-			Keycode::R,
-			Keycode::T,
-			Keycode::Y,
-			Keycode::U,
-			Keycode::I,
-			Keycode::O,
-			Keycode::P,
-			Keycode::LEFT_BRACKET, // @
-			Keycode::RIGHT_BRACKET, // *
-			Keycode::BACKSLASH, // Up Arrow
-			Keycode::END, // Restore
-
-			Keycode::PGUP, // Run/Stop
-			0, // Shift/Lock
-			Keycode::A,
-			Keycode::S,
-			Keycode::D,
-			Keycode::F,
-			Keycode::G,
-			Keycode::H,
-			Keycode::J,
-			Keycode::K,
-			Keycode::L,
-			Keycode::SEMICOLON, // :
-			Keycode::APOSTROPHE, // ;
-			0,
-			Keycode::ENTER,
-
-			Keycode::LSUPER,
-			Keycode::LSHIFT,
-			Keycode::Z,
-			Keycode::X,
-			Keycode::C,
-			Keycode::V,
-			Keycode::B,
-			Keycode::N,
-			Keycode::M,
-			Keycode::COMMA,
-			Keycode::PERIOD,
-			Keycode::SLASH,
-			Keycode::RSHIFT,
-			Keycode::UP, // up
-			Keycode::RIGHT, // right
-			Keycode::DOWN, // down
-			Keycode::LEFT, // left
-
-			Keycode::SPACE,
+			Keycode::INSERT,
+			0, // !
+			0, // "
+			0, // #
+			0, // $
+			0, // %
+			0, // &
+			0, // (
+			0, // )
+			Keycode::LEFT_BRACKET,
+			Keycode::RIGHT_BRACKET,
+			0, // <
+			0, // >
+			0, // ?
+			Keycode::APOSTROPHE,
 		}
 	},
 	#ifdef CONFIG_INPUT_GAMEPAD_DEVICES

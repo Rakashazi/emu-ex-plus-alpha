@@ -523,7 +523,7 @@ int speech_cart_enabled(void)
 
 /* ------------------------------------------------------------------------- */
 
-char *speech_filename = NULL;
+const char *speech_filename = NULL;
 
 static io_source_t speech_device = {
     "V364SPEECH",         /* name of the device */
@@ -553,18 +553,14 @@ static int set_speech_enabled(int value, void *param)
     }
 
     if (val) {
+        resources_get_string("c2loname", &speech_filename);
         if (speech_filename) {
             if (*speech_filename) {
-                if (plus4cart_load_c2lo(speech_filename) < 0) {
-                    return -1;
-                }
                 speech_sound_chip.chip_enabled = 1;
                 speech_list_item = io_source_register(&speech_device);
             }
         }
     } else {
-        speech_sound_chip.chip_enabled = 0;
-        memset(extromlo3, 0, PLUS4_CART16K_SIZE);
         speech_sound_chip.chip_enabled = 0;
         io_source_unregister(speech_list_item);
         speech_list_item = NULL;
@@ -574,36 +570,6 @@ static int set_speech_enabled(int value, void *param)
     return 0;
 }
 
-static int set_speech_filename(const char *name, void *param)
-{
-    int enabled;
-
-    if (name != NULL && *name != '\0') {
-        if (util_check_filename_access(name) < 0) {
-            return -1;
-        }
-    }
-
-    resources_get_int("SpeechEnabled", &enabled);
-    util_string_set(&speech_filename, name);
-
-    if (set_speech_enabled(enabled, NULL) < 0) {
-        lib_free (speech_filename);
-        speech_filename = NULL;
-        DBG(("speech_set_name: %d '%s'\n", speech_enabled, speech_filename));
-        return -1;
-    }
-    DBG(("speech_set_name: %d '%s'\n", speech_enabled, speech_filename));
-
-    return 0;
-}
-
-static const resource_string_t resources_string[] = {
-    { "SpeechImage", "", RES_EVENT_NO, NULL,
-      &speech_filename, set_speech_filename, NULL },
-    RESOURCE_STRING_LIST_END
-};
-
 static const resource_int_t resources_int[] = {
     { "SpeechEnabled", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &speech_sound_chip.chip_enabled, set_speech_enabled, NULL },
@@ -612,15 +578,11 @@ static const resource_int_t resources_int[] = {
 
 int speech_resources_init(void)
 {
-    if (resources_register_string(resources_string) < 0) {
-        return -1;
-    }
     return resources_register_int(resources_int);
 }
 
 void speech_resources_shutdown(void)
 {
-    lib_free(speech_filename);
     speech_filename = NULL;
 }
 
@@ -632,13 +594,6 @@ void speech_shutdown(void)
     }
 }
 
-static int set_speech_rom(const char *name, void *param)
-{
-    resources_set_string("SpeechImage", name);
-    resources_set_int("SpeechEnabled", 1);
-    return 0;
-}
-
 static const cmdline_option_t cmdline_options[] =
 {
     { "-speech", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
@@ -647,9 +602,6 @@ static const cmdline_option_t cmdline_options[] =
     { "+speech", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "SpeechEnabled", (resource_value_t)0,
       NULL, "Disable the v364 speech add-on" },
-    { "-speechrom", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
-      set_speech_rom, NULL, NULL, NULL,
-      "<Name>", "Attach Speech ROM image" },
     CMDLINE_LIST_END
 };
 

@@ -588,20 +588,28 @@ void viacore_store(via_context_t *via_context, uint16_t addr, uint8_t byte)
                     alarm_set(via_context->t2_alarm, via_context->tbi);
                 }
             }
-#if 0 /* r32790 FIXME: this breaks Galaxians/Thunder Mountain protection */
+#if 1 /* r32790 FIXME: this breaks Galaxians/Thunder Mountain protection */
             /* handle the t2 alarm for the serial shift register
              * 
              * FIXME: it is not clear what happens when pulse counting mode is 
              *        selected for t2
              */
-            if ((byte & 0x20) == 0) {
-                if (((byte & 0x0c) == 0x04) || /* FIXME: shift register under t2 control */
-                    ((byte & 0x1c) == 0x10)) {  /* FIXME: shift register free running at t2 rate */
-                    /* Timer mode; set the next alarm to the low latch value as timer cascading mode change 
-                    matters at each underflow of the T2 low counter */
-                    via_context->tbu = rclk + via_context->t2cl + 3;
-                    via_context->tbi = rclk + via_context->t2cl + 1;
-                    alarm_set(via_context->t2_alarm, via_context->tbi);
+            /* HACK:  flag to indicate that the computer transferred data to the shift
+                      register ("burstmode").
+               FIXME: this should be fixed properly and then removed
+
+               see bug #996, bug #1233
+            */
+            if (via_context->burstmodehack) {
+                if ((byte & 0x20) == 0) {
+                    if (((byte & 0x0c) == 0x04) || /* FIXME: shift register under t2 control */
+                        ((byte & 0x1c) == 0x10)) {  /* FIXME: shift register free running at t2 rate */
+                        /* Timer mode; set the next alarm to the low latch value as timer cascading mode change 
+                        matters at each underflow of the T2 low counter */
+                        via_context->tbu = rclk + via_context->t2cl + 3;
+                        via_context->tbi = rclk + via_context->t2cl + 1;
+                        alarm_set(via_context->t2_alarm, via_context->tbi);
+                    }
                 }
             }
 #endif
@@ -967,6 +975,13 @@ void viacore_set_sr(via_context_t *via_context, uint8_t data)
         via_context->shift_state = 15;
 #endif
     }
+    /* HACK:  flag to indicate that the computer transferred data to the shift
+              register ("burstmode").
+       FIXME: this should be fixed properly and then removed
+
+       see bug #996, bug #1233
+    */
+    via_context->burstmodehack = 1;
 }
 
 static inline void do_shiftregister(CLOCK offset, void *data)
@@ -1142,6 +1157,14 @@ void viacore_setup_context(via_context_t *via_context)
     via_context->via[5] = via_context->via[7] = 223;  /* my vic20 gives 223 here (gpz) */
     via_context->via[8] = 0xff;
     via_context->via[9] = 0xff;
+
+    /* HACK:  flag to indicate that the computer transferred data to the shift
+              register ("burstmode").
+       FIXME: this should be fixed properly and then removed
+
+       see bug #996, bug #1233
+    */
+    via_context->burstmodehack = 0;
 }
 
 void viacore_init(via_context_t *via_context, alarm_context_t *alarm_context,

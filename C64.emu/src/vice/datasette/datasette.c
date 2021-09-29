@@ -38,6 +38,7 @@
 #include "clkguard.h"
 #include "cmdline.h"
 #include "datasette.h"
+#include "datasette-sound.h"
 #include "lib.h"
 #include "log.h"
 #include "machine.h"
@@ -121,6 +122,12 @@ static int datasette_tape_wobble = 0;
 
 /* datasette device enable */
 static int datasette_enable = 0;
+
+/* audible sound from datasette device */
+int datasette_sound_emulation = 1;
+
+/* volume of sound from datasette device */
+int datasette_sound_emulation_volume;
 
 static log_t datasette_log = LOG_ERR;
 
@@ -213,6 +220,8 @@ static int set_datasette_enable(int value, void *param)
 {
     int val = value ? 1 : 0;
 
+    DBG(("set_datasette_enable: %d", value));
+
     if (datasette_enable == val) {
         return 0;
     }
@@ -228,6 +237,24 @@ static int set_datasette_enable(int value, void *param)
     }
 
     datasette_enable = val;
+
+    return 0;
+}
+
+static int set_datasette_sound_emulation(int val, void *param)
+{
+    datasette_sound_emulation = val ? 1 : 0;
+
+    return 0;
+}
+
+static int set_datasette_sound_emulation_volume(int val, void *param)
+{
+    if (val < 0) {
+        return -1;
+    }
+
+    datasette_sound_emulation_volume = val;
 
     return 0;
 }
@@ -248,6 +275,12 @@ static const resource_int_t resources_int[] = {
     { "DatasetteTapeWobble", 10, RES_EVENT_SAME, NULL,
       &datasette_tape_wobble,
       set_datasette_tape_wobble, NULL },
+    { "DatasetteSound", 0, RES_EVENT_SAME, NULL,
+      &datasette_sound_emulation,
+      set_datasette_sound_emulation, NULL },
+    { "DatasetteSoundVolume", 1024, RES_EVENT_SAME, NULL,
+      &datasette_sound_emulation_volume,
+      set_datasette_sound_emulation_volume, NULL },
     RESOURCE_INT_LIST_END
 };
 
@@ -285,6 +318,15 @@ static const cmdline_option_t cmdline_options[] =
     { "-dstapewobble", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "DatasetteTapeWobble", NULL,
       "<value>", "Set maximum random number of cycles added to each gap in the tap" },
+    { "-datasettesound", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "DatasetteSound", (resource_value_t)1,
+      NULL, "Enable Datasette sound" },
+    { "+datasettesound", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "DatasetteSound", (resource_value_t)0,
+      NULL, "Disable Datasette sound" },
+    { "-dssoundvolume", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "DatasetteSoundVolume", NULL,
+      "<value>", "Set volume of Datasette sound" },
     CMDLINE_LIST_END
 };
 
@@ -469,7 +511,7 @@ inline static int read_gap_backward_v1(long *read_tap)
 
     *read_tap = next_tap;
     next_tap += (remember_file_seek_position - current_image->current_file_seek_position);
-    current_image->current_file_seek_position = remember_file_seek_position;
+    current_image->current_file_seek_position = (int)remember_file_seek_position;
 
     return 0;
 }
@@ -577,7 +619,7 @@ static void datasette_read_bit(CLOCK offset, void *data)
     alarm_unset(datasette_alarm);
     datasette_alarm_pending = 0;
 
-    DBG(("datasette_read_bit(motor:%d) %d>=%d (image present:%s)", datasette_motor, maincpu_clk, motor_stop_clk, current_image ? "yes" : "no"));
+    DBG(("datasette_read_bit(motor:%d) %u>=%u (image present:%s)", datasette_motor, maincpu_clk, motor_stop_clk, current_image ? "yes" : "no"));
 
     /* check for delay of motor stop */
     if (motor_stop_clk > 0 && maincpu_clk >= motor_stop_clk) {
@@ -649,7 +691,7 @@ static void datasette_read_bit(CLOCK offset, void *data)
         but use use only the elapsed gap */
         gap = datasette_read_gap(direction);
         datasette_long_gap_pending = datasette_long_gap_elapsed;
-        datasette_long_gap_elapsed = gap - datasette_long_gap_elapsed;
+        datasette_long_gap_elapsed = (CLOCK)(gap - datasette_long_gap_elapsed);
     }
     if (datasette_long_gap_pending) {
         gap = datasette_long_gap_pending;
@@ -665,7 +707,7 @@ static void datasette_read_bit(CLOCK offset, void *data)
         return;
     }
     if (gap > DATASETTE_MAX_GAP) {
-        datasette_long_gap_pending = gap - DATASETTE_MAX_GAP;
+        datasette_long_gap_pending = (CLOCK)(gap - DATASETTE_MAX_GAP);
         gap = DATASETTE_MAX_GAP;
     }
     datasette_long_gap_elapsed += gap;
@@ -675,6 +717,10 @@ static void datasette_read_bit(CLOCK offset, void *data)
         current_image->cycle_counter += gap / 8;
     } else {
         current_image->cycle_counter -= gap / 8;
+    }
+
+    if (current_image->mode == DATASETTE_CONTROL_START) {
+        datasette_sound_add_to_circular_buffer(gap);
     }
 
     gap -= offset;
@@ -741,6 +787,7 @@ void datasette_set_tape_image(tap_t *image)
             current_image->cycle_counter_total += gap / 8;
         } while (gap);
         current_image->current_file_seek_position = 0;
+        datasette_sound_set_halfwaves(current_image->version == 2);
     }
     if (datasette_list_item) {
         tapeport_set_tape_sense(0, datasette_device.id);
@@ -998,7 +1045,7 @@ static void datasette_set_motor(int flag)
     }
     if (!flag && datasette_motor && motor_stop_clk == 0) {
         motor_stop_clk = maincpu_clk + MOTOR_DELAY;
-        DBG(("datasette_set_motor(maincpu_clk:%d motor_stop_clk:%d)", maincpu_clk, motor_stop_clk));
+        DBG(("datasette_set_motor(maincpu_clk:%u motor_stop_clk:%u)", maincpu_clk, motor_stop_clk));
         if (!datasette_alarm_pending) {
             /* make sure that the motor will stop */
             alarm_set(datasette_alarm, motor_stop_clk);
@@ -1171,6 +1218,9 @@ static int datasette_read_snapshot(snapshot_t *s)
     if (m == NULL) {
         return 0;
     }
+
+    /* enable device */
+    set_datasette_enable(1, NULL);
 
     if (0
         || SMR_B_INT(m, &datasette_motor) < 0

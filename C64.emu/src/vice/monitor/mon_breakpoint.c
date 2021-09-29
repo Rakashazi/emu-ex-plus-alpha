@@ -41,28 +41,14 @@
 #include "mon_util.h"
 #include "montypes.h"
 #include "uimon.h"
+#include "mon_breakpoint.h"
 
-
-
-struct checkpoint_s {
-    int checknum;
-    MON_ADDR start_addr;
-    MON_ADDR end_addr;
-    int hit_count;
-    int ignore_count;
-    cond_node_t *condition;
-    char *command;
-    bool stop;
-    bool enabled;
-    bool check_load;
-    bool check_store;
-    bool check_exec;
-    bool temporary;
-};
-typedef struct checkpoint_s checkpoint_t;
+#ifdef HAVE_NETWORK
+#include "monitor_binary.h"
+#endif
 
 struct checkpoint_list_s {
-    checkpoint_t *checkpt;
+    mon_checkpoint_t *checkpt;
     struct checkpoint_list_s *next;
 };
 typedef struct checkpoint_list_s checkpoint_list_t;
@@ -78,7 +64,7 @@ void mon_breakpoint_init(void)
     breakpoint_count = 1;
 }
 
-static void remove_checkpoint_from_list(checkpoint_list_t **head, checkpoint_t *cp)
+static void remove_checkpoint_from_list(checkpoint_list_t **head, mon_checkpoint_t *cp)
 {
     checkpoint_list_t *cur_entry, *prev_entry;
 
@@ -107,8 +93,78 @@ static void remove_checkpoint_from_list(checkpoint_list_t **head, checkpoint_t *
     }
 }
 
-/* find the breakpoint with number 'brknum' in the linked list */
-static checkpoint_t *find_checkpoint(int brknum)
+/** \brief Get a list of all checkpoints
+ *
+ * \param[out]  len     length of the returned array
+ * 
+ * \return The list of checkpoints
+ */
+mon_checkpoint_t **mon_breakpoint_checkpoint_list_get(unsigned int *len) {
+    checkpoint_list_t *ptr;
+    int i;
+    mon_checkpoint_t **concat;
+
+    *len = 0;
+
+    for (i = FIRST_SPACE; i <= LAST_SPACE; i++) {
+        ptr = breakpoints[i];
+        while (ptr) {
+            ++*len;
+            ptr = ptr->next;
+        }
+
+        ptr = watchpoints_load[i];
+        while (ptr) {
+            ++*len;
+            ptr = ptr->next;
+        }
+
+        ptr = watchpoints_store[i];
+        while (ptr) {
+            ++*len;
+            ptr = ptr->next;
+        }
+    }
+
+    concat = lib_malloc(sizeof(mon_checkpoint_t *) * *len);
+
+    *len = -1;
+
+    for (i = FIRST_SPACE; i <= LAST_SPACE; i++) {
+        ptr = breakpoints[i];
+        while (ptr) {
+            ++*len;
+            concat[*len] = ptr->checkpt;
+            ptr = ptr->next;
+        }
+
+        ptr = watchpoints_load[i];
+        while (ptr) {
+            ++*len;
+            concat[*len] = ptr->checkpt;
+            ptr = ptr->next;
+        }
+
+        ptr = watchpoints_store[i];
+        while (ptr) {
+            ++*len;
+            concat[*len] = ptr->checkpt;
+            ptr = ptr->next;
+        }
+    }
+
+    ++*len;
+
+    return concat;
+}
+
+/** \brief find the breakpoint with number 'brknum' in the linked list
+ *
+ * \param[in]  brknum     breakpoint number
+ * 
+ * \return The checkpoint that has brknum, or NULL
+ */
+mon_checkpoint_t *mon_breakpoint_find_checkpoint(int brknum)
 {
     checkpoint_list_t *ptr;
     int i;
@@ -144,13 +200,15 @@ static checkpoint_t *find_checkpoint(int brknum)
 
 static void update_checkpoint_state(MEMSPACE mem)
 {
-    if (watchpoints_load[mem] != NULL || watchpoints_store[mem] != NULL) {
+    /* calls mem_toggle_watchpoints() */
+    if (watchpoints_load[mem] != NULL || 
+        watchpoints_store[mem] != NULL) {
         monitor_mask[mem] |= MI_WATCH;
-        mon_interfaces[mem]->toggle_watchpoints_func(
-            1, mon_interfaces[mem]->context);
+        mon_interfaces[mem]->toggle_watchpoints_func( 
+            1 | (break_on_dummy_access << 1), mon_interfaces[mem]->context);
     } else {
         monitor_mask[mem] &= ~MI_WATCH;
-        mon_interfaces[mem]->toggle_watchpoints_func(
+        mon_interfaces[mem]->toggle_watchpoints_func( 
             0, mon_interfaces[mem]->context);
     }
 
@@ -167,7 +225,31 @@ static void update_checkpoint_state(MEMSPACE mem)
     }
 }
 
-static void remove_checkpoint(checkpoint_t *cp)
+/** \brief Ensure checkpoint state for memspaces is set correctly.
+ *
+ * Used to keep breakpoints working after a snapshot load.
+ */
+void mon_update_all_checkpoint_state(void)
+{
+    MEMSPACE i;
+    
+    for (i = FIRST_SPACE; i <= LAST_SPACE; i++) {
+        update_checkpoint_state(i);
+    }
+}
+
+/* FIXME: some day we might want to toggle the break-on-dummy-access per MEMSPACE,
+          for now its a global option */
+void mon_breakpoint_set_dummy_state(MEMSPACE mem, int state)
+{
+    if (mem == e_default_space) {
+        mem = default_memspace;
+    }
+    break_on_dummy_access = state; /* this is redundant right now */
+    update_checkpoint_state(mem);
+}
+
+static void remove_checkpoint(mon_checkpoint_t *cp)
 {
     MEMSPACE mem;
 
@@ -193,32 +275,32 @@ static void remove_checkpoint(checkpoint_t *cp)
 void mon_breakpoint_switch_checkpoint(int op, int cp_num)
 {
     int i;
-    checkpoint_t *cp = NULL;
+    mon_checkpoint_t *cp = NULL;
 
-    cp = find_checkpoint(cp_num);
+    cp = mon_breakpoint_find_checkpoint(cp_num);
 
     if (cp_num == -1) {
         mon_out("Set all checkpoints to state: %s\n",
                 (op == e_ON) ? "enabled" : "disabled");
         for (i = 1; i < breakpoint_count; i++) {
-            if ((cp = find_checkpoint(i))) {
-                cp = find_checkpoint(i);
+            if ((cp = mon_breakpoint_find_checkpoint(i))) {
+                cp = mon_breakpoint_find_checkpoint(i);
                 cp->enabled = op;
             }
         }
-    } else if (!(cp = find_checkpoint(cp_num))) {
+    } else if (!(cp = mon_breakpoint_find_checkpoint(cp_num))) {
         mon_out("#%d not a valid checkpoint\n", cp_num);
         return;
     } else {
-        cp = find_checkpoint(cp_num);
+        cp = mon_breakpoint_find_checkpoint(cp_num);
         cp->enabled = op;
     }
 }
 
 void mon_breakpoint_set_ignore_count(int cp_num, int count)
 {
-    checkpoint_t *cp;
-    cp = find_checkpoint(cp_num);
+    mon_checkpoint_t *cp;
+    cp = mon_breakpoint_find_checkpoint(cp_num);
 
     if (!cp) {
         mon_out("#%d not a valid checkpoint\n", cp_num);
@@ -229,7 +311,7 @@ void mon_breakpoint_set_ignore_count(int cp_num, int count)
     }
 }
 
-static void print_checkpoint_info(checkpoint_t *cp)
+static void print_checkpoint_info(mon_checkpoint_t *cp)
 {
     if (!cp->stop) {
         mon_out("TRACE: ");
@@ -278,10 +360,10 @@ static void print_checkpoint_info(checkpoint_t *cp)
 void mon_breakpoint_print_checkpoints(void)
 {
     int i, any_set = 0;
-    checkpoint_t *bp;
+    mon_checkpoint_t *bp;
 
     for (i = 1; i < breakpoint_count; i++) {
-        if ((bp = find_checkpoint(i))) {
+        if ((bp = mon_breakpoint_find_checkpoint(i))) {
             print_checkpoint_info(bp);
             any_set = 1;
         }
@@ -295,19 +377,19 @@ void mon_breakpoint_print_checkpoints(void)
 void mon_breakpoint_delete_checkpoint(int cp_num)
 {
     int i;
-    checkpoint_t *cp = NULL;
+    mon_checkpoint_t *cp = NULL;
 
     if (cp_num == -1) {
         /* Add user confirmation here. */
         mon_out("Deleting all checkpoints\n");
         for (i = 1; i < breakpoint_count; i++) {
-            if ((cp = find_checkpoint(i))) {
+            if ((cp = mon_breakpoint_find_checkpoint(i))) {
                 remove_checkpoint(cp);
             }
         }
         /* reset the index to 1 */
         breakpoint_count = 1;
-    } else if (!(cp = find_checkpoint(cp_num))) {
+    } else if (!(cp = mon_breakpoint_find_checkpoint(cp_num))) {
         mon_out("#%d not a valid checkpoint\n", cp_num);
         return;
     } else {
@@ -315,7 +397,7 @@ void mon_breakpoint_delete_checkpoint(int cp_num)
         /* if there are still checkpoints in the list, return.
            else reset the index to 1 */
         for (i = 1; i < breakpoint_count; i++) {
-            if ((cp = find_checkpoint(i))) {
+            if ((cp = mon_breakpoint_find_checkpoint(i))) {
                 return;
             }
         }
@@ -326,10 +408,10 @@ void mon_breakpoint_delete_checkpoint(int cp_num)
 void mon_breakpoint_set_checkpoint_condition(int cp_num,
                                              cond_node_t *cnode)
 {
-    checkpoint_t *cp;
+    mon_checkpoint_t *cp;
 
     if (cnode) {
-        cp = find_checkpoint(cp_num);
+        cp = mon_breakpoint_find_checkpoint(cp_num);
 
         if (!cp) {
             mon_out("#%d not a valid checkpoint\n", cp_num);
@@ -346,8 +428,8 @@ void mon_breakpoint_set_checkpoint_condition(int cp_num,
 
 void mon_breakpoint_set_checkpoint_command(int cp_num, char *cmd)
 {
-    checkpoint_t *bp;
-    bp = find_checkpoint(cp_num);
+    mon_checkpoint_t *bp;
+    bp = mon_breakpoint_find_checkpoint(cp_num);
 
     if (!bp) {
         mon_out("#%d not a valid checkpoint\n", cp_num);
@@ -379,7 +461,7 @@ static checkpoint_list_t *search_checkpoint_list(checkpoint_list_t *head, unsign
     return NULL;
 }
 
-static int compare_checkpoints(checkpoint_t *bp1, checkpoint_t *bp2)
+static int compare_checkpoints(mon_checkpoint_t *bp1, mon_checkpoint_t *bp2)
 {
     unsigned addr1, addr2;
     /* Returns < 0 if bp1 < bp2
@@ -401,10 +483,18 @@ static int compare_checkpoints(checkpoint_t *bp1, checkpoint_t *bp2)
     return 0;
 }
 
+static void mon_breakpoint_event(mon_checkpoint_t *checkpt) {
+    #ifdef HAVE_NETWORK
+        if (monitor_is_binary()) {
+            monitor_binary_response_checkpoint_info(0xffffffff, checkpt, 1);
+        }
+    #endif
+}
+
 bool mon_breakpoint_check_checkpoint(MEMSPACE mem, unsigned int addr, unsigned int lastpc, MEMORY_OP op)
 {
     checkpoint_list_t *ptr;
-    checkpoint_t *cp;
+    mon_checkpoint_t *cp;
     checkpoint_list_t *list;
     monitor_cpu_type_t *monitor_cpu;
     bool must_stop = FALSE;
@@ -459,6 +549,8 @@ bool mon_breakpoint_check_checkpoint(MEMSPACE mem, unsigned int addr, unsigned i
 
             cp->hit_count++;
 
+            mon_breakpoint_event(cp);
+
             if (cp->stop) {
                 must_stop = TRUE;
                 action_str = "Stop on";
@@ -475,9 +567,11 @@ bool mon_breakpoint_check_checkpoint(MEMSPACE mem, unsigned int addr, unsigned i
                 mon_interfaces[mem]->get_line_cycle(&line, &cycle, &half_cycle);
 
                 if (half_cycle == -1) {
-                    mon_out(" %03u %03u\n", line, cycle);
+                    mon_out(" %3u/$%03x, %3u/$%03x\n",
+                            line, line, cycle, cycle);
                 } else {
-                    mon_out(" %03u %03u %i\n", line, cycle, half_cycle);
+                    mon_out(" %3u/$%03x, %3u/$%03x %i\n",
+                            line, line, cycle, cycle, half_cycle);
                 }
             } else {
                 mon_out("\n");
@@ -505,7 +599,7 @@ bool mon_breakpoint_check_checkpoint(MEMSPACE mem, unsigned int addr, unsigned i
     return must_stop;
 }
 
-static void add_to_checkpoint_list(checkpoint_list_t **head, checkpoint_t *cp)
+static void add_to_checkpoint_list(checkpoint_list_t **head, mon_checkpoint_t *cp)
 {
     checkpoint_list_t *new_entry, *cur_entry, *prev_entry;
 
@@ -541,11 +635,11 @@ int breakpoint_add_checkpoint(MON_ADDR start_addr, MON_ADDR end_addr,
                               bool stop, MEMORY_OP memory_op,
                               bool is_temp, bool do_print)
 {
-    checkpoint_t *new_cp;
+    mon_checkpoint_t *new_cp;
     MEMSPACE mem;
 
     mon_evaluate_address_range(&start_addr, &end_addr, FALSE, 0);
-    new_cp = lib_malloc(sizeof(checkpoint_t));
+    new_cp = lib_malloc(sizeof(mon_checkpoint_t));
 
     new_cp->checknum = breakpoint_count++;
     new_cp->start_addr = start_addr;
@@ -586,9 +680,9 @@ int breakpoint_add_checkpoint(MON_ADDR start_addr, MON_ADDR end_addr,
 }
 
 int mon_breakpoint_add_checkpoint(MON_ADDR start_addr, MON_ADDR end_addr,
-                                  bool stop, MEMORY_OP op, bool is_temp)
+                                  bool stop, MEMORY_OP op, bool is_temp, bool do_print)
 {
-    return breakpoint_add_checkpoint(start_addr, end_addr, stop, op, is_temp, TRUE);
+    return breakpoint_add_checkpoint(start_addr, end_addr, stop, op, is_temp, do_print);
 }
 
 mon_breakpoint_type_t mon_breakpoint_is(MON_ADDR address)

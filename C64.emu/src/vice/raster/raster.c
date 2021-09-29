@@ -71,9 +71,14 @@ static int raster_draw_buffer_alloc(video_canvas_t *canvas,
         return canvas->video_draw_buffer_callback->draw_buffer_alloc(canvas, &canvas->draw_buffer->draw_buffer, fb_width, fb_height, fb_pitch);
     }
 
-    /* FIXME: Allocate one more line to prevent access violations by the
-       scale2x render.  */
-    canvas->draw_buffer->draw_buffer = lib_malloc(fb_width * (fb_height + 1));
+    /*
+     * FIXME: We have to allocate memory either size of the draw buffer because both the CRT and Scale2x
+     * filters will access memory both before and after the draw_buffer. This is a workaround that will 
+     * no doubt survive until we shift filters to the GPU.
+     */
+    
+    canvas->draw_buffer->draw_buffer_padded_allocation = lib_calloc(1, fb_width * (fb_height + 4));
+    canvas->draw_buffer->draw_buffer = canvas->draw_buffer->draw_buffer_padded_allocation + (fb_height * 2);
     *fb_pitch = fb_width;
     return 0;
 }
@@ -85,7 +90,8 @@ static void raster_draw_buffer_free(video_canvas_t *canvas)
         return;
     }
 
-    lib_free(canvas->draw_buffer->draw_buffer);
+    lib_free(canvas->draw_buffer->draw_buffer_padded_allocation);
+    canvas->draw_buffer->draw_buffer_padded_allocation = NULL;
     canvas->draw_buffer->draw_buffer = NULL;
 }
 
@@ -244,7 +250,7 @@ int raster_init(raster_t *raster,
     raster->cache = NULL;
     raster->cache_enabled = 0;
     raster->dont_cache = 1;
-    raster->dont_cache_all = 0;
+    raster->dont_cache_all = 1;
     raster->num_cached_lines = 0;
 
     raster->fake_draw_buffer_line = NULL;
@@ -261,8 +267,9 @@ int raster_init(raster_t *raster,
     memset(raster->zero_gfx_msk, 0, RASTER_GFX_MSK_SIZE);
 
     video_viewport_get(raster->canvas, &raster->viewport, &raster->geometry);
-
+#if defined(USE_SDLUI) || defined(USE_SDLUI2) || defined(USE_NATIVE_GTK3)
     raster->canvas->initialized = 1;
+#endif
     raster_set_canvas_refresh(raster, 1);
 
     return 0;
@@ -502,8 +509,10 @@ void raster_skip_frame(raster_t *raster, int skip)
 
 void raster_enable_cache(raster_t *raster, int enable)
 {
+#if 0 /* disabled cache hack */
     raster->cache_enabled = enable;
     raster_force_repaint(raster);
+#endif
 }
 
 void raster_set_canvas_refresh(raster_t *raster, int enable)
@@ -523,12 +532,21 @@ void raster_screenshot(raster_t *raster, screenshot_t *screenshot)
     screenshot->dpi_y = 100;
     screenshot->first_displayed_line = raster->geometry->first_displayed_line;
     screenshot->last_displayed_line = raster->geometry->last_displayed_line;
+    screenshot->gfx_position = raster->geometry->gfx_position;
     screenshot->first_displayed_col
         = raster->geometry->extra_offscreen_border_left
           + raster->canvas->viewport->first_x;
     screenshot->draw_buffer = raster->canvas->draw_buffer->draw_buffer;
     screenshot->draw_buffer_line_size
         = raster->canvas->draw_buffer->draw_buffer_width;
+
+    /* Default values. Should be replaced by the graphics chip screenshot code */
+    screenshot->debug_offset_x = 0;
+    screenshot->debug_offset_y = 0;
+    screenshot->debug_width = screenshot->max_width & ~3;
+    screenshot->debug_height = screenshot->last_displayed_line - screenshot->first_displayed_line + 1;
+    screenshot->inner_width = screenshot->debug_width;
+    screenshot->inner_height = screenshot->debug_height;
 }
 
 void raster_async_refresh(raster_t *raster, struct canvas_refresh_s *ref)
@@ -536,9 +554,6 @@ void raster_async_refresh(raster_t *raster, struct canvas_refresh_s *ref)
     ref->draw_buffer = raster->canvas->draw_buffer->draw_buffer;
     ref->draw_buffer_line_size
         = raster->canvas->draw_buffer->draw_buffer_width;
-#ifdef __OS2__
-    ref->bufh = raster->canvas->draw_buffer->draw_buffer_height;
-#endif
     ref->x = raster->geometry->extra_offscreen_border_left
              + raster->canvas->viewport->first_x;
     ref->y = raster->geometry->first_displayed_line;

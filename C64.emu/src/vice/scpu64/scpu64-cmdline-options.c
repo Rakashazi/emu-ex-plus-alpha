@@ -189,7 +189,7 @@ static const cmdline_option_t cmdline_options[] =
       "<value>", "Computer reset goes to IEC bus (0 = No, 1 = Yes)" },
     { "-simmsize", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "SIMMSize", NULL,
-      "<number>", "Size of the SIMM RAM (0/1/4/8/16 MB)" },
+      "<number>", "Size of the SIMM RAM (0/1/4/8/16 MiB)" },
     { "-jiffyswitch", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "JiffySwitch", (void *)1,
       NULL, "Turn on Jiffy switch" },

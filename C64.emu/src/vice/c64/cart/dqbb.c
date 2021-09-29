@@ -499,7 +499,7 @@ int dqbb_peek_mem(uint16_t addr, uint8_t *value)
    ARRAY | RAM        | 16768 BYTES of RAM data
  */
 
-static char snap_module_name[] = "CARTDQBB";
+static const char snap_module_name[] = "CARTDQBB";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

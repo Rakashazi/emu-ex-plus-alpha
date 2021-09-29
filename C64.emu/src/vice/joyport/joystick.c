@@ -65,6 +65,9 @@
      3   | left     |  I
      4   | right    |  I
      6   | button   |  I
+         |          |
+     9   | button 2 |  I
+     5   | button 3 |  I
  */
 
 /* #define DEBUGJOY */
@@ -75,6 +78,8 @@
 #define DBG(x)
 #endif
 
+#define JOYPAD_FIRE2 0x20
+#define JOYPAD_FIRE3 0x40
 #define JOYPAD_FIRE 0x10
 #define JOYPAD_E    0x08
 #define JOYPAD_W    0x04
@@ -165,7 +170,7 @@ static void joystick_latch_matrix(CLOCK offset)
         joyport_display_joyport(JOYPORT_ID_JOY4, joystick_value[4]);
     }
     if (joyport_joystick[4]) {
-        joyport_display_joyport(JOYPORT_ID_JOY4, joystick_value[5]);
+        joyport_display_joyport(JOYPORT_ID_JOY5, joystick_value[5]);
     }
 }
 
@@ -299,7 +304,9 @@ static int joypad_bits[JOYSTICK_KEYSET_NUM_KEYS] = {
     JOYPAD_E,
     JOYPAD_NW,
     JOYPAD_N,
-    JOYPAD_NE
+    JOYPAD_NE,
+    JOYPAD_FIRE2,
+    JOYPAD_FIRE3
 };
 
 static int joypad_status[JOYSTICK_KEYSET_NUM][JOYSTICK_KEYSET_NUM_KEYS];
@@ -363,6 +370,10 @@ static const resource_int_t joykeys_resources_int[] = {
       &joykeys[JOYSTICK_KEYSET_IDX_A][JOYSTICK_KEYSET_W], set_keyset1, (void *)JOYSTICK_KEYSET_W },
     { "KeySet1Fire", ARCHDEP_KEYBOARD_SYM_NONE, RES_EVENT_NO, NULL,
       &joykeys[JOYSTICK_KEYSET_IDX_A][JOYSTICK_KEYSET_FIRE], set_keyset1, (void *)JOYSTICK_KEYSET_FIRE },
+    { "KeySet1Fire2", ARCHDEP_KEYBOARD_SYM_NONE, RES_EVENT_NO, NULL,
+        &joykeys[JOYSTICK_KEYSET_IDX_A][JOYSTICK_KEYSET_FIRE2], set_keyset1, (void *)JOYSTICK_KEYSET_FIRE2 },
+    { "KeySet1Fire3", ARCHDEP_KEYBOARD_SYM_NONE, RES_EVENT_NO, NULL,
+        &joykeys[JOYSTICK_KEYSET_IDX_A][JOYSTICK_KEYSET_FIRE3], set_keyset1, (void *)JOYSTICK_KEYSET_FIRE3 },
     { "KeySet2NorthWest", ARCHDEP_KEYBOARD_SYM_NONE, RES_EVENT_NO, NULL,
       &joykeys[JOYSTICK_KEYSET_IDX_B][JOYSTICK_KEYSET_NW], set_keyset2, (void *)JOYSTICK_KEYSET_NW },
     { "KeySet2North", ARCHDEP_KEYBOARD_SYM_NONE, RES_EVENT_NO, NULL,
@@ -381,6 +392,10 @@ static const resource_int_t joykeys_resources_int[] = {
       &joykeys[JOYSTICK_KEYSET_IDX_B][JOYSTICK_KEYSET_W], set_keyset2, (void *)JOYSTICK_KEYSET_W },
     { "KeySet2Fire", ARCHDEP_KEYBOARD_SYM_NONE, RES_EVENT_NO, NULL,
       &joykeys[JOYSTICK_KEYSET_IDX_B][JOYSTICK_KEYSET_FIRE], set_keyset2, (void *)JOYSTICK_KEYSET_FIRE },
+    { "KeySet2Fire2", ARCHDEP_KEYBOARD_SYM_NONE, RES_EVENT_NO, NULL,
+        &joykeys[JOYSTICK_KEYSET_IDX_B][JOYSTICK_KEYSET_FIRE2], set_keyset2, (void *)JOYSTICK_KEYSET_FIRE2 },
+    { "KeySet2Fire3", ARCHDEP_KEYBOARD_SYM_NONE, RES_EVENT_NO, NULL,
+        &joykeys[JOYSTICK_KEYSET_IDX_B][JOYSTICK_KEYSET_FIRE3], set_keyset2, (void *)JOYSTICK_KEYSET_FIRE3 },
     { "KeySetEnable", 1, RES_EVENT_NO, NULL,
       &joykeys_enable, set_joykeys_enable, NULL },
     RESOURCE_INT_LIST_END
@@ -519,7 +534,17 @@ static int joyport_enable_joystick(int port, int val)
 
 static uint8_t read_joystick(int port)
 {
-    return (uint8_t)(~joystick_value[port + 1]);
+    return (uint8_t)(~(joystick_value[port + 1] & 0x1f));
+}
+
+static uint8_t read_potx(int port) {
+    /* printf("read_potx %d %02x %02x %02x\n", port, joystick_value[port + 1]); */
+    return joystick_value[port + 1] & JOYPAD_FIRE2 ? 0x00 : 0xff;
+}
+
+static uint8_t read_poty(int port) {
+    /* printf("read_poty %d %02x %02x %02x\n", port, joystick_value[port + 1]); */
+    return joystick_value[port + 1] & JOYPAD_FIRE3 ? 0x00 : 0xff;
 }
 
 /* Some prototypes are needed */
@@ -534,8 +559,8 @@ static joyport_t joystick_device = {
     joyport_enable_joystick,        /* device enable function */
     read_joystick,                  /* digital line read function */
     NULL,                           /* NO digital line store function */
-    NULL,                           /* NO pot-x read function */
-    NULL,                           /* NO pot-y read function */
+    read_potx,                      /* pot-x read function */
+    read_poty,                      /* pot-y read function */
     joystick_snapshot_write_module, /* device write snapshot function */
     joystick_snapshot_read_module   /* device read snapshot function */
 };

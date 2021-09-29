@@ -209,7 +209,7 @@
 #define HAVE_GETTIMEOFDAY 1
 
 /* Can we use the GIF or UNGIF library? */
-#define HAVE_GIF /**/
+/* #undef HAVE_GIF */
 
 /* GTK3 OpenGL support uses GLEW */
 //#define HAVE_GTK3_GLEW /**/
@@ -263,7 +263,7 @@
 /* #undef HAVE_IPV6 */
 
 /* Can we use the JPEG library? */
-#define HAVE_JPEG /**/
+/* #undef HAVE_JPEG */
 
 /* Define to 1 if you have the 'amd64' library (-lamd64). */
 /* #undef HAVE_LIBAMD64 */
@@ -389,7 +389,7 @@
 //#define HAVE_MOUSE /**/
 
 /* Define to 1 if you have the <mpg123.h> header file. */
-#define HAVE_MPG123_H 1
+/* #undef HAVE_MPG123_H */
 
 /* Use nanosleep instead of usleep */
 #define HAVE_NANOSLEEP /**/
@@ -409,8 +409,8 @@
 /* Enable netplay support */
 //#define HAVE_NETWORK /**/
 
-/* Use the experimental new 8580 filter */
-/* #undef HAVE_NEW_8580_FILTER */
+/* Use the new 8580 filter */
+//#define HAVE_NEW_8580_FILTER /**/
 
 /* Define to 1 if you have the `outb' function. */
 /* #undef HAVE_OUTB */
@@ -826,7 +826,7 @@
 //#define USE_VORBIS /**/
 
 /* Version number of package */
-#define VERSION "3.4"
+#define VERSION "3.5"
 
 /* Where should we lookup for data files? */
 //#define VICEDIR "/usr/local/lib64/vice"
@@ -892,3 +892,9 @@
 /* #undef vfork */
 
 #define VICE_API __attribute__((visibility("default")))
+
+#if __ANDROID__ && __ANDROID_API__ < 24
+// fseeko/ftello not supported on older Android versions
+#define fseeko fseek
+#define ftello ftell
+#endif

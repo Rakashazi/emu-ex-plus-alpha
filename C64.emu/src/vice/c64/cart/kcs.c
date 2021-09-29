@@ -279,7 +279,7 @@ void kcs_detach(void)
 Note: in snapshots before 0.3 the RAM size was 8192.
  */
 
-static char snap_module_name[] = "CARTKCS";
+static const char snap_module_name[] = "CARTKCS";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   3
 

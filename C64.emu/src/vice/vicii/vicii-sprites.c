@@ -417,7 +417,7 @@ static void init_drawing_tables(void)
         uint32_t __m;                                               \
         int __p;                                                 \
                                                                  \
-        for (__m = 1 << ((size) - 1), __p = 0;                   \
+        for (__m = (uint32_t)1 << ((size) - 1), __p = 0;                   \
              __p < (size);                                       \
              __p++, __m >>= 1) {                                 \
             if ((msk) & __m) {                                   \
@@ -582,7 +582,7 @@ inline static void draw_hires_sprite_expanded(uint8_t *data_ptr, int n,
         }
     }
 
-    collmsk = ((((msk_ptr[1] << 24) | (msk_ptr[2] << 16)
+    collmsk = (((((uint32_t)msk_ptr[1] << 24) | (msk_ptr[2] << 16)
                  | (msk_ptr[3] << 8) | msk_ptr[4]) << lshift)
                | (msk_ptr[5] >> (8 - lshift)));
 
@@ -691,7 +691,7 @@ inline static void draw_hires_sprite_normal(uint8_t *data_ptr, int n,
         }
     }
 
-    collmsk = ((((msk_ptr[1] << 24) | (msk_ptr[2] << 16)
+    collmsk = (((((uint32_t)msk_ptr[1] << 24) | (msk_ptr[2] << 16)
                  | (msk_ptr[3] << 8) | msk_ptr[4]) << lshift)
                | (msk_ptr[5] >> (8 - lshift)));
 
@@ -916,7 +916,7 @@ inline static void draw_mc_sprite_normal(uint8_t *data_ptr, int n, uint32_t *c,
                             % vicii.sprite_wrap_x;
 
     mcsprmsk = (data_ptr[0] << 16) | (data_ptr[1] << 8) | data_ptr[2];
-    collmsk = ((((msk_ptr[0] << 24) | (msk_ptr[1] << 16)
+    collmsk = (((((uint32_t)msk_ptr[0] << 24) | (msk_ptr[1] << 16)
                  | (msk_ptr[2] << 8) | msk_ptr[3]) << lshift)
                | (msk_ptr[4] >> (8 - lshift)));
     sprmsk = ((mcsprtable[data_ptr[0]] << 16)

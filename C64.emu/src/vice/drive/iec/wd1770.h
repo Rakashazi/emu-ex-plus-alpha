@@ -30,21 +30,21 @@
 #include "types.h"
 
 struct disk_image_s;
-struct drive_context_s;
+struct diskunit_context_s;
 struct snapshot_s;
 typedef struct wd1770_s wd1770_t;
 
 /* FIXME: whats the deal with the different prefixes? */
-extern void wd1770d_init(struct drive_context_s *drv);
+extern void wd1770d_init(struct diskunit_context_s *drv);
 extern void wd1770_shutdown(wd1770_t *drv);
 
 extern int wd1770_attach_image(struct disk_image_s *image, unsigned int unit);
 extern int wd1770_detach_image(struct disk_image_s *image, unsigned int unit);
 
 extern int wd1770_disk_change(wd1770_t *drv);
-extern void wd1770d_store(struct drive_context_s *drv, uint16_t addr, uint8_t byte);
-extern uint8_t wd1770d_read(struct drive_context_s *drv, uint16_t addr);
-extern uint8_t wd1770d_peek(struct drive_context_s *drv, uint16_t addr);
+extern void wd1770d_store(struct diskunit_context_s *drv, uint16_t addr, uint8_t byte);
+extern uint8_t wd1770d_read(struct diskunit_context_s *drv, uint16_t addr);
+extern uint8_t wd1770d_peek(struct diskunit_context_s *drv, uint16_t addr);
 extern void wd1770_reset(wd1770_t *drv);
 extern void wd1770_set_side(wd1770_t *drv, int side);
 extern void wd1770_set_motor(wd1770_t *drv, int on);

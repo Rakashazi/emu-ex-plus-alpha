@@ -150,7 +150,12 @@ static uint8_t ethernetcart_read(uint16_t io_address)
     if (ethernetcart_mode == ETHERNETCART_MODE_RRNET) {
         if (io_address < 2) {
             return 0;
+            /* FIXME: is this a mistake with return 0; being too early, or is
+             *        the next line supposed to be commented out/deleted?
+             */
+#if 0
             ethernetcart_device.io_source_valid = 0;
+#endif
         }
         io_address ^= 8;
     }
@@ -372,9 +377,9 @@ int ethernetcart_disable(void)
 static const resource_int_t resources_int[] = {
     { "ETHERNETCART_ACTIVE", 0, RES_EVENT_STRICT, (resource_value_t)0,
       &ethernetcart_enabled, set_ethernetcart_enabled, NULL },
-    { "ETHERNETCARTBase", 0xffff, RES_EVENT_STRICT, (resource_value_t)0,
+    { "ETHERNETCARTBase", 0xffff, RES_EVENT_STRICT, (resource_value_t)0xffff,
       &ethernetcart_base, set_ethernetcart_base, NULL },
-    { "ETHERNETCARTMode", ETHERNETCART_MODE_TFE, RES_EVENT_STRICT, (resource_value_t)0,
+    { "ETHERNETCARTMode", ETHERNETCART_MODE_TFE, RES_EVENT_STRICT, (resource_value_t)ETHERNETCART_MODE_TFE,
       &ethernetcart_mode, set_ethernetcart_mode, NULL },
     RESOURCE_INT_LIST_END
 };

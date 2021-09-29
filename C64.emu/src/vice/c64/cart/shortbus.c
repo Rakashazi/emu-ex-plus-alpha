@@ -174,7 +174,7 @@ void shortbus_reset(void)
    BYTE  | eth64 active   | eth64 active flag
  */
 
-static char snap_module_name[] = "SHORTBUS";
+static const char snap_module_name[] = "SHORTBUS";
 #define SNAP_MAJOR 0
 #define SNAP_MINOR 0
 

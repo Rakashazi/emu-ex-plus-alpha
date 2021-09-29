@@ -41,26 +41,26 @@
 
 typedef struct drivecia1571_context_s {
     unsigned int number;
-    struct drive_s *drive;
+    struct diskunit_context_s *diskunit;
 } drivecia1571_context_t;
 
 
-void cia1571_store(drive_context_t *ctxptr, uint16_t addr, uint8_t data)
+void cia1571_store(diskunit_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
     ciacore_store(ctxptr->cia1571, addr, data);
 }
 
-uint8_t cia1571_read(drive_context_t *ctxptr, uint16_t addr)
+uint8_t cia1571_read(diskunit_context_t *ctxptr, uint16_t addr)
 {
     return ciacore_read(ctxptr->cia1571, addr);
 }
 
-uint8_t cia1571_peek(drive_context_t *ctxptr, uint16_t addr)
+uint8_t cia1571_peek(diskunit_context_t *ctxptr, uint16_t addr)
 {
     return ciacore_peek(ctxptr->cia1571, addr);
 }
 
-int cia1571_dump(drive_context_t *ctxptr, uint16_t addr)
+int cia1571_dump(diskunit_context_t *ctxptr, uint16_t addr)
 {
     ciacore_dump(ctxptr->cia1571);
     return 0;
@@ -68,9 +68,9 @@ int cia1571_dump(drive_context_t *ctxptr, uint16_t addr)
 
 static void cia_set_int_clk(cia_context_t *cia_context, int value, CLOCK clk)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
 
-    dc = (drive_context_t *)(cia_context->context);
+    dc = (diskunit_context_t *)(cia_context->context);
 
     interrupt_set_irq(dc->cpu->int_status, cia_context->int_num,
                       value, clk);
@@ -78,9 +78,9 @@ static void cia_set_int_clk(cia_context_t *cia_context, int value, CLOCK clk)
 
 static void cia_restore_int(cia_context_t *cia_context, int value)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
 
-    dc = (drive_context_t *)(cia_context->context);
+    dc = (diskunit_context_t *)(cia_context->context);
 
     interrupt_restore_irq(dc->cpu->int_status, (int)(cia_context->int_num), value);
 }
@@ -100,7 +100,7 @@ static void pulse_ciapc(cia_context_t *cia_context, CLOCK rclk)
 
     ciap = (drivecia1571_context_t *)(cia_context->prv);
 
-    if (ciap->drive->parallel_cable == DRIVE_PC_STANDARD) {
+    if (ciap->diskunit->parallel_cable == DRIVE_PC_STANDARD) {
         parallel_cable_drive_write(DRIVE_PC_STANDARD, 0, PARALLEL_HS, ciap->number);
     }
 }
@@ -115,7 +115,7 @@ static void undump_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 
     ciap = (drivecia1571_context_t *)(cia_context->prv);
 
-    if (ciap->drive->parallel_cable == DRIVE_PC_STANDARD) {
+    if (ciap->diskunit->parallel_cable == DRIVE_PC_STANDARD) {
         parallel_cable_drive_write(DRIVE_PC_STANDARD, byte, PARALLEL_WRITE, ciap->number);
     }
 }
@@ -130,7 +130,7 @@ static void store_ciapb(cia_context_t *cia_context, CLOCK rclk, uint8_t byte)
 
     ciap = (drivecia1571_context_t *)(cia_context->prv);
 
-    if (ciap->drive->parallel_cable == DRIVE_PC_STANDARD) {
+    if (ciap->diskunit->parallel_cable == DRIVE_PC_STANDARD) {
         parallel_cable_drive_write(DRIVE_PC_STANDARD, byte, PARALLEL_WRITE, ciap->number);
     }
 }
@@ -148,8 +148,8 @@ static uint8_t read_ciapb(cia_context_t *cia_context)
 
     ciap = (drivecia1571_context_t *)(cia_context->prv);
 
-    if (ciap->drive->parallel_cable == DRIVE_PC_STANDARD) {
-        byte = parallel_cable_drive_read(ciap->drive->parallel_cable, 1);
+    if (ciap->diskunit->parallel_cable == DRIVE_PC_STANDARD) {
+        byte = parallel_cable_drive_read(ciap->diskunit->parallel_cable, 1);
     }
 
     return (uint8_t)((byte & ~(cia_context->c_cia[CIA_DDRB]))
@@ -173,13 +173,13 @@ static void store_sdr(cia_context_t *cia_context, uint8_t byte)
     iec_fast_drive_write((uint8_t)byte, cia1571p->number);
 }
 
-void cia1571_init(drive_context_t *ctxptr)
+void cia1571_init(diskunit_context_t *ctxptr)
 {
     ciacore_init(ctxptr->cia1571, ctxptr->cpu->alarm_context,
                  ctxptr->cpu->int_status, ctxptr->cpu->clk_guard);
 }
 
-void cia1571_setup_context(drive_context_t *ctxptr)
+void cia1571_setup_context(diskunit_context_t *ctxptr)
 {
     drivecia1571_context_t *cia1571p;
     cia_context_t *cia;
@@ -204,7 +204,7 @@ void cia1571_setup_context(drive_context_t *ctxptr)
     cia->irq_line = IK_IRQ;
     cia->myname = lib_msprintf("CIA1571D%d", ctxptr->mynumber);
 
-    cia1571p->drive = ctxptr->drive;
+    cia1571p->diskunit = ctxptr;
 
     cia->undump_ciapa = undump_ciapa;
     cia->undump_ciapb = undump_ciapb;

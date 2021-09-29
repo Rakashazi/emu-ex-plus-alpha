@@ -37,6 +37,7 @@
 
 #include "embedded.h"
 #include "machine.h"
+#include "pets.h"
 
 #include "petbasic1.h"
 #include "petbasic2.h"
@@ -64,10 +65,10 @@
 #include "crtc_white_vpl.h"
 
 static embedded_t petfiles[] = {
-    { "chargen", 0x800, 0x800, 0x800, petchargen_embedded },
-    { "basic4", 0x2000, 0x3000, 0x3000, petbasic4_embedded },
-    { "kernal4", 0x1000, 0x1000, 0x1000, petkernal4_embedded },
-    { "edit4b80", 0x800, 0x1000, 0x800, petedit4b80_embedded },
+    { PET_CHARGEN_NAME, 0x800, 0x800, 0x800, petchargen_embedded },
+    { PET_BASIC4NAME, 0x2000, 0x3000, 0x3000, petbasic4_embedded },
+    { PET_KERNAL4NAME, 0x1000, 0x1000, 0x1000, petkernal4_embedded },
+    { PET_EDITOR4B80NAME, 0x800, 0x1000, 0x800, petedit4b80_embedded },
     { "kernal1", 0x1000, 0x1000, 0x1000, petkernal1_embedded },
     { "basic1", 0x2000, 0x3000, 0x2000, petbasic1_embedded },
     { "basic2", 0x2000, 0x3000, 0x2000, petbasic2_embedded },

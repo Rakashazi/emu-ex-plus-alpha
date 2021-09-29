@@ -167,7 +167,7 @@ void maxbasic_detach(void)
    ARRAY | RAM  | 2048 BYTES of RAM data
  */
 
-static char snap_module_name[] = "CARTMAXBASIC";
+static const char snap_module_name[] = "CARTMAXBASIC";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

@@ -145,8 +145,8 @@ static const mon_cmds_t mon_cmd_array[] = {
 
     { "registers", "r",
       "[<reg_name> = <number> [, <reg_name> = <number>]*]",
-      "Assign respective registers.  With no parameters, display register\n"
-      "values.",
+      "Assign respective registers (use FL for status flags).  With no\n"
+      "parameters, display register values.\n",
       NO_FILENAME_ARG
     },
 
@@ -296,7 +296,8 @@ static const mon_cmds_t mon_cmd_array[] = {
       "<address_range> <data_list>",
       "Hunt memory in the specified address range for the data in\n"
       "<data_list>.  If the data is found, the starting address of the match\n"
-      "is displayed.  The entire range is searched for all possible matches.",
+      "is displayed.  The entire range is searched for all possible matches.\n"
+      "xx can be used as a wildcard for a single byte.",
       NO_FILENAME_ARG
     },
 
@@ -498,7 +499,7 @@ static const mon_cmds_t mon_cmd_array[] = {
       NO_FILENAME_ARG
     },
 
-    { "quit", "",
+    { "quit", "q",
       NULL,
       "Exit the emulator immediately.",
       NO_FILENAME_ARG
@@ -518,6 +519,16 @@ static const mon_cmds_t mon_cmd_array[] = {
       "side-effects.  If the argument is 'off' then reads don't cause\n"
       "side-effects.  If the argument is 'toggle' then the current mode is\n"
       "switched.  No argument displays the current state.",
+      NO_FILENAME_ARG
+    },
+
+    { "dummy", "",
+      "[on|off|toggle]",
+      "Control whether the checkpoints will trigger on dummy accesses.\n"
+      "If the argument is 'on' then dummy accesses will cause checkpoints\n"
+      "to trigger. If the argument is 'off' then dummy accesses will not\n"
+      "trigger any checkpoints. If the argument is 'toggle' then the current\n"
+      "mode is switched.  No argument displays the current state.",
       NO_FILENAME_ARG
     },
 
@@ -590,6 +601,13 @@ static const mon_cmds_t mon_cmd_array[] = {
       FILENAME_ARG
     },
 
+    { "bverify", "bv",
+      "\"<filename>\" <device> <address>",
+      "Compare the specified file with memory at the specified address.\n"
+      "If device is 0, the file is read from the file system.",
+      FILENAME_ARG
+    },
+
     { "block_write", "bw",
       "<track> <sector> <address>",
       "Write a block of data at `address' on the specified track and sector\n"
@@ -637,11 +655,30 @@ static const mon_cmds_t mon_cmd_array[] = {
       NO_FILENAME_ARG
     },
 
+    { "mkdir", "",
+      "<Directory>",
+      "Create directory.",
+      NO_FILENAME_ARG
+    },
+
+    { "rmdir", "",
+      "<Directory>",
+      "Remove directory.",
+      NO_FILENAME_ARG
+    },
+
     { "save", "s",
       "\"<filename>\" <device> <address1> <address2>",
       "Save the memory from address1 to address2 to the specified file.\n"
       "Write two-byte load address.\n"
       "If device is 0, the file is written to the file system.",
+      FILENAME_ARG
+    },
+
+    { "verify", "v",
+      "\"<filename>\" <device> [<address>]",
+      "Compare the specified file with memory at the specified address.\n"
+      "If device is 0, the file is read from the file system.",
       FILENAME_ARG
     },
 

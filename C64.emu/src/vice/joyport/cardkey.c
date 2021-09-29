@@ -213,7 +213,7 @@ static uint8_t cardkey_read_dig(int port)
     return (uint8_t)retval;
 }
 
-static uint8_t cardkey_read_pot(void)
+static uint8_t cardkey_read_pot(int port)
 {
     int i;
 

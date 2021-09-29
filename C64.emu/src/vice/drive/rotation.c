@@ -38,6 +38,7 @@
 #include "p64.h"
 
 #include <stdlib.h>
+#include <math.h>
 
 #define ACCUM_MAX 0x10000
 
@@ -82,7 +83,7 @@ struct rotation_s {
 typedef struct rotation_s rotation_t;
 
 
-static rotation_t rotation[DRIVE_NUM];
+static rotation_t rotation[NUM_DISK_UNITS];
 
 /* Speed (in bps) of the disk in the 4 disk areas.  */
 static const unsigned int rot_speed_bps[2][4] = { { 250000, 266667, 285714, 307692 },
@@ -111,7 +112,7 @@ void rotation_reset(drive_t *drive)
 {
     unsigned int dnr;
 
-    dnr = drive->mynumber;
+    dnr = drive->unit;
 
     rotation[dnr].last_read_data = 0;
     rotation[dnr].last_write_data = 0;
@@ -143,15 +144,18 @@ void rotation_speed_zone_set(unsigned int zone, unsigned int dnr)
 
 void rotation_table_get(uint32_t *rotation_table_ptr)
 {
-    unsigned int dnr;
+    unsigned int dnr, j;
     drive_t *drive;
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        drive = drive_context[dnr]->drive;
-
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         rotation_table_ptr[dnr] = rotation[dnr].speed_zone;
 
-        drive->snap_accum = rotation[dnr].accum;
+      /* Only 1 drive is really supported... */
+      for (j = 0; j < 1; j++) {
+        drive = diskunit_context[dnr]->drives[j];
+
+
+        drive->snap_accum = (uint32_t)(rotation[dnr].accum);
         drive->snap_rotation_last_clk = rotation[dnr].rotation_last_clk;
         drive->snap_last_read_data = rotation[dnr].last_read_data;
         drive->snap_last_write_data = rotation[dnr].last_write_data;
@@ -173,20 +177,23 @@ void rotation_table_get(uint32_t *rotation_table_ptr)
         drive->snap_cycle_index = rotation[dnr].cycle_index;
         drive->snap_ref_advance = rotation[dnr].ref_advance;
         drive->snap_req_ref_cycles = drive->req_ref_cycles;
+      }
     }
 }
 
 void rotation_table_set(uint32_t *rotation_table_ptr)
 {
-    unsigned int dnr;
+    unsigned int dnr, j;
     drive_t *drive;
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
-        drive = drive_context[dnr]->drive;
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
+      /* Only 1 drive is really supported... */
+      for (j = 0; j < 1; j++) {
+        drive = diskunit_context[dnr]->drives[j];
 
         rotation[dnr].speed_zone = rotation_table_ptr[dnr];
 
-        rotation[dnr].accum = drive->snap_accum;
+        rotation[dnr].accum = (uint32_t)(drive->snap_accum);
         rotation[dnr].rotation_last_clk = drive->snap_rotation_last_clk;
         rotation[dnr].last_read_data = drive->snap_last_read_data;
         rotation[dnr].last_write_data = drive->snap_last_write_data;
@@ -208,6 +215,7 @@ void rotation_table_set(uint32_t *rotation_table_ptr)
         rotation[dnr].cycle_index = drive->snap_cycle_index;
         rotation[dnr].ref_advance = drive->snap_ref_advance;
         drive->req_ref_cycles = drive->snap_req_ref_cycles;
+      }
     }
 }
 
@@ -286,9 +294,36 @@ inline static uint32_t RANDOM_nextUInt(rotation_t *rptr)
 
 void rotation_begins(drive_t *dptr)
 {
-    unsigned int dnr = dptr->mynumber;
+    unsigned int dnr = dptr->unit;
     rotation[dnr].rotation_last_clk = *(dptr->clk);
     rotation[dnr].cycle_index = 0;
+}
+
+/* calculate wobble factor from the respective resources */
+static void rotation_do_wobble(drive_t *dptr)
+{
+    /* cpu cycles since last call */
+    CLOCK cpu_cycles = *(dptr->clk) - rotation[dptr->unit].rotation_last_clk;
+
+    /* FIXME: we should introduce random deviation too */
+#if 0
+    int wobble_rand_freq = 10000, wobble_rand_cycles = 10000;
+    int freqrand, cyclesrand;
+
+    freqrand = wobble_rand_freq ? lib_unsigned_rand(0, wobble_rand_freq) - (wobble_rand_freq / 2) : 0;
+    cyclesrand = wobble_rand_cycles ? lib_unsigned_rand(0, wobble_rand_cycles) - (wobble_rand_cycles / 2) : 0;
+    dptr->wobble_sin_count += ((uint64_t)cpu_cycles * (dptr->wobble_frequency + freqrand)) / 10000000000.0f;
+    if (dptr->wobble_sin_count > (2 * M_PI)) {
+        dptr->wobble_sin_count -= (2 * M_PI);
+    }
+    dptr->wobble_factor = (int)((dptr->wobble_amplitude + cyclesrand) * sinf(dptr->wobble_sin_count));
+#else
+    dptr->wobble_sin_count += ((uint64_t)cpu_cycles * (dptr->wobble_frequency)) / 10000000000.0f;
+    if (dptr->wobble_sin_count > (2 * M_PI)) {
+        dptr->wobble_sin_count -= (2 * M_PI);
+    }
+    dptr->wobble_factor = (int)((dptr->wobble_amplitude) * sinf(dptr->wobble_sin_count));
+#endif
 }
 
 /*******************************************************************************
@@ -302,11 +337,10 @@ static void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
     unsigned int todo;
     int32_t delta;
     uint32_t count_new_bitcell, cyc_sum_frv /*, sum_new_bitcell*/;
-    unsigned int dnr = dptr->mynumber;
-    int wobble;
+    unsigned int dnr = dptr->unit;
     uint64_t tmp = 30000UL;
 
-    rptr = &rotation[dptr->mynumber];
+    rptr = &rotation[dptr->unit];
 
     /* drive speed is 300RPM, that is 300/60=5 revolutions per second
      * reference clock is 16MHz, one revolution has 16MHz/5 reference cycles
@@ -321,10 +355,10 @@ static void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
      *    in reality the constant offset can be relatively large, but does not
      *    change a lot over time, so the random offset is rather small.
      */
-    wobble = dptr->rpm_wobble ? lib_unsigned_rand(0, dptr->rpm_wobble) - (dptr->rpm_wobble / 2) : 0;
+
     tmp *= clk_ref_per_rev;
-    tmp /= dptr->rpm + wobble;
-    clk_ref_per_rev = (int)tmp;
+    tmp /= dptr->rpm;
+    clk_ref_per_rev = (int)tmp + dptr->wobble_factor;
 
     /* cell cycles for the actual flux reversal period, it is 1 now, but could be different with variable density */
     cyc_act_frv = 1;
@@ -423,7 +457,7 @@ static void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
                             rptr->last_write_data = dptr->GCR_read;
 
                             /* BYTE READY signal if enabled */
-                            if ((dptr->byte_ready_active & 2) != 0) {
+                            if ((dptr->byte_ready_active & BRA_BYTE_READY) != 0) {
                                 rptr->so_delay = 16 - ((rptr->cycle_index + (todo - 1)) & 15);
                                 if (rptr->so_delay < 10) {
                                     rptr->so_delay += 16;
@@ -513,7 +547,7 @@ static void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
                         rptr->last_write_data = dptr->GCR_write_value;
 
                         /* BYTE READY signal if enabled */
-                        if ((dptr->byte_ready_active & 2) != 0) {
+                        if ((dptr->byte_ready_active & BRA_BYTE_READY) != 0) {
                             rptr->so_delay = 16 - ((rptr->cycle_index + (todo - 1)) & 15);
                             if (rptr->so_delay < 10) {
                                 rptr->so_delay += 16;
@@ -531,7 +565,7 @@ static void rotation_1541_gcr(drive_t *dptr, int ref_cycles)
 
 static void rotation_1541_gcr_cycle(drive_t *dptr)
 {
-    rotation_t *rptr = &rotation[dptr->mynumber];
+    rotation_t *rptr = &rotation[dptr->unit];
     CLOCK cpu_cycles;
     int ref_cycles, ref_advance_cycles;
     CLOCK one_rotation = rptr->frequency ? 400000 : 200000;
@@ -573,6 +607,22 @@ static void rotation_1541_gcr_cycle(drive_t *dptr)
  * see 1541 circuit description in this file for details
  ******************************************************************************/
 
+/* Calculate delta to the next NRZI transition flux pulse */
+static inline int rotation_p64_get_delta(drive_t *dptr)
+{
+    rotation_t *rptr = &rotation[dptr->unit];
+    PP64PulseStream P64PulseStream = &dptr->p64->PulseStreams[dptr->side][dptr->current_half_track];
+
+    /* normal case */
+    if (P64PulseStream->CurrentIndex >= 0) {
+        return P64PulseStream->Pulses[P64PulseStream->CurrentIndex].Position - rptr->PulseHeadPosition;
+    }
+
+    /* wrap around */
+    /* FIXME: this is incorrect, see https://sourceforge.net/p/vice-emu/bugs/1305/ */
+    return P64PulseSamplesPerRotation - rptr->PulseHeadPosition;
+}
+
 /* FIXME: RPM related resources "DriveXRPM" and "DriveXwobble" are ignored for p64 */
 
 static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
@@ -581,7 +631,7 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
     PP64PulseStream P64PulseStream;
     uint32_t DeltaPositionToNextPulse, ToDo;
 
-    rptr = &rotation[dptr->mynumber];
+    rptr = &rotation[dptr->unit];
 
     P64PulseStream = &dptr->p64->PulseStreams[dptr->side][dptr->current_half_track];
 
@@ -606,12 +656,7 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
         }
     }
 
-    /* Calculate delta to the next NRZI transition flux pulse */
-    if (P64PulseStream->CurrentIndex >= 0) {
-        DeltaPositionToNextPulse = P64PulseStream->Pulses[P64PulseStream->CurrentIndex].Position - rptr->PulseHeadPosition;
-    } else {
-        DeltaPositionToNextPulse = P64PulseSamplesPerRotation - rptr->PulseHeadPosition;
-    }
+    DeltaPositionToNextPulse = rotation_p64_get_delta(dptr);
 
     if (dptr->read_write_mode) {
         while (ref_cycles > 0) {
@@ -703,7 +748,7 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
                                     rptr->last_write_data = dptr->GCR_read;
 
                                     /* BYTE READY signal if enabled */
-                                    if ((dptr->byte_ready_active & 2) != 0) {
+                                    if ((dptr->byte_ready_active & BRA_BYTE_READY) != 0) {
                                         rptr->so_delay = 16 - ((rptr->cycle_index + (ToDo - 1)) & 15);
                                         if (rptr->so_delay < 10) {
                                             rptr->so_delay += 16;
@@ -732,11 +777,7 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
                            (P64PulseStream->Pulses[P64PulseStream->CurrentIndex].Position < rptr->PulseHeadPosition)) {
                         P64PulseStream->CurrentIndex = P64PulseStream->Pulses[P64PulseStream->CurrentIndex].Next;
                     }
-                    if (P64PulseStream->CurrentIndex >= 0) {
-                        DeltaPositionToNextPulse = P64PulseStream->Pulses[P64PulseStream->CurrentIndex].Position - rptr->PulseHeadPosition;
-                    } else {
-                        DeltaPositionToNextPulse = P64PulseSamplesPerRotation - rptr->PulseHeadPosition;
-                    }
+                    DeltaPositionToNextPulse = rotation_p64_get_delta(dptr);
                 }
 
                 /* Next NRZI transition flux pulse handling */
@@ -754,11 +795,7 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
 
                         P64PulseStream->CurrentIndex = P64PulseStream->Pulses[P64PulseStream->CurrentIndex].Next;
                     }
-                    if (P64PulseStream->CurrentIndex >= 0) {
-                        DeltaPositionToNextPulse = P64PulseStream->Pulses[P64PulseStream->CurrentIndex].Position - rptr->PulseHeadPosition;
-                    } else {
-                        DeltaPositionToNextPulse = P64PulseSamplesPerRotation - rptr->PulseHeadPosition;
-                    }
+                    DeltaPositionToNextPulse = rotation_p64_get_delta(dptr);
                 }
             }
             /****************************************************************************************************************************************/
@@ -833,7 +870,7 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
                             rptr->last_write_data = dptr->GCR_write_value;
 
                             /* BYTE READY signal if enabled */
-                            if ((dptr->byte_ready_active & 2) != 0) {
+                            if ((dptr->byte_ready_active & BRA_BYTE_READY) != 0) {
                                 rptr->so_delay = 16 - ((rptr->cycle_index + (ToDo - 1)) & 15);
                                 if (rptr->so_delay < 10) {
                                     rptr->so_delay += 16;
@@ -885,11 +922,7 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
                 }
 
                 /* Calculate new delta */
-                if (P64PulseStream->CurrentIndex >= 0) {
-                    DeltaPositionToNextPulse = P64PulseStream->Pulses[P64PulseStream->CurrentIndex].Position - rptr->PulseHeadPosition;
-                } else {
-                    DeltaPositionToNextPulse = P64PulseSamplesPerRotation - rptr->PulseHeadPosition;
-                }
+                DeltaPositionToNextPulse = rotation_p64_get_delta(dptr);
             }
             /****************************************************************************************************************************************/
 
@@ -901,7 +934,7 @@ static void rotation_1541_p64(drive_t *dptr, int ref_cycles)
 
 static void rotation_1541_p64_cycle(drive_t *dptr)
 {
-    rotation_t *rptr = &rotation[dptr->mynumber];
+    rotation_t *rptr = &rotation[dptr->unit];
     CLOCK cpu_cycles;
     int ref_cycles, ref_advance_cycles;
     CLOCK one_rotation = rptr->frequency ? 400000 : 200000;
@@ -920,6 +953,7 @@ static void rotation_1541_p64_cycle(drive_t *dptr)
 
     /* add additional R cycles requested; R must be less than a complete C cycle */
     ref_advance_cycles = dptr->req_ref_cycles;
+
     dptr->req_ref_cycles = 0;
     ref_advance_cycles &= 15;
     ref_cycles += ref_advance_cycles;
@@ -950,20 +984,19 @@ static void rotation_1541_simple(drive_t *dptr)
     int bits_moved = 0;
     uint64_t tmp = 1000000UL;
     unsigned long rpmscale;
-    int wobble;
 
     dptr->req_ref_cycles = 0;
 
-    rptr = &rotation[dptr->mynumber];
+    rptr = &rotation[dptr->unit];
 
     /* Calculate the number of bits that have passed under the R/W head since
        the last time.  */
     delta = *(dptr->clk) - rptr->rotation_last_clk;
     rptr->rotation_last_clk = *(dptr->clk);
 
-    wobble = dptr->rpm_wobble ? lib_unsigned_rand(0, dptr->rpm_wobble) - (dptr->rpm_wobble / 2) : 0;
+    tmp += ((long)dptr->wobble_factor * 1000000L) / 3200000L;
     tmp *= 30000UL;
-    tmp /= (dptr->rpm + wobble);
+    tmp /= dptr->rpm;
     rpmscale = (unsigned long)(tmp);
 
     while (delta > 0) {
@@ -1013,7 +1046,7 @@ static void rotation_1541_simple(drive_t *dptr)
                      * byte boundary, and since the bus is shared, it's reasonable
                      * to guess that it would be loaded with whatever was last read. */
                     rptr->last_write_data = dptr->GCR_read;
-                    if ((dptr->byte_ready_active & 2) != 0) {
+                    if ((dptr->byte_ready_active & BRA_BYTE_READY) != 0) {
                         dptr->byte_ready_edge = 1;
                         dptr->byte_ready_level = 1;
                     }
@@ -1044,7 +1077,7 @@ static void rotation_1541_simple(drive_t *dptr)
             if (++rptr->bit_counter == 8) {
                 rptr->bit_counter = 0;
                 rptr->last_write_data = dptr->GCR_write_value;
-                if ((dptr->byte_ready_active & 2) != 0) {
+                if ((dptr->byte_ready_active & BRA_BYTE_READY) != 0) {
                     dptr->byte_ready_edge = 1;
                     dptr->byte_ready_level = 1;
                 }
@@ -1061,10 +1094,12 @@ static void rotation_1541_simple(drive_t *dptr)
  ******************************************************************************/
 void rotation_rotate_disk(drive_t *dptr)
 {
-    if ((dptr->byte_ready_active & 4) == 0) {
+    if ((dptr->byte_ready_active & BRA_MOTOR_ON) == 0) {
         dptr->req_ref_cycles = 0;
         return;
     }
+
+    rotation_do_wobble(dptr);
 
     if (dptr->complicated_image_loaded) {
         /* stuff that needs complex and slow emulation */
@@ -1087,7 +1122,7 @@ void rotation_rotate_disk(drive_t *dptr)
    is found.  */
 uint8_t rotation_sync_found(drive_t *dptr)
 {
-    unsigned int dnr = dptr->mynumber;
+    unsigned int dnr = dptr->unit;
 
     if (dptr->read_write_mode == 0 || dptr->attach_clk != (CLOCK)0) {
         return 0x80;

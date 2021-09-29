@@ -32,9 +32,9 @@ VICE_API void vic20model_set(int model);
 VICE_API void archdep_startup_log_error(const char *format, ...);
 VICE_API char *archdep_default_rtc_file_name(void);
 
-VICE_API const char *file_system_get_disk_name(unsigned int unit);
-VICE_API int file_system_attach_disk(unsigned int unit, const char *filename);
-VICE_API void file_system_detach_disk(int unit);
+VICE_API const char *file_system_get_disk_name(unsigned int unit, unsigned int drive);
+VICE_API int file_system_attach_disk(unsigned int unit, unsigned int drive, const char *filename);
+VICE_API void file_system_detach_disk(unsigned int unit, unsigned int drive);
 
 VICE_API int autostart_autodetect(const char *file_name,
                                 const char *program_name,
@@ -85,3 +85,9 @@ VICE_API void ui_error(const char *format, ...);
 VICE_API void ui_display_tape_counter(int counter);
 
 VICE_API int uimon_out(const char *buffer);
+
+VICE_API int cbmimage_create_image(const char *name, unsigned int type);
+
+VICE_API void keyboard_key_pressed(signed long key, int mod);
+VICE_API void keyboard_key_released(signed long key, int mod);
+VICE_API void keyboard_key_clear(void);

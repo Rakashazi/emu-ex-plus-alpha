@@ -33,6 +33,8 @@
  *
  */
 
+/* #define DEBUGFLUSH */
+
 #include "vice.h"
 
 #include <stdio.h>
@@ -45,6 +47,8 @@
 #include "charset.h"
 #include "fileio.h"
 #include "fsdevice-flush.h"
+#include "fsdevice-filename.h"
+#include "fsdevice-read.h"
 #include "fsdevice-resources.h"
 #include "fsdevice.h"
 #include "fsdevicetypes.h"
@@ -56,6 +60,14 @@
 #include "vdrive-command.h"
 #include "vdrive.h"
 
+#ifdef DEBUGFLUSH
+#define DBG(x)  printf x
+#else
+#define DBG(x)
+#endif
+
+#define DRIVE_UNIT_MIN          8
+
 static int fsdevice_flush_reset(void)
 {
     return CBMDOS_IPE_DOS_VERSION;
@@ -65,6 +77,8 @@ static int fsdevice_flush_cd(vdrive_t* vdrive, char *arg)
 {
     int er;
 
+    DBG(("fsdevice_flush_cd '%s'\n", arg));
+    
     /* guard against NULL */
     if (arg == NULL) {
         return CBMDOS_IPE_SYNTAX;
@@ -109,6 +123,8 @@ static int fsdevice_flush_mkdir(vdrive_t *vdrive, char *arg)
     char *prefix;
     char *path;
 
+    DBG(("fsdevice_flush_mkdir '%s'\n", arg));
+    
     /* get proper FS device path */
     prefix = fsdevice_get_path(vdrive->unit);
 
@@ -176,9 +192,9 @@ static int fsdevice_flush_rmdir(vdrive_t *vdrive, char *arg)
      * absolute path to the directory to remove.
      */
     char *path = util_concat(prefix, FSDEV_DIR_SEP_STR, arg, NULL);
-#if 0
-    fprintf(stderr, "%s(): removing dir '%s'\n", __func__, path);
-#endif
+
+    DBG(("fsdevice_flush_rmdir '%s'\n", arg));
+
     /* FIXME: rmdir() can set a lot of different errors codes, so this probably
      *        is a little naive
      */
@@ -188,18 +204,20 @@ static int fsdevice_flush_rmdir(vdrive_t *vdrive, char *arg)
             er = CBMDOS_IPE_PERMISSION;
         }
     }
-#if 0
-    fprintf(stderr, "%s(): %d: %s\n", __func__, errno, strerror(errno));
-#endif
+
+    DBG(("fsdevice_flush_rmdir %d: %s\n", errno, strerror(errno)));
+
     lib_free(path);
     return er;
 }
 
 static int fsdevice_flush_rename(vdrive_t *vdrive, char *realarg)
 {
-    char *src, *dest, *tmp;
+    char *src, *dest, *tmp, *realsrc;
     unsigned int format = 0, rc;
 
+    DBG(("fsdevice_flush_rename '%s'\n", realarg));
+    
     tmp = strchr(realarg, '=');
 
     if (tmp == NULL) {
@@ -217,14 +235,20 @@ static int fsdevice_flush_rename(vdrive_t *vdrive, char *realarg)
     src = &tmp[1];
     dest = realarg;
 
-    if (fsdevice_convert_p00_enabled[(vdrive->unit) - 8]) {
+    if (fsdevice_convert_p00_enabled[(vdrive->unit) - DRIVE_UNIT_MIN]) {
         format |= FILEIO_FORMAT_P00;
     }
-    if (!fsdevice_hide_cbm_files_enabled[vdrive->unit - 8]) {
+    if (!fsdevice_hide_cbm_files_enabled[vdrive->unit - DRIVE_UNIT_MIN]) {
         format |= FILEIO_FORMAT_RAW;
     }
 
-    rc = fileio_rename(src, dest, fsdevice_get_path(vdrive->unit), format);
+    realsrc = fsdevice_expand_shortname(vdrive, src);
+    fsdevice_limit_createnamelength(vdrive, dest);
+
+    DBG(("fsdevice_flush_rename '%s' to '%s'\n", realsrc, dest));
+    rc = fileio_rename(realsrc, dest, fsdevice_get_path(vdrive->unit), format);
+    
+    lib_free(realsrc);
 
     switch (rc) {
         case FILEIO_FILE_NOT_FOUND:
@@ -242,14 +266,17 @@ static int fsdevice_flush_scratch(vdrive_t *vdrive, char *realarg)
 {
     unsigned int format = 0, rc;
 
+    /* FIXME: we need to handle a comma seperated list of files to scratch */
+    DBG(("fsdevice_flush_scratch '%s'\n", realarg));
+    
     if (realarg == NULL || *realarg == '\0') {
         return CBMDOS_IPE_SYNTAX;
     }
 
-    if (fsdevice_convert_p00_enabled[(vdrive->unit) - 8]) {
+    if (fsdevice_convert_p00_enabled[(vdrive->unit) - DRIVE_UNIT_MIN]) {
         format |= FILEIO_FORMAT_P00;
     }
-    if (!fsdevice_hide_cbm_files_enabled[vdrive->unit - 8]) {
+    if (!fsdevice_hide_cbm_files_enabled[vdrive->unit - DRIVE_UNIT_MIN]) {
         format |= FILEIO_FORMAT_RAW;
     }
 
@@ -274,36 +301,36 @@ static int fsdevice_flush_scratch(vdrive_t *vdrive, char *realarg)
 /* M-R - Memory Read */
 static int fsdevice_flush_mr(vdrive_t *vdrive, char *realarg)
 {
-    unsigned int dnr = vdrive->unit - 8;
+    unsigned int dnr = vdrive->unit - DRIVE_UNIT_MIN;
     unsigned int length;
     uint16_t addr;
 
     addr = fsdevice_dev[dnr].cmdbuf[3] | (fsdevice_dev[dnr].cmdbuf[4] << 8);
-    length = 6 + ((realarg != NULL) ? strlen(realarg) : 0); /* FIXME */
+    length = 6 + ((realarg != NULL) ? (unsigned int)strlen(realarg) : 0); /* FIXME */
     return vdrive_command_memory_read(vdrive, &fsdevice_dev[dnr].cmdbuf[5], addr, length);
 }
 
 /* M-W - Memory Write */
 static int fsdevice_flush_mw(vdrive_t *vdrive, char *realarg)
 {
-    unsigned int dnr = vdrive->unit - 8;
+    unsigned int dnr = vdrive->unit - DRIVE_UNIT_MIN;
     unsigned int length;
     uint16_t addr;
 
     addr = fsdevice_dev[dnr].cmdbuf[3] | (fsdevice_dev[dnr].cmdbuf[4] << 8);
-    length = 6 + ((realarg != NULL) ? strlen(realarg) : 0); /* FIXME */
+    length = 6 + ((realarg != NULL) ? (unsigned int)strlen(realarg) : 0); /* FIXME */
     return vdrive_command_memory_write(vdrive, &fsdevice_dev[dnr].cmdbuf[5], addr, length);
 }
 
 /* M-E - Memory Execute */
 static int fsdevice_flush_me(vdrive_t *vdrive, char *realarg)
 {
-    unsigned int dnr = vdrive->unit - 8;
+    unsigned int dnr = vdrive->unit - DRIVE_UNIT_MIN;
     unsigned int length;
     uint16_t addr;
 
     addr = fsdevice_dev[dnr].cmdbuf[3] | (fsdevice_dev[dnr].cmdbuf[4] << 8);
-    length = 5 + ((realarg != NULL) ? strlen(realarg) : 0); /* FIXME */
+    length = 5 + ((realarg != NULL) ? (unsigned int)strlen(realarg) : 0); /* FIXME */
     return vdrive_command_memory_exec(vdrive, &fsdevice_dev[dnr].cmdbuf[5], addr, length);
 }
 
@@ -391,7 +418,7 @@ static unsigned int get_bammask(unsigned int trk, unsigned int sec)
 /* B-A - Block Allocate */
 static int fsdevice_flush_ba(vdrive_t *vdrive, char *realarg)
 {
-    unsigned int dnr = vdrive->unit - 8;
+    unsigned int dnr = vdrive->unit - DRIVE_UNIT_MIN;
     unsigned int drv, trk, sec;
     unsigned int bamptr, bammask;
     int err = CBMDOS_IPE_OK;
@@ -434,7 +461,7 @@ exitba:
 /* B-F - Block Free */
 static int fsdevice_flush_bf(vdrive_t *vdrive, char *realarg)
 {
-    unsigned int dnr = vdrive->unit - 8;
+    unsigned int dnr = vdrive->unit - DRIVE_UNIT_MIN;
     unsigned int drv, trk, sec;
     unsigned int bamptr, bammask;
 
@@ -464,7 +491,7 @@ static int fsdevice_flush_bp(vdrive_t *vdrive, char *realarg)
 /* B-E - Block Execute */
 static int fsdevice_flush_be(vdrive_t *vdrive, char *realarg)
 {
-    unsigned int dnr = vdrive->unit - 8;
+    unsigned int dnr = vdrive->unit - DRIVE_UNIT_MIN;
     unsigned int chn, drv, trk, sec;
     get4args(realarg, &chn, &drv, &trk, &sec);
     log_message(LOG_DEFAULT,
@@ -478,7 +505,7 @@ static int fsdevice_flush_be(vdrive_t *vdrive, char *realarg)
 /* B-W - Block Read */
 static int fsdevice_flush_br(vdrive_t *vdrive, char *realarg)
 {
-    unsigned int dnr = vdrive->unit - 8;
+    unsigned int dnr = vdrive->unit - DRIVE_UNIT_MIN;
     unsigned int chn, drv, trk, sec;
     get4args(realarg, &chn, &drv, &trk, &sec);
     log_message(LOG_DEFAULT,
@@ -492,7 +519,7 @@ static int fsdevice_flush_br(vdrive_t *vdrive, char *realarg)
 /* U1, like B-R */
 static int fsdevice_flush_u1(vdrive_t *vdrive, char *realarg)
 {
-    unsigned int dnr = vdrive->unit - 8;
+    unsigned int dnr = vdrive->unit - DRIVE_UNIT_MIN;
     unsigned int chn, drv, trk, sec;
 
     get4args(realarg, &chn, &drv, &trk, &sec);
@@ -508,7 +535,7 @@ static int fsdevice_flush_u1(vdrive_t *vdrive, char *realarg)
 /* B-W - Block Write */
 static int fsdevice_flush_bw(vdrive_t *vdrive, char *realarg)
 {
-    int dnr = vdrive->unit - 8;
+    int dnr = vdrive->unit - DRIVE_UNIT_MIN;
     unsigned int chn, drv, trk, sec;
 
     get4args(realarg, &chn, &drv, &trk, &sec);
@@ -524,7 +551,7 @@ static int fsdevice_flush_bw(vdrive_t *vdrive, char *realarg)
 /* U2, like B-W */
 static int fsdevice_flush_u2(vdrive_t *vdrive, char *realarg)
 {
-    int dnr = vdrive->unit - 8;
+    int dnr = vdrive->unit - DRIVE_UNIT_MIN;
     unsigned int chn, drv, trk, sec;
 
     get4args(realarg, &chn, &drv, &trk, &sec);
@@ -540,7 +567,7 @@ static int fsdevice_flush_u2(vdrive_t *vdrive, char *realarg)
 /* I - Initialize Disk */
 static int fsdevice_flush_initialize(vdrive_t *vdrive)
 {
-    int dnr = vdrive->unit - 8;
+    int dnr = vdrive->unit - DRIVE_UNIT_MIN;
 
     fsdevice_dev[dnr].track = 1;
     fsdevice_dev[dnr].sector = 0;
@@ -551,7 +578,7 @@ static int fsdevice_flush_initialize(vdrive_t *vdrive)
 /* V - Validate Disk */
 static int fsdevice_flush_validate(vdrive_t *vdrive)
 {
-    int dnr = vdrive->unit - 8;
+    int dnr = vdrive->unit - DRIVE_UNIT_MIN;
 
     fsdevice_dev[dnr].track = 1;
     fsdevice_dev[dnr].sector = 0;
@@ -562,7 +589,7 @@ static int fsdevice_flush_validate(vdrive_t *vdrive)
 /* N - Format Disk */
 static int fsdevice_flush_new(vdrive_t *vdrive, char *realarg)
 {
-    int dnr = vdrive->unit - 8;
+    int dnr = vdrive->unit - DRIVE_UNIT_MIN;
 
     fsdevice_dev[dnr].track = 1;
     fsdevice_dev[dnr].sector = 0;
@@ -570,14 +597,55 @@ static int fsdevice_flush_new(vdrive_t *vdrive, char *realarg)
     return CBMDOS_IPE_OK;
 }
 
+/* P - Position in RELative file */
+static int fsdevice_flush_position(vdrive_t *vdrive, char *buf, int length)
+{
+    int dnr = vdrive->unit - DRIVE_UNIT_MIN;
+    bufinfo_t *bufinfo;
+    unsigned int channel = buf[1] & 0x0F,
+                 rec_lo = buf[2] & 0xFF, rec_hi = buf[3] & 0xFF,
+                 position = buf[4] & 0xFF;
+    int recno;
+
+    /* P <secaddr> <recno lo> <recno hi> [<pos in record>] */
+    switch (length) {
+        case 1: /* no channel was specified; return NO CHANNEL */
+            return CBMDOS_IPE_NO_CHANNEL;
+        case 2: /* default the record number to 1 */
+            rec_lo = 1;
+            /* fall through */
+        case 3: /* default the record number's high byte to 0 */
+            rec_hi = 0;
+            /* fall through */
+        case 4: /* default the position to 1 */
+            position = 1;
+        default:
+            /* make compiler happy */
+            break;
+    }
+
+    recno = rec_hi * 256 + rec_lo;
+
+    /* Convert 1-based numbers to 0-based */
+    if (position > 0)
+        position--;
+    if (recno > 0)
+        recno--;
+
+    DBG(("fsdevice_flush_position: secadr=%d  recno=%d  pos=%d\n", channel, recno, position));
+    bufinfo = &fsdevice_dev[dnr].bufinfo[channel];
+
+    return fsdevice_relative_switch_record(vdrive, bufinfo, recno, position);
+}
+
 void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
 {
     unsigned int dnr;
-    char *cmd, *realarg, *arg;
+    char *cmd, *realarg, *arg, *realname;
     char *cbmcmd;
     int er = CBMDOS_IPE_SYNTAX;
 
-    dnr = vdrive->unit - 8;
+    dnr = vdrive->unit - DRIVE_UNIT_MIN;
 
     if ((secondary != 15) || (!(fsdevice_dev[dnr].cptr))) {
         return;
@@ -602,48 +670,89 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
         cmd++;
     }
 
+    /* arg points to the ASCII string after the colon */
     arg = strchr(cbmcmd, ':');
-
     if (arg != NULL) {
         *arg++ = '\0';
     }
 
+    /* realarg points to the PETSCII string after the colon */
     realarg = strchr((char *)(fsdevice_dev[dnr].cmdbuf), ':');
-
     if (realarg != NULL) {
         *realarg++ = '\0';
     }
 
+    DBG(("fsdevice_flush arg:'%s' realarg:'%s'\n", arg, realarg));
+    
     /*
-       i
-       v
-       n
-       r
-       s
-       c
+                                            '41 '71 '81  FD
+       i                                      *   *   *   *    initialize disk
+       v                                      *   *   *   *    validate BAM
+       n:diskname,id                          *   *   *   *    format disk
+       r:newname=oldname                      *   *   *   *    rename file
+       s:name1,name2,name3                    *   *   *   *    delete file
+       c:newname=oldname                      *   *   *   *    copy file (or concat files)
+       d:                                   n/a n/a n/a n/a    backup
 
-       b-r chn drv trk sec
-       u1  chn drv trk sec
-       b-w chn drv trk sec
-       u2  chn drv trk sec
-       b-p chn pos
-       b-a drv trk sec
-       b-f drv trk sec
-       b-e chn drv trk sec
+       p chn lo hi pos                        *   *   *   *    pointer positioning (REL)
+       
+       b-r chn drv trk sec                    *   *   *   *    block-read
+       u1  chn drv trk sec                    *   *   *   *    "
+       ua  chn drv trk sec                    *   *   *        "
+       b-R chn drv trk sec                  n/a n/a   *        block-read without range check
+       b-w chn drv trk sec                    *   *   *   *    block-write 
+       u2  chn drv trk sec                    *   *   *   *    "
+       ub  chn drv trk sec                    *   *   *        "
+       b-W chn drv trk sec                  n/a n/a   *        block-write without range check
+       b-p chn pos                            *   *   *   *    buffer-pointer
+       b-a drv trk sec                        *   *   *   *    block-allocate
+       b-f drv trk sec                        *   *   *   *    block-free
+       b-e chn drv trk sec                    *   *   *   *    block execute
 
-       m-r lo hi len
-       m-w lo hi len <data>
-       m-e lo hi
+       m-r lo hi len                          *   *   *   *    memory read
+       m-w lo hi len <data>                   *   *   *   *    memory write
+       m-e lo hi                              *   *   *   *    memory execute
 
-       u9/ui switch mode
-       u:/uj reset
+       u9/ui                                  *   *   *   *    switch mode (NMI,warmstart)       
+       u:/uj                                  *   *   *   *    reset (powerup)
+       
+       u3/uc                                  *   *   *   *    start at $0500
+       u4/ud                                  *   *   *   *    start at $0503
+       u5/ue                                  *   *   *   *    start at $0506
+       u6/uf                                  *   *   *   *    start at $0509
+       u7/ug                                  *   *   *   *    start at $050c
+       u8/uh                                  *   *   *   *    start at $050f
 
-       cd
-       cd_
-       cd:_
-       /
-       md
-       rd
+       u0                                   n/a   *   *   *    restore user jumptable
+       u0>mode                              n/a   * n/a n/a    switch 1541/71 mode
+       u0>side                              n/a   * n/a n/a    select active disk side
+       u0>devnr                             n/a   * n/a n/a    set device nr.
+       u0+cmd                               n/a n/a   *   *    burst utility cmd
+       
+       cd                                   n/a n/a n/a   *    change directory
+       cd_                                  n/a n/a n/a    
+       cd:_                                 n/a n/a n/a   * 
+       
+       /<drv>:name trk src lenlo lenhi,c    n/a n/a   *        partition (create)
+       /<drv>:name                          n/a n/a   *        partition (activate)
+       
+       md                                   n/a n/a n/a   *    make directory
+       rd                                   n/a n/a n/a   *    remove directory
+       
+       cp<num>                              n/a n/a n/a   *    change partition
+       g-p                                  n/a n/a n/a   *    get partition info
+       
+       t-ra                                 n/a n/a n/a   *    read RTC (ascii format)
+       t-wa                                 n/a n/a n/a   *    write RTC (ascii format)
+       t-rd                                 n/a n/a n/a   *    read RTC (decimal ormat)
+       t-wd                                 n/a n/a n/a   *    write RTC (decimal format)
+       
+       r-h:<name>                           n/a n/a n/a   *    change directory header
+       l:<name>                             n/a n/a n/a   *    (un)lock file (toggle)
+       w-<state>                            n/a n/a n/a   *    set disk write protection
+       s-<dev>                              n/a n/a n/a   *    swap device nr.             
+       g-d                                  n/a n/a n/a   *    get disk change status     
+
     */
     if (!strncmp((char *)(fsdevice_dev[dnr].cmdbuf), "M-R", 3)) {
         er = fsdevice_flush_mr(vdrive, realarg);
@@ -651,10 +760,24 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
         er = fsdevice_flush_mw(vdrive, realarg);
     } else if (!strncmp((char *)(fsdevice_dev[dnr].cmdbuf), "M-E", 3)) {
         er = fsdevice_flush_me(vdrive, realarg);
-    } else if (!strcmp(cmd, "u1")) {
+    } else if (!strcmp(cmd, "u0")) {
+        /* FIXME: not implemented */
+    } else if (!strcmp(cmd, "u1") || !strcmp(cmd, "ua")) {
         er = fsdevice_flush_u1(vdrive, realarg);
-    } else if (!strcmp(cmd, "u2")) {
+    } else if (!strcmp(cmd, "u2") || !strcmp(cmd, "ub")) {
         er = fsdevice_flush_u2(vdrive, realarg);
+    } else if (!strcmp(cmd, "u3") || !strcmp(cmd, "uc")) {
+        /* FIXME: not implemented */
+    } else if (!strcmp(cmd, "u4") || !strcmp(cmd, "ud")) {
+        /* FIXME: not implemented */
+    } else if (!strcmp(cmd, "u5") || !strcmp(cmd, "ue")) {
+        /* FIXME: not implemented */
+    } else if (!strcmp(cmd, "u6") || !strcmp(cmd, "uf")) {
+        /* FIXME: not implemented */
+    } else if (!strcmp(cmd, "u7") || !strcmp(cmd, "ug")) {
+        /* FIXME: not implemented */
+    } else if (!strcmp(cmd, "u8") || !strcmp(cmd, "uh")) {
+        /* FIXME: not implemented */
     } else if (!strncmp((char *)(fsdevice_dev[dnr].cmdbuf), "B-A", 3)) {
         er = fsdevice_flush_ba(vdrive, realarg);
     } else if (!strncmp((char *)(fsdevice_dev[dnr].cmdbuf), "B-F", 3)) {
@@ -668,7 +791,9 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
     } else if (!strncmp((char *)(fsdevice_dev[dnr].cmdbuf), "B-E", 3)) {
         er = fsdevice_flush_be(vdrive, realarg);
     } else if (!strcmp(cmd, "cd")) {
-        er = fsdevice_flush_cd(vdrive, arg);
+        realname = fsdevice_expand_shortname_ascii(vdrive, arg);
+        er = fsdevice_flush_cd(vdrive, realname);
+        lib_free(realname);
     } else if (!strcmp((char *)(fsdevice_dev[dnr].cmdbuf), "CD_")) {
         er = fsdevice_flush_cdup(vdrive);
     } else if (!strcmp((char *)(fsdevice_dev[dnr].cmdbuf), "CD:_")) {
@@ -676,9 +801,14 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
     } else if (*cmd == '/') {
         er = fsdevice_flush_partition(vdrive, arg);
     } else if (!strcmp(cmd, "md")) {
+        /* FIXME: is this really correct? perhaps we must consider a full path
+                  here and only limit the last portion? */
+        fsdevice_limit_createnamelength(vdrive, arg);
         er = fsdevice_flush_mkdir(vdrive, arg);
     } else if (!strcmp(cmd, "rd")) {
-        er = fsdevice_flush_rmdir(vdrive, arg);
+        realname = fsdevice_expand_shortname_ascii(vdrive, arg);
+        er = fsdevice_flush_rmdir(vdrive, realname);
+        lib_free(realname);
     } else if ((!strcmp(cmd, "ui")) || (!strcmp(cmd, "u9"))) {
         er = fsdevice_flush_reset();
     } else if ((!strcmp(cmd, "uj")) || (!strcmp(cmd, "u:"))) {
@@ -691,8 +821,17 @@ void fsdevice_flush(vdrive_t *vdrive, unsigned int secondary)
         er = fsdevice_flush_new(vdrive, realarg);
     } else if (*cmd == 'r' && arg != NULL) {
         er = fsdevice_flush_rename(vdrive, realarg);
+    } else if (*cmd == 'c' && arg != NULL) {
+        /* FIXME: not implemented */
+    } else if (*cmd == 'p') {
+        er = fsdevice_flush_position(vdrive,
+                (char *)(fsdevice_dev[dnr].cmdbuf),
+                fsdevice_dev[dnr].cptr);
     } else if (*cmd == 's' && arg != NULL) {
+        /* FIXME: a comma seperated list of files is not handled at all */
+        realname = fsdevice_expand_shortname(vdrive, realarg);
         er = fsdevice_flush_scratch(vdrive, realarg);
+        lib_free(realname);
     }
 
     fsdevice_error(vdrive, er);
@@ -707,7 +846,7 @@ int fsdevice_flush_write_byte(vdrive_t *vdrive, uint8_t data)
     unsigned int dnr;
     int rc;
 
-    dnr = vdrive->unit - 8;
+    dnr = vdrive->unit - DRIVE_UNIT_MIN;
     rc = SERIAL_OK;
 
     /* FIXME: Consider the real size of the input buffer. */

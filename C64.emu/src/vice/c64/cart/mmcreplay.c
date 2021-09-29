@@ -352,8 +352,8 @@ void mmcreplay_dump_cfg(void)
     static char dumpstr1[0x100];
     static char dumpstr2[0x100];
     static char ndumpstr[0x100];
-    char *str_mapper[4] = { "MMCBIOS", "RR", "SUPER", "NORMAL" };
-    char *str_config[4] = { "off", "ultimax", "8K Game", "16K Game" };
+    static const char * const str_mapper[4] = { "MMCBIOS", "RR", "SUPER", "NORMAL" };
+    static const char * const str_config[4] = { "off", "ultimax", "8K Game", "16K Game" };
     int mapper, config;
 
     sprintf(ndumpstr,
@@ -2610,25 +2610,18 @@ static int mmcreplay_common_attach(const char *filename)
 
 int mmcreplay_bin_attach(const char *filename, uint8_t *rawcart)
 {
-    int len = 0;
-    FILE *fd;
-
     mmcr_filetype = 0;
     mmcr_filename = NULL;
 
     if (util_file_load(filename, rawcart, MMCREPLAY_FLASHROM_SIZE,
-                       UTIL_FILE_LOAD_SKIP_ADDRESS | UTIL_FILE_LOAD_FILL) < 0) {
-        return -1;
-    }
-
-    fd = fopen(filename, "rb");
-    len = util_file_length(fd);
-    fclose(fd);
-
-    if (len == 0x10000) {
-        if (util_file_load(filename, &rawcart[7 * 0x10000], 0x10000,
-                           UTIL_FILE_LOAD_SKIP_ADDRESS | UTIL_FILE_LOAD_FILL) < 0) {
+                       UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
+        /* also try loading one 64k bank */
+        if (util_file_load(filename, rawcart, 0x10000,
+                        UTIL_FILE_LOAD_SKIP_ADDRESS) < 0) {
             return -1;
+        } else {
+            memcpy(&rawcart[7 * 0x10000], &rawcart[0], 0x10000);
+            memset(&rawcart[0], 0xff, 0x10000);
         }
     }
 

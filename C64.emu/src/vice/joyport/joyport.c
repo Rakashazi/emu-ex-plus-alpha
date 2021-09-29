@@ -46,7 +46,7 @@ static uint8_t joyport_dig_stored[JOYPORT_MAX_PORTS];
 
 typedef struct resid2text_s {
     int resid;
-    char *text;
+    const char *text;
 } resid2text_t;
 
 static resid2text_t ids[] = {
@@ -55,10 +55,10 @@ static resid2text_t ids[] = {
     { -1, NULL }
 };
 
-static char *res2text(int joyport_id)
+static const char *res2text(int joyport_id)
 {
     int i;
-    char *retval = "Unknown joyport resource";
+    const char *retval = "Unknown joyport resource";
 
     for (i = 0; ids[i].resid != -1; ++i) {
         if (ids[i].resid == joyport_id) {
@@ -243,13 +243,13 @@ uint8_t read_joyport_potx(void)
 
     if (id1 != JOYPORT_ID_NONE) {
         if (joyport_device[id1].read_potx) {
-            ret1 = joyport_device[id1].read_potx();
+            ret1 = joyport_device[id1].read_potx(pot_port1);
         }
     }
 
     if (id2 != JOYPORT_ID_NONE) {
         if (joyport_device[id2].read_potx) {
-            ret2 = joyport_device[id2].read_potx();
+            ret2 = joyport_device[id2].read_potx(pot_port2);
         }
     }
 
@@ -292,13 +292,13 @@ uint8_t read_joyport_poty(void)
 
     if (id1 != JOYPORT_ID_NONE) {
         if (joyport_device[id1].read_poty) {
-            ret1 = joyport_device[id1].read_poty();
+            ret1 = joyport_device[id1].read_poty(pot_port1);
         }
     }
 
     if (id2 != JOYPORT_ID_NONE) {
         if (joyport_device[id2].read_poty) {
-            ret2 = joyport_device[id2].read_poty();
+            ret2 = joyport_device[id2].read_poty(pot_port2);
         }
     }
 
@@ -568,7 +568,7 @@ struct joyport_opt_s {
     int id;
 };
 
-static struct joyport_opt_s id_match[] = {
+static const struct joyport_opt_s id_match[] = {
     { "0",               JOYPORT_ID_NONE },
     { "none",            JOYPORT_ID_NONE },
     { "1",               JOYPORT_ID_JOYSTICK },

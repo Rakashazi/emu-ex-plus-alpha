@@ -41,6 +41,7 @@
 #include "crtc-mem.h"
 #include "crtc.h"
 #include "datasette.h"
+#include "datasette-sound.h"
 #include "debug.h"
 #include "debugcart.h"
 #include "diskimage.h"
@@ -143,8 +144,13 @@ int machine_get_keyboard_type(void)
 
 char *machine_get_keyboard_type_name(int type)
 {
-    static char names[KBD_TYPE_NUM][5] = { KBD_TYPE_STR_BUSINESS_US, KBD_TYPE_STR_BUSINESS_UK,
-        KBD_TYPE_STR_BUSINESS_DE, KBD_TYPE_STR_BUSINESS_JP, KBD_TYPE_STR_GRAPHICS_US };
+    static char names[KBD_TYPE_NUM][5] = { 
+        KBD_TYPE_STR_BUSINESS_UK,
+        KBD_TYPE_STR_BUSINESS_US, 
+        KBD_TYPE_STR_BUSINESS_DE, 
+        KBD_TYPE_STR_BUSINESS_JP, 
+        KBD_TYPE_STR_GRAPHICS_US 
+    };
     return names[type]; /* return 0 if no different types exist */
 }
 
@@ -156,8 +162,8 @@ int machine_get_num_keyboard_types(void)
 
 /* FIXME: adjust this to reality :) */
 static kbdtype_info_t kbdinfo[KBD_TYPE_NUM + 1] = {
-    { "Business (us)", KBD_TYPE_BUSINESS_US, 0 },
     { "Business (uk)", KBD_TYPE_BUSINESS_UK, 0 },
+    { "Business (us)", KBD_TYPE_BUSINESS_US, 0 },
     { "Business (de)", KBD_TYPE_BUSINESS_DE, 0 },
     { "Business (jp)", KBD_TYPE_BUSINESS_JP, 0 },
     { "Graphics (us)", KBD_TYPE_GRAPHICS_US, 0 },
@@ -585,7 +591,7 @@ static void pet_monitor_init(void)
     unsigned int dnr;
     monitor_cpu_type_t asm6502;
     monitor_cpu_type_t asm6809;
-    monitor_interface_t *drive_interface_init[DRIVE_NUM];
+    monitor_interface_t *drive_interface_init[NUM_DISK_UNITS];
     monitor_cpu_type_t *asmarray[3];
 
     asmarray[0] = &asm6502;
@@ -595,7 +601,7 @@ static void pet_monitor_init(void)
     asm6502_init(&asm6502);
     asm6809_init(&asm6809);
 
-    for (dnr = 0; dnr < DRIVE_NUM; dnr++) {
+    for (dnr = 0; dnr < NUM_DISK_UNITS; dnr++) {
         drive_interface_init[dnr] = drive_cpu_monitor_interface_get(dnr);
     }
 
@@ -681,11 +687,13 @@ int machine_specific_init(void)
     userport_dac_sound_chip_init();
 
     drive_sound_init();
+    datasette_sound_init();
     video_sound_init();
 
     /* Initialize sound.  Notice that this does not really open the audio
        device yet.  */
-    sound_init(machine_timing.cycles_per_sec, machine_timing.cycles_per_rfsh);
+    sound_init((unsigned int)machine_timing.cycles_per_sec,
+               (unsigned int)machine_timing.cycles_per_rfsh);
 
     /* Initialize keyboard buffer.  FIXME: Is this correct?  */
     /* moved to mem_load() because it's model specific... AF 30jun1998
@@ -936,32 +944,60 @@ void pet_crtc_set_screen(void)
     crtc_set_hw_options((cols == 80) ? 2 : 0, vmask, 0x2000, 512, 0x1000);
     crtc_set_retrace_type(petres.crtc ? 1 : 0);
 
-    /* No CRTC -> assume 40 columns */
+    /* No CRTC -> assume 40 columns and 60 Hz */
     if (!petres.crtc) {
-        crtc_store(0, 13);
-        crtc_store(1, 0);
-        crtc_store(0, 12);
-        crtc_store(1, 0x10);
-        crtc_store(0, 9);
-        crtc_store(1, 7);
-        crtc_store(0, 8);
-        crtc_store(1, 0);
-        crtc_store(0, 7);
-        crtc_store(1, 29);
-        crtc_store(0, 6);
-        crtc_store(1, 25);
-        crtc_store(0, 5);
-        crtc_store(1, 16);
-        crtc_store(0, 4);
-        crtc_store(1, 32);
-        crtc_store(0, 3);
-        crtc_store(1, 8);
-        crtc_store(0, 2);
-        crtc_store(1, 50);
-        crtc_store(0, 1);
-        crtc_store(1, 40);
-        crtc_store(0, 0);
-        crtc_store(1, 63);
+        static uint8_t crtc_values[14] = {
+            /*
+             * Set the CRTC to display 60 frames per second.
+             *
+             * Tuned specifically for 64 clocks (= chars) per scanline,
+             * for the Cursor #18 Hi-Res program.
+             * The exact time of the IRQ is probably not 100% right,
+             * but close enough to get a visual effect.
+             *
+             * 15625 Hz horizontal
+             * PET: cycles per frame set to 16640, refresh to 60.096Hz
+             *
+             * Additional note: new ROMs 99/9A count to 623:
+             * 0099-009A        Jiffy clock correction: 623rd 1/60 sec
+             *                  does not increment time
+             *
+             * Presumably this should correct the frequency which is
+             * slightly over 60 Hz: 60.096 * 622 / 623 = 59.99954.
+             *
+             * Note that with the granularity of 1 scanline we cannot
+             * really get closer to the "real" freqency, assuming that
+             * the 622/623 fix is perfect: 60 * 623 / 622 = 60.096 463.
+             */
+              63, /* R0 total horizontal characters - 1 */
+              40, /* R1 displayed horizontal characters */
+              50, /* R2 horizontal sync position */
+            (0 << 4)|8, /* R3 vertical / horizontal sync width */
+              31, /* R4 total vertical characters - 1 */
+               4, /* R5 total vertical lines adjustment */
+              25, /* R6 displayed vertical characters */
+              29, /* R7 vertical sync position */
+               0, /* R8 MODECTRL */
+               7, /* R9 scanlines per character row - 1, including spacing */
+               0, /* R10 CURSORSTART */
+               0, /* R11 CURSOREND */
+            0x10, /* R12 DISPSTARTH */
+            0x00, /* R13 DISPSTARTL */
+#if 0
+            /*
+             * Original values.
+             * PET: cycles per frame set to 17920, refresh to 55.803Hz
+             */
+            63, 40, 50, 8, 32, 16, 25, 29,
+            0, 7, 0, 0, 0x10, 0,
+#endif
+        };
+        int r;
+
+        for (r = 13; r >= 0; r--) {
+            crtc_store(0, r);
+            crtc_store(1, crtc_values[r]);
+        }
     }
 }
 

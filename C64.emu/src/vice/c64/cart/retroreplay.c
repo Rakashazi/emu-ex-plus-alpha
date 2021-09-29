@@ -31,6 +31,7 @@
 #include <string.h>
 
 #include "archdep.h"
+#include "alarm.h"
 #include "c64cart.h"
 #define CARTRIDGE_INCLUDE_SLOTMAIN_API
 #include "c64cartsystem.h"
@@ -134,6 +135,9 @@ static clockport_device_t *clockport_device = NULL;
 
 static char *clockport_device_names = NULL;
 
+static struct alarm_s *nofreeze_alarm;
+static int freeze_button_pressed = 0;
+
 /* ---------------------------------------------------------------------*/
 
 /* some prototypes are needed */
@@ -209,17 +213,19 @@ static const export_resource_t export_res = {
 
 static uint8_t retroreplay_clockport_read(uint16_t address)
 {
+    retroreplay_clockport_io1_device.io_source_valid = 0;
     if (rr_clockport_enabled) {
         if (address < 0x02) {
-            retroreplay_clockport_io1_device.io_source_valid = 0;
             return 0;
         }
+        retroreplay_clockport_io1_device.io_source_valid = 1;
         /* read from clockport device */
         if (clockport_device) {
-            return clockport_device->read(address, &retroreplay_clockport_io1_device.io_source_valid, clockport_device->device_context);
+            return clockport_device->read(address, 
+                    &retroreplay_clockport_io1_device.io_source_valid, 
+                    clockport_device->device_context);
         }
         /* read open clock port */
-        retroreplay_clockport_io1_device.io_source_valid = 1;
         return 0;
     }
     return 0;
@@ -284,13 +290,15 @@ uint8_t retroreplay_io1_read(uint16_t addr)
             case 0:
             case 1:
                 retroreplay_io1_device.io_source_valid = 1;
-                return ((roml_bank & 3) << 3) | ((roml_bank & 4) << 5) | ((roml_bank & 8) << 2) | allow_bank | reu_mapping | rr_hw_flashjumper;
+                return ((roml_bank & 3) << 3) | ((roml_bank & 4) << 5) | 
+                ((roml_bank & 8) << 2) | allow_bank | reu_mapping | 
+                rr_hw_flashjumper | (freeze_button_pressed << 2);
             default:
                 if (rr_clockport_enabled && (addr & 0xff) < 0x10) {
                     return 0;
                 }
                 if ((reu_mapping) && (!rr_frozen)) {
-                    if (export_ram || ((rr_revision == RR_REV_NORDIC_REPLAY) && export_ram_at_a000)) {
+                    if (export_ram || (/* (rr_revision == RR_REV_NORDIC_REPLAY) && */ export_ram_at_a000)) {
                         retroreplay_io1_device.io_source_valid = 1;
                         if (allow_bank) {
                             return export_ram0[0x1e00 + (addr & 0xff) + ((roml_bank & 3) << 13)];
@@ -375,6 +383,11 @@ void retroreplay_io1_store(uint16_t addr, uint8_t value)
                     if (value & 0x20) { /* bit 5 */
                         mode |= CMODE_EXPORT_RAM;
                     }
+                    /* mode 0x22 is kinda broken in Retro Replay, mimic this here */
+                    if ((rr_revision == RR_REV_RETRO_REPLAY) && ((value & 0x67) == 0x22)) {
+                        export_ram_at_a000 = 1;
+                        rr_cmode = CMODE_RAM;
+                    }
                 }
                 /* after freezing writing to bit 0 and 1 has no effect until freeze
                    was acknowledged by setting bit 6 */
@@ -431,9 +444,7 @@ void retroreplay_io1_store(uint16_t addr, uint8_t value)
                     cart_romhbank_set_slotmain(rr_bank);
                     cart_romlbank_set_slotmain(rr_bank);
                     cart_port_config_changed_slotmain();
-                    if (rr_clockport_enabled != (value & 1)) {
-                        rr_clockport_enabled = value & 1;
-                    }
+                    rr_clockport_enabled = value & 1;
                 }
                 break;
             default:
@@ -461,7 +472,7 @@ uint8_t retroreplay_io2_read(uint16_t addr)
 
     if (rr_active) {
         if ((!reu_mapping) && (!rr_frozen)) {
-            if (export_ram || ((rr_revision == RR_REV_NORDIC_REPLAY) && export_ram_at_a000)) {
+            if (export_ram || (/* (rr_revision == RR_REV_NORDIC_REPLAY) && */ export_ram_at_a000)) {
                 retroreplay_io2_device.io_source_valid = 1;
                 if (allow_bank) {
                     return export_ram0[0x1f00 + (addr & 0xff) + ((roml_bank & 3) << 13)];
@@ -603,7 +614,7 @@ uint8_t retroreplay_romh_read(uint16_t addr)
                 return flash040core_read(flashrom_state, rom_offset + (addr & 0x1fff) + (roml_bank << 13));
             } else {
                 /* if the "allow bank" bit is not set, and RAM is selected, then
-                bot 0 and bit 1 of the bank nr are inactive for selecting the ROMH bank */
+                bit 0 and bit 1 of the bank nr are inactive for selecting the ROMH bank */
                 return flash040core_read(flashrom_state, rom_offset + (addr & 0x1fff) + ((roml_bank & ~3) << 13));
             }
         }
@@ -617,7 +628,7 @@ uint8_t retroreplay_romh_read(uint16_t addr)
         return flash040core_read(flashrom_state, rom_offset + (addr & 0x1fff) + (roml_bank << 13));
     }
     /* if the "allow bank" bit is not set, and RAM is selected, then
-       bot 0 and bit 1 of the bank nr are inactive for selecting the ROMH bank */
+       bit 0 and bit 1 of the bank nr are inactive for selecting the ROMH bank */
     return flash040core_read(flashrom_state, rom_offset + (addr & 0x1fff) + ((roml_bank & ~3) << 13));
 }
 
@@ -630,8 +641,10 @@ void retroreplay_romh_store(uint16_t addr, uint8_t value)
             } else {
                 export_ram0[addr & 0x1fff] = value;
             }
+            return;
         }
     }
+    mem_store_without_romlh(addr, value);
 }
 
 int retroreplay_peek_mem(export_t *ex, uint16_t addr, uint8_t *value)
@@ -748,8 +761,20 @@ void retroreplay_freeze(void)
     }
 }
 
+static void nofreeze_alarm_handler(CLOCK offset, void *data)
+{
+    freeze_button_pressed = 0;
+    alarm_unset(nofreeze_alarm);
+}
+
 int retroreplay_freeze_allowed(void)
 {
+    freeze_button_pressed = 1;
+    alarm_unset(nofreeze_alarm);
+    /* HACK: we keep the button pressed for 30 frames, because we do not get the
+             "release" event for the hotkey. this enables us to keep it pressed
+             continously when the hotkey is being held down */
+    alarm_set(nofreeze_alarm, maincpu_clk + (312 * 65 * 30));
     if (no_freeze) {
         return 0;
     }
@@ -1036,12 +1061,14 @@ static int retroreplay_common_attach(void)
 
     rr_enabled = 1;
 
+    nofreeze_alarm = alarm_new(maincpu_alarm_context, "NoFreezeAlarm", nofreeze_alarm_handler, NULL);
+
     return 0;
 }
 
 int retroreplay_bin_attach(const char *filename, uint8_t *rawcart)
 {
-    int len = 0;
+    size_t len = 0;
     FILE *fd;
 
     retroreplay_filetype = 0;
@@ -1277,8 +1304,8 @@ void retroreplay_detach(void)
    ARRAY | RAM               |   0.0+  | 32768 BYTES of RAM data
  */
 
-static char snap_module_name[] = "CARTRR";
-static char flash_snap_module_name[] = "FLASH040RR";
+static const char snap_module_name[] = "CARTRR";
+static const char flash_snap_module_name[] = "FLASH040RR";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   3
 

@@ -20,6 +20,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <stdbool.h>
+#include <sys/time.h>
 #include "machine.h"
 #include "maincpu.h"
 #include "drive.h"
@@ -155,6 +157,23 @@ char *archdep_default_save_resource_file_name(void)
 
 int archdep_default_logger(const char *level_string, const char *txt) { return 0; }
 
+char *archdep_default_portable_resource_file_name(void) { return NULL; }
+
+int archdep_is_haiku(void) { return 1; }
+
+void archdep_sound_enable_default_device_tracking(void) {}
+
+bool archdep_is_exiting(void) { return false; }
+
+const char *archdep_home_path(void) { return ""; }
+
+int archdep_rtc_get_centisecond(void)
+{
+	struct timeval t;
+	gettimeofday(&t, NULL);
+	return (int)(t.tv_usec / 10000);
+}
+
 void ui_update_menus(void) {}
 
 int ui_extend_image_dialog(void)
@@ -162,7 +181,7 @@ int ui_extend_image_dialog(void)
 	return 0;
 }
 
-void ui_display_drive_led(int drive_number, unsigned int pwm1, unsigned int led_pwm2) {}
+void ui_display_drive_led(unsigned int drive_number, unsigned int drive_base, unsigned int led_pwm1, unsigned int led_pwm2) {}
 void ui_display_drive_track(unsigned int drive_number, unsigned int drive_base, unsigned int half_track_number) {}
 void ui_display_joyport(uint8_t *joyport) {}
 void ui_enable_drive_status(ui_drive_enable_t state, int *drive_led_color) {}
@@ -311,7 +330,7 @@ int archdep_rmdir(const char *pathname)
 	return rmdir(pathname);
 }
 
-int archdep_stat(const char *file_name, unsigned int *len, unsigned int *isdir)
+int archdep_stat(const char *file_name, size_t *len, unsigned int *isdir)
 {
 	struct stat statbuf;
 
@@ -349,7 +368,7 @@ void uimon_window_suspend(void) {}
 void fullscreen_resume(void) {}
 void fullscreen_capability(cap_fullscreen_t *cap_fullscreen) {}
 void ui_display_tape_current_image(const char *image) {}
-void ui_display_drive_current_image(unsigned int drive_number, const char *image) {}
+void ui_display_drive_current_image(unsigned int unit_number, unsigned int drive_number, const char *image) {}
 void ui_display_tape_control_status(int control) {}
 void ui_display_tape_motor_status(int motor) {}
 void ui_display_recording(int recording_status) {}
@@ -467,8 +486,8 @@ int mousedrv_get_y(void) { return 0; }
 unsigned long mousedrv_get_timestamp(void) { return 0; }
 
 void mouse_button(int bnumber, int state) {}
-void mouse_move(int x, int y) {}
 
+void joystick() {}
 int joy_arch_init(void) { return 0; }
 int joy_arch_set_device(int port_idx, int new_dev) { return 0; }
 int joy_arch_resources_init(void) { return 0; }
@@ -495,9 +514,13 @@ void vsyncarch_presync(void) {}
 
 void vsyncarch_postsync(void) {}
 
-int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
+void vsync_do_end_of_line(void)
 {
 	sound_flush();
+}
+
+int vsync_do_vsync(struct video_canvas_s *c, int been_skipped)
+{
 	kbdbuf_flush();
 	vsync_hook();
 	return vsync_do_vsync2(c, been_skipped);
@@ -515,6 +538,8 @@ int zfile_close_action(const char *filename, zfile_action_t action,
 {
 	return 0;
 }
+
+void tick_sleep(unsigned long ticks) { assert(!"emulation thread should not explicitly call sleep for timing"); }
 
 int vice_init()
 {

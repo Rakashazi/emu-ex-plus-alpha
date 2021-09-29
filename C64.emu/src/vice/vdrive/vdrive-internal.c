@@ -75,9 +75,9 @@ vdrive_t *vdrive_internal_open_fsimage(const char *name, unsigned int read_only)
 
     vdrive = lib_calloc(1, sizeof(vdrive_t));
 
-    vdrive_device_setup(vdrive, 100);
+    vdrive_device_setup(vdrive, 100, 0);
     vdrive->image = image;
-    vdrive_attach_image(image, 100, vdrive);
+    vdrive_attach_image(image, 100, 0, vdrive);
     return vdrive;
 }
 
@@ -86,7 +86,7 @@ int vdrive_internal_close_disk_image(vdrive_t *vdrive)
     disk_image_t *image = vdrive->image;
 
     if (vdrive->unit != 8 && vdrive->unit != 9 && vdrive->unit != 10 && vdrive->unit != 11) {
-        vdrive_detach_image(image, 100, vdrive);
+        vdrive_detach_image(image, 100, 0, vdrive);
 
         if (disk_image_close(image) < 0) {
             return -1;
@@ -136,11 +136,19 @@ int vdrive_internal_create_format_disk_image(const char *filename,
                                              const char *diskname,
                                              unsigned int type)
 {
-    if (cbmimage_create_image(filename, type) < 0) {
-        return -1;
-    }
-    if (vdrive_internal_format_disk_image(filename, diskname) < 0) {
-        return -1;
+    switch (type) {
+        case DISK_IMAGE_TYPE_D1M:
+        case DISK_IMAGE_TYPE_D2M:
+        case DISK_IMAGE_TYPE_D4M:
+            return cbmimage_create_dxm_image(filename, diskname, type);
+            break;
+        default:
+            if (cbmimage_create_image(filename, type) < 0) {
+                return -1;
+            }
+            if (vdrive_internal_format_disk_image(filename, diskname) < 0) {
+                return -1;
+            }
     }
 
     return 0;

@@ -45,22 +45,22 @@ typedef struct drivetpi_context_s {
 } drivetpi_context_t;
 
 
-void tpid_store(drive_context_t *ctxptr, uint16_t addr, uint8_t data)
+void tpid_store(diskunit_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
     tpicore_store(ctxptr->tpid, addr, data);
 }
 
-uint8_t tpid_read(drive_context_t *ctxptr, uint16_t addr)
+uint8_t tpid_read(diskunit_context_t *ctxptr, uint16_t addr)
 {
     return tpicore_read(ctxptr->tpid, addr);
 }
 
-uint8_t tpid_peek(drive_context_t *ctxptr, uint16_t addr)
+uint8_t tpid_peek(diskunit_context_t *ctxptr, uint16_t addr)
 {
     return tpicore_peek(ctxptr->tpid, addr);
 }
 
-int tpid_dump(drive_context_t *ctxptr, uint16_t addr)
+int tpid_dump(diskunit_context_t *ctxptr, uint16_t addr)
 {
     tpicore_dump(ctxptr->tpid);
     return 0;
@@ -199,7 +199,7 @@ static uint8_t read_pc(tpi_context_t *tpi_context)
     return byte;
 }
 
-void tpid_init(drive_context_t *ctxptr)
+void tpid_init(diskunit_context_t *ctxptr)
 {
     tpi_context_t *tpi_context;
 
@@ -208,7 +208,7 @@ void tpid_init(drive_context_t *ctxptr)
     tpi_context->log = log_open(tpi_context->myname);
 }
 
-void tpid_setup_context(drive_context_t *ctxptr)
+void tpid_setup_context(diskunit_context_t *ctxptr)
 {
     drivetpi_context_t *tpip;
     tpi_context_t *tpi;
@@ -232,7 +232,7 @@ void tpid_setup_context(drive_context_t *ctxptr)
     tpi->tpi_int_num = interrupt_cpu_status_int_new(ctxptr->cpu->int_status,
                                                     tpi->myname);
     tpi->irq_line = IK_IRQ;
-    tpip->drive = ctxptr->drive;
+    tpip->drive = ctxptr->drives[0];
 
     tpi->store_pa = store_pa;
     tpi->store_pb = store_pb;

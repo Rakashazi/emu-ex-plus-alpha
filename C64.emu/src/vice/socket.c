@@ -242,7 +242,7 @@ static int get_new_pool_entry(unsigned int * PoolUsage)
 {
     int next_free = -1;
 
-    static int nextentry[] = {
+    static const int nextentry[] = {
         0, 1, 0, 2, 0, 1, 0, 3,
         0, 1, 0, 2, 0, 1, 0, -1
     };
@@ -773,8 +773,8 @@ static int vice_network_address_generate_local(vice_network_socket_address_t * s
 
         if (strlen(address_string) >= sizeof socket_address->address.local.sun_path) {
             log_message(LOG_DEFAULT,
-                        "Unix domain socket name of '%s' is too long; only %u chars are allowed.",
-                        address_string, sizeof socket_address->address.local.sun_path);
+                        "Unix domain socket name of '%s' is too long; only %lu chars are allowed.",
+                        address_string, sizeof(socket_address->address.local.sun_path));
             break;
         }
         strcpy(socket_address->address.local.sun_path, address_string);
@@ -965,14 +965,18 @@ int vice_network_socket_close(vice_network_socket_t * sockfd)
      the number of bytes send. For non-blocking sockets,
      this can be less than len. For blocking sockets (default),
      any return value different than len must be treated as an error.
+
+  \note Amazing there's docs on this, but send() returns size_t, not int, so
+        properly checking the return type could fail.
 */
-int vice_network_send(vice_network_socket_t * sockfd, const void * buffer, size_t buffer_length, int flags)
+int vice_network_send(vice_network_socket_t * sockfd, const void * buffer,
+                         size_t buffer_length, int flags)
 {
-    int ret;
+    size_t ret;
     signals_pipe_set();
     ret = send(sockfd->sockfd, buffer, buffer_length, flags);
     signals_pipe_unset();
-    return ret;
+    return (int)ret;
 }
 
 /*! \brief Receive data from a connected socket
@@ -1007,11 +1011,11 @@ int vice_network_send(vice_network_socket_t * sockfd, const void * buffer, size_
 */
 int vice_network_receive(vice_network_socket_t * sockfd, void * buffer, size_t buffer_length, int flags)
 {
-    int ret;
+    size_t ret;
     signals_pipe_set();
     ret = recv(sockfd->sockfd, buffer, buffer_length, flags);
     signals_pipe_unset();
-    return ret;
+    return (int)ret;
 }
 
 /*! \brief Check if a socket has incoming data to receive
@@ -1037,6 +1041,40 @@ int vice_network_select_poll_one(vice_network_socket_t * readsockfd)
     FD_SET(readsockfd->sockfd, &fdsockset);
 
     return select( readsockfd->sockfd + 1, &fdsockset, NULL, NULL, &timeout);
+}
+
+/*! \brief Monitor multiple sockets
+
+  This function blocks for many different connections and returns when any
+  has data.
+
+  \param readsockfd
+     NULL terminated list of sockets to monitor
+
+  \return
+     1 if the specified socket has data; 0 if it does not contain
+     any data, and -1 in case of an error.
+*/
+int vice_network_select_multiple(vice_network_socket_t ** readsockfd)
+{
+    fd_set fdsockset;
+    SOCKET max_sockfd = INVALID_SOCKET;
+    TIMEVAL time = {0, 250000};
+
+    FD_ZERO(&fdsockset);
+    while(*readsockfd != NULL) {
+        FD_SET((*readsockfd)->sockfd, &fdsockset);
+        if((*readsockfd)->sockfd > max_sockfd) {
+            max_sockfd = (*readsockfd)->sockfd;
+        }
+        readsockfd++;
+    }
+
+    if(max_sockfd == INVALID_SOCKET) {
+        return -1;
+    }
+
+    return select(max_sockfd + 1, &fdsockset, NULL, NULL, &time);
 }
 
 /*! \brief Get the error of the last socket operation

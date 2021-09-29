@@ -58,7 +58,7 @@ int machine_drive_cmdline_options_init(void)
            | tcbm_drive_cmdline_options_init();
 }
 
-void machine_drive_init(struct drive_context_s *drv)
+void machine_drive_init(struct diskunit_context_s *drv)
 {
     iec_drive_init(drv);
     iecieee_drive_init(drv);
@@ -66,14 +66,14 @@ void machine_drive_init(struct drive_context_s *drv)
     tcbm_drive_init(drv);
 }
 
-void machine_drive_shutdown(struct drive_context_s *drv)
+void machine_drive_shutdown(struct diskunit_context_s *drv)
 {
     iec_drive_shutdown(drv);
     iecieee_drive_shutdown(drv);
     tcbm_drive_shutdown(drv);
 }
 
-void machine_drive_reset(struct drive_context_s *drv)
+void machine_drive_reset(struct diskunit_context_s *drv)
 {
     iec_drive_reset(drv);
     iecieee_drive_reset(drv);
@@ -81,14 +81,14 @@ void machine_drive_reset(struct drive_context_s *drv)
     tcbm_drive_reset(drv);
 }
 
-void machine_drive_mem_init(struct drive_context_s *drv, unsigned int type)
+void machine_drive_mem_init(struct diskunit_context_s *drv, unsigned int type)
 {
     iec_drive_mem_init(drv, type);
     iec_plus4exp_mem_init(drv, type);
     tcbm_drive_mem_init(drv, type);
 }
 
-void machine_drive_setup_context(struct drive_context_s *drv)
+void machine_drive_setup_context(struct diskunit_context_s *drv)
 {
     iec_drive_setup_context(drv);
     iecieee_drive_setup_context(drv);
@@ -130,7 +130,7 @@ void machine_drive_rom_do_checksum(unsigned int dnr)
     tcbm_drive_rom_do_checksum(dnr);
 }
 
-int machine_drive_snapshot_read(struct drive_context_s *ctxptr,
+int machine_drive_snapshot_read(struct diskunit_context_s *ctxptr,
                                 struct snapshot_s *s)
 {
     if (iec_drive_snapshot_read(ctxptr, s) < 0) {
@@ -146,7 +146,7 @@ int machine_drive_snapshot_read(struct drive_context_s *ctxptr,
     return 0;
 }
 
-int machine_drive_snapshot_write(struct drive_context_s *ctxptr,
+int machine_drive_snapshot_write(struct diskunit_context_s *ctxptr,
                                  struct snapshot_s *s)
 {
     if (iec_drive_snapshot_write(ctxptr, s) < 0) {
@@ -162,17 +162,17 @@ int machine_drive_snapshot_write(struct drive_context_s *ctxptr,
     return 0;
 }
 
-int machine_drive_image_attach(struct disk_image_s *image, unsigned int unit)
+int machine_drive_image_attach(struct disk_image_s *image, unsigned int unit, unsigned int drive)
 {
-    return iec_drive_image_attach(image, unit);
+    return iec_drive_image_attach(image, unit, drive);
 }
 
-int machine_drive_image_detach(struct disk_image_s *image, unsigned int unit)
+int machine_drive_image_detach(struct disk_image_s *image, unsigned int unit, unsigned int drive)
 {
-    return iec_drive_image_detach(image, unit);
+    return iec_drive_image_detach(image, unit, drive);
 }
 
-void machine_drive_port_default(struct drive_context_s *drv)
+void machine_drive_port_default(struct diskunit_context_s *drv)
 {
     iec_drive_port_default(drv);
 }
@@ -202,6 +202,7 @@ static drive_type_info_t drive_type_info_list[] = {
     { DRIVE_NAME_1581, DRIVE_TYPE_1581 },
     { DRIVE_NAME_2000, DRIVE_TYPE_2000 },
     { DRIVE_NAME_4000, DRIVE_TYPE_4000 },
+    { DRIVE_NAME_CMDHD, DRIVE_TYPE_CMDHD },
     { NULL, -1 }
 };
 

@@ -1,5 +1,5 @@
 /*
- * lib.c - Library functions.
+ * lib.c - Library function wrappers, mostly for memory alloc/free tracking.
  *
  * Written by
  *  Andreas Boose <viceteam@t-online.de>
@@ -28,6 +28,7 @@
 #include "vice.h"
 
 
+#include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,31 +38,11 @@
 #include <time.h>
 
 #include "archdep.h"
-
-#ifdef AMIGA_SUPPORT
-#ifndef __USE_INLINE__
-#define __USE_INLINE__
-#endif
-#endif
-
-#if defined(AMIGA_SUPPORT) || defined(__VBCC__)
-#include <proto/exec.h>
-#ifndef AMIGA_SUPPORT
-#define AMIGA_SUPPORT
-#endif
-#endif
-
 #include "types.h"
 #include "debug.h"
 
 #define COMPILING_LIB_DOT_C
 #include "lib.h"
-
-#if (defined(sun) || defined(__sun)) && !(defined(__SVR4) || defined(__svr4__))
-#  ifndef RAND_MAX
-#    define RAND_MAX 32767
-#  endif
-#endif
 
 #ifdef DEBUG
 /* enable memory debugging */
@@ -77,13 +58,13 @@
 # endif
 #endif
 
+#define LIB_DEBUG_LOCK()
+#define LIB_DEBUG_UNLOCK()
 
 #ifdef LIB_DEBUG
 #define LIB_DEBUG_SIZE  0x10000
 #define LIB_DEBUG_GUARD 0x1000
 #define LIB_DEBUG_TOPMAX 50
-
-static bool lib_debug_initialized = false;
 
 #ifdef LIB_DEBUG_PINPOINT
 static const char *lib_debug_filename[LIB_DEBUG_SIZE];
@@ -109,7 +90,19 @@ static char *lib_debug_guard_base[LIB_DEBUG_SIZE];
 static unsigned int lib_debug_guard_size[LIB_DEBUG_SIZE];
 #endif
 
+#ifdef USE_VICE_THREAD
+#include <pthread.h>
+static pthread_mutex_t lib_debug_lock = PTHREAD_MUTEX_INITIALIZER;
+#undef LIB_DEBUG_LOCK
+#undef LIB_DEBUG_UNLOCK
+#define LIB_DEBUG_LOCK() pthread_mutex_lock(&lib_debug_lock)
+#define LIB_DEBUG_UNLOCK() pthread_mutex_unlock(&lib_debug_lock)
+#endif
+
 /*----------------------------------------------------------------------------*/
+
+#ifdef DEBUG
+static void lib_debug_check(void);
 
 static void lib_debug_init(void)
 {
@@ -125,8 +118,11 @@ static void lib_debug_init(void)
     memset(lib_debug_line, 0, sizeof(lib_debug_line));
     memset(lib_debug_top_size, 0, sizeof(lib_debug_top_size));
 #endif
-    lib_debug_initialized = true;
+
+    /* Check for memory leaks on exit. */
+    atexit(lib_debug_check);
 }
+#endif
 
 static void lib_debug_add_top(const char *filename, unsigned int line, unsigned int size)
 {
@@ -151,10 +147,6 @@ static void lib_debug_add_top(const char *filename, unsigned int line, unsigned 
 static void lib_debug_alloc(void *ptr, size_t size, int level)
 {
     unsigned int index;
-
-    if (!lib_debug_initialized) {
-        lib_debug_init();
-    }
 
     index = 0;
 
@@ -211,8 +203,8 @@ static void lib_debug_free(void *ptr, unsigned int level, bool fill)
     }
 
 #if 0
-    printf("lib_debug_free(): Free address %p size %i slot %i from %p.\n",
-           ptr, lib_debug_size[index], index, func);
+    printf("lib_debug_free(): Free address %p size %u slot %u.\n",
+           ptr, lib_debug_size[index], index);
 #endif
 
     if (fill) {
@@ -229,10 +221,6 @@ static void lib_debug_free(void *ptr, unsigned int level, bool fill)
 static void lib_debug_guard_add(char *ptr, unsigned int size)
 {
     unsigned int index;
-
-    if (!lib_debug_initialized) {
-        lib_debug_init();
-    }
 
     index = 0;
 
@@ -476,7 +464,8 @@ static void lib_debug_leaklist_add(unsigned int index)
 #endif
 #endif
 
-void lib_debug_check(void)
+#ifdef DEBUG
+static void lib_debug_check(void)
 {
 #ifdef LIB_DEBUG
     unsigned int index, count;
@@ -557,6 +546,7 @@ void lib_debug_check(void)
 
 #endif
 }
+#endif
 
 /*----------------------------------------------------------------------------*/
 /* like malloc, but abort on out of memory. */
@@ -565,18 +555,20 @@ static
 #endif
 void *lib_malloc(size_t size)
 {
+    void *ptr;
+
+    LIB_DEBUG_LOCK();
+
 #ifdef LIB_DEBUG
-    void *ptr = lib_debug_libc_malloc(size);
+    ptr = lib_debug_libc_malloc(size);
 #else
-    void *ptr = malloc(size);
+    ptr = malloc(size);
 #endif
 
-#ifndef __OS2__
     if (ptr == NULL && size > 0) {
         fprintf(stderr, "error: lib_malloc failed\n");
         archdep_vice_exit(-1);
     }
-#endif
 #ifdef LIB_DEBUG
     lib_debug_alloc(ptr, size, 3);
 #endif
@@ -587,64 +579,12 @@ void *lib_malloc(size_t size)
         memset(ptr, 0, size);
     }
 #endif
-    return ptr;
-}
 
-#ifdef AMIGA_SUPPORT
-void *lib_AllocVec(unsigned long size, unsigned long attributes)
-{
-#ifdef LIB_DEBUG
-    void *ptr;
-
-    if (attributes & MEMF_CLEAR) {
-        ptr = lib_debug_libc_calloc(1, size);
-    } else {
-        ptr = lib_debug_libc_malloc(size);
-    }
-#else
-    void *ptr = AllocVec(size, attributes);
-#endif
-
-#ifndef __OS2__
-    if (ptr == NULL && size > 0) {
-        fprintf(stderr, "error: lib_AllocVec failed\n");
-        archdep_vice_exit(-1);
-    }
-#endif
-#ifdef LIB_DEBUG
-    lib_debug_alloc(ptr, size, 1);
-#endif
+    LIB_DEBUG_UNLOCK();
 
     return ptr;
 }
 
-void *lib_AllocMem(unsigned long size, unsigned long attributes)
-{
-#ifdef LIB_DEBUG
-    void *ptr;
-
-    if (attributes & MEMF_CLEAR) {
-        ptr = lib_debug_libc_calloc(1, size);
-    } else {
-        ptr = lib_debug_libc_malloc(size);
-    }
-#else
-    void *ptr = AllocMem(size, attributes);
-#endif
-
-#ifndef __OS2__
-    if (ptr == NULL && size > 0) {
-        fprintf(stderr, "error: lib_AllocMem failed\n");
-        archdep_vice_exit(-1);
-    }
-#endif
-#ifdef LIB_DEBUG
-    lib_debug_alloc(ptr, size, 1);
-#endif
-
-    return ptr;
-}
-#endif
 
 /* Like calloc, but abort if not enough memory is available.  */
 #ifdef LIB_DEBUG_PINPOINT
@@ -652,21 +592,25 @@ static
 #endif
 void *lib_calloc(size_t nmemb, size_t size)
 {
+    void *ptr;
+
+    LIB_DEBUG_LOCK();
+
 #ifdef LIB_DEBUG
-    void *ptr = lib_debug_libc_calloc(nmemb, size);
+    ptr = lib_debug_libc_calloc(nmemb, size);
 #else
-    void *ptr = calloc(nmemb, size);
+    ptr = calloc(nmemb, size);
 #endif
 
-#ifndef __OS2__
     if (ptr == NULL && (size * nmemb) > 0) {
         fprintf(stderr, "error: lib_calloc failed\n");
         archdep_vice_exit(-1);
     }
-#endif
 #ifdef LIB_DEBUG
     lib_debug_alloc(ptr, size * nmemb, 1);
 #endif
+
+    LIB_DEBUG_UNLOCK();
 
     return ptr;
 }
@@ -677,22 +621,26 @@ static
 #endif
 void *lib_realloc(void *ptr, size_t size)
 {
+    void *new_ptr;
+
+    LIB_DEBUG_LOCK();
+
 #ifdef LIB_DEBUG
-    void *new_ptr = lib_debug_libc_realloc(ptr, size);
+    new_ptr = lib_debug_libc_realloc(ptr, size);
 #else
-    void *new_ptr = realloc(ptr, size);
+    new_ptr = realloc(ptr, size);
 #endif
 
-#ifndef __OS2__
     if (new_ptr == NULL) {
         fprintf(stderr, "error: lib_realloc failed\n");
         archdep_vice_exit(-1);
     }
-#endif
 #ifdef LIB_DEBUG
     lib_debug_free(ptr, 1, false);
     lib_debug_alloc(new_ptr, size, 1);
 #endif
+
+    LIB_DEBUG_UNLOCK();
 
     return new_ptr;
 }
@@ -703,6 +651,8 @@ static
 #endif
 void lib_free(void *ptr)
 {
+    LIB_DEBUG_LOCK();
+
 #ifdef LIB_DEBUG
     lib_debug_free(ptr, 1, true);
 #endif
@@ -712,29 +662,10 @@ void lib_free(void *ptr)
 #else
     free(ptr);
 #endif
+
+    LIB_DEBUG_UNLOCK();
 }
 
-#ifdef AMIGA_SUPPORT
-void lib_FreeVec(void *ptr)
-{
-#ifdef LIB_DEBUG
-    lib_debug_free(ptr, 1, true);
-    lib_debug_libc_free(ptr);
-#else
-    FreeVec(ptr);
-#endif
-}
-
-void lib_FreeMem(void *ptr, unsigned long size)
-{
-#ifdef LIB_DEBUG
-    lib_debug_free(ptr, 1, true);
-    lib_debug_libc_free(ptr);
-#else
-    FreeMem(ptr, size);
-#endif
-}
-#endif
 
 /*----------------------------------------------------------------------------*/
 
@@ -763,404 +694,33 @@ char *lib_strdup(const char *str)
     return ptr;
 }
 
-#if defined(__CYGWIN32__) || defined(__CYGWIN__) || defined(WIN32_COMPILE)
-
-size_t lib_tcstostr(char *str, const char *tcs, size_t len)
+char *lib_mvsprintf(const char *fmt, va_list ap)
 {
-    strncpy(str, tcs, len);
-    str[len - 1] = 0;
-    return strlen(str);
-}
-
-size_t lib_strtotcs(char *tcs, const char *str, size_t len)
-{
-    strncpy(tcs, str, len);
-    tcs[len - 1] = 0;
-    return strlen(tcs);
-}
-
-int lib_snprintf(char *str, size_t len, const char *fmt, ...)
-{
+    int maxlen;
+    char *p;
     va_list args;
-    int ret;
 
-    va_start(args, fmt);
-#ifdef HAVE_VSNPRINTF
-    ret = vsnprintf(str, len, fmt, args);
-#else
-    /* fake version which ignores len */
-    ret = vsprintf(str, fmt, args);
-#endif
+    va_copy(args, ap);
+    /* Get the length of the formatted string, NOT containing
+       the terminating zero. */
+    maxlen = vsnprintf(NULL, 0, fmt, args);
     va_end(args);
 
-    return ret;
-}
-
-#endif /* CYGWIN or WIN32_COMPILE */
-
-#ifdef HAVE_WORKING_VSNPRINTF
-
-/* taken shamelessly from printf(3) man page of the Linux Programmer's Manual */
-
-char *lib_mvsprintf(const char *fmt, va_list args)
-{
-    /* Guess we need no more than 100 bytes. */
-    int n, size = 100;
-    char *p, *np;
-
-    if ((p = lib_malloc (size)) == NULL) {
+    /* Test if this size is valid */
+    if (maxlen < 0) {
         return NULL;
     }
 
-    while (1) {
-        /* Try to print in the allocated space. */
-        n = vsnprintf (p, size, fmt, args /* ap */);
-
-        /* If that worked, return the string. */
-        if (n > -1 && n < size) {
-            return p;
-        }
-
-        /* Else try again with more space. */
-        if (n > -1) {     /* glibc 2.1 and C99 */
-            size = n + 1; /* precisely what is needed */
-        } else {          /* glibc 2.0 */
-            size *= 2;    /* twice the old size */
-        }
-
-        if ((np = lib_realloc (p, size)) == NULL) {
-            lib_free(p);
-            return NULL;
-        } else {
-            p = np;
-        }
+    /* Alloc required size */
+    if ((p = lib_malloc(maxlen + 1)) == NULL) {
+        return NULL;
     }
+
+    /* At this point, this call should never fail */
+    vsnprintf(p, maxlen + 1, fmt, ap);
+
+    return p;
 }
-
-#else
-
-/* xmsprintf() is like sprintf() but lib_malloc's the buffer by itself.  */
-
-#define xmvsprintf_is_digit(c) ((c) >= '0' && (c) <= '9')
-
-static int xmvsprintf_skip_atoi(const char **s)
-{
-    int i = 0;
-
-    while (xmvsprintf_is_digit(**s)) {
-        i = i * 10 + *((*s)++) - '0';
-    }
-    return i;
-}
-
-#define ZEROPAD 1               /* pad with zero */
-#define SIGN    2               /* unsigned/signed long */
-#define PLUS    4               /* show plus */
-#define SPACE   8               /* space if plus */
-#define LEFT    16              /* left justified */
-#define SPECIAL 32              /* 0x */
-#define LARGE   64              /* use 'ABCDEF' instead of 'abcdef' */
-
-static inline int xmvsprintf_do_div(long *n, unsigned int base)
-{
-    int res;
-
-    res = ((unsigned long)*n) % (unsigned)base;
-    *n = ((unsigned long)*n) / (unsigned)base;
-    return res;
-}
-
-static size_t xmvsprintf_strnlen(const char * s, size_t count)
-{
-    const char *sc;
-
-    for (sc = s; count-- && *sc != '\0'; ++sc) {
-        /* nothing */
-    }
-    return sc - s;
-}
-
-static void xmvsprintf_add(char **buf, unsigned int *bufsize,
-                           unsigned int *position, char write)
-{
-    if (*position == *bufsize) {
-        *bufsize *= 2;
-        *buf = lib_realloc(*buf, *bufsize);
-    }
-    (*buf)[*position] = write;
-    *position += 1;
-}
-
-static void xmvsprintf_number(char **buf, unsigned int *bufsize,
-                              unsigned int *position, long num, int base,
-                              int size, int precision, int type)
-{
-    char c, sign, tmp[66];
-    const char *digits = "0123456789abcdefghijklmnopqrstuvwxyz";
-    int i;
-
-    if (type & LARGE) {
-        digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    }
-    if (type & LEFT) {
-        type &= ~ZEROPAD;
-    }
-    if (base < 2 || base > 36) {
-        return;
-    }
-    c = (type & ZEROPAD) ? '0' : ' ';
-    sign = 0;
-    if (type & SIGN) {
-        if (num < 0) {
-            sign = '-';
-            num = -num;
-            size--;
-        } else if (type & PLUS) {
-            sign = '+';
-            size--;
-        } else if (type & SPACE) {
-            sign = ' ';
-            size--;
-        }
-    }
-    if (type & SPECIAL) {
-        if (base == 16) {
-            size -= 2;
-        } else if (base == 8) {
-            size--;
-        }
-    }
-
-    i = 0;
-    if (num == 0) {
-        tmp[i++] = '0';
-    } else {
-        while (num != 0) {
-            tmp[i++] = digits[xmvsprintf_do_div(&num, base)];
-        }
-    }
-    if (i > precision) {
-        precision = i;
-    }
-    size -= precision;
-    if (!(type & (ZEROPAD + LEFT))) {
-        while (size-- > 0) {
-            xmvsprintf_add(buf, bufsize, position, ' ');
-        }
-    }
-    if (sign) {
-        xmvsprintf_add(buf, bufsize, position, sign);
-    }
-    if (type & SPECIAL) {
-        if (base == 8) {
-            xmvsprintf_add(buf, bufsize, position, '0');
-        } else if (base == 16) {
-            xmvsprintf_add(buf, bufsize, position, '0');
-            xmvsprintf_add(buf, bufsize, position, digits[33]);
-        }
-    }
-    if (!(type & LEFT)) {
-        while (size-- > 0) {
-            xmvsprintf_add(buf, bufsize, position, c);
-        }
-    }
-    while (i < precision--) {
-        xmvsprintf_add(buf, bufsize, position, '0');
-    }
-    while (i-- > 0) {
-        xmvsprintf_add(buf, bufsize, position, tmp[i]);
-    }
-    while (size-- > 0) {
-        xmvsprintf_add(buf, bufsize, position, ' ');
-    }
-}
-
-char *lib_mvsprintf(const char *fmt, va_list args)
-{
-    char *buf;
-    unsigned int position, bufsize;
-
-    size_t len;
-    int i, base;
-    unsigned long num;
-    const char *s;
-
-    int flags;        /* flags to number() */
-    int field_width;  /* width of output field */
-    int precision;    /* min. # of digits for integers; max
-                         number of chars for from string */
-    int qualifier;    /* 'h', 'l', or 'L' for integer fields */
-
-    /* Setup the initial buffer.  */
-    buf = lib_malloc(10);
-    position = 0;
-    bufsize = 10;
-
-    for (; *fmt; ++fmt) {
-        if (*fmt != '%') {
-            xmvsprintf_add(&buf, &bufsize, &position, *fmt);
-            continue;
-        }
-
-        /* process flags */
-        flags = 0;
-repeat:
-        ++fmt;  /* this also skips first '%' */
-        switch (*fmt) {
-            case '-':
-                flags |= LEFT;
-                goto repeat;
-            case '+':
-                flags |= PLUS;
-                goto repeat;
-            case ' ':
-                flags |= SPACE;
-                goto repeat;
-            case '#':
-                flags |= SPECIAL;
-                goto repeat;
-            case '0':
-                flags |= ZEROPAD;
-                goto repeat;
-        }
-
-        /* get field width */
-        field_width = -1;
-        if (xmvsprintf_is_digit(*fmt)) {
-            field_width = xmvsprintf_skip_atoi(&fmt);
-        } else if (*fmt == '*') {
-            ++fmt;
-            /* it's the next argument */
-            field_width = va_arg(args, int);
-            if (field_width < 0) {
-                field_width = -field_width;
-                flags |= LEFT;
-            }
-        }
-
-        /* get the precision */
-        precision = -1;
-        if (*fmt == '.') {
-            ++fmt;
-            if (xmvsprintf_is_digit(*fmt)) {
-                precision = xmvsprintf_skip_atoi(&fmt);
-            } else if (*fmt == '*') {
-                ++fmt;
-                /* it's the next argument */
-                precision = va_arg(args, int);
-            }
-            if (precision < 0) {
-                precision = 0;
-            }
-        }
-
-        /* get the conversion qualifier */
-        qualifier = -1;
-        if (*fmt == 'h' || *fmt == 'l' || *fmt == 'L') {
-            qualifier = *fmt;
-            ++fmt;
-        }
-
-        /* default base */
-        base = 10;
-
-        switch (*fmt) {
-            case 'c':
-                if (!(flags & LEFT)) {
-                    while (--field_width > 0) {
-                        xmvsprintf_add(&buf, &bufsize, &position, ' ');
-                    }
-                }
-                xmvsprintf_add(&buf, &bufsize, &position, (unsigned char) va_arg(args, int));
-                while (--field_width > 0) {
-                    xmvsprintf_add(&buf, &bufsize, &position, ' ');
-                }
-                continue;
-
-            case 's':
-                s = va_arg(args, char *);
-                if (!s) {
-                    s = "<NULL>";
-                }
-
-                len = xmvsprintf_strnlen(s, precision);
-
-                if (!(flags & LEFT)) {
-                    while (field_width > 0 && len < field_width--) {
-                        xmvsprintf_add(&buf, &bufsize, &position, ' ');
-                    }
-                }
-                for (i = 0; i < len; ++i) {
-                    xmvsprintf_add(&buf, &bufsize, &position, *s++);
-                }
-                while (field_width > 0 && len < field_width--) {
-                    xmvsprintf_add(&buf, &bufsize, &position, ' ');
-                }
-                continue;
-
-            case 'p':
-                if (field_width == -1) {
-                    field_width = 2 * sizeof(void *);
-                    flags |= ZEROPAD;
-                }
-                xmvsprintf_number(&buf, &bufsize, &position,
-                                  vice_ptr_to_uint(va_arg(args, void *)), 16,
-                                  field_width, precision, flags);
-                continue;
-
-            case '%':
-                xmvsprintf_add(&buf, &bufsize, &position, '%');
-                continue;
-
-            /* integer number formats - set up the flags and "break" */
-            case 'o':
-                base = 8;
-                break;
-            case 'X':
-                flags |= LARGE;
-                /* FALLTHRU */ /* to lowercase hex */
-            case 'x':
-                base = 16;
-                break;
-            case 'd':
-            case 'i':
-                flags |= SIGN;
-                /* FALLTHRU */ /* to unsigned dec */
-            case 'u':
-                break;
-
-            default:
-                xmvsprintf_add(&buf, &bufsize, &position, '%');
-                if (*fmt) {
-                    xmvsprintf_add(&buf, &bufsize, &position, *fmt);
-                } else {
-                    --fmt;
-                }
-                continue;
-        }
-        if (qualifier == 'l') {
-            num = va_arg(args, unsigned long);
-        } else if (qualifier == 'h') {
-            num = (unsigned short) va_arg(args, int);
-            if (flags & SIGN) {
-                num = (short) num;
-            }
-        } else if (flags & SIGN) {
-            num = va_arg(args, int);
-        } else {
-            num = va_arg(args, unsigned int);
-        }
-        xmvsprintf_number(&buf, &bufsize, &position, num, base, field_width,
-                          precision, flags);
-    }
-    xmvsprintf_add(&buf, &bufsize, &position, '\0');
-
-    /* Trim buffer to final size.  */
-    buf = lib_realloc(buf, strlen(buf) + 1);
-
-    return buf;
-}
-#endif /* #ifdef HAVE_WORKING_VSNPRINTF */
 
 char *lib_msprintf(const char *fmt, ...)
 {
@@ -1179,85 +739,119 @@ char *lib_msprintf(const char *fmt, ...)
 #ifdef LIB_DEBUG_PINPOINT
 void *lib_malloc_pinpoint(size_t size, const char *name, unsigned int line)
 {
+    LIB_DEBUG_LOCK();
+
+    void *result;
+
     lib_debug_pinpoint_filename = name;
     lib_debug_pinpoint_line = line;
-    return lib_malloc(size);
+    result = lib_malloc(size);
+
+    LIB_DEBUG_UNLOCK();
+
+    return result;
 }
 
 void lib_free_pinpoint(void *p, const char *name, unsigned int line)
 {
+    LIB_DEBUG_LOCK();
+
     lib_debug_pinpoint_filename = name;
     lib_debug_pinpoint_line = line;
     lib_free(p);
+
+    LIB_DEBUG_UNLOCK();
 }
 
 void *lib_calloc_pinpoint(size_t nmemb, size_t size, const char *name, unsigned int line)
 {
+    LIB_DEBUG_LOCK();
+
+    void *result;
+
     lib_debug_pinpoint_filename = name;
     lib_debug_pinpoint_line = line;
-    return lib_calloc(nmemb, size);
+    result = lib_calloc(nmemb, size);
+
+    LIB_DEBUG_UNLOCK();
+
+    return result;
 }
 
 void *lib_realloc_pinpoint(void *p, size_t size, const char *name, unsigned int line)
 {
+    LIB_DEBUG_LOCK();
+
+    void *result;
+
     lib_debug_pinpoint_filename = name;
     lib_debug_pinpoint_line = line;
-    return lib_realloc(p, size);
+    result = lib_realloc(p, size);
+
+    LIB_DEBUG_UNLOCK();
+
+    return result;
 }
 
 char *lib_strdup_pinpoint(const char *str, const char *name, unsigned int line)
 {
+    LIB_DEBUG_LOCK();
+
+    void *result;
+
     lib_debug_pinpoint_filename = name;
     lib_debug_pinpoint_line = line;
-    return lib_strdup(str);
+    result = lib_strdup(str);
+
+    LIB_DEBUG_UNLOCK();
+    return result;
 }
 
-#ifdef AMIGA_SUPPORT
-void *lib_AllocVec_pinpoint(unsigned long size, unsigned long attributes, char *name, unsigned int line)
-{
-    lib_debug_pinpoint_filename = name;
-    lib_debug_pinpoint_line = line;
-    return lib_AllocVec(size, attributes);
-}
-
-void lib_FreeVec_pinpoint(void *ptr, char *name, unsigned int line)
-{
-    lib_debug_pinpoint_filename = name;
-    lib_debug_pinpoint_line = line;
-    return lib_FreeVec(ptr);
-}
-
-void *lib_AllocMem_pinpoint(unsigned long size, unsigned long attributes, char *name, unsigned int line)
-{
-    lib_debug_pinpoint_filename = name;
-    lib_debug_pinpoint_line = line;
-    return lib_AllocMem(size, attributes);
-}
-
-void lib_FreeMem_pinpoint(void *ptr, unsigned long size, char *name, unsigned int line)
-{
-    lib_debug_pinpoint_filename = name;
-    lib_debug_pinpoint_line = line;
-    return lib_FreeMem(ptr, size);
-}
-#endif
 
 /*----------------------------------------------------------------------------*/
 
 #endif
+
+/** \brief Return a copy of str with leading and trailing whitespace removed */
+char *lib_strdup_trimmed(char *str)
+{
+    char *copy;
+    char *trimmed;
+    size_t len;
+
+    copy = lib_strdup(str);
+    trimmed = copy;
+                
+    /* trim leading whitespace */
+    while (*trimmed != '\0') {
+        if (*trimmed == ' ' || *trimmed == '\t') {
+            trimmed++;
+        } else {
+            break;
+        }
+    }
+
+    /* trim trailing whitespace */
+    while ((len = strlen(trimmed)) > 0) {
+        if (trimmed[len - 1] == ' ' || trimmed[len - 1] == '\t') {
+            trimmed[len - 1] = '\0';
+        } else {
+            break;
+        }
+    }
+    
+    trimmed = lib_strdup(trimmed);
+
+    lib_free(copy);
+    
+    return trimmed;
+}
 
 /*
     encapsulated random routines to generate random numbers within a given range.
 
     see http://c-faq.com/lib/randrange.html
 */
-
-/* set random seed for rand() from current time, so things like random startup
-   delay are actually random, ie different on each startup, at all. */
-void lib_init_rand(void)
-{
-    srand((unsigned int)time(NULL));
-}
 
 unsigned int lib_unsigned_rand(unsigned int min, unsigned int max)
 {
@@ -1268,3 +862,28 @@ float lib_float_rand(float min, float max)
 {
     return min + ((float)rand() / (((float)RAND_MAX / (max - min + 1.0f)) + 1.0f));
 }
+
+void lib_init(void)
+{
+    /*
+     * set random seed for rand() from current time, so things like random startup
+     * delay are actually random, ie different on each startup, at all.
+     */
+    srand((unsigned int)time(NULL));
+
+#ifdef DEBUG
+
+#ifdef USE_VICE_THREAD
+    {
+        pthread_mutexattr_t lock_attributes;
+        pthread_mutexattr_init(&lock_attributes);
+        pthread_mutexattr_settype(&lock_attributes, PTHREAD_MUTEX_RECURSIVE);
+        pthread_mutex_init(&lib_debug_lock, &lock_attributes);
+    }
+#endif
+
+    lib_debug_init();
+#endif
+}
+
+

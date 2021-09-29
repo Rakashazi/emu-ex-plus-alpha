@@ -33,6 +33,7 @@
 extern void mon_memmap_init(void);
 extern void mon_memmap_shutdown(void);
 
+extern int monitor_cpuhistory_allocate(int lines);
 extern void mon_cpuhistory(int count);
 
 extern void mon_memmap_zap(void);

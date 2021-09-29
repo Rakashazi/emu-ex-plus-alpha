@@ -43,16 +43,16 @@
 #undef HAVE_NANOSLEEP
 #endif
 
-#ifdef USE_SDL2_PREFIX
-#  include <SDL2/SDL.h>
-#  include <SDL2/SDL_keycode.h>
+#ifdef USE_SDLUI2
+#  include <SDL.h>
+#  include <SDL_keycode.h>
 #  ifdef INCLUDE_SDL_SYSWM_H
-#    include <SDL2/SDL_syswm.h>
+#    include <SDL_syswm.h>
 #  endif
 #  ifdef HAVE_SDLMAIN
-#    include <SDL2/SDL_main.h>
+#    include <SDL_main.h>
 #  endif
-#  include <SDL2/SDL_opengl.h>
+#  include <SDL_opengl.h>
 #else
 #  ifdef USE_SDL_PREFIX
 #    include <SDL/SDL.h>

@@ -104,6 +104,7 @@ void mc6821core_store(mc6821_state *ctx, int port /* rs1 */, int reg /* rs0 */, 
 #define MC6821_SIGNAL_CB1 2
 #define MC6821_SIGNAL_CB2 3
 void mc6821core_set_signal(mc6821_state *ctx, int line);
+int mc6821core_dump(mc6821_state *ctx);
 
 struct snapshot_module_s;
 

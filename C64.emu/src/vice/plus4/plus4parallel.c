@@ -35,7 +35,7 @@
 #include "types.h"
 
 static uint8_t parallel_cable_cpu_value = 0xff;
-static uint8_t parallel_cable_drive_value[DRIVE_NUM] = { 0xff, 0xff, 0xff, 0xff };
+static uint8_t parallel_cable_drive_value[NUM_DISK_UNITS] = { 0xff, 0xff, 0xff, 0xff };
 
 void parallel_cable_drive_write(int port, uint8_t data, int handshake, unsigned int dnr)
 {
@@ -49,8 +49,8 @@ uint8_t parallel_cable_drive_read(int type, int handshake)
 
 void parallel_cable_cpu_write(int type, uint8_t data)
 {
-    if (!(drive_context[0]->drive->enable)
-        && !(drive_context[1]->drive->enable)) {
+    if (!(diskunit_context[0]->enable)
+        && !(diskunit_context[1]->enable)) {
         return;
     }
 
@@ -61,8 +61,8 @@ void parallel_cable_cpu_write(int type, uint8_t data)
 
 uint8_t parallel_cable_cpu_read(int type, uint8_t data)
 {
-    if (!(drive_context[0]->drive->enable)
-        && !(drive_context[1]->drive->enable)) {
+    if (!(diskunit_context[0]->enable)
+        && !(diskunit_context[1]->enable)) {
         return 0;
     }
 

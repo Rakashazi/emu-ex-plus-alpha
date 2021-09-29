@@ -33,4 +33,10 @@ extern int parallel_trap_attention(int b);
 extern int parallel_trap_sendbyte(uint8_t data);
 extern int parallel_trap_receivebyte(uint8_t *data, int fake);
 
+/* Same as SERIAL_EOF and SERIAL_DEVICE_NOT_PRESENT */
+#define PAR_STATUS_TIME_OUT_ON_WRITE    0x01
+#define PAR_STATUS_TIME_OUT_ON_READ     0x02
+#define PAR_STATUS_EOI                  0x40
+#define PAR_STATUS_DEVICE_NOT_PRESENT   0x80
+
 #endif

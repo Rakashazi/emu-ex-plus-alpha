@@ -46,10 +46,7 @@ struct VicePlugin
 {
 	static constexpr int SYSTEMS = 10;
 	Base::SharedLibraryRef libHandle{};
-	int (*keyarr)[KBD_ROWS]{};
-	int (*rev_keyarr)[KBD_COLS]{};
 	uint8_t (*joystick_value)[JOYSTICK_NUM + 1]{};
-	keyboard_conv_t **keyconvmap{};
 	int *warp_mode_enabled{};
 	int models = 0;
 	const char **modelStr{};
@@ -78,9 +75,9 @@ struct VicePlugin
 	int (*tape_image_detach_)(unsigned int unit){};
 	const char *(*tape_get_file_name_)(){};
 	void (*datasette_control_)(int command){};
-	int (*file_system_attach_disk_)(unsigned int unit, const char *filename){};
-	void (*file_system_detach_disk_)(int unit){};
-	const char *(*file_system_get_disk_name_)(unsigned int unit){};
+	int (*file_system_attach_disk_)(unsigned int unit, unsigned int drive, const char *filename){};
+	void (*file_system_detach_disk_)(unsigned int unit, unsigned int drive){};
+	const char *(*file_system_get_disk_name_)(unsigned int unit, unsigned int drive){};
 	int (*drive_check_type_)(unsigned int drive_type, unsigned int dnr){};
 	int (*sound_register_device_)(sound_device_t *pdevice){};
 	void (*video_canvas_render_)(struct video_canvas_s *canvas, uint8_t *trg,
@@ -91,6 +88,10 @@ struct VicePlugin
 	void (*video_render_setrawrgb_)(unsigned int index, uint32_t r, uint32_t g, uint32_t b){};
 	void (*video_render_initraw_)(struct video_render_config_s *videoconfig){};
 	int (*vdrive_internal_create_format_disk_image_)(const char *filename, const char *diskname, unsigned int type);
+	int (*cbmimage_create_image_)(const char *name, unsigned int type){};
+	void (*keyboard_key_pressed_)(signed long key, int mod){};
+	void (*keyboard_key_released_)(signed long key, int mod){};
+	void (*keyboard_key_clear_)(void){};
 
 	void init();
 	void deinit();
@@ -120,9 +121,9 @@ struct VicePlugin
 	int tape_image_detach(unsigned int unit);
 	const char *tape_get_file_name();
 	void datasette_control(int command);
-	int file_system_attach_disk(unsigned int unit, const char *filename);
-	void file_system_detach_disk(int unit);
-	const char *file_system_get_disk_name(unsigned int unit);
+	int file_system_attach_disk(unsigned int unit, unsigned int drive, const char *filename);
+	void file_system_detach_disk(unsigned int unit, unsigned int drive);
+	const char *file_system_get_disk_name(unsigned int unit, unsigned int drive);
 	int drive_check_type(unsigned int drive_type, unsigned int dnr);
 	int sound_register_device(sound_device_t *pdevice);
 	void video_canvas_render(struct video_canvas_s *canvas, uint8_t *trg,
@@ -133,6 +134,10 @@ struct VicePlugin
 	void video_render_setrawrgb(unsigned int index, uint32_t r, uint32_t g, uint32_t b);
 	void video_render_initraw(struct video_render_config_s *videoconfig);
 	int vdrive_internal_create_format_disk_image(const char *filename, const char *diskname, unsigned int type);
+	int cbmimage_create_image(const char *name, unsigned int type);
+	void keyboard_key_pressed(signed long key, int mod);
+	void keyboard_key_released(signed long key, int mod);
+	void keyboard_key_clear(void);
 
 	explicit operator bool()
 	{

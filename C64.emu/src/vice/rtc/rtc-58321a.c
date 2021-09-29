@@ -411,7 +411,7 @@ void rtc58321a_write_data(rtc_58321a_t *context, uint8_t data)
    STRING | device        | device name STRING
  */
 
-static char snap_module_name[] = "RTC_58321A";
+static const char snap_module_name[] = "RTC_58321A";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

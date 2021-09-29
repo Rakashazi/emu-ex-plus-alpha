@@ -220,7 +220,7 @@ void stb_detach(void)
    ARRAY | ROML   |   0.0+  | 16384 BYTES of ROML data
  */
 
-static char snap_module_name[] = "CARTSTB";
+static const char snap_module_name[] = "CARTSTB";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   1
 

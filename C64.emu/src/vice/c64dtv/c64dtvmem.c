@@ -37,6 +37,7 @@
 #include "c64dtvcpu.h"
 #include "c64dtvdma.h"
 #include "c64dtvflash.h"
+#include "cartio.h"
 #include "cia.h"
 #include "cmdline.h"
 #include "debugcart.h"
@@ -119,6 +120,8 @@ uint8_t *mem_chargen_rom_ptr;
 /* Pointers to the currently used memory read and write tables.  */
 read_func_ptr_t *_mem_read_tab_ptr;
 store_func_ptr_t *_mem_write_tab_ptr;
+read_func_ptr_t *_mem_read_tab_ptr_dummy;
+store_func_ptr_t *_mem_write_tab_ptr_dummy;
 static uint8_t **_mem_read_base_tab_ptr;
 static uint32_t *mem_read_limit_tab_ptr;
 
@@ -137,7 +140,11 @@ static int vbank;
 /* Current memory configuration.  */
 static int mem_config;
 
-/* Current watchpoint state. 1 = watchpoints active, 0 = no watchpoints */
+/* Current watchpoint state. 
+          0 = no watchpoints
+    bit0; 1 = watchpoints active
+    bit1; 2 = watchpoints trigger on dummy accesses
+*/
 static int watchpoints_active;
 
 /* ------------------------------------------------------------------------- */
@@ -168,18 +175,34 @@ static void store_watch(uint16_t addr, uint8_t value)
     mem_write_tab[vbank][mem_config][addr >> 8](addr, value);
 }
 
-void mem_toggle_watchpoints(int flag, void *context)
+/* called by mem_pla_config_changed(), mem_toggle_watchpoints() */
+static void mem_update_tab_ptrs(int flag)
 {
     if (flag) {
         _mem_read_tab_ptr = mem_read_tab_watch;
         _mem_write_tab_ptr = mem_write_tab_watch;
+        if (flag > 1) {
+            /* enable watchpoints on dummy accesses */
+            _mem_read_tab_ptr_dummy = mem_read_tab_watch;
+            _mem_write_tab_ptr_dummy = mem_write_tab_watch;
+        } else {
+            _mem_read_tab_ptr_dummy = mem_read_tab[mem_config];
+            _mem_write_tab_ptr_dummy = mem_write_tab[vbank][mem_config];
+        }
     } else {
+        /* all watchpoints disabled */
         _mem_read_tab_ptr = mem_read_tab[mem_config];
         _mem_write_tab_ptr = mem_write_tab[vbank][mem_config];
+        _mem_read_tab_ptr_dummy = mem_read_tab[mem_config];
+        _mem_write_tab_ptr_dummy = mem_write_tab[vbank][mem_config];
     }
-    watchpoints_active = flag;
 }
 
+void mem_toggle_watchpoints(int flag, void *context)
+{
+    mem_update_tab_ptrs(flag);
+    watchpoints_active = flag;
+}
 /* ------------------------------------------------------------------------- */
 
 void mem_pla_config_changed(void)
@@ -188,13 +211,7 @@ void mem_pla_config_changed(void)
 
     c64pla_config_changed(0, 0, 0, 1, 0x17);
 
-    if (watchpoints_active) {
-        _mem_read_tab_ptr = mem_read_tab_watch;
-        _mem_write_tab_ptr = mem_write_tab_watch;
-    } else {
-        _mem_read_tab_ptr = mem_read_tab[mem_config];
-        _mem_write_tab_ptr = mem_write_tab[vbank][mem_config];
-    }
+    mem_update_tab_ptrs(watchpoints_active);
 
     _mem_read_base_tab_ptr = mem_read_base_tab[mem_config];
     mem_read_limit_tab_ptr = mem_read_limit_tab[mem_config];
@@ -682,11 +699,11 @@ mem_ioreg_list_t *mem_ioreg_list_get(void *context)
 {
     mem_ioreg_list_t *mem_ioreg_list = NULL;
 
-    mon_ioreg_add_list(&mem_ioreg_list, "VIC-II", 0xd000, 0xd04f, mem_dump_io, NULL);
+    mon_ioreg_add_list(&mem_ioreg_list, "VIC-II", 0xd000, 0xd04f, mem_dump_io, NULL, IO_MIRROR_NONE);
     /* TODO blitter, DMA... */
-    mon_ioreg_add_list(&mem_ioreg_list, "SID", 0xd400, 0xd41f, mem_dump_io, NULL);
-    mon_ioreg_add_list(&mem_ioreg_list, "CIA1", 0xdc00, 0xdc0f, mem_dump_io, NULL);
-    mon_ioreg_add_list(&mem_ioreg_list, "CIA2", 0xdd00, 0xdd0f, mem_dump_io, NULL);
+    mon_ioreg_add_list(&mem_ioreg_list, "SID", 0xd400, 0xd41f, mem_dump_io, NULL, IO_MIRROR_NONE);
+    mon_ioreg_add_list(&mem_ioreg_list, "CIA1", 0xdc00, 0xdc0f, mem_dump_io, NULL, IO_MIRROR_NONE);
+    mon_ioreg_add_list(&mem_ioreg_list, "CIA2", 0xdd00, 0xdd0f, mem_dump_io, NULL, IO_MIRROR_NONE);
 
     return mem_ioreg_list;
 }
@@ -1076,10 +1093,12 @@ void c64dtv_dmablit_store(uint16_t addr, uint8_t value)
 /* ------------------------------------------------------------------------- */
 
 /* Exported banked memory access functions for the monitor.  */
+#define MAXBANKS (6 + 0x20 + 0x20)
 
-static const char *banknames[] =
+static const char *banknames[MAXBANKS + 1] =
 {
     "default", "cpu", "ram", "rom", "io", "cart",
+    /* by convention, a "bank array" has a 2-hex-digit bank index appended */
     "ram00", "ram01", "ram02", "ram03", "ram04", "ram05", "ram06", "ram07",
     "ram08", "ram09", "ram0a", "ram0b", "ram0c", "ram0d", "ram0e", "ram0f",
     "ram10", "ram11", "ram12", "ram13", "ram14", "ram15", "ram16", "ram17",
@@ -1091,7 +1110,7 @@ static const char *banknames[] =
     NULL
 };
 
-static const int banknums[] =
+static const int banknums[MAXBANKS + 1] =
 {
     1, 0, 1, 2, 3, 4,
     5, 6, 7, 8, 9, 10, 11, 12,
@@ -1101,7 +1120,36 @@ static const int banknums[] =
     37, 38, 39, 40, 41, 42, 43, 44,
     45, 46, 47, 48, 49, 50, 51, 52,
     53, 54, 55, 56, 57, 58, 59, 60,
-    61, 62, 63, 64, 65, 66, 67, 68
+    61, 62, 63, 64, 65, 66, 67, 68,
+    -1
+};
+
+static const int bankindex[MAXBANKS + 1] =
+{
+    -1, -1, -1, -1, -1, -1,
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+    0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+    0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+    0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+    0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
+    -1
+};
+
+static const int bankflags[MAXBANKS + 1] =
+{
+    0, 0, 0, 0, 0, 0,
+    MEM_BANK_ISARRAY | MEM_BANK_ISARRAYFIRST, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY,
+    MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY,
+    MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY,
+    MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY | MEM_BANK_ISARRAYLAST,
+    MEM_BANK_ISARRAY | MEM_BANK_ISARRAYFIRST, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY,
+    MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY,
+    MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY,
+    MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY, MEM_BANK_ISARRAY | MEM_BANK_ISARRAYLAST,
+    -1
 };
 
 const char **mem_bank_list(void)
@@ -1109,6 +1157,11 @@ const char **mem_bank_list(void)
     return banknames;
 }
 
+const int *mem_bank_list_nos(void) {
+    return banknums;
+}
+
+/* return bank number for a given literal bank name */
 int mem_bank_from_name(const char *name)
 {
     int i = 0;
@@ -1116,6 +1169,33 @@ int mem_bank_from_name(const char *name)
     while (banknames[i]) {
         if (!strcmp(name, banknames[i])) {
             return banknums[i];
+        }
+        i++;
+    }
+    return -1;
+}
+
+/* return current index for a given bank */
+int mem_bank_index_from_bank(int bank)
+{
+    int i = 0;
+
+    while (banknums[i] > -1) {
+        if (banknums[i] == bank) {
+            return bankindex[i];
+        }
+        i++;
+    }
+    return -1;
+}
+
+int mem_bank_flags_from_bank(int bank)
+{
+    int i = 0;
+
+    while (banknums[i] > -1) {
+        if (banknums[i] == bank) {
+            return bankflags[i];
         }
         i++;
     }
@@ -1175,7 +1255,10 @@ uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
     if (bank >= 5) {
         return mem_bank_read(bank, addr, context);
     }
-
+    /* Commented out to see if that fixes bug #1266. Any memory peek code
+     * should not alter the state of the machine.  -- compyx
+     */
+#if 0
     /* TODO: is restoring r8, r10..15 needed? */
     dtv_registers[8] = MOS6510DTV_REGS_GET_R8(&maincpu_regs);
     dtv_registers[10] = MOS6510DTV_REGS_GET_R10(&maincpu_regs);
@@ -1184,7 +1267,7 @@ uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
     dtv_registers[13] = MOS6510DTV_REGS_GET_R13(&maincpu_regs);
     dtv_registers[14] = MOS6510DTV_REGS_GET_R14(&maincpu_regs);
     dtv_registers[15] = MOS6510DTV_REGS_GET_R15(&maincpu_regs);
-
+#endif
     paddr = addr_to_paddr(addr);
     switch (bank) {
         case 0:                 /* current */

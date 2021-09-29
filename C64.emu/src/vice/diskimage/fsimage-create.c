@@ -73,17 +73,19 @@ static log_t createdisk_log = LOG_DEFAULT;
  */
 static int fsimage_create_dxx(disk_image_t *image)
 {
-    unsigned int size, i, size2;
+    unsigned int size, i;
     uint8_t block[256];
     fsimage_t *fsimage = image->media.fsimage;
     int rc = 0;
 
     memset(block, 0, sizeof(block));
-    size = 0; size2 = 0;
+    size = 0;
 
     switch (image->type) {
         case DISK_IMAGE_TYPE_D64:
+#ifdef HAVE_X64_IMAGE
         case DISK_IMAGE_TYPE_X64:
+#endif
             size = D64_FILE_SIZE_35;
             break;
         case DISK_IMAGE_TYPE_D67:
@@ -101,22 +103,14 @@ static int fsimage_create_dxx(disk_image_t *image)
         case DISK_IMAGE_TYPE_D82:
             size = D82_FILE_SIZE;
             break;
+        case DISK_IMAGE_TYPE_D90:
+            /* use D9090 for default D90 size */
+            size = D9090_FILE_SIZE;
+            break;
         case DISK_IMAGE_TYPE_G64:
         case DISK_IMAGE_TYPE_G71:
             break;
         case DISK_IMAGE_TYPE_P64:
-            break;
-        case DISK_IMAGE_TYPE_D1M:
-            size = D1M_FILE_SIZE;
-            size2 = 40 * 256;
-            break;
-        case DISK_IMAGE_TYPE_D2M:
-            size = D2M_FILE_SIZE;
-            size2 = 80 * 256;
-            break;
-        case DISK_IMAGE_TYPE_D4M:
-            size = D4M_FILE_SIZE;
-            size2 = 160 * 256;
             break;
         default:
             log_error(createdisk_log,
@@ -124,6 +118,7 @@ static int fsimage_create_dxx(disk_image_t *image)
             return -1;
     }
 
+#ifdef HAVE_X64_IMAGE
     if (image->type == DISK_IMAGE_TYPE_X64) {
         uint8_t header[X64_HEADER_LENGTH];
 
@@ -145,8 +140,8 @@ static int fsimage_create_dxx(disk_image_t *image)
                       fsimage->name);
         }
     }
-
-    for (i = 0; i < ((size - size2) / 256); i++) {
+#endif
+    for (i = 0; i < (size / 256); i++) {
         if (fwrite(block, 256, 1, fsimage->fd) < 1) {
             log_error(createdisk_log,
                       "Cannot seek to end of disk image `%s'.",
@@ -155,48 +150,231 @@ static int fsimage_create_dxx(disk_image_t *image)
             break;
         }
     }
-    if (!rc && size2) {
-        for (i = 0; i < size2 / 256; i++) {
-            memset(block, 0, 256);
-            if (i == 5) {
-                memset(block, 255, 224);
-                block[0] = 0x00;
-                block[0x38] = 0x00;
-                block[0x70] = 0x00;
-                block[0xa8] = 0x00;
-                block[0x39] = 0x00;
-                block[0x71] = (size - size2) >> 17;
-                block[0xa9] = (size - size2) >> 9;
-                block[0xe2] = 1;
-                block[0xe3] = 1;
-                memcpy(block + 0xf0, "\x43\x4d\x44\x20\x46\x44\x20\x53\x45\x52\x49\x45\x53\x20\x20\x20", 16);
-            } else if (i == 8) {
-                block[0x00] = 0x01;
-                block[0x01] = 0x01;
-                block[0x02] = 0xff;
-                memcpy(block + 5, "\x53\x59\x53\x54\x45\x4d\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0", 16);
-                block[0x22] = 0x01;
-                memcpy(block + 0x25, "\x50\x41\x52\x54\x49\x54\x49\x4f\x4e\x20\x31\xa0\xa0\xa0\xa0\xa0", 16);
-                block[0x3e] = (size - size2) >> 17;
-                block[0x3f] = (size - size2) >> 9;
-            } else if (i > 8 && i < 11) {
-                block[0x00] = 0x01;
-                block[0x01] = i - 7;
-            } else if (i == 11) {
-                block[0x01] = 0xff;
-            }
-            if (fwrite(block, 256, 1, fsimage->fd) < 1) {
-                log_error(createdisk_log,
-                          "Cannot seek to end of disk image `%s'.",
-                          fsimage->name);
-                rc = -1;
-                break;
-            }
-        }
-    }
     return rc;
 }
 
+
+/** \brief  Create a DxM disk image on the host file system
+ *
+ * This handles any 'FD2000 or FD4000 disk image supported by VICE.
+ *
+ * \param[in]   name      disk image name/path
+ * \param[in]   diskname  disk name and id
+ * \param[in]   type      disk image type
+ *
+ * \return  0 on success, < 0 on failure
+ */
+int fsimage_create_dxm(const char *name, const char *diskname, unsigned int type)
+{
+    FILE *fd = NULL;
+    unsigned int size = 0;
+    unsigned int partblock = 0;
+    uint8_t block[256];
+    int rc = 0;
+    char *dname, *comma;
+    uint8_t id[2];
+    unsigned int i, j;
+
+    memset(block, 0, sizeof(block));
+    size = 0;
+
+    fd = fopen(name, MODE_WRITE);
+
+    if (fd == NULL) {
+        log_error(createdisk_log, "Cannot create disk image `%s'.", name);
+        return -1;
+    }
+
+    switch (type) {
+        case DISK_IMAGE_TYPE_D1M:
+            size = D1M_FILE_SIZE;
+            partblock = 0x0c85;
+            break;
+        case DISK_IMAGE_TYPE_D2M:
+            size = D2M_FILE_SIZE;
+            partblock = 0x1905;
+            break;
+        case DISK_IMAGE_TYPE_D4M:
+            size = D4M_FILE_SIZE;
+            partblock = 0x3205;
+            break;
+        default:
+            log_error(createdisk_log,
+                      "Wrong image type.  Cannot create disk image.");
+            return -1;
+    }
+
+    comma = strchr(diskname, ',');
+    if (comma != NULL) {
+        if (comma != diskname) {
+            dname = lib_malloc(comma - diskname + 1);
+            memcpy(dname, diskname, comma - diskname);
+            dname[comma - diskname] = '\0';
+        } else {
+            dname = lib_strdup(" ");
+        }
+        if (comma[1] != '\0') {
+            id[0] = comma[1];
+            if (comma[2] != '\0') {
+                id[1] = comma[2];
+            } else {
+                id[1] = ' ';
+            }
+        } else {
+            id[1] = id[0] = ' ';
+        }
+    } else {
+        dname = lib_strdup(diskname);
+        id[1] = id[0] = ' ';
+    }
+
+    for (i = 0; i < size / 256; i++) {
+        memset(block, 0, 256);
+        /* block 1 */
+        if (i == 1) {
+                block[0x00] = 0x01;
+                block[0x01] = 0x22;
+                block[0x02] = 0x48;
+                for (j = 0; dname[j]; j++) {
+                    block[0x04 + j] = dname[j];
+                }
+                for (;j < 18; j++) {
+                    block[0x04 + j] = 0xa0;
+                }
+                block[0x16] = id[0];
+                block[0x17] = id[1];
+                block[0x18] = 0xa0;
+                block[0x19] = 0x31;
+                block[0x1a] = 0x48;
+                block[0x1b] = 0xa0;
+                block[0x1c] = 0xa0;
+                block[0x20] = 0x01;
+                block[0x21] = 0x01;
+            } else if (i == 2) {
+                block[0x02] = 0x48;
+                block[0x03] = 0xb7;
+                block[0x04] = id[0];
+                block[0x05] = id[1];
+                block[0x06] = 0xc0;
+                switch (type) {
+                    case DISK_IMAGE_TYPE_D1M:
+                        block[0x08] = 0x0c;
+                        break;
+                    case DISK_IMAGE_TYPE_D2M:
+                        block[0x08] = 0x19;
+                        break;
+                    default:
+                        block[0x08] = 0x32;
+                }
+                block[0x24] = 0x1f;
+                for (j = 0x25; j < 256; j++) {
+                    block[j] = 0xff;
+                }
+            } else if (i >= 3 && i < 0x22) {
+                memset(block, 0xff, 256);
+            } else if (i == 0x22) {
+                block[0x01] = 0xff;
+            } else if (i == partblock) {
+                memset(block, 0xff, 224);
+                block[0x00] = 0x00;
+                block[0x38] = 0x00;
+                block[0x39] = 0x00;
+                block[0x70] = 0x00;
+                switch (type) {
+                    case DISK_IMAGE_TYPE_D1M:
+                        block[0x71] = 0x06;
+                        block[0xa9] = 0x40;
+                        break;
+                    case DISK_IMAGE_TYPE_D2M:
+                        block[0x71] = 0x0c;
+                        block[0xa9] = 0x80;
+                        break;
+                    default:
+                        block[0x71] = 0x19;
+                        block[0xa9] = 0x00;
+                }
+                block[0xa8] = 0x00;
+                block[0xe2] = 0x01;
+                block[0xe3] = 0x01;
+                block[0xf0] = 0x43;
+                block[0xf1] = 0x4d;
+                block[0xf2] = 0x44;
+                block[0xf3] = 0x20;
+                block[0xf4] = 0x46;
+                block[0xf5] = 0x44;
+                block[0xf6] = 0x20;
+                block[0xf7] = 0x53;
+                block[0xf8] = 0x45;
+                block[0xf9] = 0x52;
+                block[0xfa] = 0x49;
+                block[0xfb] = 0x45;
+                block[0xfc] = 0x53;
+                block[0xfd] = 0x20;
+                block[0xfe] = 0x20;
+                block[0xff] = 0x20;
+            } else if (i == partblock + 3) {
+                block[0x00] = 0x01;
+                block[0x01] = 0x01;
+                block[0x02] = 0xff;
+                block[0x05] = 0x53;
+                block[0x06] = 0x59;
+                block[0x07] = 0x53;
+                block[0x08] = 0x54;
+                block[0x09] = 0x45;
+                block[0x0a] = 0x4d;
+                for (j = 0; j < 10; j++) {
+                    block[0x0b + j] = 0xa0;
+                }
+                block[0x22] = 0x01;
+                block[0x25] = 0x50;
+                block[0x26] = 0x41;
+                block[0x27] = 0x52;
+                block[0x28] = 0x54;
+                block[0x29] = 0x49;
+                block[0x2a] = 0x54;
+                block[0x2b] = 0x49;
+                block[0x2c] = 0x4f;
+                block[0x2d] = 0x4e;
+                block[0x2e] = 0x20;
+                block[0x2f] = 0x31;
+                for (j = 0; j < 5; j++) {
+                    block[0x30 + j] = 0xa0;
+                }
+                switch (type) {
+                    case DISK_IMAGE_TYPE_D1M:
+                        block[0x3e] = 0x06;
+                        block[0x3f] = 0x00;
+                        break;
+                    case DISK_IMAGE_TYPE_D2M:
+                        block[0x3e] = 0x0c;
+                        block[0x3f] = 0x80;
+                        break;
+                    default:
+                        block[0x3e] = 0x19;
+                        block[0x3f] = 0x00;
+                }
+            } else if (i == partblock + 4) {
+                block[0x00] = 0x01;
+                block[0x01] = 0x02;
+            } else if (i == partblock + 5) {
+                block[0x00] = 0x01;
+                block[0x01] = 0x03;
+            } else if (i == partblock + 6) {
+                block[0x01] = 0xff;
+            }
+            if (fwrite(block, 256, 1, fd) < 1) {
+                log_error(createdisk_log,
+                          "Cannot seek to end of disk image `%s'.",
+                          name);
+                rc = -1;
+                break;
+            }
+    }
+    lib_free(dname);
+    fclose(fd);
+
+    return rc;
+}
 
 /** \brief  Create a G64 disk image on the host file system
  *
@@ -213,7 +391,7 @@ static int fsimage_create_gcr(disk_image_t *image)
     fsimage_t *fsimage;
     gcr_header_t header;
     uint8_t rawdata[256];
-    int gap;
+    int gap, headergap, synclen;
 
     fsimage = image->media.fsimage;
 
@@ -260,6 +438,8 @@ static int fsimage_create_gcr(disk_image_t *image)
     header.id2 = 0xa0;
     for (track = 1; track <= num_tracks; track++) {
         gap = disk_image_gap_size(image->type, track);
+        headergap = disk_image_header_gap_size(image->type, track);
+        synclen = disk_image_sync_size(image->type, track);
         gcrptr = gcr_track;
         util_word_to_le_buf(gcrptr, (uint16_t)disk_image_raw_track_size(image->type, track));
         gcrptr += 2;
@@ -289,8 +469,8 @@ static int fsimage_create_gcr(disk_image_t *image)
              sector++) {
             DBG(("%d ", sector));
             header.sector = sector;
-            gcr_convert_sector_to_GCR(rawdata, gcrptr, &header, 9, 5, CBMDOS_FDC_ERR_OK);
-            gcrptr += SECTOR_GCR_SIZE_WITH_HEADER + 9 + gap + 5;
+            gcr_convert_sector_to_GCR(rawdata, gcrptr, &header, headergap, synclen, CBMDOS_FDC_ERR_OK);
+            gcrptr += SECTOR_GCR_SIZE_WITH_HEADER + headergap + gap + (synclen * 2);
         }
         DBG(("(gap: %d)\n", gap));
         if (fwrite((char *)gcr_track, sizeof(gcr_track), 1, fsimage->fd) < 1) {
@@ -318,7 +498,7 @@ static int fsimage_create_p64(disk_image_t *image)
     int rc = -1;
     gcr_header_t header;
     uint8_t rawdata[256];
-    int gap;
+    int gap, headergap, synclen;
 
     fsimage = image->media.fsimage;
 
@@ -328,6 +508,8 @@ static int fsimage_create_p64(disk_image_t *image)
     header.id2 = 0xa0;
     for (track = 1; track <= NUM_TRACKS_1541; track++) {
         gap = disk_image_gap_size(image->type, track);
+        headergap = disk_image_header_gap_size(image->type, track);
+        synclen = disk_image_sync_size(image->type, track);
         gcrptr = gcr_track;
         util_word_to_le_buf(gcrptr, (uint16_t)disk_image_raw_track_size(image->type, track));
         gcrptr += 2;
@@ -338,9 +520,9 @@ static int fsimage_create_p64(disk_image_t *image)
              sector < disk_image_sector_per_track(image->type, track);
              sector++) {
             header.sector = sector;
-            gcr_convert_sector_to_GCR(rawdata, gcrptr, &header, 9, 5, CBMDOS_FDC_ERR_OK);
+            gcr_convert_sector_to_GCR(rawdata, gcrptr, &header, headergap, synclen, CBMDOS_FDC_ERR_OK);
 
-            gcrptr += SECTOR_GCR_SIZE_WITH_HEADER + 9 + gap + 5;
+            gcrptr += SECTOR_GCR_SIZE_WITH_HEADER + headergap + gap + (synclen * 2);
         }
         P64PulseStreamConvertFromGCR(&P64Image.PulseStreams[0][track << 1], (void*)&gcr_track[0], disk_image_raw_track_size(image->type, track) << 3);
     }
@@ -398,7 +580,9 @@ int fsimage_create(const char *name, unsigned int type)
     }
 
     switch (type) {
+#ifdef HAVE_X64_IMAGE
         case DISK_IMAGE_TYPE_X64:
+#endif
         case DISK_IMAGE_TYPE_D64:
         case DISK_IMAGE_TYPE_D67:
         case DISK_IMAGE_TYPE_D71:
@@ -408,6 +592,7 @@ int fsimage_create(const char *name, unsigned int type)
         case DISK_IMAGE_TYPE_D1M:
         case DISK_IMAGE_TYPE_D2M:
         case DISK_IMAGE_TYPE_D4M:
+        case DISK_IMAGE_TYPE_D90:
             rc = fsimage_create_dxx(image);
             break;
         case DISK_IMAGE_TYPE_G64:

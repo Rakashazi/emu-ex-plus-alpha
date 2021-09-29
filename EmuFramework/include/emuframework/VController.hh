@@ -105,15 +105,19 @@ public:
 	int getInput(IG::WP c) const;
 	int translateInput(unsigned idx) const;
 	bool keyInput(VController &v, Gfx::Renderer &r, Input::Event e);
-	void selectKey(unsigned x, unsigned y);
+	[[nodiscard]] IG::WindowRect selectKey(unsigned x, unsigned y);
 	void selectKeyRel(int x, int y);
 	void unselectKey();
-	void extendKeySelection();
+	[[nodiscard]] IG::WindowRect extendKeySelection(IG::WindowRect);
 	unsigned currentKey() const;
+	unsigned currentKey(int x, int y) const;
 	int mode() const { return mode_; }
 	void setMode(Gfx::Renderer &r, int mode);
 	void applyMap(KbMap map);
 	void updateKeyboardMapping();
+	void setShiftActive(bool);
+	bool toggleShiftActive();
+	bool shiftIsActive() const;
 
 protected:
 	Gfx::Sprite spr{};
@@ -121,6 +125,7 @@ protected:
 	unsigned keyXSize{}, keyYSize{};
 	unsigned mode_{};
 	IG::WindowRect selected{{-1, -1}, {-1, -1}};
+	IG::WindowRect shiftRect{{-1, -1}, {-1, -1}};
 	Gfx::GTexC texXEnd{};
 	KeyTable table{};
 };
@@ -272,6 +277,7 @@ public:
 	void setButtonAlpha(std::optional<uint8_t>);
 	constexpr uint8_t buttonAlpha() const { return alpha; }
 	VControllerGamepad &gamePad();
+	VControllerKeyboard &keyboard() { return kb; }
 	void setRenderer(Gfx::Renderer &renderer);
 	Gfx::Renderer &renderer();
 	void setWindow(const Base::Window &win);

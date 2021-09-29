@@ -97,7 +97,7 @@ static int resid_init(sound_t *psid, int speed, int cycles_per_sec, int factor)
     char model_text[100];
     char method_text[100];
     double passband, gain;
-    int filters_enabled, model, sampling, passband_percentage, gain_percentage, filter_bias_mV;
+    int filters_enabled, model, warp_mode, sampling, passband_percentage, gain_percentage, filter_bias_mV;
 
     if (resources_get_int("SidFilters", &filters_enabled) < 0) {
         return 0;
@@ -107,6 +107,14 @@ static int resid_init(sound_t *psid, int speed, int cycles_per_sec, int factor)
         return 0;
     }
 
+    if (resources_get_int("WarpMode", &warp_mode) < 0) {
+        return 0;
+    }
+
+    /*
+     * Don't even think about changing this to fast during warp :)
+     * the result is visible to the emulator.
+     */
     if (resources_get_int("SidResidSampling", &sampling) < 0) {
         return 0;
     }

@@ -89,8 +89,6 @@ static int c64_snapshot_write_rom_module(snapshot_t *s)
         return -1;
     }
 
-    ui_update_menus();
-
     return snapshot_module_close(m);
 }
 
@@ -285,8 +283,6 @@ int c64_snapshot_read_module(snapshot_t *s)
     if (cartridge_snapshot_read_modules(s) < 0) {
         return -1;
     }
-
-    ui_update_menus();
 
     return 0;
 

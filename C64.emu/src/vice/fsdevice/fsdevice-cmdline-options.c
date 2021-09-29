@@ -141,6 +141,18 @@ static const cmdline_option_t cmdline_options[] =
     { "+fs11hidecbm", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
       NULL, NULL, "FSDevice11HideCBMFiles", (resource_value_t)0,
       NULL, "Do not hide CBM files (show all files) for drive 11" },
+    { "-fslongnames", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "FSDeviceLongNames", (resource_value_t)1,
+      NULL, "Allow filenames longer than 16 characters" },
+    { "+fslongnames", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "FSDeviceLongNames", (resource_value_t)0,
+      NULL, "Do not allow filenames longer than 16 characters" },
+    { "-fsoverwrite", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "FSDeviceOverwrite", (resource_value_t)1,
+      NULL, "Overwrite files without using SAVE\"@0:name\"" },
+    { "+fsoverwrite", SET_RESOURCE, CMDLINE_ATTRIB_NONE,
+      NULL, NULL, "FSDeviceOverwrite", (resource_value_t)0,
+      NULL, "Refuse to overwrite files without using SAVE\"@0:name\"" },
     CMDLINE_LIST_END
 };
 

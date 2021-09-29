@@ -189,7 +189,7 @@ NMI entry from expert 2.70:
 
 #ifdef DBGEXPERT
 #define DBG(x) printf x
-char *expert_mode[3]={"off", "prg", "on"};
+const char * const expert_mode[3]={"off", "prg", "on"};
 #else
 #define DBG(x)
 #endif
@@ -823,7 +823,7 @@ int expert_disable(void)
    ARRAY | RAM             | 8192 BYTES of RAM data
  */
 
-static char snap_module_name[] = "CARTEXPERT";
+static const char snap_module_name[] = "CARTEXPERT";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

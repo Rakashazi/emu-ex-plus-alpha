@@ -1074,6 +1074,8 @@ void vicii_raster_draw_alarm_handler(CLOCK offset, void *data)
     }
 #endif
 
+    vsync_do_end_of_line();
+
     if (vicii.raster.current_line == 0) {
         /* no vsync here for NTSC  */
         if ((unsigned int)vicii.last_displayed_line < vicii.screen_height) {

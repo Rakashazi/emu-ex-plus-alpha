@@ -27,14 +27,14 @@
 #ifndef VICE_IEC_PLUS4EXP_H
 #define VICE_IEC_PLUS4EXP_H
 
-struct drive_context_s;
+struct diskunit_context_s;
 
 extern int iec_plus4exp_resources_init(void);
 extern void iec_plus4exp_resources_shutdown(void);
 extern int iec_plus4exp_cmdline_options_init(void);
-extern void iec_plus4exp_init(struct drive_context_s *drv);
-extern void iec_plus4exp_reset(struct drive_context_s *drv);
-extern void iec_plus4exp_mem_init(struct drive_context_s *drv,
+extern void iec_plus4exp_init(struct diskunit_context_s *drv);
+extern void iec_plus4exp_reset(struct diskunit_context_s *drv);
+extern void iec_plus4exp_mem_init(struct diskunit_context_s *drv,
                                   unsigned int type);
 
 #endif

@@ -705,7 +705,7 @@ int ds1202_1302_dump(rtc_ds1202_1302_t *context)
    STRING | device              | device name STRING
  */
 
-static char snap_module_name[] = "RTC_DS1202_1302";
+static const char snap_module_name[] = "RTC_DS1202_1302";
 #define SNAP_MAJOR 0
 #define SNAP_MINOR 0
 

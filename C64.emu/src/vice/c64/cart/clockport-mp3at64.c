@@ -290,13 +290,13 @@ static uint8_t mp3at64_read_i2c_clock(void)
 
 /* ------------------------------------------------------------------------- */
 
-static int mp3_sampling_rates[4][3] = {
+static const int mp3_sampling_rates[4][3] = {
     { 44100, 22050, 11025 },
     { 48000, 24000, 12000 },
     { 32000, 16000,  8000 }
 };
 
-static int mp3_bitrates[16][3][3] = {
+static const int mp3_bitrates[16][3][3] = {
     { {  0,    0,   0 }, {   0,   0,   0 }, {   0,   0,   0 } },
     { {  32,  32,  32 }, {  32,   8,   8 }, {  32,   8,   8 } },
     { {  64,  48,  40 }, {  48,  16,  16 }, {  48,  16,  16 } },
@@ -315,13 +315,13 @@ static int mp3_bitrates[16][3][3] = {
     { {   0,   0,   0 }, {   0,   0,   0 }, {   0,   0,   0 } }
 };
 
-static int mp3_slot_sizes[3] = {
+static const int mp3_slot_sizes[3] = {
     4,
     1,
     1
 };
 
-static int mp3_sampels_per_frame[3][3] = {
+static const int mp3_sampels_per_frame[3][3] = {
     { 384, 1152, 1152 },
     { 384, 1152,  576 },
     { 384, 1152,  576 }
@@ -609,7 +609,7 @@ static void mp3at64_store_mp3_data(uint8_t val)
                                 ret = mpg123_decode(mh, mp3_frame_buffer, mp3_input_frame_size, (unsigned char *)buffer, MP3_MAX_SAMPLES_PER_FRAME * 2, &size);
                                 if (ret != MPG123_ERR && ret != MPG123_NEED_MORE) {
                                     mp3_output_buffers[block] = buffer;
-                                    mp3_output_buffers_size[block] = size / 2;
+                                    mp3_output_buffers_size[block] = (int)(size / 2);
                                     if (mp3_get_channels() != 2) {
                                         mp3_mono_to_stereo(block);
                                     }

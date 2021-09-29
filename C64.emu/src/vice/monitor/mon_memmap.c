@@ -53,8 +53,6 @@ uint8_t memmap_state = 0;
 
 /* Defines */
 
-#define CPUHISTORY_SIZE 4096
-
 #define MEMMAP_SIZE 0x10000
 #define MEMMAP_PICX 0x100
 #define MEMMAP_PICY 0x100
@@ -70,6 +68,7 @@ uint8_t memmap_state = 0;
 #define MEMMAP_ELEM uint16_t
 
 struct cpuhistory_s {
+   uint32_t cycle;
    uint16_t addr;
    uint8_t op;
    uint8_t p1;
@@ -83,10 +82,42 @@ struct cpuhistory_s {
 typedef struct cpuhistory_s cpuhistory_t;
 
 /* CPU history variables */
-static cpuhistory_t cpuhistory[CPUHISTORY_SIZE];
+static cpuhistory_t *cpuhistory = NULL;
+static int cpuhistory_lines = 0;
 static int cpuhistory_i = 0;
 
-void monitor_cpuhistory_store(unsigned int addr, unsigned int op,
+
+/** \brief  (re)allocate the buffer used for the cpu history info
+ *
+ * \param[in]   lines   new number of lines of the cpu history info
+ */
+int monitor_cpuhistory_allocate(int lines)
+{
+    if (lines <= 0) {
+        fprintf(stderr, "%s(): illegal cpuhistory line count: %d\n",
+                __func__, lines);
+        return -1;
+    }
+
+    cpuhistory = lib_realloc(cpuhistory, (size_t)lines * sizeof(cpuhistory_t));
+
+    /* do we resize the array? */
+    if (cpuhistory_lines != lines) {
+        /* Initialize array to avoid mon_memmap_store() using unitialized
+         * data when reading the RESET vector on boot.
+         * WHY reading the RESET vector causes a STORE is another issue.
+         * -- Compyx
+         * */
+        memset((void *)cpuhistory, 0, sizeof(cpuhistory_t) * (size_t)lines);
+    }
+
+    cpuhistory_lines = lines;
+    cpuhistory_i = 0;
+    return 0;
+}
+
+
+void monitor_cpuhistory_store(uint32_t cycle, unsigned int addr, unsigned int op,
                               unsigned int p1, unsigned int p2,
                               uint8_t reg_a,
                               uint8_t reg_x,
@@ -95,7 +126,8 @@ void monitor_cpuhistory_store(unsigned int addr, unsigned int op,
                               unsigned int reg_st)
 {
     ++cpuhistory_i;
-    cpuhistory_i &= (CPUHISTORY_SIZE - 1);
+    cpuhistory_i %= cpuhistory_lines;
+    cpuhistory[cpuhistory_i].cycle = cycle;
     cpuhistory[cpuhistory_i].addr = addr;
     cpuhistory[cpuhistory_i].op = op;
     cpuhistory[cpuhistory_i].p1 = p1;
@@ -121,14 +153,19 @@ void mon_cpuhistory(int count)
     const char *dis_inst;
     unsigned opc_size;
     int i, pos;
+    uint32_t cycle;
 
-    if ((count < 1) || (count > CPUHISTORY_SIZE)) {
-        count = CPUHISTORY_SIZE;
+    if ((count < 1) || (count > cpuhistory_lines)) {
+        count = cpuhistory_lines;
     }
 
-    pos = (cpuhistory_i + 1 - count) & (CPUHISTORY_SIZE - 1);
+    pos = (cpuhistory_i + 1 - count);
+    if (pos < 0) {
+        pos += cpuhistory_lines;
+    }
 
     for (i = 0; i < count; ++i) {
+        cycle = cpuhistory[pos].cycle;
         addr = cpuhistory[pos].addr;
         op = cpuhistory[pos].op;
         p1 = cpuhistory[pos].p1;
@@ -137,11 +174,10 @@ void mon_cpuhistory(int count)
         mem = addr_memspace(addr);
         loc = addr_location(addr);
 
-        dis_inst = mon_disassemble_to_string_ex(mem, loc, op, p1, p2, p3, hex_mode,
-                                                &opc_size);
+        dis_inst = mon_disassemble_to_string_ex(mem, loc, op, p1, p2, p3, hex_mode, &opc_size);
 
         /* Print the disassembled instruction */
-        mon_out("%04x  %-30s - A:%02x X:%02x Y:%02x SP:%02x %c%c-%c%c%c%c%c\n",
+        mon_out("%04x  %-30s - A:%02x X:%02x Y:%02x SP:%02x %c%c-%c%c%c%c%c %09u\n",
             loc, dis_inst,
             cpuhistory[pos].reg_a, cpuhistory[pos].reg_x, cpuhistory[pos].reg_y, cpuhistory[pos].reg_sp,
             ((cpuhistory[pos].reg_st & (1 << 7)) != 0) ? 'N' : ' ',
@@ -150,10 +186,11 @@ void mon_cpuhistory(int count)
             ((cpuhistory[pos].reg_st & (1 << 3)) != 0) ? 'D' : ' ',
             ((cpuhistory[pos].reg_st & (1 << 2)) != 0) ? 'I' : ' ',
             ((cpuhistory[pos].reg_st & (1 << 1)) != 0) ? 'Z' : ' ',
-            ((cpuhistory[pos].reg_st & (1 << 0)) != 0) ? 'C' : ' '
+            ((cpuhistory[pos].reg_st & (1 << 0)) != 0) ? 'C' : ' ',
+            cycle
             );
 
-        pos = (pos + 1) & (CPUHISTORY_SIZE - 1);
+        pos = (pos + 1) % cpuhistory_lines;
     }
 }
 
@@ -220,6 +257,14 @@ void mon_memmap_show(int mask, MON_ADDR start_addr, MON_ADDR end_addr)
 void monitor_memmap_store(unsigned int addr, unsigned int type)
 {
     uint8_t op = cpuhistory[cpuhistory_i].op;
+#if 0
+    static int repeat = 0;
+
+    if (repeat < 4) {
+        printf("%s(): addr = $%04x, type = %u\n", __func__, addr, type);
+        repeat++;
+    }
+#endif
 
     if (memmap_state & MEMMAP_STATE_IN_MONITOR) {
         return;
@@ -305,6 +350,9 @@ void mon_memmap_shutdown(void)
 {
     lib_free(mon_memmap);
     mon_memmap = NULL;
+    if (cpuhistory != NULL) {
+        lib_free(cpuhistory);
+    }
 }
 
 

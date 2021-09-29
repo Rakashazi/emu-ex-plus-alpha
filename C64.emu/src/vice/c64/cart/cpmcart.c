@@ -6564,7 +6564,7 @@ void cpmcart_check_and_run_z80(void)
    DWORD | opcode address | last opcode address
  */
 
-static char snap_module_name[] = "CPMCART";
+static const char snap_module_name[] = "CPMCART";
 #define SNAP_MAJOR 0
 #define SNAP_MINOR 0
 

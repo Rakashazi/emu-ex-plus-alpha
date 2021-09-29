@@ -64,6 +64,7 @@ extern "C"
 	#include "diskimage.h"
 	#include "vdrive-internal.h"
 	#include "autostart-prg.h"
+	#include "joyport.h"
 }
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
@@ -81,6 +82,8 @@ bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 bool EmuSystem::handlesGenericIO = false;
 
+static void execC64Frame();
+
 const char *EmuSystem::shortSystemName()
 {
 	return "C64";
@@ -91,20 +94,9 @@ const char *EmuSystem::systemName()
 	return "Commodore 64";
 }
 
-int intResource(const char *name)
-{
-	int val = 0;
-	auto failed = plugin.resources_get_int(name, &val);
-	if(failed)
-	{
-		logErr("error getting int resource:%s", name);
-	}
-	return val;
-}
-
 void setAutostartWarp(bool on)
 {
-	plugin.resources_set_int("AutostartWarp", on);
+	setIntResource("AutostartWarp", on);
 }
 
 static bool autostartWarp()
@@ -114,7 +106,7 @@ static bool autostartWarp()
 
 void setAutostartTDE(bool on)
 {
-	plugin.resources_set_int("AutostartHandleTrueDriveEmulation", on);
+	setIntResource("AutostartHandleTrueDriveEmulation", on);
 }
 
 static bool autostartTDE()
@@ -124,7 +116,7 @@ static bool autostartTDE()
 
 void setAutostartBasicLoad(bool on)
 {
-	plugin.resources_set_int("AutostartBasicLoad", on);
+	setIntResource("AutostartBasicLoad", on);
 }
 
 bool autostartBasicLoad()
@@ -163,7 +155,7 @@ void setBorderMode(int mode)
 {
 	if(!plugin.borderModeStr)
 		return;
-	plugin.resources_set_int(plugin.borderModeStr, mode);
+	setIntResource(plugin.borderModeStr, mode);
 }
 
 static int borderMode()
@@ -176,7 +168,7 @@ static int borderMode()
 void setSidEngine(int engine)
 {
 	logMsg("set SID engine %d", engine);
-	plugin.resources_set_int("SidEngine", engine);
+	setIntResource("SidEngine", engine);
 }
 
 static int sidEngine()
@@ -187,7 +179,7 @@ static int sidEngine()
 void setReSidSampling(int sampling)
 {
 	logMsg("set ReSID sampling %d", sampling);
-	plugin.resources_set_int("SidResidSampling", sampling);
+	setIntResource("SidResidSampling", sampling);
 }
 
 static int reSidSampling()
@@ -197,7 +189,7 @@ static int reSidSampling()
 
 void setDriveTrueEmulation(bool on)
 {
-	plugin.resources_set_int("DriveTrueEmulation", on);
+	setIntResource("DriveTrueEmulation", on);
 }
 
 bool driveTrueEmulation()
@@ -207,7 +199,7 @@ bool driveTrueEmulation()
 
 void setVirtualDeviceTraps(bool on)
 {
-	plugin.resources_set_int("VirtualDevices", on);
+	setIntResource("VirtualDevices", on);
 }
 
 bool virtualDeviceTraps()
@@ -260,6 +252,31 @@ void setDefaultVIC20Model(int model)
 	optionVIC20Model = model;
 }
 
+const char *videoChipStr()
+{
+	switch (currSystem)
+	{
+		case VICE_SYSTEM_VIC20:
+		return "VIC";
+
+		case VICE_SYSTEM_C64:
+		case VICE_SYSTEM_C64SC:
+		case VICE_SYSTEM_SUPER_CPU:
+		case VICE_SYSTEM_C64DTV:
+		case VICE_SYSTEM_C128:
+		case VICE_SYSTEM_CBM5X0:
+		return "VICII";
+
+		case VICE_SYSTEM_PLUS4:
+		return "TED";
+
+		case VICE_SYSTEM_PET:
+		case VICE_SYSTEM_CBM2:
+		return "Crtc";
+	}
+	return "";
+}
+
 static void setIntResourceToDefault(const char *name)
 {
 	int val;
@@ -268,7 +285,7 @@ static void setIntResourceToDefault(const char *name)
 		return;
 	}
 	logMsg("setting resource %s to default:%d", name, val);
-	plugin.resources_set_int(name, val);
+	setIntResource(name, val);
 }
 
 void applySessionOptions()
@@ -291,29 +308,31 @@ void applySessionOptions()
 	{
 		uint8_t blocks = optionVic20RamExpansions;
 		if(blocks & BLOCK_0)
-			plugin.resources_set_int("RamBlock0", 1);
+			setIntResource("RamBlock0", 1);
 		if(blocks & BLOCK_1)
-			plugin.resources_set_int("RamBlock1", 1);
+			setIntResource("RamBlock1", 1);
 		if(blocks & BLOCK_2)
-			plugin.resources_set_int("RamBlock2", 1);
+			setIntResource("RamBlock2", 1);
 		if(blocks & BLOCK_3)
-			plugin.resources_set_int("RamBlock3", 1);
+			setIntResource("RamBlock3", 1);
 		if(blocks & BLOCK_5)
-			plugin.resources_set_int("RamBlock5", 1);
+			setIntResource("RamBlock5", 1);
 	}
 }
 
 static void applyInitialOptionResources()
 {
+	setIntResource("JoyPort1Device", JOYPORT_ID_JOYSTICK);
+	setIntResource("JoyPort2Device", JOYPORT_ID_JOYSTICK);
 	applySessionOptions();
 	setBorderMode(optionBorderMode);
 	setSidEngine(optionSidEngine);
 	setReSidSampling(optionReSidSampling);
 	// default drive setup
 	setIntResourceToDefault("Drive8Type");
-	plugin.resources_set_int("Drive9Type", DRIVE_TYPE_NONE);
-	plugin.resources_set_int("Drive10Type", DRIVE_TYPE_NONE);
-	plugin.resources_set_int("Drive11Type", DRIVE_TYPE_NONE);
+	setIntResource("Drive9Type", DRIVE_TYPE_NONE);
+	setIntResource("Drive10Type", DRIVE_TYPE_NONE);
+	setIntResource("Drive11Type", DRIVE_TYPE_NONE);
 }
 
 int systemCartType(ViceSystem system)
@@ -417,23 +436,23 @@ EmuSystem::Error EmuSystem::saveState(EmuApp &app, const char *path)
 	SnapshotTrapData data;
 	data.pathStr = path;
 	plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
-	app.skipFrames(nullptr, 1, nullptr); // execute cpu trap
+	execC64Frame(); // execute cpu trap
 	return data.hasError ? makeFileWriteError() : Error{};
 }
 
 EmuSystem::Error EmuSystem::loadState(EmuApp &app, const char *path)
 {
-	plugin.resources_set_int("WarpMode", 0);
+	setIntResource("WarpMode", 0);
 	SnapshotTrapData data;
 	data.pathStr = path;
-	app.skipFrames(nullptr, 1, nullptr); // run extra frame in case C64 was just started
+	execC64Frame(); // run extra frame in case C64 was just started
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
-	app.skipFrames(nullptr, 1, nullptr); // execute cpu trap, snapshot load may cause reboot from a C64 model change
+	execC64Frame(); // execute cpu trap, snapshot load may cause reboot from a C64 model change
 	if(data.hasError)
 		return makeFileReadError();
 	// reload snapshot in case last load caused a reboot
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
-	app.skipFrames(nullptr, 1, nullptr); // execute cpu trap
+	execC64Frame(); // execute cpu trap
 	bool hasError = data.hasError;
 	return hasError ? makeFileReadError() : Error{};
 }
@@ -456,12 +475,12 @@ void EmuSystem::closeSystem()
 	}
 	logMsg("closing game %s", gameName().data());
 	saveBackupMem();
-	plugin.resources_set_int("WarpMode", 0);
+	setIntResource("WarpMode", 0);
 	plugin.tape_image_detach(1);
-	plugin.file_system_detach_disk(8);
-	plugin.file_system_detach_disk(9);
-	plugin.file_system_detach_disk(10);
-	plugin.file_system_detach_disk(11);
+	plugin.file_system_detach_disk(8, 0);
+	plugin.file_system_detach_disk(9, 0);
+	plugin.file_system_detach_disk(10, 0);
+	plugin.file_system_detach_disk(11, 0);
 	plugin.cartridge_detach_image(-1);
 	plugin.machine_trigger_reset(MACHINE_RESET_MODE_HARD);
 }
@@ -470,7 +489,7 @@ static const char *mainROMFilename(ViceSystem system)
 {
 	switch(system)
 	{
-		case VICE_SYSTEM_PET: return "kernal1";
+		case VICE_SYSTEM_PET: return "kernal-4.901465-22.bin";
 		case VICE_SYSTEM_SUPER_CPU: return "scpu64";
 		default: return "kernal";
 	}
@@ -504,7 +523,6 @@ static bool initC64(EmuApp &app)
   	return false;
 	}
 	c64IsInit = true;
-	updateKeyMappingArray(app);
 	return true;
 }
 
@@ -586,7 +604,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 		if(hasC64DiskExtension(fullGamePath()))
 		{
 			logMsg("loading disk image:%s", fullGamePath());
-			if(plugin.file_system_attach_disk(8, fullGamePath()) != 0)
+			if(plugin.file_system_attach_disk(8, 0, fullGamePath()) != 0)
 			{
 				return EmuSystem::makeFileReadError();
 			}
@@ -659,7 +677,7 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	plugin.resources_get_int("SoundSampleRate", &currRate);
 	if(currRate != mixRate)
 	{
-		plugin.resources_set_int("SoundSampleRate", mixRate);
+		setIntResource("SoundSampleRate", mixRate);
 	}
 }
 

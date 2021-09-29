@@ -50,6 +50,9 @@ static const cmdline_option_t cmdline_options[] =
     { "-dos1001", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "DosName1001", NULL,
       "<Name>", "Specify name of 1001/8050/8250 DOS ROM image" },
+    { "-dos9000", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
+      NULL, NULL, "DosName9000", NULL,
+      "<Name>", "Specify name of D9090/D9060 DOS ROM image" },
     CMDLINE_LIST_END
 };
 

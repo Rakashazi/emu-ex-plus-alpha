@@ -3,6 +3,7 @@
  *
  * \author  Andreas Boose <viceteam@t-online.de>
  * \author  Marco van den Heuvel <blackystardust68@yahoo.com>
+ * \author  Bas Wassink <b.wassink@ziggo.nl>
  */
 
 /*
@@ -39,12 +40,13 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Program start.  */
 extern int archdep_init(int *argc, char **argv);
 extern void archdep_startup_log_error(const char *format, ...);
 
-/* 
+/*
  * refactored into src/arch/shared/
  */
 
@@ -73,7 +75,7 @@ int         archdep_expand_path(char **return_path, const char *filename);
 void        archdep_sanitize_filename(char *name);
 char *      archdep_make_backup_filename(const char *fname);
 int         archdep_stat(const char *file_name,
-                         unsigned int *len,
+                         size_t *len,
                          unsigned int *isdir);
 int         archdep_rename(const char *oldpath, const char *newpath);
 
@@ -83,14 +85,24 @@ void        archdep_default_sysfile_pathlist_free(void);
 char *      archdep_extra_title_text(void);
 void        archdep_extra_title_text_free(void);
 
-int         archdep_vice_atexit(void (*function)(void));
 void        archdep_vice_exit(int excode);
+
+#ifdef USE_NATIVE_GTK3
+void        archdep_thread_init(void);
+void        archdep_set_main_thread(void);
+void        archdep_thread_shutdown(void);
+#endif
 
 /* Get the absolute path to the directory that contains the documentation */
 char *      archdep_get_vice_docsdir(void);
 /* Get the absolute path to the directory that contains resources, icons, etc */
 char *      archdep_get_vice_datadir(void);
 
+void        archdep_create_user_cache_dir(void);
+char *      archdep_user_cache_path(void);
+void        archdep_user_cache_path_free(void);
+
+void        archdep_create_user_config_dir(void);
 char *      archdep_user_config_path(void);
 void        archdep_user_config_path_free(void);
 
@@ -107,6 +119,7 @@ int         archdep_fix_permissions(const char *file_name);
 
 /* Resource handling.  */
 char *      archdep_default_resource_file_name(void);
+char *      archdep_default_portable_resource_file_name(void);
 
 /* Fliplist.  */
 char *      archdep_default_fliplist_file_name(void);
@@ -140,6 +153,9 @@ void        archdep_set_current_drive(const char *drive);
 
 int         archdep_default_logger(const char *level_string, const char *txt);
 
+/* Track default audio output device and restart sound when it changes */
+void        archdep_sound_enable_default_device_tracking(void);
+
 /* Launch program `name' (searched via the PATH environment variable)
    passing `argv' as the parameters, wait for it to exit and return its
    exit status. If `pstdout_redir' or `stderr_redir' are != NULL,
@@ -150,6 +166,7 @@ int         archdep_spawn(const char *name, char **argv,
 /* Spawn need quoting the params or expanding the filename in some archs.  */
 char *      archdep_filename_parameter(const char *name);
 char *      archdep_quote_parameter(const char *name);
+char *      archdep_quote_unzip(const char *name);
 
 /* Allocates a filename and creates a tempfile.  */
 FILE *      archdep_mkstemp_fd(char **filename, const char *mode);
@@ -158,7 +175,18 @@ FILE *      archdep_mkstemp_fd(char **filename, const char *mode);
 int         archdep_file_is_blockdev(const char *name);
 int         archdep_file_is_chardev(const char *name);
 
+bool        archdep_file_exists(const char *path);
+
 void        archdep_usleep(uint64_t waitTime);
+
+
+/* Runtime OS checks, shouldn't be required */
+int         archdep_is_haiku(void);
+int         archdep_is_windows_nt(void);
+
+
+/* Icon handling */
+char *      archdep_app_icon_path_png(int size);
 
 /*
  * Not yet moved to arch/shared/

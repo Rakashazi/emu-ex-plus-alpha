@@ -54,6 +54,8 @@ F-6 |   4   | loops to 6 (SENSE <-> READ)
 #include "tapeport.h"
 #include "util.h"
 
+#ifdef TAPEPORT_EXPERIMENTAL_DEVICES
+
 /* Device enabled */
 static int tape_diag_586220_harness_enabled = 0;
 
@@ -160,3 +162,5 @@ int tape_diag_586220_harness_cmdline_options_init(void)
 {
     return cmdline_register_options(cmdline_options);
 }
+
+#endif

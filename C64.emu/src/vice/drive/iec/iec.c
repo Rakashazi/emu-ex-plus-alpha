@@ -47,6 +47,7 @@
 #include "wd1770.h"
 #include "via4000.h"
 #include "pc8477.h"
+#include "cmdhd.h"
 
 
 /* Pointer to the IEC bus structure.  */
@@ -68,7 +69,7 @@ int iec_drive_cmdline_options_init(void)
     return iec_cmdline_options_init();
 }
 
-void iec_drive_init(struct drive_context_s *drv)
+void iec_drive_init(struct diskunit_context_s *drv)
 {
     iecrom_init();
     via1d1541_init(drv);
@@ -77,60 +78,72 @@ void iec_drive_init(struct drive_context_s *drv)
     via4000_init(drv);
     wd1770d_init(drv);
     pc8477d_init(drv);
+    /* due to the complexity of the CMD HD memory addressing and IO,
+        we keep the setup of it in separate functions */
+    cmdhd_init(drv);
 }
 
-void iec_drive_reset(struct drive_context_s *drv)
+void iec_drive_reset(struct diskunit_context_s *drv)
 {
-    if (drv->drive->type == DRIVE_TYPE_1540
-        || drv->drive->type == DRIVE_TYPE_1541
-        || drv->drive->type == DRIVE_TYPE_1541II
-        || drv->drive->type == DRIVE_TYPE_1570
-        || drv->drive->type == DRIVE_TYPE_1571
-        || drv->drive->type == DRIVE_TYPE_1571CR) {
+    if (drv->type == DRIVE_TYPE_1540
+        || drv->type == DRIVE_TYPE_1541
+        || drv->type == DRIVE_TYPE_1541II
+        || drv->type == DRIVE_TYPE_1570
+        || drv->type == DRIVE_TYPE_1571
+        || drv->type == DRIVE_TYPE_1571CR) {
         viacore_reset(drv->via1d1541);
     } else {
         viacore_disable(drv->via1d1541);
     }
 
-    if (drv->drive->type == DRIVE_TYPE_1570
-        || drv->drive->type == DRIVE_TYPE_1571
-        || drv->drive->type == DRIVE_TYPE_1571CR) {
+    if (drv->type == DRIVE_TYPE_1570
+        || drv->type == DRIVE_TYPE_1571
+        || drv->type == DRIVE_TYPE_1571CR) {
         ciacore_reset(drv->cia1571);
     } else {
         ciacore_disable(drv->cia1571);
     }
 
-    if (drv->drive->type == DRIVE_TYPE_1581) {
+    if (drv->type == DRIVE_TYPE_1581) {
         ciacore_reset(drv->cia1581);
         wd1770_reset(drv->wd1770);
     } else {
         ciacore_disable(drv->cia1581);
     }
 
-    if (drv->drive->type == DRIVE_TYPE_2000
-        || drv->drive->type == DRIVE_TYPE_4000) {
+    if (drv->type == DRIVE_TYPE_2000
+        || drv->type == DRIVE_TYPE_4000) {
         viacore_reset(drv->via4000);
-        pc8477_reset(drv->pc8477, drv->drive->type == DRIVE_TYPE_4000);
+        pc8477_reset(drv->pc8477, drv->type == DRIVE_TYPE_4000);
     } else {
         viacore_disable(drv->via4000);
     }
+
+    if (drv->type == DRIVE_TYPE_CMDHD ) {
+    /* due to the complexity of the CMD HD memory addressing and IO,
+        we keep the setup of it in separate functions */
+        cmdhd_reset(drv->cmdhd);
+    }
 }
 
-void iec_drive_mem_init(struct drive_context_s *drv, unsigned int type)
+void iec_drive_mem_init(struct diskunit_context_s *drv, unsigned int type)
 {
     memiec_init(drv, type);
 }
 
-void iec_drive_setup_context(struct drive_context_s *drv)
+void iec_drive_setup_context(struct diskunit_context_s *drv)
 {
     via1d1541_setup_context(drv);
     cia1571_setup_context(drv);
     cia1581_setup_context(drv);
     via4000_setup_context(drv);
     pc8477_setup_context(drv);
+    /* due to the complexity of the CMD HD memory addressing and IO,
+        we keep the setup of it in separate functions */
+    cmdhd_setup_context(drv);
 }
 
-void iec_drive_shutdown(struct drive_context_s *drv)
+void iec_drive_shutdown(struct diskunit_context_s *drv)
 {
     viacore_shutdown(drv->via1d1541);
     ciacore_shutdown(drv->cia1571);
@@ -138,6 +151,9 @@ void iec_drive_shutdown(struct drive_context_s *drv)
     viacore_shutdown(drv->via4000);
     wd1770_shutdown(drv->wd1770);
     pc8477_shutdown(drv->pc8477);
+    /* due to the complexity of the CMD HD memory addressing and IO,
+        we keep the setup of it in separate functions */
+    cmdhd_shutdown(drv->cmdhd);
 }
 
 void iec_drive_idling_method(unsigned int dnr)
@@ -161,11 +177,12 @@ void iec_drive_rom_load(void)
     iecrom_load_1581();
     iecrom_load_2000();
     iecrom_load_4000();
+    iecrom_load_CMDHD();
 }
 
 void iec_drive_rom_setup_image(unsigned int dnr)
 {
-    iecrom_setup_image(drive_context[dnr]->drive);
+    iecrom_setup_image(diskunit_context[dnr]);
 }
 
 int iec_drive_rom_check_loaded(unsigned int type)
@@ -175,13 +192,13 @@ int iec_drive_rom_check_loaded(unsigned int type)
 
 void iec_drive_rom_do_checksum(unsigned int dnr)
 {
-    iecrom_do_checksum(drive_context[dnr]->drive);
+    iecrom_do_checksum(diskunit_context[dnr]);
 }
 
-int iec_drive_snapshot_read(struct drive_context_s *ctxptr,
+int iec_drive_snapshot_read(struct diskunit_context_s *ctxptr,
                             struct snapshot_s *s)
 {
-    switch (ctxptr->drive->type) {
+    switch (ctxptr->type) {
     case DRIVE_TYPE_1540:
     case DRIVE_TYPE_1541:
     case DRIVE_TYPE_1541II:
@@ -213,6 +230,11 @@ int iec_drive_snapshot_read(struct drive_context_s *ctxptr,
             return -1;
         }
         break;
+    case DRIVE_TYPE_CMDHD:
+        if (cmdhd_snapshot_read_module(ctxptr->cmdhd, s) < 0) {
+            return -1;
+        }
+        break;
     default:
         break;
     }
@@ -220,10 +242,10 @@ int iec_drive_snapshot_read(struct drive_context_s *ctxptr,
     return 0;
 }
 
-int iec_drive_snapshot_write(struct drive_context_s *ctxptr,
+int iec_drive_snapshot_write(struct diskunit_context_s *ctxptr,
                              struct snapshot_s *s)
 {
-    switch (ctxptr->drive->type) {
+    switch (ctxptr->type) {
     case DRIVE_TYPE_1540:
     case DRIVE_TYPE_1541:
     case DRIVE_TYPE_1541II:
@@ -255,6 +277,11 @@ int iec_drive_snapshot_write(struct drive_context_s *ctxptr,
             return -1;
         }
         break;
+    case DRIVE_TYPE_CMDHD:
+        if (cmdhd_snapshot_write_module(ctxptr->cmdhd, s) < 0) {
+            return -1;
+        }
+        break;
     default:
         break;
     }
@@ -262,17 +289,25 @@ int iec_drive_snapshot_write(struct drive_context_s *ctxptr,
     return 0;
 }
 
-int iec_drive_image_attach(struct disk_image_s *image, unsigned int unit)
+int iec_drive_image_attach(struct disk_image_s *image, unsigned int unit, unsigned int drive)
 {
-    return wd1770_attach_image(image, unit) & pc8477_attach_image(image, unit);
+    if (drive) {
+        return -1;
+    }
+    return wd1770_attach_image(image, unit) & pc8477_attach_image(image, unit) &
+        cmdhd_attach_image(image, unit);
 }
 
-int iec_drive_image_detach(struct disk_image_s *image, unsigned int unit)
+int iec_drive_image_detach(struct disk_image_s *image, unsigned int unit, unsigned int drive)
 {
-    return wd1770_detach_image(image, unit) & pc8477_detach_image(image, unit);
+    if (drive) {
+        return -1;
+    }
+    return wd1770_detach_image(image, unit) & pc8477_detach_image(image, unit) &
+        cmdhd_detach_image(image, unit);
 }
 
-void iec_drive_port_default(struct drive_context_s *drv)
+void iec_drive_port_default(struct diskunit_context_s *drv)
 {
     drive_iecbus = iecbus_drive_port();
 

@@ -1,13 +1,14 @@
-/*
- * zfile.c - Transparent handling of compressed files.
- *
- * Written by
- *  Ettore Perazzoli <ettore@comm2000.it>
- *  Andreas Boose <viceteam@t-online.de>
+/** \file   zfile.c
+ * \brief   Transparent handling of compressed files
+ * \author  Ettore Perazzoli <ettore@comm2000.it>
+ * \author  Andreas Boose <viceteam@t-online.de>
+ * \author  Bas Wassink <b.wassink@ziggo.nl>
  *
  * ARCHIVE, ZIPCODE and LYNX supports added by
  *  Teemu Rantanen <tvr@cs.hut.fi>
- *
+ */
+
+/*
  * This file is part of VICE, the Versatile Commodore Emulator.
  * See README for copyright notice.
  *
@@ -37,6 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #ifdef HAVE_ERRNO_H
 #include <errno.h>
@@ -50,8 +52,6 @@
 #endif
 
 #include "archdep.h"
-/* XXX: update once all archdep stuff is in src/arch/shared */
-#include "arch/shared/archdep_spawn.h"
 #include "ioutil.h"
 #include "lib.h"
 #include "log.h"
@@ -361,7 +361,7 @@ static int is_zipcode_name(char *name)
 }
 
 /* Extensions we know about */
-static const char *extensions[] = {
+static const char * const extensions[] = {
     FSDEV_EXT_SEP_STR "d64",
     FSDEV_EXT_SEP_STR "d67",
     FSDEV_EXT_SEP_STR "d71",
@@ -406,10 +406,6 @@ static int is_valid_extension(char *end, size_t l, int nameoffset)
     return 0;
 }
 
-/* define SIZE_MAX if it does not exist (only in C99) */
-#ifndef SIZE_MAX
-#define SIZE_MAX ((size_t)-1)
-#endif
 
 /* If `name' has a correct extension, try to list its contents and search for
    the first file with a proper extension; if found, extract it.  If this
@@ -424,7 +420,9 @@ static char *try_uncompress_archive(const char *name, int write_mode,
                                     const char *search)
 {
     char *tmp_name = NULL;
-    size_t l = strlen(name), len, nameoffset;
+    size_t l = strlen(name);
+    size_t len;
+    size_t nameoffset;
     int found = 0;
     int exit_status;
     char *argv[8];
@@ -488,7 +486,7 @@ static char *try_uncompress_archive(const char *name, int write_mode,
                 nameoffset = l - 4;
             }
             if (nameoffset <= 1024
-                    && is_valid_extension(tmp, l, nameoffset)) {
+                    && is_valid_extension(tmp, l, (int)nameoffset)) {
                 ZDEBUG(("try_uncompress_archive: found `%s'.",
                         tmp + nameoffset));
                 found = 1;
@@ -529,7 +527,16 @@ static char *try_uncompress_archive(const char *name, int write_mode,
         argv[5][0] = '3';
         argv[6][0] = '4';
     } else {
-        argv[3] = archdep_quote_parameter(tmp + nameoffset);
+        /* Check for info-zip's unzip
+         *
+         * Unzip needs special quoting of left brackets: [[], not \\[,
+         * see bug #1215.
+         */
+        if (strcmp(program, "unzip") == 0) {
+            argv[3] = archdep_quote_unzip(tmp + nameoffset);
+        } else {
+            argv[3] = archdep_quote_parameter(tmp + nameoffset);
+        }
         argv[4] = NULL;
     }
 

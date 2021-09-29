@@ -348,7 +348,7 @@ int psid_load_file(const char* filename)
     }
 
     if (!feof(f)) {
-        log_error(vlog, "More than 64K PSID data.");
+        log_error(vlog, "More than 64KiB PSID data.");
         goto fail;
     }
 
@@ -654,7 +654,7 @@ void psid_init_driver(void)
         if (((sid2loc >= 0xd420 && sid2loc < 0xd800) || sid2loc >= 0xde00)
             && (sid2loc & 0x10) == 0) {
             resources_set_int("SidStereo", 1);
-            resources_set_int("SidStereoAddressStart", sid2loc);
+            resources_set_int("Sid2AddressStart", sid2loc);
         }
         sid3loc = 0xd000 | ((psid->reserved << 4) & 0x0ff0);
         if (sid3loc != 0xd000) {
@@ -662,7 +662,7 @@ void psid_init_driver(void)
             if (((sid3loc >= 0xd420 && sid3loc < 0xd800) || sid3loc >= 0xde00)
                 && (sid3loc & 0x10) == 0) {
                 resources_set_int("SidStereo", 2);
-                resources_set_int("SidTripleAddressStart", sid3loc);
+                resources_set_int("Sid3AddressStart", sid3loc);
             }
         }
     }
@@ -869,8 +869,9 @@ static int mus_load_file(const char* filename, int ispsid)
 {
     char *strname;
     FILE *f;
-    int n, stereo = 0;
-    int mus_datalen;
+    int stereo = 0;
+    size_t n;
+    size_t mus_datalen;
 
     if (!(f = zfile_fopen(filename, MODE_READ))) {
         return -1;
@@ -910,7 +911,7 @@ static int mus_load_file(const char* filename, int ispsid)
         }
         lib_free(strname);
         /* only extract credits if this is NOT a psid file */
-        mus_extract_credits(psid->data, mus_datalen);
+        mus_extract_credits(psid->data, (int)mus_datalen);
     }
 
     mus_install();

@@ -112,10 +112,10 @@ const char info_contrib_text[] =
 "  improvements. Added basic support for compute gazette sidplayer\n"
 "  files (mus/str) to vsid. Added new palette files. Added\n"
 "  'available features' code. Fixed/added some items in the OSX GUI.\n"
-"  Added random tape wobble emulation. Added 64k RGCD cartridge\n"
+"  Added random tape wobble emulation. Added 64KiB RGCD cartridge\n"
 "  emulation. Added psid v4 3sid support to vsid. Added single frame\n"
 "  advance. Added drive RPM and wobble support. Added rrnet mk3\n"
-"  emulation. Added GMod2 cartridge emulation. Added xvic BehrBonz\n"
+"  emulation. Added GMod2 and GMod3 cartridge emulation. Added xvic BehrBonz\n"
 "  cartridge emulation. Added VICII VSP-bug emulation. Wrote alot of\n"
 "  test programs. Updated this document after a long period of\n"
 "  outdated mess. And various fixes and improvements.\n"
@@ -610,7 +610,8 @@ const char info_contrib_text[] =
 "  good guy reviewing and commenting changes in the background.\n"
 "\n"
 "  Roberto Muscedere <cococommie@cogeco.ca>\n"
-"  Improved support for REL files.\n"
+"  Improved support for REL files in vdrive. Added Lt. Kernal Host Adaptor,\n"
+"  CMD HD, CMD RAMLINK, and CBM D9090/60 emulation. Added D90 support to vdrive.\n"
 "\n"
 "  Leandro Nini <drfiemost@email.it>\n"
 "  Improved ReSID emulation. And fixed some c64dtv cpu opcode issues.\n"
@@ -807,22 +808,26 @@ const char info_contrib_text[] =
 "\n";
 
 vice_team_t core_team[] = {
-    { "2005-2019", "Marco van den Heuvel", "Marco van den Heuvel <blackystardust68@yahoo.com>" },
-    { "2007-2019", "Fabrizio Gennari", "Fabrizio Gennari <fabrizio.ge@tiscalinet.it>" },
-    { "2009-2019", "Groepaz", "Groepaz <groepaz@gmx.net>" },
-    { "2009-2019", "Errol Smith", "Errol Smith <strobey@users.sourceforge.net>" },
-    { "2010-2019", "Olaf Seibert", "Olaf Seibert <rhialto@falu.nl>" },
-    { "2011-2019", "Marcus Sutton", "Marcus Sutton <loggedoubt@gmail.com>" },
-    { "2011-2019", "Kajtar Zsolt", "Kajtar Zsolt <soci@c64.rulez.org>" },
-    { "2016-2019", "AreaScout", "AreaScout <areascout@gmx.at>" },
-    { "2016-2019", "Bas Wassink", "Bas Wassink <b.wassink@ziggo.nl>" },
-    { "2017-2019", "Michael C. Martin", "Michael C. Martin <mcmartin@gmail.com>" },
-    { "2019-2019", "David Hogan", "David Hogan <david.q.hogan@gmail.com>" },
+    { "1999-2020", "Martin Pottendorfer", "Martin Pottendorfer <pottendo@gmx.net>" },
+    { "2005-2020", "Marco van den Heuvel", "Marco van den Heuvel <blackystardust68@yahoo.com>" },
+    { "2007-2020", "Fabrizio Gennari", "Fabrizio Gennari <fabrizio.ge@tiscalinet.it>" },
+    { "2009-2020", "Groepaz", "Groepaz <groepaz@gmx.net>" },
+    { "2009-2020", "Errol Smith", "Errol Smith <strobey@users.sourceforge.net>" },
+    { "2009-2020", "Ingo Korb", "Ingo Korb <ingo@akana.de>" },
+    { "2010-2020", "Olaf Seibert", "Olaf Seibert <rhialto@falu.nl>" },
+    { "2011-2020", "Marcus Sutton", "Marcus Sutton <loggedoubt@gmail.com>" },
+    { "2011-2020", "Kajtar Zsolt", "Kajtar Zsolt <soci@c64.rulez.org>" },
+    { "2016-2020", "AreaScout", "AreaScout <areascout@gmx.at>" },
+    { "2016-2020", "Bas Wassink", "Bas Wassink <b.wassink@ziggo.nl>" },
+    { "2017-2020", "Michael C. Martin", "Michael C. Martin <mcmartin@gmail.com>" },
+    { "2018-2020", "Christopher Phillips", "Christopher Phillips <shrydar@users.sourceforge.net>" },
+    { "2019-2020", "David Hogan", "David Hogan <david.q.hogan@gmail.com>" },
+    { "2020", "Empathic Qubit", "Empathic Qubit <empathicqubit@entan.gl>" },
+    { "2020", "Roberto Muscedere", "Roberto Muscedere <cococommie@cogeco.ca>" },
     { NULL, NULL, NULL }
 };
 
 vice_team_t ex_team[] = {
-    { "1999-2017", "Martin Pottendorfer", "Martin Pottendorfer <pottendo@gmx.net>" },
     { "2011-2016", "Stefan Haubenthal", "Stefan Haubenthal <polluks@users.sourceforge.net>" },
     { "2015-2016", "BSzili", "BSzili <col.lawrence@gmail.com>" },
     { "1999-2016", "Andreas Matthies", "Andreas Matthies <andreas.matthies@gmx.net>" },
@@ -830,7 +835,6 @@ vice_team_t ex_team[] = {
     { "2012-2014", "Benjamin 'BeRo' Rosseaux", "Benjamin 'BeRo' Rosseaux <benjamin@rosseaux.com>" },
     { "2011-2014", "Ulrich Schulz", "Ulrich Schulz <peiselulli@t-online.de>" },
     { "2011-2014", "Thomas Giesel", "Thomas Giesel <skoe@directbox.com>" },
-    { "2009-2014", "Ingo Korb", "Ingo Korb <ingo@akana.de>" },
     { "2008-2014", "Antti S. Lankila", "Antti S. Lankila <alankila@bel.fi>" },
     { "2006-2014", "Christian Vogelgsang", "Christian Vogelgsang <chris@vogelgsang.org>" },
     { "1998-2014", "Dag Lem", "Dag Lem <resid@nimrod.no>" },

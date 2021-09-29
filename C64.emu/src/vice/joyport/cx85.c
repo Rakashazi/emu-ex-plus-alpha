@@ -225,7 +225,7 @@ static uint8_t cx85_read_dig(int port)
     return (uint8_t)retval;
 }
 
-static uint8_t cx85_read_pot(void)
+static uint8_t cx85_read_pot(int port)
 {
     int i;
 

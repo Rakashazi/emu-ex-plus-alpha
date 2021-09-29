@@ -65,7 +65,8 @@ static sound_device_t fs_device =
     NULL,
     NULL,
     0,
-    1
+    1,
+    false
 };
 
 int sound_init_fs_device(void)

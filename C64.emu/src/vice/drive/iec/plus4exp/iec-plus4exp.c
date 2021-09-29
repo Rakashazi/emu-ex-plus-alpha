@@ -48,14 +48,14 @@ int iec_plus4exp_cmdline_options_init(void)
     return plus4exp_cmdline_options_init();
 }
 
-void iec_plus4exp_init(struct drive_context_s *drv)
+void iec_plus4exp_init(struct diskunit_context_s *drv)
 {
 }
 
-void iec_plus4exp_reset(struct drive_context_s *drv)
+void iec_plus4exp_reset(struct diskunit_context_s *drv)
 {
 }
 
-void iec_plus4exp_mem_init(struct drive_context_s *drv, unsigned int type)
+void iec_plus4exp_mem_init(struct diskunit_context_s *drv, unsigned int type)
 {
 }

@@ -58,6 +58,8 @@ PIN | PIN | NOTES
 #include "userport.h"
 #include "userport_diag_586220_harness.h"
 
+#ifdef USERPORT_EXPERIMENTAL_DEVICES
+
 int userport_diag_586220_harness_enabled = 0;
 
 /* ------------------------------------------------------------------------- */
@@ -209,3 +211,5 @@ static void userport_diag_586220_harness_store_sp2(uint8_t value)
 {
     c64_diag_586220_store_userport_sp(1, value);
 }
+
+#endif

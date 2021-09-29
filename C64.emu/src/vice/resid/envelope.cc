@@ -244,7 +244,7 @@ void EnvelopeGenerator::writeCONTROL_REG(reg8 control)
         }
         else if (exponential_pipeline == 1) { state_pipeline = 3; }
     }
-    else if(!hold_zero){state_pipeline = envelope_pipeline > 0 ? 3 : 2;}
+    else {state_pipeline = envelope_pipeline > 0 ? 3 : 2;}
     gate = gate_next;
   }
 }

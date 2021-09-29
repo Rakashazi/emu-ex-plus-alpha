@@ -210,7 +210,7 @@ void delaep256_detach(void)
    ARRAY | ROML   |   0.0+  | 262144 BYTES of ROML data
  */
 
-static char snap_module_name[] = "CARTDELAEP256";
+static const char snap_module_name[] = "CARTDELAEP256";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   1
 

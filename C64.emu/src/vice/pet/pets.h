@@ -29,20 +29,24 @@
 
 #include "types.h"
 
-#define PET_KERNAL1NAME  "kernal1"
-#define PET_KERNAL2NAME  "kernal2"
-#define PET_KERNAL4NAME  "kernal4"
+#define PET_CHARGEN_NAME        "characters-2.901447-10.bin"
+#define SUPERPET_CHARGEN_NAME   "characters.901640-01.bin"
 
-#define PET_BASIC1NAME  "basic1"
-#define PET_BASIC2NAME  "basic2"
-#define PET_BASIC4NAME  "basic4"
+#define PET_KERNAL1NAME  "kernal-1.901439-04-07.bin"
+#define PET_KERNAL2NAME  "kernal-2.901465-03.bin"
+#define PET_KERNAL4NAME  "kernal-4.901465-22.bin"
 
-#define PET_EDITOR1G40NAME  "edit1g"
-#define PET_EDITOR2G40NAME  "edit2g"
-#define PET_EDITOR2B40NAME  "edit2b"
-#define PET_EDITOR4G40NAME  "edit4g40"
-#define PET_EDITOR4B80NAME  "edit4b80"
-#define PET_EDITOR4B40NAME  "edit4b40"
+#define PET_BASIC1NAME  "basic-1.901439-09-05-02-06.bin"
+#define PET_BASIC2NAME  "basic-2.901465-01-02.bin"
+#define PET_BASIC4NAME  "basic-4.901465-23-20-21.bin"
+
+#define PET_EDITOR1G40NAME  "edit-1-n.901439-03.bin"
+#define PET_EDITOR2G40NAME  "edit-2-n.901447-24.bin"
+#define PET_EDITOR2B40NAME  "edit-2-b.901474-01.bin"
+#define PET_EDITOR4G40NAME  "edit-4-40-n-50Hz.901498-01.bin"
+#define PET_EDITOR4B80NAME  "edit-4-80-b-50Hz.901474-04_.bin"
+/* #define PET_EDITOR4B40NAME  "edit-4-b-noCRTC.901474-02.bin" // no CRTC */
+#define PET_EDITOR4B40NAME  "edit-4-40-b-50Hz.ts.bin"
 
 #define SUPERPET_6809_A_NAME "waterloo-a000.901898-01.bin"
 #define SUPERPET_6809_B_NAME "waterloo-b000.901898-02.bin"
@@ -51,7 +55,7 @@
 #define SUPERPET_6809_E_NAME "waterloo-e000.901897-01.bin"
 #define SUPERPET_6809_F_NAME "waterloo-f000.901898-05.bin"
 
-#define PET_COLS 80
+#define PET_COLS		80
 #define PET_MAP_LINEAR          0
 #define PET_MAP_8096            1
 #define PET_MAP_8296            2
@@ -170,6 +174,6 @@ extern int pet_set_model(const char *model_name, void *extra); /* used by cmdlin
 
 extern int pet_init_ok; /* used in pet.c */
 
-extern int petmem_set_conf_info(petinfo_t *pi); /* used in petmemsnapshot.c */
+extern int petmem_set_conf_info(const petinfo_t *pi); /* used in petmemsnapshot.c */
 
 #endif

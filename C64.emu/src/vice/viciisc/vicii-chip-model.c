@@ -30,6 +30,7 @@
 #include "types.h"
 #include "vicii.h"
 #include "vicii-chip-model.h"
+#include "vicii-color.h"
 #include "vicii-resources.h"
 #include "viciitypes.h"
 
@@ -839,4 +840,5 @@ void vicii_chip_model_init(void)
             log_error(LOG_DEFAULT, "vicii_chip_model_init: unknown VICII type.");
             break;
     }
+    vicii_color_update_palette(vicii.raster.canvas);
 }

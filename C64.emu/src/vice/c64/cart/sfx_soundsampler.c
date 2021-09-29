@@ -354,7 +354,7 @@ static void sfx_soundsampler_sound_reset(sound_t *psid, CLOCK cpu_clk)
    BYTE  | sound data |   0.0+  | sound data
  */
 
-static char snap_module_name[] = "CARTSFXSS";
+static const char snap_module_name[] = "CARTSFXSS";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   1
 

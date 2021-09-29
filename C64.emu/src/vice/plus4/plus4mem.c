@@ -81,6 +81,8 @@ uint8_t extromhi3[PLUS4_KERNAL_ROM_SIZE];
 /* Pointers to the currently used memory read and write tables.  */
 read_func_ptr_t *_mem_read_tab_ptr;
 store_func_ptr_t *_mem_write_tab_ptr;
+read_func_ptr_t *_mem_read_tab_ptr_dummy;
+store_func_ptr_t *_mem_write_tab_ptr_dummy;
 static uint8_t **_mem_read_base_tab_ptr;
 static int *mem_read_limit_tab_ptr;
 
@@ -171,8 +173,12 @@ static uint8_t tape_read = 0xff;
 static uint8_t tape_write_in = 0xff;
 static uint8_t tape_motor_in = 0xff;
 
-/* Current watchpoint state. 1 = watchpoints active, 0 = no watchpoints */
-static int watchpoints_active;
+/* Current watchpoint state. 
+          0 = no watchpoints
+    bit0; 1 = watchpoints active
+    bit1; 2 = watchpoints trigger on dummy accesses
+*/
+static int watchpoints_active = 0;
 
 inline static void mem_proc_port_store(void)
 {
@@ -299,18 +305,35 @@ void zero_store(uint16_t addr, uint8_t value)
 
 /* ------------------------------------------------------------------------- */
 
+/* called by mem_config_set(), mem_toggle_watchpoints() */
+static void mem_update_tab_ptrs(int flag)
+{
+    if (flag) {
+        _mem_read_tab_ptr = mem_read_tab_watch;
+        _mem_write_tab_ptr = mem_write_tab_watch;
+        if (flag > 1) {
+            /* enable watchpoints on dummy accesses */
+            _mem_read_tab_ptr_dummy = mem_read_tab_watch;
+            _mem_write_tab_ptr_dummy = mem_write_tab_watch;
+        } else {
+            _mem_read_tab_ptr_dummy = mem_read_tab[mem_config];
+            _mem_write_tab_ptr_dummy = mem_write_tab[mem_config];
+        }
+    } else {
+        /* all watchpoints disabled */
+        _mem_read_tab_ptr = mem_read_tab[mem_config];
+        _mem_write_tab_ptr = mem_write_tab[mem_config];
+        _mem_read_tab_ptr_dummy = mem_read_tab[mem_config];
+        _mem_write_tab_ptr_dummy = mem_write_tab[mem_config];
+    }
+}
+
 static void mem_config_set(unsigned int config)
 {
     mem_config = config;
 
-    if (watchpoints_active) {
-        _mem_read_tab_ptr = mem_read_tab_watch;
-        _mem_write_tab_ptr = mem_write_tab_watch;
-    } else {
-        _mem_read_tab_ptr = mem_read_tab[mem_config];
-        _mem_write_tab_ptr = mem_write_tab[mem_config];
-    }
-
+    mem_update_tab_ptrs(watchpoints_active);
+    
     _mem_read_base_tab_ptr = mem_read_base_tab[mem_config];
     mem_read_limit_tab_ptr = mem_read_limit_tab[mem_config];
 
@@ -358,13 +381,7 @@ static void store_watch(uint16_t addr, uint8_t value)
 
 void mem_toggle_watchpoints(int flag, void *context)
 {
-    if (flag) {
-        _mem_read_tab_ptr = mem_read_tab_watch;
-        _mem_write_tab_ptr = mem_write_tab_watch;
-    } else {
-        _mem_read_tab_ptr = mem_read_tab[mem_config];
-        _mem_write_tab_ptr = mem_write_tab[mem_config];
-    }
+    mem_update_tab_ptrs(flag);
     watchpoints_active = flag;
 }
 
@@ -947,18 +964,35 @@ int mem_rom_trap_allowed(uint16_t addr)
 /* ------------------------------------------------------------------------- */
 
 /* Exported banked memory access functions for the monitor.  */
+#define MAXBANKS (8)
 
-static const char *banknames[] = {
-    "default", "cpu", "ram", "rom", "io", "funcrom", "cart1rom", "cart2rom", NULL
+static const char *banknames[MAXBANKS + 1] = {
+    "default",
+    "cpu",
+    "ram",
+    "rom",
+    "io",
+    "funcrom",
+    "cart1rom",
+    "cart2rom",
+    /* by convention, a "bank array" has a 2-hex-digit bank index appended */
+    NULL
 };
 
-static const int banknums[] = { 1, 0, 1, 2, 6, 3, 4, 5 };
+static const int banknums[MAXBANKS + 1] = { 1, 0, 1, 2, 6, 3, 4, 5, -1 };
+static const int bankindex[MAXBANKS + 1] = { -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+static const int bankflags[MAXBANKS + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, -1 };
 
 const char **mem_bank_list(void)
 {
     return banknames;
 }
 
+const int *mem_bank_list_nos(void) {
+    return banknums;
+}
+
+/* return bank number for a given literal bank name */
 int mem_bank_from_name(const char *name)
 {
     int i = 0;
@@ -966,6 +1000,33 @@ int mem_bank_from_name(const char *name)
     while (banknames[i]) {
         if (!strcmp(name, banknames[i])) {
             return banknums[i];
+        }
+        i++;
+    }
+    return -1;
+}
+
+/* return current index for a given bank */
+int mem_bank_index_from_bank(int bank)
+{
+    int i = 0;
+
+    while (banknums[i] > -1) {
+        if (banknums[i] == bank) {
+            return bankindex[i];
+        }
+        i++;
+    }
+    return -1;
+}
+
+int mem_bank_flags_from_bank(int bank)
+{
+    int i = 0;
+
+    while (banknums[i] > -1) {
+        if (banknums[i] == bank) {
+            return bankflags[i];
         }
         i++;
     }
@@ -1033,7 +1094,49 @@ uint8_t mem_bank_peek(int bank, uint16_t addr, void *context)
                       when needed. doing this without checking is wrong, but we do it anyways to
                       avoid side effects
            */
-            if (addr >= 0xfd00) {
+            /*
+                $0000-$7fff   RAM
+                $8000-$9fff   RAM / BASIC / Function LO
+                $a000-$bfff   RAM / Kernal / Function HI
+                
+                $c000-$cfff   RAM / Basic Extension
+                
+                $d000-$d7ff   RAM / character ROM / Function HI
+                $d800-$fbff   RAM / operating system
+              
+                $FC00-        Kernal Routines for switching banks
+              
+                $FD00-$FF3F always I/O:
+
+                    $FD00-FD0F: 6551  (only on the +4.  4 registers.)
+                    $FD10-FD1F: 6529B (1 register)
+                    $FD30-FD3F: 6529B (1 register)
+                
+                $FDD0-$FDDF ROM bank select
+                
+                    a0 a1 bank
+                    0  0  BASIC (low internal #1)
+                    0  1  Function LO (low internal #2)
+                    1  0  Cartridge LO (low external #1)
+                    1  1  reserved
+                
+                    a2 a3 bank
+                    0  0  Kernal (hi internal #1)
+                    0  1  Function HI (hi internal #2)
+                    1  0  Cartridge HI (hi external #1)
+                    1  1  reserved
+                
+                $FF00-  TED registers
+                
+                $FF3E   ROM select, Write switches on ROM bank
+                $FF3F   RAM select, Write switches on RAM bank                
+                
+                $FF40-$FFFF RAM / Kernal / Function HI
+            */
+            if ((addr >= 0xfd00) && (addr <= 0xfd3f)) {
+                return peek_bank_io(addr);
+            }
+            if ((addr >= 0xff00) && (addr <= 0xff3f)) {
                 return peek_bank_io(addr);
             }
             break;
@@ -1164,7 +1267,7 @@ mem_ioreg_list_t *mem_ioreg_list_get(void *context)
     mem_ioreg_list_t *mem_ioreg_list = NULL;
 
     io_source_ioreg_add_list(&mem_ioreg_list);
-    mon_ioreg_add_list(&mem_ioreg_list, "TED", 0xff00, 0xff3f, mem_dump_io, NULL);
+    mon_ioreg_add_list(&mem_ioreg_list, "TED", 0xff00, 0xff3f, mem_dump_io, NULL, IO_MIRROR_NONE);
 
     return mem_ioreg_list;
 }
@@ -1183,11 +1286,22 @@ void mem_get_screen_parameter(uint16_t *base, uint8_t *rows, uint8_t *columns, i
  */
 void mem_get_cursor_parameter(uint16_t *screen_addr, uint8_t *cursor_column, uint8_t *line_length, int *blinking)
 {
-    /* Cursor Blink enable: 1 = Flash Cursor, 0 = Cursor disabled, -1 = n/a */
-    *blinking = -1;
+    unsigned int cursorposition = (ted_peek(0xff0d) + ((ted_peek(0xff0c) & 3) * 256));
+    unsigned int screenbase = ((ted_peek(0xff14) & 0xf8) << 8 | 0x400);
+#if 0
+    /* this does not work, apparently the kernal does update those too late */
     *screen_addr = mem_ram[0xc8] + mem_ram[0xc9] * 256; /* Current Screen Line Address */
     *cursor_column = mem_ram[0xca];    /* Cursor Column on Current Line */
+#endif
     *line_length = 40;                 /* Physical Screen Line Length */
+    /* we will derive screen line and column from the position of the hardware cursor */
+    *cursor_column = cursorposition % 40; /* Cursor Column on Current Line */
+    *screen_addr = screenbase + cursorposition - *cursor_column; /* Current Screen Line Address */
+    /* Cursor Blink enable: 1 = Flash Cursor, 0 = Cursor disabled, -1 = n/a
+       we have to check cursor position >= 1000, which means it is not visible */
+    *blinking = (cursorposition < 1000);
+/*    printf("mem_get_cursor_parameter screen_addr:%04x column: %d line len: %d blinking:%d\n",
+           *screen_addr, *cursor_column, *line_length, *blinking); */
 }
 
 /* ------------------------------------------------------------------------- */

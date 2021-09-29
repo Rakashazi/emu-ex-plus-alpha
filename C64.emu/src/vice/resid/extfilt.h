@@ -28,8 +28,8 @@ namespace reSID
 // ----------------------------------------------------------------------------
 // The audio output stage in a Commodore 64 consists of two STC networks,
 // a low-pass filter with 3-dB frequency 16kHz followed by a high-pass
-// filter with 3-dB frequency 1.6Hz (the latter provided an audio equipment
-// input impedance of 10kOhm).
+// filter with 3-dB frequency 16Hz (the latter provided an audio equipment
+// input impedance of 1kOhm).
 // The STC networks are connected with a BJT supposedly meant to act as
 // a unity gain buffer, which is not really how it works. A more elaborate
 // model would include the BJT, however DC circuit analysis yields BJT
@@ -37,6 +37,20 @@ namespace reSID
 // additional low-pass and high-pass 3dB-frequencies in the order of hundreds
 // of kHz. This calls for a sampling frequency of several MHz, which is far
 // too high for practical use.
+//
+//                                 9/12V
+// -----+
+// audio|       10k                  |
+//      +----+---R---+--------+-----(K)          +-----
+//  out |    |       |        |      |           |audio
+// -----+    R 1k    C 1000   |      |    10 uF  |
+//           |       |  pF    +-C----+-----C-----+ 1K
+//                             470   |           |
+//          GND     GND         pF   R 1K        | amp
+//                                   |           +-----
+//
+//                                  GND
+//
 // ----------------------------------------------------------------------------
 class ExternalFilter
 {
@@ -50,7 +64,7 @@ public:
   void reset();
 
   // Audio output (16 bits).
-  short output();
+  int output();
 
 protected:
   // Filter enabled.
@@ -143,18 +157,9 @@ void ExternalFilter::clock(cycle_count delta_t, short Vi)
 // Audio output (16 bits).
 // ----------------------------------------------------------------------------
 RESID_INLINE
-short ExternalFilter::output()
+int ExternalFilter::output()
 {
-  // Saturated arithmetics to guard against 16 bit sample overflow.
-  const int half = 1 << 15;
-  int Vo = (Vlp - Vhp) >> 11;
-  if (Vo >= half) {
-    Vo = half - 1;
-  }
-  else if (Vo < -half) {
-    Vo = -half;
-  }
-  return Vo;
+  return (Vlp - Vhp) >> 11;
 }
 
 #endif // RESID_INLINING || defined(RESID_EXTFILT_CC)

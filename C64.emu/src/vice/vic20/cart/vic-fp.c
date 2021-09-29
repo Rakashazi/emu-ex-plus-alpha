@@ -360,7 +360,7 @@ void vic_fp_detach(void)
        and cartridge wasn't from a snapshot */
     if (vic_fp_writeback && !cartridge_is_from_snapshot) {
         if (flash_state.flash_dirty) {
-            int n;
+            long n;
             FILE *fd;
 
             n = 0;

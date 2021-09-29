@@ -137,7 +137,7 @@ send:
 
 HDIGIT  [0-9a-f]
 
-%x FNAME CMD STR ROL ASM_MODE COND_MODE REG_ASGN LABEL_ASGN BNAME CTYPE RADIX
+%x FNAME CMD STR ROL ROLQ ASM_MODE COND_MODE REG_ASGN LABEL_ASGN BNAME CTYPE RADIX
 
 %%
 
@@ -173,8 +173,9 @@ HDIGIT  [0-9a-f]
         bsave|bs        { BEGIN(FNAME);         return CMD_BSAVE; }
         backtrace|bt    { BEGIN(INITIAL);       return CMD_BACKTRACE; }
         block_write|bw  { BEGIN(INITIAL);       return CMD_BLOCK_WRITE; }
+        bverify|bv      { BEGIN(FNAME);         return CMD_BVERIFY; }
         cartfreeze      { BEGIN(INITIAL);       return CMD_CARTFREEZE; }
-        cd              { BEGIN(ROL);           return CMD_CHDIR; }
+        cd              { BEGIN(ROLQ);          return CMD_CHDIR; }
         clear_labels|cl { BEGIN(INITIAL);       return CMD_CLEAR_LABELS; }
         command         { BEGIN(INITIAL);       return CMD_COMMAND; }
         compare|c       { BEGIN(INITIAL);       return CMD_COMPARE; }
@@ -211,13 +212,14 @@ HDIGIT  [0-9a-f]
         memmapsave|mmsave { BEGIN(FNAME);       return CMD_MEMMAPSAVE; }
         memmapshow|mmsh { BEGIN(INITIAL);       return CMD_MEMMAPSHOW; }
         memmapzap|mmzap { BEGIN(INITIAL);       return CMD_MEMMAPZAP; }
+        mkdir           { BEGIN(ROLQ);           return CMD_MKDIR; }
         move|t          { BEGIN(INITIAL);       return CMD_MOVE; }
         memsprite|ms    { BEGIN(INITIAL);       return CMD_SPRITE_DISPLAY; }
         next|n          { BEGIN(INITIAL);       return CMD_NEXT; }
         playback|pb     { BEGIN(FNAME);         return CMD_PLAYBACK; }
         print|p         { BEGIN(INITIAL);       return CMD_PRINT; }
         pwd             { BEGIN(INITIAL);       return CMD_PWD; }
-        quit            { BEGIN(INITIAL);       return CMD_QUIT; }
+        quit|q          { BEGIN(INITIAL);       return CMD_QUIT; }
         radix|rad       { BEGIN(RADIX);         return CMD_RADIX; }
         record|rec      { BEGIN(FNAME);         return CMD_RECORD; }
         registers|r     { BEGIN(REG_ASGN);      return CMD_REGISTERS; }
@@ -227,12 +229,14 @@ HDIGIT  [0-9a-f]
         load_resources|resload  { BEGIN(FNAME); return CMD_LOAD_RESOURCES; }
         save_resources|ressave  { BEGIN(FNAME); return CMD_SAVE_RESOURCES; }
         return|ret      { BEGIN(INITIAL);       return CMD_RETURN; }
+        rmdir           { BEGIN(ROLQ);           return CMD_RMDIR; }
         save|s          { BEGIN(FNAME);         return CMD_SAVE; }
         save_labels|sl  { BEGIN(FNAME);         return CMD_SAVE_LABELS; }
         screen|sc       { BEGIN(INITIAL);       return CMD_SCREEN; }
         screenshot|scrsh { BEGIN(FNAME);        return CMD_SCREENSHOT; }
         show_labels|shl { BEGIN(INITIAL);       return CMD_SHOW_LABELS; }
         sidefx|sfx      { BEGIN(INITIAL);       return CMD_SIDEFX; }
+        dummy           { BEGIN(INITIAL);       return CMD_DUMMY; }
         step|z          { BEGIN(INITIAL);       return CMD_STEP; }
         stop            { BEGIN(INITIAL);       return CMD_MON_STOP; }
         stopwatch|sw    { BEGIN(INITIAL);       return CMD_STOPWATCH; }
@@ -240,6 +244,7 @@ HDIGIT  [0-9a-f]
         trace|tr        { BEGIN(INITIAL);       return CMD_TRACE; }
         until|un        { BEGIN(INITIAL);       return CMD_UNTIL; }
         undump          { BEGIN(FNAME);         return CMD_UNDUMP; }
+        verify|v        { BEGIN(FNAME);         return CMD_VERIFY; }
         watch|w         { BEGIN(INITIAL);       return CMD_WATCH; }
         yydebug         { BEGIN(INITIAL);       return CMD_YYDEBUG; }
         maincpu_trace   { BEGIN(INITIAL);       return CMD_MAINCPU_TRACE; }
@@ -248,6 +253,7 @@ HDIGIT  [0-9a-f]
 <CMD>[_a-zA-Z][_a-zA-Z0-9]* { BEGIN(LABEL_ASGN); yylval.str = lib_strdup(yytext); return CMD_LABEL_ASGN; }
 
 ;		{ new_cmd = 1; return CMD_SEP; }
+<REG_ASGN>;     { new_cmd = 1; BEGIN(INITIAL); return CMD_SEP; }
 
 on  		{ yylval.i = e_ON; return TOGGLE; }
 off 		{ yylval.i = e_OFF; return TOGGLE; }
@@ -357,9 +363,19 @@ if		{ BEGIN (COND_MODE); return IF; }
                 yylval.str = lib_strdup(yytext+1);
                 BEGIN (INITIAL); return FILENAME; }
 
-<BNAME>[_a-zA-Z0-9]*      { yylval.str = lib_strdup(yytext); return BANKNAME; }
+<BNAME>[_a-zA-Z0-9]*      { yylval.str = lib_strdup(yytext); BEGIN (INITIAL); return BANKNAME; }
 
 <ROL>[^ \t\n][^\n]*          { yylval.str = lib_strdup(yytext); return R_O_L; }
+
+<ROLQ>{
+     \".+\" { yytext[yyleng-1] = '\0';
+              yylval.str = lib_strdup(yytext+1);
+              BEGIN (INITIAL); return R_O_L_Q; }
+     \'.+\' { yytext[yyleng-1] = '\0';
+              yylval.str = lib_strdup(yytext+1);
+              BEGIN (INITIAL); return R_O_L_Q; }
+     [^ \t\n][^\n]*          { yylval.str = lib_strdup(yytext); return R_O_L_Q; }
+}
 
  /* see monitor.c and montypes.h for the commented list */
 <REG_ASGN>{
@@ -569,14 +585,14 @@ if		{ BEGIN (COND_MODE); return IF; }
 <ASM_MODE,INITIAL,COND_MODE,REG_ASGN,LABEL_ASGN>{
     {HDIGIT}{8}             { yylval.str = lib_strdup(yytext); return H_RANGE_GUESS; }
     1[01]*                  { yylval.str = lib_strdup(yytext); return B_NUMBER_GUESS; }
-    %[01]+                  { yylval.i = strtol(yytext+1, NULL, 2); return B_NUMBER; }
-    &[0-7]+                 { yylval.i = strtol(yytext+1, NULL, 8); return O_NUMBER; }
+    %[01]+                  { yylval.i = (int)strtol(yytext+1, NULL, 2); return B_NUMBER; }
+    &[0-7]+                 { yylval.i = (int)strtol(yytext+1, NULL, 8); return O_NUMBER; }
     [0-7]*                  { yylval.str = lib_strdup(yytext); return O_NUMBER_GUESS; }
-    \+[0-9]+                { yylval.i = strtol(yytext+1, NULL, 10); return D_NUMBER; }
+    \+[0-9]+                { yylval.i = (int)strtol(yytext+1, NULL, 10); return D_NUMBER; }
     [0-9]+                  { yylval.str = lib_strdup(yytext); return D_NUMBER_GUESS; }
     xx                      { yylval.i = 0x00; return MASK; }
-    \${HDIGIT}+             { yylval.i = strtol(yytext+1, NULL, 16); return H_NUMBER; }
-    {HDIGIT}+               { yylval.i = strtol(yytext, NULL, 16); return H_NUMBER; }
+    \${HDIGIT}+             { yylval.i = (int)strtol(yytext+1, NULL, 16); return H_NUMBER; }
+    {HDIGIT}+               { yylval.i = (int)strtol(yytext, NULL, 16); return H_NUMBER; }
 }
 
 <*>=	{ return EQUALS; }

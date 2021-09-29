@@ -27,9 +27,9 @@
 #ifndef VICE_MEMIEC_H
 #define VICE_MEMIEC_H
 
-struct drive_context_s;
+struct diskunit_context_s;
 struct mem_ioreg_list_s;
 
-extern void memiec_init(struct drive_context_s *drv, unsigned int type);
+extern void memiec_init(struct diskunit_context_s *drv, unsigned int type);
 
 #endif

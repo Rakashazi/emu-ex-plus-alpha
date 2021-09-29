@@ -59,6 +59,7 @@
 /* #define DEBUG */
 
 #include "vice.h"
+#include "archdep_defs.h"
 
 #include "version.h"
 
@@ -67,12 +68,17 @@
 #endif
 
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 
-#include "archdep.h"
+#ifdef ARCHDEP_OS_WINDOWS
+#include <fcntl.h>
+#include <io.h>
+#endif
+
 #include "charset.h"            /* ctrl1, ctrl2, cbmkeys */
 #include "cmdline.h"
 #include "lib.h"
@@ -215,13 +221,13 @@ static const char *atbasickwcc[] = {
     "alarm"
 };
 
-/* Basic v4.0 (PET) -- TOKENS 0xCC - 0xDA / Basic v4.0 extension (C64) -- Tokens 0xCC - 0xE3 */
+/* Basic v4.0 (PET) -- TOKENS 0xCC - 0xDE / Basic v4.0 extension (C64) -- Tokens 0xCC - 0xE5 */
 static const char *petkwcc[] = {
     "concat",    "dopen",  "dclose", "record", "header",  "collect", "backup",
     "copy",      "append", "dsave",  "dload",  "catalog", "rename",  "scratch",
-    "directory",
+    "directory", "dclear", "bank",   "bload",  "bsave",
 
-    /* Basic 4 Extension for C64 (0xdb - 0xe3) */
+    /* Basic 4 Extension for C64 (0xdf - 0xe7) */
     "color",  "cold", "key", "dverify", "delete", "auto", "merge", "old",
     "monitor"
 };
@@ -552,8 +558,8 @@ static basic_list_t basic_list[] = {
     { B_SIMON,   128, 0xCB, 0x0801, 1, 0,    simonskw,          "simon",     1, 0, 0, "Basic v2.0 with Simons' Basic (C64)" },
     { B_SPEECH,   27, 0xE6, 0x0801, 0, 0xCC, speechkwcc,        "speech",    0, 0, 0, "Basic v2.0 with Speech Basic v2.7 (C64)" },
     { B_ATBAS,    43, 0xF6, 0x0801, 0, 0xCC, atbasickwcc,       "a",         0, 0, 0, "Basic v2.0 with @Basic (C64)" },
-    { B_4,        15, 0xDA, 0x0401, 0, 0xCC, petkwcc,           "40",        0, 0, 0, "Basic v4.0 (PET/CBM2)" },
-    { B_4E,       24, 0xE3, 0x0801, 0, 0xCC, petkwcc,           "4e",        0, 0, 0, "Basic v2.0 with Basic v4.0 extension (C64)" },
+    { B_4,        19, 0xDE, 0x0401, 0, 0xCC, petkwcc,           "40",        0, 0, 0, "Basic v4.0 (PET/CBM2)" },
+    { B_4E,       28, 0xE7, 0x0801, 0, 0xCC, petkwcc,           "4e",        0, 0, 0, "Basic v2.0 with Basic v4.0 extension (C64)" },
     { B_35,      126, 0xCB, 0x1001, 0, 0,    NULL, /* fix */    "3",         0, 0, 0, "Basic v3.5 (C16)" },
     { B_7,        39, 0x26, 0x1c01, 2, 0,    NULL, /* fix */    "70",        0, 1, 1, "Basic v7.0 (C128)" },
     { B_10,       62, 0x3D, 0x2001, 2, 0,    NULL, /* fix */    "10",        0, 1, 1, "Basic v10.0 (C65/C64DX)" },
@@ -924,8 +930,6 @@ int main(int argc, char **argv)
     int fil = 0, outf = 0, overwrt = 0, textmode = 0;
     int flg = 0;                            /* files on stdin */
 
-    archdep_init(&argc, argv);
-
     /* Parse arguments */
     progname = argv[0];
     while (--argc && ((*++argv)[0] == '-')) {
@@ -1055,6 +1059,15 @@ int main(int argc, char **argv)
     if (ctrls < 0) {
         ctrls = (textmode ? 0 : 1);     /*default ON for prgs, OFF for text */
     }
+
+#ifdef ARCHDEP_OS_WINDOWS
+    /* HACK: when outputting a prg to stdout, switch stdout to binary mode, 
+       else redirecting the binary output to a file will result in a broken 
+       file due to translation of the line endings. */
+    if (!outf && !textmode) {
+        _setmode(STDOUT_FILENO, _O_BINARY);
+    }
+#endif
 
     if (!load_addr) {
         load_addr = basic_list[version - 1].load_address;
@@ -2360,58 +2373,4 @@ static unsigned char sstrcmp(unsigned char *line, const char **wordlist, int tok
     } /* for */
 
     return (unsigned char)retval;
-}
-
-/* ------------------------------------------------------------------------- */
-/* dummy functions
-
-   FIXME: these really shouldnt be needed here and are a sign of bad modular
-          design elsewhere
- */
-const char machine_name[] = "PETCAT";
-int machine_class = VICE_MACHINE_PETCAT;
-
-const char *machine_get_name(void)
-{
-    return machine_name;
-}
-
-int cmdline_register_options(const cmdline_option_t *c)
-{
-    return 0;
-}
-
-int network_connected(void)
-{
-    return 0;
-}
-
-int network_get_mode(void)
-{
-#if 0
-    return NETWORK_IDLE;
-#else
-    return 0;
-#endif
-}
-
-void network_event_record(unsigned int type, void *data, unsigned int size)
-{
-}
-
-void event_record_in_list(event_list_state_t *list, unsigned int type, void *data, unsigned int size)
-{
-}
-
-void ui_error_string(const char *text) /* win32 needs this */
-{
-}
-
-void ui_error(const char *format, ...) /* SDL on mingw32 needs this */
-{
-}
-
-char *kbd_get_menu_keyname(void)
-{
-    return NULL;
 }

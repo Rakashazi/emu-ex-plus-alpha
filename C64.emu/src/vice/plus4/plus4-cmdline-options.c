@@ -114,7 +114,7 @@ static const cmdline_option_t cmdline_options[] =
       "<Name>", "Specify name of Cartridge 2 high ROM image" },
     { "-ramsize", SET_RESOURCE, CMDLINE_ATTRIB_NEED_ARGS,
       NULL, NULL, "RamSize", NULL,
-      "<RAM size>", "Specify size of RAM installed in kb (16/32/64)" },
+      "<RAM size>", "Specify size of RAM installed in KiB (16/32/64)" },
     { "-model", CALL_FUNCTION, CMDLINE_ATTRIB_NEED_ARGS,
       set_plus4_model, NULL, NULL, NULL,
       "<Model>", "Set Plus4 model (c16/c16pal/c16ntsc, plus4/plus4pal/plus4ntsc, v364/cv364, c232)" },

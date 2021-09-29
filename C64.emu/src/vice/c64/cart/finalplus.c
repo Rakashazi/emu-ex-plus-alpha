@@ -312,7 +312,7 @@ void final_plus_detach(void)
    ARRAY | ROMH      | 8192 BYTES of ROMH data
  */
 
-static char snap_module_name[] = "CARTFCP";
+static const char snap_module_name[] = "CARTFCP";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   0
 

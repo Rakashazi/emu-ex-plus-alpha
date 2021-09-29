@@ -46,8 +46,9 @@
 #define PET_EDIT1G_CHECKSUM     51858
 #define PET_EDIT2G_CHECKSUM     64959
 #define PET_EDIT2B_CHECKSUM     1514
-#define PET_EDIT4G40_CHECKSUM   14162
-#define PET_EDIT4B40_CHECKSUM   27250
+#define PET_EDIT4G40_CHECKSUM   14162   /* edit-4-40-n-50Hz.901498-01.bin */
+#define PET_EDIT4B40_CHECKSUM1  27250	/* edit-4-b-noCRTC.901474-02.bin */
+#define PET_EDIT4B40_CHECKSUM2  11897	/* edit-4-40-b-50Hz.ts.bin */
 #define PET_EDIT4B80_CHECKSUM   21166
 
 extern uint8_t mem_chargen_rom[PET_CHARGEN_ROM_SIZE];
@@ -73,7 +74,7 @@ extern void petmem_set_vidmem(void);
 extern int petmem_dump(FILE *fp);
 extern int petmem_undump(FILE *fp);
 
-extern int petmem_set_conf_info(struct petinfo_s *pi);
+extern int petmem_set_conf_info(const struct petinfo_s *pi);
 
 extern int spet_ramen;
 extern int spet_bank;

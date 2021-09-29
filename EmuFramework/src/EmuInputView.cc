@@ -266,7 +266,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 								emuApp.removeTurboInputEvent(sysAction);
 							}
 						}
-						EmuSystem::handleInputAction(&emuApp, e.state(), sysAction);
+						EmuSystem::handleInputAction(&emuApp, e.state(), sysAction, e.metaKeyBits());
 					}
 				}
 			}

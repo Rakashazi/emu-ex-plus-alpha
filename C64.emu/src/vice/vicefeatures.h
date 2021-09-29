@@ -29,11 +29,11 @@
 #define VICE_FEATURES_H
 
 typedef struct {
-    char *symbol;
-    char *descr;
+    const char *symbol;
+    const char *descr;
     int isdefined;
 } feature_list_t;
 
-extern feature_list_t *vice_get_feature_list(void);
+extern const feature_list_t *vice_get_feature_list(void);
 
 #endif

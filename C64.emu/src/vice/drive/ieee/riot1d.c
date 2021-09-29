@@ -38,22 +38,22 @@
 #include "types.h"
 
 
-void riot1_store(drive_context_t *ctxptr, uint16_t addr, uint8_t data)
+void riot1_store(diskunit_context_t *ctxptr, uint16_t addr, uint8_t data)
 {
     riotcore_store(ctxptr->riot1, addr, data);
 }
 
-uint8_t riot1_read(drive_context_t *ctxptr, uint16_t addr)
+uint8_t riot1_read(diskunit_context_t *ctxptr, uint16_t addr)
 {
     return riotcore_read(ctxptr->riot1, addr);
 }
 
-uint8_t riot1_peek(drive_context_t *ctxptr, uint16_t addr)
+uint8_t riot1_peek(diskunit_context_t *ctxptr, uint16_t addr)
 {
     return riotcore_peek(ctxptr->riot1, addr);
 }
 
-int riot1_dump(drive_context_t *ctxptr, uint16_t addr)
+int riot1_dump(diskunit_context_t *ctxptr, uint16_t addr)
 {
     /* TODO: implement dump feature */
     /* riotcore_dump(ctxptr->riot1, addr); */
@@ -78,18 +78,18 @@ static void store_pra(riot_context_t *riot_context, uint8_t byte)
 
 static void undump_prb(riot_context_t *riot_context, uint8_t byte)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
 
-    dc = (drive_context_t *)(riot_context->context);
+    dc = (diskunit_context_t *)(riot_context->context);
 
     dc->func->parallel_set_bus(byte);
 }
 
 static void store_prb(riot_context_t *riot_context, uint8_t byte)
 {
-    drive_context_t *dc;
+    diskunit_context_t *dc;
 
-    dc = (drive_context_t *)(riot_context->context);
+    dc = (diskunit_context_t *)(riot_context->context);
 
     dc->func->parallel_set_bus((uint8_t)(parallel_atn ? 0xff : byte));
 }
@@ -116,13 +116,13 @@ static uint8_t read_prb(riot_context_t *riot_context)
            | (riot_context->riot_io[2] & riot_context->riot_io[3]);
 }
 
-void riot1_init(drive_context_t *ctxptr)
+void riot1_init(diskunit_context_t *ctxptr)
 {
     riotcore_init(ctxptr->riot1, ctxptr->cpu->alarm_context,
                   ctxptr->cpu->clk_guard, ctxptr->mynumber);
 }
 
-void riot1_setup_context(drive_context_t *ctxptr)
+void riot1_setup_context(diskunit_context_t *ctxptr)
 {
     riot_context_t *riot;
 

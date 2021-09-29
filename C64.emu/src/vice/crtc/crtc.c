@@ -646,6 +646,7 @@ static void crtc_raster_draw_alarm_handler(CLOCK offset, void *data)
                               + ((crtc.prev_rl_len + 1 - crtc.prev_rl_sync
                                   - ((crtc.regs[CRTC_REG_SYNCWIDTH] & 0x0f) / 2))
                                  * 8 * crtc.hw_cols);
+    }
 
         /* FIXME: The 320 is the pixel width of a window with 40 cols.
            make that a define - or measure the visible line length?
@@ -658,7 +659,6 @@ static void crtc_raster_draw_alarm_handler(CLOCK offset, void *data)
                            - (crtc.sync_diff * 8 * crtc.hw_cols)) / 2)
                        + ((crtc.prev_rl_len + 1 - crtc.prev_rl_sync
                            - ((crtc.regs[CRTC_REG_SYNCWIDTH] & 0x0f) / 2)) * 8 * crtc.hw_cols);
-    }
 
     /* emulate the line */
     if (crtc.raster.current_line >=
@@ -720,6 +720,8 @@ static void crtc_raster_draw_alarm_handler(CLOCK offset, void *data)
 
     if (crtc.framelines == crtc.screen_yoffset) {
 */
+    vsync_do_end_of_line();
+    
     if ((crtc.framelines - crtc.current_line) == crtc.screen_yoffset) {
         crtc.raster.current_line = 0;
         raster_canvas_handle_end_of_frame(&crtc.raster);

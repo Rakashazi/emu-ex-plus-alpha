@@ -45,6 +45,10 @@
 
 #define IO_CART_ID_NONE 0
 
+#define IO_MIRROR_NONE  0   /*!< registered area contains no mirrors */
+#define IO_MIRROR_OTHER 1   /*!< registered area contains mirrors of another registered area */
+#define IO_MIRROR_MASK  2   /*!< registered area contains mirrors of itself, determined by address_mask */
+
 extern uint8_t c64io_d000_read(uint16_t addr);
 extern uint8_t c64io_d000_peek(uint16_t addr);
 extern void c64io_d000_store(uint16_t addr, uint8_t value);
@@ -251,6 +255,7 @@ typedef struct io_source_s {
     int cart_id; /*!< id of associated cartridge */
     int io_source_prio; /*!< 0: normal, 1: higher priority (no collisions), -1: lower priority (no collisions) */
     unsigned int order; /*!< a tag to indicate the order of insertion */
+    int mirror_mode; /*!< a tag to indicate the type of mirroring */
 } io_source_t;
 
 /* The I/O source list structure is a double linked list for easy insertion/removal of devices. */

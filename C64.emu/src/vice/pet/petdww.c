@@ -338,7 +338,7 @@ void petdww_reset(void)
 static int petdww_activate(void)
 {
     if (petres.IOSize < 2048) {
-        log_message(petdww_log, "Cannot enable DWW: IOSize too small (%d but must be 2K)", petres.IOSize);
+        log_message(petdww_log, "Cannot enable DWW: IOSize too small (%d but must be 2KiB)", petres.IOSize);
         return -1;
     }
 
@@ -350,7 +350,7 @@ static int petdww_activate(void)
     petdww_ram = lib_realloc((void *)petdww_ram, (size_t)PET_DWW_RAM_SIZE);
 
 
-    log_message(petdww_log, "%dKB of hi-res RAM installed.", PET_DWW_RAM_SIZE >> 10);
+    log_message(petdww_log, "%dKiB of hi-res RAM installed.", PET_DWW_RAM_SIZE >> 10);
 
     if (!util_check_null_string(petdww_filename)) {
         if (util_file_load(petdww_filename, petdww_ram, (size_t)PET_DWW_RAM_SIZE,

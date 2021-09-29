@@ -239,7 +239,7 @@ int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize)
  */
 
     if ((rsize = embedded_check_file(name, dest, minsize, maxsize)) != 0) {
-        return rsize;
+        return (int)rsize;
     }
 
     fp = sysfile_open(name, &complete_path, MODE_READ);

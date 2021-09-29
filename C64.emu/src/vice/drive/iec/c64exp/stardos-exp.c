@@ -77,18 +77,18 @@ int stardos_exp_load(const char *name)
     return 0;
 }
 
-static uint8_t stardos_exp_read(drive_context_t *drv, uint16_t addr)
+static uint8_t stardos_exp_read(diskunit_context_t *drv, uint16_t addr)
 {
     DBG(("stardos_exp_read <%04x> <%02x>\n", addr, stardos_rom[addr & 0x1fff]));
     return stardos_rom[addr & 0x1fff];
 }
 
-void stardos_exp_mem_init(struct drive_context_s *drv, unsigned int type)
+void stardos_exp_mem_init(struct diskunit_context_s *drv, unsigned int type)
 {
     drivecpud_context_t *cpud = drv->cpud;
 
-    DBG(("stardos_exp_mem_init <type:%d> <sc:%d>\n", type, drv->drive->stardos));
-    if (!drv->drive->stardos) {
+    DBG(("stardos_exp_mem_init <type:%d> <sc:%d>\n", type, drv->stardos));
+    if (!drv->stardos) {
         return;
     }
 
@@ -108,10 +108,10 @@ void stardos_exp_mem_init(struct drive_context_s *drv, unsigned int type)
     }
 }
 
-void stardos_exp_init(drive_context_t *drv)
+void stardos_exp_init(diskunit_context_t *drv)
 {
 }
 
-void stardos_exp_reset(drive_context_t *drv)
+void stardos_exp_reset(diskunit_context_t *drv)
 {
 }

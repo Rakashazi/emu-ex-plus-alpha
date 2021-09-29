@@ -197,7 +197,7 @@ void rgcd_detach(void)
    Note: for some reason this module was created at rev 0.1, so there never was a 0.0
  */
 
-static char snap_module_name[] = "CARTRGCD";
+static const char snap_module_name[] = "CARTRGCD";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   2
 

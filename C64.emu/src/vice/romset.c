@@ -190,7 +190,7 @@ int romset_file_load(const char *filename)
     return err;
 }
 
-int romset_file_save(const char *filename, const char **resource_list)
+int romset_file_save(const char *filename, const char * const *resource_list)
 {
     FILE *fp;
     char *newname;
@@ -222,7 +222,7 @@ int romset_file_save(const char *filename, const char **resource_list)
     return 0;
 }
 
-char *romset_file_list(const char **resource_list)
+char *romset_file_list(const char * const *resource_list)
 {
     char *list;
     const char *s;
@@ -532,11 +532,11 @@ int romset_archive_item_select(const char *romset_name)
 
 
 int romset_archive_item_create(const char *romset_name,
-                               const char **resource_list)
+                               const char * const *resource_list)
 {
     int entry;
     string_link_t *anchor, *item, *last;
-    const char **res;
+    const char * const *res;
 
     for (entry = 0, item = romsets; entry < num_romsets; entry++, item++) {
         if (strcmp(romset_name, item->name) == 0) {

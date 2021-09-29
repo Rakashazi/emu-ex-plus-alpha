@@ -278,7 +278,8 @@ int freezemachine_bin_attach(const char *filename, uint8_t *rawcart)
  */
 int freezemachine_crt_attach(FILE *fd, uint8_t *rawcart)
 {
-    int i, pos, banks, chips;
+    int i, banks, chips;
+    size_t pos;
     crt_chip_header_t chip;
 
     /* find out how many banks and chips are in the file */
@@ -365,7 +366,7 @@ void freezemachine_detach(void)
    ARRAY | ROMH         |   0.0+  | 16384 BYTES of ROMH data
  */
 
-static char snap_module_name[] = "CARTFREEZEM";
+static const char snap_module_name[] = "CARTFREEZEM";
 #define SNAP_MAJOR   0
 #define SNAP_MINOR   1
 
