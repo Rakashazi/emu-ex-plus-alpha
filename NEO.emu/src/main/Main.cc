@@ -348,14 +348,14 @@ void EmuSystem::renderFramebuffer(EmuVideo &video)
 	video.startFrameWithAltFormat({}, srcPix);
 }
 
-CLINK void screen_update(void *emuTaskPtr, void *emuVideoPtr)
+CLINK void screen_update(void *emuTaskCtxPtr, void *emuVideoPtr)
 {
-	auto task = (EmuSystemTask*)emuTaskPtr;
+	auto taskCtxPtr = (EmuSystemTaskContext*)emuTaskCtxPtr;
 	auto emuVideo = (EmuVideo*)emuVideoPtr;
 	if(emuVideo) [[likely]]
 	{
 		//logMsg("screen render");
-		emuVideo->startFrameWithAltFormat(task, srcPix);
+		emuVideo->startFrameWithAltFormat(*taskCtxPtr, srcPix);
 	}
 	else
 	{
@@ -363,12 +363,12 @@ CLINK void screen_update(void *emuTaskPtr, void *emuVideoPtr)
 	}
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
+void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	//logMsg("run frame %d", (int)processGfx);
 	if(video)
 		IG::fill(screenBuff, (uint16_t)current_pc_pal[4095]);
-	main_frame(task, video);
+	main_frame(&taskCtx, video);
 	auto audioFrames = updateAudioFramesPerVideoFrame();
 	Uint16 audioBuff[audioFrames * 2];
 	YM2610Update_stream(audioFrames, audioBuff);

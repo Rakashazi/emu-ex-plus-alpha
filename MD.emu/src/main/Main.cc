@@ -80,11 +80,11 @@ const char *EmuSystem::systemName()
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMDWithCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMDExtension;
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
+void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	//logMsg("frame start");
 	RAMCheatUpdate();
-	system_frame(task, video);
+	system_frame(taskCtx, video);
 
 	int16 audioBuff[snd.buffer_size * 2];
 	int frames = audio_update(audioBuff);

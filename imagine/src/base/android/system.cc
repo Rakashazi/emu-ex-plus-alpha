@@ -112,7 +112,7 @@ void NoopThread::start()
 			bool run = true;
 			runFlagAddr = &run;
 			logMsg("started no-op thread");
-			sem.notify();
+			sem.release();
 			while(run)
 			{
 				iterateTimes(16, i)

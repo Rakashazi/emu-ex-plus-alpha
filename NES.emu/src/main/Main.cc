@@ -420,9 +420,9 @@ void emulateSound(EmuAudio *audio)
 	}
 }
 
-static void renderVideo(EmuSystemTask *task, EmuVideo &video, uint8 *buf)
+static void renderVideo(EmuSystemTaskContext taskCtx, EmuVideo &video, uint8 *buf)
 {
-	auto img = video.startFrame(task);
+	auto img = video.startFrame(taskCtx);
 	auto pix = img.pixmap();
 	IG::Pixmap ppuPix{{{256, 256}, IG::PIXEL_FMT_I8}, buf};
 	auto ppuPixRegion = ppuPix.subView({0, 8}, {256, 224});
@@ -439,7 +439,7 @@ static void renderVideo(EmuSystemTask *task, EmuVideo &video, uint8 *buf)
 	img.endFrame();
 }
 
-void FCEUPPU_FrameReady(EmuSystemTask *task, EmuVideo *video, uint8 *buf)
+void FCEUPPU_FrameReady(EmuSystemTaskContext taskCtx, EmuVideo *video, uint8 *buf)
 {
 	if(!video)
 	{
@@ -447,16 +447,16 @@ void FCEUPPU_FrameReady(EmuSystemTask *task, EmuVideo *video, uint8 *buf)
 	}
 	if(!buf) [[unlikely]]
 	{
-		video->startUnchangedFrame(task);
+		video->startUnchangedFrame(taskCtx);
 		return;
 	}
-	renderVideo(task, *video, buf);
+	renderVideo(taskCtx, *video, buf);
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
+void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	bool skip = !video && !optionCompatibleFrameskip;
-	FCEUI_Emulate(task, video, skip, audio);
+	FCEUI_Emulate(taskCtx, video, skip, audio);
 }
 
 void EmuSystem::renderFramebuffer(EmuVideo &video)

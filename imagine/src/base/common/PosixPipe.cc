@@ -39,7 +39,7 @@ static std::array<PosixIO, 2> makePipe()
 	return {fd[0], fd[1]};
 }
 
-Pipe::Pipe(const char *debugLabel, uint32_t preferredSize):
+Pipe::Pipe(const char *debugLabel, int preferredSize):
 	debugLabel{debugLabel ? debugLabel : "unnamed"},
 	io{makePipe()},
 	fdSrc{label(), io[0].fd()}

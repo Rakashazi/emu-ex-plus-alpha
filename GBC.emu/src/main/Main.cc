@@ -256,14 +256,14 @@ static size_t runUntilVideoFrame(gambatte::uint_least32_t *videoBuf, std::ptrdif
 	return samplesEmulated;
 }
 
-static void renderVideo(EmuSystemTask *task, EmuVideo &video)
+static void renderVideo(const EmuSystemTaskContext &taskCtx, EmuVideo &video)
 {
 	auto fmt = video.renderPixelFormat() == IG::PIXEL_FMT_BGRA8888 ? IG::PIXEL_FMT_BGRA8888 : IG::PIXEL_FMT_RGBA8888;
 	IG::Pixmap frameBufferPix{{lcdSize, fmt}, frameBuffer};
-	video.startFrameWithAltFormat(task, frameBufferPix);
+	video.startFrameWithAltFormat(taskCtx, frameBufferPix);
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
+void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	auto incFrameCountOnReturn = IG::scopeGuard([](){ totalFrames++; });
 	auto currentFrame = totalSamples / 35112;
@@ -271,15 +271,15 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 	{
 		logMsg("unchanged video frame");
 		if(video)
-			video->startUnchangedFrame(task);
+			video->startUnchangedFrame(taskCtx);
 		return;
 	}
 	if(video)
 	{
 		totalSamples += runUntilVideoFrame(frameBuffer, gambatte::lcd_hres, audio,
-			[task, video]()
+			[&taskCtx, video]()
 			{
-				renderVideo(task, *video);
+				renderVideo(taskCtx, *video);
 			});
 	}
 	else

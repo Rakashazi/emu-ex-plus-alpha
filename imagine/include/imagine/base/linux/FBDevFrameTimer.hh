@@ -17,7 +17,8 @@
 
 #include <imagine/base/FrameTimer.hh>
 #include <imagine/base/EventLoop.hh>
-#include <semaphore.h>
+#include <semaphore>
+#include <thread>
 
 namespace Base
 {
@@ -27,7 +28,6 @@ class Screen;
 class FBDevFrameTimer : public FrameTimerI
 {
 public:
-	constexpr FBDevFrameTimer() {}
 	FBDevFrameTimer(Screen &screen, EventLoop loop = {});
 	~FBDevFrameTimer() final;
 	void scheduleVSync() final;
@@ -41,7 +41,8 @@ public:
 
 private:
 	Base::FDEventSource fdSrc{};
-	sem_t sem{};
+	std::thread thread{};
+	std::binary_semaphore sem{0};
 	bool requested{};
 	bool cancelled{};
 	bool quiting{};

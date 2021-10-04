@@ -49,7 +49,7 @@ class PixelFormat;
 class IO;
 class GenericIO;
 class EmuInputView;
-class EmuSystemTask;
+class EmuSystemTaskContext;
 class EmuAudio;
 class EmuVideo;
 class EmuApp;
@@ -216,7 +216,7 @@ public:
 	static FS::PathString willLoadGameFromPath(FS::PathString path);
 	static Error loadGameFromPath(Base::ApplicationContext, const char *path, EmuSystemCreateParams, OnLoadProgressDelegate);
 	static Error loadGameFromFile(Base::ApplicationContext, GenericIO, const char *name, EmuSystemCreateParams, OnLoadProgressDelegate);
-	[[gnu::hot]] static void runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio);
+	[[gnu::hot]] static void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
 	static void renderFramebuffer(EmuVideo &);
 	static bool shouldFastForward();
 	static void onPrepareAudio(EmuAudio &);

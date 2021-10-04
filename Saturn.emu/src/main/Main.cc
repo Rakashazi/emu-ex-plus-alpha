@@ -38,7 +38,7 @@ extern "C"
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2021\nRobert Broglia\nwww.explusalpha.com\n\n(c) 2012 the\nYabause Team\nyabause.org";
 bool EmuSystem::handlesGenericIO = false;
-static EmuSystemTask *emuSysTask{};
+static EmuSystemTaskContext emuSysTask{};
 static EmuAudio *emuAudio{};
 static EmuVideo *emuVideo{};
 PerPad_struct *pad[2];
@@ -335,9 +335,9 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	// TODO: use frameTime
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
+void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	emuSysTask = task;
+	emuSysTask = taskCtx;
 	emuVideo = video;
 	emuAudio = audio;
 	SNDImagine.UpdateAudio = audio ? SNDImagineUpdateAudio : SNDImagineUpdateAudioNull;

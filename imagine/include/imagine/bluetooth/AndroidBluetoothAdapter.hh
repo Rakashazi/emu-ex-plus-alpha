@@ -15,12 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <jni.h>
-#include <semaphore.h>
 #include <imagine/config/defs.hh>
 #include "BluetoothAdapter.hh"
 #include <imagine/base/EventLoop.hh>
 #include <imagine/base/Error.hh>
+#include <jni.h>
+#include <semaphore>
 
 struct SocketStatusMessage;
 
@@ -71,7 +71,7 @@ public:
 private:
 	jobject socket{}, outStream{};
 	Base::ApplicationContext ctx{};
-	sem_t connectSem{};
+	std::binary_semaphore connectSem{};
 	Base::FDEventSource fdSrc{};
 	int nativeFd = -1;
 	uint32_t channel = 0;

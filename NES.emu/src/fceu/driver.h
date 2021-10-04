@@ -9,7 +9,7 @@
 #include <cstring>
 #include <iosfwd>
 
-class EmuSystemTask;
+class EmuSystemTaskContext;
 class EmuVideo;
 class EmuAudio;
 
@@ -113,7 +113,8 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode, bool silen
 bool FCEUI_Initialize();
 
 //Emulates a frame.
-void FCEUI_Emulate(EmuSystemTask *task, EmuVideo *video, int skip, EmuAudio *audio);
+void FCEUI_Emulate(EmuSystemTaskContext, EmuVideo *, int skip, EmuAudio *);
+void FCEUI_Emulate(EmuVideo *, int skip, EmuAudio *);
 
 //Closes currently loaded game
 void FCEUI_CloseGame(void);

@@ -44,7 +44,7 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 			context = makeGLContext(glManager, config.bufferConfig);
 			if(!context) [[unlikely]]
 			{
-				sem.notify();
+				sem.release();
 				return;
 			}
 			context.setCurrentContext(config.initialDrawable);
@@ -80,7 +80,7 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 			logMsg("starting GL context:%p thread event loop", (Base::NativeGLContext)context);
 			if(config.threadPriority)
 				Base::setThisThreadPriority(config.threadPriority);
-			sem.notify();
+			sem.release();
 			eventLoop.run(context);
 			commandPort.detach();
 		});
@@ -157,7 +157,7 @@ void GLTask::TaskContext::notifySemaphore()
 {
 	assumeExpr(semPtr);
 	assumeExpr(semaphoreNeedsNotifyPtr);
-	semPtr->notify();
+	semPtr->release();
 	markSemaphoreNotified();
 }
 

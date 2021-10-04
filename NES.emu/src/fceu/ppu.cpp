@@ -1751,7 +1751,7 @@ void FCEUPPU_Power(void) {
 	BWrite[0x4014] = B4014;
 }
 
-int FCEUPPU_Loop(EmuSystemTask *task, EmuVideo *video, int skip) {
+int FCEUPPU_Loop(EmuSystemTaskContext taskCtx, EmuVideo *video, int skip) {
 	if ((newppu) && (GameInfo->type != GIT_NSF)) {
 		int FCEUX_PPU_Loop(int skip);
 		return FCEUX_PPU_Loop(skip);
@@ -1763,7 +1763,7 @@ int FCEUPPU_Loop(EmuSystemTask *task, EmuVideo *video, int skip) {
 		X6502_Run(scanlines_per_frame * (256 + 85));
 		ppudead--;
 		if(!skip)
-			FCEUPPU_FrameReady(task, video, nullptr);
+			FCEUPPU_FrameReady(taskCtx, video, nullptr);
 	} else {
 		X6502_Run(256 + 85);
 		PPU_status |= 0x80;
@@ -1869,7 +1869,7 @@ int FCEUPPU_Loop(EmuSystemTask *task, EmuVideo *video, int skip) {
 					overclocking = 1;
 				}
 			}
-			FCEUPPU_FrameReady(task, video, XBuf);
+			FCEUPPU_FrameReady(taskCtx, video, XBuf);
 			DMC_7bit = 0;
 
 			if (MMC5Hack) MMC5_hb(scanline);
@@ -1898,7 +1898,7 @@ int FCEUPPU_Loop(EmuSystemTask *task, EmuVideo *video, int skip) {
 	}
 }
 
-int (*PPU_MASTER)(EmuSystemTask *task, EmuVideo *video, int skip) = FCEUPPU_Loop;
+int (*PPU_MASTER)(EmuSystemTaskContext, EmuVideo *, int skip) = FCEUPPU_Loop;
 
 static uint16 TempAddrT, RefreshAddrT;
 

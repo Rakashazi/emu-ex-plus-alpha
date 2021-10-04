@@ -26,14 +26,15 @@ EmuSystemTask::EmuSystemTask(EmuApp &app):
 
 void EmuSystemTask::start()
 {
-	if(started)
+	if(taskThread.joinable())
 		return;
-	IG::makeDetachedThreadSync(
+	taskThread = IG::makeThreadSync(
 		[this](auto &sem)
 		{
 			auto eventLoop = Base::EventLoop::makeForThread();
+			bool started = true;
 			commandPort.attach(eventLoop,
-				[this](auto msgs)
+				[this, &started](auto msgs)
 				{
 					for(auto msg : msgs)
 					{
@@ -44,22 +45,20 @@ void EmuSystemTask::start()
 								auto frames = msg.args.run.frames;
 								assumeExpr(frames);
 								//logMsg("running %d frame(s)", frames);
-								app().runFrames(this, msg.args.run.video, msg.args.run.audio,
+								app().runFrames({this, msg.semPtr}, msg.args.run.video, msg.args.run.audio,
 									frames, msg.args.run.skipForward);
 							}
 							bcase Command::PAUSE:
 							{
 								//logMsg("got pause command");
 								assumeExpr(msg.semPtr);
-								msg.semPtr->notify();
+								msg.semPtr->release();
 							}
 							bcase Command::EXIT:
 							{
 								//logMsg("got exit command");
 								started = false;
 								Base::EventLoop::forThread().stop();
-								assumeExpr(msg.semPtr);
-								msg.semPtr->notify();
 								return false;
 							}
 							bdefault:
@@ -70,8 +69,7 @@ void EmuSystemTask::start()
 					}
 					return true;
 				});
-			started = true;
-			sem.notify();
+			sem.release();
 			logMsg("starting thread event loop");
 			eventLoop.run(started);
 			logMsg("exiting thread");
@@ -81,7 +79,7 @@ void EmuSystemTask::start()
 
 void EmuSystemTask::pause()
 {
-	if(!started)
+	if(!taskThread.joinable())
 		return;
 	commandPort.send({Command::PAUSE}, true);
 	app().flushMainThreadMessages();
@@ -89,36 +87,51 @@ void EmuSystemTask::pause()
 
 void EmuSystemTask::stop()
 {
-	if(!started)
+	if(!taskThread.joinable())
 		return;
-	commandPort.send({Command::EXIT}, true);
+	commandPort.send({Command::EXIT});
+	taskThread.join();
 	app().flushMainThreadMessages();
 }
 
-void EmuSystemTask::runFrame(EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward)
+void EmuSystemTask::runFrame(EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward, bool runSync)
 {
 	assumeExpr(frames);
-	if(!started) [[unlikely]]
+	if(!taskThread.joinable()) [[unlikely]]
 		return;
-	commandPort.send({Command::RUN_FRAME, video, audio, frames, skipForward});
+	commandPort.send({Command::RUN_FRAME, video, audio, frames, skipForward}, runSync);
 }
 
-void EmuSystemTask::sendVideoFormatChangedReply(EmuVideo &video)
+void EmuSystemTask::sendVideoFormatChangedReply(EmuVideo &video, std::binary_semaphore *frameFinishedSemPtr)
 {
-	app().runOnMainThread(
-		[&video](Base::ApplicationContext)
-		{
-			video.dispatchFormatChanged();
-		});
+	if(frameFinishedSemPtr)
+	{
+		videoFormatChanged = true;
+	}
+	else
+	{
+		app().runOnMainThread(
+			[&video](Base::ApplicationContext)
+			{
+				video.dispatchFormatChanged();
+			});
+	}
 }
 
-void EmuSystemTask::sendFrameFinishedReply(EmuVideo &video)
+void EmuSystemTask::sendFrameFinishedReply(EmuVideo &video, std::binary_semaphore *frameFinishedSemPtr)
 {
-	app().runOnMainThread(
-		[&video](Base::ApplicationContext)
-		{
-			video.dispatchFrameFinished();
-		});
+	if(frameFinishedSemPtr)
+	{
+		frameFinishedSemPtr->release(); // main thread continues execution
+	}
+	else
+	{
+		app().runOnMainThread(
+			[&video](Base::ApplicationContext)
+			{
+				video.dispatchFrameFinished();
+			});
+	}
 }
 
 void EmuSystemTask::sendScreenshotReply(int num, bool success)

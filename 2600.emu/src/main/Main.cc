@@ -146,15 +146,15 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	osystem->setFrameTime(frameTime.count(), rate);
 }
 
-static void renderVideo(EmuSystemTask *task, EmuVideo &video, FrameBuffer &fb, TIA &tia)
+static void renderVideo(EmuSystemTaskContext taskCtx, EmuVideo &video, FrameBuffer &fb, TIA &tia)
 {
 	auto fmt = video.renderPixelFormat();
-	auto img = video.startFrameWithFormat(task, {{(int)tia.width(), (int)tia.height()}, fmt});
+	auto img = video.startFrameWithFormat(taskCtx, {{(int)tia.width(), (int)tia.height()}, fmt});
 	fb.render(img.pixmap(), tia);
 	img.endFrame();
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
+void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	auto &os = *osystem;
 	auto &console = os.console();
@@ -167,7 +167,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 	tia.renderToFrameBuffer();
 	if(video)
 	{
-		renderVideo(task, *video, os.frameBuffer(), tia);
+		renderVideo(taskCtx, *video, os.frameBuffer(), tia);
 	}
 	os.processAudio(audio);
 }

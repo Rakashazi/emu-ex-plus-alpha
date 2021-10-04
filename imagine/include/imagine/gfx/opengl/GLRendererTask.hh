@@ -21,11 +21,6 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/base/GLContext.hh>
 
-namespace IG
-{
-class Semaphore;
-}
-
 namespace Base
 {
 class Window;

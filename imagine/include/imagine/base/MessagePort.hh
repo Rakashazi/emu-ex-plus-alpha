@@ -28,7 +28,7 @@ namespace Base
 
 template <class MsgType>
 concept ReplySemaphoreSettableMessage =
-	requires (MsgType msg, IG::Semaphore *sem){ msg.setReplySemaphore(sem); };
+	requires (MsgType msg, std::binary_semaphore *sem){ msg.setReplySemaphore(sem); };
 
 template<class MsgType>
 class PipeMessagePort
@@ -93,13 +93,13 @@ public:
 		IO &io;
 	};
 
-	static constexpr uint32_t MSG_SIZE = sizeof(MsgType);
+	static constexpr size_t MSG_SIZE = sizeof(MsgType);
 	static_assert(MSG_SIZE < PIPE_BUF, "size of message too big for atomic writes");
 
 	struct NullInit{};
 
-	PipeMessagePort(const char *debugLabel = nullptr, uint32_t capacity = 8):
-		pipe{debugLabel, MSG_SIZE * capacity}
+	PipeMessagePort(const char *debugLabel = nullptr, int capacity = 8):
+		pipe{debugLabel, (int)MSG_SIZE * capacity}
 	{
 		pipe.setReadNonBlocking(true);
 	}
@@ -146,8 +146,8 @@ public:
 	{
 		if(awaitReply)
 		{
-			IG::Semaphore sem{0};
-			return send(msg, &sem);
+			std::binary_semaphore replySemaphore{0};
+			return send(msg, &replySemaphore);
 		}
 		else
 		{
@@ -155,7 +155,7 @@ public:
 		}
 	}
 
-	bool send(ReplySemaphoreSettableMessage auto msg, IG::Semaphore *semPtr)
+	bool send(ReplySemaphoreSettableMessage auto msg, std::binary_semaphore *semPtr)
 	{
 		if(semPtr)
 		{
@@ -164,7 +164,7 @@ public:
 			{
 				return false;
 			}
-			semPtr->wait();
+			semPtr->acquire();
 			return true;
 		}
 		else
@@ -179,7 +179,7 @@ public:
 		return sendWithExtraData(msg, &obj, sizeof(obj));
 	}
 
-	bool sendWithExtraData(MsgType msg, auto *obj, uint32_t size)
+	bool sendWithExtraData(MsgType msg, auto *obj, size_t size)
 	{
 		const auto bufferSize = MSG_SIZE + size;
 		assumeExpr(bufferSize < PIPE_BUF);

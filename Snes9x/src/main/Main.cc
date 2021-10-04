@@ -27,7 +27,7 @@ static constexpr auto srcPixFmt = IG::PIXEL_FMT_RGB565;
 #else
 #error "incompatible PIXEL_FORMAT value"
 #endif
-static EmuSystemTask *emuSysTask{};
+static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
 static const unsigned heightChangeFrameDelay = 4;
 static unsigned heightChangeFrames = heightChangeFrameDelay;
@@ -258,7 +258,7 @@ static void mixSamples(uint32_t samples, EmuAudio *audio)
 	}
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
+void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	if(snesActiveInputPort != SNES_JOYPAD)
 	{
@@ -286,7 +286,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 		}
 		#endif
 	}
-	emuSysTask = task;
+	emuSysTask = taskCtx;
 	emuVideo = video;
 	IPPU.RenderThisFrame = video ? TRUE : FALSE;
 	#ifndef SNES9X_VERSION_1_4

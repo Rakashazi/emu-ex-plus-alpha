@@ -54,7 +54,7 @@ class EmuViewController final: public ViewController, public EmuAppHelper<EmuVie
 public:
 	EmuViewController();
 	EmuViewController(ViewAttachParams,
-		VController &, EmuVideoLayer &, EmuSystemTask *, EmuAudio &);
+		VController &, EmuVideoLayer &, EmuSystemTask &, EmuAudio &);
 	void pushAndShow(std::unique_ptr<View> v, Input::Event e, bool needsNavView, bool isModal = false) final;
 	using ViewController::pushAndShow;
 	void pushAndShowModal(std::unique_ptr<View> v, Input::Event e, bool needsNavView);
@@ -97,8 +97,8 @@ public:
 	void handleOpenFileCommand(const char *path);
 	void setFastForwardActive(bool active);
 	bool isMenuDismissKey(Input::Event);
-	void setSystemTask(EmuSystemTask *);
 	Base::ApplicationContext appContext() const;
+	EmuSystemTask &emuTask() { return *systemTaskPtr; }
 
 protected:
 	static constexpr bool HAS_USE_RENDER_TIME = Config::envIsLinux

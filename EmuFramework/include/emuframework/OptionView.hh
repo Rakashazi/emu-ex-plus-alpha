@@ -159,7 +159,6 @@ protected:
 	static constexpr unsigned MIN_FAST_FORWARD_SPEED = 2;
 	TextMenuItem fastForwardSpeedItem[6];
 	MultiChoiceMenuItem fastForwardSpeed;
-	BoolMenuItem runFramesInThread;
 	#if defined __ANDROID__
 	BoolMenuItem performanceMode;
 	#endif

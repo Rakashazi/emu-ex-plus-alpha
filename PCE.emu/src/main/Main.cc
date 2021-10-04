@@ -241,7 +241,7 @@ template <class Pixel>
 static void renderMultiresOutput(EmulateSpecStruct spec, IG::Pixmap srcPix, int multiResOutputWidth)
 {
 	int pixHeight = spec.DisplayRect.h;
-	auto img = spec.video->startFrameWithFormat(spec.task, {{multiResOutputWidth, pixHeight}, srcPix.format()});
+	auto img = spec.video->startFrameWithFormat(spec.taskCtx, {{multiResOutputWidth, pixHeight}, srcPix.format()});
 	auto destPixAddr = (Pixel*)img.pixmap().data();
 	auto lineWidth = spec.LineWidths + spec.DisplayRect.y;
 	if(multiResOutputWidth == 1024)
@@ -373,13 +373,13 @@ void MDFND_commitVideoFrame(EmulateSpecStruct *espec)
 	}
 	else
 	{
-		spec.video->startFrameWithFormat(espec->task, srcPix);
+		spec.video->startFrameWithFormat(espec->taskCtx, srcPix);
 	}
 }
 
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
+void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	unsigned maxFrames = 48000/54;
 	int16 audioBuff[maxFrames*2];
@@ -394,7 +394,7 @@ void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
 			configFrameTime(audio->format().rate);
 		}
 	}
-	espec.task = task;
+	espec.taskCtx = taskCtx;
 	espec.video = video;
 	espec.skip = !video;
 	auto mSurface = pixmapToMDFNSurface(mSurfacePix);

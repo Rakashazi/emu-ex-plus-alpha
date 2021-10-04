@@ -36,7 +36,7 @@ int closeFinishedMovie = 0;
 int StackAddrBackup = -1;
 int KillFCEUXonFrame = 0;
 
-void FCEUI_Emulate(EmuSystemTask *task, EmuVideo *video, int skip, EmuAudio *audio)
+void FCEUI_Emulate(EmuSystemTaskContext taskCtx, EmuVideo *video, int skip, EmuAudio *audio)
 {
 	#ifdef _S9XLUA_H
 	FCEU_LuaFrameBoundary();
@@ -50,7 +50,7 @@ void FCEUI_Emulate(EmuSystemTask *task, EmuVideo *video, int skip, EmuAudio *aud
 	#endif
 
 	if (geniestage != 1) FCEU_ApplyPeriodicCheats();
-	FCEUPPU_Loop(task, video, skip);
+	FCEUPPU_Loop(taskCtx, video, skip);
 
 	emulateSound(audio);
 
@@ -61,6 +61,11 @@ void FCEUI_Emulate(EmuSystemTask *task, EmuVideo *video, int skip, EmuAudio *aud
 	timestampbase += timestamp;
 	timestamp = 0;
 	soundtimestamp = 0;
+}
+
+void FCEUI_Emulate(EmuVideo *video, int skip, EmuAudio *audio)
+{
+	FCEUI_Emulate({}, video, skip, audio);
 }
 
 FILE *FCEUD_UTF8fopen(const char *fn, const char *mode)

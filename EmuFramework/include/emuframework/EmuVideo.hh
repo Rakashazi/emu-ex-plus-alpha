@@ -16,6 +16,8 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuAppHelper.hh>
+#include <emuframework/EmuSystemTask.hh>
+#include <emuframework/EmuSystemTaskContext.hh>
 #include <imagine/gfx/PixmapBufferTexture.hh>
 #include <imagine/gfx/SyncFence.hh>
 #include <optional>
@@ -26,19 +28,18 @@ class ApplicationContext;
 }
 
 class EmuVideo;
-class EmuSystemTask;
 
 class [[nodiscard]] EmuVideoImage
 {
 public:
 	constexpr EmuVideoImage() {}
-	EmuVideoImage(EmuSystemTask *task, EmuVideo &vid, Gfx::LockedTextureBuffer texBuff);
+	EmuVideoImage(EmuSystemTaskContext taskCtx, EmuVideo &vid, Gfx::LockedTextureBuffer texBuff);
 	IG::Pixmap pixmap() const;
 	explicit operator bool() const;
 	void endFrame();
 
 protected:
-	EmuSystemTask *task{};
+	EmuSystemTaskContext taskCtx{};
 	EmuVideo *emuVideo{};
 	Gfx::LockedTextureBuffer texBuff{};
 };
@@ -52,18 +53,18 @@ public:
 	constexpr EmuVideo() {}
 	void setRendererTask(Gfx::RendererTask &);
 	bool hasRendererTask() const;
-	bool setFormat(IG::PixmapDesc desc, EmuSystemTask *task = {});
+	bool setFormat(IG::PixmapDesc desc, EmuSystemTaskContext task = {});
 	void dispatchFormatChanged();
 	void resetImage(IG::PixelFormat newFmt = {});
 	IG::PixmapDesc deleteImage();
-	EmuVideoImage startFrame(EmuSystemTask *task);
-	void startFrame(EmuSystemTask *task, IG::Pixmap pix);
-	EmuVideoImage startFrameWithFormat(EmuSystemTask *task, IG::PixmapDesc desc);
-	void startFrameWithFormat(EmuSystemTask *task, IG::Pixmap pix);
-	void startFrameWithAltFormat(EmuSystemTask *task, IG::Pixmap pix);
-	void startUnchangedFrame(EmuSystemTask *task);
-	void finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff);
-	void finishFrame(EmuSystemTask *task, IG::Pixmap pix);
+	EmuVideoImage startFrame(EmuSystemTaskContext);
+	void startFrame(EmuSystemTaskContext, IG::Pixmap pix);
+	EmuVideoImage startFrameWithFormat(EmuSystemTaskContext, IG::PixmapDesc desc);
+	void startFrameWithFormat(EmuSystemTaskContext, IG::Pixmap pix);
+	void startFrameWithAltFormat(EmuSystemTaskContext, IG::Pixmap pix);
+	void startUnchangedFrame(EmuSystemTaskContext);
+	void finishFrame(EmuSystemTaskContext, Gfx::LockedTextureBuffer texBuff);
+	void finishFrame(EmuSystemTaskContext, IG::Pixmap pix);
 	void dispatchFrameFinished();
 	bool addFence(Gfx::RendererCommands &cmds);
 	void clear();
@@ -101,8 +102,8 @@ protected:
 	bool useSrgbColorSpace{};
 	Gfx::ColorSpace colorSpace_{};
 
-	void doScreenshot(EmuSystemTask *task, IG::Pixmap pix);
-	void postFrameFinished(EmuSystemTask *task);
+	void doScreenshot(EmuSystemTaskContext, IG::Pixmap pix);
+	void postFrameFinished(EmuSystemTaskContext);
 	void syncImageAccess();
 	void updateNeedsFence();
 };

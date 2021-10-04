@@ -30,7 +30,7 @@
 #include <vbam/Util.h>
 
 void setGameSpecificSettings(GBASys &gba);
-void CPULoop(GBASys &gba, EmuSystemTask *task, EmuVideo *video, EmuAudio *audio);
+void CPULoop(GBASys &, EmuSystemTaskContext, EmuVideo *, EmuAudio *);
 void CPUCleanUp();
 bool CPUReadBatteryFile(GBASys &gba, const char *);
 bool CPUWriteBatteryFile(GBASys &gba, const char *);
@@ -192,9 +192,9 @@ void EmuSystem::renderFramebuffer(EmuVideo &video)
 	systemDrawScreen({}, video);
 }
 
-void systemDrawScreen(EmuSystemTask *task, EmuVideo &video)
+void systemDrawScreen(EmuSystemTaskContext taskCtx, EmuVideo &video)
 {
-	auto img = video.startFrame(task);
+	auto img = video.startFrame(taskCtx);
 	IG::Pixmap framePix{{lcdSize, IG::PIXEL_RGB565}, gGba.lcd.pix};
 	assumeExpr(img.pixmap().size() == framePix.size());
 	if(img.pixmap().format() == IG::PIXEL_FMT_RGB565)
@@ -218,9 +218,9 @@ void systemOnWriteDataToSoundBuffer(EmuAudio *audio, const u16 * finalWave, int 
 	}
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
+void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	CPULoop(gGba, task, video, audio);
+	CPULoop(gGba, taskCtx, video, audio);
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)

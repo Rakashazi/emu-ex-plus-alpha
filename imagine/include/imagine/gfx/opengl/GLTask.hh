@@ -22,11 +22,6 @@
 #include <imagine/util/concepts.hh>
 #include <thread>
 
-namespace IG
-{
-class Semaphore;
-}
-
 namespace Gfx
 {
 
@@ -48,21 +43,21 @@ public:
 	class TaskContext
 	{
 	public:
-		constexpr TaskContext(Base::GLDisplay glDpy, IG::Semaphore *semPtr, bool *semaphoreNeedsNotifyPtr):
+		constexpr TaskContext(Base::GLDisplay glDpy, std::binary_semaphore *semPtr, bool *semaphoreNeedsNotifyPtr):
 			glDpy{glDpy}, semPtr{semPtr}, semaphoreNeedsNotifyPtr{semaphoreNeedsNotifyPtr}
 		{}
 		void notifySemaphore();
 		void markSemaphoreNotified();
 		constexpr Base::GLDisplay glDisplay() const { return glDpy; }
-		constexpr IG::Semaphore *semaphorePtr() const { return semPtr; }
+		constexpr std::binary_semaphore *semaphorePtr() const { return semPtr; }
 
 	protected:
 		[[no_unique_address]] Base::GLDisplay glDpy{};
-		IG::Semaphore *semPtr{};
+		std::binary_semaphore *semPtr{};
 		bool *semaphoreNeedsNotifyPtr{};
 	};
 
-	using FuncDelegate = DelegateFunc2<sizeof(uintptr_t)*4 + sizeof(int)*10, void(Base::GLDisplay glDpy, IG::Semaphore *semPtr)>;
+	using FuncDelegate = DelegateFunc2<sizeof(uintptr_t)*4 + sizeof(int)*10, void(Base::GLDisplay glDpy, std::binary_semaphore *semPtr)>;
 
 	enum class Command: uint8_t
 	{
@@ -73,7 +68,7 @@ public:
 
 	struct CommandMessage
 	{
-		IG::Semaphore *semPtr{};
+		std::binary_semaphore *semPtr{};
 		union Args
 		{
 			struct RunArgs
@@ -84,12 +79,12 @@ public:
 		Command command{Command::UNSET};
 
 		constexpr CommandMessage() {}
-		constexpr CommandMessage(Command command, IG::Semaphore *semPtr = nullptr):
+		constexpr CommandMessage(Command command, std::binary_semaphore *semPtr = nullptr):
 			semPtr{semPtr}, command{command} {}
-		constexpr CommandMessage(Command command, FuncDelegate funcDel, IG::Semaphore *semPtr = nullptr):
+		constexpr CommandMessage(Command command, FuncDelegate funcDel, std::binary_semaphore *semPtr = nullptr):
 			semPtr{semPtr}, args{funcDel}, command{command} {}
 		explicit operator bool() const { return command != Command::UNSET; }
-		void setReplySemaphore(IG::Semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
+		void setReplySemaphore(std::binary_semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 
 	GLTask(Base::ApplicationContext);
@@ -106,12 +101,12 @@ public:
 	void run(IG::invocable auto &&f, bool awaitReply = false)
 	{
 		runFunc(
-			[=](Base::GLDisplay, IG::Semaphore *semPtr)
+			[=](Base::GLDisplay, std::binary_semaphore *semPtr)
 			{
 				f();
 				if(semPtr)
 				{
-					semPtr->notify();
+					semPtr->release();
 				}
 			}, awaitReply);
 	}
@@ -119,14 +114,14 @@ public:
 	void run(IG::invocable<TaskContext> auto &&f, bool awaitReply = false)
 	{
 		runFunc(
-			[=](Base::GLDisplay glDpy, IG::Semaphore *semPtr)
+			[=](Base::GLDisplay glDpy, std::binary_semaphore *semPtr)
 			{
 				bool semaphoreNeedsNotify = semPtr;
 				TaskContext ctx{glDpy, semPtr, &semaphoreNeedsNotify};
 				f(ctx);
 				if(semaphoreNeedsNotify) // semaphore wasn't already notified in the delegate
 				{
-					semPtr->notify();
+					semPtr->release();
 				}
 			}, awaitReply);
 	}

@@ -33,7 +33,7 @@ extern ViceSystem currSystem;
 extern Base::ApplicationContext appContext;
 extern FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3];
 extern EmuAudio *audioPtr;
-extern IG::Semaphore execSem, execDoneSem;
+extern std::binary_semaphore execSem, execDoneSem;
 extern double systemFrameRate;
 extern struct video_canvas_s *activeCanvas;
 extern IG::Pixmap canvasSrcPix;

@@ -19,13 +19,9 @@
 #include <imagine/gfx/opengl/GLStateCache.hh>
 #include <imagine/gfx/Mat4.hh>
 #include <imagine/gfx/Viewport.hh>
+#include <imagine/thread/Semaphore.hh>
 #include "GLSLProgram.hh"
 #include <imagine/util/typeTraits.hh>
-
-namespace IG
-{
-class Semaphore;
-}
 
 namespace Base
 {
@@ -45,7 +41,7 @@ class GLRendererCommands
 public:
 	constexpr GLRendererCommands() {}
 	GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, Drawable drawable, Base::GLDisplay glDpy,
-		const Base::GLContext &glCtx, IG::Semaphore *drawCompleteSemPtr);
+		const Base::GLContext &glCtx, std::binary_semaphore *drawCompleteSemPtr);
 	void discardTemporaryData();
 	void bindGLArrayBuffer(GLuint vbo);
 	#ifdef CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
@@ -89,7 +85,7 @@ protected:
 
 	RendererTask *rTask{};
 	Renderer *r{};
-	IG::Semaphore *drawCompleteSemPtr{};
+	std::binary_semaphore *drawCompleteSemPtr{};
 	Base::Window *winPtr{};
 	[[no_unique_address]] Base::GLDisplay glDpy{};
 	const Base::GLContext *glContextPtr{};

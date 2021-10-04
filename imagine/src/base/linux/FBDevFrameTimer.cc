@@ -50,7 +50,6 @@ FBDevFrameTimer::FBDevFrameTimer(Screen &screen, EventLoop loop)
 		logErr("error creating eventfd");
 		return;
 	}
-	sem_init(&sem, 0, 0);
 	fdSrc = {"FBDevFrameTimer", fd, loop,
 		[this, &screen](int fd, int event)
 		{
@@ -69,13 +68,13 @@ FBDevFrameTimer::FBDevFrameTimer(Screen &screen, EventLoop loop)
 				scheduleVSync();
 			return true;
 		}};
-	IG::makeDetachedThread(
+	thread = std::thread(
 		[this, fd, fbdev = fbdev.release()]()
 		{
 			//logMsg("ready to wait for vsync");
 			for(;;)
 			{
-				sem_wait(&sem);
+				sem.acquire();
 				if(quiting)
 					break;
 				//logMsg("waiting for vsync");
@@ -91,14 +90,14 @@ FBDevFrameTimer::FBDevFrameTimer(Screen &screen, EventLoop loop)
 				assert(ret == sizeof(timestamp));
 			}
 			close(fbdev);
-		}
-	);
+		});
 }
 
 FBDevFrameTimer::~FBDevFrameTimer()
 {
 	quiting = true;
-	sem_post(&sem);
+	sem.release();
+	thread.join();
 	fdSrc.closeFD();
 }
 
@@ -111,7 +110,7 @@ void FBDevFrameTimer::scheduleVSync()
 		return;
 	}
 	requested = true;
-	sem_post(&sem);
+	sem.release();
 }
 
 void FBDevFrameTimer::cancel()

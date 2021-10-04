@@ -31,8 +31,8 @@ class Pipe
 public:
 	struct NullInit{};
 
-	Pipe(uint32_t preferredSize = 0): Pipe(nullptr, preferredSize) {}
-	Pipe(const char *debugLabel, uint32_t preferredSize = 0);
+	Pipe(int preferredSize = 0): Pipe(nullptr, preferredSize) {}
+	Pipe(const char *debugLabel, int preferredSize = 0);
 	explicit constexpr Pipe(NullInit) {}
 	PosixIO &source();
 	PosixIO &sink();

@@ -18,25 +18,73 @@
 #include <mach/semaphore.h>
 #include <mach/task.h>
 #include <mach/mach.h>
-#include <imagine/config/defs.hh>
+#include <utility>
+#include <cassert>
+
+// TODO: remove when <semaphore> is fully supported by Apple Clang
 
 namespace IG
 {
 
+template<unsigned LeastMaxValue>
 class MachSemaphore
 {
 public:
-	constexpr MachSemaphore() {}
-	MachSemaphore(MachSemaphore &&o);
-	MachSemaphore &operator=(MachSemaphore &&o);
-	~MachSemaphore();
+	MachSemaphore(unsigned startValue)
+	{
+		auto ret = semaphore_create(mach_task_self(), &sem, SYNC_POLICY_FIFO, startValue);
+		assert(ret == KERN_SUCCESS);
+	}
+
+	MachSemaphore(MachSemaphore &&o)
+	{
+		*this = std::move(o);
+	}
+
+	MachSemaphore &operator=(MachSemaphore &&o)
+	{
+		deinit();
+		sem = std::exchange(o.sem, {});
+		return *this;
+	}
+
+	~MachSemaphore()
+	{
+		deinit();
+	}
+
+	void acquire()
+	{
+		semaphore_wait(sem);
+	}
+
+	void release()
+	{
+		semaphore_signal(sem);
+	}
 
 protected:
 	semaphore_t sem{};
 
-	void deinit();
+	void deinit()
+	{
+		if(!sem)
+			return;
+		auto ret = semaphore_destroy(mach_task_self(), sem);
+		assert(ret == KERN_SUCCESS);
+		sem = {};
+	}
 };
 
-using SemaphoreImpl = MachSemaphore;
+template<unsigned LeastMaxValue>
+using SemaphoreImpl = MachSemaphore<LeastMaxValue>;
 
+}
+
+namespace std
+{
+template<unsigned LeastMaxValue>
+using counting_semaphore = IG::SemaphoreImpl<LeastMaxValue>;
+
+using binary_semaphore = std::counting_semaphore<1>;
 }

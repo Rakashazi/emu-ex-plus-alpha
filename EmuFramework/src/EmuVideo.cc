@@ -62,7 +62,7 @@ static bool formatSupportsSrgb(IG::PixelFormat fmt)
 	return fmt == IG::PIXEL_BGRA8888 || fmt == IG::PIXEL_RGBA8888;
 }
 
-bool EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTask *task)
+bool EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTaskContext taskCtx)
 {
 	if(formatIsEqual(desc))
 	{
@@ -80,9 +80,9 @@ bool EmuVideo::setFormat(IG::PixmapDesc desc, EmuSystemTask *task)
 		vidImg.setFormat(desc, colorSpace_, texSampler);
 	}
 	logMsg("resized to:%dx%d", desc.w(), desc.h());
-	if(task)
+	if(taskCtx)
 	{
-		task->sendVideoFormatChangedReply(*this);
+		taskCtx.task().sendVideoFormatChangedReply(*this, taskCtx.semPtr);
 	}
 	else
 	{
@@ -101,41 +101,41 @@ void EmuVideo::syncImageAccess()
 	rTask->clientWaitSync(std::exchange(fence, {}));
 }
 
-EmuVideoImage EmuVideo::startFrame(EmuSystemTask *task)
+EmuVideoImage EmuVideo::startFrame(EmuSystemTaskContext taskCtx)
 {
 	auto lockedTex = vidImg.lock();
 	syncImageAccess();
-	return {task, *this, lockedTex};
+	return {taskCtx, *this, lockedTex};
 }
 
-void EmuVideo::startFrame(EmuSystemTask *task, IG::Pixmap pix)
+void EmuVideo::startFrame(EmuSystemTaskContext taskCtx, IG::Pixmap pix)
 {
-	finishFrame(task, pix);
+	finishFrame(taskCtx, pix);
 }
 
-EmuVideoImage EmuVideo::startFrameWithFormat(EmuSystemTask *task, IG::PixmapDesc desc)
+EmuVideoImage EmuVideo::startFrameWithFormat(EmuSystemTaskContext taskCtx, IG::PixmapDesc desc)
 {
-	setFormat(desc, task);
-	return startFrame(task);
+	setFormat(desc, taskCtx);
+	return startFrame(taskCtx);
 }
 
-void EmuVideo::startFrameWithFormat(EmuSystemTask *task, IG::Pixmap pix)
+void EmuVideo::startFrameWithFormat(EmuSystemTaskContext taskCtx, IG::Pixmap pix)
 {
-	setFormat(pix, task);
-	startFrame(task, pix);
+	setFormat(pix, taskCtx);
+	startFrame(taskCtx, pix);
 }
 
-void EmuVideo::startFrameWithAltFormat(EmuSystemTask *task, IG::Pixmap pix)
+void EmuVideo::startFrameWithAltFormat(EmuSystemTaskContext taskCtx, IG::Pixmap pix)
 {
 	auto destFmt = renderPixelFormat();
 	assumeExpr(isValidRenderFormat(pix.format()));
 	if(pix.format() == destFmt)
 	{
-		startFrameWithFormat(task, pix);
+		startFrameWithFormat(taskCtx, pix);
 	}
 	else
 	{
-		auto img = startFrameWithFormat(task, {pix.size(), destFmt});
+		auto img = startFrameWithFormat(taskCtx, {pix.size(), destFmt});
 		assumeExpr(img.pixmap().format() == destFmt);
 		assumeExpr(img.pixmap().size() == pix.size());
 		img.pixmap().writeConverted(pix);
@@ -143,9 +143,9 @@ void EmuVideo::startFrameWithAltFormat(EmuSystemTask *task, IG::Pixmap pix)
 	}
 }
 
-void EmuVideo::startUnchangedFrame(EmuSystemTask *task)
+void EmuVideo::startUnchangedFrame(EmuSystemTaskContext taskCtx)
 {
-	postFrameFinished(task);
+	postFrameFinished(taskCtx);
 }
 
 void EmuVideo::dispatchFrameFinished()
@@ -154,33 +154,33 @@ void EmuVideo::dispatchFrameFinished()
 	onFrameFinished(*this);
 }
 
-void EmuVideo::postFrameFinished(EmuSystemTask *task)
+void EmuVideo::postFrameFinished(EmuSystemTaskContext taskCtx)
 {
-	if(task)
+	if(taskCtx)
 	{
-		task->sendFrameFinishedReply(*this);
+		taskCtx.task().sendFrameFinishedReply(*this, taskCtx.semPtr);
 	}
 }
 
-void EmuVideo::finishFrame(EmuSystemTask *task, Gfx::LockedTextureBuffer texBuff)
+void EmuVideo::finishFrame(EmuSystemTaskContext taskCtx, Gfx::LockedTextureBuffer texBuff)
 {
 	if(screenshotNextFrame) [[unlikely]]
 	{
-		doScreenshot(task, texBuff.pixmap());
+		doScreenshot(taskCtx, texBuff.pixmap());
 	}
 	vidImg.unlock(texBuff);
-	postFrameFinished(task);
+	postFrameFinished(taskCtx);
 }
 
-void EmuVideo::finishFrame(EmuSystemTask *task, IG::Pixmap pix)
+void EmuVideo::finishFrame(EmuSystemTaskContext taskCtx, IG::Pixmap pix)
 {
 	if(screenshotNextFrame) [[unlikely]]
 	{
-		doScreenshot(task, pix);
+		doScreenshot(taskCtx, pix);
 	}
 	syncImageAccess();
 	vidImg.write(pix, vidImg.WRITE_FLAG_ASYNC);
-	postFrameFinished(task);
+	postFrameFinished(taskCtx);
 }
 
 bool EmuVideo::addFence(Gfx::RendererCommands &cmds)
@@ -203,15 +203,15 @@ void EmuVideo::takeGameScreenshot()
 	screenshotNextFrame = true;
 }
 
-void EmuVideo::doScreenshot(EmuSystemTask *task, IG::Pixmap pix)
+void EmuVideo::doScreenshot(EmuSystemTaskContext taskCtx, IG::Pixmap pix)
 {
 	screenshotNextFrame = false;
 	auto [screenshotNum, path] = app().makeNextScreenshotFilename();
 	if(screenshotNum == -1)
 	{
-		if(task)
+		if(taskCtx)
 		{
-			task->sendScreenshotReply(-1, false);
+			taskCtx.task().sendScreenshotReply(-1, false);
 		}
 		else
 		{
@@ -221,9 +221,9 @@ void EmuVideo::doScreenshot(EmuSystemTask *task, IG::Pixmap pix)
 	else
 	{
 		auto success = app().writeScreenshot(pix, path.data());
-		if(task)
+		if(taskCtx)
 		{
-			task->sendScreenshotReply(screenshotNum, success);
+			taskCtx.task().sendScreenshotReply(screenshotNum, success);
 		}
 		else
 		{
@@ -256,8 +256,8 @@ Base::ApplicationContext EmuVideo::appContext() const
 	return rTask->appContext();
 }
 
-EmuVideoImage::EmuVideoImage(EmuSystemTask *task, EmuVideo &vid, Gfx::LockedTextureBuffer texBuff):
-	task{task}, emuVideo{&vid}, texBuff{texBuff} {}
+EmuVideoImage::EmuVideoImage(EmuSystemTaskContext taskCtx, EmuVideo &vid, Gfx::LockedTextureBuffer texBuff):
+	taskCtx{taskCtx}, emuVideo{&vid}, texBuff{texBuff} {}
 
 IG::Pixmap EmuVideoImage::pixmap() const
 {
@@ -272,7 +272,7 @@ EmuVideoImage::operator bool() const
 void EmuVideoImage::endFrame()
 {
 	assumeExpr(texBuff);
-	emuVideo->finishFrame(task, texBuff);
+	emuVideo->finishFrame(taskCtx, texBuff);
 }
 
 IG::WP EmuVideo::size() const

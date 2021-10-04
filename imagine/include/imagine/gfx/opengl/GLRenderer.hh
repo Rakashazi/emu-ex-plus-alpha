@@ -30,11 +30,6 @@
 #include <EGL/eglext.h>
 #endif
 
-namespace IG
-{
-class Semaphore;
-}
-
 namespace Base
 {
 class ApplicationContext;

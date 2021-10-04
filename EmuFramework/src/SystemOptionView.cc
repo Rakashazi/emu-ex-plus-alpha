@@ -220,15 +220,6 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 			return 0;
 		}(),
 		fastForwardSpeedItem
-	},
-	runFramesInThread
-	{
-		"Separate Emulation Thread", &defaultFace(),
-		app().shouldRunFramesInThread(),
-		[this](BoolMenuItem &item, Input::Event e)
-		{
-			app().setShouldRunFramesInThread(item.flipBoolValue(*this));
-		}
 	}
 	#if defined __ANDROID__
 	,performanceMode
@@ -258,7 +249,6 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&savePath);
 	item.emplace_back(&checkSavePathWriteAccess);
 	item.emplace_back(&fastForwardSpeed);
-	item.emplace_back(&runFramesInThread);
 	#ifdef __ANDROID__
 	if(!optionSustainedPerformanceMode.isConst)
 		item.emplace_back(&performanceMode);

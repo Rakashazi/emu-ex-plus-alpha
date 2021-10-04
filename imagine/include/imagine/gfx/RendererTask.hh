@@ -27,11 +27,6 @@
 #include <imagine/util/concepts.hh>
 #include <utility>
 
-namespace IG
-{
-class Semaphore;
-}
-
 namespace Gfx
 {
 

@@ -52,8 +52,8 @@ int vsync_do_vsync2(struct video_canvas_s *c, int been_skipped)
 	{
 		//logMsg("vsync_do_vsync signaling main thread");
 		runningFrame = false;
-		execDoneSem.notify();
-		execSem.wait();
+		execDoneSem.release();
+		execSem.acquire();
 	}
 	else
 	{

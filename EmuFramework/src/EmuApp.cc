@@ -474,7 +474,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 			}
 			ViewAttachParams viewAttach{viewManager, win, renderer.task()};
 			emuViewController.emplace(viewAttach, vController, emuVideoLayer,
-				shouldRunFramesInThread() ? &emuSystemTask : nullptr, emuAudio);
+				emuSystemTask, emuAudio);
 			applyRenderPixelFormat();
 
 			#if defined CONFIG_BASE_ANDROID
@@ -1027,11 +1027,11 @@ void EmuApp::configFrameTime()
 	EmuSystem::configFrameTime(emuAudio.format().rate);
 }
 
-void EmuApp::runFrames(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio, int frames, bool skipForward)
+void EmuApp::runFrames(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio, int frames, bool skipForward)
 {
 	if(skipForward) [[unlikely]]
 	{
-		if(skipForwardFrames(task, frames - 1))
+		if(skipForwardFrames(taskCtx, frames - 1))
 		{
 			// don't write any audio while skip is in progress
 			audio = nullptr;
@@ -1044,27 +1044,27 @@ void EmuApp::runFrames(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio, in
 	}
 	else
 	{
-		skipFrames(task, frames - 1, audio);
+		skipFrames(taskCtx, frames - 1, audio);
 	}
 	runTurboInputEvents();
-	EmuSystem::runFrame(task, video, audio);
+	EmuSystem::runFrame(taskCtx, video, audio);
 }
 
-void EmuApp::skipFrames(EmuSystemTask *task, uint32_t frames, EmuAudio *audio)
+void EmuApp::skipFrames(EmuSystemTaskContext taskCtx, uint32_t frames, EmuAudio *audio)
 {
 	assert(EmuSystem::gameIsRunning());
 	iterateTimes(frames, i)
 	{
 		runTurboInputEvents();
-		EmuSystem::runFrame(task, nullptr, audio);
+		EmuSystem::runFrame(taskCtx, nullptr, audio);
 	}
 }
 
-bool EmuApp::skipForwardFrames(EmuSystemTask *task, uint32_t frames)
+bool EmuApp::skipForwardFrames(EmuSystemTaskContext taskCtx, uint32_t frames)
 {
 	iterateTimes(frames, i)
 	{
-		skipFrames(task, 1, nullptr);
+		skipFrames(taskCtx, 1, nullptr);
 		if(!EmuSystem::shouldFastForward())
 		{
 			logMsg("skip-forward ended early after %u frame(s)", i);
@@ -1128,21 +1128,6 @@ void EmuApp::setMogaManagerActive(bool on, bool notify)
 std::span<const KeyCategory> EmuApp::inputControlCategories() const
 {
 	return {EmuControls::category, EmuControls::categories};
-}
-
-bool EmuApp::shouldRunFramesInThread() const
-{
-	return runFramesInThread;
-}
-
-void EmuApp::setShouldRunFramesInThread(bool on)
-{
-	runFramesInThread = on;
-	if(!emuViewController)
-		return;
-	emuViewController->setSystemTask(on ? &emuSystemTask : nullptr);
-	if(!on)
-		emuSystemTask.stop();
 }
 
 std::array<char, 64> formatDateAndTime(std::tm time)

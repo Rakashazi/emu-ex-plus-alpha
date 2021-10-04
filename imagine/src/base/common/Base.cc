@@ -18,6 +18,7 @@
 #include <imagine/base/GLContext.hh>
 #include <imagine/base/sharedLibrary.hh>
 #include <imagine/time/Time.hh>
+#include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
 #include <cstdlib>
 #include <cstring>
@@ -32,6 +33,9 @@
 #include <android/log.h>
 #else
 #include <execinfo.h>
+#endif
+#if defined __APPLE__
+#include <pthread.h>
 #endif
 
 namespace Base
@@ -153,6 +157,17 @@ int thisThreadPriority()
 	return getpriority(PRIO_PROCESS, gettid());
 	#else
 	return 0;
+	#endif
+}
+
+ThreadId thisThreadId()
+{
+	#ifdef __linux__
+	return gettid();
+	#else
+	uint64_t id{};
+	pthread_threadid_np(nullptr, &id);
+	return id;
 	#endif
 }
 

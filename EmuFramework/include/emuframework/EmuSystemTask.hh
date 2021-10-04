@@ -16,15 +16,11 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/base/MessagePort.hh>
+#include <thread>
 
 class EmuVideo;
 class EmuAudio;
 class EmuApp;
-
-namespace IG
-{
-class Semaphore;
-}
 
 class EmuSystemTask
 {
@@ -39,7 +35,7 @@ public:
 
 	struct CommandMessage
 	{
-		IG::Semaphore *semPtr{};
+		std::binary_semaphore *semPtr{};
 		union Args
 		{
 			struct RunArgs
@@ -53,26 +49,28 @@ public:
 		Command command{Command::UNSET};
 
 		constexpr CommandMessage() {}
-		constexpr CommandMessage(Command command, IG::Semaphore *semPtr = nullptr):
+		constexpr CommandMessage(Command command, std::binary_semaphore *semPtr = nullptr):
 			semPtr{semPtr}, command{command} {}
 		constexpr CommandMessage(Command command, EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward = false):
 			args{video, audio, frames, skipForward}, command{command} {}
 		explicit operator bool() const { return command != Command::UNSET; }
-		void setReplySemaphore(IG::Semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
+		void setReplySemaphore(std::binary_semaphore *semPtr_) { assert(!semPtr); semPtr = semPtr_; };
 	};
 
 	EmuSystemTask(EmuApp &);
 	void start();
 	void pause();
 	void stop();
-	void runFrame(EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward = false);
-	void sendVideoFormatChangedReply(EmuVideo &video);
-	void sendFrameFinishedReply(EmuVideo &video);
+	void runFrame(EmuVideo *video, EmuAudio *audio, uint8_t frames, bool skipForward, bool runSync);
+	void sendVideoFormatChangedReply(EmuVideo &video, std::binary_semaphore *frameFinishedSemPtr);
+	void sendFrameFinishedReply(EmuVideo &video, std::binary_semaphore *frameFinishedSemPtr);
 	void sendScreenshotReply(int num, bool success);
 	EmuApp &app() const;
+	bool resetVideoFormatChanged() { return std::exchange(videoFormatChanged, false); }
 
 private:
 	EmuApp *appPtr{};
 	Base::MessagePort<CommandMessage> commandPort{"EmuSystemTask Command"};
-	bool started = false;
+	std::thread taskThread{};
+	bool videoFormatChanged{};
 };

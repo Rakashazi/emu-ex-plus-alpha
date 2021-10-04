@@ -554,7 +554,6 @@ IG::ErrorCode AndroidBluetoothSocket::openSocket(BluetoothAdapter &adapter, Blue
 	addrStr = ba2str(bdaddr);
 	this->channel = channel;
 	isL2cap = l2cap;
-	sem_init(&connectSem, 0, 0);
 	isConnecting = true;
 	IG::makeDetachedThread(
 		[this, &adapter = *static_cast<AndroidBluetoothAdapter*>(&adapter)]()
@@ -564,7 +563,7 @@ IG::ErrorCode AndroidBluetoothSocket::openSocket(BluetoothAdapter &adapter, Blue
 			if(!env)
 			{
 				logErr("error attaching env to thread");
-				sem_post(&connectSem);
+				connectSem.release();
 				isConnecting = false;
 				return;
 			}
@@ -590,7 +589,7 @@ IG::ErrorCode AndroidBluetoothSocket::openSocket(BluetoothAdapter &adapter, Blue
 			}
 			else
 				defaultAndroidAdapter.sendSocketStatusMessage({*this, STATUS_CONNECT_ERROR});
-			sem_post(&connectSem);
+			connectSem.release();
 			isConnecting = false;
 		}
 	);
@@ -619,7 +618,7 @@ void AndroidBluetoothSocket::close()
 	if(isConnecting)
 	{
 		logMsg("waiting for connect thread to complete before closing socket");
-		sem_wait(&connectSem);
+		connectSem.acquire();
 	}
 	if(socket)
 	{
@@ -635,7 +634,6 @@ void AndroidBluetoothSocket::close()
 		jBtSocketClose(env, socket);
 		env->DeleteGlobalRef(socket);
 		socket = nullptr;
-		sem_destroy(&connectSem);
 	}
 }
 

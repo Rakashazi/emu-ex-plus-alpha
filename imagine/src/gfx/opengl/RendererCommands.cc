@@ -30,7 +30,7 @@ namespace Gfx
 static constexpr bool useGLCache = true;
 
 GLRendererCommands::GLRendererCommands(RendererTask &rTask, Base::Window *winPtr, Drawable drawable,
-	Base::GLDisplay glDpy, const Base::GLContext &glCtx, IG::Semaphore *drawCompleteSemPtr):
+	Base::GLDisplay glDpy, const Base::GLContext &glCtx, std::binary_semaphore *drawCompleteSemPtr):
 	rTask{&rTask}, r{&rTask.renderer()}, drawCompleteSemPtr{drawCompleteSemPtr},
 	winPtr{winPtr}, glDpy{glDpy}, glContextPtr{&glCtx}, drawable{drawable}
 {
@@ -92,7 +92,7 @@ void GLRendererCommands::notifyDrawComplete()
 {
 	if(drawCompleteSemPtr)
 	{
-		drawCompleteSemPtr->notify();
+		drawCompleteSemPtr->release();
 	}
 }
 

@@ -666,7 +666,7 @@ void draw_screen(void *emuTaskPtr, void *emuVideoPtr) {
 	screen_update(emuTaskPtr, emuVideoPtr);
 }
 
-void draw_screen_scanline(int start_line, int end_line, int refresh, void *emuTaskPtr, void *emuVideoPtr) {
+void draw_screen_scanline(int start_line, int end_line, int refresh, void *emuTaskCtxPtr, void *emuVideoPtr) {
 	int sx = 0, sy = 0, my = 0, zx = 1, zy = 1;
 	int offs, count, y;
 	int tileno, tileatr;
@@ -847,7 +847,7 @@ void draw_screen_scanline(int start_line, int end_line, int refresh, void *emuTa
 		}
 		if (conf.show_fps)
 			SDL_textout(buffer, visible_area.x, visible_area.y, fps_str);*/
-		screen_update(emuTaskPtr, emuVideoPtr);
+		screen_update(emuTaskCtxPtr, emuVideoPtr);
 	}
 }
 

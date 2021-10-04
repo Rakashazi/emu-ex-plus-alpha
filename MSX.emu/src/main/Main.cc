@@ -65,7 +65,7 @@ extern RomType currentRomType[2];
 FS::FileString diskName[2]{};
 static FS::FileString tapeName{};
 FS::FileString hdName[4]{};
-static EmuSystemTask *emuSysTask{};
+static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
 static const char saveStateVersion[] = "blueMSX - state  v 8";
 extern int pendingInt;
@@ -755,9 +755,9 @@ void RefreshScreen(int screenMode)
 	boardInfo.stop(boardInfo.cpuRef);
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
+void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	emuSysTask = task;
+	emuSysTask = taskCtx;
 	emuVideo = video;
 	mixerSetWriteCallback(mixer, audio ? soundWrite : nullptr, audio, 0);
 	boardInfo.run(boardInfo.cpuRef);

@@ -65,13 +65,13 @@ public:
 EmuViewController::EmuViewController() {}
 
 EmuViewController::EmuViewController(ViewAttachParams viewAttach,
-	VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystemTask *systemTaskPtr,
+	VController &vCtrl, EmuVideoLayer &videoLayer, EmuSystemTask &systemTask,
 	EmuAudio &emuAudio):
 	emuView{viewAttach, &videoLayer},
 	emuInputView{viewAttach, vCtrl, videoLayer},
 	popup{viewAttach},
 	rendererTask_{&viewAttach.rendererTask()},
-	systemTaskPtr{systemTaskPtr},
+	systemTaskPtr{&systemTask},
 	emuAudioPtr{&emuAudio},
 	appPtr{&EmuApp::get(viewAttach.appContext())},
 	onExit
@@ -274,18 +274,25 @@ void EmuViewController::initViews(ViewAttachParams viewAttach)
 			/*logMsg("frame present time:%.4f next display frame:%.4f",
 				std::chrono::duration_cast<IG::FloatSeconds>(frameInfo.presentTime).count(),
 				std::chrono::duration_cast<IG::FloatSeconds>(params.presentTime()).count());*/
-			if(systemTaskPtr)
+			auto &video = videoLayer().emuVideo();
+			if(framesToEmulate == 1)
 			{
-				systemTaskPtr->runFrame(&videoLayer().emuVideo(), audioPtr, framesToEmulate, skipForward);
-				r.setPresentationTime(emuWindow(), params.presentTime());
-				return false;
-			}
-			else
-			{
-				app().runFrames({}, &videoLayer().emuVideo(), audioPtr, framesToEmulate, skipForward);
+				// run common 1-frame case synced until the video frame is ready for more consistent timing
+				emuTask().runFrame(&video, audioPtr, 1, false, true);
+				if(emuTask().resetVideoFormatChanged())
+				{
+					video.dispatchFormatChanged();
+				}
 				emuWindow().setNeedsDraw(true);
 				r.setPresentationTime(emuWindow(), params.presentTime());
 				return true;
+			}
+			else
+			{
+				// run multiple frames async and let main loop collect additional input events
+				emuTask().runFrame(&video, audioPtr, framesToEmulate, skipForward, false);
+				r.setPresentationTime(emuWindow(), params.presentTime());
+				return false;
 			}
 		};
 
@@ -544,8 +551,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 				extraWinData.focused = true;
 				if(EmuSystem::isActive())
 				{
-					if(systemTaskPtr)
-						systemTaskPtr->pause();
+					emuTask().pause();
 					moveOnFrame(mainWindow(), win);
 					applyFrameRates();
 				}
@@ -619,8 +625,7 @@ void EmuViewController::setEmuViewOnExtraWindow(bool on, Base::Screen &screen)
 						mainWindow().postDraw();
 						if(EmuSystem::isActive())
 						{
-							if(systemTaskPtr)
-								systemTaskPtr->pause();
+							emuTask().pause();
 							moveOnFrame(win, mainWindow());
 							applyFrameRates();
 						}
@@ -758,8 +763,7 @@ void EmuViewController::startEmulation()
 			emuWindow().drawNow();
 		});
 	app().setCPUNeedsLowLatency(appContext(), true);
-	if(systemTaskPtr)
-		systemTaskPtr->start();
+	emuTask().start();
 	EmuSystem::start(*appPtr);
 	videoLayer().setBrightness(1.f);
 	addOnFrameDelayed();
@@ -769,8 +773,7 @@ void EmuViewController::pauseEmulation()
 {
 	app().setCPUNeedsLowLatency(appContext(), false);
 	videoLayer().emuVideo().setOnFrameFinished([](EmuVideo &){});
-	if(systemTaskPtr)
-		systemTaskPtr->pause();
+	emuTask().pause();
 	EmuSystem::pause(*appPtr);
 	videoLayer().setBrightness(showingEmulation ? .75f : .25f);
 	setFastForwardActive(false);
@@ -781,8 +784,7 @@ void EmuViewController::pauseEmulation()
 void EmuViewController::closeSystem(bool allowAutosaveState)
 {
 	showUI();
-	if(systemTaskPtr)
-		systemTaskPtr->stop();
+	emuTask().stop();
 	EmuSystem::closeRuntimeSystem(*appPtr, allowAutosaveState);
 	viewStack.navView()->showRightBtn(false);
 	if(int idx = viewStack.viewIdx("System Actions");
@@ -1049,9 +1051,4 @@ bool EmuViewController::isMenuDismissKey(Input::Event e)
 		dismissKey = Keycode::SPACE;
 	}
 	return e.key() == dismissKey || e.key() == dismissKey2;
-}
-
-void EmuViewController::setSystemTask(EmuSystemTask *taskPtr)
-{
-	systemTaskPtr = taskPtr;
 }

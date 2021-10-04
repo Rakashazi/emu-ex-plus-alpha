@@ -20,20 +20,13 @@
 #include <imagine/util/concepts.hh>
 #include <thread>
 #include <utility>
-#include <pthread.h>
 
 namespace IG
 {
 
-template<class T>
-T thisThreadID()
+static std::thread makeThreadSync(IG::invocable<std::binary_semaphore&> auto &&f)
 {
-	return static_cast<T>(pthread_self());
-}
-
-static std::thread makeThreadSync(IG::invocable<Semaphore&> auto &&f)
-{
-	Semaphore sem{0};
+	std::binary_semaphore sem{0};
 	if constexpr(std::is_copy_constructible_v<decltype(f)>)
 	{
 		std::thread t
@@ -43,7 +36,7 @@ static std::thread makeThreadSync(IG::invocable<Semaphore&> auto &&f)
 				f(sem);
 			}
 		};
-		sem.wait();
+		sem.acquire();
 		return t;
 	}
 	else
@@ -55,7 +48,7 @@ static std::thread makeThreadSync(IG::invocable<Semaphore&> auto &&f)
 				f(sem);
 			}
 		};
-		sem.wait();
+		sem.acquire();
 		return t;
 	}
 }
@@ -66,9 +59,9 @@ static void makeDetachedThread(IG::invocable auto &&f)
 	t.detach();
 }
 
-static void makeDetachedThreadSync(IG::invocable<Semaphore&> auto &&f)
+static void makeDetachedThreadSync(IG::invocable<std::binary_semaphore&> auto &&f)
 {
-	Semaphore sem{0};
+	std::binary_semaphore sem{0};
 	if constexpr(std::is_copy_constructible_v<decltype(f)>)
 	{
 		std::thread t
@@ -91,10 +84,17 @@ static void makeDetachedThreadSync(IG::invocable<Semaphore&> auto &&f)
 		};
 		t.detach();
 	}
-	sem.wait();
+	sem.acquire();
 }
+
+#ifdef __linux__
+using ThreadId = pid_t;
+#else
+using ThreadId = uint64_t;
+#endif
 
 void setThisThreadPriority(int nice);
 int thisThreadPriority();
+ThreadId thisThreadId();
 
 }

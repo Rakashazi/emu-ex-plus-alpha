@@ -33,7 +33,7 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobe
 uint32 frameskip_active = 0;
 static constexpr int ngpResX = SCREEN_WIDTH, ngpResY = SCREEN_HEIGHT;
 static EmuApp *emuAppPtr{};
-static EmuSystemTask *emuSysTask{};
+static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
 static constexpr IG::Pixmap srcPix{{{ngpResX, ngpResY}, IG::PIXEL_FMT_RGB565}, cfb};
 
@@ -185,9 +185,9 @@ void EmuSystem::renderFramebuffer(EmuVideo &video)
 	video.startFrameWithAltFormat({}, srcPix);
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
+void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
-	emuSysTask = task;
+	emuSysTask = taskCtx;
 	emuVideo = video;
 	frameskip_active = video ? 0 : 1;
 

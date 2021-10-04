@@ -197,7 +197,7 @@ void init_neo(void) {
 unsigned int fc;
 int last_line;
 
-static inline int neo_interrupt(int skip_this_frame, void *emuTaskPtr, void *emuVideoPtr) {
+static inline int neo_interrupt(int skip_this_frame, void *emuTaskCtxPtr, void *emuVideoPtr) {
     static int frames;
 
 	pd4990a_addretrace();
@@ -213,7 +213,7 @@ static inline int neo_interrupt(int skip_this_frame, void *emuTaskPtr, void *emu
 	if (!skip_this_frame) {
 		PROFILER_START(PROF_VIDEO);
 
-		draw_screen(emuTaskPtr, emuVideoPtr);
+		draw_screen(emuTaskCtxPtr, emuVideoPtr);
 
 		PROFILER_STOP(PROF_VIDEO);
 	}
@@ -231,7 +231,7 @@ static inline int neo_interrupt(int skip_this_frame, void *emuTaskPtr, void *emu
 	return 1;
 }
 
-static inline void update_screen(int skip_this_frame, void *emuTaskPtr, void *emuVideoPtr) {
+static inline void update_screen(int skip_this_frame, void *emuTaskCtxPtr, void *emuVideoPtr) {
 
 	if (memory.vid.irq2control & 0x40)
 		memory.vid.irq2start = (memory.vid.irq2pos + 3) / 0x180; /* ridhero gives 0x17d */
@@ -241,9 +241,9 @@ static inline void update_screen(int skip_this_frame, void *emuTaskPtr, void *em
 	if (!skip_this_frame) {
 		if (last_line < 21) { /* there was no IRQ2 while the beam was in the
 							 * visible area -> no need for scanline rendering */
-			draw_screen(emuTaskPtr, emuVideoPtr);
+			draw_screen(emuTaskCtxPtr, emuVideoPtr);
 		} else {
-			draw_screen_scanline(last_line - 21, 262, 1, emuTaskPtr, emuVideoPtr);
+			draw_screen_scanline(last_line - 21, 262, 1, emuTaskCtxPtr, emuVideoPtr);
 		}
 	}
 
@@ -257,7 +257,7 @@ static inline void update_screen(int skip_this_frame, void *emuTaskPtr, void *em
 	fc++;
 }
 
-static inline int update_scanline(int skip_this_frame, void *emuTaskPtr, void *emuVideoPtr) {
+static inline int update_scanline(int skip_this_frame, void *emuTaskCtxPtr, void *emuVideoPtr) {
 	memory.vid.irq2taken = 0;
 
 	if (memory.vid.irq2control & 0x10) {
@@ -275,7 +275,7 @@ static inline int update_scanline(int skip_this_frame, void *emuTaskPtr, void *e
 				last_line = 21;
 			if (memory.vid.current_line < 20)
 				memory.vid.current_line = 20;
-			draw_screen_scanline(last_line - 21, memory.vid.current_line - 20, 0, emuTaskPtr, emuVideoPtr);
+			draw_screen_scanline(last_line - 21, memory.vid.current_line - 20, 0, emuTaskCtxPtr, emuVideoPtr);
 		}
 		last_line = memory.vid.current_line;
 	}
@@ -298,7 +298,7 @@ static inline void state_handling(int save,int load) {
 	}
 }
 
-void main_frame(void *emuTaskPtr, void *emuVideoPtr) {
+void main_frame(void *emuTaskCtxPtr, void *emuVideoPtr) {
 	const int skip_this_frame = !emuVideoPtr;
 	unsigned m68k_overclk = 0;
 	unsigned z80_overclk = 0;
@@ -360,7 +360,7 @@ void main_frame(void *emuTaskPtr, void *emuVideoPtr) {
 				for (int i = 0; i < 264; i++) {
 					tm_cycle = cpu_68k_run(cpu_68k_timeslice_scanline
 							- tm_cycle);
-					if (update_scanline(skip_this_frame, emuTaskPtr, emuVideoPtr))
+					if (update_scanline(skip_this_frame, emuTaskCtxPtr, emuVideoPtr))
 					{
 						//logMsg("irq 2");
 						cpu_68k_interrupt(2);
@@ -369,7 +369,7 @@ void main_frame(void *emuTaskPtr, void *emuVideoPtr) {
 				tm_cycle = cpu_68k_run(cpu_68k_timeslice_scanline - tm_cycle);
 				//state_handling(pending_save_state, pending_load_state);
 
-				update_screen(skip_this_frame, emuTaskPtr, emuVideoPtr);
+				update_screen(skip_this_frame, emuTaskCtxPtr, emuVideoPtr);
 				memory.watchdog++;
 				if (memory.watchdog > 7) {
 					logMsg("WATCHDOG RESET\n");
@@ -380,7 +380,7 @@ void main_frame(void *emuTaskPtr, void *emuVideoPtr) {
 				PROFILER_START(PROF_68K);
 				cpu_68k_run(cpu_68k_timeslice);
 				PROFILER_STOP(PROF_68K);
-				int a = neo_interrupt(skip_this_frame, emuTaskPtr, emuVideoPtr);
+				int a = neo_interrupt(skip_this_frame, emuTaskCtxPtr, emuVideoPtr);
 
 				/* state handling (we save/load before interrupt) */
 				//state_handling(pending_save_state, pending_load_state);
@@ -819,7 +819,7 @@ void main_loop(void) {
 #endif
 }
 
-void cpu_68k_dpg_step(int skip_this_frame, void *emuTaskPtr, void *emuVideoPtr) {
+void cpu_68k_dpg_step(int skip_this_frame, void *emuTaskCtxPtr, void *emuVideoPtr) {
 	static Uint32 nb_cycle;
 	static Uint32 line_cycle;
 	Uint32 cpu_68k_timeslice = 200000;
@@ -835,9 +835,9 @@ void cpu_68k_dpg_step(int skip_this_frame, void *emuTaskPtr, void *emuVideoPtr) 
 	if (nb_cycle >= cpu_68k_timeslice) {
 		nb_cycle = line_cycle = 0;
 		if (conf.raster) {
-			update_screen(skip_this_frame, emuTaskPtr, emuVideoPtr);
+			update_screen(skip_this_frame, emuTaskCtxPtr, emuVideoPtr);
 		} else {
-			neo_interrupt(skip_this_frame, emuTaskPtr, emuVideoPtr);
+			neo_interrupt(skip_this_frame, emuTaskCtxPtr, emuVideoPtr);
 		}
 		//state_handling(pending_save_state, pending_load_state);
 		cpu_68k_interrupt(1);
@@ -845,7 +845,7 @@ void cpu_68k_dpg_step(int skip_this_frame, void *emuTaskPtr, void *emuVideoPtr) 
 		if (line_cycle >= cpu_68k_timeslice_scanline) {
 			line_cycle = 0;
 			if (conf.raster) {
-				if (update_scanline(skip_this_frame, emuTaskPtr, emuVideoPtr))
+				if (update_scanline(skip_this_frame, emuTaskCtxPtr, emuVideoPtr))
 					cpu_68k_interrupt(2);
 			}
 		}

@@ -68,7 +68,7 @@ extern "C"
 }
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVice Team\nwww.viceteam.org";
-IG::Semaphore execSem{0}, execDoneSem{0};
+std::binary_semaphore execSem{0}, execDoneSem{0};
 EmuAudio *audioPtr{};
 static bool c64IsInit = false, c64FailedInit = false;
 FS::PathString firmwareBasePath{};
@@ -648,18 +648,18 @@ static void execC64Frame()
 {
 	startCanvasRunningFrame();
 	// signal C64 thread to execute one frame and wait for it to finish
-	execSem.notify();
-	execDoneSem.wait();
+	execSem.release();
+	execDoneSem.acquire();
 }
 
-void EmuSystem::runFrame(EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
+void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	audioPtr = audio;
 	setCanvasSkipFrame(!video);
 	execC64Frame();
 	if(video)
 	{
-		video->startFrameWithFormat(task, canvasSrcPix);
+		video->startFrameWithFormat(taskCtx, canvasSrcPix);
 	}
 	audioPtr = {};
 }
@@ -728,7 +728,7 @@ EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
 	IG::makeDetachedThread(
 		[]()
 		{
-			execSem.wait();
+			execSem.acquire();
 			logMsg("starting maincpu_mainloop()");
 			plugin.maincpu_mainloop();
 		});

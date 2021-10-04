@@ -340,7 +340,7 @@ unsigned EmuSystem::translateInputAction(unsigned input, bool &turbo)
 
 static void handleKeyboardInput(unsigned key, Input::Action action, uint32_t metaState = {}, bool positionalShift = {})
 {
-	logMsg("key:%u %d", key, (int)action);
+	//logMsg("key:%u %d", key, (int)action);
 	int mod{};
 	if(metaState & Input::Meta::SHIFT)
 	{

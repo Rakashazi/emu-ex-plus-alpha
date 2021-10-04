@@ -234,8 +234,6 @@ void EmuApp::saveConfigFile(IO &io)
 	writeOptionValue(io, CFGKEY_WINDOW_PIXEL_FORMAT, windowDrawablePixelFormatOption());
 	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, windowDrawableColorSpaceOption());
 	writeOptionValue(io, CFGKEY_RENDER_PIXEL_FORMAT, renderPixelFormatOption());
-	if(shouldRunFramesInThread())
-		writeOptionValue(io, CFGKEY_RUN_FRAMES_IN_THREAD, true);
 	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	if(mogaManagerPtr)
 		writeOptionValue(io, CFGKEY_MOGA_INPUT_SYSTEM, true);
@@ -523,7 +521,6 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				}
 				bcase CFGKEY_WINDOW_PIXEL_FORMAT: pendingWindowDrawableConf.pixelFormat = readOptionValue<IG::PixelFormat>(io, size, windowPixelFormatIsValid).value_or(IG::PixelFormat{});
 				bcase CFGKEY_VIDEO_COLOR_SPACE: pendingWindowDrawableConf.colorSpace = readOptionValue<Gfx::ColorSpace>(io, size, colorSpaceIsValid).value_or(Gfx::ColorSpace{});
-				bcase CFGKEY_RUN_FRAMES_IN_THREAD: setShouldRunFramesInThread(readOptionValue<bool>(io, size).value_or(false));
 				bcase CFGKEY_INPUT_KEY_CONFIGS:
 				{
 					if(!readKeyConfig(io, size, inputControlCategories()))

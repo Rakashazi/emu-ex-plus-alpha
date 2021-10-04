@@ -144,7 +144,7 @@ void GLDisplay::resetCurrentContext() const
 {
 	if(Config::DEBUG_BUILD)
 	{
-		logDMsg("setting no context current on thread:0x%lx", IG::thisThreadID<long>());
+		logDMsg("setting no context current on thread:%d", IG::thisThreadId());
 	}
 	if(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) == EGL_FALSE)
 	{
@@ -247,7 +247,7 @@ void GLContext::setCurrentContext(NativeGLDrawable surface) const
 	{
 		if(Config::DEBUG_BUILD)
 		{
-			logDMsg("setting dummy pbuffer current on context:%p thread:0x%lx", context.get(), IG::thisThreadID<long>());
+			logDMsg("setting dummy pbuffer current on context:%p thread:%d", context.get(), IG::thisThreadId());
 		}
 		auto dpy = display();
 		auto dummyPbuff = makeDummyPbuffer(dpy, *dummyPbuffConfig);
@@ -266,7 +266,7 @@ void GLContext::setCurrentContext(NativeGLDrawable surface) const
 	}
 	if(Config::DEBUG_BUILD)
 	{
-		logDMsg("setting surface:%p current on context:%p thread:0x%lx", surface, context.get(), IG::thisThreadID<long>());
+		logDMsg("setting surface:%p current on context:%p thread:%d", surface, context.get(), IG::thisThreadId());
 	}
 	if(eglMakeCurrent(display(), surface, surface, context.get()) == EGL_FALSE)
 	{

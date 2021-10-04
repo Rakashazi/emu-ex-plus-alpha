@@ -23,6 +23,7 @@
 #include "GBALink.h"
 #include <imagine/logger/logger.h>
 #include <imagine/io/FileIO.hh>
+#include <emuframework/EmuSystemTaskContext.hh>
 
 #ifdef PROFILING
 #include "prof/prof.h"
@@ -3209,7 +3210,7 @@ void CPUInterrupt(GBASys &gba, ARM7TDMI &cpu)
 	gba.biosProtected[3] = 0xe5;
 }
 
-void CPULoop(GBASys &gba, EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
+void CPULoop(GBASys &gba, EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio *audio)
 {
 	auto cpu = gba.cpu;
 	auto &holdState = cpu.holdState;
@@ -3425,7 +3426,7 @@ void CPULoop(GBASys &gba, EmuSystemTask *task, EmuVideo *video, EmuAudio *audio)
             }
             if(ioMem.VCOUNT == 159 && video)
             {
-            	systemDrawScreen(task, *video);
+            	systemDrawScreen(taskCtx, *video);
             }
             // entering H-Blank
             ioMem.DISPSTAT |= 2;

@@ -312,7 +312,7 @@ IG::Time EmuSystem::benchmark(EmuVideo &video)
 	auto now = IG::steadyClockTimestamp();
 	iterateTimes(180, i)
 	{
-		runFrame(nullptr, &video, nullptr);
+		runFrame({}, &video, nullptr);
 	}
 	auto after = IG::steadyClockTimestamp();
 	return after-now;

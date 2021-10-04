@@ -396,7 +396,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 				return;
 			if(Config::DEBUG_BUILD)
 			{
-				logDMsg("detaching JNI thread:0x%lx", IG::thisThreadID<long>());
+				logDMsg("detaching JNI thread:%d", IG::thisThreadId());
 			}
 			jVM->DetachCurrentThread();
 		});
@@ -535,7 +535,7 @@ JNIEnv* AndroidApplication::thisThreadJniEnv() const
 	{
 		if(Config::DEBUG_BUILD)
 		{
-			logDMsg("attaching JNI thread:0x%lx", IG::thisThreadID<long>());
+			logDMsg("attaching JNI thread:%d", IG::thisThreadId());
 		}
 		assumeExpr(jVM);
 		if(jVM->AttachCurrentThread(&env, nullptr) != 0)

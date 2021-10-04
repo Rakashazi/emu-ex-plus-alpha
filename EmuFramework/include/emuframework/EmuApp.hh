@@ -156,11 +156,9 @@ public:
 	static std::unique_ptr<View> makeView(ViewAttachParams, ViewID);
 	void applyOSNavStyle(Base::ApplicationContext, bool inGame);
 	void setCPUNeedsLowLatency(Base::ApplicationContext, bool needed);
-	void runFrames(EmuSystemTask *, EmuVideo *, EmuAudio *, int frames, bool skipForward);
-	void skipFrames(EmuSystemTask *, uint32_t frames, EmuAudio *);
-	bool skipForwardFrames(EmuSystemTask *task, uint32_t frames);
-	bool shouldRunFramesInThread() const;
-	void setShouldRunFramesInThread(bool on);
+	void runFrames(EmuSystemTaskContext, EmuVideo *, EmuAudio *, int frames, bool skipForward);
+	void skipFrames(EmuSystemTaskContext, uint32_t frames, EmuAudio *);
+	bool skipForwardFrames(EmuSystemTaskContext, uint32_t frames);
 	void buildKeyInputMapping();
 	const KeyMapping &keyInputMapping();
 	std::vector<InputDeviceConfig> &inputDeviceConfigs();
@@ -303,7 +301,6 @@ protected:
 	#endif
 	Gfx::DrawableConfig windowDrawableConf{};
 	IG::PixelFormat renderPixelFmt{};
-	bool runFramesInThread{};
 
 	class ConfigParams
 	{

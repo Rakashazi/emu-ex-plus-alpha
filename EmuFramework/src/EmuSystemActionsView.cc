@@ -262,7 +262,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 				[this]()
 				{
 					app().video().takeGameScreenshot();
-					EmuSystem::runFrame(nullptr, &app().video(), nullptr);
+					EmuSystem::runFrame({}, &app().video(), nullptr);
 				});
 			pushAndShowModal(std::move(ynAlertView), e);
 		}

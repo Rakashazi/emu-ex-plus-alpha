@@ -8,7 +8,7 @@
 #include "settings-common.h"
 
 class EmuVideo;
-class EmuSystemTask;
+#include <emuframework/EmuSystemTaskContext.hh>
 #ifdef WANT_DEBUGGER
 // #ifdef WANT_DEBUGGER
 // typedef struct DebuggerInfoStruct;
@@ -396,7 +396,7 @@ struct EmulateSpecStruct
 	int skip = false;
 
 	// Calls MDFND_commitVideoFrame upon drawing a frame if non-null. Set by the driver code.
-	EmuSystemTask *task{};
+	EmuSystemTaskContext taskCtx{};
 	EmuVideo *video{};
 
 	//
