@@ -40,11 +40,11 @@ public:
 	~GlibFDEventSource();
 
 protected:
-	IG_enableMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
+	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
 	GSource *source{};
 	gpointer tag{};
 	int fd_ = -1;
-	IG_enableMemberIfOrConstant(Config::DEBUG_BUILD, bool, true, usingGlibSource){};
+	IG_UseMemberIfOrConstant(Config::DEBUG_BUILD, bool, true, usingGlibSource){};
 
 	bool attachGSource(GSource *, GIOCondition events, GMainContext *);
 	void deinit();

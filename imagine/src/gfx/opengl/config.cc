@@ -182,7 +182,7 @@ void GLRenderer::setupBGRPixelSupport()
 void GLRenderer::setupFBOFuncs(bool &useFBOFuncs)
 {
 	useFBOFuncs = true;
-	#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
+	#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES == 1
 	support.generateMipmaps = glGenerateMipmapOES;
 	#elif !defined CONFIG_GFX_OPENGL_ES
 	support.generateMipmaps = glGenerateMipmap;

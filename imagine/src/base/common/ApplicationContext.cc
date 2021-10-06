@@ -290,6 +290,8 @@ void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDeleg
 
 [[gnu::weak]] NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const { return {}; }
 
+[[gnu::weak]] bool ApplicationContext::packageIsInstalled(const char *name) const { return false; }
+
 OnExit::OnExit(ResumeDelegate del, ApplicationContext ctx, int priority): del{del}, ctx{ctx}
 {
 	ctx.addOnExit(del, priority);

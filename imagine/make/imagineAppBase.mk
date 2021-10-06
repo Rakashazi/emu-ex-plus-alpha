@@ -9,7 +9,7 @@ genMetaH = $(genPath)/meta.h
 
 .SUFFIXES: 
 .PHONY: all main config metadata-header
-all : $(genConfigH) $(genMetaH) main
+all : main
 
 ifdef makeConfigH
 # config.h is only built if not present, needs manual deletion to update

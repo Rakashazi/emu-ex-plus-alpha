@@ -85,9 +85,9 @@ protected:
 	std::array<GLuint, 6> streamVBO{};
 	uint32_t streamVBOIdx = 0;
 	#endif
-	IG_enableMemberIf(Config::Gfx::GLDRAWABLE_NEEDS_FRAMEBUFFER, GLuint, defaultFB){};
+	IG_UseMemberIf(Config::Gfx::GLDRAWABLE_NEEDS_FRAMEBUFFER, GLuint, defaultFB){};
 	GLuint fbo = 0;
-	IG_enableMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, debugEnabled){};
+	IG_UseMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, debugEnabled){};
 
 	void doPreDraw(Base::Window &win, Base::WindowDrawParams winParams, DrawParams &params) const;
 };

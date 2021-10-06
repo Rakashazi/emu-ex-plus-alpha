@@ -15,12 +15,34 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <jni.h>
 #include <imagine/util/string.h>
 #include <imagine/util/concepts.hh>
 #include <cassert>
 #include <cstddef>
 #include <iterator>
+#if __has_include(<jni.h>)
+#include <jni.h>
+#else
+// dummy implementation to allow header inclusion but not use
+#define DUMMY_JNI_IMPL
+using jobject  = void*;
+using jclass  = int*;
+using jstring = char*;
+using jfieldID = void*;
+using jmethodID = void*;
+using jboolean = bool;
+using jbyte = int8_t;
+using jchar = uint16_t;
+using jshort = int16_t;
+using jint = int32_t;
+using jlong = int64_t;
+using jfloat = float;
+using jdouble = double;
+struct JNIEnv
+{
+	constexpr jclass GetObjectClass(jobject) const { return {}; }
+};
+#endif
 
 namespace JNI
 {
@@ -28,6 +50,7 @@ namespace JNI
 jmethodID getJNIStaticMethodID(JNIEnv *env, jclass cls, const char *fName, const char *sig);
 jmethodID getJNIMethodID(JNIEnv *env, jclass cls, const char *fName, const char *sig);
 
+#ifndef DUMMY_JNI_IMPL
 template<IG::same_as<void> R>
 static void callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
 {
@@ -147,6 +170,7 @@ static jdouble callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, au
 {
 	return env->CallStaticDoubleMethod(cls, method, std::forward<decltype(args)>(args)...);
 }
+#endif
 
 template <class T> class ClassMethod {};
 
@@ -253,6 +277,7 @@ protected:
 	jobject obj{};
 };
 
+#ifndef DUMMY_JNI_IMPL
 template <class Container>
 static Container stringCopy(JNIEnv *env, jstring jstr)
 {
@@ -266,6 +291,7 @@ static Container stringCopy(JNIEnv *env, jstring jstr)
 	env->ReleaseStringUTFChars(jstr, utfChars);
 	return c;
 }
+#endif
 
 class LockedLocalBitmap
 {
@@ -288,3 +314,5 @@ protected:
 };
 
 }
+
+#undef DUMMY_JNI_IMPL

@@ -29,30 +29,25 @@ namespace Config
 	{
 	#ifndef CONFIG_GFX_OPENGL_ES
 		#if defined CONFIG_BASE_IOS || defined __ANDROID__ || defined CONFIG_MACHINE_PANDORA
-		#define CONFIG_GFX_OPENGL_ES
+		#define CONFIG_GFX_OPENGL_ES 2
 		#endif
 	#endif
 
-	#if defined CONFIG_GFX_OPENGL_ES && !defined CONFIG_GFX_OPENGL_ES_MAJOR_VERSION
-	#error "Configuration error, CONFIG_GFX_OPENGL_ES set but CONFIG_GFX_OPENGL_ES_MAJOR_VERSION unset"
-	#endif
-
-	#ifdef CONFIG_GFX_OPENGL_ES_MAJOR_VERSION
-	static constexpr int OPENGL_ES = CONFIG_GFX_OPENGL_ES_MAJOR_VERSION;
+	#ifdef CONFIG_GFX_OPENGL_ES
+	static constexpr int OPENGL_ES = CONFIG_GFX_OPENGL_ES;
 	#else
 	static constexpr int OPENGL_ES = 0;
-	#define CONFIG_GFX_OPENGL_ES_MAJOR_VERSION 0
 	#endif
 
 	#if !defined CONFIG_BASE_MACOSX && \
-	((defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1) || !defined CONFIG_GFX_OPENGL_ES)
+	((defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES == 1) || !defined CONFIG_GFX_OPENGL_ES)
 	#define CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE
 	static constexpr bool OPENGL_FIXED_FUNCTION_PIPELINE = true;
 	#else
 	static constexpr bool OPENGL_FIXED_FUNCTION_PIPELINE = false;
 	#endif
 
-	#if (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 2) || !defined CONFIG_GFX_OPENGL_ES
+	#if (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES == 2) || !defined CONFIG_GFX_OPENGL_ES
 	#define CONFIG_GFX_OPENGL_SHADER_PIPELINE
 	static constexpr bool OPENGL_SHADER_PIPELINE = true;
 	#else

@@ -61,7 +61,6 @@ public:
 	SustainedPerformanceType sustainedPerformanceModeType() const;
 	void setSustainedPerformanceMode(bool on);
 	bool apkSignatureIsConsistent() const;
-	bool packageIsInstalled(const char *name) const;
 
 	// Input system functions
 	void enumInputDevices() const;

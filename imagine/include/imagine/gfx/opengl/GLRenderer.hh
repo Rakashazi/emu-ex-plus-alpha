@@ -112,7 +112,7 @@ public:
 	void GL_APIENTRY (*glDebugMessageCallback)(GLDEBUGPROC callback, const void *userParam){};
 	static constexpr auto DEBUG_OUTPUT = GL_DEBUG_OUTPUT;
 	#endif
-	#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
+	#if defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES > 1
 	static void generateMipmaps(GLenum target) { ::glGenerateMipmap(target); };
 	#else
 	using GenerateMipmapsProto = void (* GL_APIENTRY)(GLenum target);
@@ -126,7 +126,7 @@ public:
 	GLenum alphaInternalFormat = GL_ALPHA8;
 	TextureSizeSupport textureSizeSupport{};
 	//bool hasMemoryBarrier = false;
-	IG_enableMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, hasBGRPixels){};
+	IG_UseMemberIfOrConstant((bool)Config::Gfx::OPENGL_ES, bool, true, hasBGRPixels){};
 	bool hasVBOFuncs{};
 	bool hasTextureSwizzle{};
 	bool hasUnpackRowLength = !Config::Gfx::OPENGL_ES;
@@ -134,11 +134,11 @@ public:
 	bool hasImmutableTexStorage{};
 	bool hasPBOFuncs{};
 	bool useLegacyGLSL = Config::Gfx::OPENGL_ES;
-	IG_enableMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, hasDebugOutput){};
-	IG_enableMemberIf(!Config::Gfx::OPENGL_ES, bool, hasBufferStorage){};
-	IG_enableMemberIf(Config::envIsAndroid, bool, hasEGLImages){};
-	IG_enableMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, bool, hasExternalEGLImages){};
-	IG_enableMemberIf(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE, bool, useFixedFunctionPipeline){true};
+	IG_UseMemberIf(Config::Gfx::OPENGL_DEBUG_CONTEXT, bool, hasDebugOutput){};
+	IG_UseMemberIf(!Config::Gfx::OPENGL_ES, bool, hasBufferStorage){};
+	IG_UseMemberIf(Config::envIsAndroid, bool, hasEGLImages){};
+	IG_UseMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, bool, hasExternalEGLImages){};
+	IG_UseMemberIf(Config::Gfx::OPENGL_FIXED_FUNCTION_PIPELINE, bool, useFixedFunctionPipeline){true};
 	bool hasSrgbWriteControl{};
 	bool isConfigured{};
 
@@ -166,8 +166,8 @@ struct GLCommonPrograms
 	// no texture
 	NativeProgramBundle noTex{};
 	// external textures
-	IG_enableMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, NativeProgramBundle, texExternalReplace){};
-	IG_enableMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, NativeProgramBundle, texExternal){};
+	IG_UseMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, NativeProgramBundle, texExternalReplace){};
+	IG_UseMemberIf(Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL, NativeProgramBundle, texExternal){};
 };
 
 struct GLCommonSamplers
@@ -189,7 +189,7 @@ public:
 	GLCommonPrograms commonProgram{};
 	GLCommonSamplers commonSampler{};
 	Base::CustomEvent releaseShaderCompilerEvent{Base::CustomEvent::NullInit{}};
-	IG_enableMemberIf(Config::Gfx::OPENGL_SHADER_PIPELINE, GLuint, defaultVShader_){};
+	IG_UseMemberIf(Config::Gfx::OPENGL_SHADER_PIPELINE, GLuint, defaultVShader_){};
 
 	GLRenderer(Base::ApplicationContext, Error &err);
 	void setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat) const;

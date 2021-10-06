@@ -85,7 +85,7 @@ private:
 	int w = 0, h = 0;
 	float wMM = 0, hMM = 0;
 	IG::Rect2<int> relYFlipViewport;
-	IG_enableMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Base::Orientation,
+	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Base::Orientation,
 		Base::VIEW_ROTATE_0, softOrientation_){Base::VIEW_ROTATE_0};
 };
 

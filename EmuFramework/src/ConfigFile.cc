@@ -234,10 +234,11 @@ void EmuApp::saveConfigFile(IO &io)
 	writeOptionValue(io, CFGKEY_WINDOW_PIXEL_FORMAT, windowDrawablePixelFormatOption());
 	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, windowDrawableColorSpaceOption());
 	writeOptionValue(io, CFGKEY_RENDER_PIXEL_FORMAT, renderPixelFormatOption());
-	#ifdef CONFIG_INPUT_ANDROID_MOGA
-	if(mogaManagerPtr)
-		writeOptionValue(io, CFGKEY_MOGA_INPUT_SYSTEM, true);
-	#endif
+	if constexpr(Config::EmuFramework::MOGA_INPUT)
+	{
+		if(mogaManagerPtr)
+			writeOptionValue(io, CFGKEY_MOGA_INPUT_SYSTEM, true);
+	}
 	vController.writeConfig(io);
 
 	if(customKeyConfig.size())
@@ -484,13 +485,14 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 				bcase CFGKEY_NOTIFY_INPUT_DEVICE_CHANGE: optionNotifyInputDeviceChange.readFromIO(io, size);
 				#endif
-				#ifdef CONFIG_INPUT_ANDROID_MOGA
 				bcase CFGKEY_MOGA_INPUT_SYSTEM:
-					if(readOptionValue<bool>(io, size).value_or(false))
+					if constexpr(Config::EmuFramework::MOGA_INPUT)
 					{
-						setMogaManagerActive(true, false);
+						if(readOptionValue<bool>(io, size).value_or(false))
+						{
+							setMogaManagerActive(true, false);
+						}
 					}
-				#endif
 				bcase CFGKEY_TEXTURE_BUFFER_MODE: optionTextureBufferMode.readFromIO(io, size);
 				#if defined __ANDROID__
 				bcase CFGKEY_LOW_PROFILE_OS_NAV: optionLowProfileOSNav.readFromIO(io, size);

@@ -155,7 +155,7 @@ FS::PathString EmuSystem::baseSavePath(Base::ApplicationContext ctx)
 static bool hasWriteAccessToDir(Base::ApplicationContext ctx, const char *path)
 {
 	auto hasAccess = FS::access(path, FS::acc::w);
-	#ifdef CONFIG_BASE_ANDROID
+	#ifdef __ANDROID__
 	// on Android 4.4 also test file creation since
 	// access() can still claim an SD card is writable
 	// even though parts are locked-down by the OS

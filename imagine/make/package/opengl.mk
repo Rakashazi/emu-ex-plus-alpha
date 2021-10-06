@@ -38,11 +38,10 @@ else ifeq ($(ENV), webos)
 endif
 
 ifeq ($(openGLAPI), gles)
- configDefs += CONFIG_GFX_OPENGL_ES
  ifndef openGLESVersion
   $(error openGLESVersion isn't defined)
  endif
- configDefs += CONFIG_GFX_OPENGL_ES_MAJOR_VERSION=$(openGLESVersion)
+ configDefs += CONFIG_GFX_OPENGL_ES=$(openGLESVersion)
 endif
 
 endif

@@ -56,7 +56,7 @@ bool AndroidApplicationContext::apkSignatureIsConsistent() const
 	return sigMatchesAPK;
 }
 
-bool AndroidApplicationContext::packageIsInstalled(const char *name) const
+bool ApplicationContext::packageIsInstalled(const char *name) const
 {
 	auto env = mainThreadJniEnv();
 	auto baseActivity = baseActivityObject();

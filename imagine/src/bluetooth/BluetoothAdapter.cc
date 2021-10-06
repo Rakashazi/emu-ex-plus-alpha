@@ -29,7 +29,7 @@ BluetoothAdapter *BluetoothAdapter::defaultAdapter(Base::ApplicationContext ctx)
 	return AndroidBluetoothAdapter::defaultAdapter(ctx);
 	#elif defined CONFIG_BLUETOOTH_BTSTACK
 	return BtstackBluetoothAdapter::defaultAdapter(ctx);
-	#elif defined CONFIG_BLUETOOTH_BLUEZ && !defined CONFIG_BASE_ANDROID
+	#elif defined CONFIG_BLUETOOTH_BLUEZ
 	return BluezBluetoothAdapter::defaultAdapter(ctx);
 	#else
 	#error "no Bluetooth back-ends are selected"

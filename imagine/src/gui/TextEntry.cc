@@ -164,53 +164,53 @@ CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *
 	onTextD{onText}
 {
 	face = face ? face : &attach.viewManager().defaultFace();
-	#ifndef CONFIG_BASE_ANDROID
-	if(manager().needsBackControl() && closeRes)
-	{
-		cancelSpr = {{{-.5, -.5}, {.5, .5}}, closeRes};
-		if(cancelSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
-			renderer().autoReleaseShaderCompiler();
-	}
-	#endif
+	IG::doIfUsed(cancelSpr,
+		[&](auto &cancelSpr)
+		{
+			if(manager().needsBackControl() && closeRes)
+			{
+				cancelSpr = {{{-.5, -.5}, {.5, .5}}, closeRes};
+				if(cancelSpr.compileDefaultProgram(Gfx::IMG_MODE_MODULATE))
+					renderer().autoReleaseShaderCompiler();
+			}
+		});
 	message = {msgText, face};
-	[](auto &textEntry)
-	{
-		if constexpr(!Config::Input::SYSTEM_COLLECTS_TEXT)
+	IG::doIfUsed(textEntry,
+		[](auto &textEntry)
 		{
 			textEntry.setAcceptingInput(true);
-		}
-	}(textEntry);
+		});
 }
 
 void CollectTextInputView::place()
 {
 	using namespace Gfx;
 	auto &face = *message.face();
-	#ifndef CONFIG_BASE_ANDROID
-	if(cancelSpr.image())
-	{
-		cancelBtn.setPosRel(viewRect().pos(RT2DO), face.nominalHeight() * 1.75, RT2DO);
-		cancelSpr.setPos(projP.unProjectRect(cancelBtn));
-	}
-	#endif
+	IG::doIfUsed(cancelSpr,
+		[&](auto &cancelSpr)
+		{
+			if(cancelSpr.image())
+			{
+				cancelBtn.setPosRel(viewRect().pos(RT2DO), face.nominalHeight() * 1.75, RT2DO);
+				cancelSpr.setPos(projP.unProjectRect(cancelBtn));
+			}
+		});
 	message.setMaxLineSize(projP.width() * 0.95);
 	message.compile(renderer(), projP);
-	[&](auto &textEntry)
-	{
-		IG::WindowRect textRect;
-		int xSize = viewRect().xSize() * 0.95;
-		int ySize = face.nominalHeight() * (Config::envIsAndroid ? 2. : 1.5);
-		if constexpr(!Config::Input::SYSTEM_COLLECTS_TEXT)
+	IG::WindowRect textRect;
+	int xSize = viewRect().xSize() * 0.95;
+	int ySize = face.nominalHeight() * (Config::envIsAndroid ? 2. : 1.5);
+	IG::doIfUsedOr(textEntry,
+		[&](auto &textEntry)
 		{
 			textRect.setPosRel(viewRect().pos(C2DO), {xSize, ySize}, C2DO);
 			textEntry.place(renderer(), textRect, projP);
-		}
-		else
+		},
+		[&]()
 		{
 			textRect.setPosRel(viewRect().pos(C2DO) - IG::WP{0, (int)viewRect().ySize()/4}, {xSize, ySize}, C2DO);
 			textField.place(textRect);
-		}
-	}(textEntry);
+		});
 }
 
 bool CollectTextInputView::inputEvent(Input::Event e)
@@ -223,57 +223,54 @@ bool CollectTextInputView::inputEvent(Input::Event e)
 			return true;
 		}
 	}
-	return [&](auto &textEntry)
+	return IG::doIfUsedOr(textEntry,
+		[&](auto &textEntry)
 		{
-			if constexpr(!Config::Input::SYSTEM_COLLECTS_TEXT)
+			bool acceptingInput = textEntry.isAcceptingInput();
+			bool handled = textEntry.inputEvent(*this, e);
+			if(!textEntry.isAcceptingInput() && acceptingInput)
 			{
-				bool acceptingInput = textEntry.isAcceptingInput();
-				bool handled = textEntry.inputEvent(*this, e);
-				if(!textEntry.isAcceptingInput() && acceptingInput)
+				logMsg("calling on-text delegate");
+				if(onTextD.callCopy(*this, textEntry.textStr()))
 				{
-					logMsg("calling on-text delegate");
-					if(onTextD.callCopy(*this, textEntry.textStr()))
-					{
-						textEntry.setAcceptingInput(1);
-					}
+					textEntry.setAcceptingInput(1);
 				}
-				return handled;
 			}
-			else
-			{
-				return false;
-			}
-		}(textEntry);
+			return handled;
+		},
+		[]()
+		{
+			return false;
+		});
 }
 
 void CollectTextInputView::prepareDraw()
 {
 	message.makeGlyphs(renderer());
-	[this](auto &textEntry)
-	{
-		if constexpr(!Config::Input::SYSTEM_COLLECTS_TEXT)
+	IG::doIfUsed(textEntry,
+		[this](auto &textEntry)
 		{
 			textEntry.prepareDraw(renderer());
-		}
-	}(textEntry);
+		});
 }
 
 void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 {
 	using namespace Gfx;
-	#ifndef CONFIG_BASE_ANDROID
-	if(cancelSpr.image())
-	{
-		cmds.set(ColorName::WHITE);
-		cmds.setBlendMode(BLEND_MODE_ALPHA);
-		cmds.set(imageCommonTextureSampler);
-		cancelSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, projP.makeTranslate());
-		cancelSpr.draw(cmds);
-	}
-	#endif
-	[&](auto &textEntry)
-	{
-		if constexpr(!Config::Input::SYSTEM_COLLECTS_TEXT)
+	IG::doIfUsed(cancelSpr,
+		[&](auto &cancelSpr)
+		{
+			if(cancelSpr.image())
+			{
+				cmds.set(ColorName::WHITE);
+				cmds.setBlendMode(BLEND_MODE_ALPHA);
+				cmds.set(imageCommonTextureSampler);
+				cancelSpr.setCommonProgram(cmds, IMG_MODE_MODULATE, projP.makeTranslate());
+				cancelSpr.draw(cmds);
+			}
+		});
+	IG::doIfUsedOr(textEntry,
+		[&](auto &textEntry)
 		{
 			cmds.setColor(0.25);
 			cmds.setCommonProgram(CommonProgram::NO_TEX, projP.makeTranslate());
@@ -282,12 +279,11 @@ void CollectTextInputView::draw(Gfx::RendererCommands &cmds)
 			textEntry.draw(cmds);
 			cmds.setCommonProgram(CommonProgram::TEX_ALPHA);
 			message.draw(cmds, 0, projP.unprojectY(textEntry.bgRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
-		}
-		else
+		},
+		[&]()
 		{
 			cmds.set(ColorName::WHITE);
 			cmds.setCommonProgram(CommonProgram::TEX_ALPHA, projP.makeTranslate());
 			message.draw(cmds, 0, projP.unprojectY(textField.windowRect().pos(C2DO).y) + message.nominalHeight(), CB2DO, projP);
-		}
-	}(textEntry);
+		});
 }

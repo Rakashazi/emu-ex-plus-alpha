@@ -19,7 +19,7 @@
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XApplicationContext.hh>
-#elif defined CONFIG_BASE_ANDROID
+#elif defined __ANDROID__
 #include <imagine/base/android/AndroidApplicationContext.hh>
 #elif defined CONFIG_BASE_IOS
 #include <imagine/base/iphone/IOSApplicationContext.hh>
@@ -144,6 +144,7 @@ public:
 
 	// external services
 	void openURL(const char *url) const;
+	bool packageIsInstalled(const char *name) const;
 
 	// file system paths & asset loading, thread-safe
 	FS::PathString assetPath(const char *appName = applicationName) const;

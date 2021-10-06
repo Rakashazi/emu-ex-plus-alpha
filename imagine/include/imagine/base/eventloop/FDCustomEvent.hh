@@ -55,7 +55,7 @@ public:
 	}
 
 protected:
-	IG_enableMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
+	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
 	FDEventSource fdSrc{};
 
 	const char *label();

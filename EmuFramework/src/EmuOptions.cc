@@ -197,7 +197,7 @@ void EmuApp::initOptions(Base::ApplicationContext ctx)
 		optionFontSize.initDefault(5000);
 	#endif
 
-	#ifdef CONFIG_BASE_ANDROID
+	#ifdef __ANDROID__
 	if(ctx.hasHardwareNavButtons())
 	{
 		optionLowProfileOSNav.isConst = 1;

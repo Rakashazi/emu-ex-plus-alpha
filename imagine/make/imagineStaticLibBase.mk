@@ -8,7 +8,7 @@ endif
 
 .SUFFIXES: 
 .PHONY: all main config
-all : $(genConfigH) config main
+all : main
 
 ifdef makeConfigH
 # config file is only built if not present, needs manual deletion to update

@@ -5,6 +5,8 @@ ifdef STDCXXINC
  CPPFLAGS += $(STDCXXINC)
 endif
 
+$(OBJ) : $(genConfigH)
+
 targetFile := $(target).a
 
 $(targetDir)/$(targetFile) : $(OBJ)
@@ -24,9 +26,10 @@ $(genPkgConf) : $(imaginePkgconfigTemplate)
 	-e 's:CFLAGS:$(pkgCFlags):' \
 	-e 's:LIBS:$(LDLIBS):' < $(imaginePkgconfigTemplate) > $@
 
-config : $(genPkgConf)
+.PHONY: pkgconfig
+pkgconfig : $(genPkgConf)
 
-main: $(targetDir)/$(targetFile)
+main: $(targetDir)/$(targetFile) $(genPkgConf)
 
 .PHONY: clean
 clean :

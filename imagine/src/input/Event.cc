@@ -111,7 +111,7 @@ bool Event::isDefaultConfirmButton(uint32_t swapped) const
 				default: break;
 			}
 			return button == Keycode::ENTER
-			#ifdef CONFIG_BASE_ANDROID
+			#ifdef __ANDROID__
 			|| button == Keycode::CENTER
 			#endif
 			|| ((swapped && isGamepad()) ? isDefaultCancelButton(0) : (button == Keycode::GAME_A || button == Keycode::GAME_1));

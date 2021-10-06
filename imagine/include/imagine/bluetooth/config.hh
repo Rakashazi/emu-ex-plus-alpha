@@ -15,7 +15,15 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/build.h>
+#include <imagine/config/defs.hh>
+
+#if defined __ANDROID__
+#define CONFIG_BLUETOOTH_ANDROID
+#elif defined __APPLE__ && TARGET_OS_IPHONE
+#define CONFIG_BLUETOOTH_BTSTACK
+#elif defined __linux__
+#define CONFIG_BLUETOOTH_BLUEZ
+#endif
 
 #if !defined CONFIG_BLUETOOTH_SERVER
 	#if defined CONFIG_BLUETOOTH_BLUEZ || defined CONFIG_BLUETOOTH_BTSTACK

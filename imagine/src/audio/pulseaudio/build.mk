@@ -1,7 +1,7 @@
 ifndef inc_audio_pa
 inc_audio_pa := 1
 
-configDefs += CONFIG_AUDIO CONFIG_AUDIO_PULSEAUDIO
+configDefs += CONFIG_AUDIO_PULSEAUDIO
 
 ifeq ($(pulseAudioMainLoop), glib)
  configDefs += CONFIG_AUDIO_PULSEAUDIO_GLIB

@@ -477,7 +477,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 				emuSystemTask, emuAudio);
 			applyRenderPixelFormat();
 
-			#if defined CONFIG_BASE_ANDROID
+			#if defined __ANDROID__
 			if(!ctx.apkSignatureIsConsistent())
 			{
 				auto ynAlertView = std::make_unique<YesNoAlertView>(viewAttach, "Warning: App has been modified by 3rd party, use at your own risk");
@@ -1110,7 +1110,6 @@ std::pair<int, FS::PathString> EmuApp::makeNextScreenshotFilename()
 	return {-1, {}};
 }
 
-#ifdef CONFIG_INPUT_ANDROID_MOGA
 bool EmuApp::mogaManagerIsActive() const
 {
 	return (bool)mogaManagerPtr;
@@ -1118,12 +1117,15 @@ bool EmuApp::mogaManagerIsActive() const
 
 void EmuApp::setMogaManagerActive(bool on, bool notify)
 {
-	if(on)
-		mogaManagerPtr = std::make_unique<Input::MogaManager>(appContext(), notify);
-	else
-		mogaManagerPtr.reset();
+	IG::doIfUsed(mogaManagerPtr,
+		[&](auto &mogaManagerPtr)
+		{
+			if(on)
+				mogaManagerPtr = std::make_unique<Input::MogaManager>(appContext(), notify);
+			else
+				mogaManagerPtr.reset();
+		});
 }
-#endif
 
 std::span<const KeyCategory> EmuApp::inputControlCategories() const
 {

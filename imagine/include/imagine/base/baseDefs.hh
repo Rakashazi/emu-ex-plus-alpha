@@ -25,14 +25,12 @@
 namespace Config
 {
 #if defined __ANDROID__
-#define CONFIG_BASE_SUPPORTS_VIBRATOR
 static constexpr bool BASE_SUPPORTS_VIBRATOR = true;
 #else
 static constexpr bool BASE_SUPPORTS_VIBRATOR = false;
 #endif
 
 #if defined __ANDROID__ || (defined __APPLE__ && TARGET_OS_IPHONE)
-#define CONFIG_BASE_CAN_BACKGROUND_APP
 static constexpr bool BASE_CAN_BACKGROUND_APP = true;
 #else
 static constexpr bool BASE_CAN_BACKGROUND_APP = false;
@@ -47,7 +45,6 @@ static constexpr bool BASE_SUPPORTS_ORIENTATION_SENSOR = false;
 
 #if defined __ANDROID__ || defined CONFIG_BASE_IOS
 #define CONFIG_BASE_MULTI_SCREEN
-#define CONFIG_BASE_SCREEN_HOTPLUG
 static constexpr bool BASE_MULTI_SCREEN = true;
 #else
 static constexpr bool BASE_MULTI_SCREEN = false;

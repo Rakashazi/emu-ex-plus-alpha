@@ -40,7 +40,7 @@ private:
 	VController *vController{};
 	EmuVideoLayer *videoLayer{};
 	bool ffToggleActive{};
-	IG_enableMemberIf(Config::envIsAndroid, bool, consumeUnboundGamepadKeys){};
+	IG_UseMemberIf(Config::envIsAndroid, bool, consumeUnboundGamepadKeys){};
 
 	void updateFastforward();
 };

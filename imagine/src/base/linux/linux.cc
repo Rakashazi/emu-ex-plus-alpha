@@ -36,9 +36,7 @@ LinuxApplication::LinuxApplication(ApplicationInitParams initParams):
 	#ifdef CONFIG_BASE_DBUS
 	initDBus();
 	#endif
-	#ifdef CONFIG_INPUT_EVDEV
 	initEvdev(initParams.eventLoop);
-	#endif
 }
 
 LinuxApplication::~LinuxApplication()

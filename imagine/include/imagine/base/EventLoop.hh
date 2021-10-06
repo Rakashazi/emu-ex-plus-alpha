@@ -17,10 +17,11 @@
 
 #include <imagine/config/defs.hh>
 
-#if defined CONFIG_BASE_GLIB
-#include <imagine/base/eventloop/GlibEventLoop.hh>
-#elif defined __ANDROID__
+#if defined __ANDROID__
 #include <imagine/base/eventloop/ALooperEventLoop.hh>
+#elif defined __linux__
+#include <imagine/base/eventloop/GlibEventLoop.hh>
+#define CONFIG_BASE_GLIB
 #elif defined __APPLE__
 #include <imagine/base/eventloop/CFEventLoop.hh>
 #endif

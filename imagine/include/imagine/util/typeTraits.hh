@@ -25,49 +25,78 @@ template<class T> struct dependentFalse : std::false_type {};
 template <class T>
 inline constexpr bool dependentFalseValue = dependentFalse<T>::value;
 
-template <class T, T VALUE, class Tag = bool>
-struct EmptyConstant
+template <class T, T VALUE, int Tag = 0>
+struct ConstantType
 {
 	// accept dummy assignment from any value
-	constexpr EmptyConstant() {}
-	template <class ...Args>
-	constexpr EmptyConstant(Args&& ...) {}
+	constexpr ConstantType() {}
+	constexpr ConstantType(auto && ...) {}
 
 	constexpr operator T() const { return VALUE; };
 };
 
-template <class T, class Tag = bool>
-struct EmptyType
+template <class T, int Tag = 0>
+struct UnusedType
 {
+	struct UnusedTypeTag;
+
 	// accept dummy assignment from any value
-	constexpr EmptyType() {}
-	template <class ...Args>
-	constexpr EmptyType(Args&& ...) {}
+	constexpr UnusedType() {}
+	constexpr UnusedType(auto && ...) {}
 
 	constexpr operator T() const { return {}; };
+	constexpr operator bool() const requires (!IG::same_as<T, bool>) { return false; };
+
+	// can take address of object, but always returns nullptr
+	constexpr T* operator &() const { return nullptr; };
 };
 
-// selects either type T and an empty type that converts to T and returns VALUE,
-// used in combination with [[no_unique_address]] and a unique Tag type to declare
-// a class member that conditionally doesn't consume any space without using the C-preprocessor
-template<bool CONDITION, class T, T VALUE, class Tag = bool>
-using UseTypeIfOrConstant = std::conditional_t<CONDITION, T, EmptyConstant<T, VALUE, Tag>>;
+template <class T>
+concept Unused = requires {typename T::UnusedTypeTag;};
 
-#define IG_enableMemberIfOrConstant(c, t, v, name) \
-	struct name ## EmptyTag{}; \
-	[[no_unique_address]] IG::UseTypeIfOrConstant<(c), t, v, name ## EmptyTag> name
+// selects either type T and an empty type that converts to T and returns VALUE,
+// used in combination with [[no_unique_address]] and a unique Tag value to declare
+// a class member that conditionally doesn't consume any space without using the C-preprocessor
+template<bool CONDITION, class T, T VALUE, int Tag = 0>
+using UseIfOrConstant = std::conditional_t<CONDITION, T, ConstantType<T, VALUE, Tag>>;
+
+#define IG_UseMemberIfOrConstant(c, t, v, name) \
+	[[no_unique_address]] IG::UseIfOrConstant<(c), t, v, __LINE__> name
 
 // same as above but always returns a default constructed value so class types can be used
-template<bool CONDITION, class T, class Tag = bool>
-using UseTypeIf = std::conditional_t<CONDITION, T, EmptyType<T, Tag>>;
+template<bool CONDITION, class T, int Tag = 0>
+using UseIf = std::conditional_t<CONDITION, T, UnusedType<T, Tag>>;
 
-#define IG_enableMemberIf(c, t, name) \
-	struct name ## EmptyTag{}; \
-	[[no_unique_address]] IG::UseTypeIf<(c), t, name ## EmptyTag> name
+#define IG_UseMemberIf(c, t, name) \
+	[[no_unique_address]] IG::UseIf<(c), t, __LINE__> name
 
-static auto &deref(IG::Pointer auto &obj) { return *obj; }
+// test that a variable's type is used in UseIf and not the UnusedType case
+static constexpr bool used(auto &) { return true; }
 
-static auto &deref(IG::NotPointer auto &obj) { return obj; }
+static constexpr bool used(Unused auto &) { return false; }
+
+// invoke func if v's type is used in UseIf
+static constexpr void doIfUsed(auto &v, auto &&func)
+{
+	func(v);
+}
+
+static constexpr void doIfUsed(Unused auto &v, auto &&) {}
+
+// same as above, but invoke defaultFunc if v's type is unused
+static constexpr auto doIfUsedOr(auto &v, auto &&func, auto &&defaultFunc)
+{
+	return func(v);
+}
+
+static constexpr auto doIfUsedOr(Unused auto &v, auto &&func, auto &&defaultFunc)
+{
+	return defaultFunc();
+}
+
+static constexpr auto &deref(IG::Pointer auto &obj) { return *obj; }
+
+static constexpr auto &deref(IG::NotPointer auto &obj) { return obj; }
 
 }
 

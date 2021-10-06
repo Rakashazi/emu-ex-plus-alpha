@@ -5,7 +5,7 @@
 // Header Locations For Platform
 
 #if defined CONFIG_BASE_IOS
-	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
+	#if CONFIG_GFX_OPENGL_ES == 1
 	#import <OpenGLES/ES1/gl.h>
 	#import <OpenGLES/ES1/glext.h>
 	typedef char GLchar;
@@ -23,7 +23,7 @@
 #include <GL/wglew.h>
 #elif defined CONFIG_GFX_OPENGL_ES // Generic OpenGL ES headers
 #define GL_GLEXT_PROTOTYPES
-	#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
+	#if CONFIG_GFX_OPENGL_ES == 1
 	#include <GLES/gl.h>
 	#include <GLES/glext.h>
 	#else
@@ -70,7 +70,7 @@ typedef void (GL_APIENTRY *GLDEBUGPROCKHR)(GLenum source,GLenum type,GLuint id,G
 	#endif
 #endif
 
-#if CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1
+#if CONFIG_GFX_OPENGL_ES == 1
 // un-define ES 2.0 symbols in case headers are implicitly included,
 // such as when including UIKit.h on iOS
 	#ifdef GL_FRAMEBUFFER

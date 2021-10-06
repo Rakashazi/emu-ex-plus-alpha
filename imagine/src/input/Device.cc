@@ -274,7 +274,7 @@ static const char *iCadeButtonName(Key b)
 
 static const char *ps3SysButtonName(Key b)
 {
-	#if defined CONFIG_BASE_ANDROID
+	#if defined __ANDROID__
 	switch(b)
 	{
 		case Keycode::PS3::CROSS: return "Cross";
@@ -291,7 +291,7 @@ static const char *ps3SysButtonName(Key b)
 	#endif
 }
 
-#ifdef CONFIG_BASE_ANDROID
+#ifdef __ANDROID__
 static const char *xperiaPlayButtonName(Key b)
 {
 	switch(b)
@@ -365,7 +365,7 @@ const char *Device::keyName(Key k) const
 				{
 					switch(subtype)
 					{
-						#ifdef CONFIG_BASE_ANDROID
+						#ifdef __ANDROID__
 						case Device::Subtype::XPERIA_PLAY: return xperiaPlayButtonName(k);
 						case Device::Subtype::OUYA_CONTROLLER: return ouyaButtonName(k);
 						case Device::Subtype::PS3_CONTROLLER: return ps3SysButtonName(k);

@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/config/defs.hh>
 #if defined __ANDROID__
 #include <imagine/base/android/AndroidTextField.hh>
 #elif (defined __APPLE__ && TARGET_OS_IPHONE)

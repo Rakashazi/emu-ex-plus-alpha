@@ -405,9 +405,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 	// BaseActivity JNI functions
 	jSetRequestedOrientation = {env, baseActivityClass, "setRequestedOrientation", "(I)V"};
 	jMainDisplayRotation = {env, baseActivityClass, "mainDisplayRotation", "()I"};
-	#ifdef CONFIG_RESOURCE_FONT_ANDROID
 	jNewFontRenderer = {env, baseActivityClass, "newFontRenderer", "()Lcom/imagine/FontRenderer;"};
-	#endif
 	{
 		JNINativeMethod method[]
 		{

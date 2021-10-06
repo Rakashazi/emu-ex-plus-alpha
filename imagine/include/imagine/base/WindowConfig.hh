@@ -17,7 +17,7 @@
 
 #if defined CONFIG_BASE_X11
 #include <imagine/base/x11/XWindow.hh>
-#elif defined CONFIG_BASE_ANDROID
+#elif defined __ANDROID__
 #include <imagine/base/android/AndroidWindow.hh>
 #elif defined CONFIG_BASE_IOS
 #include <imagine/base/iphone/IOSWindow.hh>

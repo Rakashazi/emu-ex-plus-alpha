@@ -19,6 +19,7 @@ base/android/intent.cc \
 base/android/inputConfig.cc \
 base/android/textInput.cc \
 base/android/input.cc \
+base/android/moga.cc \
 base/android/system.cc \
 base/android/surfaceTexture.cc \
 base/android/RootCpufreqParamSetter.cc \
@@ -32,8 +33,5 @@ base/common/SimpleFrameTimer.cc \
 util/jni.cc
 
 LDLIBS += -landroid
-
-configDefs += CONFIG_INPUT_ANDROID_MOGA
-SRC += base/android/moga.cc
 
 endif

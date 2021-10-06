@@ -14,10 +14,6 @@
 #include <imagine/base/win32/inputDefs.hh>
 #endif
 
-#ifdef CONFIG_INPUT_EVDEV
-#include <imagine/input/evdev/inputDefs.hh>
-#endif
-
 namespace Config
 {
 
@@ -25,7 +21,6 @@ namespace Config
 	{
 
 	#if (defined __APPLE__ && TARGET_OS_IPHONE) || defined __ANDROID__
-	#define CONFIG_INPUT_SYSTEM_COLLECTS_TEXT
 	static constexpr bool SYSTEM_COLLECTS_TEXT = true;
 	#else
 	static constexpr bool SYSTEM_COLLECTS_TEXT = false;

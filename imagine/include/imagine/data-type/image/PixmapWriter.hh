@@ -17,16 +17,12 @@
 
 #include <imagine/config/defs.hh>
 
-#ifdef CONFIG_DATA_TYPE_IMAGE_LIBPNG
-#include <imagine/data-type/image/LibPNG.hh>
-#endif
-
-#ifdef CONFIG_DATA_TYPE_IMAGE_QUARTZ2D
-#include <imagine/data-type/image/Quartz2d.hh>
-#endif
-
-#ifdef CONFIG_DATA_TYPE_IMAGE_ANDROID
+#ifdef __ANDROID__
 #include <imagine/data-type/image/Android.hh>
+#elif defined __linux__
+#include <imagine/data-type/image/LibPNG.hh>
+#elif defined __APPLE__
+#include <imagine/data-type/image/Quartz2d.hh>
 #endif
 
 namespace Base

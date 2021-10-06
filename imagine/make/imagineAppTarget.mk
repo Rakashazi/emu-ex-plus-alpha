@@ -16,6 +16,8 @@ endif
 
 LDFLAGS += $(STDCXXLIB)
 
+$(OBJ) : $(genConfigH) $(genMetaH)
+
 targetFile := $(target)$(targetSuffix)$(targetExtension)
 
 linkerLibsDep := $(linkerLibs)

@@ -132,7 +132,7 @@ protected:
 	BoolMenuItem addSoundBuffersOnUnderrun;
 	StaticArrayList<TextMenuItem, 5> audioRateItem{};
 	MultiChoiceMenuItem audioRate;
-	IG_enableMemberIf(IG::Audio::Manager::HAS_SOLO_MIX, BoolMenuItem, audioSoloMix){};
+	IG_UseMemberIf(IG::Audio::Manager::HAS_SOLO_MIX, BoolMenuItem, audioSoloMix){};
 	#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 	StaticArrayList<TextMenuItem, MAX_APIS + 1> apiItem{};
 	MultiChoiceMenuItem api;

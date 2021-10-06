@@ -51,7 +51,7 @@ protected:
 		SamplerParams params{};
 		GLuint name_;
 	};
-	IG_enableMemberIf(Config::DEBUG_BUILD, const char *, debugLabel);
+	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel);
 
 	void deinit();
 };

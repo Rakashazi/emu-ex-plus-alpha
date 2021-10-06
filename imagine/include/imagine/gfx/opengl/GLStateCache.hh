@@ -18,7 +18,7 @@
 #include <imagine/config/env.hh>
 #include <imagine/gfx/defs.hh>
 
-#if !defined CONFIG_GFX_OPENGL_ES || CONFIG_GFX_OPENGL_ES_MAJOR_VERSION > 1
+#if !defined CONFIG_GFX_OPENGL_ES || CONFIG_GFX_OPENGL_ES > 1
 #define HAS_UNPACK_ROW_LENGTH
 #endif
 

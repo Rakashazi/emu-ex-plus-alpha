@@ -21,18 +21,15 @@
 #ifdef CONFIG_BASE_DBUS
 #include <gio/gio.h>
 #endif
-#ifdef CONFIG_INPUT_EVDEV
 #include <imagine/base/EventLoop.hh>
 #include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/input/Device.hh>
 #include <vector>
 #include <memory>
-#endif
 
 struct _XDisplay;
 union _XEvent;
 
-#ifdef CONFIG_INPUT_EVDEV
 namespace Base
 {
 class LinuxApplication;
@@ -67,7 +64,6 @@ protected:
 };
 
 }
-#endif
 
 namespace Base
 {
@@ -98,9 +94,7 @@ public:
 	void setAppPath(FS::PathString);
 
 protected:
-	#ifdef CONFIG_INPUT_EVDEV
 	FDEventSource evdevSrc{};
-	#endif
 	#ifdef CONFIG_BASE_DBUS
 	GDBusConnection *gbus{};
 	unsigned openPathSub{};

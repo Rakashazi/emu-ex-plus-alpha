@@ -43,7 +43,7 @@ public:
 	~CFTimer();
 
 protected:
-	IG_enableMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
+	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
 	CFRunLoopTimerRef timer{};
 	std::unique_ptr<CFTimerInfo> info{};
 

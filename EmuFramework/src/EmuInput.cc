@@ -160,7 +160,7 @@ const KeyConfig &KeyConfig::defaultConfigForDevice(const Input::Device &dev)
 		default: return defaultConfigsForDevice(dev)[0];
 		case Input::Map::SYSTEM:
 		{
-			#if defined CONFIG_BASE_ANDROID || defined CONFIG_BASE_X11
+			#if defined __ANDROID__ || defined CONFIG_BASE_X11
 			unsigned confs = 0;
 			auto conf = defaultConfigsForDevice(dev, confs);
 			iterateTimes(confs, i)

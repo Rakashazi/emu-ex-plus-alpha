@@ -4,7 +4,7 @@ inc_gfx := 1
 include $(imagineSrcDir)/base/system.mk
 include $(imagineSrcDir)/pixmap/build.mk
 
-configDefs += CONFIG_GFX CONFIG_GFX_OPENGL
+configDefs += CONFIG_GFX_OPENGL
 
 ifndef openGLAPI
  ifneq ($(filter ios android,$(ENV)),)

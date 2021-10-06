@@ -65,22 +65,22 @@ protected:
 	DelegateFuncSet<Base::OnFrameDelegate> onFrame{};
 	std::shared_ptr<void> appDataPtr{};
 	std::shared_ptr<void> rendererDataPtr{};
-	IG_enableMemberIf(Config::BASE_MULTI_SCREEN, Screen *, screen_){};
+	IG_UseMemberIf(Config::BASE_MULTI_SCREEN, Screen*, screen_){};
 	Base::CustomEvent drawEvent{"Window::drawEvent"};
 	IG::Point2D<int> winSizePixels{}; // size of full window surface
 	IG::Point2D<float> winSizeMM{}; // size in millimeter
 	IG::Point2D<float> mmToPixelScaler{};
 	 // size in millimeter scaled by OS
-	IG_enableMemberIf(Config::envIsAndroid, IG::Point2D<float>, winSizeSMM){};
-	IG_enableMemberIf(Config::envIsAndroid, IG::Point2D<float>, smmToPixelScaler){};
+	IG_UseMemberIf(Config::envIsAndroid, IG::Point2D<float>, winSizeSMM){};
+	IG_UseMemberIf(Config::envIsAndroid, IG::Point2D<float>, smmToPixelScaler){};
 	bool drawNeeded{};
 	DrawPhase drawPhase{DrawPhase::READY};
 	uint8_t drawEventPriority_{};
 	// all windows need an initial onSurfaceChange call
 	uint8_t surfaceChangeFlags{SurfaceChange::SURFACE_RESIZED | SurfaceChange::CONTENT_RECT_RESIZED};
-	IG_enableMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, softOrientation_){VIEW_ROTATE_0};
-	IG_enableMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, setSoftOrientation){VIEW_ROTATE_0};
-	IG_enableMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, validSoftOrientations_){VIEW_ROTATE_0};
+	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, softOrientation_){VIEW_ROTATE_0};
+	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, setSoftOrientation){VIEW_ROTATE_0};
+	IG_UseMemberIfOrConstant(!Config::SYSTEM_ROTATES_WINDOWS, Orientation, VIEW_ROTATE_0, validSoftOrientations_){VIEW_ROTATE_0};
 
 	void setOnSurfaceChange(SurfaceChangeDelegate del);
 	void setOnDraw(DrawDelegate del);

@@ -78,12 +78,8 @@ private:
 	TextMenuItem relativePointerDecelItem[3];
 	MultiChoiceMenuItem relativePointerDecel{};
 	#endif
-	#ifdef CONFIG_INPUT_ANDROID_MOGA
-	BoolMenuItem mogaInputSystem{};
-	#endif
-	#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
-	BoolMenuItem notifyDeviceChange{};
-	#endif
+	IG_UseMemberIf(Config::EmuFramework::MOGA_INPUT, BoolMenuItem, mogaInputSystem){};
+	IG_UseMemberIf(Config::Input::DEVICE_HOTSWAP, BoolMenuItem, notifyDeviceChange){};
 	#ifdef CONFIG_BLUETOOTH
 	TextHeadingMenuItem bluetoothHeading{};
 	BoolMenuItem keepBtActive{};
@@ -96,7 +92,7 @@ private:
 	BoolMenuItem btScanCache{};
 	#endif
 	BoolMenuItem altGamepadConfirm{};
-	IG_enableMemberIf(Config::envIsAndroid, BoolMenuItem, consumeUnboundGamepadKeys){};
+	IG_UseMemberIf(Config::envIsAndroid, BoolMenuItem, consumeUnboundGamepadKeys){};
 	StaticArrayList<MenuItem*, 10> item{};
 	EmuInputView *emuInputView{};
 };

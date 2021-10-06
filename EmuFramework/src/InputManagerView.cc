@@ -171,7 +171,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 			pushAndShow(std::move(multiChoiceView), e);
 		}
 	},
-	#ifdef CONFIG_BASE_ANDROID
+	#ifdef __ANDROID__
 	rescanOSDevices
 	{
 		"Re-scan OS Input Devices", &defaultFace(),
@@ -249,7 +249,7 @@ void InputManagerView::loadItems()
 	item.emplace_back(&generalOptions);
 	item.emplace_back(&deleteDeviceConfig);
 	item.emplace_back(&deleteProfile);
-	#ifdef CONFIG_BASE_ANDROID
+	#ifdef __ANDROID__
 	if(appContext().androidSDK() >= 12 && appContext().androidSDK() < 16)
 	{
 		item.emplace_back(&rescanOSDevices);
@@ -348,7 +348,6 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 		relativePointerDecelItem
 	},
 	#endif
-	#ifdef CONFIG_INPUT_ANDROID_MOGA
 	mogaInputSystem
 	{
 		"MOGA Controller Support", &defaultFace(),
@@ -364,8 +363,6 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 			app().setMogaManagerActive(item.flipBoolValue(*this), true);
 		}
 	},
-	#endif
-	#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
 	notifyDeviceChange
 	{
 		"Notify If Devices Change", &defaultFace(),
@@ -375,7 +372,6 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 			optionNotifyInputDeviceChange = item.flipBoolValue(*this);
 		}
 	},
-	#endif
 	#ifdef CONFIG_BLUETOOTH
 	bluetoothHeading
 	{
@@ -481,29 +477,28 @@ InputManagerOptionsView::InputManagerOptionsView(ViewAttachParams attach, EmuInp
 	},
 	emuInputView{emuInputView_}
 {
-	#ifdef CONFIG_INPUT_ANDROID_MOGA
-	item.emplace_back(&mogaInputSystem);
-	#endif
-	item.emplace_back(&altGamepadConfirm);
-	[this](auto &consumeUnboundGamepadKeys)
+	if constexpr(Config::EmuFramework::MOGA_INPUT)
 	{
-		if constexpr(Config::envIsAndroid)
-		{
-			item.emplace_back(&consumeUnboundGamepadKeys);
-		}
-	}(consumeUnboundGamepadKeys);
+		item.emplace_back(&mogaInputSystem);
+	}
+	item.emplace_back(&altGamepadConfirm);
+	if constexpr(Config::envIsAndroid)
+	{
+		item.emplace_back(&consumeUnboundGamepadKeys);
+	}
 	#if 0
 	if(Input::hasTrackball())
 	{
 		item.emplace_back(&relativePointerDecel);
 	}
 	#endif
-	#ifdef CONFIG_INPUT_DEVICE_HOTSWAP
-	if(!optionNotifyInputDeviceChange.isConst)
+	if constexpr(Config::Input::DEVICE_HOTSWAP)
 	{
-		item.emplace_back(&notifyDeviceChange);
+		if(!optionNotifyInputDeviceChange.isConst)
+		{
+			item.emplace_back(&notifyDeviceChange);
+		}
 	}
-	#endif
 	#ifdef CONFIG_BLUETOOTH
 	item.emplace_back(&bluetoothHeading);
 	if(!optionKeepBluetoothActive.isConst)

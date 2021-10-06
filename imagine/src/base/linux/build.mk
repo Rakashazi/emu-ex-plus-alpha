@@ -24,13 +24,8 @@ ifeq ($(linuxWinSystem), x11)
  include $(imagineSrcDir)/base/x11/build.mk
 endif
 
-linuxEventLoop ?= glib
-
-ifeq ($(linuxEventLoop), glib)
- configDefs += CONFIG_BASE_GLIB
- SRC += base/common/eventloop/GlibEventLoop.cc
- include $(IMAGINE_PATH)/make/package/glib.mk
-endif
+SRC += base/common/eventloop/GlibEventLoop.cc
+include $(IMAGINE_PATH)/make/package/glib.mk
 
 ifneq ($(SUBENV), pandora)
  configDefs += CONFIG_BASE_DBUS

@@ -146,7 +146,7 @@ protected:
 	bool supportsNoConfig{};
 	bool supportsNoError{};
 	bool supportsSrgbColorSpace{};
-	IG_enableMemberIf(Config::envIsLinux, bool, supportsTripleBufferSurfaces){};
+	IG_UseMemberIf(Config::envIsLinux, bool, supportsTripleBufferSurfaces){};
 
 	IG::ErrorCode initDisplay(EGLDisplay);
 	static std::optional<EGLConfig> chooseConfig(GLDisplay, int renderableType, GLBufferConfigAttributes, bool allowFallback = true);

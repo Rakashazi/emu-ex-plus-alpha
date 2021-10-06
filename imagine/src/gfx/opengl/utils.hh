@@ -70,7 +70,7 @@ static const char *glErrorToString(GLenum err)
 		case GL_INVALID_VALUE: return "Invalid Value";
 		case GL_INVALID_OPERATION: return "Invalid Operation";
 		#if (!defined CONFIG_GFX_OPENGL_ES && defined CONFIG_GFX_OPENGL_FIXED_FUNCTION_PIPELINE) \
-			|| (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES_MAJOR_VERSION == 1)
+			|| (defined CONFIG_GFX_OPENGL_ES && CONFIG_GFX_OPENGL_ES == 1)
 		case GL_STACK_OVERFLOW: return "Stack Overflow";
 		case GL_STACK_UNDERFLOW: return "Stack Underflow";
 		#endif

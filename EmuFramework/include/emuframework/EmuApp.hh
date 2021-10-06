@@ -26,9 +26,7 @@
 #include <emuframework/VController.hh>
 #include <emuframework/TurboInput.hh>
 #include <imagine/input/Input.hh>
-#ifdef CONFIG_INPUT_ANDROID_MOGA
 #include <imagine/input/android/MogaManager.hh>
-#endif
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/NavView.hh>
@@ -296,9 +294,7 @@ protected:
 	#ifdef CONFIG_BLUETOOTH
 	BluetoothAdapter *bta{};
 	#endif
-	#ifdef CONFIG_INPUT_ANDROID_MOGA
-	std::unique_ptr<Input::MogaManager> mogaManagerPtr{};
-	#endif
+	IG_UseMemberIf(Config::EmuFramework::MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr){};
 	Gfx::DrawableConfig windowDrawableConf{};
 	IG::PixelFormat renderPixelFmt{};
 

@@ -383,7 +383,7 @@ private:
 	uint8_t gamepadDisabledFlags{};
 	bool kbMode{};
 	uint8_t alpha{};
-	IG_enableMemberIf(Config::BASE_SUPPORTS_VIBRATOR, bool, vibrateOnTouchInput_){};
+	IG_UseMemberIf(Config::BASE_SUPPORTS_VIBRATOR, bool, vibrateOnTouchInput_){};
 
 	std::array<int, 2> findGamepadElements(IG::WP pos);
 	int keyboardKeyFromPointer(Input::Event);

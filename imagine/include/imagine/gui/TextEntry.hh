@@ -65,9 +65,9 @@ public:
 protected:
 	IG::WindowRect cancelBtn{};
 	// TODO: cancel button doesn't work yet due to popup window not forwarding touch events to main window
-	IG_enableMemberIf(!Config::envIsAndroid, Gfx::Sprite, cancelSpr){};
+	IG_UseMemberIf(!Config::envIsAndroid, Gfx::Sprite, cancelSpr){};
 	Gfx::Text message{};
 	[[no_unique_address]] Input::TextField textField;
-	IG_enableMemberIf(!Config::Input::SYSTEM_COLLECTS_TEXT, TextEntry, textEntry);
+	IG_UseMemberIf(!Config::Input::SYSTEM_COLLECTS_TEXT, TextEntry, textEntry);
 	OnTextDelegate onTextD{};
 };

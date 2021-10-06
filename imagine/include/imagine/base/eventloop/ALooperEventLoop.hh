@@ -43,7 +43,7 @@ public:
 	~ALooperFDEventSource();
 
 protected:
-	IG_enableMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
+	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
 	std::unique_ptr<ALooperFDEventSourceInfo> info{};
 	int fd_ = -1;
 

@@ -154,7 +154,7 @@ protected:
 	T startVal{};
 	T destVal{};
 	T startDestValSize{};
-	IG_enableMemberIfOrConstant(INTERPOLATOR_TYPE == InterpolatorType::UNSET,
+	IG_UseMemberIfOrConstant(INTERPOLATOR_TYPE == InterpolatorType::UNSET,
 		InterpolatorType, INTERPOLATOR_TYPE, type){InterpolatorType::LINEAR};
 };
 

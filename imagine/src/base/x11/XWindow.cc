@@ -214,12 +214,12 @@ Window::Window(ApplicationContext ctx, WindowConfig config, InitDelegate):
 
 XWindow::~XWindow()
 {
-	if(xWin != None)
+	if(xWin)
 	{
 		logMsg("destroying window with ID %d", (int)xWin);
 		XDestroyWindow(dpy, xWin);
 	}
-	if(colormap != None)
+	if(colormap)
 	{
 		XFreeColormap(dpy, colormap);
 	}

@@ -90,7 +90,7 @@ protected:
 	Gfx::GlyphTextureSet defaultBoldFace_{};
 	Gfx::GC tableXIndent_{};
 	// True if the platform needs an on-screen/pointer-based control to move to a previous view
-	IG_enableMemberIfOrConstant(needsBackControlIsMutable,
+	IG_UseMemberIfOrConstant(needsBackControlIsMutable,
 		bool, needsBackControlDefault, needsBackControl_){needsBackControlDefault};
 };
 

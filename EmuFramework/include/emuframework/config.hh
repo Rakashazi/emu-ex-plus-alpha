@@ -52,4 +52,11 @@ static constexpr bool VCONTROLS_GAMEPAD = false;
 #endif
 static constexpr bool HAS_MULTIPLE_WINDOW_PIXEL_FORMATS = Config::envIsLinux || Config::envIsAndroid || Config::envIsIOS;
 
+#ifdef __ANDROID__
+#define CONFIG_INPUT_ANDROID_MOGA
+static constexpr bool MOGA_INPUT = false;
+#else
+static constexpr bool MOGA_INPUT = false;
+#endif
+
 }

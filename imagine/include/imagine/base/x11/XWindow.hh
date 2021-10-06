@@ -42,7 +42,7 @@ protected:
 	unsigned long xWin{};
 	unsigned long draggerXWin{};
 	unsigned long dragAction{};
-	IG_enableMemberIf(!Config::MACHINE_IS_PANDORA, unsigned long, colormap){};
+	IG_UseMemberIf(!Config::MACHINE_IS_PANDORA, unsigned long, colormap){};
 };
 
 using WindowImpl = XWindow;

@@ -66,7 +66,7 @@ public:
 	}
 
 protected:
-	IG_enableMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
+	IG_UseMemberIf(Config::DEBUG_BUILD, const char *, debugLabel){};
 	std::array<PosixIO, 2> io{-1, -1};
 	FDEventSource fdSrc{};
 
