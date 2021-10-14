@@ -135,4 +135,11 @@ const char *sourceStr(Source);
 const char *actionStr(Action);
 Map validateMap(uint8_t mapValue);
 
+struct DirectionKeys
+{
+	Key up{}, right{}, down{}, left{};
+};
+
+DirectionKeys directionKeys(Map map = Map::SYSTEM);
+
 }

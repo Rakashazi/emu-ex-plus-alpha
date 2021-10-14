@@ -17,7 +17,6 @@
 
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/base/Error.hh>
 
 struct IControlPad : public BluetoothInputDevice
@@ -28,14 +27,12 @@ public:
 	IControlPad(Base::ApplicationContext, BluetoothAddr);
 	IG::ErrorCode open(BluetoothAdapter &adapter) final;
 	void close();
-	uint32_t joystickAxisBits() final;
-	uint32_t joystickAxisAsDpadBitsDefault() final;
-	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
-	uint32_t joystickAxisAsDpadBits() final { return joystickAxisAsDpadBits_; }
 	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
 	bool dataHandler(const char *packet, size_t size);
 	const char *keyName(Input::Key k) const final;
+	std::span<Input::Axis> motionAxes() final;
 	static bool isSupportedClass(const uint8_t devClass[3]);
+	static std::pair<Input::Key, Input::Key> joystickKeys(Input::AxisId);
 
 private:
 	enum
@@ -44,36 +41,19 @@ private:
 		FUNC_SET_LED_MODE,
 		FUNC_GP_REPORTS,
 	};
+	static constexpr float axisScaler = 1./127.;
 	BluetoothSocketSys sock;
 	char inputBuffer[6]{};
 	uint32_t inputBufferPos = 0;
 	int function = 0;
-	uint32_t joystickAxisAsDpadBits_;
 	char prevBtnData[2]{};
-	Input::AxisKeyEmu<int> axisKey[4]
+	Input::Axis axis[4]
 	{
-		{
-			-nubDeadzone, nubDeadzone,
-			Input::iControlPad::LNUB_LEFT, Input::iControlPad::LNUB_RIGHT,
-			Input::Keycode::JS1_XAXIS_NEG, Input::Keycode::JS1_XAXIS_POS
-		}, // Left X Axis
-		{
-			-nubDeadzone, nubDeadzone,
-			Input::iControlPad::LNUB_UP, Input::iControlPad::LNUB_DOWN,
-			Input::Keycode::JS1_YAXIS_NEG, Input::Keycode::JS1_YAXIS_POS
-		},  // Left Y Axis
-		{
-			-nubDeadzone, nubDeadzone,
-			Input::iControlPad::RNUB_LEFT, Input::iControlPad::RNUB_RIGHT,
-			Input::Keycode::JS2_XAXIS_NEG, Input::Keycode::JS2_XAXIS_POS
-		}, // Right X Axis
-		{
-			-nubDeadzone, nubDeadzone,
-			Input::iControlPad::RNUB_UP, Input::iControlPad::RNUB_DOWN,
-			Input::Keycode::JS2_YAXIS_NEG, Input::Keycode::JS2_YAXIS_POS
-		}   // Right Y Axis
+		{*this, Input::AxisId::X, axisScaler}, // Left X Axis
+		{*this, Input::AxisId::Y, axisScaler}, // Left Y Axis
+		{*this, Input::AxisId::Z, axisScaler}, // Right X Axis
+		{*this, Input::AxisId::RZ, axisScaler} // Right Y Axis
 	};
-	static constexpr int nubDeadzone = 64;
 	BluetoothAddr addr;
 
 	void processBtnReport(const char *btnData, Input::Time time);

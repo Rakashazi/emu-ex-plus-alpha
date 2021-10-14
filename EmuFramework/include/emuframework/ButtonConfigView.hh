@@ -22,7 +22,7 @@
 #include <imagine/input/config.hh>
 
 class InputManagerView;
-struct InputDeviceConfig;
+class InputDeviceConfig;
 struct KeyCategory;
 
 class ButtonConfigSetView : public View, public EmuAppHelper<ButtonConfigSetView>

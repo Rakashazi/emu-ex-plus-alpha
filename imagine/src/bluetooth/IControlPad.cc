@@ -149,7 +149,6 @@ uint32_t IControlPad::statusHandler(BluetoothSocket &sock, uint32_t status)
 		ctx.application().bluetoothInputDeviceStatus(*this, status);
 		sock.write(setLEDPulseInverse, sizeof setLEDPulseInverse);
 		function = FUNC_SET_LED_MODE;
-		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
@@ -205,7 +204,7 @@ bool IControlPad::dataHandler(const char *packetPtr, size_t size)
 				auto time = IG::steadyClockTimestamp();
 				iterateTimes(4, i)
 				{
-					if(axisKey[i].dispatch(inputBuffer[i], Input::Map::ICONTROLPAD, time, *this, ctx.mainWindow()))
+					if(axis[i].update(inputBuffer[i], Input::Map::ICONTROLPAD, time, *this, ctx.mainWindow()))
 						ctx.endIdleByUserActivity();
 				}
 				processBtnReport(&inputBuffer[4], time);
@@ -237,55 +236,24 @@ void IControlPad::processBtnReport(const char *btnData, Input::Time time)
 	memcpy(prevBtnData, btnData, sizeof(prevBtnData));
 }
 
-uint32_t IControlPad::joystickAxisBits()
-{
-	return Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
-}
-
-uint32_t IControlPad::joystickAxisAsDpadBitsDefault()
-{
-	return Device::AXIS_BITS_STICK_1;
-}
-
-void IControlPad::setJoystickAxisAsDpadBits(uint32_t axisMask)
-{
-	using namespace Input;
-	if(joystickAxisAsDpadBits_ == axisMask)
-		return;
-
-	joystickAxisAsDpadBits_ = axisMask;
-	//logMsg("mapping joystick axes");
-	{
-		bool on = axisMask & Device::AXIS_BIT_X;
-		axisKey[0].lowKey = on ? Input::iControlPad::LEFT : Input::iControlPad::LNUB_LEFT;
-		axisKey[0].lowSysKey = on ? Keycode::LEFT : Keycode::JS1_XAXIS_NEG;
-		axisKey[0].highKey = on ? Input::iControlPad::RIGHT : Input::iControlPad::LNUB_RIGHT;
-		axisKey[0].highSysKey = on ? Keycode::RIGHT : Keycode::JS1_XAXIS_POS;
-	}
-	{
-		bool on = axisMask & Device::AXIS_BIT_Y;
-		axisKey[1].lowKey = on ? Input::iControlPad::UP : Input::iControlPad::LNUB_UP;
-		axisKey[1].lowSysKey = on ? Keycode::UP : Keycode::JS1_YAXIS_NEG;
-		axisKey[1].highKey = on ? Input::iControlPad::DOWN : Input::iControlPad::LNUB_DOWN;
-		axisKey[1].highSysKey = on ? Keycode::DOWN : Keycode::JS1_YAXIS_POS;
-	}
-	{
-		bool on = axisMask & Device::AXIS_BIT_Z;
-		axisKey[2].lowKey = on ? Input::iControlPad::LEFT : Input::iControlPad::RNUB_LEFT;
-		axisKey[2].lowSysKey = on ? Keycode::LEFT : Keycode::JS2_XAXIS_NEG;
-		axisKey[2].highKey = on ? Input::iControlPad::RIGHT : Input::iControlPad::RNUB_RIGHT;
-		axisKey[2].highSysKey = on ? Keycode::RIGHT : Keycode::JS2_XAXIS_POS;
-	}
-	{
-		bool on = axisMask & Device::AXIS_BIT_RZ;
-		axisKey[3].lowKey = on ? Input::iControlPad::UP : Input::iControlPad::RNUB_UP;
-		axisKey[3].lowSysKey = on ? Keycode::UP : Keycode::JS2_YAXIS_NEG;
-		axisKey[3].highKey = on ? Input::iControlPad::DOWN : Input::iControlPad::RNUB_DOWN;
-		axisKey[3].highSysKey = on ? Keycode::DOWN : Keycode::JS2_YAXIS_POS;
-	}
-}
-
 bool IControlPad::isSupportedClass(const uint8_t devClass[3])
 {
 	return IG::equal_n(devClass, 3, btClass);
+}
+
+std::span<Input::Axis> IControlPad::motionAxes()
+{
+	return axis;
+}
+
+std::pair<Input::Key, Input::Key> IControlPad::joystickKeys(Input::AxisId axisId)
+{
+	switch(axisId)
+	{
+		case Input::AxisId::X: return {Input::iControlPad::LNUB_LEFT, Input::iControlPad::LNUB_RIGHT};
+		case Input::AxisId::Y: return {Input::iControlPad::LNUB_DOWN, Input::iControlPad::LNUB_UP};
+		case Input::AxisId::Z: return {Input::iControlPad::RNUB_LEFT, Input::iControlPad::RNUB_RIGHT};
+		case Input::AxisId::RZ: return {Input::iControlPad::RNUB_DOWN, Input::iControlPad::RNUB_UP};
+		default: return {};
+	}
 }

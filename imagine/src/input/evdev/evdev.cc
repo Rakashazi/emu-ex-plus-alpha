@@ -102,18 +102,6 @@ static Key toSysKey(Key key)
 	#undef EVDEV_TO_SYSKEY_CASE
 }
 
-/*static uint32_t absAxisToKeycode(int axis)
-{
-	switch(axis)
-	{
-		case ABS_X: return Evdev::JS1_XAXIS_POS;
-		case ABS_Y: return Evdev::JS1_YAXIS_POS;
-		case ABS_Z: return Evdev::JS2_XAXIS_POS;
-		case ABS_RZ: return Evdev::JS2_YAXIS_POS;
-	}
-	return Evdev::JS3_YAXIS_POS;
-}*/
-
 template <class T, size_t S>
 static constexpr bool isBitSetInArray(const T (&arr)[S], unsigned int bit)
 {
@@ -155,13 +143,15 @@ void EvdevInputDevice::processInputEvents(Base::LinuxApplication &app, input_eve
 			}
 			bcase EV_ABS:
 			{
-				if(ev.code >= std::size(axis) || !axis[ev.code].active)
+				auto axisIt = IG::find_if(axis, [&](auto &axis){ return ev.code == (uint8_t)axis.id(); });
+				if(axisIt == axis.end())
 				{
-					//logMsg("event form inactive axis:%d", ev.code);
-					continue; // out of range or inactive
+					//logMsg("event from unused axis:%d", ev.code);
+					continue;
 				}
+				auto offset = axisRangeOffset[std::distance(axis.begin(), axisIt)];
 				//logMsg("got abs event code 0x%X, value %d", ev.code, ev.value);
-				axis[ev.code].keyEmu.dispatch(ev.value, Map::SYSTEM, time, *this, app.mainWindow());
+				axisIt->update(ev.value + offset, Map::SYSTEM, time, *this, app.mainWindow());
 			}
 		}
 	}
@@ -185,50 +175,27 @@ bool EvdevInputDevice::setupJoystickBits()
 
 	// check joystick axes
 	{
-		uint32_t keycodeIdx = 0;
-		constexpr Key axisKeycode[] =
-		{
-			Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS,
-			Keycode::JS1_YAXIS_NEG, Keycode::JS1_YAXIS_POS,
-			Keycode::JS2_XAXIS_NEG, Keycode::JS2_XAXIS_POS,
-			Keycode::JS2_YAXIS_NEG, Keycode::JS2_YAXIS_POS,
-			Keycode::JS3_XAXIS_NEG, Keycode::JS3_XAXIS_POS,
-			Keycode::JS3_YAXIS_NEG, Keycode::JS3_YAXIS_POS,
-			Keycode::JS_POV_XAXIS_NEG, Keycode::JS_POV_XAXIS_POS,
-			Keycode::JS_POV_YAXIS_NEG, Keycode::JS_POV_YAXIS_POS,
-		};
-		const uint8_t stickAxes[] { ABS_X, ABS_Y, ABS_Z, ABS_RX, ABS_RY, ABS_RZ,
-			ABS_HAT0X, ABS_HAT0Y, ABS_HAT1X, ABS_HAT1Y, ABS_HAT2X, ABS_HAT2Y, ABS_HAT3X, ABS_HAT3Y,
-			ABS_RUDDER, ABS_WHEEL };
-		int axes = 0;
+		static constexpr AxisId stickAxes[] { AxisId::X, AxisId::Y, AxisId::Z, AxisId::RX, AxisId::RY, AxisId::RZ,
+			AxisId::HAT0X, AxisId::HAT0Y, AxisId::HAT1X, AxisId::HAT1Y, AxisId::HAT2X, AxisId::HAT2Y, AxisId::HAT3X, AxisId::HAT3Y,
+			AxisId::RUDDER, AxisId::WHEEL };
 		for(auto axisId : stickAxes)
 		{
-			if(!isBitSetInArray(absBit, axisId))
+			if(!isBitSetInArray(absBit, (int)axisId))
 				continue;
-			logMsg("joystick axis: %d", axisId);
+			logMsg("joystick axis:%d", (int)axisId);
 			struct input_absinfo info;
-			if(ioctl(fd, EVIOCGABS(axisId), &info) < 0)
+			if(ioctl(fd, EVIOCGABS((int)axisId), &info) < 0)
 			{
 				logErr("error getting absinfo");
 				continue;
 			}
-			logMsg("min: %d max: %d fuzz: %d flat: %d", info.minimum, info.maximum, info.fuzz, info.flat);
-			int size = (info.maximum - info.minimum) + 1;
-			int keyEmuMin = std::round(info.minimum + size/4.);
-			int keyEmuMax = std::round(info.maximum - size/4.);
-			if(size < 8)
-			{
-				// low-res axis, just use the limits directly
-				keyEmuMin = info.minimum;
-				keyEmuMax = info.maximum;
-			}
-			axis[axisId].keyEmu = {keyEmuMin, keyEmuMax,
-				axisKeycode[keycodeIdx], axisKeycode[keycodeIdx+1], axisKeycode[keycodeIdx], axisKeycode[keycodeIdx+1]};
-			axis[axisId].active = 1;
-			logMsg("%d - %d", axis[axisId].keyEmu.lowLimit, axis[axisId].keyEmu.highLimit);
-			axes++;
-			keycodeIdx += 2; // move to the next +/- axis keycode pair
-			if(axes == std::size(axisKeycode)/2)
+			auto rangeSize = info.maximum - info.minimum;
+			float scale = 2.f / rangeSize;
+			axis.emplace_back(*this, axisId, scale);
+			axisRangeOffset[axis.size() - 1] = (std::abs(info.minimum) - std::abs(info.maximum)) / 2;
+			logMsg("min:%d max:%d fuzz:%d flat:%d range offset:%d", info.minimum, info.maximum, info.fuzz, info.flat,
+				axisRangeOffset[axis.size() - 1]);
+			if(axis.isFull())
 			{
 				logMsg("reached maximum joystick axes");
 				break;
@@ -272,20 +239,9 @@ void EvdevInputDevice::addPollEvent(Base::LinuxApplication &app)
 		}};
 }
 
-void EvdevInputDevice::setJoystickAxisAsDpadBits(uint32_t axisMask)
+std::span<Axis> EvdevInputDevice::motionAxes()
 {
-	Key jsKey[4] {Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS, Keycode::JS1_YAXIS_NEG, Keycode::JS1_YAXIS_POS};
-	Key dpadKey[4] {Keycode::LEFT, Keycode::RIGHT, Keycode::UP, Keycode::DOWN};
-	Key (&setKey)[4] = (axisMask & IG::bit(0)) ? dpadKey : jsKey;
-	axis[ABS_X].keyEmu.lowKey = axis[ABS_X].keyEmu.lowSysKey = setKey[0];
-	axis[ABS_X].keyEmu.highKey = axis[ABS_X].keyEmu.highSysKey = setKey[1];
-	axis[ABS_Y].keyEmu.lowKey = axis[ABS_Y].keyEmu.lowSysKey = setKey[2];
-	axis[ABS_Y].keyEmu.highKey = axis[ABS_Y].keyEmu.highSysKey = setKey[3];
-}
-
-uint32_t EvdevInputDevice::joystickAxisAsDpadBits()
-{
-	return axis[ABS_X].keyEmu.lowKey == Keycode::LEFT;
+	return axis;
 }
 
 int EvdevInputDevice::fileDesc() const
@@ -355,21 +311,9 @@ static bool processDevNode(Base::LinuxApplication &app, const char *path, int id
 		string_copy(nameStr, "Unknown");
 	}
 	auto evDev = std::make_unique<EvdevInputDevice>(id, fd, Device::TYPE_BIT_GAMEPAD, nameStr.data());
-
 	fd_setNonblock(fd, 1);
 	evDev->addPollEvent(app);
-
-	uint32_t devId = 0;
-	for(auto &e : app.inputDevices())
-	{
-		if(e->map() != Map::SYSTEM)
-			continue;
-		if(string_equal(e->name(), evDev->name()) && e->enumId() == devId)
-			devId++;
-	}
-	evDev->setEnumId(devId);
 	app.addInputDevice(std::move(evDev), notify);
-
 	return true;
 }
 

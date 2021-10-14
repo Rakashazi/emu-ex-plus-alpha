@@ -46,7 +46,6 @@
 #include <optional>
 #include <span>
 
-struct InputDeviceConfig;
 class BluetoothAdapter;
 
 class EmuApp : public Base::Application
@@ -157,9 +156,6 @@ public:
 	void runFrames(EmuSystemTaskContext, EmuVideo *, EmuAudio *, int frames, bool skipForward);
 	void skipFrames(EmuSystemTaskContext, uint32_t frames, EmuAudio *);
 	bool skipForwardFrames(EmuSystemTaskContext, uint32_t frames);
-	void buildKeyInputMapping();
-	const KeyMapping &keyInputMapping();
-	std::vector<InputDeviceConfig> &inputDeviceConfigs();
 	IG::Audio::Manager &audioManager();
 	bool setWindowDrawableConfig(Gfx::DrawableConfig);
 	Gfx::DrawableConfig windowDrawableConfig() const;
@@ -284,8 +280,6 @@ protected:
 	Base::Timer autoSaveStateTimer;
 	DelegateFunc<void ()> onUpdateInputDevices_{};
 	OnMainMenuOptionChanged onMainMenuOptionChanged_{};
-	std::vector<InputDeviceConfig> inputDevConf;
-	KeyMapping keyMapping{};
 	TurboInput turboActions{};
 	FS::PathString lastLoadPath{};
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;

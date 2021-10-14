@@ -22,8 +22,8 @@
 #include <gio/gio.h>
 #endif
 #include <imagine/base/EventLoop.hh>
-#include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/input/Device.hh>
+#include <imagine/util/container/ArrayList.hh>
 #include <vector>
 #include <memory>
 
@@ -48,18 +48,14 @@ public:
 	void processInputEvents(Base::LinuxApplication &app, input_event *event, uint32_t events);
 	bool setupJoystickBits();
 	void addPollEvent(Base::LinuxApplication &app);
-	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
-	uint32_t joystickAxisAsDpadBits() final;
+	std::span<Axis> motionAxes() final;
 	int fileDesc() const;
 
 protected:
 	static constexpr unsigned AXIS_SIZE = 24;
 	int fd{-1};
-	struct Axis
-	{
-		AxisKeyEmu<int> keyEmu;
-		bool active{};
-	} axis[AXIS_SIZE];
+	StaticArrayList<Axis, AXIS_SIZE> axis{};
+	std::array<int, AXIS_SIZE> axisRangeOffset{};
 	Base::FDEventSource fdSrc{-1};
 };
 

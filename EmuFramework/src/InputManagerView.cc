@@ -69,7 +69,7 @@ void IdentInputDeviceView::draw(Gfx::RendererCommands &cmds)
 	text.draw(cmds, 0, 0, C2DO, projP);
 }
 
-static void removeKeyConfFromAllDevices(const KeyConfig *conf)
+static void removeKeyConfFromAllDevices(const KeyConfig *conf, Base::ApplicationContext ctx)
 {
 	logMsg("removing saved key config %s from all devices", conf->name.data());
 	for(auto &e : savedInputDevList)
@@ -78,6 +78,11 @@ static void removeKeyConfFromAllDevices(const KeyConfig *conf)
 		{
 			logMsg("used by saved device config %s,%d", e.name, e.enumId);
 			e.keyConf = nullptr;
+		}
+		auto devIt = IG::find_if(ctx.inputDevices(), [&](auto &devPtr){ return e.matchesDevice(*devPtr); });
+		if(devIt != ctx.inputDevices().end())
+		{
+			inputDevData(*devIt->get()).buildKeyMap(*devIt->get());
 		}
 	}
 }
@@ -98,7 +103,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 			for(unsigned i = 0; auto &e : savedInputDevList)
 			{
 				auto incIdx = IG::scopeGuard([&](){ i++; });
-				multiChoiceView->appendItem(makeDeviceName(e.name, e.enumId).data(),
+				multiChoiceView->appendItem(InputDeviceData::makeDisplayName(e.name, e.enumId),
 					[this, i](Input::Event e)
 					{
 						int deleteDeviceConfigIdx = i;
@@ -111,19 +116,18 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 								{
 									++it;
 								}
-								logMsg("deleting device settings for: %s,%d", it->name, it->enumId);
-								auto &inputDevConf = app().inputDeviceConfigs();
-								iterateTimes(inputDevConf.size(), i)
+								logMsg("deleting device settings for:%s,%d", it->name, it->enumId);
+								for(auto &devPtr : appContext().inputDevices())
 								{
-									if(inputDevConf[i].savedConf == &(*it))
+									auto &inputDevConf = inputDevData(*devPtr).devConf;
+									if(inputDevConf.hasSavedConf(*it))
 									{
-										logMsg("removing from active device at idx: %d", i);
-										inputDevConf[i].savedConf = nullptr;
+										logMsg("removing from active device");
+										inputDevConf.setSavedConf(nullptr);
 										break;
 									}
 								}
 								savedInputDevList.erase(it);
-								app().buildKeyInputMapping();
 								dismissPrevious();
 							});
 						pushAndShowModal(std::move(ynAlertView), e);
@@ -160,9 +164,8 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 									++it;
 								}
 								logMsg("deleting profile: %s", it->name.data());
-								removeKeyConfFromAllDevices(&(*it));
+								removeKeyConfFromAllDevices(&(*it), appContext());
 								customKeyConfig.erase(it);
-								app().buildKeyInputMapping();
 								dismissPrevious();
 							});
 						pushAndShowModal(std::move(ynAlertView), e);
@@ -200,8 +203,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 					auto dev = e.device();
 					if(dev)
 					{
-						auto imdMenu = makeViewWithName<InputManagerDeviceView>(inputDevName[dev->index()], *this, app().inputDeviceConfigs()[dev->index()]);
-						pushAndShow(std::move(imdMenu), e);
+						pushAndShowDeviceView(*dev, e);
 					}
 				};
 			pushAndShowModal(std::move(identView), e);
@@ -258,20 +260,20 @@ void InputManagerView::loadItems()
 	item.emplace_back(&deviceListHeading);
 	inputDevName.clear();
 	inputDevName.reserve(appContext().inputDevices().size());
-	for(auto &e : appContext().inputDevices())
+	for(auto &devPtr : appContext().inputDevices())
 	{
-		inputDevName.emplace_back(makeDeviceName(e->name(), e->enumId()).data(), &defaultFace(),
-			[this, idx = inputDevName.size()](Input::Event e)
+		auto &devItem = inputDevName.emplace_back(inputDevData(*devPtr).displayName, &defaultFace(),
+			[this, &dev = *devPtr](Input::Event e)
 			{
-				pushAndShowDeviceView(idx, e);
+				pushAndShowDeviceView(dev, e);
 			});
-		if(e->hasKeys() && !e->isPowerButton())
+		if(devPtr->hasKeys() && !devPtr->isPowerButton())
 		{
-			item.emplace_back(&inputDevName.back());
+			item.emplace_back(&devItem);
 		}
 		else
 		{
-			logMsg("not adding device:%s to list", e->name());
+			logMsg("not adding device:%s to list", devPtr->name());
 		}
 	}
 }
@@ -283,18 +285,9 @@ void InputManagerView::onShow()
 	deleteProfile.setActive(customKeyConfig.size());
 }
 
-void InputManagerView::pushAndShowDeviceView(unsigned idx, Input::Event e)
+void InputManagerView::pushAndShowDeviceView(const Input::Device &dev, Input::Event e)
 {
-	assumeExpr(idx < inputDevName.size());
-	pushAndShow(makeViewWithName<InputManagerDeviceView>(inputDevName[idx], *this, app().inputDeviceConfigs()[idx]), e);
-}
-
-std::string InputManagerView::makeDeviceName(const char *name, unsigned id)
-{
-	char idStr[sizeof(" #00")] = "";
-	if(id)
-		IG::formatTo(idStr, " #{}", id + 1);
-	return fmt::format("{}{}", name, idStr);
+	pushAndShow(makeViewWithName<InputManagerDeviceView>(inputDevData(dev).displayName, *this, dev), e);
 }
 
 #ifdef CONFIG_BLUETOOTH_SCAN_SECS
@@ -575,7 +568,7 @@ static unsigned playerConfToMenuIdx(unsigned player)
 	}
 }
 
-InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachParams attach, InputManagerView &rootIMView_, InputDeviceConfig &devConfRef):
+InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachParams attach, InputManagerView &rootIMView_, const Input::Device &dev):
 	TableView{std::move(name), attach, item},
 	rootIMView{rootIMView_},
 	playerItem
@@ -590,7 +583,7 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 	player
 	{
 		"Player", &defaultFace(),
-		(int)playerConfToMenuIdx(devConfRef.player),
+		(int)playerConfToMenuIdx(inputDevData(dev).devConf.player()),
 		[](const MultiChoiceMenuItem &)
 		{
 			return EmuSystem::maxPlayers+1;
@@ -605,14 +598,13 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 		{}, &defaultFace(),
 		[this](Input::Event e)
 		{
-			auto profileSelectMenu = makeView<ProfileSelectMenu>(*devConf->dev, devConf->keyConf().name.data());
+			auto profileSelectMenu = makeView<ProfileSelectMenu>(devConf->device(), devConf->keyConf().name.data());
 			profileSelectMenu->onProfileChange =
 				[this](const KeyConfig &profile)
 				{
 					logMsg("set key profile %s", profile.name.data());
 					devConf->setKeyConf(profile);
 					onShow();
-					app().buildKeyInputMapping();
 				};
 			pushAndShow(std::move(profileSelectMenu), e);
 		}
@@ -693,9 +685,8 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 						return;
 					}
 					logMsg("deleting profile: %s", conf->name.data());
-					removeKeyConfFromAllDevices(conf);
+					removeKeyConfFromAllDevices(conf, appContext());
 					customKeyConfig.remove(*conf);
-					app().buildKeyInputMapping();
 				});
 			pushAndShowModal(std::move(ynAlertView), e);
 		}
@@ -704,7 +695,7 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 	iCadeMode
 	{
 		"iCade Mode", &defaultFace(),
-		devConfRef.iCadeMode(),
+		inputDevData(dev).devConf.iCadeMode(),
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			#ifdef CONFIG_BASE_IOS
@@ -730,7 +721,7 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 	joystickAxis1DPad
 	{
 		"Joystick X/Y Axis 1 as D-Pad", &defaultFace(),
-		bool(devConfRef.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_X),
+		bool(inputDevData(dev).devConf.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_X),
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			bool on = item.flipBoolValue(*this);
@@ -743,7 +734,7 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 	joystickAxis2DPad
 	{
 		"Joystick X/Y Axis 2 as D-Pad", &defaultFace(),
-		bool(devConfRef.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_Z),
+		bool(inputDevData(dev).devConf.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_Z),
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			bool on = item.flipBoolValue(*this);
@@ -756,7 +747,7 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 	joystickAxisHatDPad
 	{
 		"Joystick POV Hat as D-Pad", &defaultFace(),
-		bool(devConfRef.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_HAT_X),
+		bool(inputDevData(dev).devConf.joystickAxisAsDpadBits() & Input::Device::AXIS_BIT_HAT_X),
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			bool on = item.flipBoolValue(*this);
@@ -766,7 +757,7 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 			devConf->save();
 		}
 	},
-	devConf{&devConfRef}
+	devConf{&inputDevData(dev).devConf}
 {
 	loadProfile.setName(fmt::format("Profile: {}", devConf->keyConf().name.data()).data());
 	renameProfile.setActive(devConf->mutableKeyConf());
@@ -785,7 +776,7 @@ void InputManagerDeviceView::loadItems()
 	item.emplace_back(&loadProfile);
 	for(auto &cat : app().inputControlCategories())
 	{
-		if(cat.isMultiplayer && devConf->player != InputDeviceConfig::PLAYER_MULTI)
+		if(cat.isMultiplayer && devConf->player() != InputDeviceConfig::PLAYER_MULTI)
 		{
 			//logMsg("skipping category %s (%d)", cat.name, (int)c_i);
 			continue;
@@ -801,21 +792,22 @@ void InputManagerDeviceView::loadItems()
 	item.emplace_back(&renameProfile);
 	item.emplace_back(&deleteProfile);
 	#if defined CONFIG_INPUT_ICADE
-	if((devConf->dev->map() == Input::Map::SYSTEM && devConf->dev->hasKeyboard())
-			|| devConf->dev->map() == Input::Map::ICADE)
+	auto &dev = devConf->device();
+	if((dev.map() == Input::Map::SYSTEM && dev.hasKeyboard())
+			|| dev.map() == Input::Map::ICADE)
 	{
 		item.emplace_back(&iCadeMode);
 	}
 	#endif
-	if(devConf->dev->joystickAxisBits() & Input::Device::AXIS_BIT_X)
+	if(dev.motionAxis(Input::AxisId::X))
 	{
 		item.emplace_back(&joystickAxis1DPad);
 	}
-	if(devConf->dev->joystickAxisBits() & Input::Device::AXIS_BIT_Z)
+	if(dev.motionAxis(Input::AxisId::Z))
 	{
 		item.emplace_back(&joystickAxis2DPad);
 	}
-	if(devConf->dev->joystickAxisBits() & Input::Device::AXIS_BIT_HAT_X)
+	if(dev.motionAxis(Input::AxisId::HAT0X))
 	{
 		item.emplace_back(&joystickAxisHatDPad);
 	}
@@ -836,26 +828,21 @@ void InputManagerDeviceView::confirmICadeMode(Input::Event e)
 	devConf->setICadeMode(iCadeMode.flipBoolValue(*this));
 	onShow();
 	app().defaultVController().setPhysicalControlsPresent(appContext().keyInputIsPresent());
-	app().buildKeyInputMapping();
 }
 #endif
 
 void InputManagerDeviceView::setPlayer(int playerVal)
 {
-	bool changingMultiplayer = (playerVal == InputDeviceConfig::PLAYER_MULTI && devConf->player != InputDeviceConfig::PLAYER_MULTI) ||
-		(playerVal != InputDeviceConfig::PLAYER_MULTI && devConf->player == InputDeviceConfig::PLAYER_MULTI);
-	devConf->player = playerVal;
+	bool changingMultiplayer = (playerVal == InputDeviceConfig::PLAYER_MULTI && devConf->player() != InputDeviceConfig::PLAYER_MULTI) ||
+		(playerVal != InputDeviceConfig::PLAYER_MULTI && devConf->player() == InputDeviceConfig::PLAYER_MULTI);
+	devConf->setPlayer(playerVal);
 	devConf->save();
+	if(changingMultiplayer)
 	{
-		waitForDrawFinished();
-		if(changingMultiplayer)
-		{
-			loadItems();
-			place();
-			show();
-		}
-		else
-			onShow();
+		loadItems();
+		place();
+		show();
 	}
-	app().buildKeyInputMapping();
+	else
+		onShow();
 }

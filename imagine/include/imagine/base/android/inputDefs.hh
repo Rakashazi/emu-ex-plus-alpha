@@ -284,4 +284,29 @@ namespace Keycode = Android;
 	META_R = 0x40000,
 	CAPS_LOCK = 0x100000;
 	}
+
+enum class AxisId : uint8_t
+{
+	X = 0,
+	Y = 1,
+	Z = 11,
+	RX = 12,
+	RY = 13,
+	RZ = 14,
+	HAT0X = 15,
+	HAT0Y = 16,
+	HAT1X = 32,
+	HAT1Y = 33,
+	HAT2X = 34,
+	HAT2Y = 35,
+	HAT3X = 36,
+	HAT3Y = 37,
+	LTRIGGER = 17,
+	RTRIGGER = 18,
+	RUDDER = 20,
+	WHEEL = 21,
+	GAS = 22,
+	BRAKE = 23,
+};
+
 }

@@ -20,7 +20,6 @@
 #include <imagine/base/Timer.hh>
 #include <imagine/base/android/Choreographer.hh>
 #include <imagine/input/Device.hh>
-#include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/util/jni.hh>
 #include <imagine/util/container/ArrayList.hh>
@@ -38,37 +37,21 @@ namespace Input
 class AndroidInputDevice : public Input::Device
 {
 public:
-	AndroidInputDevice(int osId, TypeBits, const char *name, uint32_t axisBits = 0);
+	AndroidInputDevice(int osId, TypeBits, const char *name);
 	AndroidInputDevice(JNIEnv* env, jobject aDev, int osId, int src,
 		const char *name, int kbType, uint32_t axisBits, bool isPowerButton);
 	bool operator ==(AndroidInputDevice const& rhs) const;
 	void setTypeBits(TypeBits);
-	void setJoystickAxisAsDpadBitsDefault(uint32_t axisMask);
-	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
-	uint32_t joystickAxisAsDpadBits() final;
-	uint32_t joystickAxisAsDpadBitsDefault() final;
-	uint32_t joystickAxisBits() final;
+	std::span<Axis> motionAxes() final;
 	void setICadeMode(bool on) final;
 	bool iCadeMode() const final;
 	auto &jsAxes() { return axis; }
 	void update(AndroidInputDevice);
 
 protected:
-	uint32_t joystickAxisAsDpadBits_{}, joystickAxisAsDpadBitsDefault_{};
-	uint32_t axisBits{};
-	bool iCadeMode_{};
-	//static constexpr uint32_t MAX_STICK_AXES = 6; // 6 possible axes defined in key codes
-	static constexpr uint32_t MAX_AXES = 10;
-	//static_assert(MAX_STICK_AXES <= MAX_AXES, "MAX_AXES must be large enough to hold MAX_STICK_AXES");
-
-	struct Axis
-	{
-		constexpr Axis() {}
-		constexpr Axis(uint8_t id, AxisKeyEmu<float> keyEmu): id{id}, keyEmu{keyEmu} {}
-		uint8_t id{};
-		AxisKeyEmu<float> keyEmu{};
-	};
+	static constexpr uint32_t MAX_AXES = 14;
 	StaticArrayList<Axis, MAX_AXES> axis{};
+	bool iCadeMode_{};
 };
 
 }

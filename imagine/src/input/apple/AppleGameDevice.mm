@@ -34,7 +34,7 @@ struct AppleGameDevice : public Device
 {
 	Base::ApplicationContext ctx{};
 	GCController *gcController = nil;
-	uint32_t joystickAxisAsDpadBits_ = 0;
+	Input::Axis axis[4];
 	bool pushState[AppleGC::COUNT]{};
 	
 	AppleGameDevice(Base::ApplicationContext ctx, GCController *gcController):
@@ -46,7 +46,10 @@ struct AppleGameDevice : public Device
 		{
 			typeBits_ |= TYPE_BIT_JOYSTICK;
 			subtype_ = Subtype::APPLE_EXTENDED_GAMEPAD;
-			setJoystickAxisAsDpadBits(AXIS_BIT_X | AXIS_BIT_Y);
+			axis[0] = {*this, Input::AxisId::X};
+			axis[1] = {*this, Input::AxisId::Y};
+			axis[2] = {*this, Input::AxisId::Z};
+			axis[3] = {*this, Input::AxisId::RZ};
 			setGamepadBlocks(gcController, extGamepad);
 			setExtendedGamepadBlocks(gcController, extGamepad);
 		}
@@ -131,61 +134,33 @@ struct AppleGameDevice : public Device
 			{
 				this->handleKey(AppleGC::R2, Keycode::GAME_R2, pressed);
 			};
-		extGamepad.leftThumbstick.up.valueChangedHandler =
-			^(GCControllerButtonInput *button, float value, BOOL pressed)
+		extGamepad.leftThumbstick.xAxis.valueChangedHandler =
+			^(GCControllerAxisInput *, float value)
 			{
-				Key key = (this->joystickAxisAsDpadBits_ & AXIS_BIT_Y) ? AppleGC::UP : AppleGC::LSTICK_UP;
-				Key sysKey = key == AppleGC::UP ? Keycode::UP : Keycode::JS1_YAXIS_NEG;
-				this->handleKey(key, sysKey, pressed);
+				auto time = IG::steadyClockTimestamp();
+				if(axis[0].update(value, Map::APPLE_GAME_CONTROLLER, time, *this, ctx.mainWindow()))
+					ctx.endIdleByUserActivity();
 			};
-		extGamepad.leftThumbstick.down.valueChangedHandler =
-			^(GCControllerButtonInput *button, float value, BOOL pressed)
+		extGamepad.leftThumbstick.yAxis.valueChangedHandler =
+			^(GCControllerAxisInput *, float value)
 			{
-				Key key = (this->joystickAxisAsDpadBits_ & AXIS_BIT_Y) ? AppleGC::DOWN : AppleGC::LSTICK_DOWN;
-				Key sysKey = key == AppleGC::DOWN ? Keycode::DOWN : Keycode::JS1_YAXIS_POS;
-				this->handleKey(key, sysKey, pressed);
+				auto time = IG::steadyClockTimestamp();
+				if(axis[1].update(value, Map::APPLE_GAME_CONTROLLER, time, *this, ctx.mainWindow()))
+					ctx.endIdleByUserActivity();
 			};
-		extGamepad.leftThumbstick.left.valueChangedHandler =
-			^(GCControllerButtonInput *button, float value, BOOL pressed)
+		extGamepad.rightThumbstick.xAxis.valueChangedHandler =
+			^(GCControllerAxisInput *, float value)
 			{
-				Key key = (this->joystickAxisAsDpadBits_ & AXIS_BIT_X) ? AppleGC::LEFT : AppleGC::LSTICK_LEFT;
-				Key sysKey = key == AppleGC::LEFT ? Keycode::LEFT : Keycode::JS1_XAXIS_NEG;
-				this->handleKey(key, sysKey, pressed);
+				auto time = IG::steadyClockTimestamp();
+				if(axis[2].update(value, Map::APPLE_GAME_CONTROLLER, time, *this, ctx.mainWindow()))
+					ctx.endIdleByUserActivity();
 			};
-		extGamepad.leftThumbstick.right.valueChangedHandler =
-			^(GCControllerButtonInput *button, float value, BOOL pressed)
+		extGamepad.rightThumbstick.yAxis.valueChangedHandler =
+			^(GCControllerAxisInput *, float value)
 			{
-				Key key = (this->joystickAxisAsDpadBits_ & AXIS_BIT_X) ? AppleGC::RIGHT : AppleGC::LSTICK_RIGHT;
-				Key sysKey = key == AppleGC::RIGHT ? Keycode::RIGHT : Keycode::JS1_XAXIS_POS;
-				this->handleKey(key, sysKey, pressed);
-			};
-		extGamepad.rightThumbstick.up.valueChangedHandler =
-			^(GCControllerButtonInput *button, float value, BOOL pressed)
-			{
-				Key key = (this->joystickAxisAsDpadBits_ & AXIS_BIT_RZ) ? AppleGC::UP : AppleGC::RSTICK_UP;
-				Key sysKey = key == AppleGC::UP ? Keycode::UP : Keycode::JS2_YAXIS_NEG;
-				this->handleKey(key, sysKey, pressed);
-			};
-		extGamepad.rightThumbstick.down.valueChangedHandler =
-			^(GCControllerButtonInput *button, float value, BOOL pressed)
-			{
-				Key key = (this->joystickAxisAsDpadBits_ & AXIS_BIT_RZ) ? AppleGC::DOWN : AppleGC::RSTICK_DOWN;
-				Key sysKey = key == AppleGC::DOWN ? Keycode::DOWN : Keycode::JS2_YAXIS_POS;
-				this->handleKey(key, sysKey, pressed);
-			};
-		extGamepad.rightThumbstick.left.valueChangedHandler =
-			^(GCControllerButtonInput *button, float value, BOOL pressed)
-			{
-				Key key = (this->joystickAxisAsDpadBits_ & AXIS_BIT_Z) ? AppleGC::LEFT : AppleGC::RSTICK_LEFT;
-				Key sysKey = key == AppleGC::LEFT ? Keycode::LEFT : Keycode::JS2_XAXIS_NEG;
-				this->handleKey(key, sysKey, pressed);
-			};
-		extGamepad.rightThumbstick.right.valueChangedHandler =
-			^(GCControllerButtonInput *button, float value, BOOL pressed)
-			{
-				Key key = (this->joystickAxisAsDpadBits_ & AXIS_BIT_Z) ? AppleGC::RIGHT : AppleGC::RSTICK_RIGHT;
-				Key sysKey = key == AppleGC::RIGHT ? Keycode::RIGHT : Keycode::JS2_XAXIS_POS;
-				this->handleKey(key, sysKey, pressed);
+				auto time = IG::steadyClockTimestamp();
+				if(axis[3].update(value, Map::APPLE_GAME_CONTROLLER, time, *this, ctx.mainWindow()))
+					ctx.endIdleByUserActivity();
 			};
 	}
 	
@@ -205,24 +180,9 @@ struct AppleGameDevice : public Device
 		
 	}
 
-	void setJoystickAxisAsDpadBits(uint32_t axisMask) final
+	std::span<Input::Axis> motionAxes()
 	{
-		joystickAxisAsDpadBits_ = axisMask;
-	}
-	
-	uint32_t joystickAxisAsDpadBits() final
-	{
-		return joystickAxisAsDpadBits_;
-	}
-
-	uint32_t joystickAxisBits() final
-	{
-		return subtype_ == Subtype::APPLE_EXTENDED_GAMEPAD ? (AXIS_BITS_STICK_1 | AXIS_BITS_STICK_2) : 0;
-	}
-
-	uint32_t joystickAxisAsDpadBitsDefault() final
-	{
-		return AXIS_BITS_STICK_1;
+		return subtype_ == Subtype::APPLE_EXTENDED_GAMEPAD ? axis : std::span<Input::Axis>{};
 	}
 	
 	const char *keyName(Key k) const final
@@ -337,6 +297,18 @@ static const char *appleGCButtonName(Key k)
 		case AppleGC::RSTICK_LEFT: return "R:Left";
 	}
 	return "";
+}
+
+std::pair<Input::Key, Input::Key> appleJoystickKeys(Input::AxisId axisId)
+{
+	switch(axisId)
+	{
+		case Input::AxisId::X: return {Input::AppleGC::LSTICK_LEFT, Input::AppleGC::LSTICK_RIGHT};
+		case Input::AxisId::Y: return {Input::AppleGC::LSTICK_DOWN, Input::AppleGC::LSTICK_UP};
+		case Input::AxisId::Z: return {Input::AppleGC::RSTICK_LEFT, Input::AppleGC::RSTICK_RIGHT};
+		case Input::AxisId::RZ: return {Input::AppleGC::RSTICK_DOWN, Input::AppleGC::RSTICK_UP};
+		default: return {};
+	}
 }
 
 }

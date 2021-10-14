@@ -80,6 +80,11 @@ namespace Config
 	static constexpr bool RELATIVE_MOTION_DEVICES = false;
 	#endif
 
+	#ifdef CONFIG_BLUETOOTH
+	static constexpr bool BLUETOOTH = true;
+	#else
+	static constexpr bool BLUETOOTH = false;
+	#endif
 	}
 
 }

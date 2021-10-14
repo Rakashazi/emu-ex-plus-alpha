@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <iterator>
 #include <cstring>
+#include <span>
 
 template<class T, size_t SIZE>
 class StaticArrayList
@@ -147,6 +148,11 @@ public:
 			size_ -= std::distance(first, last);
 		}
 		return first;
+	}
+
+	constexpr operator std::span<T>() const
+	{
+		return {data(), size()};
 	}
 
 private:

@@ -27,9 +27,9 @@ using namespace IG;
 const uint8_t Wiimote::btClass[3] = { 0x04, 0x25, 0x00 };
 const uint8_t Wiimote::btClassDevOnly[3] = { 0x04, 0x05, 0x00 };
 const uint8_t Wiimote::btClassRemotePlus[3] = { 0x08, 0x05, 0x00 };
-static const char ccDataBytes = 6;
-static const char nunchuckDataBytes = 6;
-static const char proDataBytes = 10;
+static constexpr char ccDataBytes = 6;
+static constexpr char nunchuckDataBytes = 6;
+static constexpr char proDataBytes = 10;
 
 namespace Input
 {
@@ -390,15 +390,12 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						extension = EXT_CC;
 						sendDataModeByExtension();
 						IG::fill(prevExtData, 0xFF);
-						axisKey[0] = {31-8, 31+8,
-							WiiCC::LSTICK_LEFT, WiiCC::LSTICK_RIGHT, Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS};
-						axisKey[1] = {31-8, 31+8,
-							WiiCC::LSTICK_DOWN, WiiCC::LSTICK_UP, Keycode::JS1_YAXIS_POS, Keycode::JS1_YAXIS_NEG};
-						axisKey[2] = {16-4, 16+4,
-							WiiCC::RSTICK_LEFT, WiiCC::RSTICK_RIGHT, Keycode::JS2_XAXIS_NEG, Keycode::JS2_XAXIS_POS};
-						axisKey[3] = {16-4, 16+4,
-							WiiCC::RSTICK_DOWN, WiiCC::RSTICK_UP, Keycode::JS2_YAXIS_POS, Keycode::JS2_YAXIS_NEG};
-						setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
+						static constexpr float axisClassicLScaler = 1./31.;
+						static constexpr float axisClassicRScaler = 1./15.;
+						axis[0] = {*this, Input::AxisId::X, axisClassicLScaler};
+						axis[1] = {*this, Input::AxisId::Y, axisClassicLScaler};
+						axis[2] = {*this, Input::AxisId::Z, axisClassicRScaler};
+						axis[3] = {*this, Input::AxisId::RZ, axisClassicRScaler};
 						assert(!extDevicePtr);
 						extDevicePtr = &ctx.application().addInputDevice(
 							std::make_unique<ExtDevice>(Input::Map::WII_CC, Input::Device::TYPE_BIT_GAMEPAD, "Wii Classic Controller"), true);
@@ -409,11 +406,9 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						extension = EXT_NUNCHUK;
 						sendDataModeByExtension();
 						IG::fill(prevExtData, 0xFF);
-						axisKey[0] = {127-64, 127+64,
-							Input::Wiimote::NUN_STICK_LEFT, Input::Wiimote::NUN_STICK_RIGHT, Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS};
-						axisKey[1] = {127-64, 127+64,
-							Input::Wiimote::NUN_STICK_DOWN, Input::Wiimote::NUN_STICK_UP, Keycode::JS1_YAXIS_POS, Keycode::JS1_YAXIS_NEG};
-						setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
+						static constexpr float axisNunchukScaler = 1./127.;
+						axis[0] = {*this, Input::AxisId::X, axisNunchukScaler};
+						axis[1] = {*this, Input::AxisId::Y, axisNunchukScaler};
 					}
 					else if(memcmp(&packet[8], wiiUProType, sizeof(ccType)) == 0)
 					{
@@ -421,15 +416,11 @@ bool Wiimote::dataHandler(const char *packetPtr, size_t size)
 						extension = EXT_WIIU_PRO;
 						sendDataModeByExtension();
 						IG::fill(prevExtData, 0xFF);
-						axisKey[0] = {2048-256, 2048+256,
-							WiiCC::LSTICK_LEFT, WiiCC::LSTICK_RIGHT, Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS};
-						axisKey[1] = {2048-256, 2048+256,
-							WiiCC::LSTICK_DOWN, WiiCC::LSTICK_UP, Keycode::JS1_YAXIS_POS, Keycode::JS1_YAXIS_NEG};
-						axisKey[2] = {2048-256, 2048+256,
-							WiiCC::RSTICK_LEFT, WiiCC::RSTICK_RIGHT, Keycode::JS2_XAXIS_NEG, Keycode::JS2_XAXIS_POS};
-						axisKey[3] = {2048-256, 2048+256,
-							WiiCC::RSTICK_DOWN, WiiCC::RSTICK_UP, Keycode::JS2_YAXIS_POS, Keycode::JS2_YAXIS_NEG};
-						setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
+						static constexpr float axisClassicProScaler = 1./2047.;
+						axis[0] = {*this, Input::AxisId::X, axisClassicProScaler};
+						axis[1] = {*this, Input::AxisId::Y, axisClassicProScaler};
+						axis[2] = {*this, Input::AxisId::Z, axisClassicProScaler};
+						axis[3] = {*this, Input::AxisId::RZ, axisClassicProScaler};
 						map_ = Input::Map::WII_CC;
 						name_ = "Wii U Pro Controller";
 					}
@@ -486,18 +477,18 @@ uint8_t Wiimote::playerLEDs(int player)
 
 void Wiimote::decodeCCSticks(const uint8_t *ccSticks, int &lX, int &lY, int &rX, int &rY)
 {
-	lX = ccSticks[0] & 0x3F;
-	lY = ccSticks[1] & 0x3F;
-	rX = (ccSticks[0] & 0xC0) >> 3 | (ccSticks[1] & 0xC0) >> 5 | (ccSticks[2] & 0x80) >> 7;
-	rY = ccSticks[2] & 0x1F;
+	lX = (ccSticks[0] & 0x3F) - 31;
+	lY = (ccSticks[1] & 0x3F) - 31;
+	rX = ((ccSticks[0] & 0xC0) >> 3 | (ccSticks[1] & 0xC0) >> 5 | (ccSticks[2] & 0x80) >> 7) - 15;
+	rY = (ccSticks[2] & 0x1F) - 15;
 }
 
 void Wiimote::decodeProSticks(const uint8_t *ccSticks, int &lX, int &lY, int &rX, int &rY)
 {
-	lX = ccSticks[0] | (ccSticks[1] << 8);
-	lY = ccSticks[4] | (ccSticks[5] << 8);
-	rX = ccSticks[2] | (ccSticks[3] << 8);
-	rY = ccSticks[6] | (ccSticks[7] << 8);
+	lX = (ccSticks[0] | (ccSticks[1] << 8)) - 2047;
+	lY = (ccSticks[4] | (ccSticks[5] << 8)) - 2047;
+	rX = (ccSticks[2] | (ccSticks[3] << 8)) - 2047;
+	rY = (ccSticks[6] | (ccSticks[7] << 8)) - 2047;
 }
 
 void Wiimote::processCoreButtons(const uint8_t *packet, Input::Time time)
@@ -522,12 +513,11 @@ void Wiimote::processClassicButtons(const uint8_t *packet, Input::Time time)
 {
 	using namespace Input;
 	auto ccData = &packet[4];
-	//processStickDataForButtonEmulation(player, ccData);
 	int stickPos[4];
 	decodeCCSticks(ccData, stickPos[0], stickPos[1], stickPos[2], stickPos[3]);
 	iterateTimes(4, i)
 	{
-		if(axisKey[i].dispatch(stickPos[i], Input::Map::WIIMOTE, time, *this, ctx.mainWindow()))
+		if(axis[i].update(stickPos[i], Map::WII_CC, time, *this, ctx.mainWindow()))
 			ctx.endIdleByUserActivity();
 	}
 	for(auto &e : wiimoteCCDataAccess)
@@ -553,7 +543,7 @@ void Wiimote::processProButtons(const uint8_t *packet, Input::Time time)
 	decodeProSticks(proData, stickPos[0], stickPos[1], stickPos[2], stickPos[3]);
 	iterateTimes(4, i)
 	{
-		if(axisKey[i].dispatch(stickPos[i], Input::Map::WIIMOTE, time, *this, ctx.mainWindow()))
+		if(axis[i].update(stickPos[i], Map::WII_CC, time, *this, ctx.mainWindow()))
 			ctx.endIdleByUserActivity();
 	}
 	for(auto &e : wiimoteProDataAccess)
@@ -577,7 +567,7 @@ void Wiimote::processNunchukButtons(const uint8_t *packet, Input::Time time)
 	const uint8_t *nunData = &packet[4];
 	iterateTimes(2, i)
 	{
-		if(axisKey[i].dispatch(nunData[i], Input::Map::WIIMOTE, time, *this, ctx.mainWindow()))
+		if(axis[i].update(int(nunData[i]) - 127, Map::WIIMOTE, time, *this, ctx.mainWindow()))
 			ctx.endIdleByUserActivity();
 	}
 	for(auto &e : wiimoteNunchukDataAccess)
@@ -594,89 +584,6 @@ void Wiimote::processNunchukButtons(const uint8_t *packet, Input::Time time)
 	memcpy(prevExtData, nunData, nunchuckDataBytes);
 }
 
-uint32_t Wiimote::joystickAxisBits()
-{
-	switch(extension)
-	{
-		case EXT_CC:
-		case EXT_WIIU_PRO:
-			return Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
-		case EXT_NUNCHUK:
-			return Device::AXIS_BITS_STICK_1;
-	}
-	return 0;
-}
-
-uint32_t Wiimote::joystickAxisAsDpadBitsDefault()
-{
-	switch(extension)
-	{
-		case EXT_CC:
-		case EXT_WIIU_PRO:
-		case EXT_NUNCHUK:
-			return Device::AXIS_BITS_STICK_1;
-	}
-	return 0;
-}
-
-void Wiimote::setJoystickAxisAsDpadBits(uint32_t axisMask)
-{
-	using namespace Input;
-	if(joystickAxisAsDpadBits_ == axisMask)
-		return;
-
-	joystickAxisAsDpadBits_ = axisMask;
-	//logMsg("mapping joystick axes");
-	if(extension == EXT_NUNCHUK)
-	{
-		{
-			bool on = axisMask & Device::AXIS_BIT_X;
-			axisKey[0].lowKey = on ? Input::Wiimote::LEFT : Input::Wiimote::NUN_STICK_LEFT;
-			axisKey[0].lowSysKey = on ? Keycode::LEFT : Keycode::JS1_XAXIS_NEG;
-			axisKey[0].highKey = on ? Input::Wiimote::RIGHT : Input::Wiimote::NUN_STICK_RIGHT;
-			axisKey[0].highSysKey = on ? Keycode::RIGHT : Keycode::JS1_XAXIS_POS;
-		}
-		{
-			bool on = axisMask & Device::AXIS_BIT_Y;
-			axisKey[1].lowKey = on ? Input::Wiimote::DOWN : Input::Wiimote::NUN_STICK_DOWN;
-			axisKey[1].lowSysKey = on ? Keycode::DOWN : Keycode::JS1_YAXIS_POS;
-			axisKey[1].highKey = on ? Input::Wiimote::UP : Input::Wiimote::NUN_STICK_UP;
-			axisKey[1].highSysKey = on ? Keycode::UP : Keycode::JS1_YAXIS_NEG;
-		}
-	}
-	else
-	{
-		{
-			bool on = axisMask & Device::AXIS_BIT_X;
-			axisKey[0].lowKey = on ? Input::WiiCC::LEFT : Input::WiiCC::LSTICK_LEFT;
-			axisKey[0].lowSysKey = on ? Keycode::LEFT : Keycode::JS1_XAXIS_NEG;
-			axisKey[0].highKey = on ? Input::WiiCC::RIGHT : Input::WiiCC::LSTICK_RIGHT;
-			axisKey[0].highSysKey = on ? Keycode::RIGHT : Keycode::JS1_XAXIS_POS;
-		}
-		{
-			bool on = axisMask & Device::AXIS_BIT_Y;
-			axisKey[1].lowKey = on ? Input::WiiCC::DOWN : Input::WiiCC::LSTICK_DOWN;
-			axisKey[1].lowSysKey = on ? Keycode::DOWN : Keycode::JS1_YAXIS_POS;
-			axisKey[1].highKey = on ? Input::WiiCC::UP : Input::WiiCC::LSTICK_UP;
-			axisKey[1].highSysKey = on ? Keycode::UP : Keycode::JS1_YAXIS_NEG;
-		}
-		{
-			bool on = axisMask & Device::AXIS_BIT_Z;
-			axisKey[2].lowKey = on ? Input::WiiCC::LEFT : Input::WiiCC::RSTICK_LEFT;
-			axisKey[2].lowSysKey = on ? Keycode::LEFT : Keycode::JS2_XAXIS_NEG;
-			axisKey[2].highKey = on ? Input::WiiCC::RIGHT : Input::WiiCC::RSTICK_RIGHT;
-			axisKey[2].highSysKey = on ? Keycode::RIGHT : Keycode::JS2_XAXIS_POS;
-		}
-		{
-			bool on = axisMask & Device::AXIS_BIT_RZ;
-			axisKey[3].lowKey = on ? Input::WiiCC::DOWN : Input::WiiCC::RSTICK_DOWN;
-			axisKey[3].lowSysKey = on ? Keycode::DOWN : Keycode::JS2_YAXIS_POS;
-			axisKey[3].highKey = on ? Input::WiiCC::UP : Input::WiiCC::RSTICK_UP;
-			axisKey[3].highSysKey = on ? Keycode::UP : Keycode::JS2_YAXIS_NEG;
-		}
-	}
-}
-
 bool Wiimote::isSupportedClass(const uint8_t devClass[3])
 {
 	return IG::equal_n(devClass, 3, btClass)
@@ -690,5 +597,34 @@ void Wiimote::removeExtendedDevice()
 	{
 		ctx.application().removeInputDevice(*extDevicePtr);
 		extDevicePtr = {};
+	}
+}
+
+std::span<Input::Axis> Wiimote::motionAxes()
+{
+	return axis;
+}
+
+std::pair<Input::Key, Input::Key> Wiimote::joystickKeys(Input::Map map, Input::AxisId axisId)
+{
+	if(map == Input::Map::WII_CC)
+	{
+		switch(axisId)
+		{
+			case Input::AxisId::X: return {Input::WiiCC::LSTICK_LEFT, Input::WiiCC::LSTICK_RIGHT};
+			case Input::AxisId::Y: return {Input::WiiCC::LSTICK_DOWN, Input::WiiCC::LSTICK_UP};
+			case Input::AxisId::Z: return {Input::WiiCC::RSTICK_LEFT, Input::WiiCC::RSTICK_RIGHT};
+			case Input::AxisId::RZ: return {Input::WiiCC::RSTICK_DOWN, Input::WiiCC::RSTICK_UP};
+			default: return {};
+		}
+	}
+	else
+	{
+		switch(axisId)
+		{
+			case Input::AxisId::X: return {Input::Wiimote::NUN_STICK_LEFT, Input::Wiimote::NUN_STICK_RIGHT};
+			case Input::AxisId::Y: return {Input::Wiimote::NUN_STICK_DOWN, Input::Wiimote::NUN_STICK_UP};
+			default: return {};
+		}
 	}
 }

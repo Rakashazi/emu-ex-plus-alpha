@@ -33,7 +33,7 @@ static constexpr unsigned MAX_KEY_CONFIG_NAME_SIZE = 80;
 static constexpr unsigned MAX_KEY_CONFIG_KEYS = 256;
 static constexpr unsigned MAX_DEFAULT_KEY_CONFIGS_PER_TYPE = 10;
 
-struct InputDeviceConfig;
+class InputDeviceConfig;
 
 struct KeyCategory
 {
@@ -88,20 +88,6 @@ struct KeyConfig
 	static const KeyConfig &defaultConfigForDevice(const Input::Device &dev);
 	static const KeyConfig *defaultConfigsForDevice(const Input::Device &dev, unsigned &size);
 	static const KeyConfig *defaultConfigsForDevice(const Input::Device &dev);
-};
-
-struct KeyMapping
-{
-	static constexpr unsigned maxKeyActions = 4;
-	using Action = uint8_t;
-	using ActionGroup = std::array<Action, maxKeyActions>;
-	std::unique_ptr<ActionGroup*[]> inputDevActionTablePtr{};
-	IG::VMemArray<ActionGroup> inputDevActionTable{};
-
-	KeyMapping() {}
-	void buildAll(const std::vector<InputDeviceConfig> &, const Base::InputDeviceContainer &);
-	void free();
-	explicit operator bool() const;
 };
 
 namespace EmuControls

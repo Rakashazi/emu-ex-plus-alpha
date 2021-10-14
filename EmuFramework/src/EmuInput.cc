@@ -122,24 +122,60 @@ void commonUpdateInput()
 
 void EmuApp::updateInputDevices(Base::ApplicationContext ctx)
 {
-	int i = 0;
-	inputDevConf.clear();
-	for(auto &e : ctx.inputDevices())
+	for(auto &devPtr : ctx.inputDevices())
 	{
-		logMsg("input device %d: name: %s, id: %d, map: %d", i, e->name(), e->enumId(), (int)e->map());
-		inputDevConf.emplace_back(e.get());
-		for(auto &saved : savedInputDevList)
-		{
-			if(saved.matchesDevice(*e))
-			{
-				logMsg("has saved config");
-				inputDevConf.back().setSavedConf(&saved);
-			}
-		}
-		i++;
+		logMsg("input device:%s, id:%d, map:%d", devPtr->name(), devPtr->enumId(), (int)devPtr->map());
+		auto &appData = devPtr->makeAppData<InputDeviceData>(*devPtr, savedInputDevList);
 	}
+	vController.setPhysicalControlsPresent(ctx.keyInputIsPresent());
 	onUpdateInputDevices_.callCopySafe();
-	keyMapping.buildAll(inputDevConf, ctx.inputDevices());
+}
+
+InputDeviceData::InputDeviceData(Input::Device &dev, std::list<InputDeviceSavedConfig> &savedInputDevList):
+	devConf{dev},
+	displayName{makeDisplayName(dev.name(), dev.enumId())}
+{
+	dev.setJoystickAxisAsDpadBits(Input::Device::AXIS_BITS_STICK_1 | Input::Device::AXIS_BITS_HAT);
+	for(auto &saved : savedInputDevList)
+	{
+		if(saved.matchesDevice(dev))
+		{
+			logMsg("has saved config");
+			devConf.setSavedConf(&saved, false);
+		}
+	}
+	buildKeyMap(dev);
+}
+
+void InputDeviceData::buildKeyMap(const Input::Device &d)
+{
+	auto totalKeys = Input::Event::mapNumKeys(d.map());
+	if(!totalKeys || !devConf.isEnabled()) [[unlikely]]
+		return;
+	logMsg("allocating key mapping for:%s with player:%d", d.name(), devConf.player()+1);
+	actionTable.resize(totalKeys);
+	KeyConfig::KeyArray key = devConf.keyConf().key();
+	if(devConf.player() != InputDeviceConfig::PLAYER_MULTI)
+	{
+		EmuControls::transposeKeysForPlayer(key, devConf.player());
+	}
+	iterateTimes(MAX_KEY_CONFIG_KEYS, k)
+	{
+		//logMsg("mapping key %d to %u %s", k, key, Input::buttonName(devConf.dev->map, key[k]));
+		assert(key[k] < totalKeys);
+		auto &group = actionTable[key[k]];
+		auto slot = IG::find_if(group, [](auto &a){ return a == 0; });
+		if(slot != group.end())
+			*slot = k+1; // add 1 to avoid 0 value (considered unmapped)
+	}
+}
+
+std::string InputDeviceData::makeDisplayName(const char *name, unsigned id)
+{
+	char idStr[sizeof(" #00")] = "";
+	if(id)
+		IG::formatTo(idStr, " #{}", id + 1);
+	return fmt::format("{}{}", name, idStr);
 }
 
 void EmuApp::setOnUpdateInputDevices(DelegateFunc<void ()> del)
@@ -279,6 +315,7 @@ bool InputDeviceConfig::setICadeMode(bool on)
 	// delete device's config since its properties will change with iCade mode switch
 	deleteConf();
 	dev->setICadeMode(on);
+	buildKeyMap();
 	save();
 	if(!savedConf)
 	{
@@ -320,6 +357,7 @@ void InputDeviceConfig::setKeyConf(const KeyConfig &kConf)
 {
 	save();
 	savedConf->keyConf = &kConf;
+	buildKeyMap();
 }
 
 void InputDeviceConfig::setDefaultKeyConf()
@@ -360,9 +398,7 @@ KeyConfig *InputDeviceConfig::makeMutableKeyConf(EmuApp &app)
 
 KeyConfig *InputDeviceConfig::setKeyConfCopiedFromExisting(const char *name)
 {
-	customKeyConfig.emplace_back();
-	auto &newConf = customKeyConfig.back();
-	newConf = keyConf();
+	auto &newConf = customKeyConfig.emplace_back(keyConf());
 	string_copy(newConf.name, name);
 	setKeyConf(newConf);
 	return &newConf;
@@ -372,12 +408,10 @@ void InputDeviceConfig::save()
 {
 	if(!savedConf)
 	{
-		savedInputDevList.emplace_back();
+		savedConf = &savedInputDevList.emplace_back();
 		logMsg("allocated new device config, %d total", (int)savedInputDevList.size());
-		savedConf = &savedInputDevList.back();
-		*savedConf = InputDeviceSavedConfig();
 	}
-	savedConf->player = player;
+	savedConf->player = player_;
 	savedConf->enabled = enabled;
 	savedConf->enumId = dev->enumId();
 	savedConf->joystickAxisAsDpadBits = dev->joystickAxisAsDpadBits();
@@ -387,18 +421,20 @@ void InputDeviceConfig::save()
 	string_copy(savedConf->name, dev->name());
 }
 
-void InputDeviceConfig::setSavedConf(InputDeviceSavedConfig *savedConf)
+void InputDeviceConfig::setSavedConf(InputDeviceSavedConfig *savedConf, bool updateKeymap)
 {
 	this->savedConf = savedConf;
 	if(savedConf)
 	{
-		player = savedConf->player;
+		player_ = savedConf->player;
 		enabled = savedConf->enabled;
 		dev->setJoystickAxisAsDpadBits(savedConf->joystickAxisAsDpadBits);
 		#ifdef CONFIG_INPUT_ICADE
 		dev->setICadeMode(savedConf->iCadeMode);
 		#endif
 	}
+	if(updateKeymap)
+		buildKeyMap();
 }
 
 bool InputDeviceConfig::setKey(EmuApp &app, Input::Key mapKey, const KeyCategory &cat, int keyIdx)
@@ -413,74 +449,15 @@ bool InputDeviceConfig::setKey(EmuApp &app, Input::Key mapKey, const KeyCategory
 	return true;
 }
 
-// KeyMapping
-
-void KeyMapping::buildAll(const std::vector<InputDeviceConfig> &inputDevConf, const Base::InputDeviceContainer &inputDevices)
+void InputDeviceConfig::setPlayer(int p)
 {
-	if(!inputDevConf.size())
-		return;
-	assert(inputDevConf.size() == inputDevices.size());
-	inputDevActionTable.resize(0);
-	inputDevActionTablePtr = std::make_unique<ActionGroup*[]>(inputDevices.size());
-	// calculate & allocate complete map including all devices
-	{
-		unsigned totalKeys = 0;
-		for(auto &e : inputDevices)
-		{
-			totalKeys += Input::Event::mapNumKeys(e->map());
-		}
-		if(!totalKeys) [[unlikely]]
-		{
-			logMsg("no keys in mapping");
-			inputDevActionTablePtr[0] = nullptr;
-			return;
-		}
-		logMsg("allocating key mapping with %d keys", totalKeys);
-		inputDevActionTable.resize(totalKeys);
-	}
-	unsigned totalKeys = 0;
-	int i = 0;
-	for(auto &e : inputDevices)
-	{
-		// set the offset for this device from the full action table
-		inputDevActionTablePtr[i] = &inputDevActionTable[totalKeys];
-		auto mapKeys = Input::Event::mapNumKeys(e->map());
-		totalKeys += mapKeys;
-		auto actionGroup = inputDevActionTablePtr[i];
-		if(!inputDevConf[i].enabled)
-		{
-			i++;
-			continue;
-		}
-		KeyConfig::KeyArray key = inputDevConf[i].keyConf().key();
-		if(inputDevConf[i].player != InputDeviceConfig::PLAYER_MULTI)
-		{
-			logMsg("transposing keys for player %d", inputDevConf[i].player+1);
-			EmuControls::transposeKeysForPlayer(key, inputDevConf[i].player);
-		}
-		iterateTimes(MAX_KEY_CONFIG_KEYS, k)
-		{
-			//logMsg("mapping key %d to %u %s", k, key, Input::buttonName(inputDevConf[i].dev->map, key[k]));
-			assert(key[k] < Input::Event::mapNumKeys(e->map()));
-			auto &group = actionGroup[key[k]];
-			auto slot = IG::find_if(group, [](Action a){ return a == 0; });
-			if(slot != group.end())
-				*slot = k+1; // add 1 to avoid 0 value (considered unmapped)
-		}
-
-		i++;
-	}
+	player_ = p;
+	buildKeyMap();
 }
 
-void KeyMapping::free()
+void InputDeviceConfig::buildKeyMap()
 {
-	inputDevActionTable.resize(0);
-	inputDevActionTablePtr.reset();
-}
-
-KeyMapping::operator bool() const
-{
-	return (bool)inputDevActionTablePtr;
+	inputDevData(*dev).buildKeyMap(*dev);
 }
 
 namespace EmuControls

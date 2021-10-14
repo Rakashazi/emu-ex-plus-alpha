@@ -136,14 +136,14 @@ bool ButtonConfigSetView::inputEvent(Input::Event e)
 				app().unpostMessage();
 				auto &rootIMView = this->rootIMView;
 				popTo(rootIMView);
-				rootIMView.pushAndShowDeviceView(d->index(), e);
+				rootIMView.pushAndShowDeviceView(*d, e);
 			}
 			else
 			{
 				savedDev = d;
 				app().postMessage(7, false,
 					fmt::format("You pushed a key from device:\n{}\nPush another from it to open its config menu",
-					rootIMView.makeDeviceName(d->name(), d->enumId())));
+					inputDevData(*d).displayName));
 				postDraw();
 			}
 			return true;
@@ -246,12 +246,9 @@ void ButtonConfigView::onSet(Input::Key mapKey, int keyToSet)
 	if(!devConf->setKey(app(), mapKey, *cat, keyToSet))
 		return;
 	auto &b = btn[keyToSet];
-	{
-		waitForDrawFinished();
-		b.set2ndName(makeKeyNameStr(mapKey, devConf->dev->keyName(mapKey)).data());
-		b.compile2nd(renderer(), projP);
-	}
-	app().buildKeyInputMapping();
+	b.set2ndName(makeKeyNameStr(mapKey, devConf->device().keyName(mapKey)).data());
+	b.compile2nd(renderer(), projP);
+	devConf->buildKeyMap();
 }
 
 bool ButtonConfigView::inputEvent(Input::Event e)
@@ -306,21 +303,18 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 					if(!conf)
 						return;
 					conf->unbindCategory(*cat);
+					iterateTimes(cat->keys, i)
 					{
-						waitForDrawFinished();
-						iterateTimes(cat->keys, i)
-						{
-							btn[i].set2ndName(devConf->dev->keyName(devConf->keyConf().key(*cat)[i]));
-							btn[i].compile2nd(renderer(), projP);
-						}
+						btn[i].set2ndName(devConf->device().keyName(devConf->keyConf().key(*cat)[i]));
+						btn[i].compile2nd(renderer(), projP);
 					}
-					app().buildKeyInputMapping();
+					devConf->buildKeyMap();
 				});
 			pushAndShowModal(std::move(ynAlertView), e);
 		}
 	}
 {
-	logMsg("init button config view for %s", Input::Event::mapName(devConf_.dev->map()));
+	logMsg("init button config view for %s", Input::Event::mapName(devConf_.device().map()));
 	cat = cat_;
 	devConf = &devConf_;
 	auto keyConfig = devConf_.keyConf();
@@ -331,12 +325,12 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 		btn[i] =
 		{
 			cat->keyName[i],
-			makeKeyNameStr(key, devConf_.dev->keyName(key)).data(),
+			makeKeyNameStr(key, devConf_.device().keyName(key)).data(),
 			&defaultFace(),
 			[this, keyToSet = i](Input::Event e)
 			{
 				auto btnSetView = makeView<ButtonConfigSetView>(rootIMView,
-					*devConf->dev, cat->keyName[keyToSet],
+					devConf->device(), cat->keyName[keyToSet],
 					[this, keyToSet](Input::Event e)
 					{
 						auto mapKey = e.mapKey();
@@ -348,7 +342,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 								// prompt to resolve key conflict
 								auto alertView = makeView<KeyConflictAlertView>(
 									fmt::format("Key \"{}\" already used for action \"{}\", unbind it before setting?",
-									devConf->dev->keyName(mapKey),
+									devConf->device().keyName(mapKey),
 									conflictCat->keyName[conflictKey]).data());
 								alertView->ctx = {mapKey, keyToSet, conflictCat, conflictKey};
 								alertView->setItem(0, "Yes",

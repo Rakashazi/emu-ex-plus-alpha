@@ -104,16 +104,16 @@ bool EmuInputView::inputEvent(Input::Event e)
 			return true;
 		#endif
 		auto &emuApp = app();
-		auto &keyMapping = emuApp.keyInputMapping();
-		if(!keyMapping) [[unlikely]]
+		const auto &actionTable = inputDevData(*e.device()).actionTable;
+		if(!actionTable.size()) [[unlikely]]
 			return false;
 		assumeExpr(e.device());
-		const KeyMapping::ActionGroup &actionMap = keyMapping.inputDevActionTablePtr[e.device()->index()][e.mapKey()];
+		const auto &actionGroup = actionTable[e.mapKey()];
 		//logMsg("player %d input %s", player, Input::buttonName(e.map, e.button));
 		bool didAction = false;
-		iterateTimes(KeyMapping::maxKeyActions, i)
+		iterateTimes(InputDeviceData::maxKeyActions, i)
 		{
-			auto action = actionMap[i];
+			auto action = actionGroup[i];
 			if(action != 0)
 			{
 				using namespace EmuControls;

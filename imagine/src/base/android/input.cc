@@ -214,9 +214,9 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 					{
 						for(auto &axis : dev->jsAxes())
 						{
-							auto pos = AMotionEvent_getAxisValue(event, axis.id, 0);
+							auto pos = AMotionEvent_getAxisValue(event, (int32_t)axis.id(), 0);
 							//logMsg("axis %d with value: %f", axis.id, (double)pos);
-							axis.keyEmu.dispatch(pos, Map::SYSTEM, time, *dev, win);
+							axis.update(pos, Map::SYSTEM, time, *dev, win, true);
 						}
 					}
 					else
@@ -225,7 +225,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 						iterateTimes(std::min((uint32_t)dev->jsAxes().size(), 2u), i)
 						{
 							auto pos = i ? AMotionEvent_getY(event, 0) : AMotionEvent_getX(event, 0);
-							dev->jsAxes()[i].keyEmu.dispatch(pos, Map::SYSTEM, time, *dev, win);
+							dev->jsAxes()[i].update(pos, Map::SYSTEM, time, *dev, win, true);
 						}
 					}
 					return true;

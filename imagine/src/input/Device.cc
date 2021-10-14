@@ -15,6 +15,17 @@
 
 #include <imagine/input/Device.hh>
 #include <imagine/input/Input.hh>
+#ifdef CONFIG_BLUETOOTH
+#include <imagine/bluetooth/Wiimote.hh>
+#include <imagine/bluetooth/Zeemote.hh>
+#include <imagine/bluetooth/IControlPad.hh>
+#endif
+#ifdef CONFIG_BLUETOOTH_SERVER
+#include <imagine/bluetooth/PS3Controller.hh>
+#endif
+#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+#include "apple/AppleGameDevice.hh"
+#endif
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
 
@@ -346,13 +357,35 @@ Device::Device(int id, Map map, uint8_t type, const char *name):
 
 bool Device::iCadeMode() const { return false; }
 
-void Device::setJoystickAxisAsDpadBits(uint32_t axisMask) {}
+void Device::setJoystickAxisAsDpadBits(uint32_t axisMask)
+{
+	for(auto &axis : motionAxes())
+	{
+		axis.setEmulatesDirectionKeys(*this, axisMask & axis.idBit());
+	}
+}
 
-uint32_t Device::joystickAxisAsDpadBits() { return 0; }
+uint32_t Device::joystickAxisAsDpadBits()
+{
+	uint32_t bits{};
+	for(auto &axis : motionAxes())
+	{
+		if(axis.emulatesDirectionKeys())
+			bits |= axis.idBit();
+	}
+	return bits;
+}
 
-uint32_t Device::joystickAxisAsDpadBitsDefault() { return 0; }
+Axis *Device::motionAxis(AxisId id)
+{
+	auto axes = motionAxes();
+	auto it = IG::find_if(axes, [&](auto &axis){ return axis.id() == id; });
+	if(it == std::end(axes))
+		return nullptr;
+	return &(*it);
+}
 
-uint32_t Device::joystickAxisBits() { return 0; }
+std::span<Axis> Device::motionAxes() { return {}; }
 
 const char *Device::keyName(Key k) const
 {
@@ -406,6 +439,191 @@ DeviceTypeBits Device::typeBits() const
 void Device::setICadeMode(bool on)
 {
 	logWarn("setICadeMode called but unimplemented");
+}
+
+static std::pair<Key, Key> joystickKeys(AxisId axisId)
+{
+	switch(axisId)
+	{
+		case AxisId::X: return {Keycode::JS1_XAXIS_NEG, Keycode::JS1_XAXIS_POS};
+		case AxisId::Y: return {Keycode::JS1_YAXIS_NEG, Keycode::JS1_YAXIS_POS};
+		case AxisId::Z: return {Keycode::JS2_XAXIS_NEG, Keycode::JS2_XAXIS_POS};
+		case AxisId::RZ: return {Keycode::JS2_YAXIS_NEG, Keycode::JS2_YAXIS_POS};
+		case AxisId::RX: return {Keycode::JS3_XAXIS_NEG, Keycode::JS3_XAXIS_POS};
+		case AxisId::RY: return {Keycode::JS3_YAXIS_NEG, Keycode::JS3_YAXIS_POS};
+		case AxisId::HAT0X:
+		case AxisId::HAT1X:
+		case AxisId::HAT2X:
+		case AxisId::HAT3X: return {Keycode::JS_POV_XAXIS_NEG, Keycode::JS_POV_XAXIS_POS};
+		case AxisId::HAT0Y:
+		case AxisId::HAT1Y:
+		case AxisId::HAT2Y:
+		case AxisId::HAT3Y: return {Keycode::JS_POV_YAXIS_NEG, Keycode::JS_POV_YAXIS_POS};
+		case AxisId::RUDDER: return {Keycode::JS_RUDDER_AXIS_NEG, Keycode::JS_RUDDER_AXIS_POS};
+		case AxisId::WHEEL: return {Keycode::JS_WHEEL_AXIS_NEG, Keycode::JS_WHEEL_AXIS_POS};
+		case AxisId::LTRIGGER: return {0, Keycode::JS_LTRIGGER_AXIS};
+		case AxisId::RTRIGGER: return {0, Keycode::JS_RTRIGGER_AXIS};
+		// map brake/gas to L/R triggers for now
+		case AxisId::BRAKE : return {0, Keycode::JS_LTRIGGER_AXIS};//return Keycode::JS_BRAKE_AXIS;
+		case AxisId::GAS : return {0, Keycode::JS_RTRIGGER_AXIS};//return Keycode::JS_GAS_AXIS;
+	}
+	return {};
+}
+
+static std::pair<Key, Key> joystickKeys(Map map, AxisId axisId)
+{
+	switch(map)
+	{
+		case Map::SYSTEM: return joystickKeys(axisId);
+		#ifdef CONFIG_BLUETOOTH
+		case Map::WIIMOTE:
+		case Map::WII_CC: return ::Wiimote::joystickKeys(map, axisId);
+		case Map::ICONTROLPAD: return ::IControlPad::joystickKeys(axisId);
+		case Map::ZEEMOTE: return ::Zeemote::joystickKeys(axisId);
+		#endif
+		#ifdef CONFIG_BLUETOOTH_SERVER
+		case Map::PS3PAD: return ::PS3Controller::joystickKeys(axisId);
+		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case Map::APPLE_GAME_CONTROLLER: return appleJoystickKeys(axisId);
+		#endif
+		default: return {};
+	}
+}
+
+Axis::Axis(const Device &d, AxisId id, float scaler):
+	scaler{scaler},
+	keyEmu
+	{
+		joystickKeys(d.map(), id),
+		joystickKeys(id)
+	},
+	id_{id} {}
+
+static std::pair<Key, Key> emulatedDirectionKeys(Map map, AxisId id, bool invertY)
+{
+	auto keys = directionKeys(map);
+	std::pair<Key, Key> yKeys = {keys.up, keys.down};
+	if(invertY)
+		std::swap(yKeys.first, yKeys.second);
+	switch(id)
+	{
+		case AxisId::X:
+		case AxisId::RX:
+		case AxisId::Z:
+		case AxisId::HAT0X:
+		case AxisId::HAT1X:
+		case AxisId::HAT2X:
+		case AxisId::HAT3X: return {keys.left, keys.right};
+		case AxisId::Y:
+		case AxisId::RY:
+		case AxisId::RZ:
+		case AxisId::HAT0Y:
+		case AxisId::HAT1Y:
+		case AxisId::HAT2Y:
+		case AxisId::HAT3Y: return yKeys;
+		default: return {};
+	}
+}
+
+void Axis::setEmulatesDirectionKeys(const Device &d, bool on)
+{
+	if(on)
+	{
+		const bool invertY = Config::Input::BLUETOOTH && d.map() != Map::SYSTEM;
+		auto dpadKeys = emulatedDirectionKeys(d.map(), id(), invertY);
+		if(!dpadKeys.first)
+			return;
+		keyEmu.key = dpadKeys;
+		keyEmu.sysKey = emulatedDirectionKeys(Map::SYSTEM, id(), invertY);
+	}
+	else
+	{
+		keyEmu.key = joystickKeys(d.map(), id());
+		keyEmu.sysKey = joystickKeys(id());
+	}
+}
+
+bool Axis::emulatesDirectionKeys() const
+{
+	return keyEmu.sysKey != joystickKeys(id());
+}
+
+uint32_t Axis::idBit() const
+{
+	switch(id())
+	{
+		case AxisId::X: return Device::AXIS_BIT_X;
+		case AxisId::Y: return Device::AXIS_BIT_Y;
+		case AxisId::Z: return Device::AXIS_BIT_Z;
+		case AxisId::RX: return Device::AXIS_BIT_RX;
+		case AxisId::RY: return Device::AXIS_BIT_RY;
+		case AxisId::RZ: return Device::AXIS_BIT_RZ;
+		case AxisId::HAT0X:
+		case AxisId::HAT1X:
+		case AxisId::HAT2X:
+		case AxisId::HAT3X: return Device::AXIS_BIT_HAT_X;
+		case AxisId::HAT0Y:
+		case AxisId::HAT1Y:
+		case AxisId::HAT2Y:
+		case AxisId::HAT3Y: return Device::AXIS_BIT_HAT_Y;
+		case AxisId::LTRIGGER: return Device::AXIS_BIT_LTRIGGER;
+		case AxisId::RTRIGGER: return Device::AXIS_BIT_RTRIGGER;
+		case AxisId::RUDDER: return Device::AXIS_BIT_RUDDER;
+		case AxisId::WHEEL: return Device::AXIS_BIT_WHEEL;
+		case AxisId::GAS: return Device::AXIS_BIT_GAS;
+		case AxisId::BRAKE: return Device::AXIS_BIT_BRAKE;
+		default: return {};
+	}
+}
+
+bool Axis::update(float pos, Map map, Time time, const Device &dev, Base::Window &win, bool normalized)
+{
+	if(!normalized)
+		pos *= scaler;
+	return keyEmu.dispatch(pos, map, time, dev, win);
+}
+
+AxisKeyEmu::UpdateKeys AxisKeyEmu::update(float pos)
+{
+	UpdateKeys keys;
+	int8_t newState = (pos <= limit.first) ? -1 :
+		(pos >= limit.second) ? 1 :
+		0;
+	if(newState != state)
+	{
+		const bool stateHigh = (state > 0);
+		const bool stateLow = (state < 0);
+		keys.released = stateHigh ? key.second : stateLow ? key.first : 0;
+		keys.sysReleased = stateHigh ? sysKey.second : stateLow ? sysKey.first : 0;
+		const bool newStateHigh = (newState > 0);
+		const bool newStateLow = (newState < 0);
+		keys.pushed = newStateHigh ? key.second : newStateLow ? key.first : 0;
+		keys.sysPushed = newStateHigh ? sysKey.second : newStateLow ? sysKey.first : 0;
+		keys.updated = true;
+		state = newState;
+	}
+	return keys;
+}
+
+bool AxisKeyEmu::dispatch(float pos, Map map, Time time, const Device &dev, Base::Window &win)
+{
+	auto updateKeys = update(pos);
+	auto src = Source::GAMEPAD;
+	if(!updateKeys.updated)
+	{
+		return false; // no change
+	}
+	if(updateKeys.released)
+	{
+		win.dispatchRepeatableKeyInputEvent(Event(map, updateKeys.released, updateKeys.sysReleased, Action::RELEASED, 0, 0, src, time, &dev));
+	}
+	if(updateKeys.pushed)
+	{
+		Event event{map, updateKeys.pushed, updateKeys.sysPushed, Action::PUSHED, 0, 0, src, time, &dev};
+		win.dispatchRepeatableKeyInputEvent(event);
+	}
+	return true;
 }
 
 }

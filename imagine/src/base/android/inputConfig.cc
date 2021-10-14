@@ -84,9 +84,8 @@ static const char *inputDeviceKeyboardTypeToStr(int type)
 	return "Unknown";
 }
 
-AndroidInputDevice::AndroidInputDevice(int osId, TypeBits typeBits, const char *name, uint32_t axisBits):
-	Device{osId, Map::SYSTEM, typeBits, name},
-	axisBits{axisBits}
+AndroidInputDevice::AndroidInputDevice(int osId, TypeBits typeBits, const char *name):
+	Device{osId, Map::SYSTEM, typeBits, name}
 {}
 
 AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
@@ -197,128 +196,37 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 			logMsg("device looks like a generic gamepad");
 			subtype_ = Device::Subtype::GENERIC_GAMEPAD;
 		}
-		axisBits = jsAxisBits;
 		// check joystick axes
+		static constexpr AxisId stickAxes[]{AxisId::X, AxisId::Y, AxisId::Z, AxisId::RX, AxisId::RY, AxisId::RZ,
+				AxisId::HAT0X, AxisId::HAT0Y, AxisId::RUDDER, AxisId::WHEEL};
+		static constexpr uint32_t stickAxesBits[]{AXIS_BIT_X, AXIS_BIT_Y, AXIS_BIT_Z, AXIS_BIT_RX, AXIS_BIT_RY, AXIS_BIT_RZ,
+				AXIS_BIT_HAT_X, AXIS_BIT_HAT_Y, AXIS_BIT_RUDDER, AXIS_BIT_WHEEL};
+		for(auto &axisId : stickAxes)
 		{
-			constexpr uint8_t stickAxes[]{AXIS_X, AXIS_Y, AXIS_Z, AXIS_RX, AXIS_RY, AXIS_RZ,
-					AXIS_HAT_X, AXIS_HAT_Y, AXIS_RUDDER, AXIS_WHEEL};
-			constexpr uint32_t stickAxesBits[]{AXIS_BIT_X, AXIS_BIT_Y, AXIS_BIT_Z, AXIS_BIT_RX, AXIS_BIT_RY, AXIS_BIT_RZ,
-					AXIS_BIT_HAT_X, AXIS_BIT_HAT_Y, AXIS_BIT_RUDDER, AXIS_BIT_WHEEL};
-			uint32_t axisIdx = 0;
-			for(auto axisId : stickAxes)
+			bool hasAxis = jsAxisBits & stickAxesBits[std::distance(stickAxes, &axisId)];
+			if(!hasAxis)
 			{
-				bool hasAxis = jsAxisBits & stickAxesBits[axisIdx];
-				if(!hasAxis)
-				{
-					axisIdx++;
-					continue;
-				}
-				logMsg("joystick axis: %d", axisId);
-				auto size = 2.0f;
-				axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f + size/4.f, 1.f - size/4.f,
-					Key(axisToKeycode(axisId)+1), axisToKeycode(axisId), Key(axisToKeycode(axisId)+1), axisToKeycode(axisId)});
-				if(axis.isFull())
-				{
-					logMsg("reached maximum joystick axes");
-					break;
-				}
-				axisIdx++;
+				continue;
 			}
+			logMsg("joystick axis:%d", (int)axisId);
+			axis.emplace_back(*this, axisId);
+			assert(!axis.isFull());
 		}
 		// check trigger axes
-		if(!axis.isFull())
+		static constexpr AxisId triggerAxes[]{AxisId::LTRIGGER, AxisId::RTRIGGER, AxisId::GAS, AxisId::BRAKE};
+		static constexpr uint32_t triggerAxesBits[]{AXIS_BIT_LTRIGGER, AXIS_BIT_RTRIGGER, AXIS_BIT_GAS, AXIS_BIT_BRAKE};
+		for(auto &axisId : triggerAxes)
 		{
-			const uint8_t triggerAxes[]{AXIS_LTRIGGER, AXIS_RTRIGGER, AXIS_GAS, AXIS_BRAKE};
-			const uint32_t triggerAxesBits[]{AXIS_BIT_LTRIGGER, AXIS_BIT_RTRIGGER, AXIS_BIT_GAS, AXIS_BIT_BRAKE};
-			uint32_t axisIdx = 0;
-			for(auto axisId : triggerAxes)
+			bool hasAxis = jsAxisBits & triggerAxesBits[std::distance(triggerAxes, &axisId)];
+			if(!hasAxis)
 			{
-				bool hasAxis = jsAxisBits & triggerAxesBits[axisIdx];
-				if(!hasAxis)
-				{
-					axisIdx++;
-					continue;
-				}
-				logMsg("trigger axis: %d", axisId);
-				// use unreachable lowLimit value so only highLimit is used
-				axis.emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 0.25f,
-					0, axisToKeycode(axisId), 0, axisToKeycode(axisId)});
-				if(axis.isFull())
-				{
-					logMsg("reached maximum joystick axes");
-					break;
-				}
+				continue;
 			}
-		}
-		joystickAxisAsDpadBitsDefault_ = axisBits & (AXIS_BITS_STICK_1 | AXIS_BITS_HAT); // default left analog and POV hat as dpad
-		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault_); // default left analog and POV hat as dpad
-	}
-}
-
-void AndroidInputDevice::setJoystickAxisAsDpadBitsDefault(uint32_t axisMask)
-{
-	joystickAxisAsDpadBitsDefault_ = axisMask;
-}
-
-void AndroidInputDevice::setJoystickAxisAsDpadBits(uint32_t axisMask)
-{
-	if(!axis.size() || joystickAxisAsDpadBits_ == axisMask)
-		return;
-	joystickAxisAsDpadBits_ = axisMask;
-	logMsg("remapping joystick axes for device:%d", id());
-	for(auto &e : axis)
-	{
-		switch(e.id)
-		{
-			bcase AXIS_X:
-			{
-				bool on = axisMask & AXIS_BIT_X;
-				//logMsg("axis x as dpad: %s", on ? "yes" : "no");
-				e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::LEFT : Keycode::JS1_XAXIS_NEG;
-				e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::RIGHT : Keycode::JS1_XAXIS_POS;
-			}
-			bcase AXIS_Y:
-			{
-				bool on = axisMask & AXIS_BIT_Y;
-				//logMsg("axis y as dpad: %s", on ? "yes" : "no");
-				e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::UP : Keycode::JS1_YAXIS_NEG;
-				e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::DOWN : Keycode::JS1_YAXIS_POS;
-			}
-			bcase AXIS_Z:
-			{
-				bool on = axisMask & AXIS_BIT_Z;
-				//logMsg("axis z as dpad: %s", on ? "yes" : "no");
-				e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::LEFT : Keycode::JS2_XAXIS_NEG;
-				e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::RIGHT : Keycode::JS2_XAXIS_POS;
-			}
-			bcase AXIS_RZ:
-			{
-				bool on = axisMask & AXIS_BIT_RZ;
-				//logMsg("axis rz as dpad: %s", on ? "yes" : "no");
-				e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::UP : Keycode::JS2_YAXIS_NEG;
-				e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::DOWN : Keycode::JS2_YAXIS_POS;
-			}
-			bcase AXIS_HAT_X:
-			{
-				bool on = axisMask & AXIS_BIT_HAT_X;
-				//logMsg("axis hat x as dpad: %s", on ? "yes" : "no");
-				e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::LEFT : Keycode::JS_POV_XAXIS_NEG;
-				e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::RIGHT : Keycode::JS_POV_XAXIS_POS;
-			}
-			bcase AXIS_HAT_Y:
-			{
-				bool on = axisMask & AXIS_BIT_HAT_Y;
-				//logMsg("axis hat y as dpad: %s", on ? "yes" : "no");
-				e.keyEmu.lowKey = e.keyEmu.lowSysKey = on ? Keycode::UP : Keycode::JS_POV_YAXIS_NEG;
-				e.keyEmu.highKey = e.keyEmu.highSysKey = on ? Keycode::DOWN : Keycode::JS_POV_YAXIS_POS;
-			}
+			logMsg("trigger axis:%d", (int)axisId);
+			axis.emplace_back(*this, axisId);
+			assert(!axis.isFull());
 		}
 	}
-}
-
-uint32_t AndroidInputDevice::joystickAxisAsDpadBits()
-{
-	return joystickAxisAsDpadBits_;
 }
 
 bool AndroidInputDevice::operator ==(AndroidInputDevice const& rhs) const
@@ -328,9 +236,10 @@ bool AndroidInputDevice::operator ==(AndroidInputDevice const& rhs) const
 
 void AndroidInputDevice::setTypeBits(TypeBits bits) { typeBits_ = bits; }
 
-uint32_t AndroidInputDevice::joystickAxisAsDpadBitsDefault() { return joystickAxisAsDpadBitsDefault_; };
-
-uint32_t AndroidInputDevice::joystickAxisBits() { return axisBits; };
+std::span<Axis> AndroidInputDevice::motionAxes()
+{
+	return axis;
+}
 
 void AndroidInputDevice::setICadeMode(bool on)
 {
@@ -348,8 +257,6 @@ void AndroidInputDevice::update(AndroidInputDevice other)
 	name_ = other.name_;
 	typeBits_ = other.typeBits_;
 	subtype_ = other.subtype_;
-	joystickAxisAsDpadBitsDefault_ = other.joystickAxisAsDpadBitsDefault_;
-	axisBits = other.axisBits;
 	axis = other.axis;
 }
 
@@ -386,7 +293,7 @@ bool Device::anyTypeBitsPresent(Base::ApplicationContext ctx, TypeBits typeBits)
 		if((e.isVirtual() && ((typeBits & TYPE_BIT_KEY_MISC) & e.typeBits())) // virtual devices count as TYPE_BIT_KEY_MISC only
 				|| (!e.isVirtual() && (e.typeBits() & typeBits)))
 		{
-			logDMsg("device idx %d has bits 0x%X", e.idx, typeBits);
+			logDMsg("device:%s has bits:0x%X", e.name(), typeBits);
 			return true;
 		}
 	}

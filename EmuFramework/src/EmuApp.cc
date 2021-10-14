@@ -59,7 +59,6 @@ EmuApp::EmuApp(Base::ApplicationInitParams initParams, Base::ApplicationContext 
 			return true;
 		}
 	},
-	inputDevConf{},
 	lastLoadPath{ctx.sharedStoragePath()},
 	pixmapReader{ctx},
 	pixmapWriter{ctx},
@@ -364,7 +363,6 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 	emuAudio.setRate(optionSoundRate);
 	emuAudio.setAddSoundBuffersOnUnderrun(optionAddSoundBuffersOnUnderrun);
 	applyOSNavStyle(ctx, false);
-	vController.setPhysicalControlsPresent(ctx.keyInputIsPresent());
 
 	ctx.addOnResume(
 		[this](Base::ApplicationContext ctx, bool focused)
@@ -372,8 +370,6 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 			audioManager().startSession();
 			if(soundIsEnabled())
 				emuAudio.open(audioOutputAPI());
-			if(!keyMapping)
-				keyMapping.buildAll(inputDevConf, ctx.inputDevices());
 			return true;
 		});
 
@@ -400,7 +396,6 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 			#endif
 
 			ctx.dispatchOnFreeCaches(false);
-			keyMapping.free();
 
 			#ifdef CONFIG_BASE_IOS
 			//if(backgrounded)
@@ -510,7 +505,6 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 				{
 					logMsg("input devs enumerated");
 					updateInputDevices(ctx);
-					vController.setPhysicalControlsPresent(ctx.keyInputIsPresent());
 				});
 
 			ctx.setOnInputDeviceChange(
@@ -519,11 +513,10 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 					logMsg("got input dev change");
 
 					updateInputDevices(ctx);
-					vController.setPhysicalControlsPresent(ctx.keyInputIsPresent());
 
 					if(optionNotifyInputDeviceChange && (change.added() || change.removed()))
 					{
-						postMessage(2, 0, fmt::format("{} #{} {}", dev.name(), dev.enumId() + 1, change.added() ? "connected" : "disconnected"));
+						postMessage(2, 0, fmt::format("{} {}", inputDevData(dev).displayName, change.added() ? "connected" : "disconnected"));
 					}
 					else if(change.hadConnectError())
 					{
@@ -1072,21 +1065,6 @@ bool EmuApp::skipForwardFrames(EmuSystemTaskContext taskCtx, uint32_t frames)
 		}
 	}
 	return true;
-}
-
-void EmuApp::buildKeyInputMapping()
-{
-	keyMapping.buildAll(inputDevConf, appContext().inputDevices());
-}
-
-const KeyMapping &EmuApp::keyInputMapping()
-{
-	return keyMapping;
-}
-
-std::vector<InputDeviceConfig> &EmuApp::inputDeviceConfigs()
-{
-	return inputDevConf;
 }
 
 bool EmuApp::writeScreenshot(IG::Pixmap pix, const char *path)

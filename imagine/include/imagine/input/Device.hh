@@ -18,10 +18,13 @@
 #include <imagine/config/defs.hh>
 #include <imagine/input/config.hh>
 #include <imagine/input/inputDefs.hh>
+#include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <string>
 #include <compare>
+#include <span>
+#include <memory>
 
 namespace Base
 {
@@ -47,6 +50,8 @@ public:
 protected:
 	DeviceAction action;
 };
+
+class Axis;
 
 class Device
 {
@@ -119,17 +124,15 @@ public:
 	TypeBits typeBits() const;
 	Subtype subtype() const { return subtype_; }
 	void setSubtype(Subtype s) { subtype_ = s; }
-	void setIndex(uint8_t i) { idx = i; }
-	uint8_t index() const { return idx; }
 
 	bool operator ==(Device const& rhs) const = default;
 
 	virtual void setICadeMode(bool on);
 	virtual bool iCadeMode() const;
-	virtual void setJoystickAxisAsDpadBits(uint32_t axisMask);
-	virtual uint32_t joystickAxisAsDpadBits();
-	virtual uint32_t joystickAxisAsDpadBitsDefault();
-	virtual uint32_t joystickAxisBits();
+	void setJoystickAxisAsDpadBits(uint32_t axisMask);
+	uint32_t joystickAxisAsDpadBits();
+	Axis *motionAxis(AxisId);
+	virtual std::span<Axis> motionAxes();
 
 	virtual const char *keyName(Key k) const;
 
@@ -139,14 +142,44 @@ public:
 
 	static bool anyTypeBitsPresent(Base::ApplicationContext, TypeBits);
 
+	template <class T>
+	T &makeAppData(auto &&... args)
+	{
+		appDataPtr = std::make_shared<T>(std::forward<decltype(args)>(args)...);
+		return *appData<T>();
+	}
+
+	template<class T>
+	T *appData() const
+	{
+		return static_cast<T*>(appDataPtr.get());
+	}
+
 protected:
+	std::shared_ptr<void> appDataPtr{};
 	std::string name_{""};
 	int id_{};
-	uint8_t idx{};
 	TypeBits typeBits_{};
 	uint8_t enumId_{};
 	Map map_{Map::UNKNOWN};
 	Subtype subtype_{};
+};
+
+class Axis
+{
+public:
+	constexpr Axis() {}
+	Axis(const Device &, AxisId id, float scaler = 1.f);
+	void setEmulatesDirectionKeys(const Device &, bool);
+	bool emulatesDirectionKeys() const;
+	constexpr AxisId id() const { return id_; }
+	uint32_t idBit() const;
+	bool update(float pos, Map map, Time time, const Device &, Base::Window &, bool normalized = false);
+
+protected:
+	float scaler{};
+	AxisKeyEmu keyEmu{};
+	AxisId id_{};
 };
 
 }

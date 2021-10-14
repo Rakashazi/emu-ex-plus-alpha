@@ -178,6 +178,27 @@ Map validateMap(uint8_t mapValue)
 	}
 }
 
+DirectionKeys directionKeys(Map map)
+{
+	switch(map)
+	{
+		case Map::SYSTEM: return {Keycode::UP, Keycode::RIGHT, Keycode::DOWN, Keycode::LEFT};
+		#ifdef CONFIG_BLUETOOTH
+		case Map::WIIMOTE: return {Wiimote::UP, Wiimote::RIGHT, Wiimote::DOWN, Wiimote::LEFT};
+		case Map::WII_CC: return {WiiCC::UP, WiiCC::RIGHT, WiiCC::DOWN, WiiCC::LEFT};
+		case Map::ICONTROLPAD: return {iControlPad::UP, iControlPad::RIGHT, iControlPad::DOWN, iControlPad::LEFT};
+		case Map::ZEEMOTE: return {Zeemote::UP, Zeemote::RIGHT, Zeemote::DOWN, Zeemote::LEFT};
+		#endif
+		#ifdef CONFIG_BLUETOOTH_SERVER
+		case Map::PS3PAD: return {PS3::UP, PS3::RIGHT, PS3::DOWN, PS3::LEFT};
+		#endif
+		#ifdef CONFIG_INPUT_APPLE_GAME_CONTROLLER
+		case Map::APPLE_GAME_CONTROLLER: return {AppleGC::UP, AppleGC::RIGHT, AppleGC::DOWN, AppleGC::LEFT};
+		#endif
+		default: return {};
+	}
+}
+
 }
 
 namespace Base
@@ -241,7 +262,6 @@ const InputDeviceContainer &BaseApplication::inputDevices() const
 
 Input::Device &BaseApplication::addInputDevice(std::unique_ptr<Input::Device> ptr, bool notify)
 {
-	ptr->setIndex(inputDev.size());
 	ptr->setEnumId(nextInputDeviceEnumId(ptr->name()));
 	auto &devPtr = inputDev.emplace_back(std::move(ptr));
 	if(notify)
@@ -270,7 +290,6 @@ void BaseApplication::removeInputDevices(Input::Map map, bool notify)
 			dispatchInputDeviceChange(*removedDevice, {Input::DeviceAction::REMOVED});
 		}
 	}
-	indexSystemInputDevices();
 }
 
 void BaseApplication::removeInputDevice(InputDeviceContainer::iterator it, bool notify)
@@ -281,7 +300,6 @@ void BaseApplication::removeInputDevice(InputDeviceContainer::iterator it, bool 
 	inputDev.erase(it);
 	logMsg("removed input device:%s,%d", removedDevPtr->name(), removedDevPtr->enumId());
 	cancelKeyRepeatTimer();
-	indexSystemInputDevices();
 	if(notify)
 	{
 		dispatchInputDeviceChange(*removedDevPtr, {Input::DeviceAction::REMOVED});
@@ -299,16 +317,6 @@ uint8_t BaseApplication::nextInputDeviceEnumId(const char *name) const
 			return i;
 	}
 	return maxEnum;
-}
-
-void BaseApplication::indexSystemInputDevices()
-{
-	// re-number device indices
-	for(uint32_t i = 0; auto &e : inputDev)
-	{
-		e->setIndex(i);
-		i++;
-	}
 }
 
 bool BaseApplication::dispatchRepeatableKeyInputEvent(Input::Event e, Window &win)

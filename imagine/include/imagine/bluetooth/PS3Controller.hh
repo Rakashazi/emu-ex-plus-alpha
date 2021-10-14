@@ -17,7 +17,6 @@
 
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/base/Error.hh>
 
 class PS3Controller : public BluetoothInputDevice
@@ -31,40 +30,22 @@ public:
 	bool dataHandler(const char *data, size_t size);
 	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
 	void setLEDs(uint32_t player);
-	uint32_t joystickAxisBits() final;
-	uint32_t joystickAxisAsDpadBitsDefault() final;
-	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
-	uint32_t joystickAxisAsDpadBits() final { return joystickAxisAsDpadBits_; }
 	const char *keyName(Input::Key k) const final;
+	std::span<Input::Axis> motionAxes() final;
+	static std::pair<Input::Key, Input::Key> joystickKeys(Input::AxisId);
 
 private:
+	static constexpr float axisScaler = 1./127.;
 	uint8_t prevData[3]{};
 	bool didSetLEDs = false;
-	Input::AxisKeyEmu<int> axisKey[4]
+	Input::Axis axis[4]
 	{
-		{
-			64, 192,
-			Input::PS3::LSTICK_LEFT, Input::PS3::LSTICK_RIGHT,
-			Input::Keycode::JS1_XAXIS_NEG, Input::Keycode::JS1_XAXIS_POS
-		}, // Left X Axis
-		{
-			64, 192,
-			Input::PS3::LSTICK_UP, Input::PS3::LSTICK_DOWN,
-			Input::Keycode::JS1_YAXIS_NEG, Input::Keycode::JS1_YAXIS_POS
-		},  // Left Y Axis
-		{
-			64, 192,
-			Input::PS3::RSTICK_LEFT, Input::PS3::RSTICK_RIGHT,
-			Input::Keycode::JS2_XAXIS_NEG, Input::Keycode::JS2_XAXIS_POS
-		}, // Right X Axis
-		{
-			64, 192,
-			Input::PS3::RSTICK_UP, Input::PS3::RSTICK_DOWN,
-			Input::Keycode::JS2_YAXIS_NEG, Input::Keycode::JS2_YAXIS_POS
-		}   // Right Y Axis
+		{*this, Input::AxisId::X,	axisScaler}, // Left X Axis
+		{*this, Input::AxisId::Y, axisScaler}, // Left Y Axis
+		{*this, Input::AxisId::Z, axisScaler}, // Right X Axis
+		{*this, Input::AxisId::RZ, axisScaler} // Right Y Axis
 	};
 	BluetoothSocketSys ctlSock, intSock;
-	uint32_t joystickAxisAsDpadBits_;
 	BluetoothAddr addr;
 
 	static uint8_t playerLEDs(uint32_t player);

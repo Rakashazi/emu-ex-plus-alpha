@@ -52,7 +52,7 @@ RecentGameView::RecentGameView(ViewAttachParams attach, RecentGameList &list):
 	recentGame.reserve(list.size());
 	for(auto &entry : list)
 	{
-		recentGame.emplace_back(entry.name.data(), &defaultFace(),
+		auto &recentItem = recentGame.emplace_back(entry.name.data(), &defaultFace(),
 			[this, &entry](Input::Event e)
 			{
 				app().createSystemWithMedia({}, entry.path.data(), "", e, {}, attachParams(),
@@ -61,7 +61,7 @@ RecentGameView::RecentGameView(ViewAttachParams attach, RecentGameList &list):
 						app().launchSystemWithResumePrompt(e, false);
 					});
 			});
-		recentGame.back().setActive(FS::exists(entry.path.data()));
+		recentItem.setActive(FS::exists(entry.path.data()));
 	}
 	clear.setActive(list.size());
 }

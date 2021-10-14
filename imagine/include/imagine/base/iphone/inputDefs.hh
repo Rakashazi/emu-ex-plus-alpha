@@ -232,4 +232,29 @@ namespace Keycode = IOS;
 		META_R = 0x1,
 		CAPS_LOCK = 0x1;
 	}
+
+enum class AxisId : uint8_t
+{
+	X,
+	Y,
+	Z,
+	RX,
+	RY,
+	RZ,
+	HAT0X,
+	HAT0Y,
+	HAT1X,
+	HAT1Y,
+	HAT2X,
+	HAT2Y,
+	HAT3X,
+	HAT3Y,
+	LTRIGGER,
+	RTRIGGER,
+	RUDDER,
+	WHEEL,
+	GAS,
+	BRAKE,
+};
+
 }

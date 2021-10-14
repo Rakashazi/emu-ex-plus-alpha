@@ -33,7 +33,7 @@ class EmuViewController;
 struct InputDeviceSavedConfig
 {
 	const KeyConfig *keyConf{};
-	unsigned enumId = 0;
+	uint8_t enumId = 0;
 	uint8_t player = 0;
 	bool enabled = true;
 	uint8_t joystickAxisAsDpadBits = 0;
@@ -57,18 +57,15 @@ struct InputDeviceSavedConfig
 	}
 };
 
-struct InputDeviceConfig
+class InputDeviceConfig
 {
+public:
 	static constexpr unsigned PLAYER_MULTI = 0xFF;
-	uint8_t player{};
-	bool enabled{true};
-	Input::Device *dev{};
-	InputDeviceSavedConfig *savedConf{};
 
 	constexpr InputDeviceConfig() {}
-	InputDeviceConfig(Input::Device *dev):
-		player{(uint8_t)(dev->enumId() < EmuSystem::maxPlayers ? dev->enumId() : 0)},
-		dev{dev}
+	InputDeviceConfig(Input::Device &dev):
+		dev{&dev},
+		player_{(uint8_t)(dev.enumId() < EmuSystem::maxPlayers ? dev.enumId() : 0)}
 	{}
 
 	void deleteConf();
@@ -85,9 +82,41 @@ struct InputDeviceConfig
 	KeyConfig *makeMutableKeyConf(EmuApp &);
 	KeyConfig *setKeyConfCopiedFromExisting(const char *name);
 	void save();
-	void setSavedConf(InputDeviceSavedConfig *savedConf);
+	void setSavedConf(InputDeviceSavedConfig *savedConf, bool updateKeymap = true);
+	bool hasSavedConf(const InputDeviceSavedConfig &conf) const { return savedConf && *savedConf == conf; };
 	bool setKey(EmuApp &, Input::Key mapKey, const KeyCategory &cat, int keyIdx);
+	void buildKeyMap();
+	constexpr Input::Device &device() { return *dev; }
+	constexpr bool isEnabled() const { return enabled; }
+	void setPlayer(int);
+	constexpr uint8_t player() const { return player_; }
+
+protected:
+	Input::Device *dev{};
+	InputDeviceSavedConfig *savedConf{};
+	uint8_t player_{};
+	bool enabled{true};
 };
+
+struct InputDeviceData
+{
+	static constexpr int maxKeyActions = 4;
+	using Action = uint8_t;
+	using ActionGroup = std::array<Action, maxKeyActions>;
+
+	IG::VMemArray<ActionGroup> actionTable{};
+	InputDeviceConfig devConf{};
+	std::string displayName{};
+
+	InputDeviceData(Input::Device &, std::list<InputDeviceSavedConfig> &);
+	void buildKeyMap(const Input::Device &d);
+	static std::string makeDisplayName(const char *name, unsigned id);
+};
+
+static InputDeviceData& inputDevData(const Input::Device &d)
+{
+	return *d.appData<InputDeviceData>();
+}
 
 static constexpr int guiKeyIdxLoadGame = 0;
 static constexpr int guiKeyIdxMenu = 1;

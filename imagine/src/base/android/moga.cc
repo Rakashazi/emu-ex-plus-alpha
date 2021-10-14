@@ -76,33 +76,24 @@ MogaManager::~MogaManager()
 
 AndroidInputDevice MogaManager::makeMOGADevice(const char *name)
 {
-	AndroidInputDevice dev{DEVICE_ID, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK, name,
-		Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2};
+	AndroidInputDevice dev{DEVICE_ID, Device::TYPE_BIT_GAMEPAD | Device::TYPE_BIT_JOYSTICK, name};
 	dev.setSubtype(Device::Subtype::GENERIC_GAMEPAD);
 	// set joystick axes
 	{
-		const uint8_t stickAxes[] { AXIS_X, AXIS_Y, AXIS_Z, AXIS_RZ };
+		static constexpr AxisId stickAxes[] { AxisId::X, AxisId::Y, AxisId::Z, AxisId::RZ };
 		for(auto axisId : stickAxes)
 		{
-			//logMsg("joystick axis: %d", axisId);
-			auto size = 2.0f;
-			dev.jsAxes().emplace_back(axisId, (AxisKeyEmu<float>){-1.f + size/4.f, 1.f - size/4.f,
-				Key(axisToKeycode(axisId)+1), axisToKeycode(axisId), Key(axisToKeycode(axisId)+1), axisToKeycode(axisId)});
+			dev.jsAxes().emplace_back(dev, axisId);
 		}
 	}
 	// set trigger axes
 	{
-		const uint8_t triggerAxes[] { AXIS_LTRIGGER, AXIS_RTRIGGER };
+		static constexpr AxisId triggerAxes[] { AxisId::LTRIGGER, AxisId::RTRIGGER };
 		for(auto axisId : triggerAxes)
 		{
-			//logMsg("trigger axis: %d", axisId);
-			// use unreachable lowLimit value so only highLimit is used
-			dev.jsAxes().emplace_back(axisId, (AxisKeyEmu<float>){-1.f, 0.25f,
-				0, axisToKeycode(axisId), 0, axisToKeycode(axisId)});
+			dev.jsAxes().emplace_back(dev, axisId);
 		}
 	}
-	dev.setJoystickAxisAsDpadBitsDefault(Device::AXIS_BITS_STICK_1);
-	dev.setJoystickAxisAsDpadBits(Device::AXIS_BITS_STICK_1);
 	return dev;
 }
 
@@ -167,12 +158,12 @@ void MogaManager::initMOGAJNIAndDevice(JNIEnv *env, jobject mogaHelper)
 				logMsg("MOGA motion event: %f %f %f %f %f %f %d", (double)x, (double)y, (double)z, (double)rz, (double)lTrigger, (double)rTrigger, (int)timestamp);
 				auto &win = ctx.mainWindow();
 				auto &axis = mogaDev.jsAxes();
-				axis[0].keyEmu.dispatch(x, Map::SYSTEM, time, mogaDev, win);
-				axis[1].keyEmu.dispatch(y, Map::SYSTEM, time, mogaDev, win);
-				axis[2].keyEmu.dispatch(z, Map::SYSTEM, time, mogaDev, win);
-				axis[3].keyEmu.dispatch(rz, Map::SYSTEM, time, mogaDev, win);
-				axis[4].keyEmu.dispatch(lTrigger, Map::SYSTEM, time, mogaDev, win);
-				axis[5].keyEmu.dispatch(rTrigger, Map::SYSTEM, time, mogaDev, win);
+				axis[0].update(x, Map::SYSTEM, time, mogaDev, win, true);
+				axis[1].update(y, Map::SYSTEM, time, mogaDev, win, true);
+				axis[2].update(z, Map::SYSTEM, time, mogaDev, win, true);
+				axis[3].update(rz, Map::SYSTEM, time, mogaDev, win, true);
+				axis[4].update(lTrigger, Map::SYSTEM, time, mogaDev, win, true);
+				axis[5].update(rTrigger, Map::SYSTEM, time, mogaDev, win, true);
 			})
 		},
 		{

@@ -17,7 +17,6 @@
 
 #include <imagine/bluetooth/sys.hh>
 #include <imagine/input/Input.hh>
-#include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/base/Error.hh>
 
 class Wiimote final: public BluetoothInputDevice
@@ -28,10 +27,6 @@ public:
 	Wiimote(Base::ApplicationContext, BluetoothAddr);
 	~Wiimote();
 	IG::ErrorCode open(BluetoothAdapter &adapter) final;
-	uint32_t joystickAxisBits() final;
-	uint32_t joystickAxisAsDpadBitsDefault() final;
-	void setJoystickAxisAsDpadBits(uint32_t axisMask) final;
-	uint32_t joystickAxisAsDpadBits() final { return joystickAxisAsDpadBits_; }
 	bool dataHandler(const char *data, size_t size);
 	uint32_t statusHandler(BluetoothSocket &sock, uint32_t status);
 	void requestStatus();
@@ -40,14 +35,15 @@ public:
 	void writeReg(uint8_t offset, uint8_t val);
 	void readReg(uint32_t offset, uint8_t size);
 	const char *keyName(Input::Key k) const final;
+	std::span<Input::Axis> motionAxes() final;
 	static bool isSupportedClass(const uint8_t devClass[3]);
+	static std::pair<Input::Key, Input::Key> joystickKeys(Input::Map, Input::AxisId);
 
 private:
 	BluetoothSocketSys ctlSock, intSock;
 	int extension = EXT_NONE;
 	uint32_t function = FUNC_NONE;
-	uint32_t joystickAxisAsDpadBits_;
-	Input::AxisKeyEmu<int> axisKey[4];
+	Input::Axis axis[4];
 	uint8_t prevBtnData[2]{};
 	uint8_t prevExtData[11]{};
 	BluetoothAddr addr;

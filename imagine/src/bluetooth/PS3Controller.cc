@@ -169,7 +169,6 @@ uint32_t PS3Controller::statusHandler(BluetoothSocket &sock, uint32_t status)
 		logMsg("PS3 controller opened successfully");
 		ctx.application().bluetoothInputDeviceStatus(*this, status);
 		sendFeatureReport();
-		setJoystickAxisAsDpadBits(joystickAxisAsDpadBitsDefault());
 		return BluetoothSocket::OPEN_USAGE_READ_EVENTS;
 	}
 	else if(status == BluetoothSocket::STATUS_CONNECT_ERROR)
@@ -230,7 +229,7 @@ bool PS3Controller::dataHandler(const char *packetPtr, size_t size)
 			//logMsg("left: %d,%d right: %d,%d", stickData[0], stickData[1], stickData[2], stickData[3]);
 			iterateTimes(4, i)
 			{
-				if(axisKey[i].dispatch(stickData[i], Map::PS3PAD, time, *this, ctx.mainWindow()))
+				if(axis[i].update(int(stickData[i]) - 127, Map::PS3PAD, time, *this, ctx.mainWindow()))
 					ctx.endIdleByUserActivity();
 			}
 		}
@@ -286,50 +285,19 @@ uint8_t PS3Controller::playerLEDs(uint32_t player)
 	}
 }
 
-uint32_t PS3Controller::joystickAxisBits()
+std::span<Input::Axis> PS3Controller::motionAxes()
 {
-	return Device::AXIS_BITS_STICK_1 | Device::AXIS_BITS_STICK_2;
+	return axis;
 }
 
-uint32_t PS3Controller::joystickAxisAsDpadBitsDefault()
+std::pair<Input::Key, Input::Key> PS3Controller::joystickKeys(Input::AxisId axisId)
 {
-	return Device::AXIS_BITS_STICK_1;
-}
-
-void PS3Controller::setJoystickAxisAsDpadBits(uint32_t axisMask)
-{
-	using namespace Input;
-	if(joystickAxisAsDpadBits_ == axisMask)
-		return;
-
-	joystickAxisAsDpadBits_ = axisMask;
-	//logMsg("mapping joystick axes");
+	switch(axisId)
 	{
-		bool on = axisMask & Device::AXIS_BIT_X;
-		axisKey[0].lowKey = on ? Input::PS3::LEFT : Input::PS3::LSTICK_LEFT;
-		axisKey[0].lowSysKey = on ? Keycode::LEFT : Keycode::JS1_XAXIS_NEG;
-		axisKey[0].highKey = on ? Input::PS3::RIGHT : Input::PS3::LSTICK_RIGHT;
-		axisKey[0].highSysKey = on ? Keycode::RIGHT : Keycode::JS1_XAXIS_POS;
-	}
-	{
-		bool on = axisMask & Device::AXIS_BIT_Y;
-		axisKey[1].lowKey = on ? Input::PS3::UP : Input::PS3::LSTICK_UP;
-		axisKey[1].lowSysKey = on ? Keycode::UP : Keycode::JS1_YAXIS_NEG;
-		axisKey[1].highKey = on ? Input::PS3::DOWN : Input::PS3::LSTICK_DOWN;
-		axisKey[1].highSysKey = on ? Keycode::DOWN : Keycode::JS1_YAXIS_POS;
-	}
-	{
-		bool on = axisMask & Device::AXIS_BIT_Z;
-		axisKey[2].lowKey = on ? Input::PS3::LEFT : Input::PS3::RSTICK_LEFT;
-		axisKey[2].lowSysKey = on ? Keycode::LEFT : Keycode::JS2_XAXIS_NEG;
-		axisKey[2].highKey = on ? Input::PS3::RIGHT : Input::PS3::RSTICK_RIGHT;
-		axisKey[2].highSysKey = on ? Keycode::RIGHT : Keycode::JS2_XAXIS_POS;
-	}
-	{
-		bool on = axisMask & Device::AXIS_BIT_RZ;
-		axisKey[3].lowKey = on ? Input::PS3::UP : Input::PS3::RSTICK_UP;
-		axisKey[3].lowSysKey = on ? Keycode::UP : Keycode::JS2_YAXIS_NEG;
-		axisKey[3].highKey = on ? Input::PS3::DOWN : Input::PS3::RSTICK_DOWN;
-		axisKey[1].highSysKey = on ? Keycode::DOWN : Keycode::JS2_YAXIS_POS;
+		case Input::AxisId::X: return {Input::PS3::LSTICK_LEFT, Input::PS3::LSTICK_RIGHT};
+		case Input::AxisId::Y: return {Input::PS3::LSTICK_DOWN, Input::PS3::LSTICK_UP};
+		case Input::AxisId::Z: return {Input::PS3::RSTICK_LEFT, Input::PS3::RSTICK_RIGHT};
+		case Input::AxisId::RZ: return {Input::PS3::RSTICK_DOWN, Input::PS3::RSTICK_UP};
+		default: return {};
 	}
 }

@@ -147,15 +147,14 @@ bool Zeemote::dataHandler(const char *packet, size_t size)
 				bcase RID_BTN_REPORT:
 				{
 					const uint8_t *key = &inputBuffer[3];
-					logMsg("got button report %X %X %X %X %X %X", key[0], key[1], key[2], key[3], key[4], key[5]);
+					//logMsg("got button report %X %X %X %X %X %X", key[0], key[1], key[2], key[3], key[4], key[5]);
 					processBtnReport(key, time);
 				}
 				bcase RID_8BA_2A_JS_REPORT:
-					logMsg("got analog report %d %d", (int8_t)inputBuffer[4], (int8_t)inputBuffer[5]);
-					//processStickDataForButtonEmulation((int8_t*)&inputBuffer[4], player);
+					//logMsg("got analog report %d %d", (int8_t)inputBuffer[4], (int8_t)inputBuffer[5]);
 					iterateTimes(2, i)
 					{
-						if(axisKey[i].dispatch(inputBuffer[4+i], Input::Map::ZEEMOTE, time, *this, ctx.mainWindow()))
+						if(axis[i].update((int8_t)inputBuffer[4+i], Input::Map::ZEEMOTE, time, *this, ctx.mainWindow()))
 							ctx.endIdleByUserActivity();
 					}
 			}
@@ -209,4 +208,19 @@ void Zeemote::processBtnReport(const uint8_t *btnData, Input::Time time)
 bool Zeemote::isSupportedClass(const uint8_t devClass[3])
 {
 	return IG::equal_n(devClass, 3, btClass);
+}
+
+std::span<Input::Axis> Zeemote::motionAxes()
+{
+	return axis;
+}
+
+std::pair<Input::Key, Input::Key> Zeemote::joystickKeys(Input::AxisId axisId)
+{
+	switch(axisId)
+	{
+		case Input::AxisId::X: return {Input::Zeemote::LEFT, Input::Zeemote::RIGHT};
+		case Input::AxisId::Y: return {Input::Zeemote::DOWN, Input::Zeemote::UP};
+		default: return {};
+	}
 }
