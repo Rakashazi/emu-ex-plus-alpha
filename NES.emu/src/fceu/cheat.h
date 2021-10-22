@@ -18,9 +18,10 @@ typedef unsigned char _8BYTECHEATMAP;
 
 extern int FCEUI_FindCheatMapByte(uint16 address);
 extern void FCEUI_SetCheatMapByte(uint16 address, bool cheat);
-extern void FCEUI_CreateCheatMap();
-extern void FCEUI_RefreshCheatMap();
-extern void FCEUI_ReleaseCheatMap();
+extern void FCEUI_CreateCheatMap(void);
+extern void FCEUI_RefreshCheatMap(void);
+extern void FCEUI_ReleaseCheatMap(void);
+extern unsigned int FrozenAddressCount;
 
 int FCEU_CheatGetByte(uint32 A);
 void FCEU_CheatSetByte(uint32 A, uint8 V);
@@ -29,7 +30,8 @@ extern int savecheats;
 extern int globalCheatDisabled;
 extern int disableAutoLSCheats;
 
-int FCEU_DisableAllCheats();
+int FCEU_DisableAllCheats(void);
+int FCEU_DeleteAllCheats(void);
 
 typedef struct {
 	uint16 addr;

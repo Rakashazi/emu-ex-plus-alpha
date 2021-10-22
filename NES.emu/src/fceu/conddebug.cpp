@@ -194,9 +194,9 @@ Condition* Parentheses(const char** str, Condition* c, char openPar, char closeP
 	{
 		scan(str);
 
-		c->lhs = Connect(str);
-
 		if (!c) return 0;
+
+		c->lhs = Connect(str);
 
 		if (next == closePar)
 		{
@@ -400,9 +400,12 @@ Condition* Term(const char** str)
 	Condition* t1;
 	Condition* mid;
 
-    t = (Condition*)FCEU_dmalloc(sizeof(Condition));
-    if (!t)
-        return NULL;
+	t = (Condition*)FCEU_dmalloc(sizeof(Condition));
+
+	if (!t)
+	{
+		return NULL;
+	}
 
 	memset(t, 0, sizeof(Condition));
 

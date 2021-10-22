@@ -160,6 +160,9 @@ void BMC80013B_Init(CartInfo *info);
 void BMCHPxx_Init(CartInfo *info);
 void MINDKIDS_Init(CartInfo *info);
 void FNS_Init(CartInfo *info);
+void BS400R_Init(CartInfo *info);
+void BS4040R_Init(CartInfo *info);
+void SMD132_SMD133_Init(CartInfo *info);
 
 extern uint8 *UNIFchrrama;	// Meh.  So I can stop CHR RAM
 							// bank switcherooing with certain boards...

@@ -180,6 +180,7 @@ void LogDPCM(int romaddress, int dpcmsize){
 
 	for (int dpcmstart = i; dpcmstart < (i + dpcmsize); dpcmstart++) {
 		if(!(cdloggerdata[dpcmstart] & 0x40)) {
+			cdloggerdata[dpcmstart] |= 0x40;
 			cdloggerdata[dpcmstart] |= (romaddress >> 11) & 0x0c;
 
 			if(!(cdloggerdata[dpcmstart] & 2)){
@@ -563,9 +564,10 @@ void FCEU_SoundCPUHook(int cycles)
    /* Unbelievably ugly hack */
    if(FSettings.SndRate)
    {
-    soundtsoffs+=DMCacc;
+		const uint32 fudge = std::min<uint32>(-DMCacc, soundtsoffs + timestamp);
+		soundtsoffs -= fudge;
     DoPCM();
-    soundtsoffs-=DMCacc;
+		soundtsoffs += fudge;
    }
    RawDALatch+=t;
    if(RawDALatch&0x80)

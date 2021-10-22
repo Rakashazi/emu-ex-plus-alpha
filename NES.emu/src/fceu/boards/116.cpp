@@ -251,7 +251,7 @@ static DECLFW(UNLSL12Write) {
 				switch (n) {
 				case 0: SyncMIR(); [[fallthrough]];
 				case 2: SyncCHR(); [[fallthrough]];
-				case 3: [[fallthrough]];
+				case 3:
 				case 1: SyncPRG();
 				}
 			}

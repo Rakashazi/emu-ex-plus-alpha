@@ -1090,7 +1090,7 @@ static void RefreshLine(int lastpixel) {
 	uint32 vofs;
 	int X1;
 
-	register uint8 *P = Pline;
+	uint8 *P = Pline;
 	int lasttile = lastpixel >> 3;
 	int numtiles;
 	static int norecurse = 0;	// Yeah, recursion would be bad.
@@ -2140,7 +2140,8 @@ int FCEUX_PPU_Loop(int skip) {
 		//int xscroll = ppur.fh;
 		//render 241/291 scanlines (1 dummy at beginning, dendy's 50 at the end)
 		//ignore overclocking!
-		for (int sl = 0; sl < normalscanlines; sl++) {
+		for (int sl = 0; sl < normalscanlines; sl++)
+		{
 			spr_read.start_scanline();
 
 			g_rasterpos = 0;
@@ -2151,7 +2152,8 @@ int FCEUX_PPU_Loop(int skip) {
 			const int yp = sl - 1;
 			ppuphase = PPUPHASE_BG;
 
-			if (sl != 0 && sl < 241) { // ignore the invisible
+			if (sl != 0 && sl < 241)  // ignore the invisible
+			{
 				DEBUG(FCEUD_UpdatePPUView(scanline = yp, 1));
 				DEBUG(FCEUD_UpdateNTView(scanline = yp, 1));
 			}

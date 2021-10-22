@@ -157,7 +157,7 @@ int chr_replace(char *str, char search, char replace) {
 
 ///Replaces all instances of 'search' with 'replace'
 ///Returns number of sub-strings modified, or -1 on error
-int str_replace(char *str, char *search, char *replace) {
+int str_replace(char *str, const char *search, const char *replace) {
 	unsigned int i=0,j=0; //mbg merge 7/17/06 changed to unsigned int
 	int searchlen,replacelen;
 	char *astr;
@@ -580,7 +580,7 @@ std::string mass_replace(const std::string &source, const std::string &victim, c
 	return answer;
 }
 
-#ifdef WIN32 // this code tends to crash on SDL.
+#ifdef __WIN_DRIVER__ // this code tends to crash on SDL.
 //http://www.codeproject.com/KB/string/UtfConverter.aspx
 #include "ConvertUTF.h"
 namespace UtfConverter

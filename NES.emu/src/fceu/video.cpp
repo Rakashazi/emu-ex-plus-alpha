@@ -37,7 +37,7 @@
 #include "fceulua.h"
 #endif
 
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 #include "drivers/win/common.h" //For DirectX constants
 #include "drivers/win/input.h"
 #endif
@@ -87,23 +87,23 @@ std::string FCEUI_GetSnapshotAsName() { return AsSnapshotName; }
 
 void FCEU_KillVirtualVideo(void)
 {
-	//mbg merge TODO 7/17/06 temporarily removed
-	//if(xbsave)
-	//{
-	// free(xbsave);
-	// xbsave=0;
-	//}
-	//if(XBuf)
-	//{
-	//UnmapViewOfFile(XBuf);
-	//CloseHandle(mapXBuf);
-	//mapXBuf=NULL;
-	//}
-	//if(XBackBuf)
-	//{
-	// free(XBackBuf);
-	// XBackBuf=0;
-	//}
+	if ( XBuf )
+	{
+		FCEU_free(XBuf); XBuf = NULL;
+	}
+	if ( XBackBuf )
+	{
+		FCEU_free(XBackBuf); XBackBuf = NULL;
+	}
+	if ( XDBuf )
+	{
+		FCEU_free(XDBuf); XDBuf = NULL;
+	}
+	if ( XDBackBuf )
+	{
+		FCEU_free(XDBackBuf); XDBackBuf = NULL;
+	}
+	//printf("Video Core Cleanup\n");
 }
 
 /**
@@ -271,7 +271,6 @@ void FCEU_PutImage(void)
 	//Fancy input display code
 	if(input_display)
 	{
-		extern uint32 JSAutoHeld;
 		int i, j;
 		uint8 *t = XBuf+(FSettings.LastSLine-9)*256 + 20;		//mbg merge 7/17/06 changed t to uint8*
 		if(input_display > 4) input_display = 4;
@@ -289,7 +288,8 @@ void FCEU_PutImage(void)
 			uint32 ci = 0;
 			uint32 color;
 
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
+			extern uint32 JSAutoHeld;
 			// This doesn't work in anything except windows for now.
 			// It doesn't get set anywhere in other ports.
 			if (!oldInputDisplay)
@@ -398,7 +398,7 @@ void snapAVI()
 		FCEUI_AviVideoUpdate(XBuf);
 }
 
-void FCEU_DispMessageOnMovie(char *format, ...)
+void FCEU_DispMessageOnMovie(const char *format, ...)
 {
 	va_list ap;
 
@@ -414,7 +414,7 @@ void FCEU_DispMessageOnMovie(char *format, ...)
 		guiMessage.howlong = 0;
 }
 
-void FCEU_DispMessage(char *format, int disppos=0, ...)
+void FCEU_DispMessage(const char *format, int disppos=0, ...)
 {
 	va_list ap;
 
@@ -455,7 +455,7 @@ void FCEU_ResetMessages()
 }
 
 
-static int WritePNGChunk(FILE *fp, uint32 size, char *type, uint8 *data)
+static int WritePNGChunk(FILE *fp, uint32 size, const char *type, uint8 *data)
 {
 	uint32 crc;
 
@@ -582,7 +582,7 @@ int SaveSnapshot(void)
 			dest++;
 			for(x=256;x;x--)
 			{
-				u32 color = ModernDeemphColorMap(tmp,XBuf,1,1);
+				u32 color = ModernDeemphColorMap(tmp,XBuf,1);
 				*dest++=(color>>0x10)&0xFF;
 				*dest++=(color>>0x08)&0xFF;
 				*dest++=(color>>0x00)&0xFF;
@@ -724,27 +724,52 @@ bool FCEUI_ShowFPS()
 }
 void FCEUI_SetShowFPS(bool showFPS)
 {
+	if ( Show_FPS != showFPS )
+	{
+		ResetFPS();
+	}
 	Show_FPS = showFPS;
 }
 void FCEUI_ToggleShowFPS()
 {
 	Show_FPS ^= 1;
+
+	ResetFPS();
 }
 
-static uint64 boop[60];
-static int boopcount = 0;
+static uint64 boop_ts = 0;
+static unsigned int boopcount = 0;
+
+void ResetFPS(void)
+{
+	boop_ts = 0;
+	boopcount = 0;
+}
 
 void ShowFPS(void)
 {
-	if(Show_FPS == false)
+	if (Show_FPS == false)
+	{
 		return;
-	uint64 da = FCEUD_GetTime() - boop[boopcount];
-	char fpsmsg[16];
-	int booplimit = PAL?50:60;
-	boop[boopcount] = FCEUD_GetTime();
+	}
+	static char fpsmsg[16] = { 0 };
+	uint64 ts = FCEUD_GetTime();
+	uint64 da;
 
-	sprintf(fpsmsg, "%.1f", (double)booplimit / ((double)da / FCEUD_GetTimeFreq()));
+	if ( boop_ts == 0 )
+	{
+		boop_ts = ts;
+	}
+	da = ts - boop_ts;
+
+	if ( da > FCEUD_GetTimeFreq() )
+	{
+		sprintf(fpsmsg, "%.1f", (double)boopcount / ((double)da / FCEUD_GetTimeFreq()));
+
+		boopcount = 0;
+		boop_ts = ts;
+	}
+	boopcount++;
+
 	DrawTextTrans(XBuf + ((256 - ClipSidesOffset) - 40) + (FSettings.FirstSLine + 4) * 256, 256, (uint8*)fpsmsg, 0xA0);
-	// It's not averaging FPS over exactly 1 second, but it's close enough.
-	boopcount = (boopcount + 1) % booplimit;
 }

@@ -118,8 +118,8 @@ static DECLFW(UNLYOKOWrite) {
 static DECLFW(M83Write) {
 	switch (A) {
 	case 0x8000: is2kbank = 1; [[fallthrough]];
-	case 0xB000: [[fallthrough]];                             // Dragon Ball Z Party [p1] BMC
-	case 0xB0FF: [[fallthrough]];                             // Dragon Ball Z Party [p1] BMC
+	case 0xB000:                                              // Dragon Ball Z Party [p1] BMC
+	case 0xB0FF:                                              // Dragon Ball Z Party [p1] BMC
 	case 0xB1FF: bank = V; mode |= 0x40; M83Sync(); break;    // Dragon Ball Z Party [p1] BMC
 	case 0x8100: mode = V | (mode & 0x40); M83Sync(); break;
 	case 0x8200: IRQCount &= 0xFF00; IRQCount |= V; X6502_IRQEnd(FCEU_IQEXT); break;

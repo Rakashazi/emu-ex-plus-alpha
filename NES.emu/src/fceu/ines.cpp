@@ -203,7 +203,8 @@ static void SetInput(void) {
 		{0x41ef9ac4,	SI_UNSET,		SI_UNSET,		SIFC_SUBORKB	},	// Subor
 		{0x8b265862,	SI_UNSET,		SI_UNSET,		SIFC_SUBORKB	},	// Subor
 		{0x82f1fb96,	SI_UNSET,		SI_UNSET,		SIFC_SUBORKB	},	// Subor 1.0 Russian
-		{0x9f8f200a,	SI_GAMEPAD,		SI_GAMEPAD,		SIFC_FTRAINERA	},	// Super Mogura Tataki!! - Pokkun Moguraa
+		{0x9f8f200a,	SI_GAMEPAD,		SI_GAMEPAD,		SIFC_FTRAINERA	},	// Super Mogura Tataki!! - Pokkun Moguraa (bad dump)
+		{0xc7bcc981,	SI_GAMEPAD,		SI_GAMEPAD,		SIFC_FTRAINERA	},	// Super Mogura Tataki!! - Pokkun Moguraa
 		{0xd74b2719,	SI_GAMEPAD,		SI_POWERPADB,	SIFC_UNSET		},	// Super Team Games
 		{0x74bea652,	SI_GAMEPAD,		SI_ZAPPER,		SIFC_NONE		},	// Supergun 3-in-1
 		{0x5e073a1b,	SI_UNSET,		SI_UNSET,		SIFC_SUBORKB	},	// Supor English (Chinese)
@@ -296,6 +297,7 @@ static void CheckHInfo(void) {
 		0x2b7103b7a27bd72fULL,	/* AD&D Pool of Radiance */
 		0x498c10dc463cfe95ULL,	/* Battle Fleet */
 		0x854d7947a3177f57ULL,	/* Crystalis */
+		0xfad22d265cd70820ULL,	/* Downtown Special: Kunio-kun no Jidaigeki Dayo Zenin Shuugou! */
 		0x4a1f5336b86851b6ULL,	/* DW */
 		0xb0bcc02c843c1b79ULL,	/* DW */
 		0x2dcf3a98c7937c22ULL,	/* DW 2 */
@@ -731,6 +733,7 @@ BMAPPINGLocal bmap[] = {
 	{"F-15 MMC3 Based",		259, BMCF15_Init},
 	{"HP10xx/H20xx Boards",	260, BMCHPxx_Init},
 	{"810544-CA-1",		    261, BMC810544CA1_Init},
+	{"SMD132/SMD133",		268, SMD132_SMD133_Init},
 	{"COOLBOY",		        268, COOLBOY_Init},
 
 	{"Impact Soft MMC3 Flash Board",	406, Mapper406_Init },
@@ -744,7 +747,7 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 	struct md5_context md5;
 
 	if (FCEU_fread(&head, 1, 16, fp) != 16 || memcmp(&head, "NES\x1A", 4))
-		return 0;
+		return LOADER_INVALID_FORMAT;
 
 	head.cleanup();
 
@@ -770,8 +773,18 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 	} else
 		Mirroring = (head.ROM_type & 1);
 
-	int not_round_size = head.ROM_size;
-	if(iNES2) not_round_size |= ((head.Upper_ROM_VROM_size & 0x0F) << 8);
+	int not_round_size;
+	if (!iNES2)	{
+		not_round_size = head.ROM_size;
+	}
+	else {
+		if ((head.Upper_ROM_VROM_size & 0x0F) != 0x0F)
+			// simple notation
+			not_round_size = head.ROM_size | ((head.Upper_ROM_VROM_size & 0x0F) << 8);
+		else
+			// exponent-multiplier notation
+			not_round_size = ((1 << (head.ROM_size >> 2)) * ((head.ROM_size & 0b11) * 2 + 1)) >> 14;
+	}
 	
 	if (!head.ROM_size && !iNES2)
 		ROM_size = 256;
@@ -779,6 +792,16 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 		ROM_size = uppow2(not_round_size);
 
 	VROM_size = uppow2(head.VROM_size | (iNES2?((head.Upper_ROM_VROM_size & 0xF0)<<4):0));
+	if (!iNES2)	{
+		VROM_size = head.VROM_size;
+	}
+	else {
+		if ((head.Upper_ROM_VROM_size & 0xF0) != 0xF0)
+			// simple notation
+			VROM_size = uppow2(head.VROM_size | ((head.Upper_ROM_VROM_size & 0xF0) << 4));
+		else
+			VROM_size = ((1 << (head.VROM_size >> 2)) * ((head.VROM_size & 0b11) * 2 + 1)) >> 13;
+	}
 
 	int round = true;
 	for (int i = 0; i != sizeof(not_power2) / sizeof(not_power2[0]); ++i) {
@@ -801,7 +824,8 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 		if ((VROM = (uint8*)FCEU_malloc(VROM_size << 13)) == NULL) {
 			free(ROM);
 			ROM = NULL;
-			return 0;
+			FCEU_PrintError("Unable to allocate memory.");
+			return LOADER_HANDLED_ERROR;
 		}
 		memset(VROM, 0xFF, VROM_size << 13);
 	}
@@ -835,8 +859,8 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 
 	iNESCart.CRC32 = iNESGameCRC32;
 
-	FCEU_printf(" PRG ROM:  %3d x 16KiB\n", (round) ? ROM_size: not_round_size);
-	FCEU_printf(" CHR ROM:  %3d x  8KiB\n", head.VROM_size);
+	FCEU_printf(" PRG ROM: %d x 16KiB = %d KiB\n", round ? ROM_size : not_round_size, (round ? ROM_size : not_round_size) * 16);
+	FCEU_printf(" CHR ROM: %d x  8KiB = %d KiB\n", VROM_size, VROM_size * 8);
 	FCEU_printf(" ROM CRC32:  0x%08lx\n", iNESGameCRC32);
 	{
 		int x;
@@ -864,12 +888,12 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 	{
 		FCEU_printf(" NES2.0 Extensions\n");
 		FCEU_printf(" Sub Mapper #: %d\n", iNESCart.submapper);
-		FCEU_printf(" Total WRAM size: %d\n", iNESCart.wram_size + iNESCart.battery_wram_size);
-		FCEU_printf(" Total VRAM size: %d\n", iNESCart.vram_size + iNESCart.battery_vram_size);
+		FCEU_printf(" Total WRAM size: %d KiB\n", (iNESCart.wram_size + iNESCart.battery_wram_size) / 1024);
+		FCEU_printf(" Total VRAM size: %d KiB\n", (iNESCart.vram_size + iNESCart.battery_vram_size) / 1024);
 		if(head.ROM_type & 2)
 		{
-			FCEU_printf(" WRAM backed by battery: %d\n", iNESCart.battery_wram_size);
-			FCEU_printf(" VRAM backed by battery: %d\n", iNESCart.battery_vram_size);
+			FCEU_printf(" WRAM backed by battery: %d KiB\n", iNESCart.battery_wram_size / 1024);
+			FCEU_printf(" VRAM backed by battery: %d KiB\n", iNESCart.battery_vram_size / 1024);
 		}
 	}
 
@@ -909,12 +933,9 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 		goto init_ok;
 	case 1:
 		FCEU_PrintError("iNES mapper #%d is not supported at all.", MapperNo);
-		goto init_ok; // this error is still allowed to run as NROM?
+		break;
 	case 2:
 		FCEU_PrintError("Unable to allocate CHR-RAM.");
-		break;
-	case 3:
-		FCEU_PrintError("CHR-RAM size < 1k is not supported.");
 		break;
 	}
 	if (ROM) free(ROM);
@@ -925,7 +946,7 @@ int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
 	VROM = NULL;
 	trainerpoo = NULL;
 	ExtraNTARAM = NULL;
-	return 0;
+	return LOADER_HANDLED_ERROR;
 init_ok:
 
 	GameInfo->mappernum = MapperNo;
@@ -959,11 +980,11 @@ init_ok:
 		else
 			FCEUI_SetVidSystem(0);
 	}
-	return 1;
+	return LOADER_OK;
 }
 
 // bbit edited: the whole function below was added
-int iNesSave() {
+int iNesSave(void) {
 	char name[2048];
 
 	strcpy(name, LoadedRomFName);
@@ -974,7 +995,7 @@ int iNesSave() {
 	return iNesSaveAs(name);
 }
 
-int iNesSaveAs(char* name)
+int iNesSaveAs(const char* name)
 {
 	//adelikat: TODO: iNesSave() and this have pretty much the same code, outsource the common code to a single function
 	//caitsith2: done. iNesSave() now gets filename and calls iNesSaveAs with that filename.
@@ -1009,7 +1030,7 @@ int iNesSaveAs(char* name)
 }
 
 //para edit: added function below
-char *iNesShortFName() {
+char *iNesShortFName(void) {
 	char *ret;
 
 	if (!(ret = strrchr(LoadedRomFName, '\\')))
@@ -1030,7 +1051,7 @@ static int iNES_Init(int num) {
 
 	while (tmp->init) {
 		if (num == tmp->number) {
-			UNIFchrrama = 0;	// need here for compatibility with UNIF mapper code
+			UNIFchrrama = NULL;	// need here for compatibility with UNIF mapper code
 			if (!VROM_size) {
 				if(!iNESCart.ines2)
 				{
@@ -1050,26 +1071,31 @@ static int iNES_Init(int num) {
 				{
 					CHRRAMSize = iNESCart.battery_vram_size + iNESCart.vram_size;
 				}
-				if (CHRRAMSize < 1024) return 3; // unsupported size, VPage only goes down to 1k banks, NES program can corrupt memory if used
-				if ((VROM = (uint8*)FCEU_dmalloc(CHRRAMSize)) == NULL) return 2;
-				FCEU_MemoryRand(VROM, CHRRAMSize);
-
-				UNIFchrrama = VROM;
-				if(CHRRAMSize == 0)
-				{
-					//probably a mistake.
-					//but (for chrram): "Use of $00 with no CHR ROM implies that the game is wired to map nametable memory in CHR space. The value $00 MUST NOT be used if a mapper isn't defined to allow this. "
-					//well, i'm not going to do that now. we'll save it for when it's needed
-					//"it's only mapper 218 and no other mappers"
+				if (CHRRAMSize > 0)
+ 				{
+					int mCHRRAMSize = (CHRRAMSize < 1024) ? 1024 : CHRRAMSize; // VPage has a resolution of 1k banks, ensure minimum allocation to prevent malicious access from NES software
+					if ((UNIFchrrama = VROM = (uint8*)FCEU_dmalloc(mCHRRAMSize)) == NULL) return 2;
+					FCEU_MemoryRand(VROM, CHRRAMSize);
+ 					SetupCartCHRMapping(0, VROM, CHRRAMSize, 1);
+ 					AddExState(VROM, CHRRAMSize, 0, "CHRR");
+ 				}
+				else {
+					// mapper 256 (OneBus) has not CHR-RAM _and_ has not CHR-ROM region in iNES file
+					// so zero-sized CHR should be supported at least for this mapper
+					VROM = NULL;
 				}
-				else
 				{
 					SetupCartCHRMapping(0, VROM, CHRRAMSize, 1);
 					AddExState(VROM, CHRRAMSize, 0, "CHRR");
 				}
 			}
 			if (head.ROM_type & 8)
-				AddExState(ExtraNTARAM, 2048, 0, "EXNR");
+			{
+				if (ExtraNTARAM != NULL)
+				{
+ 				AddExState(ExtraNTARAM, 2048, 0, "EXNR");
+				}
+			}
 			tmp->init(&iNESCart);
 			return 0;
 		}

@@ -70,7 +70,8 @@ fceu/input/cursor.cpp \
 fceu/input/snesmouse.cpp \
 fceu/input/fns.cpp \
 fceu/input/pec586kb.cpp \
-fceu/input/virtualboy.cpp
+fceu/input/virtualboy.cpp \
+fceu/input/lcdcompzapper.cpp
 
 BOARDS_SRC := $(subst $(projectPath)/src/,,$(filter %.cpp %.c, $(wildcard $(projectPath)/src/fceu/boards/*)))
 FCEUX_SRC += $(BOARDS_SRC)

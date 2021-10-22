@@ -65,6 +65,7 @@ extern INPUTC *FCEU_InitArkanoid(int w);
 extern INPUTC *FCEU_InitMouse(int w);
 extern INPUTC *FCEU_InitSNESMouse(int w);
 extern INPUTC *FCEU_InitVirtualBoy(int w);
+extern INPUTC *FCEU_InitLCDCompZapper(int w);
 
 extern INPUTCFC *FCEU_InitArkanoidFC(void);
 extern INPUTCFC *FCEU_InitSpaceShadow(void);
@@ -372,7 +373,39 @@ static void StrobeSNES(int w)
 
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+//--------Hori 4 player driver for expansion port--------
+static uint8 Hori4ReadBit[2];
+static void StrobeHori4(void)
+{
+	Hori4ReadBit[0] = Hori4ReadBit[1] = 0;
+}
 
+static uint8 ReadHori4(int w, uint8 ret)
+{
+	ret &= 1;
+
+	if (Hori4ReadBit[w] < 8)
+	{
+		ret |= ((joy[w] >> (Hori4ReadBit[w])) & 1) << 1;
+	}
+	else if (Hori4ReadBit[w] < 16)
+	{
+		ret |= ((joy[2 + w] >> (Hori4ReadBit[w] - 8)) & 1) << 1;
+	}
+	else if (Hori4ReadBit[w] < 24)
+	{
+		ret |= (((w ? 0x10 : 0x20) >> (7 - (Hori4ReadBit[w] - 16))) & 1) << 1;
+	}
+	if (Hori4ReadBit[w] >= 24) ret |= 2;
+	else Hori4ReadBit[w]++;
+
+	return(ret);
+}
+
+static INPUTCFC HORI4C = { ReadHori4,0,StrobeHori4,0,0,0 };
+//------------------
+
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 static INPUTC GPC={ReadGP,0,StrobeGP,UpdateGP,0,0,LogGP,LoadGP};
 static INPUTC GPCVS={ReadGPVS,0,StrobeGP,UpdateGP,0,0,LogGP,LoadGP};
@@ -453,9 +486,16 @@ static void SetInputStuff(int port)
 	switch(joyports[port].type)
 	{
 	case SI_GAMEPAD:
-		if(GameInfo->type==GIT_VSUNI){
-			joyports[port].driver = &GPCVS;
-		} else {
+		if (GameInfo)
+		{
+			if (GameInfo->type==GIT_VSUNI){
+				joyports[port].driver = &GPCVS;
+			} else {
+				joyports[port].driver= &GPC;
+			}
+		}
+		else
+		{
 			joyports[port].driver= &GPC;
 		}
 		break;
@@ -483,7 +523,11 @@ static void SetInputStuff(int port)
 	case SI_VIRTUALBOY:
 		joyports[port].driver=FCEU_InitVirtualBoy(port);
 		break;
+	case SI_LCDCOMP_ZAPPER:
+		joyports[port].driver = FCEU_InitLCDCompZapper(port);
+		break;
 	case SI_NONE:
+	case SI_UNSET:
 		joyports[port].driver=&DummyJPort;
 		break;
 	}
@@ -494,6 +538,7 @@ static void SetInputStuffFC()
 	switch(portFC.type)
 	{
 	case SIFC_NONE:
+	case SIFC_UNSET:
 		portFC.driver=&DummyPortFC;
 		break;
 	case SIFC_ARKANOID:
@@ -541,6 +586,10 @@ static void SetInputStuffFC()
 		break;
 	case SIFC_FAMINETSYS:
 		portFC.driver = FCEU_InitFamiNetSys();
+		break;
+	case SIFC_HORI4PLAYER:
+		portFC.driver = &HORI4C;
+		memset(&Hori4ReadBit, 0, sizeof(Hori4ReadBit));
 		break;
 	}
 }
@@ -721,7 +770,7 @@ const char* FCEUI_CommandTypeNames[]=
 	"TAS Editor",
 };
 
-static void CommandUnImpl(void);
+//static void CommandUnImpl(void);
 static void CommandToggleDip(void);
 static void CommandStateLoad(void);
 static void CommandStateSave(void);
@@ -938,10 +987,11 @@ void FCEUI_HandleEmuCommands(TestCommandState* testfn)
 	}
 }
 
-static void CommandUnImpl(void)
-{
-	FCEU_DispMessage("command '%s' unimplemented.",0, FCEUI_CommandTable[i].name);
-}
+// Function not currently used
+//static void CommandUnImpl(void)
+//{
+//	FCEU_DispMessage("command '%s' unimplemented.",0, FCEUI_CommandTable[i].name);
+//}
 
 static void CommandToggleDip(void)
 {
@@ -965,7 +1015,7 @@ static void CommandSelectSaveSlot(void)
 {
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 	{
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 		handleEmuCmdByTaseditor(execcmd);
 #endif
 	} else
@@ -983,7 +1033,7 @@ static void CommandStateSave(void)
 {
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 	{
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 		handleEmuCmdByTaseditor(execcmd);
 #endif
 	} else
@@ -1004,7 +1054,7 @@ static void CommandStateLoad(void)
 {
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 	{
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 		handleEmuCmdByTaseditor(execcmd);
 #endif
 	} else
@@ -1067,7 +1117,7 @@ void LagCounterToggle(void)
 
 static void LaunchTasEditor(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	extern bool enterTASEditor();
 	enterTASEditor();
 #endif
@@ -1075,56 +1125,56 @@ static void LaunchTasEditor(void)
 
 static void LaunchMemoryWatch(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	CreateMemWatch();
 #endif
 }
 
 static void LaunchDebugger(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	DoDebug(0);
 #endif
 }
 
 static void LaunchNTView(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	DoNTView();
 #endif
 }
 
 static void LaunchPPU(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	DoPPUView();
 #endif
 }
 
 static void LaunchHex(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	DoMemView();
 #endif
 }
 
 static void LaunchTraceLogger(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	DoTracer();
 #endif
 }
 
 static void LaunchCodeDataLogger(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	DoCDLogger();
 #endif
 }
 
 static void LaunchCheats(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	extern HWND hCheat;
 	ConfigCheats(hCheat);
 #endif
@@ -1132,7 +1182,7 @@ static void LaunchCheats(void)
 
 static void LaunchRamWatch(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	extern void OpenRamWatch();	//adelikat: Blah blah hacky, I know
 	OpenRamWatch();
 #endif
@@ -1140,14 +1190,14 @@ static void LaunchRamWatch(void)
 
 static void LaunchRamSearch(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	extern void OpenRamSearch();
 	OpenRamSearch();
 #endif
 }
 
 static void RamSearchOpLT(void) {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	if (GameInfo)
 	{
 		extern void SetSearchType(int SearchType);
@@ -1159,7 +1209,7 @@ static void RamSearchOpLT(void) {
 }
 
 static void RamSearchOpGT(void) {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	if (GameInfo)
 	{
 		extern void SetSearchType(int SearchType);
@@ -1171,7 +1221,7 @@ static void RamSearchOpGT(void) {
 }
 
 static void RamSearchOpLTE(void) {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	if (GameInfo)
 	{
 		extern void SetSearchType(int SearchType);
@@ -1183,7 +1233,7 @@ static void RamSearchOpLTE(void) {
 }
 
 static void RamSearchOpGTE(void) {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	if (GameInfo)
 	{
 		extern void SetSearchType(int SearchType);
@@ -1195,7 +1245,7 @@ static void RamSearchOpGTE(void) {
 }
 
 static void RamSearchOpEQ(void) {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	if (GameInfo)
 	{
 		extern void SetSearchType(int SearchType);
@@ -1207,7 +1257,7 @@ static void RamSearchOpEQ(void) {
 }
 
 static void RamSearchOpNE(void) {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	if (GameInfo)
 	{
 		extern void SetSearchType(int SearchType);
@@ -1220,7 +1270,7 @@ static void RamSearchOpNE(void) {
 
 static void DebuggerStepInto()
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	if (GameInfo)
 	{
 		extern void DoDebuggerStepInto();
@@ -1236,7 +1286,7 @@ static void FA_SkipLag(void)
 
 static void OpenRom(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	extern HWND hAppWnd;
 	LoadNewGamey(hAppWnd, 0);
 #endif
@@ -1244,14 +1294,14 @@ static void OpenRom(void)
 
 static void CloseRom(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	CloseGame();
 #endif
 }
 
 void ReloadRom(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 	{
 		// load most recent project
@@ -1283,14 +1333,14 @@ static void UndoRedoSavestate(void)
 
 static void FCEUI_DoExit(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	DoFCEUExit();
 #endif
 }
 
 void ToggleFullscreen()
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	extern int SetVideoMode(int fs);		//adelikat: Yeah, I know, hacky
 	extern void UpdateCheckedMenuItems();
 
@@ -1306,21 +1356,34 @@ void ToggleFullscreen()
 
 static void TaseditorRewindOn(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	mustRewindNow = true;
 #endif
 }
 static void TaseditorRewindOff(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	mustRewindNow = false;
 #endif
 }
 
 static void TaseditorCommand(void)
 {
-#ifdef WIN32
+#ifdef __WIN_DRIVER__
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 		handleEmuCmdByTaseditor(execcmd);
 #endif
+}
+
+/**
+* Function to get command info entry by command number
+**/
+EMUCMDTABLE* GetEmuCommandById(int cmd)
+{
+	for (i = 0; i<NUM_EMU_CMDS; ++i)
+	{
+		if (FCEUI_CommandTable[i].cmd == cmd)
+			return &FCEUI_CommandTable[i];
+	}
+	return NULL;
 }

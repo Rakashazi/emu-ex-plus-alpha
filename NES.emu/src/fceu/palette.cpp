@@ -41,13 +41,14 @@
 #include <cstring>
 
 bool force_grayscale = false;
+pal *grayscaled_palo = NULL;
 
 pal palette_game[64*8]; //custom palette for an individual game. (formerly palettei)
 pal palette_user[64*8]; //user's overridden palette (formerly palettec)
 pal palette_ntsc[64*8]; //mathematically generated NTSC palette (formerly paletten)
 
-static bool palette_game_available; //whether palette_game is available
-static bool palette_user_available; //whether palette_user is available
+static bool palette_game_available=false; //whether palette_game is available
+static bool palette_user_available=false; //whether palette_user is available
 
 //ntsc parameters:
 bool ntsccol_enable = false; //whether NTSC palette is selected
@@ -72,7 +73,7 @@ static void ChoosePalette(void);
 static void WritePalette(void);
 
 //points to the actually selected current palette
-pal *palo;
+pal *palo = NULL;
 
 #define RGB_TO_YIQ( r, g, b, y, i ) (\
 	(y = (r) * 0.299f + (g) * 0.587f + (b) * 0.114f),\
@@ -287,6 +288,11 @@ void ApplyDeemphasisComplete(pal* pal512)
 			ApplyDeemphasisBisqwit(idx,pal512[idx].r,pal512[idx].g,pal512[idx].b);
 		}
 	}
+}
+
+bool  FCEUI_GetUserPaletteAvail( void )
+{
+	return palette_user_available;
 }
 
 void FCEUI_SetUserPalette(uint8 *pal, int nEntries)
@@ -520,6 +526,29 @@ static void ChoosePalette(void)
 		palo = default_palette[default_palette_selection];
 		//need to calcualte a deemph on the fly.. sorry. maybe support otherwise later
 		ApplyDeemphasisComplete(palo);
+	}
+	if (force_grayscale)
+	{
+		// need to apply grayscale filter
+		// allocate memory for grayscale palette
+		if (grayscaled_palo == NULL)
+			grayscaled_palo = (pal*)malloc(sizeof(pal) * 64 * 8);
+		// make every color grayscale
+		for (int x = 0; x < 64 * 8; x++)
+		{
+			uint8 gray = ((float)palo[x].r * 0.299 + (float)palo[x].g * 0.587 + (float)palo[x].b * 0.114);
+			grayscaled_palo[x].r = gray;
+			grayscaled_palo[x].g = gray;
+			grayscaled_palo[x].b = gray;
+		}
+		// apply new palette
+		palo = grayscaled_palo;
+	}
+	else if (grayscaled_palo != NULL)
+	{
+		// free allocated memory if the grayscale filter is not used anymore
+		free(grayscaled_palo);
+		grayscaled_palo = NULL;
 	}
 }
 

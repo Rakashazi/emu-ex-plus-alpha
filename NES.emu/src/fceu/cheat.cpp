@@ -63,6 +63,7 @@ CHEATF_SUBFAST SubCheats[256] = { 0 };
 uint32 numsubcheats = 0;
 int globalCheatDisabled = 0;
 int disableAutoLSCheats = 0;
+bool disableShowGG = 0;
 static _8BYTECHEATMAP* cheatMap = NULL;
 struct CHEATF *cheats = 0, *cheatsl = 0;
 
@@ -572,7 +573,7 @@ int FCEUI_DecodeGG(const char *str, int *a, int *v, int *c)
 
 int FCEUI_DecodePAR(const char *str, int *a, int *v, int *c, int *type)
 {
-	int boo[4];
+	unsigned int boo[4];
 	if(strlen(str)!=8) return(0);
 
 	sscanf(str,"%02x%02x%02x%02x",boo,boo+1,boo+2,boo+3);
@@ -888,7 +889,8 @@ void FCEU_CheatSetByte(uint32 A, uint8 V)
 }
 
 // disable all cheats
-int FCEU_DisableAllCheats(){
+int FCEU_DisableAllCheats(void)
+{
 	int count = 0;
 	struct CHEATF *next = cheats;
 	while(next)
@@ -904,31 +906,53 @@ int FCEU_DisableAllCheats(){
 	return count;
 }
 
-inline int FCEUI_FindCheatMapByte(uint16 address)
+// delete all cheats
+int FCEU_DeleteAllCheats(void)
+{
+	struct CHEATF *cur = cheats;
+	struct CHEATF *next = NULL;
+	while (cur)
+	{
+		next = cur->next;
+		if ( cur->name )
+		{
+			free(cur->name);
+		}
+		free(cur);
+		cur = next;
+	}
+	cheats = cheatsl = 0;
+	savecheats = 1;
+	RebuildSubCheats();
+
+	return 0;
+}
+
+int FCEUI_FindCheatMapByte(uint16 address)
 {
 	return cheatMap[address / 8] >> (address % 8) & 1;
 }
 
-inline void FCEUI_SetCheatMapByte(uint16 address, bool cheat)
+void FCEUI_SetCheatMapByte(uint16 address, bool cheat)
 {
 	cheat ? cheatMap[address / 8] |= (1 << address % 8) : cheatMap[address / 8] ^= (1 << address % 8);
 }
 
-inline void FCEUI_CreateCheatMap()
+void FCEUI_CreateCheatMap(void)
 {
 	if (!cheatMap)
 		cheatMap = (unsigned char*)malloc(CHEATMAP_SIZE);
 	FCEUI_RefreshCheatMap();
 }
 
-inline void FCEUI_RefreshCheatMap()
+void FCEUI_RefreshCheatMap(void)
 {
 	memset(cheatMap, 0, CHEATMAP_SIZE);
-	for (int i = 0; i < numsubcheats; ++i)
+	for (uint32 i = 0; i < numsubcheats; ++i)
 		FCEUI_SetCheatMapByte(SubCheats[i].addr, true);
 }
 
-inline void FCEUI_ReleaseCheatMap()
+void FCEUI_ReleaseCheatMap(void)
 {
 	if (cheatMap)
 	{

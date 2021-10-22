@@ -33,7 +33,11 @@
 #include "utils/memory.h"
 #include "utils/md5.h"
 #ifdef _SYSTEM_MINIZIP
+#ifdef __linux
 #include <minizip/unzip.h>
+#else // Apple Most Likely
+#include <unzip.h>
+#endif
 #else
 //#include "utils/unzip.h"
 #endif
@@ -104,12 +108,14 @@ void ApplyIPS(FILE *ips, FCEUFILE* fp)
 			if((offset+size)>(uint32)fp->size)
 			{
 				// Probably a little slow.
-				buf=(char *)realloc(buf,offset+size);
-				if(!buf)
+				char *newbuf=(char *)realloc(buf,offset+size);
+				if(!newbuf)
 				{
+					free(buf); buf=NULL;
 					FCEU_printf("  Oops.  IPS patch %d(type RLE) goes beyond end of file.  Could not allocate memory.\n",count);
 					goto end;
 				}
+				buf=newbuf;
 				memset(buf+fp->size,0,offset+size-fp->size);
 				fp->size=offset+size;
 			}
@@ -127,12 +133,14 @@ void ApplyIPS(FILE *ips, FCEUFILE* fp)
 			if((offset+size)>(uint32)fp->size)
 			{
 				// Probably a little slow.
-				buf=(char *)realloc(buf,offset+size);
-				if(!buf)
+				char *newbuf=(char *)realloc(buf,offset+size);
+				if(!newbuf)
 				{
+					free(buf); buf=NULL;
 					FCEU_printf("  Oops.  IPS patch %d(type normal) goes beyond end of file.  Could not allocate memory.\n",count);
 					goto end;
 				}
+				buf=newbuf;
 				memset(buf+fp->size,0,offset+size-fp->size);
 			}
 			fread(buf+offset,1,size,ips);
@@ -281,6 +289,13 @@ FCEUFILE * FCEU_fopen(const char *path, const char *ipsfn, const char *mode, cha
 	if(read)
 	{
 		ArchiveScanRecord asr = FCEUD_ScanArchive(fileToOpen);
+		if (asr.numFilesInArchive < 0)
+		{
+			// error occurred, return
+			// actually it's canceled not by user but an error message already shown
+			*userCancel = 1;
+			return fceufp;
+		}
 		asr.files.FilterByExtension(extensions);
 		if(!asr.isArchive())
 		{
@@ -459,6 +474,11 @@ void FCEUI_SetBaseDirectory(std::string const & dir)
 {
 	BaseDirectory = dir;
 }
+/// Gets the base directory
+const char *FCEUI_GetBaseDirectory(void)
+{
+	return BaseDirectory.c_str();
+}
 
 static const char *odirs[FCEUIOD__COUNT]{};     // odirs, odors. ^_^
 
@@ -477,9 +497,9 @@ void FCEUI_SetDirOverride(int which, const char *n)
 		va_list ap;
 		int ret;
 
-		va_start(ap,fmt);
 		if(!(*strp=(char*)FCEU_dmalloc(2048))) //mbg merge 7/17/06 cast to char*
 			return(0);
+		va_start(ap,fmt);
 		ret=vsnprintf(*strp,2048,fmt,ap);
 		va_end(ap);
 		return(ret);
