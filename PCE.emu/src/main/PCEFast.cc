@@ -25,7 +25,7 @@ using namespace Mednafen;
 extern FS::PathString sysCardPath;
 extern Byte1Option optionArcadeCard;
 
-namespace PCE_Fast
+namespace MDFN_IEN_PCE_FAST
 {
 // dummy HES functions
 int PCE_HESLoad(const uint8 *buf, uint32 size) { return 0; };

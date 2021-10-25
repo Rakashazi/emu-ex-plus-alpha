@@ -34,11 +34,11 @@ class FileStream : public Stream
  public:
 
  // Convenience function so we don't need so many try { } catch { } for ENOENT
- static INLINE FileStream* open(const std::string& path, const uint32 mode, const int do_lock = false)
+ static INLINE FileStream* open(const std::string& path, const uint32 mode, const int do_lock = false, const uint32 buffer_size = 4096)
  {
   try
   {
-   return new FileStream(path, mode, do_lock);
+   return new FileStream(path, mode, do_lock, buffer_size);
   }
   catch(MDFN_Error& e)
   {
@@ -60,7 +60,7 @@ class FileStream : public Stream
   MODE_WRITE_INPLACE = VirtualFS::MODE_WRITE_INPLACE,	// Like MODE_WRITE, but won't truncate the file if it already exists.
  };
 
- FileStream(const std::string& path, const uint32 mode, const int do_lock = false);
+ FileStream(const std::string& path, const uint32 mode, const int do_lock = false, const uint32 buffer_size = 4096);
  virtual ~FileStream() override;
 
  virtual uint64 attributes(void) override;
@@ -81,6 +81,8 @@ class FileStream : public Stream
  void advise(off_t offset, size_t bytes, IO::Advice advice) override;
 
  int get_char(void);
+
+ void set_buffer_size(uint32 new_size);
 
  private:
  FileStream & operator=(const FileStream &);    // Assignment operator

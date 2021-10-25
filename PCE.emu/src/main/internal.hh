@@ -19,7 +19,7 @@ extern std::array<uint16, 5> inputBuff;
 void set6ButtonPadEnabled(EmuApp &, bool);
 bool hasHuCardExtension(const char *name);
 
-namespace PCE_Fast
+namespace MDFN_IEN_PCE_FAST
 {
 	void applyVideoFormat(EmulateSpecStruct *espec);
 	void applySoundFormat(EmulateSpecStruct *espec);

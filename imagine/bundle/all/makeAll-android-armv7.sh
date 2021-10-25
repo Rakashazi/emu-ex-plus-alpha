@@ -3,7 +3,7 @@ makefilesToRun='
 	
 	src/tremor/android-armv7.mk
 	
-	src/libsndfile/android-armv7.mk
+	src/flac/android-armv7.mk
 	
 	src/xz/android-armv7.mk
 	

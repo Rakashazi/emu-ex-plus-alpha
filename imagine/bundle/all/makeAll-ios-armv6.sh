@@ -5,7 +5,7 @@ makefilesToRun='
 	
 	src/tremor/ios-armv6.mk
 	
-	src/libsndfile/ios-armv6.mk
+	src/flac/ios-armv6.mk
 	
 	src/xz/ios-armv6.mk
 	

@@ -104,7 +104,8 @@ ifdef hasSCD
  StreamImpl.cc \
  VirtualFS.cpp \
  cdrom/CDAFReader.cpp \
- cdrom/CDAFReader_SF.cpp \
+ cdrom/CDAFReader_FLAC.cpp \
+ cdrom/CDAFReader_PCM.cpp \
  cdrom/CDAFReader_Vorbis.cpp \
  cdrom/lec.cpp \
  cdrom/recover-raw.cpp \
@@ -119,7 +120,7 @@ ifdef hasSCD
 
  cxxExceptions := 1
  include $(IMAGINE_PATH)/make/package/libvorbis.mk
- include $(IMAGINE_PATH)/make/package/libsndfile.mk
+ include $(IMAGINE_PATH)/make/package/flac.mk
 else
  CPPFLAGS += -DNO_SCD
 endif

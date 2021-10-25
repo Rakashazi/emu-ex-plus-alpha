@@ -49,7 +49,8 @@ mednafen/cputest/cputest.c \
 mednafen/sound/okiadpcm.cpp \
 mednafen/sound/Blip_Buffer.cpp \
 mednafen/cdrom/CDAFReader.cpp \
-mednafen/cdrom/CDAFReader_SF.cpp \
+mednafen/cdrom/CDAFReader_FLAC.cpp \
+mednafen/cdrom/CDAFReader_PCM.cpp \
 mednafen/cdrom/CDAFReader_Vorbis.cpp \
 mednafen/cdrom/galois.cpp \
 mednafen/cdrom/recover-raw.cpp \
@@ -77,7 +78,7 @@ SRC += $(MDFN_SRC)
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk
 include $(IMAGINE_PATH)/make/package/libvorbis.mk
-include $(IMAGINE_PATH)/make/package/libsndfile.mk
+include $(IMAGINE_PATH)/make/package/flac.mk
 include $(IMAGINE_PATH)/make/package/zlib.mk
 
 include $(IMAGINE_PATH)/make/imagineAppTarget.mk

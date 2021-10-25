@@ -351,8 +351,6 @@ enum
 
 struct EmulateSpecStruct
 {
-	constexpr EmulateSpecStruct() {}
-
 	// Pitch(32-bit) must be equal to width and >= the "fb_width" specified in the MDFNGI struct for the emulated system.
 	// Height must be >= to the "fb_height" specified in the MDFNGI struct for the emulated system.
 	// The framebuffer pointed to by surface->pixels is written to by the system emulation code.
@@ -362,7 +360,7 @@ struct EmulateSpecStruct
 	// Will be set to true on the first call to the Emulate() function/method
 	//
 	// Driver-side can set it to true if it has changed the custom palette.
-	static constexpr bool VideoFormatChanged = false;
+	bool VideoFormatChanged = false;
 
 	// Set by the system emulation code every frame, to denote the horizontal and vertical offsets of the image, and the size
 	// of the image.  If the emulated system sets the elements of LineWidths, then the width(w) of this structure
@@ -389,8 +387,8 @@ struct EmulateSpecStruct
 	// Set(optionally) by emulation code.  If InterlaceOn is true, then assume field height is 1/2 DisplayRect.h, and
 	// only every other line in surface (with the start line defined by InterlacedField) has valid data
 	// (it's up to internal Mednafen code to deinterlace it).
-	//bool InterlaceOn;
-	//bool InterlaceField;
+	bool InterlaceOn = false;
+	bool InterlaceField = false;
 
 	// Skip rendering this frame if true.  Set by the driver code.
 	int skip = false;
@@ -404,7 +402,7 @@ struct EmulateSpecStruct
 
         // Will be set to true if the sound format(only rate for now, at least) has changed since the last call to Emulate(), false otherwise.
         // Will be set to true on the first call to the Emulate() function/method
-	static constexpr bool SoundFormatChanged = false;
+	bool SoundFormatChanged = false;
 
 	// Sound rate.  Set by driver side.
 	double SoundRate = 0;
@@ -432,13 +430,13 @@ struct EmulateSpecStruct
 
 	// Current sound volume(0.000...<=volume<=1.000...).  If, after calling Emulate(), it is still != 1, Mednafen will handle it internally.
 	// Emulation modules can handle volume themselves if they like, for speed reasons.  If they do, afterwards, they should set its value to 1.
-	//double SoundVolume;
+	double SoundVolume = 1.0;
 
 	// Current sound speed multiplier.  Set by the driver code.  If, after calling Emulate(), it is still != 1, Mednafen will handle it internally
 	// by resampling the audio.  This means that emulation modules can handle(and set the value to 1 after handling it) it if they want to get the most
 	// performance possible.  HOWEVER, emulation modules must make sure the value is in a range(with minimum and maximum) that their code can handle
 	// before they try to handle it.
-	//double soundmultiplier;
+	double soundmultiplier = 1.0;
 
 	// True if we want to rewind one frame.  Set by the driver code.
 	bool NeedRewind = false;
@@ -516,6 +514,16 @@ struct CustomPalette_Spec
  unsigned valid_entry_count[32];	// 0-terminated
 };
 
+// 4-byte RGB-colorspace xxx888 support is required by all emulation modules, so it's not specified here.
+enum
+{
+ EVFSUPPORT_NONE    = 0,
+
+ EVFSUPPORT_8BPP    = 0x01,	// Palette
+ EVFSUPPORT_RGB555  = 0x02,
+ EVFSUPPORT_RGB565  = 0x04
+};
+
 struct GameFile
 {
  VirtualFS* const vfs;
@@ -564,7 +572,7 @@ struct GameDB_Database
  std::vector<GameDB_Entry> Entries;
 };
 
-typedef struct
+struct MDFNGI
 {
  /* Private functions to Mednafen.  Do not call directly
     from the driver code, or else bad things shall happen.  Maybe.  Probably not, but don't
@@ -673,6 +681,10 @@ typedef struct
  // May be deprecated in the future due to many systems having slight frame rate programmability.
  uint32 fps;
 
+ // Additional video format support, in addition to the required 4-byte RGB-colorspace xxx888 support.
+ uint32 ExtraVideoFormatSupport; // = EVFSUPPORT_NONE
+
+
  // multires is a hint that, if set, indicates that the system has fairly programmable video modes(particularly, the ability
  // to display multiple horizontal resolutions, such as the PCE, PC-FX, or Genesis).  In practice, it will cause the driver
  // code to set the linear interpolation on by default.
@@ -685,7 +697,7 @@ typedef struct
  // the framebuffer image in at 1x scaling, scaled from the dimensions of DisplayRect, and optionally the LineWidths array
  // passed through espec to the Emulate() function.
  //
- bool multires;
+ int multires;
 
  int lcm_width;
  int lcm_height;
@@ -699,11 +711,14 @@ typedef struct
  int fb_height;		// Height of the framebuffer passed to the Emulate() function(not necessarily height of the image)
 
  int soundchan; 	// Number of output sound channels.  Only values of 1 and 2 are currently supported.
-
-
+ //
+ //
+ //
+ //
+ //
  int rotated;
 
- std::string name;    /* Game name, UTF-8 encoding */
+ std::string name;    // Game name, UTF-8 encoding
  uint8 MD5[16];
 
  VideoSystems VideoSystem;
@@ -711,9 +726,11 @@ typedef struct
 
  RMD_Layout* RMD;
 
- const char *cspecial;  /* Special cart expansion: DIP switches, barcode reader, etc. */
+ // Special cart expansion: DIP switches, barcode reader, etc.
+ const char* cspecial;
 
- std::vector<DesiredInputType> DesiredInput; // Desired input devices and default switch positions for the input ports
+ // Desired input devices and default switch positions for the input ports
+ std::vector<DesiredInputType> DesiredInput;
 
  double IdealSoundRate;
 
@@ -726,10 +743,8 @@ typedef struct
  //
  float mouse_scale_x, mouse_scale_y;
  float mouse_offs_x, mouse_offs_y; 
-} MDFNGI;
+};
 
 }
-
-#include "file.h"
 
 #endif

@@ -43,7 +43,7 @@ class CDInterface
  virtual ~CDInterface();
 
  //
- // LBA range limits for sector reading functions; MSF 00:00:00 to 99:57:74
+ // LBA range limits for sector reading functions; MSF 00:00:00 to 99:59:74 
  //
  enum : int32 { LBA_Read_Minimum = -150 };
  enum : int32 { LBA_Read_Maximum = 449849 };
@@ -55,7 +55,7 @@ class CDInterface
  virtual void HintReadSector(int32 lba) = 0;
 
  //
- // Reads 2352+96 bytes of data into buf.  The data for "data" sectors is
+ // Reads 2352+96 bytes of data into buf.  The data for "data" sectors is 
  // currently returned descrambled(TODO: probably want to change that someday).
  //
  // May block for a while, especially for non-sequential reads, though if an

@@ -3,7 +3,7 @@ makefilesToRun='
 	
 	src/libvorbis/android-x86_64.mk
 	
-	src/libsndfile/android-x86_64.mk
+	src/flac/android-x86_64.mk
 	
 	src/xz/android-x86_64.mk
 	

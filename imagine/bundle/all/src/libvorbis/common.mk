@@ -29,6 +29,7 @@ $(libvorbisSrcDir)/configure : | $(libvorbisSrcArchive)
 	tar -mxJf $| -C $(libvorbisSrcDir)/..
 	cp ../gnuconfig/config.* $(libvorbisSrcDir)/
 	patch -d $(libvorbisSrcDir) -p1 < remove-mno-ieee-fp-for-clang.patch
+	autoreconf -vfi $(libvorbisSrcDir)
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libvorbis..."

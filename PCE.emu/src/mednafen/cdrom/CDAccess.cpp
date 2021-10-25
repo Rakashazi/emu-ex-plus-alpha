@@ -34,11 +34,6 @@ CDAccess::CDAccess()
 
 }
 
-CDAccess::~CDAccess()
-{
-
-}
-
 CDAccess* CDAccess_Open(VirtualFS* vfs, const std::string& path, bool image_memcache)
 {
  CDAccess *ret = NULL;

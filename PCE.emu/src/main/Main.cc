@@ -41,23 +41,19 @@ static bool prevUsing263Lines = false;
 
 static MDFN_Surface pixmapToMDFNSurface(IG::Pixmap pix)
 {
-	MDFN_PixelFormat fmt;
-	switch(pix.format().id())
-	{
-		bcase IG::PIXEL_BGRA8888:
-			fmt = {MDFN_COLORSPACE_RGB, 16, 8, 0, 24};
-		bcase IG::PIXEL_RGBA8888:
-			fmt = {MDFN_COLORSPACE_RGB, 0, 8, 16, 24};
-		bcase IG::PIXEL_RGB565:
-			fmt = {MDFN_COLORSPACE_RGB, 11, 5, 0, 16};
-			fmt.bpp = 16;
-			fmt.Rprec = 5;
-			fmt.Gprec = 6;
-			fmt.Bprec = 5;
-			fmt.Aprec = 8;
-		bdefault:
-			bug_unreachable("format id == %d", pix.format().id());
-	}
+	MDFN_PixelFormat fmt =
+		[&]()
+		{
+			switch(pix.format().id())
+			{
+				case IG::PIXEL_BGRA8888: return MDFN_PixelFormat::ARGB32_8888;
+				case IG::PIXEL_RGBA8888: return MDFN_PixelFormat::ABGR32_8888;
+				case IG::PIXEL_RGB565: return MDFN_PixelFormat::RGB16_565;
+				default:
+					bug_unreachable("format id == %d", pix.format().id());
+					return MDFN_PixelFormat::ABGR32_8888;
+			};
+		}();
 	return {pix.pixel({0,0}), pix.w(), pix.h(), pix.pitchPixels(), fmt};
 }
 
@@ -95,7 +91,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	{
 		logMsg("saving backup memory");
 		// TODO: fix iOS permissions if needed
-		PCE_Fast::HuC_SaveNV();
+		MDFN_IEN_PCE_FAST::HuC_SaveNV();
 	}
 }
 
@@ -215,10 +211,10 @@ void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	if(fmt == mSurfacePix.format())
 		return;
 	mSurfacePix = {{{vidBufferX, vidBufferY}, fmt}, pixBuff};
-	EmulateSpecStruct espec;
+	EmulateSpecStruct espec{};
 	auto mSurface = pixmapToMDFNSurface(mSurfacePix);
 	espec.surface = &mSurface;
-	PCE_Fast::applyVideoFormat(&espec);
+	MDFN_IEN_PCE_FAST::applyVideoFormat(&espec);
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
@@ -231,7 +227,7 @@ void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
 	double systemFrameRate = using263Lines ? rateWith263Lines : rateWith262Lines;
 	espec.SoundRate = std::round(rate * (systemFrameRate * frameTime.count()));
 	logMsg("emu sound rate:%f, 263 lines:%d", (double)espec.SoundRate, using263Lines);
-	PCE_Fast::applySoundFormat(&espec);
+	MDFN_IEN_PCE_FAST::applySoundFormat(&espec);
 }
 
 namespace Mednafen
@@ -412,7 +408,7 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 void EmuSystem::reset(ResetMode mode)
 {
 	assert(gameIsRunning());
-	PCE_Fast::PCE_Power();
+	MDFN_IEN_PCE_FAST::PCE_Power();
 }
 
 EmuSystem::Error EmuSystem::saveState(const char *path)

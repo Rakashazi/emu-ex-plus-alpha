@@ -1,8 +1,8 @@
 /******************************************************************************/
 /* Mednafen - Multi-system Emulator                                           */
 /******************************************************************************/
-/* CDAFReader_SF.h:
-**  Copyright (C) 2015-2016 Mednafen Team
+/* CDAFReader_PCM.h:
+**  Copyright (C) 2020 Mednafen Team
 **
 ** This program is free software; you can redistribute it and/or
 ** modify it under the terms of the GNU General Public License
@@ -19,13 +19,14 @@
 ** 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef __MDFN_CDAFREADER_SF_H
-#define __MDFN_CDAFREADER_SF_H
+#ifndef __MDFN_CDAFREADER_PCM_H
+#define __MDFN_CDAFREADER_PCM_H
 
 namespace Mednafen
 {
 
-CDAFReader* CDAFR_SF_Open(Stream* fp);
+CDAFReader* CDAFR_PCM_Open(Stream* fp);
 
 }
 #endif
+

@@ -2,7 +2,7 @@ ifndef CHOST
  CHOST := $(shell $(CC) -dumpmachine)
 endif
 
-liboggVer := 1.3.4
+liboggVer := 1.3.5
 liboggSrcDir := $(tempDir)/libogg-$(liboggVer)
 liboggSrcArchive := libogg-$(liboggVer).tar.xz
 
@@ -27,6 +27,7 @@ $(liboggSrcDir)/configure : | $(liboggSrcArchive)
 	@mkdir -p $(liboggSrcDir)
 	tar -mxJf $| -C $(liboggSrcDir)/..
 	cp ../gnuconfig/config.* $(liboggSrcDir)
+	autoreconf -vfi $(liboggSrcDir)
 
 $(outputLibFile) : $(makeFile)
 	@echo "Building libogg..."

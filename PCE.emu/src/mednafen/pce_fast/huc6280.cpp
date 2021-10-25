@@ -19,7 +19,7 @@
 #include "vdc.h"
 #include <imagine/util/utility.h>
 
-namespace PCE_Fast
+namespace MDFN_IEN_PCE_FAST
 {
 
 static uint8 dummy_bank[8192 + 8192];  // + 8192 for PC-as-ptr safety padding

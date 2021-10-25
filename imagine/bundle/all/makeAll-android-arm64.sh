@@ -3,7 +3,7 @@ makefilesToRun='
 	
 	src/libvorbis/android-arm64.mk
 	
-	src/libsndfile/android-arm64.mk
+	src/flac/android-arm64.mk
 		
 	src/xz/android-arm64.mk
 	

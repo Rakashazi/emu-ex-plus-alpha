@@ -32,7 +32,7 @@ class CDAccess
  public:
 
  CDAccess();
- virtual ~CDAccess();
+ virtual ~CDAccess() = default;
 
  virtual int Read_Raw_Sector(uint8 *buf, int32 lba) = 0;
 

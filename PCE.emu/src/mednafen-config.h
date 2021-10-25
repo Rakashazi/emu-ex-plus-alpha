@@ -72,8 +72,8 @@
    declares uintmax_t. */
 #define HAVE_INTTYPES_H_WITH_UINTMAX 1
 
-/* Define if we are compiling with libsndfile support. */
-#define HAVE_LIBSNDFILE 1
+/* Define if we are compiling with libFLAC support. */
+#define HAVE_LIBFLAC 1
 
 /* Define to 1 if you have the `z' library (-lz). */
 #define HAVE_LIBZ 1

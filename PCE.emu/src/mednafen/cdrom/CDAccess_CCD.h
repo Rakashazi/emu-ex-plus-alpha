@@ -29,7 +29,6 @@ class CDAccess_CCD final: public CDAccess
  public:
 
  CDAccess_CCD(VirtualFS* vfs, const std::string& path, bool image_memcache);
- ~CDAccess_CCD() final;
 
  int Read_Raw_Sector(uint8 *buf, int32 lba) final;
 

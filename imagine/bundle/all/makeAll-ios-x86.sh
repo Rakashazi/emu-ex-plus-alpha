@@ -5,7 +5,7 @@ makefilesToRun='
 	
 	src/libvorbis/ios-x86.mk
 	
-	src/libsndfile/ios-x86.mk
+	src/flac/ios-x86.mk
 	
 	src/xz/ios-x86.mk
 	
