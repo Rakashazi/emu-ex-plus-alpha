@@ -17,7 +17,6 @@
 
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/DelegateFunc.hh>
-#include <system_error>
 
 namespace IG::Data
 {
@@ -25,17 +24,17 @@ namespace IG::Data
 class PixmapSource
 {
 public:
-	using WriteDelegate = DelegateFunc<std::errc(IG::Pixmap dest)>;
+	using WriteDelegate = DelegateFunc<void(IG::Pixmap dest)>;
 
 	constexpr PixmapSource() {}
 	constexpr PixmapSource(IG::Pixmap pix):pix{pix} {}
 	constexpr PixmapSource(WriteDelegate del, IG::Pixmap pix):
 		writeDel{del}, pix{pix} {}
-	constexpr std::errc write(IG::Pixmap dest) { return writeDel(dest); }
+	constexpr void write(IG::Pixmap dest) { writeDel(dest); }
 	constexpr IG::Pixmap pixmapView() { return pix; }
 
 protected:
-	DelegateFunc<std::errc(IG::Pixmap dest)> writeDel{};
+	WriteDelegate writeDel{};
 	IG::Pixmap pix{};
 };
 

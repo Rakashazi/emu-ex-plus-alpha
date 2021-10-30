@@ -19,9 +19,10 @@
 #include <imagine/gfx/GfxText.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/util/DelegateFunc.hh>
 #include <imagine/gui/View.hh>
 #include <imagine/gui/ViewStack.hh>
+#include <imagine/util/DelegateFunc.hh>
+#include <imagine/util/string/CStringView.hh>
 #include <vector>
 #include <system_error>
 
@@ -53,10 +54,8 @@ public:
 	void setOnPathReadError(OnPathReadError del);
 	void onLeftNavBtn(Input::Event e);
 	void onRightNavBtn(Input::Event e);
-	std::error_code setPath(const char *path, bool forcePathChange, FS::RootPathInfo rootInfo, Input::Event e);
-	std::error_code setPath(const char *path, bool forcePathChange, FS::RootPathInfo rootInfo);
-	std::error_code setPath(FS::PathString path, bool forcePathChange, FS::RootPathInfo rootInfo, Input::Event e);
-	std::error_code setPath(FS::PathString path, bool forcePathChange, FS::RootPathInfo rootInfo);
+	std::error_code setPath(IG::CStringView path, bool forcePathChange, FS::RootPathInfo rootInfo, Input::Event e);
+	std::error_code setPath(IG::CStringView path, bool forcePathChange, FS::RootPathInfo rootInfo);
 	std::error_code setPath(FS::PathLocation location, bool forcePathChange);
 	std::error_code setPath(FS::PathLocation location, bool forcePathChange, Input::Event e);
 	FS::PathString path() const;

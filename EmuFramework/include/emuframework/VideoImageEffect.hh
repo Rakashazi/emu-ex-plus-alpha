@@ -17,7 +17,6 @@
 
 #include <imagine/gfx/Texture.hh>
 #include <imagine/gfx/Program.hh>
-#include <system_error>
 #include <optional>
 
 class VideoImageEffect
@@ -72,5 +71,5 @@ private:
 	void initRenderTargetTexture(Gfx::Renderer &r, const Gfx::TextureSampler &compatTexSampler);
 	void updateProgramUniforms(Gfx::Renderer &r);
 	void compile(Gfx::Renderer &r, bool isExternalTex, const Gfx::TextureSampler &compatTexSampler);
-	std::optional<std::system_error> compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback);
+	void compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback);
 };

@@ -39,10 +39,10 @@
 #include <imagine/thread/Thread.hh>
 #include <cmath>
 
-EmuApp::EmuApp(Base::ApplicationInitParams initParams, Base::ApplicationContext &ctx, Gfx::Error &rendererErr):
+EmuApp::EmuApp(Base::ApplicationInitParams initParams, Base::ApplicationContext &ctx):
 	Application{initParams},
 	fontManager{ctx},
-	renderer{ctx, rendererErr},
+	renderer{ctx},
 	audioManager_{ctx},
 	emuAudio{audioManager_},
 	emuVideoLayer{emuVideo},
@@ -64,17 +64,7 @@ EmuApp::EmuApp(Base::ApplicationInitParams initParams, Base::ApplicationContext 
 	pixmapWriter{ctx},
 	vibrationManager_{ctx}
 {
-	if(rendererErr) [[unlikely]]
-	{
-		ctx.exitWithMessage(-1, fmt::format("Error creating renderer: {}", rendererErr->what()).c_str());
-		return;
-	}
-	if(auto err = EmuSystem::onInit(ctx);
-		err) [[unlikely]]
-	{
-		ctx.exitWithMessage(-1, err->what());
-		return;
-	}
+	EmuSystem::onInit(ctx);
 	mainInitCommon(initParams, ctx);
 }
 
@@ -348,12 +338,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 		});
 	initOptions(ctx);
 	auto appConfig = loadConfigFile(ctx);
-	if(auto err = EmuSystem::onOptionsLoaded(ctx);
-		err) [[unlikely]]
-	{
-		ctx.exitWithMessage(-1, err->what());
-		return;
-	}
+	EmuSystem::onOptionsLoaded(ctx);
 	auto launchGame = parseCommandArgs(initParams.commandArgs());
 	if(launchGame)
 		EmuSystem::setInitialLoadPath(launchGame);
@@ -421,12 +406,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 	ctx.makeWindow(winConf,
 		[this, appConfig](Base::ApplicationContext ctx, Base::Window &win)
 		{
-			if(auto err = renderer.initMainTask(&win, windowDrawableConfig());
-				err) [[unlikely]]
-			{
-				ctx.exitWithMessage(-1, fmt::format("Error creating renderer: {}", err->what()).c_str());
-				return;
-			}
+			renderer.initMainTask(&win, windowDrawableConfig());
 			if(!supportsVideoImageBuffersOption(renderer))
 				optionVideoImageBuffers.resetToConst();
 			if(optionTextureBufferMode.val)
@@ -683,13 +663,17 @@ void EmuApp::reloadGame(EmuSystemCreateParams params)
 	FS::PathString gamePath;
 	string_copy(gamePath, EmuSystem::fullGamePath());
 	emuSystemTask.pause();
-	EmuSystem::Error err{};
-	EmuSystem::createWithMedia(viewController().appContext(), {}, gamePath.data(), "", err, params,
-		[](int pos, int max, const char *label){ return true; });
-	if(!err)
+	try
 	{
+		EmuSystem::createWithMedia(viewController().appContext(), {}, gamePath.data(), "", params,
+			[](int pos, int max, const char *label){ return true; });
 		viewController().onSystemCreated();
 		viewController().showEmulation();
+	}
+	catch(...)
+	{
+		logErr("Error reloading game");
+		EmuSystem::clearGamePaths();
 	}
 }
 
@@ -743,25 +727,30 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 		[app, io{std::move(io)}, pathStr{FS::makePathString(path)}, fileStr{FS::makeFileString(name)}, &msgPort, params]() mutable
 		{
 			logMsg("starting loader thread");
-			EmuSystem::Error err;
-			EmuSystem::createWithMedia(app, std::move(io), pathStr.data(), fileStr.data(), err, params,
-				[&msgPort](int pos, int max, const char *label)
-				{
-					int len = label ? strlen(label) : -1;
-					auto msg = EmuSystem::LoadProgressMessage{EmuSystem::LoadProgress::UPDATE, pos, max, len};
-					if(len > 0)
-					{
-						msgPort.sendWithExtraData(msg, label, len);
-					}
-					else
-					{
-						msgPort.send(msg);
-					}
-					return true;
-				});
-			if(err)
+			try
 			{
-				auto errStr = err->what();
+				EmuSystem::createWithMedia(app, std::move(io), pathStr.data(), fileStr.data(), params,
+					[&msgPort](int pos, int max, const char *label)
+					{
+						int len = label ? strlen(label) : -1;
+						auto msg = EmuSystem::LoadProgressMessage{EmuSystem::LoadProgress::UPDATE, pos, max, len};
+						if(len > 0)
+						{
+							msgPort.sendWithExtraData(msg, label, len);
+						}
+						else
+						{
+							msgPort.send(msg);
+						}
+						return true;
+					});
+				msgPort.send({EmuSystem::LoadProgress::OK, 0, 0, 0});
+				logMsg("loader thread finished");
+			}
+			catch(std::exception &err)
+			{
+				EmuSystem::clearGamePaths();
+				auto errStr = err.what();
 				int len = strlen(errStr);
 				assert(len);
 				if(len > 1024)
@@ -773,8 +762,6 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 				logErr("loader thread failed");
 				return;
 			}
-			msgPort.send({EmuSystem::LoadProgress::OK, 0, 0, 0});
-			logMsg("loader thread finished");
 		});
 }
 
@@ -802,41 +789,60 @@ bool EmuApp::loadAutoState()
 	return 0;
 }
 
-EmuSystem::Error EmuApp::saveState(const char *path)
+bool EmuApp::saveState(const char *path)
 {
 	if(!EmuSystem::gameIsRunning())
 	{
-		return EmuSystem::makeError("System not running");
+		postErrorMessage("System not running");
+		return false;
 	}
-	//fixFilePermissions(path);
 	syncEmulationThread();
 	logMsg("saving state %s", path);
-	return EmuSystem::saveState(*this, path);
+	try
+	{
+		EmuSystem::saveState(*this, path);
+		return true;
+	}
+	catch(std::exception &err)
+	{
+		postErrorMessage(4, err.what());
+		return false;
+	}
 }
 
-EmuSystem::Error EmuApp::saveStateWithSlot(int slot)
+bool EmuApp::saveStateWithSlot(int slot)
 {
 	auto path = EmuSystem::sprintStateFilename(slot);
 	return saveState(path.data());
 }
 
-EmuSystem::Error EmuApp::loadState(const char *path)
+bool EmuApp::loadState(const char *path)
 {
 	if(!EmuSystem::gameIsRunning())
 	{
-		return EmuSystem::makeError("System not running");
+		postErrorMessage("System not running");
+		return false;
 	}
 	if(!FS::exists(path))
 	{
-		return EmuSystem::makeError("File doesn't exist");
+		postErrorMessage("File doesn't exist");
+		return false;
 	}
-	//fixFilePermissions(path);
 	syncEmulationThread();
 	logMsg("loading state %s", path);
-	return EmuSystem::loadState(*this, path);
+	try
+	{
+		EmuSystem::loadState(*this, path);
+		return true;
+	}
+	catch(std::exception &err)
+	{
+		postErrorMessage(4, err.what());
+		return false;
+	}
 }
 
-EmuSystem::Error EmuApp::loadStateWithSlot(int slot)
+bool EmuApp::loadStateWithSlot(int slot)
 {
 	auto path = EmuSystem::sprintStateFilename(slot);
 	return loadState(path.data());
@@ -868,7 +874,7 @@ FS::PathString EmuApp::firmwareSearchPath()
 {
 	if(!strlen(optionFirmwarePath))
 		return lastLoadPath;
-	return hasArchiveExtension(optionFirmwarePath) ? FS::dirname(optionFirmwarePath) : FS::makePathString(optionFirmwarePath);
+	return hasArchiveExtension(optionFirmwarePath) ? FS::dirname(optionFirmwarePath.val) : FS::makePathString(optionFirmwarePath.val);
 }
 
 void EmuApp::setFirmwareSearchPath(const char *path)
@@ -933,26 +939,27 @@ void EmuApp::saveSessionOptions()
 	if(!EmuSystem::sessionOptionsSet)
 		return;
 	auto configFilePath = sessionConfigPath();
-	FileIO configFile;
-	if(auto ec = configFile.create(configFilePath.data());
-		ec)
+	try
+	{
+		auto configFile = FileIO::create(configFilePath.data());
+		writeConfigHeader(configFile);
+		EmuSystem::writeSessionConfig(configFile);
+		EmuSystem::sessionOptionsSet = false;
+		if(configFile.size() == 1)
+		{
+			// delete file if only header was written
+			configFile = {};
+			FS::remove(configFilePath);
+			logMsg("deleted empty session config file:%s", configFilePath.data());
+		}
+		else
+		{
+			logMsg("wrote session config file:%s", configFilePath.data());
+		}
+	}
+	catch(...)
 	{
 		logMsg("error creating session config file:%s", configFilePath.data());
-		return;
-	}
-	writeConfigHeader(configFile);
-	EmuSystem::writeSessionConfig(configFile);
-	EmuSystem::sessionOptionsSet = false;
-	if(configFile.size() == 1)
-	{
-		// delete file if only header was written
-		configFile.close();
-		FS::remove(configFilePath);
-		logMsg("deleted empty session config file:%s", configFilePath.data());
-	}
-	else
-	{
-		logMsg("wrote session config file:%s", configFilePath.data());
 	}
 }
 
@@ -961,13 +968,10 @@ void EmuApp::loadSessionOptions()
 	if(!EmuSystem::resetSessionOptions(*this))
 		return;
 	auto configFilePath = sessionConfigPath();
-	FileIO configFile;
-	if(auto ec = configFile.open(configFilePath.data(), IO::AccessHint::ALL);
-		ec)
-	{
+	auto configBuff = FileUtils::bufferFromPath(configFilePath, IO::OPEN_TEST);
+	if(!configBuff)
 		return;
-	}
-	readConfigKeys(configFile,
+	readConfigKeys(std::move(configBuff),
 		[](uint16_t key, uint16_t size, IO &io)
 		{
 			switch(key)
@@ -1128,8 +1132,7 @@ namespace Base
 
 void ApplicationContext::onInit(ApplicationInitParams initParams)
 {
-	Gfx::Error rendererErr;
-	initApplication<EmuApp>(initParams, *this, rendererErr);
+	initApplication<EmuApp>(initParams, *this);
 }
 
 }

@@ -26,5 +26,4 @@ install : $(outputLibFile)
 $(outputLibFile) : $(OBJ)
 	@echo "Archiving btstack..."
 	@mkdir -p `dirname $@`
-	ar cr $@ $(OBJ)
-
+	$(AR) cr $@ $(OBJ)

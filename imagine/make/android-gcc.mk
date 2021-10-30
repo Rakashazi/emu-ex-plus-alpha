@@ -35,10 +35,10 @@ ifeq ($(origin CC), default)
  CC := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/clang
  CXX := $(CC)++
  AR := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-ar
- RANLIB := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-ar s
+ RANLIB := $(AR) s
  STRIP := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-strip
  OBJDUMP := $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/llvm-objdump
- toolchainEnvParams += RANLIB="$(RANLIB)" STRIP="$(STRIP)" OBJDUMP="$(OBJDUMP)"
+ toolchainEnvParams += STRIP="$(STRIP)" OBJDUMP="$(OBJDUMP)"
 else
  # TODO: user-defined compiler
  ifneq ($(findstring $(shell $(CC) -v), "clang version"),)

@@ -16,7 +16,8 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/io/BufferMapIO.hh>
+#include <imagine/io/MapIO.hh>
+#include <imagine/util/string/CStringView.hh>
 #include <memory>
 
 struct AAsset;
@@ -38,21 +39,21 @@ public:
 	using IO::seekC;
 	using IO::tell;
 	using IO::send;
-	using IO::constBufferView;
+	using IO::buffer;
 	using IO::get;
 
 	constexpr AAssetIO() {}
-	GenericIO makeGeneric();
-	std::error_code open(Base::ApplicationContext, const char *name, AccessHint);
+	AAssetIO(Base::ApplicationContext, IG::CStringView name, AccessHint, unsigned openFlags = 0);
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
-	const uint8_t *mmapConst() final;
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut) final;
+	std::span<uint8_t> map() final;
 	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) final;
 	off_t seek(off_t offset, SeekMode mode, std::error_code *ecOut) final;
-	void close() final;
 	size_t size() final;
 	bool eof() final;
 	explicit operator bool() const final;
 	void advise(off_t offset, size_t bytes, Advice advice) final;
+	IG::ByteBuffer releaseBuffer();
 
 protected:
 	struct AAssetDeleter
@@ -65,7 +66,7 @@ protected:
 	using UniqueAAsset = std::unique_ptr<AAsset, AAssetDeleter>;
 
 	UniqueAAsset asset{};
-	BufferMapIO mapIO{};
+	MapIO mapIO{};
 
 	bool makeMapIO();
 	static void closeAAsset(AAsset *);

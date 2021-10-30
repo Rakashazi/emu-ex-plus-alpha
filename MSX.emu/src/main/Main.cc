@@ -136,7 +136,7 @@ const char *EmuSystem::systemName()
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasMSXExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasMSXExtension;
 
-static EmuSystem::Error insertMedia(EmuApp &app)
+static void insertMedia(EmuApp &app)
 {
 	iterateTimes(2, i)
 	{
@@ -148,7 +148,7 @@ static EmuSystem::Error insertMedia(EmuApp &app)
 				logMsg("loading Sunrise IDE");
 				if(!boardChangeCartridge(i, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 				{
-					return EmuSystem::makeError("Error loading Sunrise IDE device");
+					throw std::runtime_error("Error loading Sunrise IDE device");
 				}
 			bdefault:
 			{
@@ -157,7 +157,7 @@ static EmuSystem::Error insertMedia(EmuApp &app)
 				logMsg("loading ROM %s", cartName[i].data());
 				if(!insertROM(app, cartName[i].data(), i))
 				{
-					return EmuSystem::makeError(fmt::format("Error loading ROM{}:\n{}", i, cartName[i].data()));
+					throw std::runtime_error(fmt::format("Error loading ROM{}:\n{}", i, cartName[i].data()));
 				}
 			}
 		}
@@ -170,7 +170,7 @@ static EmuSystem::Error insertMedia(EmuApp &app)
 		logMsg("loading Disk %s", diskName[i].data());
 		if(!insertDisk(app, diskName[i].data(), i))
 		{
-			return EmuSystem::makeError(fmt::format("Error loading Disk{}:\n{}", i, diskName[i].data()));
+			throw std::runtime_error(fmt::format("Error loading Disk{}:\n{}", i, diskName[i].data()));
 		}
 	}
 
@@ -181,10 +181,9 @@ static EmuSystem::Error insertMedia(EmuApp &app)
 		logMsg("loading HD %s", hdName[i].data());
 		if(!insertDisk(app, hdName[i].data(), diskGetHdDriveId(i / 2, i % 2)))
 		{
-			return EmuSystem::makeError(fmt::format("Error loading Disk{}:\n{}", i, hdName[i].data()));
+			throw std::runtime_error(fmt::format("Error loading Disk{}:\n{}", i, hdName[i].data()));
 		}
 	}
-	return {};
 }
 
 static bool msxIsInit()
@@ -295,9 +294,9 @@ static bool createBoardFromLoadGame(EmuApp &app)
 	return true;
 }
 
-static EmuSystem::Error makeMachineInitError(const char *machineName)
+static void throwMachineInitError(const char *machineName)
 {
-	return EmuSystem::makeError(fmt::format("Error loading machine files for\n\"{}\",\nmake sure they are in:\n{}",
+	throw std::runtime_error(fmt::format("Error loading machine files for\n\"{}\",\nmake sure they are in:\n{}",
 		machineName, machineBasePath.data()));
 }
 
@@ -337,45 +336,45 @@ const char *currentMachineName()
 	return machine->name;
 }
 
-EmuSystem::Error setCurrentMachineName(EmuApp &app, const char *machineName, bool insertMediaFiles)
+void setCurrentMachineName(EmuApp &app, const char *machineName, bool insertMediaFiles)
 {
 	if(machine && string_equal(machine->name, machineName))
 	{
 		logMsg("keeping current machine:%s", machine->name);
-		return {};
+		return;
 	}
 	if(!initMachine(machineName))
 	{
-		return makeMachineInitError(machineName);
+		throwMachineInitError(machineName);
 	}
 	if(!createBoardFromLoadGame(app))
 	{
-		return EmuSystem::makeError(fmt::format("Error initializing {}", machine->name));
+		throw std::runtime_error(fmt::format("Error initializing {}", machine->name));
 	}
 	if(insertMediaFiles)
-		return insertMedia(app);
-	else
-		return {};
+		insertMedia(app);
 }
 
 template<class MATCH_FUNC>
 static FS::FileString getFirstFilenameInArchive(const char *zipPath, MATCH_FUNC nameMatch)
 {
-	std::error_code ec{};
-	for(auto &entry : FS::ArchiveIterator{zipPath, ec})
+	try
 	{
-		if(entry.type() == FS::file_type::directory)
+		for(auto &entry : FS::ArchiveIterator{zipPath})
 		{
-			continue;
-		}
-		auto name = entry.name();
-		logMsg("archive file entry:%s", entry.name());
-		if(nameMatch(name))
-		{
-			return FS::makeFileString(name);
+			if(entry.type() == FS::file_type::directory)
+			{
+				continue;
+			}
+			auto name = entry.name();
+			logMsg("archive file entry:%s", entry.name());
+			if(nameMatch(name))
+			{
+				return FS::makeFileString(name);
+			}
 		}
 	}
-	if(ec)
+	catch(...)
 	{
 		logErr("error opening archive:%s", zipPath);
 	}
@@ -460,10 +459,13 @@ void EmuSystem::reset(EmuApp &app, ResetMode mode)
 			app.postMessage(true, "Error during MSX reset");
 			app.exitGame(false);
 		}
-		if(auto err = insertMedia(app);
-			err)
+		try
 		{
-			app.postMessage(3, true, err->what());
+			insertMedia(app);
+		}
+		catch(std::exception &err)
+		{
+			app.postErrorMessage(3, err.what());
 		}
 	}
 	else
@@ -477,12 +479,12 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 	return IG::formatToPathString("{}/{}.0{}.sta", statePath, gameName, saveSlotCharUpper(slot));
 }
 
-static EmuSystem::Error saveBlueMSXState(const char *filename)
+static void saveBlueMSXState(const char *filename)
 {
 	if(!zipStartWrite(filename))
 	{
 		logErr("error creating zip:%s", filename);
-		return EmuSystem::makeFileWriteError();
+		EmuSystem::throwFileWriteError();
 	}
 	saveStateCreateForWrite(filename);
 	int rv = zipSaveFile(filename, "version", 0, saveStateVersion, sizeof(saveStateVersion));
@@ -491,7 +493,7 @@ static EmuSystem::Error saveBlueMSXState(const char *filename)
 		saveStateDestroy();
 		zipEndWrite();
 		logErr("error writing to zip:%s", filename);
-		return EmuSystem::makeFileWriteError();
+		EmuSystem::throwFileWriteError();
 	}
 
 	SaveState* state = saveStateOpenForWrite("board");
@@ -521,10 +523,9 @@ static EmuSystem::Error saveBlueMSXState(const char *filename)
 	boardInfo.saveState();
 	saveStateDestroy();
 	zipEndWrite();
-	return {};
 }
 
-EmuSystem::Error EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(const char *path)
 {
 	return saveBlueMSXState(path);
 }
@@ -541,7 +542,7 @@ static FS::FileString saveStateGetFileString(SaveState* state, const char* tagNa
 	return name;
 }
 
-static EmuSystem::Error loadBlueMSXState(EmuApp &app, const char *filename)
+static void loadBlueMSXState(EmuApp &app, const char *filename)
 {
 	logMsg("loading state %s", filename);
 
@@ -554,13 +555,13 @@ static EmuSystem::Error loadBlueMSXState(EmuApp &app, const char *filename)
 	if(!version)
 	{
 		saveStateDestroy();
-		return EmuSystem::makeFileReadError();
+		EmuSystem::throwFileReadError();
 	}
 	if(0 != strncmp(version, saveStateVersion, sizeof(saveStateVersion) - 1))
 	{
 		free(version);
 		saveStateDestroy();
-		return EmuSystem::makeError("Incorrect state version");
+		throw std::runtime_error("Incorrect state version");
 	}
 	free(version);
 
@@ -570,9 +571,9 @@ static EmuSystem::Error loadBlueMSXState(EmuApp &app, const char *filename)
 	if(!createBoardFromLoadGame(app))
 	{
 		saveStateDestroy();
-		auto err = EmuSystem::makeError(fmt::format("Can't initialize machine:{} from save-state", machine->name));
+		auto err = fmt::format("Can't initialize machine:{} from save-state", machine->name);
 		app.exitGame(false);
-		return err;
+		throw std::runtime_error{err};
 	}
 
 	clearAllMediaNames();
@@ -589,20 +590,22 @@ static EmuSystem::Error loadBlueMSXState(EmuApp &app, const char *filename)
 	hdName[3] = saveStateGetFileString(state, "diskName11");
 	saveStateClose(state);
 
-	if(auto err = insertMedia(app);
-		err)
+	try
+	{
+		insertMedia(app);
+	}
+	catch(...)
 	{
 		app.exitGame(false);
-		return err;
+		throw;
 	}
 
 	boardInfo.loadState();
 	saveStateDestroy();
 	logMsg("state loaded with machine:%s", machine->name);
-	return {};
 }
 
-EmuSystem::Error EmuSystem::loadState(EmuApp &app, const char *path)
+void EmuSystem::loadState(EmuApp &app, const char *path)
 {
 	return loadBlueMSXState(app, path);
 }
@@ -620,7 +623,7 @@ void EmuSystem::closeSystem()
 	destroyMachine();
 }
 
-EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	// configure media loading
 	auto mediaPath = fullGamePath();
@@ -634,7 +637,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 		fileInZipName = getFirstMediaFilenameInArchive(mediaPath);
 		if(!strlen(fileInZipName.data()))
 		{
-			return EmuSystem::makeError("No media in archive");
+			throw std::runtime_error("No media in archive");
 		}
 		logMsg("found:%s in archive:%s", fileInZipName.data(), mediaPath);
 		fileInZipNamePtr = fileInZipName.data();
@@ -654,22 +657,14 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 
 	// create machine
 	auto &app = EmuApp::get(ctx);
+	auto destroyMachineOnReturn = IG::scopeGuard([](){ destroyMachine(); });
 	if(strlen(optionMachineName.val)) // try machine from session config first
 	{
-		if(auto err = setCurrentMachineName(app, optionMachineName.val, false);
-		err)
-		{
-			destroyMachine();
-		}
+		setCurrentMachineName(app, optionMachineName.val, false);
 	}
-	auto destroyMachineOnReturn = IG::scopeGuard([](){ destroyMachine(); });
 	if(!strlen(currentMachineName()))
 	{
-		if(auto err = setCurrentMachineName(app, optionDefaultMachineName.val, false);
-			err)
-		{
-			return err;
-		}
+		setCurrentMachineName(app, optionDefaultMachineName.val, false);
 	}
 
 	// load media
@@ -678,7 +673,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 		cartName[0] = mediaFilename;
 		if(!boardChangeCartridge(0, ROM_UNKNOWN, mediaPath, fileInZipNamePtr))
 		{
-			return EmuSystem::makeError("Error loading ROM");
+			throw std::runtime_error("Error loading ROM");
 		}
 	}
 	else if(hasMSXDiskExtension(mediaNamePtr))
@@ -689,12 +684,12 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 			string_copy(cartName[0], "Sunrise IDE");
 			if(!boardChangeCartridge(0, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 			{
-				return EmuSystem::makeError("Error loading Sunrise IDE device");
+				throw std::runtime_error("Error loading Sunrise IDE device");
 			}
 			hdName[0] = mediaFilename;
 			if(!diskChange(hdId, mediaPath, fileInZipNamePtr))
 			{
-				return EmuSystem::makeError("Error loading HD");
+				throw std::runtime_error("Error loading HD");
 			}
 		}
 		else
@@ -702,16 +697,15 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 			diskName[0] = mediaFilename;
 			if(!diskChange(0, mediaPath, fileInZipNamePtr))
 			{
-				return EmuSystem::makeError("Error loading Disk");
+				throw std::runtime_error("Error loading Disk");
 			}
 		}
 	}
 	else
 	{
-		return EmuSystem::makeError("Unknown file type");
+		throw std::runtime_error("Unknown file type");
 	}
 	destroyMachineOnReturn.cancel();
-	return {};
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
@@ -799,7 +793,7 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 	}
 };
 
-EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
+void EmuSystem::onInit(Base::ApplicationContext)
 {
 	/*mediaDbCreateRomdb();
 	mediaDbAddFromXmlFile("msxromdb.xml");
@@ -829,6 +823,4 @@ EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
 	int logFrequency = 50;
 	int frequency = (int)(3579545 * ::pow(2.0, (logFrequency - 50) / 15.0515));
 	mixerSetBoardFrequencyFixed(frequency);
-
-	return {};
 }

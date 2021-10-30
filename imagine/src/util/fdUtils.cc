@@ -14,13 +14,16 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "fdUtils"
+#include <imagine/config/defs.hh>
 #include <imagine/logger/logger.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <cassert>
+#include <cstring>
 #include <algorithm>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 
 CLINK ssize_t fd_writeAll(int filedes, const void *buffer, size_t size)
 {
@@ -37,10 +40,14 @@ CLINK ssize_t fd_writeAll(int filedes, const void *buffer, size_t size)
 
 CLINK off_t fd_size(int fd)
 {
-	off_t savedPos = lseek(fd, 0, SEEK_CUR);
-	off_t size = lseek(fd, 0, SEEK_END);
-	lseek(fd, savedPos, SEEK_SET);
-	return size;
+	struct stat stats;
+	if(fstat(fd, &stats) == -1)
+	{
+		if(Config::DEBUG_BUILD)
+			logErr("fstat(%d) failed:%s", fd, strerror(errno));
+		return 0;
+	}
+	return stats.st_size;
 }
 
 CLINK const char* fd_seekModeToStr(int mode)

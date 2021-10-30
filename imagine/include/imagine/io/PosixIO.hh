@@ -18,6 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/io/IO.hh>
 #include <imagine/util/memory/UniqueFileDescriptor.hh>
+#include <imagine/util/string/CStringView.hh>
 
 class PosixIO final : public IO
 {
@@ -31,27 +32,20 @@ public:
 	using IO::seekC;
 	using IO::tell;
 	using IO::send;
-	using IO::constBufferView;
+	using IO::buffer;
 	using IO::get;
 
 	constexpr PosixIO() {}
 	constexpr PosixIO(int fd):fd_{fd} {}
-	GenericIO makeGeneric();
-	std::error_code open(const char *path, uint32_t mode = 0);
-	std::error_code create(const char *path, uint32_t mode = 0)
-	{
-		mode |= OPEN_WRITE | OPEN_CREATE;
-		return open(path, mode);
-	}
+	PosixIO(IG::CStringView path, unsigned openFlags = 0);
+	static PosixIO create(IG::CStringView path, unsigned openFlags = 0);
 	int releaseFD();
 	int fd() const;
-
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut) final;
 	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) final;
 	std::error_code truncate(off_t offset) final;
 	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut) final;
-	void close() final;
 	void sync() final;
 	size_t size() final;
 	bool eof() final;

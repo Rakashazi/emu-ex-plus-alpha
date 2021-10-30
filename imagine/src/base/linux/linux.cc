@@ -178,7 +178,7 @@ int main(int argc, char** argv)
 	auto eventLoop = Base::EventLoop::makeForThread();
 	Base::ApplicationContext ctx{};
 	Base::ApplicationInitParams initParams{eventLoop, &ctx, argc, argv};
-	ctx.onInit(initParams);
+	ctx.dispatchOnInit(initParams);
 	ctx.application().setRunningActivityState();
 	ctx.dispatchOnResume(true);
 	bool eventLoopRunning = true;

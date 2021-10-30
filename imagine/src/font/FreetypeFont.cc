@@ -272,14 +272,7 @@ FreetypeFont::FreetypeFont(FT_Library library, GenericIO io):
 FreetypeFont::FreetypeFont(FT_Library library, const char *name):
 	library{library}
 {
-	FileIO io;
-	io.open(name, IO::AccessHint::ALL);
-	if(!io)
-	{
-		logMsg("unable to open file");
-		return;
-	}
-	loadIntoNextSlot(io.makeGeneric());
+	loadIntoNextSlot(FileIO{name, IO::AccessHint::ALL});
 }
 
 Font FontManager::makeFromFile(GenericIO io) const
@@ -314,7 +307,7 @@ Font FontManager::makeBoldSystem() const
 
 Font FontManager::makeFromAsset(const char *name, const char *appName) const
 {
-	return {library.get(), ctx.openAsset(name, IO::AccessHint::ALL, appName).makeGeneric()};
+	return {library.get(), ctx.openAsset(name, IO::AccessHint::ALL, 0, appName)};
 }
 
 FreetypeFont::FreetypeFont(FreetypeFont &&o)
@@ -374,19 +367,21 @@ std::errc FreetypeFont::loadIntoNextSlot(const char *name)
 {
 	if(f.isFull())
 		return std::errc::no_space_on_device;
-	FileIO io;
-	io.open(name, IO::AccessHint::ALL);
-	if(!io)
+	try
+	{
+		FileIO io{name, IO::AccessHint::ALL};
+		if(auto ec = loadIntoNextSlot(io);
+			(bool)ec)
+		{
+			return ec;
+		}
+		return {};
+	}
+	catch(...)
 	{
 		logMsg("unable to open file %s", name);
 		return std::errc::invalid_argument;
 	}
-	if(auto ec = loadIntoNextSlot(io.makeGeneric());
-		(bool)ec)
-	{
-		return ec;
-	}
-	return {};
 }
 
 FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData, std::errc &ec)

@@ -43,7 +43,7 @@
   bufferptr+= size;
 
 /* Function prototypes */
-EmuSystem::Error state_load(const unsigned char *buffer);
+void state_load(const unsigned char *buffer);
 int state_save(unsigned char *buffer);
 
 #endif

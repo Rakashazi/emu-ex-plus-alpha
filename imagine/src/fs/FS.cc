@@ -31,14 +31,14 @@
 namespace FS
 {
 
-FileString makeFileString(const char *str)
+FileString makeFileString(IG::CStringView str)
 {
 	FileString path{};
 	string_copy(path, str);
 	return path;
 }
 
-FileString makeFileStringWithoutDotExtension(const char *str)
+FileString makeFileStringWithoutDotExtension(IG::CStringView str)
 {
 	auto fileStr = makeFileString(str);
 	if(auto dotPos = string_dotExtension(str);
@@ -49,21 +49,21 @@ FileString makeFileStringWithoutDotExtension(const char *str)
 	return fileStr;
 }
 
-PathString makePathString(const char *str)
+PathString makePathString(IG::CStringView str)
 {
 	PathString path{};
 	string_copy(path, str);
 	return path;
 }
 
-PathString makePathString(const char *dir, const char *file)
+PathString makePathString(IG::CStringView dir, IG::CStringView file)
 {
 	return IG::formatToPathString("{}/{}", dir, file);
 }
 
-PathString makeAppPathFromLaunchCommand(const char *launchCmd)
+PathString makeAppPathFromLaunchCommand(IG::CStringView launchCmd)
 {
-	logMsg("app path from launch command:%s", launchCmd);
+	logMsg("app path from launch command:%s", launchCmd.data());
 	FS::PathString realPath{};
 	if(!realpath(FS::dirname(launchCmd).data(), realPath.data()))
 	{
@@ -73,7 +73,7 @@ PathString makeAppPathFromLaunchCommand(const char *launchCmd)
 	return realPath;
 }
 
-FileString basename(const char *path)
+FileString basename(IG::CStringView path)
 {
 	FileString name{};
 	#ifdef CONFIG_USE_GNU_BASENAME
@@ -89,7 +89,7 @@ FileString basename(const char *path)
 	return name;
 }
 
-PathString dirname(const char *path)
+PathString dirname(IG::CStringView path)
 {
 	PathString dir{};
 	#if defined __ANDROID__
@@ -114,7 +114,7 @@ bool fileStringNoCaseLexCompare(FS::FileString s1, FS::FileString s2)
 		});
 }
 
-int directoryItems(const char *path)
+int directoryItems(IG::CStringView path)
 {
 		uint32_t items = 0;
 		for(auto &d : FS::directory_iterator(path))

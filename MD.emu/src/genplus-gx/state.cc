@@ -96,7 +96,7 @@ static unsigned oldStateSizeAfterVDP(int exVersion, bool is64Bit)
   return size;
 }
 
-EmuSystem::Error state_load(const unsigned char *buffer)
+void state_load(const unsigned char *buffer)
 {
 	auto state = std::make_unique<unsigned char[]>(STATE_SIZE);
 
@@ -114,7 +114,7 @@ EmuSystem::Error state_load(const unsigned char *buffer)
 		if(result != Z_OK)
 		{
 			//logErr("error %d in uncompress loading state", result);
-			return EmuSystem::makeError(fmt::format("Error {} during uncompress", result));
+			throw std::runtime_error(fmt::format("Error {} during uncompress", result));
 		}
   }
 
@@ -124,13 +124,13 @@ EmuSystem::Error state_load(const unsigned char *buffer)
   version[16] = 0;
   if (strncmp(version,STATE_VERSION,11))
   {
-    return EmuSystem::makeError("Missing header");
+    throw std::runtime_error("Missing header");
   }
 
   /* version check (1.5.0 and above) */
   if ((version[11] < 0x31) || ((version[11] == 0x31) && (version[13] < 0x35)))
   {
-    return EmuSystem::makeError("Version too old");
+    throw std::runtime_error("Version too old");
   }
 
   unsigned exVersion = (version[15] >= 0x32) ? version[15] - 0x31 : 0;
@@ -217,7 +217,7 @@ EmuSystem::Error state_load(const unsigned char *buffer)
   		logErr("unexpected amount of bytes remaining in state:%d, should be %d or %d",
   			bytesLeft, bytesLeft32, bytesLeft64);
   		system_reset();
-  		return EmuSystem::makeError("Can't determine if created on 32 or 64-bit system");
+  		throw std::runtime_error("Can't determine if created on 32 or 64-bit system");
   	}
   	bufferptr += sound_context_load(&state[bufferptr], version, true, ptrSize);
   }
@@ -289,10 +289,8 @@ EmuSystem::Error state_load(const unsigned char *buffer)
 	if(bufferptr != outbytes)
 	{
 		system_reset();
-		return EmuSystem::makeError(fmt::format("Expected {} size state but got {}", bufferptr, (int)outbytes));
+		throw std::runtime_error(fmt::format("Expected {} size state but got {}", bufferptr, (int)outbytes));
 	}
-
-  return {};
 }
 
 int state_save(unsigned char *buffer)

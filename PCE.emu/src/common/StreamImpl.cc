@@ -47,16 +47,16 @@ static std::pair<uint32_t, uint8_t> modeToAttribs(uint32 mode)
 }
 
 FileStream::FileStream(const std::string& path, const uint32 mode, const int do_lock, const uint32 buffer_size)
+try:
+	io{path, IO::AccessHint::SEQUENTIAL, modeToAttribs(mode).first},
+	attribs{modeToAttribs(mode).second}
 {
 	assert(!do_lock);
-	auto [openMode, attribs] = modeToAttribs(mode);
-	this->attribs = attribs;
-	if(auto ec = io.open(path.c_str(), IO::AccessHint::SEQUENTIAL, openMode);
-		ec)
-	{
-		ErrnoHolder ene(errno);
-		throw MDFN_Error(ene.Errno(), _("Error opening file \"%s\": %s"), path.c_str(), ene.StrError());
-	}
+}
+catch(std::system_error &err)
+{
+	ErrnoHolder ene(errno);
+	throw MDFN_Error(ene.Errno(), _("Error opening file \"%s\": %s"), path.c_str(), ene.StrError());
 }
 
 FileStream::~FileStream() {}
@@ -68,7 +68,7 @@ uint64 FileStream::attributes(void)
 
 uint8 *FileStream::map(void) noexcept
 {
- return (uint8 *)io.mmapConst();
+ return io.map().data();
 }
 
 uint64 FileStream::map_size(void) noexcept
@@ -117,7 +117,7 @@ void FileStream::truncate(uint64 length)
 
 void FileStream::seek(int64 offset, int whence)
 {
-	io.seek(offset, whence);
+	io.seek(offset, (IO::SeekMode)whence);
 }
 
 void FileStream::flush(void) {}
@@ -141,7 +141,7 @@ uint64 FileStream::size(void)
 
 void FileStream::close(void)
 {
-	io.close();
+	io = {};
 }
 
 void FileStream::advise(off_t offset, size_t bytes, IO::Advice advice)

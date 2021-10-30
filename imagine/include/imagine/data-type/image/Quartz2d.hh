@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <CoreGraphics/CGImage.h>
-#include <system_error>
 #include <memory>
 
 namespace IG
@@ -34,7 +33,7 @@ class Quartz2dImage
 {
 public:
 	Quartz2dImage(const char *path);
-	std::errc readImage(IG::Pixmap dest);
+	void readImage(IG::Pixmap dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();
 	uint32_t width();

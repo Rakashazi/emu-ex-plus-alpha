@@ -16,6 +16,7 @@
 #define LOGTAG "ArchIO"
 #include <imagine/io/ArchiveIO.hh>
 #include <imagine/io/FileIO.hh>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
 #include <archive.h>
@@ -52,47 +53,18 @@ static void setReadSupport(struct archive *arch)
 	archive_read_support_format_zip(arch);
 }
 
-ArchiveEntry::ArchiveEntry(const char *path, std::error_code &ec): ArchiveEntry{path, &ec}
-{}
-
-ArchiveEntry::ArchiveEntry(const char *path): ArchiveEntry{path, nullptr}
-{}
-
-ArchiveEntry::ArchiveEntry(const char *path, std::error_code *ecPtr)
+ArchiveEntry::ArchiveEntry(IG::CStringView path)
 {
-	FileIO file;
-	if(auto ec = file.open(path, IO::AccessHint::SEQUENTIAL);
-		ec)
-	{
-		if(ecPtr)
-			*ecPtr = ec;
-		return;
-	}
-	if(!init(file.makeGeneric()))
-	{
-		if(ecPtr)
-			*ecPtr = {EILSEQ, std::system_category()};
-	}
+	init(FileIO{path, IO::AccessHint::SEQUENTIAL});
 }
 
-ArchiveEntry::ArchiveEntry(GenericIO io, std::error_code &ec): ArchiveEntry{std::move(io), &ec}
-{}
-
-ArchiveEntry::ArchiveEntry(GenericIO io): ArchiveEntry{std::move(io), nullptr}
-{}
-
-ArchiveEntry::ArchiveEntry(GenericIO io, std::error_code *ecPtr)
+ArchiveEntry::ArchiveEntry(GenericIO io)
 {
-	if(!init(std::move(io)))
-	{
-		if(ecPtr)
-			*ecPtr = {EILSEQ, std::system_category()};
-	}
+	init(std::move(io));
 }
 
-bool ArchiveEntry::init(GenericIO io)
+void ArchiveEntry::init(GenericIO io)
 {
-	arch.reset();
 	UniqueArchive newArch{archive_read_new()};
 	setReadSupport(newArch.get());
 	auto seekFunc =
@@ -100,7 +72,7 @@ bool ArchiveEntry::init(GenericIO io)
 		{
 			//logMsg("seek %lld %d", (long long)offset, whence);
 			auto &a = *((ArchiveControlBlock*)data);
-			auto newPos = a.io.seek(offset, whence);
+			auto newPos = a.io.seek(offset, (IODefs::SeekMode)whence);
 			if(newPos == -1)
 			{
 				logErr("error seeking to %llu", (long long)newPos);
@@ -121,8 +93,9 @@ bool ArchiveEntry::init(GenericIO io)
 		};
 	archive_read_set_seek_callback(newArch.get(), seekFunc);
 	int openRes = ARCHIVE_FATAL;
-	if(auto fileMap = io.mmapConst();
-		fileMap)
+	std::unique_ptr<ArchiveControlBlock> newCtrlBlock{};
+	if(auto fileMap = io.map();
+		fileMap.data())
 	{
 		//logMsg("source IO supports mapping");
 		auto readFunc =
@@ -134,15 +107,15 @@ bool ArchiveEntry::init(GenericIO io)
 				ssize_t bytesRead = a.io.size() - pos;
 				if(bytesRead)
 				{
-					*buffOut = a.io.mmapConst() + pos;
+					*buffOut = a.io.map().data() + pos;
 					a.io.seekC(bytesRead);
 				}
 				//logMsg("read %lld bytes @ offset:%llu", (long long)bytesRead, (long long)pos);
 				return bytesRead;
 			};
-		ctrlBlock = std::make_unique<ArchiveControlBlock>(std::move(io));
+		newCtrlBlock = std::make_unique<ArchiveControlBlock>(std::move(io));
 		openRes = archive_read_open2(newArch.get(),
-			ctrlBlock.get(), nullptr, readFunc, skipFunc, nullptr);
+			newCtrlBlock.get(), nullptr, readFunc, skipFunc, nullptr);
 	}
 	else
 	{
@@ -155,20 +128,21 @@ bool ArchiveEntry::init(GenericIO io)
 				*buffOut = buffPtr;
 				return bytesRead;
 			};
-		ctrlBlock = std::make_unique<ArchiveControlBlockWithBuffer>(std::move(io));
+		newCtrlBlock = std::make_unique<ArchiveControlBlockWithBuffer>(std::move(io));
 		openRes = archive_read_open2(newArch.get(),
-			ctrlBlock.get(), nullptr, readFunc, skipFunc, nullptr);
+			newCtrlBlock.get(), nullptr, readFunc, skipFunc, nullptr);
 	}
 	if(openRes != ARCHIVE_OK)
 	{
+		auto errString = archive_error_string(newArch.get());
 		if(Config::DEBUG_BUILD)
-			logErr("error opening archive:%s", archive_error_string(newArch.get()));
-		return false;
+			logErr("error opening archive:%s", errString);
+		throw std::runtime_error{fmt::format("Error opening archive: {}", errString)};
 	}
 	logMsg("opened archive:%p", newArch.get());
 	arch = std::move(newArch);
+	ctrlBlock = std::move(newCtrlBlock);
 	readNextEntry(); // go to first entry
-	return true;
 }
 
 void ArchiveEntry::freeArchive(struct archive *arch)
@@ -251,17 +225,14 @@ void ArchiveEntry::rewind()
 	// take the existing IO, rewind, and re-use it
 	auto io = std::move(ctrlBlock->io);
 	io.rewind();
+	arch = {};
+	ctrlBlock = {};
 	init(std::move(io));
 }
 
 ArchiveIO::ArchiveIO(ArchiveEntry entry):
 	entry{std::move(entry)}
 {}
-
-GenericIO ArchiveIO::makeGeneric()
-{
-	return GenericIO{std::move(*this)};
-}
 
 ArchiveEntry ArchiveIO::releaseArchive()
 {
@@ -271,24 +242,6 @@ ArchiveEntry ArchiveIO::releaseArchive()
 const char *ArchiveIO::name()
 {
 	return entry.name();
-}
-
-BufferMapIO ArchiveIO::moveToMapIO()
-{
-	if(!*this)
-	{
-		return {};
-	}
-	auto s = size();
-	auto data = new char[s];
-	if(read(data, s) != (ssize_t)s)
-	{
-		logErr("error reading data for MapIO");
-		return {};
-	}
-	BufferMapIO mapIO{};
-	mapIO.open(data, s, [data](BufferMapIO &){ delete[] data; });
-	return mapIO;
 }
 
 ssize_t ArchiveIO::read(void *buff, size_t bytes, std::error_code *ecOut)
@@ -324,14 +277,7 @@ off_t ArchiveIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 			*ecOut = {EBADF, std::system_category()};
 		return -1;
 	}
-	if(!isSeekModeValid(mode))
-	{
-		logErr("invalid seek mode: %d", (int)mode);
-		if(ecOut)
-			*ecOut = {EINVAL, std::system_category()};
-		return -1;
-	}
-	long newPos = archive_seek_data(entry.archive(), offset, mode);
+	long newPos = archive_seek_data(entry.archive(), offset, (int)mode);
 	if(newPos < 0)
 	{
 		logErr("seek to offset %lld failed", (long long)offset);
@@ -340,11 +286,6 @@ off_t ArchiveIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 		return -1;
 	}
 	return newPos;
-}
-
-void ArchiveIO::close()
-{
-	entry = {};
 }
 
 size_t ArchiveIO::size()

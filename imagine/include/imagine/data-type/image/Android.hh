@@ -18,7 +18,6 @@
 #include <imagine/config/defs.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/jni.hh>
-#include <system_error>
 
 namespace Base
 {

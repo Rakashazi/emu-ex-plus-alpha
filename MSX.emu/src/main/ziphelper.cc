@@ -33,33 +33,32 @@ void zipCacheReadOnlyZip(const char* zipName)
 void* zipLoadFile(const char* zipName, const char* fileName, int* size)
 {
 	ArchiveIO io{};
-	std::error_code ec{};
-	for(auto &entry : FS::ArchiveIterator{zipName, ec})
+	try
 	{
-		if(entry.type() == FS::file_type::directory)
+		for(auto &entry : FS::ArchiveIterator{zipName})
 		{
-			continue;
+			if(entry.type() == FS::file_type::directory)
+			{
+				continue;
+			}
+			auto name = entry.name();
+			//logMsg("archive file entry:%s", entry.name());
+			if(string_equal(name, fileName))
+			{
+				io = entry.moveIO();
+				int fileSize = io.size();
+				void *buff = malloc(fileSize);
+				io.read(buff, fileSize);
+				*size = fileSize;
+				return buff;
+			}
 		}
-		auto name = entry.name();
-		//logMsg("archive file entry:%s", entry.name());
-		if(string_equal(name, fileName))
-		{
-			io = entry.moveIO();
-			int fileSize = io.size();
-			void *buff = malloc(fileSize);
-			io.read(buff, fileSize);
-			*size = fileSize;
-			return buff;
-		}
-	}
-	if(ec)
-	{
-		logErr("error opening archive:%s", zipName);
+		logErr("file %s not in archive:%s", fileName, zipName);
 		return nullptr;
 	}
-	else
+	catch(...)
 	{
-		logErr("file %s not in archive:%s", fileName, zipName);
+		logErr("error opening archive:%s", zipName);
 		return nullptr;
 	}
 }

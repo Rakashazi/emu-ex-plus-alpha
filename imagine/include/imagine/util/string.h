@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #ifdef __cplusplus
+#include <imagine/util/string/CStringView.hh>
 #include <array>
 #include <cstring>
 #include <system_error>
@@ -46,26 +47,19 @@ END_C_DECLS
 #ifdef __cplusplus
 
 template <class T>
-size_t string_copy(T &dest, const char *src)
+size_t string_copy(T &dest, IG::CStringView src)
 {
 	return string_copy(std::data(dest), src, std::size(dest));
 }
 
-#ifdef __clang__
-// need to directly call builtin version to get constexpr
-#define string_len(s) __builtin_strlen(s)
-#else
 [[gnu::nonnull, gnu::pure]]
-static constexpr size_t string_len(const char *s)
+static constexpr size_t string_len(IG::CStringView s)
 {
-	return std::strlen(s);
-	// If compiler doesn't have constexpr the following recursive version also works:
-	// return *s ? 1 + string_len(s+1) : 0;
+	return std::char_traits<char>::length(s);
 }
-#endif
 
 template <class T>
-static size_t string_cat(T &dest, const char *src)
+static size_t string_cat(T &dest, IG::CStringView src)
 {
 	return string_cat(std::data(dest), src, std::size(dest));
 }

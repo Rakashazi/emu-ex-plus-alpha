@@ -16,23 +16,12 @@
 #include "EmuFileIO.hh"
 #include <imagine/io/api/stdio.hh>
 
-EmuFileIO::EmuFileIO(IO &srcIO)
+EmuFileIO::EmuFileIO(IO &srcIO):
+	io{srcIO}
 {
-	auto size = srcIO.size();
-	auto mmapData = srcIO.mmapConst();
-	if(mmapData)
+	if(!io) [[unlikely]]
 	{
-		io.open(mmapData, size);
-	}
-	else
-	{
-		auto romData = new char[size]();
-		if(srcIO.read(romData, size) != (ssize_t)size)
-		{
-			failbit = true;
-			return;
-		}
-		io.open(romData, size, [romData](BufferMapIO &){ delete[] romData; });
+		failbit = true;
 	}
 }
 

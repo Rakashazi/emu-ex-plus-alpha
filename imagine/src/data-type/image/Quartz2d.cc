@@ -77,7 +77,7 @@ bool Quartz2dImage::hasAlphaChannel()
 		|| info == kCGImageAlphaLast || info == kCGImageAlphaFirst;
 }
 
-std::errc Quartz2dImage::readImage(IG::Pixmap dest)
+void Quartz2dImage::readImage(IG::Pixmap dest)
 {
 	assert(dest.format() == pixelFormat());
 	int height = this->height();
@@ -89,7 +89,6 @@ std::errc Quartz2dImage::readImage(IG::Pixmap dest)
 	CGContextSetBlendMode(context, kCGBlendModeCopy);
 	CGContextDrawImage(context, CGRectMake(0.0, 0.0, (CGFloat)width, (CGFloat)height), img.get());
 	CGContextRelease(context);
-	return {};
 }
 
 void Quartz2dImage::releaseCGImage(CGImageRef ref)
@@ -102,9 +101,9 @@ PixmapImage::operator bool() const
 	return (bool)img;
 }
 
-std::errc PixmapImage::write(IG::Pixmap dest)
+void PixmapImage::write(IG::Pixmap dest)
 {
-	return(readImage(dest));
+	readImage(dest);
 }
 
 IG::Pixmap PixmapImage::pixmapView()

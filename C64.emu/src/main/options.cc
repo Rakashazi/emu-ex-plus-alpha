@@ -155,17 +155,16 @@ const char *externalPaletteName()
 	return stringResource(paletteFileResStr.data());
 }
 
-EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
+void EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
 {
 	currSystem = (ViceSystem)optionViceSystem.val;
 	plugin = loadVicePlugin(currSystem, ctx.libPath().data());
 	if(!plugin)
 	{
-		return makeError(fmt::format("Error loading plugin for system {}", VicePlugin::systemName(currSystem)));
+		throw std::runtime_error(fmt::format("Error loading plugin for system {}", VicePlugin::systemName(currSystem)));
 	}
 	IG::formatTo(externalPaletteResStr, "{}ExternalPalette", videoChipStr());
 	IG::formatTo(paletteFileResStr, "{}PaletteFile", videoChipStr());
-	return {};
 }
 
 void EmuSystem::onSessionOptionsLoaded(EmuApp &)

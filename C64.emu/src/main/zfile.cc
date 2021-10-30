@@ -33,26 +33,27 @@ CLINK FILE *zfile_fopen(const char *path, const char *mode)
 			logErr("opening archive %s with write mode not supported", path);
 			return nullptr;
 		}
-		std::error_code ec{};
-		for(auto &entry : FS::ArchiveIterator{path, ec})
+		try
 		{
-			if(entry.type() == FS::file_type::directory)
+			for(auto &entry : FS::ArchiveIterator{path})
 			{
-				continue;
+				if(entry.type() == FS::file_type::directory)
+				{
+					continue;
+				}
+				auto name = entry.name();
+				logMsg("archive file entry:%s", name);
+				if(EmuSystem::defaultFsFilter(name))
+				{
+					return GenericIO{MapIO{entry.moveIO()}}.moveToFileStream(mode);
+				}
 			}
-			auto name = entry.name();
-			logMsg("archive file entry:%s", name);
-			if(EmuSystem::defaultFsFilter(name))
-			{
-				return entry.moveIO().moveToMapIO().makeGeneric().moveToFileStream(mode);
-			}
+			logErr("no recognized file extensions in archive:%s", path);
 		}
-		if(ec)
+		catch(...)
 		{
 			logErr("error opening archive:%s", path);
-			return nullptr;
 		}
-		logErr("no recognized file extensions in archive:%s", path);
 		return nullptr;
 	}
 	else

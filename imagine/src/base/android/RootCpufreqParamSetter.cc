@@ -28,15 +28,19 @@
 
 static int readIntFileValue(const char *path)
 {
-	PosixIO f;
-	if(f.open(path))
+	try
+	{
+		PosixIO f{path};
+		std::array<char, 32> buff{};
+		f.readAtPos(buff.data(), sizeof(buff)-1, 0);
+		int val = -1;
+		sscanf(buff.data(), "%d", &val);
+		return val;
+	}
+	catch(...)
+	{
 		return -1;
-	std::array<char, 32> buff{};
-	f.readAtPos(buff.data(), sizeof(buff)-1, 0);
-	int val = -1;
-	sscanf(buff.data(), "%d", &val);
-	return val;
-
+	}
 }
 
 namespace Base

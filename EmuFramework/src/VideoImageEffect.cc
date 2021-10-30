@@ -155,76 +155,69 @@ void VideoImageEffect::compile(Gfx::Renderer &r, bool isExternalTex, const Gfx::
 
 	renderTargetScale = desc->scale;
 	initRenderTargetTexture(r, compatTexSampler);
-	auto err = compileEffect(r, *desc, isExternalTex, false);
-	if(err)
+	try
 	{
-		auto fallbackErr = compileEffect(r, *desc, isExternalTex, true);
-		if(fallbackErr)
+		compileEffect(r, *desc, isExternalTex, false);
+	}
+	catch(std::exception &err)
+	{
+		try
 		{
-			// print error from original compile if fallback effect not found
+			compileEffect(r, *desc, isExternalTex, true);
+			logMsg("compiled fallback version of effect");
+		}
+		catch(std::exception &fallbackErr)
+		{
 			auto &app = EmuApp::get(r.appContext());
-			app.postMessage(3, true, err->code().value() == ENOENT ? err->what() : fallbackErr->what());
+			app.postErrorMessage(5, fmt::format("{}, {}", err.what(), fallbackErr.what()));
 			deinit(r);
 			return;
 		}
-		logMsg("compiled fallback version of effect");
 	}
 }
 
-static std::unique_ptr<char[]> fileToBuffer(IO &io)
+static std::unique_ptr<char[]> toCString(auto &&io)
 {
 	auto fileSize = io.size();
 	auto text = std::make_unique<char[]>(fileSize + 1);
 	io.read(text.get(), fileSize);
 	text[fileSize] = 0;
-	io.close();
 	return text;
 }
 
-std::optional<std::system_error> VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback)
+void VideoImageEffect::compileEffect(Gfx::Renderer &r, EffectDesc desc, bool isExternalTex, bool useFallback)
 {
-	auto &app = EmuApp::get(r.appContext());
-
-	auto vShaderFile = r.appContext().openAsset(
-		IG::formatToPathString("shaders/{}{}", useFallback ? "fallback-" : "", desc.vShaderFilename).data(),
-		IO::AccessHint::ALL);
-	if(!vShaderFile)
-	{
-		return std::system_error{{ENOENT, std::system_category()}, fmt::format("Can't open file: {}", desc.vShaderFilename)};
-	}
+	auto ctx = r.appContext();
+	const char *fallbackStr = useFallback ? "fallback-" : "";
 	auto releaseShaderCompiler = IG::scopeGuard([&](){ r.autoReleaseShaderCompiler(); });
+
 	logMsg("making vertex shader");
-	auto vShader = makeEffectVertexShader(r, fileToBuffer(vShaderFile).get());
+	auto vShader = makeEffectVertexShader(r,
+		toCString(ctx.openAsset(IG::formatToPathString("shaders/{}{}", fallbackStr, desc.vShaderFilename), IO::AccessHint::ALL)).get());
 	if(!vShader)
 	{
-		return std::system_error{{EINVAL, std::system_category()}, "GPU rejected shader (vertex compile error)"};
+		throw std::runtime_error{"GPU rejected shader (vertex compile error)"};
 	}
 
-	auto fShaderFile = r.appContext().openAsset(
-		IG::formatToPathString("shaders/{}{}", useFallback ? "fallback-" : "", desc.fShaderFilename).data(),
-		IO::AccessHint::ALL);
-	if(!fShaderFile)
-	{
-		return std::system_error{{ENOENT, std::system_category()}, fmt::format("Can't open file: {}", desc.fShaderFilename)};
-	}
 	logMsg("making fragment shader");
-	auto fShader = makeEffectFragmentShader(r, fileToBuffer(fShaderFile).get(), isExternalTex);
+	auto fShader = makeEffectFragmentShader(r,
+		toCString(ctx.openAsset(IG::formatToPathString("shaders/{}{}", fallbackStr, desc.fShaderFilename), IO::AccessHint::ALL)).get(),
+		isExternalTex);
 	if(!fShader)
 	{
-		return std::system_error{{EINVAL, std::system_category()}, "GPU rejected shader (fragment compile error)"};
+		throw std::runtime_error{"GPU rejected shader (fragment compile error)"};
 	}
 
 	logMsg("linking program");
 	prog = {r.task(), vShader, fShader, false, true};
 	if(!prog)
 	{
-		return std::system_error{{EINVAL, std::system_category()}, "GPU rejected shader (link error)"};
+		throw std::runtime_error{"GPU rejected shader (link error)"};
 	}
 	srcTexelDeltaU = prog.uniformLocation("srcTexelDelta");
 	srcTexelHalfDeltaU = prog.uniformLocation("srcTexelHalfDelta");
 	srcPixelsU = prog.uniformLocation("srcPixels");
 	updateProgramUniforms(r);
-	return {};
 }
 
 void VideoImageEffect::updateProgramUniforms(Gfx::Renderer &r)

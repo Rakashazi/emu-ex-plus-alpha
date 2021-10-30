@@ -46,7 +46,6 @@ using GCRect = IG::CoordinateRect<GC, true, true>;
 using GTexC = TextureCoordinate;
 using GTexCPoint = IG::Point2D<GTexC>;
 using GTexCRect = IG::Rect2<GTexC>;
-using Error = std::optional<std::runtime_error>;
 
 static constexpr GC operator"" _gc (long double n)
 {

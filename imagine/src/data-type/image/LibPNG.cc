@@ -363,9 +363,9 @@ PngImage::~PngImage()
 	freeImageData();
 }
 
-std::errc PixmapImage::write(IG::Pixmap dest)
+void PixmapImage::write(IG::Pixmap dest)
 {
-	return(readImage(dest));
+	readImage(dest);
 }
 
 IG::Pixmap PixmapImage::pixmapView()
@@ -390,24 +390,17 @@ PixmapImage PixmapReader::load(const char *name) const
 		logErr("suffix doesn't match PNG image");
 		return {};
 	}
-	FileIO io;
-	auto ec = io.open(name, IO::AccessHint::ALL);
-	if(ec)
-	{
-		return {};
-	}
-	return load(io.makeGeneric());
+	return load(FileIO{name, IO::AccessHint::ALL, IO::OPEN_TEST});
 }
 
 PixmapImage PixmapReader::loadAsset(const char *name, const char *appName) const
 {
-	return load(appContext().openAsset(name, IO::AccessHint::ALL, appName).makeGeneric());
+	return load(appContext().openAsset(name, IO::AccessHint::ALL, 0, appName));
 }
 
 bool PixmapWriter::writeToFile(IG::Pixmap pix, const char *path) const
 {
-	FileIO fp;
-	fp.create(path);
+	auto fp = FileIO::create(path, IO::OPEN_TEST);
 	if(!fp)
 	{
 		return false;

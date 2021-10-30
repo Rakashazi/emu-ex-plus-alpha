@@ -10,7 +10,7 @@ ifneq ($(filter macosx ios, $(ENV)),)
   LD := $(CC)
  else
   # Use clang to get include/lib path
-  CXXFLAGS_LANG += -stdlib=libc++
+  CXXFLAGS_LANG += -stdlib=libc++ -D_LIBCPP_DISABLE_AVAILABILITY
   STDCXXLIB = -stdlib=libc++
  endif
 else

@@ -31,7 +31,8 @@ endif
 OBJCFLAGS += -fobjc-arc
 
 ifdef CCTOOLS_TOOCHAIN_PATH
-AR := $(firstword $(wildcard $(CCTOOLS_TOOCHAIN_PATH)/bin/*-ar))
+AR := llvm-ar
+RANLIB := $(AR) s
 CC := $(firstword $(wildcard $(CCTOOLS_TOOCHAIN_PATH)/bin/*-clang))
 CXX := $(firstword $(wildcard $(CCTOOLS_TOOCHAIN_PATH)/bin/*-clang++))
 LD := $(CXX)

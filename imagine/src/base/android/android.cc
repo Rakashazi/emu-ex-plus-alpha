@@ -906,7 +906,7 @@ CLINK void LVISIBLE ANativeActivity_onCreate(ANativeActivity *nActivity, void* s
 	jVM = nActivity->vm;
 	ApplicationInitParams initParams{nActivity};
 	ApplicationContext ctx{nActivity};
-	ctx.onInit(initParams);
+	ctx.dispatchOnInit(initParams);
 	if(Config::DEBUG_BUILD)
 	{
 		if(!ctx.windows().size())

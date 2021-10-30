@@ -17,15 +17,15 @@
 
 #include <imagine/util/concepts.hh>
 #include <new>
-#include <cstdint>
 #include <cstddef>
 #include <cassert>
 #include <array>
 #include <compare>
 
-template <size_t, class, class ...> class DelegateFunc2;
+template <size_t, size_t, class, class ...> class DelegateFunc2;
 
-template <size_t STORAGE_SIZE, class R, class ...Args> class DelegateFunc2<STORAGE_SIZE, R(Args...)>
+template <size_t StorageSize, size_t Align, class R, class ...Args>
+class DelegateFunc2<StorageSize, Align, R(Args...)>
 {
 public:
 	using FreeFuncPtr = R (*)(Args...);
@@ -34,7 +34,8 @@ public:
 
 	constexpr DelegateFunc2(std::nullptr_t) {}
 
-	template<class F> requires IG::CallableClass<F, R, Args...> && (sizeof(F) <= STORAGE_SIZE)
+	template<class F>
+	requires IG::CallableClass<F, R, Args...> && (sizeof(F) <= StorageSize && Align >= std::alignment_of_v<F>)
 	constexpr DelegateFunc2(F const &funcObj) :
 		exec
 		{
@@ -48,7 +49,8 @@ public:
 		new (store.data()) F(funcObj);
 	}
 
-	constexpr DelegateFunc2(IG::CallableFunctionPointer<R, Args...> auto const &funcObj) :
+	constexpr DelegateFunc2(IG::CallableFunctionPointer<R, Args...> auto const &funcObj)
+		requires (sizeof(StorageSize) >= sizeof(void*) && Align >= sizeof(void*)):
 		exec
 		{
 			[](const Storage &funcObj, Args... arguments) -> R
@@ -96,10 +98,9 @@ public:
 	}
 
 private:
-	using Storage = std::array<unsigned char, STORAGE_SIZE>;
-	static_assert(sizeof(STORAGE_SIZE) >= sizeof(uintptr_t), "Storage must be large enough for 1 pointer");
+	using Storage = std::array<unsigned char, StorageSize>;
 
-	alignas(8) Storage store{};
+	alignas(Align) Storage store{};
 	R (*exec)(const Storage &, Args...){};
 
 	static constexpr R callStoredFreeFunc(const Storage &s, const Args &... args)
@@ -109,4 +110,4 @@ private:
 };
 
 template <class R, class ...Args>
-using DelegateFunc = DelegateFunc2<sizeof(uintptr_t)*2, R, Args...>;
+using DelegateFunc = DelegateFunc2<sizeof(void*)*2, sizeof(void*), R, Args...>;

@@ -52,7 +52,7 @@ static uintptr_t pageSizeAsPtrSize()
 
 uintptr_t roundDownToPageSize(uintptr_t val)
 {
-	return val & ~(pageSizeAsPtrSize());
+	return val & ~(pageSizeAsPtrSize()-1);
 }
 
 uintptr_t roundUpToPageSize(uintptr_t val)

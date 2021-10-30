@@ -148,7 +148,7 @@ static void writeCDMD5()
 
 unsigned EmuSystem::multiresVideoBaseX() { return 512; }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	emuSys->name = EmuSystem::gameName().data();
 	auto unloadCD = IG::scopeGuard(
@@ -165,37 +165,23 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 	{
 		if(!strlen(sysCardPath.data()) || !FS::exists(sysCardPath))
 		{
-			return EmuSystem::makeError("No System Card Set");
+			throw std::runtime_error("No System Card Set");
 		}
 		CDInterfaces.reserve(1);
 		FS::current_path(gamePath());
-		try
-		{
-			CDInterfaces.push_back(CDInterface::Open(&NVFS, fullGamePath(), false, 0));
-			writeCDMD5();
-			emuSys->LoadCD(&CDInterfaces);
-			PCECD_Drive_SetDisc(false, CDInterfaces[0]);
-		}
-		catch(std::exception &e)
-		{
-			return EmuSystem::makeError(e.what());
-		}
+		CDInterfaces.push_back(CDInterface::Open(&NVFS, fullGamePath(), false, 0));
+		writeCDMD5();
+		emuSys->LoadCD(&CDInterfaces);
+		PCECD_Drive_SetDisc(false, CDInterfaces[0]);
 	}
 	else
 	{
-		try
-		{
-			auto size = io.size();
-			auto stream = std::make_unique<MemoryStream>(size, true);
-			io.read(stream->map(), stream->map_size());
-			MDFNFILE fp(&NVFS, std::move(stream), originalGameFileName().data());
-			GameFile gf{fp.active_vfs(), fp.active_dir_path(), fp.stream(), fp.ext, fp.fbase};
-			emuSys->Load(&gf);
-		}
-		catch(std::exception &e)
-		{
-			return EmuSystem::makeError(e.what());
-		}
+		auto size = io.size();
+		auto stream = std::make_unique<MemoryStream>(size, true);
+		io.read(stream->map(), stream->map_size());
+		MDFNFILE fp(&NVFS, std::move(stream), originalGameFileName().data());
+		GameFile gf{fp.active_vfs(), fp.active_dir_path(), fp.stream(), fp.ext, fp.fbase};
+		emuSys->Load(&gf);
 	}
 	//logMsg("%d input ports", MDFNGameInfo->InputInfo->InputPorts);
 	iterateTimes(5, i)
@@ -203,7 +189,6 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 		emuSys->SetInput(i, "gamepad", (uint8*)&inputBuff[i]);
 	}
 	unloadCD.cancel();
-	return {};
 }
 
 void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
@@ -411,20 +396,16 @@ void EmuSystem::reset(ResetMode mode)
 	MDFN_IEN_PCE_FAST::PCE_Power();
 }
 
-EmuSystem::Error EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(const char *path)
 {
 	if(!MDFNI_SaveState(path, 0, 0, 0, 0))
-		return makeFileWriteError();
-	else
-		return {};
+		throwFileWriteError();
 }
 
-EmuSystem::Error EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(const char *path)
 {
 	if(!MDFNI_LoadState(path, 0))
-		return makeFileReadError();
-	else
-		return {};
+		throwFileReadError();
 }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)

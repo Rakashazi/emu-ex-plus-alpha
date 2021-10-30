@@ -168,7 +168,6 @@ extern void PushCurrentVideoSettings();
 extern uint8 Exit;
 extern int default_palette_selection;
 extern uint8 vsdip;
-extern const char *fceuReturnedError;
 
 //#define FCEUDEF_DEBUGGER //mbg merge 7/17/06 - cleaning out conditional compiles
 

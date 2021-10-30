@@ -431,16 +431,17 @@ static void saveSnapshotTrap(uint16_t, void *data)
 		snapData->hasError = false;
 }
 
-EmuSystem::Error EmuSystem::saveState(EmuApp &app, const char *path)
+void EmuSystem::saveState(EmuApp &app, const char *path)
 {
 	SnapshotTrapData data;
 	data.pathStr = path;
 	plugin.interrupt_maincpu_trigger_trap(saveSnapshotTrap, (void*)&data);
 	execC64Frame(); // execute cpu trap
-	return data.hasError ? makeFileWriteError() : Error{};
+	if(data.hasError)
+		throwFileWriteError();
 }
 
-EmuSystem::Error EmuSystem::loadState(EmuApp &app, const char *path)
+void EmuSystem::loadState(EmuApp &app, const char *path)
 {
 	setIntResource("WarpMode", 0);
 	SnapshotTrapData data;
@@ -449,12 +450,12 @@ EmuSystem::Error EmuSystem::loadState(EmuApp &app, const char *path)
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
 	execC64Frame(); // execute cpu trap, snapshot load may cause reboot from a C64 model change
 	if(data.hasError)
-		return makeFileReadError();
+		return throwFileReadError();
 	// reload snapshot in case last load caused a reboot
 	plugin.interrupt_maincpu_trigger_trap(loadSnapshotTrap, (void*)&data);
 	execC64Frame(); // execute cpu trap
-	bool hasError = data.hasError;
-	return hasError ? makeFileReadError() : Error{};
+	if(data.hasError)
+		return throwFileReadError();
 }
 
 void EmuSystem::saveBackupMem()
@@ -495,15 +496,15 @@ static const char *mainROMFilename(ViceSystem system)
 	}
 }
 
-static EmuSystem::Error c64FirmwareError(Base::ApplicationContext app)
+static void throwC64FirmwareError(Base::ApplicationContext app)
 {
-	return EmuSystem::makeError(
+	throw std::runtime_error{
 		fmt::format("System files missing, place C64, DRIVES, & PRINTER directories from VICE"
 		" in a path below, or set a custom path in options:\n"
 		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-		"{}\n{}\n{}", EmuApp::assetPath(app).data(), "~/.local/share/C64.emu", "/usr/share/games/vice"));
+		"{}\n{}\n{}", EmuApp::assetPath(app).data(), "~/.local/share/C64.emu", "/usr/share/games/vice")};
 		#else
-		"{}/C64.emu", app.sharedStoragePath().data()));
+		"{}/C64.emu", app.sharedStoragePath().data())};
 		#endif
 }
 
@@ -578,11 +579,11 @@ static FS::FileString vic20ExtraCartName(const char *baseCartName, const char *s
 	return {};
 }
 
-EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams params, OnLoadProgressDelegate)
+void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams params, OnLoadProgressDelegate)
 {
 	if(!initC64(EmuApp::get(ctx)))
 	{
-		return c64FirmwareError(ctx);
+		throwC64FirmwareError(ctx);
 	}
 	applyInitialOptionResources();
 	bool shouldAutostart = !(params.systemFlags & SYSTEM_FLAG_NO_AUTOSTART) && optionAutostartOnLaunch;
@@ -596,7 +597,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 		}
 		if(plugin.autostart_autodetect(fullGamePath(), nullptr, 0, AUTOSTART_MODE_RUN) != 0)
 		{
-			return EmuSystem::makeFileReadError();
+			EmuSystem::throwFileReadError();
 		}
 	}
 	else // no autostart
@@ -606,7 +607,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 			logMsg("loading disk image:%s", fullGamePath());
 			if(plugin.file_system_attach_disk(8, 0, fullGamePath()) != 0)
 			{
-				return EmuSystem::makeFileReadError();
+				EmuSystem::throwFileReadError();
 			}
 		}
 		else if(hasC64TapeExtension(fullGamePath()))
@@ -614,7 +615,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 			logMsg("loading tape image:%s", fullGamePath());
 			if(plugin.tape_image_attach(1, fullGamePath()) != 0)
 			{
-				return EmuSystem::makeFileReadError();
+				EmuSystem::throwFileReadError();
 			}
 		}
 		else // cart
@@ -622,7 +623,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 			logMsg("loading cart image:%s", fullGamePath());
 			if(plugin.cartridge_attach_image(systemCartType(currSystem), fullGamePath()) != 0)
 			{
-				return EmuSystem::makeFileReadError();
+				EmuSystem::throwFileReadError();
 			}
 			if(currSystem == VICE_SYSTEM_VIC20) // check if the cart is part of a *-x000.prg pair
 			{
@@ -633,7 +634,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 					if(plugin.cartridge_attach_image(systemCartType(currSystem),
 						IG::formatToPathString("{}/{}", gamePath(), extraCartFilename.data()).data()) != 0)
 					{
-						return EmuSystem::makeFileReadError();
+						EmuSystem::throwFileReadError();
 					}
 				}
 			}
@@ -641,7 +642,6 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 		optionAutostartOnLaunch = false;
 		sessionOptionSet();
 	}
-	return {};
 }
 
 static void execC64Frame()
@@ -723,7 +723,7 @@ void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	}
 }
 
-EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
+void EmuSystem::onInit(Base::ApplicationContext ctx)
 {
 	IG::makeDetachedThread(
 		[]()
@@ -755,6 +755,4 @@ EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
 	#else
 	optionReSidSampling.initDefault(SID_RESID_SAMPLING_FAST);
 	#endif
-
-	return {};
 }

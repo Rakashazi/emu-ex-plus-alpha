@@ -384,19 +384,21 @@ void LinuxApplication::initEvdev(EventLoop loop)
 	}
 
 	logMsg("checking device nodes");
-	std::error_code err;
-	for(auto &entry : FS::directory_iterator{DEV_NODE_PATH, err})
+	try
 	{
-		auto filename = entry.name();
-		if(entry.type() != FS::file_type::character || !strstr(filename, "event"))
-			continue;
-		uint32_t id;
-		FS::PathString path;
-		if(!Input::processDevNodeName(filename, path, id))
-			continue;
-		Input::processDevNode(*this, path.data(), id, false);
+		for(auto &entry : FS::directory_iterator{DEV_NODE_PATH})
+		{
+			auto filename = entry.name();
+			if(entry.type() != FS::file_type::character || !strstr(filename, "event"))
+				continue;
+			uint32_t id;
+			FS::PathString path;
+			if(!Input::processDevNodeName(filename, path, id))
+				continue;
+			Input::processDevNode(*this, path.data(), id, false);
+		}
 	}
-	if(err)
+	catch(...)
 	{
 		logErr("can't open " DEV_NODE_PATH);
 		return;

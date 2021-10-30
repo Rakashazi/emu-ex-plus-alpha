@@ -16,8 +16,9 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/io/PosixIO.hh>
-#include <imagine/io/BufferMapIO.hh>
+#include <imagine/io/MapIO.hh>
 #include <imagine/fs/FSDefs.hh>
+#include <imagine/util/string/CStringView.hh>
 #include <variant>
 
 class PosixFileIO : public IOUtils<PosixFileIO>
@@ -33,45 +34,30 @@ public:
 	using IOUtilsBase::seekC;
 	using IOUtilsBase::tell;
 	using IOUtilsBase::send;
-	using IOUtilsBase::constBufferView;
+	using IOUtilsBase::buffer;
 	using IOUtilsBase::get;
 
 	constexpr PosixFileIO() {}
+	PosixFileIO(IG::CStringView path, IO::AccessHint access, unsigned openFlags = 0);
+	[[nodiscard]]
+	static PosixFileIO create(IG::CStringView path, unsigned openFlags = 0);
 	explicit operator IO*();
 	operator IO&();
-	GenericIO makeGeneric();
-	std::error_code open(const char *path, IO::AccessHint access, uint32_t mode = 0);
-
-	std::error_code open(FS::PathString path, IO::AccessHint access, uint32_t mode = 0)
-	{
-		return open(path.data(), access, mode);
-	}
-
-	std::error_code create(const char *path, uint32_t mode = 0)
-	{
-		mode |= IO::OPEN_WRITE | IO::OPEN_CREATE;
-		return open(path, IO::AccessHint::NORMAL, mode);
-	}
-
-	std::error_code create(FS::PathString path, uint32_t mode = 0)
-	{
-		return create(path.data(), mode);
-	}
-
-	static BufferMapIO makePosixMapIO(IO::AccessHint access, int fd);
+	operator GenericIO();
+	static MapIO makePosixMapIO(IO::AccessHint access, int fd);
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut);
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut);
-	const uint8_t *mmapConst();
+	std::span<uint8_t> map();
 	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut);
 	std::error_code truncate(off_t offset);
 	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut);
-	void close();
 	void sync();
 	size_t size();
 	bool eof();
 	void advise(off_t offset, size_t bytes, IO::Advice advice);
 	explicit operator bool() const;
+	IG::ByteBuffer releaseBuffer();
 
 protected:
-	std::variant<PosixIO, BufferMapIO> ioImpl{};
+	std::variant<PosixIO, MapIO> ioImpl{};
 };

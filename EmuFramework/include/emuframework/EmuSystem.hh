@@ -24,11 +24,6 @@
 #include <optional>
 #include <string>
 
-namespace std
-{
-class runtime_error;
-}
-
 namespace Base
 {
 class ApplicationContext;
@@ -120,7 +115,6 @@ public:
 
 	using OnLoadProgressDelegate = DelegateFunc<bool(int pos, int max, const char *label)>;
 
-	using Error = std::optional<std::runtime_error>;
 	using NameFilterFunc = bool(*)(const char *name);
 	static State state;
 	static FS::PathString savePath_;
@@ -163,14 +157,14 @@ public:
 	static constexpr unsigned MAX_FACE_BTNS = 8;
 	static std::array<int, MAX_FACE_BTNS> vControllerImageMap;
 
-	static Error onInit(Base::ApplicationContext);
+	static void onInit(Base::ApplicationContext);
 	static bool isActive() { return state == State::ACTIVE; }
 	static bool isStarted() { return state == State::ACTIVE || state == State::PAUSED; }
 	static bool isPaused() { return state == State::PAUSED; }
-	static Error loadState(EmuApp &, const char *path);
-	static Error loadState(const char *path);
-	static Error saveState(EmuApp &, const char *path);
-	static Error saveState(const char *path);
+	static void loadState(EmuApp &, const char *path);
+	static void loadState(const char *path);
+	static void saveState(EmuApp &, const char *path);
+	static void saveState(const char *path);
 	static bool stateExists(int slot);
 	static bool shouldOverwriteExistingState();
 	static const char *systemName();
@@ -201,7 +195,7 @@ public:
 	static void reset(ResetMode mode);
 	static void reset(EmuApp &, ResetMode mode);
 	static void initOptions(EmuApp &);
-	static Error onOptionsLoaded(Base::ApplicationContext);
+	static void onOptionsLoaded(Base::ApplicationContext);
 	static void writeConfig(IO &io);
 	static bool readConfig(IO &io, unsigned key, unsigned readSize);
 	static bool resetSessionOptions(EmuApp &);
@@ -210,12 +204,12 @@ public:
 	static void writeSessionConfig(IO &io);
 	static bool readSessionConfig(IO &io, unsigned key, unsigned readSize);
 	static void createWithMedia(Base::ApplicationContext, GenericIO, const char *path, const char *name,
-		Error &errOut, EmuSystemCreateParams, OnLoadProgressDelegate);
-	static Error loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
-	static Error loadGame(Base::ApplicationContext, IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
+		EmuSystemCreateParams, OnLoadProgressDelegate);
+	static void loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
+	static void loadGame(Base::ApplicationContext, IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
 	static FS::PathString willLoadGameFromPath(FS::PathString path);
-	static Error loadGameFromPath(Base::ApplicationContext, const char *path, EmuSystemCreateParams, OnLoadProgressDelegate);
-	static Error loadGameFromFile(Base::ApplicationContext, GenericIO, const char *name, EmuSystemCreateParams, OnLoadProgressDelegate);
+	static void loadGameFromPath(Base::ApplicationContext, const char *path, EmuSystemCreateParams, OnLoadProgressDelegate);
+	static void loadGameFromFile(Base::ApplicationContext, GenericIO, const char *name, EmuSystemCreateParams, OnLoadProgressDelegate);
 	[[gnu::hot]] static void runFrame(EmuSystemTaskContext task, EmuVideo *video, EmuAudio *audio);
 	static void renderFramebuffer(EmuVideo &);
 	static bool shouldFastForward();
@@ -265,12 +259,9 @@ public:
 	static void start(EmuApp &);
 	static void closeSystem();
 	static void closeRuntimeSystem(EmuApp &, bool allowAutosaveState = 1);
-	static Error makeError(const char *msg);
-	static Error makeError(std::string msg);
-	static Error makeError(std::error_code ec);
-	static Error makeFileReadError();
-	static Error makeFileWriteError();
-	static Error makeBlankError();
+	static void throwFileReadError();
+	static void throwFileWriteError();
+	static void throwBlankError();
 };
 
 static const char *stateNameStr(int slot)

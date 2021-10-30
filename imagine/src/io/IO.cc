@@ -17,13 +17,14 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/io/api/stdio.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include "IOUtils.hh"
 
 template class IOUtils<IO>;
 template class IOUtils<GenericIO>;
 
-const uint8_t *IO::mmapConst() { return nullptr; };
+std::span<uint8_t> IO::map() { return {}; };
 
 std::error_code IO::truncate(off_t offset) { return {ENOSYS, std::system_category()}; };
 
@@ -146,9 +147,12 @@ ssize_t GenericIO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_
 	return io->readAtPos(buff, bytes, offset, ecOut);
 }
 
-const uint8_t *GenericIO::mmapConst()
+std::span<uint8_t> GenericIO::map()
 {
-	return io ? io->mmapConst() : nullptr;
+	if(io)
+		return io->map();
+	else
+		return {};
 }
 
 ssize_t GenericIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
@@ -176,12 +180,6 @@ off_t GenericIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 		return -1;
 	}
 	return io->seek(offset, mode, ecOut);
-}
-
-void GenericIO::close()
-{
-	if(io)
-		io->close();
 }
 
 void GenericIO::sync()
@@ -214,39 +212,37 @@ GenericIO::operator bool() const
 namespace FileUtils
 {
 
-ssize_t writeToPath(const char *path, void *data, size_t bytes, std::error_code *ecOut)
+ssize_t writeToPath(IG::CStringView path, void *data, size_t bytes)
 {
-	FileIO f;
-	if(auto ec = f.create(path);
-		ec)
-	{
-		if(ecOut)
-			*ecOut = ec;
-		return -1;
-	}
-	return f.write(data, bytes, ecOut);
+	auto f = FileIO::create(path, IO::OPEN_TEST);
+	return f.write(data, bytes);
 }
 
-ssize_t writeToPath(const char *path, IO &io, std::error_code *ecOut)
+ssize_t writeToPath(IG::CStringView path, IO &io)
 {
-	FileIO f;
-	if(auto ec = f.create(path);
-		ec)
-	{
-		if(ecOut)
-			*ecOut = ec;
-		return -1;
-	}
-	return io.send(f, nullptr, io.size(), ecOut);
+	auto f = FileIO::create(path, IO::OPEN_TEST);
+	return io.send(f, nullptr, io.size());
 }
 
-ssize_t readFromPath(const char *path, void *data, size_t size)
+ssize_t readFromPath(IG::CStringView path, void *data, size_t size)
 {
-	FileIO f;
-	f.open(path, IO::AccessHint::SEQUENTIAL);
-	if(!f)
-		return -1;
+	FileIO f{path, IO::AccessHint::SEQUENTIAL, IO::OPEN_TEST};
 	return f.read(data, size);
+}
+
+IG::ByteBuffer bufferFromPath(IG::CStringView path, unsigned openFlags, size_t sizeLimit)
+{
+	FileIO file{path, IO::AccessHint::ALL, openFlags};
+	if(!file)
+		return {};
+	if(file.size() > sizeLimit)
+	{
+		if(openFlags & IO::OPEN_TEST)
+			return {};
+		else
+			throw std::runtime_error(fmt::format("{} exceeds {} byte limit", path.data(), sizeLimit));
+	}
+	return file.buffer(IODefs::BufferMode::RELEASE);
 }
 
 }
@@ -281,6 +277,5 @@ int fseek(IO &io, long offset, int whence)
 
 int fclose(IO &stream)
 {
-	stream.close();
 	return 0;
 }

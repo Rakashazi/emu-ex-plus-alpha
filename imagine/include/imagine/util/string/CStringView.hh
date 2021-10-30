@@ -15,29 +15,30 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/config/defs.hh>
-#include <imagine/io/MapIO.hh>
-#include <imagine/util/DelegateFunc.hh>
+#include <string>
+#include <imagine/util/concepts.hh>
 
-class BufferMapIO final : public MapIO
+namespace IG
+{
+
+// Simple const char* wrapper used as a function argument to accept
+// non-null C strings or containers of char data
+class CStringView
 {
 public:
-	// optional function to call on close
-	using OnCloseDelegate = DelegateFunc<void (BufferMapIO &io)>;
+	[[gnu::nonnull]]
+	constexpr CStringView(const char *str):
+		str{str} {}
 
-	constexpr BufferMapIO() {}
-	BufferMapIO(BufferMapIO &&o);
-	BufferMapIO &operator=(BufferMapIO &&o);
-	~BufferMapIO() final;
-	GenericIO makeGeneric();
-	std::error_code open(const void *buff, size_t size, OnCloseDelegate onClose);
-	std::error_code open(const void *buff, size_t size)
-	{
-		return open(buff, size, {});
-	}
+	constexpr CStringView(const Container auto &c):
+		str{std::data(c)} {}
 
-	void close() final;
+	constexpr const char *data() const { return str; }
+	constexpr size_t size() const { return std::char_traits<char>::length(str); }
+	constexpr operator const char *() const { return str; }
 
 protected:
-	OnCloseDelegate onClose{};
+	const char *str;
 };
+
+}

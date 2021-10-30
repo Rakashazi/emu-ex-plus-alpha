@@ -19,10 +19,17 @@
 #include <imagine/logger/logger.h>
 
 template<class ON_KEY>
-static bool readConfigKeys(IO &io, ON_KEY onKey)
+static bool readConfigKeys(MapIO io, ON_KEY onKey)
 {
+	auto configSize = io.size();
+	if(configSize < 4)
+	{
+		logErr("skipping config of only %d bytes", (int)configSize);
+		return false;
+	}
+
 	auto blockSize = io.get<uint8_t>();
-	auto fileBytesLeft = io.size() - 1;
+	auto fileBytesLeft = configSize - 1;
 
 	if(blockSize != 2)
 	{

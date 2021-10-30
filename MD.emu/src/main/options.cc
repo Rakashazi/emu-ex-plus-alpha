@@ -54,10 +54,9 @@ void EmuSystem::initOptions(EmuApp &app)
 	app.setDefaultVControlsButtonSpacing(100);
 }
 
-EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)
+void EmuSystem::onOptionsLoaded(Base::ApplicationContext)
 {
 	config_ym2413_enabled = optionSmsFM;
-	return {};
 }
 
 void EmuSystem::onSessionOptionsLoaded(EmuApp &app)

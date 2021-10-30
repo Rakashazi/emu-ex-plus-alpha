@@ -43,33 +43,35 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, const char* path, const std::vector<FileExten
 {
 	if(EmuApp::hasArchiveExtension(path))
 	{
-		std::error_code ec{};
-		for(auto &entry : FS::ArchiveIterator{path, ec})
+		try
 		{
-			if(entry.type() == FS::file_type::directory)
+			for(auto &entry : FS::ArchiveIterator{path})
 			{
-				continue;
-			}
-			auto name = entry.name();
-			logMsg("archive file entry:%s", name);
-			if(hasKnownExtension(name, known_ext))
-			{
-				auto io = entry.moveIO();
-				str = std::make_unique<MemoryStream>(io.size(), true);
-				if(io.read(str->map(), str->map_size()) != (int)str->map_size())
+				if(entry.type() == FS::file_type::directory)
 				{
-					throw MDFN_Error(0, "Error reading archive");
+					continue;
 				}
-				auto extStr = strrchr(path, '.');
-				f_ext = extStr ? extStr + 1 : "";
-				return; // success
+				auto name = entry.name();
+				logMsg("archive file entry:%s", name);
+				if(hasKnownExtension(name, known_ext))
+				{
+					auto io = entry.moveIO();
+					str = std::make_unique<MemoryStream>(io.size(), true);
+					if(io.read(str->map(), str->map_size()) != (int)str->map_size())
+					{
+						throw MDFN_Error(0, "Error reading archive");
+					}
+					auto extStr = strrchr(path, '.');
+					f_ext = extStr ? extStr + 1 : "";
+					return; // success
+				}
 			}
+			throw MDFN_Error(0, "No recognized file extensions in archive");
 		}
-		if(ec)
+		catch(...)
 		{
 			throw MDFN_Error(0, "Error opening archive");
 		}
-		throw MDFN_Error(0, "No recognized file extensions in archive");
 	}
 	else
 	{

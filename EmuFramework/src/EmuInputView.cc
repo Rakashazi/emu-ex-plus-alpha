@@ -154,12 +154,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 						static auto doSaveState =
 							[](EmuApp &app, bool notify)
 							{
-								if(auto err = app.saveStateWithSlot(EmuSystem::saveStateSlot);
-									err)
-								{
-									app.postMessage(4, true, fmt::format("Save State: {}", err->what()));
-								}
-								else if(notify)
+								if(app.saveStateWithSlot(EmuSystem::saveStateSlot) && notify)
 								{
 									app.postMessage("State Saved");
 								}
@@ -193,11 +188,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 					if(e.pushed())
 					{
 						emuApp.syncEmulationThread();
-						if(auto err = emuApp.loadStateWithSlot(EmuSystem::saveStateSlot);
-							err)
-						{
-							emuApp.postMessage(4, true, fmt::format("Load State: {}", err->what()));
-						}
+						emuApp.loadStateWithSlot(EmuSystem::saveStateSlot);
 						return true;
 					}
 

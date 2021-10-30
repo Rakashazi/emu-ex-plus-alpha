@@ -1,0 +1,104 @@
+#pragma once
+
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+#include <imagine/util/concepts.hh>
+#include <imagine/util/DelegateFunc.hh>
+#include <memory>
+#include <span>
+#include <cstdint>
+
+namespace IG
+{
+
+template<class T>
+struct BufferDeleter
+{
+	using DeleterFunc = DelegateFunc2<sizeof(void*), sizeof(void*), void(T *dataPtr, size_t size)>;
+
+	DeleterFunc del{};
+	size_t size{};
+
+	constexpr void operator()(T *ptr) const
+	{
+		del(ptr, size);
+	}
+
+	constexpr bool operator ==(BufferDeleter const&) const = default;
+};
+
+// Wrapper around unique_ptr with custom deleter & a size, used to pass buffers allocated
+// with different APIs (new, mmap, Android Assets, etc.) using the same interface
+
+template<class T>
+class Buffer
+{
+public:
+	using Deleter = BufferDeleter<std::add_const_t<T>>;
+	using DeleterFunc = typename Deleter::DeleterFunc;
+	friend Buffer<std::add_const_t<T>>;
+
+	constexpr Buffer() {}
+
+	constexpr Buffer(std::span<T> span, DeleterFunc deleter = [](const T*, size_t){}):
+		data_{span.data(), {deleter, span.size()}} {}
+
+	constexpr Buffer(size_t size):
+		data_{new T[size], {[](const T *ptr, size_t){ delete[] ptr; }, size}} {}
+
+	constexpr Buffer(std::unique_ptr<T[]> ptr, size_t size):
+		data_{ptr.release(), {[](const T *ptr, size_t){ delete[] ptr; }, size}} {}
+
+	constexpr Buffer(Buffer &&) = default;
+	constexpr Buffer &operator=(Buffer &&) = default;
+
+	// Convert non-const T version of Buffer to const
+	constexpr Buffer(Buffer<std::remove_const_t<T>> &&o) requires IG::Const<T>:
+		data_{std::move(o.data_)} {}
+
+	constexpr operator std::span<T>() const
+	{
+		return span();
+	}
+
+	constexpr std::span<T> span() const
+	{
+		return {data_.get(), size()};
+	}
+
+	constexpr T *data() const
+	{
+		return data_.get();
+	}
+
+	constexpr size_t size() const
+	{
+		return data_.get_deleter().size;
+	}
+
+	constexpr explicit operator bool() const
+	{
+		return data_.get();
+	}
+
+protected:
+	std::unique_ptr<T[], Deleter> data_{};
+};
+
+using ByteBuffer = Buffer<uint8_t>;
+using ConstByteBuffer = Buffer<const uint8_t>;
+
+}

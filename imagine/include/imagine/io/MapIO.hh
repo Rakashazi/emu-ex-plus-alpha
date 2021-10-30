@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/io/IO.hh>
 
-class MapIO : public IO
+class MapIO final : public IO
 {
 public:
 	using IO::read;
@@ -30,29 +30,31 @@ public:
 	using IO::seekC;
 	using IO::tell;
 	using IO::send;
-	using IO::constBufferView;
+	using IO::buffer;
 	using IO::get;
 
 	constexpr MapIO() {}
-	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) override;
-	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut) override;
-	const uint8_t *mmapConst() override;
-	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) override;
-	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut) override;
-	size_t size() override;
-	bool eof() override;
-	explicit operator bool() const override;
+	MapIO(IG::ByteBuffer buff);
+	MapIO(IG::derived_from<IO> auto &&io): MapIO{io.buffer(IO::BufferMode::RELEASE)} {}
+	MapIO(IG::derived_from<IO> auto &io): MapIO{io.buffer(IO::BufferMode::DIRECT)} {}
+	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
+	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut) final;
+	std::span<uint8_t> map() final;
+	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) final;
+	off_t seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut) final;
+	size_t size() final;
+	bool eof() final;
+	explicit operator bool() const final;
 	#if defined __linux__ || defined __APPLE__
-	void advise(off_t offset, size_t bytes, Advice advice) override;
+	void advise(off_t offset, size_t bytes, Advice advice) final;
 	#endif
+	IG::ByteBuffer releaseBuffer();
 
 protected:
-	const uint8_t *data{};
-	const uint8_t *currPos{};
-	size_t dataSize = 0;
+	uint8_t *currPos{};
+	IG::ByteBuffer buff{};
 
-	void setData(const void* buff, size_t size);
-	void resetData();
-	const uint8_t *dataEnd();
+	uint8_t *data() const;
+	uint8_t *dataEnd() const;
 	ssize_t readAtAddr(void* buff, size_t bytes, const uint8_t *readPos, std::error_code *ecOut);
 };

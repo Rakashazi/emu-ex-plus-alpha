@@ -167,12 +167,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 				ynAlertView->setOnYes(
 					[this]()
 					{
-						if(auto err = app().loadStateWithSlot(EmuSystem::saveStateSlot);
-							err)
-						{
-							app().postMessage(4, true, fmt::format("Load State: {}", err->what()));
-						}
-						else
+						if(app().loadStateWithSlot(EmuSystem::saveStateSlot))
 							app().viewController().showEmulation();
 					});
 				pushAndShowModal(std::move(ynAlertView), e);
@@ -189,12 +184,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 				static auto doSaveState =
 					[](EmuApp &app)
 					{
-						if(auto err = app.saveStateWithSlot(EmuSystem::saveStateSlot);
-							err)
-						{
-							app.postMessage(4, true, fmt::format("Save State: {}", err->what()));
-						}
-						else
+						if(app.saveStateWithSlot(EmuSystem::saveStateSlot))
 							app.viewController().showEmulation();
 					};
 				if(EmuSystem::shouldOverwriteExistingState())

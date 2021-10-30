@@ -17,13 +17,14 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/io/IO.hh>
-#include <imagine/io/BufferMapIO.hh>
 #include <imagine/fs/FSDefs.hh>
+#include <imagine/util/string/CStringView.hh>
 #include <memory>
 
 struct archive;
 struct archive_entry;
 class ArchiveIO;
+class MapIO;
 
 // data used by libarchive callbacks allocated in its own memory block
 struct ArchiveControlBlock
@@ -36,9 +37,7 @@ class ArchiveEntry
 {
 public:
 	constexpr ArchiveEntry() {}
-	ArchiveEntry(const char *path, std::error_code &result);
-	ArchiveEntry(const char *path);
-	ArchiveEntry(GenericIO io, std::error_code &result);
+	ArchiveEntry(IG::CStringView path);
 	ArchiveEntry(GenericIO io);
 	const char *name() const;
 	FS::file_type type() const;
@@ -65,9 +64,7 @@ protected:
 	struct archive_entry *ptr{};
 	std::unique_ptr<ArchiveControlBlock> ctrlBlock{};
 
-	ArchiveEntry(const char *path, std::error_code *ec);
-	ArchiveEntry(GenericIO io, std::error_code *ec);
-	bool init(GenericIO io);
+	void init(GenericIO io);
 	static void freeArchive(struct archive *);
 };
 
@@ -83,24 +80,20 @@ public:
 	using IO::seekC;
 	using IO::tell;
 	using IO::send;
-	using IO::constBufferView;
+	using IO::buffer;
 	using IO::get;
 
 	constexpr ArchiveIO() {}
 	ArchiveIO(ArchiveEntry entry);
-	GenericIO makeGeneric();
 	ArchiveEntry releaseArchive();
 	const char *name();
-	BufferMapIO moveToMapIO();
-
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
 	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) final;
 	off_t seek(off_t offset, SeekMode mode, std::error_code *ecOut) final;
-	void close() final;
 	size_t size() final;
 	bool eof() final;
 	explicit operator bool() const final;
 
-private:
+protected:
 	ArchiveEntry entry{};
 };

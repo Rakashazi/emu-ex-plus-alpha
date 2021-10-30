@@ -142,23 +142,20 @@ static FS::PathString sprintCheatsFilename()
 	return IG::formatToPathString("{}/{}.cht", EmuSystem::savePath(), EmuSystem::gameName().data());
 }
 
-EmuSystem::Error EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(const char *path)
 {
 	if(!S9xFreezeGame(path))
-		return EmuSystem::makeFileWriteError();
-	else
-		return {};
+		return throwFileWriteError();
 }
 
-EmuSystem::Error EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(const char *path)
 {
 	if(S9xUnfreezeGame(path))
 	{
 		IPPU.RenderThisFrame = TRUE;
-		return {};
 	}
 	else
-		return EmuSystem::makeFileReadError();
+		return throwFileReadError();
 }
 
 void EmuSystem::saveBackupMem() // for manually saving when not closing game
@@ -194,12 +191,12 @@ bool EmuSystem::vidSysIsPAL() { return Settings.PAL; }
 unsigned EmuSystem::multiresVideoBaseX() { return 256; }
 unsigned EmuSystem::multiresVideoBaseY() { return 239; }
 
-EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto size = io.size();
 	if(size > CMemory::MAX_ROM_SIZE + 512)
 	{
-		return makeError("ROM is too large");
+		throw std::runtime_error("ROM is too large");
 	}
 	#ifndef SNES9X_VERSION_1_4
 	IG::fill(Memory.NSRTHeader);
@@ -213,21 +210,20 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSy
 		bcase 2: Settings.ForcePAL = 1;
 		bcase 3: Settings.ForceNTSC = Settings.ForcePAL = 1;
 	}
-	auto buffView = io.constBufferView();
-	if(!buffView)
+	auto buff = io.buffer();
+	if(!buff)
 	{
-		return makeFileReadError();
+		throwFileReadError();
 	}
-	if(!Memory.LoadROMMem((const uint8*)buffView.data(), buffView.size()))
+	if(!Memory.LoadROMMem((const uint8*)buff.data(), buff.size()))
 	{
-		return makeError("Error loading game");
+		throw std::runtime_error("Error loading game");
 	}
 	setupSNESInput(EmuApp::get(ctx).defaultVController());
 	auto saveStr = sprintSRAMFilename();
 	Memory.LoadSRAM(saveStr.data());
 	IPPU.RenderThisFrame = TRUE;
 	checkAndEnableGlobalCheats();
-	return {};
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
@@ -317,7 +313,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
+void EmuSystem::onInit(Base::ApplicationContext)
 {
 	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
 	#ifndef SNES9X_VERSION_1_4
@@ -337,5 +333,4 @@ EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
 	assert(Settings.H_Max == SNES_CYCLES_PER_SCANLINE);
 	assert(Settings.HBlankStart == (256 * Settings.H_Max) / SNES_HCOUNTER_MAX);
 	#endif
-	return {};
 }

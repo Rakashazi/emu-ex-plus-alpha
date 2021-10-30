@@ -45,7 +45,6 @@ unsigned fceuCheats = 0;
 ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
 unsigned autoDetectedRegion = 0;
 static IG::PixelFormat pixFmt{};
-const char *fceuReturnedError = {};
 static PalArray defaultPal{};
 union
 {
@@ -137,20 +136,16 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 	return IG::formatToPathString("{}/{}.fc{}", statePath, gameName, saveSlotCharNES(slot));
 }
 
-EmuSystem::Error EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(const char *path)
 {
 	if(!FCEUI_SaveState(path))
-		return EmuSystem::makeFileWriteError();
-	else
-		return {};
+		EmuSystem::throwFileWriteError();
 }
 
-EmuSystem::Error EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(const char *path)
 {
 	if(!FCEUI_LoadState(path))
-		return EmuSystem::makeFileReadError();
-	else
-		return {};
+		EmuSystem::throwFileReadError();
 }
 
 void EmuSystem::saveBackupMem() // for manually saving when not closing game
@@ -225,8 +220,7 @@ void setDefaultPalette(Base::ApplicationContext ctx, const char *palPath)
 	}
 	else
 	{
-		FileIO io{};
-		io.open(palPath, IO::AccessHint::ALL);
+		FileIO io{palPath, IO::AccessHint::ALL, IO::OPEN_TEST};
 		if(!io)
 			return;
 		setDefaultPalette(io);
@@ -348,7 +342,7 @@ void setRegion(int region, int defaultRegion, int detectedRegion)
 	}
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	setDirOverrides();
 	auto ioStream = new EmuFileIO(io);
@@ -359,13 +353,9 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 	file->archiveIndex = -1;
 	file->stream = ioStream;
 	file->size = ioStream->size();
-	fceuReturnedError = {};
 	if(!FCEUI_LoadGameWithFile(file, originalGameFileName().data(), 0))
 	{
-		if(fceuReturnedError)
-			return EmuSystem::makeError(fceuReturnedError);
-		else
-			return EmuSystem::makeError("Error loading game");
+		throw std::runtime_error("Error loading game");
 	}
 	autoDetectedRegion = regionFromName(gameFileName().data());
 	setRegion(optionVideoSystem.val, optionDefaultVideoSystem.val, autoDetectedRegion);
@@ -374,8 +364,6 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 		logMsg("%d total cheats", fceuCheats);
 
 	setupNESInputPorts();
-
-	return {};
 }
 
 void EmuSystem::onPrepareAudio(EmuAudio &audio)
@@ -483,12 +471,11 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
+void EmuSystem::onInit(Base::ApplicationContext ctx)
 {
 	backupSavestates = 0;
 	if(!FCEUI_Initialize())
 	{
-		return makeError("Error in FCEUI_Initialize");
+		throw std::runtime_error{"Error in FCEUI_Initialize"};
 	}
-	return {};
 }

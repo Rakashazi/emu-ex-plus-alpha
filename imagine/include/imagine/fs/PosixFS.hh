@@ -16,11 +16,11 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/util/string/CStringView.hh>
 #include <algorithm>
 #include <ctime>
 #include <array>
 #include <memory>
-#include <system_error>
 #include <unistd.h>
 #include <dirent.h>
 #include <limits.h>
@@ -46,8 +46,7 @@ static constexpr int accExecBitImpl = X_OK;
 class DirectoryEntryImpl
 {
 public:
-	DirectoryEntryImpl(const char *path, std::error_code &ec);
-	DirectoryEntryImpl(const char *path);
+	DirectoryEntryImpl(IG::CStringView path);
 	bool readNextDir();
 	bool hasEntry() const;
 	const char *name() const;
@@ -72,7 +71,6 @@ protected:
 	mutable file_type linkType_{};
 	PathStringImpl basePath{};
 
-	DirectoryEntryImpl(const char *path, std::error_code *ec);
 	static void closeDirectoryStream(DIR *);
 };
 

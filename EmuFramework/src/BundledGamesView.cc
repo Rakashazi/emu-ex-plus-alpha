@@ -18,7 +18,6 @@
 #include <emuframework/FilePicker.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/io/FileIO.hh>
-#include <imagine/io/BufferMapIO.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/base/ApplicationContext.hh>
 
@@ -41,13 +40,13 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	game[0] = {info.displayName, &defaultFace(),
 		[this, &info](Input::Event e)
 		{
-			auto file = appContext().openAsset(info.assetName, IO::AccessHint::ALL);
+			auto file = appContext().openAsset(info.assetName, IO::AccessHint::ALL, IO::OPEN_TEST);
 			if(!file)
 			{
 				logErr("error opening bundled game asset: %s", info.assetName);
 				return;
 			}
-			app().createSystemWithMedia(file.makeGeneric(), "", info.assetName, e, {}, attachParams(),
+			app().createSystemWithMedia(std::move(file), "", info.assetName, e, {}, attachParams(),
 				[this](Input::Event e)
 				{
 					app().launchSystemWithResumePrompt(e, false);

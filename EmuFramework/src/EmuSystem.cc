@@ -13,6 +13,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "EmuSystem"
 #include <emuframework/EmuSystem.hh>
 #include "EmuOptions.hh"
 #include <emuframework/EmuApp.hh>
@@ -162,9 +163,8 @@ static bool hasWriteAccessToDir(Base::ApplicationContext ctx, const char *path)
 	if(ctx.androidSDK() >= 19)
 	{
 		auto testFilePath = IG::formatToPathString("{}/.safe-to-delete-me", path);
-		FileIO testFile;
-		auto ec = testFile.create(testFilePath.data());
-		if(ec)
+		auto testFile = FileIO::create(testFilePath, IO::OPEN_TEST);
+		if(!testFile)
 		{
 			hasAccess = false;
 		}
@@ -420,46 +420,34 @@ static void closeAndSetupNew(Base::ApplicationContext ctx, const char *path)
 	app.loadSessionOptions();
 }
 
-void EmuSystem::createWithMedia(Base::ApplicationContext ctx, GenericIO io, const char *path, const char *name, Error &err, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::createWithMedia(Base::ApplicationContext ctx, GenericIO io, const char *path, const char *name, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	if(io)
-		err = loadGameFromFile(ctx, std::move(io), name, params, onLoadProgress);
+		loadGameFromFile(ctx, std::move(io), name, params, onLoadProgress);
 	else
-		err = loadGameFromPath(ctx, path, params, onLoadProgress);
+		loadGameFromPath(ctx, path, params, onLoadProgress);
 }
 
-EmuSystem::Error EmuSystem::loadGameFromPath(Base::ApplicationContext ctx, const char *pathStr, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::loadGameFromPath(Base::ApplicationContext ctx, const char *pathStr, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	auto path = willLoadGameFromPath(FS::makePathString(pathStr));
 	if(!handlesGenericIO)
 	{
 		closeAndSetupNew(ctx, path.data());
-		auto err = loadGame(ctx, FileIO{}, params, onLoadProgress);
-		if(err)
-		{
-			clearGamePaths();
-		}
-		return err;
+		loadGame(ctx, FileIO{}, params, onLoadProgress);
+		return;
 	}
 	logMsg("load from path:%s", path.data());
-	FileIO io{};
-	auto ec = io.open(path, IO::AccessHint::SEQUENTIAL);
-	if(ec)
-	{
-		return makeError(fmt::format("Error opening file: {}", ec.message()));
-	}
-	return loadGameFromFile(ctx, io.makeGeneric(), path.data(), params, onLoadProgress);
+	loadGameFromFile(ctx, FileIO{path, IO::AccessHint::SEQUENTIAL}, path.data(), params, onLoadProgress);
 }
 
-EmuSystem::Error EmuSystem::loadGameFromFile(Base::ApplicationContext ctx, GenericIO file, const char *name, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::loadGameFromFile(Base::ApplicationContext ctx, GenericIO file, const char *name, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
-	Error err;
 	if(EmuApp::hasArchiveExtension(name))
 	{
 		ArchiveIO io{};
-		std::error_code ec{};
 		FS::FileString originalName{};
-		for(auto &entry : FS::ArchiveIterator{std::move(file), ec})
+		for(auto &entry : FS::ArchiveIterator{std::move(file)})
 		{
 			if(entry.type() == FS::file_type::directory)
 			{
@@ -474,58 +462,34 @@ EmuSystem::Error EmuSystem::loadGameFromFile(Base::ApplicationContext ctx, Gener
 				break;
 			}
 		}
-		if(ec)
-		{
-			return makeError(fmt::format("Error opening archive: {}", ec.message()));
-		}
 		if(!io)
 		{
-			return makeError("No recognized file extensions in archive");
+			throw std::runtime_error("No recognized file extensions in archive");
 		}
 		closeAndSetupNew(ctx, name);
 		originalGameName_ = originalName;
-		err = EmuSystem::loadGame(ctx, io, params, onLoadProgress);
+		EmuSystem::loadGame(ctx, io, params, onLoadProgress);
 	}
 	else
 	{
 		closeAndSetupNew(ctx, name);
-		err = EmuSystem::loadGame(ctx, file, params, onLoadProgress);
+		EmuSystem::loadGame(ctx, file, params, onLoadProgress);
 	}
-	if(err)
-	{
-		clearGamePaths();
-	}
-	return err;
 }
 
-EmuSystem::Error EmuSystem::makeError(const char *msg)
+void EmuSystem::throwFileReadError()
 {
-	return std::runtime_error(msg);
+	throw std::runtime_error("Error reading file");
 }
 
-EmuSystem::Error EmuSystem::makeError(std::string msg)
+void EmuSystem::throwFileWriteError()
 {
-	return std::runtime_error(msg);
+	throw std::runtime_error("Error writing file");
 }
 
-EmuSystem::Error EmuSystem::makeError(std::error_code ec)
+void EmuSystem::throwBlankError()
 {
-	return std::runtime_error(ec.message());
-}
-
-EmuSystem::Error EmuSystem::makeFileReadError()
-{
-	return std::runtime_error("Error reading file");
-}
-
-EmuSystem::Error EmuSystem::makeFileWriteError()
-{
-	return std::runtime_error("Error writing file");
-}
-
-EmuSystem::Error EmuSystem::makeBlankError()
-{
-	return std::runtime_error("");
+	throw std::runtime_error("");
 }
 
 FS::FileString EmuSystem::fullGameName()
@@ -596,11 +560,11 @@ bool EmuSystem::inputHasTriggers()
 	return inputLTriggerIndex != -1 && inputRTriggerIndex != -1;
 }
 
-[[gnu::weak]] EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext) { return {}; }
+[[gnu::weak]] void EmuSystem::onInit(Base::ApplicationContext) {}
 
 [[gnu::weak]] void EmuSystem::initOptions(EmuApp &) {}
 
-[[gnu::weak]] EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext) { return {}; }
+[[gnu::weak]] void EmuSystem::onOptionsLoaded(Base::ApplicationContext) {}
 
 [[gnu::weak]] void EmuSystem::saveBackupMem() {}
 
@@ -641,10 +605,10 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize) { return false; }
 
-[[gnu::weak]] EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext, IO &io, EmuSystemCreateParams params,
+[[gnu::weak]] void EmuSystem::loadGame(Base::ApplicationContext, IO &io, EmuSystemCreateParams params,
 	EmuSystem::OnLoadProgressDelegate onLoadProgress)
 {
-	return loadGame(io, params, onLoadProgress);
+	loadGame(io, params, onLoadProgress);
 }
 
 [[gnu::weak]] void EmuSystem::reset(EmuApp &, ResetMode mode)
@@ -652,14 +616,14 @@ bool EmuSystem::inputHasTriggers()
 	reset(mode);
 }
 
-[[gnu::weak]] EmuSystem::Error EmuSystem::loadState(EmuApp &, const char *path)
+[[gnu::weak]] void EmuSystem::loadState(EmuApp &, const char *path)
 {
-	return loadState(path);
+	loadState(path);
 }
 
-[[gnu::weak]] EmuSystem::Error EmuSystem::saveState(EmuApp &, const char *path)
+[[gnu::weak]] void EmuSystem::saveState(EmuApp &, const char *path)
 {
-	return saveState(path);
+	saveState(path);
 }
 
 [[gnu::weak]] void EmuSystem::renderFramebuffer(EmuVideo &video)

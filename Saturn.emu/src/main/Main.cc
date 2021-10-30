@@ -275,20 +275,16 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 	return IG::formatToPathString("{}/{}.0{}.yss", statePath, gameName, saveSlotCharUpper(slot));
 }
 
-EmuSystem::Error EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(const char *path)
 {
-	if(YabSaveState(path) == 0)
-		return {};
-	else
-		return EmuSystem::makeFileWriteError();
+	if(YabSaveState(path) != 0)
+		throwFileWriteError();
 }
 
-EmuSystem::Error EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(const char *path)
 {
-	if(YabLoadState(path) == 0)
-		return {};
-	else
-		return EmuSystem::makeFileReadError();
+	if(YabLoadState(path) != 0)
+		throwFileReadError();
 }
 
 void EmuSystem::saveBackupMem() // for manually saving when not closing game
@@ -311,13 +307,13 @@ void EmuSystem::closeSystem()
 	}
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	IG::formatTo(bupPath, "{}/bkram.bin", savePath());
 	if(YabauseInit(&yinit) != 0)
 	{
 		logErr("YabauseInit failed");
-		return makeError("Error loading game");
+		throw std::runtime_error("Error loading game");
 	}
 	logMsg("YabauseInit done");
 	yabauseIsInit = 1;
@@ -326,8 +322,6 @@ EmuSystem::Error EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgress
 	pad[0] = PerPadAdd(&PORTDATA1);
 	pad[1] = PerPadAdd(&PORTDATA2);
 	ScspSetFrameAccurate(1);
-
-	return {};
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)

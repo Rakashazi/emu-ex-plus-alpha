@@ -17,8 +17,8 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/fs/FSDefs.hh>
+#include <imagine/util/string/CStringView.hh>
 #include <cstddef>
-#include <system_error>
 #include <compare>
 #include <memory>
 
@@ -31,10 +31,7 @@ class directory_iterator : public std::iterator<std::input_iterator_tag, directo
 {
 public:
 	constexpr directory_iterator() {}
-	directory_iterator(PathString path): directory_iterator{path.data()} {}
-	directory_iterator(const char *path);
-	directory_iterator(PathString path, std::error_code &result): directory_iterator{path.data(), result} {}
-	directory_iterator(const char *path, std::error_code &result);
+	directory_iterator(IG::CStringView path);
 	directory_iterator(const directory_iterator&) = default;
 	directory_iterator(directory_iterator&&) = default;
 	~directory_iterator();
@@ -58,172 +55,31 @@ static directory_iterator end(const directory_iterator &)
 }
 
 PathString current_path();
-PathString current_path(std::error_code &result);
+void current_path(IG::CStringView path);
+bool exists(IG::CStringView path);
+std::uintmax_t file_size(IG::CStringView path);
+file_status status(IG::CStringView path);
+file_status symlink_status(IG::CStringView path);
+void chown(IG::CStringView path, uid_t owner, gid_t group);
+bool access(IG::CStringView path, acc type);
+bool remove(IG::CStringView path);
+bool create_directory(IG::CStringView path);
+void rename(IG::CStringView oldPath, IG::CStringView newPath);
 
-void current_path(const char *path);
-void current_path(const char *path, std::error_code &result);
+FileString makeFileString(IG::CStringView str);
+FileString makeFileStringWithoutDotExtension(IG::CStringView str);
 
-static void current_path(PathString path)
-{
-	current_path(path.data());
-}
+PathString makePathString(IG::CStringView str);
+PathString makePathString(IG::CStringView dir, IG::CStringView base);
+PathString makeAppPathFromLaunchCommand(IG::CStringView launchPath);
 
-static void current_path(PathString path, std::error_code &result)
-{
-	current_path(path.data(), result);
-}
-
-bool exists(const char *path);
-bool exists(const char *path, std::error_code &result);
-
-static bool exists(PathString path)
-{
-	return exists(path.data());
-}
-
-static bool exists(PathString path, std::error_code &result)
-{
-	return exists(path.data(), result);
-}
-
-std::uintmax_t file_size(const char *path);
-std::uintmax_t file_size(const char *path, std::error_code &result);
-
-static std::uintmax_t file_size(PathString path)
-{
-	return file_size(path.data());
-}
-
-static std::uintmax_t file_size(PathString path, std::error_code &result)
-{
-	return file_size(path.data(), result);
-}
-
-file_status status(const char *path);
-file_status status(const char *path, std::error_code &result);
-
-static file_status status(PathString path)
-{
-	return status(path.data());
-}
-
-static file_status status(PathString path, std::error_code &result)
-{
-	return status(path.data(), result);
-}
-
-file_status symlink_status(const char *path);
-file_status symlink_status(const char *path, std::error_code &result);
-
-static file_status symlink_status(PathString path)
-{
-	return symlink_status(path.data());
-}
-
-static file_status symlink_status(PathString path, std::error_code &result)
-{
-	return symlink_status(path.data(), result);
-}
-
-void chown(const char *path, uid_t owner, gid_t group);
-void chown(const char *path, uid_t owner, gid_t group, std::error_code &result);
-
-static void chown(PathString path, uid_t owner, gid_t group)
-{
-	chown(path.data(), owner, group);
-}
-
-static void chown(PathString path, uid_t owner, gid_t group, std::error_code &result)
-{
-	chown(path.data(), owner, group, result);
-}
-
-bool access(const char *path, acc type);
-bool access(const char *path, acc type, std::error_code &result);
-
-static bool access(PathString path, acc type)
-{
-	return access(path.data(), type);
-}
-
-static bool access(PathString path, acc type, std::error_code &result)
-{
-	return access(path.data(), type, result);
-}
-
-bool remove(const char *path);
-bool remove(const char *path, std::error_code &result);
-
-static bool remove(PathString path)
-{
-	return remove(path.data());
-}
-
-static bool remove(PathString path, std::error_code &result)
-{
-	return remove(path.data(), result);
-}
-
-bool create_directory(const char *path);
-bool create_directory(const char *path, std::error_code &result);
-
-static bool create_directory(PathString path)
-{
-	return create_directory(path.data());
-}
-
-static bool create_directory(PathString path, std::error_code &result)
-{
-	return create_directory(path.data(), result);
-}
-
-void rename(const char *oldPath, const char *newPath);
-void rename(const char *oldPath, const char *newPath, std::error_code &result);
-
-static void rename(PathString oldPath, PathString newPath)
-{
-	rename(oldPath.data(), newPath.data());
-}
-
-static void rename(PathString oldPath, PathString newPath, std::error_code &result)
-{
-	rename(oldPath.data(), newPath.data(), result);
-}
-
-FileString makeFileString(const char *str);
-FileString makeFileStringWithoutDotExtension(const char *str);
-
-template <size_t S>
-FileString makeFileStringWithoutDotExtension(std::array<char, S> &str)
-{
-	return makeFileStringWithoutDotExtension(str.data());
-}
-
-PathString makePathString(const char *str);
-PathString makePathString(const char *dir, const char *base);
-PathString makeAppPathFromLaunchCommand(const char *launchPath);
-
-FileString basename(const char *path);
-
-template <size_t S>
-static FileString basename(std::array<char, S> &path)
-{
-	return basename(path.data());
-}
-
-PathString dirname(const char *path);
-
-template <size_t S>
-static PathString dirname(std::array<char, S> &path)
-{
-	return dirname(path.data());
-}
+FileString basename(IG::CStringView path);
+PathString dirname(IG::CStringView path);
 
 using FileStringCompareFunc = bool (*)(const FS::FileString &s1, const FS::FileString &s2);
 
 bool fileStringNoCaseLexCompare(FS::FileString s1, FS::FileString s2);
 
-int directoryItems(const char *path);
-static int directoryItems(PathString path) { return directoryItems(path.data()); }
+int directoryItems(IG::CStringView path);
 
 };

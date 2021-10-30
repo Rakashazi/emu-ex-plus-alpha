@@ -53,7 +53,7 @@ void setupVKeyboardMap(EmuApp &, unsigned boardType);
 IG::Pixmap frameBufferPixmap();
 bool setDefaultMachineName(const char *name);
 const char *currentMachineName();
-EmuSystem::Error setCurrentMachineName(EmuApp &, const char *machineName, bool insertMediaFiles = true);
+void setCurrentMachineName(EmuApp &, const char *machineName, bool insertMediaFiles = true);
 bool mixerEnableOption(MixerAudioType type);
 void setMixerEnableOption(MixerAudioType type, bool on);
 uint8_t mixerVolumeOption(MixerAudioType type);

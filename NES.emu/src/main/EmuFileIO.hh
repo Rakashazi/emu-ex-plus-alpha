@@ -16,11 +16,11 @@
 	along with NES.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <fceu/emufile.h>
-#include <imagine/io/BufferMapIO.hh>
+#include <imagine/io/MapIO.hh>
 
 class EmuFileIO : public EMUFILE {
 protected:
-	BufferMapIO io{};
+	MapIO io{};
 
 public:
 

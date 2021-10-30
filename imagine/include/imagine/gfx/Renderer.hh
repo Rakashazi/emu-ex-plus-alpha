@@ -74,14 +74,14 @@ class Renderer : public RendererImpl
 {
 public:
 	using RendererImpl::RendererImpl;
-	Renderer(Base::ApplicationContext, Error &errOut);
+	Renderer(Base::ApplicationContext);
 	~Renderer();
 	void configureRenderer();
 	bool isConfigured() const;
 	const RendererTask &task() const;
 	RendererTask &task();
 	Base::ApplicationContext appContext() const;
-	Error initMainTask(Base::Window *initialWindow, DrawableConfig c = {});
+	void initMainTask(Base::Window *initialWindow, DrawableConfig c = {});
 	bool attachWindow(Base::Window &, DrawableConfig c = {});
 	void detachWindow(Base::Window &);
 	bool setDrawableConfig(Base::Window &, DrawableConfig);

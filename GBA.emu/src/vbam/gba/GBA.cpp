@@ -23,6 +23,7 @@
 #include "GBALink.h"
 #include <imagine/logger/logger.h>
 #include <imagine/io/FileIO.hh>
+#include <imagine/util/algorithm.h>
 #include <emuframework/EmuSystemTaskContext.hh>
 
 #ifdef PROFILING
@@ -1310,33 +1311,29 @@ bool CPUImportEepromFile(GBASys &gba, const char *fileName)
 
 bool CPUReadBatteryFile(GBASys &gba, const char *fileName)
 {
-	FileIO file;
-	file.open(fileName, IO::AccessHint::ALL);
-  if(!file)
+	auto buff = FileUtils::bufferFromPath(fileName, IO::OPEN_TEST, 0x20000);
+  if(!buff)
     return false;
 
   // check file size to know what we should read
-  auto size = file.size();
+  auto size = buff.size();
   systemSaveUpdateCounter = SYSTEM_SAVE_NOT_UPDATED;
 
-  if(size == 512 || size == 0x2000) {
-    if(file.read(eepromData, size) != (ssize_t)size) {
-      return false;
-    }
-  } else {
-    if(size == 0x20000) {
-      if(file.read(flashSaveMemory, 0x20000) != 0x20000) {
-        return false;
-      }
-      flashSetSize(0x20000);
-    } else {
-      if(file.read(flashSaveMemory, 0x10000) != 0x10000) {
-        return false;
-      }
-      flashSetSize(0x10000);
-    }
+  switch(size)
+  {
+  	case 512:
+  	case 0x2000:
+  		IG::copy_n_r(buff.data(), size, eepromData);
+  		logMsg("loaded saved eeprom");
+  		return true;
+  	case 0x10000:
+  	case 0x20000:
+  		IG::copy_n_r(buff.data(), size, flashSaveMemory);
+  		flashSetSize(size);
+  		logMsg("loaded saved flash");
+  		return true;
   }
-  return true;
+  return false;
 }
 
 /*bool CPUWritePNGFile(const char *fileName)

@@ -19,7 +19,6 @@
 #include <imagine/base/Timer.hh>
 #include <imagine/gui/View.hh>
 #include <cstdio>
-#include <system_error>
 #include <array>
 
 class ToastView : public View

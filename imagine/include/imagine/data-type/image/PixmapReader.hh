@@ -26,7 +26,6 @@
 #endif
 
 #include <imagine/base/ApplicationContext.hh>
-#include <system_error>
 
 class GenericIO;
 
@@ -49,7 +48,7 @@ class PixmapImage: public PixmapImageImpl
 {
 public:
 	using PixmapImageImpl::PixmapImageImpl;
-	std::errc write(IG::Pixmap dest);
+	void write(IG::Pixmap dest);
 	IG::Pixmap pixmapView();
 	explicit operator bool() const;
 	operator PixmapSource();

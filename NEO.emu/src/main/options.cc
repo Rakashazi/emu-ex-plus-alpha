@@ -80,11 +80,10 @@ void EmuSystem::initOptions(EmuApp &app)
 	app.setDefaultVControlsButtonStagger(5);
 }
 
-EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)
+void EmuSystem::onOptionsLoaded(Base::ApplicationContext)
 {
 	conf.system = (SYSTEM)optionBIOSType.val;
 	conf.country = (COUNTRY)optionMVSCountry.val;
-	return {};
 }
 
 bool EmuSystem::resetSessionOptions(EmuApp &)

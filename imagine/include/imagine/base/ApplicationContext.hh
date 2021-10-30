@@ -25,10 +25,11 @@
 #include <imagine/base/iphone/IOSApplicationContext.hh>
 #endif
 
-#include <imagine/util/bitset.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/io/IO.hh>
+#include <imagine/util/bitset.hh>
+#include <imagine/util/string/CStringView.hh>
 #include <vector>
 #include <optional>
 
@@ -72,8 +73,11 @@ public:
 	static const char *const applicationName;
 	static const char *const applicationId;
 
-	// Called on app startup to create the Application object, defined in user code
+	// Called on app startup via dispatchOnInit() to create the Application object, defined in user code
 	[[gnu::cold]] void onInit(ApplicationInitParams);
+
+	// Calls onInit() and handles displaying error messages from any exceptions
+	[[gnu::cold]] void dispatchOnInit(ApplicationInitParams);
 
 	// Initialize the main Application object with a user-defined class,
 	// must be called first in onInit() before using any other methods
@@ -154,8 +158,8 @@ public:
 	FS::PathString sharedStoragePath() const;
 	FS::PathLocation sharedStoragePathLocation() const;
 	std::vector<FS::PathLocation> rootFileLocations() const;
-	FS::RootPathInfo nearestRootPath(const char *path) const;
-	AssetIO openAsset(const char *name, IO::AccessHint access, const char *appName = applicationName) const;
+	FS::RootPathInfo nearestRootPath(IG::CStringView path) const;
+	AssetIO openAsset(IG::CStringView name, IO::AccessHint access, unsigned openFlags = 0, const char *appName = applicationName) const;
 	bool hasSystemPathPicker() const;
 	void showSystemPathPicker(SystemPathPickerDelegate);
 

@@ -191,7 +191,7 @@ public:
 	Base::CustomEvent releaseShaderCompilerEvent{Base::CustomEvent::NullInit{}};
 	IG_UseMemberIf(Config::Gfx::OPENGL_SHADER_PIPELINE, GLuint, defaultVShader_){};
 
-	GLRenderer(Base::ApplicationContext, Error &err);
+	GLRenderer(Base::ApplicationContext);
 	void setGLProjectionMatrix(RendererCommands &cmds, Mat4 mat) const;
 	void useCommonProgram(RendererCommands &cmds, CommonProgram program, const Mat4 *modelMat) const;
 	Base::GLDisplay glDisplay() const;

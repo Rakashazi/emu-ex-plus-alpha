@@ -412,16 +412,12 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 		}
 	}
 	#endif
-	FileIO configFile;
-	if(auto ec = configFile.open(configFilePath.data(), IO::AccessHint::ALL);
-		ec)
-	{
-		logMsg("no config file");
+	auto configBuff = FileUtils::bufferFromPath(configFilePath, IO::OPEN_TEST);
+	if(!configBuff)
 		return {};
-	}
 	ConfigParams appConfig{};
 	Gfx::DrawableConfig pendingWindowDrawableConf{};
-	readConfigKeys(configFile,
+	readConfigKeys(std::move(configBuff),
 		[&](uint16_t key, uint16_t size, IO &io)
 		{
 			switch(key)
@@ -674,7 +670,12 @@ void EmuApp::saveConfigFile(Base::ApplicationContext ctx)
 	{
 		fixFilePermissions(ctx, ctx.supportPath().data());
 	}
-	FileIO configFile;
-	configFile.create(configFilePath.data());
-	saveConfigFile(configFile);
+	try
+	{
+		saveConfigFile(FileIO::create(configFilePath));
+	}
+	catch(...)
+	{
+		logErr("error writing config file");
+	}
 }

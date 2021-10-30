@@ -81,8 +81,7 @@ void writeCheatFile()
 		return;
 	}
 
-	FileIO file;
-	file.create(filename.data());
+	auto file = FileIO::create(filename.data(), IO::OPEN_TEST);
 	if(!file)
 	{
 		logMsg("error creating cheats file %s", filename.data());
@@ -107,8 +106,7 @@ void writeCheatFile()
 void readCheatFile()
 {
 	auto filename = IG::formatToPathString("{}/{}.gbcht", EmuSystem::savePath(), EmuSystem::gameName().data());
-	FileIO file;
-	file.open(filename.data(), IO::AccessHint::ALL);
+	FileIO file{filename.data(), IO::AccessHint::ALL, IO::OPEN_TEST};
 	if(!file)
 	{
 		return;

@@ -31,7 +31,7 @@ static FS::PathString savePathStrToDescStr(char *savePathStr)
 			string_copy(desc, "Default");
 		else
 		{
-			string_copy(desc, FS::basename(optionSavePath).data());
+			string_copy(desc, FS::basename(optionSavePath.val).data());
 		}
 	}
 	else

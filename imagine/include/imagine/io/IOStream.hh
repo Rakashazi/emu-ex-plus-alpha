@@ -47,7 +47,7 @@ public:
 			[](void *cookie)
 			{
 				auto &s = *(IOStream*)cookie;
-				s.io.close();
+				s.io = {};
 				s.f = nullptr;
 				return 0;
 			});
@@ -86,7 +86,7 @@ public:
 			[](void *cookie)
 			{
 				auto &s = *(IOStream*)cookie;
-				s.io.close();
+				s.io = {};
 				s.f = nullptr;
 				return 0;
 			};

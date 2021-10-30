@@ -98,18 +98,18 @@ bool EmuSystem::vidSysIsPAL()
 	return osystem->hasConsole() && osystem->console().timing() != ConsoleTiming::ntsc;
 }
 
-EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto &os = *osystem;
 	auto size = io.size();
 	if(size > MAX_ROM_SIZE)
 	{
-		return makeError("ROM size is too large");
+		throw std::runtime_error{"ROM size is too large"};
 	}
 	auto image = std::make_unique<uInt8[]>(MAX_ROM_SIZE);
 	if(io.read(image.get(), size) != (ssize_t)size)
 	{
-		return makeFileReadError();
+		throwFileReadError();
 	}
 	string md5 = MD5::hash(image, size);
 	Properties props{};
@@ -138,7 +138,6 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSy
 	console.initializeVideo();
 	console.initializeAudio();
 	logMsg("is PAL: %s", EmuSystem::vidSysIsPAL() ? "yes" : "no");
-	return {};
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
@@ -199,25 +198,23 @@ void EmuSystem::reset(ResetMode mode)
 	}
 }
 
-EmuSystem::Error EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(const char *path)
 {
 	Serializer state(string(path), Serializer::Mode::ReadWrite);
 	if(!osystem->state().saveState(state))
 	{
-		return makeFileWriteError();
+		throwFileWriteError();
 	}
-	return {};
 }
 
-EmuSystem::Error EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(const char *path)
 {
 	Serializer state(string(path), Serializer::Mode::ReadOnly);
 	if(!osystem->state().loadState(state))
 	{
-		return makeFileReadError();
+		throwFileReadError();
 	}
 	updateSwitchValues();
-	return {};
 }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
@@ -247,11 +244,10 @@ void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 	}
 }
 
-EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
+void EmuSystem::onInit(Base::ApplicationContext ctx)
 {
 	auto &app = EmuApp::get(ctx);
 	osystem.emplace(app);
 	Paddles::setDigitalSensitivity(5);
 	Paddles::setMouseSensitivity(7);
-	return {};
 }

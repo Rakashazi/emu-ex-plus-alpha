@@ -181,13 +181,11 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 {
 	if(!strlen(fdsBiosPath.data()))
 	{
-		fceuReturnedError = "No FDS BIOS set";
-		return -1;
+		throw std::runtime_error{"No FDS BIOS set"};
 	}
 	if(EmuApp::hasArchiveExtension(fdsBiosPath.data()))
 	{
-		std::error_code ec{};
-		for(auto &entry : FS::ArchiveIterator{fdsBiosPath, ec})
+		for(auto &entry : FS::ArchiveIterator{fdsBiosPath})
 		{
 			if(entry.type() == FS::file_type::directory)
 			{
@@ -200,28 +198,19 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 				auto io = entry.moveIO();
 				if(io.size() != size)
 				{
-					fceuReturnedError = "Incompatible FDS BIOS";
-					return -1;
+					throw std::runtime_error{"Incompatible FDS BIOS"};
 				}
 				return io.read(buff, size);
 			}
 		}
-		fceuReturnedError = "Error opening FDS BIOS";
-		return -1;
+		throw std::runtime_error{"Error opening FDS BIOS"};
 	}
 	else
 	{
-		FileIO io{};
-		io.open(fdsBiosPath, IO::AccessHint::ALL);
-		if(!io)
-		{
-			fceuReturnedError = "Error opening FDS BIOS";
-			return -1;
-		}
+		FileIO io{fdsBiosPath, IO::AccessHint::ALL};
 		if(io.size() != size)
 		{
-			fceuReturnedError = "Incompatible FDS BIOS";
-			return -1;
+			throw std::runtime_error{"Incompatible FDS BIOS"};
 		}
 		return io.read(buff, size);
 	}

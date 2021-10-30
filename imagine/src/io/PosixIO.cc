@@ -18,68 +18,69 @@
 #include <fcntl.h>
 #include <imagine/io/PosixIO.hh>
 #include <imagine/util/fd-utils.h>
-#include <imagine/util/string.h>
 #include <imagine/util/utility.h>
+#include <imagine/util/container/ArrayList.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
 
-using namespace IG;
-
-GenericIO PosixIO::makeGeneric()
+PosixIO::PosixIO(IG::CStringView path, uint32_t mode)
 {
-	return GenericIO{std::move(*this)};
-}
-
-std::error_code PosixIO::open(const char *path, uint32_t mode)
-{
-	close();
-
 	// validate flags
-	assert(mode < bit(OPEN_FLAGS_BITS+1));
+	assert(mode < IG::bit(OPEN_FLAGS_BITS+1));
 
 	constexpr mode_t defaultOpenMode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 	int flags = 0;
 	mode_t openMode{};
-	std::array<char, 5> logFlagsStr{};
-	
+	StaticArrayList<char, 5> logFlagsStr{};
+
 	// setup flags
 	if(mode & OPEN_WRITE)
 	{
 		if(mode & OPEN_READ)
 		{
 			flags |= O_RDWR;
-			string_cat(logFlagsStr, "rw");
+			logFlagsStr.emplace_back('r');
 		}
 		else
 		{
 			flags |= O_WRONLY;
-			string_cat(logFlagsStr, "w");
 		}
+		logFlagsStr.emplace_back('w');
 	}
 	else
 	{
 		flags |= O_RDONLY;
-		string_cat(logFlagsStr, "r");
+		logFlagsStr.emplace_back('r');
 	}
 	if(mode & OPEN_CREATE)
 	{
 		flags |= O_CREAT;
 		openMode = defaultOpenMode;
-		string_cat(logFlagsStr, "c");
+		logFlagsStr.emplace_back('c');
 		if(!(mode & OPEN_KEEP_EXISTING))
 		{
 			flags |= O_TRUNC;
-			string_cat(logFlagsStr, "t");
+			logFlagsStr.emplace_back('t');
 		}
 	}
+	logFlagsStr.emplace_back('\0');
 
-	if((fd_ = ::open(path, flags, openMode)) == -1)
+	if((fd_ = ::open(path, flags, openMode)) == -1) [[unlikely]]
 	{
-		logMsg("error opening file (%s) @ %s", logFlagsStr.data(), path);
-		return {errno, std::system_category()};
+		logMsg("error opening file (%s) @ %s", logFlagsStr.data(), path.data());
+		if(mode & IO::OPEN_TEST)
+			return;
+		else
+			throw std::system_error{errno, std::system_category(), path};
 	}
-	logMsg("opened file (%s) fd %d @ %s", logFlagsStr.data(), (int)fd_, path);
-	return {};
+	if(Config::DEBUG_BUILD)
+		logMsg("opened file (%s) fd %d @ %s", logFlagsStr.data(), (int)fd_, path.data());
+}
+
+PosixIO PosixIO::create(IG::CStringView path, uint32_t mode)
+{
+	mode |= OPEN_WRITE | OPEN_CREATE;
+	return {path, mode};
 }
 
 ssize_t PosixIO::read(void *buff, size_t bytes, std::error_code *ecOut)
@@ -136,8 +137,7 @@ std::error_code PosixIO::truncate(off_t offset)
 
 off_t PosixIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 {
-	assumeExpr(isSeekModeValid(mode));
-	auto newPos = lseek(fd_, offset, mode);
+	auto newPos = lseek(fd_, offset, (int)mode);
 	if(newPos == -1) [[unlikely]]
 	{
 		logErr("seek to offset %lld failed", (long long)offset);
@@ -146,15 +146,6 @@ off_t PosixIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 		return -1;
 	}
 	return newPos;
-}
-
-void PosixIO::close()
-{
-	if(fd_ != -1)
-	{
-		logMsg("closing fd:%d", (int)fd_);
-	}
-	fd_.reset();
 }
 
 void PosixIO::sync()

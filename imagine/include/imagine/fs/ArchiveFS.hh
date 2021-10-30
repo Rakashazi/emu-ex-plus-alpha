@@ -17,7 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/io/ArchiveIO.hh>
-#include <system_error>
+#include <imagine/util/string/CStringView.hh>
 #include <compare>
 #include <memory>
 
@@ -28,12 +28,8 @@ class ArchiveIterator : public std::iterator<std::input_iterator_tag, ArchiveEnt
 {
 public:
 	constexpr ArchiveIterator() {}
-	ArchiveIterator(PathString path): ArchiveIterator{path.data()} {}
-	ArchiveIterator(const char *path);
-	ArchiveIterator(PathString path, std::error_code &ec): ArchiveIterator{path.data(), ec} {}
-	ArchiveIterator(const char *path, std::error_code &ec);
+	ArchiveIterator(IG::CStringView path);
 	ArchiveIterator(GenericIO io);
-	ArchiveIterator(GenericIO io, std::error_code &ec);
 	ArchiveIterator(ArchiveEntry entry);
 	ArchiveIterator(const ArchiveIterator&) = default;
 	ArchiveIterator(ArchiveIterator&&) = default;
@@ -58,10 +54,6 @@ static ArchiveIterator end(const ArchiveIterator &)
 	return {};
 }
 
-ArchiveIO fileFromArchive(const char *archivePath, const char *filePath);
-static ArchiveIO fileFromArchive(PathString archivePath, PathString filePath)
-{
-	return fileFromArchive(archivePath.data(), filePath.data());
-}
+ArchiveIO fileFromArchive(IG::CStringView archivePath, IG::CStringView filePath);
 
 };

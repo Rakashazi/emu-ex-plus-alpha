@@ -28,6 +28,18 @@
 namespace Base
 {
 
+void ApplicationContext::dispatchOnInit(ApplicationInitParams initParams)
+{
+	try
+	{
+		onInit(initParams);
+	}
+	catch(std::exception &err)
+	{
+		exitWithMessage(-1, err.what());
+	}
+}
+
 Application &ApplicationContext::application() const
 {
 	return ApplicationContextImpl::application();
@@ -57,7 +69,16 @@ Window *ApplicationContext::makeWindow(WindowConfig config, WindowInitDelegate o
 	auto ptr = winPtr.get();
 	application().addWindow(std::move(winPtr));
 	if(Window::shouldRunOnInitAfterAddingWindow && onInit)
-		onInit(*this, *ptr);
+	{
+		try
+		{
+			onInit(*this, *ptr);
+		}
+		catch(std::exception &err)
+		{
+			exitWithMessage(-1, err.what());
+		}
+	}
 	return ptr;
 }
 
@@ -166,7 +187,7 @@ void ApplicationContext::dispatchOnExit(bool backgrounded)
 	application().dispatchOnExit(*this, backgrounded);
 }
 
-FS::RootPathInfo ApplicationContext::nearestRootPath(const char *path) const
+FS::RootPathInfo ApplicationContext::nearestRootPath(IG::CStringView path) const
 {
 	if(!path)
 		return {};
@@ -191,15 +212,13 @@ FS::RootPathInfo ApplicationContext::nearestRootPath(const char *path) const
 	return {nearestPtr->root.name, nearestPtr->root.length};
 }
 
-AssetIO ApplicationContext::openAsset(const char *name, IO::AccessHint access, const char *appName) const
+AssetIO ApplicationContext::openAsset(IG::CStringView name, IO::AccessHint access, unsigned openFlags, const char *appName) const
 {
-	AssetIO io;
 	#ifdef __ANDROID__
-	io.open(*this, name, access);
+	return {*this, name, access, openFlags};
 	#else
-	io.open(IG::formatToPathString("{}/{}", assetPath(appName).data(), name).data(), access);
+	return {IG::formatToPathString("{}/{}", assetPath(appName).data(), name), access, openFlags};
 	#endif
-	return io;
 }
 
 [[gnu::weak]] bool ApplicationContext::hasSystemPathPicker() const { return false; }

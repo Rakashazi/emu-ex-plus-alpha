@@ -33,7 +33,7 @@ GLTask::GLTask(Base::ApplicationContext ctx, const char *debugLabel):
 	commandPort{debugLabel}
 {}
 
-Error GLTask::makeGLContext(GLTaskConfig config)
+bool GLTask::makeGLContext(GLTaskConfig config)
 {
 	deinit();
 	thread = IG::makeThreadSync(
@@ -86,7 +86,7 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 		});
 	if(!context) [[unlikely]]
 	{
-		return std::runtime_error("error creating GL context");
+		return false;
 	}
 	bufferConfig = config.bufferConfig;
 	onExit =
@@ -110,7 +110,7 @@ Error GLTask::makeGLContext(GLTaskConfig config)
 				return true;
 			}, appContext(), Base::RENDERER_TASK_ON_EXIT_PRIORITY
 		};
-	return {};
+	return true;
 }
 
 GLTask::~GLTask()

@@ -85,11 +85,10 @@ PixmapImage::operator bool() const
 	return (bool)lockedBitmap;
 }
 
-std::errc PixmapImage::write(Pixmap dest)
+void PixmapImage::write(Pixmap dest)
 {
 	assumeExpr(dest.format() == pixmap_.format());
 	dest.write(pixmap_, {});
-	return {};
 }
 
 Pixmap PixmapImage::pixmapView()

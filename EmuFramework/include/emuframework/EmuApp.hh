@@ -83,7 +83,7 @@ public:
 	static bool autoSaveStateDefault;
 	static bool hasIcon;
 
-	EmuApp(Base::ApplicationInitParams, Base::ApplicationContext &, Gfx::Error &);
+	EmuApp(Base::ApplicationInitParams, Base::ApplicationContext &);
 
 	bool willCreateSystem(ViewAttachParams attach, Input::Event e);
 	void createSystemWithMedia(GenericIO io, const char *path, const char *name,
@@ -116,10 +116,10 @@ public:
 	void printScreenshotResult(int num, bool success);
 	void saveAutoState();
 	bool loadAutoState();
-	EmuSystem::Error saveState(const char *path);
-	EmuSystem::Error saveStateWithSlot(int slot);
-	EmuSystem::Error loadState(const char *path);
-	EmuSystem::Error loadStateWithSlot(int slot);
+	bool saveState(const char *path);
+	bool saveStateWithSlot(int slot);
+	bool loadState(const char *path);
+	bool loadStateWithSlot(int slot);
 	void setDefaultVControlsButtonSpacing(int spacing);
 	void setDefaultVControlsButtonStagger(int stagger);
 	FS::PathString mediaSearchPath();

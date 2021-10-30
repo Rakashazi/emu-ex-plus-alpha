@@ -14,18 +14,14 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "AAssetIO"
+#include <imagine/io/AAssetIO.hh>
+#include <imagine/base/ApplicationContext.hh>
+#include <imagine/util/format.hh>
+#include <imagine/logger/logger.h>
+#include "utils.hh"
+#include <android/asset_manager.h>
 #include <unistd.h>
 #include <sys/mman.h>
-#include <imagine/io/AAssetIO.hh>
-#include "utils.hh"
-#include <imagine/base/ApplicationContext.hh>
-#include <imagine/logger/logger.h>
-#include <android/asset_manager.h>
-
-GenericIO AAssetIO::makeGeneric()
-{
-	return GenericIO{std::move(*this)};
-}
 
 static int accessHintToAAssetMode(IO::AccessHint advice)
 {
@@ -38,24 +34,20 @@ static int accessHintToAAssetMode(IO::AccessHint advice)
 	}
 }
 
-std::error_code AAssetIO::open(Base::ApplicationContext ctx, const char *name, AccessHint access)
+AAssetIO::AAssetIO(Base::ApplicationContext ctx, IG::CStringView name, AccessHint access, unsigned openFlags):
+	asset{AAssetManager_open(ctx.aAssetManager(), name, accessHintToAAssetMode(access))}
 {
-	logMsg("opening asset %s", name);
-	auto mode = accessHintToAAssetMode(access);
-	asset.reset(AAssetManager_open(ctx.aAssetManager(), name, mode));
-	if(!asset)
+	if(!asset) [[unlikely]]
 	{
-		logErr("error in AAssetManager_open");
-		return {EINVAL, std::system_category()};
+		logErr("error in AAssetManager_open(%s, %s)", name.data(), accessHintStr(access));
+		if(openFlags & OPEN_TEST)
+			return;
+		else
+			throw std::runtime_error{fmt::format("Error opening asset: {}", name)};
 	}
-	switch(access)
-	{
-		case IO::AccessHint::NORMAL: break;
-		case IO::AccessHint::SEQUENTIAL: advise(0, 0, IO::Advice::SEQUENTIAL); break;
-		case IO::AccessHint::RANDOM: advise(0, 0, IO::Advice::RANDOM); break;
-		case IO::AccessHint::ALL: advise(0, 0, IO::Advice::WILLNEED); break;
-	}
-	return {};
+	logMsg("opened asset:%p name:%s access:%s", asset.get(), name.data(), accessHintStr(access));
+	if(access == IO::AccessHint::ALL)
+		makeMapIO();
 }
 
 ssize_t AAssetIO::read(void *buff, size_t bytes, std::error_code *ecOut)
@@ -72,11 +64,20 @@ ssize_t AAssetIO::read(void *buff, size_t bytes, std::error_code *ecOut)
 	return bytesRead;
 }
 
-const uint8_t *AAssetIO::mmapConst()
+ssize_t AAssetIO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut)
+{
+	if(mapIO)
+		return mapIO.readAtPos(buff, bytes, offset, ecOut);
+	else
+		return IO::readAtPos(buff, bytes, offset, ecOut);
+}
+
+std::span<uint8_t> AAssetIO::map()
 {
 	if(makeMapIO())
-		return mapIO.mmapConst();
-	else return nullptr;
+		return mapIO.map();
+	else
+		return {};
 }
 
 ssize_t AAssetIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
@@ -90,8 +91,7 @@ off_t AAssetIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 {
 	if(mapIO)
 		return mapIO.seek(offset, mode, ecOut);
-	assumeExpr(isSeekModeValid(mode));
-	auto newPos = AAsset_seek(asset.get(), offset, mode);
+	auto newPos = AAsset_seek(asset.get(), offset, (int)mode);
 	if(newPos < 0)
 	{
 		if(ecOut)
@@ -99,12 +99,6 @@ off_t AAssetIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 		return -1;
 	}
 	return newPos;
-}
-
-void AAssetIO::close()
-{
-	mapIO.close();
-	asset.reset();
 }
 
 size_t AAssetIO::size()
@@ -128,9 +122,10 @@ AAssetIO::operator bool() const
 
 void AAssetIO::advise(off_t offset, size_t bytes, Advice advice)
 {
-	if(!makeMapIO() || AAsset_isAllocated(asset.get()))
-		return;
-	mapIO.advise(offset, bytes, advice);
+	if(offset == 0 && bytes == 0 && advice == IO::Advice::WILLNEED)
+	makeMapIO();
+	if(mapIO)
+		mapIO.advise(offset, bytes, advice);
 }
 
 bool AAssetIO::makeMapIO()
@@ -139,11 +134,28 @@ bool AAssetIO::makeMapIO()
 		return true;
 	const void *buff = AAsset_getBuffer(asset.get());
 	if(!buff)
+	{
+		logErr("error in AAsset_getBuffer(%p)", asset.get());
 		return false;
+	}
 	auto size = AAsset_getLength(asset.get());
-	mapIO.open(buff, size);
-	logMsg("mapped into memory");
+	mapIO = {IG::ByteBuffer{{(uint8_t*)buff, (size_t)size}}};
 	return true;
+}
+
+IG::ByteBuffer AAssetIO::releaseBuffer()
+{
+	if(!makeMapIO())
+		return {};
+	auto map = mapIO.map();
+	logMsg("releasing asset:%p with buffer:%p (%zu bytes)", asset.get(), map.data(), map.size());
+	return {map,
+		[asset = asset.release()](const uint8_t *ptr, size_t)
+		{
+			logMsg("closing released asset:%p", asset);
+			AAsset_close(asset);
+		}
+	};
 }
 
 void AAssetIO::closeAAsset(AAsset *asset)

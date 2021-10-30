@@ -23,9 +23,13 @@
 #include <imagine/logger/logger.h>
 #include "utils.hh"
 
+MapIO::MapIO(IG::ByteBuffer buff):
+	currPos{buff.data()},
+	buff{std::move(buff)} {}
+
 ssize_t MapIO::read(void *buff, size_t bytes, std::error_code *ecOut)
 {
-	assert(currPos >= data);
+	assert(currPos >= data());
 	auto bytesRead = readAtAddr(buff, bytes, currPos, ecOut);
 	if(bytesRead > 0)
 	{
@@ -36,12 +40,12 @@ ssize_t MapIO::read(void *buff, size_t bytes, std::error_code *ecOut)
 
 ssize_t MapIO::readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut)
 {
-	return readAtAddr(buff, bytes, data + offset, ecOut);
+	return readAtAddr(buff, bytes, data() + offset, ecOut);
 }
 
-const uint8_t *MapIO::mmapConst()
+std::span<uint8_t> MapIO::map()
 {
-	return data;
+	return {data(), size()};
 }
 
 ssize_t MapIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
@@ -54,15 +58,8 @@ ssize_t MapIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
 
 off_t MapIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 {
-	if(!isSeekModeValid(mode))
-	{
-		logErr("invalid seek parameter: %d", (int)mode);
-		if(ecOut)
-			*ecOut = {EINVAL, std::system_category()};
-		return -1;
-	}
-	auto newPos = (const uint8_t*)transformOffsetToAbsolute(mode, offset, (off_t)data, off_t(dataEnd()), (off_t)currPos);
-	if(newPos < data || newPos > dataEnd())
+	auto newPos = (uint8_t*)transformOffsetToAbsolute(mode, offset, (off_t)data(), (off_t)dataEnd(), (off_t)currPos);
+	if(newPos < data() || newPos > dataEnd())
 	{
 		logErr("illegal seek position");
 		if(ecOut)
@@ -70,12 +67,12 @@ off_t MapIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 		return -1;
 	}
 	currPos = newPos;
-	return currPos - data;
+	return currPos - data();
 }
 
 size_t MapIO::size()
 {
-	return dataSize;
+	return buff.size();
 }
 
 bool MapIO::eof()
@@ -85,7 +82,7 @@ bool MapIO::eof()
 
 MapIO::operator bool() const
 {
-	return data;
+	return data();
 }
 
 static int adviceToMAdv(IO::Advice advice)
@@ -104,45 +101,47 @@ void MapIO::advise(off_t offset, size_t bytes, Advice advice)
 {
 	assert(offset >= 0);
 	if(!bytes)
-		bytes = dataSize;
-	if(bytes > dataSize - offset) // clip to end of data
+		bytes = size();
+	if(bytes > size() - offset) // clip to end of data
 	{
-		bytes = dataSize - offset;
+		bytes = size() - offset;
 	}
-	void *srcAddr = (void*)((uintptr_t)data + offset);
+	void *srcAddr = (void*)((uintptr_t)data() + offset);
 	void *pageSrcAddr = (void*)roundDownToPageSize((uintptr_t)srcAddr);
 	bytes += (uintptr_t)srcAddr - (uintptr_t)pageSrcAddr; // add extra bytes from rounding down to page size
 	int mAdv = adviceToMAdv(advice);
 	if(madvise(pageSrcAddr, bytes, mAdv) != 0 && Config::DEBUG_BUILD)
 	{
-		logWarn("madvise address:%p size:%zu failed:%s", pageSrcAddr, bytes, strerror(errno));
+		logWarn("madvise(%p, %zu, %s) failed:%s", pageSrcAddr, bytes, adviceStr(advice), strerror(errno));
+	}
+	else
+	{
+		logDMsg("madvise(%p, %zu, %s)", pageSrcAddr, bytes, adviceStr(advice));
 	}
 }
 #endif
 
-void MapIO::setData(const void *dataPtr, size_t size)
+IG::ByteBuffer MapIO::releaseBuffer()
 {
-	logMsg("setting data @ %p with size %llu", dataPtr, (unsigned long long)size);
-	data = currPos = (const uint8_t*)dataPtr;
-	dataSize = size;
+	logMsg("releasing buffer:%p (%zu bytes)", buff.data(), buff.size());
+	return std::move(buff);
 }
 
-void MapIO::resetData()
+uint8_t *MapIO::data() const
 {
-	data = currPos = nullptr;
-	dataSize = 0;
+	return buff.data();
 }
 
-const uint8_t *MapIO::dataEnd()
+uint8_t *MapIO::dataEnd() const
 {
-	return data + dataSize;
+	return data() + buff.size();
 }
 
 ssize_t MapIO::readAtAddr(void* buff, size_t bytes, const uint8_t *addr, std::error_code *ecOut)
 {
 	if(addr >= dataEnd())
 	{
-		if(!data)
+		if(!data())
 		{
 			if(ecOut)
 				*ecOut = {EBADF, std::system_category()};

@@ -13,15 +13,67 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#define LOGTAG "PosixFileIO"
 #include <imagine/io/FileIO.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/fd-utils.h>
 #include "IOUtils.hh"
 #include <sys/mman.h>
+#include <cstring>
+
+#if defined __linux__
+static constexpr bool hasMmapPopulateFlag = true;
+#else
+static constexpr bool hasMmapPopulateFlag = false;
+static constexpr int MAP_POPULATE = 0;
+#endif
 
 template class IOUtils<PosixFileIO>;
 
-static IO& getIO(std::variant<PosixIO, BufferMapIO> &ioImpl)
+static void applyAccessHint(PosixFileIO &io, IO::AccessHint access, bool isMapped)
+{
+	switch(access)
+	{
+		case IO::AccessHint::NORMAL: return;
+		case IO::AccessHint::SEQUENTIAL: return io.advise(0, 0, IO::Advice::SEQUENTIAL);
+		case IO::AccessHint::RANDOM: return io.advise(0, 0, IO::Advice::RANDOM);
+		case IO::AccessHint::ALL:
+			if(!isMapped || (isMapped && !hasMmapPopulateFlag))
+				return io.advise(0, 0, IO::Advice::WILLNEED);
+	}
+}
+
+PosixFileIO::PosixFileIO(IG::CStringView path, IO::AccessHint access, unsigned mode):
+	ioImpl{std::in_place_type<PosixIO>, path, mode}
+{
+	auto fd = std::get<PosixIO>(ioImpl).fd();
+	if(fd == -1) [[unlikely]] // open failed in OPEN_TEST case
+	{
+		return;
+	}
+	// try to open as memory map if read-only
+	if(!(mode & IO::OPEN_WRITE))
+	{
+		MapIO mappedFile = makePosixMapIO(access, fd);
+		if(mappedFile)
+		{
+			ioImpl = std::move(mappedFile);
+			applyAccessHint(*this, access, true);
+		}
+		else
+		{
+			applyAccessHint(*this, access, false);
+		}
+	}
+}
+
+PosixFileIO PosixFileIO::create(IG::CStringView path, unsigned mode)
+{
+	mode |= IO::OPEN_WRITE | IO::OPEN_CREATE;
+	return {path, IO::AccessHint::NORMAL, mode};
+}
+
+static IO& getIO(std::variant<PosixIO, MapIO> &ioImpl)
 {
 	return std::visit([](auto &&io) -> IO& { return io; }, ioImpl);
 }
@@ -30,69 +82,44 @@ PosixFileIO::operator IO*() { return &getIO(ioImpl); }
 
 PosixFileIO::operator IO&() { return getIO(ioImpl); }
 
-GenericIO PosixFileIO::makeGeneric()
+PosixFileIO::operator GenericIO()
 {
 	return std::visit([](auto &&io) { return GenericIO{std::move(io)}; }, ioImpl);
 }
 
-std::error_code PosixFileIO::open(const char *path, IO::AccessHint access, uint32_t mode)
+static IG::ByteBuffer byteBufferFromMmap(void *data, off_t size)
 {
-	close();
+	return
 	{
-		PosixIO file;
-		auto ec = file.open(path, mode);
-		if(ec)
+		{(uint8_t*)data, (size_t)size},
+		[](const uint8_t *ptr, size_t size)
 		{
-			return ec;
+			logMsg("unmapping:%p (%zu bytes)", ptr, size);
+			if(munmap((void*)ptr, size) == -1)
+			{
+				if(Config::DEBUG_BUILD)
+					logErr("munmap(%p, %zu) error:%s", ptr, size, strerror(errno));
+			}
 		}
-		ioImpl = std::move(file);
-	}
-
-	// try to open as memory map if read-only
-	if(!(mode & IO::OPEN_WRITE))
-	{
-		BufferMapIO mappedFile = makePosixMapIO(access, std::get<PosixIO>(ioImpl).fd());
-		if(mappedFile)
-		{
-			//logMsg("switched to mmap mode");
-			ioImpl = std::move(mappedFile);
-		}
-	}
-
-	// setup advice if using read access
-	if((mode & IO::OPEN_READ))
-	{
-		switch(access)
-		{
-			bdefault:
-			bcase IO::AccessHint::SEQUENTIAL:	advise(0, 0, IO::Advice::SEQUENTIAL);
-			bcase IO::AccessHint::RANDOM:	advise(0, 0, IO::Advice::RANDOM);
-			bcase IO::AccessHint::ALL:	advise(0, 0, IO::Advice::WILLNEED);
-		}
-	}
-
-	return {};
+	};
 }
 
-BufferMapIO PosixFileIO::makePosixMapIO(IO::AccessHint access, int fd)
+MapIO PosixFileIO::makePosixMapIO(IO::AccessHint access, int fd)
 {
 	off_t size = fd_size(fd);
+	if(!size) [[unlikely]]
+		return {};
 	int flags = MAP_SHARED;
-	#if defined __linux__
 	if(access == IO::AccessHint::ALL)
 		flags |= MAP_POPULATE;
-	#endif
 	void *data = mmap(nullptr, size, PROT_READ, flags, fd, 0);
 	if(data == MAP_FAILED)
+	{
+		logErr("mmap fd:%d (%zu bytes) failed", fd, (size_t)size);
 		return {};
-	BufferMapIO io;
-	io.open((const char*)data, size,
-		[data](BufferMapIO &io)
-		{
-			logMsg("unmapping %p", data);
-			munmap(data, io.size());
-		});
-	return io;
+	}
+	logMsg("mapped fd:%d to %p (%zu bytes)", fd, data, (size_t)size);
+	return {byteBufferFromMmap(data, size)};
 }
 
 ssize_t PosixFileIO::read(void *buff, size_t bytes, std::error_code *ecOut)
@@ -105,9 +132,9 @@ ssize_t PosixFileIO::readAtPos(void *buff, size_t bytes, off_t offset, std::erro
 	return std::visit([&](auto &&io){ return io.readAtPos(buff, bytes, offset, ecOut); }, ioImpl);
 }
 
-const uint8_t *PosixFileIO::mmapConst()
+std::span<uint8_t> PosixFileIO::map()
 {
-	return std::visit([&](auto &&io){ return io.mmapConst(); }, ioImpl);
+	return std::visit([&](auto &&io){ return io.map(); }, ioImpl);
 }
 
 ssize_t PosixFileIO::write(const void *buff, size_t bytes, std::error_code *ecOut)
@@ -123,11 +150,6 @@ std::error_code PosixFileIO::truncate(off_t offset)
 off_t PosixFileIO::seek(off_t offset, IO::SeekMode mode, std::error_code *ecOut)
 {
 	return std::visit([&](auto &&io){ return io.seek(offset, mode, ecOut); }, ioImpl);
-}
-
-void PosixFileIO::close()
-{
-	std::visit([&](auto &&io){ io.close(); }, ioImpl);
 }
 
 void PosixFileIO::sync()
@@ -153,4 +175,12 @@ void PosixFileIO::advise(off_t offset, size_t bytes, IO::Advice advice)
 PosixFileIO::operator bool() const
 {
 	return std::visit([&](auto &&io){ return (bool)io; }, ioImpl);
+}
+
+IG::ByteBuffer PosixFileIO::releaseBuffer()
+{
+	auto mapIoPtr = std::get_if<MapIO>(&ioImpl);
+	if(!mapIoPtr)
+		return {};
+	return mapIoPtr->releaseBuffer();
 }

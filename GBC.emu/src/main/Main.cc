@@ -117,10 +117,9 @@ void applyGBPalette()
 		gbEmu.setDmgPaletteColor(2, i, makeOutputColor(pal.sp2[i]));
 }
 
-EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext)
+void EmuSystem::onOptionsLoaded(Base::ApplicationContext)
 {
 	gbEmu.setInputGetter(&gbcInput);
-	return {};
 }
 
 void EmuSystem::reset(ResetMode mode)
@@ -134,20 +133,16 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 	return IG::formatToPathString("{}/{}.0{}.gqs", statePath, gameName, saveSlotCharUpper(slot));
 }
 
-EmuSystem::Error EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(const char *path)
 {
 	if(!gbEmu.saveState(frameBuffer, gambatte::lcd_hres, path))
-		return makeFileWriteError();
-	else
-		return {};
+		throwFileWriteError();
 }
 
-EmuSystem::Error EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(const char *path)
 {
 	if(!gbEmu.loadState(path))
-		return makeFileReadError();
-	else
-		return {};
+		throwFileReadError();
 }
 
 void EmuSystem::saveBackupMem()
@@ -174,18 +169,18 @@ void EmuSystem::closeSystem()
 	totalSamples = 0;
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	gbEmu.setSaveDir(EmuSystem::savePath());
-	auto buffView = io.constBufferView();
-	if(!buffView)
+	auto buff = io.buffer();
+	if(!buff)
 	{
-		return makeFileReadError();
+		throwFileReadError();
 	}
-	if(auto result = gbEmu.load(buffView.data(), buffView.size(), gameFileName().data(), optionReportAsGba ? gbEmu.GBA_CGB : 0);
+	if(auto result = gbEmu.load(buff.data(), buff.size(), gameFileName().data(), optionReportAsGba ? gbEmu.GBA_CGB : 0);
 		result != gambatte::LOADRES_OK)
 	{
-		return makeError(gambatte::to_string(result));
+		throw std::runtime_error(gambatte::to_string(result));
 	}
 	if(!gbEmu.isCgb())
 	{
@@ -196,7 +191,6 @@ EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgre
 	}
 	readCheatFile();
 	applyCheats();
-	return {};
 }
 
 void EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)

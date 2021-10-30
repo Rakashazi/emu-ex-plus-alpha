@@ -130,20 +130,16 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 	return IG::formatToPathString("{}/{}.0{}.sta", statePath, gameName, saveSlotCharUpper(slot));
 }
 
-EmuSystem::Error EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(const char *path)
 {
 	if(!save_stateWithName(path))
-		return EmuSystem::makeFileWriteError();
-	else
-		return {};
+		return EmuSystem::throwFileWriteError();
 }
 
-EmuSystem::Error EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(const char *path)
 {
 	if(!load_stateWithName(path))
-		return EmuSystem::makeFileReadError();
-	else
-		return {};
+		return EmuSystem::throwFileReadError();
 }
 
 void EmuSystem::saveBackupMem()
@@ -279,14 +275,14 @@ CLINK void *res_load_data(void *contextPtr, const char *name)
 	return buffer;
 }
 
-EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate onLoadProgressFunc)
+void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate onLoadProgressFunc)
 {
 	onLoadProgress = onLoadProgressFunc;
 	auto resetOnLoadProgress = IG::scopeGuard([&](){ onLoadProgress = {}; });
 	ROM_DEF *drv = res_load_drv(&ctx, gameName().data());
 	if(!drv)
 	{
-		return makeError("This game isn't recognized");
+		throw std::runtime_error("This game isn't recognized");
 	}
 	auto freeDrv = IG::scopeGuard([&](){ free(drv); });
 	logMsg("rom set %s, %s", drv->name, drv->longname);
@@ -297,7 +293,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 		char errorStr[1024];
 		if(!init_game(&ctx, gnoFilename.data(), errorStr))
 		{
-			return makeError(errorStr);
+			throw std::runtime_error(errorStr);
 		}
 	}
 	else
@@ -305,7 +301,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 		char errorStr[1024];
 		if(!init_game(&ctx, drv->name, errorStr))
 		{
-			return makeError(errorStr);
+			throw std::runtime_error(errorStr);
 		}
 
 		if(optionCreateAndUseCache && !FS::exists(gnoFilename.data()))
@@ -330,7 +326,6 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSyst
 	// clear excess bits from universe bios region/system settings
 	memory.memcard[2] = memory.memcard[2] & 0x80;
 	memory.memcard[3] = memory.memcard[3] & 0x3;
-	return {};
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)
@@ -401,7 +396,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
+void EmuSystem::onInit(Base::ApplicationContext ctx)
 {
 	visible_area.x = 0;//16;
 	visible_area.y = 16;
@@ -418,6 +413,5 @@ EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
 	{
 		IG::formatTo(datafilePath, "{}/gngeo_data.zip", ctx.assetPath().data());
 	}
-	return {};
 }
 

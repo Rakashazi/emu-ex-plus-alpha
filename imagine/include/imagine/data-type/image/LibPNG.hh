@@ -40,7 +40,6 @@ public:
 	PngImage(PngImage &&o);
 	PngImage &operator=(PngImage &&o);
 	~PngImage();
-	std::error_code readHeader(GenericIO io);
 	std::errc readImage(IG::Pixmap dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();

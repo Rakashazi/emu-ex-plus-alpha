@@ -38,6 +38,7 @@
 #include "Cheats.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/ScopeGuard.hh>
 
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 bool EmuSystem::hasCheats = true;
@@ -131,53 +132,19 @@ static FS::PathString sprintBRAMSaveFilename()
 
 static const unsigned maxSaveStateSize = STATE_SIZE+4;
 
-static EmuSystem::Error saveMDState(const char *path)
+void EmuSystem::saveState(const char *path)
 {
 	auto stateData = std::make_unique<uint8_t[]>(maxSaveStateSize);
-	if(!stateData)
-		return EmuSystem::makeError("Out of memory");
 	logMsg("saving state data");
 	int size = state_save(stateData.get());
 	logMsg("writing to file");
-	std::error_code ec;
-	if(FileUtils::writeToPath(path, stateData.get(), size, &ec) == -1)
-	{
-		return EmuSystem::makeError(std::error_code{ec});
-	}
+	FileUtils::writeToPath(path, stateData.get(), size);
 	logMsg("wrote %d byte state", size);
-	return {};
 }
 
-static EmuSystem::Error loadMDState(const char *path)
+void EmuSystem::loadState(const char *path)
 {
-	FileIO f;
-	if(auto ec = f.open(path, IO::AccessHint::ALL);
-		ec)
-	{
-		EmuSystem::makeError(std::error_code{ec});
-	}
-	auto stateData = (const uint8_t *)f.mmapConst();
-	if(!stateData)
-	{
-		return EmuSystem::makeFileReadError();
-	}
-	if(auto err = state_load(stateData);
-		err)
-	{
-		return err;
-	}
-	//sound_restore();
-	return {};
-}
-
-EmuSystem::Error EmuSystem::saveState(const char *path)
-{
-	return saveMDState(path);
-}
-
-EmuSystem::Error EmuSystem::loadState(const char *path)
-{
-	return loadMDState(path);
+	state_load(FileUtils::bufferFromPath(path).data());
 }
 
 void EmuSystem::saveBackupMem() // for manually saving when not closing game
@@ -189,8 +156,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	{
 		logMsg("saving BRAM");
 		auto saveStr = sprintBRAMSaveFilename();
-		FileIO bramFile;
-		bramFile.create(saveStr.data());
+		auto bramFile = FileIO::create(saveStr, IO::OPEN_TEST);
 		if(!bramFile)
 			logMsg("error creating bram file");
 		else
@@ -224,8 +190,14 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 			}
 			sramPtr = sramTemp;
 		}
-		if(FileUtils::writeToPath(saveStr.data(), sramPtr, 0x10000, nullptr) == -1)
+		try
+		{
+			FileUtils::writeToPath(saveStr, sramPtr, 0x10000);
+		}
+		catch(...)
+		{
 			logMsg("error creating sram file");
+		}
 	}
 	writeCheatFile();
 }
@@ -365,23 +337,17 @@ FS::PathString EmuSystem::willLoadGameFromPath(FS::PathString path)
 	return path;
 }
 
-EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	#ifndef NO_SCD
 	using namespace Mednafen;
 	CDAccess *cd{};
+	auto deleteCDAccess = IG::scopeGuard([&](){ delete cd; });
 	if(hasMDCDExtension(gameFileName().data()) ||
 		(string_hasDotExtension(gameFileName().data(), "bin") && FS::file_size(fullGamePath()) > 1024*1024*10)) // CD
 	{
 		FS::current_path(gamePath());
-		try
-		{
-			cd = CDAccess_Open(&NVFS, fullGamePath(), false);
-		}
-		catch(std::exception &e)
-		{
-			return makeError(e.what());
-		}
+		cd = CDAccess_Open(&NVFS, fullGamePath(), false);
 
 		unsigned region = REGION_USA;
 		if (config.region_detect == 1) region = REGION_USA;
@@ -404,19 +370,16 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSy
 		}
 		if(!strlen(biosPath))
 		{
-			delete cd;
-			return makeError(fmt::format("Set a {} BIOS in the Options", biosName));
+			throw std::runtime_error(fmt::format("Set a {} BIOS in the Options", biosName));
 		}
 		if(FileIO io;
 			!load_rom(io, biosPath, nullptr))
 		{
-			delete cd;
-			return makeError(fmt::format("Error loading BIOS: {}", biosPath));
+			throw std::runtime_error(fmt::format("Error loading BIOS: {}", biosPath));
 		}
 		if(!sCD.isActive)
 		{
-			delete cd;
-			return makeError(fmt::format("Invalid BIOS: {}", biosPath));
+			throw std::runtime_error(fmt::format("Invalid BIOS: {}", biosPath));
 		}
 	}
 	else
@@ -426,7 +389,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSy
 		logMsg("loading ROM %s", fullGamePath());
 		if(!load_rom(io, fullGamePath(), originalGameFileName().data()))
 		{
-			return makeFileReadError();
+			throwFileReadError();
 		}
 	}
 	autoDetectedVidSysPAL = vdp_pal;
@@ -453,9 +416,7 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSy
 	if(sCD.isActive)
 	{
 		auto saveStr = sprintBRAMSaveFilename();
-		FileIO bramFile;
-		bramFile.open(saveStr.data(), IO::AccessHint::ALL);
-
+		FileIO bramFile{saveStr.data(), IO::AccessHint::ALL, IO::OPEN_TEST};
 		if(!bramFile)
 		{
 			logMsg("no BRAM on disk, formatting");
@@ -506,16 +467,14 @@ EmuSystem::Error EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSy
 	{
 		if(Insert_CD(cd) != 0)
 		{
-			delete cd;
-			return makeError("Error loading CD");
+			throw std::runtime_error("Error loading CD");
 		}
+		deleteCDAccess.cancel();
 	}
 	#endif
 
 	readCheatFile();
 	applyCheats();
-
-	return {};
 }
 
 void EmuSystem::configAudioRate(IG::FloatSeconds frameTime, uint32_t rate)

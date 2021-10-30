@@ -35,20 +35,12 @@ static std::shared_ptr<ArchiveEntry> makeArchiveEntryPtr(Args&& ...args)
 	}
 }
 
-ArchiveIterator::ArchiveIterator(const char *path):
+ArchiveIterator::ArchiveIterator(IG::CStringView path):
 	impl{makeArchiveEntryPtr(path)}
-{}
-
-ArchiveIterator::ArchiveIterator(const char *path, std::error_code &ec):
-	impl{makeArchiveEntryPtr(path, ec)}
 {}
 
 ArchiveIterator::ArchiveIterator(GenericIO io):
 	impl{makeArchiveEntryPtr(std::move(io))}
-{}
-
-ArchiveIterator::ArchiveIterator(GenericIO io, std::error_code &ec):
-	impl{makeArchiveEntryPtr(std::move(io), ec)}
 {}
 
 ArchiveIterator::ArchiveIterator(ArchiveEntry entry):
@@ -82,7 +74,7 @@ void ArchiveIterator::rewind()
 	impl->rewind();
 }
 
-ArchiveIO fileFromArchive(const char *archivePath, const char *filePath)
+ArchiveIO fileFromArchive(IG::CStringView archivePath, IG::CStringView filePath)
 {
 	for(auto &entry : FS::ArchiveIterator{archivePath})
 	{

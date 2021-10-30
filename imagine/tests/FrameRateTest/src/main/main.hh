@@ -27,7 +27,7 @@
 class FrameRateTestApplication final: public Base::Application
 {
 public:
-	FrameRateTestApplication(Base::ApplicationInitParams, Base::ApplicationContext &, Gfx::Error &);
+	FrameRateTestApplication(Base::ApplicationInitParams, Base::ApplicationContext &);
 	TestFramework *startTest(Base::Window &, const TestParams &t);
 
 private:

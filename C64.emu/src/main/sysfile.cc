@@ -97,33 +97,32 @@ static int loadSysFile(IO &file, const char *name, uint8_t *dest, int minsize, i
 
 static ArchiveIO archiveIOForSysFile(const char *archivePath, const char *sysFileName, char **complete_path_return)
 {
-	std::error_code ec{};
-	for(auto &entry : FS::ArchiveIterator{archivePath, ec})
+	try
 	{
-		if(entry.type() == FS::file_type::directory)
+		for(auto &entry : FS::ArchiveIterator{archivePath})
 		{
-			continue;
+			if(entry.type() == FS::file_type::directory)
+			{
+				continue;
+			}
+			auto name = entry.name();
+			if(!string_equal(FS::basename(name).data(), sysFileName))
+				continue;
+			if(!containsSysFileDirName(FS::basename(FS::dirname(name).data())))
+				continue;
+			logMsg("archive file entry:%s", name);
+			if(complete_path_return)
+			{
+				*complete_path_return = strdup(name);
+				assert(*complete_path_return);
+			}
+			return entry.moveIO();
 		}
-		auto name = entry.name();
-		if(!string_equal(FS::basename(name).data(), sysFileName))
-			continue;
-		if(!containsSysFileDirName(FS::basename(FS::dirname(name).data())))
-			continue;
-		logMsg("archive file entry:%s", name);
-		if(complete_path_return)
-		{
-			*complete_path_return = strdup(name);
-			assert(*complete_path_return);
-		}
-		return entry.moveIO();
+		logErr("not found in archive:%s", archivePath);
 	}
-	if(ec)
+	catch(...)
 	{
 		logErr("error opening archive:%s", archivePath);
-	}
-	else
-	{
-		logErr("not found in archive:%s", archivePath);
 	}
 	return {};
 }
@@ -133,7 +132,7 @@ static AssetIO assetIOForSysFile(Base::ApplicationContext ctx, const char *sysFi
 	for(const auto &subDir : sysFileDirs)
 	{
 		auto fullPath = IG::formatToPathString("{}/{}", subDir, sysFileName);
-		auto file = ctx.openAsset(fullPath.data(), IO::AccessHint::ALL);
+		auto file = ctx.openAsset(fullPath.data(), IO::AccessHint::ALL, IO::OPEN_TEST);
 		if(!file)
 			continue;
 		if(complete_path_return)
@@ -209,7 +208,7 @@ CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const ch
 			if(!io)
 				continue;
 			// Uncompress file into memory and wrap in FILE
-			return io.moveToMapIO().makeGeneric().moveToFileStream(open_mode);
+			return GenericIO{MapIO{std::move(io)}}.moveToFileStream(open_mode);
 		}
 		else
 		{
@@ -233,7 +232,7 @@ CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const ch
 		auto io = assetIOForSysFile(appContext, name, complete_path_return);
 		if(io)
 		{
-			return io.makeGeneric().moveToFileStream(open_mode);
+			return GenericIO{std::move(io)}.moveToFileStream(open_mode);
 		}
 	}
 	logErr("can't open %s in system paths", name);
@@ -311,8 +310,7 @@ CLINK int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize
 			for(const auto &subDir : sysFileDirs)
 			{
 				auto fullPath = IG::formatToPathString("{}/{}/{}", basePath.data(), subDir, name);
-				FileIO file;
-				file.open(fullPath.data(), IO::AccessHint::ALL);
+				FileIO file{fullPath.data(), IO::AccessHint::ALL, IO::OPEN_TEST};
 				if(!file)
 					continue;
 				//logMsg("loading system file: %s", complete_path);
@@ -320,7 +318,7 @@ CLINK int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize
 				if(size == -1)
 				{
 					logErr("failed loading system file:%s from:%s", name, basePath.data());
-					return -1;
+					continue;
 				}
 				return size;
 			}

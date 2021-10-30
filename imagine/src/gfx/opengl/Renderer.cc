@@ -27,8 +27,8 @@ namespace Gfx
 
 static_assert((uint8_t)TextureBufferMode::DEFAULT == 0, "TextureBufferMode::DEFAULT != 0");
 
-Renderer::Renderer(Base::ApplicationContext ctx, Error &err):
-	GLRenderer{ctx, err}
+Renderer::Renderer(Base::ApplicationContext ctx):
+	GLRenderer{ctx}
 {}
 
 Renderer::~Renderer()
@@ -39,37 +39,36 @@ Renderer::~Renderer()
 	}
 }
 
-GLRenderer::GLRenderer(Base::ApplicationContext ctx, Error &err):
+GLRenderer::GLRenderer(Base::ApplicationContext ctx):
 	glManager{ctx.nativeDisplayConnection(), glAPI},
 	mainTask{ctx, "Main GL Context Messages", *static_cast<Renderer*>(this)},
 	releaseShaderCompilerEvent{"GLRenderer::releaseShaderCompilerEvent"}
 {
 	if(!glManager)
 	{
-		err = std::runtime_error("error getting GL display");
-		return;
+		throw std::runtime_error("Renderer error getting GL display");
 	}
 	glManager.logInfo();
 }
 
-Error Renderer::initMainTask(Base::Window *initialWindow, DrawableConfig drawableConfig)
+void Renderer::initMainTask(Base::Window *initialWindow, DrawableConfig drawableConfig)
 {
 	if(mainTask.glContext())
 	{
-		return {};
+		return;
 	}
 	auto ctx = appContext();
 	auto bufferConfig = makeGLBufferConfig(ctx, drawableConfig.pixelFormat, initialWindow);
 	if(!bufferConfig) [[unlikely]]
 	{
-		return std::runtime_error("error finding a GL configuration");
+		throw std::runtime_error("Renderer error finding a GL configuration");
 	}
 	Drawable initialDrawable{};
 	if(initialWindow)
 	{
 		if(!GLRenderer::attachWindow(*initialWindow, *bufferConfig, (Base::GLColorSpace)drawableConfig.colorSpace))
 		{
-			return std::runtime_error("error creating window surface");
+			throw std::runtime_error("Renderer error creating window surface");
 		}
 		initialDrawable = (Drawable)winData(*initialWindow).drawable;
 	}
@@ -81,14 +80,12 @@ Error Renderer::initMainTask(Base::Window *initialWindow, DrawableConfig drawabl
 		.initialDrawable = initialDrawable,
 		.threadPriority = DRAW_THREAD_PRIORITY,
 	};
-	if(auto err = mainTask.makeGLContext(conf);
-		err) [[unlikely]]
+	if(!mainTask.makeGLContext(conf)) [[unlikely]]
 	{
-		return err;
+		throw std::runtime_error("Renderer error creating GL context");
 	}
 	addEventHandlers(ctx, mainTask);
 	configureRenderer();
-	return {};
 }
 
 Base::NativeWindowFormat GLRenderer::nativeWindowFormat(Base::GLBufferConfig bufferConfig) const

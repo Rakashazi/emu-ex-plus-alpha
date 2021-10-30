@@ -81,20 +81,16 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 	return IG::formatToPathString("{}/{}{}.sgm", statePath, gameName, saveSlotChar(slot));
 }
 
-EmuSystem::Error EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(const char *path)
 {
-	if(CPUWriteState(gGba, path))
-		return {};
-	else
-		return makeFileWriteError();
+	if(!CPUWriteState(gGba, path))
+		return throwFileWriteError();
 }
 
-EmuSystem::Error EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(const char *path)
 {
-	if(CPUReadState(gGba, path))
-		return {};
-	else
-		return makeFileReadError();
+	if(!CPUReadState(gGba, path))
+		return throwFileReadError();
 }
 
 void EmuSystem::saveBackupMem()
@@ -118,7 +114,7 @@ void EmuSystem::closeSystem()
 	cheatsNumber = 0; // reset cheat list
 }
 
-static EmuSystem::Error applyGamePatches(const char *patchDir, const char *romName, u8 *rom, int &romSize)
+static void applyGamePatches(const char *patchDir, const char *romName, u8 *rom, int &romSize)
 {
 	if(auto patchStr = IG::formatToPathString("{}/{}.ips", patchDir, romName);
 		FS::exists(patchStr.data()))
@@ -126,52 +122,43 @@ static EmuSystem::Error applyGamePatches(const char *patchDir, const char *romNa
 		logMsg("applying IPS patch: %s", patchStr.data());
 		if(!patchApplyIPS(patchStr.data(), &rom, &romSize))
 		{
-			return EmuSystem::makeError("Error applying IPS patch");
+			throw std::runtime_error("Error applying IPS patch");
 		}
-		return {};
 	}
-	if(auto patchStr = IG::formatToPathString("{}/{}.ups", patchDir, romName);
+	else if(auto patchStr = IG::formatToPathString("{}/{}.ups", patchDir, romName);
 		FS::exists(patchStr.data()))
 	{
 		logMsg("applying UPS patch: %s", patchStr.data());
 		if(!patchApplyUPS(patchStr.data(), &rom, &romSize))
 		{
-			return EmuSystem::makeError("Error applying UPS patch");
+			throw std::runtime_error("Error applying UPS patch");
 		}
-		return {};
 	}
-	if(auto patchStr = IG::formatToPathString("{}/{}.ppf", patchDir, romName);
+	else if(auto patchStr = IG::formatToPathString("{}/{}.ppf", patchDir, romName);
 		FS::exists(patchStr.data()))
 	{
 		logMsg("applying UPS patch: %s", patchStr.data());
 		if(!patchApplyPPF(patchStr.data(), &rom, &romSize))
 		{
-			return EmuSystem::makeError("Error applying PPF patch");
+			throw std::runtime_error("Error applying PPF patch");
 		}
-		return {};
 	}
-	return {}; // no patch found
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	int size = CPULoadRomWithIO(gGba, io);
 	if(!size)
 	{
-		return makeFileReadError();
+		throwFileReadError();
 	}
 	setGameSpecificSettings(gGba);
-	if(auto err = applyGamePatches(EmuSystem::savePath(), EmuSystem::gameName().data(), gGba.mem.rom, size);
-		err)
-	{
-		return err;
-	}
+	applyGamePatches(EmuSystem::savePath(), EmuSystem::gameName().data(), gGba.mem.rom, size);
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
 	auto saveStr = IG::formatToPathString("{}/{}.sav", EmuSystem::savePath(), EmuSystem::gameName().data());
 	CPUReadBatteryFile(gGba, saveStr.data());
 	readCheatFile();
-	return {};
 }
 
 void EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)
@@ -243,7 +230,4 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext)
-{
-	return {};
-}
+void EmuSystem::onInit(Base::ApplicationContext) {}

@@ -52,29 +52,18 @@ static WindowData &windowData(const Base::Window &win)
 }
 
 FrameRateTestApplication::FrameRateTestApplication(Base::ApplicationInitParams initParams,
-	Base::ApplicationContext &ctx, Gfx::Error &rendererErr):
+	Base::ApplicationContext &ctx):
 	Application{initParams},
 	fontManager{ctx},
-	renderer{ctx, rendererErr}
+	renderer{ctx}
 {
-	if(rendererErr) [[unlikely]]
-	{
-		ctx.exitWithMessage(-1, fmt::format("Error creating renderer: {}", rendererErr->what()).data());
-		return;
-	}
-
 	Base::WindowConfig winConf;
 	winConf.setTitle(ctx.applicationName);
 
 	ctx.makeWindow(winConf,
 		[this](Base::ApplicationContext ctx, Base::Window &win)
 		{
-			if(auto err = renderer.initMainTask(&win);
-				err) [[unlikely]]
-			{
-				ctx.exitWithMessage(-1, fmt::format("Error creating renderer: {}", err->what()).data());
-				return;
-			}
+			renderer.initMainTask(&win);
 			viewManager = {renderer};
 			Gfx::GlyphTextureSet defaultFace{renderer, fontManager.makeSystem(), win.heightScaledMMInPixels(3.5)};
 			defaultFace.precacheAlphaNum(renderer);
@@ -318,8 +307,7 @@ const char *const ApplicationContext::applicationName{CONFIG_APP_NAME};
 
 void ApplicationContext::onInit(ApplicationInitParams initParams)
 {
-	Gfx::Error err;
-	initApplication<FrameRateTestApplication>(initParams, *this, err);
+	initApplication<FrameRateTestApplication>(initParams, *this);
 }
 
 }

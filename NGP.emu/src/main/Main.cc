@@ -67,20 +67,16 @@ FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, c
 	return IG::formatToPathString("{}/{}.0{}.ngs", statePath, gameName, saveSlotCharUpper(slot));
 }
 
-EmuSystem::Error EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(const char *path)
 {
 	if(!state_store(path))
-		return makeFileWriteError();
-	else
-		return {};
+		throwFileWriteError();
 }
 
-EmuSystem::Error EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(const char *path)
 {
 	if(!state_restore(path))
-		return makeFileReadError();
-	else
-		return {};
+		throwFileReadError();
 }
 
 bool system_io_state_read(const char* filename, uint8_t* buffer, uint32 bufferLength)
@@ -136,17 +132,16 @@ static bool romLoad(IO &io)
 	return false;
 }
 
-EmuSystem::Error EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	if(!romLoad(io))
 	{
-		return EmuSystem::makeError("Error loading game");
+		throw std::runtime_error("Error loading game");
 	}
 	rom_loaded();
 	logMsg("loaded NGP rom: %s, catalog %d,%d", rom.name, rom_header->catalog, rom_header->subCatalog);
 	::reset();
 	rom_bootHacks();
-	return {};
 }
 
 void EmuSystem::onPrepareAudio(EmuAudio &audio)
@@ -286,12 +281,11 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-EmuSystem::Error EmuSystem::onInit(Base::ApplicationContext ctx)
+void EmuSystem::onInit(Base::ApplicationContext ctx)
 {
 	emuAppPtr = &EmuApp::get(ctx);
 	gfx_buildMonoConvMap();
 	gfx_buildColorConvMap();
 	system_colour = COLOURMODE_AUTO;
 	bios_install();
-	return {};
 }

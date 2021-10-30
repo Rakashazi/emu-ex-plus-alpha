@@ -49,28 +49,16 @@ static bool isDotName(const char *name)
 	return string_equal(name, ".") || string_equal(name, "..");
 }
 
-DirectoryEntryImpl::DirectoryEntryImpl(const char *path, std::error_code &ec):
-	DirectoryEntryImpl{path, &ec}
-{}
-
-DirectoryEntryImpl::DirectoryEntryImpl(const char *path):
-	DirectoryEntryImpl{path, nullptr}
-{}
-
-DirectoryEntryImpl::DirectoryEntryImpl(const char *path, std::error_code *ecPtr):
+DirectoryEntryImpl::DirectoryEntryImpl(IG::CStringView path):
 	dir{opendir(path)}
 {
-	if(!dir)
+	if(!dir) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("opendir(%s) error: %s", path, strerror(errno));
-		if(ecPtr)
-			*ecPtr = {errno, std::system_category()};
-		return;
+			logErr("opendir(%s) error:%s", path.data(), strerror(errno));
+		throw std::system_error{errno, std::system_category(), path};
 	}
-	logMsg("opened directory:%s", path);
-	if(ecPtr)
-		ecPtr->clear();
+	logMsg("opened directory:%s", path.data());
 	string_copy(basePath, path);
 	readNextDir(); // go to first entry
 }
@@ -161,7 +149,7 @@ void DirectoryEntryImpl::closeDirectoryStream(DIR *dir)
 	if(!dir)
 		return;
 	//logDMsg("closing dir:%p", dir);
-	if(::closedir(dir) == -1 && Config::DEBUG_BUILD)
+	if(::closedir(dir) == -1 && Config::DEBUG_BUILD) [[unlikely]]
 	{
 		logErr("closedir(%p) error: %s", dir, strerror(errno));
 	}
@@ -182,12 +170,8 @@ static std::shared_ptr<DirectoryEntryImpl> makeDirEntryPtr(Args&& ...args)
 	}
 }
 
-directory_iterator::directory_iterator(const char *path):
+directory_iterator::directory_iterator(IG::CStringView path):
 	impl{makeDirEntryPtr(path)}
-{}
-
-directory_iterator::directory_iterator(const char *path, std::error_code &ec):
-	impl{makeDirEntryPtr(path, ec)}
 {}
 
 directory_iterator::~directory_iterator() {}
@@ -237,7 +221,7 @@ std::tm file_status::lastWriteTimeLocal() const
 {
 	std::tm localMTime;
 	std::time_t mTime = lastWriteTime();
-	if(!localtime_r(&mTime, &localMTime))
+	if(!localtime_r(&mTime, &localMTime)) [[unlikely]]
 	{
 		logErr("localtime_r failed");
 		return {};
@@ -247,18 +231,11 @@ std::tm file_status::lastWriteTimeLocal() const
 
 PathString current_path()
 {
-	std::error_code dummy;
-	return current_path(dummy);
-}
-
-PathString current_path(std::error_code &result)
-{
 	PathString wDir{};
-	if(!getcwd(wDir.data(), sizeof(wDir)))
+	if(!getcwd(wDir.data(), sizeof(wDir))) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("getcwd error: %s", strerror(errno));
-		result = {errno, std::system_category()};
+			logErr("getcwd error:%s", strerror(errno));
 		return {};
 	}
 	#ifdef __APPLE__
@@ -266,203 +243,127 @@ PathString current_path(std::error_code &result)
 	// TODO: make optional when renderer supports decomposed unicode
 	precomposeUnicodeString(wDir.data(), wDir.data(), sizeof(wDir));
 	#endif
-	result.clear();
 	return wDir;
 }
 
-void current_path(const char *path)
+void current_path(IG::CStringView path)
 {
-	std::error_code dummy;
-	current_path(path, dummy);
-}
-
-void current_path(const char *path, std::error_code &result)
-{
-	if(chdir(path) == -1)
+	if(chdir(path) == -1) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("chdir(%s) error: %s", path, strerror(errno));
-		result = {errno, std::system_category()};
-		return;
+			logErr("chdir(%s) error:%s", path.data(), strerror(errno));
 	}
-	result.clear();
 }
 
-bool exists(const char *path)
+bool exists(IG::CStringView path)
 {
-	std::error_code dummy;
-	return exists(path, dummy);
+	return access(path, acc::e);
 }
 
-bool exists(const char *path, std::error_code &result)
+std::uintmax_t file_size(IG::CStringView path)
 {
-	return access(path, acc::e, result);
-}
-
-std::uintmax_t file_size(const char *path)
-{
-	std::error_code dummy;
-	return file_size(path, dummy);
-}
-
-std::uintmax_t file_size(const char *path, std::error_code &ec)
-{
-	auto s = status(path, ec);
-	if(ec)
-	{
-		return -1;
-	}
+	auto s = status(path);
 	if(s.type() != file_type::regular)
 	{
-		ec = {EINVAL, std::system_category()};
 		return -1;
 	}
-	ec.clear();
 	return s.size();
 }
 
-file_status status(const char *path)
-{
-	std::error_code dummy;
-	return status(path, dummy);
-}
-
-file_status status(const char *path, std::error_code &result)
+file_status status(IG::CStringView path)
 {
 	struct stat s;
 	if(stat(path, &s) == -1)
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("stat(%s) error: %s", path, strerror(errno));
-		result = {errno, std::system_category()};
-		if(result.value() == ENOENT)
+			logErr("stat(%s) error:%s", path.data(), strerror(errno));
+		if(errno == ENOENT)
 			return {file_type::not_found, {}, {}};
 		else
 			return {};
 	}
-	result.clear();
 	return {makeFileType(s), (std::uintmax_t)s.st_size, (file_time_type)s.st_mtime};
 }
 
-file_status symlink_status(const char *path)
-{
-	std::error_code dummy;
-	return symlink_status(path, dummy);
-}
-
-file_status symlink_status(const char *path, std::error_code &result)
+file_status symlink_status(IG::CStringView path)
 {
 	struct stat s;
 	if(lstat(path, &s) == -1)
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("lstat(%s) error: %s", path, strerror(errno));
-		result = {errno, std::system_category()};
-		if(result.value() == ENOENT)
+			logErr("lstat(%s) error:%s", path.data(), strerror(errno));
+		if(errno == ENOENT)
 			return {file_type::not_found, {}, {}};
 		else
 			return {};
 	}
-	result.clear();
 	return {makeFileType(s), (std::uintmax_t)s.st_size, (file_time_type)s.st_mtime};
 }
 
-void chown(const char *path, uid_t owner, gid_t group)
+void chown(IG::CStringView path, uid_t owner, gid_t group)
 {
-	std::error_code dummy;
-	return chown(path, owner, group, dummy);
-}
-
-void chown(const char *path, uid_t owner, gid_t group, std::error_code &result)
-{
-	if(::chown(path, owner, group) == -1)
+	if(::chown(path, owner, group) == -1) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("chown(%s) error: %s", path, strerror(errno));
-		result = {errno, std::system_category()};
+			logErr("chown(%s) error:%s", path.data(), strerror(errno));
 		return;
 	}
-	result.clear();
 }
 
-bool access(const char *path, acc type)
+bool access(IG::CStringView path, acc type)
 {
-	std::error_code dummy;
-	return access(path, type, dummy);
-}
-
-bool access(const char *path, acc type, std::error_code &result)
-{
-	result.clear();
 	if(::access(path, (int)type) == -1)
 	{
-		if(errno != ENOENT)
+		if(errno != ENOENT) [[unlikely]]
 		{
 			if(Config::DEBUG_BUILD)
-				logErr("access(%s) error: %s", path, strerror(errno));
-			result = {errno, std::system_category()};
+				logErr("access(%s) error:%s", path.data(), strerror(errno));
 		}
 		return false;
 	}
-	logMsg("file exists:%s", path);
+	logMsg("file exists:%s", path.data());
 	return true;
 }
 
-bool remove(const char *path)
+bool remove(IG::CStringView path)
 {
-	std::error_code dummy;
-	return remove(path, dummy);
-}
-
-bool remove(const char *path, std::error_code &result)
-{
-	logErr("removing: %s", path);
-	if(::unlink(path) == -1)
+	logErr("removing:%s", path.data());
+	if(::unlink(path) == -1) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("unlink(%s) error: %s", path, strerror(errno));
-		result = {errno, std::system_category()};
+			logErr("unlink(%s) error:%s", path.data(), strerror(errno));
 		return false;
 	}
-	result.clear();
 	return true;
 }
 
-bool create_directory(const char *path)
-{
-	std::error_code dummy;
-	return create_directory(path, dummy);
-}
-
-bool create_directory(const char *path, std::error_code &result)
+bool create_directory(IG::CStringView path)
 {
 	const mode_t defaultOpenMode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
 	if(::mkdir(path, defaultOpenMode) == -1)
 	{
-		if(Config::DEBUG_BUILD)
-			logErr("mkdir(%s) error: %s", path, strerror(errno));
-		result = {errno, std::system_category()};
-		return false;
+		auto err = errno;
+		if(err == EEXIST)
+		{
+			return false;
+		}
+		else [[unlikely]]
+		{
+			if(Config::DEBUG_BUILD)
+				logErr("mkdir(%s) error:%s", path.data(), strerror(err));
+			throw std::system_error(err, std::system_category(), path);
+		}
 	}
-	result.clear();
 	return true;
 }
 
-void rename(const char *oldPath, const char *newPath)
+void rename(IG::CStringView oldPath, IG::CStringView newPath)
 {
-	std::error_code dummy;
-	return rename(oldPath, newPath, dummy);
-}
-
-void rename(const char *oldPath, const char *newPath, std::error_code &result)
-{
-	if(::rename(oldPath, newPath) == -1)
+	if(::rename(oldPath, newPath) == -1) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD)
-			logErr("rename(%s, %s) error: %s", oldPath, newPath, strerror(errno));
-		result = {errno, std::system_category()};
+			logErr("rename(%s, %s) error:%s", oldPath.data(), newPath.data(), strerror(errno));
 	}
-	result.clear();
 }
 
 }

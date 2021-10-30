@@ -45,19 +45,19 @@ off_t IOUtils<IO>::seek(off_t offset, IODefs::SeekMode mode)
 template <class IO>
 off_t IOUtils<IO>::seekS(off_t offset, std::error_code *ecOut)
 {
-	return static_cast<IO*>(this)->seek(offset, SEEK_SET, ecOut);
+	return static_cast<IO*>(this)->seek(offset, IODefs::SeekMode::SET, ecOut);
 }
 
 template <class IO>
 off_t IOUtils<IO>::seekE(off_t offset, std::error_code *ecOut)
 {
-	return static_cast<IO*>(this)->seek(offset, SEEK_END, ecOut);
+	return static_cast<IO*>(this)->seek(offset, IODefs::SeekMode::END, ecOut);
 }
 
 template <class IO>
 off_t IOUtils<IO>::seekC(off_t offset, std::error_code *ecOut)
 {
-	return static_cast<IO*>(this)->seek(offset, SEEK_CUR, ecOut);
+	return static_cast<IO*>(this)->seek(offset, IODefs::SeekMode::CUR, ecOut);
 }
 
 template <class IO>
@@ -107,24 +107,35 @@ ssize_t IOUtils<IO>::send(IO &output, off_t *srcOffset, size_t bytes, std::error
 	return totalBytesWritten;
 }
 
-template <class IO>
-IG::ConstByteBufferView IOUtils<IO>::constBufferView()
+static IG::ByteBuffer makeBufferCopy(auto &io)
 {
-	auto size = static_cast<IO*>(this)->size();
-	auto mmapData = static_cast<IO*>(this)->mmapConst();
-	if(mmapData)
+	auto size = io.size();
+	auto buff = std::make_unique<uint8_t[]>(size);
+	if(io.read(buff.get(), size) != (ssize_t)size)
 	{
-		return IG::ConstByteBufferView{mmapData, size, [](const uint8_t*){}};
+		return {};
 	}
-	else
+	return {std::move(buff), size};
+}
+
+template <class IO>
+IG::ByteBuffer IOUtils<IO>::buffer(IODefs::BufferMode mode)
+{
+	auto &io = *static_cast<IO*>(this);
+	if(mode == ::IO::BufferMode::RELEASE)
 	{
-		seekS(0);
-		auto buff = new uint8_t[size];
-		if(static_cast<IO*>(this)->read(buff, size) != (ssize_t)size)
+		if constexpr(requires {io.releaseBuffer();})
 		{
-			delete[] buff;
-			return {};
+			auto buff = io.releaseBuffer();
+			if(buff)
+				return buff;
 		}
-		return IG::ConstByteBufferView{buff, size, [](const uint8_t *ptr){ delete[] ptr; }};
 	}
+	else // mode == IO::BufferMode::DIRECT
+	{
+		auto map = io.map();
+		if(map.data())
+			return {map};
+	}
+	return makeBufferCopy(io);
 }

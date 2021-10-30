@@ -224,8 +224,15 @@ void AndroidWindow::setNativeWindow(ApplicationContext ctx, ANativeWindow *nWind
 	thisWindow.setFormat(nPixelFormat);
 	if(onInit)
 	{
-		onInit(ctx, thisWindow);
-		onInit = {};
+		try
+		{
+			onInit(ctx, thisWindow);
+			onInit = {};
+		}
+		catch(std::exception &err)
+		{
+			ctx.exitWithMessage(-1, err.what());
+		}
 	}
 	else
 	{

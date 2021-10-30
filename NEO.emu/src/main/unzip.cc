@@ -72,14 +72,16 @@ int gn_unzip_fread(ZFILE *z, uint8_t *data, unsigned int size)
 
 PKZIP *gn_open_zip(const char *path)
 {
-	std::error_code ec{};
-	auto arch = std::make_unique<FS::ArchiveIterator>(path, ec);
-	if(ec)
+	try
+	{
+		auto arch = std::make_unique<FS::ArchiveIterator>(path);
+		return static_cast<PKZIP*>(arch.release());
+	}
+	catch(...)
 	{
 		logErr("error opening archive:%s", path);
 		return nullptr;
 	}
-	return static_cast<PKZIP*>(arch.release());
 }
 
 void gn_close_zip(PKZIP *archPtr)

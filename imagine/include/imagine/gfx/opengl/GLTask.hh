@@ -57,7 +57,8 @@ public:
 		bool *semaphoreNeedsNotifyPtr{};
 	};
 
-	using FuncDelegate = DelegateFunc2<sizeof(uintptr_t)*4 + sizeof(int)*10, void(Base::GLDisplay glDpy, std::binary_semaphore *semPtr)>;
+	// Align delegate data to 16 bytes in case we store SIMD types
+	using FuncDelegate = DelegateFunc2<sizeof(uintptr_t)*4 + sizeof(int)*10, 16, void(Base::GLDisplay glDpy, std::binary_semaphore *semPtr)>;
 
 	enum class Command: uint8_t
 	{
@@ -91,7 +92,7 @@ public:
 	GLTask(Base::ApplicationContext, const char *debugLabel);
 	~GLTask();
 	GLTask &operator=(GLTask &&) = delete;
-	Error makeGLContext(GLTaskConfig);
+	bool makeGLContext(GLTaskConfig);
 	void runFunc(FuncDelegate del, bool awaitReply);
 	Base::GLBufferConfig glBufferConfig() const;
 	const Base::GLContext &glContext() const;

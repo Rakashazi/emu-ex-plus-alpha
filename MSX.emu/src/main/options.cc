@@ -232,7 +232,7 @@ void EmuSystem::writeConfig(IO &io)
 	optionMixerPCMPan.writeWithKeyIfNotDefault(io);
 }
 
-EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext app)
+void EmuSystem::onOptionsLoaded(Base::ApplicationContext app)
 {
 	machineBasePath = makeMachineBasePath(app, machineCustomPath);
 
@@ -263,8 +263,6 @@ EmuSystem::Error EmuSystem::onOptionsLoaded(Base::ApplicationContext app)
 	mixerEnableChannelType(mixer, MIXER_CHANNEL_PCM, mixerEnableOption(MIXER_CHANNEL_PCM));
 	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_PCM, mixerVolumeOption(MIXER_CHANNEL_PCM));
 	mixerSetChannelTypePan(mixer, MIXER_CHANNEL_PCM, optionMixerPCMPan);
-
-	return {};
 }
 
 bool setDefaultMachineName(const char *name)

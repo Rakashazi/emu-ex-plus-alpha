@@ -69,67 +69,53 @@ static int machineIndex(std::vector<FS::FileString> &name, FS::FileString search
 void installFirmwareFiles(Base::ApplicationContext ctx)
 {
 	auto &app = EmuApp::get(ctx);
-	std::error_code ec{};
-	FS::create_directory(machineBasePath, ec);
-	if(ec && ec.value() != (int)std::errc::file_exists)
+	try
 	{
-		app.postMessage(4, 1, fmt::format("Can't create directory:\n{}", machineBasePath.data()));
-		return;
-	}
+		FS::create_directory(machineBasePath);
 
-	const char *dirsToCreate[] =
-	{
-		"Machines", "Machines/MSX - C-BIOS",
-		"Machines/MSX2 - C-BIOS", "Machines/MSX2+ - C-BIOS"
-	};
-
-	for(auto e : dirsToCreate)
-	{
-		auto pathTemp = IG::formatToPathString("{}/{}", machineBasePath.data(), e);
-		std::error_code ec{};
-		FS::create_directory(pathTemp, ec);
-		if(ec && ec.value() != (int)std::errc::file_exists)
+		const char *dirsToCreate[] =
 		{
-			app.postMessage(4, 1, fmt::format("Can't create directory:\n{}", pathTemp.data()));
-			return;
-		}
-	}
+			"Machines", "Machines/MSX - C-BIOS",
+			"Machines/MSX2 - C-BIOS", "Machines/MSX2+ - C-BIOS"
+		};
 
-	const char *srcPath[] =
-	{
-		"cbios.txt", "cbios.txt", "cbios.txt",
-		"cbios_logo_msx1.rom", "cbios_main_msx1.rom", "config1.ini",
-		"cbios_logo_msx2.rom", "cbios_main_msx2.rom", "cbios_sub.rom", "config2.ini",
-		"cbios_logo_msx2+.rom", "cbios_main_msx2+.rom", "cbios_sub.rom", "cbios_music.rom", "config3.ini"
-	};
-	const char *destDir[] =
-	{
-			"MSX - C-BIOS", "MSX2 - C-BIOS", "MSX2+ - C-BIOS",
-			"MSX - C-BIOS", "MSX - C-BIOS", "MSX - C-BIOS",
-			"MSX2 - C-BIOS", "MSX2 - C-BIOS", "MSX2 - C-BIOS", "MSX2 - C-BIOS",
-			"MSX2+ - C-BIOS", "MSX2+ - C-BIOS", "MSX2+ - C-BIOS", "MSX2+ - C-BIOS", "MSX2+ - C-BIOS"
-	};
-
-	for(auto &e : srcPath)
-	{
-		auto src = ctx.openAsset(e, IO::AccessHint::ALL);
-		if(!src)
+		for(auto e : dirsToCreate)
 		{
-			app.postMessage(4, 1, fmt::format("Can't open source file:\n{}", e));
-			return;
+			auto pathTemp = IG::formatToPathString("{}/{}", machineBasePath.data(), e);
+			FS::create_directory(pathTemp);
 		}
-		auto e_i = &e - srcPath;
-		auto pathTemp = IG::formatToPathString("{}/Machines/{}/{}",
-				machineBasePath.data(), destDir[e_i], strstr(e, "config") ? "config.ini" : e);
-		if(FileUtils::writeToPath(pathTemp.data(), src) == -1)
-		{
-			app.postMessage(4, 1, fmt::format("Can't write file:\n{}", e));
-			return;
-		}
-	}
 
-	setDefaultMachineName("MSX2 - C-BIOS");
-	app.postMessage("Installation OK");
+		const char *srcPath[] =
+		{
+			"cbios.txt", "cbios.txt", "cbios.txt",
+			"cbios_logo_msx1.rom", "cbios_main_msx1.rom", "config1.ini",
+			"cbios_logo_msx2.rom", "cbios_main_msx2.rom", "cbios_sub.rom", "config2.ini",
+			"cbios_logo_msx2+.rom", "cbios_main_msx2+.rom", "cbios_sub.rom", "cbios_music.rom", "config3.ini"
+		};
+		const char *destDir[] =
+		{
+				"MSX - C-BIOS", "MSX2 - C-BIOS", "MSX2+ - C-BIOS",
+				"MSX - C-BIOS", "MSX - C-BIOS", "MSX - C-BIOS",
+				"MSX2 - C-BIOS", "MSX2 - C-BIOS", "MSX2 - C-BIOS", "MSX2 - C-BIOS",
+				"MSX2+ - C-BIOS", "MSX2+ - C-BIOS", "MSX2+ - C-BIOS", "MSX2+ - C-BIOS", "MSX2+ - C-BIOS"
+		};
+
+		for(auto &e : srcPath)
+		{
+			auto src = ctx.openAsset(e, IO::AccessHint::ALL);
+			auto e_i = &e - srcPath;
+			auto pathTemp = IG::formatToPathString("{}/Machines/{}/{}",
+					machineBasePath.data(), destDir[e_i], strstr(e, "config") ? "config.ini" : e);
+			FileUtils::writeToPath(pathTemp.data(), src);
+		}
+
+		setDefaultMachineName("MSX2 - C-BIOS");
+		app.postMessage("Installation OK");
+	}
+	catch(std::exception &err)
+	{
+		app.postErrorMessage(4, err.what());
+	}
 }
 
 class CustomSystemOptionView : public SystemOptionView
@@ -176,7 +162,7 @@ private:
 				logMsg("set machine type: %s", name);
 			});
 		}
-		msxMachine.setSelected(machineIndex(msxMachineName, FS::makeFileString(optionDefaultMachineName)));
+		msxMachine.setSelected(machineIndex(msxMachineName, FS::makeFileString(optionDefaultMachineName.val)));
 	}
 
 	TextMenuItem installCBIOS
@@ -596,10 +582,13 @@ private:
 				ynAlertView->setOnYes(
 					[this, name]()
 					{
-						if(auto err = setCurrentMachineName(app(), name);
-							err)
+						try
 						{
-							app().postMessage(3, true, err->what());
+							setCurrentMachineName(app(), name);
+						}
+						catch(std::exception &err)
+						{
+							app().postMessage(3, true, err.what());
 							return;
 						}
 						auto machineName = currentMachineName();

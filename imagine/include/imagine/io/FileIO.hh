@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/io/PosixFileIO.hh>
+#include <imagine/util/string/CStringView.hh>
 using FileIO = PosixFileIO;
 
 #ifdef __ANDROID__
@@ -35,8 +36,11 @@ public:
 namespace FileUtils
 {
 
-ssize_t writeToPath(const char *path, void *data, size_t size, std::error_code *ecOut = nullptr);
-ssize_t writeToPath(const char *path, IO &io, std::error_code *ecOut = nullptr);
-ssize_t readFromPath(const char *path, void *data, size_t size);
+static constexpr size_t defaultBufferReadSizeLimit = 0x2000000; // 32 Megabytes
+
+ssize_t writeToPath(IG::CStringView path, void *data, size_t size);
+ssize_t writeToPath(IG::CStringView path, IO &io);
+ssize_t readFromPath(IG::CStringView path, void *data, size_t size);
+IG::ByteBuffer bufferFromPath(IG::CStringView path, unsigned openFlags = 0, size_t sizeLimit = defaultBufferReadSizeLimit);
 
 }

@@ -28,6 +28,9 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/time/Time.hh>
 #include <imagine/util/coreFoundation.h>
 #include "ios.hh"
+#if __IPHONE_OS_VERSION_MIN_REQUIRED < 110000
+#include <variant>
+#endif
 
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
@@ -236,7 +239,7 @@ static Base::Orientation iOSOrientationToGfx(UIDeviceOrientation orientation)
 	auto uiApp = [UIApplication sharedApplication];
 	ApplicationInitParams initParams{.uiAppPtr = (__bridge void*)uiApp};
 	ApplicationContext ctx{uiApp};
-	ctx.onInit(initParams);
+	ctx.dispatchOnInit(initParams);
 	if(!ctx.windows().size())
 		logWarn("didn't create a window");
 	logMsg("exiting didFinishLaunchingWithOptions");
@@ -603,15 +606,22 @@ void *operator new[](unsigned long size, std::align_val_t align)
 	return ::operator new[](size);
 }
 
-void operator delete(void* ptr, std::align_val_t align)
+void operator delete(void* ptr, std::align_val_t align) noexcept
 {
 	::free(ptr);
 }
 
-void operator delete[](void* ptr, std::align_val_t align)
+void operator delete[](void* ptr, std::align_val_t align) noexcept
 {
 	::operator delete[](ptr);
 }
+
+namespace std
+{
+
+const char *bad_variant_access::what() const noexcept { return ""; };
+
+};
 #endif
 
 int main(int argc, char *argv[])
