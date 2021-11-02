@@ -114,11 +114,13 @@ public:
 	Input::AndroidInputDevice *addAndroidInputDevice(Input::AndroidInputDevice, bool notify);
 	Input::AndroidInputDevice *updateAndroidInputDevice(Input::AndroidInputDevice, bool notify);
 	Input::AndroidInputDevice *inputDeviceForId(int id) const;
+	std::pair<Input::AndroidInputDevice*, int> inputDeviceForEvent(AInputEvent *);
 	void enumInputDevices(JNIEnv *, jobject baseActivity, bool notify);
 	bool processInputEvent(AInputEvent*, Window &);
 	bool hasTrackball() const;
 	void flushSystemInputEvents();
 	bool hasPendingInputQueueEvents() const;
+	bool hasMultipleInputDeviceSupport() const;
 
 private:
 	JNI::UniqueGlobalRef displayListenerHelper{};
@@ -134,10 +136,11 @@ private:
 	SystemPathPickerDelegate onSystemPathPicker{};
 	SystemOrientationChangedDelegate onSystemOrientationChanged{};
 	Timer userActivityCallback{"userActivityCallback"};
-	void (AndroidApplication::*processInput_)(AInputQueue *);
+	using ProcessInputFunc = void (AndroidApplication::*)(AInputQueue *);
+	IG_UseMemberIf(Config::ENV_ANDROID_MIN_SDK < 12, ProcessInputFunc, processInput_){&AndroidApplication::processInputWithHasEvents};
 	AInputQueue *inputQueue{};
-	const Input::AndroidInputDevice *builtinKeyboardDev{};
-	const Input::AndroidInputDevice *virtualDev{};
+	Input::AndroidInputDevice *builtinKeyboardDev{};
+	Input::AndroidInputDevice *virtualDev{};
 	Choreographer choreographer{};
 	pthread_key_t jEnvKey{};
 	uint32_t uiVisibilityFlags{};

@@ -528,11 +528,10 @@ static int nativeFdForSocket(JNIEnv *env, jobject btSocket)
 		}
 		return fd;
 	}
-	#if __ANDROID_API__ < 17
-	else if(fdDataId)
+	else if(Config::ENV_ANDROID_MIN_SDK < 17 && fdDataId)
 	{
 		// asocket method
-		auto sockPtr = (asocket*)env->GetIntField(btSocket, fdDataId);
+		auto sockPtr = (asocket*)(uintptr_t)env->GetIntField(btSocket, fdDataId);
 		if(!sockPtr)
 		{
 			logWarn("null asocket");
@@ -545,7 +544,6 @@ static int nativeFdForSocket(JNIEnv *env, jobject btSocket)
 		}
 		return sockPtr->fd;
 	}
-	#endif
 	return -1;
 }
 

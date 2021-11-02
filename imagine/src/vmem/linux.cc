@@ -21,7 +21,7 @@
 #include <imagine/logger/logger.h>
 #include <sys/mman.h>
 
-#if defined __ANDROID__ && __ANDROID_API__ <= 24
+#if defined __ANDROID__ && ANDROID_MIN_API <= 24
 #define NEEDS_MREMAP_SYSCALL
 #endif
 

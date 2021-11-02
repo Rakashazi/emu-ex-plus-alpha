@@ -42,6 +42,19 @@ Input::AndroidInputDevice *AndroidApplication::inputDeviceForId(int id) const
 	return static_cast<Input::AndroidInputDevice*>(existingIt->get());
 }
 
+std::pair<Input::AndroidInputDevice*, int> AndroidApplication::inputDeviceForEvent(AInputEvent *event)
+{
+	if(hasMultipleInputDeviceSupport())
+	{
+		int id = AInputEvent_getDeviceId(event);
+		return {inputDeviceForId(id), id};
+	}
+	else
+	{
+		return {builtinKeyboardDev, -1};
+	}
+}
+
 static Time makeTimeFromMotionEvent(AInputEvent *event)
 {
 	return IG::Nanoseconds(AMotionEvent_getEventTime(event));
@@ -137,8 +150,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 			{
 				case AINPUT_SOURCE_CLASS_POINTER:
 				{
-					auto devId = AInputEvent_getDeviceId(event);
-					auto dev = inputDeviceForId(devId);
+					auto [dev, devId] = inputDeviceForEvent(event);
 					if(!dev) [[unlikely]]
 					{
 						if(Config::DEBUG_BUILD)
@@ -201,11 +213,11 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 				}
 				case AINPUT_SOURCE_CLASS_JOYSTICK:
 				{
-					auto dev = inputDeviceForId(AInputEvent_getDeviceId(event));
+					auto [dev, devId] = inputDeviceForEvent(event);
 					if(!dev) [[unlikely]]
 					{
 						if(Config::DEBUG_BUILD)
-							logWarn("discarding joystick input from unknown device ID: %d", AInputEvent_getDeviceId(event));
+							logWarn("discarding joystick input from unknown device ID:%d", devId);
 						return false;
 					}
 					//logMsg("Joystick input from %s", dev->name());
@@ -240,7 +252,7 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 		bcase AINPUT_EVENT_TYPE_KEY:
 		{
 			auto keyCode = AKeyEvent_getKeyCode(event);
-			auto devID = AInputEvent_getDeviceId(event);
+			auto [dev, devID] = inputDeviceForEvent(event);
 			auto repeatCount = AKeyEvent_getRepeatCount(event);
 			auto source = AInputEvent_getSource(event);
 			auto eventSource = isFromSource(source, AINPUT_SOURCE_GAMEPAD) ? Source::GAMEPAD : Source::KEYBOARD;
@@ -268,7 +280,6 @@ bool AndroidApplication::processInputEvent(AInputEvent* event, Base::Window &win
 				repeatCount = 0;
 			}
 			mostRecentKeyEventDevID = devID;
-			const AndroidInputDevice *dev = inputDeviceForId(devID);
 			if(!dev) [[unlikely]]
 			{
 				if(virtualDev)
@@ -326,7 +337,14 @@ void AndroidApplication::processInputCommon(AInputQueue *inputQueue, AInputEvent
 
 void AndroidApplication::processInput(AInputQueue *queue)
 {
-	(this->*processInput_)(queue);
+	if constexpr(Config::ENV_ANDROID_MIN_SDK >= 12)
+	{
+		processInputWithGetEvent(queue);
+	}
+	else
+	{
+		(this->*processInput_)(queue);
+	}
 }
 
 // Use on Android 4.1+ to fix a possible ANR where the OS

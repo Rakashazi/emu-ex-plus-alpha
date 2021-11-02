@@ -50,12 +50,18 @@ static constexpr bool envIsIOS = ENV == IOS;
 static constexpr bool envIsMacOSX = ENV == MACOSX;
 static constexpr bool envIsLinux = ENV == LINUX;
 
-static constexpr uint32_t ENV_ANDROID_MINSDK =
-	#ifdef __ANDROID_API__
-	__ANDROID_API__;
+#if defined __ANDROID__
+	#ifdef ANDROID_COMPAT_API
+	#define ANDROID_MIN_API ANDROID_COMPAT_API
 	#else
-	0;
+	#define ANDROID_MIN_API __ANDROID_API__
 	#endif
+
+static constexpr int ENV_ANDROID_MIN_SDK = ANDROID_MIN_API;
+#define ENV_NOTE "Android"
+#else
+static constexpr int ENV_ANDROID_MIN_SDK = 0;
+#endif
 
 static constexpr bool UNICODE_CHARS = true;
 
@@ -63,10 +69,6 @@ static constexpr bool UNICODE_CHARS = true;
 static constexpr bool DEBUG_BUILD = true;
 #else
 static constexpr bool DEBUG_BUILD = false;
-#endif
-
-#ifdef __ANDROID__
-#define ENV_NOTE "Android"
 #endif
 
 // Platform architecture & machine

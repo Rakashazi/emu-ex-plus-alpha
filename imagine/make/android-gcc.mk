@@ -16,15 +16,20 @@ ifdef V
 endif
 
 ifneq ($(wildcard $(ANDROID_NDK_PATH)/sysroot),)
- $(error your NDK contains a deprecated sysroot directory, please upgrade to at least r22)
+ $(error your NDK contains a deprecated sysroot directory, please upgrade to at least r23)
 endif
 
-ifeq ($(android_ndkSDK), 9)
- android_ndkLinkSysroot := $(IMAGINE_PATH)/bundle/android-$(android_ndkSDK)/arch-$(android_ndkArch)
+ifneq ($(filter 9 16, $(android_ndkSDK)),)
+ # SDK 9 no longer supported since NDK r16 & SDK 16 since NDK r24, enable compatibilty work-arounds
+ CPPFLAGS += -DANDROID_COMPAT_API=$(android_ndkSDK)
+ android_ndkLinkSysroot := $(IMAGINE_PATH)/bundle/android/$(CHOST)/$(android_ndkSDK)
 endif
 
 ifdef android_ndkLinkSysroot
- VPATH += $(android_ndkLinkSysroot)/usr/lib$(android_libDirExt)
+ VPATH += $(android_ndkLinkSysroot)/usr/lib
+ ifdef V
+  $(info NDK link sysroot path: $(android_ndkLinkSysroot))
+ endif
 else
  VPATH += $(ANDROID_CLANG_TOOLCHAIN_PATH)/sysroot/usr/lib/$(CHOST)/$(android_ndkSDK)
 endif
@@ -79,11 +84,6 @@ CPPFLAGS += -DANDROID
 LDFLAGS_SYSTEM += -s \
 -Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed,--warn-shared-textrel,--fatal-warnings \
 -Wl,--exclude-libs,libgcc.a,--exclude-libs,libgcc_real.a -Wl,--exclude-libs,libatomic.a
-
-ifeq ($(android_ndkSDK), 9)
- # SDK 9 no longer supported since NDK r16, enable compatibilty work-arounds
- CPPFLAGS += -DANDROID_COMPAT_API
-endif
 
 ifndef RELEASE
  CFLAGS_CODEGEN += -funwind-tables

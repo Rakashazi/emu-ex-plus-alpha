@@ -24,16 +24,15 @@
 #include <sys/inotify.h>
 #include <optional>
 
-#ifdef ANDROID_COMPAT_API
 static float (*AMotionEvent_getAxisValueFunc)(const AInputEvent* motion_event, int32_t axis, size_t pointer_index){};
+static float (*AMotionEvent_getButtonStateFunc)(const AInputEvent *motion_event){};
 
+#if ANDROID_MIN_API == 9
 CLINK float AMotionEvent_getAxisValue(const AInputEvent* motion_event, int32_t axis, size_t pointer_index)
 {
 	assumeExpr(AMotionEvent_getAxisValueFunc);
 	return AMotionEvent_getAxisValueFunc(motion_event, axis, pointer_index);
 }
-
-static float (*AMotionEvent_getButtonStateFunc)(const AInputEvent *motion_event){};
 
 CLINK int32_t AMotionEvent_getButtonState(const AInputEvent *motion_event)
 {
@@ -302,11 +301,10 @@ bool Device::anyTypeBitsPresent(Base::ApplicationContext ctx, TypeBits typeBits)
 
 bool hasGetAxisValue()
 {
-	#ifdef ANDROID_COMPAT_API
-	return AMotionEvent_getAxisValueFunc;
-	#else
-	return true;
-	#endif
+	if constexpr(Config::ENV_ANDROID_MIN_SDK == 9)
+		return AMotionEvent_getAxisValueFunc;
+	else
+		return true;
 }
 
 }
@@ -319,25 +317,31 @@ static bool isXperiaPlayDeviceStr(const char *str)
 	return strstr(str, "R800") || string_equal(str, "zeus");
 }
 
+bool AndroidApplication::hasMultipleInputDeviceSupport() const
+{
+	return Config::ENV_ANDROID_MIN_SDK >= 12 || processInput_ == &AndroidApplication::processInputWithGetEvent;
+}
+
 void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass baseActivityClass, int32_t androidSDK)
 {
-	processInput_ = androidSDK >= 12 ? &AndroidApplication::processInputWithGetEvent : &AndroidApplication::processInputWithHasEvents;
 	if(androidSDK >= 12)
 	{
-		#ifdef ANDROID_COMPAT_API
-		// load AMotionEvent_getAxisValue dynamically
-		if(!Base::loadSymbol(AMotionEvent_getAxisValueFunc, {}, "AMotionEvent_getAxisValue"))
+		processInput_ = &AndroidApplication::processInputWithGetEvent;
+		if constexpr(Config::ENV_ANDROID_MIN_SDK == 9)
 		{
-			logWarn("AMotionEvent_getAxisValue not found even though using SDK level >= 12");
-		}
-		if(androidSDK >= 14)
-		{
-			if(!Base::loadSymbol(AMotionEvent_getButtonStateFunc, {}, "AMotionEvent_getButtonState"))
+			// load AMotionEvent_getAxisValue dynamically
+			if(!Base::loadSymbol(AMotionEvent_getAxisValueFunc, {}, "AMotionEvent_getAxisValue"))
 			{
-				logWarn("AMotionEvent_getButtonState not found even though using SDK level >= 14");
+				logWarn("AMotionEvent_getAxisValue not found even though using SDK level >= 12");
+			}
+			if(androidSDK >= 14)
+			{
+				if(!Base::loadSymbol(AMotionEvent_getButtonStateFunc, {}, "AMotionEvent_getButtonState"))
+				{
+					logWarn("AMotionEvent_getButtonState not found even though using SDK level >= 14");
+				}
 			}
 		}
-		#endif
 
 		jEnumInputDevices = {env, baseActivityClass, "enumInputDevices", "(J)V"};
 

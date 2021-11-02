@@ -22,7 +22,7 @@
 #include <errno.h>
 #include <cstring>
 
-#if __has_include(<sys/timerfd.h>) && (!defined ANDROID || __ANDROID_API__ >= 19)
+#if __has_include(<sys/timerfd.h>) && (!defined __ANDROID__ || ANDROID_MIN_API >= 19)
 #include <sys/timerfd.h>
 #else
 #include <time.h>

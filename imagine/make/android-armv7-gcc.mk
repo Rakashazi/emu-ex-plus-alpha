@@ -6,8 +6,8 @@ CHOST := arm-linux-androideabi
 android_abi := armeabi-v7a
 android_ndkSDK ?= 9
 android_ndkArch := arm
-# Must declare min API 14 to compile with unified headers
-clangTarget := armv7-none-linux-androideabi14
+# Must declare min API 19 to compile with NDK r24+ headers
+clangTarget := armv7-none-linux-androideabi19
 CFLAGS_CODEGEN += -fpic
 armv7CPUFlags ?= -march=armv7-a -mtune=generic
 android_cpuFlags ?= $(armv7CPUFlags)
@@ -20,4 +20,13 @@ LDFLAGS_SYSTEM += -Wl,--fix-cortex-a8
 include $(buildSysPath)/android-gcc.mk
 
 # Directly call the GNU assembler until assembly in projects is updated for clang's integrated assembler
-AS = $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/arm-linux-androideabi-as
+
+ifneq ($(wildcard $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/arm-linux-androideabi-as),) # check for GNU assember included in NDK <= r23
+ AS = $(ANDROID_CLANG_TOOLCHAIN_BIN_PATH)/arm-linux-androideabi-as
+else
+ ifneq ($(shell which arm-none-linux-gnueabi-as),)
+  AS = arm-none-linux-gnueabi-as
+ else
+  AS = arm-linux-gnueabi-as
+ endif
+endif

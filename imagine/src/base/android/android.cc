@@ -309,11 +309,9 @@ bool ApplicationContext::hasHardwareNavButtons() const
 int32_t AndroidApplicationContext::androidSDK() const
 {
 	#ifdef ANDROID_COMPAT_API
-	static_assert(__ANDROID_API__ == 14, "Compiling with ANDROID_COMPAT_API and API higher than 14");
-	return std::max(9, act->sdkVersion);
-	#else
-	return std::max(__ANDROID_API__, act->sdkVersion);
+	static_assert(__ANDROID_API__ <= 19, "Compiling with ANDROID_COMPAT_API and API higher than 19");
 	#endif
+	return std::max(ANDROID_MIN_API, act->sdkVersion);
 }
 
 void AndroidApplication::setOnSystemOrientationChanged(SystemOrientationChangedDelegate del)
@@ -505,7 +503,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 	/*if(unloadNativeLibOnDestroy)
 	{
 		auto soPath = mainSOPath(appCtx);
-		#if __ANDROID_API__ >= 21
+		#if ANDROID_MIN_API >= 21
 		mainLibHandle = dlopen(soPath.data(), RTLD_LAZY | RTLD_NOLOAD);
 		#else
 		mainLibHandle = dlopen(soPath.data(), RTLD_LAZY);

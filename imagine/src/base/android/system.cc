@@ -144,7 +144,7 @@ void ApplicationContext::exitWithMessage(int exitVal, const char *msg)
 
 }
 
-#ifdef ANDROID_COMPAT_API
+#if ENV_ANDROID_MIN_SDK == 9
 CLINK int ftruncate64(int fd, off64_t length)
 {
 	return ftruncate(fd, length);
