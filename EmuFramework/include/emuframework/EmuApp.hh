@@ -42,11 +42,24 @@
 #include <imagine/data-type/image/PixmapWriter.hh>
 #include <imagine/font/Font.hh>
 #include <imagine/util/typeTraits.hh>
+#include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/string.h>
 #include <cstring>
 #include <optional>
 #include <span>
 
 class BluetoothAdapter;
+
+struct RecentContentInfo
+{
+	FS::PathString path{};
+	FS::FileString name{};
+
+	constexpr bool operator ==(RecentContentInfo const& rhs) const
+	{
+		return string_equal(path, rhs.path);
+	}
+};
 
 class EmuApp : public Base::Application
 {
@@ -54,6 +67,8 @@ public:
 	using OnMainMenuOptionChanged = DelegateFunc<void()>;
 	using CreateSystemCompleteDelegate = DelegateFunc<void (Input::Event e)>;
 	using NavView = BasicNavView;
+	static constexpr unsigned MAX_RECENT = 10;
+	using RecentContentList = StaticArrayList<RecentContentInfo, MAX_RECENT>;
 
 	enum class ViewID
 	{
@@ -86,9 +101,10 @@ public:
 	EmuApp(Base::ApplicationInitParams, Base::ApplicationContext &);
 
 	bool willCreateSystem(ViewAttachParams attach, Input::Event e);
-	void createSystemWithMedia(GenericIO io, const char *path, const char *name,
-		Input::Event e, EmuSystemCreateParams, ViewAttachParams,
-		CreateSystemCompleteDelegate onComplete);
+	void createSystemWithMedia(GenericIO, IG::CStringView path, IG::CStringView name,
+		Input::Event, EmuSystemCreateParams, ViewAttachParams, CreateSystemCompleteDelegate);
+	void createSystemWithMedia(GenericIO, IG::CStringView path, IG::CStringView name,
+		bool pathIsUri, Input::Event, EmuSystemCreateParams, ViewAttachParams, CreateSystemCompleteDelegate);
 	void exitGame(bool allowAutosaveState = true);
 	void reloadGame(EmuSystemCreateParams params = {});
 	void promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Event e, EmuSystemCreateParams params = {});
@@ -107,25 +123,25 @@ public:
 	void showLastViewFromSystem(ViewAttachParams attach, Input::Event e);
 	void showExitAlert(ViewAttachParams attach, Input::Event e);
 	void showEmuation();
-	void launchSystemWithResumePrompt(Input::Event e, bool addToRecent);
-	void launchSystem(Input::Event e, bool tryAutoState, bool addToRecent);
-	static bool hasArchiveExtension(const char *name);
+	void launchSystemWithResumePrompt(Input::Event e);
+	void launchSystem(Input::Event e, bool tryAutoState);
+	static bool hasArchiveExtension(IG::CStringView name);
 	void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
 	void dispatchOnMainMenuItemOptionChanged();
 	void unpostMessage();
 	void printScreenshotResult(int num, bool success);
 	void saveAutoState();
 	bool loadAutoState();
-	bool saveState(const char *path);
+	bool saveState(IG::CStringView path);
 	bool saveStateWithSlot(int slot);
-	bool loadState(const char *path);
+	bool loadState(IG::CStringView path);
 	bool loadStateWithSlot(int slot);
 	void setDefaultVControlsButtonSpacing(int spacing);
 	void setDefaultVControlsButtonStagger(int stagger);
 	FS::PathString mediaSearchPath();
 	void setMediaSearchPath(std::optional<FS::PathString>);
 	FS::PathString firmwareSearchPath();
-	void setFirmwareSearchPath(const char *path);
+	void setFirmwareSearchPath(IG::CStringView path);
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
 	void addTurboInputEvent(unsigned action);
 	void removeTurboInputEvent(unsigned action);
@@ -162,7 +178,7 @@ public:
 	void setRenderPixelFormat(std::optional<IG::PixelFormat>);
 	IG::PixelFormat renderPixelFormat() const;
 	void renderSystemFramebuffer(EmuVideo &);
-	bool writeScreenshot(IG::Pixmap, const char *path);
+	bool writeScreenshot(IG::Pixmap, IG::CStringView path);
 	std::pair<int, FS::PathString> makeNextScreenshotFilename();
 	bool mogaManagerIsActive() const;
 	void setMogaManagerActive(bool on, bool notify);
@@ -170,6 +186,14 @@ public:
 	std::span<const KeyCategory> inputControlCategories() const;
 	BluetoothAdapter *bluetoothAdapter();
 	void closeBluetoothConnections();
+	ViewAttachParams attachParams();
+	void requestFilePickerForLoading(View &parentView, ViewAttachParams, Input::Event,
+		bool singleDir = false, EmuSystemCreateParams params = {});
+	void addRecentContent(IG::CStringView path, IG::CStringView name);
+	void addCurrentContentToRecent();
+	RecentContentList &recentContent() { return recentContentList; };
+	void writeRecentContent(IO &);
+	void readRecentContent(Base::ApplicationContext, IO &, unsigned readSize_);
 	Base::ApplicationContext appContext() const;
 	static EmuApp &get(Base::ApplicationContext);
 
@@ -200,7 +224,7 @@ public:
 
 	template<class T>
 	void pushAndShowNewCollectValueInputView(ViewAttachParams attach, Input::Event e,
-	const char *msgText, const char *initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
+	IG::CStringView msgText, IG::CStringView initialContent, IG::Callable<bool, EmuApp&, T> auto &&collectedValueFunc)
 	{
 		pushAndShowNewCollectTextInputView(attach, e, msgText, initialContent,
 			[collectedValueFunc](CollectTextInputView &view, const char *str)
@@ -291,6 +315,7 @@ protected:
 	IG_UseMemberIf(Config::EmuFramework::MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr){};
 	Gfx::DrawableConfig windowDrawableConf{};
 	IG::PixelFormat renderPixelFmt{};
+	RecentContentList recentContentList{};
 
 	class ConfigParams
 	{

@@ -34,7 +34,6 @@ public:
 	directory_iterator(IG::CStringView path);
 	directory_iterator(const directory_iterator&) = default;
 	directory_iterator(directory_iterator&&) = default;
-	~directory_iterator();
 	directory_entry& operator*();
 	directory_entry* operator->();
 	void operator++();
@@ -75,6 +74,10 @@ PathString makeAppPathFromLaunchCommand(IG::CStringView launchPath);
 
 FileString basename(IG::CStringView path);
 PathString dirname(IG::CStringView path);
+
+bool isUri(IG::CStringView str);
+PathString decodeUri(IG::CStringView uri);
+FileString basenameUri(IG::CStringView pathOrUri, bool isEncodedUri = true);
 
 using FileStringCompareFunc = bool (*)(const FS::FileString &s1, const FS::FileString &s2);
 

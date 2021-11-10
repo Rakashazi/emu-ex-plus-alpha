@@ -146,8 +146,6 @@ void DirectoryEntryImpl::close()
 
 void DirectoryEntryImpl::closeDirectoryStream(DIR *dir)
 {
-	if(!dir)
-		return;
 	//logDMsg("closing dir:%p", dir);
 	if(::closedir(dir) == -1 && Config::DEBUG_BUILD) [[unlikely]]
 	{
@@ -173,8 +171,6 @@ static std::shared_ptr<DirectoryEntryImpl> makeDirEntryPtr(Args&& ...args)
 directory_iterator::directory_iterator(IG::CStringView path):
 	impl{makeDirEntryPtr(path)}
 {}
-
-directory_iterator::~directory_iterator() {}
 
 directory_entry& directory_iterator::operator*()
 {

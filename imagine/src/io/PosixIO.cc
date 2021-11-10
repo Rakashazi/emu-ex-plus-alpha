@@ -67,7 +67,8 @@ PosixIO::PosixIO(IG::CStringView path, uint32_t mode)
 
 	if((fd_ = ::open(path, flags, openMode)) == -1) [[unlikely]]
 	{
-		logMsg("error opening file (%s) @ %s", logFlagsStr.data(), path.data());
+		if(Config::DEBUG_BUILD)
+			logErr("error opening file (%s) @ %s:%s", logFlagsStr.data(), path.data(), strerror(errno));
 		if(mode & IO::OPEN_TEST)
 			return;
 		else

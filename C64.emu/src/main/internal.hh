@@ -3,6 +3,7 @@
 #include "VicePlugin.hh"
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/pixmap/Pixmap.hh>
+#include <imagine/util/string/CStringView.hh>
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include <vector>
@@ -92,9 +93,9 @@ void setDefaultCBM5x0Model(int model);
 void setDefaultPETModel(int model);
 void setDefaultPlus4Model(int model);
 void setDefaultVIC20Model(int model);
-bool hasC64DiskExtension(const char *name);
-bool hasC64TapeExtension(const char *name);
-bool hasC64CartExtension(const char *name);
+bool hasC64DiskExtension(IG::CStringView name);
+bool hasC64TapeExtension(IG::CStringView name);
+bool hasC64CartExtension(IG::CStringView name);
 int optionDefaultModel(ViceSystem system);
 void resetCanvasSourcePixmap(struct video_canvas_s *c);
 bool updateCanvasPixelFormat(struct video_canvas_s *c, IG::PixelFormat);

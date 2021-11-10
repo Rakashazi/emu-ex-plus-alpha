@@ -82,16 +82,6 @@ enum { CFGKEY_SOUND = 0, CFGKEY_TOUCH_CONTROL_DISPLAY = 1,
 	// 256+ is reserved
 };
 
-struct OptionRecentGames : public OptionBase
-{
-	const uint16_t key = CFGKEY_RECENT_GAMES;
-
-	bool isDefault() const override;
-	bool writeToIO(IO &io) override;
-	bool readFromIO(Base::ApplicationContext, IO &, unsigned readSize_);
-	unsigned ioSize() const override;
-};
-
 extern Byte1Option optionAutoSaveState;
 extern Byte1Option optionConfirmAutoLoadState;
 extern Byte1Option optionSound;
@@ -155,8 +145,6 @@ static const unsigned optionImageZoomIntegerOnly = 255, optionImageZoomIntegerOn
 extern Byte1Option optionImageZoom;
 extern Byte1Option optionViewportZoom;
 extern Byte1Option optionShowOnSecondScreen;
-
-extern OptionRecentGames optionRecentGames;
 
 extern Byte1Option optionTextureBufferMode;
 #ifdef __ANDROID__

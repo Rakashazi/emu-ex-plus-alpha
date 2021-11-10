@@ -29,4 +29,4 @@ extern PathOption optionCDBiosEurPath;
 extern Byte1Option optionVideoSystem;
 
 void setupMDInput(EmuApp &);
-bool hasMDExtension(const char *name);
+bool hasMDExtension(IG::CStringView name);

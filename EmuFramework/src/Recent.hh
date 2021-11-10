@@ -21,18 +21,4 @@
 
 class TextMenuItem;
 
-struct RecentGameInfo
-{
-	FS::PathString path{};
-	FS::FileString name{};
-	static constexpr unsigned MAX_RECENT = 10;
 
-	constexpr RecentGameInfo() {}
-
-	bool operator ==(RecentGameInfo const& rhs) const
-	{
-		return string_equal(path.data(), rhs.path.data());
-	}
-};
-
-using RecentGameList = StaticArrayList<RecentGameInfo, RecentGameInfo::MAX_RECENT>;

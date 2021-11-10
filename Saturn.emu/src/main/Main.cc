@@ -45,14 +45,14 @@ PerPad_struct *pad[2];
 // from sh2_dynarec.c
 #define SH2CORE_DYNAREC 2
 
-static bool hasCDExtension(const char *name)
+static bool hasCDExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "cue") ||
 			string_hasDotExtension(name, "iso") ||
 			string_hasDotExtension(name, "bin");
 }
 
-bool hasBIOSExtension(const char *name)
+bool hasBIOSExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "bin");
 }
@@ -198,7 +198,7 @@ yabauseinit_struct yinit
 	CART_NONE,
 	REGION_AUTODETECT,
 	biosPath.data(),
-	EmuSystem::fullGamePath(),
+	EmuSystem::contentLocationPtr(),
 	bupPath.data(),
 	mpegPath,
 	cartPath,

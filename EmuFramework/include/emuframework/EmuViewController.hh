@@ -66,7 +66,7 @@ public:
 	bool inputEvent(Input::Event e) final;
 	void showEmulation();
 	void showUI(bool updateTopView = true);
-	bool showAutoStateConfirm(Input::Event e, bool addToRecent);
+	bool showAutoStateConfirm(Input::Event e);
 	void placeEmuViews();
 	void placeElements();
 	void setEmuViewOnExtraWindow(bool on, Base::Screen &screen);

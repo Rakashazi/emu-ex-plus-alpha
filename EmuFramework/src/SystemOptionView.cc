@@ -36,7 +36,7 @@ static FS::PathString savePathStrToDescStr(char *savePathStr)
 	}
 	else
 	{
-		string_copy(desc, "Same as Game");
+		string_copy(desc, "Content Path");
 	}
 	return desc;
 }

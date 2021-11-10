@@ -63,7 +63,7 @@ void setTimerIntOption()
 		bcase 1: conf.raster = 1;
 		bcase 2:
 			bool needsTimer = 0;
-			auto gameName = EmuSystem::fullGameName();
+			auto gameName = EmuSystem::contentDisplayName();
 			auto gameStr = gameName.data();
 			if(EmuSystem::gameIsRunning() && (strstr(gameStr, "Sidekicks 2") || strstr(gameStr, "Sidekicks 3")
 					|| strstr(gameStr, "Ultimate 11") || strstr(gameStr, "Neo-Geo Cup")

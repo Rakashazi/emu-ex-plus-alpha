@@ -212,7 +212,7 @@ class CustomVideoOptionView : public VideoOptionView
 		{"Custom File", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e)
 			{
 				auto startPath = app().mediaSearchPath();
-				auto fsFilter = [](const char *name)
+				auto fsFilter = [](IG::CStringView name)
 					{
 						return string_hasDotExtension(name, "pal");
 					};

@@ -25,6 +25,7 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/base/Screen.hh>
 #include <imagine/base/Window.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 
 template<class T>
@@ -174,8 +175,6 @@ Byte1Option optionImageZoom
 Byte1Option optionViewportZoom(CFGKEY_VIEWPORT_ZOOM, 100, 0, optionIsValidWithMinMax<50, 100>);
 Byte1Option optionShowOnSecondScreen{CFGKEY_SHOW_ON_2ND_SCREEN, 1, 0};
 
-OptionRecentGames optionRecentGames;
-
 Byte1Option optionTextureBufferMode{CFGKEY_TEXTURE_BUFFER_MODE, 0};
 #ifdef __ANDROID__
 Byte1Option optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 0};
@@ -294,28 +293,28 @@ void setupFont(ViewManager &manager, Gfx::Renderer &r, Base::Window &win)
 	manager.defaultBoldFace().setFontSettings(r, IG::FontSettings(win.heightScaledMMInPixels(size)));
 }
 
-bool OptionRecentGames::isDefault() const
+void EmuApp::writeRecentContent(IO &io)
 {
-	return recentGameList.size() == 0;
-}
-
-bool OptionRecentGames::writeToIO(IO &io)
-{
+	unsigned strSizes = 0;
+	for(const auto &e : recentContentList)
+	{
+		strSizes += 2;
+		strSizes += strlen(e.path.data());
+	}
 	logMsg("writing recent list");
-	io.write(key);
-	for(auto &e : recentGameList)
+	writeOptionValueHeader(io, CFGKEY_RECENT_GAMES, strSizes);
+	for(const auto &e : recentContentList)
 	{
 		unsigned len = strlen(e.path.data());
 		io.write((uint16_t)len);
 		io.write(e.path.data(), len);
 	}
-	return true;
 }
 
-bool OptionRecentGames::readFromIO(Base::ApplicationContext ctx, IO &io, unsigned readSize_)
+void EmuApp::readRecentContent(Base::ApplicationContext ctx, IO &io, unsigned readSize_)
 {
 	int readSize = readSize_;
-	while(readSize && !recentGameList.isFull())
+	while(readSize && !recentContentList.isFull())
 	{
 		if(readSize < 2)
 		{
@@ -332,39 +331,25 @@ bool OptionRecentGames::readFromIO(Base::ApplicationContext ctx, IO &io, unsigne
 			break;
 		}
 
-		RecentGameInfo info;
+		RecentContentInfo info{};
 		auto bytesRead = io.read(info.path.data(), len);
 		if(bytesRead == -1)
 		{
 			logErr("error reading string option");
-			return true;
+			return;
 		}
 		if(!bytesRead)
 			continue; // don't add empty paths
-		info.path[bytesRead] = 0;
 		readSize -= len;
-		info.name = EmuSystem::fullGameNameForPath(ctx, info.path.data());
+		info.name = FS::makeFileString(EmuSystem::contentDisplayNameForPath(ctx, info.path));
 		//logMsg("adding game to recent list: %s, name: %s", info.path, info.name);
-		recentGameList.push_back(info);
+		recentContentList.emplace_back(info);
 	}
 
 	if(readSize)
 	{
 		logMsg("skipping excess %d bytes", readSize);
 	}
-
-	return true;
-}
-
-unsigned OptionRecentGames::ioSize() const
-{
-	unsigned strSizes = 0;
-	for(auto &e : recentGameList)
-	{
-		strSizes += 2;
-		strSizes += strlen(e.path.data());
-	}
-	return sizeof(key) + strSizes;
 }
 
 bool PathOption::writeToIO(IO &io)

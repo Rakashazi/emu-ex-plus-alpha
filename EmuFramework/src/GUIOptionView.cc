@@ -131,7 +131,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			}
 		},
 		{
-			"In Game", &defaultFace(),
+			"In Emu", &defaultFace(),
 			[this]()
 			{
 				optionHideStatusBar = 1;
@@ -164,7 +164,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			}
 		},
 		{
-			"In Game", &defaultFace(),
+			"In Emu", &defaultFace(),
 			[this]()
 			{
 				optionLowProfileOSNav = 1;
@@ -197,7 +197,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			}
 		},
 		{
-			"In Game", &defaultFace(),
+			"In Emu", &defaultFace(),
 			[this]()
 			{
 				optionHideOSNav = 1;
@@ -263,7 +263,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	showBundledGames
 	{
-		"Show Bundled Games", &defaultFace(),
+		"Show Bundled Content", &defaultFace(),
 		(bool)optionShowBundledGames,
 		[this](BoolMenuItem &item, Input::Event e)
 		{
@@ -324,7 +324,7 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 	},
 	gameOrientation
 	{
-		"In Game", &defaultFace(),
+		"In Emu", &defaultFace(),
 		[]()
 		{
 			int itemOffset = Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 0 : 1;

@@ -41,7 +41,7 @@ static bool useBgrOrder{};
 static const GBPalette *gameBuiltinPalette{};
 bool EmuSystem::hasCheats = true;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
-	[](const char *name)
+	[](IG::CStringView name)
 	{
 		return string_hasDotExtension(name, "gb") ||
 			string_hasDotExtension(name, "gbc");
@@ -177,7 +177,7 @@ void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 	{
 		throwFileReadError();
 	}
-	if(auto result = gbEmu.load(buff.data(), buff.size(), gameFileName().data(), optionReportAsGba ? gbEmu.GBA_CGB : 0);
+	if(auto result = gbEmu.load(buff.data(), buff.size(), contentFileName().data(), optionReportAsGba ? gbEmu.GBA_CGB : 0);
 		result != gambatte::LOADRES_OK)
 	{
 		throw std::runtime_error(gambatte::to_string(result));

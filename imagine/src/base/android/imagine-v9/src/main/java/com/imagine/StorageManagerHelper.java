@@ -110,9 +110,8 @@ final class StorageManagerHelper
 		return null;
 	}
 
-	static String pathFromOpenDocumentTreeResult(Activity act, Intent intent)
+	static String pathFromDocumentUri(Activity act, Uri uri)
 	{
-		final Uri uri = intent.getData();
 		//Log.i(logTag, "uri: " + uri);
 		final List<String> pathSegment = uri.getPathSegments();
 		//for(String s : paths) { Log.i(logTag, "path segment: " + s); }

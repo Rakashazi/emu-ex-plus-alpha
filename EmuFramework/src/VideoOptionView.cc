@@ -609,7 +609,7 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, bool customMenu):
 	{
 		"External Screen", &defaultFace(),
 		(bool)optionShowOnSecondScreen,
-		"OS Managed", "Game Content",
+		"OS Managed", "Emu Content",
 		[this](BoolMenuItem &item, Input::Event e)
 		{
 			optionShowOnSecondScreen = item.flipBoolValue(*this);

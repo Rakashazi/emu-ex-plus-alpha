@@ -57,7 +57,6 @@ bool EmuSystem::hasResetModes = true;
 BoardInfo boardInfo{};
 Machine *machine{};
 Mixer *mixer{};
-bool canInstallCBIOS = true;
 FS::PathString machineCustomPath{};
 FS::PathString machineBasePath{};
 FS::FileString cartName[2]{};
@@ -69,6 +68,7 @@ static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
 static const char saveStateVersion[] = "blueMSX - state  v 8";
 extern int pendingInt;
+Base::ApplicationContext appCtx{};
 
 #if defined CONFIG_BASE_ANDROID || defined CONFIG_ENV_WEBOS || defined CONFIG_BASE_IOS || defined CONFIG_MACHINE_IS_PANDORA
 static const bool checkForMachineFolderOnStart = true;
@@ -102,23 +102,23 @@ const char *machineBasePathStr()
 	return machineBasePath.data();
 }
 
-bool hasMSXTapeExtension(const char *name)
+bool hasMSXTapeExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "cas");
 }
 
-bool hasMSXDiskExtension(const char *name)
+bool hasMSXDiskExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "dsk");
 }
 
-bool hasMSXROMExtension(const char *name)
+bool hasMSXROMExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "rom") || string_hasDotExtension(name, "mx1")
 			|| string_hasDotExtension(name, "mx2") || string_hasDotExtension(name, "col");
 }
 
-static bool hasMSXExtension(const char *name)
+static bool hasMSXExtension(IG::CStringView name)
 {
 	return hasMSXROMExtension(name) || hasMSXDiskExtension(name);
 }
@@ -381,30 +381,30 @@ static FS::FileString getFirstFilenameInArchive(const char *zipPath, MATCH_FUNC 
 	return {};
 }
 
-static FS::FileString getFirstROMFilenameInArchive(const char *zipPath)
+static FS::FileString getFirstROMFilenameInArchive(IG::CStringView zipPath)
 {
 	return getFirstFilenameInArchive(zipPath, hasMSXROMExtension);
 }
 
-static FS::FileString getFirstDiskFilenameInArchive(const char *zipPath)
+static FS::FileString getFirstDiskFilenameInArchive(IG::CStringView zipPath)
 {
 	return getFirstFilenameInArchive(zipPath, hasMSXDiskExtension);
 }
 
-static FS::FileString getFirstTapeFilenameInArchive(const char *zipPath)
+static FS::FileString getFirstTapeFilenameInArchive(IG::CStringView zipPath)
 {
 	return getFirstFilenameInArchive(zipPath, hasMSXTapeExtension);
 }
 
-static FS::FileString getFirstMediaFilenameInArchive(const char *zipPath)
+static FS::FileString getFirstMediaFilenameInArchive(IG::CStringView zipPath)
 {
 	return getFirstFilenameInArchive(zipPath, hasMSXExtension);
 }
 
 bool insertROM(EmuApp &app, const char *name, unsigned slot)
 {
-	assert(strlen(EmuSystem::gamePath()));
-	auto path = FS::makePathString(EmuSystem::gamePath(), name);
+	assert(strlen(EmuSystem::contentDirectory().data()));
+	auto path = FS::makePathString(EmuSystem::contentDirectory(), name);
 	FS::FileString fileInZipName{};
 	if(EmuApp::hasArchiveExtension(path.data()))
 	{
@@ -426,8 +426,8 @@ bool insertROM(EmuApp &app, const char *name, unsigned slot)
 
 bool insertDisk(EmuApp &app, const char *name, unsigned slot)
 {
-	assert(strlen(EmuSystem::gamePath()));
-	auto path = FS::makePathString(EmuSystem::gamePath(), name);
+	assert(strlen(EmuSystem::contentDirectory().data()));
+	auto path = FS::makePathString(EmuSystem::contentDirectory(), name);
 	FS::FileString fileInZipName{};
 	if(EmuApp::hasArchiveExtension(path.data()))
 	{
@@ -626,8 +626,8 @@ void EmuSystem::closeSystem()
 void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	// configure media loading
-	auto mediaPath = fullGamePath();
-	auto mediaFilename = gameFileName();
+	auto mediaPath = contentLocation();
+	auto mediaFilename = contentFileName();
 	FS::FileString fileInZipName{};
 	const char *fileInZipNamePtr{};
 	const char *mediaNamePtr = mediaFilename.data();
@@ -639,7 +639,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 		{
 			throw std::runtime_error("No media in archive");
 		}
-		logMsg("found:%s in archive:%s", fileInZipName.data(), mediaPath);
+		logMsg("found:%s in archive:%s", fileInZipName.data(), mediaPath.data());
 		fileInZipNamePtr = fileInZipName.data();
 		mediaNamePtr = fileInZipNamePtr;
 		if(hasMSXDiskExtension(fileInZipNamePtr))
@@ -671,7 +671,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 	if(hasMSXROMExtension(mediaNamePtr))
 	{
 		cartName[0] = mediaFilename;
-		if(!boardChangeCartridge(0, ROM_UNKNOWN, mediaPath, fileInZipNamePtr))
+		if(!boardChangeCartridge(0, ROM_UNKNOWN, mediaPath.data(), fileInZipNamePtr))
 		{
 			throw std::runtime_error("Error loading ROM");
 		}
@@ -687,7 +687,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 				throw std::runtime_error("Error loading Sunrise IDE device");
 			}
 			hdName[0] = mediaFilename;
-			if(!diskChange(hdId, mediaPath, fileInZipNamePtr))
+			if(!diskChange(hdId, mediaPath.data(), fileInZipNamePtr))
 			{
 				throw std::runtime_error("Error loading HD");
 			}
@@ -695,7 +695,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 		else
 		{
 			diskName[0] = mediaFilename;
-			if(!diskChange(0, mediaPath, fileInZipNamePtr))
+			if(!diskChange(0, mediaPath.data(), fileInZipNamePtr))
 			{
 				throw std::runtime_error("Error loading Disk");
 			}
@@ -778,33 +778,13 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
-{
-	if(canInstallCBIOS && checkForMachineFolderOnStart &&
-		!strlen(machineCustomPath.data()) && !FS::exists(machineBasePath)) // prompt to install if using default machine path & it doesn't exist
-	{
-		pushAndShowNewYesNoAlertView(attach, e,
-			installFirmwareFilesMessage,
-			"Yes", "No",
-			[](View &v)
-			{
-				installFirmwareFiles(v.appContext());
-			}, nullptr);
-	}
-};
-
-void EmuSystem::onInit(Base::ApplicationContext)
+void EmuSystem::onInit(Base::ApplicationContext ctx)
 {
 	/*mediaDbCreateRomdb();
 	mediaDbAddFromXmlFile("msxromdb.xml");
 	mediaDbAddFromXmlFile("msxsysromdb.xml");*/
 
-	#ifdef CONFIG_BASE_IOS
-	if(!Base::isSystemApp())
-	{
-		canInstallCBIOS = false;
-	}
-	#endif
+	appCtx = ctx;
 
 	// must create the mixer first since mainInitCommon() will access it
 	mixer = mixerCreate();

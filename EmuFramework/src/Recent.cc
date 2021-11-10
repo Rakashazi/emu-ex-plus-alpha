@@ -19,22 +19,4 @@
 
 RecentGameList recentGameList{};
 
-void addRecentGame(const char *fullPath, const char *name)
-{
-	if(!strlen(fullPath))
-		return;
-	logMsg("adding %s @ %s to recent list, current size: %zu", name, fullPath, recentGameList.size());
-	RecentGameInfo recent;
-	string_copy(recent.path, fullPath);
-	string_copy(recent.name, name);
-	IG::eraseFirst(recentGameList, recent); // remove existing entry so it's added to the front
-	if(recentGameList.isFull()) // list full
-		recentGameList.pop_back();
-	recentGameList.insert(recentGameList.begin(), recent);
 
-	/*logMsg("list contents:");
-	for(auto &e : recentGameList)
-	{
-		logMsg("path: %s name: %s", e.path.data(), e.name.data());
-	}*/
-}

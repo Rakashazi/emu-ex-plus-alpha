@@ -351,7 +351,7 @@ int systemCartType(ViceSystem system)
 	}
 }
 
-bool hasC64DiskExtension(const char *name)
+bool hasC64DiskExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "d64") ||
 			string_hasDotExtension(name, "d67") ||
@@ -369,19 +369,19 @@ bool hasC64DiskExtension(const char *name)
 			string_hasDotExtension(name, "dsk");
 }
 
-bool hasC64TapeExtension(const char *name)
+bool hasC64TapeExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "t64") ||
 			string_hasDotExtension(name, "tap");
 }
 
-bool hasC64CartExtension(const char *name)
+bool hasC64CartExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "bin") ||
 			string_hasDotExtension(name, "crt");
 }
 
-static bool hasC64Extension(const char *name)
+static bool hasC64Extension(IG::CStringView name)
 {
 	return hasC64DiskExtension(name) ||
 			hasC64TapeExtension(name) ||
@@ -474,7 +474,6 @@ void EmuSystem::closeSystem()
 	{
 		return;
 	}
-	logMsg("closing game %s", gameName().data());
 	saveBackupMem();
 	setIntResource("WarpMode", 0);
 	plugin.tape_image_detach(1);
@@ -537,7 +536,7 @@ bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event e)
 	return false;
 }
 
-static FS::FileString vic20ExtraCartName(const char *baseCartName, const char *searchPath)
+static FS::FileString vic20ExtraCartName(IG::CStringView baseCartName, IG::CStringView  searchPath)
 {
 	auto findAddrSuffixOffset =
 	[](const char *baseCartName) -> uintptr_t
@@ -589,50 +588,50 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 	bool shouldAutostart = !(params.systemFlags & SYSTEM_FLAG_NO_AUTOSTART) && optionAutostartOnLaunch;
 	if(shouldAutostart && plugin.autostart_autodetect_)
 	{
-		logMsg("loading & autostarting:%s", fullGamePath());
-		if(string_hasDotExtension(fullGamePath(), "prg"))
+		logMsg("loading & autostarting:%s", contentLocation().data());
+		if(string_hasDotExtension(contentFileName().data(), "prg"))
 		{
 			// needed to store AutostartPrgDisk.d64
 			makeDefaultBaseSavePath(ctx);
 		}
-		if(plugin.autostart_autodetect(fullGamePath(), nullptr, 0, AUTOSTART_MODE_RUN) != 0)
+		if(plugin.autostart_autodetect(contentLocation().data(), nullptr, 0, AUTOSTART_MODE_RUN) != 0)
 		{
 			EmuSystem::throwFileReadError();
 		}
 	}
 	else // no autostart
 	{
-		if(hasC64DiskExtension(fullGamePath()))
+		if(hasC64DiskExtension(contentFileName()))
 		{
-			logMsg("loading disk image:%s", fullGamePath());
-			if(plugin.file_system_attach_disk(8, 0, fullGamePath()) != 0)
+			logMsg("loading disk image:%s", contentLocation().data());
+			if(plugin.file_system_attach_disk(8, 0, contentLocation().data()) != 0)
 			{
 				EmuSystem::throwFileReadError();
 			}
 		}
-		else if(hasC64TapeExtension(fullGamePath()))
+		else if(hasC64TapeExtension(contentFileName()))
 		{
-			logMsg("loading tape image:%s", fullGamePath());
-			if(plugin.tape_image_attach(1, fullGamePath()) != 0)
+			logMsg("loading tape image:%s", contentLocation().data());
+			if(plugin.tape_image_attach(1, contentLocation().data()) != 0)
 			{
 				EmuSystem::throwFileReadError();
 			}
 		}
 		else // cart
 		{
-			logMsg("loading cart image:%s", fullGamePath());
-			if(plugin.cartridge_attach_image(systemCartType(currSystem), fullGamePath()) != 0)
+			logMsg("loading cart image:%s", contentLocation().data());
+			if(plugin.cartridge_attach_image(systemCartType(currSystem), contentLocation().data()) != 0)
 			{
 				EmuSystem::throwFileReadError();
 			}
 			if(currSystem == VICE_SYSTEM_VIC20) // check if the cart is part of a *-x000.prg pair
 			{
-				auto extraCartFilename = vic20ExtraCartName(gameFileName().data(), gamePath());
+				auto extraCartFilename = vic20ExtraCartName(contentFileName(), contentDirectory());
 				if(strlen(extraCartFilename.data()))
 				{
-					logMsg("loading extra cart image:%s", fullGamePath());
+					logMsg("loading extra cart image:%s", contentLocation().data());
 					if(plugin.cartridge_attach_image(systemCartType(currSystem),
-						IG::formatToPathString("{}/{}", gamePath(), extraCartFilename.data()).data()) != 0)
+						IG::formatToPathString("{}/{}", contentDirectory().data(), extraCartFilename.data()).data()) != 0)
 					{
 						EmuSystem::throwFileReadError();
 					}

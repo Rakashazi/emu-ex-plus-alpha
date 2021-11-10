@@ -43,6 +43,12 @@ static void applyAccessHint(PosixFileIO &io, IO::AccessHint access, bool isMappe
 	}
 }
 
+PosixFileIO::PosixFileIO(int fd, IO::AccessHint access):
+	ioImpl{std::in_place_type<PosixIO>, fd}
+{
+	tryMmap(access, fd);
+}
+
 PosixFileIO::PosixFileIO(IG::CStringView path, IO::AccessHint access, unsigned mode):
 	ioImpl{std::in_place_type<PosixIO>, path, mode}
 {
@@ -54,16 +60,21 @@ PosixFileIO::PosixFileIO(IG::CStringView path, IO::AccessHint access, unsigned m
 	// try to open as memory map if read-only
 	if(!(mode & IO::OPEN_WRITE))
 	{
-		MapIO mappedFile = makePosixMapIO(access, fd);
-		if(mappedFile)
-		{
-			ioImpl = std::move(mappedFile);
-			applyAccessHint(*this, access, true);
-		}
-		else
-		{
-			applyAccessHint(*this, access, false);
-		}
+		tryMmap(access, fd);
+	}
+}
+
+void PosixFileIO::tryMmap(IO::AccessHint access, int fd)
+{
+	MapIO mappedFile = makePosixMapIO(access, fd);
+	if(mappedFile)
+	{
+		ioImpl = std::move(mappedFile);
+		applyAccessHint(*this, access, true);
+	}
+	else
+	{
+		applyAccessHint(*this, access, false);
 	}
 }
 

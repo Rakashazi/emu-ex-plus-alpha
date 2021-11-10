@@ -613,7 +613,7 @@ public:
 	void addTapeFilePickerView(Input::Event e, bool dismissPreviousView)
 	{
 		app().pushAndShowModalView(
-			EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(), hasC64TapeExtension,
+			EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(), hasC64TapeExtension,
 			[this, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
 				auto path = picker.makePathString(name);
@@ -687,7 +687,7 @@ public:
 	void addCartFilePickerView(Input::Event e, bool dismissPreviousView)
 	{
 		app().pushAndShowModalView(
-			EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(), hasC64CartExtension,
+			EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(), hasC64CartExtension,
 			[this, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
 				auto path = picker.makePathString(name);
@@ -747,7 +747,7 @@ private:
 	void addDiskFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
 		app().pushAndShowModalView(
-			EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(), hasC64DiskExtension,
+			EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(), hasC64DiskExtension,
 			[this, slot, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
 				auto path = picker.makePathString(name);
@@ -1513,7 +1513,7 @@ class CustomMainMenuView : public EmuMainMenuView
 		app().createSystemWithMedia({}, diskPath, "", e, {SYSTEM_FLAG_NO_AUTOSTART}, attachParams(),
 			[this](Input::Event e)
 			{
-				app().launchSystem(e, false, true);
+				app().launchSystem(e, false);
 			});
 	};
 
@@ -1582,16 +1582,16 @@ class CustomMainMenuView : public EmuMainMenuView
 		app().createSystemWithMedia({}, tapePath, "", e, {SYSTEM_FLAG_NO_AUTOSTART}, attachParams(),
 			[this](Input::Event e)
 			{
-				app().launchSystem(e, false, true);
+				app().launchSystem(e, false);
 			});
 	};
 
 	TextMenuItem loadNoAutostart
 	{
-		"Load Game (No Autostart)", &defaultFace(),
+		"Open Content On Device (No Autostart)", &defaultFace(),
 		[this](Input::Event e)
 		{
-			pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e, false, {SYSTEM_FLAG_NO_AUTOSTART}), e, false);
+			app().requestFilePickerForLoading(*this, attachParams(), e, false, {SYSTEM_FLAG_NO_AUTOSTART});
 		}
 	};
 

@@ -17,7 +17,7 @@ extern FS::PathString sysCardPath;
 extern std::array<uint16, 5> inputBuff;
 
 void set6ButtonPadEnabled(EmuApp &, bool);
-bool hasHuCardExtension(const char *name);
+bool hasHuCardExtension(IG::CStringView name);
 
 namespace MDFN_IEN_PCE_FAST
 {

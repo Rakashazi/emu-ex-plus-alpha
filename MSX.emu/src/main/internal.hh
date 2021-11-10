@@ -12,7 +12,6 @@ extern "C"
 class EmuApp;
 struct Mixer;
 
-extern bool canInstallCBIOS;
 extern Byte1Option optionSkipFdcAccess;
 extern PathOption optionFirmwarePath;
 extern FS::PathString machineCustomPath;
@@ -26,24 +25,14 @@ extern unsigned activeBoardType;
 extern BoardInfo boardInfo;
 extern bool fdcActive;
 extern Mixer *mixer;
-
-static const char *installFirmwareFilesMessage =
-	#if defined CONFIG_BASE_ANDROID
-	"Install the C-BIOS BlueMSX machine files to your storage device?";
-	#elif defined CONFIG_ENV_WEBOS
-	"Install the C-BIOS BlueMSX machine files to internal storage? If using WebOS 1.4.5, make sure you have a version without the write permission bug.";
-	#elif defined CONFIG_BASE_IOS
-	"Install the C-BIOS BlueMSX machine files to /User/Media/MSX.emu?";
-	#else
-	"Install the C-BIOS BlueMSX machine files to Machines directory?";
-	#endif
+extern Base::ApplicationContext appCtx;
 
 void installFirmwareFiles(Base::ApplicationContext);
 HdType boardGetHdType(int hdIndex);
 FS::PathString makeMachineBasePath(Base::ApplicationContext, FS::PathString customPath);
-bool hasMSXTapeExtension(const char *name);
-bool hasMSXDiskExtension(const char *name);
-bool hasMSXROMExtension(const char *name);
+bool hasMSXTapeExtension(IG::CStringView name);
+bool hasMSXDiskExtension(IG::CStringView name);
+bool hasMSXROMExtension(IG::CStringView name);
 bool insertROM(EmuApp &, const char *name, unsigned slot = 0);
 bool insertDisk(EmuApp &, const char *name, unsigned slot = 0);
 bool zipStartWrite(const char *fileName);

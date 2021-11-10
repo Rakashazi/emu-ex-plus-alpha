@@ -35,7 +35,6 @@ const char *string_dotExtension(const char *s) __attribute__((nonnull));
 bool string_hasDotExtension(const char *s, const char *extension) __attribute__((nonnull));
 void string_toUpper(char *s) __attribute__((nonnull));
 bool string_equalNoCase(const char *s1, const char *s2) __attribute__((nonnull));
-bool string_equal(const char *s1, const char *s2) __attribute__((nonnull));
 size_t string_cat(char *dest, const char *src, size_t destSize) __attribute__((nonnull));
 
 // copies at most destSize-1 chars from src until null byte or dest size is reached
@@ -52,7 +51,6 @@ size_t string_copy(T &dest, IG::CStringView src)
 	return string_copy(std::data(dest), src, std::size(dest));
 }
 
-[[gnu::nonnull, gnu::pure]]
 static constexpr size_t string_len(IG::CStringView s)
 {
 	return std::char_traits<char>::length(s);
@@ -64,11 +62,20 @@ static size_t string_cat(T &dest, IG::CStringView src)
 	return string_cat(std::data(dest), src, std::size(dest));
 }
 
+static constexpr bool string_equal(IG::CStringView s1, IG::CStringView s2)
+{
+	return std::string_view{s1.data()} == s2.data();
+}
+
+[[gnu::nonnull]]
 std::errc string_convertCharCode(const char** sourceStart, uint32_t &c);
 
 std::array<char, 2> string_fromChar(char c);
 
 std::u16string string_makeUTF16(std::string_view);
+
+[[gnu::nonnull]]
+char *decodeUri(IG::CStringView input, char *output);
 
 namespace IG
 {
@@ -86,5 +93,13 @@ public:
 };
 
 }
+
+#else
+
+BEGIN_C_DECLS
+
+bool string_equal(const char *s1, const char *s2) __attribute__((nonnull));
+
+END_C_DECLS
 
 #endif

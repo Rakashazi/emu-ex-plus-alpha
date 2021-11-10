@@ -48,7 +48,7 @@ extern "C"
 		static CONF_ITEM conf{};
 		if(string_equal(name, "rompath"))
 		{
-			string_copy(rompathConfItem.data.dt_str.str, EmuSystem::gamePath());
+			string_copy(rompathConfItem.data.dt_str.str, EmuSystem::contentDirectory());
 			return &rompathConfItem;
 		}
 		else if(string_equal(name, "dump"))
@@ -109,7 +109,7 @@ CLINK int gn_strictROMChecking()
 	return optionStrictROMChecking;
 }
 
-static bool hasNeoGeoExtension(const char *name)
+static bool hasNeoGeoExtension(IG::CStringView name)
 {
 	return false; // archives handled by EmuFramework
 }
@@ -125,9 +125,9 @@ void EmuSystem::reset(ResetMode mode)
 	YM2610Reset();
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *contentName)
 {
-	return IG::formatToPathString("{}/{}.0{}.sta", statePath, gameName, saveSlotCharUpper(slot));
+	return IG::formatToPathString("{}/{}.0{}.sta", statePath, contentName, saveSlotCharUpper(slot));
 }
 
 void EmuSystem::saveState(const char *path)
@@ -279,7 +279,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 {
 	onLoadProgress = onLoadProgressFunc;
 	auto resetOnLoadProgress = IG::scopeGuard([&](){ onLoadProgress = {}; });
-	ROM_DEF *drv = res_load_drv(&ctx, gameName().data());
+	ROM_DEF *drv = res_load_drv(&ctx, contentName().data());
 	if(!drv)
 	{
 		throw std::runtime_error("This game isn't recognized");
@@ -316,8 +316,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 			#endif
 		}
 	}
-	EmuSystem::setFullGameName(drv->longname);
-	logMsg("set long game name: %s", EmuSystem::fullGameName().data());
+	EmuSystem::setContentDisplayName(drv->longname);
 	setTimerIntOption();
 	neogeo_frame_counter = 0;
 	neogeo_frame_counter_speed = 8;
@@ -373,14 +372,14 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	}
 }
 
-FS::FileString EmuSystem::fullGameNameForPath(Base::ApplicationContext ctx, const char *path)
+std::string EmuSystem::contentDisplayNameForPath(Base::ApplicationContext ctx, IG::CStringView path)
 {
-	auto gameName = fullGameNameForPathDefaultImpl(path);
-	ROM_DEF *drv = res_load_drv(&ctx, gameName.data());
+	auto contentName = contentDisplayNameForPathDefaultImpl(path);
+	ROM_DEF *drv = res_load_drv(&ctx, contentName.data());
 	if(!drv)
-		return gameName;
+		return contentName;
 	auto freeDrv = IG::scopeGuard([&](){ free(drv); });
-	return FS::makeFileString(drv->longname);
+	return drv->longname;
 }
 
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)

@@ -20,6 +20,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/fs/AssetFS.hh>
 #include <imagine/util/format.hh>
 #include "internal.hh"
 
@@ -28,26 +29,58 @@ extern "C"
 	#include <blueMSX/IoDevice/Disk.h>
 }
 
-static std::vector<FS::FileString> machinesNames(const char *basePath)
+static std::vector<FS::FileString> machinesNames(Base::ApplicationContext ctx, const char *basePath)
 {
 	std::vector<FS::FileString> machineName{};
 	auto machinePath = IG::formatToPathString("{}/Machines", basePath);
-	for(auto &entry : FS::directory_iterator{machinePath})
+	try
 	{
-		auto configPath = IG::formatToPathString("{}/{}/config.ini", machinePath.data(), entry.name());
-		if(!FS::exists(configPath))
+		for(auto &entry : FS::directory_iterator{machinePath})
 		{
-			//logMsg("%s doesn't exist", configPath.data());
-			continue;
+			auto configPath = IG::formatToPathString("{}/{}/config.ini", machinePath.data(), entry.name());
+			if(!FS::exists(configPath))
+			{
+				//logMsg("%s doesn't exist", configPath.data());
+				continue;
+			}
+			machineName.emplace_back(FS::makeFileString(entry.name()));
+			logMsg("found machine:%s", entry.name());
 		}
-		machineName.emplace_back(FS::makeFileString(entry.name()));
-		logMsg("found machine:%s", entry.name());
+	}
+	catch(...)
+	{
+		logWarn("no machines in:%s", machinePath.data());
+	}
+	try
+	{
+		if constexpr(Config::envIsAndroid)
+		{
+			// asset directory implementation skips directories, manually add bundled machines
+			machineName.emplace_back(FS::makeFileString("MSX - C-BIOS"));
+			machineName.emplace_back(FS::makeFileString("MSX2 - C-BIOS"));
+			machineName.emplace_back(FS::makeFileString("MSX2+ - C-BIOS"));
+		}
+		else
+		{
+			for(auto &entry : ctx.openAssetDirectory("Machines"))
+			{
+				machineName.emplace_back(FS::makeFileString(entry.name()));
+				logMsg("add asset path machine:%s", entry.name());
+			}
+		}
+	}
+	catch(...)
+	{
+		logWarn("no machines in assets");
 	}
 	std::sort(machineName.begin(), machineName.end(),
 		[](FS::FileString n1, FS::FileString n2)
 		{
 			return FS::fileStringNoCaseLexCompare(n1, n2);
 		});
+	// remove any duplicates
+	auto dupeEraseIt = std::unique(machineName.begin(), machineName.end());
+	machineName.erase(dupeEraseIt, machineName.end());
 	return machineName;
 }
 
@@ -63,58 +96,6 @@ static int machineIndex(std::vector<FS::FileString> &name, FS::FileString search
 	else
 	{
 		return -1;
-	}
-}
-
-void installFirmwareFiles(Base::ApplicationContext ctx)
-{
-	auto &app = EmuApp::get(ctx);
-	try
-	{
-		FS::create_directory(machineBasePath);
-
-		const char *dirsToCreate[] =
-		{
-			"Machines", "Machines/MSX - C-BIOS",
-			"Machines/MSX2 - C-BIOS", "Machines/MSX2+ - C-BIOS"
-		};
-
-		for(auto e : dirsToCreate)
-		{
-			auto pathTemp = IG::formatToPathString("{}/{}", machineBasePath.data(), e);
-			FS::create_directory(pathTemp);
-		}
-
-		const char *srcPath[] =
-		{
-			"cbios.txt", "cbios.txt", "cbios.txt",
-			"cbios_logo_msx1.rom", "cbios_main_msx1.rom", "config1.ini",
-			"cbios_logo_msx2.rom", "cbios_main_msx2.rom", "cbios_sub.rom", "config2.ini",
-			"cbios_logo_msx2+.rom", "cbios_main_msx2+.rom", "cbios_sub.rom", "cbios_music.rom", "config3.ini"
-		};
-		const char *destDir[] =
-		{
-				"MSX - C-BIOS", "MSX2 - C-BIOS", "MSX2+ - C-BIOS",
-				"MSX - C-BIOS", "MSX - C-BIOS", "MSX - C-BIOS",
-				"MSX2 - C-BIOS", "MSX2 - C-BIOS", "MSX2 - C-BIOS", "MSX2 - C-BIOS",
-				"MSX2+ - C-BIOS", "MSX2+ - C-BIOS", "MSX2+ - C-BIOS", "MSX2+ - C-BIOS", "MSX2+ - C-BIOS"
-		};
-
-		for(auto &e : srcPath)
-		{
-			auto src = ctx.openAsset(e, IO::AccessHint::ALL);
-			auto e_i = &e - srcPath;
-			auto pathTemp = IG::formatToPathString("{}/Machines/{}/{}",
-					machineBasePath.data(), destDir[e_i], strstr(e, "config") ? "config.ini" : e);
-			FileUtils::writeToPath(pathTemp.data(), src);
-		}
-
-		setDefaultMachineName("MSX2 - C-BIOS");
-		app.postMessage("Installation OK");
-	}
-	catch(std::exception &err)
-	{
-		app.postErrorMessage(4, err.what());
 	}
 }
 
@@ -152,7 +133,7 @@ private:
 	void reloadMachineItem()
 	{
 		msxMachineItem.clear();
-		msxMachineName = machinesNames(machineBasePath.data());
+		msxMachineName = machinesNames(appContext(), machineBasePath.data());
 		for(const auto &name : msxMachineName)
 		{
 			msxMachineItem.emplace_back(name.data(), &defaultFace(),
@@ -164,22 +145,6 @@ private:
 		}
 		msxMachine.setSelected(machineIndex(msxMachineName, FS::makeFileString(optionDefaultMachineName.val)));
 	}
-
-	TextMenuItem installCBIOS
-	{
-		"Install MSX C-BIOS", &defaultFace(),
-		[this](Input::Event e)
-		{
-			auto ynAlertView = makeView<YesNoAlertView>(
-				fmt::format("Install the C-BIOS BlueMSX machine files to: {}", machineBasePath.data()).data());
-			ynAlertView->setOnYes(
-				[this]()
-				{
-					installFirmwareFiles(appContext());
-				});
-			app().pushAndShowModalView(std::move(ynAlertView), e);
-		}
-	};
 
 	BoolMenuItem skipFdcAccess
 	{
@@ -228,10 +193,6 @@ public:
 		item.emplace_back(&msxMachine);
 		machineFilePath.setName(makeMachinePathMenuEntryStr().data());
 		item.emplace_back(&machineFilePath);
-		if(canInstallCBIOS)
-		{
-			item.emplace_back(&installCBIOS);
-		}
 	}
 };
 
@@ -282,7 +243,7 @@ public:
 
 	void addHDFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
-		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
+		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
 			[this, slot, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -351,7 +312,7 @@ public:
 
 	void addROMFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
-		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
+		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM),
 			[this, slot, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -432,7 +393,7 @@ public:
 
 	void addDiskFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
-		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::gamePath(),
+		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
 			[this, slot, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
 			{
@@ -572,7 +533,7 @@ private:
 	void reloadMachineItem()
 	{
 		msxMachineItem.clear();
-		msxMachineName = machinesNames(machineBasePath.data());
+		msxMachineName = machinesNames(appContext(), machineBasePath.data());
 		for(const auto &name : msxMachineName)
 		{
 			msxMachineItem.emplace_back(name.data(), &defaultFace(),

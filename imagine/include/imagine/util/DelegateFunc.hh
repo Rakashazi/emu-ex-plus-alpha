@@ -39,9 +39,9 @@ public:
 	constexpr DelegateFunc2(F const &funcObj) :
 		exec
 		{
-			[](const Storage &funcObj, Args... arguments) -> R
+			[](const Storage &funcObj, Args ...args) -> R
 			{
-				return ((F*)funcObj.data())->operator()(arguments...);
+				return ((F*)funcObj.data())->operator()(std::forward<Args>(args)...);
 			}
 		}
 	{
@@ -53,9 +53,9 @@ public:
 		requires (sizeof(StorageSize) >= sizeof(void*) && Align >= sizeof(void*)):
 		exec
 		{
-			[](const Storage &funcObj, Args... arguments) -> R
+			[](const Storage &funcObj, Args ...args) -> R
 			{
-				return callStoredFreeFunc(funcObj, arguments...);
+				return (*((FreeFuncPtr*)funcObj.data()))(std::forward<Args>(args)...);
 			}
 		}
 	{
@@ -68,32 +68,32 @@ public:
 		return exec;
 	}
 
-	constexpr R operator()(const Args &... args) const
+	constexpr R operator()(Args ...args) const
 	{
 		assert(exec);
-		return exec(store, args...);
+		return exec(store, std::forward<Args>(args)...);
 	}
 
 	constexpr bool operator ==(DelegateFunc2 const&) const = default;
 
-	constexpr R callCopy(const Args &... args) const
+	constexpr R callCopy(Args ...args) const
 	{
 		// Call a copy to avoid trashing captured variables
 		// if delegate's function can modify the delegate
-		return ({auto copy = *this; copy;})(args...);
+		return ({auto copy = *this; copy;})(std::forward<Args>(args)...);
 	}
 
-	constexpr R callSafe(const Args &... args) const
+	constexpr R callSafe(Args ...args) const
 	{
 		if(exec)
-			return this->operator()(args...);
+			return this->operator()(std::forward<Args>(args)...);
 		return R();
 	}
 
-	constexpr R callCopySafe(const Args &... args) const
+	constexpr R callCopySafe(Args ...args) const
 	{
 		if(exec)
-			return callCopy(args...);
+			return callCopy(std::forward<Args>(args)...);
 		return R();
 	}
 
@@ -102,11 +102,6 @@ private:
 
 	alignas(Align) Storage store{};
 	R (*exec)(const Storage &, Args...){};
-
-	static constexpr R callStoredFreeFunc(const Storage &s, const Args &... args)
-	{
-		return (*((FreeFuncPtr*)s.data()))(args...);
-	}
 };
 
 template <class R, class ...Args>

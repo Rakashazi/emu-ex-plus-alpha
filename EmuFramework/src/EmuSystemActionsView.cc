@@ -220,15 +220,15 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				if(!strlen(EmuSystem::gamePath()))
+				if(!strlen(EmuSystem::contentDirectory().data()))
 				{
 					// shortcuts to bundled games not yet supported
 					return;
 				}
-				app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Shortcut Name", EmuSystem::fullGameName().data(),
+				app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Shortcut Name", EmuSystem::contentDisplayName(),
 					[this](EmuApp &app, auto str)
 					{
-						appContext().addLauncherIcon(str, EmuSystem::fullGamePath());
+						appContext().addLauncherIcon(str, EmuSystem::contentLocation());
 						app.postMessage(2, false, fmt::format("Added shortcut:\n{}", str));
 						return true;
 					});

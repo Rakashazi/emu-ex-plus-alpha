@@ -30,6 +30,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/sys.hh>
@@ -126,7 +127,7 @@ void EmuMainMenuView::onShow()
 {
 	TableView::onShow();
 	logMsg("refreshing main menu state");
-	recentGames.setActive(recentGameList.size());
+	recentGames.setActive(app().recentContent().size());
 	systemActions.setActive(EmuSystem::gameIsRunning());
 	#ifdef CONFIG_BLUETOOTH
 	bluetoothDisconnect.setActive(Bluetooth::devsConnected(appContext()));
@@ -136,6 +137,10 @@ void EmuMainMenuView::onShow()
 void EmuMainMenuView::loadFileBrowserItems()
 {
 	item.emplace_back(&loadGame);
+	if(IG::used(browseContent) && appContext().hasSystemDocumentPicker() && EmuSystem::handlesGenericIO)
+	{
+		item.emplace_back(&browseContent);
+	}
 	item.emplace_back(&recentGames);
 	if(EmuSystem::hasBundledGames && optionShowBundledGames)
 	{
@@ -174,10 +179,18 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	TableView{appViewTitle(), attach, item},
 	loadGame
 	{
-		"Load Game", &defaultFace(),
+		"Open Content On Device", &defaultFace(),
 		[this](Input::Event e)
 		{
-			pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e), e, false);
+			app().requestFilePickerForLoading(*this, attachParams(), e);
+		}
+	},
+	browseContent
+	{
+		"Browse For Content", &defaultFace(),
+		[this](Input::Event e)
+		{
+			EmuFilePicker::browseForLoading(attachParams());
 		}
 	},
 	systemActions
@@ -192,18 +205,18 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	recentGames
 	{
-		"Recent Games", &defaultFace(),
+		"Recent Content", &defaultFace(),
 		[this](Input::Event e)
 		{
-			if(recentGameList.size())
+			if(app().recentContent().size())
 			{
-				pushAndShow(makeView<RecentGameView>(recentGameList), e);
+				pushAndShow(makeView<RecentGameView>(app().recentContent()), e);
 			}
 		}
 	},
 	bundledGames
 	{
-		"Bundled Games", &defaultFace(),
+		"Bundled Content", &defaultFace(),
 		[this](Input::Event e)
 		{
 			pushAndShow(makeView<BundledGamesView>(), e);
@@ -235,7 +248,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	},
 	benchmark
 	{
-		"Benchmark Game", &defaultFace(),
+		"Benchmark Content", &defaultFace(),
 		[this](Input::Event e)
 		{
 			pushAndShow(EmuFilePicker::makeForBenchmarking(attachParams(), e), e, false);

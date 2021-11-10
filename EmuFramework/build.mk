@@ -29,7 +29,6 @@ FilePicker.cc \
 FileUtils.cc \
 GUIOptionView.cc \
 InputManagerView.cc \
-Recent.cc \
 RecentGameView.cc \
 StateSlotView.cc \
 SystemOptionView.cc \

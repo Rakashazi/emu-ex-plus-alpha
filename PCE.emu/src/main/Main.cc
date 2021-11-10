@@ -57,17 +57,17 @@ static MDFN_Surface pixmapToMDFNSurface(IG::Pixmap pix)
 	return {pix.pixel({0,0}), pix.w(), pix.h(), pix.pitchPixels(), fmt};
 }
 
-bool hasHuCardExtension(const char *name)
+bool hasHuCardExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "pce") || string_hasDotExtension(name, "sgx");
 }
 
-static bool hasCDExtension(const char *name)
+static bool hasCDExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "toc") || string_hasDotExtension(name, "cue") || string_hasDotExtension(name, "ccd");
 }
 
-static bool hasPCEWithCDExtension(const char *name)
+static bool hasPCEWithCDExtension(IG::CStringView name)
 {
 	return hasHuCardExtension(name) || hasCDExtension(name);
 }
@@ -105,9 +105,9 @@ static char saveSlotCharPCE(int slot)
 	}
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *contentName)
 {
-	return IG::formatToPathString("{}/{}.{}.nc{}", statePath, gameName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotCharPCE(slot));
+	return IG::formatToPathString("{}/{}.{}.nc{}", statePath, contentName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotCharPCE(slot));
 }
 
 void EmuSystem::closeSystem()
@@ -150,7 +150,7 @@ unsigned EmuSystem::multiresVideoBaseX() { return 512; }
 
 void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	emuSys->name = EmuSystem::gameName().data();
+	emuSys->name = EmuSystem::contentName().data();
 	auto unloadCD = IG::scopeGuard(
 		[]()
 		{
@@ -161,15 +161,15 @@ void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 				CDInterfaces.clear();
 			}
 		});
-	if(hasCDExtension(gameFileName().data()))
+	if(hasCDExtension(contentFileName()))
 	{
 		if(!strlen(sysCardPath.data()) || !FS::exists(sysCardPath))
 		{
 			throw std::runtime_error("No System Card Set");
 		}
 		CDInterfaces.reserve(1);
-		FS::current_path(gamePath());
-		CDInterfaces.push_back(CDInterface::Open(&NVFS, fullGamePath(), false, 0));
+		FS::current_path(contentDirectory());
+		CDInterfaces.push_back(CDInterface::Open(&NVFS, contentLocation().data(), false, 0));
 		writeCDMD5();
 		emuSys->LoadCD(&CDInterfaces);
 		PCECD_Drive_SetDisc(false, CDInterfaces[0]);
@@ -179,7 +179,7 @@ void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 		auto size = io.size();
 		auto stream = std::make_unique<MemoryStream>(size, true);
 		io.read(stream->map(), stream->map_size());
-		MDFNFILE fp(&NVFS, std::move(stream), originalGameFileName().data());
+		MDFNFILE fp(&NVFS, std::move(stream), contentFileName().data());
 		GameFile gf{fp.active_vfs(), fp.active_dir_path(), fp.stream(), fp.ext, fp.fbase};
 		emuSys->Load(&gf);
 	}

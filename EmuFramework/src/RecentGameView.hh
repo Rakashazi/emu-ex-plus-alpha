@@ -16,18 +16,18 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuAppHelper.hh>
+#include <emuframework/EmuApp.hh>
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
-#include "Recent.hh"
 #include <vector>
 
 class RecentGameView : public TableView, public EmuAppHelper<RecentGameView>
 {
 public:
-	RecentGameView(ViewAttachParams attach, RecentGameList &list);
+	RecentGameView(ViewAttachParams attach, EmuApp::RecentContentList &list);
 
 private:
 	std::vector<TextMenuItem> recentGame{};
 	TextMenuItem clear{};
-	RecentGameList &list;
+	EmuApp::RecentContentList &list;
 };

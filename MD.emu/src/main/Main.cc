@@ -49,17 +49,17 @@ int8 mdInputPortDev[2]{-1, -1};
 t_bitmap bitmap{};
 static unsigned autoDetectedVidSysPAL = 0;
 
-bool hasMDExtension(const char *name)
+bool hasMDExtension(IG::CStringView name)
 {
 	return hasROMExtension(name);
 }
 
-static bool hasMDCDExtension(const char *name)
+static bool hasMDCDExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "cue") || string_hasDotExtension(name, "iso");
 }
 
-static bool hasMDWithCDExtension(const char *name)
+static bool hasMDWithCDExtension(IG::CStringView name)
 {
 	return hasMDExtension(name)
 	#ifndef NO_SCD
@@ -115,19 +115,19 @@ void EmuSystem::reset(ResetMode mode)
 		gen_reset(0);
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *contentName)
 {
-	return IG::formatToPathString("{}/{}.0{}.gp", statePath, gameName, saveSlotChar(slot));
+	return IG::formatToPathString("{}/{}.0{}.gp", statePath, contentName, saveSlotChar(slot));
 }
 
 static FS::PathString sprintSaveFilename()
 {
-	return IG::formatToPathString("{}/{}.srm", EmuSystem::savePath(), EmuSystem::gameName().data());
+	return IG::formatToPathString("{}/{}.srm", EmuSystem::savePath(), EmuSystem::contentName().data());
 }
 
 static FS::PathString sprintBRAMSaveFilename()
 {
-	return IG::formatToPathString("{}/{}.brm", EmuSystem::savePath(), EmuSystem::gameName().data());
+	return IG::formatToPathString("{}/{}.brm", EmuSystem::savePath(), EmuSystem::contentName().data());
 }
 
 static const unsigned maxSaveStateSize = STATE_SIZE+4;
@@ -343,11 +343,11 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	using namespace Mednafen;
 	CDAccess *cd{};
 	auto deleteCDAccess = IG::scopeGuard([&](){ delete cd; });
-	if(hasMDCDExtension(gameFileName().data()) ||
-		(string_hasDotExtension(gameFileName().data(), "bin") && FS::file_size(fullGamePath()) > 1024*1024*10)) // CD
+	if(hasMDCDExtension(contentFileName()) ||
+		(string_hasDotExtension(contentFileName().data(), "bin") && io.size() > 1024*1024*10)) // CD
 	{
-		FS::current_path(gamePath());
-		cd = CDAccess_Open(&NVFS, fullGamePath(), false);
+		FS::current_path(contentDirectory());
+		cd = CDAccess_Open(&NVFS, contentLocation().data(), false);
 
 		unsigned region = REGION_USA;
 		if (config.region_detect == 1) region = REGION_USA;
@@ -386,8 +386,8 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	#endif
 	// ROM
 	{
-		logMsg("loading ROM %s", fullGamePath());
-		if(!load_rom(io, fullGamePath(), originalGameFileName().data()))
+		logMsg("loading ROM %s", contentLocation().data());
+		if(!load_rom(io, contentLocation().data(), contentFileName().data()))
 		{
 			throwFileReadError();
 		}

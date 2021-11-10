@@ -15,6 +15,7 @@
 
 
 #include "ziphelper.h"
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
@@ -24,6 +25,15 @@
 extern "C"
 {
 	#include <blueMSX/Memory/RomLoader.h>
+}
+
+static UInt8 *fileToMallocBuffer(IO &file, int *size)
+{
+	int fileSize = file.size();
+	auto buff = (UInt8*)malloc(fileSize);
+	file.read(buff, fileSize);
+	*size = fileSize;
+	return buff;
 }
 
 UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
@@ -50,14 +60,31 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 			FileIO file{path->data(), IO::AccessHint::ALL, IO::OPEN_TEST};
 			if(!file)
 				continue;
-			int fileSize = file.size();
-			auto buff = (UInt8*)malloc(fileSize);
-			file.read(buff, fileSize);
-			*size = fileSize;
-			return buff;
+			return fileToMallocBuffer(file, size);
+		}
+		// fallback to app assets
+		auto file = appCtx.openAsset(filename, IO::AccessHint::ALL, IO::OPEN_TEST);
+		if(file)
+		{
+			return fileToMallocBuffer(file, size);
 		}
 	}
 	logErr("can't load ROM");
 	return nullptr;
 }
 
+CLINK FILE *openMachineIni(const char *path, const char *mode)
+{
+	auto filePathInFirmwarePath = FS::makePathString(machineBasePathStr(), path);
+	FileIO file{filePathInFirmwarePath, IO::AccessHint::ALL, IO::OPEN_TEST};
+	if(file)
+	{
+		return GenericIO{std::move(file)}.moveToFileStream(mode);
+	}
+	auto assetFile = appCtx.openAsset(path, IO::AccessHint::ALL, IO::OPEN_TEST);
+	if(assetFile)
+	{
+		return GenericIO{std::move(assetFile)}.moveToFileStream(mode);
+	}
+	return {};
+}

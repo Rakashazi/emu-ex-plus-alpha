@@ -100,7 +100,9 @@ public:
 	void removePostedNotifications(JNIEnv *, jobject baseActivity);
 	void handleIntent(ApplicationContext);
 	void openDocumentTreeIntent(JNIEnv *, jobject baseActivity, SystemPathPickerDelegate);
+	void openDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
 	FrameTimer makeFrameTimer(Screen &);
+	bool requestPermission(ApplicationContext, Permission);
 
 	// Input system functions
 	void onInputQueueCreated(ApplicationContext, AInputQueue *);
@@ -133,7 +135,11 @@ private:
 	JNI::InstMethod<jint()> jWinFlags{};
 	JNI::InstMethod<void(jstring, jstring, jstring)> jAddNotification{};
 	JNI::InstMethod<void(jlong)> jEnumInputDevices{};
-	SystemPathPickerDelegate onSystemPathPicker{};
+	union
+	{
+		SystemPathPickerDelegate onSystemPathPicker{};
+		SystemDocumentPickerDelegate onSystemDocumentPicker;
+	};
 	SystemOrientationChangedDelegate onSystemOrientationChanged{};
 	Timer userActivityCallback{"userActivityCallback"};
 	using ProcessInputFunc = void (AndroidApplication::*)(AInputQueue *);

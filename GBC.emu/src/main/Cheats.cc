@@ -71,7 +71,7 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	auto filename = IG::formatToPathString("{}/{}.gbcht", EmuSystem::savePath(), EmuSystem::gameName().data());
+	auto filename = IG::formatToPathString("{}/{}.gbcht", EmuSystem::savePath(), EmuSystem::contentName().data());
 
 	if(!cheatList.size())
 	{
@@ -105,7 +105,7 @@ void writeCheatFile()
 
 void readCheatFile()
 {
-	auto filename = IG::formatToPathString("{}/{}.gbcht", EmuSystem::savePath(), EmuSystem::gameName().data());
+	auto filename = IG::formatToPathString("{}/{}.gbcht", EmuSystem::savePath(), EmuSystem::contentName().data());
 	FileIO file{filename.data(), IO::AccessHint::ALL, IO::OPEN_TEST};
 	if(!file)
 	{

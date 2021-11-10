@@ -24,7 +24,7 @@
 BundledGamesView::BundledGamesView(ViewAttachParams attach):
 	TableView
 	{
-		"Bundled Games",
+		"Bundled Content",
 		attach,
 		[this](const TableView &)
 		{
@@ -46,10 +46,10 @@ BundledGamesView::BundledGamesView(ViewAttachParams attach):
 				logErr("error opening bundled game asset: %s", info.assetName);
 				return;
 			}
-			app().createSystemWithMedia(std::move(file), "", info.assetName, e, {}, attachParams(),
+			app().createSystemWithMedia(std::move(file), info.assetName, info.assetName, e, {}, attachParams(),
 				[this](Input::Event e)
 				{
-					app().launchSystemWithResumePrompt(e, false);
+					app().launchSystemWithResumePrompt(e);
 				});
 		}};
 }

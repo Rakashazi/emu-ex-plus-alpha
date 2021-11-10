@@ -463,7 +463,8 @@ private:
 		app().createSystemWithMedia({}, gameFilePath(app(), entry.name).data(), "", e, {}, attachParams(),
 			[this](Input::Event e)
 			{
-				app().launchSystemWithResumePrompt(e, true);
+				app().addCurrentContentToRecent();
+				app().launchSystemWithResumePrompt(e);
 			});
 	}
 
@@ -642,7 +643,7 @@ class CustomMainMenuView : public EmuMainMenuView
 private:
 	TextMenuItem gameList
 	{
-		"Load Game From List", &defaultFace(),
+		"Open Content From List", &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto gameListMenu = makeView<GameListView>();

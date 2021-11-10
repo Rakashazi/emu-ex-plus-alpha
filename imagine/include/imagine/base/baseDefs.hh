@@ -81,6 +81,8 @@ static constexpr bool SYSTEM_ROTATES_WINDOWS = true;
 	#else
 	static constexpr bool GL_PLATFORM_EGL = false;
 	#endif
+
+	static constexpr bool SYSTEM_FILE_PICKER = Config::envIsAndroid;
 	}
 }
 
@@ -90,6 +92,8 @@ class Event;
 class Device;
 class DeviceChange;
 }
+
+class GenericIO;
 
 namespace Base
 {
@@ -204,6 +208,7 @@ using DeviceOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, 
 using SystemOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Orientation oldOrientation, Orientation newOrientation)>;
 using ScreenChangeDelegate = DelegateFunc<void (ApplicationContext, Screen &s, ScreenChange)>;
 using SystemPathPickerDelegate = DelegateFunc<void(const char *path)>;
+using SystemDocumentPickerDelegate = DelegateFunc<void(const char *uri, GenericIO io)>;
 
 using InputDeviceChangeDelegate = DelegateFunc<void (const Input::Device &dev, Input::DeviceChange)>;
 using InputDevicesEnumeratedDelegate = DelegateFunc<void ()>;

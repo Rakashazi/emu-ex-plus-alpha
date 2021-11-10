@@ -103,6 +103,29 @@ PathString dirname(IG::CStringView path)
 	return dir;
 }
 
+bool isUri(IG::CStringView str)
+{
+	if(str[0] == '/')
+		return false;
+	else return true;
+}
+
+PathString decodeUri(IG::CStringView uri)
+{
+	PathString output{};
+	assert(strlen(uri) < output.size());
+	::decodeUri(uri, output.data());
+	return output;
+}
+
+FileString basenameUri(IG::CStringView pathOrUri, bool isEncodedUri)
+{
+	if(isEncodedUri)
+		return basename(decodeUri(pathOrUri));
+	else
+		return basename(pathOrUri);
+}
+
 bool fileStringNoCaseLexCompare(FS::FileString s1, FS::FileString s2)
 {
 	return std::lexicographical_compare(

@@ -199,6 +199,7 @@ std::error_code FSPicker::setPath(IG::CStringView path, bool forcePathChange, FS
 		dir.clear();
 		for(auto &entry : dirIt)
 		{
+			//logMsg("entry: %s", entry.name());
 			if(filter && !filter(entry))
 			{
 				continue;

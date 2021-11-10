@@ -44,7 +44,7 @@ bool EmuSystem::hasCheats = true;
 static constexpr IG::WP lcdSize{240, 160};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
-	[](const char *name)
+	[](IG::CStringView name)
 	{
 		return string_hasDotExtension(name, "gba");
 	};
@@ -76,9 +76,9 @@ void EmuSystem::reset(ResetMode mode)
 	CPUReset(gGba);
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *contentName)
 {
-	return IG::formatToPathString("{}/{}{}.sgm", statePath, gameName, saveSlotChar(slot));
+	return IG::formatToPathString("{}/{}{}.sgm", statePath, contentName, saveSlotChar(slot));
 }
 
 void EmuSystem::saveState(const char *path)
@@ -98,7 +98,7 @@ void EmuSystem::saveBackupMem()
 	if(gameIsRunning())
 	{
 		logMsg("saving backup memory");
-		auto saveStr = IG::formatToPathString("{}/{}.sav", savePath(), gameName().data());
+		auto saveStr = IG::formatToPathString("{}/{}.sav", savePath(), contentName().data());
 		CPUWriteBatteryFile(gGba, saveStr.data());
 		writeCheatFile();
 	}
@@ -107,7 +107,6 @@ void EmuSystem::saveBackupMem()
 void EmuSystem::closeSystem()
 {
 	assert(gameIsRunning());
-	logMsg("closing game %s", gameName().data());
 	saveBackupMem();
 	CPUCleanUp();
 	detectedRtcGame = 0;
@@ -153,10 +152,10 @@ void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 		throwFileReadError();
 	}
 	setGameSpecificSettings(gGba);
-	applyGamePatches(EmuSystem::savePath(), EmuSystem::gameName().data(), gGba.mem.rom, size);
+	applyGamePatches(EmuSystem::savePath(), EmuSystem::contentName().data(), gGba.mem.rom, size);
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
-	auto saveStr = IG::formatToPathString("{}/{}.sav", EmuSystem::savePath(), EmuSystem::gameName().data());
+	auto saveStr = IG::formatToPathString("{}/{}.sav", EmuSystem::savePath(), EmuSystem::contentName().data());
 	CPUReadBatteryFile(gGba, saveStr.data());
 	readCheatFile();
 }

@@ -182,7 +182,6 @@ static OptionBase *cfgFileOption[] =
 	&optionSkipLateFrames,
 	&optionFrameRate,
 	&optionFrameRatePAL,
-	&optionRecentGames,
 	&optionNotificationIcon,
 	&optionTitleBar,
 	&optionIdleDisplayPowerSave,
@@ -228,6 +227,7 @@ void EmuApp::saveConfigFile(IO &io)
 		}
 	}
 
+	writeRecentContent(io);
 	writeOptionValue(io, CFGKEY_BACK_NAVIGATION, viewManager.needsBackControlOption());
 	writeOptionValue(io, CFGKEY_SWAPPED_GAMEPAD_CONFIM, swappedConfirmKeysOption());
 	writeOptionValue(io, CFGKEY_AUDIO_SOLO_MIX, audioManager().soloMixOption());
@@ -464,7 +464,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				bcase CFGKEY_OVERLAY_EFFECT: optionOverlayEffect.readFromIO(io, size);
 				bcase CFGKEY_OVERLAY_EFFECT_LEVEL: optionOverlayEffectLevel.readFromIO(io, size);
 				bcase CFGKEY_TOUCH_CONTROL_VIRBRATE: vController.setVibrateOnTouchInput(readOptionValue<bool>(io, size));
-				bcase CFGKEY_RECENT_GAMES: optionRecentGames.readFromIO(ctx, io, size);
+				bcase CFGKEY_RECENT_GAMES: readRecentContent(ctx, io, size);
 				bcase CFGKEY_SWAPPED_GAMEPAD_CONFIM: setSwappedConfirmKeys(readOptionValue<bool>(io, size));
 				#ifdef __ANDROID__
 				bcase CFGKEY_CONSUME_UNBOUND_GAMEPAD_KEYS: optionConsumeUnboundGamepadKeys.readFromIO(io, size);

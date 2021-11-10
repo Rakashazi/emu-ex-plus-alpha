@@ -16,6 +16,7 @@
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/EmuSystem.hh>
 #include "private.hh"
+#include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 

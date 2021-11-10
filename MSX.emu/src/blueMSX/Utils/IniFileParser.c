@@ -8,6 +8,7 @@
 // PacketFileSystem.h Need to be included after all other includes
 #include "PacketFileSystem.h"
 
+FILE *openMachineIni(const char *name, const char *mode);
 
 static char* iniBuffer;
 static char* iniPtr;
@@ -27,7 +28,7 @@ static int readFile(const char* filename)
     iniEnd = NULL;
     iniBuffer = NULL;
 
-    f = fopen(filename, "r");
+    f = openMachineIni(filename, "r");
     if (f == NULL) {
         return 0;
     }

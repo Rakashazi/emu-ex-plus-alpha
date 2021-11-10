@@ -20,6 +20,9 @@
 #include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/io/FileIO.hh>
+#ifdef __ANDROID__
+#include <imagine/fs/AAssetFS.hh>
+#endif
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
@@ -212,18 +215,33 @@ FS::RootPathInfo ApplicationContext::nearestRootPath(IG::CStringView path) const
 	return {nearestPtr->root.name, nearestPtr->root.length};
 }
 
-AssetIO ApplicationContext::openAsset(IG::CStringView name, IO::AccessHint access, unsigned openFlags, const char *appName) const
+AssetIO ApplicationContext::openAsset(IG::CStringView name, IO::AccessHint hint, unsigned openFlags, const char *appName) const
 {
 	#ifdef __ANDROID__
-	return {*this, name, access, openFlags};
+	return {*this, name, hint, openFlags};
 	#else
-	return {IG::formatToPathString("{}/{}", assetPath(appName).data(), name), access, openFlags};
+	return {IG::formatToPathString("{}/{}", assetPath(appName).data(), name), hint, openFlags};
+	#endif
+}
+
+FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(IG::CStringView path, const char *appName)
+{
+	#ifdef __ANDROID__
+	return {aAssetManager(), path};
+	#else
+	return {IG::formatToPathString("{}/{}", assetPath(appName).data(), path)};
 	#endif
 }
 
 [[gnu::weak]] bool ApplicationContext::hasSystemPathPicker() const { return false; }
 
 [[gnu::weak]] void ApplicationContext::showSystemPathPicker(SystemPathPickerDelegate) {}
+
+[[gnu::weak]] bool ApplicationContext::hasSystemDocumentPicker() const { return false; }
+
+[[gnu::weak]] void ApplicationContext::showSystemDocumentPicker(SystemDocumentPickerDelegate) {}
+
+[[gnu::weak]] FileIO ApplicationContext::openUri(IG::CStringView, IO::AccessHint, unsigned) { return {}; }
 
 Orientation ApplicationContext::validateOrientationMask(Orientation oMask) const
 {
@@ -299,9 +317,9 @@ void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDeleg
 
 [[gnu::weak]] bool ApplicationContext::requestPermission(Permission) { return false; }
 
-[[gnu::weak]] void ApplicationContext::addNotification(const char *onShow, const char *title, const char *message) {}
+[[gnu::weak]] void ApplicationContext::addNotification(IG::CStringView onShow, IG::CStringView title, IG::CStringView message) {}
 
-[[gnu::weak]] void ApplicationContext::addLauncherIcon(const char *name, const char *path) {}
+[[gnu::weak]] void ApplicationContext::addLauncherIcon(IG::CStringView name, IG::CStringView path) {}
 
 [[gnu::weak]] bool VibrationManager::hasVibrator() const { return false; }
 

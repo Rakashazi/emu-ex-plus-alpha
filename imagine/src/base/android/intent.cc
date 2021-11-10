@@ -32,7 +32,7 @@ void AndroidApplication::addNotification(JNIEnv *env, jobject baseActivity, cons
 	jAddNotification(env, baseActivity, env->NewStringUTF(onShow), env->NewStringUTF(title), env->NewStringUTF(message));
 }
 
-void ApplicationContext::addNotification(const char *onShow, const char *title, const char *message)
+void ApplicationContext::addNotification(IG::CStringView onShow, IG::CStringView title, IG::CStringView message)
 {
 	return application().addNotification(mainThreadJniEnv(), baseActivityObject(), onShow, title, message);
 }
@@ -47,9 +47,9 @@ void AndroidApplication::removePostedNotifications(JNIEnv *env, jobject baseActi
 	jRemoveNotification(env, baseActivity);
 }
 
-void ApplicationContext::addLauncherIcon(const char *name, const char *path)
+void ApplicationContext::addLauncherIcon(IG::CStringView name, IG::CStringView path)
 {
-	logMsg("adding launcher icon: %s, for path: %s", name, path);
+	logMsg("adding launcher icon:%s, for location:%s", name.data(), path.data());
 	auto env = mainThreadJniEnv();
 	auto baseActivity = baseActivityObject();
 	JNI::InstMethod<void(jstring, jstring)> jAddViewShortcut{env, baseActivity, "addViewShortcut", "(Ljava/lang/String;Ljava/lang/String;)V"};
@@ -94,6 +94,20 @@ bool ApplicationContext::hasSystemPathPicker() const { return androidSDK() >= 30
 void ApplicationContext::showSystemPathPicker(SystemPathPickerDelegate del)
 {
 	application().openDocumentTreeIntent(mainThreadJniEnv(), baseActivityObject(), del);
+}
+
+void AndroidApplication::openDocumentIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
+{
+	onSystemDocumentPicker = del;
+	JNI::InstMethod<void(jlong)> jOpenDocument{env, env->GetObjectClass(baseActivity), "openDocument", "(J)V"};
+	jOpenDocument(env, baseActivity, (jlong)this);
+}
+
+bool ApplicationContext::hasSystemDocumentPicker() const { return androidSDK() >= 19; }
+
+void ApplicationContext::showSystemDocumentPicker(SystemDocumentPickerDelegate del)
+{
+	application().openDocumentIntent(mainThreadJniEnv(), baseActivityObject(), del);
 }
 
 }

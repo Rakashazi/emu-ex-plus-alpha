@@ -116,4 +116,9 @@ struct PathLocation
 	}
 };
 
+class AAssetIterator;
+class directory_iterator;
+
+using AssetDirectoryIterator = std::conditional_t<Config::envIsAndroid, AAssetIterator, directory_iterator>;
+
 }

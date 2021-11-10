@@ -38,6 +38,7 @@ public:
 	using IOUtilsBase::get;
 
 	constexpr PosixFileIO() {}
+	PosixFileIO(int fd, IO::AccessHint access = IO::AccessHint::NORMAL);
 	PosixFileIO(IG::CStringView path, IO::AccessHint access, unsigned openFlags = 0);
 	[[nodiscard]]
 	static PosixFileIO create(IG::CStringView path, unsigned openFlags = 0);
@@ -60,4 +61,6 @@ public:
 
 protected:
 	std::variant<PosixIO, MapIO> ioImpl{};
+
+	void tryMmap(IO::AccessHint access, int fd);
 };

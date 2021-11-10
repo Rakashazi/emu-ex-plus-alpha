@@ -38,7 +38,7 @@ static EmuVideo *emuVideo{};
 static constexpr IG::Pixmap srcPix{{{ngpResX, ngpResY}, IG::PIXEL_FMT_RGB565}, cfb};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
-	[](const char *name)
+	[](IG::CStringView name)
 	{
 		return string_hasDotExtension(name, "ngc") ||
 				string_hasDotExtension(name, "ngp") ||
@@ -62,9 +62,9 @@ void EmuSystem::reset(ResetMode mode)
 	::reset();
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *contentName)
 {
-	return IG::formatToPathString("{}/{}.0{}.ngs", statePath, gameName, saveSlotCharUpper(slot));
+	return IG::formatToPathString("{}/{}.0{}.ngs", statePath, contentName, saveSlotCharUpper(slot));
 }
 
 void EmuSystem::saveState(const char *path)
@@ -86,7 +86,7 @@ bool system_io_state_read(const char* filename, uint8_t* buffer, uint32 bufferLe
 
 static FS::PathString sprintSaveFilename()
 {
-	return IG::formatToPathString("{}/{}.ngf", EmuSystem::savePath(), EmuSystem::gameName().data());
+	return IG::formatToPathString("{}/{}.ngf", EmuSystem::savePath(), EmuSystem::contentName().data());
 }
 
 bool system_io_flash_read(uint8_t* buffer, uint32_t len)
@@ -113,7 +113,6 @@ void EmuSystem::saveBackupMem()
 void EmuSystem::closeSystem()
 {
 	rom_unload();
-	logMsg("closing game %s", gameName().data());
 }
 
 static bool romLoad(IO &io)

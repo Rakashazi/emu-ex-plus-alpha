@@ -163,6 +163,8 @@ void EmuApp::setCPUNeedsLowLatency(Base::ApplicationContext ctx, bool needed)
 
 static void suspendEmulation(EmuApp &app)
 {
+	if(!EmuSystem::gameIsRunning())
+		return;
 	app.saveAutoState();
 	EmuSystem::saveBackupMem();
 }
@@ -367,7 +369,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 				if(optionNotificationIcon)
 				{
 					auto title = fmt::format("{} was suspended", ctx.applicationName);
-					ctx.addNotification(title.data(), title.data(), EmuSystem::fullGameName().data());
+					ctx.addNotification(title, title, EmuSystem::contentDisplayName());
 				}
 			}
 			emuAudio.close();
@@ -389,12 +391,6 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 
 			return true;
 		});
-
-	if(ctx.usesPermission(Base::Permission::WRITE_EXT_STORAGE) &&
-		!ctx.requestPermission(Base::Permission::WRITE_EXT_STORAGE))
-	{
-		logMsg("requested external storage write permissions");
-	}
 
 	if(!renderer.supportsColorSpace())
 		windowDrawableConf.colorSpace = {};
@@ -515,7 +511,7 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 						viewController().prepareDraw();
 				});
 
-			if(auto launchPathStr = EmuSystem::gamePathString();
+			if(auto launchPathStr = EmuSystem::contentLocation();
 				strlen(launchPathStr.data()))
 			{
 				EmuSystem::setInitialLoadPath("");
@@ -559,7 +555,7 @@ void EmuApp::setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func)
 	onMainMenuOptionChanged_ = func;
 }
 
-void launchSystem(EmuApp &app, bool tryAutoState, bool addToRecent)
+void launchSystem(EmuApp &app, bool tryAutoState)
 {
 	if(tryAutoState)
 	{
@@ -570,17 +566,17 @@ void launchSystem(EmuApp &app, bool tryAutoState, bool addToRecent)
 			return;
 		}
 	}
-	if(addToRecent)
-		addRecentGame();
 	app.viewController().showEmulation();
 }
 
-void onSelectFileFromPicker(EmuApp &app, const char* name, Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams)
+void onSelectFileFromPicker(EmuApp &app, GenericIO io, IG::CStringView path, IG::CStringView name, bool pathIsUri,
+	Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams)
 {
-	app.createSystemWithMedia({}, name, "", e, params, attachParams,
-		[&app](Input::Event e)
+	app.createSystemWithMedia(std::move(io), path, name, pathIsUri, e, params, attachParams,
+		[&app, path](Input::Event e)
 		{
-			app.launchSystemWithResumePrompt(e, true);
+			app.addCurrentContentToRecent();
+			app.launchSystemWithResumePrompt(e);
 		});
 }
 
@@ -601,20 +597,20 @@ void EmuApp::showEmuation()
 	}
 }
 
-void EmuApp::launchSystemWithResumePrompt(Input::Event e, bool addToRecent)
+void EmuApp::launchSystemWithResumePrompt(Input::Event e)
 {
-	if(!viewController().showAutoStateConfirm(e, addToRecent))
+	if(!viewController().showAutoStateConfirm(e))
 	{
-		::launchSystem(*this, true, addToRecent);
+		::launchSystem(*this, true);
 	}
 }
 
-void EmuApp::launchSystem(Input::Event e, bool tryAutoState, bool addToRecent)
+void EmuApp::launchSystem(Input::Event e, bool tryAutoState)
 {
-	::launchSystem(*this, tryAutoState, addToRecent);
+	::launchSystem(*this, tryAutoState);
 }
 
-bool EmuApp::hasArchiveExtension(const char *name)
+bool EmuApp::hasArchiveExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "7z") ||
 		string_hasDotExtension(name, "rar") ||
@@ -660,12 +656,11 @@ void EmuApp::reloadGame(EmuSystemCreateParams params)
 	if(!EmuSystem::gameIsRunning())
 		return;
 	viewController().popToSystemActionsMenu();
-	FS::PathString gamePath;
-	string_copy(gamePath, EmuSystem::fullGamePath());
 	emuSystemTask.pause();
 	try
 	{
-		EmuSystem::createWithMedia(viewController().appContext(), {}, gamePath.data(), "", params,
+		EmuSystem::createWithMedia(appContext(), {}, EmuSystem::contentLocation(), "",
+			FS::isUri(EmuSystem::contentLocation()), params,
 			[](int pos, int max, const char *label){ return true; });
 		viewController().onSystemCreated();
 		viewController().showEmulation();
@@ -711,9 +706,18 @@ void EmuApp::printScreenshotResult(int num, bool success)
 
 [[gnu::weak]] bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event) { return true; }
 
-void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *name, Input::Event e, EmuSystemCreateParams params,
-	ViewAttachParams attachParams, CreateSystemCompleteDelegate onComplete)
+void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path, IG::CStringView name,
+	Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams,
+	CreateSystemCompleteDelegate onComplete)
 {
+	createSystemWithMedia(std::move(io), path, name, false, e, params, attachParams, onComplete);
+}
+
+void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path, IG::CStringView name, bool pathIsUri,
+	Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams,
+	CreateSystemCompleteDelegate onComplete)
+{
+	assert(strlen(path));
 	if(!EmuApp::willCreateSystem(attachParams, e))
 	{
 		return;
@@ -723,13 +727,14 @@ void EmuApp::createSystemWithMedia(GenericIO io, const char *path, const char *n
 	auto &msgPort = loadProgressView->messagePort();
 	pushAndShowModalView(std::move(loadProgressView), e);
 	auto app = attachParams.window().appContext();
+	auto nameStr = FS::makeFileString(strlen(name) ? name : FS::basenameUri(path, pathIsUri));
 	IG::makeDetachedThread(
-		[app, io{std::move(io)}, pathStr{FS::makePathString(path)}, fileStr{FS::makeFileString(name)}, &msgPort, params]() mutable
+		[app, io{std::move(io)}, pathStr{FS::makePathString(path)}, nameStr, &msgPort, params, pathIsUri]() mutable
 		{
 			logMsg("starting loader thread");
 			try
 			{
-				EmuSystem::createWithMedia(app, std::move(io), pathStr.data(), fileStr.data(), params,
+				EmuSystem::createWithMedia(app, std::move(io), pathStr, nameStr, pathIsUri, params,
 					[&msgPort](int pos, int max, const char *label)
 					{
 						int len = label ? strlen(label) : -1;
@@ -789,7 +794,7 @@ bool EmuApp::loadAutoState()
 	return 0;
 }
 
-bool EmuApp::saveState(const char *path)
+bool EmuApp::saveState(IG::CStringView path)
 {
 	if(!EmuSystem::gameIsRunning())
 	{
@@ -797,7 +802,7 @@ bool EmuApp::saveState(const char *path)
 		return false;
 	}
 	syncEmulationThread();
-	logMsg("saving state %s", path);
+	logMsg("saving state %s", path.data());
 	try
 	{
 		EmuSystem::saveState(*this, path);
@@ -816,7 +821,7 @@ bool EmuApp::saveStateWithSlot(int slot)
 	return saveState(path.data());
 }
 
-bool EmuApp::loadState(const char *path)
+bool EmuApp::loadState(IG::CStringView path)
 {
 	if(!EmuSystem::gameIsRunning())
 	{
@@ -829,7 +834,7 @@ bool EmuApp::loadState(const char *path)
 		return false;
 	}
 	syncEmulationThread();
-	logMsg("loading state %s", path);
+	logMsg("loading state %s", path.data());
 	try
 	{
 		EmuSystem::loadState(*this, path);
@@ -874,10 +879,10 @@ FS::PathString EmuApp::firmwareSearchPath()
 {
 	if(!strlen(optionFirmwarePath))
 		return lastLoadPath;
-	return hasArchiveExtension(optionFirmwarePath) ? FS::dirname(optionFirmwarePath.val) : FS::makePathString(optionFirmwarePath.val);
+	return hasArchiveExtension(optionFirmwarePath.val) ? FS::dirname(optionFirmwarePath.val) : FS::makePathString(optionFirmwarePath.val);
 }
 
-void EmuApp::setFirmwareSearchPath(const char *path)
+void EmuApp::setFirmwareSearchPath(IG::CStringView path)
 {
 	strncpy(optionFirmwarePath.val, path, sizeof(FS::PathString));
 }
@@ -915,7 +920,7 @@ void EmuApp::resetInput()
 
 static FS::PathString sessionConfigPath()
 {
-	return IG::formatToPathString("{}/{}.config", EmuSystem::savePath(), EmuSystem::gameName().data());
+	return IG::formatToPathString("{}/{}.config", EmuSystem::savePath(), EmuSystem::contentName().data());
 }
 
 bool EmuApp::hasSavedSessionOptions()
@@ -1071,7 +1076,7 @@ bool EmuApp::skipForwardFrames(EmuSystemTaskContext taskCtx, uint32_t frames)
 	return true;
 }
 
-bool EmuApp::writeScreenshot(IG::Pixmap pix, const char *path)
+bool EmuApp::writeScreenshot(IG::Pixmap pix, IG::CStringView path)
 {
 	return pixmapWriter.writeToFile(pix, path);
 }
@@ -1081,7 +1086,7 @@ std::pair<int, FS::PathString> EmuApp::makeNextScreenshotFilename()
 	constexpr int maxNum = 999;
 	iterateTimes(maxNum, i)
 	{
-		auto str = IG::formatToPathString("{}/{}.{:03d}.png", EmuSystem::savePath(), EmuSystem::gameName().data(), i);
+		auto str = IG::formatToPathString("{}/{}.{:03d}.png", EmuSystem::savePath(), EmuSystem::contentName().data(), i);
 		if(!FS::exists(str))
 		{
 			logMsg("screenshot %d", i);
@@ -1120,6 +1125,34 @@ std::array<char, 64> formatDateAndTime(std::tm time)
 	static constexpr const char *strftimeFormat = "%x  %r";
 	std::strftime(str.data(), str.size(), strftimeFormat, &time);
 	return str;
+}
+
+ViewAttachParams EmuApp::attachParams()
+{
+	return emuViewController->inputView().attachParams();
+}
+
+void EmuApp::addRecentContent(IG::CStringView fullPath, IG::CStringView name)
+{
+	if(!strlen(fullPath))
+		return;
+	logMsg("adding %s @ %s to recent list, current size: %zu", name.data(), fullPath.data(), recentContentList.size());
+	RecentContentInfo recent{FS::makePathString(fullPath), FS::makeFileString(name)};
+	IG::eraseFirst(recentContentList, recent); // remove existing entry so it's added to the front
+	if(recentContentList.isFull()) // list full
+		recentContentList.pop_back();
+	recentContentList.insert(recentContentList.begin(), recent);
+
+	/*logMsg("list contents:");
+	for(auto &e : recentGameList)
+	{
+		logMsg("path: %s name: %s", e.path.data(), e.name.data());
+	}*/
+}
+
+void EmuApp::addCurrentContentToRecent()
+{
+	addRecentContent(EmuSystem::contentLocation(), EmuSystem::contentDisplayName());
 }
 
 EmuApp &EmuApp::get(Base::ApplicationContext ctx)

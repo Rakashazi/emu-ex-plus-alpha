@@ -36,7 +36,7 @@ bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
-	[](const char *name)
+	[](IG::CStringView name)
 	{
 		return string_hasDotExtension(name, "smc") ||
 				string_hasDotExtension(name, "sfc") ||
@@ -125,21 +125,21 @@ void EmuSystem::reset(ResetMode mode)
 #define FREEZE_EXT "s96"
 #endif
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *contentName)
 {
-	return IG::formatToPathString("{}/{}.0{}." FREEZE_EXT, statePath, gameName, saveSlotCharUpper(slot));
+	return IG::formatToPathString("{}/{}.0{}." FREEZE_EXT, statePath, contentName, saveSlotCharUpper(slot));
 }
 
 #undef FREEZE_EXT
 
 static FS::PathString sprintSRAMFilename()
 {
-	return IG::formatToPathString("{}/{}.srm", EmuSystem::savePath(), EmuSystem::gameName().data());
+	return IG::formatToPathString("{}/{}.srm", EmuSystem::savePath(), EmuSystem::contentName().data());
 }
 
 static FS::PathString sprintCheatsFilename()
 {
-	return IG::formatToPathString("{}/{}.cht", EmuSystem::savePath(), EmuSystem::gameName().data());
+	return IG::formatToPathString("{}/{}.cht", EmuSystem::savePath(), EmuSystem::contentName().data());
 }
 
 void EmuSystem::saveState(const char *path)
@@ -202,7 +202,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	IG::fill(Memory.NSRTHeader);
 	#endif
 	Memory.HeaderCount = 0;
-	string_copy(Memory.ROMFilename, fullGamePath());
+	string_copy(Memory.ROMFilename, contentFileName());
 	Settings.ForceNTSC = Settings.ForcePAL = 0;
 	switch(optionVideoSystem.val)
 	{

@@ -62,22 +62,22 @@ int dendy = 0;
 bool paldeemphswap = false;
 bool swapDuty = false;
 
-bool hasFDSBIOSExtension(const char *name)
+bool hasFDSBIOSExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "rom") || string_hasDotExtension(name, "bin");
 }
 
-static bool hasFDSExtension(const char *name)
+static bool hasFDSExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "fds");
 }
 
-static bool hasROMExtension(const char *name)
+static bool hasROMExtension(IG::CStringView name)
 {
 	return string_hasDotExtension(name, "nes") || string_hasDotExtension(name, "unf");
 }
 
-static bool hasNESExtension(const char *name)
+static bool hasNESExtension(IG::CStringView name)
 {
 	return hasROMExtension(name) || hasFDSExtension(name);
 }
@@ -306,7 +306,7 @@ const char *regionToStr(int region)
 	return "Unknown";
 }
 
-static int regionFromName(const char *name)
+static int regionFromName(IG::CStringView name)
 {
 	if(strstr(name, "(E)") || strstr(name, "(e)") || strstr(name, "(EU)")
 		|| strstr(name, "(Europe)") || strstr(name, "(PAL)")
@@ -347,17 +347,17 @@ void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 	setDirOverrides();
 	auto ioStream = new EmuFileIO(io);
 	auto file = new FCEUFILE();
-	file->filename = fullGamePath();
-	file->logicalPath = fullGamePath();
-	file->fullFilename = fullGamePath();
+	file->filename = contentLocation().data();
+	file->logicalPath = contentLocation().data();
+	file->fullFilename = contentLocation().data();
 	file->archiveIndex = -1;
 	file->stream = ioStream;
 	file->size = ioStream->size();
-	if(!FCEUI_LoadGameWithFile(file, originalGameFileName().data(), 0))
+	if(!FCEUI_LoadGameWithFile(file, contentFileName().data(), 0))
 	{
 		throw std::runtime_error("Error loading game");
 	}
-	autoDetectedRegion = regionFromName(gameFileName().data());
+	autoDetectedRegion = regionFromName(contentFileName());
 	setRegion(optionVideoSystem.val, optionDefaultVideoSystem.val, autoDetectedRegion);
 	FCEUI_ListCheats(cheatCallback, 0);
 	if(fceuCheats)

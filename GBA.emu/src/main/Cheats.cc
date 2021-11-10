@@ -222,7 +222,7 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	auto filename = IG::formatToPathString("{}/{}.clt", EmuSystem::savePath(), EmuSystem::gameName().data());
+	auto filename = IG::formatToPathString("{}/{}.clt", EmuSystem::savePath(), EmuSystem::contentName().data());
 
 	if(!cheatsNumber)
 	{
@@ -237,7 +237,7 @@ void writeCheatFile()
 
 void readCheatFile()
 {
-	auto filename = IG::formatToPathString("{}/{}.clt", EmuSystem::savePath(), EmuSystem::gameName().data());
+	auto filename = IG::formatToPathString("{}/{}.clt", EmuSystem::savePath(), EmuSystem::contentName().data());
 	if(cheatsLoadCheatList(filename.data()))
 	{
 		logMsg("loaded cheat file: %s", filename.data());

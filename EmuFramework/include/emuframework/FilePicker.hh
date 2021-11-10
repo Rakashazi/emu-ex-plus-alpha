@@ -22,15 +22,16 @@
 class EmuFilePicker : public FSPicker, public EmuAppHelper<EmuFilePicker>
 {
 public:
-	EmuFilePicker(ViewAttachParams, const char *startingPath, bool pickingDir,
+	EmuFilePicker(ViewAttachParams, IG::CStringView startingPath, bool pickingDir,
 		EmuSystem::NameFilterFunc, FS::RootPathInfo,
 		Input::Event, bool singleDir = false, bool includeArchives = true);
-	EmuFilePicker(ViewAttachParams, EmuApp &, const char *startingPath, bool pickingDir,
+	EmuFilePicker(ViewAttachParams, EmuApp &, IG::CStringView startingPath, bool pickingDir,
 		EmuSystem::NameFilterFunc, FS::RootPathInfo,
 		Input::Event, bool singleDir = false, bool includeArchives = true);
 	static std::unique_ptr<EmuFilePicker> makeForBenchmarking(ViewAttachParams, Input::Event, bool singleDir = false);
 	static std::unique_ptr<EmuFilePicker> makeForLoading(ViewAttachParams, Input::Event, bool singleDir = false, EmuSystemCreateParams params = {});
-	static std::unique_ptr<EmuFilePicker> makeForMediaChange(ViewAttachParams, Input::Event, const char *path,
+	static void browseForLoading(ViewAttachParams, EmuSystemCreateParams params = {});
+	static std::unique_ptr<EmuFilePicker> makeForMediaChange(ViewAttachParams, Input::Event, IG::CStringView path,
 		EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate);
 	static std::unique_ptr<EmuFilePicker> makeForMediaCreation(ViewAttachParams, Input::Event, bool singleDir = false);
 	static std::unique_ptr<EmuFilePicker> makeForMediaCreation(ViewAttachParams, bool singleDir = false);

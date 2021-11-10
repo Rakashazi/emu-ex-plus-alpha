@@ -13,15 +13,14 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <emuframework/EmuApp.hh>
-#include "Recent.hh"
 #include "RecentGameView.hh"
 #include <imagine/gui/AlertView.hh>
+#include <imagine/fs/FS.hh>
 
-RecentGameView::RecentGameView(ViewAttachParams attach, RecentGameList &list):
+RecentGameView::RecentGameView(ViewAttachParams attach, EmuApp::RecentContentList &list):
 	TableView
 	{
-		"Recent Games",
+		"Recent Content",
 		attach,
 		[this](const TableView &)
 		{
@@ -55,13 +54,17 @@ RecentGameView::RecentGameView(ViewAttachParams attach, RecentGameList &list):
 		auto &recentItem = recentGame.emplace_back(entry.name.data(), &defaultFace(),
 			[this, &entry](Input::Event e)
 			{
-				app().createSystemWithMedia({}, entry.path.data(), "", e, {}, attachParams(),
+				auto io = appContext().openUri(entry.path, IO::AccessHint::SEQUENTIAL);
+				app().createSystemWithMedia(std::move(io), entry.path, "", FS::isUri(entry.path), e, {}, attachParams(),
 					[this](Input::Event e)
 					{
-						app().launchSystemWithResumePrompt(e, false);
+						app().launchSystemWithResumePrompt(e);
 					});
 			});
-		recentItem.setActive(FS::exists(entry.path.data()));
+		if(!FS::isUri(entry.path))
+		{
+			recentItem.setActive(FS::exists(entry.path));
+		}
 	}
 	clear.setActive(list.size());
 }

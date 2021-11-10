@@ -246,3 +246,170 @@ std::array<char, 2> string_fromChar(char c)
 {
 	return {c, '\0'};
 }
+
+static constexpr unsigned char hexdigToInt(char hexdig)
+{
+	switch (hexdig) {
+	case '0':
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+	case '8':
+	case '9':
+		return (unsigned char)(9 + hexdig - '9');
+
+	case 'a':
+	case 'b':
+	case 'c':
+	case 'd':
+	case 'e':
+	case 'f':
+		return (unsigned char)(15 + hexdig - 'f');
+
+	case 'A':
+	case 'B':
+	case 'C':
+	case 'D':
+	case 'E':
+	case 'F':
+		return (unsigned char)(15 + hexdig - 'F');
+
+	default:
+		return 0;
+	}
+}
+
+// URI decoder based on uriparser library
+
+char *decodeUri(IG::CStringView input, char *write)
+{
+	const char *read = input;
+	bool prevWasCr = false;
+
+	for (;;) {
+		switch (read[0]) {
+		case '\0':
+			if (read > write) {
+				write[0] = '\0';
+			}
+			return write;
+
+		case '%':
+			switch (read[1]) {
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+			case 'a':
+			case 'b':
+			case 'c':
+			case 'd':
+			case 'e':
+			case 'f':
+			case 'A':
+			case 'B':
+			case 'C':
+			case 'D':
+			case 'E':
+			case 'F':
+				switch (read[2]) {
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+				case 'a':
+				case 'b':
+				case 'c':
+				case 'd':
+				case 'e':
+				case 'f':
+				case 'A':
+				case 'B':
+				case 'C':
+				case 'D':
+				case 'E':
+				case 'F':
+					{
+						/* Percent group found */
+						const unsigned char left = hexdigToInt(read[1]);
+						const unsigned char right = hexdigToInt(read[2]);
+						const int code = 16 * left + right;
+						switch (code) {
+						case 10:
+							write[0] = (char)10;
+							write++;
+							prevWasCr = false;
+							break;
+
+						case 13:
+							write[0] = (char)13;
+							write++;
+							prevWasCr = true;
+							break;
+
+						default:
+							write[0] = (char)(code);
+							write++;
+
+							prevWasCr = false;
+
+						}
+						read += 3;
+					}
+					break;
+
+				default:
+					/* Copy two chars unmodified and */
+					/* look at this char again */
+					if (read > write) {
+						write[0] = read[0];
+						write[1] = read[1];
+					}
+					read += 2;
+					write += 2;
+
+					prevWasCr = false;
+				}
+				break;
+
+			default:
+				/* Copy one char unmodified and */
+				/* look at this char again */
+				if (read > write) {
+					write[0] = read[0];
+				}
+				read++;
+				write++;
+
+				prevWasCr = false;
+			}
+			break;
+
+		default:
+			/* Copy one char unmodified */
+			if (read > write) {
+				write[0] = read[0];
+			}
+			read++;
+			write++;
+
+			prevWasCr = false;
+		}
+	}
+}

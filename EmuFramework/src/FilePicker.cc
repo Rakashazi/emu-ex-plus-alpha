@@ -20,12 +20,13 @@
 #include "private.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/FSPicker.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <string>
 
 EmuFilePicker::EmuFilePicker(ViewAttachParams attach,
-	const char *startingPath, bool pickingDir,
+	IG::CStringView startingPath, bool pickingDir,
 	EmuSystem::NameFilterFunc filter, FS::RootPathInfo rootInfo,
 	Input::Event e, bool singleDir, bool includeArchives):
 	EmuFilePicker
@@ -37,7 +38,7 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach,
 {}
 
 EmuFilePicker::EmuFilePicker(ViewAttachParams attach,
-	EmuApp &app, const char *startingPath, bool pickingDir,
+	EmuApp &app, IG::CStringView startingPath, bool pickingDir,
 	EmuSystem::NameFilterFunc filter, FS::RootPathInfo rootInfo,
 	Input::Event e, bool singleDir, bool includeArchives):
 	FSPicker
@@ -104,7 +105,7 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachPara
 		[&app](FSPicker &picker, const char* name, Input::Event e)
 		{
 			app.postMessage("Running benchmark...");
-			app.createSystemWithMedia({}, picker.makePathString(name).data(), "", e, {}, picker.attachParams(),
+			app.createSystemWithMedia({}, picker.makePathString(name), name, e, {}, picker.attachParams(),
 				[&app](Input::Event e)
 				{
 					runBenchmarkOneShot(app, app.video());
@@ -128,12 +129,23 @@ std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForLoading(ViewAttachParams at
 	picker->setOnSelectFile(
 		[=, &app](FSPicker &picker, const char *name, Input::Event e)
 		{
-			onSelectFileFromPicker(app, picker.makePathString(name).data(), e, params, picker.attachParams());
+			onSelectFileFromPicker(app, {}, picker.makePathString(name).data(), name, false, e, params, picker.attachParams());
 		});
 	return picker;
 }
 
-std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaChange(ViewAttachParams attach, Input::Event e, const char *path, EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate onSelect)
+void EmuFilePicker::browseForLoading(ViewAttachParams attach, EmuSystemCreateParams params)
+{
+	auto ctx = attach.appContext();
+	ctx.showSystemDocumentPicker(
+		[=](const char *uri, GenericIO io)
+		{
+			auto &app = EmuApp::get(ctx);
+			onSelectFileFromPicker(app, std::move(io), uri, "", true, ctx.defaultInputEvent(), params, app.attachParams());
+		});
+}
+
+std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForMediaChange(ViewAttachParams attach, Input::Event e, IG::CStringView path, EmuSystem::NameFilterFunc filter, FSPicker::OnSelectFileDelegate onSelect)
 {
 	auto picker = std::make_unique<EmuFilePicker>(attach, path, false, filter,
 		FS::RootPathInfo{FS::makeFileString("Media Path"), strlen(path)}, e, true);
@@ -165,4 +177,16 @@ bool EmuFilePicker::inputEvent(Input::Event e)
 		}
 	}
 	return FSPicker::inputEvent(e);
+}
+
+void EmuApp::requestFilePickerForLoading(View &parentView, ViewAttachParams attach, Input::Event e,
+	bool singleDir, EmuSystemCreateParams params)
+{
+	auto ctx = appContext();
+	if(ctx.usesPermission(Base::Permission::WRITE_EXT_STORAGE))
+	{
+		if(!ctx.requestPermission(Base::Permission::WRITE_EXT_STORAGE))
+			return;
+	}
+	parentView.pushAndShow(EmuFilePicker::makeForLoading(attach, e, singleDir, params), e, false);
 }

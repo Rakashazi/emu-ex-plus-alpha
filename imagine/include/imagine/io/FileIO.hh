@@ -18,7 +18,12 @@
 #include <imagine/config/defs.hh>
 #include <imagine/io/PosixFileIO.hh>
 #include <imagine/util/string/CStringView.hh>
-using FileIO = PosixFileIO;
+
+class FileIO: public PosixFileIO
+{
+public:
+	using PosixFileIO::PosixFileIO;
+};
 
 #ifdef __ANDROID__
 #include <imagine/io/AAssetIO.hh>
@@ -27,7 +32,7 @@ using AssetIOImpl = AAssetIO;
 using AssetIOImpl = FileIO;
 #endif
 
-class AssetIO final: public AssetIOImpl
+class AssetIO: public AssetIOImpl
 {
 public:
 	using AssetIOImpl::AssetIOImpl;

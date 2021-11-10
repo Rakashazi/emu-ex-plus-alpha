@@ -51,6 +51,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
+import android.util.Log;
 
 // This class is also named BaseActivity to prevent shortcuts from breaking with previous SDK < 9 APKs
 
@@ -65,12 +66,14 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		int devID, InputDevice dev, String name, int src, int kbType,
 		int jsAxisBits, boolean isPowerButton);
 	static native void documentTreeOpened(long nativeUserData, String path);
+	static native void documentOpened(long nativeUserData, String uri, int fd);
 	private static final int commonUILayoutFlags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
 		| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
 	private Display defaultDpy;
 	private long activityResultNativeUserData;
 	private static final int REQUEST_OPEN_DOCUMENT_TREE = 1;
 	private static final int REQUEST_BT_ON = 2;
+	private static final int REQUEST_OPEN_DOCUMENT = 3;
 
 	boolean hasPermanentMenuKey()
 	{
@@ -282,11 +285,31 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		else if(android.os.Build.VERSION.SDK_INT >= 30 && requestCode == REQUEST_OPEN_DOCUMENT_TREE &&
 			resultCode == RESULT_OK && intent != null)
 		{
-			final String path = StorageManagerHelper.pathFromOpenDocumentTreeResult(this, intent);
+			final Uri uri = intent.getData();
+			final String path = StorageManagerHelper.pathFromDocumentUri(this, uri);
 			if(path != null)
 			{
+				final int takeFlags = intent.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+				getContentResolver().takePersistableUriPermission(uri, takeFlags);
 				documentTreeOpened(activityResultNativeUserData, path);
 			}
+		}
+		else if(android.os.Build.VERSION.SDK_INT >= 19 && requestCode == REQUEST_OPEN_DOCUMENT &&
+			resultCode == RESULT_OK && intent != null)
+		{
+			final Uri uri = intent.getData();
+			int fd = -1;
+			try
+			{
+				fd = getContentResolver().openFileDescriptor(uri, "r").detachFd();
+			}
+			catch(Exception e)
+			{
+				return;
+			}
+			final int takeFlags = intent.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION;
+			getContentResolver().takePersistableUriPermission(uri, takeFlags);
+			documentOpened(activityResultNativeUserData, uri.toString(), fd);
 		}
 	}
 	
@@ -314,7 +337,10 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	{
 		Intent viewIntent = new Intent(this, BaseActivity.class);
 		viewIntent.setAction(Intent.ACTION_VIEW);
-		viewIntent.setData(Uri.parse("file://" + path));
+		if(path.charAt(0) == '/')
+			viewIntent.setData(Uri.parse("file://" + path));
+		else
+			viewIntent.setData(Uri.parse(path));
 		int icon = getResources().getIdentifier("icon", "drawable", getPackageName());
 		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
 		{
@@ -493,7 +519,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		ActivityCompat.requestPermissions(this, new String[]{permission}, 0);
 		return false;
 	}
-	
+
 	void makeErrorPopup(String text)
 	{
 		TextView view = new TextView(this);
@@ -506,7 +532,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			}
 		});
 	}
-	
+
 	void openURL(String url)
 	{
 		Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
@@ -523,5 +549,51 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		activityResultNativeUserData = nativeUserData;
 		Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
 		startActivityForResult(intent, REQUEST_OPEN_DOCUMENT_TREE);
+	}
+
+	void openDocument(long nativeUserData)
+	{
+		if(android.os.Build.VERSION.SDK_INT < 19)
+			return;
+		activityResultNativeUserData = nativeUserData;
+		Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+		intent.addCategory(Intent.CATEGORY_OPENABLE);
+		intent.setType("application/*");
+		startActivityForResult(intent, REQUEST_OPEN_DOCUMENT);
+	}
+
+	int openUriFd(String uriStr)
+	{
+		if(android.os.Build.VERSION.SDK_INT < 19)
+			return -1;
+		try
+		{
+			return getContentResolver().openFileDescriptor(Uri.parse(uriStr), "r").detachFd();
+		}
+		catch(Exception e)
+		{
+			return -1;
+		}
+	}
+
+	boolean requestExternalStorageManager()
+	{
+		if(android.os.Build.VERSION.SDK_INT < 30)
+			return false;
+		if(Environment.isExternalStorageManager())
+			return true;
+		try
+		{
+			Intent intent = new Intent("android.settings.MANAGE_APP_ALL_FILES_ACCESS_PERMISSION", Uri.parse("package:" + getPackageName()));
+			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+			startActivity(intent);
+		}
+		catch(Exception e)
+		{
+			Intent intent = new Intent("android.settings.MANAGE_ALL_FILES_ACCESS_PERMISSION");
+			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+			startActivity(intent);
+		}
+		return false;
 	}
 }

@@ -16,7 +16,6 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuSystem.hh>
-#include "Recent.hh"
 #include <imagine/pixmap/PixelFormat.hh>
 #include <memory>
 #include <ctime>
@@ -37,27 +36,21 @@ class Viewport;
 class Projection;
 }
 
+class GenericIO;
 class ViewAttachParams;
 class EmuSystemTask;
 class EmuViewController;
 class EmuVideo;
 class EmuAudio;
 
-extern RecentGameList recentGameList;
-
-void addRecentGame(const char *fullPath, const char *name);
 const char *appViewTitle();
 bool hasGooglePlayStoreFeatures();
 void runBenchmarkOneShot(EmuApp &, EmuVideo &);
-void onSelectFileFromPicker(EmuApp &, const char* name, Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams);
-void launchSystem(EmuApp &, bool tryAutoState, bool addToRecent);
+void onSelectFileFromPicker(EmuApp &, GenericIO, IG::CStringView path, IG::CStringView name, bool pathIsUri,
+	Input::Event, EmuSystemCreateParams, ViewAttachParams);
+void launchSystem(EmuApp &, bool tryAutoState);
 Gfx::Viewport makeViewport(const Base::Window &win);
 Gfx::Projection updateProjection(Gfx::Viewport viewport);
 uint8_t currentFrameInterval();
 IG::PixelFormatID optionImageEffectPixelFormatValue();
 std::array<char, 64> formatDateAndTime(std::tm);
-
-static void addRecentGame()
-{
-	addRecentGame(EmuSystem::fullGamePath(), EmuSystem::fullGameName().data());
-}

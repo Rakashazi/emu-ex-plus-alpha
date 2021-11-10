@@ -1,6 +1,7 @@
 #define LOGTAG "main"
 #include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
+#include <imagine/util/format.hh>
 #include <emuframework/EmuSystem.hh>
 #include <sys/stat.h>
 #include <snes9x.h>
@@ -22,6 +23,7 @@ const char *SGFX::InfoString{};
 uint32 SGFX::InfoStringTimeout = 0;
 char SGFX::FrameDisplayString[256]{};
 #endif
+static std::string globalPath{};
 
 void S9xMessage(int, int, const char *msg)
 {
@@ -134,17 +136,18 @@ const char *S9xGetFilename(const char *ex, enum s9x_getdirtype dirtype)
 const char *S9xGetFilename(const char *ex)
 #endif
 {
-	static char	s[PATH_MAX + 512];
-	const char *prefix = EmuSystem::savePath();
+	bool isRomDir{};
 	#ifndef SNES9X_VERSION_1_4
 	if(dirtype == ROMFILENAME_DIR)
 	{
-		prefix = EmuSystem::gamePath();
+		isRomDir = true;
 	}
 	#endif
-	snprintf(s, sizeof(s), "%s/%s%s", prefix, EmuSystem::gameName().data(), ex);
-	//logMsg("built s9x path: %s", s);
-	return s;
+	globalPath = fmt::format("{}/{}{}",
+		isRomDir ? EmuSystem::contentDirectory().data() : EmuSystem::savePath(),
+		EmuSystem::contentName().data(), ex);
+	//logMsg("built s9x path:%s", globalPath.c_str());
+	return globalPath.c_str();
 }
 
 bool S9xPollAxis(uint32 id, int16 *value)

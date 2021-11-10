@@ -22,4 +22,4 @@ extern yabauseinit_struct yinit;
 extern const int defaultSH2CoreID;
 extern PerPad_struct *pad[2];
 
-bool hasBIOSExtension(const char *name);
+bool hasBIOSExtension(IG::CStringView name);

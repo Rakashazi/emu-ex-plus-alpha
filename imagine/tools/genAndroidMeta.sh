@@ -170,6 +170,11 @@ then
 	echo '	<uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />' >> $outPath
 fi
 
+if [ $usesLegacyStorage ]
+then
+	echo '	<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />' >> $outPath
+fi
+
 if [ $bluetooth ]
 then
 	echo '	<uses-permission android:name="android.permission.BLUETOOTH" />

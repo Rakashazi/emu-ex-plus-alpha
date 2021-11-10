@@ -48,7 +48,7 @@ bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 IG::Audio::SampleFormat EmuSystem::audioSampleFormat = IG::Audio::SampleFormats::f32;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
-	[](const char *name)
+	[](IG::CStringView name)
 	{
 		return string_hasDotExtension(name, "a26") || string_hasDotExtension(name, "bin");
 	};
@@ -116,7 +116,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	os.propSet().getMD5(md5, props);
 	defaultGameProps = props;
 	auto &romType = props.get(PropType::Cart_Type);
-	FilesystemNode fsNode{gamePath()};
+	FilesystemNode fsNode{contentFileName().data()};
 	auto &settings = os.settings();
 	settings.setValue("romloadcount", 0);
 	auto cartridge = CartCreator::create(fsNode, image, size, md5, romType, settings);
@@ -130,7 +130,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 		logMsg("forcing video system to: %s", optionVideoSystemToStr());
 		props.set(PropType::Display_Format, optionVideoSystemToStr());
 	}
-	os.makeConsole(cartridge, props, gamePath());
+	os.makeConsole(cartridge, props, contentFileName().data());
 	auto &console = os.console();
 	autoDetectedInput1 = limitToSupportedControllerTypes(console.leftController().type());
 	setControllerType(EmuApp::get(ctx), console, (Controller::Type)optionInputPort1.val);

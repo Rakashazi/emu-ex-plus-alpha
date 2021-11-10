@@ -36,25 +36,26 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/gui/ToastView.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 
 class AutoStateConfirmAlertView : public YesNoAlertView, public EmuAppHelper<AutoStateConfirmAlertView>
 {
 public:
-	AutoStateConfirmAlertView(ViewAttachParams attach, const char *dateStr, bool addToRecent):
+	AutoStateConfirmAlertView(ViewAttachParams attach, const char *dateStr):
 		YesNoAlertView
 		{
 			attach,
 			"",
 			"Continue",
 			"Restart Game",
-			[this, addToRecent]()
+			[this]()
 			{
-				launchSystem(app(), true, addToRecent);
+				launchSystem(app(), true);
 			},
-			[this, addToRecent]()
+			[this]()
 			{
-				launchSystem(app(), false, addToRecent);
+				launchSystem(app(), false);
 			}
 		}
 	{
@@ -469,7 +470,7 @@ void EmuViewController::showUI(bool updateTopView)
 	}
 }
 
-bool EmuViewController::showAutoStateConfirm(Input::Event e, bool addToRecent)
+bool EmuViewController::showAutoStateConfirm(Input::Event e)
 {
 	if(!(optionConfirmAutoLoadState && optionAutoSaveState))
 	{
@@ -479,7 +480,7 @@ bool EmuViewController::showAutoStateConfirm(Input::Event e, bool addToRecent)
 	if(FS::exists(saveStr))
 	{
 		auto dateStr = formatDateAndTime(FS::status(saveStr).lastWriteTimeLocal());
-		pushAndShowModal(std::make_unique<AutoStateConfirmAlertView>(viewStack.top().attachParams(), dateStr.data(), addToRecent), e, false);
+		pushAndShowModal(std::make_unique<AutoStateConfirmAlertView>(viewStack.top().attachParams(), dateStr.data()), e, false);
 		return true;
 	}
 	return false;
@@ -974,7 +975,7 @@ void EmuViewController::handleOpenFileCommand(const char *path)
 	logMsg("opening file %s from external command", path);
 	showUI();
 	popToRoot();
-	onSelectFileFromPicker(*appPtr, path, Input::Event{}, {}, viewStack.top().attachParams());
+	onSelectFileFromPicker(*appPtr, {}, path, "", false, Input::Event{}, {}, viewStack.top().attachParams());
 }
 
 void EmuViewController::onFocusChange(bool in)

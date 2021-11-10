@@ -33,14 +33,14 @@
 #include <cstring>
 
 EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;
-FS::PathString EmuSystem::gamePath_{};
-FS::PathString EmuSystem::fullGamePath_{};
+FS::PathString EmuSystem::contentDirectory_{};
+FS::PathString EmuSystem::contentLocation_{};
 FS::PathString EmuSystem::savePath_{};
 FS::PathString EmuSystem::defaultSavePath_{};
 FS::PathString EmuSystem::gameSavePath_{};
-FS::FileString EmuSystem::gameName_{};
-FS::FileString EmuSystem::fullGameName_{};
-FS::FileString EmuSystem::originalGameName_{};
+FS::FileString EmuSystem::contentName_{};
+std::string EmuSystem::contentDisplayName_{};
+FS::FileString EmuSystem::contentFileName_{};
 int EmuSystem::saveStateSlot = 0;
 [[gnu::weak]] bool EmuSystem::inputHasKeyboard = false;
 [[gnu::weak]] bool EmuSystem::inputHasShortBtnTexture = false;
@@ -92,44 +92,47 @@ void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, uint8_t speed)
 	emuAudio.setSpeedMultiplier(speed);
 }
 
-void EmuSystem::setupGamePaths(Base::ApplicationContext ctx, const char *filePath)
+void EmuSystem::setupContentUriPaths(Base::ApplicationContext ctx, IG::CStringView uri)
+{
+	string_copy(contentLocation_, uri);
+	logMsg("set content uri path:%s", uri.data());
+	contentFileName_ = FS::basenameUri(uri);
+	contentName_ = FS::makeFileStringWithoutDotExtension(contentFileName_);
+	setupGameSavePath(ctx);
+}
+
+void EmuSystem::setupGamePaths(Base::ApplicationContext ctx, IG::CStringView filePath)
 {
 	if(FS::exists(filePath))
 	{
 		// find the realpath of the dirname portion separately in case the file is a symlink
-		strcpy(gamePath_.data(), FS::dirname(filePath).data());
-		char realPath[PATH_MAX];
-		if(!realpath(gamePath_.data(), realPath))
+		contentDirectory_ = FS::dirname(filePath);
+		FS::PathString realPath{};
+		if(!realpath(contentDirectory_.data(), realPath.data()))
 		{
-			gamePath_ = {};
-			logErr("error in realpath()");
+			contentDirectory_ = {};
+			logErr("error in realpath() while setting content directory");
 		}
 		else
 		{
-			strcpy(gamePath_.data(), realPath); // destination is always large enough
-			logMsg("set game directory: %s", gamePath_.data());
-			fixFilePermissions(ctx, gamePath_);
+			contentDirectory_ = realPath;
+			logMsg("set content directory:%s", contentDirectory_.data());
 		}
 	}
-
-	string_copy(gameName_, FS::basename(filePath).data());
-
-	if(strlen(gamePath_.data()))
+	contentFileName_ = FS::basename(filePath);
+	if(strlen(contentDirectory_.data()))
 	{
-		IG::formatTo(fullGamePath_, "{}/{}", gamePath_.data(), gameName_.data());
-		logMsg("set full game path: %s", fullGamePath_.data());
+		IG::formatTo(contentLocation_, "{}/{}", contentDirectory_.data(), contentFileName_.data());
+		logMsg("set content path: %s", contentLocation_.data());
 	}
-
-	// If gameName has an extension, truncate it
-	gameName_ = FS::makeFileStringWithoutDotExtension(gameName_);
-	logMsg("set game name: %s", gameName_.data());
-
+	contentName_ = FS::makeFileStringWithoutDotExtension(contentFileName_);
+	logMsg("set content name:%s", contentName_.data());
 	setupGameSavePath(ctx);
 }
 
 void EmuSystem::setupGameSavePath(Base::ApplicationContext ctx)
 {
-	if(!strlen(gameName_.data()))
+	if(!strlen(contentName_.data()))
 		return;
 	if(strlen(savePath_.data()))
 	{
@@ -140,7 +143,7 @@ void EmuSystem::setupGameSavePath(Base::ApplicationContext ctx)
 	}
 	else
 	{
-		setGameSavePath(ctx, gamePath_.data());
+		setGameSavePath(ctx, contentDirectory_.data());
 	}
 }
 
@@ -177,9 +180,9 @@ static bool hasWriteAccessToDir(Base::ApplicationContext ctx, const char *path)
 	return hasAccess;
 }
 
-void EmuSystem::setGameSavePath(Base::ApplicationContext ctx, const char *path)
+void EmuSystem::setGameSavePath(Base::ApplicationContext ctx, IG::CStringView path)
 {
-	if(!strlen(gameName_.data()))
+	if(!strlen(contentName_.data()))
 		return;
 	bool reportNoWriteAccess = false;
 	// check if the path is writable
@@ -192,7 +195,7 @@ void EmuSystem::setGameSavePath(Base::ApplicationContext ctx, const char *path)
 		}
 		else
 		{
-			logMsg("set game save path: %s", path);
+			logMsg("set game save path: %s", path.data());
 			string_copy(gameSavePath_, path);
 			return;
 		}
@@ -220,20 +223,20 @@ FS::PathString EmuSystem::makeDefaultBaseSavePath(Base::ApplicationContext ctx)
 
 void EmuSystem::makeDefaultSavePath(Base::ApplicationContext ctx)
 {
-	assert(strlen(gameName_.data()));
+	assert(strlen(contentName_.data()));
 	auto pathTemp = makeDefaultBaseSavePath(ctx);
 	string_cat(pathTemp, "/");
-	string_cat(pathTemp, gameName_.data());
+	string_cat(pathTemp, contentName_.data());
 	FS::create_directory(pathTemp);
 }
 
 void EmuSystem::clearGamePaths()
 {
-	gameName_ = {};
-	fullGameName_ = {};
-	originalGameName_ = {};
-	gamePath_ = {};
-	fullGamePath_ = {};
+	contentName_ = {};
+	contentDisplayName_ = {};
+	contentFileName_ = {};
+	contentDirectory_ = {};
+	contentLocation_ = {};
 	defaultSavePath_ = {};
 	gameSavePath_ = {};
 }
@@ -245,10 +248,10 @@ const char *EmuSystem::savePath()
 
 const char *EmuSystem::defaultSavePath(Base::ApplicationContext ctx)
 {
-	assert(strlen(gameName_.data()));
+	assert(strlen(contentName_.data()));
 	if(!strlen(defaultSavePath_.data()))
 	{
-		IG::formatTo(defaultSavePath_, "{}/Game Data/{}/{}", ctx.sharedStoragePath().data(), shortSystemName(), gameName_.data());
+		IG::formatTo(defaultSavePath_, "{}/Game Data/{}/{}", ctx.sharedStoragePath().data(), shortSystemName(), contentName_.data());
 		logMsg("game default save path: %s", defaultSavePath_.data());
 	}
 	if(!FS::exists(defaultSavePath_.data()))
@@ -270,7 +273,7 @@ void EmuSystem::closeRuntimeSystem(EmuApp &app, bool allowAutosaveState)
 		if(allowAutosaveState)
 			app.saveAutoState();
 		app.saveSessionOptions();
-		logMsg("closing game %s", gameName_.data());
+		logMsg("closing game:%s", contentName_.data());
 		closeSystem();
 		app.cancelAutoSaveStateTimer();
 		state = State::OFF;
@@ -280,7 +283,7 @@ void EmuSystem::closeRuntimeSystem(EmuApp &app, bool allowAutosaveState)
 
 bool EmuSystem::gameIsRunning()
 {
-	return gameName_[0];
+	return contentName_[0];
 }
 
 void EmuSystem::resetFrameTime()
@@ -412,38 +415,42 @@ void EmuSystem::prepareAudio(EmuAudio &audio)
 	configAudioPlayback(audio, optionSoundRate);
 }
 
-static void closeAndSetupNew(Base::ApplicationContext ctx, const char *path)
+static void closeAndSetupNew(Base::ApplicationContext ctx, IG::CStringView path, bool pathIsUri)
 {
 	auto &app = EmuApp::get(ctx);
 	EmuSystem::closeRuntimeSystem(app, true);
-	EmuSystem::setupGamePaths(ctx, path);
+	if(!pathIsUri)
+		EmuSystem::setupGamePaths(ctx, path);
+	else
+		EmuSystem::setupContentUriPaths(ctx, path);
 	app.loadSessionOptions();
 }
 
-void EmuSystem::createWithMedia(Base::ApplicationContext ctx, GenericIO io, const char *path, const char *name, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::createWithMedia(Base::ApplicationContext ctx, GenericIO io, IG::CStringView path, IG::CStringView name, bool pathIsUri,
+	EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	if(io)
-		loadGameFromFile(ctx, std::move(io), name, params, onLoadProgress);
+		loadGameFromFile(ctx, std::move(io), path, pathIsUri, params, onLoadProgress);
 	else
-		loadGameFromPath(ctx, path, params, onLoadProgress);
+		loadGameFromPath(ctx, path, pathIsUri, params, onLoadProgress);
 }
 
-void EmuSystem::loadGameFromPath(Base::ApplicationContext ctx, const char *pathStr, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::loadGameFromPath(Base::ApplicationContext ctx, IG::CStringView pathStr, bool pathIsUri, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	auto path = willLoadGameFromPath(FS::makePathString(pathStr));
 	if(!handlesGenericIO)
 	{
-		closeAndSetupNew(ctx, path.data());
+		closeAndSetupNew(ctx, path.data(), pathIsUri);
 		loadGame(ctx, FileIO{}, params, onLoadProgress);
 		return;
 	}
 	logMsg("load from path:%s", path.data());
-	loadGameFromFile(ctx, FileIO{path, IO::AccessHint::SEQUENTIAL}, path.data(), params, onLoadProgress);
+	loadGameFromFile(ctx, FileIO{path, IO::AccessHint::SEQUENTIAL}, path, pathIsUri, params, onLoadProgress);
 }
 
-void EmuSystem::loadGameFromFile(Base::ApplicationContext ctx, GenericIO file, const char *name, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::loadGameFromFile(Base::ApplicationContext ctx, GenericIO file, IG::CStringView path, bool pathIsUri, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
-	if(EmuApp::hasArchiveExtension(name))
+	if(EmuApp::hasArchiveExtension(path))
 	{
 		ArchiveIO io{};
 		FS::FileString originalName{};
@@ -466,13 +473,13 @@ void EmuSystem::loadGameFromFile(Base::ApplicationContext ctx, GenericIO file, c
 		{
 			throw std::runtime_error("No recognized file extensions in archive");
 		}
-		closeAndSetupNew(ctx, name);
-		originalGameName_ = originalName;
+		closeAndSetupNew(ctx, path, pathIsUri);
+		contentFileName_ = originalName;
 		EmuSystem::loadGame(ctx, io, params, onLoadProgress);
 	}
 	else
 	{
-		closeAndSetupNew(ctx, name);
+		closeAndSetupNew(ctx, path, pathIsUri);
 		EmuSystem::loadGame(ctx, file, params, onLoadProgress);
 	}
 }
@@ -492,40 +499,39 @@ void EmuSystem::throwBlankError()
 	throw std::runtime_error("");
 }
 
-FS::FileString EmuSystem::fullGameName()
+std::string EmuSystem::contentDisplayName()
 {
-	return strlen(fullGameName_.data()) ? fullGameName_ : gameName_;
+	if(contentDisplayName_.size())
+		return contentDisplayName_;
+	return contentName_.data();
 }
 
-FS::FileString EmuSystem::gameFileName()
+FS::FileString EmuSystem::contentFileName()
 {
-	return FS::basename(fullGamePath_);
+	assert(strlen(contentFileName_.data()));
+	return contentFileName_;
 }
 
-FS::FileString EmuSystem::originalGameFileName()
+void EmuSystem::setContentDisplayName(IG::CStringView name)
 {
-	return strlen(originalGameName_.data()) ? originalGameName_ : gameFileName();
+	logMsg("set content display name:%s", name.data());
+	contentDisplayName_ = name;
 }
 
-void EmuSystem::setFullGameName(const char *name)
+std::string EmuSystem::contentDisplayNameForPathDefaultImpl(IG::CStringView path)
 {
-	string_copy(fullGameName_, name);
-}
-
-FS::FileString EmuSystem::fullGameNameForPathDefaultImpl(const char *path)
-{
-	auto basename = FS::basename(path);
+	auto basename = FS::basenameUri(path, FS::isUri(path));
 	auto dotpos = strrchr(basename.data(), '.');
 	if(dotpos)
 		*dotpos = 0;
 	//logMsg("full game name:%s", basename.data());
-	return basename;
+	return basename.data();
 }
 
-void EmuSystem::setInitialLoadPath(const char *path)
+void EmuSystem::setInitialLoadPath(IG::CStringView path)
 {
-	assert(!strlen(gameName_.data()));
-	string_copy(gamePath_, path);
+	assert(!strlen(contentName_.data()));
+	string_copy(contentLocation_, path);
 }
 
 char EmuSystem::saveSlotChar(int slot)
@@ -586,9 +592,9 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat) {}
 
-[[gnu::weak]] FS::FileString EmuSystem::fullGameNameForPath(Base::ApplicationContext, const char *path)
+[[gnu::weak]] std::string EmuSystem::contentDisplayNameForPath(Base::ApplicationContext, IG::CStringView path)
 {
-	return fullGameNameForPathDefaultImpl(path);
+	return contentDisplayNameForPathDefaultImpl(path);
 }
 
 [[gnu::weak]] bool EmuSystem::shouldFastForward() { return false; }

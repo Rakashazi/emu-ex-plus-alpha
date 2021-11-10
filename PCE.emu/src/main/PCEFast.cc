@@ -126,9 +126,9 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 		case MDFNMKF_SAVBACK:
 		{
 			assert(cd1);
-			std::string path(EmuSystem::savePath());
+			std::string path{EmuSystem::savePath()};
 			path += PSS;
-			path += EmuSystem::gameName().data();
+			path += EmuSystem::contentName().data();
 			path += ".";
 			path += md5_context::asciistr(MDFNGameInfo->MD5, 0);
 			path += ".";

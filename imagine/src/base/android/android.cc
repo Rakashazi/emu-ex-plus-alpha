@@ -33,6 +33,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/thread/Thread.hh>
 #include <imagine/pixmap/Pixmap.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/ScopeGuard.hh>
@@ -241,6 +242,17 @@ FS::PathString ApplicationContext::libPath(const char *) const
 	return {};
 }
 
+FileIO ApplicationContext::openUri(IG::CStringView uri, IO::AccessHint access, unsigned openFlags)
+{
+	if(androidSDK() < 19 || uri[0] == '/')
+		return {};
+	logMsg("opening Uri:%s", uri.data());
+	auto env = thisThreadJniEnv();
+	auto baseActivity = baseActivityObject();
+	JNI::InstMethod<int(jobject)> openUriFd{env, baseActivity, "openUriFd", "(Ljava/lang/String;)I"};
+	return {openUriFd(env, baseActivity, env->NewStringUTF(uri)), access};
+}
+
 static FS::PathString mainSOPath(ApplicationContext ctx)
 {
 	if(ctx.androidSDK() < 24)
@@ -272,12 +284,26 @@ bool ApplicationContext::requestPermission(Permission p)
 	if(androidSDK() < 23)
 		return false;
 	auto env = mainThreadJniEnv();
-	auto permissionJStr = permissionToJString(env, p);
-	if(!permissionJStr)
-		return false;
-	auto baseActivity = baseActivityObject();
-	JNI::InstMethod<jboolean(jobject)> requestPermission{env, baseActivity, "requestPermission", "(Ljava/lang/String;)Z"};
-	return requestPermission(env, baseActivity, permissionJStr);
+	if(androidSDK() >= 30 && p == Permission::WRITE_EXT_STORAGE)
+	{
+		auto baseActivity = baseActivityObject();
+		JNI::InstMethod<jboolean()> requestExternalStorageManager{env, baseActivity, "requestExternalStorageManager", "()Z"};
+		bool granted = requestExternalStorageManager(env, baseActivity);
+		if(granted)
+			logMsg("has external storage manager permission");
+		else
+			logMsg("requesting external storage manager permission");
+		return granted;
+	}
+	else
+	{
+		auto permissionJStr = permissionToJString(env, p);
+		if(!permissionJStr)
+			return false;
+		auto baseActivity = baseActivityObject();
+		JNI::InstMethod<jboolean(jobject)> requestPermission{env, baseActivity, "requestPermission", "(Ljava/lang/String;)Z"};
+		return requestPermission(env, baseActivity, permissionJStr);
+	}
 }
 
 JNIEnv *AndroidApplicationContext::mainThreadJniEnv() const
@@ -468,8 +494,34 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 				{
 					auto &app = *((AndroidApplication*)nUserData);
 					auto path = env->GetStringUTFChars(jPath, nullptr);
-					app.onSystemPathPicker(path);
+					std::exchange(app.onSystemPathPicker, {})(path);
 					env->ReleaseStringUTFChars(jPath, path);
+				}
+			},
+			{
+				"documentOpened", "(JLjava/lang/String;I)V",
+				(void*)
+				+[](JNIEnv* env, jobject, jlong nUserData, jstring jUri, jint fd)
+				{
+					auto &app = *((AndroidApplication*)nUserData);
+					const char *uri = env->GetStringUTFChars(jUri, nullptr);
+					if(app.isRunning())
+					{
+						logMsg("picked document:%s fd:%d", uri, fd);
+						std::exchange(app.onSystemDocumentPicker, {})(uri, FileIO{fd});
+					}
+					else
+					{
+						app.addOnResume(
+							[uriCopy = strdup(uri), fd](ApplicationContext ctx, bool focused)
+							{
+								logMsg("picked document:%s fd:%d", uriCopy, fd);
+								std::exchange(ctx.application().onSystemDocumentPicker, {})(uriCopy, FileIO{fd});
+								::free(uriCopy);
+								return false;
+							}, APP_ON_RESUME_PRIORITY + 100);
+					}
+					env->ReleaseStringUTFChars(jUri, uri);
 				}
 			},
 		};

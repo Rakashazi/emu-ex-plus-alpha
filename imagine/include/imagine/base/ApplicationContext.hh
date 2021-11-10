@@ -34,6 +34,7 @@
 #include <optional>
 
 class AssetIO;
+class FileIO;
 
 namespace IG
 {
@@ -160,8 +161,12 @@ public:
 	std::vector<FS::PathLocation> rootFileLocations() const;
 	FS::RootPathInfo nearestRootPath(IG::CStringView path) const;
 	AssetIO openAsset(IG::CStringView name, IO::AccessHint access, unsigned openFlags = 0, const char *appName = applicationName) const;
+	FS::AssetDirectoryIterator openAssetDirectory(IG::CStringView path, const char *appName = applicationName);
 	bool hasSystemPathPicker() const;
 	void showSystemPathPicker(SystemPathPickerDelegate);
+	bool hasSystemDocumentPicker() const;
+	void showSystemDocumentPicker(SystemDocumentPickerDelegate);
+	FileIO openUri(IG::CStringView uri, IO::AccessHint access, unsigned openFlags = 0);
 
 	// OS UI management (status & navigation bar)
 	void setSysUIStyle(uint32_t flags);
@@ -175,8 +180,8 @@ public:
 	void setDeviceOrientationChangeSensor(bool on);
 
 	// Notification/Launcher icons
-	void addNotification(const char *onShow, const char *title, const char *message);
-	void addLauncherIcon(const char *name, const char *path);
+	void addNotification(IG::CStringView onShow, IG::CStringView title, IG::CStringView message);
+	void addLauncherIcon(IG::CStringView name, IG::CStringView path);
 
 	// Power Management
 	void setIdleDisplayPowerSave(bool on);
