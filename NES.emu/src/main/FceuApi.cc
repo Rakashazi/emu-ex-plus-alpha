@@ -179,7 +179,7 @@ void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC
 
 int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 {
-	if(!strlen(fdsBiosPath.data()))
+	if(fdsBiosPath.empty())
 	{
 		throw std::runtime_error{"No FDS BIOS set"};
 	}
@@ -191,10 +191,9 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 			{
 				continue;
 			}
-			auto name = entry.name();
-			logMsg("archive file entry:%s", name);
-			if(hasFDSBIOSExtension(name))
+			if(hasFDSBIOSExtension(entry.name()))
 			{
+				logMsg("archive file entry:%s", entry.name().data());
 				auto io = entry.moveIO();
 				if(io.size() != size)
 				{

@@ -284,9 +284,9 @@ void applyCheats()
 	for(auto &e : cheatList)
   {
   	assert(!e.isApplied()); // make sure cheats have been cleared beforehand
-    if(e.isOn() && strlen(e.code))
+    if(e.isOn() && e.code.size())
     {
-    	logMsg("applying cheat: %s", e.name);
+    	logMsg("applying cheat:%s", e.name.data());
       if(e.address < cart.romsize)
       {
         if(emuSystemIs16Bit())
@@ -345,7 +345,7 @@ void clearCheats()
   {
     if(e.isApplied())
     {
-    	logMsg("clearing cheat: %s", e.name);
+    	logMsg("clearing cheat:%s", e.name.data());
       if(e.address < cart.romsize)
       {
         if(emuSystemIs16Bit())
@@ -390,7 +390,7 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	auto filename = IG::formatToPathString("{}/{}.pat", EmuSystem::savePath(), EmuSystem::contentName().data());
+	auto filename = EmuSystem::contentSaveFilePath(".pat");
 
 	if(!cheatList.size())
 	{
@@ -410,13 +410,13 @@ void writeCheatFile()
 
 	for(auto &e : cheatList)
 	{
-		if(!strlen(e.code))
+		if(!e.code.size())
 		{
 			continue; // ignore incomplete code entries
 		}
-		file.write(e.code, strlen(e.code));
+		file.write(e.code.data(), e.code.size());
 		file.write('\t');
-		file.write(e.name, strlen(e.name));
+		file.write(e.name.data(), e.name.size());
 		file.write('\n');
 		if(e.isOn())
 		{
@@ -428,7 +428,7 @@ void writeCheatFile()
 
 void readCheatFile()
 {
-	auto filename = IG::formatToPathString("{}/{}.pat", EmuSystem::savePath(), EmuSystem::contentName().data());
+	auto filename = EmuSystem::contentSaveFilePath(".pat");
 	FileIO file{filename.data(), IO::AccessHint::ALL, IO::OPEN_TEST};
 	if(!file)
 	{
@@ -441,8 +441,12 @@ void readCheatFile()
 	while(fgets(line, sizeof(line), static_cast<FILE*>(fileStream)))
 	{
 		logMsg("got line: %s", line);
-		MdCheat cheat;
-		auto items = sscanf(line, "%11s %" PP_STRINGIFY_EXP(MAX_CHEAT_NAME_CHARS) "[^\n]", cheat.code, cheat.name);
+		MdCheat cheat{};
+		std::array<char, 12> tempCode{};
+		cheat.name.resize(MAX_CHEAT_NAME_CHARS);
+		auto items = sscanf(line, "%11s %" PP_STRINGIFY_EXP(MAX_CHEAT_NAME_CHARS) "[^\n]", tempCode.data(), cheat.name.data());
+		cheat.name.resize(strlen(cheat.name.data()));
+		cheat.code = IG::stringToUpper<decltype(cheat.code)>(tempCode.data());
 
 		if(items == 2) // code & name
 		{
@@ -451,22 +455,21 @@ void readCheatFile()
 				logErr("cheat list full while reading from file");
 				break;
 			}
-			string_toUpper(cheat.code);
-			if(!decodeCheat(cheat.code, cheat.address, cheat.data, cheat.origData))
+			if(!decodeCheat(cheat.code.data(), cheat.address, cheat.data, cheat.origData))
 			{
-				logWarn("Invalid code %s from cheat file", cheat.code);
+				logWarn("Invalid code %s from cheat file", cheat.code.data());
 				continue;
 			}
-			logMsg("read cheat %s : %s", cheat.name, cheat.code);
+			logMsg("read cheat %s : %s", cheat.name.data(), cheat.code.data());
 			cheatList.push_back(cheat);
 		}
 		else if(items == 1) // ON/OFF string
 		{
-			if(string_equal(cheat.code, "ON") && !cheatList.empty())
+			if(cheat.code == "ON" && !cheatList.empty())
 			{
 				auto &lastCheat = cheatList.back();
 				lastCheat.toggleOn();
-				logMsg("turned on cheat %s from file", lastCheat.name);
+				logMsg("turned on cheat %s from file", lastCheat.name.data());
 			}
 		}
 	}
@@ -559,11 +562,10 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, emuSystemIs16Bit() ? INPUT_CODE_16BIT_STR : INPUT_CODE_8BIT_STR, cheat->code,
 				[this](EmuApp &, auto str)
 				{
-					string_copy(cheat->code, str);
-					string_toUpper(cheat->code);
-					if(!decodeCheat(cheat->code, cheat->address, cheat->data, cheat->origData))
+					cheat->code = IG::stringToUpper<decltype(cheat->code)>(str);
+					if(!decodeCheat(cheat->code.data(), cheat->address, cheat->data, cheat->origData))
 					{
-						cheat->code[0]= 0;
+						cheat->code.clear();
 						app().postMessage(true, "Invalid code");
 						postDraw();
 						return false;
@@ -582,12 +584,12 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, MdCheat &cheat_, Ref
 
 const char *EmuEditCheatView::cheatNameString() const
 {
-	return cheat->name;
+	return cheat->name.data();
 }
 
 void EmuEditCheatView::renamed(const char *str)
 {
-	string_copy(cheat->name, str);
+	cheat->name = str;
 	cheatsModified = 1;
 }
 
@@ -643,14 +645,13 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 							return false;
 						}
 						MdCheat c;
-						string_copy(c.code, str);
-						string_toUpper(c.code);
-						if(!decodeCheat(c.code, c.address, c.data, c.origData))
+						c.code = IG::stringToUpper<decltype(c.code)>(str);
+						if(!decodeCheat(c.code.data(), c.address, c.data, c.origData))
 						{
 							app().postMessage(true, "Invalid code");
 							return true;
 						}
-						string_copy(c.name, "Unnamed Cheat");
+						c.name = "Unnamed Cheat";
 						cheatList.push_back(c);
 						logMsg("added new cheat, %zu total", cheatList.size());
 						cheatsModified = 1;
@@ -662,7 +663,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 							{
 								if(str)
 								{
-									string_copy(cheatList.back().name, str);
+									cheatList.back().name = str;
 									onCheatListChanged();
 									view.dismiss();
 								}
@@ -708,7 +709,7 @@ void EmuCheatsView::loadCheatItems()
 				cheatsModified = 1;
 				updateCheats();
 			});
-		logMsg("added cheat %s : %s", thisCheat.name, thisCheat.code);
+		logMsg("added cheat %s : %s", thisCheat.name.data(), thisCheat.code.data());
 		++it;
 	}
 }

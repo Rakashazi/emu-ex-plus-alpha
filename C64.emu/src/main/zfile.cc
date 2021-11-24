@@ -41,10 +41,9 @@ CLINK FILE *zfile_fopen(const char *path, const char *mode)
 				{
 					continue;
 				}
-				auto name = entry.name();
-				logMsg("archive file entry:%s", name);
-				if(EmuSystem::defaultFsFilter(name))
+				if(EmuSystem::defaultFsFilter(entry.name()))
 				{
+					logMsg("archive file entry:%s", entry.name().data());
 					return GenericIO{MapIO{entry.moveIO()}}.moveToFileStream(mode);
 				}
 			}

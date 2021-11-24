@@ -41,9 +41,8 @@ void* zipLoadFile(const char* zipName, const char* fileName, int* size)
 			{
 				continue;
 			}
-			auto name = entry.name();
 			//logMsg("archive file entry:%s", entry.name());
-			if(string_equal(name, fileName))
+			if(entry.name() == fileName)
 			{
 				io = entry.moveIO();
 				int fileSize = io.size();

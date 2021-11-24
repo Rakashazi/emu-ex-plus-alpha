@@ -91,7 +91,6 @@ Byte1Option optionReSidSampling(CFGKEY_RESID_SAMPLING, SID_RESID_SAMPLING_INTERP
 	optionIsValidWithMax<3, uint8_t>);
 Byte1Option optionSwapJoystickPorts(CFGKEY_SWAP_JOYSTICK_PORTS, JoystickMode::NORMAL, false,
 	optionIsValidWithMax<JoystickMode::KEYBOARD>);
-PathOption optionFirmwarePath(CFGKEY_SYSTEM_FILE_PATH, firmwareBasePath, "");
 Byte1Option optionAutostartOnLaunch(CFGKEY_AUTOSTART_ON_LOAD, 1);
 
 // VIC-20 specific
@@ -212,7 +211,7 @@ bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 		bcase CFGKEY_AUTOSTART_ON_LOAD: optionAutostartOnLaunch.readFromIO(io, readSize);
 		bcase CFGKEY_VIC20_RAM_EXPANSIONS: optionVic20RamExpansions.readFromIO(io, readSize);
 		bcase CFGKEY_PALETTE_NAME:
-			setPaletteResources(readStringOptionValue<FS::FileString>(io, readSize).value_or(FS::FileString{}).data());
+			readStringOptionValue<FS::FileString>(io, readSize, [](auto &name){setPaletteResources(name.data());});
 	}
 	return 1;
 }
@@ -264,7 +263,8 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 		bcase CFGKEY_BORDER_MODE: optionBorderMode.readFromIO(io, readSize);
 		bcase CFGKEY_CROP_NORMAL_BORDERS: optionCropNormalBorders.readFromIO(io, readSize);
 		bcase CFGKEY_SID_ENGINE: optionSidEngine.readFromIO(io, readSize);
-		bcase CFGKEY_SYSTEM_FILE_PATH: optionFirmwarePath.readFromIO(io, readSize);
+		bcase CFGKEY_SYSTEM_FILE_PATH:
+			readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){setFirmwarePath(path);});
 		bcase CFGKEY_RESID_SAMPLING: optionReSidSampling.readFromIO(io, readSize);
 	}
 	return 1;
@@ -286,7 +286,7 @@ void EmuSystem::writeConfig(IO &io)
 	optionCropNormalBorders.writeWithKeyIfNotDefault(io);
 	optionSidEngine.writeWithKeyIfNotDefault(io);
 	optionReSidSampling.writeWithKeyIfNotDefault(io);
-	optionFirmwarePath.writeToIO(io);
+	writeStringOptionValue(io, CFGKEY_SYSTEM_FILE_PATH, firmwarePath());
 }
 
 int optionDefaultModel(ViceSystem system)

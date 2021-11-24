@@ -445,7 +445,7 @@ void ApplicationContext::exit(int returnVal)
 	::exit(returnVal);
 }
 
-void ApplicationContext::openURL(const char *url) const
+void ApplicationContext::openURL(IG::CStringView url) const
 {
 	[uiApp() openURL:[NSURL URLWithString:
 		[NSString stringWithCString:url encoding:NSASCIIStringEncoding]]];
@@ -481,7 +481,7 @@ static FS::PathString makeSearchPath(NSSearchPathDirectory dir, NSSearchPathDoma
 		dirStr = [dirStr stringByAppendingPathComponent:[NSString stringWithUTF8String:appName]];
 	}
 	[fm createDirectoryAtPath:dirStr withIntermediateDirectories:YES attributes:nil error:nil];
-	return FS::makePathString(dirStr.UTF8String);
+	return dirStr.UTF8String;
 }
 
 FS::PathString ApplicationContext::assetPath(const char *) const { return appPath; }
@@ -508,9 +508,9 @@ FS::PathLocation ApplicationContext::sharedStoragePathLocation() const
 {
 	auto path = sharedStoragePath();
 	if(isRunningAsSystemApp)
-		return {path, FS::makeFileString("Storage Media"), {FS::makeFileString("Media"), strlen(path.data())}};
+		return {path, "Storage Media", {"Media", path.size()}};
 	else
-		return {path, FS::makeFileString("Documents"), {FS::makeFileString("Documents"), strlen(path.data())}};
+		return {path, "Documents", {"Documents", path.size()}};
 }
 
 std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const

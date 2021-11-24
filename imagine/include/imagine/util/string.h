@@ -15,91 +15,63 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#ifdef __cplusplus
 #include <imagine/util/string/CStringView.hh>
-#include <array>
-#include <cstring>
+#include <imagine/util/concepts.hh>
 #include <system_error>
 #include <string>
 #include <string_view>
-#else
-#include <string.h>
-#include <stdbool.h>
-#endif
-#include <imagine/util/utility.h>
-
-BEGIN_C_DECLS
-
-int char_hexToInt(char c);
-const char *string_dotExtension(const char *s) __attribute__((nonnull));
-bool string_hasDotExtension(const char *s, const char *extension) __attribute__((nonnull));
-void string_toUpper(char *s) __attribute__((nonnull));
-bool string_equalNoCase(const char *s1, const char *s2) __attribute__((nonnull));
-size_t string_cat(char *dest, const char *src, size_t destSize) __attribute__((nonnull));
-
-// copies at most destSize-1 chars from src until null byte or dest size is reached
-// dest is always null terminated
-size_t string_copy(char *dest, const char *src, size_t destSize) __attribute__((nonnull));
-
-END_C_DECLS
-
-#ifdef __cplusplus
-
-template <class T>
-size_t string_copy(T &dest, IG::CStringView src)
-{
-	return string_copy(std::data(dest), src, std::size(dest));
-}
-
-static constexpr size_t string_len(IG::CStringView s)
-{
-	return std::char_traits<char>::length(s);
-}
-
-template <class T>
-static size_t string_cat(T &dest, IG::CStringView src)
-{
-	return string_cat(std::data(dest), src, std::size(dest));
-}
-
-static constexpr bool string_equal(IG::CStringView s1, IG::CStringView s2)
-{
-	return std::string_view{s1.data()} == s2.data();
-}
-
-[[gnu::nonnull]]
-std::errc string_convertCharCode(const char** sourceStart, uint32_t &c);
-
-std::array<char, 2> string_fromChar(char c);
-
-std::u16string string_makeUTF16(std::string_view);
-
-[[gnu::nonnull]]
-char *decodeUri(IG::CStringView input, char *output);
 
 namespace IG
 {
 
-// Simple wrapper around u16string that converts any char-type strings from UTF-8 to UTF-16
-class utf16String : public std::u16string
-{
-public:
-	using std::u16string::u16string;
-	utf16String(std::u16string_view s):std::u16string{s} {}
-	utf16String(std::u16string s):std::u16string{std::move(s)} {}
-	utf16String(const char *s) [[gnu::nonnull]]:utf16String{std::string_view{s}} {}
-	utf16String(std::string_view s):std::u16string{string_makeUTF16(s)} {}
-	utf16String(const std::string &s):utf16String{std::string_view{s}} {}
-};
+[[gnu::nonnull]]
+std::errc convertCharCode(const char** sourceStart, uint32_t &c);
 
+[[gnu::nonnull]]
+char *decodeUri(IG::CStringView input, char *output);
+
+[[nodiscard]]
+static constexpr bool stringContains(std::string_view sv, std::string_view viewToFind)
+{
+	return sv.find(viewToFind) != std::string_view::npos;
 }
 
-#else
+[[nodiscard]]
+static constexpr bool stringContainsAny(std::string_view sv, auto &... substrs)
+{
+	return (stringContains(sv, substrs) || ...);
+}
 
-BEGIN_C_DECLS
+[[nodiscard]]
+static constexpr bool stringEndsWithAny(std::string_view sv, auto &... endings)
+{
+	return (sv.ends_with(endings) || ...);
+}
 
-bool string_equal(const char *s1, const char *s2) __attribute__((nonnull));
+template <class String>
+[[nodiscard]]
+static auto stringToUpper(std::string_view str)
+{
+	String destStr{};
+	destStr.reserve(str.size());
+	for(auto c : str)
+	{
+		destStr.push_back(std::toupper(c));
+	}
+	return destStr;
+}
 
-END_C_DECLS
+template <class Return = void>
+[[nodiscard]]
+static constexpr auto stringWithoutDotExtension(auto &&str)
+{
+	auto dotOffset = str.rfind('.');
+	// If Return isn't specified, return result as argument type
+	using R = std::conditional_t<std::is_same_v<Return, void>, std::decay_t<decltype(str)>, Return>;
+	if(dotOffset != str.npos)
+		return R{str.data(), dotOffset};
+	else
+		return R{std::forward<decltype(str)>(str)};
+}
 
-#endif
+}

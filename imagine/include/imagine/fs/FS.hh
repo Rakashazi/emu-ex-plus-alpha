@@ -65,18 +65,11 @@ bool remove(IG::CStringView path);
 bool create_directory(IG::CStringView path);
 void rename(IG::CStringView oldPath, IG::CStringView newPath);
 
-FileString makeFileString(IG::CStringView str);
-FileString makeFileStringWithoutDotExtension(IG::CStringView str);
-
-PathString makePathString(IG::CStringView str);
-PathString makePathString(IG::CStringView dir, IG::CStringView base);
 PathString makeAppPathFromLaunchCommand(IG::CStringView launchPath);
-
 FileString basename(IG::CStringView path);
 PathString dirname(IG::CStringView path);
-
-bool isUri(IG::CStringView str);
-PathString decodeUri(IG::CStringView uri);
+bool isUri(std::string_view str);
+PathString decodeUri(std::string_view uri);
 FileString basenameUri(IG::CStringView pathOrUri, bool isEncodedUri = true);
 
 using FileStringCompareFunc = bool (*)(const FS::FileString &s1, const FS::FileString &s2);

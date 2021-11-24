@@ -77,15 +77,6 @@ enum { STATE_RESULT_OK, STATE_RESULT_NO_FILE, STATE_RESULT_NO_FILE_ACCESS, STATE
 
 class EmuSystem
 {
-private:
-	static FS::PathString contentDirectory_; // full directory path of content on disk, if any
-	static FS::PathString contentLocation_; // full path or URI to content
-	static FS::FileString contentFileName_; // name + extension of content, inside archive if any
-	static FS::FileString contentName_; // name of content from the original location without extension
-	static std::string contentDisplayName_; // more descriptive content name set by system
-	static FS::PathString defaultSavePath_;
-	static FS::PathString gameSavePath_;
-
 public:
 	enum class State
 	{
@@ -118,9 +109,8 @@ public:
 
 	using OnLoadProgressDelegate = DelegateFunc<bool(int pos, int max, const char *label)>;
 
-	using NameFilterFunc = bool(*)(IG::CStringView name);
+	using NameFilterFunc = bool(*)(std::string_view name);
 	static State state;
-	static FS::PathString savePath_;
 	static int saveStateSlot;
 	static unsigned aspectRatioX, aspectRatioY;
 	static const unsigned maxPlayers;
@@ -179,17 +169,25 @@ public:
 	static FS::FileString contentName() { return contentName_; }
 	static FS::FileString contentFileName();
 	static std::string contentDisplayName();
-	static void setContentDisplayName(IG::CStringView name);
+	static void setContentDisplayName(std::string_view name);
 	static std::string contentDisplayNameForPathDefaultImpl(IG::CStringView path);
 	static std::string contentDisplayNameForPath(Base::ApplicationContext, IG::CStringView path);
 	static void setInitialLoadPath(IG::CStringView path);
-	static FS::PathString baseSavePath(Base::ApplicationContext);
 	static FS::PathString makeDefaultBaseSavePath(Base::ApplicationContext);
 	static void makeDefaultSavePath(Base::ApplicationContext);
-	static const char *defaultSavePath(Base::ApplicationContext);
-	static const char *savePath();
-	static FS::PathString sprintStateFilename(int slot,
-		const char *statePath = savePath(), const char *gameName = EmuSystem::contentName_.data());
+	static FS::PathString defaultSavePath(Base::ApplicationContext);
+	static FS::PathString contentSavePath();
+	static const char *contentSavePathPtr() { return contentSavePath_.data(); }
+	static FS::PathString contentSaveFilePath(std::string_view extension);
+	static FS::PathString userSavePath();
+	static void setUserSavePath(Base::ApplicationContext, IG::CStringView path);
+	static FS::PathString firmwarePath();
+	static void setFirmwarePath(IG::CStringView path);
+	static FS::FileString stateFilename(int slot, std::string_view name = EmuSystem::contentName_.data());
+	static FS::PathString statePath(std::string_view filename, std::string_view basePath = contentSavePath());
+	static FS::PathString statePath(int slot, std::string_view basePath = contentSavePath());
+	static void clearGamePaths();
+	static FS::PathString baseDefaultGameSavePath(Base::ApplicationContext);
 	static char saveSlotChar(int slot);
 	static char saveSlotCharUpper(int slot);
 	static void saveBackupMem();
@@ -205,11 +203,11 @@ public:
 	static void onSessionOptionsLoaded(EmuApp &);
 	static void writeSessionConfig(IO &io);
 	static bool readSessionConfig(IO &io, unsigned key, unsigned readSize);
-	static void createWithMedia(Base::ApplicationContext, GenericIO, IG::CStringView path, IG::CStringView name,
+	static void createWithMedia(Base::ApplicationContext, GenericIO, IG::CStringView path,
 		bool pathIsUri, EmuSystemCreateParams, OnLoadProgressDelegate);
 	static void loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
 	static void loadGame(Base::ApplicationContext, IO &, EmuSystemCreateParams, OnLoadProgressDelegate);
-	static FS::PathString willLoadGameFromPath(FS::PathString path);
+	static FS::PathString willLoadGameFromPath(std::string_view path);
 	static void loadGameFromPath(Base::ApplicationContext, IG::CStringView path, bool pathIsUri,
 		EmuSystemCreateParams, OnLoadProgressDelegate);
 	static void loadGameFromFile(Base::ApplicationContext, GenericIO, IG::CStringView path, bool pathIsUri,
@@ -250,12 +248,6 @@ public:
 	static void setStartFrameTime(Base::FrameTime time);
 	static EmuFrameTimeInfo advanceFramesWithTime(IG::FrameTime time);
 	static void setSpeedMultiplier(EmuAudio &, uint8_t speed);
-	static void setupContentUriPaths(Base::ApplicationContext, IG::CStringView uri);
-	static void setupGamePaths(Base::ApplicationContext, IG::CStringView filePath);
-	static void setGameSavePath(Base::ApplicationContext, IG::CStringView path);
-	static void setupGameSavePath(Base::ApplicationContext);
-	static void clearGamePaths();
-	static FS::PathString baseDefaultGameSavePath(Base::ApplicationContext);
 	static IG::Time benchmark(EmuVideo &video);
 	static bool gameIsRunning();
 	static void resetFrameTime();
@@ -267,6 +259,21 @@ public:
 	static void throwFileReadError();
 	static void throwFileWriteError();
 	static void throwBlankError();
+
+protected:
+	static FS::PathString contentDirectory_; // full directory path of content on disk, if any
+	static FS::PathString contentLocation_; // full path or URI to content
+	static FS::FileString contentFileName_; // name + extension of content, inside archive if any
+	static FS::FileString contentName_; // name of content from the original location without extension
+	static std::string contentDisplayName_; // more descriptive content name set by system
+	static FS::PathString contentSavePath_;
+	static FS::PathString userSavePath_;
+	static FS::PathString firmwarePath_;
+
+	static void setupContentUriPaths(Base::ApplicationContext, IG::CStringView uri);
+	static void setupGamePaths(Base::ApplicationContext, IG::CStringView filePath);
+	static void updateContentSavePath(Base::ApplicationContext);
+	static void closeAndSetupNew(Base::ApplicationContext, IG::CStringView path, bool pathIsUri);
 };
 
 static const char *stateNameStr(int slot)

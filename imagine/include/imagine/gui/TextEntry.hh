@@ -21,6 +21,7 @@
 #include <imagine/input/config.hh>
 #include <imagine/input/TextField.hh>
 #include <imagine/util/typeTraits.hh>
+#include <imagine/util/string/StaticString.hh>
 #include <array>
 
 class TextEntry
@@ -41,7 +42,7 @@ protected:
 	Gfx::Text t{};
 	Gfx::ProjectionPlane projP{};
 	IG::WindowRect b{};
-	std::array<char, 128> str{};
+	IG::StaticString<128> str{};
 	bool acceptingInput{};
 	bool multiLine{};
 };
@@ -52,9 +53,9 @@ public:
 	// returning non-zero keeps text entry active on Android
 	using OnTextDelegate = DelegateFunc<bool (CollectTextInputView &view, const char *str)>;
 
-	CollectTextInputView(ViewAttachParams attach, const char *msgText, const char *initialContent,
+	CollectTextInputView(ViewAttachParams attach, IG::CStringView msgText, IG::CStringView initialContent,
 		Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = {});
-	CollectTextInputView(ViewAttachParams attach, const char *msgText,
+	CollectTextInputView(ViewAttachParams attach, IG::CStringView msgText,
 		Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face = {}):
 		CollectTextInputView(attach, msgText, "", closeRes, onText, face) {}
 	void place() override;

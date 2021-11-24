@@ -291,7 +291,7 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 			if(devConnected)
 			{
 				auto ynAlertView = makeView<YesNoAlertView>(
-					fmt::format("Really disconnect {} Bluetooth device(s)?", devConnected).data());
+					fmt::format("Really disconnect {} Bluetooth device(s)?", devConnected));
 				ynAlertView->setOnYes(
 					[this]()
 					{
@@ -426,7 +426,7 @@ OptionCategoryView::OptionCategoryView(ViewAttachParams attach, EmuAudio &audio,
 			"Beta Testing Opt-in/out", &defaultFace(),
 			[this]()
 			{
-				appContext().openURL(fmt::format("https://play.google.com/apps/testing/{}", appContext().applicationId).data());
+				appContext().openURL(fmt::format("https://play.google.com/apps/testing/{}", appContext().applicationId));
 			}
 		};
 	}

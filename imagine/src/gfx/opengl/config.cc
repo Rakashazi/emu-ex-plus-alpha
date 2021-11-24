@@ -322,27 +322,27 @@ void GLRenderer::setupMemoryBarrier()
 	#endif*/
 }
 
-void GLRenderer::setupPresentationTime(const char *eglExtenstionStr)
+void GLRenderer::setupPresentationTime(std::string_view eglExtenstionStr)
 {
 	#ifdef __ANDROID__
-	if(strstr(eglExtenstionStr, "EGL_ANDROID_presentation_time"))
+	if(IG::stringContains(eglExtenstionStr, "EGL_ANDROID_presentation_time"))
 	{
 		glManager.loadSymbol(support.eglPresentationTimeANDROID, "eglPresentationTimeANDROID");
 	}
 	#endif
 }
 
-void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
+void GLRenderer::checkExtensionString(std::string_view extStr, bool &useFBOFuncs)
 {
 	//logMsg("checking %s", extStr);
-	if(string_equal(extStr, "GL_ARB_texture_non_power_of_two")
-		|| (Config::Gfx::OPENGL_ES && string_equal(extStr, "GL_OES_texture_npot")))
+	if(extStr == "GL_ARB_texture_non_power_of_two"
+		|| (Config::Gfx::OPENGL_ES && extStr == "GL_OES_texture_npot"))
 	{
 		// allows mipmaps and repeat modes
 		setupNonPow2MipmapRepeatTextures();
 	}
 	#ifdef CONFIG_GFX_OPENGL_DEBUG_CONTEXT
-	else if(Config::DEBUG_BUILD && string_equal(extStr, "GL_KHR_debug"))
+	else if(Config::DEBUG_BUILD && extStr == "GL_KHR_debug")
 	{
 		support.hasDebugOutput = true;
 		#ifdef __ANDROID__
@@ -357,67 +357,66 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	#endif
 	#ifdef CONFIG_GFX_OPENGL_ES
 	else if(Config::Gfx::OPENGL_ES == 1
-		&& (string_equal(extStr, "GL_APPLE_texture_2D_limited_npot") || string_equal(extStr, "GL_IMG_texture_npot")))
+		&& (extStr == "GL_APPLE_texture_2D_limited_npot" || extStr == "GL_IMG_texture_npot"))
 	{
 		// no mipmaps or repeat modes
 		setupNonPow2Textures();
 	}
 	else if(Config::Gfx::OPENGL_ES >= 2
-		&& !Config::envIsIOS && string_equal(extStr, "GL_NV_texture_npot_2D_mipmap"))
+		&& !Config::envIsIOS && extStr == "GL_NV_texture_npot_2D_mipmap")
 	{
 		// no repeat modes
 		setupNonPow2MipmapTextures();
 	}
-	else if(Config::Gfx::OPENGL_ES >= 2 && string_equal(extStr, "GL_EXT_unpack_subimage"))
+	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_EXT_unpack_subimage")
 	{
 		support.hasUnpackRowLength = true;
 	}
-	else if((!Config::envIsIOS && string_equal(extStr, "GL_EXT_texture_format_BGRA8888"))
-			|| (Config::envIsIOS && string_equal(extStr, "GL_APPLE_texture_format_BGRA8888")))
+	else if((!Config::envIsIOS && extStr == "GL_EXT_texture_format_BGRA8888")
+			|| (Config::envIsIOS && extStr == "GL_APPLE_texture_format_BGRA8888"))
 	{
 		setupBGRPixelSupport();
 	}
-	else if(Config::Gfx::OPENGL_ES == 1 && string_equal(extStr, "GL_OES_framebuffer_object"))
+	else if(Config::Gfx::OPENGL_ES == 1 && extStr == "GL_OES_framebuffer_object")
 	{
 		if(!useFBOFuncs)
 			setupFBOFuncs(useFBOFuncs);
 	}
-	else if(string_equal(extStr, "GL_EXT_texture_storage"))
+	else if(extStr == "GL_EXT_texture_storage")
 	{
 		setupImmutableTexStorage(true);
 	}
-	else if(!Config::Base::GL_PLATFORM_EGL && Config::envIsIOS && string_equal(extStr, "GL_APPLE_sync"))
+	else if(!Config::Base::GL_PLATFORM_EGL && Config::envIsIOS && extStr == "GL_APPLE_sync")
 	{
 		setupAppleFenceSync();
 	}
-	else if(Config::envIsAndroid && string_equal(extStr, "GL_OES_EGL_image"))
+	else if(Config::envIsAndroid && extStr == "GL_OES_EGL_image")
 	{
 		support.hasEGLImages = true;
 	}
 	else if(Config::Gfx::OPENGL_ES >= 2 &&
 		Config::Gfx::OPENGL_TEXTURE_TARGET_EXTERNAL &&
-		string_equal(extStr, "GL_OES_EGL_image_external"))
+		extStr == "GL_OES_EGL_image_external")
 	{
 		support.hasExternalEGLImages = true;
 	}
 	#ifdef __ANDROID__
-	else if(Config::Gfx::OPENGL_ES >= 2 &&
-		string_equal(extStr, "GL_EXT_EGL_image_storage"))
+	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_EXT_EGL_image_storage")
 	{
 		support.glEGLImageTargetTexStorageEXT = (typeof(support.glEGLImageTargetTexStorageEXT))glManager.procAddress("glEGLImageTargetTexStorageEXT");
 	}
 	#endif
-	else if(Config::Gfx::OPENGL_ES >= 2 && string_equal(extStr, "GL_NV_pixel_buffer_object"))
+	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_NV_pixel_buffer_object")
 	{
 		setupPBO();
 	}
-	else if(Config::Gfx::OPENGL_ES >= 2 && string_equal(extStr, "GL_NV_map_buffer_range"))
+	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_NV_map_buffer_range")
 	{
 		if(!support.glMapBufferRange)
 			support.glMapBufferRange = (typeof(support.glMapBufferRange))glManager.procAddress("glMapBufferRangeNV");
 		setupUnmapBufferFunc();
 	}
-	else if(string_equal(extStr, "GL_EXT_map_buffer_range"))
+	else if(extStr == "GL_EXT_map_buffer_range")
 	{
 		if(!support.glMapBufferRange)
 			support.glMapBufferRange = (typeof(support.glMapBufferRange))glManager.procAddress("glMapBufferRangeEXT");
@@ -426,7 +425,7 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 		//	support.glFlushMappedBufferRange = (typeof(support.glFlushMappedBufferRange))glManager.procAddress("glFlushMappedBufferRangeEXT");
 		setupUnmapBufferFunc();
 	}
-	else if(Config::Gfx::OPENGL_ES >= 2 && string_equal(extStr, "GL_EXT_buffer_storage"))
+	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_EXT_buffer_storage")
 	{
 		setupImmutableBufferStorage();
 	}
@@ -434,7 +433,7 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	{
 		// handled in *_map_buffer_range currently
 	}*/
-	else if(Config::Gfx::OPENGL_ES >= 2 && string_equal(extStr, "GL_EXT_sRGB_write_control"))
+	else if(Config::Gfx::OPENGL_ES >= 2 && extStr == "GL_EXT_sRGB_write_control")
 	{
 		support.hasSrgbWriteControl = true;
 	}
@@ -452,7 +451,7 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 	{
 		setupMultisampleHints();
 	}*/
-	else if(string_equal(extStr, "GL_EXT_framebuffer_object"))
+	else if(extStr == "GL_EXT_framebuffer_object")
 	{
 		#ifndef __APPLE__
 		if(!useFBOFuncs)
@@ -462,28 +461,28 @@ void GLRenderer::checkExtensionString(const char *extStr, bool &useFBOFuncs)
 		}
 		#endif
 	}
-	else if(string_equal(extStr, "GL_ARB_framebuffer_object"))
+	else if(extStr == "GL_ARB_framebuffer_object")
 	{
 		if(!useFBOFuncs)
 			setupFBOFuncs(useFBOFuncs);
 	}
-	else if(string_equal(extStr, "GL_ARB_texture_storage"))
+	else if(extStr == "GL_ARB_texture_storage")
 	{
 		setupImmutableTexStorage(false);
 	}
-	else if(string_equal(extStr, "GL_ARB_pixel_buffer_object"))
+	else if(extStr == "GL_ARB_pixel_buffer_object")
 	{
 		setupPBO();
 	}
-	else if(!Config::Base::GL_PLATFORM_EGL && string_equal(extStr, "GL_ARB_sync"))
+	else if(!Config::Base::GL_PLATFORM_EGL && extStr == "GL_ARB_sync")
 	{
 		setupFenceSync();
 	}
-	else if(string_equal(extStr, "GL_ARB_buffer_storage"))
+	else if(extStr == "GL_ARB_buffer_storage")
 	{
 		setupImmutableBufferStorage();
 	}
-	else if(string_equal(extStr, "GL_ARB_shader_image_load_store"))
+	else if(extStr == "GL_ARB_shader_image_load_store")
 	{
 		setupMemoryBarrier();
 	}

@@ -27,7 +27,6 @@
 #include "apple/AppleGameDevice.hh"
 #endif
 #include <imagine/logger/logger.h>
-#include <imagine/util/string.h>
 
 namespace Input
 {
@@ -352,8 +351,8 @@ static const char *openPandoraButtonName(Key b)
 
 Device::Device() {}
 
-Device::Device(int id, Map map, uint8_t type, const char *name):
-	name_{name}, id_{id}, typeBits_{type}, map_{map} {}
+Device::Device(int id, Map map, uint8_t type, std::string name):
+	name_{std::move(name)}, id_{id}, typeBits_{type}, map_{map} {}
 
 bool Device::iCadeMode() const { return false; }
 

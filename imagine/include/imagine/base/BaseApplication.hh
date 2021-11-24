@@ -146,7 +146,7 @@ protected:
 
 	void deinitWindows();
 	void removeSecondaryScreens();
-	uint8_t nextInputDeviceEnumId(const char *name) const;
+	uint8_t nextInputDeviceEnumId(std::string_view name) const;
 	void removeInputDevice(InputDeviceContainer::iterator, bool notify = false);
 };
 

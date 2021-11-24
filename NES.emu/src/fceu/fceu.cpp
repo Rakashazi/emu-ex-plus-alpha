@@ -467,7 +467,7 @@ FCEUGI *FCEUI_LoadGameWithFileVirtual(FCEUFILE *fp, const char *name, int Overwr
 	//try to load each different format
 	bool FCEUXLoad(const char *name, FCEUFILE * fp);
 
-	bool isFDS = string_hasDotExtension(fullname, "fds");
+	bool isFDS = std::string_view{fullname}.ends_with(".fds");
 	int load_result;
 	if(isFDS)
 	{

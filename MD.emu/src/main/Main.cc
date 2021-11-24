@@ -49,17 +49,17 @@ int8 mdInputPortDev[2]{-1, -1};
 t_bitmap bitmap{};
 static unsigned autoDetectedVidSysPAL = 0;
 
-bool hasMDExtension(IG::CStringView name)
+bool hasMDExtension(std::string_view name)
 {
 	return hasROMExtension(name);
 }
 
-static bool hasMDCDExtension(IG::CStringView name)
+static bool hasMDCDExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "cue") || string_hasDotExtension(name, "iso");
+	return IG::stringEndsWithAny(name, ".cue", ".iso");
 }
 
-static bool hasMDWithCDExtension(IG::CStringView name)
+static bool hasMDWithCDExtension(std::string_view name)
 {
 	return hasMDExtension(name)
 	#ifndef NO_SCD
@@ -115,19 +115,19 @@ void EmuSystem::reset(ResetMode mode)
 		gen_reset(0);
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *contentName)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 {
-	return IG::formatToPathString("{}/{}.0{}.gp", statePath, contentName, saveSlotChar(slot));
+	return IG::format<FS::FileString>("{}.0{}.gp", name, saveSlotChar(slot));
 }
 
 static FS::PathString sprintSaveFilename()
 {
-	return IG::formatToPathString("{}/{}.srm", EmuSystem::savePath(), EmuSystem::contentName().data());
+	return EmuSystem::contentSaveFilePath(".srm");
 }
 
 static FS::PathString sprintBRAMSaveFilename()
 {
-	return IG::formatToPathString("{}/{}.brm", EmuSystem::savePath(), EmuSystem::contentName().data());
+	return EmuSystem::contentSaveFilePath(".brm");
 }
 
 static const unsigned maxSaveStateSize = STATE_SIZE+4;
@@ -317,16 +317,14 @@ static unsigned detectISORegion(uint8 bootSector[0x800])
 		return REGION_JAPAN_NTSC;
 }
 
-FS::PathString EmuSystem::willLoadGameFromPath(FS::PathString path)
+FS::PathString EmuSystem::willLoadGameFromPath(std::string_view path)
 {
 	#ifndef NO_SCD
 	// check if loading a .bin with matching .cue
-	if(string_hasDotExtension(path.data(), "bin"))
+	if(path.ends_with(".bin"))
 	{
-		auto len = strlen(path.data());
-		auto possibleCuePath = path;
-		possibleCuePath[len-3] = 0; // delete extension
-		string_cat(possibleCuePath, "cue");
+		FS::PathString possibleCuePath{path};
+		possibleCuePath.replace(possibleCuePath.end() - 3, possibleCuePath.end(), "cue");
 		if(FS::exists(possibleCuePath))
 		{
 			logMsg("loading %s instead of .bin file", possibleCuePath.data());
@@ -334,7 +332,7 @@ FS::PathString EmuSystem::willLoadGameFromPath(FS::PathString path)
 		}
 	}
 	#endif
-	return path;
+	return FS::PathString{path};
 }
 
 void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
@@ -344,7 +342,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	CDAccess *cd{};
 	auto deleteCDAccess = IG::scopeGuard([&](){ delete cd; });
 	if(hasMDCDExtension(contentFileName()) ||
-		(string_hasDotExtension(contentFileName().data(), "bin") && io.size() > 1024*1024*10)) // CD
+		(contentFileName().ends_with(".bin") && io.size() > 1024*1024*10)) // CD
 	{
 		FS::current_path(contentDirectory());
 		cd = CDAccess_Open(&NVFS, contentLocation().data(), false);
@@ -361,19 +359,19 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 			region = detectISORegion(bootSector);
 	  }
 
-		const char *biosPath = optionCDBiosJpnPath;
-		const char *biosName = "Japan";
+		std::string_view biosPath = cdBiosJpnPath;
+		std::string_view biosName = "Japan";
 		switch(region)
 		{
-			bcase REGION_USA: biosPath = optionCDBiosUsaPath; biosName = "USA";
-			bcase REGION_EUROPE: biosPath = optionCDBiosEurPath; biosName = "Europe";
+			bcase REGION_USA: biosPath = cdBiosUSAPath; biosName = "USA";
+			bcase REGION_EUROPE: biosPath = cdBiosEurPath; biosName = "Europe";
 		}
-		if(!strlen(biosPath))
+		if(biosPath.empty())
 		{
 			throw std::runtime_error(fmt::format("Set a {} BIOS in the Options", biosName));
 		}
 		if(FileIO io;
-			!load_rom(io, biosPath, nullptr))
+			!load_rom(io, biosPath.data(), nullptr))
 		{
 			throw std::runtime_error(fmt::format("Error loading BIOS: {}", biosPath));
 		}

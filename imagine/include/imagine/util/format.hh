@@ -15,7 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/fs/FSDefs.hh>
 #include <imagine/util/concepts.hh>
 #include <imagine/fmt/core.h>
 #include <array>
@@ -24,31 +23,33 @@ namespace IG
 {
 
 template <class... T>
-static auto formatTo(IG::Container auto &dest, fmt::format_string<T...> fmt, const T&... args)
+static auto formatTo(IG::Container auto &c, fmt::format_string<T...> fmt, const T&... args)
 {
-	auto result = vformat_to_n(std::data(dest), std::size(dest) - 1, fmt, fmt::make_format_args(args...));
-	*result.out = '\0'; // null terminate
-	return result.size;
+	if constexpr(requires {c.push_back('0');})
+	{
+		return fmt::vformat_to(std::back_inserter(c), fmt, fmt::make_format_args(args...));
+	}
+	else
+	{
+		// static array case
+		return fmt::vformat_to_n(std::data(c), std::size(c) - 1, fmt, fmt::make_format_args(args...));
+	}
+}
+
+template <IG::Container Container, class... T>
+static auto format(fmt::format_string<T...> fmt, const T&... args)
+{
+	Container c{};
+	formatTo(c, fmt, args...);
+	return c;
 }
 
 template <size_t S, class... T>
-static auto formatToArray(fmt::format_string<T...> fmt, const T&... args)
+static auto formatArray(fmt::format_string<T...> fmt, const T&... args)
 {
-	std::array<char, S> arr;
+	std::array<char, S> arr{};
 	formatTo(arr, fmt, args...);
 	return arr;
-}
-
-template <class... T>
-static FS::FileString formatToFileString(fmt::format_string<T...> fmt, const T&... args)
-{
-	return formatToArray<sizeof(FS::FileString)>(fmt, args...);
-}
-
-template <class... T>
-static FS::PathString formatToPathString(fmt::format_string<T...> fmt, const T&... args)
-{
-	return formatToArray<sizeof(FS::PathString)>(fmt, args...);
 }
 
 }

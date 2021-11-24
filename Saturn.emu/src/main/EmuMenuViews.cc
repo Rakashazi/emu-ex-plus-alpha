@@ -46,7 +46,7 @@ class CustomSystemOptionView : public SystemOptionView
 	template <size_t S>
 	static void printBiosMenuEntryStr(char (&str)[S])
 	{
-		IG::formatTo(str, "BIOS: {}", strlen(::biosPath.data()) ? FS::basename(::biosPath).data() : "None set");
+		IG::formatTo(str, "BIOS: {}", ::biosPath.size() ? FS::basename(::biosPath) : "None set");
 	}
 
 	StaticArrayList<TextMenuItem, MAX_SH2_CORES> sh2CoreItem{};

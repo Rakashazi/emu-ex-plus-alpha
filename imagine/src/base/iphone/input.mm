@@ -23,7 +23,6 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 #include <imagine/input/Device.hh>
 #include <imagine/time/Time.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/string.h>
 #include "../../input/apple/AppleGameDevice.hh"
 #include "ios.hh"
 
@@ -61,14 +60,13 @@ static_assert(__has_feature(objc_arc), "This file requires ARC");
 {
 	logMsg("editing ended");
 	auto delegate = std::exchange(textDelegate, {});
-	char text[256];
-	string_copy(text, [textField.text UTF8String]);
+	std::string text{[textField.text UTF8String]};
 	[textField removeFromSuperview];
 	uiTextField = nil;
 	if(delegate)
 	{
 		logMsg("running text entry callback");
-		delegate(text);
+		delegate(text.data());
 	}
 }
 
@@ -176,7 +174,7 @@ static void setupTextView(Base::ApplicationContext ctx, UITextField *vkbdField, 
 	logMsg("init vkeyboard");
 }
 
-UIKitTextField::UIKitTextField(Base::ApplicationContext ctx, TextFieldDelegate del, const char *initialText, const char *promptText, int fontSizePixels):
+UIKitTextField::UIKitTextField(Base::ApplicationContext ctx, TextFieldDelegate del, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels):
 	ctx{ctx}
 {
 	auto uiTextField = [[UITextField alloc] initWithFrame: toCGRect(*ctx.deviceWindow(), textRect)];
@@ -258,7 +256,7 @@ void handleKeyEvent(Base::ApplicationContext ctx, UIEvent *event)
 	}
 }
 
-Event::KeyString Event::keyString(Base::ApplicationContext) const
+std::string Event::keyString(Base::ApplicationContext) const
 {
 	return {}; // TODO
 }

@@ -21,7 +21,6 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/math/int.hh>
-#include <imagine/util/string.h>
 #include <string>
 
 ToastView::ToastView() {}

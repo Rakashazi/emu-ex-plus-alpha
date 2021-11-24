@@ -19,6 +19,7 @@
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
+#include <imagine/util/string.h>
 #include "input.hh"
 #include <android/configuration.h>
 #include <sys/inotify.h>
@@ -83,13 +84,13 @@ static const char *inputDeviceKeyboardTypeToStr(int type)
 	return "Unknown";
 }
 
-AndroidInputDevice::AndroidInputDevice(int osId, TypeBits typeBits, const char *name):
-	Device{osId, Map::SYSTEM, typeBits, name}
+AndroidInputDevice::AndroidInputDevice(int osId, TypeBits typeBits, std::string name):
+	Device{osId, Map::SYSTEM, typeBits, std::move(name)}
 {}
 
 AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
-	int osId, int src, const char *name, int kbType, uint32_t jsAxisBits, bool isPowerButton):
-	Device{osId, Map::SYSTEM, Device::TYPE_BIT_KEY_MISC, name}
+	int osId, int src, std::string devName, int kbType, uint32_t jsAxisBits, bool isPowerButton):
+	Device{osId, Map::SYSTEM, Device::TYPE_BIT_KEY_MISC, std::move(devName)}
 {
 	if(osId == -1)
 	{
@@ -110,16 +111,17 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 			typeBits_ |= Device::TYPE_BIT_MOUSE;
 		}
 	}
+	auto &name = name_;
 	if(IG::isBitMaskSet(src, AInputDevice::SOURCE_GAMEPAD))
 	{
 		bool isGamepad = 1;
-		if(Config::MACHINE_IS_GENERIC_ARMV7 && strstr(name, "-zeus"))
+		if(Config::MACHINE_IS_GENERIC_ARMV7 && IG::stringContains(name, "-zeus"))
 		{
 			logMsg("detected Xperia Play gamepad");
 			subtype_ = Device::Subtype::XPERIA_PLAY;
 		}
-		else if((Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(name, "sii9234_rcp"))
-			|| string_equal(name, "MHLRCP" ) || strstr(name, "Button Jack"))
+		else if((Config::MACHINE_IS_GENERIC_ARMV7 && name == "sii9234_rcp")
+			|| IG::stringContains(name, "MHLRCP" ) || IG::stringContains(name, "Button Jack"))
 		{
 			// sii9234_rcp on Samsung devices like Galaxy S2, may claim to be a gamepad & full keyboard
 			// but has only special function keys
@@ -127,37 +129,37 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 			src = 0;
 			isGamepad = 0;
 		}
-		else if(string_equal(name, "Sony PLAYSTATION(R)3 Controller"))
+		else if(name == "Sony PLAYSTATION(R)3 Controller")
 		{
 			logMsg("detected PS3 gamepad");
 			subtype_ = Device::Subtype::PS3_CONTROLLER;
 		}
-		else if(string_equal(name, "OUYA Game Controller"))
+		else if(name == "OUYA Game Controller")
 		{
 			logMsg("detected OUYA gamepad");
 			subtype_ = Device::Subtype::OUYA_CONTROLLER;
 		}
-		else if(strstr(name, "NVIDIA Controller"))
+		else if(IG::stringContains(name, "NVIDIA Controller"))
 		{
 			logMsg("detected NVidia Shield gamepad");
 			subtype_ = Device::Subtype::NVIDIA_SHIELD;
 		}
-		else if(string_equal(name, "Xbox 360 Wireless Receiver"))
+		else if(name == "Xbox 360 Wireless Receiver")
 		{
 			logMsg("detected wireless 360 gamepad");
 			subtype_ = Device::Subtype::XBOX_360_CONTROLLER;
 		}
-		else if(string_equal(name, "8Bitdo SF30 Pro"))
+		else if(name == "8Bitdo SF30 Pro")
 		{
 			logMsg("detected 8Bitdo SF30 Pro");
 			subtype_ = Device::Subtype::_8BITDO_SF30_PRO;
 		}
-		else if(string_equal(name, "8BitDo SN30 Pro+"))
+		else if(name == "8BitDo SN30 Pro+")
 		{
 			logMsg("detected 8BitDo SN30 Pro+");
 			subtype_ = Device::Subtype::_8BITDO_SN30_PRO_PLUS;
 		}
-		else if(string_equal(name, "8BitDo M30 gamepad"))
+		else if(name == "8BitDo M30 gamepad")
 		{
 			logMsg("detected 8BitDo M30 gamepad");
 			subtype_ = Device::Subtype::_8BITDO_M30_GAMEPAD;
@@ -230,7 +232,7 @@ AndroidInputDevice::AndroidInputDevice(JNIEnv* env, jobject aDev,
 
 bool AndroidInputDevice::operator ==(AndroidInputDevice const& rhs) const
 {
-	return id() == rhs.id() && string_equal(name(), rhs.name());
+	return id() == rhs.id() && name_ == rhs.name_;
 }
 
 void AndroidInputDevice::setTypeBits(TypeBits bits) { typeBits_ = bits; }
@@ -242,7 +244,7 @@ std::span<Axis> AndroidInputDevice::motionAxes()
 
 void AndroidInputDevice::setICadeMode(bool on)
 {
-	logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
+	logMsg("set iCade mode %s for %s", on ? "on" : "off", name().data());
 	iCadeMode_ = on;
 }
 
@@ -292,7 +294,7 @@ bool Device::anyTypeBitsPresent(Base::ApplicationContext ctx, TypeBits typeBits)
 		if((e.isVirtual() && ((typeBits & TYPE_BIT_KEY_MISC) & e.typeBits())) // virtual devices count as TYPE_BIT_KEY_MISC only
 				|| (!e.isVirtual() && (e.typeBits() & typeBits)))
 		{
-			logDMsg("device:%s has bits:0x%X", e.name(), typeBits);
+			logDMsg("device:%s has bits:0x%X", e.name().data(), typeBits);
 			return true;
 		}
 	}
@@ -312,9 +314,9 @@ bool hasGetAxisValue()
 namespace Base
 {
 
-static bool isXperiaPlayDeviceStr(const char *str)
+static bool isXperiaPlayDeviceStr(std::string_view str)
 {
-	return strstr(str, "R800") || string_equal(str, "zeus");
+	return IG::stringContains(str, "R800") || str == "zeus";
 }
 
 bool AndroidApplication::hasMultipleInputDeviceSupport() const
@@ -463,12 +465,12 @@ void AndroidApplication::initInput(JNIEnv *env, jobject baseActivity, jclass bas
 		if(Config::MACHINE_IS_GENERIC_ARMV7)
 		{
 			auto buildDevice = androidBuildDevice(env, baseActivityClass);
-			if(isXperiaPlayDeviceStr(buildDevice.data()))
+			if(isXperiaPlayDeviceStr(buildDevice))
 			{
 				logMsg("detected Xperia Play gamepad");
 				genericKeyDev.setSubtype(Input::Device::Subtype::XPERIA_PLAY);
 			}
-			else if(string_equal(buildDevice.data(), "sholes"))
+			else if(buildDevice == "sholes")
 			{
 				logMsg("detected Droid/Milestone keyboard");
 				genericKeyDev.setSubtype(Input::Device::Subtype::MOTO_DROID_KEYBOARD);
@@ -581,7 +583,7 @@ Input::AndroidInputDevice *AndroidApplication::addAndroidInputDevice(Input::Andr
 		if(inputDeviceForId(dev.id()))
 			logWarn("adding duplicate device ID:%d", dev.id());
 	}
-	logMsg("added device id:%d (%s) to list", dev.id(), dev.name());
+	logMsg("added device id:%d (%s) to list", dev.id(), dev.name().data());
 	return static_cast<Input::AndroidInputDevice*>(&addInputDevice(std::make_unique<Input::AndroidInputDevice>(std::move(dev)), notify));
 }
 
@@ -594,7 +596,7 @@ Input::AndroidInputDevice *AndroidApplication::updateAndroidInputDevice(Input::A
 	}
 	else
 	{
-		logMsg("device id:%d (%s) updated", dev.id(), dev.name());
+		logMsg("device id:%d (%s) updated", dev.id(), dev.name().data());
 		existingDevPtr->update(std::move(dev));
 		if(notify)
 			dispatchInputDeviceChange(*existingDevPtr, {Input::DeviceAction::CHANGED});

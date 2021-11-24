@@ -48,7 +48,7 @@ public:
 	GlyphTextureSet(Renderer &, IG::Font, IG::FontSettings);
 	IG::FontSettings fontSettings() const;
 	bool setFontSettings(Renderer &r, IG::FontSettings set);
-	unsigned precache(Renderer &r, const char *string);
+	unsigned precache(Renderer &r, std::string_view string);
 	unsigned precacheAlphaNum(Renderer &r)
 	{
 		return precache(r, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");

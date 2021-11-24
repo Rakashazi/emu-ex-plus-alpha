@@ -39,7 +39,9 @@ public:
 private:
 	DualTextMenuItem addr{}, value{}, saved{};
 	unsigned idx = 0;
-	char addrStr[7]{}, valueStr[3]{}, savedStr[3]{};
+	IG::StaticString<6> addrStr{};
+	IG::StaticString<2> valueStr{};
+	IG::StaticString<2> savedStr{};
 
 	const char *cheatNameString() const final;
 	void renamed(const char *str) final;

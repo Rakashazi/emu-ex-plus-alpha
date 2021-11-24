@@ -32,7 +32,7 @@ namespace IG::Data
 class Quartz2dImage
 {
 public:
-	Quartz2dImage(const char *path);
+	Quartz2dImage(CStringView path);
 	void readImage(IG::Pixmap dest);
 	bool hasAlphaChannel();
 	bool isGrayscale();

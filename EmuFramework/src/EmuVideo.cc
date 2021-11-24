@@ -220,7 +220,7 @@ void EmuVideo::doScreenshot(EmuSystemTaskContext taskCtx, IG::Pixmap pix)
 	}
 	else
 	{
-		auto success = app().writeScreenshot(pix, path.data());
+		auto success = app().writeScreenshot(pix, path);
 		if(taskCtx)
 		{
 			taskCtx.task().sendScreenshotReply(screenshotNum, success);

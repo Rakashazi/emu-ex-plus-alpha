@@ -51,7 +51,6 @@ static bool OptionSH2CoreIsValid(uint8_t val)
 }
 
 const char *EmuSystem::configFilename = "SaturnEmu.config";
-static PathOption optionBiosPath{CFGKEY_BIOS_PATH, biosPath, ""};
 Byte1Option optionSH2Core{CFGKEY_SH2_CORE, (uint8_t)defaultSH2CoreID, false, OptionSH2CoreIsValid};
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -82,7 +81,8 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 	switch(key)
 	{
 		default: return 0;
-		bcase CFGKEY_BIOS_PATH: optionBiosPath.readFromIO(io, readSize);
+		bcase CFGKEY_BIOS_PATH:
+			readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){biosPath = path;});
 		bcase CFGKEY_SH2_CORE: optionSH2Core.readFromIO(io, readSize);
 	}
 	return 1;
@@ -90,6 +90,6 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 
 void EmuSystem::writeConfig(IO &io)
 {
-	optionBiosPath.writeToIO(io);
+	writeStringOptionValue(io, CFGKEY_BIOS_PATH, biosPath);
 	optionSH2Core.writeWithKeyIfNotDefault(io);
 }

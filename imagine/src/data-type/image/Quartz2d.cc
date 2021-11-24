@@ -21,7 +21,6 @@
 #include <imagine/logger/logger.h>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/FS.hh>
-#include <imagine/util/format.hh>
 #include <CoreGraphics/CGBitmapContext.h>
 #include <CoreGraphics/CGContext.h>
 #include <cassert>
@@ -52,19 +51,19 @@ const IG::PixelFormat Quartz2dImage::pixelFormat()
 		return IG::PIXEL_FMT_RGBA8888;
 }
 
-Quartz2dImage::Quartz2dImage(const char *name)
+Quartz2dImage::Quartz2dImage(CStringView name)
 {
 	CGDataProviderRef dataProvider = CGDataProviderCreateWithFilename(name);
 	if(!dataProvider)
 	{
-		logErr("error opening file: %s", name);
+		logErr("error opening file: %s", name.data());
 		return;
 	}
 	auto imgRef = CGImageCreateWithPNGDataProvider(dataProvider, nullptr, 0, kCGRenderingIntentDefault);
 	CGDataProviderRelease(dataProvider);
 	if(!imgRef)
 	{
-		logErr("error creating CGImage from file: %s", name);
+		logErr("error creating CGImage from file: %s", name.data());
 		return;
 	}
 	img.reset(imgRef);
@@ -118,7 +117,7 @@ PixmapImage::operator PixmapSource()
 
 PixmapImage PixmapReader::loadAsset(const char *name, const char *appName) const
 {
-	return PixmapImage(IG::formatToPathString("{}/{}", appContext().assetPath(appName).data(), name).data());
+	return PixmapImage(FS::pathString(appContext().assetPath(appName), name));
 }
 
 }

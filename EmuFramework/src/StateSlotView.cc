@@ -41,7 +41,7 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 
 		if(EmuSystem::gameIsRunning())
 		{
-			auto saveStr = EmuSystem::sprintStateFilename(slot);
+			auto saveStr = EmuSystem::statePath(slot);
 			bool fileExists = FS::exists(saveStr);
 			auto str =
 				[&]()
@@ -49,7 +49,7 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 					if(fileExists)
 					{
 						auto dateStr = formatDateAndTime(FS::status(saveStr).lastWriteTimeLocal());
-						return fmt::format("{} ({})", stateNameStr(slot), dateStr.data());
+						return fmt::format("{} ({})", stateNameStr(slot), dateStr);
 					}
 					else
 						return fmt::format("{}", stateNameStr(slot));

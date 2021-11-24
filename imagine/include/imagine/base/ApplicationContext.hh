@@ -148,8 +148,8 @@ public:
 	void setAcceptIPC(bool on, const char *appId = applicationId);
 
 	// external services
-	void openURL(const char *url) const;
-	bool packageIsInstalled(const char *name) const;
+	void openURL(IG::CStringView url) const;
+	bool packageIsInstalled(IG::CStringView name) const;
 
 	// file system paths & asset loading, thread-safe
 	FS::PathString assetPath(const char *appName = applicationName) const;
@@ -159,14 +159,15 @@ public:
 	FS::PathString sharedStoragePath() const;
 	FS::PathLocation sharedStoragePathLocation() const;
 	std::vector<FS::PathLocation> rootFileLocations() const;
-	FS::RootPathInfo nearestRootPath(IG::CStringView path) const;
+	FS::RootPathInfo nearestRootPath(std::string_view path) const;
 	AssetIO openAsset(IG::CStringView name, IO::AccessHint access, unsigned openFlags = 0, const char *appName = applicationName) const;
 	FS::AssetDirectoryIterator openAssetDirectory(IG::CStringView path, const char *appName = applicationName);
 	bool hasSystemPathPicker() const;
 	void showSystemPathPicker(SystemPathPickerDelegate);
 	bool hasSystemDocumentPicker() const;
 	void showSystemDocumentPicker(SystemDocumentPickerDelegate);
-	FileIO openUri(IG::CStringView uri, IO::AccessHint access, unsigned openFlags = 0);
+	FileIO openUri(IG::CStringView uri, IO::AccessHint, unsigned openFlags = 0);
+	FileIO fileAtUri(IG::CStringView name, IG::CStringView uri, IO::AccessHint, unsigned openFlags = 0);
 
 	// OS UI management (status & navigation bar)
 	void setSysUIStyle(uint32_t flags);

@@ -19,7 +19,6 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/util/string.h>
 #include "xdnd.hh"
 #include "xlibutils.h"
 
@@ -92,6 +91,18 @@ void XApplicationContext::setApplicationPtr(Application *appPtr_)
 Application &XApplicationContext::application() const
 {
 	return *static_cast<Application*>(appPtr);
+}
+
+static std::array<char, 2> charToStringArr(char c)
+{
+	return {c, '\0'};
+}
+
+static int char_hexToInt(char c)
+{
+	int hex = -1;
+	sscanf(charToStringArr(c).data(), "%x", &hex);
+	return hex;
 }
 
 // TODO: move into generic header after testing
@@ -169,7 +180,7 @@ bool XApplication::eventHandler(XEvent event)
 			auto type = event.xclient.message_type;
 			char *clientMsgName = XGetAtomName(dpy, type);
 			//logDMsg("got client msg %s", clientMsgName);
-			if(string_equal(clientMsgName, "WM_PROTOCOLS"))
+			if(std::string_view{clientMsgName} == "WM_PROTOCOLS")
 			{
 				if((Atom)event.xclient.data.l[0] == XInternAtom(dpy, "WM_DELETE_WINDOW", True))
 				{

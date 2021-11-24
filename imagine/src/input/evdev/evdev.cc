@@ -23,7 +23,6 @@
 #include <imagine/util/math/int.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/string.h>
-#include <imagine/util/format.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/AxisKeyEmu.hh>
@@ -111,8 +110,8 @@ static constexpr bool isBitSetInArray(const T (&arr)[S], unsigned int bit)
 
 EvdevInputDevice::EvdevInputDevice() {}
 
-EvdevInputDevice::EvdevInputDevice(int id, int fd, TypeBits typeBits, const char *name):
-	Device{id, Map::SYSTEM, typeBits, name},
+EvdevInputDevice::EvdevInputDevice(int id, int fd, TypeBits typeBits, std::string name):
+	Device{id, Map::SYSTEM, typeBits, std::move(name)},
 	fd{fd}
 {
 	if(setupJoystickBits())
@@ -214,7 +213,7 @@ void EvdevInputDevice::addPollEvent(Base::LinuxApplication &app)
 		{
 			if(pollEvents & Base::POLLEV_ERR) [[unlikely]]
 			{
-				logMsg("error %d in input fd %d (%s)", errno, fd, name());
+				logMsg("error %d in input fd %d (%s)", errno, fd, name().data());
 				app.removeInputDevice(*this, true);
 				return false;
 			}
@@ -230,7 +229,7 @@ void EvdevInputDevice::addPollEvent(Base::LinuxApplication &app)
 				}
 				if(len == -1 && errno != EAGAIN)
 				{
-					logMsg("error %d reading from input fd %d (%s)", errno, fd, name());
+					logMsg("error %d reading from input fd %d (%s)", errno, fd, name().data());
 					app.removeInputDevice(*this, true);
 					return false;
 				}
@@ -273,11 +272,11 @@ static bool isEvdevInputDevice(Input::Device &d)
 	return d.map() == Input::Map::SYSTEM && (d.typeBits() & Input::Device::TYPE_BIT_GAMEPAD);
 }
 
-static bool processDevNode(Base::LinuxApplication &app, const char *path, int id, bool notify)
+static bool processDevNode(Base::LinuxApplication &app, IG::CStringView path, int id, bool notify)
 {
 	if(access(path, R_OK) != 0)
 	{
-		logMsg("no access to %s", path);
+		logMsg("no access to %s", path.data());
 		return false;
 	}
 
@@ -293,22 +292,21 @@ static bool processDevNode(Base::LinuxApplication &app, const char *path, int id
 	auto fd = open(path, O_RDONLY, 0);
 	if(fd == -1)
 	{
-		logMsg("error opening %s", path);
+		logMsg("error opening %s", path.data());
 		return false;
 	}
 
-	logMsg("checking device @ %s", path);
+	logMsg("checking device @ %s", path.data());
 	if(!devIsGamepad(fd))
 	{
-		logMsg("%s isn't a gamepad", path);
+		logMsg("%s isn't a gamepad", path.data());
 		close(fd);
 		return false;
 	}
-	std::array<char, 80> nameStr{};
+	std::array<char, 80> nameStr{"Unknown"};
 	if(ioctl(fd, EVIOCGNAME(sizeof(nameStr)), nameStr.data()) < 0)
 	{
 		logWarn("unable to get device name");
-		string_copy(nameStr, "Unknown");
 	}
 	auto evDev = std::make_unique<EvdevInputDevice>(id, fd, Device::TYPE_BIT_GAMEPAD, nameStr.data());
 	fd_setNonblock(fd, 1);
@@ -317,7 +315,7 @@ static bool processDevNode(Base::LinuxApplication &app, const char *path, int id
 	return true;
 }
 
-static bool processDevNodeName(const char *name, FS::PathString &path, uint32_t &id)
+static bool processDevNodeName(IG::CStringView name, FS::PathString &path, uint32_t &id)
 {
 	// extract id number from "event*" name and get the full path
 	if(sscanf(name, "event%u", &id) != 1)
@@ -325,7 +323,7 @@ static bool processDevNodeName(const char *name, FS::PathString &path, uint32_t 
 		//logWarn("couldn't extract numeric part of node name: %s", name);
 		return false;
 	}
-	IG::formatTo(path, DEV_NODE_PATH "/{}", name);
+	path = FS::pathString(DEV_NODE_PATH, name);
 	return true;
 }
 
@@ -362,7 +360,7 @@ void LinuxApplication::initEvdev(EventLoop loop)
 								FS::PathString path;
 								if(Input::processDevNodeName(inotifyEv->name, path, id))
 								{
-									Input::processDevNode(*this, path.data(), id, true);
+									Input::processDevNode(*this, path, id, true);
 								}
 							}
 							len -= inotifyEvSize;
@@ -388,14 +386,14 @@ void LinuxApplication::initEvdev(EventLoop loop)
 	{
 		for(auto &entry : FS::directory_iterator{DEV_NODE_PATH})
 		{
-			auto filename = entry.name();
-			if(entry.type() != FS::file_type::character || !strstr(filename, "event"))
+			std::string_view filename{entry.name()};
+			if(entry.type() != FS::file_type::character || !IG::stringContains(filename, "event"))
 				continue;
 			uint32_t id;
 			FS::PathString path;
 			if(!Input::processDevNodeName(filename, path, id))
 				continue;
-			Input::processDevNode(*this, path.data(), id, false);
+			Input::processDevNode(*this, path, id, false);
 		}
 	}
 	catch(...)

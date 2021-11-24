@@ -24,7 +24,6 @@
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
-#include <imagine/util/string.h>
 #include <imagine/util/format.hh>
 #include <string>
 
@@ -91,7 +90,7 @@ void FSPicker::place()
 	msgText.compile(renderer(), projP);
 }
 
-void FSPicker::changeDirByInput(const char *path, FS::RootPathInfo rootInfo, bool forcePathChange, Input::Event e)
+void FSPicker::changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, bool forcePathChange, Input::Event e)
 {
 	auto ec = setPath(path, forcePathChange, rootInfo, e);
 	if(ec && !forcePathChange)
@@ -190,12 +189,11 @@ void FSPicker::onAddedToController(ViewController *, Input::Event e)
 
 std::error_code FSPicker::setPath(IG::CStringView path, bool forcePathChange, FS::RootPathInfo rootInfo, Input::Event e)
 {
-	assert(path);
 	auto prevPath = currPath;
 	try
 	{
 		auto dirIt = FS::directory_iterator{path};
-		string_copy(currPath, path);
+		currPath = path;
 		dir.clear();
 		for(auto &entry : dirIt)
 		{
@@ -205,7 +203,7 @@ std::error_code FSPicker::setPath(IG::CStringView path, bool forcePathChange, FS
 				continue;
 			}
 			bool isDir = entry.type() == FS::file_type::directory;
-			dir.emplace_back(FS::makeFileString(entry.name()), isDir);
+			dir.emplace_back(entry.name().data(), isDir);
 		}
 		std::sort(dir.begin(), dir.end(),
 			[](FileEntry e1, FileEntry e2)
@@ -227,18 +225,18 @@ std::error_code FSPicker::setPath(IG::CStringView path, bool forcePathChange, FS
 			{
 				if(entry.isDir)
 				{
-					text.emplace_back(entry.name.data(), &face(),
+					text.emplace_back(entry.name, &face(),
 						[this, idx](Input::Event e)
 						{
 							assert(!singleDir);
-							auto filePath = makePathString(dir[idx].name.data());
+							auto filePath = pathString(dir[idx].name);
 							logMsg("going to dir %s", filePath.data());
-							changeDirByInput(filePath.data(), root, false, e);
+							changeDirByInput(filePath, root, false, e);
 						});
 				}
 				else
 				{
-					text.emplace_back(entry.name.data(), &face(),
+					text.emplace_back(entry.name, &face(),
 						[this, idx](Input::Event e)
 						{
 							onSelectFile_.callCopy(*this, dir[idx].name.data(), e);
@@ -269,10 +267,10 @@ std::error_code FSPicker::setPath(IG::CStringView path, bool forcePathChange, FS
 		static_cast<TableView*>(&controller.top())->highlightCell(0);
 	else
 		static_cast<TableView*>(&controller.top())->resetScroll();
-	auto pathLen = strlen(path);
+	auto pathLen = path.size();
 	// verify root info
 	if(rootInfo.length &&
-		(rootInfo.length > pathLen || !isValidRootEndChar(path[rootInfo.length]) || !strlen(rootInfo.name.data())))
+		(rootInfo.length > pathLen || !isValidRootEndChar(path[rootInfo.length]) || rootInfo.name.empty()))
 	{
 		logWarn("invalid root parameters");
 		rootInfo.length = 0;
@@ -282,9 +280,9 @@ std::error_code FSPicker::setPath(IG::CStringView path, bool forcePathChange, FS
 		logMsg("root info:%d:%s", (int)rootInfo.length, rootInfo.name.data());
 		root = rootInfo;
 		if(pathLen > rootInfo.length)
-			rootedPath = IG::formatToPathString("{}{}", rootInfo.name.data(), &path[rootInfo.length]);
+			rootedPath = IG::format<FS::PathString>("{}{}", rootInfo.name, &path[rootInfo.length]);
 		else
-			rootedPath = FS::makePathString(rootInfo.name.data());
+			rootedPath = rootInfo.name;
 	}
 	else
 	{
@@ -292,7 +290,7 @@ std::error_code FSPicker::setPath(IG::CStringView path, bool forcePathChange, FS
 		root = {};
 		rootedPath = currPath;
 	}
-	controller.top().setName(rootedPath.data());
+	controller.top().setName(rootedPath);
 	controller.navView()->showLeftBtn(!isAtRoot());
 	onChangePath_.callSafe(*this, prevPath, e);
 	return {};
@@ -323,9 +321,9 @@ void FSPicker::clearSelection()
 	controller.top().clearSelection();
 }
 
-FS::PathString FSPicker::makePathString(const char *base) const
+FS::PathString FSPicker::pathString(std::string_view base) const
 {
-	return FS::makePathString(strlen(currPath.data()) > 1 ? currPath.data() : "", base);
+	return FS::pathString(currPath.size() > 1 ? currPath : "", base);
 }
 
 bool FSPicker::isSingleDirectoryMode() const
@@ -336,20 +334,20 @@ bool FSPicker::isSingleDirectoryMode() const
 void FSPicker::goUpDirectory(Input::Event e)
 {
 	clearSelection();
-	changeDirByInput(FS::dirname(currPath).data(), root, true, e);
+	changeDirByInput(FS::dirname(currPath), root, true, e);
 }
 
 bool FSPicker::isAtRoot() const
 {
 	if(root.length)
 	{
-		auto pathLen = strlen(currPath.data());
+		auto pathLen = currPath.size();
 		assumeExpr(pathLen >= root.length);
 		return pathLen == root.length;
 	}
 	else
 	{
-		return string_equal(currPath.data(), "/");
+		return currPath == "/";
 	}
 }
 
@@ -360,11 +358,11 @@ void FSPicker::pushFileLocationsView(Input::Event e)
 	auto view = makeViewWithName<TextTableView>("File Locations", rootLocation.size() + customItems);
 	for(auto &loc : rootLocation)
 	{
-		view->appendItem(loc.description.data(),
+		view->appendItem(loc.description,
 			[this, &loc](View &view, Input::Event e)
 			{
-				auto pathLen = strlen(loc.path.data());
-				changeDirByInput(loc.path.data(), loc.root, true, e);
+				auto pathLen = loc.path.size();
+				changeDirByInput(loc.path, loc.root, true, e);
 				view.dismiss();
 			});
 	}
@@ -378,7 +376,7 @@ void FSPicker::pushFileLocationsView(Input::Event e)
 		[this](Input::Event e)
 		{
 			auto textInputView = makeView<CollectTextInputView>(
-				"Input a directory path", currPath.data(), nullptr,
+				"Input a directory path", currPath, nullptr,
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(!str || !strlen(str))

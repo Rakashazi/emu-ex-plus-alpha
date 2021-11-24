@@ -217,9 +217,9 @@ protected:
 	void setupMemoryBarrier();
 	void setupFenceSync();
 	void setupAppleFenceSync();
-	void setupEglFenceSync(const char *eglExtenstionStr);
-	void setupPresentationTime(const char *eglExtenstionStr);
-	void checkExtensionString(const char *extStr, bool &useFBOFuncs);
+	void setupEglFenceSync(std::string_view eglExtenstionStr);
+	void setupPresentationTime(std::string_view eglExtenstionStr);
+	void checkExtensionString(std::string_view extStr, bool &useFBOFuncs);
 	void checkFullExtensionString(const char *fullExtStr);
 	NativeProgramBundle commonProgramBundle(CommonProgram program) const;
 	bool attachWindow(Base::Window &, Base::GLBufferConfig, Base::GLColorSpace);

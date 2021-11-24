@@ -45,14 +45,16 @@ void TestFramework::init(Base::ApplicationContext app, Gfx::Renderer &r,
 	initTest(app, r, pixmapSize, bufferMode);
 }
 
-void TestFramework::setCPUFreqText(const char *str)
+void TestFramework::setCPUFreqText(std::string_view str)
 {
-	IG::formatTo(cpuFreqStr, "CPU Frequency: {}", str);
+	cpuFreqStr = "CPU Frequency: ";
+	cpuFreqStr += str;
 }
 
-void TestFramework::setCPUUseText(const char *str)
+void TestFramework::setCPUUseText(std::string_view str)
 {
-	IG::formatTo(cpuUseStr, "CPU Load (System): {}", str);
+	cpuUseStr = "CPU Load (System): ";
+	cpuUseStr += str;
 }
 
 void TestFramework::placeCPUStatsText(Gfx::Renderer &r)
@@ -103,12 +105,11 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 	{
 		if(updatedCPUStats)
 		{
-			cpuStatsText.setString(
-				fmt::format("{}{}{}",
-				strlen(cpuUseStr.data()) ? cpuUseStr.data() : "",
-				strlen(cpuUseStr.data()) && strlen(cpuFreqStr.data()) ? "\n" : "",
-				strlen(cpuFreqStr.data()) ? cpuFreqStr.data() : "")
-			);
+			IG::StaticString<512> str{cpuUseStr};
+			if(cpuUseStr.size() && cpuFreqStr.size())
+				str += '\n';
+			str += cpuFreqStr;
+			cpuStatsText.setString(str);
 			placeCPUStatsText(rTask.renderer());
 		}
 
@@ -128,6 +129,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 				lostFrameProcessTime = std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count();
 
 				droppedFrames++;
+				skippedFrameStr.clear();
 				IG::formatTo(skippedFrameStr, "Lost {} frame(s) taking {:.3f}s after {} continuous\nat time {:.3f}s",
 					elapsedScreenFrames - 1, IG::FloatSeconds(timestamp - lastFramePresentTime.timestamp).count(),
 					continuousFrames, IG::FloatSeconds(timestamp).count());
@@ -137,6 +139,7 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 		}
 		if(frames && frames % 4 == 0)
 		{
+			statsStr.clear();
 			IG::formatTo(statsStr, "Total Draw Time: {:02}ms ({:02}ms)\nTimestamp Diff: {:02}ms",
 				(unsigned long)std::chrono::duration_cast<IG::Milliseconds>(lastFramePresentTime.atWinPresent - lastFramePresentTime.atOnFrame).count(),
 				lostFrameProcessTime,
@@ -145,12 +148,11 @@ void TestFramework::frameUpdate(Gfx::RendererTask &rTask, Base::Window &win, Bas
 		}
 		if(updatedFrameStats)
 		{
-			frameStatsText.setString(
-				fmt::format("{}{}{}",
-				strlen(skippedFrameStr.data()) ? skippedFrameStr.data() : "",
-				strlen(skippedFrameStr.data()) && strlen(statsStr.data()) ? "\n" : "",
-				strlen(statsStr.data()) ? statsStr.data() : "")
-			);
+			IG::StaticString<512> str{skippedFrameStr};
+			if(skippedFrameStr.size() && statsStr.size())
+				str += '\n';
+			str += statsStr;
+			frameStatsText.setString(str);
 			placeFrameStatsText(rTask.renderer());
 		}
 	}

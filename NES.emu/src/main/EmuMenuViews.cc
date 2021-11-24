@@ -22,6 +22,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include <fceu/fds.h>
 #include <fceu/sound.h>
 #include <fceu/fceu.h>
@@ -190,7 +191,7 @@ class CustomVideoOptionView : public VideoOptionView
 	static void setPalette(Base::ApplicationContext ctx, const char *palPath)
 	{
 		if(palPath)
-			string_copy(defaultPalettePath, palPath);
+			defaultPalettePath = palPath;
 		else
 			defaultPalettePath = {};
 		setDefaultPalette(ctx, palPath);
@@ -212,15 +213,15 @@ class CustomVideoOptionView : public VideoOptionView
 		{"Custom File", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e)
 			{
 				auto startPath = app().mediaSearchPath();
-				auto fsFilter = [](IG::CStringView name)
+				auto fsFilter = [](std::string_view name)
 					{
-						return string_hasDotExtension(name, "pal");
+						return name.ends_with(".pal");
 					};
 				auto fPicker = makeView<EmuFilePicker>(startPath.data(), false, fsFilter, FS::RootPathInfo{}, e, false, false);
 				fPicker->setOnSelectFile(
-					[this](FSPicker &picker, const char *name, Input::Event)
+					[this](FSPicker &picker, std::string_view name, Input::Event)
 					{
-						setPalette(appContext(), picker.makePathString(name).data());
+						setPalette(appContext(), picker.pathString(name).data());
 						defaultPal.setSelected(defaultPaletteCustomFileIdx());
 						dismissPrevious();
 						picker.dismiss();
@@ -237,21 +238,20 @@ class CustomVideoOptionView : public VideoOptionView
 		{
 			if(idx == defaultPaletteCustomFileIdx())
 			{
-				auto paletteName = FS::basename(defaultPalettePath);
-				t.setString(FS::makeFileStringWithoutDotExtension(paletteName).data());
+				t.setString(IG::stringWithoutDotExtension(FS::basename(defaultPalettePath)));
 				return true;
 			}
 			return false;
 		},
 		[this]()
 		{
-			if(string_equal(defaultPalettePath.data(), ""))
+			if(defaultPalettePath == "")
 				return 0;
-			if(string_equal(defaultPalettePath.data(), firebrandXPalPath))
+			if(defaultPalettePath == firebrandXPalPath)
 				return 1;
-			else if(string_equal(defaultPalettePath.data(), wavebeamPalPath))
+			else if(defaultPalettePath == wavebeamPalPath)
 				return 2;
-			else if(string_equal(defaultPalettePath.data(), classicPalPath))
+			else if(defaultPalettePath == classicPalPath)
 				return 3;
 			else
 				return (int)defaultPaletteCustomFileIdx();
@@ -320,7 +320,7 @@ class CustomSystemOptionView : public SystemOptionView
 
 	static std::string makeBiosMenuEntryStr()
 	{
-		return fmt::format("Disk System BIOS: {}", strlen(::fdsBiosPath.data()) ? FS::basename(::fdsBiosPath).data() : "None set");
+		return fmt::format("Disk System BIOS: {}", ::fdsBiosPath.size() ? FS::basename(::fdsBiosPath) : "None set");
 	}
 
 public:

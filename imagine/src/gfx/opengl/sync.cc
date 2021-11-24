@@ -16,6 +16,7 @@
 #define LOGTAG "GLSync"
 #include <imagine/gfx/SyncFence.hh>
 #include <imagine/gfx/opengl/GLRenderer.hh>
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include <cstring>
 
@@ -54,7 +55,7 @@ void GLRenderer::setupAppleFenceSync()
 	#endif
 }
 
-void GLRenderer::setupEglFenceSync(const char *eglExtenstionStr)
+void GLRenderer::setupEglFenceSync(std::string_view eglExtenstionStr)
 {
 	if(Config::MACHINE_IS_PANDORA)	// TODO: driver waits for full timeout even if commands complete,
 		return;												// possibly broken glFlush() behavior?
@@ -62,12 +63,12 @@ void GLRenderer::setupEglFenceSync(const char *eglExtenstionStr)
 		return;
 	#if defined CONFIG_BASE_GL_PLATFORM_EGL && defined CONFIG_GFX_OPENGL_ES
 	// check for fence sync via EGL extensions
-	if(strstr(eglExtenstionStr, "EGL_KHR_fence_sync"))
+	if(IG::stringContains(eglExtenstionStr, "EGL_KHR_fence_sync"))
 	{
 		glManager.loadSymbol(support.eglCreateSync, "eglCreateSyncKHR");
 		glManager.loadSymbol(support.eglDestroySync, "eglDestroySyncKHR");
 		glManager.loadSymbol(support.eglClientWaitSync, "eglClientWaitSyncKHR");
-		/*if(strstr(eglExtenstionStr, "EGL_KHR_wait_sync"))
+		/*if(IG::stringContains(eglExtenstionStr, "EGL_KHR_wait_sync"))
 		{
 			glManager.loadSymbol(support.eglWaitSync, "eglWaitSyncKHR");
 		}*/

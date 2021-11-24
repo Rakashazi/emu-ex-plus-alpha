@@ -34,7 +34,6 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 FS::PathString fdsBiosPath{};
-PathOption optionFdsBiosPath{CFGKEY_FDS_BIOS_PATH, fdsBiosPath, ""};
 Byte1Option optionFourScore{CFGKEY_FOUR_SCORE, 0};
 SByte1Option optionInputPort1{CFGKEY_INPUT_PORT_1, -1, false, optionIsValidWithMinMax<-1, 2>};
 SByte1Option optionInputPort2{CFGKEY_INPUT_PORT_2, -1, false, optionIsValidWithMinMax<-1, 2>};
@@ -43,7 +42,6 @@ Byte1Option optionDefaultVideoSystem{CFGKEY_DEFAULT_VIDEO_SYSTEM, 0, false, opti
 Byte1Option optionSpriteLimit{CFGKEY_SPRITE_LIMIT, 1};
 Byte1Option optionSoundQuality{CFGKEY_SOUND_QUALITY, 0, false, optionIsValidWithMax<2>};
 FS::PathString defaultPalettePath{};
-PathOption optionDefaultPalettePath{CFGKEY_DEFAULT_PALETTE_PATH, defaultPalettePath, ""};
 Byte1Option optionCompatibleFrameskip{CFGKEY_COMPATIBLE_FRAMESKIP, 0};
 
 void EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
@@ -101,12 +99,13 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 	switch(key)
 	{
 		default: return 0;
-		bcase CFGKEY_FDS_BIOS_PATH: optionFdsBiosPath.readFromIO(io, readSize);
+		bcase CFGKEY_FDS_BIOS_PATH:
+			readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){fdsBiosPath = path;});
 		bcase CFGKEY_SPRITE_LIMIT: optionSpriteLimit.readFromIO(io, readSize);
 		bcase CFGKEY_SOUND_QUALITY: optionSoundQuality.readFromIO(io, readSize);
 		bcase CFGKEY_DEFAULT_VIDEO_SYSTEM: optionDefaultVideoSystem.readFromIO(io, readSize);
-		bcase CFGKEY_DEFAULT_PALETTE_PATH: optionDefaultPalettePath.readFromIO(io, readSize);
-		logMsg("fds bios path %s", fdsBiosPath.data());
+		bcase CFGKEY_DEFAULT_PALETTE_PATH:
+			readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){defaultPalettePath = path;});
 	}
 	return 1;
 }
@@ -115,7 +114,7 @@ void EmuSystem::writeConfig(IO &io)
 {
 	optionSpriteLimit.writeWithKeyIfNotDefault(io);
 	optionSoundQuality.writeWithKeyIfNotDefault(io);
-	optionFdsBiosPath.writeToIO(io);
+	writeStringOptionValue(io, CFGKEY_FDS_BIOS_PATH, fdsBiosPath);
 	optionDefaultVideoSystem.writeWithKeyIfNotDefault(io);
-	optionDefaultPalettePath.writeToIO(io);
+	writeStringOptionValue(io, CFGKEY_DEFAULT_PALETTE_PATH, defaultPalettePath);
 }

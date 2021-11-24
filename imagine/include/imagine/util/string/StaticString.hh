@@ -15,20 +15,12 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/utility.h>
+#include <imagine/util/boost/static_string/static_string.hpp>
 
-#ifdef __cplusplus
+namespace IG
+{
 
-template <class T>
-T baseNamePos(T path);
+template <size_t N>
+using StaticString = boost::static_string<N>;
 
-#endif
-
-BEGIN_C_DECLS
-
-void baseName(const char *path, char *pathOut);
-void baseNameInPlace(char *path);
-void dirName(const char *path, char *pathOut);
-void dirNameInPlace(char *path);
-
-END_C_DECLS
+}

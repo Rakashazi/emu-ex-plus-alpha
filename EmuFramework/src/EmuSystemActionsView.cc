@@ -90,7 +90,7 @@ void EmuSystemActionsView::onShow()
 	reset.setActive(EmuSystem::gameIsRunning());
 	saveState.setActive(EmuSystem::gameIsRunning());
 	loadState.setActive(EmuSystem::gameIsRunning() && EmuSystem::stateExists(EmuSystem::saveStateSlot));
-	stateSlot.compile(makeStateSlotStr(EmuSystem::saveStateSlot).data(), renderer(), projP);
+	stateSlot.compile(makeStateSlotStr(EmuSystem::saveStateSlot), renderer(), projP);
 	screenshot.setActive(EmuSystem::gameIsRunning());
 	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 	addLauncherIcon.setActive(EmuSystem::gameIsRunning());
@@ -108,7 +108,7 @@ void EmuSystemActionsView::loadStandardItems()
 	item.emplace_back(&reset);
 	item.emplace_back(&loadState);
 	item.emplace_back(&saveState);
-	stateSlot.setName(makeStateSlotStr(EmuSystem::saveStateSlot).data());
+	stateSlot.setName(makeStateSlotStr(EmuSystem::saveStateSlot));
 	item.emplace_back(&stateSlot);
 	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
 	item.emplace_back(&addLauncherIcon);
@@ -220,7 +220,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			if(EmuSystem::gameIsRunning())
 			{
-				if(!strlen(EmuSystem::contentDirectory().data()))
+				if(EmuSystem::contentDirectory().empty())
 				{
 					// shortcuts to bundled games not yet supported
 					return;
@@ -247,7 +247,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			if(!EmuSystem::gameIsRunning())
 				return;
-			auto ynAlertView = makeView<YesNoAlertView>(fmt::format("Save screenshot to {} ?", EmuSystem::savePath()).data());
+			auto ynAlertView = makeView<YesNoAlertView>(fmt::format("Save screenshot to {} ?", EmuSystem::contentSavePath()));
 			ynAlertView->setOnYes(
 				[this]()
 				{

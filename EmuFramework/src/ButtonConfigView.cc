@@ -37,8 +37,8 @@ public:
 
 	Context ctx;
 
-	KeyConflictAlertView(ViewAttachParams attach, const char *label):
-		AlertView(attach, label, 3)
+	KeyConflictAlertView(ViewAttachParams attach, IG::utf16String label):
+		AlertView(attach, std::move(label), 3)
 	{
 		setItem(2, "Cancel", [](){});
 	}
@@ -70,10 +70,8 @@ ButtonConfigSetView::ButtonConfigSetView(ViewAttachParams attach,
 		text{&defaultFace()},
 		onSetD{onSet},
 		dev{dev},
-		rootIMView{rootIMView}
-{
-	string_copy(actionStr, actionName);
-}
+		rootIMView{rootIMView},
+		actionStr{actionName} {}
 
 void ButtonConfigSetView::place()
 {
@@ -187,9 +185,9 @@ void ButtonConfigSetView::draw(Gfx::RendererCommands &cmds)
 void ButtonConfigSetView::onAddedToController(ViewController *, Input::Event e)
 {
 	if(e.isPointer())
-		text.setString(fmt::format("Push key to set:\n{}", actionStr.data()));
+		text.setString(fmt::format("Push key to set:\n{}", actionStr));
 	else
-		text.setString(fmt::format("Push key to set:\n{}\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr.data()));
+		text.setString(fmt::format("Push key to set:\n{}\n\nTo unbind:\nQuickly push [Left] key twice in previous menu", actionStr));
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	if(e.isPointer())
 	{
@@ -227,18 +225,16 @@ static std::pair<const KeyCategory *, unsigned> findCategoryAndKeyInConfig(EmuAp
 	return {};
 }
 
-ButtonConfigView::KeyNameStr ButtonConfigView::makeKeyNameStr(Input::Key key, const char *name)
+std::string ButtonConfigView::makeKeyNameStr(Input::Key key, std::string_view name)
 {
-	KeyNameStr str;
-	if(strlen(name))
+	if(name.size())
 	{
-		string_copy(str, name);
+		return std::string{name};
 	}
 	else
 	{
-		IG::formatTo(str, "Key Code {:#X}", key);
+		return fmt::format("Key Code {:#X}", key);
 	}
-	return str;
 }
 
 void ButtonConfigView::onSet(Input::Key mapKey, int keyToSet)
@@ -246,7 +242,7 @@ void ButtonConfigView::onSet(Input::Key mapKey, int keyToSet)
 	if(!devConf->setKey(app(), mapKey, *cat, keyToSet))
 		return;
 	auto &b = btn[keyToSet];
-	b.set2ndName(makeKeyNameStr(mapKey, devConf->device().keyName(mapKey)).data());
+	b.set2ndName(makeKeyNameStr(mapKey, devConf->device().keyName(mapKey)));
 	b.compile2nd(renderer(), projP);
 	devConf->buildKeyMap();
 }
@@ -314,7 +310,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 		}
 	}
 {
-	logMsg("init button config view for %s", Input::Event::mapName(devConf_.device().map()));
+	logMsg("init button config view for %s", Input::Event::mapName(devConf_.device().map()).data());
 	cat = cat_;
 	devConf = &devConf_;
 	auto keyConfig = devConf_.keyConf();
@@ -325,7 +321,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 		btn[i] =
 		{
 			cat->keyName[i],
-			makeKeyNameStr(key, devConf_.device().keyName(key)).data(),
+			makeKeyNameStr(key, devConf_.device().keyName(key)),
 			&defaultFace(),
 			[this, keyToSet = i](Input::Event e)
 			{
@@ -343,7 +339,7 @@ ButtonConfigView::ButtonConfigView(ViewAttachParams attach, InputManagerView &ro
 								auto alertView = makeView<KeyConflictAlertView>(
 									fmt::format("Key \"{}\" already used for action \"{}\", unbind it before setting?",
 									devConf->device().keyName(mapKey),
-									conflictCat->keyName[conflictKey]).data());
+									conflictCat->keyName[conflictKey]));
 								alertView->ctx = {mapKey, keyToSet, conflictCat, conflictKey};
 								alertView->setItem(0, "Yes",
 									[this, ctx = &alertView->ctx]()

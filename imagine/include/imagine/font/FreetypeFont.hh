@@ -110,7 +110,7 @@ protected:
 	bool isBold{};
 
 	std::errc loadIntoNextSlot(GenericIO io);
-	std::errc loadIntoNextSlot(const char *name);
+	std::errc loadIntoNextSlot(IG::CStringView name);
 	GlyphRenderData makeGlyphRenderData(int idx, FreetypeFontSize &fontSize, bool keepPixData, std::errc &ec);
 	void deinit();
 };

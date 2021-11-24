@@ -632,6 +632,7 @@ libsamplerdrv_a_SOURCES := $(subst $(viceSrcPath)/,,$(filter %.c, $(wildcard $(v
 
 pluginNoTape_src = \
 main/pluginCommon.c \
+main/pluginCxxSupport.cc \
 $(libsounddrv_a_SOURCES) \
 $(libprinterdrv_a_SOURCES) \
 $(librs232drv_a_SOURCES) \

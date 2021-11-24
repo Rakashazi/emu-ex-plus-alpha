@@ -45,19 +45,20 @@ MDFNGI *MDFNGameInfo = &EmulatedPCE_Fast;
 
 uint64 MDFN_GetSettingUI(const char *name)
 {
-	if(string_equal(PCE_MODULE".ocmultiplier", name))
+	std::string_view nameV{name};
+	if(PCE_MODULE".ocmultiplier" == nameV)
 		return 1;
-	if(string_equal(PCE_MODULE".cdspeed", name))
+	if(PCE_MODULE".cdspeed" == nameV)
 		return 2;
-	if(string_equal(PCE_MODULE".cdpsgvolume", name))
+	if(PCE_MODULE".cdpsgvolume" == nameV)
 		return 100;
-	if(string_equal(PCE_MODULE".cddavolume", name))
+	if(PCE_MODULE".cddavolume" == nameV)
 		return 100;
-	if(string_equal(PCE_MODULE".adpcmvolume", name))
+	if(PCE_MODULE".adpcmvolume" == nameV)
 		return 100;
-	if(string_equal(PCE_MODULE".slstart", name))
+	if(PCE_MODULE".slstart" == nameV)
 		return 12;
-	if(string_equal(PCE_MODULE".slend", name))
+	if(PCE_MODULE".slend" == nameV)
 		return 235;
 	bug_unreachable("unhandled settingUI %s", name);
 	return 0;
@@ -65,7 +66,8 @@ uint64 MDFN_GetSettingUI(const char *name)
 
 int64 MDFN_GetSettingI(const char *name)
 {
-	if(string_equal("filesys.state_comp_level", name))
+	std::string_view nameV{name};
+	if("filesys.state_comp_level" == nameV)
 		return 6;
 	bug_unreachable("unhandled settingI %s", name);
 	return 0;
@@ -73,7 +75,8 @@ int64 MDFN_GetSettingI(const char *name)
 
 double MDFN_GetSettingF(const char *name)
 {
-	if(string_equal(PCE_MODULE".mouse_sensitivity", name))
+	std::string_view nameV{name};
+	if(PCE_MODULE".mouse_sensitivity" == nameV)
 		return 0.50;
 	bug_unreachable("unhandled settingF %s", name);
 	return 0;
@@ -81,27 +84,28 @@ double MDFN_GetSettingF(const char *name)
 
 bool MDFN_GetSettingB(const char *name)
 {
-	if(string_equal("cheats", name))
+	std::string_view nameV{name};
+	if("cheats" == nameV)
 		return 0;
-	if(string_equal("filesys.disablesavegz", name))
+	if("filesys.disablesavegz" == nameV)
 		return 0;
-	if(string_equal(PCE_MODULE".arcadecard", name))
+	if(PCE_MODULE".arcadecard" == nameV)
 		return optionArcadeCard;
-	if(string_equal(PCE_MODULE".forcesgx", name))
+	if(PCE_MODULE".forcesgx" == nameV)
 		return 0;
-	if(string_equal(PCE_MODULE".nospritelimit", name))
+	if(PCE_MODULE".nospritelimit" == nameV)
 		return 0;
-	if(string_equal(PCE_MODULE".forcemono", name))
+	if(PCE_MODULE".forcemono" == nameV)
 		return 0;
-	if(string_equal(PCE_MODULE".disable_softreset", name))
+	if(PCE_MODULE".disable_softreset" == nameV)
 		return 0;
-	if(string_equal(PCE_MODULE".adpcmlp", name))
+	if(PCE_MODULE".adpcmlp" == nameV)
 		return 0;
-	if(string_equal(PCE_MODULE".correct_aspect", name))
+	if(PCE_MODULE".correct_aspect" == nameV)
 		return 1;
-	if(string_equal("cdrom.lec_eval", name))
+	if("cdrom.lec_eval" == nameV)
 		return 1;
-	if(string_equal("filesys.untrusted_fip_check", name))
+	if("filesys.untrusted_fip_check" == nameV)
 		return 0;
 	bug_unreachable("unhandled settingB %s", name);
 	return 0;
@@ -109,9 +113,10 @@ bool MDFN_GetSettingB(const char *name)
 
 std::string MDFN_GetSettingS(const char *name)
 {
-	if(string_equal(PCE_MODULE".cdbios", name))
+	std::string_view nameV{name};
+	if(PCE_MODULE".cdbios" == nameV)
 	{
-		return std::string("");
+		return {};
 	}
 	bug_unreachable("unhandled settingS %s", name);
 	return 0;
@@ -126,15 +131,12 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 		case MDFNMKF_SAVBACK:
 		{
 			assert(cd1);
-			std::string path{EmuSystem::savePath()};
-			path += PSS;
-			path += EmuSystem::contentName().data();
-			path += ".";
-			path += md5_context::asciistr(MDFNGameInfo->MD5, 0);
-			path += ".";
-			path += cd1;
+			FS::FileString ext{md5_context::asciistr(MDFNGameInfo->MD5, 0)};
+			ext += '/';
+			ext += cd1;
+			auto path = EmuSystem::contentSaveFilePath(ext);
 			if(type == MDFNMKF_SAV) logMsg("created save path %s", path.c_str());
-			return path;
+			return std::string{path};
 		}
 		case MDFNMKF_FIRMWARE:
 		{

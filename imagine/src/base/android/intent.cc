@@ -74,7 +74,7 @@ void AndroidApplication::handleIntent(ApplicationContext ctx)
 	}
 }
 
-void ApplicationContext::openURL(const char *url) const
+void ApplicationContext::openURL(IG::CStringView url) const
 {
 	auto env = mainThreadJniEnv();
 	auto baseActivity = baseActivityObject();

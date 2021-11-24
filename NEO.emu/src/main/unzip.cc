@@ -43,11 +43,10 @@ ZFILE *gn_unzip_fopen(PKZIP *archPtr, const char *filename, uint32_t fileCRC)
 		{
 			continue;
 		}
-		auto name = entry.name();
 		auto crc = entry.crc32();
 		//logMsg("archive file entry:%s crc32:0x%X", name, crc);
 		int loadByName = fileCRC == (uint32_t)-1 || !gn_strictROMChecking();
-		if((loadByName && (string_equal(name, filename))) || crc == fileCRC)
+		if((loadByName && entry.name() == filename) || crc == fileCRC)
 		{
 			//logMsg("opened archive entry file:%s crc32:0x%X", name, crc);
 			return new ZFILE{entry.moveIO(), archPtr};

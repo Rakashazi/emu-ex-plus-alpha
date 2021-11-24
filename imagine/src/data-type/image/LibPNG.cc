@@ -23,7 +23,6 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/pixmap/MemPixmap.hh>
-#include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
 
@@ -385,7 +384,7 @@ PixmapImage PixmapReader::load(GenericIO io) const
 
 PixmapImage PixmapReader::load(const char *name) const
 {
-	if(!string_hasDotExtension(name, "png"))
+	if(!std::string_view{name}.ends_with(".png"))
 	{
 		logErr("suffix doesn't match PNG image");
 		return {};

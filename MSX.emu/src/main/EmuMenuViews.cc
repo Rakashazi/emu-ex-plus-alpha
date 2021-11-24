@@ -29,22 +29,22 @@ extern "C"
 	#include <blueMSX/IoDevice/Disk.h>
 }
 
-static std::vector<FS::FileString> machinesNames(Base::ApplicationContext ctx, const char *basePath)
+static std::vector<FS::FileString> machinesNames(Base::ApplicationContext ctx, std::string_view basePath)
 {
 	std::vector<FS::FileString> machineName{};
-	auto machinePath = IG::formatToPathString("{}/Machines", basePath);
+	auto machinePath = FS::pathString(basePath, "Machines");
 	try
 	{
 		for(auto &entry : FS::directory_iterator{machinePath})
 		{
-			auto configPath = IG::formatToPathString("{}/{}/config.ini", machinePath.data(), entry.name());
+			auto configPath = FS::pathString(machinePath, entry.name(), "config.ini");
 			if(!FS::exists(configPath))
 			{
 				//logMsg("%s doesn't exist", configPath.data());
 				continue;
 			}
-			machineName.emplace_back(FS::makeFileString(entry.name()));
-			logMsg("found machine:%s", entry.name());
+			machineName.emplace_back(entry.name());
+			logMsg("found machine:%s", entry.name().data());
 		}
 	}
 	catch(...)
@@ -56,16 +56,16 @@ static std::vector<FS::FileString> machinesNames(Base::ApplicationContext ctx, c
 		if constexpr(Config::envIsAndroid)
 		{
 			// asset directory implementation skips directories, manually add bundled machines
-			machineName.emplace_back(FS::makeFileString("MSX - C-BIOS"));
-			machineName.emplace_back(FS::makeFileString("MSX2 - C-BIOS"));
-			machineName.emplace_back(FS::makeFileString("MSX2+ - C-BIOS"));
+			machineName.emplace_back("MSX - C-BIOS");
+			machineName.emplace_back("MSX2 - C-BIOS");
+			machineName.emplace_back("MSX2+ - C-BIOS");
 		}
 		else
 		{
 			for(auto &entry : ctx.openAssetDirectory("Machines"))
 			{
-				machineName.emplace_back(FS::makeFileString(entry.name()));
-				logMsg("add asset path machine:%s", entry.name());
+				machineName.emplace_back(entry.name());
+				logMsg("add asset path machine:%s", entry.name().data());
 			}
 		}
 	}
@@ -123,7 +123,7 @@ private:
 		{
 			if(!msxMachineItem.size())
 			{
-				app().postMessage(4, 1, fmt::format("Place machine directory in:\n{}", machineBasePath.data()));
+				app().postMessage(4, 1, fmt::format("Place machine directory in:\n{}", machineBasePath(appContext())));
 				return;
 			}
 			item.defaultOnSelect(view, e);
@@ -133,17 +133,17 @@ private:
 	void reloadMachineItem()
 	{
 		msxMachineItem.clear();
-		msxMachineName = machinesNames(appContext(), machineBasePath.data());
+		msxMachineName = machinesNames(appContext(), machineBasePath(appContext()));
 		for(const auto &name : msxMachineName)
 		{
-			msxMachineItem.emplace_back(name.data(), &defaultFace(),
+			msxMachineItem.emplace_back(name, &defaultFace(),
 			[name = name.data()](Input::Event)
 			{
 				setDefaultMachineName(name);
 				logMsg("set machine type: %s", name);
 			});
 		}
-		msxMachine.setSelected(machineIndex(msxMachineName, FS::makeFileString(optionDefaultMachineName.val)));
+		msxMachine.setSelected(machineIndex(msxMachineName, optionDefaultMachineNameStr));
 	}
 
 	BoolMenuItem skipFdcAccess
@@ -156,9 +156,9 @@ private:
 		}
 	};
 
-	static auto makeMachinePathMenuEntryStr()
+	static auto makeMachinePathMenuEntryStr(std::string_view path)
 	{
-		return fmt::format("System/BIOS Path: {}", strlen(machineCustomPath.data()) ? FS::basename(machineCustomPath).data() : "Default");
+		return fmt::format("System/BIOS Path: {}", path.size() ? FS::basename(path) : "Default");
 	}
 
 	TextMenuItem machineFilePath
@@ -171,16 +171,14 @@ private:
 		}
 	};
 
-	void onFirmwarePathChange(const char *path, Input::Event e) final
+	void onFirmwarePathChange(std::string_view path, Input::Event e) final
 	{
-		machineFilePath.compile(makeMachinePathMenuEntryStr().data(), renderer(), projP);
-		machineBasePath = makeMachineBasePath(appContext(), machineCustomPath);
+		machineFilePath.compile(makeMachinePathMenuEntryStr(path), renderer(), projP);
 		reloadMachineItem();
 		msxMachine.compile(renderer(), projP);
-		if(!strlen(path))
+		if(path.empty())
 		{
-			app().postMessage(4, false, fmt::format("Using default path:\n{}/MSX.emu",
-				(Config::envIsLinux && !Config::MACHINE_IS_PANDORA) ? appContext().assetPath().data() : appContext().sharedStoragePath().data()));
+			app().postMessage(4, false, fmt::format("Using default path:\n{}", machineBasePath(appContext())));
 		}
 	}
 
@@ -191,7 +189,7 @@ public:
 		reloadMachineItem();
 		item.emplace_back(&skipFdcAccess);
 		item.emplace_back(&msxMachine);
-		machineFilePath.setName(makeMachinePathMenuEntryStr().data());
+		machineFilePath.setName(makeMachinePathMenuEntryStr(EmuSystem::firmwarePath()));
 		item.emplace_back(&machineFilePath);
 	}
 };
@@ -221,7 +219,7 @@ public:
 
 	void updateHDText(int slot)
 	{
-		hdSlot[slot].setName(fmt::format("{} {}", hdSlotPrefix[slot], hdName[slot].data()).data());
+		hdSlot[slot].setName(fmt::format("{} {}", hdSlotPrefix[slot], hdName[slot]));
 	}
 
 	void updateHDStatusFromCartSlot(int cartSlot)
@@ -236,7 +234,7 @@ public:
 
 	void onHDMediaChange(const char *name, int slot)
 	{
-		string_copy(hdName[slot], name);
+		hdName[slot] = name;
 		updateHDText(slot);
 		hdSlot[slot].compile(renderer(), projP);
 	}
@@ -245,13 +243,13 @@ public:
 	{
 		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
-			[this, slot, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
+			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view name, Input::Event e)
 			{
 				auto id = diskGetHdDriveId(slot / 2, slot % 2);
 				logMsg("inserting hard drive id %d", id);
-				if(insertDisk(app(), name, id))
+				if(insertDisk(app(), name.data(), id))
 				{
-					onHDMediaChange(name, slot);
+					onHDMediaChange(name.data(), slot);
 					if(dismissPreviousView)
 						dismissPrevious();
 				}
@@ -264,7 +262,7 @@ public:
 	{
 		if(!item.active())
 			return;
-		if(strlen(hdName[slot].data()))
+		if(hdName[slot].size())
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>("Hard Drive", std::size(insertEjectDiskMenuStr));
 			multiChoiceView->appendItem(insertEjectDiskMenuStr[0],
@@ -299,12 +297,12 @@ public:
 
 	void updateROMText(int slot)
 	{
-		romSlot[slot].setName(fmt::format("{} {}", romSlotPrefix[slot], cartName[slot].data()).data());
+		romSlot[slot].setName(fmt::format("{} {}", romSlotPrefix[slot], cartName[slot]));
 	}
 
 	void onROMMediaChange(const char *name, int slot)
 	{
-		string_copy(cartName[slot], name);
+		cartName[slot] = name;
 		updateROMText(slot);
 		romSlot[slot].compile(renderer(), projP);
 		updateHDStatusFromCartSlot(slot);
@@ -314,11 +312,11 @@ public:
 	{
 		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM),
-			[this, slot, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
+			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view name, Input::Event e)
 			{
-				if(insertROM(app(), name, slot))
+				if(insertROM(app(), name.data(), slot))
 				{
-					onROMMediaChange(name, slot);
+					onROMMediaChange(name.data(), slot);
 					if(dismissPreviousView)
 						dismissPrevious();
 				}
@@ -381,12 +379,12 @@ public:
 
 	void updateDiskText(int slot)
 	{
-		diskSlot[slot].setName(fmt::format("{} {}", diskSlotPrefix[slot], diskName[slot].data()).data());
+		diskSlot[slot].setName(fmt::format("{} {}", diskSlotPrefix[slot], diskName[slot]));
 	}
 
 	void onDiskMediaChange(const char *name, int slot)
 	{
-		string_copy(diskName[slot], name);
+		diskName[slot] = name;
 		updateDiskText(slot);
 		diskSlot[slot].compile(renderer(), projP);
 	}
@@ -395,12 +393,12 @@ public:
 	{
 		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(),
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
-			[this, slot, dismissPreviousView](FSPicker &picker, const char* name, Input::Event e)
+			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view name, Input::Event e)
 			{
 				logMsg("inserting disk in slot %d", slot);
-				if(insertDisk(app(), name, slot))
+				if(insertDisk(app(), name.data(), slot))
 				{
-					onDiskMediaChange(name, slot);
+					onDiskMediaChange(name.data(), slot);
 					if(dismissPreviousView)
 						dismissPrevious();
 				}
@@ -411,7 +409,7 @@ public:
 
 	void onSelectDisk(Input::Event e, uint8_t slot)
 	{
-		if(strlen(diskName[slot].data()))
+		if(diskName[slot].size())
 		{
 			auto multiChoiceView = makeViewWithName<TextTableView>("Disk Drive", std::size(insertEjectDiskMenuStr));
 			multiChoiceView->appendItem(insertEjectDiskMenuStr[0],
@@ -533,10 +531,10 @@ private:
 	void reloadMachineItem()
 	{
 		msxMachineItem.clear();
-		msxMachineName = machinesNames(appContext(), machineBasePath.data());
+		msxMachineName = machinesNames(appContext(), machineBasePath(appContext()));
 		for(const auto &name : msxMachineName)
 		{
-			msxMachineItem.emplace_back(name.data(), &defaultFace(),
+			msxMachineItem.emplace_back(name, &defaultFace(),
 			[this, name = name.data()](Input::Event e)
 			{
 				auto ynAlertView = makeView<YesNoAlertView>("Change machine type and reset emulation?");
@@ -553,8 +551,8 @@ private:
 							return;
 						}
 						auto machineName = currentMachineName();
-						strcpy(optionMachineName.val, machineName);
-						msxMachine.setSelected(machineIndex(msxMachineName, FS::makeFileString(machineName)));
+						optionSessionMachineNameStr = machineName;
+						msxMachine.setSelected(machineIndex(msxMachineName, machineName));
 						EmuSystem::sessionOptionSet();
 						dismissPrevious();
 					});
@@ -562,7 +560,7 @@ private:
 				return false;
 			});
 		}
-		msxMachine.setSelected(machineIndex(msxMachineName, FS::makeFileString(currentMachineName())));
+		msxMachine.setSelected(machineIndex(msxMachineName, currentMachineName()));
 	}
 
 	void reloadItems()
@@ -584,7 +582,7 @@ public:
 	{
 		EmuSystemActionsView::onShow();
 		msxIOControl.setActive(EmuSystem::gameIsRunning() && activeBoardType == BOARD_MSX);
-		msxMachine.setSelected(machineIndex(msxMachineName, FS::makeFileString(currentMachineName())));
+		msxMachine.setSelected(machineIndex(msxMachineName, currentMachineName()));
 	}
 };
 

@@ -17,6 +17,7 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/util/string/CStringView.hh>
+#include <imagine/util/string/StaticString.hh>
 #include <algorithm>
 #include <ctime>
 #include <array>
@@ -29,10 +30,10 @@ namespace FS
 {
 
 static constexpr uint32_t FILE_STRING_SIZE = std::max(512, NAME_MAX + 1);
-using FileStringImpl = std::array<char, FILE_STRING_SIZE>;
+using FileStringImpl = IG::StaticString<FILE_STRING_SIZE>;
 
 static constexpr uint32_t PATH_STRING_SIZE = std::max(1024, PATH_MAX);
-using PathStringImpl = std::array<char, PATH_STRING_SIZE>;
+using PathStringImpl = IG::StaticString<PATH_STRING_SIZE>;
 
 using FileTimeTypeImpl = std::time_t;
 
@@ -49,7 +50,7 @@ public:
 	DirectoryEntryImpl(IG::CStringView path);
 	bool readNextDir();
 	bool hasEntry() const;
-	const char *name() const;
+	std::string_view name() const;
 	file_type type() const;
 	file_type symlink_type() const;
 	PathStringImpl path() const;

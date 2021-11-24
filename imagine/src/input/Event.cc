@@ -20,7 +20,7 @@
 namespace Input
 {
 
-const char *Event::mapName() const
+std::string_view Event::mapName() const
 {
 	return mapName(map());
 }
@@ -469,7 +469,7 @@ bool Event::isSystemFunction() const
 	#endif
 }
 
-const char *Event::actionToStr(Action action)
+std::string_view Event::actionToStr(Action action)
 {
 	switch(action)
 	{

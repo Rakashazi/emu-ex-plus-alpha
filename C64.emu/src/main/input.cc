@@ -482,96 +482,97 @@ void EmuSystem::onVKeyboardShown(VControllerKeyboard &kb, bool shown)
 	}
 }
 
-signed long kbd_arch_keyname_to_keynum(char *keyname)
+signed long kbd_arch_keyname_to_keynum(char *keynamePtr)
 {
 	//logMsg("kbd_arch_keyname_to_keynum(%s)", keyname);
-	if(string_equal(keyname, "F1")) { return c64KeyF1; }
-	else if(string_equal(keyname, "F2")) { return c64KeyF2; }
-	else if(string_equal(keyname, "F3")) { return c64KeyF3; }
-	else if(string_equal(keyname, "F4")) { return c64KeyF4; }
-	else if(string_equal(keyname, "F5")) { return c64KeyF5; }
-	else if(string_equal(keyname, "F6")) { return c64KeyF6; }
-	else if(string_equal(keyname, "F7")) { return c64KeyF7; }
-	else if(string_equal(keyname, "F8")) { return c64KeyF8; }
-	else if(string_equal(keyname, "underscore")) { return c64KeyLeftArrow; }
-	else if(string_equal(keyname, "1")) { return c64Key1; }
-	else if(string_equal(keyname, "2")) { return c64Key2; }
-	else if(string_equal(keyname, "3")) { return c64Key3; }
-	else if(string_equal(keyname, "4")) { return c64Key4; }
-	else if(string_equal(keyname, "5")) { return c64Key5; }
-	else if(string_equal(keyname, "6")) { return c64Key6; }
-	else if(string_equal(keyname, "7")) { return c64Key7; }
-	else if(string_equal(keyname, "8")) { return c64Key8; }
-	else if(string_equal(keyname, "9")) { return c64Key9; }
-	else if(string_equal(keyname, "0")) { return c64Key0; }
-	else if(string_equal(keyname, "plus")) { return c64KeyPlus; }
-	else if(string_equal(keyname, "minus")) { return c64KeyMinus; }
-	else if(string_equal(keyname, "sterling")) { return c64KeyPound; }
-	else if(string_equal(keyname, "Home")) { return c64KeyClrHome; }
-	else if(string_equal(keyname, "BackSpace")) { return c64KeyInstDel; }
-	else if(string_equal(keyname, "Control_L")) { return c64KeyCtrl; }
-	else if(string_equal(keyname, "q")) { return c64KeyQ; }
-	else if(string_equal(keyname, "w")) { return c64KeyW; }
-	else if(string_equal(keyname, "e")) { return c64KeyE; }
-	else if(string_equal(keyname, "r")) { return c64KeyR; }
-	else if(string_equal(keyname, "t")) { return c64KeyT; }
-	else if(string_equal(keyname, "y")) { return c64KeyY; }
-	else if(string_equal(keyname, "u")) { return c64KeyU; }
-	else if(string_equal(keyname, "i")) { return c64KeyI; }
-	else if(string_equal(keyname, "o")) { return c64KeyO; }
-	else if(string_equal(keyname, "p")) { return c64KeyP; }
-	else if(string_equal(keyname, "at")) { return c64KeyAt; }
-	else if(string_equal(keyname, "asterisk")) { return c64KeyAsterisk; }
-	else if(string_equal(keyname, "Page_Down")) { return c64KeyUpArrow; }
-	else if(string_equal(keyname, "Escape")) { return c64KeyRunStop; }
-	else if(string_equal(keyname, "a")) { return c64KeyA; }
-	else if(string_equal(keyname, "s")) { return c64KeyS; }
-	else if(string_equal(keyname, "d")) { return c64KeyD; }
-	else if(string_equal(keyname, "f")) { return c64KeyF; }
-	else if(string_equal(keyname, "g")) { return c64KeyG; }
-	else if(string_equal(keyname, "h")) { return c64KeyH; }
-	else if(string_equal(keyname, "j")) { return c64KeyJ; }
-	else if(string_equal(keyname, "k")) { return c64KeyK; }
-	else if(string_equal(keyname, "l")) { return c64KeyL; }
-	else if(string_equal(keyname, "colon")) { return c64KeyColon; }
-	else if(string_equal(keyname, "semicolon")) { return c64KeySemiColon; }
-	else if(string_equal(keyname, "equal")) { return c64KeyEquals; }
-	else if(string_equal(keyname, "Return")) { return c64KeyReturn; }
-	else if(string_equal(keyname, "Tab")) { return c64KeyCommodore; }
-	else if(string_equal(keyname, "Shift_L")) { return c64KeyLeftShift; }
-	else if(string_equal(keyname, "z")) { return c64KeyZ; }
-	else if(string_equal(keyname, "x")) { return c64KeyX; }
-	else if(string_equal(keyname, "c")) { return c64KeyC; }
-	else if(string_equal(keyname, "v")) { return c64KeyV; }
-	else if(string_equal(keyname, "b")) { return c64KeyB; }
-	else if(string_equal(keyname, "n")) { return c64KeyN; }
-	else if(string_equal(keyname, "m")) { return c64KeyM; }
-	else if(string_equal(keyname, "comma")) { return c64KeyComma; }
-	else if(string_equal(keyname, "period")) { return c64KeyPeriod; }
-	else if(string_equal(keyname, "slash")) { return c64KeySlash; }
-	else if(string_equal(keyname, "Shift_R")) { return c64KeyRightShift; }
-	else if(string_equal(keyname, "Up")) { return c64KeyKbUp; }
-	else if(string_equal(keyname, "Right")) { return c64KeyKbRight; }
-	else if(string_equal(keyname, "Down")) { return c64KeyKbDown; }
-	else if(string_equal(keyname, "Left")) { return c64KeyKbLeft; }
-	else if(string_equal(keyname, "space")) { return c64KeySpace; }
-	else if(string_equal(keyname, "exclam")) { return c64KeyExclam; }
-	else if(string_equal(keyname, "quotedbl")) { return c64KeyQuoteDbl; }
-	else if(string_equal(keyname, "numbersign")) { return c64KeyNumberSign; }
-	else if(string_equal(keyname, "dollar")) { return c64KeyDollar; }
-	else if(string_equal(keyname, "percent")) { return c64KeyPercent; }
-	else if(string_equal(keyname, "ampersand")) { return c64KeyAmpersand; }
-	else if(string_equal(keyname, "parenleft")) { return c64KeyParenLeft; }
-	else if(string_equal(keyname, "parenright")) { return c64KeyParenRight; }
-	else if(string_equal(keyname, "bracketleft")) { return c64KeyBracketLeft; }
-	else if(string_equal(keyname, "bracketright")) { return c64KeyBracketRight; }
-	else if(string_equal(keyname, "less")) { return c64KeyLess; }
-	else if(string_equal(keyname, "greater")) { return c64KeyGreater; }
-	else if(string_equal(keyname, "question")) { return c64KeyQuestion; }
-	else if(string_equal(keyname, "apostrophe")) { return c64KeyApostrophe; }
-	else if(string_equal(keyname, "Caps_Lock")) { return c64KeyShiftLock; }
-	else if(string_equal(keyname, "bar")) { return shiftedPound; }
-	//logWarn("unknown keyname:%s", keyname);
+	std::string_view keyname{keynamePtr};
+	if(keyname == "F1") { return c64KeyF1; }
+	else if(keyname == "F2") { return c64KeyF2; }
+	else if(keyname == "F3") { return c64KeyF3; }
+	else if(keyname == "F4") { return c64KeyF4; }
+	else if(keyname == "F5") { return c64KeyF5; }
+	else if(keyname == "F6") { return c64KeyF6; }
+	else if(keyname == "F7") { return c64KeyF7; }
+	else if(keyname == "F8") { return c64KeyF8; }
+	else if(keyname == "underscore") { return c64KeyLeftArrow; }
+	else if(keyname == "1") { return c64Key1; }
+	else if(keyname == "2") { return c64Key2; }
+	else if(keyname == "3") { return c64Key3; }
+	else if(keyname == "4") { return c64Key4; }
+	else if(keyname == "5") { return c64Key5; }
+	else if(keyname == "6") { return c64Key6; }
+	else if(keyname == "7") { return c64Key7; }
+	else if(keyname == "8") { return c64Key8; }
+	else if(keyname == "9") { return c64Key9; }
+	else if(keyname == "0") { return c64Key0; }
+	else if(keyname == "plus") { return c64KeyPlus; }
+	else if(keyname == "minus") { return c64KeyMinus; }
+	else if(keyname == "sterling") { return c64KeyPound; }
+	else if(keyname == "Home") { return c64KeyClrHome; }
+	else if(keyname == "BackSpace") { return c64KeyInstDel; }
+	else if(keyname == "Control_L") { return c64KeyCtrl; }
+	else if(keyname == "q") { return c64KeyQ; }
+	else if(keyname == "w") { return c64KeyW; }
+	else if(keyname == "e") { return c64KeyE; }
+	else if(keyname == "r") { return c64KeyR; }
+	else if(keyname == "t") { return c64KeyT; }
+	else if(keyname == "y") { return c64KeyY; }
+	else if(keyname == "u") { return c64KeyU; }
+	else if(keyname == "i") { return c64KeyI; }
+	else if(keyname == "o") { return c64KeyO; }
+	else if(keyname == "p") { return c64KeyP; }
+	else if(keyname == "at") { return c64KeyAt; }
+	else if(keyname == "asterisk") { return c64KeyAsterisk; }
+	else if(keyname == "Page_Down") { return c64KeyUpArrow; }
+	else if(keyname == "Escape") { return c64KeyRunStop; }
+	else if(keyname == "a") { return c64KeyA; }
+	else if(keyname == "s") { return c64KeyS; }
+	else if(keyname == "d") { return c64KeyD; }
+	else if(keyname == "f") { return c64KeyF; }
+	else if(keyname == "g") { return c64KeyG; }
+	else if(keyname == "h") { return c64KeyH; }
+	else if(keyname == "j") { return c64KeyJ; }
+	else if(keyname == "k") { return c64KeyK; }
+	else if(keyname == "l") { return c64KeyL; }
+	else if(keyname == "colon") { return c64KeyColon; }
+	else if(keyname == "semicolon") { return c64KeySemiColon; }
+	else if(keyname == "equal") { return c64KeyEquals; }
+	else if(keyname == "Return") { return c64KeyReturn; }
+	else if(keyname == "Tab") { return c64KeyCommodore; }
+	else if(keyname == "Shift_L") { return c64KeyLeftShift; }
+	else if(keyname == "z") { return c64KeyZ; }
+	else if(keyname == "x") { return c64KeyX; }
+	else if(keyname == "c") { return c64KeyC; }
+	else if(keyname == "v") { return c64KeyV; }
+	else if(keyname == "b") { return c64KeyB; }
+	else if(keyname == "n") { return c64KeyN; }
+	else if(keyname == "m") { return c64KeyM; }
+	else if(keyname == "comma") { return c64KeyComma; }
+	else if(keyname == "period") { return c64KeyPeriod; }
+	else if(keyname == "slash") { return c64KeySlash; }
+	else if(keyname == "Shift_R") { return c64KeyRightShift; }
+	else if(keyname == "Up") { return c64KeyKbUp; }
+	else if(keyname == "Right") { return c64KeyKbRight; }
+	else if(keyname == "Down") { return c64KeyKbDown; }
+	else if(keyname == "Left") { return c64KeyKbLeft; }
+	else if(keyname == "space") { return c64KeySpace; }
+	else if(keyname == "exclam") { return c64KeyExclam; }
+	else if(keyname == "quotedbl") { return c64KeyQuoteDbl; }
+	else if(keyname == "numbersign") { return c64KeyNumberSign; }
+	else if(keyname == "dollar") { return c64KeyDollar; }
+	else if(keyname == "percent") { return c64KeyPercent; }
+	else if(keyname == "ampersand") { return c64KeyAmpersand; }
+	else if(keyname == "parenleft") { return c64KeyParenLeft; }
+	else if(keyname == "parenright") { return c64KeyParenRight; }
+	else if(keyname == "bracketleft") { return c64KeyBracketLeft; }
+	else if(keyname == "bracketright") { return c64KeyBracketRight; }
+	else if(keyname == "less") { return c64KeyLess; }
+	else if(keyname == "greater") { return c64KeyGreater; }
+	else if(keyname == "question") { return c64KeyQuestion; }
+	else if(keyname == "apostrophe") { return c64KeyApostrophe; }
+	else if(keyname == "Caps_Lock") { return c64KeyShiftLock; }
+	else if(keyname == "bar") { return shiftedPound; }
+	//logWarn("unknown keyname:%s", keyname.data());
 	return 0;
 }
 

@@ -92,18 +92,18 @@ public:
 	void prepareDraw(Gfx::Renderer &r);
 	void draw(Gfx::RendererCommands &cmds, Gfx::ClipRect bounds, Gfx::GC xIndent);
 	void finish(Gfx::RendererTask &task, IG::FrameTime frameTime);
-	void setCPUFreqText(const char *str);
-	void setCPUUseText(const char *str);
+	void setCPUFreqText(std::string_view str);
+	void setCPUUseText(std::string_view str);
 
 protected:
 	Gfx::Text cpuStatsText;
-	Gfx::GCRect cpuStatsRect{};
-	std::array<char, 256> cpuFreqStr{};
-	std::array<char, 64> cpuUseStr{};
 	Gfx::Text frameStatsText;
+	std::string cpuFreqStr{};
+	std::string cpuUseStr{};
+	std::string skippedFrameStr{};
+	std::string statsStr{};
+	Gfx::GCRect cpuStatsRect{};
 	Gfx::GCRect frameStatsRect{};
-	std::array<char, 256> skippedFrameStr{};
-	std::array<char, 256> statsStr{};
 	Gfx::ProjectionPlane projP;
 	unsigned lostFrameProcessTime = 0;
 

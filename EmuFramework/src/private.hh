@@ -46,11 +46,11 @@ class EmuAudio;
 const char *appViewTitle();
 bool hasGooglePlayStoreFeatures();
 void runBenchmarkOneShot(EmuApp &, EmuVideo &);
-void onSelectFileFromPicker(EmuApp &, GenericIO, IG::CStringView path, IG::CStringView name, bool pathIsUri,
+void onSelectFileFromPicker(EmuApp &, GenericIO, IG::CStringView path, bool pathIsUri,
 	Input::Event, EmuSystemCreateParams, ViewAttachParams);
 void launchSystem(EmuApp &, bool tryAutoState);
 Gfx::Viewport makeViewport(const Base::Window &win);
 Gfx::Projection updateProjection(Gfx::Viewport viewport);
 uint8_t currentFrameInterval();
 IG::PixelFormatID optionImageEffectPixelFormatValue();
-std::array<char, 64> formatDateAndTime(std::tm);
+std::string formatDateAndTime(std::tm);

@@ -18,7 +18,7 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/util/2DOrigin.h>
-#include <imagine/util/string.h>
+#include <imagine/util/string/utf16.hh>
 #include <vector>
 #include <limits>
 
@@ -58,6 +58,7 @@ public:
 	unsigned stringSize() const;
 	bool isVisible() const;
 	std::u16string_view stringView() const;
+	std::u16string string() const;
 
 protected:
 	struct LineSpan

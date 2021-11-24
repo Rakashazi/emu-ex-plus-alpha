@@ -18,7 +18,6 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/base/Window.hh>
-#include <imagine/util/string.h>
 #include <imagine/util/math/space.hh>
 #include <imagine/logger/logger.h>
 
@@ -281,9 +280,9 @@ void View::setName(IG::utf16String name)
 	nameStr = std::move(name);
 }
 
-std::u16string_view View::nameStringView(const BaseTextMenuItem &item)
+std::u16string View::nameString(const BaseTextMenuItem &item)
 {
-	return item.text().stringView();
+	return item.text().string();
 }
 
 void View::show()

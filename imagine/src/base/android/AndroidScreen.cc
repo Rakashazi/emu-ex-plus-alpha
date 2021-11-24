@@ -136,9 +136,9 @@ AndroidScreen::AndroidScreen(ApplicationContext ctx, InitParams params):
 	{
 		// corrections for devices known to report wrong refresh rates
 		auto buildDevice = ctx.androidBuildDevice();
-		if(Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(buildDevice.data(), "R800at"))
+		if(Config::MACHINE_IS_GENERIC_ARMV7 && buildDevice == "R800at")
 			refreshRate_ = 61.5;
-		else if(Config::MACHINE_IS_GENERIC_ARMV7 && string_equal(buildDevice.data(), "sholes"))
+		else if(Config::MACHINE_IS_GENERIC_ARMV7 && buildDevice == "sholes")
 			refreshRate_ = 60;
 		else
 			reliableRefreshRate = false;

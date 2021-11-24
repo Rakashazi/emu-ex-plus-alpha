@@ -22,11 +22,8 @@ extern SByte1Option optionInputPort2;
 extern Byte1Option optionRegion;
 #ifndef NO_SCD
 extern FS::PathString cdBiosUSAPath, cdBiosJpnPath, cdBiosEurPath;
-extern PathOption optionCDBiosUsaPath;
-extern PathOption optionCDBiosJpnPath;
-extern PathOption optionCDBiosEurPath;
 #endif
 extern Byte1Option optionVideoSystem;
 
 void setupMDInput(EmuApp &);
-bool hasMDExtension(IG::CStringView name);
+bool hasMDExtension(std::string_view name);

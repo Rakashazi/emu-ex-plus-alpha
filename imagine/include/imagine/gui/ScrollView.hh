@@ -19,7 +19,7 @@
 #include <imagine/input/DragTracker.hh>
 #include <imagine/input/VelocityTracker.hh>
 #include <imagine/util/rectangle2.h>
-#include <imagine/util/string.h>
+#include <imagine/util/string/utf16.hh>
 #include <imagine/gui/View.hh>
 
 namespace Gfx

@@ -43,7 +43,6 @@
 #include <imagine/font/Font.hh>
 #include <imagine/util/typeTraits.hh>
 #include <imagine/util/container/ArrayList.hh>
-#include <imagine/util/string.h>
 #include <cstring>
 #include <optional>
 #include <span>
@@ -57,7 +56,7 @@ struct RecentContentInfo
 
 	constexpr bool operator ==(RecentContentInfo const& rhs) const
 	{
-		return string_equal(path, rhs.path);
+		return path == rhs.path;
 	}
 };
 
@@ -101,9 +100,9 @@ public:
 	EmuApp(Base::ApplicationInitParams, Base::ApplicationContext &);
 
 	bool willCreateSystem(ViewAttachParams attach, Input::Event e);
-	void createSystemWithMedia(GenericIO, IG::CStringView path, IG::CStringView name,
+	void createSystemWithMedia(GenericIO, IG::CStringView path,
 		Input::Event, EmuSystemCreateParams, ViewAttachParams, CreateSystemCompleteDelegate);
-	void createSystemWithMedia(GenericIO, IG::CStringView path, IG::CStringView name,
+	void createSystemWithMedia(GenericIO, IG::CStringView path,
 		bool pathIsUri, Input::Event, EmuSystemCreateParams, ViewAttachParams, CreateSystemCompleteDelegate);
 	void exitGame(bool allowAutosaveState = true);
 	void reloadGame(EmuSystemCreateParams params = {});
@@ -125,7 +124,7 @@ public:
 	void showEmuation();
 	void launchSystemWithResumePrompt(Input::Event e);
 	void launchSystem(Input::Event e, bool tryAutoState);
-	static bool hasArchiveExtension(IG::CStringView name);
+	static bool hasArchiveExtension(std::string_view name);
 	void setOnMainMenuItemOptionChanged(OnMainMenuOptionChanged func);
 	void dispatchOnMainMenuItemOptionChanged();
 	void unpostMessage();
@@ -139,7 +138,7 @@ public:
 	void setDefaultVControlsButtonSpacing(int spacing);
 	void setDefaultVControlsButtonStagger(int stagger);
 	FS::PathString mediaSearchPath();
-	void setMediaSearchPath(std::optional<FS::PathString>);
+	void setMediaSearchPath(FS::PathString);
 	FS::PathString firmwareSearchPath();
 	void setFirmwareSearchPath(IG::CStringView path);
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
@@ -189,7 +188,7 @@ public:
 	ViewAttachParams attachParams();
 	void requestFilePickerForLoading(View &parentView, ViewAttachParams, Input::Event,
 		bool singleDir = false, EmuSystemCreateParams params = {});
-	void addRecentContent(IG::CStringView path, IG::CStringView name);
+	void addRecentContent(std::string_view path, std::string_view name);
 	void addCurrentContentToRecent();
 	RecentContentList &recentContent() { return recentContentList; };
 	void writeRecentContent(IO &);

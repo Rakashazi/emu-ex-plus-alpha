@@ -180,12 +180,7 @@ Byte1Option optionTextureBufferMode{CFGKEY_TEXTURE_BUFFER_MODE, 0};
 Byte1Option optionSustainedPerformanceMode{CFGKEY_SUSTAINED_PERFORMANCE_MODE, 0};
 #endif
 
-PathOption optionSavePath(CFGKEY_SAVE_PATH, EmuSystem::savePath_, "");
-Byte1Option optionCheckSavePathWriteAccess{CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS, 1};
-
 Byte1Option optionShowBundledGames(CFGKEY_SHOW_BUNDLED_GAMES, 1);
-
-[[gnu::weak]] PathOption optionFirmwarePath(0, nullptr, 0, nullptr);
 
 void EmuApp::initOptions(Base::ApplicationContext ctx)
 {
@@ -223,7 +218,7 @@ void EmuApp::initOptions(Base::ApplicationContext ctx)
 	{
 		optionShowOnSecondScreen.isConst = true;
 	}
-	else if(FS::exists(IG::formatToPathString("{}/emuex_disable_presentation_displays", ctx.sharedStoragePath().data())))
+	else if(FS::exists(FS::pathString(ctx.sharedStoragePath(), "emuex_disable_presentation_displays")))
 	{
 		logMsg("force-disabling presentation display support");
 		optionShowOnSecondScreen.initDefault(false);
@@ -299,13 +294,13 @@ void EmuApp::writeRecentContent(IO &io)
 	for(const auto &e : recentContentList)
 	{
 		strSizes += 2;
-		strSizes += strlen(e.path.data());
+		strSizes += e.path.size();
 	}
 	logMsg("writing recent list");
 	writeOptionValueHeader(io, CFGKEY_RECENT_GAMES, strSizes);
 	for(const auto &e : recentContentList)
 	{
-		unsigned len = strlen(e.path.data());
+		auto len = e.path.size();
 		io.write((uint16_t)len);
 		io.write(e.path.data(), len);
 	}
@@ -331,8 +326,8 @@ void EmuApp::readRecentContent(Base::ApplicationContext ctx, IO &io, unsigned re
 			break;
 		}
 
-		RecentContentInfo info{};
-		auto bytesRead = io.read(info.path.data(), len);
+		FS::PathString path{};
+		auto bytesRead = io.readSized(path, len);
 		if(bytesRead == -1)
 		{
 			logErr("error reading string option");
@@ -341,58 +336,15 @@ void EmuApp::readRecentContent(Base::ApplicationContext ctx, IO &io, unsigned re
 		if(!bytesRead)
 			continue; // don't add empty paths
 		readSize -= len;
-		info.name = FS::makeFileString(EmuSystem::contentDisplayNameForPath(ctx, info.path));
-		//logMsg("adding game to recent list: %s, name: %s", info.path, info.name);
-		recentContentList.emplace_back(info);
+		RecentContentInfo info{path, FS::FileString{EmuSystem::contentDisplayNameForPath(ctx, path)}};
+		const auto &added = recentContentList.emplace_back(info);
+		logMsg("added game to recent list:%s, name:%s", added.path.data(), added.name.data());
 	}
 
 	if(readSize)
 	{
 		logMsg("skipping excess %d bytes", readSize);
 	}
-}
-
-bool PathOption::writeToIO(IO &io)
-{
-	unsigned len = strlen(val);
-	if(len > strSize-1)
-	{
-		logErr("option string too long to write");
-		return 0;
-	}
-	else if(!len)
-	{
-		logMsg("skipping 0 length option string");
-		return 0;
-	}
-	io.write((uint16_t)(2 + len));
-	io.write((uint16_t)KEY);
-	io.write(val, len);
-	return true;
-}
-
-bool PathOption::readFromIO(IO &io, unsigned readSize)
-{
-	if(readSize > strSize-1)
-	{
-		logMsg("skipping %d byte string option value, max is %d", readSize, strSize-1);
-		return 0;
-	}
-
-	auto bytesRead = io.read(val, readSize);
-	if(bytesRead == -1)
-	{
-		logErr("error reading string option");
-		return 0;
-	}
-	val[bytesRead] = 0;
-	logMsg("read path option %s", val);
-	return 1;
-}
-
-unsigned PathOption::ioSize() const
-{
-	return sizeof(KEY) + strlen(val);
 }
 
 uint8_t currentFrameInterval()

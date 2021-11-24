@@ -20,6 +20,7 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/input/config.hh>
+#include <string>
 
 class InputManagerView;
 class InputDeviceConfig;
@@ -41,7 +42,6 @@ private:
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	IG::WindowRect unbindB{}, cancelB{};
 	#endif
-	std::array<char, 24> actionStr{};
 	Gfx::Text text{};
 	#ifdef CONFIG_INPUT_POINTING_DEVICES
 	Gfx::Text unbind{}, cancel{};
@@ -50,6 +50,7 @@ private:
 	const Input::Device &dev;
 	const Input::Device *savedDev{};
 	InputManagerView &rootIMView;
+	std::string actionStr{};
 
 	void initPointerUI();
 	bool pointerUIIsInit();
@@ -67,14 +68,13 @@ private:
 
 	InputManagerView &rootIMView;
 	TextMenuItem reset{};
-	using KeyNameStr = std::array<char, 20>;
 	std::unique_ptr<BtnConfigMenuItem[]> btn{};
 	const KeyCategory *cat{};
 	InputDeviceConfig *devConf{};
 	Input::Time leftKeyPushTime{};
 
 	void onSet(Input::Key mapKey, int keyToSet);
-	static KeyNameStr makeKeyNameStr(Input::Key key, const char *name);
+	static std::string makeKeyNameStr(Input::Key key, std::string_view name);
 
 public:
 	ButtonConfigView(ViewAttachParams attach, InputManagerView &rootIMView, const KeyCategory *cat, InputDeviceConfig &devConf);

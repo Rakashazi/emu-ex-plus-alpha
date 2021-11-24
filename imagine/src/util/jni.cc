@@ -51,64 +51,26 @@ jmethodID getJNIMethodID(JNIEnv *env, jclass cls, const char *fName, const char 
 }
 
 UniqueGlobalRef::UniqueGlobalRef(JNIEnv *env_, jobject obj_):
-	env{env_}
+	obj{env_->NewGlobalRef(obj_), {env_}} {}
+
+void UniqueGlobalRef::deleteGlobalRef(JNIEnv *env, jobject obj)
 {
-	assert(obj_);
-	obj = env_->NewGlobalRef(obj_);
-	assert(obj);
+	env->DeleteGlobalRef(obj);
 }
 
-UniqueGlobalRef::UniqueGlobalRef(UniqueGlobalRef &&o)
+StringChars::StringChars(JNIEnv *env, jstring jStr):
+	str{env->GetStringUTFChars(jStr, nullptr), {env, jStr}} {}
+
+void StringChars::releaseStringChars(JNIEnv *env, jstring jStr, const char *charsPtr)
 {
-	*this = std::move(o);
+	env->ReleaseStringUTFChars(jStr, charsPtr);
 }
 
-UniqueGlobalRef &UniqueGlobalRef::operator=(UniqueGlobalRef &&o)
+void LockedLocalBitmap::deleteBitmap(JNIEnv *env, jobject bitmap, JNI::InstMethod<void()> recycle)
 {
-	reset();
-	env = o.env;
-	obj = std::exchange(o.obj, {});
-	return *this;
-}
-
-UniqueGlobalRef::~UniqueGlobalRef()
-{
-	reset();
-}
-
-void UniqueGlobalRef::reset()
-{
-	if(!obj)
-		return;
-	env->DeleteGlobalRef(std::exchange(obj, {}));
-}
-
-LockedLocalBitmap::LockedLocalBitmap(LockedLocalBitmap &&o)
-{
-	*this = std::move(o);
-}
-
-LockedLocalBitmap &LockedLocalBitmap::operator=(LockedLocalBitmap &&o)
-{
-	deinit();
-	env = o.env;
-	bitmap = std::exchange(o.bitmap, {});
-	jRecycle = o.jRecycle;
-	return *this;
-}
-
-LockedLocalBitmap::~LockedLocalBitmap()
-{
-	deinit();
-}
-
-void LockedLocalBitmap::deinit()
-{
-	if(!bitmap)
-		return;
 	AndroidBitmap_unlockPixels(env, bitmap);
-	jRecycle(env, bitmap);
-	env->DeleteLocalRef(std::exchange(bitmap, {}));
+	recycle(env, bitmap);
+	env->DeleteLocalRef(bitmap);
 }
 
 }

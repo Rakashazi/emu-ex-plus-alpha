@@ -39,7 +39,7 @@ public:
 	constexpr ArchiveEntry() {}
 	ArchiveEntry(IG::CStringView path);
 	ArchiveEntry(GenericIO io);
-	const char *name() const;
+	std::string_view name() const;
 	FS::file_type type() const;
 	size_t size() const;
 	uint32_t crc32() const;
@@ -86,7 +86,7 @@ public:
 	constexpr ArchiveIO() {}
 	ArchiveIO(ArchiveEntry entry);
 	ArchiveEntry releaseArchive();
-	const char *name();
+	std::string_view name() const;
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
 	ssize_t write(const void *buff, size_t bytes, std::error_code *ecOut) final;
 	off_t seek(off_t offset, SeekMode mode, std::error_code *ecOut) final;

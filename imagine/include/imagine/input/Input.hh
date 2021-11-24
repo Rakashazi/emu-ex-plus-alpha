@@ -19,6 +19,7 @@
 #include <imagine/util/rectangle2.h>
 #include <imagine/input/bluetoothInputDefs.hh>
 #include <imagine/input/inputDefs.hh>
+#include <string>
 
 namespace Base
 {
@@ -51,8 +52,6 @@ static constexpr bool SWAPPED_CONFIRM_KEYS_DEFAULT = Config::MACHINE_IS_PANDORA 
 class Event
 {
 public:
-	using KeyString = EventKeyString;
-
 	constexpr Event() {}
 
 	constexpr Event(Map map, Key button, uint32_t metaState, Action state, int x, int y, PointerId pointerId, Source src, Time time, const Device *device)
@@ -61,8 +60,8 @@ public:
 	constexpr Event(Map map, Key button, Key sysKey, Action state, uint32_t metaState, int repeatCount, Source src, Time time, const Device *device)
 		: device_{device}, time_{time}, metaState{metaState}, repeatCount{repeatCount}, button{button}, sysKey_{sysKey}, state_{state}, map_{map}, src{src} {}
 
-	static const char *mapName(Map map);
-	const char *mapName() const;
+	static std::string_view mapName(Map map);
+	std::string_view mapName() const;
 	static uint32_t mapNumKeys(Map map);
 	Map map() const;
 	void setMap(Map map);
@@ -108,8 +107,8 @@ public:
 	bool pointerDown(Key btnMask) const;
 	int scrolledVertical() const;
 	bool isSystemFunction() const;
-	static const char *actionToStr(Action action);
-	KeyString keyString(Base::ApplicationContext) const;
+	static std::string_view actionToStr(Action action);
+	std::string keyString(Base::ApplicationContext) const;
 	Time time() const;
 	const Device *device() const;
 	bool hasSwappedConfirmKeys() const;
@@ -131,8 +130,8 @@ protected:
 	uint8_t keyFlags{};
 };
 
-const char *sourceStr(Source);
-const char *actionStr(Action);
+std::string_view sourceStr(Source);
+std::string_view actionStr(Action);
 Map validateMap(uint8_t mapValue);
 
 struct DirectionKeys

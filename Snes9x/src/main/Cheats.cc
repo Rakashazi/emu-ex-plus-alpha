@@ -221,7 +221,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 6-digit hex", addrStr,
+			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 6-digit hex", addrStr.data(),
 				[this](EmuApp &app, auto str)
 				{
 					unsigned a = strtoul(str, nullptr, 16);
@@ -231,7 +231,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 						app.postMessage(true, "Invalid input");
 						return false;
 					}
-					string_copy(addrStr, a ? str : "0");
+					addrStr = a ? str : "0";
 					auto wasEnabled = cheatIsEnabled(idx);
 					if(wasEnabled)
 					{
@@ -256,7 +256,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr,
+			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input 2-digit hex", valueStr.data(),
 				[this](EmuApp &app, const char *str)
 				{
 					unsigned a = strtoul(str, nullptr, 16);
@@ -265,7 +265,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 						app.postMessage(true, "value must be <= FF");
 						return false;
 					}
-					string_copy(valueStr, a ? str : "0");
+					valueStr = a ? str : "0";
 					auto wasEnabled = cheatIsEnabled(idx);
 					if(wasEnabled)
 					{
@@ -294,7 +294,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", savedStr,
+			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", savedStr.data(),
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -308,11 +308,11 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 								app().postMessage(true, "value must be <= FF");
 								return true;
 							}
-							string_copy(savedStr, str);
+							savedStr = str;
 						}
 						else
 						{
-							savedStr[0] = 0;
+							savedStr.clear();
 						}
 						auto wasEnabled = cheatIsEnabled(idx);
 						if(wasEnabled)
@@ -351,7 +351,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	IG::formatTo(valueStr, "{:x}", value);
 	this->value.set2ndName(valueStr);
 	if(!saved)
-		savedStr[0] = 0;
+		savedStr.clear();
 	else
 	{
 		IG::formatTo(savedStr, "{:x}", savedVal);

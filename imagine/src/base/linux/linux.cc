@@ -54,10 +54,10 @@ void ApplicationContext::exit(int returnVal)
 	::exit(returnVal);
 }
 
-void ApplicationContext::openURL(const char *url) const
+void ApplicationContext::openURL(IG::CStringView url) const
 {
-	logMsg("opening url:%s", url);
-	auto ret = system(IG::formatToPathString("xdg-open {}", url).data());
+	logMsg("opening url:%s", url.data());
+	auto ret = system(fmt::format("xdg-open {}", url).data());
 }
 
 FS::PathString ApplicationContext::assetPath(const char *) const
@@ -70,14 +70,14 @@ FS::PathString ApplicationContext::supportPath(const char *appName) const
 	if(auto home = getenv("XDG_DATA_HOME");
 		home)
 	{
-		auto path = FS::makePathString(home, appName);
+		auto path = FS::pathString(home, appName);
 		g_mkdir_with_parents(path.data(), defaultDirMode);
 		return path;
 	}
 	else if(auto home = getenv("HOME");
 		home)
 	{
-		auto path = IG::formatToPathString("{}/.local/share/{}", home, appName);
+		auto path = FS::pathString(home, ".local/share", appName);
 		g_mkdir_with_parents(path.data(), defaultDirMode);
 		return path;
 	}
@@ -90,14 +90,14 @@ FS::PathString ApplicationContext::cachePath(const char *appName) const
 	if(auto home = getenv("XDG_CACHE_HOME");
 		home)
 	{
-		auto path = FS::makePathString(home, appName);
+		auto path = FS::pathString(home, appName);
 		g_mkdir_with_parents(path.data(), defaultDirMode);
 		return path;
 	}
 	else if(auto home = getenv("HOME");
 		home)
 	{
-		auto path = IG::formatToPathString("{}/.cache/{}", home, appName);
+		auto path = FS::pathString(home, ".cache", appName);
 		g_mkdir_with_parents(path.data(), defaultDirMode);
 		return path;
 	}
@@ -112,7 +112,7 @@ FS::PathString ApplicationContext::sharedStoragePath() const
 		// look for the first mounted SD card
 		for(auto &entry : FS::directory_iterator{"/media"})
 		{
-			if(entry.type() == FS::file_type::directory && std::strstr(entry.name(), "mmcblk"))
+			if(entry.type() == FS::file_type::directory && std::string_view{entry.name()} == "mmcblk")
 			{
 				//logMsg("storage dir: %s", entry.path().data());
 				return entry.path();
@@ -123,7 +123,7 @@ FS::PathString ApplicationContext::sharedStoragePath() const
 	if(auto home = getenv("HOME");
 		home)
 	{
-		return FS::makePathString(home);
+		return home;
 	}
 	logErr("HOME env variable not defined");
 	return {};
@@ -132,8 +132,8 @@ FS::PathString ApplicationContext::sharedStoragePath() const
 FS::PathLocation ApplicationContext::sharedStoragePathLocation() const
 {
 	auto path = sharedStoragePath();
-	auto name = Config::MACHINE_IS_PANDORA ? FS::makeFileString("Media") : FS::makeFileString("Home");
-	return {path, name, {name, strlen(path.data())}};
+	auto name = Config::MACHINE_IS_PANDORA ? "Media" : "Home";
+	return {path, name, {name, path.size()}};
 }
 
 std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const

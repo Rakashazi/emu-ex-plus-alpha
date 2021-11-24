@@ -42,7 +42,7 @@
 class AutoStateConfirmAlertView : public YesNoAlertView, public EmuAppHelper<AutoStateConfirmAlertView>
 {
 public:
-	AutoStateConfirmAlertView(ViewAttachParams attach, const char *dateStr):
+	AutoStateConfirmAlertView(ViewAttachParams attach, std::string_view dateStr):
 		YesNoAlertView
 		{
 			attach,
@@ -59,7 +59,7 @@ public:
 			}
 		}
 	{
-		setLabel(fmt::format("Auto-save state exists from:\n{}", dateStr).data());
+		setLabel(fmt::format("Auto-save state exists from:\n{}", dateStr));
 	}
 };
 
@@ -476,11 +476,11 @@ bool EmuViewController::showAutoStateConfirm(Input::Event e)
 	{
 		return false;
 	}
-	auto saveStr = EmuSystem::sprintStateFilename(-1);
+	auto saveStr = EmuSystem::statePath(-1);
 	if(FS::exists(saveStr))
 	{
 		auto dateStr = formatDateAndTime(FS::status(saveStr).lastWriteTimeLocal());
-		pushAndShowModal(std::make_unique<AutoStateConfirmAlertView>(viewStack.top().attachParams(), dateStr.data()), e, false);
+		pushAndShowModal(std::make_unique<AutoStateConfirmAlertView>(viewStack.top().attachParams(), dateStr), e, false);
 		return true;
 	}
 	return false;
@@ -952,15 +952,15 @@ void EmuViewController::onScreenChange(Base::ApplicationContext ctx, Base::Scree
 	}
 }
 
-void EmuViewController::handleOpenFileCommand(const char *path)
+void EmuViewController::handleOpenFileCommand(IG::CStringView path)
 {
 	auto type = FS::status(path).type();
 	if(type == FS::file_type::directory)
 	{
-		logMsg("changing to dir %s from external command", path);
+		logMsg("changing to dir %s from external command", path.data());
 		showUI(false);
 		popToRoot();
-		appPtr->setMediaSearchPath(FS::makePathString(path));
+		appPtr->setMediaSearchPath(path.data());
 		pushAndShow(
 			EmuFilePicker::makeForLoading(viewStack.top().attachParams(), appContext().defaultInputEvent()),
 			appContext().defaultInputEvent(),
@@ -972,10 +972,10 @@ void EmuViewController::handleOpenFileCommand(const char *path)
 		logMsg("unrecognized file type");
 		return;
 	}
-	logMsg("opening file %s from external command", path);
+	logMsg("opening file %s from external command", path.data());
 	showUI();
 	popToRoot();
-	onSelectFileFromPicker(*appPtr, {}, path, "", false, Input::Event{}, {}, viewStack.top().attachParams());
+	onSelectFileFromPicker(*appPtr, {}, path, false, Input::Event{}, {}, viewStack.top().attachParams());
 }
 
 void EmuViewController::onFocusChange(bool in)

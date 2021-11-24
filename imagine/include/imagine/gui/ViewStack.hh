@@ -73,10 +73,10 @@ public:
 	View &viewAtIdx(int idx) const;
 	int viewIdx(View &v) const;
 	int viewIdx(std::u16string_view name) const;
-	int viewIdx(const char *name) const;
+	int viewIdx(std::string_view name) const;
 	bool contains(View &v) const;
 	bool contains(std::u16string_view name) const;
-	bool contains(const char *name) const;
+	bool contains(std::string_view name) const;
 	void dismissView(View &v, bool refreshLayout = true) override;
 	void dismissView(int idx, bool refreshLayout = true) override;
 	void showNavView(bool show);

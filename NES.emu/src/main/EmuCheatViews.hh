@@ -34,7 +34,10 @@ private:
 	DualTextMenuItem addr{}, value{}, comp{}, ggCode{};
 	unsigned idx = 0;
 	int type = 0;
-	char addrStr[5]{}, valueStr[3]{}, compStr[3]{}, ggCodeStr[9]{};
+	IG::StaticString<4> addrStr{};
+	IG::StaticString<2> valueStr{};
+	IG::StaticString<2> compStr{};
+	IG::StaticString<8> ggCodeStr{};
 
 	void syncCheat(const char *newName = {});
 	const char *cheatNameString() const final;

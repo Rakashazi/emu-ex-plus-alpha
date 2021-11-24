@@ -21,6 +21,7 @@
 #include "internal.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 
 extern "C"
 {
@@ -45,16 +46,14 @@ PerPad_struct *pad[2];
 // from sh2_dynarec.c
 #define SH2CORE_DYNAREC 2
 
-static bool hasCDExtension(IG::CStringView name)
+static bool hasCDExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "cue") ||
-			string_hasDotExtension(name, "iso") ||
-			string_hasDotExtension(name, "bin");
+	return IG::stringEndsWithAny(name, ".cue", ".iso", ".bin");
 }
 
-bool hasBIOSExtension(IG::CStringView name)
+bool hasBIOSExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "bin");
+	return name.ends_with(".bin");
 }
 
 CLINK void DisplayMessage(const char* str) {}
@@ -270,9 +269,9 @@ void EmuSystem::reset(ResetMode mode)
 	YabauseReset();
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 {
-	return IG::formatToPathString("{}/{}.0{}.yss", statePath, gameName, saveSlotCharUpper(slot));
+	return IG::format<FS::FileString>("{}.0{}.yss", name, saveSlotCharUpper(slot));
 }
 
 void EmuSystem::saveState(const char *path)
@@ -309,7 +308,7 @@ void EmuSystem::closeSystem()
 
 void EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	IG::formatTo(bupPath, "{}/bkram.bin", savePath());
+	bupPath = FS::pathString(contentSavePath(), "bkram.bin");
 	if(YabauseInit(&yinit) != 0)
 	{
 		logErr("YabauseInit failed");

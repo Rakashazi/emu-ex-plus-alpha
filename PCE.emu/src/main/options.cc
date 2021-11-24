@@ -27,7 +27,6 @@ enum
 const char *EmuSystem::configFilename = "PceEmu.config";
 Byte1Option optionArcadeCard{CFGKEY_ARCADE_CARD, 1};
 Byte1Option option6BtnPad{CFGKEY_6_BTN_PAD, 0};
-static PathOption optionSysCardPath{CFGKEY_SYSCARD_PATH, sysCardPath, ""};
 
 const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 {
@@ -72,13 +71,13 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 	switch(key)
 	{
 		default: return 0;
-		bcase CFGKEY_SYSCARD_PATH: optionSysCardPath.readFromIO(io, readSize);
-		logMsg("syscard path %s", sysCardPath.data());
+		bcase CFGKEY_SYSCARD_PATH:
+			readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){sysCardPath = path;});
 	}
 	return 1;
 }
 
 void EmuSystem::writeConfig(IO &io)
 {
-	optionSysCardPath.writeToIO(io);
+	writeStringOptionValue(io, CFGKEY_SYSCARD_PATH, sysCardPath);
 }

@@ -215,13 +215,12 @@ static std::errc mapCharToTable(uint32_t c, uint32_t &tableIdx)
 }
 
 // TODO: update for unicode
-unsigned GlyphTextureSet::precache(Renderer &r, const char *string)
+unsigned GlyphTextureSet::precache(Renderer &r, std::string_view string)
 {
 	assert(settings);
 	unsigned glyphsCached = 0;
-	iterateTimes(strlen(string), i)
+	for(auto c : string)
 	{
-		auto c = string[i];
 		uint32_t tableIdx;
 		if((bool)mapCharToTable(c, tableIdx))
 		{

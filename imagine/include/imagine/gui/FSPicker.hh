@@ -36,7 +36,7 @@ class FSPicker : public View
 public:
 	using FilterFunc = DelegateFunc<bool(FS::directory_entry &entry)>;
 	using OnChangePathDelegate = DelegateFunc<void (FSPicker &picker, FS::PathString prevPath, Input::Event e)>;
-	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, const char *name, Input::Event e)>;
+	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, std::string_view name, Input::Event e)>;
 	using OnCloseDelegate = DelegateFunc<void (FSPicker &picker, Input::Event e)>;
 	using OnPathReadError = DelegateFunc<void (FSPicker &picker, std::error_code ec)>;
 	static constexpr bool needsUpDirControl = true;
@@ -60,7 +60,7 @@ public:
 	std::error_code setPath(FS::PathLocation location, bool forcePathChange, Input::Event e);
 	FS::PathString path() const;
 	void clearSelection() override;
-	FS::PathString makePathString(const char *base) const;
+	FS::PathString pathString(std::string_view base) const;
 	bool isSingleDirectoryMode() const;
 	void goUpDirectory(Input::Event e);
 
@@ -91,7 +91,7 @@ protected:
 	Gfx::Text msgText{};
 	bool singleDir = false;
 
-	void changeDirByInput(const char *path, FS::RootPathInfo rootInfo, bool forcePathChange, Input::Event e);
+	void changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, bool forcePathChange, Input::Event e);
 	bool isAtRoot() const;
 	void pushFileLocationsView(Input::Event e);
 	Gfx::GlyphTextureSet &face();

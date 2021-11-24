@@ -18,12 +18,13 @@
 #include <emuframework/EmuAppInlines.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include "internal.hh"
-#include <imagine/fs/FS.hh>
 
 // TODO: remove when namespace code is complete
 #ifdef __APPLE__
@@ -57,8 +58,6 @@ bool EmuSystem::hasResetModes = true;
 BoardInfo boardInfo{};
 Machine *machine{};
 Mixer *mixer{};
-FS::PathString machineCustomPath{};
-FS::PathString machineBasePath{};
 FS::FileString cartName[2]{};
 extern RomType currentRomType[2];
 FS::FileString diskName[2]{};
@@ -78,47 +77,38 @@ static const bool checkForMachineFolderOnStart = false;
 
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 
-FS::PathString makeMachineBasePath(Base::ApplicationContext app, FS::PathString customPath)
+FS::PathString machineBasePath(Base::ApplicationContext app)
 {
-	FS::PathString outPath;
-	if(!strlen(customPath.data()))
+	if(EmuSystem::firmwarePath().empty())
 	{
 		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-		IG::formatTo(outPath, "{}/MSX.emu", EmuApp::assetPath(app).data());
+		return IG::format<FS::PathString>("{}/MSX.emu", EmuApp::assetPath(app));
 		#else
-		IG::formatTo(outPath, "{}/MSX.emu", app.sharedStoragePath().data());
+		return IG::format<FS::PathString>("{}/MSX.emu", app.sharedStoragePath());
 		#endif
 	}
 	else
 	{
-		IG::formatTo(outPath, "{}", customPath.data());
+		return EmuSystem::firmwarePath();
 	}
-	logMsg("set machine file path: %s", outPath.data());
-	return outPath;
 }
 
-const char *machineBasePathStr()
+bool hasMSXTapeExtension(std::string_view name)
 {
-	return machineBasePath.data();
+	return name.ends_with(".cas");
 }
 
-bool hasMSXTapeExtension(IG::CStringView name)
+bool hasMSXDiskExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "cas");
+	return name.ends_with(".dsk");
 }
 
-bool hasMSXDiskExtension(IG::CStringView name)
+bool hasMSXROMExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "dsk");
+	return IG::stringEndsWithAny(name, ".rom", ".mx1", ".mx2", ".col");
 }
 
-bool hasMSXROMExtension(IG::CStringView name)
-{
-	return string_hasDotExtension(name, "rom") || string_hasDotExtension(name, "mx1")
-			|| string_hasDotExtension(name, "mx2") || string_hasDotExtension(name, "col");
-}
-
-static bool hasMSXExtension(IG::CStringView name)
+static bool hasMSXExtension(std::string_view name)
 {
 	return hasMSXROMExtension(name) || hasMSXDiskExtension(name);
 }
@@ -152,12 +142,12 @@ static void insertMedia(EmuApp &app)
 				}
 			bdefault:
 			{
-				if(!strlen(cartName[i].data()))
+				if(cartName[i].empty())
 					continue;
 				logMsg("loading ROM %s", cartName[i].data());
 				if(!insertROM(app, cartName[i].data(), i))
 				{
-					throw std::runtime_error(fmt::format("Error loading ROM{}:\n{}", i, cartName[i].data()));
+					throw std::runtime_error(fmt::format("Error loading ROM{}:\n{}", i, cartName[i]));
 				}
 			}
 		}
@@ -165,23 +155,23 @@ static void insertMedia(EmuApp &app)
 
 	iterateTimes(2, i)
 	{
-		if(!strlen(diskName[i].data()))
+		if(diskName[i].empty())
 			continue;
 		logMsg("loading Disk %s", diskName[i].data());
 		if(!insertDisk(app, diskName[i].data(), i))
 		{
-			throw std::runtime_error(fmt::format("Error loading Disk{}:\n{}", i, diskName[i].data()));
+			throw std::runtime_error(fmt::format("Error loading Disk{}:\n{}", i, diskName[i]));
 		}
 	}
 
 	iterateTimes(4, i)
 	{
-		if(!strlen(hdName[i].data()))
+		if(hdName[i].empty())
 			continue;
 		logMsg("loading HD %s", hdName[i].data());
 		if(!insertDisk(app, hdName[i].data(), diskGetHdDriveId(i / 2, i % 2)))
 		{
-			throw std::runtime_error(fmt::format("Error loading Disk{}:\n{}", i, hdName[i].data()));
+			throw std::runtime_error(fmt::format("Error loading Disk{}:\n{}", i, hdName[i]));
 		}
 	}
 }
@@ -193,15 +183,15 @@ static bool msxIsInit()
 
 static void clearAllMediaNames()
 {
-	cartName[0] = {};
-	cartName[1] = {};
-	diskName[0] = {};
-	diskName[1] = {};
-	hdName[0] = {};
-	hdName[1] = {};
-	hdName[2] = {};
-	hdName[3] = {};
-	tapeName = {};
+	cartName[0].clear();
+	cartName[1].clear();
+	diskName[0].clear();
+	diskName[1].clear();
+	hdName[0].clear();
+	hdName[1].clear();
+	hdName[2].clear();
+	hdName[3].clear();
+	tapeName.clear();
 }
 
 static void ejectMedia()
@@ -294,24 +284,24 @@ static bool createBoardFromLoadGame(EmuApp &app)
 	return true;
 }
 
-static void throwMachineInitError(const char *machineName)
+static void throwMachineInitError(std::string_view machineName)
 {
 	throw std::runtime_error(fmt::format("Error loading machine files for\n\"{}\",\nmake sure they are in:\n{}",
-		machineName, machineBasePath.data()));
+		machineName, EmuSystem::firmwarePath()));
 }
 
-static bool initMachine(const char *machineName)
+static bool initMachine(std::string_view machineName)
 {
-	if(machine && string_equal(machine->name, machineName))
+	if(machine && machine->name == machineName)
 	{
 		return true;
 	}
-	logMsg("loading machine %s", machineName);
+	logMsg("loading machine %s", machineName.data());
 	if(machine)
 		machineDestroy(machine);
-	FS::current_path(machineBasePathStr());
-	machine = machineCreate(machineName);
-	FS::current_path(EmuSystem::savePath());
+	FS::current_path(EmuSystem::firmwarePath());
+	machine = machineCreate(machineName.data());
+	FS::current_path(EmuSystem::contentSavePath());
 	if(!machine)
 	{
 		return false;
@@ -336,9 +326,9 @@ const char *currentMachineName()
 	return machine->name;
 }
 
-void setCurrentMachineName(EmuApp &app, const char *machineName, bool insertMediaFiles)
+void setCurrentMachineName(EmuApp &app, std::string_view machineName, bool insertMediaFiles)
 {
-	if(machine && string_equal(machine->name, machineName))
+	if(machine && machine->name == machineName)
 	{
 		logMsg("keeping current machine:%s", machine->name);
 		return;
@@ -355,8 +345,7 @@ void setCurrentMachineName(EmuApp &app, const char *machineName, bool insertMedi
 		insertMedia(app);
 }
 
-template<class MATCH_FUNC>
-static FS::FileString getFirstFilenameInArchive(const char *zipPath, MATCH_FUNC nameMatch)
+static FS::FileString getFirstFilenameInArchive(IG::CStringView zipPath, auto nameMatch)
 {
 	try
 	{
@@ -367,16 +356,16 @@ static FS::FileString getFirstFilenameInArchive(const char *zipPath, MATCH_FUNC 
 				continue;
 			}
 			auto name = entry.name();
-			logMsg("archive file entry:%s", entry.name());
+			logMsg("archive file entry:%s", entry.name().data());
 			if(nameMatch(name))
 			{
-				return FS::makeFileString(name);
+				return FS::FileString{name};
 			}
 		}
 	}
 	catch(...)
 	{
-		logErr("error opening archive:%s", zipPath);
+		logErr("error opening archive:%s", zipPath.data());
 	}
 	return {};
 }
@@ -403,20 +392,20 @@ static FS::FileString getFirstMediaFilenameInArchive(IG::CStringView zipPath)
 
 bool insertROM(EmuApp &app, const char *name, unsigned slot)
 {
-	assert(strlen(EmuSystem::contentDirectory().data()));
-	auto path = FS::makePathString(EmuSystem::contentDirectory(), name);
+	assert(EmuSystem::contentDirectory().size());
+	auto path = FS::pathString(EmuSystem::contentDirectory(), name);
 	FS::FileString fileInZipName{};
-	if(EmuApp::hasArchiveExtension(path.data()))
+	if(EmuApp::hasArchiveExtension(path))
 	{
 		fileInZipName = getFirstROMFilenameInArchive(path.data());
-		if(!strlen(fileInZipName.data()))
+		if(fileInZipName.empty())
 		{
 			app.postMessage(true, "No ROM found in archive:%s", path.data());
 			return false;
 		}
 		logMsg("found:%s in archive:%s", fileInZipName.data(), path.data());
 	}
-	if(!boardChangeCartridge(slot, ROM_UNKNOWN, path.data(), strlen(fileInZipName.data()) ? fileInZipName.data() : nullptr))
+	if(!boardChangeCartridge(slot, ROM_UNKNOWN, path.data(), fileInZipName.size() ? fileInZipName.data() : nullptr))
 	{
 		app.postMessage(true, "Error loading ROM");
 		return false;
@@ -426,20 +415,20 @@ bool insertROM(EmuApp &app, const char *name, unsigned slot)
 
 bool insertDisk(EmuApp &app, const char *name, unsigned slot)
 {
-	assert(strlen(EmuSystem::contentDirectory().data()));
-	auto path = FS::makePathString(EmuSystem::contentDirectory(), name);
+	assert(EmuSystem::contentDirectory().size());
+	auto path = FS::pathString(EmuSystem::contentDirectory(), name);
 	FS::FileString fileInZipName{};
-	if(EmuApp::hasArchiveExtension(path.data()))
+	if(EmuApp::hasArchiveExtension(path))
 	{
 		fileInZipName = getFirstDiskFilenameInArchive(path.data());
-		if(!strlen(fileInZipName.data()))
+		if(fileInZipName.empty())
 		{
 			app.postMessage(true, "No disk found in archive:%s", path.data());
 			return false;
 		}
 		logMsg("found:%s in archive:%s", fileInZipName.data(), path.data());
 	}
-	if(!diskChange(slot, path.data(), strlen(fileInZipName.data()) ? fileInZipName.data() : nullptr))
+	if(!diskChange(slot, path.data(), fileInZipName.size() ? fileInZipName.data() : nullptr))
 	{
 		app.postMessage(true, "Error loading Disk");
 		return false;
@@ -474,9 +463,9 @@ void EmuSystem::reset(EmuApp &app, ResetMode mode)
 	}
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 {
-	return IG::formatToPathString("{}/{}.0{}.sta", statePath, gameName, saveSlotCharUpper(slot));
+	return IG::format<FS::FileString>("{}.0{}.sta", name, saveSlotCharUpper(slot));
 }
 
 static void saveBlueMSXState(const char *filename)
@@ -500,23 +489,23 @@ static void saveBlueMSXState(const char *filename)
 
 	saveStateSet(state, "pendingInt", pendingInt);
 	saveStateSet(state, "cartType00", currentRomType[0]);
-	if(strlen(cartName[0].data()))
-		saveStateSetBuffer(state, "cartName00",  cartName[0].data(), strlen(cartName[0].data()) + 1);
+	if(cartName[0].size())
+		saveStateSetBuffer(state, "cartName00",  cartName[0].data(), cartName[0].size() + 1);
 	saveStateSet(state, "cartType01", currentRomType[1]);
-	if(strlen(cartName[1].data()))
-		saveStateSetBuffer(state, "cartName01",  cartName[1].data(), strlen(cartName[1].data()) + 1);
-	if(strlen(diskName[0].data()))
-		saveStateSetBuffer(state, "diskName00",  diskName[0].data(), strlen(diskName[0].data()) + 1);
-	if(strlen(diskName[1].data()))
-		saveStateSetBuffer(state, "diskName01",  diskName[1].data(), strlen(diskName[1].data()) + 1);
-	if(strlen(hdName[0].data()))
-		saveStateSetBuffer(state, "diskName02",  hdName[0].data(), strlen(hdName[0].data()) + 1);
-	if(strlen(hdName[1].data()))
-		saveStateSetBuffer(state, "diskName03",  hdName[1].data(), strlen(hdName[1].data()) + 1);
-	if(strlen(hdName[2].data()))
-		saveStateSetBuffer(state, "diskName10",  hdName[2].data(), strlen(hdName[2].data()) + 1);
-	if(strlen(hdName[3].data()))
-		saveStateSetBuffer(state, "diskName11",  hdName[3].data(), strlen(hdName[3].data()) + 1);
+	if(cartName[1].size())
+		saveStateSetBuffer(state, "cartName01",  cartName[1].data(), cartName[1].size() + 1);
+	if(diskName[0].size())
+		saveStateSetBuffer(state, "diskName00",  diskName[0].data(), diskName[0].size() + 1);
+	if(diskName[1].size())
+		saveStateSetBuffer(state, "diskName01",  diskName[1].data(), diskName[1].size() + 1);
+	if(hdName[0].size())
+		saveStateSetBuffer(state, "diskName02",  hdName[0].data(), hdName[0].size() + 1);
+	if(hdName[1].size())
+		saveStateSetBuffer(state, "diskName03",  hdName[1].data(), hdName[1].size() + 1);
+	if(hdName[2].size())
+		saveStateSetBuffer(state, "diskName10",  hdName[2].data(), hdName[2].size() + 1);
+	if(hdName[3].size())
+		saveStateSetBuffer(state, "diskName11",  hdName[3].data(), hdName[3].size() + 1);
 	saveStateClose(state);
 
 	machineSaveState(machine);
@@ -532,14 +521,15 @@ void EmuSystem::saveState(const char *path)
 
 static FS::FileString saveStateGetFileString(SaveState* state, const char* tagName)
 {
-	FS::FileString name{};
+	FS::FileStringArray name{};
 	saveStateGetBuffer(state, tagName,  name.data(), name.size());
-	if(strlen(name.data()))
+	if(std::string_view nameView{name.data()};
+		nameView.size())
 	{
 		// strip any file path
-		return FS::basename(name);
+		return FS::basename(nameView);
 	}
-	return name;
+	return {};
 }
 
 static void loadBlueMSXState(EmuApp &app, const char *filename)
@@ -632,10 +622,10 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 	const char *fileInZipNamePtr{};
 	const char *mediaNamePtr = mediaFilename.data();
 	bool loadDiskAsHD = false;
-	if(EmuApp::hasArchiveExtension(mediaFilename.data()))
+	if(EmuApp::hasArchiveExtension(mediaFilename))
 	{
 		fileInZipName = getFirstMediaFilenameInArchive(mediaPath);
-		if(!strlen(fileInZipName.data()))
+		if(fileInZipName.empty())
 		{
 			throw std::runtime_error("No media in archive");
 		}
@@ -648,7 +638,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 			loadDiskAsHD = fileInZip.size() >= 1024 * 1024;
 		}
 	}
-	else if(hasMSXDiskExtension(mediaFilename.data()))
+	else if(hasMSXDiskExtension(mediaFilename))
 	{
 		loadDiskAsHD = FS::file_size(mediaPath) >= 1024 * 1024;
 		if(loadDiskAsHD)
@@ -658,13 +648,13 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 	// create machine
 	auto &app = EmuApp::get(ctx);
 	auto destroyMachineOnReturn = IG::scopeGuard([](){ destroyMachine(); });
-	if(strlen(optionMachineName.val)) // try machine from session config first
+	if(optionSessionMachineNameStr.size()) // try machine from session config first
 	{
-		setCurrentMachineName(app, optionMachineName.val, false);
+		setCurrentMachineName(app, optionSessionMachineNameStr, false);
 	}
 	if(!strlen(currentMachineName()))
 	{
-		setCurrentMachineName(app, optionDefaultMachineName.val, false);
+		setCurrentMachineName(app, optionDefaultMachineNameStr, false);
 	}
 
 	// load media
@@ -681,7 +671,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 		if(loadDiskAsHD)
 		{
 			int hdId = diskGetHdDriveId(0, 0);
-			string_copy(cartName[0], "Sunrise IDE");
+			cartName[0] = "Sunrise IDE";
 			if(!boardChangeCartridge(0, ROM_SUNRISEIDE, "Sunrise IDE", 0))
 			{
 				throw std::runtime_error("Error loading Sunrise IDE device");

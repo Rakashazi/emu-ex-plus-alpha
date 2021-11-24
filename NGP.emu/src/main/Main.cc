@@ -38,11 +38,9 @@ static EmuVideo *emuVideo{};
 static constexpr IG::Pixmap srcPix{{{ngpResX, ngpResY}, IG::PIXEL_FMT_RGB565}, cfb};
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
-	[](IG::CStringView name)
+	[](std::string_view name)
 	{
-		return string_hasDotExtension(name, "ngc") ||
-				string_hasDotExtension(name, "ngp") ||
-				string_hasDotExtension(name, "npc");
+		return IG::stringEndsWithAny(name, ".ngc", ".ngp", ".npc");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
@@ -62,9 +60,9 @@ void EmuSystem::reset(ResetMode mode)
 	::reset();
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *contentName)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 {
-	return IG::formatToPathString("{}/{}.0{}.ngs", statePath, contentName, saveSlotCharUpper(slot));
+	return IG::format<FS::FileString>("{}.0{}.ngs", name, saveSlotCharUpper(slot));
 }
 
 void EmuSystem::saveState(const char *path)
@@ -86,7 +84,7 @@ bool system_io_state_read(const char* filename, uint8_t* buffer, uint32 bufferLe
 
 static FS::PathString sprintSaveFilename()
 {
-	return IG::formatToPathString("{}/{}.ngf", EmuSystem::savePath(), EmuSystem::contentName().data());
+	return EmuSystem::contentSaveFilePath(".ngf");
 }
 
 bool system_io_flash_read(uint8_t* buffer, uint32_t len)

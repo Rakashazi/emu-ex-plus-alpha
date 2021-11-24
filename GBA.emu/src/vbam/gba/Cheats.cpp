@@ -178,8 +178,7 @@
 #define CHEATS_16_BIT_WRITE           114
 #define CHEATS_32_BIT_WRITE           115
 
-CheatsData cheatsList[100];
-int cheatsNumber = 0;
+StaticArrayList<CheatsData, 100> cheatsList{};
 u32 rompatch2addr [4];
 u16 rompatch2val [4];
 u16 rompatch2oldval [4];
@@ -311,7 +310,7 @@ static bool isMultilineWithData(int i)
   // we consider it a multiline code if it has more than one line of data
   // otherwise, it can still be considered a single code
   // (Only CBA codes can be true multilines !!!)
-  if(i < cheatsNumber && i >= 0)
+  if(i < (int)cheatsList.size() && i >= 0)
     switch(cheatsList[i].size) {
     case INT_8_BIT_WRITE:
     case INT_16_BIT_WRITE:
@@ -437,7 +436,7 @@ static bool isMultilineWithData(int i)
 
 static int getCodeLength(int num)
 {
-  if(num >= cheatsNumber || num < 0)
+  if(num >= (int)cheatsList.size() || num < 0)
     return 1;
 
   // this is for all the codes that are true multiline
@@ -568,16 +567,15 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
 {
   bool onoff = true;
   int ticks = 0;
-  int i;
   mastercode = 0;
 
-  for (i = 0; i<4; i++)
+  for (int i = 0; i<4; i++)
     if (rompatch2addr [i] != 0) {
       CHEAT_PATCH_ROM_16BIT(rompatch2addr [i],rompatch2oldval [i]);
       rompatch2addr [i] = 0;
     }
 
-  for (i = 0; i < cheatsNumber; i++) {
+  for (size_t i = 0; i < cheatsList.size(); i++) {
     if(!cheatsList[i].enabled) {
       // make sure we skip other lines in this code
       i += getCodeLength(i)-1;
@@ -601,7 +599,7 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
       break;
     case GSA_8_BIT_SLIDE:
       i++;
-      if(i < cheatsNumber) {
+      if(i < cheatsList.size()) {
         u32 addr = cheatsList[i-1].value;
         u8 value = cheatsList[i].rawaddress;
         int vinc = (cheatsList[i].value >> 24) & 255;
@@ -617,7 +615,7 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
       break;
     case GSA_16_BIT_SLIDE:
       i++;
-      if(i < cheatsNumber) {
+      if(i < cheatsList.size()) {
         u32 addr = cheatsList[i-1].value;
         u16 value = cheatsList[i].rawaddress;
         int vinc = (cheatsList[i].value >> 24) & 255;
@@ -633,7 +631,7 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
       break;
     case GSA_32_BIT_SLIDE:
       i++;
-      if(i < cheatsNumber) {
+      if(i < cheatsList.size()) {
         u32 addr = cheatsList[i-1].value;
         u32 value = cheatsList[i].rawaddress;
         int vinc = (cheatsList[i].value >> 24) & 255;
@@ -649,7 +647,7 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
       break;
     case GSA_8_BIT_GS_WRITE2:
       i++;
-      if(i < cheatsNumber) {
+      if(i < cheatsList.size()) {
         if(extended & 4) {
           CPUWriteByte(cpu, cheatsList[i-1].value, cheatsList[i].address);
         }
@@ -657,7 +655,7 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
       break;
     case GSA_16_BIT_GS_WRITE2:
       i++;
-      if(i < cheatsNumber) {
+      if(i < cheatsList.size()) {
         if(extended & 4) {
           CPUWriteHalfWord(cpu, cheatsList[i-1].value, cheatsList[i].address);
         }
@@ -665,7 +663,7 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
       break;
     case GSA_32_BIT_GS_WRITE2:
       i++;
-      if(i < cheatsNumber) {
+      if(i < cheatsList.size()) {
         if(extended & 4) {
           CPUWriteMemory(cpu, cheatsList[i-1].value, cheatsList[i].address);
         }
@@ -682,7 +680,7 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
         break;
     case GSA_16_BIT_ROM_PATCH2C:
       i++;
-      if(i < cheatsNumber) {
+      if(i < cheatsList.size()) {
 		  rompatch2addr [0] = ((cheatsList[i-1].value & 0x00FFFFFF) << 1) + 0x8000000;
 		  rompatch2oldval [0] = CPUReadHalfWord(cpu, rompatch2addr [0]);
 		  rompatch2val [0] = cheatsList[i].rawaddress & 0xFFFF;
@@ -690,7 +688,7 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
       break;
     case GSA_16_BIT_ROM_PATCH2D:
       i++;
-      if(i < cheatsNumber) {
+      if(i < cheatsList.size()) {
 		  rompatch2addr [1] = ((cheatsList[i-1].value & 0x00FFFFFF) << 1) + 0x8000000;
 		  rompatch2oldval [1] = CPUReadHalfWord(cpu, rompatch2addr [1]);
 		  rompatch2val [1] = cheatsList[i].rawaddress & 0xFFFF;
@@ -698,7 +696,7 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
       break;
     case GSA_16_BIT_ROM_PATCH2E:
       i++;
-      if(i < cheatsNumber) {
+      if(i < cheatsList.size()) {
 		  rompatch2addr [2] = ((cheatsList[i-1].value & 0x00FFFFFF) << 1) + 0x8000000;
 		  rompatch2oldval [2] = CPUReadHalfWord(cpu, rompatch2addr [2]);
 		  rompatch2val [2] = cheatsList[i].rawaddress & 0xFFFF;
@@ -706,7 +704,7 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
       break;
     case GSA_16_BIT_ROM_PATCH2F:
       i++;
-      if(i < cheatsNumber) {
+      if(i < cheatsList.size()) {
 		  rompatch2addr [3] = ((cheatsList[i-1].value & 0x00FFFFFF) << 1) + 0x8000000;
 		  rompatch2oldval [3] = CPUReadHalfWord(cpu, rompatch2addr [3]);
 		  rompatch2val [3] = cheatsList[i].rawaddress & 0xFFFF;
@@ -771,7 +769,7 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
           u32 address = cheatsList[i].address;
           u16 value = cheatsList[i].value;
           i++;
-          if(i < cheatsNumber) {
+          if(i < cheatsList.size()) {
             int count = ((cheatsList[i].address - 1) & 0xFFFF);
             u16 vinc = (cheatsList[i].address >> 16) & 0xFFFF;
             int inc = cheatsList[i].value;
@@ -1300,7 +1298,7 @@ int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended)
       }
     }
   }
-  for (i = 0; i<4; i++)
+  for (int i = 0; i<4; i++)
     if (rompatch2addr [i] != 0)
       CHEAT_PATCH_ROM_16BIT(rompatch2addr [i],rompatch2val [i]);
   return ticks;
@@ -1314,15 +1312,16 @@ void cheatsAdd(ARM7TDMI &cpu, const char *codeStr,
                int code,
                int size)
 {
-  if(cheatsNumber < 100) {
-    int x = cheatsNumber;
+  if(cheatsList.size() < 100) {
+    int x = cheatsList.size();
+    cheatsList.emplace_back();
     cheatsList[x].code = code;
     cheatsList[x].size = size;
     cheatsList[x].rawaddress = rawaddress;
     cheatsList[x].address = address;
     cheatsList[x].value = value;
-    strcpy(cheatsList[x].codestring, codeStr);
-    strcpy(cheatsList[x].desc, desc);
+    strncpy(cheatsList[x].codestring, codeStr, sizeof(cheatsList[x].codestring));
+    strncpy(cheatsList[x].desc, desc, sizeof(cheatsList[x].desc));
     cheatsList[x].enabled = true;
     cheatsList[x].status = 0;
 
@@ -1345,13 +1344,12 @@ void cheatsAdd(ARM7TDMI &cpu, const char *codeStr,
       cheatsList[x].oldValue = CPUReadMemory(cpu, address);
       break;
     }
-    cheatsNumber++;
   }
 }
 
 void cheatsDelete(ARM7TDMI &cpu, int number, bool restore)
 {
-  if(number < cheatsNumber && number >= 0) {
+  if(number < (int)cheatsList.size() && number >= 0) {
     int x = number;
 
     if(restore) {
@@ -1399,24 +1397,20 @@ void cheatsDelete(ARM7TDMI &cpu, int number, bool restore)
         break;
       }
     }
-    if((x+1) <  cheatsNumber) {
-      memmove(&cheatsList[x], &cheatsList[x+1], sizeof(CheatsData)*
-             (cheatsNumber-x-1));
-    }
-    cheatsNumber--;
+    cheatsList.erase(cheatsList.begin() + number);
   }
 }
 
 void cheatsDeleteAll(ARM7TDMI &cpu, bool restore)
 {
-  for(int i = cheatsNumber-1; i >= 0; i--) {
+  for(int i = cheatsList.size()-1; i >= 0; i--) {
     cheatsDelete(cpu, i, restore);
   }
 }
 
 void cheatsEnable(int i)
 {
-  if(i >= 0 && i < cheatsNumber) {
+  if(i >= 0 && i < (int)cheatsList.size()) {
     cheatsList[i].enabled = true;
     mastercode = 0;
   }
@@ -1424,7 +1418,7 @@ void cheatsEnable(int i)
 
 void cheatsDisable(ARM7TDMI &cpu, int i)
 {
-  if(i >= 0 && i < cheatsNumber) {
+  if(i >= 0 && i < (int)cheatsList.size()) {
     switch(cheatsList[i].size) {
     case GSA_16_BIT_ROM_PATCH:
       if(cheatsList[i].status & 1) {
@@ -1527,7 +1521,7 @@ void cheatsAddCheatCode(ARM7TDMI &cpu, const char *code, const char *desc)
 
 u16 cheatsGSAGetDeadface(bool v3)
 {
-  for(int i = cheatsNumber-1; i >= 0; i--)
+  for(int i = cheatsList.size()-1; i >= 0; i--)
     if ((cheatsList[i].address == 0xDEADFACE) && (cheatsList[i].code == (v3 ? 257 : 256)))
       return cheatsList[i].value & 0xFFFF;
 	return 0;
@@ -1625,7 +1619,7 @@ bool cheatsAddGSACode(ARM7TDMI &cpu, const char *code, const char *desc, bool v3
               UNKNOWN_CODE);
     return true;
   }
-  if(isMultilineWithData(cheatsNumber-1)) {
+  if(isMultilineWithData(cheatsList.size()-1)) {
     cheatsAdd(cpu, code, desc, address, address, value, v3 ? 257 : 256, UNKNOWN_CODE);
     return true;
   }
@@ -2417,8 +2411,8 @@ void cheatsCBADecrypt(u8 *decrypt)
 int cheatsCBAGetCount()
 {
   int count = 0;
-  for(int i = 0; i < cheatsNumber; i++) {
-    if(cheatsList[i].code == 512)
+  for(auto &c : cheatsList) {
+    if(c.code == 512)
       count++;
   }
   return count;
@@ -2426,9 +2420,9 @@ int cheatsCBAGetCount()
 
 bool cheatsCBAShouldDecrypt()
 {
-  for(int i = 0; i < cheatsNumber; i++) {
-    if(cheatsList[i].code == 512) {
-      return (cheatsList[i].codestring[0] == '9');
+  for(auto &c : cheatsList) {
+    if(c.code == 512) {
+      return (c.codestring[0] == '9');
     }
   }
   return false;
@@ -2504,7 +2498,7 @@ bool cheatsAddCBACode(ARM7TDMI &cpu, const char *code, const char *desc)
 
     int type = (address >> 28) & 15;
 
-    if(isMultilineWithData(cheatsNumber-1) || (super>0)) {
+    if(isMultilineWithData(cheatsList.size()-1) || (super>0)) {
       cheatsAdd(cpu, code, desc, address, address, value, 512, UNKNOWN_CODE);
 	  if (super>0)
 		  super-= 1;
@@ -2544,7 +2538,7 @@ bool cheatsAddCBACode(ARM7TDMI &cpu, const char *code, const char *desc)
     case 0x05:
 		cheatsAdd(cpu, code, desc, address, address & 0x0FFFFFFE, value, 512,
                   CBA_SUPER);
-		super = getCodeLength(cheatsNumber-1);
+		super = getCodeLength(cheatsList.size()-1);
       break;
     case 0x06:
       cheatsAdd(cpu, code, desc, address, address & 0x0FFFFFFE, value, 512,
@@ -2595,19 +2589,20 @@ bool cheatsAddCBACode(ARM7TDMI &cpu, const char *code, const char *desc)
 
 void cheatsSaveGame(gzFile file)
 {
-  utilWriteInt(file, cheatsNumber);
+  utilWriteInt(file, cheatsList.size());
 
-  utilGzWrite(file, cheatsList, sizeof(cheatsList));
+  utilGzWrite(file, cheatsList.data(), CHEATS_LIST_DATA_SIZE);
 }
 
 void cheatsReadGame(gzFile file, int version)
 {
-  cheatsNumber = 0;
+  cheatsList.clear();
 
-  cheatsNumber = utilReadInt(file);
+  int cheatsNumber = utilReadInt(file);
+  cheatsList.resize(cheatsNumber);
 
   if (version > 8)
-    utilGzRead(file, cheatsList, sizeof(cheatsList));
+    utilGzRead(file, cheatsList.data(), CHEATS_LIST_DATA_SIZE);
 
 
   bool firstCodeBreaker = true;
@@ -2691,7 +2686,7 @@ void cheatsReadGameSkip( gzFile file, int version )
 
 void cheatsSaveCheatList(const char *file)
 {
-  if(cheatsNumber == 0)
+  if(!cheatsList.size())
     return;
   FILE *f = fopen(file, "wb");
   if(f == NULL)
@@ -2700,8 +2695,9 @@ void cheatsSaveCheatList(const char *file)
   fwrite(&version, 1, sizeof(version), f);
   int type = 1;
   fwrite(&type, 1, sizeof(type), f);
+  int cheatsNumber = cheatsList.size();
   fwrite(&cheatsNumber, 1, sizeof(cheatsNumber), f);
-  fwrite(cheatsList, 1, sizeof(cheatsList), f);
+  fwrite(cheatsList.data(), 1, CHEATS_LIST_DATA_SIZE, f);
   fclose(f);
 }
 
@@ -2747,9 +2743,10 @@ bool cheatsLoadCheatList(const char *file)
     fclose(f);
     return false;
   }
+  cheatsList.resize(count);
   if (type == 1)
   {
-    if(fread(cheatsList, 1, sizeof(cheatsList), f) != sizeof(cheatsList)) {
+    if(fread(cheatsList.data(), 1, CHEATS_LIST_DATA_SIZE, f) != CHEATS_LIST_DATA_SIZE) {
       fclose(f);
       return false;
     }
@@ -2814,7 +2811,6 @@ bool cheatsLoadCheatList(const char *file)
       }
     }
   }
-  cheatsNumber = count;
   fclose(f);
   return true;
 }

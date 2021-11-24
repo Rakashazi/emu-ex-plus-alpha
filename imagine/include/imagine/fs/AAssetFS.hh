@@ -33,7 +33,7 @@ public:
 	AAssetDirectory(AAssetManager *, IG::CStringView path);
 	bool readNextDir();
 	bool hasEntry() const;
-	const char *name() const;
+	std::string_view name() const;
 	PathString path() const;
 
 protected:

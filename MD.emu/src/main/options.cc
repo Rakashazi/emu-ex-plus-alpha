@@ -43,9 +43,6 @@ SByte1Option optionInputPort2{CFGKEY_INPUT_PORT_2, -1, false, optionIsValidWithM
 Byte1Option optionRegion{CFGKEY_MD_REGION, 0, false, optionIsValidWithMax<4>};
 #ifndef NO_SCD
 FS::PathString cdBiosUSAPath{}, cdBiosJpnPath{}, cdBiosEurPath{};
-PathOption optionCDBiosUsaPath{CFGKEY_MD_CD_BIOS_USA_PATH, cdBiosUSAPath, ""};
-PathOption optionCDBiosJpnPath{CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath, ""};
-PathOption optionCDBiosEurPath{CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath, ""};
 #endif
 Byte1Option optionVideoSystem{CFGKEY_VIDEO_SYSTEM, 0, false, optionIsValidWithMax<2>};
 
@@ -111,9 +108,9 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 		bcase CFGKEY_BIG_ENDIAN_SRAM: optionBigEndianSram.readFromIO(io, readSize);
 		bcase CFGKEY_SMS_FM: optionSmsFM.readFromIO(io, readSize);
 		#ifndef NO_SCD
-		bcase CFGKEY_MD_CD_BIOS_USA_PATH: optionCDBiosUsaPath.readFromIO(io, readSize);
-		bcase CFGKEY_MD_CD_BIOS_JPN_PATH: optionCDBiosJpnPath.readFromIO(io, readSize);
-		bcase CFGKEY_MD_CD_BIOS_EUR_PATH: optionCDBiosEurPath.readFromIO(io, readSize);
+		bcase CFGKEY_MD_CD_BIOS_USA_PATH: readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){cdBiosUSAPath = path;});
+		bcase CFGKEY_MD_CD_BIOS_JPN_PATH: readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){cdBiosJpnPath = path;});
+		bcase CFGKEY_MD_CD_BIOS_EUR_PATH: readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){cdBiosEurPath = path;});
 		#endif
 		bdefault: return 0;
 	}
@@ -125,9 +122,9 @@ void EmuSystem::writeConfig(IO &io)
 	optionBigEndianSram.writeWithKeyIfNotDefault(io);
 	optionSmsFM.writeWithKeyIfNotDefault(io);
 	#ifndef NO_SCD
-	optionCDBiosUsaPath.writeToIO(io);
-	optionCDBiosJpnPath.writeToIO(io);
-	optionCDBiosEurPath.writeToIO(io);
+	writeStringOptionValue(io, CFGKEY_MD_CD_BIOS_USA_PATH, cdBiosUSAPath);
+	writeStringOptionValue(io, CFGKEY_MD_CD_BIOS_JPN_PATH, cdBiosJpnPath);
+	writeStringOptionValue(io, CFGKEY_MD_CD_BIOS_EUR_PATH, cdBiosEurPath);
 	#endif
 
 }

@@ -67,9 +67,9 @@ struct PluginConfig
 static FS::PathString makePluginLibPath(const char *libName, const char *libBasePath)
 {
 	if(libBasePath && strlen(libBasePath))
-		return IG::formatToPathString("{}/{}", libBasePath, libName);
+		return FS::pathString(libBasePath, libName);
 	else
-		return FS::makePathString(libName);
+		return libName;
 }
 
 template<class T>

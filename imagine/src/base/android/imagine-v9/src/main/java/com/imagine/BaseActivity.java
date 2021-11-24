@@ -52,6 +52,7 @@ import java.io.InputStream;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
+import android.provider.DocumentsContract;
 
 // This class is also named BaseActivity to prevent shortcuts from breaking with previous SDK < 9 APKs
 
@@ -569,6 +570,21 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		try
 		{
 			return getContentResolver().openFileDescriptor(Uri.parse(uriStr), "r").detachFd();
+		}
+		catch(Exception e)
+		{
+			return -1;
+		}
+	}
+
+	int makeFileUriFd(String name, String uriStr)
+	{
+		if(android.os.Build.VERSION.SDK_INT < 21)
+			return -1;
+		try
+		{
+			Uri docUri = DocumentsContract.createDocument(getContentResolver(), Uri.parse(uriStr), "application/octet-stream", name);
+			return getContentResolver().openFileDescriptor(docUri, "w").detachFd();
 		}
 		catch(Exception e)
 		{

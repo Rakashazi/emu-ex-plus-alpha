@@ -17,7 +17,6 @@
 #include "../android.hh"
 #include "GraphicBuffer.hh"
 #include <imagine/base/ApplicationContext.hh>
-#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 
 namespace Base
@@ -174,7 +173,7 @@ bool GraphicBuffer::hasBufferMapper()
 	return allocDev;
 }
 
-bool GraphicBuffer::canSupport(ApplicationContext ctx, const char *rendererStr)
+bool GraphicBuffer::canSupport(ApplicationContext ctx, std::string_view rendererStr)
 {
 	auto androidSDK = ctx.androidSDK();
 	if(androidSDK >= 24)
@@ -188,15 +187,13 @@ bool GraphicBuffer::canSupport(ApplicationContext ctx, const char *rendererStr)
 		auto buildDevice = ctx.androidBuildDevice();
 		if(Config::MACHINE_IS_GENERIC_ARMV7)
 		{
-			if(androidSDK >= 20 &&
-				string_equal(buildDevice.data(), "mako"))
+			if(androidSDK >= 20 && buildDevice == "mako")
 			{
 				// only Adreno 320 drivers on the Nexus 4 (mako) are confirmed to work,
 				// other devices like the HTC One M7 will crash using GraphicBuffers
 				return true;
 			}
-			if(androidSDK >= 19 &&
-				string_equal(buildDevice.data(), "ha3g"))
+			if(androidSDK >= 19 && buildDevice == "ha3g")
 			{
 				// works on Galaxy Note 3 (SM-N900) with Mali-T628
 				// but not on all devices with this GPU
@@ -205,8 +202,7 @@ bool GraphicBuffer::canSupport(ApplicationContext ctx, const char *rendererStr)
 		}
 		else if(Config::MACHINE_IS_GENERIC_X86)
 		{
-			if(androidSDK >= 19 &&
-				string_equal(buildDevice.data(), "ducati2fhd"))
+			if(androidSDK >= 19 && buildDevice == "ducati2fhd")
 			{
 				// Works on Acer Iconia Tab 8 (A1-840FHD)
 				return true;
@@ -218,11 +214,11 @@ bool GraphicBuffer::canSupport(ApplicationContext ctx, const char *rendererStr)
 		// general rules for Android 2.3 devices
 		if(Config::MACHINE_IS_GENERIC_ARMV7)
 		{
-			if(string_equal(rendererStr, "PowerVR SGX 530"))
+			if(rendererStr == "PowerVR SGX 530")
 				return true;
-			if(string_equal(rendererStr, "PowerVR SGX 540"))
+			if(rendererStr == "PowerVR SGX 540")
 				return true;
-			if(string_equal(rendererStr, "Mali-400 MP"))
+			if(rendererStr == "Mali-400 MP")
 				return true;
 		}
 	}

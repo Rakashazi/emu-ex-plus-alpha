@@ -972,9 +972,9 @@ CDAccess_Image::CDAccess_Image(VirtualFS* vfs, const std::string& path, bool ima
 {
  try
  {
-  if(string_hasDotExtension(path.c_str(), "bin") || string_hasDotExtension(path.c_str(), "iso"))
+  if(IG::stringEndsWithAny(path, ".bin", ".iso"))
   {
-   ImageOpenBinary(vfs, path, string_hasDotExtension(path.c_str(), "iso"));
+   ImageOpenBinary(vfs, path, path.ends_with(".iso"));
   }
   else
    ImageOpen(vfs, path, image_memcache);

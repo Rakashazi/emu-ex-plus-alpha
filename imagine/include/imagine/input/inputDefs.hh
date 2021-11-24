@@ -69,8 +69,6 @@ enum class DeviceSubtype : uint8_t
 	_8BITDO_M30_GAMEPAD = 12
 };
 
-using EventKeyString = std::array<char, 4>;
-
 using TextFieldDelegate = DelegateFunc<void (const char *str)>;
 
 using PointerId = PointerIdImpl;

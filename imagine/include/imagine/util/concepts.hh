@@ -98,6 +98,14 @@ concept Container =
 	};
 
 template <class T>
+concept ResizableContainer =
+	Container<T> &&
+	requires(T &&c)
+	{
+		c.resize(1);
+	};
+
+template <class T>
 concept Iterable =
 	requires(T &&c)
 	{

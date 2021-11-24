@@ -435,22 +435,22 @@ static const RomListEntry romlist[]
 
 static FS::PathString gameFilePath(EmuApp &app, const char *name)
 {
-	auto path = app.mediaSearchPath();
-	auto zipPath = IG::formatToPathString("{}/{}.zip", path.data(), name);
-	if(FS::exists(zipPath))
+	auto basePath = FS::pathString(app.mediaSearchPath(), name);
+	if(auto zipPath = basePath + ".zip";
+		FS::exists(zipPath))
 		return zipPath;
-	auto sZipPath = IG::formatToPathString("{}/{}.7z", path.data(), name);
-	if(FS::exists(sZipPath))
+	if(auto sZipPath = basePath + ".7z";
+		FS::exists(sZipPath))
 		return sZipPath;
-	auto rarPath = IG::formatToPathString("{}/{}.rar", path.data(), name);
-	if(FS::exists(rarPath))
+	if(auto rarPath = basePath + ".rar";
+		FS::exists(rarPath))
 		return rarPath;
 	return {};
 }
 
 static bool gameFileExists(EmuApp &app, const char *name)
 {
-	return strlen(gameFilePath(app, name).data());
+	return gameFilePath(app, name).size();
 }
 
 class GameListView : public TableView, public EmuAppHelper<GameListView>
@@ -460,7 +460,7 @@ private:
 
 	void loadGame(const RomListEntry &entry, Input::Event e)
 	{
-		app().createSystemWithMedia({}, gameFilePath(app(), entry.name).data(), "", e, {}, attachParams(),
+		app().createSystemWithMedia({}, gameFilePath(app(), entry.name), e, {}, attachParams(),
 			[this](Input::Event e)
 			{
 				app().addCurrentContentToRecent();

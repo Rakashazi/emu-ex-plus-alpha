@@ -17,11 +17,10 @@
 
 #include <imagine/io/IO.hh>
 #include <imagine/util/2DOrigin.h>
-#include <imagine/util/string.h>
 #include <imagine/util/concepts.hh>
+#include <imagine/util/optional.hh>
 #include <imagine/logger/logger.h>
 #include <array>
-#include <optional>
 #include <cstring>
 #include <string_view>
 
@@ -50,23 +49,35 @@ static std::optional<T> readOptionValue(IO &io, size_t bytesToRead)
 	return readOptionValue<T>(io, bytesToRead, [](const T&){ return true; });
 }
 
+template <class T>
+static std::optional<T> readOptionValue(IO &io, size_t bytesToRead, auto &&func)
+{
+	IG::doOptionally(readOptionValue<T>(io, bytesToRead), std::forward<decltype(func)>(func));
+}
+
 template <IG::Container T>
 static std::optional<T> readStringOptionValue(IO &io, size_t bytesToRead)
 {
 	T val{};
-	constexpr auto destStringSize = std::size(val) - 1;
+	const auto destStringSize = val.max_size() - 1;
 	if(bytesToRead > destStringSize)
 	{
 		logMsg("skipping %zu byte string option value, too large for %zu bytes", bytesToRead, destStringSize);
 		return {};
 	}
-	auto size = io.read(std::data(val), bytesToRead);
+	auto size = io.readSized(val, bytesToRead);
 	if(size == -1) [[unlikely]]
 	{
 		logErr("error reading %zu byte string option", bytesToRead);
 		return {};
 	}
 	return val;
+}
+
+template <IG::Container T>
+static void readStringOptionValue(IO &io, size_t bytesToRead, auto &&func)
+{
+	IG::doOptionally(readStringOptionValue<T>(io, bytesToRead), std::forward<decltype(func)>(func));
 }
 
 static void writeOptionValueHeader(IO &io, uint16_t key, uint16_t optSize)
@@ -248,31 +259,6 @@ public:
 	{
 		return sizeof(typeof(KEY)) + sizeof(SERIALIZED_T);
 	}
-};
-
-struct PathOption : public OptionBase
-{
-	char *val;
-	unsigned strSize;
-	const char *defaultVal;
-	const uint16_t KEY;
-
-	constexpr PathOption(uint16_t key, char *val, unsigned size, const char *defaultVal): val(val), strSize(size), defaultVal(defaultVal), KEY(key) {}
-	template <size_t S>
-	constexpr PathOption(uint16_t key, char (&val)[S], const char *defaultVal): PathOption(key, val, S, defaultVal) {}
-	template <size_t S>
-	constexpr PathOption(uint16_t key, std::array<char, S> &val, const char *defaultVal): PathOption(key, val.data(), S, defaultVal) {}
-
-	bool isDefault() const override { return string_equal(val, defaultVal); }
-
-	operator char *() const
-	{
-		return val;
-	}
-
-	bool writeToIO(IO &io) override;
-	bool readFromIO(IO &io, unsigned readSize);
-	unsigned ioSize() const override;
 };
 
 using SByte1Option = Option<OptionMethodVar<int8_t>, int8_t>;

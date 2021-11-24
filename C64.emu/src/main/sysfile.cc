@@ -41,7 +41,7 @@ static bool containsSysFileDirName(FS::FileString path)
 {
 	for(const auto &subDir : sysFileDirs)
 	{
-		if(string_equal(path.data(), subDir))
+		if(path == subDir)
 			return true;
 	}
 	return false;
@@ -49,7 +49,7 @@ static bool containsSysFileDirName(FS::FileString path)
 
 static bool containsEmuSysFileDirName(FS::FileString path)
 {
-	return string_equal(path.data(), sysFileDirs[0]);
+	return path == sysFileDirs[0];
 }
 
 static int loadSysFile(IO &file, const char *name, uint8_t *dest, int minsize, int maxsize)
@@ -95,7 +95,7 @@ static int loadSysFile(IO &file, const char *name, uint8_t *dest, int minsize, i
 	return (int)rsize;
 }
 
-static ArchiveIO archiveIOForSysFile(const char *archivePath, const char *sysFileName, char **complete_path_return)
+static ArchiveIO archiveIOForSysFile(IG::CStringView archivePath, std::string_view sysFileName, char **complete_path_return)
 {
 	try
 	{
@@ -106,33 +106,33 @@ static ArchiveIO archiveIOForSysFile(const char *archivePath, const char *sysFil
 				continue;
 			}
 			auto name = entry.name();
-			if(!string_equal(FS::basename(name).data(), sysFileName))
+			if(FS::basename(name) != sysFileName)
 				continue;
-			if(!containsSysFileDirName(FS::basename(FS::dirname(name).data())))
+			if(!containsSysFileDirName(FS::basename(FS::dirname(name))))
 				continue;
-			logMsg("archive file entry:%s", name);
+			logMsg("archive file entry:%s", name.data());
 			if(complete_path_return)
 			{
-				*complete_path_return = strdup(name);
+				*complete_path_return = strdup(name.data());
 				assert(*complete_path_return);
 			}
 			return entry.moveIO();
 		}
-		logErr("not found in archive:%s", archivePath);
+		logErr("not found in archive:%s", archivePath.data());
 	}
 	catch(...)
 	{
-		logErr("error opening archive:%s", archivePath);
+		logErr("error opening archive:%s", archivePath.data());
 	}
 	return {};
 }
 
-static AssetIO assetIOForSysFile(Base::ApplicationContext ctx, const char *sysFileName, char **complete_path_return)
+static AssetIO assetIOForSysFile(Base::ApplicationContext ctx, std::string_view sysFileName, char **complete_path_return)
 {
 	for(const auto &subDir : sysFileDirs)
 	{
-		auto fullPath = IG::formatToPathString("{}/{}", subDir, sysFileName);
-		auto file = ctx.openAsset(fullPath.data(), IO::AccessHint::ALL, IO::OPEN_TEST);
+		auto fullPath = FS::pathString(subDir, sysFileName);
+		auto file = ctx.openAsset(fullPath, IO::AccessHint::ALL, IO::OPEN_TEST);
 		if(!file)
 			continue;
 		if(complete_path_return)
@@ -151,9 +151,9 @@ std::vector<std::string> systemFilesWithExtension(const char *ext)
 	std::vector<std::string> filenames{};
 	for(const auto &basePath : sysFilePath)
 	{
-		if(!strlen(basePath.data()) || !FS::exists(basePath))
+		if(basePath.empty() || !FS::exists(basePath))
 			continue;
-		if(EmuApp::hasArchiveExtension(basePath.data()))
+		if(EmuApp::hasArchiveExtension(basePath))
 		{
 			for(auto &entry : FS::ArchiveIterator{basePath})
 			{
@@ -162,24 +162,24 @@ std::vector<std::string> systemFilesWithExtension(const char *ext)
 					continue;
 				}
 				auto name = entry.name();
-				if(!containsEmuSysFileDirName(FS::basename(FS::dirname(name).data())))
+				if(!containsEmuSysFileDirName(FS::basename(FS::dirname(name))))
 					continue;
-				if(string_hasDotExtension(FS::basename(name).data(), ext))
+				if(FS::basename(name).ends_with(ext))
 				{
-					logMsg("archive file entry:%s", name);
-					filenames.emplace_back(FS::basename(name).data());
+					logMsg("archive file entry:%s", name.data());
+					filenames.emplace_back(FS::basename(name));
 				}
 			}
 		}
 		else
 		{
-			auto fullPath = IG::formatToPathString("{}/{}", basePath.data(), sysFileDirs[0]);
+			auto fullPath = FS::pathString(basePath, sysFileDirs[0]);
 			for(auto &entry : FS::directory_iterator{fullPath})
 			{
 				auto name = entry.name();
-				if(string_hasDotExtension(FS::basename(name).data(), ext))
+				if(FS::basename(name).ends_with(ext))
 				{
-					logMsg("archive file entry:%s", name);
+					logMsg("archive file entry:%s", name.data());
 					filenames.emplace_back(name);
 				}
 			}
@@ -200,11 +200,11 @@ CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const ch
 	logMsg("sysfile open:%s", name);
 	for(const auto &basePath : sysFilePath)
 	{
-		if(!strlen(basePath.data()) || !FS::exists(basePath))
+		if(basePath.empty() || !FS::exists(basePath))
 			continue;
-		if(EmuApp::hasArchiveExtension(basePath.data()))
+		if(EmuApp::hasArchiveExtension(basePath))
 		{
-			auto io = archiveIOForSysFile(basePath.data(), name, complete_path_return);
+			auto io = archiveIOForSysFile(basePath, name, complete_path_return);
 			if(!io)
 				continue;
 			// Uncompress file into memory and wrap in FILE
@@ -214,7 +214,7 @@ CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const ch
 		{
 			for(const auto &subDir : sysFileDirs)
 			{
-				auto fullPath = IG::formatToPathString("{}/{}/{}", basePath.data(), subDir, name);
+				auto fullPath = FS::pathString(basePath, subDir, name);
 				auto file = fopen(fullPath.data(), open_mode);
 				if(!file)
 					continue;
@@ -244,11 +244,11 @@ CLINK int sysfile_locate(const char *name, char **complete_path_return)
 	logMsg("sysfile locate:%s", name);
 	for(const auto &basePath : sysFilePath)
 	{
-		if(!strlen(basePath.data()) || !FS::exists(basePath))
+		if(basePath.empty() || !FS::exists(basePath))
 			continue;
-		if(EmuApp::hasArchiveExtension(basePath.data()))
+		if(EmuApp::hasArchiveExtension(basePath))
 		{
-			auto io = archiveIOForSysFile(basePath.data(), name, complete_path_return);
+			auto io = archiveIOForSysFile(basePath, name, complete_path_return);
 			if(!io)
 				continue;
 			return 0;
@@ -257,7 +257,7 @@ CLINK int sysfile_locate(const char *name, char **complete_path_return)
 		{
 			for(const auto &subDir : sysFileDirs)
 			{
-				auto fullPath = IG::formatToPathString("{}/{}/{}", basePath.data(), subDir, name);
+				auto fullPath = FS::pathString(basePath, subDir, name);
 				if(FS::exists(fullPath))
 				{
 					if(complete_path_return)
@@ -290,11 +290,11 @@ CLINK int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize
 	logMsg("sysfile load:%s", name);
 	for(const auto &basePath : sysFilePath)
 	{
-		if(!strlen(basePath.data()) || !FS::exists(basePath))
+		if(basePath.empty() || !FS::exists(basePath))
 			continue;
-		if(EmuApp::hasArchiveExtension(basePath.data()))
+		if(EmuApp::hasArchiveExtension(basePath))
 		{
-			auto io = archiveIOForSysFile(basePath.data(), name, nullptr);
+			auto io = archiveIOForSysFile(basePath, name, nullptr);
 			if(!io)
 				continue;
 			auto size = loadSysFile(io, name, dest, minsize, maxsize);
@@ -309,8 +309,8 @@ CLINK int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize
 		{
 			for(const auto &subDir : sysFileDirs)
 			{
-				auto fullPath = IG::formatToPathString("{}/{}/{}", basePath.data(), subDir, name);
-				FileIO file{fullPath.data(), IO::AccessHint::ALL, IO::OPEN_TEST};
+				auto fullPath = FS::pathString(basePath, subDir, name);
+				FileIO file{fullPath, IO::AccessHint::ALL, IO::OPEN_TEST};
 				if(!file)
 					continue;
 				//logMsg("loading system file: %s", complete_path);
@@ -330,5 +330,5 @@ CLINK int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize
 
 CLINK char *archdep_default_rtc_file_name(void)
 {
-	return strdup(FS::makePathString(appContext.supportPath().data(), "vice.rtc").data());
+	return strdup(FS::pathString(appContext.supportPath(), "vice.rtc").data());
 }

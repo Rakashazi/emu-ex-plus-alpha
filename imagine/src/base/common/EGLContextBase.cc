@@ -22,6 +22,7 @@
 #include <EGL/eglext.h>
 #include <imagine/util/egl.hh>
 #include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/string.h>
 
 #ifndef EGL_OPENGL_ES3_BIT
 #define EGL_OPENGL_ES3_BIT 0x0040
@@ -399,14 +400,14 @@ IG::ErrorCode EGLManager::initDisplay(EGLDisplay display)
 		return {EINVAL};
 	}
 	int eglVersion = 10 * major + minor;
-	auto extStr = eglQueryString(display, EGL_EXTENSIONS);
-	supportsSurfaceless = eglVersion >= 15 || strstr(extStr, "EGL_KHR_surfaceless_context");
-	supportsNoConfig = strstr(extStr, "EGL_KHR_no_config_context");
-	supportsNoError = strstr(extStr, "EGL_KHR_create_context_no_error");
-	supportsSrgbColorSpace = eglVersion >= 15 || strstr(extStr, "EGL_KHR_gl_colorspace");
+	std::string_view extStr{eglQueryString(display, EGL_EXTENSIONS)};
+	supportsSurfaceless = eglVersion >= 15 || IG::stringContains(extStr, "EGL_KHR_surfaceless_context");
+	supportsNoConfig = IG::stringContains(extStr, "EGL_KHR_no_config_context");
+	supportsNoError = IG::stringContains(extStr, "EGL_KHR_create_context_no_error");
+	supportsSrgbColorSpace = eglVersion >= 15 || IG::stringContains(extStr, "EGL_KHR_gl_colorspace");
 	if constexpr(Config::envIsLinux)
 	{
-		supportsTripleBufferSurfaces = strstr(extStr, "EGL_NV_triple_buffer");
+		supportsTripleBufferSurfaces = IG::stringContains(extStr, "EGL_NV_triple_buffer");
 	}
 	logFeatures();
 	return {};

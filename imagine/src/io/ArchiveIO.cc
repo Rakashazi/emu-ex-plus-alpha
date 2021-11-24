@@ -153,7 +153,7 @@ void ArchiveEntry::freeArchive(struct archive *arch)
 	archive_read_free(arch);
 }
 
-const char *ArchiveEntry::name() const
+std::string_view ArchiveEntry::name() const
 {
 	assumeExpr(ptr);
 	auto name = archive_entry_pathname(ptr);
@@ -239,7 +239,7 @@ ArchiveEntry ArchiveIO::releaseArchive()
 	return std::move(entry);
 }
 
-const char *ArchiveIO::name()
+std::string_view ArchiveIO::name() const
 {
 	return entry.name();
 }

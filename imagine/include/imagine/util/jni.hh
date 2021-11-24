@@ -15,7 +15,6 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/util/string.h>
 #include <imagine/util/concepts.hh>
 #include <cassert>
 #include <cstddef>
@@ -180,8 +179,9 @@ class ClassMethod<R(Args...)>
 public:
 	jmethodID method{};
 
-	constexpr ClassMethod() {}
+	constexpr ClassMethod() = default;
 
+	[[gnu::nonnull]]
 	ClassMethod(JNIEnv *env, auto obj, const char *fName, const char *sig)
 	{
 		setMethod(env, obj, fName, sig);
@@ -217,9 +217,9 @@ class InstMethod<R(Args...)>
 public:
 	jmethodID method{};
 
-	constexpr InstMethod() {}
+	constexpr InstMethod() = default;
 
-	template <class JavaObject>
+	template <class JavaObject> [[gnu::nonnull]]
 	InstMethod(JNIEnv *env, JavaObject obj, const char *fName, const char *sig)
 	{
 		setMethod(env, obj, fName, sig);
@@ -250,67 +250,84 @@ public:
 class UniqueGlobalRef
 {
 public:
-	constexpr UniqueGlobalRef() {};
+	constexpr UniqueGlobalRef() = default;
+	[[gnu::nonnull]]
 	UniqueGlobalRef(JNIEnv *env, jobject o);
-	UniqueGlobalRef(UniqueGlobalRef &&);
-	UniqueGlobalRef &operator=(UniqueGlobalRef &&);
-	~UniqueGlobalRef();
-	void reset();
-
-	constexpr operator jobject() const
-	{
-		return obj;
-	}
-
-	constexpr explicit operator jclass() const
-	{
-		return (jclass)obj;
-	}
-
-	constexpr JNIEnv *jniEnv() const
-	{
-		return env;
-	}
+	operator jobject() const { return obj.get(); }
+	explicit operator jclass() const { return (jclass)obj.get(); }
+	JNIEnv *jniEnv() const { return obj.get_deleter().env; }
+	void reset() { obj.reset(); }
 
 protected:
-	JNIEnv *env;
-	jobject obj{};
+	struct GlobalRefDeleter
+	{
+		JNIEnv *env;
+
+		void operator()(jobject ptr) const
+		{
+			deleteGlobalRef(env, ptr);
+		}
+	};
+
+	std::unique_ptr<std::remove_pointer_t<jobject>, GlobalRefDeleter> obj{};
+
+	static void deleteGlobalRef(JNIEnv *, jobject);
 };
 
-#ifndef DUMMY_JNI_IMPL
-template <class Container>
-static Container stringCopy(JNIEnv *env, jstring jstr)
+class StringChars
 {
-	auto utfChars = env->GetStringUTFChars(jstr, nullptr);
-	if(!utfChars)
+public:
+	constexpr StringChars() = default;
+	[[gnu::nonnull]]
+	StringChars(JNIEnv *, jstring);
+	const char *cString() const { return str.get(); }
+	operator const char*() const { return cString(); }
+	JNIEnv *jniEnv() const { return str.get_deleter().env; }
+	jstring jString() const { return str.get_deleter().jStr; }
+
+protected:
+	struct JStringCharsDeleter
 	{
-		return {}; // OutOfMemoryError thrown
-	}
-	Container c;
-	string_copy(c, utfChars);
-	env->ReleaseStringUTFChars(jstr, utfChars);
-	return c;
-}
-#endif
+		JNIEnv *env;
+		jstring jStr;
+
+		void operator()(const char *charsPtr) const
+		{
+			releaseStringChars(env, jStr, charsPtr);
+		}
+	};
+	using UniqueJStringChars = std::unique_ptr<const char, JStringCharsDeleter>;
+
+	UniqueJStringChars str{};
+
+	static void releaseStringChars(JNIEnv *, jstring, const char *charsPtr);
+};
 
 class LockedLocalBitmap
 {
 public:
-	constexpr LockedLocalBitmap() {}
-	constexpr LockedLocalBitmap(JNIEnv *env, jobject bitmap, JNI::InstMethod<void()> recycle):
-		env{env}, bitmap{bitmap}, jRecycle{recycle} {}
-	LockedLocalBitmap(LockedLocalBitmap &&o);
-	LockedLocalBitmap &operator=(LockedLocalBitmap &&o);
-	~LockedLocalBitmap();
-	constexpr operator jobject() const { return bitmap; }
-	explicit constexpr operator bool() const { return bitmap; }
+	constexpr LockedLocalBitmap() = default;
+	[[gnu::nonnull]]
+	LockedLocalBitmap(JNIEnv *env, jobject bitmap, JNI::InstMethod<void()> recycle):
+		bitmap{bitmap, {env, recycle}} {}
+	operator jobject() const { return bitmap.get(); }
+	explicit operator bool() const { return (bool)bitmap; }
 
 protected:
-	JNIEnv *env{};
-	jobject bitmap{};
-	JNI::InstMethod<void()> jRecycle{};
+	struct BitmapDeleter
+	{
+		JNIEnv *env;
+		JNI::InstMethod<void()> recycle;
 
-	void deinit();
+		void operator()(jobject ptr) const
+		{
+			deleteBitmap(env, ptr, recycle);
+		}
+	};
+
+	std::unique_ptr<std::remove_pointer_t<jobject>, BitmapDeleter> bitmap{};
+
+	static void deleteBitmap(JNIEnv *, jobject bitmap, JNI::InstMethod<void()> recycle);
 };
 
 }

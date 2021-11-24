@@ -26,7 +26,7 @@ namespace Input
 class AndroidTextField
 {
 public:
-	AndroidTextField(Base::ApplicationContext, TextFieldDelegate, const char *initialText, const char *promptText, int fontSizePixels);
+	AndroidTextField(Base::ApplicationContext, TextFieldDelegate, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels);
 	~AndroidTextField();
 	AndroidTextField &operator=(AndroidTextField &&) = delete;
 

@@ -74,27 +74,26 @@ void EmuEditCheatView::renamed(const char *str)
 {
 	cheatsModified = true;
 	auto &cheat = cheatsList[idx];
-	string_copy(cheat.desc, str);
+	strncpy(cheat.desc, str, sizeof(cheat.desc));
 }
 
 void EmuEditCheatListView::loadCheatItems()
 {
-	unsigned cheats = cheatsNumber;
 	cheat.clear();
-	cheat.reserve(cheats);
-	iterateTimes(cheats, c)
+	cheat.reserve(cheatsList.size());
+	for(auto &c : cheatsList)
 	{
-		cheat.emplace_back(cheatsList[c].desc, &defaultFace(),
-			[this, c](TextMenuItem &, View &, Input::Event e)
+		cheat.emplace_back(c.desc, &defaultFace(),
+			[this, idx = std::distance(cheatsList.data(), &c)](Input::Event e)
 			{
-				pushAndShow(makeView<EmuEditCheatView>(c, [this](){ onCheatListChanged(); }), e);
+				pushAndShow(makeView<EmuEditCheatView>(idx, [this](){ onCheatListChanged(); }), e);
 			});
 	}
 }
 
 void EmuEditCheatListView::addNewCheat(int isGSv3)
 {
-	if(cheatsNumber == EmuCheats::MAX)
+	if(cheatsList.size() == EmuCheats::MAX)
 	{
 		app().postMessage(true, "Too many cheats, delete some first");
 		return;
@@ -105,20 +104,18 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 		{
 			if(str)
 			{
-				char tempStr[20];
-				string_copy(tempStr, str);
-				string_toUpper(tempStr);
-				if(strlen(tempStr) == 17 && tempStr[8] == ' ')
+				auto tempStr{IG::stringToUpper<std::string>(str)};
+				if(tempStr.size() == 17 && tempStr[8] == ' ')
 				{
 					logMsg("removing middle space in text");
-					memmove(&tempStr[8], &tempStr[9], 9); // 8 chars + null byte
+					tempStr.erase(tempStr.begin() + 8);
 				}
 				if(isGSv3 ?
-					cheatsAddGSACode(gGba.cpu, tempStr, "Unnamed Cheat", true) :
-					((strlen(tempStr) == 16 && cheatsAddGSACode(gGba.cpu, tempStr, "Unnamed Cheat", false))
-					|| cheatsAddCBACode(gGba.cpu, tempStr, "Unnamed Cheat")))
+					cheatsAddGSACode(gGba.cpu, tempStr.data(), "Unnamed Cheat", true) :
+					((tempStr.size() == 16 && cheatsAddGSACode(gGba.cpu, tempStr.data(), "Unnamed Cheat", false))
+					|| cheatsAddCBACode(gGba.cpu, tempStr.data(), "Unnamed Cheat")))
 				{
-					logMsg("added new cheat, %d total", cheatsNumber);
+					logMsg("added new cheat, %d total", (int)cheatsList.size());
 				}
 				else
 				{
@@ -126,7 +123,7 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 					return true;
 				}
 				cheatsModified = true;
-				cheatsDisable(gGba.cpu, cheatsNumber-1);
+				cheatsDisable(gGba.cpu, cheatsList.size()-1);
 				onCheatListChanged();
 				view.dismiss();
 				app().pushAndShowNewCollectTextInputView(attachParams(), {}, "Input description", "",
@@ -134,7 +131,8 @@ void EmuEditCheatListView::addNewCheat(int isGSv3)
 					{
 						if(str)
 						{
-							string_copy(cheatsList[cheatsNumber-1].desc, str);
+							auto &cheat = cheatsList[cheatsList.size()-1];
+							strncpy(cheat.desc, str, sizeof(cheat.desc));
 							onCheatListChanged();
 							view.dismiss();
 						}
@@ -193,21 +191,19 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 
 void EmuCheatsView::loadCheatItems()
 {
-	unsigned cheats = cheatsNumber;
 	cheat.clear();
-	cheat.reserve(cheats);
-	iterateTimes(cheats, c)
+	cheat.reserve(cheatsList.size());
+	for(auto &c : cheatsList)
 	{
-		auto &cheatEntry = cheatsList[c];
-		cheat.emplace_back(cheatEntry.desc, &defaultFace(), cheatEntry.enabled,
-			[this, c](BoolMenuItem &item, View &, Input::Event e)
+		cheat.emplace_back(c.desc, &defaultFace(), c.enabled,
+			[this, idx = std::distance(cheatsList.data(), &c)](BoolMenuItem &item, Input::Event e)
 			{
 				cheatsModified = true;
 				bool on = item.flipBoolValue(*this);
 				if(on)
-					cheatsEnable(c);
+					cheatsEnable(idx);
 				else
-					cheatsDisable(gGba.cpu, c);
+					cheatsDisable(gGba.cpu, idx);
 			});
 	}
 }
@@ -222,12 +218,12 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	auto filename = IG::formatToPathString("{}/{}.clt", EmuSystem::savePath(), EmuSystem::contentName().data());
+	auto filename = EmuSystem::contentSaveFilePath(".clt");
 
-	if(!cheatsNumber)
+	if(!cheatsList.size())
 	{
 		logMsg("deleting cheats file %s", filename.data());
-		FS::remove(filename.data());
+		FS::remove(filename);
 		cheatsModified = false;
 		return;
 	}
@@ -237,7 +233,7 @@ void writeCheatFile()
 
 void readCheatFile()
 {
-	auto filename = IG::formatToPathString("{}/{}.clt", EmuSystem::savePath(), EmuSystem::contentName().data());
+	auto filename = EmuSystem::contentSaveFilePath(".clt");
 	if(cheatsLoadCheatList(filename.data()))
 	{
 		logMsg("loaded cheat file: %s", filename.data());

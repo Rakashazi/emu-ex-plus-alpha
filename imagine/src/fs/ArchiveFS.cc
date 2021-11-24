@@ -15,7 +15,7 @@
 
 #define LOGTAG "ArchFS"
 #include <imagine/fs/ArchiveFS.hh>
-#include <imagine/util/string.h>
+#include <imagine/util/utility.h>
 
 namespace FS
 {
@@ -74,7 +74,7 @@ void ArchiveIterator::rewind()
 	impl->rewind();
 }
 
-ArchiveIO fileFromArchive(IG::CStringView archivePath, IG::CStringView filePath)
+ArchiveIO fileFromArchive(IG::CStringView archivePath, std::string_view filePath)
 {
 	for(auto &entry : FS::ArchiveIterator{archivePath})
 	{
@@ -82,7 +82,7 @@ ArchiveIO fileFromArchive(IG::CStringView archivePath, IG::CStringView filePath)
 		{
 			continue;
 		}
-		if(string_equal(entry.name(), filePath))
+		if(entry.name() == filePath)
 		{
 			return entry.moveIO();
 		}

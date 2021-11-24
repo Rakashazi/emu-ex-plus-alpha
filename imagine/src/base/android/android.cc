@@ -37,7 +37,6 @@
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/ScopeGuard.hh>
-#include <imagine/util/format.hh>
 #include "android.hh"
 
 namespace Base
@@ -149,10 +148,10 @@ FS::PathString ApplicationContext::supportPath(const char *) const
 		auto env = thisThreadJniEnv();
 		auto baseActivity = baseActivityObject();
 		JNI::InstMethod<jobject()> filesDir{env, baseActivity, "filesDir", "()Ljava/lang/String;"};
-		return JNI::stringCopy<FS::PathString>(env, (jstring)filesDir(env, baseActivity));
+		return JNI::StringChars{env, (jstring)filesDir(env, baseActivity)}.cString();
 	}
 	else
-		return FS::makePathString(act->internalDataPath);
+		return act->internalDataPath;
 }
 
 FS::PathString ApplicationContext::cachePath(const char *) const
@@ -160,7 +159,7 @@ FS::PathString ApplicationContext::cachePath(const char *) const
 	auto env = thisThreadJniEnv();
 	auto baseActivityCls = (jclass)env->GetObjectClass(baseActivityObject());
 	JNI::ClassMethod<jobject()> cacheDir{env, baseActivityCls, "cacheDir", "()Ljava/lang/String;"};
-	return JNI::stringCopy<FS::PathString>(env, (jstring)cacheDir(env, baseActivityCls));
+	return JNI::StringChars{env, (jstring)cacheDir(env, baseActivityCls)}.cString();
 }
 
 FS::PathString ApplicationContext::sharedStoragePath() const
@@ -172,13 +171,13 @@ FS::PathString ApplicationContext::sharedStoragePath() const
 FS::PathString AndroidApplication::sharedStoragePath(JNIEnv *env, jclass baseActivityClass) const
 {
 	JNI::ClassMethod<jobject()> extStorageDir{env, baseActivityClass, "extStorageDir", "()Ljava/lang/String;"};
-	return JNI::stringCopy<FS::PathString>(env, (jstring)extStorageDir(env, baseActivityClass));
+	return JNI::StringChars{env, (jstring)extStorageDir(env, baseActivityClass)}.cString();
 }
 
 FS::PathLocation ApplicationContext::sharedStoragePathLocation() const
 {
 	auto path = sharedStoragePath();
-	return {path, FS::makeFileString("Storage Media"), {FS::makeFileString("Media"), strlen(path.data())}};
+	return {path, "Storage Media", {"Media", path.size()}};
 }
 
 std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const
@@ -196,7 +195,7 @@ std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const
 		return
 			{
 				sharedStoragePathLocation(),
-				{storageDevicesPath, FS::makeFileString("Storage Devices"), {FS::makeFileString("Storage"), strlen(storageDevicesPath.data())}}
+				{storageDevicesPath, "Storage Devices", {"Storage", storageDevicesPath.size()}}
 			};
 	}
 	else
@@ -216,10 +215,10 @@ std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const
 				([](JNIEnv* env, jobject thiz, jlong userData, jstring jName, jstring jPath)
 				{
 					auto rootLocation = (std::vector<FS::PathLocation>*)userData;
-					auto path = JNI::stringCopy<FS::PathString>(env, jPath);
-					auto name = JNI::stringCopy<FS::FileString>(env, jName);
+					FS::PathString path{JNI::StringChars(env, jPath)};
+					FS::FileString name{JNI::StringChars(env, jName)};
 					logMsg("volume:%s with path:%s", name.data(), path.data());
-					rootLocation->emplace_back(path, name, FS::RootPathInfo{name, strlen(path.data())});
+					rootLocation->emplace_back(path, name, FS::RootPathInfo{name, path.size()});
 				})
 			},
 		};
@@ -237,7 +236,7 @@ FS::PathString ApplicationContext::libPath(const char *) const
 		auto env = thisThreadJniEnv();
 		auto baseActivity = baseActivityObject();
 		JNI::InstMethod<jobject()> libDir{env, baseActivity, "libDir", "()Ljava/lang/String;"};
-		return JNI::stringCopy<FS::PathString>(env, (jstring)libDir(env, baseActivity));
+		return JNI::StringChars{env, (jstring)libDir(env, baseActivity)}.cString();
 	}
 	return {};
 }
@@ -253,13 +252,24 @@ FileIO ApplicationContext::openUri(IG::CStringView uri, IO::AccessHint access, u
 	return {openUriFd(env, baseActivity, env->NewStringUTF(uri)), access};
 }
 
+FileIO ApplicationContext::fileAtUri(IG::CStringView name, IG::CStringView uri, IO::AccessHint access, unsigned openFlags)
+{
+	if(androidSDK() < 21 || uri[0] == '/')
+		return {};
+	logMsg("creating file:%s at Uri:%s", name.data(), uri.data());
+	auto env = thisThreadJniEnv();
+	auto baseActivity = baseActivityObject();
+	JNI::InstMethod<int(jobject, jobject)> makeFileUriFd{env, baseActivity, "makeFileUriFd", "(Ljava/lang/String;Ljava/lang/String;)I"};
+	return {makeFileUriFd(env, baseActivity, env->NewStringUTF(name), env->NewStringUTF(uri)), access};
+}
+
 static FS::PathString mainSOPath(ApplicationContext ctx)
 {
 	if(ctx.androidSDK() < 24)
 	{
-		return IG::formatToPathString("{}/libmain.so", ctx.libPath(nullptr).data());
+		return FS::pathString(ctx.libPath(nullptr), "libmain.so");
 	}
-	return FS::makePathString("libmain.so");
+	return "libmain.so";
 }
 
 static jstring permissionToJString(JNIEnv *env, Permission p)

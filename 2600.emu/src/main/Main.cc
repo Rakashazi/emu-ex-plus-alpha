@@ -37,6 +37,7 @@
 #undef Debugger
 #include "internal.hh"
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 
 static constexpr uint MAX_ROM_SIZE = 512 * 1024;
 std::optional<OSystem> osystem{};
@@ -48,9 +49,9 @@ bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 IG::Audio::SampleFormat EmuSystem::audioSampleFormat = IG::Audio::SampleFormats::f32;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
-	[](IG::CStringView name)
+	[](std::string_view name)
 	{
-		return string_hasDotExtension(name, "a26") || string_hasDotExtension(name, "bin");
+		return IG::stringEndsWithAny(name, ".a26", ".bin");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = EmuSystem::defaultFsFilter;
 
@@ -74,9 +75,9 @@ const char *EmuSystem::systemName()
 	return "Atari 2600";
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *savePath, const char *gameName)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 {
-	return IG::formatToPathString("{}/{}.0{}.sta", savePath, gameName, saveSlotChar(slot));
+	return IG::format<FS::FileString>("{}.0{}.sta", name, saveSlotChar(slot));
 }
 
 void EmuSystem::closeSystem()

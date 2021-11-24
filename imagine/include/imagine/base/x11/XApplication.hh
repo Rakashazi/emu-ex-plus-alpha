@@ -21,6 +21,7 @@
 #include <imagine/base/EventLoop.hh>
 #include <imagine/input/Device.hh>
 #include <memory>
+#include <string>
 
 struct _XDisplay;
 union _XEvent;
@@ -53,7 +54,7 @@ struct XInputDevice : public Input::Device
 	bool iCadeMode_ = false;
 
 	XInputDevice();
-	XInputDevice(TypeBits, const char *name);
+	XInputDevice(TypeBits, std::string name);
 	XInputDevice(XIDeviceInfo, bool isPointingDevice, bool isPowerButton);
 	void setICadeMode(bool on) final;
 	bool iCadeMode() const final;
@@ -74,7 +75,7 @@ public:
 	void runX11Events();
 	bool hasPendingX11Events() const;
 	void setXdnd(unsigned long win, bool on);
-	Input::EventKeyString inputKeyString(Input::Key rawKey, uint32_t modifiers) const;
+	std::string inputKeyString(Input::Key rawKey, uint32_t modifiers) const;
 	void setWindowCursor(unsigned long xWin, bool on);
 
 private:

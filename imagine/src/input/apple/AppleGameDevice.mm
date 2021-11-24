@@ -21,7 +21,6 @@
 #include <imagine/input/Device.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/coreFoundation.h>
-#include <imagine/util/string.h>
 #include <imagine/util/algorithm.h>
 #import <GameController/GameController.h>
 
@@ -64,7 +63,7 @@ struct AppleGameDevice : public Device
 				this->handleKey(AppleGC::PAUSE, Keycode::MENU, true, false);
 				this->handleKey(AppleGC::PAUSE, Keycode::MENU, false, false);
 			};
-		logMsg("controller vendor:%s", name());
+		logMsg("controller vendor:%s", name().data());
 	}
 	
 	template <class T>

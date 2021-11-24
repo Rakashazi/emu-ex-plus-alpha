@@ -104,7 +104,7 @@ void updateCPULoad(TestFramework &test)
 	newTime.steal = steal;
 	newTime.total = newTime.user + newTime.nice + newTime.systemAll
 		+ idleAllTime + newTime.steal + newTime.virt;
-	char useStr[16] = "Calculating...";
+	std::string useStr{"Calculating..."};
 	if(cpuTime.user)
 	{
 		double userDelta = newTime.user - cpuTime.user;
@@ -114,7 +114,7 @@ void updateCPULoad(TestFramework &test)
 		double virtualDelta = newTime.virt - cpuTime.virt;
 		double totalDelta = newTime.total - cpuTime.total;
 		double usagePercent = (niceDelta + userDelta + systemAllDelta + stealDelta + virtualDelta) / totalDelta * (double)100.0;
-		IG::formatTo(useStr, "{:.2f}%", usagePercent);
+		useStr = fmt::format("{:.2f}%", usagePercent);
 	}
 	cpuTime = newTime;
 	test.setCPUUseText(useStr);

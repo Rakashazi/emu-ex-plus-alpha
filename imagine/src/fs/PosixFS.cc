@@ -17,14 +17,14 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/utility.h>
-#include <imagine/util/string.h>
-#include <imagine/util/format.hh>
 #ifdef __APPLE__
 #include <imagine/util/string/apple.h>
 #endif
 #include <errno.h>
 #include <sys/stat.h>
 #include <cstdlib>
+#include <cstring>
+#include <system_error>
 
 namespace FS
 {
@@ -44,9 +44,9 @@ static file_type makeDirType(int type)
 	return file_type::unknown;
 }
 
-static bool isDotName(const char *name)
+static bool isDotName(std::string_view name)
 {
-	return string_equal(name, ".") || string_equal(name, "..");
+	return name == "." || name == "..";
 }
 
 DirectoryEntryImpl::DirectoryEntryImpl(IG::CStringView path):
@@ -59,7 +59,7 @@ DirectoryEntryImpl::DirectoryEntryImpl(IG::CStringView path):
 		throw std::system_error{errno, std::system_category(), path};
 	}
 	logMsg("opened directory:%s", path.data());
-	string_copy(basePath, path);
+	basePath = path;
 	readNextDir(); // go to first entry
 }
 
@@ -95,7 +95,7 @@ bool DirectoryEntryImpl::hasEntry() const
 	return dirent_;
 }
 
-const char *DirectoryEntryImpl::name() const
+std::string_view DirectoryEntryImpl::name() const
 {
 	assumeExpr(dirent_);
 	return dirent_->d_name;
@@ -132,7 +132,7 @@ file_type DirectoryEntryImpl::symlink_type() const
 
 PathStringImpl DirectoryEntryImpl::path() const
 {
-	return IG::formatToPathString("{}/{}", basePath.data(), name());
+	return FS::pathString(basePath, name());
 }
 
 void DirectoryEntryImpl::close()
@@ -227,7 +227,7 @@ std::tm file_status::lastWriteTimeLocal() const
 
 PathString current_path()
 {
-	PathString wDir{};
+	PathStringArray wDir;
 	if(!getcwd(wDir.data(), sizeof(wDir))) [[unlikely]]
 	{
 		if(Config::DEBUG_BUILD)
@@ -239,7 +239,7 @@ PathString current_path()
 	// TODO: make optional when renderer supports decomposed unicode
 	precomposeUnicodeString(wDir.data(), wDir.data(), sizeof(wDir));
 	#endif
-	return wDir;
+	return wDir.data();
 }
 
 void current_path(IG::CStringView path)

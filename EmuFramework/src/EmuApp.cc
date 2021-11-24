@@ -36,6 +36,7 @@
 #include <imagine/util/utility.h>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include <imagine/thread/Thread.hh>
 #include <cmath>
 
@@ -512,10 +513,10 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 				});
 
 			if(auto launchPathStr = EmuSystem::contentLocation();
-				strlen(launchPathStr.data()))
+				launchPathStr.size())
 			{
 				EmuSystem::setInitialLoadPath("");
-				viewController().handleOpenFileCommand(launchPathStr.data());
+				viewController().handleOpenFileCommand(launchPathStr);
 			}
 
 			win.show();
@@ -569,10 +570,10 @@ void launchSystem(EmuApp &app, bool tryAutoState)
 	app.viewController().showEmulation();
 }
 
-void onSelectFileFromPicker(EmuApp &app, GenericIO io, IG::CStringView path, IG::CStringView name, bool pathIsUri,
+void onSelectFileFromPicker(EmuApp &app, GenericIO io, IG::CStringView path, bool pathIsUri,
 	Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams)
 {
-	app.createSystemWithMedia(std::move(io), path, name, pathIsUri, e, params, attachParams,
+	app.createSystemWithMedia(std::move(io), path, pathIsUri, e, params, attachParams,
 		[&app, path](Input::Event e)
 		{
 			app.addCurrentContentToRecent();
@@ -610,11 +611,9 @@ void EmuApp::launchSystem(Input::Event e, bool tryAutoState)
 	::launchSystem(*this, tryAutoState);
 }
 
-bool EmuApp::hasArchiveExtension(IG::CStringView name)
+bool EmuApp::hasArchiveExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "7z") ||
-		string_hasDotExtension(name, "rar") ||
-		string_hasDotExtension(name, "zip");
+	return IG::stringEndsWithAny(name, ".7z", ".rar", ".zip");
 }
 
 void EmuApp::pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::Event e, const char *msgText,
@@ -659,7 +658,7 @@ void EmuApp::reloadGame(EmuSystemCreateParams params)
 	emuSystemTask.pause();
 	try
 	{
-		EmuSystem::createWithMedia(appContext(), {}, EmuSystem::contentLocation(), "",
+		EmuSystem::createWithMedia(appContext(), {}, EmuSystem::contentLocation(),
 			FS::isUri(EmuSystem::contentLocation()), params,
 			[](int pos, int max, const char *label){ return true; });
 		viewController().onSystemCreated();
@@ -706,14 +705,14 @@ void EmuApp::printScreenshotResult(int num, bool success)
 
 [[gnu::weak]] bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event) { return true; }
 
-void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path, IG::CStringView name,
+void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path,
 	Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams,
 	CreateSystemCompleteDelegate onComplete)
 {
-	createSystemWithMedia(std::move(io), path, name, false, e, params, attachParams, onComplete);
+	createSystemWithMedia(std::move(io), path, false, e, params, attachParams, onComplete);
 }
 
-void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path, IG::CStringView name, bool pathIsUri,
+void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path, bool pathIsUri,
 	Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams,
 	CreateSystemCompleteDelegate onComplete)
 {
@@ -727,17 +726,16 @@ void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path, IG::CStri
 	auto &msgPort = loadProgressView->messagePort();
 	pushAndShowModalView(std::move(loadProgressView), e);
 	auto app = attachParams.window().appContext();
-	auto nameStr = FS::makeFileString(strlen(name) ? name : FS::basenameUri(path, pathIsUri));
 	IG::makeDetachedThread(
-		[app, io{std::move(io)}, pathStr{FS::makePathString(path)}, nameStr, &msgPort, params, pathIsUri]() mutable
+		[app, io{std::move(io)}, pathStr = FS::PathString{path}, &msgPort, params, pathIsUri]() mutable
 		{
 			logMsg("starting loader thread");
 			try
 			{
-				EmuSystem::createWithMedia(app, std::move(io), pathStr, nameStr, pathIsUri, params,
+				EmuSystem::createWithMedia(app, std::move(io), pathStr, pathIsUri, params,
 					[&msgPort](int pos, int max, const char *label)
 					{
-						int len = label ? strlen(label) : -1;
+						int len = label ? std::string_view{label}.size() : -1;
 						auto msg = EmuSystem::LoadProgressMessage{EmuSystem::LoadProgress::UPDATE, pos, max, len};
 						if(len > 0)
 						{
@@ -755,15 +753,15 @@ void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path, IG::CStri
 			catch(std::exception &err)
 			{
 				EmuSystem::clearGamePaths();
-				auto errStr = err.what();
-				int len = strlen(errStr);
+				std::string_view errStr{err.what()};
+				int len = errStr.size();
 				assert(len);
 				if(len > 1024)
 				{
 					logWarn("truncating long error size:%d", len);
 					len = 1024;
 				}
-				msgPort.sendWithExtraData({EmuSystem::LoadProgress::FAILED, 0, 0, len}, errStr, len);
+				msgPort.sendWithExtraData({EmuSystem::LoadProgress::FAILED, 0, 0, len}, errStr.data(), len);
 				logErr("loader thread failed");
 				return;
 			}
@@ -774,9 +772,8 @@ void EmuApp::saveAutoState()
 {
 	if(optionAutoSaveState)
 	{
-		auto saveStr = EmuSystem::sprintStateFilename(-1);
-		//logMsg("saving autosave-state %s", saveStr.data());
-		saveState(saveStr.data());
+		//logMsg("saving autosave-state");
+		saveState(EmuSystem::statePath(-1));
 	}
 }
 
@@ -817,8 +814,7 @@ bool EmuApp::saveState(IG::CStringView path)
 
 bool EmuApp::saveStateWithSlot(int slot)
 {
-	auto path = EmuSystem::sprintStateFilename(slot);
-	return saveState(path.data());
+	return saveState(EmuSystem::statePath(slot));
 }
 
 bool EmuApp::loadState(IG::CStringView path)
@@ -849,8 +845,7 @@ bool EmuApp::loadState(IG::CStringView path)
 
 bool EmuApp::loadStateWithSlot(int slot)
 {
-	auto path = EmuSystem::sprintStateFilename(slot);
-	return loadState(path.data());
+	return loadState(EmuSystem::statePath(slot));
 }
 
 void EmuApp::setDefaultVControlsButtonSpacing(int spacing)
@@ -868,23 +863,22 @@ FS::PathString EmuApp::mediaSearchPath()
 	return lastLoadPath;
 }
 
-void EmuApp::setMediaSearchPath(std::optional<FS::PathString> opt)
+void EmuApp::setMediaSearchPath(FS::PathString path)
 {
-	if(!opt)
-		return;
-	lastLoadPath = *opt;
+	lastLoadPath = path;
 }
 
 FS::PathString EmuApp::firmwareSearchPath()
 {
-	if(!strlen(optionFirmwarePath))
+	auto firmwarePath = EmuSystem::firmwarePath();
+	if(firmwarePath.empty())
 		return lastLoadPath;
-	return hasArchiveExtension(optionFirmwarePath.val) ? FS::dirname(optionFirmwarePath.val) : FS::makePathString(optionFirmwarePath.val);
+	return hasArchiveExtension(firmwarePath) ? FS::dirname(firmwarePath) : firmwarePath;
 }
 
 void EmuApp::setFirmwareSearchPath(IG::CStringView path)
 {
-	strncpy(optionFirmwarePath.val, path, sizeof(FS::PathString));
+	EmuSystem::setFirmwarePath(path);
 }
 
 [[gnu::weak]] void EmuApp::onMainWindowCreated(ViewAttachParams, Input::Event) {}
@@ -920,7 +914,7 @@ void EmuApp::resetInput()
 
 static FS::PathString sessionConfigPath()
 {
-	return IG::formatToPathString("{}/{}.config", EmuSystem::savePath(), EmuSystem::contentName().data());
+	return EmuSystem::contentSaveFilePath(".config");
 }
 
 bool EmuApp::hasSavedSessionOptions()
@@ -946,7 +940,7 @@ void EmuApp::saveSessionOptions()
 	auto configFilePath = sessionConfigPath();
 	try
 	{
-		auto configFile = FileIO::create(configFilePath.data());
+		auto configFile = FileIO::create(configFilePath);
 		writeConfigHeader(configFile);
 		EmuSystem::writeSessionConfig(configFile);
 		EmuSystem::sessionOptionsSet = false;
@@ -1084,9 +1078,10 @@ bool EmuApp::writeScreenshot(IG::Pixmap pix, IG::CStringView path)
 std::pair<int, FS::PathString> EmuApp::makeNextScreenshotFilename()
 {
 	constexpr int maxNum = 999;
+	auto basePath = FS::pathString(EmuSystem::contentSavePath(), EmuSystem::contentName());
 	iterateTimes(maxNum, i)
 	{
-		auto str = IG::formatToPathString("{}/{}.{:03d}.png", EmuSystem::savePath(), EmuSystem::contentName().data(), i);
+		auto str = IG::format<FS::PathString>("{}.{:03d}.png", basePath, i);
 		if(!FS::exists(str))
 		{
 			logMsg("screenshot %d", i);
@@ -1119,12 +1114,12 @@ std::span<const KeyCategory> EmuApp::inputControlCategories() const
 	return {EmuControls::category, EmuControls::categories};
 }
 
-std::array<char, 64> formatDateAndTime(std::tm time)
+std::string formatDateAndTime(std::tm time)
 {
 	std::array<char, 64> str{};
 	static constexpr const char *strftimeFormat = "%x  %r";
 	std::strftime(str.data(), str.size(), strftimeFormat, &time);
-	return str;
+	return str.data();
 }
 
 ViewAttachParams EmuApp::attachParams()
@@ -1132,19 +1127,19 @@ ViewAttachParams EmuApp::attachParams()
 	return emuViewController->inputView().attachParams();
 }
 
-void EmuApp::addRecentContent(IG::CStringView fullPath, IG::CStringView name)
+void EmuApp::addRecentContent(std::string_view fullPath, std::string_view name)
 {
-	if(!strlen(fullPath))
+	if(fullPath.empty())
 		return;
 	logMsg("adding %s @ %s to recent list, current size: %zu", name.data(), fullPath.data(), recentContentList.size());
-	RecentContentInfo recent{FS::makePathString(fullPath), FS::makeFileString(name)};
+	RecentContentInfo recent{FS::PathString{fullPath}, FS::FileString{name}};
 	IG::eraseFirst(recentContentList, recent); // remove existing entry so it's added to the front
 	if(recentContentList.isFull()) // list full
 		recentContentList.pop_back();
 	recentContentList.insert(recentContentList.begin(), recent);
 
 	/*logMsg("list contents:");
-	for(auto &e : recentGameList)
+	for(auto &e : recentContentList)
 	{
 		logMsg("path: %s name: %s", e.path.data(), e.name.data());
 	}*/

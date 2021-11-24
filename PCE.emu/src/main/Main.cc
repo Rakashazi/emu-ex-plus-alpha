@@ -24,6 +24,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/huc.h>
 #include <mednafen/pce_fast/vdc.h>
@@ -57,17 +58,17 @@ static MDFN_Surface pixmapToMDFNSurface(IG::Pixmap pix)
 	return {pix.pixel({0,0}), pix.w(), pix.h(), pix.pitchPixels(), fmt};
 }
 
-bool hasHuCardExtension(IG::CStringView name)
+bool hasHuCardExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "pce") || string_hasDotExtension(name, "sgx");
+	return IG::stringEndsWithAny(name, ".pce", ".sgx");
 }
 
-static bool hasCDExtension(IG::CStringView name)
+static bool hasCDExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "toc") || string_hasDotExtension(name, "cue") || string_hasDotExtension(name, "ccd");
+	return IG::stringEndsWithAny(name, ".toc", ".cue", ".ccd");
 }
 
-static bool hasPCEWithCDExtension(IG::CStringView name)
+static bool hasPCEWithCDExtension(std::string_view name)
 {
 	return hasHuCardExtension(name) || hasCDExtension(name);
 }
@@ -105,9 +106,9 @@ static char saveSlotCharPCE(int slot)
 	}
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *contentName)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 {
-	return IG::formatToPathString("{}/{}.{}.nc{}", statePath, contentName, md5_context::asciistr(MDFNGameInfo->MD5, 0).c_str(), saveSlotCharPCE(slot));
+	return IG::format<FS::FileString>("{}.{}.nc{}", name, md5_context::asciistr(MDFNGameInfo->MD5, 0), saveSlotCharPCE(slot));
 }
 
 void EmuSystem::closeSystem()
@@ -163,7 +164,7 @@ void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 		});
 	if(hasCDExtension(contentFileName()))
 	{
-		if(!strlen(sysCardPath.data()) || !FS::exists(sysCardPath))
+		if(sysCardPath.empty() || !FS::exists(sysCardPath))
 		{
 			throw std::runtime_error("No System Card Set");
 		}

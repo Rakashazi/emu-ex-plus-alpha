@@ -19,6 +19,7 @@
 #include <imagine/pixmap/PixmapDesc.hh>
 #include "gralloc.h"
 #include <EGL/egl.h>
+#include <string_view>
 
 // Wrapper for ANativeWindowBuffer (android_native_buffer_t)
 // similar to GraphicBuffer class in Android frameworks
@@ -45,7 +46,7 @@ public:
 	android_native_buffer_t *nativeObject();
 	EGLClientBuffer eglClientBuffer();
 	static bool hasBufferMapper();
-	static bool canSupport(ApplicationContext, const char *rendererStr);
+	static bool canSupport(ApplicationContext, std::string_view rendererStr);
 	static bool testSupport();
 	static bool isSupported();
 

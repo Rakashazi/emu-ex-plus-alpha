@@ -28,11 +28,11 @@
 
 using namespace Mednafen;
 
-static bool hasKnownExtension(const char *name, const std::vector<FileExtensionSpecStruct>& extSpec)
+static bool hasKnownExtension(std::string_view name, const std::vector<FileExtensionSpecStruct>& extSpec)
 {
 	for(const auto &e : extSpec)
 	{
-		if(string_hasDotExtension(name, e.extension + 1)) // skip "."
+		if(name.ends_with(e.extension))
 			return true;
 	}
 	return false;
@@ -51,10 +51,9 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, const char* path, const std::vector<FileExten
 				{
 					continue;
 				}
-				auto name = entry.name();
-				logMsg("archive file entry:%s", name);
-				if(hasKnownExtension(name, known_ext))
+				if(hasKnownExtension(entry.name(), known_ext))
 				{
+					logMsg("archive file entry:%s", entry.name().data());
 					auto io = entry.moveIO();
 					str = std::make_unique<MemoryStream>(io.size(), true);
 					if(io.read(str->map(), str->map_size()) != (int)str->map_size())

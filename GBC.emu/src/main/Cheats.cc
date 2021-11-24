@@ -52,7 +52,7 @@ void applyCheats()
 		{
 			if(!e.isOn())
 				continue;
-			std::string &codeStr = strstr(e.code, "-") ? ggCodeStr : gsCodeStr;
+			std::string &codeStr = IG::stringContains(e.code, "-") ? ggCodeStr : gsCodeStr;
 			if(codeStr.size())
 				codeStr += ";";
 			codeStr += e.code;
@@ -71,17 +71,17 @@ void writeCheatFile()
 	if(!cheatsModified)
 		return;
 
-	auto filename = IG::formatToPathString("{}/{}.gbcht", EmuSystem::savePath(), EmuSystem::contentName().data());
+	auto filename = EmuSystem::contentSaveFilePath(".gbcht");
 
 	if(!cheatList.size())
 	{
 		logMsg("deleting cheats file %s", filename.data());
-		FS::remove(filename.data());
+		FS::remove(filename);
 		cheatsModified = 0;
 		return;
 	}
 
-	auto file = FileIO::create(filename.data(), IO::OPEN_TEST);
+	auto file = FileIO::create(filename, IO::OPEN_TEST);
 	if(!file)
 	{
 		logMsg("error creating cheats file %s", filename.data());
@@ -95,18 +95,18 @@ void writeCheatFile()
 	for(auto &e : cheatList)
 	{
 		file.write((uint8_t)e.flags);
-		file.write((uint16_t)strlen(e.name));
-		file.write(e.name, strlen(e.name));
-		file.write((uint8_t)strlen(e.code));
-		file.write(e.code, strlen(e.code));
+		file.write((uint16_t)e.name.size());
+		file.write(e.name.data(), e.name.size());
+		file.write((uint8_t)e.code.size());
+		file.write(e.code.data(), e.code.size());
 	}
 	cheatsModified = 0;
 }
 
 void readCheatFile()
 {
-	auto filename = IG::formatToPathString("{}/{}.gbcht", EmuSystem::savePath(), EmuSystem::contentName().data());
-	FileIO file{filename.data(), IO::AccessHint::ALL, IO::OPEN_TEST};
+	auto filename = EmuSystem::contentSaveFilePath(".gbcht");
+	FileIO file{filename, IO::AccessHint::ALL, IO::OPEN_TEST};
 	if(!file)
 	{
 		return;
@@ -127,13 +127,13 @@ void readCheatFile()
 			logMsg("cheat list full while reading from file");
 			break;
 		}
-		GbcCheat cheat;
+		GbcCheat cheat{};
 		auto flags = file.get<uint8_t>();
 		cheat.flags = flags;
 		auto nameLen = file.get<uint16_t>();
-		file.read(cheat.name, std::min(uint16_t(sizeof(cheat.name)-1), nameLen));
+		file.readSized(cheat.name, nameLen);
 		auto codeLen = file.get<uint8_t>();
-		file.read(cheat.code, std::min(uint8_t(sizeof(cheat.code)-1), codeLen));
+		file.readSized(cheat.code, codeLen);
 		cheatList.push_back(cheat);
 	}
 }
@@ -185,8 +185,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 						postDraw();
 						return false;
 					}
-					string_copy(cheat->code, str);
-					string_toUpper(cheat->code);
+					cheat->code = IG::stringToUpper<decltype(cheat->code)>(str);
 					cheatsModified = 1;
 					applyCheats();
 					ggCode.set2ndName(str);
@@ -201,12 +200,12 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, GbcCheat &cheat_, Re
 
 const char *EmuEditCheatView::cheatNameString() const
 {
-	return cheat->name;
+	return cheat->name.data();
 }
 
 void EmuEditCheatView::renamed(const char *str)
 {
-	string_copy(cheat->name, str);
+	cheat->name = str;
 	cheatsModified = 1;
 }
 
@@ -250,9 +249,8 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 							return true;
 						}
 						GbcCheat c;
-						string_copy(c.code, str);
-						string_toUpper(c.code);
-						string_copy(c.name, "Unnamed Cheat");
+						c.code = IG::stringToUpper<decltype(c.code)>(str);
+						c.name = "Unnamed Cheat";
 						cheatList.push_back(c);
 						logMsg("added new cheat, %zu total", cheatList.size());
 						cheatsModified = 1;
@@ -264,7 +262,7 @@ EmuEditCheatListView::EmuEditCheatListView(ViewAttachParams attach):
 							{
 								if(str)
 								{
-									string_copy(cheatList.back().name, str);
+									cheatList.back().name = str;
 									onCheatListChanged();
 									view.dismiss();
 								}
@@ -328,7 +326,7 @@ void EmuCheatsView::loadCheatItems()
 				cheatsModified = 1;
 				applyCheats();
 			});
-		logMsg("added cheat %s : %s", thisCheat.name, thisCheat.code);
+		logMsg("added cheat %s : %s", thisCheat.name.data(), thisCheat.code.data());
 		++it;
 	}
 }

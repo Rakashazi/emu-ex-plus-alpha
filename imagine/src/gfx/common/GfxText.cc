@@ -20,7 +20,6 @@
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/util/math/int.hh>
-#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include <algorithm>
 #include <cctype>
@@ -313,6 +312,11 @@ bool Text::isVisible() const
 }
 
 std::u16string_view Text::stringView() const
+{
+	return textStr;
+}
+
+std::u16string Text::string() const
 {
 	return textStr;
 }

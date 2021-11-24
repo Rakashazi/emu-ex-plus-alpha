@@ -2,5 +2,5 @@
 
 #include <imagine/fs/FSDefs.hh>
 
-unsigned hasROMExtension(const char *name);
+bool hasROMExtension(std::string_view name);
 int loadArchive(void *buff, unsigned bytes, const char *path, FS::FileString &nameInArchive);

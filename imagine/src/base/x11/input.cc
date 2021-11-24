@@ -35,9 +35,8 @@ struct XkbDescRec : public ::XkbDescRec {};
 
 XInputDevice::XInputDevice() {}
 
-XInputDevice::XInputDevice(TypeBits typeBits, const char *name):
-	Device{0, Input::Map::SYSTEM, typeBits, name}
-{}
+XInputDevice::XInputDevice(TypeBits typeBits, std::string name):
+	Device{0, Input::Map::SYSTEM, typeBits, std::move(name)} {}
 
 XInputDevice::XInputDevice(XIDeviceInfo info, bool isPointingDevice, bool isPowerButton):
 	Device{info.deviceid, Input::Map::SYSTEM, 0, info.name}
@@ -58,7 +57,7 @@ XInputDevice::XInputDevice(XIDeviceInfo info, bool isPointingDevice, bool isPowe
 
 void XInputDevice::setICadeMode(bool on)
 {
-	logMsg("set iCade mode %s for %s", on ? "on" : "off", name());
+	logMsg("set iCade mode %s for %s", on ? "on" : "off", name().data());
 	iCadeMode_ = on;
 }
 
@@ -157,10 +156,10 @@ void XApplication::initXInput2()
 	}
 }
 
-static bool isPowerButtonName(const char *name)
+static bool isPowerButtonName(std::string_view name)
 {
-	return strstr(name, "Power Button")
-		|| (Config::MACHINE_IS_PANDORA && strstr(name, "power-button"));
+	return IG::stringContains(name, "Power Button")
+		|| (Config::MACHINE_IS_PANDORA && IG::stringContains(name, "power-button"));
 }
 
 void XApplication::addXInputDevice(XIDeviceInfo xDevInfo, bool notify, bool isPointingDevice)
@@ -174,9 +173,9 @@ void XApplication::addXInputDevice(XIDeviceInfo xDevInfo, bool notify, bool isPo
 		}
 	}
 	logMsg("adding X input device %d (%s) to device list", xDevInfo.deviceid, xDevInfo.name);
-	auto devPtr = std::make_unique<XInputDevice>(xDevInfo, isPointingDevice, isPowerButtonName(xDevInfo.name));
-	if(Config::MACHINE_IS_PANDORA && (string_equal(xDevInfo.name, "gpio-keys")
-		|| string_equal(xDevInfo.name, "keypad")))
+	std::string_view devName{xDevInfo.name};
+	auto devPtr = std::make_unique<XInputDevice>(xDevInfo, isPointingDevice, isPowerButtonName(devName));
+	if(Config::MACHINE_IS_PANDORA && (devName == "gpio-keys" || devName == "keypad"))
 	{
 		devPtr->setSubtype(Input::Device::Subtype::PANDORA_HANDHELD);
 	}
@@ -395,13 +394,13 @@ bool XApplication::handleXI2GenericEvent(XEvent event)
 	return true;
 }
 
-Input::Event::KeyString XApplication::inputKeyString(Input::Key rawKey, uint32_t modifiers) const
+std::string XApplication::inputKeyString(Input::Key rawKey, uint32_t modifiers) const
 {
-	Input::Event::KeyString str{};
 	KeySym k;
 	XkbTranslateKeyCode(coreKeyboardDesc, rawKey, modifiers, nullptr, &k);
+	std::array<char, 4> str{};
 	XkbTranslateKeySym(dpy, &k, 0, str.data(), sizeof(str), nullptr);
-	return str;
+	return str.data();
 }
 
 void ApplicationContext::flushSystemInputEvents()
@@ -429,7 +428,7 @@ bool Device::anyTypeBitsPresent(Base::ApplicationContext, TypeBits typeBits)
 	return 0;
 }
 
-Event::KeyString Event::keyString(Base::ApplicationContext ctx) const
+std::string Event::keyString(Base::ApplicationContext ctx) const
 {
 	return ctx.application().inputKeyString(rawKey, metaState ? ShiftMask : 0);
 }

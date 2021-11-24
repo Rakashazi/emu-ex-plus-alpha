@@ -55,13 +55,10 @@ const AspectRatioInfo EmuSystem::aspectRatioInfo[] =
 };
 const unsigned EmuSystem::aspectRatioInfos = std::size(EmuSystem::aspectRatioInfo);
 int EmuSystem::forcedSoundRate = 44100;
-#define optionMachineNameDefault "MSX2"
-static char optionDefaultMachineNameStr[128] = optionMachineNameDefault;
-static char optionSessionMachineNameStr[128]{};
-PathOption optionDefaultMachineName{CFGKEY_DEFAULT_MACHINE_NAME, optionDefaultMachineNameStr, optionMachineNameDefault};
-PathOption optionMachineName{CFGKEY_SESSION_MACHINE_NAME, optionSessionMachineNameStr, ""};
+static constexpr const char *optionMachineNameDefault = "MSX2";
+IG::StaticString<128> optionDefaultMachineNameStr{optionMachineNameDefault};
+IG::StaticString<128> optionSessionMachineNameStr{};
 Byte1Option optionSkipFdcAccess{CFGKEY_SKIP_FDC_ACCESS, 1};
-PathOption optionFirmwarePath{CFGKEY_MACHINE_FILE_PATH, machineCustomPath, ""};
 unsigned activeBoardType = BOARD_MSX;
 
 Byte1Option optionMixerPSGVolume{CFGKEY_MIXER_PSG_VOLUME, 100 | MIXER_ENABLE_BIT, false, volumeOptionIsValid};
@@ -161,7 +158,7 @@ uint8_t setMixerPanOption(MixerAudioType type, int pan)
 
 bool EmuSystem::resetSessionOptions(EmuApp &)
 {
-	string_copy(optionSessionMachineNameStr, "");
+	optionSessionMachineNameStr.clear();
 	return true;
 }
 
@@ -170,14 +167,14 @@ bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 	switch(key)
 	{
 		default: return 0;
-		bcase CFGKEY_SESSION_MACHINE_NAME: optionMachineName.readFromIO(io, readSize);
+		bcase CFGKEY_SESSION_MACHINE_NAME: readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){optionSessionMachineNameStr = path;});
 	}
 	return 1;
 }
 
 void EmuSystem::writeSessionConfig(IO &io)
 {
-	optionMachineName.writeToIO(io);
+	writeStringOptionValue(io, CFGKEY_SESSION_MACHINE_NAME, optionSessionMachineNameStr);
 }
 
 bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
@@ -185,9 +182,9 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 	switch(key)
 	{
 		default: return 0;
-		bcase CFGKEY_DEFAULT_MACHINE_NAME: optionDefaultMachineName.readFromIO(io, readSize);
+		bcase CFGKEY_DEFAULT_MACHINE_NAME: readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){optionDefaultMachineNameStr = path;});
 		bcase CFGKEY_SKIP_FDC_ACCESS: optionSkipFdcAccess.readFromIO(io, readSize);
-		bcase CFGKEY_MACHINE_FILE_PATH: optionFirmwarePath.readFromIO(io, readSize);
+		bcase CFGKEY_MACHINE_FILE_PATH: readStringOptionValue<FS::PathString>(io, readSize, [](auto &path){setFirmwarePath(path);});
 		bcase CFGKEY_MIXER_PSG_VOLUME: optionMixerPSGVolume.readFromIO(io, readSize);
 		bcase CFGKEY_MIXER_SCC_VOLUME: optionMixerSCCVolume.readFromIO(io, readSize);
 		bcase CFGKEY_MIXER_MSX_MUSIC_VOLUME: optionMixerMSXMUSICVolume.readFromIO(io, readSize);
@@ -208,12 +205,12 @@ bool EmuSystem::readConfig(IO &io, unsigned key, unsigned readSize)
 
 void EmuSystem::writeConfig(IO &io)
 {
-	if(!optionDefaultMachineName.isDefault())
+	if(optionDefaultMachineNameStr != optionMachineNameDefault)
 	{
-		optionDefaultMachineName.writeToIO(io);
+		writeStringOptionValue(io, CFGKEY_DEFAULT_MACHINE_NAME, optionDefaultMachineNameStr);
 	}
 	optionSkipFdcAccess.writeWithKeyIfNotDefault(io);
-	optionFirmwarePath.writeToIO(io);
+	writeStringOptionValue(io, CFGKEY_MACHINE_FILE_PATH, firmwarePath());
 
 	optionMixerPSGVolume.writeWithKeyIfNotDefault(io);
 	optionMixerSCCVolume.writeWithKeyIfNotDefault(io);
@@ -234,8 +231,6 @@ void EmuSystem::writeConfig(IO &io)
 
 void EmuSystem::onOptionsLoaded(Base::ApplicationContext app)
 {
-	machineBasePath = makeMachineBasePath(app, machineCustomPath);
-
 	mixerEnableChannelType(mixer, MIXER_CHANNEL_PSG, mixerEnableOption(MIXER_CHANNEL_PSG));
 	mixerSetChannelTypeVolume(mixer, MIXER_CHANNEL_PSG, mixerVolumeOption(MIXER_CHANNEL_PSG));
 	mixerSetChannelTypePan(mixer, MIXER_CHANNEL_PSG, optionMixerPSGPan);
@@ -267,8 +262,8 @@ void EmuSystem::onOptionsLoaded(Base::ApplicationContext app)
 
 bool setDefaultMachineName(const char *name)
 {
-	if(string_equal(name, optionDefaultMachineNameStr))
+	if(name == optionDefaultMachineNameStr)
 		return false;
-	string_copy(optionDefaultMachineNameStr, name);
+	optionDefaultMachineNameStr = name;
 	return true;
 }

@@ -52,8 +52,8 @@ private:
 	struct ExtDevice : public Device
 	{
 		ExtDevice() {}
-		ExtDevice(Input::Map map, uint8_t typeBits, const char *name):
-			Device{0, map, typeBits, name} {}
+		ExtDevice(Input::Map map, uint8_t typeBits, std::string name):
+			Device{0, map, typeBits, std::move(name)} {}
 		const char *keyName(Input::Key k) const final;
 	};
 	Input::Device *extDevicePtr{};

@@ -3385,7 +3385,7 @@ void CPULoop(GBASys &gba, EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudi
               // If no (m) code is enabled, apply the cheats at each LCDline
               /*if((cheatsEnabled) && (mastercode==0))
                 remainingTicks += cheatsCheckKeys(cpu, P1^0x3FF, ext);*/
-              if(cheatsNumber)
+              if(cheatsList.size())
               {
               	remainingTicks += cheatsCheckKeys(cpu, P1^0x3FF, 0);
               }

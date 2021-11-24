@@ -18,7 +18,6 @@
 #include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/string.h>
 #include <imagine/io/FileIO.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
@@ -59,9 +58,7 @@ static FS::PathString fontPathWithPattern(FcPattern *pat)
 		logErr("fontconfig font missing file path");
 		return {};
 	}
-	FS::PathString path;
-	string_copy(path, (char*)patternStr);
-	return path;
+	return (char*)patternStr;
 }
 
 static FS::PathString fontPathContainingChar(int c, int weight)
@@ -84,12 +81,7 @@ static FS::PathString fontPathContainingChar(int c, int weight)
 	FcCharSetAddChar(charSet, c);
 	FcPatternAddCharSet(pat, FC_CHARSET, charSet);
 	FcPatternAddInteger(pat, FC_WEIGHT, weight);
-	FS::PathString path = fontPathWithPattern(pat);
-	if(!strlen(path.data()))
-	{
-		return {};
-	}
-	return path;
+	return fontPathWithPattern(pat);
 }
 #endif
 
@@ -363,7 +355,7 @@ std::errc FreetypeFont::loadIntoNextSlot(GenericIO io)
 	return {};
 }
 
-std::errc FreetypeFont::loadIntoNextSlot(const char *name)
+std::errc FreetypeFont::loadIntoNextSlot(IG::CStringView name)
 {
 	if(f.isFull())
 		return std::errc::no_space_on_device;
@@ -379,7 +371,7 @@ std::errc FreetypeFont::loadIntoNextSlot(const char *name)
 	}
 	catch(...)
 	{
-		logMsg("unable to open file %s", name);
+		logMsg("unable to open file %s", name.data());
 		return std::errc::invalid_argument;
 	}
 }
@@ -416,14 +408,14 @@ FreetypeFont::GlyphRenderData FreetypeFont::makeGlyphRenderData(int idx, Freetyp
 		return {};
 	}
 	auto fontPath = fontPathContainingChar(idx, isBold ? FC_WEIGHT_BOLD : FC_WEIGHT_MEDIUM);
-	if(!strlen(fontPath.data()))
+	if(fontPath.empty())
 	{
 		logErr("no font file found for char %c (0x%X)", idx, idx);
 		ec = std::errc::no_such_file_or_directory;
 		return {};
 	}
 	uint32_t newSlot = f.size();
-	ec = loadIntoNextSlot(fontPath.data());
+	ec = loadIntoNextSlot(fontPath);
 	if((bool)ec)
 		return {};
 	auto &font = f[newSlot];

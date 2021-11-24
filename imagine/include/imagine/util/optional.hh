@@ -1,4 +1,6 @@
-/*  This file is part of EmuFramework.
+#pragma once
+
+/*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -11,12 +13,22 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#include "Recent.hh"
-#include <imagine/logger/logger.h>
-#include <imagine/util/algorithm.h>
+#include <imagine/util/concepts.hh>
+#include <optional>
 
-RecentGameList recentGameList{};
+namespace IG
+{
 
+template <class T>
+constexpr auto &&doOptionally(std::optional<T> &&optionalValue, invocable<T&> auto &&func)
+{
+	if(optionalValue)
+	{
+		func(*optionalValue);
+	}
+	return optionalValue;
+}
 
+}

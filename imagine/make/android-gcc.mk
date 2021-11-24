@@ -85,6 +85,7 @@ LDFLAGS_SYSTEM += -s \
 -Wl,-O3,--gc-sections,--compress-debug-sections=$(COMPRESS_DEBUG_SECTIONS),--icf=all,--as-needed,--warn-shared-textrel,--fatal-warnings \
 -Wl,--exclude-libs,libgcc.a,--exclude-libs,libgcc_real.a -Wl,--exclude-libs,libatomic.a
 
-ifndef RELEASE
- CFLAGS_CODEGEN += -funwind-tables
+# Don't include public libc++ symbols in main shared object file unless other linked objects need them  
+ifndef cxxStdLibLinkedObjects
+ LDFLAGS_SYSTEM += -Wl,--exclude-libs,libc++abi.a,--exclude-libs,libc++_static.a
 endif

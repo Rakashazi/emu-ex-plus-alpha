@@ -30,15 +30,13 @@ static jobject vibrator{};
 static JNI::InstMethod<void(jlong)> jVibrate{};
 static bool vibrationSystemIsInit = false;
 
-AndroidPropString AndroidApplication::androidBuildDevice(JNIEnv *env, jclass baseActivityClass) const
+std::string AndroidApplication::androidBuildDevice(JNIEnv *env, jclass baseActivityClass) const
 {
 	JNI::ClassMethod<jobject()> jDevName{env, baseActivityClass, "devName", "()Ljava/lang/String;"};
-	auto str = JNI::stringCopy<AndroidPropString>(env, (jstring)jDevName(env, baseActivityClass));
-	//logMsg("device name: %s", str.data());
-	return str;
+	return JNI::StringChars{env, (jstring)jDevName(env, baseActivityClass)}.cString();
 }
 
-AndroidPropString AndroidApplicationContext::androidBuildDevice() const
+std::string AndroidApplicationContext::androidBuildDevice() const
 {
 	auto env = mainThreadJniEnv();
 	return application().androidBuildDevice(env, env->GetObjectClass(baseActivityObject()));
@@ -56,7 +54,7 @@ bool AndroidApplicationContext::apkSignatureIsConsistent() const
 	return sigMatchesAPK;
 }
 
-bool ApplicationContext::packageIsInstalled(const char *name) const
+bool ApplicationContext::packageIsInstalled(IG::CStringView name) const
 {
 	auto env = mainThreadJniEnv();
 	auto baseActivity = baseActivityObject();

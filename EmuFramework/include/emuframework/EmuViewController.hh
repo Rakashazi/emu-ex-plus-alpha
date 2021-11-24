@@ -94,7 +94,7 @@ public:
 	EmuVideoLayer &videoLayer() const;
 	EmuAudio &emuAudio() const;
 	void onScreenChange(Base::ApplicationContext, Base::Screen &, Base::ScreenChange);
-	void handleOpenFileCommand(const char *path);
+	void handleOpenFileCommand(IG::CStringView path);
 	void setFastForwardActive(bool active);
 	bool isMenuDismissKey(Input::Event);
 	Base::ApplicationContext appContext() const;

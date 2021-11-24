@@ -52,22 +52,19 @@ struct KeyCategory
 
 struct KeyConfig
 {
-	using NameArray = std::array<char, MAX_KEY_CONFIG_NAME_SIZE>;
 	using Key = Input::Key;
 	using KeyArray = std::array<Key, MAX_KEY_CONFIG_KEYS>;
 
 	Input::Map map{};
 	Input::DeviceSubtype devSubtype{};
-	NameArray name{};
+	IG::StaticString<MAX_KEY_CONFIG_NAME_SIZE> name{};
 	KeyArray key_{};
 
 	constexpr KeyConfig() {}
-	constexpr KeyConfig(Input::Map map, Input::DeviceSubtype devSubtype, NameArray name, KeyArray key):
-		map{map}, devSubtype{devSubtype}, name{name}, key_{key}
-	{}
-	constexpr KeyConfig(Input::Map map, NameArray name, KeyArray key):
-		KeyConfig{map, {}, name, key}
-	{}
+	constexpr KeyConfig(Input::Map map, Input::DeviceSubtype devSubtype, std::string_view name, KeyArray key):
+		map{map}, devSubtype{devSubtype}, name{name}, key_{key} {}
+	constexpr KeyConfig(Input::Map map, std::string_view name, KeyArray key):
+		KeyConfig{map, {}, name, key} {}
 
 	void unbindCategory(const KeyCategory &category);
 	bool operator ==(KeyConfig const& rhs) const;

@@ -18,7 +18,6 @@
 #include <cassert>
 #include <cstddef>
 #include <iterator>
-#include <cstring>
 #include <span>
 
 template<class T, size_t SIZE>
@@ -118,17 +117,19 @@ public:
 
 	constexpr iterator insert(const_iterator position, const T& val)
 	{
-		// TODO: re-write using std::move
-		uintptr_t idx = position - data();
-		assert(idx <= size());
-		uintptr_t elemsAfterInsertIdx = size()-idx;
-		if(elemsAfterInsertIdx)
+		assert(size_ < max_size());
+		iterator p = data() + (position - begin());
+		if(p == end())
 		{
-			std::memmove(&data()[idx+1], &data()[idx], sizeof(T)*elemsAfterInsertIdx);
+			push_back(val);
 		}
-		data()[idx] = val;
-		size_++;
-		return &data()[idx];
+		else
+		{
+			std::move_backward(p, end(), end() + 1);
+			*p = val;
+			size_++;
+		}
+		return p;
 	}
 
 	constexpr iterator erase(iterator position)

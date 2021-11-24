@@ -2,6 +2,7 @@
 #define CHEATS_H
 
 #include <gba/GBA.h>
+#include <imagine/util/container/ArrayList.hh>
 
 struct CheatsData {
   int code;
@@ -35,7 +36,7 @@ void cheatsWriteHalfWord(u32 address, u16 value);
 void cheatsWriteByte(u32 address, u8 value);
 int cheatsCheckKeys(ARM7TDMI &cpu, u32 keys, u32 extended);
 
-extern int cheatsNumber;
-extern CheatsData cheatsList[100];
+extern StaticArrayList<CheatsData, 100> cheatsList;
+static constexpr size_t CHEATS_LIST_DATA_SIZE = sizeof(CheatsData) * 100;
 
 #endif // CHEATS_H

@@ -324,7 +324,7 @@ static GBPalette const p51C = {
 	PACK15_4(0xFFFFFF, 0x63A5FF, 0x0000FF, 0x000000)
 };
 
-struct GbcPaletteEntry { char const *title; GBPalette const &p; };
+struct GbcPaletteEntry { std::string_view title; GBPalette const &p; };
 
 static GbcPaletteEntry const gbcDirPalettes[] = {
 	{ "GBC - Blue", p518 },
@@ -451,7 +451,7 @@ GBPalette const *findGbcTitlePal(char const *title)
 {
 	for(auto &pal : gbcTitlePalettes)
 	{
-		if(string_equal(pal.title, title))
+		if(pal.title == title)
 			return &pal.p;
 	}
 	return nullptr;

@@ -6,6 +6,7 @@
 #include "internal.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 
 #include <snes9x.h>
 #include <memmap.h>
@@ -36,13 +37,9 @@ bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
-	[](IG::CStringView name)
+	[](std::string_view name)
 	{
-		return string_hasDotExtension(name, "smc") ||
-				string_hasDotExtension(name, "sfc") ||
-				string_hasDotExtension(name, "fig") ||
-				string_hasDotExtension(name, "mgd") ||
-				string_hasDotExtension(name, "bs");
+		return IG::stringEndsWithAny(name, ".smc", ".sfc", ".fig", ".mgd", ".bs");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
@@ -125,21 +122,21 @@ void EmuSystem::reset(ResetMode mode)
 #define FREEZE_EXT "s96"
 #endif
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *contentName)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 {
-	return IG::formatToPathString("{}/{}.0{}." FREEZE_EXT, statePath, contentName, saveSlotCharUpper(slot));
+	return IG::format<FS::FileString>("{}.0{}." FREEZE_EXT, name, saveSlotCharUpper(slot));
 }
 
 #undef FREEZE_EXT
 
 static FS::PathString sprintSRAMFilename()
 {
-	return IG::formatToPathString("{}/{}.srm", EmuSystem::savePath(), EmuSystem::contentName().data());
+	return EmuSystem::contentSaveFilePath(".srm");
 }
 
 static FS::PathString sprintCheatsFilename()
 {
-	return IG::formatToPathString("{}/{}.cht", EmuSystem::savePath(), EmuSystem::contentName().data());
+	return EmuSystem::contentSaveFilePath(".cht");
 }
 
 void EmuSystem::saveState(const char *path)
@@ -202,7 +199,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	IG::fill(Memory.NSRTHeader);
 	#endif
 	Memory.HeaderCount = 0;
-	string_copy(Memory.ROMFilename, contentFileName());
+	strncpy(Memory.ROMFilename, contentFileName().data(), sizeof(Memory.ROMFilename));
 	Settings.ForceNTSC = Settings.ForcePAL = 0;
 	switch(optionVideoSystem.val)
 	{

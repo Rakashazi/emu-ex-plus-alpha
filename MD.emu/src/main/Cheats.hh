@@ -34,8 +34,8 @@ struct MdCheat
 {
 	constexpr MdCheat() { }
 	uint8_t flags = 0;
-	char name[MAX_CHEAT_NAME_CHARS+1]{};
-	char code[12]{};
+	IG::StaticString<MAX_CHEAT_NAME_CHARS> name{};
+	IG::StaticString<11> code{};
 	uint32_t address = 0;
 	uint16_t data = 0;
 	uint16_t origData = 0;
@@ -65,7 +65,7 @@ struct MdCheat
 
 	bool operator ==(MdCheat const& rhs) const
 	{
-		return string_equal(code, rhs.code);
+		return code == rhs.code;
 	}
 };
 

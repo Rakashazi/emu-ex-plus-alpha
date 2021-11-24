@@ -95,7 +95,7 @@ class CustomSystemOptionView : public SystemOptionView
 				[this]()
 				{
 					logMsg("set bios %s", ::sysCardPath.data());
-					sysCardPath.compile(makeBiosMenuEntryStr().data(), renderer(), projP);
+					sysCardPath.compile(makeBiosMenuEntryStr(), renderer(), projP);
 				},
 				hasHuCardExtension);
 			pushAndShow(std::move(biosSelectMenu), e);
@@ -104,7 +104,7 @@ class CustomSystemOptionView : public SystemOptionView
 
 	static std::string makeBiosMenuEntryStr()
 	{
-		return fmt::format("System Card: {}", strlen(::sysCardPath.data()) ? FS::basename(::sysCardPath).data() : "None set");
+		return fmt::format("System Card: {}", ::sysCardPath.size() ? FS::basename(::sysCardPath) : "None set");
 	}
 
 public:

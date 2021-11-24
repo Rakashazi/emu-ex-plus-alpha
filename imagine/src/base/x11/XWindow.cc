@@ -20,7 +20,6 @@
 #include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/string.h>
 #include "xlibutils.h"
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
@@ -43,10 +42,10 @@ void Window::setAcceptDnd(bool on)
 void Window::setTitle(const char *name)
 {
 	XTextProperty nameProp;
-	char tempName[128]{};
+	std::string tempName{};
 	if(name)
-		string_copy(tempName, name);
-	char *tempNameArr[1] {tempName};
+		tempName = name;
+	char *tempNameArr[1] {tempName.data()};
 	if(XStringListToTextProperty(tempNameArr, 1, &nameProp))
 	{
 		XSetWMName(dpy, xWin, &nameProp);

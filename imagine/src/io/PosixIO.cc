@@ -14,68 +14,72 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "PosixIO"
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <imagine/io/PosixIO.hh>
 #include <imagine/util/fd-utils.h>
 #include <imagine/util/utility.h>
-#include <imagine/util/container/ArrayList.hh>
+#include <imagine/util/string/StaticString.hh>
 #include <imagine/logger/logger.h>
 #include "utils.hh"
+#include <cstring>
+#include <sys/stat.h>
+#include <fcntl.h>
 
-PosixIO::PosixIO(IG::CStringView path, uint32_t mode)
+static IG::StaticString<5> flagsString(uint32_t openFlags)
+{
+	IG::StaticString<5> logFlagsStr{};
+	if(openFlags & IO::OPEN_READ || !(openFlags & IO::OPEN_WRITE)) logFlagsStr += 'r';
+	if(openFlags & IO::OPEN_WRITE) logFlagsStr += 'w';
+	if(openFlags & IO::OPEN_CREATE) logFlagsStr += 'c';
+	if(openFlags & IO::OPEN_KEEP_EXISTING) logFlagsStr += 't';
+	return logFlagsStr;
+}
+
+PosixIO::PosixIO(IG::CStringView path, uint32_t openFlags)
 {
 	// validate flags
-	assert(mode < IG::bit(OPEN_FLAGS_BITS+1));
+	assert(openFlags < IG::bit(OPEN_FLAGS_BITS+1));
 
 	constexpr mode_t defaultOpenMode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 	int flags = 0;
 	mode_t openMode{};
-	StaticArrayList<char, 5> logFlagsStr{};
 
 	// setup flags
-	if(mode & OPEN_WRITE)
+	if(openFlags & OPEN_WRITE)
 	{
-		if(mode & OPEN_READ)
+		if(openFlags & OPEN_READ)
 		{
 			flags |= O_RDWR;
-			logFlagsStr.emplace_back('r');
 		}
 		else
 		{
 			flags |= O_WRONLY;
 		}
-		logFlagsStr.emplace_back('w');
 	}
 	else
 	{
 		flags |= O_RDONLY;
-		logFlagsStr.emplace_back('r');
 	}
-	if(mode & OPEN_CREATE)
+	if(openFlags & OPEN_CREATE)
 	{
 		flags |= O_CREAT;
 		openMode = defaultOpenMode;
-		logFlagsStr.emplace_back('c');
-		if(!(mode & OPEN_KEEP_EXISTING))
+		if(!(openFlags & OPEN_KEEP_EXISTING))
 		{
 			flags |= O_TRUNC;
-			logFlagsStr.emplace_back('t');
 		}
 	}
-	logFlagsStr.emplace_back('\0');
 
 	if((fd_ = ::open(path, flags, openMode)) == -1) [[unlikely]]
 	{
-		if(Config::DEBUG_BUILD)
-			logErr("error opening file (%s) @ %s:%s", logFlagsStr.data(), path.data(), strerror(errno));
-		if(mode & IO::OPEN_TEST)
+		if constexpr(Config::DEBUG_BUILD)
+			logErr("error opening file (%s) @ %s:%s", flagsString(openFlags).data(), path.data(), strerror(errno));
+		if(openFlags & IO::OPEN_TEST)
 			return;
 		else
 			throw std::system_error{errno, std::system_category(), path};
 	}
-	if(Config::DEBUG_BUILD)
-		logMsg("opened file (%s) fd %d @ %s", logFlagsStr.data(), (int)fd_, path.data());
+	if constexpr(Config::DEBUG_BUILD)
+		logMsg("opened file (%s) fd %d @ %s", flagsString(openFlags).data(), (int)fd_, path.data());
 }
 
 PosixIO PosixIO::create(IG::CStringView path, uint32_t mode)

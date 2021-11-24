@@ -16,7 +16,6 @@
 #define LOGTAG "AAssetFS"
 #include <imagine/fs/AAssetFS.hh>
 #include <imagine/util/format.hh>
-#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include <android/asset_manager.h>
 
@@ -33,7 +32,7 @@ AAssetDirectory::AAssetDirectory(AAssetManager *mgr, IG::CStringView path):
 		throw std::runtime_error{fmt::format("error opening asset directory: {}", path)};
 	}
 	logMsg("opened asset directory:%s", path.data());
-	string_copy(basePath, path);
+	basePath = path;
 	readNextDir(); // go to first entry
 }
 
@@ -55,7 +54,7 @@ bool AAssetDirectory::hasEntry() const
 	return entryName;
 }
 
-const char *AAssetDirectory::name() const
+std::string_view AAssetDirectory::name() const
 {
 	assumeExpr(entryName);
 	return entryName;
@@ -63,7 +62,7 @@ const char *AAssetDirectory::name() const
 
 PathString AAssetDirectory::path() const
 {
-	return IG::formatToPathString("{}/{}", basePath.data(), name());
+	return pathString(basePath, name());
 }
 
 void AAssetDirectory::closeAAssetDir(AAssetDir *ptr)

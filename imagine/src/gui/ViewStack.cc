@@ -21,7 +21,6 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ScopeGuard.hh>
-#include <imagine/util/string.h>
 #include <utility>
 
 BasicViewController::BasicViewController() {}
@@ -365,9 +364,9 @@ int ViewStack::viewIdx(std::u16string_view name) const
 	return -1;
 }
 
-int ViewStack::viewIdx(const char *name) const
+int ViewStack::viewIdx(std::string_view name) const
 {
-	return viewIdx(string_makeUTF16(name));
+	return viewIdx(IG::makeUTF16String(name));
 }
 
 bool ViewStack::contains(View &v) const
@@ -380,9 +379,9 @@ bool ViewStack::contains(std::u16string_view name) const
 	return viewIdx(name) != -1;
 }
 
-bool ViewStack::contains(const char *name) const
+bool ViewStack::contains(std::string_view name) const
 {
-	return contains(string_makeUTF16(name));
+	return contains(IG::makeUTF16String(name));
 }
 
 void ViewStack::dismissView(View &v, bool refreshLayout)

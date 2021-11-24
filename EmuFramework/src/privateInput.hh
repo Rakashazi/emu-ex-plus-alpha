@@ -17,7 +17,7 @@
 
 #include <imagine/input/Input.hh>
 #include <imagine/input/Device.hh>
-#include <imagine/util/string.h>
+#include <imagine/util/string/StaticString.hh>
 #ifdef CONFIG_BLUETOOTH
 #include <imagine/bluetooth/BluetoothInputDevScanner.hh>
 #endif
@@ -40,20 +40,19 @@ struct InputDeviceSavedConfig
 	#ifdef CONFIG_INPUT_ICADE
 	bool iCadeMode = 0;
 	#endif
-	char name[MAX_INPUT_DEVICE_NAME_SIZE]{};
+	IG::StaticString<MAX_INPUT_DEVICE_NAME_SIZE> name{};
 
 	constexpr InputDeviceSavedConfig() {}
 
 	bool operator ==(InputDeviceSavedConfig const& rhs) const
 	{
-		return enumId == rhs.enumId && string_equal(name, rhs.name);
+		return enumId == rhs.enumId && name == rhs.name;
 	}
 
 	bool matchesDevice(const Input::Device &dev) const
 	{
 		//logMsg("checking against device %s,%d", name, devId);
-		return dev.enumId() == enumId &&
-			string_equal(dev.name(), name);
+		return dev.enumId() == enumId && dev.name() == name;
 	}
 };
 
@@ -80,7 +79,7 @@ public:
 	void setDefaultKeyConf();
 	KeyConfig *mutableKeyConf();
 	KeyConfig *makeMutableKeyConf(EmuApp &);
-	KeyConfig *setKeyConfCopiedFromExisting(const char *name);
+	KeyConfig *setKeyConfCopiedFromExisting(std::string_view name);
 	void save();
 	void setSavedConf(InputDeviceSavedConfig *savedConf, bool updateKeymap = true);
 	bool hasSavedConf(const InputDeviceSavedConfig &conf) const { return savedConf && *savedConf == conf; };
@@ -110,7 +109,7 @@ struct InputDeviceData
 
 	InputDeviceData(Input::Device &, std::list<InputDeviceSavedConfig> &);
 	void buildKeyMap(const Input::Device &d);
-	static std::string makeDisplayName(const char *name, unsigned id);
+	static std::string makeDisplayName(std::string_view name, unsigned id);
 };
 
 static InputDeviceData& inputDevData(const Input::Device &d)
@@ -136,7 +135,7 @@ static bool customKeyConfigsContainName(const char *name)
 {
 	for(auto &e : customKeyConfig)
 	{
-		if(string_equal(e.name.data(), name))
+		if(e.name == name)
 			return 1;
 	}
 	return 0;

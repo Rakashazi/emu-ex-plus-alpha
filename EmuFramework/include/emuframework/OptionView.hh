@@ -155,17 +155,16 @@ protected:
 	BoolMenuItem confirmAutoLoadState;
 	BoolMenuItem confirmOverwriteState;
 	TextMenuItem savePath;
-	BoolMenuItem checkSavePathWriteAccess;
 	static constexpr unsigned MIN_FAST_FORWARD_SPEED = 2;
 	TextMenuItem fastForwardSpeedItem[6];
 	MultiChoiceMenuItem fastForwardSpeed;
 	#if defined __ANDROID__
 	BoolMenuItem performanceMode;
 	#endif
-	StaticArrayList<MenuItem*, 25> item{};
+	StaticArrayList<MenuItem*, 24> item{};
 
-	void onSavePathChange(const char *path);
-	virtual void onFirmwarePathChange(const char *path, Input::Event e);
+	void onSavePathChange(std::string_view path);
+	virtual void onFirmwarePathChange(std::string_view path, Input::Event e);
 	std::unique_ptr<TextTableView> makeFirmwarePathMenu(IG::utf16String name, bool allowFiles = false, unsigned extraItemsHint = 0);
 	void pushAndShowFirmwarePathMenu(IG::utf16String name, Input::Event e, bool allowFiles = false);
 	void pushAndShowFirmwareFilePathMenu(IG::utf16String name, Input::Event e);

@@ -94,6 +94,18 @@ public:
 		return read<T>(nullptr).first;
 	}
 
+	ssize_t readSized(IG::ResizableContainer auto &c, size_t maxBytes)
+	{
+		if(c.max_size() < maxBytes)
+			return -1;
+		c.resize(maxBytes);
+		auto bytesRead = read(c.data(), maxBytes);
+		if(bytesRead == -1)
+			return -1;
+		c.resize(bytesRead);
+		return bytesRead;
+	}
+
 	ssize_t write(IG::NotPointerDecayable auto &&obj, std::error_code *ecOut = nullptr)
 	{
 		return static_cast<IO*>(this)->write(&obj, sizeof(decltype(obj)), ecOut);

@@ -16,7 +16,6 @@
 #define LOGTAG "GLRenderer"
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 
 #ifndef GL_DEBUG_TYPE_ERROR
@@ -119,7 +118,7 @@ void DrawContextSupport::setGLDebugOutput(bool on)
 			GL_APIENTRY [](GLenum source, GLenum type, GLuint id,
 				GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 			{
-				if(Config::envIsAndroid && string_equal(message, "FreeAllocationOnTimestamp - WaitForTimestamp"))
+				if(Config::envIsAndroid && std::string_view{message} == "FreeAllocationOnTimestamp - WaitForTimestamp")
 				{
 					return;
 				}

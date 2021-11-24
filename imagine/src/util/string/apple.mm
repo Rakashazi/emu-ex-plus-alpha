@@ -16,7 +16,7 @@
 static_assert(__has_feature(objc_arc), "This file requires ARC");
 #import <Foundation/NSString.h>
 #include <imagine/util/string/apple.h>
-#include <imagine/util/string.h>
+#include <cstring>
 
 void precomposeUnicodeString(const char *src, char *dest, unsigned int destSize)
 {
@@ -24,6 +24,6 @@ void precomposeUnicodeString(const char *src, char *dest, unsigned int destSize)
 	@autoreleasepool
 	{
 		auto precomp = [decomp precomposedStringWithCanonicalMapping];
-		string_copy(dest, [precomp UTF8String], destSize);
+		strncpy(dest, [precomp UTF8String], destSize);
 	}
 }

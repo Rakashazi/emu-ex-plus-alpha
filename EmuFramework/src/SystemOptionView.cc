@@ -22,23 +22,21 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 
-static FS::PathString savePathStrToDescStr(char *savePathStr)
+static FS::PathString savePathStrToDescStr(std::string_view savePathStr)
 {
-	FS::PathString desc{};
-	if(strlen(savePathStr))
+	if(savePathStr.size())
 	{
-		if(string_equal(savePathStr, optionSavePathDefaultToken))
-			string_copy(desc, "Default");
+		if(savePathStr == optionSavePathDefaultToken)
+			return "Default";
 		else
 		{
-			string_copy(desc, FS::basename(optionSavePath.val).data());
+			return FS::basename(savePathStr);
 		}
 	}
 	else
 	{
-		string_copy(desc, "Content Path");
+		return "Content Path";
 	}
-	return desc;
 }
 
 BiosSelectMenu::BiosSelectMenu(IG::utf16String name, ViewAttachParams attach, FS::PathString *biosPathStr_, BiosChangeDelegate onBiosChange_,
@@ -65,12 +63,12 @@ BiosSelectMenu::BiosSelectMenu(IG::utf16String name, ViewAttachParams attach, FS
 		"Select File", &defaultFace(),
 		[this](Input::Event e)
 		{
-			auto startPath = strlen(biosPathStr->data()) ? FS::dirname(*biosPathStr) : app().mediaSearchPath();
-			auto fPicker = makeView<EmuFilePicker>(startPath.data(), false, fsFilter, FS::RootPathInfo{}, e);
+			auto startPath = biosPathStr->size() ? FS::dirname(*biosPathStr) : app().mediaSearchPath();
+			auto fPicker = makeView<EmuFilePicker>(startPath, false, fsFilter, FS::RootPathInfo{}, e);
 			fPicker->setOnSelectFile(
-				[this](FSPicker &picker, const char* name, Input::Event e)
+				[this](FSPicker &picker, std::string_view name, Input::Event e)
 				{
-					*biosPathStr = picker.makePathString(name);
+					*biosPathStr = picker.pathString(name);
 					onBiosChangeD.callSafe();
 					dismiss();
 					picker.dismiss();
@@ -83,7 +81,7 @@ BiosSelectMenu::BiosSelectMenu(IG::utf16String name, ViewAttachParams attach, FS
 		"Unset", &defaultFace(),
 		[this]()
 		{
-			strcpy(biosPathStr->data(), "");
+			biosPathStr->clear();
 			auto onBiosChange = onBiosChangeD;
 			onBiosChange.callSafe();
 			dismiss();
@@ -102,9 +100,33 @@ static void setAutoSaveState(unsigned val)
 	logMsg("set auto-savestate %d", optionAutoSaveState.val);
 }
 
-static auto makePathMenuEntryStr(PathOption optionSavePath)
+static auto makePathMenuEntryStr(std::string_view savePath)
 {
-	return fmt::format("Save Path: {}", savePathStrToDescStr(optionSavePath).data());
+	return fmt::format("Save Path: {}", savePathStrToDescStr(savePath));
+}
+
+static bool hasWriteAccessToDir(Base::ApplicationContext ctx, IG::CStringView path)
+{
+	auto hasAccess = FS::access(path, FS::acc::w);
+	#ifdef __ANDROID__
+	// on Android 4.4 also test file creation since
+	// access() can still claim an SD card is writable
+	// even though parts are locked-down by the OS
+	if(ctx.androidSDK() >= 19)
+	{
+		auto testFilePath = FS::pathString(path, ".safe-to-delete-me");
+		auto testFile = FileIO::create(testFilePath, IO::OPEN_TEST);
+		if(!testFile)
+		{
+			hasAccess = false;
+		}
+		else
+		{
+			FS::remove(testFilePath);
+		}
+	}
+	#endif
+	return hasAccess;
 }
 
 SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
@@ -158,45 +180,41 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 			multiChoiceView->appendItem("Set Custom Path",
 				[this](Input::Event e)
 				{
-					auto startPath = strlen(EmuSystem::savePath_.data()) ? EmuSystem::savePath_ : app().mediaSearchPath();
-					auto fPicker = makeView<EmuFilePicker>(startPath.data(), true,
+					auto startPath = EmuSystem::userSavePath().size() ? EmuSystem::userSavePath() : app().mediaSearchPath();
+					auto fPicker = makeView<EmuFilePicker>(startPath, true,
 						EmuSystem::NameFilterFunc{}, FS::RootPathInfo{}, e);
 					fPicker->setOnClose(
 						[this](FSPicker &picker, Input::Event e)
 						{
-							EmuSystem::savePath_ = picker.path();
-							logMsg("set save path %s", (char*)optionSavePath);
-							onSavePathChange(optionSavePath);
+							auto path = picker.path();
+							if(!hasWriteAccessToDir(appContext(), path))
+							{
+								app().postErrorMessage("This directory lacks write access");
+								return;
+							}
+							EmuSystem::setUserSavePath(appContext(), path);
+							onSavePathChange(path);
 							dismissPrevious();
 							picker.dismiss();
 						});
 					pushAndShowModal(std::move(fPicker), e);
 				});
-			multiChoiceView->appendItem("Same as Game",
+			multiChoiceView->appendItem("Same as Content",
 				[this](View &view)
 				{
-					strcpy(optionSavePath, "");
+					EmuSystem::setUserSavePath(appContext(), "");
 					onSavePathChange("");
 					view.dismiss();
 				});
 			multiChoiceView->appendItem("Default",
 				[this](View &view)
 				{
-					strcpy(optionSavePath, optionSavePathDefaultToken);
+					EmuSystem::setUserSavePath(appContext(), optionSavePathDefaultToken);
 					onSavePathChange(optionSavePathDefaultToken);
 					view.dismiss();
 				});
 			pushAndShow(std::move(multiChoiceView), e);
 			postDraw();
-		}
-	},
-	checkSavePathWriteAccess
-	{
-		"Check Save Path Write Access", &defaultFace(),
-		(bool)optionCheckSavePathWriteAccess,
-		[this](BoolMenuItem &item, Input::Event e)
-		{
-			optionCheckSavePathWriteAccess = item.flipBoolValue(*this);
 		}
 	},
 	fastForwardSpeedItem
@@ -245,9 +263,8 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&autoSaveState);
 	item.emplace_back(&confirmAutoLoadState);
 	item.emplace_back(&confirmOverwriteState);
-	savePath.setName(makePathMenuEntryStr(optionSavePath).data());
+	savePath.setName(makePathMenuEntryStr(EmuSystem::userSavePath()));
 	item.emplace_back(&savePath);
-	item.emplace_back(&checkSavePathWriteAccess);
 	item.emplace_back(&fastForwardSpeed);
 	#ifdef __ANDROID__
 	if(!optionSustainedPerformanceMode.isConst)
@@ -255,19 +272,17 @@ void SystemOptionView::loadStockItems()
 	#endif
 }
 
-void SystemOptionView::onSavePathChange(const char *path)
+void SystemOptionView::onSavePathChange(std::string_view path)
 {
-	if(string_equal(path, optionSavePathDefaultToken))
+	if(path == optionSavePathDefaultToken)
 	{
 		auto defaultPath = EmuSystem::baseDefaultGameSavePath(appContext());
-		app().postMessage(4, false, fmt::format("Default Save Path:\n{}", defaultPath.data()));
+		app().postMessage(4, false, fmt::format("Default Save Path:\n{}", defaultPath));
 	}
-	savePath.compile(makePathMenuEntryStr(optionSavePath).data(), renderer(), projP);
-	EmuSystem::setupGameSavePath(appContext());
-	EmuSystem::savePathChanged();
+	savePath.compile(makePathMenuEntryStr(path), renderer(), projP);
 }
 
-void SystemOptionView::onFirmwarePathChange(const char *path, Input::Event e) {}
+void SystemOptionView::onFirmwarePathChange(std::string_view path, Input::Event e) {}
 
 std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16String name, bool allowFiles, unsigned extraItemsHint)
 {
@@ -277,13 +292,13 @@ std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16S
 		[this](Input::Event e)
 		{
 			auto startPath =  app().firmwareSearchPath();
-			auto fPicker = makeView<EmuFilePicker>(startPath.data(), true,
+			auto fPicker = makeView<EmuFilePicker>(startPath, true,
 				EmuSystem::NameFilterFunc{}, FS::RootPathInfo{}, e);
 			fPicker->setOnClose(
 				[this](FSPicker &picker, Input::Event e)
 				{
 					auto path = picker.path();
-					app().setFirmwareSearchPath(path.data());
+					app().setFirmwareSearchPath(path);
 					logMsg("set firmware path:%s", path.data());
 					onFirmwarePathChange(path.data(), e);
 					dismissPrevious();
@@ -297,13 +312,13 @@ std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16S
 			[this](Input::Event e)
 			{
 				auto startPath =  app().firmwareSearchPath();
-				auto fPicker = makeView<EmuFilePicker>(startPath.data(), false,
+				auto fPicker = makeView<EmuFilePicker>(startPath, false,
 					EmuSystem::NameFilterFunc{}, FS::RootPathInfo{}, e);
 				fPicker->setOnSelectFile(
-					[this](FSPicker &picker, const char *name, Input::Event e)
+					[this](FSPicker &picker, std::string_view name, Input::Event e)
 					{
-						auto path = picker.makePathString(name);
-						app().setFirmwareSearchPath(path.data());
+						auto path = picker.pathString(name);
+						app().setFirmwareSearchPath(path);
 						logMsg("set firmware archive file:%s", path.data());
 						onFirmwarePathChange(path.data(), e);
 						dismissPrevious();

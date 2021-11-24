@@ -29,7 +29,7 @@ namespace Input
 class UIKitTextField
 {
 public:
-	UIKitTextField(Base::ApplicationContext, TextFieldDelegate, const char *initialText, const char *promptText, int fontSizePixels);
+	UIKitTextField(Base::ApplicationContext, TextFieldDelegate, IG::CStringView initialText, IG::CStringView promptText, int fontSizePixels);
 	~UIKitTextField();
 	UIKitTextField &operator=(UIKitTextField &&) = delete;
 

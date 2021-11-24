@@ -76,7 +76,7 @@ static void removeKeyConfFromAllDevices(const KeyConfig *conf, Base::Application
 	{
 		if(e.keyConf == conf)
 		{
-			logMsg("used by saved device config %s,%d", e.name, e.enumId);
+			logMsg("used by saved device config %s,%d", e.name.data(), e.enumId);
 			e.keyConf = nullptr;
 		}
 		auto devIt = IG::find_if(ctx.inputDevices(), [&](auto &devPtr){ return e.matchesDevice(*devPtr); });
@@ -116,7 +116,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 								{
 									++it;
 								}
-								logMsg("deleting device settings for:%s,%d", it->name, it->enumId);
+								logMsg("deleting device settings for:%s,%d", it->name.data(), it->enumId);
 								for(auto &devPtr : appContext().inputDevices())
 								{
 									auto &inputDevConf = inputDevData(*devPtr).devConf;
@@ -150,7 +150,7 @@ InputManagerView::InputManagerView(ViewAttachParams attach):
 			for(unsigned i = 0; auto &e : customKeyConfig)
 			{
 				auto incIdx = IG::scopeGuard([&](){ i++; });
-				multiChoiceView->appendItem(e.name.data(),
+				multiChoiceView->appendItem(e.name,
 					[this, i](Input::Event e)
 					{
 						int deleteProfileIdx = i;
@@ -273,7 +273,7 @@ void InputManagerView::loadItems()
 		}
 		else
 		{
-			logMsg("not adding device:%s to list", devPtr->name());
+			logMsg("not adding device:%s to list", devPtr->name().data());
 		}
 	}
 }
@@ -514,7 +514,7 @@ public:
 
 	ProfileChangeDelegate onProfileChange{};
 
-	ProfileSelectMenu(ViewAttachParams attach, Input::Device &dev, const char *selectedName):
+	ProfileSelectMenu(ViewAttachParams attach, Input::Device &dev, std::string_view selectedName):
 		TextTableView
 		{
 			"Key Profile",
@@ -526,11 +526,11 @@ public:
 		{
 			if(conf.map == dev.map())
 			{
-				if(string_equal(selectedName, conf.name.data()))
+				if(selectedName == conf.name)
 				{
 					activeItem = textItem.size();
 				}
-				textItem.emplace_back(conf.name.data(), &defaultFace(),
+				textItem.emplace_back(conf.name, &defaultFace(),
 					[this, &conf](Input::Event e)
 					{
 						auto del = onProfileChange;
@@ -544,9 +544,9 @@ public:
 		iterateTimes(defaultConfs, c)
 		{
 			auto &conf = KeyConfig::defaultConfigsForDevice(dev)[c];
-			if(string_equal(selectedName, defaultConf[c].name.data()))
+			if(selectedName == defaultConf[c].name)
 				activeItem = textItem.size();
-			textItem.emplace_back(defaultConf[c].name.data(), &defaultFace(),
+			textItem.emplace_back(defaultConf[c].name, &defaultFace(),
 				[this, &conf](Input::Event e)
 				{
 					auto del = onProfileChange;
@@ -598,7 +598,7 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 		{}, &defaultFace(),
 		[this](Input::Event e)
 		{
-			auto profileSelectMenu = makeView<ProfileSelectMenu>(devConf->device(), devConf->keyConf().name.data());
+			auto profileSelectMenu = makeView<ProfileSelectMenu>(devConf->device(), devConf->keyConf().name);
 			profileSelectMenu->onProfileChange =
 				[this](const KeyConfig &profile)
 				{
@@ -619,7 +619,7 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 				app().postMessage(2, "Can't rename a built-in profile");
 				return;
 			}
-			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", devConf->keyConf().name.data(),
+			app().pushAndShowNewCollectValueInputView<const char*>(attachParams(), e, "Input name", devConf->keyConf().name,
 				[this](EmuApp &app, auto str)
 				{
 					if(customKeyConfigsContainName(str))
@@ -629,7 +629,7 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 						return false;
 					}
 					assert(devConf->mutableKeyConf());
-					string_copy(devConf->mutableKeyConf()->name, str);
+					devConf->mutableKeyConf()->name = str;
 					onShow();
 					postDraw();
 					return true;
@@ -759,7 +759,7 @@ InputManagerDeviceView::InputManagerDeviceView(IG::utf16String name, ViewAttachP
 	},
 	devConf{&inputDevData(dev).devConf}
 {
-	loadProfile.setName(fmt::format("Profile: {}", devConf->keyConf().name.data()).data());
+	loadProfile.setName(fmt::format("Profile: {}", devConf->keyConf().name));
 	renameProfile.setActive(devConf->mutableKeyConf());
 	deleteProfile.setActive(devConf->mutableKeyConf());
 	loadItems();
@@ -816,7 +816,7 @@ void InputManagerDeviceView::loadItems()
 void InputManagerDeviceView::onShow()
 {
 	TableView::onShow();
-	loadProfile.compile(fmt::format("Profile: {}", devConf->keyConf().name.data()).data(), renderer(), projP);
+	loadProfile.compile(fmt::format("Profile: {}", devConf->keyConf().name), renderer(), projP);
 	bool keyConfIsMutable = devConf->mutableKeyConf();
 	renameProfile.setActive(keyConfIsMutable);
 	deleteProfile.setActive(keyConfIsMutable);

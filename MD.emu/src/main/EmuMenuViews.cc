@@ -278,15 +278,15 @@ class CustomSystemOptionView : public SystemOptionView
 
 	static auto makeBiosMenuEntryStr(int region)
 	{
-		const char *path = "";
+		std::string_view path{};
 		switch(region)
 		{
-			bdefault: path = cdBiosUSAPath.data();
-			bcase REGION_JAPAN_NTSC: path = cdBiosJpnPath.data();
-			bcase REGION_EUROPE: path = cdBiosEurPath.data();
+			bdefault: path = cdBiosUSAPath;
+			bcase REGION_JAPAN_NTSC: path = cdBiosJpnPath;
+			bcase REGION_EUROPE: path = cdBiosEurPath;
 		}
 		const char *regionStr = biosHeadingStr[regionCodeToIdx(region)];
-		return fmt::format("{}: {}", regionStr, strlen(path) ? FS::basename(path).data() : "None set");
+		return fmt::format("{}: {}", regionStr, path.size() ? FS::basename(path) : "None set");
 	}
 
 	void cdBiosPathHandler(Input::Event e, int region)

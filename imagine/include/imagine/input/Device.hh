@@ -83,7 +83,7 @@ public:
 		AXIS_BITS_HAT = AXIS_BIT_HAT_X | AXIS_BIT_HAT_Y;
 
 	Device();
-	Device(int id, Map map, TypeBits, const char *name);
+	Device(int id, Map map, TypeBits, std::string name);
 	virtual ~Device() = default;
 
 	bool hasKeyboard() const
@@ -119,7 +119,7 @@ public:
 	int id() const { return id_; }
 	uint8_t enumId() const { return enumId_; }
 	void setEnumId(uint8_t id) { enumId_ = id; }
-	const char *name() const { return name_.c_str(); }
+	std::string_view name() const { return name_; }
 	Map map() const;
 	TypeBits typeBits() const;
 	Subtype subtype() const { return subtype_; }
@@ -157,7 +157,7 @@ public:
 
 protected:
 	std::shared_ptr<void> appDataPtr{};
-	std::string name_{""};
+	std::string name_{};
 	int id_{};
 	TypeBits typeBits_{};
 	uint8_t enumId_{};

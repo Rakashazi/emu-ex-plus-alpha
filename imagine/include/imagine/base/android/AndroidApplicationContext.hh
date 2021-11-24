@@ -33,8 +33,6 @@ namespace Base
 
 class Application;
 
-using AndroidPropString = std::array<char, 92>;
-
 enum class SustainedPerformanceType
 {
 	NONE,
@@ -57,7 +55,7 @@ public:
 	int32_t androidSDK() const;
 	jobject baseActivityObject() const;
 	AAssetManager *aAssetManager() const;
-	AndroidPropString androidBuildDevice() const;
+	std::string androidBuildDevice() const;
 	SustainedPerformanceType sustainedPerformanceModeType() const;
 	void setSustainedPerformanceMode(bool on);
 	bool apkSignatureIsConsistent() const;

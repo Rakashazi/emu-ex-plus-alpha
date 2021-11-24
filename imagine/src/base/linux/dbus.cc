@@ -21,7 +21,6 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/string.h>
 
 namespace Base
 {

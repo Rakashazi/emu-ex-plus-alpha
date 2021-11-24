@@ -6,14 +6,13 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 
-unsigned hasROMExtension(const char *name)
+bool hasROMExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "bin") || string_hasDotExtension(name, "smd") ||
-		string_hasDotExtension(name, "md") || string_hasDotExtension(name, "gen")
+	return IG::stringEndsWithAny(name, ".bin", ".smd", ".md", ".gen"
 		#ifndef NO_SYSTEM_PBC
-		|| string_hasDotExtension(name, "sms")
+		, ".sms"
 		#endif
-		;
+		);
 }
 
 int loadArchive(void *buff, unsigned bytes, const char *path, FS::FileString &nameInArchive)
@@ -29,10 +28,10 @@ int loadArchive(void *buff, unsigned bytes, const char *path, FS::FileString &na
 					continue;
 				}
 				auto name = entry.name();
-				logMsg("archive file entry:%s", name);
+				logMsg("archive file entry:%s", name.data());
 				if(hasROMExtension(name))
 				{
-					string_copy(nameInArchive, name);
+					nameInArchive = name;
 					auto io = entry.moveIO();
 					return io.read(buff, bytes);
 				}

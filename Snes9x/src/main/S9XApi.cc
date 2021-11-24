@@ -67,7 +67,8 @@ const char *S9xGetCrosshair(int idx)
 
 const char * S9xGetDirectory(enum s9x_getdirtype dirtype)
 {
-	return EmuSystem::savePath();
+	globalPath = EmuSystem::contentSavePath();
+	return globalPath.c_str();
 }
 
 const char * S9xGetFilenameInc(const char *ex, enum s9x_getdirtype dirtype)
@@ -97,35 +98,35 @@ const char *S9xGetFilenameInc(const char *e)
 
 const char *S9xGetSnapshotDirectory()
 {
-	return EmuSystem::savePath();
+	globalPath = EmuSystem::savePath();
+	return globalPath.c_str();
 }
 
 extern "C" char* osd_GetPackDir()
 {
-	static char	filename[PATH_MAX + 1];
-	strcpy(filename, EmuSystem::savePath());
+	globalPath = EmuSystem::savePath();
 
 	if(!strncmp((char*)&Memory.ROM [0xffc0], "SUPER POWER LEAG 4   ", 21))
 	{
-		strcat(filename, "/SPL4-SP7");
+		globalPath += "/SPL4-SP7";
 	}
 	else if(!strncmp((char*)&Memory.ROM [0xffc0], "MOMOTETSU HAPPY      ",21))
 	{
-		strcat(filename, "/SMHT-SP7");
+		globalPath += "/SMHT-SP7";
 	}
 	else if(!strncmp((char*)&Memory.ROM [0xffc0], "HU TENGAI MAKYO ZERO ", 21))
 	{
-		strcat(filename, "/FEOEZSP7");
+		globalPath += "/FEOEZSP7";
 	}
 	else if(!strncmp((char*)&Memory.ROM [0xffc0], "JUMP TENGAIMAKYO ZERO",21))
 	{
-		strcat(filename, "/SJUMPSP7");
+		globalPath += "/SJUMPSP7";
 	}
 	else
 	{
-		strcat(filename, "/MISC-SP7");
+		globalPath += "/MISC-SP7";
 	}
-	return filename;
+	return globalPath.c_str();
 }
 
 #endif
@@ -144,9 +145,9 @@ const char *S9xGetFilename(const char *ex)
 	}
 	#endif
 	globalPath = fmt::format("{}/{}{}",
-		isRomDir ? EmuSystem::contentDirectory().data() : EmuSystem::savePath(),
-		EmuSystem::contentName().data(), ex);
-	//logMsg("built s9x path:%s", globalPath.c_str());
+		isRomDir ? EmuSystem::contentDirectory() : EmuSystem::contentSavePath(),
+		EmuSystem::contentName(), ex);
+	logMsg("built s9x path:%s", globalPath.c_str());
 	return globalPath.c_str();
 }
 

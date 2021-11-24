@@ -117,12 +117,10 @@ public:
 			IG::FloatSeconds detectedFrameTime = frameTimeTotalSecs / (double)frameTimeSample.size();
 			{
 				waitForDrawFinished();
-				std::array<char, 32> fpsStr{};
 				if(detectedFrameTime.count())
-					IG::formatTo(fpsStr, "{:.2f}fps", 1. / detectedFrameTime.count());
+					fpsText.setString(fmt::format("{:.2f}fps", 1. / detectedFrameTime.count()));
 				else
-					string_copy(fpsStr, "0fps");
-				fpsText.setString(fpsStr.data());
+					fpsText.setString("0fps");
 				fpsText.compile(renderer(), projP);
 			}
 			if(stableFrameTime)
@@ -775,12 +773,12 @@ void VideoOptionView::loadStockItems()
 	item.emplace_back(&dropLateFrames);
 	if(!optionFrameRate.isConst)
 	{
-		frameRate.setName(makeFrameRateStr().data());
+		frameRate.setName(makeFrameRateStr());
 		item.emplace_back(&frameRate);
 	}
 	if(!optionFrameRatePAL.isConst)
 	{
-		frameRatePAL.setName(makeFrameRatePALStr().data());
+		frameRatePAL.setName(makeFrameRatePALStr());
 		item.emplace_back(&frameRatePAL);
 	}
 	item.emplace_back(&visualsHeading);
@@ -838,12 +836,12 @@ bool VideoOptionView::onFrameTimeChange(EmuSystem::VideoSystem vidSys, IG::Float
 	if(vidSys == EmuSystem::VIDSYS_NATIVE_NTSC)
 	{
 		optionFrameRate = time.count();
-		frameRate.compile(makeFrameRateStr().data(), renderer(), projP);
+		frameRate.compile(makeFrameRateStr(), renderer(), projP);
 	}
 	else
 	{
 		optionFrameRatePAL = time.count();
-		frameRatePAL.compile(makeFrameRatePALStr().data(), renderer(), projP);
+		frameRatePAL.compile(makeFrameRatePALStr(), renderer(), projP);
 	}
 	return true;
 }

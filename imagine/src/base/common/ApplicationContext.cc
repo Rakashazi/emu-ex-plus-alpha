@@ -24,7 +24,6 @@
 #include <imagine/fs/AAssetFS.hh>
 #endif
 #include <imagine/util/ScopeGuard.hh>
-#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <cstring>
 
@@ -190,19 +189,18 @@ void ApplicationContext::dispatchOnExit(bool backgrounded)
 	application().dispatchOnExit(*this, backgrounded);
 }
 
-FS::RootPathInfo ApplicationContext::nearestRootPath(IG::CStringView path) const
+FS::RootPathInfo ApplicationContext::nearestRootPath(std::string_view path) const
 {
-	if(!path)
+	if(path.empty())
 		return {};
 	auto location = rootFileLocations();
 	const FS::PathLocation *nearestPtr{};
 	size_t lastMatchOffset = 0;
 	for(const auto &l : location)
 	{
-		auto subStr = strstr(path, l.path.data());
-		if(subStr != path)
+		if(!path.starts_with(l.path))
 			continue;
-		auto matchOffset = (size_t)(&path[l.root.length] - path);
+		auto matchOffset = (size_t)(&path[l.root.length] - path.data());
 		if(matchOffset > lastMatchOffset)
 		{
 			nearestPtr = &l;
@@ -220,7 +218,7 @@ AssetIO ApplicationContext::openAsset(IG::CStringView name, IO::AccessHint hint,
 	#ifdef __ANDROID__
 	return {*this, name, hint, openFlags};
 	#else
-	return {IG::formatToPathString("{}/{}", assetPath(appName).data(), name), hint, openFlags};
+	return {FS::pathString(assetPath(appName), name), hint, openFlags};
 	#endif
 }
 
@@ -229,7 +227,7 @@ FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(IG::CStringVie
 	#ifdef __ANDROID__
 	return {aAssetManager(), path};
 	#else
-	return {IG::formatToPathString("{}/{}", assetPath(appName).data(), path)};
+	return {FS::pathString(assetPath(appName), path)};
 	#endif
 }
 
@@ -242,6 +240,8 @@ FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(IG::CStringVie
 [[gnu::weak]] void ApplicationContext::showSystemDocumentPicker(SystemDocumentPickerDelegate) {}
 
 [[gnu::weak]] FileIO ApplicationContext::openUri(IG::CStringView, IO::AccessHint, unsigned) { return {}; }
+
+[[gnu::weak]] FileIO ApplicationContext::fileAtUri(IG::CStringView, IG::CStringView, IO::AccessHint, unsigned) { return {}; }
 
 Orientation ApplicationContext::validateOrientationMask(Orientation oMask) const
 {
@@ -327,7 +327,7 @@ void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDeleg
 
 [[gnu::weak]] NativeDisplayConnection ApplicationContext::nativeDisplayConnection() const { return {}; }
 
-[[gnu::weak]] bool ApplicationContext::packageIsInstalled(const char *name) const { return false; }
+[[gnu::weak]] bool ApplicationContext::packageIsInstalled(IG::CStringView name) const { return false; }
 
 OnExit::OnExit(ResumeDelegate del, ApplicationContext ctx, int priority): del{del}, ctx{ctx}
 {

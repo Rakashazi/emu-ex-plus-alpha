@@ -14,108 +14,51 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #define LOGTAG "FS"
-#if !defined __APPLE__ && !defined __ANDROID__ && !defined __PPU__ && defined _GNU_SOURCE
-#define CONFIG_USE_GNU_BASENAME
-#endif
-#include <stdlib.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/logger/logger.h>
-#include <imagine/util/string.h>
-#include <imagine/util/format.hh>
 #include <imagine/util/utility.h>
-#ifdef CONFIG_USE_GNU_BASENAME
-#include <imagine/util/string/glibc.h>
-#endif
+#include <imagine/util/string.h>
 #include "libgen.hh"
+#include <stdlib.h>
 
 namespace FS
 {
 
-FileString makeFileString(IG::CStringView str)
-{
-	FileString path{};
-	string_copy(path, str);
-	return path;
-}
-
-FileString makeFileStringWithoutDotExtension(IG::CStringView str)
-{
-	auto fileStr = makeFileString(str);
-	if(auto dotPos = string_dotExtension(str);
-		dotPos)
-	{
-		fileStr[(uintptr_t)(dotPos - str)] = 0;
-	}
-	return fileStr;
-}
-
-PathString makePathString(IG::CStringView str)
-{
-	PathString path{};
-	string_copy(path, str);
-	return path;
-}
-
-PathString makePathString(IG::CStringView dir, IG::CStringView file)
-{
-	return IG::formatToPathString("{}/{}", dir, file);
-}
-
 PathString makeAppPathFromLaunchCommand(IG::CStringView launchCmd)
 {
 	logMsg("app path from launch command:%s", launchCmd.data());
-	FS::PathString realPath{};
+	PathStringArray realPath;
 	if(!realpath(FS::dirname(launchCmd).data(), realPath.data()))
 	{
 		logErr("error in realpath()");
 		return {};
 	}
-	return realPath;
+	return realPath.data();
 }
 
 FileString basename(IG::CStringView path)
 {
-	FileString name{};
-	#ifdef CONFIG_USE_GNU_BASENAME
-	string_copy(name, gnu_basename(path));
-	#elif defined __ANDROID__
-	string_copy(name, ::posixBasenameImpl(path));
-	#else
-	// standard version can modify input, and returns a pointer within it
-	// BSD version can modify input, but always returns its own allocated storage
-	PathString tempPath = makePathString(path);
-	string_copy(name, ::posixBasenameImpl(tempPath.data()));
-	#endif
-	return name;
+	return basenameImpl(path);
 }
 
 PathString dirname(IG::CStringView path)
 {
-	PathString dir{};
-	#if defined __ANDROID__
-	string_copy(dir, ::posixDirnameImpl(path));
-	#else
-	// standard version can modify input, and returns a pointer within it
-	// BSD version can modify input, but always returns its own allocated storage
-	PathString tempPath = makePathString(path);
-	string_copy(dir, ::posixDirnameImpl(tempPath.data()));
-	#endif
-	return dir;
+	return dirnameImpl(path);
 }
 
-bool isUri(IG::CStringView str)
+bool isUri(std::string_view str)
 {
 	if(str[0] == '/')
 		return false;
 	else return true;
 }
 
-PathString decodeUri(IG::CStringView uri)
+PathString decodeUri(std::string_view uri)
 {
-	PathString output{};
-	assert(strlen(uri) < output.size());
-	::decodeUri(uri, output.data());
-	return output;
+	PathStringArray output;
+	assert(uri.size() < sizeof(output) - 1);
+	IG::decodeUri(uri, output.data());
+	return output.data();
 }
 
 FileString basenameUri(IG::CStringView pathOrUri, bool isEncodedUri)
@@ -129,8 +72,8 @@ FileString basenameUri(IG::CStringView pathOrUri, bool isEncodedUri)
 bool fileStringNoCaseLexCompare(FS::FileString s1, FS::FileString s2)
 {
 	return std::lexicographical_compare(
-		s1.data(), s1.data() + strlen(s1.data()),
-		s2.data(), s2.data() + strlen(s2.data()),
+		s1.begin(), s1.end(),
+		s2.begin(), s2.end(),
 		[](char c1, char c2)
 		{
 			return std::tolower(c1) < std::tolower(c2);

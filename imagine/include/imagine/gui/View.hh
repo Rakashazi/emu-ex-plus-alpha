@@ -20,7 +20,7 @@
 #include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/gfx/ProjectionPlane.hh>
 #include <imagine/util/DelegateFunc.hh>
-#include <imagine/util/string.h>
+#include <imagine/util/string/utf16.hh>
 #include <utility>
 #include <memory>
 #include <optional>
@@ -129,7 +129,7 @@ public:
 	Base::ApplicationContext appContext() const;
 	std::u16string_view name() const;
 	void setName(IG::utf16String);
-	static std::u16string_view nameStringView(const BaseTextMenuItem &item);
+	static std::u16string nameString(const BaseTextMenuItem &item);
 	Gfx::GlyphTextureSet &defaultFace();
 	Gfx::GlyphTextureSet &defaultBoldFace();
 	static Gfx::Color menuTextColor(bool isSelected);
@@ -166,7 +166,7 @@ public:
 	template<class T>
 	std::unique_ptr<T> makeViewWithName(const BaseTextMenuItem &item, auto &&... args)
 	{
-		return std::make_unique<T>(nameStringView(item), attachParams(), std::forward<decltype(args)>(args)...);
+		return std::make_unique<T>(nameString(item), attachParams(), std::forward<decltype(args)>(args)...);
 	}
 
 protected:

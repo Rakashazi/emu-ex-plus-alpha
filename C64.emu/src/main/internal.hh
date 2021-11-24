@@ -3,7 +3,6 @@
 #include "VicePlugin.hh"
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/pixmap/Pixmap.hh>
-#include <imagine/util/string/CStringView.hh>
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include <vector>
@@ -38,7 +37,6 @@ extern std::binary_semaphore execSem, execDoneSem;
 extern double systemFrameRate;
 extern struct video_canvas_s *activeCanvas;
 extern IG::Pixmap canvasSrcPix;
-extern FS::PathString firmwareBasePath;
 extern IG::PixelFormat pixFmt;
 extern Byte1Option optionDriveTrueEmulation;
 extern Byte1Option optionVirtualDeviceTraps;
@@ -61,7 +59,6 @@ extern Byte1Option optionBorderMode;
 extern Byte1Option optionSidEngine;
 extern Byte1Option optionReSidSampling;
 extern Byte1Option optionSwapJoystickPorts;
-extern PathOption optionFirmwarePath;
 extern Byte1Option optionAutostartOnLaunch;
 extern Byte1Option optionVic20RamExpansions;
 
@@ -93,9 +90,9 @@ void setDefaultCBM5x0Model(int model);
 void setDefaultPETModel(int model);
 void setDefaultPlus4Model(int model);
 void setDefaultVIC20Model(int model);
-bool hasC64DiskExtension(IG::CStringView name);
-bool hasC64TapeExtension(IG::CStringView name);
-bool hasC64CartExtension(IG::CStringView name);
+bool hasC64DiskExtension(std::string_view name);
+bool hasC64TapeExtension(std::string_view name);
+bool hasC64CartExtension(std::string_view name);
 int optionDefaultModel(ViceSystem system);
 void resetCanvasSourcePixmap(struct video_canvas_s *c);
 bool updateCanvasPixelFormat(struct video_canvas_s *c, IG::PixelFormat);

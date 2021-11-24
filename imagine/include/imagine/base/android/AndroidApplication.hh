@@ -25,6 +25,7 @@
 #include <imagine/util/container/ArrayList.hh>
 #include <pthread.h>
 #include <optional>
+#include <string>
 
 struct ANativeActivity;
 struct AInputQueue;
@@ -37,9 +38,9 @@ namespace Input
 class AndroidInputDevice : public Input::Device
 {
 public:
-	AndroidInputDevice(int osId, TypeBits, const char *name);
+	AndroidInputDevice(int osId, TypeBits, std::string name);
 	AndroidInputDevice(JNIEnv* env, jobject aDev, int osId, int src,
-		const char *name, int kbType, uint32_t axisBits, bool isPowerButton);
+		std::string name, int kbType, uint32_t axisBits, bool isPowerButton);
 	bool operator ==(AndroidInputDevice const& rhs) const;
 	void setTypeBits(TypeBits);
 	std::span<Axis> motionAxes() final;
@@ -62,8 +63,6 @@ namespace Base
 class ApplicationContext;
 class FrameTimer;
 
-using AndroidPropString = std::array<char, 92>;
-
 enum SurfaceRotation : uint8_t;
 
 struct ApplicationInitParams
@@ -83,7 +82,7 @@ public:
 	constexpr JNI::InstMethod<void()> recycleBitmapMethod() const { return jRecycle; }
 	jobject makeFontRenderer(JNIEnv *, jobject baseActivity);
 	void setStatusBarHidden(JNIEnv *, jobject baseActivity, bool hidden);
-	AndroidPropString androidBuildDevice(JNIEnv *env, jclass baseActivityClass) const;
+	std::string androidBuildDevice(JNIEnv *env, jclass baseActivityClass) const;
 	Window *deviceWindow() const;
 	FS::PathString sharedStoragePath(JNIEnv *, jclass baseActivityClass) const;
 	void setRequestedOrientation(JNIEnv *, jobject baseActivity, int orientation);

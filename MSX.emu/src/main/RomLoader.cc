@@ -41,8 +41,8 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 	if(!filename || !strlen(filename))
 		return nullptr;
 	logMsg("loading ROM file:%s:%s", filename, filenameInArchive);
-	auto filePath = FS::makePathString(filename);
-	auto filePathInFirmwarePath = FS::makePathString(machineBasePathStr(), filename);
+	FS::PathString filePath{filename};
+	auto filePathInFirmwarePath = FS::pathString(machineBasePath(appCtx), filename);
 	FS::PathString *searchPath[]{&filePath, &filePathInFirmwarePath};
 	if(filenameInArchive && strlen(filenameInArchive))
 	{
@@ -75,7 +75,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 
 CLINK FILE *openMachineIni(const char *path, const char *mode)
 {
-	auto filePathInFirmwarePath = FS::makePathString(machineBasePathStr(), path);
+	auto filePathInFirmwarePath = FS::pathString(machineBasePath(appCtx), path);
 	FileIO file{filePathInFirmwarePath, IO::AccessHint::ALL, IO::OPEN_TEST};
 	if(file)
 	{

@@ -20,7 +20,6 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
 #include <imagine/util/algorithm.h>
-#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include <optional>
 
@@ -76,7 +75,7 @@ static Key keyToICadeOffKey(Key key)
 	return 0;
 }
 
-const char *Event::mapName(Map map)
+std::string_view Event::mapName(Map map)
 {
 	switch(map)
 	{
@@ -122,7 +121,7 @@ uint32_t Event::mapNumKeys(Map map)
 	}
 }
 
-const char *sourceStr(Source src)
+std::string_view sourceStr(Source src)
 {
 	switch(src)
 	{
@@ -137,7 +136,7 @@ const char *sourceStr(Source src)
 	return "Unknown";
 }
 
-const char *actionStr(Action act)
+std::string_view actionStr(Action act)
 {
 	switch(act)
 	{
@@ -298,7 +297,7 @@ void BaseApplication::removeInputDevice(InputDeviceContainer::iterator it, bool 
 		return;
 	auto removedDevPtr = std::move(*it);
 	inputDev.erase(it);
-	logMsg("removed input device:%s,%d", removedDevPtr->name(), removedDevPtr->enumId());
+	logMsg("removed input device:%s,%d", removedDevPtr->name().data(), removedDevPtr->enumId());
 	cancelKeyRepeatTimer();
 	if(notify)
 	{
@@ -306,13 +305,13 @@ void BaseApplication::removeInputDevice(InputDeviceContainer::iterator it, bool 
 	}
 }
 
-uint8_t BaseApplication::nextInputDeviceEnumId(const char *name) const
+uint8_t BaseApplication::nextInputDeviceEnumId(std::string_view name) const
 {
 	static constexpr uint8_t maxEnum = 64;
 	iterateTimes(maxEnum, i)
 	{
 		auto it = std::find_if(inputDev.begin(), inputDev.end(),
-			[&](auto &devPtr){ return string_equal(devPtr->name(), name) && devPtr->enumId() == i; });
+			[&](auto &devPtr){ return devPtr->name() == name && devPtr->enumId() == i; });
 		if(it == inputDev.end())
 			return i;
 	}

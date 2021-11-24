@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <string>
+#include <string_view>
 #include <imagine/util/concepts.hh>
 
 namespace IG
@@ -36,6 +37,7 @@ public:
 	constexpr const char *data() const { return str; }
 	constexpr size_t size() const { return std::char_traits<char>::length(str); }
 	constexpr operator const char *() const { return str; }
+	constexpr operator std::string_view() const { return {str, size()}; }
 
 protected:
 	const char *str;

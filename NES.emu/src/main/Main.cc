@@ -22,6 +22,7 @@
 #include "EmuFileIO.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include <fceu/driver.h>
 #include <fceu/state.h>
 #include <fceu/fceu.h>
@@ -62,22 +63,22 @@ int dendy = 0;
 bool paldeemphswap = false;
 bool swapDuty = false;
 
-bool hasFDSBIOSExtension(IG::CStringView name)
+bool hasFDSBIOSExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "rom") || string_hasDotExtension(name, "bin");
+	return IG::stringEndsWithAny(name, ".rom", ".bin");
 }
 
-static bool hasFDSExtension(IG::CStringView name)
+static bool hasFDSExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "fds");
+	return name.ends_with(".fds");
 }
 
-static bool hasROMExtension(IG::CStringView name)
+static bool hasROMExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "nes") || string_hasDotExtension(name, "unf");
+	return IG::stringEndsWithAny(name, ".nes", ".unf");
 }
 
-static bool hasNESExtension(IG::CStringView name)
+static bool hasNESExtension(std::string_view name)
 {
 	return hasROMExtension(name) || hasFDSExtension(name);
 }
@@ -104,9 +105,9 @@ const char *EmuSystem::systemName()
 
 static void setDirOverrides()
 {
-	FCEUI_SetBaseDirectory(EmuSystem::savePath());
-	FCEUI_SetDirOverride(FCEUIOD_NV, EmuSystem::savePath());
-	FCEUI_SetDirOverride(FCEUIOD_CHEATS, EmuSystem::savePath());
+	FCEUI_SetBaseDirectory(std::string{EmuSystem::contentSavePath()});
+	FCEUI_SetDirOverride(FCEUIOD_NV, FCEUI_GetBaseDirectory());
+	FCEUI_SetDirOverride(FCEUIOD_CHEATS, FCEUI_GetBaseDirectory());
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasNESExtension;
@@ -131,9 +132,9 @@ static char saveSlotCharNES(int slot)
 	}
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 {
-	return IG::formatToPathString("{}/{}.fc{}", statePath, gameName, saveSlotCharNES(slot));
+	return IG::format<FS::FileString>("{}.fc{}", name, saveSlotCharNES(slot));
 }
 
 void EmuSystem::saveState(const char *path)
@@ -213,7 +214,7 @@ void setDefaultPalette(Base::ApplicationContext ctx, const char *palPath)
 	if(palPath[0] != '/')
 	{
 		// load as asset
-		auto io = ctx.openAsset(IG::formatToPathString("palette/{}", palPath).data(), IO::AccessHint::ALL);
+		auto io = ctx.openAsset(IG::format<FS::PathString>("palette/{}", palPath).data(), IO::AccessHint::ALL);
 		if(!io)
 			return;
 		setDefaultPalette(io);
@@ -306,17 +307,14 @@ const char *regionToStr(int region)
 	return "Unknown";
 }
 
-static int regionFromName(IG::CStringView name)
+static int regionFromName(std::string_view name)
 {
-	if(strstr(name, "(E)") || strstr(name, "(e)") || strstr(name, "(EU)")
-		|| strstr(name, "(Europe)") || strstr(name, "(PAL)")
-		|| strstr(name, "(F)") || strstr(name, "(f)")
-		|| strstr(name, "(G)") || strstr(name, "(g)")
-		|| strstr(name, "(I)") || strstr(name, "(i)"))
+	if(IG::stringContainsAny(name, "(E)", "(e)", "(EU)", "(Europe)", "(PAL)",
+		"(F)", "(f)", "(G)", "(g)", "(I)", "(i)"))
 	{
 		return 1; // PAL
 	}
-	else if(strstr(name, "(RU)") || strstr(name, "(ru)"))
+	else if(IG::stringContainsAny(name, "(RU)", "(ru)"))
 	{
 		return 2; // Dendy
 	}

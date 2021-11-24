@@ -13,8 +13,7 @@ SRC += base/linux/linux.cc \
  base/common/SimpleFrameTimer.cc \
  base/common/timer/TimerFD.cc \
  base/common/PosixPipe.cc \
- base/common/eventloop/FDCustomEvent.cc \
- util/string/glibc.c
+ base/common/eventloop/FDCustomEvent.cc
 
 include $(IMAGINE_PATH)/make/package/libdrm.mk
 

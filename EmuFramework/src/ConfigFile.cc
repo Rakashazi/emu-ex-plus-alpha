@@ -22,7 +22,6 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/input/config.hh>
 #include <imagine/util/ScopeGuard.hh>
-#include <imagine/util/format.hh>
 
 static constexpr unsigned KEY_CONFIGS_HARD_LIMIT = 256;
 static constexpr unsigned INPUT_DEVICE_CONFIGS_HARD_LIMIT = 256;
@@ -69,9 +68,7 @@ static bool readKeyConfig(IO &io, uint16_t &size, std::span<const KeyCategory> c
 		if(size < nameLen)
 			return false;
 
-		if(nameLen > keyConf.name.size()-1)
-			return 0;
-		if(io.read(keyConf.name.data(), nameLen) != nameLen)
+		if(io.readSized(keyConf.name, nameLen) != nameLen)
 			return false;
 		size -= nameLen;
 		if(!size)
@@ -206,7 +203,6 @@ static OptionBase *cfgFileOption[] =
 	&optionAudioAPI,
 	#endif
 	&optionShowBundledGames,
-	&optionCheckSavePathWriteAccess
 };
 
 void EmuApp::saveConfigFile(IO &io)
@@ -255,7 +251,7 @@ void EmuApp::saveConfigFile(IO &io)
 		{
 			bytes += 1; // input map type
 			bytes += 1; // name string length
-			bytes += strlen(e.name.data()); // name string
+			bytes += e.name.size(); // name string
 			bytes += 1; // number of categories present
 			for(auto &cat : inputControlCategories())
 			{
@@ -295,7 +291,7 @@ void EmuApp::saveConfigFile(IO &io)
 		{
 			logMsg("writing config %s", e.name.data());
 			io.write(uint8_t(e.map));
-			uint8_t nameLen = strlen(e.name.data());
+			uint8_t nameLen = e.name.size();
 			io.write(nameLen);
 			io.write(e.name.data(), nameLen);
 			io.write(writeCategories[configs]);
@@ -332,12 +328,12 @@ void EmuApp::saveConfigFile(IO &io)
 			bytes += 1; // iCade mode
 			#endif
 			bytes += 1; // name string length
-			bytes += strlen(e.name); // name string
+			bytes += e.name.size(); // name string
 			bytes += 1; // key config map
 			if(e.keyConf)
 			{
 				bytes += 1; // name of key config string length
-				bytes += strlen(e.keyConf->name.data()); // name of key config string
+				bytes += e.keyConf->name.size(); // name of key config string
 			}
 		}
 		if(bytes > 0xFFFF)
@@ -351,7 +347,7 @@ void EmuApp::saveConfigFile(IO &io)
 		io.write((uint8_t)savedInputDevList.size());
 		for(auto &e : savedInputDevList)
 		{
-			logMsg("writing config %s, id %d", e.name, e.enumId);
+			logMsg("writing config %s, id %d", e.name.data(), e.enumId);
 			io.write((uint8_t)e.enumId);
 			io.write((uint8_t)e.enabled);
 			io.write((uint8_t)e.player);
@@ -359,15 +355,15 @@ void EmuApp::saveConfigFile(IO &io)
 			#ifdef CONFIG_INPUT_ICADE
 			io.write((uint8_t)e.iCadeMode);
 			#endif
-			uint8_t nameLen = strlen(e.name);
+			uint8_t nameLen = e.name.size();
 			io.write(nameLen);
-			io.write(e.name, nameLen);
+			io.write(e.name.data(), nameLen);
 			uint8_t keyConfMap = e.keyConf ? (uint8_t)e.keyConf->map : 0;
 			io.write(keyConfMap);
 			if(keyConfMap)
 			{
 				logMsg("has key conf %s, map %d", e.keyConf->name.data(), keyConfMap);
-				uint8_t keyConfNameLen = strlen(e.keyConf->name.data());
+				uint8_t keyConfNameLen = e.keyConf->name.size();
 				io.write(keyConfNameLen);
 				io.write(e.keyConf->name.data(), keyConfNameLen);
 			}
@@ -375,18 +371,18 @@ void EmuApp::saveConfigFile(IO &io)
 	}
 
 	writeStringOptionValue(io, CFGKEY_LAST_DIR, mediaSearchPath());
-	optionSavePath.writeToIO(io);
+	writeStringOptionValue(io, CFGKEY_SAVE_PATH, EmuSystem::userSavePath());
 
 	EmuSystem::writeConfig(io);
 }
 
 EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 {
-	auto configFilePath = IG::formatToPathString("{}/config", ctx.supportPath().data());
+	auto configFilePath = FS::pathString(ctx.supportPath(), "config");
 	// move config files from old locations
 	if(Config::envIsLinux)
 	{
-		auto oldConfigFilePath = IG::formatToPathString("{}/config", ctx.assetPath().data());
+		auto oldConfigFilePath = FS::pathString(ctx.assetPath(), "config");
 		if(FS::exists(oldConfigFilePath))
 		{
 			logMsg("moving config file from app path to support path");
@@ -397,7 +393,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 	if(ctx.isSystemApp())
 	{
 		const char *oldConfigDir = "/User/Library/Preferences/explusalpha.com";
-		auto oldConfigFilePath = IG::formatToPathString("{}/{}", oldConfigDir, EmuSystem::configFilename);
+		auto oldConfigFilePath = FS::pathString(oldConfigDir, EmuSystem::configFilename);
 		if(FS::exists(oldConfigFilePath))
 		{
 			logMsg("moving config file from prefs path to support path");
@@ -444,7 +440,8 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				bcase CFGKEY_SKIP_LATE_FRAMES: optionSkipLateFrames.readFromIO(io, size);
 				bcase CFGKEY_FRAME_RATE: optionFrameRate.readFromIO(io, size);
 				bcase CFGKEY_FRAME_RATE_PAL: optionFrameRatePAL.readFromIO(io, size);
-				bcase CFGKEY_LAST_DIR: setMediaSearchPath(readStringOptionValue<FS::PathString>(io, size));
+				bcase CFGKEY_LAST_DIR:
+					readStringOptionValue<FS::PathString>(io, size, [this](auto &path){setMediaSearchPath(path);});
 				bcase CFGKEY_FONT_Y_SIZE: optionFontSize.readFromIO(io, size);
 				bcase CFGKEY_GAME_ORIENTATION: optionGameOrientation.readFromIO(io, size);
 				bcase CFGKEY_MENU_ORIENTATION: optionMenuOrientation.readFromIO(io, size);
@@ -510,8 +507,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 				bcase CFGKEY_AUDIO_API: optionAudioAPI.readFromIO(io, size);
 				#endif
-				bcase CFGKEY_SAVE_PATH: logMsg("reading save path"); optionSavePath.readFromIO(io, size);
-				bcase CFGKEY_CHECK_SAVE_PATH_WRITE_ACCESS: optionCheckSavePathWriteAccess.readFromIO(io, size);
+				bcase CFGKEY_SAVE_PATH: readStringOptionValue<FS::PathString>(io, size, [&](auto &path){EmuSystem::setUserSavePath(ctx, path);});
 				bcase CFGKEY_SHOW_BUNDLED_GAMES:
 				{
 					if(EmuSystem::hasBundledGames)
@@ -584,9 +580,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 						if(size < nameLen)
 							break;
 
-						if(nameLen > sizeof(devConf.name)-1)
-							break;
-						io.read(devConf.name, nameLen);
+						io.readSized(devConf.name, nameLen);
 						size -= nameLen;
 						if(!size)
 							break;
@@ -604,16 +598,17 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 							if(size < keyConfNameLen)
 								break;
 
-							if(keyConfNameLen > sizeof(devConf.name)-1)
+							if(keyConfNameLen > devConf.name.max_size()-1)
 								break;
-							char keyConfName[sizeof(devConf.name)]{};
+							char keyConfName[keyConfNameLen + 1];
 							if(io.read(keyConfName, keyConfNameLen) != keyConfNameLen)
 								break;
+							keyConfName[keyConfNameLen] = '\0';
 							size -= keyConfNameLen;
 
 							for(auto &e : customKeyConfig)
 							{
-								if(e.map == keyConfMap && string_equal(e.name.data(), keyConfName))
+								if(e.map == keyConfMap && e.name == keyConfName)
 								{
 									logMsg("found referenced custom key config %s while reading input device config", keyConfName);
 									devConf.keyConf = &e;
@@ -627,7 +622,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 								auto defaultConf = KeyConfig::defaultConfigsForInputMap(keyConfMap, defaultConfs);
 								iterateTimes(defaultConfs, c)
 								{
-									if(string_equal(defaultConf[c].name.data(), keyConfName))
+									if(defaultConf[c].name == keyConfName)
 									{
 										logMsg("found referenced built-in key config %s while reading input device config", keyConfName);
 										devConf.keyConf = &defaultConf[c];
@@ -637,7 +632,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 							}
 						}
 
-						logMsg("read input device config %s, id %d", devConf.name, devConf.enumId);
+						logMsg("read input device config %s, id %d", devConf.name.data(), devConf.enumId);
 						savedInputDevList.push_back(devConf);
 
 						if(savedInputDevList.size() == INPUT_DEVICE_CONFIGS_HARD_LIMIT)
@@ -665,7 +660,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 
 void EmuApp::saveConfigFile(Base::ApplicationContext ctx)
 {
-	auto configFilePath = IG::formatToPathString("{}/config", ctx.supportPath().data());
+	auto configFilePath = FS::pathString(ctx.supportPath(), "config");
 	if(Config::envIsIOS)
 	{
 		fixFilePermissions(ctx, ctx.supportPath().data());

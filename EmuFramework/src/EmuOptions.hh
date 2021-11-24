@@ -154,13 +154,8 @@ extern Byte1Option optionSustainedPerformanceMode;
 extern Byte1Option optionVideoImageBuffers;
 
 static const char *optionSavePathDefaultToken = ":DEFAULT:";
-extern PathOption optionSavePath;
-extern Byte1Option optionCheckSavePathWriteAccess;
 
 extern Byte1Option optionShowBundledGames;
-
-// Common options handled per-emulator backend
-extern PathOption optionFirmwarePath;
 
 void setupFont(ViewManager &manager, Gfx::Renderer &r, Base::Window &win);
 bool soundIsEnabled();

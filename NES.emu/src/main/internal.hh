@@ -25,7 +25,7 @@ extern unsigned autoDetectedRegion;
 extern uint32 zapperData[3];
 extern bool usingZapper;
 
-bool hasFDSBIOSExtension(IG::CStringView name);
+bool hasFDSBIOSExtension(std::string_view name);
 void setupNESInputPorts();
 void setupNESFourScore();
 void connectNESInput(int port, ESI type);

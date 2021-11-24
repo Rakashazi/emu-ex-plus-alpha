@@ -17,13 +17,12 @@
 #include <imagine/gui/TableView.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 
-TextEntry::TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP)
+TextEntry::TextEntry(const char *initText, Gfx::Renderer &r, Gfx::GlyphTextureSet *face, const Gfx::ProjectionPlane &projP):
+	t{initText, face},
+	str{initText}
 {
-	string_copy(str, initText);
-	t = {str.data(), face};
 	t.compile(r, projP);
 }
 
@@ -58,17 +57,17 @@ bool TextEntry::inputEvent(View &parentView, Input::Event e)
 
 		if(e.mapKey() == Input::Keycode::BACK_SPACE)
 		{
-			int len = strlen(str.data());
+			int len = str.size();
 			if(len > 0)
 			{
-				str[len-1] = '\0';
+				str.pop_back();
 				updateText = true;
 			}
 		}
 		else
 		{
 			auto keyStr = e.keyString(parentView.appContext());
-			if(strlen(keyStr.data()))
+			if(keyStr.size())
 			{
 				if(!multiLine)
 				{
@@ -78,7 +77,7 @@ bool TextEntry::inputEvent(View &parentView, Input::Event e)
 						return true;
 					}
 				}
-				string_cat(str, keyStr.data());
+				str.append(keyStr);
 				updateText = true;
 			}
 		}
@@ -87,7 +86,7 @@ bool TextEntry::inputEvent(View &parentView, Input::Event e)
 		{
 			{
 				parentView.waitForDrawFinished();
-				t.setString(str.data());
+				t.setString(str);
 				t.compile(parentView.renderer(), projP);
 			}
 			parentView.postDraw();
@@ -131,7 +130,7 @@ IG::WindowRect TextEntry::bgRect() const
 	return b;
 }
 
-CollectTextInputView::CollectTextInputView(ViewAttachParams attach, const char *msgText, const char *initialContent,
+CollectTextInputView::CollectTextInputView(ViewAttachParams attach, IG::CStringView msgText, IG::CStringView initialContent,
 	Gfx::TextureSpan closeRes, OnTextDelegate onText, Gfx::GlyphTextureSet *face):
 	View{attach},
 	textField

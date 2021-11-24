@@ -25,6 +25,7 @@
 #include <imagine/gui/AlertView.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include <sys/time.h>
 
 extern "C"
@@ -71,7 +72,6 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2013-2021\nRobe
 std::binary_semaphore execSem{0}, execDoneSem{0};
 EmuAudio *audioPtr{};
 static bool c64IsInit = false, c64FailedInit = false;
-FS::PathString firmwareBasePath{};
 FS::PathString sysFilePath[Config::envIsLinux ? 5 : 3]{};
 VicePlugin plugin{};
 ViceSystem currSystem = VICE_SYSTEM_C64;
@@ -351,43 +351,28 @@ int systemCartType(ViceSystem system)
 	}
 }
 
-bool hasC64DiskExtension(IG::CStringView name)
+bool hasC64DiskExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "d64") ||
-			string_hasDotExtension(name, "d67") ||
-			string_hasDotExtension(name, "d71") ||
-			string_hasDotExtension(name, "d80") ||
-			string_hasDotExtension(name, "d81") ||
-			string_hasDotExtension(name, "d82") ||
-			string_hasDotExtension(name, "d1m") ||
-			string_hasDotExtension(name, "d2m") ||
-			string_hasDotExtension(name, "d4m") ||
-			string_hasDotExtension(name, "g64") ||
-			string_hasDotExtension(name, "p64") ||
-			string_hasDotExtension(name, "g41") ||
-			string_hasDotExtension(name, "x64") ||
-			string_hasDotExtension(name, "dsk");
+	return IG::stringEndsWithAny(name,
+		".d64", ".d67", ".d71", ".d80", ".d81", ".d82", ".d1m", ".d2m", ".d4m", ".g64", ".p64", ".g41", ".x64", ".dsk");
 }
 
-bool hasC64TapeExtension(IG::CStringView name)
+bool hasC64TapeExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "t64") ||
-			string_hasDotExtension(name, "tap");
+	return IG::stringEndsWithAny(name, ".t64", ".tap");
 }
 
-bool hasC64CartExtension(IG::CStringView name)
+bool hasC64CartExtension(std::string_view name)
 {
-	return string_hasDotExtension(name, "bin") ||
-			string_hasDotExtension(name, "crt");
+	return IG::stringEndsWithAny(name, ".bin", ".crt");
 }
 
-static bool hasC64Extension(IG::CStringView name)
+static bool hasC64Extension(std::string_view name)
 {
 	return hasC64DiskExtension(name) ||
 			hasC64TapeExtension(name) ||
 			hasC64CartExtension(name) ||
-			string_hasDotExtension(name, "prg") ||
-			string_hasDotExtension(name, "p00");
+			IG::stringEndsWithAny(name, ".prg", ".p00");
 }
 
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasC64Extension;
@@ -399,9 +384,9 @@ void EmuSystem::reset(ResetMode mode)
 	plugin.machine_trigger_reset(mode == RESET_HARD ? MACHINE_RESET_MODE_HARD : MACHINE_RESET_MODE_SOFT);
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 {
-	return IG::formatToPathString("{}/{}.{}.vsf", statePath, gameName, saveSlotChar(slot));
+	return IG::format<FS::FileString>("{}.{}.vsf", name, saveSlotChar(slot));
 }
 
 struct SnapshotTrapData
@@ -501,9 +486,9 @@ static void throwC64FirmwareError(Base::ApplicationContext app)
 		fmt::format("System files missing, place C64, DRIVES, & PRINTER directories from VICE"
 		" in a path below, or set a custom path in options:\n"
 		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-		"{}\n{}\n{}", EmuApp::assetPath(app).data(), "~/.local/share/C64.emu", "/usr/share/games/vice")};
+		"{}\n{}\n{}", EmuApp::assetPath(app), "~/.local/share/C64.emu", "/usr/share/games/vice")};
 		#else
-		"{}/C64.emu", app.sharedStoragePath().data())};
+		"{}/C64.emu", app.sharedStoragePath())};
 		#endif
 }
 
@@ -536,21 +521,21 @@ bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event e)
 	return false;
 }
 
-static FS::FileString vic20ExtraCartName(IG::CStringView baseCartName, IG::CStringView  searchPath)
+static FS::FileString vic20ExtraCartName(std::string_view baseCartName, std::string_view searchPath)
 {
 	auto findAddrSuffixOffset =
-	[](const char *baseCartName) -> uintptr_t
+	[](std::string_view baseCartName) -> uintptr_t
 	{
-		constexpr std::array<const char*, 5> addrSuffixStr
+		constexpr std::array<std::string_view, 5> addrSuffixStr
 		{
 			"-2000.", "-4000.", "-6000.", "-a000.", "-b000."
 		};
 		for(auto suffixStr : addrSuffixStr)
 		{
-			if(auto addr = strstr(baseCartName, suffixStr);
-				addr)
+			if(auto offset = baseCartName.rfind(suffixStr);
+				offset != baseCartName.npos)
 			{
-				return (addr + 1) - baseCartName;
+				return offset;
 			}
 		}
 		return 0;
@@ -560,7 +545,7 @@ static FS::FileString vic20ExtraCartName(IG::CStringView baseCartName, IG::CStri
 	{
 		return {};
 	}
-	auto cartName = FS::makeFileString(baseCartName);
+	auto cartName = FS::FileString{baseCartName};
 	constexpr std::array<char, 5> addrSuffixChar
 	{
 		'2', '4', '6', 'a', 'b'
@@ -570,7 +555,7 @@ static FS::FileString vic20ExtraCartName(IG::CStringView baseCartName, IG::CStri
 		if(suffixChar == baseCartName[addrSuffixOffset])
 			continue; // skip original filename
 		cartName[addrSuffixOffset] = suffixChar;
-		if(FS::exists(IG::formatToPathString("{}/{}", searchPath, cartName.data())))
+		if(FS::exists(FS::pathString(searchPath, cartName)))
 		{
 			return cartName;
 		}
@@ -589,7 +574,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 	if(shouldAutostart && plugin.autostart_autodetect_)
 	{
 		logMsg("loading & autostarting:%s", contentLocation().data());
-		if(string_hasDotExtension(contentFileName().data(), "prg"))
+		if(contentFileName().ends_with(".prg"))
 		{
 			// needed to store AutostartPrgDisk.d64
 			makeDefaultBaseSavePath(ctx);
@@ -627,11 +612,11 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 			if(currSystem == VICE_SYSTEM_VIC20) // check if the cart is part of a *-x000.prg pair
 			{
 				auto extraCartFilename = vic20ExtraCartName(contentFileName(), contentDirectory());
-				if(strlen(extraCartFilename.data()))
+				if(extraCartFilename.size())
 				{
 					logMsg("loading extra cart image:%s", contentLocation().data());
 					if(plugin.cartridge_attach_image(systemCartType(currSystem),
-						IG::formatToPathString("{}/{}", contentDirectory().data(), extraCartFilename.data()).data()) != 0)
+						FS::pathString(contentDirectory(), extraCartFilename).data()) != 0)
 					{
 						EmuSystem::throwFileReadError();
 					}
@@ -700,12 +685,12 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 
 void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 {
-	sysFilePath[0] = firmwareBasePath;
+	sysFilePath[0] = EmuSystem::firmwarePath();
 	plugin.init();
 	updateKeyboardMapping();
 	setSysModel(optionDefaultModel(currSystem));
 	plugin.resources_set_string("AutostartPrgDiskImage",
-		IG::formatToPathString("{}/AutostartPrgDisk.d64", EmuSystem::baseDefaultGameSavePath(attach.appContext()).data()).data());
+		FS::pathString(EmuSystem::baseDefaultGameSavePath(attach.appContext()), "AutostartPrgDisk.d64").data());
 }
 
 void EmuSystem::onPrepareAudio(EmuAudio &audio)
@@ -733,17 +718,18 @@ void EmuSystem::onInit(Base::ApplicationContext ctx)
 		});
 	appContext = ctx; // saved for sysfile_* functions
 
-	#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-	sysFilePath[1] = EmuApp::assetPath(ctx);
-	sysFilePath[2] = IG::formatToPathString("{}/C64.emu.zip", EmuApp::assetPath(ctx).data());
-	sysFilePath[3] = {"~/.local/share/C64.emu"};
-	sysFilePath[4] = {"/usr/share/games/vice"};
-	#else
+	if constexpr(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
 	{
-		sysFilePath[1] = IG::formatToPathString("{}/C64.emu", ctx.sharedStoragePath().data());
-		sysFilePath[2] = IG::formatToPathString("{}/C64.emu.zip", ctx.sharedStoragePath().data());
+		sysFilePath[1] = ctx.assetPath();
+		sysFilePath[2] = FS::pathString(ctx.assetPath(), "C64.emu.zip");
+		sysFilePath[3] = {"~/.local/share/C64.emu"};
+		sysFilePath[4] = {"/usr/share/games/vice"};
 	}
-	#endif
+	else
+	{
+		sysFilePath[1] = FS::pathString(ctx.sharedStoragePath(), "C64.emu");
+		sysFilePath[2] = FS::pathString(ctx.sharedStoragePath(), "C64.emu.zip");
+	}
 
 	// higher quality ReSID sampling modes take orders of magnitude more CPU power,
 	// set some reasonable defaults based on CPU type

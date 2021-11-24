@@ -15,6 +15,7 @@
 
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/util/string.h>
+#include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 #include <emuframework/Cheats.hh>
 #include <emuframework/EmuApp.hh>
@@ -99,7 +100,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 						postDraw();
 						return false;
 					}
-					string_copy(addrStr, a ? str : "0");
+					addrStr = a ? str : "0";
 					syncCheat();
 					addr.set2ndName(addrStr);
 					addr.compile(renderer(), projP);
@@ -126,7 +127,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 						postDraw();
 						return false;
 					}
-					string_copy(valueStr, a ? str : "0");
+					valueStr = a ? str : "0";
 					syncCheat();
 					value.set2ndName(valueStr);
 					value.compile(renderer(), projP);
@@ -142,7 +143,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 		&defaultFace(),
 		[this](DualTextMenuItem &item, View &, Input::Event e)
 		{
-			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", compStr,
+			app().pushAndShowNewCollectTextInputView(attachParams(), e, "Input 2-digit hex or blank", compStr.data(),
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(str)
@@ -156,12 +157,12 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 								app().postMessage(true, "Invalid input");
 								return true;
 							}
-							string_copy(compStr, str);
+							compStr = str;
 							comp.set2ndName(str);
 						}
 						else
 						{
-							compStr[0] = 0;
+							compStr.clear();
 							comp.set2ndName({});
 						}
 						syncCheat();
@@ -188,7 +189,7 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 						app.postMessage(true, "Invalid, must be 6 or 8 digits");
 						return false;
 					}
-					string_copy(ggCodeStr, str);
+					ggCodeStr = str;
 					syncCheat();
 					ggCode.set2ndName(str);
 					ggCode.compile(renderer(), projP);
@@ -210,23 +211,27 @@ EmuEditCheatView::EmuEditCheatView(ViewAttachParams attach, unsigned cheatIdx, R
 	{
 		setName("Edit Code");
 		if(a == 0 && v == 0 && compare == -1)
-			ggCodeStr[0] = 0;
+			ggCodeStr.clear();
 		else
-			EncodeGG(ggCodeStr, a, v, compare);
+		{
+			std::array<char, 9> str;
+			EncodeGG(str.data(), a, v, compare);
+			ggCodeStr = str.data();
+		}
 		ggCode.set2ndName(ggCodeStr);
 	}
 	else
 	{
 		setName("Edit RAM Patch");
-		snprintf(addrStr, sizeof(addrStr), "%x", a);
+		IG::formatTo(addrStr, "{:x}", a);
 		addr.set2ndName(addrStr);
-		snprintf(valueStr, sizeof(valueStr), "%x", v);
+		IG::formatTo(valueStr, "{:x}", v);
 		value.set2ndName(valueStr);
 		if(compare == -1)
-			compStr[0] = 0;
+			compStr.clear();
 		else
 		{
-			snprintf(compStr, sizeof(compStr), "%x", compare);
+			IG::formatTo(compStr, "{:x}", compare);
 			comp.set2ndName(compStr);
 		}
 	}
@@ -237,9 +242,9 @@ void EmuEditCheatView::syncCheat(const char *newName)
 	if(type)
 	{
 		int a, v, c;
-		if(!FCEUI_DecodeGG(ggCodeStr, &a, &v, &c))
+		if(!FCEUI_DecodeGG(ggCodeStr.data(), &a, &v, &c))
 		{
-			logWarn("error decoding GG code %s", ggCodeStr);
+			logWarn("error decoding GG code %s", ggCodeStr.data());
 			a = 0; v = 0; c = -1;
 		}
 		if(!FCEUI_SetCheat(idx, newName, a, v, c, -1, 1))
@@ -249,10 +254,11 @@ void EmuEditCheatView::syncCheat(const char *newName)
 	}
 	else
 	{
-		logMsg("setting comp %d", strlen(compStr) ? (int)strtoul(compStr, nullptr, 16) : -1);
+		int comp = compStr.size() ? strtoul(compStr.data(), nullptr, 16) : -1;
+		logMsg("setting comp %d", comp);
 		if(!FCEUI_SetCheat(idx,
-				newName, strtoul(addrStr, nullptr, 16), strtoul(valueStr, nullptr, 16),
-				strlen(compStr) ? strtoul(compStr, nullptr, 16) : -1, -1, 0))
+				newName, strtoul(addrStr.data(), nullptr, 16), strtoul(valueStr.data(), nullptr, 16),
+				comp, -1, 0))
 		{
 			logWarn("error setting cheat %d", idx);
 		}

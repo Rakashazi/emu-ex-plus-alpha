@@ -31,8 +31,8 @@ struct GbcCheat
 {
 	constexpr GbcCheat() {}
 	uint8_t flags = 0;
-	char name[64]{};
-	char code[12]{};
+	IG::StaticString<64> name{};
+	IG::StaticString<12> code{};
 
 	static const uint8_t ON = IG::bit(0);
 
@@ -49,7 +49,7 @@ struct GbcCheat
 
 	bool operator ==(GbcCheat const& rhs) const
 	{
-		return string_equal(code, rhs.code);
+		return code == rhs.code;
 	}
 };
 

@@ -42,42 +42,43 @@ extern "C"
 	GN_Surface *buffer{};
 	static CONF_ITEM rompathConfItem{};
 
-	CONF_ITEM* cf_get_item_by_name(const char *name)
+	CONF_ITEM* cf_get_item_by_name(const char *nameStr)
 	{
 		//logMsg("getting conf item %s", name);
 		static CONF_ITEM conf{};
-		if(string_equal(name, "rompath"))
+		std::string_view name{nameStr};
+		if(name == "rompath")
 		{
-			string_copy(rompathConfItem.data.dt_str.str, EmuSystem::contentDirectory());
+			strncpy(rompathConfItem.data.dt_str.str, EmuSystem::contentDirectory().data(), sizeof(rompathConfItem.data.dt_str.str));
 			return &rompathConfItem;
 		}
-		else if(string_equal(name, "dump"))
+		else if(name == "dump")
 		{
 			static CONF_ITEM dump{};
 			return &dump;
 		}
-		else if(string_equal(name, "effect"))
+		else if(name == "effect")
 		{
 			strcpy(conf.data.dt_str.str, "none");
 		}
-		else if(string_equal(name, "blitter"))
+		else if(name == "blitter")
 		{
 			strcpy(conf.data.dt_str.str, "soft");
 		}
-		else if(string_equal(name, "transpack"))
+		else if(name == "transpack")
 		{
 			strcpy(conf.data.dt_str.str, "");
 		}
 		else
 		{
-			logErr("unknown conf item %s", name);
+			logErr("unknown conf item %s", nameStr);
 		}
 		return &conf;
 	}
 
 	const char *get_gngeo_dir(void)
 	{
-		return EmuSystem::savePath();
+		return EmuSystem::contentSavePathPtr();
 	}
 }
 
@@ -109,7 +110,7 @@ CLINK int gn_strictROMChecking()
 	return optionStrictROMChecking;
 }
 
-static bool hasNeoGeoExtension(IG::CStringView name)
+static bool hasNeoGeoExtension(std::string_view name)
 {
 	return false; // archives handled by EmuFramework
 }
@@ -125,9 +126,9 @@ void EmuSystem::reset(ResetMode mode)
 	YM2610Reset();
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *contentName)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 {
-	return IG::formatToPathString("{}/{}.0{}.sta", statePath, contentName, saveSlotCharUpper(slot));
+	return IG::format<FS::FileString>("{}.0{}.sta", name, saveSlotCharUpper(slot));
 }
 
 void EmuSystem::saveState(const char *path)
@@ -221,19 +222,19 @@ void gn_update_pbar(int pos)
 	}
 }
 
-static auto openGngeoDataIO(Base::ApplicationContext ctx, const char *filename)
+static auto openGngeoDataIO(Base::ApplicationContext ctx, IG::CStringView filename)
 {
 	#ifdef __ANDROID__
 	return ctx.openAsset(filename, IO::AccessHint::ALL);
 	#else
-	return FS::fileFromArchive(datafilePath.data(), filename);
+	return FS::fileFromArchive(datafilePath, filename);
 	#endif
 }
 
 CLINK ROM_DEF *res_load_drv(void *contextPtr, const char *name)
 {
-	auto drvFilename = fmt::format(DATAFILE_PREFIX "rom/{}.drv", name);
-	auto io = openGngeoDataIO(*((Base::ApplicationContext*)contextPtr), drvFilename.data());
+	auto drvFilename = IG::format<FS::PathString>(DATAFILE_PREFIX "rom/{}.drv", name);
+	auto io = openGngeoDataIO(*((Base::ApplicationContext*)contextPtr), drvFilename);
 	if(!io)
 	{
 		logErr("Can't open driver %s", name);
@@ -286,7 +287,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 	}
 	auto freeDrv = IG::scopeGuard([&](){ free(drv); });
 	logMsg("rom set %s, %s", drv->name, drv->longname);
-	auto gnoFilename = fmt::format("{}/{}.gno", EmuSystem::savePath(), drv->name);
+	auto gnoFilename = EmuSystem::contentSaveFilePath(".gno");
 	if(optionCreateAndUseCache && FS::exists(gnoFilename.data()))
 	{
 		logMsg("loading .gno file");

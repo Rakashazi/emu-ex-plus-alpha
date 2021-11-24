@@ -41,10 +41,9 @@ static bool useBgrOrder{};
 static const GBPalette *gameBuiltinPalette{};
 bool EmuSystem::hasCheats = true;
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter =
-	[](IG::CStringView name)
+	[](std::string_view name)
 	{
-		return string_hasDotExtension(name, "gb") ||
-			string_hasDotExtension(name, "gbc");
+		return IG::stringEndsWithAny(name, ".gb", ".gbc");
 	};
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = defaultFsFilter;
 
@@ -128,9 +127,9 @@ void EmuSystem::reset(ResetMode mode)
 	gbEmu.reset();
 }
 
-FS::PathString EmuSystem::sprintStateFilename(int slot, const char *statePath, const char *gameName)
+FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 {
-	return IG::formatToPathString("{}/{}.0{}.gqs", statePath, gameName, saveSlotCharUpper(slot));
+	return IG::format<FS::FileString>("{}.0{}.gqs", name, saveSlotCharUpper(slot));
 }
 
 void EmuSystem::saveState(const char *path)
@@ -156,7 +155,7 @@ void EmuSystem::saveBackupMem()
 void EmuSystem::savePathChanged()
 {
 	if(gameIsRunning())
-		gbEmu.setSaveDir(savePath());
+		gbEmu.setSaveDir(contentSavePath().data());
 }
 
 void EmuSystem::closeSystem()
@@ -171,7 +170,7 @@ void EmuSystem::closeSystem()
 
 void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	gbEmu.setSaveDir(EmuSystem::savePath());
+	gbEmu.setSaveDir(contentSavePath().data());
 	auto buff = io.buffer();
 	if(!buff)
 	{
