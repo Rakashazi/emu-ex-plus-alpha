@@ -147,6 +147,16 @@ void EmuSystem::loadState(const char *path)
 	state_load(FileUtils::bufferFromPath(path).data());
 }
 
+static bool sramHasContent(std::span<uint8> sram)
+{
+	for(auto v : sram)
+	{
+		if(v != 0xFF)
+			return true;
+	}
+	return false;
+}
+
 void EmuSystem::saveBackupMem() // for manually saving when not closing game
 {
 	if(!gameIsRunning())
@@ -176,27 +186,33 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	if(sram.on)
 	{
 		auto saveStr = sprintSaveFilename();
-
-		logMsg("saving SRAM%s", optionBigEndianSram ? ", byte-swapped" : "");
-
-		uint8_t sramTemp[0x10000];
-		uint8_t *sramPtr = sram.sram;
-		if(optionBigEndianSram)
+		if(sramHasContent({sram.sram, 0x10000}))
 		{
-			memcpy(sramTemp, sram.sram, 0x10000); // make a temp copy to byte-swap
-			for(unsigned i = 0; i < 0x10000; i += 2)
+			logMsg("saving SRAM%s", optionBigEndianSram ? ", byte-swapped" : "");
+			uint8_t sramTemp[0x10000];
+			uint8_t *sramPtr = sram.sram;
+			if(optionBigEndianSram)
 			{
-				std::swap(sramTemp[i], sramTemp[i+1]);
+				memcpy(sramTemp, sram.sram, 0x10000); // make a temp copy to byte-swap
+				for(unsigned i = 0; i < 0x10000; i += 2)
+				{
+					std::swap(sramTemp[i], sramTemp[i+1]);
+				}
+				sramPtr = sramTemp;
 			}
-			sramPtr = sramTemp;
+			try
+			{
+				FileUtils::writeToPath(saveStr, sramPtr, 0x10000);
+			}
+			catch(...)
+			{
+				logMsg("error creating sram file");
+			}
 		}
-		try
+		else
 		{
-			FileUtils::writeToPath(saveStr, sramPtr, 0x10000);
-		}
-		catch(...)
-		{
-			logMsg("error creating sram file");
+			logMsg("SRAM wasn't written to");
+			FS::remove(saveStr);
 		}
 	}
 	writeCheatFile();
