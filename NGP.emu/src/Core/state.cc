@@ -54,6 +54,7 @@
 
 static bool read_state_0050(const char* filename);
 static bool read_state_0060(const char* filename);
+extern FILE *fopenHelper(const char* filename, const char* mode);
 
 //-----------------------------------------------------------------------------
 // state_restore()
@@ -94,16 +95,15 @@ bool state_restore(const char* filename)
 //-----------------------------------------------------------------------------
 // state_store()
 //-----------------------------------------------------------------------------
-bool state_store(const char* filename)
+bool state_store(FILE *fp)
 {
-	FILE *fp;
 	int ret, options;
+
+	if(!fp)
+		return false;
 
 	/* XXX: user settable */
 	options = OPT_ROMH;
-	
-	if ((fp=fopen(filename, "wb")) == NULL)
-		return FALSE;
 	
 	ret = write_header(fp);
 	ret = write_SNAP(fp, options);
@@ -191,7 +191,7 @@ static bool read_state_0060(const char* filename)
 	FILE *fp;
 	uint32 tag, size;
 	
-	if ((fp=fopen(filename, "rb")) == NULL)
+	if ((fp=fopenHelper(filename, "rb")) == NULL)
 		return FALSE;
 
 	if (read_header(fp) != TRUE) {

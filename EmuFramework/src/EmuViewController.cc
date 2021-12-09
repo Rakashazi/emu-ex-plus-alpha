@@ -476,11 +476,12 @@ bool EmuViewController::showAutoStateConfirm(Input::Event e)
 	{
 		return false;
 	}
-	auto saveStr = EmuSystem::statePath(-1);
-	if(FS::exists(saveStr))
+	auto ctx = appContext();
+	auto saveStr = EmuSystem::statePath(ctx, -1);
+	if(ctx.fileUriExists(saveStr))
 	{
-		auto dateStr = formatDateAndTime(FS::status(saveStr).lastWriteTimeLocal());
-		pushAndShowModal(std::make_unique<AutoStateConfirmAlertView>(viewStack.top().attachParams(), dateStr), e, false);
+		pushAndShowModal(std::make_unique<AutoStateConfirmAlertView>(viewStack.top().attachParams(),
+			ctx.fileUriFormatLastWriteTimeLocal(saveStr)), e, false);
 		return true;
 	}
 	return false;

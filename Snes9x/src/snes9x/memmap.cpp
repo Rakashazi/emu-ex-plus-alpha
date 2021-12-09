@@ -1747,11 +1747,9 @@ bool8 CMemory::LoadMultiCartInt ()
 	    size_t	size;
 	    char	path[PATH_MAX + 1];
 
-	    strcpy(path, S9xGetDirectory(BIOS_DIR));
-	    strcat(path, SLASH_STR);
-	    strcat(path, "STBIOS.bin");
+	    strcpy(path, S9xGetFullFilename("STBIOS.bin", BIOS_DIR));
 
-	    fp = fopen(path, "rb");
+	    fp = fopenHelper(path, "rb");
 	    if (fp)
 	    {
 		    size = fread((void *) ROM, 1, 0x40000, fp);
@@ -1890,7 +1888,7 @@ bool8 CMemory::LoadSRTC (void)
 {
 	FILE	*fp;
 
-	fp = fopen(S9xGetFilename(".rtc", SRAM_DIR), "rb");
+	fp = fopenHelper(S9xGetFilename(".rtc", SRAM_DIR), "rb");
 	if (!fp)
 		return (FALSE);
 
@@ -1905,7 +1903,7 @@ bool8 CMemory::SaveSRTC (void)
 {
 	FILE	*fp;
 
-	fp = fopen(S9xGetFilename(".rtc", SRAM_DIR), "wb");
+	fp = fopenHelper(S9xGetFilename(".rtc", SRAM_DIR), "wb");
 	if (!fp)
 		return (FALSE);
 
@@ -1946,7 +1944,7 @@ bool8 CMemory::LoadSRAM (const char *filename)
 
 		size = (1 << (Multi.sramSizeB + 3)) * 128;
 
-		file = fopen(S9xGetFilename(".srm", SRAM_DIR), "rb");
+		file = fopenHelper(S9xGetFilename(".srm", SRAM_DIR), "rb");
 		if (file)
 		{
 			len = fread((char *) Multi.sramB, 1, 0x10000, file);
@@ -1964,7 +1962,7 @@ bool8 CMemory::LoadSRAM (const char *filename)
 
 	if (size)
 	{
-		file = fopen(sramName, "rb");
+		file = fopenHelper(sramName, "rb");
 		if (file)
 		{
 			len = fread((char *) SRAM, 1, 0x20000, file);
@@ -1984,11 +1982,9 @@ bool8 CMemory::LoadSRAM (const char *filename)
 			// Try to read BS-X.srm instead
 			char	path[PATH_MAX + 1];
 
-			strcpy(path, S9xGetDirectory(SRAM_DIR));
-			strcat(path, SLASH_STR);
-			strcat(path, "BS-X.srm");
+			strcpy(path, S9xGetFullFilename("BS-X.srm", SRAM_DIR));
 
-			file = fopen(path, "rb");
+			file = fopenHelper(path, "rb");
 			if (file)
 			{
 				len = fread((char *) SRAM, 1, 0x20000, file);
@@ -2036,7 +2032,7 @@ bool8 CMemory::SaveSRAM (const char *filename)
 
 		size = (1 << (Multi.sramSizeB + 3)) * 128;
 
-		file = fopen(name, "wb");
+		file = fopenHelper(name, "wb");
 		if (file)
 		{
 			if (!fwrite((char *) Multi.sramB, size, 1, file))
@@ -2053,7 +2049,7 @@ bool8 CMemory::SaveSRAM (const char *filename)
 
 	if (size)
 	{
-		file = fopen(sramName, "wb");
+		file = fopenHelper(sramName, "wb");
 		if (file)
 		{
 			if (!fwrite((char *) SRAM, size, 1, file))
@@ -2082,7 +2078,7 @@ bool8 CMemory::SaveMPAK (const char *filename)
 		size = 0x100000;
 		if (size)
 		{
-			file = fopen(mempakName, "wb");
+			file = fopenHelper(mempakName, "wb");
 			if (file)
 			{
 				size_t	written;

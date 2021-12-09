@@ -20,11 +20,13 @@
 #include <imagine/logger/logger.h>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
+#include "internal.hh"
 #include <mednafen/types.h>
 #include <mednafen/git.h>
 #include <mednafen/file.h>
 #include <mednafen/memory.h>
 #include <mednafen/MemoryStream.h>
+#include <fcntl.h>
 
 using namespace Mednafen;
 
@@ -87,4 +89,10 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, std::unique_ptr<Stream> str, const char *path
 {
 	auto extStr = strrchr(path, '.');
 	f_ext = extStr ? extStr + 1 : "";
+}
+
+extern int openFdHelper(const char *file, int oflag, mode_t mode)
+{
+	unsigned openFlags = (oflag & O_CREAT) ? IO::OPEN_CREATE : 0;
+	return appCtx.openFileUri(file, IO::AccessHint::UNMAPPED, openFlags | IO::OPEN_TEST).releaseFd();
 }

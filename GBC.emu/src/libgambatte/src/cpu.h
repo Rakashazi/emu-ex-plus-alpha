@@ -41,6 +41,10 @@ public:
 		mem_.setInputGetter(getInput);
 	}
 
+	void setStreamDelegates(InputStreamDelegate iDel, OutputStreamDelegate oDel) {
+		mem_.setStreamDelegates(iDel, oDel);
+	}
+
 	void setSaveDir(std::string const &sdir) {
 		mem_.setSaveDir(sdir);
 	}

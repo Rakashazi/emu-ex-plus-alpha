@@ -164,7 +164,7 @@ protected:
 	StaticArrayList<MenuItem*, 24> item{};
 
 	void onSavePathChange(std::string_view path);
-	virtual void onFirmwarePathChange(std::string_view path, Input::Event e);
+	virtual void onFirmwarePathChange(std::string_view path);
 	std::unique_ptr<TextTableView> makeFirmwarePathMenu(IG::utf16String name, bool allowFiles = false, unsigned extraItemsHint = 0);
 	void pushAndShowFirmwarePathMenu(IG::utf16String name, Input::Event e, bool allowFiles = false);
 	void pushAndShowFirmwareFilePathMenu(IG::utf16String name, Input::Event e);

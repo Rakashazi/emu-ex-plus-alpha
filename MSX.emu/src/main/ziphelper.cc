@@ -17,10 +17,12 @@
 #include <archive.h>
 #include <archive_entry.h>
 #include <imagine/fs/ArchiveFS.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
 #include <imagine/util/ScopeGuard.hh>
 #include "ziphelper.h"
+#include "internal.hh"
 #include <cstdlib>
 
 static struct archive *writeArch{};
@@ -35,7 +37,7 @@ void* zipLoadFile(const char* zipName, const char* fileName, int* size)
 	ArchiveIO io{};
 	try
 	{
-		for(auto &entry : FS::ArchiveIterator{zipName})
+		for(auto &entry : FS::ArchiveIterator{appCtx.openFileUri(zipName)})
 		{
 			if(entry.type() == FS::file_type::directory)
 			{
@@ -104,4 +106,9 @@ void zipEndWrite()
 	archive_write_close(writeArch);
 	archive_write_free(writeArch);
 	writeArch = {};
+}
+
+FILE *fopenHelper(const char* filename, const char* mode)
+{
+	return FileUtils::fopenUri(appCtx, filename, mode);
 }

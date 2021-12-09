@@ -18,7 +18,6 @@
 #include <emuframework/EmuSystem.hh>
 #include <imagine/pixmap/PixelFormat.hh>
 #include <memory>
-#include <ctime>
 
 namespace Base
 {
@@ -53,4 +52,3 @@ Gfx::Viewport makeViewport(const Base::Window &win);
 Gfx::Projection updateProjection(Gfx::Viewport viewport);
 uint8_t currentFrameInterval();
 IG::PixelFormatID optionImageEffectPixelFormatValue();
-std::string formatDateAndTime(std::tm);

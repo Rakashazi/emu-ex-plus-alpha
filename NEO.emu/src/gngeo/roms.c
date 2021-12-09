@@ -1050,32 +1050,6 @@ static int load_region(struct PKZIP *pz, GAME_ROMS *r, int region, Uint32 src,
 	return 0;
 }
 
-static struct PKZIP *open_rom_zip(char *rom_path, char *name) {
-	int size = strlen(rom_path) + strlen(name) + 6;
-	struct PKZIP *gz;
-	char buf[size];
-	// Try to open each possible archive type
-	snprintf(buf, size, "%s/%s.zip", rom_path, name);
-	gz = gn_open_zip(buf);
-	if(gz)
-	{
-		return gz;
-	}
-	snprintf(buf, size, "%s/%s.7z", rom_path, name);
-	gz = gn_open_zip(buf);
-	if(gz)
-	{
-		return gz;
-	}
-	snprintf(buf, size, "%s/%s.rar", rom_path, name);
-	gz = gn_open_zip(buf);
-	if(gz)
-	{
-		return gz;
-	}
-	return NULL;
-}
-
 static int convert_roms_tile(Uint8 *g, int tileno) {
 	unsigned char swap[128];
 	unsigned int *gfxdata;
@@ -1227,7 +1201,7 @@ static bool loadUnibios(GAME_ROMS *r, const char *unibiosFilename, uint32_t file
 	return true;
 }
 
-bool dr_load_bios(GAME_ROMS *r, char romerror[1024]) {
+bool dr_load_bios(void *contextPtr, GAME_ROMS *r, char romerror[1024]) {
 	int i;
 	struct PKZIP *pz;
 	struct ZFILE *z;
@@ -1239,7 +1213,7 @@ bool dr_load_bios(GAME_ROMS *r, char romerror[1024]) {
 	sprintf(fpath, "%s/neogeo.zip", rpath);
 
 	logMsg("opening neogeo.zip");
-	pz = gn_open_zip(fpath);
+	pz = gn_open_zip(contextPtr, fpath);
 	if (pz == NULL) {
 		sprintf(romerror, "Can't open BIOS archive (neogeo.zip)");
 		free(fpath);
@@ -1399,7 +1373,7 @@ int dr_load_roms(void *contextPtr, GAME_ROMS *r, char *rom_path, char *name, cha
 		return false;
 	}
 
-	gz = open_rom_zip(rom_path, name);
+	gz = open_rom_zip(contextPtr, rom_path, name);
 	if (gz == NULL) {
 		sprintf(romerror,"Game %s.zip not found", name);
 		return false;
@@ -1408,7 +1382,7 @@ int dr_load_roms(void *contextPtr, GAME_ROMS *r, char *rom_path, char *name, cha
 	/* Open Parent.
 	 For now, only one parent is supported, no recursion
 	 */
-	gzp = open_rom_zip(rom_path, drv->parent);
+	gzp = open_rom_zip(contextPtr, rom_path, drv->parent);
 	if (gzp == NULL) {
 		sprintf(romerror,"%s.zip not found, make sure it's in your ROM directory", drv->parent);
 		return false;
@@ -1527,7 +1501,7 @@ int dr_load_roms(void *contextPtr, GAME_ROMS *r, char *rom_path, char *name, cha
 	/* Init rom and bios */
 	init_roms(contextPtr, r);
 	convert_all_tile(r);
-	return dr_load_bios(r, romerror);
+	return dr_load_bios(contextPtr, r, romerror);
 
 error1:
 	gn_terminate_pbar();
@@ -1861,7 +1835,7 @@ int dr_open_gno(void *contextPtr, char *filename, char romerror[1024]) {
 	/* Init rom and bios */
 	init_roms(contextPtr, r);
 	//convert_all_tile(r);
-	if(!dr_load_bios(r, romerror))
+	if(!dr_load_bios(contextPtr, r, romerror))
 		return false;
 
 	conf.game = memory.rom.info.name;

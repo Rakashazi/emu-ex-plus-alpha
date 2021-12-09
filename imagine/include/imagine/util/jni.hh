@@ -62,6 +62,12 @@ static jobject callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&
 	return env->CallObjectMethod(obj, method, std::forward<decltype(args)>(args)...);
 }
 
+template<IG::same_as<jstring> R>
+static jstring callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
+{
+	return (jstring)env->CallObjectMethod(obj, method, std::forward<decltype(args)>(args)...);
+}
+
 template<IG::same_as<jboolean> R>
 static jboolean callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
 {
@@ -120,6 +126,12 @@ template<IG::same_as<jobject> R>
 static jobject callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&... args)
 {
 	return env->CallStaticObjectMethod(cls, method, std::forward<decltype(args)>(args)...);
+}
+
+template<IG::same_as<jstring> R>
+static jstring callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&... args)
+{
+	return (jstring)env->CallStaticObjectMethod(cls, method, std::forward<decltype(args)>(args)...);
 }
 
 template<IG::same_as<jboolean> R>

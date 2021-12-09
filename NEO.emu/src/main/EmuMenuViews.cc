@@ -436,14 +436,15 @@ static const RomListEntry romlist[]
 static FS::PathString gameFilePath(EmuApp &app, const char *name)
 {
 	auto basePath = FS::pathString(app.mediaSearchPath(), name);
+	auto ctx = app.appContext();
 	if(auto zipPath = basePath + ".zip";
-		FS::exists(zipPath))
+		ctx.fileUriExists(zipPath))
 		return zipPath;
 	if(auto sZipPath = basePath + ".7z";
-		FS::exists(sZipPath))
+		ctx.fileUriExists(sZipPath))
 		return sZipPath;
 	if(auto rarPath = basePath + ".rar";
-		FS::exists(rarPath))
+		ctx.fileUriExists(rarPath))
 		return rarPath;
 	return {};
 }

@@ -465,14 +465,14 @@ void utilWriteData(gzFile gzFile, const variable_desc *data)
   }
 }
 
-gzFile utilGzOpen(const char *file, const char *mode)
+gzFile utilGzOpen(int fd, const char *mode)
 {
   utilGzWriteFunc = /*(int (ZEXPORT *)(gzFile, const voidp, unsigned int))*/gzwrite;
   utilGzReadFunc = gzread;
   utilGzCloseFunc = gzclose;
   utilGzSeekFunc = gzseek;
 
-  return gzopen(file, mode);
+  return gzdopen(fd, mode);
 }
 
 gzFile utilMemGzOpen(char *memory, int available, const char *mode)

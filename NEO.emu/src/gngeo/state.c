@@ -444,38 +444,14 @@ bool save_state(char *game,int slot) {
 
 #else
 
-static const char *getGngeoDir()
-{
-#ifdef EMBEDDED_FS
-	return ROOTPATH"save/";
-#else
-	return get_gngeo_dir();
-#endif
-}
-
-static void make_stateName(const char *game,int slot,char *st_name_out)
-{
-	sprintf(st_name_out,"%s%s.%03d",getGngeoDir(),game,slot);
-}
-
-static gzFile open_state(/*char *game,int slot,*/const char *st_name,int mode) {
-	/*char *st_name;
-//    char *st_name_len;
-#ifdef EMBEDDED_FS
-	char *gngeo_dir=ROOTPATH"save/";
-#else
-	char *gngeo_dir=get_gngeo_dir();
-#endif*/
+static gzFile open_state(void *contextPtr, const char *st_name, int mode) {
 	char string[20];
 	char *m=(mode==STWRITE?"wb":"rb");
 	gzFile gzf;
 	int  flags;
 	Uint32 rate;
 
-    /*st_name=(char*)alloca(strlen(gngeo_dir)+strlen(game)+5);
-    sprintf(st_name,"%s%s.%03d",gngeo_dir,game,slot);*/
-
-	if ((gzf = gzopen(st_name, m)) == NULL) {
+	if ((gzf = gzopenHelper(contextPtr, st_name, m)) == NULL) {
 		logMsg("%s not found\n", st_name);
 		return NULL;
     }
@@ -563,10 +539,10 @@ static void neogeo_mkstate(gzFile gzf,int mode) {
 	pd4990a_mkstate(gzf, mode);
 }
 
-int save_stateWithName(const char *name) {
+int save_stateWithName(void *contextPtr, const char *name) {
 	gzFile gzf;
 
-	if ((gzf = open_state(name, STWRITE)) == NULL)
+	if ((gzf = open_state(contextPtr, name, STWRITE)) == NULL)
 		return false;
 
 	//gzwrite(gzf, state_img->pixels, 304 * 224 * 2);
@@ -577,13 +553,7 @@ int save_stateWithName(const char *name) {
 	return true;
 }
 
-int save_state(const char *game,int slot) {
-	char *st_name=(char*)alloca(strlen(getGngeoDir())+strlen(game)+5);
-	make_stateName(game,slot,st_name);
-	return save_stateWithName(st_name);
-}
-
-int load_stateWithName(const char *name) {
+int load_stateWithName(void *contextPtr, const char *name) {
 	gzFile gzf;
 	/* Save pointers */
 	Uint8 *ng_lo = memory.ng_lo;
@@ -593,7 +563,7 @@ int load_stateWithName(const char *name) {
 //	GAME_ROMS r;
 //	memcpy(&r,&memory.rom,sizeof(GAME_ROMS));
 	
-	if ((gzf = open_state(name, STREAD))==NULL)
+	if ((gzf = open_state(contextPtr, name, STREAD))==NULL)
 		return false;
 
 	//gzread(gzf,state_img_tmp->pixels,304*224*2);
@@ -632,12 +602,6 @@ int load_stateWithName(const char *name) {
 
 	gzclose(gzf);
 	return true;
-}
-
-int load_state(const char *game,int slot) {
-	char *st_name=(char*)alloca(strlen(getGngeoDir())+strlen(game)+5);
-	make_stateName(game,slot,st_name);
-	return load_stateWithName(st_name);
 }
 #endif
 

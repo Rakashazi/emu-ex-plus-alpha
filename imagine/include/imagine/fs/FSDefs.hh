@@ -24,10 +24,6 @@
 namespace FS
 {
 
-using FileString = FileStringImpl;
-
-using PathString = PathStringImpl;
-
 using FileStringArray = std::array<char, FILE_STRING_SIZE>;
 
 using PathStringArray = std::array<char, PATH_STRING_SIZE>;
@@ -120,13 +116,8 @@ struct PathLocation
 	}
 };
 
-class AAssetIterator;
-class directory_iterator;
-
-using AssetDirectoryIterator = std::conditional_t<Config::envIsAndroid, AAssetIterator, directory_iterator>;
-
 template <class T>
-concept ConvertibleToPathString = IG::convertible_to<T, PathString> || IG::convertible_to<T, std::string_view>;
+concept ConvertibleToPathString = IG::convertible_to<T, PathStringImpl> || IG::convertible_to<T, std::string_view>;
 
 static constexpr PathString pathString(ConvertibleToPathString auto base, auto ... components)
 {

@@ -54,9 +54,10 @@ struct PKZIP;
 void gn_unzip_fclose(struct ZFILE *z);
 int gn_unzip_fread(struct ZFILE *z,uint8_t *data,unsigned int size);
 struct ZFILE *gn_unzip_fopen(struct PKZIP *zf,const char *filename,uint32_t file_crc);
-struct PKZIP *gn_open_zip(const char *file);
+struct PKZIP *gn_open_zip(void *contextPtr, const char *file);
 uint8_t *gn_unzip_file_malloc(struct PKZIP *zf,const char *filename,uint32_t file_crc,unsigned int *outlen);
 void gn_close_zip(struct PKZIP *zf);
 int gn_strictROMChecking();
+struct PKZIP *open_rom_zip(void *contextPtr, char *romPath, char *name);
 
 #endif /* UNZIP_H_ */

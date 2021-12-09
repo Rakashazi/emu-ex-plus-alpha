@@ -1,6 +1,7 @@
 #pragma once
 
 #include <emuframework/Option.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <port.h>
 #ifndef SNES9X_VERSION_1_4
 #include <controls.h>
@@ -19,6 +20,7 @@ static constexpr bool IS_SNES9X_VERSION_1_4 = true;
 static constexpr bool IS_SNES9X_VERSION_1_4 = false;
 #endif
 
+extern Base::ApplicationContext appCtx;
 extern Byte1Option optionMultitap;
 extern SByte1Option optionInputPort;
 extern Byte1Option optionVideoSystem;

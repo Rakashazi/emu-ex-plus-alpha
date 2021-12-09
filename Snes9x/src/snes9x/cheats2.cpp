@@ -595,7 +595,7 @@ static bool8 S9xLoadCheatFileClassic (const char *filename)
     FILE *fs;
     uint8 data[28];
 
-    fs = fopen(filename, "rb");
+    fs = fopenHelper(filename, "rb");
     if (!fs)
         return (FALSE);
 
@@ -655,7 +655,7 @@ bool8 S9xSaveCheatFile (const char *filename)
         return TRUE;
     }
 
-    file = fopen (filename, "w");
+    file = fopenHelper(filename, "w");
 
     if (!file)
         return FALSE;

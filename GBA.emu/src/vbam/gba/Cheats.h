@@ -17,6 +17,11 @@ struct CheatsData {
   char desc[32];
 };
 
+namespace Base
+{
+class ApplicationContext;
+}
+
 void cheatsAdd(ARM7TDMI &cpu, const char *codeStr, const char *desc, u32 rawaddress, u32 address, u32 value, int code, int size);
 void cheatsAddCheatCode(const char *code, const char *desc);
 bool cheatsAddGSACode(ARM7TDMI &cpu, const char *code, const char *desc, bool v3);
@@ -29,8 +34,8 @@ void cheatsDisable(ARM7TDMI &cpu, int number);
 void cheatsSaveGame(gzFile file);
 void cheatsReadGame(gzFile file, int version);
 void cheatsReadGameSkip(gzFile file, int version);
-void cheatsSaveCheatList(const char *file);
-bool cheatsLoadCheatList(const char *file);
+void cheatsSaveCheatList(Base::ApplicationContext, const char *file);
+bool cheatsLoadCheatList(Base::ApplicationContext, const char *file);
 void cheatsWriteMemory(u32 address, u32 value);
 void cheatsWriteHalfWord(u32 address, u16 value);
 void cheatsWriteByte(u32 address, u8 value);

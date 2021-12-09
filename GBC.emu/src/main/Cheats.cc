@@ -66,28 +66,28 @@ void applyCheats()
 	}
 }
 
-void writeCheatFile()
+void writeCheatFile(Base::ApplicationContext ctx)
 {
 	if(!cheatsModified)
 		return;
 
-	auto filename = EmuSystem::contentSaveFilePath(".gbcht");
+	auto path = EmuSystem::contentSaveFilePath(ctx, ".gbcht");
 
 	if(!cheatList.size())
 	{
-		logMsg("deleting cheats file %s", filename.data());
-		FS::remove(filename);
+		logMsg("deleting cheats file %s", path.data());
+		ctx.removeFileUri(path);
 		cheatsModified = 0;
 		return;
 	}
 
-	auto file = FileIO::create(filename, IO::OPEN_TEST);
+	auto file = ctx.openFileUri(path, IO::OPEN_CREATE | IO::OPEN_TEST);
 	if(!file)
 	{
-		logMsg("error creating cheats file %s", filename.data());
+		logMsg("error creating cheats file %s", path.data());
 		return;
 	}
-	logMsg("writing cheats file %s", filename.data());
+	logMsg("writing cheats file %s", path.data());
 
 	int version = 0;
 	file.write((uint8_t)version);
@@ -103,15 +103,15 @@ void writeCheatFile()
 	cheatsModified = 0;
 }
 
-void readCheatFile()
+void readCheatFile(Base::ApplicationContext ctx)
 {
-	auto filename = EmuSystem::contentSaveFilePath(".gbcht");
-	FileIO file{filename, IO::AccessHint::ALL, IO::OPEN_TEST};
+	auto path = EmuSystem::contentSaveFilePath(ctx, ".gbcht");
+	auto file = ctx.openFileUri(path, IO::AccessHint::ALL, IO::OPEN_TEST);
 	if(!file)
 	{
 		return;
 	}
-	logMsg("reading cheats file %s", filename.data());
+	logMsg("reading cheats file:%s", path.data());
 
 	auto version = file.get<uint8_t>();
 	if(version != 0)

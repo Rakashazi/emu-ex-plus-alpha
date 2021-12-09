@@ -1,0 +1,182 @@
+/*  This file is part of Imagine.
+
+	Imagine is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	Imagine is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
+
+package com.imagine;
+
+import android.content.ContentResolver;
+import android.net.Uri;
+import android.provider.DocumentsContract;
+import android.provider.OpenableColumns;
+import android.database.Cursor;
+import java.util.Date;
+import java.text.DateFormat;
+import java.io.File;
+
+
+final class ContentResolverUtils
+{
+	private static final String logTag = "ContentResolverUtils";
+
+	// File open flags, keep in sync with IO.hh
+	private static final int OPEN_READ = 1;
+	private static final int OPEN_WRITE = 1 << 1;
+	private static final int OPEN_KEEP_EXISTING = 1 << 3;
+
+	static String fileOpenFlagsString(int flags)
+	{
+		final int usedFlags = OPEN_READ | OPEN_WRITE | OPEN_KEEP_EXISTING;
+		switch(flags & usedFlags)
+		{
+			default:
+			case OPEN_READ: return "r";
+			case OPEN_WRITE|OPEN_KEEP_EXISTING: return "w";
+			case OPEN_READ|OPEN_WRITE|OPEN_KEEP_EXISTING: return "rw";
+			case OPEN_WRITE: return "wt";
+			case OPEN_READ|OPEN_WRITE: return "rwt";
+		}
+	}
+
+	static int openUriFd(ContentResolver resolver, String uriStr, int flags)
+	{
+		Uri uri = Uri.parse(uriStr);
+		try
+		{
+			return resolver.openFileDescriptor(uri, fileOpenFlagsString(flags)).detachFd();
+		}
+		catch(Exception e)
+		{
+			if(android.os.Build.VERSION.SDK_INT >= 21 && (flags & OPEN_WRITE) != 0)
+			{
+				// no existing file, try creating it in the URI path
+				Uri pathUri = Uri.parse(uriStr.substring(0, uriStr.lastIndexOf(Uri.encode("/"))));
+				File file = new File(uri.getPath());
+				String name = file.getName();
+				return openDocumentUriFd(resolver, pathUri, name, flags);
+			}
+			//Log.i(logTag, "openUriFd exception:" + e.toString());
+			return -1;
+		}
+	}
+
+	static int openDocumentUriFd(ContentResolver resolver, Uri pathUri, String name, int flags)
+	{
+		try
+		{
+			Uri docUri = DocumentsContract.createDocument(resolver, pathUri, "application/octet-stream", name);
+			return resolver.openFileDescriptor(docUri, fileOpenFlagsString(flags)).detachFd();
+		}
+		catch(Exception e)
+		{
+			//Log.i(logTag, "openDocumentUriFd exception:" + e.toString());
+			return -1;
+		}
+	}
+
+	static boolean uriExists(ContentResolver resolver, String uriStr)
+	{
+		Cursor c = null;
+		try
+		{
+			c = resolver.query(Uri.parse(uriStr),
+				new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID}, null, null, null);
+			return c.getCount() > 0;
+		}
+		catch(Exception e)
+		{
+			//Log.i(logTag, "uriExists exception:" + e.toString());
+			return false;
+		}
+		finally
+		{
+			if(c != null)
+			{
+				c.close();
+			}
+		}
+	}
+
+	static long queryLong(ContentResolver resolver, Uri uri, String column, long defaultValue)
+	{
+		Cursor c = null;
+		try
+		{
+			c = resolver.query(uri, new String[] {column}, null, null, null);
+			if(c.moveToFirst() && !c.isNull(0))
+			{
+				return c.getLong(0);
+			}
+			else
+			{
+				return defaultValue;
+			}
+		}
+		catch(Exception e)
+		{
+			return defaultValue;
+		}
+		finally
+		{
+			if(c != null)
+			{
+				c.close();
+			}
+		}
+	}
+
+	static String uriLastModified(ContentResolver resolver, String uriStr)
+	{
+		long mTime = queryLong(resolver, Uri.parse(uriStr), DocumentsContract.Document.COLUMN_LAST_MODIFIED, 0);
+		if(mTime == 0)
+			return "";
+		return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(new Date(mTime));
+	}
+
+	static String uriDisplayName(ContentResolver resolver, String uriStr)
+	{
+		Cursor c = null;
+		try
+		{
+			c = resolver.query(Uri.parse(uriStr),
+				new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null);
+			c.moveToFirst();
+			return c.getString(c.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+		}
+		catch(Exception e)
+		{
+			//Log.i(logTag, "uriDisplayName exception:" + e.toString());
+			return "";
+		}
+		finally
+		{
+			if(c != null)
+			{
+				c.close();
+			}
+		}
+	}
+
+	static boolean deleteUri(ContentResolver resolver, String uriStr)
+	{
+		try
+		{
+			return DocumentsContract.deleteDocument(resolver, Uri.parse(uriStr));
+		}
+		catch(Exception e)
+		{
+			//Log.i(logTag, "deleteUri exception:" + e.toString());
+			return false;
+		}
+	}
+}

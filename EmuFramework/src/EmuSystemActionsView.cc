@@ -89,7 +89,7 @@ void EmuSystemActionsView::onShow()
 	cheats.setActive(EmuSystem::gameIsRunning());
 	reset.setActive(EmuSystem::gameIsRunning());
 	saveState.setActive(EmuSystem::gameIsRunning());
-	loadState.setActive(EmuSystem::gameIsRunning() && EmuSystem::stateExists(EmuSystem::saveStateSlot));
+	loadState.setActive(EmuSystem::gameIsRunning() && EmuSystem::stateExists(appContext(), EmuSystem::saveStateSlot));
 	stateSlot.compile(makeStateSlotStr(EmuSystem::saveStateSlot), renderer(), projP);
 	screenshot.setActive(EmuSystem::gameIsRunning());
 	#ifdef CONFIG_EMUFRAMEWORK_ADD_LAUNCHER_ICON
@@ -187,7 +187,7 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 						if(app.saveStateWithSlot(EmuSystem::saveStateSlot))
 							app.viewController().showEmulation();
 					};
-				if(EmuSystem::shouldOverwriteExistingState())
+				if(EmuSystem::shouldOverwriteExistingState(appContext()))
 				{
 					doSaveState(app());
 				}

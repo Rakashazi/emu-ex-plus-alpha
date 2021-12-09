@@ -73,8 +73,8 @@ void applyCheats();
 void clearCheats();
 void updateCheats(); // clears and applies cheats
 void clearCheatList();
-void writeCheatFile();
-void readCheatFile();
+void writeCheatFile(Base::ApplicationContext);
+void readCheatFile(Base::ApplicationContext);
 void RAMCheatUpdate();
 void ROMCheatUpdate();
 

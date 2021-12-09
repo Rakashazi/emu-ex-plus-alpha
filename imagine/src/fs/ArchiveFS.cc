@@ -74,9 +74,9 @@ void ArchiveIterator::rewind()
 	impl->rewind();
 }
 
-ArchiveIO fileFromArchive(IG::CStringView archivePath, std::string_view filePath)
+static ArchiveIO fileFromArchiveGeneric(auto &&init, std::string_view filePath)
 {
-	for(auto &entry : FS::ArchiveIterator{archivePath})
+	for(auto &entry : FS::ArchiveIterator{std::forward<decltype(init)>(init)})
 	{
 		if(entry.type() == FS::file_type::directory)
 		{
@@ -88,6 +88,16 @@ ArchiveIO fileFromArchive(IG::CStringView archivePath, std::string_view filePath
 		}
 	}
 	return {};
+}
+
+ArchiveIO fileFromArchive(IG::CStringView archivePath, std::string_view filePath)
+{
+	return fileFromArchiveGeneric(archivePath, filePath);
+}
+
+ArchiveIO fileFromArchive(GenericIO io, std::string_view filePath)
+{
+	return fileFromArchiveGeneric(std::move(io), filePath);
 }
 
 }

@@ -28,6 +28,7 @@
 #include <imagine/font/FontSettings.hh>
 #include <imagine/font/GlyphMetrics.hh>
 #include <imagine/base/ApplicationContext.hh>
+#include <system_error>
 
 class GenericIO;
 

@@ -26,8 +26,7 @@
 #endif
 
 #include <imagine/base/baseDefs.hh>
-#include <imagine/fs/FSDefs.hh>
-#include <imagine/io/IO.hh>
+#include <imagine/io/ioDefs.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/string/CStringView.hh>
 #include <vector>
@@ -45,6 +44,15 @@ namespace Input
 {
 class Event;
 class Device;
+}
+
+namespace FS
+{
+class PathString;
+class FileString;
+struct RootPathInfo;
+struct PathLocation;
+class AssetDirectoryIterator;
 }
 
 namespace Base
@@ -160,14 +168,22 @@ public:
 	FS::PathLocation sharedStoragePathLocation() const;
 	std::vector<FS::PathLocation> rootFileLocations() const;
 	FS::RootPathInfo nearestRootPath(std::string_view path) const;
-	AssetIO openAsset(IG::CStringView name, IO::AccessHint access, unsigned openFlags = 0, const char *appName = applicationName) const;
+	AssetIO openAsset(IG::CStringView name, IODefs::AccessHint access, unsigned openFlags = 0, const char *appName = applicationName) const;
 	FS::AssetDirectoryIterator openAssetDirectory(IG::CStringView path, const char *appName = applicationName);
+
+	// path/file access using OS-specific URIs such as those in the Android Storage Access Framework,
+	// backwards compatible with regular file system paths, all thread-safe except for picker functions
 	bool hasSystemPathPicker() const;
-	void showSystemPathPicker(SystemPathPickerDelegate);
+	void showSystemPathPicker(SystemPathPickerDelegate, bool convertToPath = false);
 	bool hasSystemDocumentPicker() const;
 	void showSystemDocumentPicker(SystemDocumentPickerDelegate);
-	FileIO openUri(IG::CStringView uri, IO::AccessHint, unsigned openFlags = 0);
-	FileIO fileAtUri(IG::CStringView name, IG::CStringView uri, IO::AccessHint, unsigned openFlags = 0);
+	FileIO openFileUri(IG::CStringView uri, IODefs::AccessHint, unsigned openFlags = 0) const;
+	FileIO openFileUri(IG::CStringView uri, unsigned openFlags = 0) const;
+	FS::PathString fileUri(IG::CStringView pathUri, IG::CStringView filename) const;
+	bool fileUriExists(IG::CStringView uri) const;
+	std::string fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const;
+	FS::FileString fileUriDisplayName(IG::CStringView uri) const;
+	bool removeFileUri(IG::CStringView uri) const;
 
 	// OS UI management (status & navigation bar)
 	void setSysUIStyle(uint32_t flags);

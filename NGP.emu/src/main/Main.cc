@@ -65,13 +65,18 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 	return IG::format<FS::FileString>("{}.0{}.ngs", name, saveSlotCharUpper(slot));
 }
 
-void EmuSystem::saveState(const char *path)
+FILE *fopenHelper(const char* filename, const char* mode)
 {
-	if(!state_store(path))
+	return FileUtils::fopenUri(emuAppPtr->appContext(), filename, mode);
+}
+
+void EmuSystem::saveState(Base::ApplicationContext ctx, IG::CStringView path)
+{
+	if(!state_store(FileUtils::fopenUri(ctx, path, "w")))
 		throwFileWriteError();
 }
 
-void EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(IG::CStringView path)
 {
 	if(!state_restore(path))
 		throwFileReadError();
@@ -79,36 +84,38 @@ void EmuSystem::loadState(const char *path)
 
 bool system_io_state_read(const char* filename, uint8_t* buffer, uint32 bufferLength)
 {
-	return FileUtils::readFromPath(filename, buffer, bufferLength) > 0;
+	return FileUtils::readFromUri(emuAppPtr->appContext(), filename, buffer, bufferLength) > 0;
 }
 
-static FS::PathString sprintSaveFilename()
+static FS::PathString sprintSaveFilename(Base::ApplicationContext ctx)
 {
-	return EmuSystem::contentSaveFilePath(".ngf");
+	return EmuSystem::contentSaveFilePath(ctx, ".ngf");
 }
 
 bool system_io_flash_read(uint8_t* buffer, uint32_t len)
 {
-	auto saveStr = sprintSaveFilename();
-	return FileUtils::readFromPath(saveStr.data(), buffer, len) > 0;
+	auto ctx = emuAppPtr->appContext();
+	auto saveStr = sprintSaveFilename(ctx);
+	return FileUtils::readFromUri(ctx, saveStr, buffer, len) > 0;
 }
 
 bool system_io_flash_write(uint8_t* buffer, uint32 len)
 {
 	if(!len)
 		return 0;
-	auto saveStr = sprintSaveFilename();
+	auto ctx = emuAppPtr->appContext();
+	auto saveStr = sprintSaveFilename(ctx);
 	logMsg("writing flash %s", saveStr.data());
-	return FileUtils::writeToPath(saveStr.data(), buffer, len) != -1;
+	return FileUtils::writeToUri(ctx, saveStr, buffer, len) != -1;
 }
 
-void EmuSystem::saveBackupMem()
+void EmuSystem::saveBackupMem(Base::ApplicationContext)
 {
 	logMsg("saving flash");
 	flash_commit();
 }
 
-void EmuSystem::closeSystem()
+void EmuSystem::closeSystem(Base::ApplicationContext)
 {
 	rom_unload();
 }

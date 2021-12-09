@@ -79,9 +79,9 @@ bool CartridgeFA2::poke(uInt16 address, uInt8 value)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CartridgeFA2::setNVRamFile(const string& nvramdir, const string& romfile)
+void CartridgeFA2::setNVRamFile(const string& nvramfile)
 {
-  myFlashFile = nvramdir + romfile + "_flash.dat";
+  myFlashFile = nvramfile + "_flash.dat";
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

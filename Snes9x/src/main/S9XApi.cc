@@ -1,8 +1,11 @@
 #define LOGTAG "main"
 #include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include <emuframework/EmuSystem.hh>
+#include "internal.hh"
 #include <sys/stat.h>
 #include <snes9x.h>
 #ifndef SNES9X_VERSION_1_4
@@ -65,12 +68,6 @@ const char *S9xGetCrosshair(int idx)
 	return nullptr;
 }
 
-const char * S9xGetDirectory(enum s9x_getdirtype dirtype)
-{
-	globalPath = EmuSystem::contentSavePath();
-	return globalPath.c_str();
-}
-
 const char * S9xGetFilenameInc(const char *ex, enum s9x_getdirtype dirtype)
 {
 	logErr("S9xGetFilenameInc not used yet");
@@ -98,13 +95,13 @@ const char *S9xGetFilenameInc(const char *e)
 
 const char *S9xGetSnapshotDirectory()
 {
-	globalPath = EmuSystem::savePath();
+	globalPath = EmuSystem::contentSavePath();
 	return globalPath.c_str();
 }
 
 extern "C" char* osd_GetPackDir()
 {
-	globalPath = EmuSystem::savePath();
+	globalPath = EmuSystem::contentSavePath();
 
 	if(!strncmp((char*)&Memory.ROM [0xffc0], "SUPER POWER LEAG 4   ", 21))
 	{
@@ -126,7 +123,7 @@ extern "C" char* osd_GetPackDir()
 	{
 		globalPath += "/MISC-SP7";
 	}
-	return globalPath.c_str();
+	return globalPath.data();
 }
 
 #endif
@@ -144,9 +141,31 @@ const char *S9xGetFilename(const char *ex)
 		isRomDir = true;
 	}
 	#endif
-	globalPath = fmt::format("{}/{}{}",
-		isRomDir ? EmuSystem::contentDirectory() : EmuSystem::contentSavePath(),
-		EmuSystem::contentName(), ex);
+	if(isRomDir)
+		globalPath = EmuSystem::contentSaveFilePath(appCtx, ex);
+	else
+		globalPath = EmuSystem::contentSaveFilePath(appCtx, ex);
+	logMsg("built s9x path:%s", globalPath.c_str());
+	return globalPath.c_str();
+}
+
+#ifndef SNES9X_VERSION_1_4
+const char *S9xGetFullFilename(const char *name, enum s9x_getdirtype dirtype)
+#else
+const char *S9xGetFullFilename(const char *name)
+#endif
+{
+	bool isRomDir{};
+	#ifndef SNES9X_VERSION_1_4
+	if(dirtype == ROMFILENAME_DIR)
+	{
+		isRomDir = true;
+	}
+	#endif
+	if(isRomDir)
+		globalPath = EmuSystem::contentDirectory(appCtx, name);
+	else
+		globalPath = EmuSystem::contentSavePath(appCtx, name);
 	logMsg("built s9x path:%s", globalPath.c_str());
 	return globalPath.c_str();
 }
@@ -265,6 +284,17 @@ bool8 S9xOpenSnapshotFile(const char *filename, bool8 read_only, STREAM *file)
 void S9xCloseSnapshotFile(STREAM file)
 {
 	CLOSE_STREAM(file);
+}
+
+FILE *fopenHelper(const char* filename, const char* mode)
+{
+	return FileUtils::fopenUri(appCtx, filename, mode);
+}
+
+gzFile gzopenHelper(const char *filename, const char *mode)
+{
+	unsigned openFlags = IG::stringContains(mode, 'w') ? IO::OPEN_CREATE : 0;
+	return gzdopen(appCtx.openFileUri(filename, IO::AccessHint::UNMAPPED, openFlags | IO::OPEN_TEST).releaseFd(), mode);
 }
 
 // from logger.h

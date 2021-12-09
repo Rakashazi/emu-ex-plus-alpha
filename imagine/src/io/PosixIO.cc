@@ -29,7 +29,7 @@ static IG::StaticString<5> flagsString(uint32_t openFlags)
 	IG::StaticString<5> logFlagsStr{};
 	if(openFlags & IO::OPEN_READ || !(openFlags & IO::OPEN_WRITE)) logFlagsStr += 'r';
 	if(openFlags & IO::OPEN_WRITE) logFlagsStr += 'w';
-	if(openFlags & IO::OPEN_CREATE) logFlagsStr += 'c';
+	if(openFlags & IO::OPEN_CREATE_NEW) logFlagsStr += 'c';
 	if(openFlags & IO::OPEN_KEEP_EXISTING) logFlagsStr += 't';
 	return logFlagsStr;
 }
@@ -59,7 +59,7 @@ PosixIO::PosixIO(IG::CStringView path, uint32_t openFlags)
 	{
 		flags |= O_RDONLY;
 	}
-	if(openFlags & OPEN_CREATE)
+	if(openFlags & OPEN_CREATE_NEW)
 	{
 		flags |= O_CREAT;
 		openMode = defaultOpenMode;
@@ -84,7 +84,7 @@ PosixIO::PosixIO(IG::CStringView path, uint32_t openFlags)
 
 PosixIO PosixIO::create(IG::CStringView path, uint32_t mode)
 {
-	mode |= OPEN_WRITE | OPEN_CREATE;
+	mode |= OPEN_CREATE;
 	return {path, mode};
 }
 
@@ -202,7 +202,7 @@ PosixIO::operator bool() const
 	return fd_ != -1;
 }
 
-int PosixIO::releaseFD()
+int PosixIO::releaseFd()
 {
 	return fd_.release();
 }

@@ -3,9 +3,14 @@
 
 #include "Types.h"
 
-bool applyPatch(const char *patchname, u8 **rom, int *size);
-bool patchApplyIPS(const char *patchname, u8 **rom, int *size);
-bool patchApplyUPS(const char *patchname, u8 **rom, int *size);
-bool patchApplyPPF(const char *patchname, u8 **rom, int *size);
+namespace Base
+{
+class ApplicationContext;
+}
+
+bool applyPatch(Base::ApplicationContext ctx, const char *patchname, u8 **rom, int *size);
+bool patchApplyIPS(Base::ApplicationContext ctx, const char *patchname, u8 **rom, int *size);
+bool patchApplyUPS(Base::ApplicationContext ctx, const char *patchname, u8 **rom, int *size);
+bool patchApplyPPF(Base::ApplicationContext ctx, const char *patchname, u8 **rom, int *size);
 
 #endif // PATCH_H

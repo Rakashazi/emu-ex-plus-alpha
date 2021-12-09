@@ -141,6 +141,12 @@ void EmuFilePicker::browseForLoading(ViewAttachParams attach, EmuSystemCreatePar
 		[=](const char *uri, GenericIO io)
 		{
 			auto &app = EmuApp::get(ctx);
+			auto displayName = ctx.fileUriDisplayName(uri);
+			if(!EmuApp::hasArchiveExtension(displayName) && !EmuSystem::defaultFsFilter(displayName))
+			{
+				app.postErrorMessage("File doesn't have a valid extension");
+				return;
+			}
 			onSelectFileFromPicker(app, std::move(io), uri, true, ctx.defaultInputEvent(), params, app.attachParams());
 		});
 }

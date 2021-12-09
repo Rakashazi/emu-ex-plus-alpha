@@ -42,6 +42,7 @@ const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobe
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
 bool EmuSystem::hasResetModes = true;
+Base::ApplicationContext appCtx{};
 unsigned fceuCheats = 0;
 ESI nesInputPortDev[2]{SI_UNSET, SI_UNSET};
 unsigned autoDetectedRegion = 0;
@@ -103,13 +104,6 @@ const char *EmuSystem::systemName()
 	return "Famicom (Nintendo Entertainment System)";
 }
 
-static void setDirOverrides()
-{
-	FCEUI_SetBaseDirectory(std::string{EmuSystem::contentSavePath()});
-	FCEUI_SetDirOverride(FCEUIOD_NV, FCEUI_GetBaseDirectory());
-	FCEUI_SetDirOverride(FCEUIOD_CHEATS, FCEUI_GetBaseDirectory());
-}
-
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasNESExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasNESExtension;
 
@@ -137,24 +131,23 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 	return IG::format<FS::FileString>("{}.fc{}", name, saveSlotCharNES(slot));
 }
 
-void EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(IG::CStringView path)
 {
 	if(!FCEUI_SaveState(path))
 		EmuSystem::throwFileWriteError();
 }
 
-void EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(IG::CStringView path)
 {
 	if(!FCEUI_LoadState(path))
 		EmuSystem::throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem() // for manually saving when not closing game
+void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
 {
 	if(gameIsRunning())
 	{
 		logMsg("saving backup memory if needed");
-		// TODO: fix iOS permissions if needed
 		if(isFDS)
 			FCEU_FDSWriteModifiedDisk();
 		else
@@ -163,7 +156,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	}
 }
 
-void EmuSystem::closeSystem()
+void EmuSystem::closeSystem(Base::ApplicationContext ctx)
 {
 	FCEUI_CloseGame();
 	fceuCheats = 0;
@@ -342,12 +335,9 @@ void setRegion(int region, int defaultRegion, int detectedRegion)
 
 void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	setDirOverrides();
 	auto ioStream = new EmuFileIO(io);
 	auto file = new FCEUFILE();
-	file->filename = contentLocation().data();
-	file->logicalPath = contentLocation().data();
-	file->fullFilename = contentLocation().data();
+	file->filename = contentFileName();
 	file->archiveIndex = -1;
 	file->stream = ioStream;
 	file->size = ioStream->size();
@@ -450,12 +440,6 @@ void EmuSystem::renderFramebuffer(EmuVideo &video)
 	renderVideo({}, video, XBuf);
 }
 
-void EmuSystem::savePathChanged()
-{
-	if(gameIsRunning())
-		setDirOverrides();
-}
-
 void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 {
 	const Gfx::LGradientStopDesc navViewGrad[] =
@@ -471,6 +455,7 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 
 void EmuSystem::onInit(Base::ApplicationContext ctx)
 {
+	appCtx = ctx;
 	backupSavestates = 0;
 	if(!FCEUI_Initialize())
 	{

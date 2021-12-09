@@ -17,7 +17,10 @@
 #include <mednafen/FileStream.h>
 #include <mednafen/MemoryStream.h>
 #include <mednafen/mednafen.h>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/utility.h>
+
+extern Base::ApplicationContext appCtx;
 
 namespace Mednafen
 {
@@ -48,7 +51,7 @@ static std::pair<uint32_t, uint8_t> modeToAttribs(uint32 mode)
 
 FileStream::FileStream(const std::string& path, const uint32 mode, const int do_lock, const uint32 buffer_size)
 try:
-	io{path, IO::AccessHint::SEQUENTIAL, modeToAttribs(mode).first},
+	io{appCtx.openFileUri(path, IO::AccessHint::SEQUENTIAL, modeToAttribs(mode).first)},
 	attribs{modeToAttribs(mode).second}
 {
 	assert(!do_lock);

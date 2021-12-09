@@ -1,5 +1,3 @@
-#pragma once
-
 /*  This file is part of Imagine.
 
 	Imagine is free software: you can redistribute it and/or modify
@@ -15,25 +13,21 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#ifdef __ANDROID__
-#include <imagine/fs/AAssetFS.hh>
-#else
-#include <imagine/fs/FS.hh>
-#endif
+#pragma once
 
-namespace FS
+#include <cstdio>
+
+namespace IG
 {
 
-class AAssetIterator;
-class directory_iterator;
-
-using AssetDirectoryIteratorImpl = std::conditional_t<Config::envIsAndroid, AAssetIterator, directory_iterator>;
-
-class AssetDirectoryIterator : public AssetDirectoryIteratorImpl
+struct FileStreamDeleter
 {
-public:
-	using AssetDirectoryIteratorImpl::AssetDirectoryIteratorImpl;
-	using AssetDirectoryIteratorImpl::operator=;
+	void operator()(std::FILE *f) const
+	{
+		std::fclose(f);
+	}
 };
+
+using UniqueFileStream = std::unique_ptr<std::FILE, FileStreamDeleter>;
 
 }

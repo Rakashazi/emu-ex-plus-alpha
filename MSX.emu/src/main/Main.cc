@@ -345,11 +345,11 @@ void setCurrentMachineName(EmuApp &app, std::string_view machineName, bool inser
 		insertMedia(app);
 }
 
-static FS::FileString getFirstFilenameInArchive(IG::CStringView zipPath, auto nameMatch)
+static FS::FileString getFirstFilenameInArchive(Base::ApplicationContext ctx, IG::CStringView zipPath, auto nameMatch)
 {
 	try
 	{
-		for(auto &entry : FS::ArchiveIterator{zipPath})
+		for(auto &entry : FS::ArchiveIterator{ctx.openFileUri(zipPath)})
 		{
 			if(entry.type() == FS::file_type::directory)
 			{
@@ -370,24 +370,24 @@ static FS::FileString getFirstFilenameInArchive(IG::CStringView zipPath, auto na
 	return {};
 }
 
-static FS::FileString getFirstROMFilenameInArchive(IG::CStringView zipPath)
+static FS::FileString getFirstROMFilenameInArchive(Base::ApplicationContext ctx, IG::CStringView zipPath)
 {
-	return getFirstFilenameInArchive(zipPath, hasMSXROMExtension);
+	return getFirstFilenameInArchive(ctx, zipPath, hasMSXROMExtension);
 }
 
-static FS::FileString getFirstDiskFilenameInArchive(IG::CStringView zipPath)
+static FS::FileString getFirstDiskFilenameInArchive(Base::ApplicationContext ctx, IG::CStringView zipPath)
 {
-	return getFirstFilenameInArchive(zipPath, hasMSXDiskExtension);
+	return getFirstFilenameInArchive(ctx, zipPath, hasMSXDiskExtension);
 }
 
-static FS::FileString getFirstTapeFilenameInArchive(IG::CStringView zipPath)
+static FS::FileString getFirstTapeFilenameInArchive(Base::ApplicationContext ctx, IG::CStringView zipPath)
 {
-	return getFirstFilenameInArchive(zipPath, hasMSXTapeExtension);
+	return getFirstFilenameInArchive(ctx, zipPath, hasMSXTapeExtension);
 }
 
-static FS::FileString getFirstMediaFilenameInArchive(IG::CStringView zipPath)
+static FS::FileString getFirstMediaFilenameInArchive(Base::ApplicationContext ctx, IG::CStringView zipPath)
 {
-	return getFirstFilenameInArchive(zipPath, hasMSXExtension);
+	return getFirstFilenameInArchive(ctx, zipPath, hasMSXExtension);
 }
 
 bool insertROM(EmuApp &app, const char *name, unsigned slot)
@@ -397,10 +397,10 @@ bool insertROM(EmuApp &app, const char *name, unsigned slot)
 	FS::FileString fileInZipName{};
 	if(EmuApp::hasArchiveExtension(path))
 	{
-		fileInZipName = getFirstROMFilenameInArchive(path.data());
+		fileInZipName = getFirstROMFilenameInArchive(app.appContext(), path);
 		if(fileInZipName.empty())
 		{
-			app.postMessage(true, "No ROM found in archive:%s", path.data());
+			app.postMessage(true, "No ROM found in archive:%s", path);
 			return false;
 		}
 		logMsg("found:%s in archive:%s", fileInZipName.data(), path.data());
@@ -420,10 +420,10 @@ bool insertDisk(EmuApp &app, const char *name, unsigned slot)
 	FS::FileString fileInZipName{};
 	if(EmuApp::hasArchiveExtension(path))
 	{
-		fileInZipName = getFirstDiskFilenameInArchive(path.data());
+		fileInZipName = getFirstDiskFilenameInArchive(app.appContext(), path);
 		if(fileInZipName.empty())
 		{
-			app.postMessage(true, "No disk found in archive:%s", path.data());
+			app.postMessage(true, "No disk found in archive:%s", path);
 			return false;
 		}
 		logMsg("found:%s in archive:%s", fileInZipName.data(), path.data());
@@ -514,7 +514,7 @@ static void saveBlueMSXState(const char *filename)
 	zipEndWrite();
 }
 
-void EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(Base::ApplicationContext ctx, IG::CStringView path)
 {
 	return saveBlueMSXState(path);
 }
@@ -595,12 +595,12 @@ static void loadBlueMSXState(EmuApp &app, const char *filename)
 	logMsg("state loaded with machine:%s", machine->name);
 }
 
-void EmuSystem::loadState(EmuApp &app, const char *path)
+void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
 {
 	return loadBlueMSXState(app, path);
 }
 
-void EmuSystem::saveBackupMem()
+void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
 {
 	if(gameIsRunning())
 	{
@@ -608,7 +608,7 @@ void EmuSystem::saveBackupMem()
 	}
 }
 
-void EmuSystem::closeSystem()
+void EmuSystem::closeSystem(Base::ApplicationContext)
 {
 	destroyMachine();
 }
@@ -624,7 +624,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 	bool loadDiskAsHD = false;
 	if(EmuApp::hasArchiveExtension(mediaFilename))
 	{
-		fileInZipName = getFirstMediaFilenameInArchive(mediaPath);
+		fileInZipName = getFirstMediaFilenameInArchive(ctx, mediaPath);
 		if(fileInZipName.empty())
 		{
 			throw std::runtime_error("No media in archive");
@@ -632,9 +632,9 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 		logMsg("found:%s in archive:%s", fileInZipName.data(), mediaPath.data());
 		fileInZipNamePtr = fileInZipName.data();
 		mediaNamePtr = fileInZipNamePtr;
-		if(hasMSXDiskExtension(fileInZipNamePtr))
+		if(hasMSXDiskExtension(fileInZipName))
 		{
-			auto fileInZip = FS::fileFromArchive(mediaPath, fileInZipName.data());
+			auto fileInZip = FS::fileFromArchive(ctx.openFileUri(mediaPath), fileInZipName);
 			loadDiskAsHD = fileInZip.size() >= 1024 * 1024;
 		}
 	}

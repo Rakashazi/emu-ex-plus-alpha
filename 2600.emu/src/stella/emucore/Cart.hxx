@@ -265,7 +265,7 @@ class Cartridge : public Device
       @param nvramdir  The full path of the nvram directory
       @param romfile   The name of the cart from ROM properties
     */
-    virtual void setNVRamFile(const string& nvramdir, const string& romfile) { }
+    virtual void setNVRamFile(const string& nvramfile) { }
 
     /**
       Thumbulator only supports 16-bit ARM code.  Some Harmony/Melody drivers,

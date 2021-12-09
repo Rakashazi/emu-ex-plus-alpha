@@ -198,7 +198,7 @@ int tap_create(const char *name)
 
     memset(block, 0, sizeof(block));
 
-    fd = fopen(name, MODE_WRITE);
+    fd = zfile_fopen(name, MODE_WRITE);
 
     if (fd == NULL) {
         return -1;

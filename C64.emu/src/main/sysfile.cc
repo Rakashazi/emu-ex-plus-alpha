@@ -99,7 +99,7 @@ static ArchiveIO archiveIOForSysFile(IG::CStringView archivePath, std::string_vi
 {
 	try
 	{
-		for(auto &entry : FS::ArchiveIterator{archivePath})
+		for(auto &entry : FS::ArchiveIterator{appContext.openFileUri(archivePath)})
 		{
 			if(entry.type() == FS::file_type::directory)
 			{
@@ -151,11 +151,11 @@ std::vector<std::string> systemFilesWithExtension(const char *ext)
 	std::vector<std::string> filenames{};
 	for(const auto &basePath : sysFilePath)
 	{
-		if(basePath.empty() || !FS::exists(basePath))
+		if(basePath.empty() || !appContext.fileUriExists(basePath))
 			continue;
-		if(EmuApp::hasArchiveExtension(basePath))
+		if(EmuApp::hasArchiveExtension(appContext.fileUriDisplayName(basePath)))
 		{
-			for(auto &entry : FS::ArchiveIterator{basePath})
+			for(auto &entry : FS::ArchiveIterator{appContext.openFileUri(basePath)})
 			{
 				if(entry.type() == FS::file_type::directory)
 				{
@@ -200,9 +200,9 @@ CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const ch
 	logMsg("sysfile open:%s", name);
 	for(const auto &basePath : sysFilePath)
 	{
-		if(basePath.empty() || !FS::exists(basePath))
+		if(basePath.empty())
 			continue;
-		if(EmuApp::hasArchiveExtension(basePath))
+		if(EmuApp::hasArchiveExtension(appContext.fileUriDisplayName(basePath)))
 		{
 			auto io = archiveIOForSysFile(basePath, name, complete_path_return);
 			if(!io)
@@ -212,10 +212,12 @@ CLINK FILE *sysfile_open(const char *name, char **complete_path_return, const ch
 		}
 		else
 		{
+			if(!appContext.fileUriExists(basePath))
+				continue;
 			for(const auto &subDir : sysFileDirs)
 			{
 				auto fullPath = FS::pathString(basePath, subDir, name);
-				auto file = fopen(fullPath.data(), open_mode);
+				auto file = FileUtils::fopenUri(appContext, fullPath, open_mode);
 				if(!file)
 					continue;
 				if(complete_path_return)
@@ -244,9 +246,9 @@ CLINK int sysfile_locate(const char *name, char **complete_path_return)
 	logMsg("sysfile locate:%s", name);
 	for(const auto &basePath : sysFilePath)
 	{
-		if(basePath.empty() || !FS::exists(basePath))
+		if(basePath.empty())
 			continue;
-		if(EmuApp::hasArchiveExtension(basePath))
+		if(EmuApp::hasArchiveExtension(appContext.fileUriDisplayName(basePath)))
 		{
 			auto io = archiveIOForSysFile(basePath, name, complete_path_return);
 			if(!io)
@@ -255,10 +257,12 @@ CLINK int sysfile_locate(const char *name, char **complete_path_return)
 		}
 		else
 		{
+			if(!appContext.fileUriExists(basePath))
+				continue;
 			for(const auto &subDir : sysFileDirs)
 			{
 				auto fullPath = FS::pathString(basePath, subDir, name);
-				if(FS::exists(fullPath))
+				if(appContext.fileUriExists(fullPath))
 				{
 					if(complete_path_return)
 					{
@@ -290,9 +294,9 @@ CLINK int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize
 	logMsg("sysfile load:%s", name);
 	for(const auto &basePath : sysFilePath)
 	{
-		if(basePath.empty() || !FS::exists(basePath))
+		if(basePath.empty())
 			continue;
-		if(EmuApp::hasArchiveExtension(basePath))
+		if(EmuApp::hasArchiveExtension(appContext.fileUriDisplayName(basePath)))
 		{
 			auto io = archiveIOForSysFile(basePath, name, nullptr);
 			if(!io)
@@ -307,10 +311,12 @@ CLINK int sysfile_load(const char *name, uint8_t *dest, int minsize, int maxsize
 		}
 		else
 		{
+			if(!appContext.fileUriExists(basePath))
+				continue;
 			for(const auto &subDir : sysFileDirs)
 			{
 				auto fullPath = FS::pathString(basePath, subDir, name);
-				FileIO file{fullPath, IO::AccessHint::ALL, IO::OPEN_TEST};
+				auto file = appContext.openFileUri(fullPath, IO::AccessHint::ALL, IO::OPEN_TEST);
 				if(!file)
 					continue;
 				//logMsg("loading system file: %s", complete_path);

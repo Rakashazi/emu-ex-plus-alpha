@@ -146,9 +146,9 @@ public:
 	void removeTurboInputEvent(unsigned action);
 	void runTurboInputEvents();
 	void resetInput();
-	static void saveSessionOptions();
+	void saveSessionOptions();
 	void loadSessionOptions();
-	static bool hasSavedSessionOptions();
+	bool hasSavedSessionOptions();
 	void deleteSessionOptions();
 	void syncEmulationThread();
 	EmuAudio &audio();
@@ -352,4 +352,5 @@ protected:
 	void applyRenderPixelFormat();
 	std::optional<IG::PixelFormat> windowDrawablePixelFormatOption() const;
 	std::optional<Gfx::ColorSpace> windowDrawableColorSpaceOption() const;
+	FS::PathString sessionConfigPath();
 };

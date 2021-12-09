@@ -29,6 +29,7 @@
 #define ZIPHELPER_H
 
 #include "unzip.h"
+#include "stdio.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,7 +50,8 @@ int zipExtractCurrentfile(unzFile uf, int overwrite, const char* password);
 int zipExtract(unzFile uf, int overwrite, const char* password, ZIP_EXTRACT_CB progress_callback);
 void* zipCompress(void* buffer, int size, unsigned long* retSize);
 // Note: retSize in zipUncompress is input/output parameter and need to be set to unzipped buffer size
-void* zipUncompress(void* buffer, int size, unsigned long* retSize); 
+void* zipUncompress(void* buffer, int size, unsigned long* retSize);
+FILE *fopenHelper(const char* filename, const char* mode);
 
 #ifdef __cplusplus
 }

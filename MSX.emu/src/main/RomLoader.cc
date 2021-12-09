@@ -42,7 +42,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 		return nullptr;
 	logMsg("loading ROM file:%s:%s", filename, filenameInArchive);
 	FS::PathString filePath{filename};
-	auto filePathInFirmwarePath = FS::pathString(machineBasePath(appCtx), filename);
+	auto filePathInFirmwarePath = appCtx.fileUri(machineBasePath(appCtx), filename);
 	FS::PathString *searchPath[]{&filePath, &filePathInFirmwarePath};
 	if(filenameInArchive && strlen(filenameInArchive))
 	{
@@ -57,7 +57,7 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 	{
 		for(const auto &path : searchPath)
 		{
-			FileIO file{path->data(), IO::AccessHint::ALL, IO::OPEN_TEST};
+			auto file = appCtx.openFileUri(*path, IO::AccessHint::ALL, IO::OPEN_TEST);
 			if(!file)
 				continue;
 			return fileToMallocBuffer(file, size);

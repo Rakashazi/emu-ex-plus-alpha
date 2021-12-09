@@ -110,6 +110,10 @@ public:
 		lcd_.setDmgPaletteColor(palNum, colorNum, rgb32);
 	}
 
+	void setStreamDelegates(InputStreamDelegate iDel, OutputStreamDelegate oDel) {
+		cart_.setStreamDelegates(iDel, oDel);
+	}
+
 	void refreshPalettes() { lcd_.refreshPalettes(); }
 	void setGameGenie(std::string const &codes) { cart_.setGameGenie(codes); }
 	void setGameShark(std::string const &codes) { interrupter_.setGameShark(codes); }

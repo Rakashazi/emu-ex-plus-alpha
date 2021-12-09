@@ -16,40 +16,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/io/ioDefs.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/memory/Buffer.hh>
 #include <imagine/util/concepts.hh>
 #include <memory>
 #include <utility>
 #include <system_error>
-#include <unistd.h> // for SEEK_*
-
-class IODefs
-{
-public:
-	enum class Advice
-	{
-		NORMAL, SEQUENTIAL, RANDOM, WILLNEED
-	};
-
-	enum class AccessHint
-	{
-		NORMAL, SEQUENTIAL, RANDOM, ALL
-	};
-
-	enum class BufferMode
-	{
-		DIRECT, // may point directly to mapped memory, not valid after IO is destroyed
-		RELEASE // may take IO's underlying memory and is always valid, invalidates IO object
-	};
-
-	enum class SeekMode
-	{
-		SET = SEEK_SET,
-		CUR = SEEK_CUR,
-		END = SEEK_END,
-	};
-};
 
 template <class IO>
 class IOUtils
@@ -112,7 +85,7 @@ public:
 	}
 };
 
-class IO : public IOUtils<IO>, public IODefs
+class IO : public IOUtils<IO>
 {
 public:
 	using IOUtilsBase = IOUtils<IO>;
@@ -127,19 +100,20 @@ public:
 	using IOUtilsBase::send;
 	using IOUtilsBase::buffer;
 	using IOUtilsBase::get;
-	using IODefs::AccessHint;
-	using IODefs::Advice;
-	using IODefs::BufferMode;
-	using IODefs::SeekMode;
+	using AccessHint = IODefs::AccessHint;
+	using Advice = IODefs::Advice;
+	using BufferMode = IODefs::BufferMode;
+	using SeekMode = IODefs::SeekMode;
 
 	// allow reading file, default if OPEN_WRITE isn't present
 	static constexpr uint32_t OPEN_READ = IG::bit(0);
 	// allow modifying file
 	static constexpr uint32_t OPEN_WRITE = IG::bit(1);
 	// create a new file, clobbering any existing one,
-	// if OPEN_CREATE isn't present, only existing files are opened
+	// if OPEN_CREATE_NEW isn't present, only existing files are opened
 	// for reading/writing/appending
-	static constexpr uint32_t OPEN_CREATE = IG::bit(2);
+	static constexpr uint32_t OPEN_CREATE_NEW = IG::bit(2);
+	static constexpr uint32_t OPEN_CREATE = OPEN_WRITE | OPEN_CREATE_NEW;
 	// if using OPEN_CREATE, don't overwrite a file that already exists
 	static constexpr uint32_t OPEN_KEEP_EXISTING = IG::bit(3);
 	// return from constructor without throwing exception if opening fails,
@@ -147,7 +121,7 @@ public:
 	static constexpr uint32_t OPEN_TEST = IG::bit(4);
 	static constexpr uint32_t OPEN_FLAGS_BITS = 5;
 
-	constexpr IO() {}
+	constexpr IO() = default;
 	virtual ~IO() = default;
 
 	// reading

@@ -40,6 +40,7 @@
 #include <imagine/util/string.h>
 
 static constexpr uint MAX_ROM_SIZE = 512 * 1024;
+Base::ApplicationContext appCtx{};
 std::optional<OSystem> osystem{};
 Properties defaultGameProps{};
 bool p1DiffB = true, p2DiffB = true, vcsColor = true;
@@ -80,7 +81,7 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 	return IG::format<FS::FileString>("{}.0{}.sta", name, saveSlotChar(slot));
 }
 
-void EmuSystem::closeSystem()
+void EmuSystem::closeSystem(Base::ApplicationContext)
 {
 	osystem->deleteConsole();
 }
@@ -199,18 +200,18 @@ void EmuSystem::reset(ResetMode mode)
 	}
 }
 
-void EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(IG::CStringView path)
 {
-	Serializer state(string(path), Serializer::Mode::ReadWrite);
+	Serializer state{path.data()};
 	if(!osystem->state().saveState(state))
 	{
 		throwFileWriteError();
 	}
 }
 
-void EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(IG::CStringView path)
 {
-	Serializer state(string(path), Serializer::Mode::ReadOnly);
+	Serializer state{path.data(), Serializer::Mode::ReadOnly};
 	if(!osystem->state().loadState(state))
 	{
 		throwFileReadError();
@@ -247,6 +248,7 @@ void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat fmt)
 
 void EmuSystem::onInit(Base::ApplicationContext ctx)
 {
+	appCtx = ctx;
 	auto &app = EmuApp::get(ctx);
 	osystem.emplace(app);
 	Paddles::setDigitalSensitivity(5);

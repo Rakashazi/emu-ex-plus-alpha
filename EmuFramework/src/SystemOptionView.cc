@@ -22,7 +22,7 @@
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 
-static FS::PathString savePathStrToDescStr(std::string_view savePathStr)
+static FS::PathString savePathStrToDescStr(Base::ApplicationContext ctx, std::string_view savePathStr)
 {
 	if(savePathStr.size())
 	{
@@ -30,7 +30,7 @@ static FS::PathString savePathStrToDescStr(std::string_view savePathStr)
 			return "Default";
 		else
 		{
-			return FS::basename(savePathStr);
+			return ctx.fileUriDisplayName(savePathStr);
 		}
 	}
 	else
@@ -100,9 +100,9 @@ static void setAutoSaveState(unsigned val)
 	logMsg("set auto-savestate %d", optionAutoSaveState.val);
 }
 
-static auto makePathMenuEntryStr(std::string_view savePath)
+static auto makePathMenuEntryStr(Base::ApplicationContext ctx, std::string_view savePath)
 {
-	return fmt::format("Save Path: {}", savePathStrToDescStr(savePath));
+	return fmt::format("Save Path: {}", savePathStrToDescStr(ctx, savePath));
 }
 
 static bool hasWriteAccessToDir(Base::ApplicationContext ctx, IG::CStringView path)
@@ -176,11 +176,12 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		{}, &defaultFace(),
 		[this](TextMenuItem &, View &view, Input::Event e)
 		{
-			auto multiChoiceView = makeViewWithName<TextTableView>("Save Path", 3);
-			multiChoiceView->appendItem("Set Custom Path",
+			auto multiChoiceView = makeViewWithName<TextTableView>("Save Path", 4);
+			multiChoiceView->appendItem("Set path on device",
 				[this](Input::Event e)
 				{
-					auto startPath = EmuSystem::userSavePath().size() ? EmuSystem::userSavePath() : app().mediaSearchPath();
+					auto userSavePath = EmuSystem::userSavePath();
+					auto startPath = userSavePath.size() && !FS::isUri(userSavePath) ? userSavePath : app().mediaSearchPath();
 					auto fPicker = makeView<EmuFilePicker>(startPath, true,
 						EmuSystem::NameFilterFunc{}, FS::RootPathInfo{}, e);
 					fPicker->setOnClose(
@@ -199,7 +200,22 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 						});
 					pushAndShowModal(std::move(fPicker), e);
 				});
-			multiChoiceView->appendItem("Same as Content",
+			if(appContext().hasSystemPathPicker())
+			{
+				multiChoiceView->appendItem("Browse for path",
+					[this](Input::Event e)
+					{
+						auto ctx = appContext();
+						ctx.showSystemPathPicker(
+							[this, ctx](const char *uri)
+							{
+								EmuSystem::setUserSavePath(ctx, uri);
+								onSavePathChange(uri);
+								controller()->popAndShow();
+							});
+					});
+			}
+			multiChoiceView->appendItem("Same as content",
 				[this](View &view)
 				{
 					EmuSystem::setUserSavePath(appContext(), "");
@@ -263,7 +279,7 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&autoSaveState);
 	item.emplace_back(&confirmAutoLoadState);
 	item.emplace_back(&confirmOverwriteState);
-	savePath.setName(makePathMenuEntryStr(EmuSystem::userSavePath()));
+	savePath.setName(makePathMenuEntryStr(appContext(), EmuSystem::userSavePath()));
 	item.emplace_back(&savePath);
 	item.emplace_back(&fastForwardSpeed);
 	#ifdef __ANDROID__
@@ -279,16 +295,16 @@ void SystemOptionView::onSavePathChange(std::string_view path)
 		auto defaultPath = EmuSystem::baseDefaultGameSavePath(appContext());
 		app().postMessage(4, false, fmt::format("Default Save Path:\n{}", defaultPath));
 	}
-	savePath.compile(makePathMenuEntryStr(path), renderer(), projP);
+	savePath.compile(makePathMenuEntryStr(appContext(), path), renderer(), projP);
 }
 
-void SystemOptionView::onFirmwarePathChange(std::string_view path, Input::Event e) {}
+void SystemOptionView::onFirmwarePathChange(std::string_view path) {}
 
 std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16String name, bool allowFiles, unsigned extraItemsHint)
 {
-	unsigned items = (allowFiles ? 3 : 2) + extraItemsHint;
+	unsigned items = (allowFiles ? 5 : 3) + extraItemsHint;
 	auto multiChoiceView = std::make_unique<TextTableView>(std::move(name), attachParams(), items);
-	multiChoiceView->appendItem("Set Custom Path",
+	multiChoiceView->appendItem("Set path on device",
 		[this](Input::Event e)
 		{
 			auto startPath =  app().firmwareSearchPath();
@@ -300,15 +316,30 @@ std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16S
 					auto path = picker.path();
 					app().setFirmwareSearchPath(path);
 					logMsg("set firmware path:%s", path.data());
-					onFirmwarePathChange(path.data(), e);
+					onFirmwarePathChange(path);
 					dismissPrevious();
 					picker.dismiss();
 				});
 			app().pushAndShowModalView(std::move(fPicker), e);
 		});
+	if(appContext().hasSystemPathPicker())
+	{
+		multiChoiceView->appendItem("Browse for path",
+			[this]()
+			{
+				appContext().showSystemPathPicker(
+					[this](const char *uri)
+					{
+						app().setFirmwareSearchPath(uri);
+						logMsg("set firmware path:%s", uri);
+						onFirmwarePathChange(uri);
+						controller()->popAndShow();
+					});
+			});
+	}
 	if(allowFiles)
 	{
-		multiChoiceView->appendItem("Set Custom Archive File",
+		multiChoiceView->appendItem("Set archive file on device",
 			[this](Input::Event e)
 			{
 				auto startPath =  app().firmwareSearchPath();
@@ -320,18 +351,39 @@ std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16S
 						auto path = picker.pathString(name);
 						app().setFirmwareSearchPath(path);
 						logMsg("set firmware archive file:%s", path.data());
-						onFirmwarePathChange(path.data(), e);
+						onFirmwarePathChange(path);
 						dismissPrevious();
 						picker.dismiss();
 					});
 				app().pushAndShowModalView(std::move(fPicker), e);
 			});
+		if(appContext().hasSystemDocumentPicker())
+		{
+			multiChoiceView->appendItem("Browse for archive file",
+				[this]()
+				{
+					appContext().showSystemDocumentPicker(
+						[this](const char *uri, GenericIO)
+						{
+							auto displayName = appContext().fileUriDisplayName(uri);
+							if(!EmuApp::hasArchiveExtension(displayName))
+							{
+								app().postErrorMessage("File doesn't have a valid archive extension");
+								return;
+							}
+							app().setFirmwareSearchPath(uri);
+							logMsg("set firmware archive file:%s", uri);
+							onFirmwarePathChange(uri);
+							controller()->popAndShow();
+						});
+				});
+		}
 	}
 	multiChoiceView->appendItem("Default",
 		[this](View &view, Input::Event e)
 		{
 			app().setFirmwareSearchPath("");
-			onFirmwarePathChange("", e);
+			onFirmwarePathChange("");
 			view.dismiss();
 		});
 	return multiChoiceView;

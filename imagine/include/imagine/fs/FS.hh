@@ -71,6 +71,7 @@ PathString dirname(IG::CStringView path);
 bool isUri(std::string_view str);
 PathString decodeUri(std::string_view uri);
 FileString basenameUri(IG::CStringView pathOrUri, bool isEncodedUri = true);
+std::string formatLastWriteTimeLocal(IG::CStringView path);
 
 using FileStringCompareFunc = bool (*)(const FS::FileString &s1, const FS::FileString &s2);
 

@@ -22,23 +22,26 @@
 #define WRITE_FSTREAM(p, l, s)	gzwrite(s, p, l)
 #define GETS_FSTREAM(p, l, s)	gzgets(s, p, l)
 #define GETC_FSTREAM(s)			gzgetc(s)
-#define OPEN_FSTREAM(f, m)		gzopen(f, m)
+#define OPEN_FSTREAM(f, m)		gzopenHelper(f, m)
 #define REOPEN_FSTREAM(f, m)		gzdopen(f, m)
 #define FIND_FSTREAM(f)			gztell(f)
 #define REVERT_FSTREAM(s, o, p)	gzseek(s, o, p)
 #define CLOSE_FSTREAM(s)			gzclose(s)
+gzFile gzopenHelper(const char *filename, const char *mode);
 #else
 #define FSTREAM					FILE *
 #define READ_FSTREAM(p, l, s)	fread(p, 1, l, s)
 #define WRITE_FSTREAM(p, l, s)	fwrite(p, 1, l, s)
 #define GETS_FSTREAM(p, l, s)	fgets(p, l, s)
 #define GETC_FSTREAM(s)			fgetc(s)
-#define OPEN_FSTREAM(f, m)		fopen(f, m)
+#define OPEN_FSTREAM(f, m)		fopenHelper(f, m)
 #define REOPEN_FSTREAM(f, m)		fdopen(f, m)
 #define FIND_FSTREAM(s)			ftell(s)
 #define REVERT_FSTREAM(s, o, p)	fseek(s, o, p)
 #define CLOSE_FSTREAM(s)			fclose(s)
 #endif
+
+FILE *fopenHelper(const char *filename, const char *mode);
 
 #include "stream.h"
 
@@ -305,7 +308,7 @@ struct SSettings
 	bool8	IgnorePatchChecksum = 0;
 	bool8	IsPatched = 0;
 	static const int32	AutoSaveDelay = 30;
-	static const bool8	DontSaveOopsSnapshot = 0;
+	static const bool8	DontSaveOopsSnapshot = 1;
 	static const bool8	UpAndDown = 0;
 
 	static const bool8	OpenGLEnable = 1;

@@ -131,29 +131,52 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 	return IG::format<FS::FileString>("{}.0{}.sta", name, saveSlotCharUpper(slot));
 }
 
-void EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(Base::ApplicationContext ctx, IG::CStringView path)
 {
-	if(!save_stateWithName(path))
+	if(!save_stateWithName(&ctx, path))
 		return EmuSystem::throwFileWriteError();
 }
 
-void EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
 {
-	if(!load_stateWithName(path))
+	auto ctx = app.appContext();
+	if(!load_stateWithName(&ctx, path))
 		return EmuSystem::throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem()
+static auto nvramPath(Base::ApplicationContext ctx)
 {
-	if(gameIsRunning())
-	{
-    save_nvram(conf.game);
-    save_memcard(conf.game);
-	}
+	return EmuSystem::contentSaveFilePath(ctx, ".nv");
 }
 
-void EmuSystem::closeSystem()
+static auto memcardPath(Base::ApplicationContext ctx)
 {
+	return EmuSystem::contentSavePath(ctx, "memcard");
+}
+
+void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
+{
+	if(!gameIsRunning())
+		return;
+	FileUtils::writeToUri(ctx, nvramPath(ctx), memory.sram, 0x10000);
+	FileUtils::writeToUri(ctx, memcardPath(ctx), memory.memcard, 0x800);
+}
+
+void open_nvram(void *contextPtr, char *name)
+{
+	auto &ctx = *((Base::ApplicationContext*)contextPtr);
+	FileUtils::readFromUri(ctx, nvramPath(ctx), memory.sram, 0x10000);
+}
+
+void open_memcard(void *contextPtr, char *name)
+{
+	auto &ctx = *((Base::ApplicationContext*)contextPtr);
+	FileUtils::readFromUri(ctx, memcardPath(ctx), memory.memcard, 0x800);
+}
+
+void EmuSystem::closeSystem(Base::ApplicationContext ctx)
+{
+	saveBackupMem(ctx);
 	close_game();
 }
 
@@ -287,8 +310,8 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 	}
 	auto freeDrv = IG::scopeGuard([&](){ free(drv); });
 	logMsg("rom set %s, %s", drv->name, drv->longname);
-	auto gnoFilename = EmuSystem::contentSaveFilePath(".gno");
-	if(optionCreateAndUseCache && FS::exists(gnoFilename.data()))
+	auto gnoFilename = EmuSystem::contentSaveFilePath(ctx, ".gno");
+	if(optionCreateAndUseCache && ctx.fileUriExists(gnoFilename))
 	{
 		logMsg("loading .gno file");
 		char errorStr[1024];
@@ -305,7 +328,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 			throw std::runtime_error(errorStr);
 		}
 
-		if(optionCreateAndUseCache && !FS::exists(gnoFilename.data()))
+		if(optionCreateAndUseCache && !ctx.fileUriExists(gnoFilename))
 		{
 			logMsg("%s doesn't exist, creating", gnoFilename.data());
 			#ifdef USE_GENERATOR68K
@@ -375,7 +398,7 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 
 std::string EmuSystem::contentDisplayNameForPath(Base::ApplicationContext ctx, IG::CStringView path)
 {
-	auto contentName = contentDisplayNameForPathDefaultImpl(path);
+	auto contentName = contentDisplayNameForPathDefaultImpl(ctx, path);
 	ROM_DEF *drv = res_load_drv(&ctx, contentName.data());
 	if(!drv)
 		return contentName;

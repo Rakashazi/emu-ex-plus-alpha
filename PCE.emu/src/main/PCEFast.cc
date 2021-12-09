@@ -19,11 +19,9 @@
 #include <imagine/util/string.h>
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
+#include "internal.hh"
 
 using namespace Mednafen;
-
-extern FS::PathString sysCardPath;
-extern Byte1Option optionArcadeCard;
 
 namespace MDFN_IEN_PCE_FAST
 {
@@ -131,10 +129,11 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 		case MDFNMKF_SAVBACK:
 		{
 			assert(cd1);
-			FS::FileString ext{md5_context::asciistr(MDFNGameInfo->MD5, 0)};
-			ext += '/';
+			FS::FileString ext{'.'};
+			ext += md5_context::asciistr(MDFNGameInfo->MD5, 0);
+			ext += '.';
 			ext += cd1;
-			auto path = EmuSystem::contentSaveFilePath(ext);
+			auto path = EmuSystem::contentSaveFilePath(appCtx, ext);
 			if(type == MDFNMKF_SAV) logMsg("created save path %s", path.c_str());
 			return std::string{path};
 		}
@@ -142,7 +141,7 @@ std::string MDFN_MakeFName(MakeFName_Type type, int id1, const char *cd1)
 		{
 			// pce-specific
 			logMsg("getting firmware path %s", sysCardPath.data());
-			return std::string(sysCardPath.data());
+			return std::string(sysCardPath);
 		}
 		default:
 			bug_unreachable("type == %d", type);

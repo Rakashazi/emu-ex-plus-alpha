@@ -974,11 +974,6 @@ int FCEUI_LoadState(const char *fname, bool display_message)
 	{
 		FCEUI_MakeBackupMovie(false);	//Backup the movie before the contents get altered, but do not display messages
 	}
-	if (fname != NULL && !file_exists(fname))
-	{
-		loadStateFailed = 1;
-		return 0; // state doesn't exist; exit cleanly
-	}
 	if (FCEUSS_Load(fname, display_message))
 	{
 		//in case we're loading a savestate made with old ppu, we need to make sure ppur's regs used for dividing are ready to go

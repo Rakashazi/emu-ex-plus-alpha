@@ -130,7 +130,7 @@ file_type DirectoryEntryImpl::symlink_type() const
 	return linkType_;
 }
 
-PathStringImpl DirectoryEntryImpl::path() const
+PathString DirectoryEntryImpl::path() const
 {
 	return FS::pathString(basePath, name());
 }
@@ -213,6 +213,14 @@ static file_type makeFileType(struct stat s)
 	return file_type::unknown;
 }
 
+static std::string formatDateAndTime(std::tm time)
+{
+	std::array<char, 64> str{};
+	static constexpr const char *strftimeFormat = "%x  %r";
+	std::strftime(str.data(), str.size(), strftimeFormat, &time);
+	return str.data();
+}
+
 std::tm file_status::lastWriteTimeLocal() const
 {
 	std::tm localMTime;
@@ -223,6 +231,11 @@ std::tm file_status::lastWriteTimeLocal() const
 		return {};
 	}
 	return localMTime;
+}
+
+std::string formatLastWriteTimeLocal(IG::CStringView path)
+{
+	return formatDateAndTime(status(path).lastWriteTimeLocal());
 }
 
 PathString current_path()

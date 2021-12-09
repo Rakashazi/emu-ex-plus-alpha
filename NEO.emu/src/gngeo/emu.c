@@ -283,21 +283,6 @@ static inline int update_scanline(int skip_this_frame, void *emuTaskCtxPtr, void
 	return memory.vid.irq2taken;
 }
 
-static inline void state_handling(int save,int load) {
-	if (save) {
-		//if (conf.sound) SDL_LockAudio();
-		save_state(conf.game, save - 1);
-		//if (conf.sound) SDL_UnlockAudio();
-		reset_frame_skip();
-	}
-	if (load) {
-		//if (conf.sound) SDL_LockAudio();
-		load_state(conf.game, load - 1);
-		//if (conf.sound) SDL_UnlockAudio();
-		reset_frame_skip();
-	}
-}
-
 void main_frame(void *emuTaskCtxPtr, void *emuVideoPtr) {
 	const int skip_this_frame = !emuVideoPtr;
 	unsigned m68k_overclk = 0;

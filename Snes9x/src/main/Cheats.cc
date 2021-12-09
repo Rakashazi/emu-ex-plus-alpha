@@ -40,7 +40,7 @@ static void setCheatName(uint32_t idx, const char *name)
 		return;
 	Cheat.g[idx].name = name;
 	#else
-	string_copy(Cheat.c[idx].name, name);
+	strncpy(Cheat.c[idx].name, name, sizeof(SCheat::name));
 	#endif
 }
 

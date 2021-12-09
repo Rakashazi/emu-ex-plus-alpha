@@ -16,122 +16,168 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/io/IO.hh>
-#include <cstdio>
+#include <streambuf>
+#include <istream>
+#include <ostream>
+
+class FileIO;
+
+namespace IG
+{
+
+// templates for using IO types with standard C++ stream-based IO
 
 template <class IO>
-class IOStream
+class IOStreamBuf : public std::streambuf
 {
 public:
-	constexpr IOStream() {}
+	static constexpr size_t buffSize = 8192;
 
-	IOStream(IO io, const char *opentype)
+	constexpr IOStreamBuf() = default;
+
+	IOStreamBuf(IO io_, std::ios::openmode mode):
+		io{std::move(io_)}
 	{
-		this->io = std::move(io);
-		#if defined __ANDROID__ || __APPLE__
-		f = funopen(this,
-			[](void *cookie, char *buf, int size)
+		if(!io)
+			return;
+		if(mode & std::ios::in)
+		{
+			if(auto map = io.map();
+				map.data())
 			{
-				auto &s = *(IOStream*)cookie;
-				return (int)s.io.read(buf, size);
-			},
-			[](void *cookie, const char *buf, int size)
+				setg((char_type*)map.data(), (char_type*)map.data(), (char_type*)map.data() + map.size());
+			}
+			else
 			{
-				auto &s = *(IOStream*)cookie;
-				return (int)s.io.write(buf, size);
-			},
-			[](void *cookie, fpos_t offset, int whence)
-			{
-				auto &s = *(IOStream*)cookie;
-				return (fpos_t)s.io.seek(offset, (IODefs::SeekMode)whence);
-			},
-			[](void *cookie)
-			{
-				auto &s = *(IOStream*)cookie;
-				s.io = {};
-				s.f = nullptr;
-				return 0;
-			});
-		#else
-		cookie_io_functions_t funcs{};
-		funcs.read =
-			[](void *cookie, char *buf, size_t size)
-			{
-				auto &s = *(IOStream*)cookie;
-				return (ssize_t)s.io.read(buf, size);
-			};
-		funcs.write =
-			[](void *cookie, const char *buf, size_t size)
-			{
-				auto &s = *(IOStream*)cookie;
-				auto bytesWritten = s.io.write(buf, size);
-				if(bytesWritten == -1)
-				{
-					bytesWritten = 0; // needs to return 0 for error
-				}
-				return (ssize_t)bytesWritten;
-			};
-		funcs.seek =
-			[](void *cookie, off64_t *position, int whence)
-			{
-				auto &s = *(IOStream*)cookie;
-				auto newPos = s.io.seek(*position, (IODefs::SeekMode)whence);
-				if(newPos == -1)
-				{
-					return -1;
-				}
-				*position = newPos;
-				return 0;
-			};
-		funcs.close =
-			[](void *cookie)
-			{
-				auto &s = *(IOStream*)cookie;
-				s.io = {};
-				s.f = nullptr;
-				return 0;
-			};
-		f = fopencookie(this, opentype, funcs);
-		#endif
-		assert(f);
+				buffPtr = std::make_unique<char_type[]>(buffSize);
+				underflow();
+			}
+		}
+		if(mode & std::ios::out)
+		{
+			setp(nullptr, nullptr);
+		}
 	}
 
-	~IOStream()
+	int_type underflow() final
 	{
-		deinit();
+		if(!buffPtr)
+		{
+			return traits_type::eof();
+		}
+		auto bytesRead = io.read(buffPtr.get(), buffSize);
+		if(bytesRead <= 0)
+		{
+			return traits_type::eof();
+		}
+		setg(buffPtr.get(), buffPtr.get(), buffPtr.get() + bytesRead);
+		return buffPtr[0];
 	}
 
-	IOStream(IOStream &&o)
+	int_type overflow(int_type ch) final
+	{
+		char_type c = ch;
+		return xsputn(&c, 1);
+	}
+
+	std::streamsize xsputn(const char_type *s, std::streamsize count) final
+	{
+		auto bytesWritten = io.write(s, count);
+		if(bytesWritten == -1) [[unlikely]]
+		{
+			return 0;
+		}
+		return bytesWritten;
+	}
+
+	static IODefs::SeekMode seekMode(std::ios::seekdir way)
+	{
+		switch(way)
+		{
+			default:
+			case std::ios::beg: return IODefs::SeekMode::SET;
+			case std::ios::cur: return IODefs::SeekMode::CUR;
+			case std::ios::end: return IODefs::SeekMode::END;
+		}
+	}
+
+	pos_type seekoff(off_type off, std::ios::seekdir way, std::ios::openmode) final
+	{
+		return io.seek(off * sizeof(char_type), seekMode(way));
+	}
+
+	pos_type seekpos(pos_type sp, std::ios::openmode) final
+	{
+		return io.seekS(sp * sizeof(char_type));
+	}
+
+	explicit operator bool() const { return (bool)io; }
+
+protected:
+	std::unique_ptr<char_type[]> buffPtr{};
+	IO io{};
+};
+
+template <class IO, class StdStream>
+class StreamBase : public StdStream
+{
+public:
+	StreamBase() = default;
+
+	StreamBase(IO io, std::ios::openmode mode = openMode()):
+		StdStream{&streamBuf},
+		streamBuf{std::move(io), mode} {}
+
+	StreamBase(StreamBase&& o)
 	{
 		*this = std::move(o);
 	}
 
-	IOStream &operator=(IOStream &&o)
+	StreamBase& operator=(StreamBase&& o)
 	{
-		deinit();
-		io = std::move(o.io);
-		f = std::exchange(o.f, {});
+		StdStream::operator=(std::move(o));
+		streamBuf = std::move(o.streamBuf);
+		rdbuf(&streamBuf);
 		return *this;
 	}
 
-	explicit operator FILE*()
+	static std::ios::openmode openMode()
 	{
-		return f;
+		if constexpr(std::is_same_v<StdStream, std::iostream>)
+			return std::ios::in | std::ios::out;
+		else if constexpr(std::is_same_v<StdStream, std::istream>)
+			return std::ios::in;
+		else
+			return std::ios::out;
 	}
 
-	explicit operator bool() const
-	{
-		return f;
-	}
+	bool is_open() const { return (bool)streamBuf; }
+
+	explicit operator bool() const { return is_open(); }
 
 protected:
-	IO io{};
-	FILE *f{};
-
-	void deinit()
-	{
-		if(f)
-		{
-			fclose(f);
-		}
-	}
+	IOStreamBuf<IO> streamBuf{};
 };
+
+template <class IO>
+using IStream = StreamBase<IO, std::istream>;
+
+template <class IO>
+using OStream = StreamBase<IO, std::ostream>;
+
+template <class IO>
+using IOStream = StreamBase<IO, std::iostream>;
+
+using IFStream = IStream<FileIO>;
+
+using OFStream = OStream<FileIO>;
+
+using FStream = IOStream<FileIO>;
+
+using GenericIStream = IStream<GenericIO>;
+
+using GenericOStream = OStream<GenericIO>;
+
+using GenericIOStream = OStream<GenericIO>;
+
+}

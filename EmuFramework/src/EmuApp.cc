@@ -167,7 +167,7 @@ static void suspendEmulation(EmuApp &app)
 	if(!EmuSystem::gameIsRunning())
 		return;
 	app.saveAutoState();
-	EmuSystem::saveBackupMem();
+	EmuSystem::saveBackupMem(app.appContext());
 }
 
 void EmuApp::exitGame(bool allowAutosaveState)
@@ -773,7 +773,7 @@ void EmuApp::saveAutoState()
 	if(optionAutoSaveState)
 	{
 		//logMsg("saving autosave-state");
-		saveState(EmuSystem::statePath(-1));
+		saveState(EmuSystem::statePath(appContext(), -1));
 	}
 }
 
@@ -802,35 +802,30 @@ bool EmuApp::saveState(IG::CStringView path)
 	logMsg("saving state %s", path.data());
 	try
 	{
-		EmuSystem::saveState(*this, path);
+		EmuSystem::saveState(appContext(), path);
 		return true;
 	}
 	catch(std::exception &err)
 	{
-		postErrorMessage(4, err.what());
+		postErrorMessage(4, fmt::format("Can't save state:\n{}", err.what()));
 		return false;
 	}
 }
 
 bool EmuApp::saveStateWithSlot(int slot)
 {
-	return saveState(EmuSystem::statePath(slot));
+	return saveState(EmuSystem::statePath(appContext(), slot));
 }
 
 bool EmuApp::loadState(IG::CStringView path)
 {
-	if(!EmuSystem::gameIsRunning())
+	if(!EmuSystem::gameIsRunning()) [[unlikely]]
 	{
 		postErrorMessage("System not running");
 		return false;
 	}
-	if(!FS::exists(path))
-	{
-		postErrorMessage("File doesn't exist");
-		return false;
-	}
-	syncEmulationThread();
 	logMsg("loading state %s", path.data());
+	syncEmulationThread();
 	try
 	{
 		EmuSystem::loadState(*this, path);
@@ -838,14 +833,14 @@ bool EmuApp::loadState(IG::CStringView path)
 	}
 	catch(std::exception &err)
 	{
-		postErrorMessage(4, err.what());
+		postErrorMessage(4, fmt::format("Can't load state:\n{}", err.what()));
 		return false;
 	}
 }
 
 bool EmuApp::loadStateWithSlot(int slot)
 {
-	return loadState(EmuSystem::statePath(slot));
+	return loadState(EmuSystem::statePath(appContext(), slot));
 }
 
 void EmuApp::setDefaultVControlsButtonSpacing(int spacing)
@@ -871,7 +866,7 @@ void EmuApp::setMediaSearchPath(FS::PathString path)
 FS::PathString EmuApp::firmwareSearchPath()
 {
 	auto firmwarePath = EmuSystem::firmwarePath();
-	if(firmwarePath.empty())
+	if(firmwarePath.empty() || FS::isUri(firmwarePath))
 		return lastLoadPath;
 	return hasArchiveExtension(firmwarePath) ? FS::dirname(firmwarePath) : firmwarePath;
 }
@@ -912,14 +907,14 @@ void EmuApp::resetInput()
 	viewController().setFastForwardActive(false);
 }
 
-static FS::PathString sessionConfigPath()
+FS::PathString EmuApp::sessionConfigPath()
 {
-	return EmuSystem::contentSaveFilePath(".config");
+	return EmuSystem::contentSaveFilePath(appContext(), ".config");
 }
 
 bool EmuApp::hasSavedSessionOptions()
 {
-	return EmuSystem::sessionOptionsSet || FS::exists(sessionConfigPath());
+	return EmuSystem::sessionOptionsSet || appContext().fileUriExists(sessionConfigPath());
 }
 
 void EmuApp::deleteSessionOptions()
@@ -930,7 +925,7 @@ void EmuApp::deleteSessionOptions()
 	}
 	EmuSystem::resetSessionOptions(*this);
 	EmuSystem::sessionOptionsSet = false;
-	FS::remove(sessionConfigPath());
+	appContext().removeFileUri(sessionConfigPath());
 }
 
 void EmuApp::saveSessionOptions()
@@ -940,7 +935,8 @@ void EmuApp::saveSessionOptions()
 	auto configFilePath = sessionConfigPath();
 	try
 	{
-		auto configFile = FileIO::create(configFilePath);
+		auto ctx = appContext();
+		auto configFile = ctx.openFileUri(configFilePath, IO::OPEN_CREATE);
 		writeConfigHeader(configFile);
 		EmuSystem::writeSessionConfig(configFile);
 		EmuSystem::sessionOptionsSet = false;
@@ -948,7 +944,7 @@ void EmuApp::saveSessionOptions()
 		{
 			// delete file if only header was written
 			configFile = {};
-			FS::remove(configFilePath);
+			ctx.removeFileUri(configFilePath);
 			logMsg("deleted empty session config file:%s", configFilePath.data());
 		}
 		else
@@ -967,7 +963,7 @@ void EmuApp::loadSessionOptions()
 	if(!EmuSystem::resetSessionOptions(*this))
 		return;
 	auto configFilePath = sessionConfigPath();
-	auto configBuff = FileUtils::bufferFromPath(configFilePath, IO::OPEN_TEST);
+	auto configBuff = FileUtils::bufferFromUri(appContext(), configFilePath, IO::OPEN_TEST);
 	if(!configBuff)
 		return;
 	readConfigKeys(std::move(configBuff),
@@ -1112,14 +1108,6 @@ void EmuApp::setMogaManagerActive(bool on, bool notify)
 std::span<const KeyCategory> EmuApp::inputControlCategories() const
 {
 	return {EmuControls::category, EmuControls::categories};
-}
-
-std::string formatDateAndTime(std::tm time)
-{
-	std::array<char, 64> str{};
-	static constexpr const char *strftimeFormat = "%x  %r";
-	std::strftime(str.data(), str.size(), strftimeFormat, &time);
-	return str.data();
 }
 
 ViewAttachParams EmuApp::attachParams()

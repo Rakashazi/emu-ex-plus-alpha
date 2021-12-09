@@ -31,9 +31,9 @@ std::errc convertCharCode(const char** sourceStart, uint32_t &c);
 char *decodeUri(IG::CStringView input, char *output);
 
 [[nodiscard]]
-static constexpr bool stringContains(std::string_view sv, std::string_view viewToFind)
+static constexpr bool stringContains(std::string_view sv, auto &&toFind)
 {
-	return sv.find(viewToFind) != std::string_view::npos;
+	return sv.find(std::forward<decltype(toFind)>(toFind)) != std::string_view::npos;
 }
 
 [[nodiscard]]

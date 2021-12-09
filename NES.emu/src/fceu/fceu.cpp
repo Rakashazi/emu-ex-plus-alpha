@@ -120,13 +120,6 @@ bool AutoResumePlay = false;
 char romNameWhenClosingEmulator[2048] = {0};
 int pal_emulation = 0;
 
-
-FCEUGI::FCEUGI()
-	: filename{},
-	  archiveFilename{} {
-	//printf("%08x",opsize); // WTF?!
-}
-
 #if 0
 bool CheckFileExists(const char* filename) {
 	//This function simply checks to see if the given filename exists

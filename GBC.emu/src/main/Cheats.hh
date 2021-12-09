@@ -56,5 +56,5 @@ struct GbcCheat
 extern bool cheatsModified;
 extern StaticArrayList<GbcCheat, EmuCheats::MAX> cheatList;
 void applyCheats();
-void readCheatFile();
-void writeCheatFile();
+void readCheatFile(Base::ApplicationContext);
+void writeCheatFile(Base::ApplicationContext);

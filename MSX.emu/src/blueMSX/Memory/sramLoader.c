@@ -27,6 +27,7 @@
 */
 #include "sramLoader.h"
 #include "Board.h"
+#include "ziphelper.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -82,7 +83,7 @@ void sramLoad(const char* filename, UInt8* sram, int length, void* header, int h
 	#ifndef NDEBUG
 	fprintf(stderr, "loading sram %s\n", filename);
 	#endif
-    file = fopen(filename, "rb");
+    file = fopenHelper(filename, "rb");
     if (file != NULL) {
         if (headerLength > 0) {
             char readHeader[256];
@@ -102,7 +103,7 @@ void sramSave(const char* filename, UInt8* sram, int length, void* header, int h
 	#ifndef NDEBUG
 	fprintf(stderr, "saving sram %s\n", filename);
 	#endif
-    file = fopen(filename, "wb");
+    file = fopenHelper(filename, "wb");
     if (file != NULL) {
         if (headerLength > 0) {
             fwrite(header, 1, headerLength, file);

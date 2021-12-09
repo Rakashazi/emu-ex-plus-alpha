@@ -238,7 +238,7 @@ class CustomVideoOptionView : public VideoOptionView
 		{
 			if(idx == defaultPaletteCustomFileIdx())
 			{
-				t.setString(IG::stringWithoutDotExtension(FS::basename(defaultPalettePath)));
+				t.setString(IG::stringWithoutDotExtension(appContext().fileUriDisplayName(defaultPalettePath)));
 				return true;
 			}
 			return false;
@@ -311,16 +311,16 @@ class CustomSystemOptionView : public SystemOptionView
 				[this]()
 				{
 					logMsg("set fds bios %s", ::fdsBiosPath.data());
-					fdsBiosPath.compile(makeBiosMenuEntryStr().data(), renderer(), projP);
+					fdsBiosPath.compile(makeBiosMenuEntryStr(), renderer(), projP);
 				},
 				hasFDSBIOSExtension);
 			pushAndShow(std::move(biosSelectMenu), e);
 		}
 	};
 
-	static std::string makeBiosMenuEntryStr()
+	std::string makeBiosMenuEntryStr()
 	{
-		return fmt::format("Disk System BIOS: {}", ::fdsBiosPath.size() ? FS::basename(::fdsBiosPath) : "None set");
+		return fmt::format("Disk System BIOS: {}", ::fdsBiosPath.size() ? appContext().fileUriDisplayName(::fdsBiosPath) : "None set");
 	}
 
 public:

@@ -171,7 +171,7 @@ private:
 		}
 	};
 
-	void onFirmwarePathChange(std::string_view path, Input::Event e) final
+	void onFirmwarePathChange(std::string_view path) final
 	{
 		machineFilePath.compile(makeMachinePathMenuEntryStr(path), renderer(), projP);
 		reloadMachineItem();

@@ -75,6 +75,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	private static final int REQUEST_OPEN_DOCUMENT_TREE = 1;
 	private static final int REQUEST_BT_ON = 2;
 	private static final int REQUEST_OPEN_DOCUMENT = 3;
+	private static final int REQUEST_OPEN_DOCUMENT_TREE_AS_PATH = 4;
 
 	boolean hasPermanentMenuKey()
 	{
@@ -287,11 +288,18 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			resultCode == RESULT_OK && intent != null)
 		{
 			final Uri uri = intent.getData();
+			final int takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
+			getContentResolver().takePersistableUriPermission(uri, takeFlags);
+			Uri dirUri = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri));
+			documentTreeOpened(activityResultNativeUserData, dirUri.toString());
+		}
+		else if(android.os.Build.VERSION.SDK_INT >= 30 && requestCode == REQUEST_OPEN_DOCUMENT_TREE_AS_PATH &&
+			resultCode == RESULT_OK && intent != null)
+		{
+			final Uri uri = intent.getData();
 			final String path = StorageManagerHelper.pathFromDocumentUri(this, uri);
 			if(path != null)
 			{
-				final int takeFlags = intent.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-				getContentResolver().takePersistableUriPermission(uri, takeFlags);
 				documentTreeOpened(activityResultNativeUserData, path);
 			}
 		}
@@ -308,7 +316,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			{
 				return;
 			}
-			final int takeFlags = intent.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION;
+			final int takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION;
 			getContentResolver().takePersistableUriPermission(uri, takeFlags);
 			documentOpened(activityResultNativeUserData, uri.toString(), fd);
 		}
@@ -543,13 +551,16 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		}
 	}
 
-	void openDocumentTree(long nativeUserData)
+	void openDocumentTree(long nativeUserData, boolean convertToPath)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 30)
 			return;
 		activityResultNativeUserData = nativeUserData;
 		Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-		startActivityForResult(intent, REQUEST_OPEN_DOCUMENT_TREE);
+		if(convertToPath)
+			startActivityForResult(intent, REQUEST_OPEN_DOCUMENT_TREE_AS_PATH);
+		else
+			startActivityForResult(intent, REQUEST_OPEN_DOCUMENT_TREE);
 	}
 
 	void openDocument(long nativeUserData)
@@ -563,33 +574,47 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		startActivityForResult(intent, REQUEST_OPEN_DOCUMENT);
 	}
 
-	int openUriFd(String uriStr)
+	int openUriFd(String uriStr, int flags)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 19)
 			return -1;
-		try
-		{
-			return getContentResolver().openFileDescriptor(Uri.parse(uriStr), "r").detachFd();
-		}
-		catch(Exception e)
-		{
-			return -1;
-		}
+		return ContentResolverUtils.openUriFd(getContentResolver(), uriStr, flags);
 	}
 
-	int makeFileUriFd(String name, String uriStr)
+	String documentUri(String uriStr, String name)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 21)
-			return -1;
-		try
-		{
-			Uri docUri = DocumentsContract.createDocument(getContentResolver(), Uri.parse(uriStr), "application/octet-stream", name);
-			return getContentResolver().openFileDescriptor(docUri, "w").detachFd();
-		}
-		catch(Exception e)
-		{
-			return -1;
-		}
+			return null;
+		Uri docUri = Uri.parse(uriStr.toString() + Uri.encode('/' + name));
+		return docUri.toString();
+	}
+
+	boolean uriExists(String uriStr)
+	{
+		if(android.os.Build.VERSION.SDK_INT < 19)
+			return false;
+		return ContentResolverUtils.uriExists(getContentResolver(), uriStr);
+	}
+
+	String uriLastModified(String uriStr)
+	{
+		if(android.os.Build.VERSION.SDK_INT < 19)
+			return null;
+		return ContentResolverUtils.uriLastModified(getContentResolver(), uriStr);
+	}
+
+	String uriDisplayName(String uriStr)
+	{
+		if(android.os.Build.VERSION.SDK_INT < 19)
+			return null;
+		return ContentResolverUtils.uriDisplayName(getContentResolver(), uriStr);
+	}
+
+	boolean deleteUri(String uriStr)
+	{
+		if(android.os.Build.VERSION.SDK_INT < 19)
+			return false;
+		return ContentResolverUtils.deleteUri(getContentResolver(), uriStr);
 	}
 
 	boolean requestExternalStorageManager()

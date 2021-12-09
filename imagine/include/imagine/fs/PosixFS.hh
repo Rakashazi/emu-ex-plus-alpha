@@ -31,9 +31,21 @@ namespace FS
 
 static constexpr uint32_t FILE_STRING_SIZE = std::max(512, NAME_MAX + 1);
 using FileStringImpl = IG::StaticString<FILE_STRING_SIZE>;
+class FileString : public FileStringImpl
+{
+public:
+	using FileStringImpl::FileStringImpl;
+	using FileStringImpl::operator=;
+};
 
 static constexpr uint32_t PATH_STRING_SIZE = std::max(1024, PATH_MAX);
 using PathStringImpl = IG::StaticString<PATH_STRING_SIZE>;
+class PathString : public PathStringImpl
+{
+public:
+	using PathStringImpl::PathStringImpl;
+	using PathStringImpl::operator=;
+};
 
 using FileTimeTypeImpl = std::time_t;
 
@@ -53,7 +65,7 @@ public:
 	std::string_view name() const;
 	file_type type() const;
 	file_type symlink_type() const;
-	PathStringImpl path() const;
+	PathString path() const;
 	void close();
 
 protected:
@@ -70,7 +82,7 @@ protected:
 	struct dirent *dirent_{};
 	mutable file_type type_{};
 	mutable file_type linkType_{};
-	PathStringImpl basePath{};
+	PathString basePath{};
 
 	static void closeDirectoryStream(DIR *);
 };

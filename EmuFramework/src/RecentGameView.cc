@@ -54,17 +54,13 @@ RecentGameView::RecentGameView(ViewAttachParams attach, EmuApp::RecentContentLis
 		auto &recentItem = recentGame.emplace_back(entry.name, &defaultFace(),
 			[this, &entry](Input::Event e)
 			{
-				auto io = appContext().openUri(entry.path, IO::AccessHint::SEQUENTIAL);
-				app().createSystemWithMedia(std::move(io), entry.path, FS::isUri(entry.path), e, {}, attachParams(),
+				app().createSystemWithMedia({}, entry.path, FS::isUri(entry.path), e, {}, attachParams(),
 					[this](Input::Event e)
 					{
 						app().launchSystemWithResumePrompt(e);
 					});
 			});
-		if(!FS::isUri(entry.path))
-		{
-			recentItem.setActive(FS::exists(entry.path));
-		}
+		recentItem.setActive(appContext().fileUriExists(entry.path));
 	}
 	clear.setActive(list.size());
 }

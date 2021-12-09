@@ -128,26 +128,24 @@ inline const char* ESIFC_Name(ESIFC esifc)
 
 struct FCEUGI
 {
-	FCEUGI();
+	std::string name{};	//Game name, UTF8 encoding
+	int mappernum{};
 
-	std::string name;	//Game name, UTF8 encoding
-	int mappernum;
+	EGIT type{};
+	EGIV vidsys{};    //Current emulated video system;
+	ESI input[2]{};   //Desired input for emulated input ports 1 and 2; -1 for unknown desired input.
+	ESIFC inputfc{};  //Desired Famicom expansion port device. -1 for unknown desired input.
+	ESIS cspecial{};  //Special cart expansion: DIP switches, barcode reader, etc.
 
-	EGIT type;
-	EGIV vidsys;    //Current emulated video system;
-	ESI input[2];   //Desired input for emulated input ports 1 and 2; -1 for unknown desired input.
-	ESIFC inputfc;  //Desired Famicom expansion port device. -1 for unknown desired input.
-	ESIS cspecial;  //Special cart expansion: DIP switches, barcode reader, etc.
-
-	MD5DATA MD5;
+	MD5DATA MD5{};
 
 	//mbg 6/8/08 - ???
-	int soundrate;  //For Ogg Vorbis expansion sound wacky support.  0 for default.
-	int soundchan;  //Number of sound channels.
+	int soundrate{};  //For Ogg Vorbis expansion sound wacky support.  0 for default.
+	int soundchan{};  //Number of sound channels.
 
-	std::string filename;
-	std::string archiveFilename;
-	int archiveCount;
+	std::string filename{};
+	std::string archiveFilename{};
+	int archiveCount{};
 };
 
 #endif

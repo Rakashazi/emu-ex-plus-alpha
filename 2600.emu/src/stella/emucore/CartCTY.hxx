@@ -204,7 +204,7 @@ class CartridgeCTY : public Cartridge
       @param nvramdir  The full path of the nvram directory
       @param romfile   The name of the cart from ROM properties
     */
-    void setNVRamFile(const string& nvramdir, const string& romfile) override;
+    void setNVRamFile(const string& nvramfile) override;
 
   #ifdef DEBUGGER_SUPPORT
     /**

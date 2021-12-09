@@ -22,6 +22,7 @@ THE SOFTWARE.
 
 #include "emufile.h"
 #include "utils/xstring.h"
+#include "driver.h"
 
 #include <vector>
 
@@ -62,7 +63,7 @@ size_t EMUFILE_MEMORY::_fread(const void *ptr, size_t bytes){
 
 void EMUFILE_FILE::open(const char* fname, const char* mode)
 {
-	fp = fopen(fname,mode);
+	fp = FCEUD_UTF8fopen(fname,mode);
 	if(!fp)
 	{
 #ifdef _MSC_VER

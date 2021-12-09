@@ -23,6 +23,7 @@
 #include "GBALink.h"
 #include <imagine/logger/logger.h>
 #include <imagine/io/FileIO.hh>
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/algorithm.h>
 #include <emuframework/EmuSystemTaskContext.hh>
 
@@ -769,9 +770,9 @@ static bool CPUWriteState(GBASys &gba, gzFile gzFile)
   return true;
 }
 
-bool CPUWriteState(GBASys &gba, const char *file)
+bool CPUWriteState(Base::ApplicationContext ctx, GBASys &gba, const char *file)
 {
-  gzFile gzFile = utilGzOpen(file, "wb");
+  gzFile gzFile = utilGzOpen(ctx.openFileUri(file, IO::OPEN_CREATE).releaseFd(), "wb");
 
   if(gzFile == NULL) {
     systemMessage(MSG_ERROR_CREATING_FILE, N_("Error creating file %s"), file);
@@ -997,9 +998,9 @@ bool CPUReadMemState(GBASys &gba, char *memory, int available)
   return res;
 }
 
-bool CPUReadState(GBASys &gba, const char * file)
+bool CPUReadState(Base::ApplicationContext ctx, GBASys &gba, const char * file)
 {
-  gzFile gzFile = utilGzOpen(file, "rb");
+  gzFile gzFile = utilGzOpen(ctx.openFileUri(file, IO::AccessHint::UNMAPPED).releaseFd(), "rb");
 
   if(gzFile == NULL)
     return false;
@@ -1036,7 +1037,7 @@ bool CPUExportEepromFile(const char *fileName)
   return true;
 }
 
-bool CPUWriteBatteryFile(GBASys &gba, const char *fileName)
+bool CPUWriteBatteryFile(Base::ApplicationContext ctx, GBASys &gba, const char *fileName)
 {
   if(gbaSaveType == 0) {
     if(eepromInUse)
@@ -1052,7 +1053,7 @@ bool CPUWriteBatteryFile(GBASys &gba, const char *fileName)
   }
 
   if((gbaSaveType) && (gbaSaveType!=5)) {
-    FILE *file = fopen(fileName, "wb");
+    FILE *file = FileUtils::fopenUri(ctx, fileName, "wb");
 
     if(!file) {
       systemMessage(MSG_ERROR_CREATING_FILE, N_("Error creating file %s"),
@@ -1309,9 +1310,9 @@ bool CPUImportEepromFile(GBASys &gba, const char *fileName)
   return true;
 }
 
-bool CPUReadBatteryFile(GBASys &gba, const char *fileName)
+bool CPUReadBatteryFile(Base::ApplicationContext ctx, GBASys &gba, const char *fileName)
 {
-	auto buff = FileUtils::bufferFromPath(fileName, IO::OPEN_TEST, 0x20000);
+	auto buff = FileUtils::bufferFromUri(ctx, fileName, IO::OPEN_TEST, 0x20000);
   if(!buff)
     return false;
 
@@ -3424,6 +3425,7 @@ void CPULoop(GBASys &gba, EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudi
             if(ioMem.VCOUNT == 159 && video)
             {
             	systemDrawScreen(taskCtx, *video);
+            	video = nullptr;
             }
             // entering H-Blank
             ioMem.DISPSTAT |= 2;

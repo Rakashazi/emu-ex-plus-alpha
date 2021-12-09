@@ -23,6 +23,8 @@
 
 #include <cstddef>
 #include <string>
+#include <istream>
+#include <ostream>
 
 namespace gambatte {
 
@@ -39,6 +41,11 @@ public:
 			uint_least32_t const *videoBuf, std::ptrdiff_t pitch,
 			std::string const &filename);
 	static bool loadState(SaveState &state, std::string const &filename);
+
+	static bool saveState(SaveState const &state,
+			uint_least32_t const *videoBuf, std::ptrdiff_t pitch,
+			std::ostream &file);
+	static bool loadState(SaveState &state, std::istream &file);
 
 private:
 	StateSaver();

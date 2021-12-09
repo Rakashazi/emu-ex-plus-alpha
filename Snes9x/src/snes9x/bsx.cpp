@@ -740,11 +740,8 @@ void S9xBSXSetStream1 (uint8 count)
 
 	char path[PATH_MAX + 1], name[PATH_MAX + 1];
 
-	strcpy(path, S9xGetDirectory(SAT_DIR));
-	strcat(path, SLASH_STR);
-
 	snprintf(name, PATH_MAX + 1, "BSX%04X-%d.bin", (BSX.PPU[0x2188 - BSXPPUBASE] | (BSX.PPU[0x2189 - BSXPPUBASE] * 256)), count); //BSXHHHH-DDD.bin
-	strcat(path, name);
+	strcpy(path, S9xGetFullFilename(name, SAT_DIR));
 
 	BSX.sat_stream1.clear();
 	BSX.sat_stream1.open(path, std::ios::in | std::ios::binary);
@@ -772,11 +769,8 @@ void S9xBSXSetStream2 (uint8 count)
 
 	char path[PATH_MAX + 1], name[PATH_MAX + 1];
 
-	strcpy(path, S9xGetDirectory(SAT_DIR));
-	strcat(path, SLASH_STR);
-
 	snprintf(name, PATH_MAX + 1, "BSX%04X-%d.bin", (BSX.PPU[0x218E - BSXPPUBASE] | (BSX.PPU[0x218F - BSXPPUBASE] * 256)), count); //BSXHHHH-DDD.bin
-	strcat(path, name);
+	strcpy(path, S9xGetFullFilename(name, SAT_DIR));
 
 	BSX.sat_stream2.clear();
 	BSX.sat_stream2.open(path, std::ios::in | std::ios::binary);
@@ -1207,20 +1201,16 @@ uint8 * S9xGetBasePointerBSX (uint32 address)
 static bool8 BSX_LoadBIOS (void)
 {
 	FILE	*fp;
-	char	path[PATH_MAX + 1], name[PATH_MAX + 1];
+	char	name[PATH_MAX + 1];
 	bool8	r = FALSE;
 
-	strcpy(path, S9xGetDirectory(BIOS_DIR));
-	strcat(path, SLASH_STR);
-	strcpy(name, path);
-	strcat(name, "BS-X.bin");
+	strcpy(name, S9xGetFullFilename("BS-X.bin", BIOS_DIR));
 
-	fp = fopen(name, "rb");
+	fp = fopenHelper(name, "rb");
 	if (!fp)
 	{
-		strcpy(name, path);
-		strcat(name, "BS-X.bios");
-		fp = fopen(name, "rb");
+		strcpy(name, S9xGetFullFilename("BS-X.bios", BIOS_DIR));
+		fp = fopenHelper(name, "rb");
 	}
 
 	if (fp)

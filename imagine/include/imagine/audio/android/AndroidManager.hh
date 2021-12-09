@@ -39,7 +39,7 @@ protected:
 	JNI::UniqueGlobalRef audioManager{};
 	JNI::InstMethod<jint(jobject, jint, jint)> jRequestAudioFocus{};
 	JNI::InstMethod<jint(jobject)> jAbandonAudioFocus{};
-	JNI::InstMethod<jobject(jstring)> jGetProperty{};
+	JNI::InstMethod<jstring(jstring)> jGetProperty{};
 	bool soloMix_{SOLO_MIX_DEFAULT};
 	bool sessionActive{};
 

@@ -60,6 +60,10 @@ IO *GenericIO::release()
 
 FILE *GenericIO::moveToFileStream(const char *opentype)
 {
+	if(!*io)
+	{
+		return nullptr;
+	}
 	#if defined __ANDROID__ || __APPLE__
 	auto f = funopen(release(),
 		[](void *cookie, char *buf, int size)
@@ -83,42 +87,44 @@ FILE *GenericIO::moveToFileStream(const char *opentype)
 			return 0;
 		});
 	#else
-	cookie_io_functions_t funcs{};
-	funcs.read =
-		[](void *cookie, char *buf, size_t size)
-		{
-			auto &io = *(IO*)cookie;
-			return (ssize_t)io.read(buf, size);
-		};
-	funcs.write =
-		[](void *cookie, const char *buf, size_t size)
-		{
-			auto &io = *(IO*)cookie;
-			auto bytesWritten = io.write(buf, size);
-			if(bytesWritten == -1)
+	cookie_io_functions_t funcs
+	{
+		.read =
+			[](void *cookie, char *buf, size_t size)
 			{
-				bytesWritten = 0; // needs to return 0 for error
-			}
-			return (ssize_t)bytesWritten;
-		};
-	funcs.seek =
-		[](void *cookie, off64_t *position, int whence)
-		{
-			auto &io = *(IO*)cookie;
-			auto newPos = io.seek(*position, (IODefs::SeekMode)whence);
-			if(newPos == -1)
+				auto &io = *(IO*)cookie;
+				return (ssize_t)io.read(buf, size);
+			},
+		.write =
+			[](void *cookie, const char *buf, size_t size)
 			{
-				return -1;
+				auto &io = *(IO*)cookie;
+				auto bytesWritten = io.write(buf, size);
+				if(bytesWritten == -1)
+				{
+					bytesWritten = 0; // needs to return 0 for error
+				}
+				return (ssize_t)bytesWritten;
+			},
+		.seek =
+			[](void *cookie, off64_t *position, int whence)
+			{
+				auto &io = *(IO*)cookie;
+				auto newPos = io.seek(*position, (IODefs::SeekMode)whence);
+				if(newPos == -1)
+				{
+					return -1;
+				}
+				*position = newPos;
+				return 0;
+			},
+		.close =
+			[](void *cookie)
+			{
+				delete (IO*)cookie;
+				return 0;
 			}
-			*position = newPos;
-			return 0;
-		};
-	funcs.close =
-		[](void *cookie)
-		{
-			delete (IO*)cookie;
-			return 0;
-		};
+	};
 	auto f = fopencookie(release(), opentype, funcs);
 	#endif
 	assert(f);

@@ -17,9 +17,14 @@
 
 #include "FSNode.hxx"
 #include "Serializer.hxx"
+#include <imagine/base/ApplicationContext.hh>
+#include <imagine/io/IOStream.hh>
+#include <imagine/io/FileIO.hh>
 
 using std::ios;
 using std::ios_base;
+
+extern Base::ApplicationContext appCtx;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Serializer::Serializer(const string& filename, Mode m)
@@ -29,7 +34,7 @@ Serializer::Serializer(const string& filename, Mode m)
     FilesystemNode node(filename);
     if(node.isFile() && node.isReadable())
     {
-      unique_ptr<fstream> str = make_unique<fstream>(filename, ios::in | ios::binary);
+      auto str = make_unique<IG::FStream>(appCtx.openFileUri(filename, IO::AccessHint::ALL), ios::in | ios::binary);
       if(str && str->is_open())
       {
         myStream = std::move(str);
@@ -53,7 +58,7 @@ Serializer::Serializer(const string& filename, Mode m)
     ios_base::openmode stream_mode = ios::in | ios::out | ios::binary;
     if(m == Mode::ReadWriteTrunc)
       stream_mode |= ios::trunc;
-    unique_ptr<fstream> str = make_unique<fstream>(filename, stream_mode);
+    auto str = make_unique<IG::FStream>(appCtx.openFileUri(filename, IO::OPEN_CREATE), stream_mode);
     if(str && str->is_open())
     {
       myStream = std::move(str);

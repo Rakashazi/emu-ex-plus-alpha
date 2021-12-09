@@ -59,7 +59,7 @@ public:
 				{
 					PosixIO io{fd};
 					bool keep = f(io);
-					io.releaseFD();
+					io.releaseFd();
 					return keep;
 				}
 			});

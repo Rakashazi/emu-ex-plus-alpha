@@ -63,7 +63,7 @@ public:
 	#endif
 
 	FilesystemNode stateDir() const;
-	FilesystemNode nvramDir() const;
+	FilesystemNode nvramDir(std::string_view name) const;
 
 	bool checkUserPalette(bool outputError = false) const { return false; }
 	FilesystemNode paletteFile() const { return FilesystemNode{""}; }

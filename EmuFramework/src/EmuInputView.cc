@@ -160,7 +160,7 @@ bool EmuInputView::inputEvent(Input::Event e)
 								}
 							};
 
-						if(EmuSystem::shouldOverwriteExistingState())
+						if(EmuSystem::shouldOverwriteExistingState(appContext()))
 						{
 							emuApp.syncEmulationThread();
 							doSaveState(emuApp, optionConfirmOverwriteState);

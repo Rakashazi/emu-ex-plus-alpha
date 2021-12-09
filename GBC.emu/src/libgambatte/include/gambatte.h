@@ -103,6 +103,8 @@ public:
 	/** Sets the callback used for getting input state. */
 	void setInputGetter(InputGetter *getInput);
 
+	void setStreamDelegates(InputStreamDelegate, OutputStreamDelegate);
+
 	/**
 	  * Sets the directory used for storing save data. The default is the same directory as
 	  * the ROM Image file.
@@ -148,11 +150,16 @@ public:
 	bool saveState(gambatte::uint_least32_t const *videoBuf, std::ptrdiff_t pitch,
 	               std::string const &filepath);
 
+	bool saveState(gambatte::uint_least32_t const *videoBuf, std::ptrdiff_t pitch,
+	               std::ostream &file);
+
 	/**
 	  * Loads emulator state from the file given by 'filepath'.
 	  * @return success
 	  */
 	bool loadState(std::string const &filepath);
+
+	bool loadState(std::istream &file);
 
 	/**
 	  * Selects which state slot to save state to or load state from.

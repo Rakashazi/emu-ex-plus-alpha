@@ -47,6 +47,7 @@ const char * S9xStringInput (const char *);
 const char * S9xGetDirectory (enum s9x_getdirtype);
 const char * S9xGetFilename (const char *, enum s9x_getdirtype);
 const char * S9xGetFilenameInc (const char *, enum s9x_getdirtype);
+const char * S9xGetFullFilename(const char *, enum s9x_getdirtype);
 const char * S9xBasename (const char *);
 
 // Routines the port has to implement if it uses command-line

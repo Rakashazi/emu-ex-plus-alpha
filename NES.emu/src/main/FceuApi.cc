@@ -70,8 +70,8 @@ void FCEUI_Emulate(EmuVideo *video, int skip, EmuAudio *audio)
 
 FILE *FCEUD_UTF8fopen(const char *fn, const char *mode)
 {
-	logMsg("opening file %s mode %s", fn, mode);
-	auto file = fopen(fn,mode);
+	logMsg("opening file:%s mode:%s", fn, mode);
+	auto file = FileUtils::fopenUri(appCtx, fn, mode);
 //	if(!file)
 //		logErr("error opening %s", fn);
 	return file;
@@ -183,9 +183,10 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 	{
 		throw std::runtime_error{"No FDS BIOS set"};
 	}
-	if(EmuApp::hasArchiveExtension(fdsBiosPath.data()))
+	logMsg("loading FDS BIOS:%s", fdsBiosPath.data());
+	if(EmuApp::hasArchiveExtension(appCtx.fileUriDisplayName(fdsBiosPath)))
 	{
-		for(auto &entry : FS::ArchiveIterator{fdsBiosPath})
+		for(auto &entry : FS::ArchiveIterator{appCtx.openFileUri(fdsBiosPath)})
 		{
 			if(entry.type() == FS::file_type::directory)
 			{
@@ -206,7 +207,7 @@ int FCEUD_FDSReadBIOS(void *buff, uint32 size)
 	}
 	else
 	{
-		FileIO io{fdsBiosPath, IO::AccessHint::ALL};
+		auto io = appCtx.openFileUri(fdsBiosPath, IO::AccessHint::ALL);
 		if(io.size() != size)
 		{
 			throw std::runtime_error{"Incompatible FDS BIOS"};
@@ -296,4 +297,34 @@ void EncodeGG(char *str, int a, int v, int c)
 		str[8] = 0;
 	}
 	return;
+}
+
+std::string FCEU_MakeFName(int type, int id1, const char *cd1)
+{
+	switch(type)
+	{
+		case FCEUMKF_SAV:
+			return std::string{EmuSystem::contentSaveFilePath(appCtx, ".sav")};
+		case FCEUMKF_CHEAT:
+			return std::string{EmuSystem::contentSaveFilePath(appCtx, ".cht")};
+		case FCEUMKF_IPS:
+			return std::string{EmuSystem::contentSaveFilePath(appCtx, ".ips")};
+		case FCEUMKF_GGROM:
+			return std::string{EmuSystem::contentSavePath(appCtx, "gg.rom")};
+		case FCEUMKF_FDS:
+			return std::string{EmuSystem::contentSaveFilePath(appCtx, ".fds.sav")};
+		case FCEUMKF_PALETTE:
+			return std::string{EmuSystem::contentSaveFilePath(appCtx, ".pal")};
+		case FCEUMKF_MOVIE:
+		case FCEUMKF_STATE:
+		case FCEUMKF_RESUMESTATE:
+		case FCEUMKF_SNAP:
+		case FCEUMKF_AUTOSTATE:
+		case FCEUMKF_FDSROM:
+		case FCEUMKF_MOVIEGLOB:
+		case FCEUMKF_MOVIEGLOB2:
+		case FCEUMKF_STATEGLOB:
+			logWarn("unused filename type:%d", type);
+	}
+	return {};
 }

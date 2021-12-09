@@ -147,8 +147,8 @@ FS::PathString ApplicationContext::supportPath(const char *) const
 		//logMsg("ignoring paths from ANativeActivity due to Android 2.3 bug");
 		auto env = thisThreadJniEnv();
 		auto baseActivity = baseActivityObject();
-		JNI::InstMethod<jobject()> filesDir{env, baseActivity, "filesDir", "()Ljava/lang/String;"};
-		return JNI::StringChars{env, (jstring)filesDir(env, baseActivity)}.cString();
+		JNI::InstMethod<jstring()> filesDir{env, baseActivity, "filesDir", "()Ljava/lang/String;"};
+		return JNI::StringChars{env, filesDir(env, baseActivity)}.cString();
 	}
 	else
 		return act->internalDataPath;
@@ -158,8 +158,8 @@ FS::PathString ApplicationContext::cachePath(const char *) const
 {
 	auto env = thisThreadJniEnv();
 	auto baseActivityCls = (jclass)env->GetObjectClass(baseActivityObject());
-	JNI::ClassMethod<jobject()> cacheDir{env, baseActivityCls, "cacheDir", "()Ljava/lang/String;"};
-	return JNI::StringChars{env, (jstring)cacheDir(env, baseActivityCls)}.cString();
+	JNI::ClassMethod<jstring()> cacheDir{env, baseActivityCls, "cacheDir", "()Ljava/lang/String;"};
+	return JNI::StringChars{env, cacheDir(env, baseActivityCls)}.cString();
 }
 
 FS::PathString ApplicationContext::sharedStoragePath() const
@@ -170,8 +170,8 @@ FS::PathString ApplicationContext::sharedStoragePath() const
 
 FS::PathString AndroidApplication::sharedStoragePath(JNIEnv *env, jclass baseActivityClass) const
 {
-	JNI::ClassMethod<jobject()> extStorageDir{env, baseActivityClass, "extStorageDir", "()Ljava/lang/String;"};
-	return JNI::StringChars{env, (jstring)extStorageDir(env, baseActivityClass)}.cString();
+	JNI::ClassMethod<jstring()> extStorageDir{env, baseActivityClass, "extStorageDir", "()Ljava/lang/String;"};
+	return JNI::StringChars{env, extStorageDir(env, baseActivityClass)}.cString();
 }
 
 FS::PathLocation ApplicationContext::sharedStoragePathLocation() const
@@ -235,32 +235,87 @@ FS::PathString ApplicationContext::libPath(const char *) const
 	{
 		auto env = thisThreadJniEnv();
 		auto baseActivity = baseActivityObject();
-		JNI::InstMethod<jobject()> libDir{env, baseActivity, "libDir", "()Ljava/lang/String;"};
-		return JNI::StringChars{env, (jstring)libDir(env, baseActivity)}.cString();
+		JNI::InstMethod<jstring()> libDir{env, baseActivity, "libDir", "()Ljava/lang/String;"};
+		return JNI::StringChars{env, libDir(env, baseActivity)}.cString();
 	}
 	return {};
 }
 
-FileIO ApplicationContext::openUri(IG::CStringView uri, IO::AccessHint access, unsigned openFlags)
+FileIO ApplicationContext::openFileUri(IG::CStringView uri, IO::AccessHint access, unsigned openFlags) const
 {
-	if(androidSDK() < 19 || uri[0] == '/')
-		return {};
-	logMsg("opening Uri:%s", uri.data());
+	if(androidSDK() < 19 || !FS::isUri(uri))
+		return {uri, access, openFlags};
 	auto env = thisThreadJniEnv();
 	auto baseActivity = baseActivityObject();
-	JNI::InstMethod<int(jobject)> openUriFd{env, baseActivity, "openUriFd", "(Ljava/lang/String;)I"};
-	return {openUriFd(env, baseActivity, env->NewStringUTF(uri)), access};
+	JNI::InstMethod<jint(jstring, jint)> openUriFd{env, baseActivity, "openUriFd", "(Ljava/lang/String;I)I"};
+	int fd = openUriFd(env, baseActivity, env->NewStringUTF(uri), openFlags);
+	if(fd == -1)
+	{
+		if constexpr(Config::DEBUG_BUILD)
+			logErr("error opening URI:%s:%s", uri.data(), strerror(errno));
+		if(openFlags & IO::OPEN_TEST)
+			return {};
+		else
+			throw std::system_error{errno, std::system_category(), uri};
+	}
+	logMsg("opened file URI:%s", uri.data());
+	return {fd, access, openFlags};
 }
 
-FileIO ApplicationContext::fileAtUri(IG::CStringView name, IG::CStringView uri, IO::AccessHint access, unsigned openFlags)
+FS::PathString ApplicationContext::fileUri(IG::CStringView uri, IG::CStringView name) const
 {
-	if(androidSDK() < 21 || uri[0] == '/')
-		return {};
-	logMsg("creating file:%s at Uri:%s", name.data(), uri.data());
+	if(androidSDK() < 21 || !FS::isUri(uri))
+		return FS::pathString(uri, name);
+	logMsg("adding name:%s to path URI:%s", name.data(), uri.data());
 	auto env = thisThreadJniEnv();
 	auto baseActivity = baseActivityObject();
-	JNI::InstMethod<int(jobject, jobject)> makeFileUriFd{env, baseActivity, "makeFileUriFd", "(Ljava/lang/String;Ljava/lang/String;)I"};
-	return {makeFileUriFd(env, baseActivity, env->NewStringUTF(name), env->NewStringUTF(uri)), access};
+	JNI::InstMethod<jstring(jstring, jstring)> documentUri{env, baseActivity, "documentUri", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"};
+	return JNI::StringChars{env, documentUri(env, baseActivity, env->NewStringUTF(uri), env->NewStringUTF(name))}.cString();
+}
+
+bool ApplicationContext::fileUriExists(IG::CStringView uri) const
+{
+	if(androidSDK() < 19 || !FS::isUri(uri))
+		return FS::exists(uri);
+	auto env = thisThreadJniEnv();
+	auto baseActivity = baseActivityObject();
+	JNI::InstMethod<jboolean(jstring)> uriExists{env, baseActivity, "uriExists", "(Ljava/lang/String;)Z"};
+	bool exists = uriExists(env, baseActivity, env->NewStringUTF(uri));
+	if(exists)
+		logMsg("URI exists:%s", uri.data());
+	return exists;
+}
+
+std::string ApplicationContext::fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const
+{
+	if(androidSDK() < 19 || !FS::isUri(uri))
+		return FS::formatLastWriteTimeLocal(uri);
+	//logMsg("getting modification time for URI:%s", uri.data());
+	auto env = thisThreadJniEnv();
+	auto baseActivity = baseActivityObject();
+	JNI::InstMethod<jstring(jstring)> uriLastModified{env, baseActivity, "uriLastModified", "(Ljava/lang/String;)Ljava/lang/String;"};
+	return JNI::StringChars{env, uriLastModified(env, baseActivity, env->NewStringUTF(uri))}.cString();
+}
+
+FS::FileString ApplicationContext::fileUriDisplayName(IG::CStringView uri) const
+{
+	if(androidSDK() < 19 || !FS::isUri(uri))
+		return FS::basename(uri);
+	//logMsg("getting display name for URI:%s", uri.data());
+	auto env = thisThreadJniEnv();
+	auto baseActivity = baseActivityObject();
+	JNI::InstMethod<jstring(jstring)> uriDisplayName{env, baseActivity, "uriDisplayName", "(Ljava/lang/String;)Ljava/lang/String;"};
+	return JNI::StringChars{env, uriDisplayName(env, baseActivity, env->NewStringUTF(uri))}.cString();
+}
+
+bool ApplicationContext::removeFileUri(IG::CStringView uri) const
+{
+	if(androidSDK() < 19 || !FS::isUri(uri))
+		return FS::remove(uri);
+	auto env = thisThreadJniEnv();
+	auto baseActivity = baseActivityObject();
+	JNI::InstMethod<jboolean(jstring)> deleteUri{env, baseActivity, "deleteUri", "(Ljava/lang/String;)Z"};
+	return deleteUri(env, baseActivity, env->NewStringUTF(uri));
 }
 
 static FS::PathString mainSOPath(ApplicationContext ctx)
@@ -311,7 +366,7 @@ bool ApplicationContext::requestPermission(Permission p)
 		if(!permissionJStr)
 			return false;
 		auto baseActivity = baseActivityObject();
-		JNI::InstMethod<jboolean(jobject)> requestPermission{env, baseActivity, "requestPermission", "(Ljava/lang/String;)Z"};
+		JNI::InstMethod<jboolean(jstring)> requestPermission{env, baseActivity, "requestPermission", "(Ljava/lang/String;)Z"};
 		return requestPermission(env, baseActivity, permissionJStr);
 	}
 }
@@ -518,7 +573,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 					if(app.isRunning())
 					{
 						logMsg("picked document:%s fd:%d", uri, fd);
-						std::exchange(app.onSystemDocumentPicker, {})(uri, FileIO{fd});
+						std::exchange(app.onSystemDocumentPicker, {})(uri, FileIO{fd, 0});
 					}
 					else
 					{
@@ -526,7 +581,7 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 							[uriCopy = strdup(uri), fd](ApplicationContext ctx, bool focused)
 							{
 								logMsg("picked document:%s fd:%d", uriCopy, fd);
-								std::exchange(ctx.application().onSystemDocumentPicker, {})(uriCopy, FileIO{fd});
+								std::exchange(ctx.application().onSystemDocumentPicker, {})(uriCopy, FileIO{fd, 0});
 								::free(uriCopy);
 								return false;
 							}, APP_ON_RESUME_PRIORITY + 100);

@@ -10,6 +10,9 @@
 #include "../NLS.h"
 #include "../Util.h"
 
+#include <imagine/base/ApplicationContext.hh>
+#include <imagine/io/FileIO.hh>
+
 /**
  * Gameshark code types: (based on AR v1.0)
  *
@@ -2684,11 +2687,11 @@ void cheatsReadGameSkip( gzFile file, int version )
 }
 
 
-void cheatsSaveCheatList(const char *file)
+void cheatsSaveCheatList(Base::ApplicationContext ctx, const char *file)
 {
   if(!cheatsList.size())
     return;
-  FILE *f = fopen(file, "wb");
+  FILE *f = FileUtils::fopenUri(ctx, file, "wb");
   if(f == NULL)
     return;
   int version = 1;
@@ -2701,12 +2704,12 @@ void cheatsSaveCheatList(const char *file)
   fclose(f);
 }
 
-bool cheatsLoadCheatList(const char *file)
+bool cheatsLoadCheatList(Base::ApplicationContext ctx, const char *file)
 {
 
   int count = 0;
 
-  FILE *f = fopen(file, "rb");
+  FILE *f = FileUtils::fopenUri(ctx, file, "rb");
 
   if(f == NULL)
     return false;

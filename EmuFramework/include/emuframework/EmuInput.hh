@@ -22,6 +22,7 @@
 #endif
 #include <imagine/input/Input.hh>
 #include <imagine/util/container/VMemArray.hh>
+#include <imagine/util/string/StaticString.hh>
 
 namespace Input
 {

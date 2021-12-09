@@ -506,6 +506,7 @@ void FCEUI_SetDirOverride(int which, const char *n)
 	}
 	#endif
 
+#if 0
 std::string  FCEU_GetPath(int type)
 {
 	switch (type)
@@ -785,6 +786,7 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 	//convert | to . for archive filenames.
 	return mass_replace(ret,"|",".");
 }
+#endif
 
 void GetFileBase(const char *f)
 {

@@ -401,7 +401,7 @@ void FSPicker::pushFileLocationsView(Input::Event e)
 					{
 						changeDirByInput(path, appContext().nearestRootPath(path), false, appContext().defaultInputEvent());
 						view.dismiss();
-					});
+					}, true);
 			});
 	}
 	pushAndShow(std::move(view), e);

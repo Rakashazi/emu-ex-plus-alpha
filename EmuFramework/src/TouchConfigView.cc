@@ -32,20 +32,6 @@ static constexpr const char *ctrlStateStr[]
 	"Off", "On", "Hidden"
 };
 
-static constexpr const char *touchCtrlSizeMenuName[10]
-{
-	"6.5",
-	"7",
-	"7.5",
-	"8",
-	"8.5",
-	"9",
-	"10",
-	"12",
-	"14",
-	"15",
-};
-
 static constexpr unsigned touchCtrlSizeMenuVal[10]
 {
 	650,
@@ -60,29 +46,14 @@ static constexpr unsigned touchCtrlSizeMenuVal[10]
 	1500,
 };
 
-static constexpr const char *touchDpadDeadzoneMenuName[3]
-{
-	"1", "1.35", "1.6"
-};
-
 static constexpr unsigned touchDpadDeadzoneMenuVal[3]
 {
 	100, 135, 160
 };
 
-static constexpr const char *touchDpadDiagonalSensitivityMenuName[5]
-{
-	"None", "Low", "M-Low","Med.", "High"
-};
-
 static constexpr unsigned touchDpadDiagonalSensitivityMenuVal[5]
 {
 	1000, 1500, 1750, 2000, 2500
-};
-
-static constexpr const char *touchCtrlBtnSpaceMenuName[4]
-{
-	"1", "2", "3", "4"
 };
 
 static constexpr unsigned touchCtrlBtnSpaceMenuVal[4]
@@ -98,11 +69,6 @@ static constexpr const char *touchCtrlExtraBtnSizeMenuName[4]
 static constexpr unsigned touchCtrlExtraBtnSizeMenuVal[4]
 {
 	0, 1, 200, 500
-};
-
-static constexpr const char *alphaMenuName[6]
-{
-	"0%", "10%", "25%", "50%", "65%", "75%"
 };
 
 static constexpr uint8_t alphaMenuVal[6]
@@ -400,16 +366,16 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	},
 	sizeItem
 	{
-		{touchCtrlSizeMenuName[0], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[0]); }},
-		{touchCtrlSizeMenuName[1], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[1]); }},
-		{touchCtrlSizeMenuName[2], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[2]); }},
-		{touchCtrlSizeMenuName[3], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[3]); }},
-		{touchCtrlSizeMenuName[4], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[4]); }},
-		{touchCtrlSizeMenuName[5], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[5]); }},
-		{touchCtrlSizeMenuName[6], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[6]); }},
-		{touchCtrlSizeMenuName[7], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[7]); }},
-		{touchCtrlSizeMenuName[8], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[8]); }},
-		{touchCtrlSizeMenuName[9], &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[9]); }},
+		{"6.5", &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[0]); }},
+		{"7", &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[1]); }},
+		{"7.5", &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[2]); }},
+		{"8", &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[3]); }},
+		{"8.5", &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[4]); }},
+		{"9", &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[5]); }},
+		{"10", &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[6]); }},
+		{"12", &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[7]); }},
+		{"14", &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[8]); }},
+		{"15", &defaultFace(), [this](){ setSize(touchCtrlSizeMenuVal[9]); }},
 		{"Custom Value", &defaultFace(),
 			[this](Input::Event e)
 			{
@@ -446,9 +412,9 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	},
 	deadzoneItem
 	{
-		{touchDpadDeadzoneMenuName[0], &defaultFace(), [this](){ setDeadzone(vController, touchDpadDeadzoneMenuVal[0], renderer(), window()); }},
-		{touchDpadDeadzoneMenuName[1], &defaultFace(), [this](){ setDeadzone(vController, touchDpadDeadzoneMenuVal[1], renderer(), window()); }},
-		{touchDpadDeadzoneMenuName[2], &defaultFace(), [this](){ setDeadzone(vController, touchDpadDeadzoneMenuVal[2], renderer(), window()); }},
+		{"1", &defaultFace(), [this](){ setDeadzone(vController, touchDpadDeadzoneMenuVal[0], renderer(), window()); }},
+		{"1.35", &defaultFace(), [this](){ setDeadzone(vController, touchDpadDeadzoneMenuVal[1], renderer(), window()); }},
+		{"1.6", &defaultFace(), [this](){ setDeadzone(vController, touchDpadDeadzoneMenuVal[2], renderer(), window()); }},
 	},
 	deadzone
 	{
@@ -458,11 +424,11 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	},
 	diagonalSensitivityItem
 	{
-		{touchDpadDiagonalSensitivityMenuName[0], &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[0], renderer()); }},
-		{touchDpadDiagonalSensitivityMenuName[1], &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[1], renderer()); }},
-		{touchDpadDiagonalSensitivityMenuName[2], &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[2], renderer()); }},
-		{touchDpadDiagonalSensitivityMenuName[3], &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[3], renderer()); }},
-		{touchDpadDiagonalSensitivityMenuName[4], &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[4], renderer()); }},
+		{"None", &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[0], renderer()); }},
+		{"Low", &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[1], renderer()); }},
+		{"M-Low", &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[2], renderer()); }},
+		{"Med.", &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[3], renderer()); }},
+		{"High", &defaultFace(), [this](){ setDiagonalSensitivity(vController, touchDpadDiagonalSensitivityMenuVal[4], renderer()); }},
 	},
 	diagonalSensitivity
 	{
@@ -472,10 +438,10 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	},
 	btnSpaceItem
 	{
-		{touchCtrlBtnSpaceMenuName[0], &defaultFace(), [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[0]); }},
-		{touchCtrlBtnSpaceMenuName[1], &defaultFace(), [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[1]); }},
-		{touchCtrlBtnSpaceMenuName[2], &defaultFace(), [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[2]); }},
-		{touchCtrlBtnSpaceMenuName[3], &defaultFace(), [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[3]); }},
+		{"1", &defaultFace(), [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[0]); }},
+		{"2", &defaultFace(), [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[1]); }},
+		{"3", &defaultFace(), [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[2]); }},
+		{"4", &defaultFace(), [this](){ setButtonSpace(vController, touchCtrlBtnSpaceMenuVal[3]); }},
 	},
 	btnSpace
 	{
@@ -599,12 +565,12 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl,
 	},
 	alphaItem
 	{
-		{alphaMenuName[0], &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[0]); }},
-		{alphaMenuName[1], &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[1]); }},
-		{alphaMenuName[2], &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[2]); }},
-		{alphaMenuName[3], &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[3]); }},
-		{alphaMenuName[4], &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[4]); }},
-		{alphaMenuName[5], &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[5]); }},
+		{"0%", &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[0]); }},
+		{"10%", &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[1]); }},
+		{"25%", &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[2]); }},
+		{"50%", &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[3]); }},
+		{"65%", &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[4]); }},
+		{"75%", &defaultFace(), [this](){ setAlpha(vController, alphaMenuVal[5]); }},
 	},
 	alpha
 	{

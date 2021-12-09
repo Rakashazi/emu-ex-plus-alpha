@@ -31,6 +31,7 @@
 #include "SaveState.h"
 #include "DebugDeviceManager.h"
 #include "Language.h"
+#include "ziphelper.h"
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
@@ -325,7 +326,7 @@ RTC* rtcCreate(int enable, char* cmosName)
 		#ifndef NDEBUG
         fprintf(stderr, "loading cmos %s\n", cmosName);
 		#endif
-        file = fopen(cmosName, "r");
+        file = fopenHelper(cmosName, "r");
 
         if (file != NULL) {
             fread(rtc->registers, 1, sizeof(rtc->registers), file);
@@ -369,7 +370,7 @@ void rtcDestroy(RTC* rtc)
 		#ifndef NDEBUG
         fprintf(stderr, "saving cmos %s\n", rtc->cmosName);
 		#endif
-        FILE* file = fopen(rtc->cmosName, "w");
+        FILE* file = fopenHelper(rtc->cmosName, "w");
 
         if(file != NULL) {
 					fwrite(rtc->registers, 1, sizeof(rtc->registers), file);

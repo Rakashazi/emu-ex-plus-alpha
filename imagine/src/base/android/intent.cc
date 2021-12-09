@@ -63,8 +63,8 @@ void AndroidApplication::handleIntent(ApplicationContext ctx)
 	auto env = ctx.mainThreadJniEnv();
 	auto baseActivity = ctx.baseActivityObject();
 	// check for view intents
-	JNI::InstMethod<jobject()> jIntentDataPath{env, baseActivity, "intentDataPath", "()Ljava/lang/String;"};
-	jstring intentDataPathJStr = (jstring)jIntentDataPath(env, baseActivity);
+	JNI::InstMethod<jstring()> jIntentDataPath{env, baseActivity, "intentDataPath", "()Ljava/lang/String;"};
+	jstring intentDataPathJStr = jIntentDataPath(env, baseActivity);
 	if(intentDataPathJStr)
 	{
 		const char *intentDataPathStr = env->GetStringUTFChars(intentDataPathJStr, nullptr);
@@ -82,18 +82,18 @@ void ApplicationContext::openURL(IG::CStringView url) const
 	jOpenURL(env, baseActivity, env->NewStringUTF(url));
 }
 
-void AndroidApplication::openDocumentTreeIntent(JNIEnv *env, jobject baseActivity, SystemPathPickerDelegate del)
+void AndroidApplication::openDocumentTreeIntent(JNIEnv *env, jobject baseActivity, SystemPathPickerDelegate del, bool convertToPath)
 {
 	onSystemPathPicker = del;
-	JNI::InstMethod<void(jlong)> jOpenDocumentTree{env, env->GetObjectClass(baseActivity), "openDocumentTree", "(J)V"};
-	jOpenDocumentTree(env, baseActivity, (jlong)this);
+	JNI::InstMethod<void(jlong, jboolean)> jOpenDocumentTree{env, env->GetObjectClass(baseActivity), "openDocumentTree", "(JZ)V"};
+	jOpenDocumentTree(env, baseActivity, (jlong)this, convertToPath);
 }
 
 bool ApplicationContext::hasSystemPathPicker() const { return androidSDK() >= 30; }
 
-void ApplicationContext::showSystemPathPicker(SystemPathPickerDelegate del)
+void ApplicationContext::showSystemPathPicker(SystemPathPickerDelegate del, bool convertToPath)
 {
-	application().openDocumentTreeIntent(mainThreadJniEnv(), baseActivityObject(), del);
+	application().openDocumentTreeIntent(mainThreadJniEnv(), baseActivityObject(), del, convertToPath);
 }
 
 void AndroidApplication::openDocumentIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)

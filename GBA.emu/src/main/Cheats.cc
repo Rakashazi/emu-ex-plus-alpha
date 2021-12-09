@@ -213,28 +213,28 @@ EmuCheatsView::EmuCheatsView(ViewAttachParams attach): BaseCheatsView{attach}
 	loadCheatItems();
 }
 
-void writeCheatFile()
+void writeCheatFile(Base::ApplicationContext ctx)
 {
 	if(!cheatsModified)
 		return;
 
-	auto filename = EmuSystem::contentSaveFilePath(".clt");
+	auto filename = EmuSystem::contentSaveFilePath(ctx, ".clt");
 
 	if(!cheatsList.size())
 	{
 		logMsg("deleting cheats file %s", filename.data());
-		FS::remove(filename);
+		ctx.removeFileUri(filename);
 		cheatsModified = false;
 		return;
 	}
-	cheatsSaveCheatList(filename.data());
+	cheatsSaveCheatList(ctx, filename.data());
 	cheatsModified = false;
 }
 
-void readCheatFile()
+void readCheatFile(Base::ApplicationContext ctx)
 {
-	auto filename = EmuSystem::contentSaveFilePath(".clt");
-	if(cheatsLoadCheatList(filename.data()))
+	auto filename = EmuSystem::contentSaveFilePath(ctx, ".clt");
+	if(cheatsLoadCheatList(ctx, filename.data()))
 	{
 		logMsg("loaded cheat file: %s", filename.data());
 	}

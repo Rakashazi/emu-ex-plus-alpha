@@ -28,6 +28,7 @@ class VController;
 class EmuApp;
 class EmuViewController;
 struct WindowData;
+class IO;
 
 namespace Base
 {

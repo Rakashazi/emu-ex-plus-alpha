@@ -53,7 +53,7 @@ UInt8* romLoad(const char *fileName, const char *fileInZipFile, int* size)
         return buf;
     }
 
-    file = fopen(fileName, "rb");
+    file = fopenHelper(fileName, "rb");
     if (file == NULL) {
         return NULL;
     }

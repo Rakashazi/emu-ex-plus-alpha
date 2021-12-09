@@ -353,7 +353,7 @@ RomHeader;
 //-----------------------------------------------------------------------------
 
 	bool state_restore(const char* filename);
-	bool state_store(const char* filename);
+	bool state_store(FILE *fp);
 
 		//=========================================
 

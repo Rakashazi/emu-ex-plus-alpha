@@ -5,6 +5,9 @@
 
 #include "Patch.h"
 
+#include <imagine/base/ApplicationContext.hh>
+#include <imagine/io/FileIO.hh>
+
 #define	fseeko64 fseek
 #define	ftello64 ftell
 
@@ -102,10 +105,10 @@ static uLong computePatchCRC(FILE *f, unsigned int size)
   return crc;
 }
 
-bool patchApplyIPS(const char *patchname, u8 **r, int *s)
+bool patchApplyIPS(Base::ApplicationContext ctx, const char *patchname, u8 **r, int *s)
 {
   // from the IPS spec at http://zerosoft.zophar.net/ips.htm
-  FILE *f = fopen(patchname, "rb");
+  FILE *f = FileUtils::fopenUri(ctx, patchname, "rb");
   if(!f)
     return false;
 
@@ -167,11 +170,11 @@ bool patchApplyIPS(const char *patchname, u8 **r, int *s)
   return result;
 }
 
-bool patchApplyUPS(const char *patchname, u8 **rom, int *size)
+bool patchApplyUPS(Base::ApplicationContext ctx, const char *patchname, u8 **rom, int *size)
 {
   s64 srcCRC, dstCRC, patchCRC;
 
-  FILE *f = fopen(patchname, "rb");
+  FILE *f = FileUtils::fopenUri(ctx, patchname, "rb");
   if (!f)
     return false;
 
@@ -405,9 +408,9 @@ static bool patchApplyPPF3(FILE *f, u8 **rom, int *size)
   return (count == 0);
 }
 
-bool patchApplyPPF(const char *patchname, u8 **rom, int *size)
+bool patchApplyPPF(Base::ApplicationContext ctx, const char *patchname, u8 **rom, int *size)
 {
-  FILE *f = fopen(patchname, "rb");
+  FILE *f = FileUtils::fopenUri(ctx, patchname, "rb");
   if (!f)
     return false;
 
@@ -424,7 +427,7 @@ bool patchApplyPPF(const char *patchname, u8 **rom, int *size)
   return res;
 }
 
-bool applyPatch(const char *patchname, u8 **rom, int *size)
+bool applyPatch(Base::ApplicationContext ctx, const char *patchname, u8 **rom, int *size)
 {
   if (strlen(patchname) < 5)
     return false;
@@ -432,10 +435,10 @@ bool applyPatch(const char *patchname, u8 **rom, int *size)
   if (p == NULL)
     return false;
   if (strcasecmp(p, ".ips") == 0)
-    return patchApplyIPS(patchname, rom, size);
+    return patchApplyIPS(ctx, patchname, rom, size);
   if (strcasecmp(p, ".ups") == 0)
-    return patchApplyUPS(patchname, rom, size);
+    return patchApplyUPS(ctx, patchname, rom, size);
   if (strcasecmp(p, ".ppf") == 0)
-    return patchApplyPPF(patchname, rom, size);
+    return patchApplyPPF(ctx, patchname, rom, size);
   return false;
 }

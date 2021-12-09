@@ -274,19 +274,19 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 	return IG::format<FS::FileString>("{}.0{}.yss", name, saveSlotCharUpper(slot));
 }
 
-void EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(IG::CStringView path)
 {
 	if(YabSaveState(path) != 0)
 		throwFileWriteError();
 }
 
-void EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(IG::CStringView path)
 {
 	if(YabLoadState(path) != 0)
 		throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem() // for manually saving when not closing game
+void EmuSystem::saveBackupMem(Base::ApplicationContext)
 {
 	if(gameIsRunning())
 	{
@@ -297,7 +297,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 
 static bool yabauseIsInit = 0;
 
-void EmuSystem::closeSystem()
+void EmuSystem::closeSystem(Base::ApplicationContext)
 {
 	if(yabauseIsInit)
 	{
@@ -306,9 +306,9 @@ void EmuSystem::closeSystem()
 	}
 }
 
-void EmuSystem::loadGame(IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	bupPath = FS::pathString(contentSavePath(), "bkram.bin");
+	bupPath = contentSavePath(ctx, "bkram.bin");
 	if(YabauseInit(&yinit) != 0)
 	{
 		logErr("YabauseInit failed");

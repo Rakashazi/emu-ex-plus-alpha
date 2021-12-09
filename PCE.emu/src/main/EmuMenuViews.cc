@@ -102,9 +102,9 @@ class CustomSystemOptionView : public SystemOptionView
 		}
 	};
 
-	static std::string makeBiosMenuEntryStr()
+	std::string makeBiosMenuEntryStr()
 	{
-		return fmt::format("System Card: {}", ::sysCardPath.size() ? FS::basename(::sysCardPath) : "None set");
+		return fmt::format("System Card: {}", ::sysCardPath.size() ? appContext().fileUriDisplayName(::sysCardPath) : "None set");
 	}
 
 public:

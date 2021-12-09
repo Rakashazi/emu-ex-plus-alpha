@@ -280,7 +280,7 @@ void vsid_ui_setdrv(char* driver_info_text) {}
 
 int archdep_path_is_relative(const char *path)
 {
-	return path && *path != '/';
+	return 0; // avoid all relative path processing
 }
 
 /* return malloc'd version of full pathname of orig_name */

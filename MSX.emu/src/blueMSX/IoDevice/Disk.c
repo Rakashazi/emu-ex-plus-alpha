@@ -673,11 +673,11 @@ UInt8 diskChange(int driveId, const char* fileName, const char* fileInZipFile)
         return ramImageBuffer[driveId] != NULL;
     }
 
-    drives[driveId] = fopen(fileName, "r+b");
+    drives[driveId] = fopenHelper(fileName, "r+b");
     RdOnly[driveId] = 0;
 
     if (drives[driveId] == NULL) {
-        drives[driveId] = fopen(fileName, "rb");
+        drives[driveId] = fopenHelper(fileName, "rb");
         RdOnly[driveId] = 1;
     }
 
@@ -687,7 +687,7 @@ UInt8 diskChange(int driveId, const char* fileName, const char* fileInZipFile)
 
     fname = makeErrorsFileName(fileName);
     if( fname != NULL ) {
-        FILE *f = fopen(fname, "rb");
+        FILE *f = fopenHelper(fname, "rb");
         if( f != NULL ) {
             char *p = (char*)malloc(DISK_ERRORS_SIZE);
             if( fread(p, 1, DISK_ERRORS_HEADER_SIZE, f) == DISK_ERRORS_HEADER_SIZE ) {

@@ -35,11 +35,11 @@ public:
 	using IO::buffer;
 	using IO::get;
 
-	constexpr PosixIO() {}
+	constexpr PosixIO() = default;
 	constexpr PosixIO(int fd):fd_{fd} {}
 	PosixIO(IG::CStringView path, unsigned openFlags = 0);
 	static PosixIO create(IG::CStringView path, unsigned openFlags = 0);
-	int releaseFD();
+	int releaseFd();
 	int fd() const;
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut) final;

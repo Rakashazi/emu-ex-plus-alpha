@@ -10,6 +10,7 @@ namespace EmuControls
 extern const unsigned gamepadKeys;
 }
 
+extern Base::ApplicationContext appCtx;
 extern FS::PathString fdsBiosPath;
 extern Byte1Option optionFourScore;
 extern SByte1Option optionInputPort1;

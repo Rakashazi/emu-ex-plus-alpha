@@ -39,6 +39,7 @@ alignas(8) static uint32_t pixBuff[vidBufferX*vidBufferY]{};
 static IG::Pixmap mSurfacePix;
 std::array<uint16, 5> inputBuff{}; // 5 gamepad buffers
 static bool prevUsing263Lines = false;
+Base::ApplicationContext appCtx{};
 
 static MDFN_Surface pixmapToMDFNSurface(IG::Pixmap pix)
 {
@@ -86,7 +87,7 @@ const char *EmuSystem::systemName()
 EmuSystem::NameFilterFunc EmuSystem::defaultFsFilter = hasPCEWithCDExtension;
 EmuSystem::NameFilterFunc EmuSystem::defaultBenchmarkFsFilter = hasHuCardExtension;
 
-void EmuSystem::saveBackupMem() // for manually saving when not closing game
+void EmuSystem::saveBackupMem(Base::ApplicationContext ctx) // for manually saving when not closing game
 {
 	if(gameIsRunning())
 	{
@@ -111,7 +112,7 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 	return IG::format<FS::FileString>("{}.{}.nc{}", name, md5_context::asciistr(MDFNGameInfo->MD5, 0), saveSlotCharPCE(slot));
 }
 
-void EmuSystem::closeSystem()
+void EmuSystem::closeSystem(Base::ApplicationContext ctx)
 {
 	emuSys->CloseGame();
 	if(CDInterfaces.size())
@@ -149,9 +150,9 @@ static void writeCDMD5()
 
 unsigned EmuSystem::multiresVideoBaseX() { return 512; }
 
-void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	emuSys->name = EmuSystem::contentName().data();
+	emuSys->name = std::string{EmuSystem::contentName()};
 	auto unloadCD = IG::scopeGuard(
 		[]()
 		{
@@ -164,7 +165,7 @@ void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 		});
 	if(hasCDExtension(contentFileName()))
 	{
-		if(sysCardPath.empty() || !FS::exists(sysCardPath))
+		if(sysCardPath.empty() || !ctx.fileUriExists(sysCardPath))
 		{
 			throw std::runtime_error("No System Card Set");
 		}
@@ -397,13 +398,13 @@ void EmuSystem::reset(ResetMode mode)
 	MDFN_IEN_PCE_FAST::PCE_Power();
 }
 
-void EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(IG::CStringView path)
 {
 	if(!MDFNI_SaveState(path, 0, 0, 0, 0))
 		throwFileWriteError();
 }
 
-void EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(IG::CStringView path)
 {
 	if(!MDFNI_LoadState(path, 0))
 		throwFileReadError();
@@ -420,4 +421,9 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 	view.setBackgroundGradient(navViewGrad);
+}
+
+void EmuSystem::onInit(Base::ApplicationContext ctx)
+{
+	appCtx = ctx;
 }

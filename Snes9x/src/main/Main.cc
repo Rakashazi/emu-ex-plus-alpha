@@ -28,6 +28,7 @@ static constexpr auto srcPixFmt = IG::PIXEL_FMT_RGB565;
 #else
 #error "incompatible PIXEL_FORMAT value"
 #endif
+Base::ApplicationContext appCtx{};
 static EmuSystemTaskContext emuSysTask{};
 static EmuVideo *emuVideo{};
 static const unsigned heightChangeFrameDelay = 4;
@@ -129,23 +130,23 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 
 #undef FREEZE_EXT
 
-static FS::PathString sprintSRAMFilename()
+static FS::PathString sramFilename(Base::ApplicationContext ctx)
 {
-	return EmuSystem::contentSaveFilePath(".srm");
+	return EmuSystem::contentSaveFilePath(ctx, ".srm");
 }
 
-static FS::PathString sprintCheatsFilename()
+static FS::PathString cheatsFilename(Base::ApplicationContext ctx)
 {
-	return EmuSystem::contentSaveFilePath(".cht");
+	return EmuSystem::contentSaveFilePath(ctx, ".cht");
 }
 
-void EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(IG::CStringView path)
 {
 	if(!S9xFreezeGame(path))
 		return throwFileWriteError();
 }
 
-void EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(IG::CStringView path)
 {
 	if(S9xUnfreezeGame(path))
 	{
@@ -155,17 +156,17 @@ void EmuSystem::loadState(const char *path)
 		return throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem() // for manually saving when not closing game
+void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
 {
 	if(gameIsRunning())
 	{
 		if(Memory.SRAMSize)
 		{
 			logMsg("saving backup memory");
-			auto saveStr = sprintSRAMFilename();
+			auto saveStr = sramFilename(ctx);
 			Memory.SaveSRAM(saveStr.data());
 		}
-		auto cheatsStr = sprintCheatsFilename();
+		auto cheatsStr = cheatsFilename(ctx);
 		if(!numCheats())
 			logMsg("no cheats present, removing .cht file if present");
 		else
@@ -176,12 +177,12 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 
 void S9xAutoSaveSRAM (void)
 {
-	EmuSystem::saveBackupMem();
+	EmuSystem::saveBackupMem(appCtx);
 }
 
-void EmuSystem::closeSystem()
+void EmuSystem::closeSystem(Base::ApplicationContext ctx)
 {
-	saveBackupMem();
+	saveBackupMem(ctx);
 }
 
 bool EmuSystem::vidSysIsPAL() { return Settings.PAL; }
@@ -217,7 +218,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 		throw std::runtime_error("Error loading game");
 	}
 	setupSNESInput(EmuApp::get(ctx).defaultVController());
-	auto saveStr = sprintSRAMFilename();
+	auto saveStr = sramFilename(ctx);
 	Memory.LoadSRAM(saveStr.data());
 	IPPU.RenderThisFrame = TRUE;
 	checkAndEnableGlobalCheats();
@@ -310,8 +311,9 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
-void EmuSystem::onInit(Base::ApplicationContext)
+void EmuSystem::onInit(Base::ApplicationContext ctx)
 {
+	appCtx = ctx;
 	static uint16 screenBuff[512*478] __attribute__ ((aligned (8)));
 	#ifndef SNES9X_VERSION_1_4
 	GFX.Screen = screenBuff;

@@ -440,7 +440,7 @@ class CustomSystemOptionView : public SystemOptionView
 		}
 	};
 
-	void onFirmwarePathChange(std::string_view path, Input::Event e) final
+	void onFirmwarePathChange(std::string_view path) final
 	{
 		systemFilePath.compile(makeSysPathMenuEntryStr(path), renderer(), projP);
 		sysFilePath[0] = path;
@@ -453,9 +453,9 @@ class CustomSystemOptionView : public SystemOptionView
 		}
 	}
 
-	static std::string makeSysPathMenuEntryStr(std::string_view path)
+	std::string makeSysPathMenuEntryStr(std::string_view path)
 	{
-		return fmt::format("VICE System File Path: {}", path.size() ? FS::basename(path) : "Default");
+		return fmt::format("VICE System File Path: {}", path.size() ? appContext().fileUriDisplayName(path) : "Default");
 	}
 
 public:
@@ -600,7 +600,7 @@ private:
 	void updateTapeText()
 	{
 		auto name = plugin.tape_get_file_name();
-		tapeSlot.setName(fmt::format("Tape: {}", name ? FS::basename(name) : ""));
+		tapeSlot.setName(fmt::format("Tape: {}", name ? appContext().fileUriDisplayName(name) : ""));
 		datasetteControls.setActive(name);
 	}
 
@@ -675,7 +675,7 @@ private:
 	void updateROMText()
 	{
 		auto name = plugin.cartridge_get_file_name(plugin.cart_getid_slotmain());
-		romSlot.setName(fmt::format("ROM: {}", name ? FS::basename(name) : ""));
+		romSlot.setName(fmt::format("ROM: {}", name ? appContext().fileUriDisplayName(name) : ""));
 	}
 
 public:
@@ -736,7 +736,7 @@ private:
 	void updateDiskText(int slot)
 	{
 		auto name = plugin.file_system_get_disk_name(slot+8, 0);
-		diskSlot[slot].setName(fmt::format("{}: {}", driveMenuPrefix[slot], name ? FS::basename(name) : ""));
+		diskSlot[slot].setName(fmt::format("{}: {}", driveMenuPrefix[slot], name ? appContext().fileUriDisplayName(name) : ""));
 	}
 
 	void onDiskMediaChange(int slot)

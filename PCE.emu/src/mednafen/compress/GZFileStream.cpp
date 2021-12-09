@@ -33,6 +33,8 @@
 
 #include <zlib.h>
 
+extern int openFdHelper(const char *file, int oflag, mode_t mode);
+
 namespace Mednafen
 {
 
@@ -90,7 +92,7 @@ GZFileStream::GZFileStream(const std::string& path, const MODE mode, const int l
   tmpfd = ::_topen((const TCHAR*)tpath.c_str(), open_flags, perm_mode);
  }
  #else
- tmpfd = ::open(path.c_str(), open_flags, perm_mode);
+ tmpfd = openFdHelper(path.c_str(), open_flags, perm_mode);
  #endif
 
  if(tmpfd == -1)

@@ -416,7 +416,7 @@ static void saveSnapshotTrap(uint16_t, void *data)
 		snapData->hasError = false;
 }
 
-void EmuSystem::saveState(EmuApp &app, const char *path)
+void EmuSystem::saveState(IG::CStringView path)
 {
 	SnapshotTrapData data;
 	data.pathStr = path;
@@ -426,7 +426,7 @@ void EmuSystem::saveState(EmuApp &app, const char *path)
 		throwFileWriteError();
 }
 
-void EmuSystem::loadState(EmuApp &app, const char *path)
+void EmuSystem::loadState(IG::CStringView path)
 {
 	setIntResource("WarpMode", 0);
 	SnapshotTrapData data;
@@ -443,7 +443,7 @@ void EmuSystem::loadState(EmuApp &app, const char *path)
 		return throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem()
+void EmuSystem::saveBackupMem(Base::ApplicationContext)
 {
 	if(gameIsRunning())
 	{
@@ -453,13 +453,13 @@ void EmuSystem::saveBackupMem()
 
 bool EmuSystem::vidSysIsPAL() { return sysIsPal(); }
 
-void EmuSystem::closeSystem()
+void EmuSystem::closeSystem(Base::ApplicationContext ctx)
 {
 	if(!gameIsRunning())
 	{
 		return;
 	}
-	saveBackupMem();
+	saveBackupMem(ctx);
 	setIntResource("WarpMode", 0);
 	plugin.tape_image_detach(1);
 	plugin.file_system_detach_disk(8, 0);
@@ -521,7 +521,7 @@ bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event e)
 	return false;
 }
 
-static FS::FileString vic20ExtraCartName(std::string_view baseCartName, std::string_view searchPath)
+static FS::FileString vic20ExtraCartName(Base::ApplicationContext ctx, std::string_view baseCartName, std::string_view searchPath)
 {
 	auto findAddrSuffixOffset =
 	[](std::string_view baseCartName) -> uintptr_t
@@ -555,7 +555,7 @@ static FS::FileString vic20ExtraCartName(std::string_view baseCartName, std::str
 		if(suffixChar == baseCartName[addrSuffixOffset])
 			continue; // skip original filename
 		cartName[addrSuffixOffset] = suffixChar;
-		if(FS::exists(FS::pathString(searchPath, cartName)))
+		if(ctx.fileUriExists(ctx.fileUri(searchPath, cartName)))
 		{
 			return cartName;
 		}
@@ -611,12 +611,12 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 			}
 			if(currSystem == VICE_SYSTEM_VIC20) // check if the cart is part of a *-x000.prg pair
 			{
-				auto extraCartFilename = vic20ExtraCartName(contentFileName(), contentDirectory());
+				auto extraCartFilename = vic20ExtraCartName(ctx, contentFileName(), contentDirectory());
 				if(extraCartFilename.size())
 				{
-					logMsg("loading extra cart image:%s", contentLocation().data());
+					logMsg("loading extra cart image:%s", extraCartFilename.data());
 					if(plugin.cartridge_attach_image(systemCartType(currSystem),
-						FS::pathString(contentDirectory(), extraCartFilename).data()) != 0)
+						ctx.fileUri(contentDirectory(), extraCartFilename).data()) != 0)
 					{
 						EmuSystem::throwFileReadError();
 					}
@@ -690,7 +690,7 @@ void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 	updateKeyboardMapping();
 	setSysModel(optionDefaultModel(currSystem));
 	plugin.resources_set_string("AutostartPrgDiskImage",
-		FS::pathString(EmuSystem::baseDefaultGameSavePath(attach.appContext()), "AutostartPrgDisk.d64").data());
+		attach.appContext().fileUri(EmuSystem::baseDefaultGameSavePath(attach.appContext()), "AutostartPrgDisk.d64").data());
 }
 
 void EmuSystem::onPrepareAudio(EmuAudio &audio)
@@ -722,8 +722,8 @@ void EmuSystem::onInit(Base::ApplicationContext ctx)
 	{
 		sysFilePath[1] = ctx.assetPath();
 		sysFilePath[2] = FS::pathString(ctx.assetPath(), "C64.emu.zip");
-		sysFilePath[3] = {"~/.local/share/C64.emu"};
-		sysFilePath[4] = {"/usr/share/games/vice"};
+		sysFilePath[3] = "~/.local/share/C64.emu";
+		sysFilePath[4] = "/usr/share/games/vice";
 	}
 	else
 	{

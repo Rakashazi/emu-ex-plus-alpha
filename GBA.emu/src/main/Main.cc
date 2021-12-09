@@ -32,10 +32,10 @@
 void setGameSpecificSettings(GBASys &gba);
 void CPULoop(GBASys &, EmuSystemTaskContext, EmuVideo *, EmuAudio *);
 void CPUCleanUp();
-bool CPUReadBatteryFile(GBASys &gba, const char *);
-bool CPUWriteBatteryFile(GBASys &gba, const char *);
-bool CPUReadState(GBASys &gba, const char *);
-bool CPUWriteState(GBASys &gba, const char *);
+bool CPUReadBatteryFile(Base::ApplicationContext, GBASys &gba, const char *);
+bool CPUWriteBatteryFile(Base::ApplicationContext, GBASys &gba, const char *);
+bool CPUReadState(Base::ApplicationContext, GBASys &gba, const char *);
+bool CPUWriteState(Base::ApplicationContext, GBASys &gba, const char *);
 
 bool detectedRtcGame = 0;
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2012-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nVBA-m Team\nvba-m.com";
@@ -81,70 +81,70 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 	return IG::format<FS::FileString>("{}{}.sgm", name, saveSlotChar(slot));
 }
 
-void EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(Base::ApplicationContext ctx, IG::CStringView path)
 {
-	if(!CPUWriteState(gGba, path))
+	if(!CPUWriteState(ctx, gGba, path))
 		return throwFileWriteError();
 }
 
-void EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
 {
-	if(!CPUReadState(gGba, path))
+	if(!CPUReadState(app.appContext(), gGba, path))
 		return throwFileReadError();
 }
 
-void EmuSystem::saveBackupMem()
+void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
 {
 	if(gameIsRunning())
 	{
 		logMsg("saving backup memory");
-		auto saveStr = EmuSystem::contentSaveFilePath(".sav");
-		CPUWriteBatteryFile(gGba, saveStr.data());
-		writeCheatFile();
+		auto saveStr = EmuSystem::contentSaveFilePath(ctx, ".sav");
+		CPUWriteBatteryFile(ctx, gGba, saveStr.data());
+		writeCheatFile(ctx);
 	}
 }
 
-void EmuSystem::closeSystem()
+void EmuSystem::closeSystem(Base::ApplicationContext ctx)
 {
 	assert(gameIsRunning());
-	saveBackupMem();
+	saveBackupMem(ctx);
 	CPUCleanUp();
 	detectedRtcGame = 0;
 	cheatsList.clear();
 }
 
-static void applyGamePatches(u8 *rom, int &romSize)
+static void applyGamePatches(Base::ApplicationContext ctx, u8 *rom, int &romSize)
 {
-	if(auto patchStr = EmuSystem::contentSaveFilePath(".ips");
-		FS::exists(patchStr))
+	if(auto patchStr = EmuSystem::contentSaveFilePath(ctx, ".ips");
+		ctx.fileUriExists(patchStr))
 	{
 		logMsg("applying IPS patch: %s", patchStr.data());
-		if(!patchApplyIPS(patchStr.data(), &rom, &romSize))
+		if(!patchApplyIPS(ctx, patchStr.data(), &rom, &romSize))
 		{
 			throw std::runtime_error("Error applying IPS patch");
 		}
 	}
-	else if(auto patchStr = EmuSystem::contentSaveFilePath(".ups");
-		FS::exists(patchStr))
+	else if(auto patchStr = EmuSystem::contentSaveFilePath(ctx, ".ups");
+		ctx.fileUriExists(patchStr))
 	{
 		logMsg("applying UPS patch: %s", patchStr.data());
-		if(!patchApplyUPS(patchStr.data(), &rom, &romSize))
+		if(!patchApplyUPS(ctx, patchStr.data(), &rom, &romSize))
 		{
 			throw std::runtime_error("Error applying UPS patch");
 		}
 	}
-	else if(auto patchStr = EmuSystem::contentSaveFilePath(".ppf");
-		FS::exists(patchStr))
+	else if(auto patchStr = EmuSystem::contentSaveFilePath(ctx, ".ppf");
+		ctx.fileUriExists(patchStr))
 	{
 		logMsg("applying UPS patch: %s", patchStr.data());
-		if(!patchApplyPPF(patchStr.data(), &rom, &romSize))
+		if(!patchApplyPPF(ctx, patchStr.data(), &rom, &romSize))
 		{
 			throw std::runtime_error("Error applying PPF patch");
 		}
 	}
 }
 
-void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
+void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	int size = CPULoadRomWithIO(gGba, io);
 	if(!size)
@@ -152,12 +152,12 @@ void EmuSystem::loadGame(IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 		throwFileReadError();
 	}
 	setGameSpecificSettings(gGba);
-	applyGamePatches(gGba.mem.rom, size);
+	applyGamePatches(ctx, gGba.mem.rom, size);
 	CPUInit(gGba, 0, 0);
 	CPUReset(gGba);
-	auto saveStr = EmuSystem::contentSaveFilePath(".sav");
-	CPUReadBatteryFile(gGba, saveStr.data());
-	readCheatFile();
+	auto saveStr = EmuSystem::contentSaveFilePath(ctx, ".sav");
+	CPUReadBatteryFile(ctx, gGba, saveStr.data());
+	readCheatFile(ctx);
 }
 
 void EmuSystem::onVideoRenderFormatChange(EmuVideo &video, IG::PixelFormat fmt)

@@ -28,8 +28,10 @@
 #include <stella/emucore/M6532.hxx>
 // TODO: Some Stella types collide with MacTypes.h
 #define Debugger DebuggerMac
+#include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #include <emuframework/EmuSystem.hh>
+#include <emuframework/EmuApp.hh>
 #undef Debugger
 
 OSystem::OSystem(EmuApp &app):
@@ -117,9 +119,9 @@ FilesystemNode OSystem::stateDir() const
 	return FilesystemNode{std::string{EmuSystem::contentSavePath()}};
 }
 
-FilesystemNode OSystem::nvramDir() const
+FilesystemNode OSystem::nvramDir(std::string_view name) const
 {
-	return FilesystemNode{std::string{EmuSystem::contentSavePath()}};
+	return FilesystemNode{std::string{EmuSystem::contentSaveFilePath(appPtr->appContext(), name)}};
 }
 
 EmuApp &OSystem::app()

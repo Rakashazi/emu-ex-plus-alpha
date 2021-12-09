@@ -23,6 +23,9 @@ class FileIO: public PosixFileIO
 {
 public:
 	using PosixFileIO::PosixFileIO;
+
+	[[nodiscard]]
+	static FileIO create(IG::CStringView path, unsigned openFlags = 0);
 };
 
 #ifdef __ANDROID__
@@ -38,6 +41,11 @@ public:
 	using AssetIOImpl::AssetIOImpl;
 };
 
+namespace Base
+{
+class ApplicationContext;
+}
+
 namespace FileUtils
 {
 
@@ -45,7 +53,11 @@ static constexpr size_t defaultBufferReadSizeLimit = 0x2000000; // 32 Megabytes
 
 ssize_t writeToPath(IG::CStringView path, void *data, size_t size);
 ssize_t writeToPath(IG::CStringView path, IO &io);
+ssize_t writeToUri(Base::ApplicationContext ctx, IG::CStringView uri, void *data, size_t size);
 ssize_t readFromPath(IG::CStringView path, void *data, size_t size);
+ssize_t readFromUri(Base::ApplicationContext, IG::CStringView uri, void *data, size_t size);
 IG::ByteBuffer bufferFromPath(IG::CStringView path, unsigned openFlags = 0, size_t sizeLimit = defaultBufferReadSizeLimit);
+IG::ByteBuffer bufferFromUri(Base::ApplicationContext, IG::CStringView uri, unsigned openFlags = 0, size_t sizeLimit = defaultBufferReadSizeLimit);
+FILE *fopenUri(Base::ApplicationContext, IG::CStringView path, IG::CStringView mode);
 
 }

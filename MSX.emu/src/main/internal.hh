@@ -3,6 +3,7 @@
 #include <emuframework/Option.hh>
 #include <emuframework/EmuSystem.hh>
 #include <imagine/pixmap/Pixmap.hh>
+#include <imagine/base/ApplicationContext.hh>
 
 extern "C"
 {

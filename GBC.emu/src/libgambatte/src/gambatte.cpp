@@ -96,14 +96,16 @@ void GB::setInputGetter(InputGetter *getInput) {
 	p_->cpu.setInputGetter(getInput);
 }
 
+void GB::setStreamDelegates(InputStreamDelegate iDel, OutputStreamDelegate oDel)
+{
+	p_->cpu.setStreamDelegates(iDel, oDel);
+}
+
 void GB::setSaveDir(std::string const &sdir) {
 	p_->cpu.setSaveDir(sdir);
 }
 
 LoadRes GB::load(const void *romdata, std::size_t size, std::string const &romfilename, unsigned const flags) {
-	if (p_->cpu.loaded())
-		p_->cpu.saveSavedata();
-
 	LoadRes const loadres = p_->cpu.load(romdata, size, romfilename,
 	                                     flags & FORCE_DMG,
 	                                     flags & MULTICART_COMPAT);
@@ -161,6 +163,22 @@ bool GB::loadState(std::string const &filepath) {
 	return false;
 }
 
+bool GB::loadState(std::istream &file) {
+	if (p_->cpu.loaded()) {
+		p_->cpu.saveSavedata();
+
+		SaveState state = SaveState();
+		p_->cpu.setStatePtrs(state);
+
+		if (StateSaver::loadState(state, file)) {
+			p_->cpu.loadState(state);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool GB::saveState(gambatte::uint_least32_t const *videoBuf, std::ptrdiff_t pitch) {
 	if (saveState(videoBuf, pitch, statePath(p_->cpu.saveBasePath(), p_->stateNo))) {
 		#ifndef GAMBATTE_NO_OSD
@@ -190,6 +208,19 @@ bool GB::saveState(gambatte::uint_least32_t const *videoBuf, std::ptrdiff_t pitc
 		p_->cpu.setStatePtrs(state);
 		p_->cpu.saveState(state);
 		return StateSaver::saveState(state, videoBuf, pitch, filepath);
+	}
+
+	return false;
+}
+
+bool GB::saveState(gambatte::uint_least32_t const *videoBuf, std::ptrdiff_t pitch,
+	             std::ostream &file)
+{
+	if (p_->cpu.loaded()) {
+		SaveState state;
+		p_->cpu.setStatePtrs(state);
+		p_->cpu.saveState(state);
+		return StateSaver::saveState(state, videoBuf, pitch, file);
 	}
 
 	return false;

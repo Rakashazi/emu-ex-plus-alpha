@@ -552,8 +552,11 @@ std::string const Cartridge::saveBasePath() const {
 
 void Cartridge::setSaveDir(std::string const &dir) {
 	saveDir_ = dir;
-	if (!saveDir_.empty() && saveDir_[saveDir_.length() - 1] != '/')
-		saveDir_ += '/';
+}
+
+void Cartridge::setStreamDelegates(InputStreamDelegate iDel, OutputStreamDelegate oDel) {
+	makeInputStream = iDel;
+	makeOutputStream = oDel;
 }
 
 LoadRes Cartridge::loadROM(const void *romdata, std::size_t size,
@@ -671,10 +674,8 @@ LoadRes Cartridge::loadROM(const void *romdata, std::size_t size,
 }
 
 void Cartridge::loadSavedata() {
-	std::string const &sbp = saveBasePath();
-
 	if (hasBattery(memptrs_.romdata()[0x147])) {
-		std::ifstream file((sbp + ".sav").c_str(), std::ios::binary | std::ios::in);
+		auto file = makeInputStream(saveDir_, defaultSaveBasePath_ + ".sav");
 
 		if (file.is_open()) {
 			file.read(reinterpret_cast<char*>(memptrs_.rambankdata()),
@@ -684,7 +685,7 @@ void Cartridge::loadSavedata() {
 	}
 
 	if (hasRtc(memptrs_.romdata()[0x147])) {
-		std::ifstream file((sbp + ".rtc").c_str(), std::ios::binary | std::ios::in);
+		auto file = makeInputStream(saveDir_, defaultSaveBasePath_ + ".rtc");
 		if (file) {
 			unsigned long basetime =    file.get() & 0xFF;
 			basetime = basetime << 8 | (file.get() & 0xFF);
@@ -696,16 +697,14 @@ void Cartridge::loadSavedata() {
 }
 
 void Cartridge::saveSavedata() {
-	std::string const &sbp = saveBasePath();
-
 	if (hasBattery(memptrs_.romdata()[0x147])) {
-		std::ofstream file((sbp + ".sav").c_str(), std::ios::binary | std::ios::out);
+		auto file = makeOutputStream(saveDir_, defaultSaveBasePath_ + ".sav");
 		file.write(reinterpret_cast<char const *>(memptrs_.rambankdata()),
 		           memptrs_.rambankdataend() - memptrs_.rambankdata());
 	}
 
 	if (hasRtc(memptrs_.romdata()[0x147])) {
-		std::ofstream file((sbp + ".rtc").c_str(), std::ios::binary | std::ios::out);
+		auto file = makeOutputStream(saveDir_, defaultSaveBasePath_ + ".rtc");
 		unsigned long const basetime = rtc_.baseTime();
 		file.put(basetime >> 24 & 0xFF);
 		file.put(basetime >> 16 & 0xFF);

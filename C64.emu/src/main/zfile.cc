@@ -18,6 +18,7 @@
 #include <imagine/util/string.h>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
+#include "internal.hh"
 
 extern "C"
 {
@@ -26,16 +27,16 @@ extern "C"
 
 CLINK FILE *zfile_fopen(const char *path, const char *mode)
 {
-	if(EmuApp::hasArchiveExtension(path))
+	if(EmuApp::hasArchiveExtension(appContext.fileUriDisplayName(path)))
 	{
-		if(strchr(mode, 'w'))
+		if(IG::stringContains(mode, 'w'))
 		{
 			logErr("opening archive %s with write mode not supported", path);
 			return nullptr;
 		}
 		try
 		{
-			for(auto &entry : FS::ArchiveIterator{path})
+			for(auto &entry : FS::ArchiveIterator{appContext.openFileUri(path)})
 			{
 				if(entry.type() == FS::file_type::directory)
 				{
@@ -57,6 +58,6 @@ CLINK FILE *zfile_fopen(const char *path, const char *mode)
 	}
 	else
 	{
-		return fopen(path, mode);
+		return FileUtils::fopenUri(appContext, path, mode);
 	}
 }

@@ -676,7 +676,7 @@ snapshot_t *snapshot_create(const char *filename, uint8_t major_version, uint8_t
 
     current_filename = (char *)filename;
 
-    f = fopen(filename, MODE_WRITE);
+    f = zfile_fopen(filename, MODE_WRITE);
     if (f == NULL) {
         snapshot_error = SNAPSHOT_CANNOT_CREATE_SNAPSHOT_ERROR;
         return NULL;

@@ -1106,13 +1106,9 @@ void S9xMessageFromResult(int result, const char* base)
 bool8 S9xUnfreezeGame (const char *filename)
 {
 	STREAM	stream = NULL;
-	char	drive[_MAX_DRIVE + 1], dir[_MAX_DIR + 1], def[_MAX_FNAME + 1], ext[_MAX_EXT + 1];
 	char String[513];
 
 	const char	*base = S9xBasename(filename);
-
-	_splitpath(filename, drive, dir, def, ext);
-	S9xResetSaveTimer(!strcmp(ext, "oops") || !strcmp(ext, "oop") || !strcmp(ext, ".oops") || !strcmp(ext, ".oop"));
 
 	if (S9xOpenSnapshotFile(filename, TRUE, &stream))
 	{

@@ -70,14 +70,14 @@ static IG::Microseconds makeWantedAudioLatencyUSecs(uint8_t buffers)
 	return buffers * std::chrono::duration_cast<IG::Microseconds>(EmuSystem::frameTime());
 }
 
-bool EmuSystem::stateExists(int slot)
+bool EmuSystem::stateExists(Base::ApplicationContext ctx, int slot)
 {
-	return FS::exists(statePath(slot));
+	return ctx.fileUriExists(statePath(ctx, slot));
 }
 
-bool EmuSystem::shouldOverwriteExistingState()
+bool EmuSystem::shouldOverwriteExistingState(Base::ApplicationContext ctx)
 {
-	return !optionConfirmOverwriteState || !EmuSystem::stateExists(EmuSystem::saveStateSlot);
+	return !optionConfirmOverwriteState || !EmuSystem::stateExists(ctx, EmuSystem::saveStateSlot);
 }
 
 EmuFrameTimeInfo EmuSystem::advanceFramesWithTime(Base::FrameTime time)
@@ -95,7 +95,7 @@ void EmuSystem::setupContentUriPaths(Base::ApplicationContext ctx, IG::CStringVi
 {
 	contentLocation_ = uri;
 	logMsg("set content uri path:%s", uri.data());
-	contentFileName_ = FS::basenameUri(uri);
+	contentFileName_ = ctx.fileUriDisplayName(uri);
 	contentName_ = IG::stringWithoutDotExtension(contentFileName_);
 	updateContentSavePath(ctx);
 }
@@ -183,9 +183,14 @@ FS::PathString EmuSystem::contentSavePath()
 	return contentSavePath_;
 }
 
-FS::PathString EmuSystem::contentSaveFilePath(std::string_view ext)
+FS::PathString EmuSystem::contentSavePath(Base::ApplicationContext ctx, std::string_view name)
 {
-	return FS::pathString(contentSavePath_, contentName().append(ext));
+	return ctx.fileUri(contentSavePath(), name);
+}
+
+FS::PathString EmuSystem::contentSaveFilePath(Base::ApplicationContext ctx, std::string_view ext)
+{
+	return ctx.fileUri(contentSavePath(), contentName().append(ext));
 }
 
 FS::PathString EmuSystem::defaultSavePath(Base::ApplicationContext ctx)
@@ -220,6 +225,7 @@ FS::PathString EmuSystem::userSavePath()
 
 void EmuSystem::setUserSavePath(Base::ApplicationContext ctx, IG::CStringView path)
 {
+	logMsg("set user save path:%s", path.data());
 	userSavePath_ = path;
 	updateContentSavePath(ctx);
 	savePathChanged();
@@ -235,14 +241,14 @@ void EmuSystem::setFirmwarePath(IG::CStringView path)
 	firmwarePath_ = path;
 }
 
-FS::PathString EmuSystem::statePath(std::string_view filename, std::string_view basePath)
+FS::PathString EmuSystem::statePath(Base::ApplicationContext ctx, std::string_view filename, std::string_view basePath)
 {
-	return FS::pathString(basePath, filename);
+	return ctx.fileUri(basePath, filename);
 }
 
-FS::PathString EmuSystem::statePath(int slot, std::string_view path)
+FS::PathString EmuSystem::statePath(Base::ApplicationContext ctx, int slot, std::string_view path)
 {
-	return statePath(stateFilename(slot), path);
+	return statePath(ctx, stateFilename(slot), path);
 }
 
 void EmuSystem::closeRuntimeSystem(EmuApp &app, bool allowAutosaveState)
@@ -255,7 +261,7 @@ void EmuSystem::closeRuntimeSystem(EmuApp &app, bool allowAutosaveState)
 			app.saveAutoState();
 		app.saveSessionOptions();
 		logMsg("closing game:%s", contentName_.data());
-		closeSystem();
+		closeSystem(app.appContext());
 		app.cancelAutoSaveStateTimer();
 		state = State::OFF;
 	}
@@ -385,7 +391,7 @@ bool EmuSystem::setFrameTime(VideoSystem system, IG::FloatSeconds time)
 	return true;
 }
 
-[[gnu::weak]] FS::PathString EmuSystem::willLoadGameFromPath(std::string_view path)
+[[gnu::weak]] FS::PathString EmuSystem::willLoadGameFromPath(Base::ApplicationContext, std::string_view path)
 {
 	return FS::PathString{path};
 }
@@ -418,7 +424,7 @@ void EmuSystem::createWithMedia(Base::ApplicationContext ctx, GenericIO io, IG::
 
 void EmuSystem::loadGameFromPath(Base::ApplicationContext ctx, IG::CStringView pathStr, bool pathIsUri, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
-	auto path = willLoadGameFromPath(pathStr);
+	auto path = willLoadGameFromPath(ctx, pathStr);
 	if(!handlesGenericIO)
 	{
 		closeAndSetupNew(ctx, path, pathIsUri);
@@ -475,9 +481,9 @@ void EmuSystem::throwFileWriteError()
 	throw std::runtime_error("Error writing file");
 }
 
-void EmuSystem::throwBlankError()
+FS::PathString EmuSystem::contentDirectory(Base::ApplicationContext ctx, std::string_view name)
 {
-	throw std::runtime_error("");
+	return ctx.fileUri(contentDirectory(), name);
 }
 
 std::string EmuSystem::contentDisplayName()
@@ -499,9 +505,9 @@ void EmuSystem::setContentDisplayName(std::string_view name)
 	contentDisplayName_ = name;
 }
 
-std::string EmuSystem::contentDisplayNameForPathDefaultImpl(IG::CStringView path)
+std::string EmuSystem::contentDisplayNameForPathDefaultImpl(Base::ApplicationContext ctx, IG::CStringView path)
 {
-	return IG::stringWithoutDotExtension<std::string>(FS::basenameUri(path, FS::isUri(path)));
+	return IG::stringWithoutDotExtension<std::string>(ctx.fileUriDisplayName(path));
 }
 
 void EmuSystem::setInitialLoadPath(IG::CStringView path)
@@ -548,7 +554,7 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] void EmuSystem::onOptionsLoaded(Base::ApplicationContext) {}
 
-[[gnu::weak]] void EmuSystem::saveBackupMem() {}
+[[gnu::weak]] void EmuSystem::saveBackupMem(Base::ApplicationContext) {}
 
 [[gnu::weak]] void EmuSystem::savePathChanged() {}
 
@@ -568,9 +574,9 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat) {}
 
-[[gnu::weak]] std::string EmuSystem::contentDisplayNameForPath(Base::ApplicationContext, IG::CStringView path)
+[[gnu::weak]] std::string EmuSystem::contentDisplayNameForPath(Base::ApplicationContext ctx, IG::CStringView path)
 {
-	return contentDisplayNameForPathDefaultImpl(path);
+	return contentDisplayNameForPathDefaultImpl(ctx, path);
 }
 
 [[gnu::weak]] bool EmuSystem::shouldFastForward() { return false; }
@@ -598,12 +604,12 @@ bool EmuSystem::inputHasTriggers()
 	reset(mode);
 }
 
-[[gnu::weak]] void EmuSystem::loadState(EmuApp &, const char *path)
+[[gnu::weak]] void EmuSystem::loadState(EmuApp &, IG::CStringView path)
 {
 	loadState(path);
 }
 
-[[gnu::weak]] void EmuSystem::saveState(EmuApp &, const char *path)
+[[gnu::weak]] void EmuSystem::saveState(Base::ApplicationContext, IG::CStringView path)
 {
 	saveState(path);
 }

@@ -17,7 +17,7 @@
 #include <main/Cheats.hh>
 #include "EmuCheatViews.hh"
 #include <imagine/io/FileIO.hh>
-#include <imagine/io/IOStream.hh>
+#include <imagine/io/FileStream.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/util/mayAliasInt.h>
@@ -385,28 +385,28 @@ void updateCheats()
 	applyCheats();
 }
 
-void writeCheatFile()
+void writeCheatFile(Base::ApplicationContext ctx)
 {
 	if(!cheatsModified)
 		return;
 
-	auto filename = EmuSystem::contentSaveFilePath(".pat");
+	auto path = EmuSystem::contentSaveFilePath(ctx, ".pat");
 
 	if(!cheatList.size())
 	{
-		logMsg("deleting cheats file %s", filename.data());
-		FS::remove(filename);
+		logMsg("deleting cheats file %s", path.data());
+		ctx.removeFileUri(path);
 		cheatsModified = false;
 		return;
 	}
 
-	auto file = FileIO::create(filename.data(), IO::OPEN_TEST);
+	auto file = ctx.openFileUri(path, IO::OPEN_CREATE | IO::OPEN_TEST);
 	if(!file)
 	{
-		logMsg("error creating cheats file %s", filename.data());
+		logMsg("error creating cheats file %s", path.data());
 		return;
 	}
-	logMsg("writing cheats file %s", filename.data());
+	logMsg("writing cheats file %s", path.data());
 
 	for(auto &e : cheatList)
 	{
@@ -426,19 +426,18 @@ void writeCheatFile()
 	cheatsModified = false;
 }
 
-void readCheatFile()
+void readCheatFile(Base::ApplicationContext ctx)
 {
-	auto filename = EmuSystem::contentSaveFilePath(".pat");
-	FileIO file{filename.data(), IO::AccessHint::ALL, IO::OPEN_TEST};
+	auto path = EmuSystem::contentSaveFilePath(ctx, ".pat");
+	auto file = ctx.openFileUri(path, IO::AccessHint::ALL, IO::OPEN_TEST);
 	if(!file)
 	{
 		return;
 	}
-	logMsg("reading cheats file %s", filename.data());
-
+	logMsg("reading cheats file %s", path.data());
 	char line[256];
-	IOStream<FileIO> fileStream{std::move(file), "r"};
-	while(fgets(line, sizeof(line), static_cast<FILE*>(fileStream)))
+	IG::FileStream<FileIO> fileStream{std::move(file), "r"};
+	while(fgets(line, sizeof(line), fileStream.filePtr()))
 	{
 		logMsg("got line: %s", line);
 		MdCheat cheat{};

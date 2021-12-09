@@ -33,7 +33,7 @@ void utilReadData(gzFile, const variable_desc *);
 void utilReadDataSkip(gzFile, const variable_desc *);
 int utilReadInt(gzFile);
 void utilWriteInt(gzFile, int);
-gzFile utilGzOpen(const char *file, const char *mode);
+gzFile utilGzOpen(int fd, const char *mode);
 gzFile utilMemGzOpen(char *memory, int available, const char *mode);
 int utilGzWrite(gzFile file, const voidp buffer, unsigned int len);
 int utilGzRead(gzFile file, voidp buffer, unsigned int len);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <imagine/base/ApplicationContext.hh>
 #include <emuframework/Option.hh>
 #include <mednafen/pce_fast/pce.h>
 #include <mednafen/pce_fast/vdc.h>
@@ -11,6 +12,7 @@ namespace EmuControls
 extern const unsigned gamepadKeys;
 }
 
+extern Base::ApplicationContext appCtx;
 extern Byte1Option optionArcadeCard;
 extern Byte1Option option6BtnPad;
 extern FS::PathString sysCardPath;

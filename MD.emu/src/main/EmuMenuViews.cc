@@ -276,7 +276,7 @@ class CustomSystemOptionView : public SystemOptionView
 		{{}, &defaultFace(), [this](Input::Event e){ cdBiosPathHandler(e, REGION_EUROPE); }}
 	};
 
-	static auto makeBiosMenuEntryStr(int region)
+	auto makeBiosMenuEntryStr(int region)
 	{
 		std::string_view path{};
 		switch(region)
@@ -286,7 +286,7 @@ class CustomSystemOptionView : public SystemOptionView
 			bcase REGION_EUROPE: path = cdBiosEurPath;
 		}
 		const char *regionStr = biosHeadingStr[regionCodeToIdx(region)];
-		return fmt::format("{}: {}", regionStr, path.size() ? FS::basename(path) : "None set");
+		return fmt::format("{}: {}", regionStr, path.size() ? appContext().fileUriDisplayName(path) : "None set");
 	}
 
 	void cdBiosPathHandler(Input::Event e, int region)

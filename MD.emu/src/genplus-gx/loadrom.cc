@@ -375,19 +375,9 @@ static void deinterleave_block(uint8 * src)
   *
   * Load a new ROM file.
   ***************************************************************************/
-int load_rom(IO &io, const char *path, const char *filename)
+int load_rom(IO &io, std::string_view origFilename)
 {
-  int size = 0;
-  FS::FileString origFileStr{};
-  if(!io)
-  {
-  	size = loadArchive(cart.rom, MAXROMSIZE, path, origFileStr);
-  	filename = origFileStr.data();
-  }
-  else
-  {
-		size = io.read(cart.rom, MAXROMSIZE);
-  }
+  auto size = io.read(cart.rom, MAXROMSIZE);
   if(size <= 0)
   	return 0;
 
@@ -400,7 +390,7 @@ int load_rom(IO &io, const char *path, const char *filename)
 
   /* Get file extension */
   #ifndef NO_SYSTEM_PBC
-  if (!strncasecmp(".sms", &filename[strlen(filename) - 4], 4))
+  if(origFilename.ends_with(".sms"))
   {
     /* Force SMS compatibility mode */
     system_hw = SYSTEM_PBC;

@@ -15,25 +15,32 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
-#ifdef __ANDROID__
-#include <imagine/fs/AAssetFS.hh>
-#else
-#include <imagine/fs/FS.hh>
-#endif
+#include <unistd.h> // for SEEK_*
 
-namespace FS
+namespace IODefs
 {
 
-class AAssetIterator;
-class directory_iterator;
-
-using AssetDirectoryIteratorImpl = std::conditional_t<Config::envIsAndroid, AAssetIterator, directory_iterator>;
-
-class AssetDirectoryIterator : public AssetDirectoryIteratorImpl
+enum class Advice
 {
-public:
-	using AssetDirectoryIteratorImpl::AssetDirectoryIteratorImpl;
-	using AssetDirectoryIteratorImpl::operator=;
+	NORMAL, SEQUENTIAL, RANDOM, WILLNEED
+};
+
+enum class AccessHint
+{
+	NORMAL, SEQUENTIAL, RANDOM, ALL, UNMAPPED
+};
+
+enum class BufferMode
+{
+	DIRECT, // may point directly to mapped memory, not valid after IO is destroyed
+	RELEASE // may take IO's underlying memory and is always valid, invalidates IO object
+};
+
+enum class SeekMode
+{
+	SET = SEEK_SET,
+	CUR = SEEK_CUR,
+	END = SEEK_END,
 };
 
 }

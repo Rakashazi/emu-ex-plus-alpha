@@ -33,7 +33,7 @@ public:
 	using IO::buffer;
 	using IO::get;
 
-	constexpr MapIO() {}
+	constexpr MapIO() = default;
 	MapIO(IG::ByteBuffer buff);
 	MapIO(IG::derived_from<IO> auto &&io): MapIO{io.buffer(IO::BufferMode::RELEASE)} {}
 	MapIO(IG::derived_from<IO> auto &io): MapIO{io.buffer(IO::BufferMode::DIRECT)} {}

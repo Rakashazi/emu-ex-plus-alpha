@@ -55,5 +55,6 @@ static ArchiveIterator end(const ArchiveIterator &)
 }
 
 ArchiveIO fileFromArchive(IG::CStringView archivePath, std::string_view filePath);
+ArchiveIO fileFromArchive(GenericIO io, std::string_view filePath);
 
 };

@@ -98,7 +98,7 @@ public:
 	void addNotification(JNIEnv *, jobject baseActivity, const char *onShow, const char *title, const char *message);
 	void removePostedNotifications(JNIEnv *, jobject baseActivity);
 	void handleIntent(ApplicationContext);
-	void openDocumentTreeIntent(JNIEnv *, jobject baseActivity, SystemPathPickerDelegate);
+	void openDocumentTreeIntent(JNIEnv *, jobject baseActivity, SystemPathPickerDelegate, bool convertToPath);
 	void openDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
 	FrameTimer makeFrameTimer(Screen &);
 	bool requestPermission(ApplicationContext, Permission);

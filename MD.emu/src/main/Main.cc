@@ -43,6 +43,7 @@
 const char *EmuSystem::creditsViewStr = CREDITS_INFO_STRING "(c) 2011-2021\nRobert Broglia\nwww.explusalpha.com\n\nPortions (c) the\nGenesis Plus Team\ncgfm2.emuviews.com";
 bool EmuSystem::hasCheats = true;
 bool EmuSystem::hasPALVideoSystem = true;
+Base::ApplicationContext appCtx{};
 t_config config{};
 bool config_ym2413_enabled = true;
 int8 mdInputPortDev[2]{-1, -1};
@@ -120,31 +121,32 @@ FS::FileString EmuSystem::stateFilename(int slot, std::string_view name)
 	return IG::format<FS::FileString>("{}.0{}.gp", name, saveSlotChar(slot));
 }
 
-static FS::PathString sprintSaveFilename()
+static FS::PathString saveFilename(Base::ApplicationContext ctx)
 {
-	return EmuSystem::contentSaveFilePath(".srm");
+	return EmuSystem::contentSaveFilePath(ctx, ".srm");
 }
 
-static FS::PathString sprintBRAMSaveFilename()
+static FS::PathString bramSaveFilename(Base::ApplicationContext ctx)
 {
-	return EmuSystem::contentSaveFilePath(".brm");
+	return EmuSystem::contentSaveFilePath(ctx, ".brm");
 }
 
 static const unsigned maxSaveStateSize = STATE_SIZE+4;
 
-void EmuSystem::saveState(const char *path)
+void EmuSystem::saveState(Base::ApplicationContext ctx, IG::CStringView path)
 {
 	auto stateData = std::make_unique<uint8_t[]>(maxSaveStateSize);
 	logMsg("saving state data");
 	int size = state_save(stateData.get());
 	logMsg("writing to file");
-	FileUtils::writeToPath(path, stateData.get(), size);
+	if(FileUtils::writeToUri(ctx, path, stateData.get(), size) == -1)
+		throwFileWriteError();
 	logMsg("wrote %d byte state", size);
 }
 
-void EmuSystem::loadState(const char *path)
+void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
 {
-	state_load(FileUtils::bufferFromPath(path).data());
+	state_load(FileUtils::bufferFromUri(app.appContext(), path).data());
 }
 
 static bool sramHasContent(std::span<uint8> sram)
@@ -157,7 +159,7 @@ static bool sramHasContent(std::span<uint8> sram)
 	return false;
 }
 
-void EmuSystem::saveBackupMem() // for manually saving when not closing game
+void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
 {
 	if(!gameIsRunning())
 		return;
@@ -165,8 +167,8 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	if(sCD.isActive)
 	{
 		logMsg("saving BRAM");
-		auto saveStr = sprintBRAMSaveFilename();
-		auto bramFile = FileIO::create(saveStr, IO::OPEN_TEST);
+		auto saveStr = bramSaveFilename(ctx);
+		auto bramFile = ctx.openFileUri(saveStr, IO::OPEN_CREATE | IO::OPEN_TEST);
 		if(!bramFile)
 			logMsg("error creating bram file");
 		else
@@ -185,7 +187,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 	#endif
 	if(sram.on)
 	{
-		auto saveStr = sprintSaveFilename();
+		auto saveStr = saveFilename(ctx);
 		if(sramHasContent({sram.sram, 0x10000}))
 		{
 			logMsg("saving SRAM%s", optionBigEndianSram ? ", byte-swapped" : "");
@@ -202,7 +204,7 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 			}
 			try
 			{
-				FileUtils::writeToPath(saveStr, sramPtr, 0x10000);
+				FileUtils::writeToUri(ctx, saveStr, sramPtr, 0x10000);
 			}
 			catch(...)
 			{
@@ -212,15 +214,15 @@ void EmuSystem::saveBackupMem() // for manually saving when not closing game
 		else
 		{
 			logMsg("SRAM wasn't written to");
-			FS::remove(saveStr);
+			ctx.removeFileUri(saveStr);
 		}
 	}
-	writeCheatFile();
+	writeCheatFile(ctx);
 }
 
-void EmuSystem::closeSystem()
+void EmuSystem::closeSystem(Base::ApplicationContext ctx)
 {
-	saveBackupMem();
+	saveBackupMem(ctx);
 	#ifndef NO_SCD
 	if(sCD.isActive)
 	{
@@ -333,7 +335,7 @@ static unsigned detectISORegion(uint8 bootSector[0x800])
 		return REGION_JAPAN_NTSC;
 }
 
-FS::PathString EmuSystem::willLoadGameFromPath(std::string_view path)
+FS::PathString EmuSystem::willLoadGameFromPath(Base::ApplicationContext ctx, std::string_view path)
 {
 	#ifndef NO_SCD
 	// check if loading a .bin with matching .cue
@@ -341,7 +343,7 @@ FS::PathString EmuSystem::willLoadGameFromPath(std::string_view path)
 	{
 		FS::PathString possibleCuePath{path};
 		possibleCuePath.replace(possibleCuePath.end() - 3, possibleCuePath.end(), "cue");
-		if(FS::exists(possibleCuePath))
+		if(ctx.fileUriExists(possibleCuePath))
 		{
 			logMsg("loading %s instead of .bin file", possibleCuePath.data());
 			return possibleCuePath;
@@ -361,7 +363,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 		(contentFileName().ends_with(".bin") && io.size() > 1024*1024*10)) // CD
 	{
 		FS::current_path(contentDirectory());
-		cd = CDAccess_Open(&NVFS, contentLocation().data(), false);
+		cd = CDAccess_Open(&NVFS, std::string{contentLocation()}, false);
 
 		unsigned region = REGION_USA;
 		if (config.region_detect == 1) region = REGION_USA;
@@ -386,8 +388,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 		{
 			throw std::runtime_error(fmt::format("Set a {} BIOS in the Options", biosName));
 		}
-		if(FileIO io;
-			!load_rom(io, biosPath.data(), nullptr))
+		if(!load_rom(ctx.openFileUri(biosPath, IO::AccessHint::ALL), ""))
 		{
 			throw std::runtime_error(fmt::format("Error loading BIOS: {}", biosPath));
 		}
@@ -401,7 +402,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	// ROM
 	{
 		logMsg("loading ROM %s", contentLocation().data());
-		if(!load_rom(io, contentLocation().data(), contentFileName().data()))
+		if(!load_rom(io, contentFileName()))
 		{
 			throwFileReadError();
 		}
@@ -429,8 +430,8 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	#ifndef NO_SCD
 	if(sCD.isActive)
 	{
-		auto saveStr = sprintBRAMSaveFilename();
-		FileIO bramFile{saveStr.data(), IO::AccessHint::ALL, IO::OPEN_TEST};
+		auto saveStr = bramSaveFilename(ctx);
+		auto bramFile = ctx.openFileUri(saveStr, IO::AccessHint::ALL, IO::OPEN_TEST);
 		if(!bramFile)
 		{
 			logMsg("no BRAM on disk, formatting");
@@ -458,9 +459,9 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	#endif
 	if(sram.on)
 	{
-		auto saveStr = sprintSaveFilename();
+		auto saveStr = saveFilename(ctx);
 
-		if(FileUtils::readFromPath(saveStr.data(), sram.sram, 0x10000) <= 0)
+		if(FileUtils::readFromUri(ctx, saveStr, sram.sram, 0x10000) <= 0)
 			logMsg("no SRAM on disk");
 		else
 			logMsg("loaded SRAM from disk%s", optionBigEndianSram ? ", will byte-swap" : "");
@@ -487,7 +488,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	}
 	#endif
 
-	readCheatFile();
+	readCheatFile(ctx);
 	applyCheats();
 }
 
@@ -515,4 +516,9 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 		{ 1., Gfx::VertexColorPixelFormat.build(.5, .5, .5, 1.) },
 	};
 	view.setBackgroundGradient(navViewGrad);
+}
+
+void EmuSystem::onInit(Base::ApplicationContext ctx)
+{
+	appCtx = ctx;
 }

@@ -19,11 +19,14 @@
 #include <imagine/base/VibrationManager.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/fs/AssetFS.hh>
 #include <imagine/io/FileIO.hh>
 #ifdef __ANDROID__
 #include <imagine/fs/AAssetFS.hh>
 #endif
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include <imagine/logger/logger.h>
 #include <cstring>
 
@@ -233,15 +236,46 @@ FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(IG::CStringVie
 
 [[gnu::weak]] bool ApplicationContext::hasSystemPathPicker() const { return false; }
 
-[[gnu::weak]] void ApplicationContext::showSystemPathPicker(SystemPathPickerDelegate) {}
+[[gnu::weak]] void ApplicationContext::showSystemPathPicker(SystemPathPickerDelegate, bool) {}
 
 [[gnu::weak]] bool ApplicationContext::hasSystemDocumentPicker() const { return false; }
 
 [[gnu::weak]] void ApplicationContext::showSystemDocumentPicker(SystemDocumentPickerDelegate) {}
 
-[[gnu::weak]] FileIO ApplicationContext::openUri(IG::CStringView, IO::AccessHint, unsigned) { return {}; }
+[[gnu::weak]] FileIO ApplicationContext::openFileUri(IG::CStringView uri, IO::AccessHint access, unsigned openFlags) const
+{
+	return {uri, access, openFlags};
+}
 
-[[gnu::weak]] FileIO ApplicationContext::fileAtUri(IG::CStringView, IG::CStringView, IO::AccessHint, unsigned) { return {}; }
+FileIO ApplicationContext::openFileUri(IG::CStringView uri, unsigned openFlags) const
+{
+	return openFileUri(uri, IO::AccessHint::NORMAL, openFlags);
+}
+
+[[gnu::weak]] FS::PathString ApplicationContext::fileUri(IG::CStringView uri, IG::CStringView name) const
+{
+	return FS::pathString(uri, name);
+}
+
+[[gnu::weak]] bool ApplicationContext::fileUriExists(IG::CStringView uri) const
+{
+	return FS::exists(uri);
+}
+
+[[gnu::weak]] std::string ApplicationContext::fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const
+{
+	return FS::formatLastWriteTimeLocal(uri);
+}
+
+[[gnu::weak]] FS::FileString ApplicationContext::fileUriDisplayName(IG::CStringView uri) const
+{
+	return FS::basename(uri);
+}
+
+[[gnu::weak]] bool ApplicationContext::removeFileUri(IG::CStringView uri) const
+{
+	return FS::remove(uri);
+}
 
 Orientation ApplicationContext::validateOrientationMask(Orientation oMask) const
 {
@@ -362,6 +396,51 @@ void OnExit::reset()
 ApplicationContext OnExit::appContext() const
 {
 	return ctx;
+}
+
+}
+
+namespace FileUtils
+{
+
+ssize_t writeToUri(Base::ApplicationContext ctx, IG::CStringView uri, void *data, size_t bytes)
+{
+	auto f = ctx.openFileUri(uri, IO::OPEN_CREATE | IO::OPEN_TEST);
+	return f.write(data, bytes);
+}
+
+ssize_t readFromUri(Base::ApplicationContext ctx, IG::CStringView uri, void *data, size_t size)
+{
+	auto f = ctx.openFileUri(uri, IO::AccessHint::SEQUENTIAL, IO::OPEN_TEST);
+	return f.read(data, size);
+}
+
+IG::ByteBuffer bufferFromUri(Base::ApplicationContext ctx, IG::CStringView uri, unsigned openFlags, size_t sizeLimit)
+{
+	auto file = ctx.openFileUri(uri, IO::AccessHint::ALL, openFlags);
+	if(!file)
+		return {};
+	if(file.size() > sizeLimit)
+	{
+		if(openFlags & IO::OPEN_TEST)
+			return {};
+		else
+			throw std::runtime_error(fmt::format("{} exceeds {} byte limit", uri.data(), sizeLimit));
+	}
+	return file.buffer(IODefs::BufferMode::RELEASE);
+}
+
+FILE *fopenUri(Base::ApplicationContext ctx, IG::CStringView path, IG::CStringView mode)
+{
+	if(FS::isUri(path))
+	{
+		int openFlags = IG::stringContains(mode, 'w') ? IO::OPEN_CREATE : 0;
+		return GenericIO{ctx.openFileUri(path, openFlags | IO::OPEN_TEST)}.moveToFileStream(mode);
+	}
+	else
+	{
+		return ::fopen(path, mode);
+	}
 }
 
 }

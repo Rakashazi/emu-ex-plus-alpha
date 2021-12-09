@@ -37,11 +37,11 @@ public:
 	using IOUtilsBase::buffer;
 	using IOUtilsBase::get;
 
-	constexpr PosixFileIO() {}
-	PosixFileIO(int fd, IO::AccessHint access = IO::AccessHint::NORMAL);
+	constexpr PosixFileIO() = default;
+	PosixFileIO(int fd, IO::AccessHint access, unsigned openFlags);
+	PosixFileIO(int fd, unsigned openFlags);
 	PosixFileIO(IG::CStringView path, IO::AccessHint access, unsigned openFlags = 0);
-	[[nodiscard]]
-	static PosixFileIO create(IG::CStringView path, unsigned openFlags = 0);
+	PosixFileIO(IG::CStringView path, unsigned openFlags = 0);
 	explicit operator IO*();
 	operator IO&();
 	operator GenericIO();
@@ -58,9 +58,10 @@ public:
 	void advise(off_t offset, size_t bytes, IO::Advice advice);
 	explicit operator bool() const;
 	IG::ByteBuffer releaseBuffer();
+	int releaseFd();
 
 protected:
 	std::variant<PosixIO, MapIO> ioImpl{};
 
-	void tryMmap(IO::AccessHint access, int fd);
+	void tryMmap(int fd, IO::AccessHint access, unsigned openFlags);
 };

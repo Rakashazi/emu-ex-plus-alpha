@@ -105,140 +105,8 @@ bool check_dir(char *dir_name) {
     return true;
 }
 
-/* return a char* to $HOME/.gngeo/ 
-   DO NOT free it!
- */
-#ifdef EMBEDDED_FS
-
-char *get_gngeo_dir(void) {
-    static char *filename = ROOTPATH"";
-    return filename;
-}
-#else
-
-/*char *get_gngeo_dir(void) {
-    static char *filename = NULL;
-#if defined (__AMIGA__)
-    int len = strlen("/PROGDIR/data/") + 1;
-#else
-    int len = strlen(getenv("HOME")) + strlen("/.gngeo/") + 1;
-#endif
-    if (!filename) {
-        filename = malloc(len * sizeof (char));
-        CHECK_ALLOC(filename);
-#if defined (__AMIGA__)
-        sprintf(filename, "/PROGDIR/data/");
-#else
-        sprintf(filename, "%s/.gngeo/", getenv("HOME"));
-#endif
-    }
-    check_dir(filename);
-    //printf("get_gngeo_dir %s\n",filename);
-    return filename;
-}*/
-#endif
-
-void open_nvram(char *name) {
-    char *filename;
-    size_t totread = 0;
-#ifdef EMBEDDED_FS
-    const char *gngeo_dir = ROOTPATH"save/";
-#elif defined(__AMIGA__)
-    const char *gngeo_dir = "/PROGDIR/save/";
-#else
-    const char *gngeo_dir = get_gngeo_dir();
-#endif
-    int f;
-    int len = strlen(name) + 1 + strlen(gngeo_dir) + 4; /* ".nv\0" => 4 */
-
-    filename = (char *) alloca(len);
-    sprintf(filename, "%s/%s.nv", gngeo_dir, name);
-    // converted to low-level io funcs due to WebOS bug
-    if ((f = open(filename, O_RDONLY, 0)) <= 0)//if ((f = fopen(filename, "rb")) == 0)
-        return;
-    totread = read(f, memory.sram, 0x10000);
-    close(f);
-
-}
-
-/* TODO: multiple memcard */
-void open_memcard(char *name) {
-    char *filename;
-    size_t totread = 0;
-#ifdef EMBEDDED_FS
-    const char *gngeo_dir = ROOTPATH"save/";
-#elif defined(__AMIGA__)
-    const char *gngeo_dir = "/PROGDIR/save/";
-#else
-    const char *gngeo_dir = get_gngeo_dir();
-#endif
-    FILE *f;
-    int len = strlen("memcard") + 1 + strlen(gngeo_dir) + 1; /* ".nv\0" => 4 */
-
-    filename = (char *) alloca(len);
-    sprintf(filename, "%s/%s", gngeo_dir, "memcard");
-
-    if ((f = fopen(filename, "rb")) == 0)
-        return;
-    totread = fread(memory.memcard, 1, 0x800, f);
-    fclose(f);
-}
-
-void save_nvram(char *name) {
-    char *filename;
-#ifdef EMBEDDED_FS
-    const char *gngeo_dir = ROOTPATH"save/";
-#elif defined(__AMIGA__)
-    const char *gngeo_dir = strdup("/PROGDIR/save/");
-#else
-    const char *gngeo_dir = get_gngeo_dir();
-#endif
-    FILE *f;
-    int len = strlen(name) + 1 + strlen(gngeo_dir) + 4; /* ".nv\0" => 4 */
-
-    //strlen(name) + strlen(getenv("HOME")) + strlen("/.gngeo/") + 4;
-    int i;
-    //    printf("Save nvram %s\n",name);
-    for (i = 0xffff; i >= 0; i--) {
-        if (memory.sram[i] != 0)
-            break;
-    }
-
-    filename = (char *) alloca(len);
-
-    sprintf(filename, "%s/%s.nv", gngeo_dir, name);
-
-    if ((f = fopen(filename, "wb")) != NULL) {
-        fwrite(memory.sram, 1, 0x10000, f);
-        fclose(f);
-    }
-}
-
-void save_memcard(char *name) {
-    char *filename;
-#ifdef EMBEDDED_FS
-    const char *gngeo_dir = ROOTPATH"save/";
-#elif defined(__AMIGA__)
-    const char *gngeo_dir = strdup("/PROGDIR/save/");
-#else
-    const char *gngeo_dir = get_gngeo_dir();
-#endif
-    FILE *f;
-    int len = strlen("memcard") + 1 + strlen(gngeo_dir) + 1; /* ".nv\0" => 4 */
-
-    filename = (char *) alloca(len);
-    sprintf(filename, "%s/%s", gngeo_dir, "memcard");
-
-    if ((f = fopen(filename, "wb")) != NULL) {
-        fwrite(memory.memcard, 1, 0x800, f);
-        fclose(f);
-    }
-}
-
 int close_game(void) {
     if (conf.game == NULL) return false;
-    save_nvram(conf.game);
-    save_memcard(conf.game);
 
     dr_free_roms(&memory.rom);
     trans_pack_free();
@@ -310,8 +178,8 @@ int init_game(void *contextPtr, char *rom_name, char romerror[1024]) {
 
     }
 
-    open_nvram(conf.game);
-    open_memcard(conf.game);
+    open_nvram(contextPtr, conf.game);
+    open_memcard(contextPtr, conf.game);
 #ifndef GP2X
     sdl_set_title(conf.game);
 #endif
