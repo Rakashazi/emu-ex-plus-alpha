@@ -17,7 +17,7 @@
 
 #include <imagine/base/EventLoop.hh>
 #include <imagine/util/concepts.hh>
-#include <utility>
+#include <imagine/util/utility.h>
 
 namespace Base
 {
@@ -37,7 +37,7 @@ public:
 
 	void attach(auto &&f)
 	{
-		attach({}, std::forward<decltype(f)>(f));
+		attach({}, IG_forward(f));
 	}
 
 	void attach(EventLoop loop, IG::invocable auto &&f)

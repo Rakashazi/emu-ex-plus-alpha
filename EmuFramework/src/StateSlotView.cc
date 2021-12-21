@@ -16,7 +16,6 @@
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/EmuSystem.hh>
 #include "private.hh"
-#include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
 
@@ -43,14 +42,14 @@ StateSlotView::StateSlotView(ViewAttachParams attach):
 		{
 			auto ctx = appContext();
 			auto saveStr = EmuSystem::statePath(ctx, slot);
-			bool fileExists = ctx.fileUriExists(saveStr);
+			auto modTimeStr = ctx.fileUriFormatLastWriteTimeLocal(saveStr);
+			bool fileExists = modTimeStr.size();
 			auto str =
 				[&]()
 				{
 					if(fileExists)
 					{
-						return fmt::format("{} ({})", stateNameStr(slot),
-							ctx.fileUriFormatLastWriteTimeLocal(saveStr));
+						return fmt::format("{} ({})", stateNameStr(slot), modTimeStr);
 					}
 					else
 						return fmt::format("{}", stateNameStr(slot));

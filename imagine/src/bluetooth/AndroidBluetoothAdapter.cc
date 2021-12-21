@@ -454,7 +454,7 @@ void AndroidBluetoothSocket::onStatusDelegateMessage(int status)
 										logErr("error reading BT socket data header in pipe, returned %d", ret);
 										return 1;
 									}
-									socket.onData()(data, size);
+									socket.onData()(&data[0], size);
 								}
 								return 1;
 							}, this);

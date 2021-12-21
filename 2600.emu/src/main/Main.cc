@@ -103,13 +103,11 @@ bool EmuSystem::vidSysIsPAL()
 void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
 	auto &os = *osystem;
-	auto size = io.size();
-	if(size > MAX_ROM_SIZE)
-	{
+	if(io.size() > MAX_ROM_SIZE)
 		throw std::runtime_error{"ROM size is too large"};
-	}
 	auto image = std::make_unique<uInt8[]>(MAX_ROM_SIZE);
-	if(io.read(image.get(), size) != (ssize_t)size)
+	auto size = io.read(image.get(), MAX_ROM_SIZE);
+	if(size == -1)
 	{
 		throwFileReadError();
 	}

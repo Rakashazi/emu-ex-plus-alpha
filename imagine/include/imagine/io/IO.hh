@@ -104,22 +104,23 @@ public:
 	using Advice = IODefs::Advice;
 	using BufferMode = IODefs::BufferMode;
 	using SeekMode = IODefs::SeekMode;
+	using OpenFlags = IODefs::OpenFlags;
 
 	// allow reading file, default if OPEN_WRITE isn't present
-	static constexpr uint32_t OPEN_READ = IG::bit(0);
+	static constexpr OpenFlags OPEN_READ = IG::bit(0);
 	// allow modifying file
-	static constexpr uint32_t OPEN_WRITE = IG::bit(1);
+	static constexpr OpenFlags OPEN_WRITE = IG::bit(1);
 	// create a new file, clobbering any existing one,
 	// if OPEN_CREATE_NEW isn't present, only existing files are opened
 	// for reading/writing/appending
-	static constexpr uint32_t OPEN_CREATE_NEW = IG::bit(2);
-	static constexpr uint32_t OPEN_CREATE = OPEN_WRITE | OPEN_CREATE_NEW;
+	static constexpr OpenFlags OPEN_CREATE_NEW = IG::bit(2);
+	static constexpr OpenFlags OPEN_CREATE = OPEN_WRITE | OPEN_CREATE_NEW;
 	// if using OPEN_CREATE, don't overwrite a file that already exists
-	static constexpr uint32_t OPEN_KEEP_EXISTING = IG::bit(3);
+	static constexpr OpenFlags OPEN_KEEP_EXISTING = IG::bit(3);
 	// return from constructor without throwing exception if opening fails,
 	// used to avoid redundant FS::exists() tests when searching for a file to open
-	static constexpr uint32_t OPEN_TEST = IG::bit(4);
-	static constexpr uint32_t OPEN_FLAGS_BITS = 5;
+	static constexpr OpenFlags OPEN_TEST = IG::bit(4);
+	static constexpr OpenFlags OPEN_FLAGS_BITS = 5;
 
 	constexpr IO() = default;
 	virtual ~IO() = default;
@@ -160,7 +161,7 @@ public:
 	using IOUtilsBase::buffer;
 	using IOUtilsBase::get;
 
-	constexpr GenericIO() {}
+	constexpr GenericIO() = default;
 	GenericIO(IG::derived_from<IO> auto io): io{std::make_unique<decltype(io)>(std::move(io))} {}
 	GenericIO(std::unique_ptr<IO> io);
 	explicit operator IO*();

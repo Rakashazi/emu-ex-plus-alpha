@@ -34,6 +34,7 @@
 #include "lib.h"
 #include "rawfile.h"
 #include "util.h"
+#include "zfile.h"
 
 
 struct rawfile_info_s {
@@ -107,7 +108,7 @@ rawfile_info_t *rawfile_open(const char *file_name, const char *path,
         info->fd = NULL;
         info->read_only = 1;
     } else {
-        fd = fopen(complete, mode);
+        fd = zfile_fopen(complete, mode);
         if (fd == NULL) {
             lib_free(complete);
             lib_free(info);

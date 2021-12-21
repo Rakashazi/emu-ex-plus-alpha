@@ -28,6 +28,7 @@
 #include <imagine/base/baseDefs.hh>
 #include <imagine/io/ioDefs.hh>
 #include <imagine/util/bitset.hh>
+#include <imagine/util/utility.h>
 #include <imagine/util/string/CStringView.hh>
 #include <vector>
 #include <optional>
@@ -95,7 +96,7 @@ public:
 	{
 		auto appStoragePtr = ::operator new(sizeof(T)); // allocate the storage
 		setApplicationPtr((Application*)appStoragePtr); // point the context to the storage
-		return *(new(appStoragePtr) T(std::forward<decltype(args)>(args)...)); // construct the application with the storage
+		return *(new(appStoragePtr) T(IG_forward(args)...)); // construct the application with the storage
 	}
 
 	Application &application() const;
@@ -163,27 +164,29 @@ public:
 	FS::PathString assetPath(const char *appName = applicationName) const;
 	FS::PathString libPath(const char *appName = applicationName) const;
 	FS::PathString supportPath(const char *appName = applicationName) const;
+	FS::PathString storagePath(const char *appName = applicationName) const;
 	FS::PathString cachePath(const char *appName = applicationName) const;
 	FS::PathString sharedStoragePath() const;
 	FS::PathLocation sharedStoragePathLocation() const;
 	std::vector<FS::PathLocation> rootFileLocations() const;
-	FS::RootPathInfo nearestRootPath(std::string_view path) const;
-	AssetIO openAsset(IG::CStringView name, IODefs::AccessHint access, unsigned openFlags = 0, const char *appName = applicationName) const;
+	FS::RootPathInfo rootPathInfo(std::string_view path) const;
+	AssetIO openAsset(IG::CStringView name, IODefs::AccessHint access, IODefs::OpenFlags oFlags = {}, const char *appName = applicationName) const;
 	FS::AssetDirectoryIterator openAssetDirectory(IG::CStringView path, const char *appName = applicationName);
 
 	// path/file access using OS-specific URIs such as those in the Android Storage Access Framework,
 	// backwards compatible with regular file system paths, all thread-safe except for picker functions
 	bool hasSystemPathPicker() const;
-	void showSystemPathPicker(SystemPathPickerDelegate, bool convertToPath = false);
+	void showSystemPathPicker(SystemDocumentPickerDelegate);
 	bool hasSystemDocumentPicker() const;
 	void showSystemDocumentPicker(SystemDocumentPickerDelegate);
-	FileIO openFileUri(IG::CStringView uri, IODefs::AccessHint, unsigned openFlags = 0) const;
-	FileIO openFileUri(IG::CStringView uri, unsigned openFlags = 0) const;
-	FS::PathString fileUri(IG::CStringView pathUri, IG::CStringView filename) const;
+	void showSystemCreateDocumentPicker(SystemDocumentPickerDelegate);
+	FileIO openFileUri(IG::CStringView uri, IODefs::AccessHint, IODefs::OpenFlags oFlags = {}) const;
+	FileIO openFileUri(IG::CStringView uri, IODefs::OpenFlags oFlags = {}) const;
 	bool fileUriExists(IG::CStringView uri) const;
 	std::string fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const;
 	FS::FileString fileUriDisplayName(IG::CStringView uri) const;
 	bool removeFileUri(IG::CStringView uri) const;
+	void forEachInDirectoryUri(IG::CStringView uri, DirectoryEntryDelegate) const;
 
 	// OS UI management (status & navigation bar)
 	void setSysUIStyle(uint32_t flags);
@@ -206,6 +209,7 @@ public:
 
 	// Permissions
 	bool usesPermission(Permission p) const;
+	bool permissionIsRestricted(Permission p) const;
 	bool requestPermission(Permission p);
 
 	// Input

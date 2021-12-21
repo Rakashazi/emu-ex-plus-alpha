@@ -76,6 +76,7 @@ class MemoryStream : public Stream
  void mswin_utf8_convert_kludge(void);
 
  bool isMemoryStream() final;
+ void setSize(size_t size);
 
 #if 0
  // No methods on the object may be called externally(other than the destructor) after steal_malloced_ptr()

@@ -16,21 +16,79 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/fs/PosixFS.hh>
+#include <imagine/util/utility.h>
+#include <imagine/util/string/StaticString.hh>
 #include <ctime>
+#include <array>
 #include <unistd.h>
 #include <limits.h>
 
 namespace FS
 {
 
-using FileStringArray = std::array<char, FILE_STRING_SIZE>;
+using file_time_type = std::time_t;
 
+static constexpr size_t FILE_STRING_SIZE = std::max(512, NAME_MAX + 1);
+using FileStringImpl = IG::StaticString<FILE_STRING_SIZE - 1>;
+class FileString : public FileStringImpl
+{
+public:
+	using FileStringImpl::FileStringImpl;
+	using FileStringImpl::operator=;
+};
+
+static constexpr size_t PATH_STRING_SIZE = std::max(1024, PATH_MAX);
+using PathStringImpl = IG::StaticString<PATH_STRING_SIZE - 1>;
+class PathString : public PathStringImpl
+{
+public:
+	using PathStringImpl::PathStringImpl;
+	using PathStringImpl::operator=;
+};
+
+using FileStringArray = std::array<char, FILE_STRING_SIZE>;
 using PathStringArray = std::array<char, PATH_STRING_SIZE>;
 
-using file_time_type = FileTimeTypeImpl;
+struct RootPathInfo
+{
+	size_t length = 0;
+	FileString name{};
 
-enum class file_type
+	constexpr RootPathInfo() = default;
+	constexpr RootPathInfo(auto &&name, size_t length):
+		length{length}, name{IG_forward(name)}
+	{}
+};
+
+struct RootedPath
+{
+	PathString path{};
+	RootPathInfo info{};
+
+	constexpr bool pathIsRoot() const
+	{
+		return path.size() == info.length;
+	}
+};
+
+struct PathLocation
+{
+	RootedPath root{};
+	FileString description{};
+
+	constexpr PathLocation() = default;
+	constexpr PathLocation(auto &&path, auto &&description, auto &&rootName):
+		root{IG_forward(path), {IG_forward(rootName), path.size()}}, description{IG_forward(description)} {}
+	constexpr PathLocation(auto &&path, auto &&description):
+		PathLocation(IG_forward(path), IG_forward(description), IG_forward(description)) {}
+
+	explicit constexpr operator bool() const
+	{
+		return root.path.size();
+	}
+};
+
+enum class file_type : int8_t
 {
 	none = 0,
 	not_found = -1,
@@ -46,10 +104,10 @@ enum class file_type
 
 enum class acc
 {
-	e = accExistsImpl,
-	r = accReadBitImpl,
-	w = accWriteBitImpl,
-	x = accExecBitImpl,
+	e = F_OK,
+	r = R_OK,
+	w = W_OK,
+	x = X_OK,
 	rw = r | w,
 	rx = r | x,
 	wx = w | x,
@@ -58,72 +116,19 @@ enum class acc
 
 class file_status
 {
-protected:
-	file_type type_ = file_type::none;
-	std::uintmax_t size_ = 0;
-	file_time_type lastWriteTime_{};
-
 public:
-	constexpr file_status() {}
-	constexpr file_status(file_type type_, std::uintmax_t size_, file_time_type lastWriteTime_):
-		type_{type_}, size_{size_}, lastWriteTime_{lastWriteTime_} {}
-
-	file_type type() const
-	{
-		return type_;
-	}
-
-	std::uintmax_t size() const
-	{
-		return size_;
-	}
-
-	file_time_type lastWriteTime() const
-	{
-		return lastWriteTime_;
-	}
-
+	constexpr file_status() = default;
+	constexpr file_status(file_type type, std::uintmax_t size, file_time_type lastWriteTime):
+		size_{size}, lastWriteTime_{lastWriteTime}, type_{type} {}
+	constexpr file_type type() const { return type_; }
+	constexpr std::uintmax_t size() const { return size_; }
+	constexpr file_time_type lastWriteTime() const { return lastWriteTime_; }
 	std::tm lastWriteTimeLocal() const;
+
+protected:
+	std::uintmax_t size_{};
+	file_time_type lastWriteTime_{};
+	file_type type_ = file_type::none;
 };
-
-using directory_entry = DirectoryEntryImpl;
-
-struct RootPathInfo
-{
-	size_t length = 0;
-	FS::FileString name{};
-
-	constexpr RootPathInfo() {}
-	constexpr RootPathInfo(FS::FileString name, size_t length):
-		length{length}, name{name}
-	{}
-};
-
-struct PathLocation
-{
-	RootPathInfo root{};
-	PathString path{};
-	FileString description{};
-
-	constexpr PathLocation() {}
-	constexpr PathLocation(PathString path, FileString description, RootPathInfo root):
-		root{root}, path{path}, description{description}
-	{}
-
-	explicit operator bool()
-	{
-		return path[0];
-	}
-};
-
-template <class T>
-concept ConvertibleToPathString = IG::convertible_to<T, PathStringImpl> || IG::convertible_to<T, std::string_view>;
-
-static constexpr PathString pathString(ConvertibleToPathString auto base, auto ... components)
-{
-	PathString path{std::move(base)};
-	([&](){path += '/'; path += std::move(components);}(), ...);
-	return path;
-}
 
 }

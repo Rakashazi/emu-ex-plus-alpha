@@ -131,6 +131,14 @@ concept CallableFunctionPointer = Pointer<F> && Callable<F, Return, Args...>;
 template<class F, class... Args>
 concept Predicate = invocable<F, Args...> && ConvertibleInvokeResult<F, bool, Args...>;
 
+template<class F, class... Args>
+concept ValidInvokeArgs =
+	requires(F f, Args &&...args)
+	{
+		 f(std::forward<Args>(args)...);
+	};
+
+
 template <class T>
 concept Const = std::is_const_v<T>;
 

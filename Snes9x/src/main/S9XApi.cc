@@ -145,7 +145,7 @@ const char *S9xGetFilename(const char *ex)
 		globalPath = EmuSystem::contentSaveFilePath(appCtx, ex);
 	else
 		globalPath = EmuSystem::contentSaveFilePath(appCtx, ex);
-	logMsg("built s9x path:%s", globalPath.c_str());
+	//logMsg("built s9x path:%s", globalPath.c_str());
 	return globalPath.c_str();
 }
 
@@ -166,7 +166,7 @@ const char *S9xGetFullFilename(const char *name)
 		globalPath = EmuSystem::contentDirectory(appCtx, name);
 	else
 		globalPath = EmuSystem::contentSavePath(appCtx, name);
-	logMsg("built s9x path:%s", globalPath.c_str());
+	//logMsg("built s9x path:%s", globalPath.c_str());
 	return globalPath.c_str();
 }
 

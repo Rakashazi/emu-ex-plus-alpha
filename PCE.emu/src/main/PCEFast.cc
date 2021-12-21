@@ -38,7 +38,7 @@ uint8 ReadIBP(unsigned int A) { return 0; }
 namespace Mednafen
 {
 
-NativeVFS NVFS;
+NativeVFS NVFS{};
 MDFNGI *MDFNGameInfo = &EmulatedPCE_Fast;
 
 uint64 MDFN_GetSettingUI(const char *name)

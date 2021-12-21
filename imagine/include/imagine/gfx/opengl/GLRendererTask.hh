@@ -20,6 +20,7 @@
 #include "GLTask.hh"
 #include <imagine/gfx/RendererCommands.hh>
 #include <imagine/base/GLContext.hh>
+#include <imagine/util/utility.h>
 
 namespace Base
 {
@@ -54,7 +55,7 @@ public:
 	RendererCommands makeRendererCommands(GLTask::TaskContext taskCtx, bool manageSemaphore,
 		bool notifyWindowAfterPresent, Base::Window &win, Viewport viewport, Mat4 projMat);
 
-	void run(IG::invocable auto &&f, bool awaitReply = false) { GLTask::run(std::forward<decltype(f)>(f), awaitReply); }
+	void run(IG::invocable auto &&f, bool awaitReply = false) { GLTask::run(IG_forward(f), awaitReply); }
 
 	bool draw(Base::Window &win, Base::WindowDrawParams winParams, DrawParams params,
 		const Viewport &viewport, const Mat4 &projMat,

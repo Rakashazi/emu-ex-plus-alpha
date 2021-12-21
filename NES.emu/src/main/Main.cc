@@ -21,6 +21,7 @@
 #include "internal.hh"
 #include "EmuFileIO.hh"
 #include <imagine/fs/FS.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/string.h>
 #include <fceu/driver.h>
@@ -214,7 +215,7 @@ void setDefaultPalette(Base::ApplicationContext ctx, const char *palPath)
 	}
 	else
 	{
-		FileIO io{palPath, IO::AccessHint::ALL, IO::OPEN_TEST};
+		auto io = ctx.openFileUri(palPath, IO::AccessHint::ALL, IO::OPEN_TEST);
 		if(!io)
 			return;
 		setDefaultPalette(io);

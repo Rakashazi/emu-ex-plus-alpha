@@ -17,6 +17,7 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/io/FileIO.hh>
 #include <imagine/fs/ArchiveFS.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
@@ -115,7 +116,7 @@ uint8_t *gn_unzip_file_malloc(PKZIP *archPtr, const char *filename, uint32_t fil
 struct PKZIP *open_rom_zip(void *contextPtr, char *romPath, char *name)
 {
 	auto &ctx = *((Base::ApplicationContext*)contextPtr);
-	auto baseUri = ctx.fileUri(romPath, name);
+	auto baseUri = FS::uriString(romPath, name);
 	// Try to open each possible archive type
 	if(auto gz = gn_open_zip(contextPtr, FS::PathString{baseUri + ".zip"}.data());
 		gz)

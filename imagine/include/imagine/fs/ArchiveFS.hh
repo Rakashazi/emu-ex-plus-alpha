@@ -16,6 +16,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/fs/FSDefs.hh>
 #include <imagine/io/ArchiveIO.hh>
 #include <imagine/util/string/CStringView.hh>
 #include <compare>
@@ -27,7 +28,7 @@ namespace FS
 class ArchiveIterator : public std::iterator<std::input_iterator_tag, ArchiveEntry>
 {
 public:
-	constexpr ArchiveIterator() {}
+	constexpr ArchiveIterator() = default;
 	ArchiveIterator(IG::CStringView path);
 	ArchiveIterator(GenericIO io);
 	ArchiveIterator(ArchiveEntry entry);
@@ -39,6 +40,7 @@ public:
 	void operator++();
 	bool operator==(ArchiveIterator const &rhs) const;
 	void rewind();
+	bool hasEntry() const { return (bool)impl; }
 
 private:
 	std::shared_ptr<ArchiveEntry> impl{};
@@ -56,5 +58,6 @@ static ArchiveIterator end(const ArchiveIterator &)
 
 ArchiveIO fileFromArchive(IG::CStringView archivePath, std::string_view filePath);
 ArchiveIO fileFromArchive(GenericIO io, std::string_view filePath);
+bool hasArchiveExtension(std::string_view name);
 
 };

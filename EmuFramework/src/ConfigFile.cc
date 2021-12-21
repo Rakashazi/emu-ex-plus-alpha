@@ -14,12 +14,12 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
-#include <emuframework/FileUtils.hh>
 #include "EmuOptions.hh"
 #include "privateInput.hh"
 #include "configFile.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/io/FileIO.hh>
+#include <imagine/fs/FS.hh>
 #include <imagine/input/config.hh>
 #include <imagine/util/ScopeGuard.hh>
 
@@ -370,8 +370,8 @@ void EmuApp::saveConfigFile(IO &io)
 		}
 	}
 
-	writeStringOptionValue(io, CFGKEY_LAST_DIR, mediaSearchPath());
-	writeStringOptionValue(io, CFGKEY_SAVE_PATH, EmuSystem::userSavePath());
+	writeStringOptionValue(io, CFGKEY_LAST_DIR, contentSearchPath());
+	writeStringOptionValue(io, CFGKEY_SAVE_PATH, EmuSystem::userSaveDirectory());
 
 	EmuSystem::writeConfig(io);
 }
@@ -441,7 +441,16 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				bcase CFGKEY_FRAME_RATE: optionFrameRate.readFromIO(io, size);
 				bcase CFGKEY_FRAME_RATE_PAL: optionFrameRatePAL.readFromIO(io, size);
 				bcase CFGKEY_LAST_DIR:
-					readStringOptionValue<FS::PathString>(io, size, [this](auto &path){setMediaSearchPath(path);});
+					readStringOptionValue<FS::PathString>(io, size,
+						[&](auto &path)
+						{
+							if(ctx.permissionIsRestricted(Base::Permission::WRITE_EXT_STORAGE) && path[0] == '/')
+							{
+								logWarn("not restoring content dir due to storage permission restriction");
+								return;
+							}
+							setContentSearchPath(path);
+						});
 				bcase CFGKEY_FONT_Y_SIZE: optionFontSize.readFromIO(io, size);
 				bcase CFGKEY_GAME_ORIENTATION: optionGameOrientation.readFromIO(io, size);
 				bcase CFGKEY_MENU_ORIENTATION: optionMenuOrientation.readFromIO(io, size);
@@ -507,7 +516,17 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				#ifdef CONFIG_AUDIO_MULTIPLE_SYSTEM_APIS
 				bcase CFGKEY_AUDIO_API: optionAudioAPI.readFromIO(io, size);
 				#endif
-				bcase CFGKEY_SAVE_PATH: readStringOptionValue<FS::PathString>(io, size, [&](auto &path){EmuSystem::setUserSavePath(ctx, path);});
+				bcase CFGKEY_SAVE_PATH:
+					readStringOptionValue<FS::PathString>(io, size,
+						[&](auto &path)
+						{
+							if(ctx.permissionIsRestricted(Base::Permission::WRITE_EXT_STORAGE) && path[0] == '/')
+							{
+								logWarn("not restoring save dir due to storage permission restriction");
+								return;
+							}
+							EmuSystem::setUserSaveDirectory(ctx, path);
+						});
 				bcase CFGKEY_SHOW_BUNDLED_GAMES:
 				{
 					if(EmuSystem::hasBundledGames)
@@ -661,10 +680,6 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 void EmuApp::saveConfigFile(Base::ApplicationContext ctx)
 {
 	auto configFilePath = FS::pathString(ctx.supportPath(), "config");
-	if(Config::envIsIOS)
-	{
-		fixFilePermissions(ctx, ctx.supportPath().data());
-	}
 	try
 	{
 		saveConfigFile(FileIO::create(configFilePath));

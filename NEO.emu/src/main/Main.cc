@@ -21,6 +21,7 @@
 #include "internal.hh"
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
 
@@ -78,7 +79,7 @@ extern "C"
 
 	const char *get_gngeo_dir(void)
 	{
-		return EmuSystem::contentSavePathPtr();
+		return EmuSystem::contentSaveDirectoryPtr();
 	}
 }
 
@@ -158,20 +159,20 @@ void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
 {
 	if(!gameIsRunning())
 		return;
-	FileUtils::writeToUri(ctx, nvramPath(ctx), memory.sram, 0x10000);
-	FileUtils::writeToUri(ctx, memcardPath(ctx), memory.memcard, 0x800);
+	FileUtils::writeToUri(ctx, nvramPath(ctx), {memory.sram, 0x10000});
+	FileUtils::writeToUri(ctx, memcardPath(ctx), {memory.memcard, 0x800});
 }
 
 void open_nvram(void *contextPtr, char *name)
 {
 	auto &ctx = *((Base::ApplicationContext*)contextPtr);
-	FileUtils::readFromUri(ctx, nvramPath(ctx), memory.sram, 0x10000);
+	FileUtils::readFromUri(ctx, nvramPath(ctx), {memory.sram, 0x10000});
 }
 
 void open_memcard(void *contextPtr, char *name)
 {
 	auto &ctx = *((Base::ApplicationContext*)contextPtr);
-	FileUtils::readFromUri(ctx, memcardPath(ctx), memory.memcard, 0x800);
+	FileUtils::readFromUri(ctx, memcardPath(ctx), {memory.memcard, 0x800});
 }
 
 void EmuSystem::closeSystem(Base::ApplicationContext ctx)
@@ -301,6 +302,10 @@ CLINK void *res_load_data(void *contextPtr, const char *name)
 
 void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate onLoadProgressFunc)
 {
+	if(contentDirectory().empty())
+	{
+		throwMissingContentDirError();
+	}
 	onLoadProgress = onLoadProgressFunc;
 	auto resetOnLoadProgress = IG::scopeGuard([&](){ onLoadProgress = {}; });
 	ROM_DEF *drv = res_load_drv(&ctx, contentName().data());
@@ -396,9 +401,11 @@ void EmuSystem::runFrame(EmuSystemTaskContext taskCtx, EmuVideo *video, EmuAudio
 	}
 }
 
-std::string EmuSystem::contentDisplayNameForPath(Base::ApplicationContext ctx, IG::CStringView path)
+FS::FileString EmuSystem::contentDisplayNameForPath(Base::ApplicationContext ctx, IG::CStringView path)
 {
 	auto contentName = contentDisplayNameForPathDefaultImpl(ctx, path);
+	if(contentName.empty())
+		return {};
 	ROM_DEF *drv = res_load_drv(&ctx, contentName.data());
 	if(!drv)
 		return contentName;
@@ -434,7 +441,7 @@ void EmuSystem::onInit(Base::ApplicationContext ctx)
 	strcpy(rompathConfItem.data.dt_str.str, ".");
 	if(!Config::envIsAndroid)
 	{
-		IG::formatTo(datafilePath, "{}/gngeo_data.zip", ctx.assetPath().data());
+		IG::formatTo(datafilePath, "{}/gngeo_data.zip", ctx.assetPath());
 	}
 }
 

@@ -20,7 +20,6 @@
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/EmuAudio.hh>
-#include <emuframework/FileUtils.hh>
 #include "private.hh"
 #include "privateInput.hh"
 #include "WindowData.hh"
@@ -28,6 +27,9 @@
 #include "EmuOptions.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
+#include <imagine/fs/FS.hh>
+#include <imagine/fs/ArchiveFS.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
 #include <imagine/gui/ToastView.hh>
@@ -60,7 +62,6 @@ EmuApp::EmuApp(Base::ApplicationInitParams initParams, Base::ApplicationContext 
 			return true;
 		}
 	},
-	lastLoadPath{ctx.sharedStoragePath()},
 	pixmapReader{ctx},
 	pixmapWriter{ctx},
 	vibrationManager_{ctx}
@@ -334,10 +335,13 @@ void EmuApp::mainInitCommon(Base::ApplicationInitParams initParams, Base::Applic
 	}
 	ctx.setAcceptIPC(true);
 	ctx.setOnInterProcessMessage(
-		[](Base::ApplicationContext, const char *path)
+		[this](Base::ApplicationContext, const char *path)
 		{
 			logMsg("got IPC path:%s", path);
-			EmuSystem::setInitialLoadPath(path);
+			if(emuViewController)
+				viewController().handleOpenFileCommand(path);
+			else
+				EmuSystem::setInitialLoadPath(path);
 		});
 	initOptions(ctx);
 	auto appConfig = loadConfigFile(ctx);
@@ -570,10 +574,10 @@ void launchSystem(EmuApp &app, bool tryAutoState)
 	app.viewController().showEmulation();
 }
 
-void onSelectFileFromPicker(EmuApp &app, GenericIO io, IG::CStringView path, bool pathIsUri,
+void onSelectFileFromPicker(EmuApp &app, GenericIO io, IG::CStringView path, std::string_view displayName,
 	Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams)
 {
-	app.createSystemWithMedia(std::move(io), path, pathIsUri, e, params, attachParams,
+	app.createSystemWithMedia(std::move(io), path, displayName, e, params, attachParams,
 		[&app, path](Input::Event e)
 		{
 			app.addCurrentContentToRecent();
@@ -613,7 +617,7 @@ void EmuApp::launchSystem(Input::Event e, bool tryAutoState)
 
 bool EmuApp::hasArchiveExtension(std::string_view name)
 {
-	return IG::stringEndsWithAny(name, ".7z", ".rar", ".zip");
+	return FS::hasArchiveExtension(name);
 }
 
 void EmuApp::pushAndShowNewCollectTextInputView(ViewAttachParams attach, Input::Event e, const char *msgText,
@@ -659,7 +663,7 @@ void EmuApp::reloadGame(EmuSystemCreateParams params)
 	try
 	{
 		EmuSystem::createWithMedia(appContext(), {}, EmuSystem::contentLocation(),
-			FS::isUri(EmuSystem::contentLocation()), params,
+			EmuSystem::contentName(), params,
 			[](int pos, int max, const char *label){ return true; });
 		viewController().onSystemCreated();
 		viewController().showEmulation();
@@ -705,18 +709,16 @@ void EmuApp::printScreenshotResult(int num, bool success)
 
 [[gnu::weak]] bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event) { return true; }
 
-void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path,
-	Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams,
-	CreateSystemCompleteDelegate onComplete)
-{
-	createSystemWithMedia(std::move(io), path, false, e, params, attachParams, onComplete);
-}
-
-void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path, bool pathIsUri,
+void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path, std::string_view displayName,
 	Input::Event e, EmuSystemCreateParams params, ViewAttachParams attachParams,
 	CreateSystemCompleteDelegate onComplete)
 {
 	assert(strlen(path));
+	if(!EmuApp::hasArchiveExtension(displayName) && !EmuSystem::defaultFsFilter(displayName))
+	{
+		postErrorMessage("File doesn't have a valid extension");
+		return;
+	}
 	if(!EmuApp::willCreateSystem(attachParams, e))
 	{
 		return;
@@ -727,12 +729,12 @@ void EmuApp::createSystemWithMedia(GenericIO io, IG::CStringView path, bool path
 	pushAndShowModalView(std::move(loadProgressView), e);
 	auto app = attachParams.window().appContext();
 	IG::makeDetachedThread(
-		[app, io{std::move(io)}, pathStr = FS::PathString{path}, &msgPort, params, pathIsUri]() mutable
+		[app, io{std::move(io)}, pathStr = FS::PathString{path}, nameStr = FS::FileString{displayName}, &msgPort, params]() mutable
 		{
 			logMsg("starting loader thread");
 			try
 			{
-				EmuSystem::createWithMedia(app, std::move(io), pathStr, pathIsUri, params,
+				EmuSystem::createWithMedia(app, std::move(io), pathStr, nameStr, params,
 					[&msgPort](int pos, int max, const char *label)
 					{
 						int len = label ? std::string_view{label}.size() : -1;
@@ -853,25 +855,31 @@ void EmuApp::setDefaultVControlsButtonStagger(int stagger)
 	vController.setDefaultButtonStagger(stagger);
 }
 
-FS::PathString EmuApp::mediaSearchPath()
+FS::PathString EmuApp::contentSearchPath() const
 {
-	return lastLoadPath;
+	return contentSearchPath_;
 }
 
-void EmuApp::setMediaSearchPath(FS::PathString path)
+FS::PathString EmuApp::contentSearchPath(std::string_view name) const
 {
-	lastLoadPath = path;
+	return FS::uriString(contentSearchPath_, name);
 }
 
-FS::PathString EmuApp::firmwareSearchPath()
+void EmuApp::setContentSearchPath(std::string_view path)
 {
+	contentSearchPath_ = path;
+}
+
+FS::PathString EmuApp::firmwareSearchPath() const
+{
+	auto ctx = appContext();
 	auto firmwarePath = EmuSystem::firmwarePath();
-	if(firmwarePath.empty() || FS::isUri(firmwarePath))
-		return lastLoadPath;
-	return hasArchiveExtension(firmwarePath) ? FS::dirname(firmwarePath) : firmwarePath;
+	if(firmwarePath.empty() || !ctx.fileUriExists(firmwarePath))
+		return contentSearchPath();
+	return hasArchiveExtension(firmwarePath) ? FS::dirnameUri(firmwarePath) : firmwarePath;
 }
 
-void EmuApp::setFirmwareSearchPath(IG::CStringView path)
+void EmuApp::setFirmwareSearchPath(std::string_view path)
 {
 	EmuSystem::setFirmwarePath(path);
 }
@@ -1073,12 +1081,13 @@ bool EmuApp::writeScreenshot(IG::Pixmap pix, IG::CStringView path)
 
 std::pair<int, FS::PathString> EmuApp::makeNextScreenshotFilename()
 {
-	constexpr int maxNum = 999;
-	auto basePath = FS::pathString(EmuSystem::contentSavePath(), EmuSystem::contentName());
+	static constexpr int maxNum = 999;
+	auto ctx = appContext();
+	auto basePath = EmuSystem::contentSavePath(ctx, EmuSystem::contentName());
 	iterateTimes(maxNum, i)
 	{
 		auto str = IG::format<FS::PathString>("{}.{:03d}.png", basePath, i);
-		if(!FS::exists(str))
+		if(!ctx.fileUriExists(str))
 		{
 			logMsg("screenshot %d", i);
 			return {i, str};

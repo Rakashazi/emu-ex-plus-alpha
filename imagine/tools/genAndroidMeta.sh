@@ -165,14 +165,8 @@ echo "		android:versionCode=\"$versionCode\" android:versionName=\"$version\">" 
 
 if [ $writeExtStore ]
 then
-	echo '	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />' >> $outPath
-	echo '	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' >> $outPath
-	echo '	<uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />' >> $outPath
-fi
-
-if [ $usesLegacyStorage ]
-then
-	echo '	<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />' >> $outPath
+	echo '	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="29" />' >> $outPath
+	echo '	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />' >> $outPath
 fi
 
 if [ $bluetooth ]

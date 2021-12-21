@@ -17,7 +17,6 @@
 
 #include <imagine/io/PosixIO.hh>
 #include <imagine/io/MapIO.hh>
-#include <imagine/fs/FSDefs.hh>
 #include <imagine/util/string/CStringView.hh>
 #include <variant>
 
@@ -38,10 +37,10 @@ public:
 	using IOUtilsBase::get;
 
 	constexpr PosixFileIO() = default;
-	PosixFileIO(int fd, IO::AccessHint access, unsigned openFlags);
-	PosixFileIO(int fd, unsigned openFlags);
-	PosixFileIO(IG::CStringView path, IO::AccessHint access, unsigned openFlags = 0);
-	PosixFileIO(IG::CStringView path, unsigned openFlags = 0);
+	PosixFileIO(int fd, IO::AccessHint access, IO::OpenFlags);
+	PosixFileIO(int fd, IO::OpenFlags);
+	PosixFileIO(IG::CStringView path, IO::AccessHint access, IO::OpenFlags oFlags = {});
+	PosixFileIO(IG::CStringView path, IO::OpenFlags oFlags = {});
 	explicit operator IO*();
 	operator IO&();
 	operator GenericIO();
@@ -63,5 +62,5 @@ public:
 protected:
 	std::variant<PosixIO, MapIO> ioImpl{};
 
-	void tryMmap(int fd, IO::AccessHint access, unsigned openFlags);
+	void tryMmap(int fd, IO::AccessHint access, IO::OpenFlags);
 };

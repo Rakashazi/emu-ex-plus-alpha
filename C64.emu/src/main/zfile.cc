@@ -14,6 +14,7 @@
 	along with C64.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/fs/ArchiveFS.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/string.h>
 #include <emuframework/EmuApp.hh>

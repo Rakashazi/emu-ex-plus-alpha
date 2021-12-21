@@ -165,12 +165,15 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 		});
 	if(hasCDExtension(contentFileName()))
 	{
+		if(contentDirectory().empty())
+		{
+			throwMissingContentDirError();
+		}
 		if(sysCardPath.empty() || !ctx.fileUriExists(sysCardPath))
 		{
 			throw std::runtime_error("No System Card Set");
 		}
 		CDInterfaces.reserve(1);
-		FS::current_path(contentDirectory());
 		CDInterfaces.push_back(CDInterface::Open(&NVFS, contentLocation().data(), false, 0));
 		writeCDMD5();
 		emuSys->LoadCD(&CDInterfaces);
@@ -178,9 +181,12 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	}
 	else
 	{
-		auto size = io.size();
-		auto stream = std::make_unique<MemoryStream>(size, true);
-		io.read(stream->map(), stream->map_size());
+		static constexpr size_t maxRomSize = 0x300000;
+		auto stream = std::make_unique<MemoryStream>(maxRomSize, true);
+		auto size = io.read(stream->map(), stream->map_size());
+		if(size <= 0)
+			throwFileReadError();
+		stream->setSize(size);
 		MDFNFILE fp(&NVFS, std::move(stream), contentFileName().data());
 		GameFile gf{fp.active_vfs(), fp.active_dir_path(), fp.stream(), fp.ext, fp.fbase};
 		emuSys->Load(&gf);

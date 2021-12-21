@@ -16,25 +16,13 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/util/DelegateFunc.hh>
+#include <imagine/gfx/defs.hh>
 
-namespace Base
+namespace ViewDefs
 {
 
-class CallbackDelegate : public DelegateFunc<bool ()>
-{
-public:
-	using DelegateFuncBase::DelegateFuncBase;
-
-	constexpr CallbackDelegate(IG::Callable<void> auto &&f):
-		DelegateFuncBase
-		{
-			[=]()
-			{
-				f();
-				return false;
-			}
-		} {}
-};
+static constexpr bool needsBackControlDefault = !Config::envIsAndroid;
+static constexpr bool needsBackControlIsMutable = !Config::envIsIOS;
+static constexpr auto imageCommonTextureSampler = Gfx::CommonTextureSampler::NEAREST_MIP_CLAMP;
 
 }

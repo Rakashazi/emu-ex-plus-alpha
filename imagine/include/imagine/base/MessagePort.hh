@@ -20,7 +20,6 @@
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/util/concepts.hh>
 #include <imagine/util/utility.h>
-#include <utility>
 #include <cstring>
 
 namespace Base
@@ -108,7 +107,7 @@ public:
 
 	void attach(auto &&f)
 	{
-		attach(EventLoop::forThread(), std::forward<decltype(f)>(f));
+		attach(EventLoop::forThread(), IG_forward(f));
 	}
 
 	void attach(EventLoop loop, IG::Callable<void, Messages> auto &&f)

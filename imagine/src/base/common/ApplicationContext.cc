@@ -20,6 +20,7 @@
 #include <imagine/input/Input.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/AssetFS.hh>
+#include <imagine/fs/ArchiveFS.hh>
 #include <imagine/io/FileIO.hh>
 #ifdef __ANDROID__
 #include <imagine/fs/AAssetFS.hh>
@@ -192,18 +193,50 @@ void ApplicationContext::dispatchOnExit(bool backgrounded)
 	application().dispatchOnExit(*this, backgrounded);
 }
 
-FS::RootPathInfo ApplicationContext::nearestRootPath(std::string_view path) const
+[[gnu::weak]] FS::PathString ApplicationContext::storagePath(const char *) const
+{
+	return sharedStoragePath();
+}
+
+FS::RootPathInfo ApplicationContext::rootPathInfo(std::string_view path) const
 {
 	if(path.empty())
 		return {};
+	if(IG::isUri(path))
+	{
+		if(auto [treePath, treePos] = FS::uriPathSegment(path, FS::uriPathSegmentTreeName);
+			Config::envIsAndroid && treePos != std::string_view::npos)
+		{
+			auto [docPath, docPos] = FS::uriPathSegment(path, FS::uriPathSegmentDocumentName);
+			//logMsg("tree path segment:%s", FS::PathString{treePath}.data());
+			//logMsg("document path segment:%s", FS::PathString{docPath}.data());
+			if(docPos == std::string_view::npos || docPath.size() < treePath.size())
+			{
+				logErr("invalid document path in tree URI:%s", path.data());
+				return {};
+			}
+			auto rootLen = docPos + treePath.size();
+			FS::PathString rootDocUri{path.data(), rootLen};
+			logMsg("found root document URI:%s", rootDocUri.data());
+			auto name = fileUriDisplayName(rootDocUri);
+			if(rootDocUri.ends_with("%3A"))
+				name += ':';
+			return {name, rootLen};
+		}
+		else
+		{
+			logErr("rootPathInfo() unsupported URI:%s", path.data());
+			return {};
+		}
+	}
 	auto location = rootFileLocations();
 	const FS::PathLocation *nearestPtr{};
 	size_t lastMatchOffset = 0;
 	for(const auto &l : location)
 	{
-		if(!path.starts_with(l.path))
+		if(!path.starts_with(l.root.path))
 			continue;
-		auto matchOffset = (size_t)(&path[l.root.length] - path.data());
+		auto matchOffset = (size_t)(&path[l.root.info.length] - path.data());
 		if(matchOffset > lastMatchOffset)
 		{
 			nearestPtr = &l;
@@ -212,8 +245,8 @@ FS::RootPathInfo ApplicationContext::nearestRootPath(std::string_view path) cons
 	}
 	if(!lastMatchOffset)
 		return {};
-	logMsg("found root location:%s with length:%d", nearestPtr->root.name.data(), (int)nearestPtr->root.length);
-	return {nearestPtr->root.name, nearestPtr->root.length};
+	logMsg("found root location:%s with length:%d", nearestPtr->root.info.name.data(), (int)nearestPtr->root.info.length);
+	return nearestPtr->root.info;
 }
 
 AssetIO ApplicationContext::openAsset(IG::CStringView name, IO::AccessHint hint, unsigned openFlags, const char *appName) const
@@ -236,11 +269,13 @@ FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(IG::CStringVie
 
 [[gnu::weak]] bool ApplicationContext::hasSystemPathPicker() const { return false; }
 
-[[gnu::weak]] void ApplicationContext::showSystemPathPicker(SystemPathPickerDelegate, bool) {}
+[[gnu::weak]] void ApplicationContext::showSystemPathPicker(SystemDocumentPickerDelegate) {}
 
 [[gnu::weak]] bool ApplicationContext::hasSystemDocumentPicker() const { return false; }
 
 [[gnu::weak]] void ApplicationContext::showSystemDocumentPicker(SystemDocumentPickerDelegate) {}
+
+[[gnu::weak]] void ApplicationContext::showSystemCreateDocumentPicker(SystemDocumentPickerDelegate) {}
 
 [[gnu::weak]] FileIO ApplicationContext::openFileUri(IG::CStringView uri, IO::AccessHint access, unsigned openFlags) const
 {
@@ -250,11 +285,6 @@ FS::AssetDirectoryIterator ApplicationContext::openAssetDirectory(IG::CStringVie
 FileIO ApplicationContext::openFileUri(IG::CStringView uri, unsigned openFlags) const
 {
 	return openFileUri(uri, IO::AccessHint::NORMAL, openFlags);
-}
-
-[[gnu::weak]] FS::PathString ApplicationContext::fileUri(IG::CStringView uri, IG::CStringView name) const
-{
-	return FS::pathString(uri, name);
 }
 
 [[gnu::weak]] bool ApplicationContext::fileUriExists(IG::CStringView uri) const
@@ -269,12 +299,21 @@ FileIO ApplicationContext::openFileUri(IG::CStringView uri, unsigned openFlags) 
 
 [[gnu::weak]] FS::FileString ApplicationContext::fileUriDisplayName(IG::CStringView uri) const
 {
-	return FS::basename(uri);
+	return FS::displayName(uri);
 }
 
 [[gnu::weak]] bool ApplicationContext::removeFileUri(IG::CStringView uri) const
 {
 	return FS::remove(uri);
+}
+
+[[gnu::weak]] void ApplicationContext::forEachInDirectoryUri(IG::CStringView uri, DirectoryEntryDelegate del) const
+{
+	for(auto &entry : FS::directory_iterator{uri})
+	{
+		if(!del(entry))
+			break;
+	}
 }
 
 Orientation ApplicationContext::validateOrientationMask(Orientation oMask) const
@@ -349,6 +388,8 @@ void ApplicationContext::setOnInputDevicesEnumerated(InputDevicesEnumeratedDeleg
 
 [[gnu::weak]] bool ApplicationContext::usesPermission(Permission) const { return false; }
 
+[[gnu::weak]] bool ApplicationContext::permissionIsRestricted(Permission p) const { return false; }
+
 [[gnu::weak]] bool ApplicationContext::requestPermission(Permission) { return false; }
 
 [[gnu::weak]] void ApplicationContext::addNotification(IG::CStringView onShow, IG::CStringView title, IG::CStringView message) {}
@@ -403,16 +444,45 @@ ApplicationContext OnExit::appContext() const
 namespace FileUtils
 {
 
-ssize_t writeToUri(Base::ApplicationContext ctx, IG::CStringView uri, void *data, size_t bytes)
+ssize_t writeToUri(Base::ApplicationContext ctx, IG::CStringView uri, std::span<const unsigned char> src)
 {
 	auto f = ctx.openFileUri(uri, IO::OPEN_CREATE | IO::OPEN_TEST);
-	return f.write(data, bytes);
+	return f.write(src.data(), src.size());
 }
 
-ssize_t readFromUri(Base::ApplicationContext ctx, IG::CStringView uri, void *data, size_t size)
+ssize_t readFromUri(Base::ApplicationContext ctx, IG::CStringView uri, std::span<unsigned char> dest,
+	IO::AccessHint accessHint)
 {
-	auto f = ctx.openFileUri(uri, IO::AccessHint::SEQUENTIAL, IO::OPEN_TEST);
-	return f.read(data, size);
+	auto f = ctx.openFileUri(uri, accessHint, IO::OPEN_TEST);
+	return f.read(dest.data(), dest.size());
+}
+
+std::pair<ssize_t, FS::PathString> readFromUriWithArchiveScan(Base::ApplicationContext ctx, IG::CStringView uri,
+	std::span<unsigned char> dest, bool(*nameMatchFunc)(std::string_view), IO::AccessHint accessHint)
+{
+	auto io = ctx.openFileUri(uri, accessHint);
+	if(FS::hasArchiveExtension(uri))
+	{
+		for(auto &entry : FS::ArchiveIterator{std::move(io)})
+		{
+			if(entry.type() == FS::file_type::directory)
+			{
+				continue;
+			}
+			auto name = entry.name();
+			if(nameMatchFunc(name))
+			{
+				auto io = entry.moveIO();
+				return {io.read(dest.data(), dest.size()), FS::PathString{name}};
+			}
+		}
+		logErr("no recognized files in archive:%s", uri.data());
+		return {-1, {}};
+	}
+	else
+	{
+		return {io.read(dest.data(), dest.size()), FS::PathString{uri}};
+	}
 }
 
 IG::ByteBuffer bufferFromUri(Base::ApplicationContext ctx, IG::CStringView uri, unsigned openFlags, size_t sizeLimit)
@@ -432,7 +502,7 @@ IG::ByteBuffer bufferFromUri(Base::ApplicationContext ctx, IG::CStringView uri, 
 
 FILE *fopenUri(Base::ApplicationContext ctx, IG::CStringView path, IG::CStringView mode)
 {
-	if(FS::isUri(path))
+	if(IG::isUri(path))
 	{
 		int openFlags = IG::stringContains(mode, 'w') ? IO::OPEN_CREATE : 0;
 		return GenericIO{ctx.openFileUri(path, openFlags | IO::OPEN_TEST)}.moveToFileStream(mode);

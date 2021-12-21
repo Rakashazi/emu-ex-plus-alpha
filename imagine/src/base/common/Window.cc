@@ -329,20 +329,20 @@ void Window::dispatchDismissRequest()
 
 void Window::dispatchSurfaceCreated()
 {
-	onSurfaceChange.callCopy(*this, {SurfaceChange::Action::CREATED});
+	onSurfaceChange.callCopy(*this, SurfaceChange::Action::CREATED);
 	surfaceChangeFlags |= SurfaceChange::SURFACE_RESIZED;
 }
 
 void Window::dispatchSurfaceChanged()
 {
-	onSurfaceChange.callCopy(*this, {SurfaceChange::Action::CHANGED, std::exchange(surfaceChangeFlags, {})});
+	onSurfaceChange.callCopy(*this, SurfaceChange{SurfaceChange::Action::CHANGED, std::exchange(surfaceChangeFlags, {})});
 }
 
 void Window::dispatchSurfaceDestroyed()
 {
 	surfaceChangeFlags = 0;
 	unpostDraw();
-	onSurfaceChange.callCopy(*this, {SurfaceChange::Action::DESTROYED});
+	onSurfaceChange.callCopy(*this, SurfaceChange::Action::DESTROYED);
 }
 
 void Window::dispatchOnDraw(bool needsSync)

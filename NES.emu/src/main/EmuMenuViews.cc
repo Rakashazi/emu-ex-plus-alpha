@@ -212,20 +212,20 @@ class CustomVideoOptionView : public VideoOptionView
 		{"Classic", &defaultFace(), [this]() { setPalette(appContext(), classicPalPath); }},
 		{"Custom File", &defaultFace(), [this](TextMenuItem &, View &, Input::Event e)
 			{
-				auto startPath = app().mediaSearchPath();
 				auto fsFilter = [](std::string_view name)
 					{
 						return name.ends_with(".pal");
 					};
-				auto fPicker = makeView<EmuFilePicker>(startPath.data(), false, fsFilter, FS::RootPathInfo{}, e, false, false);
+				auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::FILE, fsFilter, e, false);
 				fPicker->setOnSelectFile(
-					[this](FSPicker &picker, std::string_view name, Input::Event)
+					[this](FSPicker &picker, IG::CStringView path, std::string_view name, Input::Event)
 					{
-						setPalette(appContext(), picker.pathString(name).data());
+						setPalette(appContext(), path.data());
 						defaultPal.setSelected(defaultPaletteCustomFileIdx());
 						dismissPrevious();
 						picker.dismiss();
 					});
+				fPicker->setPath(app().contentSearchPath(), e);
 				app().pushAndShowModalView(std::move(fPicker), e);
 				return false;
 			}},
@@ -308,26 +308,26 @@ class CustomSystemOptionView : public SystemOptionView
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("Disk System BIOS", &::fdsBiosPath,
-				[this]()
+				[this](std::string_view displayName)
 				{
 					logMsg("set fds bios %s", ::fdsBiosPath.data());
-					fdsBiosPath.compile(makeBiosMenuEntryStr(), renderer(), projP);
+					fdsBiosPath.compile(biosMenuEntryStr(displayName), renderer(), projP);
 				},
 				hasFDSBIOSExtension);
 			pushAndShow(std::move(biosSelectMenu), e);
 		}
 	};
 
-	std::string makeBiosMenuEntryStr()
+	std::string biosMenuEntryStr(std::string_view displayName) const
 	{
-		return fmt::format("Disk System BIOS: {}", ::fdsBiosPath.size() ? appContext().fileUriDisplayName(::fdsBiosPath) : "None set");
+		return fmt::format("Disk System BIOS: {}", displayName);
 	}
 
 public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
-		fdsBiosPath.setName(makeBiosMenuEntryStr().data());
+		fdsBiosPath.setName(appContext().fileUriDisplayName(::fdsBiosPath));
 		item.emplace_back(&fdsBiosPath);
 	}
 };

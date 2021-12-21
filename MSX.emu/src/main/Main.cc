@@ -20,6 +20,7 @@
 #include <emuframework/EmuVideo.hh>
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/ArchiveFS.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/gui/AlertView.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/format.hh>
@@ -77,15 +78,14 @@ static const bool checkForMachineFolderOnStart = false;
 
 CLINK Int16 *mixerGetBuffer(Mixer* mixer, UInt32 *samplesOut);
 
-FS::PathString machineBasePath(Base::ApplicationContext app)
+FS::PathString machineBasePath(Base::ApplicationContext ctx)
 {
 	if(EmuSystem::firmwarePath().empty())
 	{
-		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-		return IG::format<FS::PathString>("{}/MSX.emu", EmuApp::assetPath(app));
-		#else
-		return IG::format<FS::PathString>("{}/MSX.emu", app.sharedStoragePath());
-		#endif
+		if constexpr(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
+			return ctx.assetPath();
+		else
+			return IG::format<FS::PathString>("{}/MSX.emu", ctx.storagePath());
 	}
 	else
 	{
@@ -171,7 +171,7 @@ static void insertMedia(EmuApp &app)
 		logMsg("loading HD %s", hdName[i].data());
 		if(!insertDisk(app, hdName[i].data(), diskGetHdDriveId(i / 2, i % 2)))
 		{
-			throw std::runtime_error(fmt::format("Error loading Disk{}:\n{}", i, hdName[i]));
+			throw std::runtime_error(fmt::format("Error loading HD{}:\n{}", i, hdName[i]));
 		}
 	}
 }
@@ -286,8 +286,8 @@ static bool createBoardFromLoadGame(EmuApp &app)
 
 static void throwMachineInitError(std::string_view machineName)
 {
-	throw std::runtime_error(fmt::format("Error loading machine files for\n\"{}\",\nmake sure they are in:\n{}",
-		machineName, EmuSystem::firmwarePath()));
+	throw std::runtime_error(fmt::format("Error loading machine files for\n\"{}\",\nplease check Options➔System➔BIOS Path",
+		machineName));
 }
 
 static bool initMachine(std::string_view machineName)
@@ -299,9 +299,7 @@ static bool initMachine(std::string_view machineName)
 	logMsg("loading machine %s", machineName.data());
 	if(machine)
 		machineDestroy(machine);
-	FS::current_path(EmuSystem::firmwarePath());
 	machine = machineCreate(machineName.data());
-	FS::current_path(EmuSystem::contentSavePath());
 	if(!machine)
 	{
 		return false;
@@ -393,7 +391,7 @@ static FS::FileString getFirstMediaFilenameInArchive(Base::ApplicationContext ct
 bool insertROM(EmuApp &app, const char *name, unsigned slot)
 {
 	assert(EmuSystem::contentDirectory().size());
-	auto path = FS::pathString(EmuSystem::contentDirectory(), name);
+	auto path = EmuSystem::contentDirectory(app.appContext(), name);
 	FS::FileString fileInZipName{};
 	if(EmuApp::hasArchiveExtension(path))
 	{
@@ -416,7 +414,7 @@ bool insertROM(EmuApp &app, const char *name, unsigned slot)
 bool insertDisk(EmuApp &app, const char *name, unsigned slot)
 {
 	assert(EmuSystem::contentDirectory().size());
-	auto path = FS::pathString(EmuSystem::contentDirectory(), name);
+	auto path = EmuSystem::contentDirectory(app.appContext(), name);
 	FS::FileString fileInZipName{};
 	if(EmuApp::hasArchiveExtension(path))
 	{
@@ -540,17 +538,16 @@ static void loadBlueMSXState(EmuApp &app, const char *filename)
 	ejectMedia();
 
 	saveStateCreateForRead(filename);
+	auto destroySaveState = IG::scopeGuard([](){ saveStateDestroy(); });
 	int size;
 	char *version = (char*)zipLoadFile(filename, "version", &size);
 	if(!version)
 	{
-		saveStateDestroy();
 		EmuSystem::throwFileReadError();
 	}
 	if(0 != strncmp(version, saveStateVersion, sizeof(saveStateVersion) - 1))
 	{
 		free(version);
-		saveStateDestroy();
 		throw std::runtime_error("Incorrect state version");
 	}
 	free(version);
@@ -560,7 +557,6 @@ static void loadBlueMSXState(EmuApp &app, const char *filename)
 	// from this point on, errors are fatal and require the existing game to close
 	if(!createBoardFromLoadGame(app))
 	{
-		saveStateDestroy();
 		auto err = fmt::format("Can't initialize machine:{} from save-state", machine->name);
 		app.exitGame(false);
 		throw std::runtime_error{err};
@@ -591,7 +587,6 @@ static void loadBlueMSXState(EmuApp &app, const char *filename)
 	}
 
 	boardInfo.loadState();
-	saveStateDestroy();
 	logMsg("state loaded with machine:%s", machine->name);
 }
 
@@ -615,6 +610,10 @@ void EmuSystem::closeSystem(Base::ApplicationContext)
 
 void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
+	if(contentDirectory().empty())
+	{
+		throwMissingContentDirError();
+	}
 	// configure media loading
 	auto mediaPath = contentLocation();
 	auto mediaFilename = contentFileName();
@@ -640,7 +639,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 	}
 	else if(hasMSXDiskExtension(mediaFilename))
 	{
-		loadDiskAsHD = FS::file_size(mediaPath) >= 1024 * 1024;
+		loadDiskAsHD = ctx.openFileUri(mediaPath).size() >= 1024 * 1024;
 		if(loadDiskAsHD)
 			logMsg("loading disk image as HD");
 	}

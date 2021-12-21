@@ -315,7 +315,7 @@ static bool processDevNode(Base::LinuxApplication &app, IG::CStringView path, in
 	return true;
 }
 
-static bool processDevNodeName(IG::CStringView name, FS::PathString &path, uint32_t &id)
+static bool processDevNodeName(IG::CStringView name, uint32_t &id)
 {
 	// extract id number from "event*" name and get the full path
 	if(sscanf(name, "event%u", &id) != 1)
@@ -323,7 +323,6 @@ static bool processDevNodeName(IG::CStringView name, FS::PathString &path, uint3
 		//logWarn("couldn't extract numeric part of node name: %s", name);
 		return false;
 	}
-	path = FS::pathString(DEV_NODE_PATH, name);
 	return true;
 }
 
@@ -357,9 +356,9 @@ void LinuxApplication::initEvdev(EventLoop loop)
 							if(inotifyEv->len > 1)
 							{
 								uint32_t id;
-								FS::PathString path;
-								if(Input::processDevNodeName(inotifyEv->name, path, id))
+								if(Input::processDevNodeName(inotifyEv->name, id))
 								{
+									auto path = FS::pathString(DEV_NODE_PATH, inotifyEv->name);
 									Input::processDevNode(*this, path, id, true);
 								}
 							}
@@ -386,13 +385,13 @@ void LinuxApplication::initEvdev(EventLoop loop)
 	{
 		for(auto &entry : FS::directory_iterator{DEV_NODE_PATH})
 		{
-			std::string_view filename{entry.name()};
+			auto filename = entry.name();
 			if(entry.type() != FS::file_type::character || !IG::stringContains(filename, "event"))
 				continue;
 			uint32_t id;
-			FS::PathString path;
-			if(!Input::processDevNodeName(filename, path, id))
+			if(!Input::processDevNodeName(filename, id))
 				continue;
+			auto path = FS::pathString(DEV_NODE_PATH, filename);
 			Input::processDevNode(*this, path, id, false);
 		}
 	}

@@ -25,6 +25,7 @@ import android.os.Vibrator;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Build;
+import android.os.ParcelFileDescriptor;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewConfiguration;
@@ -47,10 +48,9 @@ import android.content.pm.Signature;
 import android.content.pm.PackageManager;
 import android.content.pm.ShortcutManager;
 import android.content.pm.ShortcutInfo;
+import android.content.ContentResolver;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.provider.DocumentsContract;
 
@@ -66,8 +66,8 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	static native void inputDeviceEnumerated(long nativeUserData,
 		int devID, InputDevice dev, String name, int src, int kbType,
 		int jsAxisBits, boolean isPowerButton);
-	static native void documentTreeOpened(long nativeUserData, String path);
-	static native void documentOpened(long nativeUserData, String uri, int fd);
+	static native void uriPicked(long nativeUserData, String uri, String name);
+	static native boolean uriFileListed(long nativeUserData, String uri, String name, boolean isDir);
 	private static final int commonUILayoutFlags = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
 		| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
 	private Display defaultDpy;
@@ -75,7 +75,6 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	private static final int REQUEST_OPEN_DOCUMENT_TREE = 1;
 	private static final int REQUEST_BT_ON = 2;
 	private static final int REQUEST_OPEN_DOCUMENT = 3;
-	private static final int REQUEST_OPEN_DOCUMENT_TREE_AS_PATH = 4;
 
 	boolean hasPermanentMenuKey()
 	{
@@ -284,41 +283,27 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		{
 			onBTOn(resultCode == RESULT_OK);
 		}
-		else if(android.os.Build.VERSION.SDK_INT >= 30 && requestCode == REQUEST_OPEN_DOCUMENT_TREE &&
+		else if(android.os.Build.VERSION.SDK_INT >= 21 && requestCode == REQUEST_OPEN_DOCUMENT_TREE &&
 			resultCode == RESULT_OK && intent != null)
 		{
+			final ContentResolver resolver = getContentResolver();
 			final Uri uri = intent.getData();
 			final int takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
-			getContentResolver().takePersistableUriPermission(uri, takeFlags);
-			Uri dirUri = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri));
-			documentTreeOpened(activityResultNativeUserData, dirUri.toString());
-		}
-		else if(android.os.Build.VERSION.SDK_INT >= 30 && requestCode == REQUEST_OPEN_DOCUMENT_TREE_AS_PATH &&
-			resultCode == RESULT_OK && intent != null)
-		{
-			final Uri uri = intent.getData();
-			final String path = StorageManagerHelper.pathFromDocumentUri(this, uri);
-			if(path != null)
-			{
-				documentTreeOpened(activityResultNativeUserData, path);
-			}
+			resolver.takePersistableUriPermission(uri, takeFlags);
+			final Uri dirUri = DocumentsContract.buildDocumentUriUsingTree(uri, DocumentsContract.getTreeDocumentId(uri));
+			final String displayName = ContentResolverUtils.uriDisplayName(resolver, dirUri);
+			uriPicked(activityResultNativeUserData, dirUri.toString(), displayName);
 		}
 		else if(android.os.Build.VERSION.SDK_INT >= 19 && requestCode == REQUEST_OPEN_DOCUMENT &&
 			resultCode == RESULT_OK && intent != null)
 		{
+			// handles both ACTION_OPEN_DOCUMENT & ACTION_CREATE_DOCUMENT
+			final ContentResolver resolver = getContentResolver();
 			final Uri uri = intent.getData();
-			int fd = -1;
-			try
-			{
-				fd = getContentResolver().openFileDescriptor(uri, "r").detachFd();
-			}
-			catch(Exception e)
-			{
-				return;
-			}
-			final int takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION;
-			getContentResolver().takePersistableUriPermission(uri, takeFlags);
-			documentOpened(activityResultNativeUserData, uri.toString(), fd);
+			final int takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
+			resolver.takePersistableUriPermission(uri, takeFlags);
+			final String displayName = ContentResolverUtils.uriDisplayName(resolver, uri);
+			uriPicked(activityResultNativeUserData, uri.toString(), displayName);
 		}
 	}
 	
@@ -335,7 +320,14 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		Uri uri = getIntent().getData();
 		if(uri != null)
 		{
-			path = uri.getPath();
+			if(uri.getScheme().equals("file"))
+			{
+				path = uri.getPath();
+			}
+			else
+			{
+				path = uri.toString();
+			}
 			//Log.i(logTag, "path: " + path);
 			getIntent().setData(null); // data is one-time use
 		}
@@ -350,7 +342,7 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 			viewIntent.setData(Uri.parse("file://" + path));
 		else
 			viewIntent.setData(Uri.parse(path));
-		int icon = getResources().getIdentifier("icon", "drawable", getPackageName());
+		int icon = getResources().getIdentifier("icon", "mipmap", getPackageName());
 		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
 		{
 			ShortcutManager shortcutManager = getSystemService(ShortcutManager.class);
@@ -486,9 +478,20 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		}
 		try
 		{
-			FileOutputStream output = new FileOutputStream(path);
-			success = bitmap.compress(Bitmap.CompressFormat.PNG, 100, output);
-			output.close();
+			if(android.os.Build.VERSION.SDK_INT >= 21 && path.charAt(0) != '/')
+			{
+				int fd = ContentResolverUtils.openUriFd(getContentResolver(), path, ContentResolverUtils.OPEN_WRITE);
+				ParcelFileDescriptor pfd = ParcelFileDescriptor.adoptFd(fd);
+				ParcelFileDescriptor.AutoCloseOutputStream output = new ParcelFileDescriptor.AutoCloseOutputStream(pfd);
+				success = bitmap.compress(Bitmap.CompressFormat.PNG, 100, output);
+				output.close();
+			}
+			else
+			{
+				FileOutputStream output = new FileOutputStream(path);
+				success = bitmap.compress(Bitmap.CompressFormat.PNG, 100, output);
+				output.close();
+			}
 		}
 		catch(Exception e)
 		{
@@ -523,9 +526,11 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	
 	boolean requestPermission(String permission)
 	{
-		if(ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED)
+		if(android.os.Build.VERSION.SDK_INT < 23)
 			return true;
-		ActivityCompat.requestPermissions(this, new String[]{permission}, 0);
+		if(checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED)
+			return true;
+		requestPermissions(new String[]{permission}, 0);
 		return false;
 	}
 
@@ -545,22 +550,25 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 	void openURL(String url)
 	{
 		Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-		if(intent.resolveActivity(getPackageManager()) != null)
+		try
 		{
 			startActivity(intent);
 		}
+		catch(Exception e)
+		{
+			//Log.e(logTag, "error starting activity for URL:" + url);
+		}
 	}
 
-	void openDocumentTree(long nativeUserData, boolean convertToPath)
+	// Storage Access Framework support
+
+	void openDocumentTree(long nativeUserData)
 	{
-		if(android.os.Build.VERSION.SDK_INT < 30)
+		if(android.os.Build.VERSION.SDK_INT < 21)
 			return;
 		activityResultNativeUserData = nativeUserData;
 		Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-		if(convertToPath)
-			startActivityForResult(intent, REQUEST_OPEN_DOCUMENT_TREE_AS_PATH);
-		else
-			startActivityForResult(intent, REQUEST_OPEN_DOCUMENT_TREE);
+		startActivityForResult(intent, REQUEST_OPEN_DOCUMENT_TREE);
 	}
 
 	void openDocument(long nativeUserData)
@@ -574,19 +582,22 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		startActivityForResult(intent, REQUEST_OPEN_DOCUMENT);
 	}
 
+	void createDocument(long nativeUserData)
+	{
+		if(android.os.Build.VERSION.SDK_INT < 19)
+			return;
+		activityResultNativeUserData = nativeUserData;
+		Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+		intent.addCategory(Intent.CATEGORY_OPENABLE);
+		intent.setType("application/octet-stream");
+		startActivityForResult(intent, REQUEST_OPEN_DOCUMENT);
+	}
+
 	int openUriFd(String uriStr, int flags)
 	{
 		if(android.os.Build.VERSION.SDK_INT < 19)
 			return -1;
 		return ContentResolverUtils.openUriFd(getContentResolver(), uriStr, flags);
-	}
-
-	String documentUri(String uriStr, String name)
-	{
-		if(android.os.Build.VERSION.SDK_INT < 21)
-			return null;
-		Uri docUri = Uri.parse(uriStr.toString() + Uri.encode('/' + name));
-		return docUri.toString();
 	}
 
 	boolean uriExists(String uriStr)
@@ -617,24 +628,10 @@ public final class BaseActivity extends NativeActivity implements AudioManager.O
 		return ContentResolverUtils.deleteUri(getContentResolver(), uriStr);
 	}
 
-	boolean requestExternalStorageManager()
+	boolean listUriFiles(long nativeUserData, String uriStr)
 	{
-		if(android.os.Build.VERSION.SDK_INT < 30)
+		if(android.os.Build.VERSION.SDK_INT < 21)
 			return false;
-		if(Environment.isExternalStorageManager())
-			return true;
-		try
-		{
-			Intent intent = new Intent("android.settings.MANAGE_APP_ALL_FILES_ACCESS_PERMISSION", Uri.parse("package:" + getPackageName()));
-			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-			startActivity(intent);
-		}
-		catch(Exception e)
-		{
-			Intent intent = new Intent("android.settings.MANAGE_ALL_FILES_ACCESS_PERMISSION");
-			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-			startActivity(intent);
-		}
-		return false;
+		return ContentResolverUtils.listUriFiles(getContentResolver(), nativeUserData, uriStr);
 	}
 }

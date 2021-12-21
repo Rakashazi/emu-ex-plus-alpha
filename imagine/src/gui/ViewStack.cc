@@ -18,6 +18,7 @@
 #include <imagine/gui/NavView.hh>
 #include <imagine/base/Window.hh>
 #include <imagine/input/Input.hh>
+#include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/ScopeGuard.hh>

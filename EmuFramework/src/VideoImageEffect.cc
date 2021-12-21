@@ -18,7 +18,7 @@
 #include <imagine/io/FileIO.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererCommands.hh>
-#include <imagine/fs/FS.hh>
+#include <imagine/fs/FSDefs.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/logger/logger.h>

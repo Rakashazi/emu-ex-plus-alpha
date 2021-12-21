@@ -16,9 +16,8 @@
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/gfx/RendererCommands.hh>
+#include <imagine/gfx/GlyphTextureSet.hh>
 #include <imagine/logger/logger.h>
-
-BaseTextMenuItem::BaseTextMenuItem() {}
 
 void BaseTextMenuItem::prepareDraw(Gfx::Renderer &r)
 {
@@ -90,7 +89,9 @@ bool BaseTextMenuItem::active()
 	return active_;
 }
 
-TextMenuItem::TextMenuItem() {}
+TextMenuItem::TextMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
+	BaseTextMenuItem{std::move(name), face},
+	selectD{selectDel} {}
 
 bool TextMenuItem::select(View &parent, Input::Event e)
 {
@@ -108,11 +109,11 @@ TextMenuItem::SelectDelegate TextMenuItem::onSelect() const
 	return selectD;
 }
 
-TextHeadingMenuItem::TextHeadingMenuItem() {}
-
 bool TextHeadingMenuItem::select(View &parent, Input::Event e) { return true; };
 
-BaseDualTextMenuItem::BaseDualTextMenuItem() {}
+BaseDualTextMenuItem::BaseDualTextMenuItem(IG::utf16String name, IG::utf16String name2, Gfx::GlyphTextureSet *face):
+	BaseTextMenuItem{std::move(name), face},
+	t2{std::move(name2), face} {}
 
 void BaseDualTextMenuItem::compile(Gfx::Renderer &r, const Gfx::ProjectionPlane &projP)
 {
@@ -146,7 +147,10 @@ void BaseDualTextMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::
 	BaseDualTextMenuItem::draw2ndText(cmds, xPos, yPos, xSize, ySize, xIndent, align, projP, color);
 }
 
-DualTextMenuItem::DualTextMenuItem() {}
+DualTextMenuItem::DualTextMenuItem(IG::utf16String name, IG::utf16String name2,
+	Gfx::GlyphTextureSet *face, SelectDelegate selectDel):
+	BaseDualTextMenuItem{std::move(name), std::move(name2), face},
+	selectD{selectDel} {}
 
 bool DualTextMenuItem::select(View &parent, Input::Event e)
 {
@@ -159,8 +163,6 @@ void DualTextMenuItem::setOnSelect(SelectDelegate onSelect)
 {
 	selectD = onSelect;
 }
-
-BoolMenuItem::BoolMenuItem() {}
 
 bool BoolMenuItem::select(View &parent, Input::Event e)
 {
@@ -264,7 +266,21 @@ public:
 	}
 };
 
-MultiChoiceMenuItem::MultiChoiceMenuItem() {}
+MultiChoiceMenuItem::MultiChoiceMenuItem(IG::utf16String name, Gfx::GlyphTextureSet *face, SetDisplayStringDelegate onDisplayStr,
+	int selected, ItemsDelegate items, ItemDelegate item, SelectDelegate selectDel):
+	BaseDualTextMenuItem{std::move(name), {}, face},
+	selectD
+	{
+		selectDel ? selectDel :
+			[this](MultiChoiceMenuItem &item, View &view, Input::Event e)
+			{
+				item.defaultOnSelect(view, e);
+			}
+	},
+	items_{items},
+	item_{item},
+	onSetDisplayString{onDisplayStr},
+	selected_{selected} {}
 
 void MultiChoiceMenuItem::draw(Gfx::RendererCommands &cmds, Gfx::GC xPos, Gfx::GC yPos, Gfx::GC xSize, Gfx::GC ySize,
 	Gfx::GC xIndent, _2DOrigin align, const Gfx::ProjectionPlane &projP, Gfx::Color color) const

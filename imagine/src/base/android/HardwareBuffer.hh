@@ -16,10 +16,14 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/rectangle2.h>
-#include <imagine/pixmap/PixmapDesc.hh>
 #include <EGL/egl.h>
 
 struct AHardwareBuffer;
+
+namespace IG
+{
+class PixmapDesc;
+}
 
 namespace Base
 {

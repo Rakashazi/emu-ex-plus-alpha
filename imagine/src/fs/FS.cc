@@ -46,38 +46,53 @@ PathString dirname(IG::CStringView path)
 	return dirnameImpl(path);
 }
 
-bool isUri(std::string_view str)
+FileString displayName(IG::CStringView path)
 {
-	if(str[0] == '/')
-		return false;
-	else return true;
-}
-
-PathString decodeUri(std::string_view uri)
-{
-	PathStringArray output;
-	assert(uri.size() < sizeof(output) - 1);
-	IG::decodeUri(uri, output.data());
-	return output.data();
-}
-
-FileString basenameUri(IG::CStringView pathOrUri, bool isEncodedUri)
-{
-	if(isEncodedUri)
-		return basename(decodeUri(pathOrUri));
+	if(!FS::exists(path))
+		return {};
 	else
-		return basename(pathOrUri);
+		return basename(path);
 }
 
-bool fileStringNoCaseLexCompare(FS::FileString s1, FS::FileString s2)
+PathString dirnameUri(IG::CStringView pathOrUri)
 {
-	return std::lexicographical_compare(
-		s1.begin(), s1.end(),
-		s2.begin(), s2.end(),
-		[](char c1, char c2)
+	if(!isUri(pathOrUri))
+		return dirname(pathOrUri);
+	if(auto [treePath, treePos] = FS::uriPathSegment(pathOrUri, FS::uriPathSegmentTreeName);
+		Config::envIsAndroid && treePos != std::string_view::npos)
+	{
+		auto [docPath, docPos] = FS::uriPathSegment(pathOrUri, FS::uriPathSegmentDocumentName);
+		if(docPos == std::string_view::npos)
 		{
-			return std::tolower(c1) < std::tolower(c2);
-		});
+			logErr("invalid document path in tree URI:%s", pathOrUri.data());
+			return {};
+		}
+		if(auto lastSlashPos = docPath.rfind("%2F");
+			lastSlashPos != std::string_view::npos) // return everything before the last /
+		{
+			return {pathOrUri, docPos + lastSlashPos};
+		}
+		if(auto colonPos = docPath.find("%3A");
+			colonPos != std::string_view::npos) // at root, return everything before and including the :
+		{
+			colonPos += 3;
+			return {pathOrUri, docPos + colonPos};
+		}
+	}
+	logErr("can't get directory name on unsupported URI:%s", pathOrUri.data());
+	return {};
+}
+
+std::pair<std::string_view, size_t> uriPathSegment(std::string_view uri, std::string_view name)
+{
+	assert(name.starts_with('/') && name.ends_with('/'));
+	auto pathPos = uri.find(name);
+	if(pathPos == std::string_view::npos)
+		return {{}, std::string_view::npos};
+	pathPos += name.size();
+	auto pathStart = uri.substr(pathPos);
+	// return the substring of the segment and the absolute offset into the original string view
+	return {pathStart.substr(0, pathStart.find('/')), pathPos};
 }
 
 int directoryItems(IG::CStringView path)

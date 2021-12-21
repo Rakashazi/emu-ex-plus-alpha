@@ -15,7 +15,13 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+
+#ifdef __cplusplus
+#include <utility>
+#include <cassert>
+#else
 #include <assert.h>
+#endif
 
 #ifdef __cplusplus
 #define CLINK extern "C"
@@ -52,4 +58,51 @@
 CLINK void bug_doExit(const char *msg, ...)  __attribute__ ((format (printf, 1, 2)));
 #define assumeExpr(E) assert(E)
 #define bug_unreachable(msg, ...) bug_doExit("bug: " msg " @" __FILE__ ", line:%d , func:%s", ## __VA_ARGS__, __LINE__, __PRETTY_FUNCTION__)
+#endif
+
+#define IG_forward(var) std::forward<decltype(var)>(var)
+
+#ifdef __cplusplus
+namespace IG
+{
+
+static constexpr char hexDigitChar(unsigned value, bool uppercase = true)
+{
+	switch(value)
+	{
+		case  0: return '0';
+		case  1: return '1';
+		case  2: return '2';
+		case  3: return '3';
+		case  4: return '4';
+		case  5: return '5';
+		case  6: return '6';
+		case  7: return '7';
+		case  8: return '8';
+		case  9: return '9';
+		case 10: return uppercase ? 'A' : 'a';
+		case 11: return uppercase ? 'B' : 'b';
+		case 12: return uppercase ? 'C' : 'c';
+		case 13: return uppercase ? 'D' : 'd';
+		case 14: return uppercase ? 'E' : 'e';
+		default: return uppercase ? 'F' : 'f';
+	}
+}
+
+static constexpr unsigned char charHexDigitInt(char c)
+{
+	switch (c)
+	{
+		case '0' ... '9':
+			return 9 + c - '9';
+		case 'a' ... 'f':
+			return 15 + c - 'f';
+		case 'A' ... 'F':
+			return 15 + c - 'F';
+		default:
+			return 0;
+	}
+}
+
+}
 #endif

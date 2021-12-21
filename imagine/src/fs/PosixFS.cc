@@ -49,10 +49,10 @@ static bool isDotName(std::string_view name)
 	return name == "." || name == "..";
 }
 
-DirectoryEntryImpl::DirectoryEntryImpl(IG::CStringView path):
+DirectoryStream::DirectoryStream(IG::CStringView path):
 	dir{opendir(path)}
 {
-	if(!dir) [[unlikely]]
+	if(!dir)
 	{
 		if(Config::DEBUG_BUILD)
 			logErr("opendir(%s) error:%s", path.data(), strerror(errno));
@@ -63,88 +63,39 @@ DirectoryEntryImpl::DirectoryEntryImpl(IG::CStringView path):
 	readNextDir(); // go to first entry
 }
 
-bool DirectoryEntryImpl::readNextDir()
+bool DirectoryStream::readNextDir()
 {
 	if(!dir) [[unlikely]]
 		return false;
 	errno = 0;
-	// clear cached types
-	type_ = {};
-	linkType_ = {};
-	while((dirent_ = readdir(dir.get())))
+	struct dirent *ent{};
+	while((ent = readdir(dir.get())))
 	{
 		//logMsg("reading entry:%s", dirent.d_name);
-		if(!isDotName(dirent_->d_name))
+		if(!isDotName(ent->d_name))
 		{
 			#ifdef __APPLE__
 			// Precompose all strings for text renderer
 			// TODO: make optional when renderer supports decomposed unicode
-			precomposeUnicodeString(dirent_->d_name, dirent_->d_name, NAME_MAX + 1);
+			precomposeUnicodeString(ent->d_name, ent->d_name, NAME_MAX + 1);
 			#endif
+			entry_ = {pathString(basePath, ent->d_name), ent};
 			return true; // got an entry
 		}
 	}
 	// handle error or end of directory
 	if(Config::DEBUG_BUILD && errno)
 		logErr("readdir error: %s", strerror(errno));
+	entry_ = {};
 	return false;
 }
 
-bool DirectoryEntryImpl::hasEntry() const
+bool DirectoryStream::hasEntry() const
 {
-	return dirent_;
+	return (bool)entry_;
 }
 
-std::string_view DirectoryEntryImpl::name() const
-{
-	assumeExpr(dirent_);
-	return dirent_->d_name;
-}
-
-file_type DirectoryEntryImpl::type() const
-{
-	assumeExpr(dirent_);
-	if(type_ == file_type::none)
-	{
-		type_ = makeDirType(dirent_->d_type);
-		if(type_ == file_type::unknown || type_ == file_type::symlink)
-		{
-			type_ = status(path()).type();
-		}
-	}
-	return type_;
-}
-
-file_type DirectoryEntryImpl::symlink_type() const
-{
-	assumeExpr(dirent_);
-	if(linkType_ == file_type::none)
-	{
-		linkType_ = makeDirType(dirent_->d_type);
-		if(linkType_ == file_type::unknown)
-		{
-			logMsg("dir entry doesn't provide file type");
-			linkType_ = symlink_status(path()).type();
-		}
-	}
-	return linkType_;
-}
-
-PathString DirectoryEntryImpl::path() const
-{
-	return FS::pathString(basePath, name());
-}
-
-void DirectoryEntryImpl::close()
-{
-	if(dir)
-	{
-		logMsg("closing directory:%s", basePath.data());
-	}
-	dir.reset();
-}
-
-void DirectoryEntryImpl::closeDirectoryStream(DIR *dir)
+void DirectoryStream::closeDirectoryStream(DIR *dir)
 {
 	//logDMsg("closing dir:%p", dir);
 	if(::closedir(dir) == -1 && Config::DEBUG_BUILD) [[unlikely]]
@@ -153,33 +104,69 @@ void DirectoryEntryImpl::closeDirectoryStream(DIR *dir)
 	}
 }
 
-template <class... Args>
-static std::shared_ptr<DirectoryEntryImpl> makeDirEntryPtr(Args&& ...args)
+std::string_view directory_entry::name() const
 {
-	DirectoryEntryImpl dirEntry{std::forward<Args>(args)...};
-	if(dirEntry.hasEntry())
+	if(name_.size())
 	{
-		return std::make_shared<DirectoryEntryImpl>(std::move(dirEntry));
+		return name_;
 	}
 	else
 	{
-		// empty directory
-		return {};
+		assumeExpr(dirent_);
+		return dirent_->d_name;
 	}
 }
 
+file_type directory_entry::type() const
+{
+	if(type_ == file_type::none)
+	{
+		assumeExpr(dirent_);
+		type_ = makeDirType(dirent_->d_type);
+		if(type_ == file_type::unknown || type_ == file_type::symlink)
+		{
+			type_ = status(path_).type();
+		}
+	}
+	return type_;
+}
+
+file_type directory_entry::symlink_type() const
+{
+	if(linkType_ == file_type::none)
+	{
+		linkType_ = type();
+		if(linkType_ == file_type::symlink)
+		{
+			logMsg("checking symlink type for:%s", path_.data());
+			linkType_ = symlink_status(path_).type();
+		}
+	}
+	return linkType_;
+}
+
+PathString directory_entry::path() const
+{
+	return path_;
+}
+
+static std::shared_ptr<DirectoryStream> makeDirectoryStream(IG::CStringView path)
+{
+	auto streamPtr = std::make_shared<DirectoryStream>(path);
+	return streamPtr->hasEntry() ? streamPtr : nullptr;
+}
+
 directory_iterator::directory_iterator(IG::CStringView path):
-	impl{makeDirEntryPtr(path)}
-{}
+	impl{makeDirectoryStream(path)} {}
 
 directory_entry& directory_iterator::operator*()
 {
-	return *impl;
+	return impl->entry();
 }
 
 directory_entry* directory_iterator::operator->()
 {
-	return impl.get();
+	return &impl->entry();
 }
 
 void directory_iterator::operator++()
@@ -215,6 +202,8 @@ static file_type makeFileType(struct stat s)
 
 static std::string formatDateAndTime(std::tm time)
 {
+	if(!time.tm_year)
+		return {};
 	std::array<char, 64> str{};
 	static constexpr const char *strftimeFormat = "%x  %r";
 	std::strftime(str.data(), str.size(), strftimeFormat, &time);
@@ -223,8 +212,10 @@ static std::string formatDateAndTime(std::tm time)
 
 std::tm file_status::lastWriteTimeLocal() const
 {
-	std::tm localMTime;
 	std::time_t mTime = lastWriteTime();
+	if(!mTime)
+		return {};
+	std::tm localMTime;
 	if(!localtime_r(&mTime, &localMTime)) [[unlikely]]
 	{
 		logErr("localtime_r failed");

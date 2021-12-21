@@ -19,6 +19,7 @@
 #include <imagine/util/ScopeGuard.hh>
 #include <imagine/util/algorithm.h>
 #include <imagine/io/FileIO.hh>
+#include <imagine/fs/FSDefs.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/logger/logger.h>
 #ifdef CONFIG_PACKAGE_FONTCONFIG

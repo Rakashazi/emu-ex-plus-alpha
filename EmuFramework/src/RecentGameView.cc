@@ -54,7 +54,7 @@ RecentGameView::RecentGameView(ViewAttachParams attach, EmuApp::RecentContentLis
 		auto &recentItem = recentGame.emplace_back(entry.name, &defaultFace(),
 			[this, &entry](Input::Event e)
 			{
-				app().createSystemWithMedia({}, entry.path, FS::isUri(entry.path), e, {}, attachParams(),
+				app().createSystemWithMedia({}, entry.path, appContext().fileUriDisplayName(entry.path), e, {}, attachParams(),
 					[this](Input::Event e)
 					{
 						app().launchSystemWithResumePrompt(e);

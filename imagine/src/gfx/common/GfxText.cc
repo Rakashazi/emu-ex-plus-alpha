@@ -27,8 +27,6 @@
 namespace Gfx
 {
 
-Text::Text() {}
-
 Text::Text(GlyphTextureSet *face): Text{{}, face}
 {}
 

@@ -20,6 +20,7 @@
 #include <imagine/base/MessagePort.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/util/concepts.hh>
+#include <imagine/util/utility.h>
 #include <thread>
 
 namespace Gfx
@@ -58,7 +59,7 @@ public:
 	};
 
 	// Align delegate data to 16 bytes in case we store SIMD types
-	using FuncDelegate = DelegateFunc2<sizeof(uintptr_t)*4 + sizeof(int)*10, 16, void(Base::GLDisplay glDpy, std::binary_semaphore *semPtr)>;
+	using FuncDelegate = DelegateFuncA<sizeof(uintptr_t)*4 + sizeof(int)*10, 16, void(Base::GLDisplay glDpy, std::binary_semaphore *semPtr)>;
 
 	enum class Command: uint8_t
 	{
@@ -127,7 +128,7 @@ public:
 			}, awaitReply);
 	}
 
-	void runSync(auto &&f) { run(std::forward<decltype(f)>(f), true); }
+	void runSync(auto &&f) { run(IG_forward(f), true); }
 
 protected:
 	std::thread thread{};

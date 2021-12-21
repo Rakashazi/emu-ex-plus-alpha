@@ -19,7 +19,7 @@
 #include <imagine/logger/logger.h>
 #include <algorithm>
 
-TextTableView::TextTableView(ViewAttachParams attach, unsigned itemsHint): TextTableView{{}, attach, itemsHint} {}
+TextTableView::TextTableView(ViewAttachParams attach, size_t itemsHint): TextTableView{{}, attach, itemsHint} {}
 
 void TextTableView::appendItem(IG::utf16String name, TextMenuItem::SelectDelegate del)
 {

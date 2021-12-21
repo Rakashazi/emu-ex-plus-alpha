@@ -17,9 +17,8 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/gui/View.hh>
+#include <imagine/gui/NavView.hh>
 #include <vector>
-
-class NavView;
 
 class BasicViewController : public ViewController
 {
@@ -90,11 +89,10 @@ protected:
 	struct ViewEntry
 	{
 		ViewEntry(std::unique_ptr<View> v, bool needsNavView):
-			v{std::move(v)}, needsNavView{needsNavView}
-		{}
-		std::unique_ptr<View> v;
-		bool needsNavView;
-		bool isModal;
+			v{std::move(v)}, needsNavView{needsNavView} {}
+		std::unique_ptr<View> v{};
+		bool needsNavView{};
+		bool isModal{};
 	};
 	std::vector<ViewEntry> view{};
 	std::unique_ptr<NavView> nav{};

@@ -20,22 +20,22 @@
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/TextTableView.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/ScopeGuard.hh>
 
 static FS::PathString savePathStrToDescStr(Base::ApplicationContext ctx, std::string_view savePathStr)
 {
 	if(savePathStr.size())
 	{
 		if(savePathStr == optionSavePathDefaultToken)
-			return "Default";
+			return "App Folder";
 		else
-		{
 			return ctx.fileUriDisplayName(savePathStr);
-		}
 	}
 	else
 	{
-		return "Content Path";
+		return "Content Folder";
 	}
 }
 
@@ -63,15 +63,15 @@ BiosSelectMenu::BiosSelectMenu(IG::utf16String name, ViewAttachParams attach, FS
 		"Select File", &defaultFace(),
 		[this](Input::Event e)
 		{
-			auto startPath = biosPathStr->size() ? FS::dirname(*biosPathStr) : app().mediaSearchPath();
-			auto fPicker = makeView<EmuFilePicker>(startPath, false, fsFilter, FS::RootPathInfo{}, e);
+			auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::FILE, fsFilter, e);
+			fPicker->setPath(biosPathStr->size() ? FS::dirnameUri(*biosPathStr) : app().contentSearchPath(), e);
 			fPicker->setOnSelectFile(
-				[this](FSPicker &picker, std::string_view name, Input::Event e)
+				[this](FSPicker &picker, std::string_view path, std::string_view displayName, Input::Event e)
 				{
-					*biosPathStr = picker.pathString(name);
-					onBiosChangeD.callSafe();
+					*biosPathStr = path;
+					onBiosChangeD.callSafe(displayName);
+					popTo(*this);
 					dismiss();
-					picker.dismiss();
 				});
 			pushAndShowModal(std::move(fPicker), e);
 		}
@@ -83,7 +83,7 @@ BiosSelectMenu::BiosSelectMenu(IG::utf16String name, ViewAttachParams attach, FS
 		{
 			biosPathStr->clear();
 			auto onBiosChange = onBiosChangeD;
-			onBiosChange.callSafe();
+			onBiosChange.callSafe(std::string_view{});
 			dismiss();
 		}
 	},
@@ -107,26 +107,21 @@ static auto makePathMenuEntryStr(Base::ApplicationContext ctx, std::string_view 
 
 static bool hasWriteAccessToDir(Base::ApplicationContext ctx, IG::CStringView path)
 {
-	auto hasAccess = FS::access(path, FS::acc::w);
-	#ifdef __ANDROID__
-	// on Android 4.4 also test file creation since
-	// access() can still claim an SD card is writable
-	// even though parts are locked-down by the OS
-	if(ctx.androidSDK() >= 19)
+	// on Android test file creation since
+	// access() can still claim emulated storage is writable
+	// even though parts are locked-down by the OS (like on 4.4+)
+	if constexpr(Config::envIsAndroid)
 	{
-		auto testFilePath = FS::pathString(path, ".safe-to-delete-me");
-		auto testFile = FileIO::create(testFilePath, IO::OPEN_TEST);
-		if(!testFile)
-		{
-			hasAccess = false;
-		}
-		else
-		{
-			FS::remove(testFilePath);
-		}
+		auto testFilePath = FS::uriString(path, ".safe-to-delete-me");
+		auto testFile = ctx.openFileUri(testFilePath, IO::OPEN_CREATE | IO::OPEN_TEST);
+		auto removeTestFile = IG::scopeGuard([&]() { if(testFile) ctx.removeFileUri(testFilePath); });
+		return (bool)testFile;
 	}
-	#endif
-	return hasAccess;
+	else
+	{
+		assert(!IG::isUri(path));
+		return FS::access(path, FS::acc::w);
+	}
 }
 
 SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
@@ -176,56 +171,46 @@ SystemOptionView::SystemOptionView(ViewAttachParams attach, bool customMenu):
 		{}, &defaultFace(),
 		[this](TextMenuItem &, View &view, Input::Event e)
 		{
-			auto multiChoiceView = makeViewWithName<TextTableView>("Save Path", 4);
-			multiChoiceView->appendItem("Set path on device",
+			auto multiChoiceView = makeViewWithName<TextTableView>("Save Path", 3);
+			multiChoiceView->appendItem("Select Folder",
 				[this](Input::Event e)
 				{
-					auto userSavePath = EmuSystem::userSavePath();
-					auto startPath = userSavePath.size() && !FS::isUri(userSavePath) ? userSavePath : app().mediaSearchPath();
-					auto fPicker = makeView<EmuFilePicker>(startPath, true,
-						EmuSystem::NameFilterFunc{}, FS::RootPathInfo{}, e);
+					auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
+					auto userSavePath = EmuSystem::userSaveDirectory();
+					fPicker->setPath(userSavePath.size() && userSavePath != optionSavePathDefaultToken ? userSavePath
+						: app().contentSearchPath(), e);
 					fPicker->setOnClose(
 						[this](FSPicker &picker, Input::Event e)
 						{
+							if(e.isDefaultCancelButton())
+							{
+								picker.dismiss();
+								return;
+							}
 							auto path = picker.path();
 							if(!hasWriteAccessToDir(appContext(), path))
 							{
-								app().postErrorMessage("This directory lacks write access");
+								app().postErrorMessage("This folder lacks write access");
 								return;
 							}
-							EmuSystem::setUserSavePath(appContext(), path);
+							EmuSystem::setUserSaveDirectory(appContext(), path);
 							onSavePathChange(path);
 							dismissPrevious();
 							picker.dismiss();
 						});
 					pushAndShowModal(std::move(fPicker), e);
 				});
-			if(appContext().hasSystemPathPicker())
-			{
-				multiChoiceView->appendItem("Browse for path",
-					[this](Input::Event e)
-					{
-						auto ctx = appContext();
-						ctx.showSystemPathPicker(
-							[this, ctx](const char *uri)
-							{
-								EmuSystem::setUserSavePath(ctx, uri);
-								onSavePathChange(uri);
-								controller()->popAndShow();
-							});
-					});
-			}
-			multiChoiceView->appendItem("Same as content",
+			multiChoiceView->appendItem("Same As Content",
 				[this](View &view)
 				{
-					EmuSystem::setUserSavePath(appContext(), "");
+					EmuSystem::setUserSaveDirectory(appContext(), "");
 					onSavePathChange("");
 					view.dismiss();
 				});
-			multiChoiceView->appendItem("Default",
+			multiChoiceView->appendItem("App Folder",
 				[this](View &view)
 				{
-					EmuSystem::setUserSavePath(appContext(), optionSavePathDefaultToken);
+					EmuSystem::setUserSaveDirectory(appContext(), optionSavePathDefaultToken);
 					onSavePathChange(optionSavePathDefaultToken);
 					view.dismiss();
 				});
@@ -279,7 +264,7 @@ void SystemOptionView::loadStockItems()
 	item.emplace_back(&autoSaveState);
 	item.emplace_back(&confirmAutoLoadState);
 	item.emplace_back(&confirmOverwriteState);
-	savePath.setName(makePathMenuEntryStr(appContext(), EmuSystem::userSavePath()));
+	savePath.setName(makePathMenuEntryStr(appContext(), EmuSystem::userSaveDirectory()));
 	item.emplace_back(&savePath);
 	item.emplace_back(&fastForwardSpeed);
 	#ifdef __ANDROID__
@@ -292,98 +277,71 @@ void SystemOptionView::onSavePathChange(std::string_view path)
 {
 	if(path == optionSavePathDefaultToken)
 	{
-		auto defaultPath = EmuSystem::baseDefaultGameSavePath(appContext());
-		app().postMessage(4, false, fmt::format("Default Save Path:\n{}", defaultPath));
+		app().postMessage(4, false, fmt::format("App Folder:\n{}", EmuSystem::fallbackSaveDirectory(appContext())));
 	}
 	savePath.compile(makePathMenuEntryStr(appContext(), path), renderer(), projP);
 }
 
-void SystemOptionView::onFirmwarePathChange(std::string_view path) {}
+bool SystemOptionView::onFirmwarePathChange(IG::CStringView path, bool isDir) { return true; }
 
 std::unique_ptr<TextTableView> SystemOptionView::makeFirmwarePathMenu(IG::utf16String name, bool allowFiles, unsigned extraItemsHint)
 {
-	unsigned items = (allowFiles ? 5 : 3) + extraItemsHint;
+	unsigned items = (allowFiles ? 3 : 2) + extraItemsHint;
 	auto multiChoiceView = std::make_unique<TextTableView>(std::move(name), attachParams(), items);
-	multiChoiceView->appendItem("Set path on device",
+	multiChoiceView->appendItem("Select Folder",
 		[this](Input::Event e)
 		{
-			auto startPath =  app().firmwareSearchPath();
-			auto fPicker = makeView<EmuFilePicker>(startPath, true,
-				EmuSystem::NameFilterFunc{}, FS::RootPathInfo{}, e);
+			auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::DIR, EmuSystem::NameFilterFunc{}, e);
+			fPicker->setPath(app().firmwareSearchPath(), e);
 			fPicker->setOnClose(
 				[this](FSPicker &picker, Input::Event e)
 				{
+					if(e.isDefaultCancelButton())
+					{
+						picker.dismiss();
+						return;
+					}
 					auto path = picker.path();
-					app().setFirmwareSearchPath(path);
 					logMsg("set firmware path:%s", path.data());
-					onFirmwarePathChange(path);
+					if(!onFirmwarePathChange(path, true))
+						return;
+					app().setFirmwareSearchPath(path);
 					dismissPrevious();
 					picker.dismiss();
 				});
 			app().pushAndShowModalView(std::move(fPicker), e);
 		});
-	if(appContext().hasSystemPathPicker())
-	{
-		multiChoiceView->appendItem("Browse for path",
-			[this]()
-			{
-				appContext().showSystemPathPicker(
-					[this](const char *uri)
-					{
-						app().setFirmwareSearchPath(uri);
-						logMsg("set firmware path:%s", uri);
-						onFirmwarePathChange(uri);
-						controller()->popAndShow();
-					});
-			});
-	}
 	if(allowFiles)
 	{
-		multiChoiceView->appendItem("Set archive file on device",
+		multiChoiceView->appendItem("Select Archive File",
 			[this](Input::Event e)
 			{
-				auto startPath =  app().firmwareSearchPath();
-				auto fPicker = makeView<EmuFilePicker>(startPath, false,
-					EmuSystem::NameFilterFunc{}, FS::RootPathInfo{}, e);
+				auto fPicker = makeView<EmuFilePicker>(FSPicker::Mode::FILE, EmuSystem::NameFilterFunc{}, e);
+				fPicker->setPath(app().firmwareSearchPath(), e);
 				fPicker->setOnSelectFile(
-					[this](FSPicker &picker, std::string_view name, Input::Event e)
+					[this](FSPicker &picker, IG::CStringView path, std::string_view displayName, Input::Event e)
 					{
-						auto path = picker.pathString(name);
-						app().setFirmwareSearchPath(path);
+						if(!EmuApp::hasArchiveExtension(displayName))
+						{
+							app().postErrorMessage("File doesn't have a valid extension");
+							return;
+						}
 						logMsg("set firmware archive file:%s", path.data());
-						onFirmwarePathChange(path);
+						if(!onFirmwarePathChange(path, false))
+							return;
+						app().setFirmwareSearchPath(path);
+						popTo(picker);
 						dismissPrevious();
 						picker.dismiss();
 					});
 				app().pushAndShowModalView(std::move(fPicker), e);
 			});
-		if(appContext().hasSystemDocumentPicker())
-		{
-			multiChoiceView->appendItem("Browse for archive file",
-				[this]()
-				{
-					appContext().showSystemDocumentPicker(
-						[this](const char *uri, GenericIO)
-						{
-							auto displayName = appContext().fileUriDisplayName(uri);
-							if(!EmuApp::hasArchiveExtension(displayName))
-							{
-								app().postErrorMessage("File doesn't have a valid archive extension");
-								return;
-							}
-							app().setFirmwareSearchPath(uri);
-							logMsg("set firmware archive file:%s", uri);
-							onFirmwarePathChange(uri);
-							controller()->popAndShow();
-						});
-				});
-		}
 	}
-	multiChoiceView->appendItem("Default",
+	multiChoiceView->appendItem("Unset",
 		[this](View &view, Input::Event e)
 		{
+			onFirmwarePathChange("", false);
 			app().setFirmwareSearchPath("");
-			onFirmwarePathChange("");
 			view.dismiss();
 		});
 	return multiChoiceView;

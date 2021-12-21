@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
-#include <imagine/io/FileIO.hh>
+#include <imagine/io/MapIO.hh>
 #include <imagine/logger/logger.h>
 
 template<class ON_KEY>

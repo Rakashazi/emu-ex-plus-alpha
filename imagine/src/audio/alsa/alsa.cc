@@ -217,7 +217,7 @@ IG::ErrorCode ALSAOutputStream::open(OutputStreamConfig config)
 				{
 					auto bytes = pcmFormat.framesToBytes(periodSize);
 					alignas(4) char buff[bytes];
-					onSamplesNeeded(buff, periodSize);
+					onSamplesNeeded(&buff[0], periodSize);
 					if(snd_pcm_writei(pcmHnd, buff, periodSize) < 0)
 					{
 						if(!recoverPCM(pcmHnd))

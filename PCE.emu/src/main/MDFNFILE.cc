@@ -47,7 +47,7 @@ MDFNFILE::MDFNFILE(VirtualFS* vfs, const char* path, const std::vector<FileExten
 	{
 		try
 		{
-			for(auto &entry : FS::ArchiveIterator{path})
+			for(auto &entry : FS::ArchiveIterator{appCtx.openFileUri(path)})
 			{
 				if(entry.type() == FS::file_type::directory)
 				{

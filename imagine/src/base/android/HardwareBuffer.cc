@@ -16,6 +16,7 @@
 #define LOGTAG "HardwareBuff"
 #include "HardwareBuffer.hh"
 #include <imagine/base/sharedLibrary.hh>
+#include <imagine/pixmap/PixmapDesc.hh>
 #include "android.hh"
 #include <imagine/logger/logger.h>
 #include <android/hardware_buffer.h>

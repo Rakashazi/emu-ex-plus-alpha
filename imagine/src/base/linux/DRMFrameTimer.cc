@@ -21,7 +21,6 @@
 #include <xf86drm.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <system_error>
 
 namespace Base
 {

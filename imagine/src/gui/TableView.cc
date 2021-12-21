@@ -16,6 +16,7 @@
 #define LOGTAG "TableView"
 
 #include <imagine/gui/TableView.hh>
+#include <imagine/gui/ViewManager.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gfx/GeomRect.hh>
 #include <imagine/gfx/RendererCommands.hh>
@@ -102,8 +103,8 @@ void TableView::draw(Gfx::RendererCommands &cmds)
 	{
 		StaticArrayList<std::array<ColVertex, 4>, 80> vRect;
 		StaticArrayList<std::array<VertexIndex, 6>, vRect.capacity()> vRectIdx;
-		auto headingColor = VertexColorPixelFormat.build(.4, .4, .4, 1.);
-		auto regularColor = VertexColorPixelFormat.build(.2, .2, .2, 1.);
+		const auto headingColor = VertexColorPixelFormat.build(.4, .4, .4, 1.);
+		const auto regularColor = VertexColorPixelFormat.build(.2, .2, .2, 1.);
 		auto regularYSize = std::max(1, window().heightMMInPixels(.2));
 		auto headingYSize = std::max(2, window().heightMMInPixels(.4));
 		for(size_t i = startYCell; i < endYCell; i++)

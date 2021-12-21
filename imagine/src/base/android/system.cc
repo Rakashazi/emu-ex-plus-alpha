@@ -33,7 +33,7 @@ static bool vibrationSystemIsInit = false;
 std::string AndroidApplication::androidBuildDevice(JNIEnv *env, jclass baseActivityClass) const
 {
 	JNI::ClassMethod<jstring()> jDevName{env, baseActivityClass, "devName", "()Ljava/lang/String;"};
-	return JNI::StringChars{env, jDevName(env, baseActivityClass)}.cString();
+	return std::string{JNI::StringChars{env, jDevName(env, baseActivityClass)}};
 }
 
 std::string AndroidApplicationContext::androidBuildDevice() const

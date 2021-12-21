@@ -16,6 +16,7 @@
 #define LOGTAG "ArchFS"
 #include <imagine/fs/ArchiveFS.hh>
 #include <imagine/util/utility.h>
+#include <imagine/util/string.h>
 
 namespace FS
 {
@@ -98,6 +99,11 @@ ArchiveIO fileFromArchive(IG::CStringView archivePath, std::string_view filePath
 ArchiveIO fileFromArchive(GenericIO io, std::string_view filePath)
 {
 	return fileFromArchiveGeneric(std::move(io), filePath);
+}
+
+bool hasArchiveExtension(std::string_view name)
+{
+	return IG::stringEndsWithAny(name, ".7z", ".rar", ".zip");
 }
 
 }

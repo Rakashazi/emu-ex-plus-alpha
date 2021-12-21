@@ -18,21 +18,20 @@ package com.imagine;
 import android.content.ContentResolver;
 import android.net.Uri;
 import android.provider.DocumentsContract;
-import android.provider.OpenableColumns;
 import android.database.Cursor;
+import android.util.Log;
 import java.util.Date;
 import java.text.DateFormat;
 import java.io.File;
-
 
 final class ContentResolverUtils
 {
 	private static final String logTag = "ContentResolverUtils";
 
 	// File open flags, keep in sync with IO.hh
-	private static final int OPEN_READ = 1;
-	private static final int OPEN_WRITE = 1 << 1;
-	private static final int OPEN_KEEP_EXISTING = 1 << 3;
+	static final int OPEN_READ = 1;
+	static final int OPEN_WRITE = 1 << 1;
+	static final int OPEN_KEEP_EXISTING = 1 << 3;
 
 	static String fileOpenFlagsString(int flags)
 	{
@@ -59,10 +58,21 @@ final class ContentResolverUtils
 		{
 			if(android.os.Build.VERSION.SDK_INT >= 21 && (flags & OPEN_WRITE) != 0)
 			{
-				// no existing file, try creating it in the URI path
-				Uri pathUri = Uri.parse(uriStr.substring(0, uriStr.lastIndexOf(Uri.encode("/"))));
-				File file = new File(uri.getPath());
-				String name = file.getName();
+				// no existing file, try creating it in the document part of the URI path
+				final int docPos = uriStr.lastIndexOf("/document/");
+				int subStrPos = uriStr.lastIndexOf("%2F");
+				if(subStrPos == -1 || subStrPos < docPos) // no /, look for :
+				{
+					subStrPos = uriStr.lastIndexOf("%3A");
+					if(subStrPos == -1 || subStrPos < docPos)
+					{
+						return -1;
+					}
+					subStrPos += 3;
+				}
+				final Uri pathUri = Uri.parse(uriStr.substring(0, subStrPos));
+				final File file = new File(uri.getPath());
+				final String name = file.getName();
 				return openDocumentUriFd(resolver, pathUri, name, flags);
 			}
 			//Log.i(logTag, "openUriFd exception:" + e.toString());
@@ -74,7 +84,10 @@ final class ContentResolverUtils
 	{
 		try
 		{
-			Uri docUri = DocumentsContract.createDocument(resolver, pathUri, "application/octet-stream", name);
+			String mimeType = "application/octet-stream";
+			if(name.endsWith(".png"))
+				mimeType = "image/png";
+			final Uri docUri = DocumentsContract.createDocument(resolver, pathUri, mimeType, name);
 			return resolver.openFileDescriptor(docUri, fileOpenFlagsString(flags)).detachFd();
 		}
 		catch(Exception e)
@@ -96,6 +109,78 @@ final class ContentResolverUtils
 		catch(Exception e)
 		{
 			//Log.i(logTag, "uriExists exception:" + e.toString());
+			return false;
+		}
+		finally
+		{
+			if(c != null)
+			{
+				c.close();
+			}
+		}
+	}
+
+	static String uriLastModified(ContentResolver resolver, String uriStr)
+	{
+		final long mTime = queryLong(resolver, Uri.parse(uriStr), DocumentsContract.Document.COLUMN_LAST_MODIFIED, 0);
+		if(mTime == 0)
+			return "";
+		return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(new Date(mTime));
+	}
+
+	static String uriDisplayName(ContentResolver resolver, Uri uri)
+	{
+		return queryString(resolver, uri, DocumentsContract.Document.COLUMN_DISPLAY_NAME, "");
+	}
+
+	static String uriDisplayName(ContentResolver resolver, String uriStr)
+	{
+		return uriDisplayName(resolver, Uri.parse(uriStr));
+	}
+
+	static boolean deleteUri(ContentResolver resolver, String uriStr)
+	{
+		try
+		{
+			return DocumentsContract.deleteDocument(resolver, Uri.parse(uriStr));
+		}
+		catch(Exception e)
+		{
+			//Log.i(logTag, "deleteUri exception:" + e.toString());
+			return false;
+		}
+	}
+
+	static boolean listUriFiles(ContentResolver resolver, long nativeUserData, String uriStr)
+	{
+		Cursor c = null;
+		final Uri uri = Uri.parse(uriStr);
+		try
+		{
+			final Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri, DocumentsContract.getDocumentId(uri));
+			c = resolver.query(childrenUri,
+				new String[] {DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_DISPLAY_NAME},
+				null, null, null);
+			final int documentIdIdx = c.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID);
+			final int mimeTypeIdx = c.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE);
+			final int displayNameIdx = c.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME);
+			while(c.moveToNext())
+			{
+				final String documentId = c.getString(documentIdIdx);
+				final String mimeType = c.getString(mimeTypeIdx);
+				String displayName = c.getString(displayNameIdx);
+				if(displayName == null)
+					displayName = "";
+				final boolean isDir = mimeType != null && mimeType.equals(DocumentsContract.Document.MIME_TYPE_DIR);
+				final Uri documentUri = DocumentsContract.buildDocumentUriUsingTree(uri, documentId);
+				if(!BaseActivity.uriFileListed(nativeUserData, documentUri.toString(), displayName, isDir))
+					break;
+			}
+			return true;
+		}
+		catch(Exception e)
+		{
+			//Log.i(logTag, "listUriFiles exception:" + e.toString());
 			return false;
 		}
 		finally
@@ -135,28 +220,24 @@ final class ContentResolverUtils
 		}
 	}
 
-	static String uriLastModified(ContentResolver resolver, String uriStr)
-	{
-		long mTime = queryLong(resolver, Uri.parse(uriStr), DocumentsContract.Document.COLUMN_LAST_MODIFIED, 0);
-		if(mTime == 0)
-			return "";
-		return DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(new Date(mTime));
-	}
-
-	static String uriDisplayName(ContentResolver resolver, String uriStr)
+	static String queryString(ContentResolver resolver, Uri uri, String column, String defaultValue)
 	{
 		Cursor c = null;
 		try
 		{
-			c = resolver.query(Uri.parse(uriStr),
-				new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null);
-			c.moveToFirst();
-			return c.getString(c.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+			c = resolver.query(uri, new String[] {column}, null, null, null);
+			if(c.moveToFirst() && !c.isNull(0))
+			{
+				return c.getString(0);
+			}
+			else
+			{
+				return defaultValue;
+			}
 		}
 		catch(Exception e)
 		{
-			//Log.i(logTag, "uriDisplayName exception:" + e.toString());
-			return "";
+			return defaultValue;
 		}
 		finally
 		{
@@ -164,19 +245,6 @@ final class ContentResolverUtils
 			{
 				c.close();
 			}
-		}
-	}
-
-	static boolean deleteUri(ContentResolver resolver, String uriStr)
-	{
-		try
-		{
-			return DocumentsContract.deleteDocument(resolver, Uri.parse(uriStr));
-		}
-		catch(Exception e)
-		{
-			//Log.i(logTag, "deleteUri exception:" + e.toString());
-			return false;
 		}
 	}
 }

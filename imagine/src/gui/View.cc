@@ -14,6 +14,7 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/gui/View.hh>
+#include <imagine/gui/ViewManager.hh>
 #include <imagine/gui/MenuItem.hh>
 #include <imagine/gfx/Renderer.hh>
 #include <imagine/gfx/RendererTask.hh>
@@ -69,7 +70,7 @@ bool ViewController::moveFocusToNextView(Input::Event, _2DOrigin)
 
 ViewManager::ViewManager(Gfx::Renderer &r)
 {
-	r.make(imageCommonTextureSampler);
+	r.make(ViewDefs::imageCommonTextureSampler);
 	r.makeCommonProgram(Gfx::CommonProgram::NO_TEX);
 	// for text
 	r.makeCommonProgram(Gfx::CommonProgram::TEX_ALPHA);
@@ -137,8 +138,6 @@ void ViewManager::setTableXIndentToDefault(const Base::Window &win, Gfx::Project
 {
 	setTableXIndentMM(defaultTableXIndentMM(win), projP);
 }
-
-View::View() {}
 
 View::View(ViewAttachParams attach):
 	View{{}, attach} {}

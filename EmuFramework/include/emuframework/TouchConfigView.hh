@@ -22,6 +22,8 @@
 #include <emuframework/config.hh>
 
 class VController;
+enum class VControllerState : uint8_t;
+enum class VControllerVisibility : uint8_t;
 
 class TouchConfigView final: public TableView, public EmuAppHelper<TouchConfigView>
 {
@@ -31,7 +33,7 @@ public:
 	void draw(Gfx::RendererCommands &cmds) final;
 
 protected:
-	VController &vController;
+	VController *vControllerPtr{};
 	TextMenuItem touchCtrlItem[3];
 	MultiChoiceMenuItem touchCtrl;
 	TextMenuItem pointerInputItem[5];
@@ -75,6 +77,17 @@ protected:
 	TextHeadingMenuItem otherHeading;
 	StaticArrayList<MenuItem*, 32> item{};
 
+	VController &vController() { return *vControllerPtr; }
 	void refreshTouchConfigMenu();
-	void setSize(uint16_t val);
+	TextMenuItem::SelectDelegate setVisibilityDel(VControllerVisibility);
+	TextMenuItem::SelectDelegate setSizeDel(uint16_t val);
+	TextMenuItem::SelectDelegate setPointerInputPlayerDel(int val);
+	TextMenuItem::SelectDelegate setDeadzoneDel(int val);
+	TextMenuItem::SelectDelegate setDiagonalSensitivityDel(int val);
+	TextMenuItem::SelectDelegate setButtonSpaceDel(int val);
+	TextMenuItem::SelectDelegate setButtonExtraXSizeDel(int val);
+	TextMenuItem::SelectDelegate setButtonExtraYSizeDel(int val);
+	TextMenuItem::SelectDelegate setButtonStaggerDel(int val);
+	TextMenuItem::SelectDelegate setButtonStateDel(VControllerState, uint8_t btnIdx);
+	TextMenuItem::SelectDelegate setAlphaDel(uint8_t val);
 };

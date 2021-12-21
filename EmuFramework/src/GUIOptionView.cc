@@ -360,7 +360,7 @@ void GUIOptionView::loadStockItems()
 	{
 		item.emplace_back(&navView);
 	}
-	if(View::needsBackControlIsMutable)
+	if(ViewManager::needsBackControlIsMutable)
 	{
 		item.emplace_back(&backNav);
 	}

@@ -16,36 +16,30 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/string/CStringView.hh>
-#include <imagine/util/concepts.hh>
-#include <system_error>
-#include <string>
+#include <imagine/util/utility.h>
 #include <string_view>
+#include <type_traits>
+#include <cctype>
 
 namespace IG
 {
 
-[[gnu::nonnull]]
-std::errc convertCharCode(const char** sourceStart, uint32_t &c);
-
-[[gnu::nonnull]]
-char *decodeUri(IG::CStringView input, char *output);
-
 [[nodiscard]]
 static constexpr bool stringContains(std::string_view sv, auto &&toFind)
 {
-	return sv.find(std::forward<decltype(toFind)>(toFind)) != std::string_view::npos;
+	return sv.find(IG_forward(toFind)) != std::string_view::npos;
 }
 
 [[nodiscard]]
-static constexpr bool stringContainsAny(std::string_view sv, auto &... substrs)
+static constexpr bool stringContainsAny(std::string_view sv, auto &&...substrs)
 {
-	return (stringContains(sv, substrs) || ...);
+	return (stringContains(sv, IG_forward(substrs)) || ...);
 }
 
 [[nodiscard]]
-static constexpr bool stringEndsWithAny(std::string_view sv, auto &... endings)
+static constexpr bool stringEndsWithAny(std::string_view sv, auto &&...endings)
 {
-	return (sv.ends_with(endings) || ...);
+	return (sv.ends_with(IG_forward(endings)) || ...);
 }
 
 template <class String>
@@ -71,7 +65,9 @@ static constexpr auto stringWithoutDotExtension(auto &&str)
 	if(dotOffset != str.npos)
 		return R{str.data(), dotOffset};
 	else
-		return R{std::forward<decltype(str)>(str)};
+		return R{IG_forward(str)};
 }
+
+bool stringNoCaseLexCompare(std::string_view s1, std::string_view s2);
 
 }

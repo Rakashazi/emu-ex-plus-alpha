@@ -122,11 +122,11 @@ void EmuSystem::onOptionsLoaded(Base::ApplicationContext ctx)
 	gbEmu.setStreamDelegates(
 		[ctx](std::string_view basePath, std::string_view filename) -> IG::IFStream
 		{
-			return {ctx.openFileUri(ctx.fileUri(basePath, filename), IO::AccessHint::ALL, IO::OPEN_TEST)};
+			return {ctx.openFileUri(FS::uriString(basePath, filename), IO::AccessHint::ALL, IO::OPEN_TEST)};
 		},
 		[ctx](std::string_view basePath, std::string_view filename) -> IG::OFStream
 		{
-			return {ctx.openFileUri(ctx.fileUri(basePath, filename), IO::OPEN_CREATE | IO::OPEN_TEST)};
+			return {ctx.openFileUri(FS::uriString(basePath, filename), IO::OPEN_CREATE | IO::OPEN_TEST)};
 		});
 }
 
@@ -165,7 +165,7 @@ void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
 void EmuSystem::savePathChanged()
 {
 	if(gameIsRunning())
-		gbEmu.setSaveDir(std::string{contentSavePath()});
+		gbEmu.setSaveDir(std::string{contentSaveDirectory()});
 }
 
 void EmuSystem::closeSystem(Base::ApplicationContext ctx)
@@ -180,7 +180,7 @@ void EmuSystem::closeSystem(Base::ApplicationContext ctx)
 
 void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreateParams, OnLoadProgressDelegate)
 {
-	gbEmu.setSaveDir(std::string{contentSavePath()});
+	gbEmu.setSaveDir(std::string{contentSaveDirectory()});
 	auto buff = io.buffer();
 	if(!buff)
 	{

@@ -37,6 +37,7 @@
 #include <imagine/util/utility.h>
 #include <imagine/util/algorithm.h>
 #include <imagine/util/ScopeGuard.hh>
+#include <imagine/util/format.hh>
 #include "android.hh"
 
 namespace Base
@@ -148,10 +149,18 @@ FS::PathString ApplicationContext::supportPath(const char *) const
 		auto env = thisThreadJniEnv();
 		auto baseActivity = baseActivityObject();
 		JNI::InstMethod<jstring()> filesDir{env, baseActivity, "filesDir", "()Ljava/lang/String;"};
-		return JNI::StringChars{env, filesDir(env, baseActivity)}.cString();
+		return FS::PathString{JNI::StringChars{env, filesDir(env, baseActivity)}};
 	}
 	else
 		return act->internalDataPath;
+}
+
+FS::PathString ApplicationContext::storagePath(const char *) const
+{
+	if(androidSDK() < 19)
+		return sharedStoragePath();
+	else // Android 4.4+ can use external storage without write permission
+		return act->externalDataPath;
 }
 
 FS::PathString ApplicationContext::cachePath(const char *) const
@@ -159,7 +168,7 @@ FS::PathString ApplicationContext::cachePath(const char *) const
 	auto env = thisThreadJniEnv();
 	auto baseActivityCls = (jclass)env->GetObjectClass(baseActivityObject());
 	JNI::ClassMethod<jstring()> cacheDir{env, baseActivityCls, "cacheDir", "()Ljava/lang/String;"};
-	return JNI::StringChars{env, cacheDir(env, baseActivityCls)}.cString();
+	return FS::PathString{JNI::StringChars{env, cacheDir(env, baseActivityCls)}};
 }
 
 FS::PathString ApplicationContext::sharedStoragePath() const
@@ -171,17 +180,21 @@ FS::PathString ApplicationContext::sharedStoragePath() const
 FS::PathString AndroidApplication::sharedStoragePath(JNIEnv *env, jclass baseActivityClass) const
 {
 	JNI::ClassMethod<jstring()> extStorageDir{env, baseActivityClass, "extStorageDir", "()Ljava/lang/String;"};
-	return JNI::StringChars{env, extStorageDir(env, baseActivityClass)}.cString();
+	return FS::PathString{JNI::StringChars{env, extStorageDir(env, baseActivityClass)}};
 }
 
 FS::PathLocation ApplicationContext::sharedStoragePathLocation() const
 {
 	auto path = sharedStoragePath();
-	return {path, "Storage Media", {"Media", path.size()}};
+	return {path, "Storage Media", "Media"};
 }
 
 std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const
 {
+	if(androidSDK() >= 30)
+	{
+		return {}; // only use scoped storage on Android 11+ so no file paths are useful
+	}
 	if(androidSDK() < 14)
 	{
 		return
@@ -195,7 +208,7 @@ std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const
 		return
 			{
 				sharedStoragePathLocation(),
-				{storageDevicesPath, "Storage Devices", {"Storage", storageDevicesPath.size()}}
+				{storageDevicesPath, "Storage Devices", "Storage"}
 			};
 	}
 	else
@@ -218,7 +231,7 @@ std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const
 					FS::PathString path{JNI::StringChars(env, jPath)};
 					FS::FileString name{JNI::StringChars(env, jName)};
 					logMsg("volume:%s with path:%s", name.data(), path.data());
-					rootLocation->emplace_back(path, name, FS::RootPathInfo{name, path.size()});
+					rootLocation->emplace_back(path, name);
 				})
 			},
 		};
@@ -236,86 +249,108 @@ FS::PathString ApplicationContext::libPath(const char *) const
 		auto env = thisThreadJniEnv();
 		auto baseActivity = baseActivityObject();
 		JNI::InstMethod<jstring()> libDir{env, baseActivity, "libDir", "()Ljava/lang/String;"};
-		return JNI::StringChars{env, libDir(env, baseActivity)}.cString();
+		return FS::PathString{JNI::StringChars{env, libDir(env, baseActivity)}};
 	}
 	return {};
 }
 
-FileIO ApplicationContext::openFileUri(IG::CStringView uri, IO::AccessHint access, unsigned openFlags) const
+FileIO AndroidApplication::openFileUri(JNIEnv *env, jobject baseActivity, IG::CStringView uri, IO::AccessHint access, IODefs::OpenFlags openFlags) const
 {
-	if(androidSDK() < 19 || !FS::isUri(uri))
-		return {uri, access, openFlags};
-	auto env = thisThreadJniEnv();
-	auto baseActivity = baseActivityObject();
-	JNI::InstMethod<jint(jstring, jint)> openUriFd{env, baseActivity, "openUriFd", "(Ljava/lang/String;I)I"};
 	int fd = openUriFd(env, baseActivity, env->NewStringUTF(uri), openFlags);
 	if(fd == -1)
 	{
 		if constexpr(Config::DEBUG_BUILD)
-			logErr("error opening URI:%s:%s", uri.data(), strerror(errno));
+			logErr("error opening URI:%s", uri.data());
 		if(openFlags & IO::OPEN_TEST)
 			return {};
 		else
-			throw std::system_error{errno, std::system_category(), uri};
+			throw std::system_error{ENOENT, std::system_category(), uri};
 	}
 	logMsg("opened file URI:%s", uri.data());
 	return {fd, access, openFlags};
 }
 
-FS::PathString ApplicationContext::fileUri(IG::CStringView uri, IG::CStringView name) const
+FileIO ApplicationContext::openFileUri(IG::CStringView uri, IO::AccessHint access, IODefs::OpenFlags openFlags) const
 {
-	if(androidSDK() < 21 || !FS::isUri(uri))
-		return FS::pathString(uri, name);
-	logMsg("adding name:%s to path URI:%s", name.data(), uri.data());
-	auto env = thisThreadJniEnv();
-	auto baseActivity = baseActivityObject();
-	JNI::InstMethod<jstring(jstring, jstring)> documentUri{env, baseActivity, "documentUri", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"};
-	return JNI::StringChars{env, documentUri(env, baseActivity, env->NewStringUTF(uri), env->NewStringUTF(name))}.cString();
+	if(androidSDK() < 19 || !IG::isUri(uri))
+		return {uri, access, openFlags};
+	return application().openFileUri(thisThreadJniEnv(), baseActivityObject(), uri, access, openFlags);
+}
+
+bool AndroidApplication::fileUriExists(JNIEnv *env, jobject baseActivity, IG::CStringView uri) const
+{
+	bool exists = uriExists(env, baseActivity, env->NewStringUTF(uri));
+	logMsg("URI %s:%s", exists ? "exists" : "doesn't exist", uri.data());
+	return exists;
 }
 
 bool ApplicationContext::fileUriExists(IG::CStringView uri) const
 {
-	if(androidSDK() < 19 || !FS::isUri(uri))
+	if(androidSDK() < 19 || !IG::isUri(uri))
 		return FS::exists(uri);
-	auto env = thisThreadJniEnv();
-	auto baseActivity = baseActivityObject();
-	JNI::InstMethod<jboolean(jstring)> uriExists{env, baseActivity, "uriExists", "(Ljava/lang/String;)Z"};
-	bool exists = uriExists(env, baseActivity, env->NewStringUTF(uri));
-	if(exists)
-		logMsg("URI exists:%s", uri.data());
-	return exists;
+	return application().fileUriExists(thisThreadJniEnv(), baseActivityObject(), uri);
+}
+
+std::string AndroidApplication::fileUriFormatLastWriteTimeLocal(JNIEnv *env, jobject baseActivity, IG::CStringView uri) const
+{
+	//logMsg("getting modification time for URI:%s", uri.data());
+	return std::string{JNI::StringChars{env, uriLastModified(env, baseActivity, env->NewStringUTF(uri))}};
 }
 
 std::string ApplicationContext::fileUriFormatLastWriteTimeLocal(IG::CStringView uri) const
 {
-	if(androidSDK() < 19 || !FS::isUri(uri))
+	if(androidSDK() < 19 || !IG::isUri(uri))
 		return FS::formatLastWriteTimeLocal(uri);
-	//logMsg("getting modification time for URI:%s", uri.data());
-	auto env = thisThreadJniEnv();
-	auto baseActivity = baseActivityObject();
-	JNI::InstMethod<jstring(jstring)> uriLastModified{env, baseActivity, "uriLastModified", "(Ljava/lang/String;)Ljava/lang/String;"};
-	return JNI::StringChars{env, uriLastModified(env, baseActivity, env->NewStringUTF(uri))}.cString();
+	return application().fileUriFormatLastWriteTimeLocal(thisThreadJniEnv(), baseActivityObject(), uri);
+}
+
+FS::FileString AndroidApplication::fileUriDisplayName(JNIEnv *env, jobject baseActivity, IG::CStringView uri) const
+{
+	//logMsg("getting display name for URI:%s", uri.data());
+	return FS::FileString{JNI::StringChars{env, uriDisplayName(env, baseActivity, env->NewStringUTF(uri))}};
 }
 
 FS::FileString ApplicationContext::fileUriDisplayName(IG::CStringView uri) const
 {
-	if(androidSDK() < 19 || !FS::isUri(uri))
-		return FS::basename(uri);
-	//logMsg("getting display name for URI:%s", uri.data());
-	auto env = thisThreadJniEnv();
-	auto baseActivity = baseActivityObject();
-	JNI::InstMethod<jstring(jstring)> uriDisplayName{env, baseActivity, "uriDisplayName", "(Ljava/lang/String;)Ljava/lang/String;"};
-	return JNI::StringChars{env, uriDisplayName(env, baseActivity, env->NewStringUTF(uri))}.cString();
+	if(androidSDK() < 19 || !IG::isUri(uri))
+		return FS::displayName(uri);
+	return application().fileUriDisplayName(thisThreadJniEnv(), baseActivityObject(), uri);
+}
+
+bool AndroidApplication::removeFileUri(JNIEnv *env, jobject baseActivity, IG::CStringView uri) const
+{
+	logMsg("removing file URI:%s", uri.data());
+	return deleteUri(env, baseActivity, env->NewStringUTF(uri));
 }
 
 bool ApplicationContext::removeFileUri(IG::CStringView uri) const
 {
-	if(androidSDK() < 19 || !FS::isUri(uri))
+	if(androidSDK() < 19 || !IG::isUri(uri))
 		return FS::remove(uri);
-	auto env = thisThreadJniEnv();
-	auto baseActivity = baseActivityObject();
-	JNI::InstMethod<jboolean(jstring)> deleteUri{env, baseActivity, "deleteUri", "(Ljava/lang/String;)Z"};
-	return deleteUri(env, baseActivity, env->NewStringUTF(uri));
+	return application().removeFileUri(thisThreadJniEnv(), baseActivityObject(), uri);
+}
+
+void AndroidApplication::forEachInDirectoryUri(JNIEnv *env, jobject baseActivity, IG::CStringView uri, DirectoryEntryDelegate del) const
+{
+	logMsg("listing directory URI:%s", uri.data());
+	if(!listUriFiles(env, baseActivity, (jlong)&del, env->NewStringUTF(uri)))
+	{
+		throw std::system_error{ENOENT, std::system_category(), uri};
+	}
+}
+
+void ApplicationContext::forEachInDirectoryUri(IG::CStringView uri, DirectoryEntryDelegate del) const
+{
+	if(androidSDK() < 21 || !IG::isUri(uri))
+	{
+		for(auto &entry : FS::directory_iterator{uri})
+		{
+			if(!del(entry))
+				break;
+		}
+		return;
+	}
+	application().forEachInDirectoryUri(thisThreadJniEnv(), baseActivityObject(), uri, del);
 }
 
 static FS::PathString mainSOPath(ApplicationContext ctx)
@@ -344,31 +379,22 @@ bool ApplicationContext::usesPermission(Permission p) const
 	return true;
 }
 
+bool ApplicationContext::permissionIsRestricted(Permission p) const
+{
+	return p == Permission::WRITE_EXT_STORAGE ? androidSDK() >= 30 : false;
+}
+
 bool ApplicationContext::requestPermission(Permission p)
 {
 	if(androidSDK() < 23)
 		return false;
 	auto env = mainThreadJniEnv();
-	if(androidSDK() >= 30 && p == Permission::WRITE_EXT_STORAGE)
-	{
-		auto baseActivity = baseActivityObject();
-		JNI::InstMethod<jboolean()> requestExternalStorageManager{env, baseActivity, "requestExternalStorageManager", "()Z"};
-		bool granted = requestExternalStorageManager(env, baseActivity);
-		if(granted)
-			logMsg("has external storage manager permission");
-		else
-			logMsg("requesting external storage manager permission");
-		return granted;
-	}
-	else
-	{
-		auto permissionJStr = permissionToJString(env, p);
-		if(!permissionJStr)
-			return false;
-		auto baseActivity = baseActivityObject();
-		JNI::InstMethod<jboolean(jstring)> requestPermission{env, baseActivity, "requestPermission", "(Ljava/lang/String;)Z"};
-		return requestPermission(env, baseActivity, permissionJStr);
-	}
+	auto permissionJStr = permissionToJString(env, p);
+	if(!permissionJStr)
+		return false;
+	auto baseActivity = baseActivityObject();
+	JNI::InstMethod<jboolean(jstring)> requestPermission{env, baseActivity, "requestPermission", "(Ljava/lang/String;)Z"};
+	return requestPermission(env, baseActivity, permissionJStr);
 }
 
 JNIEnv *AndroidApplicationContext::mainThreadJniEnv() const
@@ -553,40 +579,25 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 				}
 			},
 			{
-				"documentTreeOpened", "(JLjava/lang/String;)V",
+				"uriPicked", "(JLjava/lang/String;Ljava/lang/String;)V",
 				(void*)
-				+[](JNIEnv* env, jobject, jlong nUserData, jstring jPath)
+				+[](JNIEnv* env, jobject, jlong nUserData, jstring jUri, jstring jDisplayName)
 				{
 					auto &app = *((AndroidApplication*)nUserData);
-					auto path = env->GetStringUTFChars(jPath, nullptr);
-					std::exchange(app.onSystemPathPicker, {})(path);
-					env->ReleaseStringUTFChars(jPath, path);
+					auto uri = JNI::StringChars{env, jUri};
+					auto name = JNI::StringChars{env, jDisplayName};
+					logMsg("picked URI:%s name:%s", uri.data(), name.data());
+					app.handleDocumentIntentResult(uri, name);
 				}
 			},
 			{
-				"documentOpened", "(JLjava/lang/String;I)V",
+				"uriFileListed", "(JLjava/lang/String;Ljava/lang/String;Z)Z",
 				(void*)
-				+[](JNIEnv* env, jobject, jlong nUserData, jstring jUri, jint fd)
+				+[](JNIEnv* env, jobject thiz, jlong userData, jstring jUri, jstring name, jboolean isDir)
 				{
-					auto &app = *((AndroidApplication*)nUserData);
-					const char *uri = env->GetStringUTFChars(jUri, nullptr);
-					if(app.isRunning())
-					{
-						logMsg("picked document:%s fd:%d", uri, fd);
-						std::exchange(app.onSystemDocumentPicker, {})(uri, FileIO{fd, 0});
-					}
-					else
-					{
-						app.addOnResume(
-							[uriCopy = strdup(uri), fd](ApplicationContext ctx, bool focused)
-							{
-								logMsg("picked document:%s fd:%d", uriCopy, fd);
-								std::exchange(ctx.application().onSystemDocumentPicker, {})(uriCopy, FileIO{fd, 0});
-								::free(uriCopy);
-								return false;
-							}, APP_ON_RESUME_PRIORITY + 100);
-					}
-					env->ReleaseStringUTFChars(jUri, uri);
+					auto &del = *((DirectoryEntryDelegate*)userData);
+					auto type = isDir ? FS::file_type::directory : FS::file_type::regular;
+					return del(FS::directory_entry{JNI::StringChars{env, jUri}, JNI::StringChars{env, name}, type});
 				}
 			},
 		};
@@ -639,6 +650,19 @@ void AndroidApplication::initActivity(JNIEnv *env, jobject baseActivity, jclass 
 	}
 
 	jRecycle = {env, env->FindClass("android/graphics/Bitmap"), "recycle", "()V"};
+
+	if(androidSDK >= 19) // Storage Access Framework support
+	{
+		openUriFd = {env, baseActivity, "openUriFd", "(Ljava/lang/String;I)I"};
+		uriExists = {env, baseActivity, "uriExists", "(Ljava/lang/String;)Z"};
+		uriLastModified = {env, baseActivity, "uriLastModified", "(Ljava/lang/String;)Ljava/lang/String;"};
+		uriDisplayName = {env, baseActivity, "uriDisplayName", "(Ljava/lang/String;)Ljava/lang/String;"};
+		deleteUri = {env, baseActivity, "deleteUri", "(Ljava/lang/String;)Z"};
+		if(androidSDK >= 21)
+		{
+			listUriFiles = {env, baseActivity, "listUriFiles", "(JLjava/lang/String;)Z"};
+		}
+	}
 }
 
 JNIEnv* AndroidApplication::thisThreadJniEnv() const

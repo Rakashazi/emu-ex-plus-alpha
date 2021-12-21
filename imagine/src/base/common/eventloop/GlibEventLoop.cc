@@ -18,6 +18,7 @@
 #include <imagine/thread/Thread.hh>
 #include <imagine/logger/logger.h>
 #include <imagine/util/ScopeGuard.hh>
+#include <glib.h>
 #include <glib-unix.h>
 
 namespace Base

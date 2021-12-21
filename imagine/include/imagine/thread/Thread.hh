@@ -18,8 +18,8 @@
 #include <imagine/config/defs.hh>
 #include <imagine/thread/Semaphore.hh>
 #include <imagine/util/concepts.hh>
+#include <imagine/util/utility.h>
 #include <thread>
-#include <utility>
 
 namespace IG
 {
@@ -55,7 +55,7 @@ static std::thread makeThreadSync(IG::invocable<std::binary_semaphore&> auto &&f
 
 static void makeDetachedThread(IG::invocable auto &&f)
 {
-	std::thread t{std::forward<decltype(f)>(f)};
+	std::thread t{IG_forward(f)};
 	t.detach();
 }
 

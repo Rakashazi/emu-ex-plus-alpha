@@ -16,9 +16,11 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/concepts.hh>
+#include <imagine/util/utility.h>
 #include <cassert>
 #include <cstddef>
 #include <iterator>
+#include <string_view>
 #if __has_include(<jni.h>)
 #include <jni.h>
 #else
@@ -51,135 +53,135 @@ jmethodID getJNIMethodID(JNIEnv *env, jclass cls, const char *fName, const char 
 
 #ifndef DUMMY_JNI_IMPL
 template<IG::same_as<void> R>
-static void callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
+static void callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&...args)
 {
-	env->CallVoidMethod(obj, method, std::forward<decltype(args)>(args)...);
+	env->CallVoidMethod(obj, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jobject> R>
-static jobject callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
+static jobject callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&...args)
 {
-	return env->CallObjectMethod(obj, method, std::forward<decltype(args)>(args)...);
+	return env->CallObjectMethod(obj, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jstring> R>
-static jstring callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
+static jstring callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&...args)
 {
-	return (jstring)env->CallObjectMethod(obj, method, std::forward<decltype(args)>(args)...);
+	return (jstring)env->CallObjectMethod(obj, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jboolean> R>
-static jboolean callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
+static jboolean callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&...args)
 {
-	return env->CallBooleanMethod(obj, method, std::forward<decltype(args)>(args)...);
+	return env->CallBooleanMethod(obj, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jbyte> R>
-static jbyte callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
+static jbyte callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&...args)
 {
-	return env->CallByteMethod(obj, method, std::forward<decltype(args)>(args)...);
+	return env->CallByteMethod(obj, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jchar> R>
-static jchar callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
+static jchar callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&...args)
 {
-	return env->CallCharMethod(obj, method, std::forward<decltype(args)>(args)...);
+	return env->CallCharMethod(obj, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jshort> R>
-static jshort callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
+static jshort callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&...args)
 {
-	return env->CallShortMethod(obj, method, std::forward<decltype(args)>(args)...);
+	return env->CallShortMethod(obj, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jint> R>
-static jint callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
+static jint callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&...args)
 {
-	return env->CallIntMethod(obj, method, std::forward<decltype(args)>(args)...);
+	return env->CallIntMethod(obj, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jlong> R>
-static jlong callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
+static jlong callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&...args)
 {
-	return env->CallLongMethod(obj, method, std::forward<decltype(args)>(args)...);
+	return env->CallLongMethod(obj, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jfloat> R>
-static jfloat callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
+static jfloat callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&...args)
 {
-	return env->CallFloatMethod(obj, method, std::forward<decltype(args)>(args)...);
+	return env->CallFloatMethod(obj, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jdouble> R>
-static jdouble callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&... args)
+static jdouble callJNIMethod(JNIEnv *env, jmethodID method, jobject obj, auto &&...args)
 {
-	return env->CallDoubleMethod(obj, method, std::forward<decltype(args)>(args)...);
+	return env->CallDoubleMethod(obj, method, IG_forward(args)...);
 }
 
 template<IG::same_as<void> R>
-static void callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&... args)
+static void callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&...args)
 {
-	env->CallStaticVoidMethod(cls, method, std::forward<decltype(args)>(args)...);
+	env->CallStaticVoidMethod(cls, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jobject> R>
-static jobject callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&... args)
+static jobject callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&...args)
 {
-	return env->CallStaticObjectMethod(cls, method, std::forward<decltype(args)>(args)...);
+	return env->CallStaticObjectMethod(cls, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jstring> R>
-static jstring callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&... args)
+static jstring callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&...args)
 {
-	return (jstring)env->CallStaticObjectMethod(cls, method, std::forward<decltype(args)>(args)...);
+	return (jstring)env->CallStaticObjectMethod(cls, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jboolean> R>
-static jboolean callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&... args)
+static jboolean callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&...args)
 {
-	return env->CallStaticBooleanMethod(cls, method, std::forward<decltype(args)>(args)...);
+	return env->CallStaticBooleanMethod(cls, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jbyte> R>
-static jbyte callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&... args)
+static jbyte callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&...args)
 {
-	return env->CallStaticByteMethod(cls, method, std::forward<decltype(args)>(args)...);
+	return env->CallStaticByteMethod(cls, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jchar> R>
-static jchar callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&... args)
+static jchar callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&...args)
 {
-	return env->CallStaticCharMethod(cls, method, std::forward<decltype(args)>(args)...);
+	return env->CallStaticCharMethod(cls, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jshort> R>
-static jshort callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&... args)
+static jshort callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&...args)
 {
-	return env->CallStaticShortMethod(cls, method, std::forward<decltype(args)>(args)...);
+	return env->CallStaticShortMethod(cls, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jint> R>
-static jint callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&... args)
+static jint callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&...args)
 {
-	return env->CallStaticIntMethod(cls, method, std::forward<decltype(args)>(args)...);
+	return env->CallStaticIntMethod(cls, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jlong> R>
-static jlong callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&... args)
+static jlong callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&...args)
 {
-	return env->CallStaticLongMethod(cls, method, std::forward<decltype(args)>(args)...);
+	return env->CallStaticLongMethod(cls, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jfloat> R>
-static jfloat callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&... args)
+static jfloat callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&...args)
 {
-	return env->CallStaticFloatMethod(cls, method, std::forward<decltype(args)>(args)...);
+	return env->CallStaticFloatMethod(cls, method, IG_forward(args)...);
 }
 
 template<IG::same_as<jdouble> R>
-static jdouble callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&... args)
+static jdouble callJNIStaticMethod(JNIEnv *env, jmethodID method, jclass cls, auto &&...args)
 {
-	return env->CallStaticDoubleMethod(cls, method, std::forward<decltype(args)>(args)...);
+	return env->CallStaticDoubleMethod(cls, method, IG_forward(args)...);
 }
 #endif
 
@@ -199,13 +201,13 @@ public:
 		setMethod(env, obj, fName, sig);
 	}
 
-	bool setMethod(JNIEnv *env, IG::same_as<jclass> auto obj, const char *fName, const char *sig)
+	bool setMethod(JNIEnv *env, jclass obj, const char *fName, const char *sig)
 	{
 		method = getJNIStaticMethodID(env, obj, fName, sig);
 		return method;
 	}
 
-	bool setMethod(JNIEnv *env, IG::same_as<jobject> auto obj, const char *fName, const char *sig)
+	bool setMethod(JNIEnv *env, jobject obj, const char *fName, const char *sig)
 	{
 		return setMethod(env, (jclass)env->GetObjectClass(obj), fName, sig);
 	}
@@ -215,9 +217,9 @@ public:
 		return method;
 	}
 
-	R operator()(JNIEnv *env, jclass cls, Args ... args) const
+	R operator()(JNIEnv *env, jclass cls, Args ...args) const
 	{
-		return callJNIStaticMethod<R>(env, method, cls, std::forward<Args>(args)...);
+		return callJNIStaticMethod<R>(env, method, cls, args...);
 	}
 };
 
@@ -237,13 +239,13 @@ public:
 		setMethod(env, obj, fName, sig);
 	}
 
-	bool setMethod(JNIEnv *env, IG::same_as<jclass> auto obj, const char *fName, const char *sig)
+	bool setMethod(JNIEnv *env, jclass obj, const char *fName, const char *sig)
 	{
 		method = getJNIMethodID(env, obj, fName, sig);
 		return method;
 	}
 
-	bool setMethod(JNIEnv *env, IG::same_as<jobject> auto obj, const char *fName, const char *sig)
+	bool setMethod(JNIEnv *env, jobject obj, const char *fName, const char *sig)
 	{
 		return setMethod(env, (jclass)env->GetObjectClass(obj), fName, sig);
 	}
@@ -253,9 +255,9 @@ public:
 		return method;
 	}
 
-	R operator()(JNIEnv *env, jobject obj, Args ... args) const
+	R operator()(JNIEnv *env, jobject obj, Args ...args) const
 	{
-		return callJNIMethod<R>(env, method, obj, std::forward<Args>(args)...);
+		return callJNIMethod<R>(env, method, obj, args...);
 	}
 };
 
@@ -292,8 +294,10 @@ public:
 	constexpr StringChars() = default;
 	[[gnu::nonnull]]
 	StringChars(JNIEnv *, jstring);
-	const char *cString() const { return str.get(); }
-	operator const char*() const { return cString(); }
+	const char *data() const { return str.get(); }
+	size_t size() const { return std::char_traits<char>::length(data()); }
+	operator const char *() const { return data(); }
+	operator std::string_view() const { return {data(), size()}; }
 	JNIEnv *jniEnv() const { return str.get_deleter().env; }
 	jstring jString() const { return str.get_deleter().jStr; }
 

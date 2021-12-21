@@ -92,26 +92,26 @@ class CustomSystemOptionView : public SystemOptionView
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			auto biosSelectMenu = makeViewWithName<BiosSelectMenu>("System Card", &::sysCardPath,
-				[this]()
+				[this](std::string_view displayName)
 				{
 					logMsg("set bios %s", ::sysCardPath.data());
-					sysCardPath.compile(makeBiosMenuEntryStr(), renderer(), projP);
+					sysCardPath.compile(biosMenuEntryStr(displayName), renderer(), projP);
 				},
 				hasHuCardExtension);
 			pushAndShow(std::move(biosSelectMenu), e);
 		}
 	};
 
-	std::string makeBiosMenuEntryStr()
+	std::string biosMenuEntryStr(std::string_view displayName) const
 	{
-		return fmt::format("System Card: {}", ::sysCardPath.size() ? appContext().fileUriDisplayName(::sysCardPath) : "None set");
+		return fmt::format("System Card: {}", displayName);
 	}
 
 public:
 	CustomSystemOptionView(ViewAttachParams attach): SystemOptionView{attach, true}
 	{
 		loadStockItems();
-		sysCardPath.setName(makeBiosMenuEntryStr().data());
+		sysCardPath.setName(biosMenuEntryStr(appContext().fileUriDisplayName(::sysCardPath)));
 		item.emplace_back(&sysCardPath);
 	}
 };

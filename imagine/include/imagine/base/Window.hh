@@ -18,10 +18,14 @@
 #include <imagine/config/defs.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/WindowConfig.hh>
-#include <imagine/pixmap/PixelFormat.hh>
 #include <imagine/util/rectangle2.h>
 #include <imagine/util/DelegateFunc.hh>
-#include <imagine/base/Error.hh>
+#include <imagine/util/utility.h>
+
+namespace IG
+{
+class PixelFormat;
+}
 
 namespace Input
 {
@@ -75,7 +79,7 @@ public:
 	template <class T>
 	T &makeAppData(auto &&... args)
 	{
-		appDataPtr = std::make_shared<T>(std::forward<decltype(args)>(args)...);
+		appDataPtr = std::make_shared<T>(IG_forward(args)...);
 		return *appData<T>();
 	}
 
@@ -88,7 +92,7 @@ public:
 	template <class T>
 	T &makeRendererData(auto &&... args)
 	{
-		rendererDataPtr = std::make_shared<T>(std::forward<decltype(args)>(args)...);
+		rendererDataPtr = std::make_shared<T>(IG_forward(args)...);
 		return *rendererData<T>();
 	}
 

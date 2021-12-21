@@ -116,7 +116,7 @@ void OSystem::processAudio(EmuAudio *audio)
 
 FilesystemNode OSystem::stateDir() const
 {
-	return FilesystemNode{std::string{EmuSystem::contentSavePath()}};
+	return FilesystemNode{std::string{EmuSystem::contentSaveDirectory()}};
 }
 
 FilesystemNode OSystem::nvramDir(std::string_view name) const

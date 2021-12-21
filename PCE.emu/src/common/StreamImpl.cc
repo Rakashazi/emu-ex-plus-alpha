@@ -58,7 +58,7 @@ try:
 }
 catch(std::system_error &err)
 {
-	ErrnoHolder ene(errno);
+	ErrnoHolder ene(err.code().value());
 	throw MDFN_Error(ene.Errno(), _("Error opening file \"%s\": %s"), path.c_str(), ene.StrError());
 }
 
@@ -169,6 +169,12 @@ uint64 MemoryStream::readAtPos(void *data, uint64 count, uint64 pos)
 }
 
 bool MemoryStream::isMemoryStream() { return true; }
+
+void MemoryStream::setSize(size_t size)
+{
+	assert(size <= data_buffer_alloced);
+	data_buffer_size = size;
+}
 
 uint64 Stream::readAtPos(void *data, uint64 count, uint64 pos)
 {

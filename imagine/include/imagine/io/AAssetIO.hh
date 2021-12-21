@@ -42,8 +42,8 @@ public:
 	using IO::buffer;
 	using IO::get;
 
-	constexpr AAssetIO() {}
-	AAssetIO(Base::ApplicationContext, IG::CStringView name, AccessHint, unsigned openFlags = 0);
+	constexpr AAssetIO() = default;
+	AAssetIO(Base::ApplicationContext, IG::CStringView name, AccessHint, OpenFlags oFlags = {});
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;
 	ssize_t readAtPos(void *buff, size_t bytes, off_t offset, std::error_code *ecOut) final;
 	std::span<uint8_t> map() final;

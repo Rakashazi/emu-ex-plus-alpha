@@ -45,7 +45,7 @@ class EmuAudio;
 const char *appViewTitle();
 bool hasGooglePlayStoreFeatures();
 void runBenchmarkOneShot(EmuApp &, EmuVideo &);
-void onSelectFileFromPicker(EmuApp &, GenericIO, IG::CStringView path, bool pathIsUri,
+void onSelectFileFromPicker(EmuApp &, GenericIO, IG::CStringView path, std::string_view displayName,
 	Input::Event, EmuSystemCreateParams, ViewAttachParams);
 void launchSystem(EmuApp &, bool tryAutoState);
 Gfx::Viewport makeViewport(const Base::Window &win);

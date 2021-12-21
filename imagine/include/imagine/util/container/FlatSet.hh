@@ -15,9 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/util/utility.h>
 #include <vector>
 #include <iterator>
-#include <utility>
 
 namespace IG
 {
@@ -77,10 +77,9 @@ public:
 		v.clear();
 	}
 
-	template <class... ARGS>
-	std::pair<iterator, bool> emplace(ARGS&&... args)
+	std::pair<iterator, bool> emplace(auto &&...args)
 	{
-		return insert(T(std::forward<ARGS>(args)...));
+		return insert(T(IG_forward(args)...));
 	}
 
 	std::pair<iterator, bool> insert(const T& val)
@@ -123,10 +122,9 @@ public:
 	using FlatSet<T, COMPARE>::FlatSet;
 	using iterator = typename FlatSet<T, COMPARE>::iterator;
 
-	template <class... ARGS>
-	iterator emplace(ARGS&&... args)
+	iterator emplace(auto &&...args)
 	{
-		return insert(T(std::forward<ARGS>(args)...));
+		return insert(T(IG_forward(args)...));
 	}
 
 	iterator insert(const T& val)

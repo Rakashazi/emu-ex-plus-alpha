@@ -15,8 +15,8 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/util/utility.h>
 #include <chrono>
-#include <utility>
 #if defined __APPLE__
 #include <TargetConditionals.h>
 #endif
@@ -53,22 +53,22 @@ static Time steadyClockTimestamp()
 	return Time{timePoint.time_since_epoch()};
 }
 
-static Time timeFunc(auto &&func, auto &&... args)
+static Time timeFunc(auto &&func, auto &&...args)
 {
 	auto before = steadyClockTimestamp();
-	func(std::forward<decltype(args)>(args)...);
+	func(IG_forward(args)...);
 	auto after = steadyClockTimestamp();
 	return after - before;
 }
 
-static Time timeFuncDebug(auto &&func, auto &&... args)
+static Time timeFuncDebug(auto &&func, auto &&...args)
 {
 	#ifdef NDEBUG
 	// execute directly without timing
-	func(std::forward<decltype(args)>(args)...);
+	func(IG_forward(args)...);
 	return {};
 	#else
-	return timeFunc(std::forward<decltype(func)>(func), std::forward<decltype(args)>(args)...);
+	return timeFunc(IG_forward(func), IG_forward(args)...);
 	#endif
 }
 

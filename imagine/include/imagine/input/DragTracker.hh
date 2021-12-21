@@ -26,7 +26,7 @@ namespace Input
 class DragTrackerState
 {
 public:
-	constexpr DragTrackerState() {}
+	constexpr DragTrackerState() = default;
 	constexpr DragTrackerState(PointerId id, IG::WP pos)
 	{
 		start(id, pos);
@@ -72,7 +72,7 @@ public:
 			dragState{dragState}, data{data} {}
 	};
 
-	constexpr DragTracker() {}
+	constexpr DragTracker() = default;
 
 	bool inputEvent(Event e,
 		IG::invocable<DragTrackerState, UserData&> auto &&onDown,

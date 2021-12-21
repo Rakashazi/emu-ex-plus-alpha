@@ -18,13 +18,17 @@
 #include <imagine/config/defs.hh>
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureConfig.hh>
-#include <imagine/pixmap/Pixmap.hh>
 
 #ifdef CONFIG_GFX_OPENGL
 #include <imagine/gfx/opengl/GLTexture.hh>
 #endif
 
 #include <utility>
+
+namespace IG
+{
+class Pixmap;
+}
 
 namespace IG::Data
 {

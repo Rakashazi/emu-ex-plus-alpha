@@ -32,20 +32,22 @@ extern "C"
 static std::vector<FS::FileString> machinesNames(Base::ApplicationContext ctx, std::string_view basePath)
 {
 	std::vector<FS::FileString> machineName{};
-	auto machinePath = FS::pathString(basePath, "Machines");
+	auto machinePath = FS::uriString(basePath, "Machines");
 	try
 	{
-		for(auto &entry : FS::directory_iterator{machinePath})
-		{
-			auto configPath = FS::pathString(machinePath, entry.name(), "config.ini");
-			if(!FS::exists(configPath))
+		ctx.forEachInDirectoryUri(machinePath,
+			[&machineName, &machinePath, ctx](auto &entry)
 			{
-				//logMsg("%s doesn't exist", configPath.data());
-				continue;
-			}
-			machineName.emplace_back(entry.name());
-			logMsg("found machine:%s", entry.name().data());
-		}
+				auto configPath = FS::uriString(machinePath, entry.name(), "config.ini");
+				if(!ctx.fileUriExists(configPath))
+				{
+					//logMsg("%s doesn't exist", configPath.data());
+					return true;
+				}
+				machineName.emplace_back(entry.name());
+				logMsg("found machine:%s", entry.name().data());
+				return true;
+			});
 	}
 	catch(...)
 	{
@@ -74,9 +76,9 @@ static std::vector<FS::FileString> machinesNames(Base::ApplicationContext ctx, s
 		logWarn("no machines in assets");
 	}
 	std::sort(machineName.begin(), machineName.end(),
-		[](FS::FileString n1, FS::FileString n2)
+		[](const FS::FileString &n1, const FS::FileString &n2)
 		{
-			return FS::fileStringNoCaseLexCompare(n1, n2);
+			return IG::stringNoCaseLexCompare(n1, n2);
 		});
 	// remove any duplicates
 	auto dupeEraseIt = std::unique(machineName.begin(), machineName.end());
@@ -123,7 +125,7 @@ private:
 		{
 			if(!msxMachineItem.size())
 			{
-				app().postMessage(4, 1, fmt::format("Place machine directory in:\n{}", machineBasePath(appContext())));
+				logErr("no machines definitions are present");
 				return;
 			}
 			item.defaultOnSelect(view, e);
@@ -156,9 +158,9 @@ private:
 		}
 	};
 
-	static auto makeMachinePathMenuEntryStr(std::string_view path)
+	auto machinePathMenuEntryStr(IG::CStringView path)
 	{
-		return fmt::format("System/BIOS Path: {}", path.size() ? FS::basename(path) : "Default");
+		return fmt::format("BIOS Path: {}", path.size() ? appContext().fileUriDisplayName(path) : "");
 	}
 
 	TextMenuItem machineFilePath
@@ -166,20 +168,27 @@ private:
 		{}, &defaultFace(),
 		[this](Input::Event e)
 		{
-			pushAndShowFirmwarePathMenu("System/BIOS Path", e);
+			pushAndShowFirmwarePathMenu("BIOS Path", e);
 			postDraw();
 		}
 	};
 
-	void onFirmwarePathChange(std::string_view path) final
+	bool onFirmwarePathChange(IG::CStringView path, bool isDir) final
 	{
-		machineFilePath.compile(makeMachinePathMenuEntryStr(path), renderer(), projP);
+		auto pathIsSet = path.size();
+		if(pathIsSet && !appContext().fileUriExists(FS::uriString(path, "Machines")))
+		{
+			app().postErrorMessage("Path is missing Machines folder");
+			return false;
+		}
+		machineFilePath.compile(machinePathMenuEntryStr(path), renderer(), projP);
 		reloadMachineItem();
 		msxMachine.compile(renderer(), projP);
-		if(path.empty())
+		if(!pathIsSet)
 		{
-			app().postMessage(4, false, fmt::format("Using default path:\n{}", machineBasePath(appContext())));
+			app().postMessage(4, false, fmt::format("Using fallback path:\n{}", machineBasePath(appContext())));
 		}
+		return true;
 	}
 
 public:
@@ -189,7 +198,7 @@ public:
 		reloadMachineItem();
 		item.emplace_back(&skipFdcAccess);
 		item.emplace_back(&msxMachine);
-		machineFilePath.setName(makeMachinePathMenuEntryStr(EmuSystem::firmwarePath()));
+		machineFilePath.setName(machinePathMenuEntryStr(EmuSystem::firmwarePath()));
 		item.emplace_back(&machineFilePath);
 	}
 };
@@ -241,15 +250,15 @@ public:
 
 	void addHDFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
-		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(),
+		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e,
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
-			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view name, Input::Event e)
+			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view path, std::string_view name, Input::Event e)
 			{
 				auto id = diskGetHdDriveId(slot / 2, slot % 2);
 				logMsg("inserting hard drive id %d", id);
-				if(insertDisk(app(), name.data(), id))
+				if(insertDisk(app(), path.data(), id))
 				{
-					onHDMediaChange(name.data(), slot);
+					onHDMediaChange(path.data(), slot);
 					if(dismissPreviousView)
 						dismissPrevious();
 				}
@@ -310,13 +319,13 @@ public:
 
 	void addROMFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
-		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(),
+		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e,
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::ROM),
-			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view name, Input::Event e)
+			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view path, std::string_view name, Input::Event e)
 			{
-				if(insertROM(app(), name.data(), slot))
+				if(insertROM(app(), path.data(), slot))
 				{
-					onROMMediaChange(name.data(), slot);
+					onROMMediaChange(path.data(), slot);
 					if(dismissPreviousView)
 						dismissPrevious();
 				}
@@ -391,14 +400,14 @@ public:
 
 	void addDiskFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
-		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(),
+		auto fPicker = EmuFilePicker::makeForMediaChange(attachParams(), e,
 			MsxMediaFilePicker::fsFilter(MsxMediaFilePicker::DISK),
-			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view name, Input::Event e)
+			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view path, std::string_view name, Input::Event e)
 			{
 				logMsg("inserting disk in slot %d", slot);
-				if(insertDisk(app(), name.data(), slot))
+				if(insertDisk(app(), path.data(), slot))
 				{
-					onDiskMediaChange(name.data(), slot);
+					onDiskMediaChange(path.data(), slot);
 					if(dismissPreviousView)
 						dismissPrevious();
 				}

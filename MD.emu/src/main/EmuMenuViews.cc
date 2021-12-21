@@ -242,7 +242,7 @@ class CustomSystemOptionView : public SystemOptionView
 	};
 
 	#ifndef NO_SCD
-	static constexpr const char *biosHeadingStr[3]
+	static constexpr std::string_view biosHeadingStr[3]
 	{
 		"USA CD BIOS",
 		"Japan CD BIOS",
@@ -276,27 +276,20 @@ class CustomSystemOptionView : public SystemOptionView
 		{{}, &defaultFace(), [this](Input::Event e){ cdBiosPathHandler(e, REGION_EUROPE); }}
 	};
 
-	auto makeBiosMenuEntryStr(int region)
+	auto biosMenuEntryStr(int region, std::string_view displayName) const
 	{
-		std::string_view path{};
-		switch(region)
-		{
-			bdefault: path = cdBiosUSAPath;
-			bcase REGION_JAPAN_NTSC: path = cdBiosJpnPath;
-			bcase REGION_EUROPE: path = cdBiosEurPath;
-		}
-		const char *regionStr = biosHeadingStr[regionCodeToIdx(region)];
-		return fmt::format("{}: {}", regionStr, path.size() ? appContext().fileUriDisplayName(path) : "None set");
+		auto regionStr = biosHeadingStr[regionCodeToIdx(region)];
+		return fmt::format("{}: {}", regionStr, displayName);
 	}
 
 	void cdBiosPathHandler(Input::Event e, int region)
 	{
 		auto biosSelectMenu = makeViewWithName<BiosSelectMenu>(biosHeadingStr[regionCodeToIdx(region)], &regionCodeToStrBuffer(region),
-			[this, region]()
+			[this, region](std::string_view displayName)
 			{
 				auto idx = regionCodeToIdx(region);
 				logMsg("set bios at idx %d to %s", idx, regionCodeToStrBuffer(region).data());
-				cdBiosPath[idx].compile(makeBiosMenuEntryStr(region).data(), renderer(), projP);
+				cdBiosPath[idx].compile(biosMenuEntryStr(region, displayName), renderer(), projP);
 			},
 			hasMDExtension);
 		pushAndShow(std::move(biosSelectMenu), e);
@@ -304,11 +297,12 @@ class CustomSystemOptionView : public SystemOptionView
 
 	void cdBiosPathInit()
 	{
-		const int region[3]{REGION_USA, REGION_JAPAN_NTSC, REGION_EUROPE};
-		iterateTimes(3, i)
+		static constexpr int regions[3]{REGION_USA, REGION_JAPAN_NTSC, REGION_EUROPE};
+		for(int i = 0; auto r : regions)
 		{
-			cdBiosPath[i].setName(makeBiosMenuEntryStr(region[i]).data());
+			cdBiosPath[i].setName(biosMenuEntryStr(r, appContext().fileUriDisplayName(regionCodeToStrBuffer(r))));
 			item.emplace_back(&cdBiosPath[i]);
+			i++;
 		}
 	}
 	#endif
@@ -323,10 +317,6 @@ public:
 		#endif
 	}
 };
-
-#ifndef NO_SCD
-constexpr const char *CustomSystemOptionView::biosHeadingStr[3];
-#endif
 
 std::unique_ptr<View> EmuApp::makeCustomView(ViewAttachParams attach, ViewID id)
 {

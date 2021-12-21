@@ -955,28 +955,28 @@ void EmuViewController::onScreenChange(Base::ApplicationContext ctx, Base::Scree
 
 void EmuViewController::handleOpenFileCommand(IG::CStringView path)
 {
-	auto type = FS::status(path).type();
-	if(type == FS::file_type::directory)
+	auto name = appContext().fileUriDisplayName(path);
+	if(name.empty())
+	{
+		logMsg("path doesn't exists:%s", path.data());
+		return;
+	}
+	if(!IG::isUri(path) && FS::status(path).type() == FS::file_type::directory)
 	{
 		logMsg("changing to dir %s from external command", path.data());
 		showUI(false);
 		popToRoot();
-		appPtr->setMediaSearchPath(path.data());
+		appPtr->setContentSearchPath({path.data(), {}});
 		pushAndShow(
 			EmuFilePicker::makeForLoading(viewStack.top().attachParams(), appContext().defaultInputEvent()),
 			appContext().defaultInputEvent(),
 			false);
 		return;
 	}
-	if(type != FS::file_type::regular || (!appPtr->hasArchiveExtension(path) && !EmuSystem::defaultFsFilter(path)))
-	{
-		logMsg("unrecognized file type");
-		return;
-	}
 	logMsg("opening file %s from external command", path.data());
 	showUI();
 	popToRoot();
-	onSelectFileFromPicker(*appPtr, {}, path, false, Input::Event{}, {}, viewStack.top().attachParams());
+	onSelectFileFromPicker(*appPtr, {}, path, name, Input::Event{}, {}, viewStack.top().attachParams());
 }
 
 void EmuViewController::onFocusChange(bool in)

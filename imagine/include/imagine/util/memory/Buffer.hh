@@ -27,7 +27,7 @@ namespace IG
 template<class T>
 struct BufferDeleter
 {
-	using DeleterFunc = DelegateFunc2<sizeof(void*), sizeof(void*), void(T *dataPtr, size_t size)>;
+	using DeleterFunc = DelegateFuncS<sizeof(void*), void(T *dataPtr, size_t size)>;
 
 	DeleterFunc del{};
 	size_t size{};

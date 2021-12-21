@@ -47,7 +47,7 @@ extern ROMINFO rominfo;
 extern char rom_filename[256];
 
 /* Function prototypes */
-extern int load_rom(IO &io, std::string_view origFilename);
+extern void init_rom(size_t romSize, std::string_view origFilename);
 extern void region_autodetect(void);
 extern char *get_company(void);
 extern char *get_peripheral(int index);

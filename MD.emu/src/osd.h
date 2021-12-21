@@ -8,8 +8,6 @@
 extern t_config config;
 void ROMCheatUpdate();
 
-#include <fileio/fileio.h>
-
 static void osd_input_Update() { }
 
 #define GG_ROM    "./ggenie.bin"

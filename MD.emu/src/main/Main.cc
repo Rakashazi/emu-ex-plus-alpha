@@ -34,9 +34,9 @@
 #ifndef NO_SCD
 #include <scd/scd.h>
 #endif
-#include <fileio/fileio.h>
 #include "Cheats.hh"
 #include <imagine/fs/FS.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/format.hh>
 #include <imagine/util/ScopeGuard.hh>
 
@@ -52,7 +52,11 @@ static unsigned autoDetectedVidSysPAL = 0;
 
 bool hasMDExtension(std::string_view name)
 {
-	return hasROMExtension(name);
+	return IG::stringEndsWithAny(name, ".bin", ".smd", ".md", ".gen"
+		#ifndef NO_SYSTEM_PBC
+		, ".sms"
+		#endif
+		);
 }
 
 static bool hasMDCDExtension(std::string_view name)
@@ -137,11 +141,11 @@ void EmuSystem::saveState(Base::ApplicationContext ctx, IG::CStringView path)
 {
 	auto stateData = std::make_unique<uint8_t[]>(maxSaveStateSize);
 	logMsg("saving state data");
-	int size = state_save(stateData.get());
+	size_t size = state_save(stateData.get());
 	logMsg("writing to file");
-	if(FileUtils::writeToUri(ctx, path, stateData.get(), size) == -1)
+	if(FileUtils::writeToUri(ctx, path, {stateData.get(), size}) == -1)
 		throwFileWriteError();
-	logMsg("wrote %d byte state", size);
+	logMsg("wrote %zu byte state", size);
 }
 
 void EmuSystem::loadState(EmuApp &app, IG::CStringView path)
@@ -204,7 +208,7 @@ void EmuSystem::saveBackupMem(Base::ApplicationContext ctx)
 			}
 			try
 			{
-				FileUtils::writeToUri(ctx, saveStr, sramPtr, 0x10000);
+				FileUtils::writeToUri(ctx, saveStr, {sramPtr, 0x10000});
 			}
 			catch(...)
 			{
@@ -335,7 +339,7 @@ static unsigned detectISORegion(uint8 bootSector[0x800])
 		return REGION_JAPAN_NTSC;
 }
 
-FS::PathString EmuSystem::willLoadGameFromPath(Base::ApplicationContext ctx, std::string_view path)
+FS::PathString EmuSystem::willLoadGameFromPath(Base::ApplicationContext ctx, std::string_view path, std::string_view displayName)
 {
 	#ifndef NO_SCD
 	// check if loading a .bin with matching .cue
@@ -362,7 +366,10 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	if(hasMDCDExtension(contentFileName()) ||
 		(contentFileName().ends_with(".bin") && io.size() > 1024*1024*10)) // CD
 	{
-		FS::current_path(contentDirectory());
+		if(contentDirectory().empty())
+		{
+			throwMissingContentDirError();
+		}
 		cd = CDAccess_Open(&NVFS, std::string{contentLocation()}, false);
 
 		unsigned region = REGION_USA;
@@ -388,10 +395,10 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 		{
 			throw std::runtime_error(fmt::format("Set a {} BIOS in the Options", biosName));
 		}
-		if(!load_rom(ctx.openFileUri(biosPath, IO::AccessHint::ALL), ""))
-		{
+		auto [biosSize, biosFilename] = FileUtils::readFromUriWithArchiveScan(ctx, biosPath, {cart.rom, MAXROMSIZE}, hasMDExtension);
+		if(biosSize <= 0)
 			throw std::runtime_error(fmt::format("Error loading BIOS: {}", biosPath));
-		}
+		init_rom(biosSize, "");
 		if(!sCD.isActive)
 		{
 			throw std::runtime_error(fmt::format("Invalid BIOS: {}", biosPath));
@@ -402,10 +409,10 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	// ROM
 	{
 		logMsg("loading ROM %s", contentLocation().data());
-		if(!load_rom(io, contentFileName()))
-		{
+		auto size = io.read(cart.rom, MAXROMSIZE);
+		if(size <= 0)
 			throwFileReadError();
-		}
+		init_rom(size, contentFileName());
 	}
 	autoDetectedVidSysPAL = vdp_pal;
 	if((int)optionVideoSystem == 1)
@@ -461,7 +468,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &io, EmuSystemCreatePa
 	{
 		auto saveStr = saveFilename(ctx);
 
-		if(FileUtils::readFromUri(ctx, saveStr, sram.sram, 0x10000) <= 0)
+		if(FileUtils::readFromUri(ctx, saveStr, {sram.sram, 0x10000}) <= 0)
 			logMsg("no SRAM on disk");
 		else
 			logMsg("loaded SRAM from disk%s", optionBigEndianSram ? ", will byte-swap" : "");

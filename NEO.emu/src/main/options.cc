@@ -14,6 +14,7 @@
 	along with NEO.emu.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <emuframework/EmuApp.hh>
+#include <imagine/util/string.h>
 #include "internal.hh"
 
 extern "C"
@@ -62,13 +63,8 @@ void setTimerIntOption()
 		bcase 0: conf.raster = 0;
 		bcase 1: conf.raster = 1;
 		bcase 2:
-			bool needsTimer = 0;
-			auto gameName = EmuSystem::contentDisplayName();
-			auto gameStr = gameName.data();
-			if(EmuSystem::gameIsRunning() && (strstr(gameStr, "Sidekicks 2") || strstr(gameStr, "Sidekicks 3")
-					|| strstr(gameStr, "Ultimate 11") || strstr(gameStr, "Neo-Geo Cup")
-					|| strstr(gameStr, "Spin Master") || strstr(gameStr, "Neo Turf Masters")))
-				needsTimer = 1;
+			bool needsTimer = EmuSystem::gameIsRunning() && IG::stringContainsAny(EmuSystem::contentDisplayName(),
+				"Sidekicks 2", "Sidekicks 3", "Ultimate 11", "Neo-Geo Cup", "Spin Master", "Neo Turf Masters");
 			if(needsTimer) logMsg("auto enabled timer interrupt");
 			conf.raster = needsTimer;
 	}

@@ -16,8 +16,10 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
-#include <imagine/fs/FSDefs.hh>
+#include <imagine/fs/PosixFS.hh>
 #include <imagine/util/string/CStringView.hh>
+#include <imagine/util/string/uri.hh>
+#include <imagine/util/concepts.hh>
 #include <cstddef>
 #include <compare>
 #include <memory>
@@ -30,7 +32,7 @@ namespace FS
 class directory_iterator : public std::iterator<std::input_iterator_tag, directory_entry>
 {
 public:
-	constexpr directory_iterator() {}
+	constexpr directory_iterator() = default;
 	directory_iterator(IG::CStringView path);
 	directory_iterator(const directory_iterator&) = default;
 	directory_iterator(directory_iterator&&) = default;
@@ -40,7 +42,7 @@ public:
 	bool operator==(directory_iterator const &rhs) const;
 
 protected:
-	std::shared_ptr<DirectoryEntryImpl> impl{};
+	std::shared_ptr<DirectoryStream> impl{};
 };
 
 static const directory_iterator &begin(const directory_iterator &iter)
@@ -68,15 +70,34 @@ void rename(IG::CStringView oldPath, IG::CStringView newPath);
 PathString makeAppPathFromLaunchCommand(IG::CStringView launchPath);
 FileString basename(IG::CStringView path);
 PathString dirname(IG::CStringView path);
-bool isUri(std::string_view str);
-PathString decodeUri(std::string_view uri);
-FileString basenameUri(IG::CStringView pathOrUri, bool isEncodedUri = true);
+FileString displayName(IG::CStringView path);
 std::string formatLastWriteTimeLocal(IG::CStringView path);
-
-using FileStringCompareFunc = bool (*)(const FS::FileString &s1, const FS::FileString &s2);
-
-bool fileStringNoCaseLexCompare(FS::FileString s1, FS::FileString s2);
-
 int directoryItems(IG::CStringView path);
+
+// URI path functions
+static constexpr std::string_view uriPathSegmentTreeName{"/tree/"};
+static constexpr std::string_view uriPathSegmentDocumentName{"/document/"};
+PathString dirnameUri(IG::CStringView pathOrUri);
+std::pair<std::string_view, size_t> uriPathSegment(std::string_view uri, std::string_view segmentName);
+
+template <class T>
+concept ConvertibleToPathString = IG::convertible_to<T, PathStringImpl> || IG::convertible_to<T, std::string_view>;
+
+static constexpr PathString pathString(ConvertibleToPathString auto &&base, auto &&...components)
+{
+	PathString path{IG_forward(base)};
+	([&](){path += '/'; path += IG_forward(components);}(), ...);
+	return path;
+}
+
+static constexpr PathString uriString(ConvertibleToPathString auto &&base, auto &&...components)
+{
+	if(!IG::isUri(base))
+		return pathString(IG_forward(base), IG_forward(components)...);
+	// assumes base is already encoded and encodes the components
+	PathString uri{IG_forward(base)};
+	([&](){uri += "%2F"; uri += IG::encodeUri<PathString>(IG_forward(components));}(), ...);
+	return uri;
+}
 
 };

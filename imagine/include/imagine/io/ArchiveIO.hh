@@ -17,7 +17,6 @@
 
 #include <imagine/config/defs.hh>
 #include <imagine/io/IO.hh>
-#include <imagine/fs/FSDefs.hh>
 #include <imagine/util/string/CStringView.hh>
 #include <memory>
 
@@ -25,6 +24,11 @@ struct archive;
 struct archive_entry;
 class ArchiveIO;
 class MapIO;
+
+namespace FS
+{
+enum class file_type : int8_t;
+}
 
 // data used by libarchive callbacks allocated in its own memory block
 struct ArchiveControlBlock
@@ -36,7 +40,7 @@ struct ArchiveControlBlock
 class ArchiveEntry
 {
 public:
-	constexpr ArchiveEntry() {}
+	constexpr ArchiveEntry() = default;
 	ArchiveEntry(IG::CStringView path);
 	ArchiveEntry(GenericIO io);
 	std::string_view name() const;
@@ -83,7 +87,7 @@ public:
 	using IO::buffer;
 	using IO::get;
 
-	constexpr ArchiveIO() {}
+	constexpr ArchiveIO() = default;
 	ArchiveIO(ArchiveEntry entry);
 	ArchiveEntry releaseArchive();
 	std::string_view name() const;

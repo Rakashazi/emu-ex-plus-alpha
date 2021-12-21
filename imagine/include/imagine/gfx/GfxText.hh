@@ -37,7 +37,7 @@ public:
 	static constexpr uint16_t NO_MAX_LINES = std::numeric_limits<uint16_t>::max();
 	static constexpr GC NO_MAX_LINE_SIZE = std::numeric_limits<GC>::max();
 
-	Text();
+	Text() = default;
 	Text(GlyphTextureSet *face);
 	Text(IG::utf16String str, GlyphTextureSet *face = nullptr);
 	void setString(IG::utf16String);

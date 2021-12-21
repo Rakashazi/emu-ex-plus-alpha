@@ -43,7 +43,6 @@ protected:
 	EmuAudio *audio{};
 	EmuVideoLayer *videoLayer{};
 	TextMenuItem loadGame;
-	IG_UseMemberIf(Config::Base::SYSTEM_FILE_PICKER, TextMenuItem, browseContent){};
 	TextMenuItem systemActions;
 	TextMenuItem recentGames;
 	TextMenuItem bundledGames;

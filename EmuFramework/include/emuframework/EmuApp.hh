@@ -27,10 +27,9 @@
 #include <emuframework/TurboInput.hh>
 #include <imagine/input/Input.hh>
 #include <imagine/input/android/MogaManager.hh>
+#include <imagine/gui/ViewManager.hh>
 #include <imagine/gui/TextEntry.hh>
 #include <imagine/gui/MenuItem.hh>
-#include <imagine/gui/NavView.hh>
-#include <imagine/io/FileIO.hh>
 #include <imagine/fs/FSDefs.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/base/Application.hh>
@@ -48,6 +47,9 @@
 #include <span>
 
 class BluetoothAdapter;
+class IO;
+class GenericIO;
+class BasicNavView;
 
 struct RecentContentInfo
 {
@@ -100,10 +102,8 @@ public:
 	EmuApp(Base::ApplicationInitParams, Base::ApplicationContext &);
 
 	bool willCreateSystem(ViewAttachParams attach, Input::Event e);
-	void createSystemWithMedia(GenericIO, IG::CStringView path,
+	void createSystemWithMedia(GenericIO, IG::CStringView path, std::string_view displayName,
 		Input::Event, EmuSystemCreateParams, ViewAttachParams, CreateSystemCompleteDelegate);
-	void createSystemWithMedia(GenericIO, IG::CStringView path,
-		bool pathIsUri, Input::Event, EmuSystemCreateParams, ViewAttachParams, CreateSystemCompleteDelegate);
 	void exitGame(bool allowAutosaveState = true);
 	void reloadGame(EmuSystemCreateParams params = {});
 	void promptSystemReloadDueToSetOption(ViewAttachParams attach, Input::Event e, EmuSystemCreateParams params = {});
@@ -137,10 +137,11 @@ public:
 	bool loadStateWithSlot(int slot);
 	void setDefaultVControlsButtonSpacing(int spacing);
 	void setDefaultVControlsButtonStagger(int stagger);
-	FS::PathString mediaSearchPath();
-	void setMediaSearchPath(FS::PathString);
-	FS::PathString firmwareSearchPath();
-	void setFirmwareSearchPath(IG::CStringView path);
+	FS::PathString contentSearchPath() const;
+	FS::PathString contentSearchPath(std::string_view name) const;
+	void setContentSearchPath(std::string_view path);
+	FS::PathString firmwareSearchPath() const;
+	void setFirmwareSearchPath(std::string_view path);
 	static std::unique_ptr<View> makeCustomView(ViewAttachParams attach, ViewID id);
 	void addTurboInputEvent(unsigned action);
 	void removeTurboInputEvent(unsigned action);
@@ -186,8 +187,6 @@ public:
 	BluetoothAdapter *bluetoothAdapter();
 	void closeBluetoothConnections();
 	ViewAttachParams attachParams();
-	void requestFilePickerForLoading(View &parentView, ViewAttachParams, Input::Event,
-		bool singleDir = false, EmuSystemCreateParams params = {});
 	void addRecentContent(std::string_view path, std::string_view name);
 	void addCurrentContentToRecent();
 	RecentContentList &recentContent() { return recentContentList; };
@@ -304,7 +303,7 @@ protected:
 	DelegateFunc<void ()> onUpdateInputDevices_{};
 	OnMainMenuOptionChanged onMainMenuOptionChanged_{};
 	TurboInput turboActions{};
-	FS::PathString lastLoadPath{};
+	FS::PathString contentSearchPath_{};
 	[[no_unique_address]] IG::Data::PixmapReader pixmapReader;
 	[[no_unique_address]] IG::Data::PixmapWriter pixmapWriter;
 	[[no_unique_address]] Base::VibrationManager vibrationManager_;

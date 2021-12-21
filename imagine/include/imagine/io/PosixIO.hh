@@ -37,8 +37,8 @@ public:
 
 	constexpr PosixIO() = default;
 	constexpr PosixIO(int fd):fd_{fd} {}
-	PosixIO(IG::CStringView path, unsigned openFlags = 0);
-	static PosixIO create(IG::CStringView path, unsigned openFlags = 0);
+	PosixIO(IG::CStringView path, OpenFlags oFlags = {});
+	static PosixIO create(IG::CStringView path, OpenFlags oFlags = {});
 	int releaseFd();
 	int fd() const;
 	ssize_t read(void *buff, size_t bytes, std::error_code *ecOut) final;

@@ -31,49 +31,49 @@ namespace Input
 class Event;
 }
 
+namespace FS
+{
+class directory_entry;
+}
+
 class FSPicker : public View
 {
 public:
-	using FilterFunc = DelegateFunc<bool(FS::directory_entry &entry)>;
+	using FilterFunc = DelegateFunc<bool(const FS::directory_entry &entry)>;
 	using OnChangePathDelegate = DelegateFunc<void (FSPicker &picker, FS::PathString prevPath, Input::Event e)>;
-	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, std::string_view name, Input::Event e)>;
+	using OnSelectFileDelegate = DelegateFunc<void (FSPicker &picker, IG::CStringView filePath, std::string_view displayName, Input::Event e)>;
 	using OnCloseDelegate = DelegateFunc<void (FSPicker &picker, Input::Event e)>;
-	using OnPathReadError = DelegateFunc<void (FSPicker &picker, std::error_code ec)>;
-	static constexpr bool needsUpDirControl = true;
+	enum class Mode : uint8_t { FILE, FILE_IN_DIR, DIR };
 
 	FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes,
-			FilterFunc filter = {}, bool singleDir = false, Gfx::GlyphTextureSet *face = {});
+			FilterFunc filter = {}, Mode mode = Mode::FILE, Gfx::GlyphTextureSet *face = {});
 	void place() override;
-	bool inputEvent(Input::Event e) override;
+	bool inputEvent(Input::Event) override;
 	void prepareDraw() override;
-	void draw(Gfx::RendererCommands &cmds) override;
-	void onAddedToController(ViewController *c, Input::Event e) override;
-	void setOnChangePath(OnChangePathDelegate del);
-	void setOnSelectFile(OnSelectFileDelegate del);
-	void setOnClose(OnCloseDelegate del);
-	void setOnPathReadError(OnPathReadError del);
-	void onLeftNavBtn(Input::Event e);
-	void onRightNavBtn(Input::Event e);
-	std::error_code setPath(IG::CStringView path, bool forcePathChange, FS::RootPathInfo rootInfo, Input::Event e);
-	std::error_code setPath(IG::CStringView path, bool forcePathChange, FS::RootPathInfo rootInfo);
-	std::error_code setPath(FS::PathLocation location, bool forcePathChange);
-	std::error_code setPath(FS::PathLocation location, bool forcePathChange, Input::Event e);
+	void draw(Gfx::RendererCommands &) override;
+	void onAddedToController(ViewController *, Input::Event) override;
+	void setOnChangePath(OnChangePathDelegate);
+	void setOnSelectFile(OnSelectFileDelegate);
+	void setOnClose(OnCloseDelegate);
+	void onLeftNavBtn(Input::Event);
+	void onRightNavBtn(Input::Event);
+	void setEmptyPath();
+	std::error_code setPath(IG::CStringView path, FS::RootPathInfo rootInfo, Input::Event);
+	std::error_code setPath(IG::CStringView path, FS::RootPathInfo rootInfo);
+	std::error_code setPath(IG::CStringView path, Input::Event);
+	std::error_code setPath(IG::CStringView path);
 	FS::PathString path() const;
+	FS::RootedPath rootedPath() const;
 	void clearSelection() override;
-	FS::PathString pathString(std::string_view base) const;
 	bool isSingleDirectoryMode() const;
-	void goUpDirectory(Input::Event e);
+	void goUpDirectory(Input::Event);
+	void pushFileLocationsView(Input::Event);
 
 protected:
 	struct FileEntry
 	{
-		FS::FileString name{};
+		std::string path{};
 		bool isDir{};
-
-		constexpr FileEntry() {}
-		constexpr FileEntry(FS::FileString name, bool isDir):
-			name{name}, isDir{isDir}
-		{}
 	};
 
 	FilterFunc filter{};
@@ -81,18 +81,13 @@ protected:
 	OnChangePathDelegate onChangePath_{};
 	OnSelectFileDelegate onSelectFile_{};
 	OnCloseDelegate onClose_;
-	OnPathReadError onPathReadError_{};
 	std::vector<TextMenuItem> text{};
 	std::vector<FileEntry> dir{};
-	std::vector<FS::PathLocation> rootLocation{};
-	FS::RootPathInfo root{};
-	FS::PathString currPath{};
-	FS::PathString rootedPath{};
+	FS::RootedPath root{};
 	Gfx::Text msgText{};
-	bool singleDir = false;
+	Mode mode_{};
 
-	void changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, bool forcePathChange, Input::Event e);
+	std::error_code changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, Input::Event e);
 	bool isAtRoot() const;
-	void pushFileLocationsView(Input::Event e);
 	Gfx::GlyphTextureSet &face();
 };

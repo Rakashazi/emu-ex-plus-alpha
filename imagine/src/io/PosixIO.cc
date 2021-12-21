@@ -160,7 +160,12 @@ void PosixIO::sync()
 
 size_t PosixIO::size()
 {
-	return fd_size(fd_);
+	auto s = fd_size(fd_);
+	if(s == 0)
+	{
+		logMsg("fd:%d is empty or a stream", fd_.get());
+	}
+	return s;
 }
 
 bool PosixIO::eof()

@@ -1182,21 +1182,10 @@ static bool loadUnibios(GAME_ROMS *r, const char *unibiosFilename, uint32_t file
 {
 	/* First check in neogeo.zip */
 	r->bios_m68k.p = gn_unzip_file_malloc(pz, unibiosFilename, file_crc, &r->bios_m68k.size);
-	if (r->bios_m68k.p == NULL) {
-		char *unipath = malloc(strlen(rpath) + strlen(unibiosFilename) + 2);
-
-		sprintf(unipath, "%s/%s", rpath, unibiosFilename);
-		FILE *f = fopen(unipath, "rb");
-		if (!f) { /* TODO: Fallback to arcade mode */
-			sprintf(romerror, "%s missing or invalid, make sure it's in your neogeo.zip", unibiosFilename);
-			free(unipath);
-			return false;
-		}
-		r->bios_m68k.p = malloc(0x20000);
-		fread(r->bios_m68k.p, 0x20000, 1, f); // TODO: check error
-		r->bios_m68k.size = 0x20000;
-		fclose(f);
-		free(unipath);
+	if(!r->bios_m68k.p)
+	{
+		sprintf(romerror, "%s missing or invalid, make sure it's in your neogeo.zip", unibiosFilename);
+		return false;
 	}
 	return true;
 }
@@ -1207,16 +1196,12 @@ bool dr_load_bios(void *contextPtr, GAME_ROMS *r, char romerror[1024]) {
 	struct ZFILE *z;
 	unsigned int size;
 	char *rpath = CF_STR(cf_get_item_by_name("rompath"));
-	char *fpath;
 	const char *romfile;
-	fpath = malloc(strlen(rpath) + strlen("neogeo.zip") + 2);
-	sprintf(fpath, "%s/neogeo.zip", rpath);
 
 	logMsg("opening neogeo.zip");
-	pz = gn_open_zip(contextPtr, fpath);
+	pz = open_rom_zip(contextPtr, rpath, "neogeo");
 	if (pz == NULL) {
 		sprintf(romerror, "Can't open BIOS archive (neogeo.zip)");
-		free(fpath);
 		return false;
 	}
 
@@ -1249,37 +1234,31 @@ bool dr_load_bios(void *contextPtr, GAME_ROMS *r, char romerror[1024]) {
 		if (conf.system == SYS_UNIBIOS) {
 			if(!loadUnibios(r, "uni-bios_2_3.rom", 0x27664eb5, pz, rpath, romerror))
 			{
-				free(fpath);
 				return false;
 			}
 		} else if (conf.system == SYS_UNIBIOS_3_0) {
 			if(!loadUnibios(r, "uni-bios_3_0.rom", 0xa97c89a9, pz, rpath, romerror))
 			{
-				free(fpath);
 				return false;
 			}
 		} else if (conf.system == SYS_UNIBIOS_3_1) {
 			if(!loadUnibios(r, "uni-bios_3_1.rom", 0x0c58093f, pz, rpath, romerror))
 			{
-				free(fpath);
 				return false;
 			}
 		} else if (conf.system == SYS_UNIBIOS_3_2) {
 			if(!loadUnibios(r, "uni-bios_3_2.rom", 0xa4e8b9b3, pz, rpath, romerror))
 			{
-				free(fpath);
 				return false;
 			}
 		} else if (conf.system == SYS_UNIBIOS_3_3) {
 			if(!loadUnibios(r, "uni-bios_3_3.rom", 0x24858466, pz, rpath, romerror))
 			{
-				free(fpath);
 				return false;
 			}
 		} else if (conf.system == SYS_UNIBIOS_4_0) {
 			if(!loadUnibios(r, "uni-bios_4_0.rom", 0xa7aab458, pz, rpath, romerror))
 			{
-				free(fpath);
 				return false;
 			}
 		} else {
@@ -1317,12 +1296,10 @@ bool dr_load_bios(void *contextPtr, GAME_ROMS *r, char romerror[1024]) {
 	}
 
 	gn_close_zip(pz);
-	free(fpath);
 	return true;
 
 error:
 	gn_close_zip(pz);
-	free(fpath);
 	return false;
 }
 

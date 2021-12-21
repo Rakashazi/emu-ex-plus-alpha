@@ -69,7 +69,7 @@ Screen &BaseApplication::addScreen(ApplicationContext ctx, std::unique_ptr<Scree
 	auto &screen = *ptr.get();
 	screen_.emplace_back(std::move(ptr));
 	if(notify && onScreenChange_)
-		onScreenChange_(ctx, screen, {ScreenChange::ADDED});
+		onScreenChange_(ctx, screen, ScreenChange::Action::ADDED);
 	return screen;
 }
 
@@ -87,7 +87,7 @@ std::unique_ptr<Screen> BaseApplication::removeScreen(ApplicationContext ctx, Sc
 {
 	auto removedScreen = IG::moveOutIf(screen_, [&](const auto &s){ return *s == id; });
 	if(notify && removedScreen && onScreenChange_)
-		onScreenChange_(ctx, *removedScreen, {ScreenChange::REMOVED});
+		onScreenChange_(ctx, *removedScreen, ScreenChange::Action::REMOVED);
 	return removedScreen;
 }
 

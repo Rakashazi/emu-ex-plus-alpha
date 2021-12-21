@@ -19,6 +19,8 @@
 #include <imagine/base/Application.hh>
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/gui/View.hh>
+#include <imagine/gui/ViewManager.hh>
+#include <imagine/font/Font.hh>
 #ifdef __ANDROID__
 #include <imagine/base/android/RootCpufreqParamSetter.hh>
 #endif

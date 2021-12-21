@@ -164,7 +164,7 @@ protected:
 	StaticArrayList<MenuItem*, 24> item{};
 
 	void onSavePathChange(std::string_view path);
-	virtual void onFirmwarePathChange(std::string_view path);
+	virtual bool onFirmwarePathChange(IG::CStringView path, bool isDir);
 	std::unique_ptr<TextTableView> makeFirmwarePathMenu(IG::utf16String name, bool allowFiles = false, unsigned extraItemsHint = 0);
 	void pushAndShowFirmwarePathMenu(IG::utf16String name, Input::Event e, bool allowFiles = false);
 	void pushAndShowFirmwareFilePathMenu(IG::utf16String name, Input::Event e);
@@ -206,7 +206,7 @@ protected:
 class BiosSelectMenu : public TableView, public EmuAppHelper<BiosSelectMenu>
 {
 public:
-	using BiosChangeDelegate = DelegateFunc<void ()>;
+	using BiosChangeDelegate = DelegateFunc<void (std::string_view displayName)>;
 
 	BiosSelectMenu(IG::utf16String name, ViewAttachParams attach, FS::PathString *biosPathStr, BiosChangeDelegate onBiosChange,
 		EmuSystem::NameFilterFunc fsFilter);

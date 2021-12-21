@@ -12,6 +12,7 @@ common/CDImpl.cc \
 common/MDFNApi.cc \
 common/MThreading.cc \
 common/StreamImpl.cc \
+common/VirtualFS.cpp \
 main/PCEFast.cc \
 main/MDFNFILE.cc
 
@@ -44,7 +45,6 @@ mednafen/NativeVFS.cpp \
 mednafen/Stream.cpp \
 mednafen/memory.cpp \
 mednafen/git.cpp \
-mednafen/VirtualFS.cpp \
 mednafen/cputest/cputest.c \
 mednafen/sound/okiadpcm.cpp \
 mednafen/sound/Blip_Buffer.cpp \

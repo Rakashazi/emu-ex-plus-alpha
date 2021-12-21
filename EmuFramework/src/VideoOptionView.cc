@@ -139,7 +139,7 @@ public:
 		}
 		if(allTotalFrames >= framesToTime)
 		{
-			onDetectFrameTime({});
+			onDetectFrameTime(IG::FloatSeconds{});
 			dismiss();
 			return false;
 		}

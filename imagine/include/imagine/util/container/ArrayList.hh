@@ -15,6 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
+#include <imagine/util/utility.h>
 #include <cassert>
 #include <cstddef>
 #include <iterator>
@@ -31,7 +32,7 @@ public:
 	using reverse_iterator = std::reverse_iterator<iterator>;
 	using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-	constexpr StaticArrayList() {}
+	constexpr StaticArrayList() = default;
 
 	// Iterators (STL API)
 	constexpr iterator begin() { return data(); }
@@ -106,11 +107,11 @@ public:
 		size_++;
 	}
 
-	constexpr T &emplace_back(auto &&... args)
+	constexpr T &emplace_back(auto &&...args)
 	{
 		assert(size_ < max_size());
 		auto newAddr = &data()[size_];
-		new(newAddr) T(std::forward<decltype(args)>(args)...);
+		new(newAddr) T(IG_forward(args)...);
 		size_++;
 		return *newAddr;
 	}

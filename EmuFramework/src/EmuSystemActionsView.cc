@@ -18,7 +18,6 @@
 #include <emuframework/EmuSystem.hh>
 #include <emuframework/EmuVideo.hh>
 #include <emuframework/CreditsView.hh>
-#include <emuframework/FilePicker.hh>
 #include <emuframework/StateSlotView.hh>
 #include <emuframework/OptionView.hh>
 #include <emuframework/InputManagerView.hh>
@@ -247,7 +246,13 @@ EmuSystemActionsView::EmuSystemActionsView(ViewAttachParams attach, bool customM
 		{
 			if(!EmuSystem::gameIsRunning())
 				return;
-			auto ynAlertView = makeView<YesNoAlertView>(fmt::format("Save screenshot to {} ?", EmuSystem::contentSavePath()));
+			auto pathName = appContext().fileUriDisplayName(EmuSystem::contentSaveDirectory());
+			if(pathName.empty())
+			{
+				app().postMessage("Save path isn't valid");
+				return;
+			}
+			auto ynAlertView = makeView<YesNoAlertView>(fmt::format("Save screenshot to folder {}?", pathName));
 			ynAlertView->setOnYes(
 				[this]()
 				{

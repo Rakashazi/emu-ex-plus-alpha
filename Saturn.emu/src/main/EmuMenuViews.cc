@@ -24,29 +24,25 @@ static constexpr unsigned MAX_SH2_CORES = 4;
 
 class CustomSystemOptionView : public SystemOptionView
 {
-	char biosPathStr[256]{};
-
 	TextMenuItem biosPath
 	{
-		biosPathStr, &defaultFace(),
+		{}, &defaultFace(),
 		[this](TextMenuItem &, View &, Input::Event e)
 		{
 			pushAndShow(
 				makeViewWithName<BiosSelectMenu>("BIOS", &::biosPath,
-				[this]()
+				[this](std::string_view displayName)
 				{
 					logMsg("set bios %s", ::biosPath.data());
-					printBiosMenuEntryStr(biosPathStr);
-					biosPath.compile(renderer(), projP);
+					biosPath.compile(biosMenuEntryStr(displayName), renderer(), projP);
 				},
 				hasBIOSExtension), e);
 		}
 	};
 
-	template <size_t S>
-	static void printBiosMenuEntryStr(char (&str)[S])
+	std::string biosMenuEntryStr(std::string_view displayName) const
 	{
-		IG::formatTo(str, "BIOS: {}", ::biosPath.size() ? FS::basename(::biosPath) : "None set");
+		return fmt::format("BIOS: {}", displayName.size() ? displayName : "None set");
 	}
 
 	StaticArrayList<TextMenuItem, MAX_SH2_CORES> sh2CoreItem{};
@@ -84,7 +80,7 @@ public:
 			}
 			item.emplace_back(&sh2Core);
 		}
-		printBiosMenuEntryStr(biosPathStr);
+		biosPath.setName(biosMenuEntryStr(appContext().fileUriDisplayName(::biosPath)));
 		item.emplace_back(&biosPath);
 	}
 };

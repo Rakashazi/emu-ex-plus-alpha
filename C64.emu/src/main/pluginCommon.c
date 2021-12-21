@@ -332,6 +332,13 @@ int archdep_rmdir(const char *pathname)
 
 int archdep_stat(const char *file_name, size_t *len, unsigned int *isdir)
 {
+	if(strstr(file_name, "://"))
+	{
+		*len = 0;
+		*isdir = 0;
+		return 0;
+	}
+
 	struct stat statbuf;
 
 	if (stat(file_name, &statbuf) < 0) {

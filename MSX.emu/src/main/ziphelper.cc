@@ -26,36 +26,64 @@
 #include <cstdlib>
 
 static struct archive *writeArch{};
+static FS::ArchiveIterator cachedZipIt{};
+static FS::PathString cachedZipName{};
 
 void zipCacheReadOnlyZip(const char* zipName)
 {
-	// TODO
+	if(zipName && strlen(zipName))
+	{
+		logMsg("setting cached read zip archive:%s", zipName);
+		cachedZipIt = {appCtx.openFileUri(zipName)};
+		cachedZipName = zipName;
+	}
+	else
+	{
+		cachedZipIt = {};
+		cachedZipName = {};
+		logMsg("unset cached read zip archive");
+	}
+}
+
+static void *loadFromArchiveIt(FS::ArchiveIterator &it, const char* zipName, const char* fileName, int* size)
+{
+	for(auto &entry : it)
+	{
+		if(entry.type() == FS::file_type::directory)
+		{
+			continue;
+		}
+		//logMsg("archive file entry:%s", entry.name());
+		if(entry.name() == fileName)
+		{
+			auto io = entry.moveIO();
+			int fileSize = io.size();
+			void *buff = malloc(fileSize);
+			io.read(buff, fileSize);
+			*size = fileSize;
+			entry.moveIO(std::move(io));
+			return buff;
+		}
+	}
+	logErr("file %s not in %sarchive:%s", fileName,
+		cachedZipIt.hasEntry() && cachedZipName == zipName ? "cached " : "", zipName);
+	return nullptr;
 }
 
 void* zipLoadFile(const char* zipName, const char* fileName, int* size)
 {
-	ArchiveIO io{};
 	try
 	{
-		for(auto &entry : FS::ArchiveIterator{appCtx.openFileUri(zipName)})
+		if(cachedZipIt.hasEntry() && cachedZipName == zipName)
 		{
-			if(entry.type() == FS::file_type::directory)
-			{
-				continue;
-			}
-			//logMsg("archive file entry:%s", entry.name());
-			if(entry.name() == fileName)
-			{
-				io = entry.moveIO();
-				int fileSize = io.size();
-				void *buff = malloc(fileSize);
-				io.read(buff, fileSize);
-				*size = fileSize;
-				return buff;
-			}
+			cachedZipIt.rewind();
+			return loadFromArchiveIt(cachedZipIt, zipName, fileName, size);
 		}
-		logErr("file %s not in archive:%s", fileName, zipName);
-		return nullptr;
+		else
+		{
+			auto it = FS::ArchiveIterator{appCtx.openFileUri(zipName)};
+			return loadFromArchiveIt(it, zipName, fileName, size);
+		}
 	}
 	catch(...)
 	{
@@ -69,10 +97,13 @@ bool zipStartWrite(const char *fileName)
 	assert(!writeArch);
 	writeArch = archive_write_new();
 	archive_write_set_format_zip(writeArch);
-	if(archive_write_open_filename(writeArch, fileName) != ARCHIVE_OK)
+	int fd = appCtx.openFileUri(fileName, IO::OPEN_CREATE | IO::OPEN_TEST).releaseFd();
+	if(archive_write_open_fd(writeArch, fd) != ARCHIVE_OK)
 	{
 		archive_write_free(writeArch);
 		writeArch = {};
+		if(fd != -1)
+			::close(fd);
 		return false;
 	}
 	return true;

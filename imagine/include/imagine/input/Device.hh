@@ -21,6 +21,7 @@
 #include <imagine/input/AxisKeyEmu.hh>
 #include <imagine/util/bitset.hh>
 #include <imagine/util/DelegateFunc.hh>
+#include <imagine/util/utility.h>
 #include <string>
 #include <compare>
 #include <span>
@@ -143,9 +144,9 @@ public:
 	static bool anyTypeBitsPresent(Base::ApplicationContext, TypeBits);
 
 	template <class T>
-	T &makeAppData(auto &&... args)
+	T &makeAppData(auto &&...args)
 	{
-		appDataPtr = std::make_shared<T>(std::forward<decltype(args)>(args)...);
+		appDataPtr = std::make_shared<T>(IG_forward(args)...);
 		return *appData<T>();
 	}
 

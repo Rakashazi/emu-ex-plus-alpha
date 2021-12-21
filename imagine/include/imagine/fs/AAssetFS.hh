@@ -53,7 +53,7 @@ protected:
 	static void closeAAssetDir(AAssetDir *);
 };
 
-class AAssetIterator : public std::iterator<std::input_iterator_tag, directory_entry>
+class AAssetIterator : public std::iterator<std::input_iterator_tag, AAssetDirectory>
 {
 public:
 	constexpr AAssetIterator() {}

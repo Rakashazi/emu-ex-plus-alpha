@@ -20,7 +20,6 @@
 #include <imagine/base/Timer.hh>
 #include <imagine/base/android/Choreographer.hh>
 #include <imagine/input/Device.hh>
-#include <imagine/fs/FSDefs.hh>
 #include <imagine/util/jni.hh>
 #include <imagine/util/container/ArrayList.hh>
 #include <pthread.h>
@@ -31,6 +30,11 @@ struct ANativeActivity;
 struct AInputQueue;
 struct AConfiguration;
 struct AInputEvent;
+
+namespace FS
+{
+class PathString;
+}
 
 namespace Input
 {
@@ -98,10 +102,17 @@ public:
 	void addNotification(JNIEnv *, jobject baseActivity, const char *onShow, const char *title, const char *message);
 	void removePostedNotifications(JNIEnv *, jobject baseActivity);
 	void handleIntent(ApplicationContext);
-	void openDocumentTreeIntent(JNIEnv *, jobject baseActivity, SystemPathPickerDelegate, bool convertToPath);
+	void openDocumentTreeIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
 	void openDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
+	void createDocumentIntent(JNIEnv *, jobject baseActivity, SystemDocumentPickerDelegate);
 	FrameTimer makeFrameTimer(Screen &);
 	bool requestPermission(ApplicationContext, Permission);
+	FileIO openFileUri(JNIEnv *, jobject baseActivity, IG::CStringView uri, IODefs::AccessHint, IODefs::OpenFlags oFlags = {}) const;
+	bool fileUriExists(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
+	std::string fileUriFormatLastWriteTimeLocal(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
+	FS::FileString fileUriDisplayName(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
+	bool removeFileUri(JNIEnv *, jobject baseActivity, IG::CStringView uri) const;
+	void forEachInDirectoryUri(JNIEnv *, jobject baseActivity, IG::CStringView uri, DirectoryEntryDelegate) const;
 
 	// Input system functions
 	void onInputQueueCreated(ApplicationContext, AInputQueue *);
@@ -134,11 +145,13 @@ private:
 	JNI::InstMethod<jint()> jWinFlags{};
 	JNI::InstMethod<void(jstring, jstring, jstring)> jAddNotification{};
 	JNI::InstMethod<void(jlong)> jEnumInputDevices{};
-	union
-	{
-		SystemPathPickerDelegate onSystemPathPicker{};
-		SystemDocumentPickerDelegate onSystemDocumentPicker;
-	};
+	JNI::InstMethod<jint(jstring, jint)> openUriFd{};
+	JNI::InstMethod<jboolean(jstring)> uriExists{};
+	JNI::InstMethod<jstring(jstring)> uriLastModified{};
+	JNI::InstMethod<jstring(jstring)> uriDisplayName{};
+	JNI::InstMethod<jboolean(jstring)> deleteUri{};
+	JNI::InstMethod<jboolean(jlong, jstring)> listUriFiles{};
+	SystemDocumentPickerDelegate onSystemDocumentPicker{};
 	SystemOrientationChangedDelegate onSystemOrientationChanged{};
 	Timer userActivityCallback{"userActivityCallback"};
 	using ProcessInputFunc = void (AndroidApplication::*)(AInputQueue *);
@@ -180,6 +193,7 @@ private:
 	void processInputWithGetEvent(AInputQueue *);
 	void processInputWithHasEvents(AInputQueue *);
 	void processInputCommon(AInputQueue *inputQueue, AInputEvent* event);
+	void handleDocumentIntentResult(const char *uri, const char *name);
 };
 
 using ApplicationImpl = AndroidApplication;

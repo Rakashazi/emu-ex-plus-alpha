@@ -23,13 +23,13 @@
 class TextTableView : public TableView
 {
 public:
-	TextTableView(IG::utf16String name, ViewAttachParams attach, unsigned itemsHint):
+	TextTableView(IG::utf16String name, ViewAttachParams attach, size_t itemsHint):
 		TableView{std::move(name), attach, textItem}
 	{
 		textItem.reserve(itemsHint);
 	}
 
-	TextTableView(ViewAttachParams attach, unsigned itemsHint);
+	TextTableView(ViewAttachParams attach, size_t itemsHint);
 	void appendItem(IG::utf16String name, TextMenuItem::SelectDelegate del);
 	void setItem(size_t idx, IG::utf16String name, TextMenuItem::SelectDelegate del);
 	TextMenuItem &item(size_t idx);

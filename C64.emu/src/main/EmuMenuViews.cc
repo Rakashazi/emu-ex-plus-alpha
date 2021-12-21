@@ -424,15 +424,15 @@ class CustomSystemOptionView : public SystemOptionView
 		[this](Input::Event e)
 		{
 			auto view = makeFirmwarePathMenu("VICE System File Path", true, 1);
-			view->appendItem("Download Base VICE Files",
+			view->appendItem("Download VICE System Files",
 				[this](Input::Event e)
 				{
 					auto ynAlertView = makeView<YesNoAlertView>(
-						"Download the basic VICE system files? To use, set the ZIP file as a custom archive in the previous menu.");
+						"Open the C64.emu setup page? From there, download C64.emu.zip to your device and select it as an archive in the previous menu.");
 					ynAlertView->setOnYes(
 						[this](Input::Event e)
 						{
-							appContext().openURL("http://www.explusalpha.com/home/c64-emu/C64.emu.zip");
+							appContext().openURL("https://www.explusalpha.com/contents/c64-emu");
 						});
 					pushAndShowModal(std::move(ynAlertView), e);
 				});
@@ -440,22 +440,30 @@ class CustomSystemOptionView : public SystemOptionView
 		}
 	};
 
-	void onFirmwarePathChange(std::string_view path) final
+	bool onFirmwarePathChange(IG::CStringView path, bool isDir) final
 	{
+		if(isDir && !appContext().fileUriExists(FS::uriString(path, "DRIVES")))
+		{
+			app().postErrorMessage("Path is missing DRIVES folder");
+			return false;
+		}
 		systemFilePath.compile(makeSysPathMenuEntryStr(path), renderer(), projP);
 		sysFilePath[0] = path;
-		if(path.empty())
+		if(!path.size())
 		{
-			if(Config::envIsLinux && !Config::MACHINE_IS_PANDORA)
-				app().postMessage(5, false, fmt::format("Using default paths:\n{}\n{}\n{}", appContext().assetPath(), "~/.local/share/C64.emu", "/usr/share/games/vice"));
+			if(std::size(sysFilePath) == 5)
+				app().postMessage(5, false, fmt::format("Using fallback paths:\n{}\n{}", sysFilePath[3], sysFilePath[4]));
 			else
-				app().postMessage(4, false, fmt::format("Using default path:\n{}/C64.emu", appContext().sharedStoragePath()));
+			{
+				app().postMessage(5, false, fmt::format("Using fallback paths:\n{}\n{}", sysFilePath[1], sysFilePath[2]));
+			}
 		}
+		return true;
 	}
 
-	std::string makeSysPathMenuEntryStr(std::string_view path)
+	std::string makeSysPathMenuEntryStr(IG::CStringView path)
 	{
-		return fmt::format("VICE System File Path: {}", path.size() ? appContext().fileUriDisplayName(path) : "Default");
+		return fmt::format("VICE System File Path: {}", path.size() ? appContext().fileUriDisplayName(path) : "");
 	}
 
 public:
@@ -614,10 +622,9 @@ public:
 	void addTapeFilePickerView(Input::Event e, bool dismissPreviousView)
 	{
 		app().pushAndShowModalView(
-			EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(), hasC64TapeExtension,
-			[this, dismissPreviousView](FSPicker &picker, std::string_view name, Input::Event e)
+			EmuFilePicker::makeForMediaChange(attachParams(), e, hasC64TapeExtension,
+			[this, dismissPreviousView](FSPicker &picker, IG::CStringView path, std::string_view name, Input::Event e)
 			{
-				auto path = picker.pathString(name);
 				if(plugin.tape_image_attach(1, path.data()) == 0)
 				{
 					onTapeMediaChange();
@@ -688,10 +695,9 @@ public:
 	void addCartFilePickerView(Input::Event e, bool dismissPreviousView)
 	{
 		app().pushAndShowModalView(
-			EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(), hasC64CartExtension,
-			[this, dismissPreviousView](FSPicker &picker, std::string_view name, Input::Event e)
+			EmuFilePicker::makeForMediaChange(attachParams(), e, hasC64CartExtension,
+			[this, dismissPreviousView](FSPicker &picker, IG::CStringView path, std::string_view name, Input::Event e)
 			{
-				auto path = picker.pathString(name);
 				if(plugin.cartridge_attach_image(systemCartType(currSystem), path.data()) == 0)
 				{
 					onROMMediaChange();
@@ -748,10 +754,9 @@ private:
 	void addDiskFilePickerView(Input::Event e, uint8_t slot, bool dismissPreviousView)
 	{
 		app().pushAndShowModalView(
-			EmuFilePicker::makeForMediaChange(attachParams(), e, EmuSystem::contentDirectory(), hasC64DiskExtension,
-			[this, slot, dismissPreviousView](FSPicker &picker, std::string_view name, Input::Event e)
+			EmuFilePicker::makeForMediaChange(attachParams(), e, hasC64DiskExtension,
+			[this, slot, dismissPreviousView](FSPicker &picker, IG::CStringView path, std::string_view name, Input::Event e)
 			{
-				auto path = picker.pathString(name);
 				logMsg("inserting disk in unit %d", slot+8);
 				if(plugin.file_system_attach_disk(slot+8, 0, path.data()) == 0)
 				{
@@ -1468,7 +1473,7 @@ class CustomMainMenuView : public EmuMainMenuView
 						fPicker->setOnClose(
 							[this](FSPicker &picker, Input::Event e)
 							{
-								newMediaPath = FS::pathString(picker.path(), newMediaName);
+								newMediaPath = FS::uriString(picker.path(), newMediaName);
 								picker.dismiss();
 								if(e.isDefaultCancelButton())
 								{
@@ -1476,9 +1481,8 @@ class CustomMainMenuView : public EmuMainMenuView
 									app().unpostMessage();
 									return;
 								}
-								if(FS::exists(newMediaPath))
+								if(appContext().fileUriExists(newMediaPath))
 								{
-									//EmuApp::printfMessage(3, true, "%s already exists");
 									auto ynAlertView = makeView<YesNoAlertView>("Disk image already exists, overwrite?");
 									ynAlertView->setOnYes(
 										[this](Input::Event e)
@@ -1503,6 +1507,15 @@ class CustomMainMenuView : public EmuMainMenuView
 		}
 	};
 
+	void launchMedia(const char *mediaPath, Input::Event e)
+	{
+		app().createSystemWithMedia({}, mediaPath, appContext().fileUriDisplayName(mediaPath), e, {SYSTEM_FLAG_NO_AUTOSTART}, attachParams(),
+			[this](Input::Event e)
+			{
+				app().launchSystem(e, false);
+			});
+	}
+
 	void createDiskAndLaunch(const char *diskPath, std::string_view diskName, Input::Event e)
 	{
 		if(plugin.vdrive_internal_create_format_disk_image(diskPath,
@@ -1512,11 +1525,7 @@ class CustomMainMenuView : public EmuMainMenuView
 			app().postMessage(true, "Error creating disk image");
 			return;
 		}
-		app().createSystemWithMedia({}, diskPath, e, {SYSTEM_FLAG_NO_AUTOSTART}, attachParams(),
-			[this](Input::Event e)
-			{
-				app().launchSystem(e, false);
-			});
+		launchMedia(diskPath, e);
 	};
 
 	TextMenuItem startWithBlankTape
@@ -1540,7 +1549,7 @@ class CustomMainMenuView : public EmuMainMenuView
 						fPicker->setOnClose(
 							[this](FSPicker &picker, Input::Event e)
 							{
-								newMediaPath = FS::pathString(picker.path(), newMediaName);
+								newMediaPath = FS::uriString(picker.path(), newMediaName);
 								picker.dismiss();
 								if(e.isDefaultCancelButton())
 								{
@@ -1548,7 +1557,7 @@ class CustomMainMenuView : public EmuMainMenuView
 									app().unpostMessage();
 									return;
 								}
-								if(FS::exists(newMediaPath))
+								if(appContext().fileUriExists(newMediaPath))
 								{
 									//EmuApp::printfMessage(3, true, "%s already exists");
 									auto ynAlertView = makeView<YesNoAlertView>("Tape image already exists, overwrite?");
@@ -1582,19 +1591,15 @@ class CustomMainMenuView : public EmuMainMenuView
 			app().postMessage(true, "Error creating tape image");
 			return;
 		}
-		app().createSystemWithMedia({}, tapePath, e, {SYSTEM_FLAG_NO_AUTOSTART}, attachParams(),
-			[this](Input::Event e)
-			{
-				app().launchSystem(e, false);
-			});
+		launchMedia(tapePath, e);
 	};
 
 	TextMenuItem loadNoAutostart
 	{
-		"Open Content On Device (No Autostart)", &defaultFace(),
+		"Open Content (No Autostart)", &defaultFace(),
 		[this](Input::Event e)
 		{
-			app().requestFilePickerForLoading(*this, attachParams(), e, false, {SYSTEM_FLAG_NO_AUTOSTART});
+			pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e, false, {SYSTEM_FLAG_NO_AUTOSTART}), e, false);
 		}
 	};
 

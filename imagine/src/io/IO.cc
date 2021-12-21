@@ -218,10 +218,10 @@ GenericIO::operator bool() const
 namespace FileUtils
 {
 
-ssize_t writeToPath(IG::CStringView path, void *data, size_t bytes)
+ssize_t writeToPath(IG::CStringView path, std::span<const unsigned char> src)
 {
 	auto f = FileIO::create(path, IO::OPEN_TEST);
-	return f.write(data, bytes);
+	return f.write(src.data(), src.size());
 }
 
 ssize_t writeToPath(IG::CStringView path, IO &io)
@@ -230,10 +230,10 @@ ssize_t writeToPath(IG::CStringView path, IO &io)
 	return io.send(f, nullptr, io.size());
 }
 
-ssize_t readFromPath(IG::CStringView path, void *data, size_t size)
+ssize_t readFromPath(IG::CStringView path, std::span<unsigned char> dest, IO::AccessHint accessHint)
 {
-	FileIO f{path, IO::AccessHint::SEQUENTIAL, IO::OPEN_TEST};
-	return f.read(data, size);
+	FileIO f{path, accessHint, IO::OPEN_TEST};
+	return f.read(dest.data(), dest.size());
 }
 
 IG::ByteBuffer bufferFromPath(IG::CStringView path, unsigned openFlags, size_t sizeLimit)

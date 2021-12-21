@@ -16,10 +16,14 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/rectangle2.h>
-#include <imagine/pixmap/PixmapDesc.hh>
 #include "gralloc.h"
 #include <EGL/egl.h>
 #include <string_view>
+
+namespace IG
+{
+class PixmapDesc;
+}
 
 // Wrapper for ANativeWindowBuffer (android_native_buffer_t)
 // similar to GraphicBuffer class in Android frameworks

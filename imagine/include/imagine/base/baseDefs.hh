@@ -19,6 +19,7 @@
 #include <imagine/time/Time.hh>
 #include <imagine/util/DelegateFunc.hh>
 #include <imagine/util/bitset.hh>
+#include <imagine/util/string/CStringView.hh>
 #include <vector>
 #include <memory>
 
@@ -91,6 +92,11 @@ namespace Input
 class Event;
 class Device;
 class DeviceChange;
+}
+
+namespace FS
+{
+class directory_entry;
 }
 
 class GenericIO;
@@ -182,12 +188,17 @@ enum class WindowFrameTimeSource : uint8_t
 
 struct ScreenChange
 {
-	uint32_t state;
-	enum { ADDED, REMOVED };
+	enum class Action : int8_t
+	{
+		ADDED,
+		REMOVED
+	};
 
-	constexpr ScreenChange(uint32_t state): state(state) {}
-	bool added() const { return state == ADDED; }
-	bool removed() const { return state == REMOVED; }
+	Action action;
+
+	constexpr ScreenChange(Action action): action{action} {}
+	constexpr bool added() const { return action == Action::ADDED; }
+	constexpr bool removed() const { return action == Action::REMOVED; }
 };
 
 class Screen;
@@ -200,15 +211,15 @@ using ScreenContainer = std::vector<std::unique_ptr<Screen>>;
 using InputDeviceContainer = std::vector<std::unique_ptr<Input::Device>>;
 
 using MainThreadMessageDelegate = DelegateFunc<void(ApplicationContext)>;
-using InterProcessMessageDelegate = DelegateFunc<void (ApplicationContext, const char *filename)>;
+using InterProcessMessageDelegate = DelegateFunc<void (ApplicationContext, IG::CStringView filename)>;
 using ResumeDelegate = DelegateFunc<bool (ApplicationContext, bool focused)>;
 using FreeCachesDelegate = DelegateFunc<void (ApplicationContext, bool running)>;
 using ExitDelegate = DelegateFunc<bool (ApplicationContext, bool backgrounded)>;
 using DeviceOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Orientation newOrientation)>;
 using SystemOrientationChangedDelegate = DelegateFunc<void (ApplicationContext, Orientation oldOrientation, Orientation newOrientation)>;
 using ScreenChangeDelegate = DelegateFunc<void (ApplicationContext, Screen &s, ScreenChange)>;
-using SystemPathPickerDelegate = DelegateFunc<void(const char *uri)>;
-using SystemDocumentPickerDelegate = DelegateFunc<void(const char *uri, GenericIO io)>;
+using SystemDocumentPickerDelegate = DelegateFunc<void(IG::CStringView uri, IG::CStringView displayName)>;
+using DirectoryEntryDelegate = DelegateFuncS<sizeof(void*)*3, bool(const FS::directory_entry &)>;
 
 using InputDeviceChangeDelegate = DelegateFunc<void (const Input::Device &dev, Input::DeviceChange)>;
 using InputDevicesEnumeratedDelegate = DelegateFunc<void ()>;
@@ -219,7 +230,7 @@ using WindowSurfaceChangeDelegate = DelegateFunc<void (Window &, WindowSurfaceCh
 using WindowDrawDelegate = DelegateFunc<bool (Window &, WindowDrawParams)>;
 using WindowInputEventDelegate = DelegateFunc<bool (Window &, Input::Event)>;
 using WindowFocusChangeDelegate = DelegateFunc<void (Window &, bool in)>;
-using WindowDragDropDelegate = DelegateFunc<void (Window &, const char *filename)>;
+using WindowDragDropDelegate = DelegateFunc<void (Window &, IG::CStringView filename)>;
 using WindowDismissRequestDelegate = DelegateFunc<void (Window &)>;
 using WindowDismissDelegate = DelegateFunc<void (Window &)>;
 

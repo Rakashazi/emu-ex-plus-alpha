@@ -131,7 +131,6 @@ main/input.cc \
 main/EmuControls.cc \
 main/EmuMenuViews.cc \
 main/Cheats.cc \
-fileio/fileio.cc \
 $(addprefix $(gplusPath)/,$(gplusSrc))
 
 include $(EMUFRAMEWORK_PATH)/package/emuframework.mk

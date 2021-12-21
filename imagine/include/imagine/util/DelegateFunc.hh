@@ -16,32 +16,33 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/util/concepts.hh>
+#include <imagine/util/utility.h>
 #include <new>
 #include <cstddef>
 #include <cassert>
 #include <array>
 #include <compare>
 
-template <size_t, size_t, class, class ...> class DelegateFunc2;
+template <size_t, size_t, class, class ...> class DelegateFuncBase;
 
 template <size_t StorageSize, size_t Align, class R, class ...Args>
-class DelegateFunc2<StorageSize, Align, R(Args...)>
+class DelegateFuncBase<StorageSize, Align, R(Args...)>
 {
 public:
 	using FreeFuncPtr = R (*)(Args...);
 
-	constexpr DelegateFunc2() {}
+	constexpr DelegateFuncBase() = default;
 
-	constexpr DelegateFunc2(std::nullptr_t) {}
+	constexpr DelegateFuncBase(std::nullptr_t) {}
 
-	template<class F>
-	requires IG::CallableClass<F, R, Args...> && (sizeof(F) <= StorageSize && Align >= std::alignment_of_v<F>)
-	constexpr DelegateFunc2(F const &funcObj) :
+	template<IG::CallableClass<R, Args...> F>
+	requires (sizeof(F) <= StorageSize && Align >= std::alignment_of_v<F>)
+	constexpr DelegateFuncBase(F const &funcObj) :
 		exec
 		{
 			[](const Storage &funcObj, Args ...args) -> R
 			{
-				return ((F*)funcObj.data())->operator()(std::forward<Args>(args)...);
+				return ((F*)funcObj.data())->operator()(IG_forward(args)...);
 			}
 		}
 	{
@@ -49,13 +50,13 @@ public:
 		new (store.data()) F(funcObj);
 	}
 
-	constexpr DelegateFunc2(IG::CallableFunctionPointer<R, Args...> auto const &funcObj)
+	constexpr DelegateFuncBase(IG::CallableFunctionPointer<R, Args...> auto const &funcObj)
 		requires (sizeof(StorageSize) >= sizeof(void*) && Align >= sizeof(void*)):
 		exec
 		{
 			[](const Storage &funcObj, Args ...args) -> R
 			{
-				return (*((FreeFuncPtr*)funcObj.data()))(std::forward<Args>(args)...);
+				return (*((FreeFuncPtr*)funcObj.data()))(IG_forward(args)...);
 			}
 		}
 	{
@@ -68,32 +69,33 @@ public:
 		return exec;
 	}
 
-	constexpr R operator()(Args ...args) const
+	constexpr R operator()(auto &&...args) const
+		requires IG::ValidInvokeArgs<FreeFuncPtr, decltype(args)...>
 	{
 		assert(exec);
-		return exec(store, std::forward<Args>(args)...);
+		return exec(store, IG_forward(args)...);
 	}
 
-	constexpr bool operator ==(DelegateFunc2 const&) const = default;
+	constexpr bool operator ==(DelegateFuncBase const&) const = default;
 
-	constexpr R callCopy(Args ...args) const
+	constexpr R callCopy(auto &&...args) const
 	{
 		// Call a copy to avoid trashing captured variables
 		// if delegate's function can modify the delegate
-		return ({auto copy = *this; copy;})(std::forward<Args>(args)...);
+		return ({auto copy = *this; copy;})(IG_forward(args)...);
 	}
 
-	constexpr R callSafe(Args ...args) const
+	constexpr R callSafe(auto &&...args) const
 	{
 		if(exec)
-			return this->operator()(std::forward<Args>(args)...);
+			return this->operator()(IG_forward(args)...);
 		return R();
 	}
 
-	constexpr R callCopySafe(Args ...args) const
+	constexpr R callCopySafe(auto &&...args) const
 	{
 		if(exec)
-			return callCopy(std::forward<Args>(args)...);
+			return callCopy(IG_forward(args)...);
 		return R();
 	}
 
@@ -104,5 +106,11 @@ private:
 	R (*exec)(const Storage &, Args...){};
 };
 
+template <size_t StorageSize, size_t Align, class R, class ...Args>
+using DelegateFuncA = DelegateFuncBase<StorageSize, Align, R, Args...>;
+
+template <size_t StorageSize, class R, class ...Args>
+using DelegateFuncS = DelegateFuncBase<StorageSize, sizeof(void*), R, Args...>;
+
 template <class R, class ...Args>
-using DelegateFunc = DelegateFunc2<sizeof(void*)*2, sizeof(void*), R, Args...>;
+using DelegateFunc = DelegateFuncBase<sizeof(void*)*2, sizeof(void*), R, Args...>;

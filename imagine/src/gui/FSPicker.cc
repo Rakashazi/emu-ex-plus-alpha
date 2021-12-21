@@ -25,15 +25,11 @@
 #include <imagine/logger/logger.h>
 #include <imagine/util/math/int.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 #include <string>
 
-static bool isValidRootEndChar(char c)
-{
-	return c == '/' || c == '\0';
-}
-
 FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::TextureSpan closeRes,
-	FilterFunc filter,  bool singleDir, Gfx::GlyphTextureSet *face_):
+	FilterFunc filter, Mode mode, Gfx::GlyphTextureSet *face_):
 	View{attach},
 	filter{filter},
 	onClose_
@@ -44,7 +40,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 		}
 	},
 	msgText{face_ ? face_ : &defaultFace()},
-	singleDir{singleDir}
+	mode_{mode}
 {
 	const Gfx::LGradientStopDesc fsNavViewGrad[]
 	{
@@ -57,7 +53,7 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 	auto nav = makeView<BasicNavView>
 		(
 			&face(),
-			singleDir ? nullptr : backRes,
+			isSingleDirectoryMode() ? nullptr : backRes,
 			closeRes
 		);
 	nav->setBackgroundGradient(fsNavViewGrad);
@@ -75,13 +71,11 @@ FSPicker::FSPicker(ViewAttachParams attach, Gfx::TextureSpan backRes, Gfx::Textu
 	nav->setOnPushMiddleBtn(
 		[this](Input::Event e)
 		{
-			if(!this->singleDir)
-			{
-				pushFileLocationsView(e);
-			}
+			pushFileLocationsView(e);
 		});
 	controller.setNavView(std::move(nav));
 	controller.push(makeView<TableView>(text));
+	controller.navView()->showLeftBtn(true);
 }
 
 void FSPicker::place()
@@ -90,13 +84,12 @@ void FSPicker::place()
 	msgText.compile(renderer(), projP);
 }
 
-void FSPicker::changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, bool forcePathChange, Input::Event e)
+std::error_code FSPicker::changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, Input::Event e)
 {
-	auto ec = setPath(path, forcePathChange, rootInfo, e);
-	if(ec && !forcePathChange)
-		return;
+	auto ec = setPath(path, rootInfo, e);
 	place();
 	postDraw();
+	return ec;
 }
 
 void FSPicker::setOnChangePath(OnChangePathDelegate del)
@@ -116,17 +109,19 @@ void FSPicker::setOnClose(OnCloseDelegate del)
 
 void FSPicker::onLeftNavBtn(Input::Event e)
 {
-	goUpDirectory(e);
+	if(!isAtRoot())
+	{
+		goUpDirectory(e);
+	}
+	else
+	{
+		pushFileLocationsView(e);
+	}
 }
 
 void FSPicker::onRightNavBtn(Input::Event e)
 {
 	onClose_.callCopy(*this, e);
-}
-
-void FSPicker::setOnPathReadError(OnPathReadError del)
-{
-	onPathReadError_ = del;
 }
 
 bool FSPicker::inputEvent(Input::Event e)
@@ -142,7 +137,7 @@ bool FSPicker::inputEvent(Input::Event e)
 		controller.top().setFocus(false);
 		return true;
 	}
-	else if(!isSingleDirectoryMode() && (e.pushedKey(Input::Keycode::GAME_B) || e.pushedKey(Input::Keycode::F1)))
+	else if(e.pushedKey(Input::Keycode::GAME_B) || e.pushedKey(Input::Keycode::F1))
 	{
 		pushFileLocationsView(e);
 		return true;
@@ -187,81 +182,108 @@ void FSPicker::onAddedToController(ViewController *, Input::Event e)
 	controller.top().onAddedToController(&controller, e);
 }
 
-std::error_code FSPicker::setPath(IG::CStringView path, bool forcePathChange, FS::RootPathInfo rootInfo, Input::Event e)
+void FSPicker::setEmptyPath()
 {
-	auto prevPath = currPath;
+	logMsg("setting empty path");
+	root = {};
+	dir.clear();
+	text.clear();
+	msgText.setString("No folder is set");
+	if(mode_ == Mode::FILE_IN_DIR)
+	{
+		controller.top().setName({});
+	}
+	else
+	{
+		controller.top().setName("Select File Location");
+	}
+}
+
+std::error_code FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInfo, Input::Event e)
+{
+	if(!strlen(path))
+	{
+		setEmptyPath();
+		return {};
+	}
+	auto prevPath = root.path;
+	auto ctx = appContext();
+	std::error_code ec{};
 	try
 	{
-		auto dirIt = FS::directory_iterator{path};
-		currPath = path;
+		root.path = path;
 		dir.clear();
-		for(auto &entry : dirIt)
-		{
-			//logMsg("entry: %s", entry.name());
-			if(filter && !filter(entry))
+		text.clear();
+		ctx.forEachInDirectoryUri(path,
+			[this](auto &entry)
 			{
-				continue;
-			}
-			bool isDir = entry.type() == FS::file_type::directory;
-			dir.emplace_back(entry.name().data(), isDir);
-		}
+				//logMsg("entry:%s", entry.path().data());
+				bool isDir = entry.type() == FS::file_type::directory;
+				if(mode_ == Mode::DIR) // filter non-directories
+				{
+					if(!isDir)
+						return true;
+				}
+				else if(mode_ == Mode::FILE_IN_DIR) // filter directories
+				{
+					if(isDir)
+						return true;
+				}
+				if(filter && !filter(entry))
+				{
+					return true;
+				}
+				dir.emplace_back(FileEntry{std::string{entry.path()}, isDir});
+				return true;
+			});
 		std::sort(dir.begin(), dir.end(),
-			[](FileEntry e1, FileEntry e2)
+			[](const FileEntry &e1, const FileEntry &e2)
 			{
 				if(e1.isDir && !e2.isDir)
 					return true;
 				else if(!e1.isDir && e2.isDir)
 					return false;
 				else
-					return FS::fileStringNoCaseLexCompare(e1.name, e2.name);
+					return IG::stringNoCaseLexCompare(e1.path, e2.path);
 			});
-		waitForDrawFinished();
-		text.clear();
 		if(dir.size())
 		{
 			msgText.setString({});
 			text.reserve(dir.size());
-			for(int idx = 0; auto const &entry : dir)
+			for(auto const &entry : dir)
 			{
 				if(entry.isDir)
 				{
-					text.emplace_back(entry.name, &face(),
-						[this, idx](Input::Event e)
+					text.emplace_back(ctx.fileUriDisplayName(entry.path), &face(),
+						[this, &entry](Input::Event e)
 						{
-							assert(!singleDir);
-							auto filePath = pathString(dir[idx].name);
-							logMsg("going to dir %s", filePath.data());
-							changeDirByInput(filePath, root, false, e);
+							assert(!isSingleDirectoryMode());
+							auto path = std::move(entry.path);
+							logMsg("entering dir:%s", path.data());
+							changeDirByInput(path, root.info, e);
 						});
 				}
 				else
 				{
-					text.emplace_back(entry.name, &face(),
-						[this, idx](Input::Event e)
+					text.emplace_back(ctx.fileUriDisplayName(entry.path), &face(),
+						[this, &entry](Input::Event e)
 						{
-							onSelectFile_.callCopy(*this, dir[idx].name.data(), e);
+							onSelectFile_.callCopy(*this, entry.path, appContext().fileUriDisplayName(entry.path), e);
 						});
 				}
-				idx++;
 			}
 		}
-		else
+		else // no entries, show a message instead
 		{
-			// no entires, show a message instead
 			msgText.setString("Empty Directory");
 		}
 	}
 	catch(std::system_error &err)
 	{
 		logErr("can't open %s", path.data());
-		auto ec = err.code();
-		if(!forcePathChange)
-		{
-			onPathReadError_.callSafe(*this, ec);
-			return ec;
-		}
-		msgText.setString(fmt::format("Can't open directory:\n{}\nPick a path from the top bar",
-			ec.message()));
+		ec = err.code();
+		std::string_view extraMsg = mode_ == Mode::FILE_IN_DIR ? "" : "\nPick a path from the top bar";
+		msgText.setString(fmt::format("Can't open directory:\n{}{}", ec.message(), extraMsg));
 	}
 	if(!e.isPointer())
 		static_cast<TableView*>(&controller.top())->highlightCell(0);
@@ -269,16 +291,22 @@ std::error_code FSPicker::setPath(IG::CStringView path, bool forcePathChange, FS
 		static_cast<TableView*>(&controller.top())->resetScroll();
 	auto pathLen = path.size();
 	// verify root info
-	if(rootInfo.length &&
-		(rootInfo.length > pathLen || !isValidRootEndChar(path[rootInfo.length]) || rootInfo.name.empty()))
+	if(rootInfo.length && rootInfo.length > pathLen)
 	{
-		logWarn("invalid root parameters");
+		logWarn("invalid root length:%zu with path length:%zu", rootInfo.length, pathLen);
 		rootInfo.length = 0;
 	}
+	// if the path is a URI and no root info is provided, root at the URI itself
+	bool isUri = IG::isUri(path);
+	if(!rootInfo.length && isUri)
+	{
+		rootInfo = {appContext().fileUriDisplayName(path), path.size()};
+	}
+	FS::PathString rootedPath{};
 	if(rootInfo.length)
 	{
 		logMsg("root info:%d:%s", (int)rootInfo.length, rootInfo.name.data());
-		root = rootInfo;
+		root.info = rootInfo;
 		if(pathLen > rootInfo.length)
 			rootedPath = IG::format<FS::PathString>("{}{}", rootInfo.name, &path[rootInfo.length]);
 		else
@@ -287,33 +315,41 @@ std::error_code FSPicker::setPath(IG::CStringView path, bool forcePathChange, FS
 	else
 	{
 		logMsg("no root info");
-		root = {};
-		rootedPath = currPath;
+		root.info = {};
+		rootedPath = root.path;
+	}
+	if(isUri)
+	{
+		rootedPath = IG::decodeUri<FS::PathString>(rootedPath);
 	}
 	controller.top().setName(rootedPath);
-	controller.navView()->showLeftBtn(!isAtRoot());
 	onChangePath_.callSafe(*this, prevPath, e);
-	return {};
+	return ec;
 }
 
-std::error_code FSPicker::setPath(IG::CStringView path, bool forcePathChange, FS::RootPathInfo rootInfo)
+std::error_code FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInfo)
 {
-	return setPath(path, forcePathChange, rootInfo, appContext().defaultInputEvent());
+	return setPath(path, rootInfo, appContext().defaultInputEvent());
 }
 
-std::error_code FSPicker::setPath(FS::PathLocation location, bool forcePathChange)
+std::error_code FSPicker::setPath(IG::CStringView path, Input::Event e)
 {
-	return setPath(location.path, forcePathChange, location.root);
+	return setPath(path, appContext().rootPathInfo(path), e);
 }
 
-std::error_code FSPicker::setPath(FS::PathLocation location, bool forcePathChange, Input::Event e)
+std::error_code FSPicker::setPath(IG::CStringView path)
 {
-	return setPath(location.path, forcePathChange, location.root, e);
+	return setPath(path, appContext().rootPathInfo(path));
 }
 
 FS::PathString FSPicker::path() const
 {
-	return currPath;
+	return root.path;
+}
+
+FS::RootedPath FSPicker::rootedPath() const
+{
+	return root;
 }
 
 void FSPicker::clearSelection()
@@ -321,62 +357,104 @@ void FSPicker::clearSelection()
 	controller.top().clearSelection();
 }
 
-FS::PathString FSPicker::pathString(std::string_view base) const
-{
-	return FS::pathString(currPath.size() > 1 ? currPath : "", base);
-}
-
 bool FSPicker::isSingleDirectoryMode() const
 {
-	return singleDir;
+	return mode_ == Mode::FILE_IN_DIR;
 }
 
 void FSPicker::goUpDirectory(Input::Event e)
 {
 	clearSelection();
-	changeDirByInput(FS::dirname(currPath), root, true, e);
+	changeDirByInput(FS::dirnameUri(root.path), root.info, e);
 }
 
 bool FSPicker::isAtRoot() const
 {
-	if(root.length)
+	if(root.info.length)
 	{
-		auto pathLen = currPath.size();
-		assumeExpr(pathLen >= root.length);
-		return pathLen == root.length;
+		return root.pathIsRoot();
 	}
 	else
 	{
-		return currPath == "/";
+		return root.path.empty() || root.path == "/";
 	}
 }
 
 void FSPicker::pushFileLocationsView(Input::Event e)
 {
-	rootLocation = appContext().rootFileLocations();
-	int customItems = appContext().hasSystemPathPicker() ? 3 : 2;
-	auto view = makeViewWithName<TextTableView>("File Locations", rootLocation.size() + customItems);
-	for(auto &loc : rootLocation)
+	if(isSingleDirectoryMode())
+		return;
+	class FileLocationsTextTableView : public TextTableView
+	{
+	public:
+		FileLocationsTextTableView(ViewAttachParams attach,
+			std::vector<FS::PathLocation> locations, size_t customItems):
+				TextTableView{"File Locations", attach, locations.size() + customItems},
+				locations_{std::move(locations)} {}
+		const std::vector<FS::PathLocation> &locations() const { return locations_; }
+
+	protected:
+		std::vector<FS::PathLocation> locations_;
+	};
+
+	int customItems = 1 + Config::envIsLinux + appContext().hasSystemPathPicker() + appContext().hasSystemDocumentPicker();
+	auto view = makeView<FileLocationsTextTableView>(appContext().rootFileLocations(), customItems);
+	for(auto &loc : view->locations())
 	{
 		view->appendItem(loc.description,
 			[this, &loc](View &view, Input::Event e)
 			{
-				auto pathLen = loc.path.size();
-				changeDirByInput(loc.path, loc.root, true, e);
+				auto ctx = appContext();
+				if(ctx.usesPermission(Base::Permission::WRITE_EXT_STORAGE))
+				{
+					if(!ctx.requestPermission(Base::Permission::WRITE_EXT_STORAGE))
+						return;
+				}
+				changeDirByInput(loc.root.path, loc.root.info, e);
 				view.dismiss();
 			});
 	}
-	view->appendItem("Root Filesystem",
-		[this](View &view, Input::Event e)
-		{
-			changeDirByInput("/", {}, true, e);
-			view.dismiss();
-		});
+	if(Config::envIsLinux)
+	{
+		view->appendItem("Root Filesystem",
+			[this](View &view, Input::Event e)
+			{
+				changeDirByInput("/", {}, e);
+				view.dismiss();
+			});
+	}
+	if(appContext().hasSystemPathPicker())
+	{
+		view->appendItem("Browse For Folder",
+			[this](View &view, Input::Event e)
+			{
+				appContext().showSystemPathPicker(
+					[this, &view](IG::CStringView uri, IG::CStringView displayName)
+					{
+						view.dismiss();
+						auto ec = changeDirByInput(uri, appContext().rootPathInfo(uri), appContext().defaultInputEvent());
+						if(mode_ == Mode::DIR && !ec)
+							onClose_.callCopy(*this, appContext().defaultInputEvent());
+					});
+			});
+	}
+	if(mode_ != Mode::DIR && appContext().hasSystemDocumentPicker())
+	{
+		view->appendItem("Browse For File",
+			[this](View &view, Input::Event e)
+			{
+				appContext().showSystemDocumentPicker(
+					[this, &view](IG::CStringView uri, IG::CStringView displayName)
+					{
+						onSelectFile_.callCopy(*this, uri, displayName, appContext().defaultInputEvent());
+					});
+			});
+	}
 	view->appendItem("Custom Path",
 		[this](Input::Event e)
 		{
 			auto textInputView = makeView<CollectTextInputView>(
-				"Input a directory path", currPath, nullptr,
+				"Input a directory path", root.path, nullptr,
 				[this](CollectTextInputView &view, const char *str)
 				{
 					if(!str || !strlen(str))
@@ -384,26 +462,13 @@ void FSPicker::pushFileLocationsView(Input::Event e)
 						view.dismiss();
 						return false;
 					}
-					changeDirByInput(str, appContext().nearestRootPath(str), false, appContext().defaultInputEvent());
+					changeDirByInput(str, appContext().rootPathInfo(str), appContext().defaultInputEvent());
 					dismissPrevious();
 					view.dismiss();
 					return false;
 				});
 			pushAndShow(std::move(textInputView), e);
 		});
-	if(appContext().hasSystemPathPicker())
-	{
-		view->appendItem("OS Path Picker",
-			[this](View &view, Input::Event e)
-			{
-				appContext().showSystemPathPicker(
-					[this, &view](const char *path)
-					{
-						changeDirByInput(path, appContext().nearestRootPath(path), false, appContext().defaultInputEvent());
-						view.dismiss();
-					}, true);
-			});
-	}
 	pushAndShow(std::move(view), e);
 }
 

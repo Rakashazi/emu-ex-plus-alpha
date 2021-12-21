@@ -19,11 +19,11 @@
 #include <emuframework/EmuApp.hh>
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
-#include <emuframework/FileUtils.hh>
-#include <emuframework/FilePicker.hh>
 #include "EmuTiming.hh"
 #include <imagine/base/ApplicationContext.hh>
 #include <imagine/fs/ArchiveFS.hh>
+#include <imagine/fs/FS.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/input/DragTracker.hh>
 #include <imagine/util/utility.h>
 #include <imagine/util/math/int.hh>
@@ -35,8 +35,8 @@
 EmuSystem::State EmuSystem::state = EmuSystem::State::OFF;
 FS::PathString EmuSystem::contentDirectory_{};
 FS::PathString EmuSystem::contentLocation_{};
-FS::PathString EmuSystem::contentSavePath_{};
-FS::PathString EmuSystem::userSavePath_{};
+FS::PathString EmuSystem::contentSaveDirectory_{};
+FS::PathString EmuSystem::userSaveDirectory_{};
 FS::PathString EmuSystem::firmwarePath_{};
 FS::FileString EmuSystem::contentName_{};
 std::string EmuSystem::contentDisplayName_{};
@@ -91,80 +91,85 @@ void EmuSystem::setSpeedMultiplier(EmuAudio &emuAudio, uint8_t speed)
 	emuAudio.setSpeedMultiplier(speed);
 }
 
-void EmuSystem::setupContentUriPaths(Base::ApplicationContext ctx, IG::CStringView uri)
+void EmuSystem::setupContentUriPaths(Base::ApplicationContext ctx, IG::CStringView uri, std::string_view displayName)
 {
+	contentFileName_ = displayName;
+	contentName_ = IG::stringWithoutDotExtension(contentFileName_);
 	contentLocation_ = uri;
-	logMsg("set content uri path:%s", uri.data());
-	contentFileName_ = ctx.fileUriDisplayName(uri);
-	contentName_ = IG::stringWithoutDotExtension(contentFileName_);
-	updateContentSavePath(ctx);
+	contentDirectory_ = FS::dirnameUri(uri);
+	updateContentSaveDirectory(ctx);
 }
 
-void EmuSystem::setupGamePaths(Base::ApplicationContext ctx, IG::CStringView filePath)
+void EmuSystem::setupContentFilePaths(Base::ApplicationContext ctx, IG::CStringView filePath, std::string_view displayName)
 {
-	if(FS::exists(filePath))
-	{
-		// find the realpath of the dirname portion separately in case the file is a symlink
-		contentDirectory_ = FS::dirname(filePath);
-		FS::PathStringArray realPath;
-		if(!realpath(contentDirectory_.data(), realPath.data()))
-		{
-			contentDirectory_ = {};
-			logErr("error in realpath() while setting content directory");
-		}
-		else
-		{
-			contentDirectory_ = realPath.data();
-			logMsg("set content directory:%s", contentDirectory_.data());
-		}
-	}
-	contentFileName_ = FS::basename(filePath);
-	if(contentDirectory_.size())
-	{
-		contentLocation_ = FS::pathString(contentDirectory_, contentFileName_);
-		logMsg("set content path: %s", contentLocation_.data());
-	}
+	contentFileName_ = displayName;
 	contentName_ = IG::stringWithoutDotExtension(contentFileName_);
-	logMsg("set content name:%s", contentName_.data());
-	updateContentSavePath(ctx);
+	// find the realpath of the dirname portion separately in case the file is a symlink
+	auto fileDir = FS::dirname(filePath);
+	if(FS::PathStringArray realPath;
+		!realpath(fileDir.data(), realPath.data()))
+	{
+		logErr("error in realpath() while setting content directory");
+		contentDirectory_ = fileDir;
+		contentLocation_ = filePath;
+	}
+	else
+	{
+		contentDirectory_ = realPath.data();
+		contentLocation_ = FS::pathString(contentDirectory_, contentFileName_);
+		logMsg("set content directory:%s", contentDirectory_.data());
+	}
+	updateContentSaveDirectory(ctx);
 }
 
-void EmuSystem::updateContentSavePath(Base::ApplicationContext ctx)
+void EmuSystem::updateContentSaveDirectory(Base::ApplicationContext ctx)
 {
 	if(contentName_.empty())
 		return;
-	if(userSavePath_.size())
+	if(userSaveDirectory_.size())
 	{
-		if(userSavePath_ == optionSavePathDefaultToken)
-			contentSavePath_ = defaultSavePath(ctx);
+		if(userSaveDirectory_ == optionSavePathDefaultToken)
+			contentSaveDirectory_ = fallbackContentSaveDirectory(ctx, true);
 		else
-			contentSavePath_ = userSavePath_;
+			contentSaveDirectory_ = userSaveDirectory_;
 	}
 	else
 	{
 		if(contentDirectory_.size())
-			contentSavePath_ = contentDirectory_;
+			contentSaveDirectory_ = contentDirectory_;
 		else
-			contentSavePath_ = defaultSavePath(ctx);
+			contentSaveDirectory_ = fallbackContentSaveDirectory(ctx, true);
 	}
-	logMsg("updated content save path:%s", contentSavePath_.data());
+	logMsg("updated content save path:%s", contentSaveDirectory_.data());
 }
 
-FS::PathString EmuSystem::makeDefaultBaseSavePath(Base::ApplicationContext ctx)
+FS::PathString EmuSystem::fallbackSaveDirectory(Base::ApplicationContext ctx, bool create)
 {
-	auto pathTemp = FS::pathString(ctx.sharedStoragePath(), "Game Data");
-	FS::create_directory(pathTemp);
+	auto pathTemp = FS::pathString(ctx.storagePath(), "Game Data");
+	if(create)
+		FS::create_directory(pathTemp);
 	pathTemp += '/';
 	pathTemp += shortSystemName();
-	FS::create_directory(pathTemp);
+	if(create)
+		FS::create_directory(pathTemp);
 	return pathTemp;
 }
 
-void EmuSystem::makeDefaultSavePath(Base::ApplicationContext ctx)
+FS::PathString EmuSystem::fallbackContentSaveDirectory(Base::ApplicationContext ctx, bool create)
 {
 	assert(contentName_.size());
-	auto pathTemp = FS::pathString(makeDefaultBaseSavePath(ctx), contentName_);
-	FS::create_directory(pathTemp);
+	try
+	{
+		auto pathTemp = FS::pathString(fallbackSaveDirectory(ctx, create), contentName_);
+		if(create)
+			FS::create_directory(pathTemp);
+		return pathTemp;
+	}
+	catch(...)
+	{
+		logErr("error making fallback content save dir");
+		return {};
+	}
 }
 
 void EmuSystem::clearGamePaths()
@@ -174,60 +179,35 @@ void EmuSystem::clearGamePaths()
 	contentFileName_ = {};
 	contentDirectory_ = {};
 	contentLocation_ = {};
-	contentSavePath_ = {};
+	contentSaveDirectory_ = {};
 }
 
-FS::PathString EmuSystem::contentSavePath()
+FS::PathString EmuSystem::contentSaveDirectory()
 {
 	assert(!contentName_.empty());
-	return contentSavePath_;
+	return contentSaveDirectory_;
 }
 
 FS::PathString EmuSystem::contentSavePath(Base::ApplicationContext ctx, std::string_view name)
 {
-	return ctx.fileUri(contentSavePath(), name);
+	return FS::uriString(contentSaveDirectory(), name);
 }
 
 FS::PathString EmuSystem::contentSaveFilePath(Base::ApplicationContext ctx, std::string_view ext)
 {
-	return ctx.fileUri(contentSavePath(), contentName().append(ext));
+	return FS::uriString(contentSaveDirectory(), contentName().append(ext));
 }
 
-FS::PathString EmuSystem::defaultSavePath(Base::ApplicationContext ctx)
+FS::PathString EmuSystem::userSaveDirectory()
 {
-	assert(contentName_.size());
-	auto defaultSavePath =
-		FS::pathString(ctx.sharedStoragePath(), "Game Data", shortSystemName(), contentName_);
-	if(!FS::exists(defaultSavePath))
-	{
-		try
-		{
-			makeDefaultSavePath(ctx);
-			logMsg("made default save path:%s", defaultSavePath.data());
-		}
-		catch(...)
-		{
-			logErr("error making default save path:%s", defaultSavePath.data());
-		}
-	}
-	return defaultSavePath;
+	return userSaveDirectory_;
 }
 
-FS::PathString EmuSystem::baseDefaultGameSavePath(Base::ApplicationContext ctx)
-{
-	return FS::pathString(ctx.sharedStoragePath(), "Game Data", shortSystemName());
-}
-
-FS::PathString EmuSystem::userSavePath()
-{
-	return userSavePath_;
-}
-
-void EmuSystem::setUserSavePath(Base::ApplicationContext ctx, IG::CStringView path)
+void EmuSystem::setUserSaveDirectory(Base::ApplicationContext ctx, IG::CStringView path)
 {
 	logMsg("set user save path:%s", path.data());
-	userSavePath_ = path;
-	updateContentSavePath(ctx);
+	userSaveDirectory_ = path;
+	updateContentSaveDirectory(ctx);
 	savePathChanged();
 }
 
@@ -236,14 +216,14 @@ FS::PathString EmuSystem::firmwarePath()
 	return firmwarePath_;
 }
 
-void EmuSystem::setFirmwarePath(IG::CStringView path)
+void EmuSystem::setFirmwarePath(std::string_view path)
 {
 	firmwarePath_ = path;
 }
 
 FS::PathString EmuSystem::statePath(Base::ApplicationContext ctx, std::string_view filename, std::string_view basePath)
 {
-	return ctx.fileUri(basePath, filename);
+	return FS::uriString(basePath, filename);
 }
 
 FS::PathString EmuSystem::statePath(Base::ApplicationContext ctx, int slot, std::string_view path)
@@ -391,7 +371,7 @@ bool EmuSystem::setFrameTime(VideoSystem system, IG::FloatSeconds time)
 	return true;
 }
 
-[[gnu::weak]] FS::PathString EmuSystem::willLoadGameFromPath(Base::ApplicationContext, std::string_view path)
+[[gnu::weak]] FS::PathString EmuSystem::willLoadGameFromPath(Base::ApplicationContext, std::string_view path, std::string_view displayName)
 {
 	return FS::PathString{path};
 }
@@ -402,42 +382,43 @@ void EmuSystem::prepareAudio(EmuAudio &audio)
 	configAudioPlayback(audio, optionSoundRate);
 }
 
-void EmuSystem::closeAndSetupNew(Base::ApplicationContext ctx, IG::CStringView path, bool pathIsUri)
+void EmuSystem::closeAndSetupNew(Base::ApplicationContext ctx, IG::CStringView path, std::string_view displayName)
 {
 	auto &app = EmuApp::get(ctx);
 	EmuSystem::closeRuntimeSystem(app, true);
-	if(!pathIsUri)
-		EmuSystem::setupGamePaths(ctx, path);
+	if(!IG::isUri(path))
+		EmuSystem::setupContentFilePaths(ctx, path, displayName);
 	else
-		EmuSystem::setupContentUriPaths(ctx, path);
+		EmuSystem::setupContentUriPaths(ctx, path, displayName);
+	logMsg("set content name:%s location:%s", contentName_.data(), contentLocation_.data());
 	app.loadSessionOptions();
 }
 
-void EmuSystem::createWithMedia(Base::ApplicationContext ctx, GenericIO io, IG::CStringView path, bool pathIsUri,
+void EmuSystem::createWithMedia(Base::ApplicationContext ctx, GenericIO io, IG::CStringView path, std::string_view displayName,
 	EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
 	if(io)
-		loadGameFromFile(ctx, std::move(io), path, pathIsUri, params, onLoadProgress);
+		loadGameFromFile(ctx, std::move(io), path, displayName, params, onLoadProgress);
 	else
-		loadGameFromPath(ctx, path, pathIsUri, params, onLoadProgress);
+		loadGameFromPath(ctx, path, displayName, params, onLoadProgress);
 }
 
-void EmuSystem::loadGameFromPath(Base::ApplicationContext ctx, IG::CStringView pathStr, bool pathIsUri, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::loadGameFromPath(Base::ApplicationContext ctx, IG::CStringView pathStr, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
-	auto path = willLoadGameFromPath(ctx, pathStr);
+	auto path = willLoadGameFromPath(ctx, pathStr, displayName);
 	if(!handlesGenericIO)
 	{
-		closeAndSetupNew(ctx, path, pathIsUri);
+		closeAndSetupNew(ctx, path, displayName);
 		loadGame(ctx, FileIO{}, params, onLoadProgress);
 		return;
 	}
-	logMsg("load from path:%s", path.data());
-	loadGameFromFile(ctx, FileIO{path, IO::AccessHint::SEQUENTIAL}, path, pathIsUri, params, onLoadProgress);
+	logMsg("load from %s:%s", IG::isUri(path) ? "uri" : "path", path.data());
+	loadGameFromFile(ctx, ctx.openFileUri(path, IO::AccessHint::SEQUENTIAL), path, displayName, params, onLoadProgress);
 }
 
-void EmuSystem::loadGameFromFile(Base::ApplicationContext ctx, GenericIO file, IG::CStringView path, bool pathIsUri, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
+void EmuSystem::loadGameFromFile(Base::ApplicationContext ctx, GenericIO file, IG::CStringView path, std::string_view displayName, EmuSystemCreateParams params, OnLoadProgressDelegate onLoadProgress)
 {
-	if(EmuApp::hasArchiveExtension(path))
+	if(EmuApp::hasArchiveExtension(displayName))
 	{
 		ArchiveIO io{};
 		FS::FileString originalName{};
@@ -460,13 +441,13 @@ void EmuSystem::loadGameFromFile(Base::ApplicationContext ctx, GenericIO file, I
 		{
 			throw std::runtime_error("No recognized file extensions in archive");
 		}
-		closeAndSetupNew(ctx, path, pathIsUri);
+		closeAndSetupNew(ctx, path, displayName);
 		contentFileName_ = originalName;
 		EmuSystem::loadGame(ctx, io, params, onLoadProgress);
 	}
 	else
 	{
-		closeAndSetupNew(ctx, path, pathIsUri);
+		closeAndSetupNew(ctx, path, displayName);
 		EmuSystem::loadGame(ctx, file, params, onLoadProgress);
 	}
 }
@@ -481,9 +462,14 @@ void EmuSystem::throwFileWriteError()
 	throw std::runtime_error("Error writing file");
 }
 
+void EmuSystem::throwMissingContentDirError()
+{
+	throw std::runtime_error("This content must be opened with a folder, \"Browse For File\" isn't supported");
+}
+
 FS::PathString EmuSystem::contentDirectory(Base::ApplicationContext ctx, std::string_view name)
 {
-	return ctx.fileUri(contentDirectory(), name);
+	return FS::uriString(contentDirectory(), name);
 }
 
 std::string EmuSystem::contentDisplayName()
@@ -505,14 +491,14 @@ void EmuSystem::setContentDisplayName(std::string_view name)
 	contentDisplayName_ = name;
 }
 
-std::string EmuSystem::contentDisplayNameForPathDefaultImpl(Base::ApplicationContext ctx, IG::CStringView path)
+FS::FileString EmuSystem::contentDisplayNameForPathDefaultImpl(Base::ApplicationContext ctx, IG::CStringView path)
 {
-	return IG::stringWithoutDotExtension<std::string>(ctx.fileUriDisplayName(path));
+	return IG::stringWithoutDotExtension<FS::FileString>(ctx.fileUriDisplayName(path));
 }
 
 void EmuSystem::setInitialLoadPath(IG::CStringView path)
 {
-	assert(contentName_.size());
+	assert(contentName_.empty());
 	contentLocation_ = path;
 }
 
@@ -574,7 +560,7 @@ bool EmuSystem::inputHasTriggers()
 
 [[gnu::weak]] void EmuSystem::onVideoRenderFormatChange(EmuVideo &, IG::PixelFormat) {}
 
-[[gnu::weak]] std::string EmuSystem::contentDisplayNameForPath(Base::ApplicationContext ctx, IG::CStringView path)
+[[gnu::weak]] FS::FileString EmuSystem::contentDisplayNameForPath(Base::ApplicationContext ctx, IG::CStringView path)
 {
 	return contentDisplayNameForPathDefaultImpl(ctx, path);
 }

@@ -137,10 +137,6 @@ void EmuMainMenuView::onShow()
 void EmuMainMenuView::loadFileBrowserItems()
 {
 	item.emplace_back(&loadGame);
-	if(IG::used(browseContent) && appContext().hasSystemDocumentPicker() && EmuSystem::handlesGenericIO)
-	{
-		item.emplace_back(&browseContent);
-	}
 	item.emplace_back(&recentGames);
 	if(EmuSystem::hasBundledGames && optionShowBundledGames)
 	{
@@ -179,18 +175,10 @@ EmuMainMenuView::EmuMainMenuView(ViewAttachParams attach, bool customMenu):
 	TableView{appViewTitle(), attach, item},
 	loadGame
 	{
-		"Open Content On Device", &defaultFace(),
+		"Open Content", &defaultFace(),
 		[this](Input::Event e)
 		{
-			app().requestFilePickerForLoading(*this, attachParams(), e);
-		}
-	},
-	browseContent
-	{
-		"Browse For Content", &defaultFace(),
-		[this](Input::Event e)
-		{
-			EmuFilePicker::browseForLoading(attachParams());
+			pushAndShow(EmuFilePicker::makeForLoading(attachParams(), e), e, false);
 		}
 	},
 	systemActions

@@ -239,7 +239,7 @@ void boardTimerRemove(BoardTimer* timer)
 
 const char* boardGetBaseDirectory()
 {
-	return EmuSystem::contentSavePathPtr();
+	return EmuSystem::contentSaveDirectoryPtr();
 }
 
 void boardOnBreakpoint(UInt16 pc) { }
@@ -404,7 +404,8 @@ int boardChangeCartridge(int cartNo, RomType romType, const char* cart, const ch
         if (currentRomType[cartNo] == ROM_GOUDASCSI)    hdType[cartNo] = HD_GOUDASCSI;
     }
 
-    logMsg("HD Type %d", (int)hdType[cartNo]);
+    if(hdType[cartNo] != HD_NONE)
+    	logMsg("HD Type:%d", (int)hdType[cartNo]);
 
     bool success;
     if(cartNo < boardInfo.cartridgeCount)

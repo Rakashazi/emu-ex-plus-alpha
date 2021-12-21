@@ -18,9 +18,9 @@
 #include <imagine/util/string/CStringView.hh>
 #include <imagine/util/string/StaticString.hh>
 #include <imagine/util/concepts.hh>
+#include <imagine/util/utility.h>
 #include <string>
 #include <string_view>
-#include <utility>
 
 namespace IG
 {
@@ -32,7 +32,7 @@ class utf16String : public std::u16string
 {
 public:
 	using std::u16string::u16string;
-	utf16String(IG::convertible_to<std::u16string> auto &&s):std::u16string{std::forward<decltype(s)>(s)} {}
+	utf16String(IG::convertible_to<std::u16string> auto &&s):std::u16string{IG_forward(s)} {}
 	[[gnu::nonnull]]
 	utf16String(const char *s):utf16String{std::string_view{s}} {}
 	utf16String(CStringView s):utf16String{std::string_view{s}} {}

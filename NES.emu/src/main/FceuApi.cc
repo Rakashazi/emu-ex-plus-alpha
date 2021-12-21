@@ -18,6 +18,7 @@
 #include <imagine/logger/logger.h>
 #include <imagine/fs/FS.hh>
 #include <imagine/fs/ArchiveFS.hh>
+#include <imagine/io/FileIO.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/FilePicker.hh>
 #include "internal.hh"
@@ -71,10 +72,7 @@ void FCEUI_Emulate(EmuVideo *video, int skip, EmuAudio *audio)
 FILE *FCEUD_UTF8fopen(const char *fn, const char *mode)
 {
 	logMsg("opening file:%s mode:%s", fn, mode);
-	auto file = FileUtils::fopenUri(appCtx, fn, mode);
-//	if(!file)
-//		logErr("error opening %s", fn);
-	return file;
+	return FileUtils::fopenUri(appCtx, fn, mode);
 }
 
 void FCEUD_PrintError(const char *errormsg) { logErr("%s", errormsg); }

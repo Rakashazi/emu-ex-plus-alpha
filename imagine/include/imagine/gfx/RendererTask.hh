@@ -25,7 +25,7 @@
 #include <imagine/gfx/SyncFence.hh>
 #include <imagine/base/baseDefs.hh>
 #include <imagine/util/concepts.hh>
-#include <utility>
+#include <imagine/util/utility.h>
 
 namespace Gfx
 {
@@ -44,7 +44,7 @@ public:
 	// Run a delegate on the renderer thread
 	void run(IG::invocable auto &&f, bool awaitReply = false)
 	{
-		RendererTaskImpl::run(std::forward<decltype(f)>(f), awaitReply);
+		RendererTaskImpl::run(IG_forward(f), awaitReply);
 	}
 
 	// Run a delegate for drawing on the renderer thread
@@ -53,7 +53,7 @@ public:
 		const Viewport &viewport, const Mat4 &projMat,
 		IG::invocable<Base::Window &, RendererCommands &> auto &&f)
 	{
-		return RendererTaskImpl::draw(win, winParams, params, viewport, projMat, std::forward<decltype(f)>(f));
+		return RendererTaskImpl::draw(win, winParams, params, viewport, projMat, IG_forward(f));
 	}
 
 	// synchronization

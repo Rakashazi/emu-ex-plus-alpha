@@ -133,7 +133,7 @@ FS::PathLocation ApplicationContext::sharedStoragePathLocation() const
 {
 	auto path = sharedStoragePath();
 	auto name = Config::MACHINE_IS_PANDORA ? "Media" : "Home";
-	return {path, name, {name, path.size()}};
+	return {path, name};
 }
 
 std::vector<FS::PathLocation> ApplicationContext::rootFileLocations() const

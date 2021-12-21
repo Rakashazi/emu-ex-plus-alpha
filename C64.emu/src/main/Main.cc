@@ -482,14 +482,7 @@ static const char *mainROMFilename(ViceSystem system)
 
 static void throwC64FirmwareError(Base::ApplicationContext app)
 {
-	throw std::runtime_error{
-		fmt::format("System files missing, place C64, DRIVES, & PRINTER directories from VICE"
-		" in a path below, or set a custom path in options:\n"
-		#if defined CONFIG_ENV_LINUX && !defined CONFIG_MACHINE_PANDORA
-		"{}\n{}\n{}", EmuApp::assetPath(app), "~/.local/share/C64.emu", "/usr/share/games/vice")};
-		#else
-		"{}/C64.emu", app.sharedStoragePath())};
-		#endif
+	throw std::runtime_error{fmt::format("System files missing, please set them in Options➔System➔VICE System File Path")};
 }
 
 static bool initC64(EmuApp &app)
@@ -545,7 +538,7 @@ static FS::FileString vic20ExtraCartName(Base::ApplicationContext ctx, std::stri
 	{
 		return {};
 	}
-	auto cartName = FS::FileString{baseCartName};
+	FS::FileString cartName{baseCartName};
 	constexpr std::array<char, 5> addrSuffixChar
 	{
 		'2', '4', '6', 'a', 'b'
@@ -555,7 +548,7 @@ static FS::FileString vic20ExtraCartName(Base::ApplicationContext ctx, std::stri
 		if(suffixChar == baseCartName[addrSuffixOffset])
 			continue; // skip original filename
 		cartName[addrSuffixOffset] = suffixChar;
-		if(ctx.fileUriExists(ctx.fileUri(searchPath, cartName)))
+		if(ctx.fileUriExists(FS::uriString(searchPath, cartName)))
 		{
 			return cartName;
 		}
@@ -577,7 +570,7 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 		if(contentFileName().ends_with(".prg"))
 		{
 			// needed to store AutostartPrgDisk.d64
-			makeDefaultBaseSavePath(ctx);
+			fallbackSaveDirectory(ctx, true);
 		}
 		if(plugin.autostart_autodetect(contentLocation().data(), nullptr, 0, AUTOSTART_MODE_RUN) != 0)
 		{
@@ -609,14 +602,14 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 			{
 				EmuSystem::throwFileReadError();
 			}
-			if(currSystem == VICE_SYSTEM_VIC20) // check if the cart is part of a *-x000.prg pair
+			if(currSystem == VICE_SYSTEM_VIC20 && contentDirectory().size()) // check if the cart is part of a *-x000.prg pair
 			{
 				auto extraCartFilename = vic20ExtraCartName(ctx, contentFileName(), contentDirectory());
 				if(extraCartFilename.size())
 				{
 					logMsg("loading extra cart image:%s", extraCartFilename.data());
 					if(plugin.cartridge_attach_image(systemCartType(currSystem),
-						ctx.fileUri(contentDirectory(), extraCartFilename).data()) != 0)
+						contentDirectory(ctx, extraCartFilename).data()) != 0)
 					{
 						EmuSystem::throwFileReadError();
 					}
@@ -683,14 +676,20 @@ void EmuApp::onCustomizeNavView(EmuApp::NavView &view)
 	view.setBackgroundGradient(navViewGrad);
 }
 
+static FS::PathString autostartPrgDiskImagePath(Base::ApplicationContext ctx)
+{
+	return FS::pathString(EmuSystem::fallbackSaveDirectory(ctx), "AutostartPrgDisk.d64");
+}
+
 void EmuApp::onMainWindowCreated(ViewAttachParams attach, Input::Event e)
 {
 	sysFilePath[0] = EmuSystem::firmwarePath();
 	plugin.init();
 	updateKeyboardMapping();
 	setSysModel(optionDefaultModel(currSystem));
-	plugin.resources_set_string("AutostartPrgDiskImage",
-		attach.appContext().fileUri(EmuSystem::baseDefaultGameSavePath(attach.appContext()), "AutostartPrgDisk.d64").data());
+	auto ctx = attach.appContext();
+	FS::remove(autostartPrgDiskImagePath(ctx));
+	plugin.resources_set_string("AutostartPrgDiskImage", autostartPrgDiskImagePath(ctx).data());
 }
 
 void EmuSystem::onPrepareAudio(EmuAudio &audio)
@@ -727,8 +726,8 @@ void EmuSystem::onInit(Base::ApplicationContext ctx)
 	}
 	else
 	{
-		sysFilePath[1] = FS::pathString(ctx.sharedStoragePath(), "C64.emu");
-		sysFilePath[2] = FS::pathString(ctx.sharedStoragePath(), "C64.emu.zip");
+		sysFilePath[1] = FS::pathString(ctx.storagePath(), "C64.emu");
+		sysFilePath[2] = FS::pathString(ctx.storagePath(), "C64.emu.zip");
 	}
 
 	// higher quality ReSID sampling modes take orders of magnitude more CPU power,

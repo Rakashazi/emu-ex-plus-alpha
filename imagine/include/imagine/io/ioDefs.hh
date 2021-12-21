@@ -43,4 +43,6 @@ enum class SeekMode
 	END = SEEK_END,
 };
 
+using OpenFlags = unsigned;
+
 }

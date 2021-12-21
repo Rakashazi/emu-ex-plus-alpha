@@ -41,42 +41,51 @@ UInt8 *romLoad(const char *filename, const char *filenameInArchive, int *size)
 	if(!filename || !strlen(filename))
 		return nullptr;
 	logMsg("loading ROM file:%s:%s", filename, filenameInArchive);
-	FS::PathString filePath{filename};
-	auto filePathInFirmwarePath = appCtx.fileUri(machineBasePath(appCtx), filename);
-	FS::PathString *searchPath[]{&filePath, &filePathInFirmwarePath};
 	if(filenameInArchive && strlen(filenameInArchive))
 	{
-		for(const auto &path : searchPath)
-		{
-			auto buff = (UInt8*)zipLoadFile(path->data(), filenameInArchive, size);
-			if(buff)
-				return buff;
-		}
+		auto buff = (UInt8*)zipLoadFile(filename, filenameInArchive, size);
+		if(buff)
+			return buff;
+		logErr("can't load ROM from zip");
+		return nullptr;
 	}
 	else
 	{
-		for(const auto &path : searchPath)
+		if(filename[0] == '/' || IG::isUri(filename)) // try to load absolute path directly
 		{
-			auto file = appCtx.openFileUri(*path, IO::AccessHint::ALL, IO::OPEN_TEST);
-			if(!file)
-				continue;
-			return fileToMallocBuffer(file, size);
+			auto file = appCtx.openFileUri(filename, IO::AccessHint::ALL, IO::OPEN_TEST);
+			if(file)
+			{
+				return fileToMallocBuffer(file, size);
+			}
+			logErr("can't load ROM from absolute path");
+			return nullptr;
+		}
+		// relative path, try firmware directory
+		{
+			auto file = appCtx.openFileUri(FS::uriString(machineBasePath(appCtx), filename), IO::AccessHint::ALL, IO::OPEN_TEST);
+			if(file)
+			{
+				return fileToMallocBuffer(file, size);
+			}
 		}
 		// fallback to app assets
-		auto file = appCtx.openAsset(filename, IO::AccessHint::ALL, IO::OPEN_TEST);
-		if(file)
 		{
-			return fileToMallocBuffer(file, size);
+			auto file = appCtx.openAsset(filename, IO::AccessHint::ALL, IO::OPEN_TEST);
+			if(file)
+			{
+				return fileToMallocBuffer(file, size);
+			}
 		}
+		logErr("can't load ROM from relative path");
+		return nullptr;
 	}
-	logErr("can't load ROM");
-	return nullptr;
 }
 
 CLINK FILE *openMachineIni(const char *path, const char *mode)
 {
-	auto filePathInFirmwarePath = FS::pathString(machineBasePath(appCtx), path);
-	FileIO file{filePathInFirmwarePath, IO::AccessHint::ALL, IO::OPEN_TEST};
+	auto filePathInFirmwarePath = FS::uriString(machineBasePath(appCtx), path);
+	auto file = appCtx.openFileUri(filePathInFirmwarePath, IO::AccessHint::ALL, IO::OPEN_TEST);
 	if(file)
 	{
 		return GenericIO{std::move(file)}.moveToFileStream(mode);

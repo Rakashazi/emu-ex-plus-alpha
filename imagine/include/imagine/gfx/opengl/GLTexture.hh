@@ -19,6 +19,7 @@
 #include <imagine/gfx/defs.hh>
 #include <imagine/gfx/TextureConfig.hh>
 #include "GLTextureSampler.hh"
+#include <imagine/pixmap/Pixmap.hh>
 #include <imagine/util/typeTraits.hh>
 #ifdef __ANDROID__
 #include <EGL/egl.h>

@@ -336,7 +336,13 @@ void EmuApp::readRecentContent(Base::ApplicationContext ctx, IO &io, unsigned re
 		if(!bytesRead)
 			continue; // don't add empty paths
 		readSize -= len;
-		RecentContentInfo info{path, FS::FileString{EmuSystem::contentDisplayNameForPath(ctx, path)}};
+		auto displayName = EmuSystem::contentDisplayNameForPath(ctx, path);
+		if(displayName.empty())
+		{
+			logMsg("skipping missing recent content:%s", path.data());
+			continue;
+		}
+		RecentContentInfo info{path, displayName};
 		const auto &added = recentContentList.emplace_back(info);
 		logMsg("added game to recent list:%s, name:%s", added.path.data(), added.name.data());
 	}

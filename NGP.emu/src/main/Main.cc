@@ -25,6 +25,7 @@
 #include <emuframework/EmuAudio.hh>
 #include <emuframework/EmuVideo.hh>
 #include <imagine/fs/FS.hh>
+#include <imagine/io/FileIO.hh>
 #include <imagine/util/string.h>
 #include <imagine/util/format.hh>
 #include <imagine/logger/logger.h>
@@ -84,7 +85,7 @@ void EmuSystem::loadState(IG::CStringView path)
 
 bool system_io_state_read(const char* filename, uint8_t* buffer, uint32 bufferLength)
 {
-	return FileUtils::readFromUri(emuAppPtr->appContext(), filename, buffer, bufferLength) > 0;
+	return FileUtils::readFromUri(emuAppPtr->appContext(), filename, {buffer, bufferLength}) > 0;
 }
 
 static FS::PathString sprintSaveFilename(Base::ApplicationContext ctx)
@@ -96,7 +97,7 @@ bool system_io_flash_read(uint8_t* buffer, uint32_t len)
 {
 	auto ctx = emuAppPtr->appContext();
 	auto saveStr = sprintSaveFilename(ctx);
-	return FileUtils::readFromUri(ctx, saveStr, buffer, len) > 0;
+	return FileUtils::readFromUri(ctx, saveStr, {buffer, len}) > 0;
 }
 
 bool system_io_flash_write(uint8_t* buffer, uint32 len)
@@ -106,7 +107,7 @@ bool system_io_flash_write(uint8_t* buffer, uint32 len)
 	auto ctx = emuAppPtr->appContext();
 	auto saveStr = sprintSaveFilename(ctx);
 	logMsg("writing flash %s", saveStr.data());
-	return FileUtils::writeToUri(ctx, saveStr, buffer, len) != -1;
+	return FileUtils::writeToUri(ctx, saveStr, {buffer, len}) != -1;
 }
 
 void EmuSystem::saveBackupMem(Base::ApplicationContext)

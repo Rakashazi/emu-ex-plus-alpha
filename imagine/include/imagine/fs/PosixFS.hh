@@ -16,57 +16,47 @@
 	along with Imagine.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/defs.hh>
+#include <imagine/fs/FSDefs.hh>
 #include <imagine/util/string/CStringView.hh>
-#include <imagine/util/string/StaticString.hh>
-#include <algorithm>
+#include <imagine/util/utility.h>
 #include <ctime>
-#include <array>
 #include <memory>
-#include <unistd.h>
 #include <dirent.h>
+#include <unistd.h>
 #include <limits.h>
 
 namespace FS
 {
 
-static constexpr uint32_t FILE_STRING_SIZE = std::max(512, NAME_MAX + 1);
-using FileStringImpl = IG::StaticString<FILE_STRING_SIZE>;
-class FileString : public FileStringImpl
+class directory_entry
 {
 public:
-	using FileStringImpl::FileStringImpl;
-	using FileStringImpl::operator=;
-};
-
-static constexpr uint32_t PATH_STRING_SIZE = std::max(1024, PATH_MAX);
-using PathStringImpl = IG::StaticString<PATH_STRING_SIZE>;
-class PathString : public PathStringImpl
-{
-public:
-	using PathStringImpl::PathStringImpl;
-	using PathStringImpl::operator=;
-};
-
-using FileTimeTypeImpl = std::time_t;
-
-enum class file_type;
-
-static constexpr int accExistsImpl = F_OK;
-static constexpr int accReadBitImpl = R_OK;
-static constexpr int accWriteBitImpl = W_OK;
-static constexpr int accExecBitImpl = X_OK;
-
-class DirectoryEntryImpl
-{
-public:
-	DirectoryEntryImpl(IG::CStringView path);
-	bool readNextDir();
-	bool hasEntry() const;
+	constexpr directory_entry() = default;
+	constexpr directory_entry(auto &&path, struct dirent *dirent):
+		dirent_{dirent}, path_{IG_forward(path)} {}
+	constexpr directory_entry(auto &&path, auto &&name, file_type type, file_type linkType = file_type::unknown):
+		path_{IG_forward(path)}, name_{IG_forward(name)}, type_{type}, linkType_{linkType} {}
 	std::string_view name() const;
 	file_type type() const;
 	file_type symlink_type() const;
 	PathString path() const;
-	void close();
+	explicit operator bool() const { return path_.size(); }
+
+protected:
+	struct dirent *dirent_{};
+	PathString path_{};
+	FileString name_{};
+	mutable file_type type_{};
+	mutable file_type linkType_{};
+};
+
+class DirectoryStream
+{
+public:
+	DirectoryStream(IG::CStringView path);
+	bool readNextDir();
+	bool hasEntry() const;
+	directory_entry &entry() { return entry_; }
 
 protected:
 	struct DirectoryStreamDeleter
@@ -79,9 +69,7 @@ protected:
 	using UniqueDirectoryStream = std::unique_ptr<DIR, DirectoryStreamDeleter>;
 
 	UniqueDirectoryStream dir{};
-	struct dirent *dirent_{};
-	mutable file_type type_{};
-	mutable file_type linkType_{};
+	directory_entry entry_;
 	PathString basePath{};
 
 	static void closeDirectoryStream(DIR *);

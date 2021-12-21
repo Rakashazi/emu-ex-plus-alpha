@@ -24,6 +24,7 @@
 #include "internal.hh"
 #include <imagine/fs/FS.hh>
 #include <imagine/util/format.hh>
+#include <imagine/util/string.h>
 
 extern "C"
 {
@@ -433,9 +434,9 @@ static const RomListEntry romlist[]
 	{ "zupapa", 0 },
 };
 
-static FS::PathString gameFilePath(EmuApp &app, const char *name)
+static FS::PathString gameFilePath(EmuApp &app, std::string_view name)
 {
-	auto basePath = FS::pathString(app.mediaSearchPath(), name);
+	auto basePath = app.contentSearchPath(name);
 	auto ctx = app.appContext();
 	if(auto zipPath = basePath + ".zip";
 		ctx.fileUriExists(zipPath))
@@ -449,9 +450,12 @@ static FS::PathString gameFilePath(EmuApp &app, const char *name)
 	return {};
 }
 
-static bool gameFileExists(EmuApp &app, const char *name)
+constexpr static bool gameFileExists(std::string_view name, std::string_view nameList)
 {
-	return gameFilePath(app, name).size();
+	return IG::stringContainsAny(nameList,
+		FS::FileString{name}.append(".zip"),
+		FS::FileString{name}.append(".7z"),
+		FS::FileString{name}.append(".rar"));
 }
 
 class GameListView : public TableView, public EmuAppHelper<GameListView>
@@ -461,7 +465,8 @@ private:
 
 	void loadGame(const RomListEntry &entry, Input::Event e)
 	{
-		app().createSystemWithMedia({}, gameFilePath(app(), entry.name), e, {}, attachParams(),
+		auto gamePath = gameFilePath(app(), entry.name);
+		app().createSystemWithMedia({}, gamePath, appContext().fileUriDisplayName(gamePath), e, {}, attachParams(),
 			[this](Input::Event e)
 			{
 				app().addCurrentContentToRecent();
@@ -478,14 +483,26 @@ public:
 			item
 		}
 	{
+		auto ctx = appContext();
+		std::string fileList{}; // hold concatenated list of relevant filenames for fast checking
+		fileList.reserve(4095); // avoid initial small re-allocations
+		ctx.forEachInDirectoryUri(app().contentSearchPath(),
+			[&](auto &entry)
+			{
+				if(entry.type() == FS::file_type::directory)
+					return true;
+				if(entry.name().size() > 12) // MAME filenames follow 8.3 convention
+					return true;
+				fileList += entry.name();
+				return true;
+			});
 		for(const auto &entry : romlist)
 		{
-			auto ctx = appContext();
 			ROM_DEF *drv = res_load_drv(&ctx, entry.name);
 			if(!drv)
 				continue;
 			auto freeDrv = IG::scopeGuard([&](){ free(drv); });
-			bool fileExists = gameFileExists(app(), drv->name);
+			bool fileExists = gameFileExists(drv->name, fileList);
 			if(!optionListAllGames && !fileExists)
 			{
 				continue;
@@ -521,7 +538,7 @@ public:
 		}
 	}
 
-	int games()
+	int games() const
 	{
 		return item.size();
 	}

@@ -82,18 +82,18 @@ void ApplicationContext::openURL(IG::CStringView url) const
 	jOpenURL(env, baseActivity, env->NewStringUTF(url));
 }
 
-void AndroidApplication::openDocumentTreeIntent(JNIEnv *env, jobject baseActivity, SystemPathPickerDelegate del, bool convertToPath)
+void AndroidApplication::openDocumentTreeIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
 {
-	onSystemPathPicker = del;
-	JNI::InstMethod<void(jlong, jboolean)> jOpenDocumentTree{env, env->GetObjectClass(baseActivity), "openDocumentTree", "(JZ)V"};
-	jOpenDocumentTree(env, baseActivity, (jlong)this, convertToPath);
+	onSystemDocumentPicker = del;
+	JNI::InstMethod<void(jlong)> jOpenDocumentTree{env, env->GetObjectClass(baseActivity), "openDocumentTree", "(J)V"};
+	jOpenDocumentTree(env, baseActivity, (jlong)this);
 }
 
-bool ApplicationContext::hasSystemPathPicker() const { return androidSDK() >= 30; }
+bool ApplicationContext::hasSystemPathPicker() const { return androidSDK() >= 21; }
 
-void ApplicationContext::showSystemPathPicker(SystemPathPickerDelegate del, bool convertToPath)
+void ApplicationContext::showSystemPathPicker(SystemDocumentPickerDelegate del)
 {
-	application().openDocumentTreeIntent(mainThreadJniEnv(), baseActivityObject(), del, convertToPath);
+	application().openDocumentTreeIntent(mainThreadJniEnv(), baseActivityObject(), del);
 }
 
 void AndroidApplication::openDocumentIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
@@ -108,6 +108,38 @@ bool ApplicationContext::hasSystemDocumentPicker() const { return androidSDK() >
 void ApplicationContext::showSystemDocumentPicker(SystemDocumentPickerDelegate del)
 {
 	application().openDocumentIntent(mainThreadJniEnv(), baseActivityObject(), del);
+}
+
+void AndroidApplication::createDocumentIntent(JNIEnv *env, jobject baseActivity, SystemDocumentPickerDelegate del)
+{
+	onSystemDocumentPicker = del;
+	JNI::InstMethod<void(jlong)> jCreateDocument{env, env->GetObjectClass(baseActivity), "createDocument", "(J)V"};
+	jCreateDocument(env, baseActivity, (jlong)this);
+}
+
+void ApplicationContext::showSystemCreateDocumentPicker(SystemDocumentPickerDelegate del)
+{
+	application().createDocumentIntent(mainThreadJniEnv(), baseActivityObject(), del);
+}
+
+void AndroidApplication::handleDocumentIntentResult(const char *uri, const char *name)
+{
+	if(isRunning())
+	{
+		std::exchange(onSystemDocumentPicker, {})(uri, name);
+	}
+	else
+	{
+		// wait until after app resumes before handling result
+		addOnResume(
+			[uriCopy = strdup(uri), nameCopy = strdup(name)](ApplicationContext ctx, bool focused)
+			{
+				std::exchange(ctx.application().onSystemDocumentPicker, {})(uriCopy, nameCopy);
+				::free(nameCopy);
+				::free(uriCopy);
+				return false;
+			}, APP_ON_RESUME_PRIORITY + 100);
+	}
 }
 
 }
