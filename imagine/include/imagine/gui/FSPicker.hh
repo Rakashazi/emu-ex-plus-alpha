@@ -68,6 +68,7 @@ public:
 	bool isSingleDirectoryMode() const;
 	void goUpDirectory(Input::Event);
 	void pushFileLocationsView(Input::Event);
+	void setShowHiddenFiles(bool);
 
 protected:
 	struct FileEntry
@@ -86,6 +87,7 @@ protected:
 	FS::RootedPath root{};
 	Gfx::Text msgText{};
 	Mode mode_{};
+	bool showHiddenFiles_{};
 
 	std::error_code changeDirByInput(IG::CStringView path, FS::RootPathInfo rootInfo, Input::Event e);
 	bool isAtRoot() const;

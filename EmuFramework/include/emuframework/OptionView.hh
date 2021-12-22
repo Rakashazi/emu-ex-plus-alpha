@@ -193,12 +193,13 @@ protected:
 	BoolMenuItem systemActionsIsDefaultMenu;
 	BoolMenuItem showBundledGames;
 	BoolMenuItem showBluetoothScan;
+	BoolMenuItem showHiddenFiles;
 	TextHeadingMenuItem orientationHeading;
 	TextMenuItem menuOrientationItem[Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 5 : 4];
 	MultiChoiceMenuItem menuOrientation;
 	TextMenuItem gameOrientationItem[Config::BASE_SUPPORTS_ORIENTATION_SENSOR ? 5 : 4];
 	MultiChoiceMenuItem gameOrientation;
-	StaticArrayList<MenuItem*, 20> item{};
+	StaticArrayList<MenuItem*, 21> item{};
 
 	void setFontSize(uint16_t val);
 };

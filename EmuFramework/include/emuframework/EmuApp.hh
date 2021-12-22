@@ -192,6 +192,8 @@ public:
 	RecentContentList &recentContent() { return recentContentList; };
 	void writeRecentContent(IO &);
 	void readRecentContent(Base::ApplicationContext, IO &, unsigned readSize_);
+	bool showHiddenFilesInPicker(){ return showHiddenFilesInPicker_; };
+	void setShowHiddenFilesInPicker(bool on){ showHiddenFilesInPicker_ = on; };
 	Base::ApplicationContext appContext() const;
 	static EmuApp &get(Base::ApplicationContext);
 
@@ -311,9 +313,10 @@ protected:
 	BluetoothAdapter *bta{};
 	#endif
 	IG_UseMemberIf(Config::EmuFramework::MOGA_INPUT, std::unique_ptr<Input::MogaManager>, mogaManagerPtr){};
+	RecentContentList recentContentList{};
 	Gfx::DrawableConfig windowDrawableConf{};
 	IG::PixelFormat renderPixelFmt{};
-	RecentContentList recentContentList{};
+	bool showHiddenFilesInPicker_{};
 
 	class ConfigParams
 	{

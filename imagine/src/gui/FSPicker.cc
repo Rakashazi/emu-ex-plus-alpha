@@ -229,6 +229,10 @@ std::error_code FSPicker::setPath(IG::CStringView path, FS::RootPathInfo rootInf
 					if(isDir)
 						return true;
 				}
+				if(!showHiddenFiles_ && entry.name().starts_with('.'))
+				{
+					return true;
+				}
 				if(filter && !filter(entry))
 				{
 					return true;
@@ -475,4 +479,9 @@ void FSPicker::pushFileLocationsView(Input::Event e)
 Gfx::GlyphTextureSet &FSPicker::face()
 {
 	return *msgText.face();
+}
+
+void FSPicker::setShowHiddenFiles(bool on)
+{
+	showHiddenFiles_ = on;
 }

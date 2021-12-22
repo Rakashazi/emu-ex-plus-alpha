@@ -53,7 +53,11 @@ EmuFilePicker::EmuFilePicker(ViewAttachParams attach, EmuApp &app,
 				return false;
 		}},
 		mode
-	} {}
+	}
+{
+	if(app.showHiddenFilesInPicker())
+		setShowHiddenFiles(true);
+}
 
 std::unique_ptr<EmuFilePicker> EmuFilePicker::makeForBenchmarking(ViewAttachParams attach, Input::Event e, bool singleDir)
 {

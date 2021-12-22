@@ -281,6 +281,15 @@ GUIOptionView::GUIOptionView(ViewAttachParams attach, bool customMenu):
 			app().dispatchOnMainMenuItemOptionChanged();
 		}
 	},
+	showHiddenFiles
+	{
+		"Show Hidden Files", &defaultFace(),
+		app().showHiddenFilesInPicker(),
+		[this](BoolMenuItem &item, Input::Event e)
+		{
+			app().setShowHiddenFilesInPicker(item.flipBoolValue(*this));
+		}
+	},
 	orientationHeading
 	{
 		"Orientation", &defaultBoldFace()
@@ -392,6 +401,7 @@ void GUIOptionView::loadStockItems()
 	#ifdef CONFIG_BLUETOOTH
 	item.emplace_back(&showBluetoothScan);
 	#endif
+	item.emplace_back(&showHiddenFiles);
 	if(!optionGameOrientation.isConst)
 	{
 		item.emplace_back(&orientationHeading);

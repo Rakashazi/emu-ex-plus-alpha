@@ -230,6 +230,7 @@ void EmuApp::saveConfigFile(IO &io)
 	writeOptionValue(io, CFGKEY_WINDOW_PIXEL_FORMAT, windowDrawablePixelFormatOption());
 	writeOptionValue(io, CFGKEY_VIDEO_COLOR_SPACE, windowDrawableColorSpaceOption());
 	writeOptionValue(io, CFGKEY_RENDER_PIXEL_FORMAT, renderPixelFormatOption());
+	if(showHiddenFilesInPicker()) writeOptionValue(io, CFGKEY_SHOW_HIDDEN_FILES, true);
 	if constexpr(Config::EmuFramework::MOGA_INPUT)
 	{
 		if(mogaManagerPtr)
@@ -534,6 +535,7 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(Base::ApplicationContext ctx)
 				}
 				bcase CFGKEY_WINDOW_PIXEL_FORMAT: pendingWindowDrawableConf.pixelFormat = readOptionValue<IG::PixelFormat>(io, size, windowPixelFormatIsValid).value_or(IG::PixelFormat{});
 				bcase CFGKEY_VIDEO_COLOR_SPACE: pendingWindowDrawableConf.colorSpace = readOptionValue<Gfx::ColorSpace>(io, size, colorSpaceIsValid).value_or(Gfx::ColorSpace{});
+				bcase CFGKEY_SHOW_HIDDEN_FILES: setShowHiddenFilesInPicker(readOptionValue<bool>(io, size).value_or(false));
 				bcase CFGKEY_INPUT_KEY_CONFIGS:
 				{
 					if(!readKeyConfig(io, size, inputControlCategories()))
