@@ -288,6 +288,48 @@ static void setIntResourceToDefault(const char *name)
 	setIntResource(name, val);
 }
 
+bool currSystemIsC64()
+{
+	switch (currSystem)
+	{
+		case VICE_SYSTEM_C64:
+		case VICE_SYSTEM_C64SC:
+		case VICE_SYSTEM_SUPER_CPU:
+		case VICE_SYSTEM_C64DTV:
+			return true;
+		default:
+			return false;
+	}
+}
+
+bool currSystemIsC64Or128()
+{
+	return currSystemIsC64() || currSystem == VICE_SYSTEM_C128;
+}
+
+void setRuntimeReuSize(int size)
+{
+	 // REU may be in use mid-frame so use a trap & wait 2 frames
+	plugin.interrupt_maincpu_trigger_trap(
+		[](uint16_t, void *data)
+		{
+			auto size = (uintptr_t)data;
+			if(size)
+			{
+				logMsg("enabling REU size:%d", (int)size);
+				setIntResource("REUsize", size);
+				setIntResource("REU", 1);
+			}
+			else
+			{
+				logMsg("disabling REU");
+				setIntResource("REU", 0);
+			}
+		}, (void*)(uintptr_t)size);
+	execC64Frame();
+	execC64Frame();
+}
+
 void applySessionOptions()
 {
 	if((int)optionModel == -1)
@@ -317,6 +359,14 @@ void applySessionOptions()
 			setIntResource("RamBlock3", 1);
 		if(blocks & BLOCK_5)
 			setIntResource("RamBlock5", 1);
+	}
+	if(currSystemIsC64Or128())
+	{
+		if(optionC64RamExpansionModule)
+		{
+			setIntResource("REU", 1);
+			setIntResource("REUsize", optionC64RamExpansionModule);
+		}
 	}
 }
 
@@ -461,6 +511,10 @@ void EmuSystem::closeSystem(Base::ApplicationContext ctx)
 	}
 	saveBackupMem(ctx);
 	setIntResource("WarpMode", 0);
+	if(intResource("REU"))
+	{
+		setRuntimeReuSize(0);
+	}
 	plugin.tape_image_detach(1);
 	plugin.file_system_detach_disk(8, 0);
 	plugin.file_system_detach_disk(9, 0);
@@ -514,7 +568,7 @@ bool EmuApp::willCreateSystem(ViewAttachParams attach, Input::Event e)
 	return false;
 }
 
-static FS::FileString vic20ExtraCartName(Base::ApplicationContext ctx, std::string_view baseCartName, std::string_view searchPath)
+static FS::PathString vic20ExtraCartPath(Base::ApplicationContext ctx, std::string_view baseCartName, std::string_view searchPath)
 {
 	auto findAddrSuffixOffset =
 	[](std::string_view baseCartName) -> uintptr_t
@@ -538,7 +592,7 @@ static FS::FileString vic20ExtraCartName(Base::ApplicationContext ctx, std::stri
 	{
 		return {};
 	}
-	FS::FileString cartName{baseCartName};
+	addrSuffixOffset++; // skip '-'
 	constexpr std::array<char, 5> addrSuffixChar
 	{
 		'2', '4', '6', 'a', 'b'
@@ -547,10 +601,12 @@ static FS::FileString vic20ExtraCartName(Base::ApplicationContext ctx, std::stri
 	{
 		if(suffixChar == baseCartName[addrSuffixOffset])
 			continue; // skip original filename
+		FS::FileString cartName{baseCartName};
 		cartName[addrSuffixOffset] = suffixChar;
-		if(ctx.fileUriExists(FS::uriString(searchPath, cartName)))
+		auto cartPath = FS::uriString(searchPath, cartName);
+		if(ctx.fileUriExists(cartPath))
 		{
-			return cartName;
+			return cartPath;
 		}
 	}
 	return {};
@@ -604,12 +660,11 @@ void EmuSystem::loadGame(Base::ApplicationContext ctx, IO &, EmuSystemCreatePara
 			}
 			if(currSystem == VICE_SYSTEM_VIC20 && contentDirectory().size()) // check if the cart is part of a *-x000.prg pair
 			{
-				auto extraCartFilename = vic20ExtraCartName(ctx, contentFileName(), contentDirectory());
-				if(extraCartFilename.size())
+				auto extraCartPath = vic20ExtraCartPath(ctx, contentFileName(), contentDirectory());
+				if(extraCartPath.size())
 				{
-					logMsg("loading extra cart image:%s", extraCartFilename.data());
-					if(plugin.cartridge_attach_image(systemCartType(currSystem),
-						contentDirectory(ctx, extraCartFilename).data()) != 0)
+					logMsg("loading extra cart image:%s", extraCartPath.data());
+					if(plugin.cartridge_attach_image(systemCartType(currSystem), extraCartPath.data()) != 0)
 					{
 						EmuSystem::throwFileReadError();
 					}

@@ -63,6 +63,7 @@ typedef uint32_t CLOCK;
 #define uint_to_void_ptr(x) ((void *)(unsigned long)(x))
 #endif
 
+typedef uint16_t uint16align1 __attribute__((aligned(1)));
 typedef uint32_t uint32align1 __attribute__((aligned(1)));
 typedef uint32_t uint32align2 __attribute__((aligned(2)));
 

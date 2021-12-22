@@ -61,6 +61,7 @@ extern Byte1Option optionReSidSampling;
 extern Byte1Option optionSwapJoystickPorts;
 extern Byte1Option optionAutostartOnLaunch;
 extern Byte1Option optionVic20RamExpansions;
+extern Byte2Option optionC64RamExpansionModule;
 
 int intResource(const char *name);
 void setIntResource(const char *name, int val);
@@ -104,3 +105,6 @@ void setPaletteResources(const char *palName);
 bool usingExternalPalette();
 const char *externalPaletteName();
 void setJoystickMode(JoystickMode);
+bool currSystemIsC64();
+bool currSystemIsC64Or128();
+void setRuntimeReuSize(int size);

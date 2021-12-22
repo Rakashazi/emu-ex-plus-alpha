@@ -379,8 +379,8 @@ inline static void _draw_hires_bitmap(uint8_t *p, unsigned int xs,
         }
 
         d = msk_ptr[i] = bmval;
-        *((uint32_t *)p + i * 2) = ptr[d >> 4];
-        *((uint32_t *)p + i * 2 + 1) = ptr[d & 0xf];
+        *((uint32align2 *)p + i * 2) = ptr[d >> 4];
+        *((uint32align2 *)p + i * 2 + 1) = ptr[d & 0xf];
     }
 }
 
@@ -519,10 +519,10 @@ inline static void _draw_mc_text(uint8_t *p, unsigned int xs, unsigned int xe,
         uint8_t c3 = vicii.cbuf[i];
         if (c3 & 0x8) {
             c[7] = c[6] = c3 & 0x7;
-            ptmp[0] = ((uint16_t *)c)[mc_table[d]];
-            ptmp[1] = ((uint16_t *)c)[mc_table[0x100 + d]];
-            ptmp[2] = ((uint16_t *)c)[mc_table[0x200 + d]];
-            ptmp[3] = ((uint16_t *)c)[d & 3];
+            ptmp[0] = ((uint16align1 *)c)[mc_table[d]];
+            ptmp[1] = ((uint16align1 *)c)[mc_table[0x100 + d]];
+            ptmp[2] = ((uint16align1 *)c)[mc_table[0x200 + d]];
+            ptmp[3] = ((uint16align1 *)c)[d & 3];
             ptmp += 4;
             msk_ptr[i] = mcmsktable[d];
         } else {

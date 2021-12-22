@@ -46,7 +46,7 @@ enum
 	CFGKEY_VIRTUAL_DEVICE_TRAPS = 274, CFGKEY_RESID_SAMPLING = 275,
 	CFGKEY_MODEL = 276, CFGKEY_AUTOSTART_BASIC_LOAD = 277,
 	CFGKEY_VIC20_RAM_EXPANSIONS = 278, CFGKEY_AUTOSTART_ON_LOAD = 279,
-	CFGKEY_PALETTE_NAME = 280
+	CFGKEY_PALETTE_NAME = 280, CFGKEY_C64_RAM_EXPANSION_MODULE = 281,
 };
 
 const char *EmuSystem::configFilename = "C64Emu.config";
@@ -95,6 +95,9 @@ Byte1Option optionAutostartOnLaunch(CFGKEY_AUTOSTART_ON_LOAD, 1);
 
 // VIC-20 specific
 Byte1Option optionVic20RamExpansions(CFGKEY_VIC20_RAM_EXPANSIONS, 0);
+
+// C64 specific
+Byte2Option optionC64RamExpansionModule(CFGKEY_C64_RAM_EXPANSION_MODULE, 0);
 
 static std::array<char, 21> externalPaletteResStr{};
 static std::array<char, 17> paletteFileResStr{};
@@ -186,6 +189,7 @@ bool EmuSystem::resetSessionOptions(EmuApp &app)
 	optionSwapJoystickPorts.reset();
 	optionAutostartOnLaunch.reset();
 	optionVic20RamExpansions.reset();
+	optionC64RamExpansionModule.reset();
 	setPaletteResources({});
 	onSessionOptionsLoaded(app);
 	return true;
@@ -210,6 +214,7 @@ bool EmuSystem::readSessionConfig(IO &io, unsigned key, unsigned readSize)
 		bcase CFGKEY_SWAP_JOYSTICK_PORTS: optionSwapJoystickPorts.readFromIO(io, readSize);
 		bcase CFGKEY_AUTOSTART_ON_LOAD: optionAutostartOnLaunch.readFromIO(io, readSize);
 		bcase CFGKEY_VIC20_RAM_EXPANSIONS: optionVic20RamExpansions.readFromIO(io, readSize);
+		bcase CFGKEY_C64_RAM_EXPANSION_MODULE: optionC64RamExpansionModule.readFromIO(io, readSize);
 		bcase CFGKEY_PALETTE_NAME:
 			readStringOptionValue<FS::FileString>(io, readSize, [](auto &name){setPaletteResources(name.data());});
 	}
@@ -238,6 +243,14 @@ void EmuSystem::writeSessionConfig(IO &io)
 		blocks |= (intResource("RamBlock5") ? BLOCK_5 : 0);
 		optionVic20RamExpansions = blocks;
 		optionVic20RamExpansions.writeWithKeyIfNotDefault(io);
+	}
+	if(currSystemIsC64Or128())
+	{
+		if(intResource("REU"))
+		{
+			optionC64RamExpansionModule = intResource("REUsize");
+			optionC64RamExpansionModule.writeWithKeyIfNotDefault(io);
+		}
 	}
 	if(usingExternalPalette())
 	{

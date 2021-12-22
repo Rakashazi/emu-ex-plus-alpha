@@ -663,7 +663,7 @@ void EmuApp::reloadGame(EmuSystemCreateParams params)
 	try
 	{
 		EmuSystem::createWithMedia(appContext(), {}, EmuSystem::contentLocation(),
-			EmuSystem::contentName(), params,
+			EmuSystem::contentFileName(), params,
 			[](int pos, int max, const char *label){ return true; });
 		viewController().onSystemCreated();
 		viewController().showEmulation();

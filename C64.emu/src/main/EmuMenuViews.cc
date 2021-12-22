@@ -1208,7 +1208,51 @@ class MachineOptionView : public TableView, public EmuAppHelper<MachineOptionVie
 		paletteItem
 	};
 
-	StaticArrayList<MenuItem*, 9> menuItem{};
+	TextHeadingMenuItem cartHeader{"Cartridges", &defaultFace()};
+
+	TextMenuItem::SelectDelegate setReuDel(int val)
+	{
+		return [this, val](){ setRuntimeReuSize(val); };
+	}
+
+	TextMenuItem reuItem[9]
+	{
+		{"Off",    &defaultFace(), setReuDel(0)},
+		{"128KiB", &defaultFace(), setReuDel(128)},
+		{"256KiB", &defaultFace(), setReuDel(256)},
+		{"512KiB", &defaultFace(), setReuDel(512)},
+		{"1MiB",   &defaultFace(), setReuDel(1024)},
+		{"2MiB",   &defaultFace(), setReuDel(2048)},
+		{"4MiB",   &defaultFace(), setReuDel(4096)},
+		{"8MiB",   &defaultFace(), setReuDel(8192)},
+		{"16MiB",  &defaultFace(), setReuDel(16384)},
+	};
+
+	MultiChoiceMenuItem reu
+	{
+		"Ram Expansion Module", &defaultFace(),
+		[this]()
+		{
+			EmuSystem::sessionOptionSet();
+			if(!intResource("REU"))
+				return 0;
+			switch (intResource("REUsize"))
+			{
+				default: return 0;
+				case 128: return 1;
+				case 256: return 2;
+				case 512: return 3;
+				case 1024: return 4;
+				case 2048: return 5;
+				case 4096: return 6;
+				case 8192: return 7;
+				case 16384: return 8;
+			}
+		}(),
+		reuItem
+	};
+
+	StaticArrayList<MenuItem*, 11> menuItem{};
 
 public:
 	MachineOptionView(ViewAttachParams attach):
@@ -1262,6 +1306,11 @@ public:
 				});
 		}
 		menuItem.emplace_back(&palette);
+		if(currSystemIsC64Or128())
+		{
+			menuItem.emplace_back(&cartHeader);
+			menuItem.emplace_back(&reu);
+		}
 	}
 };
 
